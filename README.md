@@ -15,7 +15,7 @@ SoC is already supported.
 
 ==Tag version is the officaial release version, please use the official release version for development.==
 
-|Chip                                                                                |          v1.X.X             |
+|Chip                                                                                |          v1.2.0             |
 |:---------------------------------------------------------------------------------- | :-------------------------: |
 |[BK7235](http://docs.bekencorp.com:8191/spec/BK7235/BK7235%C2%A0Datasheet_V0.1.pdf) | ![alt text][developing]     |
 |[BK7237](http://docs.bekencorp.com:8191/spec/BK7237/BK7237%C2%A0Datasheet_V0.3.pdf) | ![alt text][developing]     |
@@ -31,7 +31,7 @@ Beken SoCs released before 2022, such as BK7231N, BK7231U, BK7251 etc, are not s
 The following table shows Armino support of Popular IoT OS where ![alt text][developing] and ![alt text][supported]
 denote developing status and support, respectively.
 
-|OS           |         v1.0           |
+|OS           |         v1.2.0           |
 |:----------- |:---------------------: |
 |FreeRTOS     | ![alt text][supported] |
 |LiteOS       | ![alt text][supported]|

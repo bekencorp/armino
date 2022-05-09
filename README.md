@@ -57,8 +57,7 @@ Here's a quick summary of resources to help you find your way around:
 
  - Documentation: http://docs.bekencorp.com:8191/armino/master/en/html/
  - Source Code: https://github.com/bekencorp/armino is the main repository
- - Releases: TODO_link_to_release_page
- - Samples and example code: TODO_link_to_doc_sample_and_demo_page
- - Resource download center: TODO_link_to_download_center_page
+ - Releases: https://github.com/bekencorp/armino/releases is the release page
+ - Samples and example code: https://github.com/bekencorp/armino/tree/main/components/demos is the demos repository
  - Beken Products: http://www.bekencorp.com/index/goods/product.html to gain overview about different Beken products
  - Beken Home Page: http://www.bekencorp.com to find more resources

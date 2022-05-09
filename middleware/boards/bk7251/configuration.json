@@ -1,0 +1,21 @@
+{
+    "count": 2,
+    "magic": "RT-Thread",
+    "section": [
+        {
+            "firmware": "bootloader_bk7251_uart2_v1.0.10.bin",
+            "partition": "bootloader",
+            "size": "65280",
+            "start_addr": "0x00000000",
+            "version": "2M.1220"
+        },
+        {
+            "firmware": "app.bin",
+            "partition": "app",
+            "size": "1156K",
+            "start_addr": "0x00011000",
+            "version": "2M.1220"
+        }
+    ],
+    "version": "0.1"
+}

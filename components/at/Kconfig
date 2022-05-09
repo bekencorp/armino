@@ -1,0 +1,3 @@
+config AT_CMD
+	bool "Enable AT_CMD"
+	default n

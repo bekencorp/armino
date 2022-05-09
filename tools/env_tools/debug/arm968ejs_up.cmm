@@ -1,0 +1,74 @@
+; --------------------------------------------------------------------------------
+; @Title: Example Script File for ARM Development Board with ARM940T Pid Header Card
+; @Description:
+;   Example script file for ARM development board (HBI-0011B) with ARM940T pid
+; @Author: wzl
+; @Board: bk7251
+; @Chip: ARM968ejs
+; @Copyright: (C) 2000-2025 Beken Corp, licensed for use with TRACE32(R) only
+; --------------------------------------------------------------------------------
+
+WinCLEAR
+
+;Refresh when printing
+SCREEN.ON
+
+; Debugger Reset
+WinPAGE.RESet
+AREA.RESet
+WinPOS 0. 24. 75. 8.
+AREA.view
+
+PRINT "resetting..."
+sYmbol.RESet
+SYStem.RESet
+TASK.RESet
+Break.Delete
+
+;The mapping system is reset to its default state
+MAP.RESet
+
+;Reset MMU configuration
+;TRANSlation.RESet
+
+// select CPU type
+SYStem.CPU ARM968E
+
+// set endianism according to the selection
+SYStem.Option BigEndian OFF
+
+;Disable interrupts while single stepping
+SYStem.Option IMASKASM ON
+
+;Disable interrupts while HLL single stepping
+SYStem.Option IMASKHLL ON
+SYStem.JtagClock CTCK 1MHz
+
+// start debugger
+SYStem.Up
+
+// attach cpu
+;SYStem.Mode Attach
+
+// load selected example program
+Data.LOAD.ELF "../out/beken7231_bsp.elf" /RelPATH /PATH ../ /NoCODE
+;sYmbol.SourcePATH.SetBaseDir ../platforms/bk7231t/bk7231t_os
+
+Register.Set PC 0
+Register.view /SpotLight
+
+; freertos configuration
+task.CONFIG ../debug/freertos/freertos.t32
+MENU.ReProgram  ../debug/freertos/freertos.men
+HELP.FILTER.Add rtosfreertos
+TASK.STacK.PATtern 0x5A
+
+; open some windows
+WinPOS 0% 0% 100% 50%
+List.auto
+WinPOS 0% 50% 50% 50%
+Frame /Locals /Caller
+WinPOS 50% 50% 50% 50%
+
+ENDDO
+

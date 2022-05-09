@@ -1,0 +1,5 @@
+menu "DEMOS_CONFIG"
+	config CONFIG_SBC_TEST
+		bool "Enable sbc decode demos"
+		default n
+endmenu

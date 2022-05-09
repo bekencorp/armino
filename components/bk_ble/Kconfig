@@ -1,0 +1,24 @@
+menu "BLE"
+	config BT
+		depends on BLUETOOTH
+		bool "Enable Bluetooth Classic"
+		default n
+
+	config BLE
+		depends on BLUETOOTH
+		bool "Enable Bluetooth Low Energy"
+		default y
+
+	choice BLE_STACK
+		prompt "BLE Version"
+		depends on BLE
+		default BLE_5_X
+
+		config BLE_5_X
+			bool "BLE 5.X"
+		config BLE_4_2
+			bool "BLE 4.2"
+		config BTDM_5_2
+			bool "BTDM 5.2"
+	endchoice
+endmenu

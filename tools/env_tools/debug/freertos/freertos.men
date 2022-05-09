@@ -1,0 +1,528 @@
+; --------------------------------------------------------------------------------
+; @Title: FreeRTOS specific menu
+; @Description: -
+; @Keywords: freertos menu awareness
+; @Author: DIE
+; @Copyright: (c) 1989-2020 Lauterbach GmbH, licensed for use with TRACE32(R) only
+; --------------------------------------------------------------------------------
+; $Id: freertos.men 5228 2020-04-24 09:06:18Z amerkle $
+
+add
+menu
+(
+
+  popup "&FreeRTOS"
+
+  (
+    default
+    menuitem "Display &Tasks"        "TASK.TaskList"
+    menuitem "Display &Queues"
+    (
+      if task.avail(qreg)!=0
+        TASK.Queue
+      else
+      (
+        dialog
+        (
+          header "Display Queue"
+          pos 0x1 0x1 30.
+addr:     defedit "" ""
+          pos 32. 1. 7.
+          button "Browse..."
+          (
+            local &wildcard
+            &wildcard=dialog.string(addr)
+            if "&wildcard"==""
+              &wildcard="*Queue"
+            if !string.find("&wildcard","*?")
+              &wildcard="*&wildcard*"
+            symbol.browse.v &wildcard * /c "dialog.set addr ""*""" /d
+          )
+          pos 40. 1. 7.
+          defbutton "Ok"
+          (
+            local &addr
+            &addr=dialog.string(addr)
+            if cpufamily()=="M68HC12"
+                TASK.Queue data.word(&addr)
+            else
+                TASK.Queue data.long(&addr)
+            dialog.end
+          )
+          pos 0. 0. 49. 3.
+          box "Queue"
+        )
+      )
+    )
+    menuitem "Display &Semaphores"
+    (
+      if task.avail(qreg)!=0
+        TASK.Semaphore
+      else
+      (
+        dialog
+        (
+          header "Display Semaphore"
+          pos 0x1 0x1 30.
+addr:     defedit "" ""
+          pos 32. 1. 7.
+          button "Browse..."
+          (
+            local &wildcard
+            &wildcard=dialog.string(addr)
+            if "&wildcard"==""
+              &wildcard="*Semaphore"
+            if !string.find("&wildcard","*?")
+              &wildcard="*&wildcard*"
+            symbol.browse.v &wildcard * /c "dialog.set addr ""*""" /d
+          )
+          pos 40. 1. 7.
+          defbutton "Ok"
+          (
+            local &addr
+            &addr=dialog.string(addr)
+            if cpufamily()=="M68HC12"
+                TASK.Semaphore data.word(&addr)
+            else
+                TASK.Semaphore data.long(&addr)
+            dialog.end
+          )
+          pos 0. 0. 49. 3.
+          box "Semaphore"
+        )
+      )
+    )
+    menuitem "Display &Timers"  "TASK.TImer"
+    menuitem "Display &Event Group..."
+    (
+        dialog
+        (
+          header "Display Event Group"
+          pos 0x1 0x1 30.
+var:      defedit "" ""
+          pos 32. 1. 7.
+          button "Browse..."
+          (
+            local &wildcard
+            &wildcard=dialog.string(var)
+            if "&wildcard"==""
+              &wildcard="*EventGroup"
+            if !string.find("&wildcard","*?")
+              &wildcard="*&wildcard*"
+            symbol.browse.v &wildcard * /c "dialog.set var ""*""" /d
+          )
+          pos 40. 1. 7.
+          defbutton "Ok"
+          (
+            local &var
+            &var=dialog.string(var)
+            ON ERROR CONTinue
+            ERROR.RESet
+            SIlENT.TASK.EvtGrp Var.VALUE(&var)
+            IF ERROR.OCCURRED()
+              SILENT.TASK.EvtGrp Var.ADDRESS(&var)
+            ON ERROR inherit
+            PRINT ""
+            DIALOG.END
+          )
+          pos 0. 0. 49. 3.
+          box "Event Group"
+        )
+    )
+    menuitem "Display &Stream Buffer..."
+    (
+        dialog
+        (
+          header "Display Stream Buffer"
+          pos 0x1 0x1 30.
+var:      defedit "" ""
+          pos 32. 1. 7.
+          button "Browse..."
+          (
+            local &wildcard
+            &wildcard=dialog.string(var)
+            if "&wildcard"==""
+              &wildcard="*StreamBuffer"
+            if !string.find("&wildcard","*?")
+              &wildcard="*&wildcard*"
+            symbol.browse.v &wildcard * /c "dialog.set var ""*""" /d
+          )
+          pos 40. 1. 7.
+          defbutton "Ok"
+          (
+            local &var
+            &var=dialog.string(var)
+            TASK.StrBuf var.value(&var)
+            dialog.end
+          )
+          pos 0. 0. 49. 3.
+          box "Stream Buffer"
+        )
+    )
+    menuitem "Display &Message Buffer..."
+    (
+        dialog
+        (
+          header "Display Message Buffer"
+          pos 0x1 0x1 30.
+var:      defedit "" ""
+          pos 32. 1. 7.
+          button "Browse..."
+          (
+            local &wildcard
+            &wildcard=dialog.string(var)
+            if "&wildcard"==""
+              &wildcard="*MessageBuffer"
+            if !string.find("&wildcard","*?")
+              &wildcard="*&wildcard*"
+            symbol.browse.v &wildcard * /c "dialog.set var ""*""" /d
+          )
+          pos 40. 1. 7.
+          defbutton "Ok"
+          (
+            local &var
+            &var=dialog.string(var)
+            TASK.MsgBuf var.value(&var)
+            dialog.end
+          )
+          pos 0. 0. 49. 3.
+          box "Message Buffer"
+        )
+    )
+    separator
+    popup "&Stack Coverage"
+    (
+      menuitem "&List Stacks"
+      (
+
+        if !ice()&&!fire()
+          TASK.STacK.PATtern 0x5a
+
+        TASK.STacK.view
+      )
+      menuitem "Add Task"        "TASK.STacK.ADD"
+      menuitem "Remove Task"     "TASK.STacK.RM"
+      enable ice()||fire()
+      menuitem "&Reset Coverage" "TASK.STacK.RESet"
+    )
+  )
+  popup "Trace"
+  (
+    popup "List"
+    (
+      separator
+      menuitem "&Task Switches"     "Trace.List List.TASK"
+      menuitem "&Default and Tasks" "Trace.List List.TASK DEFault"
+    )
+  )
+  popup "Perf"
+  (
+    separator
+    popup "&Task Runtime"
+    (
+      menuitem "&Prepare"
+      (
+        if t.method.analyzer()
+        (
+          Analyzer.AutoInit on
+        )
+        if (ice()||fire())&&!a.mode.flow()
+        (
+          Analyzer.ReProgram
+          (
+            Sample.Enable if AlphaBreak&&Write
+          )
+          Break.Delete /Alpha
+          Break.Set task.config(magic)++(task.config(magicsize)-1) /Alpha
+        )
+        if a.mode.flow()
+        (
+          Break.Delete /TraceEnable
+          Break.Set task.config(magic) /TraceEnable
+        )
+      )
+      menuitem "[:perf]Show &Numerical"   "Trace.STATistic.TASK"
+      menuitem "[:achart]Show as &Timing" "Trace.CHART.TASK"
+      menuitem "[:achart]Tracking with Trace &List"
+      (
+        Trace.List List.TASK DEFault /Track
+        Trace.CHART.TASK /Track
+      )
+    )
+    popup "Task &Function Runtime"
+    (
+      menuitem "&Prepare"
+      (
+        if t.method.analyzer()
+        (
+          Analyzer.AutoInit on
+          Analyzer.STATistic.PreFetch on
+        )
+
+        if (ice()||fire())&&!a.mode.flow()
+        (
+          if a.config.hac()
+          (
+             Analyzer.ReProgram
+             (
+               Sample.Enable if AlphaBreak
+               Sample.Enable if BetaBreak
+               Mark.A        if AlphaBreak
+               Mark.B        if BetaBreak
+             )
+          )
+          else
+          (
+             Analyzer.ReProgram
+             (
+               Sample.Enable if AlphaBreak||BetaBreak
+               Mark.A if AlphaBreak
+               Mark.B if BetaBreak
+             )
+          )
+          Break.Delete /Alpha /Beta /Charly
+          Break.SetFunc
+          Break.Set task.config(magic)++(task.config(magicsize)-1) /Alpha
+        )
+        if a.mode.flow()
+        (
+          Break.Delete /TraceData
+          Break.Set task.config(magic) /TraceData
+        )
+      )
+      menuitem "[:perf]Show &Numerical"     "Trace.STATistic.TASKFUNC"
+      menuitem "[:perf]Show as &Tree"       "Trace.STATistic.TASKTREE"
+      menuitem "[:perf]Show &Detailed Tree" "Trace.STATistic.TASKTREE ALL"
+      menuitem "[:achart]Show as &Timing"   "Trace.CHART.TASKFUNC"
+      menuitem "[:alist]Show N&esting"      "Trace.List List.TASK FUNC TI.FUNC"
+    )
+    ;popup "Task &Status"
+    ;(
+    ;  menuitem "&Prepare"
+    ;  (
+    ;    if t.method.analyzer()
+    ;    (
+    ;      Analyzer.AutoInit on
+    ;    )
+    ;    if (ice()||fire())&&!a.mode.flow()
+    ;    (
+    ;      Analyzer.ReProgram
+    ;      (
+    ;        Sample.Enable if AlphaBreak&&Write
+    ;      )
+    ;      Break.Delete /Alpha
+    ;      Break.Set task.config(magic)++(task.config(magicsize)-1) /Alpha
+    ;      TASK.TASKState
+    ;    )
+    ;  )
+    ;  menuitem "[:perf]Show &Numerical"   "Trace.STATistic.TASKSTATE"
+    ;  menuitem "[:achart]Show as &Timing" "Trace.CHART.TASKSTATE"
+    ;  menuitem "[:achart]Tracking with Trace &List"
+    ;  (
+    ;    Trace.List List.TASK DEFault /Track
+    ;    Trace.CHART.TASKSTATE /Track
+    ;  )
+    ;)
+  )
+  popup "&Help"
+  (
+    MENUITEM "[:manual]OS Awareness Manual Linux" "HELP __RTOS_FREERTOS_"
+  )
+)
+
+
+menu "task.tl"
+(
+  default
+  menuitem "Display detailed"
+  (
+    LOCAL &magic
+    &magic=address.offset(track.address())
+    TASK.TaskList &magic
+  )
+  menuitem "Display task struct"
+  (
+    LOCAL &address &struct
+    &address=track.address()
+    &struct=task.struct(tcb)
+    Var.View %Open %String (&struct*)(&address)
+  )
+  separator
+  menuitem "Display Stack Frame"
+  (
+    LOCAL &magic
+    &magic=address.offset(track.address())
+    Var.Frame /Locals /Caller /Task &magic
+  )
+  menuitem "Display Registers"
+  (
+    LOCAL &magic
+    &magic=address.offset(track.address())
+    Register /Task &magic
+  )
+  menuitem "Switch Context" "Register.TASK address.offset(track.address())"
+  separator
+  menuitem "Add to Stack Cov"  "TASK.STK.ADD address.offset(track.address())"
+  menuitem "Rm from Stack Cov" "TASK.STK.RM  address.offset(track.address())"
+  separator
+  menuitem "Dump task entry"
+  (
+    LOCAL &address
+    &address=track.address()
+    Data.dump &address /Long /DIALOG
+  )
+)
+
+
+menu "task.q"
+(
+  default
+  menuitem "Display detailed"
+  (
+    LOCAL &magic
+    &magic=address.offset(track.address())
+    TASK.Queue &magic
+  )
+  menuitem "Display queue struct"
+  (
+    LOCAL &address &struct
+    &address=track.address()
+    &struct=task.struct(queue)
+    Var.View %Open %String (&struct*)(&address)
+  )
+  separator
+  menuitem "Dump queue entry"
+  (
+    LOCAL &address
+    &address=track.address()
+    Data.dump &address /Long /DIALOG
+  )
+)
+
+
+menu "task.s"
+(
+  default
+  menuitem "Display detailed"
+  (
+    LOCAL &magic
+    &magic=address.offset(track.address())
+    TASK.Semaphore &magic
+  )
+  menuitem "Display semaphore struct"
+  (
+    LOCAL &address &struct
+    &address=track.address()
+    &struct=task.struct(queue)
+    Var.View %Open %String (&struct*)(&address)
+  )
+  separator
+  menuitem "Dump semaphore entry"
+  (
+    LOCAL &address
+    &address=track.address()
+    Data.dump &address /Long /DIALOG
+  )
+)
+
+
+menu "task.ti"
+(
+  default
+  menuitem "Display detailed"
+  (
+    LOCAL &magic
+    &magic=address.offset(track.address())
+    TASK.TImer &magic
+  )
+  menuitem "Display timer struct"
+  (
+    LOCAL &address &struct
+    &address=track.address()
+    &struct=task.struct(timer)
+    Var.View %Open %String (&struct*)(&address)
+  )
+  separator
+  menuitem "Dump timer entry"
+  (
+    LOCAL &address
+    &address=track.address()
+    Data.dump &address /Long /DIALOG
+  )
+)
+
+
+menu "task.eg"
+(
+  default
+  menuitem "Display detailed"
+  (
+    LOCAL &magic
+    &magic=address.offset(track.address())
+    TASK.EvtGrp &magic
+  )
+  menuitem "Display event group struct"
+  (
+    LOCAL &address
+    &address=track.address()
+    &struct=task.struct(eventgroup)
+    Var.View %Open (&struct*)(&address)
+  )
+  separator
+  menuitem "Dump event group entry"
+  (
+    LOCAL &address
+    &address=track.address()
+    Data.dump &address /Long /DIALOG
+  )
+)
+
+
+menu "task.sb"
+(
+  default
+  menuitem "Display detailed"
+  (
+    LOCAL &magic
+    &magic=address.offset(track.address())
+    TASK.StrBuf &magic
+  )
+  menuitem "Display stream buffer struct"
+  (
+    LOCAL &address
+    &address=track.address()
+    Var.View %Open (StreamBuffer_t*)(&address)
+  )
+  separator
+  menuitem "Dump stream buffer entry"
+  (
+    LOCAL &address
+    &address=track.address()
+    Data.dump &address /Long /DIALOG
+  )
+)
+
+
+menu "task.mb"
+(
+  default
+  menuitem "Display detailed"
+  (
+    LOCAL &magic
+    &magic=address.offset(track.address())
+    TASK.MsgBuf &magic
+  )
+  menuitem "Display message buffer struct"
+  (
+    LOCAL &address
+    &address=track.address()
+    Var.View %Open (StreamBuffer_t*)(&address)
+  )
+  separator
+  menuitem "Dump message buffer entry"
+  (
+    LOCAL &address
+    &address=track.address()
+    Data.dump &address /Long /DIALOG
+  )
+)

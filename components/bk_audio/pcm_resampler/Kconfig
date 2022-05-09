@@ -1,0 +1,3 @@
+config PCM_RESAMPLER
+	bool "Enable PCM Resampler"
+	default n

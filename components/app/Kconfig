@@ -1,0 +1,37 @@
+menu "Application"
+
+	config DEMO_TEST
+		bool "Enable demo test"
+		default n
+
+	#TODO does UPGRADE here means OTA?
+	config FTPD_UPGRADE
+		bool "Enable FTPD upgrade"
+		default n
+
+	config OTA_HTTP
+		bool "Enable HTTP OTA"
+		default y if NO_HOSTED
+		default n if !NO_HOSTED
+
+	#TODO what's the relationship between HTTP and TFTP OTA, exculsive?
+	config OTA_TFTP
+		bool "Enable TFTP OTA"
+		default n
+
+	config USE_APP_DEMO_VIDEO_TRANSSER
+		bool "Enable USE APP DEMO VIDEO TRANSSER"
+		default n
+
+	config APP_DEMO_VIDEO_TRANSFER
+		bool "Enable APP DEMO VIDEO TRANSSER"
+		default n
+
+	config NET_WORK_VIDEO_TRANSFER
+		bool "Enable NET_WORK VIDEO TRANSFER"
+		default n
+
+	config COMPONENTS_P2P
+                bool "Enable NET_WORK P2P"
+                default n
+endmenu

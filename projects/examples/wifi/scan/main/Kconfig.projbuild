@@ -1,0 +1,13 @@
+menu "Example Configuration"
+
+    config EXAMPLE_SCAN_ALL_SSID
+        bool "Scan All SSID"
+        default y
+ 
+    config EXAMPLE_WIFI_SSID
+        string "WiFi SSID"
+	depends on !EXAMPLE_SCAN_ALL_SSID
+        default "myssid"
+        help
+            Set the SSID to be scaned
+endmenu

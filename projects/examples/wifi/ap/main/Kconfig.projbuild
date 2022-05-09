@@ -1,0 +1,38 @@
+menu "Example Configuration"
+
+    config EXAMPLE_WIFI_SSID
+        string "WiFi SSID"
+        default "myssid"
+        help
+            SSID (network name) for the example to connect to.
+
+    config EXAMPLE_WIFI_PASSWORD
+        string "WiFi Password"
+        default "mypassword"
+        help
+            WiFi password (WPA or WPA2) for the example to use.
+
+    config EXAMPLE_IP
+        string "IP4 Address of AP"
+        default "192.168.10.1"
+        help
+            Set the IP4 address of AP
+
+    config EXAMPLE_MASK 
+        string "Network mask of AP"
+        default "255.255.255.0"
+        help
+            Set the network mask address of AP
+
+    config EXAMPLE_GW
+        string "Gateway address of AP"
+        default "192.168.10.1"
+        help
+            Set the gateway address of AP
+
+    config EXAMPLE_DNS
+        string "DNS address of AP"
+        default "192.168.10.1"
+        help
+            Set the DNS address of AP
+endmenu

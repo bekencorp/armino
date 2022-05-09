@@ -1,0 +1,20 @@
+#TODO may need to remove this component!
+menu "System"
+
+	choice BASE_MAC_SRC
+		prompt "Base mac source"
+		default BASE_MAC_FROM_RF_OTP_FLASH
+
+		config BASE_MAC_FROM_EFUSE
+			bool "Base mac from efuse"
+		config BASE_MAC_FROM_RF_OTP_FLASH
+			bool "Base mac from RF OTP flash"
+		config BASE_MAC_FROM_NVS
+			bool "Base mac from NVS"
+	endchoice
+
+	config RANDOM_MAC_ADDR
+                bool "Enable RANDOM MAC ADDR"
+                default n
+
+endmenu

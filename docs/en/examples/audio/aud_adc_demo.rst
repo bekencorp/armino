@@ -1,0 +1,1 @@
+.. include:: ../../../zh_CN/examples/audio/aud_adc_demo.rst

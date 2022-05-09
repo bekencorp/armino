@@ -1,0 +1,506 @@
+// Copyright 2022-2023 Beken
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+#ifndef _SDIO_SLAVE_DRIVER_H_
+#define _SDIO_SLAVE_DRIVER_H_
+
+#include <common/bk_err.h>
+#include "bk_list.h"
+#include "sdio_slave_utils.h"
+
+//LOG's
+typedef enum
+{
+	SDIO_LOG_DEBUG_LEVEL = 0,
+	SDIO_LOG_INFO_LEVEL,
+	SDIO_LOG_WARNING_LEVEL,
+	SDIO_LOG_ERR_LEVEL
+}SDIO_LOG_LEVEL_T;
+
+#define SDIO_LOG_OUTPUT_LEVEL (SDIO_LOG_DEBUG_LEVEL)
+
+#define SDIO_LOG_ERR(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_ERR_LEVEL) { \
+	bk_printf("SDIO Err(%s:%d) ", __FUNCTION__, __LINE__); \
+	bk_printf(__VA_ARGS__); \
+	bk_printf("\r\n"); \
+}}
+#define SDIO_LOG_WARNING(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_WARNING_LEVEL) { \
+	bk_printf("SDIO WARN"); \
+	bk_printf(__VA_ARGS__); \
+	bk_printf("\r\n"); \
+}}
+#define SDIO_LOG_INFO(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_INFO_LEVEL) { \
+	bk_printf("SDIO INFO"); \
+	bk_printf(__VA_ARGS__); \
+	bk_printf("\r\n"); \
+}}
+#define SDIO_LOG_DEBUG(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
+	bk_printf("SDIO DBG"); \
+	bk_printf(__VA_ARGS__); \
+	bk_printf("\r\n"); \
+}}
+#define SDIO_LOG_DUMP(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
+		bk_printf(__VA_ARGS__); \
+	}}
+
+#define SDIO_LOG_DEBUG_FUNCTION_ENTRY(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
+	bk_printf("SDIO DEBUG(%s:Entry)\r\n", __FUNCTION__); \
+}}
+#define SDIO_LOG_DEBUG_FUNCTION_EXIT(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
+	bk_printf("SDIO DEBUG(%s:Entry)\r\n", __FUNCTION__); \
+}}
+
+
+#ifdef CONFIG_SDIO_DEBUG_EN
+#define SDIO_DMA_DEBUG
+#define SDIO_DEBUG
+#endif
+
+
+#define SDIO_THREAD_PRIORITY (2)
+#define SDIO_THREAD_NAME "sdio_thread"
+#define SDIO_THREAD_STACK_SIZE (0x4<<10)	//Bytes
+
+#define SDIO_MSG_QUEUE_NAME "sdio_queue"
+#define SDIO_MSG_QUEUE_COUNT (8)		//Temp value,exact value should be tested out.
+
+#define SDIO_CMD_INDEX_52	(52)
+#define SDIO_CMD_INDEX_53	(53)
+
+#define SDIO_MAX_BLOCK_SIZE (0x200)		//512 bytes per round
+
+typedef enum
+{
+	SDIO_CHAN_TX = 0,
+	SDIO_CHAN_RX,
+}CHAN_DIRECT_T;
+
+typedef enum
+{
+#ifdef CONFIG_SDIO_CHANNEL_EN
+	SDIO_CHAN_PLATFORM,
+	SDIO_CHAN_WIFI,
+	SDIO_CHAN_MAX_CNT
+#else
+	SDIO_CHAN_PLATFORM,
+	SDIO_CHAN_MAX_CNT
+#endif
+}SDIO_CHAN_ID_T;
+
+typedef enum
+{
+	//CTRL
+	SDIO_CHANNEL_INIT,
+	
+	//READ
+	//SDIO_READ_CYCLE_FINISH,	//sdio block finish
+	SDIO_READ_NODE_FINISH,	//the first node is finish/full
+	SDIO_MSG_SYNC_READ,
+	SDIO_MSG_ASYNC_READ,
+	
+	//WRITE
+	SDIO_WRITE_NODE_FINISH,
+	SDIO_MSG_SYNC_WRITE,
+	SDIO_MSG_ASYNC_WRITE
+
+}SDIO_MSG_ID_T;
+
+typedef union
+{
+	struct
+	{
+		uint32_t stop : 8;	//1:write, 0:read
+		uint32_t reserve : 24;			//block/byte mode, how many blocks/bytes
+	};
+
+	uint32_t v;
+}SDIO_CMD52_FUNC_ARG0_T;
+
+typedef union
+{
+	struct
+	{
+		uint32_t rw : 1;	//1:write, 0:read
+		uint32_t func_num : 3;
+		uint32_t block_mode : 1;	//1:block mode, 0:byte mode
+		uint32_t op_mode : 1;		//1:multi-byte read/write increase address, 0:fixed address
+		uint32_t addr : 17;
+		uint32_t count : 9;			//block/byte mode, how many blocks/bytes
+	};
+
+	uint32_t v;
+}SDIO_CMD53_ARG_T;
+
+typedef bk_err_t (*SDIO_CHAN_CB_T)(SDIO_HEADER_PTR *head_p, SDIO_HEADER_PTR *tail_p, uint32_t count);
+
+typedef struct
+{
+	//
+	uint32_t buf_cnt;
+	uint32_t buf_size;
+
+	//free list
+	SDIO_LIST_T free_list;
+	
+	//txing/rxing list
+	SDIO_LIST_T ongoing_list;
+	//As SDIO each cycle read/write <= 512Bytes, transaction_len record has read/write how many bytes data addr in buffer
+	uint32_t transaction_len;
+
+	//tx/rx finish list
+	SDIO_LIST_T finish_list;
+
+	//notify app:callback
+	SDIO_CHAN_CB_T cb;
+	void *semaphore;
+	void *lock_p;
+}SDIO_CHAN_BUF_T;
+
+typedef struct
+{
+	uint32 tx_direct:1;		//1:enable tx
+	uint32 rx_direct:1;
+	uint32 chan_id:6;
+	uint32 misc_reserve:24;
+
+#ifdef SDIO_BIDIRECT_CHANNEL_EN
+	SDIO_CHAN_BUF_T chan_buf[2];	//index 0:tx & index 1:rx
+#else
+	SDIO_CHAN_BUF_T chan_buf[1];	//tx or rx
+#endif
+}SDIO_CHAN_T;
+
+typedef struct
+{
+	SDIO_CHAN_T chan[SDIO_CHAN_MAX_CNT];
+	void *lock_p;
+}SDIO_MANAGE_T;
+
+typedef struct {
+	uint32_t id;
+	uint32_t param;
+} SDIO_MSG_T;
+
+//#define SDIO_MEM_DEBUG
+
+#ifdef SDIO_DEBUG
+#define SDIO_PRT                 os_printf
+#define SDIO_WPRT                os_printf
+#define STATIC
+#else
+#define SDIO_PRT                 os_null_printf
+#define SDIO_WPRT                os_null_printf
+#define STATIC                   static
+#endif
+
+//#define SDIO_PREALLOC
+
+#ifdef SDIO_DEBUG
+#define MALLOC_MAGIC_LEN             (8)
+#else
+#define MALLOC_MAGIC_LEN             (0)
+#endif
+
+#define MALLOC_MAGIC_BYTE0           (0xAA)
+#define MALLOC_MAGIC_BYTE1           (0xBB)
+
+/*CMD BUFFER space: 64bytes*/
+#define MAX_CONTENT_COUNT            (15)
+
+
+
+#if CONFIG_GPIO_NOTIFY_TRANSACTION_EN
+
+#define WAKEUP_LEVEL (1)
+#define ALLOW_SLEEP_LEVEL (0)
+#define FORBID_SLEEP_TIMEOUT (2000)
+#define WAIT_HOST_ACK_TIMEOUT (100)
+#define GPIO_SDIO_HOST_WAKEUP_SLAVE (GPIO_27)	// == gpio_wk_receive_num
+#define GPIO_SDIO_NOTIFY_HOST (GPIO_24)	// == gpio_wk_send_num
+
+typedef void (*wk_slp_fail_callback)(void);
+
+void register_wake_host_fail_func(wk_slp_fail_callback cb);
+
+/**
+ * @brief	Pullup GPIO to notify host, slave will send data.
+ *
+ * This API Pullup GPIO to notify host, slave will send data.
+ *	 - Pullup GPIO to notify host
+ *	 - Slave wait "host send CMD52 to get slave will transaction data length".
+ *     If 100ms doesn't get CMD52 mean's host timeout.
+ *
+ * @attention 1. This API should be called after SDIO init.
+ *
+ * @return
+ *	  - BK_OK: succeed
+ *	  - others: other errors.
+ */
+bk_err_t sdio_slave_notify_host(void);
+
+/**
+ * @brief	Get host whether allow slave goto sleep
+ *
+ * This API ....
+ *
+ * @attention 1. This API should be called after SDIO init.
+ *
+ * @return
+ *	  - 1:means allow sleep, 0 means host vote bk7256 don't go to sleep.
+ *	  - 
+ */
+uint32_t get_controller_wk_slp_status(void);
+
+/**
+ * @brief	Host pull up/down GPIO to wakeup/clear wakeup slave.
+ *          slave get the GPIO interrupt and run this handler.
+ *
+ * This API ....
+ *
+ * @attention 1. This API should be called after SDIO init.
+ *
+ * @return
+ *	  - 
+ *	  - 
+ */
+void wk_slp_controller_handler(void);
+
+void set_last_receive_data_time(void);
+
+uint64_t get_last_receive_data_time(void);
+
+uint64_t check_wakeup_contorller_validity_timeout(void);
+
+/**
+ * @brief	wake,allow sleep by gpio feature resources init
+ *
+ * This API ....
+ *
+ * @param to_host: the gpio num which is used to wake up host or allow host sleep.
+ * @param from_host: the gpio num which is used to wake up controller or allow controller sleep from host.
+ * 
+ * 
+ * @attention 1. This API should be called after SDIO init.
+ *
+ * @return
+ *	  - 
+ *	  - 
+ */
+void sdio_gpio_notify_transaction_init(uint8_t to_host, uint8_t from_host);
+
+void sdio_gpio_notify_transaction_deinit(uint8_t to_host, uint8_t from_host);
+
+#endif	//CONFIG_GPIO_NOTIFY_TRANSACTION_EN
+
+
+/**
+ * @brief	  Init the sdio driver as slave device.
+ *
+ * This API init the sdio driver as slave device.
+ *	 - Init SDIO slave HW: GPIO,CLOCK,DMA,IRQ ...
+ *	 - Init SDIO slave SW: Thread, Semaphore, Event.
+ *
+ * @attention 1. This API should be called before any other SDIO SLAVE APIs.
+ *
+ * @return
+ *	  - BK_OK: succeed
+ *	  - others: other errors.
+ */
+bk_err_t bk_sdio_slave_driver_init(void);
+
+/**
+ * @brief	  Init a sdio channel.
+ *
+ * This API init a sdio channel.
+ *	 - Init a single list for buffers
+ *   - Create a mutex lock to protect concurrence operate link list
+ * @param chan_id	The selected chan id.
+ * @param direct	The channel used for TX data or RX data
+ * @param count How many buffers will be malloced.
+ * @param size  Each buffer size for data which doesn't include SDIO header,it should be 4 bytes align
+ *
+ * @attention
+ *
+ * @return
+ *	  - BK_OK: succeed
+ *	  - others: other errors.
+ */
+bk_err_t bk_sdio_init_channel(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, uint32_t count, uint32_t size);
+/**
+ * @brief	  Register the clalback function for sdio selected channel and direct.
+ *
+ * This API register the clalback function for sdio selected channel and direct.
+ *	 - Save the callback in channel.
+ *   - When tx/rx data finish, it will call this callback function.
+ *
+ * @param chan_id	The selected chan id.
+ * @param direct	The channel used for TX data or RX data
+ * @param cb        Registered callback function.
+ *
+ * @attention
+ *
+ * @return
+ *	  - BK_OK: succeed
+ *	  - others: other errors.
+ */
+bk_err_t bk_sdio_register_chan_cb(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, SDIO_CHAN_CB_T cb);
+
+bk_err_t bk_sdio_slave_sync_read(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p, SDIO_HEADER_PTR tail_p, uint32_t count);
+
+/**
+ * @brief	  
+ *
+ * This API .
+ *	 - 
+ *	 - 
+ *
+ * @attention 1. 
+ *
+ * @return
+ *	  - BK_OK: succeed
+ *	  - others: other errors.
+ */
+bk_err_t sdio_slave_async_read(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p, SDIO_HEADER_PTR tail_p, uint32_t count);
+
+/**
+ * @brief	  
+ *
+ * This API .
+ *	 - 
+ *	 - 
+ *
+ * @attention 1. 
+ *
+ * @return
+ *	  - BK_OK: succeed
+ *	  - others: other errors.
+ */
+bk_err_t bk_sdio_slave_sync_write(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p, SDIO_HEADER_PTR tail_p, uint32_t count);
+
+
+/**
+ * @brief	  
+ *
+ * This API .
+ *	 - 
+ *	 - 
+ *
+ * @attention 1. 
+ *
+ * @return
+ *	  - BK_OK: succeed
+ *	  - others: other errors.
+ */
+bk_err_t sdio_slave_async_write(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p, SDIO_HEADER_PTR tail_p, uint32_t count);
+
+/**
+ * @brief	  Push the data use finish link list to free list.
+ *
+ * This API Push the data use finish link list to free list.
+ *	 - Link the link list to free list.
+ *   - 
+ *
+ * @param chan_id	The selected chan id.
+ * @param direct	The channel used for TX data or RX data
+ * @param head_p    The list head of which node will be to free list
+ * @param tail_p    The list tail of which data will be to free list
+ * @param count     How many nodes will be to free list
+ *
+ * @attention
+ *
+ * @return
+ *	  - BK_OK: succeed
+ *	  - others: other errors.
+ */
+bk_err_t bk_sdio_chan_push_free_list(
+										SDIO_CHAN_ID_T chan_id, 
+										CHAN_DIRECT_T direct,
+										SDIO_HEADER_PTR head_p,
+										SDIO_HEADER_PTR tail_p,
+										uint32_t count
+										);
+
+/**
+ * @brief	  Pop a free node from the selected channel and direct.
+ *
+ * This API Pop a free node from the selected channel and direct.
+ *	 - Get a free node from the selected channel and direct.
+ *   - Update the free node list to next node.
+ *
+ * @param chan_id	The selected chan id.
+ * @param direct	The channel used for TX data or RX data
+ * @param node_p    Saved the getted free buffer node.
+ * @param size_p Saved the getted free buffer node capacity(How many bytes data can be saved).
+ *
+ * @attention
+ *
+ * @return
+ *	  - BK_OK: succeed
+ *	  - others: other errors.
+ */
+bk_err_t bk_sdio_chan_pop_free_node(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, SDIO_HEADER_PTR *node_p, uint32_t *size_p);
+
+void sdio_chan_push_ongoing_node(
+										SDIO_CHAN_ID_T chan_id, 
+										CHAN_DIRECT_T direct,
+										SDIO_HEADER_PTR head_p,
+										SDIO_HEADER_PTR tail_p,
+										uint32_t count
+										);
+
+bk_err_t sdio_chan_pop_ongoing_node(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, SDIO_HEADER_PTR *head_p);
+
+bk_err_t sdio_chan_push_finish_list(
+										SDIO_CHAN_ID_T chan_id, 
+										CHAN_DIRECT_T direct,
+										SDIO_HEADER_PTR head_p,
+										SDIO_HEADER_PTR tail_p,
+										uint32_t count
+										);
+
+bk_err_t sdio_chan_pop_finish_node(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, SDIO_HEADER_PTR *node_p);
+
+/**
+ * @brief	  Log out the SDIO REGs value without the "Data Read Reg(REG0xC)".
+ *
+ * This API log out SDIO REGs value without the "Data Read Reg(REG0xC)".
+ *
+ * @attention 1. This API doesn't log out the value of "Data Read Reg(REG0xC)",
+ *               because if read REG0xC will cause FIFO data out.
+ *
+ * @return
+ *	  - None.
+ */
+void bk_sdio_driver_dump_sdio_regs(void);
+
+/**
+ * @brief	  Deinit the sdio driver as slave device.
+ *
+ * This API deinit the sdio driver as slave device.
+ *	 - Deinit SDIO slave HW: GPIO,DMA,IRQ ...
+ *	 - Deinit SDIO slave SW: Thread, Queue...
+ *
+ * @attention 1. This API should be called after any other SDIO SLAVE APIs.
+ *
+ * @return
+ *	  - BK_OK: succeed
+ *	  - others: other errors.
+ */
+bk_err_t sdio_slave_deinit(void);
+
+
+#endif // _SDIO_H_
+

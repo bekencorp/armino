@@ -1,0 +1,49 @@
+; --------------------------------------------------------------------------------
+; @Title: FreeRTOS Demo for TRACE32 OS Awareness
+; @Description: 
+;   
+;   This batchfile loads all necessary files to demonstrate
+;   the OS Awareness for FreeRTOS.
+;   
+; @Keywords: awareness, RTOS, FreeRTOS
+; @Author: DIE
+; @Copyright: (C) 1989-2019 Lauterbach GmbH, licensed for use with TRACE32(R) only
+; --------------------------------------------------------------------------------
+; $Id: example.cmm 15210 2019-11-04 10:51:00Z bschroefel $
+
+ SCREEN.ON
+ WinPAGE.RESet
+ WinPOS 0. 25. 70. 7. 0. 0. W000
+ AREA.view
+
+; Debugger reset
+ PRINT "resetting..."
+ SYStem.RESet
+
+; initialize debugger
+ PRINT "initializing..."
+ SYStem.Up
+
+; load sample application
+ PRINT "loading sample application..."
+ Data.LOAD.Elf rtosdemo.elf /cygdrive
+ 
+; initialize RTOS support
+ PRINT "initializing FreeRTOS support..."
+ TASK.CONFIG ~~/demo/arm/kernel/freertos/freertos.t32       ; load FreeRTOS awareness
+ MENU.ReProgram ~~/demo/arm/kernel/freertos/freertos.men    ; load FreeRTOS menu
+ HELP.FILTER.Add rtosfreertos   ; add FreeRTOS awareness manual to filtered help
+
+ PRINT "load complete."
+ 
+; open some windows
+ WinPOS 0. 0. 70. 20.
+ List.auto
+ WinPOS 48. 5. 65. 20. 0. 1. W001
+ TASK.TaskList
+
+; start application
+ Go vLEDFlashTask
+
+ ENDDO
+ 

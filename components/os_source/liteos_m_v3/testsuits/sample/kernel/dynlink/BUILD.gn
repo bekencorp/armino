@@ -1,0 +1,65 @@
+# Copyright (c) 2013-2019 Huawei Technologies Co., Ltd. All rights reserved.
+# Copyright (c) 2020-2021 Huawei Device Co., Ltd. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this list of
+#    conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list
+#    of conditions and the following disclaimer in the documentation and/or other materials
+#    provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its contributors may be used
+#    to endorse or promote products derived from this software without specific prior written
+#    permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+static_library("test_dynlink") {
+  sources = [
+    "It_los_dynlink.c",
+    "It_los_dynlink_001.c",
+    "It_los_dynlink_002.c",
+    "It_los_dynlink_003.c",
+    "It_los_dynlink_004.c",
+    "It_los_dynlink_005.c",
+    "It_los_dynlink_006.c",
+    "It_los_dynlink_007.c",
+    "It_los_dynlink_008.c",
+    "It_los_dynlink_009.c",
+    "It_los_dynlink_010.c",
+    "It_los_dynlink_011.c",
+    "It_los_dynlink_012.c",
+    "It_los_dynlink_013.c",
+    "It_los_dynlink_014.c",
+    "It_los_dynlink_015.c",
+    "It_los_dynlink_016.c",
+    "It_los_dynlink_017.c",
+    "It_los_dynlink_018.c",
+    "It_los_dynlink_019.c",
+    "It_los_dynlink_020.c",
+  ]
+
+  include_dirs = [
+    "../../../../kernel/include",
+    "../../../../kernel/arch/include",
+    "../../../include",
+    "../../../../utils",
+    "../../../../components/dynlink",
+    ".",
+    "../../../../components/cpup",
+    "//third_party/bounds_checking_function/include",
+  ]
+}

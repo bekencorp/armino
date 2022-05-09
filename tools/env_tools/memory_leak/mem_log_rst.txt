@@ -1,0 +1,8246 @@
+reboot
+
+reboot
+
+m:0x4028f0,136|kfifo_alloc,63
+
+m:0x402978,32|kfifo_init,37
+
+m:0x402998,72|kfifo_alloc,63
+
+m:0x4029e0,32|kfifo_init,37
+
+
+/*Version Information**************
+ *        release_version:1.0.5
+ *        release_time:2017.10.30 10:10 AM
+ *        full_mac_version:5.0.4
+ *        mac_lib_version:2.0.2
+ *Version Over**********************/
+
+
+m:0x402a00,136|kfifo_alloc,63
+
+m:0x402a88,32|kfifo_init,37
+
+m:0x402aa8,72|kfifo_alloc,63
+
+m:0x402af0,32|kfifo_init,37
+[Flash]id:0xc2
+
+m:0x402b10,24|cfg_param_init,30
+
+m:0x402b28,120|cfg_param_init,35
+
+m:0x402ba0,128|cfg_param_init,40
+[FUNC]rwnxl_init
+[FUNC]calibration_main
+NO TXPWR_TAB_TAB found in flash
+Load default txpwr for b:0x984e9
+Load default txpwr for g:0x98514
+fit n20 table with dist:4
+Load default txpwr for n40:0x98522
+[FUNC]intc_init
+[FUNC]ps_init
+[FUNC]func_init OVER!!!
+
+
+m:0x402c20,88|xQueueGenericCreate,404
+
+m:0x402c78,2056|xTaskCreate,717
+
+m:0x403480,104|xTaskCreate,721
+kmsgbk:403488-403480:2048:6
+
+ xTaskCreate,717
+
+ xTaskCreate,721
+init_thread:403cc8-403cc0:2000:5
+
+m:0x403d28,1112|xQueueGenericCreate,404
+
+m:0x404180,2056|xTaskCreate,717
+
+m:0x404988,104|xTaskCreate,721
+core_thread:404990-404988:2048:7
+
+m:0x4049f0,2456|cli_init,1649
+
+m:0x405388,88|xQueueGenericCreate,404
+
+m:0x4053e0,4104|xTaskCreate,717
+
+m:0x4063e8,104|xTaskCreate,721
+cli:4063f0-4063e8:4096:4
+
+ xTaskCreate,717
+
+ xTaskCreate,721
+app:406860-406858:1024:5
+
+m:0x4068c0,1032|xTaskCreate,717
+
+m:0x406cc8,104|xTaskCreate,721
+idle:406cd0-406cc8:1024:0
+
+m:0x406d30,152|xQueueGenericCreate,404
+
+m:0x406dc8,1512|xTaskCreate,717
+
+m:0x4073b0,104|xTaskCreate,721
+timer_thd:4073b8-4073ac:1500:2
+Initializing 
+m:0x407418,2056|xTaskCreate,717
+TCP/IP stac
+m:0x407c20,104|xTaskCreate,721
+k
+
+m:0x407c88,88|xQueueGenericCreate,404
+TCP_server:407
+m:0x407ce0,216|xQueueGenericCreate,404
+c28-4
+m:0x407db8,88|xQueueGenericCreate,404
+07c20
+m:0x407e10,2056|xTaskCreate,717
+
+m:0x408618,104|xTaskCreate,721
+tcp/ip:408620-408618:2048:7
+:2048:2
+
+m:0x408680,128|xQueueGenericCreate,404
+
+m:0x408700,3512|xTaskCreate,717
+
+m:0x4094b8,104|xTaskCreate,721
+wpas_thread:4094c0-4094b4:3500:3
+app_init finished
+
+ xQueueGenericCreate,404
+
+m:0x4095f8,88|xQueueGenericCreate,404
+
+f:0x
+
+m:0x409520,216|xQueueGenericCreate,404
+
+m:0x409650,88|xQueueGenericCreate,404
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+# 
+# 
+# 
+# 
+# 
+# 
+# memshow
+
+free memory 57064
+
+# 
+# 
+# 
+# 
+# 
+# sta dlink_test_1 12345678
+
+sta_Command
+ssid:dlink_test_1 key:12345678
+No TLV header found in flash
+[sa_sta]MM_RESET_REQ
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+[sa_sta]ME_CONFIG_REQ
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+[sa_sta]ME_CHAN_CONFIG_REQ
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+[sa_sta]MM_START_REQ
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ supplicant_main_entry,86
+
+ wpa_supplicant_init,4902
+
+ os_calloc,286
+
+ eloop_register_timeout,193
+
+ wpa_supplicant_alloc,3395
+
+ wpa_config_alloc_empty,3519
+
+ wpa_config_read_network,183
+
+ dup_binstr,738
+
+ os_realloc,40
+
+ wpa_driver_init,1409
+
+ hapd_intf_add_vif,280
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+hapd_intf_add_vif,type:2, s:0, id:0
+
+f:0x
+
+ socket,182
+
+ radio_add_interface,3929
+
+ wpa_supplicant_init_wpa,1040
+
+ wpa_sm_init,2198
+
+ hostap_get_hw_feature_data,1241
+
+ hostap_get_hw_feature_data,1261
+
+ hostap_get_hw_feature_data,1262
+wpa_dInit
+
+ l2_packet_init,128
+
+ socket,182
+
+ os_realloc,40
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+wpa_supplicant_req_scan
+Setting scan request: 0.100000 sec
+
+ eloop_register_timeout,193
+
+ supplicant_main_entry,142
+MANUAL_SCAN_REQ
+
+ os_realloc,40
+
+ os_realloc,40
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+enter low level!
+mac c8:93:48:44:aa: 0
+leave low level!
+net_wlan_add_netif done!, vif_idx:0
+
+# 
+f:0x
+wpa_supplicant_scan
+
+ wpa_scan_clone_params,2185
+
+ wpa_scan_clone_params,2191
+
+ radio_add_work,4103
+
+ eloop_register_timeout,193
+
+f:0x
+wpa_drv_scan
+
+ wpa_driver_scan2,1471
+
+ os_realloc,40
+
+f:0x
+wpa_send_scan_req
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+scan_start_req_handler
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ sr_malloc_shell,51
+
+ sr_malloc_result_item,35
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+softap kevin_zhang 1111117231
+
+SOFTAP_COMMAND
+
+ssid:kevin_zhang  key:1111117231
+Soft_AP_start
+[saap]mm_bcn_init
+
+ hostapd_main_entry,503
+
+ os_calloc,286
+
+ os_calloc,286
+
+ hostapd_init,1471
+
+ os_strdup,103
+
+ hostapd_cfg_defaults,123
+
+ ke_msg_alloc,79
+
+f:0x
+
+ hostapd_cfg_defaults,124
+
+ os_calloc,286
+
+ os_strdup,103
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ os_calloc,286
+
+ hostapd_alloc_bss_data,1385
+
+ os_calloc,286
+
+ hostap_init,1032
+
+ hapd_intf_add_vif,280
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+hapd_intf_add_vif,type:3, s:0, id:1
+
+f:0x
+
+ socket,182
+
+ hapd_intf_start_apm,319
+
+ ke_msg_alloc,79
+apm start with vif:1
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+------beacon_int_set:100 TU
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+update_ongoing_1_bcn_update
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+vif_idx:1, ch_idx:0, bcmc_idx:5
+
+f:0x
+
+ socket,182
+
+ l2_packet_init,128
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ socket,182
+
+ os_realloc,40
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+
+ hostap_get_we_version,977
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ sr_malloc_result_item,35
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ hostap_wireless_event_init,1011
+
+f:0x
+
+f:0x
+
+ hostap_get_hw_feature_data,1241
+
+ ke_msg_alloc,79
+
+f:0x
+
+ hostap_get_hw_feature_data,1261
+
+ hostap_get_hw_feature_data,1262
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ hostapd_prepare_rates,178
+
+ os_calloc,286
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ hostapd_derive_psk,299
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ eapol_auth_init,1276
+
+ wpa_init,415
+
+ wpa_auth_gen_wpa_ie,428
+
+ wpa_group_init,360
+
+ pmksa_cache_auth_init,450
+
+ eloop_register_timeout,193
+
+ eloop_register_timeout,193
+
+ hostap_set_generic_elem,800
+
+ hostapd_ioctl_set_generic_elem,764
+
+f:0x
+
+ ieee802_11_build_ap_params,912
+
+ ieee802_11_build_ap_params,925
+
+ hostap_set_ap,1307
+
+ hapd_intf_set_ap_bcn,360
+
+ ke_msg_alloc,79
+update_ongoing_1_bcn_update
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+ hapd_intf_add_key,195
+hapd_intf_add_key CCMP
+add is_broadcast_ether_addr
+sta:255, vif:1, key:1
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+add hw key idx:5
+
+f:0x
+
+f:0x
+
+ wpa_driver_set_operstate,1749
+
+f:0x
+
+f:0x
+enter low level!
+mac c8:93:48:44:aa: 1
+leave low level!
+net_wlan_add_netif done!, vif_idx:1
+uap_ip_start
+
+configuring interface uap (with Static IP)
+ rwm_tx_node_alloc,184
+
+ rwm_tx_node_alloc,184
+
+f:0x
+
+f:0x
+
+ dhcp_server_init,633
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xTaskCreate,717
+
+ xTaskCreate,721
+dhcp-server:40baf0-40d830:2048:2
+def netif is no ap's netif, sending boardcast or no-subnet ip packets may failed
+sending broadcast_deauth:5
+
+# sta dlink_test_1 12345678
+
+sta_Command
+ssid:dlink_test_1 key:12345678
+net_wlan_remove_netif done!, vif_idx:0
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+Cancelling scan request
+
+ eloop_register_timeout,193
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+wpa/host apd remove_if:0
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ supplicant_main_entry,86
+
+ wpa_supplicant_init,4902
+
+ os_calloc,286
+
+ eloop_register_timeout,193
+
+ wpa_supplicant_alloc,3395
+
+ wpa_config_alloc_empty,3519
+
+ wpa_config_read_network,183
+
+ dup_binstr,738
+
+ os_realloc,40
+
+ wpa_driver_init,1409
+
+ hapd_intf_add_vif,280
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+hapd_intf_add_vif,type:2, s:0, id:2
+
+f:0x
+
+ socket,182
+
+ radio_add_interface,3929
+
+ wpa_supplicant_init_wpa,1040
+
+ wpa_sm_init,2198
+
+ hostap_get_hw_feature_data,1241
+
+ hostap_get_hw_feature_data,1261
+
+ hostap_get_hw_feature_data,1262
+wpa_dInit
+
+ l2_packet_init,128
+
+ socket,182
+
+ os_realloc,40
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+wpa_supplicant_req_scan
+Setting scan request: 1.100000 sec
+
+ eloop_register_timeout,193
+
+ supplicant_main_entry,142
+MANUAL_SCAN_REQ
+
+ os_realloc,40
+
+ os_realloc,40
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+enter low level!
+mac c8:93:48:44:aa: 0
+leave low level!
+net_wlan_add_netif done!, vif_idx:2
+
+# softap kevin_zhang 1111117231
+
+SOFTAP_COMMAND
+
+ssid:kevin_zhang  key:1111117231
+uap_ip_down
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+net_wlan_remove_netif done!, vif_idx:1
+
+ wpa_driver_hostap_set_key,377
+del hw key idx:5
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ hostap_set_generic_elem,800
+
+ hostapd_ioctl_set_generic_elem,764
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+wpa/host apd remove_if:1
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+Soft_AP_start
+[saap]mm_bcn_init
+
+ hostapd_main_entry,503
+
+ os_calloc,286
+
+ os_calloc,286
+
+ hostapd_init,1471
+
+ os_strdup,103
+
+ hostapd_cfg_defaults,123
+
+ hostapd_cfg_defaults,124
+
+ os_calloc,286
+
+ os_strdup,103
+
+ os_calloc,286
+
+ hostapd_alloc_bss_data,1385
+
+ os_calloc,286
+
+ hostap_init,1032
+
+ hapd_intf_add_vif,280
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+hapd_intf_add_vif,type:3, s:0, id:3
+
+f:0x
+
+ socket,182
+
+ hapd_intf_start_apm,319
+
+ ke_msg_alloc,79
+apm start with vif:3
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+------beacon_int_set:100 TU
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+update_ongoing_1_bcn_update
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+vif_idx:3, ch_idx:1, bcmc_idx:7
+
+f:0x
+
+ socket,182
+
+ l2_packet_init,128
+
+ socket,182
+
+ os_realloc,40
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+
+ hostap_get_we_version,977
+
+f:0x
+
+ hostap_wireless_event_init,1011
+
+f:0x
+
+f:0x
+
+ hostap_get_hw_feature_data,1241
+
+ hostap_get_hw_feature_data,1261
+
+ hostap_get_hw_feature_data,1262
+
+ hostapd_prepare_rates,178
+
+ rwnxl_violence_reset_patch,162
+
+f:0x
+
+ os_calloc,286
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ hostapd_derive_psk,299
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+ eapol_auth_init,1276
+
+ wpa_init,415
+
+ wpa_auth_gen_wpa_ie,428
+
+ wpa_group_init,360
+
+ pmksa_cache_auth_init,450
+
+ eloop_register_timeout,193
+
+ eloop_register_timeout,193
+
+ hostap_set_generic_elem,800
+
+ hostapd_ioctl_set_generic_elem,764
+
+f:0x
+
+ ieee802_11_build_ap_params,912
+
+ ieee802_11_build_ap_params,925
+
+ hostap_set_ap,1307
+
+ hapd_intf_set_ap_bcn,360
+
+ ke_msg_alloc,79
+update_ongoing_1_bcn_update
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+ hapd_intf_add_key,195
+hapd_intf_add_key CCMP
+add is_broadcast_ether_addr
+sta:255, vif:3, key:1
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+add hw key idx:13
+
+f:0x
+
+f:0x
+
+ wpa_driver_set_operstate,1749
+
+f:0x
+
+f:0x
+enter low level!
+mac c8:93:48:44:aa: 1
+leave low level!
+net_wlan_add_netif done!, vif_idx:3
+uap_ip_start
+
+configuring interface uap (with Static IP)
+ rwm_tx_node_alloc,184
+
+ rwm_tx_node_alloc,184
+
+f:0x
+
+ dhcp_server_init,633
+
+f:0x
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xTaskCreate,717
+
+ xTaskCreate,721
+dhcp-server:40d6c0-40d6b8:2048:2
+def netif is no ap's netif, sending boardcast or no-subnet ip packets may failed
+sending broadcast_deauth:5
+
+# sta dlink_test_1 12345678
+
+sta_Command
+ssid:dlink_test_1 key:12345678
+net_wlan_remove_netif done!, vif_idx:2
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+Cancelling scan request
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+wpa/host apd remove_if:2
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ supplicant_main_entry,86
+
+ wpa_supplicant_init,4902
+
+ os_calloc,286
+
+ eloop_register_timeout,193
+
+ wpa_supplicant_alloc,3395
+
+ wpa_config_alloc_empty,3519
+
+ wpa_config_read_network,183
+
+ dup_binstr,738
+
+ os_realloc,40
+
+ wpa_driver_init,1409
+
+ hapd_intf_add_vif,280
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ handle_read,224
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+hapd_intf_add_vif,type:2, s:0, id:0
+
+f:0x
+
+ socket,182
+
+ radio_add_interface,3929
+
+ wpa_supplicant_init_wpa,1040
+
+ wpa_sm_init,2198
+
+ hostap_get_hw_feature_data,1241
+
+ hostap_get_hw_feature_data,1261
+
+ hostap_get_hw_feature_data,1262
+wpa_dInit
+
+ l2_packet_init,128
+
+ socket,182
+
+ os_realloc,40
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+wpa_supplicant_req_scan
+Setting scan request: 2.100000 s
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+ec
+
+ eloop_register_timeout,193
+
+ supplicant_main_entry,142
+MANUAL_SCAN_REQ
+
+ os_realloc,40
+
+ os_realloc,40
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+enter low level!
+mac c8:93:48:44:aa: 0
+leave low level!
+net_wlan_add_netif done!, vif_idx:0
+
+# softap kevin_zhang 1111117231
+
+SOFTAP_COMMAND
+
+ssid:kevin_zhang  key:1111117231
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ xQueueGenericCreate,404
+uap_ip_down
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+net_wlan_remove_netif done!, vif_idx:3
+
+ wpa_driver_hostap_set_key,377
+del hw key idx:13
+
+ ke_msg_alloc,79
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ hostap_set_generic_elem,800
+
+ hostapd_ioctl_set_generic_elem,764
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+wpa/host apd remove_if:3
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+Soft_AP_start
+[saap]mm_bcn_init
+
+ hostapd_main_entry,503
+
+ os_calloc,286
+
+ os_calloc,286
+
+ hostapd_init,1471
+
+ os_strdup,103
+
+ hostapd_cfg_defaults,123
+
+ hostapd_cfg_defaults,124
+
+ os_calloc,286
+
+ os_strdup,103
+
+ os_calloc,286
+
+ hostapd_alloc_bss_data,1385
+
+ os_calloc,286
+
+ hostap_init,1032
+
+ hapd_intf_add_vif,280
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+hapd_intf_add_vif,type:3, s:0, id:1
+
+f:0x
+
+ socket,182
+
+ hapd_intf_start_apm,319
+
+ ke_msg_alloc,79
+apm start with vif:1
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+------beacon_int_set:100 TU
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+update_ongoing_1_bcn_update
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+vif_idx:1, ch_idx:2, bcmc_idx:5
+
+f:0x
+
+ socket,182
+
+ l2_packet_init,128
+
+ socket,182
+
+ os_realloc,40
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+
+ hostap_get_we_version,977
+
+f:0x
+
+ hostap_wireless_event_init,1011
+
+f:0x
+
+f:0x
+
+ hostap_get_hw_feature_data,1241
+
+ hostap_get_hw_feature_data,1261
+
+ hostap_get_hw_feature_data,1262
+
+ hostapd_prepare_rates,178
+
+ os_calloc,286
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ hostapd_derive_psk,299
+
+ eapol_auth_init,1276
+
+ wpa_init,415
+
+ wpa_auth_gen_wpa_ie,428
+
+ wpa_group_init,360
+
+ pmksa_cache_auth_init,450
+
+ eloop_register_timeout,193
+
+ eloop_register_timeout,193
+
+ hostap_set_generic_elem,800
+
+ hostapd_ioctl_set_generic_elem,764
+
+f:0x
+
+ ieee802_11_build_ap_params,912
+
+ ieee802_11_build_ap_params,925
+
+ hostap_set_ap,1307
+
+ hapd_intf_set_ap_bcn,360
+
+ ke_msg_alloc,79
+update_ongoing_1_bcn_update
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+ hapd_intf_add_key,195
+hapd_intf_add_key CCMP
+add is_broadcast_ether_addr
+sta:255, vif:1, key:1
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+add hw key idx:5
+
+f:0x
+
+f:0x
+
+ wpa_driver_set_operstate,1749
+
+f:0x
+
+f:0x
+enter low level!
+mac c8:93:48:44:aa: 1
+leave low level!
+net_wlan_add_netif done!, vif_idx:1
+uap_ip_start
+
+configuring interface uap (with Static IP)
+ rwm_tx_node_alloc,184
+
+ rwm_tx_node_alloc,184
+
+ dhcp_server_init,633
+
+f:0x
+
+f:0x
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xTaskCreate,717
+
+ xTaskCreate,721
+dhcp-server:40d008-40d000:2048:2
+def netif is no ap's netif, sending boardcast or no-subnet ip packets may failed
+sending broadcast_deauth:5
+
+# sta dlink_test_1 12345678
+
+sta_Command
+ssid:dlink_test_1 key:12345678
+net_wlan_remove_netif done!, vif_idx:0
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+Cancelling scan request
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+wpa/host apd remove_if:0
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ supplicant_main_entry,86
+
+ wpa_supplicant_init,4902
+
+ os_calloc,286
+
+ eloop_register_timeout,193
+
+ wpa_supplicant_alloc,3395
+
+ wpa_config_alloc_empty,3519
+
+ wpa_config_read_network,183
+
+ dup_binstr,738
+
+ os_realloc,40
+
+ wpa_driver_init,1409
+
+ hapd_intf_add_vif,280
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+hapd_intf_add_vif,type:2, s:0, id:2
+
+f:0x
+
+ socket,182
+
+ radio_add_interface,3929
+
+ wpa_supplicant_init_wpa,1040
+
+ wpa_sm_init,2198
+
+ hostap_get_hw_feature_data,1241
+
+ hostap_get_hw_feature_data,1261
+
+ hostap_get_hw_feature_data,1262
+wpa_dInit
+
+ l2_packet_init,128
+
+ socket,182
+
+ os_realloc,40
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+wpa_supplicant_req_scan
+Setting scan request: 0.100000 sec
+
+ eloop_register_timeout,193
+
+ supplicant_main_entry,142
+MANUAL_SCAN_REQ
+
+ os_realloc,40
+
+ os_realloc,40
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+enter low level!
+mac c8:93:48:44:aa: 0
+leave low level!
+net_wlan_add_netif done!, vif_idx:2
+
+# softap kevin_zhang 1111117231
+
+SOFTAP_COMMAND
+
+ssid:kevin_zhang  key:1111117231
+
+ xQueueGenericCreate,404
+
+f:0x
+wpa_supplicant_scan
+
+ wpa_scan_clone_params,2185
+
+ wpa_scan_clone_params,2191
+
+ radio_add_work,4103
+
+ eloop_register_timeout,193
+
+f:0x
+wpa_drv_scan
+
+ wpa_driver_scan2,1471
+
+ os_realloc,40
+
+f:0x
+wpa_send_scan_req
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+scan_start_req_handler
+
+f:0x
+uap_ip_down
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+net_wlan_remove_netif done!, vif_idx:1
+
+ wpa_driver_hostap_set_key,377
+del hw key idx:5
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ hostap_set_generic_elem,800
+
+ hostapd_ioctl_set_generic_elem,764
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+wpa/host apd remove_if:1
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+Soft_AP_start
+[saap]mm_bcn_init
+
+ hostapd_main_entry,503
+
+ os_calloc,286
+
+ os_calloc,286
+
+ hostapd_init,1471
+
+ os_strdup,103
+
+ hostapd_cfg_defaults,123
+
+ hostapd_cfg_defaults,124
+
+ os_calloc,286
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ os_strdup,103
+
+ os_calloc,286
+
+ hostapd_alloc_bss_data,1385
+
+ os_calloc,286
+
+ ke_msg_alloc,79
+
+ sr_malloc_shell,51
+
+ sr_malloc_result_item,35
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ sr_malloc_shell,51
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ sr_malloc_result_item,35
+
+f:0x
+
+ hostap_init,1032
+
+ hapd_intf_add_vif,280
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+hapd_intf_add_vif,type:3, s:0, id:3
+
+f:0x
+
+ socket,182
+
+ hapd_intf_start_apm,319
+
+ ke_msg_alloc,79
+apm start with vif:3
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+------beacon_int_set:100 TU
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+update_ongoing_1_bcn_update
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+vif_idx:3, ch_idx:0, bcmc_idx:7
+
+f:0x
+
+ socket,182
+
+ ke_msg_alloc,79
+
+f:0x
+
+ l2_packet_init,128
+
+ socket,182
+
+ os_realloc,40
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+
+ hostap_get_we_version,977
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ hostap_wireless_event_init,1011
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ hostap_get_hw_feature_data,1241
+
+ hostap_get_hw_feature_data,1261
+
+ hostap_get_hw_feature_data,1262
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ hostapd_prepare_rates,178
+
+ os_calloc,286
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ hostapd_derive_psk,299
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ sr_malloc_result_item,35
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ eapol_auth_init,1276
+
+ wpa_init,415
+
+ wpa_auth_gen_wpa_ie,428
+
+ wpa_group_init,360
+
+ pmksa_cache_auth_init,450
+
+ eloop_register_timeout,193
+
+ eloop_register_timeout,193
+
+ hostap_set_generic_elem,800
+
+ hostapd_ioctl_set_generic_elem,764
+
+f:0x
+
+ ieee802_11_build_ap_params,912
+
+ ieee802_11_build_ap_params,925
+
+ hostap_set_ap,1307
+
+ hapd_intf_set_ap_bcn,360
+
+ ke_msg_alloc,79
+update_ongoing_1_bcn_update
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+ hapd_intf_add_key,195
+hapd_intf_add_key CCMP
+add is_broadcast_ether_addr
+sta:255, vif:3, key:1
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+add hw key idx:13
+
+f:0x
+
+f:0x
+
+ wpa_driver_set_operstate,1749
+
+f:0x
+
+f:0x
+enter low level!
+mac c8:93:48:44:aa: 1
+leave low level!
+net_wlan_add_netif done!, vif_idx:3
+uap_ip_start
+
+configuring interface uap (with Static IP)
+ rwm_tx_node_alloc,184
+
+ rwm_tx_node_alloc,184
+
+f:0x
+
+f:0x
+
+ dhcp_server_init,633
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xTaskCreate,717
+
+ xTaskCreate,721
+dhcp-server:40cb00-40df70:2048:2
+def netif is no ap's netif, sending boardcast or no-subnet ip packets may failed
+sending broadcast_deauth:5
+
+# sta dlink_test_1 12345678
+
+sta_Command
+ssid:dlink_test_1 key:12345678
+net_wlan_remove_netif done!, vif_idx:2
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+Cancelling scan request
+
+ eloop_register_timeout,193
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+wpa/host apd remove_if:2
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ supplicant_main_entry,86
+
+ wpa_supplicant_init,4902
+
+ os_calloc,286
+
+ eloop_register_timeout,193
+
+ wpa_supplicant_alloc,3395
+
+ wpa_config_alloc_empty,3519
+
+ wpa_config_read_network,183
+
+ dup_binstr,738
+
+ os_realloc,40
+
+ wpa_driver_init,1409
+
+ hapd_intf_add_vif,280
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+hapd_intf_add_vif,type:2, s:0, id:0
+
+f:0x
+
+ socket,182
+
+ radio_add_interface,3929
+
+ wpa_supplicant_init_wpa,1040
+
+ wpa_sm_init,2198
+
+ hostap_get_hw_feature_data,1241
+
+ hostap_get_hw_feature_data,1261
+
+ hostap_get_hw_feature_data,1262
+wpa_dInit
+
+ l2_packet_init,128
+
+ socket,182
+
+ os_realloc,40
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+wpa_supplicant_req_scan
+Setting scan request: 1.100000 sec
+
+ eloop_register_timeout,193
+
+ supplicant_main_entry,142
+MANUAL_SCAN_REQ
+
+ os_realloc,40
+
+ os_realloc,40
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+enter low level!
+mac c8:93:48:44:aa: 0
+leave low level!
+net_wlan_add_netif done!, vif_idx:0
+
+# softap kevin_zhang 1111117231
+
+SOFTAP_COMMAND
+
+ssid:kevin_zhang  key:1111117231
+
+f:0x
+
+f:0x
+
+f:0x
+
+ xQueueGenericCreate,404
+uap_ip_down
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+net_wlan_remove_netif done!, vif_idx:3
+
+ wpa_driver_hostap_set_key,377
+del hw key idx:13
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ hostap_set_generic_elem,800
+
+ hostapd_ioctl_set_generic_elem,764
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+wpa/host apd remove_if:3
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+Soft_AP_start
+[saap]mm_bcn_init
+
+ hostapd_main_entry,503
+
+ os_calloc,286
+
+ os_calloc,286
+
+ hostapd_init,1471
+
+ os_strdup,103
+
+ hostapd_cfg_defaults,123
+
+ hostapd_cfg_defaults,124
+
+ os_calloc,286
+
+ os_strdup,103
+
+ os_calloc,286
+
+ hostapd_alloc_bss_data,1385
+
+ os_calloc,286
+
+ hostap_init,1032
+
+ hapd_intf_add_vif,280
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+hapd_intf_add_vif,type:3, s:0, id:1
+
+f:0x
+
+ socket,182
+
+ hapd_intf_start_apm,319
+
+ ke_msg_alloc,79
+apm start with vif:1
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+------beacon_int_set:100 TU
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+update_ongoing_1_bcn_update
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+vif_idx:1, ch_idx:1, bcmc_idx:5
+
+f:0x
+
+ socket,182
+
+ l2_packet_init,128
+
+ socket,182
+
+ os_realloc,40
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+
+ hostap_get_we_version,977
+
+f:0x
+
+ hostap_wireless_event_init,1011
+
+f:0x
+
+f:0x
+
+ hostap_get_hw_feature_data,1241
+
+ hostap_get_hw_feature_data,1261
+
+ hostap_get_hw_feature_data,1262
+
+ hostapd_prepare_rates,178
+
+ os_calloc,286
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ hostapd_derive_psk,299
+
+ eapol_auth_init,1276
+
+ wpa_init,415
+
+ wpa_auth_gen_wpa_ie,428
+
+ wpa_group_init,360
+
+ pmksa_cache_auth_init,450
+
+ eloop_register_timeout,193
+
+ eloop_register_timeout,193
+
+ hostap_set_generic_elem,800
+
+ hostapd_ioctl_set_generic_elem,764
+
+f:0x
+
+ ieee802_11_build_ap_params,912
+
+ ieee802_11_build_ap_params,925
+
+ hostap_set_ap,1307
+
+ hapd_intf_set_ap_bcn,360
+
+ ke_msg_alloc,79
+update_ongoing_1_bcn_update
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+ hapd_intf_add_key,195
+hapd_intf_add_key CCMP
+add is_broadcast_ether_addr
+sta:255, vif:1, key:1
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+add hw key idx:5
+
+f:0x
+
+f:0x
+
+ wpa_driver_set_operstate,1749
+
+f:0x
+
+f:0x
+enter low level!
+mac c8:93:48:44:aa: 1
+leave low level!
+net_wlan_add_netif done!, vif_idx:1
+uap_ip_start
+
+configuring interface uap (with Static IP)
+ rwm_tx_node_alloc,184
+
+ rwm_tx_node_alloc,184
+
+f:0x
+
+f:0x
+
+ dhcp_server_init,633
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xTaskCreate,717
+
+ xTaskCreate,721
+dhcp-server:40caa8-40d598:2048:2
+def netif is no ap's netif, sending boardcast or no-subnet ip packets may failed
+sending broadcast_deauth:5
+
+# sta dlink_test_1 12345678
+
+sta_Command
+ssid:dlink_test_1 key:12345678
+net_wlan_remove_netif done!, vif_idx:0
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+Cancelling scan request
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+wpa/host apd remove_if:0
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ supplicant_main_entry,86
+
+ wpa_supplicant_init,4902
+
+ os_calloc,286
+
+ eloop_register_timeout,193
+
+ wpa_supplicant_alloc,3395
+
+ wpa_config_alloc_empty,3519
+
+ wpa_config_read_network,183
+
+ dup_binstr,738
+
+ os_realloc,40
+
+ wpa_driver_init,1409
+
+ hapd_intf_add_vif,280
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+hapd_intf_add_vif,type:2, s:0, id:2
+
+f:0x
+
+ socket,182
+
+ radio_add_interface,3929
+
+ wpa_supplicant_init_wpa,1040
+
+ wpa_sm_init,2198
+
+ hostap_get_hw_feature_data,1241
+
+ hostap_get_hw_feature_data,1261
+
+ hostap_get_hw_feature_data,1262
+wpa_dInit
+
+ l2_packet_init,128
+
+ socket,182
+
+ os_realloc,40
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+wpa_supplicant_req_scan
+Setting scan request: 2.100000 sec
+
+ eloop_register_timeout,193
+
+ supplicant_main_entry,142
+MANUAL_SCAN_REQ
+
+ os_realloc,40
+
+ os_realloc,40
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+enter low level!
+mac c8:93:48:44:aa: 0
+leave low level!
+net_wlan_add_netif done!, vif_idx:2
+
+# softap kevin_zhang 1111117231
+
+SOFTAP_COMMAND
+
+ssid:kevin_zhang  key:1111117231
+uap_ip_down
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+net_wlan_remove_netif done!, vif_idx:1
+
+ wpa_driver_hostap_set_key,377
+del hw key idx:5
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ hostap_set_generic_elem,800
+
+ hostapd_ioctl_set_generic_elem,764
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+wpa/host apd remove_if:1
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+Soft_AP_start
+[saap]mm_bcn_init
+
+ hostapd_main_entry,503
+
+ os_calloc,286
+
+ os_calloc,286
+
+ hostapd_init,1471
+
+ os_strdup,103
+
+ hostapd_cfg_defaults,123
+
+ hostapd_cfg_defaults,124
+
+ os_calloc,286
+
+ os_strdup,103
+
+ os_calloc,286
+
+ hostapd_alloc_bss_data,1385
+
+ os_calloc,286
+
+ hostap_init,1032
+
+ hapd_intf_add_vif,280
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+hapd_intf_add_vif,type:3, s:0, id:3
+
+f:0x
+
+ socket,182
+
+ hapd_intf_start_apm,319
+
+ ke_msg_alloc,79
+apm start with vif:3
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+------beacon_int_set:100 TU
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+update_ongoing_1_bcn_update
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+vif_idx:3, ch_idx:2, bcmc_idx:7
+
+f:0x
+
+ socket,182
+
+ l2_packet_init,128
+
+ socket,182
+
+ os_realloc,40
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+
+ hostap_get_we_version,977
+
+f:0x
+
+ hostap_wireless_event_init,1011
+
+f:0x
+
+f:0x
+
+ hostap_get_hw_feature_data,1241
+
+ hostap_get_hw_feature_data,1261
+
+ hostap_get_hw_feature_data,1262
+
+ hostapd_prepare_rates,178
+
+ os_calloc,286
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ hostapd_derive_psk,299
+
+ eapol_auth_init,1276
+
+ wpa_init,415
+
+ wpa_auth_gen_wpa_ie,428
+
+ wpa_group_init,360
+
+ pmksa_cache_auth_init,450
+
+ eloop_register_timeout,193
+
+ eloop_register_timeout,193
+
+ hostap_set_generic_elem,800
+
+ hostapd_ioctl_set_generic_elem,764
+
+f:0x
+
+ ieee802_11_build_ap_params,912
+
+ ieee802_11_build_ap_params,925
+
+ hostap_set_ap,1307
+
+ hapd_intf_set_ap_bcn,360
+
+ ke_msg_alloc,79
+update_ongoing_1_bcn_update
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+ hapd_intf_add_key,195
+hapd_intf_add_key CCMP
+add is_broadcast_ether_addr
+sta:255, vif:3, key:1
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+add hw key idx:13
+
+f:0x
+
+f:0x
+
+ wpa_driver_set_operstate,1749
+
+f:0x
+
+f:0x
+enter low level!
+mac c8:93:48:44:aa: 1
+leave low level!
+net_wlan_add_netif done!, vif_idx:3
+uap_ip_start
+
+configuring interface uap (with Static IP)
+ rwm_tx_node_alloc,184
+
+ rwm_tx_node_alloc,184
+
+f:0x
+
+f:0x
+
+ dhcp_server_init,633
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xTaskCreate,717
+
+ xTaskCreate,721
+dhcp-server:40c9c8-40d570:2048:2
+def netif is no ap's netif, sending boardcast or no-subnet ip packets may failed
+sending broadcast_deauth:5
+
+# sta dlink_test_1 12345678
+
+sta_Command
+ssid:dlink_test_1 key:12345678
+net_wlan_remove_netif done!, vif_idx:2
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+Cancelling scan request
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+wpa/host apd remove_if:2
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ supplicant_main_entry,86
+
+ wpa_supplicant_init,4902
+
+ os_calloc,286
+
+ eloop_register_timeout,193
+
+ wpa_supplicant_alloc,3395
+
+ wpa_config_alloc_empty,3519
+
+ wpa_config_read_network,183
+
+ dup_binstr,738
+
+ os_realloc,40
+
+ wpa_driver_init,1409
+
+ hapd_intf_add_vif,280
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+hapd_intf_add_vif,type:2, s:0, id:0
+
+f:0x
+
+ socket,182
+
+ radio_add_interface,3929
+
+ wpa_supplicant_init_wpa,1040
+
+ wpa_sm_init,2198
+
+ hostap_get_hw_feature_data,1241
+
+ hostap_get_hw_feature_data,1261
+
+ hostap_get_hw_feature_data,1262
+wpa_dInit
+
+ l2_packet_init,128
+
+ socket,182
+
+ os_realloc,40
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+wpa_supplicant_req_scan
+Setting scan request: 0.100000 sec
+
+ eloop_register_timeout,193
+
+ supplicant_main_entry,142
+MANUAL_SCAN_REQ
+
+ os_realloc,40
+
+ os_realloc,40
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+enter low level!
+mac c8:93:48:44:aa: 0
+leave low level!
+net_wlan_add_netif done!, vif_idx:0
+
+# softap kevin_zhang 1111117231
+
+SOFTAP_COMMAND
+
+ssid:kevin_zhang  key:1111117231
+uap_ip_down
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+net_wlan_remove_netif done!, vif_idx:3
+
+ wpa_driver_hostap_set_key,377
+del hw key idx:13
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ hostap_set_generic_elem,800
+
+ hostapd_ioctl_set_generic_elem,764
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+wpa/host apd remove_if:3
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+Soft_AP_start
+[saap]mm_bcn_init
+
+ hostapd_main_entry,503
+
+ os_calloc,286
+
+ os_calloc,286
+
+ hostapd_init,1471
+
+ os_strdup,103
+
+ hostapd_cfg_defaults,123
+
+ hostapd_cfg_defaults,124
+
+ os_calloc,286
+
+ os_strdup,103
+
+ os_calloc,286
+
+ hostapd_alloc_bss_data,1385
+
+ os_calloc,286
+
+ hostap_init,1032
+
+ hapd_intf_add_vif,280
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+hapd_intf_add_vif,type:3, s:0, id:1
+
+f:0x
+
+ socket,182
+
+ hapd_intf_start_apm,319
+
+ ke_msg_alloc,79
+apm start with vif:1
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+------beacon_int_set:100 TU
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+update_ongoing_1_bcn_update
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+vif_idx:1, ch_idx:0, bcmc_idx:5
+
+f:0x
+
+ socket,182
+
+ l2_packet_init,128
+
+ socket,182
+
+ os_realloc,40
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+
+ hostap_get_we_version,977
+
+f:0x
+
+ rwnxl_violence_reset_patch,162
+
+f:0x
+
+ hostap_wireless_event_init,1011
+
+f:0x
+
+f:0x
+
+ hostap_get_hw_feature_data,1241
+
+ hostap_get_hw_feature_data,1261
+
+ hostap_get_hw_feature_data,1262
+
+ hostapd_prepare_rates,178
+
+ os_calloc,286
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ hostapd_derive_psk,299
+
+ eapol_auth_init,1276
+
+ wpa_init,415
+
+ wpa_auth_gen_wpa_ie,428
+
+ wpa_group_init,360
+
+ pmksa_cache_auth_init,450
+
+ eloop_register_timeout,193
+
+ eloop_register_timeout,193
+
+ hostap_set_generic_elem,800
+
+ hostapd_ioctl_set_generic_elem,764
+
+f:0x
+
+ ieee802_11_build_ap_params,912
+
+ ieee802_11_build_ap_params,925
+
+ hostap_set_ap,1307
+
+ hapd_intf_set_ap_bcn,360
+
+ ke_msg_alloc,79
+update_ongoing_1_bcn_update
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+ hapd_intf_add_key,195
+hapd_intf_add_key CCMP
+add is_broadcast_ether_addr
+sta:255, vif:1, key:1
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+add hw key idx:5
+
+f:0x
+
+f:0x
+
+ wpa_driver_set_operstate,1749
+
+f:0x
+
+f:0x
+enter low level!
+mac c8:93:48:44:aa: 1
+leave low level!
+net_wlan_add_netif done!, vif_idx:1
+uap_ip_start
+
+configuring interface uap (with Static IP)
+ rwm_tx_node_alloc,184
+
+ rwm_tx_node_alloc,184
+
+f:0x
+
+ dhcp_server_init,633
+
+f:0x
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xQueueGenericCreate,404
+
+ xTaskCreate,717
+
+ xTaskCreate,721
+dhcp-server:40d508-40d500:2048:2
+def netif is no ap's netif, sending boardcast or no-subnet ip packets may failed
+sending broadcast_deauth:5
+
+# sta dlink_tsoftap kevin_zhang 1111117231
+
+sta_Command
+parameter invalid
+
+# 
+f:0x
+wpa_supplicant_scan
+
+ wpa_scan_clone_params,2185
+
+ wpa_scan_clone_params,2191
+
+ radio_add_work,4103
+
+ eloop_register_timeout,193
+
+f:0x
+wpa_drv_scan
+
+ wpa_driver_scan2,1471
+
+ os_realloc,40
+
+f:0x
+wpa_send_scan_req
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+scan_start_req_handler
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ sr_malloc_shell,51
+
+ sr_malloc_result_item,35
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ sr_malloc_shell,51
+
+ sr_malloc_result_item,35
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ sr_malloc_result_item,35
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+wpa_driver_scan_cb
+
+ wpa_driver_get_scan_results2,1518
+
+ wpa_driver_get_scan_results2,1528
+
+ os_calloc,286
+wpa_get_scan_rst:1
+
+ wpa_get_scan_rst,450
+
+f:0x
+
+ wpa_bss_add,371
+
+ os_realloc,40
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ dup_binstr,738
+wpa_supplicant_connect
+
+ wpa_supplicant_associate,1732
+
+ radio_add_work,4103
+
+ eloop_register_timeout,193
+
+f:0x
+
+ eloop_register_timeout,193
+
+f:0x
+Cancelling scan request
+
+ wpa_sm_set_ap_wpa_ie,2727
+
+ wpa_sm_set_ap_rsn_ie,2762
+
+ wpa_sm_set_assoc_wpa_ie_default,2656
+
+ wpa_driver_associate,1583
+
+ os_realloc,40
+
+f:0x
+wpa_driver_associate
+
+ ke_msg_alloc,79
+
+ rw_msg_send,37
+
+ xQueueGenericCreate,404
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+scan_start_req_handler
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ os_realloc,40
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ os_realloc,40
+
+f:0x
+
+f:0x
+
+ eloop_register_timeout,193
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ sr_malloc_shell,51
+
+ sr_malloc_result_item,35
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ sr_malloc_shell,51
+
+ sr_malloc_result_item,35
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+sm_auth_send:1
+
+ ke_timer_set,161
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+sm_auth_handler
+
+f:0x
+
+ ke_timer_set,161
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+sm_assoc_rsp_handler
+
+f:0x
+
+ ke_msg_alloc,79
+get txpwrtab gain:11
+rate:0, pwr_gain:20
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+---------SM_CONNECT_IND_ok
+
+ ieee802_11_build_ap_params,912
+
+ ieee802_11_build_ap_params,925
+
+ hostapd_build_beacon_data,2287
+
+ hostapd_build_beacon_data,2294
+
+f:0x
+
+f:0x
+
+ ieee802_11_build_ap_params,912
+
+ ieee802_11_build_ap_params,925
+
+ hostapd_build_beacon_data,2287
+
+ hostapd_build_beacon_data,2294
+
+f:0x
+
+f:0x
+
+ hostap_channel_switch,1153
+h_channel_switch:436860:1:16
+
+ hadp_intf_get_bcn_change_req,43
+
+ ke_msg_alloc,79
+
+m:0x40dd48,136|hadp_intf_get_bcn_change_req,43
+
+ ke_msg_alloc,79
+
+m:0x40d7a8,40|ke_msg_alloc,79
+mm_csa_beacon_change
+
+ os_realloc,40
+
+f:0x
+
+ ke_msg_alloc,79
+update_ongoing_1_bcn_update
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+delif sta
+
+net_wlan_remove_netif done!, vif_idx:0
+
+f:0x
+
+ wpa_driver_deauthenticate,1775
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+sm_disconnect_process
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+SM_DISCONNECT_IND
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+Cancelling scan request
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+wpa/host apd remove_if:0
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+# 
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+ hostapd_gen_probe_resp,389
+
+ hostap_send_mlme,286
+
+ send,217
+
+ send,223
+
+ hapd_intf_ke_rx_handle,721
+
+f:0x
+
+f:0x
+
+ hapd_intf_ke_rx_handle,729
+
+f:0x
+
+ ke_msg_alloc,79
+
+ me_mgmt_tx_req_handler,258
+
+f:0x
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+ hostapd_gen_probe_resp,389
+
+ hostap_send_mlme,286
+
+ send,217
+
+ send,223
+
+ hapd_intf_ke_rx_handle,721
+
+f:0x
+
+f:0x
+
+ hapd_intf_ke_rx_handle,729
+
+f:0x
+
+ ke_msg_alloc,79
+
+ me_mgmt_tx_req_handler,258
+
+f:0x
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+f:0x
+
+f:0x
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+ hostapd_gen_probe_resp,389
+
+ hostap_send_mlme,286
+
+ send,217
+
+ send,223
+
+ hapd_intf_ke_rx_handle,721
+
+f:0x
+
+f:0x
+
+ hapd_intf_ke_rx_handle,729
+
+f:0x
+
+ ke_msg_alloc,79
+
+ me_mgmt_tx_req_handler,258
+
+f:0x
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+ hostapd_gen_probe_resp,389
+
+ ke_msg_alloc,79
+
+f:0x
+
+ hostap_send_mlme,286
+
+ send,217
+
+ send,223
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+ hapd_intf_ke_rx_handle,721
+
+f:0x
+
+f:0x
+
+ hapd_intf_ke_rx_handle,729
+
+f:0x
+
+ ke_msg_alloc,79
+
+ me_mgmt_tx_req_handler,258
+
+f:0x
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+f:0x
+
+f:0x
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+ hostapd_gen_probe_resp,389
+
+ hostap_send_mlme,286
+
+ send,217
+
+ send,223
+
+ ke_msg_alloc,79
+
+f:0x
+
+ hapd_intf_ke_rx_handle,721
+
+f:0x
+
+f:0x
+
+ hapd_intf_ke_rx_handle,729
+
+f:0x
+
+ ke_msg_alloc,79
+
+ me_mgmt_tx_req_handler,258
+
+f:0x
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+ hostapd_gen_probe_resp,389
+
+ hostap_send_mlme,286
+
+ send,217
+
+ send,223
+
+ hapd_intf_ke_rx_handle,721
+
+f:0x
+
+f:0x
+
+ hapd_intf_ke_rx_handle,729
+
+f:0x
+
+ ke_msg_alloc,79
+
+ me_mgmt_tx_req_handler,258
+
+f:0x
+
+ ke_sk_send,29
+
+ ke_sk_send,34
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ handle_read,224
+
+f:0x
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+delif softap
+
+uap_ip_down
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+net_wlan_remove_netif done!, vif_idx:1
+
+ wpa_driver_hostap_set_key,377
+del hw key idx:5
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+ wpa_driver_hostap_set_key,377
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+ hostap_set_generic_elem,800
+
+ hostapd_ioctl_set_generic_elem,764
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+wpa/host apd remove_if:1
+
+ ke_msg_alloc,79
+
+ ke_msg_alloc,79
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+f:0x
+
+# 
+# 
+# 
+# 
+# 
+# 
+# memshow
+
+free memory 56888
+
+# 

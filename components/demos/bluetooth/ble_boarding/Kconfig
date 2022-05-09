@@ -1,0 +1,5 @@
+menu "DEMOS_CONFIG"
+	config CONFIG_AT_CMD
+		bool "Enable ble boarding demos"
+		default n
+endmenu

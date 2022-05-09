@@ -1,0 +1,86 @@
+USER_SECTIONS	.nds_vector
+USER_SECTIONS	.interrupt.text
+USER_SECTIONS	.interrupt.HalTrapVector.text.HalTrapVector
+USER_SECTIONS	.bt_spec_data
+
+CPU0 0x00000000 0x280000
+{
+
+    FLASH 0x00000000
+	{	
+		* (.nds_vector)
+		* KEEP (.interrupt.text)
+		* KEEP (.interrupt.HalTrapVector.text.HalTrapVector)
+		* EXCLUDE_FILE(*txl_he.c.obj *txl_agg.c.obj *txl_cfm.c.obj *txl_cntrl.c.obj *rxl_hwdesc.c.obj *rxu_cntrl.c.obj ) (+RO-CODE)
+		* (+RO)
+	}
+	
+	ITCM 0x10000000 0x8000
+	{
+		LOADADDR NEXT _itcm_lma_start
+		ADDR NEXT _itcm_ema_start
+		*txl_he.c.obj *txl_agg.c.obj *txl_cfm.c.obj *txl_cntrl.c.obj *rxl_hwdesc.c.obj *rxu_cntrl.c.obj (+RO-CODE)
+		LOADADDR _itcm_lma_end
+		ADDR _itcm_ema_end
+	}
+	
+	DTCM 0x20000000 0x8000
+	{
+		LOADADDR NEXT _dtcm_lma_start
+		ADDR NEXT _dtcm_ema_start
+		;WiFi Data Path
+		*bam.c.obj *ke_env.c.obj *hal_dma.c.obj *hal_machw.c.obj *txu_cntrl.c.obj *bam_task.c.obj(*data*,*rodata*)
+		*rxl_cntrl.c.obj *tx_swdesc.c.obj *txl_cfm.c.obj *txl_cntrl.c.obj (*data*,*rodata*)
+		
+		;WiFi SM/MM/RC/VIF/TD/CHAN/PS
+		*sta_mgmt.c.obj *vif_mgmt.c.obj *rc.c.obj *rwnx.c.obj *me_task.c.obj *sm.c.obj(*data*,*rodata*)
+		*sm_task.c.obj *me.c.obj *mm.c.obj *mm_bcn.c.obj *mm_task.c.obj *mm_timer.c.obj(*data*,*rodata*)
+		*td.c.obj *chan.c.obj *ps.c.obj(*data*,*rodata*)
+		
+		;WiFi SCAN/APM
+		*scan_task.c.obj *scan.c.obj *scanu.c.obj *scanu_task.c.obj(*data*,*rodata*)
+		
+		;Flowling obj can't move to DTCM
+		;*hal_desc.c.obj  *rxu_cntrl.c.obj *txl_agg.c.obj *txl_he.c.obj *txl_buffer_shared.c.obj *txl_frame_shared.c.obj(*data*,*rodata*)
+		;*rxl_hwdesc.c.obj *scanu_shared.c.obj *scan_shared.c.obj *apm_task.c.obj(*data*,*rodata*)
+		
+		LOADADDR _dtcm_lma_end
+		ADDR _dtcm_ema_end
+		
+		ADDR _dtcm_bss_start
+		;WiFi Data Path
+		*bam.c.obj *ke_env.c.obj *hal_dma.c.obj *hal_machw.c.obj *txu_cntrl.c.obj *bam_task.c.obj(+ZI)
+		*rxl_cntrl.c.obj *tx_swdesc.c.obj *txl_cfm.c.obj *txl_cntrl.c.obj (+ZI)
+		
+		;WiFi SM/MM/RC/VIF/TD/CHAN/PS
+		*sta_mgmt.c.obj *vif_mgmt.c.obj *rc.c.obj *rwnx.c.obj *me_task.c.obj *sm.c.obj(+ZI)
+		*sm_task.c.obj *me.c.obj *mm.c.obj *mm_bcn.c.obj *mm_task.c.obj *mm_timer.c.obj(+ZI)
+		*td.c.obj *chan.c.obj *ps.c.obj(+ZI)
+		
+		;WiFi SCAN/APM
+		*scan_task.c.obj *scan.c.obj *scanu.c.obj *scanu_task.c.obj(+ZI)
+		
+		;Flowling obj can't move to DTCM
+		;*hal_desc.c.obj  *rxu_cntrl.c.obj *txl_agg.c.obj *txl_he.c.obj *txl_buffer_shared.c.obj *txl_frame_shared.c.obj(+ZI)
+		;*rxl_hwdesc.c.obj *scanu_shared.c.obj *scan_shared.c.obj apm_task.c.obj(+ZI)
+		ADDR _dtcm_bss_end
+	}
+	
+	SRAM1 0x30000000 0x10000
+	{
+		LOADADDR NEXT _bt_data_lmastart
+		ADDR NEXT   _bt_data_start
+		* KEEP (.bt_spec_data)
+		LOADADDR _bt_data_end
+	}
+	
+	SRAM2 0x30010000 0x58000
+	{
+		LOADADDR NEXT _data_lmastart
+		ADDR NEXT _data_start
+		*(+RW,+ZI)
+        STACK = 0x30068000
+	}
+	
+
+}

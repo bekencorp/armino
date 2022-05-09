@@ -1,0 +1,102 @@
+#TODO add full ARMINO Kconfig
+
+source "${ARMINO_PATH}/middleware/soc/Kconfig"
+
+mainmenu "Beken Development Configuration"
+
+	menu "ARMINO Configuration"
+		menu "Common Configuration"
+
+			menu "Compile/Build"
+				# Don't modify the default value directly!
+				# modify middleware/soc/bkxxx/bkxxx.defconfig,
+				# or modify it in per-project bkxxx.config
+				config TOOLCHAIN_PATH
+				string "Toolchain absolute path"
+				default "/opt/gcc-arm-none-eabi-5_4-2016q3/bin"
+
+				config TOOLCHAIN_PREFIX
+				string "Toolchain prefix"
+				default "arm-none-eabi-"
+
+			endmenu
+
+			menu "Debug"
+				config DEBUG_FIRMWARE
+				bool "Enable building debug firmware"
+				default y
+
+				#TODO optimize assert option and make it global
+				choice ASSERT
+					prompt "Assert options"
+					default ASSERT_IGNORE
+
+					config ASSERT_IGNORE
+						bool "Ignore Assert"
+					config ASSERT_HALT
+						bool "Assert halts the system"
+					config ASSERT_REBOOT
+						bool "Assert reboots the system"
+				endchoice
+
+				config JTAG
+					bool "Enable JTAG"
+					default n
+			endmenu
+		endmenu
+
+		# Configure global or cross-components features
+		# Place configurations here if:
+		#  - Global features which is NOT suitable to configure in any specific component
+		#  - Mutual exclusive components, such as ble, ble_5_x_rw etc
+		menu "Features Configuration"
+
+			config LWIP
+				bool "Enable LWIP"
+				default y
+
+			choice LWIP
+				depends on LWIP
+				prompt "LWIP Version"
+				default LWIP_V2_0
+
+				config LWIP_V2_0
+					depends on LWIP
+					bool "LWIP 2.0.2"
+				config LWIP_V2_1
+					depends on LWIP
+					bool "LWIP 2.1.2"
+			endchoice
+
+			choice HOST
+				prompt "Hosted Mode"
+				default NO_HOSTED
+
+				config NO_HOSTED
+					bool "Disable Hosted"
+				config SEMI_HOSTED
+					bool "Semi Hosted"
+				config FULLY_HOSTED
+					bool "Fully Hosted"
+			endchoice
+
+			config WIFI_SENSOR
+				bool "Enable WiFi sensor"
+				default n
+
+			config BLUETOOTH
+				bool "Enable Bluetooth"
+				default y
+		endmenu
+
+		menu "Components Configuration"
+			source "$COMPONENT_KCONFIGS_SOURCE_FILE"
+		endmenu
+	endmenu
+
+	#TODO add OS Kconfig
+	#menu "OS Configuration"
+		#source "$OSK_PATH/Kconfig"
+	#endmenu
+	
+	source "$COMPONENT_KCONFIGS_PROJBUILD_SOURCE_FILE"

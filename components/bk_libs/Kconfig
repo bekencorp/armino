@@ -1,0 +1,21 @@
+#TODO remove all kconfigs which are defined in armino libs
+
+menu "Internal Kconfig"
+
+	config MCU_PS
+		bool "Enable MCU Sleep"
+		default y
+
+	config DEEP_PS
+		bool "Enable Deep Sleep"
+		default y
+
+	config TICK_CALI
+		bool "Enable tick time caliration"
+		default y
+
+	config STA_PS
+		bool "Enable STA PS"
+		default y if !RF_OTA_TEST
+		default n if RF_OTA_TEST
+endmenu

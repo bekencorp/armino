@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+
+#TODO - optimize it, should finally remove this packer
+
+import os
+import sys
+import json
+import shutil
+import argparse
+
+armino_path=os.getenv("ARMINO_PATH")
+build_path=os.path.realpath('.')
+pack_tool_path="{}/build".format(armino_path)
+
+# parse commandline arguments
+def parse_args():
+    description = '''Beken HID Downloader.'''
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('-c', '--chip',
+                        default='bk7231n',
+                        help="chip type")
+    parser.add_argument('-i', '--index', type=int,
+                        default=0,
+                        help="chip index")
+    parser.add_argument('-b', '--boot',
+                        help='specify boot file')
+    parser.add_argument('-f', '--firmware',
+                        help='specify firmware file')
+    parser.add_argument('-d', '--dsp',
+                        help='specify dsp file')
+    parser.add_argument('-t', '--bt',
+                        help='specify bt file')
+    parser.add_argument('-n', '--image_name',
+                        help='generated image name')
+    parser.add_argument('-u', '--cpu1',
+                        help='specify cup1 file')
+    args = parser.parse_args()
+
+    return args
+
+args = parse_args()
+chip = args.chip
+image_name = args.image_name
+
+#print("===========chip={} firmware={} bootloader={}".format(chip, firmware_str, bootloader_str))
+
+
+out_path = "tmp.json"
+
+def package_json_rebuild():
+    with open("{}/middleware/boards/{}/configuration.json".format(armino_path, chip), 'r') as local_json:
+        config_json = json.load(local_json)
+
+    for firmware_file in config_json["section"]:
+        pakfile = "{}/middleware/boards/{}/{}".format(armino_path, chip, firmware_file["firmware"])
+
+        if (os.path.isfile(pakfile)):
+            shutil.copy(pakfile, "{}/{}".format(build_path, firmware_file["firmware"]))
+
+        firmware_file["firmware"] = "{}/{}".format(build_path, firmware_file["firmware"])
+
+    return json.dumps(config_json, sort_keys=True, indent=4)
+
+with open(str(out_path), "w") as f:
+        f.write(package_json_rebuild())
+
+if sys.platform == 'win32':
+    os.system("beken_packager {}".format(out_path))
+elif sys.platform == 'darwin':
+    os.system("{}/tools/env_tools/beken_packager/beken_packager.darwin {}".format(armino_path, out_path))
+else:
+    os.system("{}/tools/env_tools/beken_packager/beken_packager {}".format(armino_path, out_path))
+shutil.move("all_2M.1220.bin", "{}".format(image_name))
+os.remove(out_path)

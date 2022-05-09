@@ -1,0 +1,16 @@
+menu "ARCH_RISCV"
+	config ARCH_RISCV
+		bool "Enable RISCV"
+		default n
+
+	config NEST_INT_SUPPORT
+		depends on ARCH_RISCV
+		bool "Support nest interrupt"
+		default n
+
+	config MEMDUMP_ALL
+		depends on ARCH_RISCV
+		bool "Dump all memory when exception happen"
+		default y
+
+endmenu

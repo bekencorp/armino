@@ -1,0 +1,181 @@
+menu "Cli"
+	config CLI
+		bool "Enable BK Cli"
+		default y
+
+	config BKREG
+		depends on CLI
+		bool "Enable BK Reg read/write"
+		default y
+
+	config IPERF_TEST
+		depends on CLI
+		bool "Enable Iperf Test"
+		default y
+
+	config TCP_SERVER_TEST
+		depends on CLI
+		bool "Enable TCP server Test"
+		default n
+
+	config AIRKISS_TEST
+		depends on CLI
+		bool "Enable Airkiss Test"
+		default n
+
+	config WIFI_RAW_TX_TEST
+		depends on CLI
+		bool "Enable WiFi Raw TX"
+		default n
+
+	#TODO Exculsive??
+	config I2C1_TEST
+		depends on CLI
+		bool "Enable I2C1 Test"
+		default n
+
+	config I2C2_TEST
+		depends on CLI
+		bool "Enable I2C2 Test"
+		default n
+
+	config UART_TEST
+		depends on CLI
+		bool "Enable Uart Test"
+		default n
+
+	config SPI_TEST
+		depends on CLI
+		bool "Enable SPI Test"
+		default n
+
+	config PERI_TEST
+		depends on CLI
+		bool "Enable Periperal Test"
+		default n
+
+	config RF_OTA_TEST
+		depends on CLI
+		bool "Enable RF OTA Test"
+		default n
+
+	config SHELL_ASYNCLOG
+		depends on CLI
+		bool "Enable Shell and Async log optimize"
+		default n
+
+
+	config AUDIO_TEST
+		depends on CLI
+		bool "Enable AUDIO Test"
+		default n
+
+	config AUDIO_AEC_TEST
+		depends on CLI
+		bool "Enable AUDIO AEC Test"
+		default n
+
+	config TOUCH
+		depends on CLI
+		bool "Enable TOUCH Test"
+		default n
+	config SBC_TEST
+		depends on CLI
+		bool "Enable SBC Test"
+		default n
+
+	config AUDIO
+		depends on CLI
+		bool "Enable AUDIO"
+		default n
+
+	config FFT_TEST
+		depends on CLI
+		bool "Enable FFT Test"
+		default n
+
+	config I2S_TEST
+		depends on CLI
+		bool "Enable I2S Test"
+		default n
+
+	config EFUSE
+		bool "Enable Efuse"
+		default y
+
+	config ICU
+		bool "Enable ICU"
+		default y
+
+	config SECURITYIP
+		bool "Enable securityIP"
+		default n
+
+	config MATTER_NAMEKEY
+		bool "Enable MATTER_NAMEKEY"
+		default n
+		
+	config KEYVALUE
+		bool "Enable KEYVALUE"
+		default n	
+		
+	config NET_CTL
+		bool "Enable NET_CTL"
+		default n
+
+	config COMPONENTS_WPA2_ENTERPRISE
+                bool "Enable WPA2 ENTERPRISE"
+                default n
+
+        config COMPONENTS_WPA_TWT_TEST
+                bool "Enable WPA TWT TEST"
+                default n
+
+        config COMPONENTS_WFA_CA
+                bool "WFA_CA"
+                default n
+endmenu
+
+menu "DUAL_CORE"
+	config DUAL_CORE
+		bool "Dual cpu core run as master core"
+		default n
+
+	config MASTER_CORE
+		depends on DUAL_CORE
+		bool "Dual cpu core run as master core"
+		default n
+
+	config SLAVE_CORE
+		depends on DUAL_CORE
+		bool "Dual cpu core run as slave core"
+		default n
+
+	config SLAVE_CORE_OFFSET
+		depends on MASTER_CORE
+		int "Slave core offset address default 0x2e0000"
+		range 0 4194304
+		default 3014656
+
+	config SLAVE_CORE_RESET_VALUE
+		depends on MASTER_CORE
+		int "Slave core reset value"
+		range 0 1
+		default 1
+	config EFUSE
+		bool "Enable Efuse"
+		default y
+
+	config ICU
+		bool "Enable ICU"
+		default y
+		
+	config LCD_TEST
+		depends on CLI
+		bool "Enable LCD Test"
+		default n
+		
+	config DMA2D_TEST
+		bool "Enable dma2d Test"
+		default y
+endmenu

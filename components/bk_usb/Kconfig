@@ -1,0 +1,66 @@
+menu "USB configuration"
+
+config USB
+	bool "Enable USB"
+	default y
+
+menu "USB"
+	depends on USB
+
+	#TODO HOST/DEVICE mode mutual exclusive
+	choice USB_MODE
+		prompt "Enable USB HOST mode"
+		default USB_HOST 
+
+		config USB_HOST
+			bool "USB Host Mode"
+		config USB_DEVICE
+			bool "USB Device Mode"
+	endchoice
+
+		choice USB_PORT
+			prompt "Select USB Port"
+			default USB2_PORT
+	config USB1_PORT
+				bool "USB1 port"
+			config USB2_PORT
+				bool "USB2 port"
+		endchoice
+
+	config TASK_USB_PRIO
+		int "Priority of USB task"
+		range 1 10
+		default 5
+
+	config USB_MSD
+		bool "Enable USB MSD"
+		default y
+
+	config USB_HID
+		bool "Enable USB HID"
+		default n
+
+	config USB_CCD
+		bool "Enable USB CCD"
+		default n
+
+	config USB_UVC
+		bool "Enable USB UVC"
+		default n
+
+	config USB_CHARGE
+		bool "Enable USB Charge"
+		default n
+	menu "DSP"
+
+		config DSP
+			bool "Enable DSP"
+				default n 
+
+		#TODO delete it
+		config DSP_SRC_ADD
+			hex "DSP srouce address"
+			default 0x130000
+	endmenu
+endmenu
+endmenu

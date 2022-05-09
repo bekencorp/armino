@@ -1,0 +1,31 @@
+menu "CAMERA"
+	config CAMERA
+		bool "Enable camera interface"
+		default n
+			
+	choice CAMERA_I2C_ID
+		prompt "Camera use i2c id"
+		default CAMERA_USE_I2C0
+		
+		config CAMERA_USE_I2C0
+			bool "I2C0"
+		config CAMERA_USE_I2C1
+			bool "I2C1"
+		config CAMERA_USE_I2C2
+			bool "I2C2"
+	endchoice
+	
+	config CAMERA_I2C_ID
+		int
+		default 0 if CAMERA_USE_I2C0
+		default 1 if CAMERA_USE_I2C1
+		default 2 if CAMERA_USE_I2C2
+endmenu
+
+config JPEG_DECODE
+	bool "Enable jpeg_dec interface"
+	default n
+
+config SPIDMA
+	bool "Enable SPI DMA"
+	default n

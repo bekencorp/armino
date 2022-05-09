@@ -1,0 +1,8 @@
+1、In kernel/liteos_m/targets/cortex-m4_stm32f429ig_fire-challenger_iar directory, the files including main.c,
+target_config.h, dprintf.c, board/iar_stm32f429ig_fire-challenger.c and board/iar_stm32f429ig_fire-challenger.h,
+are under the terms of the licence: kernel/liteos_m/LICENSE file,
+and other files are under the terms of the licence: kernel/liteos_m/targets/cortex-m4_stm32f429ig_fire-challenger_iar/LICENSE.pdf file.
+
+2、In kernel/liteos_m/targets/cortex-m7_nucleo_f767zi_gcc directory, the files including target_config.h,
+Core/Inc/task_sample.h and Core/Src/task_sample.c, are under the terms of the licence: kernel/liteos_m/LICENSE file,
+and other files are under the terms of the licence: kernel/liteos_m/targets/cortex-m7_nucleo_f767zi_gcc/LICENSE.pdf file.

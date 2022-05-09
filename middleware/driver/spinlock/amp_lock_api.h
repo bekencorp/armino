@@ -1,0 +1,43 @@
+// Copyright 2020-2022 Beken
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef _amp_lock_api_h_
+#define _amp_lock_api_h_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <common/bk_typedef.h>
+#include <common/bk_err.h>
+
+enum
+{
+	AMP_RES_ID_DMA = 0,
+	AMP_RES_ID_GPIO,
+	AMP_RES_ID_SYS_REG,
+
+	AMP_RES_ID_MAX,
+};
+
+bk_err_t amp_res_acquire(u16 res_id, u32 timeout_ms);
+bk_err_t amp_res_release(u16 res_id);
+bk_err_t amp_res_init(u16 res_id);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _amp_lock_api_h_ */
+

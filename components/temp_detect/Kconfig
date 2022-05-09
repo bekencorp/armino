@@ -1,0 +1,3 @@
+config TEMP_DETECT
+	bool "Enable temperature detect"
+	default n

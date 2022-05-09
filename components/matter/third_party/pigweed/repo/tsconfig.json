@@ -1,0 +1,19 @@
+{
+  "extends": "./node_modules/gts/tsconfig-google.json",
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "jsx": "react",
+    "plugins": [
+      {
+        "name": "@bazel/tsetse",
+        "disabledRules": [
+          "must-use-promises"
+        ]
+      }
+    ]
+  }
+}

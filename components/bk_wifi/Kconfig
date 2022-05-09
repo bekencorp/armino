@@ -1,0 +1,84 @@
+#TODO optimize it
+menu "WiFi"
+	config WIFI_ENABLE
+		bool "Enable WiFi"
+		default y
+
+	config WIFI6_CODE_STACK
+		bool "Use WiFi-6 Code Stack"
+		default n
+
+	config WIFI6
+		bool "Enable WiFi 6"
+		depends on WIFI6_CODE_STACK
+		default n
+
+	config WIFI4
+		bool "Enable WiFi 4"
+		default y
+		help
+			Don't disable it when WiFi-6 is enabled.
+
+#TODO remove below kconfig
+
+	config MSDU_RESV_HEAD_LENGTH
+		int "MSDU reserved header length"
+		range 1 1500
+		default 96
+
+	config MSDU_RESV_TAIL_LENGTH
+		int "MSDU reserved tail length"
+		range 1 1500
+		default 16
+	
+	#TODO may need to remove it
+	config TASK_RECONNECT_PRIO
+		int "Priority of WiFi reconnect task"
+		range 1 10
+		default 4
+
+	config AP_MONITOR_COEXIST
+		bool "Enable AP and monitor coexist"
+		default n
+
+	config WIFI_FAST_CONNECT
+		bool "Enable WiFi fast connect"
+		default n
+
+	config BSSID_CONNECT
+		bool "Enable WiFi BSSI connect"
+		default n
+
+	config WFA_CERT
+		bool "Enable WiFi WFA Certification"
+		default n
+
+	config LESS_MEMERY_IN_RWNX
+		bool "Less memory in RWNX"
+		default n
+
+	config AP_PROBEREQ_CB
+		bool "Enable AP probe request callback"
+		default n
+
+	config WIFI6_IP_DEBUG
+		bool "Enable WiFi6 IP debug"
+		default n
+
+	config STA_PS
+		bool "Enable STA PS"
+		default y if !RF_OTA_TEST
+		default n if RF_OTA_TEST
+
+	config MAC_BSSID
+		bool "Enable Mac bssid"
+		default n
+
+	config BK_COMPONENTS_P2P_GO
+		bool "Enable BK WIFI P2P GO"
+		default n
+
+	config COMPONENTS_STA_VSIE
+		bool "Enable STA VSIE"
+		default n
+endmenu

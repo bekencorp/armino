@@ -1,0 +1,7 @@
+menu "FLASH SIZE"
+
+	config FLASH_SIZE_4M
+		bool "Enable FLASH_SIZE_4M"
+		default n
+
+endmenu

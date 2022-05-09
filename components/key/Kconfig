@@ -1,0 +1,3 @@
+config BUTTON
+	bool "Enable Button"
+	default n

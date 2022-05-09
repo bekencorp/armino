@@ -1,0 +1,93 @@
+# Copyright (c) 2013-2019 Huawei Technologies Co., Ltd. All rights reserved.
+# Copyright (c) 2020-2021 Huawei Device Co., Ltd. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this list of
+#    conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list
+#    of conditions and the following disclaimer in the documentation and/or other materials
+#    provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its contributors may be used
+#    to endorse or promote products derived from this software without specific prior written
+#    permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+import("config.gni")
+
+LITEOS_LOS_CONFIG_H = rebase_path("$LITEOSTOPDIR/kernel/include/los_config.h")
+
+config("los_config") {
+  cflags = [ "-Werror" ]
+
+  asmflags = [
+    "-DCLZ=CLZ",
+    "-imacros",
+    "$LITEOS_LOS_CONFIG_H",
+  ]
+
+  include_dirs = [
+    "//kernel/liteos_m/kernel/include",
+    "//kernel/liteos_m/kernel/arch/include",
+    "//kernel/liteos_m/utils",
+    "//third_party/bounds_checking_function/include",
+  ]
+}
+
+group("kernel") {
+  deps = [
+    "kernel:kernel",
+    "utils:utils",
+    "//third_party/bounds_checking_function:libsec_static",
+  ]
+  if (enable_ohos_kernel_liteos_m_cppsupport) {
+    deps += [ "components/cppsupport:cppsupport" ]
+  }
+  if (enable_ohos_kernel_liteos_m_cpup) {
+    deps += [ "components/cpup:cpup" ]
+  }
+  if (enable_ohos_kernel_liteos_m_exchook) {
+    deps += [ "components/exchook:exchook" ]
+  }
+  if (enable_ohos_kernel_liteos_m_backtrace) {
+    deps += [ "components/backtrace:backtrace" ]
+  }
+  if (enable_ohos_kernel_liteos_m_fs) {
+    deps += [ "components/fs:fs" ]
+  }
+  if (enable_ohos_kernel_liteos_m_pm) {
+    deps += [ "components/power:pm" ]
+  }
+  if (enable_ohos_kernel_liteos_m_trace) {
+    deps += [ "components/trace:trace" ]
+  }
+  if (enable_ohos_kernel_liteos_m_kal) {
+    deps += [ "kal:kal" ]
+  }
+  if (enable_ohos_kernel_liteos_m_shell) {
+    deps += [ "components/shell:shell" ]
+  }
+  if (enable_ohos_kernel_liteos_m_test) {
+    deps += [ "testsuits:test" ]
+  }
+  if (enable_ohos_kernel_liteos_m_lwip) {
+    deps += [ ohos_kernel_liteos_m_lwip_path ]
+  }
+  if (enable_ohos_kernel_liteos_m_dynlink) {
+    deps += [ "components/dynlink:dynlink" ]
+  }
+}

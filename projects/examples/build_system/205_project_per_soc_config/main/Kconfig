@@ -1,0 +1,5 @@
+menu "main config"
+	config FOO
+		int "Test config foo"
+		default 0
+endmenu

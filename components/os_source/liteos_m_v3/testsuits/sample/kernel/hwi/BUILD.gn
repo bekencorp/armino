@@ -1,0 +1,71 @@
+# Copyright (c) 2013-2019 Huawei Technologies Co., Ltd. All rights reserved.
+# Copyright (c) 2020-2021 Huawei Device Co., Ltd. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this list of
+#    conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list
+#    of conditions and the following disclaimer in the documentation and/or other materials
+#    provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its contributors may be used
+#    to endorse or promote products derived from this software without specific prior written
+#    permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+static_library("test_hwi") {
+  sources = [
+    "It_los_hwi.c",
+    "it_los_hwi_001.c",
+    "it_los_hwi_002.c",
+    "it_los_hwi_003.c",
+    "it_los_hwi_004.c",
+    "it_los_hwi_005.c",
+    "it_los_hwi_006.c",
+    "it_los_hwi_007.c",
+    "it_los_hwi_008.c",
+    "it_los_hwi_009.c",
+    "it_los_hwi_010.c",
+    "it_los_hwi_011.c",
+    "it_los_hwi_012.c",
+    "it_los_hwi_013.c",
+    "it_los_hwi_014.c",
+    "it_los_hwi_015.c",
+    "it_los_hwi_016.c",
+    "it_los_hwi_017.c",
+    "it_los_hwi_018.c",
+    "it_los_hwi_019.c",
+    "it_los_hwi_020.c",
+    "it_los_hwi_021.c",
+    "it_los_hwi_022.c",
+    "it_los_hwi_023.c",
+    "it_los_hwi_024.c",
+    "it_los_hwi_025.c",
+    "it_los_hwi_026.c",
+    "it_los_hwi_027.c",
+    "it_los_hwi_028.c",
+    "it_los_hwi_029.c",
+    "it_los_hwi_030.c",
+    "it_los_hwi_031.c",
+    "it_los_hwi_032.c",
+    "it_los_hwi_033.c",
+    "it_los_hwi_034.c",
+    "llt_los_hwi_035.c",
+  ]
+
+  configs += [ "//kernel/liteos_m/testsuits:include" ]
+}

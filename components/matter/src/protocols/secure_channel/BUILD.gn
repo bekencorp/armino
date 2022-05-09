@@ -1,0 +1,34 @@
+import("//build_overrides/chip.gni")
+
+static_library("secure_channel") {
+  output_name = "libSecureChannel"
+
+  sources = [
+    "CASEServer.cpp",
+    "CASEServer.h",
+    "CASESession.cpp",
+    "CASESession.h",
+    "CASESessionCache.cpp",
+    "CASESessionCache.h",
+    "PASESession.cpp",
+    "PASESession.h",
+    "RendezvousParameters.h",
+    "SessionEstablishmentDelegate.h",
+    "SessionEstablishmentExchangeDispatch.cpp",
+    "SessionEstablishmentExchangeDispatch.h",
+    "SessionIDAllocator.cpp",
+    "SessionIDAllocator.h",
+    "StatusReport.cpp",
+    "StatusReport.h",
+  ]
+
+  cflags = [ "-Wconversion" ]
+
+  public_deps = [
+    "${chip_root}/src/lib/core",
+    "${chip_root}/src/lib/support",
+    "${chip_root}/src/messaging",
+    "${chip_root}/src/system",
+    "${chip_root}/src/trace",
+  ]
+}

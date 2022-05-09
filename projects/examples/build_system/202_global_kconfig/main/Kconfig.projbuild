@@ -1,0 +1,9 @@
+menu "Top config in main component"
+
+    config GLOBAL_IN_MAIN
+        bool "Config item in top menu"
+        default y
+        help
+            Add config item to top menu in menuconfig
+
+endmenu

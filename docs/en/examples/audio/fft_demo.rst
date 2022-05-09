@@ -1,0 +1,1 @@
+.. include:: ../../../zh_CN/examples/audio/fft_demo.rst

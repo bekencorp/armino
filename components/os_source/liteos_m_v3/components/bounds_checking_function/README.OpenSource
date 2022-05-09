@@ -1,0 +1,13 @@
+[
+    {
+        "Name"                  : "bounds_checking_function",
+        "License"               : "Mulan Permissive Software License，Version 2",
+        "License File"          : "LICENSE",
+        "Version Number"        : "v1.1.10",
+        "Owner"                 : "jianghan2@huawei.com",
+        "PDM Number"            : "05835DMT",
+        "Upstream URL"          : "https://gitee.com/openeuler/bounds_checking_function",
+        "Use Application URL"   : "http://pdm.huawei.com/Windchill/hwdispatcher/iris/?status=view&pboid=OR:ext.huawei.huaweipbo.HuaweiPBO:70160914898&virtualid=basicinfo&lang=en",
+        "Description"           : "following the standard of C11 Annex K (bound-checking interfaces), functions of the common memory/string operation classes, such as memcpy_s, strcpy_s, are selected and implemented."
+    }
+]

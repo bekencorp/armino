@@ -1,0 +1,142 @@
+# Copyright 2021 The Pigweed Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
+import("//build_overrides/pigweed.gni")
+
+import("$dir_pw_build/target_types.gni")
+import("$dir_pw_docgen/docs.gni")
+import("$dir_pw_unit_test/test.gni")
+
+config("public_include_path") {
+  include_dirs = [ "public" ]
+  visibility = [ ":*" ]
+}
+
+pw_source_set("pw_polyfill") {
+  public_configs = [ ":public_include_path" ]
+  remove_public_deps = [ "*" ]
+  public_deps = [ ":standard_library" ]
+  public = [
+    "public/pw_polyfill/language_feature_macros.h",
+    "public/pw_polyfill/standard.h",
+  ]
+}
+
+config("overrides_config") {
+  include_dirs = [ "public_overrides" ]
+  visibility = [ ":*" ]
+}
+
+# TODO(pwbug/602): Remove this overrides target by migrating all users to
+# explicitly depend on the polyfill(s) they require.
+group("overrides") {
+  public_deps = [
+    ":bit",
+    ":cstddef",
+    ":iterator",
+    ":span",
+    ":type_traits",
+  ]
+}
+
+config("standard_library_public") {
+  include_dirs = [ "standard_library_public" ]
+}
+
+# Provides <bit>'s std::endian.
+pw_source_set("bit") {
+  public_configs = [
+    ":standard_library_public",
+    ":overrides_config",
+  ]
+  public_deps = [ ":standard_library" ]
+  remove_public_deps = [ "*" ]
+  inputs = [ "public_overrides/bit" ]
+  public = [ "standard_library_public/pw_polyfill/standard_library/bit.h" ]
+}
+
+# Provides <cstddef>'s std::byte.
+pw_source_set("cstddef") {
+  public_configs = [
+    ":standard_library_public",
+    ":overrides_config",
+  ]
+  public_deps = [ ":standard_library" ]
+  remove_public_deps = [ "*" ]
+  inputs = [ "public_overrides/cstddef" ]
+  public = [ "standard_library_public/pw_polyfill/standard_library/cstddef.h" ]
+}
+
+# TODO(pwbug/603): Remove this polyfill.
+pw_source_set("iterator") {
+  public_configs = [
+    ":standard_library_public",
+    ":overrides_config",
+  ]
+  public_deps = [ ":standard_library" ]
+  remove_public_deps = [ "*" ]
+  inputs = [ "public_overrides/iterator" ]
+  public = [ "standard_library_public/pw_polyfill/standard_library/iterator.h" ]
+}
+
+# Provides <span>.
+pw_source_set("span") {
+  remove_public_deps = [ "*" ]
+  public_deps = [ "$dir_pw_span:polyfill" ]
+}
+
+# TODO(pwbug/603): Remove this polyfill.
+pw_source_set("type_traits") {
+  public_configs = [
+    ":standard_library_public",
+    ":overrides_config",
+  ]
+  public_deps = [ ":standard_library" ]
+  remove_public_deps = [ "*" ]
+  inputs = [ "public_overrides/type_traits" ]
+  public =
+      [ "standard_library_public/pw_polyfill/standard_library/type_traits.h" ]
+}
+
+pw_source_set("standard_library") {
+  public_configs = [ ":standard_library_public" ]
+  remove_public_deps = [ "*" ]
+  public =
+      [ "standard_library_public/pw_polyfill/standard_library/namespace.h" ]
+  visibility = [ ":*" ]
+}
+
+pw_test_group("tests") {
+  tests = [
+    ":default_cpp_test",
+    ":cpp14_test",
+  ]
+  group_deps = [ "$dir_pw_span:tests" ]
+}
+
+pw_test("default_cpp_test") {
+  deps = [ ":pw_polyfill" ]
+  sources = [ "test.cc" ]
+}
+
+pw_test("cpp14_test") {
+  remove_configs = [ "$dir_pw_build:cpp17" ]
+  configs = [ "$dir_pw_build:cpp14" ]
+  sources = [ "test.cc" ]
+  deps = [ ":pw_polyfill" ]
+}
+
+pw_doc_group("docs") {
+  sources = [ "docs.rst" ]
+}

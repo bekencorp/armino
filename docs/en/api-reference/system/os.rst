@@ -1,0 +1,1 @@
+.. include:: ../../../zh_CN/api-reference/system/os.rst

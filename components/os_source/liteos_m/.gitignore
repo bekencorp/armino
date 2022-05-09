@@ -1,0 +1,16 @@
+test
+*.si4project
+tags
+cscope.*
+*.swp
+/**/*_iar/project/
+!los_demo.eww
+!los_demo.ewp
+!los_demo.ewd
+!los_demo.ewt
+!los_demo.dep
+!*.icf
+targets/cortex-m7_nucleo_f767zi_gcc/build
+*.o
+*.d
+*.su

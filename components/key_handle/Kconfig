@@ -1,0 +1,5 @@
+menu "key"
+	config COMPONENTS_TX_BUFING
+		bool "Enable TX BUFING"
+		default n
+endmenu

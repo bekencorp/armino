@@ -1,0 +1,54 @@
+menu "SOC_CONFIG"
+
+	choice SOC
+		prompt "ARMINO SoC"
+		default SOC_BK7231N if "$ARMINO_SOC" = "bk7231n"
+		default SOC_BK7231U if "$ARMINO_SOC" = "bk7231u"
+		default SOC_BK7251 if "$ARMINO_SOC" = "bk7251"
+		default SOC_BK7271 if "$ARMINO_SOC" = "bk7271"
+		default SOC_BK7236 if "$ARMINO_SOC" = "bk7236"
+		default SOC_BK7256 if "$ARMINO_SOC" = "bk7256"
+		default SOC_BK7256_CP1 if "$ARMINO_SOC" = "bk7256_cp1"
+		default SOC_BK7235 if "$ARMINO_SOC" = "bk7235"
+		default SOC_BK7237 if "$ARMINO_SOC" = "bk7237"
+
+		config SOC_BK7231N
+			bool "BK7231N"
+		config SOC_BK7231U
+			bool "BK7231U"
+		config SOC_BK7251
+			bool "BK7251"
+		config SOC_BK7271
+			bool "BK7271"
+		config SOC_BK7236
+			bool "BK7236"
+		config SOC_BK7256
+			bool "BK7256"
+		config SOC_BK7256_CP1
+			bool "BK7256_CP1"
+		config SOC_BK7235
+			bool "BK7235"
+		config SOC_BK7237
+			bool "BK7237"
+	endchoice
+
+	config SOC_STR
+		string "SoC string"
+		default "bk7231n" if SOC_BK7231N
+		default "bk7231u" if SOC_BK7231U
+		default "bk7251"  if SOC_BK7251
+		default "bk7271"  if SOC_BK7271
+		default "bk7236"  if SOC_BK7236
+		default "bk7256"  if SOC_BK7256
+		default "bk7256_cp1"  if SOC_BK7256_CP1
+		default "bk7235"  if BK7235
+		default "bk7237"  if BK7237
+		default "$ARMINO_SOC"
+
+	config SOC_ARCH
+		string "Soc arch"
+		default "unknow"
+	config SOC_BK7256XX
+		bool "workaround for bk7256"
+		default n
+endmenu

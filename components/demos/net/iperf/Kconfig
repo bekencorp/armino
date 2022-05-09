@@ -1,0 +1,5 @@
+menu "DEMOS_CONFIG"
+	config DEMOS_IPERF
+		bool "Enable iperf demos"
+		default y
+endmenu

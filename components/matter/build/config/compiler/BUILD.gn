@@ -1,0 +1,489 @@
+# Copyright (c) 2020 Project CHIP Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build_overrides/build.gni")
+import("//build_overrides/pigweed.gni")
+
+import("${build_root}/config/compiler/compiler.gni")
+import("${build_root}/config/sysroot.gni")
+import("${build_root}/config/target.gni")
+
+if (current_os == "mac") {
+  import("${build_root}/config/mac/mac_sdk.gni")
+}
+
+declare_args() {
+  # Enable -Werror. This can be disabled if using a different compiler
+  # with unfixed or unsupported wanings.
+  treat_warnings_as_errors = true
+}
+
+if (current_cpu == "arm" || current_cpu == "arm64") {
+  import("${build_root}/config/arm.gni")
+} else if (current_cpu == "x86" || current_cpu == "x86_64") {
+  import("${build_root}/config/x86.gni")
+}
+
+config("release") {
+  defines = [ "NDEBUG" ]
+}
+
+config("debug_default") {
+  if (!is_debug) {
+    configs = [ ":release" ]
+  }
+}
+
+config("abi_default") {
+  cflags = []
+  if (current_os == "mac") {
+    cflags += [
+      "-target",
+      mac_target_triple,
+    ]
+  } else if (current_os == "ios") {
+    # iOS ABI currently set by chip_xcode_build_connector.sh
+  }
+
+  if (current_os != "mac" && current_os != "ios") {
+    if (current_cpu == "arm" || current_cpu == "arm64") {
+      if (current_os == "linux" && is_clang) {
+        if (current_cpu == "arm") {
+          cflags += [ "--target=armv7-linux-gnueabihf" ]
+        } else if (current_cpu == "arm64") {
+          cflags += [ "--target=aarch64-linux-gnu" ]
+        }
+      }
+
+      if (arm_arch != "") {
+        cflags += [ "-march=${arm_arch}" ]
+      }
+      if (arm_cpu != "") {
+        cflags += [ "-mcpu=${arm_cpu}" ]
+      }
+      if (arm_tune != "") {
+        cflags += [ "-mtune=${arm_tune}" ]
+      }
+      if (arm_abi != "") {
+        cflags += [ "-mabi=${arm_abi}" ]
+      }
+      if (arm_fpu != "") {
+        cflags += [ "-mfpu=${arm_fpu}" ]
+      }
+      if (arm_float_abi != "") {
+        cflags += [ "-mfloat-abi=${arm_float_abi}" ]
+      }
+      if (arm_use_thumb) {
+        cflags += [ "-mthumb" ]
+      }
+    }
+    if (current_cpu == "x86" || current_cpu == "x86_64") {
+      if (x86_arch != "") {
+        cflags += [ "-march=${x86_arch}" ]
+      }
+      if (x86_cpu != "") {
+        cflags += [ "-mcpu=${x86_cpu}" ]
+      }
+      if (x86_tune != "") {
+        cflags += [ "-mtune=${x86_tune}" ]
+      }
+
+      if (current_cpu == "x86_64") {
+        cflags += [
+          "-msse4.2",
+          "-mpopcnt",
+          "-m64",
+        ]
+      } else if (current_cpu == "x86") {
+        cflags += [
+          "-mssse3",
+          "-mfpmath=sse",
+          "-m32",
+        ]
+      }
+    }
+  }
+
+  asmflags = cflags
+  ldflags = cflags
+}
+
+config("target_default") {
+  if (current_toolchain == default_toolchain) {
+    defines = target_defines
+    cflags = target_cflags
+    cflags_c = target_cflags_c
+    cflags_cc = target_cflags_cc
+    ldflags = target_ldflags
+  }
+}
+
+config("optimize_zero") {
+  cflags = [ "-O0" ]
+  ldflags = cflags
+}
+
+config("optimize_default") {
+  if (is_debug) {
+    if (optimize_debug) {
+      configs = [ "$dir_pw_build:optimize_debugging" ]
+    } else {
+      configs = [ ":optimize_zero" ]
+    }
+  } else {
+    if (optimize_for_size) {
+      configs = [ "$dir_pw_build:optimize_size" ]
+    } else {
+      configs = [ "$dir_pw_build:optimize_speed" ]
+    }
+
+    if (current_os != "mac") {
+      ldflags = [
+        "-Wl,-O2",
+        "-Wl,--gc-sections",
+      ]
+    }
+  }
+}
+
+config("disabled_warnings") {
+  cflags = [
+    "-Wno-deprecated-declarations",
+    "-Wno-unknown-warning-option",
+    "-Wno-maybe-uninitialized",
+    "-Wno-missing-field-initializers",
+    "-Wno-unused-parameter",
+  ]
+  if (!is_debug) {
+    # assert() causes unused variable warnings in release.
+    cflags += [ "-Wno-unused" ]
+  }
+  if (!is_clang) {
+    cflags += [
+      "-Wno-psabi",
+      "-Wno-cast-function-type",
+    ]
+  }
+}
+
+config("warnings_common") {
+  cflags = [ "-Wall" ]
+
+  ldflags = []
+  if (treat_warnings_as_errors) {
+    cflags += [ "-Werror" ]
+    ldflags += [ "-Werror" ]
+  }
+
+  if (current_os != "mac" && current_os != "ios") {
+    ldflags += [ "-Wl,--fatal-warnings" ]
+  }
+
+  if (current_os != "mac" && current_os != "ios" && current_os != "linux" &&
+      current_os != "win" && current_os != "tizen") {
+    cflags += [ "-Wstack-usage=8192" ]
+  }
+}
+
+config("strict_warnings") {
+  cflags = [
+    "-Wextra",
+    "-Wshadow",
+    "-Wunreachable-code",
+    "-Wvla",
+    "-Wformat",
+    "-Wformat-nonliteral",
+    "-Wformat-security",
+  ]
+
+  cflags_cc = [ "-Wnon-virtual-dtor" ]
+
+  ldflags = []
+
+  if (is_clang) {
+    cflags += [
+      "-Wimplicit-fallthrough",
+      "-Wheader-hygiene",
+      "-Wformat-type-confusion",
+    ]
+  }
+
+  if (current_os == "linux" || current_os == "android") {
+    ldflags += [ "-Wl,-z,defs" ]
+  }
+}
+
+config("warnings_default") {
+  configs = [
+    ":warnings_common",
+    ":strict_warnings",
+    ":disabled_warnings",
+  ]
+}
+
+config("disabled_warnings_third_party") {
+  cflags = [
+    "-Wno-unused",
+    "-Wno-format",
+    "-Wno-maybe-uninitialized",
+    "-Wno-address",
+  ]
+}
+
+config("warnings_third_party") {
+  configs = [
+    ":warnings_common",
+    ":disabled_warnings",
+    ":disabled_warnings_third_party",
+  ]
+}
+
+config("symbols_default") {
+  cflags = [ "-g${symbol_level}" ]
+}
+
+config("std_default") {
+  cflags_c = [ "-std=${c_standard}" ]
+  cflags_objc = [ "-std=${c_standard}" ]
+  cflags_cc = [ "-std=${cpp_standard}" ]
+  cflags_objcc = [ "-std=${cpp_standard}" ]
+}
+
+config("cosmetic_default") {
+  configs = [ "$dir_pw_build:colorize_output" ]
+}
+
+config("runtime_default") {
+  if (is_clang) {
+    configs = [
+      "$dir_pw_toolchain/host_clang:no_system_libcpp",
+      "$dir_pw_toolchain/host_clang:xcode_sysroot",
+    ]
+  }
+  if (current_os == "linux" || current_os == "tizen") {
+    libs = [
+      "dl",
+      "pthread",
+      "rt",
+    ]
+  }
+  if (sysroot != "") {
+    cflags = [ "--sysroot=${sysroot}" ]
+    ldflags = [ "--sysroot=${sysroot}" ]
+  }
+}
+
+# To use different sanitizer options, use `gn args .` in the out folder and
+# use settings like:
+#
+#   is_clang=true
+#   is_debug=true
+#   optimize_for_size=false
+#   is_asan=true
+#   is_sanitize_fatal=false
+#
+
+declare_args() {
+  # Enable Thread sanitizer
+  is_tsan = false
+
+  # Enable address sanitizer
+  is_asan = false
+
+  # Enable memory sanitizer
+  is_msan = false
+
+  # enable undefined behavior sanitizer
+  is_ubsan = false
+
+  # Exit on sanitize error. Generally standard libraries may get errors
+  # so not stopping on the first error is often useful
+  is_sanitize_fatal = true
+}
+
+config("sanitize_address") {
+  cflags = [
+    "-fsanitize=address",
+    "-fno-omit-frame-pointer",
+  ]
+  ldflags = cflags
+}
+
+config("sanitize_thread") {
+  cflags = [ "-fsanitize=thread" ]
+
+  ldflags = cflags
+}
+
+config("sanitize_memory") {
+  cflags = [
+    "-fsanitize=memory",
+    "-fsanitize-memory-track-origins",
+    "-fno-omit-frame-pointer",
+  ]
+  ldflags = cflags
+}
+
+config("sanitize_undefined_behavior") {
+  cflags = [
+    "-fvisibility=hidden",
+    "-fsanitize=undefined",
+    "-fsanitize=float-divide-by-zero",
+    "-fsanitize=unsigned-integer-overflow",
+    "-fsanitize=implicit-conversion",
+    "-fsanitize=nullability",
+    "-fno-sanitize=vptr,function",
+  ]
+  ldflags = cflags
+}
+
+config("sanitize_recover_all") {
+  cflags = [ "-fsanitize-recover=all" ]
+  ldflags = cflags
+}
+
+config("sanitize_default") {
+  configs = []
+
+  if (is_tsan) {
+    configs += [ ":sanitize_thread" ]
+  }
+
+  if (is_asan) {
+    configs += [ ":sanitize_address" ]
+  }
+
+  if (is_msan) {
+    configs += [ ":sanitize_memory" ]
+  }
+
+  if (is_ubsan) {
+    configs += [ ":sanitize_undefined_behavior" ]
+  }
+
+  if (!is_sanitize_fatal) {
+    configs += [ ":sanitize_recover_all" ]
+  }
+}
+
+config("libfuzzer_fuzzing") {
+  cflags = [ "-fsanitize=fuzzer" ]
+  ldflags = cflags
+}
+
+config("fuzzing_default") {
+  configs = []
+  if (is_libfuzzer) {
+    configs += [ ":libfuzzer_fuzzing" ]
+  }
+}
+
+declare_args() {
+  # Enable Runtime Type Information (RTTI)
+  enable_rtti = false
+}
+
+config("no_rtti") {
+  cflags_cc = [ "-fno-rtti" ]
+}
+
+config("rtti") {
+  cflags_cc = [ "-frtti" ]
+}
+
+config("rtti_default") {
+  if (enable_rtti) {
+    configs = [ ":rtti" ]
+  } else {
+    configs = [ ":no_rtti" ]
+  }
+}
+
+config("no_exceptions") {
+  cflags = [ "-fno-exceptions" ]
+}
+
+config("exceptions") {
+  cflags = [ "-fexceptions" ]
+}
+
+config("exceptions_default") {
+  configs = [ ":no_exceptions" ]
+}
+
+config("unwind_tables") {
+  cflags = [ "-funwind-tables" ]
+}
+
+config("no_unwind_tables") {
+  cflags = [
+    "-fno-unwind-tables",
+    "-fno-asynchronous-unwind-tables",
+  ]
+}
+
+config("unwind_tables_default") {
+  if (exclude_unwind_tables) {
+    configs = [ ":no_unwind_tables" ]
+  } else {
+    configs = [ ":unwind_tables" ]
+  }
+}
+
+config("size_default") {
+  cflags = [
+    "-fno-common",
+    "-ffunction-sections",
+    "-fdata-sections",
+  ]
+
+  # do not export functions in jni, or --gc-sections will not work and will be some undefined issues
+  if (current_os == "android") {
+    cflags += [ "-fvisibility=hidden" ]
+  }
+}
+
+config("stack_protector_default") {
+  cflags = [ "-fno-stack-protector" ]
+}
+
+config("pic_default") {
+  if (enable_pic) {
+    cflags = [ "-fPIC" ]
+    ldflags = cflags
+  }
+}
+
+config("pie_default") {
+  if (enable_pie) {
+    ldflags = [ "-pie" ]
+  }
+}
+
+config("aliasing_default") {
+  cflags = [ "-fno-strict-aliasing" ]
+}
+
+config("specs_default") {
+  if (current_cpu == "arm" && current_os == "freertos") {
+    cflags = [
+      "--specs=nosys.specs",
+      "--specs=nano.specs",
+    ]
+
+    libs = [ "nosys" ]
+
+    ldflags = cflags
+  }
+}

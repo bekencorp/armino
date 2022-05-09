@@ -1,0 +1,17 @@
+menu "Audio"
+
+	config AUDIO
+		bool "Enable Audio"
+		default n
+
+	config AUDIO_ADC
+		bool "Enable Audio ADC"
+		depends on AUDIO
+		default y
+
+	config AUDIO_DAC
+		bool "Enable Audio DAC"
+		depends on AUDIO
+		default y
+
+endmenu

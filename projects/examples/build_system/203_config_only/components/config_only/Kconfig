@@ -1,0 +1,5 @@
+menu "Config-only"
+	config CONFIG_ONLY
+		bool "Enable config-only"
+		default y
+endmenu

@@ -1,0 +1,57 @@
+; --------------------------------------------------------------------------------
+; @Title: FreeRTOS configuration examples
+; @Description:
+;   This script includes a set of configuration examples applicable for
+;   Cortex-A/-R/-M controllers.
+;
+; @Keywords: awareness, RTOS, FreeRTOS
+; @Author: AME
+; @Copyright: (C) 1989-2019 Lauterbach GmbH, licensed for use with TRACE32(R) only
+; --------------------------------------------------------------------------------
+; $Id: freertos.cmm 14118 2019-03-13 09:30:45Z amerkle $
+
+; load FreeRTOS awareness - without STACK evaluation
+TASK.CONFIG ~~/demo/arm/kernel/freertos/freertos.t32
+MENU.ReProgram ~~/demo/arm/kernel/freertos/freertos.men
+
+; load FreeRTOS awareness - with STACK evaluation before FreeRTOS-Version<10
+; requires #define configCHECK_FOR_STACK_OVERFLOW 2
+; TASK.CONFIG ~~/demo/arm/kernel/freertos/freertos.t32 0 <stacksize in bytes>
+; MENU.ReProgram ~~/demo/arm/kernel/freertos/freertos.men
+; TASK.STacK.PATtern 0xa5
+
+; load FreeRTOS awareness - with STACK evaluation since FreeRTOS-Version>=10
+; requires #define configCHECK_FOR_STACK_OVERFLOW 2
+; requires #define configRECORD_STACK_HIGH_ADDRESS 1
+; TASK.CONFIG ~~/demo/arm/kernel/freertos/freertos.t32
+; MENU.ReProgram ~~/demo/arm/kernel/freertos/freertos.men
+; TASK.STacK.PATtern 0xa5
+
+IF STRing.SCAN(CORENAME(),"CORTEXM",0.)==0.
+(
+  // CortexM family
+
+  ; task aware trace via ITM
+  ; ETM.Trace ON
+  ; ETM.ON
+  ; ITM.DataTrace CorrelatedData
+  ; ITM.ON
+  ; Break.Set TASK.CONFIG(magic) /TraceData /Write
+)
+ELSE IF STRing.SCAN(CORENAME(),"CORTEX",0.)==0.
+(
+  // CortexA/R family
+
+  ; task aware trace via ETM-DataTrace
+  ; ETM.DataTrace OFF|ON
+  ; ETM.Trace ON
+  ; ETM.ON
+  ; Break.Set TASK.CONFIG(magic) /TraceData /Write
+
+  ; task aware trace via ETM-ContextID - see readme.txt
+  ; ETM.ContextID 32
+  ; ETM.Trace ON
+  ; ETM.ON
+)
+
+ENDDO

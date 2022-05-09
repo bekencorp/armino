@@ -1,0 +1,74 @@
+menu "FreeRTOS"
+	config FREERTOS
+		bool "Enable FreeRTOS"
+
+	choice FREERTOS_VER
+		depends on FREERTOS
+		prompt "FreeRTOS Version"
+		default FREERTOS_V9
+
+		config FREERTOS_V9
+			bool "FreeRTOS v9.0.0"
+		config FREERTOS_V10
+			bool "FreeRTOS v10"
+	endchoice
+
+	config FREERTOS_POSIX
+		depends on FREERTOS_V10
+		bool "FreeRTOS POSIX"
+		default n
+
+	menu "Memory Debug"
+		config MALLOC_STATIS
+			bool "Enable malloc statistics"
+			default n
+
+		config MEM_DEBUG
+			bool "Enable memory debug"
+			default n
+			help
+				When this option is enable, more memory will be consumed because
+				a fixed length debug block will be appended to every memory allocated
+				from heap.
+
+				Moreover, suggest disable task/watchdog when this option is enabled
+				in case os_dump_memory_stats() triggers watchdog.
+
+		config MEM_DEBUG_FUNC_NAME
+			depends on MEM_DEBUG
+			bool "Enable memory debug"
+			default y
+
+		config MEM_DEBUG_FUNC_NAME_LEN
+			depends on MEM_DEBUG_FUNC_NAME
+			int "Function name length"
+			default 16
+
+		config MEM_DEBUG_TASK_NAME
+			depends on MEM_DEBUG
+			bool "Enable memory debug"
+			default y
+
+		config MEM_DEBUG_TASK_NAME_LEN
+			depends on MEM_DEBUG_TASK_NAME
+			int "Task name length"
+			default 8
+	endmenu
+endmenu
+
+menu "LITEOS_M"
+
+	config LITEOS_M
+		bool "liteos_m"
+		default n
+
+	config LITEOS_M_V3
+		bool "liteos_m v3.0.1-LTS"
+		default n
+
+
+	config LITEOS_M_BK
+		depends on LITEOS_M_V3
+			bool "liteos_m bk adapter"
+			default n
+endmenu

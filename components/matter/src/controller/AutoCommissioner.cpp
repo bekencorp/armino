@@ -25,6 +25,11 @@
 namespace chip {
 namespace Controller {
 
+AutoCommissioner::AutoCommissioner()
+{
+    SetCommissioningParameters(CommissioningParameters());
+}
+
 AutoCommissioner::~AutoCommissioner()
 {
     ReleaseDAC();
@@ -66,6 +71,21 @@ CHIP_ERROR AutoCommissioner::SetCommissioningParameters(const CommissioningParam
         mParams.SetWiFiCredentials(
             WiFiCredentials(ByteSpan(mSsid, creds.ssid.size()), ByteSpan(mCredentials, creds.credentials.size())));
     }
+
+    if (params.GetCountryCode().HasValue())
+    {
+        auto & code = params.GetCountryCode().Value();
+        MutableCharSpan copiedCode(mCountryCode);
+        if (CopyCharSpanToMutableCharSpan(code, copiedCode) == CHIP_NO_ERROR)
+        {
+            mParams.SetCountryCode(copiedCode);
+        }
+        else
+        {
+            ChipLogError(Controller, "Country code is too large: %u", static_cast<unsigned>(code.size()));
+        }
+    }
+
     // If the AttestationNonce is passed in, using that else using a random one..
     if (params.GetAttestationNonce().HasValue())
     {
@@ -96,7 +116,28 @@ CHIP_ERROR AutoCommissioner::SetCommissioningParameters(const CommissioningParam
     return CHIP_NO_ERROR;
 }
 
+const CommissioningParameters & AutoCommissioner::GetCommissioningParameters() const
+{
+    return mParams;
+}
+
 CommissioningStage AutoCommissioner::GetNextCommissioningStage(CommissioningStage currentStage, CHIP_ERROR & lastErr)
+{
+    auto nextStage = GetNextCommissioningStageInternal(currentStage, lastErr);
+    if (lastErr == CHIP_NO_ERROR)
+    {
+        ChipLogProgress(Controller, "Commissioning stage next step: '%s' -> '%s'", StageToString(currentStage),
+                        StageToString(nextStage));
+    }
+    else
+    {
+        ChipLogProgress(Controller, "Going from commissioning step '%s' with lastErr = '%s' -> '%s'", StageToString(currentStage),
+                        lastErr.AsString(), StageToString(nextStage));
+    }
+    return nextStage;
+}
+
+CommissioningStage AutoCommissioner::GetNextCommissioningStageInternal(CommissioningStage currentStage, CHIP_ERROR & lastErr)
 {
     if (lastErr != CHIP_NO_ERROR)
     {
@@ -108,6 +149,13 @@ CommissioningStage AutoCommissioner::GetNextCommissioningStage(CommissioningStag
     case CommissioningStage::kSecurePairing:
         return CommissioningStage::kReadCommissioningInfo;
     case CommissioningStage::kReadCommissioningInfo:
+        if (mDeviceCommissioningInfo.general.breadcrumb > 0)
+        {
+            // If the breadcrumb is 0, the failsafe was disarmed.
+            // We failed on network setup or later, the node failsafe has not been re-armed and the breadcrumb has not been reset.
+            // Per the spec, we restart from after adding the NOC.
+            return GetNextCommissioningStage(CommissioningStage::kSendNOC, lastErr);
+        }
         return CommissioningStage::kArmFailsafe;
     case CommissioningStage::kArmFailsafe:
         return CommissioningStage::kConfigRegulatory;
@@ -122,6 +170,8 @@ CommissioningStage AutoCommissioner::GetNextCommissioningStage(CommissioningStag
     case CommissioningStage::kAttestationVerification:
         return CommissioningStage::kSendOpCertSigningRequest;
     case CommissioningStage::kSendOpCertSigningRequest:
+        return CommissioningStage::kValidateCSR;
+    case CommissioningStage::kValidateCSR:
         return CommissioningStage::kGenerateNOCChain;
     case CommissioningStage::kGenerateNOCChain:
         return CommissioningStage::kSendTrustedRootCert;
@@ -133,39 +183,33 @@ CommissioningStage AutoCommissioner::GetNextCommissioningStage(CommissioningStag
         // operational network because the provisioning of certificates will trigger the device to start operational advertising.
         if (mNeedsNetworkSetup)
         {
-            if (mParams.GetWiFiCredentials().HasValue() && mDeviceCommissioningInfo.network.wifi != kInvalidEndpointId)
+            if (mParams.GetWiFiCredentials().HasValue() && mDeviceCommissioningInfo.network.wifi.endpoint != kInvalidEndpointId)
             {
                 return CommissioningStage::kWiFiNetworkSetup;
             }
-            else if (mParams.GetThreadOperationalDataset().HasValue() &&
-                     mDeviceCommissioningInfo.network.thread != kInvalidEndpointId)
+            if (mParams.GetThreadOperationalDataset().HasValue() &&
+                mDeviceCommissioningInfo.network.thread.endpoint != kInvalidEndpointId)
             {
                 return CommissioningStage::kThreadNetworkSetup;
             }
-            else
-            {
-                ChipLogError(Controller, "Required network information not provided in commissioning parameters");
-                ChipLogError(Controller, "Parameters supplied: wifi (%s) thread (%s)",
-                             mParams.GetWiFiCredentials().HasValue() ? "yes" : "no",
-                             mParams.GetThreadOperationalDataset().HasValue() ? "yes" : "no");
-                ChipLogError(Controller, "Device supports: wifi (%s) thread(%s)",
-                             mDeviceCommissioningInfo.network.wifi == kInvalidEndpointId ? "no" : "yes",
-                             mDeviceCommissioningInfo.network.thread == kInvalidEndpointId ? "no" : "yes");
-                lastErr = CHIP_ERROR_INVALID_ARGUMENT;
-                return CommissioningStage::kCleanup;
-            }
+
+            ChipLogError(Controller, "Required network information not provided in commissioning parameters");
+            ChipLogError(Controller, "Parameters supplied: wifi (%s) thread (%s)",
+                         mParams.GetWiFiCredentials().HasValue() ? "yes" : "no",
+                         mParams.GetThreadOperationalDataset().HasValue() ? "yes" : "no");
+            ChipLogError(Controller, "Device supports: wifi (%s) thread(%s)",
+                         mDeviceCommissioningInfo.network.wifi.endpoint == kInvalidEndpointId ? "no" : "yes",
+                         mDeviceCommissioningInfo.network.thread.endpoint == kInvalidEndpointId ? "no" : "yes");
+            lastErr = CHIP_ERROR_INVALID_ARGUMENT;
+            return CommissioningStage::kCleanup;
         }
         else
         {
-            // TODO: I dont think this is to spec - not sure where we'd have a commissioner that doesn't have dnssd.
-#if CHIP_DEVICE_CONFIG_ENABLE_DNSSD
             return CommissioningStage::kFindOperational;
-#else
-            return CommissioningStage::kSendComplete;
-#endif
         }
     case CommissioningStage::kWiFiNetworkSetup:
-        if (mParams.GetThreadOperationalDataset().HasValue() && mDeviceCommissioningInfo.network.thread != kInvalidEndpointId)
+        if (mParams.GetThreadOperationalDataset().HasValue() &&
+            mDeviceCommissioningInfo.network.thread.endpoint != kInvalidEndpointId)
         {
             return CommissioningStage::kThreadNetworkSetup;
         }
@@ -174,7 +218,7 @@ CommissioningStage AutoCommissioner::GetNextCommissioningStage(CommissioningStag
             return CommissioningStage::kWiFiNetworkEnable;
         }
     case CommissioningStage::kThreadNetworkSetup:
-        if (mParams.GetWiFiCredentials().HasValue() && mDeviceCommissioningInfo.network.wifi != kInvalidEndpointId)
+        if (mParams.GetWiFiCredentials().HasValue() && mDeviceCommissioningInfo.network.wifi.endpoint != kInvalidEndpointId)
         {
             return CommissioningStage::kWiFiNetworkEnable;
         }
@@ -184,7 +228,8 @@ CommissioningStage AutoCommissioner::GetNextCommissioningStage(CommissioningStag
         }
 
     case CommissioningStage::kWiFiNetworkEnable:
-        if (mParams.GetThreadOperationalDataset().HasValue() && mDeviceCommissioningInfo.network.thread != kInvalidEndpointId)
+        if (mParams.GetThreadOperationalDataset().HasValue() &&
+            mDeviceCommissioningInfo.network.thread.endpoint != kInvalidEndpointId)
         {
             return CommissioningStage::kThreadNetworkEnable;
         }
@@ -193,20 +238,12 @@ CommissioningStage AutoCommissioner::GetNextCommissioningStage(CommissioningStag
             return CommissioningStage::kFindOperational;
         }
     case CommissioningStage::kThreadNetworkEnable:
-        // TODO: I dont think this is to spec - not sure where we'd have a commissioner that doesn't have dnssd.
-#if CHIP_DEVICE_CONFIG_ENABLE_DNSSD
         return CommissioningStage::kFindOperational;
-#else
-        return CommissioningStage::kSendComplete;
-#endif
     case CommissioningStage::kFindOperational:
         return CommissioningStage::kSendComplete;
     case CommissioningStage::kSendComplete:
         return CommissioningStage::kCleanup;
 
-    // Currently unimplemented.
-    case CommissioningStage::kConfigACL:
-        return CommissioningStage::kError;
     // Neither of these have a next stage so return kError;
     case CommissioningStage::kCleanup:
     case CommissioningStage::kError:
@@ -215,16 +252,16 @@ CommissioningStage AutoCommissioner::GetNextCommissioningStage(CommissioningStag
     return CommissioningStage::kError;
 }
 
-EndpointId AutoCommissioner::GetEndpoint(const CommissioningStage & stage)
+EndpointId AutoCommissioner::GetEndpoint(const CommissioningStage & stage) const
 {
     switch (stage)
     {
     case CommissioningStage::kWiFiNetworkSetup:
     case CommissioningStage::kWiFiNetworkEnable:
-        return mDeviceCommissioningInfo.network.wifi;
+        return mDeviceCommissioningInfo.network.wifi.endpoint;
     case CommissioningStage::kThreadNetworkSetup:
     case CommissioningStage::kThreadNetworkEnable:
-        return mDeviceCommissioningInfo.network.thread;
+        return mDeviceCommissioningInfo.network.thread.endpoint;
     default:
         return kRootEndpointId;
     }
@@ -232,7 +269,6 @@ EndpointId AutoCommissioner::GetEndpoint(const CommissioningStage & stage)
 
 CHIP_ERROR AutoCommissioner::StartCommissioning(DeviceCommissioner * commissioner, CommissioneeDeviceProxy * proxy)
 {
-    // TODO: check that there is no commissioning in progress currently.
     if (commissioner == nullptr)
     {
         ChipLogError(Controller, "Invalid DeviceCommissioner");
@@ -256,12 +292,24 @@ CHIP_ERROR AutoCommissioner::StartCommissioning(DeviceCommissioner * commissione
     return CHIP_NO_ERROR;
 }
 
-Optional<System::Clock::Timeout> AutoCommissioner::GetCommandTimeout(CommissioningStage stage)
+Optional<System::Clock::Timeout> AutoCommissioner::GetCommandTimeout(CommissioningStage stage) const
 {
-    // Per spec, all commands that are sent with the arm failsafe held need at least a 30s timeout. Using 30s everywhere for
-    // simplicity. 30s appears to be sufficient for long-running network commands (enable wifi and enable thread), but we may wish
-    // to increase the timeout for those commissioning stages at a later time.
-    return MakeOptional(System::Clock::Timeout(System::Clock::Seconds16(30)));
+    // Per spec, all commands that are sent with the arm failsafe held need at least a 30s timeout.
+    // Network clusters can indicate the time required to connect, so if we are connecting, use that time as long as it is > 30s.
+    app::Clusters::NetworkCommissioning::Attributes::ConnectMaxTimeSeconds::TypeInfo::DecodableType seconds = 30;
+    switch (stage)
+    {
+    case CommissioningStage::kWiFiNetworkEnable:
+        ChipLogError(Controller, "Setting wifi connection time min = %u", mDeviceCommissioningInfo.network.wifi.minConnectionTime);
+        seconds = std::max(mDeviceCommissioningInfo.network.wifi.minConnectionTime, seconds);
+        break;
+    case CommissioningStage::kThreadNetworkEnable:
+        seconds = std::max(mDeviceCommissioningInfo.network.thread.minConnectionTime, seconds);
+        break;
+    default:
+        break;
+    }
+    return MakeOptional(System::Clock::Timeout(System::Clock::Seconds16(seconds)));
 }
 
 CHIP_ERROR AutoCommissioner::NOCChainGenerated(ByteSpan noc, ByteSpan icac, ByteSpan rcac, AesCcm128KeySpan ipk,
@@ -299,18 +347,37 @@ CHIP_ERROR AutoCommissioner::NOCChainGenerated(ByteSpan noc, ByteSpan icac, Byte
 
 CHIP_ERROR AutoCommissioner::CommissioningStepFinished(CHIP_ERROR err, CommissioningDelegate::CommissioningReport report)
 {
+    CompletionStatus completionStatus;
+    completionStatus.err = err;
+
+    if (err == CHIP_NO_ERROR)
+    {
+        ChipLogProgress(Controller, "Successfully finished commissioning step '%s'", StageToString(report.stageCompleted));
+    }
+    else
+    {
+        ChipLogProgress(Controller, "Error on commissioning step '%s': '%s'", StageToString(report.stageCompleted), err.AsString());
+    }
+
     if (err != CHIP_NO_ERROR)
     {
+        completionStatus.failedStage = MakeOptional(report.stageCompleted);
         ChipLogError(Controller, "Failed to perform commissioning step %d", static_cast<int>(report.stageCompleted));
-        if ((report.stageCompleted == CommissioningStage::kAttestationVerification) &&
-            ((report.Get<AdditionalErrorInfo>().attestationResult ==
-              Credentials::AttestationVerificationResult::kDacProductIdMismatch) ||
-             (report.Get<AdditionalErrorInfo>().attestationResult ==
-              Credentials::AttestationVerificationResult::kDacVendorIdMismatch)))
+        if (report.stageCompleted == CommissioningStage::kAttestationVerification)
         {
-            ChipLogError(Controller,
-                         "Failed device attestation. Device vendor and/or product ID do not match the IDs expected. "
-                         "Verify DAC certificate chain and certification declaration to ensure spec rules followed.");
+            if (report.Is<AdditionalErrorInfo>())
+            {
+                completionStatus.attestationResult = MakeOptional(report.Get<AdditionalErrorInfo>().attestationResult);
+                if ((report.Get<AdditionalErrorInfo>().attestationResult ==
+                     Credentials::AttestationVerificationResult::kDacProductIdMismatch) ||
+                    (report.Get<AdditionalErrorInfo>().attestationResult ==
+                     Credentials::AttestationVerificationResult::kDacVendorIdMismatch))
+                {
+                    ChipLogError(Controller,
+                                 "Failed device attestation. Device vendor and/or product ID do not match the IDs expected. "
+                                 "Verify DAC certificate chain and certification declaration to ensure spec rules followed.");
+                }
+            }
         }
     }
     else
@@ -323,8 +390,10 @@ CHIP_ERROR AutoCommissioner::CommissioningStepFinished(CHIP_ERROR err, Commissio
             {
                 mParams.SetFailsafeTimerSeconds(mDeviceCommissioningInfo.general.recommendedFailsafe);
             }
-            mParams.SetRemoteVendorId(report.Get<ReadCommissioningInfo>().basic.vendorId);
-            mParams.SetRemoteProductId(report.Get<ReadCommissioningInfo>().basic.productId);
+            mParams.SetRemoteVendorId(mDeviceCommissioningInfo.basic.vendorId)
+                .SetRemoteProductId(mDeviceCommissioningInfo.basic.productId)
+                .SetDefaultRegulatoryLocation(mDeviceCommissioningInfo.general.currentRegulatoryLocation)
+                .SetLocationCapability(mDeviceCommissioningInfo.general.locationCapability);
             break;
         case CommissioningStage::kSendPAICertificateRequest:
             SetPAI(report.Get<RequestedCertificate>().certificate);
@@ -347,8 +416,8 @@ CHIP_ERROR AutoCommissioner::CommissioningStepFinished(CHIP_ERROR err, Commissio
             break;
         case CommissioningStage::kSendOpCertSigningRequest: {
             NOCChainGenerationParameters nocParams;
-            nocParams.nocsrElements = report.Get<AttestationResponse>().attestationElements;
-            nocParams.signature     = report.Get<AttestationResponse>().signature;
+            nocParams.nocsrElements = report.Get<CSRResponse>().nocsrElements;
+            nocParams.signature     = report.Get<CSRResponse>().signature;
             mParams.SetNOCChainGenerationParameters(nocParams);
         }
         break;
@@ -365,7 +434,6 @@ CHIP_ERROR AutoCommissioner::CommissioningStepFinished(CHIP_ERROR err, Commissio
             ReleaseDAC();
             mCommissioneeDeviceProxy = nullptr;
             mOperationalDeviceProxy  = nullptr;
-            mParams                  = CommissioningParameters();
             mDeviceCommissioningInfo = ReadCommissioningInfo();
             return CHIP_NO_ERROR;
         default:
@@ -377,6 +445,14 @@ CHIP_ERROR AutoCommissioner::CommissioningStepFinished(CHIP_ERROR err, Commissio
     if (nextStage == CommissioningStage::kError)
     {
         return CHIP_ERROR_INCORRECT_STATE;
+    }
+
+    // If GetNextCommissioningStage indicated a failure, don't lose track of
+    // that.  But don't overwrite any existing failures we had hanging
+    // around.
+    if (completionStatus.err == CHIP_NO_ERROR)
+    {
+        completionStatus.err = err;
     }
 
     DeviceProxy * proxy = mCommissioneeDeviceProxy;
@@ -392,7 +468,7 @@ CHIP_ERROR AutoCommissioner::CommissioningStepFinished(CHIP_ERROR err, Commissio
         return CHIP_ERROR_INCORRECT_STATE;
     }
 
-    mParams.SetCompletionStatus(err);
+    mParams.SetCompletionStatus(completionStatus);
     mCommissioner->PerformCommissioningStep(proxy, nextStage, mParams, this, GetEndpoint(nextStage), GetCommandTimeout(nextStage));
     return CHIP_NO_ERROR;
 }

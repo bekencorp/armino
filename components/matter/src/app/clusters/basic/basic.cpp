@@ -22,6 +22,7 @@
 #include <app-common/zap-generated/cluster-objects.h>
 #include <app/DataModelRevision.h>
 #include <app/EventLogging.h>
+#include <app/InteractionModelEngine.h>
 #include <app/util/attribute-storage.h>
 #include <platform/CHIPDeviceLayer.h>
 #include <platform/ConfigurationManager.h>
@@ -178,7 +179,7 @@ CHIP_ERROR BasicAttrAccess::Read(const ConcreteReadAttributePath & aPath, Attrib
         if (status == CHIP_NO_ERROR)
         {
             // Format is YYYYMMDD
-            snprintf(manufacturingDateString, sizeof(manufacturingDateString), "%04" PRIu16 "%02u%02u", manufacturingYear,
+            snprintf(manufacturingDateString, sizeof(manufacturingDateString), "%04u%02u%02u", manufacturingYear,
                      manufacturingMonth, manufacturingDayOfMonth);
             status = aEncoder.Encode(chip::CharSpan(manufacturingDateString, strnlen(manufacturingDateString, kMaxLen)));
         }
@@ -265,6 +266,19 @@ CHIP_ERROR BasicAttrAccess::Read(const ConcreteReadAttributePath & aPath, Attrib
         break;
     }
 
+    case CapabilityMinima::Id: {
+        Basic::Structs::CapabilityMinimaStruct::Type capabilityMinima;
+
+        // TODO: These values must be set from something based on the SDK impl, but there are no such constants today.
+        constexpr uint16_t kMinCaseSessionsPerFabricMandatedBySpec = 3;
+
+        capabilityMinima.caseSessionsPerFabric  = kMinCaseSessionsPerFabricMandatedBySpec;
+        capabilityMinima.subscriptionsPerFabric = InteractionModelEngine::GetInstance()->GetMinSubscriptionsPerFabric();
+
+        status = aEncoder.Encode(capabilityMinima);
+        break;
+    }
+
     default:
         // We did not find a processing path, the caller will delegate elsewhere.
         break;
@@ -305,8 +319,7 @@ CHIP_ERROR BasicAttrAccess::Write(const ConcreteDataAttributePath & aPath, Attri
     {
     case Location::Id: {
         CHIP_ERROR err = WriteLocation(aDecoder);
-        // TODO: Attempt to diagnose Darwin CI, REMOVE ONCE FIXED
-        ChipLogError(Zcl, "WriteLocation status: %" CHIP_ERROR_FORMAT, err.Format());
+
         return err;
     }
     default:
@@ -322,9 +335,6 @@ CHIP_ERROR BasicAttrAccess::WriteLocation(AttributeValueDecoder & aDecoder)
 
     ReturnErrorOnFailure(aDecoder.Decode(location));
 
-    // TODO: Attempt to diagnose Darwin CI, REMOVE ONCE FIXED
-    ChipLogError(Zcl, "WriteLocation received, size %zu, location '%.*s'", location.size(), (int) location.size(), location.data());
-
     bool isValidLength = location.size() == DeviceLayer::ConfigurationManager::kMaxLocationLength;
     VerifyOrReturnError(isValidLength, StatusIB(Protocols::InteractionModel::Status::InvalidValue).ToChipError());
 
@@ -333,10 +343,10 @@ CHIP_ERROR BasicAttrAccess::WriteLocation(AttributeValueDecoder & aDecoder)
 
 class PlatformMgrDelegate : public DeviceLayer::PlatformManagerDelegate
 {
-    // Gets called by the current Node after completing a boot or reboot process.
     void OnStartUp(uint32_t softwareVersion) override
     {
-        ChipLogProgress(Zcl, "PlatformMgrDelegate: OnStartUp");
+        // The StartUp event SHALL be emitted by a Node after completing a boot or reboot process
+        ChipLogDetail(Zcl, "Emitting StartUp event");
 
         for (auto endpoint : EnabledEndpointsWithServerCluster(Basic::Id))
         {
@@ -344,17 +354,18 @@ class PlatformMgrDelegate : public DeviceLayer::PlatformManagerDelegate
             Events::StartUp::Type event{ softwareVersion };
             EventNumber eventNumber;
 
-            if (CHIP_NO_ERROR != LogEvent(event, endpoint, eventNumber, EventOptions::Type::kUrgent))
+            CHIP_ERROR err = LogEvent(event, endpoint, eventNumber);
+            if (CHIP_NO_ERROR != err)
             {
-                ChipLogError(Zcl, "PlatformMgrDelegate: Failed to record StartUp event");
+                ChipLogError(Zcl, "Failed to emit StartUp event: %" CHIP_ERROR_FORMAT, err.Format());
             }
         }
     }
 
-    // Gets called by the current Node prior to any orderly shutdown sequence on a best-effort basis.
     void OnShutDown() override
     {
-        ChipLogProgress(Zcl, "PlatformMgrDelegate: OnShutDown");
+        // The ShutDown event SHOULD be emitted on a best-effort basis by a Node prior to any orderly shutdown sequence.
+        ChipLogDetail(Zcl, "Emitting ShutDown event");
 
         for (auto endpoint : EnabledEndpointsWithServerCluster(Basic::Id))
         {
@@ -362,11 +373,15 @@ class PlatformMgrDelegate : public DeviceLayer::PlatformManagerDelegate
             Events::ShutDown::Type event;
             EventNumber eventNumber;
 
-            if (CHIP_NO_ERROR != LogEvent(event, endpoint, eventNumber, EventOptions::Type::kUrgent))
+            CHIP_ERROR err = LogEvent(event, endpoint, eventNumber);
+            if (CHIP_NO_ERROR != err)
             {
-                ChipLogError(Zcl, "PlatformMgrDelegate: Failed to record ShutDown event");
+                ChipLogError(Zcl, "Failed to emit ShutDown event: %" CHIP_ERROR_FORMAT, err.Format());
             }
         }
+
+        // Flush the events to increase chances that they get sent before the shutdown
+        InteractionModelEngine::GetInstance()->GetReportingEngine().ScheduleUrgentEventDeliverySync();
     }
 };
 
@@ -374,31 +389,22 @@ PlatformMgrDelegate gPlatformMgrDelegate;
 
 } // anonymous namespace
 
-void emberAfBasicClusterServerInitCallback(chip::EndpointId endpoint)
+namespace chip {
+namespace app {
+namespace Clusters {
+namespace Basic {
+bool IsLocalConfigDisabled()
 {
-    EmberAfStatus status;
-
-    char nodeLabel[DeviceLayer::ConfigurationManager::kMaxNodeLabelLength + 1];
-    if (ConfigurationMgr().GetNodeLabel(nodeLabel, sizeof(nodeLabel)) == CHIP_NO_ERROR)
-    {
-        status = Attributes::NodeLabel::Set(endpoint, chip::CharSpan::fromCharString(nodeLabel));
-        VerifyOrdo(EMBER_ZCL_STATUS_SUCCESS == status, ChipLogError(Zcl, "Error setting Node Label: 0x%02x", status));
-    }
-
-    bool localConfigDisabled;
-    if (ConfigurationMgr().GetLocalConfigDisabled(localConfigDisabled) == CHIP_NO_ERROR)
-    {
-        status = Attributes::LocalConfigDisabled::Set(endpoint, localConfigDisabled);
-        VerifyOrdo(EMBER_ZCL_STATUS_SUCCESS == status, ChipLogError(Zcl, "Error setting Local Config Disabled: 0x%02x", status));
-    }
-
-    bool reachable;
-    if (ConfigurationMgr().GetReachable(reachable) == CHIP_NO_ERROR)
-    {
-        status = Attributes::Reachable::Set(endpoint, reachable);
-        VerifyOrdo(EMBER_ZCL_STATUS_SUCCESS == status, ChipLogError(Zcl, "Error setting Reachable: 0x%02x", status));
-    }
+    bool disabled        = false;
+    EmberAfStatus status = LocalConfigDisabled::Get(0, &disabled);
+    return status == EMBER_ZCL_STATUS_SUCCESS && disabled;
 }
+} // namespace Basic
+} // namespace Clusters
+} // namespace app
+} // namespace chip
+
+void emberAfBasicClusterServerInitCallback(chip::EndpointId endpoint) {}
 
 void MatterBasicPluginServerInitCallback()
 {

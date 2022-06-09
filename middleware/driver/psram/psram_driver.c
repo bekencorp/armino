@@ -34,12 +34,12 @@ static void psram_init_common(void)
 	//addSYSTEM_Reg0x46 |=  (0x1 << 9);// psram 上电
 	sys_drv_psram_ldo_enable(0x1);//bit9//psram 上电
 
-	set_FLASH_Reg0x7_mode_sel(0x1);
+	//set_FLASH_Reg0x7_mode_sel(0x1);
 	//flash_set_line_mode(0x1);//sys_drv_flash_mode_sel(0x1);//set bit4-8
 	//sys_drv_set_flash_mode(0x1);
 
 	//set_SYSTEM_Reg0x9_cksel_flash(0x2);
-	sys_drv_flash_cksel(0x2);//bit 24,25
+	//sys_drv_flash_cksel(0x2);//bit 24,25
 
 	addSYSTEM_Reg0xe |= (0x1 << 25); // not set
 

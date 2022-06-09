@@ -82,8 +82,9 @@ static UINT32 mpb_select_tx_rate(UINT32 rate)
 			os_printf("mpb_select_tx_rate wrong rate:%d\r\n", rate);
 	}
 	}
-
+#ifndef CONFIG_ATE_TEST
 	os_printf("mpb_select_tx_rate rate:%d\r\n", param);
+#endif
 	return param;
 }
 

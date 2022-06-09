@@ -30,6 +30,7 @@
 #include "sys_driver.h"
 #include "iot_adc.h"
 #include "bk_saradc.h"
+#include "common/bk_err.h"
 
 static void adc_isr(void) __SECTION(".itcm");
 static bk_err_t adc_read_fifo(void) __SECTION(".itcm");
@@ -558,8 +559,6 @@ bk_err_t bk_adc_get_config(uint32 adc_ch, adc_config_t **config)
     return BK_OK;
 }
 
-
-#if SARADC_AUTOTEST
 int saradc_hal_is_fifo_empty(void)
 {
     return (!adc_hal_is_fifo_empty(&s_adc.hal));
@@ -579,6 +578,7 @@ void saradc_hal_start_enable(void)
 {
     adc_hal_start_commom(&s_adc.hal);
 }
+
 uint32_t bk_saradc_read_raw_data(uint32_t timeout)
 {
     uint32_t raw_data = 0;
@@ -586,6 +586,7 @@ uint32_t bk_saradc_read_raw_data(uint32_t timeout)
     return raw_data;
 }
 
+#if SARADC_AUTOTEST
 bk_err_t bk_saradc_set_config(adc_config_t *config, uint32_t div)
 {
     BK_RETURN_ON_NULL(config);
@@ -682,6 +683,19 @@ bk_err_t bk_adc_register_isr_iot_callback(    void* iot_callback, void      * p_
 	return BK_OK;
 }
 
+bk_err_t bk_adc_unregister_isr_iot_callback(void)
+{
+	ADC_RETURN_ON_NOT_INIT();
+
+	GLOBAL_INT_DECLARATION();
+	GLOBAL_INT_DISABLE();
+	s_adc_read_isr.iot_callback = NULL;
+	s_adc_read_isr.p_iot_context = NULL;
+	GLOBAL_INT_RESTORE();
+
+	return BK_OK;
+}
+
 bk_err_t bk_adc_en(void)
 {
 	if(adc_hal_check_adc_busy(&s_adc.hal))
@@ -759,3 +773,63 @@ UINT32 saradc_set_calibrate_val(uint16_t *value, SARADC_MODE mode)
     return SARADC_SUCCESS;
 }
 
+void bk_adc_read_for_ate(uint32_t saradc_num, uint16_t *saradc_buf)
+{
+    uint32_t i = 0;
+    int irq_level=0;
+
+    BK_LOG_ON_ERR(bk_saradc_start_int_disable());
+    //saradc enable
+    saradc_hal_start_enable();
+    //before for(),need check saradc fifo empty
+    os_printf("saradc_hal_is_fifo_empty=%x\r\n",saradc_hal_is_fifo_empty());
+    os_printf("sardata_start\r\n");
+    irq_level = rtos_disable_int();
+
+    for(i = 0; i < saradc_num; i++)
+    {
+        if(saradc_hal_is_fifo_empty())
+        {
+            saradc_buf[i] = bk_saradc_read_raw_data(1000);
+            //saradc_buf[i] = *((volatile unsigned long *) (BASEADDR_SADC+0x4*4));
+        }
+        else
+        {
+            i--;
+            continue;
+        }
+
+    }
+    rtos_enable_int(irq_level);
+}
+
+void test_adc_for_ate(adc_chan_t channel, adc_mode_t mode,
+					  uint32_t pre_div, uint32_t samp_rate,
+					  uint32_t filter, uint32_t sta_ctrl,
+					  uint32_t usCount, uint16_t *pDataBuffer)
+{
+    adc_config_t config = {0};
+    uint32_t adc_clk;
+
+    adc_clk = 26000000/2/(pre_div + 1);
+    BK_LOG_ON_ERR(bk_adc_acquire());
+    BK_LOG_ON_ERR(bk_adc_init(channel));
+
+    config.chan = channel;
+    config.adc_mode = mode;
+    config.clk = adc_clk;
+    config.src_clk = 1;
+    config.saturate_mode = 4;
+    config.sample_rate = samp_rate;
+    config.steady_ctrl= sta_ctrl;
+    config.adc_filter = filter;
+
+    BK_LOG_ON_ERR(bk_adc_set_config(&config));
+    BK_LOG_ON_ERR(bk_adc_enable_bypass_clalibration());
+    BK_LOG_ON_ERR(bk_adc_start());
+
+    bk_adc_read_for_ate(usCount, pDataBuffer);
+    BK_LOG_ON_ERR(bk_adc_stop());
+    BK_LOG_ON_ERR(bk_adc_deinit(channel));
+    BK_LOG_ON_ERR(bk_adc_release());
+}

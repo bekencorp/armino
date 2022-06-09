@@ -1,0 +1,1 @@
+.. include:: ../../../zh_CN/examples/video/bk_uvc_config.rst

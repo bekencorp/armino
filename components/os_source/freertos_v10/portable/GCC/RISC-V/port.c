@@ -37,6 +37,7 @@
 #include "arch_interrupt.h"
 /* Standard includes. */
 #include "string.h"
+#include "platform.h"
 
 #ifdef configCLINT_BASE_ADDRESS
 	#warning The configCLINT_BASE_ADDRESS constant has been deprecated.  configMTIME_BASE_ADDRESS and configMTIMECMP_BASE_ADDRESS are currently being derived from the (possibly 0) configCLINT_BASE_ADDRESS setting.  Please update to define configMTIME_BASE_ADDRESS and configMTIMECMP_BASE_ADDRESS dirctly in place of configCLINT_BASE_ADDRESS.  See https://www.FreeRTOS.org/Using-FreeRTOS-on-RISC-V.html
@@ -69,7 +70,7 @@ of the stack used by main.  Using the linker script method will repurpose the
 stack that was used by main before the scheduler was started for use as the
 interrupt stack after the scheduler has started. */
 #ifdef configISR_STACK_SIZE_WORDS
-	static __attribute__ ((aligned(16))) StackType_t xISRStack[ configISR_STACK_SIZE_WORDS ] = { 0 };
+	static __attribute__ ((aligned(16))) __attribute__((section(".dtcm_sec_data "))) StackType_t xISRStack[ configISR_STACK_SIZE_WORDS ] = { 0 };
 	const StackType_t xISRStackTop = ( StackType_t ) &( xISRStack[ configISR_STACK_SIZE_WORDS & ~portBYTE_ALIGNMENT_MASK ] );
 
 	/* Don't use 0xa5 as the stack fill bytes as that is used by the kernerl for
@@ -252,5 +253,23 @@ int port_disable_interrupts_flag(void)
 void port_enable_interrupts_flag(int val)
 {
 	__asm volatile( "csrw mstatus, %0"::"r"( val ) );
+}
+/*
+ * disable mie Interrupts
+ */
+unsigned int port_disable_mie_flag(void)
+{
+	uint32_t uxSavedStatusValue;
+	uxSavedStatusValue = read_csr(NDS_MIE);
+	clear_csr(NDS_MIE, uxSavedStatusValue);
+	return uxSavedStatusValue;
+}
+
+/*
+ * Enable mie Interrupts
+ */
+void port_enable_mie_flag(uint32_t val)
+{
+	set_csr(NDS_MIE, val);
 }
 

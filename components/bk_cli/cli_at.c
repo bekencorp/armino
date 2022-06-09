@@ -79,6 +79,22 @@ static void bleat_command_handler(char *pcWriteBuffer, int xWriteBufferLen, int 
 #endif /// CONFIG_BLE_5_X || CONFIG_BTDM_5_2
 
 #if CONFIG_LWIP
+static void wifi_Command_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	char *msg = NULL;
+	const at_command_t *command = NULL;
+	
+	command = lookup_wifi_at_command(argv[1]);
+    if (command == NULL) {
+        bk_printf("cannot find this cmd, please check again!!!\n");
+        msg = AT_CMD_RSP_ERROR;
+        os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+        return;
+    }
+
+    command->function(pcWriteBuffer, xWriteBufferLen, argc - 2, argv + 2);
+}
+
 void at_wifi_Command_sta(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	char buf[128];
@@ -265,6 +281,7 @@ static const struct cli_command s_at_commands[] = {
     {"AT+WIFIAP", "at ap config", at_wifi_Command_ap},
     {"AT+WIFISTATE", "state", at_wifi_state},
     {"AT+WIFIPING", "state", at_wifi_ping},
+    {"AT+WIFI", "AT+TYPE_CMD=CMD_name,param1,...,paramn", wifi_Command_handler},
 #endif
     {"AT+VIDEO", "video cmd(open/read/close)", videoat_command_handler},
 #if (CONFIG_WIFI_ENABLE)

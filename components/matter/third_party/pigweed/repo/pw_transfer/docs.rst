@@ -19,14 +19,15 @@ RPC service.
 
 To know how to read data from or write data to device, a ``TransferHandler``
 interface is defined (``pw_transfer/public/pw_transfer/handler.h``). Transfer
-handlers wrap a stream reader and/or writer with initialization and completion
-code. Custom transfer handler implementations should derive from
-``ReadOnlyHandler``, ``WriteOnlyHandler``, or ``ReadWriteHandler`` as
-appropriate and override Prepare and Finalize methods if necessary.
+handlers represent a transferable resource, wrapping a stream reader and/or
+writer with initialization and completion code. Custom transfer handler
+implementations should derive from ``ReadOnlyHandler``, ``WriteOnlyHandler``,
+or ``ReadWriteHandler`` as appropriate and override Prepare and Finalize methods
+if necessary.
 
 A transfer handler should be implemented and instantiated for each unique data
 transfer to or from a device. These handlers are then registered with the
-transfer service using their transfer IDs.
+transfer service using their resource IDs.
 
 **Example**
 
@@ -39,8 +40,8 @@ transfer service using their transfer IDs.
   // Simple transfer handler which reads data from an in-memory buffer.
   class SimpleBufferReadHandler : public pw::transfer::ReadOnlyHandler {
    public:
-    SimpleReadTransfer(uint32_t transfer_id, pw::ConstByteSpan data)
-        : ReadOnlyHandler(transfer_id), reader_(data) {
+    SimpleReadTransfer(uint32_t resource_id, pw::ConstByteSpan data)
+        : ReadOnlyHandler(resource_id), reader_(data) {
       set_reader(reader_);
     }
 
@@ -63,10 +64,11 @@ transfer service using their transfer IDs.
   pw::transfer::TransferServiceBuffer<kMaxChunkSizeBytes> transfer_service(
       GetSystemWorkQueue(), kDefaultMaxBytesToReceive);
 
-  // Instantiate a handler for the data to be transferred.
-  constexpr uint32_t kBufferTransferId = 1;
+  // Instantiate a handler for the data to be transferred. The resource ID will
+  // be used by the transfer client and server to identify the handler.
+  constexpr uint32_t kBufferResourceId = 1;
   char buffer_to_transfer[256] = { /* ... */ };
-  SimpleBufferReadHandler buffer_handler(kBufferTransferId, buffer_to_transfer);
+  SimpleBufferReadHandler buffer_handler(kBufferResourceId, buffer_to_transfer);
 
   }  // namespace
 
@@ -79,7 +81,30 @@ transfer service using their transfer IDs.
 
 Module Configuration Options
 ----------------------------
-todo
+The following configurations can be adjusted via compile-time configuration of
+this module, see the
+:ref:`module documentation <module-structure-compile-time-configuration>` for
+more details.
+
+.. c:macro:: PW_TRANSFER_DEFAULT_MAX_RETRIES
+
+  The default maximum number of times a transfer should retry sending a chunk
+  when no response is received. This can later be configured per-transfer.
+
+.. c:macro:: PW_TRANSFER_DEFAULT_TIMEOUT_MS
+
+  The default amount of time, in milliseconds, to wait for a chunk to arrive
+  before retrying. This can later be configured per-transfer.
+
+.. c:macro:: PW_TRANSFER_DEFAULT_EXTEND_WINDOW_DIVISOR
+
+  The fractional position within a window at which a receive transfer should
+  extend its window size to minimize the amount of time the transmitter
+  spends blocked.
+
+  For example, a divisor of 2 will extend the window when half of the
+  requested data has been received, a divisor of three will extend at a third
+  of the window, and so on.
 
 Python
 ======
@@ -100,7 +125,7 @@ Python
   transfer_manager = pw_transfer.Manager(transfer_service)
 
   try:
-    # Read transfer_id 3 from the server.
+    # Read the transfer resource with ID 3 from the server.
     data = transfer_manager.read(3)
   except pw_transfer.Error as err:
     print('Failed to read:', err.status)
@@ -296,3 +321,29 @@ Receiver flow
     signal_completion[Signal completion]-->done
 
     done([Transfer complete])
+
+
+-----------------
+Integration tests
+-----------------
+The ``pw_transfer`` module has a set of integration tests that verify the
+correctness of implementations in different languages.
+`Test source code <https://cs.opensource.google/pigweed/pigweed/+/main:pw_transfer/integration_test/>`_.
+
+To run the tests on your machine, run
+
+.. code:: bash
+
+  $ bazel run pw_transfer/integration_test:cross_language_integration_test
+
+CI/CQ integration
+=================
+`Current status of the test in CI <https://ci.chromium.org/p/pigweed/builders/ci/pigweed-integration-transfer>`_.
+
+By default, these tests are not run in CQ (on presubmit) because they are too
+slow. However, you can request that the tests be run in presubmit on your
+change by adding to following line to the commit message footer:
+
+.. code::
+
+  Cq-Include-Trybots: luci.pigweed.try:pigweed-integration-transfer

@@ -39,38 +39,38 @@ CHIP_ERROR ApplicationLauncherManager::HandleGetCatalogList(AttributeValueEncode
 void ApplicationLauncherManager::HandleLaunchApp(CommandResponseHelper<LauncherResponseType> & helper, const ByteSpan & data,
                                                  const ApplicationType & application)
 {
-    ChipLogError(Zcl, "ApplicationLauncherManager::HandleLaunchApp");
+    ChipLogProgress(Zcl, "ApplicationLauncherManager::HandleLaunchApp");
 
     // TODO: Insert code here
     LauncherResponseType response;
     const char * buf = "data";
     response.data    = ByteSpan(from_const_char(buf), strlen(buf));
-    response.status  = StatusEnum::kSuccess;
+    response.status  = ApplicationLauncherStatusEnum::kSuccess;
     helper.Success(response);
 }
 
 void ApplicationLauncherManager::HandleStopApp(CommandResponseHelper<LauncherResponseType> & helper,
                                                const ApplicationType & application)
 {
-    ChipLogError(Zcl, "ApplicationLauncherManager::HandleStopApp");
+    ChipLogProgress(Zcl, "ApplicationLauncherManager::HandleStopApp");
 
     // TODO: Insert code here
     LauncherResponseType response;
     const char * buf = "data";
     response.data    = ByteSpan(from_const_char(buf), strlen(buf));
-    response.status  = StatusEnum::kSuccess;
+    response.status  = ApplicationLauncherStatusEnum::kSuccess;
     helper.Success(response);
 }
 
 void ApplicationLauncherManager::HandleHideApp(CommandResponseHelper<LauncherResponseType> & helper,
                                                const ApplicationType & application)
 {
-    ChipLogError(Zcl, "ApplicationLauncherManager::HandleHideApp");
+    ChipLogProgress(Zcl, "ApplicationLauncherManager::HandleHideApp");
 
     // TODO: Insert code here
     LauncherResponseType response;
     const char * buf = "data";
     response.data    = ByteSpan(from_const_char(buf), strlen(buf));
-    response.status  = StatusEnum::kSuccess;
+    response.status  = ApplicationLauncherStatusEnum::kSuccess;
     helper.Success(response);
 }

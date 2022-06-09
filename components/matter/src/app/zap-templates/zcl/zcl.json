@@ -1,7 +1,9 @@
 {
     "version": "ZCL Test Data",
     "xmlRoot": [".", "./data-model/chip/", "./data-model/silabs/"],
+    "_comment": "Ensure access-control-definitions.xml is first in xmlFile array",
     "xmlFile": [
+        "access-control-definitions.xml",
         "access-control-cluster.xml",
         "account-login-cluster.xml",
         "administrator-commissioning-cluster.xml",
@@ -17,7 +19,6 @@
         "chip-types.xml",
         "channel-cluster.xml",
         "clusters-extensions.xml",
-        "commissioning.xml",
         "content-launch-cluster.xml",
         "descriptor-cluster.xml",
         "diagnostic-logs-cluster.xml",
@@ -37,6 +38,7 @@
         "media-input-cluster.xml",
         "media-playback-cluster.xml",
         "mode-select-cluster.xml",
+        "network-commissioning-cluster.xml",
         "onoff-cluster.xml",
         "operational-credentials-cluster.xml",
         "pressure-measurement-cluster.xml",
@@ -87,6 +89,51 @@
         "bool": {
             "commandDiscovery": true
         }
+    },
+    "listsUseAttributeAccessInterface": true,
+    "attributeAccessInterfaceAttributes": {
+        "Access Control": [
+            "ClusterRevision",
+            "SubjectsPerAccessControlEntry",
+            "TargetsPerAccessControlEntry",
+            "AccessControlEntriesPerFabric"
+        ],
+        "AdministratorCommissioning": [
+            "WindowStatus",
+            "AdminFabricIndex",
+            "AdminVendorId"
+        ],
+        "Basic": [
+            "DataModelRevision",
+            "VendorName",
+            "VendorID",
+            "ProductName",
+            "ProductID",
+            "Location",
+            "HardwareVersion",
+            "HardwareVersionString",
+            "SoftwareVersion",
+            "SoftwareVersionString",
+            "ManufacturingDate",
+            "PartNumber",
+            "ProductURL",
+            "ProductLabel",
+            "SerialNumber",
+            "UniqueID",
+            "CapabilityMinima"
+        ],
+        "Descriptor": ["ClusterRevision"],
+        "Ethernet Network Diagnostics": [
+            "PHYRate",
+            "FullDuplex",
+            "CarrierDetect",
+            "TimeSinceReset",
+            "PacketRxCount",
+            "PacketTxCount",
+            "TxErrCount",
+            "CollisionCount",
+            "OverrunCount"
+        ]
     },
     "defaultReportingPolicy": "mandatory"
 }

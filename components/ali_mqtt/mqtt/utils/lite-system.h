@@ -45,6 +45,8 @@ int iotx_guider_id2_authenticate(void);
 
 int     iotx_device_info_init(void);
 
+int     iotx_device_info_deinit(void);
+
 int     iotx_device_info_set(
             const char *product_key,
             const char *device_name,

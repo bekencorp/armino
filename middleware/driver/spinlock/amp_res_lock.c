@@ -123,13 +123,13 @@ bk_err_t amp_res_available(u16 res_id)
 
 #endif
 
-bk_err_t amp_res_acquire(u16 res_id, u32 timeout_ms)
+bk_err_t amp_res_lock_acquire(u16 res_id, u32 timeout_ms, const char * func_name, int line_no)
 {
 	bk_err_t	ret_val = BK_FAIL;
 
 	if( rtos_is_in_interrupt_context() )
 	{
-		BK_LOGE("AMP", "can't call in ISR %s,%d\r\n", __FUNCTION__, __LINE__);
+		BK_LOGE("AMP", "can't call in ISR %s,%d\r\n", func_name, line_no);
 
 		return BK_FAIL;
 	}
@@ -184,13 +184,13 @@ bk_err_t amp_res_acquire(u16 res_id, u32 timeout_ms)
 
 }
 
-bk_err_t amp_res_release(u16 res_id)
+bk_err_t amp_res_lock_release(u16 res_id, const char * func_name, int line_no)
 {
 	bk_err_t	ret_val = BK_FAIL;
 
 	if( rtos_is_in_interrupt_context() )
 	{
-		BK_LOGE("AMP", "can't call in ISR %s,%d\r\n", __FUNCTION__, __LINE__);
+		BK_LOGE("AMP", "can't call in ISR %s,%d\r\n", func_name, line_no);
 
 		return BK_FAIL;
 	}
@@ -246,7 +246,7 @@ bk_err_t amp_res_release(u16 res_id)
 
 }
 
-bk_err_t amp_res_init(u16 res_id)
+bk_err_t amp_res_lock_init(u16 res_id)
 {
 	bk_err_t	ret_val = BK_FAIL;
 

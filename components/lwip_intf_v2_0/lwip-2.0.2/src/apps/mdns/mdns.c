@@ -65,7 +65,8 @@
 #include "lwip/prot/dns.h"
 
 #include <string.h>
-#include "os/os.h"
+#include <os/os.h>
+#include <os/mem.h>
 
 
 #if LWIP_MDNS_RESPONDER

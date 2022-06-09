@@ -28,6 +28,9 @@ bk_err_t sys_hal_init(void);
 
 /** Platform USB Start **/
 void sys_hal_usb_enable_clk(bool en);
+void sys_hal_usb_analog_phy_en(bool en);
+void sys_hal_usb_analog_speed_en(bool en);
+void sys_hal_usb_analog_ckmcu_en(bool en);
 void sys_hal_usb_enable_charge(bool en);
 void sys_hal_usb_charge_vlcf_cal();
 void sys_hal_usb_charge_icp_cal();
@@ -134,7 +137,10 @@ int32 sys_hal_fiq_enable(uint32 param);
 int32 sys_hal_global_int_disable(uint32 param);
 int32 sys_hal_global_int_enable(uint32 param);
 uint32 sys_hal_get_int_status(void);
+uint32 sys_hal_get_int_group2_status(void);
 int32 sys_hal_set_int_status(uint32 param);
+/* REG_0x29:cpu0_int_32_63_status->cpu0_gpio_int_st: ,R,0x29[22]*/
+uint32_t sys_hal_get_cpu0_gpio_int_st(void);
 uint32 sys_hal_get_fiq_reg_status(void);
 uint32 sys_hal_set_fiq_reg_status(uint32 param);
 uint32 sys_hal_get_intr_raw_status(void);

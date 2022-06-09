@@ -1,4 +1,4 @@
-// Copyright 2021 The Pigweed Authors
+// Copyright 2022 The Pigweed Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not
 // use this file except in compliance with the License. You may obtain a copy of
@@ -14,7 +14,7 @@
 
 // Simple RPC server with the transfer service registered. Reads HDLC frames
 // with RPC packets through a socket. The transfer service reads and writes to
-// files within a given directory. The name of a file is its transfer ID.
+// files within a given directory. The name of a file is its resource ID.
 
 #include <cstddef>
 #include <filesystem>
@@ -39,9 +39,9 @@ namespace {
 class FileTransferHandler final : public ReadWriteHandler {
  public:
   FileTransferHandler(TransferService& service,
-                      uint32_t transfer_id,
+                      uint32_t resource_id,
                       const char* path)
-      : ReadWriteHandler(transfer_id), service_(service), path_(path) {
+      : ReadWriteHandler(resource_id), service_(service), path_(path) {
     service_.RegisterHandler(*this);
   }
 
@@ -83,9 +83,8 @@ class TestServerService
 
   void set_directory(const char* directory) { directory_ = directory; }
 
-  StatusWithSize ReloadTransferFiles(ConstByteSpan, ByteSpan) {
+  void ReloadTransferFiles(ConstByteSpan, rpc::RawUnaryResponder&) {
     LoadFileHandlers();
-    return StatusWithSize();
   }
 
   void LoadFileHandlers() {
@@ -97,12 +96,12 @@ class TestServerService
         continue;
       }
 
-      int transfer_id = std::atoi(entry.path().filename().c_str());
-      if (transfer_id > 0) {
-        PW_LOG_DEBUG("Found transfer file %d", transfer_id);
+      int resource_id = std::atoi(entry.path().filename().c_str());
+      if (resource_id > 0) {
+        PW_LOG_DEBUG("Found transfer file %d", resource_id);
         file_transfer_handlers_.emplace_back(
             std::make_shared<FileTransferHandler>(
-                transfer_service_, transfer_id, entry.path().c_str()));
+                transfer_service_, resource_id, entry.path().c_str()));
       }
     }
   }
@@ -129,8 +128,8 @@ void RunServer(int socket_port, const char* directory) {
   test_server_service.LoadFileHandlers();
 
   rpc::system_server::Init();
-  rpc::system_server::Server().RegisterService(test_server_service);
-  rpc::system_server::Server().RegisterService(transfer_service);
+  rpc::system_server::Server().RegisterService(test_server_service,
+                                               transfer_service);
 
   thread::DetachedThread(thread::stl::Options(), transfer_thread);
 

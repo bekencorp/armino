@@ -207,6 +207,8 @@ int32_t iot_adc_close(IotAdcHandle_t const pxAdc)
   pxAdc->pvCallback      = NULL;
   pxAdc->pvContext       = NULL;
 
+  bk_adc_unregister_isr_iot_callback();
+
   /* reset ADC buffer config */
   pxAdc->pusBufPtr       = NULL;
   pxAdc->ucBufMax        = 0;

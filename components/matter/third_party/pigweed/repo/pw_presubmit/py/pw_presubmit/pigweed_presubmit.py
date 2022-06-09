@@ -165,6 +165,7 @@ def gn_crypto_mbedtls_build(ctx: PresubmitContext):
     build.gn_gen(
         ctx.root,
         ctx.output_dir,
+        pw_RUN_INTEGRATION_TESTS=False,
         dir_pw_third_party_mbedtls='"{}"'.format(ctx.package_root / 'mbedtls'),
         pw_crypto_SHA256_BACKEND='"{}"'.format(ctx.root /
                                                'pw_crypto:sha256_mbedtls'),
@@ -179,6 +180,7 @@ def gn_crypto_boringssl_build(ctx: PresubmitContext):
     build.gn_gen(
         ctx.root,
         ctx.output_dir,
+        pw_RUN_INTEGRATION_TESTS=False,
         dir_pw_third_party_boringssl='"{}"'.format(ctx.package_root /
                                                    'boringssl'),
         pw_crypto_SHA256_BACKEND='"{}"'.format(ctx.root /
@@ -195,6 +197,7 @@ def gn_crypto_micro_ecc_build(ctx: PresubmitContext):
     build.gn_gen(
         ctx.root,
         ctx.output_dir,
+        pw_RUN_INTEGRATION_TESTS=False,
         dir_pw_third_party_micro_ecc='"{}"'.format(ctx.package_root /
                                                    'micro-ecc'),
         pw_crypto_ECDSA_BACKEND='"{}"'.format(ctx.root /
@@ -239,6 +242,23 @@ def gn_software_update_build(ctx: PresubmitContext):
         ctx.output_dir,
         *_at_all_optimization_levels('host_clang'),
     )
+
+
+@filter_paths(endswith=_BUILD_EXTENSIONS)
+def gn_pw_system_demo_build(ctx: PresubmitContext):
+    build.install_package(ctx.package_root, 'freertos')
+    build.install_package(ctx.package_root, 'nanopb')
+    build.install_package(ctx.package_root, 'stm32cube_f4')
+    build.gn_gen(
+        ctx.root,
+        ctx.output_dir,
+        dir_pw_third_party_freertos='"{}"'.format(ctx.package_root /
+                                                  'freertos'),
+        dir_pw_third_party_nanopb='"{}"'.format(ctx.package_root / 'nanopb'),
+        dir_pw_third_party_stm32cube_f4='"{}"'.format(ctx.package_root /
+                                                      'stm32cube_f4'),
+    )
+    build.ninja(ctx.output_dir, 'pw_system_demo')
 
 
 @filter_paths(endswith=_BUILD_EXTENSIONS)
@@ -323,6 +343,7 @@ _MODULES_THAT_BUILD_WITH_BAZEL = [
     '//pw_doctor/...',
     '//pw_env_setup/...',
     '//pw_fuzzer/...',
+    '//pw_hdlc/java/...',
     '//pw_hex_dump/...',
     '//pw_i2c/...',
     '//pw_interrupt/...',
@@ -372,6 +393,7 @@ _MODULES_THAT_TEST_WITH_BAZEL = [
     '//pw_checksum/...',
     '//pw_cli/...',
     '//pw_containers/...',
+    '//pw_hdlc/java/...',
     '//pw_hex_dump/...',
     '//pw_i2c/...',
     '//pw_libc/...',
@@ -389,6 +411,7 @@ _MODULES_THAT_TEST_WITH_BAZEL = [
     '//pw_stream/...',
     '//pw_string/...',
     '//pw_thread_stl/...',
+    '//pw_transfer/...',
     '//pw_unit_test/...',
     '//pw_varint/...',
     '//:buildifier_test',
@@ -408,6 +431,18 @@ def bazel_test(ctx: PresubmitContext) -> None:
 def bazel_build(ctx: PresubmitContext) -> None:
     """Runs Bazel build on each Bazel compatible module."""
     build.bazel(ctx, 'build', *_MODULES_THAT_BUILD_WITH_BAZEL)
+
+
+def pw_transfer_integration_test(ctx: PresubmitContext) -> None:
+    """Runs the pw_transfer cross-language integration test only.
+
+    This test is not part of the regular bazel build because it's slow and
+    intended to run in CI only.
+    """
+    build.bazel(
+        ctx, 'test',
+        '//pw_transfer/integration_test:cross_language_integration_test',
+        '--test_output=errors')
 
 
 #
@@ -503,6 +538,7 @@ _EXCLUDE_FROM_COPYRIGHT_NOTICE: Sequence[str] = (
     r'\bAUTHORS$',
     r'\bLICENSE$',
     r'\bOWNERS$',
+    r'\bPIGWEED_MODULES$',
     r'\brequirements.txt$',
     r'\bgo.(mod|sum)$',
     r'\bpackage.json$',
@@ -514,6 +550,7 @@ _EXCLUDE_FROM_COPYRIGHT_NOTICE: Sequence[str] = (
     r'\.json$',
     r'\.png$',
     r'\.svg$',
+    r'\.xml$',
     # Documentation
     r'\.md$',
     r'\.rst$',
@@ -625,7 +662,7 @@ _GN_SOURCES_IN_BUILD = ('setup.cfg', '.toml', '.rst', '.py',
 
 
 @filter_paths(endswith=(*_GN_SOURCES_IN_BUILD, 'BUILD', '.bzl', '.gn', '.gni'),
-              exclude=['zephyr.*/'])
+              exclude=['zephyr.*/', 'android.*/'])
 def source_is_in_build_files(ctx: PresubmitContext):
     """Checks that source files are in the GN and Bazel builds."""
     missing = build.check_builds_for_files(
@@ -767,7 +804,10 @@ OTHER_CHECKS = (
     gn_full_qemu_check,
     gn_clang_build,
     gn_gcc_build,
+    gn_pw_system_demo_build,
+    pw_transfer_integration_test,
     renode_check,
+    static_analysis,
     stm32f429i,
 )
 
@@ -784,7 +824,6 @@ _LINTFORMAT = (
 
 LINTFORMAT = (
     _LINTFORMAT,
-    static_analysis,
     pw_presubmit.python_checks.check_python_versions,
     pw_presubmit.python_checks.gn_python_lint,
 )

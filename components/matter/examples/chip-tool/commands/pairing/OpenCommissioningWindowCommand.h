@@ -20,19 +20,21 @@
 
 #include "../common/CHIPCommand.h"
 
+#include <controller/CommissioningWindowOpener.h>
+#include <lib/support/CHIPMem.h>
+
 class OpenCommissioningWindowCommand : public CHIPCommand
 {
 public:
     OpenCommissioningWindowCommand(CredentialIssuerCommands * credIssuerCommands) :
-        CHIPCommand("open-commissioning-window", credIssuerCommands), mOnDeviceConnectedCallback(OnDeviceConnectedFn, this),
-        mOnDeviceConnectionFailureCallback(OnDeviceConnectionFailureFn, this),
-        mOnOpenCommissioningWindowCallback(OnOpenCommissioningWindowResponse, this)
+        CHIPCommand("open-commissioning-window", credIssuerCommands),
+        mOnOpenCommissioningWindowCallback(OnOpenCommissioningWindowResponse, this),
+        mOnOpenBasicCommissioningWindowCallback(OnOpenBasicCommissioningWindowResponse, this)
     {
         AddArgument("node-id", 0, UINT64_MAX, &mNodeId);
         AddArgument("option", 0, 2, &mCommissioningWindowOption);
         AddArgument("timeout", 0, UINT16_MAX, &mTimeout);
-        AddArgument("iteration", chip::Crypto::kSpake2pPBKDFMinimumIterations, chip::Crypto::kSpake2pPBKDFMaximumIterations,
-                    &mIteration);
+        AddArgument("iteration", chip::kSpake2p_Min_PBKDF_Iterations, chip::kSpake2p_Max_PBKDF_Iterations, &mIteration);
         AddArgument("discriminator", 0, 4096, &mDiscriminator);
     }
 
@@ -42,17 +44,16 @@ public:
 
 private:
     NodeId mNodeId;
-    ChipDeviceController::CommissioningWindowOption mCommissioningWindowOption;
+    chip::Controller::CommissioningWindowOpener::CommissioningWindowOption mCommissioningWindowOption;
     uint16_t mTimeout;
     uint32_t mIteration;
     uint16_t mDiscriminator;
 
-    CHIP_ERROR OpenCommissioningWindow();
-    static void OnDeviceConnectedFn(void * context, chip::OperationalDeviceProxy * device);
-    static void OnDeviceConnectionFailureFn(void * context, PeerId peerId, CHIP_ERROR error);
-    static void OnOpenCommissioningWindowResponse(void * context, NodeId deviceId, CHIP_ERROR status, chip::SetupPayload payload);
+    chip::Platform::UniquePtr<chip::Controller::CommissioningWindowOpener> mWindowOpener;
 
-    chip::Callback::Callback<chip::OnDeviceConnected> mOnDeviceConnectedCallback;
-    chip::Callback::Callback<chip::OnDeviceConnectionFailure> mOnDeviceConnectionFailureCallback;
+    static void OnOpenCommissioningWindowResponse(void * context, NodeId deviceId, CHIP_ERROR status, chip::SetupPayload payload);
+    static void OnOpenBasicCommissioningWindowResponse(void * context, NodeId deviceId, CHIP_ERROR status);
+
     chip::Callback::Callback<chip::Controller::OnOpenCommissioningWindow> mOnOpenCommissioningWindowCallback;
+    chip::Callback::Callback<chip::Controller::OnOpenBasicCommissioningWindow> mOnOpenBasicCommissioningWindowCallback;
 };

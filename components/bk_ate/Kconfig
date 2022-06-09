@@ -13,4 +13,9 @@ menu "ATE"
 		depends on ATE
                 bool "Set ATE GPIO Pull Up"
                 default y
+
+		config ATE_TEST
+		depends on ATE
+                bool "Set ATE Test"
+                default n
 endmenu

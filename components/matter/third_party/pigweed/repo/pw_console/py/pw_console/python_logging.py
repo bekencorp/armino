@@ -17,7 +17,7 @@ import copy
 import logging
 import tempfile
 from datetime import datetime
-from typing import Iterator, Optional
+from typing import Iterable, Iterator, Optional
 
 
 def all_loggers() -> Iterator[logging.Logger]:
@@ -28,19 +28,25 @@ def all_loggers() -> Iterator[logging.Logger]:
         yield logging.getLogger(logger_name)
 
 
-def create_temp_log_file():
+def create_temp_log_file(prefix: Optional[str] = None,
+                         add_time: bool = True) -> str:
     """Create a unique tempfile for saving logs.
 
     Example format: /tmp/pw_console_2021-05-04_151807_8hem6iyq
     """
+    if not prefix:
+        prefix = str(__package__)
 
     # Grab the current system timestamp as a string.
     isotime = datetime.now().isoformat(sep='_', timespec='seconds')
     # Timestamp string should not have colons in it.
     isotime = isotime.replace(':', '')
 
+    if add_time:
+        prefix += f'_{isotime}'
+
     log_file_name = None
-    with tempfile.NamedTemporaryFile(prefix=f'{__package__}_{isotime}_',
+    with tempfile.NamedTemporaryFile(prefix=f'{prefix}_',
                                      delete=False) as log_file:
         log_file_name = log_file.name
 
@@ -62,18 +68,25 @@ def disable_stdout_handlers(logger: logging.Logger) -> None:
             logger.removeHandler(handler)
 
 
-def setup_python_logging(last_resort_filename: Optional[str] = None) -> None:
+def setup_python_logging(
+    last_resort_filename: Optional[str] = None,
+    loggers_with_no_propagation: Optional[Iterable[logging.Logger]] = None
+) -> None:
     """Disable log handlers for full screen prompt_toolkit applications."""
+    if not loggers_with_no_propagation:
+        loggers_with_no_propagation = []
     disable_stdout_handlers(logging.getLogger())
 
     if logging.lastResort is not None:
         set_logging_last_resort_file_handler(last_resort_filename)
 
-    for logger in all_loggers():
-        # Make sure all known loggers propagate to the root logger.
-        logger.propagate = True
+    for logger in list(all_loggers()):
         # Prevent stdout handlers from corrupting the prompt_toolkit UI.
         disable_stdout_handlers(logger)
+        if logger in loggers_with_no_propagation:
+            continue
+        # Make sure all known loggers propagate to the root logger.
+        logger.propagate = True
 
     # Prevent these loggers from propagating to the root logger.
     hidden_host_loggers = [

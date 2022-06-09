@@ -126,23 +126,23 @@
 #endif
 
 /**
- * CHIP_DEVICE_CONFIG_SED_SLOW_POLLING_INTERVAL
+ * CHIP_DEVICE_CONFIG_SED_IDLE_INTERVAL
  *
- * The default amount of time in milliseconds that the sleepy end device will use as a slow-polling interval.
+ * The default amount of time in milliseconds that the sleepy end device will use as an idle interval.
  * This interval is used by the device to periodically wake up and poll the data in the idle mode.
  */
-#ifndef CHIP_DEVICE_CONFIG_SED_SLOW_POLLING_INTERVAL
-#define CHIP_DEVICE_CONFIG_SED_SLOW_POLLING_INTERVAL 5000_ms32
+#ifndef CHIP_DEVICE_CONFIG_SED_IDLE_INTERVAL
+#define CHIP_DEVICE_CONFIG_SED_IDLE_INTERVAL 5000_ms32
 #endif
 
 /**
- * CHIP_DEVICE_CONFIG_SED_FAST_POLLING_INTERVAL
+ * CHIP_DEVICE_CONFIG_SED_ACTIVE_INTERVAL
  *
- * The default amount of time in milliseconds that the sleepy end device will use as a fast-polling interval.
+ * The default amount of time in milliseconds that the sleepy end device will use as an active interval.
  * This interval is used by the device to periodically wake up and poll the data in the active mode.
  */
-#ifndef CHIP_DEVICE_CONFIG_SED_FAST_POLLING_INTERVAL
-#define CHIP_DEVICE_CONFIG_SED_FAST_POLLING_INTERVAL 200_ms32
+#ifndef CHIP_DEVICE_CONFIG_SED_ACTIVE_INTERVAL
+#define CHIP_DEVICE_CONFIG_SED_ACTIVE_INTERVAL 200_ms32
 #endif
 
 // -------------------- Device Identification Configuration --------------------
@@ -258,6 +258,20 @@
 #endif // CHIP_DEVICE_CONFIG_FAILSAFE_EXPIRY_LENGTH_SEC
 
 /**
+ * CHIP_DEVICE_CONFIG_SUPPORTS_CONCURRENT_CONNECTION
+ *
+ * Whether a device supports "concurrent connection commissioning mode" (1) or
+ * or "non-concurrenct connection commissioning mode" (0).
+ *
+ * See section "5.5. Commissioning Flows" in spec for definition.
+ *
+ * The default value is to support concurrent connection.
+ */
+#ifndef CHIP_DEVICE_CONFIG_SUPPORTS_CONCURRENT_CONNECTION
+#define CHIP_DEVICE_CONFIG_SUPPORTS_CONCURRENT_CONNECTION 1
+#endif // CHIP_DEVICE_CONFIG_SUPPORTS_CONCURRENT_CONNECTION
+
+/**
  * CHIP_DEVICE_CONFIG_USER_SELECTED_MODE_TIMEOUT_SEC
  *
  * The default amount of time (in whole seconds) that the device will remain in "user selected"
@@ -268,6 +282,27 @@
 #ifndef CHIP_DEVICE_CONFIG_USER_SELECTED_MODE_TIMEOUT_SEC
 #define CHIP_DEVICE_CONFIG_USER_SELECTED_MODE_TIMEOUT_SEC 30
 #endif // CHIP_DEVICE_CONFIG_USER_SELECTED_MODE_TIMEOUT_SEC
+
+/**
+ * CHIP_DEVICE_CONFIG_ROTATING_DEVICE_ID_UNIQUE_ID
+ *
+ * Enables the use of a hard-coded default unique ID utilized for the rotating device ID calculation.
+ */
+#ifndef CHIP_DEVICE_CONFIG_ROTATING_DEVICE_ID_UNIQUE_ID
+#define CHIP_DEVICE_CONFIG_ROTATING_DEVICE_ID_UNIQUE_ID                                                                            \
+    {                                                                                                                              \
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff                             \
+    }
+#endif
+
+/**
+ * CHIP_DEVICE_CONFIG_ROTATING_DEVICE_ID_UNIQUE_ID_LENGTH
+ *
+ * Unique ID length in bytes. The value should be 16-bytes or longer.
+ */
+#ifndef CHIP_DEVICE_CONFIG_ROTATING_DEVICE_ID_UNIQUE_ID_LENGTH
+#define CHIP_DEVICE_CONFIG_ROTATING_DEVICE_ID_UNIQUE_ID_LENGTH 16
+#endif
 
 // -------------------- WiFi Station Configuration --------------------
 
@@ -657,6 +692,16 @@
 #endif
 
 /**
+ * CHIP_DEVICE_CONFIG_THREAD_SSED
+ *
+ * Enable support for Thread Synchronized Sleepy End Device behavior.
+ *
+ */
+#ifndef CHIP_DEVICE_CONFIG_THREAD_SSED
+#define CHIP_DEVICE_CONFIG_THREAD_SSED 0
+#endif
+
+/**
  * CHIP_DEVICE_CONFIG_THREAD_TASK_NAME
  *
  * The name of the Thread task.
@@ -991,16 +1036,6 @@
 #define CHIP_DEVICE_CONFIG_EVENT_ID_COUNTER_EPOCH (0x10000)
 #endif
 
-/**
- *  @def CHIP_DEVICE_CONFIG_PERSISTED_STORAGE_GLOBAL_EIDC_KEY
- *
- *  @brief
- *    The Global event id counter (eidc) persisted storage key.
- */
-#ifndef CHIP_DEVICE_CONFIG_PERSISTED_STORAGE_GLOBAL_EIDC_KEY
-#define CHIP_DEVICE_CONFIG_PERSISTED_STORAGE_GLOBAL_EIDC_KEY "global-eidc"
-#endif
-
 // -------------------- Software Update Manager Configuration --------------------
 
 /**
@@ -1142,40 +1177,12 @@
 // -------------------- Device DNS-SD Configuration --------------------
 
 /**
- * CHIP_DEVICE_CONFIG_ENABLE_DNSSD
- *
- * Enable support to use DNS-SD for service advertising and discovery in CHIP.
- */
-#ifndef CHIP_DEVICE_CONFIG_ENABLE_DNSSD
-#define CHIP_DEVICE_CONFIG_ENABLE_DNSSD 0
-#endif
-
-/**
- * CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONABLE_DISCOVERY
- *
- * Enable MDNS commissionable node advertising when not yet provisioned.
- *
- * This should be 1 for WiFi SoftAP devices, ethernet devices, and (probably) bridge devices
- *
- * This should be 0 for Thread/BLE devices and WiFi/BLE devices
- */
-#ifndef CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONABLE_DISCOVERY
-#if CHIP_DEVICE_CONFIG_ENABLE_THREAD
-#define CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONABLE_DISCOVERY 0
-#else
-#define CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONABLE_DISCOVERY 1
-#endif
-#endif
-
-/**
  * CHIP_DEVICE_CONFIG_DISCOVERY_TIMEOUT_SECS
  *
  * Time in seconds that a factory new device will advertise commissionable node discovery.
- *
- * Only valid when CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONABLE_DISCOVERY==1
  */
 #ifndef CHIP_DEVICE_CONFIG_DISCOVERY_TIMEOUT_SECS
-#define CHIP_DEVICE_CONFIG_DISCOVERY_TIMEOUT_SECS 15 * 60
+#define CHIP_DEVICE_CONFIG_DISCOVERY_TIMEOUT_SECS (15 * 60)
 #endif
 
 /**
@@ -1240,11 +1247,13 @@
  * Default time in seconds that a device will advertise commissionable node discovery
  * after commissioning mode ends. This value can be overridden by the user.
  *
- * Only valid when CCHIP_DEVICE_CONFIG_ENABLE_EXTENDED_DISCOVERY==1
+ * Only valid when CHIP_DEVICE_CONFIG_ENABLE_EXTENDED_DISCOVERY==1
  */
 #define CHIP_DEVICE_CONFIG_DISCOVERY_DISABLED 0
 #define CHIP_DEVICE_CONFIG_DISCOVERY_NO_TIMEOUT -1
-#define CHIP_DEVICE_CONFIG_EXTENDED_DISCOVERY_TIMEOUT_SECS CHIP_DEVICE_CONFIG_DISCOVERY_NO_TIMEOUT
+#ifndef CHIP_DEVICE_CONFIG_EXTENDED_DISCOVERY_TIMEOUT_SECS
+#define CHIP_DEVICE_CONFIG_EXTENDED_DISCOVERY_TIMEOUT_SECS (15 * 60)
+#endif
 
 /**
  * CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONABLE_DEVICE_TYPE

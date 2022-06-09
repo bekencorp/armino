@@ -14,6 +14,10 @@ static void cli_gpio_help(void)
 	CLI_LOGI("gpio    [output_high/output_low/input_get]    [gpio_pin] \r\n");
 	CLI_LOGI("gpio_map    [sdio_map/spi_map]     [mode]\r\n");
 	CLI_LOGI("gpio_int    [index]    [inttype/start/stop]    [low/high_level/rising/falling edge]\r\n");
+#if CONFIG_GPIO_DYNAMIC_WAKEUP_SUPPORT
+	CLI_LOGI("gpio_wake    [index][low/high_level/rising/falling edge][enable/disable wakeup]\r\n");
+	CLI_LOGI("gpio_low_power    [simulate][param]\r\n");
+#endif
 }
 
 static void cli_gpio_driver_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -175,6 +179,61 @@ static void cli_gpio_map_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 	}
 }
 
+#if CONFIG_GPIO_DYNAMIC_WAKEUP_SUPPORT
+static void cli_gpio_set_wake_source_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 4) {
+		cli_gpio_help();
+		return;
+	}
+
+	gpio_id_t id = 0;
+	uint32_t mode = 0;
+
+	id = os_strtoul(argv[2], NULL, 10);
+	mode = os_strtoul(argv[3], NULL, 10);
+
+	if(os_strcmp(argv[1], "register") == 0)
+		bk_gpio_register_wakeup_source(id, mode);
+	else if(os_strcmp(argv[1], "unregister") == 0)
+		bk_gpio_unregister_wakeup_source(id);
+	else
+		return cli_gpio_help();
+}
+
+static void cli_gpio_simulate_low_power_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 3) {
+		cli_gpio_help();
+		return;
+	}
+
+	uint32_t param = 0;
+
+	param = os_strtoul(argv[2], NULL, 10);
+
+	if(os_strcmp(argv[1], "simulate") == 0)
+	{
+		uint32_t int_level = 0;
+
+		//if param == 0x534b4950 == "SKIP" == 1,397,442,896
+		//means not switch GPIO to low power status just do save and restore
+		CLI_LOGD("mode:%d,0x%x\n", param, param);
+		int_level = rtos_disable_int();
+		gpio_enter_low_power((void *)param);	
+		rtos_enable_int(int_level);
+
+		//TODO:simulate sytem entry low voltage.
+
+		int_level = rtos_disable_int();
+		gpio_exit_low_power((void *)param);
+		rtos_enable_int(int_level);
+		return;
+	}
+	else
+		return cli_gpio_help();
+}
+#endif
 
 static void cli_gpio_int_isr(gpio_id_t id)
 {
@@ -239,7 +298,11 @@ static const struct cli_command s_gpio_commands[] = {
 	{"gpio_int", "gpio_int    [index]     [inttype/start/stop]     [low/high_level/rising/falling edge]", cli_gpio_int_cmd},
 	{"gpio", "gpio     [set_mode/output_low/output_high/input/spi_mode]      [id]     [mode]", cli_gpio_cmd},
 	{"gpio_driver", "gpio_driver    [init/deinit]}", cli_gpio_driver_cmd},
-	{"gpio_map", "gpio_map     [sdio_map/spi_map]",cli_gpio_map_cmd}
+	{"gpio_map", "gpio_map     [sdio_map/spi_map]",cli_gpio_map_cmd},
+#if CONFIG_GPIO_DYNAMIC_WAKEUP_SUPPORT
+	{"gpio_wake", "gpio_wake [index][low/high_level/rising/falling edge][enable/disable wakeup]", cli_gpio_set_wake_source_cmd},
+	{"gpio_low_power", "gpio_low_power [simulate][param]", cli_gpio_simulate_low_power_cmd}
+#endif
 };
 
 int cli_gpio_init(void)

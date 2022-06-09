@@ -18,15 +18,48 @@
 #pragma once
 #include <platform/NetworkCommissioning.h>
 
+#define NC_SECURITYCONVERT(security)     ((security < 3) ? security : (security == 3) ? 2 : (security < 7) ? 3 : 4 )
+
 namespace chip {
 namespace DeviceLayer {
 namespace NetworkCommissioning {
 
 namespace {
-constexpr uint8_t kMaxWiFiNetworks                  = 1;
+constexpr uint8_t kMaxWiFiNetworks           = 1;
 constexpr uint8_t kWiFiScanNetworksTimeOutSeconds   = 10;
 constexpr uint8_t kWiFiConnectNetworkTimeoutSeconds = 20;
 } // namespace
+
+class BKScanResponseIterator : public Iterator<WiFiScanResponse>
+{
+public:
+    BKScanResponseIterator(const size_t size, const wifi_scan_result_t * scanResults) : mSize(size), mpScanResults(scanResults) {}
+    size_t Count() override { return mSize; }
+    bool Next(WiFiScanResponse & item) override
+    {
+        if (mIternum >= mSize)
+        {
+            return false;
+        }
+        uint8_t ssidlenth = strlen(mpScanResults->aps[mIternum].ssid);
+        item.security.SetRaw(NC_SECURITYCONVERT(mpScanResults->aps[mIternum].security));
+        item.ssidLen = ssidlenth;
+        item.channel  = mpScanResults->aps[mIternum].channel;
+        item.wiFiBand = chip::DeviceLayer::NetworkCommissioning::WiFiBand::k2g4;
+        item.rssi     = mpScanResults->aps[mIternum].rssi;
+        memcpy(item.ssid, mpScanResults->aps[mIternum].ssid, ssidlenth);
+        memcpy(item.bssid, mpScanResults->aps[mIternum].bssid, 6);
+
+        mIternum++;
+        return true;
+    }
+    void Release() override {}
+
+private:
+    const size_t mSize;
+    const wifi_scan_result_t * mpScanResults;
+    size_t mIternum = 1;
+};
 
 class BekenWiFiDriver final : public WiFiDriver
 {
@@ -57,7 +90,7 @@ public:
 
     // BaseDriver
     NetworkIterator * GetNetworks() override { return new WiFiNetworkIterator(this); }
-    CHIP_ERROR Init() override;
+    CHIP_ERROR Init(NetworkStatusChangeCallback * networkStatusChangeCallback) override;
     CHIP_ERROR Shutdown() override;
 
     // WirelessDriver
@@ -68,17 +101,23 @@ public:
     CHIP_ERROR CommitConfiguration() override;
     CHIP_ERROR RevertConfiguration() override;
 
-    Status RemoveNetwork(ByteSpan networkId) override;
-    Status ReorderNetwork(ByteSpan networkId, uint8_t index) override;
+    Status RemoveNetwork(ByteSpan networkId, MutableCharSpan & outDebugText, uint8_t & outNetworkIndex) override;
+    Status ReorderNetwork(ByteSpan networkId, uint8_t index, MutableCharSpan & outDebugText) override;
     void ConnectNetwork(ByteSpan networkId, ConnectCallback * callback) override;
 
     // WiFiDriver
-    Status AddOrUpdateNetwork(ByteSpan ssid, ByteSpan credentials) override;
+    Status AddOrUpdateNetwork(ByteSpan ssid, ByteSpan credentials, MutableCharSpan & outDebugText,
+                              uint8_t & outNetworkIndex) override;
     void ScanNetworks(ByteSpan ssid, ScanCallback * callback) override;
 
     CHIP_ERROR ConnectWiFiNetwork(const char * ssid, uint8_t ssidLen, const char * key, uint8_t keyLen);
     void OnConnectWiFiNetwork();
     void OnScanWiFiNetworkDone();
+    void OnNetworkStatusChange();
+
+    CHIP_ERROR SetLastDisconnectReason(const ChipDeviceEvent * event);
+    int32_t GetLastDisconnectReason();
+
     static BekenWiFiDriver & GetInstance()
     {
         static BekenWiFiDriver instance;
@@ -95,6 +134,8 @@ private:
     WiFiNetwork mStagingNetwork;
     ScanCallback * mpScanCallback;
     ConnectCallback * mpConnectCallback;
+    NetworkStatusChangeCallback * mpStatusChangeCallback = nullptr;
+    int32_t mLastDisconnectedReason;
 };
 
 } // namespace NetworkCommissioning

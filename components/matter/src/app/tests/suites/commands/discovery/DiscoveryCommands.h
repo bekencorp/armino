@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include <app/MessageDef/StatusIB.h>
+#include <app/data-model/Decode.h>
+#include <app/data-model/Encode.h>
 #include <lib/dnssd/ResolverProxy.h>
 #include <lib/support/CodeUtils.h>
 
@@ -41,15 +44,33 @@ struct DiscoveryCommandResult
     uint16_t port;
     chip::Optional<uint32_t> mrpRetryIntervalIdle;
     chip::Optional<uint32_t> mrpRetryIntervalActive;
+
+    CHIP_ERROR Encode(chip::TLV::TLVWriter & writer, chip::TLV::Tag tag) const;
+    CHIP_ERROR Decode(chip::TLV::TLVReader & reader);
 };
 
-class DiscoveryCommands : public chip::Dnssd::ResolverDelegate
+namespace chip {
+namespace app {
+namespace Clusters {
+namespace DiscoveryCommands {
+namespace Commands {
+namespace DiscoveryCommandResponse {
+using DecodableType = DiscoveryCommandResult;
+}
+} // namespace Commands
+} // namespace DiscoveryCommands
+} // namespace Clusters
+} // namespace app
+} // namespace chip
+
+class DiscoveryCommands : public chip::Dnssd::CommissioningResolveDelegate, public chip::Dnssd::OperationalResolveDelegate
 {
 public:
     DiscoveryCommands(){};
-    virtual ~DiscoveryCommands(){};
+    ~DiscoveryCommands() override{};
 
-    virtual CHIP_ERROR ContinueOnChipMainThread(CHIP_ERROR err) = 0;
+    virtual void OnResponse(const chip::app::StatusIB & status, chip::TLV::TLVReader * data) = 0;
+    virtual CHIP_ERROR ContinueOnChipMainThread(CHIP_ERROR err)                              = 0;
 
     CHIP_ERROR FindCommissionable();
     CHIP_ERROR FindCommissionableByShortDiscriminator(uint64_t value);
@@ -64,19 +85,15 @@ public:
 
     CHIP_ERROR SetupDiscoveryCommands();
     CHIP_ERROR TearDownDiscoveryCommands();
-    virtual void OnDiscoveryCommandsResults(const DiscoveryCommandResult & nodeData){};
 
-    /////////// ResolverDelegate Interface /////////
-    void OnNodeIdResolved(const chip::Dnssd::ResolvedNodeData & nodeData) override{};
-    void OnNodeIdResolutionFailed(const chip::PeerId & peerId, CHIP_ERROR error) override{};
-    void OnNodeDiscoveryComplete(const chip::Dnssd::DiscoveredNodeData & nodeData) override;
+    /////////// CommissioningDelegate Interface /////////
+    void OnNodeDiscovered(const chip::Dnssd::DiscoveredNodeData & nodeData) override;
 
-protected:
-    // This function initialize a random discriminator once and returns it all the time afterwards
-    uint16_t GetUniqueDiscriminator();
+    /////////// OperationalDelegate Interface /////////
+    void OnOperationalNodeResolved(const chip::Dnssd::ResolvedNodeData & nodeData) override{};
+    void OnOperationalNodeResolutionFailed(const chip::PeerId & peerId, CHIP_ERROR error) override{};
 
 private:
     bool mReady = false;
     chip::Dnssd::ResolverProxy mDNSResolver;
-    uint16_t mDiscriminatorUseForFiltering = 0;
 };

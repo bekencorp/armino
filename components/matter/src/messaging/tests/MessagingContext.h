@@ -24,7 +24,7 @@
 #include <system/SystemClock.h>
 #include <transport/SessionManager.h>
 #include <transport/TransportMgr.h>
-#include <transport/raw/tests/NetworkTestHelpers.h>
+#include <transport/tests/LoopbackTransportManager.h>
 
 #include <nlunit-test.h>
 
@@ -71,10 +71,12 @@ class MessagingContext : public PlatformMemoryUser
 public:
     MessagingContext() :
         mInitialized(false), mAliceAddress(Transport::PeerAddress::UDP(GetAddress(), CHIP_PORT + 1)),
-        mBobAddress(Transport::PeerAddress::UDP(GetAddress(), CHIP_PORT)), mPairingAliceToBob(GetBobKeyId(), GetAliceKeyId()),
-        mPairingBobToAlice(GetAliceKeyId(), GetBobKeyId())
+        mBobAddress(Transport::PeerAddress::UDP(GetAddress(), CHIP_PORT))
     {}
     ~MessagingContext() { VerifyOrDie(mInitialized == false); }
+
+    // Whether Alice and Bob are initialized, must be called before Init
+    void ConfigInitializeNodes(bool initializeNodes) { mInitializeNodes = initializeNodes; }
 
     /// Initialize the underlying layers and test suite pointer
     CHIP_ERROR Init(TransportMgrBase * transport, IOContext * io);
@@ -96,29 +98,22 @@ public:
         Inet::IPAddress::FromString("::1", addr);
         return addr;
     }
-    NodeId GetBobNodeId() const { return mBobNodeId; }
-    NodeId GetAliceNodeId() const { return mAliceNodeId; }
 
-    void SetBobNodeId(NodeId nodeId) { mBobNodeId = nodeId; }
-    void SetAliceNodeId(NodeId nodeId) { mAliceNodeId = nodeId; }
-
-    uint16_t GetBobKeyId() const { return mBobKeyId; }
-    uint16_t GetAliceKeyId() const { return mAliceKeyId; }
+    static const uint16_t kBobKeyId   = 1;
+    static const uint16_t kAliceKeyId = 2;
+    NodeId GetBobNodeId() const;
+    NodeId GetAliceNodeId() const;
     GroupId GetFriendsGroupId() const { return mFriendsGroupId; }
-
-    void SetBobKeyId(uint16_t id) { mBobKeyId = id; }
-    void SetAliceKeyId(uint16_t id) { mAliceKeyId = id; }
-
-    FabricIndex GetFabricIndex() const { return mSrcFabricIndex; }
-    void SetFabricIndex(FabricIndex id)
-    {
-        mSrcFabricIndex  = id;
-        mDestFabricIndex = id;
-    }
 
     SessionManager & GetSecureSessionManager() { return mSessionManager; }
     Messaging::ExchangeManager & GetExchangeManager() { return mExchangeManager; }
     secure_channel::MessageCounterManager & GetMessageCounterManager() { return mMessageCounterManager; }
+    FabricTable & GetFabricTable() { return mFabricTable; }
+
+    FabricIndex GetAliceFabricIndex() { return mAliceFabricIndex; }
+    FabricIndex GetBobFabricIndex() { return mBobFabricIndex; }
+    FabricInfo * GetAliceFabric() { return mFabricTable.FindFabricWithIndex(mAliceFabricIndex); }
+    FabricInfo * GetBobFabric() { return mFabricTable.FindFabricWithIndex(mBobFabricIndex); }
 
     CHIP_ERROR CreateSessionBobToAlice();
     CHIP_ERROR CreateSessionAliceToBob();
@@ -132,6 +127,9 @@ public:
     SessionHandle GetSessionAliceToBob();
     SessionHandle GetSessionBobToFriends();
 
+    const Transport::PeerAddress & GetAliceAddress() { return mAliceAddress; }
+    const Transport::PeerAddress & GetBobAddress() { return mBobAddress; }
+
     Messaging::ExchangeContext * NewUnauthenticatedExchangeToAlice(Messaging::ExchangeDelegate * delegate);
     Messaging::ExchangeContext * NewUnauthenticatedExchangeToBob(Messaging::ExchangeDelegate * delegate);
 
@@ -141,7 +139,9 @@ public:
     System::Layer & GetSystemLayer() { return mIOContext->GetSystemLayer(); }
 
 private:
+    bool mInitializeNodes = true;
     bool mInitialized;
+    FabricTable mFabricTable;
     SessionManager mSessionManager;
     Messaging::ExchangeManager mExchangeManager;
     secure_channel::MessageCounterManager mMessageCounterManager;
@@ -149,24 +149,18 @@ private:
     TransportMgrBase * mTransport;                // Only needed for InitFromExisting.
     chip::TestPersistentStorageDelegate mStorage; // for SessionManagerInit
 
-    NodeId mBobNodeId       = 123654;
-    NodeId mAliceNodeId     = 111222333;
-    uint16_t mBobKeyId      = 1;
-    uint16_t mAliceKeyId    = 2;
-    GroupId mFriendsGroupId = 0x0101;
+    FabricIndex mAliceFabricIndex = kUndefinedFabricIndex;
+    FabricIndex mBobFabricIndex   = kUndefinedFabricIndex;
+    GroupId mFriendsGroupId       = 0x0101;
     Transport::PeerAddress mAliceAddress;
     Transport::PeerAddress mBobAddress;
-    SecurePairingUsingTestSecret mPairingAliceToBob;
-    SecurePairingUsingTestSecret mPairingBobToAlice;
     SessionHolder mSessionAliceToBob;
     SessionHolder mSessionBobToAlice;
-    SessionHolder mSessionBobToFriends;
-    FabricIndex mSrcFabricIndex  = 1;
-    FabricIndex mDestFabricIndex = 1;
+    Optional<Transport::OutgoingGroupSession> mSessionBobToFriends;
 };
 
-template <typename Transport = LoopbackTransport>
-class LoopbackMessagingContext : public MessagingContext
+// LoopbackMessagingContext enriches MessagingContext with an async loopback transport
+class LoopbackMessagingContext : public LoopbackTransportManager, public MessagingContext
 {
 public:
     virtual ~LoopbackMessagingContext() {}
@@ -175,9 +169,8 @@ public:
     virtual CHIP_ERROR Init()
     {
         ReturnErrorOnFailure(chip::Platform::MemoryInit());
-        ReturnErrorOnFailure(mIOContext.Init());
-        ReturnErrorOnFailure(mTransportManager.Init("LOOPBACK"));
-        ReturnErrorOnFailure(MessagingContext::Init(&mTransportManager, &mIOContext));
+        ReturnErrorOnFailure(LoopbackTransportManager::Init());
+        ReturnErrorOnFailure(MessagingContext::Init(&GetTransportMgr(), &GetIOContext()));
         return CHIP_NO_ERROR;
     }
 
@@ -185,7 +178,7 @@ public:
     virtual CHIP_ERROR Shutdown()
     {
         ReturnErrorOnFailure(MessagingContext::Shutdown());
-        ReturnErrorOnFailure(mIOContext.Shutdown());
+        ReturnErrorOnFailure(LoopbackTransportManager::Shutdown());
         chip::Platform::MemoryShutdown();
         return CHIP_NO_ERROR;
     }
@@ -198,88 +191,13 @@ public:
         return ctx->Init() == CHIP_NO_ERROR ? SUCCESS : FAILURE;
     }
 
-    static int InitializeAsync(void * context)
-    {
-        auto * ctx = static_cast<LoopbackMessagingContext *>(context);
-
-        VerifyOrReturnError(ctx->Init() == CHIP_NO_ERROR, FAILURE);
-        ctx->EnableAsyncDispatch();
-
-        return SUCCESS;
-    }
-
     static int Finalize(void * context)
     {
         auto * ctx = static_cast<LoopbackMessagingContext *>(context);
         return ctx->Shutdown() == CHIP_NO_ERROR ? SUCCESS : FAILURE;
     }
 
-    Transport & GetLoopback() { return mTransportManager.GetTransport().template GetImplAtIndex<0>(); }
-
-    TransportMgrBase & GetTransportMgr() { return mTransportManager; }
-
-    IOContext & GetIOContext() { return mIOContext; }
-
-    /*
-     * For unit-tests that simulate end-to-end transmission and reception of messages in loopback mode,
-     * this mode better replicates a real-functioning stack that correctly handles the processing
-     * of a transmitted message as an asynchronous, bottom half handler dispatched after the current execution context has
-     completed.
-     * This is achieved using SystemLayer::ScheduleWork.
-
-     * This should be used in conjunction with the DrainAndServiceIO function below to correctly service and drain the event queue.
-     *
-     */
-    void EnableAsyncDispatch()
-    {
-        auto & impl = GetLoopback();
-        impl.EnableAsyncDispatch(&mIOContext.GetSystemLayer());
-    }
-
-    /*
-     * Reset the dispatch back to a model that synchronously dispatches received messages up the stack.
-     *
-     * NOTE: This results in highly atypical/complex call stacks that are not representative of what happens on real
-     * devices and can cause subtle and complex bugs to either appear or get masked in the system. Where possible, please
-     * use this sparingly!
-     *
-     */
-    void DisableAsyncDispatch()
-    {
-        auto & impl = GetLoopback();
-        impl.DisableAsyncDispatch();
-    }
-
-    /*
-     * This drives the servicing of events using the embedded IOContext while there are pending
-     * messages in the loopback transport's pending message queue. This should run to completion
-     * in well-behaved logic (i.e there isn't an indefinite ping-pong of messages transmitted back
-     * and forth).
-     *
-     * Consequently, this is guarded with a user-provided timeout to ensure we don't have unit-tests that stall
-     * in CI due to bugs in the code that is being tested.
-     *
-     * This DOES NOT ensure that all pending events are serviced to completion (i.e timers, any ScheduleWork calls).
-     *
-     */
-    void DrainAndServiceIO(System::Clock::Timeout maxWait = chip::System::Clock::Seconds16(5))
-    {
-        auto & impl                        = GetLoopback();
-        System::Clock::Timestamp startTime = System::SystemClock().GetMonotonicTimestamp();
-
-        while (impl.HasPendingMessages())
-        {
-            mIOContext.DriveIO();
-            if ((System::SystemClock().GetMonotonicTimestamp() - startTime) >= maxWait)
-            {
-                break;
-            }
-        }
-    }
-
-private:
-    TransportMgr<Transport> mTransportManager;
-    Test::IOContext mIOContext;
+    using LoopbackTransportManager::GetSystemLayer;
 };
 
 } // namespace Test

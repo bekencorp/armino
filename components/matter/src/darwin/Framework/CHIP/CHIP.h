@@ -16,11 +16,14 @@
  */
 
 // pull together CHIP headers
+#import <CHIP/CHIPAttributeCacheContainer.h>
 #import <CHIP/CHIPCluster.h>
 #import <CHIP/CHIPClustersObjc.h>
 #import <CHIP/CHIPCommandPayloadsObjc.h>
 #import <CHIP/CHIPCommissioningParameters.h>
 #import <CHIP/CHIPDevice.h>
+#import <CHIP/CHIPDeviceAttestationDelegate.h>
+#import <CHIP/CHIPDeviceController+XPC.h>
 #import <CHIP/CHIPDeviceController.h>
 #import <CHIP/CHIPDevicePairingDelegate.h>
 #import <CHIP/CHIPError.h>
@@ -31,6 +34,7 @@
 #import <CHIP/CHIPSetupPayload.h>
 #import <CHIP/CHIPStructsObjc.h>
 #import <CHIP/CHIPThreadOperationalDataset.h>
+#import <CHIP/MatterControllerFactory.h>
 
 #import <Foundation/Foundation.h>
 //! Project version number for CHIP.

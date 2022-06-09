@@ -28,11 +28,13 @@
 
 #include "EventLoggingDelegate.h"
 #include "EventLoggingTypes.h"
-#include <app/ClusterInfo.h>
+#include <access/SubjectDescriptor.h>
 #include <app/MessageDef/EventDataIB.h>
+#include <app/MessageDef/StatusIB.h>
+#include <app/ObjectList.h>
 #include <app/util/basic-types.h>
 #include <lib/core/CHIPCircularTLVBuffer.h>
-#include <lib/support/PersistedCounter.h>
+#include <lib/support/CHIPCounter.h>
 #include <messaging/ExchangeMgr.h>
 #include <system/SystemMutex.h>
 
@@ -96,9 +98,9 @@ public:
     CircularEventBuffer * GetNextCircularEventBuffer() { return mpNext; }
 
     void SetRequiredSpaceforEvicted(size_t aRequiredSpace) { mRequiredSpaceForEvicted = aRequiredSpace; }
-    size_t GetRequiredSpaceforEvicted() { return mRequiredSpaceForEvicted; }
+    size_t GetRequiredSpaceforEvicted() const { return mRequiredSpaceForEvicted; }
 
-    virtual ~CircularEventBuffer() = default;
+    ~CircularEventBuffer() override = default;
 
 private:
     CircularEventBuffer * mpPrev = nullptr; ///< A pointer CircularEventBuffer storing events less important events
@@ -106,12 +108,6 @@ private:
 
     PriorityLevel mPriority = PriorityLevel::Invalid; ///< The buffer is the final bucket for events of this priority.  Events of
                                                       ///< lesser priority are dropped when they get bumped out of this buffer
-
-    // The counter we're going to actually use.
-    MonotonicallyIncreasingCounter * mpEventNumberCounter = nullptr;
-
-    // The backup counter to use if no counter is provided for us.
-    MonotonicallyIncreasingCounter mNonPersistedCounter;
 
     size_t mRequiredSpaceForEvicted = 0; ///< Required space for previous buffer to evict event to new buffer
 };
@@ -195,13 +191,11 @@ public:
      *
      * @param[in] apLogStorageResources  An array of LogStorageResources for each priority level.
      *
+     * @param[in] apEventNumberCounter   A counter to use for event numbers.
+     *
      */
     void Init(Messaging::ExchangeManager * apExchangeManager, uint32_t aNumBuffers, CircularEventBuffer * apCircularEventBuffer,
-              const LogStorageResources * const apLogStorageResources, Platform::PersistedStorage::Key * apCounterKey,
-              uint32_t aCounterEpoch, PersistedCounter * apPersistedCounter);
-
-    void InitializeCounter(Platform::PersistedStorage::Key * apCounterKey, uint32_t aCounterEpoch,
-                           PersistedCounter * apPersistedCounter);
+              const LogStorageResources * const apLogStorageResources, MonotonicallyIncreasingCounter * apEventNumberCounter);
 
     static EventManagement & GetInstance();
 
@@ -223,13 +217,14 @@ public:
      * @param[in] apCircularEventBuffer  An array of CircularEventBuffer for each priority level.
      * @param[in] apLogStorageResources  An array of LogStorageResources for each priority level.
      *
+     * @param[in] apEventNumberCounter   A counter to use for event numbers.
+     *
      * @note This function must be called prior to the logging being used.
      */
     static void CreateEventManagement(Messaging::ExchangeManager * apExchangeManager, uint32_t aNumBuffers,
                                       CircularEventBuffer * apCircularEventBuffer,
                                       const LogStorageResources * const apLogStorageResources,
-                                      Platform::PersistedStorage::Key * apCounterKey, uint32_t aCounterEpoch,
-                                      PersistedCounter * apPersistedCounter);
+                                      MonotonicallyIncreasingCounter * apEventNumberCounter);
 
     static void DestroyEventManagement();
 
@@ -318,13 +313,13 @@ public:
      * specified by read/subscribe request.
      *
      * @param[in] aWriter     The writer to use for event storage
-     * @param[in] apClusterInfolist the interested cluster info list with event path inside
+     * @param[in] apEventPathList the interested EventPathParams list
      *
      * @param[in,out] aEventMin On input, the Event number is the one we're fetching.  On
      *                         completion, the event number of the next one we plan to fetch.
      *
      * @param[out] aEventCount The number of fetched event
-     * @param[in] aFabricIndex fabric index for current read handler
+     * @param[in] aSubjectDescriptor Subject descriptor for current read handler
      * @retval #CHIP_END_OF_TLV             The function has reached the end of the
      *                                       available log entries at the specified
      *                                       priority level
@@ -338,8 +333,9 @@ public:
      *                                       available.
      *
      */
-    CHIP_ERROR FetchEventsSince(chip::TLV::TLVWriter & aWriter, ClusterInfo * apClusterInfolist, EventNumber & aEventMin,
-                                size_t & aEventCount, FabricIndex aFabricIndex);
+    CHIP_ERROR FetchEventsSince(chip::TLV::TLVWriter & aWriter, const ObjectList<EventPathParams> * apEventPathList,
+                                EventNumber & aEventMin, size_t & aEventCount,
+                                const Access::SubjectDescriptor & aSubjectDescriptor);
 
     /**
      * @brief
@@ -347,7 +343,7 @@ public:
      *
      * @return EventNumber most recently vended event Number for that event priority
      */
-    EventNumber GetLastEventNumber() { return mLastEventNumber; }
+    EventNumber GetLastEventNumber() const { return mLastEventNumber; }
 
     /**
      * @brief
@@ -358,9 +354,32 @@ public:
     /**
      *  Logger would save last logged event number and initial written event bytes number into schedule event number array
      */
-    void SetScheduledEventInfo(EventNumber & aEventNumber, uint32_t & aInitialWrittenEventBytes);
+    void SetScheduledEventInfo(EventNumber & aEventNumber, uint32_t & aInitialWrittenEventBytes) const;
 
 private:
+    /**
+     * @brief
+     *  Internal structure for traversing events.
+     */
+    struct EventEnvelopeContext
+    {
+        EventEnvelopeContext() {}
+
+        int mFieldsToRead = 0;
+        /* PriorityLevel and DeltaTime are there if that is not first event when putting events in report*/
+#if CHIP_CONFIG_EVENT_LOGGING_UTC_TIMESTAMPS & CHIP_SYSTEM_CONFIG_PLATFORM_PROVIDES_TIME
+        Timestamp mCurrentTime = Timestamp::System(System::Clock::kZero);
+#else
+        Timestamp mCurrentTime = Timestamp::Epoch(System::Clock::kZero);
+#endif
+        PriorityLevel mPriority  = PriorityLevel::First;
+        ClusterId mClusterId     = 0;
+        EndpointId mEndpointId   = 0;
+        EventId mEventId         = 0;
+        EventNumber mEventNumber = 0;
+        FabricIndex mFabricIndex = kUndefinedFabricIndex;
+    };
+
     void VendEventNumber();
     CHIP_ERROR CalculateEventSize(EventLoggingDelegate * apDelegate, const EventOptions * apOptions, uint32_t & requiredSize);
     /**
@@ -423,7 +442,8 @@ private:
      * The function is used to scan through the event log to find events matching the spec in the supplied context.
      * Particularly, it would check against mStartingEventNumber, and skip fetched event.
      */
-    static CHIP_ERROR EventIterator(const TLV::TLVReader & aReader, size_t aDepth, EventLoadOutContext * apEventLoadOutContext);
+    static CHIP_ERROR EventIterator(const TLV::TLVReader & aReader, size_t aDepth, EventLoadOutContext * apEventLoadOutContext,
+                                    EventEnvelopeContext * event);
 
     /**
      * @brief Internal iterator function used to fetch event into EventEnvelopeContext, then EventIterator would filter event
@@ -450,9 +470,27 @@ private:
     };
 
     /**
+     * @brief Check whether the event instance represented by the EventEnvelopeContext should be included in the report.
+     *
+     * @retval CHIP_ERROR_UNEXPECTED_EVENT This path should be excluded in the generated event report.
+     * @retval CHIP_EVENT_ID_FOUND This path should be included in the generated event report.
+     * @retval CHIP_ERROR_ACCESS_DENIED This path should be included in the generated event report, but the client does not have
+     * .       enough privilege to access it.
+     *
+     * TODO: Consider using CHIP_NO_ERROR, CHIP_ERROR_SKIP_EVENT, CHIP_ERROR_ACCESS_DENINED or some enum to represent the checking
+     * result.
+     */
+    static CHIP_ERROR CheckEventContext(EventLoadOutContext * eventLoadOutContext, const EventEnvelopeContext & event);
+
+    /**
      * @brief copy event from circular buffer to target buffer for report
      */
     static CHIP_ERROR CopyEvent(const TLV::TLVReader & aReader, TLV::TLVWriter & aWriter, EventLoadOutContext * apContext);
+
+    /**
+     * @brief construct EventStatusIB to target buffer for report
+     */
+    static CHIP_ERROR WriteEventStatusIB(TLV::TLVWriter & aWriter, const ConcreteEventPath & aEvent, StatusIB aStatus);
 
     /**
      * @brief
@@ -473,13 +511,10 @@ private:
     System::Mutex mAccessLock;
 #endif // !CHIP_SYSTEM_CONFIG_NO_LOCKING
 
-    // The counter we're going to actually use.
+    // The counter we're going to use for event numbers.
     MonotonicallyIncreasingCounter * mpEventNumberCounter = nullptr;
 
-    // The backup counter to use if no counter is provided for us.
-    MonotonicallyIncreasingCounter mNonPersistedCounter;
-
-    EventNumber mLastEventNumber = 0; ///< Last event Number vended for this priority
+    EventNumber mLastEventNumber = 0; ///< Last event Number vended
     Timestamp mLastEventTimestamp;    ///< The timestamp of the last event in this buffer
 };
 } // namespace app

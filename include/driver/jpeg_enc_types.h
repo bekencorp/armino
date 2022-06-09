@@ -91,7 +91,7 @@ typedef struct {
 
 #if CONFIG_GENERAL_DMA
 	dma_isr_t dma_rx_handler;       /**< dma transfer finish isr callbck */
-	uint32_t dma_channel;           /**< dma channel used for transfer jpeg encoder data */
+	uint8_t dma_channel;           /**< dma channel used for transfer jpeg encoder data */
 #endif
 } jpegenc_desc_t;
 

@@ -1645,6 +1645,28 @@ netif_name_to_index(const char *name)
   return NETIF_NO_INDEX;
 }
 
+u8_t
+if_nametoindex(const char *name)
+{
+    return netif_name_to_index(name);
+}
+
+struct netif *
+netif_find_support_igmp(void)
+{
+  struct netif *netif;
+
+  for (netif = netif_list; netif != NULL; netif = netif->next) {
+    if( netif->flags & NETIF_FLAG_IGMP) {
+      LWIP_DEBUGF(NETIF_DEBUG,("netif_find = %c%c%d .\r\n",netif->name[0],netif->name[1],netif->num));
+      return netif;
+    }
+    LWIP_DEBUGF(NETIF_DEBUG,("netif = %c%c%d .\r\n",netif->name[0],netif->name[1],netif->num));
+  }
+  return NULL;
+}
+
+
 /**
 * @ingroup netif
 * Return the interface name for the netif matching index

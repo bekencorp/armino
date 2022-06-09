@@ -30,6 +30,8 @@ using namespace chip;
 using namespace chip::app;
 using namespace chip::app::DataModel;
 using namespace chip::app::Clusters::MediaPlayback;
+using namespace chip::Uint8;
+using chip::CharSpan;
 
 /** @brief Media PlayBack Cluster Init
  *
@@ -241,14 +243,14 @@ Commands::PlaybackResponse::Type MediaPlaybackManager::HandleMediaRequest(MediaP
         ChipLogError(AppServer, "Java exception in MediaPlaybackManager::Request %d", mediaPlaybackRequest);
         env->ExceptionDescribe();
         env->ExceptionClear();
-        response.status = StatusEnum::kInvalidStateForCommand;
+        response.status = MediaPlaybackStatusEnum::kInvalidStateForCommand;
     }
-    response.status = static_cast<StatusEnum>(ret);
+    response.status = static_cast<MediaPlaybackStatusEnum>(ret);
 
 exit:
     if (err != CHIP_NO_ERROR)
     {
-        response.status = StatusEnum::kInvalidStateForCommand;
+        response.status = MediaPlaybackStatusEnum::kInvalidStateForCommand;
         ChipLogError(Zcl, "MediaPlaybackManager::HandleMediaRequest status error: %s", err.AsString());
     }
 

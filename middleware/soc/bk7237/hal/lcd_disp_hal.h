@@ -88,7 +88,7 @@ void lcd_hal_sof_int_status_clear(void);
 void lcd_hal_rgb_eof_int_status_clear(void);
 void lcd_hal_rgb_sof_int_status_clear(void);
 void lcd_hal_mem_clr(void);
-void lcd_hal_rgb_display_sel(void);
+void lcd_hal_rgb_display_sel(bool en);
 
 #define hal_lcd_8080_get_reset_value()   lcd_disp_ll_get_i8080_config_reset_sleep_in()
 

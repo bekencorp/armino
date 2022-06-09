@@ -105,6 +105,8 @@ extern void vTaskExitCritical( void );
 
 extern int port_disable_interrupts_flag(void);
 extern void port_enable_interrupts_flag(int val);
+extern unsigned int port_disable_mie_flag(void);
+extern void port_enable_mie_flag(uint32_t val);
 
 __inline static unsigned int port_set_interrupt_mask_from_isr(void)
 {

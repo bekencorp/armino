@@ -26,30 +26,35 @@
 #include "pw_protobuf/decoder.h"
 
 namespace pw::log_rpc {
+namespace {
+void VerifyOptionallyTokenizedField(protobuf::Decoder& entry_decoder,
+                                    log::LogEntry::Fields field_number,
+                                    ConstByteSpan expected_data) {
+  if (expected_data.empty()) {
+    return;
+  }
+  ConstByteSpan tokenized_data;
+  ASSERT_EQ(entry_decoder.Next(), OkStatus());
+  ASSERT_EQ(entry_decoder.FieldNumber(), static_cast<uint32_t>(field_number));
+  ASSERT_EQ(entry_decoder.ReadBytes(&tokenized_data), OkStatus());
+  std::string_view data_as_string(
+      reinterpret_cast<const char*>(tokenized_data.begin()),
+      tokenized_data.size());
+  std::string_view expected_data_as_string(
+      reinterpret_cast<const char*>(expected_data.begin()),
+      expected_data.size());
+  EXPECT_EQ(data_as_string, expected_data_as_string);
+}
+}  // namespace
 
 // Unpacks a `LogEntry` proto buffer to compare it with the expected data and
 // updates the total drop count found.
 void VerifyLogEntry(protobuf::Decoder& entry_decoder,
                     const TestLogEntry& expected_entry,
                     uint32_t& drop_count_out) {
-  ConstByteSpan tokenized_data;
-  if (!expected_entry.tokenized_data.empty()) {
-    ASSERT_EQ(entry_decoder.Next(), OkStatus());
-    ASSERT_EQ(entry_decoder.FieldNumber(),
-              static_cast<uint32_t>(log::LogEntry::Fields::MESSAGE));
-    ASSERT_TRUE(entry_decoder.ReadBytes(&tokenized_data).ok());
-    if (tokenized_data.size() != expected_entry.tokenized_data.size()) {
-      PW_LOG_ERROR(
-          "actual: '%s', expected: '%s'",
-          reinterpret_cast<const char*>(tokenized_data.begin()),
-          reinterpret_cast<const char*>(expected_entry.tokenized_data.begin()));
-    }
-    EXPECT_EQ(tokenized_data.size(), expected_entry.tokenized_data.size());
-    EXPECT_EQ(std::memcmp(tokenized_data.begin(),
-                          expected_entry.tokenized_data.begin(),
-                          expected_entry.tokenized_data.size()),
-              0);
-  }
+  VerifyOptionallyTokenizedField(entry_decoder,
+                                 log::LogEntry::Fields::MESSAGE,
+                                 expected_entry.tokenized_data);
   if (expected_entry.metadata.level()) {
     ASSERT_EQ(entry_decoder.Next(), OkStatus());
     ASSERT_EQ(entry_decoder.FieldNumber(),
@@ -98,14 +103,22 @@ void VerifyLogEntry(protobuf::Decoder& entry_decoder,
     ASSERT_EQ(module.status(), OkStatus());
     EXPECT_EQ(expected_entry.metadata.module(), module.value());
   }
+  VerifyOptionallyTokenizedField(
+      entry_decoder, log::LogEntry::Fields::FILE, expected_entry.file);
+  VerifyOptionallyTokenizedField(
+      entry_decoder, log::LogEntry::Fields::THREAD, expected_entry.thread);
 }
 
-// Verifies a stream of log entries and updates the total drop count found.
-size_t VerifyLogEntries(protobuf::Decoder& entries_decoder,
-                        Vector<TestLogEntry>& expected_entries_stack,
-                        uint32_t expected_first_entry_sequence_id,
-                        uint32_t& drop_count_out) {
-  size_t entries_found = 0;
+// Compares an encoded LogEntry's fields against the expected sequence ID and
+// LogEntries, and updates the total entry and drop counts. Starts comparing at
+// `expected_entries[entries_count_out]`. `expected_entries` must be in the same
+// order that messages were added to the MultiSink.
+void VerifyLogEntries(protobuf::Decoder& entries_decoder,
+                      const Vector<TestLogEntry>& expected_entries,
+                      uint32_t expected_first_entry_sequence_id,
+                      size_t& entries_count_out,
+                      uint32_t& drop_count_out) {
+  size_t entry_index = entries_count_out;
   while (entries_decoder.Next().ok()) {
     if (static_cast<pw::log::LogEntries::Fields>(
             entries_decoder.FieldNumber()) ==
@@ -113,18 +126,21 @@ size_t VerifyLogEntries(protobuf::Decoder& entries_decoder,
       ConstByteSpan entry;
       EXPECT_EQ(entries_decoder.ReadBytes(&entry), OkStatus());
       protobuf::Decoder entry_decoder(entry);
-      if (expected_entries_stack.empty()) {
+      if (expected_entries.empty()) {
         break;
       }
+
+      ASSERT_LT(entry_index, expected_entries.size());
+
       // Keep track of entries and drops respective counts.
       uint32_t current_drop_count = 0;
       VerifyLogEntry(
-          entry_decoder, expected_entries_stack.back(), current_drop_count);
+          entry_decoder, expected_entries[entry_index], current_drop_count);
+      ++entry_index;
       drop_count_out += current_drop_count;
       if (current_drop_count == 0) {
-        ++entries_found;
+        ++entries_count_out;
       }
-      expected_entries_stack.pop_back();
     } else if (static_cast<pw::log::LogEntries::Fields>(
                    entries_decoder.FieldNumber()) ==
                log::LogEntries::Fields::FIRST_ENTRY_SEQUENCE_ID) {
@@ -134,7 +150,6 @@ size_t VerifyLogEntries(protobuf::Decoder& entries_decoder,
       EXPECT_EQ(expected_first_entry_sequence_id, first_entry_sequence_id);
     }
   }
-  return entries_found;
 }
 
 size_t CountLogEntries(protobuf::Decoder& entries_decoder) {

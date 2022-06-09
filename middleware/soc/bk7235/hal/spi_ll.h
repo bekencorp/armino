@@ -26,18 +26,13 @@ extern "C" {
 
 #define SPI_LL_REG_BASE(_spi_unit_id)    (SOC_SPI_REG_BASE + _spi_unit_id * 0x1060000)
 
-/* GPIO14~GPIO17 also can be used for SPI0
- * default config GPIO44~GPIO47 for SPI0
+/* 
+ *  config GPIO44~GPIO47 for SPI0
  */
 #define SPI0_LL_SCK_PIN     GPIO_44
 #define SPI0_LL_CSN_PIN     GPIO_45
 #define SPI0_LL_MOSI_PIN    GPIO_46
 #define SPI0_LL_MISO_PIN    GPIO_47
-
-#define SPI1_LL_SCK_PIN     GPIO_2
-#define SPI1_LL_CSN_PIN     GPIO_3
-#define SPI1_LL_MOSI_PIN    GPIO_4
-#define SPI1_LL_MISO_PIN    GPIO_5
 
 //TODO init more
 static inline void spi_ll_init(spi_hw_t *hw)

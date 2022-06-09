@@ -112,7 +112,7 @@ bool SerializeKeyPair(EVP_PKEY * key, P256SerializedKeypair & serializedKeypair)
     const EC_GROUP * group   = nullptr;
     const EC_KEY * ecKey     = nullptr;
     const EC_POINT * ecPoint = nullptr;
-    uint8_t * pubKey         = serializedKeypair;
+    uint8_t * pubKey         = serializedKeypair.Bytes();
     uint8_t * privKey        = pubKey + kP256_PublicKey_Length;
     size_t pubKeyLen         = 0;
     int privKeyLen           = 0;
@@ -142,7 +142,7 @@ exit:
     return res;
 }
 
-bool ReadKey(const char * fileName, EVP_PKEY * key)
+bool ReadKey(const char * fileName, EVP_PKEY * key, bool ignorErrorIfUnsupportedCurve)
 {
     bool res            = true;
     uint32_t keyDataLen = 0;
@@ -207,7 +207,8 @@ bool ReadKey(const char * fileName, EVP_PKEY * key)
         }
     }
 
-    if (EC_GROUP_get_curve_name(EC_KEY_get0_group(EVP_PKEY_get1_EC_KEY(key))) != gNIDChipCurveP256)
+    if ((EC_GROUP_get_curve_name(EC_KEY_get0_group(EVP_PKEY_get1_EC_KEY(key))) != gNIDChipCurveP256) &&
+        !ignorErrorIfUnsupportedCurve)
     {
         fprintf(stderr, "Specified key uses unsupported Elliptic Curve\n");
         ExitNow(res = false);
@@ -238,6 +239,27 @@ exit:
     return res;
 }
 
+bool GenerateKeyPair_Secp256k1(EVP_PKEY * key)
+{
+    bool res = true;
+    std::unique_ptr<EC_KEY, void (*)(EC_KEY *)> ecKey(EC_KEY_new_by_curve_name(NID_secp256k1), &EC_KEY_free);
+
+    VerifyOrExit(key != nullptr, res = false);
+
+    if (!EC_KEY_generate_key(ecKey.get()))
+    {
+        ReportOpenSSLErrorAndExit("EC_KEY_generate_key", res = false);
+    }
+
+    if (!EVP_PKEY_set1_EC_KEY(key, ecKey.get()))
+    {
+        ReportOpenSSLErrorAndExit("EVP_PKEY_set1_EC_KEY", res = false);
+    }
+
+exit:
+    return res;
+}
+
 bool WritePrivateKey(const char * fileName, EVP_PKEY * key, KeyFormat keyFmt)
 {
     bool res               = true;
@@ -245,10 +267,10 @@ bool WritePrivateKey(const char * fileName, EVP_PKEY * key, KeyFormat keyFmt)
     uint8_t * keyToWrite   = nullptr;
     uint32_t keyToWriteLen = 0;
     P256SerializedKeypair serializedKeypair;
-    uint32_t chipKeyLen       = sizeof(serializedKeypair);
-    uint32_t chipKeyBase64Len = BASE64_ENCODED_LEN(chipKeyLen);
-    std::unique_ptr<uint8_t[]> chipKey(new uint8_t[chipKeyLen]);
-    std::unique_ptr<uint8_t[]> chipKeyBase64(new uint8_t[chipKeyBase64Len]);
+    uint32_t chipKeySize       = serializedKeypair.Capacity();
+    uint32_t chipKeyBase64Size = BASE64_ENCODED_LEN(chipKeySize);
+    std::unique_ptr<uint8_t[]> chipKey(new uint8_t[chipKeySize]);
+    std::unique_ptr<uint8_t[]> chipKeyBase64(new uint8_t[chipKeyBase64Size]);
 
     VerifyOrExit(key != nullptr, res = false);
 
@@ -282,8 +304,10 @@ bool WritePrivateKey(const char * fileName, EVP_PKEY * key, KeyFormat keyFmt)
 
         if (keyFmt == kKeyFormat_Chip_Base64)
         {
-            res = Base64Encode(serializedKeypair, static_cast<uint32_t>(sizeof(serializedKeypair)), chipKeyBase64.get(),
-                               chipKeyBase64Len, chipKeyBase64Len);
+            uint32_t chipKeyBase64Len;
+
+            res = Base64Encode(serializedKeypair.Bytes(), static_cast<uint32_t>(serializedKeypair.Length()), chipKeyBase64.get(),
+                               chipKeyBase64Size, chipKeyBase64Len);
             VerifyTrueOrExit(res);
 
             keyToWrite    = chipKeyBase64.get();
@@ -292,7 +316,7 @@ bool WritePrivateKey(const char * fileName, EVP_PKEY * key, KeyFormat keyFmt)
         else
         {
             keyToWrite    = chipKey.get();
-            keyToWriteLen = chipKeyLen;
+            keyToWriteLen = static_cast<uint32_t>(serializedKeypair.Length());
         }
 
         if (fwrite(keyToWrite, 1, keyToWriteLen, file) != keyToWriteLen)

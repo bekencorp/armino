@@ -129,9 +129,9 @@ void lcd_hal_mem_clr(void)
 	lcd_disp_ll_set_status_str_fifo_clr(1);
 }
 
-void lcd_hal_rgb_display_sel(void)
+void lcd_hal_rgb_display_sel(bool en)
 {
-	lcd_disp_ll_set_status_rgb_on(1);
-	lcd_disp_ll_set_status_lcd_display_on(1);
+	lcd_disp_ll_set_status_rgb_on(en);
+	lcd_disp_ll_set_status_lcd_display_on(en);
 }
 

@@ -277,6 +277,20 @@ typedef struct wlan_sta_wps_pin {
 } wlan_sta_wps_pin_t;
 
 /**
+ * @brief Wlan auto reconnect definition
+ *
+ * count     auto reconnect retry count, 0 for no restrict
+ * timeout   auto reconnect timeout, 0 for no restrict
+ * disable_reconnect_when_disconnect  disable reconnect when disconnect by AP if current
+ *           state is connect with AP.
+ */
+typedef struct wlan_auto_reconnect {
+	int max_count;
+	int timeout;
+	bool disable_reconnect_when_disconnect;
+} wlan_auto_reconnect_t;
+
+/**
  * @brief Wlan AP configuration field definition
  */
 typedef enum wlan_ap_field {

@@ -17,23 +17,20 @@ CPU1 0x1C0000 0x70000
 	{
 		LOADADDR NEXT _itcm_lma_start
 		ADDR NEXT _itcm_ema_start
-		;cfile.o (+RO-CODE)
 		* KEEP (.itcm_sec_code)
 		LOADADDR _itcm_lma_end
 		ADDR _itcm_ema_end
 	}
 
-	DTCM 0x20000000 0x7000
+	DTCM 0x20000000 0x7800
 	{
 		LOADADDR NEXT _dtcm_lma_start
 		ADDR NEXT _dtcm_ema_start
-		;cfile2.o(+RW)
 		* KEEP (.dtcm_sec_data)
 		LOADADDR _dtcm_lma_end
 		ADDR _dtcm_ema_end
 
 		ADDR _dtcm_bss_start
-		;cfile2.o(+ZI)
 		* KEEP (.dtcm_sec_bss)
 		ADDR _dtcm_bss_end
 	}
@@ -44,7 +41,7 @@ CPU1 0x1C0000 0x70000
 		* KEEP (.video_spec_data)
 	}
 
-	SRAM2 0x3006f000 0xf000
+	SRAM2 0x3006f000 0x10c00
 	{
 		LOADADDR NEXT _data_lmastart
 		ADDR NEXT _data_start

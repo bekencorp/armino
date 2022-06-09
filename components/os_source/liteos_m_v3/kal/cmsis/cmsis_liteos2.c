@@ -288,6 +288,10 @@ osThreadId_t osThreadNew(osThreadFunc_t func, void *argument, const osThreadAttr
         return (osThreadId_t)NULL;
     }
 
+    if (attr == NULL) {
+        return (osThreadId_t)NULL;
+    }
+
     usPriority = attr ? LOS_PRIORITY(attr->priority) : LOSCFG_BASE_CORE_TSK_DEFAULT_PRIO;
     if (!ISVALID_LOS_PRIORITY(usPriority)) {
         /* unsupported priority */
@@ -939,7 +943,7 @@ uint32_t osEventFlagsGet(osEventFlagsId_t ef_id)
     uint32_t rflags;
 
     if (pstEventCB == NULL) {
-        return 0;
+        return (uint32_t)osFlagsErrorParameter;
     }
 
     intSave = LOS_IntLock();
@@ -1139,15 +1143,19 @@ osSemaphoreId_t osSemaphoreNew(uint32_t max_count, uint32_t initial_count, const
         return (osSemaphoreId_t)NULL;
     }
 
-    if (max_count > 0 && max_count <= OS_SEM_COUNTING_MAX_COUNT) {
+    if (max_count == 1) {
+        uwRet = LOS_BinarySemCreate((UINT16)initial_count, &uwSemId);
+    } else {
         uwRet = LOS_SemCreate((UINT16)initial_count, &uwSemId);
     }
 
     if (uwRet == LOS_OK) {
         osSemaphoreId_t semaphore_id = (osSemaphoreId_t)(GET_SEM(uwSemId));
-        intSave = LOS_IntLock();
-        ((LosSemCB *)semaphore_id)->maxSemCount = max_count;
-        LOS_IntRestore(intSave);
+        if (max_count != 0) {
+            intSave = LOS_IntLock();
+            ((LosSemCB *)semaphore_id)->maxSemCount = max_count;
+            LOS_IntRestore(intSave);
+        }
         return semaphore_id;
     } else {
         return (osSemaphoreId_t)NULL;

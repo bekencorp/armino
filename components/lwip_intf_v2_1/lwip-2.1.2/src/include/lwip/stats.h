@@ -49,7 +49,7 @@ extern "C" {
 #if LWIP_STATS
 
 #ifndef LWIP_STATS_LARGE
-#define LWIP_STATS_LARGE 0
+#define LWIP_STATS_LARGE 1
 #endif
 
 #if LWIP_STATS_LARGE
@@ -324,65 +324,81 @@ void stats_init(void);
 #if TCP_STATS
 #define TCP_STATS_INC(x) STATS_INC(x)
 #define TCP_STATS_DISPLAY() stats_display_proto(&lwip_stats.tcp, "TCP")
+#define TCP_STATS_RESET() memset(&lwip_stats.tcp, 0x0, sizeof(lwip_stats.tcp))
 #else
 #define TCP_STATS_INC(x)
 #define TCP_STATS_DISPLAY()
+#define TCP_STATS_RESET()
 #endif
 
 #if UDP_STATS
 #define UDP_STATS_INC(x) STATS_INC(x)
 #define UDP_STATS_DISPLAY() stats_display_proto(&lwip_stats.udp, "UDP")
+#define UDP_STATS_RESET() memset(&lwip_stats.udp, 0x0, sizeof(lwip_stats.udp))
 #else
 #define UDP_STATS_INC(x)
 #define UDP_STATS_DISPLAY()
+#define UDP_STATS_RESET()
 #endif
 
 #if ICMP_STATS
 #define ICMP_STATS_INC(x) STATS_INC(x)
 #define ICMP_STATS_DISPLAY() stats_display_proto(&lwip_stats.icmp, "ICMP")
+#define ICMP_STATS_RESET() memset(&lwip_stats.icmp, 0x0, sizeof(lwip_stats.icmp))
 #else
 #define ICMP_STATS_INC(x)
 #define ICMP_STATS_DISPLAY()
+#define ICMP_STATS_RESET()
 #endif
 
 #if IGMP_STATS
 #define IGMP_STATS_INC(x) STATS_INC(x)
 #define IGMP_STATS_DISPLAY() stats_display_igmp(&lwip_stats.igmp, "IGMP")
+#define IGMP_STATS_RESET() memset(&lwip_stats.igmp, 0x0, sizeof(lwip_stats.igmp))
 #else
 #define IGMP_STATS_INC(x)
 #define IGMP_STATS_DISPLAY()
+#define IGMP_STATS_RESET()
 #endif
 
 #if IP_STATS
 #define IP_STATS_INC(x) STATS_INC(x)
 #define IP_STATS_DISPLAY() stats_display_proto(&lwip_stats.ip, "IP")
+#define IP_STATS_RESET() memset(&lwip_stats.ip, 0x0, sizeof(lwip_stats.ip))
 #else
 #define IP_STATS_INC(x)
 #define IP_STATS_DISPLAY()
+#define IP_STATS_RESET()
 #endif
 
 #if IPFRAG_STATS
 #define IPFRAG_STATS_INC(x) STATS_INC(x)
 #define IPFRAG_STATS_DISPLAY() stats_display_proto(&lwip_stats.ip_frag, "IP_FRAG")
+#define IPFRAG_STATS_RESET() memset(&lwip_stats.ip_frag, 0x0, sizeof(lwip_stats.ip_frag))
 #else
 #define IPFRAG_STATS_INC(x)
 #define IPFRAG_STATS_DISPLAY()
+#define IPFRAG_STATS_RESET()
 #endif
 
 #if ETHARP_STATS
 #define ETHARP_STATS_INC(x) STATS_INC(x)
 #define ETHARP_STATS_DISPLAY() stats_display_proto(&lwip_stats.etharp, "ETHARP")
+#define ETHARP_STATS_RESET() memset(&lwip_stats.etharp, 0x0, sizeof(lwip_stats.etharp))
 #else
 #define ETHARP_STATS_INC(x)
 #define ETHARP_STATS_DISPLAY()
+#define ETHARP_STATS_RESET()
 #endif
 
 #if LINK_STATS
 #define LINK_STATS_INC(x) STATS_INC(x)
 #define LINK_STATS_DISPLAY() stats_display_proto(&lwip_stats.link, "LINK")
+#define LINK_STATS_RESET() memset(&lwip_stats.link, 0x0, sizeof(lwip_stats.link))
 #else
 #define LINK_STATS_INC(x)
 #define LINK_STATS_DISPLAY()
+#define LINK_STATS_RESET()
 #endif
 
 #if MEM_STATS
@@ -424,41 +440,51 @@ void stats_init(void);
 #if IP6_STATS
 #define IP6_STATS_INC(x) STATS_INC(x)
 #define IP6_STATS_DISPLAY() stats_display_proto(&lwip_stats.ip6, "IPv6")
+#define IP6_STATS_RESET() memset(&lwip_stats.ip6, 0x0, sizeof(lwip_stats.ip6))
 #else
 #define IP6_STATS_INC(x)
 #define IP6_STATS_DISPLAY()
+#define IP6_STATS_RESET()
 #endif
 
 #if ICMP6_STATS
 #define ICMP6_STATS_INC(x) STATS_INC(x)
 #define ICMP6_STATS_DISPLAY() stats_display_proto(&lwip_stats.icmp6, "ICMPv6")
+#define ICMP6_STATS_RESET() memset(&lwip_stats.icmp6, 0x0, sizeof(lwip_stats.icmp6))
 #else
 #define ICMP6_STATS_INC(x)
 #define ICMP6_STATS_DISPLAY()
+#define ICMP6_STATS_RESET()
 #endif
 
 #if IP6_FRAG_STATS
 #define IP6_FRAG_STATS_INC(x) STATS_INC(x)
 #define IP6_FRAG_STATS_DISPLAY() stats_display_proto(&lwip_stats.ip6_frag, "IPv6 FRAG")
+#define IP6_FRAG_STATS_RESET() memset(&lwip_stats.ip6_frag, 0x0, sizeof(lwip_stats.ip6_frag))
 #else
 #define IP6_FRAG_STATS_INC(x)
 #define IP6_FRAG_STATS_DISPLAY()
+#define IP6_FRAG_STATS_RESET()
 #endif
 
 #if MLD6_STATS
 #define MLD6_STATS_INC(x) STATS_INC(x)
 #define MLD6_STATS_DISPLAY() stats_display_igmp(&lwip_stats.mld6, "MLDv1")
+#define MLD6_STATS_RESET() memset(&lwip_stats.mld6, 0x0, sizeof(lwip_stats.mld6))
 #else
 #define MLD6_STATS_INC(x)
 #define MLD6_STATS_DISPLAY()
+#define MLD6_STATS_RESET()
 #endif
 
 #if ND6_STATS
 #define ND6_STATS_INC(x) STATS_INC(x)
 #define ND6_STATS_DISPLAY() stats_display_proto(&lwip_stats.nd6, "ND")
+#define ND6_STATS_RESET() memset(&lwip_stats.nd6, 0x0, sizeof(lwip_stats.nd6))
 #else
 #define ND6_STATS_INC(x)
 #define ND6_STATS_DISPLAY()
+#define ND6_STATS_RESET()
 #endif
 
 #if MIB2_STATS
@@ -470,6 +496,8 @@ void stats_init(void);
 /* Display of statistics */
 #if LWIP_STATS_DISPLAY
 void stats_display(void);
+void stats_display_short(void);
+void stats_reset_short(void);
 void stats_display_proto(struct stats_proto *proto, const char *name);
 void stats_display_igmp(struct stats_igmp *igmp, const char *name);
 void stats_display_mem(struct stats_mem *mem, const char *name);

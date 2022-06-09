@@ -12,9 +12,13 @@
 
 #ifndef _KEY_VALUE_H_
 #define _KEY_VALUE_H_
+#include <common/bk_include.h>
 
-
+#if (CONFIG_SOC_BK7256XX)
+#define KV_BASE_ADDR  0x03DA000
+#else
 #define KV_BASE_ADDR  0x0180000
+#endif
 
 UINT8 erase_flash(UINT32 addr);
 UINT8 write_flash(UINT32 addr ,UINT8 *data,UINT32 len);

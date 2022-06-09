@@ -35,6 +35,7 @@
 #include "los_timer.h"
 #include "los_memory.h"
 #include "los_swtmr.h"
+#include <modules/pm.h>
 
 #if (LOSCFG_KERNEL_PM == 1)
 #define OS_PM_NODE_FREE 0x80000000U
@@ -279,7 +280,7 @@ EXIT:
     LOS_TaskUnlock();
     return ret;
 }
-
+#if 0
 STATIC VOID OsPmNormalSleep(VOID)
 {
     UINT32 intSave;
@@ -293,7 +294,7 @@ STATIC VOID OsPmNormalSleep(VOID)
 
     LOS_IntRestore(intSave);
 }
-
+#endif
 STATIC UINT32 OsPmDeviceRegister(LosPmCB *pm, LosPmDevice *device)
 {
     UINT32 intSave;
@@ -791,7 +792,7 @@ UINT32 OsPmInit(VOID)
         return ret;
     }
 
-    ret = OsPmEnterHandlerSet(OsPmNormalSleep);
+    ret = OsPmEnterHandlerSet(pm_enter_sleep);
     if (ret != LOS_OK) {
         return ret;
     }

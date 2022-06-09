@@ -13,10 +13,11 @@
 # the License.
 """Wrapper fuctions to add borders around prompt_toolkit containers."""
 
-from typing import List
+from typing import Callable, List, Optional, Union
 
 from prompt_toolkit.layout import (
     AnyContainer,
+    FormattedTextControl,
     HSplit,
     VSplit,
     Window,
@@ -26,9 +27,10 @@ from prompt_toolkit.layout import (
 def create_border(
     # pylint: disable=too-many-arguments
     content: AnyContainer,
-    content_height: int,
-    border_style: str = '',
-    base_style: str = '',
+    content_height: Optional[int] = None,
+    title: str = '',
+    border_style: Union[Callable[[], str], str] = '',
+    base_style: Union[Callable[[], str], str] = '',
     top: bool = True,
     bottom: bool = True,
     left: bool = True,
@@ -48,9 +50,17 @@ def create_border(
     if left:
         top_border_items.append(
             Window(width=1, height=1, char=top_left_char, style=border_style))
+
+    title_text = None
+    if title:
+        title_text = FormattedTextControl([
+            ('', f'{horizontal_char}{horizontal_char} {title} ')
+        ])
+
     top_border_items.append(
         Window(
-            char='━',
+            title_text,
+            char=horizontal_char,
             # Expand width to max available space
             dont_extend_width=False,
             style=border_style))

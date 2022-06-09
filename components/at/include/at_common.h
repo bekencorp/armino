@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include <components/log.h>
 #include <os/mem.h>
 #include <os/str.h>
@@ -16,7 +17,8 @@
 #include <common/bk_kernel_err.h>
 
 #define MAX_BT_AT_CMD_LEN               20
-#define MAX_BLE_AT_CMD_LEN              32
+#define MAX_BLE_AT_CMD_LEN              64
+#define MAX_WIFI_AT_CMD_LEN             30
 #define MAX_VIDEO_AT_CMD_LEN            10
 #define AT_SYNC_CMD_TIMEOUT_MS          4000
 
@@ -56,7 +58,11 @@ int get_addr_from_param(bd_addr_t *bdaddr, char *input_param);
 int ble_at_cmd_cnt(void);
 extern const at_command_t ble_at_cmd_table[MAX_BLE_AT_CMD_LEN];
 //#endif
-
+#if CONFIG_LWIP
+const at_command_t *lookup_wifi_at_command(char *str1);
+int wifi_at_cmd_cnt(void);
+extern const at_command_t wifi_at_cmd_table[MAX_WIFI_AT_CMD_LEN];
+#endif
 const at_command_t *lookup_video_at_command(char *str1);
 int video_at_cmd_cnt(void);
 extern const at_command_t video_at_cmd_table[MAX_VIDEO_AT_CMD_LEN];

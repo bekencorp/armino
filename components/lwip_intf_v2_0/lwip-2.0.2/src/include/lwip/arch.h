@@ -175,6 +175,25 @@ typedef uintptr_t mem_ptr_t;
 /* Include limits.h? */
 #if !LWIP_NO_LIMITS_H
 #include <limits.h>
+#if LWIP_NO_CTYPE_H
+#define lwip_in_range(c, lo, up)  ((u8_t)(c) >= (lo) && (u8_t)(c) <= (up))
+#define lwip_isdigit(c)           lwip_in_range((c), '0', '9')
+#define lwip_isxdigit(c)          (lwip_isdigit(c) || lwip_in_range((c), 'a', 'f') || lwip_in_range((c), 'A', 'F'))
+#define lwip_islower(c)           lwip_in_range((c), 'a', 'z')
+#define lwip_isspace(c)           ((c) == ' ' || (c) == '\f' || (c) == '\n' || (c) == '\r' || (c) == '\t' || (c) == '\v')
+#define lwip_isupper(c)           lwip_in_range((c), 'A', 'Z')
+#define lwip_tolower(c)           (lwip_isupper(c) ? (c) - 'A' + 'a' : c)
+#define lwip_toupper(c)           (lwip_islower(c) ? (c) - 'a' + 'A' : c)
+#else
+#include <ctype.h>
+#define lwip_isdigit(c)           isdigit((unsigned char)(c))
+#define lwip_isxdigit(c)          isxdigit((unsigned char)(c))
+#define lwip_islower(c)           islower((unsigned char)(c))
+#define lwip_isspace(c)           isspace((unsigned char)(c))
+#define lwip_isupper(c)           isupper((unsigned char)(c))
+#define lwip_tolower(c)           tolower((unsigned char)(c))
+#define lwip_toupper(c)           toupper((unsigned char)(c))
+#endif
 #endif
 
 /** C++ const_cast<target_type>(val) equivalent to remove constness from a value (GCC -Wcast-qual) */

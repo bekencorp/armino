@@ -161,7 +161,7 @@ Status BlobStore::OpenRead() {
     return Status::Unavailable();
   }
 
-  if (!ValidToRead()) {
+  if (!HasData()) {
     PW_LOG_ERROR("Blob reader unable open without valid data");
     return Status::FailedPrecondition();
   }
@@ -345,7 +345,8 @@ Status BlobStore::FlushFinalPartialChunk() {
 
   PW_DCHECK_UINT_GT(bytes_in_buffer, 0);
   PW_DCHECK_UINT_LE(bytes_in_buffer, flash_write_size_bytes_);
-  PW_DCHECK_UINT_LE(flash_write_size_bytes_, WriteBytesRemaining());
+  PW_DCHECK_UINT_LE(flash_write_size_bytes_,
+                    MaxDataSizeBytes() - flash_address_);
 
   // If there is no buffer there should never be any bytes enqueued.
   PW_DCHECK(!write_buffer_.empty());
@@ -406,7 +407,7 @@ Status BlobStore::EraseIfNeeded() {
 }
 
 StatusWithSize BlobStore::Read(size_t offset, ByteSpan dest) const {
-  if (!ValidToRead()) {
+  if (!HasData()) {
     return StatusWithSize::FailedPrecondition();
   }
   if (offset >= ReadableDataBytes()) {
@@ -420,7 +421,7 @@ StatusWithSize BlobStore::Read(size_t offset, ByteSpan dest) const {
 }
 
 Result<ConstByteSpan> BlobStore::GetMemoryMappedBlob() const {
-  if (!ValidToRead()) {
+  if (!HasData()) {
     return Status::FailedPrecondition();
   }
 
@@ -688,7 +689,7 @@ size_t BlobStore::BlobReader::ConservativeLimit(LimitType limit) const {
 
 Status BlobStore::BlobReader::Open(size_t offset) {
   PW_DCHECK(!open_);
-  if (!store_.ValidToRead()) {
+  if (!store_.HasData()) {
     return Status::FailedPrecondition();
   }
   if (offset >= store_.ReadableDataBytes()) {
@@ -703,7 +704,7 @@ Status BlobStore::BlobReader::Open(size_t offset) {
   return status;
 }
 
-size_t BlobStore::BlobReader::DoTell() const {
+size_t BlobStore::BlobReader::DoTell() {
   return open_ ? offset_ : kUnknownPosition;
 }
 
@@ -712,8 +713,8 @@ Status BlobStore::BlobReader::DoSeek(ptrdiff_t offset, Whence origin) {
     return Status::FailedPrecondition();
   }
 
-  // Note that Open ensures it is ValidToRead() which
-  // in turn guarantees store_.ReadableDataBytes() > 0.
+  // Note that Open ensures HasData() which in turn guarantees
+  // store_.ReadableDataBytes() > 0.
 
   size_t pos = offset_;
   PW_TRY(CalculateSeek(offset, origin, store_.ReadableDataBytes() - 1, pos));

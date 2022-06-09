@@ -52,6 +52,7 @@ pw_cc_library(
         "//pw_protobuf",
         "//pw_status",
         "//pw_stream",
+        "//pw_string",
     ],
 )
 
@@ -66,6 +67,7 @@ pw_cc_library(
         "//pw_log",
         "//pw_result",
         "//pw_status",
+        "//pw_sync:borrow",
         "//pw_sync:lock_annotations",
         "//pw_sync:mutex",
         "//pw_sync:string",

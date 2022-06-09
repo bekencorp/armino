@@ -429,6 +429,20 @@ ble_err_t bk_ble_disconnect(uint8_t conn_idx, ble_cmd_cb_t callback);
 ble_err_t bk_ble_gatt_mtu_change(uint8_t conn_idx, ble_cmd_cb_t callback);
 
 /**
+ * @brief     Set maximal Exchange MTU
+ *
+ * @param
+ *    - max_mtu: the value to set
+ * @attention 1.you must wait callback status, 0 mean success.
+ * @attention 2.must used before connected
+ *
+ * @return
+ *    - BK_ERR_BLE_SUCCESS: succeed
+ *    - others: other errors.
+ */
+ble_err_t bk_ble_set_max_mtu(uint16_t max_mtu);
+
+/**
  * @brief     Create a ble scan activity
  *
  * @param
@@ -472,6 +486,9 @@ ble_err_t bk_ble_create_scaning(uint8_t actv_idx, ble_scan_param_t *scan_param, 
  *    - others: other errors.
  */
 ble_err_t bk_ble_start_scaning(uint8_t actv_idx, ble_cmd_cb_t callback);
+
+ble_err_t bk_ble_start_scaning_ex(uint8_t actv_idx, uint8_t filt_duplicate, uint16_t duration, uint16_t period, ble_cmd_cb_t callback);
+
 
 /**
  * @brief     Stop the scan that has been started
@@ -584,6 +601,13 @@ ble_err_t bk_ble_init_stop_conn(uint8_t con_idx,ble_cmd_cb_t callback);//todo: u
  *    - others: other errors.
  */
 ble_err_t bk_ble_init_set_connect_dev_addr(uint8_t connidx, bd_addr_t *bdaddr, uint8_t addr_type);
+
+
+
+ble_err_t bk_ble_create_periodic_sync(uint8_t actv_idx, ble_cmd_cb_t callback);
+ble_err_t bk_ble_start_periodic_sync(uint8_t actv_idx, ble_periodic_param_t *param, ble_cmd_cb_t callback);
+ble_err_t bk_ble_stop_periodic_sync(uint8_t actv_idx, ble_cmd_cb_t callback);
+ble_err_t bk_ble_delete_periodic_sync(uint8_t actv_idx, ble_cmd_cb_t callback);
 
 /**
  * @brief     Get an idle activity

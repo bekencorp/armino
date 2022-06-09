@@ -122,14 +122,24 @@ typedef struct
      * A list of client generated commands. A client generated command
      * is a client to server command. Can be nullptr or terminated by 0xFFFF_FFFF.
      */
-    const chip::CommandId * clientGeneratedCommandList;
+    const chip::CommandId * acceptedCommandList;
 
     /**
      * A list of server generated commands. A server generated command
      * is a response to client command request. Can be nullptr or terminated by 0xFFFF_FFFF.
      */
-    const chip::CommandId * serverGeneratedCommandList;
+    const chip::CommandId * generatedCommandList;
 } EmberAfCluster;
+
+/**
+ * @brief Struct that represents a logical device type consisting
+ * of a DeviceID and its version.
+ */
+typedef struct
+{
+    uint16_t deviceId;
+    uint8_t deviceVersion;
+} EmberAfDeviceType;
 
 /**
  * @brief Struct used to find an attribute in storage. Together the elements
@@ -380,34 +390,37 @@ enum
 /**
  * @brief Struct that maps actual endpoint type, onto a specific endpoint.
  */
-typedef struct
+struct EmberAfDefinedEndpoint
 {
     /**
      * Actual zigbee endpoint number.
      */
-    chip::EndpointId endpoint;
+    chip::EndpointId endpoint = chip::kInvalidEndpointId;
+
     /**
-     * Device ID of the device on this endpoint.
+     * Span pointing to a list of supported device types
      */
-    uint16_t deviceId;
-    /**
-     * Version of the device.
-     */
-    uint8_t deviceVersion;
+    chip::Span<const EmberAfDeviceType> deviceTypeList;
+
     /**
      * Meta-data about the endpoint
      */
-    EmberAfEndpointBitmask bitmask;
+    EmberAfEndpointBitmask bitmask = EMBER_AF_ENDPOINT_DISABLED;
     /**
      * Endpoint type for this endpoint.
      */
-    const EmberAfEndpointType * endpointType;
+    const EmberAfEndpointType * endpointType = nullptr;
     /**
      * Pointer to the DataVersion storage for the server clusters on this
      * endpoint
      */
-    chip::DataVersion * dataVersions;
-} EmberAfDefinedEndpoint;
+    chip::DataVersion * dataVersions = nullptr;
+
+    /**
+     * Root endpoint id for composed device type.
+     */
+    chip::EndpointId parentEndpointId = chip::kInvalidEndpointId;
+};
 
 // Cluster specific types
 

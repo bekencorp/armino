@@ -43,5 +43,7 @@ bk_err_t bk_adc_set_config(adc_config_t *config);
 bk_err_t bk_adc_get_config(uint32 adc_ch, adc_config_t **config);
 bk_err_t bk_adc_is_valid_ch(uint32_t ch);
 bk_err_t bk_adc_register_isr_iot_callback(    void* iot_callback, void      * p_iot_context);
+bk_err_t bk_adc_unregister_isr_iot_callback(void);
+
 bk_err_t bk_adc_en(void);
 

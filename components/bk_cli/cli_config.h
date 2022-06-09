@@ -58,18 +58,23 @@ extern "C" {
 #else
 #define CLI_CFG_KEYVALUE    0
 #endif
-#if(CONFIG_MATTER_NAMEKEY)
-#define CLI_CFG_NAMEKEY     1
+#if(CONFIG_SUPPORT_MATTER)
+#define CLI_CFG_MATTER      1
 #else
-#define CLI_CFG_NAMEKEY     0
+#define CLI_CFG_MATTER      0
 #endif
 #define CLI_CFG_UART        1
 #define CLI_CFG_ADC         1
 #define CLI_CFG_SPI         1
 #define CLI_CFG_MICO        1
 #define CLI_CFG_REG         1
-#define CLI_CFG_DMA         1
 #define CLI_CFG_EXCEPTION   1
+
+#if(CONFIG_GENERAL_DMA)
+#define CLI_CFG_DMA         1
+#else
+#define CLI_CFG_DMA         0
+#endif
 
 #if(CONFIG_PWM)
 #define CLI_CFG_PWM         1
@@ -89,7 +94,11 @@ extern "C" {
 #define CLI_CFG_ICU         0
 #endif
 
+#if CONFIG_I2C
 #define CLI_CFG_I2C         1
+#else
+#define CLI_CFG_I2C         0
+#endif
 
 #if CONFIG_QSPI
 #define CLI_CFG_QSPI        1
@@ -168,8 +177,10 @@ extern "C" {
 
 #if (CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7256_CP1)
 
-#if (CONFIG_DMA2D_TEST)
+#if CONFIG_DMA2D_TEST
 #define CLI_CFG_DMA2D  1
+#else
+#define CLI_CFG_DMA2D  0
 #endif
 
 #if (CONFIG_AUDIO && CONFIG_DUAL_CORE && CONFIG_AUDIO_TEST && CONFIG_AUDIO_RISCV_IP_V1_0)
@@ -180,8 +191,10 @@ extern "C" {
 #define CLI_CFG_SBC			1
 #endif
 
-#if (CONFIG_LCD_TEST)
+#if CONFIG_LCD_TEST
 #define CLI_CFG_LCD  1
+#else
+#define CLI_CFG_LCD  0
 #endif
 
 #if (CONFIG_DUAL_CORE && CONFIG_AUDIO_TEST && !CONFIG_SOC_BK7256_CP1)
@@ -199,12 +212,28 @@ extern "C" {
 #define CLI_CFG_AEC         1
 #endif
 
+#if (CONFIG_AUDIO_G711_TEST)
+#define CLI_CFG_G711         1
+#endif
 
 #if (CONFIG_SECURITYIP)
 #define CLI_CFG_VAULT		1
 #else
 #define CLI_CFG_vault		0
 #endif
+
+#if ((CONFIG_SOC_BK7256XX || CONFIG_USB_UVC) && CONFIG_DUAL_CORE)
+#define CLI_CFG_UVC        1
+#else
+#define CLI_CFG_UVC        0
+#endif
+
+#if ((CONFIG_CAMERA || CONFIG_SPIDMA) && CONFIG_APP_DEMO_VIDEO_TRANSFER)
+#define CLI_CFG_DVP        1
+#else
+#define CLI_CFG_DVP        0
+#endif
+
 #ifdef __cplusplus
 }
 #endif

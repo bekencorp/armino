@@ -678,6 +678,8 @@ int lwip_inet_pton(int af, const char *src, void *dst);
 #define ioctl(s,cmd,argp)                         lwip_ioctl(s,cmd,argp)
 #endif /* LWIP_POSIX_SOCKETS_IO_NAMES */
 #endif /* LWIP_COMPAT_SOCKETS != 2 */
+#define inet_ntop(af,src,dst,size)                lwip_inet_ntop(af,src,dst,size)
+#define inet_pton(af,src,dst)                     lwip_inet_pton(af,src,dst)
 
 #endif /* LWIP_COMPAT_SOCKETS */
 

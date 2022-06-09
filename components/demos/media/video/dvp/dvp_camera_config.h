@@ -20,11 +20,10 @@
 extern "C" {
 #endif
 
-#if (USE_CAMERA == PAS6329_DEV)
-
-#define PAS6329_SET_PAGE0  camera_intf_sccb_write(0xef, 0x00)
-#define PAS6329_SET_PAGE1  camera_intf_sccb_write(0xef, 0x01)
-#define PAS6329_SET_PAGE2  camera_intf_sccb_write(0xef, 0x02)
+// PAS6329_DEV
+#define PAS6329_SET_PAGE0  camera_intf_sccb_write_byte(0xef, 0x00)
+#define PAS6329_SET_PAGE1  camera_intf_sccb_write_byte(0xef, 0x01)
+#define PAS6329_SET_PAGE2  camera_intf_sccb_write_byte(0xef, 0x02)
 
 const uint8_t pas6329_page0[][2] = {
 	{0x04, 0x00},    // 00//01//AE Indoor stage select[0];0:11 ; 1:12 ..
@@ -488,7 +487,7 @@ const uint8_t pas6329_page2[][2] = {
 	{0x39, 0x01},
 };
 
-#elif (USE_CAMERA == OV_7670_DEV)
+// OV_7670_DEV
 const uint8_t ov_7670_init_talbe[][2] = {
 	{0x12, 0x80},
 	{0x11, 0x80},   // 0x02	 // 30fps
@@ -661,7 +660,8 @@ const uint8_t ov_7670_init_talbe[][2] = {
 	{0x15, 0x02},    // 0x02  //modify by jianghuaming
 	{0x13, 0xe5},
 };
-#elif (USE_CAMERA == PAS6375_DEV)
+
+// PAS6375_DEV
 const uint8_t pas6375_init_talbe[][2] = {
 	{0xEF, 0x00},
 	{0x04, 0x00},
@@ -1284,7 +1284,7 @@ const uint8_t pas6375_init_talbe[][2] = {
 	{0x00, 0x01},
 };
 
-#elif (USE_CAMERA == GC0328C_DEV)
+// GC0328C_DEV
 const uint8_t gc0328c_init_talbe[][2] = {
 	{0xFE, 0x80},
 	{0xFE, 0x80},
@@ -1831,7 +1831,7 @@ const uint8_t gc0328c_VGA_640_480_talbe[][2] = {
 	{0x58, 0x80},
 };
 
-#elif (USE_CAMERA == BF_2013_DEV)
+// BF_2013_DEV
 const uint8_t bf_2013_init_talbe[][2] = {
 	{0x12, 0x00},			//CHEN-TEST
 	{0x09, 0x01},
@@ -1970,7 +1970,7 @@ const uint8_t bf_2013_init_talbe[][2] = {
 	{0x13, 0x07},
 };
 
-#elif (USE_CAMERA == GC0308C_DEV)
+// GC0308C_DEV
 const uint8_t gc0308c_init_talbe[][2] = {
 	{0xfe, 0x80},
 	{0xfe, 0x00},  // set page0
@@ -2252,7 +2252,7 @@ const uint8_t gc0308c_init_talbe[][2] = {
 
 };
 
-#elif (USE_CAMERA == HM_1055_DEV)
+// HM_1055_DEV
 /*MCLK = 60MHz 5fps default*/
 const uint16_t hm_1055_init_talbe[][2] = {
 	{0x0022,0x00},
@@ -2908,8 +2908,6 @@ const uint16_t hm_1055_720P_5fps_talbe[][2] = {
 	{0x0101,0x01},
 	{0x0005,0x01},//Turn on rolling shutter
 };
-
-#endif  // USE_CAMERA
 
 #ifdef __cplusplus
 }

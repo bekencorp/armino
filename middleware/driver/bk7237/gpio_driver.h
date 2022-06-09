@@ -15,9 +15,11 @@
 #pragma once
 #include "gpio_hal.h"
 
+
+
 typedef enum {
-       GPIO_SDIO_MAP_MODE0 = 0,			/**<GPIO2~GPIO5  GPIO10~GPIO11 is used for SDIO   HOST/DMA */
-       GPIO_SDIO_MAP_MODE1,			    /**<GPIO14~GPIO19 is used for SDIO HOST/DMA */
+       GPIO_SDIO_MAP_MODE0 = 0,			/**<GPIO2~GPIO5  GPIO10~GPIO11 is used for SDIO   HOST/SLAVE */
+       GPIO_SDIO_MAP_MODE1,			    /**<GPIO14~GPIO19 is used for SDIO HOST/SLAVE */
        GPIO_SDIO_MAP_MODE_MAX,			/**< Invalid sdio mode */
 } gpio_sdio_map_mode_t;
 
@@ -44,6 +46,13 @@ bk_err_t gpio_dev_map(gpio_id_t gpio_id, gpio_dev_t dev);
 bk_err_t gpio_dev_unmap(gpio_id_t gpio_id);
 bk_err_t gpio_spi_sel(gpio_spi1_map_mode_t gpio_spi_sel_mode);
 bk_err_t gpio_sdio_sel(gpio_sdio_map_mode_t gpio_sdio_sel_mode);
+bk_err_t gpio_sdio_one_line_sel(gpio_sdio_map_mode_t gpio_sdio_sel_mode);
 bk_err_t gpio_i2c1_sel(gpio_i2c1_map_mode_t gpio_i2c1_sel_mode);
 bk_err_t gpio_i2s_sel(gpio_i2s_map_mode_t gpio_i2s_sel_mode);
+
+#if CONFIG_GPIO_WAKEUP_SUPPORT
+bk_err_t gpio_enter_low_power(void *param);
+bk_err_t gpio_exit_low_power(void *param);
+void gpio_get_interrupt_status(uint32_t *h_status, uint32_t *l_status);
+#endif
 

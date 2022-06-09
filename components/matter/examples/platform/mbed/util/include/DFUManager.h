@@ -28,8 +28,9 @@
 
 #ifdef CHIP_OTA_REQUESTOR
 #include <BDXDownloader.h>
+#include <DefaultOTARequestor.h>
+#include <DefaultOTARequestorStorage.h>
 #include <OTAImageProcessorImpl.h>
-#include <OTARequestor.h>
 #include <OTARequestorDriverImpl.h>
 #endif // CHIP_OTA_REQUESTOR
 
@@ -53,7 +54,8 @@ private:
     static DFUManager sDFUMgr;
 
 #ifdef CHIP_OTA_REQUESTOR
-    chip::OTARequestor mRequestorCore;
+    chip::DefaultOTARequestor mRequestorCore;
+    chip::DefaultOTARequestorStorage mRequestorStorage;
     chip::DeviceLayer::OTARequestorDriverImpl mRequestorDriver;
     chip::BDXDownloader mDownloader;
     chip::OTAImageProcessorImpl mImageProcessor;

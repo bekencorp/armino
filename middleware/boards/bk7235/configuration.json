@@ -4,18 +4,18 @@
     "count": 2,
     "section": [
         {
-            "firmware": "l_bootloader.bin",
+            "firmware": "bootloader.bin",
             "version": "2M.1220",
             "partition": "bootloader",
             "start_addr": "0x00000000",
-            "size": "65280"
+            "size": "68k"
         },
         {
             "firmware": "app.bin",
             "version": "2M.1220",
             "partition": "app",
-            "start_addr": "0x00000000",
-            "size": "2632K"
+            "start_addr": "0x00011000",
+            "size": "2312K"
         }
     ]
 }

@@ -31,4 +31,4 @@
 #include "mailbox_cap.h"
 #include "aon_rtc_cap.h"
 #include "i2s_cap.h"
-
+#include "aud_cap.h"

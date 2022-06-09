@@ -1,0 +1,1 @@
+.. include:: ../../../zh_CN/examples/video/bk_image_capture.rst

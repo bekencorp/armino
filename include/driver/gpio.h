@@ -266,6 +266,43 @@ bk_err_t bk_gpio_disable_interrupt(gpio_id_t id);
  *    - others: other errors.
  */
 bk_err_t bk_gpio_register_isr(gpio_id_t id, gpio_isr_t isr);
+
+#if CONFIG_GPIO_DYNAMIC_WAKEUP_SUPPORT
+/**
+ * @brief     Register the GPIO channel to wakeup source with select int type.
+ *
+ * This API regist gpio to wakeup source.
+ * If the GPIO registered to wakeup source, the system at low voltage status
+ * can be wake up by the GPIO with selected int_type, and hold on the system
+ * at wakeup status some time.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_GPIO_CHAN_ID: invalid gpio channel
+ *    - BK_ERR_GPIO_INVALID_INT_TYPE: invalid gpio int type
+ *    - BK_ERR_GPIO_WAKESOURCE_OVER_MAX_CNT: too many gpio is register to wakeup source
+ *      default max value is: CONFIG_GPIO_DYNAMIC_WAKEUP_SOURCE_MAX_CNT
+ *    - others: other errors.
+ */
+bk_err_t bk_gpio_register_wakeup_source(gpio_id_t gpio_id, gpio_int_type_t int_type);
+
+/**
+ * @brief     Unregister the GPIO channel from wakeup source.
+ *
+ * This API unregist gpio from wakeup source.
+ * If the GPIO has registered to wakeup source, this API will unregister the gpio
+ * from wakeup source.
+ * If bk_gpio_register_wakeup_source failed with BK_ERR_GPIO_WAKESOURCE_OVER_MAX_CNT,
+ * it can call this API unregister one of gpio.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_GPIO_CHAN_ID: invalid gpio channel
+ *    - others: other errors.
+ */
+bk_err_t bk_gpio_unregister_wakeup_source(gpio_id_t gpio_id);
+
+#else
 /**
  * @brief     Register save all gpio reg value
  *
@@ -311,6 +348,8 @@ bk_err_t bk_gpio_wakeup_enable(int64_t index, uint64_t type_l, uint64_t type_h);
  *    - others: other errors.
  */
 bk_err_t bk_gpio_wakeup_interrupt_clear();
+#endif
+
 /**
  * @}
  */

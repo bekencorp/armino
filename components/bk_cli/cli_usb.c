@@ -142,7 +142,6 @@ void uvc_get_param(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 		return;
 	}
 	uint32_t attribute = 0x00;
-	uint32_t handle = ((DD_DEV_TYPE_USB & DD_HANDLE_ID_MASK) + DD_HANDLE_MAGIC_WORD);
 
 	if (os_strcmp(argv[1], "backlight") == 0) {
 		attribute = 0x01;
@@ -185,20 +184,21 @@ void uvc_get_param(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 		return;
 	}
 
+
 	if (os_strcmp(argv[2], "cur") == 0) {
-		ddev_control(handle, UCMD_UVC_GET_CUR, (void *)&attribute);
+		bk_uvc_get_cur(attribute);
 	} else if (os_strcmp(argv[2], "min") == 0) {
-		ddev_control(handle, UCMD_UVC_GET_MIN, (void *)&attribute);
+		bk_uvc_get_min(attribute);
 	} else if (os_strcmp(argv[2], "max") == 0) {
-		ddev_control(handle, UCMD_UVC_GET_MAX, (void *)&attribute);
+		bk_uvc_get_max(attribute);
 	} else if (os_strcmp(argv[2], "info") == 0) {
-		ddev_control(handle, UCMD_UVC_GET_INFO, (void *)&attribute);
+		bk_uvc_get_info(attribute);
 	} else if (os_strcmp(argv[2], "len") == 0) {
-		ddev_control(handle, UCMD_UVC_GET_LEN, (void *)&attribute);
+		bk_uvc_get_len(attribute);
 	} else if (os_strcmp(argv[2], "res") == 0) {
-		ddev_control(handle, UCMD_UVC_GET_RES, (void *)&attribute);
+		bk_uvc_get_res(attribute);
 	} else if (os_strcmp(argv[2], "def") == 0) {
-		ddev_control(handle, UCMD_UVC_GET_DEF, (void *)&attribute);
+		bk_uvc_get_def(attribute);
 	} else {
 		cli_usb_help();
 		return;
@@ -214,7 +214,7 @@ void uvc_set_param(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 		return;
 	}
 	uint32_t attribute = 0x00;
-	uint32_t handle = ((DD_DEV_TYPE_USB & DD_HANDLE_ID_MASK) + DD_HANDLE_MAGIC_WORD);
+	uint32_t param = 0;
 
 	if (os_strcmp(argv[1], "backlight") == 0) {
 		attribute = 0x01;
@@ -257,24 +257,8 @@ void uvc_set_param(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 		return;
 	}
 
-	if (os_strcmp(argv[2], "0") == 0) {
-		ddev_control(handle, UCMD_UVC_SET_CUR, (void *)&attribute);
-	} else if (os_strcmp(argv[2], "11") == 0) {
-		ddev_control(handle, UCMD_UVC_SET_CUR, (void *)&attribute);
-	} else if (os_strcmp(argv[2], "22") == 0) {
-		ddev_control(handle, UCMD_UVC_SET_CUR, (void *)&attribute);
-	} else if (os_strcmp(argv[2], "33") == 0) {
-		ddev_control(handle, UCMD_UVC_SET_CUR, (void *)&attribute);
-	} else if (os_strcmp(argv[2], "44") == 0) {
-		ddev_control(handle, UCMD_UVC_SET_CUR, (void *)&attribute);
-	} else if (os_strcmp(argv[2], "55") == 0) {
-		ddev_control(handle, UCMD_UVC_SET_CUR, (void *)&attribute);
-	} else if (os_strcmp(argv[2], "1000") == 0) {
-		ddev_control(handle, UCMD_UVC_SET_CUR, (void *)&attribute);
-	} else {
-		cli_usb_help();
-		return;
-	}
+	param = os_strtoul(argv[2], NULL, 10);
+	bk_uvc_set_cur(attribute, param);
 
 }
 
@@ -284,13 +268,11 @@ void uvc_start_stream(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 		cli_usb_help();
 		return;
 	}
-	uint32_t attribute = 0x00;
-	uint32_t handle = ((DD_DEV_TYPE_USB & DD_HANDLE_ID_MASK) + DD_HANDLE_MAGIC_WORD);
 
 	if (os_strcmp(argv[1], "start") == 0) {
-		ddev_control(handle, UCMD_UVC_START_STREAM, (void *)&attribute);
+		bk_uvc_start();
 	} else if(os_strcmp(argv[1], "stop") == 0) {
-		ddev_control(handle, UCMD_UVC_STOP_STREAM, (void *)&attribute);
+		bk_uvc_stop();
 	}
 	else {
 		cli_usb_help();
@@ -334,6 +316,67 @@ void cli_fuvc_printf_test_buff(char *pcWriteBuffer, int xWriteBufferLen, int arg
 }
 #endif
 
+#if CONFIG_USB_PLUG_IN_OUT
+void cli_usb_plug_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		cli_usb_help();
+		return;
+	}
+
+	if (os_strcmp(argv[1], "init") == 0) {
+		usb_plug_inout_init();
+	} else if (os_strcmp(argv[1], "deinit") == 0) {
+		usb_plug_inout_deinit();
+	} else {
+		cli_usb_help();
+		return;
+	}
+
+}
+
+void cli_usb_plug_inout(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		cli_usb_help();
+		return;
+	}
+
+	if (os_strcmp(argv[1], "open") == 0) {
+		usb_plug_inout_open();
+		CLI_LOGI("cli_usb_plug_inout inout open!\r\n");
+	} else if (os_strcmp(argv[1], "close") == 0) {
+		usb_plug_inout_close();
+		CLI_LOGI("cli_usb_plug_inout inout close!\r\n");
+	} else {
+		cli_usb_help();
+		return;
+	}
+
+}
+#endif
+
+void cli_usb_open_close(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		cli_usb_help();
+		return;
+	}
+
+	if (os_strcmp(argv[1], "open_host") == 0) {
+		CLI_LOGI("cli_usb_open host! %d\r\n", bk_usb_open(0));
+	} else if (os_strcmp(argv[1], "open_dev") == 0) {
+		CLI_LOGI("cli_usb_open device!\r\n");
+		bk_usb_open(1);
+	} else if (os_strcmp(argv[1], "close") == 0) {
+		bk_usb_close();
+	} else {
+		cli_usb_help();
+		return;
+	}
+
+}
+
 const struct cli_command usb_host_clis[] = {
 
 #if CONFIG_USB_MSD
@@ -348,7 +391,11 @@ const struct cli_command usb_host_clis[] = {
 	{"uvc_ctrl_set", "uvc ctrl set attribute param", uvc_set_param},
 	{"uvc_stream", "uvc ctrl set attribute param", uvc_start_stream},
 #endif
-
+#if CONFIG_USB_PLUG_IN_OUT
+	{"usb_plug", "usb plug init|out", cli_usb_plug_init},
+	{"usb_plug_inout", "usb open|close", cli_usb_plug_inout},
+#endif
+	{"usb", "usb open_host|open_dev|close", cli_usb_open_close},
 };
 
 void usb_cli_init(void)

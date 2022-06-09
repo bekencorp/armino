@@ -25,7 +25,7 @@
 namespace chip {
 namespace Controller {
 
-void AbstractDnssdDiscoveryController::OnNodeDiscoveryComplete(const chip::Dnssd::DiscoveredNodeData & nodeData)
+void AbstractDnssdDiscoveryController::OnNodeDiscovered(const chip::Dnssd::DiscoveredNodeData & nodeData)
 {
     auto discoveredNodes = GetDiscoveredNodes();
     for (auto & discoveredNode : discoveredNodes)
@@ -34,7 +34,7 @@ void AbstractDnssdDiscoveryController::OnNodeDiscoveryComplete(const chip::Dnssd
         {
             continue;
         }
-        if (strcmp(discoveredNode.hostName, nodeData.hostName) == 0)
+        if (strcmp(discoveredNode.hostName, nodeData.hostName) == 0 && discoveredNode.port == nodeData.port)
         {
             discoveredNode = nodeData;
             if (mDeviceDiscoveryDelegate != nullptr)

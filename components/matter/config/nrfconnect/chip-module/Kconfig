@@ -32,6 +32,7 @@ config CHIP_NFC_COMMISSIONING
 config CHIP_OTA_REQUESTOR
 	bool
 	imply DFU_TARGET
+	imply BOOTLOADER_MCUBOOT
 	imply IMG_MANAGER
 	imply STREAM_FLASH
 	imply STREAM_FLASH_ERASE
@@ -59,3 +60,9 @@ config CHIP_OTA_IMAGE_BUILD
 	bool
 	default y if CHIP_OTA_REQUESTOR
 	depends on SIGN_IMAGES
+
+config CHIP_DEBUG_SYMBOLS
+	bool "Generate debug symbols"
+	default y
+	help
+	  Build the application with debug symbols.

@@ -16,7 +16,7 @@
 #define __ARCH_INTERRUPT_H__
 
 
-#include "ae350.h"
+#include "mcu_ip.h"
 #include "core_v5.h"
 #include <common/bk_include.h>
 #include <common/bk_err.h>

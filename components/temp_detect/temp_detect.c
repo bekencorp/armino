@@ -171,16 +171,6 @@ static int tempd_adc_get_raw_data(void)
 	config.steady_ctrl= TEMP_DETEC_ADC_STEADY_CTRL;
 	config.adc_filter = 0;
 
-#if (CONFIG_SOC_BK7256XX)
-	sys_drv_set_ana_scal_en(0);
-	sys_drv_set_ana_gadc_buf_ictrl(0xF);
-	sys_drv_set_ana_gadc_cmp_ictrl(0x5);
-	sys_drv_set_ana_pwd_gadc_buf(0);
-	sys_drv_set_ana_vref_sel(0);
-	bk_adc_enable_bypass_clalibration();
-#endif
-
-	
 	err = bk_adc_set_config(&config);
 	if (BK_OK != err)
 		goto _release_adc;

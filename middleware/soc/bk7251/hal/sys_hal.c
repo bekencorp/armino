@@ -173,6 +173,12 @@ void sys_hal_rtc_wakeup_enable(uint32_t value)
 {
 
 }
+
+void sys_hal_enable_bt_wakeup_source()
+{
+
+}
+
 void sys_hal_cpu_clk_div_set(uint32_t core_index, uint32_t value)
 {
 

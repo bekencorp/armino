@@ -41,7 +41,6 @@ set(srcs
 	icu/icu_driver.c
 	icu/interrupt_base.c
 	timer/timer_driver.c
-	general_dma/dma_driver.c
 	wdt/wdt_driver.c
 	spi/spi_driver.c
 	spi/spi_statis.c
@@ -52,23 +51,44 @@ set(srcs
 
 	list(APPEND srcs
 		flash/flash.c
-		irda/irda.c
 		macphy_bypass/mac_phy_bypass.c
 		gpio/gpio_driver_base.c
 		uart/uart_driver.c
 		uart/uart_statis.c
-		efuse/efuse_driver.c
-		rw_pub/rw_platf_pub.c
 		uart/printf.c
+		rw_pub/rw_platf_pub.c
+		saradc/adc_driver.c
+		saradc/adc_statis.c
 		security/security.c
 		security/hal_aes.c
 		security/hal_sha.c
-		saradc/adc_driver.c
-		saradc/adc_statis.c
-		i2c/i2c_driver.c
-		i2c/i2c_statis.c
 		spinlock/amp_res_lock.c
 	)
+
+if (CONFIG_EFUSE)
+	list(APPEND srcs
+		efuse/efuse_driver.c
+	)
+endif()
+
+if (CONFIG_GENERAL_DMA)
+	list(APPEND srcs
+		general_dma/dma_driver.c
+	)
+endif()
+
+if (CONFIG_I2C)
+	list(APPEND srcs
+		i2c/i2c_driver.c
+		i2c/i2c_statis.c
+		)
+endif()  #if (CONFIG_I2C)
+
+if (CONFIG_SUPPORT_IRDA)
+	list(APPEND srcs
+		irda/irda.c
+		)
+endif()  #if (CONFIG_SUPPORT_IRDA)
 
 if (CONFIG_PWM)
 	list(APPEND srcs
@@ -214,8 +234,8 @@ if (CONFIG_SDIO_V2P0)
 
 	list(APPEND srcs
 		"sdio/v2p0/sdio_slave_driver.c"
-		"sdio/v2p0/sdio_slave_utils.c"
-		"sdio/v2p0/sdio_slave_test.c"
+		"sdio/v2p0/sdio_utils.c"
+		"sdio/v2p0/sdio_test.c"
 		)
 endif() #if (CONFIG_SDIO_V2P0)
 

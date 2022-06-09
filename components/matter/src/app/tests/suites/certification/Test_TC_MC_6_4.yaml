@@ -29,7 +29,7 @@ tests:
                 value: nodeId
 
     #issue #12884 Media cluster commands and precondition not supported
-    - labe: "Precondition: Connect media content available for playback"
+    - label: "Precondition: Connect media content available for playback"
       disabled: true
 
     - label:
@@ -65,7 +65,7 @@ tests:
       response:
           values:
               - name: "returnValue"
-              - value: 0
+                value: 0
 
     - label: "log a command"
       cluster: "LogCommands"
@@ -94,7 +94,7 @@ tests:
       response:
           values:
               - name: "returnValue"
-              - value: 0
+                value: 0
 
     - label: "log a command"
       cluster: "LogCommands"
@@ -142,7 +142,7 @@ tests:
       response:
           values:
               - name: "returnValue"
-              - value: 0
+                value: 0
 
     - label: "log a command"
       cluster: "LogCommands"
@@ -165,7 +165,7 @@ tests:
       response:
           values:
               - name: "returnValue"
-              - value: 0
+                value: 0
 
     - label: "log a command"
       cluster: "LogCommands"

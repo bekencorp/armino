@@ -41,6 +41,9 @@ typedef portUBASE_TYPE TickType_t;
 extern volatile uint64_t *mtime;
 extern volatile uint64_t *mtimecmp;
 
+extern unsigned int port_disable_mie_flag(void);
+extern void port_enable_mie_flag(uint32_t val);
+
 __attribute__((always_inline))
 static inline UBaseType_t prvMieSave()
 {

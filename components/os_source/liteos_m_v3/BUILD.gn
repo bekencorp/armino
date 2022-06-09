@@ -50,44 +50,7 @@ config("los_config") {
 
 group("kernel") {
   deps = [
-    "kernel:kernel",
-    "utils:utils",
-    "//third_party/bounds_checking_function:libsec_static",
+
   ]
-  if (enable_ohos_kernel_liteos_m_cppsupport) {
-    deps += [ "components/cppsupport:cppsupport" ]
-  }
-  if (enable_ohos_kernel_liteos_m_cpup) {
-    deps += [ "components/cpup:cpup" ]
-  }
-  if (enable_ohos_kernel_liteos_m_exchook) {
-    deps += [ "components/exchook:exchook" ]
-  }
-  if (enable_ohos_kernel_liteos_m_backtrace) {
-    deps += [ "components/backtrace:backtrace" ]
-  }
-  if (enable_ohos_kernel_liteos_m_fs) {
-    deps += [ "components/fs:fs" ]
-  }
-  if (enable_ohos_kernel_liteos_m_pm) {
-    deps += [ "components/power:pm" ]
-  }
-  if (enable_ohos_kernel_liteos_m_trace) {
-    deps += [ "components/trace:trace" ]
-  }
-  if (enable_ohos_kernel_liteos_m_kal) {
-    deps += [ "kal:kal" ]
-  }
-  if (enable_ohos_kernel_liteos_m_shell) {
-    deps += [ "components/shell:shell" ]
-  }
-  if (enable_ohos_kernel_liteos_m_test) {
-    deps += [ "testsuits:test" ]
-  }
-  if (enable_ohos_kernel_liteos_m_lwip) {
-    deps += [ ohos_kernel_liteos_m_lwip_path ]
-  }
-  if (enable_ohos_kernel_liteos_m_dynlink) {
-    deps += [ "components/dynlink:dynlink" ]
-  }
+
 }

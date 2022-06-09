@@ -56,7 +56,12 @@ static CHIP_ERROR CmdAppServerHelp(int argc, char ** argv)
 static CHIP_ERROR CmdAppServerStart(int argc, char ** argv)
 {
     // Init ZCL Data Model and CHIP App Server
-    chip::Server::GetInstance().Init(nullptr, sServerPortOperational, sServerPortCommissioning);
+    static chip::CommonCaseDeviceServerInitParams initParams;
+    (void) initParams.InitializeStaticResourcesBeforeServerInit();
+    initParams.operationalServicePort        = sServerPortOperational;
+    initParams.userDirectedCommissioningPort = sServerPortCommissioning;
+
+    chip::Server::GetInstance().Init(initParams);
 
     // Initialize device attestation config
     SetDeviceAttestationCredentialsProvider(Examples::GetExampleDACProvider());
@@ -128,9 +133,15 @@ static bool PrintServerSession(void * context, SessionHandle & session)
         break;
     }
 
-    case Session::SessionType::kGroup: {
-        GroupSession * groupSession = session->AsGroupSession();
-        streamer_printf(streamer_get(), "session type=GROUP id=0x%04x fabricIdx=%d\r\n", groupSession->GetGroupId(),
+    case Session::SessionType::kGroupIncoming: {
+        IncomingGroupSession * groupSession = session->AsIncomingGroupSession();
+        streamer_printf(streamer_get(), "session type=GROUP INCOMING id=0x%04x fabricIdx=%d\r\n", groupSession->GetGroupId(),
+                        groupSession->GetFabricIndex());
+        break;
+    }
+    case Session::SessionType::kGroupOutgoing: {
+        OutgoingGroupSession * groupSession = session->AsOutgoingGroupSession();
+        streamer_printf(streamer_get(), "session type=GROUP OUTGOING id=0x%04x fabricIdx=%d\r\n", groupSession->GetGroupId(),
                         groupSession->GetFabricIndex());
         break;
     }
@@ -161,8 +172,9 @@ static CHIP_ERROR CmdAppServerClusters(int argc, char ** argv)
 
     for (int i = 0; i < emberAfEndpointCount(); i++)
     {
-        EndpointId endpoint   = emberAfEndpointFromIndex(i);
-        uint16_t clusterCount = emberAfClusterCount(endpoint, server);
+        EndpointId endpoint = emberAfEndpointFromIndex(i);
+
+        uint8_t clusterCount = emberAfClusterCount(endpoint, server);
 
         streamer_printf(streamer_get(), "Endpoint %d:\r\n", endpoint);
 

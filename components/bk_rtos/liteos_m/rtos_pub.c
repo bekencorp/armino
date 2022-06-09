@@ -464,6 +464,7 @@ bk_err_t rtos_deinit_semaphore(beken_semaphore_t *semaphore )
     }
 
     uwRet = LOS_SemDelete(((LosSemCB *)*semaphore)->semID);
+    *semaphore = (beken_semaphore_t) NULL;
     if (uwRet == LOS_OK) {
         return kNoErr;
     } else if (uwRet == LOS_ERRNO_SEM_INVALID) {
@@ -678,7 +679,7 @@ bk_err_t rtos_push_to_queue_front( beken_queue_t *queue, void *msg_ptr, uint32_t
         return kParamErr;
     }
     uwBufferSize = (uint32_t)(pstQueue->queueSize - sizeof(uint32_t));
-    uwRet = LOS_QueueWriteHead((uint32_t)pstQueue->queueID, (void *)msg_ptr, uwBufferSize, timeout);
+    uwRet = LOS_QueueWriteHeadCopy((uint32_t)pstQueue->queueID, (void *)msg_ptr, uwBufferSize, timeout);
     if (uwRet == LOS_OK) {
         return kNoErr;
     } else if (uwRet == LOS_ERRNO_QUEUE_INVALID || uwRet == LOS_ERRNO_QUEUE_NOT_CREATE) {
@@ -961,7 +962,7 @@ bk_err_t rtos_start_timer(beken_timer_t *timer)
     }
 
     UINTPTR intSave = LOS_IntLock();
-    pstSwtmr = (SWTMR_CTRL_S *)timer;
+    pstSwtmr = (SWTMR_CTRL_S *)timer->handle;
     uwRet = LOS_SwtmrStart(pstSwtmr->usTimerID);
     LOS_IntRestore(intSave);
     if (LOS_OK == uwRet) {

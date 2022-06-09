@@ -330,6 +330,30 @@ bk_err_t bk_uart_disable_rx(uart_id_t id);
 bk_err_t bk_uart_disable_tx(uart_id_t id);
 
 /**
+ * @brief     Just set UART RX enable/disable, doesn't set pin
+ *
+ * @param id UART id
+ * @param enable: true, enable, flase disable
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_uart_set_enable_rx(uart_id_t id, bool enable);
+
+/**
+ * @brief     Just set UART TX enable/disable, doesn't set pin
+ *
+ * @param id UART id
+ * @param enable: true, enable, flase disable
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_uart_set_enable_tx(uart_id_t id, bool enable);
+
+/**
  * @brief     Enable UART software fifo
  *
  * @param id UART id

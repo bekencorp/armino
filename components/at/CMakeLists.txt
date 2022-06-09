@@ -9,6 +9,7 @@ if (CONFIG_AT_CMD)
 		"src/at_common.c"
 		"src/ble_at_command.c"
 		"src/video_at_command.c"
+		"src/wifi_at_command.c"
 		)
 endif()
 

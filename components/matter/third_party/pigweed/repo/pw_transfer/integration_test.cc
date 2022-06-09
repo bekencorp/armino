@@ -1,4 +1,4 @@
-// Copyright 2021 The Pigweed Authors
+// Copyright 2022 The Pigweed Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not
 // use this file except in compliance with the License. You may obtain a copy of
@@ -16,14 +16,17 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "pw_assert/check.h"
 #include "pw_bytes/array.h"
 #include "pw_log/log.h"
 #include "pw_rpc/integration_testing.h"
+#include "pw_rpc_system_server/rpc_server.h"
 #include "pw_status/status.h"
 #include "pw_sync/binary_semaphore.h"
 #include "pw_thread_stl/options.h"
@@ -35,18 +38,113 @@ namespace {
 
 using namespace std::chrono_literals;
 
-// TODO(hepler): Use more iterations when the pw_transfer synchronization issues
-//     that make this flaky are fixed.
-constexpr int kIterations = 1;
+constexpr int kIterations = 5;
 
 constexpr auto kData512 = bytes::Initialized<512>([](size_t i) { return i; });
 constexpr auto kData8192 = bytes::Initialized<8192>([](size_t i) { return i; });
+constexpr auto kDataHdlcEscape = bytes::Initialized<8192>(0x7e);
 
 std::filesystem::path directory;
 
-// Reads the file that represents the transfer with the specific ID.
-std::string GetContent(uint32_t transfer_id) {
-  std::ifstream stream(directory / std::to_string(transfer_id),
+class Bernoulli {
+ public:
+  Bernoulli(uint16_t seed) : state_(seed) {}
+  bool TrueWithProbability(uint32_t percent) {
+    // Note that this needs to be evaluated in uint32_t.
+    return Sample() * static_cast<uint32_t>(100) <
+           percent * std::numeric_limits<uint16_t>::max();
+  }
+
+ private:
+  uint16_t Sample() { return state_ = LfsrXorShift16(state_); }
+
+  static uint16_t LfsrXorShift16(uint16_t start_state) {
+    uint16_t state_ = start_state;
+    do {
+      state_ ^= state_ >> 7;
+      state_ ^= state_ << 9;
+      state_ ^= state_ >> 13;
+    } while (state_ == start_state);
+    return state_;
+  }
+
+  uint16_t state_;
+};
+
+// Applies aggression to a stream of packets: drops packets, reorders packets,
+// duplicates packets.
+class LossyChannel : public rpc::integration_test::ChannelManipulator {
+ public:
+  LossyChannel(const char* name, uint16_t seed) : name_(name), rng_(seed) {}
+  virtual ~LossyChannel() {}
+
+  // New packets are pushed into the queue. The modifier must copy the packet.
+  Status ProcessAndSend(ConstByteSpan packet) override {
+    queue_.push_back(std::vector<std::byte>(packet.begin(), packet.end()));
+    ApplyChaos();
+    Status status;
+
+    // Dump out queued packets until an error is encountered.
+    do {
+      status = Deque();
+    } while (status.ok());
+    return OkStatus();
+  }
+
+  Status Deque() {
+    if (queue_.empty()) {
+      return Status::ResourceExhausted();
+    }
+    // Potentially drop a packet.
+    // TODO(amontanez): Try to get this working at 10%.
+    if (rng_.TrueWithProbability(2)) {
+      PW_LOG_DEBUG("Dropping packet on %s", name_);
+      return Status::ResourceExhausted();
+    }
+
+    // If packets are left, send it along.
+    if (queue_.empty()) {
+      return Status::ResourceExhausted();
+    }
+
+    std::vector<std::byte> packet = queue_.front();
+    queue_.pop_front();
+
+    return send_packet(ConstByteSpan(packet.data(), packet.size()));
+  }
+
+ private:
+  void ApplyChaos() {
+    if (rng_.TrueWithProbability(10)) {
+      SendReorderedPacket();
+    }
+    if (rng_.TrueWithProbability(10)) {
+      DuplicateTopPacket();
+    }
+    if (rng_.TrueWithProbability(10)) {
+      DropTopPacket();
+    }
+  }
+
+  void SendReorderedPacket() {
+    // TODO(amontanez): Implement.
+  }
+
+  void DuplicateTopPacket() {
+    // TODO(amontanez): Implement.
+  }
+
+  void DropTopPacket() {
+    // TODO(amontanez): Implement.
+  }
+  const char* name_;
+  std::deque<std::vector<std::byte>> queue_;
+  Bernoulli rng_;
+};
+
+// Reads the file that represents the transfer resource with the specific ID.
+std::string GetContent(uint32_t resource_id) {
+  std::ifstream stream(directory / std::to_string(resource_id),
                        std::ios::binary | std::ios::ate);
   std::string contents(stream.tellg(), '\0');
 
@@ -83,21 +181,28 @@ class TransferIntegration : public ::testing::Test {
                 transfer_thread_,
                 256),
         test_server_client_(rpc::integration_test::client(),
-                            rpc::integration_test::kChannelId) {
+                            rpc::integration_test::kChannelId),
+        ingress_modifier_("ingress", 0x98a4),
+        egress_modifier_("egress", 0x6d19) {
     ClearFiles();
+    pw::rpc::integration_test::SetIngressChannelManipulator(&ingress_modifier_);
+    pw::rpc::integration_test::SetEgressChannelManipulator(&egress_modifier_);
   }
 
   ~TransferIntegration() {
     ClearFiles();
     transfer_thread_.Terminate();
     system_thread_.join();
+    pw::rpc::integration_test::SetIngressChannelManipulator(nullptr);
+    pw::rpc::integration_test::SetEgressChannelManipulator(nullptr);
   }
 
-  // Sets the content of a transfer ID and returns a MemoryReader for that data.
+  // Sets the content of a transfer resource and returns a MemoryReader for that
+  // data.
   template <typename T>
-  void SetContent(uint32_t transfer_id, const T& content) {
+  void SetContent(uint32_t resource_id, const T& content) {
     const ConstByteSpan data = AsByteSpan(content);
-    std::ofstream stream(directory / std::to_string(transfer_id),
+    std::ofstream stream(directory / std::to_string(resource_id),
                          std::ios::binary);
     PW_CHECK(
         stream.write(reinterpret_cast<const char*>(data.data()), data.size()));
@@ -129,10 +234,10 @@ class TransferIntegration : public ::testing::Test {
   }
 
   // Checks that a write transfer succeeded and that the written contents match.
-  void ExpectWriteData(uint32_t transfer_id, ConstByteSpan expected) {
+  void ExpectWriteData(uint32_t resource_id, ConstByteSpan expected) {
     ASSERT_EQ(WaitForCompletion(), OkStatus());
 
-    const std::string written = GetContent(transfer_id);
+    const std::string written = GetContent(resource_id);
     ASSERT_EQ(expected.size(), written.size());
 
     ConstByteSpan bytes = std::as_bytes(std::span(written));
@@ -175,13 +280,14 @@ class TransferIntegration : public ::testing::Test {
   Client client_;
 
   pw_rpc::raw::TestServer::Client test_server_client_;
+  pw::transfer::LossyChannel ingress_modifier_;
+  pw::transfer::LossyChannel egress_modifier_;
   Status last_status_ = Status::Unknown();
   sync::BinarySemaphore completed_;
 };
 
 TEST_F(TransferIntegration, Read_UnknownId) {
   SetContent(123, "hello");
-
   ASSERT_EQ(OkStatus(), client().Read(456, read_buffer_, OnCompletion()));
 
   EXPECT_EQ(Status::NotFound(), WaitForCompletion());
@@ -205,6 +311,7 @@ PW_TRANSFER_TEST_READ(SingleByte_1, "\0");
 PW_TRANSFER_TEST_READ(SingleByte_2, "?");
 PW_TRANSFER_TEST_READ(SmallData, "hunter2");
 PW_TRANSFER_TEST_READ(LargeData, kData512);
+PW_TRANSFER_TEST_READ(VeryLargeData, kData8192);
 
 TEST_F(TransferIntegration, Write_UnknownId) {
   constexpr std::byte kData[] = {std::byte{0}, std::byte{1}, std::byte{2}};
@@ -235,6 +342,8 @@ PW_TRANSFER_TEST_WRITE(SingleByte_1, "\0");
 PW_TRANSFER_TEST_WRITE(SingleByte_2, "?");
 PW_TRANSFER_TEST_WRITE(SmallData, "hunter2");
 PW_TRANSFER_TEST_WRITE(LargeData, kData512);
+PW_TRANSFER_TEST_WRITE(HdlcEscape, kDataHdlcEscape);
+PW_TRANSFER_TEST_WRITE(VeryLargeData, kData8192);
 
 }  // namespace
 }  // namespace pw::transfer

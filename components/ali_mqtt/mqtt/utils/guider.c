@@ -78,16 +78,17 @@ int _fill_conn_string(char *dst, int len, const char *fmt, ...)
     return 0;
 }
 
+
 void guider_print_conn_info(iotx_conn_info_pt conn)
 {
     log_debug("%s\n", "-----------------------------------------");
-    log_debug("%16s : %-s\n", "Host", conn->host_name);
+    log_debug("%16s : %s\n", "Host", conn->host_name);
     log_debug("%16s : %d\n",  "Port", conn->port);
-    log_debug("%16s : %-s\n", "UserName", conn->username);  /* tobe remove */
-    log_debug("%16s : %-s\n", "PassWord", conn->password);  /* tobe remove */
-    log_debug("%16s : %-s\n", "ClientID", conn->client_id);
+    // log_debug("%16s : %s\n", "UserName", conn->username);  /* tobe remove */
+    // log_debug("%16s : %s\n", "PassWord", conn->password);  /* tobe remove */
+    log_debug("%16s : %s.\n", "ClientID", conn->client_id);
     if (conn->pub_key) {
-        log_debug("%16s : %p ('%.16s ...')\n", "TLS PubKey", conn->pub_key, conn->pub_key);
+        log_debug("%16s : %p ('%16s ...').\n", "TLS PubKey", conn->pub_key, conn->pub_key);
     }
 
     log_debug("%s\n", "-----------------------------------------");
@@ -163,9 +164,11 @@ static void guider_get_url(char *buf, int len)
 static void guider_get_timestamp_str(char *buf, int len)
 {
     HAL_Snprintf(buf, len, "%s", GUIDER_DEFAULT_TS_STR);
+    // HAL_Snprintf(buf, len, "%d", rtos_get_time());
 
     return;
 }
+
 
 static SECURE_MODE guider_get_secure_mode(void)
 {
@@ -230,8 +233,8 @@ static char *guider_set_auth_req_str(char sign[], char ts[])
 
 int iotx_guider_authenticate(void)
 {
-    char                partner_id[PID_STRLEN_MAX + 16] = {0};
-    char                module_id[MID_STRLEN_MAX + 16] = {0};
+    // char                partner_id[PID_STRLEN_MAX + 16] = {0};
+    // char                module_id[MID_STRLEN_MAX + 16] = {0};
     char                guider_url[GUIDER_URL_LEN] = {0};
     SECURE_MODE         secure_mode = MODE_TLS_GUIDER;
     char                guider_sign[GUIDER_SIGN_LEN] = {0};
@@ -240,6 +243,7 @@ int iotx_guider_authenticate(void)
     iotx_device_info_pt dev = iotx_device_info_get();
     iotx_conn_info_pt   conn = iotx_conn_info_get();
     char               *req_str = NULL;
+    char               *mac_str = mqtt_get_mac_str();
     int                 gw = 0;
     int                 ext = 0;
 
@@ -253,7 +257,7 @@ int iotx_guider_authenticate(void)
     guider_get_timestamp_str(timestamp_str, sizeof(timestamp_str));
     // _calc_hmac_signature(guider_sign, sizeof(guider_sign), timestamp_str);
 
-    guider_print_dev_guider_info(dev, partner_id, module_id, guider_url, secure_mode,
+    guider_print_dev_guider_info(dev, "", "", guider_url, secure_mode,
                                  timestamp_str, guider_sign, NULL, NULL);
 
 #ifndef MQTT_DIRECT
@@ -297,10 +301,7 @@ int iotx_guider_authenticate(void)
     // _fill_conn_string(conn->password, sizeof(conn->password),
     //                   "%s",
     //                   guider_sign);
-    _fill_conn_string(conn->username, sizeof(conn->username),
-                      "aclsemi");
-    _fill_conn_string(conn->password, sizeof(conn->password),
-                      "v2F8YJqjw2BbZzJN");
+
 
 #else   /* MQTT_DIRECT */
 
@@ -322,23 +323,23 @@ int iotx_guider_authenticate(void)
 #endif
 
     _fill_conn_string(conn->client_id, sizeof(conn->client_id),
-                      "%s"
+                      "%s.%s"
                       "|securemode=%d"
 #if USING_SHA1_IN_HMAC
                       ",timestamp=%s,signmethod=" SHA_METHOD ",gw=%d" ",ext=%d"
 #else
                       ",timestamp=%s,signmethod=" MD5_METHOD ",gw=%d" ",ext=%d"
 #endif
-                      "%s"
-                      "%s"
+                      // "%s"
+                      // "%s"
                       "|"
-                      , dev->device_id
+                      , dev->device_id, mac_str
                       , secure_mode
                       , timestamp_str
                       , gw
                       , ext
-                      , partner_id
-                      , module_id
+                      // , partner_id
+                      // , module_id
                      );
 
     guider_print_conn_info(conn);

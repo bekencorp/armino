@@ -19,7 +19,7 @@
 
 #include <common/bk_err.h>
 #include "bk_list.h"
-#include "sdio_slave_utils.h"
+#include "sdio_utils.h"
 
 //LOG's
 typedef enum
@@ -76,17 +76,20 @@ typedef enum
 
 #define SDIO_MSG_QUEUE_NAME "sdio_queue"
 #define SDIO_MSG_QUEUE_COUNT (8)		//Temp value,exact value should be tested out.
+#define SDIO_CHAN_SEMAPHORE_COUNT (8)	//default semaphore count if APP supports buffer
 
 #define SDIO_CMD_INDEX_52	(52)
 #define SDIO_CMD_INDEX_53	(53)
 
 #define SDIO_MAX_BLOCK_SIZE (0x200)		//512 bytes per round
 
+//#define SDIO_IS_CHAN_SUPPORT_BUF (0)	//const value, dont change it
+
 typedef enum
 {
 	SDIO_CHAN_TX = 0,
 	SDIO_CHAN_RX,
-}CHAN_DIRECT_T;
+}chan_direct_t;
 
 typedef enum
 {
@@ -98,7 +101,7 @@ typedef enum
 	SDIO_CHAN_PLATFORM,
 	SDIO_CHAN_MAX_CNT
 #endif
-}SDIO_CHAN_ID_T;
+}sdio_chan_id_t;
 
 typedef enum
 {
@@ -116,7 +119,7 @@ typedef enum
 	SDIO_MSG_SYNC_WRITE,
 	SDIO_MSG_ASYNC_WRITE
 
-}SDIO_MSG_ID_T;
+}sdio_msg_id_t;
 
 typedef union
 {
@@ -127,7 +130,7 @@ typedef union
 	};
 
 	uint32_t v;
-}SDIO_CMD52_FUNC_ARG0_T;
+}sdio_cmd52_func_arg0_t;
 
 typedef union
 {
@@ -142,9 +145,9 @@ typedef union
 	};
 
 	uint32_t v;
-}SDIO_CMD53_ARG_T;
+}sdio_cmd53_arg_t;
 
-typedef bk_err_t (*SDIO_CHAN_CB_T)(SDIO_HEADER_PTR *head_p, SDIO_HEADER_PTR *tail_p, uint32_t count);
+typedef bk_err_t (*sdio_chan_cb_t)(sdio_node_ptr_t *head_p, sdio_node_ptr_t *tail_p, uint32_t count);
 
 typedef struct
 {
@@ -153,21 +156,21 @@ typedef struct
 	uint32_t buf_size;
 
 	//free list
-	SDIO_LIST_T free_list;
+	sdio_list_t free_list;
 	
 	//txing/rxing list
-	SDIO_LIST_T ongoing_list;
+	sdio_list_t ongoing_list;
 	//As SDIO each cycle read/write <= 512Bytes, transaction_len record has read/write how many bytes data addr in buffer
 	uint32_t transaction_len;
 
 	//tx/rx finish list
-	SDIO_LIST_T finish_list;
+	sdio_list_t finish_list;
 
 	//notify app:callback
-	SDIO_CHAN_CB_T cb;
+	sdio_chan_cb_t cb;
 	void *semaphore;
 	void *lock_p;
-}SDIO_CHAN_BUF_T;
+}sdio_chan_buf_t;
 
 typedef struct
 {
@@ -177,22 +180,22 @@ typedef struct
 	uint32 misc_reserve:24;
 
 #ifdef SDIO_BIDIRECT_CHANNEL_EN
-	SDIO_CHAN_BUF_T chan_buf[2];	//index 0:tx & index 1:rx
+	sdio_chan_buf_t chan_buf[2];	//index 0:tx & index 1:rx
 #else
-	SDIO_CHAN_BUF_T chan_buf[1];	//tx or rx
+	sdio_chan_buf_t chan_buf[1];	//tx or rx
 #endif
-}SDIO_CHAN_T;
+}sdio_chan_t;
 
 typedef struct
 {
-	SDIO_CHAN_T chan[SDIO_CHAN_MAX_CNT];
+	sdio_chan_t chan[SDIO_CHAN_MAX_CNT];
 	void *lock_p;
-}SDIO_MANAGE_T;
+}sdio_driver_t;
 
 typedef struct {
 	uint32_t id;
 	uint32_t param;
-} SDIO_MSG_T;
+} sdio_msg_t;
 
 //#define SDIO_MEM_DEBUG
 
@@ -338,7 +341,26 @@ bk_err_t bk_sdio_slave_driver_init(void);
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-bk_err_t bk_sdio_init_channel(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, uint32_t count, uint32_t size);
+bk_err_t bk_sdio_init_channel(sdio_chan_id_t chan_id, chan_direct_t direct, uint32_t count, uint32_t size);
+
+/**
+ * @brief	  Deinit a sdio channel.
+ *
+ * This API deinit a sdio channel.
+ *	 - Init a single list for buffers
+ *   - Create a mutex lock to protect concurrence operate link list
+ *
+ * @param chan_id	The selected chan id.
+ * @param direct	The channel used for TX data or RX data
+ *
+ * @attention
+ *
+ * @return
+ *	  - BK_OK: succeed
+ *	  - others: other errors.
+ */
+bk_err_t bk_sdio_deinit_channel(sdio_chan_id_t chan_id, chan_direct_t direct);
+
 /**
  * @brief	  Register the clalback function for sdio selected channel and direct.
  *
@@ -356,24 +378,9 @@ bk_err_t bk_sdio_init_channel(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, uint
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-bk_err_t bk_sdio_register_chan_cb(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, SDIO_CHAN_CB_T cb);
+bk_err_t bk_sdio_register_chan_cb(sdio_chan_id_t chan_id, chan_direct_t direct, sdio_chan_cb_t cb);
 
-bk_err_t bk_sdio_slave_sync_read(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p, SDIO_HEADER_PTR tail_p, uint32_t count);
-
-/**
- * @brief	  
- *
- * This API .
- *	 - 
- *	 - 
- *
- * @attention 1. 
- *
- * @return
- *	  - BK_OK: succeed
- *	  - others: other errors.
- */
-bk_err_t sdio_slave_async_read(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p, SDIO_HEADER_PTR tail_p, uint32_t count);
+bk_err_t bk_sdio_slave_sync_read(sdio_chan_id_t chan_id, sdio_node_ptr_t head_p, sdio_node_ptr_t tail_p, uint32_t count);
 
 /**
  * @brief	  
@@ -388,7 +395,22 @@ bk_err_t sdio_slave_async_read(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p, S
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-bk_err_t bk_sdio_slave_sync_write(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p, SDIO_HEADER_PTR tail_p, uint32_t count);
+bk_err_t sdio_slave_async_read(sdio_chan_id_t chan_id, sdio_node_ptr_t head_p, sdio_node_ptr_t tail_p, uint32_t count);
+
+/**
+ * @brief	  
+ *
+ * This API .
+ *	 - 
+ *	 - 
+ *
+ * @attention 1. 
+ *
+ * @return
+ *	  - BK_OK: succeed
+ *	  - others: other errors.
+ */
+bk_err_t bk_sdio_slave_sync_write(sdio_chan_id_t chan_id, sdio_node_ptr_t head_p, sdio_node_ptr_t tail_p, uint32_t count);
 
 
 /**
@@ -404,7 +426,7 @@ bk_err_t bk_sdio_slave_sync_write(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-bk_err_t sdio_slave_async_write(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p, SDIO_HEADER_PTR tail_p, uint32_t count);
+bk_err_t sdio_slave_async_write(sdio_chan_id_t chan_id, sdio_node_ptr_t head_p, sdio_node_ptr_t tail_p, uint32_t count);
 
 /**
  * @brief	  Push the data use finish link list to free list.
@@ -426,10 +448,10 @@ bk_err_t sdio_slave_async_write(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p, 
  *	  - others: other errors.
  */
 bk_err_t bk_sdio_chan_push_free_list(
-										SDIO_CHAN_ID_T chan_id, 
-										CHAN_DIRECT_T direct,
-										SDIO_HEADER_PTR head_p,
-										SDIO_HEADER_PTR tail_p,
+										sdio_chan_id_t chan_id, 
+										chan_direct_t direct,
+										sdio_node_ptr_t head_p,
+										sdio_node_ptr_t tail_p,
 										uint32_t count
 										);
 
@@ -451,27 +473,27 @@ bk_err_t bk_sdio_chan_push_free_list(
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-bk_err_t bk_sdio_chan_pop_free_node(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, SDIO_HEADER_PTR *node_p, uint32_t *size_p);
+bk_err_t bk_sdio_chan_pop_free_node(sdio_chan_id_t chan_id, chan_direct_t direct, sdio_node_ptr_t *node_p, uint32_t *size_p);
 
 void sdio_chan_push_ongoing_node(
-										SDIO_CHAN_ID_T chan_id, 
-										CHAN_DIRECT_T direct,
-										SDIO_HEADER_PTR head_p,
-										SDIO_HEADER_PTR tail_p,
+										sdio_chan_id_t chan_id, 
+										chan_direct_t direct,
+										sdio_node_ptr_t head_p,
+										sdio_node_ptr_t tail_p,
 										uint32_t count
 										);
 
-bk_err_t sdio_chan_pop_ongoing_node(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, SDIO_HEADER_PTR *head_p);
+bk_err_t sdio_chan_pop_ongoing_node(sdio_chan_id_t chan_id, chan_direct_t direct, sdio_node_ptr_t *head_p);
 
 bk_err_t sdio_chan_push_finish_list(
-										SDIO_CHAN_ID_T chan_id, 
-										CHAN_DIRECT_T direct,
-										SDIO_HEADER_PTR head_p,
-										SDIO_HEADER_PTR tail_p,
+										sdio_chan_id_t chan_id, 
+										chan_direct_t direct,
+										sdio_node_ptr_t head_p,
+										sdio_node_ptr_t tail_p,
 										uint32_t count
 										);
 
-bk_err_t sdio_chan_pop_finish_node(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, SDIO_HEADER_PTR *node_p);
+bk_err_t sdio_chan_pop_finish_node(sdio_chan_id_t chan_id, chan_direct_t direct, sdio_node_ptr_t *node_p);
 
 /**
  * @brief	  Log out the SDIO REGs value without the "Data Read Reg(REG0xC)".
@@ -499,7 +521,7 @@ void bk_sdio_driver_dump_sdio_regs(void);
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-bk_err_t sdio_slave_deinit(void);
+bk_err_t sdio_slave_driver_deinit(void);
 
 
 #endif // _SDIO_H_

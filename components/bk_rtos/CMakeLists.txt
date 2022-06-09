@@ -2,17 +2,6 @@ set(incs
 	include
 	)
 
-#TODO OS use different flags
-
-# set(srcs
-# 	freertos/v9/rtos_pub.c
-# 	freertos/v9/rtos_debug.c
-# 	freertos/mem_arch.c
-# 	freertos/platform_stub.c
-# 	freertos/str_arch.c
-# 	)
-
-# armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_common)
 
 if(CONFIG_FREERTOS)
 	list(APPEND incs freertos)
@@ -21,7 +10,7 @@ if(CONFIG_FREERTOS)
 			freertos/v9/rtos_pub.c
 			freertos/v9/rtos_debug.c
 			freertos/mem_arch.c
-			freertos/platform_stub.c
+			platform_stub.c
 			freertos/str_arch.c
 			)
 	elseif(CONFIG_FREERTOS_V10)
@@ -29,7 +18,7 @@ if(CONFIG_FREERTOS)
 			freertos/v10/rtos_pub.c
 			freertos/v10/rtos_debug.c
 			freertos/mem_arch.c
-			freertos/platform_stub.c
+			platform_stub.c
 			freertos/str_arch.c
 			freertos/FreeRTOS_tick_config.c
 			freertos/blinky_demo/main_blinky.c
@@ -63,7 +52,7 @@ elseif(CONFIG_LITEOS_M)
 	list(APPEND incs liteos_m)
 	set(srcs
 		liteos_m/os_clock.c
-		liteos_m/platform_stub.c
+		platform_stub.c
 		liteos_m/port.c
 		liteos_m/rtos_pub.c
 		liteos_m/mem_arch.c
@@ -75,7 +64,7 @@ elseif(CONFIG_LITEOS_M_V3)
 	list(APPEND incs liteos_m_v3)
 	set(srcs
 		liteos_m_v3/os_clock.c
-		liteos_m_v3/platform_stub.c
+		platform_stub.c
 		liteos_m_v3/port.c
 		liteos_m_v3/rtos_pub.c
 		liteos_m_v3/mem_arch.c

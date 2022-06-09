@@ -1,0 +1,5 @@
+menu "DEMOS_CONFIG"
+	config I2S_TEST
+		bool "Enable I2S Test"
+		default n
+endmenu

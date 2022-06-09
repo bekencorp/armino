@@ -33,6 +33,18 @@ namespace DataModel {
  * This class provides an iteratable decoder of list items within TLV payloads
  * such that no memory has to be provided ahead of time to store the entirety of the decoded
  * list contents.
+ *
+ * Typical use of a DecodableList looks like this:
+ *
+ *    auto iter = list.begin();
+ *    while (iter.Next()) {
+ *        auto & entry = iter.GetValue();
+ *        // Do whatever with entry
+ *    }
+ *    CHIP_ERROR err = iter.GetStatus();
+ *    // If err is failure, decoding failed somewhere along the way.  Some valid
+ *    // entries may have been processed already.
+ *
  */
 template <typename T>
 class DecodableList
@@ -134,10 +146,8 @@ public:
             {
                 return CHIP_NO_ERROR;
             }
-            else
-            {
-                return mStatus;
-            }
+
+            return mStatus;
         }
 
     private:
@@ -155,6 +165,15 @@ public:
 
             if (mStatus == CHIP_NO_ERROR)
             {
+                //
+                // Re-construct mValue to reset its state back to cluster object defaults.
+                // This is especially important when decoding successive list elements
+                // that do not contain all of the fields for a given struct because
+                // they are marked optional/fabric-sensitive. Without this re-construction,
+                // data from previous decode attempts will continue to linger and give
+                // an incorrect view of the state as seen from a client.
+                //
+                mValue  = T();
                 mStatus = DataModel::Decode(mReader, mValue);
             }
 
@@ -185,10 +204,8 @@ public:
             *size = 0;
             return CHIP_NO_ERROR;
         }
-        else
-        {
-            return mReader.CountRemainingInContainer(size);
-        }
+
+        return mReader.CountRemainingInContainer(size);
     }
 
     CHIP_ERROR Decode(TLV::TLVReader & reader)

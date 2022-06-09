@@ -34,9 +34,11 @@
 #define FLASH_BYTES_CNT                  32
 #define FLASH_ADDRESS_MASK               0x1f
 #define FLASH_ERASE_SECTOR_MASK          0xFFF000
+#define FLASH_SECTOR_SIZE_MASK           0x000FFF
 #define FLASH_SECTOR_SIZE                0x1000 /* each sector has 4K bytes */
 #define FLASH_SECTOR_SIZE_OFFSET         12
 #define FLASH_PAGE_SIZE                  256 /* each page has 256 bytes */
+#define FLASH_DIV_VALUE_TWO              1
 
 typedef struct {
 	uint32_t flash_id;
@@ -55,4 +57,3 @@ typedef struct {
 	uint8_t coutinuous_read_mode_bits_val;
 	uint8_t mode_sel;
 } flash_config_t;
-

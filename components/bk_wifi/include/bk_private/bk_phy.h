@@ -30,7 +30,10 @@ void cmd_rfcali_cfg_tssi_g(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 void cmd_rfcali_cfg_tssi_b(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 void cmd_rfcali_show_data(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 void cmd_cali(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+#if CONFIG_PSRAM
 void cmd_psram(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
 
 void tx_evm_cmd_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 void rx_sens_cmd_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -50,6 +53,9 @@ int do_rx_sensitivity(void *cmdtp, int flag, int argc, char *const argv[]);
 #define LA_SAMPLE_TEST 1    
 void cmd_la_sample_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
+UINT32 bk7011_set_sample_mac_out_for_ate(UINT32 sample_len);
+void bk7011_clear_sample_mac_out_for_ate(void);
+UINT32 bk7011_get_sample_mac_out_for_ate(UINT8 **buf, uint32_t *len);
 
 #ifdef __cplusplus
 }

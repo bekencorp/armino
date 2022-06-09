@@ -19,12 +19,19 @@ extern void cli_aud_cp0_psram_init_cmd(char *pcWriteBuffer, int xWriteBufferLen,
 extern void cli_aud_cp0_mic_to_pcm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void cli_aud_cp0_sdcard_to_dac_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
+/* audio transfer demo */
+extern void cli_cp0_audio_transfer_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+extern void cli_aud_cp0_signal_to_dual_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+
 #define AUD_CP0_CMD_CNT (sizeof(s_aud_cp0_commands) / sizeof(struct cli_command))
 static const struct cli_command s_aud_cp0_commands[] = {
 	{"aud_cp0_adc_to_sd_test", "aud_cp0_adc_to_sd_test {start|stop}", cli_aud_cp0_adc_to_sd_test_cmd},
 	{"aud_cp0_psram_init", "aud_cp0_psram_init {start|stop}", cli_aud_cp0_psram_init_cmd},
 	{"aud_cp0_mic_to_pcm", "aud_cp0_mic_to_pcm {start|stop}", cli_aud_cp0_mic_to_pcm_cmd},
 	{"aud_cp0_sdcard_play_test", "aud_cp0_sdcard_play_test{start}", cli_aud_cp0_sdcard_to_dac_test_cmd},
+	{"aud_cp0_audio_transfer_test", "aud_cp0_audio_transfer_test{start|stop}", cli_cp0_audio_transfer_cmd},
+	{"aud_cp0_signal_to_dual_test", "aud_cp0_signal_to_dual_test", cli_aud_cp0_signal_to_dual_test_cmd},
 };
 
 int cli_aud_cp0_init(void)

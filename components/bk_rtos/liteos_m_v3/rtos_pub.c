@@ -465,6 +465,7 @@ bk_err_t rtos_deinit_semaphore(beken_semaphore_t *semaphore )
     }
 
     uwRet = LOS_SemDelete(((LosSemCB *)*semaphore)->semID);
+    *semaphore = (beken_semaphore_t) NULL;
     if (uwRet == LOS_OK) {
         return kNoErr;
     } else if (uwRet == LOS_ERRNO_SEM_INVALID) {
@@ -926,7 +927,7 @@ bk_err_t rtos_init_timer(beken_timer_t *timer,
     UINT8 mode;
 
 	timer->handle = NULL;
-	
+
     if (NULL == func) {
 		ret = kParamErr;
 		goto tinit_exit;
@@ -940,11 +941,13 @@ bk_err_t rtos_init_timer(beken_timer_t *timer,
     if (LOS_OK != LOS_SwtmrCreate(1, mode, (SWTMR_PROC_FUNC)timer_callback1, &usSwTmrID, (uint32_t)(UINTPTR)timer,
         osTimerRousesAllow, osTimerAlignIgnore)) {
 		ret = kGeneralErr;
+        RTOS_LOGI("rtos_init_timer: Err LOSCFG_BASE_CORE_SWTMR_ALIGN == 1.\n");
 		goto tinit_exit;
     }
 #else
     if (LOS_OK != LOS_SwtmrCreate(1, mode, (SWTMR_PROC_FUNC)timer_callback1, &usSwTmrID, (uint32_t)(UINTPTR)timer)) {
 		ret = kGeneralErr;
+        RTOS_LOGI("rtos_init_timer: Err.\n");
 		goto tinit_exit;
     }
 #endif
@@ -971,7 +974,7 @@ bk_err_t rtos_start_timer(beken_timer_t *timer)
     }
 
     UINTPTR intSave = LOS_IntLock();
-    pstSwtmr = (SWTMR_CTRL_S *)timer;
+    pstSwtmr = (SWTMR_CTRL_S *)timer->handle;
     uwRet = LOS_SwtmrStart(pstSwtmr->usTimerID);
     LOS_IntRestore(intSave);
     if (LOS_OK == uwRet) {
@@ -1211,6 +1214,15 @@ void rtos_enable_int(uint32_t int_level)
 {
 	port_enable_interrupts_flag(int_level);
 }
+uint32_t rtos_disable_mie_int(void)
+{
+    return port_disable_mie_flag();
+}
+
+void rtos_enable_mie_int(uint32_t int_level)
+{
+	port_enable_mie_flag(int_level);
+}
 
 void rtos_stop_int(void)
 {
@@ -1249,12 +1261,11 @@ void rtos_dump_task_list(void)
 
 size_t rtos_get_free_heap_size(void)
 {	
-	//TODO
-	// UINT32 OsMemGetFreeSize(VOID *pool);
-	
-	//OsMemInfoPrint(m_aucSysMem0);
+	UINT32 OsMemGetFreeSize(VOID *pool);
+
+	OsMemInfoPrint(m_aucSysMem0);
 	LOS_MemFreeNodeShow(m_aucSysMem0);
-	return 0; // OsMemGetFreeSize(m_aucSysMem0);
+	return OsMemGetFreeSize(m_aucSysMem0);
 }
 // eof
 

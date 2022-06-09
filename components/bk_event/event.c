@@ -500,7 +500,7 @@ bk_err_t bk_event_init(void)
 	}
 
 	ret = rtos_create_thread(&s_event_task, EVENT_TASK_PRIORITY, "event",
-							 (beken_thread_function_t)event_task, EVENT_TASK_STACK_SIZE, 0);
+							 (beken_thread_function_t)event_task, EVENT_TASK_STACK_SIZE*2, 0);
 	if (kNoErr != ret) {
 		rtos_deinit_queue(&s_event_queue);
 		s_event_queue = NULL;

@@ -1,0 +1,5 @@
+menu "DEMOS_CONFIG"
+	config AUDIO_TEST
+		bool "Enable AUDIO Test"
+		default n
+endmenu

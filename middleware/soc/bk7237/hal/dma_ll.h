@@ -49,11 +49,11 @@ static inline uint32_t dma_ll_dev_to_req_mux(uint32 req_mux)
     {
         CASE_DEV(DTCM);
         CASE_DEV(UART1);
-        CASE_DEV(GSPI1);
+        CASE_DEV(GSPI0);
         CASE_DEV(SDIO);
         CASE_DEV(UART2);
         CASE_DEV(UART3);
-        CASE_DEV(GSPI2);
+        CASE_DEV(GSPI1);
         CASE_DEV(USB);
         CASE_DEV(AUDIO);
         CASE_DEV(I2S);

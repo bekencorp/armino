@@ -92,6 +92,7 @@ static volatile spi_id_t s_current_spi_dma_wr_id;
 static volatile spi_id_t s_current_spi_dma_rd_id;
 static spi_callback_t s_spi_rx_isr[SOC_SPI_UNIT_NUM] = {NULL};
 static spi_callback_t s_spi_tx_finish_isr[SOC_SPI_UNIT_NUM] = {NULL};
+static spi_callback_t s_spi_rx_finish_isr[SOC_SPI_UNIT_NUM] = {NULL};
 
 static void spi_isr(void);
 #if (SOC_SPI_UNIT_NUM > 1)
@@ -133,9 +134,11 @@ static void spi_clock_enable(spi_id_t id)
 		case SPI_ID_0:
 			sys_drv_dev_clk_pwr_up(CLK_PWR_ID_SPI_1, CLK_PWR_CTRL_PWR_UP);
 			break;
+#if (SOC_SPI_UNIT_NUM > 1)
 		case SPI_ID_1:
 			sys_drv_dev_clk_pwr_up(CLK_PWR_ID_SPI_2, CLK_PWR_CTRL_PWR_UP);
 			break;
+#endif
 		default:
 			break;
 	}
@@ -148,9 +151,11 @@ static void spi_clock_disable(spi_id_t id)
 		case SPI_ID_0:
 			sys_drv_dev_clk_pwr_up(CLK_PWR_ID_SPI_1, CLK_PWR_CTRL_PWR_DOWN);
 			break;
+#if (SOC_SPI_UNIT_NUM > 1)
 		case SPI_ID_1:
 			sys_drv_dev_clk_pwr_up(CLK_PWR_ID_SPI_2, CLK_PWR_CTRL_PWR_DOWN);
 			break;
+#endif
 		default:
 			break;
 	}
@@ -163,9 +168,11 @@ static void spi_interrupt_enable(spi_id_t id)
 		case SPI_ID_0:
 			sys_drv_int_enable(SPI_INTERRUPT_CTRL_BIT);
 			break;
+#if (SOC_SPI_UNIT_NUM > 1)
 		case SPI_ID_1:
 			sys_drv_int_enable(SPI1_INTERRUPT_CTRL_BIT);
 			break;
+#endif
 		default:
 			break;
 	}
@@ -178,9 +185,11 @@ static void spi_interrupt_disable(spi_id_t id)
 		case SPI_ID_0:
 			sys_drv_int_disable(SPI_INTERRUPT_CTRL_BIT);
 			break;
+#if (SOC_SPI_UNIT_NUM > 1)
 		case SPI_ID_1:
 			sys_drv_int_disable(SPI1_INTERRUPT_CTRL_BIT);
 			break;
+#endif
 		default:
 			break;
 	}
@@ -271,6 +280,9 @@ static void spi_dma_tx_finish_handler(dma_id_t id)
 static void spi_dma_rx_finish_handler(dma_id_t id)
 {
 	SPI_LOGI("[%s] spi_id:%d\r\n", __func__, s_current_spi_dma_rd_id);
+	if (s_spi_rx_finish_isr[s_current_spi_dma_rd_id].callback){
+		s_spi_rx_finish_isr[s_current_spi_dma_rd_id].callback(s_current_spi_dma_rd_id,s_spi_rx_finish_isr[s_current_spi_dma_rd_id].param);
+	} 
 	if (s_spi[s_current_spi_dma_rd_id].is_rx_blocked) {
 		rtos_set_semaphore(&s_spi[s_current_spi_dma_rd_id].rx_sema);
 		s_spi[s_current_spi_dma_rd_id].is_rx_blocked = false;
@@ -386,6 +398,7 @@ bk_err_t bk_spi_init(spi_id_t id, const spi_config_t *config)
 	return BK_OK;
 }
 
+
 bk_err_t bk_spi_deinit(spi_id_t id)
 {
 	SPI_RETURN_ON_NOT_INIT();
@@ -464,6 +477,17 @@ bk_err_t bk_spi_register_rx_isr(spi_id_t id, spi_isr_t isr, void *param)
 	return BK_OK;
 }
 
+bk_err_t bk_spi_register_rx_finish_isr(spi_id_t id, spi_isr_t isr, void *param)
+{
+	SPI_RETURN_ON_INVALID_ID(id);
+	uint32_t int_level = rtos_disable_int();
+	s_spi_rx_finish_isr[id].callback = isr;
+	s_spi_rx_finish_isr[id].param = param;
+	rtos_enable_int(int_level);
+	return BK_OK;
+}
+
+
 bk_err_t bk_spi_register_tx_finish_isr(spi_id_t id, spi_isr_t isr, void *param)
 {
 	SPI_RETURN_ON_INVALID_ID(id);
@@ -473,6 +497,38 @@ bk_err_t bk_spi_register_tx_finish_isr(spi_id_t id, spi_isr_t isr, void *param)
 	rtos_enable_int(int_level);
 	return BK_OK;
 }
+
+bk_err_t bk_spi_unregister_rx_isr(spi_id_t id)
+{
+	SPI_RETURN_ON_INVALID_ID(id);
+	uint32_t int_level = rtos_disable_int();
+	s_spi_rx_isr[id].callback = NULL;
+	s_spi_rx_isr[id].param = NULL;
+	rtos_enable_int(int_level);
+	return BK_OK;
+}
+
+bk_err_t bk_spi_unregister_rx_finish_isr(spi_id_t id)
+{
+	SPI_RETURN_ON_INVALID_ID(id);
+	uint32_t int_level = rtos_disable_int();
+	s_spi_rx_finish_isr[id].callback = NULL;
+	s_spi_rx_finish_isr[id].param = NULL;
+	rtos_enable_int(int_level);
+	return BK_OK;
+}
+
+
+bk_err_t bk_spi_unregister_tx_finish_isr(spi_id_t id)
+{
+	SPI_RETURN_ON_INVALID_ID(id);
+	uint32_t int_level = rtos_disable_int();
+	s_spi_tx_finish_isr[id].callback = NULL;
+	s_spi_tx_finish_isr[id].param = NULL;
+	rtos_enable_int(int_level);
+	return BK_OK;
+}
+
 
 bk_err_t bk_spi_write_bytes(spi_id_t id, const void *data, uint32_t size)
 {
@@ -565,6 +621,85 @@ bk_err_t bk_spi_transmit(spi_id_t id, const void *tx_data, uint32_t tx_size, voi
 
 	return BK_OK;
 }
+
+
+bk_err_t bk_spi_clr_tx(spi_id_t id)
+{
+    spi_hal_disable_tx_fifo_int(&s_spi[id].hal);
+    spi_hal_disable_tx(&s_spi[id].hal);
+    return BK_OK;
+}
+
+bk_err_t bk_spi_clr_rx(spi_id_t id)
+{
+    spi_hal_disable_rx(&s_spi[id].hal);
+    spi_hal_disable_tx_fifo_int(&s_spi[id].hal);
+    spi_hal_disable_rx_fifo_int(&s_spi[id].hal);
+    s_spi[id].rx_size = 0;
+    s_spi[id].rx_offset = 0;
+    s_spi[id].rx_buf = NULL;
+    return BK_OK;
+}
+
+
+bk_err_t bk_spi_write_bytes_async(spi_id_t id, const void *data, uint32_t size)
+{
+	SPI_RETURN_ON_NOT_INIT();
+	SPI_RETURN_ON_INVALID_ID(id);
+	SPI_RETURN_ON_ID_NOT_INIT(id);
+	BK_RETURN_ON_NULL(data);
+
+	uint32_t int_level = rtos_disable_int();
+	s_spi[id].tx_buf = (uint8_t *)data;
+	s_spi[id].tx_size = size;
+	s_spi[id].is_sw_tx_finished = false;
+	s_spi[id].is_tx_blocked = false;
+	s_spi[id].rx_size = size;
+	s_spi[id].rx_offset = 0;
+	spi_hal_clear_tx_fifo(&s_spi[id].hal);
+	spi_hal_set_tx_trans_len(&s_spi[id].hal, size);
+#if CONFIG_SPI_SUPPORT_TX_FIFO_WR_READY
+	spi_hal_disable_tx_fifo_int(&s_spi[id].hal);
+#else
+	spi_hal_enable_tx_fifo_int(&s_spi[id].hal);
+#endif
+	spi_hal_enable_tx(&s_spi[id].hal);
+	rtos_enable_int(int_level);
+
+#if CONFIG_SPI_SUPPORT_TX_FIFO_WR_READY
+	s_spi[id].is_sw_tx_finished = true;
+	spi_id_write_bytes_common(id); /* to solve slave write */
+#endif
+
+	return BK_OK;
+}
+
+bk_err_t bk_spi_read_bytes_async(spi_id_t id, void *data, uint32_t size)
+{
+	SPI_RETURN_ON_NOT_INIT();
+	SPI_RETURN_ON_INVALID_ID(id);
+	SPI_RETURN_ON_ID_NOT_INIT(id);
+	BK_RETURN_ON_NULL(data);
+	
+	uint32_t int_level = rtos_disable_int();
+	s_spi[id].rx_size = size;
+	s_spi[id].rx_buf = (uint8_t *)data;
+	s_spi[id].rx_offset = 0;
+	s_spi[id].is_rx_blocked = false;
+	spi_hal_set_rx_trans_len(&s_spi[id].hal, size);
+	spi_hal_clear_rx_fifo(&s_spi[id].hal);
+	spi_hal_enable_rx_fifo_int(&s_spi[id].hal);
+	spi_hal_enable_rx_finish_int(&s_spi[id].hal);
+	spi_hal_enable_rx(&s_spi[id].hal);
+#if !CONFIG_SPI_SUPPORT_TX_FIFO_WR_READY
+	/* special for bk7251, bk7251 need enable tx fifo int, otherwize spi_isr will not triggered */
+	spi_hal_enable_tx_fifo_int(&s_spi[id].hal);
+#endif
+	rtos_enable_int(int_level);
+
+	return BK_OK;
+}
+
 
 #if CONFIG_SPI_DMA
 
@@ -668,6 +803,10 @@ static void spi_isr_common(spi_id_t id)
 			}
 			s_spi[id].rx_offset = rd_offset;
 		}
+		bk_spi_clr_rx(id);
+		if (s_spi_rx_finish_isr[id].callback){
+			s_spi_rx_finish_isr[id].callback(s_current_spi_dma_rd_id,s_spi_rx_finish_isr[id].param);
+		}
 		if (s_spi[id].is_rx_blocked) {
 			rtos_set_semaphore(&s_spi[id].rx_sema);
 			s_spi[id].is_rx_blocked = false;
@@ -723,6 +862,7 @@ static void spi_isr_common(spi_id_t id)
 			if (s_spi_tx_finish_isr[id].callback) {
 				s_spi_tx_finish_isr[id].callback(id, s_spi_tx_finish_isr[id].param);
 			}
+			bk_spi_clr_tx(id);
 		} else {
 			SPI_LOGW("tx finish int triggered, but current mode is spi_slave\r\n");
 		}

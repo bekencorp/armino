@@ -13,7 +13,7 @@ Armino 是**博通集成**推出的物联网开发框架，旨在支持**博通�
 
 ==Tag版本，是正式release版本，请使用正式release版本，进行开发。==
 
-|Chip                                                                                |          v1.2.0         |
+|Chip                                                                                |          v1.X.X         |
 |:---------------------------------------------------------------------------------- |:--------------------:   |
 |[BK7235](http://docs.bekencorp.com:8191/spec/BK7235/BK7235%C2%A0Datasheet_V0.1.pdf) | ![alt text][开发中]      |
 |[BK7237](http://docs.bekencorp.com:8191/spec/BK7237/BK7237%C2%A0Datasheet_V0.3.pdf) | ![alt text][开发中]      |
@@ -26,7 +26,7 @@ Armino 是**博通集成**推出的物联网开发框架，旨在支持**博通�
 
 下表总结了主流物联网操作系统在 Armino 各版本中的支持状态，其中 ![alt text][支持] 代表已支持，![alt text][开发中] 代表目前处于开发状态。
 
-|OS           |         v1.2.0           |
+|OS           |         v1.0           |
 |:----------- |:---------------------: |
 |FreeRTOS     | ![alt text][支持]       |
 |LiteOS       | ![alt text][支持]      |
@@ -50,7 +50,8 @@ Armino 是**博通集成**推出的物联网开发框架，旨在支持**博通�
 
  - 文档: http://docs.bekencorp.com:8191/armino/master/zh_CN/html/
  - 代码: https://github.com/bekencorp/armino
- - 版本: https://github.com/bekencorp/armino/releases
- - 示例: https://github.com/bekencorp/armino/tree/main/components/demos
+ - 版本: TODO_link_to_release_page
+ - 示例: TODO_link_to_doc_sample_and_demo_page
+ - 下载中心: TODO_link_to_download_center_page
  - 博通集成产品: http://www.bekencorp.com/index/goods/product.html
  - 博通集成官网: http://www.bekencorp.com

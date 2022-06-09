@@ -42,6 +42,7 @@ typedef enum {
 
     AT_ACTV_INIT_CREATED,
     AT_ACTV_PER_SYNC_CREATED,
+    AT_ACTV_PER_SYNC_STARTED,
 } at_actv_state;
 
 /// Initing state machine, reference app_init_state

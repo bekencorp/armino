@@ -24,6 +24,8 @@ static beken_semaphore_t ble_boarding_sema = NULL;
 ble_err_t s_at_cmd_status = BK_ERR_BLE_SUCCESS;
 uint8_t s_boarding_ssid[64];
 uint8_t s_boarding_password[32];
+uint16_t s_boarding_ssid_len = 0;
+uint16_t s_boarding_password_len = 0;
 
 
 uint8_t s_conn_ind = ~0;
@@ -120,13 +122,19 @@ static void ble_at_notice_cb(ble_notice_t notice, void *param)
             case BOARDING_IDX_CHAR_SSID_DECL:
                 break;
             case BOARDING_IDX_CHAR_SSID_VALUE:
-                os_memcpy((uint8_t *)s_boarding_ssid, w_req->value, sizeof(s_boarding_ssid)/sizeof(s_boarding_ssid[0]));
+				s_boarding_ssid_len = 0;
+				os_memset((uint8_t *)s_boarding_ssid, 0, sizeof(s_boarding_ssid)/sizeof(s_boarding_ssid[0]));
+                os_memcpy((uint8_t *)s_boarding_ssid, w_req->value, w_req->len);
+				s_boarding_ssid_len = w_req->len;
                 break;
 
             case BOARDING_IDX_CHAR_PASSWORD_DECL:
                 break;
             case BOARDING_IDX_CHAR_PASSWORD_VALUE:
-                os_memcpy((uint8_t *)s_boarding_password, w_req->value, sizeof(s_boarding_password)/sizeof(s_boarding_password[0]));
+				s_boarding_password_len = 0;
+				os_memset((uint8_t *)s_boarding_password, 0, sizeof(s_boarding_password)/sizeof(s_boarding_password[0]));
+                os_memcpy((uint8_t *)s_boarding_password, w_req->value, w_req->len);
+				s_boarding_password_len = w_req->len;
 				demo_sta_app_init((char *)s_boarding_ssid, (char *)s_boarding_password);
 				break;
 
@@ -153,15 +161,17 @@ static void ble_at_notice_cb(ble_notice_t notice, void *param)
 			    case BOARDING_IDX_CHAR_SSID_DECL:
 			        break;
 			    case BOARDING_IDX_CHAR_SSID_VALUE:
-			        r_req->length = sizeof(s_boarding_ssid)/sizeof(s_boarding_ssid[0]);
-			        os_memcpy(r_req->value, s_boarding_ssid, sizeof(s_boarding_ssid)/sizeof(s_boarding_ssid[0]));
+			        r_req->length = s_boarding_ssid_len;
+			        os_memcpy(r_req->value, s_boarding_ssid, r_req->length);
+					os_printf("len:%d, data[0]:0x%02x, data[1]:0x%02x, data[2]:0x%02x\r\n", r_req->length, r_req->value[0], r_req->value[1], r_req->value[2]);
 			        break;
 
 			    case BOARDING_IDX_CHAR_PASSWORD_DECL:
 			        break;
 			    case BOARDING_IDX_CHAR_PASSWORD_VALUE:
-			        r_req->length = sizeof(s_boarding_password)/sizeof(s_boarding_password[0]);
-			        os_memcpy(r_req->value, s_boarding_password, sizeof(s_boarding_password)/sizeof(s_boarding_password[0]));
+			        r_req->length = s_boarding_password_len;
+			        os_memcpy(r_req->value, s_boarding_password, r_req->length);
+					os_printf("len:%d, data[0]:0x%02x, data[1]:0x%02x, data[2]:0x%02x\r\n", r_req->length, r_req->value[0], r_req->value[1], r_req->value[2]);
 			        break;
 
 			    default:

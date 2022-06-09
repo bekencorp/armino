@@ -70,6 +70,14 @@ config("reduced_size") {
     "-fdata-sections",
   ]
   cflags_cc = [ "-fno-rtti" ]
+
+  if (current_os == "mac" || current_os == "ios") {
+    # Delete unreferenced sections. Helpful with -ffunction-sections.
+    ldflags = [ "-Wl,-dead_strip" ]
+  } else {
+    # Delete unreferenced sections. Helpful with -ffunction-sections.
+    ldflags = [ "-Wl,--gc-sections" ]
+  }
 }
 
 config("strict_warnings") {
@@ -171,19 +179,19 @@ group("empty") {
 }
 
 # Requirements for the pw_python_package lint targets.
-#pw_python_requirements("python_lint") {
-#  requirements = [
-#    "build",
+pw_python_requirements("python_lint") {
+  requirements = [
+    "build",
 
     # NOTE: mypy needs to stay in sync with mypy-protobuf
     # Currently using mypy 0.910 and mypy-protobuf 2.9
-#    "mypy==0.910",
+    "mypy==0.910",
 
     # typeshed packages (required by mypy > 0.9)
-#    "types-setuptools",
-#    "pylint==2.9.3",
-#  ]
-#}
+    "types-setuptools",
+    "pylint==2.9.3",
+  ]
+}
 
 pw_doc_group("docs") {
   sources = [

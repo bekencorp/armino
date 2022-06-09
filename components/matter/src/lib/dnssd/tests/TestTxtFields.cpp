@@ -174,8 +174,8 @@ void TestGetDeviceType(nlTestSuite * inSuite, void * inContext)
     strcpy(dt, "1234");
     NL_TEST_ASSERT(inSuite, GetDeviceType(GetSpan(dt)) == 1234);
 
-    // overflow a uint16
-    sprintf(dt, "%" PRIu32, static_cast<uint32_t>(std::numeric_limits<uint16_t>::max()) + 1);
+    // overflow a uint32
+    sprintf(dt, "%" PRIu64, static_cast<uint64_t>(std::numeric_limits<uint32_t>::max()) + 1);
     NL_TEST_ASSERT(inSuite, GetDeviceType(GetSpan(dt)) == 0);
 }
 
@@ -232,7 +232,7 @@ void TestGetRotatingDeviceId(nlTestSuite * inSuite, void * inContext)
     strcpy(ri, "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F3031");
     GetRotatingDeviceId(GetSpan(ri), id, &len);
     NL_TEST_ASSERT(inSuite, len == sizeof(id));
-    for (uint8_t i = 0; i < sizeof(id); ++i)
+    for (size_t i = 0; i < sizeof(id); ++i)
     {
         NL_TEST_ASSERT(inSuite, id[i] == i);
     }

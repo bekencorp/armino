@@ -59,7 +59,7 @@ uint8_t ltestIotFlashInstance = 0; /** Default Flash instance for testing */
 
 /* This offset is used for testing the flash test-cases
  * The data from offset to offset + 2 sectors will be corrupted */
-uint32_t ultestIotFlashStartOffset = 0;
+uint32_t ultestIotFlashStartOffset = 0x1AA000;
 
 /*-----------------------------------------------------------*/
 /** Static globals */
@@ -1737,7 +1737,7 @@ TEST( TEST_IOT_FLASH, AFQP_IotFlashWritePageFromFlash )
                 /* Write full page of data */
                 lRetVal = iot_flash_write_sync( xFlashHandle,
                                                 ultestIotFlashStartOffset + i,
-                                                uctestIotFlashWriteROBuffer,
+                                                (uint8_t * const)uctestIotFlashWriteROBuffer,
                                                 remaining_size );
                 TEST_ASSERT_EQUAL( IOT_FLASH_SUCCESS, lRetVal );
             }

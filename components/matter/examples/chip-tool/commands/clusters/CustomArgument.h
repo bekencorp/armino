@@ -56,19 +56,19 @@ public:
             {
                 return CustomArgumentParser::PutOctetString(writer, tag, value);
             }
-            else if (IsUnsignedNumberPrefix(value))
+            if (IsUnsignedNumberPrefix(value))
             {
                 return CustomArgumentParser::PutUnsignedFromString(writer, tag, value);
             }
-            else if (IsSignedNumberPrefix(value))
+            if (IsSignedNumberPrefix(value))
             {
                 return CustomArgumentParser::PutSignedFromString(writer, tag, value);
             }
-            else if (IsFloatNumberPrefix(value))
+            if (IsFloatNumberPrefix(value))
             {
                 return CustomArgumentParser::PutFloatFromString(writer, tag, value);
             }
-            else if (IsDoubleNumberPrefix(value))
+            if (IsDoubleNumberPrefix(value))
             {
                 return CustomArgumentParser::PutDoubleFromString(writer, tag, value);
             }
@@ -254,6 +254,10 @@ public:
 
         return writer.CopyElement(tag, reader);
     }
+
+    // We trust our consumers to do the encoding of our data correctly, so don't
+    // need to know whether we are being encoded for a write.
+    static constexpr bool kIsFabricScoped = false;
 
 private:
     uint8_t * mData                       = nullptr;

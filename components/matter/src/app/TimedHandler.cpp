@@ -111,9 +111,6 @@ CHIP_ERROR TimedHandler::HandleTimedRequestAction(Messaging::ExchangeContext * a
 
     System::PacketBufferTLVReader reader;
     reader.Init(std::move(aPayload));
-
-    reader.Next();
-
     TimedRequestMessage::Parser parser;
     ReturnErrorOnFailure(parser.Init(reader));
 
@@ -123,9 +120,10 @@ CHIP_ERROR TimedHandler::HandleTimedRequestAction(Messaging::ExchangeContext * a
 
     uint16_t timeoutMs;
     ReturnErrorOnFailure(parser.GetTimeoutMs(&timeoutMs));
+    ReturnErrorOnFailure(parser.ExitContainer());
 
-    ChipLogDetail(DataManagement, "Got Timed Request with timeout %" PRIu16 ": handler %p exchange " ChipLogFormatExchange,
-                  timeoutMs, this, ChipLogValueExchange(aExchangeContext));
+    ChipLogDetail(DataManagement, "Got Timed Request with timeout %u: handler %p exchange " ChipLogFormatExchange, timeoutMs, this,
+                  ChipLogValueExchange(aExchangeContext));
     // Use at least our default IM timeout, because if we close our exchange as
     // soon as we know the delay has passed we won't be able to send the
     // UNSUPPORTED_ACCESS status code the spec tells us to send (and in fact

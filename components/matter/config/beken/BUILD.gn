@@ -24,3 +24,6 @@ group("beken") {
   deps = [ "${chip_root}/src/lib" ]
 
 }
+group("default") {
+  deps = [ ":beken" ]
+}

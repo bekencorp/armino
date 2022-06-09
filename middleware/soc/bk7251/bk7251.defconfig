@@ -80,7 +80,7 @@ CONFIG_CALI=y
 CONFIG_MANUAL_CALI=y
 CONFIG_TPC_PA_MAP=y
 # end of Calibration
-CONFIG_DMA2D_TEST=n
+
 #
 # ATE
 #

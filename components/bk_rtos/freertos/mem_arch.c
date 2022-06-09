@@ -93,6 +93,22 @@ void os_free(void *ptr)
 	if (ptr)
 		vPortFree(ptr);
 }
+
+void *os_malloc_debug(const char *func_name, int line, size_t size, int need_zero)
+{
+	if (need_zero) {
+		return (void *)os_zalloc(size);
+	}
+	return (void *)os_malloc(size);
+}
+
+
+void *os_free_debug(const char *func_name, int line, void *pv)
+{
+	os_free(pv);
+	return NULL;
+}
+
 #else
 
 extern void xPortDumpMemStats(uint32_t start_tick, uint32_t ticks_since_malloc, const char* task);
@@ -100,6 +116,9 @@ extern void *psram_malloc_cm(const char *func_name, int line, size_t size, int n
 
 void *os_malloc_debug(const char *func_name, int line, size_t size, int need_zero)
 {
+	if (platform_is_in_interrupt_context()) {
+		BK_DUMP_OUT("Error: [%s] line(%d). malloc_risk.\r\n", func_name, line);
+	}
 	return pvPortMalloc_cm(func_name, line, size, need_zero);
 }
 
@@ -110,6 +129,9 @@ void *psram_malloc_debug(const char *func_name, int line, size_t size, int need_
 
 void *os_free_debug(const char *func_name, int line, void *pv)
 {
+	if (platform_is_in_interrupt_context()) {
+		BK_DUMP_OUT("Error: [%s] line(%d). free_risk.\r\n", func_name, line);
+	}
 	return vPortFree_cm(func_name, line, pv);
 }
 

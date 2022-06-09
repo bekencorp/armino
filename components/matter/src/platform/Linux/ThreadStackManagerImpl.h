@@ -36,6 +36,12 @@ class ThreadStackManagerImpl : public ThreadStackManager
 public:
     ThreadStackManagerImpl();
 
+    void
+    SetNetworkStatusChangeCallback(NetworkCommissioning::Internal::BaseDriver::NetworkStatusChangeCallback * statusChangeCallback)
+    {
+        mpStatusChangeCallback = statusChangeCallback;
+    }
+
     CHIP_ERROR _InitThreadStack();
     void _ProcessThreadActivity();
 
@@ -48,7 +54,7 @@ public:
 
     void _OnPlatformEvent(const ChipDeviceEvent * event);
 
-    CHIP_ERROR _GetThreadProvision(ByteSpan & netInfo);
+    CHIP_ERROR _GetThreadProvision(Thread::OperationalDataset & dataset);
 
     CHIP_ERROR _SetThreadProvision(ByteSpan netInfo);
 
@@ -63,13 +69,16 @@ public:
 
     bool _IsThreadEnabled();
 
-    bool _IsThreadAttached();
+    bool _IsThreadAttached() const;
 
-    CHIP_ERROR _AttachToThreadNetwork(ByteSpan netInfo, NetworkCommissioning::Internal::WirelessDriver::ConnectCallback * callback);
+    CHIP_ERROR _AttachToThreadNetwork(const Thread::OperationalDataset & dataset,
+                                      NetworkCommissioning::Internal::WirelessDriver::ConnectCallback * callback);
 
     CHIP_ERROR _SetThreadEnabled(bool val);
 
     void _OnThreadAttachFinished(void);
+
+    void _UpdateNetworkStatus();
 
     static void _OnThreadBrAttachFinished(GObject * source_object, GAsyncResult * res, gpointer user_data);
 
@@ -78,9 +87,9 @@ public:
     CHIP_ERROR _SetThreadDeviceType(ConnectivityManager::ThreadDeviceType deviceType);
 
 #if CHIP_DEVICE_CONFIG_ENABLE_SED
-    CHIP_ERROR _GetSEDPollingConfig(ConnectivityManager::SEDPollingConfig & pollingConfig);
-    CHIP_ERROR _SetSEDPollingConfig(const ConnectivityManager::SEDPollingConfig & pollingConfig);
-    CHIP_ERROR _RequestSEDFastPollingMode(bool onOff);
+    CHIP_ERROR _GetSEDIntervalsConfig(ConnectivityManager::SEDIntervalsConfig & intervalsConfig);
+    CHIP_ERROR _SetSEDIntervalsConfig(const ConnectivityManager::SEDIntervalsConfig & intervalsConfig);
+    CHIP_ERROR _RequestSEDActiveMode(bool onOff);
 #endif
 
     bool _HaveMeshConnectivity();
@@ -144,6 +153,7 @@ private:
 
     NetworkCommissioning::ThreadDriver::ScanCallback * mpScanCallback;
     NetworkCommissioning::Internal::WirelessDriver::ConnectCallback * mpConnectCallback;
+    NetworkCommissioning::Internal::BaseDriver::NetworkStatusChangeCallback * mpStatusChangeCallback = nullptr;
 
     bool mAttached;
 };

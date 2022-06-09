@@ -20,9 +20,10 @@
 #include "gpio_driver_base.h"
 #include "sys_types.h"
 #include <driver/aon_rtc.h>
+#include "platform.h"
 
 static sys_hal_t s_sys_hal;
-
+uint32 sys_hal_get_int_group2_status(void);
 /**  Platform Start **/
 //Platform
 
@@ -43,6 +44,21 @@ void sys_hal_usb_enable_clk(bool en)
 	//ll层命名规范跟随ASIC的Address Mapping走，可以修改Address Mapping的注释
 	//这个注释ASIC的verilog也在使用
 	sys_ll_set_cpu_device_clk_enable_usb_cken(en);
+}
+
+void sys_hal_usb_analog_phy_en(bool en)
+{
+	sys_ll_set_ana_reg6_en_usb(en);
+}
+
+void sys_hal_usb_analog_speed_en(bool en)
+{
+	sys_ll_set_ana_reg9_usb_speed(en);
+}
+
+void sys_hal_usb_analog_ckmcu_en(bool en)
+{
+	sys_ll_set_ana_reg11_ck2mcu(en);
 }
 
 void sys_hal_usb_enable_charge(bool en)
@@ -180,7 +196,8 @@ void sys_hal_exit_low_voltage()
     sys_ll_set_ana_reg6_value(clock_value);
 
 }
-
+//uint32_t  g_previous_tick = 0;
+//uint32_t  g_wifi_previous_tick = 0;
 #define BIT_AON_PMU_WAKEUP_ENA      (0x1F0U)
 void sys_hal_enter_low_voltage(void)
 {
@@ -190,9 +207,27 @@ void sys_hal_enter_low_voltage(void)
 	uint32_t  pmu_val2 = 0;
 	//uint32_t  pmu_state = 0;
 	uint32_t  previous_tick = 0;
-	uint32_t  i = 0;
-	/*mask all interner interrupt*/
-	//clear_csr(NDS_MIE, MIP_MTIP);
+	uint32_t  current_tick = 0;
+	uint32_t  clk_div_temp = 0;
+	uint32_t  int_state1 = 0;
+	uint32_t  int_state2 = 0;
+
+	int_state1 = sys_ll_get_cpu0_int_0_31_en_value();
+	int_state2 = sys_ll_get_cpu0_int_32_63_en_value();
+	sys_ll_set_cpu0_int_0_31_en_value(0x0);
+	sys_ll_set_cpu0_int_32_63_en_value(0x0);
+	__asm volatile( "nop" );
+	__asm volatile( "nop" );
+	__asm volatile( "nop" );
+	__asm volatile( "nop" );
+	__asm volatile( "nop" );
+	__asm volatile( "nop" );
+	__asm volatile( "nop" );
+	__asm volatile( "nop" );
+	__asm volatile( "nop" );
+	__asm volatile( "nop" );
+
+      /*mask all interner interrupt*/
 	sys_ll_set_cpu0_int_halt_clk_op_cpu0_int_mask(1);
 
 	//gpio_disable_output();
@@ -201,10 +236,9 @@ void sys_hal_enter_low_voltage(void)
 	clk_div_val2 =  sys_hal_all_modules_clk_div_get(CLK_DIV_REG2);
 
 	/*1.switch cpu clock to xtal26m*/
-	clock_value = sys_ll_get_cpu_clk_div_mode1_value();
-	clock_value &= ~(SYS_CPU_CLK_DIV_MODE1_CLKDIV_CORE_MASK << SYS_CPU_CLK_DIV_MODE1_CLKDIV_CORE_POS);
-	clock_value &= ~(SYS_CPU_CLK_DIV_MODE1_CKSEL_CORE_MASK << SYS_CPU_CLK_DIV_MODE1_CKSEL_CORE_POS);
-	sys_ll_set_cpu_clk_div_mode1_value(clock_value);
+	sys_ll_set_cpu_clk_div_mode1_cksel_core(0);
+	sys_ll_set_cpu_clk_div_mode1_clkdiv_core(0);
+	sys_ll_set_cpu_clk_div_mode1_clkdiv_bus(0);
 
     //__asm volatile( "j ." );
 
@@ -215,14 +249,14 @@ void sys_hal_enter_low_voltage(void)
 	clock_value &= ~(SYS_CPU_CLK_DIV_MODE2_CKDIV_FLASH_MASK << SYS_CPU_CLK_DIV_MODE2_CKDIV_FLASH_POS);
 	sys_ll_set_cpu_clk_div_mode2_value(clock_value);
 
-    /*3.close analog clk */
+	/*3.close analog clk */
 	clock_value = 0;
-    clock_value = sys_ll_get_ana_reg6_value();
+	clock_value = sys_ll_get_ana_reg6_value();
 	/*temp close analog clk solution, we will record the opened clk,then it will close them ,when wakeup will open them*/
-	clock_value |= (1 << SYS_ANA_REG6_EN_SLEEP_POS);//enable xtal26m sleep
+	//clock_value |= (1 << SYS_ANA_REG6_EN_SLEEP_POS);//enable xtal26m sleep
 	//clock_value &= ~((1 << SYS_ANA_REG6_XTAL_LPMODE_CTRL_POS)|(1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_AUDPLL_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS)|(1 << SYS_ANA_REG6_EN_DCO_POS)|(1 << SYS_ANA_REG6_EN_XTALL_POS)|(1 << SYS_ANA_REG6_EN_USB_POS));
 	clock_value &= ~((1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_USB_POS)|(1 << SYS_ANA_REG6_EN_AUDPLL_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS));
-    sys_ll_set_ana_reg6_value(clock_value);
+	sys_ll_set_ana_reg6_value(clock_value);
 
 
 	/*4.set sleep parameters*/
@@ -238,22 +272,56 @@ void sys_hal_enter_low_voltage(void)
 	pmu_val2 |= BIT(BIT_SLEEP_FLAG_LOW_VOLTAGE);
 	aon_pmu_hal_reg_set(PMU_REG2,pmu_val2);
 
+
+	sys_ll_set_cpu0_int_32_63_en_cpu0_wifi_mac_int_gen_en(0x1);
+	sys_ll_set_cpu0_int_32_63_en_cpu0_gpio_int_en(0x1);
+	sys_ll_set_cpu0_int_32_63_en_cpu0_rtc_int_en(0x1);
+	sys_ll_set_cpu0_int_32_63_en_cpu0_touched_int_en(0x1);
+	sys_ll_set_cpu0_int_32_63_en_cpu0_dm_irq_en(0x1);
+	set_csr(NDS_MIE, MIP_MTIP);
 	/*6.mask all interner interrupt*/
 	//sys_ll_set_cpu0_int_halt_clk_op_cpu0_int_mask(1);
-
-	/*6.WFI*/
-	__asm volatile( "wfi" );
-	/*add delay for xtal 26m, analog suggest 1.5ms,we add protect time to 2ms(1.5ms(hardware delay,0.5ms software delay))*/
-    previous_tick = bk_aon_rtc_get_current_tick();
-	for(i= previous_tick; i < (previous_tick + 16/*32*0.5*/);i = bk_aon_rtc_get_current_tick())
+	//__asm volatile( "wfi" );
+       /*get interrupt */
+	while(1)
 	{
-	    ;
+		/*6.WFI*/
+		__asm volatile( "wfi" );
+		extern u32 arch_get_int_status(void);
+
+		if(arch_get_int_status() != 0)
+		{
+			break;
+		}
 	}
-    /*7.restore state before low voltage*/
+	extern uint32_t pm_wake_int_flag1, pm_wake_int_flag2;
+	extern uint32_t pm_wake_gpio_flag1, pm_wake_gpio_flag2;
+	extern gpio_driver_t s_gpio;
+	{
+		pm_wake_int_flag1 = sys_hal_get_int_status();
+		pm_wake_int_flag2 = sys_hal_get_int_group2_status();
+
+		gpio_hal_t *hal = &s_gpio.hal;
+		gpio_interrupt_status_t gpio_status;
+
+		gpio_hal_get_interrupt_status(hal, &gpio_status);
+		pm_wake_gpio_flag1 = gpio_status.gpio_0_31_int_status;
+		pm_wake_gpio_flag2 = gpio_status.gpio_32_64_int_status;
+	}
+
+	/*add delay for xtal 26m, analog suggest 1.5ms,we add protect time to 2ms(1.5ms(hardware delay,0.5ms software delay))*/
+	previous_tick = bk_aon_rtc_get_current_tick();
+	current_tick = previous_tick;
+	while(((uint32_t)(current_tick - previous_tick)) < (uint32_t)(LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME*RTC_TICKS_PER_1MS))/*32*0.5*/
+	{
+		current_tick = bk_aon_rtc_get_current_tick();
+	}
+
+	/*7.restore state before low voltage*/
 	modules_power_state = 0;
-    modules_power_state = sys_ll_get_cpu_power_sleep_wakeup_value();
+	modules_power_state = sys_ll_get_cpu_power_sleep_wakeup_value();
 	modules_power_state &= ~0xf0000;
-    sys_ll_set_cpu_power_sleep_wakeup_value(modules_power_state);
+	sys_ll_set_cpu_power_sleep_wakeup_value(modules_power_state);
 
 	/*8.restore the analog clk*/
 	clock_value = 0;
@@ -263,12 +331,27 @@ void sys_hal_enter_low_voltage(void)
 	sys_ll_set_ana_reg6_value(clock_value);
 	//os_printf("low voltage wake up 123456\r\n");
 	/*add delay for xtal 26m, analog suggest 800us,we add protect time to 1ms*/
+
 	previous_tick = bk_aon_rtc_get_current_tick();
-	for(i= previous_tick; i < (previous_tick + 32*1);i = bk_aon_rtc_get_current_tick())
+	//g_previous_tick = previous_tick;
+	//g_wifi_previous_tick = previous_tick;
+	current_tick = previous_tick;
+	while(((uint32_t)(current_tick - previous_tick)) < (uint32_t)(LOW_POWER_DPLL_STABILITY_DELAY_TIME*RTC_TICKS_PER_1MS))/*32*1*/
 	{
-	    ;
+		current_tick = bk_aon_rtc_get_current_tick();
 	}
+
 	/*9.restore clk div*/
+    clk_div_temp = clk_div_val0;
+	clk_div_temp &= SYS_CPU_CLK_DIV_MODE1_CLKDIV_CORE_MASK << SYS_CPU_CLK_DIV_MODE1_CLKDIV_CORE_POS;
+	sys_ll_set_cpu_clk_div_mode1_clkdiv_core(clk_div_temp);
+	clk_div_temp = clk_div_val0;
+	clk_div_temp &= SYS_CPU_CLK_DIV_MODE1_CLKDIV_BUS_MASK << SYS_CPU_CLK_DIV_MODE1_CLKDIV_BUS_POS;
+	sys_ll_set_cpu_clk_div_mode1_clkdiv_bus(clk_div_temp);
+	clk_div_temp = clk_div_val0;
+	clk_div_temp &= SYS_CPU_CLK_DIV_MODE1_CKSEL_CORE_MASK << SYS_CPU_CLK_DIV_MODE1_CKSEL_CORE_POS;
+	sys_ll_set_cpu_clk_div_mode1_cksel_core(clk_div_temp);
+
 	sys_hal_all_modules_clk_div_set(CLK_DIV_REG0, clk_div_val0);
 	sys_hal_all_modules_clk_div_set(CLK_DIV_REG1, clk_div_val1);
 	sys_hal_all_modules_clk_div_set(CLK_DIV_REG2, clk_div_val2);
@@ -279,6 +362,8 @@ void sys_hal_enter_low_voltage(void)
 	pmu_state &= ~ BIT_AON_PMU_WAKEUP_ENA;
 	aon_pmu_hal_reg_set(PMU_REG0x41,pmu_state);
 #endif
+	sys_ll_set_cpu0_int_0_31_en_value(int_state1);
+	sys_ll_set_cpu0_int_32_63_en_value(int_state2);
 	//set_csr(NDS_MIE, MIP_MTIP);
 	//gpio_restore();
 
@@ -413,7 +498,7 @@ void sys_hal_module_RF_power_ctrl (module_name_t module,power_module_state_t pow
     if(power_state == POWER_MODULE_STATE_ON)//power on
     {
 		value |= ((1 << SYS_ANA_REG6_EN_SYSLDO_POS)|(1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_TEMPDET_POS));//en_sysldo,en_dpll
-		value &= ~(1 << SYS_ANA_REG6_XTAL_LPMODE_CTRL_POS);//when using the xtal as the 32k,it need close the xtal low power mode
+		//value &= ~(1 << SYS_ANA_REG6_XTAL_LPMODE_CTRL_POS);//when using the xtal as the 32k,it need close the xtal low power mode
 		//value |= (1 << 11);//en_audpll //temp close,we will open when be neeeded
 		//value |= (1 << 8);//en_dco     //now no module using,temp close,we will open when be neeeded
 		//value |= (1 << 7);//en_xtall   //now no module using,temp close,we will open when be neeeded
@@ -558,7 +643,7 @@ void sys_hal_low_power_hardware_init()
 
 	param = 0;
 	param = sys_ll_get_ana_reg6_value();
-	param &= ~(0x1 << SYS_ANA_REG6_EN_SLEEP_POS);
+	param &= ~((0x1 << SYS_ANA_REG6_EN_SLEEP_POS)|(1 << SYS_ANA_REG6_XTAL_LPMODE_CTRL_POS));
 	sys_ll_set_ana_reg6_value(param);
 
 	param = 0;
@@ -1250,6 +1335,24 @@ void sys_hal_lcd_disp_close(void)
 	sys_ll_set_cpu_mode_disckg2_disp_disckg(0);
 }
 
+/**
+  * @brief	dma2d system config
+  * param1: clk source sel 0:clk_320M	   1:clk_480M,
+  * param2: clk_always_on  ENABLE,0: bus clock auto open when module is select,1:bus clock always open
+  * param1: int_en eanble lcd cpu int
+  * return none
+  */
+void sys_hal_dma2d_clk_en(uint8_t clk_always_on, uint8_t sys_int_en)
+{
+	sys_ll_set_cpu_mode_disckg2_dma2d_disckg(clk_always_on);
+	sys_ll_set_cpu0_int_0_31_en_cpu0_dma2d_int_en(sys_int_en);
+}
+
+void sys_hal_jpeg_dec_ctrl(bool clk_always_on, bool int_en)
+{
+	sys_ll_set_cpu_mode_disckg1_jpeg_dec_disckg(clk_always_on);
+	sys_ll_set_cpu0_int_0_31_en_cpu0_jpegdec_int_en(int_en);
+}
 /**  Video End **/
 
 
@@ -1829,6 +1932,16 @@ void sys_hal_psram_set_clkdiv(uint32_t value)
 
 /**  psram End **/
 
+/* REG_0x03:cpu_storage_connect_op_select->flash_sel:0: normal flash operation 1:flash download by spi,R/W,0x3[9]*/
+uint32_t sys_hal_get_cpu_storage_connect_op_select_flash_sel(void)
+{
+    return sys_ll_get_cpu_storage_connect_op_select_flash_sel();
+}
+
+void sys_hal_set_cpu_storage_connect_op_select_flash_sel(uint32_t value)
+{
+    sys_ll_set_cpu_storage_connect_op_select_flash_sel(value);
+}
 
 /**  Misc Start **/
 //Misc
@@ -7646,6 +7759,43 @@ void sys_hal_set_ana_vhsel_ldodig(uint32_t value)
 {
     sys_ll_set_ana_reg3_vhsel_ldodig(value);
 }
+
+void sys_hal_set_sdio_clk_en(uint32_t value)
+{
+	sys_ll_set_cpu_device_clk_enable_sdio_cken(value);
+}
+
+void sys_hal_set_cpu0_sdio_int_en(uint32_t value)
+{
+	sys_ll_set_cpu0_int_0_31_en_cpu0_sdio_int_en(value);
+}
+
+void sys_hal_set_cpu1_sdio_int_en(uint32_t value)
+{
+	sys_ll_set_cpu1_int_0_31_en_cpu1_sdio_int_en(value);
+}
+
+void sys_hal_set_sdio_clk_div(uint32_t value)
+{
+	sys_ll_set_cpu_clk_div_mode2_ckdiv_sdio(value);
+}
+
+uint32_t sys_hal_get_sdio_clk_div()
+{
+	return sys_ll_get_cpu_clk_div_mode2_ckdiv_sdio();
+}
+
+void sys_hal_set_sdio_clk_sel(uint32_t value)
+{
+	sys_ll_set_cpu_clk_div_mode2_cksel_sdio(value);
+}
+
+uint32_t sys_hal_get_sdio_clk_sel()
+{
+	return sys_ll_get_cpu_clk_div_mode2_cksel_sdio();
+}
+
+
 void sys_hal_set_ana_vctrl_sysldo(uint32_t value)
 {
     sys_ll_set_ana_reg5_vctrl_sysldo(value);

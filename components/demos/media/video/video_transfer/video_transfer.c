@@ -48,7 +48,6 @@
 
 #define TVIDEO_RXBUF_LEN            (TVIDEO_RXNODE_SIZE_UDP * 4)
 
-uint8_t tvideo_rxbuf[TVIDEO_RXBUF_LEN];
 video_config_t tvideo_st;
 
 typedef struct {
@@ -295,7 +294,11 @@ static void tvideo_config_desc(void)
 	else
 		TVIDEO_WPRT("Err snd tpye in spidma\r\n");
 
-	tvideo_st.rxbuf = &tvideo_rxbuf[0];
+	tvideo_st.rxbuf = os_malloc(sizeof(uint8_t) * TVIDEO_RXBUF_LEN);
+	if (tvideo_st.rxbuf == NULL) {
+		TVIDEO_WPRT("malloc rxbuf failed!\r\n");
+		BK_ASSERT(1);
+	}
 	tvideo_st.rxbuf_len = node_len * 4;
 	tvideo_st.node_len = node_len;
 	tvideo_st.rx_read_len = 0;
@@ -391,6 +394,13 @@ tvideo_exit:
 	} else {//if(tvideo_pool.open_type == TVIDEO_OPEN_SCCB)
 		bk_camera_deinit();
 	}
+
+	if (tvideo_st.rxbuf) {
+		os_free(tvideo_st.rxbuf);
+		tvideo_st.rxbuf = NULL;
+	}
+
+	os_memset(&tvideo_st, 0, sizeof(video_config_t));
 
 	rtos_deinit_queue(&tvideo_msg_que);
 	tvideo_msg_que = NULL;

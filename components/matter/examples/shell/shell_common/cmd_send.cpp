@@ -172,19 +172,9 @@ exit:
 
 CHIP_ERROR EstablishSecureSession(streamer_t * stream, Transport::PeerAddress & peerAddress)
 {
-    CHIP_ERROR err = CHIP_NO_ERROR;
-
-    Optional<Transport::PeerAddress> peerAddr;
-    SecurePairingUsingTestSecret * testSecurePairingSecret = chip::Platform::New<SecurePairingUsingTestSecret>();
-    VerifyOrExit(testSecurePairingSecret != nullptr, err = CHIP_ERROR_NO_MEMORY);
-
-    peerAddr = Optional<Transport::PeerAddress>::Value(peerAddress);
-
     // Attempt to connect to the peer.
-    err = gSessionManager.NewPairing(gSession, peerAddr, kTestDeviceNodeId, testSecurePairingSecret,
-                                     CryptoContext::SessionRole::kInitiator, gFabricIndex);
-
-exit:
+    CHIP_ERROR err = gSessionManager.InjectPaseSessionWithTestKey(gSession, 1, kTestDeviceNodeId, 1, gFabricIndex, peerAddress,
+                                                                  CryptoContext::SessionRole::kInitiator);
     if (err != CHIP_NO_ERROR)
     {
         streamer_printf(stream, "Establish secure session failed, err: %s\n", ErrorStr(err));
@@ -210,6 +200,9 @@ void ProcessCommand(streamer_t * stream, char * destination)
         ExitNow(err = CHIP_ERROR_INVALID_ARGUMENT);
     }
 
+    err = gFabricTable.Init(&gStorage);
+    SuccessOrExit(err);
+
 #if INET_CONFIG_ENABLE_TCP_ENDPOINT
     err = gTCPManager.Init(Transport::TcpListenParameters(DeviceLayer::TCPEndPointManager())
                                .SetAddressType(gDestAddr.Type())
@@ -227,7 +220,7 @@ void ProcessCommand(streamer_t * stream, char * destination)
     {
         peerAddress = Transport::PeerAddress::TCP(gDestAddr, gSendArguments.GetPort());
 
-        err = gSessionManager.Init(&DeviceLayer::SystemLayer(), &gTCPManager, &gMessageCounterManager, &gStorage);
+        err = gSessionManager.Init(&DeviceLayer::SystemLayer(), &gTCPManager, &gMessageCounterManager, &gStorage, &gFabricTable);
         SuccessOrExit(err);
     }
     else
@@ -235,7 +228,7 @@ void ProcessCommand(streamer_t * stream, char * destination)
     {
         peerAddress = Transport::PeerAddress::UDP(gDestAddr, gSendArguments.GetPort(), chip::Inet::InterfaceId::Null());
 
-        err = gSessionManager.Init(&DeviceLayer::SystemLayer(), &gUDPManager, &gMessageCounterManager, &gStorage);
+        err = gSessionManager.Init(&DeviceLayer::SystemLayer(), &gUDPManager, &gMessageCounterManager, &gStorage, &gFabricTable);
         SuccessOrExit(err);
     }
 

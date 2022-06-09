@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <components/uvc_camera_types.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -121,6 +123,31 @@ bk_err_t bk_uvc_set_stop(void);
  *    - others: other errors.
  */
 bk_err_t bk_uvc_register_frame_end_callback(void *cb);
+
+/**
+ * @brief     register frame capture callback
+ *
+ * This API will only excute the at every frame transfer end if register have registered
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_uvc_register_frame_capture_callback(void *cb);
+
+/**
+ * @brief     set uvc mem  status
+ *
+ * This API will enbale/disable save uvc data to psram
+ *
+ * @param type: 0/1:idle/busy, idle: save uvc data to psram; busy: not save uvc data to psram
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_uvc_set_mem_status(uint8_t type);
+
 
 /**
  * @}

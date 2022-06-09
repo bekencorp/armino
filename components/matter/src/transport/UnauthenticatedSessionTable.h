@@ -54,9 +54,11 @@ public:
 
     UnauthenticatedSession(SessionRole sessionRole, NodeId ephemeralInitiatorNodeID, const ReliableMessageProtocolConfig & config) :
         mEphemeralInitiatorNodeId(ephemeralInitiatorNodeID), mSessionRole(sessionRole),
-        mLastActivityTime(System::SystemClock().GetMonotonicTimestamp()), mMRPConfig(config)
+        mLastActivityTime(System::SystemClock().GetMonotonicTimestamp()),
+        mLastPeerActivityTime(System::Clock::kZero), // Start at zero to default to IDLE state
+        mMRPConfig(config)
     {}
-    ~UnauthenticatedSession() { NotifySessionReleased(); }
+    ~UnauthenticatedSession() override { NotifySessionReleased(); }
 
     UnauthenticatedSession(const UnauthenticatedSession &) = delete;
     UnauthenticatedSession & operator=(const UnauthenticatedSession &) = delete;
@@ -64,7 +66,13 @@ public:
     UnauthenticatedSession & operator=(UnauthenticatedSession &&) = delete;
 
     System::Clock::Timestamp GetLastActivityTime() const { return mLastActivityTime; }
+    System::Clock::Timestamp GetLastPeerActivityTime() const { return mLastPeerActivityTime; }
     void MarkActive() { mLastActivityTime = System::SystemClock().GetMonotonicTimestamp(); }
+    void MarkActiveRx()
+    {
+        mLastPeerActivityTime = System::SystemClock().GetMonotonicTimestamp();
+        MarkActive();
+    }
 
     Session::SessionType GetSessionType() const override { return Session::SessionType::kUnauthenticated; }
 #if CHIP_PROGRESS_LOGGING
@@ -73,6 +81,9 @@ public:
 
     void Retain() override { ReferenceCounted<UnauthenticatedSession, UnauthenticatedSessionDeleter, 0>::Retain(); }
     void Release() override { ReferenceCounted<UnauthenticatedSession, UnauthenticatedSessionDeleter, 0>::Release(); }
+
+    ScopedNodeId GetPeer() const override { return ScopedNodeId(GetPeerNodeId(), kUndefinedFabricIndex); }
+    ScopedNodeId GetLocalScopedNodeId() const override { return ScopedNodeId(kUndefinedNodeId, kUndefinedFabricIndex); }
 
     Access::SubjectDescriptor GetSubjectDescriptor() const override
     {
@@ -101,16 +112,21 @@ public:
         {
             return kUndefinedNodeId;
         }
-        else
-        {
-            return mEphemeralInitiatorNodeId;
-        }
+
+        return mEphemeralInitiatorNodeId;
     }
 
     SessionRole GetSessionRole() const { return mSessionRole; }
     NodeId GetEphemeralInitiatorNodeID() const { return mEphemeralInitiatorNodeId; }
     const PeerAddress & GetPeerAddress() const { return mPeerAddress; }
     void SetPeerAddress(const PeerAddress & peerAddress) { mPeerAddress = peerAddress; }
+
+    bool IsPeerActive() { return ((System::SystemClock().GetMonotonicTimestamp() - GetLastPeerActivityTime()) < kMinActiveTime); }
+
+    System::Clock::Timestamp GetMRPBaseTimeout() override
+    {
+        return IsPeerActive() ? GetMRPConfig().mActiveRetransTimeout : GetMRPConfig().mIdleRetransTimeout;
+    }
 
     void SetMRPConfig(const ReliableMessageProtocolConfig & config) { mMRPConfig = config; }
 
@@ -122,7 +138,8 @@ private:
     const NodeId mEphemeralInitiatorNodeId;
     const SessionRole mSessionRole;
     PeerAddress mPeerAddress;
-    System::Clock::Timestamp mLastActivityTime;
+    System::Clock::Timestamp mLastActivityTime;     ///< Timestamp of last tx or rx
+    System::Clock::Timestamp mLastPeerActivityTime; ///< Timestamp of last rx
     ReliableMessageProtocolConfig mMRPConfig;
     PeerMessageCounter mPeerMessageCounter;
 };
@@ -158,10 +175,8 @@ public:
         {
             return MakeOptional<SessionHandle>(*result);
         }
-        else
-        {
-            return Optional<SessionHandle>::Missing();
-        }
+
+        return Optional<SessionHandle>::Missing();
     }
 
     CHECK_RETURN_VALUE Optional<SessionHandle> FindInitiator(NodeId ephemeralInitiatorNodeID)
@@ -171,10 +186,8 @@ public:
         {
             return MakeOptional<SessionHandle>(*result);
         }
-        else
-        {
-            return Optional<SessionHandle>::Missing();
-        }
+
+        return Optional<SessionHandle>::Missing();
     }
 
     CHECK_RETURN_VALUE Optional<SessionHandle> AllocInitiator(NodeId ephemeralInitiatorNodeID, const PeerAddress & peerAddress,
@@ -187,10 +200,8 @@ public:
             result->SetPeerAddress(peerAddress);
             return MakeOptional<SessionHandle>(*result);
         }
-        else
-        {
-            return Optional<SessionHandle>::Missing();
-        }
+
+        return Optional<SessionHandle>::Missing();
     }
 
 private:

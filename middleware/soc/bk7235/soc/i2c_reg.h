@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-#define I2C_R_BASE(_id)          (SOC_I2C0_REG_BASE + _id * 0x1040000)
+#define I2C_R_BASE(_id)          (SOC_I2C1_REG_BASE)
 
 #define I2C_R_CONFIG(_id)        (I2C_R_BASE(_id) + 4 * 0x0)
 

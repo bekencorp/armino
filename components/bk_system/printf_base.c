@@ -60,10 +60,6 @@ bk_err_t bk_printf_init(void)
         if (BK_OK != ret)
 		goto _bk_printf_init_fail;
 
-	ret = bk_uart_enable_rx_interrupt(CONFIG_UART_PRINT_PORT);
-        if (BK_OK != ret)
-		goto _bk_printf_init_fail;
-
 #endif
 	s_printf_init = true;
 

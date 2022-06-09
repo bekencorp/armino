@@ -13,6 +13,10 @@ control.
 
 ---
 
+## Prerequisites
+
+-   Requires building and running the app to a physical device on iOS >= 15.4.
+
 ## Building the Application
 
 CHIPTool iOS can be built with the latest Xcode releases.

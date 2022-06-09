@@ -21,6 +21,7 @@
 
 extern "C" {
 #include "platform/bootloader/api/btl_interface.h"
+#include "platform/emlib/inc/em_bus.h" // For CORE_CRITICAL_SECTION
 }
 
 /// No error, operation OK
@@ -29,17 +30,13 @@ extern "C" {
 namespace chip {
 
 // Define static memebers
-uint8_t OTAImageProcessorImpl::mSlotId;
-uint32_t OTAImageProcessorImpl::mWriteOffset;
+uint8_t OTAImageProcessorImpl::mSlotId                                                  = 0;
+uint32_t OTAImageProcessorImpl::mWriteOffset                                            = 0;
+uint16_t OTAImageProcessorImpl::writeBufOffset                                          = 0;
+uint8_t OTAImageProcessorImpl::writeBuffer[kAlignmentBytes] __attribute__((aligned(4))) = { 0 };
 
 CHIP_ERROR OTAImageProcessorImpl::PrepareDownload()
 {
-    if (mParams.imageFile.empty())
-    {
-        ChipLogError(SoftwareUpdate, "Invalid output image file supplied");
-        return CHIP_ERROR_INTERNAL;
-    }
-
     DeviceLayer::PlatformMgr().ScheduleWork(HandlePrepareDownload, reinterpret_cast<intptr_t>(this));
     return CHIP_NO_ERROR;
 }
@@ -49,43 +46,14 @@ CHIP_ERROR OTAImageProcessorImpl::Finalize()
     DeviceLayer::PlatformMgr().ScheduleWork(HandleFinalize, reinterpret_cast<intptr_t>(this));
     return CHIP_NO_ERROR;
 }
-
 CHIP_ERROR OTAImageProcessorImpl::Apply()
 {
-    uint32_t err = SL_BOOTLOADER_OK;
-
-    ChipLogError(SoftwareUpdate, "OTAImageProcessorImpl::Apply()");
-
-    // Assuming that bootloader_verifyImage() call is not too expensive and
-    // doesn't need to be offloaded to a different task. Revisit if necessary.
-    err = bootloader_verifyImage(mSlotId, NULL);
-    if (err != SL_BOOTLOADER_OK)
-    {
-        ChipLogError(SoftwareUpdate, "bootloader_verifyImage error %ld", err);
-        return CHIP_ERROR_INTERNAL;
-    }
-
-    err = bootloader_setImageToBootload(mSlotId);
-    if (err != SL_BOOTLOADER_OK)
-    {
-        ChipLogError(SoftwareUpdate, "setImageToBootload error %ld", err);
-        return CHIP_ERROR_INTERNAL;
-    }
-
-    // This reboots the device
-    bootloader_rebootAndInstall();
-
+    DeviceLayer::PlatformMgr().ScheduleWork(HandleApply, reinterpret_cast<intptr_t>(this));
     return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR OTAImageProcessorImpl::Abort()
 {
-    if (mParams.imageFile.empty())
-    {
-        ChipLogError(SoftwareUpdate, "Invalid output image file supplied");
-        return CHIP_ERROR_INTERNAL;
-    }
-
     DeviceLayer::PlatformMgr().ScheduleWork(HandleAbort, reinterpret_cast<intptr_t>(this));
     return CHIP_NO_ERROR;
 }
@@ -124,9 +92,15 @@ void OTAImageProcessorImpl::HandlePrepareDownload(intptr_t context)
         return;
     }
 
-    bootloader_init();
-    mSlotId      = 0; // Single slot until we support multiple images
-    mWriteOffset = 0;
+    ChipLogProgress(SoftwareUpdate, "HandlePrepareDownload");
+
+    CORE_CRITICAL_SECTION(bootloader_init();)
+    mSlotId                                 = 0; // Single slot until we support multiple images
+    writeBufOffset                          = 0;
+    mWriteOffset                            = 0;
+    imageProcessor->mParams.downloadedBytes = 0;
+
+    imageProcessor->mHeaderParser.Init();
 
     // Not calling bootloader_eraseStorageSlot(mSlotId) here because we erase during each write
 
@@ -135,15 +109,62 @@ void OTAImageProcessorImpl::HandlePrepareDownload(intptr_t context)
 
 void OTAImageProcessorImpl::HandleFinalize(intptr_t context)
 {
+    uint32_t err          = SL_BOOTLOADER_OK;
     auto * imageProcessor = reinterpret_cast<OTAImageProcessorImpl *>(context);
     if (imageProcessor == nullptr)
     {
         return;
     }
 
+    // Pad the remainder of the write buffer with zeros and write it to bootloader storage
+    if (writeBufOffset != 0)
+    {
+        // Account for last bytes of the image not yet written to storage
+        imageProcessor->mParams.downloadedBytes += writeBufOffset;
+
+        while (writeBufOffset != kAlignmentBytes)
+        {
+            writeBuffer[writeBufOffset] = 0;
+            writeBufOffset++;
+        }
+
+        CORE_CRITICAL_SECTION(err = bootloader_eraseWriteStorage(mSlotId, mWriteOffset, writeBuffer, kAlignmentBytes);)
+        if (err)
+        {
+            ChipLogError(SoftwareUpdate, "ERROR: In HandleFinalize bootloader_eraseWriteStorage() error %ld", err);
+            imageProcessor->mDownloader->EndDownload(CHIP_ERROR_WRITE_FAILED);
+            return;
+        }
+    }
+
     imageProcessor->ReleaseBlock();
 
-    ChipLogProgress(SoftwareUpdate, "OTA image downloaded to %s", imageProcessor->mParams.imageFile.data());
+    ChipLogProgress(SoftwareUpdate, "OTA image downloaded successfully");
+}
+
+void OTAImageProcessorImpl::HandleApply(intptr_t context)
+{
+    uint32_t err = SL_BOOTLOADER_OK;
+
+    ChipLogProgress(SoftwareUpdate, "OTAImageProcessorImpl::HandleApply()");
+
+    CORE_CRITICAL_SECTION(err = bootloader_verifyImage(mSlotId, NULL);)
+
+    if (err != SL_BOOTLOADER_OK)
+    {
+        ChipLogError(SoftwareUpdate, "ERROR: bootloader_verifyImage() error %ld", err);
+        return;
+    }
+
+    CORE_CRITICAL_SECTION(err = bootloader_setImageToBootload(mSlotId);)
+    if (err != SL_BOOTLOADER_OK)
+    {
+        ChipLogError(SoftwareUpdate, "ERROR: bootloader_setImageToBootload() error %ld", err);
+        return;
+    }
+
+    // This reboots the device
+    CORE_CRITICAL_SECTION(bootloader_rebootAndInstall();)
 }
 
 void OTAImageProcessorImpl::HandleAbort(intptr_t context)
@@ -173,22 +194,61 @@ void OTAImageProcessorImpl::HandleProcessBlock(intptr_t context)
         return;
     }
 
-    // TODO: Process block header if any
+    ByteSpan block        = imageProcessor->mBlock;
+    CHIP_ERROR chip_error = imageProcessor->ProcessHeader(block);
 
-    err = bootloader_eraseWriteStorage(mSlotId, mWriteOffset, reinterpret_cast<uint8_t *>(imageProcessor->mBlock.data()),
-                                       imageProcessor->mBlock.size());
-
-    if (err)
+    if (chip_error != CHIP_NO_ERROR)
     {
-        ChipLogError(SoftwareUpdate, "bootloader_eraseWriteStorage err %ld", err);
-
-        imageProcessor->mDownloader->EndDownload(CHIP_ERROR_WRITE_FAILED);
+        ChipLogError(SoftwareUpdate, "Matter image header parser error %s", chip::ErrorStr(chip_error));
+        imageProcessor->mDownloader->EndDownload(CHIP_ERROR_INVALID_FILE_IDENTIFIER);
         return;
     }
 
-    mWriteOffset += imageProcessor->mBlock.size(); // Keep our own track of how far we've written
-    imageProcessor->mParams.downloadedBytes += imageProcessor->mBlock.size();
+    // Copy data into the word-aligned writeBuffer, once it fills write its contents to the bootloader storage
+    // Final data block is handled in HandleFinalize().
+    uint32_t blockReadOffset = 0;
+    while (blockReadOffset < block.size())
+    {
+        writeBuffer[writeBufOffset] = *((block.data()) + blockReadOffset);
+        writeBufOffset++;
+        blockReadOffset++;
+        if (writeBufOffset == kAlignmentBytes)
+        {
+            writeBufOffset = 0;
+
+            CORE_CRITICAL_SECTION(err = bootloader_eraseWriteStorage(mSlotId, mWriteOffset, writeBuffer, kAlignmentBytes);)
+            if (err)
+            {
+                ChipLogError(SoftwareUpdate, "ERROR: In HandleProcessBlock bootloader_eraseWriteStorage() error %ld", err);
+                imageProcessor->mDownloader->EndDownload(CHIP_ERROR_WRITE_FAILED);
+                return;
+            }
+            mWriteOffset += kAlignmentBytes;
+            imageProcessor->mParams.downloadedBytes += kAlignmentBytes;
+        }
+    }
+
     imageProcessor->mDownloader->FetchNextData();
+}
+
+CHIP_ERROR OTAImageProcessorImpl::ProcessHeader(ByteSpan & block)
+{
+    if (mHeaderParser.IsInitialized())
+    {
+        OTAImageHeader header;
+        CHIP_ERROR error = mHeaderParser.AccumulateAndDecode(block, header);
+
+        // Needs more data to decode the header
+        ReturnErrorCodeIf(error == CHIP_ERROR_BUFFER_TOO_SMALL, CHIP_NO_ERROR);
+        ReturnErrorOnFailure(error);
+
+        // SL TODO -- store version somewhere
+        ChipLogProgress(SoftwareUpdate, "Image Header software version: %ld payload size: %lu", header.mSoftwareVersion,
+                        (long unsigned int) header.mPayloadSize);
+        mParams.totalFileBytes = header.mPayloadSize;
+        mHeaderParser.Clear();
+    }
+    return CHIP_NO_ERROR;
 }
 
 // Store block data for HandleProcessBlock to access

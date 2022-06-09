@@ -124,7 +124,7 @@ do{ \
         }\
     }while(0)
 
-#define FLASH_NAME_SPACE_MAX_ARRAY        20
+#define FLASH_NAME_SPACE_MAX_ARRAY        10
 #define FLASH_NAME_MAX_ARRAY              64
 #define PER_NAME_SPACE_FLASH_SIZE         sizeof(namespace_flash_t)
 #define PER_NAME_FLASH_SIZE               sizeof(name_flash_t)

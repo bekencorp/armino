@@ -56,8 +56,11 @@ class TransferService : public pw_rpc::raw::Transfer::Service<TransferService> {
       TransferThread& transfer_thread,
       uint32_t max_pending_bytes,
       chrono::SystemClock::duration chunk_timeout = cfg::kDefaultChunkTimeout,
-      uint8_t max_retries = cfg::kDefaultMaxRetries)
-      : max_parameters_(max_pending_bytes, transfer_thread.max_chunk_size()),
+      uint8_t max_retries = cfg::kDefaultMaxRetries,
+      uint32_t extend_window_divisor = cfg::kDefaultExtendWindowDivisor)
+      : max_parameters_(max_pending_bytes,
+                        transfer_thread.max_chunk_size(),
+                        extend_window_divisor),
         thread_(transfer_thread),
         chunk_timeout_(chunk_timeout),
         max_retries_(max_retries) {}
@@ -86,6 +89,16 @@ class TransferService : public pw_rpc::raw::Transfer::Service<TransferService> {
     thread_.AddTransferHandler(handler);
   }
 
+  void set_max_pending_bytes(uint32_t max_pending_bytes) {
+    max_parameters_.set_pending_bytes(max_pending_bytes);
+  }
+
+  // Sets the maximum size for the data in a pw_transfer chunk. Note that the
+  // max chunk size must always fit within the transfer thread's chunk buffer.
+  void set_max_chunk_size_bytes(uint32_t max_chunk_size_bytes) {
+    max_parameters_.set_max_chunk_size_bytes(max_chunk_size_bytes);
+  }
+
   void UnregisterHandler(internal::Handler& handler) {
     thread_.RemoveTransferHandler(handler);
   }
@@ -95,6 +108,15 @@ class TransferService : public pw_rpc::raw::Transfer::Service<TransferService> {
   }
 
   void set_max_retries(uint8_t max_retries) { max_retries_ = max_retries; }
+
+  Status set_extend_window_divisor(uint32_t extend_window_divisor) {
+    if (extend_window_divisor <= 1) {
+      return Status::InvalidArgument();
+    }
+
+    max_parameters_.set_extend_window_divisor(extend_window_divisor);
+    return OkStatus();
+  }
 
  private:
   void HandleChunk(ConstByteSpan message, internal::TransferType type);

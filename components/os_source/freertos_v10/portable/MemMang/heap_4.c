@@ -740,6 +740,7 @@ void *pvPortMalloc( size_t xWantedSize )
 	vTaskSuspendAll();
 	pvReturn = malloc_without_lock(xWantedSize + MEM_CHECK_TAG_LEN);
 	#if CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG
+	if(pvReturn)
 	{
 		BlockLink_t *pxLink = (BlockLink_t *)((u8*)pvReturn - xHeapStructSize);
 		if(pvReturn && call_func_name) {
@@ -943,8 +944,9 @@ void vPortInitialiseBlocks( void )
 /*-----------------------------------------------------------*/
 
 #if configDYNAMIC_HEAP_SIZE
-#if (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
-#define HEAP_START_ADDRESS    (void*)(&ucHeap)
+#if (CONFIG_ARCH_RISCV)
+extern unsigned char _end;  //the end of bss section in sram
+#define HEAP_START_ADDRESS    (void*)(&_end)
 #else
 extern unsigned char _empty_ram;
 #define HEAP_START_ADDRESS    (void*)&_empty_ram
@@ -957,10 +959,14 @@ extern unsigned char _empty_ram;
 #define HEAP_END_ADDRESS      (void*)(0x00400000 + 192 * 1024)
 #elif (CONFIG_SOC_BK7271)
 #define HEAP_END_ADDRESS      (void*)(0x00400000 + 512 * 1024)
-#elif (CONFIG_SOC_BK7256XX)
-#define HEAP_END_ADDRESS      (void*)(HEAP_START_ADDRESS  + configTOTAL_HEAP_SIZE)
+#elif (CONFIG_SOC_BK7235)
+#define HEAP_END_ADDRESS      (void*)(0x30000000 + 512 * 1024)
+#elif (CONFIG_SOC_BK7237)
+#define HEAP_END_ADDRESS      (void*)(0x30000000 + 384 * 1024)
+#elif (CONFIG_SOC_BK7256)
+#define HEAP_END_ADDRESS      (void*)(0x30000000 + 384 * 1024)
 #elif (CONFIG_SOC_BK7256_CP1)
-#define HEAP_END_ADDRESS      (void*)(HEAP_START_ADDRESS  + configTOTAL_HEAP_SIZE)
+#define HEAP_END_ADDRESS      (void*)(0x30060000 + 127 * 1024) // 1k for swap
 #else
 #define HEAP_END_ADDRESS      (void*)(0x00400000 + 256 * 1024)
 #endif
@@ -996,6 +1002,7 @@ static void prvHeapInit( void )
 	xTotalHeapSize = configTOTAL_HEAP_SIZE;
 	#endif
 
+	BK_LOGI(TAG, "prvHeapInit-start addr:0x%x, size:%d\r\n", ucHeap, xTotalHeapSize);
 
 	/* Ensure the heap starts on a correctly aligned boundary. */
 	uxAddress = ( size_t ) ucHeap;
@@ -1037,7 +1044,7 @@ static void prvHeapInit( void )
     xTotalHeapSize = PSRAM_END_ADDRESS - PSRAM_START_ADDRESS;
     psram_ucHeap = PSRAM_START_ADDRESS;
 
-    BK_LOGI(TAG, "prvHeapInit-start addr:0x%x, size:%d\r\n", psram_ucHeap, xTotalHeapSize);
+    BK_LOGI(TAG, "prvHeapInit-psram start addr:0x%x, size:%d\r\n", psram_ucHeap, xTotalHeapSize);
 
     /* Ensure the heap starts on a correctly aligned boundary. */
     uxAddress = ( size_t ) psram_ucHeap;

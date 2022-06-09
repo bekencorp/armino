@@ -36,7 +36,6 @@ extern "C" {
 #define HM_1055_DEV             (0xABC06)
 #define GC_2145_DEV             (0xABC07)
 
-#define USE_CAMERA              GC0328C_DEV /**< current effect sensor */
 
 #define PAS6329_DEV_ID          (0x40)
 #define OV_7670_DEV_ID          (0x21)

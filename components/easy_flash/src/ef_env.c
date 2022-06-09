@@ -309,13 +309,13 @@ static EfErrCode write_env(const char *key, const char *value)
 	env_cache_bak += get_env_user_used_size();
 
 	/* copy key name */
-	memcpy(env_cache_bak, key, key_len);
+	memmove(env_cache_bak, key, key_len);
 	env_cache_bak += key_len;
 	/* copy equal sign */
 	*env_cache_bak = '=';
 	env_cache_bak++;
 	/* copy value */
-	memcpy(env_cache_bak, value, value_len);
+	memmove(env_cache_bak, value, value_len);
 	env_cache_bak += value_len;
 	/* fill '\0' for string end sign */
 	*env_cache_bak = '\0';
@@ -452,7 +452,7 @@ static EfErrCode del_env(const char *key)
 	remain_env_length = get_env_data_size()
 						- (((uint32_t) del_env + del_env_length) - ((uint32_t) env_cache + ENV_PARAM_BYTE_SIZE));
 	/* remain ENV move forward */
-	memcpy(del_env, del_env + del_env_length, remain_env_length);
+	memmove(del_env, del_env + del_env_length, remain_env_length);
 	/* reset ENV end address */
 	set_env_end_addr(get_env_end_addr() - del_env_length);
 	/* ENV ram cache has changed */

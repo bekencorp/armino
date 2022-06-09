@@ -95,7 +95,7 @@ bk_err_t gpio_hal_set_output_value(gpio_hal_t *hal, gpio_id_t gpio_id, uint32 ou
 	return BK_OK;
 }
 
-bk_err_t gpio_hal_get_iutput(gpio_hal_t *hal, gpio_id_t gpio_id)
+bk_err_t gpio_hal_get_input(gpio_hal_t *hal, gpio_id_t gpio_id)
 {
 	if(gpio_ll_check_input_enable(hal->hw, gpio_id))
 		return (gpio_ll_get_gpio_input_value(hal->hw, gpio_id));
@@ -120,10 +120,24 @@ bk_err_t gpio_hal_enable_interrupt(gpio_hal_t *hal, gpio_id_t gpio_id)
 		return BK_ERR_GPIO_NOT_INPUT_MODE;
 }
 
-
 static bk_err_t gpio_hal_map_check(gpio_hal_t *hal, gpio_id_t gpio_id)
 {
-	const gpio_map_t *gpio_map = &gpio_map_table[gpio_id];
+	const gpio_map_t *gpio_map = NULL;
+
+	//special for BK7235:the GPIO ID isn't from 0~47, some of the GPIO are not exist.
+	for(int i = 0; i < sizeof(gpio_map_table)/sizeof(gpio_map_t); i++)
+	{
+		if(gpio_map_table[i].id == gpio_id)
+		{
+			gpio_map = &gpio_map_table[i];
+			break;
+		}
+	}
+	if(gpio_map == NULL)
+	{
+		HAL_LOGE("gpio id=%d is not exist\r\n", gpio_id);
+		return BK_ERR_GPIO_INVALID_ID;
+	}
 
 	//TODO check gpio is busy
 	if(gpio_ll_check_func_mode_enable(hal->hw, gpio_id)) {
@@ -141,7 +155,22 @@ static bk_err_t gpio_hal_map_check(gpio_hal_t *hal, gpio_id_t gpio_id)
 
 bk_err_t gpio_hal_func_map(gpio_hal_t *hal, gpio_id_t gpio_id, gpio_dev_t dev)
 {
-	const gpio_map_t *gpio_map = &gpio_map_table[gpio_id];
+	const gpio_map_t *gpio_map = NULL;
+
+	//special for BK7235:the GPIO ID isn't from 0~47, some of the GPIO are not exist.
+	for(int i = 0; i < sizeof(gpio_map_table)/sizeof(gpio_map_t); i++)
+	{
+		if(gpio_map_table[i].id == gpio_id)
+		{
+			gpio_map = &gpio_map_table[i];
+			break;
+		}
+	}
+	if(gpio_map == NULL)
+	{
+		HAL_LOGE("gpio id=%d is not exist\r\n", gpio_id);
+		return BK_ERR_GPIO_INVALID_ID;
+	}
 
 	if(gpio_hal_map_check(hal, gpio_id)) {
 		return BK_ERR_GPIO_INTERNAL_USED;
@@ -214,6 +243,54 @@ bk_err_t gpio_hal_set_config(gpio_hal_t *hal, gpio_id_t gpio_id, const gpio_conf
 
 	return BK_OK;
 }
+
+#if CONFIG_GPIO_WAKEUP_SUPPORT
+bk_err_t gpio_hal_bak_configs(uint16_t *gpio_cfg, uint32_t count)
+{
+	gpio_ll_bak_configs(gpio_cfg, count);
+	return BK_OK;
+}
+
+bk_err_t gpio_hal_restore_configs(uint16_t *gpio_cfg, uint32_t count)
+{
+	gpio_ll_restore_configs(gpio_cfg, count);
+	return BK_OK;
+}
+
+bk_err_t gpio_hal_bak_int_type_configs(uint32_t *gpio_int_type_cfg, uint32_t count)
+{
+	gpio_ll_bak_int_type_configs(gpio_int_type_cfg, count);
+	
+	return BK_OK;
+}
+
+bk_err_t gpio_hal_restore_int_type_configs(uint32_t *gpio_int_type_cfg, uint32_t count)
+{
+	gpio_ll_restore_int_type_configs(gpio_int_type_cfg, count);
+	return BK_OK;
+}
+
+bk_err_t gpio_hal_bak_int_enable_configs(uint32_t *gpio_int_enable_cfg, uint32_t count)
+{
+	gpio_ll_bak_int_enable_configs(gpio_int_enable_cfg, count);
+	
+	return BK_OK;
+}
+
+bk_err_t gpio_hal_restore_int_enable_configs(uint32_t *gpio_int_enable_cfg, uint32_t count)
+{
+	gpio_ll_restore_int_enable_configs(gpio_int_enable_cfg, count);
+	return BK_OK;
+}
+
+/* gpio switch to low power status:set all gpios to input mode to avoid power leakage */
+bk_err_t gpio_hal_switch_to_low_power_status(void)
+{
+	gpio_ll_switch_to_low_power_status();
+	return BK_OK;
+}
+
+#else
 bk_err_t gpio_hal_reg_save(uint32_t*  gpio_cfg)
 {
 	gpio_ll_reg_save(gpio_cfg);
@@ -234,3 +311,5 @@ bk_err_t gpio_hal_wakeup_interrupt_clear()
 	gpio_ll_wakeup_interrupt_clear();
 	return BK_OK;
 }
+#endif
+

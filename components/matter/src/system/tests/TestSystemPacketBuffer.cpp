@@ -137,7 +137,7 @@ public:
     static void PrintHandle(const char * tag, const PacketBuffer * buffer)
     {
         printf("%s %p ref=%u len=%-4u next=%p\n", tag, buffer, buffer ? buffer->ref : 0, buffer ? buffer->len : 0,
-               buffer ? buffer->next : 0);
+               buffer ? buffer->next : nullptr);
     }
     static void PrintHandle(const char * tag, const PacketBufferHandle & handle) { PrintHandle(tag, handle.mBuffer); }
 
@@ -235,6 +235,8 @@ int PacketBufferTest::TestTeardown(void * inContext)
     if (err != CHIP_NO_ERROR && err != CHIP_ERROR_NOT_IMPLEMENTED)
         return FAILURE;
 
+    chip::Platform::MemoryShutdown();
+
     return SUCCESS;
 }
 
@@ -289,7 +291,8 @@ void PacketBufferTest::PrepareTestBuffer(BufferConfiguration * config, int flags
         config->handle = PacketBufferHandle::New(chip::System::PacketBuffer::kMaxSizeWithoutReserve, 0);
         if (config->handle.IsNull())
         {
-            printf("NewPacketBuffer: Failed to allocate packet buffer (%zu retained): %s\n", handles.size(), strerror(errno));
+            printf("NewPacketBuffer: Failed to allocate packet buffer (%u retained): %s\n",
+                   static_cast<unsigned int>(handles.size()), strerror(errno));
             exit(EXIT_FAILURE);
         }
         if (flags & kRecordHandle)
@@ -342,12 +345,12 @@ bool PacketBufferTest::ResetHandles()
         const PacketBufferHandle & handle = handles[i];
         if (handle.Get() == nullptr)
         {
-            printf("TestTerminate: handle %zu null\n", i);
+            printf("TestTerminate: handle %u null\n", static_cast<unsigned int>(i));
             handles_ok = false;
         }
         else if (handle->ref != 1)
         {
-            printf("TestTerminate: handle %zu buffer=%p ref=%u\n", i, handle.Get(), handle->ref);
+            printf("TestTerminate: handle %u buffer=%p ref=%u\n", static_cast<unsigned int>(i), handle.Get(), handle->ref);
             handles_ok = false;
             while (handle->ref > 1)
             {

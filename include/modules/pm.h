@@ -216,8 +216,21 @@ int pm_module_vote_power_ctrl(pm_power_module_name_e module,pm_power_module_stat
  *
  */
 int pm_suppress_ticks_and_sleep(UINT32 sleep_ticks);
-
-
+/**
+ * @brief enter sleep
+ *
+ * the function is for adapting harmony os
+ *
+ * @attention
+ * - This API is used for power manager.
+ *
+ * @param
+ * - void
+ * @return
+ * - void
+ *
+ */
+void  pm_enter_sleep();
 
 #ifdef __cplusplus
 }

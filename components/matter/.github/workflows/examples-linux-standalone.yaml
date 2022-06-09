@@ -21,7 +21,7 @@ on:
 concurrency:
     group: ${{ github.ref }}-${{ github.workflow }}-${{ (github.event_name == 'pull_request' && github.event.number) || (github.event_name == 'workflow_dispatch' && github.run_number) || github.sha }}
     cancel-in-progress: true
-  
+
 jobs:
     linux_standalone:
         name: Linux Standalone
@@ -34,15 +34,21 @@ jobs:
         if: github.actor != 'restyled-io[bot]'
 
         container:
-            image: connectedhomeip/chip-build:0.5.52
+            image: connectedhomeip/chip-build:0.5.64
             volumes:
                 - "/tmp/bloat_reports:/tmp/bloat_reports"
 
         steps:
-            - name: Checkout
-              uses: actions/checkout@v2
+            - uses: Wandalen/wretry.action@v1.0.11
+              name: Checkout
               with:
-                  submodules: true
+                  action: actions/checkout@v3
+                  with: |
+                      token: ${{ github.token }}
+                  attempt_limit: 3
+                  attempt_delay: 2000
+            - name: Checkout submodules
+              run: scripts/checkout_submodules.py --shallow --platform linux
 
             - name: Set up environment for size reports
               if: ${{ !env.ACT }}
@@ -59,15 +65,15 @@ jobs:
               with:
                   name: bootstrap-logs
                   path: |
-                   .environment/gn_out/.ninja_log
-                   .environment/pigweed-venv/*.log
+                      .environment/gn_out/.ninja_log
+                      .environment/pigweed-venv/*.log
             - name: Build Standalone cert tool
-              timeout-minutes: 5
+              timeout-minutes: 10
               run: |
-                 ./scripts/run_in_build_env.sh \
-                 "./scripts/build/build_examples.py --no-log-timestamps --target-glob '*-chip-cert' build"
+                  ./scripts/run_in_build_env.sh \
+                  "./scripts/build/build_examples.py --no-log-timestamps --target-glob '*-chip-cert' build"
             - name: Build example Standalone Echo Client
-              timeout-minutes: 5
+              timeout-minutes: 10
               run: |
                   scripts/examples/gn_build_example.sh examples/chip-tool out/chip_tool_debug
                   .environment/pigweed-venv/bin/python3 scripts/tools/memory/gh_sizes.py \
@@ -75,7 +81,7 @@ jobs:
                     out/chip_tool_debug/chip-tool \
                     /tmp/bloat_reports/
             - name: Build example Standalone Shell
-              timeout-minutes: 5
+              timeout-minutes: 10
               run: |
                   scripts/examples/gn_build_example.sh examples/shell/standalone out/shell_debug
                   .environment/pigweed-venv/bin/python3 scripts/tools/memory/gh_sizes.py \
@@ -83,16 +89,15 @@ jobs:
                     out/shell_debug/chip-shell \
                     /tmp/bloat_reports/
             - name: Build example Standalone All Clusters Server
-              timeout-minutes: 5
+              timeout-minutes: 10
               run: |
-                  scripts/examples/gn_build_example.sh examples/all-clusters-app/linux out/all_clusters_debug \
-                    chip_bypass_rendezvous=true
+                  scripts/examples/gn_build_example.sh examples/all-clusters-app/linux out/all_clusters_debug
                   .environment/pigweed-venv/bin/python3 scripts/tools/memory/gh_sizes.py \
                     linux debug all-clusters-app \
                     out/all_clusters_debug/chip-all-clusters-app \
                     /tmp/bloat_reports/
             - name: Build example TV app
-              timeout-minutes: 5
+              timeout-minutes: 10
               run: |
                   scripts/examples/gn_build_example.sh examples/tv-app/linux out/tv_app_debug
                   .environment/pigweed-venv/bin/python3 scripts/tools/memory/gh_sizes.py \
@@ -109,7 +114,7 @@ jobs:
                     out/lighting_app_debug_rpc/chip-lighting-app \
                     /tmp/bloat_reports/
             - name: Build example Standalone Bridge
-              timeout-minutes: 5
+              timeout-minutes: 10
               run: |
                   scripts/examples/gn_build_example.sh examples/bridge-app/linux out/bridge_debug
                   .environment/pigweed-venv/bin/python3 scripts/tools/memory/gh_sizes.py \
@@ -117,7 +122,7 @@ jobs:
                     out/bridge_debug/chip-bridge-app \
                     /tmp/bloat_reports/
             - name: Build example OTA Provider
-              timeout-minutes: 5
+              timeout-minutes: 10
               run: |
                   scripts/examples/gn_build_example.sh examples/ota-provider-app/linux out/ota_provider_debug
                   .environment/pigweed-venv/bin/python3 scripts/tools/memory/gh_sizes.py \
@@ -125,7 +130,7 @@ jobs:
                     out/ota_provider_debug/chip-ota-provider-app \
                     /tmp/bloat_reports/
             - name: Build example OTA Requestor
-              timeout-minutes: 5
+              timeout-minutes: 10
               run: |
                   scripts/examples/gn_build_example.sh examples/ota-requestor-app/linux out/ota_requestor_debug
                   .environment/pigweed-venv/bin/python3 scripts/tools/memory/gh_sizes.py \
@@ -133,16 +138,16 @@ jobs:
                     out/ota_requestor_debug/chip-ota-requestor-app \
                     /tmp/bloat_reports/
 
-            - name: Build example Standalone Door Lock App
-              timeout-minutes: 5
+            - name: Build example Standalone Lock App
+              timeout-minutes: 10
               run: |
                   ./scripts/run_in_build_env.sh \
                      "./scripts/build/build_examples.py \
-                        --target linux-x64-door-lock \
+                        --target linux-x64-lock \
                         build"
                   .environment/pigweed-venv/bin/python3 scripts/tools/memory/gh_sizes.py \
-                    linux debug door-lock-app \
-                    out/linux-x64-door-lock/chip-door-lock-app \
+                    linux debug lock-app \
+                    out/linux-x64-lock/chip-lock-app \
                     /tmp/bloat_reports/
             - name: Uploading Size Reports
               uses: actions/upload-artifact@v2

@@ -277,13 +277,6 @@ void start_app_main_thread(void)
 		(beken_thread_arg_t)0);
 }
 
-void __attribute__((weak)) OHOS_SystemInit(void)
-{
-	os_printf("@NOOS@\r\n");
-    return;
-}
-
-
 
 void entry_main(void)
 {
@@ -291,8 +284,6 @@ void entry_main(void)
 	components_init();
 
 	start_app_main_thread();
-
-	OHOS_SystemInit();
 
 #if (!CONFIG_SLAVE_CORE)
 	start_user_app_thread();

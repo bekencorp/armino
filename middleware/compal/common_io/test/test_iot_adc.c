@@ -114,6 +114,8 @@ TEST_GROUP_RUNNER( TEST_IOT_ADC )
     RUN_TEST_CASE( TEST_IOT_ADC, AFQP_IotAdcIoctlSetConfigFuzzy );
     RUN_TEST_CASE( TEST_IOT_ADC, AFQP_IotAdcSetChainFuzzy );
     RUN_TEST_CASE( TEST_IOT_ADC, AFQP_IotAdcOperationFuzzy );
+
+    vSemaphoreDelete(xtestIotAdcTestSemaphore);
 }
 
 /*-----------------------------------------------------------*/

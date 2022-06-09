@@ -48,7 +48,7 @@ extern "C" {
 
 #define CMSIS_OS_VER                       2
 #define LOSCFG_KERNEL_PRINTF               1
-#define LOSCFG_KERNEL_PM                   0
+#define LOSCFG_KERNEL_PM                   1
 
 #define LOS_TICK_UNIT_CLOCK                26000000
 #define LOS_TICK_MS                        2
@@ -80,6 +80,7 @@ extern "C" {
 #define LOSCFG_BASE_CORE_TSK_MIN_STACK_SIZE                 (0x400U)
 #define LOSCFG_BASE_CORE_TIMESLICE                          1
 #define LOSCFG_BASE_CORE_TIMESLICE_TIMEOUT                  20000
+#define LOSCFG_BASE_CORE_TSK_DEFAULT_PRIO                   15
 
 /*=============================================================================
  *Semaphore module configuration
@@ -109,17 +110,25 @@ extern "C" {
 /*=============================================================================
  *Memory module configuration
  *=============================================================================*/
+extern unsigned char _end;  //the end of bss section in sram
+extern unsigned char *m_aucSysMem0;
+
 #define LOSCFG_SYS_EXTERNAL_HEAP                            0
-#define LOSCFG_SYS_HEAP_SIZE                                ( size_t ) ( 120 * 1024 )
+
+#if (LOSCFG_SYS_EXTERNAL_HEAP == 1)
+#define LOSCFG_SYS_HEAP_ADDR                                (&_end)
+#else
+#define LOSCFG_SYS_HEAP_ADDR                                (&m_aucSysMem0[0])
+#define LOSCFG_SYS_HEAP_SIZE                                ( size_t ) ( 140 * 1024 )
+#endif
+
+
 //#define OS_SYS_MEM_SIZE                                     0x0001000
 #define LOSCFG_BASE_MEM_NODE_INTEGRITY_CHECK                0
 #define LOSCFG_BASE_MEM_NODE_SIZE_CHECK                     1
-
 #define LOSCFG_MEM_MUL_POOL                                 1
-
 #define OS_SYS_MEM_NUM                                      20
 #define LOSCFG_KERNEL_MEM_SLAB                              0
-
 #define OS_HWI_WITH_ARG               1
 
 

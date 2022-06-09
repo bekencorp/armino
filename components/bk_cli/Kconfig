@@ -8,6 +8,12 @@ menu "Cli"
 		bool "Enable BK Reg read/write"
 		default y
 
+	config MAX_COMMANDS
+		depends on CLI
+		int "MAX number of commands is configured by default"
+		range 0 65535
+		default 255
+
 	config IPERF_TEST
 		depends on CLI
 		bool "Enable Iperf Test"
@@ -64,17 +70,6 @@ menu "Cli"
 		bool "Enable Shell and Async log optimize"
 		default n
 
-
-	config AUDIO_TEST
-		depends on CLI
-		bool "Enable AUDIO Test"
-		default n
-
-	config AUDIO_AEC_TEST
-		depends on CLI
-		bool "Enable AUDIO AEC Test"
-		default n
-
 	config TOUCH
 		depends on CLI
 		bool "Enable TOUCH Test"
@@ -89,16 +84,6 @@ menu "Cli"
 		bool "Enable AUDIO"
 		default n
 
-	config FFT_TEST
-		depends on CLI
-		bool "Enable FFT Test"
-		default n
-
-	config I2S_TEST
-		depends on CLI
-		bool "Enable I2S Test"
-		default n
-
 	config EFUSE
 		bool "Enable Efuse"
 		default y
@@ -110,17 +95,9 @@ menu "Cli"
 	config SECURITYIP
 		bool "Enable securityIP"
 		default n
-
-	config MATTER_NAMEKEY
-		bool "Enable MATTER_NAMEKEY"
-		default n
 		
 	config KEYVALUE
 		bool "Enable KEYVALUE"
-		default n	
-		
-	config NET_CTL
-		bool "Enable NET_CTL"
 		default n
 
 	config COMPONENTS_WPA2_ENTERPRISE
@@ -168,14 +145,5 @@ menu "DUAL_CORE"
 
 	config ICU
 		bool "Enable ICU"
-		default y
-		
-	config LCD_TEST
-		depends on CLI
-		bool "Enable LCD Test"
-		default n
-		
-	config DMA2D_TEST
-		bool "Enable dma2d Test"
 		default y
 endmenu

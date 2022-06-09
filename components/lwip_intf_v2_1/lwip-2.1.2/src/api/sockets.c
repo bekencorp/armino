@@ -1645,7 +1645,9 @@ lwip_sendto(int s, const void *data, size_t size, int flags,
   LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%"U16_F"\n", remote_port));
 
   /* make the buffer point to the data that should be sent */
-#if LWIP_NETIF_TX_SINGLE_PBUF
+//#if LWIP_NETIF_TX_SINGLE_PBUF
+  /* force malloc buffer to backup data, since beken driver deal data in async mode */
+#if 1
   /* Allocate a new netbuf and copy the data into it. */
   if (netbuf_alloc(&buf, short_size) == NULL) {
     err = ERR_MEM;

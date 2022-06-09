@@ -32,8 +32,14 @@ extern "C" {
 #define EXIT_MSG		              "exit"
 
 #define NUM_BUFFERS		              1
+
+#ifndef CONFIG_MAX_COMMANDS
 #define MAX_COMMANDS	              255
-#ifdef CONFIG_HOMEKIT
+#else
+#define MAX_COMMANDS     CONFIG_MAX_COMMANDS
+#endif
+
+#ifdef CONFIG_KEYVALUE
 #define INBUF_SIZE                    1024
 #else
 #define INBUF_SIZE                    128
@@ -69,7 +75,7 @@ struct cli_st
     int initialized;
     const struct cli_command *commands[MAX_COMMANDS];
     unsigned int num_commands;
-#if (!CONFIG_SHELL_ASYNCLOG)
+#if ((!CONFIG_SHELL_ASYNCLOG) || CONFIG_ATE_TEST)
     int echo_disabled;
 
     unsigned int bp;	/* buffer pointer */

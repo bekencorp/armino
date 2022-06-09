@@ -21,6 +21,8 @@
 #include <app/clusters/bindings/PendingNotificationMap.h>
 #include <app/server/Server.h>
 #include <app/util/binding-table.h>
+#include <credentials/FabricTable.h>
+#include <lib/core/CHIPPersistentStorageDelegate.h>
 
 namespace chip {
 
@@ -36,7 +38,20 @@ namespace chip {
  * E.g. The application will send on/off commands to peer for the OnOff cluster.
  *
  */
-using BoundDeviceChangedHandler = void (*)(const EmberBindingTableEntry * binding, DeviceProxy * peer_device, void * context);
+using BoundDeviceChangedHandler = void (*)(const EmberBindingTableEntry & binding, DeviceProxy * peer_device, void * context);
+
+/**
+ * Application callback function when a context used in NotifyBoundClusterChanged will not be needed and should be
+ * released.
+ */
+using BoundDeviceContextReleaseHandler = PendingNotificationContextReleaseHandler;
+
+struct BindingManagerInitParams
+{
+    FabricTable * mFabricTable               = nullptr;
+    CASESessionManager * mCASESessionManager = nullptr;
+    PersistentStorageDelegate * mStorage     = nullptr;
+};
 
 /**
  *
@@ -61,13 +76,23 @@ public:
 
     void RegisterBoundDeviceChangedHandler(BoundDeviceChangedHandler handler) { mBoundDeviceChangedHandler = handler; }
 
-    void SetAppServer(Server * appServer);
+    /*
+     * Registers handler that will be called when context used in NotifyBoundClusterChanged will not be needed and could be
+     * released.
+     *
+     */
+    void RegisterBoundDeviceContextReleaseHandler(BoundDeviceContextReleaseHandler handler)
+    {
+        mPendingNotificationMap.RegisterPendingNotificationContextReleaseHandler(handler);
+    }
+
+    CHIP_ERROR Init(const BindingManagerInitParams & params);
 
     /*
      * Notifies the BindingManager that a new unicast binding is created.
      *
      */
-    CHIP_ERROR UnicastBindingCreated(const EmberBindingTableEntry & bindingEntry);
+    CHIP_ERROR UnicastBindingCreated(uint8_t fabricIndex, NodeId nodeId);
 
     /*
      * Notifies the BindingManager that a unicast binding is about to be removed from the given index.
@@ -108,7 +133,7 @@ private:
 
     PendingNotificationMap mPendingNotificationMap;
     BoundDeviceChangedHandler mBoundDeviceChangedHandler;
-    Server * mAppServer = nullptr;
+    BindingManagerInitParams mInitParams;
 
     Callback::Callback<OnDeviceConnected> mOnConnectedCallback;
     Callback::Callback<OnDeviceConnectionFailure> mOnConnectionFailureCallback;

@@ -29,7 +29,7 @@ extern "C" {
 int wlan_sta_set(const uint8_t *ssid, uint8_t ssid_len, const uint8_t *psk);
 int wlan_sta_set_config(wlan_sta_config_t *config);
 int wlan_sta_get_config(wlan_sta_config_t *config);
-int wlan_sta_set_autoconnect(int enable);
+int wlan_sta_set_autoreconnect(wlan_auto_reconnect_t *config);
 int wlan_sta_get_bss_size(uint32_t * size);
 int wlan_sta_get_bss(wlan_sta_bss_info_t * bss_get);
 int wlan_sta_set_bss(wlan_sta_bss_info_t * bss_set);
@@ -76,6 +76,7 @@ int http_ota_download(const char *uri);
 int bk_wlan_set_channel_with_band_width(int channel, int band_width);
 int bmsg_tx_raw_sender(uint8_t *payload, uint16_t length);
 void wlan_write_fast_connect_info(struct wlan_fast_connect_info *fci);
+void wlan_read_fast_connect_info(struct wlan_fast_connect_info *fci);
 
 int bk_wifi_sta_set_power(int power);
 int bk_wifi_ap_set_power(int power);
@@ -89,6 +90,7 @@ uint8_t bk_wlan_ap_get_default_channel(void);
 void app_p2p_rw_event_func(void *new_evt);
 void app_p2p_restart_thread(void);
 #endif
+void bk_wifi_rc_config(uint8_t sta_idx, uint16_t rate_cfg);
 #ifdef __cplusplus
 }
 #endif

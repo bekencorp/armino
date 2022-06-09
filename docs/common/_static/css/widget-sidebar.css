@@ -1,0 +1,145 @@
+/* Hide Scrollbars in WebKit browsers
+ * See this for details:
+ * https://stackoverflow.com/a/13184693
+ */
+.rst-widget-sidebar::-webkit-scrollbar {
+  /* This is the magic bit */
+  display: none;
+}
+
+/* Sidebar */
+
+@media print{
+    .rst-widget-sidebar,.wy-nav-side,footer{
+        display:none
+    }
+    .wy-nav-content-wrap{
+        margin-left:0
+    }
+}
+.rst-widget-sidebar{
+    position:fixed;
+    bottom:0;
+    left:0;
+    width:300px;
+    color:#fcfcfc;
+    background:#1f1d1d;
+    font-family:Lato,proxima-nova,Helvetica Neue,Arial,sans-serif;
+    z-index:400
+}
+.rst-widget-sidebar a{
+    color:#2980b9;
+    text-decoration:none
+}
+.rst-widget-sidebar .rst-badge-small{
+    display:none
+}
+.rst-widget-sidebar .rst-widget-header{
+    padding:12px;
+    background-color:#272525;
+    display:block;
+    text-align:right;
+    font-size:90%;
+    color:#27ae60;
+    *zoom:1
+}
+.rst-widget-sidebar .rst-widget-header-expandable{
+    cursor:pointer;
+}
+.rst-widget-sidebar .rst-widget-header a{
+    color:#27ae60;
+    text-decoration: underline;
+}
+.rst-widget-sidebar .rst-widget-header:after,.rst-widget-sidebar .rst-widget-header:before{
+    display:table;
+    content:""
+}
+.rst-widget-sidebar .rst-widget-header:after{
+    clear:both
+}
+.rst-content .code-block-caption .rst-widget-sidebar .rst-widget-header .headerlink,.rst-content .rst-widget-sidebar .rst-widget-header .admonition-title,.rst-content code.download .rst-widget-sidebar .rst-widget-header span:first-child,.rst-content dl dt .rst-widget-sidebar .rst-widget-header .headerlink,.rst-content h1 .rst-widget-sidebar .rst-widget-header .headerlink,.rst-content h2 .rst-widget-sidebar .rst-widget-header .headerlink,.rst-content h3 .rst-widget-sidebar .rst-widget-header .headerlink,.rst-content h4 .rst-widget-sidebar .rst-widget-header .headerlink,.rst-content h5 .rst-widget-sidebar .rst-widget-header .headerlink,.rst-content h6 .rst-widget-sidebar .rst-widget-header .headerlink,.rst-content p.caption .rst-widget-sidebar .rst-widget-header .headerlink,.rst-content table>caption .rst-widget-sidebar .rst-widget-header .headerlink,.rst-content tt.download .rst-widget-sidebar .rst-widget-header span:first-child,.rst-widget-sidebar .rst-widget-header .fa,.rst-widget-sidebar .rst-widget-header .icon,.rst-widget-sidebar .rst-widget-header .rst-content .admonition-title,.rst-widget-sidebar .rst-widget-header .rst-content .code-block-caption .headerlink,.rst-widget-sidebar .rst-widget-header .rst-content code.download span:first-child,.rst-widget-sidebar .rst-widget-header .rst-content dl dt .headerlink,.rst-widget-sidebar .rst-widget-header .rst-content h1 .headerlink,.rst-widget-sidebar .rst-widget-header .rst-content h2 .headerlink,.rst-widget-sidebar .rst-widget-header .rst-content h3 .headerlink,.rst-widget-sidebar .rst-widget-header .rst-content h4 .headerlink,.rst-widget-sidebar .rst-widget-header .rst-content h5 .headerlink,.rst-widget-sidebar .rst-widget-header .rst-content h6 .headerlink,.rst-widget-sidebar .rst-widget-header .rst-content p.caption .headerlink,.rst-widget-sidebar .rst-widget-header .rst-content table>caption .headerlink,.rst-widget-sidebar .rst-widget-header .rst-content tt.download span:first-child,.rst-widget-sidebar .rst-widget-header .wy-menu-vertical li span.toctree-expand,.wy-menu-vertical li .rst-widget-sidebar .rst-widget-header span.toctree-expand{
+    color:#fcfcfc
+}
+.rst-widget-sidebar .rst-widget-header .rst-widget-header-left{
+    float:left
+}
+.rst-widget-sidebar .rst-widget-header.rst-out-of-date{
+    background-color:#e74c3c;
+    color:#fff
+}
+.rst-widget-sidebar .rst-widget-header.rst-active-old-version{
+    background-color:#f1c40f;
+    color:#000
+}
+.rst-widget-sidebar.shift-up{
+    height:auto;
+    max-height:100%;
+    overflow-y:scroll
+}
+.rst-widget-sidebar.shift-up .rst-widget-body.shift-up{
+    display:block
+}
+.rst-widget-sidebar .rst-widget-body{
+    font-size:90%;
+    padding:12px;
+    color:grey;
+    display:none
+}
+.rst-widget-sidebar .rst-widget-body hr{
+    display:block;
+    height:1px;
+    border:0;
+    margin:20px 0;
+    padding:0;
+    border-top:1px solid #413d3d
+}
+.rst-widget-sidebar .rst-widget-body dd{
+    display:inline-block;
+    margin:0
+}
+.rst-widget-sidebar .rst-widget-body dd a,
+.rst-widget-sidebar .rst-widget-body dd strong {
+    display:inline-block;
+    padding:6px;
+    color:#fcfcfc
+}
+.rst-widget-sidebar.rst-badge{
+    width:auto;
+    bottom:20px;
+    right:20px;
+    left:auto;
+    border:none;
+    max-width:300px;
+    max-height:90%
+}
+.rst-widget-sidebar.rst-badge .fa-book,.rst-widget-sidebar.rst-badge .icon-book{
+    float:none
+}
+.rst-widget-sidebar.rst-badge.shift-up .rst-widget-header{
+    text-align:right
+}
+.rst-widget-sidebar.rst-badge.shift-up .rst-widget-header .fa-book,.rst-widget-sidebar.rst-badge.shift-up .rst-widget-header .icon-book{
+    float:left
+}
+.rst-widget-sidebar.rst-badge .rst-widget-header{
+    width:auto;
+    height:30px;
+    line-height:30px;
+    padding:0 6px;
+    display:block;
+    text-align:center
+}
+@media screen and (max-width:768px){
+    .rst-widget-sidebar{
+        width:85%;
+        display:none
+    }
+    .rst-widget-sidebar.shift{
+        display:block
+    }
+}
+
+/* Fix overlap of sidebar widgets and navbar*/
+.wy-nav-side {
+    padding-bottom: 1rem;
+}

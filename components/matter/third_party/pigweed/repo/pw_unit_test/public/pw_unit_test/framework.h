@@ -115,6 +115,19 @@
 #define RUN_ALL_TESTS() \
   ::pw::unit_test::internal::Framework::Get().RunAllTests()
 
+// Death tests are not supported. The *_DEATH_IF_SUPPORTED macros do nothing.
+#define GTEST_HAS_DEATH_TEST 0
+
+#define EXPECT_DEATH_IF_SUPPORTED(statement, regex) \
+  if (0) {                                          \
+    static_cast<void>(statement);                   \
+    static_cast<void>(regex);                       \
+  }                                                 \
+  static_assert(true, "Macros must be termianted with a semicolon")
+
+#define ASSERT_DEATH_IF_SUPPORTED(statement, regex) \
+  EXPECT_DEATH_IF_SUPPORTED(statement, regex)
+
 namespace pw {
 
 #if PW_CXX_STANDARD_IS_SUPPORTED(17)
@@ -204,6 +217,9 @@ class Framework {
 #endif  // PW_CXX_STANDARD_IS_SUPPORTED(17)
 
   bool ShouldRunTest(const TestInfo& test_info) const;
+
+  // Whether the current test is skipped.
+  bool IsSkipped() const { return current_result_ == TestResult::kSkipped; }
 
   // Constructs an instance of a unit test class and runs the test.
   //
@@ -400,7 +416,10 @@ class Test {
   // Runs the unit test.
   void PigweedTestRun() {
     SetUp();
-    PigweedTestBody();
+    // TODO(deymo): Skip the test body if there's a fatal error in SetUp().
+    if (!Framework::Get().IsSkipped()) {
+      PigweedTestBody();
+    }
     TearDown();
   }
 

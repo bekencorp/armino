@@ -26,15 +26,25 @@ Pigweed.
 ------------------
 Writing unit tests
 ------------------
-
 ``pw_unit_test``'s interface is largely compatible with `Google Test`_. Refer to
 the Google Test documentation for examples of to define unit test cases.
 
 .. note::
 
-  A lot of Google Test's more advanced features are not yet implemented. To
-  request a feature addition, please
+  Many of Google Test's more advanced features are not yet implemented. Missing
+  features include:
+
+  * Any GoogleMock features (e.g. :c:macro:`EXPECT_THAT`)
+  * Floating point comparison macros (e.g. :c:macro:`EXPECT_FLOAT_EQ`)
+  * Death tests (e.g. :c:macro:`EXPECT_DEATH`); ``EXPECT_DEATH_IF_SUPPORTED``
+    does nothing but silently passes
+  * Value-parameterized tests
+
+  To request a feature addition, please
   `let us know <mailto:pigweed@googlegroups.com>`_.
+
+  See `Using upstream Googletest and Googlemock` below for information
+  about using upstream Googletest instead.
 
 ------------------------
 Using the test framework
@@ -380,3 +390,20 @@ this module.
 
   The size of the memory pool to use for test fixture instances. By default this
   is set to 16K.
+
+Using upstream Googletest and Googlemock
+========================================
+
+If you want to use the full upstream Googletest/Googlemock, you must do the
+following:
+
+* Set the GN var ``dir_pw_third_party_googletest`` to the location of the
+  googletest source. You can use ``pw package install googletest`` to fetch the
+  source if desired.
+* Set the GN var ``pw_unit_test_MAIN = "//third_party/googletest:gmock_main"``
+* Set the GN var ``pw_unit_test_PUBLIC_DEPS = [ "//third_party/googletest" ]``
+
+.. note::
+
+  Not all unit tests build properly with upstream Googletest yet. This is a
+  work in progress.

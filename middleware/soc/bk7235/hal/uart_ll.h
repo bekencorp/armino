@@ -39,9 +39,6 @@ extern "C" {
 #define UART2_LL_TX_PIN  GPIO_0
 #define UART2_LL_RX_PIN  GPIO_1
 
-#define UART3_LL_TX_PIN  GPIO_41
-#define UART3_LL_RX_PIN  GPIO_40
-
 static inline void uart_ll_init(uart_hw_t *hw)
 {
 
@@ -55,8 +52,6 @@ static inline gpio_id_t uart_ll_get_tx_pin(uart_id_t id)
 			return UART1_LL_TX_PIN;
 		case UART_ID_1:
 			return UART2_LL_TX_PIN;
-		case UART_ID_2:
-			return UART3_LL_TX_PIN;
 		default:
 			return GPIO_NUM;
 	}
@@ -70,8 +65,6 @@ static inline gpio_id_t uart_ll_get_rx_pin(uart_id_t id)
 			return UART1_LL_RX_PIN;
 		case UART_ID_1:
 			return UART2_LL_RX_PIN;
-		case UART_ID_2:
-			return UART3_LL_RX_PIN;
 		default:
 			return GPIO_NUM;
 	}
@@ -107,8 +100,6 @@ static inline uint32_t uart_ll_reg_base_select(uart_id_t id)
 			return UART1_R_BASE;
 		case UART_ID_1:
 			return UART2_R_BASE;
-		case UART_ID_2:
-			return UART3_R_BASE;
 		default:
 			return BK_ERR_UART_BASE;
 			break;

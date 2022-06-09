@@ -16,6 +16,8 @@
 import logging
 from dataclasses import dataclass
 
+from prompt_toolkit.formatted_text import StyleAndTextTuples
+from prompt_toolkit.formatted_text.base import OneStyleAndTextTuple
 from prompt_toolkit.styles import Style
 from prompt_toolkit.filters import has_focus
 
@@ -41,6 +43,7 @@ class HighContrastDarkColors:
     inactive_fg = '#bfc0c4'
 
     line_highlight_bg = '#2f2f2f'
+    selected_line_bg = '#4e4e4e'
     dialog_bg = '#3c3c3c'
 
     red_accent = '#ffc0bf'
@@ -72,6 +75,7 @@ class DarkColors:
     inactive_fg = '#bfbfbf'
 
     line_highlight_bg = '#525252'
+    selected_line_bg = '#626262'
     dialog_bg = '#3c3c3c'
 
     red_accent = '#ff6c6b'
@@ -103,6 +107,7 @@ class NordColors:
     inactive_fg = '#d8dee9'
 
     line_highlight_bg = '#191c25'
+    selected_line_bg = '#4c566a'
     dialog_bg = '#2c333f'
 
     red_accent = '#bf616a'
@@ -129,6 +134,7 @@ class NordLightColors:
     inactive_bg = '#c2d0e7'
     inactive_fg = '#60728c'
     line_highlight_bg = '#f0f4fc'
+    selected_line_bg = '#f0f4fc'
     dialog_bg = '#d8dee9'
 
     red_accent = '#99324b'
@@ -155,6 +161,7 @@ class MoonlightColors:
     inactive_bg = '#222436'
     inactive_fg = '#a9b8e8'
     line_highlight_bg = '#383e5c'
+    selected_line_bg = '#444a73'
     dialog_bg = '#1e2030'
 
     red_accent = '#d95468'
@@ -167,13 +174,46 @@ class MoonlightColors:
     magenta_accent = '#e27e8d'
 
 
+@dataclass
+class AnsiTerm:
+    # pylint: disable=too-many-instance-attributes
+    default_bg = 'default'
+    default_fg = 'default'
+
+    dim_bg = 'default'
+    dim_fg = 'default'
+
+    button_active_bg = 'default underline'
+    button_inactive_bg = 'default'
+
+    active_bg = 'default'
+    active_fg = 'default'
+
+    inactive_bg = 'default'
+    inactive_fg = 'default'
+
+    line_highlight_bg = 'ansidarkgray white'
+    selected_line_bg = 'default reverse'
+    dialog_bg = 'default'
+
+    red_accent = 'ansired'
+    orange_accent = 'orange'
+    yellow_accent = 'ansiyellow'
+    green_accent = 'ansigreen'
+    cyan_accent = 'ansicyan'
+    blue_accent = 'ansiblue'
+    purple_accent = 'ansipurple'
+    magenta_accent = 'ansimagenta'
+
+
 _THEME_NAME_MAPPING = {
     'moonlight': MoonlightColors(),
     'nord': NordColors(),
     'nord-light': NordLightColors(),
     'dark': DarkColors(),
     'high-contrast-dark': HighContrastDarkColors(),
-} # yapf: disable
+    'ansi': AnsiTerm(),
+}  # yapf: disable
 
 
 def get_theme_colors(theme_name=''):
@@ -266,7 +306,7 @@ def generate_styles(theme_name='dark'):
 
         # Highlighted line styles
         'selected-log-line': 'bg:{}'.format(theme.line_highlight_bg),
-        'marked-log-line': 'bg:{}'.format(theme.button_active_bg),
+        'marked-log-line': 'bg:{}'.format(theme.selected_line_bg),
         'cursor-line': 'bg:{} nounderline'.format(theme.line_highlight_bg),
 
         # Messages like 'Window too small'
@@ -335,6 +375,20 @@ def generate_styles(theme_name='dark'):
         'quit-dialog-border': 'bg:{} {}'.format(theme.inactive_bg,
                                                 theme.red_accent),
 
+        'command-runner': 'bg:{}'.format(theme.inactive_bg),
+        'command-runner-title': 'bg:{} {}'.format(theme.inactive_bg,
+                                                  theme.default_fg),
+        'command-runner-setting': '{}'.format(theme.purple_accent),
+        'command-runner-border': 'bg:{} {}'.format(theme.inactive_bg,
+                                                   theme.purple_accent),
+        'command-runner-selected-item': 'bg:{}'.format(theme.selected_line_bg),
+        'command-runner-fuzzy-highlight-0': '{}'.format(theme.blue_accent),
+        'command-runner-fuzzy-highlight-1': '{}'.format(theme.cyan_accent),
+        'command-runner-fuzzy-highlight-2': '{}'.format(theme.green_accent),
+        'command-runner-fuzzy-highlight-3': '{}'.format(theme.yellow_accent),
+        'command-runner-fuzzy-highlight-4': '{}'.format(theme.orange_accent),
+        'command-runner-fuzzy-highlight-5': '{}'.format(theme.red_accent),
+
         # Progress Bar Styles
         # Entire set of ProgressBars - no title is used in pw_console
         'title': '',
@@ -389,7 +443,7 @@ def generate_styles(theme_name='dark'):
 
         'theme-bg-button-active': 'bg:{}'.format(theme.button_active_bg),
         'theme-bg-button-inactive': 'bg:{}'.format(theme.button_inactive_bg),
-    } # yapf: disable
+    }  # yapf: disable
 
     return Style.from_dict(pw_console_styles)
 
@@ -418,8 +472,14 @@ def get_pane_style(pt_container) -> str:
 def get_pane_indicator(pt_container,
                        title,
                        mouse_handler=None,
-                       hide_indicator=False):
+                       hide_indicator=False) -> StyleAndTextTuples:
     """Return formatted text for a pane indicator and title."""
+
+    inactive_indicator: OneStyleAndTextTuple
+    active_indicator: OneStyleAndTextTuple
+    inactive_title: OneStyleAndTextTuple
+    active_title: OneStyleAndTextTuple
+
     if mouse_handler:
         inactive_indicator = ('class:pane_indicator_inactive', ' ',
                               mouse_handler)
@@ -432,7 +492,7 @@ def get_pane_indicator(pt_container,
         inactive_title = ('class:pane_title_inactive', title)
         active_title = ('class:pane_title_active', title)
 
-    fragments = []
+    fragments: StyleAndTextTuples = []
     if has_focus(pt_container.__pt_container__())():
         if not hide_indicator:
             fragments.append(active_indicator)

@@ -81,6 +81,7 @@ bk_err_t bk_jpeg_dec_init(uint32_t * dec_src_addr, uint32_t *dec_dest_addr)
 {
 	JpegdecInit(&jdec, dec_src_addr);
 	jd_decomp(&jdec, 2, dec_src_addr, dec_dest_addr);
+	dec_busy2_clr;
 	return BK_OK;
 }
 
@@ -130,17 +131,17 @@ static void jpeg_decoder_isr(void)
 		REG_JPEG_DCUV = 0x1;
 	else
 		REG_JPEG_DCUV = 0x0;
-	if(mcu_idex == (3000)) {
+	if(mcu_idex == (3000))
+	{
 		jpeg_decoder_isr_common();
 	}
-
 	if(mcu_idex == (4080))
 	{
 		mcu_idex = 0;
 		REG_JPEG_MCUX= 0;;
 		REG_JPEG_MCUY = 0;;
 		dec_busy2_clr;
-		REG_DC_CLR;
+		REG_JPEG_ACC_REG0 = 0;;
 		//jpeg_decoder_isr_common();
 	}
 	else

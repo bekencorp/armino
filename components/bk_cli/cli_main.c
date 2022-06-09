@@ -26,6 +26,7 @@
 #if CONFIG_SHELL_ASYNCLOG
 #include "shell_task.h"
 #endif
+#include "bk_uart_debug.h"
 #include "bk_api_cli.h"
 
 #define TAG "cli"
@@ -36,7 +37,7 @@ static struct cli_st *pCli = NULL;
 beken_semaphore_t log_rx_interrupt_sema = NULL;
 #endif
 
-static uint8_t s_running_command_index = MAX_COMMANDS;
+static uint16_t s_running_command_index = MAX_COMMANDS;
 #if CFG_CLI_DEBUG
 static uint8_t s_running_status = 0;
 #endif
@@ -123,7 +124,7 @@ int lookup_cmd_table(const struct cli_command *cmd_table, int table_items, char 
 	return -1;
 }
 
-#if CONFIG_SHELL_ASYNCLOG
+#if (CONFIG_SHELL_ASYNCLOG && !CONFIG_ATE_TEST)
 
 /* Parse input line and locate arguments (if any), keeping count of the number
 * of arguments and their locations.  Look up and call the corresponding cli
@@ -296,6 +297,77 @@ int handle_shell_input(char *inbuf, int in_buf_size, char * outbuf, int out_buf_
 #endif
 
 	return 0;
+}
+
+#elif CONFIG_ATE_TEST
+static beken_semaphore_t ate_test_semaphore = NULL;
+static void ate_uart_rx_isr(uart_id_t id, void *param)
+{
+	int ret;
+
+	ret = rtos_set_semaphore(&ate_test_semaphore);
+	if(kNoErr !=ret)
+		os_printf("ate_uart_rx_isr: ATE set sema failed\r\n");
+}
+
+static void cli_ate_main(uint32_t data)
+{
+
+	char *msg = NULL;
+	int ret = -1;
+	int cnt = 0;
+	uint8_t rx_data;
+
+        if(NULL == ate_test_semaphore)
+    	{
+              ret = rtos_init_semaphore(&ate_test_semaphore, 1);
+        	if (kNoErr != ret)
+            		os_printf("cli_ate_main: ATE create background sema failed\r\n");
+    	}
+
+	bk_uart_disable_sw_fifo(CONFIG_UART_PRINT_PORT);
+	bk_uart_register_rx_isr(CONFIG_UART_PRINT_PORT, (uart_isr_t)ate_uart_rx_isr, NULL);
+	bk_uart_enable_rx_interrupt(CONFIG_UART_PRINT_PORT);
+
+	send_device_id();
+
+	while (1) {
+
+		ret = rtos_get_semaphore(&ate_test_semaphore, BEKEN_WAIT_FOREVER);
+		if(kNoErr == ret)
+        	{
+			while(1)  /* read all data from rx-FIFO. */
+			{
+				ret = uart_read_byte_ex(CONFIG_UART_PRINT_PORT, &rx_data);
+				if (ret == -1)
+					break;
+
+				pCli->inbuf[cnt] = (char)rx_data;
+				cnt++;
+
+				if(cnt >= INBUF_SIZE)
+					break;
+			}
+
+			bkreg_run_command1(pCli->inbuf, cnt);
+
+			if (cnt > 0) {
+				for (int i = 0;i < cnt; i++)
+					pCli->inbuf[i] = 0;
+				cnt = 0;
+			}
+        	}
+
+		msg = pCli->inbuf;
+		if (os_strcmp(msg, EXIT_MSG) == 0)
+				break;
+	}
+
+	os_printf("CLI exited\r\n");
+	os_free(pCli);
+	pCli = NULL;
+
+	rtos_delete_thread(NULL);
 }
 
 #else
@@ -497,7 +569,6 @@ static void tab_complete(char *inbuf, unsigned int *bp)
 	/* just redraw input line */
 	os_printf("%s%s", PROMPT, inbuf);
 }
-
 /* Get an input line.
 *
 * Returns: 1 if there is input, 0 if the line should be ignored. */
@@ -590,7 +661,6 @@ static int get_input(char *inbuf, unsigned int *bp)
 	return 0;
 }
 
-
 /* Print out a bad command string, including a hex
 * representation of non-printable characters.
 * Non-printable characters show as "\0xXX".
@@ -623,6 +693,7 @@ void icu_struct_dump(void);
 
 static void cli_main(uint32_t data)
 {
+
 	char *msg = NULL;
 	int ret;
 
@@ -630,7 +701,10 @@ static void cli_main(uint32_t data)
 	demo_sta_app_init("CMW-AP", "12345678");
 #endif /* CONFIG_RF_OTA_TEST*/
 
+	bk_uart_enable_rx_interrupt(CONFIG_UART_PRINT_PORT);
+
 	while (1) {
+
 		if (get_input(pCli->inbuf, &pCli->bp)) {
 			msg = pCli->inbuf;
 
@@ -821,8 +895,8 @@ void cli_cpu1_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 void cli_log_statist(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int		data_cnt, i, buf_len = 0;
-	u32		log_statist[4];
-	data_cnt = shell_get_log_statist(log_statist, 4);
+	u32		log_statist[5];
+	data_cnt = shell_get_log_statist(log_statist, ARRAY_SIZE(log_statist));
 
 	if(data_cnt == 0)
 	{
@@ -830,11 +904,12 @@ void cli_log_statist(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 		return;
 	}
 
-	buf_len = sprintf(&pcWriteBuffer[0], "\r\nlog overflow: %d.", log_statist[0]);
+	buf_len  = sprintf(&pcWriteBuffer[0], "\r\nlog overflow: %d.", log_statist[0]);
+	buf_len += sprintf(&pcWriteBuffer[buf_len], "\r\nlog out count: %d.", log_statist[1]);
 
-	for(i = 1; i < data_cnt; i++)
+	for(i = 2; i < data_cnt; i++)
 	{
-		buf_len += sprintf(&pcWriteBuffer[buf_len], "\r\nBuffer[%d] run out count: %d.", i - 1, log_statist[i]);
+		buf_len += sprintf(&pcWriteBuffer[buf_len], "\r\nBuffer[%d] run out count: %d.", i - 2, log_statist[i]);
 	}
 
 	return;
@@ -1198,12 +1273,16 @@ int bk_cli_init(void)
 	cli_flash_init();
 #endif
 
+#if (CONFIG_FLASH_QUAD_ENABLE == 1)
+	cli_flash_test_init();
+#endif
+
 #if (CLI_CFG_KEYVALUE == 1)
     cli_keyVaule_init();
 #endif
 
-#if (CLI_CFG_NAMEKEY == 1)
-    cli_nameKey_init();
+#if (CLI_CFG_MATTER == 1)
+    cli_matter_init();
 #endif
 
 #if (CLI_CFG_UART == 1)
@@ -1345,12 +1424,9 @@ int bk_cli_init(void)
 	cli_calendar_init();
 #endif
 
-#if (CONFIG_SOC_BK7256XX)
-#if CONFIG_USB_UVC
+#if (CLI_CFG_UVC == 1)
 	cli_uvc_init();
 #endif
-#endif
-
 
 #if (CONFIG_AT_CMD)
     cli_at_init();
@@ -1364,17 +1440,40 @@ int bk_cli_init(void)
 	cli_aec_init();
 #endif
 
+#if (CLI_CFG_G711 == 1)
+	cli_g711_init();
+#endif
+
+#if (CLI_CFG_DVP == 1)
+	cli_dvp_init();
+#endif
+
+#if (CONFIG_DOORBELL == 1)
+#if (CONFIG_DUAL_CORE)
+	cli_doorbell_init();
+#endif
+#endif
+
 
 	/* sort cmds after registered all cmds. */
 	cli_sort_command(NULL, 0, 0, NULL);
 
 #if CONFIG_SHELL_ASYNCLOG
+#if CONFIG_ATE_TEST
+	ret = rtos_create_thread(&cli_thread_handle,
+							 SHELL_TASK_PRIORITY,
+							 "cli",
+							 (beken_thread_function_t)cli_ate_main /*cli_main*/,
+							 4096,
+							 0);
+#else
 	ret = rtos_create_thread(&cli_thread_handle,
 							 SHELL_TASK_PRIORITY,
 							 "cli",
 							 (beken_thread_function_t)shell_task /*cli_main*/,
 							 4096,
 							 0);
+#endif
 #else // #if CONFIG_SHELL_ASYNCLOG
 	ret = rtos_create_thread(&cli_thread_handle,
 							 BEKEN_DEFAULT_WORKER_PRIORITY,

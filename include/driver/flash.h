@@ -183,6 +183,20 @@ bk_err_t bk_flash_write_bytes(uint32_t address, const uint8_t *user_buf, uint32_
  */
 bk_err_t bk_flash_read_bytes(uint32_t address, uint8_t *user_buf, uint32_t size);
 
+/**
+ * @brief   Get flash  init  flag
+ *
+ * @return the flash  init  flag
+ */
+uint32_t bk_get_flash_init_flag(void);
+
+/**
+ * @brief     Get flash total size
+ *
+ * @return the flash total size
+ */
+uint32_t bk_flash_get_current_total_size(void);
+
 #ifdef __cplusplus
 }
 #endif

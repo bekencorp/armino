@@ -236,6 +236,7 @@ TEST_F(BlobStoreTest, Reader_ConservativeLimits) {
   BlobStoreBuffer<kBufferSize> blob(
       "TestBlobBlock", partition_, &checksum, kvs::TestKvs(), kBufferSize);
   EXPECT_EQ(OkStatus(), blob.Init());
+  EXPECT_TRUE(blob.HasData());
   BlobStore::BlobReader reader(blob);
   ASSERT_EQ(OkStatus(), reader.Open());
 
@@ -261,12 +262,15 @@ TEST_F(BlobStoreTest, IsOpen) {
   EXPECT_EQ(OkStatus(), writer.Open());
   EXPECT_EQ(true, writer.IsOpen());
 
+  EXPECT_FALSE(blob.HasData());
+
   // Need to write something, so the blob reader is able to open.
   std::array<std::byte, 64> tmp_buffer = {};
   EXPECT_EQ(OkStatus(), writer.Write(tmp_buffer));
   EXPECT_EQ(OkStatus(), writer.Close());
   EXPECT_EQ(false, writer.IsOpen());
 
+  EXPECT_TRUE(blob.HasData());
   BlobStore::BlobReader reader(blob);
   EXPECT_EQ(false, reader.IsOpen());
   ASSERT_EQ(OkStatus(), reader.Open());
@@ -576,15 +580,23 @@ TEST_F(BlobStoreTest, Discard) {
       blob_title, partition_, &checksum, kvs::TestKvs(), kBufferSize);
   EXPECT_EQ(OkStatus(), blob.Init());
 
+  EXPECT_TRUE(blob.HasData());
+
   BlobStore::BlobWriterWithBuffer writer(blob);
 
   EXPECT_EQ(OkStatus(), writer.Open());
   EXPECT_EQ(OkStatus(), writer.Write(tmp_buffer));
 
+  // Blob should NOT be valid to read, because the write data was only buffered,
+  // and has not been written to flash yet.
+  EXPECT_FALSE(blob.HasData());
+
   // The write does an implicit erase so there should be no key for this blob.
   EXPECT_EQ(Status::NotFound(),
             kvs::TestKvs().acquire()->Get(blob_title, tmp_buffer).status());
   EXPECT_EQ(OkStatus(), writer.Close());
+
+  EXPECT_TRUE(blob.HasData());
 
   EXPECT_EQ(OkStatus(),
             kvs::TestKvs().acquire()->Get(blob_title, tmp_buffer).status());
@@ -592,6 +604,8 @@ TEST_F(BlobStoreTest, Discard) {
   EXPECT_EQ(OkStatus(), writer.Open());
   EXPECT_EQ(OkStatus(), writer.Discard());
   EXPECT_EQ(OkStatus(), writer.Close());
+
+  EXPECT_FALSE(blob.HasData());
 
   EXPECT_EQ(Status::NotFound(),
             kvs::TestKvs().acquire()->Get(blob_title, tmp_buffer).status());
@@ -722,7 +736,31 @@ TEST_F(BlobStoreTest, InvalidSeekOffset) {
   ASSERT_EQ(Status::OutOfRange(), reader.Seek(kOffset));
 }
 
-// Test reading with a read buffer larger than the available data in the
+// Write a block to blob and close with part of a write buffer with unflushed
+// data.
+TEST_F(BlobStoreTest, WriteBufferWithRemainderInBuffer) {
+  InitSourceBufferToRandom(0x11309);
+
+  kvs::ChecksumCrc16 checksum;
+  constexpr size_t kBufferSize = 256;
+  BlobStoreBuffer<kBufferSize> blob(
+      "TestBlobBlock", partition_, &checksum, kvs::TestKvs(), kBufferSize);
+  EXPECT_EQ(OkStatus(), blob.Init());
+
+  const size_t write_size_bytes = kBlobDataSize - 10;
+  ConstByteSpan write_data = std::span(source_buffer_).first(write_size_bytes);
+
+  BlobStore::BlobWriterWithBuffer writer(blob);
+  EXPECT_EQ(OkStatus(), writer.Open());
+  ASSERT_EQ(OkStatus(), writer.Write(write_data));
+  EXPECT_EQ(OkStatus(), writer.Close());
+
+  BlobStore::BlobReader reader(blob);
+  ASSERT_EQ(OkStatus(), reader.Open());
+  EXPECT_EQ(write_size_bytes, reader.ConservativeReadLimit());
+}
+
+// Test reading with a read buffer larger than the available data in the blob.
 TEST_F(BlobStoreTest, ReadBufferIsLargerThanData) {
   InitSourceBufferToRandom(0x57326);
 

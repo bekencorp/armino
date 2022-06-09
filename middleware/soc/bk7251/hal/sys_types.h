@@ -21,7 +21,11 @@
 extern "C" {              
 #endif                      
 
-#define RTC_TICKS_PER_1MS                       (32)
+#define RTC_TICKS_PER_1MS                                (32)
+#define LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME          (0.5) //0.5ms
+#define LOW_POWER_DPLL_STABILITY_DELAY_TIME              (1)   // 1ms
+#define LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME_HARDWARE (1.5) // 1.5ms(the delay time config into hardware)
+#define LOW_POWER_XTAL_DPLL_STABILITY_DELAY_TIME  ((LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME_HARDWARE+LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME+LOW_POWER_DPLL_STABILITY_DELAY_TIME)*1000)// 3000us
 
 typedef enum
 {

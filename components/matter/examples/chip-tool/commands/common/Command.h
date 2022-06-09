@@ -69,7 +69,9 @@ enum ArgumentType
     Attribute,
     Address,
     Complex,
-    Custom
+    Custom,
+    Vector16,
+    Vector32,
 };
 
 struct Argument
@@ -170,6 +172,10 @@ public:
     size_t AddArgument(const char * name, float min, float max, float * out, uint8_t flags = 0);
     size_t AddArgument(const char * name, double min, double max, double * out, uint8_t flags = 0);
 
+    size_t AddArgument(const char * name, int64_t min, uint64_t max, std::vector<uint16_t> * value);
+    size_t AddArgument(const char * name, int64_t min, uint64_t max, std::vector<uint32_t> * value);
+    size_t AddArgument(const char * name, int64_t min, uint64_t max, chip::Optional<std::vector<uint32_t>> * value);
+
     template <typename T, typename = std::enable_if_t<std::is_enum<T>::value>>
     size_t AddArgument(const char * name, int64_t min, uint64_t max, T * out, uint8_t flags = 0)
     {
@@ -218,7 +224,17 @@ public:
         return AddArgument(name, min, max, reinterpret_cast<double *>(value), flags | Argument::kNullable);
     }
 
+    void ResetArguments();
+
     virtual CHIP_ERROR Run() = 0;
+
+    bool IsInteractive() { return mIsInteractive; }
+
+    CHIP_ERROR RunAsInteractive()
+    {
+        mIsInteractive = true;
+        return Run();
+    }
 
 private:
     bool InitArgument(size_t argIndex, char * argValue);
@@ -231,6 +247,7 @@ private:
      */
     size_t AddArgumentToList(Argument && argument);
 
-    const char * mName = nullptr;
+    const char * mName  = nullptr;
+    bool mIsInteractive = false;
     std::vector<Argument> mArgs;
 };

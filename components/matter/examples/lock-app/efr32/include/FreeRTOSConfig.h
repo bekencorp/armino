@@ -178,7 +178,7 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION (0)
 #define configUSE_TICKLESS_IDLE_SIMPLE_DEBUG (1) /* See into vPortSuppressTicksAndSleep source code for explanation */
 #define configMAX_PRIORITIES (56)
-#define configMINIMAL_STACK_SIZE (140) /* Number of words to use for Idle and Timer stacks */
+#define configMINIMAL_STACK_SIZE (320) /* Number of words to use for Idle and Timer stacks */
 #define configMAX_TASK_NAME_LEN (10)
 #define configUSE_16_BIT_TICKS (0)
 #define configIDLE_SHOULD_YIELD (1)
@@ -193,7 +193,11 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 #define configENABLE_BACKWARD_COMPATIBILITY (1)
 #define configSUPPORT_STATIC_ALLOCATION (1)
 #define configSUPPORT_DYNAMIC_ALLOCATION (1)
+#ifdef SL_WIFI
+#define configTOTAL_HEAP_SIZE ((size_t)(28 * 1024))
+#else
 #define configTOTAL_HEAP_SIZE ((size_t)(20 * 1024))
+#endif
 
 /* Optional functions - most linkers will remove unused functions anyway. */
 #define INCLUDE_vTaskPrioritySet (1)

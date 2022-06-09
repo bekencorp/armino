@@ -16,8 +16,29 @@ except:
 
 
 class MatterIdlTransformer(Transformer):
-    """A transformer capable to transform data
-       parsed by Lark according to matter_grammar.lark
+    """
+    A transformer capable to transform data parsed by Lark according to 
+    matter_grammar.lark.
+
+    Generally transforms a ".matter" file into an Abstract Syntax Tree (AST).
+    End result will be a `matter_idl_types.Idl` value that represents the
+    entire parsed .matter file.
+
+    The content of this file closely resembles the .lark input file and its
+    purpose is to convert LARK tokens (that ar generally inputted by name)
+    into underlying python types.
+
+    Some documentation to get started is available at 
+    https://lark-parser.readthedocs.io/en/latest/visitors.html#transformer
+
+    TLDR would be:
+      When the ".lark" defines a token like `foo: number`, the transformer
+      has the option to define a method called `foo` which will take the
+      parsed input (as strings unless transformed) and interpret them.
+
+      Actual parametes to the methods depend on the rules multiplicity and/or
+      optionality.
+
     """
 
     def number(self, tokens):
@@ -83,9 +104,6 @@ class MatterIdlTransformer(Transformer):
     def attr_readonly(self, _):
         return AttributeTag.READABLE
 
-    def attr_global(self, _):
-        return AttributeTag.GLOBAL
-
     def attr_nosubscribe(self, _):
         return AttributeTag.NOSUBSCRIBE
 
@@ -124,6 +142,21 @@ class MatterIdlTransformer(Transformer):
     def client_cluster(self, _):
         return ClusterSide.CLIENT
 
+    def command_access(self, privilege):
+        return privilege[0]
+
+    def command_with_access(self, args):
+        # Arguments
+        #   - optional access for invoke
+        #   - event identifier (name)
+        init_args = {
+            "name": args[-1]
+        }
+        if len(args) > 1:
+            init_args["invokeacl"] = args[0]
+
+        return init_args
+
     def command(self, args):
         # A command has 4 arguments if no input or
         # 5 arguments if input parameter is available
@@ -132,13 +165,75 @@ class MatterIdlTransformer(Transformer):
             param_in = args[2]
 
         return Command(
-            attributes=args[0], name=args[1], input_param=param_in, output_param=args[-2], code=args[-1])
+            attributes=args[0], input_param=param_in, output_param=args[-2], code=args[-1], **args[1])
+
+    def event_access(self, privilege):
+        return privilege[0]
+
+    def event_with_access(self, args):
+        # Arguments
+        #   - optional access for read
+        #   - event identifier (name)
+        init_args = {
+            "name": args[-1]
+        }
+        if len(args) > 1:
+            init_args["readacl"] = args[0]
+
+        return init_args
 
     def event(self, args):
-        return Event(priority=args[0], name=args[1], code=args[2], fields=args[3:], )
+        return Event(priority=args[0], code=args[2], fields=args[3:], **args[1])
+
+    def view_privilege(self, args):
+        return AccessPrivilege.VIEW
+
+    def operate_privilege(self, args):
+        return AccessPrivilege.OPERATE
+
+    def manage_privilege(self, args):
+        return AccessPrivilege.MANAGE
+
+    def administer_privilege(self, args):
+        return AccessPrivilege.ADMINISTER
+
+    def read_access(self, args):
+        return AttributeOperation.READ
+
+    def write_access(self, args):
+        return AttributeOperation.WRITE
+
+    @v_args(inline=True)
+    def attribute_access_entry(self, operation, access):
+        return (operation, access)
+
+    def attribute_access(self, value):
+        # return value as-is to not need to deal with trees in `attribute_with_access`
+        return value
+
+    def attribute_with_access(self, args):
+        # Input arguments are:
+        #   - acl (optional list of pairs operation + access)
+        #   - field definition
+        acl = {}
+        if len(args) > 1:
+            for operation, access in args[0]:
+                if operation == AttributeOperation.READ:
+                    acl['readacl'] = access
+                elif operation == AttributeOperation.WRITE:
+                    acl['writeacl'] = access
+                else:
+                    raise Exception("Unknown attribute operation: %r" % operation)
+
+        return (args[-1], acl)
 
     def attribute(self, args):
+        # Input arguments are:
+        #   -  tags (0 or more)
+        #   -  attribute_with_access (i.e. pair of definition and acl arguments)
         tags = set(args[:-1])
+        (definition, acl) = args[-1]
+
         # until we support write only (and need a bit of a reshuffle)
         # if the 'attr_readonly == READABLE' is not in the list, we make things
         # read/write
@@ -146,7 +241,7 @@ class MatterIdlTransformer(Transformer):
             tags.add(AttributeTag.READABLE)
             tags.add(AttributeTag.WRITABLE)
 
-        return Attribute(definition=args[-1], tags=tags)
+        return Attribute(definition=definition, tags=tags, **acl)
 
     @v_args(inline=True)
     def struct(self, id, *fields):
@@ -158,9 +253,8 @@ class MatterIdlTransformer(Transformer):
         return value
 
     @v_args(inline=True)
-    def response_struct(self, value):
-        value.tag = StructTag.RESPONSE
-        return value
+    def response_struct(self, id, code, *fields):
+        return Struct(name=id, tag=StructTag.RESPONSE, code=code, fields=list(fields))
 
     @v_args(inline=True)
     def endpoint(self, number, *clusters):
@@ -221,10 +315,15 @@ class MatterIdlTransformer(Transformer):
 
 
 def CreateParser():
+    """
+    Generates a parser that will process a ".matter" file into a IDL
+    """
     return Lark.open('matter_grammar.lark', rel_to=__file__, start='idl', parser='lalr', transformer=MatterIdlTransformer())
 
 
 if __name__ == '__main__':
+    # This Parser is generally not intended to be run as a stand-alone binary.
+    # The ability to run is for debug and to print out the parsed AST.
     import click
     import coloredlogs
 

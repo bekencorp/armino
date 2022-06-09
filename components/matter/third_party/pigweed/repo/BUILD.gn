@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+import("//build_overrides/pi_pico.gni")
 import("//build_overrides/pigweed.gni")
 
 import("$dir_pw_arduino_build/arduino.gni")
@@ -47,12 +48,14 @@ declare_args() {
 # exclusively to facilitate easy upstream development and testing.
 group("default") {
   deps = [
+    ":check_modules",
     ":docs",
     ":host",
+    ":pi_pico",
+    ":python.lint",
+    ":python.tests",
     ":static_analysis",
     ":stm32f429i",
-    "$dir_pw_env_setup:python.lint",
-    "$dir_pw_env_setup:python.tests",
     "pw_rpc:test_protos.python.install",
   ]
 
@@ -61,9 +64,53 @@ group("default") {
   }
 }
 
+# Verify that this BUILD.gn file is only used by Pigweed itself.
+assert(get_path_info("//", "abspath") == get_path_info(".", "abspath"),
+       "Pigweed's top-level BUILD.gn may only be used when building upstream " +
+           "Pigweed. To pull all Pigweed code into your build, import " +
+           "\$dir_pigweed/modules.gni and create a top-level pw_test_group " +
+           "that depends on the tests in pw_modules_tests. See " +
+           "https://pigweed.dev/build_system.html for details.")
+
+_update_or_check_modules_lists = {
+  script = "$dir_pw_build/py/pw_build/generate_modules_lists.py"
+  args = [
+    rebase_path(".", root_build_dir),
+    rebase_path("PIGWEED_MODULES", root_build_dir),
+    rebase_path("$dir_pw_build/generated_pigweed_modules_lists.gni",
+                root_build_dir),
+  ]
+  inputs = [
+    "$dir_pw_build/generated_pigweed_modules_lists.gni",
+    "PIGWEED_MODULES",
+  ]
+}
+
+# Check that PIGWEED_MODULES is up-to-date and sorted.
+action("check_modules") {
+  forward_variables_from(_update_or_check_modules_lists, "*")
+  outputs = [ "$target_gen_dir/$target_name.passed" ]
+  args += [ "--warn-only" ] + rebase_path(outputs, root_build_dir)
+}
+
+# Run this command after adding an item to PIGWEED_MODULES to update the
+# generated .gni with Pigweed modules lists.
+action("update_modules") {
+  forward_variables_from(_update_or_check_modules_lists, "*")
+  outputs = [ "$target_gen_dir/$target_name.ALWAYS_RERUN" ]  # Never created
+}
+
 group("pw_system_demo") {
   deps = [ "$dir_pw_system:system_examples" ]
 }
+
+group("pi_pico") {
+  if (PICO_SRC_DIR != "") {
+    deps = [ ":pw_module_tests(targets/rp2040)" ]
+  }
+}
+
+_internal_toolchains = "$dir_pigweed/targets/host/pigweed_internal"
 
 # This template generates a group that builds pigweed_default with a particular
 # toolchain.
@@ -90,11 +137,11 @@ template("_build_pigweed_default_at_all_optimization_levels") {
 
 # Select a default toolchain based on host OS.
 if (host_os == "linux") {
-  _default_toolchain_prefix = "$dir_pigweed/targets/host:host_clang_"
+  _default_toolchain_prefix = "$_internal_toolchains:pw_strict_host_clang_"
 } else if (host_os == "mac") {
-  _default_toolchain_prefix = "$dir_pigweed/targets/host:host_clang_"
+  _default_toolchain_prefix = "$_internal_toolchains:pw_strict_host_clang_"
 } else if (host_os == "win") {
-  _default_toolchain_prefix = "$dir_pigweed/targets/host:host_gcc_"
+  _default_toolchain_prefix = "$_internal_toolchains:pw_strict_host_gcc_"
 } else {
   assert(false, "Please define a host config for your system: $host_os")
 }
@@ -106,11 +153,11 @@ _build_pigweed_default_at_all_optimization_levels("host") {
 }
 
 _build_pigweed_default_at_all_optimization_levels("host_clang") {
-  toolchain_prefix = "$dir_pigweed/targets/host:host_clang_"
+  toolchain_prefix = "$_internal_toolchains:pw_strict_host_clang_"
 }
 
 _build_pigweed_default_at_all_optimization_levels("host_gcc") {
-  toolchain_prefix = "$dir_pigweed/targets/host:host_gcc_"
+  toolchain_prefix = "$_internal_toolchains:pw_strict_host_gcc_"
 }
 
 if (pw_third_party_mcuxpresso_SDK != "") {
@@ -139,11 +186,11 @@ _build_pigweed_default_at_all_optimization_levels("qemu_clang") {
       "$dir_pigweed/targets/lm3s6965evb_qemu:lm3s6965evb_qemu_clang_"
 }
 
-# Run clang-tidy on pigweed_default with host_clang_debug toolchain options.
+# Run clang-tidy on pigweed_default with pw_strict_host_clang_debug toolchain options.
 # Make sure to invoke gn clean out when any relevant .clang-tidy
 # file is updated.
 group("static_analysis") {
-  _toolchain = "$dir_pigweed/targets/host:host_clang_debug"
+  _toolchain = "$_internal_toolchains:pw_strict_host_clang_debug"
   deps = [ ":pigweed_default($_toolchain.static_analysis)" ]
 }
 
@@ -158,9 +205,11 @@ group("integration_tests") {
   deps = [
     "$dir_pw_rpc:cpp_client_server_integration_test($_default_tc)",
     "$dir_pw_rpc/py:python_client_cpp_server_test.action($_default_tc)",
-    "$dir_pw_transfer:cpp_client_integration_test($_default_tc)",
-    "$dir_pw_transfer/py:python_cpp_transfer_test.action($_default_tc)",
     "$dir_pw_unit_test/py:rpc_service_test.action($_default_tc)",
+
+    # TODO(b/228463549): Re-enable these when they're not flaky on linux.
+    # "$dir_pw_transfer:cpp_client_integration_test($_default_tc)",
+    # "$dir_pw_transfer/py:python_cpp_transfer_test.action($_default_tc)",
   ]
 }
 
@@ -280,129 +329,11 @@ if (current_toolchain != default_toolchain) {
 
   # All Pigweed modules that can be built using gn. This is not built by default.
   group("pw_modules") {
-    deps = [
-      "$dir_pigweed/docs",
-      "$dir_pw_allocator",
-      "$dir_pw_analog",
-      "$dir_pw_base64",
-      "$dir_pw_blob_store",
-      "$dir_pw_bytes",
-      "$dir_pw_checksum",
-      "$dir_pw_chrono",
-      "$dir_pw_console",
-      "$dir_pw_cpu_exception",
-      "$dir_pw_hdlc",
-      "$dir_pw_i2c",
-      "$dir_pw_metric",
-      "$dir_pw_persistent_ram",
-      "$dir_pw_polyfill",
-      "$dir_pw_preprocessor",
-      "$dir_pw_protobuf",
-      "$dir_pw_result",
-      "$dir_pw_spi",
-      "$dir_pw_status",
-      "$dir_pw_stream",
-      "$dir_pw_string",
-      "$dir_pw_sync",
-      "$dir_pw_sys_io",
-      "$dir_pw_system",
-      "$dir_pw_thread",
-      "$dir_pw_tool",
-      "$dir_pw_trace",
-      "$dir_pw_unit_test",
-      "$dir_pw_varint",
-    ]
-
-    if (host_os != "win") {
-      deps += [
-        # TODO(frolv): Remove these two when new KVS is ready.
-        "$dir_pw_kvs",
-        "$dir_pw_minimal_cpp_stdlib",
-
-        # TODO(pwbug/111): Remove this when building successfully on Windows.
-        "$dir_pw_tokenizer",
-      ]
-    }
+    deps = pw_modules
   }
 
   # Targets for all module unit test groups.
   pw_test_group("pw_module_tests") {
-    group_deps = [
-      "$dir_pw_allocator:tests",
-      "$dir_pw_analog:tests",
-      "$dir_pw_assert:tests",
-      "$dir_pw_base64:tests",
-      "$dir_pw_blob_store:tests",
-      "$dir_pw_bluetooth_hci:tests",
-      "$dir_pw_bytes:tests",
-      "$dir_pw_checksum:tests",
-      "$dir_pw_chrono:tests",
-      "$dir_pw_containers:tests",
-      "$dir_pw_cpu_exception_cortex_m:tests",
-      "$dir_pw_crypto:tests",
-      "$dir_pw_file:tests",
-      "$dir_pw_function:tests",
-      "$dir_pw_fuzzer:tests",
-      "$dir_pw_hdlc:tests",
-      "$dir_pw_hex_dump:tests",
-      "$dir_pw_i2c:tests",
-      "$dir_pw_libc:tests",
-      "$dir_pw_log:tests",
-      "$dir_pw_log_null:tests",
-      "$dir_pw_log_rpc:tests",
-      "$dir_pw_log_tokenized:tests",
-      "$dir_pw_malloc_freelist:tests",
-      "$dir_pw_metric:tests",
-      "$dir_pw_multisink:tests",
-      "$dir_pw_persistent_ram:tests",
-      "$dir_pw_polyfill:tests",
-      "$dir_pw_preprocessor:tests",
-      "$dir_pw_protobuf:tests",
-      "$dir_pw_protobuf_compiler:tests",
-      "$dir_pw_random:tests",
-      "$dir_pw_result:tests",
-      "$dir_pw_ring_buffer:tests",
-      "$dir_pw_router:tests",
-      "$dir_pw_rpc:tests",
-      "$dir_pw_snapshot:tests",
-      "$dir_pw_software_update:tests",
-      "$dir_pw_span:tests",
-      "$dir_pw_spi:tests",
-      "$dir_pw_status:tests",
-      "$dir_pw_stream:tests",
-      "$dir_pw_string:tests",
-      "$dir_pw_sync:tests",
-      "$dir_pw_thread:tests",
-      "$dir_pw_thread_stl:tests",
-      "$dir_pw_tls_client:tests",
-      "$dir_pw_tls_client_boringssl:tests",
-      "$dir_pw_tls_client_mbedtls:tests",
-      "$dir_pw_tokenizer:tests",
-      "$dir_pw_trace:tests",
-      "$dir_pw_trace_tokenized:tests",
-      "$dir_pw_unit_test:tests",
-      "$dir_pw_varint:tests",
-      "$dir_pw_work_queue:tests",
-    ]
-
-    if (defined(pw_toolchain_SCOPE.is_host_toolchain) &&
-        pw_toolchain_SCOPE.is_host_toolchain) {
-      # TODO(pwbug/196): KVS tests are not compatible with device builds as they
-      # use features such as std::map and are computationally expensive. Solving
-      # this requires a more complex capabilities-based build and configuration
-      # system which allowing enabling specific tests for targets that support
-      # them and modifying test parameters for different targets.
-      group_deps += [ "$dir_pw_kvs:tests" ]
-
-      if (host_os != "win") {
-        # TODO(pwbug/441): Fix transfer tests on Windows.
-        group_deps += [ "$dir_pw_transfer:tests" ]
-      }
-    }
-
-    if (host_os != "win") {
-      # TODO(amontanez): pw_minimal_cpp_stdlib tests do not build on windows.
-      group_deps += [ "$dir_pw_minimal_cpp_stdlib:tests" ]
-    }
+    group_deps = pw_module_tests
   }
 }

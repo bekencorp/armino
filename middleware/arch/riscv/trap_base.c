@@ -21,9 +21,10 @@
 #include <components/log.h>
 #include <common/bk_assert.h>
 
+
 #if (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7235)
 #define RAM_BASE_ADDR 0x30000000
-#define RAM_DUMP_SIZE (352*1024)
+#define RAM_DUMP_SIZE (384*1024)
 #elif CONFIG_SOC_BK7256_CP1
 #define RAM_BASE_ADDR 0x30060000
 #define RAM_DUMP_SIZE (128*1024)
@@ -113,6 +114,8 @@ typedef struct {
 } SAVED_CONTEXT;
 #endif
 
+typedef void (*hook_func)(void);
+
 extern char _dtcm_ema_start, _dtcm_bss_end;
 
 extern void mtime_handler(void);
@@ -121,13 +124,24 @@ extern void mext_interrupt(void);
 extern void stack_mem_dump(uint32_t stack_top, uint32_t stack_bottom);
 extern void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context);
 
+static hook_func s_wifi_dump_func = NULL;
+static hook_func s_ble_dump_func = NULL;
+
 volatile unsigned int g_enter_exception = 0;
 
 unsigned int arch_is_enter_exception(void) {
 	return g_enter_exception;
 }
 
+void rtos_regist_wifi_dump_hook(hook_func wifi_func)
+{
+	s_wifi_dump_func = wifi_func;
+}
 
+void rtos_regist_ble_dump_hook(hook_func ble_func)
+{
+	s_ble_dump_func = ble_func;
+}
 
 void trap_handler(unsigned long mcause, SAVED_CONTEXT *context)
 {
@@ -219,7 +233,15 @@ void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context) {
 	BK_DUMP_OUT("***********************************************************************************************\r\n");
 
 	arch_dump_cpu_registers(mcause, context);
-	
+
+	if(NULL != s_wifi_dump_func) {
+		s_wifi_dump_func();
+	}
+
+	if(NULL != s_ble_dump_func) {
+		s_ble_dump_func();
+	}
+
 	BK_DUMP_OUT("System will dump memory in 5s, please ready to save whole log.........\r\n");
 
 	sys_delay_sync(SYS_DELAY_TIME_5S);
@@ -241,9 +263,13 @@ void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context) {
 
 	arch_dump_cpu_registers(mcause, context);
 
+
 	BK_DUMP_OUT("***********************************************************************************************\r\n");
 	BK_DUMP_OUT("************************************user except handler end************************************\r\n");
 	BK_DUMP_OUT("***********************************************************************************************\r\n");
+
+	// bk_reboot();
+
 }
 
 void set_reboot_tag(uint32_t tag) {
@@ -251,18 +277,15 @@ void set_reboot_tag(uint32_t tag) {
 	*((uint32_t *)p_tag) = tag;
 }
 
-uint32_t get_reboot_tag(void) {
-	uint32_t p_tag = REBOOT_TAG_ADDR;
-	return *((uint32_t *)p_tag);
+inline uint32_t get_reboot_tag(void) {
+	return *((uint32_t *)REBOOT_TAG_ADDR);
 }
 
 extern void close_wdt(void);
 
 void user_nmi_handler(unsigned long mcause) {
-	uint32_t tag = 0;
 	if(mcause == MCAUSE_CAUSE_WATCHDOG) {
-		tag = get_reboot_tag();
-		if( REBOOT_TAG_REQ == tag ) {
+		if( REBOOT_TAG_REQ == get_reboot_tag() ) {
 			BK_DUMP_OUT("Wait reboot.\r\n");
 			while(1);
 		}

@@ -62,7 +62,8 @@ protected:
     CHIPDeviceController * CurrentCommissioner();
 
 private:
-    CHIP_ERROR InitializeCommissioner(std::string key, chip::FabricId fabricId);
+    CHIP_ERROR InitializeCommissioner(std::string key, chip::FabricId fabricId,
+                                      const chip::Credentials::AttestationTrustStore * trustStore);
     CHIP_ERROR ShutdownCommissioner();
     uint16_t CurrentCommissionerIndex();
 
@@ -72,9 +73,7 @@ private:
     void StopWaiting();
     CHIPDeviceController * mController;
 
-#if CONFIG_USE_SEPARATE_EVENTLOOP
     std::condition_variable cvWaitingForResponse;
     std::mutex cvWaitingForResponseMutex;
     bool mWaitingForResponse{ true };
-#endif // CONFIG_USE_SEPARATE_EVENTLOOP
 };

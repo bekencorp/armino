@@ -509,6 +509,22 @@ void sys_hal_sadc_pwr_down(void)
 {
     power_ll_pwr_down_saradc(s_icu_hal.hw);
 }
+
+void sys_hal_usb_enable_clk(bool en)
+{
+}
+
+void sys_hal_usb_analog_phy_en(bool en)
+{
+}
+
+void sys_hal_usb_analog_speed_en(bool en)
+{
+}
+
+void sys_hal_usb_analog_ckmcu_en(bool en)
+{
+}
 /**  Platform End **/
 
 

@@ -21,15 +21,15 @@
 #include <platform/ConnectivityManager.h>
 
 #if CHIP_DEVICE_CONFIG_ENABLE_CHIPOBLE
-#include <platform/internal/GenericConnectivityManagerImpl_BLE.cpp>
+#include <platform/internal/GenericConnectivityManagerImpl_BLE.ipp>
 #endif
 
 #if CHIP_DEVICE_CONFIG_ENABLE_THREAD
-#include <platform/internal/GenericConnectivityManagerImpl_Thread.cpp>
+#include <platform/internal/GenericConnectivityManagerImpl_Thread.ipp>
 #endif
 
 #if CHIP_DEVICE_CONFIG_ENABLE_WIFI
-#include <platform/internal/GenericConnectivityManagerImpl_WiFi.cpp>
+#include <platform/internal/GenericConnectivityManagerImpl_WiFi.ipp>
 #endif
 
 #include <platform/internal/BLEManager.h>
@@ -310,6 +310,11 @@ int ConnectivityManagerImpl::wlan_event_cb(void *arg, event_module_t event_modul
     case EVENT_WIFI_STA_DISCONNECTED:
         stationConnected = false;
         ChipLogProgress(DeviceLayer, "wlan_event_cb EVENT_WIFI_STA_DISCONNECTED");
+        wifi_event_sta_disconnected_t * sta_disconnected;
+        sta_disconnected = (wifi_event_sta_disconnected_t *)event_data;
+        ChipDeviceEvent myevent;
+        myevent.Platform.BKSystemEvent.Data.WiFiStaDisconnected = sta_disconnected->disconnect_reason;
+        NetworkCommissioning::BekenWiFiDriver::GetInstance().SetLastDisconnectReason(&myevent);
         break;
     default:
         ChipLogProgress(DeviceLayer, "unSupported wifi status:%d", event_id);
@@ -433,6 +438,7 @@ void ConnectivityManagerImpl::ChangeWiFiStationState(WiFiStationState newState)
         ChipLogProgress(DeviceLayer, "WiFi station state change: %s -> %s", WiFiStationStateToStr(mWiFiStationState),
                         WiFiStationStateToStr(newState));
         mWiFiStationState = newState;
+        SystemLayer().ScheduleLambda([]() { NetworkCommissioning::BekenWiFiDriver::GetInstance().OnNetworkStatusChange(); });
     }
 }
 

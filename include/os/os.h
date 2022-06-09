@@ -51,11 +51,10 @@
 #define BEKEN_DEFAULT_WORKER_PRIORITY      (6)  /**< Default Worker Priority */
 #define BEKEN_APPLICATION_PRIORITY         (7)  /**< Application Task Priority */
 
-#ifndef CONFIG_MATTER
-#define kNanosecondsPerSecond              1000000000UUL   /**< Nanoseconds Per Second */
-#define kMicrosecondsPerSecond             1000000UL       /**< Microseconds Per Second */
-#define kMillisecondsPerSecond             1000            /**< Milliseconds Per Second */
-#endif
+#define NanosecondsPerSecond              1000000000UUL   /**< Nanoseconds Per Second */
+#define MicrosecondsPerSecond             1000000UL       /**< Microseconds Per Second */
+#define MillisecondsPerSecond             1000            /**< Milliseconds Per Second */
+
 
 #define BEKEN_NEVER_TIMEOUT                (0xFFFFFFFF)    /**< Never Timeout */
 #define BEKEN_WAIT_FOREVER                 (0xFFFFFFFF)    /**< Wait Forever */
@@ -805,7 +804,22 @@ bool rtos_is_in_interrupt_context(void);
 void rtos_wait_for_interrupt(void);
 
 void rtos_shutdown(void);
-
+/** @brief    save the state of the MIE and then disable the plic,plmt,plic_sw in mie
+  *
+  * @param    void
+  *
+  * @return   the state of the MIE
+  *
+  */
+uint32_t rtos_disable_mie_int(void);
+/** @brief    enable the MIE using the saving the state of the mie
+  *
+  * @param    int_level : the saving the state of the mie
+  *
+  * @return   void
+  *
+  */
+void rtos_enable_mie_int(uint32_t int_level);
 /**
 * @}
 */

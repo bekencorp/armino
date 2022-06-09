@@ -19,6 +19,7 @@
 #include "pw_status/status.h"
 #include "pw_stream/stream.h"
 #include "pw_transfer/internal/client_context.h"
+#include "pw_transfer/internal/config.h"
 #include "pw_transfer/transfer.raw_rpc.pb.h"
 #include "pw_transfer/transfer_thread.h"
 
@@ -54,35 +55,52 @@ class Client {
   Client(rpc::Client& rpc_client,
          uint32_t channel_id,
          TransferThread& transfer_thread,
-         size_t max_bytes_to_receive = 0)
+         size_t max_bytes_to_receive = 0,
+         uint32_t extend_window_divisor = cfg::kDefaultExtendWindowDivisor)
       : client_(rpc_client, channel_id),
         transfer_thread_(transfer_thread),
         max_parameters_(max_bytes_to_receive > 0
                             ? max_bytes_to_receive
                             : transfer_thread.max_chunk_size(),
-                        transfer_thread.max_chunk_size()),
+                        transfer_thread.max_chunk_size(),
+                        extend_window_divisor),
         has_read_stream_(false),
         has_write_stream_(false) {}
 
-  // Begins a new read transfer for the given transfer ID. The data read from
+  // Begins a new read transfer for the given resource ID. The data read from
   // the server is written to the provided writer. Returns OK if the transfer is
   // successfully started. When the transfer finishes (successfully or not), the
   // completion callback is invoked with the overall status.
   Status Read(
-      uint32_t transfer_id,
+      uint32_t resource_id,
       stream::Writer& output,
       CompletionFunc&& on_completion,
       chrono::SystemClock::duration timeout = cfg::kDefaultChunkTimeout);
 
-  // Begins a new write transfer for the given transfer ID. Data from the
+  // Begins a new write transfer for the given resource ID. Data from the
   // provided reader is sent to the server. When the transfer finishes
   // (successfully or not), the completion callback is invoked with the overall
   // status.
   Status Write(
-      uint32_t transfer_id,
+      uint32_t resource_id,
       stream::Reader& input,
       CompletionFunc&& on_completion,
       chrono::SystemClock::duration timeout = cfg::kDefaultChunkTimeout);
+
+  // Terminates an ongoing transfer for the specified resource ID.
+  //
+  // TODO(frolv): This should not take a resource_id, but a handle to an active
+  // transfer session.
+  void CancelTransfer(uint32_t resource_id);
+
+  Status set_extend_window_divisor(uint32_t extend_window_divisor) {
+    if (extend_window_divisor <= 1) {
+      return Status::InvalidArgument();
+    }
+
+    max_parameters_.set_extend_window_divisor(extend_window_divisor);
+    return OkStatus();
+  }
 
  private:
   using Transfer = pw_rpc::raw::Transfer;

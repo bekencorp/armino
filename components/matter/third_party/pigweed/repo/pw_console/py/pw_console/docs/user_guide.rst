@@ -5,7 +5,9 @@ User Guide
 
 .. seealso::
 
-   This guide can be viewed online at: https://pigweed.dev/pw_console/
+   This guide can be viewed online at:
+   https://pigweed.dev/pw_console/py/pw_console/docs/user_guide.html
+
 
 The Pigweed Console provides a Python repl (read eval print loop) and log viewer
 in a single-window terminal based interface.
@@ -27,9 +29,11 @@ There are a few ways to exit the Pigweed Console user interface:
 1.  Click the :guilabel:`[File]` menu and then :guilabel:`Exit`.
 2.  Type ``quit`` or ``exit`` in the Python Input window and press :kbd:`Enter`.
 3.  Press :kbd:`Ctrl-d` once to show the quit confirmation dialog. From there
-    pressing :kbd:`Ctrl-d` a second time or :kbd:`y` will exit.
-4.  Pressing :kbd:`Ctrl-x` quickly followed by :kbd:`Ctrl-c` will exit without
+    press :kbd:`Ctrl-d` a second time or :kbd:`y` will exit.
+4.  Press :kbd:`Ctrl-x` quickly followed by :kbd:`Ctrl-c` will exit without
     confirmation.
+5.  Press :kbd:`Ctrl-p` to search for commands, type ``exit``, then press
+    :kbd:`Enter`.
 
 
 Interface Layout
@@ -64,8 +68,36 @@ mouse wheel should work too. This requires that your terminal is able to send
 mouse events.
 
 
-Main Menu Navigation with the Keyboard
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Navigation with the Keyboard
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The main menu can be searched by pressing :kbd:`Ctrl-p`. This opens a fuzzy
+search box containing all main menu item actions.
+
+Words separated by spaces are used to narrow down the match results. The order
+each word is entered does not matter.
+
+.. figure:: /pw_console/images/command_runner_main_menu.svg
+  :alt: Main menu item search dialog.
+
+============================================  =====================
+Function                                      Keys
+============================================  =====================
+Open main menu search                         :kbd:`Ctrl-p`
+Cancel search                                 :kbd:`Ctrl-c`
+Run selected item                             :kbd:`Enter`
+
+Select next item                              :kbd:`Tab`
+                                              :kbd:`Down`
+Select previous item                          :kbd:`Shift-Tab`
+                                              :kbd:`Up`
+============================================  =====================
+
+Switching Focus
+~~~~~~~~~~~~~~~
+
+Clicking on any window will focus on it. Alternatively, the key bindings below
+will switch focus.
 
 ============================================  =====================
 Function                                      Keys
@@ -130,6 +162,9 @@ Select the next log line                      :kbd:`Shift-Down`
 Select the previous log line                  :kbd:`Shift-Up`
 
 Select a range of log lines                   :guilabel:`Left Mouse Drag`
+
+Select all lines                              :kbd:`Ctrl-a`
+Clear Selection                               :kbd:`Ctrl-c`
 ============================================  =====================
 
 When making log line selections a popup will appear in the upper right of the log
@@ -186,15 +221,13 @@ Here is a view of the search bar:
 
 ::
 
-  +-------------------------------------------------------------------------------+
-  |           Enter : Search  Ctrl-Alt-f : Add Filter  Ctrl-Alt-r : Clear Filters |
-  |  Search   Ctrl-t : Column:All  Ctrl-v : [ ] Invert  Ctrl-n : Matcher:REGEX    |
-  | /                                                                             |
-  +-------------------------------------------------------------------------------+
+  +--------------------------------------------------------------------------+
+  | Search   Column:All Ctrl-t   [ ] Invert Ctrl-v   Matcher:REGEX Ctrl-n    |
+  | /                                            Search Enter  Cancel Ctrl-c |
+  +--------------------------------------------------------------------------+
 
 Across the top are various functions with keyboard shortcuts listed. Each of
-these are clickable with the mouse. The second line shows configurable search
-parameters.
+these are clickable with the mouse.
 
 **Search Parameters**
 
@@ -234,7 +267,7 @@ Move to the next search result                :kbd:`n`
                                               :kbd:`Ctrl-s`
 Move to the previous search result            :kbd:`N`
                                               :kbd:`Ctrl-r`
-Removes search highlighting                   :kbd:`Ctrl-l`
+Clear active search                           :kbd:`Ctrl-c`
 Creates a filter using the active search      :kbd:`Ctrl-Alt-f`
 Reset all active filters.                     :kbd:`Ctrl-Alt-r`
 ============================================  =====================
@@ -615,15 +648,14 @@ Example Config
      - metadata1
      - metadata2
 
-   # If True, any metadata field not listed above in 'column_order' will be hidden in table view.
+   # If True, any metadata field not listed above in 'column_order'
+   # will be hidden in table view.
    column_order_omit_unspecified_columns: False
 
    # Unique Colors for Column Values
    #   Color format: 'bg:#BG-HEX #FG-HEX STYLE'
    # All parts are optional.
    # Empty strings will leave styling unchanged.
-   # See prompt_toolkit style format docs here:
-   #   https://python-prompt-toolkit.readthedocs.io/en/latest/pages/advanced_topics/styling.html
    column_colors:
      # Column name
      time:
@@ -667,7 +699,8 @@ Example Config
 
      # Second window column
      Split 2 tabbed:
-       # This is a duplicate of the existing 'Device Logs' window with a new title.
+       # This is a duplicate of the existing 'Device Logs' window.
+       # The title is 'NEW DEVICE'
        NEW DEVICE:
          duplicate_of: Device Logs
          # Log filters are defined here
@@ -710,6 +743,184 @@ Example Config
            all:
              regex: 'Apple.*USB'
 
+   # Command Runner dialog size and position
+   command_runner:
+     width: 80
+     height: 10
+     position:
+       top: 3  # 3 lines below the top edge of the screen
+       # Alternatively one of these options can be used instead:
+       # bottom: 2  # 2 lines above the bottom edge of the screen
+       # left: 2    # 2 lines away from the left edge of the screen
+       # right: 2   # 2 lines away from the right edge of the screen
+
+   # Key bindings can be changed as well with the following format:
+   #   named-command: [ list_of_keys ]
+   # Where list_of_keys is a string of keys one for each alternate key
+   # To see all named commands open '[Help] > View Key Binding Config'
+   # See below for the names of special keys
+   key_bindings:
+     log-pane.move-cursor-up:
+     - j
+     - up
+     log-pane.move-cursor-down:
+     - k
+     - down
+     log-pane.search-next-match:
+     - n
+     log-pane.search-previous-match:
+     - N
+
+     # Chorded keys are supported.
+     # For example, 'z t' means pressing z quickly followed by t.
+     log-pane.shift-line-to-top:
+     - z t
+     log-pane.shift-line-to-center:
+     - z z
+
+Changing Keyboard Shortcuts
+---------------------------
+
+Pigweed Console uses `prompt_toolkit
+<https://python-prompt-toolkit.readthedocs.io/en/latest/>`_ to manage its
+keybindings.
+
+Bindings can be changed in the YAML config file under the ``key_bindings:``
+section by adding a named function followed by a of keys to bind. For example
+this config sets the keys for log pane cursor movement.
+
+- Moving down is set to :kbd:`j` or the :kbd:`Down` arrow.
+- Moving up is set to :kbd:`k` or the :kbd:`Up` arrow.
+
+.. code-block:: yaml
+
+   key_bindings:
+     log-pane.move-cursor-down:
+     - j
+     - down
+     log-pane.move-cursor-up:
+     - k
+     - up
+
+List of Special Key Names
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This table is from prompt_toolkit's :bdg-link-primary-line:`List of special keys
+<https://python-prompt-toolkit.readthedocs.io/en/latest/pages/advanced_topics/key_bindings.html#list-of-special-keys>`.
+
+.. list-table::
+   :widths: 30 70
+   :header-rows: 1
+
+   * - Keyboard Function
+     - Key Values
+
+   * - Literal characters
+     - ``a b c d e f g h i j k l m n o p q r s t u v w x y z``
+       ``A B C D E F G H I J K L M N O P Q R S T U V W X Y Z``
+       ``1 2 3 4 5 6 7 8 9 0``
+       ``! @ # $ % ^ & * ( )``
+       ``- _ + = ~``
+
+   * - Escape and Shift-Escape
+     - ``escape`` ``s-escape``
+
+   * - Arrows
+     - ``left`` ``right`` ``up`` ``down``
+
+   * - Navigation
+     - ``home`` ``end`` ``delete`` ``pageup`` ``pagedown`` ``insert``
+
+   * - Control-letter
+     - ``c-a c-b c-c c-d c-e c-f c-g c-h c-i c-j c-k c-l c-m``
+       ``c-n c-o c-p c-q c-r c-s c-t c-u c-v c-w c-x c-y c-z``
+
+   * - Control-number
+     - ``c-1`` ``c-2`` ``c-3`` ``c-4`` ``c-5`` ``c-6`` ``c-7`` ``c-8`` ``c-9`` ``c-0``
+
+   * - Control-arrow
+     - ``c-left`` ``c-right`` ``c-up`` ``c-down``
+
+   * - Other control keys
+     - ``c-@`` ``c-\`` ``c-]`` ``c-^`` ``c-_`` ``c-delete``
+
+   * - Shift-arrow
+     - ``s-left`` ``s-right`` ``s-up`` ``s-down``
+
+   * - Control-Shift-arrow
+     - ``c-s-left`` ``c-s-right`` ``c-s-up`` ``c-s-down``
+
+   * - Other Shift` keys
+     - ``s-delete`` ``s-tab``
+
+   * - F Keys
+     - ``f1  f2  f3  f4  f5  f6  f7  f8  f9  f10 f11 f12``
+       ``f13 f14 f15 f16 f17 f18 f19 f20 f21 f22 f23 f24``
+
+There are some key aliases as well. Most of these exist due to how keys are
+processed in VT100 terminals. For example when pressing :kbd:`Tab` terminal
+emulators receive :kbd:`Ctrl-i`.
+
+.. list-table::
+   :widths: 40 60
+   :header-rows: 1
+
+   * - Key
+     - Key Value Alias
+
+   * - Space
+     - ``space``
+
+   * - ``c-h``
+     - ``backspace``
+
+   * - ``c-@``
+     - ``c-space``
+
+   * - ``c-m``
+     - ``enter``
+
+   * - ``c-i``
+     - ``tab``
+
+Binding Alt / Option / Meta
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In terminals the :kbd:`Alt` key is converted into a leading :kbd:`Escape` key
+press. For example pressing :kbd:`Alt-t` actually sends the :kbd:`Escape` key
+followed by the :kbd:`t` key. Similarly :kbd:`Ctrl-Alt-t` sends :kbd:`Escape`
+followed by :kbd:`Ctrl-t`.
+
+To bind :kbd:`Alt` (or :kbd:`Option` on MacOS) add ``escape`` before the key
+that should be modified.
+
+.. code-block:: yaml
+
+   key_bindings:
+     window-manager.move-pane-down:
+     - escape c-up  # Alt-Ctrl-up
+     window-manager.move-pane-left:
+     - escape c-left  # Alt-Ctrl-left
+     window-manager.move-pane-right:
+     - escape c-right  # Alt-Ctrl-right
+     window-manager.move-pane-up:
+     - escape c-down  # Alt-Ctrl-down
+
+Key Sequence Bindings
+~~~~~~~~~~~~~~~~~~~~~
+
+Bindings can consist of multiple key presses in sequence. This is also known as
+chorded keys. Multiple keys separated by spaces define a chorded key
+binding. For example to bind :kbd:`z` quickly followed by :kbd:`t` use ``z t``.
+
+.. code-block:: yaml
+
+   key_bindings:
+     log-pane.shift-line-to-top:
+     - z t
+     log-pane.shift-line-to-center:
+     - z z
+
 
 Known Issues
 ------------
@@ -718,7 +929,8 @@ Log Window
 ~~~~~~~~~~
 
 - Tab character rendering will not work in the log pane view. They will
-  appear as ``^I`` since prompt_toolkit can't render them. See this issue for details:
+  appear as ``^I`` since prompt_toolkit can't render them. See this issue for
+  details:
   https://github.com/prompt-toolkit/python-prompt-toolkit/issues/556
 
 

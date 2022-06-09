@@ -13,19 +13,19 @@
 #include "flash_namespace_value.h"
 
 
-#if 1
-
 /*************************************************************************
 *************************************************************************
                              Matter flash map
  ---|-----------------------------START----------------------------------------| 
  |  |                                                                          |
- 4KB  |-------------flash_option_arr header[FLASH_NAME_SPACE_MAX_ARRAY]----------| //sizeof(namesapce_data_arr)
+ 4KB  |
+-------------flash_option_arr header[FLASH_NAME_SPACE_MAX_ARRAY]----------| //sizeof(namesapce_data_arr)
  |  |                                                                          |
 --
  |  
  |  |                                                                          |
-80KB|-------------flash_option_arr data[FLASH_NAME_SPACE_MAX_ARRAY]------------| //Depends on the actual amount of data
+80KB|
+-------------flash_option_arr data[FLASH_NAME_SPACE_MAX_ARRAY]------------| //Depends on the actual amount of data
 --- |                           4KB * FLASH_NAME_SPACE_MAX_ARRAY               |
 --- |--- ----------------------------------------------------------------------| 
 
@@ -1379,6 +1379,4 @@ uint32_t wpa_ssid_key_get(ssid_key_save_t *wpas_get)
     strcpy((char*)wpas_get->ucKey, wpa_s->current_ssid->passphrase);
     return 0;
 }
-#endif
-
 #endif

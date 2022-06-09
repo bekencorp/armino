@@ -1099,7 +1099,7 @@ TEST( TEST_IOT_SPI, AFQP_IotSPI_CancelSuccess )
     int32_t lRetVal;
     uint8_t ucRxBuf[ 4 ] = { 0xff, 0xff, 0xff, 0xff };
     uint8_t ucTxBuf[ 4 ] = { 0x00, 0x02, 0x04, 0x06 };
-    BaseType_t xCallbackReturn;
+    //BaseType_t xCallbackReturn;
 
     xSPIHandle = iot_spi_open( ultestIotSpiInstance );
     TEST_ASSERT_NOT_EQUAL( NULL, xSPIHandle );
@@ -1581,7 +1581,7 @@ TEST( TEST_IOT_SPI, IotSPI_LoopBack_WriteSync )
 {
     IotSPIHandle_t xSPIHandle;
     int32_t lRetVal;
-    IotSPIMasterConfig_t xConfig;
+    //IotSPIMasterConfig_t xConfig;
     char pcTxBuf[] = "This is a test message";
 
     xSPIHandle = iot_spi_open( ultestIotSpiInstance );
@@ -1592,7 +1592,7 @@ TEST( TEST_IOT_SPI, IotSPI_LoopBack_WriteSync )
         iot_spi_set_callback( xSPIHandle, prvSpiAsyncCallback, NULL );
 
         /* Write, then verify callback was not called as it's sync */
-        TEST_ASSERT( IOT_SPI_SUCCESS == iot_spi_write_sync( xSPIHandle, pcTxBuf, sizeof( pcTxBuf ) - 1 ) );
+        TEST_ASSERT( IOT_SPI_SUCCESS == iot_spi_write_sync( xSPIHandle, (uint8_t *)pcTxBuf, sizeof( pcTxBuf ) - 1 ) );
         TEST_ASSERT( pdFAIL == xSemaphoreTake( xtestIotSPISemaphore, testIotSPI_DEFAULT_SEMAPHORE_DELAY / 2 ) );
     }
 
@@ -1611,7 +1611,7 @@ TEST( TEST_IOT_SPI, IotSPI_LoopBack_WriteAsync )
 {
     IotSPIHandle_t xSPIHandle;
     int32_t lRetVal;
-    IotSPIMasterConfig_t xConfig;
+    //IotSPIMasterConfig_t xConfig;
     char pcTxBuf[] = "This is a test message";
 
     xSPIHandle = iot_spi_open( ultestIotSpiInstance );
@@ -1622,7 +1622,7 @@ TEST( TEST_IOT_SPI, IotSPI_LoopBack_WriteAsync )
         iot_spi_set_callback( xSPIHandle, prvSpiAsyncCallback, NULL );
 
         /* Write, then verify callback was called as it's async*/
-        TEST_ASSERT( IOT_SPI_SUCCESS == iot_spi_write_async( xSPIHandle, pcTxBuf, sizeof( pcTxBuf ) - 1 ) );
+        TEST_ASSERT( IOT_SPI_SUCCESS == iot_spi_write_async( xSPIHandle, (uint8_t *)pcTxBuf, sizeof( pcTxBuf ) - 1 ) );
         TEST_ASSERT( pdPASS == xSemaphoreTake( xtestIotSPISemaphore, testIotSPI_DEFAULT_SEMAPHORE_DELAY ) );
     }
 
@@ -1641,7 +1641,7 @@ TEST( TEST_IOT_SPI, IotSPI_LoopBack_TransferSync )
 {
     IotSPIHandle_t xSPIHandle;
     int32_t lRetVal;
-    IotSPIMasterConfig_t xConfig;
+    //IotSPIMasterConfig_t xConfig;
     char pcTxBuf[] = "This is a test message";
     char pcRxBuf[ sizeof( pcTxBuf ) ];
 
@@ -1655,7 +1655,7 @@ TEST( TEST_IOT_SPI, IotSPI_LoopBack_TransferSync )
         iot_spi_set_callback( xSPIHandle, prvSpiAsyncCallback, NULL );
 
         /* Write, then verify callback was not called as it's sync */
-        TEST_ASSERT( IOT_SPI_SUCCESS == iot_spi_transfer_sync( xSPIHandle, pcTxBuf, pcRxBuf, sizeof( pcTxBuf ) ) );
+        TEST_ASSERT( IOT_SPI_SUCCESS == iot_spi_transfer_sync( xSPIHandle,(uint8_t *) pcTxBuf, (uint8_t *)pcRxBuf, sizeof( pcTxBuf ) ) );
         TEST_ASSERT( pdFAIL == xSemaphoreTake( xtestIotSPISemaphore, testIotSPI_DEFAULT_SEMAPHORE_DELAY ) );
 
         /* Data should also be the same, per loop back */
@@ -1677,7 +1677,7 @@ TEST( TEST_IOT_SPI, IotSPI_LoopBack_TransferAsync )
 {
     IotSPIHandle_t xSPIHandle;
     int32_t lRetVal;
-    IotSPIMasterConfig_t xConfig;
+    //IotSPIMasterConfig_t xConfig;
     char pcTxBuf[] = "This is a test message";
     char pcRxBuf[ sizeof( pcTxBuf ) ];
 
@@ -1691,7 +1691,7 @@ TEST( TEST_IOT_SPI, IotSPI_LoopBack_TransferAsync )
         iot_spi_set_callback( xSPIHandle, prvSpiAsyncCallback, NULL );
 
         /* Write, then verify callback was not called as it's sync */
-        TEST_ASSERT( IOT_SPI_SUCCESS == iot_spi_transfer_async( xSPIHandle, pcTxBuf, pcRxBuf, sizeof( pcTxBuf ) ) );
+        TEST_ASSERT( IOT_SPI_SUCCESS == iot_spi_transfer_async( xSPIHandle, (uint8_t *)pcTxBuf, (uint8_t *)pcRxBuf, sizeof( pcTxBuf ) ) );
         TEST_ASSERT( pdPASS == xSemaphoreTake( xtestIotSPISemaphore, testIotSPI_DEFAULT_SEMAPHORE_DELAY ) );
 
         /* Data should also be the same, per loop back */

@@ -73,6 +73,11 @@ void aon_pmu_drv_touch_int_enable(uint32_t enable)
 	aon_pmu_hal_touch_int_en(enable);
 }
 
+void aon_pmu_drv_touch_int_disable(uint32_t disable)
+{
+	aon_pmu_hal_touch_int_disable(disable);
+}
+
 uint32_t aon_pmu_drv_get_touch_int_status(void)
 {
 	return aon_pmu_hal_get_touch_int_status();

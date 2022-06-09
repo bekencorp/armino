@@ -20,6 +20,7 @@
 #include "bk_wifi_netif.h"
 #include "bk_wifi.h"
 #endif
+#include "bk_wifi_rw.h"
 
 #define TAG "wifi_cli"
 #define CMD_WLAN_MAX_BSS_CNT	50
@@ -42,16 +43,24 @@ void cli_wifi_ap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 {
 	char *ap_ssid = NULL;
 	char *ap_key = "";
+	char *ap_channel = NULL;
 
 	if (argc == 2)
 		ap_ssid = argv[1];
 	else if (argc == 3) {
 		ap_ssid = argv[1];
+		if (os_strlen(argv[2]) <= 2)
+			ap_channel = argv[2];
+		else
+			ap_key = argv[2];
+	} else if (argc == 4) {
+		ap_ssid = argv[1];
 		ap_key = argv[2];
+		ap_channel = argv[3];
 	}
 
 	if (ap_ssid)
-		demo_softap_app_init(ap_ssid, ap_key);
+		demo_softap_app_init(ap_ssid, ap_key, ap_channel);
 }
 
 void cli_wifi_stop_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -683,8 +692,41 @@ void cli_wifi_get_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 			CLI_LOGI("Usage get ps status\n");
 		}
 	}
-}
+	else if (os_strcmp(argv[1], "mac_trx") == 0) {
 
+		bool reset_status = false;
+
+		if ((argc == 4) && (os_strcmp(argv[3], "-r") == 0))
+		{
+			reset_status = true;
+		}
+
+		if(os_strcmp(argv[2], "status") == 0) {
+			bk_wifi_get_mac_trx_status(reset_status);
+		} else {
+			CLI_LOGI("Usage get MAC TRX status\n");
+		}
+	}
+}
+void cli_wifi_rc_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv) {
+
+	uint8_t sta_idx = 0;
+	uint16_t rate_cfg = 0;
+
+	if (argc <= 2) {
+		CLI_LOGI("invalid RC command\n");
+		return;
+	}
+
+	if(os_strcmp(argv[1], "set_fixrate") == 0) {
+		sta_idx = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
+		rate_cfg = os_strtoul(argv[3], NULL, 10) & 0xFFFF;
+		bk_wifi_rc_config(sta_idx, rate_cfg);
+	}
+	else {
+		CLI_LOGI("invalid RC paramter\n");
+	}
+}
 #ifdef CONFIG_COMPONENTS_WPA_TWT_TEST
 void cli_wifi_twt_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
@@ -718,7 +760,7 @@ void cli_wifi_twt_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 #define WIFI_CMD_CNT (sizeof(s_wifi_commands) / sizeof(struct cli_command))
 static const struct cli_command s_wifi_commands[] = {
 	{"scan", "scan [ssid]", cli_wifi_scan_cmd},
-	{"ap", "ap ssid [password]", cli_wifi_ap_cmd},
+	{"ap", "ap ssid [password] [channel[1:14]]", cli_wifi_ap_cmd},
 	{"sta", "sta ssid [password][bssid][channel]", cli_wifi_sta_cmd}, //TODO support connect speicific BSSID
 #if CONFIG_COMPONENTS_WPA2_ENTERPRISE
 	{"sta_eap", "sta_eap ssid password [identity] [client_cert] [private_key]", cli_wifi_sta_eap_cmd},
@@ -746,6 +788,7 @@ static const struct cli_command s_wifi_commands[] = {
 #if CONFIG_WIFI_RAW_TX_TEST
 	{"wifi_tx", "wifi_tx - Tx WiFi raw frame", cli_wifi_raw_tx_cmd},
 #endif
+	{"rc", "wifi rate control config", cli_wifi_rc_cmd},
 };
 
 int cli_wifi_init(void)

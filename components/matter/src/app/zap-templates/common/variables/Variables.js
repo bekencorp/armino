@@ -30,7 +30,7 @@ const knownVariables = {
   'nodeId' : { type : 'NODE_ID', defaultValue : 0x12345 },
   'endpoint' : { type : 'ENDPOINT_NO', defaultValue : '' },
   'cluster' : { type : 'CHAR_STRING', defaultValue : '' },
-  'timeout' : { type : 'INT16U', defaultValue : 30 },
+  'timeout' : { type : 'INT16U', defaultValue : "kTimeoutInSeconds" },
 };
 
 function throwError(test, errorStr)
@@ -70,6 +70,14 @@ async function extractVariablesFromConfig(context, suite)
 {
   let variables = [];
 
+  // Ensure that timeout is always set in the config, to enable command-line
+  // control over it.
+  if (!("timeout" in suite.config)) {
+    // Set to the defaultValue, because below for the isKnownVariable case we will use
+    // the actual value as the default value...
+    suite.config.timeout = knownVariables.timeout.defaultValue;
+  }
+
   for (const key in suite.config) {
     let value = {};
 
@@ -101,17 +109,19 @@ async function extractVariablesFromTests(context, suite)
 {
   let variables = {};
   suite.tests.forEach(test => {
-    test.response.values.filter(value => value.saveAs).forEach(saveAsValue => {
-      const key = saveAsValue.saveAs;
-      if (key in variables) {
-        throwError(test, `Variable with name: ${key} is already registered.`);
-      }
+    test.response.forEach(response => {
+      response.values.filter(value => value.saveAs).forEach(saveAsValue => {
+        const key = saveAsValue.saveAs;
+        if (key in variables) {
+          throwError(test, `Variable with name: ${key} is already registered.`);
+        }
 
-      if (!test.isCommand && !test.isAttribute) {
-        throwError(test, `Variable support for step ${test} is not supported. Only commands and attributes are supported.`);
-      }
+        if (!test.isCommand && !test.isAttribute) {
+          throwError(test, `Variable support for step ${test} is not supported. Only commands and attributes are supported.`);
+        }
 
-      variables[key] = { test, name : saveAsValue.name };
+        variables[key] = { test, name : saveAsValue.name };
+      });
     });
   });
 

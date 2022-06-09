@@ -290,6 +290,11 @@ typedef struct {
 	char private_key_passwd[32];       /**< client's private key password */
 	char phase1[32];                   /**< client's phase1 parameters */
 #endif
+
+	/* auto reconnect configuration */
+	int auto_reconnect_count;          /**< auto reconnect max count, 0 for always reconnect */
+	int auto_reconnect_timeout;        /**< auto reconnect timeout in secs, 0 for no timeout */
+	bool disable_auto_reconnect_after_disconnect;  /**< disable auto reconnect if deauth/disassoc by AP when in connected state */
 } wifi_sta_config_t;
 
 typedef struct {

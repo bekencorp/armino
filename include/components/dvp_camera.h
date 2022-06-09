@@ -57,20 +57,22 @@ bk_err_t bk_camera_deinit(void);
 void bk_camera_sensor_config(void);
 
 /**
- * @brief     set camera pps and fps
+ * @brief	  set camera pps and fps
  *
  * This API will set jpeg pps and camera pps and fps
  *
- * param ppi_type: image resolution
- * param pfs_type: frame rate
+ * param dev: dvp type
+ * param cfg: frame rate:bit[0-15], image resolution:bit[31-16]
  *
  * @attention 1. need call before camera_intf_config_senser
  *
  * @return
- *    - kNoErr: succeed
- *    - others: other errors.
+ *	  - kNoErr: succeed
+ *	  - others: other errors.
  */
-bk_err_t bk_camera_set_ppi_fps(uint32_t ppi_type, uint32_t fps_type);
+bk_err_t bk_camera_set_param(uint32_t dev, uint32_t cfg);
+
+
 #ifdef __cplusplus
 }
 #endif

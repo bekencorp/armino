@@ -66,7 +66,8 @@ struct Options {
   // garbage collection is attempted if space for an entry cannot be found. This
   // is a relatively lengthy operation. If kDisabled, Put calls that would
   // require garbage collection fail with RESOURCE_EXHAUSTED.
-  GargbageCollectOnWrite gc_on_write = GargbageCollectOnWrite::kOneSector;
+  GargbageCollectOnWrite gc_on_write =
+      GargbageCollectOnWrite::kAsManySectorsNeeded;
 
   // When the KVS handles errors that are discovered, such as corrupt entries,
   // not enough redundant copys of an entry, etc.
@@ -261,7 +262,11 @@ class KeyValueStore {
    public:
     iterator& operator++();
 
-    iterator& operator++(int) { return operator++(); }
+    iterator operator++(int) {
+      const iterator original(item_.kvs_, item_.iterator_);
+      operator++();
+      return original;
+    }
 
     // Reads the entry's key from flash.
     const Item& operator*() {

@@ -31,7 +31,8 @@
 
 #include <controller/CHIPDeviceController.h>
 #include <controller/CHIPDeviceControllerSystemState.h>
-#include <credentials/DeviceAttestationVerifier.h>
+#include <credentials/GroupDataProvider.h>
+#include <credentials/attestation_verifier/DeviceAttestationVerifier.h>
 
 namespace chip {
 
@@ -39,12 +40,7 @@ namespace Controller {
 
 struct SetupParams
 {
-#if CHIP_DEVICE_CONFIG_ENABLE_DNSSD
-    DeviceAddressUpdateDelegate * deviceAddressUpdateDelegate = nullptr;
-#endif
     OperationalCredentialsDelegate * operationalCredentialsDelegate = nullptr;
-
-    PersistentStorageDelegate * storageDelegate = nullptr;
 
     /* The following keypair must correspond to the public key used for generating
     controllerNOC. It's used by controller to establish CASE sessions with devices */
@@ -60,22 +56,39 @@ struct SetupParams
     // The Device Pairing Delegated used to initialize a Commissioner
     DevicePairingDelegate * pairingDelegate = nullptr;
 
+    //
+    // Controls enabling server cluster interactions on a controller. This in turn
+    // causes the following to get enabled:
+    //
+    //  - CASEServer to listen for unsolicited Sigma1 messages.
+    //  - Advertisement of active controller operational identities.
+    //
+    bool enableServerInteractions = false;
+
     Credentials::DeviceAttestationVerifier * deviceAttestationVerifier = nullptr;
     CommissioningDelegate * defaultCommissioner                        = nullptr;
 };
 
-// TODO everything other than the fabric storage here should be removed.
+// TODO everything other than the fabric storage and group data provider here should be removed.
 // We're blocked because of the need to support !CHIP_DEVICE_LAYER
 struct FactoryInitParams
 {
-    FabricStorage * fabricStorage                                 = nullptr;
     System::Layer * systemLayer                                   = nullptr;
     PersistentStorageDelegate * fabricIndependentStorage          = nullptr;
+    Credentials::GroupDataProvider * groupDataProvider            = nullptr;
     Inet::EndPointManager<Inet::TCPEndPoint> * tcpEndPointManager = nullptr;
     Inet::EndPointManager<Inet::UDPEndPoint> * udpEndPointManager = nullptr;
 #if CONFIG_NETWORK_LAYER_BLE
     Ble::BleLayer * bleLayer = nullptr;
 #endif
+
+    //
+    // Controls enabling server cluster interactions on a controller. This in turn
+    // causes the following to get enabled:
+    //
+    //  - Advertisement of active controller operational identities.
+    //
+    bool enableServerInteractions = false;
 
     /* The port used for operational communication to listen for and send messages over UDP/TCP.
      * The default value of `0` will pick any available port. */
@@ -124,6 +137,55 @@ public:
     //
     void ReleaseSystemState() { mSystemState->Release(); }
 
+    //
+    // Retrieve a read-only pointer to the system state object that contains pointers to key stack
+    // singletons. If the pointer is null, it indicates that the DeviceControllerFactory has yet to
+    // be initialized properly, or has already been shut-down.
+    //
+    // This pointer ceases to be valid after a call to Shutdown has been made, or if all active
+    // DeviceController instances have gone to 0. Consequently, care has to be taken to correctly
+    // sequence the shutting down of active controllers with any entity that interacts with objects
+    // present in the system state object. If de-coupling is desired, RetainSystemState and
+    // ReleaseSystemState can be used to avoid this.
+    //
+    const DeviceControllerSystemState * GetSystemState() const { return mSystemState; }
+
+    class ControllerFabricDelegate final : public FabricTableDelegate
+    {
+    public:
+        ControllerFabricDelegate() : FabricTableDelegate(true) {}
+
+        CHIP_ERROR Init(SessionManager * sessionManager, Credentials::GroupDataProvider * groupDataProvider)
+        {
+            VerifyOrReturnError(sessionManager != nullptr, CHIP_ERROR_INVALID_ARGUMENT);
+            VerifyOrReturnError(groupDataProvider != nullptr, CHIP_ERROR_INVALID_ARGUMENT);
+
+            mSessionManager    = sessionManager;
+            mGroupDataProvider = groupDataProvider;
+            return CHIP_NO_ERROR;
+        };
+
+        void OnFabricDeletedFromStorage(CompressedFabricId compressedId, FabricIndex fabricIndex) override
+        {
+            if (mSessionManager != nullptr)
+            {
+                mSessionManager->FabricRemoved(fabricIndex);
+            }
+            if (mGroupDataProvider != nullptr)
+            {
+                mGroupDataProvider->RemoveFabric(fabricIndex);
+            }
+        };
+
+        void OnFabricRetrievedFromStorage(FabricInfo * fabricInfo) override { (void) fabricInfo; }
+
+        void OnFabricPersistedToStorage(FabricInfo * fabricInfo) override { (void) fabricInfo; }
+
+    private:
+        SessionManager * mSessionManager                    = nullptr;
+        Credentials::GroupDataProvider * mGroupDataProvider = nullptr;
+    };
+
 private:
     DeviceControllerFactory(){};
     void PopulateInitParams(ControllerInitParams & controllerParams, const SetupParams & params);
@@ -131,9 +193,9 @@ private:
     CHIP_ERROR InitSystemState();
 
     uint16_t mListenPort;
-    FabricStorage * mFabricStorage                        = nullptr;
     DeviceControllerSystemState * mSystemState            = nullptr;
     PersistentStorageDelegate * mFabricIndependentStorage = nullptr;
+    bool mEnableServerInteractions                        = false;
 };
 
 } // namespace Controller

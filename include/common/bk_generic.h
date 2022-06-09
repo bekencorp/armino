@@ -25,7 +25,7 @@ extern "C" {
 typedef void (*FUNCPTR)(void);
 typedef void (*FUNC_1PARAM_PTR)(void *ctxt);
 typedef void (*FUNC_2PARAM_PTR)(void *arg, uint8_t vif_idx);
-#ifndef CONFIG_MATTER
+
 #ifndef MAX
 #define MAX(x, y)                  (((x) > (y)) ? (x) : (y))
 #endif
@@ -41,7 +41,7 @@ typedef void (*FUNC_2PARAM_PTR)(void *arg, uint8_t vif_idx);
 #ifndef min
 #define min(x, y)                  (((x) < (y)) ? (x) : (y))
 #endif
-#endif
+
 #define min3(x, y, z) ({			\
 	typeof(x) _min1 = (x);			\
 	typeof(y) _min2 = (y);			\
@@ -80,15 +80,15 @@ typedef void (*FUNC_2PARAM_PTR)(void *arg, uint8_t vif_idx);
 /*
  * swap - swap value of @a and @b
  */
- #ifndef CONFIG_MATTER
 #define swap(a, b) \
 	do { typeof(a) __tmp = (a); (a) = (b); (b) = __tmp; } while (0)
-#endif
+
 #define IS_ALIGNED(x, a)		(((x) & ((typeof(x))(a) - 1)) == 0)
 
 //##define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))
+#ifndef ARRAY_SIZE
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
-
+#endif
 /*
  * This looks more complex than it should be. But we need to
  * get the type for the ~ right in round_down (it needs to be
@@ -213,5 +213,11 @@ static inline __uint64_t __bswap64(__uint64_t _x)
 #endif
 
 #ifdef __cplusplus
+/* Following Macro are all defined in standard c++ header. So undef them when compiling in c++ project. */
+#undef min
+#undef max
+#undef MAX
+#undef MIN
+#undef swap
 }
 #endif

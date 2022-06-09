@@ -49,6 +49,7 @@ from pw_console.log_pane_toolbars import (
 )
 from pw_console.log_pane_saveas_dialog import LogPaneSaveAsDialog
 from pw_console.log_pane_selection_dialog import LogPaneSelectionDialog
+from pw_console.log_store import LogStore
 from pw_console.search_toolbar import SearchToolbar
 from pw_console.filter_toolbar import FilterToolbar
 from pw_console.widgets import (
@@ -81,123 +82,135 @@ class LogContentControl(UIControl):
 
         # Key bindings.
         key_bindings = KeyBindings()
+        register = log_pane.application.prefs.register_keybinding
 
-        @key_bindings.add('w')
+        @register('log-pane.shift-line-to-top', key_bindings)
+        def _shift_log_to_top(_event: KeyPressEvent) -> None:
+            """Shift the selected log line to the top."""
+            self.log_view.move_selected_line_to_top()
+
+        @register('log-pane.shift-line-to-center', key_bindings)
+        def _shift_log_to_center(_event: KeyPressEvent) -> None:
+            """Shift the selected log line to the center."""
+            self.log_view.center_log_line()
+
+        @register('log-pane.toggle-wrap-lines', key_bindings)
         def _toggle_wrap_lines(_event: KeyPressEvent) -> None:
             """Toggle log line wrapping."""
             self.log_pane.toggle_wrap_lines()
 
-        @key_bindings.add('t')
+        @register('log-pane.toggle-table-view', key_bindings)
         def _toggle_table_view(_event: KeyPressEvent) -> None:
             """Toggle table view."""
             self.log_pane.toggle_table_view()
 
-        @key_bindings.add('insert')
+        @register('log-pane.duplicate-log-pane', key_bindings)
         def _duplicate(_event: KeyPressEvent) -> None:
             """Duplicate this log pane."""
             self.log_pane.duplicate()
 
-        @key_bindings.add('delete')
+        @register('log-pane.remove-duplicated-log-pane', key_bindings)
         def _delete(_event: KeyPressEvent) -> None:
             """Remove log pane."""
             if self.log_pane.is_a_duplicate:
                 self.log_pane.application.window_manager.remove_pane(
                     self.log_pane)
 
-        @key_bindings.add('C')
+        @register('log-pane.clear-history', key_bindings)
         def _clear_history(_event: KeyPressEvent) -> None:
             """Clear log pane history."""
             self.log_pane.clear_history()
 
-        @key_bindings.add('g')
+        @register('log-pane.scroll-to-top', key_bindings)
         def _scroll_to_top(_event: KeyPressEvent) -> None:
             """Scroll to top."""
             self.log_view.scroll_to_top()
 
-        @key_bindings.add('G')
+        @register('log-pane.scroll-to-bottom', key_bindings)
         def _scroll_to_bottom(_event: KeyPressEvent) -> None:
             """Scroll to bottom."""
             self.log_view.scroll_to_bottom()
 
-        @key_bindings.add('f')
+        @register('log-pane.toggle-follow', key_bindings)
         def _toggle_follow(_event: KeyPressEvent) -> None:
             """Toggle log line following."""
             self.log_pane.toggle_follow()
 
-        @key_bindings.add('up')
-        @key_bindings.add('k')
+        @register('log-pane.move-cursor-up', key_bindings)
         def _up(_event: KeyPressEvent) -> None:
             """Move cursor up."""
             self.log_view.scroll_up()
 
-        @key_bindings.add('down')
-        @key_bindings.add('j')
+        @register('log-pane.move-cursor-down', key_bindings)
         def _down(_event: KeyPressEvent) -> None:
             """Move cursor down."""
             self.log_view.scroll_down()
 
-        @key_bindings.add('s-up')
+        @register('log-pane.visual-select-up', key_bindings)
         def _visual_select_up(_event: KeyPressEvent) -> None:
             """Select previous log line."""
             self.log_view.visual_select_up()
 
-        @key_bindings.add('s-down')
+        @register('log-pane.visual-select-down', key_bindings)
         def _visual_select_down(_event: KeyPressEvent) -> None:
             """Select next log line."""
             self.log_view.visual_select_down()
 
-        @key_bindings.add('pageup')
+        @register('log-pane.scroll-page-up', key_bindings)
         def _pageup(_event: KeyPressEvent) -> None:
             """Scroll the logs up by one page."""
             self.log_view.scroll_up_one_page()
 
-        @key_bindings.add('pagedown')
+        @register('log-pane.scroll-page-down', key_bindings)
         def _pagedown(_event: KeyPressEvent) -> None:
             """Scroll the logs down by one page."""
             self.log_view.scroll_down_one_page()
 
-        @key_bindings.add('c-o')
+        @register('log-pane.save-copy', key_bindings)
         def _start_saveas(_event: KeyPressEvent) -> None:
             """Save logs to a file."""
             self.log_pane.start_saveas()
 
-        @key_bindings.add('/')
-        @key_bindings.add('c-f')
+        @register('log-pane.search', key_bindings)
         def _start_search(_event: KeyPressEvent) -> None:
             """Start searching."""
             self.log_pane.start_search()
 
-        @key_bindings.add('n')
-        @key_bindings.add('c-s')
-        @key_bindings.add('c-g')
+        @register('log-pane.search-next-match', key_bindings)
         def _next_search(_event: KeyPressEvent) -> None:
             """Next search match."""
             self.log_view.search_forwards()
 
-        @key_bindings.add('N')
-        @key_bindings.add('c-r')
+        @register('log-pane.search-previous-match', key_bindings)
         def _previous_search(_event: KeyPressEvent) -> None:
             """Previous search match."""
             self.log_view.search_backwards()
 
-        @key_bindings.add('c-l')
-        def _clear_search_highlight(_event: KeyPressEvent) -> None:
+        @register('log-pane.visual-select-all', key_bindings)
+        def _select_all_logs(_event: KeyPressEvent) -> None:
             """Clear search."""
-            self.log_pane.log_view.clear_search()
-            self.log_pane.search_toolbar.close_search_bar()
+            self.log_pane.log_view.visual_select_all()
 
-        @key_bindings.add('escape', 'c-f')  # Alt-Ctrl-f
+        @register('log-pane.deselect-cancel-search', key_bindings)
+        def _clear_search_and_selection(_event: KeyPressEvent) -> None:
+            """Clear selection or search."""
+            if self.log_pane.log_view.visual_select_mode:
+                self.log_pane.log_view.clear_visual_selection()
+            elif self.log_pane.search_bar_active:
+                self.log_pane.search_toolbar.cancel_search()
+
+        @register('log-pane.search-apply-filter', key_bindings)
         def _apply_filter(_event: KeyPressEvent) -> None:
             """Apply current search as a filter."""
             self.log_pane.search_toolbar.close_search_bar()
             self.log_view.apply_filter()
 
-        @key_bindings.add('escape', 'c-r')  # Alt-Ctrl-r
+        @register('log-pane.clear-filters', key_bindings)
         def _clear_filter(_event: KeyPressEvent) -> None:
             """Reset / erase active filters."""
             self.log_view.clear_filters()
 
-        self.key_bindings = key_bindings
+        self.key_bindings: KeyBindingsBase = key_bindings
 
     def is_focusable(self) -> bool:
         return True
@@ -313,6 +326,7 @@ class LogPane(WindowPane):
         self,
         application: Any,
         pane_title: str = 'Logs',
+        log_store: Optional[LogStore] = None,
     ):
         super().__init__(application, pane_title)
 
@@ -322,7 +336,9 @@ class LogPane(WindowPane):
         self.is_a_duplicate = False
 
         # Create the log container which stores and handles incoming logs.
-        self.log_view: LogView = LogView(self, self.application)
+        self.log_view: LogView = LogView(self,
+                                         self.application,
+                                         log_store=log_store)
 
         # Log pane size variables. These are updated just befor rendering the
         # pane by the LogLineHSplit class.
@@ -455,7 +471,7 @@ class LogPane(WindowPane):
         else:
             self._pane_subtitle = self._pane_subtitle + ', ' + text
 
-    def pane_subtitle(self):
+    def pane_subtitle(self) -> str:
         if not self._pane_subtitle:
             return ', '.join(self.log_view.log_store.channel_counts.keys())
         logger_names = self._pane_subtitle.split(', ')
@@ -539,7 +555,7 @@ class LogPane(WindowPane):
             # Menu separator
             ('-', None),
             (
-                'Save a copy',
+                'Save/Export a copy',
                 self.start_saveas,
             ),
             ('-', None),
@@ -574,7 +590,7 @@ class LogPane(WindowPane):
         ]
         if self.is_a_duplicate:
             options += [(
-                'Remove pane',
+                'Remove/Delete pane',
                 functools.partial(self.application.window_manager.remove_pane,
                                   self),
             )]
@@ -592,7 +608,7 @@ class LogPane(WindowPane):
                 self.log_view.apply_filter,
             ),
             (
-                'Reset active filters',
+                'Clear/Reset active filters',
                 self.log_view.clear_filters,
             ),
         ]

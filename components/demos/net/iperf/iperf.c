@@ -54,6 +54,12 @@ static uint32_t s_tick_last = 0;
 static uint32_t s_tick_delta = 0;
 static uint32_t s_pkt_delta = 0;
 
+//modifiable iperf parameters
+//priority of iperf task
+static uint32_t iperf_priority = THREAD_PROIRITY;
+//data size of iperf
+static uint32_t iperf_size = IPERF_BUFSZ;
+
 static void iperf_reset(void)
 {
 	s_param.mode = IPERF_MODE_NONE;
@@ -119,11 +125,11 @@ static void iperf_client(void *thread_param)
 	struct sockaddr_in addr;
 	uint32_t retry_cnt = 0;
 
-	send_buf = (uint8_t *) os_malloc(IPERF_BUFSZ);
+	send_buf = (uint8_t *) os_malloc(iperf_size);
 	if (!send_buf)
 		goto _exit;
 
-	for (i = 0; i < IPERF_BUFSZ; i++)
+	for (i = 0; i < iperf_size; i++)
 		send_buf[i] = i & 0xff;
 
 	while (s_param.state == IPERF_STATE_STARTED) {
@@ -153,7 +159,7 @@ static void iperf_client(void *thread_param)
 		while (s_param.state == IPERF_STATE_STARTED) {
 			retry_cnt = 0;
 _tx_retry:
-			ret = send(sock, send_buf, IPERF_BUFSZ, 0);
+			ret = send(sock, send_buf, iperf_size, 0);
 			if (ret > 0)
 				iperf_report(ret);
 			else {
@@ -195,7 +201,7 @@ void iperf_server(void *thread_param)
 	struct sockaddr_in server_addr, client_addr;
 	uint32_t retry_cnt = 0;
 
-	recv_data = (uint8_t *) os_malloc(IPERF_BUFSZ);
+	recv_data = (uint8_t *) os_malloc(iperf_size);
 	if (recv_data == NULL) {
 		os_printf("iperf: no memory\n");
 		goto __exit;
@@ -244,7 +250,7 @@ _accept_retry:
 		while (s_param.state == IPERF_STATE_STARTED) {
 			retry_cnt = 0;
 _rx_retry:
-			bytes_received = recv(connected, recv_data, IPERF_BUFSZ, 0);
+			bytes_received = recv(connected, recv_data, iperf_size, 0);
 			if (bytes_received <= 0) {
 				if (s_param.state != IPERF_STATE_STARTED)
 					break;
@@ -291,11 +297,11 @@ static void iperf_udp_client(void *thread_param)
 	uint32_t retry_cnt;
 	int send_size;
 
-	send_size = IPERF_BUFSZ > 1470 ? 1470 : IPERF_BUFSZ;
-	buffer = os_malloc(IPERF_BUFSZ);
+	send_size = iperf_size > 1470 ? 1470 : iperf_size;
+	buffer = os_malloc(iperf_size);
 	if (buffer == NULL)
 		goto udp_exit;
-	os_memset(buffer, 0x00, IPERF_BUFSZ);
+	os_memset(buffer, 0x00, iperf_size);
 
 	while (IPERF_STATE_STARTED == s_param.state) {
 		sock = socket(PF_INET, SOCK_DGRAM, 0);
@@ -367,7 +373,7 @@ static void iperf_udp_server(void *thread_param)
 	uint64_t tick1, tick2;
 	struct timeval timeout;
 
-	buffer = os_malloc(IPERF_BUFSZ);
+	buffer = os_malloc(iperf_size);
 	if (buffer == NULL)
 		return;
 	sock = socket(PF_INET, SOCK_DGRAM, 0);
@@ -398,15 +404,15 @@ static void iperf_udp_server(void *thread_param)
 		lost = 0;
 		total = 0;
 		while (s_param.state == IPERF_STATE_STARTED){
-		r_size = recvfrom(sock, buffer, IPERF_BUFSZ, 0, (struct sockaddr *)&sender, (socklen_t *)&sender_len);
+		r_size = recvfrom(sock, buffer, iperf_size, 0, (struct sockaddr *)&sender, (socklen_t *)&sender_len);
 
 		if (r_size > 12 ){
 			iperf_report_init();
 			break;
 			}
 		}
-		while ((tick2 - tick1) < (bk_get_ticks_per_second() * 999)) {
-			r_size = recvfrom(sock, buffer, IPERF_BUFSZ, 0, (struct sockaddr *)&sender, (socklen_t *)&sender_len);
+		while ((s_param.state == IPERF_STATE_STARTED) && ((tick2 - tick1) < (bk_get_ticks_per_second() * 999))) {
+			r_size = recvfrom(sock, buffer, iperf_size, 0, (struct sockaddr *)&sender, (socklen_t *)&sender_len);
 			if (r_size > 12) {
 				pcount = ntohl(buffer[0]);
 				if (last_pcount < pcount) {
@@ -512,19 +518,19 @@ static void iperf_start(int mode, char *host, int port)
 			s_param.host = os_strdup(host);
 
 		if (mode == IPERF_MODE_TCP_CLIENT) {
-			rtos_create_thread(NULL, THREAD_PROIRITY, "iperf_tcp_c",
+			rtos_create_thread(NULL, iperf_priority, "iperf_tcp_c",
 							   iperf_client, THREAD_SIZE,
 							   (beken_thread_arg_t) 0);
 		} else if (mode == IPERF_MODE_TCP_SERVER) {
-			rtos_create_thread(NULL, THREAD_PROIRITY, "iperf_tcp_s",
+			rtos_create_thread(NULL, iperf_priority, "iperf_tcp_s",
 							   iperf_server, THREAD_SIZE,
 							   (beken_thread_arg_t) 0);
 		} else if (mode == IPERF_MODE_UDP_CLIENT) {
-			rtos_create_thread(NULL, THREAD_PROIRITY, "iperf_udp_c",
+			rtos_create_thread(NULL, iperf_priority, "iperf_udp_c",
 							   iperf_udp_client, THREAD_SIZE,
 							   (beken_thread_arg_t) 0);
 		} else if (mode == IPERF_MODE_UDP_SERVER) {
-			rtos_create_thread(NULL, THREAD_PROIRITY, "iperf_udp_s",
+			rtos_create_thread(NULL, iperf_priority, "iperf_udp_s",
 							   iperf_udp_server, THREAD_SIZE,
 							   (beken_thread_arg_t) 0);
 		} else
@@ -533,6 +539,29 @@ static void iperf_start(int mode, char *host, int port)
 		os_printf("iperf: iperf is stopping, try again later!\n");
 	else
 		os_printf("iperf: iperf is running, stop first!\n");
+}
+void iperf_config(int argc, char **argv)
+{
+    if (os_strcmp(argv[1], "config"))
+    {
+        return;
+    }
+
+
+    if(os_strcmp(argv[2], "-pri") == 0)
+    {
+        iperf_priority = os_strtoul(argv[3], NULL, 10);
+        os_printf("iperf config iperf_priority to %d !\n", iperf_priority);
+    }
+    else if(os_strcmp(argv[2], "-ips") == 0)
+    {
+        iperf_size = os_strtoul(argv[3], NULL, 10);
+        os_printf("iperf config iperf_size to %d !\n", iperf_size);
+    }
+    else
+    {
+        os_printf("iperf config INVALID PRAMATER !\n");
+    }
 }
 
 void iperf(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -549,6 +578,11 @@ void iperf(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 	else if (iperf_param_find(argc, argv, "--stop")
 			 || iperf_param_find(argc, argv, "-stop")) {
 		iperf_stop();
+		return;
+	}
+	else if(iperf_param_find(argc, argv, "config"))
+	{
+		iperf_config(argc, argv);
 		return;
 	}
 

@@ -18,7 +18,7 @@
 
 static uint32_t sys_amp_res_acquire()
 {
-#if 0//CONFIG_DUAL_CORE
+#if CONFIG_DUAL_CORE
 	uint32_t ret_val = SYS_DRV_FAILURE;
 	ret_val = amp_res_acquire(AMP_RES_ID_SYS_REG, SYSTEM_REG_LOCK_WAIT_TIME_MS);
 	return ret_val;
@@ -27,7 +27,7 @@ static uint32_t sys_amp_res_acquire()
 }
 static uint32_t sys_amp_res_release()
 {
-#if 0//CONFIG_DUAL_CORE
+#if CONFIG_DUAL_CORE
 	uint32_t ret_val = SYS_DRV_FAILURE;
 	ret_val = amp_res_release(AMP_RES_ID_SYS_REG);
 	return ret_val;
@@ -37,7 +37,7 @@ static uint32_t sys_amp_res_release()
 
 static uint32_t sys_amp_res_init()
 {
-#if 0//CONFIG_DUAL_CORE
+#if CONFIG_DUAL_CORE
 	uint32_t ret_val = SYS_DRV_FAILURE;
 	ret_val = amp_res_init(AMP_RES_ID_SYS_REG);
 	return ret_val;
@@ -83,6 +83,65 @@ void sys_drv_usb_clock_ctrl(bool ctrl, void *arg)
 		ret = sys_amp_res_release();
 
 	rtos_enable_int(int_level);
+}
+
+uint32_t sys_drv_usb_analog_phy_en(bool ctrl, void *arg)
+{
+	uint32_t int_level = rtos_disable_int();
+	uint32_t ret = SYS_DRV_FAILURE;
+
+	ret = sys_amp_res_acquire();
+	if(ret != BK_OK)
+		return ret;
+
+	sys_hal_usb_analog_phy_en(ctrl);
+
+	if(!ret)
+		ret = sys_amp_res_release();
+	if(ret != BK_OK)
+		return ret;
+
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
+uint32_t sys_drv_usb_analog_speed_en(bool ctrl, void *arg)
+{
+	uint32_t int_level = rtos_disable_int();
+	uint32_t ret = SYS_DRV_FAILURE;
+	ret = sys_amp_res_acquire();
+	if(ret != BK_OK)
+		return ret;
+
+	sys_hal_usb_analog_speed_en(ctrl);
+
+	if(!ret)
+		ret = sys_amp_res_release();
+	if(ret != BK_OK)
+		return ret;
+
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
+uint32_t sys_drv_usb_analog_ckmcu_en(bool ctrl, void *arg)
+{
+	uint32_t int_level = rtos_disable_int();
+	uint32_t ret = SYS_DRV_FAILURE;
+
+	ret = sys_amp_res_acquire();
+	if(ret != BK_OK)
+		return ret;
+
+	sys_hal_usb_analog_ckmcu_en(ctrl);
+
+	if(!ret)
+		ret = sys_amp_res_release();
+	if(ret != BK_OK)
+		return ret;
+
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
 }
 
 void sys_drv_usb_charge_start()
@@ -335,13 +394,13 @@ void sys_drv_efuse_write_byte(uint32_t param)
 void sys_drv_enter_deep_sleep(void * param)
 {
 	uint32_t int_level = rtos_disable_int();
-	uint32_t ret = SYS_DRV_FAILURE;
-	ret = sys_amp_res_acquire();
+	//uint32_t ret = SYS_DRV_FAILURE;
+	//ret = sys_amp_res_acquire();
 
 	sys_hal_enter_deep_sleep(param);
 
-	if(!ret)
-		ret = sys_amp_res_release();
+	//if(!ret)
+		//ret = sys_amp_res_release();
 
 	rtos_enable_int(int_level);
 }
@@ -366,13 +425,13 @@ void sys_drv_enter_normal_wakeup()
 void sys_drv_enter_low_voltage()
 {
 	uint32_t int_level = rtos_disable_int();
-	uint32_t ret = SYS_DRV_FAILURE;
-	ret = sys_amp_res_acquire();
+	//uint32_t ret = SYS_DRV_FAILURE;
+	//ret = sys_amp_res_acquire();
 
 	sys_hal_enter_low_voltage();
 
-	if(!ret)
-		ret = sys_amp_res_release();
+	//if(!ret)
+		//ret = sys_amp_res_release();
 
 	rtos_enable_int(int_level);
 }
@@ -804,6 +863,11 @@ uint32 sys_drv_get_int_source_status(void)
 	rtos_enable_int(int_level);
 
 	return ret;
+}
+
+uint32_t sys_drv_get_cpu0_gpio_int_st(void)
+{
+    return sys_hal_get_cpu0_gpio_int_st();
 }
 
 //NOTICE:INT source status is read only and can't be set, we'll delete them.
@@ -1258,13 +1322,8 @@ uint32_t sys_drv_bt_rf_status_get(void)
 void sys_drv_bt_sleep_exit_ctrl(bool en)
 {
 	uint32_t int_level = rtos_disable_int();
-	uint32_t ret = SYS_DRV_FAILURE;
-	ret = sys_amp_res_acquire();
 
 	sys_hal_bt_sleep_exit_ctrl(en);
-
-	if(!ret)
-		ret = sys_amp_res_release();
 
 	rtos_enable_int(int_level);
 }
@@ -2434,7 +2493,7 @@ uint32_t sys_drv_set_clk_div_mode1_clkdiv_jpeg(uint32_t value)
 		ret = sys_amp_res_release();
 
 	rtos_enable_int(int_level);
-	return SYS_DRV_SUCCESS;
+	return ret;
 }
 
 uint32_t sys_drv_set_jpeg_disckg(uint32_t value)

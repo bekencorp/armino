@@ -29,6 +29,10 @@
 
 #define TAG "app_init"
 
+#ifdef CONFIG_VND_CAL
+#include "vnd_cal.h"
+#endif
+
 volatile const uint8_t build_version[] = __DATE__ " " __TIME__;
 
 static int app_wifi_init(void)
@@ -83,7 +87,7 @@ static int app_mp3_player_init(void)
 
 int app_sdio_init(void)
 {
-#if CONFIG_SDIO
+#if (defined CONFIG_SDIO && defined CONFIG_SDIO_V1P0)
 	BK_LOGI(TAG, "sdio intf init\r\n");
 	sdio_intf_init();
 #endif
@@ -169,6 +173,11 @@ int legacy_init(void)
 
 #ifdef APP_VERSION
 	BK_LOGI(TAG, "APP Verion: %s\n", APP_VERSION);
+#endif
+
+
+#ifdef CONFIG_VND_CAL
+	vnd_cal_overlay();
 #endif
 
 #if (CONFIG_SOC_BK7256XX)

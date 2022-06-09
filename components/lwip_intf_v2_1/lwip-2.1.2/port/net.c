@@ -10,6 +10,7 @@
 #include <lwip/dns.h>
 #include <lwip/dhcp.h>
 #include "lwip/prot/dhcp.h"
+#include "lwip/apps/mdns.h"
 
 #include <lwip/sockets.h>
 #include "ethernetif.h"
@@ -229,6 +230,11 @@ static void wm_netif_status_callback(struct netif *n)
         }
 #endif
 
+#ifdef CONFIG_MDNS
+		if(!ip_addr_isany(&n->ip_addr)){
+			mdns_resp_restart(n);
+		}
+#endif
 
 		if(dhcp != NULL) {
 			/* dhcp success*/

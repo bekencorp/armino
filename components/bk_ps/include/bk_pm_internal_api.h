@@ -21,8 +21,10 @@ extern "C" {
 #endif
 
 void pm_hardware_init();
-/*for debug log ctrl*/
 
+int pm_module_wakeup_time_set(uint32_t module_name, uint32_t  wakeup_time);
+
+/*for debug log ctrl*/
 void pm_debug_ctrl(uint32_t debug_en);
 
 #ifdef __cplusplus

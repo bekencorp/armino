@@ -507,6 +507,8 @@ int lwip_select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptse
                 struct timeval *timeout);
 int lwip_ioctl(int s, long cmd, void *argp);
 int lwip_fcntl(int s, int cmd, int val);
+const char *lwip_inet_ntop(int af, const void *src, char *dst, socklen_t size);
+int lwip_inet_pton(int af, const char *src, void *dst);
 
 #if LWIP_COMPAT_SOCKETS
 #if LWIP_COMPAT_SOCKETS != 2
@@ -562,27 +564,9 @@ int lwip_fcntl(int s, int cmd, int val);
 #define ioctl(s,cmd,argp)                         lwip_ioctl(s,cmd,argp)
 #endif /* LWIP_POSIX_SOCKETS_IO_NAMES */
 #endif /* LWIP_COMPAT_SOCKETS != 2 */
+#define inet_ntop(af,src,dst,size)                lwip_inet_ntop(af,src,dst,size)
+#define inet_pton(af,src,dst)                     lwip_inet_pton(af,src,dst)
 
-#if LWIP_IPV4 && LWIP_IPV6
-/** @ingroup socket */
-#define inet_ntop(af,src,dst,size) \
-    (((af) == AF_INET6) ? ip6addr_ntoa_r((const ip6_addr_t*)(src),(dst),(size)) \
-     : (((af) == AF_INET) ? ip4addr_ntoa_r((const ip4_addr_t*)(src),(dst),(size)) : NULL))
-/** @ingroup socket */
-#define inet_pton(af,src,dst) \
-    (((af) == AF_INET6) ? ip6addr_aton((src),(ip6_addr_t*)(dst)) \
-     : (((af) == AF_INET) ? ip4addr_aton((src),(ip4_addr_t*)(dst)) : 0))
-#elif LWIP_IPV4 /* LWIP_IPV4 && LWIP_IPV6 */
-#define inet_ntop(af,src,dst,size) \
-    (((af) == AF_INET) ? ip4addr_ntoa_r((const ip4_addr_t*)(src),(dst),(size)) : NULL)
-#define inet_pton(af,src,dst) \
-    (((af) == AF_INET) ? ip4addr_aton((src),(ip4_addr_t*)(dst)) : 0)
-#else /* LWIP_IPV4 && LWIP_IPV6 */
-#define inet_ntop(af,src,dst,size) \
-    (((af) == AF_INET6) ? ip6addr_ntoa_r((const ip6_addr_t*)(src),(dst),(size)) : NULL)
-#define inet_pton(af,src,dst) \
-    (((af) == AF_INET6) ? ip6addr_aton((src),(ip6_addr_t*)(dst)) : 0)
-#endif /* LWIP_IPV4 && LWIP_IPV6 */
 #endif /* LWIP_COMPAT_SOCKETS */
 
 #ifdef __cplusplus

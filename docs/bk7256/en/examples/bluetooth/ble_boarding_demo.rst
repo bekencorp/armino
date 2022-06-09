@@ -1,0 +1,1 @@
+.. include:: ../../../zh_CN/examples/bluetooth/ble_boarding_demo.rst

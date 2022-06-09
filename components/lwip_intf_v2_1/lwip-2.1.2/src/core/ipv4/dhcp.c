@@ -376,7 +376,7 @@ dhcp_select(struct netif *netif)
   dhcp = netif_dhcp_data(netif);
   LWIP_ERROR("dhcp_select: dhcp != NULL", (dhcp != NULL), return ERR_VAL;);
 
-  LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE, ("dhcp_select(netif=%p) %c%c%"U16_F"\n", (void *)netif, netif->name[0], netif->name[1], (u16_t)netif->num));
+  LWIP_DEBUGF(DHCP_DEBUG | LWIP_BK_DBG_TRACE, ("dhcp_select(netif=%p) %c%c%"U16_F"\n", (void *)netif, netif->name[0], netif->name[1], (u16_t)netif->num));
   dhcp_set_state(dhcp, DHCP_STATE_REQUESTING);
 
   /* create and initialize the DHCP message header */
@@ -416,7 +416,11 @@ dhcp_select(struct netif *netif)
   if (dhcp->tries < 255) {
     dhcp->tries++;
   }
+#ifndef CONFIG_MIDEA
   msecs = (u16_t)((dhcp->tries < 6 ? 1 << dhcp->tries : 60) * 1000);
+#else
+  msecs = 200;	
+#endif
   dhcp->request_timeout = (u16_t)((msecs + DHCP_FINE_TIMER_MSECS - 1) / DHCP_FINE_TIMER_MSECS);
   LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_STATE, ("dhcp_select(): set request timeout %"U16_F" msecs\n", msecs));
   return result;
@@ -508,7 +512,11 @@ dhcp_timeout(struct netif *netif)
     /* receiving the requested lease timed out */
   } else if (dhcp->state == DHCP_STATE_REQUESTING) {
     LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp_timeout(): REQUESTING, DHCP request timed out\n"));
+#ifndef CONFIG_MIDEA
     if (dhcp->tries <= 5) {
+#else
+	if (dhcp->tries <= 20) {
+#endif
       dhcp_select(netif);
     } else {
       LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp_timeout(): REQUESTING, releasing, restarting\n"));
@@ -987,7 +995,7 @@ dhcp_discover(struct netif *netif)
   struct pbuf *p_out;
   u16_t options_out_len;
 
-  LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE, ("dhcp_discover()\n"));
+  LWIP_DEBUGF(DHCP_DEBUG | LWIP_BK_DBG_TRACE, ("dhcp_discover()\n"));
 
   ip4_addr_set_any(&dhcp->offered_ip_addr);
   dhcp_set_state(dhcp, DHCP_STATE_SELECTING);
@@ -1821,7 +1829,7 @@ dhcp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr,
   msg_type = (u8_t)dhcp_get_option_value(dhcp, DHCP_OPTION_IDX_MSG_TYPE);
   /* message type is DHCP ACK? */
   if (msg_type == DHCP_ACK) {
-    LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE, ("DHCP_ACK received\n"));
+    LWIP_DEBUGF(DHCP_DEBUG | LWIP_BK_DBG_TRACE, ("DHCP_ACK received\n"));
     /* in requesting state? */
     if (dhcp->state == DHCP_STATE_REQUESTING) {
       dhcp_handle_ack(netif, msg_in);
@@ -1849,12 +1857,12 @@ dhcp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr,
   else if ((msg_type == DHCP_NAK) &&
            ((dhcp->state == DHCP_STATE_REBOOTING) || (dhcp->state == DHCP_STATE_REQUESTING) ||
             (dhcp->state == DHCP_STATE_REBINDING) || (dhcp->state == DHCP_STATE_RENEWING  ))) {
-    LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE, ("DHCP_NAK received\n"));
+    LWIP_DEBUGF(DHCP_DEBUG | LWIP_BK_DBG_TRACE, ("DHCP_NAK received\n"));
     dhcp_handle_nak(netif);
   }
   /* received a DHCP_OFFER in DHCP_STATE_SELECTING state? */
   else if ((msg_type == DHCP_OFFER) && (dhcp->state == DHCP_STATE_SELECTING)) {
-    LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE, ("DHCP_OFFER received in DHCP_STATE_SELECTING state\n"));
+    LWIP_DEBUGF(DHCP_DEBUG | LWIP_BK_DBG_TRACE, ("DHCP_OFFER received in DHCP_STATE_SELECTING state\n"));
     /* remember offered lease */
     dhcp_handle_offer(netif, msg_in);
   }

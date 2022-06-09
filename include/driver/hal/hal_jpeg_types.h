@@ -27,13 +27,14 @@ typedef uint8_t jpeg_unit_t; /**< jpeg uint id */
 
 typedef struct {
 	uint8_t *rx_buf;      /**< the address of receiving jpeg data */
+	uint8_t  dma_channel;/**< jpeg encode work mode for transfer data */
 	uint8_t  yuv_mode;    /**< jpeg module work mode:0/1:jpegencoder/yuv */
 	uint32_t sys_clk_div; /**< div system clock for jpeg module, div = 1/(1+sys_clk_div) */
 	uint32_t mclk_div;    /**< div jpeg module clock for MCLK and PCLK, mclk_div:0x00:1/4, 0x01:1/2, 0x10:1/6, 0x11:1/3 */
 	uint32_t rx_buf_len;  /**< the length for receiving jpeg data */
 	uint32_t node_len;    /**< dma transfer length */
-	uint32_t x_pixel;     /**< jpeg encoder image resolution for width */
-	uint32_t y_pixel;     /**< jpeg encoder image resolution for height */
+	uint32_t x_pixel;     /**< jpeg encode image resolution for width */
+	uint32_t y_pixel;     /**< jpeg encode image resolution for height */
 	dma_isr_t dma_rx_finish_handler; /**< dma transfer finish callback */
 } jpeg_config_t;
 

@@ -14,23 +14,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from chiptest.accessories import AppsRegister
-import coloredlogs
-import click
 import logging
 import os
 import shutil
 import sys
-import typing
 import time
-
-from pathlib import Path
+import typing
 from dataclasses import dataclass
+from pathlib import Path
 
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+import click
+import coloredlogs
 
-import chiptest  # noqa: E402
-from chiptest.glob_matcher import GlobMatcher  # noqa: E402
+import chiptest
+from chiptest.accessories import AppsRegister
+from chiptest.glob_matcher import GlobMatcher
+
 
 DEFAULT_CHIP_ROOT = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -105,15 +104,18 @@ class RunContext:
 )
 @click.option(
     '--chip-tool',
-    default=FindBinaryPath('chip-tool'),
     help='Binary path of chip tool app to use to run the test')
 @click.pass_context
-def main(context, log_level, target, target_glob, target_skip_glob, no_log_timestamps, root, internal_inside_unshare, chip_tool):
+def main(context, log_level, target, target_glob, target_skip_glob,
+         no_log_timestamps, root, internal_inside_unshare, chip_tool):
     # Ensures somewhat pretty logging of what is going on
     log_fmt = '%(asctime)s.%(msecs)03d %(levelname)-7s %(message)s'
     if no_log_timestamps:
         log_fmt = '%(levelname)-7s %(message)s'
     coloredlogs.install(level=__LOG_LEVELS__[log_level], fmt=log_fmt)
+
+    if chip_tool is None:
+        chip_tool = FindBinaryPath('chip-tool')
 
     # Figures out selected test that match the given name(s)
     all_tests = [test for test in chiptest.AllTests(chip_tool)]
@@ -152,7 +154,7 @@ def main(context, log_level, target, target_glob, target_skip_glob, no_log_times
 @main.command(
     'list', help='List available test suites')
 @click.pass_context
-def cmd_generate(context):
+def cmd_list(context):
     for test in context.obj.tests:
         print(test.name)
 
@@ -165,20 +167,36 @@ def cmd_generate(context):
     help='Number of iterations to run')
 @click.option(
     '--all-clusters-app',
-    default=FindBinaryPath('chip-all-clusters-app'),
     help='what all clusters app to use')
 @click.option(
+    '--lock-app',
+    help='what lock app to use')
+@click.option(
     '--tv-app',
-    default=FindBinaryPath('chip-tv-app'),
     help='what tv app to use')
+@click.option(
+    '--pics-file',
+    type=click.Path(exists=True),
+    default="src/app/tests/suites/certification/ci-pics-values",
+    help='PICS file to use for test runs.')
 @click.pass_context
-def cmd_run(context, iterations, all_clusters_app, tv_app):
+def cmd_run(context, iterations, all_clusters_app, lock_app, tv_app, pics_file):
     runner = chiptest.runner.Runner()
+
+    if all_clusters_app is None:
+        all_clusters_app = FindBinaryPath('chip-all-clusters-app')
+
+    if lock_app is None:
+        lock_app = FindBinaryPath('chip-lock-app')
+
+    if tv_app is None:
+        tv_app = FindBinaryPath('chip-tv-app')
 
     # Command execution requires an array
     paths = chiptest.ApplicationPaths(
         chip_tool=[context.obj.chip_tool],
         all_clusters_app=[all_clusters_app],
+        lock_app=[lock_app],
         tv_app=[tv_app]
     )
 
@@ -190,7 +208,8 @@ def cmd_run(context, iterations, all_clusters_app, tv_app):
     # Testing prerequisites: tv app requires a config. Copy it just in case
     shutil.copyfile(
         os.path.join(
-            context.obj.root, 'examples/tv-app/linux/include/endpoint-configuration/chip_tv_config.ini'),
+            context.obj.root, ('examples/tv-app/linux/include/'
+                               'endpoint-configuration/chip_tv_config.ini')),
         '/tmp/chip_tv_config.ini'
     )
 
@@ -204,11 +223,11 @@ def cmd_run(context, iterations, all_clusters_app, tv_app):
         for test in context.obj.tests:
             test_start = time.time()
             try:
-                test.Run(runner, apps_register, paths)
+                test.Run(runner, apps_register, paths, pics_file)
                 test_end = time.time()
                 logging.info('%-20s - Completed in %0.2f seconds' %
                              (test.name, (test_end - test_start)))
-            except:
+            except Exception:
                 test_end = time.time()
                 logging.exception('%s - FAILED in %0.2f seconds' %
                                   (test.name, (test_end - test_start)))
@@ -221,9 +240,11 @@ def cmd_run(context, iterations, all_clusters_app, tv_app):
 # On linux, allow an execution shell to be prepared
 if sys.platform == 'linux':
     @main.command(
-        'shell', help='Execute a bash shell in the environment (useful to test network namespaces)')
+        'shell',
+        help=('Execute a bash shell in the environment (useful to test '
+              'network namespaces)'))
     @click.pass_context
-    def cmd_run(context):
+    def cmd_shell(context):
         chiptest.linux.PrepareNamespacesForTestExecution(
             context.obj.in_unshare)
         os.execvpe("bash", ["bash"], os.environ.copy())

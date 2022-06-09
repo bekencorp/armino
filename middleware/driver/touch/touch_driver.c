@@ -21,6 +21,7 @@
 #include "aon_pmu_driver.h"
 #include <driver/gpio.h>
 #include <driver/int.h>
+#include <driver/timer.h>
 #include <driver/touch_types.h>
 #include <os/os.h>
 #include <os/os.h>
@@ -39,6 +40,7 @@ typedef struct {
 		}\
 	} while(0)
 
+static uint32_t s_touch_channel = 0;
 
 static touch_callback_t s_touch_isr[SOC_TOUCH_ID_NUM] = {NULL};
 
@@ -256,8 +258,8 @@ bk_err_t bk_touch_int_enable(touch_channel_t touch_id, uint32_t enable)
 		sys_drv_touch_int_enable(1);
 		aon_pmu_drv_touch_int_enable(touch_id);
 	} else {
+		aon_pmu_drv_touch_int_disable(touch_id);
 		sys_drv_touch_int_enable(0);
-		aon_pmu_drv_touch_int_enable(0);
 	}
 
 	return BK_OK;
@@ -311,8 +313,19 @@ bk_err_t bk_touch_register_touch_isr(touch_channel_t touch_id, touch_isr_t isr, 
 	return BK_OK;
 }
 
+static void touch_timer_isr(timer_id_t chan)
+{
+	uint32_t touch_status = 0;
+	touch_status = bk_touch_get_touch_status();
+	if (!(touch_status & (1 << s_touch_channel))) {
+		bk_touch_int_enable(1 << s_touch_channel, 1);
+		bk_timer_stop(chan);
+	}
+}
+
 void touch_isr(void)
 {
+	int ret = 0;
 	uint32_t int_status = 0;
 	uint32_t touch_id = 0;
 	int_status = bk_touch_get_int_status();
@@ -321,9 +334,16 @@ void touch_isr(void)
 	{
 		if (int_status & (1 << touch_id)) {
 			TOUCH_LOGI("Touch[%d] has been selected!\r\n", touch_id);
+			s_touch_channel = touch_id;
 			bk_touch_clear_int(1 << touch_id);
+			bk_touch_int_enable(1 << touch_id, 0);
 			if (s_touch_isr[touch_id].callback) {
 				s_touch_isr[touch_id].callback(s_touch_isr[touch_id].param);
+			}
+
+			ret = bk_timer_start(TIMER_ID0, 50, touch_timer_isr);
+			if (ret != BK_OK) {
+				os_printf("Timer start failed\r\n");
 			}
 		}
 	}

@@ -154,6 +154,11 @@ void InitTestInetCommon()
     UseStdoutLineBuffering();
 }
 
+void ShutdownTestInetCommon()
+{
+    chip::Platform::MemoryShutdown();
+}
+
 void InitSystemLayer()
 {
 #if CHIP_SYSTEM_CONFIG_USE_LWIP
@@ -232,7 +237,7 @@ void InitNetwork()
             uint64_t iid    = gNetworkOptions.LocalIPv6Addr[j].InterfaceId();
             char * tap_name = (char *) chip::Platform::MemoryAlloc(sizeof(gDefaultTapDeviceName));
             assert(tap_name);
-            snprintf(tap_name, sizeof(gDefaultTapDeviceName), "chip-dev-%" PRIx16, static_cast<uint16_t>(iid));
+            snprintf(tap_name, sizeof(gDefaultTapDeviceName), "chip-dev-%x", static_cast<uint16_t>(iid));
             gNetworkOptions.TapDeviceName.push_back(tap_name);
         }
     }

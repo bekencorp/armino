@@ -99,7 +99,7 @@ class UserCodeExecution:
 class ReplPane(WindowPane):
     """Pane for reading Python input."""
 
-    # pylint: disable=too-many-instance-attributes,too-few-public-methods
+    # pylint: disable=too-many-instance-attributes,too-many-public-methods
     def __init__(
         self,
         application: 'ConsoleApp',
@@ -130,8 +130,9 @@ class ReplPane(WindowPane):
 
         # Additional keybindings for the text area.
         key_bindings = KeyBindings()
+        register = self.application.prefs.register_keybinding
 
-        @key_bindings.add('c-c')
+        @register('python-repl.copy-output-selection', key_bindings)
         def _copy_selection(_event: KeyPressEvent) -> None:
             """Copy selected text."""
             self.copy_output_selection()
@@ -256,7 +257,8 @@ class ReplPane(WindowPane):
             ToolbarButton('Ctrl-v', 'Paste',
                           self.paste_system_clipboard_to_input_buffer))
         bottom_toolbar.add_button(
-            ToolbarButton('Ctrl-c', 'Clear', self.clear_input_buffer))
+            ToolbarButton('Ctrl-c', 'Copy / Clear',
+                          self.copy_or_clear_input_buffer))
         bottom_toolbar.add_button(ToolbarButton('Enter', 'Run', self.run_code))
         bottom_toolbar.add_button(ToolbarButton('F2', 'Settings'))
         bottom_toolbar.add_button(ToolbarButton('F3', 'History'))
@@ -276,7 +278,8 @@ class ReplPane(WindowPane):
                           is_checkbox=True,
                           checked=lambda: self.wrap_output_lines))
         results_toolbar.add_button(
-            ToolbarButton('Ctrl-Alt-c', 'Copy All Output', self.copy_text))
+            ToolbarButton('Ctrl-Alt-c', 'Copy All Output',
+                          self.copy_all_output_text))
         results_toolbar.add_button(
             ToolbarButton('Ctrl-c', 'Copy Selected Text',
                           self.copy_output_selection))
@@ -287,15 +290,24 @@ class ReplPane(WindowPane):
         return results_toolbar
 
     def copy_output_selection(self):
-        """Copy the highlighted text the python output buffer to the system
-        clipboard."""
+        """Copy highlighted output text to the system clipboard."""
         clipboard_data = self.output_field.buffer.copy_selection()
         self.application.application.clipboard.set_data(clipboard_data)
 
-    def copy_text(self):
-        """Copy visible text in this window pane to the system clipboard."""
+    def copy_input_selection(self):
+        """Copy highlighted input text to the system clipboard."""
+        clipboard_data = self.pw_ptpython_repl.default_buffer.copy_selection()
+        self.application.application.clipboard.set_data(clipboard_data)
+
+    def copy_all_output_text(self):
+        """Copy all text in the Python output to the system clipboard."""
         self.application.application.clipboard.set_text(
             self.output_field.buffer.text)
+
+    def copy_all_input_text(self):
+        """Copy all text in the Python input to the system clipboard."""
+        self.application.application.clipboard.set_text(
+            self.pw_ptpython_repl.default_buffer.text)
 
     # pylint: disable=no-self-use
     def get_all_key_bindings(self) -> List:
@@ -305,9 +317,9 @@ class ReplPane(WindowPane):
 
         # Hand-crafted bindings for display in the HelpWindow:
         return [{
-            'Execute code': ['Enter', 'Option-Enter', 'Meta-Enter'],
-            'Reverse search history': ['Ctrl-R'],
-            'Erase input buffer.': ['Ctrl-C'],
+            'Execute code': ['Enter', 'Option-Enter', 'Alt-Enter'],
+            'Reverse search history': ['Ctrl-r'],
+            'Erase input buffer.': ['Ctrl-c'],
             'Show settings.': ['F2'],
             'Show history.': ['F3'],
         }]
@@ -315,18 +327,15 @@ class ReplPane(WindowPane):
     def get_all_menu_options(self):
         return []
 
-    def after_render_hook(self):
-        """Run tasks after the last UI render."""
-
     def run_code(self):
         """Trigger a repl code execution on mouse click."""
         self.pw_ptpython_repl.default_buffer.validate_and_handle()
 
     def ctrl_c(self):
         """Ctrl-C keybinding behavior."""
-        # If there is text in the input buffer, clear it.
+        # If there is text in the input buffer
         if self.pw_ptpython_repl.default_buffer.text:
-            self.clear_input_buffer()
+            self.copy_or_clear_input_buffer()
         else:
             self.interrupt_last_code_execution()
 
@@ -342,6 +351,14 @@ class ReplPane(WindowPane):
         self.pw_ptpython_repl.default_buffer.reset()
         # Clear any displayed function signatures.
         self.pw_ptpython_repl.on_reset()
+
+    def copy_or_clear_input_buffer(self):
+        # Copy selected text if a selection is active.
+        if self.pw_ptpython_repl.default_buffer.selection_state:
+            self.copy_input_selection()
+            return
+        # Otherwise, clear the input buffer
+        self.clear_input_buffer()
 
     def interrupt_last_code_execution(self):
         code = self._get_currently_running_code()

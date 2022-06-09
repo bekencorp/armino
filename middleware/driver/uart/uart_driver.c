@@ -407,6 +407,15 @@ bk_err_t uart_write_byte(uart_id_t id, uint8_t data)
 	return BK_OK;
 }
 
+void uart_write_byte_for_ate(uart_id_t id, uint8_t *data, uint8_t cnt)
+{
+    int i;
+    for(i = 0; i < cnt; i ++)
+    {
+        BK_WHILE (!uart_hal_is_fifo_write_ready(&s_uart[id].hal, id));
+        uart_hal_write_byte(&s_uart[id].hal, id, data[i]);
+    }
+}
 
 bk_err_t uart_write_ready(uart_id_t id)
 {
@@ -836,6 +845,24 @@ bk_err_t bk_uart_disable_tx(uart_id_t id)
 	return BK_OK;
 }
 
+bk_err_t bk_uart_set_enable_rx(uart_id_t id, bool enable)
+{
+	UART_RETURN_ON_NOT_INIT();
+	UART_RETURN_ON_INVALID_ID(id);
+	uart_hal_set_rx_enable(&s_uart[id].hal, id, enable);
+
+	return BK_OK;
+}
+
+bk_err_t bk_uart_set_enable_tx(uart_id_t id, bool enable)
+{
+	UART_RETURN_ON_NOT_INIT();
+	UART_RETURN_ON_INVALID_ID(id);
+	uart_hal_set_tx_enable(&s_uart[id].hal, id, enable);
+
+	return BK_OK;
+}
+
 bk_err_t bk_uart_set_hw_flow_ctrl(uart_id_t id, uint8_t rx_threshold)
 {
 	UART_RETURN_ON_NOT_INIT();
@@ -920,10 +947,24 @@ static void uart_isr_common(uart_id_t id)
 					s_uart_sema[id].rx_blocked = false;
 				}
 			}
-		}
+			if (s_uart_rx_isr[id].callback) {
+				s_uart_rx_isr[id].callback(id, s_uart_rx_isr[id].param);
+			}
+		}  else {
+			if (s_uart_rx_isr[id].callback) {
+				s_uart_rx_isr[id].callback(id, s_uart_rx_isr[id].param);
+			} else {
+				int ret = 0;
+				uint8_t rx_data;
 
-		if (s_uart_rx_isr[id].callback) {
-			s_uart_rx_isr[id].callback(id, s_uart_rx_isr[id].param);
+				/* read all data from rx-FIFO. */
+			 	while (1) {
+					ret = uart_read_byte_ex(id, &rx_data);
+					if (ret == -1) {
+						break;
+					}
+				}
+			}
 		}
 	}
 	if (uart_hal_is_tx_interrupt_triggered(&s_uart[id].hal, id, status)) {

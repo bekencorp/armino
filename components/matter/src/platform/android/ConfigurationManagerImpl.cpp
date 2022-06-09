@@ -35,7 +35,7 @@
 #include <lib/support/logging/CHIPLogging.h>
 #include <platform/ConfigurationManager.h>
 #include <platform/android/AndroidConfig.h>
-#include <platform/internal/GenericConfigurationManagerImpl.cpp>
+#include <platform/internal/GenericConfigurationManagerImpl.ipp>
 
 namespace chip {
 namespace DeviceLayer {
@@ -56,11 +56,6 @@ void ConfigurationManagerImpl::InitializeWithObject(jobject managerObject)
     VerifyOrReturn(configurationManagerClass != nullptr, ChipLogError(DeviceLayer, "Failed to get KVS Java class"));
 
     AndroidConfig::InitializeWithObject(managerObject);
-}
-
-CHIP_ERROR ConfigurationManagerImpl::Init()
-{
-    return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR ConfigurationManagerImpl::GetPrimaryWiFiMACAddress(uint8_t * buf)
@@ -242,17 +237,6 @@ CHIP_ERROR ConfigurationManagerImpl::GetHardwareVersionString(char * buf, size_t
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR ConfigurationManagerImpl::GetNodeLabel(char * buf, size_t bufSize)
-{
-    size_t dateLen;
-    return ReadConfigValueStr(AndroidConfig::kConfigKey_NodeLabel, buf, bufSize, dateLen);
-}
-
-CHIP_ERROR ConfigurationManagerImpl::StoreNodeLabel(const char * buf, size_t bufSize)
-{
-    return WriteConfigValueStr(AndroidConfig::kConfigKey_NodeLabel, buf, bufSize);
-}
-
 CHIP_ERROR ConfigurationManagerImpl::GetPartNumber(char * buf, size_t bufSize)
 {
     size_t dateLen;
@@ -269,16 +253,6 @@ CHIP_ERROR ConfigurationManagerImpl::GetProductLabel(char * buf, size_t bufSize)
 {
     size_t dateLen;
     return ReadConfigValueStr(AndroidConfig::kConfigKey_ProductLabel, buf, bufSize, dateLen);
-}
-
-CHIP_ERROR ConfigurationManagerImpl::GetLocalConfigDisabled(bool & disabled)
-{
-    return ReadConfigValue(AndroidConfig::kConfigKey_LocalConfigDisabled, disabled);
-}
-
-CHIP_ERROR ConfigurationManagerImpl::GetReachable(bool & reachable)
-{
-    return ReadConfigValue(AndroidConfig::kConfigKey_Reachable, reachable);
 }
 
 CHIP_ERROR ConfigurationManagerImpl::GetUniqueId(char * buf, size_t bufSize)

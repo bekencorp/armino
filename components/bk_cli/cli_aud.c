@@ -22,11 +22,14 @@ extern void cli_aud_adc_loop_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, 
 extern void cli_aud_dtmf_loop_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void cli_aud_pcm_mcp_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void cli_aud_pcm_dma_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-extern void cli_aud_adc_to_file_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-extern void cli_aud_adc_to_sd_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void cli_aud_enable_adc_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void cli_aud_eq_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void cli_aud_mic_to_pcm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+/* audio transfer demo */
+#if CONFIG_SOC_BK7256_CP1
+extern void cli_cp1_audio_transfer_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
 
 #define AUD_CMD_CNT (sizeof(s_aud_commands) / sizeof(struct cli_command))
 static const struct cli_command s_aud_commands[] = {
@@ -37,12 +40,13 @@ static const struct cli_command s_aud_commands[] = {
 	{"aud_dtmf_loop_test", "aud_dtmf_loop_test {start|stop}", cli_aud_dtmf_loop_test_cmd},
 	{"aud_pcm_mcp_test", "aud_pcm_mcp_test {8000|16000|44100|48000}", cli_aud_pcm_mcp_test_cmd},
 	{"aud_pcm_dma_test", "aud_pcm_dma_test {8000|16000|44100|48000|stop}", cli_aud_pcm_dma_test_cmd},
-	{"aud_adc_to_file_test", "aud_adc_to_file_test {start|stop}", cli_aud_adc_to_file_test_cmd},
 //	{"aud_file_to_dac_test", "aud_file_to_dac_test {start|stop} {filename}", cli_aud_file_to_dac_test_cmd},
-	{"aud_adc_to_sd_test", "aud_adc_to_sd_test {start|stop}", cli_aud_adc_to_sd_test_cmd},
 	{"aud_enable_adc_test", "aud_enable_adc_test {start|stop}", cli_aud_enable_adc_test_cmd},
 	{"aud_eq_test", "aud_eq_test {start|stop}", cli_aud_eq_test_cmd},
 	{"aud_mic_to_pcm_test", "aud_mic_to_pcm_test {start|stop}", cli_aud_mic_to_pcm_cmd},
+#if CONFIG_SOC_BK7256_CP1
+	{"aud_cp1_audio_transfer_test", "aud_cp1_audio_transfer_test {start|stop}", cli_cp1_audio_transfer_cmd},
+#endif
 };
 
 int cli_aud_init(void)

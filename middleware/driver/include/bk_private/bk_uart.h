@@ -33,6 +33,7 @@ void print_hex_dump(const char *prefix, const void *b, int len);
 uint32_t uart_get_length_in_buffer(uart_id_t id);
 bk_err_t uart_write_ready(uart_id_t id);
 bk_err_t uart_write_byte(uart_id_t id, uint8_t data);
+void uart_write_byte_for_ate(uart_id_t id, uint8_t *data, uint8_t cnt);
 bk_err_t uart_write_string(uart_id_t id, const char *string);
 uint32_t uart_wait_tx_over();
 bk_err_t uart_read_ready(uart_id_t id);

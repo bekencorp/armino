@@ -14,12 +14,9 @@
 #    limitations under the License.
 
 import logging
-import time
-import threading
 import sys
-from random import randrange
+import threading
 from xmlrpc.server import SimpleXMLRPCServer
-from xmlrpc.client import ServerProxy
 
 IP = '127.0.0.1'
 PORT = 9000
@@ -38,6 +35,11 @@ class AppsRegister:
     def uninit(self):
         self.__stopXMLRPCServer()
 
+    @property
+    def accessories(self):
+        """List of registered accessory applications."""
+        return self.__accessories.values()
+
     def add(self, name, accessory):
         self.__accessories[name] = accessory
 
@@ -46,13 +48,6 @@ class AppsRegister:
 
     def removeAll(self):
         self.__accessories = {}
-
-    def poll(self):
-        for accessory in self.__accessories.values():
-            status = accessory.poll()
-            if status is not None:
-                return status
-        return None
 
     def kill(self, name):
         accessory = self.__accessories[name]
@@ -63,10 +58,13 @@ class AppsRegister:
         for accessory in self.__accessories.values():
             accessory.kill()
 
-    def start(self, name, discriminator):
+    def start(self, name, args):
         accessory = self.__accessories[name]
         if accessory:
-            return accessory.start(discriminator)
+            # The args param comes directly from the sys.argv[1:] of Start.py and should contain a list of strings in
+            # key-value pair, e.g. [option1, value1, option2, value2, ...]
+            options = self.__createCommandLineOptions(args)
+            return accessory.start(options)
         return False
 
     def stop(self, name):
@@ -75,10 +73,13 @@ class AppsRegister:
             return accessory.stop()
         return False
 
-    def reboot(self, name, discriminator):
+    def reboot(self, name, args):
         accessory = self.__accessories[name]
         if accessory:
-            return accessory.stop() and accessory.start(discriminator)
+            # The args param comes directly from the sys.argv[1:] of Reboot.py and should contain a list of strings in
+            # key-value pair, e.g. [option1, value1, option2, value2, ...]
+            options = self.__createCommandLineOptions(args)
+            return accessory.stop() and accessory.start(options)
         return False
 
     def factoryResetAll(self):
@@ -103,9 +104,6 @@ class AppsRegister:
             return accessory.waitForOperationalAdvertisement()
         return False
 
-    def ping(self):
-        return True
-
     def __startXMLRPCServer(self):
         self.server = SimpleXMLRPCServer((IP, PORT))
 
@@ -114,22 +112,27 @@ class AppsRegister:
         self.server.register_function(self.reboot, 'reboot')
         self.server.register_function(self.factoryReset, 'factoryReset')
         self.server.register_function(
-            self.waitForCommissionableAdvertisement, 'waitForCommissionableAdvertisement')
+            self.waitForCommissionableAdvertisement,
+            'waitForCommissionableAdvertisement')
         self.server.register_function(
-            self.waitForOperationalAdvertisement, 'waitForOperationalAdvertisement')
-        self.server.register_function(self.ping, 'ping')
+            self.waitForOperationalAdvertisement,
+            'waitForOperationalAdvertisement')
 
-        self.server_thread = threading.Thread(target=self.__handle_request)
+        self.server_thread = threading.Thread(target=self.server.serve_forever)
         self.server_thread.start()
 
-    def __handle_request(self):
-        self.__should_handle_requests = True
-        while self.__should_handle_requests:
-            self.server.handle_request()
-
     def __stopXMLRPCServer(self):
-        self.__should_handle_requests = False
-        # handle_request will wait until it receives a message, so let's send a ping to the server
-        client = ServerProxy('http://' + IP + ':' +
-                             str(PORT) + '/', allow_none=True)
-        client.ping()
+        self.server.shutdown()
+
+    def __createCommandLineOptions(self, args):
+        if not args:
+            return {}
+
+        # args should contain a list of strings in key-value pair, e.g. [option1, value1, option2, value2, ...]
+        if (len(args) % 2) != 0:
+            logging.warning("Unexpected command line options %r - not key/value pairs (odd length)" % (args,))
+            return {}
+
+        # Create a dictionary from the key-value pair list
+        options = {args[i]: args[i+1] for i in range(0, len(args), 2)}
+        return options

@@ -25,12 +25,14 @@ if (CONFIG_LWIP_V2_1)
 	lwip-2.1.2/src/api/netifapi.c
 	lwip-2.1.2/src/api/sockets.c
 	lwip-2.1.2/src/api/tcpip.c
+	lwip-2.1.2/src/apps/mdns/mdns.c
 	lwip-2.1.2/src/apps/ping/ping.c
 	lwip-2.1.2/src/core/def.c
 	lwip-2.1.2/src/core/dns.c
 	lwip-2.1.2/src/core/inet_chksum.c
 	lwip-2.1.2/src/core/init.c
 	lwip-2.1.2/src/core/ip.c
+	lwip-2.1.2/src/core/ipv4/autoip.c
 	lwip-2.1.2/src/core/ipv4/dhcp.c
 	lwip-2.1.2/src/core/ipv4/etharp.c
 	lwip-2.1.2/src/core/ipv4/icmp.c

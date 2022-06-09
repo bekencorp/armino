@@ -46,7 +46,7 @@
 #define LWIP_LOOPBACK_MAX_PBUFS         8
 
 #define TCPIP_THREAD_NAME               "tcp/ip"
-#ifdef CONFIG_HOMEKIT
+#ifdef CONFIG_KEYVALUE
 #define TCPIP_THREAD_STACKSIZE          1024
 #else
 #define TCPIP_THREAD_STACKSIZE          512
@@ -104,6 +104,7 @@
 #define SNMP_MIB_DEBUG                  LWIP_DBG_OFF
 #define DNS_DEBUG                       LWIP_DBG_OFF
 #define IP6_DEBUG                       LWIP_DBG_OFF
+#define MDNS_DEBUG                      LWIP_DBG_OFF
 
 //#define LWIP_COMPAT_MUTEX      		    1
 /**
@@ -168,7 +169,7 @@
  * If the application sends a lot of data out of ROM (or other static memory),
  * this should be set high.
  */
-#define MEMP_NUM_PBUF                   20
+#define MEMP_NUM_PBUF                   10
 
 /**
  * MEMP_NUM_TCP_PCB: the number of simulatenously active TCP connections.
@@ -190,7 +191,7 @@
  * (only needed if you use tcpip.c)
  */
 
-#define MEMP_NUM_TCPIP_MSG_INPKT        20
+#define MEMP_NUM_TCPIP_MSG_INPKT        16
 
 /**
  * MEMP_NUM_SYS_TIMEOUT: the number of simulateously active timeouts.
@@ -315,7 +316,7 @@
 /**
  * LWIP_STATS_DISPLAY==1: Compile in the statistics output functions.
  */
-#define LWIP_STATS_DISPLAY              0
+#define LWIP_STATS_DISPLAY              1
 
 /*
    ----------------------------------
@@ -440,7 +441,7 @@ The STM32F107 allows computing and verifying the IP, UDP, TCP and ICMP checksums
 #if (CONFIG_LWIP_MEM_REDUCE)
 #define TCP_MSS                 (1500 - 40)
 /* TCP receive window. */
-#define TCP_WND                 (3 * TCP_MSS)
+#define TCP_WND                 (10 * TCP_MSS)
 /* TCP sender buffer space (bytes). */
 #define TCP_SND_BUF             (10*TCP_MSS)
 
@@ -470,7 +471,11 @@ The STM32F107 allows computing and verifying the IP, UDP, TCP and ICMP checksums
 
 #define MEM_LIBC_MALLOC                (0)
 
-#define DEFAULT_UDP_RECVMBOX_SIZE       3 //each udp socket max buffer 3 packets.
+#if (CONFIG_LWIP_MEM_REDUCE)
+#define DEFAULT_UDP_RECVMBOX_SIZE       16 //each udp socket max buffer 3 packets.
+#else
+#define DEFAULT_UDP_RECVMBOX_SIZE       16 //each udp socket max buffer 16 packets.
+#endif
 
 #define MEMP_MEM_MALLOC (0)
 #define TCP_MSL (TCP_TMR_INTERVAL)

@@ -35,6 +35,8 @@ void aon_pmu_hal_clear_wakeup_source(wakeup_source_t value);
 void aon_pmu_hal_set_wakeup_source(wakeup_source_t value);
 void aon_pmu_hal_usbplug_int_en(uint32_t value);
 void aon_pmu_hal_touch_int_en(uint32_t value);
+void aon_pmu_hal_touch_int_disable(uint32_t value);
+
 uint32_t aon_pmu_hal_get_adc_cal(void);
 void aon_pmu_hal_touch_select(uint32_t value);
 uint32_t aon_pmu_hal_get_cap_cal(void);

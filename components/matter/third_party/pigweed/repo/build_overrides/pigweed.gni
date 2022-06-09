@@ -17,4 +17,5 @@ declare_args() {
   dir_pigweed = "//"
 }
 
+# Import modules.gni, which generates the modules list.
 import("$dir_pigweed/modules.gni")

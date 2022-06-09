@@ -14,10 +14,23 @@
 
 import("//build_overrides/pigweed.gni")
 
+import("$dir_pw_assert/backend.gni")
+import("$dir_pw_bloat/bloat.gni")
+import("$dir_pw_boot/backend.gni")
+import("$dir_pw_build/cc_library.gni")
+import("$dir_pw_chrono/backend.gni")
+import("$dir_pw_interrupt/backend.gni")
+import("$dir_pw_log/backend.gni")
+import("$dir_pw_log_string/backend.gni")
+import("$dir_pw_malloc/backend.gni")
+import("$dir_pw_sync/backend.gni")
+import("$dir_pw_sys_io/backend.gni")
+import("$dir_pw_thread/backend.gni")
 import("$dir_pw_toolchain/arm_gcc/toolchains.gni")
 import("$dir_pw_toolchain/generate_toolchain.gni")
 import("$dir_pw_toolchain/host_clang/toolchains.gni")
 import("$dir_pw_toolchain/host_gcc/toolchains.gni")
+import("$dir_pw_unit_test/test.gni")
 import("backend.gni")
 import("freertos_backends.gni")
 import("stl_backends.gni")
@@ -26,6 +39,7 @@ import("stl_backends.gni")
 PW_SYSTEM_CPU = {
   CORTEX_M4F = "cortex-m4f"
   CORTEX_M3 = "cortex-m3"
+  CORTEX_M7F = "cortex-m7f"
 
   # Native builds for the host CPU.
   NATIVE = "native"
@@ -46,7 +60,7 @@ PW_SYSTEM_SCHEDULER = {
 #
 # Args:
 #  cpu: (required) The architecture to target.
-#    Supported choices: PW_SYSTEM_CPU.CORTEX_M4F, PW_SYSTEM_CPU.CORTEX_M3, PW_SYSTEM_CPU.NATIVE
+#    Supported choices: PW_SYSTEM_CPU.CORTEX_M7F, PW_SYSTEM_CPU.CORTEX_M4F, PW_SYSTEM_CPU.CORTEX_M3, PW_SYSTEM_CPU.NATIVE
 #  scheduler: (required) The scheduler implementation and API to use for this
 #    target.
 #    Supported choices: PW_SYSTEM_SCHEDULER.FREERTOS, PW_SYSTEM_SCHEDULER.NATIVE
@@ -55,6 +69,8 @@ PW_SYSTEM_SCHEDULER = {
 #  link_deps: Additional link-time dependencies required for all executables.
 #    This is a list of source sets.
 #  build_args: Additional overrides for GN build arguments.
+#  global_configs: Configs that will be globally applied to all pw_source_set,
+#    pw_static_library, and pw_executable targets.
 template("pw_system_target") {
   _OPTIMIZATION_LEVELS = {
     SIZE_OPTIMIZED = "size_optimized"
@@ -64,6 +80,12 @@ template("pw_system_target") {
 
   # Generic defaults.
   _default_configs = [ "$dir_pw_build:extra_strict_warnings" ]
+  if (defined(invoker.global_configs)) {
+    foreach(cfg, invoker.global_configs) {
+      _default_configs += [ get_path_info(cfg, "abspath") ]
+    }
+  }
+
   _link_deps = [
     "$dir_pw_assert:impl",
     "$dir_pw_log:impl",
@@ -74,6 +96,7 @@ template("pw_system_target") {
   _final_binary_extension = ""
 
   _default_build_args = {
+    pw_system_RPC_SERVER_BACKEND = "$dir_pw_system:hdlc_rpc_server"
     pw_system_IO_BACKEND = "$dir_pw_system:sys_io_target_io"
 
     # TODO(amontanez): This should be set to pw_assert_log ASAP.
@@ -93,8 +116,33 @@ template("pw_system_target") {
   # Populate architecture-specific build args.
   assert(
       defined(invoker.cpu),
-      "Please select a `cpu` for $target_name. Options: PW_SYSTEM_CPU.CORTEX_M4F, PW_SYSTEM_CPU.CORTEX_M3, PW_SYSTEM_CPU.NATIVE")
-  if (invoker.cpu == PW_SYSTEM_CPU.CORTEX_M4F) {
+      "Please select a `cpu` for $target_name. Options: PW_SYSTEM_CPU.CORTEX_M7, PW_SYSTEM_CPU.CORTEX_M4F, PW_SYSTEM_CPU.CORTEX_M3, PW_SYSTEM_CPU.NATIVE")
+  if (invoker.cpu == PW_SYSTEM_CPU.CORTEX_M7F) {
+    _current_cpu = "arm"
+    _default_configs += [ "$dir_pw_toolchain/arm_gcc:enable_float_printf" ]
+    _arch_build_args = {
+      pw_bloat_BLOATY_CONFIG = "$dir_pw_boot_cortex_m/bloaty_config.bloaty"
+      pw_boot_BACKEND = "$dir_pw_boot_cortex_m:armv7m"
+      pw_interrupt_CONTEXT_BACKEND = "$dir_pw_interrupt_cortex_m:context_armv7m"
+    }
+
+    _final_binary_extension = ".elf"
+
+    _toolchains = [
+      {
+        toolchain_base = pw_toolchain_arm_gcc.cortex_m7f_debug
+        level_name = _OPTIMIZATION_LEVELS.DEBUG
+      },
+      {
+        toolchain_base = pw_toolchain_arm_gcc.cortex_m7f_size_optimized
+        level_name = _OPTIMIZATION_LEVELS.SIZE_OPTIMIZED
+      },
+      {
+        toolchain_base = pw_toolchain_arm_gcc.cortex_m7f_speed_optimized
+        level_name = _OPTIMIZATION_LEVELS.SPEED_OPTIMIZED
+      },
+    ]
+  } else if (invoker.cpu == PW_SYSTEM_CPU.CORTEX_M4F) {
     _current_cpu = "arm"
     _default_configs += [ "$dir_pw_toolchain/arm_gcc:enable_float_printf" ]
     _arch_build_args = {
@@ -147,10 +195,11 @@ template("pw_system_target") {
     _current_cpu = host_cpu
     _arch_build_args = {
       pw_log_BACKEND = dir_pw_log_string
-      pw_log_string_BACKEND = "$dir_pw_system:log"
+      pw_log_string_HANDLER_BACKEND = "$dir_pw_system:log_backend"
       pw_sys_io_BACKEND = "$dir_pw_sys_io_stdio"
       pw_system_IO_BACKEND = "$dir_pw_system:socket_target_io"
     }
+    _link_deps += [ "$dir_pw_log_string:handler.impl" ]
 
     if (host_os != "win") {
       _toolchains = [

@@ -93,13 +93,22 @@ void cli_ping_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **arg
 }
 
 #if CONFIG_ALI_MQTT
-extern void test_mqtt_start(void);
+extern void test_mqtt_start(const char *host_name, const char *username,
+                     		const char *password, const char *topic);
 void cli_ali_mqtt_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	os_printf("start test mqtt...\n");
-	test_mqtt_start();
+	if (argc == 4) {
+		test_mqtt_start(argv[1], argv[2], argv[3], NULL);
+	} else if (argc == 5) {
+		test_mqtt_start(argv[1], argv[2], argv[3], argv[4]);
+	} else {
+		// mqttali 222.71.10.2 aclsemi ****** /aclsemi/bk7256/cmd/1234
+	    CLI_LOGE("usage: mqttali [host name|ip] [username] [password] [topic]\n");
+	}
 }
 #endif
+
 #define NETIF_CMD_CNT (sizeof(s_netif_commands) / sizeof(struct cli_command))
 static const struct cli_command s_netif_commands[] = {
 	{"ip", "ip [sta|ap][{ip}{mask}{gate}{dns}]", cli_ip_cmd},

@@ -8,19 +8,19 @@ def run_cmd(cmd):
 	p = subprocess.Popen(cmd, shell=True)
 	ret = p.wait()
 
-def build_lan_doc(doc_path, lan):
+def build_lan_doc(doc_path, target, lan):
 	lan_dir = f'{doc_path}/{lan}'
 	os.chdir(lan_dir)
-	run_cmd('make html')
+	run_cmd('make arminodocs')
 	run_cmd(f'cp -r _build ../build/{lan}')
 	os.chdir(doc_path)
 
-def build_doc_internal(clean):
+def build_with_target(clean, target):
 	cur_dir_is_docs_dir = True
 	saved_dir = os.getcwd()
 	if 'ARMINO_PATH' in os.environ:
 		armino_path = os.environ['ARMINO_PATH']
-		DOCS_PATH = f"{armino_path}/docs"
+		DOCS_PATH = f"{armino_path}/docs/{target}"
 		cur_path = os.getcwd()
 		if cur_path != DOCS_PATH:
 			cur_dir_is_docs_dir = False
@@ -45,14 +45,23 @@ def build_doc_internal(clean):
 
 	run_cmd(f'mkdir {build_dir}')
 
-	build_lan_doc(DOCS_PATH, 'zh_CN')
-	build_lan_doc(DOCS_PATH, 'en')
+	build_lan_doc(DOCS_PATH, target, 'zh_CN')
+	build_lan_doc(DOCS_PATH, target, 'en')
 
 	if cur_dir_is_docs_dir == False:
-		run_cmd(f'rm -rf {cur_path}/build/html')
-		run_cmd(f'mkdir {cur_path}/build/html')
-		run_cmd(f'cp -r {DOCS_PATH}/build/* {cur_path}/build/html')
+		run_cmd(f'rm -rf {cur_path}/build/html/{target}')
+		run_cmd(f'mv {DOCS_PATH}/build/ {cur_path}/build/html/{target}')
 	os.chdir(saved_dir)
+
+def build_doc_internal(clean):
+    armino_path = os.environ['ARMINO_PATH']
+
+    if not os.path.exists(armino_path + "/build/html"):
+        os.makedirs(armino_path + "/build/html")
+
+    build_with_target(clean, "bk7235")
+    build_with_target(clean, "bk7237")
+    build_with_target(clean, "bk7256")
 
 def build_doc():
 	build_doc_internal(False)

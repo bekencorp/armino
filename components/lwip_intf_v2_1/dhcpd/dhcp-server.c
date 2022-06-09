@@ -7,6 +7,7 @@
 #include <os/mem.h>
 #include "lwip/etharp.h"
 #include "lwip/sockets.h"
+#include "opt.h"
 
 #define os_mem_alloc os_malloc
 #define os_mem_free  os_free
@@ -381,12 +382,12 @@ static int process_dhcp_message(char *msg, int len)
 			dhcp_d("found DHCP message option\r\n");
 			switch (*(uint8_t *) opt->value) {
 			case DHCP_MESSAGE_DISCOVER:
-				dhcp_d("DHCP discover\r\n");
+				LWIP_LOGI("DHCP discover\r\n");
 				response_type = DHCP_MESSAGE_OFFER;
 				break;
 
 			case DHCP_MESSAGE_REQUEST:
-				dhcp_d("DHCP request\r\n");
+				LWIP_LOGI("DHCP request\r\n");
 				need_ip = 1;
 				if (hdr->ciaddr != 0x0000000) {
 					dhcps.client_ip = hdr->ciaddr;
@@ -395,7 +396,7 @@ static int process_dhcp_message(char *msg, int len)
 				break;
 
 			default:
-				dhcp_d("ignoring message type %d\r\n",
+				LWIP_LOGI("ignoring message type %d\r\n",
 				    *(uint8_t *) opt->value);
 				break;
 			}
@@ -468,7 +469,10 @@ static int process_dhcp_message(char *msg, int len)
         uint32_t dst_ip = 0, retry = 0;
         int send_byte;
     	struct bootp_header *hdr;
-        
+        if (response_type == DHCP_MESSAGE_OFFER)
+			LWIP_LOGI("DHCP should send offer\r\n");
+		else if (response_type == DHCP_MESSAGE_ACK)
+			LWIP_LOGI("DHCP should send ack\r\n");
 		send_byte = make_response(msg, (enum dhcp_message_type)response_type);
         hdr = (struct bootp_header *)msg;
 

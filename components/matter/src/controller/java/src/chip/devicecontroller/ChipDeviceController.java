@@ -22,6 +22,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import chip.devicecontroller.GetConnectedDeviceCallbackJni.GetConnectedDeviceCallback;
 import chip.devicecontroller.model.ChipAttributePath;
+import java.util.List;
 
 /** Controller to interact with the CHIP device. */
 public class ChipDeviceController {
@@ -277,6 +278,16 @@ public class ChipDeviceController {
     return getCompressedFabricId(deviceControllerPtr);
   }
 
+  /**
+   * Returns the compressed fabric ID based on the given root certificate and node operational
+   * credentials.
+   *
+   * @param rcac the root certificate (in Matter cert form)
+   * @param noc the NOC (in Matter cert form)
+   * @see #convertX509CertToMatterCert(byte[])
+   */
+  public native long generateCompressedFabricId(byte[] rcac, byte[] noc);
+
   public void updateDevice(long fabricId, long deviceId) {
     updateDevice(deviceControllerPtr, fabricId, deviceId);
   }
@@ -289,10 +300,6 @@ public class ChipDeviceController {
       long devicePtr, int duration, long iteration, int discriminator, long setupPinCode) {
     return openPairingWindowWithPIN(
         deviceControllerPtr, devicePtr, duration, iteration, discriminator, setupPinCode);
-  }
-
-  public boolean isActive(long deviceId) {
-    return isActive(deviceControllerPtr, deviceId);
   }
 
   /* Shutdown all cluster attribute subscriptions for a given device */
@@ -316,7 +323,7 @@ public class ChipDeviceController {
       SubscriptionEstablishedCallback subscriptionEstablishedCallback,
       ReportCallback reportCallback,
       long devicePtr,
-      ChipAttributePath attributePath,
+      List<ChipAttributePath> attributePaths,
       int minInterval,
       int maxInterval) {
     ReportCallbackJni jniCallback =
@@ -325,19 +332,28 @@ public class ChipDeviceController {
         deviceControllerPtr,
         jniCallback.getCallbackHandle(),
         devicePtr,
-        attributePath,
+        attributePaths,
         minInterval,
         maxInterval);
   }
 
   /** Read the given attribute path. */
-  public void readPath(ReportCallback callback, long devicePtr, ChipAttributePath attributePath) {
+  public void readPath(
+      ReportCallback callback, long devicePtr, List<ChipAttributePath> attributePaths) {
     ReportCallbackJni jniCallback = new ReportCallbackJni(null, callback);
-    readPath(deviceControllerPtr, jniCallback.getCallbackHandle(), devicePtr, attributePath);
+    readPath(deviceControllerPtr, jniCallback.getCallbackHandle(), devicePtr, attributePaths);
   }
 
   /**
-   * Generates a new PASE verifier and passcode ID for the given setup PIN code.
+   * Converts a given X.509v3 certificate into a Matter certificate.
+   *
+   * @throws ChipDeviceControllerException if there was an issue during encoding (e.g. out of
+   *     memory, invalid certificate format)
+   */
+  public native byte[] convertX509CertToMatterCert(byte[] x509Cert);
+
+  /**
+   * Generates a new PASE verifier for the given setup PIN code.
    *
    * @param devicePtr a pointer to the device object for which to generate the PASE verifier
    * @param setupPincode the PIN code to use
@@ -349,6 +365,10 @@ public class ChipDeviceController {
     return computePaseVerifier(deviceControllerPtr, devicePtr, setupPincode, iterations, salt);
   }
 
+  public void shutdownCommissioning() {
+    shutdownCommissioning(deviceControllerPtr);
+  }
+
   private native PaseVerifierParams computePaseVerifier(
       long deviceControllerPtr, long devicePtr, long setupPincode, long iterations, byte[] salt);
 
@@ -356,7 +376,7 @@ public class ChipDeviceController {
       long deviceControllerPtr,
       long callbackHandle,
       long devicePtr,
-      ChipAttributePath attributePath,
+      List<ChipAttributePath> attributePaths,
       int minInterval,
       int maxInterval);
 
@@ -364,7 +384,7 @@ public class ChipDeviceController {
       long deviceControllerPtr,
       long callbackHandle,
       long devicePtr,
-      ChipAttributePath attributePath);
+      List<ChipAttributePath> attributePaths);
 
   private native long newDeviceController();
 
@@ -426,11 +446,11 @@ public class ChipDeviceController {
       int discriminator,
       long setupPinCode);
 
-  private native boolean isActive(long deviceControllerPtr, long deviceId);
-
   private native byte[] getAttestationChallenge(long deviceControllerPtr, long devicePtr);
 
   private native void shutdownSubscriptions(long deviceControllerPtr, long devicePtr);
+
+  private native void shutdownCommissioning(long deviceControllerPtr);
 
   static {
     System.loadLibrary("CHIPController");

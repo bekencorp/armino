@@ -7,9 +7,9 @@
 #include <os/os.h>
 #include "shell_drv.h"
 
-
-#define SHELL_EVENT_TX_REQ  0x01
-#define SHELL_EVENT_RX_IND  0x02
+#define SHELL_TASK_DEF_TICK  (1000)		// 1000ms -> 1s
+#define SHELL_EVENT_TX_REQ   0x01
+#define SHELL_EVENT_RX_IND   0x02
 
 #define SHELL_LOG_BUF1_LEN      136
 #define SHELL_LOG_BUF2_LEN      64
@@ -182,6 +182,7 @@ static const u16     shell_fault_str_len = sizeof(shell_fault_str) - 1;
 static bool_t shell_init_ok = bFALSE;
 static u8     fault_hint_print = 0;
 static u32    shell_log_overflow = 0;
+static u32    shell_log_count = 0;
 
 static beken_semaphore_t   shell_semaphore;  // will release from ISR.
 
@@ -277,6 +278,7 @@ static u8 * alloc_log_blk(u16 log_len, u16 *blk_tag)
 	else
 	{
 		fault_hint_print = 0;
+		shell_log_count++;
 	}
 
 	//enable_interrupt(); // called from task context, use semaphore instead of locking interrupt.
@@ -662,6 +664,7 @@ static void rx_ind_process(void)
 		{
 			if(cmd_line_buf.cur_cmd_type == CMD_TYPE_INVALID)
 			{
+				#if 0
 				if(rx_temp_buff[i] == HEX_SYNC_CHAR)  // SYNC_CHAR, hex frame start.
 				{
 					cmd_line_buf.cur_cmd_type = CMD_TYPE_HEX;
@@ -672,7 +675,7 @@ static void rx_ind_process(void)
 						
 					continue;
 				}
-
+				#endif
 				echo_len++;          /* SYNC_CHAR not echo. */
 
 				if((rx_temp_buff[i] >= 0x20) && (rx_temp_buff[i] < 0x7f))
@@ -1010,7 +1013,7 @@ void shell_task( void *para )
 
 	while(bTRUE)
 	{
-		Events = wait_any_event(BEKEN_WAIT_FOREVER); // WAIT_EVENT;
+		Events = wait_any_event(SHELL_TASK_DEF_TICK); // WAIT_EVENT;
 
 		if(Events & SHELL_EVENT_TX_REQ)
 		{
@@ -1428,17 +1431,22 @@ int shell_get_log_statist(u32 * info_list, u32 num)
 	}
 	if(num > 1)
 	{
-		info_list[1] = free_queue[0].empty_cnt;
+		info_list[1] = shell_log_count;
 		cnt++;
 	}
 	if(num > 2)
 	{
-		info_list[2] = free_queue[1].empty_cnt;
+		info_list[2] = free_queue[0].empty_cnt;
 		cnt++;
 	}
 	if(num > 3)
 	{
-		info_list[3] = free_queue[2].empty_cnt;
+		info_list[3] = free_queue[1].empty_cnt;
+		cnt++;
+	}
+	if(num > 4)
+	{
+		info_list[4] = free_queue[2].empty_cnt;
 		cnt++;
 	}
 

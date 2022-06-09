@@ -41,59 +41,49 @@ tests:
           constraints:
               type: uint16
 
-    - label:
-          "write the default values to mandatory global attribute:
-          ClusterRevision"
-      command: "writeAttribute"
-      attribute: "ClusterRevision"
-      arguments:
-          value: 1
-      response:
-          error: UNSUPPORTED_WRITE
-
-    - label: "reads back global attribute: ClusterRevision"
-      command: "readAttribute"
-      attribute: "ClusterRevision"
-      response:
-          value: 1
-
     - label: "Read the global attribute: AttributeList"
+      PICS: PICS_SKIP_SAMPLE_APP
       command: "readAttribute"
       attribute: "AttributeList"
       response:
+          value: [0, 1, 2, 5, 11, 12, 13, 14, 15, 16, 19, 26, 28, 25]
           constraints:
               type: list
 
-    #issue #11053 disabled steps below Global attributes missing from YAML framework
-    - label: "Read the global attribute: EventList"
-      disabled: true
+    #issue #11053
+    - label:
+          "Read EventList attribute from the DUT and Verify that the DUT
+          response provides a list of supported events."
+      verification: |
+          Not implemented in chip-tool
+      cluster: "LogCommands"
+      command: "UserPrompt"
+      PICS: PICS_USER_PROMPT
+      arguments:
+          values:
+              - name: "message"
+                value: "Please enter 'y' for success"
+              - name: "expectedValue"
+                value: "y"
+
+    - label: "Read the global attribute: AcceptedCommandList"
       command: "readAttribute"
-      attribute: "EventList"
+      attribute: "AcceptedCommandList"
       response:
+          value: []
           constraints:
               type: list
 
-    - label: "Read the global attribute: ClientGeneratedCommandList"
-      disabled: true
+    - label: "Read the global attribute: GeneratedCommandList"
       command: "readAttribute"
-      attribute: "ClientGeneratedCommandList"
+      attribute: "GeneratedCommandList"
       response:
+          value: []
           constraints:
               type: list
 
-    - label: "Read the global attribute: ServerGeneratedCommandList"
-      disabled: true
-      command: "readAttribute"
-      attribute: "ServerGeneratedCommandList"
-      response:
-          constraints:
-              type: list
-
-    #disabled due to issue #13442
-    - label: "Read the optional global attribute : FeatureMap"
-      disabled: true
+    - label: "read the optional global attribute: FeatureMap"
       command: "readAttribute"
       attribute: "FeatureMap"
       response:
-          constraints:
-              type: map32
+          value: 0

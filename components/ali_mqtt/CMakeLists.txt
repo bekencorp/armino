@@ -39,7 +39,7 @@ if (CONFIG_ALI_MQTT)
 	)
 endif()
 
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_common)
+armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_common http)
 
 # set CFLAGS
 armino_build_set_property(C_COMPILE_OPTIONS "${c_compile_options}" APPEND)

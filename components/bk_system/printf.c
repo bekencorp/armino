@@ -105,101 +105,33 @@ static void irq_printf(const char *fmt, va_list ap)
 
 static void task_printf(const char *fmt, va_list ap)
 {
-	
 	if(!s_task_printf_enable)
 	{
 	    return;
 	}
-#if 0
-	printf_lock();
 
-	int len = vsnprintf(s_task_mode_printf_buf, sizeof(s_task_mode_printf_buf) - 1, fmt, ap);
-
-	if (len <= sizeof(s_task_mode_printf_buf)) {
-		s_task_mode_printf_buf[CONFIG_PRINTF_BUF_SIZE - 1] = 0;
-		uart_write_string(CONFIG_UART_PRINT_PORT, s_task_mode_printf_buf);
-		printf_unlock();
-		return;
-	} else {
-		printf_unlock(); //unlock first in case os_malloc() calls bk_printf()
-
-		char *very_long_string = os_malloc(len + 1);
-
-		if (!very_long_string)
-			return;
-
-		vsnprintf(very_long_string, len, fmt, ap);
-		very_long_string[len] = 0;
-
-		printf_lock();
-		uart_write_string(CONFIG_UART_PRINT_PORT, very_long_string);
-		printf_unlock();
-
-		os_free(very_long_string);
-	}
-#else
 	char string[CONFIG_PRINTF_BUF_SIZE];
 
 	vsnprintf(string, sizeof(string) - 1, fmt, ap);
 	string[CONFIG_PRINTF_BUF_SIZE - 1] = 0;
 	uart_write_string(CONFIG_UART_PRINT_PORT, string);
-#endif
+
 }
 
-void bk_printf(const char *fmt, ...)
-{
-	va_list args;
 
-	if (!printf_is_init())
+static void bk_printf_sync(const char *fmt, va_list args)
+{
+	if(!printf_is_init())
 		return;
 
-	va_start(args, fmt);
-	
-#if CONFIG_SHELL_ASYNCLOG
+#if (CONFIG_ARCH_RISCV)
 
-	if(s_printf_sync == 0)
-	{
-	#if (CONFIG_SLAVE_CORE)
-		shell_log_out_port(BK_LOG_ERROR, CPU1_TAG, fmt, args);
-	#else
-		shell_log_out_port(BK_LOG_ERROR, NULL, fmt, args);
-	#endif
-	}
-	else
-	{
-	#if  (CONFIG_ARCH_RISCV)
-
-	  	if (rtos_is_in_interrupt_context() || (!rtos_is_scheduler_started()))
-			exception_mode_printf(fmt, args);
-		else
-			task_printf(fmt, args);
-
-	#else // #if CONFIG_SHELL_ASYNCLOG
-
-		uint32_t cpsr_val = rtos_get_cpsr();
-		uint32_t arm_mode = cpsr_val & /*ARM968_MODE_MASK*/0x1f;
-
-		if ((/*ARM_MODE_FIQ*/17 == arm_mode)
-			|| (/*ARM_MODE_ABT*/23 == arm_mode)
-			|| (/*ARM_MODE_UND*/27 == arm_mode)
-			|| (!rtos_is_scheduler_started()))
-			exception_mode_printf(fmt, args);
-		else if (/*ARM_MODE_IRQ*/18 == arm_mode)
-			irq_printf(fmt, args);
-		else
-			task_printf(fmt, args);
-
-	#endif // #if CONFIG_SHELL_ASYNCLOG
-	}
-
-#elif  (CONFIG_ARCH_RISCV)
-
-  	if (rtos_is_in_interrupt_context() || (!rtos_is_scheduler_started()))
+	if (rtos_is_in_interrupt_context() || (!rtos_is_scheduler_started()))
 		exception_mode_printf(fmt, args);
 	else
 		task_printf(fmt, args);
 
-#else // #if CONFIG_SHELL_ASYNCLOG
+#else // #if CONFIG_ARCH_RISCV
 
 	uint32_t cpsr_val = rtos_get_cpsr();
 	uint32_t arm_mode = cpsr_val & /*ARM968_MODE_MASK*/0x1f;
@@ -214,7 +146,46 @@ void bk_printf(const char *fmt, ...)
 	else
 		task_printf(fmt, args);
 
+#endif // #if CONFIG_ARCH_RISCV
+}
+
+void bk_printf_port(int level, char *tag, const char *fmt, va_list args)
+{
+	if (!rtos_is_scheduler_started()) {
+		exception_mode_printf(fmt, args);
+		return;
+	}
+
+#if CONFIG_SHELL_ASYNCLOG
+
+	if(s_printf_sync == 0)
+	{
+	#if (CONFIG_SLAVE_CORE)
+		shell_log_out_port(level, CPU1_TAG, fmt, args);
+	#else
+		shell_log_out_port(level, NULL, fmt, args);
+	#endif
+	}
+	else
+	{
+		bk_printf_sync(fmt, args);
+	}
+
+#else
+	bk_printf_sync(fmt, args);
 #endif // #if CONFIG_SHELL_ASYNCLOG
+}
+
+void bk_printf(const char *fmt, ...)
+{
+	va_list args;
+
+	if(!printf_is_init())
+		return;
+
+	va_start(args, fmt);
+
+	bk_printf_port(BK_LOG_ERROR, NULL, fmt, args);
 
 	va_end(args);
 
@@ -254,13 +225,15 @@ void bk_buf_printf_sync(char *buf, int buf_len)
 	uart_write_string(CONFIG_UART_PRINT_PORT, buf);
 }
 
-void bk_printf_ex(int level, char * tag, const char *fmt, ...)
+
+
+void bk_printf_ex(int level, char *tag, const char *fmt, ...)
 {
 #if CONFIG_SHELL_ASYNCLOG
 
 	va_list args;
 
-	if (!printf_is_init())
+	if(!printf_is_init())
 		return;
 
 	if(level > shell_get_log_level())  /* check here instead of in shell_log_out to reduce API instructions. */
@@ -270,46 +243,12 @@ void bk_printf_ex(int level, char * tag, const char *fmt, ...)
 		return;
 
 	va_start(args, fmt);
-	
-	if(s_printf_sync == 0)
-	{
-	#if (CONFIG_SLAVE_CORE)
-		shell_log_out_port(level, CPU1_TAG, fmt, args);
-	#else
-		shell_log_out_port(level, NULL, fmt, args);
-	#endif
-	}
-	else
-	{
-	#if  (CONFIG_ARCH_RISCV)
 
-	  	if (rtos_is_in_interrupt_context() || (!rtos_is_scheduler_started()))
-			exception_mode_printf(fmt, args);
-		else
-			task_printf(fmt, args);
-
-	#else // #if CONFIG_SHELL_ASYNCLOG
-
-		uint32_t cpsr_val = rtos_get_cpsr();
-		uint32_t arm_mode = cpsr_val & /*ARM968_MODE_MASK*/0x1f;
-
-		if ((/*ARM_MODE_FIQ*/17 == arm_mode)
-			|| (/*ARM_MODE_ABT*/23 == arm_mode)
-			|| (/*ARM_MODE_UND*/27 == arm_mode)
-			|| (!rtos_is_scheduler_started()))
-			exception_mode_printf(fmt, args);
-		else if (/*ARM_MODE_IRQ*/18 == arm_mode)
-			irq_printf(fmt, args);
-		else
-			task_printf(fmt, args);
-
-	#endif // #if CONFIG_SHELL_ASYNCLOG
-	}
+	bk_printf_port(level, tag, fmt, args);
 
 	va_end(args);
 
-#endif // #if CONFIG_SHELL_ASYNCLOG
-
+#endif
 	return;
 }
 

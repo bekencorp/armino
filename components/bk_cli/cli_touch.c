@@ -29,7 +29,7 @@ extern void cli_touch_multi_channel_scan_mode_test_cmd(char *pcWriteBuffer, int 
 static const struct cli_command s_touch_commands[] = {
 	{"touch_single_channel_calib_mode_test", "touch_single_channel_calib_mode_test {0|1|...|15}", cli_touch_single_channel_calib_mode_test_cmd},
 	{"touch_single_channel_manul_mode_test", "touch_single_channel_manul_mode_test {0|1|...|15} {calibration_value}", cli_touch_single_channel_manul_mode_test_cmd},
-	{"touch_multi_channel_scan_mode_test", "touch_multi_channel_scan_mode_test {multi_channel_value} {start|stop}", cli_touch_multi_channel_scan_mode_test_cmd},
+	{"touch_multi_channel_scan_mode_test", "touch_multi_channel_scan_mode_test {start|stop}", cli_touch_multi_channel_scan_mode_test_cmd},
 };
 
 int cli_touch_init(void)

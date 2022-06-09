@@ -14,10 +14,44 @@
 """Dataclass for a Python package."""
 
 import configparser
+from contextlib import contextmanager
 import copy
 from dataclasses import dataclass
+import json
+import os
 from pathlib import Path
-from typing import Dict, List, Optional
+import re
+import shutil
+from typing import Dict, List, Optional, Iterable
+
+import setuptools  # type: ignore
+
+# List of known environment markers supported by pip.
+# https://peps.python.org/pep-0508/#environment-markers
+_PY_REQUIRE_ENVIRONMENT_MARKER_NAMES = [
+    'os_name',
+    'sys_platform',
+    'platform_machine',
+    'platform_python_implementation',
+    'platform_release',
+    'platform_system',
+    'platform_version',
+    'python_version',
+    'python_full_version',
+    'implementation_name',
+    'implementation_version',
+    'extra',
+]
+
+
+@contextmanager
+def change_working_dir(directory: Path):
+    original_dir = Path.cwd()
+    try:
+        os.chdir(directory)
+        yield directory
+    finally:
+        os.chdir(original_dir)
 
 
 @dataclass
@@ -92,3 +126,90 @@ class PythonPackage:
                 config.read_file(config_file)
             return config
         return None
+
+    def setuptools_build_with_base(self,
+                                   build_base: Path,
+                                   include_tests: bool = False) -> Path:
+        # Create the lib install dir in case it doesn't exist.
+        lib_dir_path = build_base / 'lib'
+        lib_dir_path.mkdir(parents=True, exist_ok=True)
+
+        starting_directory = Path.cwd()
+        # cd to the location of setup.py
+        with change_working_dir(self.setup_dir):
+            # Run build with temp build-base location
+            # Note: New files will be placed inside lib_dir_path
+            setuptools.setup(script_args=[
+                'build',
+                '--force',
+                '--build-base',
+                str(build_base),
+            ])
+
+            new_pkg_dir = lib_dir_path / self.package_name
+            # If tests should be included, copy them to the tests dir
+            if include_tests and self.tests:
+                test_dir_path = new_pkg_dir / 'tests'
+                test_dir_path.mkdir(parents=True, exist_ok=True)
+
+                for test_source_path in self.tests:
+                    shutil.copy(starting_directory / test_source_path,
+                                test_dir_path)
+
+        return lib_dir_path
+
+    def setuptools_develop(self) -> None:
+        with change_working_dir(self.setup_dir):
+            setuptools.setup(script_args=['develop'])
+
+    def setuptools_install(self) -> None:
+        with change_working_dir(self.setup_dir):
+            setuptools.setup(script_args=['install'])
+
+    def install_requires_entries(self) -> List[str]:
+        """Convert the install_requires entry into a list of strings."""
+        this_requires: List[str] = []
+        # If there's no setup.cfg, do nothing.
+        if not self.config:
+            return this_requires
+
+        # Requires are delimited by newlines or semicolons.
+        # Split existing list on either one.
+        for req in re.split(r' *[\n;] *',
+                            self.config['options']['install_requires']):
+            # Skip empty lines.
+            if not req:
+                continue
+            # Get the name part part of the dep, ignoring any spaces or
+            # other characters.
+            req_name_match = re.match(r'^(?P<name_part>[A-Za-z0-9_-]+)', req)
+            if not req_name_match:
+                continue
+            req_name = req_name_match.groupdict().get('name_part', '')
+            # Check if this is an environment marker.
+            if req_name in _PY_REQUIRE_ENVIRONMENT_MARKER_NAMES:
+                # Append this req as an environment marker for the previous
+                # requirement.
+                this_requires[-1] += f';{req}'
+                continue
+            # Normal pip requirement, save to this_requires.
+            this_requires.append(req)
+        return this_requires
+
+
+def load_packages(input_list_files: Iterable[Path]) -> List[PythonPackage]:
+    """Load Python package metadata and configs."""
+
+    packages = []
+    for input_path in input_list_files:
+
+        with input_path.open() as input_file:
+            # Each line contains the path to a json file.
+            for json_file in input_file.readlines():
+                # Load the json as a dict.
+                json_file_path = Path(json_file.strip()).resolve()
+                with json_file_path.open() as json_fp:
+                    json_dict = json.load(json_fp)
+
+                packages.append(PythonPackage.from_dict(**json_dict))
+    return packages

@@ -499,7 +499,7 @@ TEST( TEST_IOT_GPIO, AFQP_IotGpioIoctlSetGet )
     IotGpioDirection_t eGpioDirectionRead;
     IotGpioPull_t eGpioPullWrite = eGpioPullNone;
     IotGpioPull_t eGpioPullRead;
-    IotGpioInterrupt_t eGpioInterruptWrite = eGpioInterruptEdge;
+    IotGpioInterrupt_t eGpioInterruptWrite = eGpioInterruptHigh;/*not support eGpioInterruptEdge;*/
     IotGpioInterrupt_t eGpioInterruptRead;
     uint32_t ulGpioFunctionWrite = ultestIotGpioFunction, ulGpioFunctionRead;
 
@@ -710,7 +710,7 @@ TEST( TEST_IOT_GPIO, AFQP_IotGpioInterrupt )
 {
     testIotGpioInterrupt( eGpioInterruptRising );
     testIotGpioInterrupt( eGpioInterruptFalling );
-    testIotGpioInterrupt( eGpioInterruptEdge );
+    /*not support testIotGpioInterrupt( eGpioInterruptEdge );*/
     testIotGpioInterrupt( eGpioInterruptLow );
     testIotGpioInterrupt( eGpioInterruptHigh );
 }

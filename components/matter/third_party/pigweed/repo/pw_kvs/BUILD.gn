@@ -18,6 +18,7 @@ import("$dir_pw_bloat/bloat.gni")
 import("$dir_pw_build/module_config.gni")
 import("$dir_pw_build/target_types.gni")
 import("$dir_pw_docgen/docs.gni")
+import("$dir_pw_toolchain/generate_toolchain.gni")
 import("$dir_pw_unit_test/test.gni")
 
 declare_args() {
@@ -65,6 +66,7 @@ pw_source_set("pw_kvs") {
     dir_pw_bytes,
     dir_pw_containers,
     dir_pw_status,
+    dir_pw_stream,
     dir_pw_string,
   ]
   deps = [
@@ -208,6 +210,30 @@ pw_source_set("fake_flash_test_key_value_store") {
   ]
 }
 
+pw_source_set("flash_partition_stream_test") {
+  public_configs = [ ":public_include_path" ]
+  public = [ "public/pw_kvs/flash_memory.h" ]
+  sources = [ "flash_partition_stream_test.cc" ]
+  public_deps = [
+    "$dir_pw_sync:borrow",
+    dir_pw_bytes,
+    dir_pw_kvs,
+    dir_pw_polyfill,
+    dir_pw_preprocessor,
+    dir_pw_status,
+    dir_pw_stream,
+  ]
+  deps = [
+    ":config",
+    ":fake_flash",
+    ":flash_test_partition",
+    dir_pw_kvs,
+    dir_pw_log,
+    dir_pw_random,
+    dir_pw_unit_test,
+  ]
+}
+
 pw_source_set("flash_partition_test_100_iterations") {
   deps = [
     ":config",
@@ -322,28 +348,41 @@ pw_test_group("tests") {
     ":alignment_test",
     ":checksum_test",
     ":converts_to_span_test",
-    ":entry_test",
-    ":entry_cache_test",
-    ":flash_partition_1_alignment_test",
-    ":flash_partition_16_alignment_test",
-    ":flash_partition_64_alignment_test",
-    ":flash_partition_256_alignment_test",
-    ":flash_partition_256_write_size_test",
-    ":key_value_store_test",
-    ":key_value_store_1_alignment_flash_test",
-    ":key_value_store_16_alignment_flash_test",
-    ":key_value_store_64_alignment_flash_test",
-    ":key_value_store_256_alignment_flash_test",
-    ":key_value_store_fuzz_1_alignment_flash_test",
-    ":key_value_store_fuzz_64_alignment_flash_test",
-    ":key_value_store_binary_format_test",
-    ":key_value_store_put_test",
-    ":key_value_store_map_test",
-    ":fake_flash_test_key_value_store_test",
-    ":sectors_test",
     ":key_test",
-    ":key_value_store_wear_test",
   ]
+
+  if (defined(pw_toolchain_SCOPE.is_host_toolchain) &&
+      pw_toolchain_SCOPE.is_host_toolchain) {
+    # TODO(pwbug/196): KVS tests are not compatible with device builds as they
+    # use features such as std::map and are computationally expensive. Solving
+    # this requires a more complex capabilities-based build and configuration
+    # system which allowing enabling specific tests for targets that support
+    # them and modifying test parameters for different targets.
+
+    tests += [
+      ":entry_test",
+      ":entry_cache_test",
+      ":flash_partition_1_stream_test",
+      ":flash_partition_1_alignment_test",
+      ":flash_partition_16_alignment_test",
+      ":flash_partition_64_alignment_test",
+      ":flash_partition_256_alignment_test",
+      ":flash_partition_256_write_size_test",
+      ":key_value_store_test",
+      ":key_value_store_1_alignment_flash_test",
+      ":key_value_store_16_alignment_flash_test",
+      ":key_value_store_64_alignment_flash_test",
+      ":key_value_store_256_alignment_flash_test",
+      ":key_value_store_fuzz_1_alignment_flash_test",
+      ":key_value_store_fuzz_64_alignment_flash_test",
+      ":key_value_store_binary_format_test",
+      ":key_value_store_put_test",
+      ":key_value_store_map_test",
+      ":key_value_store_wear_test",
+      ":fake_flash_test_key_value_store_test",
+      ":sectors_test",
+    ]
+  }
 }
 
 pw_test("alignment_test") {
@@ -382,6 +421,15 @@ pw_test("entry_cache_test") {
     dir_pw_bytes,
   ]
   sources = [ "entry_cache_test.cc" ]
+}
+
+pw_test("flash_partition_1_stream_test") {
+  deps = [
+    ":fake_flash",
+    ":fake_flash_1_aligned_partition",
+    ":flash_partition_stream_test",
+    dir_pw_log,
+  ]
 }
 
 pw_test("flash_partition_1_alignment_test") {

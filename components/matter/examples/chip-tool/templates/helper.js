@@ -104,11 +104,6 @@ function asTypeMaxValue(type)
   return templateUtil.templatePromise(this.global, promise);
 }
 
-function utf8StringLength(str)
-{
-  return new TextEncoder().encode(str).length
-}
-
 async function structs_with_cluster_name(options)
 {
   const packageId = await templateUtil.ensureZclPackageId(this);
@@ -121,13 +116,21 @@ async function structs_with_cluster_name(options)
       continue;
     }
 
-    if (s.struct_cluster_count == 1) {
+    s.items.forEach(i => {
+      if (i.type.toLowerCase() == "fabric_idx") {
+        s.struct_fabric_idx_field = i.label;
+      }
+    })
+
+    if (s.struct_cluster_count == 1)
+    {
       const clusters = await zclQuery.selectStructClusters(this.global.db, s.id);
-      blocks.push({ id : s.id, name : s.name, clusterName : clusters[0].name });
+      blocks.push(
+          { id : s.id, name : s.name, struct_fabric_idx_field : s.struct_fabric_idx_field, clusterName : clusters[0].name });
     }
 
     if (s.struct_cluster_count > 1) {
-      blocks.push({ id : s.id, name : s.name, clusterName : "detail" });
+      blocks.push({ id : s.id, name : s.name, struct_fabric_idx_field : s.struct_fabric_idx_field, clusterName : "detail" });
     }
   }
 
@@ -140,5 +143,4 @@ async function structs_with_cluster_name(options)
 exports.asDelimitedCommand        = asDelimitedCommand;
 exports.asTypeMinValue            = asTypeMinValue;
 exports.asTypeMaxValue            = asTypeMaxValue;
-exports.utf8StringLength          = utf8StringLength;
 exports.structs_with_cluster_name = structs_with_cluster_name;

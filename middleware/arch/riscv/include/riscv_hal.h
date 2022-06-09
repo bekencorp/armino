@@ -28,5 +28,4 @@
 #define HalIrqEnable(irq_no)        set_csr(NDS_MIE, (1<<irq_no))
 #define HalSetLocalInterPri(irq_no, irq_pri)    __nds__plic_set_priority(irq_no, irq_pri)
 
-
 #endif //#ifndef __RISCV_HAL_H__

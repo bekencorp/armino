@@ -108,7 +108,7 @@ static void cli_spi_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			send_data[i] = i & 0xff;
 		}
 		BK_LOG_ON_ERR(bk_spi_write_bytes(spi_id, send_data, buf_len));
-		if (!send_data) {
+		if (send_data) {
 			os_free(send_data);
 		}
 		send_data = NULL;
@@ -126,7 +126,7 @@ static void cli_spi_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		for (int i = 0; i < buf_len; i++) {
 			CLI_LOGI("recv_buffer[%d]=0x%x\n", i, recv_data[i]);
 		}
-		if (!recv_data) {
+		if (recv_data) {
 			os_free(recv_data);
 		}
 		recv_data = NULL;
@@ -157,12 +157,12 @@ static void cli_spi_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			CLI_LOGI("recv_buffer[%d]=0x%x\r\n", i, recv_data[i]);
 		}
 transmit_exit:
-		if (!send_data) {
+		if (send_data) {
 			os_free(send_data);
 		}
 		send_data = NULL;
 
-		if (!recv_data) {
+		if (recv_data) {
 			os_free(recv_data);
 		}
 		recv_data = NULL;
@@ -179,7 +179,7 @@ transmit_exit:
 			send_data[i] = i & 0xff;
 		}
 		BK_LOG_ON_ERR(bk_spi_dma_write_bytes(spi_id, send_data, buf_len));
-		if (!send_data) {
+		if (send_data) {
 			os_free(send_data);
 		}
 		send_data = NULL;
@@ -197,7 +197,7 @@ transmit_exit:
 		for (int i = 0; i < buf_len; i++) {
 			CLI_LOGI("recv_buffer[%d]=0x%x\n", i, recv_data[i]);
 		}
-		if (!recv_data) {
+		if (recv_data) {
 			os_free(recv_data);
 		}
 		recv_data = NULL;

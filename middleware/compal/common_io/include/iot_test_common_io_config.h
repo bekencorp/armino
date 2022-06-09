@@ -57,6 +57,7 @@ extern uint16_t ucAssistedTestIotI2CSlaveAddr; /* The slave address to be set fo
 
 /*------------------------SPI-------------------------------*/
 #define IOT_TEST_COMMON_IO_SPI_SUPPORTED                     1
+#define IOT_TEST_COMMON_IO_SPI_ASSISTED   1
 
 #define SPI_TEST_SET                                         1
 

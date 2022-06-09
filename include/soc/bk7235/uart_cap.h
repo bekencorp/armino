@@ -19,7 +19,7 @@ extern "C" {
 #endif
 
 #define SOC_UART_UNIT_NUM              1
-#define SOC_UART_ID_NUM_PER_UNIT       3
+#define SOC_UART_ID_NUM_PER_UNIT       2
 
 #ifdef __cplusplus
 }

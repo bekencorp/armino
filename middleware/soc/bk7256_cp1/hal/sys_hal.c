@@ -43,6 +43,21 @@ void sys_hal_usb_enable_clk(bool en)
 	sys_ll_set_cpu_device_clk_enable_usb_cken(en);
 }
 
+void sys_hal_usb_analog_phy_en(bool en)
+{
+	sys_ll_set_ana_reg6_en_usb(en);
+}
+
+void sys_hal_usb_analog_speed_en(bool en)
+{
+	sys_ll_set_ana_reg9_usb_speed(en);
+}
+
+void sys_hal_usb_analog_ckmcu_en(bool en)
+{
+	sys_ll_set_ana_reg11_ck2mcu(en);
+}
+
 void sys_hal_usb_enable_charge(bool en)
 {
 	sys_ll_set_ana_reg5_vctrl_dpllldo(en);

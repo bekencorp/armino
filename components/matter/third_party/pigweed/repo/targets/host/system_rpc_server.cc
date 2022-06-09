@@ -64,16 +64,36 @@ Status Start() {
   while (true) {
     std::array<std::byte, kMaxTransmissionUnit> data;
     auto ret_val = socket_stream.Read(data);
-    if (ret_val.ok()) {
-      for (std::byte byte : ret_val.value()) {
-        if (auto result = decoder.Process(byte); result.ok()) {
-          hdlc::Frame& frame = result.value();
-          if (frame.address() == hdlc::kDefaultRpcAddress) {
-            server.ProcessPacket(frame.data(), hdlc_channel_output)
-                .IgnoreError();  // TODO(pwbug/387): Handle Status properly
-          }
-        }
+    if (!ret_val.ok()) {
+      if (ret_val.status() == Status::OutOfRange()) {
+        // An out of range status indicates the remote end has disconnected.
+        return OkStatus();
       }
+      continue;
+    }
+
+    // Empty read indicates connection termianation
+    //
+    // TODO: remove check on empty once pwrev/90900 lands.
+    if (ret_val.value().empty()) {
+      return OkStatus();
+    }
+
+    for (std::byte byte : ret_val.value()) {
+      auto result = decoder.Process(byte);
+      if (!result.ok()) {
+        // Non-OK means there isn't a complete packet yet, or there was some
+        // other issue. Wait for more bytes that form a complete packet.
+        continue;
+      }
+      hdlc::Frame& frame = result.value();
+      if (frame.address() != hdlc::kDefaultRpcAddress) {
+        // Wrong address; ignore the packet for now. In the future, this branch
+        // could expand to add packet routing or metrics.
+        continue;
+      }
+
+      server.ProcessPacket(frame.data(), hdlc_channel_output).IgnoreError();
     }
   }
 }

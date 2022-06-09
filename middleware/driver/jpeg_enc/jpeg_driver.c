@@ -42,8 +42,7 @@ typedef struct {
 	}\
 } while(0)
 
-#define JPEG_RX_DMA_CHANNEL    DMA_ID_4
-
+static uint8_t jpeg_dma_rx_id = 0;
 static jpeg_driver_t s_jpeg = {0};
 static bool s_jpeg_driver_is_init = false;
 
@@ -101,19 +100,21 @@ static void jpeg_dma_rx_init(const jpeg_config_t *config)
 		dma_config.dst.addr_loop_en = DMA_ADDR_LOOP_ENABLE;
 		dma_config.dst.start_addr = (uint32_t)config->rx_buf;
 		dma_config.dst.end_addr = (uint32_t)(config->rx_buf + config->rx_buf_len);
+		jpeg_dma_rx_id = config->dma_channel;
 
-		BK_LOG_ON_ERR(bk_dma_init(JPEG_RX_DMA_CHANNEL, &dma_config));
-		BK_LOG_ON_ERR(bk_dma_set_transfer_len(JPEG_RX_DMA_CHANNEL, config->node_len));
-		BK_LOG_ON_ERR(bk_dma_register_isr(JPEG_RX_DMA_CHANNEL, NULL, config->dma_rx_finish_handler));
-		BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(JPEG_RX_DMA_CHANNEL));
-		BK_LOG_ON_ERR(bk_dma_enable_half_finish_interrupt(JPEG_RX_DMA_CHANNEL));
-		BK_LOG_ON_ERR(bk_dma_start(JPEG_RX_DMA_CHANNEL));
+		BK_LOG_ON_ERR(bk_dma_init(jpeg_dma_rx_id, &dma_config));
+		BK_LOG_ON_ERR(bk_dma_set_transfer_len(jpeg_dma_rx_id, config->node_len));
+		BK_LOG_ON_ERR(bk_dma_register_isr(jpeg_dma_rx_id, NULL, config->dma_rx_finish_handler));
+		BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(jpeg_dma_rx_id));
+		BK_LOG_ON_ERR(bk_dma_enable_half_finish_interrupt(jpeg_dma_rx_id));
+		BK_LOG_ON_ERR(bk_dma_start(jpeg_dma_rx_id));
 	}
 }
 
 static void jpeg_dma_rx_deinit(void)
 {
-	BK_LOG_ON_ERR(bk_dma_stop(JPEG_RX_DMA_CHANNEL));
+	BK_LOG_ON_ERR(bk_dma_stop(jpeg_dma_rx_id));
+	jpeg_dma_rx_id = 0;
 }
 
 static void jpeg_init_common(const jpeg_config_t *config)

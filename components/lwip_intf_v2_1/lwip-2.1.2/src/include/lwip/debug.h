@@ -79,6 +79,7 @@
 /** @name Debug message types (LWIP_DBG_TYPES_ON)
  * @{
  */
+#define LWIP_BK_DBG_TRACE         0x80U
 /** flag for LWIP_DEBUGF indicating a tracing message (to follow program flow) */
 #define LWIP_DBG_TRACE         0x40U
 /** flag for LWIP_DEBUGF indicating a state debug message (to follow module states) */

@@ -20,5 +20,7 @@ menu "BLE"
 			bool "BLE 4.2"
 		config BTDM_5_2
 			bool "BTDM 5.2"
+		config BTDM_5_2_MINDTREE
+			bool "BTDM 5.2 Mindtree Host"
 	endchoice
 endmenu

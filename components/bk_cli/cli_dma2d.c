@@ -1,7 +1,5 @@
 #include "cli.h"
 
-#if CONFIG_DMA2D_TEST
-
 extern void lcd_fill(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void dma2d_memcpy_display(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void bk_example_alpha_blend(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -26,7 +24,7 @@ int cli_dma2d_init(void)
 	return cli_register_commands(s_dma2d_commands, DMA2D_CNT);
 }
 
-#endif
+
 
 
 

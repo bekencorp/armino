@@ -50,14 +50,6 @@
 	path = third_party/nanopb/repo
 	url = http://192.168.0.46/gerrit/nanopb/nanopb.git
 	branch  = master
-[submodule "qpg_sdk"]
-	path = third_party/qpg_sdk/repo
-	url = http://192.168.0.46/gerrit/Qorvo/qpg-connectedhomeip
-	branch  = master
-[submodule "zap"]
-	path = third_party/zap/repo
-	url = http://192.168.0.46/gerrit/project-chip/zap.git
-	branch  = master
 [submodule "freertos"]
 	path = third_party/freertos/repo
 	url = http://192.168.0.46/gerrit/FreeRTOS/FreeRTOS-Kernel.git

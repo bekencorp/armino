@@ -15,6 +15,7 @@
 #include "jpeg_hal.h"
 #include "jpeg_ll.h"
 #include <driver/hal/hal_jpeg_types.h>
+#include <driver/jpeg_enc_types.h>
 
 #define JPEG_BITRATE_MAX_SIZE_320_240     (20 * 1024)
 #define JPEG_BITRATE_MIN_SIZE_320_240     (5 * 1024)
@@ -35,6 +36,29 @@ bk_err_t jpeg_hal_init(jpeg_hal_t *hal)
 	return BK_OK;
 }
 
+static void jpeg_hal_set_target_bitrate(jpeg_hal_t *hal, uint32_t x_pixel)
+{
+	switch(x_pixel){
+	case X_PIXEL_320:
+		jpeg_ll_set_target_high_byte(hal->hw, JPEG_BITRATE_MAX_SIZE_320_240);
+		jpeg_ll_set_target_low_byte(hal->hw, JPEG_BITRATE_MIN_SIZE_320_240);
+		break;
+	case X_PIXEL_640:
+		jpeg_ll_set_target_high_byte(hal->hw, JPEG_BITRATE_MAX_SIZE_640_480);
+		jpeg_ll_set_target_low_byte(hal->hw, JPEG_BITRATE_MIN_SIZE_640_480);
+		break;
+	case X_PIXEL_1280:
+		jpeg_ll_set_target_high_byte(hal->hw, JPEG_BITRATE_MAX_SIZE_1280_720);
+		jpeg_ll_set_target_low_byte(hal->hw, JPEG_BITRATE_MIN_SIZE_1280_720);
+		break;
+	default:
+		os_printf("Not adapt this image resolution\r\n");
+		jpeg_ll_set_target_high_byte(hal->hw, JPEG_BITRATE_MAX_SIZE);
+		jpeg_ll_set_target_low_byte(hal->hw, JPEG_BITRATE_MIN_SIZE);
+		break;
+	}
+}
+
 /* 1. disable jpeg_enc_en
  * 2. init_quant_table
  * 3. set_x_pixel, set_y_pixel
@@ -52,8 +76,9 @@ bk_err_t jpeg_hal_configure(jpeg_hal_t *hal, const jpeg_config_t *config)
 	jpeg_ll_enable_end_frame_int(hal->hw);
 	jpeg_ll_enable_head_output_int(hal->hw);
 	jpeg_ll_enable_vsync_negedge_int(hal->hw);
-	jpeg_ll_set_target_high_byte(hal->hw, JPEG_BITRATE_MAX_SIZE);
-	jpeg_ll_set_target_low_byte(hal->hw, JPEG_BITRATE_MIN_SIZE);
+	//jpeg_ll_set_target_high_byte(hal->hw, JPEG_BITRATE_MAX_SIZE);
+	//jpeg_ll_set_target_low_byte(hal->hw, JPEG_BITRATE_MIN_SIZE);
+	jpeg_hal_set_target_bitrate(hal, config->x_pixel);
 	jpeg_ll_set_mclk_div(hal->hw, config->mclk_div);
 #if (CONFIG_SYSTEM_CTRL)
 	jpeg_ll_set_x_pixel_value(hal->hw, config->x_pixel);

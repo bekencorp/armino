@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "at_common.h"
+
+
 #if CONFIG_BLE//(CONFIG_BLE_5_X || CONFIG_BTDM_5_2)
 #include "at_ble_common.h"
 
@@ -27,14 +29,21 @@ uint8 g_test_noti_att_id = 0;
 
 //#if CONFIG_BTDM_5_2
 static beken_timer_t ble_noti_tmr;
+static beken_timer_t ble_performance_tx_statistics_tmr;
+static beken_timer_t ble_performance_rx_statistics_tmr;
 static uint32 s_test_noti_count = 0;
 //#endif
 static uint16_t s_test_data_len = 20;
 static uint32_t s_test_send_inter = 500;
 
+static uint8_t s_service_type = 0;
+
 
 uint8_t s_test_conn_ind = ~0;
 
+static uint32_t s_performance_tx_bytes = 0;
+static uint32_t s_performance_rx_bytes = 0;
+static uint8_t s_performance_tx_enable = 0;
 
 int set_ble_name_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
@@ -69,19 +78,34 @@ int ble_get_local_addr_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
 int ble_set_local_addr_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 
-//#if (CONFIG_BTDM_5_2)
 
-int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+static int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+int ble_register_noti_service_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+int ble_register_performance_service_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+int ble_enable_performance_statistic_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
 int ble_tx_test_enable_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 int ble_tx_test_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 int ble_update_mtu_2_max_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 void ble_test_service_write_handle(uint8 val);
 int ble_read_phy_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 int ble_set_phy_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+int ble_set_max_mtu_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 //#endif
 int ble_delete_adv_activity_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 int ble_delete_scan_activity_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern int ble_boarding_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+void ble_test_noti_hdl(void *param);
+void ble_performance_tx_timer_hdl(void *param);
+void ble_performance_rx_timer_hdl(void *param);
+int ble_connect_by_name_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+int ble_disconnect_by_name_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+int ble_create_periodic_sync_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+int ble_start_periodic_sync_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+int ble_stop_periodic_sync_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 const at_command_t ble_at_cmd_table[] = {
     {0, "SETBLENAME", 0, "return ble name", set_ble_name_handle},
@@ -93,28 +117,39 @@ const at_command_t ble_at_cmd_table[] = {
     {6, "SETADVENABLE", 1, "set adv enable(1)/disable(0)", ble_set_adv_enable_handle},
     {7, "SETSCANPARAM", 1, "set scan param", ble_set_scan_param_handle},
     {8, "SETSCANENABLE", 1, "set scan enable(1)/disable(0)", ble_set_scan_enable_handle},
-//#if (CONFIG_BLE_INIT_NUM)
+
     {9, "CREATECONNECT", 1, "create connection", ble_create_connect_handle},
     {10, "CANCELCONNECT", 1, "cancel create connection", ble_cancel_create_connect_handle},
     {11, "DISCONNECT", 1, "disconnect current connection", ble_disconnect_handle},
     {12, "UPDATECONNPARAM", 1, "update connection param", ble_update_conn_param_handle},
-//#endif
+
     {13, "GETCONNECTSTATE", 0, "get connection state", ble_get_conn_state_handle},
     {14, "GETLOCALADDR", 0, "get ble local address", ble_get_local_addr_handle},
     {15, "SETLOCALADDR", 0, "set ble local address", ble_set_local_addr_handle},
-//#if (CONFIG_BTDM_5_2)
-    {16, "REGISTERSERVICE", 1, "register a service", ble_register_service_handle},
+
+    {16, "REGISTERSERVICE", 1, "register a service", ble_register_noti_service_handle},
     {17, "READPHY", 1, "read current tx/rx phy", ble_read_phy_handle},
     {18, "SETPHY", 1, "set current tx/rx phy", ble_set_phy_handle},
-//#endif
+
     {19, "DELETEADV", 1, "delete adv activity", ble_delete_adv_activity_handle},
     {20, "DELETESCAN", 1, "delete scan activity", ble_delete_scan_activity_handle},
-//#if (CONFIG_BTDM_5_2)
-    {21, "REGPERFORMANCESERVICE", 1, "register performance service: <task id> <service uuid> <char uuid> [data_len uuid] [interv uuid]", ble_register_service_handle},
+
+    {21, "REGPERFORMANCESERVICE", 1, "register performance service: <task id> <service uuid> <char uuid> [data_len uuid] [interv uuid]",
+        ble_register_performance_service_handle},
     {22, "SETTXTESTPARAM", 0, "set tx test param: <data_len> <interv>", ble_tx_test_param_handle},
     {23, "SETTXTESTENABLE", 0, "enable tx test: <1|0>", ble_tx_test_enable_handle},
-    {24, "UPDATEMTU2MAX", 1, "update mtu 2 max: <conn_ind>", ble_update_mtu_2_max_handle},
+    {24, "UPDATEMTU2MAX", 1, "update mtu 2 max: <addr>", ble_update_mtu_2_max_handle},
     {25, "BOARDING", 0, "boarding", ble_boarding_handle},
+    {26, "ENABLEPERFORMANCESTATISTIC", 1, "enable performance statistic, <tx|rx> <1|0>",
+        ble_enable_performance_statistic_handle},
+    {27, "SETMAXMTU", 0, "set att maximal mtu", ble_set_max_mtu_handle},
+    {28, "CONNECTBYNAME", 1, "create connection by name", ble_connect_by_name_handle},
+    {29, "DISCONNECTBYNAME", 1, "disconnect current connection by name", ble_disconnect_by_name_handle},
+
+    {30, "CREATEPERIODICSYNC", 1, "create periodic sync", ble_create_periodic_sync_handle},
+    {31, "STARTPERIODICSYNC", 1, "set periodic sync start", ble_start_periodic_sync_handle},
+    {32, "STOPPERIODICSYNC", 1, "set periodic sync stop", ble_stop_periodic_sync_handle},
+
 //#endif
 };
 
@@ -146,6 +181,10 @@ void ble_at_cmd_cb(ble_cmd_t cmd, ble_cmd_param_t *param)
         case BLE_CONN_READ_PHY:
         case BLE_CONN_SET_PHY:
         case BLE_CONN_UPDATE_MTU:
+        case BLE_CREATE_PERIODIC:
+        case BLE_START_PERIODIC:
+        case BLE_STOP_PERIODIC:
+        case BLE_DELETE_PERIODIC:
             if (ble_at_cmd_sema != NULL)
                 rtos_set_semaphore( &ble_at_cmd_sema );
             break;
@@ -153,6 +192,59 @@ void ble_at_cmd_cb(ble_cmd_t cmd, ble_cmd_param_t *param)
             break;
     }
 
+}
+
+enum {
+    STATE_IDLE,
+    STATE_DISCOVERING,
+    STATE_DISCOVERED,
+    STATE_CONNECTINIG,
+    STATE_CONNECTED,
+    STATE_DISCONNECTINIG,
+};
+
+typedef struct
+{
+    uint8_t len;
+    uint8_t name[50];
+} ble_device_name_t;
+
+typedef struct
+{
+    uint8_t state;
+    uint8_t addr_type;
+    bd_addr_t bdaddr;
+    ble_device_name_t dev;
+} ble_device_info_t;
+
+ble_device_info_t g_peer_dev;
+
+static uint8_t ble_check_device_name(uint8_t* p_buf, uint8_t data_len, ble_device_name_t* dev_name)
+{
+    uint8_t* p_data = p_buf;
+    uint8_t* p_data_end = p_buf + data_len;
+    uint8_t name_len = 0;
+
+    uint8_t is_found = 0;
+
+    while (p_data < p_data_end)
+    {
+        if (*(p_data + 1) == 0x09)//GAP_AD_TYPE_COMPLETE_NAME
+        {
+            name_len = *p_data - 1;
+
+            if ((name_len == dev_name->len) && (!os_memcmp(dev_name->name, p_data + 2, name_len)))
+            {
+                is_found = 1;
+            }
+            break;
+        }
+
+        // Go to next advertising info
+        p_data += (*p_data + 1);
+    }
+
+    return (is_found);
 }
 
 void ble_at_notice_cb(ble_notice_t notice, void *param)
@@ -260,6 +352,17 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
         os_printf(" adv_addr_type:%d, adv_addr:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
                 r_ind->adv_addr_type, r_ind->adv_addr[0], r_ind->adv_addr[1], r_ind->adv_addr[2],
                 r_ind->adv_addr[3], r_ind->adv_addr[4], r_ind->adv_addr[5]);
+
+        if ((STATE_DISCOVERING == g_peer_dev.state) && (ble_check_device_name(r_ind->data , r_ind->data_len, &(g_peer_dev.dev))))
+        {
+            os_printf("dev : %s is discovered\r\n",g_peer_dev.dev.name);
+            os_memcpy(g_peer_dev.bdaddr.addr, r_ind->adv_addr, BK_BLE_GAP_BD_ADDR_LEN);
+            g_peer_dev.addr_type = r_ind->adv_addr_type;
+            g_peer_dev.state = STATE_DISCOVERED;
+            if (ble_at_cmd_sema != NULL)
+                rtos_set_semaphore( &ble_at_cmd_sema );
+        }
+
         break;
     }
     case BLE_5_MTU_CHANGE: {
@@ -306,6 +409,11 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
         os_printf("BLE_5_INIT_CONNECT_EVENT:conn_idx:%d, addr_type:%d, peer_addr:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
                 c_ind->conn_idx, c_ind->peer_addr_type, c_ind->peer_addr[0], c_ind->peer_addr[1],
                 c_ind->peer_addr[2], c_ind->peer_addr[3], c_ind->peer_addr[4], c_ind->peer_addr[5]);
+
+        if ((STATE_CONNECTINIG == g_peer_dev.state) && (!os_memcmp(g_peer_dev.bdaddr.addr, c_ind->peer_addr, BK_BLE_GAP_BD_ADDR_LEN)))
+        {
+            g_peer_dev.state = STATE_CONNECTED;
+        }
         break;
     }
     case BLE_5_INIT_DISCONNECT_EVENT: {
@@ -322,6 +430,11 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
         break;
     }
     case BLE_5_TX_DONE:
+        if(s_service_type && s_performance_tx_enable == 1)
+        {
+            s_performance_tx_bytes += s_test_data_len;
+            ble_test_noti_hdl(NULL);
+        }
         break;
     case BLE_5_CONN_UPDATA_EVENT: {
         ble_conn_param_t *updata_param = (ble_conn_param_t *)param;
@@ -329,6 +442,9 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
         updata_param->con_latency, updata_param->sup_to);
         break;
     }
+    case BLE_5_PERIODIC_SYNC_CMPL_EVENT:
+        os_printf("BLE_5_PERIODIC_SYNC_CMPL_EVENT \n");
+        break;
     default:
         break;
     }
@@ -962,7 +1078,11 @@ int ble_set_scan_enable_handle(char *pcWriteBuffer, int xWriteBufferLen, int arg
     int enable = 0;
     int err = kNoErr;
 
-    if (argc != 1)
+    uint8_t filt_duplicate = 0;
+    uint16_t duration = 0;
+    uint16_t period = 10;
+
+    if (argc < 1)
     {
         os_printf("input param error\n");
         err = kParamErr;
@@ -983,6 +1103,27 @@ int ble_set_scan_enable_handle(char *pcWriteBuffer, int xWriteBufferLen, int arg
         err = kParamErr;
         goto error;
     }
+
+    if(enable)
+    {
+        if(argc == 1)
+        {
+
+        }
+        else if (argc >= 1 + 3)
+        {
+            filt_duplicate = os_strtoul(argv[1], NULL, 16) & 0xFF;
+            duration = os_strtoul(argv[2], NULL, 16) & 0xFFFF;
+            period = os_strtoul(argv[3], NULL, 16) & 0xFFFF;
+        }
+        else
+        {
+            os_printf("the input param is error\n");
+            err = kParamErr;
+            goto error;
+        }
+    }
+
 
     if (ble_at_cmd_table[8].is_sync_cmd)
     {
@@ -1011,7 +1152,7 @@ int ble_set_scan_enable_handle(char *pcWriteBuffer, int xWriteBufferLen, int arg
 
     if (enable == 1)
     {
-        err = bk_ble_start_scaning(actv_idx, ble_at_cmd_cb);
+        err = bk_ble_start_scaning_ex(actv_idx, filt_duplicate, duration, period, ble_at_cmd_cb);
     }
     else
     {
@@ -1163,8 +1304,8 @@ int ble_create_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
 
     bk_ble_set_notice_cb(ble_at_notice_cb);
 
-    actv_idx = bk_ble_find_master_state_idx_handle(AT_INIT_STATE_CREATED);
-    if (actv_idx == AT_BLE_MAX_CONN)
+    /*actv_idx = bk_ble_find_master_state_idx_handle(AT_INIT_STATE_CREATED);
+    if (actv_idx == AT_BLE_MAX_CONN)*/
     {
         /// Do not create actv
         actv_idx = bk_ble_get_idle_conn_idx_handle();
@@ -1200,7 +1341,7 @@ int ble_create_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
             }
         }
     }
-    else
+    /*else
     {
         /// have created actv, this happend in which connection have been disconnected
         err = ble_start_connect_handle(actv_idx, peer_addr_type, &bdaddr, ble_at_cmd_cb);
@@ -1210,7 +1351,7 @@ int ble_create_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
         os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
         rtos_deinit_semaphore(&ble_at_cmd_sema);
         return err;
-    }
+    }*/
 
 error:
     msg = AT_CMD_RSP_ERROR;
@@ -1574,7 +1715,8 @@ int ble_update_mtu_2_max_handle(char *pcWriteBuffer, int xWriteBufferLen, int ar
 {
     int err = kNoErr;
     char *msg = NULL;
-    uint8 handle = 0;
+    uint8 conn_idx = 0;
+    bd_addr_t connect_addr;
 
     if(bk_ble_get_controller_stack_type() != BK_BLE_CONTROLLER_STACK_TYPE_BTDM_5_2)
     {
@@ -1589,7 +1731,22 @@ int ble_update_mtu_2_max_handle(char *pcWriteBuffer, int xWriteBufferLen, int ar
         goto error;
     }
 
-    handle = os_strtoul(argv[0], NULL, 10) & 0xFF;
+    err = get_addr_from_param(&connect_addr, argv[0]);
+    if (err != kNoErr)
+    {
+        os_printf("input addr param error\r\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    conn_idx = bk_ble_find_conn_idx_from_addr(&connect_addr);
+    if (conn_idx == AT_BLE_MAX_CONN)
+    {
+        os_printf("ble not connection\r\n");
+        err = kNoResourcesErr;
+        goto error;
+    }
+
 
     if (1)//ble_at_cmd_table[22].is_sync_cmd)
     {
@@ -1602,7 +1759,7 @@ int ble_update_mtu_2_max_handle(char *pcWriteBuffer, int xWriteBufferLen, int ar
 
     bk_ble_set_notice_cb(ble_at_notice_cb);
 
-    err = bk_ble_gatt_mtu_change(handle, ble_at_cmd_cb);
+    err = bk_ble_gatt_mtu_change(conn_idx, ble_at_cmd_cb);
 
     if (err != BK_ERR_BLE_SUCCESS)
     {
@@ -1775,10 +1932,161 @@ error:
 
 static void ble_sdp_charac_callback(uint32_t type, uint8 conidx, uint16_t hdl, uint16_t len, uint8 *data)
 {
-    os_printf("%s recv type %d len %d data[0] 0x%02X\n", __func__, type, len, data[0]);
+    //os_printf("%s recv type %d len %d data[0] 0x%02X\n", __func__, type, len, data[0]);
+    s_performance_rx_bytes += len;
 }
 
-int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+int ble_register_noti_service_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    s_service_type = 0;
+    return ble_register_service_handle(pcWriteBuffer, xWriteBufferLen, argc, argv);
+}
+
+int ble_register_performance_service_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    s_service_type = 1;
+
+    return ble_register_service_handle(pcWriteBuffer, xWriteBufferLen, argc, argv);
+}
+
+#define PERFORMANCE_STATISTIC_TX "tx"
+#define PERFORMANCE_STATISTIC_RX "rx"
+
+int ble_enable_performance_statistic_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    int err = kNoErr;
+    char *msg = NULL;
+
+    uint8_t enable = 0;
+    uint8_t type = 0;
+
+    if(bk_ble_get_controller_stack_type() != BK_BLE_CONTROLLER_STACK_TYPE_BTDM_5_2)
+    {
+        err = kParamErr;
+        goto error;
+    }
+
+    if (argc < 2)
+    {
+        os_printf("\nThe number of param is wrong!\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    if(g_test_prf_task_id == 0)
+    {
+        os_printf("%s not reg profile, exit\n", __func__);
+        err = kParamErr;
+        goto error;
+    }
+
+    if(strlen(argv[0]) > 3)
+    {
+        os_printf("%s param err, exit\n", __func__);
+        err = kParamErr;
+        goto error;
+    }
+
+    if(!strncmp(PERFORMANCE_STATISTIC_TX, argv[0], strlen(PERFORMANCE_STATISTIC_TX)))
+    {
+        type = 1;
+    }
+    else if(!strncmp(PERFORMANCE_STATISTIC_RX, argv[0], strlen(PERFORMANCE_STATISTIC_RX)))
+    {
+        type = 2;
+    }
+    else
+    {
+        os_printf("%s param err, exit\n", __func__);
+        err = kParamErr;
+        goto error;
+    }
+
+
+    enable = os_strtoul(argv[1], NULL, 10) & 0xFFFFFFFF;
+
+
+    if(type == 1)//tx
+    {
+        if(enable)
+        {
+            if(!rtos_is_timer_init(&ble_performance_tx_statistics_tmr))
+            {
+                s_performance_tx_bytes = 0;
+
+                rtos_init_timer(&ble_performance_tx_statistics_tmr, 1000, ble_performance_tx_timer_hdl, (void *)0);
+                rtos_start_timer(&ble_performance_tx_statistics_tmr);
+            }
+        }
+        else
+        {
+            if (rtos_is_timer_init(&ble_performance_tx_statistics_tmr))
+            {
+                s_performance_tx_bytes = 0;
+                if (rtos_is_timer_running(&ble_performance_tx_statistics_tmr))
+                    rtos_stop_timer(&ble_performance_tx_statistics_tmr);
+                rtos_deinit_timer(&ble_performance_tx_statistics_tmr);
+            }
+        }
+    }
+    else if(type == 2)//rx
+    {
+        if(enable)
+        {
+            if(!rtos_is_timer_init(&ble_performance_rx_statistics_tmr))
+            {
+                s_performance_rx_bytes = 0;
+
+                rtos_init_timer(&ble_performance_rx_statistics_tmr, 1000, ble_performance_rx_timer_hdl, (void *)0);
+                rtos_start_timer(&ble_performance_rx_statistics_tmr);
+            }
+        }
+        else
+        {
+            if (rtos_is_timer_init(&ble_performance_rx_statistics_tmr))
+            {
+                s_performance_rx_bytes = 0;
+
+                if (rtos_is_timer_running(&ble_performance_rx_statistics_tmr))
+                    rtos_stop_timer(&ble_performance_rx_statistics_tmr);
+                rtos_deinit_timer(&ble_performance_rx_statistics_tmr);
+            }
+        }
+    }
+
+
+    if (err != BK_ERR_BLE_SUCCESS)
+    {
+        goto error;
+    }
+    else
+    {
+        {
+            if (at_cmd_status == BK_ERR_BLE_SUCCESS)
+            {
+                msg = AT_CMD_RSP_SUCCEED;
+                os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+                return err;
+            }
+            else
+            {
+                err = at_cmd_status;
+                at_cmd_status = BK_ERR_BLE_SUCCESS;
+                goto error;
+            }
+        }
+    }
+
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    if (ble_at_cmd_sema != NULL)
+        rtos_deinit_semaphore(&ble_at_cmd_sema);
+    return err;
+}
+
+
+static int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     int err = kNoErr;
     char *msg = NULL;
@@ -1901,11 +2209,36 @@ void ble_test_noti_hdl(void *param)
     os_free(write_buffer);
 }
 
+void ble_performance_tx_timer_hdl(void *param)
+{
+    uint32_t tmp = s_performance_tx_bytes;
+    s_performance_tx_bytes = 0;
+
+    os_printf("%s current tx %d bytes/sec\n", __func__, tmp);
+}
+
+void ble_performance_rx_timer_hdl(void *param)
+{
+    uint32_t tmp = s_performance_rx_bytes;
+    s_performance_rx_bytes = 0;
+
+    os_printf("%s current rx %d bytes/sec\n", __func__, tmp);
+}
+
 void ble_test_service_write_handle(uint8 val)
 {
     if (val)
     {
-        if (!rtos_is_timer_init(&ble_noti_tmr))
+        if(s_service_type)
+        {
+            if(!s_performance_tx_enable)
+            {
+                s_performance_tx_enable = 1;
+                ble_test_noti_hdl(NULL);
+            }
+
+        }
+        else if (!rtos_is_timer_init(&ble_noti_tmr))
         {
             s_test_noti_count = 0;
             rtos_init_timer(&ble_noti_tmr, s_test_send_inter, ble_test_noti_hdl, (void *)0);
@@ -1914,6 +2247,7 @@ void ble_test_service_write_handle(uint8 val)
     }
     else
     {
+        s_performance_tx_enable = 0;
         if (rtos_is_timer_init(&ble_noti_tmr))
         {
             if (rtos_is_timer_running(&ble_noti_tmr))
@@ -2099,6 +2433,69 @@ error:
 }
 //#endif
 
+int ble_set_max_mtu_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	char *msg = NULL;
+	int err = kNoErr;
+	uint16_t att_max_mtu = 0;
+
+	if(bk_ble_get_controller_stack_type() != BK_BLE_CONTROLLER_STACK_TYPE_BTDM_5_2)
+	{
+		err = kParamErr;
+		goto error;
+	}
+
+	if (argc != 1) {
+		os_printf("input param error\r\n");
+		err = kParamErr;
+		goto error;
+	}
+
+	if (ble_at_cmd_table[26].is_sync_cmd)
+	{
+		err = rtos_init_semaphore(&ble_at_cmd_sema, 1);
+		if(err != kNoErr){
+			goto error;
+		}
+	}
+
+	bk_ble_set_notice_cb(ble_at_notice_cb);
+	att_max_mtu = os_strtoul(argv[0], NULL, 10) & 0xFF;
+
+	err = bk_ble_set_max_mtu(att_max_mtu);
+	if (err != kNoErr) {
+		os_printf("set att maximal MTU failed\r\n");
+		goto error;
+	}
+
+	if(ble_at_cmd_sema != NULL) {
+		err = rtos_get_semaphore(&ble_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
+		if(err != kNoErr) {
+			os_printf("get sema fail\r\n");
+			goto error;
+		} else {
+			if (at_cmd_status == BK_ERR_BLE_SUCCESS)
+			{
+				msg = AT_CMD_RSP_SUCCEED;
+				os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+				rtos_deinit_semaphore(&ble_at_cmd_sema);
+				return err;
+			} else {
+				err = at_cmd_status;
+				goto error;
+			}
+		}
+	}
+
+error:
+	msg = AT_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	if (ble_at_cmd_sema != NULL)
+		rtos_deinit_semaphore(&ble_at_cmd_sema);
+	return err;
+}
+
+
 int ble_delete_adv_activity_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     char *msg = NULL;
@@ -2204,5 +2601,464 @@ error:
         rtos_deinit_semaphore(&ble_at_cmd_sema);
     return err;
 }
+
+int ble_connect_by_name_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    char *msg = NULL;
+    uint8_t actv_idx = 0;
+    ble_conn_param_t conn_param;
+    int err = kNoErr;
+    uint8_t central_count = 0;
+
+    if(!bk_ble_if_support_central(&central_count) || central_count == 0)
+    {
+        os_printf("not support central\n");
+        err = kParamErr;
+        goto error;
+    }
+
+
+    if (argc != 5)
+    {
+        os_printf("input param error\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    conn_param.intv_min = os_strtoul(argv[0], NULL, 16) & 0xFFFF;
+    conn_param.con_latency = os_strtoul(argv[1], NULL, 16) & 0xFFFF;
+    if (conn_param.intv_min < CON_INTERVAL_MIN || conn_param.intv_min > CON_INTERVAL_MAX
+        || conn_param.con_latency > CON_LATENCY_MAX)
+    {
+        err = kParamErr;
+        goto error;
+    }
+
+    conn_param.sup_to = os_strtoul(argv[2], NULL, 16) & 0xFFFF;
+    if (conn_param.sup_to < CON_SUP_TO_MIN || conn_param.sup_to > CON_SUP_TO_MAX)
+    {
+        err = kParamErr;
+        goto error;
+    }
+
+    conn_param.init_phys = os_strtoul(argv[3], NULL, 16) & 0xFF;
+    if (conn_param.init_phys > (PHY_1MBPS_BIT | PHY_2MBPS_BIT | PHY_CODED_BIT))
+    {
+        err = kParamErr;
+        goto error;
+    }
+
+    os_memset(&g_peer_dev, 0, sizeof(g_peer_dev));
+
+    g_peer_dev.dev.len = os_strlen(argv[4]);
+    os_memcpy(g_peer_dev.dev.name, argv[4], g_peer_dev.dev.len);
+    g_peer_dev.state = STATE_DISCOVERING;
+
+    if (err != kNoErr)
+    {
+        os_printf("input param error\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    if ((10 * conn_param.sup_to) < (((1 + conn_param.con_latency) * conn_param.intv_min * 5 + 1) >> 1))
+    {
+        os_printf("input param not suitable, maybe you can set con_latency to 0\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    if (ble_at_cmd_table[28].is_sync_cmd)
+    {
+        err = rtos_init_semaphore(&ble_at_cmd_sema, 1);
+        if(err != kNoErr){
+            goto error;
+        }
+    }
+
+    bk_ble_set_notice_cb(ble_at_notice_cb);
+
+    if (ble_at_cmd_sema != NULL) {
+        err = rtos_get_semaphore(&ble_at_cmd_sema, 10000);
+        if(err != kNoErr) {
+            goto error;
+        } else {
+            if (g_peer_dev.state == STATE_DISCOVERED)
+            {
+                g_peer_dev.state = STATE_CONNECTINIG;
+            }
+            else
+            {
+                err = BK_ERR_BLE_FAIL;
+                goto error;
+            }
+        }
+    }
+
+    /*actv_idx = bk_ble_find_master_state_idx_handle(AT_INIT_STATE_CREATED);
+    if (actv_idx == AT_BLE_MAX_CONN)*/
+    {
+        /// Do not create actv
+        actv_idx = bk_ble_get_idle_conn_idx_handle();
+        if (actv_idx == UNKNOW_ACT_IDX)
+        {
+            err = kNoResourcesErr;
+            goto error;
+        }
+
+        err = bk_ble_create_init(actv_idx, &conn_param, ble_at_cmd_cb);
+        if (err != BK_ERR_BLE_SUCCESS)
+            goto error;
+        if(ble_at_cmd_sema != NULL) {
+            err = rtos_get_semaphore(&ble_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
+            if(err != kNoErr) {
+                goto error;
+            } else {
+                if (at_cmd_status == BK_ERR_BLE_SUCCESS)
+                {
+                    err = ble_start_connect_handle(actv_idx, g_peer_dev.addr_type, &(g_peer_dev.bdaddr), ble_at_cmd_cb);
+                    if (err != kNoErr)
+                        goto error;
+                    msg = AT_CMD_RSP_SUCCEED;
+                    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+                    rtos_deinit_semaphore(&ble_at_cmd_sema);
+                    return err;
+                }
+                else
+                {
+                    err = at_cmd_status;
+                    goto error;
+                }
+            }
+        }
+    }
+/*    else
+    {
+        /// have created actv, this happend in which connection have been disconnected
+        err = ble_start_connect_handle(actv_idx, g_peer_dev.addr_type, &(g_peer_dev.bdaddr), ble_at_cmd_cb);
+        if (err != kNoErr)
+            goto error;
+        msg = AT_CMD_RSP_SUCCEED;
+        os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+        rtos_deinit_semaphore(&ble_at_cmd_sema);
+        return err;
+    }
+*/
+error:
+    msg = AT_CMD_RSP_ERROR;
+    g_peer_dev.state = STATE_IDLE;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    if (ble_at_cmd_sema != NULL)
+        rtos_deinit_semaphore(&ble_at_cmd_sema);
+    return err;
+}
+
+int ble_disconnect_by_name_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    char *msg = NULL;
+    int err = kNoErr;
+    uint8_t conn_idx;
+    uint8_t central_count = 0;
+    ble_device_name_t dev;
+
+    if(!bk_ble_if_support_central(&central_count) || central_count == 0)
+    {
+        os_printf("not support central\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    if (argc != 1)
+    {
+        os_printf("input param error\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    os_memset(&dev, 0, sizeof(dev));
+
+    dev.len = os_strlen(argv[0]);
+    os_memcpy(dev.name, argv[0], dev.len);
+
+    if (!((STATE_CONNECTED == g_peer_dev.state) && (dev.len == g_peer_dev.dev.len) && (!os_memcmp(g_peer_dev.dev.name, dev.name, dev.len))))
+    {
+        err = kParamErr;
+        goto error;
+    }
+
+    if (ble_at_cmd_table[29].is_sync_cmd)
+    {
+        err = rtos_init_semaphore(&ble_at_cmd_sema, 1);
+        if(err != kNoErr){
+            goto error;
+        }
+    }
+
+    /// get connect_idx from connect_addr
+    conn_idx = bk_ble_find_conn_idx_from_addr(&g_peer_dev.bdaddr);
+    if (conn_idx == AT_BLE_MAX_CONN)
+    {
+        os_printf("ble not connection\n");
+        err = kNoResourcesErr;
+        goto error;
+    }
+
+    g_peer_dev.state = STATE_DISCONNECTINIG;
+
+    err = bk_ble_disconnect(conn_idx, ble_at_cmd_cb);
+    if (err != BK_ERR_BLE_SUCCESS)
+        goto error;
+    if(ble_at_cmd_sema != NULL) {
+        err = rtos_get_semaphore(&ble_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
+        if(err != kNoErr) {
+            goto error;
+        } else {
+            if (at_cmd_status == BK_ERR_BLE_SUCCESS)
+            {
+                msg = AT_CMD_RSP_SUCCEED;
+                os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+                rtos_deinit_semaphore(&ble_at_cmd_sema);
+                return 0;
+            }
+            else
+            {
+                err = at_cmd_status;
+                goto error;
+            }
+        }
+    }
+
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    if (ble_at_cmd_sema != NULL)
+        rtos_deinit_semaphore(&ble_at_cmd_sema);
+    return err;
+}
+
+
+
+int ble_create_periodic_sync_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    char *msg = NULL;
+    int err = kNoErr;
+    uint8_t actv_idx = 0;
+
+    if (ble_at_cmd_table[30].is_sync_cmd)
+    {
+        err = rtos_init_semaphore(&ble_at_cmd_sema, 1);
+        if(err != kNoErr){
+            goto error;
+        }
+    }
+
+    bk_ble_set_notice_cb(ble_at_notice_cb);
+    actv_idx = bk_ble_find_actv_state_idx_handle(AT_ACTV_PER_SYNC_CREATED);
+    if (actv_idx == AT_BLE_MAX_ACTV)
+    {
+        actv_idx = bk_ble_get_idle_actv_idx_handle();
+        if (actv_idx == UNKNOW_ACT_IDX)
+        {
+            err = kNoResourcesErr;
+            goto error;
+        }
+    }
+
+    err = bk_ble_create_periodic_sync(actv_idx, ble_at_cmd_cb);
+
+    if (err != BK_ERR_BLE_SUCCESS)
+        goto error;
+    if(ble_at_cmd_sema != NULL) {
+        err = rtos_get_semaphore(&ble_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
+        if(err != kNoErr) {
+            goto error;
+        } else {
+            if (at_cmd_status == BK_ERR_BLE_SUCCESS)
+            {
+                msg = AT_CMD_RSP_SUCCEED;
+                os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+                rtos_deinit_semaphore(&ble_at_cmd_sema);
+                return err;
+            }
+            else
+            {
+                err = at_cmd_status;
+                goto error;
+            }
+        }
+    }
+
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    if (ble_at_cmd_sema != NULL)
+        rtos_deinit_semaphore(&ble_at_cmd_sema);
+    return err;
+}
+
+int ble_start_periodic_sync_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    char *msg = NULL;
+    uint8_t actv_idx = 0;
+
+    int err = kNoErr;
+
+    ble_periodic_param_t periodic_param;
+
+    if (argc < 7)
+    {
+        os_printf("\nThe number of param is wrong!\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    os_memset(&periodic_param, 0, sizeof(periodic_param));
+
+    periodic_param.report_disable = os_strtoul(argv[0], NULL, 16) & 0xFF;
+    periodic_param.adv_sid = os_strtoul(argv[1], NULL, 16) & 0xFF;
+
+    err = get_addr_from_param(&periodic_param.adv_addr, argv[2]);
+    if (err != kNoErr)
+    {
+        os_printf("input param error\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    periodic_param.adv_addr_type = os_strtoul(argv[3], NULL, 16) & 0xFF;
+    periodic_param.skip = os_strtoul(argv[4], NULL, 16) & 0xFF;
+    periodic_param.sync_to = os_strtoul(argv[5], NULL, 16) & 0xFF;
+    periodic_param.cte_type = os_strtoul(argv[6], NULL, 16) & 0xFF;
+
+
+
+    if (1)
+    {
+        err = rtos_init_semaphore(&ble_at_cmd_sema, 1);
+        if(err != kNoErr){
+            goto error;
+        }
+    }
+    bk_ble_set_notice_cb(ble_at_notice_cb);
+
+
+    actv_idx = bk_ble_find_actv_state_idx_handle(AT_ACTV_PER_SYNC_CREATED);
+
+
+    if (actv_idx == AT_BLE_MAX_ACTV)
+    {
+        os_printf("periodic not create before\n");
+        err = kNoResourcesErr;
+        goto error;
+    }
+
+    err = bk_ble_start_periodic_sync(actv_idx, &periodic_param, ble_at_cmd_cb);
+
+    if (err != BK_ERR_BLE_SUCCESS)
+        goto error;
+    if(ble_at_cmd_sema != NULL) {
+        err = rtos_get_semaphore(&ble_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
+        if(err != kNoErr) {
+            goto error;
+        } else {
+            if (at_cmd_status == BK_ERR_BLE_SUCCESS)
+            {
+                msg = AT_CMD_RSP_SUCCEED;
+                os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+                rtos_deinit_semaphore(&ble_at_cmd_sema);
+                return 0;
+            }
+            else
+            {
+                err = at_cmd_status;
+                goto error;
+            }
+        }
+    }
+
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    if (ble_at_cmd_sema != NULL)
+        rtos_deinit_semaphore(&ble_at_cmd_sema);
+    return err;
+}
+
+
+int ble_stop_periodic_sync_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    char *msg = NULL;
+    uint8_t actv_idx = 0;
+
+    int err = kNoErr;
+
+    bd_addr_t addr;
+
+    if (argc < 1)
+    {
+        os_printf("\nThe number of param is wrong!\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    err = get_addr_from_param(&addr, argv[0]);
+    if (err != kNoErr)
+    {
+        os_printf("input param error\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    if (1)
+    {
+        err = rtos_init_semaphore(&ble_at_cmd_sema, 1);
+        if(err != kNoErr){
+            goto error;
+        }
+    }
+
+    bk_ble_set_notice_cb(ble_at_notice_cb);
+
+    actv_idx = bk_ble_find_actv_state_idx_handle(AT_ACTV_PER_SYNC_STARTED);
+
+    if (actv_idx == AT_BLE_MAX_ACTV)
+    {
+        os_printf("periodic not start before\n");
+        err = kNoResourcesErr;
+        goto error;
+    }
+
+    err = bk_ble_stop_periodic_sync(actv_idx, ble_at_cmd_cb);
+
+    if (err != BK_ERR_BLE_SUCCESS)
+        goto error;
+    if(ble_at_cmd_sema != NULL) {
+        err = rtos_get_semaphore(&ble_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
+        if(err != kNoErr) {
+            goto error;
+        } else {
+            if (at_cmd_status == BK_ERR_BLE_SUCCESS)
+            {
+                msg = AT_CMD_RSP_SUCCEED;
+                os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+                rtos_deinit_semaphore(&ble_at_cmd_sema);
+                return 0;
+            }
+            else
+            {
+                err = at_cmd_status;
+                goto error;
+            }
+        }
+    }
+
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    if (ble_at_cmd_sema != NULL)
+        rtos_deinit_semaphore(&ble_at_cmd_sema);
+    return err;
+}
+
 
 #endif

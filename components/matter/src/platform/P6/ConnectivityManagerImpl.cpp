@@ -21,9 +21,9 @@
 
 #include <platform/ConnectivityManager.h>
 #if CHIP_DEVICE_CONFIG_ENABLE_CHIPOBLE
-#include <platform/internal/GenericConnectivityManagerImpl_BLE.cpp>
+#include <platform/internal/GenericConnectivityManagerImpl_BLE.ipp>
 #endif
-#include <platform/internal/GenericConnectivityManagerImpl_WiFi.cpp>
+#include <platform/internal/GenericConnectivityManagerImpl_WiFi.ipp>
 
 #include <lib/support/CodeUtils.h>
 #include <lib/support/logging/CHIPLogging.h>
@@ -280,6 +280,7 @@ void ConnectivityManagerImpl::wlan_event_cb(cy_wcm_event_t event, cy_wcm_event_d
     case CY_WCM_EVENT_DISCONNECTED:
         ChipLogProgress(DeviceLayer, "CY_WCM_EVENT_DISCONNECTED");
         ConnectivityMgrImpl().ChangeWiFiStationState(kWiFiStationState_Disconnecting);
+        NetworkCommissioning::P6WiFiDriver::GetInstance().SetLastDisconnectReason(WLC_E_SUP_DEAUTH);
         break;
     case CY_WCM_EVENT_IP_CHANGED:
         ChipLogProgress(DeviceLayer, "CY_WCM_EVENT_IP_CHANGED");
@@ -323,6 +324,7 @@ void ConnectivityManagerImpl::ChangeWiFiStationState(WiFiStationState newState)
         ChipLogProgress(DeviceLayer, "WiFi station state change: %s -> %s", WiFiStationStateToStr(mWiFiStationState),
                         WiFiStationStateToStr(newState));
         mWiFiStationState = newState;
+        SystemLayer().ScheduleLambda([]() { NetworkCommissioning::P6WiFiDriver::GetInstance().OnNetworkStatusChange(); });
     }
 }
 

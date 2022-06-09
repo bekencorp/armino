@@ -19,7 +19,6 @@
 #pragma once
 
 #include <access/SubjectDescriptor.h>
-#include <app/ClusterInfo.h>
 #include <app/ConcreteAttributePath.h>
 #include <app/MessageDef/AttributeReportIBs.h>
 #include <app/data-model/DecodableList.h>
@@ -77,11 +76,19 @@ public:
     /**
      * EncodeValue encodes the value field of the report, it should be called exactly once.
      */
-    template <typename... Ts>
-    CHIP_ERROR EncodeValue(AttributeReportIBs::Builder & aAttributeReportIBs, Ts &&... aArgs)
+    template <typename T, std::enable_if_t<!DataModel::IsFabricScoped<T>::value, bool> = true, typename... Ts>
+    CHIP_ERROR EncodeValue(AttributeReportIBs::Builder & aAttributeReportIBs, T && item, Ts &&... aArgs)
     {
         return DataModel::Encode(*(aAttributeReportIBs.GetAttributeReport().GetAttributeData().GetWriter()),
-                                 TLV::ContextTag(to_underlying(AttributeDataIB::Tag::kData)), std::forward<Ts>(aArgs)...);
+                                 TLV::ContextTag(to_underlying(AttributeDataIB::Tag::kData)), item, std::forward<Ts>(aArgs)...);
+    }
+
+    template <typename T, std::enable_if_t<DataModel::IsFabricScoped<T>::value, bool> = true, typename... Ts>
+    CHIP_ERROR EncodeValue(AttributeReportIBs::Builder & aAttributeReportIBs, FabricIndex accessingFabricIndex, T && item,
+                           Ts &&... aArgs)
+    {
+        return DataModel::EncodeForRead(*(aAttributeReportIBs.GetAttributeReport().GetAttributeData().GetWriter()),
+                                        TLV::ContextTag(to_underlying(AttributeDataIB::Tag::kData)), accessingFabricIndex, item);
     }
 };
 
@@ -104,12 +111,14 @@ public:
         template <typename T, std::enable_if_t<DataModel::IsFabricScoped<T>::value, bool> = true>
         CHIP_ERROR Encode(T && aArg) const
         {
+            VerifyOrReturnError(aArg.GetFabricIndex() != kUndefinedFabricIndex, CHIP_ERROR_INVALID_FABRIC_ID);
+
             // If we are encoding for a fabric filtered attribute read and the fabric index does not match that present in the
             // request, skip encoding this list item.
             VerifyOrReturnError(!mAttributeValueEncoder.mIsFabricFiltered ||
                                     aArg.GetFabricIndex() == mAttributeValueEncoder.mAccessingFabricIndex,
                                 CHIP_NO_ERROR);
-            return mAttributeValueEncoder.EncodeListItem(std::forward<T>(aArg));
+            return mAttributeValueEncoder.EncodeListItem(mAttributeValueEncoder.mAccessingFabricIndex, std::forward<T>(aArg));
         }
 
         template <typename T, std::enable_if_t<!DataModel::IsFabricScoped<T>::value, bool> = true>
@@ -327,8 +336,9 @@ public:
     CHIP_ERROR Decode(T & aArg)
     {
         mTriedDecode = true;
-        // TODO: We may want to reject kUndefinedFabricIndex for writing fabric scoped data. mAccessingFabricIndex will be
-        // kUndefinedFabricIndex on PASE sessions.
+        // The WriteRequest comes with no fabric index, this will happen when receiving a write request on a PASE session before
+        // AddNOC.
+        VerifyOrReturnError(AccessingFabricIndex() != kUndefinedFabricIndex, CHIP_IM_GLOBAL_STATUS(UnsupportedAccess));
         ReturnErrorOnFailure(DataModel::Decode(mReader, aArg));
         aArg.SetFabricIndex(AccessingFabricIndex());
         return CHIP_NO_ERROR;
@@ -403,6 +413,33 @@ public:
      *    callbacks.
      */
     virtual CHIP_ERROR Write(const ConcreteDataAttributePath & aPath, AttributeValueDecoder & aDecoder) { return CHIP_NO_ERROR; }
+
+    /**
+     * Indicates the start of a series of list operations. This function will be called before the first Write operation of a series
+     * of consequence attribute data of the same attribute.
+     *
+     * 1) This function will be called if the client tries to set a nullable list attribute to null.
+     * 2) This function will only be called once for a series of consequent attribute data (regardless the kind of list operation)
+     * of the same attribute.
+     *
+     * @param [in] aPath indicates the path of the modified list.
+     */
+    virtual void OnListWriteBegin(const ConcreteAttributePath & aPath) {}
+
+    /**
+     * Indicates the end of a series of list operations. This function will be called after the last Write operation of a series
+     * of consequence attribute data of the same attribute.
+     *
+     * 1) This function will be called if the client tries to set a nullable list attribute to null.
+     * 2) This function will only be called once for a series of consequent attribute data (regardless the kind of list operation)
+     * of the same attribute.
+     * 3) When aWriteWasSuccessful is true, the data written must be consistent or the list is untouched.
+     *
+     * @param [in] aPath indicates the path of the modified list
+     * @param [in] aWriteWasSuccessful indicates whether the delivered list is complete.
+     *
+     */
+    virtual void OnListWriteEnd(const ConcreteAttributePath & aPath, bool aWriteWasSuccessful) {}
 
     /**
      * Mechanism for keeping track of a chain of AttributeAccessInterfaces.

@@ -22,7 +22,8 @@ set(PIGWEED_ROOT "${CHIP_ROOT}/third_party/pigweed/repo")
 include(${CHIP_ROOT}/config/nrfconnect/app/check-nrfconnect-version.cmake)
 
 # Load NCS/Zephyr build system
-set(CONF_FILE ${CHIP_ROOT}/config/nrfconnect/app/sample-defaults.conf prj.conf)
+set(CONF_FILE prj.conf)
+
 if(${BOARD} STREQUAL "nrf52840dongle_nrf52840")
     list(INSERT OVERLAY_CONFIG 0 ${CHIP_ROOT}/config/nrfconnect/app/overlay-usb_support.conf)
 endif()
@@ -87,6 +88,11 @@ target_link_libraries(app PUBLIC
   pw_log
   pw_rpc.nanopb.echo_service
   pw_rpc.server
+)
+
+# Workaround cyclic dependency between nrf_security libraries)
+target_link_libraries(mbedcrypto_base PUBLIC
+  mbedcrypto
 )
 
 include(${CHIP_ROOT}/config/nrfconnect/app/flashing.cmake)

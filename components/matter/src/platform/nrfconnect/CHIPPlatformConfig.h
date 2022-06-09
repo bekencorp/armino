@@ -31,18 +31,18 @@
 #define CHIP_CONFIG_PERSISTED_STORAGE_MAX_KEY_LENGTH 2
 
 #define CHIP_CONFIG_LIFETIIME_PERSISTED_COUNTER_KEY "rc"
-#define CHIP_CONFIG_PERSISTED_STORAGE_KEY_GLOBAL_MESSAGE_COUNTER "mc"
-
-#define CHIP_CONFIG_TIME_ENABLE_CLIENT 1
-#define CHIP_CONFIG_TIME_ENABLE_SERVER 0
 
 // ==================== Security Adaptations ====================
 
-// ==================== General Configuration Overrides ====================
+// Size of the statically allocated context for SHA256 operations in CryptoPAL
+// determined empirically.
+#ifdef CONFIG_CC3XX_BACKEND
+#define CHIP_CONFIG_SHA256_CONTEXT_SIZE 240
+#else
+#define CHIP_CONFIG_SHA256_CONTEXT_SIZE 208
+#endif
 
-#ifndef CHIP_CONFIG_MAX_PEER_NODES
-#define CHIP_CONFIG_MAX_PEER_NODES 16
-#endif // CHIP_CONFIG_MAX_PEER_NODES
+// ==================== General Configuration Overrides ====================
 
 #ifndef CHIP_CONFIG_MAX_UNSOLICITED_MESSAGE_HANDLERS
 #define CHIP_CONFIG_MAX_UNSOLICITED_MESSAGE_HANDLERS 8
@@ -51,14 +51,6 @@
 #ifndef CHIP_CONFIG_MAX_EXCHANGE_CONTEXTS
 #define CHIP_CONFIG_MAX_EXCHANGE_CONTEXTS 8
 #endif // CHIP_CONFIG_MAX_EXCHANGE_CONTEXTS
-
-#ifndef CHIP_CONFIG_MAX_ACTIVE_CHANNELS
-#define CHIP_CONFIG_MAX_ACTIVE_CHANNELS 8
-#endif // CHIP_CONFIG_MAX_ACTIVE_CHANNELS
-
-#ifndef CHIP_CONFIG_MAX_CHANNEL_HANDLES
-#define CHIP_CONFIG_MAX_CHANNEL_HANDLES 16
-#endif // CHIP_CONFIG_MAX_CHANNEL_HANDLES
 
 #ifndef CHIP_LOG_FILTERING
 #define CHIP_LOG_FILTERING 0

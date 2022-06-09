@@ -13,11 +13,10 @@
 
 #define BEKEN_DEFAULT_WORKER_PRIORITY      (6)
 #define BEKEN_APPLICATION_PRIORITY         (7)
-#ifndef CONFIG_MATTER
-#define kNanosecondsPerSecond              1000000000UUL
-#define kMicrosecondsPerSecond             1000000UL
-#define kMillisecondsPerSecond             1000
-#endif
+
+#define NanosecondsPerSecond              1000000000UUL
+#define MicrosecondsPerSecond             1000000UL
+#define MillisecondsPerSecond             1000
 
 #define BEKEN_NEVER_TIMEOUT                (0xFFFFFFFF)
 #define BEKEN_WAIT_FOREVER                 (0xFFFFFFFF)

@@ -37,7 +37,29 @@
 #include "los_hook.h"
 #include "los_interrupt.h"
 #include "los_task.h"
+#include "sdkconfig.h"
 
+#if CONFIG_LITEOS_M_BK
+
+#if (CONFIG_SOC_BK7231N)
+#define LOSCFG_SYS_HEAP_ADDR_END      (void*)(0x00400000 + 192 * 1024)
+#elif (CONFIG_SOC_BK7236) // TBD: mem size for bk7236
+#define LOSCFG_SYS_HEAP_ADDR_END      (void*)(0x00400000 + 192 * 1024)
+#elif (CONFIG_SOC_BK7271)
+#define LOSCFG_SYS_HEAP_ADDR_END      (void*)(0x00400000 + 512 * 1024)
+#elif (CONFIG_SOC_BK7235)
+#define LOSCFG_SYS_HEAP_ADDR_END      (void*)(0x30000000 + 512 * 1024)
+#elif (CONFIG_SOC_BK7237)
+#define LOSCFG_SYS_HEAP_ADDR_END      (void*)(0x30000000 + 384 * 1024)
+#elif (CONFIG_SOC_BK7256)
+#define LOSCFG_SYS_HEAP_ADDR_END      (void*)(0x30000000 + 384 * 1024)
+#elif (CONFIG_SOC_BK7256_CP1)
+#define LOSCFG_SYS_HEAP_ADDR_END      (void*)(0x30060000 + 127 * 1024) // 1k for swap
+#else
+#define LOSCFG_SYS_HEAP_ADDR_END      (void*)(0x00400000 + 256 * 1024)
+#endif
+
+#endif // CONFIG_LITEOS_M_BK
 
 /* Used to cut non-essential functions. */
 #define OS_MEM_EXPAND_ENABLE    0
@@ -297,7 +319,7 @@ STATIC INLINE UINT32 OsMemAllocCheck(struct OsMemPoolHead *pool, UINT32 intSave)
 
 STATIC INLINE VOID OsMemFreeNodeAdd(VOID *pool, struct OsMemFreeNodeHead *node);
 STATIC INLINE UINT32 OsMemFree(struct OsMemPoolHead *pool, struct OsMemNodeHead *node);
-STATIC VOID OsMemInfoPrint(VOID *pool);
+VOID OsMemInfoPrint(VOID *pool);
 
 #if (LOSCFG_MEM_FREE_BY_TASKID == 1 || LOSCFG_TASK_MEM_USED == 1)
 STATIC INLINE VOID OsMemNodeSetTaskID(struct OsMemUsedNodeHead *node)
@@ -1904,7 +1926,7 @@ UINT32 LOS_MemInfoGet(VOID *pool, LOS_MEM_POOL_STATUS *poolStatus)
     return LOS_OK;
 }
 
-STATIC VOID OsMemInfoPrint(VOID *pool)
+VOID OsMemInfoPrint(VOID *pool)
 {
 #if (LOSCFG_KERNEL_PRINTF != 0)
     struct OsMemPoolHead *poolInfo = (struct OsMemPoolHead *)pool;
@@ -1934,6 +1956,23 @@ STATIC VOID OsMemInfoPrint(VOID *pool)
            status.freeNodeNum);
 #endif
 #endif
+}
+
+UINT32 OsMemGetFreeSize(VOID *pool)
+{
+	UINT32 count = 0;
+
+#if (LOSCFG_KERNEL_PRINTF != 0)
+    LOS_MEM_POOL_STATUS status = {0};
+
+    if (LOS_MemInfoGet(pool, &status) == LOS_NOK) {
+        return 0;
+    }
+
+	count = status.totalFreeSize;
+#endif
+
+	return count;
 }
 
 UINT32 LOS_MemFreeNodeShow(VOID *pool)
@@ -2151,9 +2190,16 @@ UINT32 OsMemSystemInit(VOID)
     m_aucSysMem0 = LOSCFG_SYS_HEAP_ADDR;
 #endif
 
-    ret = LOS_MemInit(m_aucSysMem0, LOSCFG_SYS_HEAP_SIZE);
-    PRINT_INFO("LiteOS heap memory address:%p, size:0x%lx\n", m_aucSysMem0, LOSCFG_SYS_HEAP_SIZE);
-    return ret;
+#if (CONFIG_LITEOS_M_BK) && (LOSCFG_SYS_EXTERNAL_HEAP == 1)
+	UINT32 HEAP_SIZE = (UINT32)LOSCFG_SYS_HEAP_ADDR_END - (UINT32)LOSCFG_SYS_HEAP_ADDR;
+	ret = LOS_MemInit(m_aucSysMem0, HEAP_SIZE);
+	PRINT_INFO("LiteOS heap memory address:0x%x,size:0x%x\n", m_aucSysMem0, HEAP_SIZE);
+#else
+	ret = LOS_MemInit(m_aucSysMem0, LOSCFG_SYS_HEAP_SIZE);
+	PRINT_INFO("LiteOS heap memory address:%p, size:0x%lx\n", m_aucSysMem0, LOSCFG_SYS_HEAP_SIZE);
+#endif
+
+	return ret;
 }
 
 #if (LOSCFG_PLATFORM_EXC == 1)

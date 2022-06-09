@@ -42,7 +42,7 @@ void bk_wifi_debug_port_sel_pack(uint8_t debugportsel2, uint8_t debugportsel1);
 
 void bk_wifi_phy_wakeup_rf_reinit(void);
 void bk_wifi_phy_wakeup_wifi_reinit(void);
-
+void bk_wifi_get_mac_trx_status(bool reset_status);
 #ifdef __cplusplus
 }
 #endif

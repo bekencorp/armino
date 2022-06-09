@@ -921,6 +921,15 @@ void rtos_enable_int(uint32_t int_level)
 {
 	port_enable_interrupts_flag(int_level);
 }
+uint32_t rtos_disable_mie_int(void)
+{
+    return port_disable_mie_flag();
+}
+
+void rtos_enable_mie_int(uint32_t int_level)
+{
+	port_enable_mie_flag(int_level);
+}
 
 void rtos_stop_int(void)
 {
@@ -982,8 +991,8 @@ void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, Stack
 /* If the buffers to be provided to the Timer task are declared inside this
 function then they must be declared static - otherwise they will be allocated on
 the stack and so not exists after this function exits. */
-static StaticTask_t xTimerTaskTCB;
-static StackType_t uxTimerTaskStack[ configTIMER_TASK_STACK_DEPTH ];
+static __attribute__((section(".dtcm_sec_data "))) StaticTask_t xTimerTaskTCB;
+static __attribute__((section(".dtcm_sec_data "))) StackType_t uxTimerTaskStack[ configTIMER_TASK_STACK_DEPTH ];
 
     /* Pass out a pointer to the StaticTask_t structure in which the Timer
     task's state will be stored. */

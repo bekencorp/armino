@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-#define SOC_I2C_UNIT_NUM              2
+#define SOC_I2C_UNIT_NUM              1
 
 #ifdef __cplusplus
 }

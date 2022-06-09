@@ -21,7 +21,7 @@ import os
 from pathlib import Path
 import sys
 from threading import Thread
-from typing import Callable, Iterable, Optional, Union
+from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 
 from jinja2 import Environment, FileSystemLoader, make_logging_undefined
 from prompt_toolkit.clipboard.pyperclip import PyperclipClipboard
@@ -54,10 +54,13 @@ from ptpython.key_bindings import (  # type: ignore
     load_python_bindings, load_sidebar_bindings,
 )
 
+from pw_console.command_runner import CommandRunner
 from pw_console.console_prefs import ConsolePrefs
 from pw_console.help_window import HelpWindow
 import pw_console.key_bindings
 from pw_console.log_pane import LogPane
+from pw_console.log_store import LogStore
+from pw_console.plugins.twenty48_pane import Twenty48Pane
 from pw_console.pw_ptpython_repl import PwPtPythonRepl
 from pw_console.python_logging import all_loggers
 from pw_console.quit_dialog import QuitDialog
@@ -74,6 +77,9 @@ FAKE_DEVICE_LOGGER_NAME = 'pw_console_fake_device'
 _FAKE_DEVICE_LOG = logging.getLogger(FAKE_DEVICE_LOGGER_NAME)
 # Don't send fake_device logs to the root Python logger.
 _FAKE_DEVICE_LOG.propagate = False
+
+MAX_FPS = 15
+MIN_REDRAW_INTERVAL = (60.0 / MAX_FPS) / 60.0
 
 
 class FloatingMessageBar(ConditionalContainer):
@@ -119,7 +125,7 @@ def get_default_colordepth(
 class ConsoleApp:
     """The main ConsoleApp class that glues everything together."""
 
-    # pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-instance-attributes,too-many-public-methods
     def __init__(
         self,
         global_vars=None,
@@ -129,8 +135,9 @@ class ConsoleApp:
         app_title=None,
         color_depth=None,
         extra_completers=None,
+        prefs=None,
     ):
-        self.prefs = ConsolePrefs()
+        self.prefs = prefs if prefs else ConsolePrefs()
         self.color_depth = get_default_colordepth(color_depth)
 
         # Create a default global and local symbol table. Values are the same
@@ -182,10 +189,10 @@ class ConsoleApp:
 
         self.message.extend(
             pw_console.widgets.checkbox.to_keybind_indicator(
-                'F1',
-                'Help',
+                'Ctrl-p',
+                'Search Menu',
                 functools.partial(pw_console.widgets.mouse_handlers.on_click,
-                                  self.user_guide_window.toggle_display),
+                                  self.open_command_runner_main_menu),
                 base_style='class:toolbar-button-inactive',
             ))
         # One space separator
@@ -200,6 +207,16 @@ class ConsoleApp:
                                           additional_help_text=help_text,
                                           title=(self.app_title + ' Help'))
         self.app_help_window.generate_help_text()
+
+        self.prefs_file_window = HelpWindow(self, title='.pw_console.yaml')
+        self.prefs_file_window.load_yaml_text(
+            self.prefs.current_config_as_yaml())
+
+        self.game_2048 = Twenty48Pane(self, include_resize_handle=False)
+        self.game_2048.show_pane = False
+
+        # Used for tracking which pane was in focus before showing help window.
+        self.last_focused_pane = None
 
         # Create a ptpython repl instance.
         self.pw_ptpython_repl = PwPtPythonRepl(
@@ -236,63 +253,89 @@ class ConsoleApp:
         # Create help window text based global key_bindings and active panes.
         self._update_help_window()
 
+        self.command_runner = CommandRunner(
+            self,
+            width=self.prefs.command_runner_width,
+            height=self.prefs.command_runner_height,
+        )
+
+        self.floats = [
+            # Top message bar
+            Float(
+                content=FloatingMessageBar(self),
+                top=0,
+                right=0,
+                height=1,
+            ),
+            # Centered floating help windows
+            Float(
+                content=self.prefs_file_window,
+                top=2,
+                bottom=2,
+                # Callable to get width
+                width=self.prefs_file_window.content_width,
+            ),
+            Float(
+                content=self.app_help_window,
+                top=2,
+                bottom=2,
+                # Callable to get width
+                width=self.app_help_window.content_width,
+            ),
+            Float(
+                content=self.user_guide_window,
+                top=2,
+                bottom=2,
+                # Callable to get width
+                width=self.user_guide_window.content_width,
+            ),
+            Float(
+                content=self.keybind_help_window,
+                top=2,
+                bottom=2,
+                # Callable to get width
+                width=self.keybind_help_window.content_width,
+            ),
+            Float(
+                content=self.game_2048,
+                top=3,
+                left=4,
+            ),
+            # Completion menu that can overlap other panes since it lives in
+            # the top level Float container.
+            Float(
+                xcursor=True,
+                ycursor=True,
+                content=ConditionalContainer(
+                    content=CompletionsMenu(
+                        scroll_offset=(lambda: self.pw_ptpython_repl.
+                                       completion_menu_scroll_offset),
+                        max_height=16,
+                    ),
+                    # Only show our completion if ptpython's is disabled.
+                    filter=Condition(
+                        lambda: self.pw_ptpython_repl.completion_visualisation
+                        == CompletionVisualisation.NONE),
+                ),
+            ),
+            Float(
+                content=self.command_runner,
+                # Callable to get width
+                width=self.command_runner.content_width,
+                **self.prefs.command_runner_position,
+            ),
+            Float(
+                content=self.quit_dialog,
+                top=2,
+                left=2,
+            ),
+        ]
+
         # prompt_toolkit root container.
         self.root_container = MenuContainer(
             body=self.window_manager.create_root_container(),
             menu_items=self.menu_items,
-            floats=[
-                # Top message bar
-                Float(
-                    content=FloatingMessageBar(self),
-                    top=0,
-                    right=0,
-                    height=1,
-                ),
-                # Centered floating help windows
-                Float(
-                    content=self.app_help_window,
-                    top=2,
-                    bottom=2,
-                    # Callable to get width
-                    width=self.app_help_window.content_width,
-                ),
-                Float(
-                    content=self.user_guide_window,
-                    top=2,
-                    bottom=2,
-                    # Callable to get width
-                    width=self.user_guide_window.content_width,
-                ),
-                Float(
-                    content=self.keybind_help_window,
-                    top=2,
-                    bottom=2,
-                    # Callable to get width
-                    width=self.keybind_help_window.content_width,
-                ),
-                Float(
-                    content=self.quit_dialog,
-                    top=2,
-                    left=2,
-                ),
-                # Completion menu that can overlap other panes since it lives in
-                # the top level Float container.
-                Float(
-                    xcursor=True,
-                    ycursor=True,
-                    content=ConditionalContainer(
-                        content=CompletionsMenu(
-                            scroll_offset=(lambda: self.pw_ptpython_repl.
-                                           completion_menu_scroll_offset),
-                            max_height=16,
-                        ),
-                        # Only show our completion if ptpython's is disabled.
-                        filter=Condition(lambda: self.pw_ptpython_repl.
-                                         completion_visualisation ==
-                                         CompletionVisualisation.NONE),
-                    ),
-                ),
-            ],
+            floats=self.floats,
         )
 
         # NOTE: ptpython stores it's completion menus in this HSplit:
@@ -319,7 +362,6 @@ class ConsoleApp:
         # Create the prompt_toolkit Application instance.
         self.application: Application = Application(
             layout=self.layout,
-            after_render=self.run_after_render_hooks,
             key_bindings=merge_key_bindings([
                 # Pull key bindings from ptpython
                 load_python_bindings(self.pw_ptpython_repl),
@@ -338,6 +380,7 @@ class ConsoleApp:
             mouse_support=True,
             color_depth=self.color_depth,
             clipboard=PyperclipClipboard(),
+            min_redraw_interval=MIN_REDRAW_INTERVAL,
         )
 
     def get_template(self, file_name: str):
@@ -387,24 +430,37 @@ class ConsoleApp:
         self.menu_items = self._create_menu_items()
         self.root_container.menu_items = self.menu_items
 
-    def _create_logger_submenu(self):
-        submenu = [
-            MenuItem(
+    def open_command_runner_main_menu(self) -> None:
+        self.command_runner.set_completions()
+        if not self.command_runner_is_open():
+            self.command_runner.open_dialog()
+
+    def open_command_runner_loggers(self) -> None:
+        self.command_runner.set_completions(
+            window_title='Open Logger',
+            load_completions=self._create_logger_completions)
+        if not self.command_runner_is_open():
+            self.command_runner.open_dialog()
+
+    def _create_logger_completions(self) -> List[Tuple[str, Callable]]:
+        completions: List[Tuple[str, Callable]] = [
+            (
                 'root',
-                handler=functools.partial(self.open_new_log_pane_for_logger,
-                                          '',
-                                          window_title='root'),
-            )
+                functools.partial(self.open_new_log_pane_for_logger,
+                                  '',
+                                  window_title='root'),
+            ),
         ]
+
         all_logger_names = sorted([logger.name for logger in all_loggers()])
+
         for logger_name in all_logger_names:
-            submenu.append(
-                MenuItem(
-                    logger_name,
-                    handler=functools.partial(
-                        self.open_new_log_pane_for_logger, logger_name),
-                ))
-        return submenu
+            completions.append((
+                logger_name,
+                functools.partial(self.open_new_log_pane_for_logger,
+                                  logger_name),
+            ))
+        return completions
 
     def _create_menu_items(self):
         themes_submenu = [
@@ -454,7 +510,7 @@ class ConsoleApp:
                 '[File]',
                 children=[
                     MenuItem('Open Logger',
-                             children=self._create_logger_submenu()),
+                             handler=self.open_command_runner_loggers),
                     MenuItem(
                         'Log Table View',
                         children=[
@@ -507,6 +563,13 @@ class ConsoleApp:
                         'Themes',
                         children=themes_submenu,
                     ),
+                    MenuItem('Games',
+                             children=[
+                                 MenuItem(
+                                     '2048',
+                                     handler=self.game_2048.open_dialog,
+                                 ),
+                             ]),
                     MenuItem('-'),
                     MenuItem('Exit', handler=self.exit_console),
                 ],
@@ -520,6 +583,11 @@ class ConsoleApp:
                     MenuItem('Paste to Python Input',
                              handler=self.repl_pane.
                              paste_system_clipboard_to_input_buffer),
+                    MenuItem('-'),
+                    MenuItem('Copy all Python Output',
+                             handler=self.repl_pane.copy_all_output_text),
+                    MenuItem('Copy all Python Input',
+                             handler=self.repl_pane.copy_all_input_text),
                 ],
             ),
         ]
@@ -598,6 +666,9 @@ class ConsoleApp:
                      handler=self.user_guide_window.toggle_display),
             MenuItem(self.keybind_help_window.menu_title(),
                      handler=self.keybind_help_window.toggle_display),
+            MenuItem('-'),
+            MenuItem('View Key Binding Config',
+                     handler=self.prefs_file_window.toggle_display),
         ]
 
         if self.app_help_text:
@@ -623,7 +694,13 @@ class ConsoleApp:
 
     def focus_on_container(self, pane):
         """Set application focus to a specific container."""
-        self.application.layout.focus(pane)
+        # Try to focus on the given pane
+        try:
+            self.application.layout.focus(pane)
+        except ValueError:
+            # If the container can't be focused, focus on the first visible
+            # window pane.
+            self.window_manager.focus_first_visible_pane()
 
     def toggle_light_theme(self):
         """Toggle light and dark theme colors."""
@@ -642,9 +719,13 @@ class ConsoleApp:
         if theme_name:
             self.prefs.set_ui_theme(theme_name)
 
-    def _create_log_pane(self, title=None) -> 'LogPane':
+    def _create_log_pane(self,
+                         title: str = '',
+                         log_store: Optional[LogStore] = None) -> 'LogPane':
         # Create one log pane.
-        log_pane = LogPane(application=self, pane_title=title)
+        log_pane = LogPane(application=self,
+                           pane_title=title,
+                           log_store=log_store)
         self.window_manager.add_pane(log_pane)
         return log_pane
 
@@ -663,7 +744,7 @@ class ConsoleApp:
     def add_log_handler(
             self,
             window_title: str,
-            logger_instances: Iterable[logging.Logger],
+            logger_instances: Union[Iterable[logging.Logger], LogStore],
             separate_log_panes: bool = False,
             log_level_name: Optional[str] = None) -> Optional[LogPane]:
         """Add the Log pane as a handler for this logger instance."""
@@ -675,11 +756,18 @@ class ConsoleApp:
                 existing_log_pane = pane
                 break
 
-        if not existing_log_pane or separate_log_panes:
-            existing_log_pane = self._create_log_pane(title=window_title)
+        log_store: Optional[LogStore] = None
+        if isinstance(logger_instances, LogStore):
+            log_store = logger_instances
 
-        for logger in logger_instances:
-            _add_log_handler_to_pane(logger, existing_log_pane, log_level_name)
+        if not existing_log_pane or separate_log_panes:
+            existing_log_pane = self._create_log_pane(title=window_title,
+                                                      log_store=log_store)
+
+        if isinstance(logger_instances, list):
+            for logger in logger_instances:
+                _add_log_handler_to_pane(logger, existing_log_pane,
+                                         log_level_name)
 
         self.refresh_layout()
         return existing_log_pane
@@ -688,12 +776,6 @@ class ConsoleApp:
         """Entry point for the user code thread."""
         asyncio.set_event_loop(self.user_code_loop)
         self.user_code_loop.run_forever()
-
-    def run_after_render_hooks(self, *unused_args, **unused_kwargs):
-        """Run each active pane's `after_render_hook` if defined."""
-        for pane in self.window_manager.active_panes():
-            if hasattr(pane, 'after_render_hook'):
-                pane.after_render_hook()
 
     def start_user_code_thread(self):
         """Create a thread for running user code so the UI isn't blocked."""
@@ -743,16 +825,26 @@ class ConsoleApp:
         """Return the currently focused window."""
         return self.application.layout.current_window
 
+    def command_runner_is_open(self) -> bool:
+        return self.command_runner.show_dialog
+
+    def command_runner_last_focused_pane(self) -> Any:
+        return self.command_runner.last_focused_pane
+
     def modal_window_is_open(self):
         """Return true if any modal window or dialog is open."""
         if self.app_help_text:
             return (self.app_help_window.show_window
                     or self.keybind_help_window.show_window
+                    or self.prefs_file_window.show_window
                     or self.user_guide_window.show_window
-                    or self.quit_dialog.show_dialog)
+                    or self.quit_dialog.show_dialog or self.game_2048.show_pane
+                    or self.command_runner.show_dialog)
         return (self.keybind_help_window.show_window
+                or self.prefs_file_window.show_window
                 or self.user_guide_window.show_window
-                or self.quit_dialog.show_dialog)
+                or self.quit_dialog.show_dialog or self.game_2048.show_pane
+                or self.command_runner.show_dialog)
 
     def exit_console(self):
         """Quit the console prompt_toolkit application UI."""
@@ -770,22 +862,17 @@ class ConsoleApp:
         if test_mode:
             background_log_task = asyncio.create_task(self.log_forever())
 
-        background_menu_updater_task = asyncio.create_task(
-            self.background_menu_updater())
+        # Repl pane has focus by default, if it's hidden switch focus to another
+        # visible pane.
+        if not self.repl_pane.show_pane:
+            self.window_manager.focus_first_visible_pane()
+
         try:
             unused_result = await self.application.run_async(
                 set_exception_handler=True)
         finally:
             if test_mode:
                 background_log_task.cancel()
-            background_menu_updater_task.cancel()
-
-    async def background_menu_updater(self):
-        """Periodically update main menu items to capture new logger names."""
-        while True:
-            await asyncio.sleep(30)
-            _LOG.debug('Update main menu items')
-            self.update_menu_items()
 
     async def log_forever(self):
         """Test mode async log generator coroutine that runs forever."""

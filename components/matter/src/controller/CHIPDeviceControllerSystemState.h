@@ -29,8 +29,14 @@
 
 #pragma once
 
+#include <app/CASEClientPool.h>
+#include <app/CASESessionManager.h>
 #include <credentials/FabricTable.h>
+#include <credentials/GroupDataProvider.h>
+#include <lib/core/CHIPConfig.h>
+#include <protocols/secure_channel/CASEServer.h>
 #include <protocols/secure_channel/MessageCounterManager.h>
+
 #include <transport/TransportMgr.h>
 #include <transport/raw/UDP.h>
 #if CONFIG_DEVICE_LAYER
@@ -61,17 +67,30 @@ namespace Controller {
 
 struct DeviceControllerSystemStateParams
 {
+    using OperationalDevicePool = OperationalDeviceProxyPool<CHIP_CONFIG_CONTROLLER_MAX_ACTIVE_DEVICES>;
+    using CASEClientPool        = chip::CASEClientPool<CHIP_CONFIG_CONTROLLER_MAX_ACTIVE_CASE_CLIENTS>;
+
+    // Params that can outlive the DeviceControllerSystemState
     System::Layer * systemLayer                                   = nullptr;
     Inet::EndPointManager<Inet::TCPEndPoint> * tcpEndPointManager = nullptr;
     Inet::EndPointManager<Inet::UDPEndPoint> * udpEndPointManager = nullptr;
 #if CONFIG_NETWORK_LAYER_BLE
     Ble::BleLayer * bleLayer = nullptr;
 #endif
+    Credentials::GroupDataProvider * groupDataProvider = nullptr;
+
+    // Params that will be deallocated via Platform::Delete in
+    // DeviceControllerSystemState::Shutdown.
     DeviceTransportMgr * transportMgr                             = nullptr;
+    SessionResumptionStorage * sessionResumptionStorage           = nullptr;
     SessionManager * sessionMgr                                   = nullptr;
     Messaging::ExchangeManager * exchangeMgr                      = nullptr;
     secure_channel::MessageCounterManager * messageCounterManager = nullptr;
     FabricTable * fabricTable                                     = nullptr;
+    CASEServer * caseServer                                       = nullptr;
+    CASESessionManager * caseSessionManager                       = nullptr;
+    OperationalDevicePool * operationalDevicePool                 = nullptr;
+    CASEClientPool * caseClientPool                               = nullptr;
 };
 
 // A representation of the internal state maintained by the DeviceControllerFactory
@@ -79,12 +98,18 @@ struct DeviceControllerSystemStateParams
 // Expects that the creator of this object is the last one to release it.
 class DeviceControllerSystemState
 {
+    using OperationalDevicePool = DeviceControllerSystemStateParams::OperationalDevicePool;
+    using CASEClientPool        = DeviceControllerSystemStateParams::CASEClientPool;
+
 public:
     ~DeviceControllerSystemState(){};
     DeviceControllerSystemState(DeviceControllerSystemStateParams params) :
         mSystemLayer(params.systemLayer), mTCPEndPointManager(params.tcpEndPointManager),
         mUDPEndPointManager(params.udpEndPointManager), mTransportMgr(params.transportMgr), mSessionMgr(params.sessionMgr),
-        mExchangeMgr(params.exchangeMgr), mMessageCounterManager(params.messageCounterManager), mFabrics(params.fabricTable)
+        mExchangeMgr(params.exchangeMgr), mMessageCounterManager(params.messageCounterManager), mFabrics(params.fabricTable),
+        mCASEServer(params.caseServer), mCASESessionManager(params.caseSessionManager),
+        mOperationalDevicePool(params.operationalDevicePool), mCASEClientPool(params.caseClientPool),
+        mGroupDataProvider(params.groupDataProvider)
     {
 #if CONFIG_NETWORK_LAYER_BLE
         mBleLayer = params.bleLayer;
@@ -116,20 +141,23 @@ public:
     bool IsInitialized()
     {
         return mSystemLayer != nullptr && mUDPEndPointManager != nullptr && mTransportMgr != nullptr && mSessionMgr != nullptr &&
-            mExchangeMgr != nullptr && mMessageCounterManager != nullptr && mFabrics != nullptr;
+            mExchangeMgr != nullptr && mMessageCounterManager != nullptr && mFabrics != nullptr && mCASESessionManager != nullptr &&
+            mOperationalDevicePool != nullptr && mCASEClientPool != nullptr && mGroupDataProvider != nullptr;
     };
 
-    System::Layer * SystemLayer() { return mSystemLayer; };
-    Inet::EndPointManager<Inet::TCPEndPoint> * TCPEndPointManager() { return mTCPEndPointManager; };
-    Inet::EndPointManager<Inet::UDPEndPoint> * UDPEndPointManager() { return mUDPEndPointManager; };
-    DeviceTransportMgr * TransportMgr() { return mTransportMgr; };
-    SessionManager * SessionMgr() { return mSessionMgr; };
-    Messaging::ExchangeManager * ExchangeMgr() { return mExchangeMgr; }
-    secure_channel::MessageCounterManager * MessageCounterManager() { return mMessageCounterManager; };
-    FabricTable * Fabrics() { return mFabrics; };
+    System::Layer * SystemLayer() const { return mSystemLayer; };
+    Inet::EndPointManager<Inet::TCPEndPoint> * TCPEndPointManager() const { return mTCPEndPointManager; };
+    Inet::EndPointManager<Inet::UDPEndPoint> * UDPEndPointManager() const { return mUDPEndPointManager; };
+    DeviceTransportMgr * TransportMgr() const { return mTransportMgr; };
+    SessionManager * SessionMgr() const { return mSessionMgr; };
+    Messaging::ExchangeManager * ExchangeMgr() const { return mExchangeMgr; }
+    secure_channel::MessageCounterManager * MessageCounterManager() const { return mMessageCounterManager; };
+    FabricTable * Fabrics() const { return mFabrics; };
 #if CONFIG_NETWORK_LAYER_BLE
-    Ble::BleLayer * BleLayer() { return mBleLayer; };
+    Ble::BleLayer * BleLayer() const { return mBleLayer; };
 #endif
+    CASESessionManager * CASESessionMgr() const { return mCASESessionManager; }
+    Credentials::GroupDataProvider * GetGroupDataProvider() const { return mGroupDataProvider; }
 
 private:
     DeviceControllerSystemState(){};
@@ -145,6 +173,11 @@ private:
     Messaging::ExchangeManager * mExchangeMgr                      = nullptr;
     secure_channel::MessageCounterManager * mMessageCounterManager = nullptr;
     FabricTable * mFabrics                                         = nullptr;
+    CASEServer * mCASEServer                                       = nullptr;
+    CASESessionManager * mCASESessionManager                       = nullptr;
+    OperationalDevicePool * mOperationalDevicePool                 = nullptr;
+    CASEClientPool * mCASEClientPool                               = nullptr;
+    Credentials::GroupDataProvider * mGroupDataProvider            = nullptr;
 
     std::atomic<uint32_t> mRefCount{ 1 };
 

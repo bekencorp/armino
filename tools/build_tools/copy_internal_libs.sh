@@ -19,6 +19,8 @@ copy_libs()
 			cp -rf ${dir}/*.a ${s_bk_libs_dir}/${s_soc}/libs/
 		fi
 	done
+
+	cp -rf ${s_armino_dir}/properties/modules/audio_codec/aac_decoder/libaac_decoder.a ${s_bk_libs_dir}/${s_soc}/libs/
 }
 
 copy_sdkconfig()

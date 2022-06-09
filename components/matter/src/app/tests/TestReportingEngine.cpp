@@ -66,10 +66,11 @@ class TestExchangeDelegate : public Messaging::ExchangeDelegate
     void OnResponseTimeout(Messaging::ExchangeContext * ec) override {}
 };
 
-class DummyDelegate : public ReadHandler::Callback
+class DummyDelegate : public ReadHandler::ManagementCallback
 {
 public:
     void OnDone(ReadHandler & apHandler) override {}
+    chip::app::ReadHandler::ApplicationCallback * GetAppCallback() override { return nullptr; }
 };
 
 void TestReportingEngine::TestBuildAndSendSingleReportData(nlTestSuite * apSuite, void * apContext)
@@ -81,7 +82,7 @@ void TestReportingEngine::TestBuildAndSendSingleReportData(nlTestSuite * apSuite
     ReadRequestMessage::Builder readRequestBuilder;
     DummyDelegate dummy;
 
-    err = InteractionModelEngine::GetInstance()->Init(&ctx.GetExchangeManager());
+    err = InteractionModelEngine::GetInstance()->Init(&ctx.GetExchangeManager(), &ctx.GetFabricTable());
     NL_TEST_ASSERT(apSuite, err == CHIP_NO_ERROR);
     TestExchangeDelegate delegate;
     Messaging::ExchangeContext * exchangeCtx = ctx.NewExchangeToAlice(&delegate);
@@ -117,26 +118,61 @@ void TestReportingEngine::TestMergeOverlappedAttributePath(nlTestSuite * apSuite
 {
     TestContext & ctx = *static_cast<TestContext *>(apContext);
     CHIP_ERROR err    = CHIP_NO_ERROR;
-    err               = InteractionModelEngine::GetInstance()->Init(&ctx.GetExchangeManager());
+    err               = InteractionModelEngine::GetInstance()->Init(&ctx.GetExchangeManager(), &ctx.GetFabricTable());
     NL_TEST_ASSERT(apSuite, err == CHIP_NO_ERROR);
 
-    ClusterInfo * clusterInfo = InteractionModelEngine::GetInstance()->GetReportingEngine().mGlobalDirtySet.CreateObject();
-    clusterInfo->mAttributeId = 1;
+    AttributePathParams * clusterInfo = InteractionModelEngine::GetInstance()->GetReportingEngine().mGlobalDirtySet.CreateObject();
+    clusterInfo->mEndpointId          = 1;
+    clusterInfo->mClusterId           = 1;
+    clusterInfo->mAttributeId         = 1;
 
     {
-        chip::app::ClusterInfo testClusterInfo;
+        AttributePathParams testClusterInfo;
+        testClusterInfo.mEndpointId  = 1;
+        testClusterInfo.mClusterId   = 1;
         testClusterInfo.mAttributeId = 3;
         NL_TEST_ASSERT(apSuite,
                        !InteractionModelEngine::GetInstance()->GetReportingEngine().MergeOverlappedAttributePath(testClusterInfo));
     }
     {
-        chip::app::ClusterInfo testClusterInfo;
+        AttributePathParams testClusterInfo;
+        testClusterInfo.mEndpointId  = 1;
+        testClusterInfo.mClusterId   = 1;
         testClusterInfo.mAttributeId = 1;
         testClusterInfo.mListIndex   = 2;
         NL_TEST_ASSERT(apSuite,
                        InteractionModelEngine::GetInstance()->GetReportingEngine().MergeOverlappedAttributePath(testClusterInfo));
     }
 
+    {
+        AttributePathParams testClusterInfo;
+        testClusterInfo.mEndpointId  = 1;
+        testClusterInfo.mClusterId   = 1;
+        testClusterInfo.mAttributeId = kInvalidAttributeId;
+        NL_TEST_ASSERT(apSuite,
+                       InteractionModelEngine::GetInstance()->GetReportingEngine().MergeOverlappedAttributePath(testClusterInfo));
+    }
+
+    {
+        AttributePathParams testClusterInfo;
+        testClusterInfo.mClusterId   = kInvalidClusterId;
+        testClusterInfo.mAttributeId = kInvalidAttributeId;
+        NL_TEST_ASSERT(apSuite,
+                       InteractionModelEngine::GetInstance()->GetReportingEngine().MergeOverlappedAttributePath(testClusterInfo));
+        NL_TEST_ASSERT(apSuite, clusterInfo->mClusterId == kInvalidClusterId && clusterInfo->mAttributeId == kInvalidAttributeId);
+    }
+
+    {
+        AttributePathParams testClusterInfo;
+        testClusterInfo.mEndpointId  = kInvalidEndpointId;
+        testClusterInfo.mClusterId   = kInvalidClusterId;
+        testClusterInfo.mAttributeId = kInvalidAttributeId;
+        NL_TEST_ASSERT(apSuite,
+                       InteractionModelEngine::GetInstance()->GetReportingEngine().MergeOverlappedAttributePath(testClusterInfo));
+        NL_TEST_ASSERT(apSuite,
+                       clusterInfo->mEndpointId == kInvalidEndpointId && clusterInfo->mClusterId == kInvalidClusterId &&
+                           clusterInfo->mAttributeId == kInvalidAttributeId);
+    }
     InteractionModelEngine::GetInstance()->GetReportingEngine().Shutdown();
 }
 

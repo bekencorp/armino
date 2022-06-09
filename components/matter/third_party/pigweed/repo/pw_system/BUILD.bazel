@@ -22,6 +22,10 @@ package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 
+# WARNING: Many of the dependencies in this file are missing and need to be
+# added/updated. This is provided as a starting point, but currently does not
+# work.
+
 pw_cc_library(
     name = "config",
     hdrs = [
@@ -37,43 +41,66 @@ pw_cc_library(
     hdrs = [
         "pw_system_private/log.h",
     ],
-    includes = ["public"],
     deps = [
-        ":logger",
-        ":rpc",
-        "//pw_bytes",
-        "//pw_chrono:system_clock",
-        "//pw_log",
-        "//pw_log:proto_utils",
+        ":config",
+        ":rpc_server",
         "//pw_log_rpc:log_service",
         "//pw_log_rpc:rpc_log_drain",
         "//pw_log_rpc:rpc_log_drain_thread",
+        "//pw_multisink",
+        "//pw_sync:lock_annotations",
+        "//pw_sync:mutex",
+    ],
+)
+
+pw_cc_library(
+    name = "log_backend",
+    srcs = [
+        "log_backend.cc",
+    ],
+    deps = [
+        ":config",
+        ":log",
+        "//pw_bytes",
+        "//pw_chrono:system_clock",
+        "//pw_log:facade",
+        "//pw_log:proto_utils",
+        "//pw_log_string:handler_facade",
         "//pw_log_tokenized:metadata",
         "//pw_multisink",
         "//pw_result",
+        "//pw_string",
         "//pw_sync:interrupt_spin_lock",
         "//pw_sync:lock_annotations",
-        "//pw_sync:mutex",
         "//pw_tokenizer",
     ],
 )
 
 pw_cc_library(
-    name = "rpc",
-    srcs = [
-        "rpc.cc",
-    ],
+    name = "rpc_server",
     hdrs = [
-        "pw_system_private/rpc.h",
+        "public/pw_system/rpc_server.h",
+    ],
+    includes = ["public"],
+    deps = [
+        ":config",
+        ":hdlc_rpc_server",
+    ],
+)
+
+pw_cc_library(
+    name = "hdlc_rpc_server",
+    srcs = [
+        "hdlc_rpc_server.cc",
     ],
     includes = ["public"],
     deps = [
         ":io",
+        ":rpc_server",
         ":target_io",
         "//pw_assert",
         "//pw_hdlc:pw_rpc",
         "//pw_hdlc:rpc_channel_output",
-        "//pw_rpc/system_server:facade",
         "//pw_sync:mutex",
         "//pw_thread:thread_core",
     ],
@@ -100,7 +127,7 @@ pw_cc_library(
     includes = ["public"],
     deps = [
         ":log",
-        ":rpc",
+        ":rpc_server",
         "//pw_rpc/nanopb:echo_service",
         "//pw_thread:thread",
     ],

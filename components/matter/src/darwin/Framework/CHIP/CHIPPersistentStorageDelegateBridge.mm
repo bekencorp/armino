@@ -51,25 +51,13 @@ std::string Base64ToString(const std::string & b64Value)
 
 } // namespace
 
-CHIPPersistentStorageDelegateBridge::CHIPPersistentStorageDelegateBridge(void)
-    : mDelegate(nil)
+CHIPPersistentStorageDelegateBridge::CHIPPersistentStorageDelegateBridge(id<CHIPPersistentStorageDelegate> delegate)
+    : mDelegate(delegate)
+    , mWorkQueue(dispatch_queue_create("com.zigbee.chip.framework.storage.workqueue", DISPATCH_QUEUE_SERIAL))
 {
-    mDefaultPersistentStorage = [[NSUserDefaults alloc] init];
-    mWorkQueue = dispatch_queue_create("com.zigbee.chip.framework.storage.workqueue", DISPATCH_QUEUE_SERIAL);
 }
 
 CHIPPersistentStorageDelegateBridge::~CHIPPersistentStorageDelegateBridge(void) {}
-
-void CHIPPersistentStorageDelegateBridge::setFrameworkDelegate(_Nullable id<CHIPPersistentStorageDelegate> delegate)
-{
-    dispatch_async(mWorkQueue, ^{
-        if (delegate) {
-            mDelegate = delegate;
-        } else {
-            mDelegate = nil;
-        }
-    });
-}
 
 CHIP_ERROR CHIPPersistentStorageDelegateBridge::SyncGetKeyValue(const char * key, void * buffer, uint16_t & size)
 {
@@ -81,23 +69,19 @@ CHIP_ERROR CHIPPersistentStorageDelegateBridge::SyncGetKeyValue(const char * key
 
         NSString * valueString = nil;
 
-        id<CHIPPersistentStorageDelegate> strongDelegate = mDelegate;
-        if (strongDelegate) {
-            valueString = [strongDelegate CHIPGetKeyValue:keyString];
-        } else {
-            valueString = [mDefaultPersistentStorage objectForKey:keyString];
-        }
+        valueString = [mDelegate CHIPGetKeyValue:keyString];
 
         if (valueString != nil) {
             std::string decoded = Base64ToString([valueString UTF8String]);
 
             if (decoded.length() > UINT16_MAX) {
                 error = CHIP_ERROR_BUFFER_TOO_SMALL;
+                size = 0;
             } else {
                 if (buffer != nullptr) {
                     memcpy(buffer, decoded.data(), std::min<size_t>(decoded.length(), size));
                     if (size < decoded.length()) {
-                        error = CHIP_ERROR_NO_MEMORY;
+                        error = CHIP_ERROR_BUFFER_TOO_SMALL;
                     }
                 } else {
                     error = CHIP_ERROR_NO_MEMORY;
@@ -105,7 +89,7 @@ CHIP_ERROR CHIPPersistentStorageDelegateBridge::SyncGetKeyValue(const char * key
                 size = static_cast<uint16_t>(decoded.length());
             }
         } else {
-            error = CHIP_ERROR_KEY_NOT_FOUND;
+            error = CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND;
         }
     });
     return error;
@@ -121,12 +105,7 @@ CHIP_ERROR CHIPPersistentStorageDelegateBridge::SyncSetKeyValue(const char * key
     dispatch_sync(mWorkQueue, ^{
         NSLog(@"PersistentStorageDelegate Set Key %@", keyString);
 
-        id<CHIPPersistentStorageDelegate> strongDelegate = mDelegate;
-        if (strongDelegate) {
-            [strongDelegate CHIPSetKeyValue:keyString value:valueString];
-        } else {
-            [mDefaultPersistentStorage setObject:valueString forKey:keyString];
-        }
+        [mDelegate CHIPSetKeyValue:keyString value:valueString];
     });
 
     // TODO: ideally the error from the dispatch should be returned
@@ -142,12 +121,7 @@ CHIP_ERROR CHIPPersistentStorageDelegateBridge::SyncDeleteKeyValue(const char * 
     dispatch_sync(mWorkQueue, ^{
         NSLog(@"PersistentStorageDelegate Delete Key: %@", keyString);
 
-        id<CHIPPersistentStorageDelegate> strongDelegate = mDelegate;
-        if (strongDelegate) {
-            [strongDelegate CHIPDeleteKeyValue:keyString];
-        } else {
-            [mDefaultPersistentStorage removeObjectForKey:keyString];
-        }
+        [mDelegate CHIPDeleteKeyValue:keyString];
     });
 
     // TODO: ideally the error from the dispatch should be returned

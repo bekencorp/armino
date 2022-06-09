@@ -1,0 +1,5 @@
+menu "DEMOS_DOORBELL"
+	config DOORBELL
+		bool "Enable doorbell"
+		default n
+endmenu

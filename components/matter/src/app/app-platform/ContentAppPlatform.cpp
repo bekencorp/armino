@@ -24,6 +24,7 @@
 #include <app-common/zap-generated/ids/Attributes.h>
 #include <app-common/zap-generated/ids/Clusters.h>
 #include <app/app-platform/ContentAppPlatform.h>
+#include <app/server/Server.h>
 #include <lib/core/CHIPCore.h>
 #include <lib/core/DataModelTypes.h>
 #include <lib/support/CHIPArgParser.hpp>
@@ -38,6 +39,7 @@
 using namespace chip;
 using namespace chip::AppPlatform;
 using namespace chip::app::Clusters;
+using namespace chip::Access;
 using ApplicationStatusEnum   = app::Clusters::ApplicationBasic::ApplicationStatusEnum;
 using GetSetupPINResponseType = app::Clusters::AccountLogin::Commands::GetSetupPINResponse::Type;
 
@@ -50,7 +52,7 @@ EmberAfStatus emberAfExternalAttributeReadCallback(EndpointId endpoint, ClusterI
 {
     uint16_t endpointIndex = emberAfGetDynamicIndexFromEndpoint(endpoint);
 
-    ChipLogProgress(DeviceLayer, "emberAfExternalAttributeReadCallback endpoint %d ", endpointIndex);
+    ChipLogDetail(DeviceLayer, "emberAfExternalAttributeReadCallback endpoint %d ", endpointIndex);
 
     EmberAfStatus ret = EMBER_ZCL_STATUS_FAILURE;
 
@@ -68,7 +70,7 @@ EmberAfStatus emberAfExternalAttributeWriteCallback(EndpointId endpoint, Cluster
 {
     uint16_t endpointIndex = emberAfGetDynamicIndexFromEndpoint(endpoint);
 
-    ChipLogProgress(DeviceLayer, "emberAfExternalAttributeWriteCallback endpoint %d ", endpointIndex);
+    ChipLogDetail(DeviceLayer, "emberAfExternalAttributeWriteCallback endpoint %d ", endpointIndex);
 
     EmberAfStatus ret = EMBER_ZCL_STATUS_FAILURE;
 
@@ -84,8 +86,9 @@ EmberAfStatus emberAfExternalAttributeWriteCallback(EndpointId endpoint, Cluster
 namespace chip {
 namespace AppPlatform {
 
-EndpointId ContentAppPlatform::AddContentApp(ContentApp * app, EmberAfEndpointType * ep, uint16_t deviceType,
-                                             const Span<DataVersion> & dataVersionStorage)
+EndpointId ContentAppPlatform::AddContentApp(ContentApp * app, EmberAfEndpointType * ep,
+                                             const Span<DataVersion> & dataVersionStorage,
+                                             const Span<const EmberAfDeviceType> & deviceTypeList)
 {
     CatalogVendorApp vendorApp = app->GetApplicationBasicDelegate()->GetCatalogVendorApp();
 
@@ -111,8 +114,7 @@ EndpointId ContentAppPlatform::AddContentApp(ContentApp * app, EmberAfEndpointTy
             EmberAfStatus ret;
             while (1)
             {
-                ret = emberAfSetDynamicEndpoint(index, mCurrentEndpointId, ep, deviceType, DEVICE_VERSION_DEFAULT,
-                                                dataVersionStorage);
+                ret = emberAfSetDynamicEndpoint(index, mCurrentEndpointId, ep, dataVersionStorage, deviceTypeList);
                 if (ret == EMBER_ZCL_STATUS_SUCCESS)
                 {
                     ChipLogProgress(DeviceLayer, "Added ContentApp %s to dynamic endpoint %d (index=%d)", vendorApp.applicationId,
@@ -122,7 +124,7 @@ EndpointId ContentAppPlatform::AddContentApp(ContentApp * app, EmberAfEndpointTy
                 }
                 else if (ret != EMBER_ZCL_STATUS_DUPLICATE_EXISTS)
                 {
-                    ChipLogProgress(DeviceLayer, "Adding ContentApp error=%d", ret);
+                    ChipLogError(DeviceLayer, "Adding ContentApp error=%d", ret);
                     return kNoCurrentEndpointId;
                 }
                 // Handle wrap condition
@@ -134,7 +136,7 @@ EndpointId ContentAppPlatform::AddContentApp(ContentApp * app, EmberAfEndpointTy
         }
         index++;
     }
-    ChipLogProgress(DeviceLayer, "Failed to add dynamic endpoint: No endpoints available!");
+    ChipLogError(DeviceLayer, "Failed to add dynamic endpoint: No endpoints available!");
     return kNoCurrentEndpointId;
 }
 
@@ -166,7 +168,7 @@ EndpointId ContentAppPlatform::RemoveContentApp(ContentApp * app)
 
 void ContentAppPlatform::SetupAppPlatform()
 {
-    ChipLogProgress(DeviceLayer, "AppPlatform::SetupAppPlatform()");
+    ChipLogDetail(DeviceLayer, "AppPlatform::SetupAppPlatform()");
 
     // Clear out the device database
     uint8_t index = 0;
@@ -187,8 +189,8 @@ void ContentAppPlatform::SetupAppPlatform()
         mCurrentEndpointId = emberAfFixedEndpointCount();
     }
 
-    ChipLogProgress(DeviceLayer, "emberAfFixedEndpointCount()=%d mCurrentEndpointId=%d", emberAfFixedEndpointCount(),
-                    mCurrentEndpointId);
+    ChipLogDetail(DeviceLayer, "emberAfFixedEndpointCount()=%d mCurrentEndpointId=%d", emberAfFixedEndpointCount(),
+                  mCurrentEndpointId);
 
     // Disable last fixed endpoint, which is used as a placeholder for all of the
     // supported clusters so that ZAP will generated the requisite code.
@@ -236,8 +238,8 @@ ContentApp * ContentAppPlatform::LoadContentAppByClient(uint16_t vendorId, uint1
     CHIP_ERROR err = mContentAppFactory->LookupCatalogVendorApp(vendorId, productId, &vendorApp);
     if (err != CHIP_NO_ERROR)
     {
-        ChipLogProgress(DeviceLayer, "GetLoadContentAppByVendorId() - failed to find an app for vendorId %d, productId %d",
-                        vendorId, productId);
+        ChipLogError(DeviceLayer, "GetLoadContentAppByVendorId() - failed to find an app for vendorId %d, productId %d", vendorId,
+                     productId);
         return nullptr;
     }
     return LoadContentAppInternal(&vendorApp);
@@ -253,8 +255,8 @@ ContentApp * ContentAppPlatform::LoadContentApp(const CatalogVendorApp & vendorA
     CHIP_ERROR err = mContentAppFactory->ConvertToPlatformCatalogVendorApp(vendorApp, &destinationApp);
     if (err != CHIP_NO_ERROR)
     {
-        ChipLogProgress(DeviceLayer, "GetLoadContentApp() - failed to find an app for catalog vendorId %d, appId %s",
-                        vendorApp.catalogVendorId, vendorApp.applicationId);
+        ChipLogError(DeviceLayer, "GetLoadContentApp() - failed to find an app for catalog vendorId %d, appId %s",
+                     vendorApp.catalogVendorId, vendorApp.applicationId);
         return nullptr;
     }
     return LoadContentAppInternal(&destinationApp);
@@ -270,8 +272,8 @@ ContentApp * ContentAppPlatform::GetContentApp(const CatalogVendorApp & vendorAp
     CHIP_ERROR err = mContentAppFactory->ConvertToPlatformCatalogVendorApp(vendorApp, &destinationApp);
     if (err != CHIP_NO_ERROR)
     {
-        ChipLogProgress(DeviceLayer, "GetContentApp() - failed to find an app for catalog vendorId %d, appId %s",
-                        vendorApp.catalogVendorId, vendorApp.applicationId);
+        ChipLogError(DeviceLayer, "GetContentApp() - failed to find an app for catalog vendorId %d, appId %s",
+                     vendorApp.catalogVendorId, vendorApp.applicationId);
         return nullptr;
     }
     return GetContentAppInternal(&destinationApp);
@@ -387,23 +389,137 @@ uint32_t ContentAppPlatform::GetPincodeFromContentApp(uint16_t vendorId, uint16_
     return (uint32_t) strtol(pinString.c_str(), &eptr, 10);
 }
 
-CHIP_ERROR ContentAppPlatform::CreateBindingWithCallback(OperationalDeviceProxy * device, chip::EndpointId deviceEndpointId,
-                                                         chip::NodeId bindingNodeId, chip::GroupId bindingGroupId,
-                                                         chip::EndpointId bindingEndpointId, chip::ClusterId bindingClusterId,
-                                                         CommandResponseSuccessCallback<app::DataModel::NullObjectType> successCb,
-                                                         CommandResponseFailureCallback failureCb)
+constexpr EndpointId kTargetBindingClusterEndpointId = 0;
+constexpr EndpointId kLocalVideoPlayerEndpointId     = 1;
+constexpr EndpointId kLocalSpeakerEndpointId         = 2;
+constexpr ClusterId kNoClusterIdSpecified            = kInvalidClusterId;
+constexpr ClusterId kClusterIdDescriptor             = 0x001d;
+constexpr ClusterId kClusterIdOnOff                  = 0x0006;
+constexpr ClusterId kClusterIdWakeOnLAN              = 0x0503;
+// constexpr ClusterId kClusterIdChannel             = 0x0504;
+// constexpr ClusterId kClusterIdTargetNavigator     = 0x0505;
+constexpr ClusterId kClusterIdMediaPlayback = 0x0506;
+// constexpr ClusterId kClusterIdMediaInput          = 0x0507;
+constexpr ClusterId kClusterIdLowPower        = 0x0508;
+constexpr ClusterId kClusterIdKeypadInput     = 0x0509;
+constexpr ClusterId kClusterIdContentLauncher = 0x050a;
+constexpr ClusterId kClusterIdAudioOutput     = 0x050b;
+// constexpr ClusterId kClusterIdApplicationLauncher = 0x050c;
+// constexpr ClusterId kClusterIdAccountLogin        = 0x050e;
+
+CHIP_ERROR ContentAppPlatform::ManageClientAccess(OperationalDeviceProxy * targetDeviceProxy, uint16_t targetVendorId,
+                                                  NodeId localNodeId, Controller::WriteResponseSuccessCallback successCb,
+                                                  Controller::WriteResponseFailureCallback failureCb)
 {
+    VerifyOrReturnError(targetDeviceProxy != nullptr, CHIP_ERROR_INVALID_ARGUMENT);
+    VerifyOrReturnError(successCb != nullptr, CHIP_ERROR_INVALID_ARGUMENT);
+    VerifyOrReturnError(failureCb != nullptr, CHIP_ERROR_INVALID_ARGUMENT);
+
+    Access::AccessControl::Entry entry;
+    ReturnErrorOnFailure(GetAccessControl().PrepareEntry(entry));
+    ReturnErrorOnFailure(entry.SetAuthMode(Access::AuthMode::kCase));
+    entry.SetFabricIndex(targetDeviceProxy->GetFabricIndex());
+    ReturnErrorOnFailure(entry.SetPrivilege(Access::Privilege::kOperate));
+    ReturnErrorOnFailure(entry.AddSubject(nullptr, targetDeviceProxy->GetDeviceId()));
+
+    std::vector<Binding::Structs::TargetStruct::Type> bindings;
+
+    /**
+     * Here we are creating a single ACL entry containing:
+     * a) selection of clusters on video player endpoint (8 targets)
+     * b) speaker endpoint (1 target)
+     * c) selection of content app endpoints (0 to many)
+     * d) single subject which is the casting app
+     * This organization was selected to make it easy to remove access (single ACL removal)
+     *
+     * We could have organized things differently, for example,
+     * - a single ACL for (a) and (b) which is shared by many subjects
+     * - a single ACL entry per subject for (c)
+     */
+
+    ChipLogProgress(Controller, "Create video player endpoint ACL and binding");
+    {
+        std::list<ClusterId> allowedClusterList = { kClusterIdDescriptor,      kClusterIdOnOff,      kClusterIdWakeOnLAN,
+                                                    kClusterIdMediaPlayback,   kClusterIdLowPower,   kClusterIdKeypadInput,
+                                                    kClusterIdContentLauncher, kClusterIdAudioOutput };
+
+        for (const auto & clusterId : allowedClusterList)
+        {
+            Access::AccessControl::Entry::Target target = { .flags = Access::AccessControl::Entry::Target::kCluster |
+                                                                Access::AccessControl::Entry::Target::kEndpoint,
+                                                            .cluster  = clusterId,
+                                                            .endpoint = kLocalVideoPlayerEndpointId };
+            ReturnErrorOnFailure(entry.AddTarget(nullptr, target));
+        }
+
+        bindings.push_back(Binding::Structs::TargetStruct::Type{
+            .node        = MakeOptional(localNodeId),
+            .group       = NullOptional,
+            .endpoint    = MakeOptional(kLocalVideoPlayerEndpointId),
+            .cluster     = MakeOptional(kNoClusterIdSpecified),
+            .fabricIndex = kUndefinedFabricIndex,
+        });
+    }
+
+    ChipLogProgress(Controller, "Create speaker endpoint ACL and binding");
+    {
+        Access::AccessControl::Entry::Target target = { .flags    = Access::AccessControl::Entry::Target::kEndpoint,
+                                                        .endpoint = kLocalSpeakerEndpointId };
+        ReturnErrorOnFailure(entry.AddTarget(nullptr, target));
+
+        bindings.push_back(Binding::Structs::TargetStruct::Type{
+            .node        = MakeOptional(localNodeId),
+            .group       = NullOptional,
+            .endpoint    = MakeOptional(kLocalSpeakerEndpointId),
+            .cluster     = MakeOptional(kNoClusterIdSpecified),
+            .fabricIndex = kUndefinedFabricIndex,
+        });
+    }
+
+    ChipLogProgress(Controller, "Create content app endpoints ACL and binding");
+    {
+        uint8_t index = 0;
+        while (index < CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT)
+        {
+            ContentApp * app = mContentApps[index++];
+            if (app == nullptr)
+            {
+                continue;
+            }
+
+            for (const auto & allowedVendor : app->GetApplicationBasicDelegate()->GetAllowedVendorList())
+            {
+                if (allowedVendor == targetVendorId)
+                {
+                    Access::AccessControl::Entry::Target target = { .flags    = Access::AccessControl::Entry::Target::kEndpoint,
+                                                                    .endpoint = app->GetEndpointId() };
+                    ReturnErrorOnFailure(entry.AddTarget(nullptr, target));
+
+                    bindings.push_back(Binding::Structs::TargetStruct::Type{
+                        .node        = MakeOptional(localNodeId),
+                        .group       = NullOptional,
+                        .endpoint    = MakeOptional(app->GetEndpointId()),
+                        .cluster     = MakeOptional(kNoClusterIdSpecified),
+                        .fabricIndex = kUndefinedFabricIndex,
+                    });
+                }
+            }
+        }
+    }
+
+    ReturnErrorOnFailure(GetAccessControl().CreateEntry(nullptr, entry, nullptr));
+
+    ChipLogProgress(Controller, "Attempting to update Binding list");
+    BindingListType bindingList(bindings.data(), bindings.size());
+
     chip::Controller::BindingCluster cluster;
-    cluster.Associate(device, deviceEndpointId);
+    ReturnErrorOnFailure(cluster.Associate(targetDeviceProxy, kTargetBindingClusterEndpointId));
 
-    Binding::Commands::Bind::Type request;
-    request.nodeId     = bindingNodeId;
-    request.groupId    = bindingGroupId;
-    request.endpointId = bindingEndpointId;
-    request.clusterId  = bindingClusterId;
-    ReturnErrorOnFailure(cluster.InvokeCommand(request, this, successCb, failureCb));
+    ReturnErrorOnFailure(
+        cluster.WriteAttribute<Binding::Attributes::Binding::TypeInfo>(bindingList, nullptr, successCb, failureCb));
 
-    ChipLogDetail(Controller, "CreateBindingWithCallback: Sent Bind command request, waiting for response");
+    ChipLogProgress(Controller, "Completed Bindings and ACLs");
+
     return CHIP_NO_ERROR;
 }
 

@@ -34,7 +34,6 @@ messages from a file or stdin.
 import argparse
 import base64
 import binascii
-from datetime import datetime
 import io
 import logging
 import os
@@ -44,8 +43,9 @@ import string
 import struct
 import sys
 import time
-from typing import (AnyStr, BinaryIO, Callable, Dict, List, Iterable, Iterator,
-                    Match, NamedTuple, Optional, Pattern, Tuple, Union)
+from typing import (AnyStr, BinaryIO, Callable, Dict, List, Iterable, IO,
+                    Iterator, Match, NamedTuple, Optional, Pattern, Tuple,
+                    Union)
 
 try:
     from pw_tokenizer import database, decode, encode, tokens
@@ -82,25 +82,7 @@ class DetokenizedString:
         for entry, fmt in format_string_entries:
             result = fmt.format(encoded_message[ENCODED_TOKEN.size:],
                                 show_errors)
-
-            # Sort competing entries so the most likely matches appear first.
-            # Decoded strings are prioritized by whether they
-            #
-            #   1. decoded all bytes for all arguments without errors,
-            #   2. decoded all data,
-            #   3. have the fewest decoding errors,
-            #   4. decoded the most arguments successfully, or
-            #   5. have the most recent removal date, if they were removed.
-            #
-            # This must match the collision resolution logic in detokenize.cc.
-            score: Tuple = (
-                all(arg.ok() for arg in result.args) and not result.remaining,
-                not result.remaining,  # decoded all data
-                -sum(not arg.ok() for arg in result.args),  # fewest errors
-                len(result.args),  # decoded the most arguments
-                entry.date_removed or datetime.max)  # most recently present
-
-            decode_attempts.append((score, result))
+            decode_attempts.append((result.score(entry.date_removed), result))
 
         # Sort the attempts by the score so the most likely results are first.
         decode_attempts.sort(key=lambda value: value[0], reverse=True)
@@ -299,11 +281,14 @@ class Detokenizer:
         return decode_and_detokenize
 
 
+_PathOrFile = Union[IO, str, Path]
+
+
 class AutoUpdatingDetokenizer(Detokenizer):
     """Loads and updates a detokenizer from database paths."""
     class _DatabasePath:
         """Tracks the modified time of a path or file object."""
-        def __init__(self, path):
+        def __init__(self, path: _PathOrFile) -> None:
             self.path = path if isinstance(path, (str, Path)) else path.name
             self._modified_time: Optional[float] = self._last_modified_time()
 
@@ -329,7 +314,7 @@ class AutoUpdatingDetokenizer(Detokenizer):
                 return database.load_token_database()
 
     def __init__(self,
-                 *paths_or_files,
+                 *paths_or_files: _PathOrFile,
                  min_poll_period_s: float = 1.0) -> None:
         self.paths = tuple(self._DatabasePath(path) for path in paths_or_files)
         self.min_poll_period_s = min_poll_period_s

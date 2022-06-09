@@ -215,6 +215,7 @@ function(__build_init armino_path)
     armino_build_get_property(prefix __PREFIX)
     __build_add_components(${armino_path}/components)
     __build_add_components(${armino_path}/middleware)
+    __build_add_components(${armino_path}/middleware/boards/${ARMINO_SOC})
     __component_add(${armino_path}/include ${prefix})
 
     # Set components required by all other components in the build

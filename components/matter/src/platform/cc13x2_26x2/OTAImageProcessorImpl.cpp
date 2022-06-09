@@ -17,7 +17,6 @@
  */
 
 #include <app/clusters/ota-requestor/OTADownloader.h>
-#include <platform/OTARequestorInterface.h>
 
 #include "OTAImageProcessorImpl.h"
 
@@ -97,20 +96,6 @@ static bool readExtFlashImgHeader(NVS_Handle handle, imgFixedHdr_t * header)
 {
     int_fast16_t status;
     status = NVS_read(handle, IMG_START, header, sizeof(header));
-    return (status == NVS_STATUS_SUCCESS);
-}
-
-static bool eraseExtFlashHeader(NVS_Handle handle)
-{
-    int_fast16_t status;
-    NVS_Attrs regionAttrs;
-    unsigned int sectors;
-
-    NVS_getAttrs(handle, &regionAttrs);
-    /* calculate the number of sectors to erase */
-    sectors = (sizeof(imgFixedHdr_t) + (regionAttrs.sectorSize - 1)) / regionAttrs.sectorSize;
-    status  = NVS_erase(handle, IMG_START, sectors * regionAttrs.sectorSize);
-
     return (status == NVS_STATUS_SUCCESS);
 }
 

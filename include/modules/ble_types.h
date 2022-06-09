@@ -313,6 +313,15 @@ typedef enum
     BLE_INIT_DIS_CONN,
     BLE_INIT_READ_CHAR,
     BLE_INIT_WRITE_CHAR,
+    ///config
+    BLE_SET_MAX_MTU,
+
+    // PERIODIC
+    BLE_CREATE_PERIODIC,
+    BLE_START_PERIODIC,
+    BLE_STOP_PERIODIC,
+    BLE_DELETE_PERIODIC,
+
     BLE_CMD_MAX,
 } ble_cmd_t;
 
@@ -352,6 +361,8 @@ typedef enum
     BLE_5_READ_PHY_EVENT,
     /// recv conn update event, param ble_conn_param_t
     BLE_5_CONN_UPDATA_EVENT,
+
+    BLE_5_PERIODIC_SYNC_CMPL_EVENT,
 } ble_notice_t;
 
 
@@ -535,6 +546,36 @@ typedef struct
     /// on which the advertising packets should be received on the primary advertising physical channel
     uint8_t init_phys;
 } ble_conn_param_t;
+
+
+typedef struct
+{
+
+    /// Periodic synchronization type (@see enum gapm_per_sync_type)
+//    uint8_t                         type;
+    /// Connection index used for periodic sync info reception (only valid for GAPM_PER_SYNC_TYPE_PAST)
+//    uint8_t                         conidx;
+
+    /// 1 to disable periodic advertising report, 0 to enable them by default
+    uint8_t                         report_disable;
+
+
+    /// adv sid of advertiser
+    uint8_t adv_sid;
+
+    /// Address of advertiser with which synchronization has to be established (used only if use_pal is false)
+    bd_addr_t adv_addr;
+
+    uint8_t adv_addr_type;
+
+    /// Number of periodic advertising that can be skipped after a successful receive. Maximum authorized
+    /// value is 499
+    uint16_t                        skip;
+    /// Synchronization timeout for the periodic advertising (in unit of 10ms between 100ms and 163.84s)
+    uint16_t                        sync_to;
+    /// Type of Constant Tone Extension device should sync on (@see enum gapm_sync_cte_type).
+    uint8_t                         cte_type;
+} ble_periodic_param_t;
 
 
 /**

@@ -31,6 +31,7 @@
 #include <protocols/Protocols.h>
 #include <protocols/interaction_model/Constants.h>
 #include <system/SystemPacketBuffer.h>
+#include <system/TLVPacketBufferBackingStore.h>
 
 namespace chip {
 namespace app {
@@ -75,7 +76,7 @@ public:
 
     bool IsFree() const { return mState == State::Uninitialized; }
 
-    virtual ~WriteHandler() = default;
+    ~WriteHandler() override = default;
 
     CHIP_ERROR ProcessAttributeDataIBs(TLV::TLVReader & aAttributeDataIBsReader);
     CHIP_ERROR ProcessGroupAttributeDataIBs(TLV::TLVReader & aAttributeDataIBsReader);
@@ -112,6 +113,11 @@ public:
         return mACLCheckCache.HasValue() && mACLCheckCache.Value() == aToken;
     }
 
+    bool IsCurrentlyProcessingWritePath(const ConcreteAttributePath & aPath)
+    {
+        return mProcessingAttributePath.HasValue() && mProcessingAttributePath.Value() == aPath;
+    }
+
 private:
     enum class State
     {
@@ -135,17 +141,46 @@ private:
      */
     void Close();
 
-private: // ExchangeDelegate
+    void DeliverListWriteBegin(const ConcreteAttributePath & aPath);
+    void DeliverListWriteEnd(const ConcreteAttributePath & aPath, bool writeWasSuccessful);
+
+    // Deliver the signal that we have delivered all list entries to the AttributeAccessInterface. This function will be called
+    // after handling the last chunk of a series of write requests. Or the write handler was shutdown (usually due to transport
+    // timeout).
+    // This function will become no-op on group writes, since DeliverFinalListWriteEndForGroupWrite will clear the
+    // mProcessingAttributePath after processing the AttributeDataIBs from the request.
+    void DeliverFinalListWriteEnd(bool writeWasSuccessful);
+
+    // Deliver the signal that we have delivered all list entries to the AttributeAccessInterface. This function will be called
+    // after handling the last attribute in a group write request (since group writes will never be chunked writes). Or we failed to
+    // process the group write request (usually due to malformed messages). This function should only be called by
+    // ProcessGroupAttributeDataIBs.
+    CHIP_ERROR DeliverFinalListWriteEndForGroupWrite(bool writeWasSuccessful);
+
+private:
+    // ExchangeDelegate
     CHIP_ERROR OnMessageReceived(Messaging::ExchangeContext * apExchangeContext, const PayloadHeader & aPayloadHeader,
                                  System::PacketBufferHandle && aPayload) override;
     void OnResponseTimeout(Messaging::ExchangeContext * apExchangeContext) override;
 
-private:
     Messaging::ExchangeContext * mpExchangeCtx = nullptr;
     WriteResponseMessage::Builder mWriteResponseBuilder;
-    State mState                                  = State::Uninitialized;
-    bool mIsTimedRequest                          = false;
-    bool mHasMoreChunks                           = false;
+    State mState           = State::Uninitialized;
+    bool mIsTimedRequest   = false;
+    bool mSuppressResponse = false;
+    bool mHasMoreChunks    = false;
+    Optional<ConcreteAttributePath> mProcessingAttributePath;
+    bool mProcessingAttributeIsList = false;
+    // We record the Status when AddStatus is called to determine whether all data of a list write is accepted.
+    // This value will be used by DeliverListWriteEnd and DeliverFinalListWriteEnd but it won't be used by group writes based on the
+    // fact that the errors that won't be delivered to AttributeAccessInterface are:
+    //  (1) Attribute not found
+    //  (2) Access control failed
+    //  (3) Write request to a read-only attribute
+    //  (4) Data version mismatch
+    //  (5) Not using timed write.
+    //  Where (1)-(3) will be consistent among the whole list write request, while (4) and (5) are not appliable to group writes.
+    bool mAttributeWriteSuccessful                = false;
     Optional<AttributeAccessToken> mACLCheckCache = NullOptional;
 };
 } // namespace app

@@ -2,15 +2,32 @@
 #include "cli.h"
 #include "key_value.h"
 #include "func_convert.h"
-#ifdef CONFIG_NET_CTL
+#ifdef CONFIG_LWIP
 #include "net.h"
 #endif
-#ifdef CONFIG_HOMEKIT
+#ifdef CONFIG_KEYVALUE
+#if 0
 #include "ADK.h"
 #include "HAPBase.h"
 #include "HAPPlatformRandomNumber.h"
 #include "HAPCrypto.h"
+#endif
 
+
+typedef struct {
+    uint8_t salt[16];      /**< SRP salt. */
+    uint8_t verifier[384]; /**< SRP verifier. */
+} HAPSetupInfo_ext;
+
+extern void* AdkRunApplication(void* ctx );
+extern void HAPPlatformRandomNumberFill(void* bytes, size_t numBytes);
+extern void HAP_srp_verifier(
+        uint8_t v[384],
+        const uint8_t salt[16],
+        const uint8_t* user,
+        size_t user_len,
+        const uint8_t* pass,
+        size_t pass_len);
 #endif
 
 /**
@@ -28,11 +45,11 @@ static void key_value_command_test(char * pcWriteBuffer, int xWriteBufferLen, in
     UINT32 len = 0, domain = 0, idx;
     UINT32 key = 0;
     UINT8 * ptr;
-#ifdef CONFIG_HOMEKIT    
+#ifdef CONFIG_KEYVALUE
     beken_thread_t homekit_app;
     bk_err_t ret;
     const char name[] = "Pair-Setup";
-    HAPSetupInfo info;
+    HAPSetupInfo_ext info;
 #endif
     ptr = ((uint8_t *) os_malloc(0x400));
     if (argc >= 4)
@@ -92,7 +109,7 @@ static void key_value_command_test(char * pcWriteBuffer, int xWriteBufferLen, in
             case 'N':
                 search_domain_key(KV_BASE_ADDR, domain, ptr);
                 break;
-#ifdef CONFIG_NET_CTL
+#ifdef CONFIG_LWIP
             case 'B':
                 switch (argv[2][0])
                 {
@@ -111,7 +128,7 @@ static void key_value_command_test(char * pcWriteBuffer, int xWriteBufferLen, in
                 rm_domain_key(KV_BASE_ADDR, domain, key);
                 break;
 
-#ifdef CONFIG_HOMEKIT
+#ifdef CONFIG_KEYVALUE
             case 'K':
 
                 if (argc > 4)

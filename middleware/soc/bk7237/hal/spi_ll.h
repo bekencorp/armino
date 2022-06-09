@@ -24,25 +24,20 @@
 extern "C" {
 #endif
 
-#define SPI_LL_REG_BASE(_spi_unit_id)    (SOC_SPI1_REG_BASE + _spi_unit_id * 0x40)
+#define SPI_LL_REG_BASE(_spi_unit_id)    (SOC_SPI_REG_BASE + _spi_unit_id * 0x1060000)
 
-#define SPI0_LL_CSN_PIN     GPIO_2
-#define SPI0_LL_SCK_PIN     GPIO_3
-#define SPI0_LL_MOSI_PIN    GPIO_4
-#define SPI0_LL_MISO_PIN    GPIO_5
-
-#define SPI1_LL_CSN_PIN     GPIO_22
-#define SPI1_LL_SCK_PIN     GPIO_23
-#define SPI1_LL_MOSI_PIN    GPIO_24
-#define SPI1_LL_MISO_PIN    GPIO_25
-
-/* GPIO30~GPIO33 also can be used for SPI3, notice: need call gpio_spi_sel(GPIO_SPI_MAP_MODE0)
- * default config GPIO36~GPIO39 for SPI3
+/* GPIO14~GPIO17 also can be used for SPI0
+ * default config GPIO44~GPIO47 for SPI0
  */
-#define SPI2_LL_CSN_PIN     GPIO_36
-#define SPI2_LL_SCK_PIN     GPIO_37
-#define SPI2_LL_MOSI_PIN    GPIO_38
-#define SPI2_LL_MISO_PIN    GPIO_39
+#define SPI0_LL_SCK_PIN     GPIO_44
+#define SPI0_LL_CSN_PIN     GPIO_45
+#define SPI0_LL_MOSI_PIN    GPIO_46
+#define SPI0_LL_MISO_PIN    GPIO_47
+
+#define SPI1_LL_SCK_PIN     GPIO_2
+#define SPI1_LL_CSN_PIN     GPIO_3
+#define SPI1_LL_MOSI_PIN    GPIO_4
+#define SPI1_LL_MISO_PIN    GPIO_5
 
 //TODO init more
 static inline void spi_ll_init(spi_hw_t *hw)

@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include <app/clusters/ota-requestor/OTADownloader.h>
+#include <app/clusters/ota-requestor/BDXDownloader.h>
 #include <cstring>
-//#include <device_lock.h>
+#include <lib/core/OTAImageHeader.h>
 #include <platform/CHIPDeviceLayer.h>
 #include <platform/OTAImageProcessor.h>
 #include "flash_namespace_value.h"
@@ -37,6 +37,8 @@ public:
     CHIP_ERROR Apply() override;
     CHIP_ERROR Abort() override;
     CHIP_ERROR ProcessBlock(ByteSpan & block) override;
+    bool IsFirstImageRun() override;
+    CHIP_ERROR ConfirmCurrentImage() override;
     void SetOTADownloader(OTADownloader * downloader) { mDownloader = downloader; }
 
 private:
@@ -56,10 +58,11 @@ private:
      * Called to release allocated memory for mBlock
      */
     CHIP_ERROR ReleaseBlock();
+    CHIP_ERROR ProcessHeader(ByteSpan & block);
 
     MutableByteSpan mBlock;
     OTADownloader * mDownloader;
-
+    OTAImageHeaderParser mHeaderParser;
     bool readHeader           = false;
     ota_data_struct_t pOtaTgtHdr = {0};
     uint32_t flash_data_offset = 0;

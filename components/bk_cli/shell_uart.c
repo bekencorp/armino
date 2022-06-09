@@ -283,6 +283,8 @@ static bool_t shell_uart_open(shell_dev_t * shell_dev, tx_complete_t tx_callback
 	bk_uart_register_rx_isr(uart_ext->uart_id, (uart_isr_t)shell_uart_rx_isr, uart_ext);
 	bk_uart_register_tx_isr(uart_ext->uart_id, (uart_isr_t)shell_uart_tx_isr, uart_ext);
 
+	bk_uart_enable_rx_interrupt(uart_ext->uart_id);
+
 	return bTRUE;
 }
 

@@ -63,40 +63,40 @@ stats_init(void)
 void
 stats_display_proto(struct stats_proto *proto, const char *name)
 {
-  LWIP_PLATFORM_DIAG(("\n%s\n\t", name));
-  LWIP_PLATFORM_DIAG(("xmit: %"STAT_COUNTER_F"\n\t", proto->xmit));
-  LWIP_PLATFORM_DIAG(("recv: %"STAT_COUNTER_F"\n\t", proto->recv));
-  LWIP_PLATFORM_DIAG(("fw: %"STAT_COUNTER_F"\n\t", proto->fw));
-  LWIP_PLATFORM_DIAG(("drop: %"STAT_COUNTER_F"\n\t", proto->drop));
-  LWIP_PLATFORM_DIAG(("chkerr: %"STAT_COUNTER_F"\n\t", proto->chkerr));
-  LWIP_PLATFORM_DIAG(("lenerr: %"STAT_COUNTER_F"\n\t", proto->lenerr));
-  LWIP_PLATFORM_DIAG(("memerr: %"STAT_COUNTER_F"\n\t", proto->memerr));
-  LWIP_PLATFORM_DIAG(("rterr: %"STAT_COUNTER_F"\n\t", proto->rterr));
-  LWIP_PLATFORM_DIAG(("proterr: %"STAT_COUNTER_F"\n\t", proto->proterr));
-  LWIP_PLATFORM_DIAG(("opterr: %"STAT_COUNTER_F"\n\t", proto->opterr));
-  LWIP_PLATFORM_DIAG(("err: %"STAT_COUNTER_F"\n\t", proto->err));
-  LWIP_PLATFORM_DIAG(("cachehit: %"STAT_COUNTER_F"\n", proto->cachehit));
+  LWIP_PLATFORM_DIAG(("\n%s\n", name));
+  LWIP_PLATFORM_DIAG(("xmit:     %d\n", proto->xmit));
+  LWIP_PLATFORM_DIAG(("recv:     %d\n", proto->recv));
+  LWIP_PLATFORM_DIAG(("fw:       %d\n", proto->fw));
+  LWIP_PLATFORM_DIAG(("drop:     %d\n", proto->drop));
+  LWIP_PLATFORM_DIAG(("chkerr:   %d\n", proto->chkerr));
+  LWIP_PLATFORM_DIAG(("lenerr:   %d\n", proto->lenerr));
+  LWIP_PLATFORM_DIAG(("memerr:   %d\n", proto->memerr));
+  LWIP_PLATFORM_DIAG(("rterr:    %d\n", proto->rterr));
+  LWIP_PLATFORM_DIAG(("proterr:  %d\n", proto->proterr));
+  LWIP_PLATFORM_DIAG(("opterr:   %d\n", proto->opterr));
+  LWIP_PLATFORM_DIAG(("err:      %d\n", proto->err));
+  LWIP_PLATFORM_DIAG(("cachehit: %d\n", proto->cachehit));
 }
 
 #if IGMP_STATS || MLD6_STATS
 void
 stats_display_igmp(struct stats_igmp *igmp, const char *name)
 {
-  LWIP_PLATFORM_DIAG(("\n%s\n\t", name));
-  LWIP_PLATFORM_DIAG(("xmit: %"STAT_COUNTER_F"\n\t", igmp->xmit));
-  LWIP_PLATFORM_DIAG(("recv: %"STAT_COUNTER_F"\n\t", igmp->recv));
-  LWIP_PLATFORM_DIAG(("drop: %"STAT_COUNTER_F"\n\t", igmp->drop));
-  LWIP_PLATFORM_DIAG(("chkerr: %"STAT_COUNTER_F"\n\t", igmp->chkerr));
-  LWIP_PLATFORM_DIAG(("lenerr: %"STAT_COUNTER_F"\n\t", igmp->lenerr));
-  LWIP_PLATFORM_DIAG(("memerr: %"STAT_COUNTER_F"\n\t", igmp->memerr));
-  LWIP_PLATFORM_DIAG(("proterr: %"STAT_COUNTER_F"\n\t", igmp->proterr));
-  LWIP_PLATFORM_DIAG(("rx_v1: %"STAT_COUNTER_F"\n\t", igmp->rx_v1));
-  LWIP_PLATFORM_DIAG(("rx_group: %"STAT_COUNTER_F"\n\t", igmp->rx_group));
-  LWIP_PLATFORM_DIAG(("rx_general: %"STAT_COUNTER_F"\n\t", igmp->rx_general));
-  LWIP_PLATFORM_DIAG(("rx_report: %"STAT_COUNTER_F"\n\t", igmp->rx_report));
-  LWIP_PLATFORM_DIAG(("tx_join: %"STAT_COUNTER_F"\n\t", igmp->tx_join));
-  LWIP_PLATFORM_DIAG(("tx_leave: %"STAT_COUNTER_F"\n\t", igmp->tx_leave));
-  LWIP_PLATFORM_DIAG(("tx_report: %"STAT_COUNTER_F"\n", igmp->tx_report));
+  LWIP_PLATFORM_DIAG(("\n%s\n", name));
+  LWIP_PLATFORM_DIAG(("xmit:       %d\n", igmp->xmit));
+  LWIP_PLATFORM_DIAG(("recv:       %d\n", igmp->recv));
+  LWIP_PLATFORM_DIAG(("drop:       %d\n", igmp->drop));
+  LWIP_PLATFORM_DIAG(("chkerr:     %d\n", igmp->chkerr));
+  LWIP_PLATFORM_DIAG(("lenerr:     %d\n", igmp->lenerr));
+  LWIP_PLATFORM_DIAG(("memerr:     %d\n", igmp->memerr));
+  LWIP_PLATFORM_DIAG(("proterr:    %d\n", igmp->proterr));
+  LWIP_PLATFORM_DIAG(("rx_v1:      %d\n", igmp->rx_v1));
+  LWIP_PLATFORM_DIAG(("rx_group:   %d\n", igmp->rx_group));
+  LWIP_PLATFORM_DIAG(("rx_general: %d\n", igmp->rx_general));
+  LWIP_PLATFORM_DIAG(("rx_report:  %d\n", igmp->rx_report));
+  LWIP_PLATFORM_DIAG(("tx_join:    %d\n", igmp->tx_join));
+  LWIP_PLATFORM_DIAG(("tx_leave:   %d\n", igmp->tx_leave));
+  LWIP_PLATFORM_DIAG(("tx_report:  %d\n", igmp->tx_report));
 }
 #endif /* IGMP_STATS || MLD6_STATS */
 
@@ -104,11 +104,11 @@ stats_display_igmp(struct stats_igmp *igmp, const char *name)
 void
 stats_display_mem(struct stats_mem *mem, const char *name)
 {
-  LWIP_PLATFORM_DIAG(("\nMEM %s\n\t", name));
-  LWIP_PLATFORM_DIAG(("avail: %"MEM_SIZE_F"\n\t", mem->avail));
-  LWIP_PLATFORM_DIAG(("used: %"MEM_SIZE_F"\n\t", mem->used));
-  LWIP_PLATFORM_DIAG(("max: %"MEM_SIZE_F"\n\t", mem->max));
-  LWIP_PLATFORM_DIAG(("err: %"STAT_COUNTER_F"\n", mem->err));
+  LWIP_PLATFORM_DIAG(("\nMEM %s\n", name));
+  LWIP_PLATFORM_DIAG(("avail: %d\n", mem->avail));
+  LWIP_PLATFORM_DIAG(("used:  %d\n", mem->used));
+  LWIP_PLATFORM_DIAG(("max:   %d\n", mem->max));
+  LWIP_PLATFORM_DIAG(("err:   %d\n", mem->err));
 }
 
 #if MEMP_STATS
@@ -126,16 +126,16 @@ stats_display_memp(struct stats_mem *mem, int idx)
 void
 stats_display_sys(struct stats_sys *sys)
 {
-  LWIP_PLATFORM_DIAG(("\nSYS\n\t"));
-  LWIP_PLATFORM_DIAG(("sem.used:  %"STAT_COUNTER_F"\n\t", sys->sem.used));
-  LWIP_PLATFORM_DIAG(("sem.max:   %"STAT_COUNTER_F"\n\t", sys->sem.max));
-  LWIP_PLATFORM_DIAG(("sem.err:   %"STAT_COUNTER_F"\n\t", sys->sem.err));
-  LWIP_PLATFORM_DIAG(("mutex.used: %"STAT_COUNTER_F"\n\t", sys->mutex.used));
-  LWIP_PLATFORM_DIAG(("mutex.max:  %"STAT_COUNTER_F"\n\t", sys->mutex.max));
-  LWIP_PLATFORM_DIAG(("mutex.err:  %"STAT_COUNTER_F"\n\t", sys->mutex.err));
-  LWIP_PLATFORM_DIAG(("mbox.used:  %"STAT_COUNTER_F"\n\t", sys->mbox.used));
-  LWIP_PLATFORM_DIAG(("mbox.max:   %"STAT_COUNTER_F"\n\t", sys->mbox.max));
-  LWIP_PLATFORM_DIAG(("mbox.err:   %"STAT_COUNTER_F"\n", sys->mbox.err));
+  LWIP_PLATFORM_DIAG(("\nSYS\n"));
+  LWIP_PLATFORM_DIAG(("sem.used:   %d\n", sys->sem.used));
+  LWIP_PLATFORM_DIAG(("sem.max:    %d\n", sys->sem.max));
+  LWIP_PLATFORM_DIAG(("sem.err:    %d\n", sys->sem.err));
+  LWIP_PLATFORM_DIAG(("mutex.used: %d\n", sys->mutex.used));
+  LWIP_PLATFORM_DIAG(("mutex.max:  %d\n", sys->mutex.max));
+  LWIP_PLATFORM_DIAG(("mutex.err:  %dd\n", sys->mutex.err));
+  LWIP_PLATFORM_DIAG(("mbox.used:  %d\n", sys->mbox.used));
+  LWIP_PLATFORM_DIAG(("mbox.max:   %d\n", sys->mbox.max));
+  LWIP_PLATFORM_DIAG(("mbox.err:   %d\n", sys->mbox.err));
 }
 #endif /* SYS_STATS */
 
@@ -163,6 +163,39 @@ stats_display(void)
   }
   SYS_STATS_DISPLAY();
 }
+void stats_display_short(void)
+{
+  LINK_STATS_DISPLAY();
+  ETHARP_STATS_DISPLAY();
+  IPFRAG_STATS_DISPLAY();
+  IP6_FRAG_STATS_DISPLAY();
+  IP_STATS_DISPLAY();
+  ND6_STATS_DISPLAY();
+  IP6_STATS_DISPLAY();
+  IGMP_STATS_DISPLAY();
+  MLD6_STATS_DISPLAY();
+  ICMP_STATS_DISPLAY();
+  ICMP6_STATS_DISPLAY();
+  UDP_STATS_DISPLAY();
+  TCP_STATS_DISPLAY();
+}
+void stats_reset_short(void)
+{
+  LINK_STATS_RESET();
+  ETHARP_STATS_RESET();
+  IPFRAG_STATS_RESET();
+  IP6_FRAG_STATS_RESET();
+  IP_STATS_RESET();
+  ND6_STATS_RESET();
+  IP6_STATS_RESET();
+  IGMP_STATS_RESET();
+  MLD6_STATS_RESET();
+  ICMP_STATS_RESET();
+  ICMP6_STATS_RESET();
+  UDP_STATS_RESET();
+  TCP_STATS_RESET();
+}
+
 #endif /* LWIP_STATS_DISPLAY */
 
 #endif /* LWIP_STATS */

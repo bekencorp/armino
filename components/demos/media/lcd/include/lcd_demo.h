@@ -34,6 +34,24 @@ typedef struct {
 	volatile uint32_t dma_frame_end_flag;
 } dma_transfer_t;
 
+typedef struct{
+	uint32_t src_addr;
+	uint32_t dst_addr;
+	uint8_t x;  /*< src crop addr*/
+	uint8_t y;
+	uint32_t src_width;
+	uint32_t src_height;
+	uint32_t dst_width;
+	uint32_t dst_height;
+}dma2d_crop_params_t;
+
+
+/**
+ * @brief lcd demo enum defines
+ * @{
+ */
+void dma2d_crop_image(dma2d_crop_params_t *crop_params);
+
 
 /*
  * @}

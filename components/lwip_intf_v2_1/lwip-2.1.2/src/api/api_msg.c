@@ -231,6 +231,8 @@ recv_udp(void *arg, struct udp_pcb *pcb, struct pbuf *p,
   conn = (struct netconn *)arg;
 
   if (conn == NULL) {
+    UDP_STATS_INC(udp.err);
+    UDP_STATS_INC(udp.drop);
     pbuf_free(p);
     return;
   }
@@ -244,12 +246,16 @@ recv_udp(void *arg, struct udp_pcb *pcb, struct pbuf *p,
 #else  /* LWIP_SO_RCVBUF */
   if (!NETCONN_MBOX_VALID(conn, &conn->recvmbox)) {
 #endif /* LWIP_SO_RCVBUF */
+    UDP_STATS_INC(udp.err);
+    UDP_STATS_INC(udp.drop);
     pbuf_free(p);
     return;
   }
 
   buf = (struct netbuf *)memp_malloc(MEMP_NETBUF);
   if (buf == NULL) {
+    UDP_STATS_INC(udp.memerr);
+    UDP_STATS_INC(udp.drop);
     pbuf_free(p);
     return;
   } else {
@@ -270,6 +276,8 @@ recv_udp(void *arg, struct udp_pcb *pcb, struct pbuf *p,
 
   len = p->tot_len;
   if (sys_mbox_trypost(&conn->recvmbox, buf) != ERR_OK) {
+    UDP_STATS_INC(udp.err);
+    UDP_STATS_INC(udp.drop);
     netbuf_delete(buf);
     return;
   } else {
@@ -312,6 +320,8 @@ recv_tcp(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err)
     /* recvmbox already deleted */
     if (p != NULL) {
       tcp_recved(pcb, p->tot_len);
+      TCP_STATS_INC(tcp.err);
+      TCP_STATS_INC(tcp.drop);
       pbuf_free(p);
     }
     return ERR_OK;

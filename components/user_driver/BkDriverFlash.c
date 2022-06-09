@@ -68,14 +68,33 @@ const bk_logic_partition_t bk7256_partitions[BK_PARTITION_MAX] = {
 		.partition_length          = 0x187000,      // 1564KB
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
 	},
+#if CONFIG_SUPPORT_MATTER
 	[BK_PARTITION_MATTER_FLASH] =
 	{
 		.partition_owner           = BK_FLASH_EMBEDDED,
-		.partition_description     = "user",
+		.partition_description     = "matter_data",
+		.partition_start_addr	   = 0x3DA000,
+		.partition_length          = 0x15000, //84KB
+		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
+	},
+	[BK_PARTITION_USR_CONFIG] =
+	{
+		.partition_owner           = BK_FLASH_EMBEDDED,
+		.partition_description     = "user_data",
+		.partition_start_addr	   = 0x3EF000,
+		.partition_length          = 0xF000, //60KB
+		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
+	},
+#else
+	[BK_PARTITION_USR_CONFIG] =
+	{
+		.partition_owner           = BK_FLASH_EMBEDDED,
+		.partition_description     = "user_data",
 		.partition_start_addr	   = 0x3DA000,
 		.partition_length          = 0x24000, //144KB
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
 	},
+#endif
 	[BK_PARTITION_RF_FIRMWARE] =
 	{
 		.partition_owner           = BK_FLASH_EMBEDDED,
@@ -108,7 +127,7 @@ const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 		.partition_owner           = BK_FLASH_EMBEDDED,
 		.partition_description     = "Application",
 		.partition_start_addr      = 0x11000,
-#if CONFIG_MATTER		
+#if CONFIG_SUPPORT_MATTER	|| 	 CONFIG_FLASH_SIZE_4M               
 		.partition_length          = 0x1A9000,
 #else
 		.partition_length          = 0x143000,
@@ -119,36 +138,40 @@ const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 	{
 		.partition_owner           = BK_FLASH_EMBEDDED,
 		.partition_description     = "ota",
-#if CONFIG_FLASH_SIZE_4M
-		.partition_start_addr      = 0x200000,
-		.partition_length          = 0x1A9000, //1700KB
-#elif CONFIG_MATTER
+#if CONFIG_FLASH_SIZE_4M 
 		.partition_start_addr      = 0x1BA000,
-		.partition_length          = 0x1000, //1KB
+		.partition_length          = 0x1A9000, //1700KB
+#elif CONFIG_SUPPORT_MATTER
+		.partition_start_addr      = 0x1BA000,
+		.partition_length          = 0x11000, //68KB
 #else
 		.partition_start_addr      = 0x132000,
 		.partition_length          = 0xAE000, //696KB
 #endif		
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
 	},
+#if CONFIG_SUPPORT_MATTER
 	[BK_PARTITION_MATTER_FLASH] =
 	{
 		.partition_owner		   = BK_FLASH_EMBEDDED,
 		.partition_description	   = "Matter",
-		.partition_start_addr	   = 0x19F000,
-		.partition_length		   = 0x41000, //260KB
+		#if CONFIG_FLASH_SIZE_4M 
+		.partition_start_addr	   = 0x363000,
+		#else
+		partition_start_addr	   = 0x1CB000,
+		#endif
+		.partition_length		   = 0x15000, //84KB
 		.partition_options		   = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
-	},	
+	},
+#endif
 	[BK_PARTITION_RF_FIRMWARE] =
 	{
 		.partition_owner           = BK_FLASH_EMBEDDED,
 		.partition_description     = "RF Firmware",
-#if (CONFIG_SOC_BK7251)
-		.partition_start_addr      = 0x1e0000,// bootloader unused space for rf cal+mac related info.
-#elif (CONFIG_SOC_BK7271)
+#if (CONFIG_FLASH_SIZE_4M)
 		.partition_start_addr      = 0x3FE000,
-#else
-		.partition_start_addr      = 0x1e0000,// for rf related info
+#else 
+		.partition_start_addr      = 0x1e0000,// bootloader unused space for rf cal+mac related info.
 #endif
 		.partition_length          = 0x1000,
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
@@ -157,11 +180,9 @@ const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 	{
 		.partition_owner           = BK_FLASH_EMBEDDED,
 		.partition_description     = "NET info",
-#if (CONFIG_SOC_BK7251)
-		.partition_start_addr      = 0x1FF000,// for net related info
-#elif (CONFIG_SOC_BK7271)
+#if (CONFIG_FLASH_SIZE_4M)
 		.partition_start_addr      = 0x3FF000,
-#else
+#else 
 		.partition_start_addr      = 0x1e1000,// for net related info
 #endif
 		.partition_length          = 0x1000,
@@ -457,6 +478,29 @@ bk_err_t test_flash_read(volatile uint32_t start_addr, uint32_t len)
 				os_printf("%02x ", buf[i * 16 + j]);
 			os_printf("\r\n");
 		}
+	}
+
+	return kNoErr;
+}
+
+bk_err_t test_flash_read_without_print(volatile uint32_t start_addr, uint32_t len)
+{
+	UINT32 status;
+	DD_HANDLE flash_hdl;
+	uint32_t tmp;
+	u8 buf[256];
+	uint32_t addr = start_addr;
+	uint32_t length = len;
+	tmp = addr + length;
+
+	flash_hdl = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
+	if (DD_HANDLE_UNVALID == flash_hdl) {
+		os_printf("%s open failed\r\n", __FUNCTION__);
+		return kOpenErr;
+	}
+	for (; addr < tmp; addr += 256) {
+		os_memset(buf, 0, 256);
+		ddev_read(flash_hdl, (char *)buf, 256, addr);
 	}
 
 	return kNoErr;

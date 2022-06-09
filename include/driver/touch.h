@@ -220,7 +220,7 @@ uint32_t bk_touch_get_calib_value(void);
  *    - None
  *
  * @return
- *    - 1 —— the channel is touched; 0 —— the channel is idle.
+ *    - touch_status: the touch status of every channel. One bit corresponding to one channel. 1 —— the channel is touched; 0 —— the channel is idle.
  */
 uint32_t bk_touch_get_touch_status(void);
 

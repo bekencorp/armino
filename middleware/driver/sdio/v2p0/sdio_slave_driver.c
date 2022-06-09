@@ -32,13 +32,13 @@
 
 #include "driver/sdio_types.h"
 #include "sdio_hal.h"
-#include "sdio_slave_utils.h"
+#include "sdio_utils.h"
 #include "sdio_slave_driver.h"
 
 
 #if CONFIG_SDIO_V2P0
 
-static SDIO_MANAGE_T s_sdio;
+static sdio_driver_t s_sdio_driver;
 static bool s_sdio_driver_is_init = false;
 static beken_queue_t s_sdio_msg_que = NULL;
 static beken_thread_t s_sdio_thread = NULL;
@@ -481,7 +481,7 @@ void sdio_gpio_notify_transaction_deinit(uint8_t to_host, uint8_t from_host)
 
 #endif	//CONFIG_GPIO_NOTIFY_TRANSACTION_EN
 
-static void sdio_send_msg(SDIO_MSG_T *msg_p)
+static void sdio_send_msg(sdio_msg_t *msg_p)
 {
 	bk_err_t ret;
 
@@ -526,12 +526,14 @@ static bk_err_t sdio_gpio_deinit(void)
  */
 bk_err_t bk_sdio_set_clk(SDIO_CLK_SEL_T sel, SDIO_CLK_DIV_T div)
 {
-	rtos_enter_critical();
+	uint32_t int_level = 0;
+
+	int_level = rtos_disable_int();
 
 	sys_driver_set_sdio_clk_sel((uint32_t)sel);
 	sys_driver_set_sdio_clk_div((uint32_t)div);
 
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 	return BK_OK;
 }
 
@@ -585,31 +587,32 @@ void bk_sdio_driver_dump_sdio_regs(void)
  *	  - others: other errors.
  */
 bk_err_t bk_sdio_chan_push_free_list(
-										SDIO_CHAN_ID_T chan_id, 
-										CHAN_DIRECT_T direct,
-										SDIO_HEADER_PTR head_p,
-										SDIO_HEADER_PTR tail_p,
+										sdio_chan_id_t chan_id, 
+										chan_direct_t direct,
+										sdio_node_ptr_t head_p,
+										sdio_node_ptr_t tail_p,
 										uint32_t count
 										)
 {
 	bk_err_t ret = BK_OK;
+	uint32_t int_level = 0;
 #if SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
-	SDIO_CHAN_BUF_T *chan_buf_p = NULL;
+	sdio_chan_buf_t *chan_buf_p = NULL;
 
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
-	rtos_enter_critical();
+	int_level = rtos_disable_int();
 
-	chan_buf_p = &s_sdio.chan[chan_id].chan_buf[buf_index];
+	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 	sdio_list_push_list(&chan_buf_p->free_list, head_p, tail_p, count);
 	chan_buf_p->free_list.count += count;
 
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 
 	return ret;
 }
@@ -632,15 +635,16 @@ bk_err_t bk_sdio_chan_push_free_list(
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-bk_err_t bk_sdio_chan_pop_free_node(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, SDIO_HEADER_PTR *node_p, uint32_t *size_p)
+bk_err_t bk_sdio_chan_pop_free_node(sdio_chan_id_t chan_id, chan_direct_t direct, sdio_node_ptr_t *node_p, uint32_t *size_p)
 {
 	bk_err_t ret = BK_OK;
+	uint32_t int_level = 0;
 #if SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
-	SDIO_CHAN_BUF_T *chan_buf_p = NULL;
+	sdio_chan_buf_t *chan_buf_p = NULL;
 
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
@@ -650,12 +654,12 @@ bk_err_t bk_sdio_chan_pop_free_node(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct
 		return BK_ERR_SDIO_NULL_POINTER_PARAM;
 	}
 
-	rtos_enter_critical();
-	chan_buf_p = &s_sdio.chan[chan_id].chan_buf[buf_index];
+	int_level = rtos_disable_int();
+	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 
 	if(chan_buf_p->free_list.count)
 	{
-		SDIO_HEADER_PTR tmp_node_p;
+		sdio_node_ptr_t tmp_node_p;
 
 		ret = sdio_list_pop_node(&chan_buf_p->free_list, &tmp_node_p);
 		if(ret != BK_OK)
@@ -674,54 +678,56 @@ bk_err_t bk_sdio_chan_pop_free_node(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct
 		return BK_ERR_SDIO_NO_BUFFER;
 	}
 
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 	return BK_OK;
 }
 
 void sdio_chan_push_ongoing_node(
-										SDIO_CHAN_ID_T chan_id, 
-										CHAN_DIRECT_T direct,
-										SDIO_HEADER_PTR head_p,
-										SDIO_HEADER_PTR tail_p,
+										sdio_chan_id_t chan_id, 
+										chan_direct_t direct,
+										sdio_node_ptr_t head_p,
+										sdio_node_ptr_t tail_p,
 										uint32_t count
 										)
 {
+	uint32_t int_level = 0;
 #if SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
-	SDIO_CHAN_BUF_T *chan_buf_p = NULL;
+	sdio_chan_buf_t *chan_buf_p = NULL;
 
 	//TODO: check chan_id and direct is whether valid
 
-	rtos_enter_critical();
-	chan_buf_p = &s_sdio.chan[chan_id].chan_buf[buf_index];
+	int_level = rtos_disable_int();
+	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 
 	sdio_list_push_list(&chan_buf_p->ongoing_list, head_p, tail_p, count);
 	chan_buf_p->ongoing_list.count += count;
 
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 }
 
-bk_err_t sdio_chan_pop_ongoing_node(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, SDIO_HEADER_PTR *node_p)
+bk_err_t sdio_chan_pop_ongoing_node(sdio_chan_id_t chan_id, chan_direct_t direct, sdio_node_ptr_t *node_p)
 {
 	bk_err_t ret = BK_OK;
+	uint32_t int_level = 0;
 #if SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
-	SDIO_CHAN_BUF_T *chan_buf_p = NULL;
+	sdio_chan_buf_t *chan_buf_p = NULL;
 
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
-	rtos_enter_critical();
-	chan_buf_p = &s_sdio.chan[chan_id].chan_buf[buf_index];
+	int_level = rtos_disable_int();
+	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 	if(chan_buf_p->ongoing_list.count)
 	{
-		SDIO_HEADER_PTR tmp_node_p;
+		sdio_node_ptr_t tmp_node_p;
 		ret = sdio_list_pop_node(&chan_buf_p->ongoing_list, &tmp_node_p);
 		if(ret != BK_OK)
 		{
@@ -733,63 +739,65 @@ bk_err_t sdio_chan_pop_ongoing_node(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct
 	}
 	else
 	{
-		rtos_exit_critical();
+		rtos_enable_int(int_level);
 		return BK_FAIL;
 	}
 
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 
 	return BK_OK;
 }
 
 bk_err_t sdio_chan_push_finish_list(
-										SDIO_CHAN_ID_T chan_id, 
-										CHAN_DIRECT_T direct,
-										SDIO_HEADER_PTR head_p,
-										SDIO_HEADER_PTR tail_p,
+										sdio_chan_id_t chan_id, 
+										chan_direct_t direct,
+										sdio_node_ptr_t head_p,
+										sdio_node_ptr_t tail_p,
 										uint32_t count
 										)
 {
+	uint32_t int_level = 0;
 #if SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
-	SDIO_CHAN_BUF_T *chan_buf_p = NULL;
+	sdio_chan_buf_t *chan_buf_p = NULL;
 
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
-	rtos_enter_critical();
-	chan_buf_p = &s_sdio.chan[chan_id].chan_buf[buf_index];
+	int_level = rtos_disable_int();
+	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 
 	sdio_list_push_list(&chan_buf_p->finish_list, head_p, tail_p, count);
 	chan_buf_p->finish_list.count += count;
 
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 
 	return BK_OK;
 }
 
-bk_err_t sdio_chan_pop_finish_node(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, SDIO_HEADER_PTR *node_p)
+bk_err_t sdio_chan_pop_finish_node(sdio_chan_id_t chan_id, chan_direct_t direct, sdio_node_ptr_t *node_p)
 {
 	bk_err_t ret = BK_OK;
+	uint32_t int_level = 0;
 #if SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
-	SDIO_CHAN_BUF_T *chan_buf_p = NULL;
+	sdio_chan_buf_t *chan_buf_p = NULL;
 
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
-	rtos_enter_critical();
-	chan_buf_p = &s_sdio.chan[chan_id].chan_buf[buf_index];
+	int_level = rtos_disable_int();
+	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 
 	if(chan_buf_p->finish_list.count)
 	{
-		SDIO_HEADER_PTR tmp_node_p;
+		sdio_node_ptr_t tmp_node_p;
 		ret = sdio_list_pop_node(&chan_buf_p->ongoing_list, &tmp_node_p);
 		if(ret != BK_OK)
 		{
@@ -800,7 +808,7 @@ bk_err_t sdio_chan_pop_finish_node(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct,
 		*node_p = tmp_node_p;
 	}
 
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 
 	return BK_OK;
 }
@@ -822,29 +830,30 @@ bk_err_t sdio_chan_pop_finish_node(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct,
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-bk_err_t bk_sdio_register_chan_cb(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, SDIO_CHAN_CB_T cb)
+bk_err_t bk_sdio_register_chan_cb(sdio_chan_id_t chan_id, chan_direct_t direct, sdio_chan_cb_t cb)
 {
+	uint32_t int_level = 0;
 #if SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
-	SDIO_CHAN_BUF_T *chan_buf_p = NULL;
+	sdio_chan_buf_t *chan_buf_p = NULL;
 
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
-	rtos_enter_critical();
-	chan_buf_p = &s_sdio.chan[chan_id].chan_buf[buf_index];
+	int_level = rtos_disable_int();
+	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 	chan_buf_p->cb = cb;
 
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 
 	return BK_OK;
 }
 
 //should call sdio_chan_push_free_node after finish use
-static bk_err_t sdio_chan_notify_cb(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct)
+static bk_err_t sdio_chan_notify_cb(sdio_chan_id_t chan_id, chan_direct_t direct)
 {
 	bk_err_t ret = BK_OK;
 #if SDIO_BIDIRECT_CHANNEL_EN
@@ -852,7 +861,7 @@ static bk_err_t sdio_chan_notify_cb(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct
 #else
 	uint32_t buf_index = 0;
 #endif
-	SDIO_CHAN_BUF_T *chan_buf_p = &s_sdio.chan[chan_id].chan_buf[buf_index];
+	sdio_chan_buf_t *chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 
 	if(chan_buf_p->cb)
 	{
@@ -869,7 +878,7 @@ static bk_err_t sdio_chan_notify_cb(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct
 	return ret;
 }
 
-static bool sdio_chan_direct_is_inited(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct)
+static bool sdio_chan_direct_is_inited(sdio_chan_id_t chan_id, chan_direct_t direct)
 {
 #if SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
@@ -877,8 +886,8 @@ static bool sdio_chan_direct_is_inited(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T dir
 	uint32_t buf_index = 0;
 #endif
 
-	if((s_sdio.chan[chan_id].tx_direct == (1<<buf_index)) ||
-		(s_sdio.chan[chan_id].rx_direct == (1<<buf_index)))
+	if((s_sdio_driver.chan[chan_id].tx_direct == (1<<buf_index)) ||
+		(s_sdio_driver.chan[chan_id].rx_direct == (1<<buf_index)))
 		return true;
 	else
 		return false;
@@ -888,51 +897,48 @@ static bool sdio_chan_direct_is_inited(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T dir
  * @brief	  Init a sdio channel.
  *
  * This API init a sdio channel.
- *	 - Init a single list for buffers
+ *	 - Init a single list for buffers if count != 0
+ *   - Create a semaphore to do notification for read/write data
  *   - Create a mutex lock to protect concurrence operate link list
  *
  * @param chan_id	The selected chan id.
  * @param direct	The channel used for TX data or RX data
- * @param count How many buffers will be malloced.
+ * @param count How many buffers will be malloced by channel.
+ *              If count == 0 means the buffer malloced by APP.      
  * @param size  Each buffer size for data which doesn't include SDIO header,it should be 4 bytes align
  *
- * @attention
+ * @attention The count value is re-used as APPLICATION supports buffer or DRIVER supports buffer.
+ *            Though if count == 0, the APPLICATION(caller) should set the size value as driver knows
+ *            how many bytes can be saved in the buffer which APPLICATION supported.
  *
  * @return
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-bk_err_t bk_sdio_init_channel(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, uint32_t count, uint32_t size)
+bk_err_t bk_sdio_init_channel(sdio_chan_id_t chan_id, chan_direct_t direct, uint32_t count, uint32_t size)
 {
 	bk_err_t ret = BK_OK;
+	uint32_t int_level = 0;
+	uint32_t sema_count = SDIO_CHAN_SEMAPHORE_COUNT;
 #if SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
-	SDIO_CHAN_BUF_T *chan_buf_p = NULL;
+	sdio_chan_buf_t *chan_buf_p = NULL;
 
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
-	rtos_enter_critical();
+	int_level = rtos_disable_int();
 
-	chan_buf_p = &s_sdio.chan[chan_id].chan_buf[buf_index];
+	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 	if(sdio_chan_direct_is_inited(chan_id, direct))
 	{
 		SDIO_LOG_INFO("chan%d,direct %d inited,buf cnt=%d,buf size=%d",
 			          chan_id, direct, chan_buf_p->buf_cnt, chan_buf_p->buf_size);
 		goto err_exit;
 	}
-
-#if 1
-	ret = rtos_init_semaphore(&chan_buf_p->semaphore, count);
-	if (kNoErr != ret) 
-	{
-		SDIO_LOG_ERR("semaphore init");
-		goto err_exit;
-	}
-#endif
 
 #if 0	//TODO:check whether needs it.
 	if(chan_buf_p->lock_p == NULL)
@@ -946,19 +952,31 @@ bk_err_t bk_sdio_init_channel(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, uint
 	}
 #endif
 
-	ret = sdio_list_init(count, size, &chan_buf_p->free_list.head, &chan_buf_p->free_list.tail);
-	if (BK_OK != ret) 
+	if(count)
+		sema_count = count;
+	ret = rtos_init_semaphore(&chan_buf_p->semaphore, sema_count);
+	if (kNoErr != ret) 
 	{
-		SDIO_LOG_ERR("list init");
+		SDIO_LOG_ERR("semaphore init");
 		goto err_exit;
 	}
 
+	if(count)	//driver support buffer
+	{
+		ret = sdio_list_init(count, size, &chan_buf_p->free_list.head, &chan_buf_p->free_list.tail);
+		if (BK_OK != ret) 
+		{
+			SDIO_LOG_ERR("list init");
+			goto err_exit;
+		}
+	}
+
 	//save channel info
-	s_sdio.chan[chan_id].chan_id = chan_id;
+	s_sdio_driver.chan[chan_id].chan_id = chan_id;
 	if(direct == SDIO_CHAN_TX)
-		s_sdio.chan[chan_id].tx_direct = 1;
+		s_sdio_driver.chan[chan_id].tx_direct = 1;
 	else
-		s_sdio.chan[chan_id].rx_direct = 1;
+		s_sdio_driver.chan[chan_id].rx_direct = 1;
 
 	//save buf info
 	chan_buf_p->buf_cnt = count;
@@ -967,29 +985,142 @@ bk_err_t bk_sdio_init_channel(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, uint
 	chan_buf_p->transaction_len = 0;
 
 	//add this to avoid modify err_exit involve issue.
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 	return ret;
 
 err_exit:
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 	return ret;
 }
 
-static bk_err_t sdio_slave_get_valid_ongoing_rx_buf_ptr(SDIO_CHAN_ID_T chan_id, uint32_t count, uint8_t **buf_p)
+/**
+ * @brief	  Deinit a sdio channel.
+ *
+ * This API deinit a sdio channel.
+ *	 - Init a single list for buffers
+ *   - Create a mutex lock to protect concurrence operate link list
+ *
+ * @param chan_id	The selected chan id.
+ * @param direct	The channel used for TX data or RX data
+ *
+ * @attention
+ *
+ * @return
+ *	  - BK_OK: succeed
+ *	  - others: other errors.
+ */
+bk_err_t bk_sdio_deinit_channel(sdio_chan_id_t chan_id, chan_direct_t direct)
 {
 	bk_err_t ret = BK_OK;
+	uint32_t int_level = 0;
+#if SDIO_BIDIRECT_CHANNEL_EN
+	uint32_t buf_index = direct;
+#else
+	uint32_t buf_index = 0;
+#endif
+	sdio_chan_buf_t *chan_buf_p = NULL;
+
+	SDIO_RETURN_CHAN_ID(chan_id);
+	SDIO_RETURN_CHAN_DIRECT(direct);
+
+	int_level = rtos_disable_int();
+
+	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
+	if(sdio_chan_direct_is_inited(chan_id, direct) == false)
+	{
+		SDIO_LOG_INFO("chan%d,direct %d isn't inited", chan_id, direct);
+		goto err_exit;
+	}
+
+	if(chan_buf_p->buf_cnt)	//driver support buffer
+	{
+		ret = sdio_list_deinit(&chan_buf_p->free_list);
+		if (BK_OK != ret) 
+		{
+			SDIO_LOG_ERR("list deinit");
+			goto err_exit;
+		}
+		chan_buf_p->free_list.head = NULL;
+
+		ret = sdio_list_deinit(&chan_buf_p->ongoing_list);
+		if (BK_OK != ret) 
+		{
+			SDIO_LOG_ERR("list deinit");
+			goto err_exit;
+		}
+		chan_buf_p->ongoing_list.head = NULL;
+
+		ret = sdio_list_deinit(&chan_buf_p->finish_list);
+		if (BK_OK != ret) 
+		{
+			SDIO_LOG_ERR("list deinit");
+			goto err_exit;
+		}
+		chan_buf_p->finish_list.head = NULL;
+	}
+
+	if(chan_buf_p->semaphore)
+	{
+		ret = rtos_deinit_semaphore(&chan_buf_p->semaphore);
+		if (kNoErr != ret) 
+		{
+			SDIO_LOG_ERR("semaphore deinit");
+			goto err_exit;
+		}
+
+		chan_buf_p->semaphore = NULL;
+	}
+
+#if 0	//TODO:check whether needs it.
+	if(chan_buf_p->lock_p == NULL)
+	{
+		ret = rtos_deinit_mutex(&chan_buf_p->lock_p);
+		if (kNoErr != ret) 
+		{
+			SDIO_LOG_ERR("mutex deinit");
+			goto err_exit;
+		}
+	}
+#endif
+
+	//save channel info
+	s_sdio_driver.chan[chan_id].chan_id = SDIO_CHAN_MAX_CNT;
+	if(direct == SDIO_CHAN_TX)
+		s_sdio_driver.chan[chan_id].tx_direct = 0;
+	else
+		s_sdio_driver.chan[chan_id].rx_direct = 0;
+
+	//save buf info
+	chan_buf_p->buf_cnt = 0;
+	chan_buf_p->buf_size = 0;
+	chan_buf_p->free_list.count = 0;
+	chan_buf_p->transaction_len = 0;
+
+	//add this to avoid modify err_exit involve issue.
+	rtos_enable_int(int_level);
+	return ret;
+
+err_exit:
+	rtos_enable_int(int_level);
+	return ret;
+}
+
+static bk_err_t sdio_slave_get_valid_ongoing_rx_buf_ptr(sdio_chan_id_t chan_id, uint32_t count, uint8_t **buf_p)
+{
+	bk_err_t ret = BK_OK;
+	uint32_t int_level = 0;
 	uint32_t left_size = 0;
 #if SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = SDIO_CHAN_RX;
 #else
 	uint32_t buf_index = 0;
 #endif
-	SDIO_CHAN_BUF_T *chan_buf_p = NULL;
+	sdio_chan_buf_t *chan_buf_p = NULL;
 
 	SDIO_RETURN_CHAN_ID(chan_id);
 
-	rtos_enter_critical();
-	chan_buf_p = &s_sdio.chan[chan_id].chan_buf[buf_index];
+	int_level = rtos_disable_int();
+	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 
 	if(count > chan_buf_p->buf_size)
 	{
@@ -997,15 +1128,15 @@ static bk_err_t sdio_slave_get_valid_ongoing_rx_buf_ptr(SDIO_CHAN_ID_T chan_id, 
 		return BK_FAIL;
 	}
 		
-	//*trans_len_p = s_sdio.chan[chan_id].chan_buf[buf_index].transaction_len;
-	left_size = chan_buf_p->buf_size - s_sdio.chan[chan_id].chan_buf[buf_index].transaction_len;
+	//*trans_len_p = s_sdio_driver.chan[chan_id].chan_buf[buf_index].transaction_len;
+	left_size = chan_buf_p->buf_size - s_sdio_driver.chan[chan_id].chan_buf[buf_index].transaction_len;
 	if(left_size >= count)
 	{
-		*buf_p = (uint8_t *)chan_buf_p->ongoing_list.head + sizeof(SDIO_HEADER_T) + s_sdio.chan[chan_id].chan_buf[buf_index].transaction_len;
+		*buf_p = (uint8_t *)chan_buf_p->ongoing_list.head + sizeof(sdio_node_t) + s_sdio_driver.chan[chan_id].chan_buf[buf_index].transaction_len;
 	}
 	else	//current node left size isn't enough, save data to next node
 	{
-		SDIO_HEADER_PTR head_p = NULL;
+		sdio_node_ptr_t head_p = NULL;
 
 		//pop out the buffer node from ongoing list
 		ret = sdio_chan_pop_ongoing_node(chan_id, SDIO_CHAN_RX, &head_p);
@@ -1015,48 +1146,49 @@ static bk_err_t sdio_slave_get_valid_ongoing_rx_buf_ptr(SDIO_CHAN_ID_T chan_id, 
 		sdio_chan_push_finish_list(chan_id, SDIO_CHAN_RX, head_p, NULL, 1);
 
 		//get next valid node
-		s_sdio.chan[chan_id].chan_buf[buf_index].transaction_len = 0;
-		*buf_p = (uint8_t *)chan_buf_p->ongoing_list.head + sizeof(SDIO_HEADER_T);
+		s_sdio_driver.chan[chan_id].chan_buf[buf_index].transaction_len = 0;
+		*buf_p = (uint8_t *)chan_buf_p->ongoing_list.head + sizeof(sdio_node_t);
 	}
 
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 
 	return ret;
 }
 
-static bk_err_t sdio_slave_get_valid_ongoing_tx_buf_ptr(SDIO_CHAN_ID_T chan_id, uint32_t len, uint8_t **buf_p)
+static bk_err_t sdio_slave_get_valid_ongoing_tx_buf_ptr(sdio_chan_id_t chan_id, uint32_t len, uint8_t **buf_p)
 {
 	bk_err_t ret = BK_OK;
+	uint32_t int_level = 0;
 	uint32_t left_size = 0;
 #if SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = SDIO_CHAN_TX;
 #else
 	uint32_t buf_index = 0;
 #endif
-	SDIO_CHAN_BUF_T *chan_buf_p = NULL;
+	sdio_chan_buf_t *chan_buf_p = NULL;
 
 	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 
 	SDIO_RETURN_CHAN_ID(chan_id);
 
-	rtos_enter_critical();
-	chan_buf_p = &s_sdio.chan[chan_id].chan_buf[buf_index];
-	left_size = chan_buf_p->ongoing_list.head->len - s_sdio.chan[chan_id].chan_buf[buf_index].transaction_len;
+	int_level = rtos_disable_int();
+	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
+	left_size = chan_buf_p->ongoing_list.head->len - s_sdio_driver.chan[chan_id].chan_buf[buf_index].transaction_len;
 	if(left_size > 0)	//current head node tx isn't finish 
 	{
-		*buf_p = (uint8_t *)chan_buf_p->ongoing_list.head + sizeof(SDIO_HEADER_T) + s_sdio.chan[chan_id].chan_buf[buf_index].transaction_len;
+		*buf_p = (uint8_t *)chan_buf_p->ongoing_list.head + sizeof(sdio_node_t) + s_sdio_driver.chan[chan_id].chan_buf[buf_index].transaction_len;
 	}
 	else	//this packet finish, next packet
 	{
-		SDIO_HEADER_PTR head_p = NULL;
-		SDIO_MSG_T msg;
+		sdio_node_ptr_t head_p = NULL;
+		sdio_msg_t msg;
 
 		//pop out the buffer node from ongoing list
 		ret = sdio_chan_pop_ongoing_node(chan_id, SDIO_CHAN_TX, &head_p);
 		if(ret != BK_OK)
 		{
 			SDIO_LOG_ERR("pop node");
-			rtos_exit_critical();
+			rtos_enable_int(int_level);
 			return ret;
 		}
 
@@ -1065,7 +1197,7 @@ static bk_err_t sdio_slave_get_valid_ongoing_tx_buf_ptr(SDIO_CHAN_ID_T chan_id, 
 		if(ret != BK_OK)
 		{
 			SDIO_LOG_ERR("push lish");
-			rtos_exit_critical();
+			rtos_enable_int(int_level);
 			return ret;
 		}
 
@@ -1074,35 +1206,36 @@ static bk_err_t sdio_slave_get_valid_ongoing_tx_buf_ptr(SDIO_CHAN_ID_T chan_id, 
 		sdio_send_msg(&msg);
 
 		//get next tx node
-		s_sdio.chan[chan_id].chan_buf[buf_index].transaction_len = 0;
-		*buf_p = (uint8_t *)chan_buf_p->ongoing_list.head + sizeof(SDIO_HEADER_T);
+		s_sdio_driver.chan[chan_id].chan_buf[buf_index].transaction_len = 0;
+		*buf_p = (uint8_t *)chan_buf_p->ongoing_list.head + sizeof(sdio_node_t);
 	}	
 
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 
 	SDIO_LOG_DEBUG_FUNCTION_EXIT();
 
 	return ret;
 }
 
-static bk_err_t sdio_slave_add_ongoing_buf_trans_len(SDIO_CHAN_ID_T chan_id, CHAN_DIRECT_T direct, uint32_t trans_len)
+static bk_err_t sdio_slave_add_ongoing_buf_trans_len(sdio_chan_id_t chan_id, chan_direct_t direct, uint32_t trans_len)
 {
 	bk_err_t ret = BK_OK;
+	uint32_t int_level = 0;
 #if SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
-	SDIO_CHAN_BUF_T *chan_buf_p = NULL;
+	sdio_chan_buf_t *chan_buf_p = NULL;
 
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
-	rtos_enter_critical();
+	int_level = rtos_disable_int();
 
-	chan_buf_p = &s_sdio.chan[chan_id].chan_buf[buf_index];
+	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 	chan_buf_p->transaction_len += trans_len;
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 
 	SDIO_LOG_DEBUG("chan_id=%d,tx/rx=%d,tarns_len=%d,total_len=%d", chan_id, direct, trans_len, chan_buf_p->transaction_len);
 
@@ -1154,7 +1287,7 @@ static bk_err_t sdio_slave_rx(uint32_t count)
 {
 	uint8_t *tar_addr_p = NULL;
 	//TODO: As SW doesn't check header chan_id, so here use default value.
-	SDIO_CHAN_ID_T chan_id = SDIO_CHAN_PLATFORM;
+	sdio_chan_id_t chan_id = SDIO_CHAN_PLATFORM;
 
 	//search current channel
 	//TODO:uses CHAN_ID_PLATFORM
@@ -1195,21 +1328,21 @@ static bk_err_t sdio_slave_rx(uint32_t count)
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-
-bk_err_t bk_sdio_slave_sync_read(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p, SDIO_HEADER_PTR tail_p, uint32_t count)
+bk_err_t bk_sdio_slave_sync_read(sdio_chan_id_t chan_id, sdio_node_ptr_t head_p, sdio_node_ptr_t tail_p, uint32_t count)
 {
 	bk_err_t ret = BK_OK;
+	uint32_t int_level = 0;
 #if SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = SDIO_CHAN_RX;
 #else
 	uint32_t buf_index = 0;
 #endif
-	SDIO_CHAN_BUF_T *chan_buf_p = NULL;
+	sdio_chan_buf_t *chan_buf_p = NULL;
 
 	SDIO_RETURN_CHAN_ID(chan_id);
 
-	rtos_enter_critical();
-	chan_buf_p = &s_sdio.chan[chan_id].chan_buf[buf_index];
+	int_level = rtos_disable_int();
+	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 
 	ret = sdio_list_push_list(&chan_buf_p->ongoing_list, head_p, tail_p, count);
 	{
@@ -1231,11 +1364,11 @@ bk_err_t bk_sdio_slave_sync_read(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p,
 	}
 
 	//add this to avoid modify err_exit involve issue.
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 	return ret;
 
 err_exit:
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 	return ret;
 }
 
@@ -1252,7 +1385,7 @@ err_exit:
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-bk_err_t sdio_slave_async_read(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p, SDIO_HEADER_PTR tail_p, uint32_t count)
+bk_err_t sdio_slave_async_read(sdio_chan_id_t chan_id, sdio_node_ptr_t head_p, sdio_node_ptr_t tail_p, uint32_t count)
 {
 	bk_err_t ret = BK_OK;
 
@@ -1297,7 +1430,7 @@ static bk_err_t sdio_slave_tx_buf_to_fifo(uint8_t *src_addr_p, uint32_t count)
 	return BK_OK;
 }
 
-static bk_err_t sdio_slave_tx(SDIO_CHAN_ID_T chan_id, uint32_t len)
+static bk_err_t sdio_slave_tx(sdio_chan_id_t chan_id, uint32_t len)
 {
 	uint8_t *src_addr_p = NULL;
 
@@ -1337,22 +1470,22 @@ static bk_err_t sdio_slave_tx(SDIO_CHAN_ID_T chan_id, uint32_t len)
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-bk_err_t bk_sdio_slave_sync_write(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p, SDIO_HEADER_PTR tail_p, uint32_t count)
+bk_err_t bk_sdio_slave_sync_write(sdio_chan_id_t chan_id, sdio_node_ptr_t head_p, sdio_node_ptr_t tail_p, uint32_t count)
 {
 	bk_err_t ret = BK_OK;
-
+	uint32_t int_level = 0;
 #if SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = SDIO_CHAN_TX;
 #else
 	uint32_t buf_index = 0;
 #endif
-	SDIO_CHAN_BUF_T *chan_buf_p = NULL;
+	sdio_chan_buf_t *chan_buf_p = NULL;
 	
 	SDIO_RETURN_CHAN_ID(chan_id);
 
-	rtos_enter_critical();
+	int_level = rtos_disable_int();
 
-	chan_buf_p = &s_sdio.chan[chan_id].chan_buf[buf_index];
+	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 
 	ret = sdio_list_push_list(&chan_buf_p->ongoing_list, head_p, tail_p, count);
 	if(ret != BK_OK)
@@ -1380,11 +1513,11 @@ bk_err_t bk_sdio_slave_sync_write(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p
 	}
 
 	//add this to avoid modify err_exit involve issue.
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 	return ret;
 
 err_exit:
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 	return ret;
 }
 
@@ -1402,7 +1535,7 @@ err_exit:
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-bk_err_t sdio_slave_async_write(SDIO_CHAN_ID_T chan_id, SDIO_HEADER_PTR head_p, SDIO_HEADER_PTR tail_p, uint32_t count)
+bk_err_t sdio_slave_async_write(sdio_chan_id_t chan_id, sdio_node_ptr_t head_p, sdio_node_ptr_t tail_p, uint32_t count)
 {
 	bk_err_t ret = BK_OK;
 
@@ -1415,7 +1548,7 @@ static void sdio_thread(void *arg)
 
 	while(1)
 	{
-		SDIO_MSG_T msg;
+		sdio_msg_t msg;
 		ret = rtos_pop_from_queue(&s_sdio_msg_que, &msg, BEKEN_WAIT_FOREVER);
 		if (kNoErr == ret)
 		{
@@ -1449,7 +1582,7 @@ static bk_err_t sdio_sw_init(void)
 	ret = rtos_init_queue(
 							&s_sdio_msg_que,
 							SDIO_MSG_QUEUE_NAME,
-							sizeof(SDIO_MSG_T),
+							sizeof(sdio_msg_t),
 							SDIO_MSG_QUEUE_COUNT
 						);
 	if (kNoErr != ret)
@@ -1473,7 +1606,8 @@ static bk_err_t sdio_sw_init(void)
 	}
 
 	//confirm to 0 as maybe crash value by other app.
-	memset(&s_sdio, 0, sizeof(s_sdio));
+	memset(&s_sdio_driver, 0, sizeof(s_sdio_driver));
+	SDIO_LOG_DEBUG("sizeof(s_sdio_driver)=%d", sizeof(s_sdio_driver));
 
 	//return, or err_exit release resources caused bug.
 	return ret;
@@ -1511,10 +1645,10 @@ static void sdio_slave_isr(void)
 				uint32_t cmd52_arg0 = sdio_hal_slave_get_func_reg_value();
 
 				//host write func reg0 to 1, notify slave stop, which means one packet send finish.
-				if(((SDIO_CMD52_FUNC_ARG0_T) cmd52_arg0).stop == 1)
+				if(((sdio_cmd52_func_arg0_t) cmd52_arg0).stop == 1)
 				{
-					SDIO_MSG_T  msg;
-					SDIO_HEADER_PTR head_p = NULL;
+					sdio_msg_t  msg;
+					sdio_node_ptr_t head_p = NULL;
 					//pop out the buffer node from ongoing list
 					//TODO:channel value is fixed.
 					sdio_chan_pop_ongoing_node(SDIO_CHAN_PLATFORM, SDIO_CHAN_RX, &head_p);
@@ -1546,11 +1680,11 @@ static void sdio_slave_isr(void)
 			{
 				uint32_t cmd53_arg = sdio_hal_slave_get_cmd_arg0();
 				
-				if(((SDIO_CMD53_ARG_T)cmd53_arg).rw)	//host read, slave write
+				if(((sdio_cmd53_arg_t)cmd53_arg).rw)	//host read, slave write
 				{
 					//TODO:CHAN ID is fixed. 
 					//save data to sdio fifo
-					sdio_slave_tx(SDIO_CHAN_PLATFORM, (uint32_t)((SDIO_CMD53_ARG_T)cmd53_arg).count);
+					sdio_slave_tx(SDIO_CHAN_PLATFORM, (uint32_t)((sdio_cmd53_arg_t)cmd53_arg).count);
 					//start transaction en, wait host read
 					sdio_hal_slave_tx_transaction_en();
 				}
@@ -1578,7 +1712,7 @@ static void sdio_slave_isr(void)
 	if(sdio_hal_slave_get_read_int_status())
 	{
 		uint32_t cmd53_arg = sdio_hal_slave_get_cmd_arg0();
-		uint32_t rx_cnt = ((SDIO_CMD53_ARG_T)cmd53_arg).count;
+		uint32_t rx_cnt = ((sdio_cmd53_arg_t)cmd53_arg).count;
 
 		//clear self int status
 		sdio_hal_slave_clear_read_int_status();
@@ -1679,14 +1813,15 @@ static bk_err_t sdio_slave_hw_init(void)
 bk_err_t bk_sdio_slave_driver_init(void)
 {
 	bk_err_t ret = BK_OK;
+	uint32_t int_level = 0;
 
 	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 
-	rtos_enter_critical();
+	int_level = rtos_disable_int();
 
 	if(s_sdio_driver_is_init) 
 	{
-		rtos_exit_critical();
+		rtos_enable_int(int_level);
 		SDIO_LOG_INFO("has inited");
 		return BK_OK;
 	}
@@ -1712,11 +1847,11 @@ bk_err_t bk_sdio_slave_driver_init(void)
 	SDIO_LOG_DEBUG_FUNCTION_EXIT();
 
 	//add this to avoid modify err_exit involve issue.
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 	return ret;
 
 err_exit:
-	rtos_exit_critical();
+	rtos_enable_int(int_level);
 	return ret;
 }
 
@@ -1810,16 +1945,20 @@ static bk_err_t sdio_hw_deinit(void)
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-bk_err_t sdio_slave_deinit(void)
+bk_err_t sdio_slave_driver_deinit(void)
 {
 	bk_err_t ret = BK_OK;
+	uint32_t int_level = 0;
 
 	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
+
+	int_level = rtos_disable_int();
 
 	ret = sdio_sw_deinit();
 	if (BK_OK != ret)
 	{
 		SDIO_LOG_ERR("sw deinit ret=%d", ret);
+		rtos_enable_int(int_level);
 		return ret;
 	}
 
@@ -1827,6 +1966,7 @@ bk_err_t sdio_slave_deinit(void)
 	if (BK_OK != ret)
 	{
 		SDIO_LOG_ERR("hw deinit ret=%d", ret);
+		rtos_enable_int(int_level);
 		return ret;
 	}
 
@@ -1834,6 +1974,7 @@ bk_err_t sdio_slave_deinit(void)
 
 	SDIO_LOG_DEBUG_FUNCTION_EXIT();
 
+	rtos_enable_int(int_level);
 	return ret;
 }
 

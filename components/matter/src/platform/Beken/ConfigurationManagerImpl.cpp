@@ -27,7 +27,7 @@
 #include <platform/Beken/BekenConfig.h>
 #include <platform/ConfigurationManager.h>
 #include <platform/DiagnosticDataProvider.h>
-#include <platform/internal/GenericConfigurationManagerImpl.cpp>
+#include <platform/internal/GenericConfigurationManagerImpl.ipp>
 #include <support/CodeUtils.h>
 #include <support/logging/CHIPLogging.h>
 
@@ -49,7 +49,6 @@ CHIP_ERROR ConfigurationManagerImpl::Init()
 {
     CHIP_ERROR err;
     uint32_t rebootCount;
-    bool failSafeArmed;
 
     ChipLogProgress(DeviceLayer, "ConfigurationManagerImpl::Init");
     // Force initialization of NVS namespaces if they doesn't already exist.
@@ -83,7 +82,7 @@ CHIP_ERROR ConfigurationManagerImpl::Init()
 
     if (!BekenConfig::ConfigValueExists(BekenConfig::kCounterKey_BootReason))
     {
-        err = StoreBootReason(DiagnosticDataProvider::BootReasonType::Unspecified);
+        err = StoreBootReason(to_underlying(BootReasonType::kUnspecified));
         SuccessOrExit(err);
     }
 
@@ -91,12 +90,6 @@ CHIP_ERROR ConfigurationManagerImpl::Init()
     err = Internal::GenericConfigurationManagerImpl<BekenConfig>::Init();
     SuccessOrExit(err);
 
-    // If the fail-safe was armed when the device last shutdown, initiate a factory reset.
-    if (GetFailSafeArmed(failSafeArmed) == CHIP_NO_ERROR && failSafeArmed)
-    {
-        ChipLogProgress(DeviceLayer, "Detected fail-safe armed on reboot; initiating factory reset");
-        InitiateFactoryReset();
-    }
     err = CHIP_NO_ERROR;
 exit:
     return err;
@@ -234,11 +227,7 @@ void ConfigurationManagerImpl::DoFactoryReset(intptr_t arg)
     ChipLogProgress(DeviceLayer, "Performing factory reset");
 
     // Erase all values in the chip-config NVS namespace.
-    err = BekenConfig::ClearNamespace(BekenConfig::kConfigNamespace_ChipConfig);
-    if (err != CHIP_NO_ERROR)
-    {
-        ChipLogError(DeviceLayer, "ClearNamespace(ChipConfig) failed: %s", chip::ErrorStr(err));
-    }
+    bk_erase_all( BK_PARTITION_MATTER_FLASH);
 
     // Restart the system.
     ChipLogProgress(DeviceLayer, "System restarting");

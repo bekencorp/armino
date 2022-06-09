@@ -1,0 +1,15 @@
+en/doxygen-warning-log.txt
+en/sphinx-warning-log.txt
+sphinx-warning-log.txt
+zh_CN/doxygen-warning-log.txt
+zh_CN/sphinx-warning-log.txt
+__pycache__
+build
+en/_build
+en/man
+en/xml
+en/xml_in
+zh_CN/_build
+zh_CN/man
+zh_CN/xml
+zh_CN/xml_in

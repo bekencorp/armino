@@ -221,6 +221,89 @@ bk_err_t bk_spi_read_bytes(spi_id_t id, void *data, uint32_t size);
  */
 bk_err_t bk_spi_transmit(spi_id_t id, const void *tx_data, uint32_t tx_size, void *rx_data, uint32_t rx_size);
 
+
+/**
+ * @brief     Register the RX finish interrupt service routine for SPI id
+ *
+ * @param id spi id
+ * @param isr SPI RX callback
+ * @param param SPI RX callback parameter
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_spi_register_rx_finish_isr(spi_id_t id, spi_isr_t isr, void *param);
+
+/**
+ * @brief     Unregister the RX interrupt service routine for SPI id
+ *
+ * @param id spi id
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_spi_unregister_rx_isr(spi_id_t id);
+
+/**
+ * @brief     Unregister the RX finish interrupt service routine for SPI id
+ *
+ * @param id spi id
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_spi_unregister_rx_finish_isr(spi_id_t id);
+
+/**
+ * @brief     Unregister the TX finish interrupt service routine for SPI id
+ *
+ * @param id spi id
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_spi_unregister_tx_finish_isr(spi_id_t id);
+
+
+/**
+ * @brief     Send data to the SPI port from a given buffer and length in async mode
+ *
+ * @param id spi id
+ * @param data data buffer address
+ * @param size data length to send
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_SPI_NOT_INIT: SPI driver not init
+ *    - BK_ERR_SPI_INVALID_ID: SPI id number is invalid
+ *    - BK_ERR_SPI_ID_NOT_INIT: SPI id not init
+ *    - others: other errors.
+ */
+bk_err_t bk_spi_write_bytes_async(spi_id_t id, const void *data, uint32_t size);
+
+/**
+ * @brief     SPI read bytes from SPI buffer in async mode
+ *
+ * @param id SPI id
+ * @param data pointer to the buffer
+ * @param size data length to read
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_SPI_NOT_INIT: SPI driver not init
+ *    - BK_ERR_SPI_INVALID_ID: SPI id number is invalid
+ *    - BK_ERR_SPI_ID_NOT_INIT: SPI id not init
+ *    - others: other errors.
+ */
+bk_err_t bk_spi_read_bytes_async(spi_id_t id, void *data, uint32_t size);
+
+
+
+
 #if CONFIG_SPI_DMA
 
 /**

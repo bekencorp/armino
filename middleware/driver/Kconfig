@@ -254,7 +254,30 @@ menu "Driver"
 				bool "Enable AON_RTC Statis"
 				default n
 	endmenu
-	
+
+	menu "GPIO_WAKEUP_SUPPORT"
+			config GPIO_WAKEUP_SUPPORT
+				bool "Enable GPIO WAKEUP system if at low voltage status"
+				default n
+
+			config GPIO_DYNAMIC_WAKEUP_SUPPORT
+				bool "Enable GPIO dynamic config to wake system if at low volatage status"
+				depends on GPIO_WAKEUP_SUPPORT
+				default n
+
+			config GPIO_WAKEUP_DEBUG
+				bool "Enable GPIO wakeup module debug code"
+				depends on GPIO_WAKEUP_SUPPORT
+				default n
+
+			config GPIO_DYNAMIC_WAKEUP_SOURCE_MAX_CNT
+				int "how many gpio can dynamic set to wakeup system at low power status"
+				range 0 48
+				default 4
+				help
+				The value should be changed if need more then 4 gpio
+	endmenu
+
 	menu "AON_PMU"
 			config AON_PMU
 				bool "Enable AON_PMU"
@@ -341,6 +364,10 @@ menu "Driver"
 		config PTA
 		bool "Enable PTA"
 		default n
+
+		config ATE_TEST
+		    bool "Enable ATE Test"
+		    default n
 	endmenu
 
 	menu "I2S"
@@ -389,7 +416,7 @@ menu "Driver"
 
 	      config TIMER
 			bool "Enable TIMER"
-			default n
+			default y
 
 		config TIMER_SUPPORT_ID_BITS
 			int "timer support id bits"
@@ -423,15 +450,15 @@ menu "Driver"
 		
 	config LCD
 		bool "Enable LCD Display"
-		default y
+		default n
 		
 	config DMA2D
-		bool "Enable LCD Display"
-		default y
+		bool "Enable DMA2D "
+		default n
 
 	config JPEG_DEC
-		bool "Enable LCD Display"
-		default y
+		bool "Enable JPEGDEC Display"
+		default n
 
 	config FLASH
 		bool "Enable flash"

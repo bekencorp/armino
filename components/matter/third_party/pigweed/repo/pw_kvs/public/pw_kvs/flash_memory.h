@@ -20,8 +20,14 @@
 
 #include "pw_assert/assert.h"
 #include "pw_kvs/alignment.h"
+#include "pw_polyfill/standard.h"
 #include "pw_status/status.h"
 #include "pw_status/status_with_size.h"
+
+#if PW_CXX_STANDARD_IS_SUPPORTED(17)  // Requires C++17 for pw::Result
+#include "pw_stream/seek.h"
+#include "pw_stream/stream.h"
+#endif  // PW_CXX_STANDARD_IS_SUPPORTED(17)
 
 namespace pw {
 namespace kvs {
@@ -139,6 +145,52 @@ class FlashPartition {
  public:
   // The flash address is in the range of: 0 to PartitionSize.
   using Address = uint32_t;
+
+#if PW_CXX_STANDARD_IS_SUPPORTED(17)  // Requires C++17 for pw::Result
+  class Writer final : public stream::NonSeekableWriter {
+   public:
+    constexpr Writer(kvs::FlashPartition& partition)
+        : partition_(partition), position_(0) {}
+
+   private:
+    Status DoWrite(ConstByteSpan data) override;
+
+    size_t DoTell() override { return position_; }
+
+    size_t ConservativeLimit(LimitType type) const override {
+      return type == LimitType::kWrite ? partition_.size_bytes() - position_
+                                       : 0;
+    }
+
+    FlashPartition& partition_;
+    size_t position_;
+  };
+
+  class Reader final : public stream::SeekableReader {
+   public:
+    constexpr Reader(kvs::FlashPartition& partition)
+        : partition_(partition), position_(0) {}
+
+    Reader(const Reader&) = delete;
+    Reader& operator=(const Reader&) = delete;
+
+   private:
+    StatusWithSize DoRead(ByteSpan data) override;
+
+    size_t DoTell() override { return position_; }
+
+    Status DoSeek(ptrdiff_t offset, Whence origin) override {
+      return CalculateSeek(offset, origin, partition_.size_bytes(), position_);
+    }
+
+    size_t ConservativeLimit(LimitType type) const override {
+      return type == LimitType::kRead ? partition_.size_bytes() - position_ : 0;
+    }
+
+    FlashPartition& partition_;
+    size_t position_;
+  };
+#endif  // PW_CXX_STANDARD_IS_SUPPORTED(17)
 
   // Implement Output for the Write method.
   class Output final : public pw::Output {

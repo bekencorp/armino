@@ -25,6 +25,25 @@ const at_command_t *lookup_ble_at_command(char *str1)
     }
     return NULL;
 }
+#if CONFIG_LWIP
+const at_command_t *lookup_wifi_at_command(char *str1)
+{
+
+    for (int i = 0; i < wifi_at_cmd_cnt(); i++)
+    {
+        if (wifi_at_cmd_table[i].name == NULL) {
+            i++;
+            continue;
+        }
+
+        if(!os_strcmp(wifi_at_cmd_table[i].name, str1))
+        {
+            return &wifi_at_cmd_table[i];
+        }
+    }
+    return NULL;
+}
+#endif
 
 void at_set_data_handle(uint8_t *out, char *buff, uint8_t len)
 {

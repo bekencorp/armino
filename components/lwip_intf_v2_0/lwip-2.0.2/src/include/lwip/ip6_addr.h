@@ -57,7 +57,11 @@ extern "C" {
     used as local variable, on the stack, etc. */
 struct ip6_addr {
   u32_t addr[4];
+#if LWIP_IPV6_SCOPES
+  u8_t zone;
+#endif /* LWIP_IPV6_SCOPES */
 };
+#define ip6_addr_clear_zone(ip6addr)
 
 /** IPv6 address */
 typedef struct ip6_addr ip6_addr_t;

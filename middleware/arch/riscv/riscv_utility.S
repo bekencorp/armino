@@ -22,6 +22,7 @@
 .global  riscv_set_mtimercmp
 .global  riscv_get_cycle
 .global  riscv_get_instruct_cnt
+.global  arch_get_int_status
 
 .section .text
 
@@ -62,6 +63,14 @@ arch_int_unlock:
 arch_int_restore:
     csrw mstatus, a0
     ret
+
+/*
+ * u32 arch_get_int_status(void);
+ */
+arch_get_int_status:
+    csrr    a0, mip           // return value
+    ret
+
 
 /*
  * void arch_fence(void);

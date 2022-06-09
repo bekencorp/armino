@@ -50,6 +50,9 @@ typedef struct {
 
 #define uart_hal_disable_tx(hal, id) uart_ll_disable_tx((hal)->hw, id)
 #define uart_hal_disable_rx(hal, id) uart_ll_disable_rx((hal)->hw, id)
+#define uart_hal_set_tx_enable(hal, id, enable) uart_ll_set_tx_enable((hal)->hw, id, enable)
+#define uart_hal_set_rx_enable(hal, id, enable) uart_ll_set_rx_enable((hal)->hw, id, enable)
+
 #define uart_hal_set_data_bits(hal, id, data_bits) uart_ll_set_data_bits((hal)->hw, id, data_bits)
 #define uart_hal_set_stop_bits(hal, id, stop_bits) uart_ll_set_stop_bits((hal)->hw, id, stop_bits)
 #define uart_hal_reset_config_to_default(hal, id) uart_ll_reset_config_to_default((hal)->hw, id)

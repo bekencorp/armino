@@ -128,6 +128,10 @@ bk_err_t bk_wifi_scan_stop(void);
  * @attention 2. If STA is already connected to AP, this API cases BK STA reconnects the AP.
  * @attention 3. Make sure the reserved fields in sta_config is zero, otherwise you may
  *               encounter compatibility issue in future if more config fields are added.
+ * @attention 4. Auto reconnect max count and timeout can be set. When user app receives
+ *               EVENT_WIFI_STA_DISCONNECTED event, it's user app's responsibility to
+ *               reconnect to AP manually. Max count and timeout set to zero to let
+ *               supplicant automatically handles connection without user app's interaction.
  *
  * @param sta_config the STA configuration
  * @return
@@ -746,7 +750,7 @@ bk_err_t bk_wifi_sta_pm_disable(void);
 
 /**
  * @brief  get current channel ID
- *         
+ *
  * @param  basically range from 1~13
  *
  * @return
@@ -771,7 +775,7 @@ bk_err_t bk_wifi_get_channel(void);
 
  *		- BK_OK: on succeed
  *      - others: real error, used for future.
- *	
+ *
  * @note on some platforms the change of MAC address can only take effect after reboot.
  */
 bk_err_t bk_wifi_set_mac_address(char *mac);

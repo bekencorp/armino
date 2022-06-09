@@ -98,6 +98,7 @@ void LITE_free_routine(void *ptr)
 }
 
 
+
 #if defined(MQTT_COMM_ENABLED)
 int IOT_SetupConnInfo(const char *product_key,
                       const char *device_name,

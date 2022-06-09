@@ -37,6 +37,13 @@ typedef struct {
 	gpio_dev_t dev[GPIO_PERI_FUNC_NUM];
 } gpio_map_t;
 
+#if CONFIG_GPIO_WAKEUP_SUPPORT
+typedef struct {
+	gpio_id_t id;
+	gpio_int_type_t int_type;
+} gpio_wakeup_t;
+#endif
+
 bk_err_t gpio_hal_init(gpio_hal_t *hal);
 bk_err_t gpio_hal_disable_jtag_mode(gpio_hal_t *hal);
 
@@ -49,7 +56,7 @@ bk_err_t gpio_hal_monitor_input_enable(gpio_hal_t *hal, gpio_id_t gpio_id, uint3
 
 bk_err_t gpio_hal_set_capacity(gpio_hal_t *hal, gpio_id_t gpio_id, uint32 capacity);
 bk_err_t gpio_hal_set_output_value(gpio_hal_t *hal, gpio_id_t gpio_id, uint32 output_value);
-bk_err_t gpio_hal_get_iutput(gpio_hal_t *hal, gpio_id_t gpio_id);
+bk_err_t gpio_hal_get_input(gpio_hal_t *hal, gpio_id_t gpio_id);
 
 bk_err_t gpio_hal_set_int_type(gpio_hal_t *hal, gpio_id_t gpio_id, gpio_int_type_t type);
 
@@ -60,12 +67,24 @@ bk_err_t gpio_hal_devs_map(gpio_hal_t *hal, uint64 gpios, gpio_dev_t *devs, uint
 
 bk_err_t gpio_hal_enable_interrupt(gpio_hal_t *hal, gpio_id_t gpio_id);
 
+#if CONFIG_GPIO_WAKEUP_SUPPORT
+bk_err_t gpio_hal_bak_configs(uint16_t *gpio_cfg, uint32_t count);
+bk_err_t gpio_hal_restore_configs(uint16_t *gpio_cfg, uint32_t count);
+bk_err_t gpio_hal_bak_int_type_configs(uint32_t *gpio_int_type_cfg, uint32_t count);
+bk_err_t gpio_hal_restore_int_type_configs(uint32_t *gpio_int_type_cfg, uint32_t count);
+bk_err_t gpio_hal_bak_int_enable_configs(uint32_t *gpio_int_enable_cfg, uint32_t count);
+bk_err_t gpio_hal_restore_int_enable_configs(uint32_t *gpio_int_enable_cfg, uint32_t count);
+/* gpio switch to low power status:set all gpios to input mode */
+bk_err_t gpio_hal_switch_to_low_power_status(void);
+#else
 bk_err_t gpio_hal_reg_save(uint32_t*  gpio_cfg);
 bk_err_t gpio_hal_reg_restore(uint32_t*  gpio_cfg);
 bk_err_t gpio_hal_wakeup_enable(int64_t index, uint64_t type_l, uint64_t type_h);
 bk_err_t gpio_hal_wakeup_interrupt_clear();
+#endif
 
 #define gpio_hal_disable_interrupt(hal, id)			gpio_ll_disable_interrupt((hal)->hw, id)
+
 #define gpio_hal_get_interrupt_status(hal, status)		gpio_ll_get_interrupt_status((hal)->hw, status)
 #define gpio_hal_clear_interrupt_status(hal,status)		gpio_ll_clear_interrupt_status((hal)->hw, status)
 #define gpio_hal_is_interrupt_triggered(hal, id,status)		gpio_ll_is_interrupt_triggered((hal)->hw, id, status)

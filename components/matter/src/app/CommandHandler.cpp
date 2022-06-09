@@ -32,6 +32,7 @@
 #include <app/RequiredPrivilege.h>
 #include <app/util/MatterCallbacks.h>
 #include <credentials/GroupDataProvider.h>
+#include <lib/core/CHIPTLVUtilities.hpp>
 #include <lib/support/TypeTraits.h>
 #include <protocols/secure_channel/Constants.h>
 
@@ -93,7 +94,6 @@ CHIP_ERROR CommandHandler::ProcessInvokeRequest(System::PacketBufferHandle && pa
     InvokeRequestMessage::Parser invokeRequestMessage;
     InvokeRequests::Parser invokeRequests;
     reader.Init(std::move(payload));
-    ReturnErrorOnFailure(reader.Next());
     ReturnErrorOnFailure(invokeRequestMessage.Init(reader));
 #if CHIP_CONFIG_IM_ENABLE_SCHEMA_CHECK
     ReturnErrorOnFailure(invokeRequestMessage.CheckSchemaValidity());
@@ -126,6 +126,15 @@ CHIP_ERROR CommandHandler::ProcessInvokeRequest(System::PacketBufferHandle && pa
     }
 
     invokeRequests.GetReader(&invokeRequestsReader);
+
+    {
+        // We don't support handling multiple commands but the protocol is ready to support it in the future, reject all of them and
+        // IM Engine will send a status response.
+        size_t commandCount = 0;
+        TLV::Utilities::Count(invokeRequestsReader, commandCount, false /* recurse */);
+        VerifyOrReturnError(commandCount == 1, CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE);
+    }
+
     while (CHIP_NO_ERROR == (err = invokeRequestsReader.Next()))
     {
         VerifyOrReturnError(TLV::AnonymousTag() == invokeRequestsReader.GetTag(), CHIP_ERROR_INVALID_TLV_TAG);
@@ -147,7 +156,8 @@ CHIP_ERROR CommandHandler::ProcessInvokeRequest(System::PacketBufferHandle && pa
     {
         err = CHIP_NO_ERROR;
     }
-    return err;
+    ReturnErrorOnFailure(err);
+    return invokeRequestMessage.ExitContainer();
 }
 
 void CommandHandler::Close()
@@ -158,8 +168,8 @@ void CommandHandler::Close()
     // We must finish all async work before we can shut down a CommandHandler. The actual CommandHandler MUST finish their work
     // in reasonable time or there is a bug. The only case for releasing CommandHandler without CommandHandler::Handle releasing its
     // reference is the stack shutting down, in which case Close() is not called. So the below check should always pass.
-    VerifyOrDieWithMsg(mPendingWork == 0, DataManagement, "CommandHandler::Close() called with %zu unfinished async work items",
-                       mPendingWork);
+    VerifyOrDieWithMsg(mPendingWork == 0, DataManagement, "CommandHandler::Close() called with %u unfinished async work items",
+                       static_cast<unsigned int>(mPendingWork));
 
     // OnDone below can destroy us before we unwind all the way back into the
     // exchange code and it tries to close itself.  Make sure that it doesn't
@@ -187,7 +197,8 @@ void CommandHandler::IncrementHoldOff()
 void CommandHandler::DecrementHoldOff()
 {
     mPendingWork--;
-    ChipLogDetail(DataManagement, "Decreasing reference count for CommandHandler, remaining %zu", mPendingWork);
+    ChipLogDetail(DataManagement, "Decreasing reference count for CommandHandler, remaining %u",
+                  static_cast<unsigned int>(mPendingWork));
     if (mPendingWork != 0)
     {
         return;
@@ -259,7 +270,7 @@ CHIP_ERROR CommandHandler::ProcessCommandDataIB(CommandDataIB::Parser & aCommand
         Status commandExists = mpCallback->CommandExists(concretePath);
         if (commandExists != Status::Success)
         {
-            ChipLogDetail(DataManagement, "No command " ChipLogFormatMEI " in Cluster " ChipLogFormatMEI " on Endpoint 0x%" PRIx16,
+            ChipLogDetail(DataManagement, "No command " ChipLogFormatMEI " in Cluster " ChipLogFormatMEI " on Endpoint 0x%x",
                           ChipLogValueMEI(concretePath.mCommandId), ChipLogValueMEI(concretePath.mClusterId),
                           concretePath.mEndpointId);
             return AddStatus(concretePath, commandExists);
@@ -295,15 +306,13 @@ CHIP_ERROR CommandHandler::ProcessCommandDataIB(CommandDataIB::Parser & aCommand
     if (CHIP_END_OF_TLV == err)
     {
         ChipLogDetail(DataManagement,
-                      "Received command without data for Endpoint=%" PRIu16 " Cluster=" ChipLogFormatMEI
-                      " Command=" ChipLogFormatMEI,
+                      "Received command without data for Endpoint=%u Cluster=" ChipLogFormatMEI " Command=" ChipLogFormatMEI,
                       concretePath.mEndpointId, ChipLogValueMEI(concretePath.mClusterId), ChipLogValueMEI(concretePath.mCommandId));
         err = CHIP_NO_ERROR;
     }
     if (CHIP_NO_ERROR == err)
     {
-        ChipLogDetail(DataManagement,
-                      "Received command for Endpoint=%" PRIu16 " Cluster=" ChipLogFormatMEI " Command=" ChipLogFormatMEI,
+        ChipLogDetail(DataManagement, "Received command for Endpoint=%u Cluster=" ChipLogFormatMEI " Command=" ChipLogFormatMEI,
                       concretePath.mEndpointId, ChipLogValueMEI(concretePath.mClusterId), ChipLogValueMEI(concretePath.mCommandId));
         SuccessOrExit(MatterPreCommandReceivedCallback(concretePath));
         mpCallback->DispatchCommand(*this, concretePath, commandDataReader);
@@ -344,19 +353,18 @@ CHIP_ERROR CommandHandler::ProcessGroupCommandDataIB(CommandDataIB::Parser & aCo
     err = commandPath.GetCommandId(&commandId);
     SuccessOrExit(err);
 
-    groupId = mpExchangeCtx->GetSessionHandle()->AsGroupSession()->GetGroupId();
+    groupId = mpExchangeCtx->GetSessionHandle()->AsIncomingGroupSession()->GetGroupId();
     fabric  = GetAccessingFabricIndex();
 
-    ChipLogDetail(DataManagement,
-                  "Received group command for Group=%" PRIu16 " Cluster=" ChipLogFormatMEI " Command=" ChipLogFormatMEI, groupId,
-                  ChipLogValueMEI(clusterId), ChipLogValueMEI(commandId));
+    ChipLogDetail(DataManagement, "Received group command for Group=%u Cluster=" ChipLogFormatMEI " Command=" ChipLogFormatMEI,
+                  groupId, ChipLogValueMEI(clusterId), ChipLogValueMEI(commandId));
 
     err = aCommandElement.GetData(&commandDataReader);
     if (CHIP_END_OF_TLV == err)
     {
         ChipLogDetail(DataManagement,
-                      "Received command without data for Group=%" PRIu16 " Cluster=" ChipLogFormatMEI " Command=" ChipLogFormatMEI,
-                      groupId, ChipLogValueMEI(clusterId), ChipLogValueMEI(commandId));
+                      "Received command without data for Group=%u Cluster=" ChipLogFormatMEI " Command=" ChipLogFormatMEI, groupId,
+                      ChipLogValueMEI(clusterId), ChipLogValueMEI(commandId));
         err = CHIP_NO_ERROR;
     }
     SuccessOrExit(err);
@@ -383,14 +391,14 @@ CHIP_ERROR CommandHandler::ProcessGroupCommandDataIB(CommandDataIB::Parser & aCo
         }
 
         ChipLogDetail(DataManagement,
-                      "Processing group command for Endpoint=%" PRIu16 " Cluster=" ChipLogFormatMEI " Command=" ChipLogFormatMEI,
+                      "Processing group command for Endpoint=%u Cluster=" ChipLogFormatMEI " Command=" ChipLogFormatMEI,
                       mapping.endpoint_id, ChipLogValueMEI(clusterId), ChipLogValueMEI(commandId));
 
         const ConcreteCommandPath concretePath(mapping.endpoint_id, clusterId, commandId);
 
         if (mpCallback->CommandExists(concretePath) != Protocols::InteractionModel::Status::Success)
         {
-            ChipLogDetail(DataManagement, "No command " ChipLogFormatMEI " in Cluster " ChipLogFormatMEI " on Endpoint 0x%" PRIx16,
+            ChipLogDetail(DataManagement, "No command " ChipLogFormatMEI " in Cluster " ChipLogFormatMEI " on Endpoint 0x%x",
                           ChipLogValueMEI(mapping.endpoint_id), ChipLogValueMEI(clusterId), mapping.endpoint_id);
 
             continue;
@@ -403,7 +411,9 @@ CHIP_ERROR CommandHandler::ProcessGroupCommandDataIB(CommandDataIB::Parser & aCo
             err                                = Access::GetAccessControl().Check(subjectDescriptor, requestPath, requestPrivilege);
             if (err != CHIP_NO_ERROR)
             {
-                // TODO: handle errors that aren't CHIP_ERROR_ACCESS_DENIED, etc.
+                // NOTE: an expected error is CHIP_ERROR_ACCESS_DENIED, but there could be other unexpected errors;
+                // therefore, keep processing subsequent commands, and if any errors continue, those subsequent
+                // commands will likewise fail.
                 continue;
             }
         }
@@ -417,7 +427,7 @@ CHIP_ERROR CommandHandler::ProcessGroupCommandDataIB(CommandDataIB::Parser & aCo
         else
         {
             ChipLogError(DataManagement,
-                         "Error when calling MatterPreCommandReceivedCallback for Endpoint=%" PRIu16 " Cluster=" ChipLogFormatMEI
+                         "Error when calling MatterPreCommandReceivedCallback for Endpoint=%u Cluster=" ChipLogFormatMEI
                          " Command=" ChipLogFormatMEI " : %" CHIP_ERROR_FORMAT,
                          mapping.endpoint_id, ChipLogValueMEI(clusterId), ChipLogValueMEI(commandId), err.Format());
             continue;
@@ -434,7 +444,7 @@ CHIP_ERROR CommandHandler::AddStatusInternal(const ConcreteCommandPath & aComman
                                              const Optional<ClusterStatus> & aClusterStatus)
 {
     StatusIB statusIB;
-    ReturnLogErrorOnFailure(PrepareStatus(aCommandPath));
+    ReturnErrorOnFailure(PrepareStatus(aCommandPath));
     CommandStatusIB::Builder & commandStatus = mInvokeResponseBuilder.GetInvokeResponses().GetInvokeResponse().GetStatus();
     StatusIB::Builder & statusIBBuilder      = commandStatus.CreateErrorStatus();
     ReturnErrorOnFailure(commandStatus.GetError());
@@ -471,10 +481,13 @@ CHIP_ERROR CommandHandler::AddClusterSpecificFailure(const ConcreteCommandPath &
 CHIP_ERROR CommandHandler::PrepareCommand(const ConcreteCommandPath & aCommandPath, bool aStartDataStruct)
 {
     ReturnErrorOnFailure(AllocateBuffer());
+
+    mInvokeResponseBuilder.Checkpoint(mBackupWriter);
     //
     // We must not be in the middle of preparing a command, or having prepared or sent one.
     //
     VerifyOrReturnError(mState == State::Idle, CHIP_ERROR_INCORRECT_STATE);
+    MoveToState(State::Preparing);
     InvokeResponseIBs::Builder & invokeResponses = mInvokeResponseBuilder.GetInvokeResponses();
     InvokeResponseIB::Builder & invokeResponse   = invokeResponses.CreateInvokeResponse();
     ReturnErrorOnFailure(invokeResponses.GetError());
@@ -516,6 +529,7 @@ CHIP_ERROR CommandHandler::PrepareStatus(const ConcreteCommandPath & aCommandPat
     // We must not be in the middle of preparing a command, or having prepared or sent one.
     //
     VerifyOrReturnError(mState == State::Idle, CHIP_ERROR_INCORRECT_STATE);
+    MoveToState(State::Preparing);
     InvokeResponseIBs::Builder & invokeResponses = mInvokeResponseBuilder.GetInvokeResponses();
     InvokeResponseIB::Builder & invokeResponse   = invokeResponses.CreateInvokeResponse();
     ReturnErrorOnFailure(invokeResponses.GetError());
@@ -540,16 +554,25 @@ CHIP_ERROR CommandHandler::FinishStatus()
     return CHIP_NO_ERROR;
 }
 
+CHIP_ERROR CommandHandler::RollbackResponse()
+{
+    VerifyOrReturnError(mState == State::Preparing || mState == State::AddingCommand, CHIP_ERROR_INCORRECT_STATE);
+    mInvokeResponseBuilder.Rollback(mBackupWriter);
+    mInvokeResponseBuilder.ResetError();
+    // Note: We only support one command per request, so we reset the state to Idle here, need to review the states when adding
+    // supports of having multiple requests in the same transaction.
+    MoveToState(State::Idle);
+    return CHIP_NO_ERROR;
+}
+
 TLV::TLVWriter * CommandHandler::GetCommandDataIBTLVWriter()
 {
     if (mState != State::AddingCommand)
     {
         return nullptr;
     }
-    else
-    {
-        return mInvokeResponseBuilder.GetInvokeResponses().GetInvokeResponse().GetCommand().GetWriter();
-    }
+
+    return mInvokeResponseBuilder.GetInvokeResponses().GetInvokeResponse().GetCommand().GetWriter();
 }
 
 FabricIndex CommandHandler::GetAccessingFabricIndex() const
@@ -598,6 +621,9 @@ const char * CommandHandler::GetStateStr() const
     {
     case State::Idle:
         return "Idle";
+
+    case State::Preparing:
+        return "Preparing";
 
     case State::AddingCommand:
         return "AddingCommand";

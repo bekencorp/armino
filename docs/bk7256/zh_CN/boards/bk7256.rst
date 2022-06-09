@@ -1,0 +1,20 @@
+BK7256 (TBC)
+===================
+
+:link_to_translation:`en:[English]`
+
+开发板简介
+------------------------
+
+ - BK7256平台为双CPU核系统，默认配置为双核，RISCV指令集架构；
+ - BK7256平台支持FreeRTOS V10.4操作系统；
+ - BK7256平台支持鸿蒙OS V3.0.1操作系统；
+
+
+.. figure:: ../../_static/demo_board_7256.png
+    :align: center
+    :alt: BK7256 Demo Board
+    :figclass: align-center
+
+    BK7256 Demo Board
+

@@ -39,6 +39,7 @@ static const flash_config_t flash_config[] = {
 #else
 	{0xC84016, 1, 0x400000, 2,  0, 2, 0x1F, 0x1F, 0x00, 0x0E, 0x00E, 0, 0, 0xA0, 0x01}, //gd_25q32c
 #endif
+	{0xC86515, 2, 0x200000, 2, 14, 2, 0x1F, 0x1F, 0x00, 0x0D, 0x101, 9, 1, 0xA0, 0x01}, //gd_25w16e
 	{0xEF4016, 2, 0x400000, 2, 14, 2, 0x1F, 0x1F, 0x00, 0x00, 0x101, 9, 1, 0xA0, 0x01}, //w_25q32(bfj)
 	{0x204016, 2, 0x400000, 2, 14, 2, 0x1F, 0x1F, 0x00, 0x0E, 0x101, 9, 1, 0xA0, 0x01}, //xmc_25qh32b
 	{0xC22315, 1, 0x200000, 2,  0, 2, 0x0F, 0x0F, 0x00, 0x0A, 0x00E, 6, 1, 0xA5, 0x01}, //mx_25v16b
@@ -134,7 +135,7 @@ static void flash_write_disable(void)
 	while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
 }
 
-static UINT16 flash_read_sr(UINT8 sr_width)
+UINT16 flash_read_sr(UINT8 sr_width)
 {
 	UINT16 sr;
 	UINT32 value;
@@ -157,7 +158,7 @@ static UINT16 flash_read_sr(UINT8 sr_width)
 		sr |= (value & 0x00FF) << 8;
 	}
 
-	BK_LOGI(TAG, "--read sr:%x--\r\n",sr);
+	BK_LOGD(TAG, "--read sr:%x--\r\n",sr);
 
 	return sr;
 }
@@ -230,7 +231,17 @@ static void flash_set_qe(void)
 
 #if CONFIG_FLASH_QUAD_ENABLE
 	if (FLASH_ID_GD25Q32C == flash_id) {
-		flash_bypass_quad_enable();
+		/* retry quad enable, in case of quad enable may fail in some boards for first time */
+		for(uint32_t i = 0; i < QE_RETRY_TIMES; i++) {
+			flash_bypass_quad_enable();
+			while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
+			param = flash_read_sr(flash_current_config->sr_size);
+			if(param & (flash_current_config->qe_bit << flash_current_config->qe_bit_post)) {
+				break;
+			}
+		}
+		BK_ASSERT(param & (flash_current_config->qe_bit << flash_current_config->qe_bit_post));
+		return;
 	}
 #endif
 	value = REG_READ(REG_FLASH_CONF);
@@ -433,7 +444,7 @@ static void set_flash_protect(PROTECT_TYPE type)
 		value &= ~(1 << flash_current_config->cmp_post);
 		value |= ((cmp & 0x01) << flash_current_config->cmp_post);
 
-		BK_LOGI(TAG, "--write status reg:%x,%x--\r\n", value, flash_current_config->sr_size);
+		BK_LOGD(TAG, "--write status reg:%x,%x--\r\n", value, flash_current_config->sr_size);
 		flash_write_sr(flash_current_config->sr_size, value);
 	}
 }

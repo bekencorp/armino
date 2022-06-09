@@ -478,3 +478,60 @@ void cli_aud_cp0_sdcard_to_dac_test_cmd(char *pcWriteBuffer, int xWriteBufferLen
 	}
 }
 
+void cli_aud_cp0_signal_to_dual_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	char signal_file_name[] = "1:/signal_data.pcm";
+	char dual_file_name[] = "1:/dual_data.pcm";
+	FIL file_signal;
+	FIL file_dual;
+	int16_t data = 0;
+	int16_t data_temp[2] = {0};
+	FRESULT fr;
+	uint32 uiTemp = 0;
+	uint32_t file_size = 0;
+	uint32_t i = 0;
+
+	fr = f_open(&file_signal, signal_file_name, FA_READ);
+	if (fr != FR_OK) {
+		os_printf("open %s fail.\r\n", signal_file_name);
+		return;
+	}
+
+	fr = f_open(&file_dual, dual_file_name, FA_OPEN_APPEND | FA_WRITE);
+	if (fr != FR_OK) {
+		os_printf("open %s fail.\r\n", dual_file_name);
+		return;
+	}
+
+	file_size = f_size(&file_signal)/2;
+	os_printf("file_size = %d \r\n", file_size);
+	for (i=0; i<file_size; i++) {
+		fr = f_read(&file_signal, &data, 2, &uiTemp);
+		if (fr != FR_OK) {
+			os_printf("read file fail.\r\n");
+			break;
+		}
+		data_temp[0] = data;
+		data_temp[1] = data;
+		//os_printf("decoder_temp = %d \r\n", decoder_temp);
+		fr = f_write(&file_dual, (void *)data_temp, 4, &uiTemp);
+		if (fr != FR_OK) {
+			os_printf("write output data %s fail.\r\n", dual_file_name);
+			break;
+		}
+	}
+
+	fr = f_close(&file_signal);
+	if (fr != FR_OK) {
+		os_printf("close out file %s fail!\r\n", signal_file_name);
+		return;
+	}
+	fr = f_close(&file_dual);
+	if (fr != FR_OK) {
+		os_printf("close out file %s fail!\r\n", dual_file_name);
+		return;
+	}
+
+	os_printf("test finish \r\n");
+}
+

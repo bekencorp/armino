@@ -1,72 +1,95 @@
 USER_SECTIONS	.nds_vector
-USER_SECTIONS	.interrupt.text
-USER_SECTIONS	.interrupt.HalTrapVector.text.HalTrapVector
+USER_SECTIONS	.itcm_sec_code
+USER_SECTIONS	.dtcm_sec_data
+USER_SECTIONS	.dtcm_sec_bss
 USER_SECTIONS	.bt_spec_data
 USER_SECTIONS	.swap_data
+USER_SECTIONS	.itcm
+USER_SECTIONS	.interrupt.text
+USER_SECTIONS	.interrupt.HalTrapVector.text.HalTrapVector
 
-CPU0 0x00000000 0x280000
+CPU0_LOAD1 0x00000000 0x8800
 {
-
-    FLASH 0x00000000
-	{	
-		* (.nds_vector)
-		* KEEP (.interrupt.text)
-		* KEEP (.interrupt.HalTrapVector.text.HalTrapVector)
-		* EXCLUDE_FILE(*txl_he.c.obj *txl_agg.c.obj *txl_cfm.c.obj *txl_cntrl.c.obj *rxl_hwdesc.c.obj *rxu_cntrl.c.obj ) (+RO-CODE)
-		* (+RO)
+    FLASH1 0x00000000 0x800
+	{
+		* KEEP (.nds_vector)
 	}
-	
+
 	ITCM 0x10000000 0x8000
 	{
 		LOADADDR NEXT _itcm_lma_start
 		ADDR NEXT _itcm_ema_start
-		*txl_he.c.obj *txl_agg.c.obj *txl_cfm.c.obj *txl_cntrl.c.obj *rxl_hwdesc.c.obj *rxu_cntrl.c.obj (+RO-CODE)
+		*txl_he.c.obj   (+RO-CODE)
+		*txl_agg.c.obj  (+RO-CODE)
+		*txl_cfm.c.obj  (+RO-CODE)
+		*txl_cntrl.c.obj *rxl_hwdesc.c.obj *rxu_cntrl.c.obj (+RO-CODE)
+		* KEEP (.itcm_sec_code)
 		LOADADDR _itcm_lma_end
 		ADDR _itcm_ema_end
 	}
-	
-	DTCM 0x20000000 0x8000
+
+}
+
+CPU0_LOAD2 0x00008800  0x1A7800
+{
+    FLASH2 +0
+	{
+		* KEEP (.interrupt.text)
+		* KEEP (.interrupt.HalTrapVector.text.HalTrapVector)
+		* KEEP (.itcm)
+
+		* (+RO)
+	}
+
+	DTCM 0x20000000 0x7800
 	{
 		LOADADDR NEXT _dtcm_lma_start
 		ADDR NEXT _dtcm_ema_start
+
+		* KEEP (.dtcm_sec_data)
+
 		;WiFi Data Path
-		*bam.c.obj *ke_env.c.obj *hal_dma.c.obj *hal_machw.c.obj *txu_cntrl.c.obj *bam_task.c.obj(+RW-DATA)
-		*rxl_cntrl.c.obj *tx_swdesc.c.obj *txl_cfm.c.obj *txl_cntrl.c.obj (+RW-DATA)
-		
+		*bam.c.obj *ke_env.c.obj *hal_dma.c.obj *hal_machw.c.obj *txu_cntrl.c.obj *bam_task.c.obj(*data*)
+		*rxl_cntrl.c.obj *tx_swdesc.c.obj *txl_cfm.c.obj *txl_cntrl.c.obj (*data*)
+
 		;WiFi SM/MM/RC/VIF/TD/CHAN/PS
-		*sta_mgmt.c.obj *vif_mgmt.c.obj *rc.c.obj *rwnx.c.obj *me_task.c.obj *sm.c.obj(+RW-DATA)
-		*sm_task.c.obj *me.c.obj *mm.c.obj *mm_bcn.c.obj *mm_task.c.obj *mm_timer.c.obj(+RW-DATA)
-		*td.c.obj *chan.c.obj *ps.c.obj(+RW-DATA)
-		
+		*sta_mgmt.c.obj *vif_mgmt.c.obj *rc.c.obj *rwnx.c.obj *me_task.c.obj *sm.c.obj(*data*)
+		*sm_task.c.obj *me.c.obj *mm.c.obj *mm_bcn.c.obj *mm_task.c.obj *mm_timer.c.obj(*data*)
+		*td.c.obj *chan.c.obj *ps.c.obj(*data*)
+
 		;WiFi SCAN/APM
-		*scan_task.c.obj *scan.c.obj *scanu.c.obj *scanu_task.c.obj(+RW-DATA)
-		
+		*scan_task.c.obj *scan.c.obj *scanu.c.obj *scanu_task.c.obj(*data*)
+
 		;Flowling obj can't move to DTCM
-		;*hal_desc.c.obj  *rxu_cntrl.c.obj *txl_agg.c.obj *txl_he.c.obj *txl_buffer_shared.c.obj *txl_frame_shared.c.obj(+RW-DATA)
-		;*rxl_hwdesc.c.obj *scanu_shared.c.obj *scan_shared.c.obj *apm_task.c.obj(+RW-DATA)
-		
+		;*hal_desc.c.obj  *rxu_cntrl.c.obj *txl_agg.c.obj *txl_he.c.obj *txl_buffer_shared.c.obj *txl_frame_shared.c.obj(*data*)
+		;*rxl_hwdesc.c.obj *scanu_shared.c.obj *scan_shared.c.obj *apm_task.c.obj(*data*)
+
 		LOADADDR _dtcm_lma_end
 		ADDR _dtcm_ema_end
-		
+
 		ADDR _dtcm_bss_start
+
+		* KEEP (.dtcm_sec_bss)
+
 		;WiFi Data Path
 		*bam.c.obj *ke_env.c.obj *hal_dma.c.obj *hal_machw.c.obj *txu_cntrl.c.obj *bam_task.c.obj(+ZI)
 		*rxl_cntrl.c.obj *tx_swdesc.c.obj *txl_cfm.c.obj *txl_cntrl.c.obj (+ZI)
-		
+
 		;WiFi SM/MM/RC/VIF/TD/CHAN/PS
 		*sta_mgmt.c.obj *vif_mgmt.c.obj *rc.c.obj *rwnx.c.obj *me_task.c.obj *sm.c.obj(+ZI)
 		*sm_task.c.obj *me.c.obj *mm.c.obj *mm_bcn.c.obj *mm_task.c.obj *mm_timer.c.obj(+ZI)
 		*td.c.obj *chan.c.obj *ps.c.obj(+ZI)
-		
+
 		;WiFi SCAN/APM
 		*scan_task.c.obj *scan.c.obj *scanu.c.obj *scanu_task.c.obj(+ZI)
-		
+
 		;Flowling obj can't move to DTCM
 		;*hal_desc.c.obj  *rxu_cntrl.c.obj *txl_agg.c.obj *txl_he.c.obj *txl_buffer_shared.c.obj *txl_frame_shared.c.obj(+ZI)
 		;*rxl_hwdesc.c.obj *scanu_shared.c.obj *scan_shared.c.obj apm_task.c.obj(+ZI)
+
 		ADDR _dtcm_bss_end
 	}
-	
+
 	SRAM1 0x30000000 0x10000
 	{
 		LOADADDR NEXT _bt_data_lmastart
@@ -74,15 +97,15 @@ CPU0 0x00000000 0x280000
 		* KEEP (.bt_spec_data)
 		LOADADDR _bt_data_end
 	}
-	
-	SRAM2 0x30010000 0x48000
+
+	SRAM2 0x30010000 0x50000
 	{
 		LOADADDR NEXT _data_lmastart
 		ADDR NEXT _data_start
 		*(+RW,+ZI)
-        STACK = 0x30058000
+        STACK = 0x20007FE0
 	}
-	
+
 	SWAP  0x3007fc00 0x400
 	{
 		ADDR NEXT   _swap_start

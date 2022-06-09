@@ -13,7 +13,6 @@ set(srcs
 	trap_base.c
 	arch_interrupt.c
 	reset.c
-	ae350.c
 	pmp.c
 	initfini.c
 	riscv.c

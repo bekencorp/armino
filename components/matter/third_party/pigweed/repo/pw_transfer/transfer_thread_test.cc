@@ -32,6 +32,9 @@ namespace {
 
 using internal::Chunk;
 
+PW_MODIFY_DIAGNOSTICS_PUSH();
+PW_MODIFY_DIAGNOSTIC(ignored, "-Wmissing-field-initializers");
+
 // TODO(frolv): Have a generic way to obtain a thread for testing on any system.
 thread::Options& TransferThreadOptions() {
   static thread::stl::Options options;
@@ -42,7 +45,9 @@ class TransferThreadTest : public ::testing::Test {
  public:
   TransferThreadTest()
       : ctx_(transfer_thread_, 512),
-        max_parameters_(chunk_buffer_.size(), chunk_buffer_.size()),
+        max_parameters_(chunk_buffer_.size(),
+                        chunk_buffer_.size(),
+                        cfg::kDefaultExtendWindowDivisor),
         transfer_thread_(chunk_buffer_, encode_buffer_),
         system_thread_(TransferThreadOptions(), transfer_thread_) {}
 
@@ -67,8 +72,8 @@ class TransferThreadTest : public ::testing::Test {
 
 class SimpleReadTransfer final : public ReadOnlyHandler {
  public:
-  SimpleReadTransfer(uint32_t transfer_id, ConstByteSpan data)
-      : ReadOnlyHandler(transfer_id),
+  SimpleReadTransfer(uint32_t session_id, ConstByteSpan data)
+      : ReadOnlyHandler(session_id),
         prepare_read_called(false),
         finalize_read_called(false),
         finalize_read_status(Status::Unknown()),
@@ -136,7 +141,7 @@ TEST_F(TransferThreadTest, RemoveTransferHandler) {
 
   ASSERT_EQ(ctx_.total_responses(), 1u);
   auto chunk = DecodeChunk(ctx_.response());
-  EXPECT_EQ(chunk.transfer_id, 3u);
+  EXPECT_EQ(chunk.session_id, 3u);
   ASSERT_TRUE(chunk.status.has_value());
   EXPECT_EQ(chunk.status.value(), Status::NotFound());
 }
@@ -158,7 +163,7 @@ TEST_F(TransferThreadTest, ProcessChunk_SendsWindow) {
   rpc::test::WaitForPackets(ctx_.output(), 2, [this] {
     // Malformed transfer parameters chunk without a pending_bytes field.
     transfer_thread_.ProcessServerChunk(
-        EncodeChunk({.transfer_id = 3,
+        EncodeChunk({.session_id = 3,
                      .window_end_offset = 16,
                      .pending_bytes = 16,
                      .max_chunk_size_bytes = 8,
@@ -168,13 +173,13 @@ TEST_F(TransferThreadTest, ProcessChunk_SendsWindow) {
 
   ASSERT_EQ(ctx_.total_responses(), 2u);
   auto chunk = DecodeChunk(ctx_.responses()[0]);
-  EXPECT_EQ(chunk.transfer_id, 3u);
+  EXPECT_EQ(chunk.session_id, 3u);
   EXPECT_EQ(chunk.offset, 0u);
   EXPECT_EQ(chunk.data.size(), 8u);
   EXPECT_EQ(std::memcmp(chunk.data.data(), kData.data(), chunk.data.size()), 0);
 
   chunk = DecodeChunk(ctx_.responses()[1]);
-  EXPECT_EQ(chunk.transfer_id, 3u);
+  EXPECT_EQ(chunk.session_id, 3u);
   EXPECT_EQ(chunk.offset, 8u);
   EXPECT_EQ(chunk.data.size(), 8u);
   EXPECT_EQ(std::memcmp(chunk.data.data(), kData.data() + 8, chunk.data.size()),
@@ -197,15 +202,17 @@ TEST_F(TransferThreadTest, ProcessChunk_Malformed) {
                                          0);
 
     // Malformed transfer parameters chunk without a pending_bytes field.
-    transfer_thread_.ProcessServerChunk(EncodeChunk({.transfer_id = 3}));
+    transfer_thread_.ProcessServerChunk(EncodeChunk({.session_id = 3}));
   });
 
   ASSERT_EQ(ctx_.total_responses(), 1u);
   auto chunk = DecodeChunk(ctx_.response());
-  EXPECT_EQ(chunk.transfer_id, 3u);
+  EXPECT_EQ(chunk.session_id, 3u);
   ASSERT_TRUE(chunk.status.has_value());
   EXPECT_EQ(chunk.status.value(), Status::InvalidArgument());
 }
+
+PW_MODIFY_DIAGNOSTICS_POP();
 
 }  // namespace
 }  // namespace pw::transfer::test

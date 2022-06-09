@@ -33,6 +33,8 @@ static void phy_cca_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 
 #if (CONFIG_SOC_BK7256XX)
 extern void cmd_saradc_auto_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+extern void cmd_sigtest(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
 #endif
 #define PHY_CMD_CNT (sizeof(s_phy_commands) / sizeof(struct cli_command))
 static const struct cli_command s_phy_commands[] = {
@@ -50,8 +52,12 @@ static const struct cli_command s_phy_commands[] = {
 	{"rfcali_cfg_rate_dist", "b g n40 ble (0-31)",    cmd_rfcali_cfg_rate_dist},
 #if (CONFIG_SOC_BK7256XX)
 	{"cali", "cali auto_test",    cmd_cali},
+#if CONFIG_PSRAM
 	{"psram", "psram enable clk_div",    cmd_psram},
+#endif
 	{"saradc", "start close", cmd_saradc_auto_test},
+	{"sigtest", "sigtest enable format_mod mcs_index", cmd_sigtest}, 
+	
 	
 #endif
 #endif

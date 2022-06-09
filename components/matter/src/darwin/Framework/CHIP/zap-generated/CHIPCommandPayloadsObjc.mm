@@ -124,7 +124,7 @@ NS_ASSUME_NONNULL_BEGIN
 {
     if (self = [super init]) {
 
-        _capacity = @(0);
+        _capacity = nil;
 
         _groupList = [NSArray array];
     }
@@ -978,40 +978,6 @@ NS_ASSUME_NONNULL_BEGIN
 }
 @end
 
-@implementation CHIPBindingClusterBindParams
-- (instancetype)init
-{
-    if (self = [super init]) {
-
-        _nodeId = @(0);
-
-        _groupId = @(0);
-
-        _endpointId = @(0);
-
-        _clusterId = @(0);
-    }
-    return self;
-}
-@end
-
-@implementation CHIPBindingClusterUnbindParams
-- (instancetype)init
-{
-    if (self = [super init]) {
-
-        _nodeId = @(0);
-
-        _groupId = @(0);
-
-        _endpointId = @(0);
-
-        _clusterId = @(0);
-    }
-    return self;
-}
-@end
-
 @implementation CHIPPollControlClusterCheckInResponseParams
 - (instancetype)init
 {
@@ -1329,8 +1295,6 @@ NS_ASSUME_NONNULL_BEGIN
         _expiryLengthSeconds = @(0);
 
         _breadcrumb = @(0);
-
-        _timeoutMs = @(0);
     }
     return self;
 }
@@ -1354,13 +1318,11 @@ NS_ASSUME_NONNULL_BEGIN
 {
     if (self = [super init]) {
 
-        _location = @(0);
+        _newRegulatoryConfig = @(0);
 
         _countryCode = @"";
 
         _breadcrumb = @(0);
-
-        _timeoutMs = @(0);
     }
     return self;
 }
@@ -1397,9 +1359,9 @@ NS_ASSUME_NONNULL_BEGIN
 {
     if (self = [super init]) {
 
-        _ssid = [NSData data];
+        _ssid = nil;
 
-        _breadcrumb = @(0);
+        _breadcrumb = nil;
     }
     return self;
 }
@@ -1412,7 +1374,7 @@ NS_ASSUME_NONNULL_BEGIN
 
         _networkingStatus = @(0);
 
-        _debugText = @"";
+        _debugText = nil;
 
         _wiFiScanResults = nil;
 
@@ -1431,7 +1393,7 @@ NS_ASSUME_NONNULL_BEGIN
 
         _credentials = [NSData data];
 
-        _breadcrumb = @(0);
+        _breadcrumb = nil;
     }
     return self;
 }
@@ -1444,7 +1406,7 @@ NS_ASSUME_NONNULL_BEGIN
 
         _operationalDataset = [NSData data];
 
-        _breadcrumb = @(0);
+        _breadcrumb = nil;
     }
     return self;
 }
@@ -1457,7 +1419,7 @@ NS_ASSUME_NONNULL_BEGIN
 
         _networkID = [NSData data];
 
-        _breadcrumb = @(0);
+        _breadcrumb = nil;
     }
     return self;
 }
@@ -1470,7 +1432,9 @@ NS_ASSUME_NONNULL_BEGIN
 
         _networkingStatus = @(0);
 
-        _debugText = @"";
+        _debugText = nil;
+
+        _networkIndex = nil;
     }
     return self;
 }
@@ -1483,7 +1447,7 @@ NS_ASSUME_NONNULL_BEGIN
 
         _networkID = [NSData data];
 
-        _breadcrumb = @(0);
+        _breadcrumb = nil;
     }
     return self;
 }
@@ -1496,9 +1460,9 @@ NS_ASSUME_NONNULL_BEGIN
 
         _networkingStatus = @(0);
 
-        _debugText = @"";
+        _debugText = nil;
 
-        _errorValue = @(0);
+        _errorValue = nil;
     }
     return self;
 }
@@ -1513,7 +1477,7 @@ NS_ASSUME_NONNULL_BEGIN
 
         _networkIndex = @(0);
 
-        _breadcrumb = @(0);
+        _breadcrumb = nil;
     }
     return self;
 }
@@ -1565,8 +1529,6 @@ NS_ASSUME_NONNULL_BEGIN
         _iterations = @(0);
 
         _salt = [NSData data];
-
-        _passcodeID = @(0);
     }
     return self;
 }
@@ -2481,7 +2443,7 @@ NS_ASSUME_NONNULL_BEGIN
 
         _liftPercentageValue = @(0);
 
-        _liftPercent100thsValue = @(0);
+        _liftPercent100thsValue = nil;
     }
     return self;
 }
@@ -2505,7 +2467,7 @@ NS_ASSUME_NONNULL_BEGIN
 
         _tiltPercentageValue = @(0);
 
-        _tiltPercent100thsValue = @(0);
+        _tiltPercent100thsValue = nil;
     }
     return self;
 }
@@ -3275,9 +3237,9 @@ NS_ASSUME_NONNULL_BEGIN
 {
     if (self = [super init]) {
 
-        _channelMatch = [CHIPChannelClusterChannelInfo new];
+        _status = @(0);
 
-        _errorType = @(0);
+        _data = nil;
     }
     return self;
 }
@@ -3361,6 +3323,8 @@ NS_ASSUME_NONNULL_BEGIN
     if (self = [super init]) {
 
         _status = @(0);
+
+        _data = nil;
     }
     return self;
 }

@@ -234,7 +234,7 @@ void rtos_dump_task_runtime_stats(void)
 
 void rtos_dump_task_list(void)
 {
-#if 0
+#if (!CONFIG_SLAVE_CORE)
 	int num_of_tasks = 0;
 	int buf_len = 0, info_len = 0;
 	char *buf = NULL;

@@ -16,7 +16,8 @@ Begin each section below by running the console in test mode:
 
 .. code-block:: shell
 
-  pw console --test-mode
+  touch /tmp/empty.yaml
+  env PW_CONSOLE_CONFIG_FILE='/tmp/empty.yaml' pw console --test-mode
 
 Test Sections
 =============
@@ -491,17 +492,48 @@ Mouse Window Resizing
      - |checkbox|
 
    * - 2
-     - | Left click and hold the :guilabel:`====` of that window
+     - | Left click and hold the :guilabel:`-==-` of that window
        | Drag the mouse up and down
      - This log pane is resized
      - |checkbox|
 
    * - 3
-     - | Left click and hold the :guilabel:`====`
+     - | Left click and hold the :guilabel:`-==-`
        | of the :guilabel:`PwConsole Debug` window
        | Drag the mouse up and down
      - | The :guilabel:`PwConsole Debug` should NOT be focused
        | The window should be resized as expected
+     - |checkbox|
+
+   * - 4
+     - Click the :guilabel:`View > Move Window Right`
+     - :guilabel:`Fake Device Logs` should appear in a right side split
+     - |checkbox|
+
+   * - 5
+     - | Left click and hold anywhere on the vertical separator
+       | Drag the mouse left and right
+     - | The window splits should be resized as expected
+     - |checkbox|
+
+   * - 6
+     - Click the :guilabel:`View > Balance Window Sizes`
+     - Window split sizes should reset to equal widths
+     - |checkbox|
+
+   * - 7
+     - | Focus on the :guilabel:`Python Repl` window
+       | Click the :guilabel:`View > Move Window Left`
+     - | :guilabel:`Python Repl` should appear in a left side split
+       | There should be 3 vertical splits in total
+     - |checkbox|
+
+   * - 8
+     - | Left click and hold anywhere on the vertical separator
+       | between the first two splits (Python Repl and the middle split)
+       | Drag the mouse left and right
+     - | The first two window splits should be resized.
+       | The 3rd split size should not change.
      - |checkbox|
 
 Copy Paste
@@ -587,6 +619,15 @@ Copy Paste
      - Python Input is focused
      - |checkbox|
 
+   * - 11
+     - | Type ``print('hello there')`` into the Python input.
+       | Mouse drag select that text
+       | Press :kbd:`Ctrl-c`
+     - | The selection should disappear.
+       | Try pasting into a separate text editor, the paste should
+       | match the text you drag selected.
+     - |checkbox|
+
 Incremental Stdout
 ^^^^^^^^^^^^^^^^^^
 
@@ -666,6 +707,34 @@ Python Input & Output
        | use the mouse wheel to scroll up and down.
      - | The output window should be able to scroll all
        | the way to the beginning and end of the buffer.
+     - |checkbox|
+
+Early Startup
+^^^^^^^^^^^^^
+
+.. list-table::
+   :widths: 5 45 45 5
+   :header-rows: 1
+
+   * - #
+     - Test Action
+     - Expected Result
+     - ✅
+
+   * - 1
+     - | Start the pw console test mode by
+       | running ``pw console --test-mode``
+     - | Console starts up showing an ``All Logs`` window.
+     - |checkbox|
+
+   * - 2
+     - | Click the :guilabel:`All Logs` window title
+       | Press :kbd:`g` to jump to the top of the log history
+     - | These log messages should be at the top:
+       | ``DBG Adding plugins...``
+       | ``DBG Starting prompt_toolkit full-screen application...``
+       | ``DBG pw_console test-mode starting...``
+       | ``DBG pw_console.PwConsoleEmbed init complete``
      - |checkbox|
 
 Quit Confirmation Dialog

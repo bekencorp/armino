@@ -45,6 +45,12 @@ void sys_drv_usb_power_down(void);
 
 void sys_drv_usb_clock_ctrl(bool ctrl, void *arg);
 
+uint32_t sys_drv_usb_analog_phy_en(bool ctrl, void *arg);
+
+uint32_t sys_drv_usb_analog_speed_en(bool ctrl, void *arg);
+
+uint32_t sys_drv_usb_analog_ckmcu_en(bool ctrl, void *arg);
+
 void sys_drv_usb_charge_ctrl(bool ctrl, void *arg);
 
 void sys_drv_usb_charge_cal(sys_drv_charge_step_t step, void *arg);
@@ -140,6 +146,7 @@ int32 sys_drv_fiq_enable(uint32 param);
 int32 sys_drv_global_int_disable(uint32 param);
 int32 sys_drv_global_int_enable(uint32 param);
 uint32 sys_drv_get_int_source_status(void);
+uint32_t sys_drv_get_cpu0_gpio_int_st(void);
 int32 sys_drv_set_int_source_status(uint32 param);
 uint32 sys_drv_get_fiq_reg_status(void);
 uint32 sys_drv_set_fiq_reg_status(uint32 param);

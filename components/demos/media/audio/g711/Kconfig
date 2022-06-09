@@ -1,0 +1,5 @@
+menu "DEMOS_CONFIG"
+	config AUDIO_G711_TEST
+		bool "Enable AUDIO G711 Test"
+		default n
+endmenu

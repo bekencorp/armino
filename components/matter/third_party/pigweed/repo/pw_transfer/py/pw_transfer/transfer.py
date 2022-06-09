@@ -1,4 +1,4 @@
-# Copyright 2021 The Pigweed Authors
+# Copyright 2022 The Pigweed Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -87,14 +87,14 @@ class Transfer(abc.ABC):
     messages in response.
     """
     def __init__(self,
-                 transfer_id: int,
+                 session_id: int,
                  send_chunk: Callable[[Chunk], None],
                  end_transfer: Callable[['Transfer'], None],
                  response_timeout_s: float,
                  initial_response_timeout_s: float,
                  max_retries: int,
                  progress_callback: ProgressCallback = None):
-        self.id = transfer_id
+        self.id = session_id
         self.status = Status.OK
         self.done = threading.Event()
 
@@ -196,7 +196,10 @@ class Transfer(abc.ABC):
 
     def _send_error(self, error: Status) -> None:
         """Sends an error chunk to the server and finishes the transfer."""
-        self._send_chunk(Chunk(transfer_id=self.id, status=error.value))
+        self._send_chunk(
+            Chunk(session_id=self.id,
+                  status=error.value,
+                  type=Chunk.Type.TRANSFER_COMPLETION))
         self.finish(error)
 
 
@@ -204,7 +207,7 @@ class WriteTransfer(Transfer):
     """A client -> server write transfer."""
     def __init__(
         self,
-        transfer_id: int,
+        session_id: int,
         data: bytes,
         send_chunk: Callable[[Chunk], None],
         end_transfer: Callable[[Transfer], None],
@@ -213,7 +216,7 @@ class WriteTransfer(Transfer):
         max_retries: int,
         progress_callback: ProgressCallback = None,
     ):
-        super().__init__(transfer_id, send_chunk, end_transfer,
+        super().__init__(session_id, send_chunk, end_transfer,
                          response_timeout_s, initial_response_timeout_s,
                          max_retries, progress_callback)
         self._data = data
@@ -236,7 +239,11 @@ class WriteTransfer(Transfer):
         return self._data
 
     def _initial_chunk(self) -> Chunk:
-        return Chunk(transfer_id=self.id)
+        # TODO(frolv): session_id should not be set here, but assigned by the
+        # server during an initial handshake.
+        return Chunk(session_id=self.id,
+                     resource_id=self.id,
+                     type=Chunk.Type.TRANSFER_START)
 
     async def _handle_data_chunk(self, chunk: Chunk) -> None:
         """Processes an incoming chunk from the server.
@@ -286,7 +293,8 @@ class WriteTransfer(Transfer):
 
         retransmit = True
         if chunk.HasField('type'):
-            retransmit = chunk.type == Chunk.Type.PARAMETERS_RETRANSMIT
+            retransmit = (chunk.type == Chunk.Type.PARAMETERS_RETRANSMIT
+                          or chunk.type == Chunk.Type.TRANSFER_START)
 
         if chunk.offset > len(self.data):
             # Bad offset; terminate the transfer.
@@ -339,7 +347,9 @@ class WriteTransfer(Transfer):
 
     def _next_chunk(self) -> Chunk:
         """Returns the next Chunk message to send in the data transfer."""
-        chunk = Chunk(transfer_id=self.id, offset=self._offset)
+        chunk = Chunk(session_id=self.id,
+                      offset=self._offset,
+                      type=Chunk.Type.TRANSFER_DATA)
         max_bytes_in_chunk = min(self._max_chunk_size,
                                  self._window_end_offset - self._offset)
 
@@ -371,7 +381,7 @@ class ReadTransfer(Transfer):
 
     def __init__(  # pylint: disable=too-many-arguments
             self,
-            transfer_id: int,
+            session_id: int,
             send_chunk: Callable[[Chunk], None],
             end_transfer: Callable[[Transfer], None],
             response_timeout_s: float,
@@ -381,7 +391,7 @@ class ReadTransfer(Transfer):
             max_chunk_size: int = 1024,
             chunk_delay_us: int = None,
             progress_callback: ProgressCallback = None):
-        super().__init__(transfer_id, send_chunk, end_transfer,
+        super().__init__(session_id, send_chunk, end_transfer,
                          response_timeout_s, initial_response_timeout_s,
                          max_retries, progress_callback)
         self._max_bytes_to_receive = max_bytes_to_receive
@@ -400,7 +410,7 @@ class ReadTransfer(Transfer):
         return bytes(self._data)
 
     def _initial_chunk(self) -> Chunk:
-        return self._transfer_parameters()
+        return self._transfer_parameters(Chunk.Type.TRANSFER_START)
 
     async def _handle_data_chunk(self, chunk: Chunk) -> None:
         """Processes an incoming chunk from the server.
@@ -413,7 +423,8 @@ class ReadTransfer(Transfer):
             # Initially, the transfer service only supports in-order transfers.
             # If data is received out of order, request that the server
             # retransmit from the previous offset.
-            self._send_chunk(self._transfer_parameters())
+            self._send_chunk(
+                self._transfer_parameters(Chunk.Type.PARAMETERS_RETRANSMIT))
             return
 
         self._data += chunk.data
@@ -424,7 +435,9 @@ class ReadTransfer(Transfer):
             if chunk.remaining_bytes == 0:
                 # No more data to read. Acknowledge receipt and finish.
                 self._send_chunk(
-                    Chunk(transfer_id=self.id, status=Status.OK.value))
+                    Chunk(session_id=self.id,
+                          status=Status.OK.value,
+                          type=Chunk.Type.TRANSFER_COMPLETION))
                 self.finish(Status.OK)
                 return
 
@@ -442,6 +455,26 @@ class ReadTransfer(Transfer):
             self._remaining_transfer_size + self._offset)
         self._update_progress(self._offset, self._offset, total_size)
 
+        if chunk.window_end_offset != 0:
+            if chunk.window_end_offset < self._offset:
+                _LOG.error(
+                    'Transfer %d: transmitter sent invalid earlier end offset '
+                    '%d (receiver offset %d)', self.id,
+                    chunk.window_end_offset, self._offset)
+                self._send_error(Status.INTERNAL)
+                return
+
+            if chunk.window_end_offset > self._window_end_offset:
+                _LOG.error(
+                    'Transfer %d: transmitter sent invalid later end offset '
+                    '%d (receiver end offset %d)', self.id,
+                    chunk.window_end_offset, self._window_end_offset)
+                self._send_error(Status.INTERNAL)
+                return
+
+            self._window_end_offset = chunk.window_end_offset
+            self._pending_bytes -= chunk.window_end_offset - self._offset
+
         remaining_window_size = self._window_end_offset - self._offset
         extend_window = (remaining_window_size <= self._max_bytes_to_receive /
                          ReadTransfer.EXTEND_WINDOW_DIVISOR)
@@ -449,23 +482,23 @@ class ReadTransfer(Transfer):
         if self._pending_bytes == 0:
             # All pending data was received. Send out a new parameters chunk for
             # the next block.
-            self._send_chunk(self._transfer_parameters())
+            self._send_chunk(
+                self._transfer_parameters(Chunk.Type.PARAMETERS_RETRANSMIT))
         elif extend_window:
-            self._send_chunk(self._transfer_parameters(extend=True))
+            self._send_chunk(
+                self._transfer_parameters(Chunk.Type.PARAMETERS_CONTINUE))
 
     def _retry_after_timeout(self) -> None:
-        self._send_chunk(self._transfer_parameters())
+        self._send_chunk(
+            self._transfer_parameters(Chunk.Type.PARAMETERS_RETRANSMIT))
 
-    def _transfer_parameters(self, extend: bool = False) -> Chunk:
+    def _transfer_parameters(self, chunk_type: Any) -> Chunk:
         """Sends an updated transfer parameters chunk to the server."""
 
         self._pending_bytes = self._max_bytes_to_receive
         self._window_end_offset = self._offset + self._max_bytes_to_receive
 
-        chunk_type = (Chunk.Type.PARAMETERS_CONTINUE
-                      if extend else Chunk.Type.PARAMETERS_RETRANSMIT)
-
-        chunk = Chunk(transfer_id=self.id,
+        chunk = Chunk(session_id=self.id,
                       pending_bytes=self._pending_bytes,
                       window_end_offset=self._window_end_offset,
                       max_chunk_size_bytes=self._max_chunk_size,

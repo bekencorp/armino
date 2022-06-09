@@ -40,7 +40,7 @@ struct Identify;
 class AppTask
 {
 public:
-    int StartApp();
+    CHIP_ERROR StartApp();
 
     void PostLightingActionRequest(LightingManager::Action_t aAction);
     void PostEvent(AppEvent * event);
@@ -55,8 +55,7 @@ private:
 #endif
 
     friend AppTask & GetAppTask(void);
-    int Init();
-    void InitOTARequestor();
+    CHIP_ERROR Init();
 
     static void ActionInitiated(LightingManager::Action_t aAction, int32_t aActor);
     static void ActionCompleted(LightingManager::Action_t aAction, int32_t aActor);

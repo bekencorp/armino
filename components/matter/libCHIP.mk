@@ -141,15 +141,7 @@ INCLUDES += -I$(CHIP_DIR)/src
 INCLUDES += -I$(CHIP_DIR)/src/app/server
 INCLUDES += -I$(CHIP_DIR)/src/lib
 
-#out incluede
-#INCLUDES += -I$(CHIP_DIR)/config/beken/components/chip/out/7231n/gen/include
-#INCLUDES += -I$(CHIP_DIR)/gen/include
-
-# TODO fix it
-# Matter should depends on sdkconfig.h generated in $(CONFIG_DIR), however a lot of 
-# build error if directly use the correct sdkconfig.h, owner need to fix it!
-#INCLUDES += -I$(CONFIG_DIR)
-INCLUDES += -I$(CHIP_DIR)/bk7235
+INCLUDES += -I$(CONFIG_DIR)
 
 INCLUDES += -I$(OUTPUT_DIR)/out/$(TARGET)/gen/include
 INCLUDES += -I$(CHIP_DIR)/src/include
@@ -188,7 +180,7 @@ SRC_CPP += $(CHIP_DIR)/src/app/util/client-api.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/util/DataModelHandler.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/util/ember-compatibility-functions.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/util/ember-print.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/util/esi-management.cpp
+#SRC_CPP += $(CHIP_DIR)/src/app/util/esi-management.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/util/message.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/util/util.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/util/error-mapping.cpp
@@ -205,14 +197,18 @@ SRC_CPP += $(CHIP_DIR)/src/app/clusters/operational-credentials-server/operation
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/level-control/level-control.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/localization-configuration-server/localization-configuration-server.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/network-commissioning/network-commissioning.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/network-commissioning-old/network-commissioning-ember.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/network-commissioning-old/network-commissioning-old.cpp
+#SRC_CPP += $(CHIP_DIR)/src/app/clusters/network-commissioning-old/network-commissioning-ember.cpp
+#SRC_CPP += $(CHIP_DIR)/src/app/clusters/network-commissioning-old/network-commissioning-old.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/color-control-server/color-control-server.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/occupancy-sensor-server/occupancy-sensor-server.cpp
 #SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-provider/ota-provider.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/BDXDownloader.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/OTARequestor.cpp
+#SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/OTARequestor.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/ota-requestor-server.cpp
+SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/DefaultOTARequestor.cpp
+SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/ExtendedOTARequestorDriver.cpp
+SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/DefaultOTARequestorStorage.cpp
+SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/DefaultOTARequestorDriver.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/user-label-server/user-label-server.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/ethernet-network-diagnostics-server/ethernet-network-diagnostics-server.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/software-diagnostics-server/software-diagnostics-server.cpp
@@ -224,6 +220,7 @@ SRC_CPP += $(CHIP_DIR)/src/app/clusters/general-diagnostics-server/general-diagn
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/identify-server/identify-server.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/descriptor/descriptor.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/time-format-localization-server/time-format-localization-server.cpp
+
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/access-control-server/access-control-server.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/group-key-mgmt-server/group-key-mgmt-server.cpp
 SRC_CPP += $(CHIP_DIR)/src/app/clusters/groups-server/groups-server.cpp
@@ -234,6 +231,7 @@ SRC_CPP += $(CHIP_DIR)/zzz_generated/app-common/app-common/zap-generated/attribu
 
 SRC_CPP += $(CHIP_DIR)/zzz_generated/lighting-app/zap-generated/callback-stub.cpp
 SRC_CPP += $(CHIP_DIR)/zzz_generated/lighting-app/zap-generated/IMClusterCommandHandler.cpp
+
 #SRC_CPP += $(CHIP_DIR)/zzz_generated/lighting-app/zap-generated/CHIPClientCallbacks.cpp
 
 SRC_CPP += $(CHIP_DIR)/examples/lighting-app/beken/main/chipinterface.cpp
@@ -272,6 +270,7 @@ CFLAGS += -DCHIP_SYSTEM_CONFIG_USE_ZEPHYR_SOCKET_EXTENSIONS=0
 CFLAGS += -DCHIP_SYSTEM_CONFIG_USE_LWIP=1
 CFLAGS += -DCHIP_SYSTEM_CONFIG_USE_SOCKETS=0
 CFLAGS += -DCHIP_SYSTEM_CONFIG_USE_NETWORK_FRAMEWORK=0
+CFLAGS += -DCHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER="<lib/address_resolve/AddressResolve_DefaultImpl.h>"
 
 CXXFLAGS =
 ifeq ($(CROSS_COMPILE_CHOICE),1)

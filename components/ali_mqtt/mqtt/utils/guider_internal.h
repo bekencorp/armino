@@ -40,6 +40,7 @@
 #define GUIDER_DEFAULT_TS_STR       "2524608000000"
 
 #define CONN_SECMODE_LEN            (32)
+#define GUIDER_MAC_LEN             (16)
 
 #define GUIDER_SIGN_LEN             (256)
 
@@ -84,6 +85,7 @@ void guider_print_dev_guider_info(iotx_device_info_pt dev,
                                   char *id2,
                                   char *dev_code);
 void guider_print_conn_info(iotx_conn_info_pt conn);
+char *mqtt_get_mac_str();
 
 #ifndef MQTT_DIRECT
 int _http_response(char *payload,

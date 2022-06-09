@@ -21,7 +21,10 @@ extern "C" {
 
 #define FLASH_ID_GD25Q32C               (0xC84016)
 
+#define QE_RETRY_TIMES                  (10)
+
 __attribute__((section(".itcm_sec_code")))   void flash_bypass_quad_enable(void);
+__attribute__((section(".itcm_sec_code"))) void flash_bypass_quad_test(uint32_t quad_enable, uint32_t delay_cycle1, uint32_t delay_cycle2);
 
 #ifdef __cplusplus
 }

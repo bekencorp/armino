@@ -14,6 +14,8 @@
 
 #include "pw_stream/std_file_stream.h"
 
+#include "pw_assert/check.h"
+
 namespace pw::stream {
 namespace {
 
@@ -26,6 +28,7 @@ std::ios::seekdir WhenceToSeekDir(Stream::Whence whence) {
     case Stream::Whence::kEnd:
       return std::ios::end;
   }
+  PW_CRASH("Unknown value for enum Stream::Whence");
 }
 
 }  // namespace
@@ -45,10 +48,19 @@ StatusWithSize StdFileReader::DoRead(ByteSpan dest) {
 }
 
 Status StdFileReader::DoSeek(ptrdiff_t offset, Whence origin) {
+  // Explicitly clear EOF bit if needed.
+  if (stream_.eof()) {
+    stream_.clear();
+  }
   if (!stream_.seekg(offset, WhenceToSeekDir(origin))) {
     return Status::Unknown();
   }
   return OkStatus();
+}
+
+size_t StdFileReader::DoTell() {
+  auto pos = static_cast<int>(stream_.tellg());
+  return pos < 0 ? kUnknownPosition : pos;
 }
 
 Status StdFileWriter::DoWrite(ConstByteSpan data) {
@@ -68,6 +80,11 @@ Status StdFileWriter::DoSeek(ptrdiff_t offset, Whence origin) {
     return Status::Unknown();
   }
   return OkStatus();
+}
+
+size_t StdFileWriter::DoTell() {
+  auto pos = static_cast<int>(stream_.tellp());
+  return pos < 0 ? kUnknownPosition : pos;
 }
 
 }  // namespace pw::stream

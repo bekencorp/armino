@@ -26,6 +26,7 @@
 #include <app/ConcreteCommandPath.h>
 #include <app/EventLogging.h>
 #include <app/data-model/Encode.h>
+#include <app/server/Server.h>
 #include <app/util/af.h>
 #include <app/util/attribute-storage.h>
 
@@ -34,6 +35,9 @@ using namespace chip::app;
 using namespace chip::Access;
 
 namespace AccessControlCluster = chip::app::Clusters::AccessControl;
+
+// TODO(#13590): generated code doesn't automatically handle max length so do it manually
+constexpr int kExtensionDataMaxLength = 128;
 
 namespace {
 
@@ -225,7 +229,7 @@ struct AccessControlEntryCodec
         return CHIP_NO_ERROR;
     }
 
-    CHIP_ERROR Encode(TLV::TLVWriter & aWriter, TLV::Tag aTag) const
+    CHIP_ERROR EncodeForRead(TLV::TLVWriter & aWriter, TLV::Tag aTag, FabricIndex accessingFabricIndex) const
     {
         AccessControlCluster::Structs::AccessControlEntry::Type staging;
 
@@ -250,10 +254,11 @@ struct AccessControlEntryCodec
         {
             for (size_t i = 0; i < subjectCount; ++i)
             {
-                Subject subject;
-                ReturnErrorOnFailure(entry.GetSubject(i, subject.nodeId));
-                ReturnErrorOnFailure(Convert(subject.nodeId, subject));
-                subjectBuffer[i] = subject.nodeId;
+                NodeId subject;
+                ReturnErrorOnFailure(entry.GetSubject(i, subject));
+                Subject tmp;
+                ReturnErrorOnFailure(AccessControlEntryCodec::Convert(subject, tmp));
+                subjectBuffer[i] = tmp.nodeId;
             }
             staging.subjects.SetNonNull(subjectBuffer, subjectCount);
         }
@@ -272,7 +277,7 @@ struct AccessControlEntryCodec
             staging.targets.SetNonNull(targetBuffer, targetCount);
         }
 
-        return staging.Encode(aWriter, aTag);
+        return staging.EncodeForRead(aWriter, aTag, accessingFabricIndex);
     }
 
     CHIP_ERROR Decode(TLV::TLVReader & aReader)
@@ -302,9 +307,10 @@ struct AccessControlEntryCodec
             auto iterator = staging.subjects.Value().begin();
             while (iterator.Next())
             {
-                Subject subject = { .nodeId = iterator.GetValue(), .authMode = staging.authMode };
-                ReturnErrorOnFailure(Convert(subject, subject.nodeId));
-                ReturnErrorOnFailure(entry.AddSubject(nullptr, subject.nodeId));
+                Subject tmp = { .nodeId = iterator.GetValue(), .authMode = staging.authMode };
+                NodeId subject;
+                ReturnErrorOnFailure(Convert(tmp, subject));
+                ReturnErrorOnFailure(entry.AddSubject(nullptr, subject));
             }
             ReturnErrorOnFailure(iterator.GetStatus());
         }
@@ -353,18 +359,17 @@ private:
     CHIP_ERROR ReadAcl(AttributeValueEncoder & aEncoder);
     CHIP_ERROR ReadExtension(AttributeValueEncoder & aEncoder);
     CHIP_ERROR WriteAcl(const ConcreteDataAttributePath & aPath, AttributeValueDecoder & aDecoder);
-    CHIP_ERROR WriteExtension(AttributeValueDecoder & aDecoder);
+    CHIP_ERROR WriteExtension(const ConcreteDataAttributePath & aPath, AttributeValueDecoder & aDecoder);
 };
 
 constexpr uint16_t AccessControlAttribute::ClusterRevision;
 
-CHIP_ERROR LogAccessControlEvent(const AccessControl::Entry & entry, const Access::SubjectDescriptor & subjectDescriptor,
-                                 AccessControlCluster::ChangeTypeEnum changeType)
+CHIP_ERROR LogAclChangedEvent(const AccessControl::Entry & entry, const Access::SubjectDescriptor & subjectDescriptor,
+                              AccessControlCluster::ChangeTypeEnum changeType)
 {
     CHIP_ERROR err;
 
     // Record AccessControlEntry event
-    EventNumber eventNumber;
     DataModel::Nullable<chip::NodeId> adminNodeID;
     DataModel::Nullable<uint16_t> adminPasscodeID;
     DataModel::Nullable<AccessControlCluster::Structs::AccessControlEntry::Type> latestValue;
@@ -393,7 +398,11 @@ CHIP_ERROR LogAccessControlEvent(const AccessControl::Entry & entry, const Acces
     {
         for (size_t i = 0; i < subjectCount; ++i)
         {
-            ReturnErrorOnFailure(entry.GetSubject(i, subjectBuffer[i]));
+            NodeId subject;
+            ReturnErrorOnFailure(entry.GetSubject(i, subject));
+            Subject tmp;
+            ReturnErrorOnFailure(AccessControlEntryCodec::Convert(subject, tmp));
+            subjectBuffer[i] = tmp.nodeId;
         }
         staging.subjects.SetNonNull(subjectBuffer, subjectCount);
     }
@@ -420,17 +429,45 @@ CHIP_ERROR LogAccessControlEvent(const AccessControl::Entry & entry, const Acces
     }
     else if (subjectDescriptor.authMode == Access::AuthMode::kPase)
     {
-        adminNodeID.SetNonNull(PAKEKeyIdFromNodeId(subjectDescriptor.subject));
+        adminPasscodeID.SetNonNull(PAKEKeyIdFromNodeId(subjectDescriptor.subject));
     }
 
-    AccessControlCluster::Events::AccessControlEntryChanged::Type event{ subjectDescriptor.fabricIndex, adminNodeID,
-                                                                         adminPasscodeID, changeType, latestValue };
+    AccessControlCluster::Events::AccessControlEntryChanged::Type event{ adminNodeID, adminPasscodeID, changeType, latestValue,
+                                                                         subjectDescriptor.fabricIndex };
 
-    // AccessControl event only occurs on endpoint 0.
+    EventNumber eventNumber;
     err = LogEvent(event, 0, eventNumber);
     if (CHIP_NO_ERROR != err)
     {
-        ChipLogError(DataManagement, "AccessControl: Failed to record AccessControlEntryChanged event");
+        ChipLogError(DataManagement, "AccessControlCluster: log event failed %" CHIP_ERROR_FORMAT, err.Format());
+    }
+
+    return err;
+}
+
+CHIP_ERROR LogExtensionChangedEvent(const AccessControlCluster::Structs::ExtensionEntry::Type & item,
+                                    const Access::SubjectDescriptor & subjectDescriptor,
+                                    AccessControlCluster::ChangeTypeEnum changeType)
+{
+    AccessControlCluster::Events::AccessControlExtensionChanged::Type event{ .changeType       = changeType,
+                                                                             .adminFabricIndex = subjectDescriptor.fabricIndex };
+
+    if (subjectDescriptor.authMode == Access::AuthMode::kCase)
+    {
+        event.adminNodeID.SetNonNull(subjectDescriptor.subject);
+    }
+    else if (subjectDescriptor.authMode == Access::AuthMode::kPase)
+    {
+        event.adminPasscodeID.SetNonNull(PAKEKeyIdFromNodeId(subjectDescriptor.subject));
+    }
+
+    event.latestValue.SetNonNull(item);
+
+    EventNumber eventNumber;
+    CHIP_ERROR err = LogEvent(event, 0, eventNumber);
+    if (CHIP_NO_ERROR != err)
+    {
+        ChipLogError(DataManagement, "AccessControlCluster: log event failed %" CHIP_ERROR_FORMAT, err.Format());
     }
 
     return err;
@@ -446,6 +483,19 @@ CHIP_ERROR AccessControlAttribute::Read(const ConcreteReadAttributePath & aPath,
         return aEncoder.Encode(ClusterRevision);
     case AccessControlCluster::Attributes::Extension::Id:
         return ReadExtension(aEncoder);
+    // TODO: For the following 3 attributes, need to add API surface to AccessControl to runtime get value from actual impl used.
+    case AccessControlCluster::Attributes::SubjectsPerAccessControlEntry::Id: {
+        uint16_t value = CHIP_CONFIG_EXAMPLE_ACCESS_CONTROL_MAX_SUBJECTS_PER_ENTRY;
+        return aEncoder.Encode(value);
+    }
+    case AccessControlCluster::Attributes::TargetsPerAccessControlEntry::Id: {
+        uint16_t value = CHIP_CONFIG_EXAMPLE_ACCESS_CONTROL_MAX_TARGETS_PER_ENTRY;
+        return aEncoder.Encode(value);
+    }
+    case AccessControlCluster::Attributes::AccessControlEntriesPerFabric::Id: {
+        uint16_t value = CHIP_CONFIG_EXAMPLE_ACCESS_CONTROL_MAX_ENTRIES_PER_FABRIC;
+        return aEncoder.Encode(value);
+    }
     }
 
     return CHIP_NO_ERROR;
@@ -471,7 +521,31 @@ CHIP_ERROR AccessControlAttribute::ReadAcl(AttributeValueEncoder & aEncoder)
 
 CHIP_ERROR AccessControlAttribute::ReadExtension(AttributeValueEncoder & aEncoder)
 {
-    return aEncoder.EncodeEmptyList();
+    auto & storage = Server::GetInstance().GetPersistentStorage();
+    DefaultStorageKeyAllocator key;
+
+    auto & fabrics = Server::GetInstance().GetFabricTable();
+
+    return aEncoder.EncodeList([&](const auto & encoder) -> CHIP_ERROR {
+        for (auto & fabric : fabrics)
+        {
+            uint8_t buffer[kExtensionDataMaxLength] = { 0 };
+            uint16_t size                           = static_cast<uint16_t>(sizeof(buffer));
+            CHIP_ERROR errStorage = storage.SyncGetKeyValue(key.AccessControlExtensionEntry(fabric.GetFabricIndex()), buffer, size);
+            ReturnErrorCodeIf(errStorage == CHIP_ERROR_BUFFER_TOO_SMALL, CHIP_ERROR_INCORRECT_STATE);
+            if (errStorage == CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND)
+            {
+                continue;
+            }
+            ReturnErrorOnFailure(errStorage);
+            AccessControlCluster::Structs::ExtensionEntry::Type item = {
+                .data        = ByteSpan(buffer, size),
+                .fabricIndex = fabric.GetFabricIndex(),
+            };
+            ReturnErrorOnFailure(encoder.Encode(item));
+        }
+        return CHIP_NO_ERROR;
+    });
 }
 
 CHIP_ERROR AccessControlAttribute::Write(const ConcreteDataAttributePath & aPath, AttributeValueDecoder & aDecoder)
@@ -481,7 +555,7 @@ CHIP_ERROR AccessControlAttribute::Write(const ConcreteDataAttributePath & aPath
     case AccessControlCluster::Attributes::Acl::Id:
         return WriteAcl(aPath, aDecoder);
     case AccessControlCluster::Attributes::Extension::Id:
-        return WriteExtension(aDecoder);
+        return WriteExtension(aPath, aDecoder);
     }
 
     return CHIP_NO_ERROR;
@@ -515,7 +589,8 @@ CHIP_ERROR AccessControlAttribute::WriteAcl(const ConcreteDataAttributePath & aP
         ReturnErrorOnFailure(list.ComputeSize(&newCount));
         ReturnErrorOnFailure(GetAccessControl().GetMaxEntryCount(maxCount));
         VerifyOrReturnError(allCount >= oldCount, CHIP_ERROR_INTERNAL);
-        VerifyOrReturnError(static_cast<size_t>(allCount - oldCount + newCount) <= maxCount, CHIP_ERROR_INVALID_LIST_LENGTH);
+        VerifyOrReturnError(static_cast<size_t>(allCount - oldCount + newCount) <= maxCount,
+                            CHIP_IM_GLOBAL_STATUS(ConstraintError));
 
         auto iterator = list.begin();
         size_t i      = 0;
@@ -524,14 +599,14 @@ CHIP_ERROR AccessControlAttribute::WriteAcl(const ConcreteDataAttributePath & aP
             if (i < oldCount)
             {
                 ReturnErrorOnFailure(GetAccessControl().UpdateEntry(i, iterator.GetValue().entry, &accessingFabricIndex));
-                ReturnErrorOnFailure(LogAccessControlEvent(iterator.GetValue().entry, aDecoder.GetSubjectDescriptor(),
-                                                           AccessControlCluster::ChangeTypeEnum::kChanged));
+                ReturnErrorOnFailure(LogAclChangedEvent(iterator.GetValue().entry, aDecoder.GetSubjectDescriptor(),
+                                                        AccessControlCluster::ChangeTypeEnum::kChanged));
             }
             else
             {
                 ReturnErrorOnFailure(GetAccessControl().CreateEntry(nullptr, iterator.GetValue().entry, &accessingFabricIndex));
-                ReturnErrorOnFailure(LogAccessControlEvent(iterator.GetValue().entry, aDecoder.GetSubjectDescriptor(),
-                                                           AccessControlCluster::ChangeTypeEnum::kAdded));
+                ReturnErrorOnFailure(LogAclChangedEvent(iterator.GetValue().entry, aDecoder.GetSubjectDescriptor(),
+                                                        AccessControlCluster::ChangeTypeEnum::kAdded));
             }
             ++i;
         }
@@ -544,7 +619,7 @@ CHIP_ERROR AccessControlAttribute::WriteAcl(const ConcreteDataAttributePath & aP
             --oldCount;
             ReturnErrorOnFailure(GetAccessControl().ReadEntry(oldCount, entry, &accessingFabricIndex));
             ReturnErrorOnFailure(
-                LogAccessControlEvent(entry, aDecoder.GetSubjectDescriptor(), AccessControlCluster::ChangeTypeEnum::kRemoved));
+                LogAclChangedEvent(entry, aDecoder.GetSubjectDescriptor(), AccessControlCluster::ChangeTypeEnum::kRemoved));
             ReturnErrorOnFailure(GetAccessControl().DeleteEntry(oldCount, &accessingFabricIndex));
         }
     }
@@ -555,7 +630,7 @@ CHIP_ERROR AccessControlAttribute::WriteAcl(const ConcreteDataAttributePath & aP
 
         ReturnErrorOnFailure(GetAccessControl().CreateEntry(nullptr, item.entry, &accessingFabricIndex));
         ReturnErrorOnFailure(
-            LogAccessControlEvent(item.entry, aDecoder.GetSubjectDescriptor(), AccessControlCluster::ChangeTypeEnum::kAdded));
+            LogAclChangedEvent(item.entry, aDecoder.GetSubjectDescriptor(), AccessControlCluster::ChangeTypeEnum::kAdded));
     }
     else
     {
@@ -565,18 +640,105 @@ CHIP_ERROR AccessControlAttribute::WriteAcl(const ConcreteDataAttributePath & aP
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR AccessControlAttribute::WriteExtension(AttributeValueDecoder & aDecoder)
+CHIP_ERROR AccessControlAttribute::WriteExtension(const ConcreteDataAttributePath & aPath, AttributeValueDecoder & aDecoder)
 {
-    DataModel::DecodableList<AccessControlCluster::Structs::ExtensionEntry::DecodableType> list;
-    ReturnErrorOnFailure(aDecoder.Decode(list));
+    auto & storage = Server::GetInstance().GetPersistentStorage();
+    DefaultStorageKeyAllocator key;
+
+    FabricIndex accessingFabricIndex = aDecoder.AccessingFabricIndex();
+
+    uint8_t buffer[kExtensionDataMaxLength] = { 0 };
+    uint16_t size                           = static_cast<uint16_t>(sizeof(buffer));
+    CHIP_ERROR errStorage = storage.SyncGetKeyValue(key.AccessControlExtensionEntry(accessingFabricIndex), buffer, size);
+    ReturnErrorCodeIf(errStorage == CHIP_ERROR_BUFFER_TOO_SMALL, CHIP_ERROR_INCORRECT_STATE);
+    ReturnErrorCodeIf(errStorage != CHIP_NO_ERROR && errStorage != CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND, errStorage);
+
+    if (!aPath.IsListItemOperation())
+    {
+        DataModel::DecodableList<AccessControlCluster::Structs::ExtensionEntry::DecodableType> list;
+        ReturnErrorOnFailure(aDecoder.Decode(list));
+
+        size_t count = 0;
+        ReturnErrorOnFailure(list.ComputeSize(&count));
+
+        if (count == 0)
+        {
+            ReturnErrorCodeIf(errStorage == CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND, CHIP_NO_ERROR);
+            ReturnErrorOnFailure(storage.SyncDeleteKeyValue(key.AccessControlExtensionEntry(accessingFabricIndex)));
+            AccessControlCluster::Structs::ExtensionEntry::Type item = {
+                .data        = ByteSpan(buffer, size),
+                .fabricIndex = accessingFabricIndex,
+            };
+            ReturnErrorOnFailure(
+                LogExtensionChangedEvent(item, aDecoder.GetSubjectDescriptor(), AccessControlCluster::ChangeTypeEnum::kRemoved));
+        }
+        else if (count == 1)
+        {
+            auto iterator = list.begin();
+            if (!iterator.Next())
+            {
+                ReturnErrorOnFailure(iterator.GetStatus());
+                // If counted an item, iterator doesn't return it, iterator has no error, that's bad.
+                return CHIP_ERROR_INCORRECT_STATE;
+            }
+            auto & item = iterator.GetValue();
+            // TODO(#13590): generated code doesn't automatically handle max length so do it manually
+            ReturnErrorCodeIf(item.data.size() > kExtensionDataMaxLength, CHIP_IM_GLOBAL_STATUS(ConstraintError));
+            ReturnErrorOnFailure(storage.SyncSetKeyValue(key.AccessControlExtensionEntry(accessingFabricIndex), item.data.data(),
+                                                         static_cast<uint16_t>(item.data.size())));
+            ReturnErrorOnFailure(LogExtensionChangedEvent(item, aDecoder.GetSubjectDescriptor(),
+                                                          errStorage == CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND
+                                                              ? AccessControlCluster::ChangeTypeEnum::kAdded
+                                                              : AccessControlCluster::ChangeTypeEnum::kChanged));
+        }
+        else
+        {
+            return CHIP_IM_GLOBAL_STATUS(ConstraintError);
+        }
+    }
+    else if (aPath.mListOp == ConcreteDataAttributePath::ListOperation::AppendItem)
+    {
+        ReturnErrorCodeIf(errStorage != CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND, CHIP_IM_GLOBAL_STATUS(ConstraintError));
+        AccessControlCluster::Structs::ExtensionEntry::DecodableType item;
+        ReturnErrorOnFailure(aDecoder.Decode(item));
+        // TODO(#13590): generated code doesn't automatically handle max length so do it manually
+        ReturnErrorCodeIf(item.data.size() > kExtensionDataMaxLength, CHIP_IM_GLOBAL_STATUS(ConstraintError));
+        ReturnErrorOnFailure(storage.SyncSetKeyValue(key.AccessControlExtensionEntry(accessingFabricIndex), item.data.data(),
+                                                     static_cast<uint16_t>(item.data.size())));
+        ReturnErrorOnFailure(
+            LogExtensionChangedEvent(item, aDecoder.GetSubjectDescriptor(), AccessControlCluster::ChangeTypeEnum::kAdded));
+    }
+    else
+    {
+        return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
+    }
+
     return CHIP_NO_ERROR;
 }
 
 AccessControlAttribute gAttribute;
 
+class : public FabricTableDelegate
+{
+public:
+    void OnFabricDeletedFromStorage(CompressedFabricId compressedId, FabricIndex fabricIndex) override
+    {
+        auto & storage = Server::GetInstance().GetPersistentStorage();
+        DefaultStorageKeyAllocator key;
+        storage.SyncDeleteKeyValue(key.AccessControlExtensionEntry(fabricIndex));
+    }
+    void OnFabricRetrievedFromStorage(FabricInfo * fabricInfo) override {}
+    void OnFabricPersistedToStorage(FabricInfo * fabricInfo) override {}
+
+} fabricTableDelegate;
+
 } // namespace
 
 void MatterAccessControlPluginServerInitCallback()
 {
+    ChipLogProgress(DataManagement, "AccessControlCluster: initializing");
+
     registerAttributeAccessOverride(&gAttribute);
+
+    Server::GetInstance().GetFabricTable().AddFabricDelegate(&fabricTableDelegate);
 }

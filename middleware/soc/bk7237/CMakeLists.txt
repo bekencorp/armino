@@ -47,6 +47,7 @@ list(APPEND srcs
 	"hal/lcd_disp_ll.c"
 	"hal/lcd_disp_hal.c"
 	"hal/i2s_hal_debug.c"
+	"hal/jpeg_dec_hal.c"
 	"hal/flash_hal_debug.c"
 	"hal/flash_ll.c"
 )
@@ -64,6 +65,12 @@ if(CONFIG_AUDIO)
 	list(APPEND srcs
 		"hal/aud_hal_debug.c"
 		"hal/aud_ll.c"
+	)
+endif()
+
+if(CONFIG_DMA2D)
+	list(APPEND srcs
+		"hal/dma2d_hal.c"
 	)
 endif()
 

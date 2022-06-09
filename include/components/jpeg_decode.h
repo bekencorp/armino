@@ -36,9 +36,8 @@ extern "C" {
  *  - config jpeg_dec image resoult, and simple_rate
  *  - malloc buffer for jpeg_dec
  *
- * @param width: input image width
- * @param heigth: input image heigth
- * @param ratio: Output scaling 0:1/1, 1:1/2, 2:1/4
+ * @param src_buf: input image address
+ * @param dst_buf: output decode image address
  *
  * @attention 1. only for software jpeg_dec 
  *
@@ -46,7 +45,7 @@ extern "C" {
  *    - kNoErr: succeed
  *    - other: errors.
  */
-bk_err_t bk_jpeg_dec_sw_init(uint16_t width, uint16_t heigth, uint8_t ratio);
+bk_err_t bk_jpeg_dec_sw_init(uint8_t *src_buf, uint8_t *dst_buf);
 
 /**
  * @brief     Deinit the jpeg_dec
@@ -70,9 +69,7 @@ bk_err_t bk_jpeg_dec_sw_deinit(void);
  *  - jpeg_prepare for jpeg_dec
  *  - start jpeg_dec
  *
- * @param jpg_buf: input image ptr
- * @param jpgdec_buf: output jpeg_dec image ptr
- * @param pic_size: input image size
+ * @param frame_size: input image size
  *
  * @attention 1. only for software jpeg_dec 
  *
@@ -80,7 +77,7 @@ bk_err_t bk_jpeg_dec_sw_deinit(void);
  *    - kNoErr: succeed
  *    - other: errors.
  */
-bk_err_t bk_jpeg_dec_sw_fun(uint8_t *jpg_buf, uint8_t* jpgdec_buf, uint32_t pic_size);
+bk_err_t bk_jpeg_dec_sw_start(uint32_t frame_size);
 
 /**
  * @brief     jpegdec register finish icallback_func

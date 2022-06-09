@@ -45,11 +45,13 @@ Status FlatFileSystemService::EnumerateFile(
   {
     pw::file::Path::StreamEncoder encoder = output_encoder.GetPathsEncoder();
 
-    encoder.WritePath(reinterpret_cast<const char*>(file_name_buffer_.data()),
-                      sws.size());
-    encoder.WriteSizeBytes(entry.SizeBytes());
-    encoder.WritePermissions(entry.Permissions());
-    encoder.WriteFileId(entry.FileId());
+    encoder
+        .WritePath(reinterpret_cast<const char*>(file_name_buffer_.data()),
+                   sws.size())
+        .IgnoreError();
+    encoder.WriteSizeBytes(entry.SizeBytes()).IgnoreError();
+    encoder.WritePermissions(entry.Permissions()).IgnoreError();
+    encoder.WriteFileId(entry.FileId()).IgnoreError();
   }
   return output_encoder.status();
 }
@@ -70,11 +72,13 @@ void FlatFileSystemService::EnumerateAllFiles(RawServerWriter& writer) {
 
     Status write_status = writer.Write(encoder);
     if (!write_status.ok()) {
-      writer.Finish(write_status);
+      writer.Finish(write_status)
+          .IgnoreError();  // TODO(pwbug/387): Handle Status properly
       return;
     }
   }
-  writer.Finish(OkStatus());
+  writer.Finish(OkStatus())
+      .IgnoreError();  // TODO(pwbug/387): Handle Status properly
 }
 
 void FlatFileSystemService::List(ConstByteSpan request,
@@ -90,25 +94,29 @@ void FlatFileSystemService::List(ConstByteSpan request,
     std::string_view file_name_view;
     if (!decoder.ReadString(&file_name_view).ok() ||
         file_name_view.length() == 0) {
-      writer.Finish(Status::DataLoss());
+      writer.Finish(Status::DataLoss())
+          .IgnoreError();  // TODO(pwbug/387): Handle Status properly
       return;
     }
 
     // Find and enumerate the file requested.
     Result<Entry*> result = FindFile(file_name_view);
     if (!result.ok()) {
-      writer.Finish(result.status());
+      writer.Finish(result.status())
+          .IgnoreError();  // TODO(pwbug/387): Handle Status properly
       return;
     }
 
     pw::file::ListResponse::MemoryEncoder encoder(encoding_buffer_);
     Status proto_encode_status = EnumerateFile(*result.value(), encoder);
     if (!proto_encode_status.ok()) {
-      writer.Finish(proto_encode_status);
+      writer.Finish(proto_encode_status)
+          .IgnoreError();  // TODO(pwbug/387): Handle Status properly
       return;
     }
 
-    writer.Finish(writer.Write(encoder));
+    writer.Finish(writer.Write(encoder))
+        .IgnoreError();  // TODO(pwbug/387): Handle Status properly
     return;
   }
 
@@ -116,7 +124,8 @@ void FlatFileSystemService::List(ConstByteSpan request,
   EnumerateAllFiles(writer);
 }
 
-StatusWithSize FlatFileSystemService::Delete(ConstByteSpan request, ByteSpan) {
+void FlatFileSystemService::Delete(ConstByteSpan request,
+                                   rpc::RawUnaryResponder& responder) {
   protobuf::Decoder decoder(request);
   while (decoder.Next().ok()) {
     if (decoder.FieldNumber() !=
@@ -126,11 +135,13 @@ StatusWithSize FlatFileSystemService::Delete(ConstByteSpan request, ByteSpan) {
 
     std::string_view file_name_view;
     if (!decoder.ReadString(&file_name_view).ok()) {
-      return StatusWithSize(Status::DataLoss(), 0);
+      responder.Finish({}, Status::DataLoss()).IgnoreError();
+      return;
     }
-    return StatusWithSize(FindAndDeleteFile(file_name_view), 0);
+    responder.Finish({}, FindAndDeleteFile(file_name_view)).IgnoreError();
+    return;
   }
-  return StatusWithSize(Status::InvalidArgument(), 0);
+  responder.Finish({}, Status::InvalidArgument()).IgnoreError();
 }
 
 Result<Entry*> FlatFileSystemService::FindFile(std::string_view file_name) {

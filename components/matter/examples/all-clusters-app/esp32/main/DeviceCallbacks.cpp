@@ -28,10 +28,13 @@
 #include "Globals.h"
 #include "LEDWidget.h"
 #include "WiFiWidget.h"
+#include "esp_bt.h"
 #include "esp_check.h"
 #include "esp_err.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
+#include "esp_nimble_hci.h"
+#include "nimble/nimble_port.h"
 #include "route_hook/esp_route_hook.h"
 #include <app-common/zap-generated/attribute-id.h>
 #include <app-common/zap-generated/attribute-type.h>
@@ -43,6 +46,7 @@
 #include <app/util/util.h>
 #include <lib/dnssd/Advertiser.h>
 #include <lib/support/CodeUtils.h>
+#include <ota/OTAHelper.h>
 
 static const char * TAG = "app-devicecallbacks";
 
@@ -52,7 +56,8 @@ using namespace ::chip::System;
 using namespace ::chip::DeviceLayer;
 using namespace chip::app;
 
-constexpr uint32_t kIdentifyTimerDelayMS = 250;
+constexpr uint32_t kIdentifyTimerDelayMS     = 250;
+constexpr uint32_t kInitOTARequestorDelaySec = 3;
 
 void OnIdentifyTriggerEffect(Identify * identify)
 {
@@ -114,9 +119,35 @@ void DeviceCallbacks::DeviceEventCallback(const ChipDeviceEvent * event, intptr_
         ESP_LOGI(TAG, "CHIPoBLE disconnected");
         break;
 
-    case DeviceEventType::kCommissioningComplete:
+    case DeviceEventType::kCommissioningComplete: {
         ESP_LOGI(TAG, "Commissioning complete");
-        break;
+#if CONFIG_BT_NIMBLE_ENABLED && CONFIG_DEINIT_BLE_ON_COMMISSIONING_COMPLETE
+
+        if (ble_hs_is_enabled())
+        {
+            int ret = nimble_port_stop();
+            if (ret == 0)
+            {
+                nimble_port_deinit();
+                esp_err_t err = esp_nimble_hci_and_controller_deinit();
+                err += esp_bt_mem_release(ESP_BT_MODE_BLE);
+                if (err == ESP_OK)
+                {
+                    ESP_LOGI(TAG, "BLE deinit successful and memory reclaimed");
+                }
+            }
+            else
+            {
+                ESP_LOGW(TAG, "nimble_port_stop() failed");
+            }
+        }
+        else
+        {
+            ESP_LOGI(TAG, "BLE already deinited");
+        }
+#endif
+    }
+    break;
 
     case DeviceEventType::kInterfaceIpAddressChanged:
         if ((event->InterfaceIpAddressChanged.Type == InterfaceIpChangeType::kIpV4_Assigned) ||
@@ -135,7 +166,7 @@ void DeviceCallbacks::DeviceEventCallback(const ChipDeviceEvent * event, intptr_
         break;
     }
 
-    ESP_LOGI(TAG, "Current free heap: %zu\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    ESP_LOGI(TAG, "Current free heap: %u\n", static_cast<unsigned int>(heap_caps_get_free_size(MALLOC_CAP_8BIT)));
 }
 
 void DeviceCallbacks::PostAttributeChangeCallback(EndpointId endpointId, ClusterId clusterId, AttributeId attributeId, uint8_t mask,
@@ -168,16 +199,29 @@ void DeviceCallbacks::PostAttributeChangeCallback(EndpointId endpointId, Cluster
         break;
     }
 
-    ESP_LOGI(TAG, "Current free heap: %zu\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    ESP_LOGI(TAG, "Current free heap: %u\n", static_cast<unsigned int>(heap_caps_get_free_size(MALLOC_CAP_8BIT)));
+}
+
+void InitOTARequestorHandler(System::Layer * systemLayer, void * appState)
+{
+    OTAHelpers::Instance().InitOTARequestor();
 }
 
 void DeviceCallbacks::OnInternetConnectivityChange(const ChipDeviceEvent * event)
 {
+    static bool isOTAInitialized = false;
     if (event->InternetConnectivityChange.IPv4 == kConnectivity_Established)
     {
         ESP_LOGI(TAG, "Server ready at: %s:%d", event->InternetConnectivityChange.address, CHIP_PORT);
         wifiLED.Set(true);
         chip::app::DnssdServer::Instance().StartServer();
+
+        if (!isOTAInitialized)
+        {
+            chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds32(kInitOTARequestorDelaySec),
+                                                        InitOTARequestorHandler, nullptr);
+            isOTAInitialized = true;
+        }
     }
     else if (event->InternetConnectivityChange.IPv4 == kConnectivity_Lost)
     {
@@ -188,6 +232,12 @@ void DeviceCallbacks::OnInternetConnectivityChange(const ChipDeviceEvent * event
     {
         ESP_LOGI(TAG, "IPv6 Server ready...");
         chip::app::DnssdServer::Instance().StartServer();
+        if (!isOTAInitialized)
+        {
+            chip::DeviceLayer::SystemLayer().StartTimer(chip::System::Clock::Seconds32(kInitOTARequestorDelaySec),
+                                                        InitOTARequestorHandler, nullptr);
+            isOTAInitialized = true;
+        }
     }
     else if (event->InternetConnectivityChange.IPv6 == kConnectivity_Lost)
     {

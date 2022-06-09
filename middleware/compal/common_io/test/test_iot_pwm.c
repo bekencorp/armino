@@ -50,7 +50,7 @@
 /* Globals values which can be overwritten by the test
  * framework invoking these tests */
 /*-----------------------------------------------------------*/
-uint32_t ultestIotPwmGpioInputPin = 18;
+uint32_t ultestIotPwmGpioInputPin = 1;
 uint32_t ulAssistedTestIotPwmGpioInputPin = 23;
 
 uint32_t ultestIotPwmInstance = 2;            /* Use PWM instance 2 */

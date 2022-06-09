@@ -10,7 +10,6 @@ set(srcs
 	cli_airkiss.c
 	cli_ble.c
 	cli_event.c
-	cli_flash.c
 	cli_keyValue.c
 	cli_gpio.c
 	cli_iperf.c
@@ -23,33 +22,65 @@ set(srcs
 	cli_rpc.c
 	cli_phy.c
 	cli_pwr.c
-	cli_pwm.c
 	cli_reg.c
-	cli_sd.c
-	cli_security.c
 	cli_netif.c
 	cli_timer.c
-	cli_touch.c
 	cli_temp_detect.c
+	cli_touch.c
 	cli_uart.c
 	cli_wifi.c
-	cli_dma.c
 	cli_wdt.c
+	cli_security.c
 	cli_spi.c
 	cli_exception.c
 	cli_icu.c
-	cli_i2c.c
 	)
 
-if (CONFIG_MATTER_NAMEKEY)
+if (CONFIG_FLASH)
 	list(APPEND srcs
-		cli_nameKey.c
+		cli_flash.c
+	)
+endif()
+
+if (CONFIG_GENERAL_DMA)
+	list(APPEND srcs
+		cli_dma.c
+	)
+endif()
+
+if (CONFIG_SDCARD_HOST)
+	list(APPEND srcs
+		cli_sd.c
+	)
+endif()
+
+if (CONFIG_PWM)
+	list(APPEND srcs
+		cli_pwm.c
+	)
+endif()
+
+if (CONFIG_I2C)
+	list(APPEND srcs
+		cli_i2c.c
+	)
+endif()
+
+if (CONFIG_SUPPORT_MATTER)
+	list(APPEND srcs
+		cli_matter.c
 	)
 endif()
 
 if (CONFIG_FLASH)
 	list(APPEND srcs
 		cli_flash.c
+	)
+endif()
+
+if (CONFIG_FLASH_QUAD_ENABLE)
+	list(APPEND srcs
+		cli_flash_test.c
 	)
 endif()
 
@@ -110,7 +141,12 @@ endif()
 
 if (CONFIG_SOC_BK7256XX)
 	list(APPEND srcs "cli_usb.c")
+endif()
+
+if (CONFIG_SOC_BK7256XX OR CONFIG_USB_UVC)
+if (CONFIG_DUAL_CORE)
 	list(APPEND srcs "cli_uvc.c")
+endif()
 endif()
 
 if (CONFIG_SECURITYIP)
@@ -167,6 +203,10 @@ if (CONFIG_AUDIO_AEC_TEST)
 	list(APPEND srcs "cli_aec.c")
 endif()
 
+if (CONFIG_AUDIO_G711_TEST)
+	list(APPEND srcs "cli_g711.c")
+endif()
+
 if (CONFIG_FFT_TEST)
 	list(APPEND srcs "cli_fft.c")
 endif()
@@ -197,8 +237,19 @@ if (CONFIG_JPEG_DECODE)
 	list(APPEND srcs cli_jpegdec.c)
 endif()
 
+if (CONFIG_CAMERA OR CONFIG_SPIDMA)
+if (CONFIG_APP_DEMO_VIDEO_TRANSFER)
+	list(APPEND srcs "cli_dvp.c")
+endif()
+endif()
+
+if (CONFIG_DOORBELL AND CONFIG_DUAL_CORE)
+	list(APPEND srcs cli_doorbell.c)
+endif()
+
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
-	REQUIRES utf8 temp_detect app driver bk_system iperf fatfs user_driver
-	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_init at bk_wifi compal video
+	REQUIRES utf8 temp_detect app driver user_driver bk_system iperf fatfs user_driver http
+	#PRIV_REQUIRES airkiss bk_common bk_netif bk_ble bk_ps
+	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_init at bk_wifi compal
 	)

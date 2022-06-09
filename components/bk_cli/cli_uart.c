@@ -89,7 +89,7 @@ static void cli_uart_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 			send_data[i] = i & 0xff;
 		}
 		BK_LOG_ON_ERR(bk_uart_write_bytes(uart_id, send_data, buf_len));
-		if (!send_data) {
+		if (send_data) {
 			os_free(send_data);
 		}
 		send_data = NULL;
@@ -115,7 +115,7 @@ static void cli_uart_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 			CLI_LOGI("recv_buffer[%d]=0x%x\n", i, recv_data[i]);
 		}
 exit:
-		if (!recv_data) {
+		if (recv_data) {
 			os_free(recv_data);
 		}
 		recv_data = NULL;

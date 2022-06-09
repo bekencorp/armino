@@ -48,7 +48,7 @@ Armino 是**博通集成**推出的物联网开发框架，旨在支持**博通�
 
 # 更多资源
 
- - 文档: http://docs.bekencorp.com:8191/armino/master/zh_CN/html/
+ - 文档: http://docs.bekencorp.com:8191/armino/bk7256/zh_CN/latest/
  - 代码: https://github.com/bekencorp/armino
  - 版本: TODO_link_to_release_page
  - 示例: TODO_link_to_doc_sample_and_demo_page

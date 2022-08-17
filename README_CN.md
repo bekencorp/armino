@@ -15,9 +15,9 @@ Armino 是**博通集成**推出的物联网开发框架，旨在支持**博通�
 
 |Chip                                                                                |          v1.X.X         |
 |:---------------------------------------------------------------------------------- |:--------------------:   |
-|[BK7235](http://docs.bekencorp.com:8191/spec/BK7235/BK7235%C2%A0Datasheet_V0.1.pdf) | ![alt text][开发中]      |
-|[BK7237](http://docs.bekencorp.com:8191/spec/BK7237/BK7237%C2%A0Datasheet_V0.3.pdf) | ![alt text][开发中]      |
-|[BK7256](http://docs.bekencorp.com:8191/spec/BK7256/BK7256%C2%A0Datasheet_V0.1.pdf) | ![alt text][开发中]      |
+|[BK7235](http://docs.bekencorp.com/spec/BK7235/BK7235%C2%A0Datasheet_V0.1.pdf) | ![alt text][开发中]      |
+|[BK7237](http://docs.bekencorp.com/spec/BK7237/BK7237%C2%A0Datasheet_V0.3.pdf) | ![alt text][开发中]      |
+|[BK7256](http://docs.bekencorp.com/spec/BK7256/BK7256%C2%A0Datasheet_V0.1.pdf) | ![alt text][开发中]      |
 
 [支持]: https://img.shields.io/badge/-supported-green "支持"
 [开发中]: https://img.shields.io/badge/-developing-orange "开发中"
@@ -48,7 +48,7 @@ Armino 是**博通集成**推出的物联网开发框架，旨在支持**博通�
 
 # 更多资源
 
- - 文档: http://docs.bekencorp.com:8191/armino/bk7256/zh_CN/latest/
+ - 文档: http://docs.bekencorp.com/armino/bk7256/zh_CN/latest/
  - 代码: https://github.com/bekencorp/armino
  - 版本: TODO_link_to_release_page
  - 示例: TODO_link_to_doc_sample_and_demo_page

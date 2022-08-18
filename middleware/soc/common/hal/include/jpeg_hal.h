@@ -24,7 +24,7 @@ extern "C" {
 #endif
 
 #define PSRAM_BASEADDR                    0x60000000
-#define JPEG_SHARE_MEM                    0x30060000
+
 
 typedef struct {
 	jpeg_hw_t *hw;
@@ -36,10 +36,16 @@ typedef struct {
 	gpio_dev_t dev;
 } jpeg_gpio_map_t;
 
+#define jpeg_hal_enable_end_yuv_int(hal) jpeg_ll_enable_end_yuv_int((hal)->hw)
+#define jpeg_hal_disable_end_yuv_int(hal) jpeg_ll_disable_end_yuv_int((hal)->hw)
+#define jpeg_hal_enable_head_output_int(hal) jpeg_ll_enable_head_output_int((hal)->hw)
+#define jpeg_hal_disable_head_output_int(hal) jpeg_ll_disable_head_output_int((hal)->hw)
 #define jpeg_hal_enable_start_frame_int(hal) jpeg_ll_enable_start_frame_int((hal)->hw)
 #define jpeg_hal_disable_start_frame_int(hal) jpeg_ll_disable_start_frame_int((hal)->hw)
 #define jpeg_hal_enable_end_frame_int(hal) jpeg_ll_enable_end_frame_int((hal)->hw)
 #define jpeg_hal_disable_end_frame_int(hal) jpeg_ll_disable_end_frame_int((hal)->hw)
+#define jpeg_hal_enable_vsync_negedge_int(hal) jpeg_ll_enable_vsync_negedge_int((hal)->hw)
+#define jpeg_hal_disable_vsync_negedge_int(hal) jpeg_ll_disable_vsync_negedge_int((hal)->hw)
 #define jpeg_hal_reset_config_to_default(hal) jpeg_ll_reset_config_to_default((hal)->hw)
 #define jpeg_hal_set_x_pixel(hal, x_pixel) jpeg_ll_set_x_pixel((hal)->hw, x_pixel)
 #define jpeg_hal_set_y_pixel(hal, x_pixel) jpeg_ll_set_y_pixel((hal)->hw, x_pixel)
@@ -57,8 +63,18 @@ typedef struct {
 
 bk_err_t jpeg_hal_init(jpeg_hal_t *hal);
 bk_err_t jpeg_hal_configure(jpeg_hal_t *hal, const jpeg_config_t *config);
-bk_err_t jpeg_hal_start_common(jpeg_hal_t *hal);
-bk_err_t jpeg_hal_stop_common(jpeg_hal_t *hal);
+bk_err_t jpeg_hal_yuv_fmt_sel(jpeg_hal_t *hal, uint32_t value);
+bk_err_t jpeg_hal_start_common(jpeg_hal_t *hal, uint8_t mode);
+bk_err_t jpeg_hal_stop_common(jpeg_hal_t *hal, uint8_t mode);
+bk_err_t jpeg_hal_enable_clk(jpeg_hal_t *hal, uint32_t value);
+bk_err_t jpeg_hal_enable_partial_display(jpeg_hal_t *hal, uint32_t enable);
+bk_err_t jpeg_hal_partial_display_offset_config(jpeg_hal_t *hal, const jpeg_partial_offset_config_t *offset_config);
+bk_err_t jpeg_hal_set_em_base_addr(jpeg_hal_t *hal, uint8_t *address);
+bk_err_t jpeg_hal_set_yuv_config(jpeg_hal_t *hal, const jpeg_config_t *config);
+bk_err_t jpeg_hal_set_encode_config(jpeg_hal_t *hal, const jpeg_config_t *config);
+bk_err_t jpeg_hal_enable_bitrate_ctrl(jpeg_hal_t *hal, uint8_t enable);
+bk_err_t jpeg_hal_set_target_size(jpeg_hal_t *hal, uint32_t up_size, uint32_t low_size);
+
 
 #if CFG_HAL_DEBUG_JPEG
 void jpeg_struct_dump(void);

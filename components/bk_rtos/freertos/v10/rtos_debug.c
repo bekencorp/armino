@@ -199,7 +199,7 @@ void rtos_dump_backtrace(void)
 
 void rtos_dump_task_runtime_stats(void)
 {
-#if 0 //( ( configGENERATE_RUN_TIME_STATS == 1 ) && ( configUSE_STATS_FORMATTING_FUNCTIONS > 0 ) )
+#if ((!CONFIG_SLAVE_CORE) && ( configGENERATE_RUN_TIME_STATS == 1 ) && ( configUSE_STATS_FORMATTING_FUNCTIONS > 0 ) )
 	int num_of_tasks = 0;
 	int buf_len = 0, info_len = 0;
 	char *buf = NULL;

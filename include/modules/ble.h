@@ -696,6 +696,7 @@ ble_err_t bk_ble_set_mac(uint8_t actv_idx, uint8_t *mac, ble_cmd_cb_t callback);
  * @brief As slaver, send a notification of an attribute's value
  *
  * @param
+ *    - con_idx: the index of connection
  *    - len: the length of attribute's value
  *    - buf: attribute's value
  *    - prf_id: The id of the profile
@@ -705,7 +706,23 @@ ble_err_t bk_ble_set_mac(uint8_t actv_idx, uint8_t *mac, ble_cmd_cb_t callback);
  *    - BK_ERR_BLE_SUCCESS: succeed
  *    - others: other errors.
  */
-ble_err_t bk_ble_send_noti_value(uint32_t len, uint8_t *buf, uint16_t prf_id, uint16_t att_idx);
+ble_err_t bk_ble_send_noti_value(uint8_t con_idx,uint32_t len, uint8_t *buf, uint16_t prf_id, uint16_t att_idx);
+
+/**
+ * @brief As slaver, send an indication of an attribute's value
+ *
+ * @param
+ *    - con_idx: the index of connection
+ *    - len: the length of attribute's value
+ *    - buf: attribute's value
+ *    - prf_id: The id of the profile
+ *    - att_idx: The index of the attribute
+ *
+ * @return
+ *    - BK_ERR_BLE_SUCCESS: succeed
+ *    - others: other errors.
+ */
+ble_err_t bk_ble_send_ind_value(uint8_t con_idx,uint32_t len, uint8_t *buf, uint16_t prf_id, uint16_t att_idx);
 
 /**
  * @brief     reg hci recv callback
@@ -792,6 +809,122 @@ uint8_t bk_ble_if_support_central(uint8_t *count);
  */
 
 BK_BLE_CONTROLLER_STACK_TYPE bk_ble_get_controller_stack_type(void);
+
+
+/*
+ * @brief get host stack type
+ *
+ * @return
+ *    enum BK_BLE_HOST_STACK_TYPE
+ */
+BK_BLE_HOST_STACK_TYPE bk_ble_get_host_stack_type(void);
+
+
+/*
+ * @brief get ble environment state
+ *
+ * @return
+ *    - 1: ready
+ *    - 0: not ready
+ */
+uint8_t bk_ble_get_env_state(void);
+
+/*
+ * @brief set ble task stack size, default is 3072
+ *
+ * @param
+ *    - size: stack size
+ *
+ *
+ * @attention 1.you must call it before app_ble_init !!!!
+ * @return
+ * - BK_ERR_BLE_SUCCESS: succeed
+ * - BK_ERR_BLE_FAIL: fail, because you call this func before app_ble_init !!!
+ */
+ble_err_t bk_ble_set_task_stack_size(uint16_t size);
+
+/*
+ * @brief register a callback that will report the action of notification/indication/read/write
+ *
+ * @param
+ *    - cb: callback
+ *
+ * @return
+ * - void
+ */
+void bk_ble_register_app_sdp_charac_callback(app_sdp_charac_callback cb);
+
+/*
+ * @brief register a callback that will report the result of gatt operation
+ *
+ * @param
+ *    - cb: callback
+ *
+ * @return
+ * - void
+ */
+void bk_ble_register_app_sdp_common_callback(app_sdp_comm_callback cb);
+
+/**
+ * @brief As master, enable notification or indication
+ *
+ * @param
+ *    - con_idx: the index of connection
+ *    - ccc_handle: the handle of Client Characteristic Configuration descriptor
+ *    - ccc_value: descriptor value, 0x01 means notification ,0x02 means indication
+ *
+ * @return
+ *    - 0: succeed
+ *    - others: errors.
+ */
+uint8_t bk_ble_gatt_write_ccc(uint8_t con_idx,uint16_t ccc_handle,uint16_t ccc_value);
+
+/**
+ * @brief As master, write attribute value
+ *
+ * @param
+ *    - con_idx: the index of connection
+ *    - att_handle: the handle of attribute value
+ *    - data: value data
+ *    - len: the length of attribute value
+ *
+ * @return
+ * - BK_ERR_BLE_SUCCESS: succeed
+ * - others: fail
+ */
+ble_err_t bk_ble_gatt_write_value(uint8_t con_idx, uint16_t att_handle, uint16_t len, uint8_t *data);
+
+/**
+ * @brief As slaver, send response value
+ *
+ * @param
+ *    - len: the length of attribute's value
+ *    - buf: attribute's value
+ *    - prf_id: The id of the profile
+ *    - att_idx: The index of the attribute
+ *
+ * @return
+ * - BK_ERR_BLE_SUCCESS: succeed
+ * - others: fail
+ */
+ble_err_t bk_ble_read_response_value(uint32_t len, uint8_t *buf, uint16_t prf_id, uint16_t att_idx);
+
+/**
+ * @brief As master, configure attribute value
+ *
+ * @param
+ *    - con_idx: the index of connection
+ *    - mode: authentication features
+ *    - iocap: IO Capability Values
+ *    - sec_req: Security Defines
+ *    - oob: OOB Data Present Flag Values
+ *
+ * @return
+ * - BK_ERR_BLE_SUCCESS: succeed
+ * - others: fail
+ */
+ble_err_t bk_ble_sec_send_auth_mode(uint8_t con_idx, uint8_t mode, uint8_t iocap, uint8_t sec_req, uint8_t oob);
+
 
 /*
  * @}

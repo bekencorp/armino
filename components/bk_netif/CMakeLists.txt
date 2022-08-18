@@ -1,7 +1,13 @@
-set(incs include)
+set(incs)
+set(srcs)
 
 if(CONFIG_BK_NETIF)
-	set(srcs bk_netif.c)
+	list(APPEND srcs
+		bk_netif.c
+	)
+	list(APPEND incs
+		include
+	)
 endif()
 
 armino_component_register(SRCS "${srcs}"

@@ -19,6 +19,26 @@ extern "C" {
 #endif
 
 typedef volatile struct {
+	/* REG_0x00 */
+	uint32_t dev_id;
+
+	/* REG_0x01 */
+	uint32_t dev_version;
+
+	/* REG_0x02 */
+	union {
+		struct {
+			uint32_t soft_reset:      1; /**< bit[0] uart soft reset */
+			uint32_t clk_gate_bypass: 1; /**< bit[1] bypass uart clock gate */
+			uint32_t reserved:       30; /**< bit[2:31] reserved */
+		};
+		uint32_t v;
+	} global_ctrl;
+
+	/* REG_0x03 */
+	uint32_t dev_status;
+
+	/* REG_0x04 */
 	union {
 		struct {
 			uint32_t en:       1; /**< bit[0] true random generator enable */
@@ -27,6 +47,7 @@ typedef volatile struct {
 		uint32_t v;
 	} ctrl;
 
+	/* REG_0x05 */
 	uint32_t data; /**< bit[0:31] true random data */
 } trng_hw_t;
 

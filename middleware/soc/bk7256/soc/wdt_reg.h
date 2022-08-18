@@ -18,7 +18,11 @@
 extern "C" {
 #endif
 
-#define WDT_R_BASE                  (SOC_WDT_REG_BASE) //AON_WDT
+#if CONFIG_NMI_WDT_EN
+#define WDT_R_BASE                  (SOC_WDT_REG_BASE) //NMI_WDT
+#else
+#define WDT_R_BASE                  (SOC_AON_WDT_REG_BASE) //AON_WDT
+#endif
 
 #define WDT_R_CTRL                  (WDT_R_BASE)
 

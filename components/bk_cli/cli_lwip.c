@@ -11,6 +11,50 @@
 #include <lwip/sockets.h>
 #include <stdlib.h>
 
+void cli_lwip_pbuf_info(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+#if PBUF_LIFETIME_DBG
+    if ((argc == 2) && (os_strcmp(argv[1], "-r") == 0))
+    {
+      CLI_LOGI("reset lwip pbuf count\n");
+
+      lwip_stats.pbuf_info.all_cnt = 0;
+      lwip_stats.pbuf_info.prep_cnt = 0;
+      lwip_stats.pbuf_info.mac_prep_cnt = 0;
+      lwip_stats.pbuf_info.send_cnt = 0;
+      lwip_stats.pbuf_info.cfm_cnt = 0;
+      lwip_stats.pbuf_info.cfm_free_cnt = 0;
+    }
+    else if((os_strcmp(argv[1], "log") == 0))
+    {
+      CLI_LOGI("pbuf debug\n");
+      pbuf_set_log(os_strtoul(argv[2], NULL, 10));
+    }
+    SYS_ARCH_DECL_PROTECT(old_level);
+    SYS_ARCH_PROTECT(old_level);
+
+    os_printf("pbuf all %d prep %d mac %d send %d cfm %d free %d\r\n",
+              lwip_stats.pbuf_info.all_cnt,
+              lwip_stats.pbuf_info.prep_cnt,
+              lwip_stats.pbuf_info.mac_prep_cnt,
+              lwip_stats.pbuf_info.send_cnt,
+              lwip_stats.pbuf_info.cfm_cnt,
+              lwip_stats.pbuf_info.cfm_free_cnt);
+
+    if(lwip_stats.pbuf_info.all_cnt != 0)
+    {
+        os_printf("pbuf prep %d mac %d send %d cfm %d free %d\r\n",
+                  (lwip_stats.pbuf_info.prep_cnt*100/lwip_stats.pbuf_info.all_cnt),
+                  (lwip_stats.pbuf_info.mac_prep_cnt*100/lwip_stats.pbuf_info.all_cnt),
+                  (lwip_stats.pbuf_info.send_cnt*100/lwip_stats.pbuf_info.all_cnt),
+                  (lwip_stats.pbuf_info.cfm_cnt*100/lwip_stats.pbuf_info.all_cnt),
+                  (lwip_stats.pbuf_info.cfm_free_cnt*100/lwip_stats.pbuf_info.all_cnt));
+    }
+
+    SYS_ARCH_UNPROTECT(old_level);
+#endif
+}
+
 void cli_lwip_mem_info(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int i;
@@ -32,6 +76,12 @@ void cli_lwip_mem_info(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 
 		lwip_stats.mem.max = 0;
 		lwip_stats.mem.err = 0;
+#if (MEM_TRX_DYNAMIC_EN)
+		lwip_stats.mem.tx_max = 0;
+		lwip_stats.mem.rx_max = 0;
+		lwip_stats.mem.tx_err = 0;
+		lwip_stats.mem.rx_err = 0;
+#endif
 	}
 
 	SYS_ARCH_DECL_PROTECT(old_level);
@@ -60,6 +110,18 @@ void cli_lwip_mem_info(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 			lwip_stats.mem.max,
 			lwip_stats.mem.err);
 
+#if (MEM_TRX_DYNAMIC_EN)
+	os_printf("tx avail %d, rx avail %d, tx used %d, rx used %d, tx max %d, rx max %d, tx err %d, rx err %d\r\n",
+			MEM_MAX_TX_SIZE,
+			MEM_MAX_RX_SIZE,
+			lwip_stats.mem.tx_used,
+			lwip_stats.mem.rx_used,
+			lwip_stats.mem.tx_max,
+			lwip_stats.mem.rx_max,
+			lwip_stats.mem.tx_err,
+			lwip_stats.mem.rx_err);
+#endif
+
 	SYS_ARCH_UNPROTECT(old_level);
 }
 void cli_lwip_stats(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -86,6 +148,7 @@ static const struct cli_command s_lwip_commands[] = {
 #if CONFIG_LWIP
 	{"lwip_mem", "print lwip memory information", cli_lwip_mem_info},
 	{"lwip_stats", "print lwip protocal statistics", cli_lwip_stats},
+	{"lwip_pbuf", "print lwip pbuf information", cli_lwip_pbuf_info},
 #endif
 };
 

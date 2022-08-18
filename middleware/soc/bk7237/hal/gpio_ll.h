@@ -381,7 +381,7 @@ static inline void gpio_ll_switch_to_low_power_status(void)
 	{
 		val = REG_READ(GPIO_LL_REG_BASE+i*4);
 		val &= 0xffff0000;
-		val |= 0x000c;
+		val |= 0x0008;
 		REG_WRITE((GPIO_LL_REG_BASE+i*4), val);
 	}
 }

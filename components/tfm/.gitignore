@@ -1,1 +1,7 @@
 cmake_build
+build
+si
+tfm/tfm.si4project/
+*.si4project
+tags
+

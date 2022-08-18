@@ -27,12 +27,6 @@ extern "C" {
 #define addJPEG_ycount                                          (addJPEG_Reg0x9 & 0xff)
 #define WORK_AREA_SIZE 4096
 
-//volatile uint32_t* rd_buff = (uint32_t *)0x30020000;//0x60000000; //lea add
-
-//Test Handle
-
-
-
 #define	JD_SZBUF		1024	/* Size of stream input buffer */
 #define JD_FORMAT		0	/* Output pixel format 0:RGB888 (3 BYTE/pix), 1:RGB565 (1 WORD/pix) */
 #define	JD_USE_SCALE	1	/* Use descaling feature for output */
@@ -44,26 +38,10 @@ extern "C" {
 extern "C" {
 #endif
 
-/* Error code */
-typedef enum {
-	JDR_OK = 0,	/* 0: Succeeded */
-	JDR_INTR,	/* 1: Interrupted by output function */
-	JDR_INP,	/* 2: Device error or wrong termination of input stream */
-	JDR_MEM1,	/* 3: Insufficient memory pool for the image */
-	JDR_MEM2,	/* 4: Insufficient stream input buffer */
-	JDR_PAR,	/* 5: Parameter error */
-	JDR_FMT1,	/* 6: Data format error (may be damaged data) */
-	JDR_FMT2,	/* 7: Right format but not supported */
-	JDR_FMT3	/* 8: Not supported JPEG standard */
-} JRESULT;
-
-
-
 /* Rectangular structure */
 typedef struct {
 	uint16_t left, right, top, bottom;
 } JRECT;
-
 
 
 /* Decompressor object structure */
@@ -95,24 +73,17 @@ struct JDEC {
 
 //static 	JDEC jdec; /* Decompression object */
 
+int jpg_dec_config(uint16_t xpixel, uint16_t ypixel,unsigned char *input_buf, unsigned char * output_buf);
+void jpeg_dec_block_int_en(bool auto_int_en);
+void jpeg_dec_auto_frame_end_int_en(bool auto_int_en);
+void jpeg_dec_auto_line_num_int_en(bool line_int_en, uint16_t line_num);
 
-/* TJpgDec API functions */
-JRESULT jd_prepare (JDEC*, uint16_t(*)(JDEC*,uint8_t*,uint16_t), void*, uint16_t, void*);
-
-/* JDEC :Initialized decompression object */
-JRESULT jd_decomp (JDEC* jd, uint8_t size, uint32_t* dec_src_addr, uint32_t* dec_dest_addr);
-
-
-void hal_jpeg_dec_start(void);
-
-void jpegenc_en(void);
-
-void jpegenc_off(void);
-
-void JpegdecInit(JDEC* jdec,  uint32_t * dec_src_addr);
+JRESULT JpegdecInit(void);
+JRESULT jd_decomp(void);
 
 int jpg_decoder_init(void);
 
+int jpg_decoder_deinit(void);
 
 #ifdef __cplusplus
 }

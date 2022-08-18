@@ -18,9 +18,9 @@
 extern "C" {
 #endif
 
-#define I2C_R_BASE(_id)          (SOC_I2C0_REG_BASE + _id * 0x300)
+#define I2C_R_BASE(_id)          (SOC_I2C0_REG_BASE + (_id * 0x10000))
 
-#define I2C_R_CONFIG(_id)        (I2C_R_BASE(_id) + 4 * 0x0)
+#define I2C_R_CONFIG(_id)        (I2C_R_BASE(_id) + 4 * 0x4)
 
 #define I2C_F_FREQ_DIV           (BIT(6))
 #define I2C_F_FREQ_DIV_M         0x3FF
@@ -32,7 +32,30 @@ extern "C" {
 #define I2C_F_SLAVE_ADDR_V       0x3FF
 #define I2C_F_SLAVE_ADDR_S       16
 
-#define I2C1_R_INT_STAUS         (I2C_R_BASE(1) + 4 * 0x1)
+#define I2C_R_INT_STAUS(_id)     (I2C_R_BASE(_id) + 4 * 0x5)
+
+#define I2C_F_SM_INT             (BIT(0))
+#define I2C_F_SM_INT_M           0x1
+#define I2C_F_SM_INT_V           0x1
+#define I2C_F_SM_INT_S           0
+#define I2C_F_INT_MODE           (BIT(6))
+#define I2C_F_INT_MODE_M         0x3
+#define I2C_F_INT_MODE_V         (0x3 << 6)
+#define I2C_F_INT_MODE_S         6
+#define I2C_F_ACK                (BIT(8))
+#define I2C_F_ACK_M              0x1
+#define I2C_F_ACK_V              0x1
+#define I2C_F_ACK_S              8
+#define I2C_F_STOP               (BIT(9))
+#define I2C_F_STOP_M             0x1
+#define I2C_F_STOP_V             0x1
+#define I2C_F_STOP_S             9
+#define I2C_F_START              (BIT(10))
+#define I2C_F_START_M            0x1
+#define I2C_F_START_V            0x1
+#define I2C_F_START_S            10
+
+#define I2C1_R_INT_STAUS         (I2C_R_BASE(1) + 4 * 0x5)
 
 #define I2C1_F_SM_INT            (BIT(0))
 #define I2C1_F_SM_INT_M          0x1
@@ -59,8 +82,7 @@ extern "C" {
 #define I2C1_F_START_V           0x1
 #define I2C1_F_START_S           10
 
-#define I2C0_R_DATA              (I2C_R_BASE(0) + 4 * 0x1)
-#define I2C1_R_DATA              (I2C_R_BASE(1) + 4 * 0x2)
+#define I2C_R_DATA(_id)          (I2C_R_BASE(_id) + 4 * 0x6)
 
 #define I2C_F_DATA               (BIT(0))
 #define I2C_F_DATA_M             0xFF

@@ -15,17 +15,14 @@
 #pragma once
 
 #include <soc/soc.h>
-#include "dma2d_ll.h"
+#include "dma2d_ll_macro_def.h"
 #include <driver/hal/hal_dma2d_types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct
-{
-	dma2d_hw_t *hw;
-} dma2d_hal_t;
+
 
 /**
   * @brief DMA2D CLUT Structure definition

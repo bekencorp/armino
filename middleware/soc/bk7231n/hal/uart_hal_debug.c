@@ -21,7 +21,7 @@
 
 void uart_struct_dump(uart_id_t id)
 {
-	uart_hw_t *hw = (uart_hw_t *)UART_LL_REG_BASE(0);
+	uart_hw_t *hw = (uart_hw_t *)UART_LL_REG_BASE(id);
 	SOC_LOGI("base=%x\r\n", (uint32_t)hw);
 
 	SOC_LOGI("uart(%x)\n", id);

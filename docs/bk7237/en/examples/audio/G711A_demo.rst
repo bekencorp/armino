@@ -1,0 +1,1 @@
+.. include:: ../../../zh_CN/examples/audio/G711A_demo.rst

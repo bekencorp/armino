@@ -16,7 +16,7 @@
 #include <os/os.h>
 #include <stdio.h>
 #include <components/uvc_camera.h>
-#include <components/uvc_camera_types.h>
+#include <driver/uvc_camera_types.h>
 #include <os/mem.h>
 #include "bk_usb.h"
 #include "bk_drv_model.h"
@@ -86,7 +86,7 @@ static void uvc_process_data_packet(void *curptr, uint32_t newlen, uint8_t is_eo
 			uvc_intf.frame_id = 0;
 	} else {
 			if ((data[0] == 0xff) && (data[1] == 0xd8)) { // strat frame
-				os_printf("uvc start, %02x, %02x\r\n", data[0], data[1]);
+				//os_printf("uvc start, %02x, %02x\r\n", data[0], data[1]);
 				uvc_intf.frame_len = 0;
 				if (uvc_intf.mem_status == UVC_MEM_IDLE) {
 					s_uvc_save = 1;
@@ -165,7 +165,7 @@ static void uvc_intfer_config_desc()
 
 #if CONFIG_GENERAL_DMA
 	uvc_intf.dma_rx_handler = uvc_dma_rx_done_handler;
-	uvc_intf.dma_channel = bk_dma_alloc(DMA_DEV_DTCM);
+	uvc_intf.dma_channel = bk_dma_alloc(DMA_DEV_USB);
 	if ((uvc_intf.dma_channel < DMA_ID_0) || (uvc_intf.dma_channel >= DMA_ID_MAX)) {
 		os_printf("malloc dma fail \r\n");
 		return;
@@ -194,7 +194,6 @@ static void uvc_dma_config(void)
 	BK_LOG_ON_ERR(bk_dma_set_transfer_len(uvc_intf.dma_channel, uvc_intf.node_len));
 	BK_LOG_ON_ERR(bk_dma_register_isr(uvc_intf.dma_channel, NULL, uvc_intf.dma_rx_handler));
 	BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(uvc_intf.dma_channel));
-	BK_LOG_ON_ERR(bk_dma_enable_half_finish_interrupt(uvc_intf.dma_channel));
 #endif
 }
 
@@ -236,10 +235,10 @@ static void uvc_get_packet_rx_vs_callback(uint8_t *arg, uint32_t count)
 	//		return;
 }
 
-static void uvc_capture_frame(uint32_t data)
+static void uvc_capture_frame(uint32_t length)
 {
 	if (uvc_intf.frame_capture_handler != NULL) {
-		uvc_intf.frame_capture_handler(data);
+		uvc_intf.frame_capture_handler((void *)UVC_DATA_PSRAM, length);
 	} else {
 		uvc_intf.mem_status = UVC_MEM_IDLE;
 	}
@@ -336,7 +335,7 @@ static bk_err_t uvc_camera_deinit(void)
 		//return status;
 	}
 
-	status = bk_dma_free(DMA_DEV_DTCM, uvc_intf.dma_channel);
+	status = bk_dma_free(DMA_DEV_USB, uvc_intf.dma_channel);
 	if (status != BK_OK) {
 		os_printf("uvc free dma error!\r\n");
 		//status = kOptionErr;
@@ -397,10 +396,10 @@ static void uvc_set_stop(uint32_t data)
 	uvc_intf.rx_read_len = 0;
 }
 
-static void uvc_process_eof(uint32_t data)
+static void uvc_process_eof(uint32_t length)
 {
 	if (uvc_intf.end_frame_handler)
-		uvc_intf.end_frame_handler(data);
+		uvc_intf.end_frame_handler((void *)UVC_DATA_PSRAM, length);
 	else
 		uvc_intf.mem_status = UVC_MEM_IDLE;
 }
@@ -477,43 +476,57 @@ bk_err_t bk_uvc_register_frame_capture_callback(void *cb)
 	return BK_OK;
 }
 
-bk_err_t bk_uvc_set_ppi_fps(uint16_t ppi, uint8_t fps)
+bk_err_t bk_uvc_get_ppi_fps(uvc_camera_device_t *param, uint16_t count)
+{
+	if (param == NULL)
+		return BK_FAIL;
+	bk_uvc_get_resolution_framerate((void *)param, count);
+
+	return BK_OK;
+}
+
+bk_err_t bk_uvc_set_ppi_fps(uint32_t image_resolution, uint8_t fps)
 {
 	int status = kNoErr;
 	uint32_t param = 0;
+	uint32_t width, height;
+	uint32_t resolution_id = UVC_FRAME_640_480;
 
-	switch (ppi) {
-		case 120:
-			ppi = UVC_FRAME_160_120;
-			break;
-		case 144:
-			ppi = UVC_FRAME_176_144;
-			break;
-		case 240:
-			ppi = UVC_FRAME_320_240;
-			break;
-		case 288:
-			ppi = UVC_FRAME_352_288;
-			break;
-		case 360:
-			ppi = UVC_FRAME_640_360;
-			break;
-		case 480:
-			ppi = UVC_FRAME_640_480;
-			break;
-		case 540:
-			ppi = UVC_FRAME_960_540;
-			break;
-		case 600:
-			ppi = UVC_FRAME_800_600;
-			break;
-		case 720:
-			ppi = UVC_FRAME_1280_720;
-			break;
-		default:
-			os_printf("Set PPI unknow: %d\r\n", ppi);
-			status = kParamErr;
-			return status;
+	width = (image_resolution >> 16) & 0xFFFF;
+	height = image_resolution & 0xFFFF;
+
+	if ((width == 160) && (height == 120)) {
+		resolution_id = UVC_FRAME_160_120;
+	} else if ((width == 176) && (height == 144)) {
+		resolution_id = UVC_FRAME_176_144;
+	} else if ((width == 320) && (height == 240)) {
+		resolution_id = UVC_FRAME_320_240;
+	} else if ((width == 352) && (height == 288)) {
+		resolution_id = UVC_FRAME_352_288;
+	} else if ((width == 480) && (height == 320)) {
+		resolution_id = UVC_FRAME_480_320;
+	} else if ((width == 480) && (height == 800)) {
+		resolution_id = UVC_FRAME_480_800;
+	} else if ((width == 640) && (height == 320)) {
+		resolution_id = UVC_FRAME_640_320;
+	} else if ((width == 640) && (height == 360)) {
+		resolution_id = UVC_FRAME_640_360;
+	} else if ((width == 640) && (height == 480)) {
+		resolution_id = UVC_FRAME_640_480;
+	} else if ((width == 800) && (height == 400)) {
+		resolution_id = UVC_FRAME_800_400;
+	} else if ((width == 800) && (height == 480)) {
+		resolution_id = UVC_FRAME_800_480;
+	} else if ((width == 800) && (height == 600)) {
+		resolution_id = UVC_FRAME_800_600;
+	} else if ((width == 960) && (height == 540)) {
+		resolution_id = UVC_FRAME_960_540;
+	} else if ((width == 1280) && (height == 720)) {
+		resolution_id = UVC_FRAME_1280_720;
+	} else {
+		os_printf("Not find this resolution, use default\r\n");
+		status = kParamErr;
+		return status;
 	}
 
 	if (fps < FPS_5 || fps > FPS_30) {
@@ -522,7 +535,7 @@ bk_err_t bk_uvc_set_ppi_fps(uint16_t ppi, uint8_t fps)
 		return status;
 	}
 
-	param |= (ppi << 16);//bit[31-16]:ppi
+	param |= (resolution_id << 16);//bit[31-16]:ppi
 	param |= fps; // bit[15-0]:fps
 
 	status = uvc_send_msg(UVC_SET_PARAM, param);
@@ -567,7 +580,7 @@ bk_err_t bk_uvc_init(void)
 								 4,
 								 "uvc_init",
 								 (beken_thread_function_t)uvc_process_main,
-								 2 * 1024,
+								 4 * 1024,
 								 (beken_thread_arg_t)0);
 
 		if (ret != kNoErr) {

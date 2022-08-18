@@ -120,6 +120,7 @@
    ------------------------------------
 */
 
+#define MEM_TRX_DYNAMIC_EN          1
 /**
  * MEM_ALIGNMENT: should be set to the alignment of the CPU
  *    4 byte alignment -> #define MEM_ALIGNMENT 4
@@ -152,11 +153,17 @@
  * MEM_SIZE: the size of the heap memory. If the application will send
  * a lot of data that needs to be copied, this should be set high.
  */
-#if (CONFIG_LWIP_MEM_REDUCE)
-#define MEM_SIZE (16*1024)
+#if (MEM_TRX_DYNAMIC_EN)
+#define MEM_SIZE (60*1024)
+#define MEM_MAX_TX_SIZE (MEM_SIZE*5)/6
+#define MEM_MAX_RX_SIZE (MEM_SIZE*3)/4
 #else
+#if (CONFIG_LWIP_MEM_REDUCE)
 #define MEM_SIZE (32*1024)
-#endif
+#else
+#define MEM_SIZE (48*1024)
+#endif //CONFIG_LWIP_MEM_REDUCE
+#endif //MEM_TRX_DYNAMIC_EN
 
 
 /*
@@ -203,9 +210,11 @@
  * MEMP_NUM_NETBUF: the number of struct netbufs.
  * (only needed if you use the sequential API, like api_lib.c)
  */
-
+#if (MEM_TRX_DYNAMIC_EN)
+#define MEMP_NUM_NETBUF                 32
+#else
 #define MEMP_NUM_NETBUF                 16
-
+#endif
 /**
  * MEMP_NUM_NETCONN: the number of struct netconns.
  * (only needed if you use the sequential API, like api_lib.c)
@@ -222,8 +231,8 @@
 /**
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
-#if (CONFIG_LWIP_MEM_REDUCE)
-#define PBUF_POOL_SIZE                  20
+#if (MEM_TRX_DYNAMIC_EN)
+#define PBUF_POOL_SIZE                  3
 #else
 #define PBUF_POOL_SIZE                  20
 #endif

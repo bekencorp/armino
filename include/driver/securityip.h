@@ -44,7 +44,7 @@ extern "C" {
  *    - BK_ERR_VAULT_DRIVER_INIT_FAIL: vault driver init failed
  *    - others: other errors.
  */
-bk_err_t bk_vault_driver_init(void);
+bk_err_t bk_securityip_driver_init(void);
 
 /**
  * @brief     Deinit the VAULT driver
@@ -55,7 +55,37 @@ bk_err_t bk_vault_driver_init(void);
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-bk_err_t bk_vault_driver_deinit(void);
+bk_err_t bk_securityip_driver_deinit(void);
+
+/**
+ * @brief    trng default config
+ *
+ *  This function set the default TRNG configuartion and actives the TRNG.
+ *
+ * @return
+ *    - BK_OK: succeed.
+ *    - BK_FAIL:  fail.
+ */
+bk_err_t bk_securityip_trng_def_cfg(void);
+
+
+/**
+ * @brief      Generate a TRNG number
+ *
+ *  This function generates a number of bytes (random number/data)  into the buffer at Data_p.
+ *
+ * @param [in] DataSize
+ *     Number of random data bytes.
+ *     Note: DataSize <= 65535.
+ *
+ * @param [in,out] RandNum_p
+ *     Pointer to buffer in which random data will be returned.
+ *
+ * @return
+ *    - BK_OK: succeed.
+ *    - BK_FAIL:  fail.
+ */
+bk_err_t bk_securityip_get_trng(uint32_t size, uint8_t * RandNum_p);
 
 #ifdef __cplusplus
 }

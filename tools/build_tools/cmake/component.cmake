@@ -127,7 +127,7 @@ function(__component_loop_sub_dirs var component_dir)
 
     if (EXISTS ${component_dir}/CMakeLists.txt)
         execute_process(COMMAND
-            grep -o "^armino_component_register_call_subdirs" ${component_dir}/CMakeLists.txt
+            grep -o "armino_component_register_call_subdirs" ${component_dir}/CMakeLists.txt
             OUTPUT_VARIABLE ouput_strings
             RESULT_VARIABLE result
         )
@@ -207,6 +207,28 @@ function(__component_add component_dir prefix)
         endif()
         armino_build_set_property(__COMPONENT_TARGETS ${component_target} APPEND)
     else()
+        if(EXISTS "${abs_dir}/../CMakeLists.txt")
+            execute_process(COMMAND
+                grep -o "armino_component_register_call_subdirs" ${abs_dir}/../CMakeLists.txt
+                OUTPUT_VARIABLE ouput_strings
+                RESULT_VARIABLE result
+            )
+            if ("${ouput_strings}" MATCHES "armino_component_register_call_subdirs")
+                execute_process(COMMAND
+                    grep -o "^if (.*)" ${abs_dir}/../CMakeLists.txt
+                    OUTPUT_VARIABLE ouput_strings
+                    RESULT_VARIABLE result
+                )
+                if (NOT "${ouput_strings}" STREQUAL "")
+                    string(LENGTH ${ouput_strings} ouput_len)
+                    math(EXPR ouput_len "${ouput_len}-6")
+                    string(SUBSTRING ${ouput_strings} 4 ${ouput_len} ouput_substr)
+                    if (NOT (${ouput_substr}))
+                        return()
+                    endif()
+                endif()
+            endif()
+        endif()
         __component_get_property(dir ${component_target} COMPONENT_DIR)
         __component_set_property(${component_target} COMPONENT_OVERRIDEN_DIR ${dir})
     endif()
@@ -254,6 +276,7 @@ function(__component_get_requirements)
     set(component_properties_file ${build_dir}/component_properties.temp.cmake)
     set(component_requires_file ${build_dir}/component_requires.temp.cmake)
 
+    __project_reload()
     __build_write_properties(${build_properties_file})
     __component_write_properties(${component_properties_file})
 
@@ -392,7 +415,17 @@ macro(__component_set_all_dependencies)
         __component_set_dependencies("${reqs}" PUBLIC)
 
         __component_get_property(priv_reqs ${component_target} __PRIV_REQUIRES)
+
+        #ONLY USED PRIV_REQUIRES, __PRIV_REQUIRES is not true
+        __component_get_property(priv_reqs_1 ${component_target} PRIV_REQUIRES)
+        __component_set_property(${component_target} __PRIV_REQUIRES "")
+        foreach(req ${priv_reqs_1})
+            __component_get_target(priv_reqs_0 ${req})
+            __component_set_property(${component_target} __PRIV_REQUIRES ${priv_reqs_0} APPEND)
+        endforeach()
+        __component_get_property(priv_reqs ${component_target} __PRIV_REQUIRES)
         __component_set_dependencies("${priv_reqs}" PRIVATE)
+
     else()
         __component_get_property(reqs ${component_target} __REQUIRES)
         __component_set_dependencies("${reqs}" INTERFACE)

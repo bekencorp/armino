@@ -7,5 +7,5 @@ menu "HOME SYSTEM"
 	config COMMON_IO
 		depends on FREERTOS_V10
 		bool "Amazon Common IO"
-		default y
+		default n
 endmenu

@@ -50,6 +50,11 @@ typedef enum {
 	TIMER_ID_MAX   /**< TIMER id max */
 } timer_id_t;
 
+typedef enum{
+	TIMER_UNIT_MS = 0, /**< TIMER unit type is ms */
+    TIMER_UNIT_US      /**< TIMER unit type is us */
+} timer_value_unit_t;
+
 /**
  * @}
  */

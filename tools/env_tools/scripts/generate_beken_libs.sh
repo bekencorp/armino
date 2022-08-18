@@ -54,7 +54,7 @@ case $1 in
 		modify_config ${SYS_CFG_FILE} CONFIG_BT 1
 		make_target="ip usb sensor bt"
 		;;
-	bk7236)
+	bk7236a)
 		modify_config ${SYS_CFG_FILE} CONFIG_BLE_5_X 1
 		modify_config ${SYS_CFG_FILE} CONFIG_BLE_4_2 0
 		modify_config ${SYS_CFG_FILE} CONFIG_WIFI_SENSOR 1

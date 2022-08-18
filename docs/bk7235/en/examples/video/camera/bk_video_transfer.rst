@@ -1,0 +1,1 @@
+.. include:: ../../../../zh_CN/examples/video/camera/bk_video_transfer.rst

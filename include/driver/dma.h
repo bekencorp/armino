@@ -85,7 +85,7 @@ bk_err_t bk_dma_free(u16 user_id, dma_id_t id);
  * @return DMA channel user_id.
  *     -  u32:  high u16 is the CPU_ID, low 16 bits is the applicant_id.
  */
-u32 bk_dma_user(dma_id_t id);
+uint32_t bk_dma_user(dma_id_t id);
 
 /**
  * @brief     Init the DMA channel
@@ -387,6 +387,17 @@ bk_err_t bk_dma_disable_dest_addr_loop(dma_id_t id);
  * @return DMA transfer remain length
  */
 uint32_t bk_dma_get_remain_len(dma_id_t id);
+
+/**
+ * @brief     Gets the current DMA channel working status
+ *
+ * @param id DMA channel
+ *
+ * @return
+ *    - 0: Channel idle state
+ *    - others: Channel busy state.
+ */
+uint32_t bk_dma_get_enable_status(dma_id_t id);
 
 #ifdef __cplusplus
 }

@@ -546,6 +546,7 @@ void cli_i2s_master_mic_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int a
 		i2s_config.txint_level = I2S_TXINT_LEVEL_1;
 		i2s_config.rxint_level = I2S_RXINT_LEVEL_24;
 
+		adc_config.mic_config = AUD_MIC_ALL_ENABLE;
 		adc_config.samp_rate = AUD_ADC_SAMP_RATE_8K;
 		adc_config.adc_enable = AUD_ADC_DISABLE;
 		adc_config.line_enable = AUD_ADC_LINE_DISABLE;

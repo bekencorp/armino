@@ -15,18 +15,22 @@
 #include <common/bk_include.h>
 #include "cli.h"
 
-#if (!CONFIG_USB_UVC)
+#if (!CONFIG_USB_UVC && !CONFIG_SLAVE_CORE)
 extern void uvc_process_cpu0(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-#else
+#endif
+
+#if (CONFIG_USB_UVC && CONFIG_SLAVE_CORE)
 extern void uvc_process_cpu1(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
 
 #define UVC_CMD_CNT (sizeof(s_uvc_commands) / sizeof(struct cli_command))
 static const struct cli_command s_uvc_commands[] = {
 
-#if (!CONFIG_USB_UVC)
+#if (!CONFIG_USB_UVC && !CONFIG_SLAVE_CORE)
 	{"uvc", "uvc {}", uvc_process_cpu0},
-#else
+#endif
+
+#if (CONFIG_USB_UVC && CONFIG_SLAVE_CORE)
 	{"uvc", "cpu1 uvc {}", uvc_process_cpu1},
 #endif
 };

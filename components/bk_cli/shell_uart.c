@@ -87,6 +87,7 @@ shell_dev_t     shell_uart =
 		.dev_ext = &uart1_ext
 	};
 
+
 static shell_uart_ext_t uart3_ext =
 	{
 		.uart_id = UART_ID_2
@@ -480,6 +481,13 @@ static bool_t shell_uart_ctrl(shell_dev_t * shell_dev, u8 cmd, void *param)
 			shell_uart_flush(uart_ext);
 			break;
 
+		case SHELL_IO_CTRL_SET_UART_PORT:
+			if(param == NULL) {
+				return bFALSE;
+			}
+			u8 uart_port = *(u8 *)param;
+			uart_ext->uart_id = uart_port;
+			break;
 		default:
 			return bFALSE;
 			break;
@@ -506,5 +514,4 @@ static bool_t shell_uart_close(shell_dev_t * shell_dev)
 
 	return bTRUE;
 }
-
 

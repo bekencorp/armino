@@ -20,53 +20,29 @@ extern "C" {
 
 #include <common/sys_config.h>
 
-#define BOOT_COLOR_UNUSED                 0x5A5A5A5A      //Pattern to fill UNUSED stack
-#define BOOT_COLOR_SVC                    0x5A5A5A5A      //Pattern to fill SVC stack
-#define BOOT_COLOR_IRQ                    0x5A5A5A5A      //Pattern to fill IRQ stack
-#define BOOT_COLOR_FIQ                    0x5A5A5A5A      //Pattern to fill FIQ stack
-#define BOOT_COLOR_SYS                    0x5A5A5A5A      //Pattern to fill SYS stack
 
-/* Backup [R8~R14], CPSR and SPSR, totally 9 registers */
-#define MCU_REG_BACKUP_NUM           9
+#define  CPU_BOOT_TIME_ADDR   (0x20007FF0)
 
-/* From bottom to top, the registers are stored as:
- * bottom => CPSR, SPSR, R8, R9, R10, R11, R12, R13, R14 => top
- * SP(R13) is in offset 7
- * */
-#define MCU_REG_BACKUP_SP_OFFSET     (7 << 2)
-#define MCU_REG_BACKUP_ADDR_BASE     0x400020
-#define MCU_REG_BACKUP_STACK_LEN     (MCU_REG_BACKUP_NUM << 2)
+typedef enum {
+    CPU_BOOT_TIME = 0x0,
+    CPU_INIT_MEM_TIME = 0x1,
+    CPU_MAIN_ENTRY_TIME = 0x2,
+    CPU_INIT_DRIVER_TIME = 0x3,
+    CPU_APP_ENTRY_TIME = 0x4,
+    CPU_START_SCHE_TIME = 0x5,
+    CPU_START_WIFI_INIT_TIME = 0x6,
+    CPU_FINISH_WIFI_INIT_TIME = 0x7,
+    CPU_APP_FINISH_TIME = 0x8,
+    CPU_MIAN_FINISH_TIME = 0x9,
+    CPU_START_CONNECT_TIME = 0xa,
+    CPU_CONNECTED_TIME = 0xb,
+    CPU_SAVED_TIME_MAX = 0xc
+} CPU_BOOT_TIME_POINT;
 
-#define MCU_REG_BACKUP_BOTTOM_SYS    MCU_REG_BACKUP_ADDR_BASE
-#define MCU_REG_BACKUP_TOP_SYS       (MCU_REG_BACKUP_BOTTOM_SYS + MCU_REG_BACKUP_STACK_LEN)
-#define MCU_REG_BACKUP_SP_SYS        (MCU_REG_BACKUP_BOTTOM_SYS + MCU_REG_BACKUP_SP_OFFSET)
+void save_mtime_point(uint32_t time_point);
+void show_saved_mtime_info(void);
+void show_current_time_point(const char *info);
 
-#define MCU_REG_BACKUP_BOTTOM_IRQ    MCU_REG_BACKUP_TOP_SYS
-#define MCU_REG_BACKUP_TOP_IRQ       (MCU_REG_BACKUP_BOTTOM_IRQ + MCU_REG_BACKUP_STACK_LEN)
-#define MCU_REG_BACKUP_SP_IRQ        (MCU_REG_BACKUP_BOTTOM_IRQ + MCU_REG_BACKUP_SP_OFFSET)
-
-#define MCU_REG_BACKUP_BOTTOM_FIQ    MCU_REG_BACKUP_TOP_IRQ
-#define MCU_REG_BACKUP_TOP_FIQ       (MCU_REG_BACKUP_BOTTOM_FIQ + MCU_REG_BACKUP_STACK_LEN)
-#define MCU_REG_BACKUP_SP_FIQ        (MCU_REG_BACKUP_BOTTOM_FIQ + MCU_REG_BACKUP_SP_OFFSET)
-
-#define MCU_REG_BACKUP_BOTTOM_ABT    MCU_REG_BACKUP_TOP_FIQ
-#define MCU_REG_BACKUP_TOP_ABT       (MCU_REG_BACKUP_BOTTOM_ABT + MCU_REG_BACKUP_STACK_LEN)
-#define MCU_REG_BACKUP_SP_ABT        (MCU_REG_BACKUP_BOTTOM_ABT + MCU_REG_BACKUP_SP_OFFSET)
-
-#define MCU_REG_BACKUP_BOTTOM_UND    MCU_REG_BACKUP_TOP_ABT
-#define MCU_REG_BACKUP_TOP_UND       (MCU_REG_BACKUP_BOTTOM_UND + MCU_REG_BACKUP_STACK_LEN)
-#define MCU_REG_BACKUP_SP_UND        (MCU_REG_BACKUP_BOTTOM_UND + MCU_REG_BACKUP_SP_OFFSET)
-
-#define MCU_REG_BACKUP_BOTTOM_SVC    MCU_REG_BACKUP_TOP_UND
-#define MCU_REG_BACKUP_TOP_SVC       (MCU_REG_BACKUP_BOTTOM_SVC + MCU_REG_BACKUP_STACK_LEN)
-#define MCU_REG_BACKUP_SP_SVC        (MCU_REG_BACKUP_BOTTOM_SVC + MCU_REG_BACKUP_SP_OFFSET)
-
-#define FIQ_STACK_SIZE               0xFF0
-#define IRQ_STACK_SIZE               0xFF0
-#define SVC_STACK_SIZE               0x3F0
-#define SYS_STACK_SIZE               0x100
-#define UND_STACK_SIZE               0x280
-#define ABT_STACK_SIZE               0x280
 
 #ifdef __cplusplus
 }

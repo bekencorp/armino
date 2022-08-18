@@ -138,7 +138,7 @@ void sdio_cmd_handler(void *buf, UINT32 len)
 	cmd_ptr = (SDIO_DCMD_PTR)buf;
 	reg_cmd_ptr = (SDIO_CMD_PTR)buf;
 
-	//bk_printf("C\n");
+	//BK_LOG_RAW("C\n");
 
 	if (sdio_debug_level) {
 		int pl;
@@ -160,7 +160,7 @@ void sdio_cmd_handler(void *buf, UINT32 len)
 	case OPC_WR_DTCM : {
 #ifdef SDIO_MEM_DEBUG
 		if (sdio_ptr->rx_len) {
-			bk_printf("RnF\n");
+			BK_LOG_RAW("RnF\n");
 			rnf = 1;
 		}
 #endif
@@ -203,7 +203,7 @@ void sdio_cmd_handler(void *buf, UINT32 len)
 	case OPC_RD_DTCM : {
 #ifdef SDIO_MEM_DEBUG
 		if (sdio_ptr->tx_len) {
-			bk_printf("TnF %d\n", sdio_ptr->tx_len);
+			BK_LOG_RAW("TnF %d\n", sdio_ptr->tx_len);
 			tnf = 1;
 		}
 #endif
@@ -219,7 +219,7 @@ void sdio_cmd_handler(void *buf, UINT32 len)
 		count = su_get_node_count(&sdio.txing_list);
 #ifdef SDIO_MEM_DEBUG
 		if (tnf)
-			bk_printf("tc %d\n", count);
+			BK_LOG_RAW("tc %d\n", count);
 #endif
 
 		if (count >= 2)
@@ -242,7 +242,7 @@ void sdio_cmd_handler(void *buf, UINT32 len)
 
 			sdio_ptr->tc_len = 0;
 			sdio_ptr->tx_status = TX_NODE_OK;
-			//bk_printf("l:%d/%d\n", sdio_ptr->tx_len, mem_node_ptr->length);
+			//BK_LOG_RAW("l:%d/%d\n", sdio_ptr->tx_len, mem_node_ptr->length);
 
 			//if (mem_node_ptr->length < sdio_ptr->tx_len)
 			sdio_ptr->tx_len = mem_node_ptr->length;
@@ -308,7 +308,7 @@ void sdio_tx_cb(void)
 	SDIO_NODE_PTR mem_node_ptr;
 	sdio_ptr = &sdio;
 
-	//bk_printf("T\n");
+	//BK_LOG_RAW("T\n");
 	mem_node_ptr = su_pop_node(&sdio.txing_list);
 	if (0 == mem_node_ptr && (TX_NO_NODE == sdio_ptr->tx_status)) {
 #ifdef SDIO_MEM_DEBUG
@@ -365,8 +365,6 @@ void sdio_rx_cb(UINT32 count)
 	UINT8 *buf;
 #endif
 
-	//bk_printf("R\n");
-	//bk_printf("R%d,%d,%d,%d\n", count, sdio_ptr->rc_len, sdio_ptr->rx_len, sdio_ptr->rx_transaction_len);
 	mem_node_ptr = su_pop_node(&sdio.rxing_list);
 	if (!mem_node_ptr && sdio_ptr->rx_status == RX_NO_NODE) {
 		SDIO_WPRT("rx_cb_no_node\n");
@@ -392,7 +390,7 @@ void sdio_rx_cb(UINT32 count)
 	addr = REG_READ(REG_SDMA_ADDR);
 
 	if (unlikely(sdio_ptr->rx_addr != addr)) {
-		bk_printf("rx_addr 0x%x, tx_addr 0x%x, hw addr 0x%x\n",
+		BK_LOG_RAW("rx_addr 0x%x, tx_addr 0x%x, hw addr 0x%x\n",
 				  sdio_ptr->rx_addr, sdio_ptr->tx_addr, addr);
 		BK_ASSERT(0);
 	}
@@ -400,15 +398,15 @@ void sdio_rx_cb(UINT32 count)
 	/* check data */
 	hdr = (struct stm32_frame_hdr *)(mem_node_ptr->addr + sdio_ptr->rc_len + sdio_ptr->rx_transaction_len);
 	if (unlikely(hdr->seq != sdio_ptr->next_seq)) {
-		bk_printf("se %d %d\n", hdr->seq, sdio_ptr->next_seq);
+		BK_LOG_RAW("se %d %d\n", hdr->seq, sdio_ptr->next_seq);
 		return;
 	}
 	if (unlikely(hdr->type != 0xAB)) {
-		bk_printf("te\n");
+		BK_LOG_RAW("te\n");
 		return;
 	}
 	if (unlikely(hdr->len != sdio_ptr->rx_transaction_len)) {
-		bk_printf("le %d %d\n", hdr->len, sdio_ptr->rx_transaction_len);
+		BK_LOG_RAW("le %d %d\n", hdr->len, sdio_ptr->rx_transaction_len);
 		return;
 	}
 
@@ -421,7 +419,7 @@ void sdio_rx_cb(UINT32 count)
 
 #if 0
 	if (hdr->remain > sdio_ptr->rx_len - sdio_ptr->rc_len) {
-		bk_printf("ex: %d %d\n", hdr->remain > sdio_ptr->rx_len, sdio_ptr->rc_len);
+		BK_LOG_RAW("ex: %d %d\n", hdr->remain > sdio_ptr->rx_len, sdio_ptr->rc_len);
 		return;
 	}
 #endif
@@ -430,7 +428,7 @@ void sdio_rx_cb(UINT32 count)
 #ifdef SDIO_MEM_DEBUG
 		buf = mem_node_ptr->addr + sdio_ptr->rx_len + SDIO_TAIL_LEN + 2;
 		if (os_memcmp(buf, SDIO_MAGIC_TAIL_STR, 6)) {
-			bk_printf("sdma corrupt memory\n");
+			BK_LOG_RAW("sdma corrupt memory\n");
 			BK_ASSERT(0);
 		}
 		os_memcpy(buf, "\xEE\xEE\xEE\xEE", 4);
@@ -606,7 +604,7 @@ UINT32 sdio_write(char *user_buf, UINT32 count, UINT32 op_flag)
 		if (mem_node_ptr) {
 			//strcpy(mem_node_ptr->caller, "sdio_write");
 			os_memcpy(mem_node_ptr->addr, user_buf, count);
-			//bk_printf("%s %d: len %d\n", __func__, __LINE__, mem_node_ptr->length);
+			//BK_LOG_RAW("%s %d: len %d\n", __func__, __LINE__, mem_node_ptr->length);
 			su_push_node(&sdio.tx_dat, mem_node_ptr);
 			sdio_ctrl(SDIO_CMD_SET_TX_VALID, 0);
 

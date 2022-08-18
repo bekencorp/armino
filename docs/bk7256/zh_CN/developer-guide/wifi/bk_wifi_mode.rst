@@ -47,8 +47,7 @@ STA模式的入口函数是 ``cmd_wlan_sta_exec``,代码路径: ``properties\mod
 V2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-BEKEN在V1的基础上,通过定制化客户需求,完成第二版命令的适配.该版在原有基础上,简化了命令使用方式,单一命令实现STA模式连接.代码路径: ``components\bk_cli\cli_wifi.c``
-使用前需使能宏 ``CLI_CFG_WIFI=1``, STA模式使用方式介绍如下:
+BEKEN在V1的基础上,通过定制化客户需求,完成第二版命令的适配.该版在原有基础上,简化了命令使用方式,单一命令实现STA模式连接.代码路径: ``components\bk_cli\cli_wifi.c`` 使用前需使能宏 ``CLI_CFG_WIFI=1``, STA模式使用方式介绍如下:
 ::
      {"scan", "scan [ssid]", cli_wifi_scan_cmd}
      {"sta", "sta ssid [password][bssid][channel]", cli_wifi_sta_cmd}

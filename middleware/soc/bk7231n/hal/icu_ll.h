@@ -912,7 +912,7 @@ static inline uint32 icu_ll_get_dco_div(icu_hw_t *hw)
 
 /* add clk,power end */
 
-#if CONFIG_SOC_BK7236
+#if CONFIG_SOC_BK7236A
 static inline void icu_ll_enable_modem_rc_interrupt(icu_hw_t *hw)
 {
 	hw->int_en.fiq_modem_rc = 1;

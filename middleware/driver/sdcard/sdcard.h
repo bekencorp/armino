@@ -5,6 +5,7 @@
 #include "sdcard_pub.h"
 
 typedef void (*SD_DETECT_FUN)(void);
+typedef void (*sdcard_ps_callback_t)(void);
 
 typedef struct _sdcard_ {
 	UINT32  total_block;
@@ -22,6 +23,9 @@ extern UINT32 sdcard_close(void);
 extern UINT32 sdcard_read(char *user_buf, UINT32 count, UINT32 op_flag);
 extern UINT32 sdcard_write(char *user_buf, UINT32 count, UINT32 op_flag);
 extern UINT32 sdcard_ctrl(UINT32 cmd, void *parm);
+extern void sdcard_register_ps_suspend_callback(sdcard_ps_callback_t ps_suspend_cb);
+extern void sdcard_register_ps_resume_callback(sdcard_ps_callback_t ps_resume_cb);
+
 #endif // CONFIG_SDCARD_HOST
 #endif
 // eof

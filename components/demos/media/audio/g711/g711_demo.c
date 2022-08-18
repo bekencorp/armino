@@ -20,11 +20,17 @@
 #include "ff.h"
 #include "diskio.h"
 
+static void cli_audio_g711_help(void)
+{
+	os_printf("g711_encoder_test {xxx.pcm xxx.pcm} \r\n");
+	os_printf("g711_decoder_test {xxx.pcm xxx.pcm} \r\n");
+}
 
 void cli_g711_encoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	char mic_file_name[] = "1:/mic_data.pcm";
-	char out_encoder_file_name[] = "1:/out_encoder_data.pcm";
+	char mic_file_name[50];
+	char out_encoder_file_name[50];
+
 	FIL file_mic;
 	FIL file_encoder_out;
 	int16_t mic_addr = 0;
@@ -34,12 +40,19 @@ void cli_g711_encoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 	uint32_t encoder_size = 0;
 	uint32_t i = 0;
 
+	if (argc != 3) {
+		cli_audio_g711_help();
+		return;
+	}
+
+	sprintf(mic_file_name, "1:/%s", argv[1]);
 	fr = f_open(&file_mic, mic_file_name, FA_READ);
 	if (fr != FR_OK) {
 		os_printf("open %s fail.\r\n", mic_file_name);
 		return;
 	}
 
+	sprintf(out_encoder_file_name, "1:/%s", argv[2]);
 	fr = f_open(&file_encoder_out, out_encoder_file_name, FA_CREATE_ALWAYS | FA_WRITE);
 	if (fr != FR_OK) {
 		os_printf("open %s fail.\r\n", out_encoder_file_name);
@@ -80,8 +93,9 @@ void cli_g711_encoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 
 void cli_g711_decoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	char encoder_file_name[] = "1:/encoder_mic_data.pcm";
-	char out_decoder_file_name[] = "1:/out_decoder_data.pcm";
+	char encoder_file_name[50];
+	char out_decoder_file_name[50];
+
 	FIL file_encoder_mic;
 	FIL file_decoder_out;
 	int8_t encoder_addr = 0;
@@ -92,12 +106,19 @@ void cli_g711_decoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 	uint32_t i = 0;
 //	int8_t encoder_temp = 0;
 
+	if (argc != 3) {
+		cli_audio_g711_help();
+		return;
+	}
+
+	sprintf(encoder_file_name, "1:/%s", argv[1]);
 	fr = f_open(&file_encoder_mic, encoder_file_name, FA_READ);
 	if (fr != FR_OK) {
 		os_printf("open %s fail.\r\n", encoder_file_name);
 		return;
 	}
 
+	sprintf(out_decoder_file_name, "1:/%s", argv[2]);
 	fr = f_open(&file_decoder_out, out_decoder_file_name, FA_OPEN_APPEND | FA_WRITE);
 	if (fr != FR_OK) {
 		os_printf("open %s fail.\r\n", out_decoder_file_name);

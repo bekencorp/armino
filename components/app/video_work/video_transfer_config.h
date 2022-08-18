@@ -13,7 +13,7 @@
 #error "if use hspi, need open CONFIG_SPIDMA and CONFIG_HSLAVE_SPI"
 #endif
 
-#if ((!CONFIG_SOC_BK7231U) && (!CONFIG_SOC_BK7251) && (!CONFIG_SOC_BK7271) && (!CONFIG_SOC_BK7236) && (!CONFIG_SOC_BK7256XX) && (!CONFIG_SOC_BK7256_CP1))
+#if ((!CONFIG_SOC_BK7231U) && (!CONFIG_SOC_BK7251) && (!CONFIG_SOC_BK7271) && (!CONFIG_SOC_BK7236A) && (!CONFIG_SOC_BK7256XX))
 #if (CONFIG_CAMERA == 1)
 #error "chip not support CONFIG_CAMERA"
 #endif
@@ -73,7 +73,12 @@
 #define CMD_LEN                           8
 #define APP_DEMO_TCP_LISTEN_MAX           1
 
+#if (CONFIG_SOC_BK7237 || CONFIG_SOC_BK7256)
+#define APP_DEMO_EN_VOICE_TRANSFER        1
+#else
 #define APP_DEMO_EN_VOICE_TRANSFER        0
+#endif
+
 #endif  // SUPPORT_TIANZHIHENG_DRONE
 
 #endif  // CONFIG_APP_DEMO_VIDEO_TRANSFER

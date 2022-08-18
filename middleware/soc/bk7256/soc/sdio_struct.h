@@ -177,7 +177,10 @@ typedef volatile struct {
            volatile uint32_t  cmd_s_res_end_int_mask         : 1;  //0xa[10],0:Mask INT,not report to CPU, 1：INT report to CPU,0x0,RW
            volatile uint32_t  dat_s_wr_wai_int_mask          : 1;  //0xa[11],1.Enable slave write data finish INT report to CPU.,0x0,RW
            volatile uint32_t  dat_s_rd_bus_int_mask          : 1;  //0xa[12],1:Enable busy INT report to CPU.,0x0,RW
-           volatile uint32_t  reserved0                      :19;  //0xa[31:13],Reserved,0,R
+           volatile uint32_t  tx_fifo_need_write_mask_cg     : 1;  //0xa[13],sd host fifo memory need write mask for clk gate writing use only
+           volatile uint32_t  write_wait_jump_sel            : 1;  //0xa[14],0:jump to write_busy 1:jump to idle
+           volatile uint32_t  idle_stop_jump_sel             : 1;  //0xa[15],0：rec stop not jump to busy 1:rec stop will jump to busy
+           volatile uint32_t  reserved0                      :16;  //0xa[31:16],Reserved,0,R
         }; 
         uint32_t v; 
     }reg0xa; 
@@ -218,7 +221,11 @@ typedef volatile struct {
            volatile uint32_t  sd_rd_wait_sel                 : 1;  //0xd[23],read data after command ?; Use default value.,0x1,RW
            volatile uint32_t  sd_wr_wait_sel                 : 1;  //0xd[24],write data after command ?; Use default value.,0x0,RW
            volatile uint32_t  clk_rec_sel                    : 1;  //0xd[25],write clock recovery selection; when write data, should be set to 1(always 1,SW not use it),0x0,RW
-           volatile uint32_t  reserved0                      : 6;  //0xd[31:26],Reserved,0,R
+           volatile uint32_t  samp_sel                       : 1;  //0xd[26],sample egde of data 0：neg 1：pos
+           volatile uint32_t  clk_gate_on                    : 1;  //0xd[27],module clockgate on control 1：always on
+           volatile uint32_t  host_wr_blk_en                 : 1;  //0xd[28],new multi-block write method enable
+           volatile uint32_t  host_rd_blk_en                 : 1;  //0xd[29],new multi-block read  method enable
+           volatile uint32_t  reserved0                      : 2;  //0xd[31:30],Reserved,0,R
         }; 
         uint32_t v; 
     }reg0xd; 
@@ -252,7 +259,10 @@ typedef volatile struct {
            volatile uint32_t  dat_s_rd_mul_blk               : 1;  //0x10[1],Host write slave read; Slave:0:Read signle block 1:Read multi-blocks; If one block transfer finish, the sdio slave will stop the bus to transfer data again.Once set this bit to 1(set to 0 and then to 1), slave will release the sdio bus to notify host can transfer next block data.,0x0,RW
            volatile uint32_t  io_cur_sta_reg                 : 2;  //0x10[3:2],io state register reponse to host,0x0,RW
            volatile uint32_t  cmd_52_stop_clr                : 1;  //0x10[4],cmd52 send stop command(cmd_s_rec_wr_dat_0[0]), write 1 clear cmd_s_rec_wr_dat_0; Host send CMD52 with Address-0,Bit[0] = 1 to notify slave stop,slave check this value to stop;clear this bit to start again,0x0,WO
-           volatile uint32_t  reserved0                      :27;  //0x10[31:5],Reserved,0,R
+           volatile uint32_t  cmd_keep_det                   : 1;  //0x10[5],1:keep detecting if last cmd fail 0:not keep detecting
+           volatile uint32_t  reserved0                      : 2;  //0x10[7:6],Reserved,0,R
+           volatile uint32_t  fifo_send_cnt                  : 8;  //0x10[15:8],when set HOST_WR_BLK_EN, tx_fifo cnt = this reg start sending
+           volatile uint32_t  reserved1                      :16;  //0x10[31:16],Reserved,0,R
         }; 
         uint32_t v; 
     }reg0x10; 

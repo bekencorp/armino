@@ -14,8 +14,8 @@
 
 #pragma once
 
+#include "sys_cap.h"
 #include "adc_cap.h"
-#include "aon_pmu_cap.h"
 #include "calendar_cap.h"
 #include "dma_cap.h"
 #include "efuse_cap.h"
@@ -29,3 +29,5 @@
 #include "trng_cap.h"
 #include "uart_cap.h"
 #include "wdt_cap.h"
+#include "aon_rtc_cap.h"
+

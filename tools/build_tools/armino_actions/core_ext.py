@@ -203,7 +203,7 @@ def action_extensions(base_actions, project_path):
 				if armino_project_dir is not None:
 					args.project_dir = armino_project_dir
 				else:
-					args.project_dir = f'{armino_path}/projects/legacy_app'
+					args.project_dir = f'{armino_path}/projects/app'
 
 		args.project_dir = realpath(args.project_dir)
 		if args.build_dir is not None and args.project_dir == realpath(args.build_dir):

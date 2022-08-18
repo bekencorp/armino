@@ -15,7 +15,6 @@
 #include <common/bk_include.h>
 #include "dd_pub.h"
 #include "bk_drv_model.h"
-#include "bk_pm_model.h"
 #include "bk_sys_ctrl.h"
 #include "sys_driver.h"
 #include <driver/int.h>
@@ -73,13 +72,18 @@
 #endif
 
 #if CONFIG_ATE
-#include "bk_api_ate.h"
+#include <components/ate.h>
 #endif
 
 #if CONFIG_USB
 #include "bk_fusb.h"
 #include "bk_usb.h"
 #endif
+
+#if CONFIG_CHIP_SUPPORT
+#include "chip_support.h"
+#endif
+
 
 //TODO only init driver model and necessary drivers
 #if CONFIG_POWER_CLOCK_RF
@@ -125,24 +129,14 @@ void power_clk_rf_init()
    /*cpu0:120m ,matrix:120m*/
    //sys_drv_core_bus_clock_ctrl(HIGH_FREQUECY_CLOCK_MODULE_CPU0, 3,0, HIGH_FREQUECY_CLOCK_MODULE_CPU0_MATRIX,0,0);
    /*cpu0:240m ,matrix:120m*/
-	sys_drv_core_bus_clock_ctrl(HIGH_FREQUECY_CLOCK_MODULE_CPU0, 0,0, HIGH_FREQUECY_CLOCK_MODULE_CPU0_MATRIX,0,0);
-
+	//sys_drv_core_bus_clock_ctrl(HIGH_FREQUECY_CLOCK_MODULE_CPU0, 0,0, HIGH_FREQUECY_CLOCK_MODULE_CPU0_MATRIX,0,0);
+	#if !CONFIG_SLAVE_CORE
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DEFAULT,PM_CPU_FRQ_240M);
+	#endif
    /*5.config the analog*/
    //sys_drv_analog_set(ANALOG_REG0, param);
    //sys_drv_analog_set(ANALOG_REG0, param);
    //sys_drv_analog_set(ANALOG_REG0, param);
-
-   	/*set low power low voltage value */
-	param = sys_drv_analog_get(ANALOG_REG2);
-	param |= (0x1 << 25);
-	sys_drv_analog_set(ANALOG_REG2, param);
-
-	param = 0;
-	param = sys_drv_analog_get(ANALOG_REG3);
-	param &= ~(0x3f << 26);
-	param |= (0x3 << 26);
-	param |= (0x4 << 29);
-	sys_drv_analog_set(ANALOG_REG3, param);
 
 	//config apll
 	//param = 0;
@@ -151,6 +145,16 @@ void power_clk_rf_init()
 	//param |= (0x14 << 5);
 	//sys_drv_analog_set(ANALOG_REG4, param);
 
+	/*set low power low voltage value */
+	param = sys_drv_analog_get(ANALOG_REG2);
+	param |= (0x1 << 25);
+	sys_drv_analog_set(ANALOG_REG2, param);
+
+	param = 0;
+	param = sys_drv_analog_get(ANALOG_REG3);
+	param &= ~(0x7 << 29);
+	param |= (0x4 << 29);
+	sys_drv_analog_set(ANALOG_REG3, param);
 	/*tempreture det enable for VIO*/
 	param = 0;
 	param = sys_drv_analog_get(ANALOG_REG6);
@@ -158,17 +162,6 @@ void power_clk_rf_init()
 	param &= ~(0x1 << SYS_ANA_REG6_EN_SLEEP_POS);
 	sys_drv_analog_set(ANALOG_REG6, param);
 
-	/*select lowpower lpo clk source*/
-	param = 0;
-	param = aon_pmu_drv_reg_get(PMU_REG0x41);
-	//param &= ~0x3; //select clk_DIVD as lpo_src
-	param |= 0x3; //select clk_rosc as lpo_src
-	aon_pmu_drv_reg_set(PMU_REG0x41,param);
-
-	param = 0;
-	param = aon_pmu_drv_reg_get(PMU_REG0);
-	param = 0x1; //memcheck bypass
-	aon_pmu_drv_reg_set(PMU_REG0,param);
 #if 0
 	param = 0;
 	param = aon_pmu_drv_reg_get(PMU_REG3);
@@ -259,9 +252,15 @@ int driver_init(void)
 #endif
 
 	//Important notice!
-	//Before UART is initialized, any call of bk_printf/os_print/BK_LOGx may
+	//Before UART is initialized, any call of BK_LOG_RAW/os_print/BK_LOGx may
 	//cause problems, such as crash etc!
 	bk_uart_driver_init();
+
+#if CONFIG_CHIP_SUPPORT
+	if(!bk_is_chip_supported()) {
+		return BK_FAIL;
+	}
+#endif
 
 	os_show_memory_config_info(); //TODO - remove it after bk_early_printf() is supported.
 	drv_model_init();
@@ -270,19 +269,10 @@ int driver_init(void)
 
 #if CONFIG_FLASH
 	bk_flash_driver_init();
+#if CONFIG_FLASH_ORIGIN_API
 	extern int hal_flash_init();
 	hal_flash_init();
 #endif
-
-#if CONFIG_POWER_CLOCK_RF
-	extern void rf_ps_pm_init(void);
-	rf_ps_pm_init();
-#else
-	#if CONFIG_SLAVE_CORE
-
-	#else
-	dev_pm_init();
-	#endif
 #endif
 
 #if CONFIG_SECURITY
@@ -358,9 +348,9 @@ int driver_init(void)
 #if CONFIG_USB
 	bk_usb_init();
 #if CONFIG_USB_HOST
-	bk_usb_open(0);
+	bk_usb_open(USB_HOST_MODE);
 #else
-	bk_usb_open(1);
+	bk_usb_open(USB_DEVICE_MODE);
 #endif
 #endif
 

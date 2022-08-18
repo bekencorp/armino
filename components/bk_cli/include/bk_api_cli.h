@@ -23,7 +23,7 @@ int bk_cli_init(void);
 #if CONFIG_SHELL_ASYNCLOG
 #include <stdarg.h>
 
-#include "shell_task.h"
+#include "components/shell_task.h"
 
 #endif // #if CONFIG_SHELL_ASYNCLOG
 

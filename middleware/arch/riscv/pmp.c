@@ -15,41 +15,33 @@
 #define MEM_MAPPING_MAX               0xFFFFFFF0
 #define ADDR_MAPPING_MAX              0x80000000
 #define DTCM_END                      0x20008000
-#define SRAM_END                      0x30080000
+#define SRAM_END                      0x38080000
 #define FLASH_END                     0x00400000
 
-/* The width of $pmpaddr0~15 is 32 bits on RV64 netlist to reduce HW gate count */
-/* PMP entry 0 : 0 ~ (_start), no lock, TOR range, no excutable, no writable, readable */
+/* PMP entry 0 : 0 ~ (_start), lock, TOR range, excutable, no writable, readable */
 extern char _start;
 
-/* PMP entry 1(code section) :  (_start) ~ (__etext), no lock, TOR range, no excutable, no writable, readable */
-extern char __etext;
+/* PMP entry 1(code/RO data section) :  (_start) ~ (_data_lmastart), lock, TOR range, excutable, no writable, readable */
+extern char _data_lmastart;
 
-/* PMP entry 2(RO const data) : (__etext) ~ (CPU0_SIZE), no lock, TOR range, no excutable, no writable, readable */
-extern char CPU0_SIZE;
+/* PMP entry 2(FLASH) : (_data_lmastart) ~ (FLASH_END), lock, TOR range, no excutable, writable, readable */
 
-/* PMP entry 3(null section) : (CPU0_SIZE) ~ (_itcm_ema_start), no lock, TOR range, no excutable, no writable, no readable */
+/* PMP entry 3(null section) : (FLASH_END) ~ (_itcm_ema_start), lock, TOR range, no excutable, no writable, no readable */
 extern char _itcm_ema_start;
 
-/* PMP entry 4(itcm section) : (_itcm_ema_start) ~ (_itcm_ema_end), no lock, TOR range, no excutable, no writable, readable */
-extern char _itcm_ema_end;
+/* PMP entry 4(itcm section) : (_itcm_ema_start) ~ (_dtcm_ema_start), lock, TOR range, excutable, no writable, readable */
+extern char _dtcm_ema_start;
 
-extern char _dtcm_ema_start, _dtcm_ema_end;
-extern char _dtcm_bss_start, _dtcm_bss_end;
+/* PMP entry 5(dtcm/sram section) : (_dtcm_ema_start) ~ (SRAM_END), lock, TOR range, no excutable,  writable, readable */
 
-
-extern char SRAM1_BEGIN;
-
-extern char SRAM2_BEGIN;
+/* PMP entry 6(max address section) : (SRAM_END) ~ (ADDR_MAPPING_MAX), lock, TOR range, no excutable,  writable, readable */
 
 
-extern char _end;
-extern char _stack;
 
 #if (!CONFIG_SLAVE_CORE)
 const pmp_config_t pmp_tor_config_table[] = {\
 	{ENTRY_PMPADDR0, PMPCFG_ALXWR(PMP_A_TOR, PMP_L_ON, PMP_X_ON, PMP_W_OFF, PMP_R_ON),  (void*)(&_start + 4)}, \
-	{ENTRY_PMPADDR1, PMPCFG_ALXWR(PMP_A_TOR, PMP_L_ON, PMP_X_ON, PMP_W_OFF, PMP_R_ON),  (void*)(&__etext + 4) }, \
+	{ENTRY_PMPADDR1, PMPCFG_ALXWR(PMP_A_TOR, PMP_L_ON, PMP_X_ON, PMP_W_OFF, PMP_R_ON),  (void*)(&_data_lmastart + 4) }, \
 	{ENTRY_PMPADDR2, PMPCFG_ALXWR(PMP_A_TOR, PMP_L_ON, PMP_X_OFF, PMP_W_ON, PMP_R_ON),  (void*)(FLASH_END + 4) }, \
 	{ENTRY_PMPADDR3, PMPCFG_ALXWR(PMP_A_TOR, PMP_L_ON, PMP_X_OFF, PMP_W_OFF, PMP_R_OFF),  (void*)(&_itcm_ema_start + 4) }, \
 	{ENTRY_PMPADDR4, PMPCFG_ALXWR(PMP_A_TOR, PMP_L_ON, PMP_X_ON, PMP_W_OFF, PMP_R_ON),  (void*)(&_dtcm_ema_start + 4) }, \
@@ -267,4 +259,49 @@ void init_pmp_config()
 	}
 
 #endif
+}
+
+void show_pmp_config()
+{
+	os_printf("==========PMP config info===============\r\n");
+
+	int i = 0;
+	int config_count = 0;
+	long pmp_config0 = read_csr(NDS_PMPCFG0);
+	if (!pmp_config0) {
+		os_printf("PMP entries is 0, CPU does NOT support PMP.\n");
+	}
+
+#if USE_NAPOT
+
+	os_printf("PMP uses NAPOT scheme!.\n");
+
+#else	/* USE_TOR */
+
+	os_printf("PMP uses TOR scheme!.\n");
+	config_count = sizeof(pmp_tor_config_table)/sizeof(pmp_config_t);
+
+	os_printf("PMP user config count(%d).\n", config_count);
+	for (i = 0; i < config_count; i++)
+	{
+		os_printf("PMP config[%d], 0x%08x, 0x%0x.\r\n", i,
+					(void *)pmp_tor_config_table[i].pmp_addr,
+					pmp_tor_config_table[i].pmp_config);
+
+	}
+
+#endif
+	os_printf("==========PMP actural config:\r\n");
+	os_printf("==========NDS_PMPCFG0:  0x%08x.\r\n", pmp_config0);
+	os_printf("==========NDS_PMPCFG1:  0x%08x.\r\n", read_csr(NDS_PMPCFG1));
+
+	os_printf("==========NDS_PMPADDR0: 0x%08x.\r\n", read_csr(NDS_PMPADDR0));
+	os_printf("==========NDS_PMPADDR1: 0x%08x.\r\n", read_csr(NDS_PMPADDR1));
+	os_printf("==========NDS_PMPADDR2: 0x%08x.\r\n", read_csr(NDS_PMPADDR2));
+	os_printf("==========NDS_PMPADDR3: 0x%08x.\r\n", read_csr(NDS_PMPADDR3));
+	os_printf("==========NDS_PMPADDR4: 0x%08x.\r\n", read_csr(NDS_PMPADDR4));
+	os_printf("==========NDS_PMPADDR5: 0x%08x.\r\n", read_csr(NDS_PMPADDR5));
+	os_printf("==========NDS_PMPADDR6: 0x%08x.\r\n", read_csr(NDS_PMPADDR6));
+	os_printf("==========NDS_PMPADDR7: 0x%08x.\r\n", read_csr(NDS_PMPADDR7));
+
 }

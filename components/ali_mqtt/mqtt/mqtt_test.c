@@ -12,7 +12,7 @@
 #include "iot_export_mqtt.h"
 
 #if CONFIG_SHELL_ASYNCLOG
-#include "shell_task.h"
+#include "components/shell_task.h"
 #endif
 
 #include <os/os.h>
@@ -20,7 +20,6 @@
 #include <components/system.h>
 
 #define PRODUCT_KEY             "aclsemi"
-#define PRODUCT_SECRET          "gIH3WXHo84Jq5XtJ"
 #define DEVICE_NAME             "bk7256"
 #define DEVICE_SECRET           "nMwWRZrjupURGSByK7qu3uCwzEYUHORu"
 
@@ -39,10 +38,10 @@
 static int is_subscribed = 0;
 static char mac_str[DEVICE_MAC_MAXLEN] = {0};
 
-int cnt = 0;
+static int cnt = 0;
 void *gpclient;
-char *msg_buf = NULL, *msg_readbuf = NULL, *user_topic = NULL;
-
+static char *msg_buf = NULL, *msg_readbuf = NULL, *user_topic = NULL, *user_topic_resp = NULL;
+static char *s_host_name = NULL, *s_username = NULL, *s_password = NULL;
 
 char *mqtt_get_mac_str()
 {
@@ -55,6 +54,18 @@ char *mqtt_get_mac_str()
     }
 
     return mac_str;
+}
+
+char *mqtt_get_host_name() {
+    return s_host_name;
+}
+
+char *mqtt_get_username() {
+    return s_username;
+}
+
+char *mqtt_get_password() {
+    return s_password;
 }
 
 beken_mutex_t g_publish_mutex = NULL;
@@ -74,9 +85,29 @@ void release_buff() {
         msg_readbuf = NULL;
     }
 
-    if(NULL != user_topic) {
+    if (NULL != user_topic) {
         LITE_free(user_topic);
         user_topic = NULL;
+    }
+
+    if(NULL != user_topic_resp) {
+        LITE_free(user_topic_resp);
+        user_topic_resp = NULL;
+    }
+
+    if(NULL != s_host_name) {
+        LITE_free(s_host_name);
+        s_host_name = NULL;
+    }
+
+    if(NULL != s_username) {
+        LITE_free(s_username);
+        s_username = NULL;
+    }
+
+    if(NULL != s_password) {
+        LITE_free(s_password);
+        s_password = NULL;
     }
 }
 
@@ -97,6 +128,7 @@ void release_buff() {
 static int mqtt_publish_resp_data(void *pclient, const char* buffer, uint32_t len)
 {
     int rc = 0;
+    char *topic_resp = TOPIC_RESP;
     iotx_mqtt_topic_info_t topic_msg = {0};
 
     rtos_lock_mutex(&g_publish_mutex);
@@ -109,7 +141,13 @@ static int mqtt_publish_resp_data(void *pclient, const char* buffer, uint32_t le
     topic_msg.payload = (void *)buffer;
     topic_msg.payload_len = len;
 
-    rc = IOT_MQTT_Publish(pclient, TOPIC_RESP, &topic_msg);
+    if (NULL != user_topic_resp) {
+        topic_resp = user_topic_resp;
+    }
+
+    log_info("publish topic(%s).\n", topic_resp);
+
+    rc = IOT_MQTT_Publish(pclient, topic_resp, &topic_msg);
     if (rc < 0) {
         log_info("error occur when publish,rc(%d).\n", rc);
     }
@@ -158,7 +196,9 @@ static void mqtt_cmd_msg_handle(void *pcontext, void *pclient, iotx_mqtt_event_m
 
     resp_len = strlen(buffer);
 
-    mac_len = os_snprintf(buffer + resp_len, MSG_BUF_LEN - resp_len, "[%s]", mac_str);
+    cnt++;
+
+    mac_len = os_snprintf(buffer + resp_len, MSG_BUF_LEN - resp_len, "[%s_%ld]", mac_str, cnt);
 
     mqtt_publish_resp_data(pclient, buffer, resp_len + mac_len);
 
@@ -180,14 +220,14 @@ static void mqtt_subcribe_topic(void *pclient, const char *topic) {
 
         if (NULL != topic) {
             /* Subscribe the specific topic */
-            rc = IOT_MQTT_Subscribe(pclient, topic, IOTX_MQTT_QOS1, mqtt_cmd_msg_handle, NULL);
+            rc = IOT_MQTT_Subscribe(pclient, topic, IOTX_MQTT_QOS0, mqtt_cmd_msg_handle, NULL);
             if (rc < 0) {
                 // IOT_MQTT_Destroy(&pclient);
                 log_info("IOT_MQTT_Subscribe() topic(%s) failed, rc = %d.\n", topic, rc);
             }
         } else {
             /* Subscribe the specific topic */
-            rc = IOT_MQTT_Subscribe(pclient, TOPIC_CMD, IOTX_MQTT_QOS1, mqtt_cmd_msg_handle, NULL);
+            rc = IOT_MQTT_Subscribe(pclient, TOPIC_CMD, IOTX_MQTT_QOS0, mqtt_cmd_msg_handle, NULL);
             if (rc < 0) {
 
                 log_info("IOT_MQTT_Subscribe() TOPIC_CMD failed, rc = %d.\n", rc);
@@ -209,7 +249,7 @@ static void mqtt_publish_data(void *pclient) {
     /* Initialize topic information */
     memset(&topic_msg, 0x0, sizeof(iotx_mqtt_topic_info_t));
 
-    topic_msg.qos = IOTX_MQTT_QOS1;
+    topic_msg.qos = IOTX_MQTT_QOS0;
     topic_msg.retain = 0;
     topic_msg.dup = 0;
 
@@ -323,75 +363,113 @@ int mqtt_client_example(const char *host_name, const char *username,
         return rc;
     }
 
-    if (NULL != topic) {
-        topic_len = strlen(topic);
-        if (NULL == (user_topic = (char *)LITE_malloc(topic_len + 1))) {
-            log_info("not enough memory.\n");
-            rc = -1;
-            release_buff();
-            return rc;
-        }
-        memset(user_topic, 0x0, topic_len + 1);
-        memcpy(user_topic, topic, topic_len);
-    }
-
     if(kNoErr != rtos_init_mutex(&g_publish_mutex)){
         log_info("init mutex failed.\n");
         rc = -1;
         return rc;
     }
 
-    if (NULL == (msg_buf = (char *)LITE_malloc(MSG_LEN_MAX))) {
-        log_info("not enough memory.\n");
-        rc = -1;
-        release_buff();
-        return rc;
-    }
+    do{
+        if (NULL != topic) {
+            topic_len = strlen(topic);
+            if (NULL == (user_topic = (char *)LITE_malloc(topic_len + 1))) {
+                log_info("not enough memory.\n");
+                rc = -1;
+                break;
+            }
+            memset(user_topic, 0x0, topic_len + 1);
+            memcpy(user_topic, topic, topic_len);
 
-    if (NULL == (msg_readbuf = (char *)LITE_malloc(MSG_LEN_MAX))) {
-        log_info("not enough memory.\n");
-        rc = -1;
-        release_buff();
-        return rc;
-    }
+            if (NULL == (user_topic_resp = (char *)LITE_malloc(topic_len + 6))) {
+                log_info("not enough memory.\n");
+                rc = -1;
+                break;
+            }
+            memset(user_topic_resp, 0x0, topic_len + 6);
+            os_snprintf(user_topic_resp, topic_len + 6, "%s/%s", user_topic, "resp");
+        }
 
-    /* Device AUTH */
-    if (0 != IOT_SetupConnInfo(PRODUCT_KEY, DEVICE_NAME, DEVICE_SECRET, (void **)&pconn_info)) {
-        log_info("AUTH request failed!\n");
-        rc = -1;
-        release_buff();
-        return rc;
-    }
+        if(NULL != host_name) {
+            int host_name_len = strlen(host_name);
+            if (NULL == (s_host_name = (char *)LITE_malloc(host_name_len + 1))) {
+                log_info("not enough memory.\n");
+                rc = -1;
+                break;
+            }
+            memset(s_host_name, 0x0, host_name_len + 1);
+            memcpy(s_host_name, host_name, host_name_len);
+        }
 
-    os_snprintf(pconn_info->host_name, sizeof(pconn_info->host_name)-1, "%s", host_name);
-    os_snprintf(pconn_info->username, sizeof(pconn_info->username)-1, "%s", username);
-    os_snprintf(pconn_info->password, sizeof(pconn_info->password)-1, "%s", password);
+        if(NULL != username) {
+            int username_len = strlen(username);
+            if (NULL == (s_username = (char *)LITE_malloc(strlen(username) + 1))) {
+                log_info("not enough memory.\n");
+                rc = -1;
+                break;
+            }
+            memset(s_username, 0x0, username_len + 1);
+            memcpy(s_username, username, username_len);
+        }
 
-    /* Initialize MQTT parameter */
-    memset(&mqtt_params, 0x0, sizeof(mqtt_params));
+        if(NULL != password) {
+            int pwd_len = strlen(password);
+            if (NULL == (s_password = (char *)LITE_malloc(pwd_len + 1))) {
+                log_info("not enough memory.\n");
+                rc = -1;
+                break;
+            }
+            memset(s_password, 0x0, pwd_len + 1);
+            memcpy(s_password, password, pwd_len);
+        }
 
-    mqtt_params.port = pconn_info->port;
-    mqtt_params.host = pconn_info->host_name;
-    mqtt_params.client_id = pconn_info->client_id;
-    mqtt_params.username = pconn_info->username;
-    mqtt_params.password = pconn_info->password;
-    mqtt_params.pub_key = pconn_info->pub_key;
+        if (NULL == (msg_buf = (char *)LITE_malloc(MSG_LEN_MAX))) {
+            log_info("not enough memory.\n");
+            rc = -1;
+            break;
+        }
 
-    mqtt_params.request_timeout_ms = 2000;
-    mqtt_params.clean_session = 0;
-    mqtt_params.keepalive_interval_ms = 60000;
-    mqtt_params.pread_buf = msg_readbuf;
-    mqtt_params.read_buf_size = MSG_LEN_MAX;
-    mqtt_params.pwrite_buf = msg_buf;
-    mqtt_params.write_buf_size = MSG_LEN_MAX;
+        if (NULL == (msg_readbuf = (char *)LITE_malloc(MSG_LEN_MAX))) {
+            log_info("not enough memory.\n");
+            rc = -1;
+            break;
+        }
 
-    mqtt_params.handle_event.h_fp = event_handle_mqtt;
-    mqtt_params.handle_event.pcontext = NULL;
+        /* Device AUTH */
+        if (0 != IOT_SetupConnInfo(PRODUCT_KEY, DEVICE_NAME, DEVICE_SECRET, (void **)&pconn_info)) {
+            log_info("AUTH request failed!\n");
+            rc = -1;
+            break;
+        }
 
 
-    /* Construct a MQTT client with specify parameter */
-    gpclient = IOT_MQTT_Construct(&mqtt_params);
-    if (NULL == gpclient) {
+        /* Initialize MQTT parameter */
+        memset(&mqtt_params, 0x0, sizeof(mqtt_params));
+
+        mqtt_params.port = pconn_info->port;
+        mqtt_params.host = pconn_info->host_name;
+        mqtt_params.client_id = pconn_info->client_id;
+        mqtt_params.username = pconn_info->username;
+        mqtt_params.password = pconn_info->password;
+        mqtt_params.pub_key = pconn_info->pub_key;
+
+        mqtt_params.request_timeout_ms = 3000;
+        mqtt_params.clean_session = 0;
+        mqtt_params.keepalive_interval_ms = 60000;
+        mqtt_params.pread_buf = msg_readbuf;
+        mqtt_params.read_buf_size = MSG_LEN_MAX;
+        mqtt_params.pwrite_buf = msg_buf;
+        mqtt_params.write_buf_size = MSG_LEN_MAX;
+
+        mqtt_params.handle_event.h_fp = event_handle_mqtt;
+        mqtt_params.handle_event.pcontext = NULL;
+
+
+        /* Construct a MQTT client with specify parameter */
+        gpclient = IOT_MQTT_Construct(&mqtt_params);
+    }while(0);
+
+
+    if (NULL == gpclient || 0 != rc) {
         log_info("MQTT construct failed.\n");
         rc = -1;
         release_buff();
@@ -399,7 +477,6 @@ int mqtt_client_example(const char *host_name, const char *username,
         mqtt_subcribe_topic(gpclient, user_topic);
         mqtt_publish_data(gpclient);
     }
-    // BK_ASSERT(rc == 0);
 
     return rc;
 }

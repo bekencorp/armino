@@ -21,27 +21,32 @@
 
 void uart_struct_dump(uart_id_t id)
 {
-	uart_hw_t *hw = (uart_hw_t *)UART_LL_REG_BASE(0);
-	SOC_LOGI("base=%x\r\n", (uint32_t)hw);
+	uart_hw_t *hw = (uart_hw_t *)UART_LL_REG_BASE(id);
+	SOC_LOGI("uart(%x) base=%x\r\n", id, (uint32_t)hw);
 
-	SOC_LOGI("uart(%x)\n", id);
+	SOC_LOGI("  device_id=0x%x value=0x%x\n", &hw->dev_id, hw->dev_id);
+	SOC_LOGI("  dev_version=0x%x value=0x%x\n", &hw->dev_version, hw->dev_version);
 
-	if (id >= SOC_UART_ID_NUM_PER_UNIT) {
-		SOC_LOGW("[%s] invalid uart id\n");
-		return;
-	}
+
+	SOC_LOGI("  global_ctrl=0x%x value=0x%x\n", &hw->global_ctrl, hw->global_ctrl.v);
+	SOC_LOGI("    soft_reset:      %x\n", hw->global_ctrl.soft_reset);
+	SOC_LOGI("    clk_gate_bypass: %x\n", hw->global_ctrl.clk_gate_bypass);
+	SOC_LOGI("    reserved:        %x\n", hw->global_ctrl.reserved);
+	SOC_LOGI("\r\n");
+
+	SOC_LOGI("  dev_status=0x%x value=0x%x\n", &hw->dev_status, hw->dev_status);
+	SOC_LOGI("\r\n");
 
 	SOC_LOGI("  config=0x%x value=0x%x\n", &hw->config, hw->config.v);
 	SOC_LOGI("    tx_enable: %x\n", hw->config.tx_enable);
 	SOC_LOGI("    rx_enable: %x\n", hw->config.rx_enable);
-	SOC_LOGI("    mode:      %x\n", hw->config.mode);
 	SOC_LOGI("    data_bits: %x\n", hw->config.data_bits);
 	SOC_LOGI("    parity_en: %x\n", hw->config.parity_en);
 	SOC_LOGI("    parity:    %x\n", hw->config.parity);
 	SOC_LOGI("    stop_bits: %x\n", hw->config.stop_bits);
 	SOC_LOGI("    clk_div:   %x\n", hw->config.clk_div);
+	SOC_LOGI("\r\n");
 
-	SOC_LOGI("\n");
 	SOC_LOGI("  fifo_config=0x%x value=0x%x\n", &hw->fifo_config, hw->fifo_config.v);
 	SOC_LOGI("    tx_fifo_threshold:   %x\n", hw->fifo_config.tx_fifo_threshold);
 	SOC_LOGI("    rx_fifo_threshold:   %x\n", hw->fifo_config.rx_fifo_threshold);

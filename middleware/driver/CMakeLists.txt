@@ -10,10 +10,9 @@ set(incs
 	include/bk_private
 	include/bk_private/legacy
 	common
+	reset_reason
 	pwm
-	rc_beken
 	flash
-	rw_pub
 	uart
 	sys_ctrl
 	gpio
@@ -30,12 +29,24 @@ set(incs
 	rtc
 	i2s
 	fft
+	chip_support
 	../compal/common_io/include
 	)
 
 set(srcs
 	common/driver.c
+	reset_reason/reset_reason.c
 	sys_ctrl/sys_driver.c
+	sys_ctrl/sys_driver_common.c
+	sys_ctrl/sys_ps_driver.c
+	sys_ctrl/sys_int_driver.c
+	sys_ctrl/sys_clock_driver.c
+	sys_ctrl/sys_bt_driver.c
+	sys_ctrl/sys_wifi_driver.c
+	sys_ctrl/sys_audio_driver.c
+	sys_ctrl/sys_video_driver.c
+	sys_ctrl/sys_psram_driver.c
+	sys_ctrl/sys_touch_driver.c
 	common/dd.c
 	common/drv_model.c
 	icu/icu_driver.c
@@ -46,24 +57,55 @@ set(srcs
 	spi/spi_statis.c
 	sys_ctrl/sys_ctrl.c
 	pmu/aon_pmu_driver.c
+	gpio/gpio_driver_base.c
+	uart/uart_driver.c
+	uart/uart_statis.c
+	uart/printf.c
+	saradc/adc_driver.c
+	saradc/adc_statis.c
+	security/security.c
+	security/hal_aes.c
+	security/hal_sha.c
+	spinlock/amp_res_lock.c
 	)
 
+if (CONFIG_MPC)
+	list(APPEND incs
+		mpc
+	)
 
 	list(APPEND srcs
-		flash/flash.c
-		macphy_bypass/mac_phy_bypass.c
-		gpio/gpio_driver_base.c
-		uart/uart_driver.c
-		uart/uart_statis.c
-		uart/printf.c
-		rw_pub/rw_platf_pub.c
-		saradc/adc_driver.c
-		saradc/adc_statis.c
-		security/security.c
-		security/hal_aes.c
-		security/hal_sha.c
-		spinlock/amp_res_lock.c
+		mpc/mpc_driver.c
 	)
+endif()
+
+if (CONFIG_FLASH_ORIGIN_API)
+	list(APPEND srcs
+		flash/flash.c
+	)
+endif()
+
+if (CONFIG_PRRO)
+	list(APPEND incs
+		prro
+	)
+
+	list(APPEND srcs
+		prro/prro_driver.c
+	)
+endif()
+
+if (CONFIG_CHIP_SUPPORT)
+	list(APPEND srcs
+		chip_support/chip_support.c
+	)
+endif()
+
+if (CONFIG_USB)
+	list(APPEND srcs
+		sys_ctrl/sys_usb_driver.c
+	)
+endif()
 
 if (CONFIG_EFUSE)
 	list(APPEND srcs
@@ -92,12 +134,11 @@ endif()  #if (CONFIG_SUPPORT_IRDA)
 
 if (CONFIG_PWM)
 	list(APPEND srcs
-		pwm/mcu_ps_timer.c
 		pwm/pwm_driver.c
 		)
 endif()  #if (CONFIG_PWM)
 
-if ((NOT CONFIG_SOC_BK7256XX) AND (NOT CONFIG_SOC_BK7256_CP1))
+if (NOT CONFIG_SOC_BK7256XX)
 if (CONFIG_I2S)
 	list(APPEND srcs
 		i2s/i2s.c
@@ -105,7 +146,7 @@ if (CONFIG_I2S)
 endif()  #if (CONFIG_I2S)
 endif()
 
-if ((NOT CONFIG_SOC_BK7256XX) AND (NOT CONFIG_SOC_BK7256_CP1))
+if (NOT CONFIG_SOC_BK7256XX)
 if (CONFIG_FFT)
 	list(APPEND srcs
 		fft/fft.c
@@ -113,13 +154,13 @@ if (CONFIG_FFT)
 endif()
 endif()
 
-if (CONFIG_SOC_BK7256XX OR CONFIG_SOC_BK7256_CP1)
+if (CONFIG_SOC_BK7256XX)
 	list(APPEND srcs
 		"flash/flash_bypass.c"
 		)
 endif()
 
-if (CONFIG_SOC_BK7256XX OR CONFIG_SOC_BK7256_CP1)
+if (CONFIG_SOC_BK7256XX)
 if (CONFIG_FFT)
 	list(APPEND incs
 		"fft"
@@ -131,7 +172,7 @@ if (CONFIG_FFT)
 endif()
 endif()
 
-if (CONFIG_SOC_BK7256XX OR CONFIG_SOC_BK7256_CP1)
+if (CONFIG_SOC_BK7256XX)
 if (CONFIG_I2S)
 	list(APPEND incs
 		"i2s"
@@ -144,16 +185,27 @@ endif()
 
 	if (CONFIG_LCD)
 	list(APPEND srcs
+		"lcd/lcd_driver.c"
+		"lcd/lcd_hx8282.c"
+		"lcd/lcd_st7282.c"
+		"lcd/lcd_st7796s.c"
+		"lcd/lcd_gc9503v.c"
+		"lcd/lcd_spi.c"
+		)
+	endif()
+
+	if (CONFIG_LCD)
+	list(APPEND srcs
 		"lcd_display/lcd_disp_driver.c"
 		)
 	endif()
-	
+
 	if(CONFIG_DMA2D)
 	list(APPEND srcs
 		dma2d/dma2d_driver.c
 	)
 	endif()
-	
+
 	if (CONFIG_JPEG_DEC)
 	list(APPEND srcs
 		"jpeg_dec/jpeg_dec_driver.c"
@@ -206,6 +258,13 @@ if (CONFIG_AON_RTC)
 		"rtc/aon_rtc_driver.c"
 		)
 endif() #if (CONFIG_AON_RTC)
+
+if (CONFIG_SDIO_HOST)
+	list(APPEND srcs
+		"sdio_host/sdio_host_driver.c"
+		"sd_card/sd_card_driver.c"
+		)
+endif() #if (CONFIG_SDIO_HOST)
 
 if (CONFIG_SDCARD_HOST)
 	list(APPEND srcs
@@ -261,7 +320,7 @@ if (CONFIG_AUDIO_RISCV_IP_V1_0)
 endif()
 
 if (CONFIG_SBC)
-if (CONFIG_SOC_BK7256XX OR CONFIG_SOC_BK7256_CP1)
+if (CONFIG_SOC_BK7256XX)
 	list(APPEND srcs
 		"sbc/sbc_driver.c"
 		)
@@ -279,7 +338,7 @@ endif()
 endif() #if (CONFIG_AUDIO)
 
 if (CONFIG_TOUCH)
-if (CONFIG_SOC_BK7256XX OR CONFIG_SOC_BK7256_CP1)
+if (CONFIG_SOC_BK7256XX)
 	list(APPEND srcs
 		"touch/touch_driver.c"
 		)
@@ -305,7 +364,7 @@ if (CONFIG_SOC_BK7271)
 endif()
 endif() #if (NOT CONFIG_FULLY_HOSTED)
 
-if (CONFIG_SOC_BK7256XX OR CONFIG_SOC_BK7256_CP1)
+if (CONFIG_SOC_BK7256XX)
 	list(APPEND srcs
 		"bk7256/mailbox_driver.c"
 		)
@@ -336,16 +395,15 @@ if( "${target}" STREQUAL "bk7231u")
 	set(target "bk7251")
 endif()
 
-if( "${target}" STREQUAL "bk7236")
+if( "${target}" STREQUAL "bk7236a")
 	set(target "bk7231n")
 endif()
-
-
 
 if( "${target}" STREQUAL "bk7231n"
 	OR  "${target}" STREQUAL "bk7251"
 	OR "${target}" STREQUAL "bk7271"
 	OR "${target}" STREQUAL "bk7256_cp1"
+	OR "${target}" STREQUAL "bk7236"
 	OR CONFIG_SOC_BK7256XX
 	)
 
@@ -360,9 +418,23 @@ if( "${target}" STREQUAL "bk7231n"
 		)
 endif()
 
+if (CONFIG_CAMERA)
+	list(APPEND srcs
+        	"camera/dvp_camera.c"
+        	"camera/dvp_gc0328c.c"
+        	"camera/dvp_hm1055.c"
+		"camera/dvp_ov2640.c"
+    	)
+endif()
+
+if (CONFIG_USB_UVC)
+	list(APPEND srcs
+        	"camera/uvc_camera.c"
+	)
+endif()
 
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
-	REQUIRES app arm9 bk_wifi bk_usb riscv
-	PRIV_REQUIRES bk_common bk_log bk_ble bk_ps bk_ate bk_init
+	REQUIRES arm9 riscv cm33
+	PRIV_REQUIRES bk_log bk_ate
 )

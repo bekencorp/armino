@@ -16,28 +16,26 @@
 
 #include <soc/soc_port.h>
 #include "soc_cap.h"
+#include "reg_base.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define SOC_SYS_CTRL_REG_BASE (0x00800000)
-#define SOC_EFUSE_REG_BASE    (SOC_SYS_CTRL_REG_BASE + 0x1D * 4)
-#define SOC_CALENDAR_REG_BASE (SOC_SYS_CTRL_REG_BASE + 0x55 * 4)
 #define SOC_ICU_REG_BASE      (0x00802000)
-#define SOC_UART_REG_BASE     (0x00802100)
-#define SOC_I2C0_REG_BASE     (0x00802300)
-#define SOC_TRNG_REG_BASE     (0x00802480)
-#define SOC_I2C1_REG_BASE     (0x00802600)
-#define SOC_SPI_REG_BASE      (0x00802700)
-#define SOC_GPIO_REG_BASE     (0x00802800)
-#define SOC_WDT_REG_BASE      (0x00802900)
-#define SOC_TIMER_REG_BASE    (0x00802A00)
 #define SOC_PWM_REG_BASE      (0x00802B00)
-#define SOC_ADC_REG_BASE      (0x00802C00)
+#define SOC_DMA_REG_BASE      (0x00809000)
+//#define SOC_EFUSE_REG_BASE    (0x00800000 + 0x1D * 4)
+//#define SOC_UART_REG_BASE     (0x00802100)
+#define SOC_CALENDAR_REG_BASE (0x00800000 + 0x55 * 4)
+
+#if 0
+#define SOC_SYS_CTRL_REG_BASE ()
+#define SOC_TRNG_REG_BASE     (0x00802480)
+#define SOC_WDT_REG_BASE      (0x00802900)
 #define SOC_FLASH_REG_BASE    (0x00803000)
 #define SOC_JPEG_REG_BASE     (0x00807000)
-#define SOC_DMA_REG_BASE      (0x00809000)
+#endif
 
 #define REG_WRITE(_r, _v) ({\
 		(*(volatile uint32_t *)(_r)) = (_v);\

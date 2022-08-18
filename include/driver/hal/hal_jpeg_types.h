@@ -38,6 +38,13 @@ typedef struct {
 	dma_isr_t dma_rx_finish_handler; /**< dma transfer finish callback */
 } jpeg_config_t;
 
+typedef struct {
+	uint32_t x_partial_offset_l;
+	uint32_t x_partial_offset_r;
+	uint32_t y_partial_offset_l;
+	uint32_t y_partial_offset_r;
+} jpeg_partial_offset_config_t;
+
 #ifdef __cplusplus
 }
 #endif

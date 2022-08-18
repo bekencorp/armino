@@ -1,0 +1,9 @@
+menu "MEDIA"
+	config MEDIA
+		bool "Enable media service"
+		default n
+	config WIFI_TRANSFER
+		bool "Wifi transfer"
+		default y
+		depends on CAMERA
+endmenu

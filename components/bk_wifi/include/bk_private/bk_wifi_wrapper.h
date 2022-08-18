@@ -16,6 +16,7 @@ void demo_wlan_app_init(VIF_ADDCFG_PTR cfg);
 int demo_state_app_init(void);
 void demo_ip_app_init(void);
 void demo_wifi_iplog_init(char *iplogmode);
+void demo_wifi_ipdbg_init(char *ipdbgmodule, char *ipdbgpara,char *ipdbg_para_value);
 
 #endif
 

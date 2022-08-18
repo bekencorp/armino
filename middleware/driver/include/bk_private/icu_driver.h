@@ -352,7 +352,7 @@ uint32_t icu_get_pwm_2nd_int_prio(void);
 #define icu_enable_bt_wdt_arm_wakeup()	icu_hal_enable_bt_wdt_arm_wakeup(&s_icu.hal)
 #define icu_disable_bt_wdt_arm_wakeup()	icu_hal_disable_bt_wdt_arm_wakeup(&s_icu.hal)
 
-#if (CONFIG_SOC_BK7236)
+#if (CONFIG_SOC_BK7236A)
 #define icu_enable_modem_rc_interrupt()	icu_hal_enable_modem_rc_interrupt(&s_icu.hal)
 #define icu_disable_modem_rc_interrupt()  icu_hal_disable_modem_rc_interrupt(&s_icu.hal)
 #define icu_enable_mac_hsu_interrupt()	icu_hal_enable_mac_hsu_interrupt(&s_icu.hal)

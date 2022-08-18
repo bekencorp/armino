@@ -11,13 +11,10 @@
 #include "bk_mcu_ps.h"
 #include <os/mem.h>
 #include <components/log.h>
-#include "bk_private/bk_ate.h"
+#include <components/ate.h>
 #include "bk_pm_model.h"
 #include "sys_driver.h"
-
-#if CONFIG_FLASH_QUAD_ENABLE
 #include "flash_bypass.h"
-#endif
 
 #define TAG "flash"
 
@@ -80,7 +77,7 @@ static void flash_set_clk(UINT8 clk_conf)
 	UINT32 value;
 
 #if CONFIG_FLASH_SRC_CLK_60M
-	sys_drv_flash_set_clk_div(FLASH_DIV_VALUE_TWO);
+	sys_drv_flash_set_clk_div(FLASH_DIV_VALUE_EIGHT);
 	sys_drv_flash_set_dco();
 #endif
 
@@ -135,6 +132,37 @@ static void flash_write_disable(void)
 	while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
 }
 
+#define WRSR_CMD_MASK    0xff
+#define WRSR_CMD_SEL     0x1
+#define WRSR_CMD_POSI    16
+#define WRSR_CMD_S0_S7   0x1
+#define WRSR_CMD_S8_S15  0x31
+
+void flash_init_wrsr_cmd(uint8_t wrsr_cmd)
+{
+	uint32_t value;
+
+	value = REG_READ(REG_FLASH_SR_CMD);
+	value &= (~(WRSR_CMD_MASK));
+	value |= ((wrsr_cmd) | (WRSR_CMD_SEL << WRSR_CMD_POSI));
+	REG_WRITE(REG_FLASH_SR_CMD, value);
+
+	while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
+}
+
+void flash_deinit_wrsr_cmd(void)
+{
+	uint32_t value;
+
+	value = REG_READ(REG_FLASH_SR_CMD);
+	value &= (~((WRSR_CMD_SEL << WRSR_CMD_POSI) | WRSR_CMD_MASK));
+	value |= (WRSR_CMD_S0_S7);
+	REG_WRITE(REG_FLASH_SR_CMD, value);
+
+	while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
+}
+#endif
+
 UINT16 flash_read_sr(UINT8 sr_width)
 {
 	UINT16 sr;
@@ -167,7 +195,7 @@ static void flash_write_sr(UINT8 sr_width,  UINT16 val)
 {
 	UINT32 value;
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 	GLOBAL_INT_DECLARATION();
 
 	GLOBAL_INT_DISABLE();
@@ -182,20 +210,37 @@ static void flash_write_sr(UINT8 sr_width,  UINT16 val)
 	REG_WRITE(REG_FLASH_CONF, value);
 	while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
 
-#if CONFIG_FLASH_QUAD_ENABLE
-	if (FLASH_ID_GD25Q32C == flash_id)
-		sr_width = 1;
-#endif
 	if (sr_width == 1) {
 		value = (FLASH_OPCODE_WRSR << OP_TYPE_SW_POSI) | OP_SW | WP_VALUE;
 		REG_WRITE(REG_FLASH_OPERATE_SW, value);
 	} else if (sr_width == 2) {
-		value = (FLASH_OPCODE_WRSR2 << OP_TYPE_SW_POSI) | OP_SW | WP_VALUE;
-		REG_WRITE(REG_FLASH_OPERATE_SW, value);
+		if (FLASH_ID_GD25Q32C == flash_id) {
+			//write sr lower 8 bit
+			UINT32 cmd_l = (FLASH_OPCODE_WRSR << OP_TYPE_SW_POSI) | OP_SW | WP_VALUE;
+			REG_WRITE(REG_FLASH_OPERATE_SW, cmd_l);
+			while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
+
+			//write sr higher 8 bit
+			value = REG_READ(REG_FLASH_CONF);
+			value &= ~(WRSR_DATA_MASK << WRSR_DATA_POSI);
+			value |= ((val >> 8) << WRSR_DATA_POSI);
+			REG_WRITE(REG_FLASH_CONF, value);
+			while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
+
+			flash_init_wrsr_cmd(WRSR_CMD_S8_S15);
+			while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
+			UINT32 cmd_h = (FLASH_OPCODE_WRSR << OP_TYPE_SW_POSI) | OP_SW | WP_VALUE;
+			REG_WRITE(REG_FLASH_OPERATE_SW, cmd_h);
+			while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
+			flash_deinit_wrsr_cmd();
+		} else {
+			value = (FLASH_OPCODE_WRSR2 << OP_TYPE_SW_POSI) | OP_SW | WP_VALUE;
+			REG_WRITE(REG_FLASH_OPERATE_SW, value);
+		}
 	}
 
 	while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 	GLOBAL_INT_RESTORE();
 #endif
 }
@@ -229,21 +274,6 @@ static void flash_set_qe(void)
 	if ((param & (flash_current_config->qe_bit << flash_current_config->qe_bit_post)))
 		return ;
 
-#if CONFIG_FLASH_QUAD_ENABLE
-	if (FLASH_ID_GD25Q32C == flash_id) {
-		/* retry quad enable, in case of quad enable may fail in some boards for first time */
-		for(uint32_t i = 0; i < QE_RETRY_TIMES; i++) {
-			flash_bypass_quad_enable();
-			while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
-			param = flash_read_sr(flash_current_config->sr_size);
-			if(param & (flash_current_config->qe_bit << flash_current_config->qe_bit_post)) {
-				break;
-			}
-		}
-		BK_ASSERT(param & (flash_current_config->qe_bit << flash_current_config->qe_bit_post));
-		return;
-	}
-#endif
 	value = REG_READ(REG_FLASH_CONF);
 	value &= ~(WRSR_DATA_MASK << WRSR_DATA_POSI);
 	value |= (((flash_current_config->qe_bit << flash_current_config->qe_bit_post)
@@ -256,13 +286,36 @@ static void flash_set_qe(void)
 		value = (value & (ADDR_SW_REG_MASK << ADDR_SW_REG_POSI))
 				| (FLASH_OPCODE_WRSR << OP_TYPE_SW_POSI) | OP_SW | WP_VALUE;
 	} else {
-		value = (value & (ADDR_SW_REG_MASK << ADDR_SW_REG_POSI))
-				| (FLASH_OPCODE_WRSR2 << OP_TYPE_SW_POSI) | OP_SW | WP_VALUE;
+		if (FLASH_ID_GD25Q32C == flash_id) {
+			//write sr lower 8 bit
+			value = (value & (ADDR_SW_REG_MASK << ADDR_SW_REG_POSI))
+					| (FLASH_OPCODE_WRSR << OP_TYPE_SW_POSI) | OP_SW | WP_VALUE;
+			REG_WRITE(REG_FLASH_OPERATE_SW, value);
+			while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
+
+			//write sr higher 8 bit
+			value = REG_READ(REG_FLASH_CONF);
+			value &= ~(WRSR_DATA_MASK << WRSR_DATA_POSI);
+			value |= ((((flash_current_config->qe_bit << flash_current_config->qe_bit_post)
+					   | param) >> 8) << WRSR_DATA_POSI);
+
+			REG_WRITE(REG_FLASH_CONF, value);
+			while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
+
+			value = REG_READ(REG_FLASH_OPERATE_SW);
+			flash_init_wrsr_cmd(WRSR_CMD_S8_S15);
+			value = (value & (ADDR_SW_REG_MASK << ADDR_SW_REG_POSI))
+					| (FLASH_OPCODE_WRSR << OP_TYPE_SW_POSI) | OP_SW | WP_VALUE;
+		} else {
+			value = (value & (ADDR_SW_REG_MASK << ADDR_SW_REG_POSI))
+					| (FLASH_OPCODE_WRSR2 << OP_TYPE_SW_POSI) | OP_SW | WP_VALUE;
+		}
 	}
 
 	REG_WRITE(REG_FLASH_OPERATE_SW, value);
-
 	while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
+
+	flash_deinit_wrsr_cmd();
 }
 
 static void flash_set_qwfr(void)
@@ -453,16 +506,16 @@ static void flash_erase_sector(UINT32 address)
 {
 	UINT32 value;
 	UINT32 erase_addr = address & 0xFFF000;
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 	GLOBAL_INT_DECLARATION();
 #endif
 
 	if (erase_addr >= flash_current_config->flash_size) {
-		bk_printf("Erase error:invalid address0x%x\r\n", erase_addr);
+		BK_LOGE("Erase error:invalid address0x%x\r\n", erase_addr);
 		return;
 	}
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 	GLOBAL_INT_DISABLE();
 #endif
 	while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
@@ -473,7 +526,7 @@ static void flash_erase_sector(UINT32 address)
 			 | (value & WP_VALUE));
 	REG_WRITE(REG_FLASH_OPERATE_SW, value);
 	while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 	GLOBAL_INT_RESTORE();
 #endif
 }
@@ -498,14 +551,14 @@ static void flash_read_data(UINT8 *buffer, UINT32 address, UINT32 len)
 	UINT32 addr = address & (~0x1F);
 	UINT32 buf[8];
 	UINT8 *pb = (UINT8 *)&buf[0];
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 	GLOBAL_INT_DECLARATION();
 #endif
 
 	if (len == 0)
 		return;
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 	GLOBAL_INT_DISABLE();
 #endif
 	while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
@@ -530,7 +583,7 @@ static void flash_read_data(UINT8 *buffer, UINT32 address, UINT32 len)
 				break;
 		}
 	}
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 	GLOBAL_INT_RESTORE();
 #endif
 }
@@ -541,14 +594,14 @@ static void flash_write_data(UINT8 *buffer, UINT32 address, UINT32 len)
 	UINT32 addr = address & (~0x1F);
 	UINT32 buf[8];
 	UINT8 *pb = (UINT8 *)&buf[0];
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 	GLOBAL_INT_DECLARATION();
 #endif
 
 	if ((addr >= flash_current_config->flash_size)
 		|| (len > flash_current_config->flash_size)
 		|| ((addr + len) > flash_current_config->flash_size)) {
-		bk_printf("Write error[addr:0x%x len:0x%x]\r\n", addr, len);
+		BK_LOGE("Write error[addr:0x%x len:0x%x]\r\n", addr, len);
 		return;
 	}
 
@@ -571,7 +624,7 @@ static void flash_write_data(UINT8 *buffer, UINT32 address, UINT32 len)
 				break;
 		}
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 		GLOBAL_INT_DISABLE();
 #endif
 		for (i = 0; i < 8; i++)
@@ -584,7 +637,7 @@ static void flash_write_data(UINT8 *buffer, UINT32 address, UINT32 len)
 					 | (reg_value & WP_VALUE));
 		REG_WRITE(REG_FLASH_OPERATE_SW, reg_value);
 		while (REG_READ(REG_FLASH_OPERATE_SW) & BUSY_SW);
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 		GLOBAL_INT_RESTORE();
 #endif
 		addr += 32;

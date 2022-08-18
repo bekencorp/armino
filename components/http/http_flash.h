@@ -1,5 +1,9 @@
 #include "bk_drv_model.h"
+#if CONFIG_FLASH_ORIGIN_API
 #include "BkDriverFlash.h"
+#else
+#include <driver/flash_partition.h>
+#endif
 
 #define HTTP_WR_TO_FLASH        1
 

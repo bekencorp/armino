@@ -50,7 +50,7 @@
 
 在 armino 根目录下运行　make， 最常用的 make 命令如下：
 
- - ``make bkxxx`` - 构建目标 bkxxx，项目为默认项目 armino/projects/legacy_app。
+ - ``make bkxxx`` - 构建目标 bkxxx，项目为默认项目 armino/projects/app。
  - ``make bkxxx`` PROJECT=a/b - 构建 bkxxx，项目为 armino/projects/a/b
  - ``make all`` - 构建所有目标
  - ``make cleanbkxxx`` - 清理目标 bkxxx

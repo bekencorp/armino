@@ -60,6 +60,16 @@ int image_16bit_rotate90_anticlockwise(uint8_t *des,const uint8_t *src, uint32_t
 int image_16bit_rotate90_clockwise(uint8_t *des, uint8_t *src, uint32_t img_width, uint32_t img_height);
 
 /**
+ * @brief yuyv data clockwise rotate90
+ */
+int yuyv_rotate_degree90(unsigned char *yuyv, unsigned char *rotatedYuyv, int width, int height);
+
+/**
+ * @brief yuyv data clockwise rotate90
+ */
+int vuyy_rotate_degree90(unsigned char *yuyv, unsigned char *rotatedYuyv, int width, int height);
+
+/**
  * @brief  uyvy422 data convert to RGB565 data
  */
 int uyvy_to_rgb565_convert(unsigned char *src_buf, unsigned char *out_buf,int img_width, int img_height);
@@ -78,6 +88,13 @@ int rgb565_to_uyvy_convert(uint16_t *sourceLcdBuffer, uint16_t *destLcdBuffer,in
  * @brief   RGB565 data convert to yuyv422 data
  */
 int rgb565_to_yuyv_convert(uint16_t *sourceLcdBuffer, uint16_t *destLcdBuffer,int img_width, int img_height);
+
+
+void yyuv_to_rgb888(uint8_t *input_ptr, uint8_t *output_ptr, uint32_t width, uint32_t height);
+
+void vuyy_to_rgb888(uint8_t *input_ptr, uint8_t *output_ptr, uint32_t width, uint32_t height);
+
+int rgb565_to_vuyy_convert(uint16_t *sourceLcdBuffer, uint16_t *destLcdBuffer,int img_width, int img_height);
 
 /*
  * @}

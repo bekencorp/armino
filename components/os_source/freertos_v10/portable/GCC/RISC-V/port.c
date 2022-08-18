@@ -222,7 +222,7 @@ void vApplicationIdleHook( void )
 
 uint32_t platform_is_in_interrupt_context( void )
 {
-    return (arch_get_interrupt_nest_cnt() > 0 || arch_is_enter_exception() > 0);
+    return (arch_get_interrupt_nest_cnt() > 0 /*|| arch_is_enter_exception() > 0*/ );
 }
 
 uint32_t platform_cpsr_content( void )

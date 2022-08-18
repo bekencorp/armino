@@ -3,6 +3,9 @@
 #include <os/os.h>
 #include <components/system.h>
 #include "bk_rtos_debug.h"
+#if CONFIG_PSRAM
+#include <driver/psram.h>
+#endif
 
 void cli_memory_free_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
@@ -70,6 +73,41 @@ static void cli_memory_leak_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 }
 #endif
 
+#if CONFIG_PSRAM_AS_SYS_MEMORY && CONFIG_FREERTOS
+void cli_psram_malloc_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	uint8_t *pstart;
+	uint32_t length;
+
+	if (argc != 2) {
+		cmd_printf("Usage: psram_malloc <length>.\r\n");
+		return;
+	}
+
+	length = strtoul(argv[1], NULL, 0);
+
+	pstart = (uint8_t *)psram_malloc(length);
+
+	cmd_printf("psram_malloc ret(%p).\r\n", pstart);
+}
+
+void cli_psram_free_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	uint8_t *pstart;
+	uint32_t start;
+
+	if (argc != 2) {
+		cmd_printf("Usage: psram_free <addr>.\r\n");
+		return;
+	}
+
+	start = strtoul(argv[1], NULL, 0);
+	pstart = (uint8_t *)start;
+	cmd_printf("psram_free addr(%p).\r\n", pstart);
+	os_free(pstart);
+
+}
+#endif
 
 #define MEM_CMD_CNT (sizeof(s_mem_commands) / sizeof(struct cli_command))
 static const struct cli_command s_mem_commands[] = {
@@ -79,6 +117,10 @@ static const struct cli_command s_mem_commands[] = {
 	{"memset", "<addr> <value 1> [<value 2> ... <value n>]", cli_memory_set_cmd},
 #if CONFIG_MEM_DEBUG && CONFIG_FREERTOS
 	{"memleak", "[show memleak", cli_memory_leak_cmd},
+#endif
+#if CONFIG_PSRAM_AS_SYS_MEMORY && CONFIG_FREERTOS
+	{"psram_malloc", "psram_malloc <length>", cli_psram_malloc_cmd},
+	{"psram_free", "psram_free <addr>", cli_psram_free_cmd},
 #endif
 };
 

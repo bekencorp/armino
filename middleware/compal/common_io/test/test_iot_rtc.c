@@ -41,7 +41,7 @@
 #include "task.h"
 
 /*-----------------------------------------------------------*/
-#define testIotRTC_DEFAULT_INVALID_DATE        ( 0xFFFF )
+#define testIotRTC_DEFAULT_INVALID_DATE        (0xFF)   /*modify for data length ( 0xFFFF ) */
 #define testIotRTC_DEFAULT_CURRENT_WEEK_DAY    ( 2 )    /* 1st of January 2019 is a tuesday */
 #define testIotRTC_DEFAULT_CURRENT_YEAR        ( 119 )  /* 2019 */
 #define testIotRTC_DEFAULT_CURRENT_MONTH       ( 0 )    /* January*/
@@ -129,6 +129,9 @@ TEST_GROUP_RUNNER( TEST_IOT_RTC )
     RUN_TEST_CASE( TEST_IOT_RTC, AFQP_IotRtcSetAlarmInvalid );
     RUN_TEST_CASE( TEST_IOT_RTC, AFQP_IotRtcSetDateTimeFuzzing );
     RUN_TEST_CASE( TEST_IOT_RTC, AFQP_IotRtcGetDateTimeFuzzing );
+/* Test complete release semaphore */
+    vSemaphoreDelete( xtestIotRtcSemaphore );
+    xtestIotRtcSemaphore = NULL;
 }
 
 /*-----------------------------------------------------------*/
@@ -358,6 +361,7 @@ TEST( TEST_IOT_RTC, AFQP_IotRtcCancelAlarm )
     IotRtcDatetime_t xAlarmGetDateTime;
     int32_t lRetVal, lStatus;
 
+
     /* Open rtc to initialize hardware. */
     xRtcHandle = iot_rtc_open( uctestIotRTCInstanceIdx );
     TEST_ASSERT_NOT_EQUAL( NULL, xRtcHandle );
@@ -427,6 +431,7 @@ TEST( TEST_IOT_RTC, AFQP_IotRtcCancelAlarm )
 
     lRetVal = iot_rtc_close( xRtcHandle );
     TEST_ASSERT_EQUAL( IOT_RTC_SUCCESS, lRetVal );
+    (void)(lStatus);
 }
 
 /**
@@ -524,7 +529,7 @@ TEST( TEST_IOT_RTC, AFQP_IotRtcCancelWakeup )
     int32_t lRetVal, lStatus;
     uint32_t lSetWakeupSeconds;
     uint32_t lGetWakeupSeconds;
-
+    
     /* Open rtc to initialize hardware. */
     xRtcHandle = iot_rtc_open( uctestIotRTCInstanceIdx );
     TEST_ASSERT_NOT_EQUAL( NULL, xRtcHandle );
@@ -585,6 +590,7 @@ TEST( TEST_IOT_RTC, AFQP_IotRtcCancelWakeup )
 
     lRetVal = iot_rtc_close( xRtcHandle );
     TEST_ASSERT_EQUAL( IOT_RTC_SUCCESS, lRetVal );
+    (void)(lStatus);
 }
 
 /**
@@ -671,6 +677,7 @@ TEST( TEST_IOT_RTC, AFQP_IotRtcSetWakeupInvalid )
 
     lRetVal = iot_rtc_close( xRtcHandle );
     TEST_ASSERT_EQUAL( IOT_RTC_SUCCESS, lRetVal );
+    (void)(lGetWakeupMilliSeconds);
 }
 
 /**
@@ -832,6 +839,7 @@ TEST( TEST_IOT_RTC, AFQP_IotRtcSetDateTimeFuzzing )
 
     lRetVal = iot_rtc_close( xRtcHandle );
     TEST_ASSERT_EQUAL( IOT_RTC_SUCCESS, lRetVal );
+    (void)(xGetDateTime);
 }
 
 /**

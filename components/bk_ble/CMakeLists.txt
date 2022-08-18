@@ -20,4 +20,10 @@ elseif (CONFIG_BTDM_5_2)
 		)
 endif()
 
+
+    list(APPEND incs
+                .
+        )
+
+
 armino_component_register(INCLUDE_DIRS "${incs}")

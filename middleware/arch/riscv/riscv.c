@@ -14,8 +14,12 @@
 
 #include "bk_arch.h"
 #include "platform.h"
+#include "boot.h"
+#include "cache.h"
+
 
 extern void reset_vector(void);
+extern unsigned int g_sram_addr_map[SRAM_BLOCK_COUNT];
 
 /* This must be a leaf function, no child function */
 void __platform_init (void) __attribute__((naked));
@@ -33,6 +37,16 @@ void c_startup(void)
 	/* Data section initialization */
 	extern char  _edata, _end;
 	unsigned int size;
+
+#if !CONFIG_SLAVE_CORE
+	int i = 0;
+
+	/* Init all sram block */
+	for(i = 0; i < SRAM_BLOCK_COUNT; i++)
+	{
+		MEMSET((void *)g_sram_addr_map[i], 0x0, SRAM_BLOCK_SIZE);
+	}
+#endif
 
 #ifdef CFG_XIP
 	extern char _data_lmastart, _data_start;
@@ -69,6 +83,10 @@ void c_startup(void)
 	/* Clear bss section */
 	size = &_end - &_edata;
 	MEMSET(&_edata, 0, size);
+
+#if CONFIG_SAVE_BOOT_TIME_POINT
+	save_mtime_point(CPU_INIT_MEM_TIME);
+#endif
 }
 
 void system_init(void)

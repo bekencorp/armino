@@ -230,11 +230,9 @@ bk_err_t gpio_hal_devs_map(gpio_hal_t *hal, uint64 gpios, gpio_dev_t *devs, uint
 	return BK_OK;
 }
 
-
 bk_err_t gpio_hal_set_config(gpio_hal_t *hal, gpio_id_t gpio_id, const gpio_config_t *config)
 {
 	if(gpio_hal_map_check(hal, gpio_id)) {
-
 		HAL_LOGE("gpio has map\r\n");
 		return BK_ERR_GPIO_INTERNAL_USED;
 	}
@@ -260,7 +258,7 @@ bk_err_t gpio_hal_restore_configs(uint16_t *gpio_cfg, uint32_t count)
 bk_err_t gpio_hal_bak_int_type_configs(uint32_t *gpio_int_type_cfg, uint32_t count)
 {
 	gpio_ll_bak_int_type_configs(gpio_int_type_cfg, count);
-	
+
 	return BK_OK;
 }
 
@@ -273,7 +271,7 @@ bk_err_t gpio_hal_restore_int_type_configs(uint32_t *gpio_int_type_cfg, uint32_t
 bk_err_t gpio_hal_bak_int_enable_configs(uint32_t *gpio_int_enable_cfg, uint32_t count)
 {
 	gpio_ll_bak_int_enable_configs(gpio_int_enable_cfg, count);
-	
+
 	return BK_OK;
 }
 
@@ -289,7 +287,6 @@ bk_err_t gpio_hal_switch_to_low_power_status(void)
 	gpio_ll_switch_to_low_power_status();
 	return BK_OK;
 }
-
 #else
 bk_err_t gpio_hal_reg_save(uint32_t*  gpio_cfg)
 {

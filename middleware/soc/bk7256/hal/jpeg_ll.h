@@ -43,10 +43,6 @@ extern "C" {
 
 void jpeg_ll_init_quant_table(jpeg_hw_t *hw);
 
-void jpeg_ll_set_x_pixel_value(jpeg_hw_t * hw, uint32_t x_pixel);
-
-void jpeg_ll_set_y_pixel_value(jpeg_hw_t * hw, uint32_t y_pixel);
-
 static inline void jpeg_ll_reset_config_to_default(jpeg_hw_t *hw)
 {
 	/* 1.reset REG_0x0
@@ -61,6 +57,11 @@ static inline void jpeg_ll_init(jpeg_hw_t *hw)
 	jpeg_ll_reset_config_to_default(hw);
 }
 
+static inline void jpeg_ll_clear_config(jpeg_hw_t *hw)
+{
+	hw->cfg.v = 0;
+}
+
 static inline void jpeg_ll_enable(jpeg_hw_t *hw)
 {
 	hw->cfg.jpeg_enc_en = 1;
@@ -73,12 +74,14 @@ static inline void jpeg_ll_disable(jpeg_hw_t *hw)
 
 static inline void jpeg_ll_set_x_pixel(jpeg_hw_t *hw, uint32_t x_pixel)
 {
-	hw->cfg.x_pixel = x_pixel & JPEG_F_X_PIXEL_M;
+	hw->cfg.v &= (~(JPEG_F_X_PIXEL_M << JPEG_F_X_PIXEL_S));
+	hw->cfg.v |= ((x_pixel & JPEG_F_X_PIXEL_M) << JPEG_F_X_PIXEL_S);
 }
 
 static inline void jpeg_ll_set_y_pixel(jpeg_hw_t *hw, uint32_t y_pixel)
 {
-	hw->cfg.y_pixel = y_pixel & JPEG_F_Y_PIXEL_M;
+	hw->cfg.v &= (~(JPEG_F_Y_PIXEL_M << JPEG_F_Y_PIXEL_S));
+	hw->cfg.v |= ((y_pixel & JPEG_F_Y_PIXEL_M) << JPEG_F_Y_PIXEL_S);
 }
 
 static inline void jpeg_ll_set_yuv_mode(jpeg_hw_t *hw, uint32_t mode)
@@ -136,7 +139,7 @@ static inline void jpeg_ll_enable_vsync_negedge_int(jpeg_hw_t *hw)
 
 static inline void jpeg_ll_disable_vsync_negedge_int(jpeg_hw_t *hw)
 {
-	hw->int_en.vsync_int_en =0;
+	hw->int_en.vsync_int_en = 0;
 }
 
 static inline void jpeg_ll_set_mclk_div(jpeg_hw_t *hw, uint32_t value)
@@ -154,14 +157,19 @@ static inline void jpeg_ll_disable_enc_size(jpeg_hw_t *hw)
 	hw->cfg.jpeg_enc_size = 0;
 }
 
-static inline void jpeg_ll_enable_yuv_byte_reverse(jpeg_hw_t *hw)
+static inline void jpeg_ll_enable_yuv_word_reverse(jpeg_hw_t *hw)
 {
-	hw->cfg.yuv_byte_reverse = 1;
+	hw->cfg.yuv_word_reverse = 1;
 }
 
-static inline void jpeg_ll_disable_yuv_byte_reverse(jpeg_hw_t *hw)
+static inline void jpeg_ll_disable_yuv_word_reverse(jpeg_hw_t *hw)
 {
-	hw->cfg.yuv_byte_reverse = 0;
+	hw->cfg.yuv_word_reverse = 0;
+}
+
+static inline void jpeg_ll_yuv_fml_sel(jpeg_hw_t *hw, uint32_t value)
+{
+	hw->cfg.yuv_fmt_sel = value;
 }
 
 static inline void jpeg_ll_enable_video_byte_reverse(jpeg_hw_t *hw)

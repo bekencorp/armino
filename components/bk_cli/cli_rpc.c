@@ -24,9 +24,10 @@
 #include <driver/uart.h>
 #include "bk_rtos_debug.h"
 #if CONFIG_SHELL_ASYNCLOG
-#include "shell_task.h"
+#include "components/shell_task.h"
 #endif
 #include "bk_api_cli.h"
+#include "boot.h"
 
 static void debug_help_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
@@ -48,6 +49,7 @@ static u8     rpc_inited = 0;
 
 #if CONFIG_ARCH_RISCV
 static void debug_perfmon_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void debug_show_boot_time(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
 
 const struct cli_command debug_cmds[] = {
@@ -61,6 +63,7 @@ const struct cli_command debug_cmds[] = {
 
 #if CONFIG_ARCH_RISCV
 	{"perfmon", "perfmon(calc MIPS)", debug_perfmon_command},
+	{"boottime", "boottime(show boot mtime info)", debug_show_boot_time},
 #endif
 };
 
@@ -293,5 +296,20 @@ static void debug_perfmon_command(char *pcWriteBuffer, int xWriteBufferLen, int 
 	saved_inst_cnt = cur_inst_cnt;
 }
 
+
+static void debug_show_boot_time(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	u64 cur_time = riscv_get_mtimer();
+	u64 cur_inst_cnt = riscv_get_instruct_cnt();
+
+	BK_LOGI("debug","cur time: %x:%08x\r\n", (u32)(cur_time >> 32), (u32)(cur_time & 0xFFFFFFFF));
+	BK_LOGI("debug","cur time: %ldms\r\n", (u32)(cur_time/26000));
+	BK_LOGI("debug","cur inst_cnt: %x:%08x\r\n", (u32)(cur_inst_cnt >> 32), (u32)(cur_inst_cnt & 0xFFFFFFFF));
+
+#if	CONFIG_SAVE_BOOT_TIME_POINT
+	show_saved_mtime_info();
+#endif
+
+}
 #endif
 

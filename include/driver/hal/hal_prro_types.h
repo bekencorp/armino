@@ -1,0 +1,153 @@
+// Copyright 2020-2021 Beken
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#pragma once
+
+#include <common/bk_err.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef enum {
+	/* AHB */
+	PRRO_DEV_AON = 0,
+	PRRO_DEV_SYSTEM,
+	PRRO_DEV_FLASH,
+	PRRO_DEV_GDMA,
+	PRRO_DEV_LA,
+	PRRO_DEV_USB,
+	PRRO_DEV_CAN,
+	PRRO_DEV_QSPI0,
+	PRRO_DEV_QSPI1,
+	PRRO_DEV_PSRAM,
+	PRRO_DEV_FFT,
+	PRRO_DEV_SBC,
+	PRRO_DEV_JPEG_ENC,
+	PRRO_DEV_JPEG_DEC,
+	PRRO_DEV_YUV,
+	PRRO_DEV_LCD_DISP,
+	PRRO_DEV_DMA2D,
+	PRRO_DEV_WIFI_MAC,
+	PRRO_DEV_WIFI_MODEM,
+	PRRO_DEV_BTDM_AHB,
+	PRRO_DEV_MBOX0,
+	PRRO_DEV_MBOX1,
+
+	/* APB */
+	PRRO_DEV_WDT,
+	PRRO_DEV_EFUSE,
+	PRRO_DEV_MBIC,
+	PRRO_DEV_SDMADC,
+	PRRO_DEV_TIMER0,
+	PRRO_DEV_TIMER1,
+	PRRO_DEV_PWM0,
+	PRRO_DEV_PWM1,
+	PRRO_DEV_UART0,
+	PRRO_DEV_UART1,
+	PRRO_DEV_UART2,
+	PRRO_DEV_SPI0,
+	PRRO_DEV_SPI1,
+	PRRO_DEV_I2C0,
+	PRRO_DEV_I2C1,
+	PRRO_DEV_SARADC,
+	PRRO_DEV_IRDA,
+	PRRO_DEV_TRNG,
+	PRRO_DEV_SDIO,
+	PRRO_DEV_SLCD,
+	PRRO_DEV_AUDIO,
+	PRRO_DEV_I2S0,
+	PRRO_DEV_I2S1,
+	PRRO_DEV_I2S2,
+	PRRO_DEV_VIDP,
+	PRRO_DEV_BTDM_APB,
+
+	/* HNONSEC */
+	PRRO_DEV_JPEC_ENC_HNONSEC,
+	PRRO_DEV_JPEC_DEC_HNONSEC,
+	PRRO_DEV_DMA2D_HNONSEC,
+	PRRO_DEV_WIFI_MAC_HNONSEC,
+	PRRO_DEV_HSU_HNONSEC,
+	PRRO_DEV_BTDM_HNONSEC,
+	PRRO_DEV_LA_HNONSEC,
+	PRRO_DEV_LCD_DISP_HNONSEC,
+	PRRO_DEV_ENC_HNONSEC,
+
+	/* GPIO */
+	PRRO_DEV_GPIO_0,
+	PRRO_DEV_GPIO_1,
+	PRRO_DEV_GPIO_2,
+	PRRO_DEV_GPIO_3,
+	PRRO_DEV_GPIO_4,
+	PRRO_DEV_GPIO_5,
+	PRRO_DEV_GPIO_6,
+	PRRO_DEV_GPIO_7,
+	PRRO_DEV_GPIO_8,
+	PRRO_DEV_GPIO_9,
+	PRRO_DEV_GPIO_10,
+	PRRO_DEV_GPIO_11,
+	PRRO_DEV_GPIO_12,
+	PRRO_DEV_GPIO_13,
+	PRRO_DEV_GPIO_14,
+	PRRO_DEV_GPIO_15,
+	PRRO_DEV_GPIO_16,
+	PRRO_DEV_GPIO_17,
+	PRRO_DEV_GPIO_18,
+	PRRO_DEV_GPIO_19,
+	PRRO_DEV_GPIO_20,
+	PRRO_DEV_GPIO_21,
+	PRRO_DEV_GPIO_22,
+	PRRO_DEV_GPIO_23,
+	PRRO_DEV_GPIO_24,
+	PRRO_DEV_GPIO_25,
+	PRRO_DEV_GPIO_26,
+	PRRO_DEV_GPIO_27,
+	PRRO_DEV_GPIO_28,
+	PRRO_DEV_GPIO_29,
+	PRRO_DEV_GPIO_30,
+	PRRO_DEV_GPIO_31,
+	PRRO_DEV_GPIO_32,
+	PRRO_DEV_GPIO_33,
+	PRRO_DEV_GPIO_34,
+	PRRO_DEV_GPIO_35,
+	PRRO_DEV_GPIO_36,
+	PRRO_DEV_GPIO_37,
+	PRRO_DEV_GPIO_38,
+	PRRO_DEV_GPIO_39,
+	PRRO_DEV_GPIO_40,
+	PRRO_DEV_GPIO_41,
+	PRRO_DEV_GPIO_42,
+	PRRO_DEV_GPIO_43,
+	PRRO_DEV_GPIO_44,
+	PRRO_DEV_GPIO_45,
+	PRRO_DEV_GPIO_46,
+	PRRO_DEV_GPIO_47,
+
+	PRRO_DEV_MAX,
+} prro_dev_t;
+
+typedef enum {
+	PRRO_UNPRIVILEGED = 0, /**<  */
+	PRRO_PRIVILEGED,
+} prro_privilege_type_t;
+
+typedef enum {
+	PRRO_SECURE = 0, /**<  */
+	PRRO_NON_SECURE,
+} prro_secure_type_t;
+
+#ifdef __cplusplus
+}
+#endif
+

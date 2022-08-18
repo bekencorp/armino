@@ -105,6 +105,18 @@ bk_err_t bk_aud_adc_deinit(void);
 bk_err_t bk_aud_set_adc_samp_rate(aud_adc_samp_rate_t samp_rate);
 
 /**
+ * @brief     Set the adc gain in adc work mode
+ *
+ * @param value the gain value of adc work mode
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_AUD_NOT_INIT: audio driver is not init
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_set_adc_gain(uint32_t value);
+
+/**
  * @brief     Get the adc fifo address in adc work mode
  *
  * @param adc_fifo_addr adc fifo address of adc work mode
@@ -353,6 +365,18 @@ bk_err_t bk_aud_dac_deinit(void);
  *    - BK_ERR_AUD_NOT_INIT: audio driver is not init
  */
 bk_err_t bk_aud_set_dac_samp_rate(aud_dac_samp_rate_t samp_rate);
+
+/**
+ * @brief     Set the dac gain
+ *
+ * @param value the gain value, range:0x00 ~ 0x3f
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_AUD_NOT_INIT: audio driver is not init
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_set_dac_gain(uint32_t value);
 
 /**
  * @brief     Enable dac interrupt

@@ -21,12 +21,15 @@
 /*
  * timer_s = counter_value * (1 / (freq /div))
  */
-static uint32_t timer_hal_cal_end_count(timer_id_t chan, uint32_t time_ms, uint32_t div)
+uint32_t timer_hal_cal_end_count(timer_id_t chan, uint64_t time, uint32_t div, timer_value_unit_t unit_type)
 {
     if (div == 0) {
         div = 1;
     }
     uint64_t value = 0;
+    uint16_t unit_factor = 1;
+
+    unit_factor = (unit_type == TIMER_UNIT_MS) ? 1 : 1000;
 
 #if (CONFIG_SYSTEM_CTRL)
 	uint32_t group_index = 0;
@@ -46,16 +49,16 @@ static uint32_t timer_hal_cal_end_count(timer_id_t chan, uint32_t time_ms, uint3
 	}
 
 	if(timer_clock == TIMER_SCLK_XTAL) {
-        	value = time_ms * TIMER_CLOCK_FREQ_26M / div;
+        	value = time * TIMER_CLOCK_FREQ_26M / unit_factor / div;
 	} else {
-        	value = time_ms * TIMER_CLOCK_FREQ_32K / div;
+        	value = time * TIMER_CLOCK_FREQ_32K / unit_factor / div;
 	}
 
 #else
     if (chan < SOC_TIMER_CHAN_NUM_PER_GROUP) {
-        value = time_ms * TIMER_CLOCK_FREQ_26M / div;
+        value = time * TIMER_CLOCK_FREQ_26M / unit_factor / div;
     } else {
-        value = time_ms * TIMER_CLOCK_FREQ_32K / div;
+        value = time * TIMER_CLOCK_FREQ_32K / unit_factor / div;
     }
 #endif
     if (value > 0xffffffff)
@@ -68,16 +71,16 @@ bk_err_t timer_hal_init(timer_hal_t *hal)
 {
     hal->hw = (timer_hw_t *)TIMER_LL_REG_BASE(hal->id);
 
-    for (int group = 0; group < SOC_TIMER_GROUP_NUM; group++) {
-        timer_ll_init(hal->hw, group);
+    for (int chan = 0; chan < SOC_TIMER_CHAN_NUM_PER_UNIT; chan++) {
+        timer_ll_init(hal->hw, chan);
     }
 
     return BK_OK;
 }
 
-bk_err_t timer_hal_init_timer(timer_hal_t *hal, timer_id_t chan, uint32_t time_ms)
+bk_err_t timer_hal_init_timer(timer_hal_t *hal, timer_id_t chan, uint64_t time, timer_value_unit_t unit_type)
 {
-    uint32_t end_count = timer_hal_cal_end_count(chan, time_ms, 1);
+    uint32_t end_count = timer_hal_cal_end_count(chan, time, 1, unit_type);
     timer_ll_set_end_count(hal->hw, chan, end_count);
     timer_ll_set_clk_div(hal->hw, chan, 0);
     timer_ll_clear_chan_interrupt_status(hal->hw, chan);
@@ -86,7 +89,7 @@ bk_err_t timer_hal_init_timer(timer_hal_t *hal, timer_id_t chan, uint32_t time_m
 
 bk_err_t timer_hal_set_period(timer_hal_t *hal, timer_id_t chan, uint32_t time_ms)
 {
-    uint32_t end_count = timer_hal_cal_end_count(chan, time_ms, 1);
+    uint32_t end_count = timer_hal_cal_end_count(chan, time_ms, 1, TIMER_UNIT_MS);
     timer_ll_set_end_count(hal->hw, chan, end_count);
     return BK_OK;
 }

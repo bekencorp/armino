@@ -1,25 +1,23 @@
-if (CONFIG_AUDIO_TEST AND CONFIG_AUDIO_RISCV_IP_V1_0 AND CONFIG_DUAL_CORE)
+if (CONFIG_AUD_INTF AND CONFIG_AUD_INTF_VER_OLD)
+if (CONFIG_AUDIO_TRANSFER)
+if (NOT (CONFIG_AUD_TRAS_MODE_CPU1 AND (NOT CONFIG_DUAL_CORE)))
 
-set(incs . include)
+set(incs include)
 
 set(srcs
-	include/audio_mailbox.c
+	mb/audio_mailbox.c
+	aud/audio_transfer_api.c
+	aud/audio_transfer_driver.c
 	)
 
-if (NOT CONFIG_SOC_BK7256_CP1)
+if (NOT CONFIG_SLAVE_CORE)
 	list(APPEND srcs
-				include/audio_transfer_cp0.c
-				audio_transfer_cp0_demo.c
-		)
-endif()
-
-if (CONFIG_SOC_BK7256_CP1)
-	list(APPEND srcs
-				include/audio_transfer_cp1.c
-				audio_transfer_cp1_demo.c
-		)
+		core/audio_transfer.c
+	)
 endif()
 
 endif()
+endif()
+endif()
 
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_common)
+armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_common media_common)

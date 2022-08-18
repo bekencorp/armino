@@ -18,6 +18,8 @@
 extern "C" {
 #endif
 
+#include "wlan_defs_pub.h"
+
 #define INFO_TLV_HEADER           (0x00564c54)   // ASCII TLV
 
 typedef enum{
@@ -76,12 +78,16 @@ typedef struct item_charge_st
 typedef struct item_fastconnect_st
 {
     INFO_ITEM_ST head;
-    char ssid[33];
-    char bssid[6];
-    char security;
-    char channel;
-    char psk[65];
-    char pwd[65];
+	uint8_t ssid[33];
+	uint8_t bssid[6];
+	uint8_t security;
+	uint8_t channel;
+	uint8_t psk[65];
+	uint8_t pwd[65];
+	uint8_t ip_addr[4];
+	uint8_t netmask[4];
+	uint8_t gw[4];
+	uint8_t dns1[4];
 }ITEM_FASTCONNECT_ST,*ITEM_FASTCONNECT_ST_PTR;
 #endif
 

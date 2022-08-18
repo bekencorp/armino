@@ -13,23 +13,12 @@
 // limitations under the License.
 
 #pragma once
-#include "lcd_disp_ll_macro_def.h"
-#include "jpeg_reg.h"
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef void (*lcd_isr_t)(void);
-
-/**
- * @brief  lcd macos define
- * @{
- */
-#define REG_DISP_DAT_FIFO                 LCD_DISP_I8080_DAT_FIFO_ADDR /**<define 8080 data fifo addr */
-#define REG_DISP_RGB_FIFO                 LCD_DISP_RGB_FIFO_ADDR       /**<define rgb fifo addr */
-#define JPEG_RX_FIFO                      JPEG_R_RX_FIFO
 
 /**
  * @}
@@ -40,14 +29,14 @@ typedef void (*lcd_isr_t)(void);
  * @{
  */
 
-
 /** define display module pixel */
 typedef enum {
-	X_PIXEL_8080 = 320,  /**<define 8080 lcd x size */
-	Y_PIXEL_8080 = 480,  /**<define 8080 lcd y size */
-	X_PIXEL_RGB = 480,   /**<define rgb lcd x size */
-	Y_PIXEL_RGB = 272,   /**<define rgb lcd x size */
-}display_pixel_format_t;
+	LCD_8080_16BIT = 1,
+	LCD_RGB_YUV,
+	LCD_RGB_RGB565,
+	LCD_RGB_RGB888
+}lcd_interface_data_t;
+
 
 /** rgb lcd input data format */
 typedef enum {
@@ -60,18 +49,17 @@ typedef enum {
 	VUYY_DATA,            /**< input data is uvyy format,data width is 32bits*/
 }rgb_input_data_format_t;
 
+/** rgb data output in clk rising or falling */
+typedef enum {
+	POSEDGE_OUTPUT = 0,    /**< output in clk falling*/
+	NEGEDGE_OUTPUT,        /**< output in clk rising*/
+}rgb_out_clk_edge_t ;
 
 typedef enum {
-	LCD_20M, /**< LCD Display module clk sel*/
-	LCD_30M,
-	LCD_40M,
-	LCD_48M,
-	LCD_60M,
-	LCD_80M,
-	LCD_96M,
-	LCD_160M,
-	LCD_240M,
-}lcd_clk_t;
+	LCD_TYPE_480_272 = 0,    /**< output in clk falling*/
+	LCD_TYPE_1024_600        /**< output in clk rising*/
+}lcd_types_t;
+
 
 
 /**< rgb lcd clk select*/
@@ -81,6 +69,19 @@ typedef enum {
 	I8080_OUTPUT_SOF =1 << 6,   /**< 8080 display output start of frame  */
 	I8080_OUTPUT_EOF = 1 << 7,   /**< 8080 display output end of frame    */
 }lcd_int_type_t;
+
+
+#define JPEGDEC_FRAME_SIZE  0x200000 
+#define DISPLAY_FRAME_COUNTS (2)
+
+#define PSRAM_BASEADDR (0x60000000UL)
+
+typedef struct
+{
+	uint8_t display[DISPLAY_FRAME_COUNTS][JPEGDEC_FRAME_SIZE];
+} psram_lcd_t;
+
+#define psram_lcd ((psram_lcd_t*)PSRAM_BASEADDR)
 
 /*
  * @}

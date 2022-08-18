@@ -56,7 +56,7 @@ enum
 
 #define I2S_BIT_DEBUG
 #ifdef I2S_BIT_DEBUG
-#define bit_dbg(fmt, ...)   bk_printf(fmt, ##__VA_ARGS__)
+#define bit_dbg(fmt, ...)   BK_LOG_RAW(fmt, ##__VA_ARGS__)
 #else
 #define bit_dbg(fmt, ...)
 #endif

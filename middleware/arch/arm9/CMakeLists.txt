@@ -24,8 +24,11 @@ if(CONFIG_FREERTOS)
 elseif(CONFIG_LITEOS_M)
 	list(APPEND incs os/liteos_m)
 	list(APPEND srcs os/liteos_m/boot_handlers.S os/liteos_m/cpu.c)
+elseif(CONFIG_NON_OS)
+	list(APPEND incs os/non_os)
+	list(APPEND srcs os/non_os/boot_handlers.S os/non_os/cpu.c)
 endif()
 endif()
 
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_common bk_init)
+armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_common)
 

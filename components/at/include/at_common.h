@@ -11,6 +11,7 @@
 #include <os/os.h>
 //#if (CONFIG_BLE_5_X || CONFIG_BTDM_5_2)
 #include "modules/ble.h"
+#include "modules/bt.h"
 #include "ble_api_5_x.h"
 
 //#endif
@@ -53,10 +54,15 @@ typedef struct
 //#if (CONFIG_BLE_5_X || CONFIG_BTDM_5_2)
 const at_command_t *lookup_bt_at_command(char *str1);
 const at_command_t *lookup_ble_at_command(char *str1);
+const at_command_t *lookup_bt_at_command(char *str1);
 void at_set_data_handle(uint8_t *out, char *buff, uint8_t len);
 int get_addr_from_param(bd_addr_t *bdaddr, char *input_param);
 int ble_at_cmd_cnt(void);
+int bt_at_cmd_cnt(void);
+
 extern const at_command_t ble_at_cmd_table[MAX_BLE_AT_CMD_LEN];
+extern const at_command_t bt_at_cmd_table[MAX_BT_AT_CMD_LEN];
+
 //#endif
 #if CONFIG_LWIP
 const at_command_t *lookup_wifi_at_command(char *str1);

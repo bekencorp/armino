@@ -24,7 +24,7 @@
 #include <driver/timer.h>
 #include <driver/touch_types.h>
 #include <os/os.h>
-#include <os/os.h>
+
 
 extern void delay(int num);
 
@@ -173,6 +173,7 @@ bk_err_t bk_touch_enable(touch_channel_t touch_id)
 	uint32_t touch_select = 0;
 	touch_select = bk_touch_channel_transfer(touch_id);
 	TOUCH_RETURN_ON_INVALID_ID(touch_select);
+	bk_int_isr_register(INT_SRC_TOUCH, touch_isr, NULL);
 	aon_pmu_drv_touch_select(touch_select);
 
 	sys_drv_touch_power_down(0);
@@ -212,7 +213,7 @@ bk_err_t bk_touch_calibration_start(void)
 	bk_touch_calib_enable(0);
 	delay(100);
 	bk_touch_calib_enable(1);
-	delay(100);
+	delay(200);
 
 	return BK_OK;
 }
@@ -254,7 +255,6 @@ bk_err_t bk_touch_scan_mode_multi_channl_set(touch_channel_t touch_id)
 bk_err_t bk_touch_int_enable(touch_channel_t touch_id, uint32_t enable)
 {
 	if(enable) {
-		bk_int_isr_register(INT_SRC_TOUCH, touch_isr, NULL);
 		sys_drv_touch_int_enable(1);
 		aon_pmu_drv_touch_int_enable(touch_id);
 	} else {
@@ -341,10 +341,11 @@ void touch_isr(void)
 				s_touch_isr[touch_id].callback(s_touch_isr[touch_id].param);
 			}
 
-			ret = bk_timer_start(TIMER_ID0, 50, touch_timer_isr);
+			ret = bk_timer_start(TIMER_ID0, 100, touch_timer_isr);
 			if (ret != BK_OK) {
 				os_printf("Timer start failed\r\n");
 			}
+			break;
 		}
 	}
 }

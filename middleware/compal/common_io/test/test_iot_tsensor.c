@@ -40,8 +40,8 @@
 #include "semphr.h"
 
 #define testIotTSENSOR_DELAY              pdMS_TO_TICKS( 5000 )
-#define testIotTSENSOR_ROOM_TEMP          ( 30000 )
-#define testIotTSENSOR_ROOM_TEMP_DELTA    ( 15000 )
+#define testIotTSENSOR_ROOM_TEMP          ( 700 )
+#define testIotTSENSOR_ROOM_TEMP_DELTA    ( 500)
 #define testIotTSENSOR_TEMP_DELTA         ( 5000 )
 #define testIotTSENSOR_INVALID_INPUT      ( 99 )
 #define TSENSOR_TEMP_ABSOLUTE_ZERO        ( -273150 )
@@ -413,8 +413,10 @@ TEST( TEST_IOT_TSENSOR, AFQP_IotTsensorSetGetThresholdSuccess )
 {
     IotTsensorHandle_t xTsensorHandle;
     int32_t lRetVal;
-    int32_t setMinThreshold = -999000;
-    int32_t setMaxThreshold = 999000;
+    //int32_t setMinThreshold = -999000;
+    //int32_t setMaxThreshold = 999000;
+    int32_t setMinThreshold = 50;
+    int32_t setMaxThreshold = 700;
     int32_t getMinThreshold = 0;
     int32_t getMaxThreshold = 0;
 

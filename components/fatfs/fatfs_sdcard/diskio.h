@@ -28,6 +28,7 @@ typedef enum
     DISK_NUMBER_RAM  = 0,
     DISK_NUMBER_SDIO_SD = 1,
     DISK_NUMBER_UDISK   = 2,
+    DISK_NUMBER_FLASH   = 3,
     DISK_NUMBER_COUNT,
 } DISK_NUMBER;
 

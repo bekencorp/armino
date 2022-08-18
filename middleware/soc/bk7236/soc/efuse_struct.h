@@ -19,6 +19,26 @@ extern "C" {
 #endif
 
 typedef volatile struct {
+	/* REG_0x00 */
+	uint32_t dev_id;
+
+	/* REG_0x01 */
+	uint32_t dev_version;
+
+	/* REG_0x02 */
+	union {
+		struct {
+			uint32_t soft_reset:      1; /**< bit[0] uart soft reset */
+			uint32_t clk_gate_bypass: 1; /**< bit[1] bypass uart clock gate */
+			uint32_t reserved:       30; /**< bit[2:31] reserved */
+		};
+		uint32_t v;
+	} global_ctrl;
+
+	/* REG_0x03 */
+	uint32_t dev_status;
+
+	/* REG_0x04 */
 	union {
 		struct {
 			uint32_t en:        1; /**< bit[0] efuse operate enable, sw set 1, hw clear it after operate finished*/
@@ -27,11 +47,13 @@ typedef volatile struct {
 			uint32_t addr:      5; /**< bit[8:12] efuse operate address */
 			uint32_t reserved1: 3; /**< bit[13:15] */
 			uint32_t wr_data:   8; /**< bit[16:23] efuse write data */
-			uint32_t reserved3: 8; /**< bit[24:31] */
+			uint32_t reserved3: 7; /**< bit[24:30] */
+			uint32_t vdd25_en:  1; /**< bit[31] */
 		};
 		uint32_t v;
 	} ctrl;
 
+	/* REG_0x05 */
 	union {
 		struct {
 			uint32_t rd_data:       8; /**< bit[0:7] efuse read operate data */
@@ -45,5 +67,4 @@ typedef volatile struct {
 #ifdef __cplusplus
 }
 #endif
-
 

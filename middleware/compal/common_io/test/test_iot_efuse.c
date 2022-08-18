@@ -47,11 +47,11 @@
 /* Globals values which can be overwritten by the test
  * framework invoking these tests */
 /*-----------------------------------------------------------*/
-uint32_t ultestIotEfuse16BitWordValidIdx = 151;        /**< A valid 16-bit word fuse index. */
-uint32_t ultestIotEfuse16BitWordInvalidIdx = 159;      /**< An invalid 16-bit word fuse index. */
+uint32_t ultestIotEfuse16BitWordValidIdx = 0;        /**< A valid 16-bit word fuse index. */
+uint32_t ultestIotEfuse16BitWordInvalidIdx = 16;      /**< An invalid 16-bit word fuse index. */
 uint16_t ustestIotEfuse16BitWordWriteVal = 0x5a5a;     /**< test value to write into a 16-bit efuse word */
-uint32_t ultestIotEfuse32BitWordValidIdx = 159;        /**< A valid 32-bit word fuse index. */
-uint32_t ultestIotEfuse32BitWordInvalidIdx = 151;      /**< An invalid 32-bit word fuse index. */
+uint32_t ultestIotEfuse32BitWordValidIdx = 1;        /**< A valid 32-bit word fuse index. */
+uint32_t ultestIotEfuse32BitWordInvalidIdx = 8;      /**< An invalid 32-bit word fuse index. */
 uint32_t ultestIotEfuse32BitWordWriteVal = 0x5a5a5a5a; /**< test value to write into a 32-bit efuse word */
 
 

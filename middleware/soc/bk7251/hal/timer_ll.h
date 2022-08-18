@@ -33,9 +33,27 @@ typedef enum {
     TIMRE_GROUP_CHAN2 = 2,
 } timer_group_chan_t;
 
-static inline void timer_ll_init(timer_hw_t *hw, uint32_t group)
+static inline void timer_ll_init(timer_hw_t *hw, uint32_t chan)
 {
-    hw->group[group].ctrl.v = 0;
+#if CONFIG_TIMER_SUPPORT_ID_BITS
+    if ((~CONFIG_TIMER_SUPPORT_ID_BITS) & BIT(chan)) {
+        return;
+    }
+#endif
+
+    uint32_t group = TIMER_LL_GROUP(chan);
+    uint32_t group_chan = TIMER_LL_CHAN(chan);
+
+    if (TIMER_GROUP_CHAN0 == group_chan) {
+        hw->group[group].ctrl.timer0_en = 0;
+        hw->group[group].ctrl.timer0_int_en = 0;
+    } else if (TIMER_GROUP_CHAN1 == group_chan) {
+        hw->group[group].ctrl.timer1_en = 0;
+        hw->group[group].ctrl.timer1_int_en = 0;
+    } else {
+        hw->group[group].ctrl.timer2_en = 0;
+        hw->group[group].ctrl.timer2_int_en = 0;
+    }
 }
 
 static inline void timer_ll_set_enable(timer_hw_t *hw, uint32_t group, uint32_t chan, uint32_t value)

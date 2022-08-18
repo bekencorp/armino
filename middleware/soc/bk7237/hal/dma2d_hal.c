@@ -29,43 +29,39 @@
 #include <common/bk_include.h>
 #include <soc/soc.h>
 #include <driver/hal/hal_dma2d_types.h>
-#include "dma2d_ll.h"
+//#include "dma2d_ll.h"
 #include "dma2d_hal.h"
+#include "dma2d_ll_macro_def.h"
 
-dma2d_hal_t s_dma2d_hal;
 
 bk_err_t dma2d_hal_init(dma2d_config_t *dma2d)
 {
-	s_dma2d_hal.hw = (dma2d_hw_t *)SOC_DMA2D_REG_BASE;
-
 	// 000:m2m; 001:m2m pixel convert with fg; 010:m2m blend; 011:r2m.only with output; 100: m2m blend fix fg; 101:m2m blend fix bg;
-	dma2d_ll_set_dma2d_control_reg_mode(s_dma2d_hal.hw, dma2d->init.mode);
-
-	dma2d_ll_set_dma2d_control_reg_line_offset_mode(s_dma2d_hal.hw, dma2d->init.line_offset_mode);
+	dma2d_ll_set_dma2d_control_reg_mode(dma2d->init.mode);
+	dma2d_ll_set_dma2d_control_reg_master_tran_length(dma2d->init.trans_ability);
+	dma2d_ll_set_dma2d_control_reg_out_byte_revese(dma2d->init.data_reverse);
+	dma2d_ll_set_dma2d_control_reg_line_offset_mode(dma2d->init.line_offset_mode);
 
 	//0:argb888; 1:rgb888; 010:rgb565; 011:argb1555; 100:argb444
-	dma2d_ll_set_out_pfc_contrl_out_color_mode(s_dma2d_hal.hw, dma2d->init.color_mode);
-	
-	dma2d_ll_set_out_pfc_contrl_out_alpha_invert(s_dma2d_hal.hw, dma2d->init.alpha_inverted);
-	dma2d_ll_set_output_offset_out_line_offset(s_dma2d_hal.hw, dma2d->init.output_offset);
-	dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_rb_swap(s_dma2d_hal.hw, dma2d->init.red_blue_swap);
+	dma2d_ll_set_out_pfc_contrl_out_color_mode(dma2d->init.color_mode);
+	dma2d_ll_set_out_pfc_contrl_out_alpha_invert(dma2d->init.alpha_inverted);
+	dma2d_ll_set_output_offset_out_line_offset(dma2d->init.output_offset);
+	dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_rb_swap(dma2d->init.red_blue_swap);
 	return BK_OK;
 }
 
 bk_err_t dma2d_hal_deinit(void)
 {
-	s_dma2d_hal.hw = (dma2d_hw_t *)SOC_DMA2D_REG_BASE;	
-
 	// 000:m2m; 001:m2m pixel convert with fg; 010:m2m blend; 011:r2m.only with output; 100: m2m blend fix fg; 101:m2m blend fix bg;
-	dma2d_ll_set_dma2d_control_reg_value(s_dma2d_hal.hw,0);
-	dma2d_ll_set_dma2d_int_clear_value(s_dma2d_hal.hw, 0x3f);
+	dma2d_ll_set_dma2d_control_reg_value(0);
+	dma2d_ll_set_dma2d_int_clear_value(0x3f);
 	//0:argb888; 1:rgb888; 010:rgb565; 011:argb1555; 100:argb444
-	dma2d_ll_set_out_pfc_contrl_value(s_dma2d_hal.hw, 0);
-	dma2d_ll_set_output_offset_value(s_dma2d_hal.hw, 0);
-	dma2d_ll_set_dma2d_fg_address_value(s_dma2d_hal.hw, 0);
-	dma2d_ll_set_dma2d_bg_address_value(s_dma2d_hal.hw, 0);
-	dma2d_ll_set_dma2d_fg_pfc_ctrl_value(s_dma2d_hal.hw, 0);
-	dma2d_ll_set_dma2d_fg_pfc_ctrl_value(s_dma2d_hal.hw, 0);
+	dma2d_ll_set_out_pfc_contrl_value(0);
+	dma2d_ll_set_output_offset_value(0);
+	dma2d_ll_set_dma2d_fg_address_value(0);
+	dma2d_ll_set_dma2d_bg_address_value(0);
+	dma2d_ll_set_dma2d_fg_pfc_ctrl_value(0);
+	dma2d_ll_set_dma2d_fg_pfc_ctrl_value(0);
 
 	return BK_OK;
 }
@@ -83,11 +79,9 @@ bk_err_t dma2d_hal_deinit(void)
   */
 bk_err_t dma2d_hal_config(dma2d_config_t *dma2d, uint32_t src_addr, uint32_t dst_addr, uint32_t width, uint32_t height)
 {
-
-
-	dma2d_ll_set_dma2d_number_of_line_pixel_line(s_dma2d_hal.hw, width);
-	dma2d_ll_set_dma2d_number_of_line_number_line(s_dma2d_hal.hw, height);
-	dma2d_ll_set_dma2d_out_mem_address_out_mem_address(s_dma2d_hal.hw, dst_addr);
+	dma2d_ll_set_dma2d_number_of_line_pexel_line(width);
+	dma2d_ll_set_dma2d_number_of_line_number_line(height);
+	dma2d_ll_set_dma2d_out_mem_address_out_mem_address(dst_addr);
 
 	if (dma2d->init.mode == DMA2D_R2M) {
 		#if(0)
@@ -128,15 +122,16 @@ bk_err_t dma2d_hal_config(dma2d_config_t *dma2d, uint32_t src_addr, uint32_t dst
 			tmp  = ((tmp3 << 4U) | (tmp2 << 8U) | (tmp1 << 12U) | tmp4);
 		}
 		#endif
-		dma2d_ll_set_out_color_reg_output_clor_reg(s_dma2d_hal.hw, src_addr);
+		
+		dma2d_ll_set_out_color_reg_output_clor_reg(src_addr);
 	}
 	else if (dma2d->init.mode == DMA2D_M2M_BLEND_FG) /*M2M_blending with fixed color FG DMA2D Mode selected*/ {
-		dma2d_ll_set_dma2d_bg_address_value(s_dma2d_hal.hw, src_addr);
+		dma2d_ll_set_dma2d_bg_address_value(src_addr);
 	}
 
 	else /* M2M, M2M_PFC,M2M_Blending or M2M_blending with fixed color BG DMA2D Mode */ {
 		/* Configure DMA2D source address */
-		dma2d_ll_set_dma2d_fg_address_value(s_dma2d_hal.hw, src_addr);
+		dma2d_ll_set_dma2d_fg_address_value(src_addr);
 	}
 
 	return BK_OK;
@@ -145,13 +140,13 @@ bk_err_t dma2d_hal_config(dma2d_config_t *dma2d, uint32_t src_addr, uint32_t dst
 
 bk_err_t dma2d_hal_start_transfer(bool start_transfer)
 {
-	dma2d_ll_set_dma2d_control_reg_tran_start(s_dma2d_hal.hw, start_transfer); 
+	dma2d_ll_set_dma2d_control_reg_tran_start(start_transfer); 
 	return BK_OK;
 }
 
 bool dma2d_hal_is_transfer_done(void)
 {
-	return dma2d_ll_get_dma2d_control_reg_tran_start(s_dma2d_hal.hw);
+	return dma2d_ll_get_dma2d_control_reg_tran_start();
 }
 
 /**
@@ -170,31 +165,31 @@ bk_err_t dma2d_hal_blending_start(dma2d_config_t *dma2d, uint32_t src_addr1, uin
 	if(dma2d->init.mode == DMA2D_M2M_BLEND_FG)
 	{
 		/*blending & fixed FG*/
-		dma2d_ll_set_dma2d_fg_color_reg_value(s_dma2d_hal.hw, src_addr1);
+		dma2d_ll_set_dma2d_fg_color_reg_value(src_addr1);
 		/* Configure the source, destination address and the data size */
 		dma2d_hal_config(dma2d, src_addr2, dst_addr, Width, Height);
 	}
 	else if (dma2d->init.mode == DMA2D_M2M_BLEND_BG)
 	{
 		/*blending & fixed BG*/
-		dma2d_ll_set_dma2d_bg_color_reg_value(s_dma2d_hal.hw, src_addr2);
+		dma2d_ll_set_dma2d_bg_color_reg_value(src_addr2);
 		/* Configure the source, destination address and the data size */
 		dma2d_hal_config(dma2d, src_addr1, dst_addr, Width, Height);
 	}
 	else
 	{
-		dma2d_ll_set_dma2d_bg_address_bg_address(s_dma2d_hal.hw, src_addr2);
+		dma2d_ll_set_dma2d_bg_address_bg_address(src_addr2);
 		/* Configure the source, destination address and the data size */
 		dma2d_hal_config(dma2d, src_addr1, dst_addr, Width, Height);
 	}
-	dma2d_ll_set_dma2d_control_reg_tran_start(s_dma2d_hal.hw, 1); 
+	dma2d_ll_set_dma2d_control_reg_tran_start(1); 
 	return BK_OK;
 }
 
 
 bk_err_t dma2d_hal_suspend(bool suspend)
 {
-	dma2d_ll_set_dma2d_control_reg_tran_suspend(s_dma2d_hal.hw, suspend);
+	dma2d_ll_set_dma2d_control_reg_tran_suspend(suspend);
 	return BK_OK;
 }
 
@@ -217,20 +212,20 @@ bk_err_t dma2d_hal_clut_config(dma2d_clut_cfg_t clut_cfg, uint32_t layer_idx)
 	if(layer_idx == DMA2D_BACKGROUND_LAYER)
 	{
 		/* Write background CLUT memory address */
-		dma2d_ll_set_bg_clut_mem_address_value(s_dma2d_hal.hw, (uint32_t)clut_cfg.pclut);
+		dma2d_ll_set_bg_clut_mem_address_value((uint32_t)clut_cfg.pclut);
 		/* Write background CLUT size and CLUT color mode */
-		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_clut_color_mode(s_dma2d_hal.hw, clut_cfg.club_color_mode);
+		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_clut_color_mode(clut_cfg.club_color_mode);
 //		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_start_clut();
-		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_clut_size(s_dma2d_hal.hw, clut_cfg.size);
+		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_clut_size(clut_cfg.size);
 	}
 	/* Configure the CLUT of the foreground DMA2D layer */
 	else
 	{
 		/* Write foreground CLUT memory address */
-		dma2d_ll_set_fg_clut_mem_address_value(s_dma2d_hal.hw,  (uint32_t)clut_cfg.pclut);
+		dma2d_ll_set_fg_clut_mem_address_value( (uint32_t)clut_cfg.pclut);
 		/* Write foreground CLUT size and CLUT color mode */
-		dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_color_mode(s_dma2d_hal.hw, clut_cfg.club_color_mode);
-		dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_clut_size(s_dma2d_hal.hw, clut_cfg.size);
+		dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_color_mode(clut_cfg.club_color_mode);
+		dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_clut_size(clut_cfg.size);
 	}
 	return BK_OK;
 }
@@ -254,48 +249,48 @@ bk_err_t dma2d_hal_layer_config(dma2d_config_t *dma2d, uint32_t LayerIdx)
 	/* Configure the background DMA2D layer */
 	if (LayerIdx == DMA2D_BACKGROUND_LAYER) {
 		 /* Write DMA2D BGPFCCR register */
-		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_color_mode(s_dma2d_hal.hw, pLayerCfg->input_color_mode);
-		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_alpha_mode(s_dma2d_hal.hw, pLayerCfg->alpha_mode);
-		dma2d_ll_set_dma2d_bg_pfc_ctrl_alpha_invert(s_dma2d_hal.hw, pLayerCfg->alpha_inverted);
-		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_rb_swap(s_dma2d_hal.hw, pLayerCfg->red_blue_swap);
+		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_color_mode(pLayerCfg->input_color_mode);
+		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_alpha_mode(pLayerCfg->alpha_mode);
+		dma2d_ll_set_dma2d_bg_pfc_ctrl_alpha_invert(pLayerCfg->alpha_inverted);
+		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_rb_swap(pLayerCfg->red_blue_swap);
 
 		if (pLayerCfg->alpha_mode == DMA2D_REPLACE_ALPHA) {
-			dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_alpha(s_dma2d_hal.hw, pLayerCfg->input_alpha);
+			dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_alpha(pLayerCfg->input_alpha);
 		}
 		if (pLayerCfg->alpha_mode == DMA2D_COMBINE_ALPHA) {
-			dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_alpha(s_dma2d_hal.hw, (pLayerCfg->input_alpha & dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_alpha(s_dma2d_hal.hw)));
+			dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_alpha((pLayerCfg->input_alpha & dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_alpha()));
 		}
 
 		/* DMA2D BGOR register configuration -------------------------------------*/
-		dma2d_ll_set_dma2d_bg_offset_bg_line_offset(s_dma2d_hal.hw, pLayerCfg->input_offset);
+		dma2d_ll_set_dma2d_bg_offset_bg_line_offset(pLayerCfg->input_offset);
 
 		/* DMA2D BGCOLR register configuration -------------------------------------*/
 		if ((pLayerCfg->input_color_mode == DMA2D_INPUT_A4) || (pLayerCfg->input_color_mode == DMA2D_INPUT_A8))
 		{
-			dma2d_ll_set_dma2d_bg_color_reg_value(s_dma2d_hal.hw, pLayerCfg->input_color);
+			dma2d_ll_set_dma2d_bg_color_reg_value(pLayerCfg->input_color);
 		}
 	}
 	 /* Configure the foreground DMA2D layer */
 	else {
 		/* Write DMA2D FGPFCCR register */
-		dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_color_mode(s_dma2d_hal.hw, pLayerCfg->input_color_mode);
-		dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_alpha_mode(s_dma2d_hal.hw, pLayerCfg->alpha_mode);
-		dma2d_ll_set_dma2d_fg_pfc_ctrl_alpha_invert(s_dma2d_hal.hw, pLayerCfg->alpha_inverted);
-		dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_rb_swap(s_dma2d_hal.hw, pLayerCfg->red_blue_swap);
+		dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_color_mode(pLayerCfg->input_color_mode);
+		dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_alpha_mode(pLayerCfg->alpha_mode);
+		dma2d_ll_set_dma2d_fg_pfc_ctrl_alpha_invert(pLayerCfg->alpha_inverted);
+		dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_rb_swap(pLayerCfg->red_blue_swap);
 
 		if (pLayerCfg->alpha_mode == DMA2D_REPLACE_ALPHA) {
-			dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_alpha(s_dma2d_hal.hw, pLayerCfg->input_alpha);
+			dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_alpha(pLayerCfg->input_alpha);
 		}
 		if (pLayerCfg->alpha_mode == DMA2D_COMBINE_ALPHA) {
-			dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_alpha(s_dma2d_hal.hw, (pLayerCfg->input_alpha & dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_alpha(s_dma2d_hal.hw)));
+			dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_alpha((pLayerCfg->input_alpha & dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_alpha()));
 		}
 
 		/* DMA2D FGOR register configuration -------------------------------------*/
-		dma2d_ll_set_dma2d_fg_offset_fg_line_offset(s_dma2d_hal.hw, pLayerCfg->input_offset);
+		dma2d_ll_set_dma2d_fg_offset_fg_line_offset(pLayerCfg->input_offset);
 	
 		/* DMA2D FGCOLR register configuration -------------------------------------*/
 		if ((pLayerCfg->input_color_mode == DMA2D_INPUT_A4) || (pLayerCfg->input_color_mode == DMA2D_INPUT_A8)) {
-			dma2d_ll_set_dma2d_bg_color_reg_value(s_dma2d_hal.hw, pLayerCfg->input_color);
+			dma2d_ll_set_dma2d_bg_color_reg_value(pLayerCfg->input_color);
 		}
 	}
 	return BK_OK;
@@ -304,7 +299,7 @@ bk_err_t dma2d_hal_layer_config(dma2d_config_t *dma2d, uint32_t LayerIdx)
 
 bk_err_t dma2d_hal_abort(bool abort)
 {
-	dma2d_ll_set_dma2d_control_reg_tran_abort(s_dma2d_hal.hw, abort);
+	dma2d_ll_set_dma2d_control_reg_tran_abort(abort);
 	return BK_OK;
 }
 
@@ -313,13 +308,13 @@ bk_err_t dma2d_hal_int_config(dma2d_int_type_t int_type, bool enable)
 {
 	uint32_t int_value;
 
-	int_value = dma2d_ll_get_dma2d_control_reg_value(s_dma2d_hal.hw);
+	int_value = dma2d_ll_get_dma2d_control_reg_value();
 	
 	if (1 == enable) {
-		dma2d_ll_set_dma2d_control_reg_value(s_dma2d_hal.hw, int_value | int_type);
+		dma2d_ll_set_dma2d_control_reg_value(int_value | int_type);
 	}
 	else {
-		dma2d_ll_set_dma2d_control_reg_value(s_dma2d_hal.hw, int_value & ~(int_type));
+		dma2d_ll_set_dma2d_control_reg_value(int_value & ~(int_type));
 	}
 
 	return BK_OK;
@@ -327,12 +322,12 @@ bk_err_t dma2d_hal_int_config(dma2d_int_type_t int_type, bool enable)
 
 bk_err_t dma2d_hal_int_status_get(void)
 {
-	return dma2d_ll_get_dma2d_int_status_value(s_dma2d_hal.hw);
+	return dma2d_ll_get_dma2d_int_status_value();
 }
 
 bk_err_t dma2d_hal_int_status_clear(dma2d_int_status_t int_status)
 {
-	dma2d_ll_set_dma2d_int_clear_value(s_dma2d_hal.hw, int_status);
+	dma2d_ll_set_dma2d_int_clear_value(int_status);
 	return BK_OK;
 }
 
@@ -349,7 +344,7 @@ bk_err_t dma2d_hal_line_Watermar_cfg(uint32_t Line)
 		return BK_FAIL;
 	}
 	else {
-		dma2d_ll_set_dma2d_line_watermark_line_watermark(s_dma2d_hal.hw, Line);
+		dma2d_ll_set_dma2d_line_watermark_line_watermark(Line);
 	}
 	return BK_OK;
 }
@@ -367,7 +362,7 @@ bk_err_t dma2d_hal_line_Watermar_cfg(uint32_t Line)
   */
 bk_err_t dma2d_hal_blending_config(uint32_t SrcAddress1, uint32_t SrcAddress2, uint32_t DstAddress, uint32_t Width, uint32_t Height)
 {
-	return dma2d_ll_get_dma2d_int_status_value(s_dma2d_hal.hw);
+	return dma2d_ll_get_dma2d_int_status_value();
 	return BK_OK;
 }
 
@@ -382,10 +377,9 @@ bk_err_t dma2d_hal_blending_config(uint32_t SrcAddress1, uint32_t SrcAddress2, u
   */
 bk_err_t dma2d_hal_deadtime_config(uint8_t DeadTime, bool en)
 {
-	dma2d_ll_set_dma2d_master_time_config_master_time_ena(s_dma2d_hal.hw, en);
-	dma2d_ll_set_dma2d_master_time_config_dead_time(s_dma2d_hal.hw, DeadTime);
+	dma2d_ll_set_dma2d_master_time_config_master_time_ena(en);
+	dma2d_ll_set_dma2d_master_time_config_dead_time(DeadTime);
 
 	return BK_OK;
 }
-
 

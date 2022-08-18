@@ -6,7 +6,7 @@ extern "C" {
 
 #include "mailbox_channel.h"
 
-#define MB_CHNL_UVC     3
+#define UVC_DATA_ADDR    (0x60000000)
 
 typedef struct {
 	uint32_t chnl_id;

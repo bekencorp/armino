@@ -19,7 +19,26 @@ extern "C" {
 #endif
 
 typedef volatile struct {
-	/* REG_0x0 */
+	/* REG_0x00 */
+	uint32_t dev_id;
+
+	/* REG_0x01 */
+	uint32_t dev_version;
+
+	/* REG_0x02 */
+	union {
+		struct {
+			uint32_t soft_reset:      1; /**< bit[0] uart soft reset */
+			uint32_t clk_gate_bypass: 1; /**< bit[1] bypass uart clock gate */
+			uint32_t reserved:       30; /**< bit[2:31] reserved */
+		};
+		uint32_t v;
+	} global_ctrl;
+
+	/* REG_0x03 */
+	uint32_t dev_status;
+
+	/* REG_0x04 */
 	union {
 		struct {
 			uint32_t tx_fifo_int_level:    2; /**< bit[0:1] */
@@ -43,7 +62,7 @@ typedef volatile struct {
 		uint32_t v;
 	} ctrl;
 
-	/* REG_0x1 */
+	/* REG_0x5 */
 	union {
 		struct {
 			uint32_t tx_en:            1;  /**< bit[0] */
@@ -57,7 +76,7 @@ typedef volatile struct {
 		uint32_t v;
 	} cfg;
 
-	/* REG_0x2 */
+	/* REG_0x6 */
 	union {
 		struct {
 			uint32_t reserved0:         1;  /**< bit[0] */
@@ -80,7 +99,7 @@ typedef volatile struct {
 		uint32_t v;
 	} int_status;
 
-	/* REG_0x3 */
+	/* REG_0x7 */
 	union {
 		struct {
 			uint32_t fifo_data: 16; /**< bit[0:15] */

@@ -353,6 +353,9 @@ struct mem {
   mem_size_t prev;
   /** 1: this area is used; 0: this area is unused */
   u8_t used;
+#if MEM_TRX_DYNAMIC_EN
+  u8_t type;
+#endif
 #if MEM_OVERFLOW_CHECK
   /** this keeps track of the user allocation size for guard checks */
   mem_size_t user_size;
@@ -716,7 +719,12 @@ mem_free(void *rmem)
   }
 
   MEM_STATS_DEC_USED(used, mem->next - (mem_size_t)(((u8_t *)mem - ram)));
-
+#if MEM_TRX_DYNAMIC_EN
+  if (mem->type == MEM_TYPE_TX)
+    MEM_STATS_DEC_TX_USED(tx_used, mem->next - (mem_size_t)(((u8_t *)mem - ram)));
+  else if(mem->type == MEM_TYPE_RX)
+    MEM_STATS_DEC_RX_USED(rx_used, mem->next - (mem_size_t)(((u8_t *)mem - ram)));
+#endif
   /* finally, see if prev or next are free also */
   plug_holes(mem);
   MEM_SANITY();
@@ -818,6 +826,12 @@ mem_trim(void *rmem, mem_size_t new_size)
       ptr_to_mem(mem2->next)->prev = ptr2;
     }
     MEM_STATS_DEC_USED(used, (size - newsize));
+#if MEM_TRX_DYNAMIC_EN
+    if (mem->type == MEM_TYPE_TX)
+      MEM_STATS_INC_TX_USED(tx_used, (size - newsize));
+    else if(mem->type == MEM_TYPE_RX)
+      MEM_STATS_INC_RX_USED(rx_used, (size - newsize));
+#endif
     /* no need to plug holes, we've already done that */
   } else if (newsize + SIZEOF_STRUCT_MEM + MIN_SIZE_ALIGNED <= size) {
     /* Next struct is used but there's room for another struct mem with
@@ -868,8 +882,13 @@ mem_trim(void *rmem, mem_size_t new_size)
  *
  * Note that the returned value will always be aligned (as defined by MEM_ALIGNMENT).
  */
+#if MEM_TRX_DYNAMIC_EN
+void *
+mem_malloc_trx(mem_size_t size_in, u8_t type)
+#else
 void *
 mem_malloc(mem_size_t size_in)
+#endif
 {
   mem_size_t ptr, ptr2, size;
   struct mem *mem, *mem2;
@@ -895,6 +914,27 @@ mem_malloc(mem_size_t size_in)
   if ((size > MEM_SIZE_ALIGNED) || (size < size_in)) {
     return NULL;
   }
+
+#if MEM_TRX_DYNAMIC_EN
+  /*
+   * Introduce dynamic TX/RX buffer allocation strategy.
+   * It will return NULL if the used size is greater than threshold of TX
+   * or RX even the remain memory is not empty, it could reserve some
+   * necessary memory to maintence the basic function such as receiving
+   * TCP ACK on TCP upload scenario or transmitting TCP ACK on TCP
+   * download scenario
+   */
+  if ((type == MEM_TYPE_TX) && (lwip_stats.mem.tx_used > MEM_MAX_TX_SIZE)) {
+    MEM_STATS_INC(tx_err);
+    MEM_STATS_INC(err);
+    return NULL;
+  }
+  else if ((type == MEM_TYPE_RX) && (lwip_stats.mem.rx_used > MEM_MAX_RX_SIZE)) {
+    MEM_STATS_INC(rx_err);
+    MEM_STATS_INC(err);
+    return NULL;
+  }
+#endif
 
   /* protect the heap from concurrent access */
   sys_mutex_lock(&mem_mutex);
@@ -955,6 +995,15 @@ mem_malloc(mem_size_t size_in)
             ptr_to_mem(mem2->next)->prev = ptr2;
           }
           MEM_STATS_INC_USED(used, (size + SIZEOF_STRUCT_MEM));
+#if MEM_TRX_DYNAMIC_EN
+          if (type == MEM_TYPE_TX)
+            MEM_STATS_INC_TX_USED(tx_used, (size + SIZEOF_STRUCT_MEM));
+          else if(type == MEM_TYPE_RX)
+          {
+            MEM_STATS_INC_RX_USED(rx_used, (size + SIZEOF_STRUCT_MEM));
+            //os_printf("m alc rx\n");
+          }
+#endif
         } else {
           /* (a mem2 struct does no fit into the user data space of mem and mem->next will always
            * be used at this point: if not we have 2 unused structs in a row, plug_holes should have
@@ -965,6 +1014,14 @@ mem_malloc(mem_size_t size_in)
            */
           mem->used = 1;
           MEM_STATS_INC_USED(used, mem->next - mem_to_ptr(mem));
+#if MEM_TRX_DYNAMIC_EN
+          if (type == MEM_TYPE_TX)
+            MEM_STATS_INC_TX_USED(tx_used, mem->next - mem_to_ptr(mem));
+          else if(type == MEM_TYPE_RX)
+          {
+            MEM_STATS_INC_RX_USED(rx_used, mem->next - mem_to_ptr(mem));
+          }
+#endif
         }
 #if LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT
 mem_malloc_adjust_lfree:
@@ -1002,6 +1059,9 @@ mem_malloc_adjust_lfree:
         mem_overflow_init_element(mem, size_in);
 #endif
         MEM_SANITY();
+#if MEM_TRX_DYNAMIC_EN
+        mem->type = type;
+#endif
         return (u8_t *)mem + SIZEOF_STRUCT_MEM + MEM_SANITY_OFFSET;
       }
     }
@@ -1010,6 +1070,12 @@ mem_malloc_adjust_lfree:
   } while (local_mem_free_count != 0);
 #endif /* LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT */
   MEM_STATS_INC(err);
+#if MEM_TRX_DYNAMIC_EN
+  if (type == MEM_TYPE_TX)
+    MEM_STATS_INC(tx_err);
+  else if(type == MEM_TYPE_RX)
+    MEM_STATS_INC(rx_err);
+#endif
   LWIP_MEM_ALLOC_UNPROTECT();
   sys_mutex_unlock(&mem_mutex);
   LWIP_DEBUGF(MEM_DEBUG | LWIP_DBG_LEVEL_SERIOUS, ("mem_malloc: could not allocate %"S16_F" bytes\n", (s16_t)size));

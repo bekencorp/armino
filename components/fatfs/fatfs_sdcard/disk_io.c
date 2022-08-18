@@ -20,10 +20,16 @@
 
 #include "bk_uart.h"
 
+#include <driver/flash.h>
+#include <driver/flash_partition.h>
+
+#define FLASH_SECTOR_SIZE  512
+
 /* Definitions of physical drive number for each drive */
-#define DEV_RAM		0	/* Example: Map Ramdisk to physical drive 0 */
-#define DEV_SD		1	/* Example: Map MMC/SD card to physical drive 1 */
-#define DEV_USB		2	/* Example: Map USB MSD to physical drive 2 */
+#define DEV_RAM		DISK_NUMBER_RAM	/* Example: Map Ramdisk to physical drive 0 */
+#define DEV_SD		DISK_NUMBER_SDIO_SD	/* Example: Map MMC/SD card to physical drive 1 */
+#define DEV_USB		DISK_NUMBER_UDISK	/* Example: Map USB MSD to physical drive 2 */
+#define DEV_FLASH	DISK_NUMBER_FLASH	/* Example: Map USB MSD to physical drive 3 */
 
 #if CONFIG_SDCARD_HOST
 DD_HANDLE sdcard_hdl = DD_HANDLE_UNVALID;
@@ -48,6 +54,10 @@ DSTATUS disk_status (
 		return stat;
 
 	case DEV_USB :
+		return stat;
+
+	case DEV_FLASH :
+		stat = RES_OK;
 		return stat;
 		
 	default:
@@ -96,7 +106,11 @@ DSTATUS disk_initialize (
 
 	case DEV_USB :
 		return stat;
-		
+
+	case DEV_FLASH :
+		stat = RES_OK;
+		return stat;
+
 	default:
 		break;
 	}
@@ -137,7 +151,14 @@ DRESULT disk_read (
 
 	case DEV_USB :
 		return res;
-		
+
+	case DEV_FLASH :
+		result = bk_flash_partition_read(BK_PARTITION_USR_CONFIG, buff,
+				sector * FLASH_SECTOR_SIZE, FLASH_SECTOR_SIZE * count);
+		if(result == BK_OK)
+			res = RES_OK;
+		return res;
+
 	default:
 		break;
 	}
@@ -178,6 +199,9 @@ DRESULT disk_write (
 		// translate the arguments here
 		return res;
 
+	case DEV_FLASH :
+		// Fatfs flash read only
+		return res;
 	default:
 		break;
 	}
@@ -196,7 +220,9 @@ DRESULT disk_ioctl (
 	void *buff		/* Buffer to send/receive control data */
 )
 {
+	bk_logic_partition_t *partition_info;
 	DRESULT res = FR_OK;
+	int result;
 
 	switch (pdrv) {
 	case DEV_SD :
@@ -204,7 +230,13 @@ DRESULT disk_ioctl (
 		switch(cmd)
 		{
 		case CTRL_SYNC:
-			os_printf("not support CTRL_SYNC \r\n");
+			//os_printf("not support CTRL_SYNC \r\n");
+			if(sdcard_hdl!=DD_HANDLE_UNVALID)
+			{
+				result =  ddev_control(sdcard_hdl, 0, 0);
+				if(result != RES_OK)
+					res = result;
+			}
 			res = RES_OK;
 			break;
 		case GET_SECTOR_SIZE:
@@ -229,6 +261,34 @@ DRESULT disk_ioctl (
 
 	case DEV_USB :
 		// Process of the command the USB drive
+		return res;
+
+	case DEV_FLASH :
+		switch(cmd)
+		{
+		case GET_SECTOR_SIZE:
+			*(WORD *)buff = FLASH_SECTOR_SIZE;
+			res = RES_OK;
+			break;
+		case GET_BLOCK_SIZE:
+			*(WORD *)buff = FLASH_SECTOR_SIZE;
+			res = RES_OK;
+			break;
+		case GET_SECTOR_COUNT:
+			partition_info = bk_flash_partition_get_info(BK_PARTITION_USR_CONFIG);
+			if (NULL == partition_info) {
+				os_printf("%s partiion not found.\r\n", __func__);
+				break;
+			}
+			*(DWORD *)buff = partition_info->partition_length / FLASH_SECTOR_SIZE;
+			os_printf("sdcard sector cnt=%d\r\n", *(DWORD *)buff);
+			res = RES_OK;
+			break;
+		default:
+			res = RES_PARERR;
+			break;
+		}
+
 		return res;
 
 	default:
@@ -257,7 +317,11 @@ DSTATUS disk_uninitialize ( BYTE pdrv/* Physical drive nmuber to identify the dr
 
 	case DEV_USB :
 		break;
-		
+
+	case DEV_FLASH :
+		stat = RES_OK;
+		return stat;
+
 	default:
 		break;
 	}

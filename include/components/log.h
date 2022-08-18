@@ -28,13 +28,19 @@ extern "C" {
 #define BK_LOG_DEBUG   4 /*!< Extra information which is not necessary for normal use (values, pointers, sizes, etc). */
 #define BK_LOG_VERBOSE 5 /*!< Extra information which is not necessary for normal use (values, pointers, sizes, etc). */
 
+#if CONFIG_STDIO_PRINTF
+#define _OS_PRINTF printf
+#else
+#define _OS_PRINTF os_printf
+#endif
+
 #if CFG_LEGACY_LOG
 
-#define BK_LOGE( tag, format, ... ) os_printf(format, ##__VA_ARGS__)
-#define BK_LOGW( tag, format, ... ) os_printf(format, ##__VA_ARGS__)
-#define BK_LOGI( tag, format, ... ) os_printf(format, ##__VA_ARGS__)
-#define BK_LOGD( tag, format, ... ) os_printf(format, ##__VA_ARGS__)
-#define BK_LOGV( tag, format, ... ) os_printf(format, ##__VA_ARGS__)
+#define BK_LOGE( tag, format, ... ) _OS_PRINTF(format, ##__VA_ARGS__)
+#define BK_LOGW( tag, format, ... ) _OS_PRINTF(format, ##__VA_ARGS__)
+#define BK_LOGI( tag, format, ... ) _OS_PRINTF(format, ##__VA_ARGS__)
+#define BK_LOGD( tag, format, ... ) _OS_PRINTF(format, ##__VA_ARGS__)
+#define BK_LOGV( tag, format, ... ) _OS_PRINTF(format, ##__VA_ARGS__)
 
 #else
 
@@ -72,38 +78,38 @@ extern "C" {
 #define BK_LOG_FORMAT(letter, format)  LOG_COLOR_ ## letter #letter " (%d) %s: " format  LOG_RESET_COLOR
 
 #if (LOG_LEVEL >= BK_LOG_ERROR)
-#define BK_LOGE( tag, format, ... ) os_printf(BK_LOG_FORMAT(E, format), rtos_get_time(), tag, ##__VA_ARGS__)
+#define BK_LOGE( tag, format, ... ) _OS_PRINTF(BK_LOG_FORMAT(E, format), rtos_get_time(), tag, ##__VA_ARGS__)
 #else
 #define BK_LOGE( tag, format, ... )
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_WARN)
-#define BK_LOGW( tag, format, ... ) os_printf(BK_LOG_FORMAT(W, format), rtos_get_time(), tag, ##__VA_ARGS__)
+#define BK_LOGW( tag, format, ... ) _OS_PRINTF(BK_LOG_FORMAT(W, format), rtos_get_time(), tag, ##__VA_ARGS__)
 #else
 #define BK_LOGW( tag, format, ... )
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_INFO)
-#define BK_LOGI( tag, format, ... ) os_printf(BK_LOG_FORMAT(I, format), rtos_get_time(), tag, ##__VA_ARGS__)
+#define BK_LOGI( tag, format, ... ) _OS_PRINTF(BK_LOG_FORMAT(I, format), rtos_get_time(), tag, ##__VA_ARGS__)
 #else
 #define BK_LOGI( tag, format, ... )
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_DEBUG)
-#define BK_LOGD( tag, format, ... ) os_printf(BK_LOG_FORMAT(D, format), rtos_get_time(), tag, ##__VA_ARGS__)
+#define BK_LOGD( tag, format, ... ) _OS_PRINTF(BK_LOG_FORMAT(D, format), rtos_get_time(), tag, ##__VA_ARGS__)
 #else
 #define BK_LOGD( tag, format, ... )
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_VERBOSE)
-#define BK_LOGV( tag, format, ... ) os_printf(BK_LOG_FORMAT(V, format), rtos_get_time(), tag, ##__VA_ARGS__)
+#define BK_LOGV( tag, format, ... ) _OS_PRINTF(BK_LOG_FORMAT(V, format), rtos_get_time(), tag, ##__VA_ARGS__)
 #else
 #define BK_LOGV( tag, format, ... )
 #endif
 
 #endif // CFG_LEGACY_LOG
 
-#define BK_LOG_RAW(format, ...) os_printf(format, ##__VA_ARGS__)
+#define BK_LOG_RAW(format, ...) _OS_PRINTF(format, ##__VA_ARGS__)
 
 #define BK_IP4_FORMAT "%d.%d.%d.%d"
 #define BK_IP4_STR(_ip) ((_ip) & 0xFF), (((_ip) >> 8) & 0xFF), (((_ip) >> 16) & 0xFF), (((_ip) >> 24) & 0xFF)
@@ -116,7 +122,7 @@ void bk_mem_dump(const char* titile, uint32_t start, uint32_t len);
 
 #if CONFIG_SHELL_ASYNCLOG
 
-#include "shell_task.h"
+#include "components/shell_task.h"
 
 #undef BK_LOG_FORMAT
 #undef BK_LOGE

@@ -37,10 +37,10 @@ extern "C" {
         PS_BMSG_IOCTL_AP_PS_STOP = 14,
         PS_BMSG_IOCTL_AP_PS_START = 15,
         PS_BMSG_IOCTL_AP_PS_RUN = 16,
-        
+
     }
     PS_BMSG_IOCTL_CMD;
-    
+
     typedef enum {
         PS_FORBID_NO_ON = 1,
         PS_FORBID_PREVENT = 2,
@@ -52,17 +52,17 @@ extern "C" {
         PS_FORBID_HW_TIMER = 8,
         PS_FORBID_RXING = 9,
     } PS_FORBID_STATUS;
-    
+
     typedef enum {
         PS_NO_PS_MODE = 0,
         PS_DTIM_PS_MODE = 3,
         PS_DTIM_PS_OPENING = 4,
         PS_DTIM_PS_CLOSING = 5,
     } PS_MODE_STATUS;
-    
+
     UINT16 power_save_forbid_trace ( PS_FORBID_STATUS forbid );
     void mac_ps_bcn_callback ( uint8_t *data, int len );
-    void mac_ps_dtim_wake ( UINT32 status );
+    void mac_ps_dtim_wake ( uint32_t status );
     void mac_ps_msg_process ( UINT8 ps_msg );
     bool power_save_rf_sleep_check ( void );
     UINT8 power_save_if_ps_rf_dtim_enabled ( void );

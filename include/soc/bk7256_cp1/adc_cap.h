@@ -19,8 +19,6 @@
  * 2. Whether analog channel is begin from 7
  **/
 
-#define SOC_ADC_CHAN_MIN           1
-#define SOC_ADC_CHAN_MAX           6
 #define SOC_ADC_SAMPLE_CNT_MAX     32
 
 #define SOC_ADC_FIFO_DATA_SUPPORT

@@ -129,6 +129,13 @@ struct netif *
 ip4_route_src(const ip4_addr_t *src, const ip4_addr_t *dest)
 {
   if (src != NULL) {
+
+#if BK_IP4_ROUTE
+    if (!ip4_addr_isany(src) && (ip4_netif_exist(dest, src) == false)) {
+      return NULL;
+    }
+#endif
+
     /* when src==NULL, the hook is called from ip4_route(dest) */
     struct netif *netif = LWIP_HOOK_IP4_ROUTE_SRC(src, dest);
     if (netif != NULL) {
@@ -408,6 +415,51 @@ ip4_input_accept(struct netif *netif)
   return 0;
 }
 
+#if LWIP_RIPPLE20
+/**
+ * parse ipv4 IP options
+ * return: < 0 if IP options contain invalid option, = 0 Ok.
+ */
+int ip4_parse_opt(u8 *opt, int len)
+{
+	int ret = 0;
+	u8 type, item_len;
+
+	while (len > 1) {
+		type = *opt;
+		opt++;
+		item_len = *opt;
+		len -= item_len;
+		opt++;
+
+		/* avoid infinite recusive */
+		if (type != 0 && item_len == 0)
+			return -1;
+
+		switch (type) {
+		case 0:
+			/* End of Option List */
+			return ret;
+		case 7: {
+			/* RR Option */
+			u8 *pointer = opt;
+
+			if (*pointer < 4 || (*pointer % 4))
+				return -1;
+
+			break;
+		}
+
+		}
+
+		/* Forward to next option */
+		opt += item_len - 2;
+	}
+
+	return ret;
+}
+#endif /* LWIP_RIPPLE20 */
+
 /**
  * This function is called by the network interface device driver when
  * an IP packet is received. The function does the basic checks of the
@@ -469,6 +521,19 @@ ip4_input(struct pbuf *p, struct netif *inp)
   if (iphdr_len < p->tot_len) {
     pbuf_realloc(p, iphdr_len);
   }
+
+#if LWIP_RIPPLE20
+  /* Parse IP options */
+  if (iphdr_hlen > 20) {
+	u8 *opt = (u8*)p->payload;
+
+	if (ip4_parse_opt(opt + 20, iphdr_hlen - 20)) {
+		pbuf_free(p);
+		LWIP_DEBUGF(IP_DEBUG | LWIP_DBG_LEVEL_WARNING, ("IP packet dropped due to invalid IP options\n"));
+		return ERR_OK;
+    }
+  }
+#endif
 
   /* header length exceeds first pbuf length, or ip length exceeds total pbuf length? */
   if ((iphdr_hlen > p->len) || (iphdr_len > p->tot_len) || (iphdr_hlen < IP_HLEN)) {
@@ -661,10 +726,11 @@ ip4_input(struct pbuf *p, struct netif *inp)
 
 #if LWIP_IGMP
   /* there is an extra "router alert" option in IGMP messages which we allow for but do not police */
-  if ((iphdr_hlen > IP_HLEN) &&  (IPH_PROTO(iphdr) != IP_PROTO_IGMP)) {
+  if ((iphdr_hlen > IP_HLEN) &&  (IPH_PROTO(iphdr) != IP_PROTO_IGMP))
 #else
-  if (iphdr_hlen > IP_HLEN) {
+  if (iphdr_hlen > IP_HLEN)
 #endif /* LWIP_IGMP */
+  {
     LWIP_DEBUGF(IP_DEBUG | LWIP_DBG_LEVEL_SERIOUS, ("IP packet dropped since there were IP options (while IP_OPTIONS_ALLOWED == 0).\n"));
     pbuf_free(p);
     IP_STATS_INC(ip.opterr);
@@ -932,6 +998,10 @@ ip4_output_if_opt_src(struct pbuf *p, const ip4_addr_t *src, const ip4_addr_t *d
     chk_sum += iphdr->_id;
 #endif /* CHECKSUM_GEN_IP_INLINE */
     ++ip_id;
+
+    #if PBUF_LIFETIME_DBG
+    p->tx_tick_id = lwip_ntohs(IPH_ID(iphdr));
+    #endif
 
     if (src == NULL) {
       ip4_addr_copy(iphdr->src, *IP4_ADDR_ANY4);

@@ -149,6 +149,8 @@ typedef enum {
 } icu_int_src_t;
 #endif
 
+typedef void (*int_mac_ps_callback_t)(uint32_t status);
+
 #ifdef __cplusplus
 }
 #endif

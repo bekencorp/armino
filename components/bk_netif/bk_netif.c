@@ -10,6 +10,9 @@
 #endif
 #include <components/event.h>
 #include "bk_private/bk_wifi.h"
+#if CONFIG_IPV6
+#include "netif.h"
+#endif
 
 //TODO refactor BK netif module
 
@@ -111,6 +114,49 @@ bk_err_t bk_netif_get_ip4_config(netif_if_t ifx, netif_ip4_config_t *ip4_config)
 
 	return BK_OK;
 }
+
+#if CONFIG_IPV6
+
+struct interface {
+       struct netif netif;
+       ip_addr_t ipaddr;
+       ip_addr_t nmask;
+       ip_addr_t gw;
+};
+
+bk_err_t bk_netif_get_ip6_addr_info(netif_if_t ifx)
+{
+       int i;
+       int num = 0;
+       struct netif *netif;
+       struct interface *if_handle;
+
+       if (ifx == NETIF_IF_STA) {
+               if_handle = net_get_sta_handle();
+       } else if (ifx == NETIF_IF_AP) {
+               if_handle = net_get_uap_handle();
+       } else {
+               return BK_ERR_NETIF_IF;
+       }
+
+       netif = &if_handle->netif;
+
+       for (i = 0; i < MAX_IPV6_ADDRESSES; i++) {
+                       u8 *ipv6_addr;
+                       ipv6_addr = (u8*)ip_2_ip6(&if_handle->netif.ip6_addr[i])->addr;///&addr->ipv6[i].address;
+
+                       bk_printf("ipv6_addr[%d] %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x\r\n", i,
+                                       ipv6_addr[0], ipv6_addr[1], ipv6_addr[2], ipv6_addr[3],
+                                       ipv6_addr[4], ipv6_addr[5], ipv6_addr[6], ipv6_addr[7],
+                                       ipv6_addr[8], ipv6_addr[9], ipv6_addr[10], ipv6_addr[11],
+                                       ipv6_addr[12], ipv6_addr[13], ipv6_addr[14], ipv6_addr[15]);
+                       bk_printf("ipv6_state[%d] 0x%x\r\n", i, netif->ip6_addr_state[i]);
+                       num++;
+       }
+
+       return num;
+}
+#endif
 
 //TODO currently we only set the DHCP client flag
 bk_err_t bk_netif_dhcpc_start(netif_if_t ifx)

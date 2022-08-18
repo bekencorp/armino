@@ -70,8 +70,23 @@ bk_err_t bk_aud_adc_init(aud_adc_work_mode_t adc_work_mode, const aud_adc_config
 			sys_drv_analog_reg12_set(0x81B0E0E0);
 
 			//enable mic1 and mic2
-			sys_drv_aud_mic1_en(1);
-			sys_drv_aud_mic2_en(1);
+			switch (adc_config->mic_config) {
+				case AUD_MIC_ALL_ENABLE:
+					sys_drv_aud_mic1_en(1);
+					sys_drv_aud_mic2_en(1);
+					break;
+
+				case AUD_MIC_MIC1_ENABLE:
+					sys_drv_aud_mic1_en(1);
+					break;
+
+				case AUD_MIC_MIC2_ENABLE:
+					sys_drv_aud_mic2_en(1);
+					break;
+
+				default:
+					break;
+			}
 
 			//reset mic after configuring parameters
 			sys_drv_aud_mic_rst_set(1);
@@ -174,20 +189,25 @@ bk_err_t bk_aud_driver_init(void)
 	if (s_aud_driver_is_init)
 		return BK_OK;
 	//power on
-	pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_AUDP, PM_POWER_MODULE_STATE_ON);
+	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_AUDP_AUDIO, PM_POWER_MODULE_STATE_ON);
 	//sys_drv_aud_power_en(0);    //temp used
 	//select 26M XTAL clock and enable audio clock
 	sys_drv_aud_select_clock(0);
-	sys_drv_aud_clock_en(1);
+	//sys_drv_aud_clock_en(1);
+	bk_pm_clock_ctrl(PM_CLK_ID_AUDIO, CLK_PWR_CTRL_PWR_UP);
 	//enable audpll en
 	sys_drv_aud_audpll_en(1);
+
+	//enable audio adc power
+	sys_drv_aud_aud_en(1);
 
 	// config analog register
 	sys_drv_analog_reg12_set(0x8610E0E0);
 	sys_drv_analog_reg13_set(0x0F808400);
 	sys_drv_analog_reg14_set(0x40038002);    //gain :15
 	sys_drv_analog_reg15_set(0x40038002);
-	sys_drv_analog_reg16_set(0x89C02401);
+	//sys_drv_analog_reg16_set(0x89C02401);
+	sys_drv_analog_reg16_set(0x89C62401);
 	sys_drv_analog_reg17_set(0x80100000);
 
 	//enable audvdd 1.0v and 1.5v
@@ -241,10 +261,14 @@ bk_err_t bk_aud_driver_deinit(void)
 	//disable audpll en
 	sys_drv_aud_audpll_en(0);
 
-	sys_drv_aud_clock_en(0);
+	//disable audio adc power
+	sys_drv_aud_aud_en(0);
+
+	//sys_drv_aud_clock_en(0);
+	bk_pm_clock_ctrl(PM_CLK_ID_AUDIO, CLK_PWR_CTRL_PWR_DOWN);
 
 	//power down
-	//pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_AUDP, PM_POWER_MODULE_STATE_OFF);
+	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_AUDP_AUDIO, PM_POWER_MODULE_STATE_OFF);
 	//sys_drv_aud_power_en(1);    //temp used
 
 	s_aud_driver_is_init = false;
@@ -256,6 +280,13 @@ bk_err_t bk_aud_set_adc_samp_rate(aud_adc_samp_rate_t samp_rate)
 {
 	AUD_RETURN_ON_NOT_INIT();
 	aud_hal_set_audio_config_samp_rate_adc(samp_rate);
+	return BK_OK;
+}
+
+bk_err_t bk_aud_set_adc_gain(uint32_t value)
+{
+	AUD_RETURN_ON_NOT_INIT();
+	aud_hal_set_adc_config0_adc_set_gain(value);
 	return BK_OK;
 }
 
@@ -508,6 +539,13 @@ bk_err_t bk_aud_set_dac_samp_rate(aud_dac_samp_rate_t samp_rate)
 	AUD_RETURN_ON_NOT_INIT();
 	aud_hal_dac_set_sample_rate(samp_rate);
 
+	return BK_OK;
+}
+
+bk_err_t bk_aud_set_dac_gain(uint32_t value)
+{
+	AUD_RETURN_ON_NOT_INIT();
+	aud_hal_set_dac_config0_dac_set_gain(value);
 	return BK_OK;
 }
 

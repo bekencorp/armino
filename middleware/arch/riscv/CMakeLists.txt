@@ -18,6 +18,12 @@ set(srcs
 	riscv.c
 	)
 
+#if(CONFIG_CACHE_ENABLE)
+	list(APPEND srcs
+		cache.c
+	)
+#endif()
+
 if(CONFIG_FREERTOS)
 	list(APPEND incs os/freertos)
 	list(APPEND srcs
@@ -33,4 +39,7 @@ if(CONFIG_LITEOS_M_V3)
 endif()
 endif()
 
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" )
+armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_common)
+if(CONFIG_ARCH_RISCV)
+target_compile_options(${COMPONENT_LIB} PRIVATE -mno-relax)
+endif()

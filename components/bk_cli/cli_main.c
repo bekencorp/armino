@@ -24,10 +24,18 @@
 #include <driver/uart.h>
 #include "bk_rtos_debug.h"
 #if CONFIG_SHELL_ASYNCLOG
-#include "shell_task.h"
+#include "components/shell_task.h"
 #endif
 #include "bk_uart_debug.h"
 #include "bk_api_cli.h"
+#if (CONFIG_SLAVE_CORE && CONFIG_MEDIA)
+#include "media_common.h"
+#endif
+
+#ifdef CONFIG_MEDIA
+#include "media_cli.h"
+#endif
+
 
 #define TAG "cli"
 
@@ -233,7 +241,7 @@ int handle_shell_input(char *inbuf, int in_buf_size, char * outbuf, int out_buf_
 					strcpy(&outbuf[0], "syntax error\r\n");
                 return 2;
             }
-            if(stat.inArg) {
+            if(!stat.inQuote && stat.inArg) {
                 stat.inArg = 0;
                 inbuf[i] = '\0';
                 stat.limQ = 1;
@@ -318,18 +326,19 @@ static void cli_ate_main(uint32_t data)
 	int cnt = 0;
 	uint8_t rx_data;
 
-        if(NULL == ate_test_semaphore)
-    	{
-              ret = rtos_init_semaphore(&ate_test_semaphore, 1);
-        	if (kNoErr != ret)
-            		os_printf("cli_ate_main: ATE create background sema failed\r\n");
-    	}
+	if(NULL == ate_test_semaphore)
+	{
+		ret = rtos_init_semaphore(&ate_test_semaphore, 1);
+		if (kNoErr != ret)
+			os_printf("cli_ate_main: ATE create background sema failed\r\n");
+	}
 
 	bk_uart_disable_sw_fifo(CONFIG_UART_PRINT_PORT);
 	bk_uart_register_rx_isr(CONFIG_UART_PRINT_PORT, (uart_isr_t)ate_uart_rx_isr, NULL);
 	bk_uart_enable_rx_interrupt(CONFIG_UART_PRINT_PORT);
 
 	send_device_id();
+	ate_test_multiple_cpus_init();
 
 	while (1) {
 
@@ -466,7 +475,7 @@ static int handle_input(char *inbuf)
                 os_printf("The data does not conform to the regulations %d\r\n",__LINE__);
                 return 2;
             }
-            if(stat.inArg) {
+            if(!stat.inQuote && stat.inArg) {
                 stat.inArg = 0;
                 inbuf[i] = '\0';
                 stat.limQ = 1;
@@ -1249,7 +1258,7 @@ int bk_cli_init(void)
 	cli_trng_init();
 #endif
 
-#if (CLI_CFG_TRNG == 1)
+#if (CLI_CFG_EFUSE == 1)
 	cli_efuse_init();
 #endif
 
@@ -1273,8 +1282,12 @@ int bk_cli_init(void)
 	cli_flash_init();
 #endif
 
-#if (CONFIG_FLASH_QUAD_ENABLE == 1)
+#if (CLI_CFG_FLASH == 1)
 	cli_flash_test_init();
+#endif
+
+#if (CLI_CFG_SDIO_HOST == 1)
+	cli_sdio_host_init();
 #endif
 
 #if (CLI_CFG_KEYVALUE == 1)
@@ -1297,7 +1310,7 @@ int bk_cli_init(void)
 	cli_qspi_init();
 #endif
 
-#if (CLI_CFG_AON_RTC == 1)
+#if (CONFIG_AON_RTC_TEST == 1)
 	cli_aon_rtc_init();
 #endif
 
@@ -1392,6 +1405,10 @@ int bk_cli_init(void)
 	cli_aud_init();
 #endif
 
+#if (CLI_CFG_AUD_INTF == 1)
+	cli_aud_intf_init();
+#endif
+
 #if (CLI_CFG_AUD_CP0 == 1)
 	cli_aud_cp0_init();
 #endif
@@ -1449,9 +1466,17 @@ int bk_cli_init(void)
 #endif
 
 #if (CONFIG_DOORBELL == 1)
-#if (CONFIG_DUAL_CORE)
+//#if (CONFIG_DUAL_CORE)
 	cli_doorbell_init();
+//#endif
 #endif
+
+#if (CONFIG_MEDIA == 1)
+	media_cli_init();
+#endif
+
+#if (CLI_CFG_PSRAM)
+	cli_psram_init();
 #endif
 
 
@@ -1491,6 +1516,13 @@ int bk_cli_init(void)
 	pCli->initialized = 1;
 #if (!CONFIG_SHELL_ASYNCLOG)
 	pCli->echo_disabled = 0;
+#endif
+
+#if (CONFIG_SLAVE_CORE && CONFIG_MEDIA)
+	ret = common_mb_init();
+	if (ret != kNoErr) {
+		os_printf("Error: Failed to create common_mb thread: %d\r\n", ret);
+	}
 #endif
 
 	return kNoErr;

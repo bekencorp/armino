@@ -15,7 +15,9 @@
 #include <os/os.h>
 #include "cli.h"
 #include <driver/uart.h>
+#include <driver/trng.h>
 #include "uart_statis.h"
+#include "bk_misc.h"
 
 #define CLI_UART_RECV_BUF_LEN  1024
 
@@ -25,6 +27,7 @@ static void cli_uart_help(void)
 	CLI_LOGI("uart_driver deinit\n");
 	CLI_LOGI("uart_int {id} {enable|disable|reg} {tx|rx}\n");
 	CLI_LOGI("uart {id} {init|deinit|write|read|write_string|dump_statis} [...]\n");
+	CLI_LOGI("uart_test {idle_start|idle_stop} {uart1|uart2|uart3}\n");
 }
 
 static void cli_uart_driver_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -247,12 +250,149 @@ static void cli_uart_int_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 	}
 }
 
+#if CONFIG_IDLE_UART_OUT_TEST
+static beken_thread_t idle_uart_out_test_handle = NULL;
+static uint16_t idle_uart_out_test_id = 0;
+static void cli_idle_uart_out_test_isr(uart_id_t id, void *param)
+{
+	return;
+}
+
+static void cli_idle_uart_out_test(void *arg)
+{
+	while (1) {
+		unsigned long random;
+		char tx_buffer[16];
+
+		random = bk_rand();
+		itoa(random, tx_buffer, 14);
+		tx_buffer[16] = '\0';
+		uart_write_string(idle_uart_out_test_id, tx_buffer);
+
+	}
+	rtos_delete_thread(&idle_uart_out_test_handle);
+}
+
+static void cli_uart_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		cli_uart_help();
+		return;
+	}
+
+	if (os_strcmp(argv[1], "idle_start") == 0) {
+		if (!idle_uart_out_test_handle) {
+			if (os_strcmp(argv[2], "uart1") == 0) {
+#if !CONFIG_PRINT_PORT_UART1
+				idle_uart_out_test_id = UART_ID_0;
+				CLI_LOGI("idle_uart_out task start: uart_id = UART1\n" );
+
+#else
+				CLI_LOGI("cli_uart_test_cmd UART1 for log output!!!\n");
+				return;
+#endif
+			} else if (os_strcmp(argv[2], "uart2")== 0) {
+#if !CONFIG_PRINT_PORT_UART2
+				idle_uart_out_test_id = UART_ID_1;
+				CLI_LOGI("idle_uart_out task start: uart_id = UART2\n" );
+
+#else
+				CLI_LOGI("cli_uart_test_cmd UART2 for log output!!!\n");
+				return;
+#endif
+			} else if (os_strcmp(argv[2], "uart3")== 0) {
+#if !CONFIG_PRINT_PORT_UART3
+				idle_uart_out_test_id = UART_ID_2;
+				CLI_LOGI("idle_uart_out task start: uart_id = UART3\n" );
+
+#else
+				CLI_LOGI("cli_uart_test_cmd UART3 for log output!!!\n");
+				return;
+#endif
+
+			} else {
+				cli_uart_help();
+				return;
+			}
+
+			uart_config_t config = {0};
+			os_memset(&config, 0, sizeof(uart_config_t));
+
+			config.baud_rate = UART_BAUD_RATE;
+			config.data_bits = UART_DATA_8_BITS;
+			config.parity = UART_PARITY_NONE;
+			config.stop_bits = UART_STOP_BITS_1;
+			config.flow_ctrl = UART_FLOWCTRL_DISABLE;
+			config.src_clk = UART_SCLK_XTAL_26M;
+
+			BK_LOG_ON_ERR(bk_uart_init(idle_uart_out_test_id, &config));
+			BK_LOG_ON_ERR(bk_uart_deinit(idle_uart_out_test_id));
+
+			BK_LOG_ON_ERR(bk_uart_register_tx_isr(idle_uart_out_test_id, cli_idle_uart_out_test_isr, NULL));
+			BK_LOG_ON_ERR(bk_uart_enable_tx_interrupt(idle_uart_out_test_id));
+			BK_LOG_ON_ERR(bk_uart_init(idle_uart_out_test_id, &config));
+			BK_LOG_ON_ERR(bk_trng_driver_init());
+			BK_LOG_ON_ERR(bk_trng_start());
+			if(rtos_create_thread(&idle_uart_out_test_handle, 8, "idle_uart_out",
+					(beken_thread_function_t) cli_idle_uart_out_test, 2048, 0)) {
+				CLI_LOGI("cli_uart_test_cmd rtos_create_thread FAILED!\n");
+				return;
+			}
+		}else {
+			CLI_LOGI("PLEASE stop the task\n");
+		}
+		return;
+	} else if (os_strcmp(argv[1], "idle_stop") == 0) {
+
+		if (idle_uart_out_test_handle) {
+			if (os_strcmp(argv[2], "uart1") == 0) {
+				if(idle_uart_out_test_id != UART_ID_0) {
+					CLI_LOGI("PLEASE enter a correct ID\n");
+					return;
+				} else
+					idle_uart_out_test_id = UART_ID_0;
+			} else if (os_strcmp(argv[2], "uart2")== 0) {
+				if(idle_uart_out_test_id != UART_ID_1) {
+					CLI_LOGI("PLEASE enter a correct ID\n");
+					return;
+				} else
+					idle_uart_out_test_id = UART_ID_1;
+			} else if (os_strcmp(argv[2], "uart3")== 0) {
+				if(idle_uart_out_test_id != UART_ID_2) {
+					CLI_LOGI("PLEASE enter a correct ID\n");
+					return;
+				} else
+					idle_uart_out_test_id = UART_ID_2;
+			} else {
+				cli_uart_help();
+				return;
+			}
+
+			rtos_delete_thread(&idle_uart_out_test_handle);
+			idle_uart_out_test_handle = NULL;
+			BK_LOG_ON_ERR(bk_uart_disable_tx_interrupt(idle_uart_out_test_id));
+			BK_LOG_ON_ERR(bk_uart_register_tx_isr(idle_uart_out_test_id, NULL, NULL));
+			BK_LOG_ON_ERR(bk_uart_deinit(idle_uart_out_test_id));
+			BK_LOG_ON_ERR(bk_trng_stop());
+			CLI_LOGI("idle_uart_out task stop\n");
+		} else {
+			CLI_LOGI("PLEASE start task FIRST!!!\n");
+		}
+		return;
+	}
+
+}
+#endif //CONFIG_IDLE_UART_OUT_TEST
+
 #define UART_CMD_CNT (sizeof(s_uart_commands) / sizeof(struct cli_command))
 static const struct cli_command s_uart_commands[] = {
 	{"uart_driver", "{init|deinit}", cli_uart_driver_cmd},
 	{"uart", "uart {id} {init|deinit|write|read|write_string|dump_statis} [...]", cli_uart_cmd},
 	{"uart_config", "uart_config {id} {baud_rate|data_bits} [...]", cli_uart_config_cmd},
 	{"uart_int", "uart_int {id} {enable|disable|reg} {tx|rx}", cli_uart_int_cmd},
+#if CONFIG_IDLE_UART_OUT_TEST
+	{"uart_test", "{idle_start|idle_stop} {uart1|uart2|uart3}", cli_uart_test_cmd},
+#endif //CONFIG_IDLE_UART_OUT_TEST
 };
 
 int cli_uart_init(void)

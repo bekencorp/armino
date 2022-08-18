@@ -6,6 +6,10 @@
 #include "shell_drv.h"
 #include "mailbox_channel.h"
 
+#if CONFIG_ARCH_RISCV
+#include "cache.h"
+#endif
+
 #define TX_QUEUE_LEN     8
 #define RX_BUFF_SIZE     160
 #define TX_SYNC_BUF_SIZE 142
@@ -102,6 +106,10 @@ static void shell_mb_rx_isr(shell_mb_ext_t *mb_ext, mb_chnl_cmd_t *cmd_buf)
 	else if(cmd_buf->hdr.cmd == MB_CMD_USER_INPUT)   /* cmd line inputs. */
 	{
 		user_cmd_t * user_cmd = (user_cmd_t *)cmd_buf;
+
+#if CONFIG_CACHE_ENABLE
+		flush_dcache((void *)user_cmd->buf, user_cmd->len);
+#endif
 
 		if((user_cmd->len >= RX_BUFF_SIZE) || (mb_ext->rx_buff_wr_idx != mb_ext->rx_buff_rd_idx))
 		{

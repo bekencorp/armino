@@ -45,6 +45,8 @@
 extern "C" {
 #endif
 
+#define PBUF_LIFETIME_DBG 0
+
 /** LWIP_SUPPORT_CUSTOM_PBUF==1: Custom pbufs behave much like their pbuf type
  * but they are allocated by external code (initialised by calling
  * pbuf_alloced_custom()) and when pbuf_free gives up their last reference, they
@@ -150,6 +152,10 @@ typedef enum {
       change in future versions).
       This should be used for all OUTGOING packets (TX).*/
   PBUF_RAM = (PBUF_ALLOC_FLAG_DATA_CONTIGUOUS | PBUF_TYPE_FLAG_STRUCT_DATA_CONTIGUOUS | PBUF_TYPE_ALLOC_SRC_MASK_STD_HEAP),
+#if MEM_TRX_DYNAMIC_EN
+  /** pbuf used for RX and data is stored in RAM */
+  PBUF_RAM_RX = (PBUF_ALLOC_FLAG_RX | PBUF_RAM),
+#endif
   /** pbuf data is stored in ROM, i.e. struct pbuf and its payload are located in
       totally different memory areas. Since it points to ROM, payload does not
       have to be copied when queued for transmission. */
@@ -219,6 +225,18 @@ struct pbuf {
 
   /** For incoming packets, this contains the input netif's index */
   u8_t if_idx;
+
+  #if PBUF_LIFETIME_DBG
+  u32_t tx_alc_tick;      //pbuf alloc tick
+  u32_t tx_tick;          // macif_tx_evt tick
+  u32_t tx_chain_tick;    //push chain tick txl_frame_exchange_manage
+  u32_t txc_tick;         //send complet tick txl_frame_exchange_done
+  u32_t tx_cfm_tick;      //txl_cfm_evt tick
+  u16_t tx_tick_id;       //ip_id
+  u16_t tx_tick_sn;       //mac seqence number
+  u16_t tx_agg;           //mac A-MPDU bit
+  u16_t tx_retry;      //mac sw retry bit
+  #endif
 };
 
 
@@ -269,6 +287,7 @@ void pbuf_free_ooseq(void);
 /* Initializes the pbuf module. This call is empty for now, but may not be in future. */
 #define pbuf_init()
 
+void pbuf_set_log(uint32_t pbuf_flag);
 struct pbuf *pbuf_alloc(pbuf_layer l, u16_t length, pbuf_type type);
 struct pbuf *pbuf_alloc_reference(void *payload, u16_t length, pbuf_type type);
 #if LWIP_SUPPORT_CUSTOM_PBUF

@@ -19,12 +19,13 @@
 #include <common/bk_include.h>
 #include "bk_sys_ctrl.h"
 #include "bk_drv_model.h"
-#include "bk_private/bk_ate.h"
+#include <components/ate.h>
 #include <driver/wdt.h>
 #include "bk_wdt.h"
 #include <common/sys_config.h>
 #include "release.h"
 #include "sys_driver.h"
+#include "bk_pm_model.h"
 #if CONFIG_SOC_BK7256XX
 #include "BK7256_RegList.h"
 #endif
@@ -32,7 +33,7 @@
 #include "mmgmt.h"
 #endif
 
-#include "bk_private/reset_reason.h"
+#include "reset_reason.h"
 
 #if CONFIG_EASY_FLASH && (!CONFIG_RTT)
 #include "easyflash.h"
@@ -47,6 +48,10 @@
 #include "bk_private/bk_driver.h"
 
 #include "mb_ipc_cmd.h"
+
+#if (CONFIG_PSRAM)
+#include <driver/psram.h>
+#endif
 
 #define TAG "init"
 
@@ -88,7 +93,7 @@ int wdt_init(void)
 {
 #if (CONFIG_FREERTOS)
 #if CONFIG_INT_WDT
-	BK_LOGI(TAG, "int watchdog enabled, period=%u\r\n", CONFIG_INT_WDT_PERIOD_MS);
+	BK_LOGD(TAG, "int watchdog enabled, period=%u\r\n", CONFIG_INT_WDT_PERIOD_MS);
 	bk_wdt_start(CONFIG_INT_WDT_PERIOD_MS);
 #else
 #if (CONFIG_SOC_BK7271)
@@ -103,7 +108,7 @@ int wdt_init(void)
 #if !(CONFIG_ALIOS)
 #if CONFIG_TASK_WDT
 	bk_task_wdt_start();
-	BK_LOGI(TAG, "task watchdog enabled, period=%u\r\n", CONFIG_TASK_WDT_PERIOD_MS);
+	BK_LOGD(TAG, "task watchdog enabled, period=%u\r\n", CONFIG_TASK_WDT_PERIOD_MS);
 #endif
 #endif
 	return BK_OK;
@@ -119,13 +124,25 @@ int memory_debug_todo(void)
 //TODO put it to better place, check with XB/HT
 static int pm_init_todo(void)
 {
-#if CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7256_CP1
+#if CONFIG_SOC_BK7256XX
 
 #else
 #if CONFIG_DEEP_PS
 	bk_init_deep_wakeup_gpio_status();
 #endif
 #endif
+
+#if CONFIG_POWER_CLOCK_RF
+	extern void rf_ps_pm_init(void);
+	rf_ps_pm_init();
+#else
+#if CONFIG_SLAVE_CORE
+
+#else
+	dev_pm_init();
+#endif
+#endif
+
 	return BK_OK;
 }
 
@@ -149,7 +166,7 @@ static inline void show_chip_id(void)
 
 static inline void show_sdk_lib_version(void)
 {
-#if (!CONFIG_SOC_BK7256_CP1)
+#if (!CONFIG_SLAVE_CORE)
 	extern char* bk_get_internal_lib_version(void);
 	char* ver = bk_get_internal_lib_version();
 	BK_LOGI(TAG, "armino internal lib rev: %s\n", ver);
@@ -165,7 +182,7 @@ static void show_armino_version(void)
 
 static void show_init_info(void)
 {
-#if CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7256_CP1
+#if CONFIG_SOC_BK7256XX
     show_armino_version();
 #else
 	show_reset_reason();
@@ -174,7 +191,7 @@ static void show_init_info(void)
 }
 #if CONFIG_SOC_BK7256XX
 #define NCV_SIM                     0x1
-#define	TEST_ID_MAX					100  
+#define	TEST_ID_MAX					100
 #if (NCV_SIM == 0)
 #define UART_BAUD_RATE1           115200
 #else
@@ -193,7 +210,7 @@ int print_str(char * st)
 void UartDbgInit()
 {
 	unsigned int     uart_clk_div;
-	  
+
    // clrf_SYS_Reg0x3_uart0_pwd ;   //open periph
 	//*((volatile unsigned long *) (0x44010000+0xc*4)) =  0x4;
 	setf_SYSTEM_Reg0xc_uart0_cken ; //uart0 enable
@@ -228,28 +245,35 @@ void UartDbgInit()
     addUART0_Reg0x4 = 0x42;
     addUART0_Reg0x6 = 0x0;
     addUART0_Reg0x7 = 0x0;
-  
+
 	//  setf_SYS_Reg0x10_int_uart0_en; //enable uart_int irq
    // *((volatile unsigned long *) (0x44010000+0x20*4)) =  0x10;  //enable uart_int
     addSYSTEM_Reg0x20 = 0x10 ;  //enable uart_int
-		
+
 }
 #endif
 
 int components_init(void)
 {
 /*for bringup test*/
-#if CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7256_CP1
-    driver_init();
-    pm_init_todo();
-    show_init_info();
-    random_init();
+#if CONFIG_SOC_BK7256XX
+	if(driver_init())
+		return BK_FAIL;
 
+	pm_init_todo();
+	show_init_info();
+	random_init();
+#if (!CONFIG_SLAVE_CORE)
+	wdt_init();
+#if (CONFIG_PSRAM_AS_SYS_MEMORY)
+	bk_psram_init();
+#endif
+#endif
 	ipc_init();
 
 #else
-	pm_init_todo();
 	driver_init();
+	pm_init_todo();
 	reset_reason_init();
 	random_init();
 	wdt_init();

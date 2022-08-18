@@ -19,6 +19,7 @@ static void cli_pwm_help(void)
 	CLI_LOGI("pwm_int {chan} {reg|enable|disable}\n");
 	CLI_LOGI("pwm_capture {chan} {init}\nn");
 	CLI_LOGI("pwm_capture {chan} {start|stop|deinit}\n");
+	CLI_LOGI("pwm_idle_test {idle_start|idle_stop}\n");
 }
 
 static void cli_pwm_timer_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -254,6 +255,40 @@ static void cli_pwm_capture_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 	}
 }
 
+static void cli_pwm_idle_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		cli_pwm_help();
+		return;
+	}
+
+	 if (os_strcmp(argv[1], "idle_start") == 0) {
+		BK_LOG_ON_ERR(bk_pwm_driver_init());
+		CLI_LOGI("pwm driver init\n");
+
+		pwm_init_config_t config = {0};
+
+		config.period_cycle = 10;
+		config.duty_cycle = 5;
+		config.duty2_cycle = 0;
+		config.duty3_cycle = 0;
+
+		for(int chan = 0; chan < SOC_PWM_CHAN_NUM_PER_UNIT; chan++) {
+			BK_LOG_ON_ERR(bk_pwm_init(chan, &config));
+			BK_LOG_ON_ERR(bk_pwm_start(chan));
+			CLI_LOGI("pwm init, chan=%d period=%x duty=%x\n", chan, config.period_cycle, config.duty_cycle);
+		}
+	} else if (os_strcmp(argv[1], "idle_stop") == 0) {
+			for(int chan = 0; chan < SOC_PWM_CHAN_NUM_PER_UNIT; chan++) {
+			BK_LOG_ON_ERR(bk_pwm_stop(chan));
+			BK_LOG_ON_ERR(bk_pwm_deinit(chan));
+		}
+
+	} else {
+		cli_pwm_help();
+		return;
+	}
+}
 
 #define PWM_CMD_CNT (sizeof(s_pwm_commands) / sizeof(struct cli_command))
 static const struct cli_command s_pwm_commands[] = {
@@ -266,6 +301,7 @@ static const struct cli_command s_pwm_commands[] = {
 	{"pwm_timer", "pwm_timer ", cli_pwm_timer_cmd},
 	{"pwm_counter", "pwm_counter", cli_pwm_counter_cmd},
 	{"pwm_carrier", "pwm_carrier", cli_pwm_carrier_cmd},
+	{"pwm_idle_test", "{idle_start|idle_stop}", cli_pwm_idle_test_cmd},
 };
 
 int cli_pwm_init(void)

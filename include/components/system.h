@@ -91,6 +91,8 @@ void bk_buf_printf_sync(char *buf, int buf_len);
 void bk_printf_ex(int level, char * tag, const char *fmt, ...);
 void bk_disable_mod_printf(char *mod_name, uint8_t disable);
 char * bk_get_disable_mod(int * idx);
+void bk_set_printf_port(uint8_t port_num);
+int bk_get_printf_port(void);
 
 #ifdef __cplusplus
 }

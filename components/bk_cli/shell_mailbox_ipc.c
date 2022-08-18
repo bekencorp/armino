@@ -6,6 +6,10 @@
 #include "shell_drv.h"
 #include "mailbox_channel.h"
 
+#if CONFIG_ARCH_RISCV
+#include "cache.h"
+#endif
+
 typedef struct
 {
 	u8     chnl_id;
@@ -53,6 +57,10 @@ static void shell_ipc_rx_isr(shell_ipc_ext_t *ipc_ext, mb_chnl_cmd_t *cmd_buf)
 		if(ipc_ext->rx_callback != NULL)
 		{
 			log_cmd_t * log_cmd = (log_cmd_t *)cmd_buf;
+
+#if CONFIG_CACHE_ENABLE
+			flush_dcache((void *)log_cmd->buf, log_cmd->len);
+#endif
 
 			result = ipc_ext->rx_callback(log_cmd->hdr.cmd, log_cmd->buf, log_cmd->len);
 

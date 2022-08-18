@@ -36,7 +36,7 @@ void jpeg_struct_dump(void)
 	SOC_LOGI("  video_byte_reverse: %x\n", hw->cfg.video_byte_reverse);
 	SOC_LOGI("  yuv_fmt_sel:        %x\n", hw->cfg.yuv_fmt_sel);
 	SOC_LOGI("  jpeg_enc_en:        %x\n", hw->cfg.jpeg_enc_en);
-	SOC_LOGI("  yuv_byte_reverse:   %x\n", hw->cfg.yuv_byte_reverse);
+	SOC_LOGI("  yuv_byte_reverse:   %x\n", hw->cfg.yuv_word_reverse);
 	SOC_LOGI("  only_y:             %x\n", hw->cfg.only_y);
 	SOC_LOGI("  yuvbuf_mode:        %x\n", hw->cfg.yuvbuf_mode);
 	SOC_LOGI("  x_pixel:            %x\n", hw->cfg.x_pixel);

@@ -15,9 +15,6 @@
 static volatile uint32_t     transferErrorDetected = 0;    /**< Set to 1 if an error transfer is detected */
 static volatile uint32_t     transferCompleteDetected = 0; /**< Set to 1 if the DMA2D transfer complete is detected */
 static uint32_t              offset_address_area_blended_image_in_lcd_buffer =  0;
-static volatile uint32_t     dma_int_cnt = 0;
-static volatile uint32_t     dma_int_flag = 0;
-extern dma_id_t lcd_dma_id;
 extern const uint16_t        rgb_565_green[640];
 
 #if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
@@ -25,21 +22,6 @@ static void mda2d_r2m_transfer_error(dma2d_config_t *dma2d);
 static void mda2d_r2m_transfer_complete(dma2d_config_t *dma2d);
 #endif
 
-static void dma_fill_finish_isr(dma_id_t id)
-{
-	dma_int_cnt++;
-	if(dma_int_cnt == 5)
-	{
-		dma_int_cnt = 0;
-		dma_int_flag = 1;
-		bk_dma_set_src_start_addr(lcd_dma_id, (uint32_t)LCD_FRAMEADDR);
-	}
-	else {
-		bk_dma_set_src_start_addr(lcd_dma_id, (uint32)(LCD_FRAMEADDR + (61440 * dma_int_cnt)));
-		BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(lcd_dma_id));
-		bk_dma_start(lcd_dma_id);
-	}
-}
 
 void dma2d_isr()
 {
@@ -80,25 +62,6 @@ static void mda2d_r2m_transfer_complete(dma2d_config_t *dma2d)
 }
 #endif
 
-static void  dma_start_transfer(uint32_t dma_ch)
-{
-	dma_config_t dma_config = {0};
-	dma_config.mode = DMA_WORK_MODE_SINGLE;
-	dma_config.chan_prio = 0;
-	dma_config.src.dev = DMA_DEV_DTCM;
-	dma_config.src.width = DMA_DATA_WIDTH_32BITS;
-	dma_config.src.start_addr = (uint32) LCD_FRAMEADDR;
-	dma_config.src.addr_inc_en = DMA_ADDR_INC_ENABLE;
-	dma_config.dst.start_addr = (uint32_t) REG_DISP_DAT_FIFO;
-	dma_config.dst.dev = DMA_DEV_LCD_DATA;
-	dma_config.dst.width = DMA_DATA_WIDTH_16BITS;
-	
-	BK_LOG_ON_ERR(bk_dma_init(dma_ch, &dma_config));
-	BK_LOG_ON_ERR(bk_dma_set_transfer_len(dma_ch, 61440));
-	BK_LOG_ON_ERR(bk_dma_register_isr(dma_ch, NULL, dma_fill_finish_isr));
-	BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(dma_ch));
-	BK_LOG_ON_ERR(bk_dma_start(dma_ch));
-}
 
 /**
   * @brief dma2d reg to mem mode,dma2d fill function
@@ -139,33 +102,6 @@ void dma2d_fill(uint32_t frameaddr, uint16_t x, uint16_t y, uint16_t width, uint
 	while (bk_dma2d_is_transfer_busy()) {
 	}
 }
-
-void lcd_fill(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-	uint16_t x, y, w, h, color;
-	dma_int_cnt  = 0;
-
-	uint32_t frameaddr = 0x60000000;
-	x = os_strtoul(argv[1], NULL, 10) & 0xFFFF;
-	os_printf("x = %d \r\n", x);
-
-	y = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
-	os_printf("y = %d \r\n", y);
-
-	w = os_strtoul(argv[3], NULL, 10) & 0xFFFF;
-	os_printf("w = %d \r\n", w);
-
-	
-	h= os_strtoul(argv[4], NULL, 10) & 0xFFFF;
-	os_printf("h = %d \r\n", h);
-	
-	color = os_strtoul(argv[5], NULL, 16) & 0xFFFF;
-	os_printf("fill_color = %x \r\n", color);
-
-	dma2d_fill(frameaddr, x, y, w, h, color);
-	dma_start_transfer(lcd_dma_id);
-}
-
 
 
 /**
@@ -229,7 +165,7 @@ void dma2d_memcpy_display(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	//while(1) {
 	for (int i = 0; i<	PICTURE_COUNT ; i++) {
 			dma2d_display(i, (void *)pdst);
-			dma_start_transfer(lcd_dma_id);
+			//dma_start_transfer(lcd_dma_id);
 		}
 	//}
 }
@@ -248,7 +184,6 @@ void dma2d_memcpy_display(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
   * @param9  alpha_value  foreground layer alpha_value
   * @return none
   */
-
 static void dma2d_blend(void *pFgaddr, void *pBgaddr, void *pDst,
 							uint32_t fg_offline, uint32_t bg_offline, uint32_t dest_offline,
 							uint16_t xsize, uint16_t ysize, int8_t alpha_value)
@@ -366,7 +301,7 @@ void bk_example_dma2d_argb8888_to_rgb565pixel(char *pcWriteBuffer, int xWriteBuf
                                   IMAGE_SIZE_X,           /**< width in pixels  */
                                   IMAGE_SIZE_Y);        /**< height in pixels */
 	while (bk_dma2d_is_transfer_busy()) {}
-	dma_start_transfer(lcd_dma_id);
+	//dma_start_transfer(lcd_dma_id);
 }
 
 void bk_example_alpha_blend(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -385,7 +320,7 @@ void bk_example_alpha_blend(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 	uint32_t opa = 0;
 	void * pFgaddr = 0;
 	void * pBgaddr = 0;
-	dma_int_flag  = 0;
+//	dma_int_flag  = 0;
 
 	os_printf("pFb addr = %x \r\n", offset_address_area_blended_image_in_lcd_buffer);
 	os_printf("pDiSt addr = %x \r\n", pDiSt);
@@ -403,9 +338,9 @@ void bk_example_alpha_blend(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 			opa = 255 * i / (cnvFrames-1);
 			dma2d_blend(pFgaddr, pBgaddr, pDiSt,0, 0, dist_offline,DEMO_IMG_WIDTH, DEMO_IMG_HEIGHT, 
 							opa);
-			dma_start_transfer(lcd_dma_id);
-			while(dma_int_flag == 0) {}
-			dma_int_flag = 0;
+			//dma_start_transfer(lcd_dma_id);
+			//while(dma_int_flag == 0) {}
+			//dma_int_flag = 0;
 		}
 		nextimg = !nextimg;
 	}
@@ -418,8 +353,8 @@ void bk_example_fill_2p_alpha_blend(char *pcWriteBuffer, int xWriteBufferLen, in
 	uint32_t opa = 0;
 	void * pFgaddr = 0;
 	void * pBgaddr = 0;
-	dma_int_cnt  = 0;
-	dma_int_flag  = 0;
+//	dma_int_cnt  = 0;
+//	dma_int_flag  = 0;
 
 	uint16_t *pDiSt = (void *)LCD_FRAMEADDR;
 
@@ -452,9 +387,9 @@ void bk_example_fill_2p_alpha_blend(char *pcWriteBuffer, int xWriteBufferLen, in
 		for (int i = 0; i < cnvFrames; i++) {
 			opa = 255 * i / (cnvFrames-1);
 			dma2d_blend(pFgaddr, pBgaddr, pDiSt, 0, 0, 0, 320, 480, opa);
-			dma_start_transfer(lcd_dma_id);
-			while(dma_int_flag == 0) {}
-			dma_int_flag = 0;
+//			dma_start_transfer(lcd_dma_id);
+//			while(dma_int_flag == 0) {}
+//			dma_int_flag = 0;
 		}
 		nextimg = !nextimg;
 	}
@@ -463,7 +398,7 @@ void bk_example_fill_2p_alpha_blend(char *pcWriteBuffer, int xWriteBufferLen, in
 void bk_example_dma2d_deinit(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	bk_err_t ret = BK_OK;
-	dma_int_flag  = 0;
+//	dma_int_flag  = 0;
 
 	ret = bk_dma2d_driver_deinit();
 	if (ret != BK_OK) {

@@ -38,7 +38,7 @@
 #define FLASH_SECTOR_SIZE                0x1000 /* each sector has 4K bytes */
 #define FLASH_SECTOR_SIZE_OFFSET         12
 #define FLASH_PAGE_SIZE                  256 /* each page has 256 bytes */
-#define FLASH_DIV_VALUE_TWO              1
+#define FLASH_DIV_VALUE_EIGHT            2
 
 typedef struct {
 	uint32_t flash_id;

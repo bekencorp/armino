@@ -104,6 +104,14 @@ struct stats_mem {
   mem_size_t used;
   mem_size_t max;
   STAT_COUNTER illegal;
+#if MEM_TRX_DYNAMIC_EN
+  STAT_COUNTER tx_err;
+  STAT_COUNTER rx_err;
+  mem_size_t tx_used;
+  mem_size_t rx_used;
+  mem_size_t tx_max;
+  mem_size_t rx_max;
+#endif
 };
 
 /** System element stats */
@@ -228,6 +236,16 @@ struct stats_mib2_netif_ctrs {
   u32_t ifouterrors;
 };
 
+/** pbuf info stats */
+struct stats_pbuf_info {
+  u32_t all_cnt;  //alloc--free count
+  u32_t prep_cnt; //alloc--macif count
+  u32_t mac_prep_cnt;  //macif--chain count
+  u32_t send_cnt; //chain--done count
+  u32_t cfm_cnt;  //done--cfm count
+  u32_t cfm_free_cnt; //cfm--free count
+};
+
 /** lwIP stats container */
 struct stats_ {
 #if LINK_STATS
@@ -298,6 +316,10 @@ struct stats_ {
   /** SNMP MIB2 */
   struct stats_mib2 mib2;
 #endif
+#if MEM_STATS
+    /** Pbuf */
+    struct stats_pbuf_info pbuf_info;
+#endif
 };
 
 /** Global variable containing lwIP internal statistics. Add this to your debugger's watchlist. */
@@ -313,6 +335,18 @@ void stats_init(void);
                                     lwip_stats.x.max = lwip_stats.x.used; \
                                 } \
                              } while(0)
+#if MEM_TRX_DYNAMIC_EN
+#define STATS_INC_TX_USED(x, y, type) do { lwip_stats.x.tx_used = (type)(lwip_stats.x.tx_used + y); \
+                                if (lwip_stats.x.tx_max < lwip_stats.x.tx_used) { \
+                                    lwip_stats.x.tx_max = lwip_stats.x.tx_used; \
+                                } \
+                             } while(0)
+#define STATS_INC_RX_USED(x, y, type) do { lwip_stats.x.rx_used = (type)(lwip_stats.x.rx_used + y); \
+                                if (lwip_stats.x.rx_max < lwip_stats.x.rx_used) { \
+                                    lwip_stats.x.rx_max = lwip_stats.x.rx_used; \
+                                } \
+                             } while(0)
+#endif
 #define STATS_GET(x) lwip_stats.x
 #else /* LWIP_STATS */
 #define stats_init()
@@ -406,6 +440,12 @@ void stats_init(void);
 #define MEM_STATS_INC(x) STATS_INC(mem.x)
 #define MEM_STATS_INC_USED(x, y) STATS_INC_USED(mem, y, mem_size_t)
 #define MEM_STATS_DEC_USED(x, y) lwip_stats.mem.x = (mem_size_t)((lwip_stats.mem.x) - (y))
+#if MEM_TRX_DYNAMIC_EN
+#define MEM_STATS_INC_TX_USED(x, y) STATS_INC_TX_USED(mem, y, mem_size_t)
+#define MEM_STATS_DEC_TX_USED(x, y) lwip_stats.mem.x = (mem_size_t)((lwip_stats.mem.x) - (y))
+#define MEM_STATS_INC_RX_USED(x, y) STATS_INC_RX_USED(mem, y, mem_size_t)
+#define MEM_STATS_DEC_RX_USED(x, y) lwip_stats.mem.x = (mem_size_t)((lwip_stats.mem.x) - (y))
+#endif
 #define MEM_STATS_DISPLAY() stats_display_mem(&lwip_stats.mem, "HEAP")
 #else
 #define MEM_STATS_AVAIL(x, y)

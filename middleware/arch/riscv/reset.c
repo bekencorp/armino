@@ -3,10 +3,12 @@
  * All rights reserved.
  *
  */
-#include"core_v5.h"
+#include"platform.h"
+#include "cache.h"
 #include <os/os.h>
-#include "bk_private/reset_reason.h"
+#include "reset_reason.h"
 #include "bk_pm_internal_api.h"
+#include "boot.h"
 
 extern void c_startup(void);
 extern void system_init(void);
@@ -15,6 +17,8 @@ extern void init_pmp_config();
 extern void entry_main(void);
 extern void UartDbgInit();
 extern int print_str(char * st);
+
+//volatile int g_test_mode = 1;
 
 void close_wdt(void)
 {
@@ -30,8 +34,12 @@ void reset_handler(void)
     /// TODO: DEBUG VERSION close the wdt
 	close_wdt();
 
-    //write_csr(NDS_MCACHE_CTL, (read_csr(NDS_MCACHE_CTL) | 0x1)); // Enable  ICache
-	//write_csr(NDS_MCACHE_CTL, (read_csr(NDS_MCACHE_CTL) | 0x2)); // Enable  DCache
+	//while(g_test_mode);
+
+#if (!CONFIG_SLAVE_CORE)
+	sram_dcache_map();
+#endif
+
 	/*
 	 * Initialize LMA/VMA sections.
 	 * Relocation for any sections that need to be copied from LMA to VMA.
@@ -41,7 +49,7 @@ void reset_handler(void)
 	/*power manager init*/
 	pm_hardware_init();
 
-#if (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7256XX)
 	//clear mannully reboot flag
 	set_reboot_tag(0);
 #endif

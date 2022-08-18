@@ -19,37 +19,26 @@ extern "C" {
 #endif
 
 typedef volatile struct {
-	/* REG_0x0 */
+	/* REG_0x00 */
+	uint32_t dev_id;
+
+	/* REG_0x01 */
+	uint32_t dev_version;
+
+	/* REG_0x02 */
 	union {
 		struct {
-			uint32_t en:        1;  /**< bit[0] */
-			uint32_t start:     1;  /**< bit[1] */
-			uint32_t stop:      1;  /**< bit[2] */
-			uint32_t tx_ack:    1;  /**< bit[3] */
-			uint32_t op_mode:   1;  /**< bit[4] */
-			uint32_t reserved0: 1;  /**< bit[5] */
-			uint32_t freq_div:  10; /**< bit[6:15] */
-			uint32_t sm_int:    1;  /**< bit[16] */
-			uint32_t rx_ack:    1;  /**< bit[17] */
-			uint32_t ack_req:   1;  /**< bit[18] */
-			uint32_t busy:      1;  /**< bit[19] */
-			uint32_t reserved1: 12; /**< bit[20:31] */
+			uint32_t soft_reset:      1; /**< bit[0] uart soft reset */
+			uint32_t clk_gate_bypass: 1; /**< bit[1] bypass uart clock gate */
+			uint32_t reserved:       30; /**< bit[2:31] reserved */
 		};
 		uint32_t v;
-	} sm_bus_cfg;
+	} global_ctrl;
 
-	/* REG_0x1 */
-	union {
-		struct {
-			uint32_t data:     8;  /**< bit[0:7] */
-			uint32_t reserved: 24; /**< bit[8:31] */
-		};
-		uint32_t v;
-	} sm_bus_data;
-} i2c0_hw_t;
+	/* REG_0x03 */
+	uint32_t dev_status;
 
-typedef volatile struct {
-	/* REG_0x0 */
+	/* REG_0x04 */
 	union {
 		struct {
 			uint32_t idle_cr:     3;  /**< bit[0:2] */
@@ -65,7 +54,7 @@ typedef volatile struct {
 		uint32_t v;
 	} sm_bus_cfg;
 
-	/* REG_0x1 */
+	/* REG_0x05 */
 	union {
 		struct {
 			uint32_t sm_int:        1;  /**< bit[0] */
@@ -88,7 +77,7 @@ typedef volatile struct {
 		uint32_t v;
 	} sm_bus_status;
 
-	/* REG_0x2 */
+	/* REG_0x06 */
 	union {
 		struct {
 			uint32_t data:     8;  /**< bit[0:7] */
@@ -96,11 +85,11 @@ typedef volatile struct {
 		};
 		uint32_t v;
 	} sm_bus_data;
-} i2c1_hw_t;
+} i2c_typedef_t;
 
-typedef volatile struct {
-	i2c0_hw_t *i2c0_hw;
-	i2c1_hw_t *i2c1_hw;
+typedef struct {
+	i2c_typedef_t *i2c0_hw;
+	i2c_typedef_t *i2c1_hw;
 } i2c_hw_t;
 
 #ifdef __cplusplus

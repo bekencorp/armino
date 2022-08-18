@@ -102,24 +102,6 @@ void sys_hal_qspi_clk_sel(uint32_t param)
 #endif
 }
 
-void sys_hal_efuse_read_byte(uint32_t param)
-{
-#if 0
-	uint32_t ret = 0;
-
-	ret = sctrl_read_efuse(param);
-#endif
-}
-
-void sys_hal_efuse_write_byte(uint32_t param)
-{
-#if 0
-	uint32_t ret = 0;
-
-	ret = sctrl_write_efuse(param);
-#endif
-}
-
 void sys_hal_clk_pwr_up(uint32_t param)
 {
 #if 0
@@ -156,6 +138,10 @@ void sys_hal_enter_normal_wakeup()
 void sys_hal_module_power_ctrl(power_module_name_t module,power_module_state_t power_state)
 {
 
+}
+int32 sys_hal_module_power_state_get(power_module_name_t module)
+{
+	return 0;
 }
 void sys_hal_enter_low_voltage(void)
 {
@@ -198,6 +184,14 @@ uint32_t sys_hal_all_modules_clk_div_get(clk_div_reg_e reg)
 void sys_hal_low_power_hardware_init()
 {
 }
+int32 sys_hal_lp_vol_set(uint32_t value)
+{
+	return 0;
+}
+uint32_t sys_hal_lp_vol_get()
+{
+	return 0;
+}
 /*low power feature end*/
 void sys_hal_enable_mac_wakeup_source()
 {
@@ -220,25 +214,6 @@ uint32 sys_hal_get_device_id(void)
 	ret = REG_READ(SCTRL_DEVICE_ID);
 	return ret;
 }
-
-int32 sys_hal_dsp_power_down(void);
-int32 sys_hal_dsp_power_up(void);
-int32 sys_hal_lbus_power_down(void);
-int32 sys_hal_lbus_power_up(void);
-int32 sys_hal_rtos_idle_sleep(void *param);
-int32 sys_hal_rtos_idle_wakeup(void);
-int32 sys_hal_rtos_deep_sleep(void *param);
-uint32 sys_hal_get_sctrl_retetion(void);
-int32 sys_hal_set_sctrl_retetion(uint32 param);
-
-
-int32 sys_hal_unconditional_mac_down(void);
-int32 sys_hal_unconditional_mac_up(void);
-int32 sys_hal_fix_dpll_div(void);
-int32 sys_hal_set_low_pwr_clk(uint32 param);
-int32 sys_hal_set_gadc_sel(uint32 param);
-int32 sys_hal_clkgating_disable(uint32 param);
-int32 sys_hal_clkgating_enable(uint32 param);
 
 int32 sys_hal_int_disable(uint32 param) //CMD_ICU_INT_DISABLE
 {
@@ -383,14 +358,6 @@ uint32 sys_hal_set_intr_raw_status(uint32 param) //CMD_CLR_INTR_RAW_STATUS
 
 	return ret;
 }
-
-
-int32 sys_hal_func_clk_pwr_down(uint32 param);
-int32 sys_hal_func_clk_pwr_up(uint32 param);
-int32 sys_hal_conf_pwm_plck(uint32 param);
-int32 sys_hal_conf_pwm_lpoclk(uint32 param);
-int32 sys_hal_conf_plck_26m(uint32 param);
-int32 sys_hal_conf_plck_dco(uint32 param);
 
 int32 sys_hal_set_jtag_mode(uint32 param)
 {

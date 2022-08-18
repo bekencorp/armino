@@ -33,34 +33,34 @@ typedef enum
 #define SDIO_LOG_OUTPUT_LEVEL (SDIO_LOG_DEBUG_LEVEL)
 
 #define SDIO_LOG_ERR(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_ERR_LEVEL) { \
-	bk_printf("SDIO Err(%s:%d) ", __FUNCTION__, __LINE__); \
-	bk_printf(__VA_ARGS__); \
-	bk_printf("\r\n"); \
+	BK_LOG_RAW("SDIO Err(%s:%d) ", __FUNCTION__, __LINE__); \
+	BK_LOG_RAW(__VA_ARGS__); \
+	BK_LOG_RAW("\r\n"); \
 }}
 #define SDIO_LOG_WARNING(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_WARNING_LEVEL) { \
-	bk_printf("SDIO WARN"); \
-	bk_printf(__VA_ARGS__); \
-	bk_printf("\r\n"); \
+	BK_LOG_RAW("SDIO WARN"); \
+	BK_LOG_RAW(__VA_ARGS__); \
+	BK_LOG_RAW("\r\n"); \
 }}
 #define SDIO_LOG_INFO(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_INFO_LEVEL) { \
-	bk_printf("SDIO INFO"); \
-	bk_printf(__VA_ARGS__); \
-	bk_printf("\r\n"); \
+	BK_LOG_RAW("SDIO INFO"); \
+	BK_LOG_RAW(__VA_ARGS__); \
+	BK_LOG_RAW("\r\n"); \
 }}
 #define SDIO_LOG_DEBUG(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
-	bk_printf("SDIO DBG"); \
-	bk_printf(__VA_ARGS__); \
-	bk_printf("\r\n"); \
+	BK_LOG_RAW("SDIO DBG"); \
+	BK_LOG_RAW(__VA_ARGS__); \
+	BK_LOG_RAW("\r\n"); \
 }}
 #define SDIO_LOG_DUMP(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
-		bk_printf(__VA_ARGS__); \
+		BK_LOG_RAW(__VA_ARGS__); \
 	}}
 
 #define SDIO_LOG_DEBUG_FUNCTION_ENTRY(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
-	bk_printf("SDIO DEBUG(%s:Entry)\r\n", __FUNCTION__); \
+	BK_LOG_RAW("SDIO DEBUG(%s:Entry)\r\n", __FUNCTION__); \
 }}
 #define SDIO_LOG_DEBUG_FUNCTION_EXIT(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
-	bk_printf("SDIO DEBUG(%s:Entry)\r\n", __FUNCTION__); \
+	BK_LOG_RAW("SDIO DEBUG(%s:Entry)\r\n", __FUNCTION__); \
 }}
 
 

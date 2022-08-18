@@ -30,6 +30,24 @@ void delay(INT32 num)
 
 
 #if (CONFIG_SYSTEM_CTRL)
+//RISC-V has mtimer which clock is 26M and it doesn't change frequency.
+//as delay_us is just compare risc-v timer which block system runs, so the param
+//of us should be not too big. F.E: < 100*000
+void delay_us(UINT32 us)
+{
+	extern u64 riscv_get_mtimer(void);
+
+	uint64_t tick_cnt = us * 26;
+	uint64_t start_tick = riscv_get_mtimer();
+
+	while((riscv_get_mtimer() - start_tick) < tick_cnt)
+	{
+		;
+	}
+}
+
+//RISC-V each i++ consumes 30 cycles
+//we should not use delay cycle to compute time as the CPU clock changes.
 void delay_cycle(INT32 num)
 {
 	volatile INT32 i;
@@ -39,8 +57,12 @@ void delay_cycle(INT32 num)
 	}
 }
 
+//RISC-V has mtimer which clock is 26M and it doesn't change frequency.
+//as delay_ms is just compare risc-v timer which block system runs, so the param
+//of ms_count should be not too big. F.E: < 100
 void delay_ms(UINT32 ms_count)
 {
+#if 0	//we should not use delay cycle as the CPU clock changes.
 	UINT32 div;
 	UINT32 clk = 0;
 	UINT32 cell;
@@ -70,10 +92,14 @@ void delay_ms(UINT32 ms_count)
 
 	cell = clk / 18000;
 	delay_cycle(ms_count * cell);
+#else
+	delay_us(1000 * ms_count);
+#endif
 }
 
 void delay_10us(UINT32 count)
 {
+#if 0	//we should not use delay cycle as the CPU clock changes.
 	UINT32 div;
 	UINT32 clk = 0;
 	UINT32 cell;
@@ -103,6 +129,9 @@ void delay_10us(UINT32 count)
 
 	cell = (clk + 900000) / 1800000;
 	delay_cycle(count * cell);
+#else
+	delay_us(10 * count);
+#endif
 }
 
 #else
@@ -142,6 +171,42 @@ void delay_ms(UINT32 ms_count)
 	BK_ASSERT(clk);
 
 	cell = 100 * clk / 26000000;
+	delay(ms_count * cell);
+}
+
+void delay_us(UINT32 ms_count)
+{
+	UINT32 ret;
+	UINT32 div;
+	UINT32 clk = 0;
+	UINT32 cell;
+	SYS_CTRL_U param;
+
+	ret = sddev_control(DD_DEV_TYPE_SCTRL, CMD_GET_SCTRL_CONTROL, &param);
+	BK_ASSERT(SCTRL_SUCCESS == ret);
+
+	div = param.bits.mclk_div;
+	switch (param.bits.mclk_mux) {
+	case MCLK_MODE_DCO:
+	case MCLK_MODE_26M_XTAL:
+		clk = 26000000;
+		break;
+
+	case MCLK_MODE_DPLL:
+		clk = 480000000 / (2 << div);
+		break;
+
+	case MCLK_MODE_LPO:
+		clk = 32000;
+		break;
+
+	default:
+		break;
+	}
+
+	BK_ASSERT(clk);
+
+	cell = 100 * clk / 26000;
 	delay(ms_count * cell);
 }
 #endif

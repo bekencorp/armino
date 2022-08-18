@@ -69,9 +69,20 @@ typedef u16_t mem_size_t;
 #endif /* MEM_SIZE > 64000 */
 #endif
 
+#if MEM_TRX_DYNAMIC_EN
+#define MEM_TYPE_TX        1
+#define MEM_TYPE_RX        2
+#endif
+
 void  mem_init(void);
 void *mem_trim(void *mem, mem_size_t size);
+#if MEM_TRX_DYNAMIC_EN
+void *mem_malloc_trx(mem_size_t size, u8_t type);
+#define mem_malloc(size_in)     mem_malloc_trx(size_in, MEM_TYPE_TX)
+#define mem_malloc_rx(size_in)  mem_malloc_trx(size_in, MEM_TYPE_RX)
+#else
 void *mem_malloc(mem_size_t size);
+#endif
 void *mem_calloc(mem_size_t count, mem_size_t size);
 void  mem_free(void *mem);
 u32_t get_mem_size(void *rmem);

@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-#define PWM_LL_REG_BASE(_pwm_unit_id) (SOC_PWM01_REG_BASE)
+#define PWM_LL_REG_BASE(_pwm_unit_id) (SOC_PWM23_REG_BASE)
 #define PWM_LL_GROUP(chan) ((chan) / SOC_PWM_CHAN_NUM_PER_GROUP)
 #define PWM_LL_CHAN(chan) ((chan) % SOC_PWM_CHAN_NUM_PER_GROUP)
 

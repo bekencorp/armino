@@ -57,6 +57,11 @@ bk_err_t bk_icu_driver_init(void);
  */
 bk_err_t bk_icu_driver_deinit(void);
 
+#ifdef CONFIG_ISR_REG_DISABLE
+#define bk_int_isr_register(dev, isr, arg)
+#define bk_int_isr_unregister(src)
+#else
+
 /**
  * @brief     register interrupt service handler
  *
@@ -87,6 +92,7 @@ bk_err_t bk_int_isr_register(icu_int_src_t dev, int_group_isr_t isr, void*arg);
  *    - others: other errors.
  */
 bk_err_t bk_int_isr_unregister(icu_int_src_t src);
+#endif
 
 /**
  * @brief     set/change interrupt priority
@@ -130,6 +136,17 @@ bk_err_t bk_int_set_priority(icu_int_src_t src, uint32_t int_priority);
  *    - others: other errors.
  */
 bk_err_t bk_int_set_group(void);
+
+/**
+ * @brief     Register callback for mac ps
+ *
+ * @param mac_ps_cb  mac ps callback
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_int_register_mac_ps_callback(int_mac_ps_callback_t mac_ps_cb);
 
 #ifdef __cplusplus
 

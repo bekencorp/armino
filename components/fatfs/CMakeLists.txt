@@ -13,7 +13,7 @@ if (CONFIG_SDCARD_HOST)
 		)
 endif()
 
-if (CONFIG_USB_HOST)
+if (CONFIG_USB_MSD)
 	list(APPEND incs "fatfs_udisk/")
 
 	list(APPEND srcs

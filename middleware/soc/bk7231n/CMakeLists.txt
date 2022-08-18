@@ -48,7 +48,7 @@ armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}")
 armino_build_get_property(sdkconfig_header SDKCONFIG_HEADER)
 armino_build_get_property(config_dir CONFIG_DIR)
 
-target_linker_script(${COMPONENT_LIB} INTERFACE "${target}_bsp.ld")
+target_linker_script_judge()
 
 set(LD_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 

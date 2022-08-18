@@ -2,4 +2,9 @@ menu "DEMOS_DOORBELL"
 	config DOORBELL
 		bool "Enable doorbell"
 		default n
+
+	config DOORBELL_DEMO1
+		depends on DOORBELL
+		bool "enable doorbell demo1"
+		default n
 endmenu

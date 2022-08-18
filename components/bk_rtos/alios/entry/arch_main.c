@@ -14,7 +14,7 @@
 #include "bk_private/legacy_init.h"
 #include <os/mem.h>
 #include "bk_uart.h"
-#include "bk_private/bk_ate.h"
+#include <components/ate.h>
 #include "k_api.h"
 #include <os/os.h>
 #include <components/system.h>
@@ -64,7 +64,8 @@ void soc_driver_init(void)
 
 void soc_system_init(void)
 {
-	components_init();
+	if(components_init())
+		return;
 
 	bk_tick_init();
 

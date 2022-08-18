@@ -13,4 +13,19 @@ menu "ARCH_RISCV"
 		bool "Dump all memory when exception happen"
 		default y
 
+	config SAVE_BOOT_TIME_POINT
+		depends on ARCH_RISCV
+		bool "Save boot time point"
+		default n
+
+	config CACHE_ENABLE
+		depends on ARCH_RISCV
+		bool "Enable Cache"
+		default n
+
+	config CACHE_CUSTOM_SRAM_MAPPING
+		depends on CACHE_ENABLE
+		bool "Custom defined sram mapping"
+		default n
+
 endmenu

@@ -22,43 +22,52 @@ if(CONFIG_FREERTOS)
 		endif()
 		set_source_files_properties("${CMAKE_CURRENT_LIST_DIR}/freertos_v9/portable/Keil/ARM968es/port.c" PROPERTIES COMPILE_FLAGS "-marm")
 	elseif(CONFIG_FREERTOS_V10)
-		if(CONFIG_ARCH_RISCV)
-			set(incs
-			freertos_v10/include
-			freertos_v10/portable/GCC/RISC-V
-			freertos_v10/portable/GCC/RISC-V/chip_specific_extensions/Andes_V5_RV32RV64
-			)
-		
-			set(srcs
-			freertos_v10/croutine.c
-			freertos_v10/event_groups.c
-			freertos_v10/list.c
-			freertos_v10/portable/GCC/RISC-V/port.c
-			freertos_v10/portable/GCC/RISC-V/portASM.S
-			freertos_v10/queue.c
-			freertos_v10/tasks.c
-			freertos_v10/stream_buffer.c
-			freertos_v10/timers.c
-			freertos_v10/portable/MemMang/heap_4.c
-			)
-		
-		else()
-			set(incs
-			freertos_v10/include
-			freertos_v10/portable/Keil/ARM968es
-		)
-
+		set(incs freertos_v10/include)
 		set(srcs
 			freertos_v10/croutine.c
 			freertos_v10/event_groups.c
 			freertos_v10/list.c
-			freertos_v10/portable/Keil/ARM968es/port.c
 			freertos_v10/queue.c
 			freertos_v10/tasks.c
 			freertos_v10/stream_buffer.c
 			freertos_v10/timers.c
 			freertos_v10/portable/MemMang/heap_4.c
 			)
+		
+		if(CONFIG_ARCH_RISCV)
+			list(APPEND incs
+				freertos_v10/portable/GCC/RISC-V
+				freertos_v10/portable/GCC/RISC-V/chip_specific_extensions/Andes_V5_RV32RV64
+				)
+		
+			list(APPEND srcs
+				freertos_v10/portable/GCC/RISC-V/port.c
+				freertos_v10/portable/GCC/RISC-V/portASM.S
+				)
+			
+		elseif(CONFIG_ARCH_CM33)
+			list(APPEND incs
+				freertos_v10/portable/GCC/ARM_CM33/non_secure
+				freertos_v10/portable/GCC/ARM_CM33/secure
+				)
+			
+			list(APPEND srcs
+				freertos_v10/portable/GCC/ARM_CM33/non_secure/port.c
+				freertos_v10/portable/GCC/ARM_CM33/non_secure/portasm.c
+				#TODO Enable secure source files
+				#freertos_v10/portable/GCC/ARM_CM33/secure/secure_context.c
+				#freertos_v10/portable/GCC/ARM_CM33/secure/secure_context_port.c
+				#freertos_v10/portable/GCC/ARM_CM33/secure/secure_heap.c
+				#freertos_v10/portable/GCC/ARM_CM33/secure/secure_init.c
+				)
+		else()
+			list(APPEND incs
+				freertos_v10/portable/Keil/ARM968es
+				)
+
+			list(APPEND srcs
+				freertos_v10/portable/Keil/ARM968es/port.c
+				)
 			set_source_files_properties("${CMAKE_CURRENT_LIST_DIR}/freertos_v10/portable/Keil/ARM968es/port.c" PROPERTIES COMPILE_FLAGS "-marm")
 		endif()
 		
@@ -233,5 +242,5 @@ endif()
 
 armino_component_register(SRCS "${srcs}"
 		INCLUDE_DIRS "${incs}"
-		PRIV_REQUIRES bk_common)
+		PRIV_REQUIRES bk_common bk_rtos)
 

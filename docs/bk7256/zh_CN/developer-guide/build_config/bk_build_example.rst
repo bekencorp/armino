@@ -336,7 +336,7 @@ TODO
 
 - ``externalproject_add`` 定义了一个外部构建系统。
 
-  - 设置 ``SOURCE_DIR``、``CONFIGURE_COMMAND``、``BUILD_COMMAND`` 和 ``INSTALL_COMMAND``。如果外部构建系统没有配置这一步骤，可以将 ``CONFIGURE_COMMAND`` 设置为空字符串。在 ESP-IDF 的构建系统中，一般会将 ``INSTALL_COMMAND`` 变量设置为空。
+  - 设置 ``SOURCE_DIR``、``CONFIGURE_COMMAND``、``BUILD_COMMAND`` 和 ``INSTALL_COMMAND``。如果外部构建系统没有配置这一步骤，可以将 ``CONFIGURE_COMMAND`` 设置为空字符串。在 Armino 的构建系统中，一般会将 ``INSTALL_COMMAND`` 变量设置为空。
   - 设置 ``BUILD_IN_SOURCE``，即构建目录与源目录相同。否则，您也可以设置 ``BUILD_DIR`` 变量。
   - 有关 ``externalproject_add()`` 命令的详细信息，请参阅 ExternalProject_。
 

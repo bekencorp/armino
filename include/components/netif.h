@@ -79,6 +79,21 @@ bk_err_t bk_netif_set_ip4_config(netif_if_t ifx, const netif_ip4_config_t *confi
 bk_err_t bk_netif_get_ip4_config(netif_if_t ifx, netif_ip4_config_t *config);
 
 /**
+ * @brief  Get netif interface's IP6 address information
+ *
+ * If the interface is up, IP6 information is read directly from the TCP/IP stack.
+ * If the interface is down, the API just return all 0 information
+ *
+ * @param ifx  netif interface ID
+ *
+ * @return
+ *   - BK_OK: succeed
+ *   - BK_ERR_NETIF_IF: invalid netif interface ID
+ *   - BK_ERR_NULL_PARAM: config is NULL
+ */
+bk_err_t bk_netif_get_ip6_addr_info(netif_if_t ifx);
+
+/**
  * @brief  Start the DHCP client for specified interface
  *
  * If this API is called, the interface will get the IP address via DHCP.

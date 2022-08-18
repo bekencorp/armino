@@ -17,7 +17,6 @@
 #include <common/bk_include.h>
 #include <soc/soc.h>
 
-#include <driver/hal/hal_i2c_types.h>
 #include "i2c_reg.h"
 #include "i2c_struct.h"
 

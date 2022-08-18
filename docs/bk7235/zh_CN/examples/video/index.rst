@@ -6,9 +6,4 @@ video(图像处理)
 .. toctree::
    :maxdepth: 1
 
-   概述 <bk_video_app>
-   DVP_Camera及配置 <bk_dvp_config>
-   SPI_Camera <bk_spi_config>
-   UVC_Camera <bk_uvc_config>
-   图传 <bk_video_transfer>
-   拍照 <bk_image_capture>
+   camera <camera/index>

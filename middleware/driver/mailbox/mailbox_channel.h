@@ -42,7 +42,11 @@ enum
 	MB_CHNL_HW_CTRL = 0,
 	MB_CHNL_RPC,
 	MB_CHNL_AUD,
+	MB_CHNL_VID,
+	MB_CHNL_PWC,
+	MB_CHNL_MEDIA,
 	MB_CHNL_LOG,   /* MB_CHNL_LOG should be the LAST one. LOWEST priority. */
+	MB_CHNL_COM,   /* MB_CHNL_COM is default mailbox channel used for audio and video */
 	MB_LOG_CHNL_NUM,
 };
 

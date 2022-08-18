@@ -1,30 +1,32 @@
-#ifndef _JPEG_DEC_HAL_H_
-#define _JPEG_DEC_HAL_H_
+// Copyright 2020-2021 Beken 
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");           
+// you may not use this file except in compliance with the License.            
+// You may obtain a copy of the License at                                     
+//                                                                             
+//     http://www.apache.org/licenses/LICENSE-2.0                              
+//                                                                             
+// Unless required by applicable law or agreed to in writing, software         
+// distributed under the License is distributed on an "AS IS" BASIS,         
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.    
+// See the License for the specific language governing permissions and         
+// limitations under the License.                                              
 
-int jpg_decoder_init();
-void jpg_decoder_deinit(void);
-int jpg_decoder_fun(unsigned char *jpg_buf, unsigned char ** Y_buf, int pic_size);
-void jpg_get_pic_size(int *width, int *heigth);
+/***********************************************************************************************************************************
+* This file is generated from BK7256_ADDR_Mapping_MP2.xlsm automatically                                
+* Modify it manually is not recommended                                       
+* CHIP ID:BK7256,GENARATE TIME:2022-07-16 15:30:25                                                 
+************************************************************************************************************************************/
 
-extern void jpg_dec_test(void);
-typedef struct _JPG_DECODER_ST
-{
-	int width;
-	int heigth;
-	int scale_ratio;//0,1
-	int line_wbyte;
-	int rd_ptr;
-	int jpg_file_size;//jpg file size
-	unsigned char *outputbuf;//y data
-	unsigned char *inputbuf;//jpg data
-	unsigned char *workbuf;
+#pragma once                 
+                            
+#ifdef __cplusplus          
+extern "C" {              
+#endif                      
 
-}JPG_DECODER_ST;
+#include <soc/soc.h>                 
 
-
-
-
-#define REG_JPEG_DEC_BASE_ADDR              0x48040000
+#define REG_JPEG_DEC_BASE_ADDR              SOC_JPEG_DEC_REG_BASE
 
 
 #define REG_JPEG_ACC_REG0               (*((volatile unsigned long *)(REG_JPEG_DEC_BASE_ADDR + 0x00 * 4)))
@@ -306,4 +308,6 @@ typedef struct _JPG_DECODER_ST
 */
 
 
-#endif
+#ifdef __cplusplus 
+}                  
+#endif             

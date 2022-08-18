@@ -87,7 +87,10 @@ typedef int bk_err_t;
 #define BK_ERR_SBC_BASE            (-0x3600)
 #define BK_ERR_FLASH_BASE          (-0x3700)
 #define BK_ERR_SDIO_BASE           (-0x3800)
-
+#define BK_ERR_SDIO_HOST_BASE      (-0x3900)
+#define BK_ERR_MPC_BASE            (-0x3a00)
+#define BK_ERR_PSRAM_BASE          (-0x3b00)
+#define BK_ERR_PRRO_BASE           (-0x3c00)
 
 /* -0x1a2c to -0x1a7b is reserved for kXxx error code
  * #define kGenericErrorBase           -6700

@@ -40,6 +40,8 @@ bk_err_t dma2d_hal_init(DMA2D_HandleTypeDef *dma2d)
 
 	// 000:m2m; 001:m2m pixel convert with fg; 010:m2m blend; 011:r2m.only with output; 100: m2m blend fix fg; 101:m2m blend fix bg;
 	dma2d_ll_set_dma2d_control_reg_mode(s_dma2d_hal.hw, dma2d->init.Mode);
+	dma2d_ll_set_dma2d_control_reg_out_byte_revese(s_dma2d_hal.hw, dma2d->init.data_reverse);
+	dma2d_ll_set_dma2d_control_reg_master_tran_length(s_dma2d_hal.hw, dma2d->init.trans_ability);
 
 	dma2d_ll_set_dma2d_control_reg_line_offset_mode(s_dma2d_hal.hw, dma2d->init.LineOffsetMode);
 

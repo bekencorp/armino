@@ -100,6 +100,10 @@ menu "Cli"
 		bool "Enable KEYVALUE"
 		default n
 
+	config IDLE_UART_OUT_TEST
+		bool "Enable idle uart out test"
+		default n
+
 	config COMPONENTS_WPA2_ENTERPRISE
                 bool "Enable WPA2 ENTERPRISE"
                 default n
@@ -111,6 +115,10 @@ menu "Cli"
         config COMPONENTS_WFA_CA
                 bool "WFA_CA"
                 default n
+
+	config ENABLE_WIFI_DEFAULT_CONNECT
+		bool "Enable Wi-Fi Default Connect"
+		default n
 endmenu
 
 menu "DUAL_CORE"

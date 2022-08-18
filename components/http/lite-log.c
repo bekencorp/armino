@@ -66,7 +66,7 @@ int LITE_hexdump(const char *title, const void *buff, const int len)
 	return 0;
 }
 
-#if defined(LITE_LOG_ENABLED)
+#if CONFIG_LITE_LOG_ENABLED
 static log_client logcb;
 
 static char *lvl_names[] = {
@@ -114,7 +114,7 @@ void LITE_openlog(const char *ident)
 {
 	os_strncpy(logcb.name, ident, LOG_MOD_NAME_LEN);
 	logcb.name[LOG_MOD_NAME_LEN] = 0;
-	logcb.priority = 0;
+	logcb.priority = LOG_DEBUG_LEVEL;
 }
 
 void LITE_closelog(void)
@@ -166,7 +166,7 @@ int log_multi_line_internal(const char *f, const int l,
 		return 1;
 
 	LITE_printf("[%s] %s(%d): %s (Length: %d Bytes)\r\n",
-				lvl_names[LITE_get_loglevel()], f, l, title, (int)strlen(payload));
+				lvl_names[LITE_get_loglevel()], f, l, title, (int)os_strlen(payload));
 
 	pos = payload;
 	while (pos && *pos) {
@@ -196,7 +196,7 @@ int log_multi_line_internal(const char *f, const int l,
 	return 0;
 }
 
-#else   /* defined(LITE_LOG_ENABLED) */
+#else   /* CONFIG_LITE_LOG_ENABLED */
 void LITE_syslog(const char *f, const int l, const int level, const char *fmt, ...)
 {
 

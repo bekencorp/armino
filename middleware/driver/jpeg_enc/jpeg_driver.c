@@ -14,6 +14,7 @@
 
 #include <driver/dma.h>
 #include <driver/int.h>
+#include <driver/gpio.h>
 #include <os/mem.h>
 #include <driver/jpeg_enc.h>
 #include "clock_driver.h"
@@ -23,8 +24,6 @@
 #include "power_driver.h"
 #include "sys_driver.h"
 #include <modules/pm.h>
-
-extern void delay(int num);//TODO fix me
 
 typedef struct {
 	jpeg_isr_t isr_handler;
@@ -54,7 +53,7 @@ static void jpeg_power_config_set(const jpeg_config_t *config)
 	sys_drv_set_jpeg_clk_sel(1);
 	sys_drv_set_clk_div_mode1_clkdiv_jpeg(config->sys_clk_div);
 	sys_drv_set_jpeg_disckg(1);
-	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_JPEG, CLK_PWR_CTRL_PWR_UP);
+	bk_pm_clock_ctrl(PM_CLK_ID_JPEG, CLK_PWR_CTRL_PWR_UP);
 }
 #endif
 
@@ -66,6 +65,10 @@ static void jpeg_init_gpio(void)
 	for (uint32_t i = 0; i < 2; i++) {
 		gpio_dev_unmap(jpeg_gpio_map_table[i].gpio_id);
 		gpio_dev_map(jpeg_gpio_map_table[i].gpio_id, jpeg_gpio_map_table[i].dev);
+		if (i == 0) {
+			// enhance mclk capability
+			bk_gpio_set_capacity(jpeg_gpio_map_table[i].gpio_id, 3);
+		}
 	}
 #else
 	for(uint32_t i = 0; i < JPEG_GPIO_PIN_NUMBER; i++) {
@@ -106,7 +109,6 @@ static void jpeg_dma_rx_init(const jpeg_config_t *config)
 		BK_LOG_ON_ERR(bk_dma_set_transfer_len(jpeg_dma_rx_id, config->node_len));
 		BK_LOG_ON_ERR(bk_dma_register_isr(jpeg_dma_rx_id, NULL, config->dma_rx_finish_handler));
 		BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(jpeg_dma_rx_id));
-		BK_LOG_ON_ERR(bk_dma_enable_half_finish_interrupt(jpeg_dma_rx_id));
 		BK_LOG_ON_ERR(bk_dma_start(jpeg_dma_rx_id));
 	}
 }
@@ -132,11 +134,11 @@ static void jpeg_init_common(const jpeg_config_t *config)
 
 static void jpeg_deinit_common(void)
 {
-	jpeg_hal_stop_common(&s_jpeg.hal);
+	jpeg_hal_stop_common(&s_jpeg.hal, JPEG_ENC_MODE);
 	jpeg_hal_reset_config_to_default(&s_jpeg.hal);
 #if (CONFIG_SYSTEM_CTRL)
+	bk_pm_clock_ctrl(PM_CLK_ID_JPEG, CLK_PWR_CTRL_PWR_DOWN);
 	sys_hal_set_jpeg_disckg(0);
-	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_JPEG, CLK_PWR_CTRL_PWR_DOWN);
 	sys_drv_int_disable(JPEGENC_INTERRUPT_CTRL_BIT);
 #else
 	icu_disable_jpeg_interrupt();
@@ -147,18 +149,6 @@ static void jpeg_deinit_common(void)
 	jpeg_deinit_gpio();
 }
 
-static void jpeg_cli_deinit_common(void)
-{
-	jpeg_hal_stop_common(&s_jpeg.hal);
-	jpeg_hal_reset_config_to_default(&s_jpeg.hal);
-#if (CONFIG_SYSTEM_CTRL)
-	sys_hal_set_jpeg_disckg(0);
-	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_JPEG, CLK_PWR_CTRL_PWR_DOWN);
-	sys_drv_int_disable(JPEGENC_INTERRUPT_CTRL_BIT);
-#endif
-	jpeg_deinit_gpio();
-}
-
 bk_err_t bk_jpeg_enc_driver_init(void)
 {
 	if (s_jpeg_driver_is_init) {
@@ -166,9 +156,7 @@ bk_err_t bk_jpeg_enc_driver_init(void)
 	}
 #if CONFIG_SYSTEM_CTRL
 	//power on
-	pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_VIDP, PM_POWER_MODULE_STATE_ON);
-	sys_drv_video_power_en(0);    //temp used
-	delay(100);
+	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_EN, PM_POWER_MODULE_STATE_ON);
 #endif
 
 	os_memset(&s_jpeg, 0, sizeof(s_jpeg));
@@ -187,9 +175,7 @@ bk_err_t bk_jpeg_enc_driver_deinit(void)
 	bk_int_isr_unregister(INT_SRC_JPEG);
 #if CONFIG_SYSTEM_CTRL
 	// power off
-	pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_VIDP, PM_POWER_MODULE_STATE_OFF);
-	sys_drv_video_power_en(1);    //temp used
-	delay(100);
+	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_EN, PM_POWER_MODULE_STATE_OFF);
 #endif
 
 	s_jpeg_driver_is_init = false;
@@ -203,7 +189,13 @@ bk_err_t bk_jpeg_enc_init(const jpeg_config_t *config)
 	JPEG_RETURN_ON_NOT_INIT();
 
 	jpeg_init_common(config);
-	jpeg_hal_configure(&s_jpeg.hal, config);
+
+	if (config->yuv_mode) {
+		jpeg_hal_set_yuv_config(&s_jpeg.hal, config);
+	} else {
+		jpeg_hal_set_encode_config(&s_jpeg.hal, config);
+	}
+
 	jpeg_dma_rx_init(config);
 
 	return BK_OK;
@@ -216,42 +208,82 @@ bk_err_t bk_jpeg_enc_deinit(void)
 	return BK_OK;
 }
 
+bk_err_t bk_jpeg_enc_partial_display_init(const jpeg_partial_offset_config_t *offset_config)
+{
+	JPEG_RETURN_ON_NOT_INIT();
+	jpeg_hal_partial_display_offset_config(&s_jpeg.hal, offset_config);
+	jpeg_hal_enable_partial_display(&s_jpeg.hal, 1);
+
+	return BK_OK;
+}
+
+bk_err_t bk_jpeg_enc_partial_display_deinit(const jpeg_partial_offset_config_t *offset_config)
+{
+	jpeg_hal_enable_partial_display(&s_jpeg.hal, 0);;
+	os_memset((void *)offset_config, 0, sizeof(jpeg_partial_offset_config_t));
+	jpeg_hal_partial_display_offset_config(&s_jpeg.hal, offset_config);
+
+	return BK_OK;
+}
+
 bk_err_t bk_jpeg_enc_dvp_init(const jpeg_config_t *config)
 {
 	BK_RETURN_ON_NULL(config);
 	JPEG_RETURN_ON_NOT_INIT();
 
 	jpeg_init_common(config);
-	jpeg_hal_configure(&s_jpeg.hal, config);
+
+	if (config->yuv_mode) {
+		jpeg_hal_set_yuv_config(&s_jpeg.hal, config);
+	} else {
+		jpeg_hal_set_encode_config(&s_jpeg.hal, config);
+	}
 
 	return BK_OK;
 }
 
 bk_err_t bk_jpeg_enc_dvp_deinit(void)
 {
-	jpeg_cli_deinit_common();
+	jpeg_hal_stop_common(&s_jpeg.hal, JPEG_ENC_MODE);
+	jpeg_hal_stop_common(&s_jpeg.hal, JPEG_YUV_MODE);
+	jpeg_hal_reset_config_to_default(&s_jpeg.hal);
+
+	bk_pm_clock_ctrl(PM_CLK_ID_JPEG, CLK_PWR_CTRL_PWR_DOWN);
+	sys_hal_set_jpeg_disckg(0);
+#if (CONFIG_SYSTEM_CTRL)
+	sys_drv_int_disable(JPEGENC_INTERRUPT_CTRL_BIT);
+#endif
+	jpeg_deinit_gpio();
+
 
 	return BK_OK;
 }
 
-bk_err_t bk_jpeg_enc_set_yuv_mode(uint32_t mode)
-{
-	JPEG_RETURN_ON_NOT_INIT();
-	jpeg_hal_set_yuv_mode(&s_jpeg.hal, mode);
-
-	return BK_OK;
-
-}
-
-bk_err_t bk_jpeg_enc_set_enable(uint8_t enable)
+bk_err_t bk_jpeg_enc_set_enable(uint8_t enable, uint8_t mode)
 {
 	JPEG_RETURN_ON_NOT_INIT();
 
 	if (enable) {
-		jpeg_hal_start_common(&s_jpeg.hal);
+		jpeg_hal_start_common(&s_jpeg.hal, mode);
 	} else {
-		jpeg_hal_stop_common(&s_jpeg.hal);
+		jpeg_hal_stop_common(&s_jpeg.hal, mode);
 	}
+
+	return BK_OK;
+}
+
+bk_err_t bk_jpeg_set_em_base_addr(uint8_t *address)
+{
+	JPEG_RETURN_ON_NOT_INIT();
+	jpeg_hal_set_em_base_addr(&s_jpeg.hal, address);
+	return BK_OK;
+}
+
+bk_err_t bk_jpeg_enc_yuv_fmt_sel(uint32_t value)
+{
+	JPEG_RETURN_ON_NOT_INIT();
+
+	jpeg_hal_yuv_fmt_sel(&s_jpeg.hal, value);
 
 	return BK_OK;
 }
@@ -280,6 +312,108 @@ bk_err_t bk_jpeg_enc_dvp_gpio_enable(void)
 		gpio_dev_unmap(jpeg_gpio_map_table[i].gpio_id);
 		gpio_dev_map(jpeg_gpio_map_table[i].gpio_id, jpeg_gpio_map_table[i].dev);
 	}
+
+	return BK_OK;
+}
+
+bk_err_t bk_jpeg_enc_get_fifo_addr(uint32_t *fifo_addr)
+{
+	JPEG_RETURN_ON_NOT_INIT();
+	*fifo_addr = JPEG_R_RX_FIFO;
+	return BK_OK;
+}
+
+bk_err_t bk_jpeg_enc_enable_int(uint32_t type)
+{
+	JPEG_RETURN_ON_NOT_INIT();
+	if (type & JPEG_END_YUV_INT) {
+		jpeg_hal_enable_end_yuv_int(&s_jpeg.hal);
+	}
+
+	if (type & JPEG_HEAD_OUTPUT_INT) {
+		jpeg_hal_enable_head_output_int(&s_jpeg.hal);
+	}
+
+	if (type & JPEG_START_FRAME_INT) {
+		jpeg_hal_enable_start_frame_int(&s_jpeg.hal);
+	}
+
+	if (type & JPEG_END_FRAME_INT) {
+		jpeg_hal_enable_end_frame_int(&s_jpeg.hal);
+	}
+
+	if (type & JPEG_VSYNC_NEGEDGE_INT) {
+		jpeg_hal_enable_vsync_negedge_int(&s_jpeg.hal);
+	}
+
+	return BK_OK;
+}
+
+bk_err_t bk_jpeg_enc_disable_int(uint32_t type)
+{
+	JPEG_RETURN_ON_NOT_INIT();
+	if (type & JPEG_END_YUV_INT) {
+		jpeg_hal_disable_end_yuv_int(&s_jpeg.hal);
+	}
+
+	if (type & JPEG_HEAD_OUTPUT_INT) {
+		jpeg_hal_disable_head_output_int(&s_jpeg.hal);
+	}
+
+	if (type & JPEG_START_FRAME_INT) {
+		jpeg_hal_disable_start_frame_int(&s_jpeg.hal);
+	}
+
+	if (type & JPEG_END_FRAME_INT) {
+		jpeg_hal_disable_end_frame_int(&s_jpeg.hal);
+	}
+
+	if (type & JPEG_VSYNC_NEGEDGE_INT) {
+		jpeg_hal_disable_vsync_negedge_int(&s_jpeg.hal);
+	}
+
+	return BK_OK;
+}
+
+bk_err_t bk_jpeg_enc_set_auxs(uint32_t cksel, uint32_t ckdiv)
+{
+#if CONFIG_SYSTEM_CTRL
+	sys_hal_set_auxs_clk_sel(cksel);
+	sys_hal_set_auxs_clk_div(ckdiv);
+	return BK_OK;
+#else
+	return BK_FAIL;
+#endif
+}
+
+bk_err_t bk_jpeg_enc_mclk_enable(void)
+{
+	JPEG_RETURN_ON_NOT_INIT();
+
+	sys_drv_set_jpeg_clk_sel(1);
+	sys_drv_set_clk_div_mode1_clkdiv_jpeg(4);
+	sys_drv_set_jpeg_disckg(1);
+
+	jpeg_hal_enable_clk(&s_jpeg.hal, 0);
+	bk_pm_clock_ctrl(PM_CLK_ID_JPEG, CLK_PWR_CTRL_PWR_UP);
+
+	return BK_OK;
+}
+
+bk_err_t bk_jpeg_enc_enable_encode_auto_ctrl(uint8_t enable)
+{
+	JPEG_RETURN_ON_NOT_INIT();
+
+	jpeg_hal_enable_bitrate_ctrl(&s_jpeg.hal, enable);
+
+	return BK_OK;
+}
+
+bk_err_t bk_jpeg_enc_set_target_size(uint32_t up_size, uint32_t low_size)
+{
+	JPEG_RETURN_ON_NOT_INIT();
+
+	jpeg_hal_set_target_size(&s_jpeg.hal, up_size, low_size);
 
 	return BK_OK;
 }

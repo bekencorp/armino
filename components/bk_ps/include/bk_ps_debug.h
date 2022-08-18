@@ -36,7 +36,7 @@ extern "C" {
 #define PS_BCN_DBG_GPIO                (0x0802800 +(2*4))
 #define PS_HWDOWN_DBG_GPIO               (0x0802800 +(20*4))
 #define PS_TM_DBG_GPIO                (0x0802800 +(3*4))
-#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 #define PS_MAC_DBG_GPIO                 (0x0802800 +(6*4))
 #define PS_RF_DBG_GPIO                 (0x0802800 +(7*4))
 #define PS_HWUP_DBG_GPIO                 (0x0802800 +(8*4))

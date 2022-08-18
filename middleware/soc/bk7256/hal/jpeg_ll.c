@@ -16,7 +16,7 @@
 
 #define JPEG_QUANT_TABLE_LEN    32
 
-#if 1
+#if 0
 static const uint32_t jpeg_quant_table[JPEG_QUANT_TABLE_LEN] = {
 	0x07060608, 0x07080506, 0x09090707, 0x140c0a08,
 	0x0b0b0c0d, 0x1312190c, 0x1a1d140f, 0x1a1d1e1f,
@@ -50,23 +50,4 @@ void jpeg_ll_init_quant_table(jpeg_hw_t *hw)
         REG_WRITE(reg_addr, (uint32_t)jpeg_quant_table[i]);
     }
 }
-
-void jpeg_ll_set_x_pixel_value(jpeg_hw_t * hw, uint32_t x_pixel)
-{
-	uint32_t reg_value;
-	reg_value = REG_READ(JPEG_R_CFG);
-	reg_value &= ~(JPEG_F_X_PIXEL_M << JPEG_F_X_PIXEL_S);
-	reg_value |= ((x_pixel & JPEG_F_X_PIXEL_M) << JPEG_F_X_PIXEL_S);
-	REG_WRITE(JPEG_R_CFG, reg_value);
-}
-
-void jpeg_ll_set_y_pixel_value(jpeg_hw_t * hw, uint32_t y_pixel)
-{
-	uint32_t reg_value;
-	reg_value = REG_READ(JPEG_R_CFG);
-	reg_value &= ~(JPEG_F_Y_PIXEL_M << JPEG_F_Y_PIXEL_S);
-	reg_value |= ((y_pixel & JPEG_F_Y_PIXEL_M) << JPEG_F_Y_PIXEL_S);
-	REG_WRITE(JPEG_R_CFG, reg_value);
-}
-
 

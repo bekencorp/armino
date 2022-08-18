@@ -56,6 +56,7 @@
 #include "netif/ethernet.h"
 
 #include <string.h>
+#include "net.h"
 
 #ifdef LWIP_HOOK_FILENAME
 #include LWIP_HOOK_FILENAME
@@ -103,6 +104,9 @@ struct etharp_entry {
 };
 
 static struct etharp_entry arp_table[ARP_TABLE_SIZE];
+#if CONFIG_LWIP_FAST_DHCP
+static beken2_timer_t arp_conflict_tmr = {0};
+#endif
 
 #if !LWIP_NETIF_HWADDRHINT
 static netif_addr_idx_t etharp_cached_entry;
@@ -208,15 +212,20 @@ etharp_tmr(void)
 #endif /* ETHARP_SUPPORT_STATIC_ENTRIES */
        ) {
       arp_table[i].ctime++;
+#if CONFIG_WIFI6_CODE_STACK
+      if ((etharp_tmr_flag && (arp_table[i].ctime >= 3600)) ||
+          (!etharp_tmr_flag && (arp_table[i].ctime >= ARP_MAXAGE)) ||
+#else
       if ((arp_table[i].ctime >= ARP_MAXAGE) ||
+#endif
           ((arp_table[i].state == ETHARP_STATE_PENDING)  &&
            (arp_table[i].ctime >= ARP_MAXPENDING))) {
         /* pending or stable entry has become old! */
-        LWIP_DEBUGF(ETHARP_DEBUG, ("etharp_timer: expired %s entry %d.\n",
+        LWIP_DEBUGF(ETHARP_DEBUG, ("etharp_timer 1hour: expired %s entry %d.\n",
                                    arp_table[i].state >= ETHARP_STATE_STABLE ? "stable" : "pending", i));
         /* clean up entries that have just been expired */
         etharp_free_entry(i);
-      } else if (arp_table[i].state == ETHARP_STATE_STABLE_REREQUESTING_1) {
+      }else if (arp_table[i].state == ETHARP_STATE_STABLE_REREQUESTING_1) {
         /* Don't send more than one request every 2 seconds. */
         arp_table[i].state = ETHARP_STATE_STABLE_REREQUESTING_2;
       } else if (arp_table[i].state == ETHARP_STATE_STABLE_REREQUESTING_2) {
@@ -230,6 +239,44 @@ etharp_tmr(void)
     }
   }
 }
+
+#if CONFIG_WIFI6_CODE_STACK
+/**
+ * send arp reply when set interval.
+ */
+int cusarpsum = 0;
+bool special_arp_flag = false;
+void
+etharp_reply(void)
+{
+	int i;
+	int mark = 0;
+	struct netif *netif;
+	NETIF_FOREACH(netif) {
+	struct dhcp *dhcp = netif_dhcp_data(netif);
+	if (dhcp != NULL) {
+		for (i = 0; i < ARP_TABLE_SIZE; ++i) {
+		u8_t state = arp_table[i].state;
+		if (state != ETHARP_STATE_EMPTY && ip4_addr_cmp(ip_2_ip4(&dhcp->server_ip_addr), &arp_table[i].ipaddr)) {
+			special_arp_flag = true;
+			etharp_raw(arp_table[i].netif,
+					 (struct eth_addr *)arp_table[i].netif->hwaddr, &arp_table[i].ethaddr,
+					 (struct eth_addr *)arp_table[i].netif->hwaddr, netif_ip4_addr(arp_table[i].netif),
+					 &arp_table[i].ethaddr, &arp_table[i].ipaddr,
+					 ARP_REPLY);
+		  mark = 1;
+		}
+		}
+		if(mark == 0) {
+		special_arp_flag = true;
+		LWIP_DEBUGF(ETHARP_DEBUG, ("mark null, send request\n"));
+		etharp_request(netif, ip_2_ip4(&dhcp->server_ip_addr));
+		cusarpsum = 1;
+		}
+	}
+	}
+}
+#endif
 
 /**
  * Search the ARP table for a matching or new entry.
@@ -724,6 +771,15 @@ etharp_input(struct pbuf *p, struct netif *netif)
     case PP_HTONS(ARP_REPLY):
       /* ARP reply. We already updated the ARP cache earlier. */
       LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_input: incoming ARP reply\n"));
+
+#if CONFIG_WIFI6_CODE_STACK
+	  if(cusarpsum == 1) {
+		etharp_reply();
+		cusarpsum = 0;
+	    LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_input: go on reply.\n"));
+  	  }
+#endif
+
 #if (LWIP_DHCP && DHCP_DOES_ARP_CHECK)
       /* DHCP wants to know about ARP replies from any host with an
        * IP address also offered to us by the DHCP server. We do not
@@ -731,6 +787,24 @@ etharp_input(struct pbuf *p, struct netif *netif)
        * @todo How should we handle redundant (fail-over) interfaces? */
       dhcp_arp_reply(netif, &sipaddr);
 #endif /* (LWIP_DHCP && DHCP_DOES_ARP_CHECK) */
+
+	 if (ip4_addr_cmp(&sipaddr, netif_ip4_addr(netif))) {
+		 bk_printf("ip conflict!!!\r\n");	 //check for conflict
+#if CONFIG_LWIP_FAST_DHCP
+		 if (rtos_is_oneshot_timer_init(&arp_conflict_tmr) == 0) {
+			 int clk_time = 1000;
+			 rtos_init_oneshot_timer(&arp_conflict_tmr,
+						 clk_time,
+						 (timer_2handler_t)net_restart_dhcp,
+						 NULL,
+						 NULL);
+		 }
+		 if (rtos_is_oneshot_timer_running(&arp_conflict_tmr) == 0) {
+		     rtos_start_oneshot_timer(&arp_conflict_tmr);
+		 }
+#endif
+	 }
+
       break;
     default:
       LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_input: ARP unknown opcode type %"S16_F"\n", lwip_htons(hdr->opcode)));

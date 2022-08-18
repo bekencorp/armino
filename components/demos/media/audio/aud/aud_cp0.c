@@ -311,13 +311,12 @@ void cli_aud_cp0_adc_to_sd_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, in
 
 void cli_aud_cp0_psram_init_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	uint32_t mode = 0x00054043;
 	bk_err_t ret = BK_OK;
 
 	if (os_strcmp(argv[1], "start") == 0) {
 		os_printf("cp0: init psram \n");
 
-		ret = bk_psram_init(mode);
+		ret = bk_psram_init();
 		if (ret != BK_OK) {
 			os_printf("psram init error\n");
 		}
@@ -333,6 +332,8 @@ void cli_aud_cp0_psram_init_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 	}
 }
 
+
+#define AUDIO_READ_BUF_LEN  (4096)
 void cli_aud_cp0_sdcard_to_dac_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	bk_err_t ret = BK_OK;
@@ -345,13 +346,16 @@ void cli_aud_cp0_sdcard_to_dac_test_cmd(char *pcWriteBuffer, int xWriteBufferLen
 	FRESULT fr;
 	FIL file;
 	int number = DISK_NUMBER_SDIO_SD;
-	uint32_t *data_buffer = os_malloc(0x10000);
+	uint32_t *data_buffer = os_malloc(AUDIO_READ_BUF_LEN);
 	UINT uiTemp = 0;
 
-	if (argc != 3) {
+	if (argc < 3) {
 		cli_aud_cp0_help();
 		return;
 	}
+
+	if (argc >= 4)
+		number = os_strtoul(argv[3], NULL, 10);
 
 	/*init sdcard play semaphore*/
 	ret = rtos_init_semaphore(&sdcard_play_sem, 1);
@@ -413,7 +417,7 @@ void cli_aud_cp0_sdcard_to_dac_test_cmd(char *pcWriteBuffer, int xWriteBufferLen
 
 		dma_config.src.addr_inc_en = DMA_ADDR_INC_ENABLE;
 		dma_config.src.start_addr = (uint32_t)data_buffer;
-		dma_config.src.end_addr = (uint32_t)data_buffer + 0x10000;
+		dma_config.src.end_addr = (uint32_t)data_buffer + AUDIO_READ_BUF_LEN;
 
 		//init dma driver
 		ret = bk_dma_driver_init();
@@ -428,7 +432,7 @@ void cli_aud_cp0_sdcard_to_dac_test_cmd(char *pcWriteBuffer, int xWriteBufferLen
 
 		bk_dma_register_isr(dma_id, NULL, cli_aud_dma_isr);
 		bk_dma_enable_finish_interrupt(dma_id);
-		bk_dma_set_transfer_len(dma_id, 0x10000);
+		bk_dma_set_transfer_len(dma_id, AUDIO_READ_BUF_LEN);
 
 		/*open pcm file*/
 		os_memset(file_name, 0, sizeof(file_name));
@@ -441,7 +445,7 @@ void cli_aud_cp0_sdcard_to_dac_test_cmd(char *pcWriteBuffer, int xWriteBufferLen
 
 		while(1)
 		{
-			fr = f_read(&file, data_buffer, 0x10000, &uiTemp);
+			fr = f_read(&file, data_buffer, AUDIO_READ_BUF_LEN, &uiTemp);
 			if (fr != FR_OK) {
 				os_printf("read file fail.\r\n");
 				break;

@@ -21,18 +21,39 @@
 extern "C" {
 #endif
 
-#define ADC_LL_REG_BASE()		SOC_ADC_REG_BASE
+#define ADC_LL_REG_BASE(_adc_unit_id)    (SOC_SADC_REG_BASE)
+
+static inline void adc_ll_soft_reset(adc_hw_t *hw)
+{
+	hw->global_ctrl.soft_reset = 1;
+}
+
+static inline uint32_t adc_ll_get_device_id(adc_hw_t *hw)
+{
+	return hw->dev_id;
+}
+
+static inline uint32_t adc_ll_get_version_id(adc_hw_t *hw)
+{
+	return hw->dev_version;
+}
+
+static inline uint32_t adc_ll_get_dev_status(adc_hw_t *hw)
+{
+	return hw->dev_status;
+}
 
 static inline void adc_ll_init(adc_hw_t *hw)
 {
+	adc_ll_soft_reset(hw);
 	hw->ctrl.v = 0;
 }
 
 static inline void adc_ll_deinit(adc_hw_t *hw)
 {
 	hw->ctrl.v = 0;
-	hw->sat_ctrl.v =0;
-	hw->steady_ctrl.v =0;
+	hw->sat_ctrl.v = 0;
+	hw->steady_ctrl.v = 0;
 }
 
 static inline void adc_ll_set_sleep_mode(adc_hw_t *hw)
@@ -148,7 +169,6 @@ static inline void adc_ll_set_steady_ctrl(adc_hw_t *hw, uint32_t value)
 	hw->steady_ctrl.steady_ctrl = (value & 0x7);
 }
 
-
 //bk7231n :this sat_enable value set const to same as other soc
 static inline void adc_ll_set_sat_ctrl(adc_hw_t *hw, uint32_t value)
 {
@@ -177,7 +197,7 @@ static inline bool adc_ll_is_over_flow(adc_hw_t *hw)
 
 static inline uint16_t adc_ll_get_adc_data(adc_hw_t *hw)
 {
-	return (hw->adc_data & 0xFFFF);
+	return (hw->adc_data.adc_data_16 & 0xFFFF);
 }
 
 static inline bool adc_ll_check_adc_enable(adc_hw_t *hw)

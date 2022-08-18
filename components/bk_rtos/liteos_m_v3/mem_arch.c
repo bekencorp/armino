@@ -73,6 +73,15 @@ void * os_zalloc(size_t size)
 		os_memset(n, 0, size);
 	return n;
 }
+
+void *os_malloc_debug(const char *func_name, int line, size_t size, int need_zero)
+{
+	if (need_zero) {
+		return (void *)os_zalloc(size);
+	}
+	return (void *)os_malloc(size);
+}
+
 #endif // #if (CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG)
 
 
@@ -90,6 +99,12 @@ void *os_free_debug(const char *func_name, int line, void *pv)
 void os_free(void *ptr)
 {
 	beken_free(ptr);
+}
+
+void *os_free_debug(const char *func_name, int line, void *pv)
+{
+	os_free(pv);
+	return NULL;
 }
 
 #endif // #if (CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG)

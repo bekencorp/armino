@@ -184,7 +184,7 @@ typedef struct _network_InitTypeDef_st
 {
 	char wifi_mode;               /**< WiFi mode, BK_SOFT_AP or BK_STATION */
 	char wifi_ssid[33];           /**< For station, it's SSID of the AP to be connected, for AP, it's the SSID of our AP */
-	char wifi_key[64];            /**< Security key of the wlan needs to be connected, ignored in an open system.*/
+	char wifi_key[65];            /**< Security key of the wlan needs to be connected, ignored in an open system.*/
 	char local_ip_addr[16];       /**< Static IP configuration, Local IP address. */
 	char net_mask[16];            /**< Static IP configuration, Netmask. */
 	char gateway_ip_addr[16];     /**< Static IP configuration, Router IP address. */
@@ -271,6 +271,10 @@ struct wlan_fast_connect_info
 	uint8_t channel;  /**< Channel of AP */
 	uint8_t psk[65];  /**< PSK of AP */
 	uint8_t pwd[65];  /**< password of AP */
+	uint8_t ip_addr[4];
+	uint8_t netmask[4];
+	uint8_t gw[4];
+	uint8_t dns1[4];
 };
 
 typedef struct vif_addcfg_st {

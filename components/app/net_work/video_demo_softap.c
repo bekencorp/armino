@@ -17,11 +17,16 @@
 
 #include "param_config.h"
 #include "bk_drv_model.h"
+#if CONFIG_FLASH_ORIGIN_API
 #include "bk_flash.h"
-
+#else
+#include "driver/flash.h"
+#include <driver/flash_partition.h>
+#endif
 #include <lwip/inet.h>
+#if CONFIG_FLASH_ORIGIN_API
 #include "BkDriverFlash.h"
-
+#endif
 #include "video_transfer_tcp.h"
 #include "video_transfer_udp.h"
 #include "video_demo_pub.h"
@@ -355,6 +360,7 @@ static int app_demo_softap_setup(void)
 
     APP_DEMO_SOFTAP_PRT("set ip info: %s,%s,%s\r\n", ip4_config.ip, ip4_config.mask, ip4_config.dns);
     APP_DEMO_SOFTAP_PRT("ssid:%s  key:%s\r\n", ap_config.ssid, ap_config.password);
+	bk_wifi_set_video_transfer_state(1);
 	BK_LOG_ON_ERR(bk_netif_set_ip4_config(NETIF_IF_AP, &ip4_config));
 	BK_LOG_ON_ERR(bk_wifi_ap_set_config(&ap_config));
 	BK_LOG_ON_ERR(bk_wifi_ap_start());
@@ -386,7 +392,7 @@ static int app_softap_user_config_setup(void)
 
     APP_DEMO_SOFTAP_PRT("set ip info: %s,%s,%s\r\n", ip4_config.ip, ip4_config.mask, ip4_config.dns);
     APP_DEMO_SOFTAP_PRT("ssid:%s  key:%s\r\n", ap_config.ssid, ap_config.password);
-
+	bk_wifi_set_video_transfer_state(1);
 	BK_LOG_ON_ERR(bk_netif_set_ip4_config(NETIF_IF_AP, &ip4_config));
 	BK_LOG_ON_ERR(bk_wifi_ap_set_config(&ap_config));
 	BK_LOG_ON_ERR(bk_wifi_ap_start());
@@ -424,7 +430,7 @@ static void app_demo_softap_main(beken_thread_arg_t data)
             switch (msg.dmsg)
             {
             case DAP_WIFI_DISCONECTED:
-                if (g_demo_softap->status != APS_WIFI_DISCONECTED)
+                if ((g_demo_softap->status != APS_WIFI_DISCONECTED) && (g_demo_softap->status == APS_APP_DISCONECTED))
                 {
                     g_demo_softap->status = APS_WIFI_DISCONECTED;
                     //app_led_send_msg(LED_DISCONNECT);
@@ -596,9 +602,10 @@ void app_demo_softap_exit(void)
 {
     APP_DEMO_SOFTAP_PRT("app_demo_sta_exit\r\n");
 
+    bk_wifi_set_video_transfer_state(0);
     if (g_demo_softap)
     {
-        app_demo_softap_send_msg(DAP_EXIT, 0);
+      app_demo_softap_send_msg(DAP_EXIT, 0);
 
         while (g_demo_softap)
         {
@@ -610,13 +617,21 @@ void app_demo_softap_exit(void)
 
 static UINT32 search_opt_tab(UINT32 start_addr)
 {
+#if CONFIG_FLASH_ORIGIN_API
     UINT32 ret = 0, status;
     DD_HANDLE flash_handle;
+#else
+    UINT32 ret = 0;
+#endif
     head_param_t head;
 #define BK_TLV_HEADER           (0x00564c54)   // ASIC TLV
 
+#if CONFIG_FLASH_ORIGIN_API
     flash_handle = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
     ddev_read(flash_handle, (char *)&head, sizeof(head_param_t), start_addr);
+#else
+    bk_flash_read_bytes(start_addr, (uint8_t *)&head, sizeof(head_param_t));
+#endif
     if (BK_TLV_HEADER == head.type)
     {
         ret = 1;
@@ -626,24 +641,38 @@ static UINT32 search_opt_tab(UINT32 start_addr)
         ret = 0;
         APP_DEMO_SOFTAP_FATAL("BK_TLV_HEADER not found\r\n");
     }
+#if CONFIG_FLASH_ORIGIN_API
     ddev_close(flash_handle);
+#endif
 
     return ret;
 }
 
 static UINT32 search_by_type(UINT32 type, UINT32 start_addr)
 {
+#if CONFIG_FLASH_ORIGIN_API
     UINT32 status, addr, end_addr;
     DD_HANDLE flash_handle;
+#else
+    UINT32 addr, end_addr;
+#endif
     head_param_t head;
 
+#if CONFIG_FLASH_ORIGIN_API
     flash_handle = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
     ddev_read(flash_handle, (char *)&head, sizeof(head_param_t), start_addr);
+#else
+    bk_flash_read_bytes(start_addr, (uint8_t *)&head, sizeof(head_param_t));
+#endif
     addr = start_addr + sizeof(head_param_t);
     end_addr = addr + head.len;
     while (addr < end_addr)
     {
+#if CONFIG_FLASH_ORIGIN_API
         ddev_read(flash_handle, (char *)&head, sizeof(head_param_t), addr);
+#else
+        bk_flash_read_bytes(addr, (uint8_t *)&head, sizeof(head_param_t));
+#endif
         if (type == head.type)
         {
             break;
@@ -659,18 +688,28 @@ static UINT32 search_by_type(UINT32 type, UINT32 start_addr)
     {
         addr = 0;
     }
+#if CONFIG_FLASH_ORIGIN_API
     ddev_close(flash_handle);
+#endif
 
     return addr;
 }
 
 static int app_demo_softap_get_general_paramters(general_param_t *general)
 {
+#if CONFIG_FLASH_ORIGIN_API
     UINT32 status, addr, addr_start;
     DD_HANDLE flash_handle;
+#else
+    UINT32 addr, addr_start;
+#endif
     head_param_t head;
 
+#if CONFIG_FLASH_ORIGIN_API
     bk_logic_partition_t *pt = bk_flash_get_info(BK_PARTITION_USR_CONFIG);
+#else
+    bk_logic_partition_t *pt = bk_flash_partition_get_info(BK_PARTITION_USR_CONFIG);
+#endif
 
     if (search_opt_tab(pt->partition_start_addr) == 0)
     {
@@ -690,7 +729,9 @@ static int app_demo_softap_get_general_paramters(general_param_t *general)
         return -1;
     }
 
+#if CONFIG_FLASH_ORIGIN_API
     flash_handle = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
+#endif
 
     addr = search_by_type(GENERAL_TYPE_ROLE, addr_start);
     if (!addr)
@@ -698,8 +739,13 @@ static int app_demo_softap_get_general_paramters(general_param_t *general)
         APP_DEMO_SOFTAP_FATAL("SEARCH ROLE FAIL\r\n");
         return -1;
     }
+#if CONFIG_FLASH_ORIGIN_API
     ddev_read(flash_handle, (char *)&head, sizeof(head_param_t), addr);
     ddev_read(flash_handle, (char *)&general->role, head.len, addr + sizeof(head_param_t));
+#else
+    bk_flash_read_bytes(addr, (uint8_t *)&head, sizeof(head_param_t));
+    bk_flash_read_bytes(addr + sizeof(head_param_t), (uint8_t *)&general->role, head.len);
+#endif
 
     addr = search_by_type(GENERAL_TYPE_DHCP, addr_start);
     if (!addr)
@@ -707,8 +753,14 @@ static int app_demo_softap_get_general_paramters(general_param_t *general)
         APP_DEMO_SOFTAP_FATAL("SEARCH DHCP FAIL\r\n");
         return -1;
     }
+
+#if CONFIG_FLASH_ORIGIN_API
     ddev_read(flash_handle, (char *)&head, sizeof(head_param_t), addr);
     ddev_read(flash_handle, (char *)&general->dhcp_enable, head.len, addr + sizeof(head_param_t));
+#else
+    bk_flash_read_bytes(addr, (uint8_t *)&head, sizeof(head_param_t));
+    bk_flash_read_bytes(addr + sizeof(head_param_t), (uint8_t *)&general->dhcp_enable, head.len);
+#endif
 
     addr = search_by_type(GENERAL_TYPE_IP, addr_start);
     if (!addr)
@@ -716,17 +768,26 @@ static int app_demo_softap_get_general_paramters(general_param_t *general)
         APP_DEMO_SOFTAP_FATAL("SEARCH IP FAIL\r\n");
         return -1;
     }
+#if CONFIG_FLASH_ORIGIN_API
     ddev_read(flash_handle, (char *)&head, sizeof(head_param_t), addr);
     ddev_read(flash_handle, (char *)&general->ip_addr, head.len, addr + sizeof(head_param_t));
-
+#else
+    bk_flash_read_bytes(addr, (uint8_t *)&head, sizeof(head_param_t));
+    bk_flash_read_bytes(addr + sizeof(head_param_t), (uint8_t *)&general->ip_addr, head.len);
+#endif
     addr = search_by_type(GENERAL_TYPE_MASK, addr_start);
     if (!addr)
     {
         APP_DEMO_SOFTAP_FATAL("SEARCH MASK FAIL\r\n");
         return -1;
     }
+#if CONFIG_FLASH_ORIGIN_API
     ddev_read(flash_handle, (char *)&head, sizeof(head_param_t), addr);
     ddev_read(flash_handle, (char *)&general->ip_mask, head.len, addr + sizeof(head_param_t));
+#else
+    bk_flash_read_bytes(addr, (uint8_t *)&head, sizeof(head_param_t));
+    bk_flash_read_bytes(addr + sizeof(head_param_t), (uint8_t *)&general->ip_mask, head.len);
+#endif
 
     addr = search_by_type(GENERAL_TYPE_GW, addr_start);
     if (!addr)
@@ -734,19 +795,32 @@ static int app_demo_softap_get_general_paramters(general_param_t *general)
         APP_DEMO_SOFTAP_FATAL("SEARCH GW FAIL\r\n");
         return -1;
     }
+#if CONFIG_FLASH_ORIGIN_API
     ddev_read(flash_handle, (char *)&head, sizeof(head_param_t), addr);
     ddev_read(flash_handle, (char *)&general->ip_gw, head.len, addr + sizeof(head_param_t));
-
     ddev_close(flash_handle);
+#else
+    bk_flash_read_bytes(addr, (uint8_t *)&head, sizeof(head_param_t));
+    bk_flash_read_bytes(addr + sizeof(head_param_t), (uint8_t *)&general->ip_gw, head.len);
+#endif
+
     return 0;
 }
 
 static int app_demo_softap_get_ap_paramters(ap_param_t *ap)
 {
+#if CONFIG_FLASH_ORIGIN_API
     UINT32 status, addr, addr_start;
     DD_HANDLE flash_handle;
+#else
+    UINT32 addr, addr_start;
+#endif
     head_param_t head;
+#if CONFIG_FLASH_ORIGIN_API
     bk_logic_partition_t *pt = bk_flash_get_info(BK_PARTITION_USR_CONFIG);
+#else
+    bk_logic_partition_t *pt = bk_flash_partition_get_info(BK_PARTITION_USR_CONFIG);
+#endif
 
     if (search_opt_tab(pt->partition_start_addr) == 0)
     {
@@ -766,7 +840,9 @@ static int app_demo_softap_get_ap_paramters(ap_param_t *ap)
         return -1;
     }
 
+#if CONFIG_FLASH_ORIGIN_API
     flash_handle = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
+#endif
 
     addr = search_by_type(AP_TYPE_BSSID, addr_start);
     if (!addr)
@@ -774,8 +850,14 @@ static int app_demo_softap_get_ap_paramters(ap_param_t *ap)
         APP_DEMO_SOFTAP_FATAL("SEARCH BSSID FAIL\r\n");
         return -1;
     }
+
+#if CONFIG_FLASH_ORIGIN_API
     ddev_read(flash_handle, (char *)&head, sizeof(head_param_t), addr);
     ddev_read(flash_handle, (char *)&ap->bssid, head.len, addr + sizeof(head_param_t));
+#else
+    bk_flash_read_bytes(addr, (uint8_t *)&head, sizeof(head_param_t));
+    bk_flash_read_bytes(addr + sizeof(head_param_t), (uint8_t *)&ap->bssid, head.len);
+#endif
 
     addr = search_by_type(AP_TYPE_SSID, addr_start);
     if (!addr)
@@ -783,9 +865,17 @@ static int app_demo_softap_get_ap_paramters(ap_param_t *ap)
         APP_DEMO_SOFTAP_FATAL("SEARCH SSID FAIL\r\n");
         return -1;
     }
+#if CONFIG_FLASH_ORIGIN_API
     ddev_read(flash_handle, (char *)&head, sizeof(head_param_t), addr);
+#else
+    bk_flash_read_bytes(addr, (uint8_t *)&head, sizeof(head_param_t));
+#endif
     ap->ssid.length = head.len;
+#if CONFIG_FLASH_ORIGIN_API
     ddev_read(flash_handle, (char *)ap->ssid.array, head.len, addr + sizeof(head_param_t));
+#else
+    bk_flash_read_bytes(addr + sizeof(head_param_t), (uint8_t *)ap->ssid.array, head.len);
+#endif
 
     addr = search_by_type(AP_TYPE_CHANNEL, addr_start);
     if (!addr)
@@ -793,8 +883,13 @@ static int app_demo_softap_get_ap_paramters(ap_param_t *ap)
         APP_DEMO_SOFTAP_FATAL("SEARCH CHANNEL FAIL\r\n");
         return -1;
     }
+#if CONFIG_FLASH_ORIGIN_API
     ddev_read(flash_handle, (char *)&head, sizeof(head_param_t), addr);
     ddev_read(flash_handle, (char *)&ap->chann, head.len, addr + sizeof(head_param_t));
+#else
+    bk_flash_read_bytes(addr, (uint8_t *)&head, sizeof(head_param_t));
+    bk_flash_read_bytes(addr + sizeof(head_param_t), (uint8_t *)&ap->chann, head.len);
+#endif
 
     addr = search_by_type(AP_TYPE_MODE, addr_start);
     if (!addr)
@@ -802,9 +897,13 @@ static int app_demo_softap_get_ap_paramters(ap_param_t *ap)
         APP_DEMO_SOFTAP_FATAL("SEARCH MODE FAIL\r\n");
         return -1;
     }
+#if CONFIG_FLASH_ORIGIN_API
     ddev_read(flash_handle, (char *)&head, sizeof(head_param_t), addr);
     ddev_read(flash_handle, (char *)&ap->cipher_suite, head.len, addr + sizeof(head_param_t));
-
+#else
+    bk_flash_read_bytes(addr, (uint8_t *)&head, sizeof(head_param_t));
+    bk_flash_read_bytes(addr + sizeof(head_param_t), (uint8_t *)&ap->cipher_suite, head.len);
+#endif
     #if 1
     addr = search_by_type(AP_TYPE_PASSWD, addr_start);
     if (!addr)
@@ -812,9 +911,18 @@ static int app_demo_softap_get_ap_paramters(ap_param_t *ap)
         APP_DEMO_SOFTAP_FATAL("SEARCH PASSWORD FAIL\r\n");
         return 0;
     }
+
+#if CONFIG_FLASH_ORIGIN_API
     ddev_read(flash_handle, (char *)&head, sizeof(head_param_t), addr);
+#else
+    bk_flash_read_bytes(addr, (uint8_t *)&head, sizeof(head_param_t));
+#endif
     ap->key_len = head.len;
+#if CONFIG_FLASH_ORIGIN_API
     ddev_read(flash_handle, (char *)ap->key, head.len, addr + sizeof(head_param_t));
+#else
+    bk_flash_read_bytes(addr + sizeof(head_param_t), (uint8_t *)ap->key, head.len);
+#endif
     #endif
     return 0;
 }

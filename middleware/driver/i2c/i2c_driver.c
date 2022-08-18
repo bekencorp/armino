@@ -131,31 +131,16 @@ static void i2c_init_gpio(i2c_id_t id)
 
 
 #if (CONFIG_SYSTEM_CTRL)
-#define addSYSTEM_Reg0xe                                        *((volatile unsigned long *) (0x44010000+0xe*4))
-#if (!CONFIG_SOC_BK7235)
-#define setf_SYSTEM_Reg0xe_i2c0_disckg                         addSYSTEM_Reg0xe |= 0x100
-#define clrf_SYSTEM_Reg0xe_i2c0_disckg                         addSYSTEM_Reg0xe &= ~0x100
-#define setf_SYSTEM_Reg0xe_i2c1_disckg                         addSYSTEM_Reg0xe |= 0x100000
-#define clrf_SYSTEM_Reg0xe_i2c1_disckg                         addSYSTEM_Reg0xe &= ~0x100000
-#else
-#define setf_SYSTEM_Reg0xe_i2c0_disckg                         addSYSTEM_Reg0xe |= 0x100000
-#define clrf_SYSTEM_Reg0xe_i2c0_disckg                         addSYSTEM_Reg0xe &= ~0x100000
-#define setf_SYSTEM_Reg0xe_i2c1_disckg                         addSYSTEM_Reg0xe |= 0x100
-#define clrf_SYSTEM_Reg0xe_i2c1_disckg                         addSYSTEM_Reg0xe &= ~0x100
-#endif
-
 static void i2c_clock_enable(i2c_id_t id)
 {
 	switch(id)
 	{
 		case I2C_ID_0:
-			setf_SYSTEM_Reg0xe_i2c0_disckg;
 			sys_drv_dev_clk_pwr_up(CLK_PWR_ID_I2C1, CLK_PWR_CTRL_PWR_UP);
 			break;
 
 #if (SOC_I2C_UNIT_NUM > 1)
 		case I2C_ID_1:
-			setf_SYSTEM_Reg0xe_i2c1_disckg;
 			sys_drv_dev_clk_pwr_up(CLK_PWR_ID_I2C2, CLK_PWR_CTRL_PWR_UP);
 			break;
 #endif
@@ -169,12 +154,10 @@ static void i2c_clock_disable(i2c_id_t id)
 	switch(id)
 	{
 		case I2C_ID_0:
-			clrf_SYSTEM_Reg0xe_i2c0_disckg;
 			sys_drv_dev_clk_pwr_up(CLK_PWR_ID_I2C1, CLK_PWR_CTRL_PWR_DOWN);
 			break;
 #if (SOC_I2C_UNIT_NUM > 1)
 		case I2C_ID_1:
-			clrf_SYSTEM_Reg0xe_i2c1_disckg;
 			sys_drv_dev_clk_pwr_up(CLK_PWR_ID_I2C2, CLK_PWR_CTRL_PWR_DOWN);
 			break;
 #endif

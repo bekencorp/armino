@@ -2,43 +2,66 @@ set(incs include include/bk_private)
 
 list(APPEND incs
 	../../properties/modules/aec/
+	.
 	)
 
 if (CONFIG_CLI)
 set(srcs
 	cli_adc.c
-	cli_airkiss.c
 	cli_ble.c
 	cli_event.c
 	cli_keyValue.c
 	cli_gpio.c
-	cli_iperf.c
 	cli_main.c
 	cli_misc.c
 	cli_mico.c
 	cli_mem.c
 	cli_os.c
-	cli_ota.c
 	cli_rpc.c
-	cli_phy.c
-	cli_pwr.c
 	cli_reg.c
-	cli_netif.c
 	cli_timer.c
 	cli_temp_detect.c
-	cli_touch.c
 	cli_uart.c
-	cli_wifi.c
-	cli_wdt.c
 	cli_security.c
 	cli_spi.c
 	cli_exception.c
 	cli_icu.c
 	)
 
-if (CONFIG_FLASH)
+if (CONFIG_INT_WDT)
 	list(APPEND srcs
-		cli_flash.c
+		cli_wdt.c
+	)
+endif()
+
+if (CONFIG_STA_PS)
+	list(APPEND srcs
+		cli_pwr.c
+	)
+endif()
+
+if (CONFIG_OTA_TFTP OR CONFIG_OTA_HTTP)
+	list(APPEND srcs 
+		cli_ota.c
+	)
+endif()
+
+if (CONFIG_WIFI_ENABLE)
+	list(APPEND srcs 
+		cli_wifi.c
+		cli_phy.c
+	)
+endif()
+
+if (CONFIG_AIRKISS_TEST)
+	list(APPEND srcs 
+		cli_airkiss.c
+	)
+endif()
+
+if (CONFIG_IPERF_TEST)
+	list(APPEND srcs 
+		cli_iperf.c
 	)
 endif()
 
@@ -78,7 +101,7 @@ if (CONFIG_FLASH)
 	)
 endif()
 
-if (CONFIG_FLASH_QUAD_ENABLE)
+if (CONFIG_FLASH)
 	list(APPEND srcs
 		cli_flash_test.c
 	)
@@ -106,9 +129,21 @@ if (CONFIG_EFUSE)
 	)
 endif()
 
+if (CONFIG_SDIO_HOST)
+	list(APPEND srcs
+		cli_sdio_host.c
+	)
+endif()
+
 if (CONFIG_LWIP)
 	list(APPEND srcs
 		cli_lwip.c
+	)
+endif()
+
+if (CONFIG_BK_NETIF)
+	list(APPEND srcs
+		cli_netif.c
 	)
 endif()
 
@@ -144,7 +179,7 @@ if (CONFIG_SOC_BK7256XX)
 endif()
 
 if (CONFIG_SOC_BK7256XX OR CONFIG_USB_UVC)
-if (CONFIG_DUAL_CORE)
+if (CONFIG_DUAL_CORE AND CONFIG_PSRAM)
 	list(APPEND srcs "cli_uvc.c")
 endif()
 endif()
@@ -159,7 +194,7 @@ if (CONFIG_QSPI)
 	)
 endif()
 
-if (CONFIG_AON_RTC)
+if (CONFIG_AON_RTC_TEST)
 	list(APPEND srcs
 		"cli_aon_rtc.c"
 	)
@@ -193,7 +228,7 @@ endif() #if(CONFIG_AUDIO)
 
 if (CONFIG_AUDIO_TEST)
 if (CONFIG_AUDIO_RISCV_IP_V1_0 AND CONFIG_DUAL_CORE)
-if (NOT CONFIG_SOC_BK7256_CP1)
+if (NOT CONFIG_SLAVE_CORE)
 	list(APPEND srcs cli_aud_cp0.c)
 endif()
 endif()
@@ -219,7 +254,7 @@ if (CONFIG_I2S_TEST)
 	list(APPEND srcs "cli_i2s.c")
 endif()
 
-if (CONFIG_TOUCH_TEST)
+if (CONFIG_TOUCH)
 	list(APPEND srcs "cli_touch.c")
 endif()
 
@@ -243,13 +278,21 @@ if (CONFIG_APP_DEMO_VIDEO_TRANSFER)
 endif()
 endif()
 
-if (CONFIG_DOORBELL AND CONFIG_DUAL_CORE)
+if (CONFIG_DOORBELL)
 	list(APPEND srcs cli_doorbell.c)
+endif()
+
+if (CONFIG_PSRAM)
+	list(APPEND srcs cli_psram.c)
+endif()
+
+if (CONFIG_AUD_INTF_TEST)
+	list(APPEND srcs cli_aud_intf.c)
 endif()
 
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
 	REQUIRES utf8 temp_detect app driver user_driver bk_system iperf fatfs user_driver http
 	#PRIV_REQUIRES airkiss bk_common bk_netif bk_ble bk_ps
-	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_init at bk_wifi compal
+	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_init at bk_wifi compal media_common media bk_bt
 	)

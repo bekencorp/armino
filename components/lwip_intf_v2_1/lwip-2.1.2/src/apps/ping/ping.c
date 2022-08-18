@@ -36,6 +36,11 @@
 #include <lwip/ping.h>
 #include "net.h"
 #include <string.h>
+#include <os/str.h>
+#include <os/os.h>
+#include <os/mem.h>
+
+
 /**
  * PING_DEBUG: Enable debugging for PING.
  */
@@ -64,6 +69,24 @@ struct _ip_addr
 {
     uint8_t addr0, addr1, addr2, addr3;
 };
+
+#define THREAD_PROIRITY            4
+#define THREAD_SIZE             (4 * 1024)
+
+enum {
+	PING_STATE_STOPPED = 0,
+	PING_STATE_STOPPING,
+	PING_STATE_STARTED,
+};
+
+typedef struct {
+	int state;
+	char *ip;
+	uint32_t time;
+} ping_param_t;
+
+static ping_param_t p_param;
+static uint32_t ping_priority = THREAD_PROIRITY;
 
 /** Prepare a echo ICMP request */
 static void ping_prepare_echo( struct icmp_echo_hdr *iecho, u16_t len)
@@ -215,6 +238,7 @@ static int ping_mid_recv(int s, int *ttl,int af)
 #endif
     return ping_recv(s,ttl);
 }
+
 static err_t ping_mid_send(int s, ip_addr_t *src_addr,ip_addr_t *dest_addr,int size)
 {
 #if LWIP_IPV6
@@ -225,6 +249,53 @@ static err_t ping_mid_send(int s, ip_addr_t *src_addr,ip_addr_t *dest_addr,int s
     return ping_send(s,dest_addr,size); 
 }
 
+static void ping_thread(void *thread_param)
+{
+
+	ping(p_param.ip, p_param.time, 0);
+
+	LWIP_DEBUGF( PING_DEBUG, ("ping: reset\n"));
+	if (p_param.ip)
+		os_free(p_param.ip);
+	p_param.ip = NULL;
+	p_param.state = PING_STATE_STOPPED;
+	rtos_delete_thread(NULL);
+}
+
+
+void ping_stop(void)
+{
+	if (p_param.state == PING_STATE_STARTED) {
+		p_param.state = PING_STATE_STOPPING;
+		LWIP_DEBUGF( PING_DEBUG, ("ping: ping is stopping...\n"));
+	}
+}
+
+
+void ping_start(char* target_name, uint32_t times, size_t size)
+{
+	if (p_param.state == PING_STATE_STOPPED) {
+	    if (p_param.ip) {
+			os_free(p_param.ip);
+			p_param.ip = NULL;
+		}
+	    if (target_name) {
+			p_param.state = PING_STATE_STARTED;
+			p_param.ip = os_strdup(target_name);
+			p_param.time = times;
+			rtos_create_thread(NULL, ping_priority, "ping",
+							   ping_thread, THREAD_SIZE,
+							   (beken_thread_arg_t) 0);	
+		}
+		else
+			LWIP_DEBUGF( PING_DEBUG, ("Please input: ping <host address>\n"));
+
+	}
+	else if (p_param.state == PING_STATE_STOPPING)
+		LWIP_DEBUGF( PING_DEBUG, ("ping: ping is stopping, try again later!\n"));
+	else
+		LWIP_DEBUGF( PING_DEBUG, ("ping: ping is running, stop first!\n"));
+}
 
 int ping(char* target_name, uint32_t times, size_t size)
 {
@@ -298,7 +369,7 @@ int ping(char* target_name, uint32_t times, size_t size)
 
     lwip_setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(struct timeval));
 
-    while (1)
+    while (p_param.state == PING_STATE_STARTED)
     {
         if (ping_mid_send(s, src_addr,&target_addr, size) == ERR_OK)
         {
@@ -324,6 +395,10 @@ int ping(char* target_name, uint32_t times, size_t size)
             /* send ping times reached, stop */
             break;
         }
+		
+		if (p_param.state != PING_STATE_STARTED)
+			break;
+		
 		sys_msleep(PING_DELAY);
     }
 

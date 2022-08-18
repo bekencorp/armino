@@ -93,6 +93,7 @@ function(__build_set_default_build_specifications)
     unset(compile_options)
     unset(c_compile_options)
     unset(cxx_compile_options)
+    unset(link_options)
 
     set(armino_target $ENV{ARMINO_SOC})
     if(NOT armino_target)
@@ -105,7 +106,7 @@ function(__build_set_default_build_specifications)
     endif()
 
     list(APPEND compile_definitions "-D_GNU_SOURCE")
-	list(APPEND compile_options     "-g"
+    list(APPEND compile_options     "-g"
                                     "-Os"
                                     "-std=c99"
                                     "-nostdlib"
@@ -147,12 +148,17 @@ function(__build_set_default_build_specifications)
             list(APPEND compile_options ${OVERRIDE_COMPILE_OPTIONS})
         endif()
 
+        if (DEFINED OVERRIDE_LINK_OPTIONS)
+            list(APPEND link_options ${OVERRIDE_COMPILE_OPTIONS})
+        endif()
+
     endif()
 
     armino_build_set_property(COMPILE_DEFINITIONS "${compile_definitions}" APPEND)
     armino_build_set_property(COMPILE_OPTIONS "${compile_options}" APPEND)
     armino_build_set_property(C_COMPILE_OPTIONS "${c_compile_options}" APPEND)
     armino_build_set_property(CXX_COMPILE_OPTIONS "${cxx_compile_options}" APPEND)
+    armino_build_set_property(LINK_OPTIONS "${link_options}" APPEND)
 endfunction()
 
 function(__build_add_components components_path)
@@ -219,10 +225,18 @@ function(__build_init armino_path)
     __component_add(${armino_path}/include ${prefix})
 
     # Set components required by all other components in the build
-    set(requires_common include bk_common bk_log bk_event driver bk_rtos common)
+    set(requires_common include bk_log bk_event driver bk_rtos common)
     armino_build_set_property(__COMPONENT_REQUIRES_COMMON "${requires_common}")
 
     armino_build_set_property(COMPILE_DEFINITIONS "-DAPP_VERSION=\"$ENV{APP_VERSION}\"" APPEND)
+
+    if($ENV{LIB_HASH} STREQUAL "NULL")
+        LOGI("LIB_HASH IS NULL")
+    else()
+        armino_build_set_property(COMPILE_DEFINITIONS "-DLIB_HASH=\"$ENV{LIB_HASH}\"" APPEND)
+        armino_build_set_property(COMPILE_DEFINITIONS "-DARMINO_SOC=${ARMINO_SOC}" APPEND)
+        LOGI("LIB_HASH IS \"$ENV{LIB_HASH}\"")
+    endif()
 
     #__build_get_armino_git_revision()
     __kconfig_init()
@@ -232,7 +246,7 @@ endfunction()
 function(__build_check_config)
     if (NOT BUILD_PROPERTIES_LIB)
         set(config_check_tool ${armino_path}/components/bk_libs/config_checking.py)
-        set(lib_sdkconfig ${armino_path}/components/bk_libs/${ARMINO_SOC}/config/sdkconfig)
+        set(lib_sdkconfig ${armino_path}/components/bk_libs/${ARMINO_SOC}_$ENV{PROJECT}/config/sdkconfig)
         set(armino_sdkconfig ${CMAKE_BINARY_DIR}/sdkconfig)
         execute_process(
             COMMAND ${config_check_tool} --lib_sdkconfig ${lib_sdkconfig} --armino_sdkconfig ${armino_sdkconfig}
@@ -276,7 +290,12 @@ function(__build_resolve_and_add_req var component_target req type)
         __component_get_property(_component_dir ${component_target} COMPONENT_DIR)
         LOGE("Component '${_component_name}' depends on component '${req}', but '${req}' is not registered by armino_component_register()! See ${_component_dir}/CMakeLists.txt")
     endif()
-    __component_set_property(${component_target} ${type} ${_component_target} APPEND)
+
+    __component_get_property(tmp_property ${component_target} ${type} ${_component_target})
+
+    if (NOT ${_component_target} IN_LIST tmp_property)
+        __component_set_property(${component_target} ${type} ${_component_target} APPEND)
+    endif()
     set(${var} ${_component_target} PARENT_SCOPE)
 endfunction()
 
@@ -544,6 +563,10 @@ macro(armino_build_process target)
     # subdirectories, creating library targets, linking libraries, etc.)
     __build_process_project_includes()
 
+    #Secondary loading components start
+    __component_get_requirements()
+    #Secondary loading components end
+
     armino_build_get_property(armino_path ARMINO_PATH)
     armino_build_get_property(build_dir BUILD_DIR)
     add_subdirectory(${armino_path} ${build_dir}/armino)
@@ -605,7 +628,7 @@ function(armino_build_executable bin)
     armino_build_get_property(armino_target ARMINO_SOC)
 
     add_custom_target(size-statistic ALL DEPENDS gen_project_binary
-        COMMAND ${armino_size_statistic} --size "${armino_toolchain_size}" --dirs "${armino_path}/components/bk_libs/${armino_target}" --outfile "${build_dir}/size_map.txt"
+        COMMAND ${armino_size_statistic} --size "${armino_toolchain_size}" --dirs "${armino_path}/components/bk_libs/${armino_target}_$ENV{PROJECT}" --outfile "${build_dir}/size_map.txt"
     )
 
 
@@ -639,6 +662,26 @@ function(armino_build_parse_config_file_list)
 
         if(EXISTS "${CMAKE_SOURCE_DIR}/config/${ARMINO_SOC}.config")
             list(APPEND _sdkconfig_defaults "${CMAKE_SOURCE_DIR}/config/${ARMINO_SOC}.config")
+        endif()
+
+        string(FIND ${CMAKE_SOURCE_DIR} "properties_libs" str_index)
+
+        if(NOT str_index EQUAL -1)
+            if("$ENV{PROJECT}" STREQUAL "")
+                set(PROJECT "app")
+                STRING(REPLACE "properties_libs" ${PROJECT} CMAKE_SOURCE_DIR_TMP ${CMAKE_SOURCE_DIR})
+            else()
+                STRING(REPLACE "properties_libs" $ENV{PROJECT} CMAKE_SOURCE_DIR_TMP ${CMAKE_SOURCE_DIR})
+            endif()
+
+            if(EXISTS "${CMAKE_SOURCE_DIR_TMP}/properties_libs/common.config")
+                list(APPEND _sdkconfig_defaults "${CMAKE_SOURCE_DIR_TMP}/properties_libs/common.config")
+            endif()
+
+            if(EXISTS "${CMAKE_SOURCE_DIR_TMP}/properties_libs/${ARMINO_SOC}.config")
+                list(APPEND _sdkconfig_defaults "${CMAKE_SOURCE_DIR_TMP}/properties_libs/${ARMINO_SOC}.config")
+            endif()
+
         endif()
 
         if(EXISTS "${soc_path}/${ARMINO_SOC}/${ARMINO_SOC}.defconfig")
@@ -675,6 +718,7 @@ endfunction()
 
 function(armino_build_parse_toolchain_dir)
     set(default_toolchain_dir "/opt/gcc-arm-none-eabi-5_4-2016q3/bin")
+    armino_build_get_property(armino_path ARMINO_PATH)
     armino_build_get_property(sdkconfig_defaults SDKCONFIG_DEFAULTS)
     armino_build_get_property(sdkconfig_default_soc SDKCONFIG_DEFAULT_SOC)
     set(user_configed_toolchain_dir "")
@@ -699,6 +743,10 @@ function(armino_build_parse_toolchain_dir)
         string(REPLACE "CONFIG_TOOLCHAIN_PATH=" "" toolchain_dir_temp ${user_configed_toolchain_dir})
         string(REPLACE "\"" "" toolchain_dir ${toolchain_dir_temp})
         LOGI("use configured toolchain path: ${toolchain_dir}")
+    endif()
+
+    if(NOT IS_ABSOLUTE ${toolchain_dir})
+        set(toolchain_dir ${armino_path}/${toolchain_dir})
     endif()
 
     if(NOT EXISTS ${toolchain_dir})

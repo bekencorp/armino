@@ -1,4 +1,7 @@
 #include "at_common.h"
+#if CONFIG_BT
+#include "bt_include.h"
+#endif
 //#if (CONFIG_BLE_5_X || CONFIG_BTDM_5_2)
 const at_command_t *lookup_ble_at_command(char *str1)
 {
@@ -25,6 +28,32 @@ const at_command_t *lookup_ble_at_command(char *str1)
     }
     return NULL;
 }
+
+#if CONFIG_BT
+const at_command_t *lookup_bt_at_command(char *str1)
+{
+    uint8_t type = bk_bt_get_controller_stack_type();
+    if(type != BK_BT_CONTROLLER_STACK_TYPE_BTDM_5_2)
+    {
+        os_printf("%s stack type %d not support\n", __func__, type);
+        return NULL;
+    }
+    for (int i = 0; i < bt_at_cmd_cnt(); i++)
+    {
+        if (bt_at_cmd_table[i].name == NULL) {
+            i++;
+            continue;
+        }
+
+        if(!os_strcmp(bt_at_cmd_table[i].name, str1))
+        {
+            return &bt_at_cmd_table[i];
+        }
+    }
+    return NULL;
+}
+#endif
+
 #if CONFIG_LWIP
 const at_command_t *lookup_wifi_at_command(char *str1)
 {

@@ -72,6 +72,16 @@ void bk_camera_sensor_config(void);
  */
 bk_err_t bk_camera_set_param(uint32_t dev, uint32_t cfg);
 
+/**
+ * @brief config lcd display
+ *
+ * param   x_pixel, image  x pixel
+ * @return
+ *	  - kNoErr: succeed
+ *	  - others: other errors.
+ */
+bk_err_t bk_video_lcd_init(uint16_t x_pixel);
+
 
 #ifdef __cplusplus
 }

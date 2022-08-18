@@ -19,3 +19,5 @@
 #include "bk_private/bk_wifi_wrapper.h"
 #include "bk_private/bk_wifi_v1.h"
 #include "bk_ps_debug.h"
+#include "bk_private/bk_wifi_debug.h"
+

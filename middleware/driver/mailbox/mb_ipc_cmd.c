@@ -154,7 +154,7 @@ static void ipc_cmd_rx_isr(ipc_chnl_cb_t *chnl_cb, mb_chnl_cmd_t *cmd_buf)
 		chnl_cb->rx_cmd = cmd_buf->hdr.cmd;
 		chnl_cb->rx_cmd_in_process = 1;
 
-		BK_LOGI(MOD_TAG, "IPC_CMD: %d, %d, %d\r\n", cmd_buf->param1, cmd_buf->param2, cmd_buf->param3);
+		BK_LOGD(MOD_TAG, "IPC_CMD: %d, %d, %d\r\n", cmd_buf->param1, cmd_buf->param2, cmd_buf->param3);
 
 		if(ipc_cmd->cmd_data_len > sizeof(chnl_cb->cmd_buf))
 		{

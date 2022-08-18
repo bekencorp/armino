@@ -29,13 +29,16 @@ typedef enum
 	SDIO_SLAVE_MODE,
 }sdio_host_slave_mode_t;
 
-void sdio_hal_set_host_slave_mode(sdio_host_slave_mode_t mode);
+void sdio_hal_slave_cmd_start(uint32_t value);
 
 bool sdio_hal_slave_get_cmd_response_end_int(void);
 
 void sdio_hal_slave_clear_cmd_response_end_int(void);
 
-void sdio_hal_slave_cmd_start(uint32_t value);
+#if CONFIG_SOC_BK7256XX
+/* REG_0x0a:reg0xa->TX_FIFO_NEED_WRITE_MASK_CG:0xa[13],1:sd host fifo memory need write mask for clk gate writing use only,RW*/
+void sdio_hal_host_set_tx_fifo_need_write_mask_cg(uint32_t value);
+#endif
 
 uint32_t sdio_hal_get_read_ready(void);
 uint32_t sdio_hal_get_write_ready(void);
@@ -52,6 +55,8 @@ void sdio_hal_slave_clear_read_int_status(void);
 
 uint32_t sdio_hal_slave_get_rx_count(void);
 
+	void sdio_hal_set_host_slave_mode(sdio_host_slave_mode_t mode);
+
 	void sdio_hal_slave_notify_host_next_block(void);
 
 	uint32 sdio_hal_slave_get_func_reg_value(void);
@@ -60,6 +65,13 @@ uint32_t sdio_hal_slave_get_rx_count(void);
 	void sdio_hal_slave_clear_stop(void);
 	void sdio_hal_slave_tx_transaction_en(void);
 	void sdio_hal_slave_rx_clear_host_wait_write_data(void);
+
+#if CONFIG_SOC_BK7256XX
+	/* REG_0x0d:reg0xd->SAMP_SEL:0xd[26],sample egde of data 0：neg 1：pos,RW*/
+	uint32_t sdio_hal_slave_get_samp_sel(void);
+
+	void sdio_hal_slave_set_samp_sel(uint32_t value);
+#endif
 
 #ifdef __cplusplus
 }

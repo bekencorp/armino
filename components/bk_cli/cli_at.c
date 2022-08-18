@@ -9,7 +9,10 @@
 #include "ble_api_5_x.h"
 #include <modules/ble.h>
 #endif
-
+#if CONFIG_BT
+#include <modules/bt.h>
+#include "bt_include.h"
+#endif
 #include "at_common.h"
 #include "bk_private/bk_wifi_wpa_cmd.h"
 #include <components/system.h>
@@ -77,6 +80,30 @@ static void bleat_command_handler(char *pcWriteBuffer, int xWriteBufferLen, int 
     command->function(pcWriteBuffer, xWriteBufferLen, argc - 2, argv + 2);
 }
 #endif /// CONFIG_BLE_5_X || CONFIG_BTDM_5_2
+
+#if CONFIG_BT
+static void bt_at_command_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    char *msg = NULL;
+    const at_command_t *command = NULL;
+    uint8_t type = bk_bt_get_controller_stack_type();
+    if(type != BK_BT_CONTROLLER_STACK_TYPE_BTDM_5_2)
+    {
+        os_printf("%s stack type %d not support\n", __func__, type);
+        return;
+    }
+
+    command = lookup_bt_at_command(argv[1]);
+    if (command == NULL) {
+        bk_printf("cannot find this cmd, please check again!!!\n");
+        msg = AT_CMD_RSP_ERROR;
+        os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+        return;
+    }
+
+    command->function(pcWriteBuffer, xWriteBufferLen, argc - 2, argv + 2);
+}
+#endif
 
 #if CONFIG_LWIP
 static void wifi_Command_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -275,6 +302,9 @@ static const struct cli_command s_at_commands[] = {
     {"AT+RST", "AT+RST", at_reset_command},
 #if CONFIG_BLE//(CONFIG_BLE_5_X || CONFIG_BTDM_5_2)
     {"AT+BLE", "AT+TYPE_CMD=CMD_name,param1,...,paramn", bleat_command_handler},
+#endif
+#if CONFIG_BT
+    {"AT+BT", "AT+TYPE_CMD=CMD_name,param1,...,paramn", bt_at_command_handler},
 #endif
 #if CONFIG_LWIP
     {"AT+WIFISTA", "at sta config", at_wifi_Command_sta},

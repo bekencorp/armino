@@ -25,24 +25,6 @@ extern "C" {
  */
 
 /**
- * @brief Video_transfer APIs Version 1.0
- * @{
- */
-
-/**
- * @brief     video send msg
- *
- * This API send msg to video thread msg queue, to control video data transfer or stop
- *
- * param new_msg: the type of send msg
- *
- * @return
- *    - kNoErr: send ok
- *    - other: other error
- */
-bk_err_t bk_video_send_msg(uint32_t new_msg);
-
-/**
  * @brief     video transfer init
  *
  * This API will create video thread, init msg queue, and excute camera init

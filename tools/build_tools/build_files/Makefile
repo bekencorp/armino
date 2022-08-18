@@ -26,13 +26,23 @@ ifeq ("$(APP_VERSION)", "")
 APP_VERSION := unknow
 endif
 
-ifeq ("$(PROJECT_DIR)", "")
-ifdef PROJECT
-	# Add script to validate the project dir
-	PROJECT_DIR := projects/$(PROJECT)
+ifeq ("$(PROJECT)", "")
+	export PROJECT := app
 else
-	PROJECT_DIR := projects/legacy_app
+	export PROJECT := $(PROJECT)
 endif
+
+ifeq ("$(PROJECT_LIBS)", "")
+	export PROJECT_LIBS := $(PROJECT)
+else
+	export PROJECT_LIBS := $(PROJECT_LIBS)
+endif
+
+
+ifeq ("$(PROJECT_DIR)", "")
+	export PROJECT_DIR := projects/$(PROJECT)
+else
+	export PROJECT_DIR := $(PROJECT_DIR)
 endif
 
 ifeq ("$(ARMINO_SOC)", "")
@@ -78,6 +88,7 @@ common:
 	@export APP_NAME=$(APP_NAME)
 
 has_lib_src := $(shell $(ARMINO_DIR)/tools/build_tools/detect_internal_lib_src.py)
+build_dual_core := $(shell $(ARMINO_DIR)/tools/build_tools/detect_build_dual_core.py $(ARMINO_SOC) $(PROJECT))
 
 ifeq ($(has_lib_src), 1)
 $(properties_lib_targets): common
@@ -86,8 +97,23 @@ endif
 
 liball: $(properties_lib_targets)
 
+
+need_buid_cpu1_bin := 0
+
+ifeq ($(has_lib_src), 1)
+ifeq ($(build_dual_core), 1)
+	need_buid_cpu1_bin := 1
+endif
+endif
+
+
+ifeq ($(need_buid_cpu1_bin), 1)
+$(soc_targets): $(ARMINO_SOC)_cp1
+	@$(ARMINO_TOOL_WRAPPER) $(ARMINO_DIR) $(PROJECT_DIR) $(PROJECT_BUILD_DIR) $@
+else
 $(soc_targets):
 	@$(ARMINO_TOOL_WRAPPER) $(ARMINO_DIR) $(PROJECT_DIR) $(PROJECT_BUILD_DIR) $@
+endif
 
 all: $(soc_targets)
 

@@ -23,19 +23,20 @@
 #include <os/mem.h>
 #include "dma_driver.h"
 #include "sys_driver.h"
-#include "driver/jpeg_dec_types.h"
 #include "jpeg_dec_macro_def.h"
+#include "jpeg_dec_ll_macro_def.h"
 #include "jpeg_dec_hal.h"
+#include <driver/hal/hal_jpeg_dec_types.h>
+#include "driver/jpeg_dec_types.h"
 #include "sys_ll_op_if.h"
+#include <driver/media_types.h>
 
 
 #define	LDB_WORD(ptr)		(uint16_t)(((uint16_t)*((uint8_t*)(ptr))<<8)|(uint16_t)*(uint8_t*)((ptr)+1))
 #define ZIG(n)	Zig[n]
 #define IPSF(n)	Ipsf[n]
 static JPG_DECODER_ST jpg_dec_st;
-
-
-
+static JDEC jdec;
 uint8_t Zig[64] = {	/* Zigzag-order to raster-order conversion table */
 	 0,  1,  8, 16,  9,  2,  3, 10, 17, 24, 32, 25, 18, 11,  4,  5,
 	12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13,  6,  7, 14, 21, 28,
@@ -53,12 +54,6 @@ static const uint16_t Ipsf[64] = {	/* See also aa_idct.png */
 	(uint16_t)(0.54120*8192), (uint16_t)(0.75066*8192), (uint16_t)(0.70711*8192), (uint16_t)(0.63638*8192), (uint16_t)(0.54120*8192), (uint16_t)(0.42522*8192), (uint16_t)(0.29290*8192), (uint16_t)(0.14932*8192),
 	(uint16_t)(0.27590*8192), (uint16_t)(0.38268*8192), (uint16_t)(0.36048*8192), (uint16_t)(0.32442*8192), (uint16_t)(0.27590*8192), (uint16_t)(0.21678*8192), (uint16_t)(0.14932*8192), (uint16_t)(0.07612*8192)
 };
-
-void hal_jpeg_dec_start(void)
-{
-	REG_DC_CLR;
-	REG_DEC_START;
-}
 
 
 /** breaf   User defined input function 
@@ -88,11 +83,21 @@ static uint16_t jpeg_dec_input_func (JDEC* jd, uint8_t* buff, uint16_t ndata)
 
 }
 
+/**
+ * @brief    This API is hw jpeg dec init
+ *
+ * @param   none
+ * 
+ * @return
+ *     - BK_OK: succeed
+ *     - others: other errors.
+ */
 int jpg_decoder_init(void)
 {
-//	jpg_dec_st.width = width;
-//	jpg_dec_st.heigth = heigth;
 	jpg_dec_st.scale_ratio = 0;
+	jpg_dec_st.rd_ptr = 0;//init rd pointer
+	jpg_dec_st.jpg_file_size = 1024;
+
 	jpg_dec_st.workbuf = os_malloc(WORK_AREA_SIZE);
 	if (NULL == jpg_dec_st.workbuf)
 	{
@@ -102,10 +107,37 @@ int jpg_decoder_init(void)
 	return 0;
 }
 
-static void* alloc_pool (	/* Pointer to allocated memory block (NULL:no memory available) */
-	JDEC* jd,		/* Pointer to the decompressor object */
-	uint16_t nd		/* Number of bytes to allocate */
-)
+
+/**
+ * @brief    This API is hw jpeg dec deinit
+ *
+ * @param   none
+ * 
+ * @return
+ *     - BK_OK: succeed
+ *     - others: other errors.
+ */
+int jpg_decoder_deinit(void)
+{
+	if(NULL != jpg_dec_st.workbuf) {
+		os_free(jpg_dec_st.workbuf);
+		jpg_dec_st.workbuf = NULL;
+	}
+	os_memset(&jpg_dec_st, 0, sizeof(jpg_dec_st));
+	return kNoErr;
+}
+
+/**
+ * @brief    Pointer to allocated memory block (NULL:no memory available)
+ *  
+ * @param1   Pointer to the decompressor object
+ * 
+ * @param2   Number of bytes to allocate 
+ * @return
+ *     - BK_OK: succeed
+ *     - others: other errors.
+ */
+static void* alloc_pool(JDEC* jd, uint16_t nd)
 {
 	char *rp = 0;
 
@@ -121,54 +153,17 @@ static void* alloc_pool (	/* Pointer to allocated memory block (NULL:no memory a
 	return (void*)rp;	/* Return allocated memory block (NULL:no memory to allocate) */
 }
 
-
-/*-----------------------------------------------------------------------*/
-/* Start to decompress the JPEG picture                                  */
-/*-----------------------------------------------------------------------*/
-JRESULT jd_decomp (
-	JDEC* jd,								/* Initialized decompression object */
-	uint8_t size, uint32_t *dec_src_addr, uint32_t *dec_dest_addr
-)
-{
-	//uint16_t  mx, my;
-	JRESULT rc;
-    BASE_RADDR = (unsigned long)(dec_src_addr);
-    BASE_WADDR = (unsigned long)(dec_dest_addr);
-	
-	BASE_RD_LEN = 20480*4-1;
-	if(size  == 0)
-		BASE_WR_LEN = 4147200;
-	else if(size == 1)
-	    BASE_WR_LEN = 1843200;
-	else if(size == 2)
-	    BASE_WR_LEN = 614400;
-	else if(size == 3)
-	    BASE_WR_LEN = 153600;
-	else
-	    BASE_WR_LEN = 261120; //lea add
-
-	//mx = jd->msx * 8; my = jd->msy * 8;			/* Size of the MCU (pixel) */
-    REG_JPEG_XPIXEL = jd->width;
-	REG_DC_CLR;
-	jd->dcv[2] = jd->dcv[1] = jd->dcv[0] = 0;	/* Initialize DC values */
-	rc = JDR_OK;
-	REG_DEC_START;
-	return rc;
-}
-
-/*-----------------------------------------------------------------------*/
-/* Analyze the JPEG image and Initialize decompressor object             */
-/*-----------------------------------------------------------------------*/
-
-/*-----------------------------------------------------------------------*/
-/* Create de-quantization and prescaling tables with a DQT segment       */
-/*-----------------------------------------------------------------------*/
-
-static int create_qt_tbl (	/* 0:OK, !0:Failed */
-	JDEC* jd,				/* Pointer to the decompressor object */
-	const uint8_t* data,	/* Pointer to the quantizer tables */
-	uint16_t ndata			/* Size of input data */
-)
+/**
+ * @brief   Create de-quantization and prescaling tables with a DQT segment
+ *  
+ * @param1   jd Pointer to the decompressor object
+ * @param2   * data  Pointer to the quantizer tables 
+ * @param3   ndata Size of input data
+ * @return
+ *     - JDR_OK: succeed
+ *     - others: other errors.
+ */
+static JRESULT create_qt_tbl(JDEC* jd, const uint8_t* data, uint16_t ndata)
 {
 	uint16_t i;
 	uint8_t d, z;
@@ -186,10 +181,7 @@ static int create_qt_tbl (	/* 0:OK, !0:Failed */
 		jd->qttbl[i] = pb;						/* Register the table */
 		for (i = 0; i < 64; i++) {				/* Load the table */
 			z = ZIG(i);							/* Zigzag-order to raster-order conversion */
-			REG_JPEG_PIPO_REG0 = z;
-			REG_JPEG_PIPO_REG1 = *data;
 			pb[z] = (int32_t)((uint32_t)*data++ * IPSF(z));	/* Apply scale factor of Arai algorithm to the de-quantizers */
-			REG_JPEG_PIPO_REG1 = pb[z];			
 		}
 	}
 
@@ -197,20 +189,23 @@ static int create_qt_tbl (	/* 0:OK, !0:Failed */
 }
 
 
-
-static int create_huffman_tbl (	/* 0:OK, !0:Failed */
-	JDEC* jd,					/* Pointer to the decompressor object */
-	const uint8_t* data,		/* Pointer to the packed huffman tables */
-	uint16_t ndata				/* Size of input data */
-)
+/**
+ * @brief     Create huffman code tables with a DHT segment
+ *  
+ * @param1   jd Pointer to the decompressor object
+ * @param2   * data Pointer to the packed huffman tables 
+ * @param3   ndata Size of input data
+ * @return
+ *     - JDR_OK: succeed
+ *     - others: other errors.
+ */
+static JRESULT create_huffman_tbl( JDEC* jd, const uint8_t* data, uint16_t ndata)
 {
 	uint16_t i, j, b, np, cls, num;
 	uint8_t d, *pb, *pd;
 	uint16_t hc, *ph;
 
-
 	while (ndata) {	/* Process all tables in the segment */
-
 		if (ndata < 17) return JDR_FMT1;	/* Err: wrong data size */
 		ndata -= 17;
 		d = *data++;						/* Get table number and class */
@@ -247,13 +242,20 @@ static int create_huffman_tbl (	/* 0:OK, !0:Failed */
 	return JDR_OK;
 }
 
-JRESULT jd_prepare (
-	JDEC* jd,			/* Blank decompressor object */
-	uint16_t (*infunc)(JDEC*, uint8_t*, uint16_t),	/* JPEG strem input function */
-	void* pool,			/* Working buffer for the decompression session */
-	uint16_t sz_pool,	/* Size of working buffer */
-	void* dev			/* I/O device identifier for the session */
-)
+/**
+ * @brief    Analyze the JPEG image and Initialize decompressor object 
+ *  
+ * @param1   Blank decompressor object
+ * @param2   JPEG strem input function 
+ * @param3   Working buffer for the decompression session
+ * @param4   Size of working buffer
+ * @param5   I/O device identifier for the session
+ * @return
+ *     - JDR_OK: succeed
+ *     - others: other errors.
+ */
+JRESULT jd_prepare (JDEC* jd, uint16_t (*infunc)(JDEC*, uint8_t*, uint16_t), void* pool,
+					uint16_t sz_pool, void* dev)
 {
 	uint8_t *seg, b;
 	uint16_t marker;
@@ -299,13 +301,10 @@ JRESULT jd_prepare (
 	//os_printf("jd->inbuf = %x \r\n", *(jd->inbuf));
 	//os_printf("jd->inbuf = %x \r\n", *(jd->inbuf + 1));
 	//os_printf("jd->inbuf = %x \r\n", *(jd->inbuf + 2));
-	//os_printf("jd->inbuf = %x \r\n", *(jd->inbuf + 3));
-	//os_printf("jd->inbuf = %x \r\n", *(jd->inbuf + 4));
 
 	if (LDB_WORD(seg) != 0xFFD8)
 	{
 		//os_printf("LDB_WORD(seg) = %x \r\n", LDB_WORD(seg));
-		//os_printf("6 --JDR_FMT1--return = %x \r\n", JDR_FMT1);
 		return JDR_FMT1;	/* Err: SOI is not detected */
 	}
 
@@ -325,9 +324,7 @@ JRESULT jd_prepare (
 			}
 			marker = LDB_WORD(seg);		/* Marker */
 			len = LDB_WORD(seg + 2);	/* Length field */
-			
-			//os_printf("6-----marker = %x \r\n", marker);
-			//os_printf("6-----len = %x \r\n", len);
+
 			if((marker& 0xFF) != 0xFF) {
 				//os_printf("6-----marker& 0xFF = %x \r\n", marker& 0xFF);
 				pointer += 2 + len;
@@ -340,9 +337,8 @@ JRESULT jd_prepare (
 			ofs += 4 + len;	/* Number of bytes loaded */
 			BASE_FFDA = pointer;
 		}
-		
+
 		skip_get_mark = 0;
-		//os_printf("7-----JPEGDEC_INTEN = %x \r\n", JPEGDEC_INTEN);
 
 		switch (marker & 0xFF) {
 		case 0xC0:	/* SOF0 (baseline JPEG) */
@@ -358,9 +354,6 @@ JRESULT jd_prepare (
 			jd->width = LDB_WORD(seg+3);		/* Image width in unit of pixel */
 			jd->height = LDB_WORD(seg+1);		/* Image height in unit of pixel */
 
-			//os_printf("jd->width = %x \r\n", LDB_WORD(seg+3));
-			//os_printf("jd->height = %x \r\n", LDB_WORD(seg+1));
-			//os_printf("jd->height = %x \r\n", seg[5]);
 			if (seg[5] != 3)
 			{
 				os_printf("7--JDR_FMT3-- = %x \r\n", JDR_FMT3);
@@ -432,7 +425,6 @@ JRESULT jd_prepare (
 
 			/* Create de-quantizer tables */
 			rc = create_qt_tbl(jd, seg, len);
-			//os_printf("0xDB-----JPEGDEC_INTEN = %d \r\n", JPEGDEC_INTEN);
 			if (rc)
 				return rc;
 			break;
@@ -483,7 +475,6 @@ JRESULT jd_prepare (
 			/* Align read offset to JD_SZBUF */
 //				jd->dctr = jd->infunc(jd, seg + ofs, (uint16_t)(JD_SZBUF - ofs));
 //				jd->dptr = seg + ofs - 1;
-//			   DEBUG5 = ofs;
 			}
 
 			return JDR_OK;		/* Initialization succeeded. Ready to decompress the JPEG image. */
@@ -508,7 +499,7 @@ JRESULT jd_prepare (
 			if(0xff != seg[2])
 			{
 				pointer += 3;
-	      BASE_FFDA = pointer;				
+				BASE_FFDA = pointer;				
 				marker = seg[2];
 				if(jd->infunc(jd, &seg[4], 1) != 1)
 				{
@@ -542,10 +533,10 @@ JRESULT jd_prepare (
 							pointer += 1;
 							BASE_FFDA = pointer;
 							continue;
-            }
+						}
 						marker = seg[0];
 						pointer += 1;
-	          BASE_FFDA = pointer;						
+						BASE_FFDA = pointer;						
 						if(jd->infunc(jd, seg, 2) != 2)
 							return JDR_INP;
 						break;
@@ -561,7 +552,6 @@ JRESULT jd_prepare (
 			len -= 2;
 			skip_get_mark = 1;
 			break;
-		//os_printf("11-----JPEGDEC_INTEN = %d \r\n", JPEGDEC_INTEN);
 
 		default:	/* Unknown segment (comment, exif or etc..) */
 			/* Skip segment data */
@@ -573,196 +563,237 @@ JRESULT jd_prepare (
 	}
 }
 
-
-void JpegdecInit(JDEC* jdec,uint32_t * dec_src_addr)
+int jpg_dec_config(uint16_t xpixel, uint16_t ypixel,unsigned char *input_buf, unsigned char * output_buf)
 {
+	jpeg_dec_ll_set_reg0x58_value((uint32_t)input_buf);
+	jpeg_dec_ll_set_reg0x59_value((uint32_t)output_buf);
+	jpg_dec_st.inputbuf = input_buf;
+
+	
+	jpeg_dec_ll_set_reg0x5b_value(xpixel*ypixel*2);
+	jpeg_dec_ll_set_reg0xf_value(xpixel*ypixel*2/64 - 1);
+	switch(xpixel)
+	{
+		case PIXEL_320:
+			jpeg_dec_ll_set_reg0x5a_value(HVGA_RD_LEN);
+			break;
+		case PIXEL_480:
+			jpeg_dec_ll_set_reg0x5a_value(HVGA_RD_LEN);
+			break;
+		case PIXEL_640:
+			jpeg_dec_ll_set_reg0x5a_value(VGA_RD_LEN);
+			break;
+		case PIXEL_1280:
+			jpeg_dec_ll_set_reg0x5a_value(V720P_RD_LEN);
+			break;
+		case JPEGDEC_X_PIXEL_1920:
+			jpeg_dec_ll_set_reg0x5a_value(V1080P_RD_LEN);
+			break;
+		default:
+			jpeg_dec_ll_set_reg0x5a_value(HVGA_RD_LEN);
+			break;
+	}
+	return 0;
+}
+void jpeg_dec_block_int_en(bool auto_int_en)
+{
+	jpeg_dec_ll_set_reg0x2_jpeg_dec_auto(0);
+//	jpeg_dec_ll_set_reg0x5e_dec_frame_int(auto_int_en);
+	jpeg_dec_ll_set_reg0x5e_dec_totalbusy_int(1);
+}
+
+void jpeg_dec_auto_frame_end_int_en(bool auto_int_en)
+{
+	jpeg_dec_ll_set_reg0x2_jpeg_dec_auto(auto_int_en);
+	jpeg_dec_ll_set_reg0x5e_dec_frame_int(auto_int_en);
+	jpeg_dec_ll_set_reg0x2_jpeg_dec_linen(0);
+	jpeg_dec_ll_set_reg0x2_jpeg_line_num(0);
+}
+
+void jpeg_dec_auto_line_num_int_en(bool line_int_en, uint16_t line_num)
+{
+	jpeg_dec_ll_set_reg0x2_jpeg_dec_auto(line_int_en);
+	jpeg_dec_ll_set_reg0x2_jpeg_dec_linen(line_int_en);
+	jpeg_dec_ll_set_reg0x2_jpeg_line_num(line_num);
+}
+
+
+JRESULT JpegdecInit(void)
+{
+	int ret;
 	uint32_t xs;
 	uint32_t bits_num = 0, i;
 	volatile unsigned long * huf_pointer;
 	volatile unsigned long * zig_pointer;
 	volatile unsigned long * dqt_pointer;
-//    long tmp;
-	JPEGDEC_INTEN = 0x40;  
-    REG_JPEG_MCUX = 0;
-    REG_JPEG_MCUY = 0;
-	
-	//os_printf("5-----JPEGDEC_INTEN = %x \r\n", JPEGDEC_INTEN);
-	
-	//*Y_buf = NULL;
-	jpg_dec_st.inputbuf = (unsigned char *)dec_src_addr;
+
 	jpg_dec_st.rd_ptr = 0;//init rd pointer
 	jpg_dec_st.jpg_file_size = 1024;
 
-	jd_prepare(jdec, jpeg_dec_input_func, jpg_dec_st.workbuf, WORK_AREA_SIZE, NULL);
-	//os_printf("12-----JPEGDEC_INTEN = %x \r\n", JPEGDEC_INTEN);
-	//os_printf("12---BASE_FFDA = %x \r\n", BASE_FFDA);
+	ret = jd_prepare(&jdec, jpeg_dec_input_func, jpg_dec_st.workbuf, WORK_AREA_SIZE, NULL);
+	if(ret != JDR_OK) {
+		os_printf("jd prepare error return %x \r\n", ret);
+		return ret;
+	}
 
 	huf_pointer = &REG_JPEG_TMP0;
 	for(i = 0; i < 64; i = i + 1)
-		 *(huf_pointer + i) = 0;
+		*(huf_pointer + i) = 0;
 
-	REG_JPEG_BITS_DC00 = *((*jdec).huffbits[0][0] + 0);
-	REG_JPEG_BITS_DC01 = *((*jdec).huffbits[0][0] + 1);
-	REG_JPEG_BITS_DC02 = *((*jdec).huffbits[0][0] + 2);
-	REG_JPEG_BITS_DC03 = *((*jdec).huffbits[0][0] + 3);
-	REG_JPEG_BITS_DC04 = *((*jdec).huffbits[0][0] + 4);
-	REG_JPEG_BITS_DC05 = *((*jdec).huffbits[0][0] + 5);
-	REG_JPEG_BITS_DC06 = *((*jdec).huffbits[0][0] + 6);
-	REG_JPEG_BITS_DC07 = *((*jdec).huffbits[0][0] + 7);
-	REG_JPEG_BITS_DC08 = *((*jdec).huffbits[0][0] + 8);
-	REG_JPEG_BITS_DC09 = *((*jdec).huffbits[0][0] + 9);
-	REG_JPEG_BITS_DC0A = *((*jdec).huffbits[0][0] + 10);
-	REG_JPEG_BITS_DC0B = *((*jdec).huffbits[0][0] + 11);
-	REG_JPEG_BITS_DC0C = *((*jdec).huffbits[0][0] + 12);
-	REG_JPEG_BITS_DC0D = *((*jdec).huffbits[0][0] + 13);
-	REG_JPEG_BITS_DC0E = *((*jdec).huffbits[0][0] + 14);
-	REG_JPEG_BITS_DC0F = *((*jdec).huffbits[0][0] + 15);	
-	
+	REG_JPEG_BITS_DC00 = *((jdec).huffbits[0][0] + 0);
+	REG_JPEG_BITS_DC01 = *((jdec).huffbits[0][0] + 1);
+	REG_JPEG_BITS_DC02 = *((jdec).huffbits[0][0] + 2);
+	REG_JPEG_BITS_DC03 = *((jdec).huffbits[0][0] + 3);
+	REG_JPEG_BITS_DC04 = *((jdec).huffbits[0][0] + 4);
+	REG_JPEG_BITS_DC05 = *((jdec).huffbits[0][0] + 5);
+	REG_JPEG_BITS_DC06 = *((jdec).huffbits[0][0] + 6);
+	REG_JPEG_BITS_DC07 = *((jdec).huffbits[0][0] + 7);
+	REG_JPEG_BITS_DC08 = *((jdec).huffbits[0][0] + 8);
+	REG_JPEG_BITS_DC09 = *((jdec).huffbits[0][0] + 9);
+	REG_JPEG_BITS_DC0A = *((jdec).huffbits[0][0] + 10);
+	REG_JPEG_BITS_DC0B = *((jdec).huffbits[0][0] + 11);
+	REG_JPEG_BITS_DC0C = *((jdec).huffbits[0][0] + 12);
+	REG_JPEG_BITS_DC0D = *((jdec).huffbits[0][0] + 13);
+	REG_JPEG_BITS_DC0E = *((jdec).huffbits[0][0] + 14);
+	REG_JPEG_BITS_DC0F = *((jdec).huffbits[0][0] + 15);	
+
 	for(i = 0; i < 16; i = i + 1)
 	{
-	  bits_num = bits_num + *((*jdec).huffbits[0][0] + i);
-//	  addJPEG_DEC_Reg0x1 = bits_num;
+		bits_num = bits_num + *((jdec).huffbits[0][0] + i);
 	}
 	//os_printf("13-----bits_num = %d \r\n", bits_num);
 
-	
 	huf_pointer = &REG_JPEG_HUF_TABLE00;
-  for(i = 0; i < bits_num; i = i + 1)
-	  *(huf_pointer + i) = (*((*jdec).huffcode[0][0] + i) << 8) + *((*jdec).huffdata[0][0] + i);
+	for(i = 0; i < bits_num; i = i + 1)
+		*(huf_pointer + i) = (*((jdec).huffcode[0][0] + i) << 8) + *((jdec).huffdata[0][0] + i);
 
-  //ind 10
-	REG_JPEG_BITS_DC10 = *((*jdec).huffbits[1][0] + 0); 
-	REG_JPEG_BITS_DC11 = *((*jdec).huffbits[1][0] + 1); 
-	REG_JPEG_BITS_DC12 = *((*jdec).huffbits[1][0] + 2); 
-	REG_JPEG_BITS_DC13 = *((*jdec).huffbits[1][0] + 3); 
-	REG_JPEG_BITS_DC14 = *((*jdec).huffbits[1][0] + 4); 
-	REG_JPEG_BITS_DC15 = *((*jdec).huffbits[1][0] + 5); 
-	REG_JPEG_BITS_DC16 = *((*jdec).huffbits[1][0] + 6); 
-	REG_JPEG_BITS_DC17 = *((*jdec).huffbits[1][0] + 7); 
-	REG_JPEG_BITS_DC18 = *((*jdec).huffbits[1][0] + 8); 
-	REG_JPEG_BITS_DC19 = *((*jdec).huffbits[1][0] + 9); 
-	REG_JPEG_BITS_DC1A = *((*jdec).huffbits[1][0] + 10);
-	REG_JPEG_BITS_DC1B = *((*jdec).huffbits[1][0] + 11);
-	REG_JPEG_BITS_DC1C = *((*jdec).huffbits[1][0] + 12);
-	REG_JPEG_BITS_DC1D = *((*jdec).huffbits[1][0] + 13);
-	REG_JPEG_BITS_DC1E = *((*jdec).huffbits[1][0] + 14);
-	REG_JPEG_BITS_DC1F = *((*jdec).huffbits[1][0] + 15);
-  
-  bits_num = 0;	
+	//ind 10
+	REG_JPEG_BITS_DC10 = *((jdec).huffbits[1][0] + 0); 
+	REG_JPEG_BITS_DC11 = *((jdec).huffbits[1][0] + 1); 
+	REG_JPEG_BITS_DC12 = *((jdec).huffbits[1][0] + 2); 
+	REG_JPEG_BITS_DC13 = *((jdec).huffbits[1][0] + 3); 
+	REG_JPEG_BITS_DC14 = *((jdec).huffbits[1][0] + 4); 
+	REG_JPEG_BITS_DC15 = *((jdec).huffbits[1][0] + 5); 
+	REG_JPEG_BITS_DC16 = *((jdec).huffbits[1][0] + 6); 
+	REG_JPEG_BITS_DC17 = *((jdec).huffbits[1][0] + 7); 
+	REG_JPEG_BITS_DC18 = *((jdec).huffbits[1][0] + 8); 
+	REG_JPEG_BITS_DC19 = *((jdec).huffbits[1][0] + 9); 
+	REG_JPEG_BITS_DC1A = *((jdec).huffbits[1][0] + 10);
+	REG_JPEG_BITS_DC1B = *((jdec).huffbits[1][0] + 11);
+	REG_JPEG_BITS_DC1C = *((jdec).huffbits[1][0] + 12);
+	REG_JPEG_BITS_DC1D = *((jdec).huffbits[1][0] + 13);
+	REG_JPEG_BITS_DC1E = *((jdec).huffbits[1][0] + 14);
+	REG_JPEG_BITS_DC1F = *((jdec).huffbits[1][0] + 15);
+
+	bits_num = 0;	
 	for(i = 0; i < 16; i = i + 1)
 	{
-	  bits_num = bits_num + *((*jdec).huffbits[1][0] + i);
-//	  addJPEG_DEC_Reg0x1 = bits_num;
+		bits_num = bits_num + *((jdec).huffbits[1][0] + i);
+		//addJPEG_DEC_Reg0x1 = bits_num;
 	}
 
 	huf_pointer = &REG_JPEG_HUF_TABLE10;
-  for(i = 0; i < bits_num; i = i + 1)
-	  *(huf_pointer + i) = (*((*jdec).huffcode[1][0] + i) << 8) + *((*jdec).huffdata[1][0] + i);
-		
-  //ind 01
-	REG_JPEG_BITS_AC00 = *((*jdec).huffbits[0][1] + 0);
-	REG_JPEG_BITS_AC01 = *((*jdec).huffbits[0][1] + 1);
-	REG_JPEG_BITS_AC02 = *((*jdec).huffbits[0][1] + 2);
-	REG_JPEG_BITS_AC03 = *((*jdec).huffbits[0][1] + 3);
-	REG_JPEG_BITS_AC04 = *((*jdec).huffbits[0][1] + 4);
-	REG_JPEG_BITS_AC05 = *((*jdec).huffbits[0][1] + 5);
-	REG_JPEG_BITS_AC06 = *((*jdec).huffbits[0][1] + 6);
-	REG_JPEG_BITS_AC07 = *((*jdec).huffbits[0][1] + 7);
-	REG_JPEG_BITS_AC08 = *((*jdec).huffbits[0][1] + 8);
-	REG_JPEG_BITS_AC09 = *((*jdec).huffbits[0][1] + 9);
-	REG_JPEG_BITS_AC0A = *((*jdec).huffbits[0][1] + 10);
-	REG_JPEG_BITS_AC0B = *((*jdec).huffbits[0][1] + 11);
-	REG_JPEG_BITS_AC0C = *((*jdec).huffbits[0][1] + 12);
-	REG_JPEG_BITS_AC0D = *((*jdec).huffbits[0][1] + 13);
-	REG_JPEG_BITS_AC0E = *((*jdec).huffbits[0][1] + 14);
-	REG_JPEG_BITS_AC0F = *((*jdec).huffbits[0][1] + 15);
-	 bits_num = 0; 
+	for(i = 0; i < bits_num; i = i + 1)
+		*(huf_pointer + i) = (*((jdec).huffcode[1][0] + i) << 8) + *((jdec).huffdata[1][0] + i);
+
+	//ind 01
+	REG_JPEG_BITS_AC00 = *((jdec).huffbits[0][1] + 0);
+	REG_JPEG_BITS_AC01 = *((jdec).huffbits[0][1] + 1);
+	REG_JPEG_BITS_AC02 = *((jdec).huffbits[0][1] + 2);
+	REG_JPEG_BITS_AC03 = *((jdec).huffbits[0][1] + 3);
+	REG_JPEG_BITS_AC04 = *((jdec).huffbits[0][1] + 4);
+	REG_JPEG_BITS_AC05 = *((jdec).huffbits[0][1] + 5);
+	REG_JPEG_BITS_AC06 = *((jdec).huffbits[0][1] + 6);
+	REG_JPEG_BITS_AC07 = *((jdec).huffbits[0][1] + 7);
+	REG_JPEG_BITS_AC08 = *((jdec).huffbits[0][1] + 8);
+	REG_JPEG_BITS_AC09 = *((jdec).huffbits[0][1] + 9);
+	REG_JPEG_BITS_AC0A = *((jdec).huffbits[0][1] + 10);
+	REG_JPEG_BITS_AC0B = *((jdec).huffbits[0][1] + 11);
+	REG_JPEG_BITS_AC0C = *((jdec).huffbits[0][1] + 12);
+	REG_JPEG_BITS_AC0D = *((jdec).huffbits[0][1] + 13);
+	REG_JPEG_BITS_AC0E = *((jdec).huffbits[0][1] + 14);
+	REG_JPEG_BITS_AC0F = *((jdec).huffbits[0][1] + 15);
+	bits_num = 0; 
 	for(i = 0; i < 16; i = i + 1)
 	{
-	  bits_num = bits_num + *((*jdec).huffbits[0][1] + i);
-//	  addJPEG_DEC_Reg0x1 = bits_num;
+		bits_num = bits_num + *((jdec).huffbits[0][1] + i);
 	}
 
-
-
 	huf_pointer = &REG_JPEG_HUF_TABLE01;
-  for(i = 0; i < bits_num; i = i + 1)
-	  *(huf_pointer + i) = (*((*jdec).huffcode[0][1] + i) << 8) + *((*jdec).huffdata[0][1] + i);
+	for(i = 0; i < bits_num; i = i + 1)
+		*(huf_pointer + i) = (*((jdec).huffcode[0][1] + i) << 8) + *((jdec).huffdata[0][1] + i);
 
-  //ind 11
-	REG_JPEG_BITS_AC10 = *((*jdec).huffbits[1][1] + 0);
-	REG_JPEG_BITS_AC11 = *((*jdec).huffbits[1][1] + 1);
-	REG_JPEG_BITS_AC12 = *((*jdec).huffbits[1][1] + 2);
-	REG_JPEG_BITS_AC13 = *((*jdec).huffbits[1][1] + 3);
-	REG_JPEG_BITS_AC14 = *((*jdec).huffbits[1][1] + 4);
-	REG_JPEG_BITS_AC15 = *((*jdec).huffbits[1][1] + 5);
-	REG_JPEG_BITS_AC16 = *((*jdec).huffbits[1][1] + 6);
-	REG_JPEG_BITS_AC17 = *((*jdec).huffbits[1][1] + 7);
-	REG_JPEG_BITS_AC18 = *((*jdec).huffbits[1][1] + 8);
-	REG_JPEG_BITS_AC19 = *((*jdec).huffbits[1][1] + 9);
-	REG_JPEG_BITS_AC1A = *((*jdec).huffbits[1][1] + 10);
-	REG_JPEG_BITS_AC1B = *((*jdec).huffbits[1][1] + 11);
-	REG_JPEG_BITS_AC1C = *((*jdec).huffbits[1][1] + 12);
-	REG_JPEG_BITS_AC1D = *((*jdec).huffbits[1][1] + 13);
-	REG_JPEG_BITS_AC1E = *((*jdec).huffbits[1][1] + 14);
-	REG_JPEG_BITS_AC1F = *((*jdec).huffbits[1][1] + 15);
-	 bits_num = 0; 
+	//ind 11
+	REG_JPEG_BITS_AC10 = *((jdec).huffbits[1][1] + 0);
+	REG_JPEG_BITS_AC11 = *((jdec).huffbits[1][1] + 1);
+	REG_JPEG_BITS_AC12 = *((jdec).huffbits[1][1] + 2);
+	REG_JPEG_BITS_AC13 = *((jdec).huffbits[1][1] + 3);
+	REG_JPEG_BITS_AC14 = *((jdec).huffbits[1][1] + 4);
+	REG_JPEG_BITS_AC15 = *((jdec).huffbits[1][1] + 5);
+	REG_JPEG_BITS_AC16 = *((jdec).huffbits[1][1] + 6);
+	REG_JPEG_BITS_AC17 = *((jdec).huffbits[1][1] + 7);
+	REG_JPEG_BITS_AC18 = *((jdec).huffbits[1][1] + 8);
+	REG_JPEG_BITS_AC19 = *((jdec).huffbits[1][1] + 9);
+	REG_JPEG_BITS_AC1A = *((jdec).huffbits[1][1] + 10);
+	REG_JPEG_BITS_AC1B = *((jdec).huffbits[1][1] + 11);
+	REG_JPEG_BITS_AC1C = *((jdec).huffbits[1][1] + 12);
+	REG_JPEG_BITS_AC1D = *((jdec).huffbits[1][1] + 13);
+	REG_JPEG_BITS_AC1E = *((jdec).huffbits[1][1] + 14);
+	REG_JPEG_BITS_AC1F = *((jdec).huffbits[1][1] + 15);
+	bits_num = 0;
 	for(i = 0; i < 16; i = i + 1)
 	{
-	  bits_num = bits_num + *((*jdec).huffbits[1][1] + i);
-//	  addJPEG_DEC_Reg0x1 = bits_num;
+	  bits_num = bits_num + *((jdec).huffbits[1][1] + i);
 	}
 
 	huf_pointer = &REG_JPEG_HUF_TABLE11;
-  for(i = 0; i < bits_num; i = i + 1)
-	  *(huf_pointer + i) = (*((*jdec).huffcode[1][1] + i) << 8) + *((*jdec).huffdata[1][1] + i);
+	for(i = 0; i < bits_num; i = i + 1)
+		*(huf_pointer + i) = (*((jdec).huffcode[1][1] + i) << 8) + *((jdec).huffdata[1][1] + i);
 
-  dqt_pointer	= &REG_JPEG_DQT_TABLE0;
-  for(i = 0; i < 64; i = i + 1)
-	  *(dqt_pointer + i) = (*((*jdec).qttbl[0] + i));
+	dqt_pointer	= &REG_JPEG_DQT_TABLE0;
+	for(i = 0; i < 64; i = i + 1)
+		*(dqt_pointer + i) = (*((jdec).qttbl[0] + i));
 	
-  dqt_pointer	= &REG_JPEG_DQT_TABLE1;
-  for(i = 0; i < 64; i = i + 1)
-	  *(dqt_pointer + i) = (*((*jdec).qttbl[1] + i));	
+	dqt_pointer	= &REG_JPEG_DQT_TABLE1;
+	for(i = 0; i < 64; i = i + 1)
+		*(dqt_pointer + i) = (*((jdec).qttbl[1] + i));	
 
-  zig_pointer	= &REG_JPEG_Zig;
-  for(i = 0; i < 64; i = i + 1)
-	  *(zig_pointer + i) = (unsigned long)Zig[i];
-	
-	REG_JPEG_ACC_REG0 = 3;
+	zig_pointer	= &REG_JPEG_Zig;
+	for(i = 0; i < 64; i = i + 1)
+		*(zig_pointer + i) = (unsigned long)Zig[i];
 
-//	if (JDR_OK != ret)
-//		return -1;
-	xs = (*jdec).width >> jpg_dec_st.scale_ratio;
+	xs = (jdec).width >> jpg_dec_st.scale_ratio;
 	//ys = (*jdec).height >> jpg_dec_st.scale_ratio;
-	jpg_dec_st.width = (*jdec).width;
-	jpg_dec_st.heigth = (*jdec).height;
+	jpg_dec_st.width = (jdec).width;
+	jpg_dec_st.heigth = (jdec).height;
 	jpg_dec_st.line_wbyte = xs;//only output Y
-//	jpg_dec_st.outputbuf = malloc(xs * ys);
-//	printf("Y buffer: %d * %d\r\n", xs, ys);
-//	if (NULL == jpg_dec_st.outputbuf)
-//	{
-//		printf("Y buffer malloc failed\r\n");
-//		return -1;
-//	}
-//	*Y_buf = jpg_dec_st.outputbuf;  
+	return JDR_OK;
 }
 
 
+/**
+ * @brief	 Start to decompress the JPEG picture  
+ *	
+ * @param1	 jd Initialized decompression object
+ * 
+ * @param2	 size of bytes to allocate 
+ * @return
+ *	   - BK_OK: succeed
+ *	   - others: other errors.
+ */
+JRESULT jd_decomp(void)
+{
+	//uint16_t	mx, my;
+	JRESULT rc;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	jpeg_dec_ll_set_reg0x0_jpeg_dec_en(1);
+	jpeg_dec_ll_set_reg0x5_mcu_x(0);
+	jpeg_dec_ll_set_reg0x6_mcu_y(0);
+	//mx = jd->msx * 8; my = jd->msy * 8;			/* Size of the MCU (pixel) */
+	jpeg_dec_ll_set_reg0xa_value(jdec.width);  //pixel number X
+	jpeg_dec_ll_set_reg0x8_dec_cmd(JPEGDEC_DC_CLEAR);
+	jdec.dcv[2] = jdec.dcv[1] = jdec.dcv[0] = 0;	/* Initialize DC values */
+	rc = JDR_OK;
+	jpeg_dec_ll_set_reg0x8_dec_cmd(JPEGDEC_START);
+	return rc;
+}

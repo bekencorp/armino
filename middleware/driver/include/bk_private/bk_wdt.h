@@ -25,6 +25,7 @@ void bk_task_wdt_start(void);
 void bk_task_wdt_stop(void);
 void bk_task_wdt_feed(void);
 void bk_task_wdt_timeout_check(void);
+void bk_wdt_feed_handle(void);
 
 #ifdef __cplusplus
 }

@@ -27,6 +27,37 @@ typedef volatile struct {
 		};
 		uint32_t v;
 	} ctrl;
+} aon_wdt_hw_t;
+
+typedef volatile struct {
+	/* REG_0x00 */
+	uint32_t dev_id;
+
+	/* REG_0x01 */
+	uint32_t dev_version;
+
+	/* REG_0x02 */
+	union {
+		struct {
+			uint32_t soft_reset:      1; /**< bit[0] uart soft reset */
+			uint32_t clk_gate_bypass: 1; /**< bit[1] bypass uart clock gate */
+			uint32_t reserved:       30; /**< bit[2:31] reserved */
+		};
+		uint32_t v;
+	} global_ctrl;
+
+	/* REG_0x03 */
+	uint32_t dev_status;
+
+	/* REG_0x04 */
+	union {
+		struct {
+			uint32_t period:   16; /**< bit[0:15] */
+			uint32_t key:      8;  /**< bit[16:23] */
+			uint32_t reserved: 8;  /**< bit[24:31] */
+		};
+		uint32_t v;
+	} ctrl;
 } wdt_hw_t;
 
 #ifdef __cplusplus

@@ -37,7 +37,7 @@ void icu_struct_dump(void)
 	SOC_LOGI("  pwms: %x\n", hw->peri_clk_mux.pwms);
 	SOC_LOGI("  sdio: %x\n", hw->peri_clk_mux.sdio);
 	SOC_LOGI("  reserved_1: %x\n", hw->peri_clk_mux.reserved_1);
-#if CONFIG_SOC_BK7236
+#if CONFIG_SOC_BK7236A
 	SOC_LOGI("  jpeg=%x\n", hw->peri_clk_mux.jpeg);
 #endif
 	SOC_LOGI("  dco_clk_div: %x\n", hw->peri_clk_mux.dco_clk_div);
@@ -72,7 +72,7 @@ void icu_struct_dump(void)
 	SOC_LOGI("  reserved_2=%x\n", hw->clk_pwr_down.reserved_2);
 	SOC_LOGI("  sdio=%x\n", hw->clk_pwr_down.sdio);
 	SOC_LOGI("  timers=%x\n", hw->clk_pwr_down.timers);
-#if CONFIG_SOC_BK7236
+#if CONFIG_SOC_BK7236A
 	SOC_LOGI("  jpeg=%x\n", hw->clk_pwr_down.jpeg);
 #endif
 
@@ -116,7 +116,7 @@ void icu_struct_dump(void)
 	SOC_LOGI("  irq_gpio en=%x raw=%x st=%x\n", hw->int_en.irq_gpio, hw->int_raw_status.irq_gpio, hw->int_status.irq_gpio);
 	SOC_LOGI("  irq_timer en=%x raw=%x st=%x\n", hw->int_en.irq_timer, hw->int_raw_status.irq_timer, hw->int_status.irq_timer);
 	SOC_LOGI("  irq_pwm en=%x raw=%x st=%x\n", hw->int_en.irq_pwm, hw->int_raw_status.irq_pwm, hw->int_status.irq_pwm);
-#if CONFIG_SOC_BK7236
+#if CONFIG_SOC_BK7236A
 	SOC_LOGI("  jpeg en=%x raw=%x st=%x\n", hw->int_en.irq_jpeg, hw->int_raw_status.irq_jpeg, hw->int_status.irq_jpeg);
 #endif
 	SOC_LOGI("  irq_saradc en=%x raw=%x st=%x\n", hw->int_en.irq_saradc, hw->int_raw_status.irq_saradc, hw->int_status.irq_saradc);
@@ -138,7 +138,7 @@ void icu_struct_dump(void)
 	SOC_LOGI("  fiq_btdm en=%x raw=%x st=%x\n", hw->int_en.fiq_btdm, hw->int_raw_status.fiq_btdm, hw->int_status.fiq_btdm);
 	SOC_LOGI("  fiq_ble en=%x raw=%x st=%x\n", hw->int_en.fiq_ble, hw->int_raw_status.fiq_ble, hw->int_status.fiq_ble);
 	SOC_LOGI("  fiq_bt en=%x raw=%x st=%x\n", hw->int_en.fiq_bt, hw->int_raw_status.fiq_bt, hw->int_status.fiq_bt);
-#if CONFIG_SOC_BK7236
+#if CONFIG_SOC_BK7236A
 	SOC_LOGI("  fiq_modem_rc en=%x raw=%x st=%x\n", hw->int_en.fiq_modem_rc, hw->int_raw_status.fiq_modem_rc, hw->int_status.fiq_modem_rc);
 	SOC_LOGI("  fiq_mac_hsu en=%x raw=%x st=%x\n", hw->int_en.fiq_mac_hsu, hw->int_raw_status.fiq_mac_hsu, hw->int_status.fiq_mac_hsu);
 #endif

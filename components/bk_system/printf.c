@@ -34,7 +34,7 @@
 static char s_exception_mode_printf_buf[CONFIG_PRINTF_BUF_SIZE] = {0};
 // static char s_task_mode_printf_buf[CONFIG_PRINTF_BUF_SIZE] = {0};
 
-static uint8_t s_task_printf_enable = 1;
+static uint8_t s_printf_enable = 1;
 #if CONFIG_SHELL_ASYNCLOG
 static volatile uint8_t s_printf_sync = 0;
 
@@ -88,7 +88,7 @@ static void exception_mode_printf(const char *fmt, va_list ap)
 {
 	vsnprintf(s_exception_mode_printf_buf, sizeof(s_exception_mode_printf_buf) - 1, fmt, ap);
 	s_exception_mode_printf_buf[CONFIG_PRINTF_BUF_SIZE - 1] = 0;
-	uart_write_string(CONFIG_UART_PRINT_PORT, s_exception_mode_printf_buf);
+	uart_write_string(bk_get_printf_port(), s_exception_mode_printf_buf);
 }
 
 #if (!CONFIG_ARCH_RISCV)
@@ -98,23 +98,18 @@ static void irq_printf(const char *fmt, va_list ap)
 
 	vsnprintf(string, sizeof(string) - 1, fmt, ap);
 	string[CONFIG_PRINTF_BUF_SIZE - 1] = 0;
-	uart_write_string(CONFIG_UART_PRINT_PORT, string);
+	uart_write_string(bk_get_printf_port(), string);
 }
 #endif
 
 
 static void task_printf(const char *fmt, va_list ap)
 {
-	if(!s_task_printf_enable)
-	{
-	    return;
-	}
-
 	char string[CONFIG_PRINTF_BUF_SIZE];
 
 	vsnprintf(string, sizeof(string) - 1, fmt, ap);
 	string[CONFIG_PRINTF_BUF_SIZE - 1] = 0;
-	uart_write_string(CONFIG_UART_PRINT_PORT, string);
+	uart_write_string(bk_get_printf_port(), string);
 
 }
 
@@ -183,6 +178,9 @@ void bk_printf(const char *fmt, ...)
 	if(!printf_is_init())
 		return;
 
+	if(!s_printf_enable)
+	    return;
+
 	va_start(args, fmt);
 
 	bk_printf_port(BK_LOG_ERROR, NULL, fmt, args);
@@ -217,12 +215,16 @@ void bk_buf_printf_sync(char *buf, int buf_len)
 	if (!printf_is_init())
 		return;
 
+	if (!s_printf_enable) {
+	    return;
+	}
+
 	if (NULL == buf || buf_len <= 0)
 		return;
 
 	buf[buf_len -1] = '\0';
 
-	uart_write_string(CONFIG_UART_PRINT_PORT, buf);
+	uart_write_string(bk_get_printf_port(), buf);
 }
 
 
@@ -263,7 +265,7 @@ void bk_set_printf_enable(uint8_t enable)
 		shell_set_log_level(LOG_LEVEL);
 	}
 #endif
-	s_task_printf_enable = enable;
+	s_printf_enable = enable;
 }
 
 void bk_set_printf_sync(uint8_t enable)

@@ -1,0 +1,1 @@
+.. include:: ../../../../zh_CN/examples/video/lcd/bk_lcd_8080.rst

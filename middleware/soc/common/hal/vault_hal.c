@@ -22,9 +22,11 @@ bk_err_t vault_hal_init(vault_hal_t *hal)
 	return BK_OK;
 }
 
+extern void delay_us(UINT32 ms_count);
 bk_err_t vault_hal_start_common(vault_hal_t *hal)
 {
 	vault_ll_set_OTP_power(hal->hw);
+	delay_us(70);
 	vault_ll_soft_reset_disable(hal->hw);
 	vault_ll_slv_reset(hal->hw);
 	vault_ll_clk_man_reset(hal->hw);

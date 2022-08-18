@@ -455,6 +455,25 @@ typedef struct {
 } wifi_event_ap_disconnected_t;
 
 /**
+ * @brief Wi-Fi Statistic info.
+ */
+typedef struct {
+	uint32_t tx_success_count;	/**< Number of TX successes, 0 if unavailable */
+	uint32_t tx_retry_count;	/**< Number of TX retries, 0 if unavailable */
+	uint32_t tx_fail_count; 	/**< Number of TX failures, 0 if unavailable */
+	uint32_t rx_success_count;	/**< Number of RX successes, 0 if unavailable */
+	uint32_t rx_crcerror_count; /**< Number of RX FCS errors, 0 if unavailable */
+	uint32_t mic_error_count;	/**< Number of MIC errors, 0 if unavailable */
+	int8_t noise;				/**< Average noise level in dBm, -128 if unavailable */
+	uint16_t phyrate; 		/**< Maximum used PHY rate, 0 if unavailable */
+	uint16_t txrate;			/**< Average used TX rate, 0 if unavailable */
+	uint16_t rxrate;			/**< Average used RX rate, 0 if unavailable */
+	int8_t rssi;				/**< Average beacon RSSI in dBm, -128 if unavailable */
+	uint8_t bandwidth;		/**< Average used bandwidth, 0 if unavailable */
+	uint8_t idle_time_per;		/**< Percent of idle time, 0 if unavailable */
+} wifi_statistics_info_t;
+
+/**
  * @}
  */
 

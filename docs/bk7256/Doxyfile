@@ -119,7 +119,9 @@ INPUT = \
     ../../../include/components/video_transfer.h \
     ../../../include/components/video_types.h \
     ../../../include/modules/aec.h \
-    ../../../include/modules/g711.h
+    ../../../include/modules/g711.h \
+    ## PM
+    ../../../include/modules/pm.h 
 
 ## Get warnings for functions that have no documentation for their parameters or return value
 ##

@@ -42,7 +42,9 @@ typedef volatile struct {
            volatile uint32_t  config_error_int_en            : 1;  //0x0[     13],config error int ena,,0,RW
            volatile uint32_t  reserved2                       : 2;  //0x0[15:14],NC,0,R
            volatile uint32_t  mode                           : 3;  //0x0[18:16],DMA2D mode sel: 000:m2m; 001:m2m pixel convert with fg; 010:m2m blend; 011:r2m.only with output; 100: m2m blend fix fg; 101:m2m blend fix bg;,0,RW
-           volatile uint32_t  reserved                       :13;  //0x0[31:21],NC,0,R
+		   volatile uint32_t  master_tran_length			 :2;  //0x0[20:19],RW max transfer length:00:256bytes; 01:192 bytes;  10:128bytes;	11:64bytes;
+		   volatile uint32_t  out_byte_revese				 :1;  //0x0[21],RW output rgb888 formart, reverse data byte by byte.
+		   volatile uint32_t  reserved						 :13;  //0x0[31:21],NC,0,R
         }; 
         uint32_t v;
     }dma2d_control_reg; 

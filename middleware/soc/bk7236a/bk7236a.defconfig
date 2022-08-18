@@ -1,0 +1,387 @@
+#The value config in bk7236.defconfig will over write the Kconfig's default value.
+#If the default value in Kconfig satisfy your needs, then you needn't to config again here.
+
+CONFIG_SOC_ARCH="arm9"
+CONFIG_SOC_BK7236A=y
+CONFIG_SOC_STR="bk7236a"
+
+#
+# ARMINO Configuration
+#
+
+#
+# Common Configuration
+#
+
+#
+# Compile/Build
+#
+
+#
+# Debug
+#
+CONFIG_DEBUG_FIRMWARE=y
+CONFIG_ASSERT_IGNORE=y
+# CONFIG_ASSERT_HALT is not set
+# CONFIG_ASSERT_REBOOT is not set
+# CONFIG_JTAG is not set
+# end of Debug
+# end of Common Configuration
+
+#
+# Features Configuration
+#
+CONFIG_LWIP_V2_0=y
+# CONFIG_LWIP_V2_1 is not set
+CONFIG_NO_HOSTED=y
+# CONFIG_SEMI_HOSTED is not set
+# CONFIG_FULLY_HOSTED is not set
+# CONFIG_WIFI_SENSOR is not set
+# end of Features Configuration
+
+#
+# Components Configuration
+#
+
+#
+# Application
+#
+# CONFIG_DEMO_TEST is not set
+# CONFIG_FTPD_UPGRADE is not set
+CONFIG_OTA_HTTP=y
+# CONFIG_OTA_TFTP is not set
+# end of Application
+
+# CONFIG_AT is not set
+CONFIG_AT_CMD=y
+#
+# Audio
+#
+# end of Audio
+
+#
+# Calibration
+#
+CONFIG_CALI=y
+CONFIG_MANUAL_CALI=y
+CONFIG_TPC_PA_MAP=y
+# end of Calibration
+
+#
+# ATE
+#
+CONFIG_ATE=y
+# end of ATE
+
+#
+# BLE
+#
+CONFIG_BLE=y
+CONFIG_BLE_5_X=y
+CONFIG_BLE_HOST_RW=y
+# CONFIG_BLE_4_2 is not set
+# end of BLE
+
+#
+# Cli
+#
+CONFIG_CLI=y
+CONFIG_BKREG=y
+# CONFIG_TCP_SERVER_TEST is not set
+# CONFIG_AIRKISS_TEST is not set
+# CONFIG_WIFI_RAW_TX_TEST is not set
+# CONFIG_I2C1_TEST is not set
+# CONFIG_I2C2_TEST is not set
+# CONFIG_UART_TEST is not set
+# CONFIG_SPI_TEST is not set
+# CONFIG_PERI_TEST is not set
+# CONFIG_RF_OTA_TEST is not set
+# CONFIG_SHELL_ASYNCLOG is not set
+# end of Cli
+
+#
+# RF
+#
+CONFIG_RF_POLICY_BLE_REQ=y
+# CONFIG_RF_POLICY_WIFI_REQ is not set
+# CONFIG_RF_POLICY_CO_REQ is not set
+# end of RF
+
+#
+# Internal Kconfig
+#
+CONFIG_CHECK_MISMATCH=y
+CONFIG_MCU_PS=y
+CONFIG_DEEP_PS=y
+CONFIG_TICK_CALI=y
+CONFIG_STA_PS=y
+# end of Internal Kconfig
+
+#
+# FreeRTOS
+#
+CONFIG_FREERTOS=y
+# CONFIG_LITEOS_M is not set
+CONFIG_FREERTOS_V9=y
+# CONFIG_FREERTOS_V10 is not set
+
+#
+# Memory Debug
+#
+# CONFIG_MALLOC_STATIS is not set
+# CONFIG_MEM_DEBUG is not set
+# end of Memory Debug
+# end of FreeRTOS
+
+#
+# Startup
+#
+CONFIG_APP_MAIN_TASK_PRIO=4
+CONFIG_APP_MAIN_TASK_STACK_SIZE=4096
+# end of Startup
+
+#
+# System
+#
+# CONFIG_BASE_MAC_FROM_EFUSE is not set
+CONFIG_BASE_MAC_FROM_RF_OTP_FLASH=y
+# CONFIG_BASE_MAC_FROM_NVS is not set
+# end of System
+
+#
+# USB configuration
+#
+# CONFIG_USB is not set
+# end of USB configuration
+
+#
+# WiFi
+#
+CONFIG_WIFI_IP_AX=y
+CONFIG_WIFI6_CODE_STACK=y
+CONFIG_WIFI6=y
+CONFIG_WIFI4=y
+CONFIG_MSDU_RESV_HEAD_LENGTH=96
+CONFIG_MSDU_RESV_TAIL_LENGTH=16
+CONFIG_TASK_RECONNECT_PRIO=4
+CONFIG_WIFI_MAC_VERSION="V20"
+CONFIG_WIFI_MDM_VERSION="v30"
+CONFIG_WIFI_PLF_VERSION="v30"
+CONFIG_MM_PS_SET_LISTEN_INTERVAL_VALUE=30
+CONFIG_MOBILE_CONNECT_SAP_STATISTICS=y
+# CONFIG_AP_MONITOR_COEXIST is not set
+# CONFIG_WIFI_FAST_CONNECT is not set
+# CONFIG_BSSID_CONNECT is not set
+# CONFIG_WFA_CERT is not set
+# CONFIG_LESS_MEMERY_IN_RWNX is not set
+# CONFIG_AP_PROBEREQ_CB is not set
+# CONFIG_MM_PS_BASED_ON_LISTEN_INTERVAL is not set
+CONFIG_WIFI6_IP_DEBUG=y
+# end of WiFi
+
+CONFIG_BLE_PS=y
+
+#
+# BLE 5.x
+#
+# CONFIG_BLE_HOST_NONE is not set
+CONFIG_BLE_HOST_RW=y
+# CONFIG_BLE_HOST_ZEPHYR is not set
+CONFIG_BLE_MESH_NONE=y
+# CONFIG_BLE_MESH_RW is not set
+CONFIG_BLE_ADV_NUM=1
+CONFIG_BLE_SCAN_NUM=1
+CONFIG_BLE_INIT_NUM=0
+CONFIG_BLE_CONN_NUM=1
+# end of BLE 5.x
+
+# CONFIG_CAMERA is not set
+
+#
+# Driver
+#
+
+#
+# Watchdog
+#
+CONFIG_INT_WDT=y
+CONFIG_INT_WDT_PERIOD_MS=1000
+CONFIG_TASK_WDT=y
+CONFIG_TASK_WDT_PERIOD_MS=60000
+# end of Watchdog
+
+#
+# UART
+#
+CONFIG_UART1=y
+CONFIG_UART2=y
+CONFIG_UART_ATE_PORT=1
+# CONFIG_PRINT_PORT_UART1 is not set
+CONFIG_PRINT_PORT_UART2=y
+CONFIG_UART_PRINT_PORT=1
+CONFIG_PRINTF_BUF_SIZE=256
+# CONFIG_BACKGROUND_PRINT is not set
+CONFIG_KFIFO_SIZE=128
+# CONFIG_UART_STATIS is not set
+# end of UART
+
+#
+# TRNG
+#
+CONFIG_TRNG_SUPPORT=y
+# end of TRNG
+
+#depends on CONFIG_TRNG_SUPPORT
+CONFIG_RANDOM_MAC_ADDR=y
+
+#
+# SDCARD
+#
+# CONFIG_SDCARD_HOST is not set
+# end of SDCARD
+
+CONFIG_MAC_PHY_BYPASS=y
+
+#
+# SDIO
+#
+# CONFIG_SDIO is not set
+# end of SDIO
+
+#
+# SPI
+#
+# CONFIG_SPI_DMA is not set
+# CONFIG_SPI_SLAVE is not set
+# CONFIG_SPI_MASTER is not set
+CONFIG_SPI_STATIS=y
+CONFIG_SPI_SUPPORT_TX_FIFO_WR_READY=y
+# CONFIG_HSLAVE_SPI is not set
+# CONFIG_QSPI is not set
+# CONFIG_SPI_MST_FLASH is not set
+# CONFIG_SPI_MST_PSRAM is not set
+# end of SPI
+
+#
+# DMA
+#
+CONFIG_GENERAL_DMA=y
+# end of DMA
+
+#
+# JPEG ENCODE
+#
+CONFIG_JPEG_ENCODE=y
+# end of JPEG ENCODE
+
+#
+# CALENDAR
+#
+CONFIG_CALENDAR=y
+# end of CALENDAR
+
+#
+# System control
+#
+# CONFIG_SYS_REDUCE_NORMAL_POWER is not set
+CONFIG_PM_V2=y
+# CONFIG_XTAL_FREQ_40M is not set
+CONFIG_XTAL_FREQ_26M=y
+CONFIG_XTAL_FREQ=26000000
+CONFIG_DCO_FREQ=120000000
+# end of System control
+
+#
+# PHY
+#
+# CONFIG_PTA is not set
+# end of PHY
+
+#
+# I2S
+#
+# CONFIG_I2S is not set
+# end of I2S
+
+#
+# pwm
+#
+CONFIG_PWM=y
+# end of pwm
+
+# CONFIG_SUPPORT_IRDA is not set
+# CONFIG_MAILBOX is not set
+# end of Driver
+
+# CONFIG_EASY_FLASH is not set
+
+#
+# LwIP 2.0.2
+#
+CONFIG_LWIP=y
+CONFIG_DHCP=y
+CONFIG_TASK_LWIP_PRIO=4
+# CONFIG_LWIP_MEM_DEFAULT is not set
+CONFIG_LWIP_MEM_REDUCE=y
+# end of LwIP 2.0.2
+
+#
+# LwIP 2.1.2
+#
+# end of LwIP 2.1.2
+
+# CONFIG_MP3PLAYER is not set
+# CONFIG_PCM_RESAMPLER is not set
+
+#
+# Power Save
+#
+# CONFIG_AP_IDLE is not set
+# CONFIG_FAKE_RTC_PS is not set
+# CONFIG_PM_MODEM_PWD is not set
+# CONFIG_PM_STANDALONE is not set
+CONFIG_PM_V2=y
+# end of Power Save
+
+#
+# RF Test
+#
+CONFIG_TX_EVM_TEST=y
+CONFIG_RX_SENSE_TEST=y
+# end of RF Test
+
+#
+# WiFi RWNX Interface
+#
+CONFIG_WIFI_KMSG_TASK_PRIO=3
+CONFIG_WIFI_KMSG_TASK_STACK_SIZE=4096
+CONFIG_WIFI_CORE_TASK_PRIO=2
+CONFIG_WIFI_CORE_TASK_STACK_SIZE=2048
+CONFIG_RWNX_QOS_MSDU=y
+CONFIG_RWNX_SW_TXQ=y
+CONFIG_RWNX_FAST_CONNECT=y
+# end of WiFi RWNX Interface
+
+# CONFIG_SARADC_CALI is not set
+# CONFIG_SPIDMA is not set
+CONFIG_TEMP_DETECT=y
+# CONFIG_UART_DEBUG is not set
+# CONFIG_UDISK_MP3 is not set
+# CONFIG_WFA_CA is not set
+
+#
+# Supplicant
+#
+CONFIG_TASK_WPAS_PRIO=5
+CONFIG_WPA3=y
+CONFIG_PMF=y
+CONFIG_WPA_CTRL_IFACE=y
+CONFIG_AP_HT_IE=y
+CONFIG_AP_VHT=y
+CONFIG_AP_HE=y
+CONFIG_COMPONENTS_WPA_TWT_TEST=y
+CONFIG_STA_AUTO_RECONNECT=y
+# CONFIG_WPA_LOG is not set
+# end of Supplicant
+# end of Components Configuration
+# end of ARMINO Configuration

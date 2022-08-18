@@ -15,6 +15,7 @@
 #include <os/os.h>
 #include "cli.h"
 #include <driver/wdt.h>
+#include <bk_wdt.h>
 
 static void cli_wdt_help(void)
 {
@@ -61,6 +62,24 @@ static void cli_wdt_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 	}else if (os_strcmp(argv[1], "feed") == 0) {
 		BK_LOG_ON_ERR(bk_wdt_feed());
 		CLI_LOGI("wdt feed\n");
+	}else if (os_strcmp(argv[1], "disable") == 0) {
+		extern void wdt_debug_disable(void);
+		wdt_debug_disable();
+		bk_wdt_stop();
+		bk_task_wdt_stop();
+		CLI_LOGI("wdt debug disabled\n");
+	}else if (os_strcmp(argv[1], "enable") == 0) {
+		extern void wdt_debug_enable(void);
+		extern void wdt_init(void);
+		wdt_debug_enable();
+		wdt_init();
+		CLI_LOGI("wdt debug enabled\n");
+	}else if (os_strcmp(argv[1], "while") == 0) {
+		GLOBAL_INT_DECLARATION();
+		GLOBAL_INT_DISABLE();
+		CLI_LOGI("wdt enter while1\n");
+		while(1);
+		GLOBAL_INT_RESTORE();
 	} else {
 		cli_wdt_help();
 		return;

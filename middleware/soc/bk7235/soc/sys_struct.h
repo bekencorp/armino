@@ -53,13 +53,13 @@ typedef volatile struct {
         { 
            volatile uint32_t  core0_halted                   : 1;  //0x2[0],core0 halt indicate,0,RO
            volatile uint32_t  core1_halted                   : 1;  //0x2[1],core1 halt indicate,0,RO
-           volatile uint32_t  reserved0                      : 2;  //0x2[3:2],NC,0,R
+           volatile uint32_t  reserved2                      : 2;  //0x2[3:2],Reserved,0,R
            volatile uint32_t  cpu0_sw_reset                  : 1;  //0x2[4],cpu0_sw_reset indicate,0,RO
            volatile uint32_t  cpu1_sw_reset                  : 1;  //0x2[5],cpu1_sw_reset indicate,0,RO
-           volatile uint32_t  reserved1                      : 2;  //0x2[7:6],NC,0,R
+           volatile uint32_t  reserved1                      : 2;  //0x2[7:6],Reserved,0,R
            volatile uint32_t  cpu0_pwr_dw_state              : 1;  //0x2[8],cpu0_pwr_dw_state,0,RO
            volatile uint32_t  cpu1_pwr_dw_state              : 1;  //0x2[9],cpu1_pwr_dw_state,0,RO
-           volatile uint32_t  reserved2                      :22;  //0x2[31:10],NC,0,R
+           volatile uint32_t  reserved0                      :22;  //0x2[31:10],Reserved,0,R
         }; 
         uint32_t v; 
     }cpu_current_run_status; 
@@ -70,10 +70,13 @@ typedef volatile struct {
         struct 
         { 
            volatile uint32_t  boot_mode                      : 1;  //0x3[0],0:ROM boot 1:FLASH boot,0,R/W
-           volatile uint32_t  reserved0                      : 7;  //0x3[7:1],NC,0,R
+           volatile uint32_t  reserved2                      : 3;  //0x3[3:1],Reserved,0,R
+           volatile uint32_t  rf_switch_en                   : 1;  //0x3[4],0: rf switch by PTA; 1: rf switch by SW,0,R/W
+           volatile uint32_t  rf_for_wifiorbt                : 1;  //0x3[5],0: rf for wifi;  1: rf for bt,0,R/W
+           volatile uint32_t  reserved1                      : 2;  //0x3[7:6],Reserved,0,R
            volatile uint32_t  jtag_core_sel                  : 1;  //0x3[8],0:jtag connect core0, 1:jtag connect core1,0,R/W
            volatile uint32_t  flash_sel                      : 1;  //0x3[9],0: normal flash operation 1:flash download by spi,0,R/W
-           volatile uint32_t  reserved1                      :22;  //0x3[31:10],NC,0,R
+           volatile uint32_t  reserved0                      :22;  //0x3[31:10],Reserved,0,R
         }; 
         uint32_t v; 
     }cpu_storage_connect_op_select; 
@@ -85,7 +88,7 @@ typedef volatile struct {
         { 
            volatile uint32_t  cpu0_sw_rst                    : 1;  //0x4[0],reserved,0,R/W
            volatile uint32_t  cpu0_pwr_dw                    : 1;  //0x4[1],reserved,0,R/W
-           volatile uint32_t  cpu0_int_mask                  : 1;  //0x4[2],cpu0 int mask,0,R/W
+           volatile uint32_t  cpu0_int_mask                  : 1;  //0x4[2],Cpu0 int mask used only for sleep mode .Before sleep ,set cpu0_int_mask to 1 to mask the int of Cpu0.When cpu0 wake up,this signal set 0 automatically,0,W
            volatile uint32_t  cpu0_halt                      : 1;  //0x4[3],core0 halt indicate,0,R/W
            volatile uint32_t  cpu0_clk_div                   : 4;  //0x4[7:4],Frequency division : F/(1+N), N is the data of the reg value,0,R/W
            volatile uint32_t  cpu0_offset                    :24;  //0x4[31:8],reserved,0x0,RO
@@ -99,8 +102,8 @@ typedef volatile struct {
         struct 
         { 
            volatile uint32_t  cpu1_sw_rst                    : 1;  //0x5[0],reserved,0,R/W
-           volatile uint32_t  cpu1_pwr_dw                    : 1;  //0x5[1],reserved,0,R/W
-           volatile uint32_t  cpu1_int_mask                  : 1;  //0x5[2],cpu1 int mask,0,R/W
+           volatile uint32_t  cpu1_pwr_dw                    : 1;  //0x5[1],1:power down of cpu1,0,R/W
+           volatile uint32_t  cpu1_int_mask                  : 1;  //0x5[2],Cpu1 int mask used only for sleep mode .Before sleep ,set cpu1_int_mask to 1 to mask the int of Cpu1.When cpu1 wake up,this signal set 0 automatically,0,R/W
            volatile uint32_t  cpu1_halt                      : 1;  //0x5[3],core1 halt indicate,0,R/W
            volatile uint32_t  cpu1_clk_div                   : 4;  //0x5[7:4],Frequency division : F/(1+N), N is the data of the reg value,0,R/W
            volatile uint32_t  cpu1_offset                    :24;  //0x5[31:8],reserved,0x0,R/W
@@ -136,7 +139,7 @@ typedef volatile struct {
            volatile uint32_t  clkdiv_core                    : 4;  //0x8[3:0],Frequency division : F/(1+N), N is the data of the reg value,0,R/W
            volatile uint32_t  cksel_core                     : 2;  //0x8[5:4],0:XTAL       1 : clk_DCO      2 : 320M      3 : 480M,0,R/W
            volatile uint32_t  clkdiv_bus                     : 1;  //0x8[6],Frequency division : F/(1+N), N is the data of the reg value,0,R/W
-           volatile uint32_t  reserved0                      : 1;  //0x8[7],NC,0,R
+           volatile uint32_t  reserved0                      : 1;  //0x8[7:7],Reserved,0,R
            volatile uint32_t  clkdiv_uart0                   : 2;  //0x8[9:8],Frequency division :    0:/1  1:/2  2:/4  3:/8,0,R/W
            volatile uint32_t  clksel_uart0                   : 1;  //0x8[10],0:XTAL              1:APLL,0,R/W
            volatile uint32_t  clkdiv_uart1                   : 2;  //0x8[12:11],Frequency division :    0:/1  1:/2  2:/4  3:/8,0,R/W
@@ -149,7 +152,7 @@ typedef volatile struct {
            volatile uint32_t  cksel_timer0                   : 1;  //0x8[20],0:clk32              1:XTAL,0,R/W
            volatile uint32_t  cksel_timer1                   : 1;  //0x8[21],0:clk32              1:XTAL,0,R/W
            volatile uint32_t  cksel_timer2                   : 1;  //0x8[22],0:clk32              1:XTAL,0,R/W
-           volatile uint32_t  reserved1                      : 1;  //0x8[23],NC,0,R
+           volatile uint32_t  cksel_can                      : 1;  //0x8[23],0:XTAL              1:80M,0,R/W
            volatile uint32_t  cksel_i2s                      : 1;  //0x8[24],0:XTAL              1:APLL,0,R/W
            volatile uint32_t  cksel_aud                      : 1;  //0x8[25],0:XTAL              1:APLL,0,R/W
            volatile uint32_t  clkdiv_jpeg                    : 4;  //0x8[29:26],Frequency division : F/(1+N), N is the data of the reg value,0,R/W
@@ -169,15 +172,16 @@ typedef volatile struct {
            volatile uint32_t  ckdiv_psram                    : 1;  //0x9[4],Frequency division : F/(1+N), N is the data of the reg value,0,R/W
            volatile uint32_t  cksel_psram                    : 1;  //0x9[5],0:clk_320M      1:clk_480M,0,R/W
            volatile uint32_t  ckdiv_qspi0                    : 4;  //0x9[9:6],Frequency division : F/(1+N), N is the data of the reg value,0,R/W
-           volatile uint32_t  reserved0                      : 4;  //0x9[13:10], ,None,None
-           volatile uint32_t  ckdiv_sdio                     : 3;  //0x9[16:14],0:/1  1:/2  2:/4  3:/8  4:/16  5:/32  6:/64  7:/256,0,R/W
+           volatile uint32_t  cksel_qspi0                    : 1;  //0x9[10],0:clk_320M      1:clk_480M,0,R/W
+           volatile uint32_t  reserved                       : 3;  //0x9[13:11], ,None,None
+           volatile uint32_t  ckdiv_sdio                     : 3;  //0x9[16:14],0:/2  1:/4  2:/6  3:/8  4:/10  5:/12  6:/16  7:/256,0,R/W
            volatile uint32_t  cksel_sdio                     : 1;  //0x9[17],0：XTAL          1：320M,0,R/W
            volatile uint32_t  ckdiv_auxs                     : 4;  //0x9[21:18],Frequency division : F/(1+N), N is the data of the reg value,0,R/W
            volatile uint32_t  cksel_auxs                     : 2;  //0x9[23:22],0:DCO              1:APLL                2:320M                     4:480M,0,R/W
-           volatile uint32_t  cksel_flash                    : 2;  //0x9[25:24],0:XTAL              1:APLL               1x :clk_120M,0,R/W
+           volatile uint32_t  cksel_flash                    : 2;  //0x9[25:24],0:XTAL             1 :clk_120M        2/3: APLL  ,0,R/W
            volatile uint32_t  ckdiv_flash                    : 2;  //0x9[27:26],0:/1  1:/2  2:/4  3:/8,0,R/W
            volatile uint32_t  ckdiv_i2s0                     : 3;  //0x9[30:28],0:/1  1:/2  2:/4  3:/8  4:/16  5:/32  6:/64  7:/256,0,R/W
-           volatile uint32_t  reserved1                      : 1;  //0x9[31],NC,0,R
+           volatile uint32_t  reserved0                      : 1;  //0x9[31:31],Reserved,0,R
         }; 
         uint32_t v; 
     }cpu_clk_div_mode2; 
@@ -191,7 +195,7 @@ typedef volatile struct {
            volatile uint32_t  ckdiv_wdt                      : 2;  //0xa[3:2],0:/2 1:/4 2:/8 3:/16,0,R/W
            volatile uint32_t  clksel_spi0                    : 1;  //0xa[4],0:XTAL              1:APLL,0,R/W
            volatile uint32_t  clksel_spi1                    : 1;  //0xa[5],0:XTAL              1:APLL,0,R/W
-           volatile uint32_t  reserved                       :26;  //0xa[31:6],NC,0,R
+           volatile uint32_t  reserved0                      :26;  //0xa[31:6],Reserved,0,R
         }; 
         uint32_t v; 
     }cpu_26m_wdt_clk_div; 
@@ -201,10 +205,10 @@ typedef volatile struct {
     { 
         struct 
         { 
-           volatile uint32_t  anaspi_freq                    : 6;  //0xb[5:0], ,0,R/W
-           volatile uint32_t  reserved0                      : 2;  //0xb[7:6],NC,0,R
-           volatile uint32_t  anareg_state                   :20;  //0xb[27:8],analog register state:0x0: register write is idle;0x1: register write is busy; ,0,R
-           volatile uint32_t  reserved                       : 4;  //0xb[31:28],NC,0,R
+           volatile uint32_t  anaspi_freq                    : 6;  //0xb[5:0],frequency for analog spi,0,R/W
+           volatile uint32_t  reserved1                      : 2;  //0xb[7:6],Reserved,0,R
+           volatile uint32_t  anareg_state                   :20;  //0xb[27:8],analog register state:; 0x0: register write is idle; 0x1: register write is busy,0,RO
+           volatile uint32_t  reserved0                      : 4;  //0xb[31:28],Reserved,0,R
         }; 
         uint32_t v; 
     }cpu_anaspi_freq; 
@@ -308,11 +312,11 @@ typedef volatile struct {
         { 
            volatile uint32_t  disp_disckg                    : 1;  //0xf[0],BUS_CLK  ENABLE,0: bus clock open when module is select,1:bus clock always open,0,R/W
            volatile uint32_t  dma2d_disckg                   : 1;  //0xf[1],BUS_CLK  ENABLE,0: bus clock open when module is select,1:bus clock always open,0,R/W
-           volatile uint32_t  reserved0                      : 1;  //0xf[2],BUS_CLK  ENABLE,0: bus clock open when module is select,1:bus clock always open,0,R/W
+           volatile uint32_t  reserved                       : 1;  //0xf[2],BUS_CLK  ENABLE,0: bus clock open when module is select,1:bus clock always open,0,R/W
            volatile uint32_t  btdm_disckg                    : 1;  //0xf[3],BUS_CLK  ENABLE,0: bus clock open when module is select,1:bus clock always open,0,R/W
            volatile uint32_t  xver_disckg                    : 1;  //0xf[4],BUS_CLK  ENABLE,0: bus clock open when module is select,1:bus clock always open,0,R/W
            volatile uint32_t  btdm_bps_ckg                   : 4;  //0xf[8:5],BUS_CLK  ENABLE,0: bus clock open when module is select,1:bus clock always open,0,R/W
-           volatile uint32_t  reserved1                      :23;  //0xf[31:9],NC,0,R
+           volatile uint32_t  reserved0                      :23;  //0xf[31:9],Reserved,0,R
         }; 
         uint32_t v; 
     }cpu_mode_disckg2; 
@@ -333,7 +337,8 @@ typedef volatile struct {
            volatile uint32_t  pwd_btsp                       : 1;  //0x10[8],0:power on of btsp      ,0,RW
            volatile uint32_t  pwd_wifp_mac                   : 1;  //0x10[9],0:power on of wifp_mac  ,0,RW
            volatile uint32_t  pwd_wifp_phy                   : 1;  //0x10[10],0:power on of wifp_phy  ,0,RW
-           volatile uint32_t  reserved                       : 5;  //0x10[15:11],NC,0,R
+           volatile uint32_t  pwd_mem0                       : 1;  //0x10[11] ,0:power on of mem0,0,RW
+           volatile uint32_t  reserved1                      : 4;  //0x10[15:12],Reserved,0,R
            volatile uint32_t  sleep_en_need_flash_idle       : 1;  //0x10[16],0:sleep_en of flash_idle,0,RW
            volatile uint32_t  sleep_en_need_cpu1_wfi         : 1;  //0x10[17],0:sleep_en of cpu1_wfi  ,0,RW
            volatile uint32_t  sleep_en_need_cpu0_wfi         : 1;  //0x10[18],0:sleep_en of cpu0_wfi  ,0,RW
@@ -341,7 +346,7 @@ typedef volatile struct {
            volatile uint32_t  wifi_wakeup_platform_en        : 1;  //0x10[20],0:wifi_wakeup_en        ,0,RW
            volatile uint32_t  bts_wakeup_platform_en         : 1;  //0x10[21],0:bts_wakeup_en         ,0,RW
            volatile uint32_t  bts_sleep_exit_req             : 1;  //0x10[22],0:bt sleep exit request ,0,RW
-           volatile uint32_t  reserved1                      : 9;  //0x10[31:23],NC,0,R
+           volatile uint32_t  reserved0                      : 9;  //0x10[31:23],Reserved,0,R
         }; 
         uint32_t v; 
     }cpu_power_sleep_wakeup; 
@@ -1204,27 +1209,29 @@ typedef volatile struct {
     { 
         struct 
         { 
-           volatile uint32_t  itune_xtall                    : 4;  //0x46[3:0],xtall core current control,7,R/W
-           volatile uint32_t  xtall_ten                      : 1;  //0x46[4],xtall test enable,0,R/W
-           volatile uint32_t  psldo_vsel                     : 1;  //0x46[5],ps ldo output voltage selection,0:VIO /1:1.8V,0,R/W
-           volatile uint32_t  en_usb                         : 1;  //0x46[6],usb phy enable,0,R/W
-           volatile uint32_t  en_xtall                       : 1;  //0x46[7],xtall oscillator enable,0,R/W
-           volatile uint32_t  en_dco                         : 1;  //0x46[8],dco enable,0,R/W
-           volatile uint32_t  en_psram_ldo                   : 1;  //0x46[9],psram ldo enable,0,R/W
-           volatile uint32_t  en_tempdet                     : 1;  //0x46[10],tempreture det enable,0,R/W
-           volatile uint32_t  en_audpll                      : 1;  //0x46[11],audio pll enable,0,R/W
-           volatile uint32_t  en_dpll                        : 1;  //0x46[12],dpll enable,0,R/W
-           volatile uint32_t  en_sysldo                      : 1;  //0x46[13],sysldo enable,1,R/W
-           volatile uint32_t  nc                             : 3;  //0x46[16:14],reserved,4,R/W
-           volatile uint32_t  pwd_gadc_buf                   : 1;  //0x46[17],gadc input buffer pwd,1,R/W
-           volatile uint32_t  xtal_hpsrr_en                  : 1;  //0x46[18],xtal high psrr buffer enable,1,R/W
-           volatile uint32_t  en_xtal2rf                     : 1;  //0x46[19],xtal clock to rfpll gate enable ,0,R/W
-           volatile uint32_t  en_sleep                       : 1;  //0x46[20],xtal sleep enable,0,R/W
-           volatile uint32_t  clkbuf_hd                      : 1;  //0x46[21],xtal lpsrr clock buffer high power mode ,1,R/W
-           volatile uint32_t  clkbuf_dsel_manu               : 1;  //0x46[22],xtal lpsrr clock buffer power mode selection 0: auto /1:manu ,1,R/W
-           volatile uint32_t  xtal_lpmode_ctrl               : 1;  //0x46[23],xtal core low power mode enable,1,R/W
-           volatile uint32_t  rxtal_lp                       : 4;  //0x46[27:24],xtal bias current setting at low power mode ,F,R/W
-           volatile uint32_t  rxtal_hp                       : 4;  //0x46[31:28],xtal26m bias current setting at high power mode ,F,R/W
+           volatile uint32_t  itune_xtall                    : 4;  //0x46[3:0],xtall core current control,7,W
+           volatile uint32_t  xtall_ten                      : 1;  //0x46[4],xtall test enable,0,W
+           volatile uint32_t  psldo_vsel                     : 1;  //0x46[5],ps ldo output voltage selection,0:VIO /1:1.8V,0,W
+           volatile uint32_t  en_usb                         : 1;  //0x46[6],usb phy enable,0,W
+           volatile uint32_t  en_xtall                       : 1;  //0x46[7],xtall oscillator enable,0,W
+           volatile uint32_t  en_dco                         : 1;  //0x46[8],dco enable,0,W
+           volatile uint32_t  en_psram_ldo                   : 1;  //0x46[9],psram ldo enable,0,W
+           volatile uint32_t  en_tempdet                     : 1;  //0x46[10],tempreture det enable,0,W
+           volatile uint32_t  en_audpll                      : 1;  //0x46[11],audio pll enable,0,W
+           volatile uint32_t  en_dpll                        : 1;  //0x46[12],dpll enable,0,W
+           volatile uint32_t  en_sysldo                      : 1;  //0x46[13],sysldo enable,1,W
+           volatile uint32_t  en_aud                         : 1;  //0x46[14],audio ldo enable,0,W
+           volatile uint32_t  pwd_gadc_buf                   : 1;  //0x46[15],gadc input buffer pwd,0,W
+           volatile uint32_t  nc                             : 1;  //0x46[16],nc,1,W
+           volatile uint32_t  vaon_sel                       : 1;  //0x46[17],0:vddaon drop enable,1,W
+           volatile uint32_t  xtal_hpsrr_en                  : 1;  //0x46[18],xtal high psrr buffer enable,1,W
+           volatile uint32_t  en_xtal2rf                     : 1;  //0x46[19],xtal clock to rfpll gate enable ,0,W
+           volatile uint32_t  en_sleep                       : 1;  //0x46[20],xtal sleep enable,0,W
+           volatile uint32_t  clkbuf_hd                      : 1;  //0x46[21],xtal lpsrr clock buffer high power mode ,1,W
+           volatile uint32_t  clkbuf_dsel_manu               : 1;  //0x46[22],xtal lpsrr clock buffer power mode selection 0: auto /1:manu ,1,W
+           volatile uint32_t  xtal_lpmode_ctrl               : 1;  //0x46[23],xtal core low power mode enable,1,W
+           volatile uint32_t  rxtal_lp                       : 4;  //0x46[27:24],xtal bias current setting at low power mode ,F,W
+           volatile uint32_t  rxtal_hp                       : 4;  //0x46[31:28],xtal26m bias current setting at high power mode ,F,W
         }; 
         uint32_t v; 
     }ana_reg6; 
@@ -1234,20 +1241,20 @@ typedef volatile struct {
     { 
         struct 
         { 
-           volatile uint32_t  rng_tstck_sel                  : 1;  //0x47[0],trng setting,0,R/W
-           volatile uint32_t  rng_tsten                      : 1;  //0x47[1],trng setting,0,R/W
-           volatile uint32_t  itune_ref                      : 3;  //0x47[4:2],trng setting,4,R/W
-           volatile uint32_t  itune_opa                      : 3;  //0x47[7:5],trng setting,7,R/W
-           volatile uint32_t  itune_cmp                      : 3;  //0x47[10:8],trng setting,7,R/W
-           volatile uint32_t  rnooise_sel                    : 1;  //0x47[11],trng setting,0,R/W
-           volatile uint32_t  fslow_sel                      : 3;  //0x47[14:12],trng setting,2,R/W
-           volatile uint32_t  ffast_sel                      : 4;  //0x47[18:15],trng setting,8,R/W
-           volatile uint32_t  gadc_cal_sel                   : 2;  //0x47[20:19],gadc calibration mode selection,0,R/W
-           volatile uint32_t  gadc_ten                       : 1;  //0x47[21],gadc test enable,0,R/W
-           volatile uint32_t  gadc_cmp_ictrl                 : 4;  //0x47[25:22],gadc comparaor current select ,8,R/W
-           volatile uint32_t  gadc_buf_ictrl                 : 4;  //0x47[29:26],gadc buffer current select ,8,R/W
-           volatile uint32_t  vref_sel                       : 1;  //0x47[30],gadc input reference select, 0：bandgap signal 1:GPIO voltage divided,0,R/W
-           volatile uint32_t  scal_en                        : 1;  //0x47[31],gadc reference scale enable, 0:normal mode,1: scale mode ,1,R/W
+           volatile uint32_t  rng_tstck_sel                  : 1;  //0x47[0],trng setting,0,W
+           volatile uint32_t  rng_tsten                      : 1;  //0x47[1],trng setting,0,W
+           volatile uint32_t  itune_ref                      : 3;  //0x47[4:2],trng setting,4,W
+           volatile uint32_t  itune_opa                      : 3;  //0x47[7:5],trng setting,7,W
+           volatile uint32_t  itune_cmp                      : 3;  //0x47[10:8],trng setting,7,W
+           volatile uint32_t  rnooise_sel                    : 1;  //0x47[11],trng setting,0,W
+           volatile uint32_t  fslow_sel                      : 3;  //0x47[14:12],trng setting,2,W
+           volatile uint32_t  ffast_sel                      : 4;  //0x47[18:15],trng setting,8,W
+           volatile uint32_t  gadc_cal_sel                   : 2;  //0x47[20:19],gadc calibration mode selection,0,W
+           volatile uint32_t  nc                             : 1;  //0x47[21], ,0,W
+           volatile uint32_t  gadc_cmp_ictrl                 : 4;  //0x47[25:22],gadc comparaor current select ,8,W
+           volatile uint32_t  gadc_buf_ictrl                 : 4;  //0x47[29:26],gadc buffer current select ,8,W
+           volatile uint32_t  vref_sel                       : 1;  //0x47[30],gadc input reference select, 0：bandgap signal 1:GPIO voltage divided,0,W
+           volatile uint32_t  scal_en                        : 1;  //0x47[31],gadc reference scale enable, 0:normal mode,1: scale mode ,1,W
         }; 
         uint32_t v; 
     }ana_reg7; 
@@ -1257,14 +1264,14 @@ typedef volatile struct {
     { 
         struct 
         { 
-           volatile uint32_t  cap_calspi                     : 9;  //0x48[8:0],manul mode ,input cap calibretion value,0,R/W
-           volatile uint32_t  gain_s                         : 2;  //0x48[10:9],Sensitivity level selection,1,R/W
-           volatile uint32_t  pwd_td                         : 1;  //0x48[11],power down touch module,1,R/W
-           volatile uint32_t  en_fsr                         : 1;  //0x48[12],low power mode ,enable fast response,0,R/W
-           volatile uint32_t  en_scm                         : 1;  //0x48[13],scan mode enable,0,R/W
-           volatile uint32_t  en_adcmode                     : 1;  //0x48[14],adc mode enable,0,R/W
-           volatile uint32_t  en_lpmode                      : 1;  //0x48[15],low power mode enable,0,R/W
-           volatile uint32_t  chs_scan                       :16;  //0x48[31:16],scan mode chan selection,0,R/W
+           volatile uint32_t  cap_calspi                     : 9;  //0x48[8:0],manul mode ,input cap calibretion value,0,W
+           volatile uint32_t  gain_s                         : 2;  //0x48[10:9],Sensitivity level selection,1,W
+           volatile uint32_t  pwd_td                         : 1;  //0x48[11],power down touch module,1,W
+           volatile uint32_t  en_fsr                         : 1;  //0x48[12],low power mode ,enable fast response,0,W
+           volatile uint32_t  en_scm                         : 1;  //0x48[13],scan mode enable,0,W
+           volatile uint32_t  en_adcmode                     : 1;  //0x48[14],adc mode enable,0,W
+           volatile uint32_t  en_lpmode                      : 1;  //0x48[15],low power mode enable,0,W
+           volatile uint32_t  chs_scan                       :16;  //0x48[31:16],scan mode chan selection,0,W
         }; 
         uint32_t v; 
     }ana_reg8; 
@@ -1274,22 +1281,30 @@ typedef volatile struct {
     { 
         struct 
         { 
-           volatile uint32_t  en_otp_spi                     : 1;  //0x49[0],otp ldo spi enable,0,R/W
-           volatile uint32_t  nc3                            :11;  //0x49[11:1],reserved,3F8,R/W
-           volatile uint32_t  nc2                            : 1;  //0x49[12],reserved,0,R/W
-           volatile uint32_t  digovr_en                      : 1;  //0x49[13],digldo over voltage reset enable,0,R/W
-           volatile uint32_t  usbpen                         : 4;  //0x49[17:14],usb dp driver capability control,8,R/W
-           volatile uint32_t  usbnen                         : 4;  //0x49[21:18],usb dn driver capability control,8,R/W
-           volatile uint32_t  usb_speed                      : 1;  //0x49[22],usb speed selection,0,R/W
-           volatile uint32_t  usb_deepsleep                  : 1;  //0x49[23],usb deepsleep mode enable by spi,0,R/W
-           volatile uint32_t  man_mode                       : 1;  //0x49[24],manul mode enable,0,R/W
-           volatile uint32_t  crg                            : 2;  //0x49[26:25],detect range selection :8pF/12pF/19pF/27pF,2,R/W
-           volatile uint32_t  vrefs                          : 3;  //0x49[29:27],detect threshold selection ,6,R/W
-           volatile uint32_t  nc1                            : 1;  //0x49[30],reserved,0,R/W
-           volatile uint32_t  en_cal                         : 1;  //0x49[31],calibretion enable,0,R/W
+           volatile uint32_t  en_otp_spi                     : 1;  //0x49[0],otp ldo spi enable,0,W
+           volatile uint32_t  entemp2                        : 1;  //0x49[1],dummy,0,W
+           volatile uint32_t  vtempsel                       : 2;  //0x49[3:2],00:nc  01:vtemp  10:vbe   11:vbg1p3,0,W
+           volatile uint32_t  vtsel                          : 1;  //0x49[4],dummy,1,W
+           volatile uint32_t  en_bias_5u                     : 1;  //0x49[5],Ibias 5u enable,1,W
+           volatile uint32_t  dummy2                         : 1;  //0x49[6],5uA channel on(for PLL & DCO),1,W
+           volatile uint32_t  touch_serial_cap               : 1;  //0x49[7],1:touch serial capacitors 6pF,1,W
+           volatile uint32_t  buckfb_czenb                   : 1;  //0x49[8],buck EA feedback cz selection,1,W
+           volatile uint32_t  buckea_cur_ctrl                : 2;  //0x49[10:9],buck EA ibias selection,3,W
+           volatile uint32_t  cbtst_en                       : 1;  //0x49[11],CB test enable,0,W
+           volatile uint32_t  psldo_vsel                     : 1;  //0x49[12],psldo voltage selsection,0,W
+           volatile uint32_t  ovr_l                          : 1;  //0x49[13],ovr low enable,0,W
+           volatile uint32_t  usbpen                         : 4;  //0x49[17:14],usb dp driver capability control,8,W
+           volatile uint32_t  usbnen                         : 4;  //0x49[21:18],usb dn driver capability control,8,W
+           volatile uint32_t  usb_speed                      : 1;  //0x49[22],usb speed selection,0,W
+           volatile uint32_t  usb_deepsleep                  : 1;  //0x49[23],usb deepsleep mode enable by spi,0,W
+           volatile uint32_t  man_mode                       : 1;  //0x49[24],manul mode enable,0,W
+           volatile uint32_t  crg                            : 2;  //0x49[26:25],detect range selection :8pF/12pF/19pF/27pF,2,W
+           volatile uint32_t  vrefs                          : 3;  //0x49[29:27],detect threshold selection ,6,W
+           volatile uint32_t  nc1                            : 1;  //0x49[30],reserved,0,W
+           volatile uint32_t  en_cal                         : 1;  //0x49[31],calibretion enable,0,W
         }; 
         uint32_t v; 
-    }ana_reg9; 
+    }ana_reg9;
 
     /* REG_0x4a */
     union 

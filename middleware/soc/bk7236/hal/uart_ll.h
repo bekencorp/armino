@@ -15,64 +15,117 @@
 #pragma once
 
 #include <soc/soc.h>
-#include "uart_hw.h"
-#include "hal_port.h"
 #include <driver/hal/hal_uart_types.h>
 #include <driver/hal/hal_gpio_types.h>
+#include "uart_hw.h"
+#include "hal_port.h"
+#include "gpio_map.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define UART_LL_REG_BASE(_uart_unit_id) (SOC_UART_REG_BASE + (0x100 * _uart_unit_id))
+#define UART_LL_REG_BASE(_uart_unit_id) (uart_ll_get_reg_base(_uart_unit_id))
 #define CASE_PARITY(parity) case UART_PARITY_##parity: return UART_V_PARITY_##parity
 #define CASE_D() default: return 0
 
-#define UART1_LL_TX_PIN  GPIO_11
-#define UART1_LL_RX_PIN  GPIO_10
+#define UART1_FLOW_CTRL_CNT  0xCC
 
-#define UART2_LL_TX_PIN  GPIO_0
-#define UART2_LL_RX_PIN  GPIO_1
+static inline void uart_ll_soft_reset(uart_hw_t *hw)
+{
+	hw->global_ctrl.soft_reset = 1;
+}
+
+static inline uint32_t uart_ll_get_device_id(uart_hw_t *hw)
+{
+	return hw->dev_id;
+}
+
+static inline uint32_t uart_ll_get_version_id(uart_hw_t *hw)
+{
+	return hw->dev_version;
+}
+
+static inline uint32_t uart_ll_get_dev_status(uart_hw_t *hw)
+{
+	return hw->dev_status;
+}
 
 static inline void uart_ll_init(uart_hw_t *hw)
 {
-
+	uart_ll_soft_reset(hw);
 }
 
 static inline gpio_id_t uart_ll_get_tx_pin(uart_id_t id)
 {
-	switch (id)
-	{
-		case UART_ID_0:
-			return UART1_LL_TX_PIN;
-		case UART_ID_1:
-			return UART2_LL_TX_PIN;
-		default:
-			return GPIO_NUM;
+	switch (id) {
+	case UART_ID_0:
+		return UART0_TX_PIN;
+	case UART_ID_1:
+		return UART1_TX_PIN;
+	case UART_ID_2:
+		return UART2_TX_PIN;
+	default:
+		return GPIO_NUM;
 	}
 }
 
 static inline gpio_id_t uart_ll_get_rx_pin(uart_id_t id)
 {
-	switch (id)
-	{
-		case UART_ID_0:
-			return UART1_LL_RX_PIN;
-		case UART_ID_1:
-			return UART2_LL_RX_PIN;
-		default:
-			return GPIO_NUM;
+	switch (id) {
+	case UART_ID_0:
+		return UART0_RX_PIN;
+	case UART_ID_1:
+		return UART1_RX_PIN;
+	case UART_ID_2:
+		return UART2_RX_PIN;
+	default:
+		return GPIO_NUM;
+	}
+}
+
+static inline gpio_id_t uart_ll_get_cts_pin(uart_id_t id)
+{
+	switch (id) {
+	case UART_ID_0:
+		return UART0_CTS_PIN;
+	default:
+		return GPIO_NUM;
+	}
+}
+
+static inline gpio_id_t uart_ll_get_rts_pin(uart_id_t id)
+{
+	switch (id) {
+	case UART_ID_0:
+		return UART0_RTS_PIN;
+	default:
+		return GPIO_NUM;
+	}
+}
+
+static inline uint32_t uart_ll_get_reg_base(uart_id_t id)
+{
+	switch (id) {
+	case UART_ID_0:
+		return UART0_R_BASE;
+	case UART_ID_1:
+		return UART1_R_BASE;
+	case UART_ID_2:
+		return UART2_R_BASE;
+	default:
+		return BK_ERR_UART_BASE;
+		break;
 	}
 }
 
 static inline uint32_t uart_ll_to_reg_parity(uart_parity_t parity)
 {
-    switch (parity)
-    {
-        CASE_PARITY(ODD);
-        CASE_PARITY(EVEN);
-        CASE_D();
-    }
+	switch (parity) {
+	CASE_PARITY(ODD);
+	CASE_PARITY(EVEN);
+	CASE_D();
+	}
 }
 
 static inline void uart_ll_set_tx_enable(uart_hw_t *hw, uart_id_t id, uint32_t value)
@@ -100,20 +153,8 @@ static inline void uart_ll_enable_rx(uart_hw_t *hw, uart_id_t id)
 	uart_ll_set_rx_enable(hw, id, 1);
 }
 
-static inline void uart_ll_set_frame_mode(uart_hw_t *hw, uart_id_t id, uart_frame_mode_t mode)
-{
-	hw->config.mode = mode;
-}
-
-static inline void uart_ll_set_mode_uart(uart_hw_t *hw, uart_id_t id)
-{
-	hw->config.mode = UART_V_MODE_UART;
-}
-
-static inline void uart_ll_set_mode_irda(uart_hw_t *hw, uart_id_t id)
-{
-	hw->config.mode = UART_V_MODE_IRDA;
-}
+#define uart_ll_set_frame_mode(hw, id, mode)
+#define uart_ll_set_mode_uart(hw, id)
 
 static inline void uart_ll_disable_rx(uart_hw_t *hw, uart_id_t id)
 {
@@ -354,19 +395,25 @@ static inline void uart_ll_reset_wake_config_to_default(uart_hw_t *hw, uart_id_t
 static inline uint32_t uart_ll_wait_tx_over(void)
 {
 	uint32_t uart_wait_us;
+	uint32_t baudrate0;
 	uint32_t baudrate1;
 	uint32_t baudrate2;
-	uart_hw_t *hw1 = (uart_hw_t *)UART_LL_REG_BASE(0);
-	uart_hw_t *hw2 = (uart_hw_t *)UART_LL_REG_BASE(1);
 
+	uart_hw_t *hw0 = (uart_hw_t *)UART_LL_REG_BASE(0);
+	uart_hw_t *hw1 = (uart_hw_t *)UART_LL_REG_BASE(1);
+	uart_hw_t *hw2 = (uart_hw_t *)UART_LL_REG_BASE(2);
+
+	baudrate0 = UART_CLOCK / (hw0->config.clk_div + 1);
 	baudrate1 = UART_CLOCK / (hw1->config.clk_div + 1);
 	baudrate2 = UART_CLOCK / (hw2->config.clk_div + 1);
 
 	uart_wait_us = 1000000 * hw2->fifo_status.tx_fifo_count * 10 / baudrate2
-				 + 1000000 * hw1->fifo_status.tx_fifo_count * 10 / baudrate1;
+				 + 1000000 * hw1->fifo_status.tx_fifo_count * 10 / baudrate1
+				 + 1000000 * hw0->fifo_status.tx_fifo_count * 10 / baudrate0;
 
 	while (!hw2->fifo_status.tx_fifo_empty);
 	while (!hw1->fifo_status.tx_fifo_empty);
+	while (!hw0->fifo_status.tx_fifo_empty);
 
 	return uart_wait_us;
 }

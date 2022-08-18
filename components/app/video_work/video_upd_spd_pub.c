@@ -191,8 +191,8 @@ static void vudp_sdp_timer_handler(void *data)
             0,
             (struct sockaddr *)&vudp_sdp->sock_remote,
             sizeof(struct sockaddr));
-        VUPD_SDP_PRT("sendto anyone %s, %d\r\n", vudp_sdp->adv_buf,
-            vudp_sdp->adv_buf_len);
+//        VUPD_SDP_PRT("sendto anyone %s, %d\r\n", vudp_sdp->adv_buf,
+//            vudp_sdp->adv_buf_len);
     }
 }
 

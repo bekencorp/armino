@@ -8,10 +8,7 @@ if (CONFIG_LWIP_V2_1)
 	lwip-2.1.2/src/include
 	lwip-2.1.2/src/include/netif
 	lwip-2.1.2/src/include/lwip
-	#lwip-2.1.2/src/include/lwip/errno.h
 	)
-
-#set(priv_incs lwip-2.1.2/src/include/lwip)
 
 	list(APPEND srcs
 	lwip-2.1.2/port/ethernetif.c
@@ -65,12 +62,10 @@ if (CONFIG_LWIP_V2_1)
 	dhcpd/dhcp-server.c
 	dhcpd/dhcp-server-main.c
 	)
+endif()
 
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
 	REQUIRES driver
-	PRIV_REQUIRES bk_common
+	PRIV_REQUIRES bk_common bk_wifi
 	)
-else()
-armino_component_register()
-endif()

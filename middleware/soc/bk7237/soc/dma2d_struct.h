@@ -28,21 +28,23 @@ typedef volatile struct {
     { 
         struct 
         { 
-           volatile uint32_t  tran_start                     : 1;  //0x0[       0],dma2d transfer start.,0,RW
-           volatile uint32_t  tran_suspend                   : 1;  //0x0[       1],dma2d transfer start.,0,RW
-           volatile uint32_t  tran_abort                     : 1;  //0x0[       2],dma2d transfer start.,0,RW
-           volatile uint32_t  reserved0                       : 3;  //0x0[  5:  3],NC,0,RW
-           volatile uint32_t  line_offset_mode               : 1;  //0x0[       6],line's offset mode sel: 0:in pixel express; 1: in bytes express.,0,RW
-           volatile uint32_t  reserved1                       : 1;  //0x0[       7],NC,0,RW
-           volatile uint32_t  error_int_en                   : 1;  //0x0[       8],trabsfer error int ena.,0,RW
-           volatile uint32_t  complete_int_en                : 1;  //0x0[       9],transfer complete int ena.,0,RW
-           volatile uint32_t  waterm_int_en                  : 1;  //0x0[     10],transfer watermark int ena.,0,RW
-           volatile uint32_t  clut_error_int_en              : 1;  //0x0[     11],clut transfer error int ena.,0,RW
-           volatile uint32_t  clut_cmplt_int_en              : 1;  //0x0[     12],clut transfer complete int ena.,0,RW
-           volatile uint32_t  config_error_int_en            : 1;  //0x0[     13],config error int ena,,0,RW
-           volatile uint32_t  reserved2                       : 2;  //0x0[15:14],NC,0,R
-           volatile uint32_t  mode                           : 3;  //0x0[18:16],DMA2D mode sel: 000:m2m; 001:m2m pixel convert with fg; 010:m2m blend; 011:r2m.only with output; 100: m2m blend fix fg; 101:m2m blend fix bg;,0,RW
-           volatile uint32_t  reserved                       :13;  //0x0[31:21],NC,0,R
+			volatile uint32_t  tran_start					  : 1;	//0x0[		 0],dma2d transfer start.,0,RW
+			volatile uint32_t  tran_suspend 				  : 1;	//0x0[		 1],dma2d transfer start.,0,RW
+			volatile uint32_t  tran_abort					  : 1;	//0x0[		 2],dma2d transfer start.,0,RW
+			volatile uint32_t  reserved0					  : 3;	//0x0[	5:	3],NC,0,RW
+			volatile uint32_t  line_offset_mode 			  : 1;	//0x0[		 6],line's offset mode sel: 0:in pixel express; 1: in bytes express.,0,RW
+			volatile uint32_t  reserved1					  : 1;	//0x0[		 7],NC,0,RW
+			volatile uint32_t  error_int_en 				  : 1;	//0x0[		 8],trabsfer error int ena.,0,RW
+			volatile uint32_t  complete_int_en				  : 1;	//0x0[		 9],transfer complete int ena.,0,RW
+			volatile uint32_t  waterm_int_en				  : 1;	//0x0[	   10],transfer watermark int ena.,0,RW
+			volatile uint32_t  clut_error_int_en			  : 1;	//0x0[	   11],clut transfer error int ena.,0,RW
+			volatile uint32_t  clut_cmplt_int_en			  : 1;	//0x0[	   12],clut transfer complete int ena.,0,RW
+			volatile uint32_t  config_error_int_en			  : 1;	//0x0[	   13],config error int ena,,0,RW
+			volatile uint32_t  reserved2					  : 2;	//0x0[15:14],NC,0,R
+			volatile uint32_t  mode 						  : 3;	//0x0[18:16],DMA2D mode sel: 000:m2m; 001:m2m pixel convert with fg; 010:m2m blend; 011:r2m.only with output; 100: m2m blend fix fg; 101:m2m blend fix bg;,0,RW
+			volatile uint32_t  master_tran_length			  :2;  //0x0[20:19],RW max transfer length:00:256bytes; 01:192 bytes;  10:128bytes;  11:64bytes;
+			volatile uint32_t  out_byte_revese				  :1;  //0x0[21],RW output rgb888 formart, reverse data byte by byte.
+			volatile uint32_t  reserved 					  :13;	//0x0[31:21],NC,0,R
         }; 
         uint32_t v;
     }dma2d_control_reg; 

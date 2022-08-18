@@ -56,8 +56,11 @@ static int iotx_mc_check_handle_is_identical(iotx_mc_topic_handle_t *messageHand
 //static void cb_recv_timeout(void *arg);
 //static void cb_recv(int fd, void *arg);
 
+void bk_mem_dump_ex(const char *title, unsigned char *data, uint32_t data_len);
 //extern int32_t HAL_SSL_GetFd(uintptr_t handle);
 extern int get_iotx_fd();
+
+
 /* check rule whether is valid or not */
 static int iotx_mc_check_rule(char *iterm, iotx_mc_topic_type_t type)
 {
@@ -817,9 +820,25 @@ static int iotx_mc_read_packet(iotx_mc_client_t *c, iotx_time_t *timer, unsigned
     /* 3. read the rest of the buffer using a callback to supply the rest of the data */
     left_t = iotx_time_left(timer);
     left_t = (left_t == 0) ? 1 : left_t;
-    if (rem_len > 0 && (c->ipstack->read(c->ipstack, c->buf_read + len, rem_len, left_t) != rem_len)) {
-        log_err("mqtt read error.\n");
-        return FAIL_RETURN;
+    if (rem_len > 0 ) {
+        int read_bytes = c->ipstack->read(c->ipstack, c->buf_read + len, rem_len, left_t);
+        if (read_bytes != rem_len) {
+            log_err("mqtt read error, rem_len(%d),read_bytes(%d),left_t(%d).\n",
+                     rem_len, read_bytes, left_t);
+            bk_mem_dump_ex("mqtt read data", (unsigned char *)(c->buf_read + len), read_bytes);
+            rem_len -= read_bytes;
+            int read_bytes_again = c->ipstack->read(c->ipstack, c->buf_read + len + read_bytes, rem_len, left_t);
+            if (read_bytes_again != rem_len) {
+                log_err("mqtt read again still error, rem_len(%d),read_bytes(%d),left_t(%d).\n",
+                     rem_len, read_bytes_again, left_t);
+                return FAIL_RETURN;
+            } else {
+                bk_mem_dump_ex("mqtt read data",
+                                 (unsigned char *)(c->buf_read + len + read_bytes),
+                                  read_bytes_again);
+                log_info("mqtt read ok==============.\n");
+            }
+        }
     }
 
     header.byte = c->buf_read[0];
@@ -1127,7 +1146,7 @@ static int iotx_mc_handle_recv_PUBLISH(iotx_mc_client_t *c)
     topic_msg.ptopic = NULL;
     topic_msg.topic_len = 0;
 
-    log_debug("delivering msg ...\n");
+    //log_debug("delivering msg ...\n");
 
     iotx_mc_deliver_message(c, &topicName, &topic_msg);
 

@@ -138,3 +138,32 @@ bk_err_t gpio_sdio_one_line_sel(gpio_sdio_map_mode_t mode)
 	return BK_OK;
 }
 
+static gpio_jtag_map_mode_t gpio_jtag_default_mode = GPIO_JTAG_MAP_MODE;
+bk_err_t gpio_jtag_sel(gpio_jtag_map_mode_t mode)
+{
+	GPIO_RETURN_ON_INVALID_PERIAL_MODE(mode, GPIO_JTAG_MAP_MODE_MAX);
+	if(gpio_jtag_default_mode == mode)
+		return BK_OK;
+	else
+		gpio_jtag_default_mode = mode;
+
+	GPIO_MAP_TABLE(GPIO_JTAG_USED_GPIO_NUM, GPIO_JTAG_MAP_MODE_MAX, jtag_gpio_map) = GPIO_JTAG_MAP_TABLE;
+
+	for(gpio_jtag_map_mode_t sel_mode = GPIO_JTAG_MAP_MODE; sel_mode < GPIO_JTAG_MAP_MODE_MAX; sel_mode++)
+	{
+		for(int gpio_index = 0; gpio_index < GPIO_NUM; gpio_index++)
+		{
+			if (jtag_gpio_map[sel_mode].gpio_bits & BIT64(gpio_index)) {
+				GPIO_LOGI("gpio_jtag_sel unmap gpio_index = %d\r\n", gpio_index);
+				gpio_hal_func_unmap(&s_gpio.hal, gpio_index);
+			}
+		}
+	}
+
+	gpio_hal_devs_map(&s_gpio.hal, jtag_gpio_map[mode].gpio_bits, jtag_gpio_map[mode].devs, GPIO_JTAG_USED_GPIO_NUM);
+
+	GPIO_LOGD("Warning bk7256 USE PLIC  NOT icu\n");
+
+	return BK_OK;
+}
+

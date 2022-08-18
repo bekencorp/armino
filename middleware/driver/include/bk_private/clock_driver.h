@@ -17,7 +17,7 @@
 #include <components/log.h>
 #include "clock_hal.h"
 
-#if ((CONFIG_SOC_BK7256_CP1) || (CONFIG_SOC_BK7256XX)) //bk7256 to do
+#if (CONFIG_SOC_BK7256XX) //bk7256 to do
 #include "sys_hal.h"
 
 #define clk_set_uart_clk_26m(id)    sys_hal_uart_select_clock(id,UART_SCLK_XTAL_26M)
@@ -103,7 +103,7 @@ extern icu_driver_t s_icu;
 
 #define clk_get_uart_clk(id)		clock_hal_get_uart_clk(&s_icu.hal, id)
 
-#if CONFIG_SOC_BK7236
+#if CONFIG_SOC_BK7236A
 #define clock_jpeg_set_96m		clock_hal_jpeg_set_96m(&s_icu.hal)
 #define clock_jpeg_set_120m		clock_hal_jpeg_set_120m(&s_icu.hal)
 #define clock_jpeg_set_160m		clock_hal_jpeg_set_160m(&s_icu.hal)

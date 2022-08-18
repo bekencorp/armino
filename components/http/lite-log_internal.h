@@ -9,7 +9,6 @@
 #include "lite-log.h"
 
 
-//#define LITE_LOG_ENABLED
 
 #define LOG_MSG_MAXLEN                  (255)
 #define LOG_MOD_NAME_LEN                (7)

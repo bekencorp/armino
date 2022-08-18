@@ -154,6 +154,30 @@ static inline void dma2d_ll_set_dma2d_control_reg_mode(dma2d_hw_t *hw, uint32_t 
     hw->dma2d_control_reg.mode = value;
 }
 
+/* REG_0x00:[19:20] max transfer length:00:256bytes; 01:192 bytes;  10:128bytes;  11:64bytes;*/
+static inline uint32_t dma2d_ll_get_dma2d_control_reg_master_tran_length(dma2d_hw_t *hw)
+{
+    return hw->dma2d_control_reg.master_tran_length;
+}
+
+/* REG_0x00:[19:20] dma2dmax transfer length:00:256bytes; 01:192 bytes;  10:128bytes;  11:64bytes;*/
+static inline void dma2d_ll_set_dma2d_control_reg_master_tran_length(dma2d_hw_t *hw, uint32_t value)
+{
+    hw->dma2d_control_reg.master_tran_length = value;
+}
+
+/* REG_0x00:[21] in output rgb888 formart, reverse data byte by byte.;*/
+static inline uint32_t dma2d_ll_get_dma2d_control_reg_out_byte_revese(dma2d_hw_t *hw)
+{
+    return hw->dma2d_control_reg.out_byte_revese;
+}
+
+/* REG_0x00:[21] in output rgb888 formart, reverse data byte by byte.*/
+static inline void dma2d_ll_set_dma2d_control_reg_out_byte_revese(dma2d_hw_t *hw, uint32_t value)
+{
+    hw->dma2d_control_reg.out_byte_revese = value;
+}
+
 /* REG_0x01 */
 
 /* REG_0x01 */

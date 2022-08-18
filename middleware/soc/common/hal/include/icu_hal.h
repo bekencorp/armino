@@ -280,7 +280,6 @@ bk_err_t icu_hal_init(icu_hal_t *hal);
 #define icu_hal_enable_bt_wdt_arm_wakeup(hal) icu_ll_enable_bt_wdt_arm_wakeup((hal)->hw)
 #define icu_hal_disable_bt_wdt_arm_wakeup(hal) icu_ll_disable_bt_wdt_arm_wakeup((hal)->hw)
 
-
 #if (CONFIG_SOC_BK7271)
 #define icu_hal_set_gpio_perial_mode(hal, index, mode) icu_ll_set_gpio_perial_mode((hal)->hw, index, mode)
 #define icu_hal_get_gpio_perial_mode(hal, index) icu_ll_get_gpio_perial_mode((hal)->hw, index)
@@ -291,10 +290,7 @@ bk_err_t icu_hal_init(icu_hal_t *hal);
 #define icu_hal_sdio_dma_enable(hal) icu_ll_sdio_dma_enable((hal)->hw)
 #define icu_hal_pwms_gpio_sel(hal, channel, mode) icu_ll_pwms_gpio_sel((hal)->hw, channel, mode)
 #define icu_hal_spdif_gpio_sel(hal, mode) icu_ll_spdif_gpio_sel((hal)->hw,mode)
-#define icu_hal_sdio_host_enable(hal) icu_ll_sdio_host_enable((hal)->hw)
-#define icu_hal_sdio_dma_host_enable(hal) icu_ll_sdio_dma_enable((hal)->hw)
 #endif
-
 
 #define icu_hal_set_jtag_wr_arm(hal)	icu_ll_set_jtag_wr_arm((hal)->hw)
 #define icu_hal_set_jtag_rd_arm(hal)	icu_ll_set_jtag_rd_arm((hal)->hw)
@@ -302,7 +298,7 @@ bk_err_t icu_hal_init(icu_hal_t *hal);
 #define icu_hal_set_jtag_wr_tl410(hal)	icu_ll_set_jtag_wr_tl410((hal)->hw)
 #define icu_hal_set_jtag_rd_tl410(hal)	icu_ll_set_jtag_rd_tl410((hal)->hw)
 
-#if CONFIG_SOC_BK7236
+#if CONFIG_SOC_BK7236A
 #define icu_hal_enable_modem_rc_interrupt(hal) icu_ll_enable_modem_rc_interrupt((hal)->hw)
 #define icu_hal_disable_modem_rc_interrupt(hal) icu_ll_disable_modem_rc_interrupt((hal)->hw)
 #define icu_hal_enable_mac_hsu_interrupt(hal) icu_ll_enable_mac_hsu_interrupt((hal)->hw)

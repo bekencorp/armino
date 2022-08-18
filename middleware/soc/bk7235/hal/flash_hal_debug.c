@@ -37,7 +37,7 @@ void flash_struct_dump(void)
 	SOC_LOGI("  data_flash_sw addr=0x%x value=0x%x\r\n", &hw->data_flash_sw, hw->data_flash_sw);
 	SOC_LOGI("\r\n");
 
-	SOC_LOGI("  reserved0 addr=0x%x value=0x%x\r\n", &hw->reserved0, hw->reserved0);
+	SOC_LOGI("  sr_cmd addr=0x%x value=0x%x\r\n", &hw->sr_cmd, hw->sr_cmd);
 	SOC_LOGI("\r\n");
 
 	SOC_LOGI("  rd_flash_id addr=0x%x value=0x%x\r\n", &hw->rd_flash_id, hw->rd_flash_id);

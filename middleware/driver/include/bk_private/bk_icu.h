@@ -85,7 +85,7 @@ enum
 #define PCLK_POSI_SPI                        (1 << 6)
 #define PCLK_POSI_PWMS                       (1 << 7)
 #define PCLK_POSI_SDIO                       (1 << 8)
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 #define PCLK_POSI_EFUSE                      (1 << 9)
 #else
 #define PCLK_POSI_SARADC_AUD                 (1 << 9)
@@ -234,7 +234,7 @@ enum
 #define FIQ_DPLL_UNLOCK_BIT                       (1 << 0)
 #else
 /*CMD_ICU_INT_DISABLE CMD_ICU_INT_ENABLE*/
-#if (!CONFIG_SOC_BK7236)
+#if (!CONFIG_SOC_BK7236A) && (!CONFIG_SOC_BK7236)
 #define FIQ_JPEG_DECODER_BIT                 (1 << 29)
 #endif
 #define FIQ_DPLL_UNLOCK_BIT                  (1 << 28)
@@ -261,7 +261,7 @@ enum
 #define IRQ_USB_BIT                          (1 << 13)
 #define IRQ_SDIO_BIT                         (1 << 12)
 #define IRQ_SARADC_BIT                       (1 << 11)
-#if (!CONFIG_SOC_BK7236)
+#if (!CONFIG_SOC_BK7236A) && (!CONFIG_SOC_BK7236)
 #define IRQ_AUDIO_BIT                        (1 << 10)
 #else
 #define IRQ_JPEG_DECODER_BIT                 (1 << 10)
@@ -292,7 +292,7 @@ enum
 #endif
 #define BLE_ARM_WAKEUP_EN_BIT                       	 (1 << 30)
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 #define BTDM_ARM_WAKEUP_EN_BIT                       	 (1 << 29)
 #endif
 

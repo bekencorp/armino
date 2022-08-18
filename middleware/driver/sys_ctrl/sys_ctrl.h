@@ -79,7 +79,7 @@
 #define QSPI_IO_VOLT_POSI                        (16)
 #define QSPI_IO_VOLT_MASK                        (0x3)
 #define BLE_RF_EN_BIT                            (1 << 15)
-#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 #define BLE_RF_PTA_EN_BIT                        (1 << 24)
 #define EFUSE_VDD25_EN                           (1 << 23)
 #define FLASH_SPI_MUX_BIT                        (1 << 22)
@@ -150,7 +150,7 @@
 #define MAC_WAKEUP_ARM                           (1 << 7)
 #define MODEM_CORE_RESET_BIT                     (1 << 6)
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 #define BOOT_MODE_BIT                            (1 << 9)
 #define MAC_SUBSYS_RESET_BIT                     (1 << 2)
 #else
@@ -224,7 +224,7 @@
 #if (CONFIG_SOC_BK7231)
 #define ANA_SPI_STATE_POSI                       (0)
 #define ANA_SPI_STAET_MASK                       (0x1F)
-#elif (CONFIG_SOC_BK7231U) || (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#elif (CONFIG_SOC_BK7231U) || (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 #define ANA_SPI_STATE_POSI                       (0)
 #define ANA_SPI_STAET_MASK                       (0x7F)
 #elif (CONFIG_SOC_BK7251)
@@ -235,7 +235,7 @@
 #define ANA_SPI_STAET_MASK                       (0xFFFF)
 #endif
 
-#if (!CONFIG_SOC_BK7231N) && (!CONFIG_SOC_BK7236) && (!CONFIG_SOC_BK7256XX) && (!CONFIG_SOC_BK7256_CP1)
+#if (!CONFIG_SOC_BK7231N) && (!CONFIG_SOC_BK7236A) && (!CONFIG_SOC_BK7256XX) && (!CONFIG_SOC_BK7236)
 #define SCTRL_LA_SAMPLE                       (SCTRL_BASE + 18 * 4)
 #define LA_SMP_LEN_POSI                          (16)
 #define LA_SMP_LEN_MASK                          (0xFFFF)
@@ -250,14 +250,14 @@
 #endif
 
 #define SCTRL_ANALOG_CTRL0                    (SCTRL_BASE + 22 * 4)
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 #define LPEN_DPLL                                (1 << 27)
 #endif
 #define SPI_TRIG_BIT                             (1 << 19)
 #define SPI_DET_EN                               (1 << 4)
 
 #define SCTRL_ANALOG_CTRL1                    (SCTRL_BASE + 23 * 4)
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 #define ROSC_TSTEN_BIT                           (1 << 31)
 #define DCO_TSTEN_BIT                            (1 << 30)
 #define DCO_DIV_POSI                             (27)
@@ -284,7 +284,7 @@
 
 #define SCTRL_ANALOG_CTRL2                    (SCTRL_BASE + 24 * 4)
 #define CENTRAL_BAIS_ENABLE_BIT                  (1 << 13)
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 #define XTALH_CTUNE_POSI                         (2)
 #define XTALH_CTUNE_MASK                         (0x7FU)
 #define BANDGAP_CAL_MANUAL_POSI                  (23)
@@ -296,7 +296,7 @@
 #define TRXT_TST_ENABLE_BIT                      (1 << 12)
 
 #define SCTRL_ANALOG_CTRL3                    (SCTRL_BASE + 25 * 4)
-#if (!CONFIG_SOC_BK7231N) && (!CONFIG_SOC_BK7236) && (!CONFIG_SOC_BK7256XX) && (!CONFIG_SOC_BK7256_CP1)
+#if (!CONFIG_SOC_BK7231N) && (!CONFIG_SOC_BK7236A) && (!CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 #define CHARGE_LC2CVDLYLV_MASK                 (0x7)
 #define CHARGE_LC2CVDLYLV_POS                  (29)
 #define CHARGE_VLCSWLV_MASK                     (0xF)
@@ -311,7 +311,7 @@
 #define VSEL_SYS_LDO_MASK                        (0x3)
 #define CHARGE_MANMODE_MASK                      (0x7)
 #define CHARGE_MANMODE_POS                       (16)
-#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 #define VREF_SEL_BIT                             (1 << 30)
 #define GADC_CAL_SEL_POSI                        (19)
 #define GADC_CAL_SEL_MASK                        (0x3)
@@ -449,7 +449,7 @@
 #define DAC_N_END_OUPT_R                         (1 << 7)
 #define DAC_VSEL_MASK                            (0x3)
 #define DAC_VSEL_POSI                            (1)
-#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 #define SCTRL_ANALOG_STATE                    (SCTRL_BASE + 0x21*4)
 #define ANALOG_STATE_DPLL_UNLOCK                 (1 << 15)
 #define ANALOG_STATE_BGCAL_MASK                  (0x3FU)
@@ -551,7 +551,7 @@
 #define BLE_PWD_MASK                             (0xFFFF)
 #define BLE_PWD                                  (0xDB1E)
 #define BLE_PWU                                  (0x0001)
-#if (!CONFIG_SOC_BK7231N) && (!CONFIG_SOC_BK7236) && (!CONFIG_SOC_BK7256XX) && (!CONFIG_SOC_BK7256_CP1)
+#if (!CONFIG_SOC_BK7231N) && (!CONFIG_SOC_BK7236A) && (!CONFIG_SOC_BK7256XX) && (!CONFIG_SOC_BK7236)
 #define USB_PWD_POSI                             (0)
 #define USB_PWD_MASK                             (0xFFFF)
 #define USB_PWD                                  (0xD12B)
@@ -561,7 +561,7 @@
 #define SCTRL_PMU_STATUS                      (SCTRL_BASE + 70 * 4)
 #define PMU_MAC_POWER_DOWN_BIT                   (1 << 3)
 #define PMU_MODEM_POWER_DOWN_BIT                 (1 << 2)
-#if (!CONFIG_SOC_BK7231N) && (!CONFIG_SOC_BK7236) && (!CONFIG_SOC_BK7256XX) && (!CONFIG_SOC_BK7256_CP1)
+#if (!CONFIG_SOC_BK7231N) && (!CONFIG_SOC_BK7236A) && (!CONFIG_SOC_BK7256XX) && (!CONFIG_SOC_BK7236)
 #define PMU_DSP_POWER_DOWN_BIT                   (1 << 1)
 #define PMU_USB_POWER_DOWN_BIT                   (1 << 0)
 #endif
@@ -579,7 +579,7 @@
 #define GPIO_WAKEUP_TYPE_POSITIVE_EDGE           (0)
 #define GPIO_WAKEUP_TYPE_NEGATIVE_EDGE           (1)
 
-#if (!CONFIG_SOC_BK7231N) && (!CONFIG_SOC_BK7236) && (!CONFIG_SOC_BK7256XX) && (!CONFIG_SOC_BK7256_CP1)
+#if (!CONFIG_SOC_BK7231N) && (!CONFIG_SOC_BK7236A) && (!CONFIG_SOC_BK7256XX)
 #define SCTRL_USB_PLUG_WAKEUP                   (SCTRL_BASE + 78 * 4)
 #define USB_PLUG_IN_EN_BIT                      (1 << 0)
 #define USB_PLUG_OUT_EN_BIT                     (1 << 1)
@@ -587,7 +587,7 @@
 #define USB_PLUG_OUT_INT_BIT                    (1 << 3)
 #endif
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 #define SCTRL_GPIO_WAKEUP_TYPE_SELECT           (SCTRL_BASE + 78 * 4)
 #else
 #define SCTRL_GPIO_WAKEUP_EN1                  (SCTRL_BASE + 81 * 4)
@@ -644,7 +644,7 @@ enum {
 #define BLK_EN_MIC_L_CHANNEL                     (1 << 17)
 #define BLK_EN_AUDIO_R_CHANNEL                   (1 << 16)
 #define BLK_EN_AUDIO_L_CHANNEL                   (1 << 15)
-#elif (CONFIG_SOC_BK7231U) || (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#elif (CONFIG_SOC_BK7231U) || (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 #define BLK_EN_NC                                (1 << 19)
 #define BLK_EN_MIC_QSPI_RAM_OR_FLASH             (1 << 18)
 #define BLK_EN_MIC_PGA                           (1 << 17)

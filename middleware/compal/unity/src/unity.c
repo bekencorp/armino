@@ -9,6 +9,7 @@
 
 #include "driver/uart.h"
 #include "uart_driver.h"
+#include <components/system.h>
 
 #ifdef AVR
 #include <avr/pgmspace.h>
@@ -26,7 +27,7 @@ extern bk_err_t uart_write_byte(uart_id_t id, uint8_t data);
 
 void UNITY_OUTPUT_CHAR(int data)
 {
-	(void)uart_write_byte(CONFIG_UART_PRINT_PORT, (unsigned char)data);
+	(void)uart_write_byte(bk_get_printf_port(), (unsigned char)data);
 }
 
 /* Helpful macros for us to use here in Assert functions */

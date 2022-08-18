@@ -1,0 +1,21 @@
+{
+    "magic": "FreeRTOS",
+    "version": "0.1",
+    "count": 2,
+    "section": [
+        {
+            "firmware": "app.bin",
+            "version": "2M.1220",
+            "partition": "app",
+            "start_addr": "0x00000000",
+            "size": "1836K"
+        },
+        {
+            "firmware": "bk7256_cpu1.bin",
+            "version": "2M.1220",
+            "partition": "cpu1",
+            "start_addr": "0x0001CB000",
+            "size": "476K"
+        }
+    ]
+}

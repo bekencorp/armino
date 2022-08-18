@@ -128,20 +128,6 @@ int bk_wlan_stop(char mode);
 __deprecated
 bk_err_t bk_wlan_start_sta_adv(network_InitTypeDef_adv_st* inNetworkInitParaAdv);
 
-/** @brief  Read current IP status on a network interface.
- *
- *  @param  outNetpara: Point to the buffer to store the IP address.
- *  @param  inInterface: Specifies wlan interface.
- *             @arg Soft_AP: The soft AP that established by bkWlanStart()
- *             @arg Station: The interface that connected to an access point
- *
- *  @return
- *      - kNoErr: on success.
- *      - kGeneralErr: if an error occurred
- */
-__deprecated
-bk_err_t bk_wlan_get_ip_status(IPStatusTypedef *outNetpara, WiFi_Interface inInterface);
-
 /** @brief  Read current wireless link status on station interface.
  *
  *  @param  outStatus: Point to the buffer to store the link status.
@@ -363,29 +349,6 @@ bk_err_t bk_wlan_start_ap_adv(network_InitTypeDef_ap_st *inNetworkInitParaAP);
  */
 __deprecated
 void bk_wlan_ap_set_default_channel(uint8_t channel);
-
-/**
- * @brief  get configuration of AP
- *
- * @param  ap_info store the configuration got from WiFi driver
- */
-__deprecated
-void bk_wlan_ap_para_info_get(network_InitTypeDef_ap_st *ap_info);
-
-/**
- * @brief  set the IP of specified interface
- *
- * This function stop the AP first and then start the AP with new configuration.
- *
- * @param  inNetpara ip configurations
- * @param  inInterface interface id
- *
- * @return
- *      - kNoErr        : on success.
- *      - kGeneralErr   : fail
- */
-__deprecated
-bk_err_t bk_wlan_set_ip_status(IPStatusTypedef *inNetpara, WiFi_Interface inInterface);
 
 /**
  * @brief  The callback function of 802.11 frame receiving
@@ -620,6 +583,22 @@ int wlan_set_mesh_bssid(uint8_t *bssid);
  */
 uint8_t *wlan_get_mesh_bssid(void);
 #endif
+
+/**
+ * @brief  Set Wi-Fi state
+ *
+ * This function set Wi-Fi state to stop active scan, to ensure
+ *	softap video_transfer
+ */
+void bk_wifi_set_video_transfer_state(bool enable);
+
+/**
+ * @brief  Prepare Deepsleep
+ *
+ * This function set Wi-Fi prepare deep sleep
+ *
+ */
+void bk_wifi_prepare_deepsleep(void);
 
 /**
  * @}

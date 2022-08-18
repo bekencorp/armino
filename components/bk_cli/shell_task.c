@@ -128,12 +128,21 @@ typedef struct
 	u32     empty_cnt;
 } free_queue_t;
 
+#if CONFIG_ARCH_RISCV && !CONFIG_SLAVE_CORE
+static __attribute__((section(".dtcm_sec_data "))) u8    shell_log_buff1[SHELL_LOG_BUF1_NUM * SHELL_LOG_BUF1_LEN];
+static __attribute__((section(".dtcm_sec_data "))) u8    shell_log_buff2[SHELL_LOG_BUF2_NUM * SHELL_LOG_BUF2_LEN];
+static __attribute__((section(".dtcm_sec_data "))) u8    shell_log_buff3[SHELL_LOG_BUF3_NUM * SHELL_LOG_BUF3_LEN];
+static __attribute__((section(".dtcm_sec_data "))) u16   buff1_free_list[SHELL_LOG_BUF1_NUM];
+static __attribute__((section(".dtcm_sec_data "))) u16   buff2_free_list[SHELL_LOG_BUF2_NUM];
+static __attribute__((section(".dtcm_sec_data "))) u16   buff3_free_list[SHELL_LOG_BUF3_NUM];
+#else
 static u8    shell_log_buff1[SHELL_LOG_BUF1_NUM * SHELL_LOG_BUF1_LEN];
 static u8    shell_log_buff2[SHELL_LOG_BUF2_NUM * SHELL_LOG_BUF2_LEN];
 static u8    shell_log_buff3[SHELL_LOG_BUF3_NUM * SHELL_LOG_BUF3_LEN];
 static u16   buff1_free_list[SHELL_LOG_BUF1_NUM];
 static u16   buff2_free_list[SHELL_LOG_BUF2_NUM];
 static u16   buff3_free_list[SHELL_LOG_BUF3_NUM];
+#endif
 
 /*    queue sort ascending in blk_len.    */
 static free_queue_t       free_queue[3] =
@@ -1464,3 +1473,20 @@ void shell_log_flush(void)
 	rtos_enable_int(int_mask);
 }
 
+void shell_set_uart_port(uint8_t uart_port) {
+#if (!CONFIG_SLAVE_CORE)
+	if (bk_get_printf_port() != uart_port && uart_port < UART_ID_MAX) {
+		u32  int_mask = rtos_disable_int();
+
+		shell_log_flush();
+		bk_set_printf_port(uart_port);
+
+		log_dev->dev_drv->close(log_dev);
+		log_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_SET_UART_PORT, &uart_port);
+		log_dev->dev_drv->init(log_dev);
+		log_dev->dev_drv->open(log_dev, shell_tx_complete, shell_rx_indicate);
+
+		rtos_enable_int(int_mask);
+	}
+#endif
+}

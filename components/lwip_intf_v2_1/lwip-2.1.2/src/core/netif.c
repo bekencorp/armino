@@ -1427,7 +1427,8 @@ netif_ip6_addr_set_state(struct netif *netif, s8_t addr_idx, u8_t state)
       netif_issue_reports(netif, NETIF_REPORT_TYPE_IPV6);
     }
     if ((old_state & ~IP6_ADDR_TENTATIVE_COUNT_MASK) !=
-        (state     & ~IP6_ADDR_TENTATIVE_COUNT_MASK)) {
+        (state     & ~IP6_ADDR_TENTATIVE_COUNT_MASK) &&
+	((state & IP6_ADDR_VALID) && addr_idx == IP6_MAX_GLOBAl_IDX)) {
       /* address state has changed -> call the callback function */
       NETIF_STATUS_CALLBACK(netif);
     }

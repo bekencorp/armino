@@ -34,6 +34,11 @@ elseif(CONFIG_LITEOS_M OR CONFIG_LITEOS_M_V3)
 	srcs 
 	os/liteos_m/tick.c
 	)
+elseif(CONFIG_NON_OS)
+	list(APPEND
+		srcs
+		os/non_os/tick.c
+	)
 endif()
 
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_INCLUDE_DIRS "${priv_incs}" PRIV_REQUIRES bk_common)

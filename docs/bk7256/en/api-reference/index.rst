@@ -13,5 +13,6 @@ API References
    Peripheral <peripheral/index>
    System <system/index>
    Multi-media <multi_media/index>
+   power manager <pm/index>
 
 

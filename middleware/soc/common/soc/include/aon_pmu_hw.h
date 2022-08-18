@@ -17,7 +17,5 @@
 #include <common/bk_include.h>
 #include <soc/soc.h>
 
-#include "aon_pmu_reg.h"
 #include "aon_pmu_struct.h"
-
 

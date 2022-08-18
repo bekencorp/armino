@@ -130,7 +130,7 @@ void spinlock_acquire(spinlock_t *slock)
 		 *  FATAL ERROR!!!
 		 */
 
-		bk_printf("FATAL ERROR in %s\r\n", __func__);
+		BK_LOG_RAW("FATAL ERROR in %s\r\n", __func__);
 		pop_int_flag();
 		return;
 
@@ -153,7 +153,7 @@ void spinlock_release(spinlock_t *slock)
 		 *  FATAL ERROR!!!
 		 */
 
-		bk_printf("FATAL ERROR in %s\r\n", __func__);
+		BK_LOG_RAW("FATAL ERROR in %s\r\n", __func__);
 		return;
 	}
 

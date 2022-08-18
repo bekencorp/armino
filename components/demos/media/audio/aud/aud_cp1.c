@@ -238,6 +238,7 @@ void cli_aud_adc_dma_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 	if (os_strcmp(argv[1], "start") == 0) {
 		os_printf("audio adc dma test start\n");
 		adc_test_mode = ADC_TEST_MODE_DMA;
+		adc_config.mic_config = AUD_MIC_ALL_ENABLE;
 		adc_config.samp_rate = AUD_ADC_SAMP_RATE_48K;
 		adc_config.adc_enable = AUD_ADC_DISABLE;
 		adc_config.line_enable = AUD_ADC_LINE_DISABLE;
@@ -402,6 +403,7 @@ void cli_aud_adc_mcp_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 	if (os_strcmp(argv[1], "start") == 0) {
 		os_printf("audio adc mcp test start\n");
 		adc_test_mode = ADC_TEST_MODE_MCP;
+		adc_config.mic_config = AUD_MIC_ALL_ENABLE;
 		adc_config.samp_rate = AUD_ADC_SAMP_RATE_8K;
 		adc_config.adc_enable = AUD_ADC_DISABLE;
 		adc_config.line_enable = AUD_ADC_LINE_DISABLE;
@@ -612,6 +614,7 @@ void cli_aud_adc_loop_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 
 	if (os_strcmp(argv[1], "start") == 0) {
 		os_printf("audio adc loop test start\n");
+		adc_config.mic_config = AUD_MIC_ALL_ENABLE;
 		adc_config.samp_rate = AUD_ADC_SAMP_RATE_16K;
 		adc_config.adc_enable = AUD_ADC_DISABLE;
 		adc_config.line_enable = AUD_ADC_LINE_DISABLE;
@@ -1120,6 +1123,7 @@ void cli_aud_eq_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	if (os_strcmp(argv[1], "start") == 0) {
 		os_printf("audio adc dma test start\n");
 		adc_test_mode = ADC_TEST_MODE_DMA;
+		adc_config.mic_config = AUD_MIC_ALL_ENABLE;
 		adc_config.samp_rate = AUD_ADC_SAMP_RATE_48K;
 		adc_config.adc_enable = AUD_ADC_DISABLE;
 		adc_config.line_enable = AUD_ADC_LINE_DISABLE;
@@ -1436,6 +1440,7 @@ void cli_aud_mic_to_pcm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 
 		os_printf("cp1: return while \r\n");
 		adc_test_mode = ADC_TEST_MODE_MCP;
+		adc_config.mic_config = AUD_MIC_ALL_ENABLE;
 		adc_config.samp_rate = AUD_ADC_SAMP_RATE_8K;
 		adc_config.adc_enable = AUD_ADC_DISABLE;
 		adc_config.line_enable = AUD_ADC_LINE_DISABLE;

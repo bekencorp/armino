@@ -58,7 +58,7 @@ extern "C" {
 
 #if (CONFIG_SOC_BK7231N)
 #define LOSCFG_SYS_HEAP_ADDR_END      (void*)(0x00400000 + 192 * 1024)
-#elif (CONFIG_SOC_BK7236) // TBD: mem size for bk7236
+#elif (CONFIG_SOC_BK7236A) // TBD: mem size for bk7236
 #define LOSCFG_SYS_HEAP_ADDR_END      (void*)(0x00400000 + 192 * 1024)
 #elif (CONFIG_SOC_BK7271)
 #define LOSCFG_SYS_HEAP_ADDR_END      (void*)(0x00400000 + 512 * 1024)

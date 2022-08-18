@@ -296,6 +296,8 @@ typedef struct ip6_addr ip6_addr_t;
 
 #define IP6_ADDR_TENTATIVE_COUNT_MASK 0x07 /* 1-7 probes sent */
 
+#define IP6_MAX_GLOBAl_IDX	1
+
 #define ip6_addr_isinvalid(addr_state) (addr_state == IP6_ADDR_INVALID)
 #define ip6_addr_istentative(addr_state) (addr_state & IP6_ADDR_TENTATIVE)
 #define ip6_addr_isvalid(addr_state) (addr_state & IP6_ADDR_VALID) /* Include valid, preferred, and deprecated. */

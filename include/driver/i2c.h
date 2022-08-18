@@ -59,7 +59,7 @@ bk_err_t bk_i2c_driver_deinit(void);
  * @param id I2C id
  * @param config I2C parameter settings
 
- * @attention for bk7231n/bk7251, uart_2 will not work if i2c_1 init
+ * @attention Multifunction GPIO initialization affects other functions
 
  * @return
  *    - BK_OK: succeed

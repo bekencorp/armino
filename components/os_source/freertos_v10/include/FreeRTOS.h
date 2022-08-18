@@ -792,7 +792,7 @@ extern "C" {
 #endif
 
 #ifndef portSUPPRESS_TICKS_AND_SLEEP
-    #define portSUPPRESS_TICKS_AND_SLEEP( xExpectedIdleTime )   pm_suppress_ticks_and_sleep((xExpectedIdleTime))
+    #define portSUPPRESS_TICKS_AND_SLEEP( xExpectedIdleTime )   bk_pm_suppress_ticks_and_sleep((xExpectedIdleTime))
 #endif
 
 #ifndef configEXPECTED_IDLE_TIME_BEFORE_SLEEP

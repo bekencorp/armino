@@ -18,6 +18,7 @@
 #include "flash_driver.h"
 #include "flash_hal.h"
 
+#if CONFIG_FLASH_ORIGIN_API
 #define PAR_OPT_READ_POS      (0)
 #define PAR_OPT_WRITE_POS     (1)
 
@@ -25,59 +26,11 @@
 #define PAR_OPT_READ_EN       (0x1u << PAR_OPT_READ_POS)
 #define PAR_OPT_WRITE_DIS     (0x0u << PAR_OPT_WRITE_POS)
 #define PAR_OPT_WRITE_EN      (0x1u << PAR_OPT_WRITE_POS)
+#endif
 
 /* Logic partition on flash devices */
 #if (CONFIG_SOC_BK7256XX)
-static const bk_logic_partition_t bk7256_partitions[BK_PARTITION_MAX] = {
-	[BK_PARTITION_BOOTLOADER] =
-	{
-		.partition_owner           = BK_FLASH_EMBEDDED,
-		.partition_description     = "Bootloader",
-		.partition_start_addr      = 0x00000000,
-		.partition_length          = 0x0F000,
-		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
-	},
-	[BK_PARTITION_APPLICATION] =
-	{
-		.partition_owner           = BK_FLASH_EMBEDDED,
-		.partition_description     = "Application",
-		.partition_start_addr      = 0x11000,
-		.partition_length          = 0x198000,      // 1.5M
-		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
-	},
-	[BK_PARTITION_OTA] =
-	{
-		.partition_owner           = BK_FLASH_EMBEDDED,
-		.partition_description     = "ota",
-		.partition_start_addr      = 0x1AA000,
-		.partition_length          = 0x100000,      // 1M
-		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
-	},
-	[BK_PARTITION_APPLICATION1] =
-	{
-		.partition_owner           = BK_FLASH_EMBEDDED,
-		.partition_description     = "Application1",
-		.partition_start_addr      = 0x30E000,
-		.partition_length          = 0xEE000,       // 952KB
-		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
-	},
-	[BK_PARTITION_RF_FIRMWARE] =
-	{
-		.partition_owner           = BK_FLASH_EMBEDDED,
-		.partition_description     = "RF Firmware",
-		.partition_start_addr      = 0x3FE000,
-		.partition_length          = 0x1000,
-		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
-	},
-	[BK_PARTITION_NET_PARAM] =
-	{
-		.partition_owner           = BK_FLASH_EMBEDDED,
-		.partition_description     = "NET info",
-		.partition_start_addr      = 0x3FF000,
-		.partition_length          = 0x1000,
-		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
-	},
-};
+extern const bk_logic_partition_t bk7256_partitions[BK_PARTITION_MAX];
 #else
 static const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 	[BK_PARTITION_BOOTLOADER] =
@@ -93,17 +46,43 @@ static const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 		.partition_owner           = BK_FLASH_EMBEDDED,
 		.partition_description     = "Application",
 		.partition_start_addr      = 0x11000,
+#if CONFIG_SUPPORT_MATTER	|| 	 CONFIG_FLASH_SIZE_4M
+		.partition_length          = 0x1A9000,
+#else
 		.partition_length          = 0x143000,
+#endif
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
 	},
 	[BK_PARTITION_OTA] =
 	{
 		.partition_owner           = BK_FLASH_EMBEDDED,
 		.partition_description     = "ota",
+#if CONFIG_FLASH_SIZE_4M
+		.partition_start_addr      = 0x1BA000,
+		.partition_length          = 0x1A9000, //1700KB
+#elif CONFIG_SUPPORT_MATTER
+		.partition_start_addr      = 0x1BA000,
+		.partition_length          = 0x11000, //68KB
+#else
 		.partition_start_addr      = 0x132000,
 		.partition_length          = 0xAE000, //696KB
+#endif
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
 	},
+#if CONFIG_SUPPORT_MATTER
+	[BK_PARTITION_MATTER_FLASH] =
+	{
+		.partition_owner		   = BK_FLASH_EMBEDDED,
+		.partition_description	   = "Matter",
+		#if CONFIG_FLASH_SIZE_4M
+		.partition_start_addr	   = 0x363000,
+		#else
+		partition_start_addr	   = 0x1CB000,
+		#endif
+		.partition_length		   = 0x15000, //84KB
+		.partition_options		   = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
+	},
+#endif
 	[BK_PARTITION_RF_FIRMWARE] =
 	{
 		.partition_owner           = BK_FLASH_EMBEDDED,
@@ -113,7 +92,11 @@ static const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 #elif (CONFIG_SOC_BK7271)
 		.partition_start_addr      = 0x3FE000,
 #else
+#if (CONFIG_FLASH_SIZE_4M)
+		.partition_start_addr      = 0x3FE000,
+#else
 		.partition_start_addr      = 0x1e0000,// for rf related info
+#endif
 #endif
 		.partition_length          = 0x1000,
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
@@ -127,7 +110,11 @@ static const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 #elif (CONFIG_SOC_BK7271)
 		.partition_start_addr      = 0x3FF000,
 #else
+#if (CONFIG_FLASH_SIZE_4M)
+		.partition_start_addr      = 0x3FF000,
+#else
 		.partition_start_addr      = 0x1e1000,// for net related info
+#endif
 #endif
 		.partition_length          = 0x1000,
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,

@@ -24,6 +24,9 @@
 #define INT_PRIORITY_PLIC            0x01
 #define INT_PRIORITY_MASK            0x07
 
+#define REG_PLIC_PENDING_STATUS_GROUP1 (0xe4001000)	//we can optimize this code with PLIC driver.
+#define REG_PLIC_PENDING_STATUS_GROUP2 (0xe4001004)
+
 #define NESTED_VPLIC_COMPLETE_INTERRUPT(irq)            \
 do {                                                    \
 	clear_csr(NDS_MIE, MIP_MEIP);                       \
@@ -247,6 +250,21 @@ void mtime_handler(void)
 	/* Re-enable the timer interrupt. */
 	HAL_MTIME_ENABLE();
 }
+
+//specify:low voltage process can't be interrupt or the system can't response external interrupt after wakeup.
+void mtimer_reset_next_tick(uint32_t minimum_offset)
+{
+	if(DEV_PLMT->MTIMECMP < DEV_PLMT->MTIME + minimum_offset)
+	{
+		DEV_PLMT->MTIMECMP = DEV_PLMT->MTIME + minimum_offset;
+	}
+}
+
+bool mtimer_is_timeout()
+{
+	return (DEV_PLMT->MTIMECMP <= DEV_PLMT->MTIME);
+}
+
 void arch_interrupt_init(void)
 {
 
@@ -271,6 +289,15 @@ bk_err_t arch_isr_entry_init(void)
     // arch_interrupt_enable();
 	arch_interrupt_init();
 	return BK_OK;
+}
+
+uint64_t arch_get_plic_pending_status(void)
+{
+	uint64_t plic_pend1 = *(volatile uint32 *)(REG_PLIC_PENDING_STATUS_GROUP1);
+	uint64_t plic_pend2 = *(volatile uint32 *)(REG_PLIC_PENDING_STATUS_GROUP2);
+	uint64_t plic_pending_status = (plic_pend2 << 32) | plic_pend1;
+
+	return plic_pending_status;
 }
 
 #ifdef INT_VECTOR_EN

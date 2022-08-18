@@ -22,7 +22,9 @@
 #include <driver/adc.h>
 #include "drv_model.h"
 #include "sys_driver.h"
+#if CONFIG_FLASH_ORIGIN_API
 #include "flash.h"
+#endif
 
 #define CFG_USE_TEMPERATURE_DETECT                 1
 #define CFG_SUPPORT_SARADC                         1
@@ -67,7 +69,7 @@ static int tempd_init_temperature_raw_data(void)
 static void temp_sensor_enable(void)
 {
 
-#if (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7256XX)
     sys_drv_en_tempdet(1);
 #else
     uint32_t param;
@@ -80,7 +82,7 @@ static void temp_sensor_enable(void)
 
 static void temp_sensor_disable(void)
 {
-#if (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7256XX)
     sys_drv_en_tempdet(0);
 #else
 
@@ -107,7 +109,7 @@ static uint16_t tempd_calculate_temperature(void)
 {
 	tempd_show_raw_temperature_data();
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A)
 	uint32_t sum = 0, index, count = 0;
 
 	for (index = 5; index < ADC_TEMP_BUFFER_SIZE; index++) {
@@ -132,7 +134,7 @@ static uint16_t tempd_calculate_temperature(void)
 	sum2 = s_raw_temperature_data[3] + s_raw_temperature_data[4];
 	sum = sum1 / 2 + sum2 / 2;
 	sum = sum / 2;
-	sum = sum / 6;
+	sum = sum / 16;
 	s_raw_temperature_data[0] = sum;
 
 #else
@@ -172,6 +174,10 @@ static int tempd_adc_get_raw_data(void)
 	config.adc_filter = 0;
 
 	err = bk_adc_set_config(&config);
+	if (BK_OK != err)
+		goto _release_adc;
+
+	err = bk_adc_enable_bypass_clalibration();
 	if (BK_OK != err)
 		goto _release_adc;
 
@@ -390,7 +396,7 @@ static void tempd_init(uint32_t init_temperature)
 	s_tempd.last_xtal_val = (uint32_t)(init_temperature);
 	s_tempd.xtal_threshold_val = ADC_XTAL_DIST_INTIAL_VAL;
 
-    #if (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+    #if (CONFIG_SOC_BK7256XX)
     s_tempd.xtal_init_val = sys_drv_analog_get_xtalh_ctune();// to do,need remove old interface after all adaption is finished
     #else
     s_tempd.xtal_init_val = sddev_control(DD_DEV_TYPE_SCTRL, CMD_SCTRL_GET_XTALH_CTUNE, NULL);
@@ -572,7 +578,7 @@ int temp_detect_get_temperature(uint32_t *temperature)
 	return err;
 }
 
-#if (CONFIG_SOC_BK7256) ||(CONFIG_SOC_BK7236) ||(CONFIG_SOC_BK7231N)||(CONFIG_SOC_BK7235)||(CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7256XX) ||(CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7231N)
 static void temp_single_get_disable(void)
 {
     UINT32 status = DRV_SUCCESS;
@@ -605,7 +611,7 @@ static void temp_single_detect_handler(void)
                        tmp_single_desc.pData[2], tmp_single_desc.pData[3],
                        tmp_single_desc.pData[4]);
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) ||(CONFIG_SOC_BK7256)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) ||(CONFIG_SOC_BK7256)
         sum1 = tmp_single_desc.pData[6] + tmp_single_desc.pData[7];
         sum2 = tmp_single_desc.pData[8] + tmp_single_desc.pData[9];
         sum = sum1 / 2 + sum2 / 2;

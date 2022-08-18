@@ -19,12 +19,18 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include <modules/pm.h>
 
 void pm_hardware_init();
 
 int pm_module_wakeup_time_set(uint32_t module_name, uint32_t  wakeup_time);
 
-/*for debug log ctrl*/
+bk_err_t pm_core_bus_clock_ctrl(uint32_t cksel_core, uint32_t ckdiv_core,uint32_t ckdiv_bus, uint32_t ckdiv_cpu0,uint32_t ckdiv_cpu1);
+
+bk_err_t bk_pm_app_auto_vote_state_set(uint32_t value);
+
+uint32_t bk_pm_app_auto_vote_state_get();
+
 void pm_debug_ctrl(uint32_t debug_en);
 
 #ifdef __cplusplus

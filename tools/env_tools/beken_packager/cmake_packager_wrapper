@@ -48,11 +48,21 @@ image_name = args.image_name
 out_path = "tmp.json"
 
 def package_json_rebuild():
-    with open("{}/middleware/boards/{}/configuration.json".format(armino_path, chip), 'r') as local_json:
-        config_json = json.load(local_json)
+    if os.path.exists("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR"))):
+        with open("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR")), 'r') as local_json:
+            config_json = json.load(local_json)
+    else:
+        with open("{}/middleware/boards/{}/configuration.json".format(armino_path, chip), 'r') as local_json:
+            config_json = json.load(local_json)
 
     for firmware_file in config_json["section"]:
-        pakfile = "{}/middleware/boards/{}/{}".format(armino_path, chip, firmware_file["firmware"])
+        if os.path.exists("{}/{}/{}/{}".format(armino_path, os.getenv("PROJECT_DIR"), chip, firmware_file["firmware"])):
+            pakfile = "{}/{}/{}/{}".format(armino_path, os.getenv("PROJECT_DIR"), chip,firmware_file["firmware"])
+        else:
+            if os.path.exists("{}/{}/{}".format(armino_path, os.getenv("PROJECT_DIR"), firmware_file["firmware"])):
+                pakfile = "{}/{}/{}".format(armino_path, os.getenv("PROJECT_DIR"),firmware_file["firmware"])
+            else:
+                pakfile = "{}/middleware/boards/{}/{}".format(armino_path, chip, firmware_file["firmware"])
 
         if (os.path.isfile(pakfile)):
             shutil.copy(pakfile, "{}/{}".format(build_path, firmware_file["firmware"]))

@@ -24,16 +24,49 @@
 extern "C" {
 #endif
 
-#define SPI_LL_REG_BASE(_spi_unit_id)    (SOC_SPI_REG_BASE)
+#define SPI_LL_REG_BASE(_spi_unit_id)    (SOC_SPI_REG_BASE + (0x1010000 * _spi_unit_id))
 
 #define SPI0_LL_CSN_PIN     GPIO_15
 #define SPI0_LL_SCK_PIN     GPIO_14
 #define SPI0_LL_MOSI_PIN    GPIO_16
 #define SPI0_LL_MISO_PIN    GPIO_17
 
+#if 0
+#define SPI0_LL_CSN_PIN     GPIO_45
+#define SPI0_LL_SCK_PIN     GPIO_44
+#define SPI0_LL_MOSI_PIN    GPIO_46
+#define SPI0_LL_MISO_PIN    GPIO_47
+#endif
+
+#define SPI1_LL_SCK_PIN     GPIO_2
+#define SPI1_LL_CSN_PIN     GPIO_3
+#define SPI1_LL_MOSI_PIN    GPIO_4
+#define SPI1_LL_MISO_PIN    GPIO_5
+
+static inline void spi_ll_soft_reset(spi_hw_t *hw)
+{
+	hw->global_ctrl.soft_reset = 1;
+}
+
+static inline uint32_t spi_ll_get_device_id(spi_hw_t *hw)
+{
+	return hw->dev_id;
+}
+
+static inline uint32_t spi_ll_get_version_id(spi_hw_t *hw)
+{
+	return hw->dev_version;
+}
+
+static inline uint32_t spi_ll_get_dev_status(spi_hw_t *hw)
+{
+	return hw->dev_status;
+}
+
 //TODO init more
 static inline void spi_ll_init(spi_hw_t *hw)
 {
+	spi_ll_soft_reset(hw);
 	hw->ctrl.tx_fifo_int_level = 0;
 	hw->ctrl.rx_fifo_int_level = 2;
 }

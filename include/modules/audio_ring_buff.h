@@ -15,7 +15,8 @@
 #ifndef _AUDIO_RING_BUFF_H_
 #define _AUDIO_RING_BUFF_H_
 
-//#include "types.h"
+#include <common/bk_include.h>
+#include <driver/dma.h>
 
 enum
 {

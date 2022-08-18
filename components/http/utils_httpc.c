@@ -12,7 +12,11 @@
 #include <os/str.h>
 
 #if HTTP_WR_TO_FLASH
+#if CONFIG_FLASH_ORIGIN_API
 #include "bk_flash.h"
+#else
+#include "driver/flash.h"
+#endif
 #endif
 
 #if CONFIG_HTTP
@@ -26,11 +30,13 @@
 
 #define HTTPCLIENT_MAX_HOST_LEN   64
 #define HTTPCLIENT_MAX_URL_LEN    256
+#define HTTPCLIENT_MAX_PORT_LEN 6
 
 #define HTTP_RETRIEVE_MORE_DATA   (1)            /**< More data needs to be retrieved. */
 
+#if CONFIG_FLASH_ORIGIN_API
 extern void flash_protection_op(UINT8 mode, PROTECT_TYPE type);
-
+#endif
 #if CONFIG_OTA_TFTP
 #define HTTP_FLASH_WR_BUF_MAX WR_BUF_MAX
 #else
@@ -50,7 +56,7 @@ HTTP_DATA_ST bk_http = {
 HTTP_DATA_ST *bk_http_ptr = &bk_http;
 static UINT32 ota_wr_block = 0;
 
-static int httpclient_parse_host(const char *url, char *host, uint32_t maxhost_len);
+// static int httpclient_parse_host(const char *url, char *host, uint32_t maxhost_len);
 static int httpclient_parse_url(const char *url, char *scheme, uint32_t max_scheme_len, char *host,
 								uint32_t maxhost_len, int *port, char *path, uint32_t max_path_len);
 static int httpclient_conn(httpclient_t *client);
@@ -90,16 +96,21 @@ int httpclient_conn(httpclient_t *client)
 	return SUCCESS_RETURN;
 }
 
+
+
 int httpclient_parse_url(const char *url, char *scheme, uint32_t max_scheme_len, char *host, uint32_t maxhost_len,
 						 int *port, char *path, uint32_t max_path_len)
 {
 	char *scheme_ptr = (char *) url;
 	char *host_ptr = (char *) os_strstr(url, "://");
+	char port_array[HTTPCLIENT_MAX_PORT_LEN] = {0};
 	uint32_t host_len = 0;
+	uint32_t port_len = 0;
 	uint32_t path_len;
-	//char *port_ptr;
+	char *port_ptr;
 	char *path_ptr;
 	char *fragment_ptr;
+
 
 	if (host_ptr == NULL) {
 		log_err("Could not find host");
@@ -116,16 +127,39 @@ int httpclient_parse_url(const char *url, char *scheme, uint32_t max_scheme_len,
 
 	host_ptr += 3;
 
-	*port = 0;
-
 	path_ptr = os_strchr(host_ptr, '/');
 	if (NULL == path_ptr) {
 		log_err("invalid path");
 		return -1;
 	}
 
-	if (host_len == 0)
-		host_len = path_ptr - host_ptr;
+	port_ptr = os_strchr(host_ptr, ':');
+	if (NULL == port_ptr) {
+		*port = 0;
+		port_len = 0;
+	} else {
+		port_len = path_ptr - port_ptr;
+		if(port_len < HTTPCLIENT_MAX_PORT_LEN) {
+			//port_ptr -> :8192
+			os_memcpy(port_array, port_ptr + 1, port_len - 1);
+			port_array[port_len - 1] = '\0';
+			*port= os_strtoul(port_array, NULL, 10);
+		} else {
+			log_err("parse port error, port_len(%d).", port_len);
+			*port = 0;
+			port_len = 0;
+		}
+
+	}
+
+	log_info("port (%d) port_len(%d).", *port, port_len);
+
+
+	host_len = path_ptr - host_ptr - port_len;
+	if (host_len == 0) {
+		log_err("Parse Host error.");
+		return ERROR_HTTP_PARSE;
+	}
 
 	if (maxhost_len < host_len + 1) {
 		/* including NULL-terminating char */
@@ -152,32 +186,32 @@ int httpclient_parse_url(const char *url, char *scheme, uint32_t max_scheme_len,
 	return SUCCESS_RETURN;
 }
 
-int httpclient_parse_host(const char *url, char *host, uint32_t maxhost_len)
-{
-	const char *host_ptr = (const char *) os_strstr(url, "://");
-	uint32_t host_len = 0;
-	char *path_ptr;
+// int httpclient_parse_host(const char *url, char *host, uint32_t maxhost_len)
+// {
+// 	const char *host_ptr = (const char *) os_strstr(url, "://");
+// 	uint32_t host_len = 0;
+// 	char *path_ptr;
 
-	if (host_ptr == NULL) {
-		log_err("Could not find host");
-		return ERROR_HTTP_PARSE; /* URL is invalid */
-	}
-	host_ptr += 3;
+// 	if (host_ptr == NULL) {
+// 		log_err("Could not find host");
+// 		return ERROR_HTTP_PARSE; /* URL is invalid */
+// 	}
+// 	host_ptr += 3;
 
-	path_ptr = os_strchr(host_ptr, '/');
-	if (host_len == 0)
-		host_len = path_ptr - host_ptr;
+// 	path_ptr = os_strchr(host_ptr, '/');
+// 	if (host_len == 0)
+// 		host_len = path_ptr - host_ptr;
 
-	if (maxhost_len < host_len + 1) {
-		/* including NULL-terminating char */
-		log_err("Host str is too small (%d >= %d)", maxhost_len, host_len + 1);
-		return ERROR_HTTP_PARSE;
-	}
-	os_memcpy(host, host_ptr, host_len);
-	host[host_len] = '\0';
+// 	if (maxhost_len < host_len + 1) {
+// 		/* including NULL-terminating char */
+// 		log_err("Host str is too small (%d >= %d)", maxhost_len, host_len + 1);
+// 		return ERROR_HTTP_PARSE;
+// 	}
+// 	os_memcpy(host, host_ptr, host_len);
+// 	host[host_len] = '\0';
 
-	return SUCCESS_RETURN;
-}
+// 	return SUCCESS_RETURN;
+// }
 
 int httpclient_get_info(httpclient_t *client, char *send_buf, int *send_idx, char *buf,
 						uint32_t len) /* 0 on success, err code on failure */
@@ -416,45 +450,257 @@ int httpclient_recv(httpclient_t *client, char *buf, int min_len, int max_len, i
 
 }
 
+/*
+ * when bt INT effect the OTA update
+ */
+#define S_WAKE_UP    (0)
+#define S_SLEEP      (1)
+#define S_POWER_OFF  (2)
+#define S_NO_BT      (3)
+
+#define ERASE_TOUCH_TIMEOUT  (3000)//ms
+#define ERASE_FLASH_TIMEOUT  (56)//ms
+#define WRITE_FLASH_TIMEOUT  (4)//ms
+
+static u32  bt_sleepend_time = -1;  //when cb return,bt is sleep ,recoeding the bt will sleep how long
+static u32  bt_cb_anchor_time = 0;    //when cb return ,record current time ;
+static u8   bt_sleep_state = S_NO_BT;  //record bt state;the default is 3(S_NO_BT);
+
+void ble_sleep_cb(uint8_t is_sleeping, uint32_t slp_period)
+{
+	GLOBAL_INT_DECLARATION();
+
+	GLOBAL_INT_DISABLE();
+
+    bt_sleep_state = is_sleeping ;
+    bt_cb_anchor_time = rtos_get_time();
+    if (is_sleeping == S_SLEEP)
+    {
+       bt_sleepend_time = bt_cb_anchor_time + slp_period/32;
+    }
+
+    GLOBAL_INT_RESTORE();
+}
+
+static int ble_callback_deal_handler(uint32_t deal_flash_time)
+{
+    uint32_t  cur_time =0;
+    uint32_t  temp_time = 0;
+    int       ret_val = 0;
+
+    cur_time = rtos_get_time();
+
+	GLOBAL_INT_DECLARATION();
+
+	GLOBAL_INT_DISABLE();
+
+    do
+    {
+        if(bt_sleep_state == S_POWER_OFF)     //poweroff
+        {
+            ret_val = 1;
+            break;
+        }
+        else if(bt_sleep_state == S_WAKE_UP) //wakeup
+        {
+            if(cur_time >= bt_cb_anchor_time)
+            {
+                temp_time = (cur_time - bt_cb_anchor_time);
+            }
+            else
+            {
+                temp_time = 0xFFFFFFFF - bt_cb_anchor_time + cur_time;
+            }
+
+            if(temp_time >= ERASE_TOUCH_TIMEOUT)
+            {
+                bt_sleep_state = S_NO_BT;
+                ret_val = 1;
+                break;
+            }
+
+            ret_val = 0;
+            break;
+        }
+        else if(bt_sleep_state == S_SLEEP) //sleep
+        {
+            if(bt_sleepend_time > bt_cb_anchor_time)
+            {
+                if(bt_sleepend_time < cur_time)
+                {
+                     ret_val = 1;
+                     break;
+                }
+                else if(cur_time < bt_cb_anchor_time)
+                {
+                     ret_val = 1;
+                     break;
+                }
+                else if((bt_sleepend_time - cur_time) >= deal_flash_time)
+                {
+                     ret_val = 1;
+                     break;
+                }
+                else
+                {
+                     ret_val = 0;
+                     break;
+                }
+            }
+            else
+            {
+                temp_time = 0;
+                if((cur_time > bt_sleepend_time)&&(bt_cb_anchor_time > cur_time))
+                {
+                     ret_val = 1;
+                     break;
+                }
+                else if(bt_cb_anchor_time <= cur_time)
+                {
+                    temp_time = 0xFFFFFFFF - cur_time + bt_sleepend_time;
+                }
+                else
+                {
+                    temp_time = bt_sleepend_time - cur_time;
+                }
+
+                if(temp_time >= deal_flash_time )
+                {
+                     ret_val = 1;
+                     break;
+                }
+                else
+                {
+                     ret_val = 0;
+                     break;
+                }
+            }
+        }
+        else
+        {
+             ret_val = 1;
+             break;
+        }
+    }while(0);
+
+    GLOBAL_INT_RESTORE();
+
+    return ret_val;
+}
 
 #if HTTP_WR_TO_FLASH
 
 void http_flash_wr(UINT8 *src, unsigned len)
 {
-	UINT32 param;
+	UINT32  param;
+    UINT32  anchor_time = 0;
+    UINT32  temp_time = 0;
+    UINT8   flash_erase_ready = 0;
 	GLOBAL_INT_DECLARATION();
 
-	if (bk_http_ptr->flash_address % 0x1000 == 0) {
-		param = bk_http_ptr->flash_address;
-		GLOBAL_INT_DISABLE();
-		ddev_control(bk_http_ptr->flash_hdl, CMD_FLASH_ERASE_SECTOR, (void *)&param);
-		GLOBAL_INT_RESTORE();
+	if (bk_http_ptr->flash_address % 0x1000 == 0)
+    {
+        anchor_time = rtos_get_time();
+        while(1)
+        {
+            flash_erase_ready = ble_callback_deal_handler(ERASE_FLASH_TIMEOUT);
+            
+            temp_time = rtos_get_time();
+            if(temp_time >= anchor_time)
+            {
+                temp_time -= anchor_time;
+            }
+            else
+            {
+                temp_time += (0xFFFFFFFF - anchor_time);
+            }
+            
+            if(temp_time >= ERASE_TOUCH_TIMEOUT)
+                flash_erase_ready = 1;
+            
+            //os_printf("flash_erase_ready~111 :%d\n",flash_erase_ready);
+            if(flash_erase_ready == 1)
+    	    {
+        		param = bk_http_ptr->flash_address;
+        		GLOBAL_INT_DISABLE();
+#if CONFIG_FLASH_ORIGIN_API
+        		ddev_control(bk_http_ptr->flash_hdl, CMD_FLASH_ERASE_SECTOR, (void *)&param);
+#else
+        		bk_flash_erase_sector(param);
+#endif
+        		GLOBAL_INT_RESTORE();
+
+                flash_erase_ready = 0;
+                break;
+            }
+            else
+            {
+                rtos_delay_milliseconds(2);
+            }
+       }
 	}
 
 	if (((u32)bk_http_ptr->flash_address >= bk_http_ptr->pt->partition_start_addr)
-		&& (((u32)bk_http_ptr->flash_address + len) < (bk_http_ptr->pt->partition_start_addr + bk_http_ptr->pt->partition_length))) {
-		GLOBAL_INT_DISABLE();
-		ddev_write(bk_http_ptr->flash_hdl, (char *)src, len, (u32)bk_http_ptr->flash_address);
-		GLOBAL_INT_RESTORE();
-		if (bk_http_ptr->wr_tmp_buf) {
-			GLOBAL_INT_DISABLE();
-			ddev_read(bk_http_ptr->flash_hdl, (char *)bk_http_ptr->wr_tmp_buf, len, (u32)bk_http_ptr->flash_address);
-			GLOBAL_INT_RESTORE();
-			if (!os_memcmp(src, bk_http_ptr->wr_tmp_buf, len)) {
-			} else
-				os_printf("wr flash write err\n");
-		}
+		&& (((u32)bk_http_ptr->flash_address + len) < (bk_http_ptr->pt->partition_start_addr + bk_http_ptr->pt->partition_length)))
+		{
+            while(1)
+            {
+                flash_erase_ready = ble_callback_deal_handler(WRITE_FLASH_TIMEOUT);
+                
+                temp_time = rtos_get_time();
+                if(temp_time >= anchor_time)
+                {
+                    temp_time -= anchor_time;
+                }
+                else
+                {
+                    temp_time += (0xFFFFFFFF - anchor_time);
+                }                
+                
+                if(temp_time >= ERASE_TOUCH_TIMEOUT)
+                    flash_erase_ready = 1;
+                
+                //os_printf("flash_erase_ready~222 :%d\n",flash_erase_ready);
+                if(flash_erase_ready == 1)
+    	        {
+            		GLOBAL_INT_DISABLE();
+#if CONFIG_FLASH_ORIGIN_API
+            		ddev_write(bk_http_ptr->flash_hdl, (char *)src, len, (u32)bk_http_ptr->flash_address);
+#else
+            		bk_flash_write_bytes(bk_http_ptr->flash_address, (uint8_t *)src, len);
+#endif
+            		GLOBAL_INT_RESTORE();
+            		if (bk_http_ptr->wr_tmp_buf) {
+            			GLOBAL_INT_DISABLE();
+#if CONFIG_FLASH_ORIGIN_API
+            			ddev_read(bk_http_ptr->flash_hdl, (char *)bk_http_ptr->wr_tmp_buf, len, (u32)bk_http_ptr->flash_address);
+#else
+            			bk_flash_read_bytes(bk_http_ptr->flash_address, (uint8_t *)bk_http_ptr->wr_tmp_buf, len);
+#endif
+            			GLOBAL_INT_RESTORE();
+            			if (!os_memcmp(src, bk_http_ptr->wr_tmp_buf, len)) {
+            			} else
+            				os_printf("wr flash write err\n");
+            		}
 
-		bk_http_ptr->flash_address += len;
-		//os_printf("ad %x.\r\n",bk_http_ptr->flash_address);
-	}
-
+            		bk_http_ptr->flash_address += len;
+        		//os_printf("ad %x.\r\n",bk_http_ptr->flash_address);
+                    flash_erase_ready = 0;
+                    break;
+                }
+                else
+        		{
+                    rtos_delay_milliseconds(2);
+                }
+        	}
+        }
 }
-
 
 void http_flash_init(void)
 {
+#if CONFIG_FLASH_ORIGIN_API
 	UINT32 status;
+#endif
 	bk_http_ptr->wr_buf = NULL;
 	bk_http_ptr->wr_tmp_buf = NULL;
 
@@ -470,15 +716,23 @@ void http_flash_init(void)
 			os_printf("wr_tmp_buf malloc err\r\n");
 	}
 
+#if CONFIG_FLASH_ORIGIN_API
 	bk_http_ptr->pt = bk_flash_get_info(BK_PARTITION_OTA);
 	bk_http_ptr->flash_hdl = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
 	BK_ASSERT(DD_HANDLE_UNVALID != bk_http_ptr->flash_hdl);
+#else
+	bk_http_ptr->pt = bk_flash_partition_get_info(BK_PARTITION_OTA);
+#endif
 
 	bk_http_ptr->wr_last_len = 0;
 	ota_wr_block = 0;
 	bk_http_ptr->flash_address = bk_http_ptr->pt->partition_start_addr;
 
+#if CONFIG_FLASH_ORIGIN_API
 	bk_flash_enable_security(FLASH_PROTECT_NONE);
+#else
+	bk_flash_set_protect_type(FLASH_PROTECT_NONE);
+#endif
 	os_printf("ota write to 0x%x\r\n", bk_http_ptr->flash_address);
 }
 
@@ -489,9 +743,13 @@ void http_flash_deinit(void)
 	os_memset(bk_http_ptr, 0, sizeof(HTTP_DATA_ST));
 
 	ota_wr_block = 0;
+#if CONFIG_FLASH_ORIGIN_API
 	ddev_close(bk_http_ptr->flash_hdl);
 
 	bk_flash_enable_security(FLASH_UNPROTECT_LAST_BLOCK);
+#else
+	bk_flash_set_protect_type(FLASH_UNPROTECT_LAST_BLOCK);
+#endif
 	os_printf("write over\r\n");
 }
 
@@ -538,7 +796,7 @@ int httpclient_retrieve_content(httpclient_t *client, char *data, int len, uint3
 	int crlf_pos;
 	iotx_time_t timer;
 	char *b_data = NULL;
-
+    int ret = 0;
 	iotx_time_init(&timer);
 	utils_time_countdown_ms(&timer, timeout_ms);
 
@@ -549,7 +807,7 @@ int httpclient_retrieve_content(httpclient_t *client, char *data, int len, uint3
 
 	if (client_data->response_content_len == -1 && client_data->is_chunked == false) {
 		while (true) {
-			int ret, max_len;
+			int max_len;
 			if (count + len < client_data->response_buf_len - 1) {
 				os_memcpy(client_data->response_buf + count, data, len);
 				count += len;
@@ -602,7 +860,7 @@ int httpclient_retrieve_content(httpclient_t *client, char *data, int len, uint3
 				if (!foundCrlf) {
 					/* Try to read more */
 					if (len < HTTPCLIENT_CHUNK_SIZE) {
-						int new_trf_len, ret;
+						int new_trf_len;
 						ret = httpclient_recv(client,
 											  data + len,
 											  0,
@@ -657,7 +915,8 @@ int httpclient_retrieve_content(httpclient_t *client, char *data, int len, uint3
 			} else {
 				client_data->response_buf[client_data->response_buf_len - 1] = '\0';
 				client_data->retrieve_len -= (client_data->response_buf_len - 1 - count);
-				return HTTP_RETRIEVE_MORE_DATA;
+				ret = HTTP_RETRIEVE_MORE_DATA;
+                break;
 			}
 
 			if (len > readLen) {
@@ -670,23 +929,26 @@ int httpclient_retrieve_content(httpclient_t *client, char *data, int len, uint3
 				readLen -= len;
 
 			if (readLen) {
-				int ret;
 				int max_len = HTTPCLIENT_MIN(TCP_LEN_MAX, client_data->response_buf_len - 1 - count);
 				max_len = HTTPCLIENT_MIN(max_len, readLen);
 
 				ret = httpclient_recv(client, b_data, 1, max_len, &len, iotx_time_left(&timer));
 				if (ret == ERROR_HTTP_CONN)
-					return ret;
+                    break;
 			}
 		} while (readLen);
 
 		bk_http_ptr->do_data = 0;
 		os_free(b_data);
 		b_data = NULL;
-
+        if(ret != 0)
+        {
+            return ret;
+        }
+        
 		if (client_data->is_chunked) {
 			if (len < 2) {
-				int new_trf_len, ret;
+				int new_trf_len;
 				/* Read missing chars to find end of chunk */
 				ret = httpclient_recv(client, data + len, 2 - len, HTTPCLIENT_CHUNK_SIZE - len - 1, &new_trf_len,
 									  iotx_time_left(&timer));
@@ -902,50 +1164,94 @@ int httpclient_common(httpclient_t *client, const char *url, int port, const cha
 {
 	iotx_time_t timer;
 	int ret = 0;
-	char host[HTTPCLIENT_MAX_HOST_LEN] = { 0 };
+	int url_port = 0;
+	char *host = NULL;
+	char *path = NULL;
+	char scheme[8] = { 0 };
 
-	if (0 == client->net.handle) {
-		//Establish connection if no.
-		httpclient_parse_host(url, host, sizeof(host));
-		log_debug("host: '%s', port: %d", host, port);
-
-		iotx_net_init(&client->net, host, port, ca_crt);
-
-		ret = httpclient_connect(client);
-		if (0 != ret) {
-			log_err("httpclient_connect is error,ret = %d", ret);
-			httpclient_close(client);
-			return ret;
+	do {
+		if (NULL == (host = (char *)os_zalloc(HTTPCLIENT_MAX_HOST_LEN))) {
+			log_err("not enough memory");
+			ret = FAIL_RETURN;
+			break;
 		}
 
-		ret = httpclient_send_request(client, url, method, client_data);
-		if (0 != ret) {
-			log_err("httpclient_send_request is error,ret = %d", ret);
-			httpclient_close(client);
-			return ret;
+		if (NULL == (path = (char *)os_zalloc(HTTPCLIENT_MAX_URL_LEN))) {
+			log_err("not enough memory");
+			ret = FAIL_RETURN;
+			break;
 		}
-	}
 
-	iotx_time_init(&timer);
-	utils_time_countdown_ms(&timer, timeout_ms);
+		if (0 == client->net.handle) {
+			//Establish connection if no.
+			// httpclient_parse_host(url, host, sizeof(host));
 
-	if ((NULL != client_data->response_buf)
-		|| (0 != client_data->response_buf_len)) {
-		ret = httpclient_recv_response(client, iotx_time_left(&timer), client_data);
-		if (ret < 0) {
-			log_err("httpclient_recv_response is error,ret = %d", ret);
-			http_flash_deinit();
-			httpclient_close(client);
-			return ret;
+			/* First we need to parse the url (http[s]://host[:port][/[path]]) */
+			ret = httpclient_parse_url(url, scheme, sizeof(scheme), host, HTTPCLIENT_MAX_HOST_LEN, &url_port, path, HTTPCLIENT_MAX_URL_LEN);
+			if (ret != SUCCESS_RETURN) {
+				log_err("httpclient_parse_url returned %d", ret);
+				break;
+			}
+
+			log_info("host: '%s', port: %d, url_port: %d.", host, port, url_port);
+
+			if(url_port == 0) {
+				url_port = port;
+			}
+
+			iotx_net_init(&client->net, host, url_port, ca_crt);
+
+			ret = httpclient_connect(client);
+			if (0 != ret) {
+				log_err("httpclient_connect is error,ret = %d", ret);
+				httpclient_close(client);
+				break;
+			}
+
+			ret = httpclient_send_request(client, url, method, client_data);
+			if (0 != ret) {
+				log_err("httpclient_send_request is error,ret = %d", ret);
+				httpclient_close(client);
+				break;
+			}
 		}
+
+		iotx_time_init(&timer);
+		utils_time_countdown_ms(&timer, timeout_ms);
+#ifdef CONFIG_HTTP_OTA_WITH_BLE
+        bk_ble_register_sleep_state_callback(ble_sleep_cb);
+#endif
+		if ((NULL != client_data->response_buf)
+			|| (0 != client_data->response_buf_len)) {
+			ret = httpclient_recv_response(client, iotx_time_left(&timer), client_data);
+			if (ret < 0) {
+				log_err("httpclient_recv_response is error,ret = %d", ret);
+				http_flash_deinit();
+				httpclient_close(client);
+				break;
+			}
+		}
+
+		if (! client_data->is_more) {
+			//Close the HTTP if no more data.
+			log_info("close http channel");
+			httpclient_close(client);
+		}
+
+		ret = (ret >= 0) ? 0 : -1;
+	} while(0);
+
+	if (NULL != host) {
+		os_free(host);
+		host = NULL;
 	}
 
-	if (! client_data->is_more) {
-		//Close the HTTP if no more data.
-		log_info("close http channel");
-		httpclient_close(client);
+	if (NULL != path) {
+		os_free(path);
+		path = NULL;
 	}
-	return (ret >= 0) ? 0 : -1;
+
+	return ret;
 }
 
 int utils_get_response_code(httpclient_t *client)

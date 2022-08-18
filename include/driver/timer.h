@@ -161,6 +161,40 @@ uint32_t bk_timer_get_enable_status(void);
 bool bk_timer_is_interrupt_triggered(timer_id_t timer_id);
 
 /**
+ * @brief     Get the timer count value in ms or us
+ * 
+ * @param timer_id the timer id
+ * @param div the divider of clock frequency
+ * @param last_count last count of the timer
+ * @param timer_value_unit_t the time unit, ms or us
+ * @return the timer value in micro seconds
+ */
+uint64_t bk_timer_get_time(timer_id_t timer_id, uint32_t div, uint32_t last_count, timer_value_unit_t unit_type);
+
+
+/**
+ * @brief     This function set the delay based on the current running counter, which is different from bk_timer_start.
+ * 
+ * @param timer_id the timer id
+ * @param time_us time delay value of the timer by us
+ * @param callback the timer delay call back function
+ * @return 
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_timer_delay_with_callback(timer_id_t timer_id, uint64_t time_us, timer_isr_t callback);
+
+/**
+ * @brief     Cancel the timer delay task, reset timer and set ISR to NULL, it will not disable the timer, which is different from bk_timer_stop. 
+ * 
+ * @param timer_id the timer id
+ * @return 
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_timer_cancel(timer_id_t timer_id);
+
+/**
  * @}
  */
 

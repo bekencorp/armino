@@ -162,6 +162,9 @@ ethernet_input(struct pbuf *p, struct netif *netif)
     }
 #endif /* LWIP_IPV6 */
     else if (eth_addr_cmp(&ethhdr->dest, &ethbroadcast)) {
+	  if (memcmp(ethhdr->src.addr, netif->hwaddr, 6) == 0) {
+          goto free_and_return;
+	  }
       /* mark the pbuf as link-layer broadcast */
       p->flags |= PBUF_FLAG_LLBCAST;
     }

@@ -1,6 +1,12 @@
 #TODO optimize it
 menu "Driver"
 
+	menu "SOFTWARE_SUPPORT_CHIP"
+		config CHIP_SUPPORT
+			bool "Enable chip support"
+			default n
+	endmenu
+
 	menu "Watchdog"
 		config INT_WDT
 			bool "Enable Interrupt Watchdog"
@@ -17,6 +23,10 @@ menu "Driver"
 		config TASK_WDT_PERIOD_MS
 			int "Interrupt Watchdog Period(ms)"
 			default 60000
+
+		config NMI_WDT_EN
+			bool "Enable NMI Watchdog"
+			default n
 	endmenu
 
 	menu "UART"
@@ -89,6 +99,16 @@ menu "Driver"
 			bool "Support hardware TRNG"
 			default y
 	endmenu
+	
+	menu "SDIO_HOST"
+		config SDIO_HOST
+			bool "Enable sdio host"
+			default n
+
+		config SDIO_HOST_DEFAULT_CLOCK_FREQ
+			int "SDIO Host default clock freq"
+			default 200000
+	endmenu
 
 	menu "SDCARD"
 		config SDCARD_HOST
@@ -116,6 +136,10 @@ menu "Driver"
 	menu "FATFS"
 		config FATFS
 			bool "Support FATFS"
+			default n
+		
+		config FATFS_SDCARD
+			bool "Support SDCARD FATFS"
 			default n
 	endmenu
 
@@ -249,13 +273,21 @@ menu "Driver"
 			config AON_RTC
 				bool "Enable AON_RTC"
 				default n
-			
-			config AON_RTC_STATIS
-				bool "Enable AON_RTC Statis"
+
+			config AON_RTC_MANY_USERS
+				bool "Enable AON_RTC support many users"
+				default n
+
+			config AON_RTC_TEST
+				bool "Enable AON_RTC Test,F.E:Command line test"
+				default n
+
+			config AON_RTC_DEBUG
+				bool "Enable AON_RTC Debug"
 				default n
 	endmenu
 
-	menu "GPIO_WAKEUP_SUPPORT"
+	menu "GPIO"
 			config GPIO_WAKEUP_SUPPORT
 				bool "Enable GPIO WAKEUP system if at low voltage status"
 				default n
@@ -276,6 +308,10 @@ menu "Driver"
 				default 4
 				help
 				The value should be changed if need more then 4 gpio
+
+			config GPIO_SIMULATE_UART_WRITE
+				bool "Enable GPIO simulate uart write data"
+				default n
 	endmenu
 
 	menu "AON_PMU"
@@ -312,11 +348,24 @@ menu "Driver"
 			config PSRAM
 				bool "Enable PSRAM"
 				default n
+
 	endmenu
 	
 	menu "CALENDAR"
 			config CALENDAR
 				bool "Enable CALENDAR"
+				default n
+	endmenu
+	
+	menu "MPC"
+			config MPC
+				bool "Enable MPC"
+				default n
+	endmenu
+	
+	menu "PRRO"
+			config PRRO
+				bool "Enable PRRO"
 				default n
 	endmenu
 
@@ -346,10 +395,6 @@ menu "Driver"
 			int "DCO frequency"
 			default 120000000
 
-		config APLL_FREQ
-			int "APLL frequency"
-			default 98304000
-		
 		config SYSTEM_CTRL
 			bool "Enable system_ctrl"
 			default n
@@ -410,12 +455,12 @@ menu "Driver"
 	endmenu
 
 	menu "TIMER"
+		config TIMER
+			bool "Enable TIMER"
+			default y
+		
 		config TIMER_COUNTER
 			bool "Enable timer counter"
-			default y
-
-	      config TIMER
-			bool "Enable TIMER"
 			default y
 
 		config TIMER_SUPPORT_ID_BITS
@@ -439,6 +484,24 @@ menu "Driver"
 			bool "Enable saradc measure range divide"
 			default n
 	endmenu
+	
+	menu "FLASH"
+		config FLASH
+			bool "Enable flash"
+			default y
+
+		config FLASH_QUAD_ENABLE
+			bool "Enable flash quad enable"
+			default n
+		
+		config FLASH_SRC_CLK_60M
+			bool "Enable flash source clock 60M"
+			default n
+		
+		config FLASH_ORIGIN_API
+			bool "Enable flash old api"
+			default n
+	endmenu
 
 	config SUPPORT_IRDA
 		bool "Enable IRDA"
@@ -453,28 +516,12 @@ menu "Driver"
 		default n
 		
 	config DMA2D
-		bool "Enable DMA2D "
+		bool "Enable DMA2D"
 		default n
 
 	config JPEG_DEC
 		bool "Enable JPEGDEC Display"
 		default n
-
-	config FLASH
-		bool "Enable flash"
-		default y
-
-	config FLASH_QUAD_ENABLE
-		bool "Enable flash quad enable"
-		default n
-
-	config FLASH_SRC_CLK_60M
-		bool "Enable flash source clock 60M"
-		default n
-
-	config TIMER_INIT_EN
-		bool "Enable timer init"
-		default y
 
 	config EFUSE
 		bool "Enable efuse"
@@ -490,5 +537,9 @@ menu "Driver"
 
 	config AUDIO_DSP_IP_V1_0
 		bool "Enable audio dsp driver"
+		default n
+
+	config CHANGE_JTAG_GPIO
+		bool "Enable change jtag group"
 		default n
 endmenu

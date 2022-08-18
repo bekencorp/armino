@@ -24,7 +24,8 @@
 .global  riscv_get_instruct_cnt
 .global  arch_get_int_status
 
-.section .text
+//.section .text
+.section .itcm_sec_code, "ax"
 
 /*
  * void arch_disable_irq(void);
@@ -79,6 +80,7 @@ arch_fence:
 	fence iorw, iorw
 	ret
 
+#if 0
 /*
  * void arch_atomic_clear(u32 * lock_addr);
  */
@@ -96,6 +98,8 @@ arch_atomic_set:
 	c.mv  a0, t0
 //	bnez t0, swap_again
 	ret
+
+#endif
 
 /*
  * u64 riscv_get_mtimer(void);

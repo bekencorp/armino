@@ -1184,6 +1184,7 @@ static bk_err_t sdio_slave_get_valid_ongoing_tx_buf_ptr(sdio_chan_id_t chan_id, 
 		sdio_msg_t msg;
 
 		//pop out the buffer node from ongoing list
+#if CONFIG_SDIO_CHANNEL_EN
 		ret = sdio_chan_pop_ongoing_node(chan_id, SDIO_CHAN_TX, &head_p);
 		if(ret != BK_OK)
 		{
@@ -1200,7 +1201,7 @@ static bk_err_t sdio_slave_get_valid_ongoing_tx_buf_ptr(sdio_chan_id_t chan_id, 
 			rtos_enable_int(int_level);
 			return ret;
 		}
-
+#endif
 		//notify application can release buffer
 		msg.id = SDIO_WRITE_NODE_FINISH;
 		sdio_send_msg(&msg);
@@ -1287,13 +1288,16 @@ static bk_err_t sdio_slave_rx(uint32_t count)
 {
 	uint8_t *tar_addr_p = NULL;
 	//TODO: As SW doesn't check header chan_id, so here use default value.
+#if CONFIG_SDIO_CHANNEL_EN
 	sdio_chan_id_t chan_id = SDIO_CHAN_PLATFORM;
-
+#endif
 	//search current channel
 	//TODO:uses CHAN_ID_PLATFORM
 
 	//get current channel rx ptr
+#if CONFIG_SDIO_CHANNEL_EN
 	sdio_slave_get_valid_ongoing_rx_buf_ptr(chan_id, count, &tar_addr_p);
+#endif
 
 	//save data to rx buffer
 	if(tar_addr_p)
@@ -1306,7 +1310,9 @@ static bk_err_t sdio_slave_rx(uint32_t count)
 	}
 
 	//update rx transaction len
+#if CONFIG_SDIO_CHANNEL_EN
 	sdio_slave_add_ongoing_buf_trans_len(chan_id, SDIO_CHAN_RX, count);
+#endif
 
 	return BK_OK;
 }
@@ -1435,7 +1441,9 @@ static bk_err_t sdio_slave_tx(sdio_chan_id_t chan_id, uint32_t len)
 	uint8_t *src_addr_p = NULL;
 
 	//get current channel tx ptr
+#if CONFIG_SDIO_CHANNEL_EN
 	sdio_slave_get_valid_ongoing_tx_buf_ptr(chan_id, len, &src_addr_p);
+#endif
 
 	//save data to tx fifo
 	if(src_addr_p)
@@ -1448,7 +1456,9 @@ static bk_err_t sdio_slave_tx(sdio_chan_id_t chan_id, uint32_t len)
 	}
 
 	//update tx transaction len
+#if CONFIG_SDIO_CHANNEL_EN
 	sdio_slave_add_ongoing_buf_trans_len(chan_id, SDIO_CHAN_TX, len);
+#endif
 
 	return BK_OK;
 }
@@ -1556,13 +1566,17 @@ static void sdio_thread(void *arg)
 			{
 				case SDIO_READ_NODE_FINISH:
 				{
+#if CONFIG_SDIO_CHANNEL_EN
 					sdio_chan_notify_cb(SDIO_CHAN_PLATFORM, SDIO_CHAN_RX);
+#endif
 					break;
 				}
 
 				case SDIO_WRITE_NODE_FINISH:
 				{
+#if CONFIG_SDIO_CHANNEL_EN
 					sdio_chan_notify_cb(SDIO_CHAN_PLATFORM, SDIO_CHAN_TX);
+#endif
 					break;
 				}
 
@@ -1648,6 +1662,8 @@ static void sdio_slave_isr(void)
 				if(((sdio_cmd52_func_arg0_t) cmd52_arg0).stop == 1)
 				{
 					sdio_msg_t  msg;
+
+#if CONFIG_SDIO_CHANNEL_EN
 					sdio_node_ptr_t head_p = NULL;
 					//pop out the buffer node from ongoing list
 					//TODO:channel value is fixed.
@@ -1656,7 +1672,7 @@ static void sdio_slave_isr(void)
 					//push to rx finish list
 					//TODO:channel value is fixed.
 					sdio_chan_push_finish_list(SDIO_CHAN_PLATFORM, SDIO_CHAN_RX, head_p, NULL, 1);
-
+#endif
 					//notify data finish
 					msg.id = SDIO_READ_NODE_FINISH;
 					sdio_send_msg(&msg);
@@ -1759,6 +1775,8 @@ static bk_err_t sdio_slave_hw_init(void)
 	bk_err_t ret = BK_OK;
 
 	sdio_hal_set_host_slave_mode(SDIO_SLAVE_MODE);
+
+	sdio_hal_slave_set_samp_sel(1);
 
 	//clock
 	sys_hal_set_sdio_clk_en(true);

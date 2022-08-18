@@ -18,7 +18,8 @@
 extern "C" {
 #endif
 
-#include "bk_private/reset_reason.h"
+#include <common/bk_typedef.h>
+
 #if (CONFIG_SOC_BK7271)
 #include "pmu.h"
 #endif
@@ -100,7 +101,7 @@ enum
 	CMD_BLE_RF_BIT_CLR,
 	CMD_BLE_RF_BIT_GET,
 
-	#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+	#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 	CMD_BLE_RF_PTA_EN,
 	CMD_BLE_RF_PTA_DIS,
 	#endif
@@ -111,7 +112,7 @@ enum
 	CMD_SET_SCTRL_RETETION,
 	#endif // (!CONFIG_SOC_BK7231)
 
-	#if (!CONFIG_SOC_BK7231) && (!CONFIG_SOC_BK7231N) && (!CONFIG_SOC_BK7236) && (!CONFIG_SOC_BK7256XX) && (!CONFIG_SOC_BK7256_CP1)
+	#if (!CONFIG_SOC_BK7231) && (!CONFIG_SOC_BK7231N) && (!CONFIG_SOC_BK7236A) && (!CONFIG_SOC_BK7256XX)
 	CMD_QSPI_VDDRAM_VOLTAGE,
 	CMD_QSPI_IO_VOLTAGE,
 	#endif // (!CONFIG_SOC_BK7231)
@@ -159,10 +160,10 @@ enum
 	CMD_SCTRL_UNCONDITIONAL_MAC_UP,
 
 	#endif // (CONFIG_SOC_BK7251) || (CONFIG_SOC_BK7271)
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7256XX)
     CMD_SCTRL_FIX_DPLL_DIV,
 #endif
-    
+
     CMD_SCTRL_MODEM_AHB_CLOCK_DISABLE,
 	CMD_SCTRL_MODEM_AHB_CLOCK_ENABLE,
     CMD_SCTRL_MODEM_CLOCK480M_DISABLE,
@@ -234,7 +235,7 @@ enum
 #define BLK_BIT_AUDIO_PLL                        (1 << 16)
 #define BLK_BIT_AUDIO_RANDOM_GENERATOR           (1 << 15)
 #define BLK_BIT_USB                              (1 << 14)
-#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 #define BLK_BIT_AUDIO_RANDOM_GENERATOR           (1 << 15)
 #elif (CONFIG_SOC_BK7251)
 #define BLK_BIT_NC                               (1 << 19)
@@ -300,7 +301,7 @@ enum
 
 #if (CONFIG_SOC_BK7231U)
 #define DEFAULT_TXID_XTAL                        (0x19)
-#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 #if (CONFIG_XTAL_FREQ_40M)
 #define DEFAULT_TXID_XTAL                        (0x70)
 #else
@@ -310,7 +311,7 @@ enum
 #define DEFAULT_TXID_XTAL                        (0x10)
 #endif // (CONFIG_SOC_BK7231U)
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 #define PARAM_XTALH_CTUNE_MASK                   (0x7F)
 
 #define PARAM_AUD_DAC_GAIN_MASK                  (0x1F)
@@ -325,7 +326,7 @@ enum
 #define LPO_SELECT_32K_XTAL                         (0x1)
 #define LPO_SELECT_32K_DIV                          (0x2)
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 #define SW_RETENTION_WDT_FLAG                       (1 << 16)
 #define SW_RETENTION_WDT_FLAG_POS                   (16)
 #define SW_RETENTION_VAL_MASK                       (0XFFFF)
@@ -376,6 +377,24 @@ typedef enum
 
 } CHARGE_STEP;
 
+typedef enum {
+	RESET_SOURCE_POWERON = 0x0,
+	RESET_SOURCE_REBOOT = 0x1,
+	RESET_SOURCE_WATCHDOG = 0x2,
+
+	RESET_SOURCE_DEEPPS_GPIO = 0x3,
+	RESET_SOURCE_DEEPPS_RTC = 0x4,
+
+	RESET_SOURCE_CRASH_ILLEGAL_JUMP = 0x5,
+	RESET_SOURCE_CRASH_UNDEFINED = 0x6,
+	RESET_SOURCE_CRASH_PREFETCH_ABORT = 0x7,
+	RESET_SOURCE_CRASH_DATA_ABORT = 0x8,
+	RESET_SOURCE_CRASH_UNUSED = 0x9,
+
+	RESET_SOURCE_DEEPPS_USB = 0xa,
+	RESET_SOURCE_UNKNOWN = 0xb,
+} RESET_SOURCE_STATUS;
+
 typedef struct charge_oper_st
 {
     CHARGE_TYPE type;
@@ -419,6 +438,10 @@ typedef struct charge_oper_st
 #define EFUSE_CTRL_MAC_DISABLE_WRITE                 (1 << 1)
 #define EFUSE_CTRL_ALL_AREA_DISABLE_WRITE            (1 << 0)
 
+typedef void (*sctrl_cal_bias_cb_t)(void);
+typedef void (*sctrl_wifi_phy_wakeup_rf_reinit_cb_t)(void);
+typedef void (*sctrl_wifi_phy_wakeup_wifi_reinit_cb_t)(void);
+
 /*******************************************************************************
 * Function Declarations
 *******************************************************************************/
@@ -444,6 +467,9 @@ extern int bk_init_deep_wakeup_gpio_status(void);
 extern UINT32 sctrl_get_deep_sleep_gpio_last_floating_map(void);
 extern void sctrl_set_deep_sleep_gpio_last_floating_map(UINT32);
 extern void sctrl_set_deep_sleep_gpio_floating_map(UINT32);
+extern void sctrl_register_cal_bias_callback(sctrl_cal_bias_cb_t cb);
+extern void sctrl_register_wifi_phy_wakeup_rf_reinit_callback(sctrl_wifi_phy_wakeup_rf_reinit_cb_t cb);
+extern void sctrl_register_wifi_phy_wakeup_wifi_reinit_callback(sctrl_wifi_phy_wakeup_wifi_reinit_cb_t cb);
 
 #ifdef __cplusplus
 }

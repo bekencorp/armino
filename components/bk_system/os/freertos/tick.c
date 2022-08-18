@@ -28,6 +28,11 @@ void bk_tick_handle(uint8_t arg)
 {
 	GLOBAL_INT_DECLARATION();
 
+#if (CONFIG_COMMON_IO && CONFIG_INT_WDT)
+	 extern void bk_wdt_cb();
+	 bk_wdt_cb();
+#endif
+
 #if CONFIG_TICK_CALI
 	if (!mcu_ps_need_pstick())
 		return;

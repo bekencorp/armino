@@ -35,12 +35,11 @@
 #include "gpio_map.h"
 #include "gpio_driver.h"
 #include <driver/gpio.h>
-#include "BK7256_RegList.h"
 #include <driver/int.h>
 #include "dma2d_hal.h"
 #include <driver/hal/hal_dma2d_types.h>
-#include "BK7256_RegList.h"
 #include <driver/dma2d.h>
+#include <modules/pm.h>
 
 #define DMA2D_TIMEOUT_ABORT           (1000U)  /**<  1s  */
 #define DMA2D_TIMEOUT_SUSPEND         (1000U)  /**<  1s  */
@@ -63,11 +62,11 @@ static void dma2d_isr_common(void);
   */
 bk_err_t bk_dma2d_driver_init(dma2d_config_t *dma2d)
 {
-	if(sys_drv_dma2d_set(1, 1) != 0) {
-		os_printf("dma2d sys clk config error \r\n");
-		return BK_FAIL;
-	}
-
+//if(sys_drv_dma2d_set(0, 0) != 0) {
+//		os_printf("dma2d sys clk config error \r\n");
+//		return BK_FAIL;
+//	}
+	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_DMA2D, PM_POWER_MODULE_STATE_ON);
 #if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
 	os_memset(&s_dma2d_isr, 0, sizeof(s_dma2d_isr));
 	bk_int_isr_register(INT_SRC_DMA2D, dma2d_isr, NULL);
@@ -87,6 +86,7 @@ bk_err_t bk_dma2d_driver_deinit(void)
 {
 	bk_int_isr_unregister(INT_SRC_DMA2D);
 	dma2d_hal_deinit();
+	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_DMA2D, PM_POWER_MODULE_STATE_OFF);
 	return BK_OK;
 }
 

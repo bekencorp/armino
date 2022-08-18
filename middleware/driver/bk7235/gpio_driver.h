@@ -40,6 +40,13 @@ typedef enum {
        GPIO_I2S_MAP_MODE_MAX,			/**< Invalid mode*/
 } gpio_i2s_map_mode_t;
 
+typedef enum {
+       GPIO_JTAG_MAP_MODE = 0,	       /**<GPIO20~GPIO21 is used for jtag */
+       GPIO_JTAG_MAP_MODE1,		       /**<GPIO0~GPIO1 is used for jtag */
+       GPIO_JTAG_MAP_MODE_MAX,			/**< Invalid mode*/
+} gpio_jtag_map_mode_t;
+
+
 bk_err_t gpio_dev_map(gpio_id_t gpio_id, gpio_dev_t dev);
 bk_err_t gpio_dev_unmap(gpio_id_t gpio_id);
 bk_err_t gpio_spi_sel(gpio_spi1_map_mode_t gpio_spi_sel_mode);
@@ -47,10 +54,33 @@ bk_err_t gpio_sdio_sel(gpio_sdio_map_mode_t gpio_sdio_sel_mode);
 bk_err_t gpio_sdio_one_line_sel(gpio_sdio_map_mode_t gpio_sdio_sel_mode);
 bk_err_t gpio_i2c1_sel(gpio_i2c1_map_mode_t gpio_i2c1_sel_mode);
 bk_err_t gpio_i2s_sel(gpio_i2s_map_mode_t gpio_i2s_sel_mode);
+bk_err_t gpio_jtag_sel(gpio_jtag_map_mode_t gpio_jtag_sel_mode);
+
 
 #if CONFIG_GPIO_WAKEUP_SUPPORT
 bk_err_t gpio_enter_low_power(void *param);
 bk_err_t gpio_exit_low_power(void *param);
 void gpio_get_interrupt_status(uint32_t *h_status, uint32_t *l_status);
+#endif
+
+#if CONFIG_GPIO_SIMULATE_UART_WRITE
+/**
+ * @brief	  Uses specifies GPIO to simulate UART write data
+ *
+ * This API Uses specifies GPIO to simulate UART write data:
+ *	 - Uses CPU poll wait to do delay, so it blocks CPU.
+ *	 - The caller should confirm the specifies GPIO is not used by other APP.
+ *
+ * @param *buff  Which buffers will be write with GPIO.
+ * @param len    How many bytes data will be wrote.
+ * @param gpio_id  Which GPIO will be simulated as UART write data.
+ * @param div    Baud rate == 1Mbps/(1+div)
+ *
+ * @attention 1. As this function just simulate uart write, it blocks the CPU,
+ *               so please don't write too much data.
+ *
+ * @return
+ */
+void gpio_simulate_uart_write(unsigned char *buff, uint32_t len, gpio_id_t gpio_id, uint32_t div);
 #endif
 

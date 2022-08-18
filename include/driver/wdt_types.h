@@ -30,6 +30,7 @@ extern "C" {
 #define BK_ERR_WDT_DRIVER_NOT_INIT    (BK_ERR_WDT_BASE - 1) /**< WDT driver not init */
 #define BK_ERR_WDT_NOT_INIT           (BK_ERR_WDT_BASE - 2) /**< WDT not init */
 #define BK_ERR_WDT_INVALID_PERIOD     (BK_ERR_WDT_BASE - 3) /**< WDT invalid period */
+#define BK_ERR_WDT_DEBUG_DISABLED     (BK_ERR_WDT_BASE - 4) /**< WDT disabled via cmdline flag */
 
 /**
  * @}

@@ -1,39 +1,39 @@
-// Copyright 2020-2021 Beken 
-// 
-// Licensed under the Apache License, Version 2.0 (the "License");           
-// you may not use this file except in compliance with the License.            
-// You may obtain a copy of the License at                                     
-//                                                                             
-//     http://www.apache.org/licenses/LICENSE-2.0                              
-//                                                                             
-// Unless required by applicable law or agreed to in writing, software         
-// distributed under the License is distributed on an "AS IS" BASIS,         
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.    
-// See the License for the specific language governing permissions and         
-// limitations under the License.                                              
+// Copyright 2020-2021 Beken
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// Copyright 2020-2021 Beken 
-// 
-// Licensed under the Apache License, Version 2.0 (the "License");           
-// you may not use this file except in compliance with the License.            
-// You may obtain a copy of the License at                                     
-//                                                                             
-//     http://www.apache.org/licenses/LICENSE-2.0                              
-//                                                                             
-// Unless required by applicable law or agreed to in writing, software         
-// distributed under the License is distributed on an "AS IS" BASIS,         
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.    
-// See the License for the specific language governing permissions and         
-// limitations under the License.                                              
-
-                            
-#include <common/bk_include.h>          
-#include "aon_pmu_hal.h"        
+// Copyright 2020-2021 Beken
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 
-void aon_pmu_drv_init()               
-{                            
-    aon_pmu_hal_init();             
+#include <common/bk_include.h>
+#include "aon_pmu_hal.h"
+
+
+void aon_pmu_drv_init()
+{
+    aon_pmu_hal_init();
 }
 void aon_pmu_drv_set_sleep_parameters(uint32_t value)
 {
@@ -95,6 +95,14 @@ uint32_t aon_pmu_drv_reg_get(pmu_reg_e reg)
 {
 	return aon_pmu_hal_reg_get(reg);
 }
+void aon_pmu_drv_lpo_src_set(uint32_t lpo_src)
+{
+    aon_pmu_hal_lpo_src_set(lpo_src);
+}
+uint32_t aon_pmu_drv_lpo_src_get()
+{
+	return aon_pmu_hal_lpo_src_get();
+}
 
 #if (CONFIG_SYSTEM_CTRL)
 void aon_pmu_drv_wdt_rst_dev_enable(void)
@@ -103,3 +111,7 @@ void aon_pmu_drv_wdt_rst_dev_enable(void)
 }
 #endif
 
+uint32_t aon_pmu_drv_bias_cal_get()
+{
+	return aon_pmu_hal_bias_cal_get();
+}

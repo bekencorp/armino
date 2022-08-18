@@ -43,6 +43,8 @@ list(APPEND srcs
 	"hal/calendar_ll.c"
 	"hal/flash_hal_debug.c"
 	"hal/flash_ll.c"
+	"hal/sdio_host_hal_debug.c"
+	"hal/sdio_host_ll.c"
 )
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}")
 
@@ -50,7 +52,7 @@ armino_build_get_property(sdkconfig_header SDKCONFIG_HEADER)
 armino_build_get_property(config_dir CONFIG_DIR)
 
 #TODO add support to generate ELF with/without bootloader
-target_linker_script(${COMPONENT_LIB} INTERFACE "${target}_bsp.ld")
+target_linker_script_judge()
 
 set(LD_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 

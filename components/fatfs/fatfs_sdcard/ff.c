@@ -3062,7 +3062,7 @@ FRESULT find_volume (	/* FR_OK(0): successful, !=0: any error occurred */
 	FATFS *fs;
 	UINT i;
 	
-	os_printf("find_volume 1\r\n");
+	//os_printf("find_volume 1\r\n");
 
 	/* Get logical drive number */
 	*rfs = 0;
@@ -3078,7 +3078,7 @@ FRESULT find_volume (	/* FR_OK(0): successful, !=0: any error occurred */
 	*rfs = fs;							/* Return pointer to the filesystem object */
 
 	mode &= (BYTE)~FA_READ;				/* Desired access mode, write access or not */
-	os_printf("mode=%x\r\n", mode);
+	//os_printf("mode=%x\r\n", mode);
 	if (fs->fs_type != 0) {				/* If the volume has been mounted */
 		stat = disk_status(fs->pdrv);
 		if (!(stat & STA_NOINIT)) {		/* and the physical drive is kept initialized */

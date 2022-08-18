@@ -74,7 +74,7 @@ int _fill_conn_string(char *dst, int len, const char *fmt, ...)
         *ptr = '\0';
     }
 
-    log_debug("dst(%d) = %s.\n", rc, dst);
+    // log_debug("dst(%d) = %s.\n", rc, dst);
     return 0;
 }
 
@@ -108,7 +108,7 @@ void guider_print_dev_guider_info(iotx_device_info_pt dev,
     log_debug("%20s : %-s\n", "ProductKey", dev->product_key);
     log_debug("%20s : %-s\n", "DeviceName", dev->device_name);
     log_debug("%20s : %-s\n", "DeviceID", dev->device_id);
-    log_debug("%20s : %-s\n", "DeviceSecret", dev->device_secret);  /* tobe remove */
+    // log_debug("%20s : %-s\n", "DeviceSecret", dev->device_secret);  /* tobe remove */
     log_debug("%s\n", "....................................................");
     log_debug("%20s : %-s\n", "PartnerID Buf", partner_id);
     log_debug("%20s : %-s\n", "ModuleID Buf", module_id);
@@ -244,6 +244,9 @@ int iotx_guider_authenticate(void)
     iotx_conn_info_pt   conn = iotx_conn_info_get();
     char               *req_str = NULL;
     char               *mac_str = mqtt_get_mac_str();
+    char               *host_name = mqtt_get_host_name();
+    char               *username = mqtt_get_username();
+    char               *password = mqtt_get_password();
     int                 gw = 0;
     int                 ext = 0;
 
@@ -292,7 +295,9 @@ int iotx_guider_authenticate(void)
     //                   dev->product_key,
     //                   guider_get_domain());
     _fill_conn_string(conn->host_name, sizeof(conn->host_name),
-                      "222.71.10.2");
+                     NULL == host_name? "222.71.10.2" : host_name);
+    _fill_conn_string(conn->username, sizeof(conn->username), "%s", username);
+    _fill_conn_string(conn->password, sizeof(conn->password), "%s", password);
 #endif
     // _fill_conn_string(conn->username, sizeof(conn->username),
     //                   "%s&%s",

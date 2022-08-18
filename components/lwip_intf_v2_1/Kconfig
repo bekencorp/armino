@@ -33,6 +33,10 @@ menu "LwIP 2.1.2"
 		bool "Enable MIDEA"
 		depends on LWIP
 		default n
+
+	config LWIP_FAST_DHCP
+		bool "Enable Fast DHCP(use previous IP)"
+		default n
 		
 	#TODO optimize it
         choice LWIP_MEM

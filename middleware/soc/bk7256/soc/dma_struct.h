@@ -19,7 +19,7 @@ extern "C" {
 #endif
 
 typedef volatile struct {
-    //REG_0x00~REG_0x2F
+    //REG_0x00~REG_0x5F
     struct {
         union {
             struct {
@@ -63,7 +63,7 @@ typedef volatile struct {
                 * 0xa: Jpeg rx Req
                 * 0xb~0xf: Reserved
                 */
-                uint32_t src_req_mux:         4; /**< bit[0:3] source request mux */
+                uint32_t src_req_mux:         5; /**< bit[0:4] source request mux */
 
                /* Destination Request Mux:
                 * 0x0: DTCM/AHB_MEM Write Req
@@ -80,8 +80,8 @@ typedef volatile struct {
                 * 0xb: lcd data tx Req
                 * 0xc~0xf: Reserved
                 */
-                uint32_t dest_req_mux:        4; /**< bit[4:7] dest request mux */
-                uint32_t reserved0:           4; /**< bit[8:11] */
+                uint32_t dest_req_mux:        5; /**< bit[5:9] dest request mux */
+                uint32_t reserved0:           2; /**< bit[10:11] */
                 uint32_t src_read_interval:   4; /**< bit[12:15] source read operate interval,unit is cycle */
                 uint32_t dest_write_interval: 4; /**< bit[16:19] destination write operate interval,unit is cycle */
                 uint32_t reserved1:           12; /**< bit[20:31] */
@@ -90,7 +90,24 @@ typedef volatile struct {
         } req_mux;
     } config_group[SOC_DMA_CHAN_NUM_PER_UNIT];
 
-    //REG_0x30~REG_0x35
+    uint32_t reserved1[0x80 - 0x5f - 1];
+    //REG_0x80~REG_0x8b
+    uint32_t src_pause_addr[SOC_DMA_CHAN_NUM_PER_UNIT];
+
+    uint32_t reserved2[0x90 - 0x8b - 1];
+    //REG_0x90~REG_0x9b
+    uint32_t dest_pause_addr[SOC_DMA_CHAN_NUM_PER_UNIT];
+
+    uint32_t reserved3[0xa0 - 0x9b - 1];
+    //REG_0xa0~REG_0xab
+    uint32_t src_rd_addr[SOC_DMA_CHAN_NUM_PER_UNIT];
+
+    uint32_t reserved4[0xb0 - 0xab - 1];
+    //REG_0xb0~REG_0xbb
+    uint32_t dest_wr_addr[SOC_DMA_CHAN_NUM_PER_UNIT];
+
+    uint32_t reserved5[0xc0 - 0xbb - 1];
+    //REG_0xc0~REG_0xcb
     struct {
         union {
             struct {
@@ -104,9 +121,8 @@ typedef volatile struct {
         } status;
     } status_group[SOC_DMA_CHAN_NUM_PER_UNIT];
 
-    uint32_t reserved0;
-
-    //REG_0x37
+    uint32_t reserved6[0xd0 - 0xcb - 1];
+    //REG_0xd0
     union {
         struct {
             uint32_t prio_mode: 1; /**< bit[0] prioprity mode */
@@ -115,32 +131,22 @@ typedef volatile struct {
         uint32_t v;
     } prio_mode;
 
-    //REG_0x38
+    //REG_0xd1
     union {
         struct {
-            uint32_t finish_int_status:      6; /**< bit[0:5] finish interrupt status */
-            uint32_t reserved0:              2; /**< bit[6:7] */
-            uint32_t half_finish_int_status: 6; /**< bit[8:13] half finish interrupt status */
-            uint32_t reserved1:              18; /**< bit[14:31] */
+            uint32_t finish_int_status:      12; /**< bit[0:11] finish interrupt status */
+            uint32_t reserved0:              4;  /**< bit[12:15] */
+            uint32_t half_finish_int_status: 12; /**< bit[16:27] half finish interrupt status */
+            uint32_t reserved1:              4;  /**< bit[28:31] */
         };
         uint32_t v;
     } int_status;
 
-    uint32_t reserved1[0x40 - 0x38 - 1];
-    //REG_0x40~REG_0x45
-    uint32_t src_pause_addr[SOC_DMA_CHAN_NUM_PER_UNIT];
-    uint32_t reserved2[2];
-    //REG_0x48~REG_0x4D
-    uint32_t dest_pause_addr[SOC_DMA_CHAN_NUM_PER_UNIT];
-    uint32_t reserved3[2];
-    //REG_0x50~REG_0x55
-    uint32_t src_rd_addr[SOC_DMA_CHAN_NUM_PER_UNIT];
-    uint32_t reserved4[2];
-    //REG_0x58~REG_0x5D
-    uint32_t dest_wr_addr[SOC_DMA_CHAN_NUM_PER_UNIT];
+
 } dma_hw_t;
 
 #ifdef __cplusplus
 }
 #endif
+
 

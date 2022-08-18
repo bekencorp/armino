@@ -1,0 +1,24 @@
+From 2e90a44367c869e6164733183b38115cef2fb638 Mon Sep 17 00:00:00 2001
+From: "ming.liu" <ming.liu@ex.bekencorp.com>
+Date: Mon, 8 Aug 2022 11:48:07 +0800
+Subject: [PATCH] Not build bignum.c for Beken mbedtls
+
+---
+ library/CMakeLists.txt | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/library/CMakeLists.txt b/library/CMakeLists.txt
+index 07599f5..c4ac34e 100644
+--- a/library/CMakeLists.txt
++++ b/library/CMakeLists.txt
+@@ -17,7 +17,6 @@ set(src_crypto
+     asn1parse.c
+     asn1write.c
+     base64.c
+-    bignum.c
+     camellia.c
+     ccm.c
+     chacha20.c
+-- 
+2.9.5
+

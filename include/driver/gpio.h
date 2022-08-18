@@ -302,6 +302,21 @@ bk_err_t bk_gpio_register_wakeup_source(gpio_id_t gpio_id, gpio_int_type_t int_t
  */
 bk_err_t bk_gpio_unregister_wakeup_source(gpio_id_t gpio_id);
 
+/**
+ * @brief     Get the awakened GPIO ID.
+ *
+ * This API is used to get the GPIO_ID of the current wakeup.
+ * If the GPIO ID is GPIO_NUM, please check that the registered interrupt wake up
+ * GPIO ID is correct.And after the GPIO initialization is complete, the wake up ID
+ * is registered
+ *
+ * @return
+ *    - GPIO_ID: succeed
+ *    - GPIO_NUM: error invalid gpio id
+ *
+ */
+gpio_id_t bk_gpio_get_wakeup_gpio_id();
+
 #else
 /**
  * @brief     Register save all gpio reg value

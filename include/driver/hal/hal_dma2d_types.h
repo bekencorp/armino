@@ -118,6 +118,11 @@ typedef enum {
 	DMA2D_M2M_BLEND_BG        /**< DMA2D memory to memory with blending transfer mode and fixed color BG */
 } dma2d_mode_t;
 
+typedef enum {
+	NO_REVERSE = 0,  /**<in output rgb888 formart, not reverse data byte by byte*/
+	REVERSE,         /**< in output rgb888 formart, reverse data byte by byte */
+} rgb888_dataout_reverse_t;
+	
 
 /** DMA2D_Output_Color_Mode */
 typedef enum {
@@ -168,6 +173,13 @@ typedef enum
 	DMA2D_CFG_ERROR_STATUS
 }dma2d_int_status_t;
 
+typedef enum {
+	MAX_TRANS_256BYTES = 0,
+	TRANS_192BYTES,
+	TRANS_128BYTES,
+	TRANS_64BYTES
+} dma2d_trans_ability_t;
+
 /**
   * @}
   */
@@ -190,6 +202,9 @@ typedef struct
 	uint32_t       red_blue_swap;      /**< Select regular mode (RGB or ARGB) or swap mode (BGR or ABGR)
 	                                            for the output pixel format converter.
 	                                            This parameter can be one value of @ref DMA2D_RB_Swap. */
+	rgb888_dataout_reverse_t data_reverse;  /**< in output rgb888 formart, reverse data byte by byte.. */
+	dma2d_trans_ability_t trans_ability;    /**< set defult MAX_TRANS_256BYTES*/
+
 } dma2d_init_t;
 
 /** DMA2D Layer structure definition*/

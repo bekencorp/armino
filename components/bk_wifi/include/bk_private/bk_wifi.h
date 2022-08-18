@@ -85,6 +85,7 @@ int bk_wifi_get_beacon_rssi(void);
 void bk_wifi_dump_ps_regs(void);
 void bk_wifi_udelay(uint32_t us);
 void wlan_hw_reinit(void);
+void wlan_set_multicast_flag(void);
 #ifdef CONFIG_COMPONENTS_P2P_GO
 uint8_t bk_wlan_ap_get_default_channel(void);
 void app_p2p_rw_event_func(void *new_evt);

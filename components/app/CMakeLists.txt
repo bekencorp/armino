@@ -34,5 +34,5 @@ endif()
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
 	REQUIRES bk_wifi bk_cli lwip_intf_v2_0 at_server bk_rtos
-	PRIV_REQUIRES bk_common
+	PRIV_REQUIRES bk_common audio_transfer aud_intf
 	)

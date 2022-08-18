@@ -74,7 +74,7 @@ bk_err_t bk_psram_driver_deinit(void);
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-bk_err_t bk_psram_init(uint32_t mode);
+bk_err_t bk_psram_init(void);
 
 /**
  * @brief     Deinit the PSRAM HW

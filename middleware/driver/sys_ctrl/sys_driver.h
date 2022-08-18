@@ -40,7 +40,7 @@ void sys_drv_init();
 /* Platform Misc End **/
 
 
-#if CONFIG_USB    //功能宏开关 
+#if CONFIG_USB    //功能宏开关
 void sys_drv_usb_power_down(void);
 
 void sys_drv_usb_clock_ctrl(bool ctrl, void *arg);
@@ -84,6 +84,12 @@ void sys_drv_set_qspi_io_voltage(uint32_t param);
 
 void sys_drv_qspi_clk_sel(uint32_t param);
 
+void sys_drv_nmi_wdt_set_clk_div(uint32_t value);
+
+uint32_t sys_drv_nmi_wdt_get_clk_div(void);
+
+void sys_drv_trng_disckg_set(uint32_t value);
+
 #if CONFIG_SDIO_V2P0
 void sys_driver_set_sdio_clk_en(uint32_t value);
 
@@ -95,19 +101,17 @@ void sys_driver_set_sdio_clk_sel(uint32_t value);
 uint32_t sys_driver_get_sdio_clk_sel();
 #endif
 
-void sys_drv_efuse_read_byte(uint32_t param);
-
-void sys_drv_efuse_write_byte(uint32_t param);
-
 void sys_drv_enter_deep_sleep(void * param);
 
-void sys_drv_enter_normal_sleep(UINT32 peri_clk);
+void sys_drv_enter_normal_sleep(uint32_t peri_clk);
 
 void sys_drv_enter_normal_wakeup();
 void sys_drv_enter_low_voltage();
 
 /*for low power  function start*/
 void sys_drv_module_power_ctrl(power_module_name_t module,power_module_state_t power_state);
+
+int32 sys_drv_module_power_state_get(power_module_name_t module);
 
 void sys_drv_module_RF_power_ctrl (module_name_t module,power_module_state_t power_state);
 
@@ -132,6 +136,8 @@ void sys_drv_usb_wakeup_enable(uint8_t index);
 void sys_drv_cpu_clk_div_set(uint32_t core_index, uint32_t value);
 uint32_t sys_drv_cpu_clk_div_get(uint32_t core_index);
 void sys_drv_low_power_hardware_init();
+int32 sys_drv_lp_vol_set(uint32_t value);
+uint32_t sys_drv_lp_vol_get();
 /*for  low power  function end*/
 uint32 sys_drv_get_device_id(void); // CMD_GET_DEVICE_ID
 uint32 sys_drv_get_chip_id(void); // CMD_GET_CHIP_ID
@@ -169,8 +175,6 @@ dev_clk_dco_div_t sys_drv_get_dco_div(void);
 void sys_drv_arm_wakeup_enable(uint32_t param);
 void sys_drv_arm_wakeup_disable(uint32_t param);
 uint32_t sys_drv_get_arm_wakeup(void);
-int32 sys_drv_func_clk_pwr_down(uint32 param);
-int32 sys_drv_func_clk_pwr_up(uint32 param);
 /*wake up control end*/
 
 void sys_drv_sadc_int_enable(void);
@@ -314,6 +318,7 @@ uint32_t sys_drv_aud_vdd1v5_en(uint32_t value);
 uint32_t sys_drv_aud_mic1_en(uint32_t value);
 uint32_t sys_drv_aud_mic2_en(uint32_t value);
 uint32_t sys_drv_aud_audpll_en(uint32_t value);
+uint32_t sys_drv_aud_aud_en(uint32_t value);
 uint32_t sys_drv_aud_dacdrv_en(uint32_t value);
 uint32_t sys_drv_aud_bias_en(uint32_t value);
 uint32_t sys_drv_aud_dacr_en(uint32_t value);
@@ -370,6 +375,7 @@ uint32_t sys_drv_set_clk_div_mode1_clkdiv_jpeg(uint32_t value);
 uint32_t sys_drv_set_jpeg_disckg(uint32_t value);
 uint32_t sys_drv_set_cpu_clk_div_mode1_clkdiv_bus(uint32_t value);
 uint32_t sys_drv_video_power_en(uint32_t value);
+uint32_t sys_drv_set_auxs(uint32_t cksel, uint32_t ckdiv);
 
 /**  jPEG End **/
 
@@ -381,12 +387,14 @@ uint32_t sys_drv_psram_dpll_enable(uint32_t value);
 uint32_t sys_drv_psram_ldo_enable(uint32_t value);
 uint32_t sys_drv_psram_clk_sel(uint32_t value);
 uint32_t sys_drv_psram_set_clkdiv(uint32_t value);
+uint32_t sys_drv_psram_power_enable(void);
+uint32_t sys_drv_psram_psldo_vsel(uint32_t value);
 
 /**  psram End **/
 
 uint32_t sys_drv_cali_dpll(uint32_t param);
 uint32_t sys_drv_bias_reg_set(uint32_t param);
-uint32_t sys_drv_bias_reg_clean(uint32_t param); 
+uint32_t sys_drv_bias_reg_clean(uint32_t param);
 uint32_t sys_drv_bias_reg_read(void);
 uint32_t sys_drv_bias_reg_write(uint32_t param);
 #if 0
@@ -427,9 +435,11 @@ void sys_drv_set_ana_pwd_gadc_buf(uint32_t value);
 void sys_drv_set_ana_vref_sel(uint32_t value);
 void sys_drv_set_ana_cb_cal_manu(uint32_t value);
 void sys_drv_set_ana_cb_cal_trig(uint32_t value);
+void sys_drv_set_ana_cb_cal_manu_val(uint32_t value);
 void sys_drv_set_ana_vlsel_ldodig(uint32_t value);
 void sys_drv_set_ana_vhsel_ldodig(uint32_t value);
 void sys_drv_set_ana_vctrl_sysldo(uint32_t value);
+void sys_drv_set_ana_vtempsel(uint32_t value);
 
 uint32_t sys_drv_get_cpu_storage_connect_op_select_flash_sel(void);
 void sys_drv_set_cpu_storage_connect_op_select_flash_sel(uint32_t value);

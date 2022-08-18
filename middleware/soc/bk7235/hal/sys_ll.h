@@ -123,6 +123,28 @@ static inline void sys_ll_set_cpu_storage_connect_op_select_boot_mode(sys_hw_t *
     hw->cpu_storage_connect_op_select.boot_mode = value;
 }
 
+/* REG_0x03:cpu_storage_connect_op_select->rf_switch_en:0x3[4],0: rf switch by PTA; 1: rf switch by SW,0,R/W*/
+static inline uint32_t sys_ll_get_cpu_storage_connect_op_select_rf_switch_en(sys_hw_t *hw)
+{
+    return hw->cpu_storage_connect_op_select.rf_switch_en;
+}
+
+static inline void sys_ll_set_cpu_storage_connect_op_select_rf_switch_en(sys_hw_t *hw, uint32_t value)
+{
+    hw->cpu_storage_connect_op_select.rf_switch_en = value;
+}
+
+/* REG_0x03:cpu_storage_connect_op_select->rf_for_wifiorbt:0x3[5],0: rf for wifi;  1: rf for bt,0,R/W*/
+static inline uint32_t sys_ll_get_cpu_storage_connect_op_select_rf_for_wifiorbt(sys_hw_t *hw)
+{
+    return hw->cpu_storage_connect_op_select.rf_for_wifiorbt;
+}
+
+static inline void sys_ll_set_cpu_storage_connect_op_select_rf_for_wifiorbt(sys_hw_t *hw, uint32_t value)
+{
+    hw->cpu_storage_connect_op_select.rf_for_wifiorbt = value;
+}
+
 /* REG_0x03:cpu_storage_connect_op_select->jtag_core_sel:0x3[8],0:jtag connect core0, 1:jtag connect core1,0,R/W*/
 static inline uint32_t sys_ll_get_cpu_storage_connect_op_select_jtag_core_sel(sys_hw_t *hw)
 {
@@ -475,6 +497,17 @@ static inline void sys_ll_set_cpu_clk_div_mode1_cksel_timer2(sys_hw_t *hw, uint3
     hw->cpu_clk_div_mode1.cksel_timer2 = value;
 }
 
+/* REG_0x08:cpu_clk_div_mode1->cksel_can:0x8[23],0:XTAL              1:80M,0,R/W*/
+static inline uint32_t sys_ll_get_cpu_clk_div_mode1_cksel_can(sys_hw_t *hw)
+{
+    return hw->cpu_clk_div_mode1.cksel_can;
+}
+
+static inline void sys_ll_set_cpu_clk_div_mode1_cksel_can(sys_hw_t *hw, uint32_t value)
+{
+    hw->cpu_clk_div_mode1.cksel_can = value;
+}
+
 /* REG_0x08:cpu_clk_div_mode1->cksel_i2s:0x8[24],0:XTAL              1:APLL,0,R/W*/
 static inline uint32_t sys_ll_get_cpu_clk_div_mode1_cksel_i2s(sys_hw_t *hw)
 {
@@ -597,7 +630,18 @@ static inline void sys_ll_set_cpu_clk_div_mode2_ckdiv_qspi0(sys_hw_t *hw, uint32
     hw->cpu_clk_div_mode2.ckdiv_qspi0 = value;
 }
 
-/* REG_0x09:cpu_clk_div_mode2->ckdiv_sdio:0x9[16:14],0:/1  1:/2  2:/4  3:/8  4:/16  5:/32  6:/64  7:/256,0,R/W*/
+/* REG_0x09:cpu_clk_div_mode2->cksel_qspi0:0x9[10],0:clk_320M      1:clk_480M,0,R/W*/
+static inline uint32_t sys_ll_get_cpu_clk_div_mode2_cksel_qspi0(sys_hw_t *hw)
+{
+    return hw->cpu_clk_div_mode2.cksel_qspi0;
+}
+
+static inline void sys_ll_set_cpu_clk_div_mode2_cksel_qspi0(sys_hw_t *hw, uint32_t value)
+{
+    hw->cpu_clk_div_mode2.cksel_qspi0 = value;
+}
+
+/* REG_0x09:cpu_clk_div_mode2->ckdiv_sdio:0x9[16:14],0:/2  1:/4  2:/6  3:/8  4:/10  5:/12  6:/16  7:/256,0,R/W*/
 static inline uint32_t sys_ll_get_cpu_clk_div_mode2_ckdiv_sdio(sys_hw_t *hw)
 {
     return hw->cpu_clk_div_mode2.ckdiv_sdio;
@@ -1687,6 +1731,17 @@ static inline uint32_t sys_ll_get_cpu_power_sleep_wakeup_pwd_wifp_phy(sys_hw_t *
 static inline void sys_ll_set_cpu_power_sleep_wakeup_pwd_wifp_phy(sys_hw_t *hw, uint32_t value)
 {
     hw->cpu_power_sleep_wakeup.pwd_wifp_phy = value;
+}
+
+/* REG_0x10:cpu_power_sleep_wakeup->pwd_mem0:0x10[11] ,0:power on of mem0,0,RW*/
+static inline uint32_t sys_ll_get_cpu_power_sleep_wakeup_pwd_mem0(sys_hw_t *hw)
+{
+    return hw->cpu_power_sleep_wakeup.pwd_mem0;
+}
+
+static inline void sys_ll_set_cpu_power_sleep_wakeup_pwd_mem0(sys_hw_t *hw, uint32_t value)
+{
+    hw->cpu_power_sleep_wakeup.pwd_mem0 = value;
 }
 
 /* REG_0x10:cpu_power_sleep_wakeup->sleep_en_need_flash_idle:0x10[16],0:sleep_en of flash_idle,0,RW*/
@@ -5085,15 +5140,15 @@ static inline void sys_ll_set_ana_reg5_temptst_en(sys_hw_t *hw, uint32_t value)
     hw->ana_reg5.temptst_en = value;
 }
 
-/* REG_0x45:ana_reg5->gadc_tsel:0x45[21:19],gadc test signal selection,0,R/W*/
-static inline uint32_t sys_ll_get_ana_reg5_gadc_tsel(sys_hw_t *hw)
+/* REG_0x45:ana_reg5->gadc_inbuf_ictrl:0x45[20:19],gadc input buf Ibias selection,0,R/W*/
+static inline uint32_t sys_ll_get_ana_reg5_gadc_inbuf_ictrl(sys_hw_t *hw)
 {
-    return hw->ana_reg5.gadc_tsel;
+    return hw->ana_reg5.gadc_inbuf_ictrl;
 }
 
-static inline void sys_ll_set_ana_reg5_gadc_tsel(sys_hw_t *hw, uint32_t value)
+static inline void sys_ll_set_ana_reg5_gadc_inbuf_ictrl(sys_hw_t *hw, uint32_t value)
 {
-    hw->ana_reg5.gadc_tsel = value;
+    hw->ana_reg5.gadc_inbuf_ictrl = value;
 }
 
 /* REG_0x45:ana_reg5->xtalh_ictrl:0x45[22],xtalh current control,0,R/W*/
@@ -5284,7 +5339,18 @@ static inline void sys_ll_set_ana_reg6_en_sysldo(sys_hw_t *hw, uint32_t value)
     hw->ana_reg6.en_sysldo = value;
 }
 
-/* REG_0x46:ana_reg6->pwd_gadc_buf:0x46[17],gadc input buffer pwd,1,R/W*/
+/* REG_0x46:ana_reg6->en_aud:0x46[14],audio ldo enable,0,W*/
+static inline uint32_t sys_ll_get_ana_reg6_en_aud(sys_hw_t *hw)
+{
+    return hw->ana_reg6.en_aud;
+}
+
+static inline void sys_ll_set_ana_reg6_en_aud(sys_hw_t *hw, uint32_t value)
+{
+    hw->ana_reg6.en_aud = value;
+}
+
+/* REG_0x46:ana_reg6->pwd_gadc_buf:0x46[15],gadc input buffer pwd,0,W*/
 static inline uint32_t sys_ll_get_ana_reg6_pwd_gadc_buf(sys_hw_t *hw)
 {
     return hw->ana_reg6.pwd_gadc_buf;
@@ -5295,7 +5361,18 @@ static inline void sys_ll_set_ana_reg6_pwd_gadc_buf(sys_hw_t *hw, uint32_t value
     hw->ana_reg6.pwd_gadc_buf = value;
 }
 
-/* REG_0x46:ana_reg6->xtal_hpsrr_en:0x46[18],xtal high psrr buffer enable,1,R/W*/
+/* REG_0x46:ana_reg6->vaon_sel:0x46[17],0:vddaon drop enable,1,W*/
+static inline uint32_t sys_ll_get_ana_reg6_vaon_sel(sys_hw_t *hw)
+{
+    return hw->ana_reg6.vaon_sel;
+}
+
+static inline void sys_ll_set_ana_reg6_vaon_sel(sys_hw_t *hw, uint32_t value)
+{
+    hw->ana_reg6.vaon_sel = value;
+}
+
+/* REG_0x46:ana_reg6->xtal_hpsrr_en:0x46[18],xtal high psrr buffer enable,1,W*/
 static inline uint32_t sys_ll_get_ana_reg6_xtal_hpsrr_en(sys_hw_t *hw)
 {
     return hw->ana_reg6.xtal_hpsrr_en;
@@ -5494,17 +5571,6 @@ static inline void sys_ll_set_ana_reg7_gadc_cal_sel(sys_hw_t *hw, uint32_t value
     hw->ana_reg7.gadc_cal_sel = value;
 }
 
-/* REG_0x47:ana_reg7->gadc_ten:0x47[21],gadc test enable,0,R/W*/
-static inline uint32_t sys_ll_get_ana_reg7_gadc_ten(sys_hw_t *hw)
-{
-    return hw->ana_reg7.gadc_ten;
-}
-
-static inline void sys_ll_set_ana_reg7_gadc_ten(sys_hw_t *hw, uint32_t value)
-{
-    hw->ana_reg7.gadc_ten = value;
-}
-
 /* REG_0x47:ana_reg7->gadc_cmp_ictrl:0x47[25:22],gadc comparaor current select ,8,R/W*/
 static inline uint32_t sys_ll_get_ana_reg7_gadc_cmp_ictrl(sys_hw_t *hw)
 {
@@ -5672,15 +5738,120 @@ static inline void sys_ll_set_ana_reg9_en_otp_spi(sys_hw_t *hw, uint32_t value)
     hw->ana_reg9.en_otp_spi = value;
 }
 
-/* REG_0x49:ana_reg9->digovr_en:0x49[13],digldo over voltage reset enable,0,R/W*/
-static inline uint32_t sys_ll_get_ana_reg9_digovr_en(sys_hw_t *hw)
+/* REG_0x49:ana_reg9->entemp2:0x49[1],dummy,0,W*/
+static inline uint32_t sys_ll_get_ana_reg9_entemp2(sys_hw_t *hw)
 {
-    return hw->ana_reg9.digovr_en;
+    return hw->ana_reg9.entemp2;
+}
+static inline void sys_ll_set_ana_reg9_entemp2(sys_hw_t *hw, uint32_t value)
+{
+    hw->ana_reg9.entemp2 = value;
 }
 
-static inline void sys_ll_set_ana_reg9_digovr_en(sys_hw_t *hw, uint32_t value)
+/* REG_0x49:ana_reg9->vtempsel:0x49[3:2],00:nc  01:vtemp  10:vbe   11:vbg1p3,0,W*/
+static inline uint32_t sys_ll_get_ana_reg9_vtempsel(sys_hw_t *hw)
 {
-    hw->ana_reg9.digovr_en = value;
+    return hw->ana_reg9.vtempsel;
+}
+static inline void sys_ll_set_ana_reg9_vtempsel(sys_hw_t *hw, uint32_t value)
+{
+    hw->ana_reg9.vtempsel = value;
+}
+
+/* REG_0x49:ana_reg9->vtsel:0x49[4],dummy,1,W*/
+static inline uint32_t sys_ll_get_ana_reg9_vtsel(sys_hw_t *hw)
+{
+    return hw->ana_reg9.vtsel;
+}
+static inline void sys_ll_set_ana_reg9_vtsel(sys_hw_t *hw, uint32_t value)
+{
+    hw->ana_reg9.vtsel = value;
+}
+
+/* REG_0x49:ana_reg9->en_bias_5u:0x49[5],Ibias 5u enable,1,W*/
+static inline uint32_t sys_ll_get_ana_reg9_en_bias_5u(sys_hw_t *hw)
+{
+    return hw->ana_reg9.en_bias_5u;
+}
+static inline void sys_ll_set_ana_reg9_en_bias_5u(sys_hw_t *hw, uint32_t value)
+{
+    hw->ana_reg9.en_bias_5u = value;
+}
+
+/* REG_0x49:ana_reg9->dummy2:0x49[6],5uA channel on(for PLL & DCO),1,W*/
+static inline uint32_t sys_ll_get_ana_reg9_dummy2(sys_hw_t *hw)
+{
+    return hw->ana_reg9.dummy2;
+}
+
+static inline void sys_ll_set_ana_reg9_dummy2(sys_hw_t *hw, uint32_t value)
+{
+    hw->ana_reg9.dummy2 = value;
+}
+
+/* REG_0x49:ana_reg9->touch_serial_cap:0x49[7],1:touch serial capacitors 6pF,1,W*/
+static inline uint32_t sys_ll_get_ana_reg9_touch_serial_cap(sys_hw_t *hw)
+{
+    return hw->ana_reg9.touch_serial_cap;
+}
+static inline void sys_ll_set_ana_reg9_touch_serial_cap(sys_hw_t *hw, uint32_t value)
+{
+    hw->ana_reg9.touch_serial_cap = value;
+}
+
+/* REG_0x49:ana_reg9->buckfb_czenb:0x49[8],buck EA feedback cz selection,1,W*/
+static inline uint32_t sys_ll_get_ana_reg9_buckfb_czenb(sys_hw_t *hw)
+{
+    return hw->ana_reg9.buckfb_czenb;
+}
+
+static inline void sys_ll_set_ana_reg9_buckfb_czenb(sys_hw_t *hw, uint32_t value)
+{
+    hw->ana_reg9.buckfb_czenb = value;
+}
+
+/* REG_0x49:ana_reg9->buckea_cur_ctrl:0x49[10:9],buck EA ibias selection,3,W*/
+static inline uint32_t sys_ll_get_ana_reg9_buckea_cur_ctrl(sys_hw_t *hw)
+{
+    return hw->ana_reg9.buckea_cur_ctrl;
+}
+
+static inline void sys_ll_set_ana_reg9_buckea_cur_ctrl(sys_hw_t *hw, uint32_t value)
+{
+    hw->ana_reg9.buckea_cur_ctrl = value;
+}
+
+/* REG_0x49:ana_reg9->cbtst_en:0x49[11],CB test enable,0,W*/
+static inline uint32_t sys_ll_get_ana_reg9_cbtst_en(sys_hw_t *hw)
+{
+    return hw->ana_reg9.cbtst_en;
+}
+
+static inline void sys_ll_set_ana_reg9_cbtst_en(sys_hw_t *hw, uint32_t value)
+{
+    hw->ana_reg9.cbtst_en = value;
+}
+
+/* REG_0x49:ana_reg9->psldo_vsel:0x49[12],psldo voltage selsection,0,W*/
+static inline uint32_t sys_ll_get_ana_reg9_psldo_vsel(sys_hw_t *hw)
+{
+    return hw->ana_reg9.psldo_vsel;
+}
+
+static inline void sys_ll_set_ana_reg9_psldo_vsel(sys_hw_t *hw, uint32_t value)
+{
+    hw->ana_reg9.psldo_vsel = value;
+}
+
+/* REG_0x49:ana_reg9->ovr_l:0x49[13],ovr low enable,0,R/W*/
+static inline uint32_t sys_ll_get_ana_reg9_ovr_l(sys_hw_t *hw)
+{
+    return hw->ana_reg9.ovr_l;
+}
+
+static inline void sys_ll_set_ana_reg9_ovr_l(sys_hw_t *hw, uint32_t value)
+{
+    hw->ana_reg9.ovr_l = value;
 }
 
 /* REG_0x49:ana_reg9->usbpen:0x49[17:14],usb dp driver capability control,8,R/W*/

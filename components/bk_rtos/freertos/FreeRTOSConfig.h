@@ -122,16 +122,18 @@
 #define configSUPPORT_DYNAMIC_ALLOCATION		1
 #endif
 
-#if CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7256_CP1
+#if CONFIG_SOC_BK7256XX
 #define configDYNAMIC_HEAP_SIZE                     0
 #else
 #define configDYNAMIC_HEAP_SIZE                     1
 #endif
 
-#if (CONFIG_SOC_BK7256_CP1)
-#define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 45 * 1024 ) )
+#if (CONFIG_SLAVE_CORE)
+#define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 60 * 1024 ) )
+#elif (CONFIG_CUSTOMIZE_HEAP_SIZE)
+#define configTOTAL_HEAP_SIZE                       ( ( size_t ) (CONFIG_CUSTOMIZE_HEAP_SIZE) )
 #else
-#define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 140 * 1024 ) )
+#define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 160 * 1024 ) )
 #endif
 /* Queue & Semaphore & Mutex */
 #define configQUEUE_REGISTRY_SIZE                   0
@@ -190,7 +192,7 @@ to exclude the API function. */
 
 #define configBK_FREERTOS                           1
 
-#if CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7256_CP1
+#if CONFIG_SOC_BK7256XX
 /****** Hardware/compiler specific settings. *******************************************/
 
 #define configISR_STACK_SIZE_WORDS 1024
@@ -250,6 +252,12 @@ Members except log buffer in uncached buffer used at most 6 cache line space. */
 
 #endif
 
+#if (CONFIG_ARCH_CM33 == 1)
+#define configENABLE_FPU                   0
+#define configENABLE_MPU                   0
+#define configENABLE_TRUSTZONE             1
+#define configMINIMAL_SECURE_STACK_SIZE    (1024)
+#endif
 
 
 #endif /* FREERTOS_CONFIG_H */

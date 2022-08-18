@@ -13,8 +13,10 @@
 // limitations under the License.
 
 #pragma once
+
 #include <common/bk_include.h>
 #include <soc/soc.h>
 
 #include "adc_reg.h"
 #include "adc_struct.h"
+

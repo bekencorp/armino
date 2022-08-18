@@ -506,8 +506,7 @@ bk_err_t bk_uart_driver_init(void)
 	os_memset(&s_uart_rx_isr, 0, sizeof(s_uart_rx_isr));
 	os_memset(&s_uart_tx_isr, 0, sizeof(s_uart_tx_isr));
 
-	for(uart_id_t id = UART_ID_0; id < SOC_UART_ID_NUM_PER_UNIT; id++)
-	{
+	for(uart_id_t id = UART_ID_0; id < SOC_UART_ID_NUM_PER_UNIT; id++) {
 		uart_isr_register_functions(id);
 		s_uart[id].hal.id = id;
 		uart_hal_init(&s_uart[id].hal);
@@ -516,8 +515,9 @@ bk_err_t bk_uart_driver_init(void)
 	uart_statis_init();
 	s_uart_driver_is_init = true;
 
-	//TODO place it to better place
+#ifndef CONFIG_BK_PRINTF_DISABLE
 	bk_printf_init();
+#endif
 
 	return BK_OK;
 }
@@ -702,7 +702,7 @@ bk_err_t bk_uart_recover_rx_isr(uart_id_t id)
 #if (!CONFIG_SHELL_ASYNCLOG)
 	bk_uart_enable_sw_fifo(id);
 #else
-	if (id != CONFIG_UART_PRINT_PORT) {
+	if (id != bk_get_printf_port()) {
 		bk_uart_enable_sw_fifo(id);
 	}
 #endif

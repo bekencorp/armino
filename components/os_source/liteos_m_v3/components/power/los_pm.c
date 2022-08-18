@@ -792,7 +792,7 @@ UINT32 OsPmInit(VOID)
         return ret;
     }
 
-    ret = OsPmEnterHandlerSet(pm_enter_sleep);
+    ret = OsPmEnterHandlerSet(bk_pm_enter_sleep);
     if (ret != LOS_OK) {
         return ret;
     }

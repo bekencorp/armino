@@ -17,7 +17,7 @@ User and Developer Guide
    Error and Log <error_log/index>
    Debug and Trace <debug_trace/index>
    Tools <tools/index>
-   WiFi <wifi/index>
+   Wi-Fi <wifi/index>
    Bluetooth <bluetooth/index>
    Write Examples <examples/index>
    Documentation <documentation/index>

@@ -1,0 +1,1 @@
+.. include:: ../../../zh_CN/examples/audio/mp3_demo.rst

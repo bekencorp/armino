@@ -1,23 +1,62 @@
-AUD_EQ
+EQ demo
 ========================
 
 :link_to_translation:`en:[English]`
 
-1、概述
+1、功能概述
 --------------------
-本小节将主要围绕EQ(均衡器)的demo来介绍AUDIO_EQ的功能使用。
-
-2、API参考
+	EQ demo主要功能是均衡dance的风格。
+	
+2、代码路径
 --------------------
-audio_eq的API的详细说明请参考同网页: ``/api-reference/multi_media/bk_aud.html``
-具体的EQ功能主要调用以下两个API来实现EQ的使用和释放。
+	demo路径: ``\components\demos\media\audio\aud``
 
- - :cpp:func:`bk_aud_eq_init` - init the eq module of audio
- - :cpp:func:`bk_aud_eq_deinit` - deinit the eq module of audio
+	AUDIO DAC和EQ API接口的详细说明请参考同网页: ``/api-reference/multi_media/bk_aud.html``
 
-3、参数配置说明
+3、cli命令简介
 --------------------
-EQ功能主要通过以下结构体进行参数的配置。EQ的参数设置主要有：A1、A2、B0、B1、B2，其中B0、B1和B2是正常配置，A1和A2符号要取反设置。
+demo支持的命令如下表:
+
++---------------------------------+----------------------+
+|Command                          |Description           |
++=================================+======================+
+|aud_eq_test {start|stop}         |均衡Dance风格         |
++---------------------------------+----------------------+
+
+demo运行依赖的宏配置:
+
++---------------------------+----------------------------+----------------------------------------------------+-----+
+|Name                       |Description                 |   File                                             |value|
++===========================+============================+====================================================+=====+
+|CONFIG_AUDIO               |配置audio功能               |``\middleware\soc\bk7256_cp1\bk7256_cp1.defconfig`` |  y  |
++---------------------------+----------------------------+----------------------------------------------------+-----+
+|CONFIG_AUDIO_RISCV_IP_V1_0 |配置audio ip                |``\middleware\soc\bk7256_cp1\bk7256_cp1.defconfig`` |  y  |
++---------------------------+----------------------------+----------------------------------------------------+-----+
+|CONFIG_AUDIO_TEST          |配置demo使能                |``\middleware\soc\bk7256\bk7256.defconfig``         |  y  |
++---------------------------+----------------------------+----------------------------------------------------+-----+
+
+demo运行依赖的库和驱动:
+ - DMA DMA驱动
+ - AUD audio模块驱动
+ 
+4、演示介绍
+--------------------
+
+demo执行的步骤如下:
+
+	1.执行测试
+	 - Uart发送AT指令 ``cpu1 aud_eq_test start`` 执行测试
+	
+	2.输入一段扫频信号经ADC采样并将采集到的数据通过DAC播放出来
+	
+	3.通过仪器采集DAC输出信号来查看频响信号与设计的EQ频响是否一致
+	
+	4.停止测试
+	 - Uart发送AT指令 ``cpu1 aud_eq_test stop`` 停止测试
+
+5、详细配置及说明
+--------------------
+	EQ功能主要通过以下结构体进行参数的配置。EQ的参数设置主要有：A1、A2、B0、B1、B2，其中B0、B1和B2是正常配置，A1和A2符号要取反设置。
 
 ::
 
@@ -47,10 +86,13 @@ EQ功能主要通过以下结构体进行参数的配置。EQ的参数设置主�
 		int32_t flt3_B2;
 	} aud_eq_config_t;
 
-4、demo示例
---------------------
-demo的具体源码和测试代码请参考工程路径：demos/media/audio/aud/aud_cp1.c中的cli_aud_eq_test_cmd()函数。
-当前demo采用Dance的一组均衡数据进行测试，demo主要代码如下所示：
+
+具体的EQ功能主要调用以下两个API来实现EQ的使用和释放。
+
+ - :cpp:func:`bk_aud_eq_init` - init the eq module of audio
+ - :cpp:func:`bk_aud_eq_deinit` - deinit the eq module of audio
+
+demo主要代码如下所示：
 
 ::
 
@@ -80,11 +122,4 @@ demo的具体源码和测试代码请参考工程路径：demos/media/audio/aud/
 	eq_config.flt3_B2 = -62942;
 	bk_aud_eq_init(&eq_config);
 
-之后经过DAC输出的信号即均衡过的音频信号。
-
-5、操作说明
---------------------
- 1) 通过SSCOM发送测试命令;
- 2) 输入一段扫频信号经ADC采样并将采集到的数据通过DAC播放出来;
- 3) 采集DAC输出信号来查看频响信号与设计的EQ频响是否一致。
 

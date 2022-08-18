@@ -12,8 +12,9 @@
 #include "wlan_ui_pub.h"
 
 #include <lwip/inet.h>
+#if CONFIG_FLASH_ORIGIN_API
 #include "BkDriverFlash.h"
-
+#endif
 #include "video_transfer_tcp.h"
 #include "video_transfer_udp.h"
 #include "video_demo_pub.h"

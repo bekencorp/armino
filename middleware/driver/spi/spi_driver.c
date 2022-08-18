@@ -309,7 +309,6 @@ static void spi_dma_tx_init(spi_id_t id, dma_id_t spi_tx_dma_chan)
 	BK_LOG_ON_ERR(bk_dma_init(spi_tx_dma_chan, &dma_config));
 	BK_LOG_ON_ERR(bk_dma_register_isr(spi_tx_dma_chan, NULL, spi_dma_tx_finish_handler));
 	BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(spi_tx_dma_chan));
-	BK_LOG_ON_ERR(bk_dma_enable_half_finish_interrupt(spi_tx_dma_chan));
 }
 
 static void spi_dma_rx_init(spi_id_t id, dma_id_t spi_rx_dma_chan)
@@ -332,7 +331,6 @@ static void spi_dma_rx_init(spi_id_t id, dma_id_t spi_rx_dma_chan)
 	BK_LOG_ON_ERR(bk_dma_init(spi_rx_dma_chan, &dma_config));
 	BK_LOG_ON_ERR(bk_dma_register_isr(spi_rx_dma_chan, NULL, spi_dma_rx_finish_handler));
 	BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(spi_rx_dma_chan));
-	BK_LOG_ON_ERR(bk_dma_enable_half_finish_interrupt(spi_rx_dma_chan));
 }
 
 #endif /* CONFIG_SPI_DMA */

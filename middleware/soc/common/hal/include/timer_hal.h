@@ -41,11 +41,13 @@ typedef struct {
 #define timer_hal_get_end_count(hal, chan) timer_ll_get_end_count((hal)->hw, chan)
 
 bk_err_t timer_hal_init(timer_hal_t *hal);
-bk_err_t timer_hal_init_timer(timer_hal_t *hal, timer_id_t chan, uint32_t time_ms);
+bk_err_t timer_hal_init_timer(timer_hal_t *hal, timer_id_t chan, uint64_t time, timer_value_unit_t unit_type);
 bk_err_t timer_hal_set_period(timer_hal_t *hal, timer_id_t chan, uint32_t time_ms);
 bk_err_t timer_hal_start_common(timer_hal_t *hal, timer_id_t chan);
 bk_err_t timer_hal_stop_common(timer_hal_t *hal, timer_id_t chan);
 uint32_t timer_hal_get_count(timer_hal_t *hal, timer_id_t chan);
+
+uint32_t timer_hal_cal_end_count(timer_id_t chan, uint64_t time, uint32_t div, timer_value_unit_t unit_type);
 
 #if CFG_HAL_DEBUG_TIMER
 void timer_struct_dump(void);

@@ -256,7 +256,7 @@ TADC_ENTITY_T *tadc_entity_init(void)
 	return adc_entity;
 }
 
-#if (!CONFIG_SOC_BK7231) && (!CONFIG_SOC_BK7231N) && (!CONFIG_SOC_BK7236) && (!CONFIG_SOC_BK7256XX)
+#if (!CONFIG_SOC_BK7231) && (!CONFIG_SOC_BK7231N) && (!CONFIG_SOC_BK7236A) && (!CONFIG_SOC_BK7256XX)
 /*
 vol:	PSRAM_VDD_1_8V
 		PSRAM_VDD_2_5V
@@ -401,7 +401,9 @@ create_exit:
 static void adc_check(int argc, char **argv)
 {
 	UINT32 status, ret;
+#if CONFIG_FLASH_ORIGIN_API
 	DD_HANDLE flash_handle;
+#endif
 	DD_HANDLE saradc_handle;
 	saradc_cal_val_t p_ADC_cal;
 	float voltage = 0.0;
@@ -571,7 +573,7 @@ static void adc_check(int argc, char **argv)
 		{
 			UINT32 sum = 0, sum1, sum2;
 			UINT16 *pData = p_ADC_drv_desc->pData;
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 			sum1 = pData[6] + pData[7];
 			sum2 = pData[8] + pData[9];
 #else
@@ -584,7 +586,7 @@ static void adc_check(int argc, char **argv)
 			p_ADC_drv_desc->pData[0] = sum;
 		}
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 		os_printf("saradc[ch%d]=%d\r\n", (UINT32)p_ADC_drv_desc->channel, (UINT32)p_ADC_drv_desc->pData[0]);
 #else
 		voltage = saradc_calculate(p_ADC_drv_desc->pData[0]);

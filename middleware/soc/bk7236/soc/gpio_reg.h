@@ -18,82 +18,41 @@
 extern "C" {
 #endif
 
-//TODO place all auto-generated Registers here!!!
-#define GPIO_R_BASE						(SOC_GPIO_REG_BASE)
+#define GPIO_R_BASE                    (SOC_AON_GPIO_REG_BASE)
 
-#define GPIO_V_MODE_SECOND_FUNC					0x48
-#define GPIO_V_MODE_SECOND_FUNC_PULL_UP				0x78
-#define GPIO_V_MODE_SECOND_FUNC_PULL_DOWN			0x68
-#define GPIO_V_MODE_INPUT_PULL_UP				0x3C
-#define GPIO_V_MODE_INPUT_PULL_DOWN				0x2C
-#define GPIO_V_MODE_INPUT					0x0C
-#define GPIO_V_MODE_OUTPUT_PULL_UP				0x30
-#define GPIO_V_MODE_OUTPUT_PULL_DOWN				0x20
-#define GPIO_V_MODE_OUTPUT					0x00
-#define GPIO_V_MODE_HIGH_IMPENDANCE				0x08
-#define GPIO_V_MODE_DEFAULT					0x28
+#define GPIO_F_IO_MODE_EN               2
+#define GPIO_F_IO_MODE_SET(mode)        (mode << 2)
+#define GPIO_F_IO_MODE_EN_M             (0x03 << 2)
 
-#define GPIO_F_IO_MODE_EN					2
-#define GPIO_F_IO_MODE_SET(mode)				mode << 2
-#define GPIO_F_IO_MODE_EN_M					0x03 << 2
+#define GPIO_F_PULL_EN                  4
+#define GPIO_F_PULL_SET(mode)           (mode << 4)
+#define GPIO_F_PULL_EN_M                (0x03 << 4)
 
-#define GPIO_F_PULL_EN						4
-#define GPIO_F_PULL_SET(mode)					mode << 4
-#define GPIO_F_PULL_EN_M					0x03 << 4
+#define GPIO_F_PERIAL_MODE              0x03
+#define GPIO_F_PERIAL_MODE_V            0x03
+#define GPIO_F_PERIAL_MODE_S            0x02
+#define GPIO_F_PERIAL_MODE_MS(_ch)      (2 * (_ch))
+#define GPIO_F_PERIAL_MODE_M            (GPIO_F_PERIAL_MODE_V << GPIO_F_PERIAL_MODE_S)
 
-#define GPIO_F_FUNC_EN						(BIT(6))
-#define GPIO_F_FUNC_EN_S					0x6
-#define GPIO_F_FUNC_EN_V					0x1
+#define GPIO_F_INT_EN                   0x01
+#define GPIO_F_INT_EN_V                 0x01
+#define GPIO_F_INT_EN_S                 0x01
+#define GPIO_F_INT_EN_MS(_ch)           ( _ch)
+#define GPIO_F_INT_EN_M                 (GPIO_F_INT_EN_V << GPIO_F_INT_EN_S)
 
-#define GPIO_F_PERIAL_MODE					0x03
-#define GPIO_F_PERIAL_MODE_V					0x03
-#define GPIO_F_PERIAL_MODE_S					0x02
-#define GPIO_F_PERIAL_MODE_MS(_ch)				( 2 * (_ch))
-#define GPIO_F_PERIAL_MODE_M					(GPIO_F_PERIAL_MODE_V<<GPIO_F_PERIAL_MODE_S)
+#define GPIO_F_INT_TYPE_MODE            0x03
+#define GPIO_F_INT_TYPE_MODE_V          0x03
+#define GPIO_F_INT_TYPE_MODE_S          0x02
+#define GPIO_F_INT_TYPE_MODE_MS(_ch)    ( 2 * (_ch))
+#define GPIO_F_INT_TYPE_MODE_M          (GPIO_F_INT_TYPE_MODE << GPIO_F_INT_TYPE_MODE_S)
 
-#define GPIO_V_PERIAL_MODE1					0x00
-#define GPIO_V_PERIAL_MODE2					0x01
-#define GPIO_V_PERIAL_MODE3					0x02
-#define GPIO_V_PERIAL_MODE4					0x03
+#define GPIO_F_GPIO_SPI_SEL_MDOE        0x03
+#define GPIO_F_GPIO_SPI_SEL_MDOE_V      0x03
+#define GPIO_F_GPIO_SPI_SEL_MDOE_S      0x00
 
-#define GPIO_F_INT_EN						0x01
-#define GPIO_F_INT_EN_V						0x01
-#define GPIO_F_INT_EN_S						0x01
-#define GPIO_F_INT_EN_MS(_ch)					( _ch)
-#define GPIO_F_INT_EN_M						(GPIO_F_INT_EN_V<<GPIO_F_INT_EN_S)
-
-
-#define GPIO_V_TYPE_MODE_LOW_VOL				0x00
-#define GPIO_V_TYPE_MODE_HIGH_VOL				0x01
-#define GPIO_V_TYPE_MODE_RISING_EDGE				0x02
-#define GPIO_V_TYPE_MODE_FALLING_EDGE				0x03
-
-#define GPIO_F_INT_TYPE_MODE					0x03
-#define GPIO_F_INT_TYPE_MODE_V					0x03
-#define GPIO_F_INT_TYPE_MODE_S					0x02
-#define GPIO_F_INT_TYPE_MODE_MS(_ch)				( 2 * (_ch))
-#define GPIO_F_INT_TYPE_MODE_M					(GPIO_F_INT_TYPE_MODE<<GPIO_F_INT_TYPE_MODE_S)
-
-#define GPIO_V_SEL_MODE_SPI_DMA_GPIO14_GPIO17			0x00
-#define GPIO_V_SEL_MODE_SPI_GPIO14_GPIO17			0x01
-#define GPIO_V_SEL_MODE_SPI_DMA_GPIO30_GPIO33			0x02
-#define GPIO_V_SEL_MODE_SPI_GPIO30_GPIO33			0x03
-
-
-#define GPIO_F_GPIO_SPI_SEL_MDOE				0x03
-#define GPIO_F_GPIO_SPI_SEL_MDOE_V				0x03
-#define GPIO_F_GPIO_SPI_SEL_MDOE_S				0x00
-
-
-#define GPIO_V_SEL_MODE_SDIO_DMA_GPIO14_GPIO19			0x00
-#define GPIO_V_SEL_MODE_SDIO_HOST_GPIO14_GPIO19			0x01
-#define GPIO_V_SEL_MODE_SDIO_DMA_GPIO34_GPIO39			0x02
-#define GPIO_V_SEL_MODE_SDIO_HOST_GPIO34_GPIO39			0x03
-
-#define GPIO_F_GPIO_SDIO_SEL_MDOE				0x03
-#define GPIO_F_GPIO_SDIO_SEL_MDOE_V				0x03
-#define GPIO_F_GPIO_SDIO_SEL_MDOE_S				0x02
-
+#define GPIO_F_GPIO_SDIO_SEL_MDOE       0x03
+#define GPIO_F_GPIO_SDIO_SEL_MDOE_V     0x03
+#define GPIO_F_GPIO_SDIO_SEL_MDOE_S     0x02
 
 #ifdef __cplusplus
 }

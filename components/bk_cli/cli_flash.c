@@ -51,9 +51,9 @@ static void cli_flash_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 			CLI_LOGI("dump read flash data:\r\n");
 			for (uint32_t i = 0; i < 16; i++) {
 				for (uint32_t j = 0; j < 16; j++) {
-					CLI_LOGI("%02x ", buf[i * 16 + j]);
+					os_printf("%02x ", buf[i * 16 + j]);
 				}
-				CLI_LOGI("\r\n");
+				os_printf("\r\n");
 			}
 		}
 	} else if (os_strcmp(argv[1], "write") == 0) {
@@ -78,7 +78,7 @@ static void cli_flash_partition_cmd(char *pcWriteBuffer, int xWriteBufferLen, in
 {
 	bk_logic_partition_t *partition;
 
-	if (os_strcmp(argv[1], "erase") == 0) {
+	if (os_strcmp(argv[1], "show") == 0) {
 		for (bk_partition_t par= BK_PARTITION_BOOTLOADER; par <= BK_PARTITION_MAX; par++) {
 			partition = bk_flash_partition_get_info(par);
 			if (partition == NULL)

@@ -1638,6 +1638,15 @@ tcp_rexmit_rto_prepare(struct tcp_pcb *pcb)
     return ERR_VAL;
   }
 
+#if TCP_UNACK_DEBUG
+  LWIP_DEBUGF(TCP_RTO_DEBUG, ("%s, unacked seqno:\n", __func__));
+  for (seg = pcb->unacked; seg->next != NULL; seg = seg->next) {
+   LWIP_DEBUGF(TCP_RTO_DEBUG, ("%u ", lwip_htonl(seg->tcphdr->seqno)));
+
+   if(seg->next == NULL)
+    	LWIP_DEBUGF(TCP_RTO_DEBUG, ("\n"));
+  }
+#endif
   /* Move all unacked segments to the head of the unsent queue.
      However, give up if any of the unsent pbufs are still referenced by the
      netif driver due to deferred transmission. No point loading the link further

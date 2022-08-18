@@ -75,10 +75,9 @@ extern "C" {
 #define GPIO_INTERRUPT_CTRL_BIT        (1 << SYS_CPU0_INT_32_63_EN_CPU0_GPIO_INT_EN_POS)
 
 #define RTC_TICKS_PER_1MS                                (32)
-#define LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME          (0.5) //0.5ms
-#define LOW_POWER_DPLL_STABILITY_DELAY_TIME              (1)   // 1ms
-#define LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME_HARDWARE (1.5) // 1.5ms(the delay time config into hardware)
-#define LOW_POWER_XTAL_DPLL_STABILITY_DELAY_TIME  ((LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME_HARDWARE+LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME+LOW_POWER_DPLL_STABILITY_DELAY_TIME)*1000)// 3000us
+#define LOW_POWER_DPLL_STABILITY_DELAY_TIME              (0.5) // 0.5ms
+#define LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME_HARDWARE (0.4) // ~0.4ms(the delay time config into hardware 2+2+2+4 = 10 tick = 1/32 * 10 ms)
+#define LOW_POWER_XTAL_DPLL_STABILITY_DELAY_TIME  ((LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME_HARDWARE+LOW_POWER_DPLL_STABILITY_DELAY_TIME)*1000)
 
 typedef enum
 {
@@ -91,8 +90,8 @@ typedef enum
 typedef enum
 {
 	FLASH_CLK_XTAL = 0,
-	FLASH_CLK_APLL,
 	FLASH_CLK_120M,
+	FLASH_CLK_APLL,
 }flash_clk_src_t;
 
 /*clock power control start*/

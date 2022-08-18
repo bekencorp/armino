@@ -26,11 +26,18 @@ extern "C" {
 #if CONFIG_SDCARD_HOST
     extern void test_mount(DISK_NUMBER number);
     extern void scan_file_system(DISK_NUMBER number);
-    extern void test_fatfs_read(DISK_NUMBER number, char *filename);
+    extern void test_fatfs_read(DISK_NUMBER number, char *filename, uint64_t len);
 	extern void test_fatfs_append_write(DISK_NUMBER number, char *filename, char *content, uint32_t len);
+	extern void test_fatfs_dump(DISK_NUMBER number, char *filename, uint32_t start_addr, uint32_t dump_len);
+	extern void test_fatfs_auto_test(DISK_NUMBER number, char *filename, uint32_t len, uint32_t test_count);
     extern void test_fatfs_format(DISK_NUMBER number);
 #endif
 
+#define FATFS_TAG "Fatfs"
+#define FATFS_LOGI(...) BK_LOGI(FATFS_TAG, ##__VA_ARGS__)
+#define FATFS_LOGW(...) BK_LOGW(FATFS_TAG, ##__VA_ARGS__)
+#define FATFS_LOGE(...) BK_LOGE(FATFS_TAG, ##__VA_ARGS__)
+#define FATFS_LOGD(...) BK_LOGD(FATFS_TAG, ##__VA_ARGS__)
 
 #ifdef __cplusplus
 }

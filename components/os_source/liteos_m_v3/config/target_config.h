@@ -119,7 +119,7 @@ extern unsigned char *m_aucSysMem0;
 #define LOSCFG_SYS_HEAP_ADDR                                (&_end)
 #else
 #define LOSCFG_SYS_HEAP_ADDR                                (&m_aucSysMem0[0])
-#define LOSCFG_SYS_HEAP_SIZE                                ( size_t ) ( 140 * 1024 )
+#define LOSCFG_SYS_HEAP_SIZE                                ( size_t ) ( 160 * 1024 )
 #endif
 
 

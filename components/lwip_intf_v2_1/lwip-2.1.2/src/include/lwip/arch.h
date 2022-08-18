@@ -268,7 +268,11 @@ typedef int ssize_t;
  * \#define LWIP_DECLARE_MEMORY_ALIGNED(variable_name, size) u32_t variable_name[(size + sizeof(u32_t) - 1) / sizeof(u32_t)]
  */
 #ifndef LWIP_DECLARE_MEMORY_ALIGNED
-#define LWIP_DECLARE_MEMORY_ALIGNED(variable_name, size) u8_t variable_name[LWIP_MEM_ALIGN_BUFFER(size)]
+#if CONFIG_CACHE_ENABLE
+#define LWIP_DECLARE_MEMORY_ALIGNED(variable_name, size)  __attribute__((section(".sram_nocache"))) u8_t variable_name[LWIP_MEM_ALIGN_BUFFER(size)]
+#else
+#define LWIP_DECLARE_MEMORY_ALIGNED(variable_name, size)  u8_t variable_name[LWIP_MEM_ALIGN_BUFFER(size)]
+#endif
 #endif
 
 /** Calculate memory size for an aligned buffer - returns the next highest

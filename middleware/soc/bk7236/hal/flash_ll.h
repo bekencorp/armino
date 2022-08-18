@@ -18,8 +18,6 @@
 #include "hal_port.h"
 #include "flash_hw.h"
 #include <driver/hal/hal_flash_types.h>
-#include "icu_hw.h"
-#include "icu_ll.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,14 +25,19 @@ extern "C" {
 
 #define FLASH_LL_REG_BASE(_flash_unit_id)    (SOC_FLASH_REG_BASE)
 
+static inline void flash_ll_soft_reset(flash_hw_t *hw)
+{
+	hw->global_ctrl.soft_reset = 1;
+}
+
 static inline void flash_ll_init(flash_hw_t *hw)
 {
-
+	flash_ll_soft_reset(hw);
 }
 
 static inline bool flash_ll_is_busy(flash_hw_t *hw)
 {
-	return hw->op_sw.busy_sw;
+	return hw->op_ctrl.busy_sw;
 }
 
 static inline uint32_t flash_ll_read_flash_id(flash_hw_t *hw)
@@ -44,9 +47,9 @@ static inline uint32_t flash_ll_read_flash_id(flash_hw_t *hw)
 
 static inline void flash_ll_set_op_cmd(flash_hw_t *hw, flash_op_cmd_t cmd)
 {
-	hw->op_sw.op_type_sw = cmd;
-	hw->op_sw.op_sw = 1;
-	hw->op_sw.wp_value = 1;
+	hw->op_cmd.op_type_sw = cmd;
+	hw->op_ctrl.op_sw = 1;
+	hw->op_ctrl.wp_value = 1;
 }
 
 static inline uint32_t flash_ll_get_id(flash_hw_t *hw)
@@ -59,8 +62,8 @@ static inline uint32_t flash_ll_get_id(flash_hw_t *hw)
 static inline uint32_t flash_ll_get_mid(flash_hw_t *hw)
 {
 	while (flash_ll_is_busy(hw));
-	hw->op_sw.op_type_sw = FLASH_OP_CMD_RDID;
-	hw->op_sw.op_sw = 1;
+	hw->op_cmd.op_type_sw = FLASH_OP_CMD_RDID;
+	hw->op_ctrl.op_sw = 1;
 	while (flash_ll_is_busy(hw));
 	return flash_ll_read_flash_id(hw);
 }
@@ -115,7 +118,7 @@ static inline void flash_ll_disable_cpu_data_wr(flash_hw_t *hw)
 static inline void flash_ll_clear_qwfr(flash_hw_t *hw)
 {
 	hw->config.mode_sel = 0;
-	hw->op_sw.addr_sw_reg = 0;
+	hw->op_cmd.addr_sw_reg = 0;
 	flash_ll_set_op_cmd(hw, FLASH_OP_CMD_CRMR);
 	while (flash_ll_is_busy(hw));
 }
@@ -138,17 +141,17 @@ static inline void flash_ll_set_quad_m_value(flash_hw_t *hw, uint32_t m_value)
 static inline void flash_ll_erase_sector(flash_hw_t *hw, uint32_t erase_addr)
 {
 	while (flash_ll_is_busy(hw));
-	hw->op_sw.addr_sw_reg = erase_addr;
-	hw->op_sw.op_type_sw = FLASH_OP_CMD_SE;
-	hw->op_sw.op_sw = 1;
+	hw->op_cmd.addr_sw_reg = erase_addr;
+	hw->op_cmd.op_type_sw = FLASH_OP_CMD_SE;
+	hw->op_ctrl.op_sw = 1;
 	while (flash_ll_is_busy(hw));
 }
 
 static inline void flash_ll_set_op_cmd_read(flash_hw_t *hw, uint32_t read_addr)
 {
-	hw->op_sw.addr_sw_reg = read_addr;
-	hw->op_sw.op_type_sw = FLASH_OP_CMD_READ;
-	hw->op_sw.op_sw = 1;
+	hw->op_cmd.addr_sw_reg = read_addr;
+	hw->op_cmd.op_type_sw = FLASH_OP_CMD_READ;
+	hw->op_ctrl.op_sw = 1;
 	while (flash_ll_is_busy(hw));
 }
 
@@ -159,9 +162,9 @@ static inline uint32_t flash_ll_read_data(flash_hw_t *hw)
 
 static inline void flash_ll_set_op_cmd_write(flash_hw_t *hw, uint32_t write_addr)
 {
-	hw->op_sw.addr_sw_reg = write_addr;
-	hw->op_sw.op_type_sw = FLASH_OP_CMD_PP;
-	hw->op_sw.op_sw = 1;
+	hw->op_cmd.addr_sw_reg = write_addr;
+	hw->op_cmd.op_type_sw = FLASH_OP_CMD_PP;
+	hw->op_ctrl.op_sw = 1;
 	while (flash_ll_is_busy(hw));
 }
 

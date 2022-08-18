@@ -23,13 +23,18 @@ extern void cli_touch_single_channel_manul_mode_test_cmd(char *pcWriteBuffer, in
 
 extern void cli_touch_multi_channel_scan_mode_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
+extern void cli_touch_single_channel_multi_calib_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+extern void cli_touch_multi_channel_cyclic_calib_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 #define TOUCH_CMD_CNT	(sizeof(s_touch_commands) / sizeof(struct cli_command))
 
 static const struct cli_command s_touch_commands[] = {
-	{"touch_single_channel_calib_mode_test", "touch_single_channel_calib_mode_test {0|1|...|15}", cli_touch_single_channel_calib_mode_test_cmd},
+	{"touch_single_channel_calib_mode_test", "touch_single_channel_calib_mode_test {0|1|...|15} {0|1|2|3}", cli_touch_single_channel_calib_mode_test_cmd},
 	{"touch_single_channel_manul_mode_test", "touch_single_channel_manul_mode_test {0|1|...|15} {calibration_value}", cli_touch_single_channel_manul_mode_test_cmd},
-	{"touch_multi_channel_scan_mode_test", "touch_multi_channel_scan_mode_test {start|stop}", cli_touch_multi_channel_scan_mode_test_cmd},
+	{"touch_multi_channel_scan_mode_test", "touch_multi_channel_scan_mode_test {start|stop} {0|1|2|3}", cli_touch_multi_channel_scan_mode_test_cmd},
+	{"touch_single_channel_multi_calib_test", "touch_single_channel_multi_calib_test {0|1|...|15} {0|1|2|3}", cli_touch_single_channel_multi_calib_test_cmd},
+	{"touch_multi_channel_cyclic_calib_test", "touch_multi_channel_cyclic_calib_test {start|stop} {0|1|2|3}", cli_touch_multi_channel_cyclic_calib_test_cmd},
 };
 
 int cli_touch_init(void)

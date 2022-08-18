@@ -15,6 +15,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,10 +40,12 @@ void bk_wifi_set_mpb_clken(uint32_t value);
 void bk_wifi_set_mpb_interframe_delay(uint32_t value);
 uint32_t bk_wifi_get_monotonic_counter_2_lo(void);
 void bk_wifi_debug_port_sel_pack(uint8_t debugportsel2, uint8_t debugportsel1);
-
 void bk_wifi_phy_wakeup_rf_reinit(void);
 void bk_wifi_phy_wakeup_wifi_reinit(void);
 void bk_wifi_get_mac_trx_status(bool reset_status);
+uint8_t bk_wifi_get_bandw(void);
+void bk_wifi_get_rx_statistic(uint32_t *RxSuccessCount);
+void bk_wifi_get_tx_statistic(uint32_t *TxSuccessCount, uint32_t *TxRetryCount, uint32_t *TxFailCount);
 #ifdef __cplusplus
 }
 #endif

@@ -48,16 +48,17 @@
 #include "Wlan_ui_pub.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include <components/netif.h>
 
 beken_timer_t *udp_client_connect_timer = NULL;
 
 int check_connect_wifi(void)
 {
-    IPStatusTypedef ipStatus;
+    netif_ip4_config_t ipStatus;
     bk_err_t ret = kNoErr;
 
-    os_memset(&ipStatus, 0x0, sizeof(IPStatusTypedef));
-    ret = bk_wlan_get_ip_status(&ipStatus, STATION);
+    os_memset(&ipStatus, 0x0, sizeof(netif_ip4_config_t));
+    ret = bk_netif_get_ip4_config(NETIF_IF_STA, &ipStatus);
 
     if(strcmp(ipStatus.ip, "0.0.0.0") != 0)
     {

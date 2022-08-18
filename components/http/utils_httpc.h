@@ -135,7 +135,11 @@ extern int httpclient_common(httpclient_t *client,
 							 uint32_t timeout_ms,
 							 httpclient_data_t *client_data);
 
-
+void ble_sleep_cb(uint8_t is_sleeping, uint32_t slp_period);
+#ifdef CONFIG_HTTP_OTA_WITH_BLE
+typedef void (*ble_sleep_state_cb)(uint8_t is_sleeping, uint32_t slp_period);
+extern void bk_ble_register_sleep_state_callback(ble_sleep_state_cb cb);
+#endif
 #ifdef __cplusplus
 }
 #endif

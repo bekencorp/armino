@@ -100,12 +100,14 @@ typedef enum
     UVC_FRAME_320_240 = 3,
     UVC_FRAME_480_320 = 4,
     UVC_FRAME_480_800 = 5,
-    UVC_FRAME_640_360 = 6,
-    UVC_FRAME_640_480 = 7,
-    UVC_FRAME_800_400 = 8,
-    UVC_FRAME_800_600 = 9,
-    UVC_FRAME_960_540 = 10,
-    UVC_FRAME_1280_720 =11,
+    UVC_FRAME_640_320 = 6,
+    UVC_FRAME_640_360 = 7,
+    UVC_FRAME_640_480 = 8,
+    UVC_FRAME_800_400 = 9,
+    UVC_FRAME_800_480 = 10,
+    UVC_FRAME_800_600 = 11,
+    UVC_FRAME_960_540 = 12,
+    UVC_FRAME_1280_720 =13,
     UVC_FRAME_COUNT
 } E_FRAME_ID_USB20;
 #endif
@@ -120,7 +122,14 @@ typedef enum
     FPS_10 = 10,
     FPS_5  = 5,
 } E_FRAME_RATE_ID;
-	
+
+typedef struct
+{
+    uint32_t  fps;
+    uint32_t  width;
+    uint32_t  height;
+} UVC_ResolutionFramerate;
+
 /*
 * Finish DRC interrupt processing
 */
@@ -175,6 +184,7 @@ extern uint32_t bk_uvc_get_res(uint32_t attribute);
 extern uint32_t bk_uvc_get_len(uint32_t attribute);
 extern uint32_t bk_uvc_get_info(uint32_t attribute);
 extern uint32_t bk_uvc_get_def(uint32_t attribute);
+extern void bk_uvc_get_resolution_framerate(void *param, uint16_t count);
 
 #if (CONFIG_SOC_BK7251) || (CONFIG_SOC_BK7271)
 #define USB_PLUG_FAILURE                (1)

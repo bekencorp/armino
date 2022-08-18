@@ -3,7 +3,6 @@
 #include <os/str.h>
 #include <os/os.h>
 #include "bk_cli.h"
-//#include <components/uvc_camera.h>
 #include <driver/psram.h>
 #include "uvc_mailbox.h"
 
@@ -13,14 +12,29 @@
 #include "test_fatfs.h"
 #endif
 
-
-#define UVC_DATA_ADDR    (0x60000000)
 beken_thread_t  uvc_cpu0_demo_thread_handle = NULL;
 beken_queue_t uvc_cpu0_demo_msg_que = NULL;
 
 
 static void uvc_cpu0_cmd_help(void)
-{}
+{
+	os_printf("uvc {cpu0_init|init|display_init|start|capture|stop|deinit|cpu0_deinit}\n");
+	os_printf("-cpu0_init----------(init cpu0 uvc mailbox and psram)----\r\n");
+	os_printf("-init---------------(init uvc, for capture)--------------\r\n");
+	os_printf("       width--------(uvc output image width, 640/1280)---\r\n");
+	os_printf("       hight--------(uvc output image hight, 480/720)----\r\n");
+	os_printf("       frame_rate---(uvc output image frame rate, 20)----\r\n");
+	os_printf("-display_init-------(init uvc and rgb display)-----------\r\n");
+	os_printf("       width--------(uvc output image width, 640/1280)---\r\n");
+	os_printf("       hight--------(uvc output image hight, 480/720)----\r\n");
+	os_printf("       frame_rate---(uvc output image frame rate, 20)----\r\n");
+	os_printf("       rgb_clk_div--(rgb clk div, 8/25)------------------\r\n");
+	os_printf("-start--------------(start uvc or rgb display)-----------\r\n");
+	os_printf("-capture------------(uvc capture)------------------------\r\n");
+	os_printf("-stop---------------(stop uvc or rgb display)------------\r\n");
+	os_printf("-deinit-------------(deinit uvc or rgb display)----------\r\n");
+	os_printf("-cpu0_deinit--------(deinit cpu0 mailbox and psram)------\r\n");
+}
 
 static bk_err_t uvc_cpu0_send_msg(uint8_t type, uint32_t data)
 {
@@ -111,6 +125,7 @@ static bk_err_t uvc_cpu0_inform_cpu1_req(uint8_t req_type)
 		break;
 	case UVC_MB_CAPTURE_DONE:
 		msg.mb_cmd = UVC_MB_CAPTURE_DONE;
+		break;
 	case UVC_MB_UVC_DEINIT:
 		msg.mb_cmd = UVC_MB_UVC_DEINIT;
 		break;
@@ -169,7 +184,7 @@ static bk_err_t uvc_cpu0_init(void)
 	if ((!uvc_cpu0_demo_thread_handle) && (!uvc_cpu0_demo_msg_que)) {
 
 		ret = rtos_init_queue(&uvc_cpu0_demo_msg_que,
-							  "uvc_queue",
+							  "uvc_cpu0_queue",
 							  sizeof(uvc_cpu_msg_t),
 							  30);
 		if (kNoErr != ret) {
@@ -178,9 +193,9 @@ static bk_err_t uvc_cpu0_init(void)
 
 		ret = rtos_create_thread(&uvc_cpu0_demo_thread_handle,
 								 4,
-								 "uvc_init",
+								 "uvc_cpu0_init",
 								 (beken_thread_function_t)uvc_cpu0_process_main,
-								 2 * 1024,
+								 4 * 1024,
 								 (beken_thread_arg_t)0);
 
 		if (ret != kNoErr) {
@@ -202,8 +217,7 @@ void uvc_process_cpu0(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 	bk_err_t err;
 	if (os_strcmp(argv[1], "cpu0_init") == 0) {
 		// step1: init psram
-		uint32_t mode = 0x00054043;
-		err = bk_psram_init(mode);
+		err = bk_psram_init();
 		if (err != BK_OK) {
 			os_printf("psram init error\n");
 			return;
@@ -243,18 +257,20 @@ void uvc_process_cpu0(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 		uint32_t width, height;
 		uint32_t frame_resolution;
 		uint32_t frame_rate;
-		uint32_t dis_clk_div;
+		//uint32_t dis_clk_div;
+		uint32_t lcd_if;
 		uvc_mailbox_msg_t msg;
 		width = os_strtoul(argv[2], NULL, 10);
 		height = os_strtoul(argv[3], NULL, 10);
 		frame_resolution = (width << 16) | height;
 		frame_rate = os_strtoul(argv[4], NULL, 10);
-		dis_clk_div = os_strtoul(argv[5], NULL, 10);
+		lcd_if = os_strtoul(argv[5], NULL, 10);
+
 		// step3: cpu0 inform cpu1 to init uvc, before this cpu1's mailbox channel have been built.
 		msg.mb_cmd = UVC_MB_DISPLAY_UVC_INIT;
 		msg.param1 = frame_resolution;
 		msg.param2 = frame_rate;
-		msg.param3 = dis_clk_div;
+		msg.param3 = lcd_if;
 		err = uvc_mailbox_send_msg(&msg);
 		if (err != BK_OK) {
 			os_printf("cpu0 inform cpu1 init uvc failed\n");
@@ -286,7 +302,7 @@ void uvc_process_cpu0(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 		}
 
 		uvc_cpu0_send_msg(UVC_CPU0_DEINIT, 0);
-	} else if (os_strcmp(argv[1], "cpu1_deinit") == 0) {
+	} else if (os_strcmp(argv[1], "cpu0_deinit") == 0) {
 		err = bk_psram_deinit();
 		if (err != BK_OK) {
 			os_printf("uvc deinit psram error!\r\n");

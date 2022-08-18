@@ -1,0 +1,181 @@
+#!/usr/bin/env python
+
+#TODO - optimize it, should finally remove this packer
+
+import os
+import sys
+import json
+import shutil
+import argparse
+import copy
+import re
+
+armino_path=os.getenv("ARMINO_PATH")
+build_path=os.path.realpath('.')
+pack_tool_path="{}/build".format(armino_path)
+enc_enable = 0
+enc_start_addr = 0
+enc_count = 0
+boot_loader_path = ""
+tmp_config = {}
+# parse commandline arguments
+def parse_args():
+    description = '''Beken HID Downloader.'''
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('-c', '--chip',
+                        default='bk7231n',
+                        help="chip type")
+    parser.add_argument('-i', '--index', type=int,
+                        default=0,
+                        help="chip index")
+    parser.add_argument('-b', '--boot',
+                        help='specify boot file')
+    parser.add_argument('-f', '--firmware',
+                        help='specify firmware file')
+    parser.add_argument('-d', '--dsp',
+                        help='specify dsp file')
+    parser.add_argument('-t', '--bt',
+                        help='specify bt file')
+    parser.add_argument('-n', '--image_name',
+                        help='generated image name')
+    parser.add_argument('-u', '--cpu1',
+                        help='specify cup1 file')
+    args = parser.parse_args()
+
+    return args
+
+args = parse_args()
+chip = args.chip
+image_name = args.image_name
+
+#print("===========chip={} firmware={} bootloader={}".format(chip, firmware_str, bootloader_str))
+
+
+out_path = "tmp.json"
+enc_out_path = "enc_tmp.json"
+pack_out_path = "pack_tmp.json"
+def package_json_rebuild():
+    if os.path.exists("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR"))):
+        with open("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR")), 'r') as local_json:
+            config_json = json.load(local_json)
+    else:
+        with open("{}/middleware/boards/{}/configuration.json".format(armino_path, chip), 'r') as local_json:
+            config_json = json.load(local_json)
+
+    for firmware_file in config_json["section"]:
+        if os.path.exists("{}/{}/{}/{}".format(armino_path, os.getenv("PROJECT_DIR"), chip, firmware_file["firmware"])):
+            pakfile = "{}/{}/{}/{}".format(armino_path, os.getenv("PROJECT_DIR"), chip,firmware_file["firmware"])
+        else:
+            if os.path.exists("{}/{}/{}".format(armino_path, os.getenv("PROJECT_DIR"), firmware_file["firmware"])):
+                pakfile = "{}/{}/{}".format(armino_path, os.getenv("PROJECT_DIR"),firmware_file["firmware"])
+            else:
+                pakfile = "{}/middleware/boards/{}/{}".format(armino_path, chip, firmware_file["firmware"])
+
+        if (os.path.isfile(pakfile)):
+            shutil.copy(pakfile, "{}/{}".format(build_path, firmware_file["firmware"]))
+
+        firmware_file["firmware"] = "{}/{}".format(build_path, firmware_file["firmware"])
+
+    return json.dumps(config_json, sort_keys=True, indent=4)
+
+def package_json_enc_rebuild():
+    if os.path.exists("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR"))):
+        with open("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR")), 'r') as local_json:
+            config_json = json.load(local_json)
+    else:
+        with open("{}/middleware/boards/{}/configuration.json".format(armino_path, chip), 'r') as local_json:
+            config_json = json.load(local_json)
+    config_json1 = copy.deepcopy(config_json)
+    tmp_config["count"] = config_json["count"]
+    boot_loader_index = 0
+    for firmware_file in config_json["section"]:
+        # print(type(config_json["section"]))
+        firmware_file["firmware"] = "{}/{}".format(build_path, firmware_file["firmware"])
+        firmware_file["start_addr"] = str(hex(int(int(firmware_file["start_addr"], 16)/34*32)))
+        firmware_file["size"] = "{}K".format(int(int(re.findall("^\d+", firmware_file["size"])[0])/34*32))
+        if firmware_file["partition"] == "app":
+            tmp_config["app_enc_addr"] = firmware_file["start_addr"]
+            tmp_config["app_path"] = firmware_file["firmware"]
+        if firmware_file["partition"] == "bootloader":
+            boot_loader_index = config_json["section"].index(firmware_file)
+            tmp_config["boot_loader_path"] = firmware_file["firmware"]
+    del config_json["section"][boot_loader_index]
+    tmp_config["app_all_size"] = 0
+    for firmware_file in config_json["section"]:
+        firmware_file["start_addr"] = str(hex(int(int(firmware_file["start_addr"], 16) - int(tmp_config["app_enc_addr"],16))))
+        size = re.findall("^\d+", firmware_file["size"])
+        # print("@@@@@@@{}".format(size[0]))
+        tmp_config["app_all_size"] += int(size[0])
+    config_json.update({"count": config_json["count"]-1})
+    sign_section = []
+    for firmware_file in config_json1["section"]:
+        sign_firmware = firmware_file["firmware"].split(".")[0]+"_sign."+firmware_file["firmware"].split(".")[1]
+        firmware_file["start_addr"] = str(hex(int(int(firmware_file["start_addr"], 16)/34*32)))
+        firmware_file["firmware"] = "{}/{}".format(build_path, sign_firmware)
+        firmware_file["size"] = "{}K".format(int(int(re.findall("^\d+", firmware_file["size"])[0])/34*32))
+        if firmware_file["partition"] == "bootloader":
+            tmp_config["boot_loader_sign_path"] = firmware_file["firmware"]
+            tmp_config["sign_boot_loader_name"] = sign_firmware
+            sign_section.append(firmware_file)
+        if firmware_file["partition"] == "app":
+            firmware_file["size"] = "{}K".format(tmp_config["app_all_size"])
+            sign_section.append(firmware_file)
+            tmp_config["sign_app_name"] = sign_firmware
+    config_json1.update({"section": sign_section})
+    config_json1.update({"count": len(sign_section)})
+    return json.dumps(config_json, sort_keys=True, indent=4), json.dumps(config_json1, sort_keys=True, indent=4)
+
+with open(str(out_path), "w") as f:
+        f.write(package_json_rebuild())
+
+with open(str(enc_out_path), "w") as f, open(str(pack_out_path), "w") as f1:
+    config, config1 = package_json_enc_rebuild()
+    print("enc_start_addr: {}, enc_count: {}".format(tmp_config["app_enc_addr"],  tmp_config["count"]))
+    f.write(config)
+    f1.write(config1)
+    enc_start_addr = int(tmp_config["app_enc_addr"], 16)
+    print("###### enc addr {}".format({hex(enc_start_addr)}))
+
+if sys.platform == 'win32':
+    os.system("beken_packager {}".format(out_path))
+elif sys.platform == 'darwin':
+    os.system("{}/tools/env_tools/beken_packager/beken_packager.darwin {}".format(armino_path, out_path))
+else:
+    os.system("{}/tools/env_tools/beken_packager/beken_packager {}".format(armino_path, out_path))
+    # new enc pack steps:
+    #1.sign bootloader
+    shutil.copy(tmp_config["boot_loader_path"], tmp_config["sign_boot_loader_name"])
+    #2.pack app & cup*
+    if(tmp_config["count"] > 2):
+        infile = ""
+        with open(enc_out_path, "r") as enc_json:
+            config_json = json.load(enc_json)
+            for firmware_file in config_json["section"]:
+                infile += "{} ".format(firmware_file["firmware"])
+        os.system("{}/tools/env_tools/beken_packager/cmake_Gen_image genfile -injsonfile {} -infile {} -outfile {}".format(armino_path, enc_out_path, infile, "app_pack_none_sign.bin"))
+    #3.sign app
+        #to do sign app_pack_none_sign.bin
+        shutil.copy("app_pack_none_sign.bin", tmp_config["sign_app_name"])
+    else:
+        shutil.copy(tmp_config["app_path"], tmp_config["sign_app_name"])
+    #4.enc app
+    #./cmake_xts_aes encrypt -infile app.bin -startaddress 0x10000 -keyfile 123_bk7235.txt -outfile app_xts.bin
+    key_file = "{}/tools/env_tools/beken_packager/key.txt".format(armino_path)
+    if os.path.exists("{}/middleware/boards/{}/key.txt".format(armino_path, chip)):
+        key_file = "{}/middleware/boards/{}/key.txt".format(armino_path, chip)
+    os.system("{}/tools/env_tools/beken_packager/cmake_xts_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, tmp_config["sign_app_name"], int(tmp_config["app_enc_addr"], 16), key_file, "app_pack_enc.bin"))
+    #5.pack bootloader app
+    infile1 = ""
+    with open(pack_out_path, "r") as pack_json:
+            config_json = json.load(pack_json)
+            for firmware_file in config_json["section"]:
+                infile1 += "{} ".format(firmware_file["firmware"])
+    # print(infile1)
+    os.system("{}/tools/env_tools/beken_packager/cmake_Gen_image genfile -injsonfile {} -infile {} -outfile {}".format(armino_path, pack_out_path, infile1, "all_app_pack_none_enc.bin"))
+    #6.enc all_app
+    os.system("{}/tools/env_tools/beken_packager/cmake_xts_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, "all_app_pack_none_enc.bin", 0, key_file, "all_app_pack_enc.bin"))
+
+
+shutil.move("all_2M.1220.bin", "{}".format(image_name))
+shutil.move(tmp_config["sign_app_name"], "app_pack_sign.bin")
+os.remove(out_path)

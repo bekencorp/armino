@@ -136,6 +136,23 @@ function(__project_info test_components)
     endif()
 endfunction()
 
+function(__project_reload)
+    if(COMPONENTS_DIRS)
+        armino_build_set_property(__COMPONENT_TARGETS "")
+
+        spaces2list(COMPONENTS_DIRS)
+        foreach(component_dir ${COMPONENTS_DIRS})
+            __build_add_components(${component_dir})
+        endforeach()
+        spaces2list(COMPONENT_DIRS)
+        armino_build_get_property(prefix __PREFIX)
+        foreach(component_dir ${COMPONENT_DIRS})
+            get_filename_component(component_dir ${component_dir} ABSOLUTE)
+            __component_add(${component_dir} ${prefix})
+        endforeach()
+    endif()
+endfunction()
+
 function(__project_init components_var test_components_var)
     # Use EXTRA_CFLAGS, EXTRA_CXXFLAGS and EXTRA_CPPFLAGS to add more priority options to the compiler
     # EXTRA_CPPFLAGS is used for both C and C++

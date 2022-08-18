@@ -25,3 +25,4 @@ User and Developer Guide
    特定芯片相关指南 <boards/index>
    特定 CPU 相关指南 <cpu/index>
    移植指南 <porting/index>
+   Bootloader <bootloader/index>

@@ -245,7 +245,7 @@ void sdma_isr(void)
 	/*0, get isr status*/
 	irq_sta = REG_READ(REG_SDMA_INTR_STATUS);
 #if 0
-	bk_printf("%c%c%c\n", irq_sta & SDMA_INTR_CMD_BIT ? 'C' : '-',
+	BK_LOG_RAW("%c%c%c\n", irq_sta & SDMA_INTR_CMD_BIT ? 'C' : '-',
 			  irq_sta & SDMA_INTR_RX_DATA_BIT ? 'R' : '-',
 			  irq_sta & SDMA_INTR_TX_DATA_BIT ? 'T' : '-');
 #endif

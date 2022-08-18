@@ -224,7 +224,7 @@ static inline uint32_t clock_ll_get_uart_clk(icu_hw_t *hw, uint32_t id)
 	return (hw->peri_clk_mux.v & BIT(id)) ? ICU_V_CLK_MUX_26M : ICU_V_CLK_MUX_DCO;
 }
 
-#if CONFIG_SOC_BK7236
+#if CONFIG_SOC_BK7236A
 static inline void icu_ll_jpeg_set_96m(icu_hw_t *hw)
 {
 	hw->peri_clk_mux.jpeg = 0;

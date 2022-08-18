@@ -20,7 +20,12 @@
 #include <os/os.h>
 //#include <os/str.h>
 #include <components/system.h>
+#if CONFIG_FLASH_ORIGIN_API
 #include "BkDriverFlash.h"
+#else
+#include "driver/flash.h"
+#include <driver/flash_partition.h>
+#endif
 #include "flash_namespace_value.h"
 
 

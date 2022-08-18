@@ -40,6 +40,9 @@
 #if CONFIG_FLASH
 #include "flash_hal.h"
 #endif
+#if CONFIG_SDIO_HOST
+#include "sdio_host_hal.h"
+#endif
 
 static int hex2num(char c)
 {
@@ -240,6 +243,11 @@ static void cli_reg_dump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 #if CONFIG_FLASH
 	else if (os_strcmp(argv[1], "flash") == 0) {
 		flash_struct_dump();
+	}
+#endif
+#if CONFIG_SDIO_HOST
+	else if (os_strcmp(argv[1], "sdio_host") == 0) {
+		sdio_host_struct_dump();
 	}
 #endif
 	else {

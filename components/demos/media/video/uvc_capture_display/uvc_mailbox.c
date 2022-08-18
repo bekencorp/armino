@@ -22,18 +22,18 @@ void uvc_mailbox_init(void *rx_isr, void *tx_isr, void *tx_cmpl_isr)
 {
 	//init maibox
 	//mb_chnl_init();
-	mb_chnl_open(MB_CHNL_UVC, NULL);
+	mb_chnl_open(MB_CHNL_VID, NULL);
 	if (rx_isr != NULL)
-		mb_chnl_ctrl(MB_CHNL_UVC, MB_CHNL_SET_RX_ISR, rx_isr);
+		mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_RX_ISR, rx_isr);
 	if (tx_isr != NULL)
-		mb_chnl_ctrl(MB_CHNL_UVC, MB_CHNL_SET_TX_ISR, tx_isr);
+		mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_TX_ISR, tx_isr);
 	if (tx_cmpl_isr != NULL)
-		mb_chnl_ctrl(MB_CHNL_UVC, MB_CHNL_SET_TX_CMPL_ISR, tx_cmpl_isr);
+		mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_TX_CMPL_ISR, tx_cmpl_isr);
 }
 
 void uvc_mailbox_deinit(void)
 {
-	mb_chnl_close(MB_CHNL_UVC);
+	mb_chnl_close(MB_CHNL_VID);
 }
 
 bk_err_t uvc_mailbox_send_msg(uvc_mailbox_msg_t *msg)
@@ -45,7 +45,7 @@ bk_err_t uvc_mailbox_send_msg(uvc_mailbox_msg_t *msg)
 	mb_cmd.param1 = msg->param1;
 	mb_cmd.param2 = msg->param2;
 	mb_cmd.param3 = msg->param3;
-	return mb_chnl_write(MB_CHNL_UVC, &mb_cmd);
+	return mb_chnl_write(MB_CHNL_VID, &mb_cmd);
 }
 
 

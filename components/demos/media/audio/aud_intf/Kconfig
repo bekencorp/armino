@@ -1,0 +1,55 @@
+menu "AUD_INTF_CONFIG"
+	config AUD_INTF
+		bool "Enable Audio Interface API"
+		default n
+
+	choice AUD_INTF_VER
+		prompt "Audio Interface Version"
+		default AUD_INTF_VER_NEW
+
+		config AUD_INTF_VER_OLD
+			depends on AUD_INTF
+			bool "Old Audio Interface Version"
+
+		config AUD_INTF_VER_NEW
+			depends on AUD_INTF
+			bool "New Audio Interface Version"
+
+	endchoice
+
+	config AUD_INTF_TEST
+			depends on AUD_INTF_VER_NEW
+			bool "enable Audio interface test"
+			default n
+
+endmenu
+
+menu "AUD_TRAS_CONFIG"
+	config AUDIO_TRANSFER
+		bool "Enable Audio Transfer Feature"
+		default n
+
+	choice AUD_TRAS_MODE
+		prompt "Audio Transfer Mode"
+		default AUD_TRAS_MODE_CPU1
+
+		config AUD_TRAS_MODE_CPU0
+			depends on AUDIO_TRANSFER
+			bool "Audio Transfer in CPU0"
+
+		config AUD_TRAS_MODE_CPU1
+			depends on AUDIO_TRANSFER
+			bool "Audio Transfer in CPU1"
+
+	endchoice
+
+	config AUD_TRAS_AEC_DUMP_DEBUG
+			depends on AUDIO_TRANSFER
+			bool "enable Audio Transfer AEC dump debug"
+			default n
+
+	config AUD_TRAS_LOST_COUNT_DEBUG
+			depends on AUDIO_TRANSFER
+			bool "enable Audio Transfer lost count debug"
+			default n
+endmenu

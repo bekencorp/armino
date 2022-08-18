@@ -20,6 +20,16 @@
 extern "C" {
 #endif
 
+#if (!CONFIG_FLASH_ORIGIN_API)
+#define PAR_OPT_READ_POS      (0)
+#define PAR_OPT_WRITE_POS     (1)
+
+#define PAR_OPT_READ_DIS      (0x0u << PAR_OPT_READ_POS)
+#define PAR_OPT_READ_EN       (0x1u << PAR_OPT_READ_POS)
+#define PAR_OPT_WRITE_DIS     (0x0u << PAR_OPT_WRITE_POS)
+#define PAR_OPT_WRITE_EN      (0x1u << PAR_OPT_WRITE_POS)
+#endif
+
 typedef enum
 {
 	BK_FLASH_EMBEDDED,
@@ -36,6 +46,7 @@ typedef enum
 #if (CONFIG_SOC_BK7256XX)
 	BK_PARTITION_APPLICATION1,
 #endif
+	BK_PARTITION_MATTER_FLASH,
 	BK_PARTITION_RF_FIRMWARE,
 	BK_PARTITION_NET_PARAM,
 	BK_PARTITION_USR_CONFIG,

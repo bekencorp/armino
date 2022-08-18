@@ -16,7 +16,6 @@
 #include <os/mem.h>
 #include "icu_hal.h"
 #include "icu_driver.h"
-#include "bk_ps.h"
 #include <os/os.h>
 #include "interrupt_base.h"
 

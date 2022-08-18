@@ -9,13 +9,33 @@ static void run_all_tests(void)
     //RUN_TEST_GROUP(TEST_IOT_SPI);
     
     // RUN_TEST_GROUP(TEST_IOT_I2C);
-
+    RUN_TEST_GROUP(TEST_IOT_POWER);
+   
+    //RUN_TEST_GROUP(TEST_IOT_RESET);
+#if(CONFIG_PWM)
     //RUN_TEST_GROUP(TEST_IOT_PWM);
-
+#endif    
+#if(CONFIG_EFUSE)
+    //RUN_TEST_GROUP(TEST_IOT_EFUSE);
+#endif
 #if(CONFIG_FLASH)
-    RUN_TEST_GROUP(TEST_IOT_FLASH);
+    //RUN_TEST_GROUP(TEST_IOT_FLASH);
 #endif
     //RUN_TEST_GROUP(TEST_IOT_GPIO);
+
+#if(CONFIG_TEMP_DETECT)
+    //RUN_TEST_GROUP(TEST_IOT_TSENSOR);
+#endif
+
+#if(CONFIG_INT_WDT)
+    //RUN_TEST_GROUP(TEST_IOT_WATCHDOG);
+#endif
+
+
+#if(CONFIG_AON_RTC)
+    RUN_TEST_GROUP(TEST_IOT_RTC);
+#endif
+
 }
 
 int common_io_test_main(int argc, const char * argv[])

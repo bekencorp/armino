@@ -1,30 +1,30 @@
-// Copyright 2020-2021 Beken 
-// 
-// Licensed under the Apache License, Version 2.0 (the "License");           
-// you may not use this file except in compliance with the License.            
-// You may obtain a copy of the License at                                     
-//                                                                             
-//     http://www.apache.org/licenses/LICENSE-2.0                              
-//                                                                             
-// Unless required by applicable law or agreed to in writing, software         
-// distributed under the License is distributed on an "AS IS" BASIS,         
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.    
-// See the License for the specific language governing permissions and         
-// limitations under the License.                                              
+// Copyright 2020-2021 Beken
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#pragma once                 
-                            
-#include <soc/soc.h>          
-#include "aon_pmu_hw.h" 
-#if((CONFIG_SOC_BK7256_CP1) || (CONFIG_SOC_BK7256XX)) 
-#include "aon_pmu_ll_macro_def.h"       
+#pragma once
+
+#include <soc/soc.h>
+#include "hal_port.h"
+#include "aon_pmu_hw.h"
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#ifdef __cplusplus          
-extern "C" {              
-#endif                      
-/* REG_0x00 */
+#define AON_PMU_LL_REG_BASE(_aon_pmu_unit_id)    (SOC_AON_PMU_REG_BASE)
 
+/* REG_0x00 */
 static inline uint32_t aon_pmu_ll_get_reg0_value(aon_pmu_hw_t *hw)
 {
     return hw->reg0.v;
@@ -428,29 +428,6 @@ static inline void aon_pmu_ll_set_reg41_wakeup_ena(aon_pmu_hw_t *hw, uint32_t va
     hw->reg41.wakeup_ena = value;
 }
 
-/* REG_0x42 */
-
-static inline uint32_t aon_pmu_ll_get_reg42_value(aon_pmu_hw_t *hw)
-{
-    return hw->reg42.v;
-}
-
-static inline void aon_pmu_ll_set_reg42_value(aon_pmu_hw_t *hw, uint32_t value)
-{
-    hw->reg42.v = value;
-}
-
-/* REG_0x42:reg42->reg42: ,R/W,0x42[31:0]*/
-static inline uint32_t aon_pmu_ll_get_reg42_reg42(aon_pmu_hw_t *hw)
-{
-    return hw->reg42.v;
-}
-
-static inline void aon_pmu_ll_set_reg42_reg42(aon_pmu_hw_t *hw, uint32_t value)
-{
-    hw->reg42.v = value;
-}
-
 /* REG_0x43 */
 
 static inline uint32_t aon_pmu_ll_get_reg43_value(aon_pmu_hw_t *hw)
@@ -674,6 +651,6 @@ static inline uint32_t aon_pmu_ll_get_reg7f_h(aon_pmu_hw_t *hw)
     return hw->reg7f.v;
 }
 
-#ifdef __cplusplus 
-}                  
-#endif             
+#ifdef __cplusplus
+}
+#endif

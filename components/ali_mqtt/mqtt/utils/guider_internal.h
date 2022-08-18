@@ -86,6 +86,9 @@ void guider_print_dev_guider_info(iotx_device_info_pt dev,
                                   char *dev_code);
 void guider_print_conn_info(iotx_conn_info_pt conn);
 char *mqtt_get_mac_str();
+char *mqtt_get_host_name();
+char *mqtt_get_username();
+char *mqtt_get_password();
 
 #ifndef MQTT_DIRECT
 int _http_response(char *payload,

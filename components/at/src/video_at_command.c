@@ -13,6 +13,9 @@ extern void delay(int num);//TODO fix me
 int video_read_psram_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 int video_disable_psram_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+int test_psram(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
 #endif
 
 #if CONFIG_CAMERA
@@ -25,10 +28,11 @@ const at_command_t video_at_cmd_table[] = {
 #if CONFIG_PSRAM
 	{0, "READPSRAM", 0, "psram", video_read_psram_handler},
 	{1, "DEINITPSRAM", 0, "deinit psram", video_disable_psram_handler},
+	{2, "TEST", 0, "psram", test_psram},
 #endif
 #if CONFIG_CAMERA
-	{2, "SETYUV", 0, "set jpeg/yuv mode and to psram", video_set_yuv_psram_handler},
-	{3, "CLOSEYUV", 0, "close jpeg", video_close_yuv_psram_handler},
+	{3, "SETYUV", 0, "set jpeg/yuv mode and to psram", video_set_yuv_psram_handler},
+	{4, "CLOSEYUV", 0, "close jpeg", video_close_yuv_psram_handler},
 #endif
 };
 
@@ -46,29 +50,28 @@ int video_read_psram_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 	uint8_t i = 0;
 
 	uint32_t psram = 0x60000000;
-	uint32_t mode = 0x00054043;
 	if (argc != 0) {
 		os_printf("input param error\n");
 		err = kParamErr;
 		goto error;
 	}
 
-	err = bk_psram_init(mode);
+	err = bk_psram_init();
 	if (err != kNoErr) {
 		os_printf("psram init error\n");
 		err = kParamErr;
 		goto error;
 	}
 
-	os_memset((uint8_t *)psram, 0, 30);
+	os_memset((uint32_t *)psram, 0, 32);
 
-	for (i = 0; i < 30; i++) {
-		*((uint8_t *)psram + i) = i;
+	for (i = 0; i < 8; i++) {
+		*((uint32 *)psram + i * 4) = i;
 	}
 
 	os_printf("data:\n");
-	for (i = 0; i <30; i++) {
-		os_printf("%d ", *((uint8_t *)psram + i));
+	for (i = 0; i < 8; i++) {
+		os_printf("%d ", *((uint32_t *)psram + i * 4));
 	}
 	os_printf("\n");
 
@@ -80,6 +83,26 @@ error:
 	msg = AT_CMD_RSP_ERROR;
 	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 	return err;
+}
+
+int test_psram(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	char *msg = NULL;
+	uint32_t psram = 0x60000000;
+	uint8_t i = 0;
+	for (i = 0; i < 32; i++) {
+		*((uint32 *)psram + i * 4) = i * 2;
+	}
+
+	os_printf("data:\n");
+	for (i = 0; i < 32; i++) {
+		os_printf("%d ", *((uint32_t *)psram + i * 4));
+	}
+	os_printf("\n");
+
+	msg = AT_CMD_RSP_SUCCEED;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return kNoErr;
 }
 
 int video_disable_psram_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -155,8 +178,7 @@ int video_set_yuv_psram_handler(char *pcWriteBuffer, int xWriteBufferLen, int ar
 #endif
 
 #if (CONFIG_PSRAM)
-	uint32_t psram_mode = 0x00054043;
-	err = bk_psram_init(psram_mode);
+	err = bk_psram_init();
 	if (err != kNoErr) {
 		os_printf("psram init error\n");
 		err = kParamErr;
@@ -212,7 +234,7 @@ int video_set_yuv_psram_handler(char *pcWriteBuffer, int xWriteBufferLen, int ar
 
 	if (ppi == VGA_1280_720) {
 		jpeg_config.sys_clk_div = 3;
-		jpeg_config.mclk_div = 2;
+		jpeg_config.mclk_div = 0;
 	}else {
 		jpeg_config.sys_clk_div = 4;
 		jpeg_config.mclk_div = 0;

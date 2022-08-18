@@ -23,7 +23,7 @@
 #if CONFIG_MALLOC_STATIS
 #define DHCP_SERVER_TASK_STACK_SIZE     2048
 #else
-#define DHCP_SERVER_TASK_STACK_SIZE     1152
+#define DHCP_SERVER_TASK_STACK_SIZE     1536
 #endif
 
 struct client_mac_cache {

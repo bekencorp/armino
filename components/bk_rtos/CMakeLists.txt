@@ -20,9 +20,13 @@ if(CONFIG_FREERTOS)
 			freertos/mem_arch.c
 			platform_stub.c
 			freertos/str_arch.c
-			freertos/FreeRTOS_tick_config.c
 			freertos/blinky_demo/main_blinky.c
 		)
+		if(CONFIG_ARCH_RISCV)
+			list(APPEND srcs
+				freertos/FreeRTOS_tick_config.c
+			)
+		endif()
 	endif()
 	if(CONFIG_FULLY_HOSTED)
 		list(APPEND srcs freertos/mmgmt.c)
@@ -70,6 +74,22 @@ elseif(CONFIG_LITEOS_M_V3)
 		liteos_m_v3/mem_arch.c
 		liteos_m_v3/str_arch.c
 	)
+elseif(CONFIG_NON_OS)
+	list(APPEND incs non_os)
+	set(srcs
+		non_os/rtos_pub.c
+		non_os/mem_arch.c
+		non_os/heap_4.c
+		non_os/port.c
+		non_os/str_arch.c
+	)
+	set_source_files_properties("${CMAKE_CURRENT_LIST_DIR}/non_os/port.c" PROPERTIES COMPILE_FLAGS "-marm")
 endif()
 
+	list(APPEND srcs rtos_ext.c)
+
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_common riscv)
+
+if(CONFIG_ARCH_RISCV)
+target_compile_options(${COMPONENT_LIB} PRIVATE -mno-relax)
+endif()

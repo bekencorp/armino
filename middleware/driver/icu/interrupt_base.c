@@ -11,11 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include <common/bk_include.h>
 #include "compiler.h"
 #include <os/mem.h>
 #include "bk_arm_arch.h"
-#include "bk_ps.h"
 #include "arch_interrupt.h"
 #include "icu_driver.h"
 #include "interrupt_base.h"
@@ -74,14 +74,14 @@ bk_err_t bk_int_isr_unregister(icu_int_src_t int_number)
 	return BK_OK;
 }
 #else
+
 static uint32_t s_isr_mask[MAX_INT_GROUP_NUM] = {0};
 static isr_list_t s_int_lists[MAX_INT_GROUP_NUM];
+static int_mac_ps_callback_t s_int_mac_ps_callback = NULL;
 
 #if CONFIG_INT_STATIS
 int_statis_t g_int_statis_num = {0};
 #endif
-
-
 
 static isr_t* int_isr_del(icu_int_src_t src)
 {
@@ -127,7 +127,6 @@ static isr_t* int_isr_del(icu_int_src_t src)
 
 	return NULL;
 }
-
 
 bk_err_t bk_int_isr_unregister(icu_int_src_t src)
 {
@@ -210,6 +209,11 @@ bk_err_t bk_int_isr_register(icu_int_src_t src, int_group_isr_t isr, void*arg)
 	return int_isr_add(new_isr, group_id);
 }
 
+bk_err_t bk_int_register_mac_ps_callback(int_mac_ps_callback_t mac_ps_cb)
+{
+	s_int_mac_ps_callback = mac_ps_cb;
+	return BK_OK;
+}
 
 void group_isr(uint32_t group_id, uint32_t int_status)
 {
@@ -220,12 +224,11 @@ void group_isr(uint32_t group_id, uint32_t int_status)
 	LIST_HEADER_T *pos;
 
 	status = int_status & s_isr_mask[group_id];
-
 	// ICU_LOGD("group_isr:%x:%x\r\n", int_status, status);
 
-#if CONFIG_STA_PS
-	mac_ps_dtim_wake(status);
-#endif
+	if (s_int_mac_ps_callback) {
+		s_int_mac_ps_callback(status);
+	}
 
 	list_for_each_safe(pos, next, &s_int_lists[group_id].isr) {
 		cur_ptr= list_entry(pos, isr_t, list);
@@ -247,7 +250,6 @@ void group_isr(uint32_t group_id, uint32_t int_status)
 	}
 }
 
-
 void interrupt_init(void)
 {
 	for(int i =0; i< MAX_INT_GROUP_NUM; i++) {
@@ -261,7 +263,6 @@ void interrupt_deinit(void)
 {
 	soc_isr_deinit();
 }
-
 
 bk_err_t bk_int_set_priority(icu_int_src_t int_src, uint32_t int_priority)
 {

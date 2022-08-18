@@ -5,7 +5,7 @@
 #include "bk_drv_model.h"
 #include "bk_uart.h"
 #include <os/os.h>
-#include "bk_api_clock.h"
+//#include "bk_api_clock.h"
 
 #include <components/log.h>
 #include "bk_ps_time.h"
@@ -30,7 +30,7 @@ void bk_tick_handle(uint8_t arg)
 	}
 }
 
-uint32_t bk_update_tick(uint32_t tick)
+int bk_update_tick(uint32_t tick)
 {
 	current_clock += tick;
 
@@ -48,9 +48,9 @@ uint32_t bk_update_tick(uint32_t tick)
 	return 0;
 }
 
-uint32_t bk_get_tick(void)
+uint64_t bk_get_tick(void)
 {
-	return (UINT32)current_clock;
+	return (uint64_t)current_clock;
 }
 
 UINT64 fclk_get_local_tick64(void)
@@ -67,3 +67,9 @@ uint32_t bk_get_second(void)
 {
 	return bk_get_tick() / bk_get_tick_per_second();
 }
+
+uint32_t bk_get_ms_per_tick(void)
+{
+	return (1000 / FAKE_CLOCK_TICK_RATE);
+}
+

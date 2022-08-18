@@ -25,8 +25,29 @@ extern "C" {
 
 #define TRNG_LL_REG_BASE(_trng_unit_id)    (SOC_TRNG_REG_BASE)
 
+static inline void trng_ll_soft_reset(trng_hw_t *hw)
+{
+	hw->global_ctrl.soft_reset = 1;
+}
+
+static inline uint32_t trng_ll_get_device_id(trng_hw_t *hw)
+{
+	return hw->dev_id;
+}
+
+static inline uint32_t trng_ll_get_version_id(trng_hw_t *hw)
+{
+	return hw->dev_version;
+}
+
+static inline uint32_t trng_ll_get_dev_status(trng_hw_t *hw)
+{
+	return hw->dev_status;
+}
+
 static inline void trng_ll_init(trng_hw_t *hw)
 {
+	trng_ll_soft_reset(hw);
 	hw->ctrl.en = 0;
 }
 

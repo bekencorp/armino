@@ -27,6 +27,7 @@
 #include <string.h>	/* For strcmp(3). */
 #include <os/mem.h>
 #include "bk_uart.h"
+#include <components/system.h>
 
 #define VA_START(ap, last) va_start(ap, last)
 #define VA_SHIFT(ap, value, type) /* No-op for ANSI C. */
@@ -1242,7 +1243,7 @@ int __wrap_sprintf(char *str, const char *format, ...)
 
 int __wrap_puts(const char *s)
 {
-	uart_write_string(CONFIG_UART_PRINT_PORT, s);
+	uart_write_string(bk_get_printf_port(), s);
 
 	return 1;	/* non-negative value returned */
 }

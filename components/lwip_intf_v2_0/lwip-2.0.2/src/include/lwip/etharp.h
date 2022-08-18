@@ -75,6 +75,7 @@ struct etharp_q_entry {
 
 #define etharp_init() /* Compatibility define, no init needed. */
 void etharp_tmr(void);
+void etharp_reply(void);
 s8_t etharp_find_addr(struct netif *netif, const ip4_addr_t *ipaddr,
          struct eth_addr **eth_ret, const ip4_addr_t **ip_ret);
 u8_t etharp_get_entry(u8_t i, ip4_addr_t **ipaddr, struct netif **netif, struct eth_addr **eth_ret);

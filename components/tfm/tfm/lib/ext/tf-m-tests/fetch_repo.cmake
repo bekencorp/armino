@@ -17,7 +17,7 @@ set(FETCHCONTENT_BASE_DIR ${CMAKE_BINARY_DIR}/lib/ext CACHE STRING "" FORCE)
 
 if ("${TFM_TEST_REPO_PATH}" STREQUAL "DOWNLOAD")
     FetchContent_Declare(tfm_test_repo
-        GIT_REPOSITORY ssh://${USER}@192.168.0.46:29418/iot/wcn/components/tfm_tests
+        GIT_REPOSITORY https://git.trustedfirmware.org/TF-M/tf-m-tests.git
         GIT_TAG ${TFM_TEST_REPO_VERSION}
         GIT_PROGRESS TRUE
     )

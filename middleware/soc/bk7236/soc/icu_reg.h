@@ -120,11 +120,9 @@ extern "C" {
 #define ICU_PRI_IRQ_UART1                        (26)
 #define ICU_PRI_IRQ_QSPI                         (27)
 
-#if (CONFIG_SOC_BK7236)
 #define ICU_PRI_FIQ_HSU                          (11)
 #define ICU_PRI_FIQ_RC                           (12)
 #define ICU_PRI_JPEG_ENCODER                     (20)
-#endif
 
 #ifdef __cplusplus
 }

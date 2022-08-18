@@ -19,6 +19,9 @@ extern "C" {
 #endif
 
 #define FLASH_R_BASE         (SOC_FLASH_REG_BASE)
+#define FLASH_ID_GD25Q32C    (0xC84016)
+#define LEN_WRSR_S0_S7       (8)
+#define CMD_WRSR_S8_S15      (0x31)
 
 #ifdef __cplusplus
 }

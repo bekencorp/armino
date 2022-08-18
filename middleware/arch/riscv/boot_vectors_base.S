@@ -67,7 +67,7 @@ _start:
 	    csrsi mmisc_ctl, 2
 	#endif
 
-#ifdef CFG_CACHE_ENABLE
+#ifndef CACHE_DISABLE
 	/* Enable I/D cache with HW prefetcher and D-cache write-around (threshold: 4 cache lines) */
 	li t0, (0x3 << 13)
 	csrc mcache_ctl, t0
@@ -92,6 +92,7 @@ __platform_init:
 	.weak nmi_handler
 nmi_handler:
 	csrr a0, mcause
+	sw  x1, 0(a1)
 	call user_nmi_handler
 	li t0, TRAP_M_USER_NP
 	csrw mcause, t0
@@ -101,6 +102,18 @@ nmi_handler:
 .org  0x100
 .word 0x32374B42
 .word 0x00003635
+.word 0x00000000
+.word 0x00000000
+.org  0x110
+.word 0x64616568    /*head: sign head address*/
+.word 0x00000000
+.word 0x00000000
+.word 0x00000000
+.org  0x120
+.word 0x00000000    /*version: provide to version number setting*/
+.word 0x00000000
+.word 0x00000000
+.word 0x00000000
 .option pop
 	.section .text
 

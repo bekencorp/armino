@@ -20,15 +20,23 @@
 extern "C" {
 #endif
 
+#define    PARAM_JPEG_SRC_ADDR_BASE       0X60100000 /**< LCD DISPLAY Define jpeg dec src addr*/
+#define    PARAM_JPEG_DEC_DST_ADDR_BASE   0X60300000 /**< LCD DISPLAY Define jpeg dec dst addr*/
+#define    PARAM_LCD_DISPLAY_ADDR_BASE    0X60500000 /**< if lcd display data is jpegdec data,the display addr = PARAM_JPEG_DEC_DST_ADDR_BASE*/
+#define    PARAM_LCD_ROTATE_BASE          0X60700000 /**< if ENABLE rotate function*/
+
 /**
  * @brief camera image resolution type
  */
 typedef enum {
 	QVGA_320_240    = 0,  /**< 320*240 */
+	VGA_480_272,          /**< 480*272 */
+	VGA_320_480,          /**< 640*480 */
+	VGA_480_320,          /**< 480*320 */
 	VGA_640_480,          /**< 640*480 */
 	VGA_800_600,          /**< 800*600 */
 	VGA_1280_720,         /**< 1280*720 */
-	VGA_480_272,          /**< 480*272 */
+	VGA_1600_1200,        /**< 1600*1200 */
 	PPI_MAX
 } ppi_type_t; // Pixel per inch
 

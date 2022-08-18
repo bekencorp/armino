@@ -421,6 +421,19 @@ bk_err_t bk_wifi_ap_get_config(wifi_ap_config_t *ap_config);
 bk_err_t bk_wifi_ap_get_sta_list(wlan_ap_stas_t *stas);
 
 /**
+ * @brief     Calculate softap's Pmk when softap is starts.
+ *
+ * @param     ssid  softap's ssid
+ * @param     pwd   softap's pwd
+ * @param     pmk   softap's pmk
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors
+ */
+bk_err_t bk_wifi_calculate_pmk(const char *ssid, const char *pwd, char *pmk);
+
+/**
  * @brief     Add softap's Vendor Specific IE when softap is running.
  *
  * @attention If you want to add vsie when softap starts, just initialize wifi_ap_config_t
@@ -788,6 +801,35 @@ bk_err_t bk_wifi_set_mac_address(char *mac);
  *      - others: real error, used for future.
  */
 bk_err_t bk_wifi_manual_cal_rfcali_status(void);
+
+/**
+ * @brief  Register a cb of probe request for ap.
+ *
+ * @param cb callback function of probe request to register
+ *
+ */
+bk_err_t bk_wifi_ap_vif_probe_req_frame_cb_register(void *cb);
+
+/**
+ * @brief  Set listen interval.
+ *
+ * @return
+ * 	-BK_OK: on success
+ * 	-others:real error, used for future.
+ *
+ */
+bk_err_t bk_wifi_send_listen_interval_req(uint8_t interval);
+
+/**
+ * @brief  Get wifi statistic info.
+ *
+ * @param get wifi info from fw
+ *
+ * @return
+ * 	-BK_OK: on success
+ * 	-others:real error, used for future.
+ */
+bk_err_t bk_wifi_get_statistic_info(wifi_statistics_info_t *wifiinfo);
 
 /**
  * @}

@@ -72,3 +72,13 @@ menu "LITEOS_M"
 			bool "liteos_m bk adapter"
 			default n
 endmenu
+
+menu "NON_OS"
+	config NON_OS
+		bool "non_os"
+		default n
+endmenu
+
+config CUSTOMIZE_HEAP_SIZE
+	int "Customize heap size, default 160k"
+	default 163840

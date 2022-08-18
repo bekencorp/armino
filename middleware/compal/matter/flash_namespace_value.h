@@ -4,8 +4,11 @@
 #ifdef __cplusplus
 extern"C" {
 #endif
+#if CONFIG_FLASH_ORIGIN_API
 #include "BkDriverFlash.h"
-
+#else
+#include <driver/flash_partition.h>
+#endif
 #if 0
 #define bk_flash_debug_printf(...)                      bk_printf(__VA_ARGS__)
 #else

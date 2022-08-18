@@ -70,6 +70,7 @@
 
 #include "lwip/opt.h"
 
+#include "wlan_ui_pub.h"
 #include "lwip/pbuf.h"
 #include "lwip/stats.h"
 #include "lwip/def.h"
@@ -112,6 +113,7 @@ pbuf_skip_const(const struct pbuf *in, u16_t in_offset, u16_t *out_offset);
 
 volatile u8_t pbuf_free_ooseq_pending;
 #define PBUF_POOL_IS_EMPTY() pbuf_pool_is_empty()
+uint32_t pbuf_debug_flag = false;
 
 /**
  * Attempt to reclaim some memory from queued out-of-sequence TCP segments
@@ -173,6 +175,16 @@ pbuf_pool_is_empty(void)
 #endif /* PBUF_POOL_FREE_OOSEQ_QUEUE_CALL */
 }
 #endif /* !LWIP_TCP || !TCP_QUEUE_OOSEQ || !PBUF_POOL_FREE_OOSEQ */
+
+void pbuf_set_log(uint32_t pbuf_flag)
+{
+  pbuf_debug_flag = pbuf_flag;
+}
+
+uint32_t pbuf_get_log(void)
+{
+  return pbuf_debug_flag;
+}
 
 /* Initialize members of struct pbuf after allocation */
 static void
@@ -270,6 +282,9 @@ pbuf_alloc(pbuf_layer layer, u16_t length, pbuf_type type)
       } while (rem_len > 0);
       break;
     }
+#if MEM_TRX_DYNAMIC_EN
+    case PBUF_RAM_RX:
+#endif
     case PBUF_RAM: {
       u16_t payload_len = (u16_t)(LWIP_MEM_ALIGN_SIZE(offset) + LWIP_MEM_ALIGN_SIZE(length));
       mem_size_t alloc_len = (mem_size_t)(LWIP_MEM_ALIGN_SIZE(SIZEOF_STRUCT_PBUF) + payload_len);
@@ -281,7 +296,14 @@ pbuf_alloc(pbuf_layer layer, u16_t length, pbuf_type type)
       }
 
       /* If pbuf is to be allocated in RAM, allocate memory for it. */
+#if MEM_TRX_DYNAMIC_EN
+      if (type == PBUF_RAM_RX)
+        p = (struct pbuf *)mem_malloc_rx(alloc_len);
+      else
+        p = (struct pbuf *)mem_malloc(alloc_len);
+#else
       p = (struct pbuf *)mem_malloc(alloc_len);
+#endif
       if (p == NULL) {
         return NULL;
       }
@@ -296,6 +318,14 @@ pbuf_alloc(pbuf_layer layer, u16_t length, pbuf_type type)
       return NULL;
   }
   LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_alloc(length=%"U16_F") == %p\n", length, (void *)p));
+#if PBUF_LIFETIME_DBG
+      p->tx_alc_tick = 0;
+
+      if (type == PBUF_RAM)
+      {
+        p->tx_alc_tick = rtos_get_time();
+      }
+#endif
   return p;
 }
 
@@ -782,6 +812,53 @@ pbuf_free(struct pbuf *p)
           /* @todo: support freeing other types */
           LWIP_ASSERT("invalid pbuf type", 0);
         }
+
+        #if PBUF_LIFETIME_DBG
+        if (pbuf_get_log())
+        {
+          u32_t cur_tick = rtos_get_time();
+          //lifetime
+          if (p->tx_alc_tick && (cur_tick > p->tx_alc_tick) )
+          {
+            //alloc--free
+            u32_t lifetime = (cur_tick < p->tx_alc_tick)? 0: cur_tick - p->tx_alc_tick;
+            //alloc--macif
+            u32_t prep_tx_time = (p->tx_tick < p->tx_alc_tick)? 0: p->tx_tick - p->tx_alc_tick;
+            //macif--chain
+            u32_t mac_prep_time = (p->tx_chain_tick < p->tx_tick)? 0: p->tx_chain_tick - p->tx_tick;
+            //chain--done
+            u32_t tx_send_time = (p->txc_tick < p->tx_chain_tick)? 0: p->txc_tick - p->tx_chain_tick;
+            //done--cfm
+            u32_t cfm_time = (p->tx_cfm_tick < p->txc_tick)? 0: p->tx_cfm_tick - p->txc_tick;
+            //cfm--free
+            u32_t cfm_free_time = (cur_tick < p->tx_cfm_tick)? 0: cur_tick - p->tx_cfm_tick;
+
+            //lifetime >10ms cnt
+            lwip_stats.pbuf_info.all_cnt++;
+            uint32_t a_time = 10;
+
+            if (prep_tx_time > a_time)
+                lwip_stats.pbuf_info.prep_cnt++;
+            if (mac_prep_time > a_time)
+                lwip_stats.pbuf_info.mac_prep_cnt++;
+            if (tx_send_time > a_time)
+                lwip_stats.pbuf_info.send_cnt++;
+            if (cfm_time > a_time)
+                lwip_stats.pbuf_info.cfm_cnt++;
+            if (cfm_free_time > a_time)
+                lwip_stats.pbuf_info.cfm_free_cnt++;
+
+            if(lifetime >10)
+            {
+              os_printf("over 10ms\n");
+            }
+
+            os_printf("id 0x%04x sn %d ag%d r%d\n",p->tx_tick_id,p->tx_tick_sn, p->tx_agg, p->tx_retry);
+            os_printf("l %d p %d m %d\n",lifetime,prep_tx_time,mac_prep_time);
+            os_printf("s %d c %d f %d\n",tx_send_time,cfm_time,cfm_free_time);
+          }
+        }
+        #endif
       }
       count++;
       /* proceed to next pbuf */

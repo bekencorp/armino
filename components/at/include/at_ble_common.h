@@ -56,11 +56,11 @@ enum at_init_state
 	AT_INIT_STATE_CREATED,
 
 	/// WAIT Start Iint activity
-	AT_INIT_STATE_WAIT_CONECTTING = 3,
+	AT_INIT_STATE_WAIT_CONNECTTING = 3,
 	/// Starting Iint activity
-	AT_INIT_STATE_CONECTTING = 4,
+	AT_INIT_STATE_CONNECTTING = 4,
 	/// Iint activity conected
-	AT_INIT_STATE_CONECTED = 5,
+	AT_INIT_STATE_CONNECTTED = 5,
 	/// Stopping Iint activity
 	AT_INIT_STATE_STOPPING = 6,
 };

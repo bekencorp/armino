@@ -93,7 +93,7 @@ extern "C" {
 #define IRQ_I2C1                         (2)
 #define IRQ_UART2                        (1)
 #define IRQ_UART1                        (0)
-#elif (CONFIG_SOC_BK7236)
+#elif (CONFIG_SOC_BK7236A)
 #define FIQ_BT                           (31)
 #define FIQ_BLE                          (30)
 #define FIQ_BTDM                         (29)
@@ -171,7 +171,7 @@ extern "C" {
 #define IRQ_UART1                        (0)
 #endif
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 #define PRI_FIQ_BT                           (7)
 #define PRI_FIQ_BLE                          (8)
 #define PRI_FIQ_BTDM                         (13)
@@ -184,7 +184,7 @@ extern "C" {
 #define PRI_FIQ_MAC_TX_RX_MISC               (5)
 #define PRI_FIQ_MAC_TX_RX_TIMER              (2)
 #define PRI_FIQ_MODEM                        (10)
-#if (CONFIG_SOC_BK7236)
+#if (CONFIG_SOC_BK7236A)
 #define PRI_FIQ_HSU                          (11)
 #define PRI_FIQ_RC                           (12)
 #endif
@@ -257,7 +257,7 @@ extern "C" {
 #define PRI_IRQ_UART3                        (32)
 #define PRI_IRQ_MAILBOX1                     (33)
 #endif
-#endif // (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236)
+#endif // (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A)
 
 //void intc_service_register(UINT8 int_num, UINT8 int_pri, FUNCPTR isr);
 //void intc_spurious(void);

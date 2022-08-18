@@ -13,8 +13,10 @@
 #include "cli.h"
 
 #if CONFIG_USB_HOST
+#if CONFIG_USB_MSD
 #include "ff.h"
 #include "diskio.h"
+#endif
 
 static void cli_usb_help(void)
 {

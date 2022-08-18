@@ -123,7 +123,7 @@ static inline void dma_ll_clear_finish_interrupt_status(dma_hw_t *hw, dma_id_t i
 
 static inline void dma_ll_clear_half_finish_interrupt_status(dma_hw_t *hw, dma_id_t id)
 {
-    hw->int_status.v = (BIT(id) << 8);
+    hw->int_status.v = (BIT(id) << 16);
 }
 
 static inline void dma_ll_clear_interrupt_status(dma_hw_t *hw, dma_id_t id)

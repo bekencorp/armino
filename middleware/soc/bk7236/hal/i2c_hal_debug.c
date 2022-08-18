@@ -19,34 +19,9 @@
 
 #if CFG_HAL_DEBUG_I2C
 
-static void i2c0_struct_dump(void)
+void i2c_struct_dump(i2c_id_t id)
 {
-	i2c0_hw_t *hw = (i2c0_hw_t *)I2C_LL_REG_BASE(0);
-	SOC_LOGI("base=%x\r\n", (uint32_t)hw);
-
-	SOC_LOGI("  sm_bus_cfg=0x%x value=0x%x\n", &hw->sm_bus_cfg, hw->sm_bus_cfg.v);
-	SOC_LOGI("    en:        %x\n", hw->sm_bus_cfg.en);
-	SOC_LOGI("    start:     %x\n", hw->sm_bus_cfg.start);
-	SOC_LOGI("    stop:      %x\n", hw->sm_bus_cfg.stop);
-	SOC_LOGI("    tx_ack:    %x\n", hw->sm_bus_cfg.tx_ack);
-	SOC_LOGI("    op_mode:   %x\n", hw->sm_bus_cfg.op_mode);
-	SOC_LOGI("    reserved0: %x\n", hw->sm_bus_cfg.reserved0);
-	SOC_LOGI("    freq_div:  %x\n", hw->sm_bus_cfg.freq_div);
-	SOC_LOGI("    sm_int:    %x\n", hw->sm_bus_cfg.sm_int);
-	SOC_LOGI("    rx_ack:    %x\n", hw->sm_bus_cfg.rx_ack);
-	SOC_LOGI("    ack_req:   %x\n", hw->sm_bus_cfg.ack_req);
-	SOC_LOGI("    busy:      %x\n", hw->sm_bus_cfg.busy);
-	SOC_LOGI("    reserved1: %x\n", hw->sm_bus_cfg.reserved1);
-
-	SOC_LOGI("\n");
-	SOC_LOGI("  sm_bus_data=0x%x value=0x%x\n", &hw->sm_bus_data, hw->sm_bus_data.v);
-	SOC_LOGI("    data:     %x\n", hw->sm_bus_data.data);
-	SOC_LOGI("    reserved: %x\n", hw->sm_bus_data.reserved);
-}
-
-static void i2c1_struct_dump(void)
-{
-	i2c1_hw_t *hw = (i2c1_hw_t *)I2C_LL_REG_BASE(1);
+	i2c_typedef_t *hw = (i2c_typedef_t *)I2C_LL_REG_BASE(id);
 	SOC_LOGI("base=%x\r\n", (uint32_t)hw);
 
 	SOC_LOGI("  sm_bus_cfg=0x%x value=0x%x\n", &hw->sm_bus_cfg, hw->sm_bus_cfg.v);
@@ -83,15 +58,6 @@ static void i2c1_struct_dump(void)
 	SOC_LOGI("  sm_bus_data=0x%x value=0x%x\n", &hw->sm_bus_data, hw->sm_bus_data.v);
 	SOC_LOGI("    data:     %x\n", hw->sm_bus_data.data);
 	SOC_LOGI("    reserved: %x\n", hw->sm_bus_data.reserved);
-}
-
-void i2c_struct_dump(i2c_id_t id)
-{
-	if (id == I2C_ID_0) {
-		i2c0_struct_dump();
-	} else {
-		i2c1_struct_dump();
-	}
 }
 
 #endif

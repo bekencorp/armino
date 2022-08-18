@@ -27,6 +27,8 @@
 
 #define REG_FLASH_DATA_FLASH_SW              (FLASH_BASE + 2 * 4)
 
+#define REG_FLASH_SR_CMD                     (FLASH_BASE + 3 * 4)
+
 #define REG_FLASH_RDID_DATA_FLASH            (FLASH_BASE + 4 * 4)
 
 #define REG_FLASH_SR_DATA_CRC_CNT            (FLASH_BASE + 5 * 4)
@@ -57,8 +59,7 @@
 
 #define LINE_MODE_TWO                        2
 #define LINE_MODE_FOUR                       4
-
-#define FLASH_DIV_VALUE_TWO		1
+#define FLASH_DIV_VALUE_EIGHT                2
 
 typedef enum {
 	FLASH_OPCODE_WREN    = 1,

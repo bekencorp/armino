@@ -59,7 +59,7 @@ API 中支持log等级，模块名字等参数。
     BK_LOGD( tag, format, ... );       // Tag所指的模块输出 Debug等级的log
     BK_LOGV( tag, format, ... );       // Tag所指的模块输出 一些不重要的log
     BK_ASSERT(exp);                    // 如果 exp表达式为假，关闭系统中断，shell会输出当前的函数名，当前的行号，当前的系统时间等信息。然后输出系统的dump数据（CPU寄存器，内存，栈等信息）
-    BK_ASSERT_ISR(exp, format, ... );  // 如果 exp表达式为假，关闭系统中断，shell会输出当前的函数名，当前的行号，当前的系统时间，format格式串的相关变量，等信息。然后输出系统的dump数据（CPU寄存器，内存，栈等信息）
+    BK_ASSERT_EX(exp, format, ... );  // 如果 exp表达式为假，关闭系统中断，shell会输出当前的函数名，当前的行号，当前的系统时间，format格式串的相关变量，等信息。然后输出系统的dump数据（CPU寄存器，内存，栈等信息）
     BK_DUMP_OUT(format, ... );         // 关中断下，用format格式的方式输出相关信息。
     BK_DUMP_RAW_OUT(buf, len);         // 关中断下，输出buf 中len长度的数据。
 

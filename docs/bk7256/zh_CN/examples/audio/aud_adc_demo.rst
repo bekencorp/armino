@@ -47,7 +47,7 @@ demo运行依赖的库和驱动:
  - DMA DMA驱动
  - AUD audio模块驱动
 
-4 演示介绍
+4、演示介绍
 --------------------
 
 demo执行的步骤如下:
@@ -61,6 +61,9 @@ demo执行的步骤如下:
 	3.停止测试
 	 - Uart发送AT指令 ``cpu1 aud_adc_dma_test stop`` 停止测试
 
+.. note::
+ - 其他demo可根据cli支持的命令表按照上述步骤发送相应的命令即可进行开始或者停止测试。
+
 执行测试指令，case的工作流程如下图所示：
 
 .. figure:: ../../../_static/aud_adc_to_dac_flow.png
@@ -72,9 +75,6 @@ demo执行的步骤如下:
 
 5、详细配置及说明
 --------------------------
-.. important::
-  注意事项:
-   - DTMF模式不能使用DMA搬运数据;
 
 - AUDIO_ADC性能
 

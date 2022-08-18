@@ -27,10 +27,48 @@ bk_err_t aon_pmu_hal_init(void)
     s_aon_pmu_hal.hw = (aon_pmu_hw_t *)AON_PMU_LL_REG_BASE;
     return BK_OK;
 }
-#if((CONFIG_SOC_BK7256_CP1) || (CONFIG_SOC_BK7256XX)) 
-void aon_pmu_hal_set_sleep_parameters(uint32_t value)
+#if (CONFIG_SOC_BK7256XX)
+
+#define PM_LOW_VOL_PARAMETER_DEFAULT           (0x2B111111)
+#define PM_LOW_VOL_PARAMETER_32K_FROM_26M      (0x29111111)
+
+#define PM_DEEP_SLEEP_PARAMETER_DEFAULT        (0x4e111111)
+int aon_pmu_hal_set_sleep_parameters(uint32_t value)
 {
-    aon_pmu_ll_set_reg40_value(value);
+	uint32_t lpo_src = 0;
+	uint32_t sleep_parm = 0;
+	lpo_src = aon_pmu_ll_get_reg41_lpo_config();
+	if(value == 0x1)//low voltage
+	{
+		if(lpo_src == 0x0)//32k from 26m
+		{
+			sleep_parm = PM_LOW_VOL_PARAMETER_32K_FROM_26M;
+		}
+		else
+		{
+			sleep_parm = PM_LOW_VOL_PARAMETER_DEFAULT;
+		}
+	}
+	else if(value == 0x2)//deep sleep
+	{
+		if(lpo_src == 0x0)//32k from 26m
+		{
+			aon_pmu_ll_set_reg41_lpo_config(0x2);//select rosc
+			sleep_parm = PM_DEEP_SLEEP_PARAMETER_DEFAULT;
+		}
+		else//rosc and external 32k
+		{
+			sleep_parm = PM_DEEP_SLEEP_PARAMETER_DEFAULT;
+		}
+	}
+	else
+	{
+		os_printf("error: not set sleep para\r\n");
+		return -1;
+	}
+
+    aon_pmu_ll_set_reg40_value(sleep_parm);
+	return 0;
 }
 
 void aon_pmu_hal_set_wakeup_source_reg(uint32_t value)
@@ -108,10 +146,7 @@ uint32_t aon_pmu_hal_get_touch_int_status(void)
 
 void aon_pmu_hal_clear_touch_int(uint32_t value)
 {
-	uint32_t clear_touch_int = 0;
-	clear_touch_int = aon_pmu_ll_get_reg43_clr_int_touched();
-	clear_touch_int |= value;
-	aon_pmu_ll_set_reg43_clr_int_touched(clear_touch_int);
+	aon_pmu_ll_set_reg43_clr_int_touched(value);
 }
 void aon_pmu_hal_reg_set(pmu_reg_e reg, uint32_t value)
 {
@@ -135,6 +170,24 @@ uint32_t aon_pmu_hal_reg_get(pmu_reg_e reg)
 void aon_pmu_hal_wdt_rst_dev_enable()
 {
 	aon_pmu_ll_set_reg2_value(AON_PMU_REG2_WDT_RST_MASK);
+}
+void aon_pmu_hal_lpo_src_set(uint32_t lpo_src)
+{
+    aon_pmu_ll_set_reg41_lpo_config(lpo_src);
+}
+uint32_t aon_pmu_hal_lpo_src_get()
+{
+	return aon_pmu_ll_get_reg41_lpo_config();
+}
+
+uint32_t aon_pmu_hal_bias_cal_get()
+{
+	return aon_pmu_ll_get_reg7e_bias_cal();
+}
+
+void aon_pmu_hal_psram_iodrv_set(uint32_t io_drv)
+{
+	aon_pmu_ll_set_reg41_psram_iodrv(io_drv);
 }
 
 #else

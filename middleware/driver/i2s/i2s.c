@@ -24,7 +24,7 @@
 
 #define RT_I2S_BIT_DEBUG
 #ifdef  RT_I2S_BIT_DEBUG
-#define bit_dbg(fmt, ...)   bk_printf(fmt, ##__VA_ARGS__)
+#define bit_dbg(fmt, ...)   BK_LOG_RAW(fmt, ##__VA_ARGS__)
 #else
 #define bit_dbg(fmt, ...)
 #endif
@@ -657,12 +657,12 @@ UINT32 i2s_configure(UINT32 fifo_level, UINT32 sample_rate, UINT32 bits_per_samp
 	param = (param & (~(0x0FFFUL << 20))) | (BLOCK_EN_WORD_PWD << 20) | (1 << 16) | (1 << 17);
 	REG_WRITE(SCTRL_BLOCK_EN_CFG, param);    // audio pll audio enable
 
-    #if (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7256XX)
     //sys_drv_analog_reg6_set(param);// to do,need remove old interface after all adaption is finished
     sys_drv_set_dpll_for_i2s();
-    #else
+#else
     sddev_control(DD_DEV_TYPE_SCTRL, CMD_SCTRL_SET_ANALOG6, NULL);//  DPLL AUDIO OPEN, DPLL divider
-    #endif
+#endif
 
 	/* set freq_datawidth */
 	i2s_ctrl(I2S_CMD_SET_FREQ_DATAWIDTH, (void *)&rate);

@@ -4,7 +4,9 @@
 #ifndef _UTILS_NET_H_
 #define _UTILS_NET_H_
 #include "http_flash.h"
+#if CONFIG_FLASH_ORIGIN_API
 #include "bk_flash.h"
+#endif
 
 /**
  * @brief The structure of network connection(TCP or SSL).

@@ -35,6 +35,7 @@ extern "C" {
 #define GC0308C_DEV             (0xABC05)
 #define HM_1055_DEV             (0xABC06)
 #define GC_2145_DEV             (0xABC07)
+#define OV_2640_DEV             (0xABC08)
 
 
 #define PAS6329_DEV_ID          (0x40)
@@ -45,6 +46,7 @@ extern "C" {
 #define GC0308C_DEV_ID          (0x21)
 #define HM_1055_DEV_ID          (0x24)      /**< slave_address:0x48 */
 #define GC_2145_DEV_ID          (0x3C)
+#define OV_2640_DEV_ID          (0x30)
 
 #ifdef __cplusplus
 }

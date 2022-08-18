@@ -31,11 +31,16 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+#if CONFIG_FLASH_ORIGIN_API
 #include "bk_flash.h"
+#include "flash.h"
+#else
+#include "driver/flash.h"
+#endif
+
 #include <os/os.h>
 #include "bk_uart.h"
 #include "bk_drv_model.h"
-#include "flash.h"
 
 /* default ENV set for user */
 static const ef_env default_env_set[] = {
@@ -86,7 +91,11 @@ EfErrCode ef_port_read(uint32_t addr, uint32_t *buf, size_t size)
 
 	EF_ASSERT(size % 4 == 0);
 
+#if CONFIG_FLASH_ORIGIN_API
 	flash_read((char *)buf, (unsigned long)size, addr);
+#else
+	bk_flash_read_bytes(addr, (uint8_t *)buf, (unsigned long)size);
+#endif
 
 	return result;
 }
@@ -97,12 +106,17 @@ EfErrCode ef_port_read(uint32_t addr, uint32_t *buf, size_t size)
  */
 static int bk_erase(uint32_t addr, size_t size)
 {
+#if CONFIG_FLASH_ORIGIN_API
 	int param;
 	UINT32 status;
 	int protect_type;
 	DD_HANDLE flash_handle;
+#else
+	flash_protect_type_t protect_type;
+#endif
 	unsigned int _size = size;
 
+#if CONFIG_FLASH_ORIGIN_API
 	flash_handle = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
 	ddev_control(flash_handle, CMD_FLASH_GET_PROTECT, (void *)&protect_type);
 
@@ -110,12 +124,22 @@ static int bk_erase(uint32_t addr, size_t size)
 		param = FLASH_PROTECT_NONE;
 		ddev_control(flash_handle, CMD_FLASH_SET_PROTECT, (void *)&param);
 	}
+#else
+	protect_type = bk_flash_get_protect_type();
+	if (FLASH_PROTECT_NONE != protect_type) {
+		bk_flash_set_protect_type(FLASH_PROTECT_NONE);
+	}
+#endif
 
 	/* Calculate the start address of the flash sector(4kbytes) */
 	addr = addr & 0x00FFF000;
 
 	do {
+#if CONFIG_FLASH_ORIGIN_API
 		flash_ctrl(CMD_FLASH_ERASE_SECTOR, &addr);
+#else
+		bk_flash_erase_sector(addr);
+#endif
 		addr += 4096;
 
 		if (_size < 4096)
@@ -126,8 +150,12 @@ static int bk_erase(uint32_t addr, size_t size)
 	} while (_size);
 
 	if (FLASH_PROTECT_NONE != protect_type) {
+#if CONFIG_FLASH_ORIGIN_API
 		param = protect_type;
 		ddev_control(flash_handle, CMD_FLASH_SET_PROTECT, (void *)&param);
+#else
+		bk_flash_set_protect_type(protect_type);
+#endif
 	}
 
 	return size; // return true erase size
@@ -168,14 +196,19 @@ EfErrCode ef_port_erase(uint32_t addr, size_t size)
  */
 EfErrCode ef_port_write(uint32_t addr, const uint32_t *buf, size_t size)
 {
+#if CONFIG_FLASH_ORIGIN_API
 	int param;
 	UINT32 status;
 	int protect_type;
 	DD_HANDLE flash_handle;
+#else
+	flash_protect_type_t protect_type;
+#endif
 	EfErrCode result = EF_NO_ERR;
 
 	EF_ASSERT(size % 4 == 0);
 
+#if CONFIG_FLASH_ORIGIN_API
 	flash_handle = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
 	ddev_control(flash_handle, CMD_FLASH_GET_PROTECT, (void *)&protect_type);
 
@@ -189,6 +222,15 @@ EfErrCode ef_port_write(uint32_t addr, const uint32_t *buf, size_t size)
 		param = protect_type;
 		ddev_control(flash_handle, CMD_FLASH_SET_PROTECT, (void *)&param);
 	}
+#else
+	protect_type = bk_flash_get_protect_type();
+	if (FLASH_PROTECT_NONE != protect_type) {
+		bk_flash_set_protect_type(FLASH_PROTECT_NONE);
+	}
+
+	bk_flash_write_bytes(addr, (const uint8_t *)buf, size);
+	bk_flash_set_protect_type(protect_type);
+#endif
 
 	return result;
 }

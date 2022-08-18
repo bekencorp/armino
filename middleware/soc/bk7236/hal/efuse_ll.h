@@ -18,13 +18,33 @@
 #include "hal_port.h"
 #include "efuse_hw.h"
 #include <driver/hal/hal_efuse_types.h>
-#include "sys_ctrl.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define EFUSE_LL_REG_BASE(_efuse_unit_id)    (SOC_EFUSE_REG_BASE)
+
+static inline void efuse_ll_soft_reset(efuse_hw_t *hw)
+{
+	hw->global_ctrl.soft_reset = 1;
+}
+
+static inline uint32_t efuse_ll_get_device_id(efuse_hw_t *hw)
+{
+	return hw->dev_id;
+}
+
+static inline uint32_t efuse_ll_get_version_id(efuse_hw_t *hw)
+{
+	return hw->dev_version;
+}
+
+static inline uint32_t efuse_ll_get_dev_status(efuse_hw_t *hw)
+{
+	return hw->dev_status;
+}
+
 
 static inline void efuse_ll_reset_config_to_default(efuse_hw_t *hw)
 {
@@ -37,6 +57,7 @@ static inline void efuse_ll_reset_config_to_default(efuse_hw_t *hw)
 
 static inline void efuse_ll_init(efuse_hw_t *hw)
 {
+	efuse_ll_soft_reset(hw);
 	efuse_ll_reset_config_to_default(hw);
 }
 
@@ -72,7 +93,8 @@ static inline void efuse_ll_set_addr(efuse_hw_t *hw, uint8_t addr)
 
 static inline void efuse_ll_set_wr_data(efuse_hw_t *hw, uint8_t data)
 {
-	hw->ctrl.wr_data = data & EFUSE_F_WR_DATA_M;
+	hw->ctrl.v &= (~(EFUSE_F_WR_DATA_M << EFUSE_F_WR_DATA_S));
+	hw->ctrl.v |= ((data & EFUSE_F_WR_DATA_M) << EFUSE_F_WR_DATA_S);
 }
 
 static inline bool efuse_ll_is_rd_data_valid(efuse_hw_t *hw)
@@ -87,18 +109,12 @@ static inline uint8_t efuse_ll_get_rd_data(efuse_hw_t *hw)
 
 static inline void efuse_ll_enable_vdd25(efuse_hw_t *hw)
 {
-	// TODO optimize it when new sys_ctrl finish
-	uint32_t reg = REG_READ(SCTRL_CONTROL);
-	reg |= EFUSE_VDD25_EN;
-	REG_WRITE(SCTRL_CONTROL, reg);
+	hw->ctrl.vdd25_en = 1;
 }
 
 static inline void efuse_ll_disable_vdd25(efuse_hw_t *hw)
 {
-	// TODO optimize it when new sys_ctrl finish
-	uint32_t reg = REG_READ(SCTRL_CONTROL);
-	reg &= ~EFUSE_VDD25_EN;
-	REG_WRITE(SCTRL_CONTROL, reg);
+	hw->ctrl.vdd25_en = 0;
 }
 
 #ifdef __cplusplus

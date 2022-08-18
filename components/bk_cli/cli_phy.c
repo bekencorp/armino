@@ -64,8 +64,8 @@ static const struct cli_command s_phy_commands[] = {
 #if CONFIG_POWER_TABLE
 	{"pwrtbl", "pwrtbl cal/set/get <value>", pwr_tbl_command},
 #endif
-#if ((CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236))
-    {"la", "bk7256:la rf_adc/fe_adc/rf_dac/fe_dac;bk7236:la rx_adc/rx_dac/tx_dac", cmd_la_sample_test},
+#if ((CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236A))
+    {"la", "bk7256:la rf_adc/fe_adc/rf_dac/fe_dac;bk7236a:la rx_adc/rx_dac/tx_dac", cmd_la_sample_test},
 #endif
 };
 

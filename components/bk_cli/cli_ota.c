@@ -52,7 +52,7 @@ int http_ota_download(const char *uri)
 							80,/*port*/
 							NULL,
 							HTTPCLIENT_GET,
-							20000,
+							120000,
 							&httpclient_data);
 
 	if (0 != ret)

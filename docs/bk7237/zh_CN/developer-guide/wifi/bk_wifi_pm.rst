@@ -62,7 +62,7 @@ Armino 支持 WiFi-6 标准中定义的 TWT 省电模式与协议中定义的其
 
 .. note:
 
-  因为 AP 会在 DTIM 间隔发送广播帧，因此“仅在 listen interval 醒来" 机制使能时，STA 可能会错失广播包；
+  因为 AP 会在 DTIM 间隔发送广播帧，因此“仅在 listen interval 醒来" 机制使能时，STA可能会错失广播包；
   另一方面，如果 listen interval 设置过长，可能会导致 AP 为 STA 缓存过多的单播包，当 AP 内存不足
   时，可能会引起丢包；这两种情况都会影响 WiFi 性能，连接稳定性，因此，这种机制尽适合那些对性能要
   求不高，但对功耗要求特别高的应用。

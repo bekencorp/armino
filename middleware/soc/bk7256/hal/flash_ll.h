@@ -65,6 +65,34 @@ static inline uint32_t flash_ll_get_mid(flash_hw_t *hw)
 	return flash_ll_read_flash_id(hw);
 }
 
+static inline void flash_ll_init_wrsr_cmd(flash_hw_t *hw, uint8_t wrsr_cmd)
+{
+	hw->sr_cmd.wrsr_cmd_reg = wrsr_cmd;
+	hw->sr_cmd.wrsr_cmd_sel = 1;
+	while (flash_ll_is_busy(hw));
+}
+
+static inline void flash_ll_init_rdsr_cmd(flash_hw_t *hw, uint8_t rdsr_cmd)
+{
+	hw->sr_cmd.rdsr_cmd_reg = rdsr_cmd;
+	hw->sr_cmd.rdsr_cmd_sel = 1;
+	while (flash_ll_is_busy(hw));
+}
+
+static inline void flash_ll_deinit_wrsr_cmd(flash_hw_t *hw)
+{
+	hw->sr_cmd.wrsr_cmd_reg = 0x1;
+	hw->sr_cmd.wrsr_cmd_sel = 0;
+	while (flash_ll_is_busy(hw));
+}
+
+static inline void flash_ll_deinit_rdsr_cmd(flash_hw_t *hw)
+{
+	hw->sr_cmd.rdsr_cmd_reg = 0x5;
+	hw->sr_cmd.rdsr_cmd_sel = 0;
+	while (flash_ll_is_busy(hw));
+}
+
 static inline void flash_ll_write_status_reg(flash_hw_t *hw, uint8_t sr_width, uint16_t sr_data)
 {
 	while (flash_ll_is_busy(hw));
@@ -74,7 +102,20 @@ static inline void flash_ll_write_status_reg(flash_hw_t *hw, uint8_t sr_width, u
 	if (sr_width == 1) {
 		flash_ll_set_op_cmd(hw, FLASH_OP_CMD_WRSR);
 	} else if (sr_width == 2) {
-		flash_ll_set_op_cmd(hw, FLASH_OP_CMD_WRSR2);
+		if(FLASH_ID_GD25Q32C == flash_ll_get_id(hw)) {
+			flash_ll_set_op_cmd(hw, FLASH_OP_CMD_WRSR);
+			while (flash_ll_is_busy(hw));
+
+			hw->config.wrsr_data = (sr_data >> LEN_WRSR_S0_S7);
+			while (flash_ll_is_busy(hw));
+			flash_ll_init_wrsr_cmd(hw, CMD_WRSR_S8_S15);
+			while (flash_ll_is_busy(hw));
+			flash_ll_set_op_cmd(hw, FLASH_OP_CMD_WRSR);
+			while (flash_ll_is_busy(hw));
+			flash_ll_deinit_wrsr_cmd(hw);
+		} else {
+			flash_ll_set_op_cmd(hw, FLASH_OP_CMD_WRSR2);
+		}
 	}
 	while (flash_ll_is_busy(hw));
 }

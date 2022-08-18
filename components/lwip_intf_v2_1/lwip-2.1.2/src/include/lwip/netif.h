@@ -268,6 +268,7 @@ struct netif {
   ip_addr_t ip_addr;
   ip_addr_t netmask;
   ip_addr_t gw;
+  unsigned dns1;
 #endif /* LWIP_IPV4 */
 #if LWIP_IPV6
   /** Array of IPv6 addresses for this netif. */

@@ -70,7 +70,7 @@ static adc_statis_t* s_adc_statis = NULL;
 
 saradc_calibrate_val saradc_val = {
 #if (CONFIG_SOC_BK7256XX)
-    0xD55, 0xAAB /* 1Volt, 2Volt*/
+    0xD40, 0x1A72 /* 1Volt, 2Volt*/
 #else
     0x55, 0x354
 #endif
@@ -781,9 +781,9 @@ void bk_adc_read_for_ate(uint32_t saradc_num, uint16_t *saradc_buf)
     BK_LOG_ON_ERR(bk_saradc_start_int_disable());
     //saradc enable
     saradc_hal_start_enable();
-    //before for(),need check saradc fifo empty
-    os_printf("saradc_hal_is_fifo_empty=%x\r\n",saradc_hal_is_fifo_empty());
-    os_printf("sardata_start\r\n");
+    //need check saradc fifo empty
+    //os_printf("saradc_hal_is_fifo_empty=%x\r\n",saradc_hal_is_fifo_empty());
+    //os_printf("sardata_start\r\n");
     irq_level = rtos_disable_int();
 
     for(i = 0; i < saradc_num; i++)

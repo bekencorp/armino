@@ -17,6 +17,7 @@
 #include "param_config.h"
 #include "net.h"
 #include "string.h"
+#include <components/netif.h>
 
 static int vudp_sdp_generate_adv(char **adv_ptr, UINT32 *adv_length)
 {
@@ -39,21 +40,21 @@ static int vudp_sdp_generate_adv(char **adv_ptr, UINT32 *adv_length)
 	else
 		os_printf("%s, %d\n", __func__, __LINE__);
 
-    IPStatusTypedef ipStatus_ap, ipStatus_sta;
-    os_memset(&ipStatus_ap, 0x0, sizeof(IPStatusTypedef));
-    os_memset(&ipStatus_sta, 0x0, sizeof(IPStatusTypedef));
-    bk_wlan_get_ip_status(&ipStatus_ap, BK_SOFT_AP);
+    netif_ip4_config_t ip4_config_ap, ip4_config_sta;
+    os_memset(&ip4_config_ap, 0x0, sizeof(netif_ip4_config_t));
+    os_memset(&ip4_config_sta, 0x0, sizeof(netif_ip4_config_t));
+    bk_netif_get_ip4_config(NETIF_IF_AP, &ip4_config_ap);
     if (uap_ip_is_start())
-		bk_wlan_get_ip_status(&ipStatus_sta, BK_SOFT_AP);
+		bk_netif_get_ip4_config(NETIF_IF_AP, &ip4_config_sta);
     else
-		bk_wlan_get_ip_status(&ipStatus_sta, BK_STATION);
+		bk_netif_get_ip4_config(NETIF_IF_STA, &ip4_config_sta);
 
     UINT8 transfer_type = (APP_DEMO_CFG_USE_UDP << 1) + APP_DEMO_CFG_USE_TCP;
     transfer_type |= (0 << 3) | (1 << 2);  // bit3 sta mode,  bit2 softap_mode
     sprintf(adv_buf, adv_temp, 
         transfer_type,
-        ipStatus_ap.ip,
-        ipStatus_sta.ip,
+        ip4_config_ap.ip,
+        ip4_config_sta.ip,
         
         APP_DEMO_UDP_IMG_PORT,
         APP_DEMO_TCP_SERVER_PORT);

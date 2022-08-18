@@ -18,12 +18,14 @@
 #include <components/system.h>
 #include <driver/wdt.h>
 #include "bk_misc.h"
-#include "bk_private/reset_reason.h"
+#include "reset_reason.h"
 #include "drv_model_pub.h"
 #include "param_config.h"
 #include "aon_pmu_driver.h"
 
 #define TAG "sys"
+
+extern volatile unsigned int g_enter_exception;
 
 void bk_reboot(void)
 {
@@ -31,8 +33,9 @@ void bk_reboot(void)
 
 	BK_LOGI(TAG, "bk_reboot\r\n");
 
-#if (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7256XX)
 	set_reboot_tag(REBOOT_TAG_REQ);
+	g_enter_exception = 1;
 #endif
 #if (CONFIG_SYSTEM_CTRL)
 	uint32_t param =0;
@@ -49,7 +52,7 @@ void bk_reboot(void)
 
 	bk_wdt_stop();
 	BK_LOGI(TAG, "wdt reboot\r\n");
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 	delay_ms(100); //add delay for bk_writer BEKEN_DO_REBOOT cmd
 #endif
 	bk_wdt_start(wdt_val);

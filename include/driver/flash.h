@@ -188,7 +188,7 @@ bk_err_t bk_flash_read_bytes(uint32_t address, uint8_t *user_buf, uint32_t size)
  *
  * @return the flash  init  flag
  */
-uint32_t bk_get_flash_init_flag(void);
+bool bk_flash_is_driver_inited(void);
 
 /**
  * @brief     Get flash total size
@@ -196,6 +196,28 @@ uint32_t bk_get_flash_init_flag(void);
  * @return the flash total size
  */
 uint32_t bk_flash_get_current_total_size(void);
+
+/**
+ * @brief     Register flash power save suspend callback
+ *
+ * @param ps_suspend_cb power save suspend callback
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_flash_register_ps_suspend_callback(flash_ps_callback_t ps_suspend_cb);
+
+/**
+ * @brief     Register flash power save resume callback
+ *
+ * @param ps_resume_cb power save resume callback
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_flash_register_ps_resume_callback(flash_ps_callback_t ps_resume_cb);
 
 #ifdef __cplusplus
 }

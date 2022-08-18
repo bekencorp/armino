@@ -893,6 +893,60 @@ static inline void sdio_ll_set_reg0xa_dat_s_rd_bus_int_mask(uint32_t value)
     REG_WRITE(SDIO_REG0XA_ADDR,reg_value);
 }
 
+/* REG_0x0a:reg0xa->TX_FIFO_NEED_WRITE_MASK_CG:0xa[13],1:sd host fifo memory need write mask for clk gate writing use only,RW*/
+static inline uint32_t sdio_ll_get_reg0xa_tx_fifo_need_write_mask_cg(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0XA_ADDR);
+    reg_value = ((reg_value >> SDIO_REG0XA_TX_FIFO_NEED_WRITE_MASK_CG_POS) & SDIO_REG0XA_TX_FIFO_NEED_WRITE_MASK_CG_MASK);
+    return reg_value;
+}
+
+static inline void sdio_ll_set_reg0xa_tx_fifo_need_write_mask_cg(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0XA_ADDR);
+    reg_value &= ~(SDIO_REG0XA_TX_FIFO_NEED_WRITE_MASK_CG_MASK << SDIO_REG0XA_TX_FIFO_NEED_WRITE_MASK_CG_POS);
+    reg_value |= ((value & SDIO_REG0XA_TX_FIFO_NEED_WRITE_MASK_CG_MASK) << SDIO_REG0XA_TX_FIFO_NEED_WRITE_MASK_CG_POS);
+    REG_WRITE(SDIO_REG0XA_ADDR,reg_value);
+}
+
+/* REG_0x0a:reg0xa->WRITE_WAIT_JUMP_SEL:0xa[14],0:jump to write_busy 1:jump to idle,RW*/
+static inline uint32_t sdio_ll_get_reg0xa_write_wait_jump_sel(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0XA_ADDR);
+    reg_value = ((reg_value >> SDIO_REG0XA_WRITE_WAIT_JUMP_SEL_POS) & SDIO_REG0XA_WRITE_WAIT_JUMP_SEL_MASK);
+    return reg_value;
+}
+
+static inline void sdio_ll_set_reg0xa_write_wait_jump_sel(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0XA_ADDR);
+    reg_value &= ~(SDIO_REG0XA_WRITE_WAIT_JUMP_SEL_MASK << SDIO_REG0XA_WRITE_WAIT_JUMP_SEL_POS);
+    reg_value |= ((value & SDIO_REG0XA_WRITE_WAIT_JUMP_SEL_MASK) << SDIO_REG0XA_WRITE_WAIT_JUMP_SEL_POS);
+    REG_WRITE(SDIO_REG0XA_ADDR,reg_value);
+}
+
+/* REG_0x0a:reg0xa->IDLE_STOP_JUMP_SEL:0xa[15],0：rec stop not jump to busy 1:rec stop will jump to busy,RW*/
+static inline uint32_t sdio_ll_get_reg0xa_idle_stop_jump_sel(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0XA_ADDR);
+    reg_value = ((reg_value >> SDIO_REG0XA_IDLE_STOP_JUMP_SEL_POS) & SDIO_REG0XA_IDLE_STOP_JUMP_SEL_MASK);
+    return reg_value;
+}
+
+static inline void sdio_ll_set_reg0xa_idle_stop_jump_sel(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0XA_ADDR);
+    reg_value &= ~(SDIO_REG0XA_IDLE_STOP_JUMP_SEL_MASK << SDIO_REG0XA_IDLE_STOP_JUMP_SEL_POS);
+    reg_value |= ((value & SDIO_REG0XA_IDLE_STOP_JUMP_SEL_MASK) << SDIO_REG0XA_IDLE_STOP_JUMP_SEL_POS);
+    REG_WRITE(SDIO_REG0XA_ADDR,reg_value);
+}
+
 /*write only reg:reg0xb:default value:0x0*/
 static inline void sdio_ll_set_reg0xb_value(uint32_t value)
 {
@@ -1100,6 +1154,78 @@ static inline void sdio_ll_set_reg0xd_clk_rec_sel(uint32_t value)
     REG_WRITE(SDIO_REG0XD_ADDR,reg_value);
 }
 
+/* REG_0x0d:reg0xd->SAMP_SEL:0xd[26],sample egde of data 0：neg 1：pos,RW*/
+static inline uint32_t sdio_ll_get_reg0xd_samp_sel(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0XD_ADDR);
+    reg_value = ((reg_value >> SDIO_REG0XD_SAMP_SEL_POS) & SDIO_REG0XD_SAMP_SEL_MASK);
+    return reg_value;
+}
+
+static inline void sdio_ll_set_reg0xd_samp_sel(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0XD_ADDR);
+    reg_value &= ~(SDIO_REG0XD_SAMP_SEL_MASK << SDIO_REG0XD_SAMP_SEL_POS);
+    reg_value |= ((value & SDIO_REG0XD_SAMP_SEL_MASK) << SDIO_REG0XD_SAMP_SEL_POS);
+    REG_WRITE(SDIO_REG0XD_ADDR,reg_value);
+}
+
+/* REG_0x0d:reg0xd->CLK_GATE_ON:0xd[27],module clockgate on control 1：always on,RW*/
+static inline uint32_t sdio_ll_get_reg0xd_clk_gate_on(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0XD_ADDR);
+    reg_value = ((reg_value >> SDIO_REG0XD_CLK_GATE_ON_POS) & SDIO_REG0XD_CLK_GATE_ON_MASK);
+    return reg_value;
+}
+
+static inline void sdio_ll_set_reg0xd_clk_gate_on(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0XD_ADDR);
+    reg_value &= ~(SDIO_REG0XD_CLK_GATE_ON_MASK << SDIO_REG0XD_CLK_GATE_ON_POS);
+    reg_value |= ((value & SDIO_REG0XD_CLK_GATE_ON_MASK) << SDIO_REG0XD_CLK_GATE_ON_POS);
+    REG_WRITE(SDIO_REG0XD_ADDR,reg_value);
+}
+
+/* REG_0x0d:reg0xd->HOST_WR_BLK_EN:0xd[28],new multi-block write method enable,RW*/
+static inline uint32_t sdio_ll_get_reg0xd_host_wr_blk_en(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0XD_ADDR);
+    reg_value = ((reg_value >> SDIO_REG0XD_HOST_WR_BLK_EN_POS) & SDIO_REG0XD_HOST_WR_BLK_EN_MASK);
+    return reg_value;
+}
+
+static inline void sdio_ll_set_reg0xd_host_wr_blk_en(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0XD_ADDR);
+    reg_value &= ~(SDIO_REG0XD_HOST_WR_BLK_EN_MASK << SDIO_REG0XD_HOST_WR_BLK_EN_POS);
+    reg_value |= ((value & SDIO_REG0XD_HOST_WR_BLK_EN_MASK) << SDIO_REG0XD_HOST_WR_BLK_EN_POS);
+    REG_WRITE(SDIO_REG0XD_ADDR,reg_value);
+}
+
+/* REG_0x0d:reg0xd->HOST_RD_BLK_EN:0xd[29],new multi-block read  method enable,RW*/
+static inline uint32_t sdio_ll_get_reg0xd_host_rd_blk_en(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0XD_ADDR);
+    reg_value = ((reg_value >> SDIO_REG0XD_HOST_RD_BLK_EN_POS) & SDIO_REG0XD_HOST_RD_BLK_EN_MASK);
+    return reg_value;
+}
+
+static inline void sdio_ll_set_reg0xd_host_rd_blk_en(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0XD_ADDR);
+    reg_value &= ~(SDIO_REG0XD_HOST_RD_BLK_EN_MASK << SDIO_REG0XD_HOST_RD_BLK_EN_POS);
+    reg_value |= ((value & SDIO_REG0XD_HOST_RD_BLK_EN_MASK) << SDIO_REG0XD_HOST_RD_BLK_EN_POS);
+    REG_WRITE(SDIO_REG0XD_ADDR,reg_value);
+}
+
 static inline uint32_t sdio_ll_get_reg0x10_value(void)
 {
     return REG_READ(SDIO_REG0X10_ADDR);
@@ -1171,6 +1297,42 @@ static inline void sdio_ll_set_reg0x10_cmd_52_stop_clr(uint32_t value)
     reg_value = REG_READ(SDIO_REG0X10_ADDR);
     reg_value &= ~(SDIO_REG0X10_CMD_52_STOP_CLR_MASK << SDIO_REG0X10_CMD_52_STOP_CLR_POS);
     reg_value |= ((value & SDIO_REG0X10_CMD_52_STOP_CLR_MASK) << SDIO_REG0X10_CMD_52_STOP_CLR_POS);
+    REG_WRITE(SDIO_REG0X10_ADDR,reg_value);
+}
+
+/* REG_0x10:reg0x10->CMD_KEEP_DET:0x10[5],1:keep detecting if last cmd fail 0:not keep detecting,RW*/
+static inline uint32_t sdio_ll_get_reg0x10_cmd_keep_det(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0X10_ADDR);
+    reg_value = ((reg_value >> SDIO_REG0X10_CMD_KEEP_DET_POS) & SDIO_REG0X10_CMD_KEEP_DET_MASK);
+    return reg_value;
+}
+
+static inline void sdio_ll_set_reg0x10_cmd_keep_det(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0X10_ADDR);
+    reg_value &= ~(SDIO_REG0X10_CMD_KEEP_DET_MASK << SDIO_REG0X10_CMD_KEEP_DET_POS);
+    reg_value |= ((value & SDIO_REG0X10_CMD_KEEP_DET_MASK) << SDIO_REG0X10_CMD_KEEP_DET_POS);
+    REG_WRITE(SDIO_REG0X10_ADDR,reg_value);
+}
+
+/* REG_0x10:reg0x10->FIFO_SEND_CNT:0x10[15:8],when set HOST_WR_BLK_EN, tx_fifo cnt = this reg start sending,RW*/
+static inline uint32_t sdio_ll_get_reg0x10_fifo_send_cnt(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0X10_ADDR);
+    reg_value = ((reg_value >> SDIO_REG0X10_FIFO_SEND_CNT_POS) & SDIO_REG0X10_FIFO_SEND_CNT_MASK);
+    return reg_value;
+}
+
+static inline void sdio_ll_set_reg0x10_fifo_send_cnt(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SDIO_REG0X10_ADDR);
+    reg_value &= ~(SDIO_REG0X10_FIFO_SEND_CNT_MASK << SDIO_REG0X10_FIFO_SEND_CNT_POS);
+    reg_value |= ((value & SDIO_REG0X10_FIFO_SEND_CNT_MASK) << SDIO_REG0X10_FIFO_SEND_CNT_POS);
     REG_WRITE(SDIO_REG0X10_ADDR,reg_value);
 }
 

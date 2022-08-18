@@ -127,7 +127,7 @@ static void prvWdogCallback( void * pvUserContext )
     lRetVal = iot_watchdog_ioctl( ( IotWatchdogHandle_t ) pvUserContext,
                                   eGetWatchdogStatus,
                                   ( void * const ) &lWdogStatus );
-
+    lRetVal = lRetVal;//make compile successful 
     if( lWdogStatus == eWatchdogTimerBarkExpired )
     {
         xSemaphoreGiveFromISR( xtestIotWatchdogBarkSemaphore, &xHigherPriorityTaskWoken );
@@ -635,7 +635,7 @@ TEST( TEST_IOT_WATCHDOG, AFQP_IotWatchdogValidateResetReason )
     int32_t lRetVal;
 
     /* Get the reset-reason post watchdog reset. */
-    lRetVal = iot_get_reset_reason( &xResetReason );
+    lRetVal = iot_get_reset_reason( xResetReason );
     TEST_ASSERT_EQUAL( IOT_RESET_SUCCESS, lRetVal );
 
     /* Ensure reset-reason is due to watchdog reset */

@@ -1,19 +1,76 @@
-I2S模块(i2s_demo)
+I2S demo
 ========================
 
 :link_to_translation:`en:[English]`
 
-1 概述
+1 功能概述
 --------------------------
-	I2S模块主要主要用于音频信号的传输。
-	本小节将主要围绕demo来介绍FFT模块库的使用。
+	I2S demo支持音频信号在不同I2S配置下的传输。
 
-2 API参考
+2 代码路径
 --------------------------
+	demo路径: ``\components\demos\media\audio\i2s``
+
 	I2S模块API接口的详细说明请参考同网页: ``/api-reference/multi_media/bk_i2s.html``
 
-3 工作模式&采样率
+3 cli命令简介
+--------------------
+demo支持的命令如下表:
+
++-----------------------------------+-------------------------------+
+|Command                            |Description                    |
++===================================+===============================+
+|cpu1 i2s_master_test {start|stop}  |作为master运行I2S测试demo      |
++-----------------------------------+-------------------------------+
+|cpu1 i2s_slave_test {start|stop}   |作为slave运行I2S测试demo       |
++-----------------------------------+-------------------------------+
+
+demo运行依赖的宏配置:
+
++---------------------+---------------------------+---------------------------------------------------+-----+
+|Name                 |Description                |   File                                            |value|
++=====================+===========================+===================================================+=====+
+|CONFIG_I2S           |配置I2S功能使能            |``\properties\soc\bk7256_cp1\bk7256_cp1.defconfig``|  y  |
++---------------------+---------------------------+---------------------------------------------------+-----+
+|CONFIG_I2S_TEST      |配置demo是否生效           |``\properties\soc\bk7256_cp1\bk7256_cp1.defconfig``|  y  |
++---------------------+---------------------------+---------------------------------------------------+-----+
+
+demo运行依赖的库和驱动:
+ - GPIO GPIO驱动
+
+
+4 演示介绍
 --------------------------
+demo执行的步骤如下:
+
+	1.连接两块测试板子
+	 - 使用两块开发板进行测试，一块作为master端，一块作为slave端
+	 - 将两块板子的GPIO6和GPIO7引脚互连
+	 - 将master端的GPIO8和slave端的GPIO9连接
+	 - 将master端的GPIO9和slave端的GPIO8连接
+
+	2.开始slave端测试
+	 - slave端Uart发送AT指令 ``cpu1 i2s_slave_test start`` 执行slave角色的I2S功能测试 
+
+	3.开始master端测试
+	 - Uart发送AT指令 ``cpu1 i2s_master_test start`` 执行master角色的I2S功能测试
+
+	4.停止测试
+	 - 观察串口log打印，待测试完成后，slave和master端分别Uart发送AT指令 ``cpu1 i2s_slave_test stop`` 和 ``cpu1 i2s_master_test stop`` 停止执行I2S功能测试
+
+执行测试指令, case的工作流程如下图所示:
+
+.. figure:: ../../../_static/i2s_demo_flow.png
+    :align: center
+    :alt: i2s软件流程
+    :figclass: align-center
+
+    Figure 1. i2s work flow chart
+
+5 详细配置及说明
+--------------------------
+I2S支持的工作模式和采样率说明如下:
+
 - 工作模式
 
 	I2S模块支持下述多种工作模式:
@@ -49,114 +106,8 @@ I2S模块(i2s_demo)
 .. note::
   建议采用前6种常用的采样率
 
-4 demo例程
---------------------------
-demo的源码和测试文件请参考以下工程路径: ``demos/media/audio/i2s``
-
-- i2s send sin data test code
-
-::
-
-	void cli_i2s_master_sin_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-	{
-		i2s_config_t i2s_config;
-		i2s_rate_t rate;
-		//uint32_t data_buf_rl = 0xffff0000;
-		uint32_t write_flag = 0;
-		uint32_t i = 0;
-
-		if (argc != 2) {
-			cli_i2s_help();
-			return;
-		}
-
-		if (os_strcmp(argv[1], "start") == 0) {
-			os_printf("i2s master test start\n");
-			i2s_config.i2s_en = I2S_DISABLE;
-			i2s_config.role = I2S_ROLE_MASTER;
-			i2s_config.work_mode = I2S_WORK_MODE_I2S;
-			i2s_config.lrck_invert = I2S_LRCK_INVERT_DISABLE;
-			i2s_config.sck_invert = I2S_SCK_INVERT_DISABLE;
-			i2s_config.lsb_first_en = I2S_LSB_FIRST_DISABLE;
-			i2s_config.sync_length = 0;
-			i2s_config.data_length = 15;
-			i2s_config.pcm_dlength = 0;
-			i2s_config.sample_ratio = 0;
-			i2s_config.sck_ratio = 0;
-			i2s_config.parallel_en = I2S_PARALLEL_DISABLE;
-			i2s_config.store_mode = I2S_LRCOM_STORE_16R16L;
-			i2s_config.sck_ratio_h4b = 0;
-			i2s_config.sample_ratio_h2b = 0;
-			i2s_config.txint_level = I2S_TXINT_LEVEL_1;
-			i2s_config.rxint_level = I2S_RXINT_LEVEL_24;
-
-
-			//init i2s driver
-			bk_i2s_driver_init();
-
-			//init i2s configure
-			bk_i2s_init(I2S_GPIO_GROUP_0, &i2s_config);
-			os_printf("init i2s driver and config successful\n");
-
-			//register isr
-			bk_i2s_register_i2s_isr(I2S_ISR_CHL1_TXUDF, cli_i2s_master_txudf_isr, NULL);
-			bk_i2s_register_i2s_isr(I2S_ISR_CHL1_RXOVF, cli_i2s_master_rxovf_isr, NULL);
-			bk_i2s_register_i2s_isr(I2S_ISR_CHL1_TXINT, cli_i2s_master_txint_isr, NULL);
-			bk_i2s_register_i2s_isr(I2S_ISR_CHL1_RXINT, cli_i2s_master_rxint_isr, NULL);
-			os_printf("register i2s isr successful\n");
-
-			//set sample and bitclk ratio
-			rate.datawidth = I2S_DATA_WIDTH_16;
-			rate.samp_rate = I2S_SAMP_RATE_48000;
-			bk_i2s_set_ratio(&rate);
-
-			//enable i2s
-			bk_i2s_enable(I2S_ENABLE);
-			os_printf("enable i2s successful\n");
-
-			i2s_struct_dump();
-
-			//for (i=0; i < 60; i++)
-			while (1)
-			{
-				for (i = 0; i<I2S_TEST_DATA_SIZE; i++)
-				{
-					bk_i2s_get_write_ready(&write_flag);
-					while (!write_flag)
-						bk_i2s_get_write_ready(&write_flag);
-					bk_i2s_write_data(1, &data_source[i], 1);
-					//delay(10);
-					//os_printf("write data: 0x%08x\r\n", data_source[i]);
-				}
-			}
-
-			os_printf("start i2s master send test successful\r\n");
-		} else if (os_strcmp(argv[1], "stop") == 0) {
-			os_printf("i2s sin test stop\n");
-			bk_i2s_driver_deinit();
-			os_printf("i2s sin test stop successful\n");
-		} else {
-			cli_i2s_help();
-			return;
-		}
-	}
-
-
-4 demo工作流程
---------------------------
-
-执行测试指令, case的工作流程如下图所示:
-
-.. figure:: ../../../_static/i2s_demo_flow.png
-    :align: center
-    :alt: i2s软件流程
-    :figclass: align-center
-
-    Figure 1. i2s work flow chart
-
-5 I2S使用注意事项
---------------------------
 .. important::
   注意事项:
    - 1.I2S通讯时master和slave的DIN和DOUT引脚连接要正确，master的DIN和slave的DOUT连接，master的DOUT和slave的DIN连接;
    - 2.master和slave的工作模式要一致;
+   - 3.测试demo主要测试了前三种工作模式和不同的采样率.

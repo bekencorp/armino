@@ -13,11 +13,10 @@
 // limitations under the License.
 
 #include <common/bk_include.h>
-#include "bk_api_ate.h"
+#include <components/ate.h>
 #include <os/mem.h>
 #include <driver/flash.h>
 #include <os/os.h>
-#include "bk_mcu_ps.h"
 #include "bk_pm_model.h"
 #include "flash_driver.h"
 #include "flash_hal.h"
@@ -85,6 +84,8 @@ static flash_driver_t s_flash = {0};
 static bool s_flash_is_init = false;
 static beken_mutex_t s_flash_mutex = NULL;
 static PM_STATUS flash_ps_status;
+static flash_ps_callback_t s_flash_ps_suspend_cb = NULL;
+static flash_ps_callback_t s_flash_ps_resume_cb = NULL;
 
 static UINT32 flash_ps_suspend(UINT32 ps_level)
 {
@@ -95,7 +96,9 @@ static UINT32 flash_ps_suspend(UINT32 ps_level)
 	case LOWVOL_PS:
 	case DEEP_PS:
 	case IDLE_PS:
-		peri_busy_count_add();
+		if (s_flash_ps_suspend_cb) {
+			s_flash_ps_suspend_cb();
+		}
 		if (FLASH_LINE_MODE_FOUR == bk_flash_get_line_mode())
 			bk_flash_set_line_mode(FLASH_LINE_MODE_TWO);
 		flash_ps_status_ptr->bits.unconditional_ps_sleeped = 1;
@@ -120,7 +123,9 @@ static UINT32 flash_ps_resume(UINT32 ps_level)
 	case IDLE_PS:
 		if (FLASH_LINE_MODE_FOUR == bk_flash_get_line_mode())
 			bk_flash_set_line_mode(FLASH_LINE_MODE_FOUR);
-		peri_busy_count_dec();
+		if (s_flash_ps_resume_cb) {
+			s_flash_ps_resume_cb();
+		}
 		flash_ps_status_ptr->bits.unconditional_ps_sleeped = 0;
 		flash_ps_status_ptr->bits.normal_ps_sleeped = 0;
 		flash_ps_status_ptr->bits.lowvol_ps_sleeped = 0;
@@ -250,33 +255,16 @@ static void flash_set_protect_type(flash_protect_type_t type)
 
 static void flash_set_qe(void)
 {
-	uint32_t sr_size;
+	uint32_t status_reg;
 
 	while (flash_hal_is_busy(&s_flash.hal));
-	sr_size = flash_hal_read_status_reg(&s_flash.hal, s_flash.flash_cfg->status_reg_size);
-	if (sr_size & (s_flash.flash_cfg->quad_en_val << s_flash.flash_cfg->quad_en_post)) {
+	status_reg = flash_hal_read_status_reg(&s_flash.hal, s_flash.flash_cfg->status_reg_size);
+	if (status_reg & (s_flash.flash_cfg->quad_en_val << s_flash.flash_cfg->quad_en_post)) {
 		return;
 	}
 
-#if CONFIG_FLASH_QUAD_ENABLE
-	if (FLASH_ID_GD25Q32C == s_flash.flash_id) {
-		uint32_t param = 0;
-		/* retry quad enable, in case of quad enable may fail in some boards for first time */
-		for(uint32_t i = 0; i < QE_RETRY_TIMES; i++) {
-			flash_bypass_quad_enable();
-			while (flash_hal_is_busy(&s_flash.hal));
-			param = flash_hal_read_status_reg(&s_flash.hal, s_flash.flash_cfg->status_reg_size);
-			if(param & (s_flash.flash_cfg->quad_en_val << s_flash.flash_cfg->quad_en_post)) {
-				break;
-			}
-		}
-		BK_ASSERT(param & (s_flash.flash_cfg->quad_en_val << s_flash.flash_cfg->quad_en_post));
-		return;
-	}
-#endif
-
-	flash_hal_set_qe(&s_flash.hal, s_flash.flash_cfg->quad_en_val, s_flash.flash_cfg->quad_en_post);
-	flash_hal_write_status_reg(&s_flash.hal, s_flash.flash_cfg->status_reg_size, sr_size);
+	status_reg |= s_flash.flash_cfg->quad_en_val << s_flash.flash_cfg->quad_en_post;
+	flash_hal_write_status_reg(&s_flash.hal, s_flash.flash_cfg->status_reg_size, status_reg);
 }
 
 static void flash_set_qwfr(void)
@@ -388,8 +376,10 @@ bk_err_t bk_flash_driver_init(void)
 		return BK_OK;
 	}
 #if CONFIG_FLASH_QUAD_ENABLE
+#if CONFIG_FLASH_ORIGIN_API
 	if (FLASH_LINE_MODE_FOUR == flash_get_line_mode())
 		flash_set_line_mode(FLASH_LINE_MODE_TWO);
+#endif
 #endif
 	os_memset(&s_flash, 0, sizeof(s_flash));
 	flash_hal_init(&s_flash.hal);
@@ -403,7 +393,7 @@ bk_err_t bk_flash_driver_init(void)
 	bk_flash_set_line_mode(s_flash.flash_cfg->line_mode);
 	flash_hal_set_default_clk(&s_flash.hal);
 #if CONFIG_FLASH_SRC_CLK_60M
-	sys_drv_flash_set_clk_div(FLASH_DIV_VALUE_TWO);
+	sys_drv_flash_set_clk_div(FLASH_DIV_VALUE_EIGHT);
 	sys_drv_flash_set_dco();
 #endif
 
@@ -444,13 +434,11 @@ bk_err_t bk_flash_erase_sector(uint32_t address)
 
 bk_err_t bk_flash_read_bytes(uint32_t address, uint8_t *user_buf, uint32_t size)
 {
-	flash_ps_suspend(NORMAL_PS);
 	if (address >= s_flash.flash_cfg->flash_size) {
 		FLASH_LOGW("read error:invalid address 0x%x\r\n", address);
 		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
 	}
 	flash_read_common(user_buf, address, size);
-	flash_ps_resume(NORMAL_PS);
 
 	return BK_OK;
 }
@@ -529,14 +517,7 @@ uint16_t bk_flash_read_status_reg(void)
 bk_err_t bk_flash_write_status_reg(uint16_t status_reg_data)
 {
 	flash_ps_suspend(NORMAL_PS);
-#if CONFIG_FLASH_QUAD_ENABLE
-	uint8_t flash_sr_write_size = 0;
-	if (FLASH_ID_GD25Q32C == s_flash.flash_id)
-		flash_sr_write_size = 1;
-	flash_hal_write_status_reg(&s_flash.hal, flash_sr_write_size, status_reg_data);
-#else
 	flash_hal_write_status_reg(&s_flash.hal, s_flash.flash_cfg->status_reg_size, status_reg_data);
-#endif
 	flash_ps_resume(NORMAL_PS);
 	return BK_OK;
 }
@@ -600,7 +581,7 @@ void flash_ps_pm_init(void)
 	dev_pm_register(PM_ID_FLASH, "flash", &flash_ps_ops);
 }
 
-uint32_t bk_get_flash_init_flag()
+bool bk_flash_is_driver_inited()
 {
 	return s_flash_is_init;
 }
@@ -609,3 +590,16 @@ uint32_t bk_flash_get_current_total_size(void)
 {
 	return s_flash.flash_cfg->flash_size;
 }
+
+bk_err_t bk_flash_register_ps_suspend_callback(flash_ps_callback_t ps_suspend_cb)
+{
+	s_flash_ps_suspend_cb = ps_suspend_cb;
+	return BK_OK;
+}
+
+bk_err_t bk_flash_register_ps_resume_callback(flash_ps_callback_t ps_resume_cb)
+{
+	s_flash_ps_resume_cb = ps_resume_cb;
+	return BK_OK;
+}
+

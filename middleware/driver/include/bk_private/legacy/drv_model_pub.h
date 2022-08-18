@@ -38,7 +38,7 @@ typedef enum _dd_device_type_
 #if ((!CONFIG_SOC_BK7231) && (CONFIG_BLE == 1))
     DD_DEV_TYPE_BLE,
 #endif
-#if ((!CONFIG_SOC_BK7271) && (!CONFIG_SOC_BK7256XX) && (!CONFIG_SOC_BK7256_CP1))
+#if ((!CONFIG_SOC_BK7271) && (!CONFIG_SOC_BK7256XX))
 #if CONFIG_FFT
     DD_DEV_TYPE_FFT,
 #endif
@@ -74,7 +74,7 @@ typedef enum _dd_device_type_
 #endif
     DD_DEV_TYPE_SCTRL,
     DD_DEV_TYPE_WDT,
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
     DD_DEV_TYPE_CAL,
 #endif
     DD_DEV_TYPE_TRNG,
@@ -87,7 +87,9 @@ typedef enum _dd_device_type_
 #if CONFIG_UART3
     DD_DEV_TYPE_UART3,
 #endif
+#if CONFIG_FLASH_ORIGIN_API
     DD_DEV_TYPE_FLASH,
+#endif
 #if CONFIG_HSLAVE_SPI
     DD_DEV_TYPE_SPIDMA,
 #endif

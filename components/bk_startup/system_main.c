@@ -23,6 +23,9 @@
 #include <modules/pm.h>
 #endif
 
+#include "boot.h"
+
+
 #if (!CONFIG_SLAVE_CORE)
 
 static beken_thread_function_t s_user_app_entry = NULL;
@@ -60,6 +63,10 @@ void rtos_user_app_waiting_for_launch(void)
 	if(ret < 0){
 		os_printf("get sema failed");
 	}
+
+#if CONFIG_SAVE_BOOT_TIME_POINT
+	save_mtime_point(CPU_APP_ENTRY_TIME);
+#endif
 }
 #endif
 
@@ -169,13 +176,13 @@ void rtos_thread_func_test()
 }
 #endif
 
-#if (CONFIG_MASTER_CORE) 
+#if (CONFIG_MASTER_CORE)
 void reset_slave_core(uint32 offset, uint32_t reset_value)
 {
 	if (0 != reset_value  && 1 != reset_value) {
 		os_printf("reset_value must be 0 or 1.\r\n");
 		reset_value = CONFIG_SLAVE_CORE_RESET_VALUE;
-	} 
+	}
 	os_printf("reset_slave_core at: %08x, reset value:%d\r\n", offset, reset_value);
 	sys_drv_set_cpu1_boot_address_offset(offset >> 8);
 	sys_drv_set_cpu1_reset(reset_value);
@@ -183,8 +190,8 @@ void reset_slave_core(uint32 offset, uint32_t reset_value)
 
 void start_slave_core(void)
 {
-#if (CONFIG_SLAVE_CORE_OFFSET && CONFIG_SLAVE_CORE_RESET_VALUE) 
-	pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_ON);
+#if (CONFIG_SLAVE_CORE_OFFSET && CONFIG_SLAVE_CORE_RESET_VALUE)
+	bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_ON);
 	reset_slave_core(CONFIG_SLAVE_CORE_OFFSET, CONFIG_SLAVE_CORE_RESET_VALUE);
 #endif
 	os_printf("start_slave_core end.\r\n");
@@ -192,10 +199,10 @@ void start_slave_core(void)
 
 void stop_slave_core(void)
 {
-#if (CONFIG_SLAVE_CORE_OFFSET && CONFIG_SLAVE_CORE_RESET_VALUE) 
+#if (CONFIG_SLAVE_CORE_OFFSET && CONFIG_SLAVE_CORE_RESET_VALUE)
 	uint32_t reset_value = ( 0x1) & (~CONFIG_SLAVE_CORE_RESET_VALUE);
 	reset_slave_core(CONFIG_SLAVE_CORE_OFFSET, reset_value);
-	pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_OFF);
+	bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_OFF);
 #endif
 
 	os_printf("stop_slave_core end.\r\n");
@@ -211,6 +218,10 @@ static void user_app_thread( void *arg )
 	if(NULL != s_user_app_entry) {
 		s_user_app_entry(0);
 	}
+
+#if CONFIG_SAVE_BOOT_TIME_POINT
+	save_mtime_point(CPU_APP_FINISH_TIME);
+#endif
 
 	rtos_delete_thread( NULL );
 }
@@ -232,6 +243,10 @@ extern void ChipTest(void);
 extern bool ate_is_enabled(void);
 static void app_main_thread(void *arg)
 {
+#if CONFIG_SAVE_BOOT_TIME_POINT
+	save_mtime_point(CPU_MAIN_ENTRY_TIME);
+#endif
+
 #if (!CONFIG_SLAVE_CORE)
 	rtos_user_app_preinit();
 #endif
@@ -243,7 +258,7 @@ static void app_main_thread(void *arg)
 #endif
 	main();
 
-#if (CONFIG_MASTER_CORE) 
+#if (CONFIG_MASTER_CORE)
 	start_slave_core();
 #endif
 
@@ -262,9 +277,15 @@ static void app_main_thread(void *arg)
     {
         os_printf("ATE enabled = 1\r\n");
     }
-#if (!CONFIG_SLAVE_CORE)
-	rtos_user_app_launch_over();
+
+// #if (!CONFIG_SLAVE_CORE)
+// 	 rtos_user_app_launch_over();
+// #endif
+
+#if CONFIG_SAVE_BOOT_TIME_POINT
+	save_mtime_point(CPU_MIAN_FINISH_TIME);
 #endif
+
 	rtos_delete_thread(NULL);
 }
 
@@ -277,16 +298,32 @@ void start_app_main_thread(void)
 		(beken_thread_arg_t)0);
 }
 
-
 void entry_main(void)
 {
+#if CONFIG_SAVE_BOOT_TIME_POINT
+	save_mtime_point(CPU_MAIN_ENTRY_TIME);
+#endif
+
 	rtos_init();
-	components_init();
+
+#if (CONFIG_ATE_TEST)
+	bk_set_printf_enable(0);
+#endif
+
+	if(components_init())
+		return;
+
+#if CONFIG_SAVE_BOOT_TIME_POINT
+	save_mtime_point(CPU_INIT_DRIVER_TIME);
+#endif
 
 	start_app_main_thread();
-
 #if (!CONFIG_SLAVE_CORE)
 	start_user_app_thread();
+#endif
+
+#if CONFIG_SAVE_BOOT_TIME_POINT
+	save_mtime_point(CPU_START_SCHE_TIME);
 #endif
 
 	rtos_start_scheduler();

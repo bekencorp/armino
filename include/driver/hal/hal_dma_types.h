@@ -49,6 +49,12 @@ typedef enum {
 	DMA_ID_3,      /**< DMA channel 3 */
 	DMA_ID_4,      /**< DMA channel 4 */
 	DMA_ID_5,      /**< DMA channel 5 */
+	DMA_ID_6    ,  /**< DMA channel 6 */
+	DMA_ID_7,      /**< DMA channel 7 */
+	DMA_ID_8,      /**< DMA channel 8 */
+	DMA_ID_9,      /**< DMA channel 9 */
+	DMA_ID_10,     /**< DMA channel 10 */
+	DMA_ID_11,     /**< DMA channel 11 */
 	DMA_ID_MAX,    /**< DMA channel max */
 } dma_id_t;
 

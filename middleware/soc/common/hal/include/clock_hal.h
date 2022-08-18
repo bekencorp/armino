@@ -83,7 +83,7 @@ extern "C" {
 
 #define clock_hal_get_uart_clk(hal ,id) clock_ll_get_uart_clk((hal)->hw, id)
 
-#if CONFIG_SOC_BK7236
+#if CONFIG_SOC_BK7236A
 #define clock_hal_jpeg_set_96m(hal) icu_ll_jpeg_set_96m((hal)->hw)
 #define clock_hal_jpeg_set_120m(hal) icu_ll_jpeg_set_120m((hal)->hw)
 #define clock_hal_jpeg_set_160m(hal) icu_ll_jpeg_set_160m((hal)->hw)

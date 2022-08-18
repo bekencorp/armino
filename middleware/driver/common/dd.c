@@ -6,8 +6,9 @@
 #include "bk_gpio.h"
 #include "bk_icu.h"
 #include "bk_usb.h"
+#if CONFIG_FLASH_ORIGIN_API
 #include "bk_flash.h"
-#include "spi_pub.h"
+#endif
 #include "bk_fft.h"
 #include "bk_i2s.h"
 #include "bk_saradc.h"
@@ -52,7 +53,7 @@ typedef struct _dd_init_s_ {
 	void (*exit)(void);
 } DD_INIT_S;
 
-#if (!CONFIG_SOC_BK7256XX) && (!CONFIG_SOC_BK7256_CP1)
+#if (!CONFIG_SOC_BK7256XX)
 static const DD_INIT_S dd_init_tbl[] = {
 	/* name*/              /* init function*/          /* exit function*/
 #if !CONFIG_SYSTEM_CTRL
@@ -60,7 +61,9 @@ static const DD_INIT_S dd_init_tbl[] = {
 #endif
 
 #if CONFIG_FLASH
+#if CONFIG_FLASH_ORIGIN_API
 	{DD_DEV_TYPE_FLASH,        flash_init,                 flash_exit},
+#endif
 #endif
 
 #if CONFIG_DSP
@@ -113,7 +116,9 @@ static const DD_INIT_S dd_init_tbl[] = {
 static const DD_INIT_S dd_init_tbl[] = {
 	/* name*/              /* init function*/          /* exit function*/
 #if CONFIG_FLASH
+#if CONFIG_FLASH_ORIGIN_API
 	{DD_DEV_TYPE_FLASH,        flash_init,                 flash_exit},
+#endif
 #endif
 };
 #endif

@@ -57,6 +57,11 @@ static inline void jpeg_ll_init(jpeg_hw_t *hw)
 	jpeg_ll_reset_config_to_default(hw);
 }
 
+static inline void jpeg_ll_clear_config(jpeg_hw_t *hw)
+{
+	hw->cfg.v = 0;
+}
+
 static inline void jpeg_ll_enable(jpeg_hw_t *hw)
 {
 	hw->cfg.jpeg_enc_en = 1;
@@ -150,12 +155,17 @@ static inline void jpeg_ll_disable_enc_size(jpeg_hw_t *hw)
 	hw->cfg.jpeg_enc_size = 0;
 }
 
-static inline void jpeg_ll_enable_yuv_byte_reverse(jpeg_hw_t *hw)
+static inline void jpeg_ll_enable_yuv_word_reverse(jpeg_hw_t *hw)
 {
 	// NOT Support
 }
 
-static inline void jpeg_ll_disable_yuv_byte_reverse(jpeg_hw_t *hw)
+static inline void jpeg_ll_disable_yuv_word_reverse(jpeg_hw_t *hw)
+{
+	// NOT Support
+}
+
+static inline void jpeg_ll_yuv_fml_sel(jpeg_hw_t *hw, uint32_t value)
 {
 	// NOT Support
 }

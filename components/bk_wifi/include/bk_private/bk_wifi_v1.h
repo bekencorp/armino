@@ -42,7 +42,7 @@ void bk_wlan_sta_init(network_InitTypeDef_st *inNetworkInitPara);
 void bk_wlan_ap_init_adv(network_InitTypeDef_ap_st *inNetworkInitParaAP);
 
 int auto_check_dtim_rf_ps_mode(void);
-void bk_wlan_connection_loss(void);
+void bk_wlan_dhcp_timeout(void);
 int wlan_sta_ap_info(struct ApListStruct *ap);
 int wlan_sta_scan_result(ScanResult_adv *results);
 

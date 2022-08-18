@@ -4,3 +4,6 @@ cmake_minimum_required(VERSION 3.5)
 
 include($ENV{ARMINO_PATH}/tools/build_tools/cmake/project.cmake)
 project(app)
+
+# The project compile options should be set after project command
+armino_build_set_property(C_COMPILE_OPTIONS "-DCFG_LOG_LEVEL=0" APPEND)

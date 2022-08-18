@@ -92,6 +92,9 @@ static void timer_clock_enable(timer_id_t id)
 		case 1:
 			sys_drv_dev_clk_pwr_up(CLK_PWR_ID_TIMER_2, CLK_PWR_CTRL_PWR_UP);
 			break;
+		case 2:
+			sys_drv_dev_clk_pwr_up(CLK_PWR_ID_TIMER_3, CLK_PWR_CTRL_PWR_UP);
+			break;
 		default:
 			break;
 	}
@@ -109,6 +112,9 @@ static void timer_clock_disable(timer_id_t id)
 			break;
 		case 1:
 			sys_drv_dev_clk_pwr_up(CLK_PWR_ID_TIMER_2, CLK_PWR_CTRL_PWR_DOWN);
+			break;
+		case 2:
+			sys_drv_dev_clk_pwr_up(CLK_PWR_ID_TIMER_3, CLK_PWR_CTRL_PWR_DOWN);
 			break;
 		default:
 			break;
@@ -180,10 +186,7 @@ bk_err_t bk_timer_driver_init(void)
 #if (SOC_TIMER_INTERRUPT_NUM > 1)
     bk_int_isr_register(INT_SRC_TIMER1, timer1_isr, NULL);
 #endif
-#if CONFIG_TIMER_INIT_EN
     timer_hal_init(&s_timer.hal);
-#endif
-
     s_timer_driver_is_init = true;
 
     return BK_OK;
@@ -233,7 +236,7 @@ bk_err_t bk_timer_start_without_callback(timer_id_t timer_id, uint32_t time_ms)
         delay(4);
     }
 
-    timer_hal_init_timer(&s_timer.hal, timer_id, time_ms);
+    timer_hal_init_timer(&s_timer.hal, timer_id, time_ms, TIMER_UNIT_MS);
     timer_hal_start_common(&s_timer.hal, timer_id);
 
     return BK_OK;
@@ -245,7 +248,10 @@ bk_err_t bk_timer_start(timer_id_t timer_id, uint32_t time_ms, timer_isr_t callb
     TIMER_RETURN_TIMER_ID_IS_ERR(timer_id);
 #endif
     BK_LOG_ON_ERR(bk_timer_start_without_callback(timer_id, time_ms));
-    s_timer_isr[timer_id] = callback;
+
+    if (timer_id < SOC_TIMER_CHAN_NUM_PER_UNIT){
+        s_timer_isr[timer_id] = callback;
+    }
 
     return BK_OK;
 }
@@ -259,6 +265,21 @@ bk_err_t bk_timer_stop(timer_id_t timer_id)
     TIMER_RETURN_ON_INVALID_ID(timer_id);
 
     timer_hal_stop_common(&s_timer.hal, timer_id);
+
+    return BK_OK;
+}
+
+bk_err_t bk_timer_cancel(timer_id_t timer_id)
+{
+    TIMER_RETURN_ON_NOT_INIT();
+#if CONFIG_TIMER_SUPPORT_ID_BITS
+    TIMER_RETURN_TIMER_ID_IS_ERR(timer_id);
+#endif
+    TIMER_RETURN_ON_INVALID_ID(timer_id);
+
+    timer_ll_reset_config_to_default(s_timer.hal.hw, timer_id);
+
+    s_timer_isr[timer_id] = NULL;
 
     return BK_OK;
 }
@@ -345,3 +366,87 @@ static void timer1_isr(void)
     }
 }
 #endif
+
+uint64_t bk_timer_get_time(timer_id_t timer_id, uint32_t div, uint32_t last_count, timer_value_unit_t unit_type)
+{
+    TIMER_RETURN_ON_NOT_INIT();
+    TIMER_RETURN_ON_INVALID_ID(timer_id);
+
+    uint64_t current_time = 0;
+    uint16_t unit_factor = 1;
+
+    uint32_t current_count = timer_hal_get_count(&s_timer.hal, timer_id) + last_count;
+    
+    if (div == 0) {
+        div = 1;
+    }
+
+#if (CONFIG_SYSTEM_CTRL)
+	uint32_t group_index = 0;
+	uint32_t timer_clock = TIMER_SCLK_XTAL;
+
+	group_index = timer_id / SOC_TIMER_CHAN_NUM_PER_GROUP;
+	switch(group_index)
+	{
+		case 0:
+			timer_clock = sys_hal_timer_select_clock_get(SYS_SEL_TIMER0);
+			break;
+		case 1:
+			timer_clock = sys_hal_timer_select_clock_get(SYS_SEL_TIMER1);
+			break;
+		default:
+			break;
+	}
+
+    unit_factor = (unit_type == TIMER_UNIT_MS) ? 1 : 1000;
+
+	if(timer_clock == TIMER_SCLK_XTAL) {
+        current_time = unit_factor * current_count * div / TIMER_CLOCK_FREQ_26M;
+	} else {
+        current_time = unit_factor * current_count * div / TIMER_CLOCK_FREQ_32K;
+	}
+
+#else
+    if (timer_id < SOC_TIMER_CHAN_NUM_PER_GROUP) {
+        current_time = unit_factor * current_count * div / TIMER_CLOCK_FREQ_26M;
+    } else {
+        current_time = unit_factor * current_count * div / TIMER_CLOCK_FREQ_32K;
+    }
+#endif
+
+    return current_time;
+}
+
+bk_err_t bk_timer_delay_with_callback(timer_id_t timer_id, uint64_t time_us, timer_isr_t callback)
+{
+    TIMER_RETURN_ON_NOT_INIT();
+    TIMER_RETURN_ON_INVALID_ID(timer_id);
+
+#if CONFIG_TIMER_SUPPORT_ID_BITS
+    TIMER_RETURN_TIMER_ID_IS_ERR(timer_id);
+#endif
+    uint64_t current_count = 0;
+    uint64_t delta_count = 0;
+    uint64_t end_count = 0;
+
+    timer_chan_init_common(timer_id);
+    timer_chan_enable_interrupt_common(timer_id);
+
+    current_count = timer_hal_get_count(&s_timer.hal, timer_id);
+    delta_count = timer_hal_cal_end_count(timer_id, time_us, 1, TIMER_UNIT_US);
+    end_count = current_count + delta_count;
+
+    if(end_count > 0xFFFFFFFFFFFFFFFF){
+        end_count = 0xFFFFFFFFFFFFFFFF;
+    }
+
+    timer_ll_set_end_count(s_timer.hal.hw, timer_id, (uint32_t)end_count);
+    timer_ll_set_clk_div(s_timer.hal.hw, timer_id, 0);
+    timer_ll_clear_chan_interrupt_status(s_timer.hal.hw, timer_id);
+
+    timer_hal_start_common(&s_timer.hal, timer_id);
+
+    s_timer_isr[timer_id] = callback;
+
+    return BK_OK;
+}

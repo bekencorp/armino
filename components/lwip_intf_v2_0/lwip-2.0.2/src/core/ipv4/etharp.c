@@ -55,6 +55,7 @@
 #include "netif/ethernet.h"
 
 #include <string.h>
+#include "net.h"
 
 #ifdef LWIP_HOOK_FILENAME
 #include LWIP_HOOK_FILENAME
@@ -210,7 +211,12 @@ etharp_tmr(void)
 #endif /* ETHARP_SUPPORT_STATIC_ENTRIES */
       ) {
       arp_table[i].ctime++;
+#if CONFIG_WIFI6_CODE_STACK
+      if ((etharp_tmr_flag && (arp_table[i].ctime >= 3600)) ||
+          (!etharp_tmr_flag && (arp_table[i].ctime >= ARP_MAXAGE)) ||
+#else
       if ((arp_table[i].ctime >= ARP_MAXAGE) ||
+#endif
           ((arp_table[i].state == ETHARP_STATE_PENDING)  &&
            (arp_table[i].ctime >= ARP_MAXPENDING))) {
         /* pending or stable entry has become old! */
@@ -232,6 +238,42 @@ etharp_tmr(void)
     }
   }
 }
+
+#if CONFIG_WIFI6_CODE_STACK
+/**
+ * send arp reply when set interval.
+ */
+int cusarpsum = 0;
+void
+etharp_reply(void)
+{
+  int i;
+  int mark = 0;
+  struct netif *netif = netif_list;
+  /* loop through netif's */
+  while (netif != NULL) {
+    struct dhcp *dhcp = netif_dhcp_data(netif);
+    if (dhcp != NULL) {
+	  for (i = 0; i < ARP_TABLE_SIZE; ++i) {
+    	u8_t state = arp_table[i].state;
+   		if (state != ETHARP_STATE_EMPTY && ip4_addr_cmp(ip_2_ip4(&dhcp->server_ip_addr), &arp_table[i].ipaddr)) {
+		  etharp_raw(arp_table[i].netif,
+					 (struct eth_addr *)arp_table[i].netif->hwaddr, &arp_table[i].ethaddr,
+					 (struct eth_addr *)arp_table[i].netif->hwaddr, netif_ip4_addr(arp_table[i].netif),
+					 &arp_table[i].ethaddr, &arp_table[i].ipaddr,
+					 ARP_REPLY);
+		  mark = 1;
+	  	}
+	  }
+	  if(mark == 0) {
+		LWIP_DEBUGF(ETHARP_DEBUG, ("mark null, send request\n"));	
+		etharp_request(netif, ip_2_ip4(&dhcp->server_ip_addr));
+		cusarpsum = 1;
+   	  }
+    }
+  }
+}
+#endif
 
 /**
  * Search the ARP table for a matching or new entry.
@@ -722,6 +764,15 @@ etharp_input(struct pbuf *p, struct netif *netif)
   case PP_HTONS(ARP_REPLY):
     /* ARP reply. We already updated the ARP cache earlier. */
     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_input: incoming ARP reply\n"));
+
+#if CONFIG_WIFI6_CODE_STACK
+	if(cusarpsum == 1) {
+	  etharp_reply();
+	  cusarpsum = 0;
+	  LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_input: go on reply.\n"));
+	}
+#endif
+
 #if (LWIP_DHCP && DHCP_DOES_ARP_CHECK)
     /* DHCP wants to know about ARP replies from any host with an
      * IP address also offered to us by the DHCP server. We do not

@@ -27,19 +27,35 @@
 #include "soc/bk7231n/soc.h"
 #elif CONFIG_SOC_BK7231U
 #include "soc/bk7231u/soc.h"
-#elif CONFIG_SOC_BK7235
-#include "soc/bk7235/soc.h"
 #elif CONFIG_SOC_BK7236
 #include "soc/bk7236/soc.h"
-#elif CONFIG_SOC_BK7237
-#include "soc/bk7237/soc.h"
+#elif CONFIG_SOC_BK7236A
+#include "soc/bk7236a/soc.h"
 #elif CONFIG_SOC_BK7251
 #include "soc/bk7251/soc.h"
-#elif CONFIG_SOC_BK7256
-#include "soc/bk7256/soc.h"
-#elif CONFIG_SOC_BK7256_CP1
-#include "soc/bk7256_cp1/soc.h"
 #elif CONFIG_SOC_BK7271
 #include "soc/bk7271/soc.h"
+
+#elif CONFIG_SOC_BK7256 && !CONFIG_DUAL_CORE
+#include "soc/bk7256/soc.h"
+#elif CONFIG_SOC_BK7256 && CONFIG_MASTER_CORE
+#include "soc/bk7256/soc.h"
+#elif CONFIG_SOC_BK7256 && CONFIG_SLAVE_CORE
+#include "soc/bk7256_cp1/soc.h"
+
+#elif CONFIG_SOC_BK7237 && !CONFIG_DUAL_CORE
+#include "soc/bk7237/soc.h"
+#elif CONFIG_SOC_BK7237 && CONFIG_MASTER_CORE
+#include "soc/bk7237/soc.h"
+#elif CONFIG_SOC_BK7237 && CONFIG_SLAVE_CORE
+#include "soc/bk7237_cp1/soc.h"
+
+#elif CONFIG_SOC_BK7235 && !CONFIG_DUAL_CORE
+#include "soc/bk7235/soc.h"
+#elif CONFIG_SOC_BK7235 && CONFIG_MASTER_CORE
+#include "soc/bk7235/soc.h"
+#elif CONFIG_SOC_BK7235 && CONFIG_SLAVE_CORE
+#include "soc/bk7235_cp1/soc.h"
+
 #endif
 

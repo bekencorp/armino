@@ -76,11 +76,14 @@
 
 #include "bk_uart.h"
 #include "bk_wifi_netif.h"
+#include "bk_private/bk_wifi.h"
 
 //TODO should use registered callback here!!!
 extern int ke_l2_packet_tx(unsigned char *buf, int len, int flag);
 extern int bmsg_tx_sender(struct pbuf *p, uint32_t vif_idx);
-    
+#if CONFIG_WIFI6_CODE_STACK
+extern int bmsg_special_tx_sender(struct pbuf *p, uint32_t vif_idx);
+#endif
 /* Forward declarations. */
 void ethernetif_input(int iface, struct pbuf *p);
 
@@ -151,9 +154,20 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
 	int ret;
 	err_t err = ERR_OK;
 	uint8_t vif_idx = wifi_netif_vif_to_vifid(netif->state);
-
+    
+#if CONFIG_WIFI6_CODE_STACK
 	//LWIP_LOGI("output:%x\r\n", p);
-	ret = bmsg_tx_sender(p, (uint32_t)vif_idx);
+	extern bool special_arp_flag;
+	if(special_arp_flag) 
+	{
+		ret = bmsg_special_tx_sender(p, (uint32_t)vif_idx);
+		special_arp_flag = false;
+	}
+	else
+#endif
+	{
+		ret = bmsg_tx_sender(p, (uint32_t)vif_idx);
+	}
 	if(0 != ret)
 	{
 		err = ERR_TIMEOUT;
@@ -209,6 +223,7 @@ ethernetif_input(int iface, struct pbuf *p)
     case ETHTYPE_ARP:
 #ifdef CONFIG_IPV6
     case ETHTYPE_IPV6:
+	wlan_set_multicast_flag();
 #endif
 #if PPPOE_SUPPORT
         /* PPPoE packet? */

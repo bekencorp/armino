@@ -51,10 +51,10 @@
 /*-----------------------------------------------------------*/
 uint32_t ultestIotPowerDelay = 100;            /* Default Delay used 100 msec*/
 
-uint32_t ultestIotPowerSleepTimeTolerance = 3; /* Sleep time tolerence - should be 1 */
-uint32_t ultestIotPowerPcWakeThreshold = 2;    /* Default threshold for PCWake Idle is 2ticks/ms */
-uint32_t ultestIotPowerClkSrcOffThreshold = 8; /* Default threshold for ClkSrcOff Idle is 8ticks/ms */
-uint32_t ultestIotPowerVddOffThreshold = 9;    /* Default threshold for VddOff Idle is 9ticks/ms */
+uint32_t ultestIotPowerSleepTimeTolerance = 5; /* Sleep time tolerence - should be 1 */
+uint32_t ultestIotPowerPcWakeThreshold = 4;    /* Default threshold for PCWake Idle is 2ticks/ms */
+uint32_t ultestIotPowerClkSrcOffThreshold = 10; /* Default threshold for ClkSrcOff Idle is 8ticks/ms */
+uint32_t ultestIotPowerVddOffThreshold = 20;    /* Default threshold for VddOff Idle is 9ticks/ms */
 
 uint32_t ultestIotPowerInterruptConfig1 = 0;
 uint32_t ultestIotPowerInterruptConfig2 = 0;
@@ -69,10 +69,10 @@ static bool btestIotPowerIdleEnterState = false;
 static bool btestIotPowerIdleExitState = false;
 static SemaphoreHandle_t xtestIotPowerIdleEnterSemaphore = NULL;
 static SemaphoreHandle_t xtestIotPowerIdleExitSemaphore = NULL;
-
+#if 1
 static uint32_t ultestIotPowerSavedInterruptConfig1;
 static uint32_t ultestIotPowerSavedInterruptConfig2;
-
+#endif
 static uint32_t ultestIotPowerSleepEnterTime;
 static uint32_t ultestIotPowerSleepExitTime;
 
@@ -152,7 +152,7 @@ static void prvIotPowerCallback( bool bIdleState,
         /* Take the timetick only when first time it enters the sleep */
         if( ultestIotPowerSleepEnterTime == 0 )
         {
-            ultestIotPowerSleepEnterTime = xTaskGetTickCount();
+            ultestIotPowerSleepEnterTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
         }
 
         btestIotPowerIdleEnterState = true;
@@ -168,7 +168,7 @@ static void prvIotPowerCallback( bool bIdleState,
             xLastMode = xIdleModeEntered;
         }
 
-        ultestIotPowerSleepExitTime = xTaskGetTickCount();
+        ultestIotPowerSleepExitTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
         btestIotPowerIdleExitState = true;
         xSemaphoreGiveFromISR( xtestIotPowerIdleExitSemaphore, &xHigherPriorityTaskWoken );
     }

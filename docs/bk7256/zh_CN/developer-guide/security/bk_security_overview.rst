@@ -21,7 +21,7 @@ BK130可防止密钥和其他敏感数据被未经授权的应用程序使用，
 架构
 ************************
 
-.. figure:: ../../../_static/BK130architecture.PNG
+.. figure:: ../../../../common/_static/BK130architecture.PNG
     :align: center
     :alt: BK130 architecture
     :figclass: align-center

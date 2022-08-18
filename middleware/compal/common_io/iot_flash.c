@@ -37,7 +37,7 @@ IotFlashHandle_t iot_flash_open(int32_t lFlashInstance)
     }
 
     // Since architecture is based on common driver, flash has already initialized
-    if((bk_get_flash_init_flag() == true)) {
+    if((bk_flash_is_driver_inited() == true)) {
         s_flash_drv_open = true;
     }
     else
@@ -109,7 +109,7 @@ int32_t iot_flash_ioctl(IotFlashHandle_t const pxFlashHandle, IotFlashIoctlReque
             if(pvBuffer == NULL){
                 return IOT_FLASH_INVALID_VALUE;
             }
-            
+
             os_memcpy(pvBuffer,&s_flash_read_size,sizeof(s_flash_read_size));
             dw_rtn = IOT_FLASH_SUCCESS;
         break;
@@ -119,7 +119,7 @@ int32_t iot_flash_ioctl(IotFlashHandle_t const pxFlashHandle, IotFlashIoctlReque
         case eResumeFlashProgramErase:
         default:
             dw_rtn = IOT_FLASH_FUNCTION_NOT_SUPPORTED;
-        break;     
+        break;
     }
 
     return dw_rtn;

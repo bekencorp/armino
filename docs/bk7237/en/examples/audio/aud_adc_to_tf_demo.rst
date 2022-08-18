@@ -1,0 +1,1 @@
+.. include:: ../../../zh_CN/examples/audio/aud_adc_to_tf_demo.rst

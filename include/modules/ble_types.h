@@ -32,6 +32,13 @@ typedef enum
 }BK_BLE_CONTROLLER_STACK_TYPE;
 
 
+typedef enum
+{
+    BK_BLE_HOST_STACK_TYPE_RW_4,
+    BK_BLE_HOST_STACK_TYPE_RW_5_X,
+    BK_BLE_HOST_STACK_TYPE_RW_5_2,
+    BK_BLE_HOST_STACK_TYPE_ETHERMIND,
+}BK_BLE_HOST_STACK_TYPE;
 
 /**
  * @brief hci type enum
@@ -281,6 +288,7 @@ enum
  */
 typedef enum
 {
+    BLE_CMD_NONE,
     /// ADV_CMD:FOR BLE 5.1
     BLE_CREATE_ADV,
     BLE_SET_ADV_DATA,
@@ -322,6 +330,10 @@ typedef enum
     BLE_STOP_PERIODIC,
     BLE_DELETE_PERIODIC,
 
+    BLE_SET_LOCAL_NAME,
+    BLE_GET_LOCAL_NAME,
+
+    BLE_READ_LOCAL_ADDR,
     BLE_CMD_MAX,
 } ble_cmd_t;
 
@@ -350,11 +362,17 @@ typedef enum
     BLE_5_CREATE_DB,
     /// tx complete event, param null
     BLE_5_TX_DONE,
+    ///smp report
+    BLE_5_PAIRING_REQ,
+    BLE_5_PAIRING_SUCCEED,
+    BLE_5_PAIRING_FAILED,
+    BLE_5_PARING_PASSKEY_REQ,
+    BLE_5_ENCRYPT_EVENT,
 
     /// as master, recv connect event
     BLE_5_INIT_CONNECT_EVENT,
     BLE_5_INIT_DISCONNECT_EVENT,
-
+    BLE_5_INIT_CONNECT_FAILED_EVENT,
 
     BLE_5_SDP_REGISTER_FAILED,
     /// get current conn phy result, param ble_read_phy_t
@@ -363,8 +381,134 @@ typedef enum
     BLE_5_CONN_UPDATA_EVENT,
 
     BLE_5_PERIODIC_SYNC_CMPL_EVENT,
+
+    BLE_5_DISCOVERY_PRIMARY_SERVICE_EVENT,
+    BLE_5_DISCOVERY_CHAR_EVENT,
+
+    BLE_5_RECV_NOTIFY_EVENT,
+
+    BLE_5_ATT_READ_RESPONSE,
+
+    BLE_5_CONN_UPD_PAR_ASK,
 } ble_notice_t;
 
+typedef enum{
+    CHARAC_NOTIFY,
+    CHARAC_INDICATE,
+    CHARAC_READ,
+    CHARAC_READ_DONE,
+    CHARAC_WRITE_DONE,
+}CHAR_TYPE;
+
+typedef void (*app_sdp_callback)(unsigned char conidx,uint16_t chars_val_hdl,unsigned char uuid_len,unsigned char *uuid);
+typedef void (*app_sdp_charac_callback)(CHAR_TYPE type,uint8 conidx,uint16_t hdl,uint16_t len,uint8 *data);
+
+struct ble_sdp_svc_ind
+{
+    /// Service UUID Length
+    uint8_t  uuid_len;
+    /// Service UUID
+    uint8_t  uuid[16];
+    /// Service start handle
+    uint16_t start_hdl;
+    /// Service end handle
+    uint16_t end_hdl;
+};
+
+/// characteristic info
+struct ble_sdp_char_inf
+{
+    /// Characteristic UUID Length
+    uint8_t uuid_len;
+    /// Characteristic UUID
+    uint8_t uuid[16];
+    /// Characteristic handle
+    uint16_t char_hdl;
+    /// Value handle
+    uint16_t val_hdl;
+    /// Characteristic properties
+    uint8_t prop;
+    /// End of characteristic offset
+    uint8_t char_ehdl_off;
+};
+
+/// characteristic description
+struct ble_sdp_char_desc_inf
+{
+     /// UUID length
+    uint8_t uuid_len;
+    /// UUID
+    uint8_t uuid[16];
+
+    uint8_t char_code;
+    /// Descriptor handle
+    uint16_t desc_hdl;
+};
+
+typedef struct
+{
+    uint8_t conn_idx;
+	uint8_t status;
+} ble_smp_ind_t;
+
+
+typedef enum{
+	MST_TYPE_SVR_UUID = 0,
+	MST_TYPE_ATT_UUID,
+	MST_TYPE_ATT_DESC,
+	MST_TYPE_SDP_END,
+
+	MST_TYPE_ATTC_SVR_UUID,  ///Service the UUID
+	MST_TYPE_ATTC_ATT_UUID,  ///ATT of a service
+	MST_TYPE_ATTC_ATT_DESC,  ///ATT DESC of a service
+	MST_TYPS_ATTC_PARAM_ERR,  ///The delivered parameter is abnormal or unknown
+	MST_TYPE_ATTC_ERR,	 ///if appm_get_init_attc_info return is ok && ble is disconnect,so update the event
+	MST_TYPE_ATTC_END,	 ///End of the operation
+	MST_TYPE_ATTC_WRITE_RSP,
+	MST_TYPE_ATTC_WRITE_NO_RESPONSE,
+	MST_TYPE_ATTC_CHARAC_READ_DONE,
+
+	MST_TYPE_MTU_EXC = 0x10,
+	MST_TYPE_MTU_EXC_DONE,
+
+	MST_TYPE_UPP_ASK = 0x20,   ///Ask if you agree to update the parameter
+	MST_TYPE_UPDATA_STATUS,    ////updata param status
+
+
+}MASTER_COMMON_TYPE;
+typedef void (*app_sdp_comm_callback)(MASTER_COMMON_TYPE type,uint8 conidx,void *param);
+
+enum msg_attc{
+	MST_ATTC_ALL = 0,
+	MST_ATTC_GET_SVR_UUID_ALL,  ////Gets all the services for this connection
+	MST_ATTC_GET_SVR_UUID_BY_SVR_UUID,
+	MST_ATTC_GET_ATT_UUID_ALL,  ////Gets all the ATT's for this connection
+	MST_ATTC_GET_ATT_DESC_UUID_ALL,  ////Gets all the ATT-DESC's for this connection
+	MST_ATTC_SVR_ATT_BY_SVR_UUID, ////Gets all ATT's for this SVR-UUID for this connection
+	MST_ATTC_SVR_ATT_DESC_BY_SVR_UUID, ///Gets all ATT-DESC's for this SVR-UUID for this connection
+	MST_ATTC_SVR_ATT_AND_DESC_BY_SVR_UUID, ///Gets all ATT and ATT-DESC's for this SVR-UUID for this connection
+};
+
+struct ble_attc_wr_rd_op
+{
+    /// Status of the request
+    uint8_t status;
+    /// operation sequence number - provided when operation is started
+    uint16_t seq_num;
+};
+
+struct ble_attc_event_ind
+{
+    /// Event Type
+    enum msg_attc type;
+
+    uint8_t uuid_len;
+    uint8_t uuid[16];
+
+    ///if start_hdl = end_hdl = 0,it is invaild
+    uint16_t start_hdl;
+    uint16_t end_hdl;
+};
 
 /**
  * @defgroup bk_ble_api_v1_typedef struct
@@ -432,6 +576,14 @@ typedef struct
     uint8_t peer_addr_type;
     /// Peer BT address
     uint8_t peer_addr[6];
+    /// Clock accuracy
+    uint8_t clk_accuracy;
+    /// Connection interval
+    uint16_t con_interval;
+    /// Connection latency
+    uint16_t con_latency;
+    /// Link supervision timeout
+    uint16_t sup_to;
 } ble_conn_ind_t;
 
 typedef struct
@@ -578,6 +730,48 @@ typedef struct
 } ble_periodic_param_t;
 
 
+typedef struct
+{
+    uint8_t is_agree;   ///0:is not agree,1:is agree,0xFF;Let me think about it;other:is agree
+
+    uint8_t conn_idx;
+
+    /// Minimum Connection Event Duration
+    uint16_t ce_len_min;
+    /// Maximum Connection Event Duration
+    uint16_t ce_len_max;
+
+    /// Connection interval minimum
+    uint16_t intv_min;
+    /// Connection interval maximum
+    uint16_t intv_max;
+    /// Latency
+    uint16_t latency;
+    /// Supervision timeout
+    uint16_t time_out;
+} ble_conn_update_para_ind_t;
+
+
+
+struct mst_comm_updata_para
+{
+    /// Status of the request
+    uint8_t is_agree;   ///0:is not agree,1:is agree,0xFF;Let me think about it;other:is agree
+    /// Minimum Connection Event Duration
+    uint16_t ce_len_min;
+    /// Maximum Connection Event Duration
+    uint16_t ce_len_max;
+
+    /// Connection interval minimum
+    uint16_t intv_min;
+    /// Connection interval maximum
+    uint16_t intv_max;
+    /// Latency
+    uint16_t latency;
+    /// Supervision timeout
+    uint16_t time_out;
+};
+
 /**
  * @brief for sync ble api call return
  *
@@ -618,6 +812,84 @@ typedef void (*ble_notice_cb_t)(ble_notice_t notice, void *param);
 **/
 typedef ble_err_t (*ble_hci_to_host_cb)(uint8_t *buf, uint16_t len);
 
+/// Authentication mask
+enum gap_auth_mask
+{
+    /// No Flag set
+    GAP_AUTH_NONE    = 0,
+    /// Bond authentication
+    GAP_AUTH_BOND    = (1 << 0),
+    /// Man In the middle protection
+    GAP_AUTH_MITM    = (1 << 2),
+    /// Secure Connection
+    GAP_AUTH_SEC_CON = (1 << 3),
+    /// Key Notification
+    GAP_AUTH_KEY_NOTIF = (1 << 4)
+};
+
+enum gap_auth
+{
+    /// No MITM No Bonding
+    GAP_AUTH_REQ_NO_MITM_NO_BOND  = (GAP_AUTH_NONE),
+    /// No MITM Bonding
+    GAP_AUTH_REQ_NO_MITM_BOND     = (GAP_AUTH_BOND),
+    /// MITM No Bonding
+    GAP_AUTH_REQ_MITM_NO_BOND     = (GAP_AUTH_MITM),
+    /// MITM and Bonding
+    GAP_AUTH_REQ_MITM_BOND        = (GAP_AUTH_MITM | GAP_AUTH_BOND),
+    /// SEC_CON and No Bonding
+    GAP_AUTH_REQ_SEC_CON_NO_BOND  = (GAP_AUTH_SEC_CON | GAP_AUTH_MITM),
+    /// SEC_CON and Bonding
+    GAP_AUTH_REQ_SEC_CON_BOND     = (GAP_AUTH_SEC_CON | GAP_AUTH_MITM | GAP_AUTH_BOND),
+
+    GAP_AUTH_REQ_LAST,
+
+    /// Mask of  authentication features without reserved flag
+    GAP_AUTH_REQ_MASK             = 0x1F,
+};
+
+/// IO Capability Values
+enum gap_io_cap
+{
+    /// Display Only
+    GAP_IO_CAP_DISPLAY_ONLY = 0x00,
+    /// Display Yes No
+    GAP_IO_CAP_DISPLAY_YES_NO,
+    /// Keyboard Only
+    GAP_IO_CAP_KB_ONLY,
+    /// No Input No Output
+    GAP_IO_CAP_NO_INPUT_NO_OUTPUT,
+    /// Keyboard Display
+    GAP_IO_CAP_KB_DISPLAY,
+    GAP_IO_CAP_LAST
+};
+
+/// Security Defines
+enum gap_sec_req
+{
+    /// No security (no authentication and encryption)
+    GAP_NO_SEC = 0x00,
+    /// Unauthenticated pairing with encryption
+    GAP_SEC1_NOAUTH_PAIR_ENC,
+    /// Authenticated pairing with encryption
+    GAP_SEC1_AUTH_PAIR_ENC,
+    /// Unauthenticated pairing with data signing
+    GAP_SEC2_NOAUTH_DATA_SGN,
+    /// Authentication pairing with data signing
+    GAP_SEC2_AUTH_DATA_SGN,
+    /// Secure Connection pairing with encryption
+    GAP_SEC1_SEC_CON_PAIR_ENC,
+};
+
+/// OOB Data Present Flag Values
+enum gap_oob
+{
+    /// OOB Data not present
+    GAP_OOB_AUTH_DATA_NOT_PRESENT = 0x00,
+    /// OOB data present
+    GAP_OOB_AUTH_DATA_PRESENT,
+    GAP_OOB_AUTH_DATA_LAST
+};
 
 /**
  * @}

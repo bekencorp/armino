@@ -6,7 +6,7 @@
 #include "dsp.h"
 #include <os/os.h>
 #include "pmu.h"
-#include "bk_private/bk_ate.h"
+#include <components/ate.h>
 #include <common/sys_config.h>
 #include <components/log.h>
 

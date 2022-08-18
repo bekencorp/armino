@@ -95,6 +95,7 @@ int cli_at_init(void);
 int cli_vault_init(void);
 #endif
 int cli_aud_init(void);
+int cli_aud_intf_init(void);
 int cli_fft_init(void);
 int cli_sbc_init(void);
 int cli_touch_init(void);
@@ -110,6 +111,8 @@ int cli_aec_init(void);
 int cli_g711_init(void);
 int cli_dvp_init(void);
 int cli_doorbell_init(void);
+int cli_sdio_host_init(void);
+int cli_psram_init(void);
 
 extern int hexstr2bin(const char *hex, u8 *buf, size_t len);
 

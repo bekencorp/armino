@@ -297,12 +297,21 @@ int at_wifi_ping_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 		os_printf("Please input: ping <host address>\n");
 		goto error;
 	}
+
+	if (argc == 1 && (os_strcmp("STOP", argv[0]) == 0)) {
+		ping_stop();
+		if(err == kNoErr) {
+			msg = AT_CMD_RSP_SUCCEED;
+			os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+			return err;
+		}
+	}
 	
 	if (argc > 1)
 		cnt = os_strtoul(argv[1], NULL, 10);
 	
-	os_printf("ping IP address:%s\n", argv[1]);
-	err = ping(argv[0], cnt, 0);
+	os_printf("ping IP address:%s\n", argv[0]);
+	ping_start(argv[0], cnt, 0);
 	if(err == kNoErr) {
 		msg = AT_CMD_RSP_SUCCEED;
 		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));

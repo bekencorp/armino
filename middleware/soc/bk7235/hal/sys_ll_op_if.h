@@ -171,6 +171,42 @@ static inline void sys_ll_set_cpu_storage_connect_op_select_boot_mode(uint32_t v
     REG_WRITE(SYS_CPU_STORAGE_CONNECT_OP_SELECT_ADDR,reg_value);
 }
 
+/* REG_0x03:cpu_storage_connect_op_select->rf_switch_en:0x3[4],0: rf switch by PTA; 1: rf switch by SW,0,R/W*/
+static inline uint32_t sys_ll_get_cpu_storage_connect_op_select_rf_switch_en(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_CPU_STORAGE_CONNECT_OP_SELECT_ADDR);
+    reg_value = ((reg_value >> SYS_CPU_STORAGE_CONNECT_OP_SELECT_RF_SWITCH_EN_POS) & SYS_CPU_STORAGE_CONNECT_OP_SELECT_RF_SWITCH_EN_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_cpu_storage_connect_op_select_rf_switch_en(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_CPU_STORAGE_CONNECT_OP_SELECT_ADDR);
+    reg_value &= ~(SYS_CPU_STORAGE_CONNECT_OP_SELECT_RF_SWITCH_EN_MASK << SYS_CPU_STORAGE_CONNECT_OP_SELECT_RF_SWITCH_EN_POS);
+    reg_value |= ((value & SYS_CPU_STORAGE_CONNECT_OP_SELECT_RF_SWITCH_EN_MASK) << SYS_CPU_STORAGE_CONNECT_OP_SELECT_RF_SWITCH_EN_POS);
+    REG_WRITE(SYS_CPU_STORAGE_CONNECT_OP_SELECT_ADDR,reg_value);
+}
+
+/* REG_0x03:cpu_storage_connect_op_select->rf_for_wifiorbt:0x3[5],0: rf for wifi;  1: rf for bt,0,R/W*/
+static inline uint32_t sys_ll_get_cpu_storage_connect_op_select_rf_for_wifiorbt(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_CPU_STORAGE_CONNECT_OP_SELECT_ADDR);
+    reg_value = ((reg_value >> SYS_CPU_STORAGE_CONNECT_OP_SELECT_RF_FOR_WIFIORBT_POS) & SYS_CPU_STORAGE_CONNECT_OP_SELECT_RF_FOR_WIFIORBT_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_cpu_storage_connect_op_select_rf_for_wifiorbt(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_CPU_STORAGE_CONNECT_OP_SELECT_ADDR);
+    reg_value &= ~(SYS_CPU_STORAGE_CONNECT_OP_SELECT_RF_FOR_WIFIORBT_MASK << SYS_CPU_STORAGE_CONNECT_OP_SELECT_RF_FOR_WIFIORBT_POS);
+    reg_value |= ((value & SYS_CPU_STORAGE_CONNECT_OP_SELECT_RF_FOR_WIFIORBT_MASK) << SYS_CPU_STORAGE_CONNECT_OP_SELECT_RF_FOR_WIFIORBT_POS);
+    REG_WRITE(SYS_CPU_STORAGE_CONNECT_OP_SELECT_ADDR,reg_value);
+}
+
 /* REG_0x03:cpu_storage_connect_op_select->jtag_core_sel:0x3[8],0:jtag connect core0, 1:jtag connect core1,0,R/W*/
 static inline uint32_t sys_ll_get_cpu_storage_connect_op_select_jtag_core_sel(void)
 {
@@ -718,6 +754,24 @@ static inline void sys_ll_set_cpu_clk_div_mode1_cksel_timer2(uint32_t value)
     REG_WRITE(SYS_CPU_CLK_DIV_MODE1_ADDR,reg_value);
 }
 
+/* REG_0x08:cpu_clk_div_mode1->cksel_can:0x8[23],0:XTAL              1:80M,0,R/W*/
+static inline uint32_t sys_ll_get_cpu_clk_div_mode1_cksel_can(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_CPU_CLK_DIV_MODE1_ADDR);
+    reg_value = ((reg_value >> SYS_CPU_CLK_DIV_MODE1_CKSEL_CAN_POS) & SYS_CPU_CLK_DIV_MODE1_CKSEL_CAN_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_cpu_clk_div_mode1_cksel_can(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_CPU_CLK_DIV_MODE1_ADDR);
+    reg_value &= ~(SYS_CPU_CLK_DIV_MODE1_CKSEL_CAN_MASK << SYS_CPU_CLK_DIV_MODE1_CKSEL_CAN_POS);
+    reg_value |= ((value & SYS_CPU_CLK_DIV_MODE1_CKSEL_CAN_MASK) << SYS_CPU_CLK_DIV_MODE1_CKSEL_CAN_POS);
+    REG_WRITE(SYS_CPU_CLK_DIV_MODE1_ADDR,reg_value);
+}
+
 /* REG_0x08:cpu_clk_div_mode1->cksel_i2s:0x8[24],0:XTAL              1:APLL,0,R/W*/
 static inline uint32_t sys_ll_get_cpu_clk_div_mode1_cksel_i2s(void)
 {
@@ -909,7 +963,25 @@ static inline void sys_ll_set_cpu_clk_div_mode2_ckdiv_qspi0(uint32_t value)
     REG_WRITE(SYS_CPU_CLK_DIV_MODE2_ADDR,reg_value);
 }
 
-/* REG_0x09:cpu_clk_div_mode2->ckdiv_sdio:0x9[16:14],0:/1  1:/2  2:/4  3:/8  4:/16  5:/32  6:/64  7:/256,0,R/W*/
+/* REG_0x09:cpu_clk_div_mode2->cksel_qspi0:0x9[10],0:clk_320M      1:clk_480M,0,R/W*/
+static inline uint32_t sys_ll_get_cpu_clk_div_mode2_cksel_qspi0(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_CPU_CLK_DIV_MODE2_ADDR);
+    reg_value = ((reg_value >> SYS_CPU_CLK_DIV_MODE2_CKSEL_QSPI0_POS) & SYS_CPU_CLK_DIV_MODE2_CKSEL_QSPI0_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_cpu_clk_div_mode2_cksel_qspi0(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_CPU_CLK_DIV_MODE2_ADDR);
+    reg_value &= ~(SYS_CPU_CLK_DIV_MODE2_CKSEL_QSPI0_MASK << SYS_CPU_CLK_DIV_MODE2_CKSEL_QSPI0_POS);
+    reg_value |= ((value & SYS_CPU_CLK_DIV_MODE2_CKSEL_QSPI0_MASK) << SYS_CPU_CLK_DIV_MODE2_CKSEL_QSPI0_POS);
+    REG_WRITE(SYS_CPU_CLK_DIV_MODE2_ADDR,reg_value);
+}
+
+/* REG_0x09:cpu_clk_div_mode2->ckdiv_sdio:0x9[16:14],0:/2  1:/4  2:/6  3:/8  4:/10  5:/12  6:/16  7:/256,0,R/W*/
 static inline uint32_t sys_ll_get_cpu_clk_div_mode2_ckdiv_sdio(void)
 {
     uint32_t reg_value;
@@ -2638,6 +2710,24 @@ static inline void sys_ll_set_cpu_power_sleep_wakeup_pwd_wifp_phy(uint32_t value
     reg_value = REG_READ(SYS_CPU_POWER_SLEEP_WAKEUP_ADDR);
     reg_value &= ~(SYS_CPU_POWER_SLEEP_WAKEUP_PWD_WIFP_PHY_MASK << SYS_CPU_POWER_SLEEP_WAKEUP_PWD_WIFP_PHY_POS);
     reg_value |= ((value & SYS_CPU_POWER_SLEEP_WAKEUP_PWD_WIFP_PHY_MASK) << SYS_CPU_POWER_SLEEP_WAKEUP_PWD_WIFP_PHY_POS);
+    REG_WRITE(SYS_CPU_POWER_SLEEP_WAKEUP_ADDR,reg_value);
+}
+
+/* REG_0x10:cpu_power_sleep_wakeup->pwd_mem0:0x10[11] ,0:power on of mem0,0,RW*/
+static inline uint32_t sys_ll_get_cpu_power_sleep_wakeup_pwd_mem0(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_CPU_POWER_SLEEP_WAKEUP_ADDR);
+    reg_value = ((reg_value >> SYS_CPU_POWER_SLEEP_WAKEUP_PWD_MEM0_POS) & SYS_CPU_POWER_SLEEP_WAKEUP_PWD_MEM0_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_cpu_power_sleep_wakeup_pwd_mem0(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_CPU_POWER_SLEEP_WAKEUP_ADDR);
+    reg_value &= ~(SYS_CPU_POWER_SLEEP_WAKEUP_PWD_MEM0_MASK << SYS_CPU_POWER_SLEEP_WAKEUP_PWD_MEM0_POS);
+    reg_value |= ((value & SYS_CPU_POWER_SLEEP_WAKEUP_PWD_MEM0_MASK) << SYS_CPU_POWER_SLEEP_WAKEUP_PWD_MEM0_POS);
     REG_WRITE(SYS_CPU_POWER_SLEEP_WAKEUP_ADDR,reg_value);
 }
 
@@ -7926,21 +8016,21 @@ static inline void sys_ll_set_ana_reg5_temptst_en(uint32_t value)
     sys_ll_set_analog_reg_value(SYS_ANA_REG5_ADDR,reg_value);
 }
 
-/* REG_0x45:ana_reg5->gadc_tsel:0x45[21:19],gadc test signal selection,0,R/W*/
-static inline uint32_t sys_ll_get_ana_reg5_gadc_tsel(void)
+/* REG_0x45:ana_reg5->gadc_inbuf_ictrl:0x45[20:19],gadc input buf Ibias selection,0,R/W*/
+static inline uint32_t sys_ll_get_ana_reg5_gadc_inbuf_ictrl(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SYS_ANA_REG5_ADDR);
-    reg_value = ((reg_value >> SYS_ANA_REG5_GADC_TSEL_POS) & SYS_ANA_REG5_GADC_TSEL_MASK);
+    reg_value = ((reg_value >> SYS_ANA_REG5_GADC_INBUF_ICTRL_POS) & SYS_ANA_REG5_GADC_INBUF_ICTRL_MASK);
     return reg_value;
 }
 
-static inline void sys_ll_set_ana_reg5_gadc_tsel(uint32_t value)
+static inline void sys_ll_set_ana_reg5_gadc_inbuf_ictrl(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SYS_ANA_REG5_ADDR);
-    reg_value &= ~(SYS_ANA_REG5_GADC_TSEL_MASK << SYS_ANA_REG5_GADC_TSEL_POS);
-    reg_value |= ((value & SYS_ANA_REG5_GADC_TSEL_MASK) << SYS_ANA_REG5_GADC_TSEL_POS);
+    reg_value &= ~(SYS_ANA_REG5_GADC_INBUF_ICTRL_MASK << SYS_ANA_REG5_GADC_INBUF_ICTRL_POS);
+    reg_value |= ((value & SYS_ANA_REG5_GADC_INBUF_ICTRL_MASK) << SYS_ANA_REG5_GADC_INBUF_ICTRL_POS);
     sys_ll_set_analog_reg_value(SYS_ANA_REG5_ADDR,reg_value);
 }
 
@@ -8243,7 +8333,25 @@ static inline void sys_ll_set_ana_reg6_en_sysldo(uint32_t value)
     sys_ll_set_analog_reg_value(SYS_ANA_REG6_ADDR,reg_value);
 }
 
-/* REG_0x46:ana_reg6->pwd_gadc_buf:0x46[17],gadc input buffer pwd,1,R/W*/
+/* REG_0x46:ana_reg6->en_aud:0x46[14],en_aud pwd,1,R/W*/
+static inline uint32_t sys_ll_get_ana_reg6_en_aud(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG6_ADDR);
+    reg_value = ((reg_value >> SYS_ANA_REG6_EN_AUD_POS) & SYS_ANA_REG6_EN_AUD_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_ana_reg6_en_aud(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG6_ADDR);
+    reg_value &= ~(SYS_ANA_REG6_EN_AUD_MASK << SYS_ANA_REG6_EN_AUD_POS);
+    reg_value |= ((value & SYS_ANA_REG6_EN_AUD_MASK) << SYS_ANA_REG6_EN_AUD_POS);
+    sys_ll_set_analog_reg_value(SYS_ANA_REG6_ADDR,reg_value);
+}
+
+/* REG_0x46:ana_reg6->pwd_gadc_buf:0x46[15],gadc input buffer pwd,1,R/W*/
 static inline uint32_t sys_ll_get_ana_reg6_pwd_gadc_buf(void)
 {
     uint32_t reg_value;
@@ -8258,6 +8366,24 @@ static inline void sys_ll_set_ana_reg6_pwd_gadc_buf(uint32_t value)
     reg_value = REG_READ(SYS_ANA_REG6_ADDR);
     reg_value &= ~(SYS_ANA_REG6_PWD_GADC_BUF_MASK << SYS_ANA_REG6_PWD_GADC_BUF_POS);
     reg_value |= ((value & SYS_ANA_REG6_PWD_GADC_BUF_MASK) << SYS_ANA_REG6_PWD_GADC_BUF_POS);
+    sys_ll_set_analog_reg_value(SYS_ANA_REG6_ADDR,reg_value);
+}
+
+/* REG_0x46:ana_reg6->vaon_sel:0x46[17],0:vddaon drop enable,1,R/W*/
+static inline uint32_t sys_ll_get_ana_reg6_vaon_sel(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG6_ADDR);
+    reg_value = ((reg_value >> SYS_ANA_REG6_VAON_SEL_POS) & SYS_ANA_REG6_VAON_SEL_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_ana_reg6_vaon_sel(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG6_ADDR);
+    reg_value &= ~(SYS_ANA_REG6_VAON_SEL_MASK << SYS_ANA_REG6_VAON_SEL_POS);
+    reg_value |= ((value & SYS_ANA_REG6_VAON_SEL_MASK) << SYS_ANA_REG6_VAON_SEL_POS);
     sys_ll_set_analog_reg_value(SYS_ANA_REG6_ADDR,reg_value);
 }
 
@@ -8852,21 +8978,201 @@ static inline void sys_ll_set_ana_reg9_en_otp_spi(uint32_t value)
     sys_ll_set_analog_reg_value(SYS_ANA_REG9_ADDR,reg_value);
 }
 
-/* REG_0x49:ana_reg9->digovr_en:0x49[13],digldo over voltage reset enable,0,R/W*/
-static inline uint32_t sys_ll_get_ana_reg9_digovr_en(void)
+static inline void sys_ll_set_ana_reg9_vtempsel(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SYS_ANA_REG9_ADDR);
-    reg_value = ((reg_value >> SYS_ANA_REG9_DIGOVR_EN_POS) & SYS_ANA_REG9_DIGOVR_EN_MASK);
+    reg_value &= ~(SYS_ANA_REG9_VTEMPSEL_MASK << SYS_ANA_REG9_VTEMPSEL_POS);
+    reg_value |= ((value & SYS_ANA_REG9_VTEMPSEL_MASK) << SYS_ANA_REG9_VTEMPSEL_POS);
+    sys_ll_set_analog_reg_value(SYS_ANA_REG9_ADDR,reg_value);
+}
+
+/* REG_0x49:ana_reg9->entemp2:0x49[1],dummy,0,R/W*/
+static inline uint32_t sys_ll_get_ana_reg9_entemp2(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value = ((reg_value >> SYS_ANA_REG9_ENTEMP2_POS) & SYS_ANA_REG9_ENTEMP2_MASK);
     return reg_value;
 }
 
-static inline void sys_ll_set_ana_reg9_digovr_en(uint32_t value)
+static inline void sys_ll_set_ana_reg9_entemp2(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SYS_ANA_REG9_ADDR);
-    reg_value &= ~(SYS_ANA_REG9_DIGOVR_EN_MASK << SYS_ANA_REG9_DIGOVR_EN_POS);
-    reg_value |= ((value & SYS_ANA_REG9_DIGOVR_EN_MASK) << SYS_ANA_REG9_DIGOVR_EN_POS);
+    reg_value &= ~(SYS_ANA_REG9_ENTEMP2_MASK << SYS_ANA_REG9_ENTEMP2_POS);
+    reg_value |= ((value & SYS_ANA_REG9_ENTEMP2_MASK) << SYS_ANA_REG9_ENTEMP2_POS);
+    sys_ll_set_analog_reg_value(SYS_ANA_REG9_ADDR,reg_value);
+}
+
+/* REG_0x49:ana_reg9->vtempsel:0x49[3:2],00:nc  01:vtemp  10:vbe   11:vbg1p3,R/W*/
+static inline uint32_t sys_ll_get_ana_reg9_vtempsel(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value = ((reg_value >> SYS_ANA_REG9_VTEMPSEL_POS) & SYS_ANA_REG9_VTEMPSEL_MASK);
+    return reg_value;
+}
+
+/* REG_0x49:ana_reg9->vtsel:0x49[4],dummy,0,R/W*/
+static inline uint32_t sys_ll_get_ana_reg9_vtsel(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value = ((reg_value >> SYS_ANA_REG9_VTSEL_POS) & SYS_ANA_REG9_VTSEL_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_ana_reg9_vtsel(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value &= ~(SYS_ANA_REG9_VTSEL_MASK << SYS_ANA_REG9_VTSEL_POS);
+    reg_value |= ((value & SYS_ANA_REG9_VTSEL_MASK) << SYS_ANA_REG9_VTSEL_POS);
+    sys_ll_set_analog_reg_value(SYS_ANA_REG9_ADDR,reg_value);
+}
+
+/* REG_0x49:ana_reg9->en_bias_5u:0x49[5],Ibias 5u enable,0,R/W*/
+static inline uint32_t sys_ll_get_ana_reg9_en_bias_5u(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value = ((reg_value >> SYS_ANA_REG9_EN_BIAS_5U_POS) & SYS_ANA_REG9_EN_BIAS_5U_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_ana_reg9_en_bias_5u(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value &= ~(SYS_ANA_REG9_EN_BIAS_5U_MASK << SYS_ANA_REG9_EN_BIAS_5U_POS);
+    reg_value |= ((value & SYS_ANA_REG9_EN_BIAS_5U_MASK) << SYS_ANA_REG9_EN_BIAS_5U_POS);
+    sys_ll_set_analog_reg_value(SYS_ANA_REG9_ADDR,reg_value);
+}
+
+/* REG_0x49:ana_reg9->dummy2:0x49[6],5uA channel on(for PLL & DCO),0,R/W*/
+static inline uint32_t sys_ll_get_ana_reg9_dummy2(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value = ((reg_value >> SYS_ANA_REG9_DUMMY2_POS) & SYS_ANA_REG9_DUMMY2_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_ana_reg9_dummy2(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value &= ~(SYS_ANA_REG9_DUMMY2_MASK << SYS_ANA_REG9_DUMMY2_POS);
+    reg_value |= ((value & SYS_ANA_REG9_DUMMY2_MASK) << SYS_ANA_REG9_DUMMY2_POS);
+    sys_ll_set_analog_reg_value(SYS_ANA_REG9_ADDR,reg_value);
+}
+
+/* REG_0x49:ana_reg9->touch_serial_cap:0x49[7],5uA channel on(for PLL & DCO),0,R/W*/
+static inline uint32_t sys_ll_get_ana_reg9_touch_serial_cap(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value = ((reg_value >> SYS_ANA_REG9_TOUCH_SERIAL_CAP_POS) & SYS_ANA_REG9_TOUCH_SERIAL_CAP_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_ana_reg9_touch_serial_cap(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value &= ~(SYS_ANA_REG9_TOUCH_SERIAL_CAP_MASK << SYS_ANA_REG9_TOUCH_SERIAL_CAP_POS);
+    reg_value |= ((value & SYS_ANA_REG9_TOUCH_SERIAL_CAP_MASK) << SYS_ANA_REG9_TOUCH_SERIAL_CAP_POS);
+    sys_ll_set_analog_reg_value(SYS_ANA_REG9_ADDR,reg_value);
+}
+
+/* REG_0x49:ana_reg9->buckfb_czenb:0x49[8],buck EA feedback cz selection,0,R/W*/
+static inline uint32_t sys_ll_get_ana_reg9_buckfb_czenb(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value = ((reg_value >> SYS_ANA_REG9_BUCKFB_CZENB_POS) & SYS_ANA_REG9_BUCKFB_CZENB_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_ana_reg9_buckfb_czenb(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value &= ~(SYS_ANA_REG9_BUCKFB_CZENB_MASK << SYS_ANA_REG9_BUCKFB_CZENB_POS);
+    reg_value |= ((value & SYS_ANA_REG9_BUCKFB_CZENB_MASK) << SYS_ANA_REG9_BUCKFB_CZENB_POS);
+    sys_ll_set_analog_reg_value(SYS_ANA_REG9_ADDR,reg_value);
+}
+
+/* REG_0x49:ana_reg9->buckea_cur_ctrl:0x49[10:9],buck EA ibias selection,0,R/W*/
+static inline uint32_t sys_ll_get_ana_reg9_buckea_cur_ctrl(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value = ((reg_value >> SYS_ANA_REG9_BUCKEA_CUR_CTRL_POS) & SYS_ANA_REG9_BUCKEA_CUR_CTRL_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_ana_reg9_buckea_cur_ctrl(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value &= ~(SYS_ANA_REG9_BUCKEA_CUR_CTRL_MASK << SYS_ANA_REG9_BUCKEA_CUR_CTRL_POS);
+    reg_value |= ((value & SYS_ANA_REG9_BUCKEA_CUR_CTRL_MASK) << SYS_ANA_REG9_BUCKEA_CUR_CTRL_POS);
+    sys_ll_set_analog_reg_value(SYS_ANA_REG9_ADDR,reg_value);
+}
+
+/* REG_0x49:ana_reg9->cbtst_en:0x49[11],CB test enable,0,R/W*/
+static inline uint32_t sys_ll_get_ana_reg9_cbtst_en(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value = ((reg_value >> SYS_ANA_REG9_CBTST_EN_POS) & SYS_ANA_REG9_CBTST_EN_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_ana_reg9_cbtst_en(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value &= ~(SYS_ANA_REG9_CBTST_EN_MASK << SYS_ANA_REG9_CBTST_EN_POS);
+    reg_value |= ((value & SYS_ANA_REG9_CBTST_EN_MASK) << SYS_ANA_REG9_CBTST_EN_POS);
+    sys_ll_set_analog_reg_value(SYS_ANA_REG9_ADDR,reg_value);
+}
+
+/* REG_0x49:ana_reg9->psldo_vsel:0x49[12],psldo voltage selsection,0,R/W*/
+static inline uint32_t sys_ll_get_ana_reg9_psldo_vsel(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value = ((reg_value >> SYS_ANA_REG9_PSLDO_VSEL_POS) & SYS_ANA_REG9_PSLDO_VSEL_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_ana_reg9_psldo_vsel(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value &= ~(SYS_ANA_REG9_PSLDO_VSEL_MASK << SYS_ANA_REG9_PSLDO_VSEL_POS);
+    reg_value |= ((value & SYS_ANA_REG9_PSLDO_VSEL_MASK) << SYS_ANA_REG9_PSLDO_VSEL_POS);
+    sys_ll_set_analog_reg_value(SYS_ANA_REG9_ADDR,reg_value);
+}
+
+/* REG_0x49:ana_reg9->ovr_l:0x49[13],ovr low enable,0,R/W*/
+static inline uint32_t sys_ll_get_ana_reg9_ovr_l(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value = ((reg_value >> SYS_ANA_REG9_OVR_L_POS) & SYS_ANA_REG9_OVR_L_MASK);
+    return reg_value;
+}
+
+static inline void sys_ll_set_ana_reg9_ovr_l(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(SYS_ANA_REG9_ADDR);
+    reg_value &= ~(SYS_ANA_REG9_OVR_L_MASK << SYS_ANA_REG9_OVR_L_POS);
+    reg_value |= ((value & SYS_ANA_REG9_OVR_L_MASK) << SYS_ANA_REG9_OVR_L_POS);
     sys_ll_set_analog_reg_value(SYS_ANA_REG9_ADDR,reg_value);
 }
 

@@ -220,6 +220,7 @@ void icu_struct_dump(void)
 		SOC_LOGI("gpio_peri_mode_cfg(%x)=%x\n", &hw->gpio_peri_mode_cfg[i], hw->gpio_peri_mode_cfg[i]);
 
 
+	SOC_LOGI("gpio_map_cfg(%x)=%x\n", &hw->gpio_map_cfg, hw->gpio_map_cfg.v);
 	SOC_LOGI("  uart2=%x\n", hw->gpio_map_cfg.uart2);
 	SOC_LOGI("  spi3=%x\n", hw->gpio_map_cfg.spi3);
 	SOC_LOGI("  sdio=%x\n", hw->gpio_map_cfg.sdio);

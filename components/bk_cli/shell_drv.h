@@ -20,6 +20,7 @@ typedef enum
 	SHELL_IO_CTRL_RX_RESET,
 	SHELL_IO_CTRL_TX_RESET,
 	SHELL_IO_CTRL_FLUSH,
+	SHELL_IO_CTRL_SET_UART_PORT,
 } shell_ctrl_cmd_t;
 
 enum

@@ -14,7 +14,7 @@
 
 硬件：
 
- - BK7256 开发板
+ - BK7235 开发板
  - 串口烧录工具
  - 电脑（Windows 与 Ubuntu）
 
@@ -68,22 +68,19 @@ Armino SDK代码下载
 
 
 工具链安装
-**************************
+------------------------------------
 
 BK7256工具链下载路径如下：
 
 	工具链下载：
-	http://dl.bekencorp.com:8192/tools/toolchain/risc-v_20220418.tar.gz
-
-	校验文件：
-	http://dl.bekencorp.com:8192/tools/toolchain/risc-v_20220418.tar.gz.md5sum
+	http://dl.bekencorp.com:8192/tools/toolchain/toolchain_v5.1.1.tgz
 
 
 
 工具包下载后，通过如下操作命令解压至 /opt/risc-v目录下：
 
     $ sudo mkdir -p /opt/
-    $ tar -jxvf risc-v.tar.bz2 -C /opt/
+    $ tar -zxvf toolchain_v5.1.1.tgz -C /
 
 
 .. note::
@@ -93,7 +90,7 @@ BK7256工具链下载路径如下：
     例如: make BK7256 TOOLCHAIN_DIR=/usr/risc-v/nds32le-elf-mculib-v5/bin
 
 程序编译依赖库安装
-*****************
+------------------------------------
 
 在终端输入下述命令安装 python3，CMake，Ninja 以及依赖库::
 
@@ -103,7 +100,7 @@ BK7256工具链下载路径如下：
 
 
 文档编译依赖库安装
-*****************
+------------------------------------
 
 在终端上输入如下命令安装文档编译所需要的 python 依赖::
 
@@ -118,7 +115,7 @@ BK7256工具链下载路径如下：
 编译工程
 ------------------------------------
 
-在终端下输入下述命令编译 Armino 默认工程，PROJECT为可选参数，默认为legacy_app，默认工程为启动 WiFi，BLE，初始化常见驱动，并启动 Armino 默认 Cli 程序::
+在终端下输入下述命令编译 Armino 默认工程，PROJECT为可选参数，默认为app，默认工程为启动 WiFi，BLE，初始化常见驱动，并启动 Armino 默认 Cli 程序::
 
     cd ~/armino
     make bk7235
@@ -152,7 +149,7 @@ BK7256工具链下载路径如下：
     工程配置文件 Override 芯片配置文件 Override 默认配置
     如： sdkconfig.default >> bk7235.defconfig >> KConfig
     + 工程配置文件示例：
-        projects/legacy_app/sdkconfig.defaults
+        projects/app/sdkconfig.defaults
         projects/harmony/sdkconfig.defaults
     + 芯片配置文件示例：
         middleware/arch/bk7235/bk7235.defconfig
@@ -183,11 +180,40 @@ BK7256工具链下载路径如下：
         CONFIG_FREERTOS_V10=n
 
 
+- 系列芯片宏的使用与差异
+
+    + 宏CONFIG_SOC_BK7256XX 表示BK7256系列::
+
+        属于BK7235/BK7237/BK7256公共芯片宏，CPU1也需要定义该宏
+		配置方式：CONFIG_SOC_BK7256XX=y
+		
+
+    + 区分同系列芯片的宏(不用于区分其他芯片)::
+
+		CONFIG_SOC_BK7235, CPU1需要定义该宏和CONFIG_SLAVE_CORE组合区分BK7235_CPU1
+		配置方式：CONFIG_SOC_BK7235=y
+		
+
+    + 字符串系列芯片的宏(用于编译阶段区分其他芯片)::
+
+         cpu0/cpu1有区分：
+		 CPU0写法：CONFIG_SOC_STR="bk7235"
+		 CPU1写法：CONFIG_SOC_STR="bk7235_cp1"
+
+
+    + 双核CPU0,CPU1相关宏区分(用于代码区分)::
+
+        CONFIG_DUAL_CORE            #双核功能
+        CONFIG_MASTER_CORE          #依赖于CONFIG_DUAL_CORE，CPU0与CPU1的区别
+        CONFIG_SLAVE_CORE           #依赖于CONFIG_DUAL_CORE，CPU0与CPU1的区别
+        单核：上面的三个宏都不定义
+
+
 
 新建工程
 ------------------------------------
 
-默认工程为projects/legacy_app，新建工程可参考projects/harmony工程
+默认工程为projects/app，新建工程可参考projects/harmony工程
 
 
 烧录代码

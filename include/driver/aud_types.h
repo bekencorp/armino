@@ -183,6 +183,14 @@ typedef enum {
 } aud_adc_line_enable_t;
 
 typedef enum {
+	AUD_MIC_DISABLE = 0, /**< disable all mic */
+	AUD_MIC_MIC1_ENABLE, /**< enable mic1 */
+	AUD_MIC_MIC2_ENABLE, /**< enable mic2 */
+	AUD_MIC_ALL_ENABLE,  /**< enable all mic */
+	AUD_MIC_MAX,
+} aud_mic_enable_t;
+
+typedef enum {
 	AUD_GAC_NOISE_TOUT_0 = 0,       /**< AGC noise tout: 0  0ms */
 	AUD_GAC_NOISE_TOUT_4,           /**< AGC noise tout: 4  0.5ms */
 	AUD_GAC_NOISE_TOUT_8,           /**< AGC noise tout: 8 */
@@ -402,6 +410,9 @@ typedef struct {
 
 
 typedef struct {
+	/* audio mic config */
+	aud_mic_enable_t mic_config;
+
 	/* audio_config */
 	aud_adc_samp_rate_t samp_rate;                  /**< AUD adc sample rate */
 	aud_adc_enable_t adc_enable;                    /**< AUD adc enable */

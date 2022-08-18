@@ -16,7 +16,7 @@
                             
 #include <soc/soc.h>          
 #include "aon_pmu_hw.h" 
-#if((CONFIG_SOC_BK7256_CP1) || (CONFIG_SOC_BK7256XX)) 
+#if (CONFIG_SOC_BK7256XX)
 #include "aon_pmu_ll_macro_def.h"       
 #endif
 

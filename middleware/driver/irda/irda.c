@@ -251,11 +251,11 @@ void irda_isr(void)
 		if (IR_key.valid_flag) {
 			tmp = REG_READ(RX_FIFO_DOUT);
 
-			bk_printf("ir value:%x\r\n", tmp);
+			BK_LOG_RAW("ir value:%x\r\n", tmp);
 
 			if (((tmp & USERCODE_MASK) != IR_key.IR_UserCode) ||
 				((((tmp & KEY_CODE_INVERS_MASK) >> KEY_CODE_INVERS_SHIFT) ^ ((tmp & KEY_CODE_MASK) >> KEY_CODE_SHIFT)) != 0xff)) {
-				bk_printf("invalid ir value\r\n");
+				BK_LOG_RAW("invalid ir value\r\n");
 				IR_key.valid_flag = 0;
 				return;
 			}

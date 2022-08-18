@@ -773,4 +773,22 @@ int net_wlan_remove_netif(uint8_t *mac)
 	LWIP_LOGI("remove vif%d\n", vifid);
 	return ERR_OK;
 }
+#if CONFIG_WIFI6_CODE_STACK
+bool etharp_tmr_flag = false;
+void net_begin_send_arp_reply(bool is_send_arp, bool is_allow_send_req)
+{
+	//send reply
+	if(is_send_arp && !is_allow_send_req) {
+		etharp_tmr_flag = true;
+		LWIP_LOGI("send reply %s\n", __func__);
+	}
+	//stop send reply
+	if(!is_send_arp && is_allow_send_req) {
+		etharp_tmr_flag = false;
+		LWIP_LOGI("stop send reply %s\n", __func__);
+		return;
+	}
+	etharp_reply();
 
+}
+#endif

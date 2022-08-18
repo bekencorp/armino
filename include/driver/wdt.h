@@ -97,6 +97,33 @@ bk_err_t bk_wdt_stop(void);
 bk_err_t bk_wdt_feed(void);
 
 /**
+ * @brief   Get feed watchdog time
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+uint32_t bk_wdt_get_feed_time(void);
+
+/**
+ * @brief  set feed watchdog time
+ *
+ * @return
+ *    - NULL
+ *
+ */
+void bk_wdt_set_feed_time(uint32_t dw_set_time);
+
+/**
+ * @brief   Get wdt driver init flag
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bool bk_wdt_is_driver_inited(void);
+
+/**
  * @}
  */
 

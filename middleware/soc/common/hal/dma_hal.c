@@ -24,7 +24,9 @@
 bk_err_t dma_hal_init(dma_hal_t *hal)
 {
     hal->hw = (dma_hw_t *)DMA_LL_REG_BASE(hal->id);
+#if !CONFIG_SLAVE_CORE
     dma_ll_init(hal->hw);
+#endif
     dma_ll_set_prio_mode_round_robin(hal->hw);
     return BK_OK;
 }

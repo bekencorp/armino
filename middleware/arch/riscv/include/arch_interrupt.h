@@ -200,6 +200,8 @@ void arch_interrupt_unregister_int(arch_int_src_t int_number);
 unsigned int arch_get_interrupt_nest_cnt(void);
 unsigned int arch_is_enter_exception(void);
 void mext_interrupt(void);
+bool mtimer_is_timeout();
+uint64_t arch_get_plic_pending_status(void);
 
 #endif	/* __ARCH_INTERRUPT_H__ */
 

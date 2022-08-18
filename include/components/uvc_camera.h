@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include <components/uvc_camera_types.h>
+#include <driver/uvc_camera_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,11 +76,25 @@ bk_err_t bk_uvc_deinit(void);
 bk_err_t bk_uvc_save_frame(uint8_t file_id);
 
 /**
- * @brief     set uvc pps and fps
+ * @brief     get uvc ppi and fps
  *
- * This API will set uvc pps and fps
+ * This API will get uvc ppi and fps
  *
- * param ppi: image resolution
+ * param param: save ppi and fps information
+ * param count: the count of different ppi and fps
+ *
+ * @return
+ *    - kNoErr: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_uvc_get_ppi_fps(uvc_camera_device_t *param, uint16_t count);
+
+/**
+ * @brief     set uvc ppi and fps
+ *
+ * This API will set uvc ppi and fps
+ *
+ * param image_resolution: image resolution width:bit[31-16], height:bit[15-0]
  * param fps: the number frame output every second
  *
  * @attention 1. need call before uvc_set_start
@@ -89,7 +103,7 @@ bk_err_t bk_uvc_save_frame(uint8_t file_id);
  *    - kNoErr: succeed
  *    - others: other errors.
  */
-bk_err_t bk_uvc_set_ppi_fps(uint16_t ppi, uint8_t fps);
+bk_err_t bk_uvc_set_ppi_fps(uint32_t image_resolution, uint8_t fps);
 
 /**
  * @brief     set uvc start

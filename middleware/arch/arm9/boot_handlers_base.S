@@ -182,7 +182,7 @@ boot_reset:
 	BOOT_SET_STACK   boot_stack_base_UNUSED boot_stack_len_UNUSED BOOT_COLOR_UNUSED
 
 //TODO optimize it, put the magic number to soc.h
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A)
 	B AFTER_FLAG
 	.org  0xc0 //0x100 - sizeof(section.vector) = 0x100 - 0x40
 	.word 0x32374B42
@@ -215,11 +215,11 @@ AFTER_FLAG:
 
 	/*Stay in Supervisor Mode, copy data from binary to ram*/
 	BL _sysboot_copy_data_to_ram
-#if ((CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7271)) || (CONFIG_SOC_BK7236)
+#if ((CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7271)) || (CONFIG_SOC_BK7236A)
 	BL _sysboot_copy_code_to_itcm
 #endif
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A)
 	BL _sysboot_tcmbss_init
 #endif
 
@@ -302,7 +302,7 @@ _sysboot_zi_init:
 	BLO 5b
 	BX LR
 
-#if ((CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7271)) || (CONFIG_SOC_BK7236)
+#if ((CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7271)) || (CONFIG_SOC_BK7236A)
 /*FUNCTION:     _sysboot_copy_code_to_itcm*/
 /*DESCRIPTION:  copy itcm code from FLASH/ROM to SRAM*/
 _sysboot_copy_code_to_itcm:
@@ -318,7 +318,7 @@ _sysboot_copy_code_to_itcm:
 	BX LR
 #endif
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A)
 /*FUNCTION:     _sysboot_sdbss_init*/
 /*DESCRIPTION:  Initialise Zero-Init Data Segment of TCM */
 _sysboot_tcmbss_init:

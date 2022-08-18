@@ -100,6 +100,8 @@ INPUT = \
     ../../../include/components/dvp_camera_types.h \
     ../../../include/components/video_transfer.h \
     ../../../include/components/video_types.h \
+    ## PM
+    ../../../include/modules/pm.h 
 
 ## Get warnings for functions that have no documentation for their parameters or return value
 ##

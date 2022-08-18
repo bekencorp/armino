@@ -27,7 +27,7 @@ extern "C" {
 #endif //#if (CONFIG_WIFI_ENABLE)
 #define CLI_CFG_BLE         1
 
-#if (CONFIG_LWIP)
+#if (CONFIG_BK_NETIF)
 #define CLI_CFG_NETIF       1
 #else
 #define CLI_CFG_NETIF       0
@@ -42,17 +42,32 @@ extern "C" {
 #define CLI_CFG_PHY         0
 #endif //#if (CONFIG_WIFI_ENABLE)
 
+#if (CONFIG_STA_PS)
 #define CLI_CFG_PWR         1
+#else
+#define CLI_CFG_PWR         0
+#endif
 #define CLI_CFG_TIMER       1
+#if CONFIG_INT_WDT
 #define CLI_CFG_WDT         1
+#endif
 #if CONFIG_TRNG_SUPPORT
 #define CLI_CFG_TRNG        1
 #else
 #define CLI_CFG_TRNG        0
 #endif
+#if CONFIG_EFUSE
+#define CLI_CFG_EFUSE       1
+#else
+#define CLI_CFG_EFUSE       0
+#endif
 #define CLI_CFG_GPIO        1
 #define CLI_CFG_OS          1
+#if ((CONFIG_OTA_TFTP) || (CONFIG_OTA_HTTP))
 #define CLI_CFG_OTA         1
+#else
+#define CLI_CFG_OTA         0
+#endif
 #if(CONFIG_KEYVALUE)
 #define CLI_CFG_KEYVALUE    1
 #else
@@ -88,6 +103,12 @@ extern "C" {
 #define CLI_CFG_FLASH       0
 #endif
 
+#if(CONFIG_SDIO_HOST)
+#define CLI_CFG_SDIO_HOST   1
+#else
+#define CLI_CFG_SDIO_HOST   0
+#endif
+
 #if(CONFIG_ICU)
 #define CLI_CFG_ICU         1
 #else
@@ -106,7 +127,7 @@ extern "C" {
 #define CLI_CFG_QSPI        0
 #endif
 
-#if CONFIG_AON_RTC
+#if CONFIG_AON_RTC_TEST
 #define CLI_CFG_AON_RTC     1
 #else
 #define CLI_CFG_AON_RTC     0
@@ -175,7 +196,7 @@ extern "C" {
 #define CLI_CFG_I2S         0
 #endif
 
-#if (CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_SOC_BK7256XX)
 
 #if CONFIG_DMA2D_TEST
 #define CLI_CFG_DMA2D  1
@@ -185,6 +206,10 @@ extern "C" {
 
 #if (CONFIG_AUDIO && CONFIG_DUAL_CORE && CONFIG_AUDIO_TEST && CONFIG_AUDIO_RISCV_IP_V1_0)
 #define CLI_CFG_AUD         1
+#endif
+
+#if CONFIG_AUD_INTF_TEST
+#define CLI_CFG_AUD_INTF    1
 #endif
 
 #if (CONFIG_SBC)
@@ -197,7 +222,7 @@ extern "C" {
 #define CLI_CFG_LCD  0
 #endif
 
-#if (CONFIG_DUAL_CORE && CONFIG_AUDIO_TEST && !CONFIG_SOC_BK7256_CP1)
+#if (CONFIG_DUAL_CORE && CONFIG_AUDIO_TEST && !CONFIG_SLAVE_CORE)
 #define CLI_CFG_AUD_CP0     1
 #endif
 
@@ -222,7 +247,7 @@ extern "C" {
 #define CLI_CFG_vault		0
 #endif
 
-#if ((CONFIG_SOC_BK7256XX || CONFIG_USB_UVC) && CONFIG_DUAL_CORE)
+#if ((CONFIG_SOC_BK7256XX || CONFIG_USB_UVC) && CONFIG_DUAL_CORE && CONFIG_PSRAM)
 #define CLI_CFG_UVC        1
 #else
 #define CLI_CFG_UVC        0
@@ -232,6 +257,13 @@ extern "C" {
 #define CLI_CFG_DVP        1
 #else
 #define CLI_CFG_DVP        0
+#endif
+
+#if (CONFIG_PSRAM && !CONFIG_SLAVE_CORE)
+#define CLI_CFG_PSRAM        1
+#else
+#define CLI_CFG_PSRAM        0
+
 #endif
 
 #ifdef __cplusplus

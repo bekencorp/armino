@@ -15,7 +15,7 @@
 
 #include "sdcard_test.h"
 
-extern DD_HANDLE sdcard_hdl;
+static DD_HANDLE sdcard_hdl;
 uint8_t *testbuf;
 
 static SDIO_Error sdcard_test_open(void)
@@ -64,12 +64,12 @@ UINT32 test_sdcard_read(UINT32 blk, UINT32 blkcnt)
 	if (testbuf == NULL)
 		return 1;
 
-	for (j = 0; j < blkcnt+1; j++)
+	for (j = 0; j < blkcnt; j++)
 	{
 		ret = ddev_read(sdcard_hdl, (char *)testbuf, 1, blk+j);
 
 		for (int i = 0; i < 512; i++)
-			os_printf("%x ", testbuf[i]);
+			os_printf("0x%x ", testbuf[i]);
 		os_printf("\r\nread over\r\n");
 	}
 
@@ -77,7 +77,7 @@ UINT32 test_sdcard_read(UINT32 blk, UINT32 blkcnt)
 	return ret;
 }
 
-UINT32 test_sdcard_write(UINT32 blk, UINT32 blk_cnt)
+UINT32 test_sdcard_write(UINT32 blk, UINT32 blk_cnt, UINT32 wr_val)
 {
 	UINT32 ret=0;
 
@@ -89,11 +89,24 @@ UINT32 test_sdcard_write(UINT32 blk, UINT32 blk_cnt)
 	testbuf = os_malloc(512);
 	if (testbuf == NULL)
 		return 1;
-	for (i = 0; i < 512; i++)
-		testbuf[i] = i;
+	if(0x12345678 == wr_val)
+	{
+		for (i = 0; i < 512; i++)
+			testbuf[i] = i;
+	}
+	else
+	{
+		for (i = 0; i < 512; i+=4)
+		{
+			*(uint32_t *)&testbuf[i] = wr_val;
+		}
+	}
+
 	//blk = 0x20000;//just for test
-	for (i = 0; i < blk_cnt+1; i++)
-	ret = ddev_write(sdcard_hdl, (char *)testbuf, 1, blk+i);
+	for (i = 0; i < blk_cnt; i++)
+	{
+		ret = ddev_write(sdcard_hdl, (char *)testbuf, 1, blk+i);
+	}
 	os_free(testbuf);
 	return ret;
 }

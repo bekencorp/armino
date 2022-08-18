@@ -17,6 +17,7 @@
 #include <soc/soc.h>
 #include "hal_port.h"
 #include <driver/hal/hal_gpio_types.h>
+#include <driver/hal/hal_i2c_types.h>
 #include "i2c_hw.h"
 #include "icu_hw.h"
 #include "icu_ll.h"

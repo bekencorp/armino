@@ -18,6 +18,17 @@
 #include "bk_uart.h"
 #include <os/mem.h>
 #include <components/video_transfer.h>
+#if APP_DEMO_EN_VOICE_TRANSFER
+#if CONFIG_AUD_INTF_VER_OLD
+#include <components/audio_transfer.h>
+#include <components/audio_transfer_types.h>
+#endif
+#if CONFIG_AUD_INTF_VER_NEW
+#include <components/aud_intf.h>
+#include <components/aud_intf_types.h>
+#endif
+#endif	//APP_DEMO_EN_VOICE_TRANSFER
+#include "video_demo_pub.h"
 
 #define APP_DEMO_UDP_DEBUG              1
 #if APP_DEMO_UDP_DEBUG
@@ -34,11 +45,29 @@
 #define APP_DEMO_UDP_RCV_BUF_LEN        1472
 #define APP_DEMO_UDP_SOCKET_TIMEOUT     100  // ms
 
+extern void app_demo_softap_send_msg(u32 new_msg, u32 new_data);
+
+uint32_t g_pkt_send_fail = 0;
+uint32_t g_pkt_send = 0;
 int app_demo_udp_img_fd = -1;
 volatile int app_demo_udp_romote_connected = 0;
 volatile int app_demo_udp_run = 0;
 beken_thread_t app_demo_udp_hdl = NULL;
 struct sockaddr_in *app_demo_remote = NULL;
+
+#if APP_DEMO_EN_VOICE_TRANSFER
+volatile int app_demo_udp_voice_romote_connected = 0;
+struct sockaddr_in *app_demo_udp_voice_remote = NULL;
+int app_demo_udp_voice_fd = -1;
+#if CONFIG_AUD_INTF_VER_OLD
+static audio_tras_setup_t aud_tras_setup;
+#endif
+#if CONFIG_AUD_INTF_VER_NEW
+static aud_intf_drv_setup_t aud_intf_drv_setup;
+static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
+static aud_intf_voc_setup_t aud_voc_setup;
+#endif
+#endif	//APP_DEMO_EN_VOICE_TRANSFER
 
 typedef struct tvideo_hdr_st {
 	UINT8 id;
@@ -64,38 +93,93 @@ void app_demo_add_pkt_header(video_packet_t *param)
 #endif
 }
 
-static void app_demo_udp_handle_cmd_data(UINT8 *data, UINT16 len)
+#if APP_DEMO_EN_VOICE_TRANSFER
+int app_demo_udp_voice_send_packet(UINT8 *data, UINT32 len)
 {
-	uint8_t crc_cal;
+	int send_byte = 0;
 
-	if ((data[0] != CMD_HEADER_CODE) && (len != CMD_LEN) && (data[len - 1] != CMD_TAIL_CODE))
-		return;
+	if (!app_demo_udp_voice_romote_connected)
+		return 0;
 
-	crc_cal = (data[1] ^ data[2] ^ data[3] ^ data[4] ^ data[5]);
+	send_byte = sendto(app_demo_udp_voice_fd, data, len, MSG_DONTWAIT | MSG_MORE,
+					   (struct sockaddr *)app_demo_udp_voice_remote, sizeof(struct sockaddr_in));
 
-	if (crc_cal != data[6]) {
-		if (((crc_cal == CMD_HEADER_CODE) || (crc_cal == CMD_TAIL_CODE))
-			&& (crc_cal + 1 == data[6]))
-			// drop this paket for crc is the same with Header or Tailer
-			return;
-		else // change to right crc
-			data[6] = crc_cal;
+	if (send_byte < 0) {
+		/* err */
+		//LWIP_UDP_PRT("send return fd:%d\r\n", send_byte);
+		send_byte = 0;
 	}
 
+	return send_byte;
+}
+#endif //APP_DEMO_EN_VOICE_TRANSFER
+
+static void app_demo_udp_handle_cmd_data(UINT8 *data, UINT16 len)
+{
+	UINT32 param = 0;
+	UINT32 cmd = (UINT32)data[0] << 24 | (UINT32)data[1] << 16 | (UINT32)data[2] << 8 | data[3];
+
+	if (len >= 8)
 	{
-		for (int i = 0; i < len; i++)
-			uart_write_byte(UART_ID_0, data[i]);
+		param = (UINT32)data[4] << 24 | (UINT32)data[5] << 16 | (UINT32)data[6] << 8 | data[7];
+	}
+
+	APP_DEMO_UDP_PRT("doorbell cmd: %08X, param: %d, len: %d\n", cmd, param, len);
+
+	switch (cmd)
+	{
+#if APP_DEMO_EN_VOICE_TRANSFER
+		case 0:
+#if CONFIG_AUD_INTF_VER_OLD
+			audio_tras_deinit();
+#endif
+#if CONFIG_AUD_INTF_VER_NEW
+			bk_aud_intf_voc_deinit();
+			aud_work_mode = AUD_INTF_WORK_MODE_NULL;
+			bk_aud_intf_set_mode(aud_work_mode);
+			bk_aud_intf_drv_deinit();
+#endif
+			break;
+
+		case 1:
+#if CONFIG_AUD_INTF_VER_OLD
+			aud_tras_setup.aec_enable = true;
+			aud_tras_setup.audio_send_mic_data = app_demo_udp_voice_send_packet;
+			audio_tras_init(aud_tras_setup);
+#endif
+#if CONFIG_AUD_INTF_VER_NEW
+			aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+			aud_intf_drv_setup.task_config.priority = 3;
+			aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
+			aud_intf_drv_setup.aud_intf_tx_mic_data = app_demo_udp_voice_send_packet;
+			bk_aud_intf_drv_init(&aud_intf_drv_setup);
+			aud_work_mode = AUD_INTF_WORK_MODE_VOICE;
+			bk_aud_intf_set_mode(aud_work_mode);
+			aud_voc_setup.aec_enable = true;
+			aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
+			aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711A;
+			//aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_PCM;
+			aud_voc_setup.mic_gain = 0x2d;
+			aud_voc_setup.spk_gain = 0x2d;
+			bk_aud_intf_voc_init(aud_voc_setup);
+#endif
+			break;
+#endif
+
+		default:
+			break;
 	}
 }
 
+
 static void app_demo_udp_app_connected(void)
 {
-	//app_demo_softap_send_msg(DAP_APP_CONECTED, 0);
+	app_demo_softap_send_msg(DAP_APP_CONECTED, 0);
 }
 
 static void app_demo_udp_app_disconnected(void)
 {
-	//app_demo_softap_send_msg(DAP_APP_DISCONECTED, 0);
+	app_demo_softap_send_msg(DAP_APP_DISCONECTED, 0);
 }
 
 #if CFG_SUPPORT_HTTP_OTA
@@ -116,6 +200,8 @@ static void app_demo_udp_http_ota_handle(char *rev_data)
 	//}
 }
 #endif
+
+extern void rwnxl_set_video_transfer_flag(uint32_t video_transfer_flag);
 
 static void app_demo_udp_receiver(UINT8 *data, UINT32 len, struct sockaddr_in *app_demo_remote)
 {
@@ -148,6 +234,8 @@ static void app_demo_udp_receiver(UINT8 *data, UINT32 len, struct sockaddr_in *a
 			setup.pkt_header_size = sizeof(HDR_ST);
 			setup.add_pkt_header = app_demo_add_pkt_header;
 
+			rwnxl_set_video_transfer_flag(true);
+
 			bk_video_transfer_init(&setup);
 #endif
 		} else if (data[1] == CMD_STOP_IMG) {
@@ -155,11 +243,14 @@ static void app_demo_udp_receiver(UINT8 *data, UINT32 len, struct sockaddr_in *a
 
 #if (CONFIG_SPIDMA || CONFIG_CAMERA)
 			bk_video_transfer_deinit();
+
+			rwnxl_set_video_transfer_flag(false);
 #endif
 
 			GLOBAL_INT_DISABLE();
 			app_demo_udp_romote_connected = 0;
 			GLOBAL_INT_RESTORE();
+			app_demo_udp_app_disconnected();
 		}
 #if CFG_SUPPORT_HTTP_OTA
 		else if (data[1] == CMD_START_OTA)
@@ -172,31 +263,24 @@ static void app_demo_udp_receiver(UINT8 *data, UINT32 len, struct sockaddr_in *a
 #if APP_DEMO_EN_VOICE_TRANSFER
 static void app_demo_udp_voice_receiver(UINT8 *data, UINT32 len, struct sockaddr_in *udp_remote)
 {
-	GLOBAL_INT_DECLARATION();
+	bk_err_t ret = BK_OK;
 
-	if (len < 2)
-		return;
-
-	if (data[0] == CMD_VOICE_HEADER) {
-		if (data[1] == CMD_VOICE_START) {
-			UINT8 *src_ipaddr = (char *)&udp_remote->sin_addr.s_addr;
-			APP_DEMO_UDP_PRT("voice transfer start\r\n");
-			APP_DEMO_UDP_PRT("src_ipaddr: %d.%d.%d.%d\r\n", src_ipaddr[0], src_ipaddr[1],
-							 src_ipaddr[2], src_ipaddr[3]);
-			APP_DEMO_UDP_PRT("udp connect to new port:%d\r\n", udp_remote->sin_port);
-			GLOBAL_INT_DISABLE();
-			app_demo_udp_voice_romote_connected = 1;
-			GLOBAL_INT_RESTORE();
-			tvoice_transfer_deinit();
-			app_demo_udp_audio_intf_open();
-		} else if (data[1] == CMD_VOICE_STOP) {
-			APP_DEMO_UDP_PRT("voice transfer stop\r\n");
-			GLOBAL_INT_DISABLE();
-			app_demo_udp_voice_romote_connected = 0;
-			GLOBAL_INT_RESTORE();
-			app_demo_udp_audio_intf_close();
-		}
+	if (len > 0)
+	{
+		app_demo_udp_voice_romote_connected = 1;
 	}
+
+#if CONFIG_AUD_INTF_VER_OLD
+	ret = audio_tras_write_spk_data(data, len);
+#endif
+#if CONFIG_AUD_INTF_VER_NEW
+	ret = bk_aud_intf_write_spk_data(data, len);
+#endif
+	if (ret != BK_OK)
+	{
+		os_printf("write speaker data fial \r\n", len);
+	}
+
 }
 #endif // APP_DEMO_EN_VOICE_TRANSFER
 
@@ -368,6 +452,8 @@ app_udp_exit:
 
 #if (CONFIG_SPIDMA || CONFIG_CAMERA)
 	bk_video_transfer_deinit();
+
+	rwnxl_set_video_transfer_flag(false);
 #endif
 
 	if (rcv_buf) {
@@ -441,38 +527,20 @@ int app_demo_udp_send_packet(uint8_t *data, uint32_t len)
 	if (!app_demo_udp_romote_connected)
 		return 0;
 
+	g_pkt_send++;
+
 	send_byte = sendto(app_demo_udp_img_fd, data, len, MSG_DONTWAIT | MSG_MORE,
 					   (struct sockaddr *)app_demo_remote, sizeof(struct sockaddr_in));
 
 	if (send_byte < 0) {
 		/* err */
 		//APP_DEMO_UDP_PRT("send return fd:%d\r\n", send_byte);
+		g_pkt_send_fail++;
 		send_byte = 0;
-	}
+	} 
 
 	return send_byte;
 }
-
-#if APP_DEMO_EN_VOICE_TRANSFER
-int app_demo_udp_voice_send_packet(UINT8 *data, UINT32 len)
-{
-	int send_byte = 0;
-
-	if (!app_demo_udp_voice_romote_connected)
-		return 0;
-
-	send_byte = sendto(app_demo_udp_voice_fd, data, len, MSG_DONTWAIT | MSG_MORE,
-					   (struct sockaddr *)app_demo_udp_voice_remote, sizeof(struct sockaddr_in));
-
-	if (send_byte < 0) {
-		/* err */
-		//LWIP_UDP_PRT("send return fd:%d\r\n", send_byte);
-		send_byte = 0;
-	}
-
-	return send_byte;
-}
-#endif //APP_DEMO_EN_VOICE_TRANSFER
 
 void app_demo_udp_deinit(void)
 {

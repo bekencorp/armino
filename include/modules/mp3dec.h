@@ -44,10 +44,6 @@
 #ifndef _MP3DEC_H
 #define _MP3DEC_H
 
-#include <common/bk_include.h>
-
-#define ARM
-
 #if defined(_WIN32) && !defined(_WIN32_WCE)
 #
 #elif defined(_WIN32) && defined(_WIN32_WCE) && defined(ARM)
@@ -60,10 +56,13 @@
 #
 #elif defined(__GNUC__) && defined(ARM)
 #
+#elif defined(__GNUC__) && defined(MIPS)
+#
 #elif defined(__GNUC__) && defined(__i386__)
 #
 #elif defined(_OPENWAVE_SIMULATOR) || defined(_OPENWAVE_ARMULATOR)
 #
+#elif defined(__GNUC__)
 #else
 #error No platform defined. See valid options in mp3dec.h
 #endif
@@ -77,11 +76,7 @@ extern "C" {
  *   max nSlots (concatenated with mainDataBegin bytes from before) = 1440 - 9 - 4 + 1 = 1428
  *   511 + 1428 = 1939, round up to 1940 (4-byte align)
  */
-#define MAINBUF_SIZE	         1940
-
-#define BIT_RESVOR_SIZE          (512) 
-#define READBUF_SIZE             (1940)    
-#define MAX_DECODE_ERR_TIMES      2000   
+#define MAINBUF_SIZE	1940
 
 #define MAX_NGRAN		2		/* max granules */
 #define MAX_NCHAN		2		/* max channels */
@@ -94,15 +89,6 @@ typedef enum {
 	MPEG25 = 2
 } MPEGVersion;
 
-#if CALC_PLAY_TIME
-enum {
-    TPYE_NONE =    0,
-    CBR_FILE,
-    VBR_XING_FILE,
-    VBR_VBRI_FILE
-} FILETPYE;
-#define PRECISION   10000 
-#endif
 typedef void *HMP3Decoder;
 
 enum {
@@ -119,23 +105,8 @@ enum {
 	ERR_MP3_INVALID_DEQUANTIZE =   -10,
 	ERR_MP3_INVALID_IMDCT =        -11,
 	ERR_MP3_INVALID_SUBBAND =      -12,
-	ERR_MP3_READ_DATA_FAILED =     -13,
-	ERR_MP3_DECODE_MAX_ERR =       -14,
-	ERR_MP3_FILE_END =             -20,
+
 	ERR_UNKNOWN =                  -9999
-};
-
-enum {
-	MP3_DECODE_NONE =               0,	
-	MP3_DECODE_FIND_ID3_INFO    =   1,
-	MP3_DECODE_FIND_SYNC_WORD   =   2,
-	MP3_DECODE_HEADER_SIDEINFO  =   3,
-	MP3_DECODE_COPY_MAIN_DATE   =   4,
-	MP3_DECODE_CALU_CRUCIAL_DAT =   5,
-	MP3_DECODE_CALU_SUBBAND     =   6,
-	MP3_DECODE_WAITING_FOR_BUFF =   7,
-
-	MP3_DECODE_UNKNOW =             9999
 };
 
 typedef struct _MP3FrameInfo {
@@ -151,17 +122,11 @@ typedef struct _MP3FrameInfo {
 /* public API */
 HMP3Decoder MP3InitDecoder(void);
 void MP3FreeDecoder(HMP3Decoder hMP3Decoder);
-int MP3Decode(HMP3Decoder hMP3Decoder, short *outbuf, int *pcm_size);
+int MP3Decode(HMP3Decoder hMP3Decoder, unsigned char **inbuf, int *bytesLeft, short *outbuf, int useSize);
 void MP3GetLastFrameInfo(HMP3Decoder hMP3Decoder, MP3FrameInfo *mp3FrameInfo);
 int MP3GetNextFrameInfo(HMP3Decoder hMP3Decoder, MP3FrameInfo *mp3FrameInfo, unsigned char *buf);
-int MP3FindSyncWord(HMP3Decoder hMP3Decoder,unsigned char *buf, int nBytes);
+int MP3FindSyncWord(unsigned char *buf, int nBytes);
 
-#if CALC_PLAY_TIME    
-void MP3_Restore_Useful_data_len(int len);
-void MP3_Calc_Play_Time(HMP3Decoder hMP3Decoder, MP3FrameInfo *mp3FrameInfo);
-int MP3_Calc_Current_Play_Time(HMP3Decoder hMP3Decoder);
-void MP3_Show_Play_Time(int time);
-#endif
 #ifdef __cplusplus
 }
 #endif

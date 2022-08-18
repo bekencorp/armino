@@ -82,6 +82,12 @@
 
 #include <string.h>
 
+#include <common/bk_kernel_err.h>
+#include "bk_fake_clock.h"
+#include <os/os.h>
+#include <common/bk_assert.h>
+#include "bk_wifi_netif.h"
+
 #ifdef LWIP_HOOK_FILENAME
 #include LWIP_HOOK_FILENAME
 #endif
@@ -176,6 +182,7 @@ static u8_t dhcp_discover_request_options[] = {
 static u32_t xid;
 static u8_t xid_initialised;
 #endif /* DHCP_GLOBAL_XID */
+static beken2_timer_t dhcp_tmr = {0};
 
 #define dhcp_option_given(dhcp, idx)          (dhcp_rx_options_given[idx] != 0)
 #define dhcp_got_option(dhcp, idx)            (dhcp_rx_options_given[idx] = 1)
@@ -390,9 +397,13 @@ dhcp_select(struct netif *netif)
     options_out_len = dhcp_option(options_out_len, msg_out->options, DHCP_OPTION_REQUESTED_IP, 4);
     options_out_len = dhcp_option_long(options_out_len, msg_out->options, lwip_ntohl(ip4_addr_get_u32(&dhcp->offered_ip_addr)));
 
-    options_out_len = dhcp_option(options_out_len, msg_out->options, DHCP_OPTION_SERVER_ID, 4);
-    options_out_len = dhcp_option_long(options_out_len, msg_out->options, lwip_ntohl(ip4_addr_get_u32(ip_2_ip4(&dhcp->server_ip_addr))));
-
+#if CONFIG_LWIP_FAST_DHCP
+	if(lwip_ntohl(ip4_addr_get_u32(ip_2_ip4(&dhcp->server_ip_addr))) != 0)
+#endif
+	{
+      options_out_len = dhcp_option(options_out_len, msg_out->options, DHCP_OPTION_SERVER_ID, 4);
+      options_out_len = dhcp_option_long(options_out_len, msg_out->options, lwip_ntohl(ip4_addr_get_u32(ip_2_ip4(&dhcp->server_ip_addr))));
+	}
     options_out_len = dhcp_option(options_out_len, msg_out->options, DHCP_OPTION_PARAMETER_REQUEST_LIST, LWIP_ARRAYSIZE(dhcp_discover_request_options));
     for (i = 0; i < LWIP_ARRAYSIZE(dhcp_discover_request_options); i++) {
       options_out_len = dhcp_option_byte(options_out_len, msg_out->options, dhcp_discover_request_options[i]);
@@ -728,6 +739,70 @@ void dhcp_cleanup(struct netif *netif)
   }
 }
 
+void dhcp_check_status(void)
+{
+	struct netif *netif = netif_list;
+
+	while (netif != NULL) {
+		struct dhcp *dhcp = netif_dhcp_data(netif);
+		if(dhcp != NULL){
+			if(dhcp->state != DHCP_STATE_BOUND){
+				if (netif->status_callback) {
+					(netif->status_callback)(netif);
+				}
+				wifi_netif_notify_sta_disconnect();
+			}
+		}
+		netif = netif->next;
+	}
+}
+
+void dhcp_stop_timeout_check(void)
+{
+    bk_err_t ret = kNoErr;
+
+	if(rtos_is_oneshot_timer_init(&dhcp_tmr))
+	{
+	    if (rtos_is_oneshot_timer_running(&dhcp_tmr))
+		{
+	        ret = rtos_stop_oneshot_timer(&dhcp_tmr);
+			BK_ASSERT(kNoErr == ret);
+	    }
+
+	    ret = rtos_deinit_oneshot_timer(&dhcp_tmr);
+		BK_ASSERT(kNoErr == ret);
+	}
+}
+
+void dhcp_start_timeout_check(u32_t secs, u32_t usecs)
+{
+    bk_err_t err = kNoErr;
+	u32_t clk_time;
+
+	clk_time = (secs * 1000 + usecs / 1000 );
+
+	if(rtos_is_oneshot_timer_init(&dhcp_tmr))
+	{
+		LWIP_LOGI("dhcp status timer reload\r\n\r\n");
+		rtos_oneshot_reload_timer(&dhcp_tmr);
+	}
+	else
+	{
+		err = rtos_init_oneshot_timer(&dhcp_tmr,
+									clk_time,
+									(timer_2handler_t)dhcp_check_status,
+									NULL,
+									NULL);
+		BK_ASSERT(kNoErr == err);
+
+		err = rtos_start_oneshot_timer(&dhcp_tmr);
+		BK_ASSERT(kNoErr == err);
+		LWIP_LOGI("dhcp status timer:%d\r\n", clk_time);
+	}
+
+	return;
+}
+
 /**
  * @ingroup dhcp4
  * Start DHCP negotiation for a network interface.
@@ -747,6 +822,8 @@ dhcp_start(struct netif *netif)
   struct dhcp *dhcp;
   err_t result;
 
+  /*if dhcp can't get IP, will rescan after 10 seconds.*/
+  dhcp_start_timeout_check(20, 0);
   LWIP_ASSERT_CORE_LOCKED();
   LWIP_ERROR("netif != NULL", (netif != NULL), return ERR_ARG;);
   LWIP_ERROR("netif is not up, old style port?", netif_is_up(netif), return ERR_ARG;);
@@ -1013,6 +1090,9 @@ dhcp_discover(struct netif *netif)
       options_out_len = dhcp_option_byte(options_out_len, msg_out->options, dhcp_discover_request_options[i]);
     }
     LWIP_HOOK_DHCP_APPEND_OPTIONS(netif, dhcp, DHCP_STATE_SELECTING, msg_out, DHCP_DISCOVER, &options_out_len);
+#if LWIP_NETIF_HOSTNAME
+    dhcp_option_hostname(options_out_len, (u8_t *)dhcp, netif);
+#endif /* LWIP_NETIF_HOSTNAME */
     dhcp_option_trailer(options_out_len, msg_out->options, p_out);
 
     LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE, ("dhcp_discover: sendto(DISCOVER, IP_ADDR_BROADCAST, LWIP_IANA_PORT_DHCP_SERVER)\n"));
@@ -1032,7 +1112,16 @@ dhcp_discover(struct netif *netif)
     autoip_start(netif);
   }
 #endif /* LWIP_DHCP_AUTOIP_COOP */
-  msecs = (u16_t)((dhcp->tries < 6 ? 1 << dhcp->tries : 60) * 1000);
+  /* For WiFi, it's not that hard to miss a DISCOVER/OFFER packet, especially
+   * when the AP replies the OFFER as broadcast frame in weak RSSI environment.
+   * so lower the discover retry backoff time from (2,4,8,16,32,60,60)s to
+   * (0.5,1,2,4,8,15,15)s.
+   **/
+#if BK_DHCP
+  msecs = (dhcp->tries < 6 ? 1 << dhcp->tries : 60) * 250;
+#else
+  msecs = (dhcp->tries < 6 ? 1 << dhcp->tries : 60) * 1000;
+#endif
   dhcp->request_timeout = (u16_t)((msecs + DHCP_FINE_TIMER_MSECS - 1) / DHCP_FINE_TIMER_MSECS);
   LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp_discover(): set request timeout %"U16_F" msecs\n", msecs));
   return result;
@@ -1143,6 +1232,8 @@ dhcp_bind(struct netif *netif)
   /* netif is now bound to DHCP leased address - set this before assigning the address
      to ensure the callback can use dhcp_supplied_address() */
   dhcp_set_state(dhcp, DHCP_STATE_BOUND);
+
+  dhcp_stop_timeout_check();
 
   netif_set_addr(netif, &dhcp->offered_ip_addr, &sn_mask, &gw_addr);
   /* interface is used by routing now that an address is set */
@@ -1414,6 +1505,8 @@ void
 dhcp_stop(struct netif *netif)
 {
   dhcp_release_and_stop(netif);
+  dhcp_cleanup(netif);
+  dhcp_stop_timeout_check();
 }
 
 /*

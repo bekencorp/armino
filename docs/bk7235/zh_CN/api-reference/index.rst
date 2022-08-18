@@ -13,5 +13,6 @@ API 参考
    外设 <peripheral/index>
    系统 <system/index>
    多媒体 <multi_media/index>
+   低功耗与电源管理 <pm/index>
 
 

@@ -50,6 +50,8 @@ bk_err_t bk_aon_rtc_driver_init(void);
  */
 bk_err_t bk_aon_rtc_driver_deinit(void);
 
+//remove it, only one HW can't be used for many APPs.
+#if (CONFIG_AON_RTC && (!CONFIG_AON_RTC_MANY_USERS))
 /**
  * @brief	  Create a request to use the selected AON RTC timer.
  *			  For period timer, every tick will come an isr,
@@ -117,7 +119,41 @@ bk_err_t bk_aon_rtc_register_tick_isr(aon_rtc_id_t id, aon_rtc_isr_t isr, void *
  *    - others: other errors.
  */
 bk_err_t bk_aon_rtc_register_upper_isr(aon_rtc_id_t id, aon_rtc_isr_t isr, void *param);
+#endif
 
+/**
+ * @brief     Register an alarm to AON_RTC id timer
+ *       !!! NOTES: the callback function is in ISR, so can't block too much time. F.E:can't call sleep/suspend; !!!
+ *       !!! NOTES: freertos forbid call free/malloc in ISR which include suspend and resume. !!!
+ * @id: register to which aon_rtc id
+ * @param alarm_info_p includes below info:
+ *   name_p: the name of the registered alarm 
+ *   period_time: what's the alarm time, milliseconds * AON_RTC_MS_TICK_CNT
+ *   period_cnt: 0xFFFFFFF means always period until user unregister it, or means period how many times
+ *   callback: if the alarm comes, will call this callback
+ *   param_p: the param will be used for callback 
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_alarm_register(aon_rtc_id_t id, alarm_info_t *alarm_info_p);
+
+/**
+ * @brief     Unregister an alarm from AON_RTC id timer
+ *
+ * @attention 1. Please don't unregister self in the alarm's callback.
+ *
+ * @param id: unregister the aon_rtc id alarm
+ * @param name_p: the name of the registered alarm which will be unregistered.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_alarm_unregister(aon_rtc_id_t id, uint8_t *name_p);
+
+#if (CONFIG_AON_RTC && (!CONFIG_AON_RTC_MANY_USERS))
 /**
  * @brief     Register the rtc tick init
  *
@@ -128,6 +164,7 @@ bk_err_t bk_aon_rtc_register_upper_isr(aon_rtc_id_t id, aon_rtc_isr_t isr, void 
  *    - others: other errors.
  */
 bk_err_t bk_aon_rtc_tick_init();
+
 /**
  * @brief     Register rtc wakeup
  * @param    period: wake up timer
@@ -137,15 +174,45 @@ bk_err_t bk_aon_rtc_tick_init();
  *    - others: other errors.
  */
 bk_err_t bk_aon_rtc_open_rtc_wakeup(uint32_t period);
+#endif
+
 /**
- * @brief     get_current_tick
- * @param     null
+ * @brief  Get AON RTC current tick with 64 bits
+ *	       AON RTC uses 32 Bits counter with 32K clock, the max time is about 36.4 hours.
+ *         Set upper interrupt as the 0xFFFFFFFF ticks as one round.
+ * @id: register to which aon_rtc id
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+uint64_t bk_aon_rtc_get_current_tick(aon_rtc_id_t id);
+
+#if AON_RTC_DEBUG
+/**
+ * @brief     test rtc get/set tick(round *cycles count) consume time.
+ *
+ * @id: register to which aon_rtc id
+ * @round:
+ * @cycles:
  *
  * @return
- *   current tick
- *    
+ *    - BK_OK: succeed
+ *    - others: other errors.
  */
-uint32_t bk_aon_rtc_get_current_tick();
+void bk_aon_rtc_timing_test(aon_rtc_id_t id, uint32_t round, uint32_t cycles, uint32_t set_tick);
+#endif
+
+/**
+ * @brief     dump aon rtc debug info
+ *
+ * @id: which aon_rtc id
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+void bk_aon_rtc_dump(aon_rtc_id_t id);
+
 
 /**
  * @}

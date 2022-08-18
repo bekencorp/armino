@@ -31,15 +31,33 @@ extern "C" {
  */
 
 #define Y_PIXEL_272     (34)  /**< image resolution for hight: Y * 8 = 272  */
+#define Y_PIXEL_320     (40)  /**< image resolution for hight: Y * 8 = 320  */
 #define X_PIXEL_480     (60)  /**< image resolution for width: X * 8 = 480  */
 #define Y_PIXEL_480     (60)  /**< image resolution for hight: Y * 8 = 480  */
 #define X_PIXEL_640     (80)  /**< image resolution for hight: X * 8 = 640  */
 #define Y_PIXEL_240     (30)  /**< image resolution for hight: Y * 8 = 240  */
-#define X_PIXEL_320     (40)  /**< image resolution for hight: Y * 8 = 320  */
+#define X_PIXEL_320     (40)  /**< image resolution for hight: X * 8 = 320  */
 #define Y_PIXEL_600     (75)  /**< image resolution for hight: Y * 8 = 600  */
-#define X_PIXEL_800     (100) /**< image resolution for hight: Y * 8 = 800  */
+#define X_PIXEL_800     (100) /**< image resolution for hight: X * 8 = 800  */
 #define Y_PIXEL_720     (90)  /**< image resolution for hight: Y * 8 = 720  */
-#define X_PIXEL_1280    (160) /**< image resolution for hight: Y * 8 = 1280 */
+#define X_PIXEL_1280    (160) /**< image resolution for hight: X * 8 = 1280 */
+#define X_PIXEL_1600    (200) /**< image resolution for hight: X * 8 = 1600 */
+#define Y_PIXEL_1200    (150) /**< image resolution for hight: Y * 8 = 1200 */
+
+typedef enum {
+	JPEG_ENC_MODE = 0,
+	JPEG_YUV_MODE,
+}jpeg_mode_t;
+
+/**
+ * @brief jpeg_yuv_format_t when jpeg encode at yuv mode, the output yuv format type
+ */
+typedef enum {
+	JPEG_YUYV = 0, /**< YUYV, bit[31-0]=[YUYV] */
+	JPEG_UYVY = 1, /**< UYVY, bit[31-0]=[UYVY] */
+	JPEG_YYUV = 2, /**< YYUV, bit[31-0]=[YYUV] */
+	JPEG_UVYY = 3, /**< UVYY, bit[31-0]=[UVYY] */
+}jpeg_yuv_format_t;
 
 typedef enum {
 	END_OF_YUV = 0, /**< when work at yuv mode, transfer a complete frame will trigger this isr */
@@ -49,6 +67,18 @@ typedef enum {
 	VSYNC_NEGEDGE,  /**< when detect vsync negedge will trigger this isr */
 	ISR_MAX,
 }jpeg_isr_type_t;
+
+/**
+ * @brief jpeg int type
+ */
+typedef enum {
+	JPEG_END_YUV_INT = (1 << 0),
+	JPEG_HEAD_OUTPUT_INT = (1 << 1),
+	JPEG_START_FRAME_INT = (1 << 2),
+	JPEG_END_FRAME_INT = (1 << 3),
+	JPEG_VSYNC_NEGEDGE_INT = (1 << 6),
+} jpeg_int_type_t;
+
 /**
  * @brief jpeg isr callback relay jpeg driver
  *
@@ -93,7 +123,30 @@ typedef struct {
 	dma_isr_t dma_rx_handler;       /**< dma transfer finish isr callbck */
 	uint8_t dma_channel;           /**< dma channel used for transfer jpeg encoder data */
 #endif
+
+#if CONFIG_VIDEO_DVP_LCD
+	uint8_t dma_lcd_channel;      /**< dma channel used for lcd display */
+	uint8_t *jpeg_dec_src_addr;   /**< jepg data, and jpeg dec arc addr */
+	uint8_t *jpeg_dec_dst_addr;    /**< jepg dec data dst addr */
+	uint8_t *lcd_display_addr;     /**< lcd diaplay data base addr */
+	uint16_t jpeg_dec_pixel_x;    /**< jepg dec x_pixel */
+	uint8_t dma_lcd_int_cnt;      /**< lcd disaply dma transfer cnt */
+	uint8_t lcd_blend_frame_cnt;
+	void (*jpeg_dec_callback)(void * src, void * dst); /**< jpeg dec callback */
+#endif
 } jpegenc_desc_t;
+
+typedef enum {
+	READY = 0, 	       	 /**<  jpeg deca and display ready */
+	MEMCPYING, 	       	 /**<  jepg data mem cpying */
+	JPEGDE_START, 	     /**<  jepg dec start */
+	JPEGDECING,	      	 /**<  jepg decing */
+	DISPLAYING, 	       	 /**<  jepg dec complete, lcd display */
+	JPEGDED,
+}lcd_satus_t;
+
+
+
 
 /**
  * @}

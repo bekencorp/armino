@@ -38,7 +38,16 @@ typedef volatile struct {
 	uint32_t data_flash_sw; /**< data read from flash to software */
 
 	/* REG_0x3 */
-	uint32_t reserved0;
+	union {
+		struct {
+			uint32_t wrsr_cmd_reg:  8;  /**< bit[0:7] */
+			uint32_t rdsr_cmd_reg:  8;  /**< bit[8:15] */
+			uint32_t wrsr_cmd_sel:  1;  /**< bit[16] */
+			uint32_t rdsr_cmd_sel:  1;  /**< bit[17] */
+			uint32_t reserved:     14;  /**< bit[18:31] */
+		};
+		uint32_t v;
+	} sr_cmd;
 
 	/* REG_0x4 */
 	uint32_t rd_flash_id; /**< read flash id data */

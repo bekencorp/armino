@@ -6,7 +6,7 @@ endif()
 
 if (CONFIG_AUDIO_TEST)
 if (CONFIG_AUDIO_RISCV_IP_V1_0 AND CONFIG_DUAL_CORE)
-if (NOT CONFIG_SOC_BK7256_CP1)
+if (NOT CONFIG_SLAVE_CORE)
 	list(APPEND srcs aud_cp0.c)
 endif()
 endif()

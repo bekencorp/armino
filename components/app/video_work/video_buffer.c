@@ -287,7 +287,6 @@ uint32_t bk_video_buffer_read_frame(uint8_t *buf, uint32_t buf_len, int *err_cod
 		ret = rtos_get_semaphore(&g_vbuf->aready_semaphore, timeout);
 		if(ret == kNoErr)  {
 			if(BUF_STA_GET == g_vbuf->start_buf) {
-				frame_len = g_vbuf->frame_len;
 				err = 0;
 			} else if(BUF_STA_FULL == g_vbuf->start_buf) {
 				os_printf("read frame full\r\n");
@@ -303,6 +302,8 @@ uint32_t bk_video_buffer_read_frame(uint8_t *buf, uint32_t buf_len, int *err_cod
 			os_printf("read frame timeout :%d\r\n", timeout);
 			err = -5;
 		}
+
+		frame_len = g_vbuf->frame_len;
 
 		*err_code = err;
 
@@ -344,15 +345,12 @@ void video_buffer(int argc, char **argv)
 		get_len = bk_video_buffer_read_frame(mybuf, my_len, &get_ret, BEKEN_WAIT_FOREVER);
 		os_printf("get frame ret: %d, len:%d\r\n", get_ret, get_len);
 
-		if(get_ret != 0) {
-			for (int i = 0; i < get_len; i++) {
-				os_printf("%02x,", mybuf[i]);
-				if ((i + 1) % 32 == 0)
-					os_printf("\r\n");
-			}
-		} else if((get_ret == -2) || (get_ret == -3)) {
-			os_printf("full or data err, retry? \r\n");
+		for (int i = 0; i < get_len; i++) {
+			os_printf("%02x,", mybuf[i]);
+			if ((i + 1) % 32 == 0)
+				os_printf("\r\n");
 		}
+
 		os_free(mybuf);
 	} else if (strcmp(argv[1], "close") == 0) {
 		bk_video_buffer_close();

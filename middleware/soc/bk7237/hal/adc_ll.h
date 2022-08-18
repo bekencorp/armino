@@ -202,7 +202,7 @@ static inline bool adc_ll_is_analog_channel(adc_hw_t *hw, int id)
 
 static inline bool adc_ll_is_digital_channel(adc_hw_t *hw, int id)
 {
-	return ((id >= SOC_ADC_CHAN_MIN) && (id <= SOC_ADC_CHAN_MAX));
+	return (((id >= 1) && (id <= 6)) || (id == 10) || (id == 11));
 }
 
 static inline uint16_t adc_ll_get_fifo_data(adc_hw_t *hw)

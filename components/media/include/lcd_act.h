@@ -34,6 +34,7 @@ typedef struct
 	uint8_t rotate : 1;
 	uint8_t step_mode : 1;
 	uint8_t step_trigger : 1;
+	camera_type_t camera;
 	lcd_state_t state;
 	uint32_t param;
 	uint16_t src_pixel_x;
@@ -44,9 +45,8 @@ typedef struct
 	frame_buffer_t *jpeg_frame;
 	frame_buffer_t *decoder_frame;
 	frame_buffer_t *rotate_frame;
-	frame_buffer_t *ping_frame;
-	frame_buffer_t *pong_frame;
 	frame_buffer_t *display_frame;
+	frame_buffer_t *pingpong_frame;
 } lcd_info_t;
 
 void lcd_event_handle(uint32_t event, uint32_t param);

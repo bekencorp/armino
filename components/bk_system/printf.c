@@ -17,6 +17,7 @@
 #include <driver/uart.h>
 #include "bk_uart.h"
 #include <common/sys_config.h>
+#include <common/bk_compiler.h>
 #include <os/mem.h>
 #include "printf_impl.h"
 #if CONFIG_SHELL_ASYNCLOG
@@ -42,7 +43,7 @@ typedef  struct
 {
 	char	mod_name[15];
 	u8		disabled;
-} __packed mod_disable_list_t;
+} __bk_packed mod_disable_list_t;
 
 static mod_disable_list_t mod_tag_list[20];
 

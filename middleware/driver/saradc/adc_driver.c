@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <common/bk_include.h>
+#include <common/bk_compiler.h>
 #include <os/mem.h>
 #include <driver/gpio.h>
 #include "gpio_driver.h"
@@ -32,9 +33,9 @@
 #include "bk_saradc.h"
 #include "common/bk_err.h"
 
-static void adc_isr(void) __SECTION(".itcm");
-static bk_err_t adc_read_fifo(void) __SECTION(".itcm");
-bk_err_t bk_adc_stop(void) __SECTION(".itcm");
+static void adc_isr(void) __BK_SECTION(".itcm");
+static bk_err_t adc_read_fifo(void) __BK_SECTION(".itcm");
+bk_err_t bk_adc_stop(void) __BK_SECTION(".itcm");
 
 typedef struct
 {

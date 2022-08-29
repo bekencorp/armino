@@ -17,7 +17,6 @@
 #include <soc/soc.h>
 #include "hal_port.h"
 #include "lcd_disp_hw.h"
-#include "lcd_disp_types.h"
 
 #ifdef __cplusplus
 extern "C" {

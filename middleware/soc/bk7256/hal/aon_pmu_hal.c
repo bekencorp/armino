@@ -18,7 +18,7 @@
 #include "aon_pmu_hal.h"    
 
 #include "aon_pmu_ll.h"   
-
+#include "sys_ll_op_if.h"
 
 static aon_pmu_hal_t s_aon_pmu_hal;
 
@@ -168,12 +168,34 @@ uint32_t aon_pmu_hal_reg_get(pmu_reg_e reg)
 
 void aon_pmu_hal_wdt_rst_dev_enable()
 {
-	aon_pmu_ll_set_reg2_value(AON_PMU_REG2_WDT_RST_MASK);
+	uint32_t aon_pmu_reg2 = 0;
+	aon_pmu_reg2 = aon_pmu_ll_get_reg2_value();
+	aon_pmu_reg2 |= AON_PMU_REG2_WDT_RST_MASK;
+
+	aon_pmu_ll_set_reg2_value(aon_pmu_reg2);
+
 }
+
+#define PM_LP_SRC_X32K   (0x1)  //external32k
 void aon_pmu_hal_lpo_src_set(uint32_t lpo_src)
 {
+	if(lpo_src == PM_LP_SRC_X32K)
+	{
+		sys_ll_set_ana_reg6_itune_xtall(0x0);//0x0 provide highest current for external 32k,because the signal path long
+		sys_ll_set_ana_reg6_en_xtall(0x1);
+	}
+	else
+	{
+		if(sys_ll_get_ana_reg6_en_xtall() == 0x1)
+		{
+			sys_ll_set_ana_reg6_itune_xtall(0x7);//restore default value
+			sys_ll_set_ana_reg6_en_xtall(0x0);
+		}
+	}
+
     aon_pmu_ll_set_reg41_lpo_config(lpo_src);
 }
+
 uint32_t aon_pmu_hal_lpo_src_get()
 {
 	return aon_pmu_ll_get_reg41_lpo_config();

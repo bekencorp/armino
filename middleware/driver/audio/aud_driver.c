@@ -62,7 +62,7 @@ bk_err_t bk_aud_adc_init(aud_adc_work_mode_t adc_work_mode, const aud_adc_config
 
 	adc_mode = adc_work_mode;
 
-	switch (adc_work_mode){
+	switch (adc_work_mode) {
 		case AUD_ADC_WORK_MODE_NULL:
 			break;
 		case AUD_ADC_WORK_MODE_ADC:
@@ -87,6 +87,9 @@ bk_err_t bk_aud_adc_init(aud_adc_work_mode_t adc_work_mode, const aud_adc_config
 				default:
 					break;
 			}
+
+			//enable audio adc power
+			sys_drv_aud_aud_en(1);
 
 			//reset mic after configuring parameters
 			sys_drv_aud_mic_rst_set(1);
@@ -179,6 +182,9 @@ bk_err_t bk_aud_adc_deinit(void)
 	sys_drv_aud_mic1_en(0);
 	sys_drv_aud_mic2_en(0);
 
+	//disable audio adc power
+	sys_drv_aud_aud_en(0);
+
 	return BK_OK;
 }
 
@@ -197,9 +203,6 @@ bk_err_t bk_aud_driver_init(void)
 	bk_pm_clock_ctrl(PM_CLK_ID_AUDIO, CLK_PWR_CTRL_PWR_UP);
 	//enable audpll en
 	sys_drv_aud_audpll_en(1);
-
-	//enable audio adc power
-	sys_drv_aud_aud_en(1);
 
 	// config analog register
 	sys_drv_analog_reg12_set(0x8610E0E0);
@@ -261,9 +264,6 @@ bk_err_t bk_aud_driver_deinit(void)
 	//disable audpll en
 	sys_drv_aud_audpll_en(0);
 
-	//disable audio adc power
-	sys_drv_aud_aud_en(0);
-
 	//sys_drv_aud_clock_en(0);
 	bk_pm_clock_ctrl(PM_CLK_ID_AUDIO, CLK_PWR_CTRL_PWR_DOWN);
 
@@ -287,6 +287,40 @@ bk_err_t bk_aud_set_adc_gain(uint32_t value)
 {
 	AUD_RETURN_ON_NOT_INIT();
 	aud_hal_set_adc_config0_adc_set_gain(value);
+	return BK_OK;
+}
+
+bk_err_t bk_aud_set_mic_chl(aud_mic_enable_t mic_chl)
+{
+	AUD_RETURN_ON_NOT_INIT();
+	if (adc_mode != AUD_ADC_WORK_MODE_ADC) {
+		return BK_FAIL;
+	}
+
+	switch (mic_chl) {
+		case AUD_MIC_ALL_ENABLE:
+			sys_drv_analog_reg14_set(0x40038002);
+			sys_drv_analog_reg15_set(0x40038002);
+			sys_drv_aud_mic1_en(1);
+			sys_drv_aud_mic2_en(1);
+			break;
+
+		case AUD_MIC_MIC1_ENABLE:
+			sys_drv_analog_reg14_set(0x40038002);
+			sys_drv_analog_reg15_set(0x0);
+			sys_drv_aud_mic1_en(1);
+			break;
+
+		case AUD_MIC_MIC2_ENABLE:
+			sys_drv_analog_reg14_set(0x0);
+			sys_drv_analog_reg15_set(0x40038002);
+			sys_drv_aud_mic2_en(1);
+			break;
+
+		default:
+			break;
+	}
+
 	return BK_OK;
 }
 
@@ -484,8 +518,34 @@ bk_err_t bk_aud_dac_init(const aud_dac_config_t *dac_config)
 	sys_drv_aud_dacdrv_en(1);
 
 	//enable dacl and dacr
-	sys_drv_aud_dacr_en(1);
-	sys_drv_aud_dacl_en(1);
+	switch (dac_config->dac_chl) {
+		case AUD_DAC_CHL_L_ENABLE:
+			sys_drv_aud_dacr_en(0);
+			sys_drv_aud_dacl_en(1);
+			break;
+
+		case AUD_DAC_CHL_R_ENABLE:
+			sys_drv_aud_dacr_en(1);
+			sys_drv_aud_dacl_en(0);
+			break;
+
+		case AUD_DAC_CHL_LR_ENABLE:
+			sys_drv_aud_dacr_en(1);
+			sys_drv_aud_dacl_en(1);
+			break;
+
+		default:
+			break;
+	}
+
+	//set dac work mode
+	if (dac_config->work_mode == AUD_DAC_WORK_MODE_SIGNAL_END) {
+		sys_drv_aud_diffen_en(0);
+	} else if (dac_config->work_mode == AUD_DAC_WORK_MODE_DIFFEN) {
+		sys_drv_aud_diffen_en(1);
+	} else {
+		return BK_FAIL;
+	}
 
 	aud_hal_dac_config(dac_config);
 
@@ -546,6 +606,32 @@ bk_err_t bk_aud_set_dac_gain(uint32_t value)
 {
 	AUD_RETURN_ON_NOT_INIT();
 	aud_hal_set_dac_config0_dac_set_gain(value);
+	return BK_OK;
+}
+
+bk_err_t bk_aud_set_dac_chl(aud_dac_chl_enable_t dac_chl)
+{
+	AUD_RETURN_ON_NOT_INIT();
+	switch (dac_chl) {
+		case AUD_DAC_CHL_L_ENABLE:
+			sys_drv_aud_dacr_en(0);
+			sys_drv_aud_dacl_en(1);
+			break;
+
+		case AUD_DAC_CHL_R_ENABLE:
+			sys_drv_aud_dacr_en(1);
+			sys_drv_aud_dacl_en(0);
+			break;
+
+		case AUD_DAC_CHL_LR_ENABLE:
+			sys_drv_aud_dacr_en(1);
+			sys_drv_aud_dacl_en(1);
+			break;
+
+		default:
+			break;
+	}
+
 	return BK_OK;
 }
 

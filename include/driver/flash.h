@@ -219,6 +219,19 @@ bk_err_t bk_flash_register_ps_suspend_callback(flash_ps_callback_t ps_suspend_cb
  */
 bk_err_t bk_flash_register_ps_resume_callback(flash_ps_callback_t ps_resume_cb);
 
+/**
+ * @brief  Modify flash speed type
+ *
+ * @param flash_speed_type the high/low type of flash clock
+ * @param modules the app module to control the flash spped
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+
+bk_err_t bk_flash_clk_switch(uint32_t flash_speed_type, uint32_t modules);
+
 #ifdef __cplusplus
 }
 #endif

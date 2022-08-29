@@ -105,6 +105,17 @@ bk_err_t bk_sd_card_read_blocks(uint8_t *data, uint32_t block_addr, uint32_t blo
 bk_err_t bk_sd_card_get_card_info(sd_card_info_t *card_info);
 
 /**
+ * @brief     Get the sd card size which unit is sector size(512Bytes)
+ *
+ * @param Compute the sd card size which base on card_info.csd.
+ *
+ * @return
+ *    - >0: card size
+ *    - 0: errors.
+ */
+uint32_t bk_sd_card_get_card_size(void);
+
+/**
  * @brief     Get the current sd card data state
  *
  * @return card state

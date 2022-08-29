@@ -49,6 +49,8 @@ typedef enum {
 	AUD_TRAS_DRV_VOC_STOP,		/**< stop voc */
 	AUD_TRAS_DRV_VOC_SET_MIC_GAIN,		/**< set audio adc gain */
 	AUD_TRAS_DRV_VOC_SET_SPK_GAIN,		/**< set audio dac gain */
+	AUD_TRAS_DRV_VOC_SET_AEC_PARA,		/**< set AEC parameters */
+	AUD_TRAS_DRV_VOC_GET_AEC_PARA,		/**< get AEC parameters */
 	/* voc int op */
 	AUD_TRAS_DRV_AEC,			/**< aec process mic data */
 	AUD_TRAS_DRV_ENCODER,		/**< encoder mic data processed by aec */
@@ -156,8 +158,7 @@ typedef struct {
 	rx_info_t rx_info;			//rx_context shared by cpu0 and cpu1, cpu0 malloc
 
 	/* audio transfer callback */
-//	aud_cb_t aud_cb;
-	void (*aud_tras_drv_voc_event_cb)(aud_tras_drv_voc_event_t event, void *param);
+	void (*aud_tras_drv_voc_event_cb)(aud_tras_drv_voc_event_t event, bk_err_t result);
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 	aec_dump_t aec_dump;
@@ -198,6 +199,8 @@ typedef struct {
 	RingBufferContext mic_rb;
 	int32_t *mic_ring_buff;									//save mic data
 	int32_t *temp_mic_addr;									//save temporary one frame mic data readed from mic_ring_buff
+
+	void (*aud_tras_drv_mic_event_cb)(aud_tras_drv_mic_event_t event, bk_err_t result);
 } aud_tras_drv_mic_info_t;
 
 
@@ -231,7 +234,7 @@ typedef struct {
 	uint16_t fifo_frame_num;				/**< audio dac start work when the fram number received is equal to fifo_frame_num */
 	RingBufferContext *spk_rx_rb;			/**< speaker received ring buffer context */
 
-	void (*aud_tras_drv_spk_event_cb)(aud_tras_drv_spk_event_t event, void *param);
+	void (*aud_tras_drv_spk_event_cb)(aud_tras_drv_spk_event_t event, bk_err_t result);
 } aud_tras_drv_spk_info_t;
 
 
@@ -240,7 +243,7 @@ typedef struct {
 typedef enum {
 	AUD_TRAS_DRV_STA_NULL = 0,
 	AUD_TRAS_DRV_STA_IDLE,
-	AUD_TRAS_DRV_STA_WORKING,
+	AUD_TRAS_DRV_STA_WORK,
 	AUD_TRAS_DRV_STA_MAX,
 } aud_tras_drv_sta_t;
 
@@ -255,6 +258,7 @@ typedef struct {
 	/* callbacks */
 	int (*aud_tras_tx_mic_data)(unsigned char *data, unsigned int size);	/**< the api is called when collecting a frame mic packet data is complete */
 	bk_err_t (*aud_tras_rx_spk_data)(unsigned int size);					/**< the api is called when playing a frame speaker packet data is complete */
+	void (*aud_tras_drv_com_event_cb)(aud_tras_drv_com_event_t event, bk_err_t result);
 } aud_tras_drv_info_t;
 
 #ifdef __cplusplus

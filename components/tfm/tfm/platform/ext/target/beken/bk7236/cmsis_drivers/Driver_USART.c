@@ -103,8 +103,6 @@ static int32_t ARM_USARTx_PowerControl(UARTx_Resources* uart_dev,
 static int32_t ARM_USARTx_Send(UARTx_Resources* uart_dev, const void *data,
                                uint32_t num)
 {
-    const uint8_t* p_data = (const uint8_t*)data;
-
     if ((data == NULL) || (num == 0U)) {
         /* Invalid parameters */
         return ARM_DRIVER_ERROR_PARAMETER;
@@ -118,8 +116,6 @@ static int32_t ARM_USARTx_Send(UARTx_Resources* uart_dev, const void *data,
 static int32_t ARM_USARTx_Receive(UARTx_Resources* uart_dev,
                                   void *data, uint32_t num)
 {
-    uint8_t* p_data = (uint8_t*)data;
-
     if ((data == NULL) || (num == 0U)) {
         // Invalid parameters
         return ARM_DRIVER_ERROR_PARAMETER;

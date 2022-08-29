@@ -78,6 +78,40 @@ typedef struct {
 #define sdio_host_hal_write_fifo(hal, data) sdio_host_ll_write_fifo((hal)->hw, data)
 #define sdio_host_hal_read_fifo(hal) sdio_host_ll_read_fifo((hal)->hw)
 
+/*
+ * BK7256 add some function for the SDCARD
+ * 1.clock gate: SDIO CHIP uses clock gate to control whether support clock for SDCARD when write/read data
+ * 2.write status check: BK7256 write data finish should check the status of SDCARD responsed is whether right
+ * 3.ISR: Use ISR to avoid sync wait SDCARD operate finish, as some special SDCARD busy time is too long(> 5ms)
+ *   F.E:CMD response, programming data to memory...
+ */
+#if CONFIG_SOC_BK7256XX
+#define sdio_host_hal_is_tx_fifo_need_write_int_triggered(hal, int_status) sdio_host_ll_is_tx_fifo_need_write((hal)->hw, int_status)
+#define sdio_host_hal_clear_read_data_timeout_interrupt_status(hal, int_status) sdio_host_ll_clear_read_data_timeout_interrupt_status((hal)->hw, int_status)
+#define sdio_host_hal_is_data_recv_need_read_int_triggered(hal, int_status) sdio_host_ll_is_data_recv_need_read_int_triggered((hal)->hw, int_status)
+#define sdio_host_hal_is_data_recv_overflow_int_triggered(hal, int_status) sdio_host_ll_is_data_recv_overflow_int_triggered((hal)->hw, int_status)
+#define sdio_host_hal_enable_tx_fifo_need_write_mask(hal) sdio_host_ll_enable_tx_fifo_need_write_mask((hal)->hw)
+#define sdio_host_hal_disable_tx_fifo_need_write_mask(hal) sdio_host_ll_disable_tx_fifo_need_write_mask((hal)->hw)
+#define sdio_host_hal_reset_sd_state(hal) sdio_host_ll_reset_sd_state((hal)->hw)
+#define sdio_host_hal_set_sd_data_stop_en(hal, en) sdio_host_ll_set_sd_data_stop_en((hal)->hw, en)
+#define sdio_host_hal_set_read_multi_block_data(hal, block_size) sdio_host_ll_set_read_multi_block_data((hal)->hw, block_size)
+#define sdio_host_hal_set_write_multi_block_data(hal, size) sdio_host_ll_set_write_multi_block_data((hal)->hw, size)
+#define sdio_host_hal_clear_read_data_interrupt_status(hal, int_status) sdio_host_ll_clear_read_data_interrupt_status((hal)->hw, int_status)
+#define sdio_host_hal_is_data_crc_ok_int_triggered(hal, int_status) sdio_host_ll_is_data_crc_ok_int_triggered((hal)->hw, int_status)
+#define sdio_host_hal_is_cmd_end_interrupt_triggered(hal, int_status) sdio_host_ll_is_cmd_end_interrupt_triggered((hal)->hw, int_status)
+#define sdio_host_hal_enable_rx_end_mask(hal) sdio_host_ll_enable_rx_end_mask((hal)->hw)
+#define sdio_host_hal_get_cmd_index_interrupt_status(hal, int_status) sdio_host_ll_get_cmd_index_interrupt_status((hal)->hw, int_status)
+#define sdio_host_hal_get_wr_status(hal) sdio_host_ll_get_wr_status((hal)->hw)
+#define sdio_host_hal_is_cmd_rsp_crc_ok_interrupt_triggered(hal, int_status) sdio_host_ll_is_cmd_rsp_crc_ok_interrupt_triggered((hal)->hw, int_status)
+#define sdio_host_hal_clear_write_data_interrupt_status(hal, int_status) sdio_host_ll_clear_write_data_interrupt_status((hal)->hw, int_status)
+#define sdio_host_hal_disable_rx_end_empty_mask(hal) sdio_host_ll_disable_rx_end_mask((hal)->hw)
+#define sdio_host_hal_enable_rx_need_read_mask(hal) sdio_host_ll_enable_rx_need_read_mask((hal)->hw)
+#define sdio_host_hal_disable_rx_need_read_mask(hal) sdio_host_ll_disable_rx_need_read_mask((hal)->hw)
+#define sdio_host_hal_enable_all_mask(hal) sdio_host_ll_enable_all_mask((hal)->hw)
+#define sdio_host_hal_set_clock_gate(hal, clk_gate) sdio_host_ll_set_clock_gate((hal)->hw, clk_gate)
+#define sdio_hal_host_set_tx_fifo_need_write_mask_cg(hal, clk_gate) sdio_host_ll_set_tx_fifo_clock_gate((hal)->hw, clk_gate);
+#endif
+
 bk_err_t sdio_host_hal_init(sdio_host_hal_t *hal);
 bk_err_t sdio_host_hal_init_commad(sdio_host_hal_t *hal, const sdio_host_cmd_cfg_t *command);
 

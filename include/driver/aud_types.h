@@ -286,6 +286,20 @@ typedef enum {
 } aud_dac_enable_t;
 
 typedef enum {
+	AUD_DAC_CHL_DISABLE = 0, /**< disable all dac channel */
+	AUD_DAC_CHL_L_ENABLE,    /**< enable dac left channel */
+	AUD_DAC_CHL_R_ENABLE,    /**< enable dac right channel */
+	AUD_DAC_CHL_LR_ENABLE,   /**< enable dac left and right channel */
+	AUD_DAC_CHL_MAX,
+} aud_dac_chl_enable_t;
+
+typedef enum {
+	AUD_DAC_WORK_MODE_SIGNAL_END = 0,
+	AUD_DAC_WORK_MODE_DIFFEN,
+	AUD_DAC_WORK_MODE_MAX,
+} aud_dac_work_mode_t;
+
+typedef enum {
 	AUD_DAC_SAMP_RATE_8K = 0,	/**< DAC sample rate : 8k */
 	AUD_DAC_SAMP_RATE_11_025K,	/**< DAC sample rate : 11.025k */
 	AUD_DAC_SAMP_RATE_12K,		/**< DAC sample rate : 12k */
@@ -476,6 +490,8 @@ typedef struct {
 	/* audio_config */
 	aud_dac_enable_t dac_enable;						/**< AUD dac enable */
 	aud_dac_samp_rate_source_t samp_rate;				/**< AUD dac sample rate */
+	aud_dac_chl_enable_t dac_chl;						/**< AUD dac channel */
+	aud_dac_work_mode_t work_mode;						/**< AUD dac work mode */
 
 	/* dac_config0 */
 	uint16_t dac_hpf2_coef_B2;							/**< AUD dac HPF2 coefficient B2 */

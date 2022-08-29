@@ -108,6 +108,16 @@ static inline void psram_ll_set_mode_value(uint32_t value)
     REG_WRITE(PSRAM_REG4, value);
 }
 
+
+static inline void psram_ll_set_reg4_wrap_config(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(PSRAM_REG4);
+    reg_value &= ~(0x1 << 28);
+    reg_value |= ((value & 0x1) << 28);
+    REG_WRITE(PSRAM_REG4,reg_value);
+}
+
 /* REG_0x05 */
 #define PSRAM_REG5  (PSRAM_LL_REG_BASE + 0x5 * 4)
 

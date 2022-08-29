@@ -102,35 +102,35 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 
 	if (type == APP_CAMERA_DVP)
 	{
-		if (DVP_STATE_DISABLED != get_dvp_camera_state())
+		if (CAMERA_STATE_DISABLED != get_camera_state())
 		{
 			LOGI("%s already opened\n", __func__);
 			return kNoErr;
 		}
 
-		ret = media_send_msg_sync(EVENT_DVP_JPEG_OPEN_IND, ppi);
+		ret = media_send_msg_sync(EVENT_CAM_DVP_JPEG_OPEN_IND, ppi);
 	}
 	else if (type == APP_CAMERA_YUV)
 	{
-		if (DVP_STATE_DISABLED != get_dvp_camera_state())
+		if (CAMERA_STATE_DISABLED != get_camera_state())
 		{
 			LOGI("%s already opened\n", __func__);
 			return kNoErr;
 		}
 
-		ret = media_send_msg_sync(EVENT_DVP_YUV_OPEN_IND, ppi);
+		ret = media_send_msg_sync(EVENT_CAM_DVP_YUV_OPEN_IND, ppi);
 	}
 	else if (type == APP_CAMERA_UVC)
 	{
 
 #if (CONFIG_USB_UVC)
-		if (UVC_STATE_DISABLED != get_uvc_camera_state())
+		if (CAMERA_STATE_DISABLED != get_camera_state())
 		{
 			LOGI("%s already opened\n", __func__);
 			return kNoErr;
 		}
 
-		ret = media_send_msg_sync(EVENT_UVC_OPEN_IND, ppi);
+		ret = media_send_msg_sync(EVENT_CAM_UVC_OPEN_IND, ppi);
 #endif
 	}
 
@@ -145,23 +145,23 @@ bk_err_t media_app_camera_close(app_camera_type_t type)
 
 	if (type == APP_CAMERA_DVP)
 	{
-		if (DVP_STATE_ENABLED != get_dvp_camera_state())
+		if (CAMERA_STATE_ENABLED != get_camera_state())
 		{
 			LOGI("%s already closed\n", __func__);
 			return kNoErr;
 		}
 
-		ret = media_send_msg_sync(EVENT_DVP_CLOSE_IND, DVP_MODE_JPG);
+		ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, DVP_MODE_JPG);
 	}
 	else if (type == APP_CAMERA_YUV)
 	{
-		if (DVP_STATE_ENABLED != get_dvp_camera_state())
+		if (CAMERA_STATE_ENABLED != get_camera_state())
 		{
 			LOGI("%s already closed\n", __func__);
 			return kNoErr;
 		}
 
-		ret = media_send_msg_sync(EVENT_DVP_CLOSE_IND, DVP_MODE_YUV);
+		ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, DVP_MODE_YUV);
 	}
 	else if (type == APP_CAMERA_UVC)
 	{
@@ -169,13 +169,13 @@ bk_err_t media_app_camera_close(app_camera_type_t type)
 
 #if (CONFIG_USB_UVC)
 
-		if (UVC_STATE_DISABLED == get_uvc_camera_state())
+		if (CAMERA_STATE_DISABLED == get_camera_state())
 		{
 			LOGI("%s already opened\n", __func__);
 			return kNoErr;
 		}
 
-		ret = media_send_msg_sync(EVENT_UVC_CLOSE_IND, 0);
+		ret = media_send_msg_sync(EVENT_CAM_UVC_CLOSE_IND, 0);
 #endif
 	}
 
@@ -196,7 +196,7 @@ bk_err_t media_app_mailbox_test(void)
 	return ret;
 }
 
-bk_err_t media_app_transfer_video_open(void *setup_cfg)
+bk_err_t media_app_transfer_open(void *setup_cfg)
 {
 	int ret = kNoErr;
 	video_setup_t *ptr = NULL;
@@ -207,7 +207,7 @@ bk_err_t media_app_transfer_video_open(void *setup_cfg)
 
 	rwnxl_set_video_transfer_flag(true);
 
-	if (TRS_STATE_DISABLED != get_trs_video_transfer_state())
+	if (TRS_STATE_DISABLED != get_transfer_state())
 	{
 		LOGI("%s already opened\n", __func__);
 		return ret;
@@ -216,23 +216,27 @@ bk_err_t media_app_transfer_video_open(void *setup_cfg)
 	ptr = (video_setup_t *)os_malloc(sizeof(video_setup_t));
 	os_memcpy(ptr, (video_setup_t *)setup_cfg, sizeof(video_setup_t));
 
-	ret = media_send_msg_sync(EVENT_TRS_VIDEO_TRANSFER_OPEN_IND, (uint32_t)ptr);
+	ret = media_send_msg_sync(EVENT_TRANSFER_OPEN_IND, (uint32_t)ptr);
 
 	os_free(ptr);
 
 	return ret;
 }
 
-
-bk_err_t media_app_transfer_video_close(void)
+bk_err_t media_app_transfer_pause(bool pause)
 {
-	if (TRS_STATE_ENABLED != get_trs_video_transfer_state())
+	return media_send_msg_sync(EVENT_TRANSFER_PAUSE_IND, pause);
+}
+
+bk_err_t media_app_transfer_close(void)
+{
+	if (TRS_STATE_ENABLED != get_transfer_state())
 	{
 		LOGI("%s already closed\n", __func__);
 		return kNoErr;
 	}
 
-	return media_send_msg_sync(EVENT_TRS_VIDEO_TRANSFER_CLOSE_IND, 0);
+	return media_send_msg_sync(EVENT_TRANSFER_CLOSE_IND, 0);
 }
 
 bk_err_t media_app_lcd_rotate(bool enable)
@@ -274,40 +278,6 @@ bk_err_t media_app_lcd_set_backlight(uint8_t level)
 	}
 
 	return media_send_msg_sync(EVENT_LCD_SET_BACKLIGHT_IND, level);
-}
-
-
-bk_err_t media_app_uvc_start(void)
-{
-	if (UVC_STATE_STOP != get_uvc_camera_state())
-	{
-		LOGI("%s not opened\n", __func__);
-		return kNoErr;
-	}
-
-	return media_send_msg_sync(EVENT_UVC_START_IND, 0);
-}
-
-bk_err_t media_app_uvc_stop(void)
-{
-	if (UVC_STATE_ENABLED != get_uvc_camera_state())
-	{
-		LOGI("%s not start\n", __func__);
-		return kNoErr;
-	}
-
-	return media_send_msg_sync(EVENT_UVC_STOP_IND, 0);
-}
-
-bk_err_t media_app_uvc_param_set(uvc_camera_device_t *param)
-{
-	if (UVC_STATE_STOP != get_uvc_camera_state())
-	{
-		LOGI("%s not start\n", __func__);
-		return kNoErr;
-	}
-
-	return media_send_msg_sync(EVENT_UVC_PARAM_IND, (uint32_t)param);
 }
 
 

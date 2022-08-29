@@ -59,15 +59,15 @@
 
 //TODO peter - generate the BK specific configuration per armino Jason
 #if (CONFIG_BUILD_DEBUG)
-#define BK_FLASH_S_PARTITION_SIZE          SZ_384K
+#define BK_FLASH_S_PARTITION_SIZE          SZ_512K
 #define BK_FLASH_NS_PARTITION_SIZE         SZ_256K
 #define BK_FLASH_AREA_BL2_OFFSET           SZ_16K
-#define BK_FLASH_AREA_BL2_SIZE             SZ_64K
+#define BK_FLASH_AREA_BL2_SIZE             SZ_128K
 #else
-#define BK_FLASH_S_PARTITION_SIZE          SZ_384K
+#define BK_FLASH_S_PARTITION_SIZE          SZ_512K
 #define BK_FLASH_NS_PARTITION_SIZE         SZ_256K
 #define BK_FLASH_AREA_BL2_OFFSET           SZ_16K
-#define BK_FLASH_AREA_BL2_SIZE             SZ_64K
+#define BK_FLASH_AREA_BL2_SIZE             SZ_128K
 #endif
 
 #define BK_FLASH_PS_AREA_SIZE              SZ_32K

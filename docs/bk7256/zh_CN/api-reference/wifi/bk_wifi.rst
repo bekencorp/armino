@@ -69,6 +69,7 @@ Interface specific WiFi APIs:
  - :cpp:func:`bk_wifi_monitor_get_config` - get basic configuration of the monitor
  - :cpp:func:`bk_wifi_monitor_register_cb` - register monitor callback function
  - :cpp:func:`bk_wifi_monitor_set_channel` - set the channel of monitor
+ - :cpp:func:`bk_wifi_send_listen_interval_req` - set the listen interval
 
 Module Specific WiFi APIs:
  - :cpp:func:`bk_wifi_scan_register_cb` - register scan callback function

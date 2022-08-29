@@ -286,18 +286,7 @@ enum tfm_hal_status_t tfm_hal_bind_boundaries(
         /* Assume PPC & MPC settings are required even under level 1 */
         plat_data_ptr = REFERENCE_TO_PTR(p_asset[i].dev.dev_ref,
                                          struct platform_data_t *);
-
-        if (plat_data_ptr->periph_ppc_bank != PPC_SP_DO_NOT_CONFIGURE) {
-            ppc_configure_to_secure(plat_data_ptr->periph_ppc_bank,
-                                    plat_data_ptr->periph_ppc_loc);
-            if (privileged) {
-                ppc_clr_secure_unpriv(plat_data_ptr->periph_ppc_bank,
-                                      plat_data_ptr->periph_ppc_loc);
-            } else {
-                ppc_en_secure_unpriv(plat_data_ptr->periph_ppc_bank,
-                                      plat_data_ptr->periph_ppc_loc);
-            }
-        }
+        //TODO peter can add bk7236 configure here
 #if TFM_LVL == 2
         /*
          * Static boundaries are set. Set up MPU region for MMIO.

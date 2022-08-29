@@ -413,6 +413,41 @@ static void gpio_wakeup_default_isr(gpio_id_t gpio_id)
 	GPIO_LOGD("gpio int: index:%d \r\n", gpio_id);
 }
 
+/* Added fault tolerance for GPIO wakeup.
+ * The act of increasing the pull-down voltage to prevent jitter interference.
+ */
+static void gpio_wakeup_set_pin_voltage_status(gpio_id_t gpio_id, gpio_int_type_t type)
+{
+	GPIO_LOGD("%s[+]\r\n", __func__);
+
+	switch(type)
+	{
+		case GPIO_INT_TYPE_LOW_LEVEL:
+			bk_gpio_pull_up(gpio_id);
+			GPIO_LOGD("%s GPIO_INT_TYPE: LOW_LEVEL Pull_up!\r\n", __func__);
+			break;
+		case GPIO_INT_TYPE_HIGH_LEVEL:
+			bk_gpio_pull_down(gpio_id);
+			GPIO_LOGD("%s GPIO_INT_TYPE: HIGH_LEVEL Pull_down!\r\n", __func__);
+			break;
+		case GPIO_INT_TYPE_RISING_EDGE:
+			bk_gpio_pull_down(gpio_id);
+			GPIO_LOGD("%s GPIO_INT_TYPE: RISING_EDGE Pull_down!\r\n", __func__);
+			break;
+		case GPIO_INT_TYPE_FALLING_EDGE:
+			bk_gpio_pull_up(gpio_id);
+			GPIO_LOGD("%s GPIO_INT_TYPE: FALLING_EDGE Pull_up!\r\n", __func__);
+			break;
+		case GPIO_INT_TYPE_MAX:
+			GPIO_LOGI("%s Please set fill in the mode correctly!\r\n", __func__);
+			break;
+		default:
+			break;
+	}
+
+	GPIO_LOGD("%s[-]\r\n", __func__);
+}
+
 static void gpio_config_wakeup_function(void)
 {
 	uint32_t i = 0;
@@ -423,6 +458,7 @@ static void gpio_config_wakeup_function(void)
 	s_gpio_is_setted_wake_status = 0;
 	for(i = 0; i < sizeof(gpio_wakeup_map)/sizeof(gpio_wakeup_t); i++)
 	{
+		gpio_wakeup_set_pin_voltage_status(gpio_wakeup_map[i].id, gpio_wakeup_map[i].int_type);
 		bk_gpio_set_interrupt_type(gpio_wakeup_map[i].id, gpio_wakeup_map[i].int_type);
 		bk_gpio_enable_interrupt(gpio_wakeup_map[i].id);
 		s_gpio_is_setted_wake_status |= ((uint64_t)1 << gpio_wakeup_map[i].id);
@@ -431,8 +467,8 @@ static void gpio_config_wakeup_function(void)
 #ifdef CONFIG_GPIO_DYNAMIC_WAKEUP_SUPPORT
 	for(i = 0; i < CONFIG_GPIO_DYNAMIC_WAKEUP_SOURCE_MAX_CNT; i++)
 	{
-		if(s_gpio_dynamic_wakeup_source_map[i].id != GPIO_WAKE_SOURCE_IDLE_ID)
-		{
+		if(s_gpio_dynamic_wakeup_source_map[i].id != GPIO_WAKE_SOURCE_IDLE_ID) {
+			gpio_wakeup_set_pin_voltage_status(s_gpio_dynamic_wakeup_source_map[i].id, s_gpio_dynamic_wakeup_source_map[i].int_type);
 			bk_gpio_set_interrupt_type(s_gpio_dynamic_wakeup_source_map[i].id, s_gpio_dynamic_wakeup_source_map[i].int_type);
 			bk_gpio_enable_interrupt(s_gpio_dynamic_wakeup_source_map[i].id);
 			s_gpio_is_setted_wake_status |= ((uint64_t)1 << s_gpio_dynamic_wakeup_source_map[i].id);
@@ -457,8 +493,7 @@ static void gpio_config_low_power_wakeup_pin(void)
 #ifdef CONFIG_GPIO_DYNAMIC_WAKEUP_SUPPORT
 	for(i = 0; i < CONFIG_GPIO_DYNAMIC_WAKEUP_SOURCE_MAX_CNT; i++)
 	{
-		if(s_gpio_dynamic_wakeup_source_map[i].id != GPIO_WAKE_SOURCE_IDLE_ID)
-		{
+		if(s_gpio_dynamic_wakeup_source_map[i].id != GPIO_WAKE_SOURCE_IDLE_ID) {
 			bk_gpio_disable_output(s_gpio_dynamic_wakeup_source_map[i].id);
 			bk_gpio_enable_input(s_gpio_dynamic_wakeup_source_map[i].id);
 		}
@@ -481,8 +516,11 @@ gpio_id_t bk_gpio_get_wakeup_gpio_id()
 
 static void bk_gpio_set_wakeup_gpio_id(gpio_id_t gpio_id)
 {
-	if (s_gpio_wakeup_gpio_id == GPIO_NUM)
+	/* Obatain the First wake source GPIO ID*/
+	if (s_gpio_wakeup_gpio_id == GPIO_NUM) {
 		s_gpio_wakeup_gpio_id = gpio_id;
+		bk_gpio_disable_interrupt(gpio_id);
+	}
 	GPIO_LOGD("SET wakeup gpio_id: %d \r\n", s_gpio_wakeup_gpio_id);
 }
 

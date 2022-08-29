@@ -725,7 +725,7 @@ int hm1055_init(const dvp_camera_i2c_callback_t *cb)
 	for (uint32_t i = 0; i < size; i++)
 	{
 		SENSOR_I2C_WRITE(sensor_hm1055_init_talbe[i][0],
-			(uint8_t)sensor_hm1055_init_talbe[i][1]);
+		                 (uint8_t)sensor_hm1055_init_talbe[i][1]);
 	}
 
 	return 0;
@@ -750,7 +750,7 @@ int hm1055_set_fps(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps)
 			for (i = 0; i < size; i++)
 			{
 				SENSOR_I2C_WRITE(sensor_hm1055_720P_5fps_talbe[i][0],
-					(uint8_t)sensor_hm1055_720P_5fps_talbe[i][1]);
+				                 (uint8_t)sensor_hm1055_720P_5fps_talbe[i][1]);
 			}
 
 			ret = 0;
@@ -763,7 +763,7 @@ int hm1055_set_fps(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps)
 			for (i = 0; i < size; i++)
 			{
 				SENSOR_I2C_WRITE(sensor_hm1055_720P_10fps_talbe[i][0],
-					(uint8_t)sensor_hm1055_720P_10fps_talbe[i][1]);
+				                 (uint8_t)sensor_hm1055_720P_10fps_talbe[i][1]);
 			}
 
 			ret = 0;
@@ -776,7 +776,7 @@ int hm1055_set_fps(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps)
 			for (i = 0; i < size; i++)
 			{
 				SENSOR_I2C_WRITE(sensor_hm1055_720P_15fps_talbe[i][0],
-					(uint8_t)sensor_hm1055_720P_15fps_talbe[i][1]);
+				                 (uint8_t)sensor_hm1055_720P_15fps_talbe[i][1]);
 			}
 
 			ret = 0;
@@ -790,7 +790,7 @@ int hm1055_set_fps(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps)
 			for (i = 0; i < size; i++)
 			{
 				SENSOR_I2C_WRITE(sensor_hm1055_720P_20fps_talbe[i][0],
-					(uint8_t)sensor_hm1055_720P_20fps_talbe[i][1]);
+				                 (uint8_t)sensor_hm1055_720P_20fps_talbe[i][1]);
 			}
 
 			ret = 0;
@@ -803,7 +803,7 @@ int hm1055_set_fps(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps)
 			for (i = 0; i < size; i++)
 			{
 				SENSOR_I2C_WRITE(sensor_hm1055_720P_25fps_talbe[i][0],
-					(uint8_t)sensor_hm1055_720P_25fps_talbe[i][1]);
+				                 (uint8_t)sensor_hm1055_720P_25fps_talbe[i][1]);
 			}
 
 			ret = 0;
@@ -816,7 +816,7 @@ int hm1055_set_fps(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps)
 			for (i = 0; i < size; i++)
 			{
 				SENSOR_I2C_WRITE(sensor_hm1055_720P_30fps_talbe[i][0],
-					(uint8_t)sensor_hm1055_720P_30fps_talbe[i][1]);
+				                 (uint8_t)sensor_hm1055_720P_30fps_talbe[i][1]);
 			}
 
 			ret = 0;

@@ -48,17 +48,6 @@ bk_err_t bk_aud_intf_drv_init(aud_intf_drv_setup_t *setup);
 bk_err_t bk_aud_intf_drv_deinit(void);
 
 /**
- * @brief     Get the AUD INTF work mode
- *
- * @param work_mode save audio interface work mode
- *
- * @return
- *    - BK_OK: succeed
- *    - others: other errors.
- */
-bk_err_t bk_aud_intf_get_work_mode(aud_intf_work_mode_t *work_mode);
-
-/**
  * @brief     Set the AUD INTF work mode
  *
  * @param work_mode audio interface work mode
@@ -78,7 +67,6 @@ bk_err_t bk_aud_intf_set_mode(aud_intf_work_mode_t work_mode);
  *
  * @return
  *    - BK_OK: succeed
- *    - BK_ERR_AUD_NOT_INIT: audio driver is not init
  *    - others: other errors.
  */
 bk_err_t bk_aud_intf_set_mic_gain(uint8_t value);
@@ -92,21 +80,32 @@ bk_err_t bk_aud_intf_set_mic_gain(uint8_t value);
  *
  * @return
  *    - BK_OK: succeed
- *    - BK_ERR_AUD_NOT_INIT: audio driver is not init
  *    - others: other errors.
  */
 bk_err_t bk_aud_intf_set_spk_gain(uint8_t value);
 
 /**
- * @brief     Get the AUD INTF information
+ * @brief     Set the aec parameter
  *
- * @param info save audio interface information
+ * @param aec_para the parameter
+ * @param value the parameter value
+ *
+ * This API should be called when voice has been initialized
  *
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-//bk_err_t bk_aud_intf_get_info(aud_intf_info_t *info);
+bk_err_t bk_aud_intf_set_aec_para(aud_intf_voc_aec_para_t aec_para, uint32_t value);
+
+/**
+ * @brief     Get the aec parameter
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_intf_get_aec_para(void);
 
 /*************************************** mic api *********************************************/
 /**
@@ -120,6 +119,26 @@ bk_err_t bk_aud_intf_set_spk_gain(uint8_t value);
  * This API should be called after bk_aud_intf_drv_init.
  *
  * @param mic_setup audio adc setup configuration
+ *
+ * Usage example:
+ *
+ *     audio_tras_setup_t aud_tras_setup;
+ *     aud_intf_mic_setup_t aud_mic_setup;
+ *
+ *     aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+ *     aud_intf_drv_setup.task_config.priority = 3;
+ *     aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
+ *     aud_intf_drv_setup.aud_intf_tx_mic_data = demo_udp_voice_send_packet;
+ *     bk_aud_intf_drv_init(&aud_intf_drv_setup);
+ *
+ *     aud_work_mode = AUD_INTF_WORK_MODE_GENERAL;
+ *     bk_aud_intf_set_mode(aud_work_mode);
+ *
+ *     aud_intf_mic_setup.mic_chl = AUD_INTF_MIC_CHL_MIC1;
+ *     aud_intf_mic_setup.samp_rate = AUD_ADC_SAMP_RATE_8K;
+ *     aud_intf_mic_setup.frame_size = 320;
+ *     aud_intf_mic_setup.mic_gain = 0x2d;
+ *     bk_aud_intf_mic_init(&aud_intf_mic_setup);
  *
  * @return
  *    - BK_OK: succeed
@@ -140,6 +159,7 @@ bk_err_t bk_aud_intf_mic_init(aud_intf_mic_setup_t *mic_setup);
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
+ *
  */
 bk_err_t bk_aud_intf_mic_deinit(void);
 
@@ -154,6 +174,8 @@ bk_err_t bk_aud_intf_mic_start(void);
 
 /**
  * @brief     Pause the AUD INTF mic work
+ *
+ * This API should be called after bk_aud_intf_mic_init.
  *
  * @return
  *    - BK_OK: succeed
@@ -172,6 +194,8 @@ bk_err_t bk_aud_intf_mic_stop(void);
 
 /**
  * @brief     Set the AUD INTF mic channel
+ *
+ * This API should be called after bk_aud_intf_mic_init.
  *
  * @param mic_chl audio interface mic channel
  *
@@ -215,7 +239,6 @@ bk_err_t bk_aud_intf_set_mic_samp_rate(aud_adc_samp_rate_t samp_rate);
 bk_err_t bk_aud_intf_get_mic_samp_rate(aud_adc_samp_rate_t *samp_rate);
 
 
-
 /*************************************** speaker api *********************************************/
 /**
  * @brief     Init the AUD INTF speaker
@@ -232,6 +255,27 @@ bk_err_t bk_aud_intf_get_mic_samp_rate(aud_adc_samp_rate_t *samp_rate);
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
+ *
+ * Usage example:
+ *
+ *     audio_tras_setup_t aud_tras_setup;
+ *     aud_intf_spk_setup_t aud_spk_setup;
+ *
+ *     aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+ *     aud_intf_drv_setup.task_config.priority = 3;
+ *     aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
+ *     aud_intf_drv_setup.aud_intf_tx_mic_data = demo_udp_voice_send_packet;
+ *     bk_aud_intf_drv_init(&aud_intf_drv_setup);
+ *
+ *     aud_work_mode = AUD_INTF_WORK_MODE_GENERAL;
+ *     bk_aud_intf_set_mode(aud_work_mode);
+ *
+ *     aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_SPK1;
+ *     aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_8K;
+ *     aud_intf_spk_setup.frame_size = 640;
+ *     aud_intf_spk_setup.spk_gain = 0x2d;
+ *     bk_aud_intf_spk_init(&aud_intf_spk_setup);
+ *
  */
 bk_err_t bk_aud_intf_spk_init(aud_intf_spk_setup_t *spk_setup);
 
@@ -339,6 +383,33 @@ bk_err_t bk_aud_intf_get_spk_samp_rate(aud_dac_samp_rate_t *samp_rate);
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
+ *
+ * Usage example:
+ *
+ *     audio_tras_setup_t aud_tras_setup;
+ *     aud_intf_voc_setup_t aud_voc_setup;
+ *
+ *     aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+ *     aud_intf_drv_setup.task_config.priority = 3;
+ *     aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
+ *     aud_intf_drv_setup.aud_intf_tx_mic_data = demo_udp_voice_send_packet;
+ *     bk_aud_intf_drv_init(&aud_intf_drv_setup);
+ *
+ *     aud_work_mode = AUD_INTF_WORK_MODE_VOICE;
+ *     bk_aud_intf_set_mode(aud_work_mode);
+ *
+ *     aud_voc_setup.aec_enable = true;
+ *     aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
+ *     aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711A;
+ *     aud_voc_setup.mic_gain = 0x2d;
+ *     aud_voc_setup.spk_gain = 0x2d;
+ *     aud_voc_setup.aec_cfg.ec_depth = 20;
+ *     aud_voc_setup.aec_cfg.TxRxThr = 30;
+ *     aud_voc_setup.aec_cfg.TxRxFlr = 6;
+ *     aud_voc_setup.aec_cfg.ns_level = 2;
+ *     aud_voc_setup.aec_cfg.ns_para = 1;
+ *     bk_aud_intf_voc_init(aud_voc_setup);
+ *
  */
 bk_err_t bk_aud_intf_voc_init(aud_intf_voc_setup_t setup);
 
@@ -381,6 +452,8 @@ bk_err_t bk_aud_intf_voc_stop(void);
  *
  * @param dac_buff the address of speaker data written
  * @param size the data size (byte)
+ *
+ * This API should be called in general and voice work mode.
  *
  * @return
  *    - BK_OK: succeed

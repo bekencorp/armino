@@ -249,6 +249,22 @@ typedef struct {
     pm_cb cb;
     void *args;
 } pm_cb_conf_t;
+
+/**
+ * @brief using the gpio to control the external ldo
+ *
+ * control the external ldo
+ *
+ * @attention
+ * - This API is used to use the specific gpio(define in  GPIO_CTRL_LDO_OUTPUT_HIGH_MAP or GPIO_CTRL_LDO_OUTPUT_LOW_MAP in gpio_map.h) control the external ldo
+ *
+ * @param
+ * -value:0x1:output high; 0x0:output low
+ * @return
+ *  - BK_OK: succeed
+ *  - others: other errors.
+ */
+bk_err_t bk_pm_external_ldo_ctrl(uint32_t value);
 /**
  * @brief get the state of phy calibration
  *
@@ -305,7 +321,42 @@ void bk_pm_phy_reinit_flag_clear();
  *  - the consume time of wakeup from lowvol
  */
 uint32_t bk_pm_wakeup_from_lowvol_consume_time_get();
-
+/**
+ * @brief register sleep mode(low voltage and deepsleep) config
+ *
+ * register sleep config(include callback function and parameter)
+ *
+ * @attention
+ * - This API is used to register low voltage and deepsleep config
+ *
+ * @param
+ * -sleep_mode:low voltage or deepsleep mode
+ * -dev_id:dev id
+ * -enter_config:enter sleep config
+ * -exit_config:exit sleep config
+ * @return
+ *  - BK_OK: succeed
+ *  - others: other errors.
+ */
+bk_err_t bk_pm_sleep_register_cb(pm_sleep_mode_e sleep_mode,pm_dev_id_e dev_id,pm_cb_conf_t *enter_config, pm_cb_conf_t *exit_config);
+/**
+ * @brief unregister sleep mode(low voltage and deepsleep) config
+ *
+ * unregister sleep config(include callback function and parameter)
+ *
+ * @attention
+ * - This API is used to unregister low voltage and deepsleep config
+ *
+ * @param
+ * -sleep_mode:low voltage or deepsleep mode
+ * -dev_id:dev id
+ * -enter_cb:whether unregister the enter call back
+ * -exit_cb:whether unregister the exit call back
+ * @return
+ *  - BK_OK: succeed
+ *  - others: other errors.
+ */
+bk_err_t bk_pm_sleep_unregister_cb(pm_sleep_mode_e sleep_mode,pm_dev_id_e dev_id,bool enter_cb, bool exit_cb);
 /**
  * @brief register light sleep config
  *
@@ -331,8 +382,8 @@ bk_err_t bk_pm_light_sleep_register_cb(pm_cb_conf_t *enter_config, pm_cb_conf_t 
  * - This API is used to unregister light sleep callback
  *
  * @param
- * -enter_cb:enter light sleep callback
- * -exit_cb:exit light sleep callback
+ * -enter_cb:whether unregister the enter call back
+ * -exit_cb:whether unregister the exit call back
  * @return
  *  - BK_OK: succeed
  *  - others: other errors.

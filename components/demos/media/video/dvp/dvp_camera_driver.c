@@ -31,6 +31,7 @@
 #include "bk_general_dma.h"
 #endif
 
+#define EJPEG_DROP_COUNT              (4)
 #define EJPEG_DELAY_HTIMER_CHANNEL     5
 #define EJPEG_I2C_DEFAULT_BAUD_RATE    I2C_BAUD_RATE_100KHZ
 #define EJPEG_DELAY_HTIMER_VAL         (2)  // 2ms
@@ -43,6 +44,7 @@ static uint32_t upper_size = 50 * 1024;
 static uint32_t lower_size = 10 * 1024;
 static uint8_t jpeg_auto_encode = 0;
 static uint8_t jpeg_config_set = 0;
+static uint8_t jpeg_drop_image = 0;
 
 static void camera_intf_delay_timer_hdl(timer_id_t timer_id)
 {
@@ -74,8 +76,12 @@ static void camera_intf_delay_timer_hdl(timer_id_t timer_id)
 
 	frame_total_len = 0;
 
-	if ((ejpeg_cfg.node_full_handler != NULL) && (rec_len > 0))
+	if (jpeg_drop_image == 0)
+	{
+		if ((ejpeg_cfg.node_full_handler != NULL) && (rec_len > 0))
 		ejpeg_cfg.node_full_handler(ejpeg_cfg.rxbuf + already_len, rec_len, 1, frame_len);
+	}
+
 	already_len += rec_len;
 	if (already_len >= ejpeg_cfg.rxbuf_len)
 		already_len -= ejpeg_cfg.rxbuf_len;
@@ -87,8 +93,16 @@ static void camera_intf_delay_timer_hdl(timer_id_t timer_id)
 	ejpeg_cfg.rx_read_len = 0;
 	bk_dma_start(ejpeg_cfg.dma_channel);
 #endif
-	if ((ejpeg_cfg.data_end_handler))
-		ejpeg_cfg.data_end_handler();
+
+	if (jpeg_drop_image == 0)
+	{
+		if ((ejpeg_cfg.data_end_handler))
+			ejpeg_cfg.data_end_handler();
+	}
+
+	if (jpeg_drop_image != 0)
+		jpeg_drop_image--;
+
 #if (!CONFIG_SYSTEM_CTRL)
 	bk_timer_disable(EJPEG_DELAY_HTIMER_CHANNEL);
 #endif
@@ -110,8 +124,12 @@ static void camera_intf_ejpeg_rx_handler(dma_id_t dma_id)
 	frame_total_len += copy_len;
 	GLOBAL_INT_DECLARATION();
 
-	if (ejpeg_cfg.node_full_handler != NULL)
-		ejpeg_cfg.node_full_handler(ejpeg_cfg.rxbuf + already_len, copy_len, 0, 0);
+	if (jpeg_drop_image == 0)
+	{
+		if (ejpeg_cfg.node_full_handler != NULL)
+			ejpeg_cfg.node_full_handler(ejpeg_cfg.rxbuf + already_len, copy_len, 0, 0);
+	}
+
 	already_len += copy_len;
 	if (already_len >= ejpeg_cfg.rxbuf_len)
 		already_len = 0;
@@ -248,6 +266,7 @@ bk_err_t bk_camera_init(void *data)
 	i2c_config_t i2c_config = {0};
 	jpeg_config_t jpeg_config = {0};
 	uint8_t ppi = 0;
+	jpeg_drop_image = EJPEG_DROP_COUNT;
 
 #if CONFIG_SOC_BK7256XX
 	bk_jpeg_enc_driver_init();
@@ -300,6 +319,7 @@ bk_err_t bk_camera_deinit(void)
 	bk_jpeg_enc_driver_deinit();
 #endif
 
+	jpeg_drop_image = 0;
 	frame_total_len = 0;
 	os_memset(&ejpeg_cfg, 0, sizeof(jpegenc_desc_t));
 

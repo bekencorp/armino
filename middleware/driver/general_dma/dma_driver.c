@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <common/bk_include.h>
+#include <common/bk_compiler.h>
 #include <os/mem.h>
 #include "icu_driver.h"
 #include "dma_driver.h"
@@ -32,7 +33,7 @@
 #define DMA_CPU_MASTER		0
 #define DMA_CPU_SLAVE1		1
 
-static void dma_isr(void) __SECTION(".itcm");
+static void dma_isr(void) __BK_SECTION(".itcm");
 
 typedef struct {
     dma_hal_t hal;
@@ -543,6 +544,24 @@ uint32_t dma_get_dest_write_addr(dma_id_t id)
     DMA_RETURN_ON_INVALID_ID(id);
 
     return dma_hal_get_dest_write_addr(&s_dma.hal, id);
+}
+
+bk_err_t bk_dma_set_src_data_width(dma_id_t id, dma_data_width_t data_width)
+{
+    DMA_RETURN_ON_NOT_INIT();
+    DMA_RETURN_ON_INVALID_ID(id);
+
+    dma_hal_set_src_data_width(&s_dma.hal, id, data_width);
+    return BK_OK;
+}
+
+bk_err_t bk_dma_set_dest_data_width(dma_id_t id, dma_data_width_t data_width)
+{
+    DMA_RETURN_ON_NOT_INIT();
+    DMA_RETURN_ON_INVALID_ID(id);
+
+    dma_hal_set_dest_data_width(&s_dma.hal, id, data_width);
+    return BK_OK;
 }
 
 bk_err_t dma_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_id_t cpy_chnl)

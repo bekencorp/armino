@@ -23,10 +23,10 @@ CPU0_LOAD1 0x00000000 0x8800
 	{
 		LOADADDR NEXT _itcm_lma_start
 		ADDR NEXT _itcm_ema_start
+		* KEEP (.itcm_sec_code LMA_FORCE_ALIGN)
 		*txl_he.c.obj   (+RO-CODE)
 		*txl_agg.c.obj  (+RO-CODE)
 		*txl_cntrl.c.obj *rxl_hwdesc.c.obj *rxu_cntrl.c.obj (+RO-CODE)
-		* KEEP (.itcm_sec_code)
 		LOADADDR _itcm_lma_end
 		ADDR _itcm_ema_end
 	}
@@ -106,7 +106,9 @@ CPU0_LOAD2 0x00008800  0x1A7800
 		* KEEP (.bt_spec_data)
 		* KEEP (.ble_bss_data)
 		*rwip.c.obj *rwip_driver.c.obj *uart_ble.c.obj *uart_controller_only.c.obj(+ZI)
-		*sdp_common.c.obj *app_ble.c.obj *prf.c.obj(+ZI)
+		*sdp_common.c.obj *app_ble.c.obj *prf.c.obj *gapm.c.obj(+ZI)
+		*ble_util_buf.c.obj *sch_prog.c.obj *sch_slice.c.obj *llm.c.obj(+ZI)
+
 		LOADADDR _bt_data_end
 	}
 
@@ -116,7 +118,7 @@ CPU0_LOAD2 0x00008800  0x1A7800
 		* KEEP (.swap_data)
 	}
 
-	SRAM_DATA 0x30020000 0x4C000
+	SRAM_DATA 0x30020000 0x54000
 	{
 		LOADADDR NEXT _data_lmastart
 		ADDR NEXT _data_start

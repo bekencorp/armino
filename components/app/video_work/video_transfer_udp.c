@@ -161,6 +161,12 @@ static void app_demo_udp_handle_cmd_data(UINT8 *data, UINT16 len)
 			//aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_PCM;
 			aud_voc_setup.mic_gain = 0x2d;
 			aud_voc_setup.spk_gain = 0x2d;
+			aud_voc_setup.spk_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
+			aud_voc_setup.aec_cfg.ec_depth = 20;
+			aud_voc_setup.aec_cfg.TxRxThr = 30;
+			aud_voc_setup.aec_cfg.TxRxFlr = 6;
+			aud_voc_setup.aec_cfg.ns_level = 2;
+			aud_voc_setup.aec_cfg.ns_para = 1;
 			bk_aud_intf_voc_init(aud_voc_setup);
 #endif
 			break;

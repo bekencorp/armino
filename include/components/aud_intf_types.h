@@ -15,12 +15,29 @@
 #pragma once
 
 #include <common/bk_include.h>
-//#include "aud_tras_drv.h"
 #include <driver/aud_types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define BK_ERR_AUD_INTF_BASE              (BK_ERR_AUD_BASE - 0x50)
+
+#define BK_ERR_AUD_INTF_OK                BK_OK                               /**< ok */
+#define BK_ERR_AUD_INTF_FAIL              BK_FAIL                             /**< fail */
+#define BK_ERR_AUD_INTF_STA               (BK_ERR_AUD_INTF_BASE - 1)          /**< audio interface module status is error */
+#define BK_ERR_AUD_INTF_PARAM             (BK_ERR_AUD_INTF_BASE - 2)          /**< parameter is error */
+#define BK_ERR_AUD_INTF_MEMY              (BK_ERR_AUD_INTF_BASE - 3)          /**< malloc memory fail */
+#define BK_ERR_AUD_INTF_ADC               (BK_ERR_AUD_INTF_BASE - 4)          /**< config audio adc fail */
+#define BK_ERR_AUD_INTF_DAC               (BK_ERR_AUD_INTF_BASE - 5)          /**< config audio dac fail */
+#define BK_ERR_AUD_INTF_DMA               (BK_ERR_AUD_INTF_BASE - 6)          /**< config dma fail */
+#define BK_ERR_AUD_INTF_AEC               (BK_ERR_AUD_INTF_BASE - 7)          /**< config aec fail */
+#define BK_ERR_AUD_INTF_RING_BUFF         (BK_ERR_AUD_INTF_BASE - 8)          /**< config ring buffer fail */
+#define BK_ERR_AUD_INTF_TIMEOUT           (BK_ERR_AUD_INTF_BASE - 9)          /**< aud_intf api excute timeout */
+#define BK_ERR_AUD_INTF_TX_MSG            (BK_ERR_AUD_INTF_BASE - 10)         /**< aud_intf api send message fail */
+#define BK_ERR_AUD_INTF_BUSY              (BK_ERR_AUD_INTF_BASE - 11)         /**< aud_intf is busying */
+#define BK_ERR_AUD_INTF_FILE              (BK_ERR_AUD_INTF_BASE - 12)         /**< aud_intf file operate fail */
+
 
 
 /**************** audio interface common ****************/
@@ -41,8 +58,8 @@ typedef struct {
 typedef struct {
 	aud_intf_work_mode_t work_mode;
 	aud_intf_task_config_t task_config;
-	int (*aud_intf_tx_mic_data)(unsigned char *data, unsigned int size);	/**< the api is called when collecting a frame mic packet data is complete */
-	bk_err_t (*aud_intf_rx_spk_data)(unsigned int size);							/**< the api is called when playing a frame speaker packet data is complete */
+	int (*aud_intf_tx_mic_data)(unsigned char *data, unsigned int size);		/**< the api is called when collecting a frame mic packet data is complete */
+	bk_err_t (*aud_intf_rx_spk_data)(unsigned int size);						/**< the api is called when playing a frame speaker packet data is complete */
 } aud_intf_drv_setup_t;
 
 
@@ -66,17 +83,18 @@ typedef struct {
 /**************** audio interface speaker ****************/
 /* audio interface speaker channel enum */
 typedef enum {
-	AUD_INTF_SPK_CHL_SPK1 = 0,		/**< SPK1: only enable SPK1 channel */
-	AUD_INTF_SPK_CHL_DUAL,			/**< DUAL: enable SPK1 channel both and SPK2 channel */
+	AUD_INTF_SPK_CHL_LEFT = 0,		/**< LEFT: only enable SPK left channel */
+	AUD_INTF_SPK_CHL_DUAL,			/**< DUAL: enable SPK left and right channel */
 	AUD_INTF_SPK_CHL_MAX,
 } aud_intf_spk_chl_t;
 
 /* audio interface speaker setup configuration */
 typedef struct {
 	aud_intf_spk_chl_t spk_chl;
-	aud_dac_samp_rate_t samp_rate;		/**< speaker sample rate */
-	uint16_t frame_size;				/**< size: a frame packet speaker data size(byte) */
-	uint8_t spk_gain;					/**< audio dac gain: value range:0x0 ~ 0x3f, suggest:0x2d */
+	aud_dac_samp_rate_source_t samp_rate;		/**< speaker sample rate */
+	uint16_t frame_size;						/**< size: a frame packet speaker data size(byte) */
+	uint8_t spk_gain;							/**< audio dac gain: value range:0x0 ~ 0x3f, suggest:0x2d */
+	aud_dac_work_mode_t work_mode;				/**< audio dac mode: signal_ended/differen */
 } aud_intf_spk_setup_t;
 
 
@@ -91,10 +109,37 @@ typedef enum {
 
 /* audio interface voice transfer data type */
 typedef enum {
-	AUD_INTF_VOC_DATA_TYPE_G711A = 0,
-	AUD_INTF_VOC_DATA_TYPE_PCM,
+	AUD_INTF_VOC_DATA_TYPE_G711A = 0,		/**< the data of voice transfer encoded by G711A */
+	AUD_INTF_VOC_DATA_TYPE_PCM,				/**< the data of voice transfer is PCM */
 	AUD_INTF_VOC_DATA_TYPE_MAX,
 } aud_intf_voc_data_type_t;
+
+/*  */
+typedef struct {
+	/* aec */
+	uint32_t ec_depth;			/**< recommended value range: 1~50, the greater the echo, the greater the value setting */
+	uint32_t TxRxThr;			/**< the max amplitude of rx audio data */
+	uint32_t TxRxFlr;			/**< the min amplitude of rx audio data */
+	/* ns */
+	uint8_t ns_level;			/**< recommended value range: 1~8, the lower the noise, the lower the level */
+	uint8_t ns_para;			/**< value range:0,1,2, the lower the noise, the lower the level, the default valude is recommended */
+} aud_intf_voc_aec_cfg_t;
+
+/* aec parameters */
+typedef enum {
+	AUD_INTF_VOC_AEC_NULL = 0,
+	AUD_INTF_VOC_AEC_INIT_FLAG,			/**< init flag, aec module feature enable */
+	AUD_INTF_VOC_AEC_MIC_DELAY,			/**< mic_delay */
+	AUD_INTF_VOC_AEC_EC_DEPTH,			/**< ec_depth */
+	AUD_INTF_VOC_AEC_REF_SCALE,			/**< ref_scale: 0/1/2 */
+	AUD_INTF_VOC_AEC_VOICE_VOL,			/**< voice volume level */
+	AUD_INTF_VOC_AEC_TXRX_THR,			/**< max amplitude of rx audio data */
+	AUD_INTF_VOC_AEC_TXRX_FLR,			/**< min amplitude of rx audio data */
+	AUD_INTF_VOC_AEC_NS_LEVEL,			/**< noise level: 0/1/2 */
+	AUD_INTF_VOC_AEC_NS_PARA,			/**< noise value, range:1~8 */
+	AUD_INTF_VOC_AEC_DRC,				/**< voice volume value, range:0x10~0x1f */
+	AUD_INTF_VOC_AEC_MAX,
+} aud_intf_voc_aec_para_t;
 
 /* audio interface voice setup configuration */
 typedef struct {
@@ -103,6 +148,8 @@ typedef struct {
 	aud_intf_voc_data_type_t data_type;		/**< voice data type */
 	uint8_t mic_gain;						/**< mic gain: value range:0x0 ~ 0x3f, suggest:0x2d */
 	uint8_t spk_gain;						/**< spk gain: value range:0x0 ~ 0x3f, suggest:0x2d */
+	aud_dac_work_mode_t spk_mode;			/**< audio spk mode: signal_ended/differen */
+	aud_intf_voc_aec_cfg_t aec_cfg;
 } aud_intf_voc_setup_t;
 
 #ifdef __cplusplus

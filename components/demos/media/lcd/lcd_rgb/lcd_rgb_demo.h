@@ -35,6 +35,18 @@ typedef struct {
 } dma_transfer_t;
 
 
+#define JPEGDEC_FRAME_SIZE  0x200000 
+#define DISPLAY_FRAME_COUNTS (2)
+
+#define PSRAM_BASEADDR (0x60000000UL)
+
+typedef struct
+{
+	uint8_t display[DISPLAY_FRAME_COUNTS][JPEGDEC_FRAME_SIZE];
+} psram_lcd_t;
+
+#define psram_lcd ((psram_lcd_t*)PSRAM_BASEADDR)
+
 /*
  * @}
  */

@@ -25,8 +25,8 @@
 #include "bk_general_dma.h"
 
 #include <driver/psram.h>
-
-extern void delay(INT32 num);
+#include <driver/gpio.h>
+#include "bk_misc.h"
 
 #define TAG "uvc_drv"
 
@@ -39,6 +39,8 @@ extern void delay(INT32 num);
 #define UVC_DATA_LENGTH             512
 #define USB_UVC_HEAD_LEN            12
 
+//#define UVC_STRIP
+
 void uvc_camera_memcpy_finish_callback(dma_id_t id);
 
 
@@ -50,16 +52,17 @@ static uint8_t *uvc_rx_vstream_buffptr = NULL;
 static uint8_t  g_uvc_start = 0;
 uint32_t uvc_frame_id = 0;
 
+extern media_debug_t *media_debug;
+
 #define FRAME_BUFFER_UVC         (1024 * 5)
 
 typedef struct
 {
-	uint8_t  index;
+	uint8_t  frame_flag;
+	uint8_t  sof;
 	uint8_t  eof;
 	uint8_t  uvc_dma;
 	uint8_t  psram_dma;
-	uint8_t  psram_dma_busy;
-	uint16_t psram_dma_left;
 	uint32_t rxbuf_len;
 	uint32_t rx_read_len;
 	uint32_t uvc_transfer_len;
@@ -83,7 +86,7 @@ static bk_err_t uvc_send_msg(uint8_t type, uint32_t data)
 		ret = rtos_push_to_queue(&uvc_drv_msg_que, &msg, BEKEN_NO_WAIT);
 		if (kNoErr != ret)
 		{
-			os_printf("uvc_send_msg failed, type:%d\r\n", type);
+			UVC_LOGE("uvc_send_msg failed, type:%d\r\n", type);
 			return kOverrunErr;
 		}
 
@@ -97,7 +100,7 @@ static bk_err_t uvc_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_
 	dma_config_t dma_config = {0};
 
 	dma_config.mode = DMA_WORK_MODE_SINGLE;
-	dma_config.chan_prio = 1;
+	dma_config.chan_prio = 0;
 
 	dma_config.src.dev = DMA_DEV_DTCM;
 	dma_config.src.width = DMA_DATA_WIDTH_32BITS;
@@ -111,8 +114,6 @@ static bk_err_t uvc_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_
 	dma_config.dst.start_addr = (uint32_t)out;
 	dma_config.dst.end_addr = (uint32_t)(out + len);
 
-	uvc_camera_drv->psram_dma_busy = true;
-
 	BK_LOG_ON_ERR(bk_dma_init(cpy_chnls, &dma_config));
 	BK_LOG_ON_ERR(bk_dma_set_transfer_len(cpy_chnls, len));
 
@@ -123,14 +124,43 @@ static bk_err_t uvc_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_
 	return BK_OK;
 }
 
+#ifdef DVP_STRIP
+static void uvc_frame_strip(frame_buffer_t *frame)
+{
+	uint32_t i, strip = 0, strip_max = 50;
+
+	for (i = frame->length - 1; i > 0 && strip_max > 0; i--, strip_max--)
+	{
+		if (frame->frame[i] == 0xD9
+			&& frame->frame[i - 1] == 0xFF)
+		{
+			break;
+		}
+		else
+		{
+			strip--;
+		}
+	}
+
+	if (strip_max)
+	{
+		frame->length -= strip;
+	}
+	else
+	{
+		UVC_LOGE("uvc_frame_strip error\n");
+	}
+}
+#endif
+
 static void uvc_process_data_packet(void *curptr, uint32_t newlen, uint8_t is_eof, uint32_t frame_len)
 {
 	uint8_t *data;
 	uint8_t bmhead_info;
-	uint32_t fack_len = 0;
+	uint32_t fack_len = frame_len;
 
 	if (curr_frame_buffer == NULL
-	    || curr_frame_buffer->frame == NULL)
+		|| curr_frame_buffer->frame == NULL)
 	{
 		UVC_LOGE("%s curr_frame_buffer NULL\n");
 		return;
@@ -144,6 +174,23 @@ static void uvc_process_data_packet(void *curptr, uint32_t newlen, uint8_t is_eo
 		return;
 	}
 
+	if (frame_len & 0x3)
+	{
+		fack_len = ((frame_len >> 2) + 1) << 2;
+		//UVC_LOGI("eof %d-%d\r\n", frame_len, fack_len);
+	}
+
+	if (uvc_camera_drv->frame_flag != (bmhead_info & 0x01))   // bit0 fliped
+	{
+		uvc_camera_drv->frame_flag = (bmhead_info & 0x01);
+		if (uvc_camera_drv->sof || uvc_camera_drv->eof)
+		{
+			uvc_camera_drv->sof = false;
+			uvc_camera_drv->eof = false;
+			curr_frame_buffer->length = 0;
+		}
+	}
+
 	if (bmhead_info & 0x02)   // bit1 = 1, end frame
 	{
 		/*uint8_t *eof;
@@ -152,59 +199,59 @@ static void uvc_process_data_packet(void *curptr, uint32_t newlen, uint8_t is_eo
 		uvc_camera_drv->eof = true;
 		uvc_camera_drv->frame = curr_frame_buffer;
 		curr_frame_buffer->sequence = ++uvc_frame_id;
-		if (frame_len % 4)
-		{
-			fack_len = (frame_len / 4 + 1) * 4;
-			//os_printf("eof frame_len:%d\r\n", frame_len);
-		}
 	}
 	else
 	{
-		/*if ((data[0] == 0xff) && (data[1] == 0xd8)) { // strat frame
-		    os_printf("uvc start, %02x, %02x\r\n", data[0], data[1]);
-		}*/
+		if ((frame_len > 0) && ((data[0] == 0xff) && (data[1] == 0xd8))) // strat frame
+		{
+			uvc_camera_drv->sof = true;
+			//UVC_LOGI("uvc start, %02x, %02x\r\n", data[0], data[1]);
+		}
 	}
 
-	uvc_memcpy_by_chnl(curr_frame_buffer->frame + curr_frame_buffer->length, data, fack_len ? fack_len : frame_len, uvc_camera_drv->psram_dma);
-	curr_frame_buffer->length += frame_len;
+	if (frame_len > 0)
+	{
+		uvc_memcpy_by_chnl(curr_frame_buffer->frame + curr_frame_buffer->length, data, fack_len, uvc_camera_drv->psram_dma);
+		curr_frame_buffer->length += frame_len;
+	}
+	else if (frame_len == 0)
+	{
+		uvc_camera_memcpy_finish_callback(0);
+	}
 }
 
 void uvc_camera_memcpy_finish_callback(dma_id_t id)
 {
-	uvc_camera_drv->psram_dma_busy = false;
-	uvc_camera_drv->index = !uvc_camera_drv->index;
-
 	if (uvc_camera_drv->eof == true)
 	{
+		if(uvc_camera_drv->sof == false)
+		{
+			curr_frame_buffer->length = 0;
+			return;
+		}
 		frame_buffer_t *frame = uvc_camera_drv->frame;
 
-		if (uvc_camera_drv->psram_dma_left != 0)
+#ifdef DVP_STRIP
+		uvc_frame_strip(frame);
+#endif
+
+		media_debug->isr_jpeg++;
+
+		uvc_camera_config->frame_complete(frame);
+		uvc_camera_drv->frame = NULL;
+		uvc_camera_drv->eof = false;
+		uvc_camera_drv->sof = false;
+
+		curr_frame_buffer = uvc_camera_config->frame_alloc();
+
+		if (curr_frame_buffer == NULL
+			|| curr_frame_buffer->frame == NULL)
 		{
-			uvc_memcpy_by_chnl(frame->frame + frame->length,
-			                   uvc_camera_drv->index ? (uvc_camera_drv->buffer + FRAME_BUFFER_UVC) : uvc_camera_drv->buffer,
-			                   uvc_camera_drv->psram_dma_left, uvc_camera_drv->psram_dma);
-			frame->length += uvc_camera_drv->psram_dma_left;
-			frame->sequence = ++uvc_frame_id;
-			uvc_camera_drv->psram_dma_left = 0;
+			UVC_LOGE("alloc frame error\n");
+			return;
 		}
-		else
-		{
-			uvc_camera_config->frame_complete(frame);
-			uvc_camera_drv->index = 0;
-			uvc_camera_drv->frame = NULL;
-			uvc_camera_drv->eof = false;
 
-			curr_frame_buffer = uvc_camera_config->frame_alloc();
-
-			if (curr_frame_buffer == NULL
-			    || curr_frame_buffer->frame == NULL)
-			{
-				UVC_LOGE("alloc frame error\n");
-				return;
-			}
-
-			curr_frame_buffer->length = 0;
-		}
+		curr_frame_buffer->length = 0;
 	}
 }
 
@@ -284,6 +331,20 @@ static void uvc_fiddle_rx_vs_callback(void)
 	{
 		bk_uvc_stop();
 	}
+}
+
+static void uvc_disconnect_callback(void)
+{
+	UVC_LOGI("uvc_disconnect\r\n");
+
+	if (uvc_camera_config && uvc_camera_config->uvc_disconnect)
+	{
+		uvc_camera_config->uvc_disconnect();
+	}
+
+	uvc_send_msg(UVC_EXIT, 0);
+
+	return;
 }
 
 static void uvc_get_packet_rx_vs_callback(uint8_t *arg, uint32_t count)
@@ -428,7 +489,9 @@ static bk_err_t uvc_camera_init(const uvc_camera_config_t *config)
 	void *parameter;
 	bk_err_t err = BK_OK;
 
-	uvc_camera_config->frame_set_ppi((uint32_t)(uvc_camera_config->device->width) << 16 | uvc_camera_config->device->height);
+	media_debug->isr_jpeg = 0;
+
+	uvc_camera_config->frame_set_ppi((uint32_t)(uvc_camera_config->device->width) << 16 | uvc_camera_config->device->height, FRAME_JPEG);
 
 	// step 1: init dma, fifo to sharemem
 	err = uvc_dma_config();
@@ -445,6 +508,9 @@ static bk_err_t uvc_camera_init(const uvc_camera_config_t *config)
 		err = kNoResourcesErr;
 		goto init_error;
 	}
+
+	parameter = (void *)uvc_disconnect_callback;
+	bk_uvc_register_disconnect_callback(parameter);
 
 	parameter = (void *)uvc_notify_uvc_configed_callback;
 	err = bk_uvc_register_config_callback(parameter);
@@ -543,6 +609,8 @@ static bk_err_t uvc_camera_deinit(void)
 		uvc_rx_vstream_buffptr = NULL;
 	}
 
+	UVC_LOGI("uvc_camera_deinit\n");
+
 	return status;
 }
 
@@ -589,6 +657,19 @@ uvc_exit:
 	rtos_delete_thread(NULL);
 }
 
+bk_err_t bk_uvc_camera_power_on(void)
+{
+#if (CONFIG_DOORBELL_DEMO1)
+	BK_LOG_ON_ERR(bk_gpio_disable_input(37));
+	BK_LOG_ON_ERR(bk_gpio_enable_output(37));
+	// pull up gpio37, enable uvc camera vol
+	bk_gpio_set_output_low(37);
+	delay_ms(10);
+	bk_gpio_set_output_high(37);
+#endif
+	return BK_OK;
+}
+
 bk_err_t bk_uvc_camera_get_config(uvc_camera_device_t *param, uint16_t count)
 {
 	if (param == NULL)
@@ -627,16 +708,20 @@ bk_err_t bk_uvc_camera_driver_stop(void)
 
 uvc_camera_device_t *bk_uvc_camera_get_device(void)
 {
+	if (uvc_camera_config == NULL)
+	{
+		return NULL;
+	}
+
 	return uvc_camera_config->device;
 }
-
 
 bk_err_t bk_uvc_camera_driver_init(const uvc_camera_config_t *config)
 {
 	int ret = kNoErr;
 
-	BK_ASSERT(uvc_camera_config->frame_alloc != NULL);
-	BK_ASSERT(uvc_camera_config->frame_complete != NULL);
+	BK_ASSERT(config->frame_alloc != NULL);
+	BK_ASSERT(config->frame_complete != NULL);
 
 #if (CONFIG_PSRAM)
 	bk_psram_init();
@@ -672,6 +757,7 @@ bk_err_t bk_uvc_camera_driver_init(const uvc_camera_config_t *config)
 
 	uvc_camera_drv->rxbuf_len = FRAME_BUFFER_UVC * 2;
 	uvc_camera_drv->node_full_handler = uvc_process_data_packet;
+	uvc_camera_drv->frame_flag = 0x80;
 
 	uvc_camera_config = config;
 
@@ -711,6 +797,8 @@ bk_err_t bk_uvc_camera_driver_init(const uvc_camera_config_t *config)
 
 error:
 
+	UVC_LOGI("uvc_camera_drv init failed\n");
+
 	if (uvc_camera_drv)
 	{
 		if (uvc_camera_drv->buffer)
@@ -747,6 +835,7 @@ bk_err_t bk_uvc_camera_driver_deinit(void)
 	{
 		return BK_OK;
 	}
+
 	uvc_send_msg(UVC_EXIT, 0);
 
 	while (uvc_thread_drv_handle)

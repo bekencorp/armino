@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <common/bk_include.h>
+#include <common/bk_compiler.h>
 #include "icu_driver.h"
 #include <os/mem.h>
 #include <driver/pwm.h>
@@ -25,7 +26,7 @@
 #include "gpio_driver.h"
 #include <driver/gpio.h>
 
-static void pwm_isr(void) __SECTION(".itcm");
+static void pwm_isr(void) __BK_SECTION(".itcm");
 
 //TODO list
 // 1. Check if a PWM channel already in using

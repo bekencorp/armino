@@ -241,6 +241,10 @@ extern "C" {
 #define CLI_CFG_G711         1
 #endif
 
+#if (CONFIG_AUDIO_MP3_TEST)
+#define CLI_CFG_MP3			1
+#endif
+
 #if (CONFIG_SECURITYIP)
 #define CLI_CFG_VAULT		1
 #else

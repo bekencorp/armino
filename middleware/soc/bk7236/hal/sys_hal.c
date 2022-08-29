@@ -84,7 +84,7 @@ void sys_hal_usb_charge_get_cal()
 
 void sys_hal_flash_set_dco(void)
 {
-	sys_ll_set_cpu_clk_div_mode2_cksel_flash(FLASH_CLK_120M);
+	sys_ll_set_cpu_clk_div_mode2_cksel_flash(FLASH_CLK_DPLL);
 }
 
 void sys_hal_flash_set_dpll(void)

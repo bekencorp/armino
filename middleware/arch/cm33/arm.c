@@ -14,13 +14,8 @@
 
 #include "bk_arch.h"
 
-void arch_enable_align_fault(void)
-{
-
-}
-
 void arch_init(void)
 {
-	arch_enable_align_fault();
+
 }
 

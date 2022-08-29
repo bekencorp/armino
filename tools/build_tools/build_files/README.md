@@ -17,9 +17,9 @@ SoC is already supported.
 
 |Chip                                                                                |          v1.X.X             |
 |:---------------------------------------------------------------------------------- | :-------------------------: |
-|[BK7235](http://docs.bekencorp.com:8191/spec/BK7235/BK7235%C2%A0Datasheet_V0.1.pdf) | ![alt text][developing]     |
-|[BK7237](http://docs.bekencorp.com:8191/spec/BK7237/BK7237%C2%A0Datasheet_V0.3.pdf) | ![alt text][developing]     |
-|[BK7256](http://docs.bekencorp.com:8191/spec/BK7256/BK7256%C2%A0Datasheet_V0.1.pdf) | ![alt text][developing]     |
+|[BK7235](http://docs.bekencorp.com/spec/BK7235/BK7235%C2%A0Datasheet_V0.1.pdf) | ![alt text][developing]     |
+|[BK7237](http://docs.bekencorp.com/spec/BK7237/BK7237%C2%A0Datasheet_V0.3.pdf) | ![alt text][developing]     |
+|[BK7256](http://docs.bekencorp.com/spec/BK7256/BK7256%C2%A0Datasheet_V0.1.pdf) | ![alt text][developing]     |
 
 [supported]: https://img.shields.io/badge/-supported-green "supported"
 [developing]: https://img.shields.io/badge/-developing-orange "developing"
@@ -55,7 +55,7 @@ and the documentation's [Introduction](TODO_link_to_armino_get_started_doc) to s
 
 Here's a quick summary of resources to help you find your way around:
 
- - Documentation: http://docs.bekencorp.com:8191/armino/bk7256/en/latest/
+ - Documentation: http://docs.bekencorp.com/armino/bk7256/en/latest/
  - Source Code: https://github.com/bekencorp/armino is the main repository
  - Releases: TODO_link_to_release_page
  - Samples and example code: TODO_link_to_doc_sample_and_demo_page

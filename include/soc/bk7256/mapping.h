@@ -30,6 +30,11 @@
 #define PSRAM_NONCACHEABLE (0x60000000UL)
 #define PSRAM_CACHEABLE (0x64000000UL)
 
+#define JPEG_SRAM_FRAME_COUNT (2)
+#define JPEG_SRAM_ADDRESS (0x30000000)
+#define JPEG_SRAM_BUFFER_SIZE (1024 * 60)
+
+
 typedef struct
 {
 	uint8_t display[DISPLAY_FRAME_COUNT][JPEG_DEC_FRAME_SIZE];
@@ -46,5 +51,5 @@ typedef struct
 	uint8_t aud_dac[AUDIO_FRAME_SIZE];
 } psram_720p_map_t;
 
-#define psram_map ((psram_map_t*)PSRAM_CACHEABLE)
-#define psram_720p_map ((psram_720p_map_t*)PSRAM_CACHEABLE)
+#define psram_map ((psram_map_t*)PSRAM_NONCACHEABLE)
+#define psram_720p_map ((psram_720p_map_t*)PSRAM_NONCACHEABLE)

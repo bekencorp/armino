@@ -17,6 +17,7 @@
 								cli_pm_rtc_callback,
 								NULL
 								};
+  
   bk_alarm_register(AON_RTC_ID_1, &low_valtage_alarm);
   
   
@@ -53,8 +54,10 @@ alarm_info_t low_valtage_alarm = {
 								cli_pm_rtc_callback,
 								NULL
 								};
-  bk_alarm_register(AON_RTC_ID_1, &low_valtage_alarm);
-  bk_pm_wakeup_source_set(PM_WAKEUP_SOURCE_INT_RTC, NULL);
+ 
+ bk_alarm_register(AON_RTC_ID_1, &low_valtage_alarm);
+ 
+ bk_pm_wakeup_source_set(PM_WAKEUP_SOURCE_INT_RTC, NULL);
   //例如：向系统中设置RTC方式作为唤醒源,并且进入深度睡眠后3s唤醒；
 
 

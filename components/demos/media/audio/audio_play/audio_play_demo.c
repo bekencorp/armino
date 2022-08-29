@@ -72,6 +72,8 @@ static bk_err_t audio_dac_config(void)
 
 	dac_config.dac_enable = AUD_DAC_DISABLE;
 	dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_8K;
+	dac_config.dac_chl = AUD_DAC_CHL_L_ENABLE;
+	dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 	dac_config.dac_hpf2_coef_B2 = 0x3A22;
 	dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
 	dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;

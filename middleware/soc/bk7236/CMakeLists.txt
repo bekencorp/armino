@@ -53,17 +53,17 @@ armino_build_get_property(sdkconfig_header SDKCONFIG_HEADER)
 armino_build_get_property(config_dir CONFIG_DIR)
 
 #TODO add support to generate ELF with/without bootloader
-#
-target_linker_script_judge()
 
 set(LD_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_custom_command(
 	OUTPUT ${target}_out.ld
-	COMMAND "${CMAKE_C_COMPILER}" -C -P -x c -E -o ${target}_out.ld -I ${config_dir} ${LD_DIR}/${target}_bsp.ld
+	COMMAND "${CMAKE_C_COMPILER}" -P -x c -E - < ${LD_DIR}/${target}_bsp.ld -o ${target}_out.ld -I ${armino_path}/include/ -I ${config_dir}
 	MAIN_DEPENDENCY ${LD_DIR}/${target}.ld ${sdkconfig_header}
 	COMMENT "Generating linker script..."
 	VERBATIM)
 
 add_custom_target(${target}_linker_script DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${target}_out.ld)
 add_dependencies(${COMPONENT_LIB} ${target}_linker_script)
+
+target_linker_script(${COMPONENT_LIB} INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/${target}_out.ld")

@@ -49,6 +49,7 @@
 #define SD_CMD_ERASE                 38
 #define SD_CMD_SD_SEND_OP_COND       41  /* R3 */
 #define SD_CMD_APP_CMD               55  /* R1 */
+#define SD_CMD_APP_CMD6_SET_BUS_WIDTH 6  /* After CMD55 */
 
 #define SD_CHECK_PATTERN          0x1AA
 
@@ -62,10 +63,15 @@
 #define SD_BLOCK_SIZE             512
 
 /* Command class support */
-#define SD_SUPPORT_ERASE_CMD      0x20
+#define SD_SUPPORT_BASIC_CMD      	BIT(0)
+#define SD_SUPPORT_RESERVED_0_CMD   BIT(1)
+#define SD_SUPPORT_BLOCK_READ_CMD   BIT(2)
+#define SD_SUPPORT_RESERVED_1_CMD   BIT(3)
+#define SD_SUPPORT_BLOCK_WRITE_CMD  BIT(4)
+#define SD_SUPPORT_ERASE_CMD      	BIT(5)
+#define SD_SUPPORT_WRITE_PROTECTION_CMD   BIT(6)
+#define SD_SUPPORT_LOCK_CARD_CMD   	BIT(7)
+#define SD_SUPPORT_APPLICATION_CMD  BIT(8)
+#define SD_SUPPORT_RESERVED_2_CMD   (BIT(9) | BIT(10) | BIT(11))
 
-/* CSD register */
-typedef volatile struct {
-
-} sd_card_csd_t;
 

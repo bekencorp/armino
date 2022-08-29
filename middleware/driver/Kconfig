@@ -28,6 +28,20 @@ menu "Driver"
 			bool "Enable NMI Watchdog"
 			default n
 	endmenu
+	
+	menu "AON_Watchdog"
+		config AON_WDT
+			bool "Enable AON Watchingdog"
+			default n
+
+		config INT_AON_WDT
+			bool "Enable Interrupt AON Watchdog"
+			default y
+
+		config INT_AON_WDT_PERIOD_MS
+			int "Interrupt AON Watchdog Period(ms)"
+			default 1000
+	endmenu
 
 	menu "UART"
 		config UART1
@@ -127,6 +141,14 @@ menu "Driver"
 			config SD1_HOST_INTF
 				bool "SD1 Host Interface"
 		endchoice
+
+		config SDCARD_V2P0
+			bool "Support SDCARD refactor code which version is 2.0"
+			default y
+
+		config SDCARD_V1P0
+			bool "Before SDCARD refactor code which version is 1.0"
+			default n
 
 		config SDCARD_BUSWIDTH_4LINE
 			bool "Support SDCARD 4 Data Wires"

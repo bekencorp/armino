@@ -1,6 +1,8 @@
 #ifndef _ARCH_CONFIG_H_
 #define _ARCH_CONFIG_H_
 
+#include <common/bk_compiler.h>
+
 //TODO
 // 1. Rename this file
 // 2. Optimize this file
@@ -29,7 +31,7 @@ struct mac_bssid
 {
     /// Array of 16-bit words that make up the MAC address.
     uint16_t array[MAC_ADDR_LEN/2];
-} __packed;
+} __bk_packed;
 #endif
 
 struct wifi_bssid {

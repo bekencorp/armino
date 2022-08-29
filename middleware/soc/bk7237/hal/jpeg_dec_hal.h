@@ -74,7 +74,7 @@ struct JDEC {
 
 //static 	JDEC jdec; /* Decompression object */
 
-int jpg_dec_config(uint16_t xpixel, uint16_t ypixel,unsigned char *input_buf, unsigned char * output_buf);
+int jpg_dec_config(uint16_t xpixel, uint16_t ypixel, uint32_t length, unsigned char *input_buf, unsigned char * output_buf);
 void jpeg_dec_block_int_en(bool auto_int_en);
 void jpeg_dec_auto_frame_end_int_en(bool auto_int_en);
 void jpeg_dec_auto_line_num_int_en(bool line_int_en, uint16_t line_num);

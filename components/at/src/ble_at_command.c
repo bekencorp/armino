@@ -670,18 +670,22 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
 //#if (CONFIG_BTDM_5_2)
         if(bk_ble_get_controller_stack_type() == BK_BLE_CONTROLLER_STACK_TYPE_BTDM_5_2)
         {
-            ble_create_db_t *cd_ind = (ble_create_db_t *)param;
-            os_printf("cd_ind:prf_id:%d, status:%d\r\n", cd_ind->prf_id, cd_ind->status);
+        	if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+        	{
+				ble_create_db_t *cd_ind = (ble_create_db_t *)param;
+				os_printf("cd_ind:prf_id:%d, status:%d\r\n", cd_ind->prf_id, cd_ind->status);
 
-            at_cmd_status = cd_ind->status;
-            if (ble_at_cmd_sema != NULL)
-                rtos_set_semaphore( &ble_at_cmd_sema );
+				at_cmd_status = cd_ind->status;
+				if (ble_at_cmd_sema != NULL)
+					rtos_set_semaphore( &ble_at_cmd_sema );
+        	}
+        	else
+			{
+				os_printf("%s ethermind BLE_5_CREATE_DB ok\n", __func__);
+			}
         }
 //#endif
-        else
-        {
-            os_printf("%s BLE_5_CREATE_DB ok\n", __func__);
-        }
+
         break;
     }
     case BLE_5_INIT_CONNECT_EVENT: {
@@ -804,6 +808,13 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
     {
         ble_discovery_primary_service_t *tmp = (typeof(tmp))param;
         os_printf("%s BLE_5_DISCOVERY_PRIMARY_SERVICE_EVENT count %d\n", __func__, tmp->count);
+        for(uint8_t i = 0; i < tmp->count; i++)
+        {
+        	//service's char must in this range
+        	bk_printf("%s service uuid 0x%X start %d end %d\n", __func__, tmp->service[i].uuid.uuid_16,
+        			tmp->service[i].range.start_handle, tmp->service[i].range.end_handle);
+
+        }
     }
         break;
 
@@ -826,7 +837,7 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
             switch(tmp->character[i].uuid_type)
             {
             case ATT_16_BIT_UUID_FORMAT:
-                os_printf("%s char 16bit uuid 0x%04X, %d\n", __func__, tmp->character[i].uuid.uuid_16, tmp->character[i].value_handle);
+                os_printf("%s char 16bit uuid 0x%04X, attr_handle %d\n", __func__, tmp->character[i].uuid.uuid_16, tmp->character[i].value_handle);
                 break;
 
             case ATT_128_BIT_UUID_FORMAT:
@@ -875,7 +886,7 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
 
             case ATT_128_BIT_UUID_FORMAT:
             {
-                os_printf("%s char 128bit uuid 0x%08X attr_hdl:d%d\n", __func__, (uint32_t *)(tmp->character[i].uuid.uuid_128.value + 11), tmp->character[i].value_handle);
+                os_printf("%s char 128bit uuid 0x%08X attr_hdl:%d\n", __func__, (uint32_t *)(tmp->character[i].uuid.uuid_128.value + 11), tmp->character[i].value_handle);
 
                 if(!os_memcmp(&tmp->character[i].uuid.uuid_128.value, nus_rx_uuid, sizeof(nus_rx_uuid)))
                 {
@@ -3331,8 +3342,8 @@ static API_RESULT ethermind_test_gatt_char_handler
 
     static GATT_DB_HANDLE *gdbh = NULL;
 
-    os_printf("%s device_id %d service %d char %d op 0x%02X\n", __func__,
-             handle->device_id, handle->service_id, handle->char_id, params->db_op);
+    os_printf("%s device_id %d service %d char %d attr_handle %d op 0x%02X\n", __func__,
+             handle->device_id, handle->service_id, handle->char_id, params->handle, params->db_op);
 
     if (handle->service_id == s_ethermind_send_test_service_handle)
     {
@@ -3416,13 +3427,36 @@ static API_RESULT ethermind_test_gatt_char_handler
             {
                 //BT_UNPACK_LE_2_BYTE(&value, params->value.val);
                 memcpy(&value, params->value.val, 2);
-                os_printf("%s write s_ethermind_send_intv_handle %d\n", __func__, value);
+                os_printf("%s write s_ethermind_send_intv_handle %d len %d %d\n", __func__, value, params->value.len, params->value.actual_len);
             }
             else
             {
                 retval = BK_FAIL;
             }
         }
+        break;
+
+        case GATT_DB_CHAR_PEER_READ_REQ:
+        	if (handle->char_id == s_ethermind_send_intv_handle)
+        	{
+#if 0
+        		//when s_ethermind_send_intv_handle buff is null
+        		uint8_t conn_handle = 0;
+        		const uint32_t test_resp = 0xabcdef01;
+
+        		if(0 != bk_ble_get_conn_handle_from_device_handle(&conn_handle, &handle->device_id))
+        		{
+        			break;
+        		}
+
+        		//respone here
+        		bk_ble_gatt_read_resp(conn_handle, (uint8_t *)&test_resp, sizeof(test_resp));
+
+        		//must return GATT_DB_DELAYED_RESPONSE
+        		retval = GATT_DB_DELAYED_RESPONSE;
+#endif
+        	}
+
         break;
         }
     }
@@ -3551,6 +3585,8 @@ static int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen,
 
         bk_ble_set_notice_cb(ble_at_notice_cb);
 
+        bk_printf("%s now last attr_handle %d\n", __func__, bk_ble_get_current_gatt_db_attr_handle());
+
         service_info.is_primary        = 1;
         service_info.uuid.uuid_format  = ATT_16_BIT_UUID_FORMAT;
         service_info.uuid.uuid.uuid_16 = my_service_uuid;
@@ -3573,6 +3609,7 @@ static int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen,
         }
         else
         {
+        	bk_printf("%s service last attr_handle %d\n", __func__, bk_ble_get_current_gatt_db_attr_handle());
             /* Save GATT Service Instance for future reference */
             s_ethermind_send_test_service_handle  = service_handle;
 
@@ -3605,6 +3642,7 @@ static int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen,
             }
             else
             {
+            	bk_printf("%s first char value attr_handle %d\n", __func__, bk_ble_get_current_gatt_db_attr_handle());
                 /* Add CCCD */
                 GATT_DB_UUID_TYPE    desc_uuid;
                 UINT16               perm;
@@ -3638,6 +3676,7 @@ static int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen,
         }
         else
         {
+        	bk_printf("%s first char desc attr_handle %d\n", __func__, bk_ble_get_current_gatt_db_attr_handle());
             char_uuid.uuid_format   = ATT_16_BIT_UUID_FORMAT;
             char_uuid.uuid.uuid_16  = 0x9abc;
 
@@ -3666,6 +3705,7 @@ static int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen,
         }
         else
         {
+        	bk_printf("%s second char value attr_handle %d\n", __func__, bk_ble_get_current_gatt_db_attr_handle());
             char_uuid.uuid_format   = ATT_16_BIT_UUID_FORMAT;
             char_uuid.uuid.uuid_16  = 0xdef0;
 
@@ -3675,7 +3715,11 @@ static int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen,
             char_value.val          = (uint8_t *)&s_ethermind_send_intv_value;
             char_value.len          = sizeof(s_ethermind_send_intv_value);
             char_value.actual_len   = char_value.len;
-
+#if 0 //set val len to 0 when you don't want to create buff in gatt db
+            char_value.val          = NULL;
+            char_value.len          = 0;
+            char_value.actual_len   = 0;
+#endif
             retval = bk_ble_gatt_db_add_characteristic
                    (
                        service_handle,
@@ -3694,6 +3738,7 @@ static int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen,
         }
         else
         {
+        	bk_printf("%s third char value attr_handle %d\n", __func__, bk_ble_get_current_gatt_db_attr_handle());
             retval = bk_ble_gatt_db_dyn_register();
 
             if (retval != 0)

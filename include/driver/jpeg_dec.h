@@ -20,6 +20,15 @@
 extern "C" {
 #endif
 
+ /* @brief Overview about jpeg dec API header
+  *
+  */
+ 
+ /**
+  * @brief HW JPEG DEC API
+  * @{
+  */
+
 
  /**
  * @brief     this api open the jpeg decode clk
@@ -47,7 +56,7 @@ bk_err_t bk_jpeg_dec_driver_deinit(void);
 
 * @return 
 */
-bk_err_t bk_jpeg_dec_hw_init(uint16_t xpixel, uint16_t ypixel, unsigned char *input_buf, unsigned char * output_buf);
+//bk_err_t bk_jpeg_dec_hw_init(uint16_t xpixel, uint16_t ypixel, uint32_t length, unsigned char *input_buf, unsigned char * output_buf);
 
 /**
 * @brief	 this api used for jpeg decode line interrupt config
@@ -78,13 +87,38 @@ bk_err_t bk_jpeg_dec_line_int_dis(void);
 /**
 * @brief	 this api start jpeg decode
 *
+* @param     length jpeg length
+*           - input_buf jpeg data src addr
+*           - output_buf jpeg decode output addr
+*
 * @return 
 *         0: jpeg decode ok;
 *        others: error
 */
-JRESULT  bk_jpeg_dec_hw_start(void);
+JRESULT bk_jpeg_dec_hw_start(uint32_t length, unsigned char *input_buf, unsigned char * output_buf);
+
+/**
+* @brief	 this api start jpeg decode
+*
+* @param     length jpeg length
+*           - input_buf jpeg data src addr
+*           - output_buf jpeg decode output addr
+*
+* @return 
+*         0: jpeg decode ok;
+*        others: error
+*/
+JRESULT bk_jpeg_dec_dma_start(uint32_t length, unsigned char *input_buf, unsigned char * output_buf);
 
 
+/**
+* @brief	 stop jpeg decode
+*
+* @return 
+*         0: jpeg decode stop ok;
+*        others: error
+*/
+bk_err_t bk_jpeg_dec_stop(void);
 
 #if (USE_JPEG_DEC_COMPLETE_CALLBACKS == 1)
 
@@ -113,6 +147,10 @@ bk_err_t bk_jpeg_dec_isr_register(jpeg_dec_isr_type_t isr_id, jpeg_dec_isr_cb_t 
  */
 bk_err_t  bk_jpeg_dec_isr_register(jpeg_dec_isr_t jpeg_dec_isr);
 #endif
+
+/**
+  * @}
+  */
 
 
 #ifdef __cplusplus

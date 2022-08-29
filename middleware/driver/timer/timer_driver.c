@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <common/bk_include.h>
+#include <common/bk_compiler.h>
 #include <os/mem.h>
 #include "icu_driver.h"
 #include "timer_driver.h"
@@ -24,9 +25,9 @@
 #include "sys_driver.h"
 
 #if (SOC_TIMER_INTERRUPT_NUM > 1)
-static void timer1_isr(void) __SECTION(".itcm");
+static void timer1_isr(void) __BK_SECTION(".itcm");
 #endif
-static void timer_isr(void) __SECTION(".itcm");
+static void timer_isr(void) __BK_SECTION(".itcm");
 
 typedef struct {
     timer_hal_t hal;
@@ -172,7 +173,7 @@ static void timer_chan_enable_interrupt_common(timer_id_t timer_id)
     timer_hal_enable_interrupt(&s_timer.hal, timer_id);
 }
 
-static void timer_isr(void) __SECTION(".itcm");
+static void timer_isr(void) __BK_SECTION(".itcm");
 
 bk_err_t bk_timer_driver_init(void)
 {
@@ -376,7 +377,7 @@ uint64_t bk_timer_get_time(timer_id_t timer_id, uint32_t div, uint32_t last_coun
     uint16_t unit_factor = 1;
 
     uint32_t current_count = timer_hal_get_count(&s_timer.hal, timer_id) + last_count;
-    
+
     if (div == 0) {
         div = 1;
     }

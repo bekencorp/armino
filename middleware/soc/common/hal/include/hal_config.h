@@ -47,6 +47,7 @@ extern "C" {
 #define CFG_HAL_DEBUG_SDIO_HOST  1
 #define CFG_HAL_DEBUG_MPC        1
 #define CFG_HAL_DEBUG_PRRO       1
+#define CFG_HAL_DEBUG_AON_WDT    1
 
 #ifdef __cplusplus
 }

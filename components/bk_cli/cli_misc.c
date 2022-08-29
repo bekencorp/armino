@@ -356,6 +356,49 @@ void show_cache_config(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 }
 #endif
 
+#if CONFIG_ADC_KEY
+static void adc_key_next_cb()
+{
+	os_printf("adc_key_next_cb NEXT\r\n");
+}
+static void adc_key_prev_cb()
+{
+	os_printf("adc_key_prev_cb PREV\r\n");
+}
+static void adc_key_play_pause_cb()
+{
+	os_printf("adc_key_play_pause_cb PLAY PAUSE\r\n");
+}
+static void adc_key_menu_cb()
+{
+	os_printf("adc_key_menu_cb MENU\r\n");
+}
+static void cli_adc_key_op(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		os_printf("cli_adc_key_op please init/deinit");
+		return;
+	}
+	if (os_strcmp(argv[1], "init") == 0) {
+		adc_key_init();
+		adc_key_register_next_cb(adc_key_next_cb);
+		adc_key_register_prev_cb(adc_key_prev_cb);
+		adc_key_register_play_pause_cb(adc_key_play_pause_cb);
+		adc_key_register_menu_cb(adc_key_menu_cb);
+		CLI_LOGI("adc_key init\n");
+	} else if(os_strcmp(argv[1], "deinit") == 0) {
+		adc_key_deinit();
+		CLI_LOGI("adc_key deinit\n");
+	} else if(os_strcmp(argv[1], "set_int") == 0) {
+		int type = os_strtoul(argv[2], NULL, 10);
+		adc_key_set_gpio_int_type(type);
+		CLI_LOGI("adc_key SET_GPIO_INT_TYPE\n");
+	} else {
+		return;
+	}
+}
+#endif
+
 #define MISC_CMD_CNT (sizeof(s_misc_commands) / sizeof(struct cli_command))
 static const struct cli_command s_misc_commands[] = {
 	{"version", NULL, get_version},
@@ -386,6 +429,9 @@ static const struct cli_command s_misc_commands[] = {
 	{"setprintport", "set log/shell uart port 0/1/2", set_printf_uart_port},
 #if CONFIG_CACHE_ENABLE
 	{"cache", "show cache config info", show_cache_config},
+#endif
+#if CONFIG_ADC_KEY
+		{"adc_key", "adc_key {init|deinit}", cli_adc_key_op},
 #endif
 };
 

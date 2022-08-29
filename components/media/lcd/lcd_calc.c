@@ -50,6 +50,7 @@
 #include "modules/image_scale.h"
 
 #define TAG "rotate"
+#include "cache.h"
 
 #if CONFIG_SLAVE_CORE
 #define MINOOR_DTCM __attribute__((section(".dtcm_sec_data ")))
@@ -78,55 +79,14 @@ uint32_t lcd_height = 0;
 lcd_info_t *lcd_info_ptr = NULL;
 
 
-#define BLOCK_WIDTH     (60)
+#define BLOCK_WIDTH     (40)
 #define BLOCK_HEIGHT    (80)
 #define BLOCK_SIZE      (BLOCK_WIDTH * BLOCK_HEIGHT * 2)
 
 MINOOR_DTCM uint8_t rx_block[BLOCK_SIZE];
 MINOOR_DTCM uint8_t tx_block[BLOCK_SIZE];
 
-MINOOR_ITCM int vuyy_rotate_degree902(unsigned char *vuyy, unsigned char *rotatedVuyy, int width, int height)
-{
-	int lineDataSize = width * 2;
-	int rotatedLineDataSize = height * 2;
-	int rotatedVuyyIndex = 0;
-	int finalLineStartIndex = (height - 2) * lineDataSize;
-	for (int w = 0; w < lineDataSize; w += 4)
-	{
-		int vuyyStartIndex = finalLineStartIndex + w;
-		int offset = 0;
-		for (int h = 0; h < height; h += 2)
-		{
-			/**
-			* y1 y2 u1 v1   y3 y4  u2 v2
-			*                               ->
-			*y5 y6 u3 v3    y7 y8  u4 v4
-			*/
-			//v1
-			*(rotatedVuyy + rotatedVuyyIndex) = *(vuyy + vuyyStartIndex - offset + 3);
-			//y1
-			*(rotatedVuyy + rotatedVuyyIndex + 1) = *(vuyy + vuyyStartIndex - offset);
-			//u3
-			*(rotatedVuyy + rotatedVuyyIndex + 2) = *(vuyy + vuyyStartIndex - offset + lineDataSize + 2);
-			//y5
-			*(rotatedVuyy + rotatedVuyyIndex + 3) = *(vuyy + vuyyStartIndex - offset + lineDataSize);
 
-			//v1
-			*(rotatedVuyy + rotatedVuyyIndex + rotatedLineDataSize) = *(vuyy + vuyyStartIndex - offset + 3);
-			//y2
-			*(rotatedVuyy + rotatedVuyyIndex + rotatedLineDataSize + 1) =  *(vuyy + vuyyStartIndex - offset + 1);
-			//u3
-			*(rotatedVuyy + rotatedVuyyIndex + rotatedLineDataSize + 2) = *(vuyy + vuyyStartIndex - offset + lineDataSize + 2);
-			//y6
-			*(rotatedVuyy + rotatedVuyyIndex + rotatedLineDataSize + 3) = *(vuyy + vuyyStartIndex - offset + lineDataSize + 1);
-
-			rotatedVuyyIndex += 4;
-			offset += lineDataSize * 2;
-		}
-		rotatedVuyyIndex += rotatedLineDataSize;
-	}
-	return 0;
-}
 
 void rotate_complete(frame_buffer_t *frame)
 {
@@ -150,6 +110,7 @@ MINOOR_ITCM void memcpy_word(uint32_t *dst, uint32_t *src, uint32_t size)
 
 MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 {
+	
 	lcd_info_ptr = (lcd_info_t *)param;
 	uint32_t i, j, k;
 	uint8_t *cp_ptr = NULL;
@@ -164,19 +125,23 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 	lcd_width = lcd_info_ptr->lcd_pixel_x;
 	lcd_height = lcd_info_ptr->lcd_pixel_y;
 
-	LOGD("camera %d:%d, lcd %d:%d\n", src_width, src_height, lcd_width, lcd_height);
+#if(1) // cpu1 cache enable 
+	uint8_t * dst_frame_temp = rotate_frame->frame + 0x4000000;
+	uint8_t * src_frame_temp = decoder_frame->frame + 0x4000000;
 
+	flush_dcache(src_frame_temp, JPEG_DEC_FRAME_SIZE);
+	flush_dcache(dst_frame_temp, JPEG_DEC_FRAME_SIZE);
+#endif
+	LOGD("camera %d:%d, lcd %d:%d\n", src_width, src_height, lcd_width, lcd_height);
 
 	if (lcd_width == src_width
 	    && lcd_width == src_width)
 	{
 		LOGD("do not rotate\n");
-		memcpy_word((uint32_t *)rotate_frame->frame, (uint32_t *)decoder_frame->frame, decoder_frame->length / 4);
+		memcpy_word((uint32_t *)(rotate_frame->frame), (uint32_t *)decoder_frame->frame, decoder_frame->length / 4);
 		rotate_complete(rotate_frame);
 		return;
 	}
-
-	//bk_gpio_pull_up(GPIO_8);
 
 	for (j = 0; j < (src_height / BLOCK_HEIGHT); j++)
 	{
@@ -185,21 +150,27 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 		{
 			for (k = 0; k < BLOCK_HEIGHT; k++)
 			{
-				cp_ptr = decoder_frame->frame + i * BLOCK_WIDTH * 2 + j * BLOCK_HEIGHT * src_width * 2 + k * src_width * 2;
+			#if(1) // cpu1 cache enable 
+				cp_ptr = src_frame_temp + i * BLOCK_WIDTH * 2 + j * BLOCK_HEIGHT * src_width * 2 + k * src_width * 2;
+			#else
+				cp_ptr =  decoder_frame->frame  + i * BLOCK_WIDTH * 2 + j * BLOCK_HEIGHT * src_width * 2 + k * src_width * 2;
+			#endif
 				memcpy_word((uint32_t *)(rx_block + BLOCK_WIDTH * 2 * k), (uint32_t *)cp_ptr, BLOCK_WIDTH * 2 / 4);
 			}
 
-			vuyy_rotate_degree902(rx_block, tx_block, BLOCK_WIDTH, BLOCK_HEIGHT);
+			vuyy_rotate_degree90(rx_block, tx_block, BLOCK_WIDTH, BLOCK_HEIGHT);
 
 			for (k = 0; k < BLOCK_WIDTH; k++)
 			{
+			#if(1) // cpu1 cache enable 
+				cp_ptr = dst_frame_temp + (src_height / BLOCK_HEIGHT - j - 1) * BLOCK_HEIGHT * 2 + (i) * BLOCK_WIDTH * src_height * 2 + k * src_height * 2;
+			#else
 				cp_ptr = rotate_frame->frame + (src_height / BLOCK_HEIGHT - j - 1) * BLOCK_HEIGHT * 2 + (i) * BLOCK_WIDTH * src_height * 2 + k * src_height * 2;
+			#endif
 				memcpy_word((uint32_t *)cp_ptr, (uint32_t *)(tx_block + BLOCK_HEIGHT * 2 * k), BLOCK_HEIGHT * 2 / 4);
 			}
 		}
 	}
-
-	//bk_gpio_pull_down(GPIO_8);
 
 #if CONFIG_SLAVE_CORE
 	rotate_complete(rotate_frame);

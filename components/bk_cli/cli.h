@@ -109,6 +109,7 @@ int cli_calendar_init(void);
 int cli_jpegdec_init(void);
 int cli_aec_init(void);
 int cli_g711_init(void);
+int cli_mp3_init(void);
 int cli_dvp_init(void);
 int cli_doorbell_init(void);
 int cli_sdio_host_init(void);

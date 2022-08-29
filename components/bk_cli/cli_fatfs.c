@@ -72,15 +72,22 @@ static void fatfs_operate(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 			break;
 		}
 
-		//fatfstest A dev-num file-name write-len test_cnt
+		//fatfstest A dev-num file-name write-len test_cnt start-addr
 		//fatfstest A 1 autotest.txt 12487 3
 		case 'A':
+		{
+			uint32_t start_addr = 0;
 			if(argc >= 5)
 			{
 				content_len = os_strtoul(argv[4], NULL, 10);
 			}
-			test_fatfs_auto_test(drv_num, file_name, content_len, test_cnt);
+			if(argc >= 6)
+			{
+				start_addr = os_strtoul(argv[5], NULL, 16);
+			}
+			test_fatfs_auto_test(drv_num, file_name, content_len, test_cnt, start_addr);
 			break;
+		}
 		case 'F':
 			test_fatfs_format(drv_num);
 			os_printf("format :%d\r\n", drv_num);
@@ -112,7 +119,7 @@ static void cli_fatfs_idle_out_test(void)
 		if(s_fatfs_idle_test_stop_flag)
 			break;
 		else
-			test_fatfs_auto_test(1, file_name, 12487, 1);
+			test_fatfs_auto_test(1, file_name, 12487, 1, 0);
 	}
 
 	rtos_delete_thread(&idle_fatfs_out_test_handle);

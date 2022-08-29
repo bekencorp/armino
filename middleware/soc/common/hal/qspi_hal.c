@@ -14,7 +14,7 @@
 
 #include "qspi_hal.h"
 #include "qspi_ll.h"
-#include <driver/hal/hal_qspi_types.h>
+#include <driver/hal/hal_spi_types.h>
 
 static uint32_t s_current_sw_op = 0;
 
@@ -55,15 +55,14 @@ bk_err_t qspi_hal_direct_read(uint32_t base_addr, void *data, uint32_t size)
 	return BK_OK;
 }
 
-bk_err_t qspi_hal_io_write(qspi_hal_t *hal, uint32_t base_addr, const void *data, uint32_t size)
+bk_err_t qspi_hal_io_write(qspi_hal_t *hal, const void *data, uint32_t size)
 {
-	qspi_ll_io_write(hal->hw, base_addr, data, size);
+	qspi_ll_io_write(hal->hw, data, size);
 	return BK_OK;
 }
 
-bk_err_t qspi_hal_io_read(qspi_hal_t *hal, uint32_t base_addr, void *data, uint32_t size)
+bk_err_t qspi_hal_io_read(qspi_hal_t *hal, void *data, uint32_t size)
 {
-	qspi_ll_io_read(hal->hw, base_addr, data, size);
+	qspi_ll_io_read(hal->hw, data, size);
 	return BK_OK;
 }
-

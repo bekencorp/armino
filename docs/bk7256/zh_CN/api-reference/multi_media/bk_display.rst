@@ -14,51 +14,11 @@ The BK LCD Display Driver supports following interfaces:
     3) 接口支持的数据为RGB565
 
  - RGB interface
-    1) 项目中使用的屏幕Driving IC ST7282.
+    1) 项目中支持的屏幕有Driving IC ST7282，HX8282, GC9503V.
     2) 接口支持的数据包括RGB565,YUYV,UYVY,YYUV,UVYY,VUYY
 
 LCD API Categories
 ----------------------------
-
-+-------------------------------------------+----------------------------------------------+
-| Commom API                                |                 Description                  |
-+===========================================+==============================================+
-| :cpp:func:`bk_lcd_driver_init`            | Lcd module init of clk and int               |
-+-------------------------------------------+----------------------------------------------+
-| :cpp:func:`bk_lcd_pixel_config`           | Lcd transfer pixel config                    |
-+-------------------------------------------+----------------------------------------------+
-| :cpp:func:`bk_lcd_isr_register`           | Lcd int tpe isr regidter                     |
-+-------------------------------------------+----------------------------------------------+
-
-+-------------------------------------------+----------------------------------------------+
-| LCD 8080 API                              |                 Description                  |
-+===========================================+==============================================+
-| :cpp:func:`bk_lcd_8080_init`              | Init the 8080 lcd interface                  |
-+-------------------------------------------+----------------------------------------------+
-| :cpp:func:`bk_lcd_8080_deinit`            | Deinit lcd 8080 interface reg                |
-+-------------------------------------------+----------------------------------------------+
-| :cpp:func:`bk_lcd_8080_write_cmd`         | Write 8080 lcd cmd                           |
-+-------------------------------------------+----------------------------------------------+
-| :cpp:func:`bk_lcd_8080_write_data`        | Write 8080 lcd data                          |
-+-------------------------------------------+----------------------------------------------+
-| :cpp:func:`bk_lcd_8080_int_enable`        | Lcd transfer pixel config                    |
-+-------------------------------------------+----------------------------------------------+
-| :cpp:func:`bk_lcd_8080_start_transfer`    | 8080 lcd transfer data to display            |
-+-------------------------------------------+----------------------------------------------+
-| :cpp:func:`bk_lcd_8080_display_enable`    | Enable 8080 lcd display                      |
-+-------------------------------------------+----------------------------------------------+
-
-+-------------------------------------------+----------------------------------------------+
-| LCD RGB API                               |                 Description                  |
-+===========================================+==============================================+
-| :cpp:func:`bk_lcd_rgb_init`               | Init the rgb lcd interface                   |
-+-------------------------------------------+----------------------------------------------+
-| :cpp:func:`bk_lcd_rgb_deinit`             | Deinit rgb lcd interface reg                 |
-+-------------------------------------------+----------------------------------------------+
-| :cpp:func:`bk_lcd_rgb_display_en`         | Enable rgb lcd                               |
-+-------------------------------------------+----------------------------------------------+
-| :cpp:func:`bk_lcd_rgb_int_enable`         | Enable rgb lcd interrupt                     |
-+-------------------------------------------+----------------------------------------------+
 
 LCD 8080 Config
 ----------------------------------------
@@ -80,11 +40,29 @@ LCD RGB Config
 
     Figure 2. rgb lcd config flow
 
+LCD parcical display 
+----------------------------------------
+
+.. figure:: ../../../_static/lcd_partical_display.png
+    :align: center
+    :alt: rgb lcd Overview
+    :figclass: align-center
+
+    Figure 3. rgb lcd config flow
+
+局部显示参数配置
+
+.. figure:: ../../../_static/partical_params_config.png
+    :align: center
+    :alt: rgb lcd Overview
+    :figclass: align-center
+
+    Figure 4. rgb lcd config flow
 
 API Reference
 ----------------------------------------
 .. include:: ../../_build/inc/lcd.inc
 
 API Typedefs
----------------------
-.. include:: ../../_build/inc/lcd_disp_types.inc
+-------------------------------------------
+.. include:: ../../_build/inc/lcd_types.inc

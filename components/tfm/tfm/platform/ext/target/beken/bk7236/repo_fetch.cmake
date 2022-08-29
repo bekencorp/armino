@@ -7,36 +7,36 @@ set(FETCHCONTENT_QUIET FALSE)
 set(MBEDCRYPTO_VERSION                  "91fbed6" CACHE STRING "The version of Mbed Crypto to use")
 set(MBEDCRYPTO_GIT_REMOTE               "ssh://${USER}@192.168.0.46:29418/iot/wcn/components/tfm_mbedtls" CACHE STRING "The URL (or path) to retrieve MbedTLS from.")
 
-file(GLOB PATCH_FILES ${CMAKE_SOURCE_DIR}/lib/ext/mbedcrypto/*.patch)
-file(GLOB BK_PATCH_FILES ${CMAKE_SOURCE_DIR}/platform/ext/target/beken/bk7236/patch/*.patch)
-list(APPEND PATCH_FILES "${BK_PATCH_FILES}")
+if ("${MBEDCRYPTO_PATH}" STREQUAL "")
+    file(GLOB PATCH_FILES ${CMAKE_SOURCE_DIR}/lib/ext/mbedcrypto/*.patch)
+    file(GLOB BK_PATCH_FILES ${CMAKE_SOURCE_DIR}/platform/ext/target/beken/bk7236/patch/*.patch)
+    list(APPEND PATCH_FILES "${BK_PATCH_FILES}")
 
-if (BK_MBEDTLS_PATCH) #TODO junlong, remove it when mbedtls is integrated to TFM
-find_package(Git)
-if (PATCH_FILES)
-    FetchContent_Declare(mbedcrypto
-        GIT_REPOSITORY ${MBEDCRYPTO_GIT_REMOTE}
-        GIT_TAG ${MBEDCRYPTO_VERSION}
-        GIT_SHALLOW TRUE
-        GIT_PROGRESS TRUE
-        GIT_SUBMODULES ""
-        PATCH_COMMAND ${GIT_EXECUTABLE} apply ${PATCH_FILES}
-    )
-else()
-    FetchContent_Declare(mbedcrypto
-        GIT_REPOSITORY ${MBEDCRYPTO_GIT_REMOTE}
-        GIT_TAG ${MBEDCRYPTO_VERSION}
-        GIT_SHALLOW TRUE
-        GIT_PROGRESS TRUE
-        GIT_SUBMODULES ""
-    )
-endif()
-
-FetchContent_GetProperties(mbedcrypto)
-if(NOT mbedcrypto_POPULATED)
-    FetchContent_Populate(mbedcrypto)
-    set(MBEDCRYPTO_PATH ${mbedcrypto_SOURCE_DIR} CACHE PATH "Path to mbed-crypto (or DOWNLOAD to get automatically" FORCE)
-endif()
+    find_package(Git)
+    if (PATCH_FILES)
+        FetchContent_Declare(mbedcrypto
+            GIT_REPOSITORY ${MBEDCRYPTO_GIT_REMOTE}
+            GIT_TAG ${MBEDCRYPTO_VERSION}
+            GIT_SHALLOW TRUE
+            GIT_PROGRESS TRUE
+            GIT_SUBMODULES ""
+            PATCH_COMMAND ${GIT_EXECUTABLE} apply ${PATCH_FILES}
+        )
+    else()
+        FetchContent_Declare(mbedcrypto
+            GIT_REPOSITORY ${MBEDCRYPTO_GIT_REMOTE}
+            GIT_TAG ${MBEDCRYPTO_VERSION}
+            GIT_SHALLOW TRUE
+            GIT_PROGRESS TRUE
+            GIT_SUBMODULES ""
+        )
+    endif()
+    
+    FetchContent_GetProperties(mbedcrypto)
+    if(NOT mbedcrypto_POPULATED)
+        FetchContent_Populate(mbedcrypto)
+        set(MBEDCRYPTO_PATH ${mbedcrypto_SOURCE_DIR} CACHE PATH "Path to mbed-crypto (or DOWNLOAD to get automatically" FORCE)
+    endif()
 endif()
 
 # TODO peter - 

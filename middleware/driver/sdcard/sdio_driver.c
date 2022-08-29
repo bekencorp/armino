@@ -79,6 +79,7 @@ void sdio_gpio_config(void)
 	gpio_dev_unmap(PIN_ID_SDIO_D3);
 #endif
 	gpio_dev_map(PIN_ID_SDIO_CLK, GPIO_DEV_SDIO_HOST_CLK);
+	bk_gpio_pull_up(PIN_ID_SDIO_CLK);
 	bk_gpio_set_capacity(PIN_ID_SDIO_CLK, 3);
 
 	gpio_dev_map(PIN_ID_SDIO_CMD, GPIO_DEV_SDIO_HOST_CMD);

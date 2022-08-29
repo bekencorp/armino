@@ -15,16 +15,11 @@
 #include <os/os.h>
 #include <components/log.h>
 
-#include "media_core.h"
 #include "camera_act.h"
-#include "lcd_act.h"
-#include "storage_act.h"
 #include "media_evt.h"
+#include "media_app.h"
 
-#include <driver/int.h>
 #include <os/mem.h>
-
-#include <driver/dma.h>
 
 #include <driver/uvc_camera.h>
 
@@ -36,6 +31,8 @@
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
+
+#ifdef CONFIG_USB_UVC
 
 uvc_camera_device_t uvc_camera_device =
 {
@@ -54,6 +51,12 @@ frame_buffer_t *frame_buffer_uvc_jpg_alloc(void)
 	return frame_buffer_alloc(FRAME_JPEG);
 }
 
+void uvc_device_disconnect_callback(void)
+{
+	LOGI("%s\n", __func__);
+
+	media_app_camera_close(APP_CAMERA_UVC);
+}
 
 const uvc_camera_config_t uvc_camera_config =
 {
@@ -61,6 +64,7 @@ const uvc_camera_config_t uvc_camera_config =
 	.frame_set_ppi = frame_buffer_set_ppi,
 	.frame_complete = frame_buffer_uvc_jpg_complete,
 	.frame_alloc = frame_buffer_uvc_jpg_alloc,
+	.uvc_disconnect = uvc_device_disconnect_callback,
 };
 
 
@@ -95,3 +99,5 @@ bk_err_t bk_uvc_camera_param_set(param_pak_t *param)
 {
 	return bk_uvc_camera_set_config((uvc_camera_device_t *)param->param);
 }
+
+#endif

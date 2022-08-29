@@ -50,6 +50,104 @@ static void audio_tras_demo_deconfig(void);
 static bk_err_t audio_tras_send_msg(audio_tras_opcode_t op, uint32_t param1, uint32_t param2, uint32_t param3);
 #endif
 
+
+#if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+static void audio_tras_aec_dump_config(void)
+{
+	sprintf(aud_tras_info.sin_file_name, "1:/%s", "aec_dump_sin.pcm");
+	sprintf(aud_tras_info.ref_file_name, "1:/%s", "aec_dump_ref.pcm");
+	sprintf(aud_tras_info.out_file_name, "1:/%s", "aec_dump_out.pcm");
+}
+
+static bk_err_t audio_tras_aec_dump_file_open(void)
+{
+	FRESULT fr;
+
+	/*open file to save sin data of AEC */
+	fr = f_open(&(aud_tras_info.sin_file), aud_tras_info.sin_file_name, FA_CREATE_ALWAYS | FA_WRITE);
+	if (fr != FR_OK) {
+		os_printf("open %s fail.\r\n", aud_tras_info.sin_file_name);
+		return BK_FAIL;
+	}
+
+	/*open file to save ref data of AEC */
+	fr = f_open(&(aud_tras_info.ref_file), aud_tras_info.ref_file_name, FA_CREATE_ALWAYS | FA_WRITE);
+	if (fr != FR_OK) {
+		os_printf("open %s fail.\r\n", aud_tras_info.ref_file_name);
+		return BK_FAIL;
+	}
+
+	/*open file to save out data of AEC */
+	fr = f_open(&(aud_tras_info.out_file), aud_tras_info.out_file_name, FA_CREATE_ALWAYS | FA_WRITE);
+	if (fr != FR_OK) {
+		os_printf("open %s fail.\r\n", aud_tras_info.out_file_name);
+		return BK_FAIL;
+	}
+
+	return BK_OK;
+}
+
+static bk_err_t audio_tras_aec_dump_file_close(void)
+{
+	FRESULT fr;
+
+	/* close sin file */
+	fr = f_close(&(aud_tras_info.sin_file));
+	if (fr != FR_OK) {
+		os_printf("close %s fail!\r\n", aud_tras_info.sin_file_name);
+		return BK_FAIL;
+	}
+	os_printf("close sin file complete \r\n");
+
+	/* close ref file */
+	fr = f_close(&(aud_tras_info.ref_file));
+	if (fr != FR_OK) {
+		os_printf("close %s fail!\r\n", aud_tras_info.ref_file_name);
+		return BK_FAIL;
+	}
+	os_printf("close ref file complete \r\n");
+
+	/* close unused file */
+	fr = f_close(&(aud_tras_info.out_file));
+	if (fr != FR_OK) {
+		os_printf("close %s fail!\r\n", aud_tras_info.out_file_name);
+		return BK_FAIL;
+	}
+	os_printf("close out file complete \r\n");
+
+	return BK_OK;
+}
+
+static bk_err_t audio_tras_aec_dump_handle(void)
+{
+	FRESULT fr;
+	uint32 uiTemp = 0;
+
+	/* write sin data to file */
+	fr = f_write(&(aud_tras_info.sin_file), (void *)aud_tras_drv_setup.aec_dump.mic_dump_addr, aud_tras_drv_setup.aec_dump.len, &uiTemp);
+	if (fr != FR_OK) {
+		os_printf("write %s fail.\r\n", aud_tras_info.sin_file_name);
+		return BK_FAIL;
+	}
+
+	/* write ref data to file */
+	fr = f_write(&(aud_tras_info.ref_file), (void *)aud_tras_drv_setup.aec_dump.ref_dump_addr, aud_tras_drv_setup.aec_dump.len, &uiTemp);
+	if (fr != FR_OK) {
+		os_printf("write %s fail.\r\n", aud_tras_info.ref_file_name);
+		return BK_FAIL;
+	}
+
+	/* write unused data to file */
+	fr = f_write(&(aud_tras_info.out_file), (void *)aud_tras_drv_setup.aec_dump.out_dump_addr, aud_tras_drv_setup.aec_dump.len, &uiTemp);
+	if (fr != FR_OK) {
+		os_printf("write %s fail.\r\n", aud_tras_info.out_file_name);
+		return BK_FAIL;
+	}
+
+	return BK_OK;
+}
+#endif
+
 static void audio_transfer_event_process(audio_tras_event_t event)
 {
 	switch (event) {
@@ -307,103 +405,6 @@ static bk_err_t audio_stop_transfer(void)
 	mb_msg.param2 = 0;
 	mb_msg.param3 = 0;
 	return audio_cp0_send_aud_mailbox_msg(&mb_msg);
-}
-#endif
-
-#if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
-static void audio_tras_aec_dump_config(void)
-{
-	sprintf(aud_tras_info.sin_file_name, "1:/%s", "aec_dump_sin.pcm");
-	sprintf(aud_tras_info.ref_file_name, "1:/%s", "aec_dump_ref.pcm");
-	sprintf(aud_tras_info.out_file_name, "1:/%s", "aec_dump_out.pcm");
-}
-
-static bk_err_t audio_tras_aec_dump_file_open(void)
-{
-	FRESULT fr;
-
-	/*open file to save sin data of AEC */
-	fr = f_open(&(aud_tras_info.sin_file), aud_tras_info.sin_file_name, FA_CREATE_ALWAYS | FA_WRITE);
-	if (fr != FR_OK) {
-		os_printf("open %s fail.\r\n", aud_tras_info.sin_file_name);
-		return BK_FAIL;
-	}
-
-	/*open file to save ref data of AEC */
-	fr = f_open(&(aud_tras_info.ref_file), aud_tras_info.ref_file_name, FA_CREATE_ALWAYS | FA_WRITE);
-	if (fr != FR_OK) {
-		os_printf("open %s fail.\r\n", aud_tras_info.ref_file_name);
-		return BK_FAIL;
-	}
-
-	/*open file to save out data of AEC */
-	fr = f_open(&(aud_tras_info.out_file), aud_tras_info.out_file_name, FA_CREATE_ALWAYS | FA_WRITE);
-	if (fr != FR_OK) {
-		os_printf("open %s fail.\r\n", aud_tras_info.out_file_name);
-		return BK_FAIL;
-	}
-
-	return BK_OK;
-}
-
-static bk_err_t audio_tras_aec_dump_file_close(void)
-{
-	FRESULT fr;
-
-	/* close sin file */
-	fr = f_close(&(aud_tras_info.sin_file));
-	if (fr != FR_OK) {
-		os_printf("close %s fail!\r\n", aud_tras_info.sin_file_name);
-		return BK_FAIL;
-	}
-	os_printf("close sin file complete \r\n");
-
-	/* close ref file */
-	fr = f_close(&(aud_tras_info.ref_file));
-	if (fr != FR_OK) {
-		os_printf("close %s fail!\r\n", aud_tras_info.ref_file_name);
-		return BK_FAIL;
-	}
-	os_printf("close ref file complete \r\n");
-
-	/* close unused file */
-	fr = f_close(&(aud_tras_info.out_file));
-	if (fr != FR_OK) {
-		os_printf("close %s fail!\r\n", aud_tras_info.out_file_name);
-		return BK_FAIL;
-	}
-	os_printf("close out file complete \r\n");
-
-	return BK_OK;
-}
-
-static bk_err_t audio_tras_aec_dump_handle(void)
-{
-	FRESULT fr;
-	uint32 uiTemp = 0;
-
-	/* write sin data to file */
-	fr = f_write(&(aud_tras_info.sin_file), (void *)aud_tras_drv_setup.aec_dump.mic_dump_addr, aud_tras_drv_setup.aec_dump.len, &uiTemp);
-	if (fr != FR_OK) {
-		os_printf("write %s fail.\r\n", aud_tras_info.sin_file_name);
-		return BK_FAIL;
-	}
-
-	/* write ref data to file */
-	fr = f_write(&(aud_tras_info.ref_file), (void *)aud_tras_drv_setup.aec_dump.ref_dump_addr, aud_tras_drv_setup.aec_dump.len, &uiTemp);
-	if (fr != FR_OK) {
-		os_printf("write %s fail.\r\n", aud_tras_info.ref_file_name);
-		return BK_FAIL;
-	}
-
-	/* write unused data to file */
-	fr = f_write(&(aud_tras_info.out_file), (void *)aud_tras_drv_setup.aec_dump.out_dump_addr, aud_tras_drv_setup.aec_dump.len, &uiTemp);
-	if (fr != FR_OK) {
-		os_printf("write %s fail.\r\n", aud_tras_info.out_file_name);
-		return BK_FAIL;
-	}
-
-	return BK_OK;
 }
 #endif
 

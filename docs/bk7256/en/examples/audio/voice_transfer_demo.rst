@@ -1,0 +1,1 @@
+.. include:: ../../../zh_CN/examples/audio/voice_transfer_demo.rst

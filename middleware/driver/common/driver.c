@@ -84,11 +84,16 @@
 #include "chip_support.h"
 #endif
 
+#if CONFIG_DOORBELL_DEMO1
+#include <driver/uvc_camera.h>
+#endif
+
 
 //TODO only init driver model and necessary drivers
 #if CONFIG_POWER_CLOCK_RF
 #define   MODULES_POWER_OFF_ENABLE (1)
-#define   ROSC_DEBUG_EN   (0)
+#define   ROSC_DEBUG_EN            (0)
+#define   MODULES_CLK_ENABLE       (0)
 extern void clock_dco_cali(UINT32 speed);
 void power_clk_rf_init()
 {
@@ -96,7 +101,6 @@ void power_clk_rf_init()
 	/*power on all the modules for bringup test*/
 
 	module_name_t use_module = MODULE_NAME_WIFI;
-	dev_clk_pwr_id_t devid = 0;
     /*1. power on all the modules*/
 	#if MODULES_POWER_OFF_ENABLE
 	    sys_drv_module_power_ctrl(POWER_MODULE_NAME_ENCP,POWER_MODULE_STATE_OFF);
@@ -118,11 +122,13 @@ void power_clk_rf_init()
     sys_drv_module_RF_power_ctrl(use_module ,POWER_MODULE_STATE_ON);
 
 	/*3.enable all the modules clock*/
+	#if MODULES_CLK_ENABLE
+	dev_clk_pwr_id_t devid = 0;
 	for(devid = 0; devid < 32; devid++)
 	{
 	    sys_drv_dev_clk_pwr_up(devid, CLK_PWR_CTRL_PWR_UP);
     }
-
+	#endif
     /*4.set the cpu0 and matrix clock*/
    /*cpu0:26m ,matrix:26m*/
    //sys_drv_core_bus_clock_ctrl(HIGH_FREQUECY_CLOCK_MODULE_CPU0, 1,0, HIGH_FREQUECY_CLOCK_MODULE_CPU0_MATRIX,0,0);
@@ -328,7 +334,7 @@ int driver_init(void)
 	bk_aon_rtc_driver_init();
 #endif
 
-#if CONFIG_SDCARD_HOST
+#if (CONFIG_SDCARD_HOST && CONFIG_SDCARD_V1P0)
 	sdcard_init();
 #endif
 
@@ -343,6 +349,10 @@ int driver_init(void)
 //call it after LOG is valid.
 #if CONFIG_ATE
 	os_printf("ate enabled is %d\r\n", ate_is_enabled());
+#endif
+
+#if CONFIG_DOORBELL_DEMO1
+	bk_uvc_camera_power_on();
 #endif
 
 #if CONFIG_USB

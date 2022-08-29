@@ -20,8 +20,8 @@
 #define JPEG_BITRATE_MAX_SIZE_320_240     (20 * 1024)
 #define JPEG_BITRATE_MIN_SIZE_320_240     (5 * 1024)
 
-#define JPEG_BITRATE_MAX_SIZE_640_480     (30 * 1024)
-#define JPEG_BITRATE_MIN_SIZE_640_480     (10 * 1024)
+#define JPEG_BITRATE_MAX_SIZE_640_480     (35 * 1024)//30
+#define JPEG_BITRATE_MIN_SIZE_640_480     (20 * 1024)//10
 
 #define JPEG_BITRATE_MAX_SIZE_1280_720    (50 * 1024)
 #define JPEG_BITRATE_MIN_SIZE_1280_720    (30 * 1024)
@@ -54,7 +54,7 @@ static void jpeg_hal_set_target_bitrate(jpeg_hal_t *hal, uint32_t x_pixel)
 		break;
 	case X_PIXEL_1280:
 	case X_PIXEL_1600:
-		jpeg_ll_enable_bitrate_ctrl(hal->hw, 1);
+		//jpeg_ll_enable_bitrate_ctrl(hal->hw, 1);
 		jpeg_ll_set_target_high_byte(hal->hw, JPEG_BITRATE_MAX_SIZE_1280_720);
 		jpeg_ll_set_target_low_byte(hal->hw, JPEG_BITRATE_MIN_SIZE_1280_720);
 		break;

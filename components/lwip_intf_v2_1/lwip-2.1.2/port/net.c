@@ -27,6 +27,7 @@
 #include "bk_wifi.h"
 #include <os/str.h>
 #include <modules/wifi.h>
+#include "wlan_ui_pub.h"
 
 /* forward declaration */
 FUNC_1PARAM_PTR bk_wlan_get_status_cb(void);
@@ -220,7 +221,7 @@ static void wm_netif_status_static_callback(struct netif *n)
 	}
 }
 
-
+extern wifi_connect_tick_t sta_tick;
 static void wm_netif_status_callback(struct netif *n)
 {
 	struct dhcp *dhcp;
@@ -257,6 +258,12 @@ static void wm_netif_status_callback(struct netif *n)
 			/* dhcp success*/
 			if (dhcp->state == DHCP_STATE_BOUND) {
 				LWIP_LOGI("ip_addr: "BK_IP4_FORMAT" \r\n", BK_IP4_STR(ip_addr_get_ip4_u32(&n->ip_addr)));
+				sta_tick.sta_ip_tick = rtos_get_time();
+				LWIP_LOGI("STA assoc delta:%d, eapol delta:%d, dhcp delta:%d, total:%d\n", 
+					sta_tick.sta_assoc_tick - sta_tick.sta_start_tick,
+					sta_tick.sta_eapol_tick - sta_tick.sta_assoc_tick,
+					sta_tick.sta_ip_tick - sta_tick.sta_eapol_tick,
+					sta_tick.sta_ip_tick - sta_tick.sta_start_tick);
 #if !CONFIG_DISABLE_DEPRECIATED_WIFI_API
 				wifi_netif_call_status_cb_when_sta_got_ip();
 #endif

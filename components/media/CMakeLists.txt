@@ -11,10 +11,11 @@ if (NOT CONFIG_SLAVE_CORE)
 		utils/mlist.c
 	)
 
-if (CONFIG_CAMERA)
+if (CONFIG_CAMERA OR CONFIG_USB_UVC)
 	list(APPEND srcs
 		camera/camera_act.c
 		camera/dvp.c
+		camera/uvc.c
 	)
 endif()
 
@@ -40,12 +41,6 @@ if (CONFIG_AUDIO)
 	)
 endif()
 
-if (CONFIG_USB_UVC)
-	list(APPEND srcs
-		camera/uvc_act.c
-		camera/uvc.c
-	)
-endif()
 
 if (CONFIG_DUAL_CORE)
 	list(APPEND srcs
@@ -63,10 +58,11 @@ else()
 	)
 
 
-if (CONFIG_CAMERA)
+if (CONFIG_CAMERA OR CONFIG_USB_UVC)
 	list(APPEND srcs
 		camera/camera_act.c
 		camera/dvp.c
+		camera/uvc.c
 	)
 endif()
 
@@ -93,12 +89,7 @@ if (CONFIG_LCD)
 	)
 endif()
 
-if (CONFIG_USB_UVC)
-	list(APPEND srcs
-		camera/uvc_act.c
-		camera/uvc.c
-	)
-endif()
+
 
 if (CONFIG_DUAL_CORE)
 	list(APPEND srcs

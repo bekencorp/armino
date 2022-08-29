@@ -368,6 +368,12 @@
 #define LWIP_IGMP                       1
 
 /**
+ * LWIP_SO_CONTIMEO==1: Enable send timeout for sockets/netconns and
+ * SO_CONTIMEO processing.
+ */
+#define LWIP_SO_CONTIMEO                1
+
+/**
  * LWIP_SO_SNDTIMEO==1: Enable send timeout for sockets/netconns and
  * SO_SNDTIMEO processing.
  */

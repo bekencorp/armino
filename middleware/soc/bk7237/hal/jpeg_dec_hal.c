@@ -563,7 +563,7 @@ JRESULT jd_prepare (JDEC* jd, uint16_t (*infunc)(JDEC*, uint8_t*, uint16_t), voi
 	}
 }
 
-int jpg_dec_config(uint16_t xpixel, uint16_t ypixel,unsigned char *input_buf, unsigned char * output_buf)
+int jpg_dec_config(uint16_t xpixel, uint16_t ypixel, uint32_t length, unsigned char *input_buf, unsigned char * output_buf)
 {
 	jpeg_dec_ll_set_reg0x58_value((uint32_t)input_buf);
 	jpeg_dec_ll_set_reg0x59_value((uint32_t)output_buf);
@@ -571,33 +571,32 @@ int jpg_dec_config(uint16_t xpixel, uint16_t ypixel,unsigned char *input_buf, un
 
 	jpeg_dec_ll_set_reg0x5b_value(xpixel*ypixel*2);
 	jpeg_dec_ll_set_reg0xf_value(xpixel*ypixel*2/64 - 1);
-	switch(xpixel)
-	{
-		case PIXEL_320:
-			jpeg_dec_ll_set_reg0x5a_value(HVGA_RD_LEN);
+#if(1)
+		jpeg_dec_ll_set_reg0x5a_value(length);
+#else
+			switch(xpixel)
+		{
+			case PIXEL_320:
+				jpeg_dec_ll_set_reg0x5a_value(HVGA_RD_LEN);
+				break;
+			case PIXEL_480:
+				jpeg_dec_ll_set_reg0x5a_value(V720P_RD_LEN);
+				break;
+			case PIXEL_640:
+				jpeg_dec_ll_set_reg0x5a_value(VGA_RD_LEN);
+				break;
+			case PIXEL_1280:
+				jpeg_dec_ll_set_reg0x5a_value(V720P_RD_LEN);
+				break;
+			case JPEGDEC_X_PIXEL_1920:
+				jpeg_dec_ll_set_reg0x5a_value(V1080P_RD_LEN);
+				break;
+			default:
+				jpeg_dec_ll_set_reg0x5a_value(V720P_RD_LEN);
+				break;
+		}
+#endif
 
-			break;
-		case PIXEL_480:
-
-			jpeg_dec_ll_set_reg0x5a_value(HVGA_RD_LEN);
-
-
-			break;
-		case PIXEL_640:
-
-			jpeg_dec_ll_set_reg0x5a_value(VGA_RD_LEN);
-
-			break;
-		case PIXEL_1280:
-			jpeg_dec_ll_set_reg0x5a_value(V720P_RD_LEN);
-			break;
-		case JPEGDEC_X_PIXEL_1920:
-			jpeg_dec_ll_set_reg0x5a_value(V1080P_RD_LEN);
-			break;
-		default:
-			jpeg_dec_ll_set_reg0x5a_value(HVGA_RD_LEN);
-			break;
-	}
 	return 0;
 }
 void jpeg_dec_block_int_en(bool auto_int_en)

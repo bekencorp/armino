@@ -5,6 +5,12 @@ extern "C" {
 #endif
 #include <stdint.h>
 
+#if CONFIG_SLAVE_CORE
+#define MINOOR_ITCM __attribute__((section(".itcm_sec_code ")))
+#else
+#define MINOOR_ITCM
+#endif
+
 /* @brief Overview about image scale
  *
  */
@@ -67,7 +73,7 @@ int yuyv_rotate_degree90(unsigned char *yuyv, unsigned char *rotatedYuyv, int wi
 /**
  * @brief yuyv data clockwise rotate90
  */
-int vuyy_rotate_degree90(unsigned char *yuyv, unsigned char *rotatedYuyv, int width, int height);
+MINOOR_ITCM int vuyy_rotate_degree90(unsigned char *vuyy, unsigned char *rotatedVuyy, int width, int height);
 
 /**
  * @brief  uyvy422 data convert to RGB565 data

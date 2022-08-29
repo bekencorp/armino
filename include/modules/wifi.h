@@ -813,6 +813,8 @@ bk_err_t bk_wifi_ap_vif_probe_req_frame_cb_register(void *cb);
 /**
  * @brief  Set listen interval.
  *
+ * @param  any value is acceptable,but 1, 3, 10 is recommended.
+ *
  * @return
  * 	-BK_OK: on success
  * 	-others:real error, used for future.

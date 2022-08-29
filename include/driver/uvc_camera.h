@@ -22,6 +22,7 @@ extern "C" {
 
 bk_err_t bk_uvc_camera_driver_init(const uvc_camera_config_t * config);
 bk_err_t bk_uvc_camera_driver_deinit(void);
+bk_err_t bk_uvc_camera_power_on(void);
 bk_err_t bk_uvc_camera_get_config(uvc_camera_device_t *param, uint16_t count);
 bk_err_t bk_uvc_camera_set_config(uvc_camera_device_t * config);
 bk_err_t bk_uvc_camera_driver_start(void);

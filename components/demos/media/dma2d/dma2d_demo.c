@@ -9,7 +9,6 @@
 #include <driver/psram.h>
 #include <driver/dma.h>
 #include "bk_general_dma.h"
-#include "driver/lcd_disp_types.h"
 #include "dma2d_demo.h"
 
 static volatile uint32_t     transferErrorDetected = 0;    /**< Set to 1 if an error transfer is detected */

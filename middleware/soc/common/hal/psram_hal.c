@@ -39,3 +39,9 @@ uint32_t psram_hal_cmd_read(uint32_t addr)
 	return psram_ll_get_regb_value();
 }
 
+void psram_hal_set_transfer_mode(uint32_t value)
+{
+	psram_ll_set_reg4_wrap_config(value);
+}
+
+

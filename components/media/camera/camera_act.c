@@ -37,9 +37,11 @@
 #include <driver/dvp_camera.h>
 #include <driver/dvp_camera_types.h>
 
+#include <modules/ble.h>
+
 #include <driver/timer.h>
 
-#define TAG "dvp_act"
+#define TAG "cam_act"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
@@ -51,30 +53,45 @@
 extern bk_err_t pm_core_bus_clock_ctrl(uint32_t cksel_core, uint32_t ckdiv_core, uint32_t ckdiv_bus, uint32_t ckdiv_cpu0, uint32_t ckdiv_cpu1);
 
 extern void transfer_dump(uint32_t ms);
-#if CONFIG_LCD
-extern uint32_t media_jpg_isr_count;
-extern uint32_t media_decoder_isr_count;
-extern uint32_t media_lcd_isr_count;
-#endif
 
+media_debug_t *media_debug = NULL;
+media_debug_t *media_debug_cached = NULL;
 
-dvp_info_t dvp_info;
+camera_info_t camera_info;
 
-static void dvp_debug_dump(timer_id_t timer_id)
+static void camera_debug_dump(timer_id_t timer_id)
 {
 	transfer_dump(DEBUG_INTERVAL);
-#if CONFIG_LCD
-	LOGI("ISR, jpg: %d, decoder: %d, lcd: %d\n", media_jpg_isr_count, media_decoder_isr_count, media_lcd_isr_count);
-#endif
+
+	uint16_t jpg = (media_debug->isr_jpeg - media_debug_cached->isr_jpeg) / 2;
+	uint16_t dec = (media_debug->isr_decoder - media_debug_cached->isr_decoder) / 2;
+	uint16_t lcd = (media_debug->isr_lcd - media_debug_cached->isr_lcd) / 2;
+	uint16_t fps = (media_debug->fps_lcd - media_debug_cached->fps_lcd) / 2;
+	uint16_t wifi = (media_debug->fps_wifi - media_debug_cached->fps_wifi) / 2;
+	uint16_t err_dec = (media_debug->err_dec - media_debug_cached->err_dec) / 2;
+
+	media_debug_cached->isr_jpeg = media_debug->isr_jpeg;
+	media_debug_cached->isr_decoder = media_debug->isr_decoder;
+	media_debug_cached->isr_lcd = media_debug->isr_lcd;
+	media_debug_cached->fps_lcd = media_debug->fps_lcd;
+	media_debug_cached->fps_wifi = media_debug->fps_wifi;
+	media_debug_cached->err_dec = media_debug->err_dec;
+
+	LOGI("jpg: %d[%d], dec: %d[%d, %d], lcd: %d[%d], fps: %d[%d], wifi: %d[%d]\n",
+		jpg, media_debug->isr_jpeg,
+		dec, media_debug->isr_decoder, err_dec,
+		lcd, media_debug->isr_lcd,
+		fps, media_debug->fps_lcd,
+		wifi, media_debug->fps_wifi);
 }
 
-void dvp_open_handle(param_pak_t *param, dvp_mode_t mode)
+void camera_dvp_open_handle(param_pak_t *param, dvp_mode_t mode)
 {
 	int ret = 0;
 
 	LOGI("%s\n", __func__);
 
-	if (DVP_STATE_DISABLED != get_dvp_camera_state())
+	if (CAMERA_STATE_DISABLED != get_camera_state())
 	{
 		LOGI("%s already opened\n", __func__);
 		ret = kNoErr;
@@ -94,24 +111,24 @@ void dvp_open_handle(param_pak_t *param, dvp_mode_t mode)
 		goto out;
 	}
 
-	set_dvp_camera_state(DVP_STATE_ENABLED);
+	set_camera_state(CAMERA_STATE_ENABLED);
 
-	if (dvp_info.debug)
+	if (camera_info.debug)
 	{
-		bk_timer_start(TIMER_ID1, DEBUG_INTERVAL, dvp_debug_dump);
+		bk_timer_start(TIMER_ID1, DEBUG_INTERVAL, camera_debug_dump);
 	}
 
 out:
 	MEDIA_EVT_RETURN(param, ret);
 }
 
-void dvp_close_handle(param_pak_t *param)
+void camera_dvp_close_handle(param_pak_t *param)
 {
 	int ret = 0;
 
 	LOGI("%s\n", __func__);
 
-	if (DVP_STATE_DISABLED == get_dvp_camera_state())
+	if (CAMERA_STATE_DISABLED == get_camera_state())
 	{
 		LOGI("%s already close\n", __func__);
 		ret = kNoErr;
@@ -120,9 +137,9 @@ void dvp_close_handle(param_pak_t *param)
 
 	bk_dvp_camera_close();
 
-	set_dvp_camera_state(DVP_STATE_DISABLED);
+	set_camera_state(CAMERA_STATE_DISABLED);
 
-	if (dvp_info.debug)
+	if (camera_info.debug)
 	{
 		bk_timer_stop(TIMER_ID1);
 	}
@@ -136,35 +153,147 @@ out:
 	MEDIA_EVT_RETURN(param, ret);
 }
 
-void dvp_camera_event_handle(uint32_t event, uint32_t param)
+#ifdef CONFIG_USB_UVC
+
+void camera_uvc_open_handle(param_pak_t *param)
+{
+	int ret = 0;
+
+	LOGI("%s\n", __func__);
+
+	if (CAMERA_STATE_DISABLED != get_camera_state())
+	{
+		LOGI("%s already opened\n", __func__);
+		ret = kNoErr;
+		goto out;
+	}
+
+	if (bk_ble_get_env_state())
+	{
+		LOGI("bluetooth is enabled, shutdown bluetooth\n");
+		bk_ble_deinit();
+		rtos_delay_milliseconds(900);
+	}
+	else
+	{
+		LOGI("bluetooth state: %d\n", bk_ble_get_env_state());
+	}
+
+
+	//pm_core_bus_clock_ctrl(2, 0, 1, 0, 0);
+
+	frame_buffer_enable(true);
+
+	ret = bk_uvc_camera_open(param->param);
+
+	if (ret != kNoErr)
+	{
+		LOGE("%s open failed\n", __func__);
+		goto out;
+	}
+
+	set_camera_state(CAMERA_STATE_ENABLED);
+
+	if (camera_info.debug)
+	{
+		bk_timer_start(TIMER_ID1, DEBUG_INTERVAL, camera_debug_dump);
+	}
+
+out:
+	MEDIA_EVT_RETURN(param, ret);
+}
+
+
+void camera_uvc_close_handle(param_pak_t *param)
+{
+	int ret = 0;
+
+	LOGI("%s\n", __func__);
+
+	if (CAMERA_STATE_DISABLED == get_camera_state())
+	{
+		LOGI("%s already close\n", __func__);
+		ret = kNoErr;
+		goto out;
+	}
+
+	if (camera_info.debug)
+	{
+		bk_timer_stop(TIMER_ID1);
+	}
+
+	bk_uvc_camera_close();
+
+	set_camera_state(CAMERA_STATE_DISABLED);
+
+	frame_buffer_enable(false);
+
+	//pm_core_bus_clock_ctrl(3, 1, 1, 0, 0);
+	LOGI("uvc close success!\n");
+
+out:
+	MEDIA_EVT_RETURN(param, ret);
+}
+
+#endif
+
+void camera_event_handle(uint32_t event, uint32_t param)
 {
 	switch (event)
 	{
-		case EVENT_DVP_JPEG_OPEN_IND:
-			dvp_open_handle((param_pak_t *)param, DVP_MODE_JPG);
+		case EVENT_CAM_DVP_JPEG_OPEN_IND:
+			camera_dvp_open_handle((param_pak_t *)param, DVP_MODE_JPG);
 			break;
-		case EVENT_DVP_YUV_OPEN_IND:
-			dvp_open_handle((param_pak_t *)param, DVP_MODE_YUV);
+		case EVENT_CAM_DVP_YUV_OPEN_IND:
+			camera_dvp_open_handle((param_pak_t *)param, DVP_MODE_YUV);
 			break;
-		case EVENT_DVP_CLOSE_IND:
-			dvp_close_handle((param_pak_t *)param);
+		case EVENT_CAM_DVP_CLOSE_IND:
+			camera_dvp_close_handle((param_pak_t *)param);
 			break;
+
+#ifdef CONFIG_USB_UVC
+		case EVENT_CAM_UVC_OPEN_IND:
+			camera_uvc_open_handle((param_pak_t *)param);
+			break;
+		case EVENT_CAM_UVC_CLOSE_IND:
+			camera_uvc_close_handle((param_pak_t *)param);
+			break;
+#endif
 	}
 }
 
-dvp_state_t get_dvp_camera_state(void)
+camera_state_t get_camera_state(void)
 {
-	return dvp_info.state;
+	return camera_info.state;
 }
 
-void set_dvp_camera_state(dvp_state_t state)
+void set_camera_state(camera_state_t state)
 {
-	dvp_info.state = state;
+	camera_info.state = state;
 }
 
-void dvp_camera_init(void)
+void camera_init(void)
 {
-	dvp_info.state = DVP_STATE_DISABLED;
-	dvp_info.debug = true;
+	if (media_debug == NULL)
+	{
+		media_debug = (media_debug_t*)os_malloc(sizeof(media_debug_t));
+
+		if (media_debug == NULL)
+		{
+			LOGE("malloc media_debug fail\n");
+		}
+	}
+
+	if (media_debug_cached == NULL)
+	{
+		media_debug_cached = (media_debug_t*)os_malloc(sizeof(media_debug_t));
+		if (media_debug_cached == NULL)
+		{
+			LOGE("malloc media_debug_cached fail\n");
+		}
+	}
+
+	camera_info.state = CAMERA_STATE_DISABLED;
+	camera_info.debug = true;
 }
 

@@ -30,6 +30,7 @@
 
 #define UNKNOW_ERROR (-686)
 #define CMD_CONTAIN(value) cmd_contain(argc, argv, value)
+#define GET_PPI(value) get_ppi_from_cmd(argc, argv, value)
 
 
 uint32_t get_string_to_ppi(char *string, uint32_t pre)
@@ -65,13 +66,38 @@ uint32_t get_string_to_ppi(char *string, uint32_t pre)
 	{
 		value = PPI_320X480;
 	}
+
 	if (os_strcmp(string, "480X800") == 0)
 	{
 		value = PPI_480X800;
 	}
 
+	if (os_strcmp(string, "800X480") == 0)
+	{
+		value = PPI_800X480;
+	}
+
 	return value;
 }
+
+uint32_t get_ppi_from_cmd(int argc, char **argv, uint32_t pre)
+{
+	int i;
+	uint32_t value = pre;
+
+	for (i = 0; i < argc; i++)
+	{
+		value = get_string_to_ppi(argv[i], pre);
+
+		if (value != pre)
+		{
+			break;
+		}
+	}
+
+	return value;
+}
+
 
 bool cmd_contain(int argc, char **argv, char *string)
 {
@@ -102,23 +128,25 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		if (os_strcmp(argv[1], "dvp") == 0)
 		{
 #if (defined(CONFIG_CAMERA) && !defined(CONFIG_SLAVE_CORE))
-			media_ppi_t ppi = get_string_to_ppi(argv[4], PPI_DEFAULT);
+			media_ppi_t ppi = GET_PPI(PPI_DEFAULT);
 
 			if (os_strcmp(argv[2], "open") == 0)
 			{
-				if (os_strcmp(argv[3], "yuv") == 0)
+				if (CMD_CONTAIN("yuv"))
 				{
+					LOGI("YUV open\n");
 					ret = media_app_camera_open(APP_CAMERA_YUV, ppi);
 				}
 				else
 				{
+					LOGI("DVP open\n");
 					ret = media_app_camera_open(APP_CAMERA_DVP, ppi);
 				}
 			}
 
 			if (os_strcmp(argv[2], "close") == 0)
 			{
-				if (os_strcmp(argv[3], "yuv") == 0)
+				if (CMD_CONTAIN("yuv"))
 				{
 					ret = media_app_camera_close(APP_CAMERA_YUV);
 				}
@@ -178,7 +206,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 #if defined(CONFIG_LCD) && !defined(CONFIG_SLAVE_CORE)
 			media_ppi_t ppi = PPI_480X272;
 
-			ppi = get_string_to_ppi(argv[3], PPI_480X272);
+			ppi = GET_PPI(PPI_480X272);
 
 			if (CMD_CONTAIN("rotate"))
 			{
@@ -223,37 +251,11 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		if (os_strcmp(argv[1], "uvc") == 0)
 		{
 #if defined(CONFIG_USB_UVC) && !defined(CONFIG_SLAVE_CORE)
-			media_ppi_t ppi = get_string_to_ppi(argv[3], PPI_DEFAULT);
+			media_ppi_t ppi = GET_PPI(PPI_DEFAULT);
 
 			if (os_strcmp(argv[2], "open") == 0)
 			{
 				ret = media_app_camera_open(APP_CAMERA_UVC, ppi);
-			}
-
-			if (os_strcmp(argv[2], "start") == 0)
-			{
-				ret = media_app_uvc_start();
-			}
-
-			if (os_strcmp(argv[2], "stop") == 0)
-			{
-				ret = media_app_uvc_stop();
-			}
-
-			if (os_strcmp(argv[2], "param") == 0)
-			{
-				if (argc != 6)
-				{
-					LOGI("param number error\r\n");
-					return;
-				}
-
-				uvc_camera_device_t config;
-
-				config.width = os_strtoul(argv[3], NULL, 10);
-				config.height = os_strtoul(argv[4], NULL, 10);
-				config.fps = os_strtoul(argv[5], NULL, 10);
-				ret = media_app_uvc_param_set(&config);
 			}
 
 			if (os_strcmp(argv[2], "close") == 0)
@@ -291,6 +293,24 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 #endif
 
 		}
+
+#ifdef CONFIG_MASTER_CORE
+		if (os_strcmp(argv[1], "transfer") == 0)
+		{
+			if (os_strcmp(argv[2], "pause") == 0
+			    && os_strcmp(argv[3], "0") == 0)
+			{
+				media_app_transfer_pause(false);
+			}
+
+			if (os_strcmp(argv[2], "pause") == 0
+			    && os_strcmp(argv[3], "1") == 0)
+			{
+				media_app_transfer_pause(true);
+			}
+
+		}
+#endif
 	}
 
 	if (ret == UNKNOW_ERROR)

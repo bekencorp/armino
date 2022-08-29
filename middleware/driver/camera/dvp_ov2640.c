@@ -908,7 +908,7 @@ int ov2640_init(const dvp_camera_i2c_callback_t *cb)
 	for (i = 0; i < size; i++)
 	{
 		SENSOR_I2C_WRITE(sensor_ov2640_init_talbe[i][0],
-			sensor_ov2640_init_talbe[i][1]);
+		                 sensor_ov2640_init_talbe[i][1]);
 	}
 
 	return 0;
@@ -931,7 +931,7 @@ int ov2640_set_ppi(const dvp_camera_i2c_callback_t *cb, media_ppi_t ppi)
 			for (i = 0; i < size; i++)
 			{
 				SENSOR_I2C_WRITE(sensor_ov2640_1600X1200_talbe[i][0],
-					sensor_ov2640_1600X1200_talbe[i][1]);
+				                 sensor_ov2640_1600X1200_talbe[i][1]);
 			}
 
 			ret = 0;
@@ -944,7 +944,7 @@ int ov2640_set_ppi(const dvp_camera_i2c_callback_t *cb, media_ppi_t ppi)
 			for (i = 0; i < size; i++)
 			{
 				SENSOR_I2C_WRITE(sensor_ov2640_1280X720_talbe[i][0],
-					sensor_ov2640_1280X720_talbe[i][1]);
+				                 sensor_ov2640_1280X720_talbe[i][1]);
 			}
 
 			ret = 0;
@@ -958,7 +958,7 @@ int ov2640_set_ppi(const dvp_camera_i2c_callback_t *cb, media_ppi_t ppi)
 			for (i = 0; i < size; i++)
 			{
 				SENSOR_I2C_WRITE(sensor_ov2640_800X600_talbe[i][0],
-					sensor_ov2640_800X600_talbe[i][1]);
+				                 sensor_ov2640_800X600_talbe[i][1]);
 			}
 
 			ret = 0;
@@ -971,7 +971,7 @@ int ov2640_set_ppi(const dvp_camera_i2c_callback_t *cb, media_ppi_t ppi)
 			for (i = 0; i < size; i++)
 			{
 				SENSOR_I2C_WRITE(sensor_ov2640_640X480_talbe[i][0],
-					sensor_ov2640_640X480_talbe[i][1]);
+				                 sensor_ov2640_640X480_talbe[i][1]);
 			}
 
 			ret = 0;

@@ -41,3 +41,6 @@ typedef struct {
         {MPC_DEV_SMEM4, MPC_ALLOC_SCHEME_NONE},\
     }
 
+int bk_mpc_enable_interrupt(void);
+int bk_mpc_cfg(void);
+

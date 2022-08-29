@@ -25,7 +25,7 @@ typedef struct
 {
 	media_ppi_t ppi;
 	dvp_mode_t mode;
-	int (*frame_set_ppi)(media_ppi_t ppi);
+	int (*frame_set_ppi)(media_ppi_t ppi, frame_type_t type);
 	void (*frame_complete)(frame_buffer_t* buffer);
 	frame_buffer_t* (*frame_alloc)(void);
 } dvp_camera_config_t;

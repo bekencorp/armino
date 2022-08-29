@@ -168,6 +168,18 @@ extern "C" {
 #define LCD_MCU_RSX_FUNC 		 	(GPIO_DEV_LCD_RGB13)
 #define LCD_MCU_RESET_FUNC 		 	(GPIO_DEV_LCD_RGB14)
 #define LCD_MCU_CSX_FUNC 		 	(GPIO_DEV_LCD_RGB15)
+
+#define GPIO_CTRL_LDO_OUTPUT_HIGH_MAP  \
+{\
+	/* GPIO_2, */\
+	/* GPIO_28, */\
+}
+
+#define GPIO_CTRL_LDO_OUTPUT_LOW_MAP  \
+{\
+	/* GPIO_4, */\
+	/* GPIO_26, */\
+}
 #ifdef __cplusplus
 }
 #endif

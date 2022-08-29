@@ -1,0 +1,5 @@
+menu "DEMOS_CONFIG"
+	config LCD_TEST
+		bool "Enable lcd demos"
+		default n
+endmenu

@@ -18,6 +18,7 @@
 #include "sys_driver.h"
 #include "psram_hal.h"
 #include "aon_pmu_hal.h"
+#include "driver/psram_types.h"
 
 extern int delay(INT32 num);
 #define addSYSTEM_Reg0xe                                        *((volatile unsigned long *) (0x44010000+0xe*4))
@@ -69,7 +70,7 @@ bk_err_t bk_psram_driver_init(void)
 
 	sys_drv_psram_power_enable();
 
-	sys_drv_psram_psldo_vsel(1);
+	//sys_drv_psram_psldo_vsel(1);
 
 	s_psram_driver_is_init = true;
 
@@ -89,6 +90,71 @@ bk_err_t bk_psram_driver_deinit(void)
 
 	return BK_OK;
 }
+
+
+bk_err_t bk_psram_set_clk(psram_clk_t clk)
+{
+	bk_err_t ret = BK_OK;
+
+	switch (clk)
+	{
+		case PSRAM_240M:
+			sys_hal_psram_clk_sel(1);    // clk sel: 0-320 1-480
+			sys_hal_psram_set_clkdiv(0); //frq:  F/(2 + (1+div))
+			break;
+		case PSRAM_160M:
+			sys_hal_psram_clk_sel(0);    // clk sel: 0-320 1-480
+			sys_hal_psram_set_clkdiv(0); //frq:  F/(2 + (1+div))
+			break;
+		case PSRAM_120M:
+			sys_hal_psram_clk_sel(1);    // clk sel: 0-320 1-480
+			sys_hal_psram_set_clkdiv(1); //frq:  F/(2 + (1+div))
+			break;
+		case PSRAM_60M:
+			sys_hal_psram_clk_sel(0);    // clk sel: 0-320 1-480
+			sys_hal_psram_set_clkdiv(1); //frq:  F/(2 + (1+div))
+			break;
+		default:
+			break;
+	}
+
+	return ret;
+}
+
+bk_err_t bk_psram_set_voltage(psram_voltage_t voltage)
+{
+	bk_err_t ret = BK_OK;
+	
+	switch (voltage)
+	{
+		case PSRAM_OUT_3_2V:
+			sys_hal_psram_psldo_vset(0, 1);
+			break;
+		case PSRAM_OUT_3V:
+			sys_hal_psram_psldo_vset(0, 0);
+			break;
+		case PSRAM_OUT_2V:
+			sys_hal_psram_psldo_vset(1, 1);
+			break;
+		case PSRAM_OUT_1_3V:
+			sys_hal_psram_psldo_vset(1, 0);
+			break;
+		default:
+			break;
+	}
+	
+	return ret;
+}
+
+bk_err_t bk_psram_set_transfer_mode(psram_tansfer_mode_t transfer_mode)
+{
+	bk_err_t ret = BK_OK;
+
+	psram_hal_set_transfer_mode(transfer_mode);
+	
+	return ret;
+}
+
 
 bk_err_t bk_psram_init(void)
 {
@@ -116,10 +182,13 @@ bk_err_t bk_psram_init(void)
 	delay(100);
 
 	val = psram_hal_get_regb_value();
-	val = (val & ~(0x7 << 10)) | (0x4 << 10);//read latency 100 166Mhz
+	//val = (val & ~(0x7 << 10)) | (0x4 << 10) | (0x3 << 8);//read latency 100 166Mhz
+	val = (val & ~(0x1F << 8)) | (0x4 << 10) | (0x3 << 8);
 	//	val = (val & ~(0x1f << 8)) | (0x10 << 8);//read latency 100 166Mhz dstr set 00
 	psram_hal_cmd_write(0x00000000, val);
 	delay(100);
+
+	psram_hal_cmd_read(0x00000000);//1 0001 10001101
 
 	psram_hal_cmd_read(0x00000004);
 

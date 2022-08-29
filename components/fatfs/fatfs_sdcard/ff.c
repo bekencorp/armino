@@ -193,7 +193,7 @@
 
 
 /* Post process after fatal error on file operation */
-#define ABORT(fs, res)		{ fp->err = (BYTE)(res); LEAVE_FF(fs, res); }
+#define ABORT(fs, res)		{ os_printf("%s,%d\r\n", __func__, __LINE__); fp->err = (BYTE)(res); LEAVE_FF(fs, res); }
 
 
 /* Reentrancy related */

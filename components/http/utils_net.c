@@ -222,6 +222,7 @@ int32_t HAL_TCP_Read(uintptr_t fd, char *buf, uint32_t len, uint32_t timeout_ms)
 			}
 		} else {
 		}
+		os_printf("cyg_recvlen_per:(%.2f)%%\r\n",(((float)(len_recv))/((float)(bk_http_ptr->http_total)))*100);
 	} while ((bk_http_ptr->do_data == 1 && len_recv < bk_http_ptr->http_total) || ((len_recv < len) && (0 == data_over)));
 
 	//priority to return data bytes if any data be received from TCP connection.

@@ -301,7 +301,7 @@ enum
 
 #if (CONFIG_SOC_BK7231U)
 #define DEFAULT_TXID_XTAL                        (0x19)
-#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
+#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7236)
 #if (CONFIG_XTAL_FREQ_40M)
 #define DEFAULT_TXID_XTAL                        (0x70)
 #else

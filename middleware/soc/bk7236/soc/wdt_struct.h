@@ -19,17 +19,6 @@ extern "C" {
 #endif
 
 typedef volatile struct {
-	union {
-		struct {
-			uint32_t period:   16; /**< bit[0:15] */
-			uint32_t key:      8;  /**< bit[16:23] */
-			uint32_t reserved: 8;  /**< bit[24:31] */
-		};
-		uint32_t v;
-	} ctrl;
-} aon_wdt_hw_t;
-
-typedef volatile struct {
 	/* REG_0x00 */
 	uint32_t dev_id;
 

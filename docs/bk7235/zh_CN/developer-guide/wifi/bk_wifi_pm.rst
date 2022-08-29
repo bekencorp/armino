@@ -50,13 +50,8 @@ Armino 支持 WiFi-6 标准中定义的 TWT 省电模式与协议中定义的其
 
     Based on Listen Interval
 
-应用可以通过 ``CONFIG_MM_PS_BASED_ON_LISTEN_INTERVAL`` 来使能这种机制，通过 ``CONFIG_MM_PS_SET_LISTEN_INTERVAL_VALUE``
-来配置 listen interval 值。
-
-.. code::
-
- CONFIG_MM_PS_SET_LISTEN_INTERVAL_VALUE=30
- CONFIG_MM_PS_BASED_ON_LISTEN_INTERVAL=y
+应用可以通过 ``bk_wifi_send_listen_interval_req(uint8_t interval)`` 来配置，
+通过 ``interval``来配置 listen interval 值。优先推荐：1、3、10。
 
 通常 listen interval 越大，节能效果越好，但 listen interval 越大，性能与连接稳定性越差。
 

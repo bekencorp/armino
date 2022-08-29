@@ -20,6 +20,9 @@ extern "C" {
 
 #include <os/os.h>
 #include <components/system.h>
+#if CONFIG_STDIO_PRINTF
+#include <stdio.h>
+#endif
 
 #define BK_LOG_NONE    0 /*!< No log output */
 #define BK_LOG_ERROR   1 /*!< Critical errors, software module can not recover on its own */

@@ -18,6 +18,4 @@
 
 #include "cmsis_cpu.h"                 /* Processor and core peripherals */
 #include "system_cmsdk_bk7236.h"   /* System Header */
-
-#include "platform_regs.h"        /* Platform registers */
 #include "platform_retarget.h"    /* Peripherals base addresses */

@@ -78,6 +78,7 @@ typedef struct sdio_command {
 	UINT32  arg;
 	UINT32	flags;		    /* expected response type */
 	UINT32  timeout;
+	bool crc_check;
 	UINT32	resp[4];
 	void    *data;		    /* data segment associated with cmd */
 	SDIO_Error	err;		/* command error */
@@ -331,6 +332,7 @@ static SDIO_Error sdcard_cmd0_process(void)
 	cmd.arg = 0;
 	cmd.flags = SD_CMD_NORESP;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = false;	//no response, so no need to check slave response's crc
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
 	return cmd.err;
@@ -345,6 +347,7 @@ static SDIO_Error sdcard_cmd1_process(void)
 	cmd.arg = 0x40ff8000;
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;	//multi-media card will response, sdcard no response
 cmd1_loop:
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
@@ -384,6 +387,7 @@ static SDIO_Error sdcard_mmc_cmd8_process(void)
 	cmd.arg = 0;
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;
 	sdio_send_cmd(&cmd);
 
 	if (cmd.err != SD_OK)
@@ -426,6 +430,7 @@ static SDIO_Error sdcard_cmd8_process(void)
 	cmd.arg = 0x1AA;
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;
 
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
@@ -468,6 +473,8 @@ static SDIO_Error sdcard_acmd41_process(UINT32 ocr)
 	cmd.arg = 0;
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;
+
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
 	if (cmd.err != SD_OK) {
@@ -480,6 +487,7 @@ static SDIO_Error sdcard_acmd41_process(UINT32 ocr)
 	cmd.arg = ocr;
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = false;	//response cmd-index is 63,not 41, and the crc is err value if checked.
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
 	// why cmd41 always return crc fail?
@@ -507,6 +515,7 @@ static SDIO_Error sdcard_cmd2_process(void)
 	cmd.arg = 0;
 	cmd.flags = SD_CMD_LONG;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = false;	//response cmd-index is 63,not 2,and the crc is err value if checked.	
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
 
@@ -524,6 +533,7 @@ static SDIO_Error sdcard_mmc_cmd3_process(void)
 	cmd.arg = (sdcard.card_rca << 16);
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;
 
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
@@ -549,6 +559,7 @@ static SDIO_Error sdcard_cmd3_process(void)
 	cmd.arg = 0;
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;
 
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
@@ -579,6 +590,7 @@ static SDIO_Error sdcard_cmd9_process(uint8 card_type)
 	cmd.arg = (UINT32)(sdcard.card_rca << 16);
 	cmd.flags = SD_CMD_LONG;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = false;	//response cmd-index is 63,not 9,and the crc is err value if checked.	
 
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
@@ -636,6 +648,7 @@ static SDIO_Error sdcard_cmd7_process(void)
 	cmd.arg = (UINT32)(sdcard.card_rca << 16);
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;
 
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
@@ -650,6 +663,7 @@ static SDIO_Error sdcard_acmd6_process(void)
 	cmd.arg = (UINT32)(sdcard.card_rca << 16);
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
 	if (cmd.err != SD_OK)
@@ -663,6 +677,7 @@ static SDIO_Error sdcard_acmd6_process(void)
 #endif
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout =  get_timeout_param(1);
+	cmd.crc_check = true;
 
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
@@ -678,6 +693,7 @@ static SDIO_Error sdcard_cmd18_process(uint32 addr)
 	cmd.arg = (UINT32)(addr << sdcard.Addr_shift_bit);
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
 	return cmd.err;
@@ -698,6 +714,7 @@ static SDIO_Error sdcard_cmd12_process(uint32 addr)
 	cmd.arg = addr;
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
 
@@ -744,6 +761,7 @@ static SDIO_Error sdcard_cmd17_process(uint32 addr)
 	cmd.arg = addr;
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
 	return cmd.err;
@@ -989,6 +1007,7 @@ sdcard_read_single_block(UINT8 *readbuff, UINT32 readaddr, UINT32 blocksize)
 	cmd.arg = (UINT32)(readaddr << sdcard.Addr_shift_bit);
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;
 	sdio_send_cmd(&cmd);
 	cmd.err = sdio_wait_cmd_response(cmd.index);
 
@@ -1258,6 +1277,7 @@ SDIO_Error sdcard_read_multi_block(UINT8 *read_buff, int first_block, int block_
 		cmd.arg = (UINT32)(first_block << sdcard.Addr_shift_bit);
 		cmd.flags = SD_CMD_SHORT;
 		cmd.timeout = get_timeout_param(1);
+		cmd.crc_check = true;
 		sdio_send_cmd(&cmd);
 		cmd.err = sdio_wait_cmd_response(cmd.index);
 
@@ -1356,6 +1376,7 @@ SDIO_Error sdcard_write_single_block(UINT8 *writebuff, UINT32 writeaddr)
 	cmd.arg = (UINT32)(writeaddr << sdcard.Addr_shift_bit);
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;
 	sdio_send_cmd(&cmd);
 
 	cmd.err = sdio_wait_cmd_response(cmd.index);
@@ -1455,6 +1476,7 @@ static SDIO_Error sdcard_cmd25_process(UINT32 block_addr)
 	cmd.arg = (UINT32)(block_addr << sdcard.Addr_shift_bit);
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;
 	sdio_send_cmd(&cmd);
 
 	cmd.err = sdio_wait_cmd_response(cmd.index);
@@ -1618,7 +1640,7 @@ static SDIO_Error sdcard_send_write_stop(int err)
 	}
 	ret += sdcard_cmd12_process(0);
 	if (ret != SD_OK)
-		SDCARD_FATAL("write stop err:%x\r\n", ret);
+		SDCARD_FATAL("===write err:%x====\r\n", ret);
 	ret += err;
 	return ret;
 }
@@ -1669,7 +1691,7 @@ SDIO_Error sdcard_write_multi_block(UINT8 *write_buff, UINT32 first_block, UINT3
 		if(ret == SD_OK)
 		{
 			//CMD25:notify sdcard,will write multi-block data
-			while(retry_cnt < 64)	//reduce wait time and add retry count,maybe the card is busy after CMD12.
+			while(retry_cnt < 16)	//add retry count,maybe the card is busy after CMD12.
 			{
 				retry_cnt++;
 
@@ -1686,8 +1708,8 @@ SDIO_Error sdcard_write_multi_block(UINT8 *write_buff, UINT32 first_block, UINT3
 						SDCARD_FATAL("sdcard write data fail \r\n");
 				}
 			}
-			if(retry_cnt >= 24)	//80M clock:test 60000 times, the max wait cnt is 24, each timeout is 100us
-				SDCARD_FATAL("cmd25 retry_cnt=%d ret=%d\r\n", retry_cnt, ret2);
+			if(retry_cnt >= 16)
+				SDCARD_FATAL("cmd25 retry_cnt=%d fail:ret=%d\r\n", retry_cnt);
 
 			ret += ret2;
 		}
@@ -1745,6 +1767,7 @@ SDIO_Error sdcard_write_multi_block(UINT8 *write_buff, UINT32 first_block, UINT3
 	cmd.arg = (UINT32)(first_block << sdcard.Addr_shift_bit);
 	cmd.flags = SD_CMD_SHORT;
 	cmd.timeout = get_timeout_param(1);
+	cmd.crc_check = true;
 	sdio_send_cmd(&cmd);
 
 	cmd.err = sdio_wait_cmd_response(cmd.index);

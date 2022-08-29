@@ -16,7 +16,6 @@
 
 #include "cmsis.h"
 #include "target_cfg.h"
-#include "platform_retarget_dev.h"
 #include "region_defs.h"
 #include "tfm_plat_defs.h"
 #include "region.h"
@@ -25,8 +24,6 @@
 #ifdef PSA_API_TEST_IPC
 #define PSA_FF_TEST_SECURE_UART2
 #endif
-
-#define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 
 /* The section names come from the scatter file */
 REGION_DECLARE(Load$$LR$$, LR_NS_PARTITION, $$Base);
@@ -93,22 +90,16 @@ const struct memory_region_limits memory_regions = {
 struct platform_data_t tfm_peripheral_std_uart = {
         UART0_BASE_NS,
         UART0_BASE_NS + 0xFFF,
-        PPC_SP_DO_NOT_CONFIGURE,
-        -1
 };
 
 struct platform_data_t tfm_peripheral_uart1 = {
         UART1_BASE_S,
         UART1_BASE_S + 0xFFF,
-        PPC_SP_APB_PPC_EXP1,
-        CMSDK_UART1_APB_PPC_POS
 };
 
 struct platform_data_t tfm_peripheral_timer0 = {
-        CMSDK_TIMER0_BASE_S,
-        CMSDK_TIMER1_BASE_S - 1,
-        PPC_SP_APB_PPC0,
-        CMSDK_TIMER0_APB_PPC_POS
+        TIMER0_BASE_S,
+        TIMER1_BASE_S - 1,
 };
 
 #ifdef PSA_API_TEST_IPC
@@ -122,16 +113,12 @@ struct platform_data_t
     tfm_peripheral_FF_TEST_UART_REGION = {
         UART2_BASE_S,
         UART2_BASE_S + 0xFFF,
-        PPC_SP_APB_PPC_EXP2,
-        CMSDK_UART2_APB_PPC_POS
 };
 
 struct platform_data_t
     tfm_peripheral_FF_TEST_WATCHDOG_REGION = {
         APB_WATCHDOG_BASE_S,
         APB_WATCHDOG_BASE_S + 0xFFF,
-        PPC_SP_DO_NOT_CONFIGURE,
-        -1
 };
 
 #define FF_TEST_NVMEM_REGION_START            0x102FFC00
@@ -145,24 +132,18 @@ struct platform_data_t
     tfm_peripheral_FF_TEST_NVMEM_REGION = {
         FF_TEST_NVMEM_REGION_START,
         FF_TEST_NVMEM_REGION_END,
-        PPC_SP_DO_NOT_CONFIGURE,
-        -1
 };
 
 struct platform_data_t
     tfm_peripheral_FF_TEST_SERVER_PARTITION_MMIO = {
         FF_TEST_SERVER_PARTITION_MMIO_START,
         FF_TEST_SERVER_PARTITION_MMIO_END,
-        PPC_SP_DO_NOT_CONFIGURE,
-        -1
 };
 
 struct platform_data_t
     tfm_peripheral_FF_TEST_DRIVER_PARTITION_MMIO = {
         FF_TEST_DRIVER_PARTITION_MMIO_START,
         FF_TEST_DRIVER_PARTITION_MMIO_END,
-        PPC_SP_DO_NOT_CONFIGURE,
-        -1
 };
 #endif
 
@@ -181,13 +162,7 @@ enum tfm_plat_err_t enable_fault_handlers(void)
 
 enum tfm_plat_err_t system_reset_cfg(void)
 {
-    struct sysctrl_t *sysctrl = (struct sysctrl_t *)CMSDK_SYSCTRL_BASE_S;
     uint32_t reg_value = SCB->AIRCR;
-
-    /* Enable system reset request for CPU 0, to be triggered via
-     * NVIC_SystemReset function.
-     */
-    sysctrl->resetmask |= ENABLE_CPU0_SYSTEM_RESET_REQUEST;
 
     /* Clear SCB_AIRCR_VECTKEY value */
     reg_value &= ~(uint32_t)(SCB_AIRCR_VECTKEY_Msk);
@@ -202,41 +177,7 @@ enum tfm_plat_err_t system_reset_cfg(void)
 
 enum tfm_plat_err_t init_debug(void)
 {
-    volatile struct sysctrl_t *sys_ctrl =
-                                       (struct sysctrl_t *)CMSDK_SYSCTRL_BASE_S;
-
-#if defined(DAUTH_NONE)
-    /* Set all the debug enable selector bits to 1 */
-    sys_ctrl->secdbgset = All_SEL_STATUS;
-    /* Set all the debug enable bits to 0 */
-    sys_ctrl->secdbgclr =
-                   DBGEN_STATUS | NIDEN_STATUS | SPIDEN_STATUS | SPNIDEN_STATUS;
-#elif defined(DAUTH_NS_ONLY)
-    /* Set all the debug enable selector bits to 1 */
-    sys_ctrl->secdbgset = All_SEL_STATUS;
-    /* Set the debug enable bits to 1 for NS, and 0 for S mode */
-    sys_ctrl->secdbgset = DBGEN_STATUS | NIDEN_STATUS;
-    sys_ctrl->secdbgclr = SPIDEN_STATUS | SPNIDEN_STATUS;
-#elif defined(DAUTH_FULL)
-    /* Set all the debug enable selector bits to 1 */
-    sys_ctrl->secdbgset = All_SEL_STATUS;
-    /* Set all the debug enable bits to 1 */
-    sys_ctrl->secdbgset =
-                   DBGEN_STATUS | NIDEN_STATUS | SPIDEN_STATUS | SPNIDEN_STATUS;
-#else
-
-#if !defined(DAUTH_CHIP_DEFAULT)
-#error "No debug authentication setting is provided."
-#endif
-
-    /* Set all the debug enable selector bits to 0 */
-    sys_ctrl->secdbgclr = All_SEL_STATUS;
-
-    /* No need to set any enable bits because the value depends on
-     * input signals.
-     */
-#endif
-
+    //TODO peter
     return TFM_PLAT_ERR_SUCCESS;
 }
 
@@ -247,10 +188,6 @@ enum tfm_plat_err_t nvic_interrupt_target_state_cfg(void)
     for (uint8_t i=0; i<sizeof(NVIC->ITNS)/sizeof(NVIC->ITNS[0]); i++) {
         NVIC->ITNS[i] = 0xFFFFFFFF;
     }
-
-    /* Make sure that MPC and PPC are targeted to S state */
-    NVIC_ClearTargetState(MPC_IRQn); //TODO peter
-    NVIC_ClearTargetState(PPC_IRQn);
 
 #ifdef SECURE_UART1
     /* UART1 is a secure peripheral, so its IRQs have to target S state */
@@ -265,33 +202,12 @@ enum tfm_plat_err_t nvic_interrupt_target_state_cfg(void)
 /*----------------- NVIC interrupt enabling for S peripherals ----------------*/
 enum tfm_plat_err_t nvic_interrupt_enable(void)
 {
-    struct spctrl_def* spctrl = CMSDK_SPCTRL;
     int32_t ret;
 
     ret = bk_mpc_enable_interrupt();
     if (ret != BK_OK) {
         return TFM_PLAT_ERR_SYSTEM_ERR;
     }
-    NVIC_EnableIRQ(MPC_IRQn); //TODO peter
-
-    /* PPC interrupt enabling */
-    /* Clear pending PPC interrupts */
-    /* In the PPC configuration function, we have used the Non-Secure
-     * Privilege Control Block to grant unprivilged NS access to some
-     * peripherals used by NS. That triggers a PPC0 exception as that
-     * register is meant for NS privileged access only. Clear it here
-     */
-    spctrl->secppcintclr = CMSDK_APB_PPC0_INT_POS_MASK;
-
-    /* Enable PPC interrupts for APB PPC */
-    spctrl->secppcinten |= CMSDK_APB_PPC0_INT_POS_MASK |
-                           CMSDK_APB_PPC1_INT_POS_MASK |
-                           CMSDK_APB_PPCEXP0_INT_POS_MASK |
-                           CMSDK_APB_PPCEXP1_INT_POS_MASK |
-                           CMSDK_APB_PPCEXP2_INT_POS_MASK |
-                           CMSDK_APB_PPCEXP3_INT_POS_MASK;
-
-    NVIC_EnableIRQ(PPC_IRQn);
 
 #ifdef PSA_FF_TEST_SECURE_UART2
     NVIC_EnableIRQ(FF_TEST_UART_IRQ);
@@ -375,7 +291,6 @@ const struct sau_cfg_t sau_cfg[] = {
 
 void sau_and_idau_cfg(void)
 {
-    struct spctrl_def *spctrl = CMSDK_SPCTRL;
     uint32_t i;
 
     /* Enables SAU */
@@ -388,9 +303,6 @@ void sau_and_idau_cfg(void)
                     (sau_cfg[i].nsc ? SAU_RLAR_NSC_Msk : 0U) |
                     SAU_RLAR_ENABLE_Msk;
     }
-
-    /* Allows SAU to define the code region as a NSC */
-    spctrl->nsccfg |= NSCCFG_CODENSC;
 }
 
 /*------------------- Memory configuration functions -------------------------*/
@@ -408,104 +320,10 @@ int32_t mpc_init_cfg(void)
 
 void ppc_init_cfg(void)
 {
-    struct spctrl_def* spctrl = CMSDK_SPCTRL;
-    struct nspctrl_def* nspctrl = CMSDK_NSPCTRL;
-
-    /* Grant non-secure access to peripherals in the PPC0
-     * (timer0 and 1, dualtimer, watchdog, mhu 0 and 1)
-     */
-     spctrl->apbnsppc0 |= (1U << CMSDK_TIMER0_APB_PPC_POS) |
-                          (1U << CMSDK_TIMER1_APB_PPC_POS) |
-                          (1U << CMSDK_DTIMER_APB_PPC_POS) |
-                          (1U << CMSDK_MHU0_APB_PPC_POS) |
-                          (1U << CMSDK_MHU1_APB_PPC_POS);
-
-    /* Grant non-secure access for APB peripherals on EXP1 */
-    spctrl->apbnsppcexp1 |= (1U << CMSDK_SPI0_APB_PPC_POS) |
-                            (1U << CMSDK_SPI1_APB_PPC_POS) |
-                            (1U << CMSDK_SPI2_APB_PPC_POS) |
-                            (1U << CMSDK_SPI3_APB_PPC_POS) |
-                            (1U << CMSDK_SPI4_APB_PPC_POS) |
-                            (1U << CMSDK_UART0_APB_PPC_POS) |
-#ifdef SECURE_UART1
-    /* To statically configure a peripheral as secure, skip PPC NS peripheral
-     * configuration for the given device.
-     */
-#else
-                            (1U << CMSDK_UART1_APB_PPC_POS) |
-#endif
-
-#ifndef PSA_FF_TEST_SECURE_UART2
-                            (1U << CMSDK_UART2_APB_PPC_POS) |
-#endif
-                            (1U << CMSDK_UART3_APB_PPC_POS) |
-                            (1U << CMSDK_UART4_APB_PPC_POS) |
-                            (1U << CMSDK_I2C0_APB_PPC_POS) |
-                            (1U << CMSDK_I2C1_APB_PPC_POS) |
-                            (1U << CMSDK_I2C2_APB_PPC_POS) |
-                            (1U << CMSDK_I2C3_APB_PPC_POS);
-    /* Grant non-secure access for APB peripherals on EXP2 */
-    spctrl->apbnsppcexp2 |= (1U << CMSDK_FPGA_SCC_PPC_POS) |
-                            (1U << CMSDK_FPGA_AUDIO_PPC_POS) |
-                            (1U << CMSDK_FPGA_IO_PPC_POS);
-
-    /* Grant non-secure access to all peripherals on AHB EXP:
-     * Make sure that all possible peripherals are enabled by default
-     */
-    spctrl->ahbnsppcexp0 |= (1U << CMSDK_VGA_PPC_POS) |
-                            (1U << CMSDK_GPIO0_PPC_POS) |
-                            (1U << CMSDK_GPIO1_PPC_POS) |
-                            (1U << CMSDK_GPIO2_PPC_POS) |
-                            (1U << CMSDK_GPIO3_PPC_POS) |
-                            (1U << MPS2_ETHERNET_PPC_POS);
-
-    spctrl->ahbnsppcexp1 |= (1U << CMSDK_DMA0_PPC_POS) |
-                            (1U << CMSDK_DMA1_PPC_POS) |
-                            (1U << CMSDK_DMA2_PPC_POS) |
-                            (1U << CMSDK_DMA3_PPC_POS);
-
-    /* in NS, grant un-privileged for UART0 */
-    nspctrl->apbnspppcexp1 |= (1U << CMSDK_UART0_APB_PPC_POS);
-
-    /* in NS, grant un-privileged access for LEDs */
-    nspctrl->apbnspppcexp2 |= (1U << CMSDK_FPGA_SCC_PPC_POS) |
-                              (1U << CMSDK_FPGA_IO_PPC_POS);
-
-    /* Configure the response to a security violation as a
-     * bus error instead of RAZ/WI
-     */
-    spctrl->secrespcfg |= 1U;
-}
-
-void ppc_configure_to_non_secure(enum ppc_bank_e bank, uint16_t pos)
-{
-    /* Setting NS flag for peripheral to enable NS access */
-    struct spctrl_def* spctrl = CMSDK_SPCTRL;
-    ((uint32_t*)&(spctrl->ahbnsppc0))[bank] |= (1U << pos);
-}
-
-void ppc_configure_to_secure(enum ppc_bank_e bank, uint16_t pos)
-{
-    /* Clear NS flag for peripheral to prevent NS access */
-    struct spctrl_def* spctrl = CMSDK_SPCTRL;
-    ((uint32_t*)&(spctrl->ahbnsppc0))[bank] &= ~(1U << pos);
-}
-
-void ppc_en_secure_unpriv(enum ppc_bank_e bank, uint16_t pos)
-{
-    struct spctrl_def* spctrl = CMSDK_SPCTRL;
-    ((uint32_t*)&(spctrl->ahbspppc0))[bank] |= (1U << pos);
-}
-
-void ppc_clr_secure_unpriv(enum ppc_bank_e bank, uint16_t pos)
-{
-    struct spctrl_def* spctrl = CMSDK_SPCTRL;
-    ((uint32_t*)&(spctrl->ahbspppc0))[bank] &= ~(1U << pos);
+    //TODO
 }
 
 void ppc_clear_irq(void)
 {
-    struct spctrl_def* spctrl = CMSDK_SPCTRL;
-    /* Clear APB PPC EXP2 IRQ */
-    spctrl->secppcintclr = CMSDK_APB_PPCEXP2_INT_POS_MASK;
+    //TODO
 }

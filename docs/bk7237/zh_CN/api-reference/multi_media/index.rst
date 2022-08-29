@@ -19,3 +19,5 @@ Multi-Media
    JPEG_DECODE_HW <bk_jpegdec_hw>
    JPEG_DECODE_SW <bk_jpegdec_sw>
    AEC <bk_aec>
+   G711 <bk_g711>
+   Aud_Intf <bk_aud_intf>

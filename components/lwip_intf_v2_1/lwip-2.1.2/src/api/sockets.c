@@ -3354,6 +3354,19 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
 
           /* SO_TYPE is get-only */
           /* SO_ERROR is get-only */
+#if LWIP_SO_CONTIMEO
+        case SO_CONTIMEO: {
+          long ms_long;
+          LWIP_SOCKOPT_CHECK_OPTLEN_CONN(sock, optlen, LWIP_SO_SNDRCVTIMEO_OPTTYPE);
+          ms_long = LWIP_SO_SNDRCVTIMEO_GET_MS(optval);
+          if (ms_long < 0) {
+            done_socket(sock);
+            return EINVAL;
+          }
+          netconn_set_conntimeout(sock->conn, ms_long);
+          break;
+        }
+#endif /* LWIP_SO_CONTIMEO */
 
 #if LWIP_SO_SNDTIMEO
         case SO_SNDTIMEO: {

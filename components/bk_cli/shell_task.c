@@ -5,6 +5,7 @@
 
 #include "cli.h"
 #include <os/os.h>
+#include <common/bk_compiler.h>
 #include "shell_drv.h"
 
 #define SHELL_TASK_DEF_TICK  (1000)		// 1000ms -> 1s
@@ -21,7 +22,7 @@
 #define SHELL_LOG_BUF3_NUM      20
 
 #define SHELL_LOG_BUF_NUM       (SHELL_LOG_BUF1_NUM + SHELL_LOG_BUF2_NUM + SHELL_LOG_BUF3_NUM)
-#define SHELL_LOG_PEND_NUM      (SHELL_LOG_BUF_NUM + 2)  /* 1: for RSP, 1: reserved. */
+#define SHELL_LOG_PEND_NUM      (SHELL_LOG_BUF_NUM + 3)  /* 1: for RSP, 1: reserved(queue empty), 1: cmd ovf. */
 #define SHELL_LOG_BUSY_NUM      (SHELL_LOG_PEND_NUM)     /* depending on lower driver's pending queue size. IPC drv no busy state. */
 #else
 #define SHELL_LOG_BUF1_NUM      16
@@ -29,13 +30,13 @@
 #define SHELL_LOG_BUF3_NUM      64
 
 #define SHELL_LOG_BUF_NUM       (SHELL_LOG_BUF1_NUM + SHELL_LOG_BUF2_NUM + SHELL_LOG_BUF3_NUM)
-#define SHELL_LOG_PEND_NUM      (SHELL_LOG_BUF_NUM * 2 + 4)  /* 1: for RSP, 1: reserved. */
-#define SHELL_LOG_BUSY_NUM      (30)         /* depending on lower driver's pending queue size. drv's queue size < BUSY_NUM <= PEND_NUM. */
+#define SHELL_LOG_PEND_NUM      (SHELL_LOG_BUF_NUM * 2 + 3)  /* 1: for RSP, 1: reserved(queue empty, 1: cmd ovf). */ /* the worst case may be (one log + one hint) in pending queue.*/
+#define SHELL_LOG_BUSY_NUM      (20)         /* depending on lower driver's pending queue size. drv's queue size < BUSY_NUM <= PEND_NUM. */
 #endif
 
 #define SHELL_ASSERT_BUF_LEN	140
 #define SHELL_CMD_BUF_LEN		140
-#define SHELL_RSP_BUF_LEN		400
+#define SHELL_RSP_BUF_LEN		200
 
 #define SHELL_RSP_QUEUE_ID	    (7)
 #define SHELL_FW_QUE_ID         (8)
@@ -187,6 +188,9 @@ static int shell_ipc_rx_indication(u16 cmd, u8 *data, u16 data_len);
 static const char	 shell_fault_str[] = "\r\n!!some LOGs discarded!!\r\n";
 static const u16     shell_fault_str_len = sizeof(shell_fault_str) - 1;
 #endif
+
+static const char	 shell_cmd_ovf_str[] = "\r\n!!some CMDs lost!!\r\n";
+static const u16     shell_cmd_ovf_str_len = sizeof(shell_cmd_ovf_str) - 1;
 
 static bool_t shell_init_ok = bFALSE;
 static u8     fault_hint_print = 0;
@@ -378,9 +382,15 @@ static void shell_tx_complete(u8 *pbuf, u16 buf_tag)
 
 	if( queue_id == SHELL_ROM_QUEUE_ID )    /* fault hints buffer, point to flash. */
 	{
-		/* it is called from log_dev tx ISR. */
+		/* it is called from log_dev/cmd_dev tx ISR. */
 
-		if ( (pbuf != (u8 *)shell_fault_str) || (blk_id != 0) )
+		if ( (blk_id == 0) && (pbuf == (u8 *)shell_fault_str) )
+		{
+		}
+		else if ( (blk_id == 1) && (pbuf == (u8 *)shell_cmd_ovf_str) )
+		{
+		}
+		else
 		{
 			/* something wrong!!! */
 			shell_assert_out(bTRUE, "FATAL:t-%x,p-%x\r\n", buf_tag, pbuf);
@@ -524,7 +534,34 @@ static bool_t rsp_out(u8 * rsp_msg, u16 msg_len)
 	return bTRUE;
 }
 
-static bool_t hint_out(void)
+static bool_t cmd_hint_out(void)
+{
+	u16    hint_blk_tag = MAKE_BLOCK_TAG(1, SHELL_ROM_QUEUE_ID);
+
+	if(log_dev != cmd_dev)
+	{
+		/* dedicated device for cmd_hint, don't enqueue the msg to pending queue. */
+		/* send to cmd dev directly. */
+		cmd_dev->dev_drv->write_async(cmd_dev, (u8 *)shell_cmd_ovf_str, shell_cmd_ovf_str_len, hint_blk_tag); 
+	}
+	else
+	{
+		/* shared device for response & log, push the cmd_hint msg to pending queue. */
+
+		u32  int_mask = rtos_disable_int();
+
+		push_pending_queue(hint_blk_tag, shell_fault_str_len);
+
+		//set_shell_event(SHELL_EVENT_TX_REQ);  // notify shell task to process the log tx.
+		tx_req_process();
+
+		rtos_enable_int(int_mask);
+	}
+
+	return bTRUE;
+}
+
+static bool_t log_hint_out(void)
 {
 	if(fault_hint_print)	/* sent one hint since last allocation fail.*/
 		return bTRUE;
@@ -597,15 +634,26 @@ static void tx_req_process(void)
 	}
 	else if(queue_id == SHELL_ROM_QUEUE_ID)
 	{
-		packet_buf = (u8 *)shell_fault_str;
-
-		if(blk_id != 0)
+		if(blk_id == 0)
 		{
-			shell_assert_out(bTRUE, "xFATAL: in Tx_req id=%x\r\n", blk_id);
-			/*		  FAULT !!!!	  */
-			/* if log_dev is not the same with cmd_dev,
-			 * rsp will not be pushed into pending queue.
-			 */
+			packet_buf = (u8 *)shell_fault_str;
+		}
+		else if(blk_id == 1)
+		{
+			packet_buf = (u8 *)shell_cmd_ovf_str;
+			if(log_dev != cmd_dev)
+			{
+				shell_assert_out(bTRUE, "xFATAL: in Tx_req id=%x\r\n", blk_id);
+				/*		  FAULT !!!!	  */
+				/* if log_dev is not the same with cmd_dev,
+				 * cmd_hint will not be pushed into pending queue.
+				 */
+			}
+		}
+		else
+		{
+				/*		  FAULT !!!!	  */
+				shell_assert_out(bTRUE, "xFATAL: in Tx_req id=%x\r\n", blk_id);
 		}
 	}
 	else
@@ -685,6 +733,7 @@ static void rx_ind_process(void)
 					continue;
 				}
 				#endif
+
 				echo_len++;          /* SYNC_CHAR not echo. */
 
 				if((rx_temp_buff[i] >= 0x20) && (rx_temp_buff[i] < 0x7f))
@@ -735,6 +784,7 @@ static void rx_ind_process(void)
 
 			}
 
+			#if 0
 			if(cmd_line_buf.cur_cmd_type == CMD_TYPE_HEX)
 			{
 				if(cmd_line_buf.cmd_data_len < sizeof(cmd_line_buf.cmd_buff))
@@ -750,6 +800,7 @@ static void rx_ind_process(void)
 					break;
 				}
 			}
+			#endif
 
 			if(cmd_line_buf.cur_cmd_type == CMD_TYPE_TEXT)
 			{
@@ -904,6 +955,7 @@ static void rx_ind_process(void)
 	/* can re-use *buf_len*. */
 	if( cmd_rx_done )
 	{
+		#if 0
 		if(cmd_line_buf.cur_cmd_type == CMD_TYPE_HEX)
 		{
 			#if 1   /* it's test code. */
@@ -925,9 +977,18 @@ static void rx_ind_process(void)
 
 			#endif
 		}
+		#endif
 
 		if(cmd_line_buf.cur_cmd_type == CMD_TYPE_TEXT)
 		{
+			u16		rx_ovf = 0;
+			cmd_dev->dev_drv->io_ctrl(cmd_dev, SHELL_IO_CTRL_GET_RX_STATUS, &rx_ovf);
+
+			if(rx_ovf != 0)
+			{
+				cmd_hint_out();
+			}
+			
 			cmd_line_buf.rsp_buff[0] = 0;
 			/* handle command. */
 			if( cmd_line_buf.cmd_data_len > 0 )
@@ -1036,7 +1097,7 @@ void shell_task( void *para )
 	}
 }
 
-__weak int shell_log_check(u8 level, char *mod_name)
+__bk_weak int shell_log_check(u8 level, char *mod_name)
 {
 	if(level > cmd_line_buf.log_level)
 		return 0; //bFALSE;
@@ -1096,7 +1157,7 @@ int shell_log_raw_data(const u8 *data, u16 data_len)
 
 	if (NULL == packet_buf)
 	{
-		hint_out();
+		log_hint_out();
 		return 0; // bFALSE;
 	}
 
@@ -1145,7 +1206,7 @@ void shell_log_out_port(int level, char *mod_name, const char *format, va_list a
 
 	if(packet_buf == NULL)
 	{
-		hint_out();
+		log_hint_out();
 		return ; // bFALSE;
 	}
 
@@ -1235,7 +1296,7 @@ int shell_trace_out( u32 trace_id, ... )
 
 	if(packet_buf == NULL)
 	{
-		hint_out();
+		log_hint_out();
 		return 0; // bFALSE;
 	}
 
@@ -1292,7 +1353,7 @@ int shell_spy_out( u16 spy_id, u8 * data_buf, u16 data_len)
 
 	if(packet_buf == NULL)
 	{
-		hint_out();
+		log_hint_out();
 		return 0; // bFALSE;
 	}
 

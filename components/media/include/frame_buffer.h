@@ -30,6 +30,7 @@ typedef enum
 	MODULE_DISPLAY,
 } frame_module_t;
 
+
 typedef struct
 {
 	uint8_t enable : 1;
@@ -61,7 +62,7 @@ void frame_buffer_init(void);
 void frame_buffer_deinit(void);
 bool frame_buffer_get_state(void);
 void frame_buffer_enable(bool enable);
-int frame_buffer_set_ppi(media_ppi_t ppi);
+int frame_buffer_set_ppi(media_ppi_t ppi, frame_type_t type);
 void frame_buffer_push_frame(frame_buffer_t *buffer);
 void frame_buffer_lock_frame(frame_buffer_t *frame);
 void frame_buffer_free_frame(frame_buffer_t *buffer);

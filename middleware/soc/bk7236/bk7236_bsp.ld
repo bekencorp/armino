@@ -10,12 +10,17 @@
  * any derivative work shall retain this copyright notice.
  */
 
+#include "soc/bk7236/reg_base.h"
+
 OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
+
+__STACK_SIZE = 0x00000400;
+__HEAP_SIZE  = 0x00000C00;
 
 MEMORY
 {
-  FLASH (rx)            : ORIGIN = 0, LENGTH = 0x2000000
-  RAM (rwx)             : ORIGIN = 0x28000000, LENGTH = 0x80000
+  FLASH (rx)            : ORIGIN = SOC_FLASH_DATA_BASE, LENGTH = 0x2000000
+  RAM (rwx)             : ORIGIN = SOC_SRAM0_DATA_BASE, LENGTH = 0x80000
 }
 
 ENTRY(Reset_Handler)
@@ -23,11 +28,16 @@ ENTRY(Reset_Handler)
 SECTIONS
 {
     ASSERT((. == ALIGN(128)), "vector table address align fault.")
-    .isr_vector :
+    .vectors :
     {
         __vector_table = .;
-        KEEP(*(.vector_table))
-        KEEP(*(.ext_irq_table))
+        KEEP(*(.vectors))
+        . = ALIGN(32);
+    } > FLASH
+
+    .gnu.sgstubs ALIGN(32) : ALIGN(32)
+    {
+        *(.gnu.sgstubs*)
         . = ALIGN(32);
     } > FLASH
 
@@ -66,6 +76,36 @@ SECTIONS
         *(.ARM.exidx* .gnu.linkonce.armexidx.*)
     } > FLASH
     __exidx_end = .;
+
+    .copy.table :
+    {
+        . = ALIGN(4);
+        __copy_table_start__ = .;
+        LONG (__etext)
+        LONG (__data_start__)
+        LONG (__data_end__ - __data_start__)
+        /* Add each additional data section here */
+        /*
+        LONG (__etext2)
+        LONG (__data2_start__)
+        LONG (__data2_end__ - __data2_start__)
+        */
+        __copy_table_end__ = .;
+    } > FLASH
+
+    .zero.table :
+    {
+        . = ALIGN(4);
+        __zero_table_start__ = .;
+        LONG (_bss_start)
+        LONG (_bss_end - _bss_start)
+        /* Add each additional bss section here */
+        /*
+            LONG (__bss2_start__)
+            LONG (__bss2_end__ - __bss2_start__)
+        */
+        __zero_table_end__ = .;
+    } > FLASH
 
     .data :
     {
@@ -115,12 +155,12 @@ SECTIONS
     {
         . = ALIGN(4);
         __START_BSS = .;
-	_bss_start = .;
+        _bss_start = .;
         *(.bss)
         *(.bss*)
         *(COMMON)
         . = ALIGN(4);
-	_bss_end = .;
+        _bss_end = .;
         __END_BSS = .;
 
     } > RAM
@@ -129,6 +169,25 @@ SECTIONS
     _empty_ram = .;
 
     bss_size = _bss_end - _bss_start;
+
+    .heap (COPY) :
+    {
+        . = ALIGN(8);
+        __end__ = .;
+        PROVIDE(end = .);
+        . = . + __HEAP_SIZE;
+        . = ALIGN(8);
+        __HeapLimit = .;
+    } > RAM
+
+    .stack (ORIGIN(RAM) + LENGTH(RAM) - __STACK_SIZE) (COPY) :
+    {
+        . = ALIGN(8);
+        __StackLimit = .;
+        . = . + __STACK_SIZE;
+        . = ALIGN(8);
+        __StackTop = .;
+    } > RAM
 
     /* Set stack top to end of RAM, and stack limit move down by
      * size of stack_dummy section */

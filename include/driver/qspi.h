@@ -99,7 +99,7 @@ bk_err_t bk_qspi_command(const qspi_cmd_t *cmd);
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-bk_err_t bk_qspi_write(uint32_t base_addr, const void *data, uint32_t size);
+bk_err_t bk_qspi_write(const void *data, uint32_t size);
 
 /**
  * @brief     QSPI indirect mode read
@@ -112,7 +112,7 @@ bk_err_t bk_qspi_write(uint32_t base_addr, const void *data, uint32_t size);
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-bk_err_t bk_qspi_read(uint32_t base_addr, void *data, uint32_t size);
+bk_err_t bk_qspi_read(void *data, uint32_t size);
 
 /**
  * @brief     Register the TX interrupt service routine for QSPI

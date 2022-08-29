@@ -225,22 +225,20 @@ typedef enum {
 #define CMD_TIMEOUT_100K	2500
 #define DATA_TIMEOUT_100K	10000
 
-/* default 512*8=4096bits data needs 4096 clock cycles, almost multi-20 */
-#define CMD_TIMEOUT_6_5_M	8000
-#define DATA_TIMEOUT_6_5_M  80000
+#define CMD_TIMEOUT_6_5_M	300000 //about 150ns per cycle (45ms)
+#define DATA_TIMEOUT_6_5_M  3000000 //450ms
 
-#define CMD_TIMEOUT_13M		8000
-#define DATA_TIMEOUT_13M	80000
+#define CMD_TIMEOUT_13M		600000 //about 77ns pr cycle (45ms)
+#define DATA_TIMEOUT_13M	6000000 //450ms
 
-#define CMD_TIMEOUT_20M		8000
-#define DATA_TIMEOUT_20M	80000
+#define CMD_TIMEOUT_20M		1000000
+#define DATA_TIMEOUT_20M	10000000
 
-#define CMD_TIMEOUT_40M		8000
-#define DATA_TIMEOUT_40M	80000
+#define CMD_TIMEOUT_40M		2000000
+#define DATA_TIMEOUT_40M	20000000
 
-#define CMD_TIMEOUT_80M		8000	//100us, read/write file 60000 times, the max wait is about 2.4ms(cmd retry max count==24)
-#define DATA_TIMEOUT_80M	80000
-
+#define CMD_TIMEOUT_80M		4000000
+#define DATA_TIMEOUT_80M	40000000
 #else
 #define	CLK_26M                  0
 #define	CLK_13M                  1

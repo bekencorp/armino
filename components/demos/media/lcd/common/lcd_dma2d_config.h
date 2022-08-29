@@ -90,13 +90,6 @@ void dma2d_blend_rgb565_data(void *p_fg_addr, void *p_bg_addr, void *p_dst_addr,
 
 void bk_example_dma2d_rgb888_to_arg565pixel(uint32_t srcaddr, uint32_t dstaddr, uint32_t x_pixel, uint32_t y_pixel);
 
-/**
-  * @brief sd card read file to mem
-  * @param1 filename
-  * @param2 paddr the addr of read sdcard dat to dst mem addr
-  * @return none
-  */
-void lcd_sdcard_read_to_mem(char *filename, uint32_t paddr);
 
 /*
  * @}

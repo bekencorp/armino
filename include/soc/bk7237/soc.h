@@ -39,8 +39,8 @@ extern "C" {
 #define SOC_SPI2_REG_BASE        (0x458C0000)
 #define SOC_MAILBOX_REG_BASE     (0xA0000000)
 #define SOC_QSPI_REG_BASE        (0x46040000)
-#define SOC_QSPI_DATA_REG_BASE   (0x68000000)
 #endif
+#define SOC_QSPI_DATA_REG_BASE   (0x68000000)
 #define SOC_PWM_REG_BASE         (0x44840000)
 #define SOC_ICU_REG_BASE         (0x44010000)
 #define SOC_FLASH_REG_BASE       (0x44030000)
@@ -50,6 +50,8 @@ extern "C" {
 #define SOC_I2C1_REG_BASE        (0x45890000)
 #define SOC_AUD_REG_BASE         (0x47800000)
 #endif
+#define SOC_SDIO_REG_BASE 		 (0x448B0000)
+#define SOC_SDIO_HOST_REG_BASE   (SOC_SDIO_REG_BASE)
 
 #define REG_WRITE(_r, _v) ({\
 		(*(volatile uint32_t *)(_r)) = (_v);\

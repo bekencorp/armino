@@ -318,6 +318,11 @@ static void ate_uart_rx_isr(uart_id_t id, void *param)
 		os_printf("ate_uart_rx_isr: ATE set sema failed\r\n");
 }
 
+static void ate_uart_tx_isr(uart_id_t id, void *param)
+{
+	bk_uart_disable_tx_interrupt(CONFIG_UART_PRINT_PORT);
+}
+
 static void cli_ate_main(uint32_t data)
 {
 
@@ -337,14 +342,16 @@ static void cli_ate_main(uint32_t data)
 	bk_uart_register_rx_isr(CONFIG_UART_PRINT_PORT, (uart_isr_t)ate_uart_rx_isr, NULL);
 	bk_uart_enable_rx_interrupt(CONFIG_UART_PRINT_PORT);
 
+	bk_uart_register_tx_isr(CONFIG_UART_PRINT_PORT, (uart_isr_t)ate_uart_tx_isr, NULL);
+	bk_uart_enable_tx_interrupt(CONFIG_UART_PRINT_PORT);
+
 	send_device_id();
 	ate_test_multiple_cpus_init();
 
 	while (1) {
 
 		ret = rtos_get_semaphore(&ate_test_semaphore, BEKEN_WAIT_FOREVER);
-		if(kNoErr == ret)
-        	{
+		if(kNoErr == ret) {
 			while(1)  /* read all data from rx-FIFO. */
 			{
 				ret = uart_read_byte_ex(CONFIG_UART_PRINT_PORT, &rx_data);
@@ -365,7 +372,7 @@ static void cli_ate_main(uint32_t data)
 					pCli->inbuf[i] = 0;
 				cnt = 0;
 			}
-        	}
+		}
 
 		msg = pCli->inbuf;
 		if (os_strcmp(msg, EXIT_MSG) == 0)
@@ -1069,6 +1076,9 @@ void help_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **arg
 			n++;
 			if (n == build_in_count)
 				os_printf("\r\n====User Commands====\r\n");
+
+			if((n & 0x0f) == 0)
+				rtos_delay_milliseconds(50);
 		}
 	}
 }
@@ -1459,6 +1469,10 @@ int bk_cli_init(void)
 
 #if (CLI_CFG_G711 == 1)
 	cli_g711_init();
+#endif
+
+#if (CLI_CFG_MP3 == 1)
+	cli_mp3_init();
 #endif
 
 #if (CLI_CFG_DVP == 1)

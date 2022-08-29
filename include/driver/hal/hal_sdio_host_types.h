@@ -22,6 +22,25 @@ extern "C" {
 
 typedef uint8_t sdio_host_unit_t; /**< sdio host uint id */
 
+#if (CONFIG_SOC_BK7256XX)
+typedef enum {
+	SDIO_HOST_CLK_13M = 0,    /**< 2 division of clock frequency */
+	SDIO_HOST_CLK_6_5M = 1,    /**< 4 division of clock frequency */
+	SDIO_HOST_CLK_4_3M  = 2, /**< 6 division of clock frequency */
+	SDIO_HOST_CLK_3_2M  = 3, /**< 8 division of clock frequency */
+
+	SDIO_HOST_CLK_2_6M = 4,    /**< 10 division of clock frequency */
+	SDIO_HOST_CLK_2_2M = 5,    /**< 12 division of clock frequency */
+
+	SDIO_HOST_CLK_1_6M = 6,     /**< 16 division of clock frequency */
+	SDIO_HOST_CLK_100K = 7,     /**< 256 division of clock frequency */
+
+	SDIO_HOST_CLK_80M = 9,     /**< 320M/4 division of clock frequency */
+	SDIO_HOST_CLK_40M = 11,     /**< 320M/8 division of clock frequency */
+	SDIO_HOST_CLK_20M = 14,     /**< 320M/16 division of clock frequency */
+
+} sdio_host_clock_freq_t;
+#else
 typedef enum {
 	SDIO_HOST_CLK_26M = 26000000,    /**< 1 division of clock frequency */
 	SDIO_HOST_CLK_13M = 13000000,    /**< 2 division of clock frequency */
@@ -33,6 +52,7 @@ typedef enum {
 	SDIO_HOST_CLK_200K = 200000,     /**< 128 division of clock frequency */
 	SDIO_HOST_CLK_100K = 100000,     /**< 256 division of clock frequency */
 } sdio_host_clock_freq_t;
+#endif
 
 typedef enum {
 	SDIO_HOST_CMD_RSP_NONE = 0, /**< sdio host not need slave respond the command */
@@ -57,6 +77,7 @@ typedef struct {
 	uint32_t argument;            /**< sdio command argument */
 	sdio_host_cmd_rsp_t response; /**< sdio command response type */
 	uint32_t wait_rsp_timeout;    /**< sdio host wait for slave command response timeout */
+	bool crc_check;			      /**< sdio host whether need to check slave response crc value */
 } sdio_host_cmd_cfg_t;
 
 #ifdef __cplusplus

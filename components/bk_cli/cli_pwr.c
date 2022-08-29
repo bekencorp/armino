@@ -16,6 +16,8 @@
 #include <driver/aon_rtc_types.h>
 #include <driver/aon_rtc.h>
 #include <modules/ble_types.h>
+#include <driver/timer.h>
+
 
 #if CONFIG_MCU_PS
 static void cli_ps_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -78,6 +80,7 @@ _invalid_ps_arg:
 #endif
 #if CONFIG_SYSTEM_CTRL
 #define PM_MANUAL_LOW_VOL_VOTE_ENABLE    (0)
+#define PM_DEEP_SLEEP_REGISTER_CALLBACK_ENABLE (0x1)
 
 static UINT32 s_cli_sleep_mode = 0;
 static UINT32 s_pm_vote1       = 0;
@@ -149,9 +152,10 @@ void cli_pm_gpio_callback(gpio_id_t gpio_id)
 	}
 	os_printf("cli_pm_gpio_callback\r\n");
 }
+
 #define PM_MANUAL_LOW_VOL_VOTE_ENABLE    (0)
 extern void stop_slave_core(void);
-extern ble_err_t bk_ble_deinit(void);
+
 static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	UINT32 pm_sleep_mode = 0;
@@ -219,8 +223,11 @@ static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 	s_pm_vote2 = pm_vote2;
 	s_pm_vote3 = pm_vote3;
 
+
+
+
 	/*set sleep mode*/
-	bk_pm_sleep_mode_set(pm_sleep_mode);
+	//bk_pm_sleep_mode_set(pm_sleep_mode);
 
 	/*set wakeup source*/
 	if(pm_wake_source == PM_WAKEUP_SOURCE_INT_RTC)
@@ -292,44 +299,6 @@ static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 	/*vote*/
 	if(pm_sleep_mode == PM_MODE_DEEP_SLEEP)
 	{
-		if((pm_vote1 == PM_POWER_MODULE_NAME_BTSP)||(pm_vote1 == PM_POWER_MODULE_NAME_WIFIP_MAC))
-		{
-			if(pm_vote1 == PM_POWER_MODULE_NAME_WIFIP_MAC)
-			{
-#if CONFIG_WIFI_ENABLE
-#if CONFIG_WIFI6_CODE_STACK
-				bk_wifi_prepare_deepsleep();
-#endif
-				bk_wifi_sta_stop();
-#endif
-				bk_pm_module_vote_power_ctrl(pm_vote1,PM_POWER_MODULE_STATE_OFF);
-			}
-			else {
-#if CONFIG_BLE
-				bk_ble_deinit();
-#endif
-			}
-		}
-
-		if((pm_vote2 == PM_POWER_MODULE_NAME_WIFIP_MAC)||(pm_vote2 == PM_POWER_MODULE_NAME_WIFIP_MAC))
-		{
-			if(pm_vote2 == PM_POWER_MODULE_NAME_WIFIP_MAC)
-			{
-#if CONFIG_WIFI_ENABLE
-#if CONFIG_WIFI6_CODE_STACK
-				bk_wifi_prepare_deepsleep();
-#endif
-				bk_wifi_sta_stop();
-#endif
-				bk_pm_module_vote_power_ctrl(pm_vote2,PM_POWER_MODULE_STATE_OFF);
-			}
-			else {
-#if CONFIG_BLE
-				bk_ble_deinit();
-#endif
-			}
-		}
-
 		if(pm_vote3 == PM_POWER_MODULE_NAME_CPU1)
 		{
 			#if (CONFIG_SLAVE_CORE_OFFSET && CONFIG_SLAVE_CORE_RESET_VALUE)
@@ -378,6 +347,8 @@ static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 	{
 		;//do something
 	}
+
+	bk_pm_sleep_mode_set(pm_sleep_mode);
 
 }
 static void cli_pm_debug(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -701,6 +672,33 @@ static void cli_dvfs_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	GLOBAL_INT_RESTORE();
 	os_printf("switch cpu frequency ok 0x%x 0x%x 0x%x\r\n",sys_drv_all_modules_clk_div_get(CLK_DIV_REG0),sys_drv_cpu_clk_div_get(0),sys_drv_cpu_clk_div_get(1));
 }
+#if CONFIG_AON_RTC
+static UINT32 s_pre_tick;
+static void cli_pm_timer_isr(timer_id_t chan)
+{
+	UINT32 current_tick = 0;
+	current_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
+
+    os_printf("rosc accuracy count %d %d %d \r\n",current_tick - s_pre_tick,current_tick,s_pre_tick);
+	s_pre_tick = current_tick;
+}
+#endif
+static void cli_pm_rosc_accuracy(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+#if CONFIG_AON_RTC
+	UINT32 timer_count_interval = 0;
+
+	if (argc != 2)
+	{
+		os_printf("set osc_accurac parameter invalid %d\r\n",argc);
+		return;
+	}
+
+	timer_count_interval   = os_strtoul(argv[1], NULL, 10);
+	bk_timer_start(0, timer_count_interval, cli_pm_timer_isr);
+#endif
+}
+
 #endif
 #if CONFIG_MCU_PS
 static void cli_deep_sleep_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -872,6 +870,7 @@ static const struct cli_command s_pwr_commands[] = {
 	{"pm_ctrl", "pm_ctrl [ctrl_value]", cli_pm_ctrl},
 	{"pm_pwr_state", "pm_pwr_state [pwr_state]", cli_pm_pwr_state},
 	{"pm_auto_vote", "pm_auto_vote [auto_vote_value]", cli_pm_auto_vote},
+	{"pm_rosc", "pm_rosc [rosc_accuracy_count_interval]", cli_pm_rosc_accuracy},
 #endif
 #if CONFIG_TPC_PA_MAP
 	{"pwr", "pwr {sta|ap} pwr", cli_pwr_cmd },

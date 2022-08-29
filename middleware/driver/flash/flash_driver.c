@@ -86,6 +86,9 @@ static beken_mutex_t s_flash_mutex = NULL;
 static PM_STATUS flash_ps_status;
 static flash_ps_callback_t s_flash_ps_suspend_cb = NULL;
 static flash_ps_callback_t s_flash_ps_resume_cb = NULL;
+#if (CONFIG_SOC_BK7256XX)
+static uint32_t s_hold_low_speed_status = 0;
+#endif
 
 static UINT32 flash_ps_suspend(UINT32 ps_level)
 {
@@ -392,9 +395,8 @@ bk_err_t bk_flash_driver_init(void)
 #endif
 	bk_flash_set_line_mode(s_flash.flash_cfg->line_mode);
 	flash_hal_set_default_clk(&s_flash.hal);
-#if CONFIG_FLASH_SRC_CLK_60M
-	sys_drv_flash_set_clk_div(FLASH_DIV_VALUE_EIGHT);
-	sys_drv_flash_set_dco();
+#if (CONFIG_SOC_BK7256XX)
+	bk_flash_clk_switch(FLASH_SPEED_HIGH, 0);
 #endif
 
 	flash_init_common();
@@ -490,6 +492,58 @@ bk_err_t bk_flash_set_clk_dco(void)
 	return BK_OK;
 }
 
+#if (CONFIG_SOC_BK7256XX)
+bk_err_t bk_flash_set_clk(flash_clk_src_t flash_src_clk, uint8_t flash_dpll_div)
+{
+	if ((FLASH_CLK_DPLL == flash_src_clk) && (flash_dpll_div == 0)) {
+		FLASH_LOGE("flash 120M clock not support.\r\n");
+		return BK_FAIL;
+	}
+	if (FLASH_CLK_APLL == flash_src_clk) {
+		FLASH_LOGE("flash apll clock not support.\r\n");
+		return BK_FAIL;
+	}
+
+	uint32_t int_level = rtos_disable_int();
+	if((sys_drv_flash_get_clk_sel() == flash_src_clk) && (sys_drv_flash_get_clk_div() == flash_dpll_div)) {
+		rtos_enable_int(int_level);
+		return BK_OK;
+	}
+	if (FLASH_CLK_DPLL == flash_src_clk) {
+		sys_drv_flash_set_clk_div(flash_dpll_div);
+	}
+	sys_drv_flash_cksel(flash_src_clk);
+	rtos_enable_int(int_level);
+
+	return BK_OK;
+}
+
+bk_err_t bk_flash_clk_switch(uint32_t flash_speed_type, uint32_t modules)
+{
+	uint32_t int_level = rtos_disable_int();
+	switch (flash_speed_type) {
+		case FLASH_SPEED_LOW:
+			s_hold_low_speed_status |= modules;
+			FLASH_LOGD("%s: set low, 0x%x 0x%x\r\n", __func__, s_hold_low_speed_status, modules);
+			if (s_hold_low_speed_status) {
+				bk_flash_set_clk(FLASH_CLK_XTAL, FLASH_DPLL_DIV_VALUE_TEN);
+			}
+			break;
+
+		case FLASH_SPEED_HIGH:
+			s_hold_low_speed_status &= ~(modules);
+			FLASH_LOGD("%s: clear low bit, 0x%x 0x%x\r\n", __func__, s_hold_low_speed_status, modules);
+			if (0 == s_hold_low_speed_status) {
+				bk_flash_set_clk(FLASH_CLK_DPLL, FLASH_DPLL_DIV_VALUE_TEN);
+			}
+			break;
+	}
+	rtos_enable_int(int_level);
+
+	return BK_OK;
+}
+#endif
+
 bk_err_t bk_flash_write_enable(void)
 {
 	flash_ps_suspend(NORMAL_PS);
@@ -554,6 +608,7 @@ bk_err_t bk_flash_set_protect_type(flash_protect_type_t type)
 	return BK_OK;
 }
 
+/* This API is not used in bk7256xx */
 void flash_ps_pm_init(void)
 {
 	PM_STATUS *flash_ps_status_ptr = &flash_ps_status;

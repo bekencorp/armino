@@ -86,9 +86,7 @@ target_include_directories(platform_s
 target_sources(platform_s
     PRIVATE
         cmsis_drivers/Driver_Flash.c
-        cmsis_drivers/Driver_PPC.c
         cmsis_drivers/Driver_USART.c
-        retarget/platform_retarget_dev.c
         cmsis_core/system_cmsdk_bk7236.c
         native_drivers/mpc_sie200_drv.c
         native_drivers/mpu_armv8m_drv.c
@@ -126,7 +124,6 @@ target_sources(platform_ns
         native_drivers/arm_uart_drv.c
         native_drivers/timer_cmsdk/timer_cmsdk.c
         cmsis_drivers/Driver_USART.c
-        retarget/platform_retarget_dev.c
         cmsis_core/system_cmsdk_bk7236.c
         $<$<BOOL:${TFM_PARTITION_PLATFORM}>:${CMAKE_CURRENT_SOURCE_DIR}/plat_test.c>
 )
@@ -147,7 +144,6 @@ target_include_directories(platform_ns
 if(BL2)
     target_sources(platform_bl2
         PRIVATE
-            retarget/platform_retarget_dev.c
             cmsis_core/system_cmsdk_bk7236.c
             cmsis_drivers/Driver_Flash.c
             native_drivers/arm_uart_drv.c

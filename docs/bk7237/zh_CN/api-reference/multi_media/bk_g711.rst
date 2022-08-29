@@ -1,0 +1,23 @@
+G711 APIs
+================
+
+:link_to_translation:`en:[English]`
+
+.. important::
+
+   The G711 API v1.0 is the lastest stable G711 APIs. All new applications should use G711 API v1.0.
+
+G711 API Categories
+----------------------------
+G711 APIs:
+ - :cpp:func:`linear2alaw` - G711A encodec pcm data to a-law data
+ - :cpp:func:`alaw2linear` - G711A decodec a-law data to pcm data
+ - :cpp:func:`linear2ulaw` - G711U encodec pcm data to u-law data
+ - :cpp:func:`ulaw2linear` - G711U decodec u-law data to pcm data
+
+API Reference
+----------------------------------------
+
+.. include:: ../../_build/inc/g711.inc
+
+

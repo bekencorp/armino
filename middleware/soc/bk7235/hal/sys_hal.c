@@ -86,7 +86,7 @@ void sys_hal_usb_charge_get_cal()
 
 void sys_hal_flash_set_dco(void)
 {
-	sys_ll_set_cpu_clk_div_mode2_cksel_flash(FLASH_CLK_120M);
+	sys_ll_set_cpu_clk_div_mode2_cksel_flash(FLASH_CLK_DPLL);
 }
 
 void sys_hal_flash_set_dpll(void)
@@ -146,7 +146,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_deep_sleep(void * 
 	clock_value |= (1 << SYS_ANA_REG6_EN_SLEEP_POS);
 	clock_value &= ~((1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_AUDPLL_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS)|(1 << SYS_ANA_REG6_EN_DCO_POS)|(1 << SYS_ANA_REG6_EN_USB_POS));
 
-	clock_value &= ~((1 << SYS_ANA_REG6_EN_SYSLDO_POS)|(1 << SYS_ANA_REG6_PWD_GADC_BUF_POS)|(1 << SYS_ANA_REG6_EN_TEMPDET_POS));//0:vddaon drop enable
+	clock_value &= ~((1 << SYS_ANA_REG6_EN_SYSLDO_POS)|(1 << SYS_ANA_REG6_EN_TEMPDET_POS));
 
 	sys_ll_set_ana_reg6_value(clock_value);
 
@@ -178,6 +178,9 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_deep_sleep(void * 
 	pmu_val2 =  aon_pmu_hal_reg_get(PMU_REG2);
 	pmu_val2 |= BIT(BIT_SLEEP_FLAG_DEEP_SLEEP);
 	aon_pmu_hal_reg_set(PMU_REG2,pmu_val2);
+
+	sys_ll_set_ana_reg8_en_lpmode(0x1);// touch enter low power mode
+	sys_ll_set_ana_reg6_vaon_sel(0);//0:vddaon drop enable
 
 	/*8.WFI*/
 	__asm volatile( "wfi" );
@@ -308,10 +311,10 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	analog_clk  = clock_value;
 
 	clock_value |= (1 << SYS_ANA_REG6_EN_SLEEP_POS);//enable xtal26m sleep
-	//clock_value &= ~((1 << SYS_ANA_REG6_XTAL_LPMODE_CTRL_POS)|(1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_AUDPLL_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS)|(1 << SYS_ANA_REG6_EN_DCO_POS)|(1 << SYS_ANA_REG6_EN_XTALL_POS)|(1 << SYS_ANA_REG6_EN_USB_POS));
+
 	clock_value &= ~((1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_USB_POS)|(1 << SYS_ANA_REG6_EN_AUDPLL_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS)|(1 << SYS_ANA_REG6_EN_DCO_POS));
 
-	clock_value &= ~((1 << SYS_ANA_REG6_EN_SYSLDO_POS)|(1 << SYS_ANA_REG6_PWD_GADC_BUF_POS)|(1 << SYS_ANA_REG6_EN_TEMPDET_POS));
+	clock_value &= ~((1 << SYS_ANA_REG6_EN_SYSLDO_POS)|(1 << SYS_ANA_REG6_EN_TEMPDET_POS));
 
 	sys_ll_set_ana_reg6_value(clock_value);
 
@@ -353,6 +356,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	sys_ll_set_cpu0_int_32_63_en_cpu0_touched_int_en(0x1);
 	sys_ll_set_cpu0_int_32_63_en_cpu0_dm_irq_en(0x1);
 
+	sys_ll_set_ana_reg8_en_lpmode(0x1);// touch enter low power mode
 //just debug:maybe some guys changed the CPU clock or Flash clock caused the time of
 //MTIMER_LOW_VOLTAGE_MINIMUM_TICK isn't enough.
 //here can statistic the MAX time value.
@@ -463,6 +467,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 
 	sys_ll_set_cpu0_int_0_31_en_value(int_state1);
 	sys_ll_set_cpu0_int_32_63_en_value(int_state2);
+	sys_ll_set_ana_reg8_en_lpmode(0x0);// touch exit low power mode
 
 	set_csr(NDS_MIE, MIP_MTIP);
 

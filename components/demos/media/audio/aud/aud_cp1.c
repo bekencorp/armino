@@ -281,6 +281,8 @@ void cli_aud_adc_dma_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
 		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_48K;
+		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
+		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
 		dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
 		dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
@@ -446,6 +448,8 @@ void cli_aud_adc_mcp_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
 		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_8K;
+		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
+		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
 		dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
 		dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
@@ -540,6 +544,8 @@ void cli_aud_dtmf_mcp_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
 		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_8K;
+		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
+		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
 		dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
 		dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
@@ -657,6 +663,8 @@ void cli_aud_adc_loop_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
 		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_16K;
+		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
+		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
 		dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
 		dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
@@ -769,6 +777,8 @@ void cli_aud_dtmf_loop_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
 		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_8K;
+		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
+		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
 		dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
 		dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
@@ -860,6 +870,8 @@ void cli_aud_pcm_mcp_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 		os_printf("audio pcm mcp test start\n");
 		dac_config.dac_enable = AUD_DAC_DISABLE;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
+		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
+		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
 		dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
 		dac_config.dac_set_gain = 0x2D;
@@ -977,7 +989,8 @@ void cli_aud_pcm_dma_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 		}
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
-
+		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
+		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
 		dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
 		dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
@@ -1166,6 +1179,8 @@ void cli_aud_eq_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
 		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_48K;
+		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
+		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
 		dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
 		dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
@@ -1483,6 +1498,8 @@ void cli_aud_mic_to_pcm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
 		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_48K;
+		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
+		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
 		dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
 		dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;

@@ -9,8 +9,6 @@ if("${CONFIG_SOC_ARCH}" STREQUAL ${COMPONENT_NAME})
 	)
 
 	list(APPEND srcs
-		boot_handlers_base.S
-		boot_vectors_base.S
 		stack_base.c
 		trap_base.c
 		arm.c

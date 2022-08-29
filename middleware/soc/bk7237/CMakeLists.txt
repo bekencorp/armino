@@ -73,6 +73,11 @@ if(CONFIG_DMA2D)
 	)
 endif()
 
+if(CONFIG_SDIO_HOST)
+	list(APPEND srcs "hal/sdio_host_hal_debug.c"
+		"hal/sdio_host_ll.c" )
+endif()
+
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}")
 
 armino_build_get_property(sdkconfig_header SDKCONFIG_HEADER)

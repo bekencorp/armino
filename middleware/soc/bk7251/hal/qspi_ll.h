@@ -751,8 +751,8 @@ static inline void qspi_ll_direct_read(uint32_t base_addr, void *data, uint32_t 
 	}
 }
 
-#define qspi_ll_io_write(hw, base_addr, data, size)
-#define qspi_ll_io_read(hw, base_addr, data, size)
+#define qspi_ll_io_write(hw, data, size)
+#define qspi_ll_io_read(hw, data, size)
 
 static inline void qspi_ll_set_voltage(qspi_voltage_level_t vol_level)
 {
@@ -764,14 +764,14 @@ static inline void qspi_ll_set_voltage(qspi_voltage_level_t vol_level)
 	sys_hal_set_qspi_vddram_voltage(vol);
 }
 
-static inline void qspi_ll_init_common(void)
+static inline void qspi_ll_init_common(qspi_hw_t *hw)
 {
 	qspi_ll_set_voltage(QSPI_VOL_3_3V);
 	uint32_t param = BLK_BIT_MIC_QSPI_RAM_OR_FLASH;
 	sddev_control(DD_DEV_TYPE_SCTRL, CMD_SCTRL_BLK_ENABLE, &param);
 }
 
-static inline void qspi_ll_deinit_common(void)
+static inline void qspi_ll_deinit_common(qspi_hw_t *hw)
 {
 	uint32_t param = ~BLK_BIT_MIC_QSPI_RAM_OR_FLASH;
 	sddev_control(DD_DEV_TYPE_SCTRL, CMD_SCTRL_BLK_ENABLE, &param);

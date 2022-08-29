@@ -870,6 +870,8 @@ void cli_i2s_slave_mic_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
 		dac_config.samp_rate = AUD_DAC_SAMP_RATE_8K;
+		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
+		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
 		dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
 		dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;

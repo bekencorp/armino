@@ -17,7 +17,6 @@
 #ifndef __CMSIS_DRIVER_CONFIG_H__
 #define __CMSIS_DRIVER_CONFIG_H__
 
-#include "platform_retarget_dev.h"
 #include "RTE_Device.h"
 #include "target_cfg.h"
 

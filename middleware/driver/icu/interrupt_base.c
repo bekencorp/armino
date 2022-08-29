@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include <common/bk_include.h>
-#include "compiler.h"
+#include <common/bk_compiler.h>
 #include <os/mem.h>
 #include "bk_arm_arch.h"
 #include "arch_interrupt.h"
@@ -68,9 +68,16 @@ bk_err_t bk_int_set_priority(icu_int_src_t int_src, uint32_t int_priority)
 	return BK_OK;
 }
 
-bk_err_t bk_int_isr_unregister(icu_int_src_t int_number)
+bk_err_t bk_int_isr_unregister(icu_int_src_t src)
 {
-    arch_interrupt_unregister_int(int_number);
+	ICU_RETURN_ON_INVALID_DEVS(src);
+
+	const icu_int_map_t *icu_int_map = &icu_int_map_table[src];
+
+	uint8_t int_num = icu_int_map->int_bit;
+
+	arch_interrupt_unregister_int(int_num);
+
 	return BK_OK;
 }
 #else

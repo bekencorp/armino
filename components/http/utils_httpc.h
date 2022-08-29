@@ -140,6 +140,22 @@ void ble_sleep_cb(uint8_t is_sleeping, uint32_t slp_period);
 typedef void (*ble_sleep_state_cb)(uint8_t is_sleeping, uint32_t slp_period);
 extern void bk_ble_register_sleep_state_callback(ble_sleep_state_cb cb);
 #endif
+
+/** @defgroup OTA_a&b Enum
+ *  @{
+ */
+/** @brief   This enumeration defines which partition needs update.  */
+#ifdef CONFIG_HTTP_AB_PARTITION
+typedef enum S_PART
+{
+    UPDATE_A_PART = 0,
+    UPDATE_B_PART 
+}part_flag;
+
+#define INS_NO_CRC_CHUNK  (32)
+#define INS_CRC_CHUNK     (34)
+#endif
+
 #ifdef __cplusplus
 }
 #endif

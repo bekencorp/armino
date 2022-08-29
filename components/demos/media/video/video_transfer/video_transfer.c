@@ -45,6 +45,9 @@ beken_thread_t  tvideo_thread_hdl = NULL;
 beken_queue_t tvideo_msg_que = NULL;
 static uint8_t  g_dma_id = 0;
 static uint32_t g_frame_total_num = 0;
+static uint32_t g_lost_flag = 0;
+static uint32_t g_lost_frame_id = 0;
+static uint8_t g_packet_count = 0;
 static bool  tvideo_open = false;
 
 bk_err_t tvideo_send_msg(uint8_t type, uint32_t data)
@@ -171,6 +174,15 @@ static void tvideo_rx_handler(void *curptr, uint32_t newlen, uint32_t is_eof, ui
 		if (!newlen)
 			break;
 
+		if (tvideo_pool.frame_id != g_lost_frame_id) {
+//			os_printf("frame_id_new = %d\r\n", tvideo_pool.frame_id);
+			g_lost_flag = 0;
+		}
+
+		if (g_lost_flag) {
+			break;
+		}
+
 #if TVIDEO_DROP_DATA_NONODE
 		// drop pkt has happened, so drop it, until spidma timeout handler.
 		if (tvideo_pool.drop_pkt_flag & TVIDEO_DROP_DATA_FLAG)
@@ -240,6 +252,7 @@ static void tvideo_rx_handler(void *curptr, uint32_t newlen, uint32_t is_eof, ui
 #else
 			co_list_push_back(&tvideo_pool.ready, (struct co_list_hdr *)&elem->hdr);
 #endif
+			g_packet_count++;
 
 		} 
 		else
@@ -254,11 +267,18 @@ static void tvideo_rx_handler(void *curptr, uint32_t newlen, uint32_t is_eof, ui
 				co_list_concat(&tvideo_pool.free, &tvideo_pool.receiving);
 #else
 			TVIDEO_WPRT("lost\r\n");
+			g_lost_flag = 1;
+			g_lost_frame_id = tvideo_pool.frame_id;
+			tvideo_send_msg(VIDEO_CPU0_SEND, 0);
+			return;
 #endif
 		}
 	} while (0);
 
-	tvideo_send_msg(VIDEO_CPU0_SEND, 0);
+	if (g_packet_count == 4 || ((g_packet_count > 0 && g_packet_count < 4) && is_eof == 1)) {
+		tvideo_send_msg(VIDEO_CPU0_SEND, 0);
+		g_packet_count = 0;
+	}
 }
 
 static void tvideo_end_frame_handler(void)

@@ -250,6 +250,11 @@ struct netconn {
 #if LWIP_SOCKET
   int socket;
 #endif /* LWIP_SOCKET */
+#if LWIP_SO_CONTIMEO
+  /** timeout to wait for tcp connect (which means enqueueing data for sending
+      in internal buffers) in milliseconds */
+  s32_t conn_timeout;
+#endif /* LWIP_SO_CONTIMEO */
 #if LWIP_SO_SNDTIMEO
   /** timeout to wait for sending data (which means enqueueing data for sending
       in internal buffers) in milliseconds */
@@ -394,6 +399,13 @@ err_t   netconn_err(struct netconn *conn);
  */
 #define netconn_get_ipv6only(conn)        (((conn)->flags & NETCONN_FLAG_IPV6_V6ONLY) != 0)
 #endif /* LWIP_IPV6 */
+
+#if LWIP_SO_CONTIMEO
+/** Set the send timeout in milliseconds */
+#define netconn_set_conntimeout(conn, timeout)      ((conn)->conn_timeout = (timeout))
+/** Get the send timeout in milliseconds */
+#define netconn_get_conntimeout(conn)               ((conn)->conn_timeout)
+#endif /* LWIP_SO_SNDTIMEO */
 
 #if LWIP_SO_SNDTIMEO
 /** Set the send timeout in milliseconds */

@@ -696,6 +696,10 @@ void http_flash_wr(UINT8 *src, unsigned len)
         }
 }
 
+#ifdef CONFIG_HTTP_AB_PARTITION
+    extern part_flag update_part_flag;
+#endif
+
 void http_flash_init(void)
 {
 #if CONFIG_FLASH_ORIGIN_API
@@ -721,7 +725,20 @@ void http_flash_init(void)
 	bk_http_ptr->flash_hdl = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
 	BK_ASSERT(DD_HANDLE_UNVALID != bk_http_ptr->flash_hdl);
 #else
+#ifndef CONFIG_HTTP_AB_PARTITION
 	bk_http_ptr->pt = bk_flash_partition_get_info(BK_PARTITION_OTA);
+#else
+    if(update_part_flag == UPDATE_B_PART)
+    {
+        os_printf("UPDATE_B_PART\r\n");
+        bk_http_ptr->pt = bk_flash_partition_get_info(BK_PARTITION_APPLICATION1); //temp use APPLICATION1 repalce B_partition.
+    }
+    else
+    {
+        os_printf("UPDATE_A_PART\r\n");
+        bk_http_ptr->pt = bk_flash_partition_get_info(BK_PARTITION_APPLICATION);//update A_parition.
+    }
+#endif
 #endif
 
 	bk_http_ptr->wr_last_len = 0;
@@ -766,7 +783,7 @@ void http_wr_to_flash(char *page, UINT32 len)
 		i += w_l;
 		bk_http_ptr->wr_last_len += w_l;
 		if (bk_http_ptr->wr_last_len >= HTTP_FLASH_WR_BUF_MAX) {
-			os_printf(".");
+			//os_printf(".");
 #if CONFIG_OTA_TFTP//support bk ota format
 			store_block(ota_wr_block, bk_http_ptr->wr_buf, HTTP_FLASH_WR_BUF_MAX);
 			ota_wr_block++;

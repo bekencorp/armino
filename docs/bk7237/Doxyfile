@@ -116,6 +116,8 @@ INPUT = \
     ../../../include/components/video_types.h \
     ../../../include/modules/aec.h \
     ../../../include/modules/g711.h \
+    ../../../include/components/aud_intf.h \
+    ../../../include/components/aud_intf_types.h \
     ## PM
     ../../../include/modules/pm.h 
 

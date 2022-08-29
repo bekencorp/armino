@@ -52,4 +52,15 @@ menu "AUD_TRAS_CONFIG"
 			depends on AUDIO_TRANSFER
 			bool "enable Audio Transfer lost count debug"
 			default n
+
+	config AUD_TRAS_AEC_MIC_DELAY_DEBUG
+			depends on AUDIO_TRANSFER
+			bool "enable Audio Transfer AEC mic Delay debug"
+			default n
+
+	config AUD_TRAS_AEC_MIC_DELAY_POINTS
+			depends on AUDIO_TRANSFER
+			int "Audio Transfer AEC mic Delay points"
+			range 1 320
+			default 54
 endmenu

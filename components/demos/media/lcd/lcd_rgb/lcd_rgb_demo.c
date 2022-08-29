@@ -4,7 +4,6 @@
 #include <os/os.h>
 #include <stdlib.h>
 #include <components/system.h>
-#include "driver/lcd_disp_types.h"
 #include <driver/jpeg_enc.h>
 #include <driver/lcd.h>
 #include <driver/dma.h>
@@ -30,6 +29,7 @@
 
 extern void delay(INT32 num);
 #define           LCD_FRAMEADDR    0x60000000   /**<define frame base addr */
+#define jpeg_dec_length    (20480*4-1)  //80k
 
 static volatile uint8_t jpeg_frame_id = 0;
 
@@ -49,7 +49,6 @@ static dma_id_t   jpeg_dma_id   = DMA_ID_MAX;
 #define LCD2_PARTICAL_YE   660
 
 uint32_t line_int_cnt = 0;
-volatile uint8_t jpeg_end_flag = 0;
 volatile uint8_t jpeg_complete_flag = 0;
 static uint8_t  lcd_status = READY;
 static volatile uint8_t *display_address = NULL;
@@ -58,21 +57,15 @@ extern u64 riscv_get_mtimer(void);
 
 static void lcd_rgb_isr(void)
 {
-	if(jpeg_end_flag == 1){
-		bk_lcd_unmap_uart3_io_to_lcd_func();
-	}
 	if(lcd_status == JPEGDED)
 	{
 		display_address = psram_lcd->display[(!jpeg_frame_id)];
-		bk_lcd_set_display_base_addr((uint32_t)display_address);
+		lcd_driver_set_display_base_addr((uint32_t)display_address);
 	}
 	lcd_status = READY;
 }
 static void jpeg_enc_end_of_yuv(jpeg_unit_t id, void *param)
 {
-	if (jpeg_end_flag == 0)
-		jpeg_end_flag = 1;
-
 	if (lcd_status == READY) 
 	{
 		jpeg_frame_id = !jpeg_frame_id;
@@ -85,102 +78,40 @@ static void jpeg_enc_end_of_yuv(jpeg_unit_t id, void *param)
 }
 
 //jpeg complete
-static void jpeg_enc_end_of_frame_isr_480p(jpeg_unit_t id, void *param)
+static void jpeg_enc_end_of_frame_isr(jpeg_unit_t id, void *param)
 {
 	int err;
 	bk_dma_stop(jpeg_dma_id);
-	
-	bk_jpeg_dec_hw_init(JPEGDEC_X_PIXEL_480, PIXEL_272, jpeg_dec_input_buf, jpeg_dec_output_buf);
-	err = bk_jpeg_dec_hw_start();
-		if (err != BK_OK) {
-			return;
-		}
+
+	err = bk_jpeg_dec_hw_start(jpeg_dec_length, jpeg_dec_input_buf, jpeg_dec_output_buf);
+	if (err != BK_OK) {
+		return;
+	}
 }
 
-static void jpeg_enc_end_of_frame_isr_720p(jpeg_unit_t id, void *param)
-{
-	int err;
-
-	bk_dma_stop(jpeg_dma_id);
-	bk_jpeg_dec_hw_init(JPEGDEC_X_PIXEL_720, PIXEL_272, jpeg_dec_input_buf, jpeg_dec_output_buf);
-	err = bk_jpeg_dec_hw_start();
-		if (err != BK_OK) {
-			return;
-		}
-}
 
 //lcd diaplay jpeg decode complete
 static void  lcd_rgb_jpeg_isr(void)
 {
+
 }
 
 //jpeg decode complete
-static void jpeg_dec_end_of_frame_cb(void)
+static void jpeg_dec_end_of_frame_cb(jpeg_dec_res_t *result)
 {
 	bk_dma_start(jpeg_dma_id);
 	
-	bk_lcd_set_display_base_addr((uint32_t)psram_lcd->display[0]);
+	lcd_driver_set_display_base_addr((uint32_t)psram_lcd->display[0]);
 	bk_lcd_rgb_display_en(1);
 }
 
-#define JPEG_DEC_TEST 0
-#if (JPEG_DEC_TEST)
-
-static void jpeg_dec_end_of_line_cb(void)
+static void lcd_rgb_isr_test(void)
 {
-	line_int_cnt++;
-	os_printf(" jpeg_dec_end_of_line_cb. \r\n");
-}
-
-void lcd_jpeg_dec_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-	int err = kNoErr;
-	if (os_strcmp(argv[1], "frame_int_test") == 0) {
-		os_printf("psram init. \r\n");
-		bk_psram_init();
-
-		err=bk_jpeg_dec_driver_init();
-		if (err != BK_OK)
-			return;
-		os_printf("jpegdec driver init successful.\r\n");
-		bk_jpeg_dec_isr_register(DEC_END_OF_FRAME, jpeg_dec_end_of_frame_cb);
-		bk_jpeg_dec_hw_init(JPEGDEC_X_PIXEL_480, PIXEL_272, jpeg_dec_input_buf, jpeg_dec_output_buf);
-		err= bk_jpeg_dec_hw_start();
-		if (err != BK_OK) {
-			os_printf("jpeg decode error .\r\n");
-			return;
-		}
-	} else if (os_strcmp(argv[1], "line_int_test") == 0) {
-		os_printf("psram init. \r\n");
-		bk_psram_init();
-
-		err=bk_jpeg_dec_driver_init();
-		if (err != BK_OK)
-			return;
-		os_printf("jpegdec driver init successful.\r\n");
-		bk_jpeg_dec_line_int_en(32);
-		bk_jpeg_dec_isr_register(DEC_END_OF_FRAME, jpeg_dec_end_of_frame_cb);
-		bk_jpeg_dec_isr_register(DEC_END_OF_LINE_NUM, jpeg_dec_end_of_line_cb);
-		bk_jpeg_dec_hw_init(JPEGDEC_X_PIXEL_480, PIXEL_272, jpeg_dec_input_buf, jpeg_dec_output_buf);
-		err= bk_jpeg_dec_hw_start();
-		if (err != BK_OK) {
-			os_printf("jpeg decode error .\r\n");
-			return;
-		}
-	}
-}
-#endif
-#define DISPLAY_TEST 0
-#if (DISPLAY_TEST)
-static void lcd_rgb_isr(void)
-{
-//	if(disp_pink){
-//		u64 cur_time = riscv_get_mtimer();
-//		if ((u64)(cur_time/26000000) % 2 == 0) {
-//			bk_lcd_set_display_base_addr(LCD_FRAMEADDR);
-//		} else {
-//			bk_lcd_set_display_base_addr(LCD_FRAMEADDR2);
-//		}
+//	u64 cur_time = riscv_get_mtimer();
+//	if ((u64)(cur_time/26000000) % 2 == 0) {
+//		lcd_driver_set_display_base_addr(LCD_FRAMEADDR);
+//	} else {
+//		lcd_driver_set_display_base_addr(LCD_FRAMEADDR2);
 //	}
 }
 
@@ -211,11 +142,6 @@ void lcd_rgb_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 				bk_lcd_driver_init(LCD_80M);
 				os_printf(" RGB clk is 80M. \r\n");
 				break;
-			case LCD_30M:
-				bk_lcd_driver_init(LCD_30M);
-				os_printf(" RGB clk is 30M. \r\n");
-				break;
-			
 			case LCD_32M:
 				bk_lcd_driver_init(LCD_32M);
 				os_printf(" RGB clk is 32M. \r\n");
@@ -240,43 +166,34 @@ void lcd_rgb_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 				break;
 		}
 		os_printf("lcd rgb reg init.\r\n");
-		bk_lcd_isr_register(RGB_OUTPUT_EOF, lcd_rgb_isr);
-		bk_lcd_rgb_init(LCD_TYPE_480_272, PIXEL_480, PIXEL_272, RGB565_DATA);
-		bk_lcd_set_display_base_addr(LCD_FRAMEADDR);
+
+		bk_lcd_isr_register(RGB_OUTPUT_EOF, lcd_rgb_isr_test);
+		bk_lcd_rgb_init(LCD_DEVICE_ST7282, PIXEL_480, PIXEL_272, LCD_FMT_RGB565);
+		lcd_driver_set_display_base_addr(LCD_FRAMEADDR);
 		bk_lcd_rgb_display_en(1);
 	} else if (os_strcmp(argv[1], "display_pause") == 0) {
 		bk_lcd_rgb_display_en(0);
 	}  else if (os_strcmp(argv[1], "display_resume") == 0) {
-		bk_lcd_set_display_base_addr(LCD_FRAMEADDR);
-		bk_lcd_rgb_display_en(1);
-	} else if (os_strcmp(argv[1], "yuyv_display") == 0) {
-		//step1 SD card write psram a 480*272 YUYV data
-
-		os_printf("lcd driver init. \r\n");
-		bk_lcd_driver_init(LCD_8M);
-		os_printf("lcd rgb reg init.\r\n");
-		bk_lcd_rgb_init(LCD_TYPE_480_272, PIXEL_480, PIXEL_272, ORGINAL_YUYV_DATA );
-		bk_lcd_set_display_base_addr(LCD_FRAMEADDR);
+		lcd_driver_set_display_base_addr(LCD_FRAMEADDR);
 		bk_lcd_rgb_display_en(1);
 	} else if (os_strcmp(argv[1], "rgb565_partical_display") == 0) {
 		//step1 SD card write psram a 640*480 rgb565data
 		os_printf("lcd driver init. \r\n");
-		bk_lcd_driver_init(LCD_8M);
-
+		bk_lcd_driver_init(LCD_12M);
 		os_printf("lcd rgb reg init.\r\n");
-		bk_lcd_rgb_init(LCD_TYPE_480_272, PIXEL_640, PIXEL_480, RGB565_DATA );
-		bk_lcd_set_partical_display(PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
-		bk_lcd_set_display_base_addr(LCD_FRAMEADDR);
+		bk_lcd_rgb_init(LCD_DEVICE_ST7282, PIXEL_640, PIXEL_480, LCD_FMT_RGB565 );
+		bk_lcd_set_partical_display(1, PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
+		lcd_driver_set_display_base_addr(LCD_FRAMEADDR);
 		bk_lcd_rgb_display_en(1);
 	}  else if (os_strcmp(argv[1], "yuyv_partical_display") == 0) {
 		//step1 SD card write psram a 640*480 yuyvdata
 		//maybe should api: bk_lcd_set_pixel_reverse(1);
 		os_printf("lcd driver init. \r\n");
-		bk_lcd_driver_init(LCD_80M);
+		bk_lcd_driver_init(LCD_12M);
 		os_printf("lcd rgb reg init.\r\n");
-		bk_lcd_rgb_init(POSEDGE_OUTPUT, PIXEL_640, PIXEL_480, ORGINAL_YUYV_DATA );
-		bk_lcd_set_partical_display(PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
-		bk_lcd_set_display_base_addr(LCD_FRAMEADDR);
+		bk_lcd_rgb_init(LCD_DEVICE_ST7282, PIXEL_640, PIXEL_480, LCD_FMT_ORGINAL_YUYV);
+		bk_lcd_set_partical_display(1, PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
+		lcd_driver_set_display_base_addr(LCD_FRAMEADDR);
 		bk_lcd_rgb_display_en(1);
 	} else if (os_strcmp(argv[1], "close") == 0) {
 		if (bk_lcd_rgb_deinit() !=BK_OK) {
@@ -287,13 +204,12 @@ void lcd_rgb_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 			os_printf("deinit rgb \r\n");
 		}
 		os_printf("close rgb ok \r\n");
-		if (bk_i2c_deinit() !=BK_OK) {
+		if (bk_i2c_deinit(CONFIG_CAMERA_I2C_ID) !=BK_OK) {
 			os_printf("deinit rgb \r\n");
 		}
 		os_printf("close rgb ok \r\n");
 	}
 }
-#endif
 
 
 static void dma_jpeg_config(uint32_t dma_ch)
@@ -358,7 +274,12 @@ void lcd_rgb_display_jpeg(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	bk_jpeg_dec_isr_register(DEC_END_OF_FRAME, jpeg_dec_end_of_frame_cb);
 
 	bk_lcd_driver_init(LCD_20M);
+	
+#if (USE_LCD_REGISTER_CALLBACKS == 1)
 	bk_lcd_isr_register(RGB_OUTPUT_EOF, lcd_rgb_jpeg_isr);
+#else
+	bk_lcd_isr_register(lcd_rgb_jpeg_isr);
+#endif
 	if (os_strcmp(argv[1], "480p") == 0) {
 		xpixel = PIXEL_480;
 		ypixel = PIXEL_272;
@@ -367,7 +288,7 @@ void lcd_rgb_display_jpeg(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 		jpeg_config.y_pixel = Y_PIXEL_272;
 		jpeg_config.sys_clk_div = 4;
 		jpeg_config.mclk_div = 0;
-		bk_jpeg_enc_register_isr(END_OF_FRAME, jpeg_enc_end_of_frame_isr_480p, NULL);
+		bk_jpeg_enc_register_isr(END_OF_FRAME, jpeg_enc_end_of_frame_isr, NULL);
 	} else 	if (os_strcmp(argv[1], "720p") == 0) {
 		xpixel = PIXEL_1280;
 		ypixel = PIXEL_720;
@@ -376,13 +297,13 @@ void lcd_rgb_display_jpeg(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 		jpeg_config.y_pixel = Y_PIXEL_720;
 		jpeg_config.sys_clk_div = 3;
 		jpeg_config.mclk_div = 0;
-		bk_jpeg_enc_register_isr(END_OF_FRAME, jpeg_enc_end_of_frame_isr_720p, NULL);
+		bk_jpeg_enc_register_isr(END_OF_FRAME, jpeg_enc_end_of_frame_isr, NULL);
 	} else {
 		os_printf("NOT SUPPORE pixel \n");
 	}
 	fps = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
 
-	bk_lcd_rgb_init(LCD_TYPE_480_272, xpixel, ypixel, UVYY_DATA);
+	bk_lcd_rgb_init(LCD_DEVICE_ST7282, xpixel, ypixel, LCD_FMT_VUYY);
 	
 	os_printf("jpeg enc init.\r\n");
 	jpeg_config.yuv_mode = 0;
@@ -436,7 +357,12 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 #endif
 	BK_LOG_ON_ERR(bk_jpeg_enc_driver_init());
 	bk_lcd_driver_init(LCD_20M);
-	bk_lcd_isr_register(RGB_OUTPUT_EOF, lcd_rgb_isr);
+
+#if (USE_LCD_REGISTER_CALLBACKS == 1)
+		bk_lcd_isr_register(RGB_OUTPUT_EOF, lcd_rgb_isr);
+#else
+		bk_lcd_isr_register(lcd_rgb_isr);
+#endif	
 	lcd_type = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
 
 	if (os_strcmp(argv[1], "480p") == 0)
@@ -444,7 +370,7 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 		dev = 3;// gc0328c
 		jpeg_config.sys_clk_div = 4;
 		jpeg_config.mclk_div = 0;
-		if (lcd_type == 0)  //480*272 lcd
+		if (lcd_type == LCD_DEVICE_ST7282)  //480*272 lcd
 		{
 			if (os_strcmp(argv[3], "display_partical") == 0)
 			{
@@ -453,8 +379,8 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				jpeg_config.y_pixel = Y_PIXEL_480;
 				xpixel = PIXEL_640;
 				ypixel = PIXEL_480;
-				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, ORGINAL_YUYV_DATA);
-				bk_lcd_set_partical_display(PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
+				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, LCD_FMT_ORGINAL_YUYV);
+				bk_lcd_set_partical_display(1,PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
 			}
 			else if (os_strcmp(argv[3], "yuv_partical") == 0)
 			{
@@ -463,7 +389,7 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				jpeg_config.y_pixel = Y_PIXEL_480;
 				xpixel = PIXEL_480;
 				ypixel = PIXEL_272;
-				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, ORGINAL_YUYV_DATA);
+				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, LCD_FMT_ORGINAL_YUYV);
 				offset_config.x_partial_offset_l = PARTICAL_XS;
 				offset_config.x_partial_offset_r = PARTICAL_XE;
 				offset_config.y_partial_offset_l = PARTICAL_YS;
@@ -478,7 +404,7 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				jpeg_config.y_pixel = Y_PIXEL_272;
 				xpixel = PIXEL_480;
 				ypixel = PIXEL_272;
-				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, ORGINAL_YUYV_DATA);
+				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, LCD_FMT_ORGINAL_YUYV);
 			}
 		} 
 		else 
@@ -494,22 +420,22 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 		jpeg_config.x_pixel = X_PIXEL_1280;
 		jpeg_config.y_pixel = Y_PIXEL_720;
 		bk_jpeg_enc_set_auxs(3, 0xF);
-		if (lcd_type == LCD_TYPE_480_272)	//480*272 lcd
+		if (lcd_type == LCD_DEVICE_ST7282)	//480*272 lcd
 		{
 			if (os_strcmp(argv[3], "display_partical") == 0)
 			{
 				os_printf("set display module partical func. \n");
 				xpixel = PIXEL_1280;
 				ypixel = PIXEL_720;
-				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, ORGINAL_YUYV_DATA);
-				bk_lcd_set_partical_display(PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
+				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, LCD_FMT_ORGINAL_YUYV);
+				bk_lcd_set_partical_display(1, PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
 			}
 			else if (os_strcmp(argv[3], "yuv_partical") == 0)
 			{
 				os_printf("set jpeg yuv module partical func. \n");
 				xpixel = PIXEL_480;
 				ypixel = PIXEL_272;
-				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, UYVY_DATA);
+				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, LCD_FMT_VUYY);
 				offset_config.x_partial_offset_l = PARTICAL_XS;
 				offset_config.x_partial_offset_r = PARTICAL_XE;
 				offset_config.y_partial_offset_l = PARTICAL_YS;
@@ -522,22 +448,22 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				os_printf("no partical set, not support. \n");
 			}
 		} 
-		else if (lcd_type == LCD_TYPE_1024_600) 
+		else if (lcd_type == LCD_DEVICE_HX8282) 
 		{
 			if (os_strcmp(argv[3], "display_partical") == 0)
 			{
 				os_printf("set display module partical func. \n");
 				xpixel = PIXEL_1280;
 				ypixel = PIXEL_720;
-				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, ORGINAL_YUYV_DATA);
-				bk_lcd_set_partical_display(LCD2_PARTICAL_XS, LCD2_PARTICAL_XE, LCD2_PARTICAL_YS, LCD2_PARTICAL_YE);
+				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, LCD_FMT_ORGINAL_YUYV);
+				bk_lcd_set_partical_display(1, LCD2_PARTICAL_XS, LCD2_PARTICAL_XE, LCD2_PARTICAL_YS, LCD2_PARTICAL_YE);
 			}
 			else if (os_strcmp(argv[3], "yuv_partical") == 0)
 			{
 				os_printf("set jpeg yuv module partical func. \n");
 				xpixel = PIXEL_1024;
 				ypixel = PIXEL_600;
-				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, UYVY_DATA);
+				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, LCD_FMT_VUYY);
 				offset_config.x_partial_offset_l = LCD2_PARTICAL_XS;
 				offset_config.x_partial_offset_r = LCD2_PARTICAL_XE;
 				offset_config.y_partial_offset_l = LCD2_PARTICAL_YS;
@@ -566,7 +492,7 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	}
 	jpeg_config.yuv_mode = 1;
 	camera_cfg = (ypixel << 16) | fps;
-	bk_lcd_set_display_base_addr((uint32_t)psram_lcd->display[0]);
+	lcd_driver_set_display_base_addr((uint32_t)psram_lcd->display[0]);
 	err = bk_jpeg_enc_dvp_init(&jpeg_config);
 	if (err != kNoErr) {
 		os_printf("jpeg init error\n");

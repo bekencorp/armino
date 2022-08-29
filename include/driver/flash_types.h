@@ -39,6 +39,19 @@ typedef enum
 	FLASH_UNPROTECT_LAST_BLOCK, /**< flash protect type unprotect last block */
 } flash_protect_type_t;
 
+typedef enum {
+    FLASH_SPEED_HIGH = 0,
+    FLASH_SPEED_LOW,
+} flash_speed_type_t;
+
+typedef enum {
+    FLASH_ATE = 0,
+    FLASH_MAC,
+} flash_ctrl_module_t;
+
+#define FLASH_ATE_BIT            (1UL<<(FLASH_ATE))
+#define FLASH_MAC_BIT            (1UL<<(FLASH_MAC))
+
 typedef void (*flash_ps_callback_t)(void);
 
 #ifdef __cplusplus

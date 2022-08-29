@@ -91,8 +91,8 @@ typedef enum
 typedef enum
 {
 	FLASH_CLK_XTAL = 0,
+	FLASH_CLK_DPLL,
 	FLASH_CLK_APLL,
-	FLASH_CLK_120M,
 }flash_clk_src_t;
 
 /*clock power control start*/

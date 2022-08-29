@@ -84,6 +84,8 @@ void sys_drv_set_qspi_io_voltage(uint32_t param);
 
 void sys_drv_qspi_clk_sel(uint32_t param);
 
+void sys_drv_qspi_set_src_clk_div(uint32_t value);
+
 void sys_drv_nmi_wdt_set_clk_div(uint32_t value);
 
 uint32_t sys_drv_nmi_wdt_get_clk_div(void);
@@ -323,6 +325,7 @@ uint32_t sys_drv_aud_dacdrv_en(uint32_t value);
 uint32_t sys_drv_aud_bias_en(uint32_t value);
 uint32_t sys_drv_aud_dacr_en(uint32_t value);
 uint32_t sys_drv_aud_dacl_en(uint32_t value);
+uint32_t sys_drv_aud_diffen_en(uint32_t value);
 uint32_t sys_drv_aud_rvcmd_en(uint32_t value);
 uint32_t sys_drv_aud_lvcmd_en(uint32_t value);
 uint32_t sys_drv_aud_micbias1v_en(uint32_t value);

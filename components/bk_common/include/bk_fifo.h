@@ -20,6 +20,7 @@ extern "C" {
 
 #include <common/bk_include.h>
 #include <common/bk_generic.h>
+#include <common/bk_compiler.h>
 #include <os/mem.h>
 #include <os/os.h>
 
@@ -44,7 +45,7 @@ typedef struct kfifo
  * Do NOT pass the kfifo to kfifo_free() after use ! Simply free the
  * struct kfifo with ke_free().
  */
-__INLINE struct kfifo *kfifo_init(unsigned char *buffer, unsigned int size)
+__BK_INLINE struct kfifo *kfifo_init(unsigned char *buffer, unsigned int size)
 {
 	struct kfifo *fifo;
 
@@ -72,7 +73,7 @@ __INLINE struct kfifo *kfifo_init(unsigned char *buffer, unsigned int size)
  *
  * The size will be rounded-up to a power of 2.
  */
-__INLINE struct kfifo *kfifo_alloc(unsigned int size)
+__BK_INLINE struct kfifo *kfifo_alloc(unsigned int size)
 {
 	unsigned char *buffer;
 	struct kfifo *ret;
@@ -94,7 +95,7 @@ __INLINE struct kfifo *kfifo_alloc(unsigned int size)
  * kfifo_free - frees the FIFO
  * @fifo: the fifo to be freed.
  */
-__INLINE void kfifo_free(struct kfifo *fifo)
+__BK_INLINE void kfifo_free(struct kfifo *fifo)
 {
 	os_free(fifo->buffer);
 	fifo->buffer = 0;
@@ -115,7 +116,7 @@ __INLINE void kfifo_free(struct kfifo *fifo)
  * Note that with only one concurrent reader and one concurrent
  * writer, you don't need extra locking to use these functions.
  */
-__INLINE unsigned int kfifo_put(struct kfifo *fifo,
+__BK_INLINE unsigned int kfifo_put(struct kfifo *fifo,
 			 unsigned char *buffer, unsigned int len)
 {
 	unsigned int l;
@@ -149,7 +150,7 @@ __INLINE unsigned int kfifo_put(struct kfifo *fifo,
  * Note that with only one concurrent reader and one concurrent
  * writer, you don't need extra locking to use these functions.
  */
-__INLINE unsigned int kfifo_get(struct kfifo *fifo,
+__BK_INLINE unsigned int kfifo_get(struct kfifo *fifo,
 			 unsigned char *buffer, unsigned int len)
 {
 	unsigned int l;
@@ -176,17 +177,17 @@ __INLINE unsigned int kfifo_get(struct kfifo *fifo,
 	return len;
 }
 
-__INLINE unsigned int kfifo_data_size(struct kfifo *fifo)
+__BK_INLINE unsigned int kfifo_data_size(struct kfifo *fifo)
 {
 	return (fifo->in - fifo->out);
 }
 
-__INLINE unsigned int kfifo_unused(struct kfifo *fifo)
+__BK_INLINE unsigned int kfifo_unused(struct kfifo *fifo)
 {
 	return (fifo->mask + 1) - (fifo->in - fifo->out);
 }
 
-__INLINE void kfifo_copy_out(struct kfifo *fifo, void *dst,
+__BK_INLINE void kfifo_copy_out(struct kfifo *fifo, void *dst,
 		unsigned int len, unsigned int off)
 {
 	unsigned int size = fifo->mask + 1;
@@ -204,7 +205,7 @@ __INLINE void kfifo_copy_out(struct kfifo *fifo, void *dst,
 	 */
 }
 
-__INLINE unsigned int kfifo_out_peek(struct kfifo *fifo,
+__BK_INLINE unsigned int kfifo_out_peek(struct kfifo *fifo,
 			 unsigned char *buffer, unsigned int len)
 {
 	unsigned int l;

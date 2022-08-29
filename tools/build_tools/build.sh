@@ -51,7 +51,7 @@ else
 fi
 
 PROPERTIES_LIB_BUILD_DIR=${ARMINO_DIR}/build/properties_libs/${ARMINO_SOC}_${PROJECT}
-PROPERTIES_LIB_DIR=${ARMINO_DIR}/projects/properties_libs
+PROPERTIES_LIB_DIR=${PROPERTIES_PROJECT_DIR}
 
 if [ "${need_clean}" == "1" ]; then
 	echo "remove ${ARMINO_DIR}/components/bk_libs/${ARMINO_SOC}_${PROJECT}"

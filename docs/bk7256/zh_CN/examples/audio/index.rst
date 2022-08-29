@@ -16,3 +16,4 @@ audio(音频处理)
    FFT <fft_demo>
    I2S <i2s_demo>
    SBC_DEC <sbc_decode_demo>
+   语音通话 <voice_transfer_demo>

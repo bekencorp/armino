@@ -89,6 +89,8 @@ void cli_sbc_decoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
 		dac_config.samp_rate = sbc_decoder.sample_rate;
+		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
+		dac_config.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
 		dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
 		dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
@@ -207,6 +209,8 @@ void cli_msbc_decoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
 		dac_config.samp_rate = sbc_decoder.sample_rate;
+		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
+		dac_config.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
 		dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
 		dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;

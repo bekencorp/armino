@@ -46,6 +46,8 @@ beken_queue_t psram_msg_que = NULL;
 
 uint32_t *test_data = NULL;
 
+uint8_t test_mode = 0;
+
 static void cli_psram_help(void)
 {
 	CLI_LOGI("psram_test {start|stop}\n");
@@ -113,6 +115,51 @@ static void psram_test(void)
 	psram_send_msg(PSRAM_START, 0);
 }
 
+#include "soc/mapping.h"
+static void psram_test_unit(void)
+{
+	uint32_t i = 0;
+	uint32_t error_num = 0;
+	uint64_t timer0, timer1;
+	uint32_t total_time = 0;
+	uint32_t start_address = (uint32_t)&psram_map->aud_adc[0];
+	uint32_t end_address = (8 * 1024 * 1024 + 0x64000000);
+	uint32_t test_len = (end_address - start_address) / 4;
+
+	uint32_t value = 0;
+	CLI_LOGI("begin write %08X-%08X, count: %d\n", start_address, end_address, test_len);
+	timer0 = riscv_get_mtimer();
+	for (i = 0; i < test_len; i++)
+		write_data((start_address + i * 0x4), 0x11111111 + i);
+
+	timer1 = riscv_get_mtimer();
+	total_time = (uint32_t) (timer1 - timer0)/26000;
+	CLI_LOGI("finish write, use time: %ld ms, write_rate:%ld Kbyte/ms\n", total_time, test_len * 4 / total_time);
+
+	CLI_LOGI("begin write %08X-%08X, count: %d\n", start_address, end_address, test_len);
+	timer0 = riscv_get_mtimer();
+	for (i = 0; i < test_len; i++)
+		read_data((start_address + i * 0x4), value);
+
+	timer1 = riscv_get_mtimer();
+	total_time = (uint32_t) (timer1 - timer0)/26000;
+	CLI_LOGI("finish read, use time: %ld ms, read_rate:%ld Kbyte/ms\n", total_time, test_len * 4 / total_time);
+
+	CLI_LOGI("begin write %08X-%08X, count: %d\n", start_address, end_address, test_len);
+
+	for (i = 0; i < test_len; i++)
+	{
+		value = get_addr_data(start_address + i * 0x4);
+		if (value != (0x11111111 + i))
+			error_num++;
+	}
+
+	CLI_LOGI("finish cpmpare, error_num: %ld, corr_rate: %ld\n", error_num, ((test_len - error_num) * 100 / test_len));
+
+	rtos_delay_milliseconds(1000);
+	psram_send_msg(PSRAM_START, 0);
+}
+
 static void psram_test_main(void)
 {
 	bk_err_t ret = kNoErr;
@@ -136,7 +183,14 @@ static void psram_test_main(void)
 			switch(msg.type)
 			{
 				case PSRAM_START:
-					psram_test();
+					if (test_mode == 1)
+					{
+						psram_test_unit();
+					}
+					else
+					{
+						psram_test();
+					}
 					break;
 				case PSRAM_STOP:
 					goto exit;
@@ -211,6 +265,11 @@ static bk_err_t psram_task_init(void)
 static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	bk_err_t ret = kNoErr;
+
+	if (os_strcmp(argv[1], "1") == 0)
+	{
+		test_mode = 1;
+	}
 
 	if (os_strcmp(argv[1], "start") == 0)
 	{

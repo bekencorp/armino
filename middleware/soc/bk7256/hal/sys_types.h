@@ -90,7 +90,7 @@ typedef enum
 typedef enum
 {
 	FLASH_CLK_XTAL = 0,
-	FLASH_CLK_120M,
+	FLASH_CLK_DPLL,
 	FLASH_CLK_APLL,
 }flash_clk_src_t;
 
@@ -403,6 +403,12 @@ typedef enum
     SPI_CLK_SRC_APLL,
     SPI_CLK_SRC_UNKNOW = 0xff
 } sys_spi_clk_sel_t;
+
+typedef enum
+{
+    QSPI_CLK_320M = 0,
+    QSPI_CLK_480M,
+} sys_qspi_clk_src_t;
 
 typedef enum
 {

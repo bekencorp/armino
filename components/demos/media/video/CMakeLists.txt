@@ -47,6 +47,7 @@ if (CONFIG_USB_UVC)
 	list(APPEND srcs
 		"uvc/uvc_camera_driver.c"
 		"uvc_capture_display/uvc_process_cpu1.c"
+		"uvc_display/uvc_display.c"
 		)
 endif()
 
@@ -55,8 +56,9 @@ if (CONFIG_APP_DEMO_VIDEO_TRANSFER)
 	list(APPEND srcs
 		"video_transfer/video_transfer.c"
 		"dvp_capture/dvp_capture.c"
+		"dvp_display/dvp_display.c"
 		)
 endif()
 endif()
 
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_common bk_log)
+armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_common bk_log media)

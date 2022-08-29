@@ -56,6 +56,9 @@ CONFIG_OTA_HTTP=y
 
 # CONFIG_HTTP_OTA_WITH_BLE is not set
 CONFIG_HTTP_OTA_WITH_BLE=y
+
+# CONFIG_FTPD_UPGRADE is not set
+CONFIG_HTTP_AB_PARTITION=n
 # end of Application
 
 # CONFIG_AT is not set

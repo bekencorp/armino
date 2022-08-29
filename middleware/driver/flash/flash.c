@@ -77,7 +77,7 @@ static void flash_set_clk(UINT8 clk_conf)
 	UINT32 value;
 
 #if CONFIG_FLASH_SRC_CLK_60M
-	sys_drv_flash_set_clk_div(FLASH_DIV_VALUE_EIGHT);
+	sys_drv_flash_set_clk_div(FLASH_DPLL_DIV_VALUE_TEN);
 	sys_drv_flash_set_dco();
 #endif
 

@@ -34,6 +34,11 @@ extern gpio_driver_t s_gpio;
 
 bk_err_t gpio_dev_map(gpio_id_t gpio_id, gpio_dev_t dev)
 {
+	/* Restore a configuration that is not a secondary function to its initial state. */
+	gpio_hal_output_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_input_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_pull_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_disable_interrupt(&s_gpio.hal, gpio_id);
 	gpio_hal_func_map(&s_gpio.hal, gpio_id, dev);
 
 	return BK_OK;
@@ -41,6 +46,11 @@ bk_err_t gpio_dev_map(gpio_id_t gpio_id, gpio_dev_t dev)
 
 bk_err_t gpio_dev_unmap(gpio_id_t gpio_id)
 {
+	/* Restore a configuration that is not a secondary function to its initial state. */
+	gpio_hal_output_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_input_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_pull_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_disable_interrupt(&s_gpio.hal, gpio_id);
 	gpio_hal_func_unmap(&s_gpio.hal, gpio_id);
 
 	return BK_OK;

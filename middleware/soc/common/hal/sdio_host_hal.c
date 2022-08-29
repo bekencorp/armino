@@ -40,16 +40,19 @@ bk_err_t sdio_host_hal_init_commad(sdio_host_hal_t *hal, const sdio_host_cmd_cfg
 	if (command->response == SDIO_HOST_CMD_RSP_SHORT) {
 		sdio_host_ll_set_cmd_rsp(hal->hw, true);
 		sdio_host_ll_set_cmd_long_rsp(hal->hw, false);
-		sdio_host_ll_set_cmd_crc_check(hal->hw, true);
+		//sdio_host_ll_set_cmd_crc_check(hal->hw, true);
 	} else if (command->response == SDIO_HOST_CMD_RSP_LONG) {
 		sdio_host_ll_set_cmd_rsp(hal->hw, true);
 		sdio_host_ll_set_cmd_long_rsp(hal->hw, true);
-		sdio_host_ll_set_cmd_crc_check(hal->hw, true);
+		//sdio_host_ll_set_cmd_crc_check(hal->hw, true);
 	} else {
 		sdio_host_ll_set_cmd_rsp(hal->hw, false);
 		sdio_host_ll_set_cmd_long_rsp(hal->hw, false);
-		sdio_host_ll_set_cmd_crc_check(hal->hw, false);
+		//sdio_host_ll_set_cmd_crc_check(hal->hw, false);
 	}
+
+	/* set this command whether needs to do response crc check, some command no needs to check CRC */
+	sdio_host_ll_set_cmd_crc_check(hal->hw, command->crc_check);
 
 	return BK_OK;
 }

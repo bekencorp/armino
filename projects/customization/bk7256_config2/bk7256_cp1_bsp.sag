@@ -47,7 +47,7 @@ CPU1 0x10000 0x80000
 		* KEEP (.swap_data)
 	}
 
-	SRAM2 0x3006C000 0x14000
+	SRAM2 0x30074000 0xC000
 	{
 		LOADADDR NEXT _data_lmastart
 		ADDR NEXT _data_start

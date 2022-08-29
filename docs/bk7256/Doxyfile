@@ -98,7 +98,7 @@ INPUT = \
     ../../../include/driver/aud_types.h \
     ../../../include/driver/hal/hal_aud_types.h \
     ../../../include/driver/lcd.h \
-    ../../../include/driver/lcd_disp_types.h \
+    ../../../include/driver/lcd_types.h \
     ../../../include/driver/dma2d.h \
     ../../../include/driver/hal/hal_dma2d_types.h \
     ../../../include/driver/jpeg_dec.h \
@@ -120,6 +120,8 @@ INPUT = \
     ../../../include/components/video_types.h \
     ../../../include/modules/aec.h \
     ../../../include/modules/g711.h \
+    ../../../include/components/aud_intf.h \
+    ../../../include/components/aud_intf_types.h \
     ## PM
     ../../../include/modules/pm.h 
 

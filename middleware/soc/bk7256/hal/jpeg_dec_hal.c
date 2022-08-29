@@ -568,21 +568,24 @@ JRESULT jd_prepare (JDEC* jd, uint16_t (*infunc)(JDEC*, uint8_t*, uint16_t), voi
 	}
 }
 
-int jpg_dec_config(uint16_t xpixel, uint16_t ypixel,unsigned char *input_buf, unsigned char * output_buf)
+static int jpg_dec_config(uint16_t xpixel, uint16_t ypixel, uint32_t length, unsigned char *input_buf, unsigned char * output_buf)
 {
 	jpeg_dec_ll_set_reg0x58_value((uint32_t)input_buf);
 	jpeg_dec_ll_set_reg0x59_value((uint32_t)output_buf);
-	jpg_dec_st.inputbuf = input_buf;
 
 	jpeg_dec_ll_set_reg0x5b_value(xpixel*ypixel*2);
 	jpeg_dec_ll_set_reg0xf_value(xpixel*ypixel*2/64 - 1);
-	switch(xpixel)
+
+#if(1)
+	jpeg_dec_ll_set_reg0x5a_value(length + 2048);
+#else
+		switch(xpixel)
 	{
 		case PIXEL_320:
 			jpeg_dec_ll_set_reg0x5a_value(HVGA_RD_LEN);
 			break;
 		case PIXEL_480:
-			jpeg_dec_ll_set_reg0x5a_value(HVGA_RD_LEN);
+			jpeg_dec_ll_set_reg0x5a_value(V720P_RD_LEN);
 			break;
 		case PIXEL_640:
 			jpeg_dec_ll_set_reg0x5a_value(VGA_RD_LEN);
@@ -594,9 +597,10 @@ int jpg_dec_config(uint16_t xpixel, uint16_t ypixel,unsigned char *input_buf, un
 			jpeg_dec_ll_set_reg0x5a_value(V1080P_RD_LEN);
 			break;
 		default:
-			jpeg_dec_ll_set_reg0x5a_value(HVGA_RD_LEN);
+			jpeg_dec_ll_set_reg0x5a_value(V720P_RD_LEN);
 			break;
 	}
+#endif
 	return 0;
 }
 void jpeg_dec_block_int_en(bool auto_int_en)
@@ -621,8 +625,7 @@ void jpeg_dec_auto_line_num_int_en(bool line_int_en, uint16_t line_num)
 	jpeg_dec_ll_set_reg0x2_jpeg_line_num(line_num);
 }
 
-
-JRESULT JpegdecInit(void)
+JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * output_buf, uint32_t *ppi)
 {
 	int ret;
 	uint32_t xs;
@@ -631,6 +634,7 @@ JRESULT JpegdecInit(void)
 	volatile unsigned long * zig_pointer;
 	volatile unsigned long * dqt_pointer;
 
+	jpg_dec_st.inputbuf = input_buf;
 	jpg_dec_st.rd_ptr = 0;//init rd pointer
 	jpg_dec_st.jpg_file_size = 1024;
 
@@ -771,6 +775,8 @@ JRESULT JpegdecInit(void)
 	jpg_dec_st.width = (jdec).width;
 	jpg_dec_st.heigth = (jdec).height;
 	jpg_dec_st.line_wbyte = xs;//only output Y
+	*ppi = ((jpg_dec_st.width<<16) | (jpg_dec_st.heigth));
+	jpg_dec_config(jpg_dec_st.width, jpg_dec_st.heigth, length, input_buf, output_buf);
 	return JDR_OK;
 }
 
@@ -789,7 +795,7 @@ JRESULT jd_decomp(void)
 {
 	//uint16_t	mx, my;
 	JRESULT rc;
-
+	jpeg_dec_auto_frame_end_int_en(1);
 	jpeg_dec_ll_set_reg0x0_jpeg_dec_en(1);
 	jpeg_dec_ll_set_reg0x5_mcu_x(0);
 	jpeg_dec_ll_set_reg0x6_mcu_y(0);

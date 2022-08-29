@@ -29,6 +29,7 @@ bk_err_t bk_qspi_psram_init(void)
 {
 	qspi_config_t config = {0};
 	config.src_clk = QSPI_SCLK_XTAL_26M;
+	config.src_clk_div = 0x4;
 	config.clk_div = 0x10;
 	BK_LOG_ON_ERR(bk_qspi_init(&config));
 	return BK_OK;

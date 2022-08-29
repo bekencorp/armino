@@ -329,3 +329,10 @@ void entry_main(void)
 	rtos_start_scheduler();
 }
 
+#if CONFIG_CMSIS
+__attribute__((weak)) void _start(void)
+{
+    entry_main();
+}
+#endif
+

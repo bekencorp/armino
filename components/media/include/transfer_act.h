@@ -31,6 +31,7 @@ typedef enum
 typedef struct
 {
 	trs_state_t state;
+	uint8_t pause : 1;
 	uint8_t debug : 1;
 	uint32_t param;
 } transfer_info_t;
@@ -40,10 +41,10 @@ typedef struct
 
 
 
-void wifi_transfer_event_handle(uint32_t event, uint32_t param);
-void set_trs_video_transfer_state(trs_state_t state);
-trs_state_t get_trs_video_transfer_state(void);
-void trs_video_transfer_init(void);
+void transfer_event_handle(uint32_t event, uint32_t param);
+void set_transfer_state(trs_state_t state);
+trs_state_t get_transfer_state(void);
+void transfer_init(void);
 
 
 #ifdef __cplusplus

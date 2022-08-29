@@ -43,6 +43,121 @@ typedef enum {
 	SD_CARD_ERROR = 0xff,
 } sd_card_state_t;
 
+/**
+ * @brief the sdcard csd info.
+ * <<Part1_Physical_Layer_Simplified_Specification_Ver7.10>>
+ * CSD registers are tranferred by SDIO sequence is 
+ * bit[127:96],bit[95:64],bit[63:32],bit[31:0]
+ */
+typedef volatile struct {
+	/* CSD_0x03 */
+	union 
+	{ 
+		struct 
+		{ 
+			volatile uint32_t  tran_speed			: 8;
+			volatile uint32_t  nsac 				: 8;
+			volatile uint32_t  taac 				: 8;
+			volatile uint32_t  reserved0			: 6;
+			volatile uint32_t  csd_structure		: 2;	//bit[127:126]
+		};
+		uint32_t v; 
+	}csd_3; 
+
+	/* CSD_0x02 */
+	union 
+	{ 
+		struct 
+		{ 
+			volatile uint32_t  c_size_high			: 10;
+			volatile uint32_t  reserved0			: 2;
+			volatile uint32_t  dsr_imp				: 1;
+			volatile uint32_t  read_blk_misalign	: 1;
+			volatile uint32_t  write_blk_misalign	: 1;
+			volatile uint32_t  read_bl_partial		: 1;
+			volatile uint32_t  read_bl_len			: 4;
+			volatile uint32_t  ccc					: 12;
+		}v1p0; 
+
+		struct 
+		{ 
+			volatile uint32_t  c_size_high			: 6;
+			volatile uint32_t  reserved0			: 6;
+			volatile uint32_t  dsr_imp				: 1;
+			volatile uint32_t  read_blk_misalign	: 1;
+			volatile uint32_t  write_blk_misalign	: 1;
+			volatile uint32_t  read_bl_partial		: 1;
+			volatile uint32_t  read_bl_len			: 4;
+			volatile uint32_t  ccc					: 12;
+		}v2p0; 
+
+		struct 
+		{ 
+			volatile uint32_t  c_size_high			: 12;
+			volatile uint32_t  dsr_imp				: 1;
+			volatile uint32_t  read_blk_misalign	: 1;
+			volatile uint32_t  write_blk_misalign	: 1;
+			volatile uint32_t  read_bl_partial		: 1;
+			volatile uint32_t  read_bl_len			: 4;
+			volatile uint32_t  ccc					: 12;
+		}v3p0; 
+
+		uint32_t v; 
+	}csd_2; 
+
+	/* CSD_0x01 */
+	union 
+	{
+		//v1p0
+		struct 
+		{ 
+			volatile uint32_t  wp_grp_size			: 7;
+			volatile uint32_t  sector_size			: 7;
+			volatile uint32_t  erase_blk_en 		: 1;
+			volatile uint32_t  c_size_mult			: 3;
+			volatile uint32_t  vdd_w_curr_max		: 3;
+			volatile uint32_t  vdd_w_curr_min		: 3;
+			volatile uint32_t  vdd_r_curr_max		: 3;
+			volatile uint32_t  vdd_r_curr_min		: 3;
+			volatile uint32_t  c_size_low			: 2;
+		}v1p0;
+
+		//
+		struct 
+		{ 
+			volatile uint32_t  wp_grp_size			: 7;
+			volatile uint32_t  sector_size			: 7;
+			volatile uint32_t  erase_blk_en 		: 1;
+			volatile uint32_t  reserved0			: 1;
+			volatile uint32_t  c_size_low			: 16;
+		}v2p0_v3p0; 
+		uint32_t v; 
+	}csd_1; 
+
+	/* CSD_0x00 */
+	union 
+	{ 
+		struct 
+		{ 
+			volatile uint32_t  reserved0			: 1;	//always 1
+			volatile uint32_t  crc					: 7;
+			volatile uint32_t  reserved1			: 2;
+			volatile uint32_t  file_format			: 2;
+			volatile uint32_t  tmp_write_protect	: 1;
+			volatile uint32_t  perm_write_protect	: 1;
+			volatile uint32_t  copy 				: 1;
+			volatile uint32_t  file_format_grp		: 1;
+			volatile uint32_t  reserved2			: 5;
+			volatile uint32_t  write_bl_partial 	: 1;
+			volatile uint32_t  write_bl_len 		: 4;
+			volatile uint32_t  r2w_factor			: 3;
+			volatile uint32_t  reservd_mmc_compatibility: 2;
+			volatile uint32_t  wp_grp_enable		: 1;
+		}; 
+		uint32_t v; 
+	}csd_0; 
+} sd_card_csd_t;
+
 #ifdef __cplusplus
 }
 #endif

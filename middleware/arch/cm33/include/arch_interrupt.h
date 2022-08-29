@@ -27,14 +27,11 @@ typedef enum {
 void arch_register_group_isr(uint32_t group, int_group_isr_t isr);
 bk_err_t arch_isr_entry_init(void);
 
-
-extern void intc_irq(void);
-extern void intc_fiq(void);
-extern void do_irq(void);
-extern void do_fiq(void);
-extern void do_swi(void);
-extern void do_undefined(void);
-extern void do_pabort(void);
-extern void do_dabort(void);
-extern void do_reserved(void);
+void NMI_Handler(void);
+void HardFault_Handler(void);
+void MemManage_Handler(void);
+void BusFault_Handler(void);
+void UsageFault_Handler(void);
+void SecureFault_Handler(void);
+void DebugMon_Handler(void);
 

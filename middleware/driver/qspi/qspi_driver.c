@@ -23,6 +23,9 @@
 #include "qspi_driver.h"
 #include "qspi_hal.h"
 #include "qspi_statis.h"
+#include "sys_driver.h"
+#include <driver/gpio.h>
+#include <driver/trng.h>
 
 typedef struct {
 	qspi_hal_t hal;
@@ -55,13 +58,21 @@ static qspi_callback_t s_qspi_rx_isr = {NULL};
 
 static void qspi_init_gpio(void)
 {
+#if (CONFIG_SYSTEM_CTRL)
+	gpio_dev_map(QSPI_LL_CLK_PIN, GPIO_DEV_QSPI_CLK);
+	gpio_dev_map(QSPI_LL_CSN_PIN, GPIO_DEV_QSPI_CSN);
+	bk_gpio_set_capacity(QSPI_LL_CLK_PIN, 3);
+	bk_gpio_set_capacity(QSPI_LL_CSN_PIN, 3);
+#else
 	gpio_dev_map(QSPI_LL_RAM_CSN_PIN, GPIO_DEV_QSPI_RAM_CSN);
 	gpio_dev_map(QSPI_LL_RAM_CLK_PIN, GPIO_DEV_QSPI_RAM_CLK);
+#endif
 	gpio_dev_map(QSPI_LL_IO0_PIN, GPIO_DEV_QSPI_IO0);
 	gpio_dev_map(QSPI_LL_IO1_PIN, GPIO_DEV_QSPI_IO1);
 	gpio_dev_map(QSPI_LL_IO2_PIN, GPIO_DEV_QSPI_IO2);
 	gpio_dev_map(QSPI_LL_IO3_PIN, GPIO_DEV_QSPI_IO3);
 }
+
 
 /* 1. power up qspi
  * 2. set clock
@@ -72,21 +83,33 @@ static void qspi_init_gpio(void)
  */
 static void qspi_id_init_common(void)
 {
+#if (CONFIG_SYSTEM_CTRL)
+	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_QSPI_1, CLK_PWR_CTRL_PWR_UP);
+	sys_drv_int_enable(QSPI_INTERRUPT_CTRL_BIT);
+#else
 	power_qspi_pwr_up();
 	clk_set_qspi_clk_26m();
 	icu_enable_qspi_interrupt();
+#endif
 	qspi_init_gpio();
-	qspi_hal_init_common();
+	qspi_hal_init_common(&s_qspi.hal);
 }
 
 static void qspi_id_deinit_common(void)
 {
+#if (CONFIG_SYSTEM_CTRL)
+	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_QSPI_1, CLK_PWR_CTRL_PWR_DOWN);
+	sys_drv_int_disable(QSPI_INTERRUPT_CTRL_BIT);
+#else
 	icu_disable_qspi_interrupt();
 	power_qspi_pwr_down();
-	qspi_hal_deinit_common();
+#endif
+	qspi_hal_deinit_common(&s_qspi.hal);
 }
 
+#if (!CONFIG_SYSTEM_CTRL)
 static void qspi_isr(void);
+#endif
 
 bk_err_t bk_qspi_driver_init(void)
 {
@@ -95,7 +118,9 @@ bk_err_t bk_qspi_driver_init(void)
 	}
 
 	os_memset(&s_qspi, 0, sizeof(s_qspi));
+#if (!CONFIG_SYSTEM_CTRL)
 	bk_int_isr_register(INT_SRC_PSRAM, qspi_isr, NULL);
+#endif
 	qspi_hal_init(&s_qspi.hal);
 	qspi_statis_init();
 	s_qspi_driver_is_init = true;
@@ -109,7 +134,9 @@ bk_err_t bk_qspi_driver_deinit(void)
 		return BK_OK;
 	}
 	qspi_id_deinit_common();
+#if (!CONFIG_SYSTEM_CTRL)
 	bk_int_isr_unregister(INT_SRC_PSRAM);
+#endif
 	s_qspi_driver_is_init = false;
 
 	return BK_OK;
@@ -121,6 +148,7 @@ bk_err_t bk_qspi_init(const qspi_config_t *config)
 	QSPI_RETURN_ON_NOT_INIT();
 
 	qspi_id_init_common();
+#if (!CONFIG_SYSTEM_CTRL)
 	switch (config->src_clk) {
 	case QSPI_SCLK_DCO:
 		clk_set_qspi_clk_dco();
@@ -136,7 +164,22 @@ bk_err_t bk_qspi_init(const qspi_config_t *config)
 		clk_set_qspi_clk_26m();
 		break;
 	}
+#else
+	switch (config->src_clk) {
+	case QSPI_SCLK_320M:
+		sys_drv_qspi_clk_sel(QSPI_CLK_320M);
+		break;
+	case QSPI_SCLK_480M:
+		sys_drv_qspi_clk_sel(QSPI_CLK_480M);
+		break;
+	default:
+		sys_drv_qspi_clk_sel(QSPI_CLK_480M);
+		break;
+	}
+	sys_drv_qspi_set_src_clk_div(config->src_clk_div);
+#endif
 	qspi_hal_set_clk_div(&s_qspi.hal, config->clk_div);
+
 	s_qspi.id_init_bits |= BIT(0);
 	return BK_OK;
 }
@@ -156,19 +199,21 @@ bk_err_t bk_qspi_command(const qspi_cmd_t *cmd)
 	return BK_OK;
 }
 
-bk_err_t bk_qspi_write(uint32_t base_addr, const void *data, uint32_t size)
+bk_err_t bk_qspi_write(const void *data, uint32_t size)
 {
-	//TODO bk7256 support
 	BK_RETURN_ON_NULL(data);
-	QSPI_RETURN_ON_ID_NOT_INIT();
+
+	qspi_hal_io_write(&s_qspi.hal, data, size);
+
 	return BK_OK;
 }
 
-bk_err_t bk_qspi_read(uint32_t base_addr, void *data, uint32_t size)
+bk_err_t bk_qspi_read(void *data, uint32_t size)
 {
-	//TODO bk7256 support
 	BK_RETURN_ON_NULL(data);
-	QSPI_RETURN_ON_ID_NOT_INIT();
+
+	qspi_hal_io_read(&s_qspi.hal, data, size);
+
 	return BK_OK;
 }
 
@@ -190,6 +235,7 @@ bk_err_t bk_qspi_register_rx_isr(qspi_isr_t isr, void *param)
 	return BK_OK;
 }
 
+#if (!CONFIG_SYSTEM_CTRL)
 static void qspi_isr(void)
 {
 	qspi_hal_t *hal = &s_qspi.hal;
@@ -225,4 +271,4 @@ static void qspi_isr(void)
 		}
 	}
 }
-
+#endif

@@ -1,4 +1,4 @@
-menu "ARCH_CORTEX_CM33"
+menu "ARCH_CORTEX_M33"
 	config ARCH_CM33
 		bool "Enable Cortex-M33"
 		default n

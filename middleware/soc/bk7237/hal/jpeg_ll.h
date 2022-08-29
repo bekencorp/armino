@@ -41,6 +41,8 @@ extern "C" {
 	{GPIO_39, GPIO_DEV_JPEG_PXDATA7},\
 }
 
+#define JPEG_GPIO_AUXS GPIO_27
+
 void jpeg_ll_init_quant_table(jpeg_hw_t *hw);
 
 static inline void jpeg_ll_reset_config_to_default(jpeg_hw_t *hw)

@@ -828,9 +828,9 @@ mem_trim(void *rmem, mem_size_t new_size)
     MEM_STATS_DEC_USED(used, (size - newsize));
 #if MEM_TRX_DYNAMIC_EN
     if (mem->type == MEM_TYPE_TX)
-      MEM_STATS_INC_TX_USED(tx_used, (size - newsize));
+      MEM_STATS_DEC_TX_USED(tx_used, (size - newsize));
     else if(mem->type == MEM_TYPE_RX)
-      MEM_STATS_INC_RX_USED(rx_used, (size - newsize));
+      MEM_STATS_DEC_RX_USED(rx_used, (size - newsize));
 #endif
     /* no need to plug holes, we've already done that */
   } else if (newsize + SIZEOF_STRUCT_MEM + MIN_SIZE_ALIGNED <= size) {
@@ -855,6 +855,13 @@ mem_trim(void *rmem, mem_size_t new_size)
       ptr_to_mem(mem2->next)->prev = ptr2;
     }
     MEM_STATS_DEC_USED(used, (size - newsize));
+#if MEM_TRX_DYNAMIC_EN
+    if (mem->type == MEM_TYPE_TX)
+      MEM_STATS_DEC_TX_USED(tx_used, (size - newsize));
+    else if(mem->type == MEM_TYPE_RX)
+      MEM_STATS_DEC_RX_USED(rx_used, (size - newsize));
+#endif
+
     /* the original mem->next is used, so no need to plug holes! */
   }
   /* else {

@@ -229,7 +229,7 @@ void test_fatfs_append_write(DISK_NUMBER number, char *filename, char *content, 
 		len = len > 64? 64:len;
         do
         {
-            os_printf(".");
+            os_printf("f_write start \r\n");
             fr = f_write(&file, content, len, &uiTemp);
             if (fr == FR_OK)
             {
@@ -330,15 +330,15 @@ exit:
 
 #define TEST_FATFS_MAX_FILE_LEN (1<<20)
 #define TEST_FATFS_PACKET_LEN (1<<10)
-void test_fatfs_auto_test(DISK_NUMBER number, char *filename, uint32_t len, uint32_t test_count)
+void test_fatfs_auto_test(DISK_NUMBER number, char *filename, uint32_t len, uint32_t test_count, uint32_t start_addr)
 {
 	uint32_t i = 0, j = 0, k = 0;
 	FIL file;
 	FRESULT fr;
 	char cFileName[FF_MAX_LFN];
-	uint8_t *content_p = 0;
+	uint8_t *content_p = (uint8_t *)start_addr;
 	unsigned int uiTemp = 0;
-	uint8_t *buf_p = NULL;
+	uint8_t *buf_p = 0;
 	uint32_t packet_cnt = 0, bytes_cnt = 0;
 
 	FATFS_LOGD("\r\n----- %s %d start -----\r\n", __func__, number);
@@ -498,7 +498,7 @@ void test_fatfs_format(DISK_NUMBER number)
 		return;
 	}
 
-	FATFS_LOGI("----- test_fatfs_format %d start -----\r\n", number);
+	FATFS_LOGD("----- test_fatfs_format %d start -----\r\n", number);
 
 	sprintf(cFileName, "%d:", number);
 	fr = f_mkfs(cFileName, FM_ANY, 65536, ucRdTemp, WR_RD_BUF_SIZE);
@@ -510,7 +510,7 @@ void test_fatfs_format(DISK_NUMBER number)
 	}
 	else
 	{
-		FATFS_LOGD("f_mkfs OK!\r\n");
+		FATFS_LOGI("f_mkfs OK!\r\n");
 	}
 
 	FATFS_LOGD("----- test_fatfs_format %d over  -----\r\n", number);

@@ -19,8 +19,6 @@
 #include <common/sys_config.h>
 
 void arch_init(void);
-void arch_disable_align_fault(void);
-void arch_enable_align_fault(void);
 void arch_wait_for_interrupt(void);
 void arch_parse_stack_backtrace(const char *str_type, uint32_t stack_top,
         uint32_t stack_bottom, uint32_t stack_size, bool thumb_mode);

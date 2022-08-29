@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <common/bk_include.h>
+#include <common/bk_compiler.h>
 #include <os/mem.h>
 #include "uart_driver.h"
 #include "uart_hal.h"
@@ -34,8 +35,8 @@
 #include "sys_driver.h"
 #endif
 
-static void uart_isr_common(uart_id_t id) __SECTION(".itcm");
-static uint32_t uart_id_read_fifo_frame(uart_id_t id, const kfifo_ptr_t rx_ptr) __SECTION(".itcm");
+static void uart_isr_common(uart_id_t id) __BK_SECTION(".itcm");
+static uint32_t uart_id_read_fifo_frame(uart_id_t id, const kfifo_ptr_t rx_ptr) __BK_SECTION(".itcm");
 
 typedef struct {
 	uart_hal_t hal;

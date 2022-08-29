@@ -45,4 +45,3 @@ bk_err_t arch_isr_entry_init(void)
 	return BK_OK;
 }
 
-

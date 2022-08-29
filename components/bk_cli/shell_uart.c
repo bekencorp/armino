@@ -48,7 +48,7 @@ typedef struct
 	u16    rx_buff_wr_idx;
 	u16    rx_buff_rd_idx;
 
-	u8     rx_stopped;
+	u8     rx_over_flow;
 
 	rx_indicate_t	rx_indicate_callback;
 
@@ -87,7 +87,7 @@ shell_dev_t     shell_uart =
 		.dev_ext = &uart1_ext
 	};
 
-
+#if 0
 static shell_uart_ext_t uart3_ext =
 	{
 		.uart_id = UART_ID_2
@@ -99,6 +99,7 @@ shell_dev_t     shell_uart3 =
 		.dev_type = SHELL_DEV_UART,
 		.dev_ext = &uart3_ext
 	};
+#endif
 
 /* ===============================  internal functions  =========================== */
 
@@ -109,7 +110,6 @@ static void shell_uart_rx_isr(int uartn, shell_uart_ext_t *uart_ext)
 	int   ret = -1;
 
 	(void)uartn;
-
 
 	if(uart_ext->rx_buff_wr_idx >= uart_ext->rx_buff_rd_idx)
 	{
@@ -139,7 +139,7 @@ static void shell_uart_rx_isr(int uartn, shell_uart_ext_t *uart_ext)
 		else
 		{
 			/* discard rx-data, rx overflow. */
-			uart_ext->rx_stopped = 1; //  bTRUE; // rx overflow, disable rx interrupt to stop rx.
+			uart_ext->rx_over_flow = 1; //  bTRUE; // rx overflow, disable rx interrupt to stop rx.
 		}
 	}
 
@@ -259,7 +259,7 @@ static bool_t shell_uart_init(shell_dev_t * shell_dev)
 	uart_id = uart_ext->uart_id;
 
 	memset(uart_ext, 0, sizeof(shell_uart_ext_t));
-	uart_ext->rx_stopped = 0;
+	uart_ext->rx_over_flow = 0;
 	uart_ext->tx_stopped = 1;
 	uart_ext->uart_id = uart_id;
 
@@ -351,11 +351,6 @@ static u16 shell_uart_read(shell_dev_t * shell_dev, u8 * pBuf, u16 BufLen)
 		read_cnt++;
 		if(read_cnt >= BufLen)
 			break;
-	}
-
-	if((uart_ext->rx_stopped == 1) && (read_cnt > 0))
-	{
-		uart_ext->rx_stopped = 0;  // set rx_stopped to 0 firstly, then enable RX.
 	}
 
 	return read_cnt;
@@ -488,6 +483,16 @@ static bool_t shell_uart_ctrl(shell_dev_t * shell_dev, u8 cmd, void *param)
 			u8 uart_port = *(u8 *)param;
 			uart_ext->uart_id = uart_port;
 			break;
+			
+		case SHELL_IO_CTRL_GET_RX_STATUS:
+			if(param == NULL)
+				return bFALSE;
+
+			*((u16 *)param) = uart_ext->rx_over_flow;
+			uart_ext->rx_over_flow = 0; // clear it after read by user.
+
+			break;
+		
 		default:
 			return bFALSE;
 			break;

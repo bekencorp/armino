@@ -27,7 +27,33 @@ extern "C" {
 #endif
 
 
+/**************** audio interface common ****************/
+typedef enum {
+	EVENT_AUD_TRAS_COM_INIT,
+	EVENT_AUD_TRAS_COM_DEINIT,
+	EVENT_AUD_TRAS_COM_SET_MODE,
+	EVENT_AUD_TRAS_COM_SET_MIC_GAIN,
+	EVENT_AUD_TRAS_COM_SET_SPK_GAIN,
+	EVENT_AUD_TRAS_COM_MAX,
+} aud_tras_drv_com_event_t;
+
+typedef struct {
+	aud_intf_drv_setup_t setup;
+	void (*aud_tras_drv_com_event_cb)(aud_tras_drv_com_event_t event, bk_err_t result);
+} aud_intf_drv_config_t;
+
+
 /**************** audio interface mic ****************/
+typedef enum {
+	EVENT_AUD_TRAS_MIC_INIT,
+	EVENT_AUD_TRAS_MIC_DEINIT,
+	EVENT_AUD_TRAS_MIC_START,
+	EVENT_AUD_TRAS_MIC_PAUSE,
+	EVENT_AUD_TRAS_MIC_STOP,
+	EVENT_AUD_TRAS_MIC_SET_SAMP_RATE,
+	EVENT_AUD_TRAS_MIC_SET_CHL,
+	EVENT_AUD_TRAS_MIC_MAX,
+} aud_tras_drv_mic_event_t;
 
 /* audio interface mic setup configuration */
 typedef struct {
@@ -35,32 +61,36 @@ typedef struct {
 	aud_adc_samp_rate_t samp_rate;		/**< mic sample rate */
 	uint16_t frame_size;				/**< size: a frame packet mic data size(byte) */
 	uint8_t mic_gain;					/**< audio adc gain: value range:0x0 ~ 0x3f */
+
+	void (*aud_tras_drv_mic_event_cb)(aud_tras_drv_mic_event_t event, bk_err_t result);
 } aud_intf_mic_config_t;
 
 
 /**************** audio interface speaker ****************/
-
 typedef enum {
 	EVENT_AUD_TRAS_SPK_INIT,
 	EVENT_AUD_TRAS_SPK_DEINIT,
 	EVENT_AUD_TRAS_SPK_START,
 	EVENT_AUD_TRAS_SPK_PAUSE,
 	EVENT_AUD_TRAS_SPK_STOP,
+	EVENT_AUD_TRAS_SPK_SET_SAMP_RATE,
+	EVENT_AUD_TRAS_SPK_SET_CHL,
 	EVENT_AUD_TRAS_SPK_MAX,
 } aud_tras_drv_spk_event_t;
 
 /* audio interface speaker setup configuration */
 typedef struct {
 	aud_intf_spk_chl_t spk_chl;
-	aud_dac_samp_rate_t samp_rate;		/**< speaker sample rate */
+	aud_dac_samp_rate_source_t samp_rate;		/**< speaker sample rate */
 	uint16_t frame_size;				/**< size: a frame packet speaker data size(byte) */
 	uint8_t spk_gain;					/**< audio dac gain: value range:0x0 ~ 0x3f */
+	aud_dac_work_mode_t work_mode;				/**< audio dac mode: signal_ended/differen */
 
 	uint32_t *spk_rx_ring_buff;				/**< the ring buffer address of received speaker data */
 	uint16_t fifo_frame_num;			/**< audio dac start work when the fram number received is equal to fifo_frame_num */
 	RingBufferContext *spk_rx_rb;		/**< speaker received ring buffer context */
 
-	void (*aud_tras_drv_spk_event_cb)(aud_tras_drv_spk_event_t event, void *param);
+	void (*aud_tras_drv_spk_event_cb)(aud_tras_drv_spk_event_t event, bk_err_t result);
 } aud_intf_spk_config_t;
 
 
@@ -72,6 +102,8 @@ typedef enum {
 	EVENT_AUD_TRAS_VOC_START,
 	EVENT_AUD_TRAS_VOC_PAUSE,
 	EVENT_AUD_TRAS_VOC_STOP,
+	EVENT_AUD_TRAS_VOC_SET_AEC_PARA,
+	EVENT_AUD_TRAS_VOC_GET_AEC_PARA,
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 	EVENT_AUD_TRAS_VOC_AEC_DUMP,
 #endif
@@ -82,12 +114,12 @@ typedef struct {
 	/* default value */
 	uint16_t init_flags;
 	/* aec */
-	uint16_t mic_delay;		//set delay points of ref data according to dump data
-	uint8_t ec_depth;		//recommended value range: 1~50, the greater the echo, the greater the value setting
+	uint32_t mic_delay;		//set delay points of ref data according to dump data
+	uint32_t ec_depth;		//recommended value range: 1~50, the greater the echo, the greater the value setting
 	uint8_t ref_scale;		//value range:0,1,2, the greater the signal amplitude, the greater the setting
 	uint8_t voice_vol;		//the voice volume level
-	uint8_t TxRxThr;		//the max amplitude of rx audio data
-	uint8_t TxRxFlr;		//the min amplitude of rx audio data
+	uint32_t TxRxThr;		//the max amplitude of rx audio data
+	uint32_t TxRxFlr;		//the min amplitude of rx audio data
 	/* ns */
 	uint8_t ns_level;		//recommended value range: 1~8, the lower the noise, the lower the level
 	uint8_t ns_para;		//value range:0,1,2, the lower the noise, the lower the level, the default valude is recommended
@@ -95,6 +127,11 @@ typedef struct {
 	uint8_t drc;			//recommended value range:0x10~0x1f, the greater the value, the greater the volume
 } aec_config_t;
 
+/* audio aec parameters control msg */
+typedef struct {
+	aud_intf_voc_aec_para_t op;
+	uint32_t value;
+} aud_intf_voc_aec_ctl_t;
 
 /* audio config */
 typedef struct {
@@ -104,6 +141,7 @@ typedef struct {
 	uint8_t mic_frame_number;			//the max frame number of mic ring buffer
 	uint16_t speaker_samp_rate_points;	//the number of points in speaker frame
 	uint8_t speaker_frame_number;		//the max frame number of speaker ring buffer
+	aud_dac_work_mode_t spk_mode;			/**< audio spk mode: signal_ended/differen */
 } aud_intf_aud_config_t;
 
 typedef struct {
@@ -160,7 +198,7 @@ typedef struct {
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 	aec_dump_t aec_dump;
 #endif
-	void (*aud_tras_drv_voc_event_cb)(aud_tras_drv_voc_event_t event, void *param);
+	void (*aud_tras_drv_voc_event_cb)(aud_tras_drv_voc_event_t event, bk_err_t result);
 } aud_intf_voc_config_t;
 
 
@@ -168,13 +206,11 @@ typedef struct {
 
 /* audio interface status */
 typedef enum {
-	AUD_INTF_STA_IDLE = 0,
-	AUD_INTF_STA_INITING,
-	AUD_INTF_STA_READY,
-	AUD_INTF_STA_WORKING,
-	AUD_INTF_STA_STOPING,
-	AUD_INTF_STA_MAX,
-} aud_intf_status_t;
+	AUD_INTF_DRV_STA_NULL = 0,
+	AUD_INTF_DRV_STA_IDLE,
+	AUD_INTF_DRV_STA_WORK,
+	AUD_INTF_DRV_STA_MAX,
+} aud_intf_drv_status_t;
 
 /* voice transfer status */
 typedef enum {
@@ -203,15 +239,22 @@ typedef enum {
 	AUD_INTF_SPK_STA_MAX,
 } aud_intf_spk_sta_t;
 
+/* audio interface api excute result */
+typedef struct {
+	beken_semaphore_t sem;
+	bk_err_t result;
+	bool busy_status;
+} aud_intf_api_ex_t;
+
 /* save audio transfer information */
 typedef struct {
-	aud_intf_status_t status;
+	aud_intf_drv_status_t drv_status;
 	aud_intf_voc_sta_t voc_status;
 	aud_intf_mic_sta_t mic_status;
 	aud_intf_spk_sta_t spk_status;
 
-	aud_intf_drv_setup_t drv_info;
-	aud_intf_mic_setup_t mic_info;
+	aud_intf_drv_config_t drv_info;
+	aud_intf_mic_config_t mic_info;
 	aud_intf_spk_config_t spk_info;
 	aud_intf_voc_config_t voc_info;
 
@@ -223,6 +266,8 @@ typedef struct {
 	FIL ref_file;
 	FIL out_file;
 #endif
+
+	aud_intf_api_ex_t api_info;
 } aud_intf_info_t;
 
 

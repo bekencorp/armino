@@ -26,31 +26,6 @@
 #define NS_DRIVER_STDIO     Driver_USART0
 
 /**
- * \brief Defines the word offsets of Slave Peripheral Protection Controller
- *        Registers
- */
-enum ppc_bank_e
-{
-    PPC_SP_DO_NOT_CONFIGURE = -1,
-    PPC_SP_AHB_PPC0 = 0,
-    PPC_SP_RES0,
-    PPC_SP_RES1,
-    PPC_SP_RES2,
-    PPC_SP_AHB_PPC_EXP0,
-    PPC_SP_AHB_PPC_EXP1,
-    PPC_SP_AHB_PPC_EXP2,
-    PPC_SP_AHB_PPC_EXP3,
-    PPC_SP_APB_PPC0,
-    PPC_SP_APB_PPC1,
-    PPC_SP_RES3,
-    PPC_SP_RES4,
-    PPC_SP_APB_PPC_EXP0,
-    PPC_SP_APB_PPC_EXP1,
-    PPC_SP_APB_PPC_EXP2,
-    PPC_SP_APB_PPC_EXP3,
-};
-
-/**
  * \brief Store the addresses of memory regions
  */
 struct memory_region_limits {
@@ -72,8 +47,7 @@ struct platform_data_t
 {
     uint32_t periph_start;
     uint32_t periph_limit;
-    enum ppc_bank_e periph_ppc_bank;
-    int16_t periph_ppc_loc;
+    //TODO peter can add bk7236 specific device S/NS here
 };
 
 /**
@@ -87,26 +61,6 @@ int32_t mpc_init_cfg(void);
  * \brief Configures the Peripheral Protection Controller.
  */
 void ppc_init_cfg(void);
-
-/**
- * \brief Restict access to peripheral to secure
- */
-void ppc_configure_to_secure(enum ppc_bank_e bank, uint16_t loc);
-
-/**
- * \brief Allow non-secure access to peripheral
- */
-void ppc_configure_to_non_secure(enum ppc_bank_e bank, uint16_t loc);
-
-/**
- * \brief Enable secure unprivileged access to peripheral
- */
-void ppc_en_secure_unpriv(enum ppc_bank_e bank, uint16_t pos);
-
-/**
- * \brief Clear secure unprivileged access to peripheral
- */
-void ppc_clr_secure_unpriv(enum ppc_bank_e bank, uint16_t pos);
 
 /**
  * \brief Clears PPC interrupt.

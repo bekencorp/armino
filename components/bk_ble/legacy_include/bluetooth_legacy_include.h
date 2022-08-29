@@ -5,9 +5,7 @@ extern"C" {
 #endif
 
 //legacy
-ble_err_t bk_ble_init(void);
 ble_err_t bk_ble_init_ext(void *func);//ble_notice_cb_t func
-ble_err_t bk_ble_deinit(void);
 uint8_t bk_ble_find_actv_state_idx_handle(uint8_t state);
 uint8_t bk_ble_find_master_state_idx_handle(uint8_t state);
 
@@ -166,7 +164,7 @@ ble_err_t bk_ble_disconnect_connection(bd_addr_t *addr, uint8_t addr_type, ble_c
 ble_err_t bk_ble_cancel_connect(ble_cmd_cb_t callback);
 ble_err_t bk_ble_update_connection_params(ble_update_conn_param_t *conn_param, ble_cmd_cb_t callback);
 ble_err_t bk_ble_set_gatt_mtu(uint8_t conn_handle, uint16_t mtu);
-ble_err_t bk_ble_gatt_read_resp(uint8_t conn_handle, void *rsp_param);
+ble_err_t bk_ble_gatt_read_resp(uint8_t conn_handle, uint8_t * value, uint16_t length);
 ble_err_t bk_ble_gatt_get_char_val(GATT_DB_HANDLE    * handle, ATT_VALUE        * attr_value);
 ble_err_t bk_ble_att_read(uint8_t conn_handle, ATT_ATTR_HANDLE hdl);
 ATT_ATTR_HANDLE bk_ble_get_current_gatt_db_attr_handle(void);

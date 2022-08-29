@@ -28,8 +28,10 @@
 -----------------------------------------------
 
 枚举类型：
+
 typedef enum
 {
+
 	PM_LPO_SRC_DIVD, //32K from 26m
 
 	PM_LPO_SRC_X32K,    //extern 32k

@@ -321,9 +321,9 @@ void user_nmi_handler(unsigned long mcause, unsigned long ra) {
 	bk_task_wdt_stop();
 #endif
 
-	BK_DUMP_OUT("========Call NULL func pointer, please check the code near ra reg.========\r\n");
-	BK_DUMP_OUT("1 ra x 0x%lx\r\n", *(uint32_t *)ra);
-	BK_DUMP_OUT("========Call NULL func pointer, please check the code near ra reg.========\r\n");
+	BK_DUMP_OUT("========Call NULL func pointer/WDT, please check the code near ra reg.========\r\n");
+	BK_DUMP_OUT("1 ra x 0x%lx\r\n", ra);
+	BK_DUMP_OUT("========Call NULL func pointer/WDT, please check the code near ra reg.========\r\n");
 }
 
 #if CONFIG_SAVE_BOOT_TIME_POINT

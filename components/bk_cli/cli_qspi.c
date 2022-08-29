@@ -105,8 +105,20 @@ static void cli_qspi_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	}
 
 	if (os_strcmp(argv[1], "init") == 0) {
-		BK_LOG_ON_ERR(bk_qspi_psram_init());
+		//BK_LOG_ON_ERR(bk_qspi_psram_init());
+		/* config qspi init psram dynamically */
+		qspi_config_t config = {0};
+		config.src_clk = os_strtoul(argv[2], NULL, 10);
+		config.src_clk_div = os_strtoul(argv[3], NULL, 10);
+		config.clk_div = os_strtoul(argv[4], NULL, 10);
+		BK_LOG_ON_ERR(bk_qspi_init(&config));
 		CLI_LOGI("qspi init\r\n");
+	} else if (os_strcmp(argv[1], "flash_test") == 0) {
+		extern void test_qspi_flash(uint32_t base_addr, uint32_t buf_len);
+		uint32_t base_addr = os_strtoul(argv[2], NULL, 16);
+		uint32_t buf_len = 256;
+		test_qspi_flash(base_addr, buf_len);
+		CLI_LOGI("qspi flash test end\r\n");
 	} else if (os_strcmp(argv[1], "enter_quad_mode") == 0) {
 		BK_LOG_ON_ERR(bk_qspi_psram_enter_quad_mode());
 		CLI_LOGI("qspi enter quad mode\r\n");

@@ -378,6 +378,8 @@ bk_err_t bk_jpeg_enc_disable_int(uint32_t type)
 bk_err_t bk_jpeg_enc_set_auxs(uint32_t cksel, uint32_t ckdiv)
 {
 #if CONFIG_SYSTEM_CTRL
+	gpio_dev_unmap(JPEG_GPIO_AUXS);
+	gpio_dev_map(JPEG_GPIO_AUXS, GPIO_DEV_CLK_AUXS);
 	sys_hal_set_auxs_clk_sel(cksel);
 	sys_hal_set_auxs_clk_div(ckdiv);
 	return BK_OK;

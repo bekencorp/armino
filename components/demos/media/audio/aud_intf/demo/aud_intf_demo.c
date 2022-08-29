@@ -51,9 +51,13 @@ extern void delay(int num);
 
 static void cli_aud_intf_help(void)
 {
-	os_printf("aud_intf_record_test {start|pause|stop xxx.pcm} \r\n");
-	os_printf("aud_intf_play_test {start|pause|stop xxx.pcm} \r\n");
+	os_printf("aud_intf_record_test {init|start|pause|stop|set_chl|deinit xxx.pcm|mic1|dual} \r\n");
+	os_printf("aud_intf_play_test {init|start|pause|stop|set_chl|deinit xxx.pcm|left|dual} \r\n");
 	os_printf("aud_intf_sd_voc_test {start|stop xx.pcm, xx.pcm} \r\n");
+	os_printf("aud_intf_set_voc_param_test {param value} \r\n");
+	os_printf("aud_intf_set_aec_param_test {param value} \r\n");
+	os_printf("aud_intf_get_aec_param_test \r\n");
+	os_printf("aud_intf_set_samp_rate_test {param value} \r\n");
 }
 
 static int send_mic_data_to_sd(uint8_t *data, unsigned int len)
@@ -75,7 +79,7 @@ static int send_mic_data_to_sd(uint8_t *data, unsigned int len)
 
 void cli_aud_intf_record_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-//	bk_err_t ret = BK_OK;
+	bk_err_t ret = BK_OK;
 	FRESULT fr;
 
 	if (argc != 3) {
@@ -83,8 +87,8 @@ void cli_aud_intf_record_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 		return;
 	}
 
-	if (os_strcmp(argv[1], "start") == 0) {
-		os_printf("start record test \r\n");
+	if (os_strcmp(argv[1], "init") == 0) {
+		os_printf("init record test \r\n");
 
 		/*open file to save pcm data */
 		sprintf(mic_file_name, "1:/%s", argv[2]);
@@ -98,26 +102,91 @@ void cli_aud_intf_record_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 		aud_intf_drv_setup.task_config.priority = 3;
 		aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
 		aud_intf_drv_setup.aud_intf_tx_mic_data = send_mic_data_to_sd;
-		bk_aud_intf_drv_init(&aud_intf_drv_setup);
+		ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_drv_init fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_drv_init complete \r\n");
+		}
+
 		aud_work_mode = AUD_INTF_WORK_MODE_GENERAL;
-		bk_aud_intf_set_mode(aud_work_mode);
+		ret = bk_aud_intf_set_mode(aud_work_mode);
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_set_mode fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_set_mode complete \r\n");
+		}
+
 		aud_intf_mic_setup.mic_chl = AUD_INTF_MIC_CHL_MIC1;
 		aud_intf_mic_setup.samp_rate = AUD_ADC_SAMP_RATE_8K;
 		aud_intf_mic_setup.frame_size = 320;
 		aud_intf_mic_setup.mic_gain = 0x2d;
-		bk_aud_intf_mic_init(&aud_intf_mic_setup);
-		bk_aud_intf_mic_start();
+		ret = bk_aud_intf_mic_init(&aud_intf_mic_setup);
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_mic_init fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_mic_init complete \r\n");
+		}
 
+		os_printf("init mic record complete \r\n");
+	} else if (os_strcmp(argv[1], "start") == 0) {
+		ret = bk_aud_intf_mic_start();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_mic_start fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_mic_start complete \r\n");
+		}
 		os_printf("start mic record \r\n");
 	} else if (os_strcmp(argv[1], "pause") == 0) {
-		bk_aud_intf_mic_pause();
+		ret = bk_aud_intf_mic_pause();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_mic_start fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_mic_start complete \r\n");
+		}
 		os_printf("pause mic record \r\n");
 	} else if (os_strcmp(argv[1], "stop") == 0) {
-		bk_aud_intf_mic_stop();
+		ret = bk_aud_intf_mic_stop();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_mic_stop fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_mic_stop complete \r\n");
+		}
 
-		bk_aud_intf_mic_deinit();
+		os_printf("stop mic record \r\n");
+	} else if (os_strcmp(argv[1], "set_chl") == 0) {
+		if (os_strcmp(argv[2], "mic1") == 0) {
+			ret = bk_aud_intf_set_mic_chl(AUD_INTF_MIC_CHL_MIC1);
+		} else if (os_strcmp(argv[2], "dual") == 0) {
+			ret = bk_aud_intf_set_mic_chl(AUD_INTF_MIC_CHL_DUAL);
+		} else {
+			os_printf("mic channel is error \r\n");
+			return;
+		}
 
-		bk_aud_intf_drv_deinit();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_set_mic_chl fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_set_mic_chl complete \r\n");
+		}
+
+		os_printf("change mic channel \r\n");
+	} else if (os_strcmp(argv[1], "deinit") == 0) {
+		ret = bk_aud_intf_mic_deinit();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_mic_deinit fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_mic_deinit complete \r\n");
+		}
+
+		spk_file_empty = false;
+
+		ret = bk_aud_intf_drv_deinit();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_drv_deinit fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_drv_deinit complete \r\n");
+		}
 
 		/* close mic file */
 		fr = f_close(&mic_file);
@@ -171,6 +240,7 @@ static bk_err_t read_spk_data_from_sd(unsigned int size)
 
 void cli_aud_intf_play_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+	bk_err_t ret = BK_ERR_AUD_INTF_OK;
 	FRESULT fr;
 
 	if (argc != 3) {
@@ -178,8 +248,8 @@ void cli_aud_intf_play_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 		return;
 	}
 
-	if (os_strcmp(argv[1], "start") == 0) {
-		os_printf("start play test \r\n");
+	if (os_strcmp(argv[1], "init") == 0) {
+		os_printf("init play test \r\n");
 
 		/*open file to read pcm data */
 		sprintf(spk_file_name, "1:/%s", argv[2]);
@@ -193,27 +263,78 @@ void cli_aud_intf_play_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 		aud_intf_drv_setup.task_config.priority = 3;
 		aud_intf_drv_setup.aud_intf_rx_spk_data = read_spk_data_from_sd;
 		aud_intf_drv_setup.aud_intf_tx_mic_data = NULL;
-		bk_aud_intf_drv_init(&aud_intf_drv_setup);
-		//delay(100);
+		ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_drv_init fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_drv_init complete \r\n");
+		}
+
 		aud_work_mode = AUD_INTF_WORK_MODE_GENERAL;
-		bk_aud_intf_set_mode(aud_work_mode);
-		aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_SPK1;
+		ret = bk_aud_intf_set_mode(aud_work_mode);
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_set_mode fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_set_mode complete \r\n");
+		}
+
+		aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_LEFT;
 		aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_8K;
 		aud_intf_spk_setup.frame_size = 640;
 		aud_intf_spk_setup.spk_gain = 0x2d;
-		bk_aud_intf_spk_init(&aud_intf_spk_setup);
-		bk_aud_intf_spk_start();
+		aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
+		ret = bk_aud_intf_spk_init(&aud_intf_spk_setup);
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_spk_init fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_spk_init complete \r\n");
+		}
+
+		os_printf("init play \r\n");
+	} else if (os_strcmp(argv[1], "start") == 0) {
+		ret = bk_aud_intf_spk_start();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_spk_start fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_spk_start complete \r\n");
+		}
 
 		os_printf("start play \r\n");
 	} else if (os_strcmp(argv[1], "pause") == 0) {
-		bk_aud_intf_spk_pause();
+		ret = bk_aud_intf_spk_pause();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_spk_pause fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_spk_pause complete \r\n");
+		}
+
 		os_printf("pause play \r\n");
+	} else if (os_strcmp(argv[1], "set_chl") == 0) {
+		if (os_strcmp(argv[2], "left") == 0) {
+			ret = bk_aud_intf_set_spk_chl(AUD_INTF_SPK_CHL_LEFT);
+		} else if (os_strcmp(argv[2], "dual") == 0) {
+			ret = bk_aud_intf_set_spk_chl(AUD_INTF_SPK_CHL_DUAL);
+		} else {
+			os_printf("spk channel is error \r\n");
+			return;
+		}
+
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_set_spk_chl fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_set_spk_chl complete \r\n");
+		}
+
+		os_printf("change spk channel \r\n");
 	} else if (os_strcmp(argv[1], "stop") == 0) {
-		bk_aud_intf_spk_stop();
+		ret = bk_aud_intf_spk_stop();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_spk_stop fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_spk_stop complete \r\n");
+		}
 
-		bk_aud_intf_spk_deinit();
-
-		bk_aud_intf_drv_deinit();
+		spk_file_empty = false;
 
 		/* close spk file */
 		fr = f_close(&spk_file);
@@ -222,8 +343,39 @@ void cli_aud_intf_play_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 			return;
 		}
 
+		fr = f_open(&spk_file, spk_file_name, FA_OPEN_EXISTING | FA_READ);
+		if (fr != FR_OK) {
+			os_printf("open %s fail.\r\n", spk_file_name);
+			return;
+		}
+
 		os_printf("stop play \r\n");
-		os_printf("stop play test \r\n");
+	} else if (os_strcmp(argv[1], "deinit") == 0) {
+		ret = bk_aud_intf_spk_deinit();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_spk_deinit fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_spk_deinit complete \r\n");
+		}
+
+		ret = bk_aud_intf_drv_deinit();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_drv_deinit fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_drv_deinit complete \r\n");
+		}
+
+		spk_file_empty = false;
+
+		/* close spk file */
+		fr = f_close(&spk_file);
+		if (fr != FR_OK) {
+			os_printf("close %s fail!\r\n", spk_file_name);
+			return;
+		}
+
+		os_printf("deinit play \r\n");
+		os_printf("deinit play test \r\n");
 	} else {
 		cli_aud_intf_help();
 		return;
@@ -326,6 +478,14 @@ void cli_aud_intf_sd_voc_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 		aud_intf_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
 		//aud_intf_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711A;
 		aud_intf_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_PCM;
+		aud_intf_voc_setup.spk_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
+		aud_intf_voc_setup.mic_gain = 0x2d;
+		aud_intf_voc_setup.spk_gain = 0x2d;
+		aud_intf_voc_setup.aec_cfg.ec_depth = 20;
+		aud_intf_voc_setup.aec_cfg.TxRxThr = 30;
+		aud_intf_voc_setup.aec_cfg.TxRxFlr = 6;
+		aud_intf_voc_setup.aec_cfg.ns_level = 2;
+		aud_intf_voc_setup.aec_cfg.ns_para = 1;
 		bk_aud_intf_voc_init(aud_intf_voc_setup);
 
 		temp_spk_addr = os_malloc(640);
@@ -381,17 +541,14 @@ void cli_aud_intf_set_voc_param_cmd(char *pcWriteBuffer, int xWriteBufferLen, in
 		return;
 	}
 
+	value = strtoul(argv[2], NULL, 0);
 	if (os_strcmp(argv[1], "mic_gain") == 0) {
-		value = strtoul(argv[2], NULL, 0);
 		bk_aud_intf_set_mic_gain(value);
 		os_printf("set voc mic gain:%d \r\n", value);
 	} else if (os_strcmp(argv[1], "spk_gain") == 0) {
-		value = strtoul(argv[2], NULL, 0);
 		bk_aud_intf_set_spk_gain(value);
 		os_printf("set voc spk gain:%d \r\n", value);
 	} else if (os_strcmp(argv[1], "gain") == 0) {
-
-
 		os_printf("stop play \r\n");
 	} else {
 		cli_aud_intf_help();
@@ -400,4 +557,130 @@ void cli_aud_intf_set_voc_param_cmd(char *pcWriteBuffer, int xWriteBufferLen, in
 
 }
 
+void cli_aud_intf_set_aec_param_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	bk_err_t ret = BK_OK;
+	uint8_t value = 0;
+	aud_intf_voc_aec_para_t op;
+
+	if (argc != 3) {
+		cli_aud_intf_help();
+		return;
+	}
+
+	value = strtoul(argv[2], NULL, 0);
+	if (os_strcmp(argv[1], "init_flags") == 0) {
+		op = AUD_INTF_VOC_AEC_INIT_FLAG;
+		os_printf("set aec init_flags:%d \r\n", value);
+	} else if (os_strcmp(argv[1], "mic_delay") == 0) {
+		op = AUD_INTF_VOC_AEC_MIC_DELAY;
+		os_printf("set aec mic_delay:%d \r\n", value);
+	} else if (os_strcmp(argv[1], "ec_depth") == 0) {
+		op = AUD_INTF_VOC_AEC_EC_DEPTH;
+		os_printf("set aec ec_depth:%d \r\n", value);
+	} else if (os_strcmp(argv[1], "ref_scale") == 0) {
+		op = AUD_INTF_VOC_AEC_REF_SCALE;
+		os_printf("set aec ref_scale:%d \r\n", value);
+	} else if (os_strcmp(argv[1], "voice_vol") == 0) {
+		op = AUD_INTF_VOC_AEC_VOICE_VOL;
+		os_printf("set aec voice_vol:%d \r\n", value);
+	} else if (os_strcmp(argv[1], "TxRxThr") == 0) {
+		op = AUD_INTF_VOC_AEC_TXRX_THR;
+		os_printf("set aec TxRxThr:%d \r\n", value);
+	} else if (os_strcmp(argv[1], "TxRxFlr") == 0) {
+		op = AUD_INTF_VOC_AEC_TXRX_FLR;
+		os_printf("set aec TxRxFlr:%d \r\n", value);
+	} else if (os_strcmp(argv[1], "ns_level") == 0) {
+		op = AUD_INTF_VOC_AEC_NS_LEVEL;
+		os_printf("set aec ns_level:%d \r\n", value);
+	} else if (os_strcmp(argv[1], "ns_para") == 0) {
+		op = AUD_INTF_VOC_AEC_NS_PARA;
+		os_printf("set aec ns_para:%d \r\n", value);
+	} else if (os_strcmp(argv[1], "drc") == 0) {
+		op = AUD_INTF_VOC_AEC_DRC;
+		os_printf("set aec drc:%d \r\n", value);
+	} else {
+		cli_aud_intf_help();
+		return;
+	}
+	ret = bk_aud_intf_set_aec_para(op, value);
+	if (ret != BK_OK)
+		os_printf("test fail \r\n");
+
+	os_printf("set aec parameters complete \r\n");
+}
+
+void cli_aud_intf_get_aec_param_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	bk_err_t ret = BK_OK;
+
+	if (argc != 1) {
+		cli_aud_intf_help();
+		return;
+	}
+
+	ret = bk_aud_intf_get_aec_para();
+	if (ret != BK_OK)
+		os_printf("test fail \r\n");
+
+	os_printf("get aec parameters complete \r\n");
+}
+
+/* set mic and speaker sample rate */
+void cli_aud_intf_set_samp_rate_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	bk_err_t ret = BK_OK;
+	aud_adc_samp_rate_t adc_samp_rate;
+	aud_dac_samp_rate_source_t dac_samp_rate;
+
+	if (argc != 3) {
+		cli_aud_intf_help();
+		return;
+	}
+
+	if (os_strcmp(argv[1], "mic") == 0) {
+		if (os_strcmp(argv[2], "8K") == 0) {
+			adc_samp_rate = AUD_ADC_SAMP_RATE_8K;
+		} else if (os_strcmp(argv[2], "16K") == 0) {
+			adc_samp_rate = AUD_ADC_SAMP_RATE_16K;
+		} else if (os_strcmp(argv[2], "44K") == 0) {
+			adc_samp_rate = AUD_ADC_SAMP_RATE_44K;
+		} else if (os_strcmp(argv[2], "48K") == 0) {
+			adc_samp_rate = AUD_ADC_SAMP_RATE_48K;
+		} else {
+			os_printf("the param is error \r\n");
+			return;
+		}
+		ret = bk_aud_intf_set_mic_samp_rate(adc_samp_rate);
+		if (ret != BK_ERR_AUD_INTF_OK)
+			os_printf("set mic samp rate:%d fail \r\n", adc_samp_rate);
+		os_printf("set mic samp rate:%d complete \r\n", adc_samp_rate);
+	} else if (os_strcmp(argv[1], "spk") == 0) {
+		if (os_strcmp(argv[2], "8K") == 0) {
+			dac_samp_rate = AUD_ADC_SAMP_RATE_8K;
+		} else if (os_strcmp(argv[2], "16K") == 0) {
+			dac_samp_rate = AUD_ADC_SAMP_RATE_16K;
+		} else if (os_strcmp(argv[2], "44K") == 0) {
+			dac_samp_rate = AUD_ADC_SAMP_RATE_44K;
+		} else if (os_strcmp(argv[2], "48K") == 0) {
+			dac_samp_rate = AUD_ADC_SAMP_RATE_48K;
+		} else {
+			os_printf("the param is error \r\n");
+			return;
+		}
+		ret = bk_aud_intf_set_spk_samp_rate(dac_samp_rate);
+		if (ret != BK_ERR_AUD_INTF_OK)
+			os_printf("set spk samp rate:%d fail, ret:%d \r\n", dac_samp_rate, ret);
+		os_printf("set spk samp rate:%d complete \r\n", dac_samp_rate);
+
+	} else {
+		cli_aud_intf_help();
+		return;
+	}
+
+	if (ret != BK_OK)
+		os_printf("test fail \r\n");
+
+	os_printf("set samp rate complete \r\n");
+}
 

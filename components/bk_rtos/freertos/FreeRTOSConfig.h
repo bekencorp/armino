@@ -129,11 +129,11 @@
 #endif
 
 #if (CONFIG_SLAVE_CORE)
-#define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 60 * 1024 ) )
+#define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 30 * 1024 ) )
 #elif (CONFIG_CUSTOMIZE_HEAP_SIZE)
 #define configTOTAL_HEAP_SIZE                       ( ( size_t ) (CONFIG_CUSTOMIZE_HEAP_SIZE) )
 #else
-#define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 160 * 1024 ) )
+#define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 192 * 1024 ) )
 #endif
 /* Queue & Semaphore & Mutex */
 #define configQUEUE_REGISTRY_SIZE                   0
@@ -255,7 +255,7 @@ Members except log buffer in uncached buffer used at most 6 cache line space. */
 #if (CONFIG_ARCH_CM33 == 1)
 #define configENABLE_FPU                   0
 #define configENABLE_MPU                   0
-#define configENABLE_TRUSTZONE             1
+#define configENABLE_TRUSTZONE             0
 #define configMINIMAL_SECURE_STACK_SIZE    (1024)
 #endif
 

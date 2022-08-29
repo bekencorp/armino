@@ -36,14 +36,11 @@ typedef enum
 
 bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi);
 bk_err_t media_app_camera_close(app_camera_type_t type);
-bk_err_t media_app_transfer_video_open(void *setup_cfg);
-bk_err_t media_app_transfer_video_close(void);
+bk_err_t media_app_transfer_open(void *setup_cfg);
+bk_err_t media_app_transfer_close(void);
 bk_err_t media_app_lcd_open(uint32_t lcd_ppi);
 bk_err_t media_app_lcd_close(void);
 bk_err_t media_app_capture(char *name);
-bk_err_t media_app_uvc_start(void);
-bk_err_t media_app_uvc_stop(void);
-bk_err_t media_app_uvc_param_set(uvc_camera_device_t *param);
 bk_err_t media_app_lcd_set_backlight(uint8_t level);
 bk_err_t media_app_mailbox_test(void);
 bk_err_t media_app_lcd_rotate(bool enable);
@@ -52,6 +49,7 @@ bk_err_t media_app_dump_decoder_frame(void);
 bk_err_t media_app_dump_jpeg_frame(void);
 bk_err_t media_app_lcd_step_mode(bool enable);
 bk_err_t media_app_lcd_step_trigger(void);
+bk_err_t media_app_transfer_pause(bool pause);
 
 
 #ifdef __cplusplus

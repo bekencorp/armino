@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 
-bk_err_t aud_tras_drv_init(aud_intf_drv_setup_t *setup_cfg);
+bk_err_t aud_tras_drv_init(aud_intf_drv_config_t *setup_cfg);
 
 bk_err_t aud_tras_drv_deinit(void);
 

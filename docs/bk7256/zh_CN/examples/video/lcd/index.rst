@@ -10,5 +10,5 @@ lcd
    LCD RGB YUV Display <bk_lcd_display_yuv>
    LCD RGB JPEG Display <bk_lcd_display_jpeg>
    LCD RGB Blending Display <bk_lcd_rgb_blend>
-   LCD RGB TF卡测试旋转/融合 <bk_lcd_sdcard_test>
-   LCD RGB 移康屏幕初始化 <bk_lcd_device_init>
+   LCD 显示一张jpeg图片 <bk_picture_display>
+   LCD RGB GC9503v屏幕初始化 <bk_lcd_device_init>

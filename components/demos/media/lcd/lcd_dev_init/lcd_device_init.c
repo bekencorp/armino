@@ -4,7 +4,6 @@
 #include <os/os.h>
 #include <stdlib.h>
 //#include <components/system.h>
-#include "driver/lcd_disp_types.h"
 #include <driver/lcd.h>
 #include <driver/dma.h>
 #include "bk_cli.h"
@@ -26,7 +25,7 @@ void lcd_display_frame_isr(void)
 
 #define write_data(addr,val)                 *((volatile uint32_t *)(addr)) = val
 
-void lcd_device_init_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+void lcd_rgb_gc9503v_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 
 	os_printf(" lcd_device_init_handler \r\n");
@@ -37,7 +36,6 @@ void lcd_device_init_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 		bk_psram_init();
 		// step 2: init gpio
 		lcd_init_gpio();
-
 		os_printf("init finish!\r\n");
 	} else if (os_strcmp(argv[1], "gc9503v") == 0) {
 		spi_init_gpio(); 
@@ -53,11 +51,11 @@ void lcd_device_init_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 		uint16_t width = 0;
 		uint16_t height = 0;
 		//uint32_t color;
+		lcd_config_t lcd_config;
 
 		width = os_strtoul(argv[2], NULL, 10);
 		height = os_strtoul(argv[3], NULL, 10);
-		//color = os_strtoul(argv[4], NULL, 16)  & 0xFFFFFFFF;
-		//os_printf("color:%08x\r\n", color);
+
 		for (uint32_t i = 0; i < 480 * 800 / 2; i++)
 			write_data((0x60000000 + i * 0x4), 0xF800F800);
 		os_printf("W  H %x, %x\r\n",width,height );
@@ -66,11 +64,17 @@ void lcd_device_init_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 		
 		os_printf("bk_lcd_driver_init\r\n");
 		bk_lcd_driver_init(LCD_26M);
-		bk_lcd_isr_register(RGB_OUTPUT_EOF, lcd_display_frame_isr);
-		
+
 		os_printf("bk_lcd_rgb_init\r\n");
-		bk_lcd_rgb_init(0, width, height, RGB565_DATA);
-		bk_lcd_set_display_base_addr(LCD_FRAMEADDR);
+
+		lcd_config.device = get_lcd_device_by_id(LCD_DEVICE_GC9503V);
+		lcd_config.complete_callback = lcd_display_frame_isr;
+		lcd_config.fmt = LCD_FMT_RGB565;
+		lcd_config.pixel_x = 480;
+		lcd_config.pixel_y = 800;
+		lcd_driver_init(&lcd_config);
+
+		lcd_driver_set_display_base_addr(LCD_FRAMEADDR);
 		
 		os_printf("bk_lcd_rgb_display_en\r\n");
 		bk_lcd_rgb_display_en(1);

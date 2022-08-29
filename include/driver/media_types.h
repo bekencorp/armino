@@ -45,6 +45,7 @@ typedef enum
 	PPI_480X320     = (PIXEL_480 << 16) | PIXEL_320,
 	PPI_640X480     = (PIXEL_640 << 16) | PIXEL_480,
 	PPI_480X800 	= (PIXEL_480 << 16) | PIXEL_800,
+	PPI_800X480 	= (PIXEL_800 << 16) | PIXEL_480,
 	PPI_800X600     = (PIXEL_800 << 16) | PIXEL_640,
 	PPI_1024X600    = (PIXEL_1024 << 16) | PIXEL_600,
 	PPI_1280X720    = (PIXEL_1280 << 16) | PIXEL_720,
@@ -59,11 +60,12 @@ typedef enum
 	PPI_CAP_480X272     = (1 << 2), /**< 480 * 272 */
 	PPI_CAP_480X320     = (1 << 3), /**< 480 * 320 */
 	PPI_CAP_640X480     = (1 << 4), /**< 640 * 480 */
-	PPI_CAP_480X800     = (1 << 5), /**< 480 *800 */
-	PPI_CAP_800X600     = (1 << 6), /**< 800 * 600 */
-	PPI_CAP_1024X600    = (1 << 7), /**< 1024 * 600 */
-	PPI_CAP_1280X720    = (1 << 8), /**< 1280 * 720 */
-	PPI_CAP_1600X1200   = (1 << 9), /**< 1600 * 1200 */
+	PPI_CAP_480X800     = (1 << 5), /**< 480 * 800 */
+	PPI_CAP_800X480     = (1 << 6), /**< 800 * 480 */
+	PPI_CAP_800X600     = (1 << 7), /**< 800 * 600 */
+	PPI_CAP_1024X600    = (1 << 8), /**< 1024 * 600 */
+	PPI_CAP_1280X720    = (1 << 9), /**< 1280 * 720 */
+	PPI_CAP_1600X1200   = (1 << 10), /**< 1600 * 1200 */
 } media_ppi_cap_t;
 
 
@@ -93,6 +95,22 @@ typedef struct
 	uint32_t sequence;
 } frame_buffer_t;
 
+typedef enum
+{
+	UNKNOW_CAMERA,
+	DVP_CAMERA,
+	UVC_CAMERA,
+} camera_type_t;
+
+typedef struct
+{
+	uint16_t isr_jpeg;
+	uint16_t isr_decoder;
+	uint16_t err_dec;
+	uint16_t isr_lcd;
+	uint16_t fps_lcd;
+	uint16_t fps_wifi;
+} media_debug_t;
 
 static inline uint16_t ppi_to_pixel_x(media_ppi_t ppi)
 {
@@ -143,6 +161,10 @@ static inline media_ppi_cap_t pixel_ppi_to_cap(media_ppi_t ppi)
 
 		case PPI_480X800:
 			cap = PPI_CAP_480X800;
+			break;
+
+		case PPI_800X480:
+			cap = PPI_CAP_800X480;
 			break;
 
 		case PPI_800X600:

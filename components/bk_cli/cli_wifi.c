@@ -1022,6 +1022,42 @@ void cli_wifi_rc_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 		CLI_LOGI("invalid RC paramter\n");
 	}
 }
+void cli_wifi_capa_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv) {
+	uint32_t capa_id = 0;
+	uint32_t capa_val = 0;
+
+	if (argc <= 2) {
+		CLI_LOGI("invalid CAPA command\n");
+		return;
+	}
+
+	if(os_strcmp(argv[1], "ht") == 0) {
+		capa_id = WIFI_CAPA_ID_HT_EN;
+	}
+	else if(os_strcmp(argv[1], "vht") == 0) {
+		capa_id = WIFI_CAPA_ID_VHT_EN;
+	}
+	else if(os_strcmp(argv[1], "he") == 0) {
+		capa_id = WIFI_CAPA_ID_HE_EN;
+	}
+	else if(os_strcmp(argv[1], "tx_ampdu") == 0) {
+		capa_id = WIFI_CAPA_ID_TX_AMPDU_EN;
+	}
+	else if(os_strcmp(argv[1], "rx_ampdu") == 0) {
+		capa_id = WIFI_CAPA_ID_RX_AMPDU_EN;
+	}
+	else if(os_strcmp(argv[1], "he_mcs") == 0) {
+		capa_id = WIFI_CAPA_ID_HE_MCS;
+	}
+	else {
+		CLI_LOGI("invalid CAPA paramter\n");
+		return;
+	}
+
+	capa_val = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
+	bk_wifi_capa_config(capa_id, capa_val);
+}
+
 #ifdef CONFIG_COMPONENTS_WPA_TWT_TEST
 void cli_wifi_twt_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
@@ -1086,6 +1122,7 @@ static const struct cli_command s_wifi_commands[] = {
 	{"wifi_tx", "wifi_tx - Tx WiFi raw frame", cli_wifi_raw_tx_cmd},
 #endif
 	{"rc", "wifi rate control config", cli_wifi_rc_cmd},
+	{"capa", "wifi capability config", cli_wifi_capa_cmd},
 };
 
 int cli_wifi_init(void)

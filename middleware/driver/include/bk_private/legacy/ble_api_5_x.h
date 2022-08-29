@@ -494,6 +494,11 @@ typedef struct _GATT_DB_SERVICE_INFO
 #define    GATT_DB_PERM_WRITE_SIGNED            0x0080U
 #define    GATT_DB_PERM_WRITE_SIGNED_MITM       0x0100U
 
+#define GATT_DB_ERR_ID                          0x6B00U
+/* Not an error code. More of a status code */
+#define GATT_DB_DELAYED_RESPONSE                 (0x0060U | GATT_DB_ERR_ID)
+#define GATT_DB_DONOT_RESPOND                    (0x0061U | GATT_DB_ERR_ID)
+#define GATT_DB_ALREADY_RESPONDED                (0x0062U | GATT_DB_ERR_ID)
 
 typedef uint8_t DEVICE_HANDLE;
 typedef uint8_t ATT_CON_ID;

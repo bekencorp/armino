@@ -68,6 +68,15 @@ set(srcs
 	security/hal_sha.c
 	spinlock/amp_res_lock.c
 	)
+if (CONFIG_AON_WDT)
+	list(APPEND incs
+		aon_wdt
+	)
+
+	list(APPEND srcs
+		aon_wdt/aon_wdt_driver.c
+	)
+endif()
 
 if (CONFIG_MPC)
 	list(APPEND incs
@@ -194,11 +203,7 @@ endif()
 		)
 	endif()
 
-	if (CONFIG_LCD)
-	list(APPEND srcs
-		"lcd_display/lcd_disp_driver.c"
-		)
-	endif()
+
 
 	if(CONFIG_DMA2D)
 	list(APPEND srcs
@@ -231,6 +236,7 @@ if (CONFIG_QSPI)
 		"qspi/qspi_driver.c"
 		"qspi/qspi_statis.c"
 		"qspi/qspi_psram.c"
+		"qspi/qspi_flash.c"
 		)
 endif() #if (CONFIG_QSPI)
 
@@ -263,14 +269,14 @@ if (CONFIG_SDIO_HOST)
 	list(APPEND srcs
 		"sdio_host/sdio_host_driver.c"
 		"sd_card/sd_card_driver.c"
+		"sd_card/sdcard_test.c"
 		)
 endif() #if (CONFIG_SDIO_HOST)
 
-if (CONFIG_SDCARD_HOST)
+if (CONFIG_SDCARD_V1P0)
 	list(APPEND srcs
 		"sdcard/sdio_driver.c"
 		"sdcard/sdcard.c"
-		"sdcard/sdcard_test.c"
 		)
 endif() #if (CONFIG_SDCARD_HOST)
 

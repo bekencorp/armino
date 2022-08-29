@@ -49,6 +49,8 @@ list(APPEND srcs
 	"hal/jpeg_dec_hal.c"
 	"hal/flash_hal_debug.c"
 	"hal/flash_ll.c"
+	"hal/qspi_hal_debug.c"
+	"hal/qspi_ll.c"
 )
 
 if(CONFIG_SECURITYIP)
@@ -70,6 +72,11 @@ if(CONFIG_DMA2D)
 	list(APPEND srcs
 		"hal/dma2d_hal.c"
 	)
+endif()
+
+if(CONFIG_SDIO_HOST)
+	list(APPEND srcs "hal/sdio_host_hal_debug.c"
+		"hal/sdio_host_ll.c" )
 endif()
 
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}")

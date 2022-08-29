@@ -173,7 +173,6 @@ static ARM_FLASH_CAPABILITIES Flash_GetCapabilities(void)
 static int32_t Flash_Initialize(ARM_Flash_SignalEvent_t cb_event)
 {
     uint32_t flash_size = 0;
-    int ret = 0;
     ARG_UNUSED(cb_event);
 
     BK_LOG_ON_ERR(bk_flash_driver_init());

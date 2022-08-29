@@ -1,4 +1,4 @@
-PROPERTIES_PROJECT_DIR := projects/properties_libs
+export PROPERTIES_PROJECT_DIR := projects/properties_libs
 ARMINO_DIR := $(shell pwd)
 
 ARMINO_TOOL := @$(ARMINO_DIR)/tools/build_tools/armino
@@ -27,7 +27,13 @@ APP_VERSION := unknow
 endif
 
 ifeq ("$(PROJECT)", "")
-	export PROJECT := app
+	ifneq ("$(INTERNAL)", "")
+		export PROJECT := $(INTERNAL)
+		export PROJECT_DIR := properties/projects/$(PROJECT)
+		export PROPERTIES_PROJECT_DIR := properties/projects/properties_libs
+	else
+		export PROJECT := app
+	endif
 else
 	export PROJECT := $(PROJECT)
 endif

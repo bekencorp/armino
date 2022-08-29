@@ -48,8 +48,8 @@ typedef struct {
 #define qspi_hal_clear_interrupt_status(hal, status) qspi_ll_clear_interrupt_status((hal)->hw, status)
 #define qspi_hal_is_sw_op_int_triggered(hal, status) qspi_ll_is_sw_op_int_triggered((hal)->hw, status)
 
-#define qspi_hal_init_common() qspi_ll_init_common()
-#define qspi_hal_deinit_common() qspi_ll_deinit_common()
+#define qspi_hal_init_common(hal) qspi_ll_init_common((hal)->hw)
+#define qspi_hal_deinit_common(hal) qspi_ll_deinit_common((hal)->hw)
 
 bk_err_t qspi_hal_init(qspi_hal_t *hal);
 bool qspi_hal_is_cur_sw_op_write_data(void);
@@ -57,8 +57,8 @@ bool qspi_hal_is_cur_sw_op_read_data(void);
 bk_err_t qspi_hal_command(qspi_hal_t *hal, const qspi_cmd_t *cmd);
 bk_err_t qspi_hal_direct_write(uint32_t base_addr, const void *data, uint32_t size);
 bk_err_t qspi_hal_direct_read(uint32_t base_addr, void *data, uint32_t size);
-bk_err_t qspi_hal_io_write(qspi_hal_t *hal, uint32_t base_addr, const void *data, uint32_t size);
-bk_err_t qspi_hal_io_read(qspi_hal_t *hal, uint32_t base_addr, void *data, uint32_t size);
+bk_err_t qspi_hal_io_write(qspi_hal_t *hal, const void *data, uint32_t size);
+bk_err_t qspi_hal_io_read(qspi_hal_t *hal, void *data, uint32_t size);
 
 #if CFG_HAL_DEBUG_QSPI
 void qspi_struct_dump(void);

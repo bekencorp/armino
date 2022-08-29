@@ -10,4 +10,8 @@ menu "HTTP_CONFIG"
 	config LITE_LOG_ENABLED
 		bool "Enable http log"
 		default n
+		
+	config HTTP_AB_PARTITION
+		bool "Disable http update ab partition"
+		default n
 endmenu

@@ -39,7 +39,6 @@
 #include "sys_rtos.h"
 #include "lwip/timeouts.h"
 #include <os/os.h>
-#include "portmacro.h"
 #include <components/log.h>
 
 #define CFG_ENABLE_LWIP_MUTEX      1
@@ -52,7 +51,7 @@ static sys_mutex_t sys_arch_mutex;
 err_t sys_mbox_new(sys_mbox_t *mbox, int size)
 {
 	bk_err_t ret;
-	
+
 	if (size > 0)
 		ret = rtos_init_queue(mbox, NULL, sizeof( void * ), size);
 	else
@@ -111,15 +110,15 @@ err_t sys_mbox_trypost(sys_mbox_t *mbox, void *msg)
    {
       result = ERR_OK;
    }
-   else 
+   else
    	{
       // could not post, queue must be full
       result = ERR_MEM;
-			
+
 #if SYS_STATS
       lwip_stats.sys.mbox.err++;
 #endif /* SYS_STATS */
-			
+
    }
 
    return result;
@@ -159,13 +158,13 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout)
 		{
 			beken_time_get_time(&EndTime);
 			Elapsed = (EndTime - StartTime) * 1;
-			
+
 			return ( Elapsed );
 		}
 		else // timed out blocking for message
 		{
 			*msg = NULL;
-			
+
 			return SYS_ARCH_TIMEOUT;
 		}
 	}
@@ -174,8 +173,8 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout)
 		rtos_pop_from_queue(mbox, &(*msg), BEKEN_WAIT_FOREVER);
 		beken_time_get_time(&EndTime);
 		Elapsed = (EndTime - StartTime) * 1;
-		
-		return ( Elapsed ); // return time blocked TODO test	
+
+		return ( Elapsed ); // return time blocked TODO test
 	}
 }
 
@@ -203,18 +202,18 @@ void *dummyptr;
    }
 }
 /*----------------------------------------------------------------------------------*/
-int sys_mbox_valid(sys_mbox_t *mbox)          
-{      
-  if (*mbox == SYS_MBOX_NULL) 
+int sys_mbox_valid(sys_mbox_t *mbox)
+{
+  if (*mbox == SYS_MBOX_NULL)
     return 0;
   else
     return 1;
-}                                             
-/*-----------------------------------------------------------------------------------*/                                              
-void sys_mbox_set_invalid(sys_mbox_t *mbox)   
-{                                             
-  *mbox = SYS_MBOX_NULL;                      
-}                                             
+}
+/*-----------------------------------------------------------------------------------*/
+void sys_mbox_set_invalid(sys_mbox_t *mbox)
+{
+  *mbox = SYS_MBOX_NULL;
+}
 
 /*-----------------------------------------------------------------------------------*/
 //  Creates a new semaphore. The "count" argument specifies
@@ -222,7 +221,7 @@ void sys_mbox_set_invalid(sys_mbox_t *mbox)
 err_t sys_sem_new(sys_sem_t *sem, u8_t count)
 {
 	bk_err_t ret;
-	
+
 	ret = rtos_init_semaphore_adv(sem, 0xff, count);
 	if(kNoErr != ret)
 		return ERR_ARG;
@@ -233,7 +232,7 @@ err_t sys_sem_new(sys_sem_t *sem, u8_t count)
 		lwip_stats.sys.sem.max = lwip_stats.sys.sem.used;
 	}
 #endif /* SYS_STATS */
-		
+
 	return ERR_OK;
 }
 
@@ -267,8 +266,8 @@ u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
 		{
 			beken_time_get_time(&EndTime);
 			Elapsed = (EndTime - StartTime) * 1;
-			
-			return (Elapsed); // return time blocked TODO test	
+
+			return (Elapsed); // return time blocked TODO test
 		}
 		else
 		{
@@ -280,11 +279,11 @@ u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
 		ret = rtos_get_semaphore(sem, BEKEN_WAIT_FOREVER);
 		if( kNoErr != ret )
 			return SYS_ARCH_TIMEOUT;
-			
+
 		beken_time_get_time(&EndTime);
 		Elapsed = (EndTime - StartTime) * 1;
 
-		return ( Elapsed ); // return time blocked	
+		return ( Elapsed ); // return time blocked
 	}
 }
 
@@ -302,33 +301,33 @@ void sys_sem_free(sys_sem_t *sem)
 #if SYS_STATS
       --lwip_stats.sys.sem.used;
 #endif /* SYS_STATS */
-			
+
 	rtos_deinit_semaphore(sem);
 }
 /*-----------------------------------------------------------------------------------*/
-int sys_sem_valid(sys_sem_t *sem)                                               
+int sys_sem_valid(sys_sem_t *sem)
 {
   if (*sem == SYS_SEM_NULL)
     return 0;
   else
-    return 1;                                       
+    return 1;
 }
 
-/*-----------------------------------------------------------------------------------*/                                                                                                                                                                
-void sys_sem_set_invalid(sys_sem_t *sem)                                        
-{                                                                               
-  *sem = SYS_SEM_NULL;                                                          
-} 
+/*-----------------------------------------------------------------------------------*/
+void sys_sem_set_invalid(sys_sem_t *sem)
+{
+  *sem = SYS_SEM_NULL;
+}
 
-/*-----------------------------------------------------------------------------------*/        
+/*-----------------------------------------------------------------------------------*/
 err_t sys_mutex_trylock(sys_mutex_t *pxMutex)
 {
 	bk_err_t ret;
 
 	ret = rtos_trylock_mutex(pxMutex);
-	if (kNoErr == ret) 
+	if (kNoErr == ret)
 		return 0;
-	else 
+	else
 		return -1;
 }
 
@@ -344,14 +343,14 @@ void sys_init(void)
 /*-----------------------------------------------------------------------------------*/
                                       /* Mutexes*/
 /*-----------------------------------------------------------------------------------*/
-err_t sys_mutex_new(sys_mutex_t *mutex) 
+err_t sys_mutex_new(sys_mutex_t *mutex)
 {
 	bk_err_t ret;
 
 	ret = rtos_init_mutex(mutex);
 	if(kNoErr != ret)
 		return ERR_VAL;
-	
+
 #if SYS_STATS
 	++lwip_stats.sys.mutex.used;
  	if (lwip_stats.sys.mutex.max < lwip_stats.sys.mutex.used) {
@@ -368,7 +367,7 @@ void sys_mutex_free(sys_mutex_t *mutex)
 #if SYS_STATS
       --lwip_stats.sys.mutex.used;
 #endif /* SYS_STATS */
-			
+
 	rtos_deinit_mutex(mutex);
 }
 
@@ -395,7 +394,7 @@ sys_thread_t sys_thread_new(const char *name, lwip_thread_fn thread , void *arg,
 {
 	sys_thread_t CreatedTask;
 	bk_err_t result;
-   
+
 	result = rtos_create_thread(&CreatedTask, prio, name, thread, stacksize * sizeof(uint32_t), arg);
 	if(result == kNoErr)
 	{
@@ -436,14 +435,14 @@ int sys_thread_delete(sys_thread_t pid)
   system.
 */
 sys_prot_t sys_arch_protect(void)
-{	
+{
 #if CFG_ENABLE_LWIP_MUTEX
 	sys_mutex_lock(&sys_arch_mutex);
 
 	return 0;
 #else
 	return port_disable_interrupts_flag();
-#endif	
+#endif
 }
 
 /*
@@ -466,21 +465,17 @@ void sys_arch_unprotect(sys_prot_t pval)
  * Prints an assertion messages and aborts execution.
  */
 void sys_assert( const char *msg )
-{	
+{
 	(void) msg;
-	
+
 	/*FSL:only needed for debugging*/
 	os_printf(msg);
-	os_printf("\n\r");		
+	os_printf("\n\r");
 
-#if (CONFIG_SOC_BK7256XX)
-	portENTER_CRITICAL();
-#else
-    vPortEnterCritical();
-#endif
-	
-    for(;;)
-    ;
+	rtos_enter_critical();
+
+	for(;;)
+	;
 }
 
 u32_t sys_now(void)

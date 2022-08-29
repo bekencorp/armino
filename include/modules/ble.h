@@ -925,6 +925,27 @@ ble_err_t bk_ble_read_response_value(uint32_t len, uint8_t *buf, uint16_t prf_id
  */
 ble_err_t bk_ble_sec_send_auth_mode(uint8_t con_idx, uint8_t mode, uint8_t iocap, uint8_t sec_req, uint8_t oob);
 
+/**
+ * @brief ble init function
+ *
+ * @param
+ *
+ * @return
+ * - BK_ERR_BLE_SUCCESS: succeed
+ * - others: fail
+ */
+ble_err_t bk_ble_init(void);
+
+/**
+ * @brief ble deinit function
+ *
+ * @param
+ *
+ * @return
+ * - BK_ERR_BLE_SUCCESS: succeed
+ * - others: fail
+ */
+ble_err_t bk_ble_deinit(void);
 
 /*
  * @}

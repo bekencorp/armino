@@ -278,6 +278,15 @@ void sys_drv_qspi_clk_sel(uint32_t param)
 	rtos_enable_int(int_level);
 }
 
+void sys_drv_qspi_set_src_clk_div(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_qspi_set_src_clk_div(value);
+
+	rtos_enable_int(int_level);
+}
+
 uint32_t sys_drv_psram_clk_sel(uint32_t value)
 {
 	uint32_t int_level = rtos_disable_int();

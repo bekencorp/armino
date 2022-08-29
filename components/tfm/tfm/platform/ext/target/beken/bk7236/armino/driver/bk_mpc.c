@@ -39,7 +39,6 @@ int bk_mpc_cfg(void)
         uint32_t s_block_num;
         uint32_t ns_block_num;
         uint32_t ns_addr_offset;
-        uint32_t ns_addr_num;
         uint32_t block_sz;
         uint32_t max_block_num;
         int scheme;

@@ -49,6 +49,7 @@ bool mailbox_busy = false;
 
 extern uint32_t  platform_is_in_interrupt_context(void);
 
+
 #ifdef CONFIG_DUAL_CORE
 bk_err_t media_mailbox_send_msg(uint32_t cmd, uint32_t param1, uint32_t param2)
 {
@@ -157,12 +158,12 @@ static void media_major_message_handle(void)
 
 	frame_buffer_init();
 
-#ifdef CONFIG_CAMERA
-	dvp_camera_init();
+#if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
+	camera_init();
 #endif
 
 #ifdef CONFIG_WIFI_TRANSFER
-	trs_video_transfer_init();
+	transfer_init();
 #endif
 
 #ifdef CONFIG_LCD
@@ -171,10 +172,6 @@ static void media_major_message_handle(void)
 
 #ifdef CONFIG_CAMERA
 	storage_init();
-#endif
-
-#ifdef CONFIG_USB_UVC
-	uvc_camera_init();
 #endif
 
 	while (1)
@@ -190,9 +187,9 @@ static void media_major_message_handle(void)
 					comm_event_handle(msg.event, msg.param);
 					break;
 
-#ifdef CONFIG_CAMERA
-				case DVP_EVENT:
-					dvp_camera_event_handle(msg.event, msg.param);
+#if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
+				case CAM_EVENT:
+					camera_event_handle(msg.event, msg.param);
 					break;
 #endif
 
@@ -210,19 +207,13 @@ static void media_major_message_handle(void)
 
 #ifdef CONFIG_WIFI_TRANSFER
 				case TRS_EVENT:
-					wifi_transfer_event_handle(msg.event, msg.param);
+					transfer_event_handle(msg.event, msg.param);
 					break;
 #endif
 
 #ifdef CONFIG_CAMERA
 				case STORAGE_EVENT:
 					storage_event_handle(msg.event, msg.param);
-					break;
-#endif
-
-#if CONFIG_USB_UVC
-				case UVC_EVENT:
-					uvc_camera_event_handle(msg.event, msg.param);
 					break;
 #endif
 

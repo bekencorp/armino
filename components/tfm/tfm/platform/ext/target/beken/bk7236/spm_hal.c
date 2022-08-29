@@ -20,32 +20,14 @@ extern const struct memory_region_limits memory_regions;
 
 void MPC_Handler(void)
 {
-    /* Clear MPC interrupt flag and pending MPC IRQ */
-    Driver_SRAM1_MPC.ClearInterrupt();
-    NVIC_ClearPendingIRQ(MPC_IRQn);
-
-    /* Print fault message and block execution */
-    ERROR_MSG("Oops... MPC fault!!!");
-
+    //TODO
     /* Inform TF-M core that isolation boundary has been violated */
     tfm_access_violation_handler();
 }
 
 void PPC_Handler(void)
 {
-    /*
-     * Due to an issue on the FVP, the PPC fault doesn't trigger a
-     * PPC IRQ which is handled by the PPC_handler.
-     * In the FVP execution, this code is not execute.
-     */
-
-    /* Clear PPC interrupt flag and pending PPC IRQ */
-    ppc_clear_irq();
-    NVIC_ClearPendingIRQ(PPC_IRQn);
-
-    /* Print fault message*/
-    ERROR_MSG("Oops... PPC fault!!!");
-
+    //TODO
     /* Inform TF-M core that isolation boundary has been violated */
     tfm_access_violation_handler();
 }

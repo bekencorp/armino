@@ -1401,7 +1401,11 @@ lwip_netconn_do_connect(void *m)
 #if LWIP_TCPIP_CORE_LOCKING
               LWIP_ASSERT("state!", msg->conn->state == NETCONN_CONNECT);
               UNLOCK_TCPIP_CORE();
+#if LWIP_SO_CONTIMEO
+              sys_arch_sem_wait(LWIP_API_MSG_SEM(msg), msg->conn->conn_timeout);
+#else
               sys_arch_sem_wait(LWIP_API_MSG_SEM(msg), 0);
+#endif
               LOCK_TCPIP_CORE();
               LWIP_ASSERT("state!", msg->conn->state != NETCONN_CONNECT);
 #endif /* LWIP_TCPIP_CORE_LOCKING */

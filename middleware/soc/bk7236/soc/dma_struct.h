@@ -19,118 +19,148 @@ extern "C" {
 #endif
 
 typedef volatile struct {
-    //REG_0x00~REG_0x2F
-    struct {
-        union {
-            struct {
-                uint32_t enable:             1; /**< bit[0] DMA enable */
-                uint32_t finish_int_en:      1; /**< bit[1] transfer finish interrupt enable */
-                uint32_t half_finish_int_en: 1; /**< bit[2] half transfer finish interrupt enable */
-                uint32_t mode:               1; /**< bit[3] DMA work mode */
-                uint32_t src_data_width:     2; /**< bit[4:5] source data width */
-                uint32_t dest_data_width:    2; /**< bit[6:7] destination data width */
-                uint32_t src_addr_inc_en:    1; /**< bit[8] source address increment enable */
-                uint32_t dest_addr_inc_en:   1; /**< bit[9] dest address increment enable */
-                uint32_t src_addr_loop_en:   1; /**< bit[10] source address loop enable */
-                uint32_t dest_addr_loop_en:  1; /**< bit[11] dest address loop enable */
-                uint32_t chan_prio:          3; /**< bit[12:14] channel prioprity */
-                uint32_t reserved:           1; /**< bit[15] */
-                uint32_t transfer_len:       16; /**< bit[16:31] DMA transfer length,unit is byte */
-            };
-            uint32_t v;
-        } ctrl;
+	/* REG_0x0 */
+	uint32_t device_id;
 
-        uint32_t dest_start_addr;
-        uint32_t src_start_addr;
-        uint32_t dest_loop_end_addr;
-        uint32_t dest_loop_start_addr;
-        uint32_t src_loop_end_addr;
-        uint32_t src_loop_start_addr;
+	/* REG_0x1 */
+	uint32_t version_id;
 
-        union {
-            struct {
-                /* Source Request Mux
-                 * 0x0: DTCM Read Req
-                 * 0x1: LA Read Req
-                 * 0x2: reserved
-                 * 0x3: SDIO Host Rx Req
-                 * 0x4: Uart1 Rx Req
-                 * 0x5: Uart2 Rx Req
-                 * 0x6: reserved
-                 * 0x7: GSPI Rx Req
-                 * 0x8~0xf: reserved
-                 */
-                uint32_t src_req_mux:         4; /**< bit[0:3] source request mux */
+	/* REG_0x2 */
+	union {
+		struct {
+			uint32_t soft_reset: 1;
+			uint32_t bps_clk_gate: 1;
+			uint32_t prio_mode: 1;
+			uint32_t reserved: 29;
+		};
+		uint32_t v;
+	} prio_mode;
 
-                /* Destination Request Mux:
-                 * 0x0: DTCM Write Req
-                 * 0x1: reserved
-                 * 0x2: reserved
-                 * 0x3: SDIO Host Tx Req
-                 * 0x4: Uart1 Tx Req
-                 * 0x5: Uart2 Tx Req
-                 * 0x6: reserved
-                 * 0x7: GSPI Tx Req
-                 * 0x8~0xf: reserved
-                 */
-                uint32_t dest_req_mux:        4; /**< bit[4:7] dest request mux */
-                uint32_t reserved0:           4; /**< bit[8:11] */
-                uint32_t src_read_interval:   4; /**< bit[12:15] source read operate interval,unit is cycle */
-                uint32_t dest_write_interval: 4; /**< bit[16:19] destination write operate interval,unit is cycle */
-                uint32_t reserved1:           12; /**< bit[20:31] */
-            };
-            uint32_t v;
-        } req_mux;
-    } config_group[SOC_DMA_CHAN_NUM_PER_UNIT];
+	uint32_t reg_gap_0;
 
-    //REG_0x30~REG_0x35
-    struct {
-        union {
-            struct {
-                uint32_t remain_len:              17; /**< bit[0:16] remain length indication */
-                uint32_t flush_src_buff:          1; /**< bit[17] flush source buffer */
-                uint32_t reserved:                6; /**< bit[18:23] */
-                uint32_t finish_int_counter:      4; /**< bit[24:27] finish interrupt counter */
-                uint32_t half_finish_int_counter: 4; /**< bit[28:31] half finish interrupt counter*/
-            };
-            uint32_t v;
-        } status;
-    } status_group[SOC_DMA_CHAN_NUM_PER_UNIT];
+	/* REG_0x4 */
+	union {
+		struct {
+			uint32_t attr: 12;
+			uint32_t reserved: 20;
+		};
+		uint32_t v;
+	} secure_attr;
 
-    uint32_t reserved0;
+	/* REG_0x5 */
+	union {
+		struct {
+			uint32_t attr: 12;
+			uint32_t reserved: 20;
+		};
+		uint32_t v;
+	} privileged_attr;
 
-    //REG_0x37
-    union {
-        struct {
-            uint32_t prio_mode: 1; /**< bit[0] prioprity mode */
-            uint32_t reserved:  30; /**< bit[1:31] reserved */
-        };
-        uint32_t v;
-    } prio_mode;
+	/* REG_0x6 */
+	union {
+		struct {
+			uint32_t status: 12;
+			uint32_t reserved: 20;
+		};
+		uint32_t v;
+	} int_status_sec;
 
-    //REG_0x38
-    union {
-        struct {
-            uint32_t finish_int_status:      6; /**< bit[0:5] finish interrupt status */
-            uint32_t reserved0:              2; /**< bit[6:7] */
-            uint32_t half_finish_int_status: 6; /**< bit[8:13] half finish interrupt status */
-            uint32_t reserved1:              18; /**< bit[14:31] */
-        };
-        uint32_t v;
-    } int_status;
+	/* REG_0x7 */
+	union {
+		struct {
+			uint32_t status: 12;
+			uint32_t reserved: 20;
+		};
+		uint32_t v;
+	} int_status_nonsec;
 
-    uint32_t reserved1[0x40 - 0x38 - 1];
-    //REG_0x40~REG_0x45
-    uint32_t src_pause_addr[SOC_DMA_CHAN_NUM_PER_UNIT];
-    uint32_t reserved2[2];
-    //REG_0x48~REG_0x4D
-    uint32_t dest_pause_addr[SOC_DMA_CHAN_NUM_PER_UNIT];
-    uint32_t reserved3[2];
-    //REG_0x50~REG_0x55
-    uint32_t src_rd_addr[SOC_DMA_CHAN_NUM_PER_UNIT];
-    uint32_t reserved4[2];
-    //REG_0x58~REG_0x5D
-    uint32_t dest_wr_addr[SOC_DMA_CHAN_NUM_PER_UNIT];
+	uint32_t reg_gap_1[8];
+
+	/* REG_CHANN(x) */
+	struct {
+		/* REG_0x10 */
+		union {
+			struct {
+				uint32_t enable: 1;
+				uint32_t finish_int_en: 1;
+				uint32_t half_finish_int_en: 1;
+				uint32_t mode: 1;
+				uint32_t src_data_width: 2;
+				uint32_t dest_data_width: 2;
+				uint32_t src_addr_inc_en: 1;
+				uint32_t dest_addr_inc_en: 1;
+				uint32_t src_addr_loop_en: 1;
+				uint32_t dest_addr_loop_en: 1;
+				uint32_t chan_prio: 3;
+				uint32_t reserved: 1;
+				uint32_t transfer_len: 16;
+			};
+			uint32_t v;
+		} ctrl;
+
+		/* REG_0x11 */
+		uint32_t dest_start_addr;
+
+		/* REG_0x12 */
+		uint32_t src_start_addr;
+
+		/* REG_0x13 */
+		uint32_t dest_loop_end_addr;
+
+		/* REG_0x14 */
+		uint32_t dest_loop_start_addr;
+
+		/* REG_0x15 */
+		uint32_t src_loop_end_addr;
+
+		/* REG_0x16 */
+		uint32_t src_loop_start_addr;
+
+		/* REG_0x17 */
+		union {
+			struct {
+				uint32_t src_req_mux: 5;
+				uint32_t dest_req_mux: 5;
+				uint32_t reserved0: 2;
+				uint32_t src_read_interval: 4;
+				uint32_t dest_write_interval: 4;
+				uint32_t src_sec_attr: 1;
+				uint32_t dest_sec_attr: 1;
+				uint32_t bus_err_int_en: 1;
+				uint32_t reserved1: 9;
+			};
+			uint32_t v;
+		} req_mux;
+
+		/* REG_0x18 */
+		uint32_t src_pause_addr;
+
+		/* REG_0x19 */
+		uint32_t dest_pause_addr;
+
+		/* REG_0x1A */
+		uint32_t src_rd_addr;
+
+		/* REG_0x1B */
+		uint32_t dest_wr_addr;
+
+		/* REG_0x1C */
+		union {
+			struct {
+				uint32_t remain_len: 17;
+				uint32_t flush_src_buff: 1;
+				uint32_t finish_int: 1;
+				uint32_t half_finish_int: 1;
+				uint32_t bus_err_int: 1;
+				uint32_t reserved: 3;
+				uint32_t finish_int_counter: 4;
+				uint32_t half_finish_int_counter: 4;
+			};
+			uint32_t v;
+		} status;
+
+		uint32_t reg_gap_0[3];
+	} config_group[SOC_DMA_CHAN_NUM_PER_UNIT];
 } dma_hw_t;
 
 #ifdef __cplusplus

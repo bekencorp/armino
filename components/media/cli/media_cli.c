@@ -22,6 +22,7 @@
 #include "media_app.h"
 
 #include <driver/dvp_camera.h>
+#include "lcd_act.h"
 
 #define TAG "mcli"
 
@@ -30,7 +31,9 @@
 
 #define UNKNOW_ERROR (-686)
 #define CMD_CONTAIN(value) cmd_contain(argc, argv, value)
-#define GET_PPI(value) get_ppi_from_cmd(argc, argv, value)
+#define GET_PPI(value)     get_ppi_from_cmd(argc, argv, value)
+#define GET_NAME(value)    get_name_from_cmd(argc, argv, value)
+
 
 
 uint32_t get_string_to_ppi(char *string, uint32_t pre)
@@ -80,6 +83,33 @@ uint32_t get_string_to_ppi(char *string, uint32_t pre)
 	return value;
 }
 
+char * get_string_to_name(char *string, char * pre)
+{
+	char* value = pre;
+	if (os_strcmp(string, "nt35512") == 0)
+	{
+		value = "nt35512";
+	}
+	if (os_strcmp(string, "gc9503v") == 0)
+	{
+		value = "gc9503v";
+	}
+	if (os_strcmp(string, "st7282") == 0)
+	{
+		value = "st7282";
+	}
+	if (os_strcmp(string, "st7796s") == 0)
+	{
+		value = "st7796s";
+	}
+	if (os_strcmp(string, "hx8282") == 0)
+	{
+		value = "hx8282";
+	}
+
+	return value;
+}
+
 uint32_t get_ppi_from_cmd(int argc, char **argv, uint32_t pre)
 {
 	int i;
@@ -98,6 +128,22 @@ uint32_t get_ppi_from_cmd(int argc, char **argv, uint32_t pre)
 	return value;
 }
 
+char * get_name_from_cmd(int argc, char **argv, char * pre)
+{
+	int i;
+	char* value = pre;
+
+	for (i = 3; i < argc; i++)
+	{
+		value = get_string_to_name(argv[i], pre);
+		if (value != pre)
+		{
+			break;
+		}
+	}
+
+	return value;
+}
 
 bool cmd_contain(int argc, char **argv, char *string)
 {
@@ -121,7 +167,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 {
 	int ret = UNKNOW_ERROR;
 
-	LOGI("%s\n", __func__);
+	LOGI("%s +++\n", __func__);
 
 	if (argc > 0)
 	{
@@ -129,31 +175,26 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		{
 #if (defined(CONFIG_CAMERA) && !defined(CONFIG_SLAVE_CORE))
 			media_ppi_t ppi = GET_PPI(PPI_DEFAULT);
+			app_camera_type_t camera_type = APP_CAMERA_DVP;
+
+			if (CMD_CONTAIN("yuv"))
+			{
+				camera_type = APP_CAMERA_YUV;
+			}
+
+			if (CMD_CONTAIN("mix"))
+			{
+				camera_type = APP_CAMERA_MIX;
+			}
 
 			if (os_strcmp(argv[2], "open") == 0)
 			{
-				if (CMD_CONTAIN("yuv"))
-				{
-					LOGI("YUV open\n");
-					ret = media_app_camera_open(APP_CAMERA_YUV, ppi);
-				}
-				else
-				{
-					LOGI("DVP open\n");
-					ret = media_app_camera_open(APP_CAMERA_DVP, ppi);
-				}
+				ret = media_app_camera_open(camera_type, ppi);
 			}
 
 			if (os_strcmp(argv[2], "close") == 0)
 			{
-				if (CMD_CONTAIN("yuv"))
-				{
-					ret = media_app_camera_close(APP_CAMERA_YUV);
-				}
-				else
-				{
-					ret = media_app_camera_close(APP_CAMERA_DVP);
-				}
+				ret = media_app_camera_close(camera_type);
 			}
 
 			if (os_strcmp(argv[2], "auto_encode") == 0)
@@ -169,6 +210,26 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				}
 
 				ret = bk_dvp_camera_encode_config(auto_enable, up_size, low_size);
+			}
+
+			if (os_strcmp(argv[2], "register_dump") == 0)
+			{
+				extern bk_err_t bk_dvp_camera_dump_register(void);
+				ret = bk_dvp_camera_dump_register();
+			}
+
+			if (os_strcmp(argv[2], "register_read") == 0)
+			{
+				extern bk_err_t bk_dvp_camera_read_register_enable(bool enable);
+
+				if (os_strcmp(argv[3], "1") == 0)
+				{
+					ret = bk_dvp_camera_read_register_enable(true);
+				}
+				else
+				{
+					ret = bk_dvp_camera_read_register_enable(false);
+				}
 			}
 #endif
 		}
@@ -205,18 +266,37 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		{
 #if defined(CONFIG_LCD) && !defined(CONFIG_SLAVE_CORE)
 			media_ppi_t ppi = PPI_480X272;
+			char *name = "NULL";
 
 			ppi = GET_PPI(PPI_480X272);
+			name = GET_NAME(name);
 
 			if (CMD_CONTAIN("rotate"))
 			{
 				media_app_lcd_rotate(true);
 			}
-
 			if (os_strcmp(argv[2], "open") == 0)
 			{
-				ret = media_app_lcd_open(ppi);
+				lcd_open_t lcd_open;
+				lcd_open.device_ppi = ppi;
+				lcd_open.device_name = name;
+				ret = media_app_lcd_open(&lcd_open);
 			}
+#if (CONFIG_LVGL)
+			else if (os_strcmp(argv[2], "opengui") == 0)
+			{
+				lcd_open_t lcd_open;
+				lcd_open.device_ppi = ppi;
+				lcd_open.device_name = name;
+				ret = media_app_lcd_open_withgui(&lcd_open);
+			}
+			else if(os_strcmp(argv[2], "demoui") == 0)
+			{
+				void lv_example_meter(void);
+				lv_example_meter();
+				ret = kNoErr;
+			}
+#endif
 
 			if (os_strcmp(argv[2], "close") == 0)
 			{
@@ -245,6 +325,18 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				{
 					ret = media_app_lcd_step_trigger();
 				}
+			}
+			
+			if (os_strcmp(argv[2], "display") == 0)
+			{
+				if (argc >= 4)
+				{
+					ret = media_app_lcd_display(argv[3], ppi); //argv[3] sd card jpeg file name
+				}
+			}
+			if (os_strcmp(argv[2], "beken_logo") == 0)
+			{
+				ret = media_app_lcd_display_beken();  
 			}
 #endif
 		}
@@ -317,6 +409,8 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 	{
 		LOGE("%s unknow cmd\n", __func__);
 	}
+
+	LOGI("%s ---\n", __func__);
 }
 
 

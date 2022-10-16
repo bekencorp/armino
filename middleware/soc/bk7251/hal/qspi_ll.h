@@ -777,6 +777,81 @@ static inline void qspi_ll_deinit_common(qspi_hw_t *hw)
 	sddev_control(DD_DEV_TYPE_SCTRL, CMD_SCTRL_BLK_ENABLE, &param);
 }
 
+static inline void qspi_ll_set_cmd_a_l(qspi_hw_t *hw, uint32_t cmd_value)
+{
+
+}
+
+static inline void qspi_ll_set_cmd_a_h(qspi_hw_t *hw, uint32_t cmd_value)
+{
+
+}
+
+static inline void qspi_ll_set_cmd_a_cfg1(qspi_hw_t *hw, uint32_t cmd_line)
+{
+
+}
+
+static inline void qspi_ll_set_cmd_a_cfg2(qspi_hw_t *hw, uint32_t cmd_config)
+{
+
+}
+
+static inline void qspi_ll_set_cmd_c_l(qspi_hw_t *hw, uint32_t cmd_value)
+{
+
+}
+
+static inline uint32_t qspi_ll_get_cmd_c_l(qspi_hw_t *hw)
+{
+	return 0;
+}
+
+static inline void qspi_ll_set_cmd_c_h(qspi_hw_t *hw, uint32_t cmd_value)
+{
+
+}
+
+static inline uint32_t qspi_ll_get_cmd_c_h(qspi_hw_t *hw)
+{
+	return 0;
+}
+
+static inline void qspi_ll_set_cmd_c_cfg1(qspi_hw_t *hw, uint32_t cmd_line)
+{
+
+}
+
+static inline void qspi_ll_cmd_c_start(qspi_hw_t *hw)
+{
+
+}
+
+static inline void qspi_ll_force_spi_cs_low_enable(qspi_hw_t *hw)
+{
+
+}
+
+static inline void qspi_ll_force_spi_cs_low_disable(qspi_hw_t *hw)
+{
+
+}
+
+static inline void qspi_ll_disable_cmd_sck_enable(qspi_hw_t *hw)
+{
+
+}
+
+static inline void qspi_ll_disable_cmd_sck_disable(qspi_hw_t *hw)
+{
+
+}
+
+static inline void qspi_ll_wait_cmd_done(qspi_hw_t *hw)
+{
+
+}
+
 #ifdef __cplusplus
 }
 #endif

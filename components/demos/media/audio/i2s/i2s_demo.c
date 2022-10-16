@@ -584,9 +584,6 @@ void cli_i2s_master_mic_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int a
 		adc_config.agc_enable = AUD_AGC_DISABLE;
 		adc_config.manual_pga_value = 0;
 		adc_config.manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
-		adc_config.adc_fracmod_manual = AUD_ADC_TRACMOD_MANUAL_DISABLE;
-		adc_config.adc_fracmod = 0;
-
 
 		//init i2s driver
 		bk_i2s_driver_init();
@@ -890,8 +887,6 @@ void cli_i2s_slave_mic_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 		dac_config.dacl_int_enable = 0x0;
 
 		dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		dac_config.dac_fracmode_value = 0x0;
 
 		//init i2s driver
 		bk_i2s_driver_init();

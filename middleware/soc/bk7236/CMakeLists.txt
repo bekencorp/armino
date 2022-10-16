@@ -12,6 +12,7 @@ set(srcs "stub.c")
 list(APPEND srcs
 	"hal/mpc_hal_debug.c"
 	"hal/prro_hal_debug.c"
+	"hal/psram_ll.c"
 	"hal/pwm_hal_debug.c"
 	"hal/pwm_ll.c"
 	"hal/timer_hal_debug.c"
@@ -46,7 +47,14 @@ list(APPEND srcs
 	"hal/aon_rtc_hal_debug.c"
 	"hal/aon_pmu_hal.c"
 	"hal/sdio_hal_debug.c"
+	"hal/dma2d_hal.c"
+	"hal/dma2d_hal_debug.c"
+	"hal/jpeg_dec_hal.c"
+	"hal/jpeg_dec_hal_debug.c"
+	"hal/lcd_disp_hal.c"
+	"hal/lcd_disp_hal_debug.c"
 )
+
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}")
 
 armino_build_get_property(sdkconfig_header SDKCONFIG_HEADER)

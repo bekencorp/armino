@@ -361,7 +361,7 @@ void *pvReturn = NULL;
 				{
 					/* Byte alignment required. */
 					xWantedSize += ( portBYTE_ALIGNMENT - ( xWantedSize & portBYTE_ALIGNMENT_MASK ) );
-					BK_ASSERT( ( xWantedSize & portBYTE_ALIGNMENT_MASK ) == 0 );
+					BK_ASSERT( ( xWantedSize & portBYTE_ALIGNMENT_MASK ) == 0 ); /* ASSERT VERIFIED */
 				}
 				else
 				{
@@ -406,7 +406,7 @@ void *pvReturn = NULL;
 						cast is used to prevent byte alignment warnings from the
 						compiler. */
 						pxNewBlockLink = ( void * ) ( ( ( uint8_t * ) pxBlock ) + xWantedSize );
-						BK_ASSERT( ( ( ( size_t ) pxNewBlockLink ) & portBYTE_ALIGNMENT_MASK ) == 0 );
+						BK_ASSERT( ( ( ( size_t ) pxNewBlockLink ) & portBYTE_ALIGNMENT_MASK ) == 0 ); /* ASSERT VERIFIED */
 
 						/* Calculate the sizes of two blocks split from the
 						single block. */
@@ -469,7 +469,7 @@ void *pvReturn = NULL;
 	}
 	#endif
 
-	BK_ASSERT( ( ( ( size_t ) pvReturn ) & ( size_t ) portBYTE_ALIGNMENT_MASK ) == 0 );
+	BK_ASSERT( ( ( ( size_t ) pvReturn ) & ( size_t ) portBYTE_ALIGNMENT_MASK ) == 0 ); /* ASSERT VERIFIED */
 	return pvReturn;
 }
 
@@ -619,7 +619,7 @@ static inline void mem_overflow_check(BlockLink_t *pxLink)
 	{
 		BK_LOG_RAW("Mem Overflow ............\r\n");
 		show_mem_info(pxLink);
-		BK_ASSERT( false );
+		BK_ASSERT( false ); /* ASSERT VERIFIED */
 	}
 }
 #endif
@@ -661,7 +661,7 @@ static void *malloc_without_lock( size_t xWantedSize )
 				{
 					/* Byte alignment required. */
 					xWantedSize += ( portBYTE_ALIGNMENT - ( xWantedSize & portBYTE_ALIGNMENT_MASK ) );
-					BK_ASSERT( ( xWantedSize & portBYTE_ALIGNMENT_MASK ) == 0 );
+					BK_ASSERT( ( xWantedSize & portBYTE_ALIGNMENT_MASK ) == 0 ); /* ASSERT VERIFIED */
 				}
 				else
 				{
@@ -706,7 +706,7 @@ static void *malloc_without_lock( size_t xWantedSize )
 						cast is used to prevent byte alignment warnings from the
 						compiler. */
 						pxNewBlockLink = ( void * ) ( ( ( uint8_t * ) pxBlock ) + xWantedSize );
-						BK_ASSERT( ( ( ( size_t ) pxNewBlockLink ) & portBYTE_ALIGNMENT_MASK ) == 0 );
+						BK_ASSERT( ( ( ( size_t ) pxNewBlockLink ) & portBYTE_ALIGNMENT_MASK ) == 0 ); /* ASSERT VERIFIED */
 
 						/* Calculate the sizes of two blocks split from the
 						single block. */
@@ -774,7 +774,7 @@ static void *malloc_without_lock( size_t xWantedSize )
 	}
 	#endif
 
-	BK_ASSERT( ( ( ( size_t ) pvReturn ) & ( size_t ) portBYTE_ALIGNMENT_MASK ) == 0 );
+	BK_ASSERT( ( ( ( size_t ) pvReturn ) & ( size_t ) portBYTE_ALIGNMENT_MASK ) == 0 ); /* ASSERT VERIFIED */
 	return pvReturn;
 }
 
@@ -852,8 +852,8 @@ void vPortFree( void *pv )
 		pxLink = ( void * ) puc;
 
 		/* Check the block is actually allocated. */
-		BK_ASSERT( ( pxLink->xBlockSize & xBlockAllocatedBit ) != 0 );
-		BK_ASSERT( pxLink->pxNextFreeBlock == NULL );
+		BK_ASSERT( ( pxLink->xBlockSize & xBlockAllocatedBit ) != 0 ); /* ASSERT VERIFIED */
+		BK_ASSERT( pxLink->pxNextFreeBlock == NULL ); /* ASSERT VERIFIED */
 #if CONFIG_MEM_DEBUG
 		mem_overflow_check(pxLink);
 #endif
@@ -1027,7 +1027,7 @@ static void *prvHeapGetHeaderPointer(void)
 
 uint32_t prvHeapGetTotalSize(void)
 {
-	BK_ASSERT(HEAP_END_ADDRESS > HEAP_START_ADDRESS);
+	BK_ASSERT(HEAP_END_ADDRESS > HEAP_START_ADDRESS); /* ASSERT VERIFIED */
 	return (HEAP_END_ADDRESS - HEAP_START_ADDRESS);
 }
 #else

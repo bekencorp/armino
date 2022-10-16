@@ -3,10 +3,10 @@
  ****************************************************************************************
  */
 #include <common/bk_include.h>
-#include "arm_arch.h"
 #include <os/mem.h>
+#include "FreeRTOS.h"
+#include "task.h"
 #include "mmgmt.h"
-//#include "ll.h"
 
 /*
  * GLOBAL VARIABLES
@@ -16,6 +16,8 @@ static uint8_t mmgmt_heap[KE_HEAP_SIZE];
 static struct mblock_free *mblock_first;
 
 #define MEM_FILL		0xCC
+
+#define CO_ALIGN4_HI(val) (((val)+3)&~3)
 
 /*
  * FUNCTION DEFINITIONS
@@ -33,13 +35,11 @@ struct mblock_free *mmgmt_init(void)
 {
 	struct mblock_free *first;
 
-	GLOBAL_INT_DECLARATION();
-
 	// align first free descriptor to word boundary
 	first = (struct mblock_free *)CO_ALIGN4_HI((uint32_t)mmgmt_heap);
 
 	// protect accesses to descriptors
-	GLOBAL_INT_DISABLE();
+	vTaskSuspendAll();
 
 	// initialize the first block
 	//  + compute the size from the last aligned word before heap_end
@@ -47,7 +47,7 @@ struct mblock_free *mmgmt_init(void)
 	first->next = NULL;
 
 	// end of protection
-	GLOBAL_INT_RESTORE();
+	( void ) xTaskResumeAll();
 
 	// save the pointer to the first free block
 	return first;
@@ -70,7 +70,7 @@ uint32_t mmgmt_alloc_space(void)
 	return valid_size;
 }
 
-#if CONFIG_MALLOC_STATIS
+#if CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG
 void *mmgmt_malloc(const char *call_func_name, int line, uint32_t size)
 #else
 void *mmgmt_malloc(uint32_t size)
@@ -79,8 +79,6 @@ void *mmgmt_malloc(uint32_t size)
 	struct mblock_free *node, *found;
 	struct mblock_used *alloc = 0;
 	uint32_t totalsize;
-
-	GLOBAL_INT_DECLARATION();
 
 	if (0 == size)
 		goto alloc_exit;
@@ -92,17 +90,17 @@ void *mmgmt_malloc(uint32_t size)
 	totalsize = CO_ALIGN4_HI(size) + sizeof(struct mblock_used);
 
 	// sanity check: the totalsize should be large enough to hold free block descriptor
-	BK_ASSERT(totalsize >= sizeof(struct mblock_free));
+	BK_ASSERT(totalsize >= sizeof(struct mblock_free)); /* ASSERT VERIFIED */
 
 	node = mblock_first;
 
 	// protect accesses to descriptors
-	GLOBAL_INT_DISABLE();
+	vTaskSuspendAll();
 
 	// go through free memory blocks list
 	while (node != NULL) {
 		// check if there is enough room in this free block
-		BK_ASSERT(node->size);
+		BK_ASSERT(node->size); /* ASSERT VERIFIED */
 		if (node->size >= (totalsize + sizeof(struct mblock_free))) {
 			// if a match was already found, check if this one is smaller
 			if ((found == NULL) || (found->size > node->size))
@@ -113,7 +111,7 @@ void *mmgmt_malloc(uint32_t size)
 	}
 
 	if (0 == found) {
-		GLOBAL_INT_RESTORE();
+		( void ) xTaskResumeAll();
 		goto alloc_exit;
 	}
 
@@ -126,7 +124,7 @@ void *mmgmt_malloc(uint32_t size)
 	alloc = (struct mblock_used *)((uint32_t)found + found->size);
 
 	// sanity check: allocation should always succeed
-	BK_ASSERT(found != NULL);
+	BK_ASSERT(found != NULL); /* ASSERT VERIFIED */
 
 	// save the size of the allocated block (use low bit to indicate mem type)
 	alloc->size = totalsize;
@@ -136,15 +134,15 @@ void *mmgmt_malloc(uint32_t size)
 	alloc++;
 
 	// end of protection (as early as possible)
-	GLOBAL_INT_RESTORE();
+	( void ) xTaskResumeAll();
 
-#if CONFIG_MALLOC_STATIS
+#if CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG
 	bk_printf("\r\nm:%p,%ld|%s,%d\r\n", alloc - 1, totalsize, call_func_name, line);
 #endif
 
 
 alloc_exit:
-	BK_ASSERT(0 == ((UINT32)alloc & 3));
+	BK_ASSERT(0 == ((UINT32)alloc & 3)); /* ASSERT VERIFIED */
 	//BK_ASSERT(alloc);
 	return (void *)alloc;
 }
@@ -158,7 +156,7 @@ void *mmgmt_realloc(void *ptr, size_t size)
 	if (ptr == NULL)
 		return mmgmt_malloc(size);
 
-#if CONFIG_MALLOC_STATIS
+#if CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG
 	n = mmgmt_malloc(size, __func__, __LINE__);
 #else
 	n = mmgmt_malloc(size);
@@ -173,7 +171,7 @@ void *mmgmt_realloc(void *ptr, size_t size)
 
 	os_memcpy(n, a + 1, copy_len);
 
-#if CONFIG_MALLOC_STATIS
+#if CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG
 	mmgmt_free(ptr, __func__, __LINE__);
 #else
 	mmgmt_free(ptr);
@@ -182,7 +180,7 @@ void *mmgmt_realloc(void *ptr, size_t size)
 	return n;
 }
 
-#if CONFIG_MALLOC_STATIS
+#if CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG
 void mmgmt_free(const char *call_func_name, int line, void *mem_ptr)
 #else
 void mmgmt_free(void *mem_ptr)
@@ -191,8 +189,6 @@ void mmgmt_free(void *mem_ptr)
 	struct mblock_used *freed;
 	struct mblock_free *node, *prev_node, *next_node;
 	uint32_t size;
-
-	GLOBAL_INT_DECLARATION();
 
 	// point to the block descriptor (before user memory so decrement)
 	freed = ((struct mblock_used *)mem_ptr) - 1;
@@ -203,17 +199,17 @@ void mmgmt_free(void *mem_ptr)
 	prev_node = NULL;
 
 	// sanity checks
-	BK_ASSERT(freed->magic == MM_MAGIC);
-	BK_ASSERT(size);
-	BK_ASSERT(mem_ptr != NULL);
-	BK_ASSERT((uint32_t)mem_ptr > (uint32_t)node);
+	BK_ASSERT(freed->magic == MM_MAGIC); /* ASSERT VERIFIED */
+	BK_ASSERT(size); /* ASSERT VERIFIED */
+	BK_ASSERT(mem_ptr != NULL); /* ASSERT VERIFIED */
+	BK_ASSERT((uint32_t)mem_ptr > (uint32_t)node); /* ASSERT VERIFIED */
 
-#if CONFIG_MALLOC_STATIS
+#if CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG
 	bk_printf("\r\nf:%p,%ld|%s,%d\r\n", freed, freed->size, call_func_name, line);
 #endif
 
 	// protect accesses to descriptors
-	GLOBAL_INT_DISABLE();
+	vTaskSuspendAll();
 
 	while (node != NULL) {
 		// check if the freed block is right after the current block
@@ -238,7 +234,7 @@ void mmgmt_free(void *mem_ptr)
 			goto free_end;
 		} else if ((uint32_t)freed < (uint32_t)node) {
 			// sanity check: can not happen before first node
-			BK_ASSERT(prev_node != NULL);
+			BK_ASSERT(prev_node != NULL); /* ASSERT VERIFIED */
 
 			// update the next pointer of the previous node
 			prev_node->next = (struct mblock_free *)freed;
@@ -275,7 +271,7 @@ free_end:
 #endif
 
 	// end of protection
-	GLOBAL_INT_RESTORE();
+	( void ) xTaskResumeAll();
 }
 
 int mm_magic_match(void *mem_ptr)
@@ -285,13 +281,13 @@ int mm_magic_match(void *mem_ptr)
 	// point to the block descriptor (before user memory so decrement)
 	freed = ((struct mblock_used *)mem_ptr) - 1;
 
-	BK_ASSERT(freed->magic == MM_MAGIC);
+	BK_ASSERT(freed->magic == MM_MAGIC); /* ASSERT VERIFIED */
 
 	// sanity checks
 	return freed->magic == MM_MAGIC;
 }
 
-#if CONFIG_MALLOC_STATIS
+#if CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG
 void *pvPortMalloc_cm(const char *call_func_name, int line, size_t xWantedSize, int need_zero)
 {
 	return mmgmt_malloc(call_func_name, line, xWantedSize);
@@ -320,13 +316,18 @@ void *pvPortRealloc(void *pv, size_t xWantedSize)
 	return mmgmt_realloc(pv, xWantedSize);
 }
 
-void* os_malloc_wifi_buffer(size_t size)
+size_t xPortGetFreeHeapSize( void )
 {
-#if (CONFIG_SOC_BK7251)
-        return (void*)pvPortMalloc(size);
-#else
-        return (void*)os_malloc(size);
-#endif
+	return mmgmt_alloc_space();
 }
+
+// void* os_malloc_wifi_buffer(size_t size)
+// {
+// #if (CONFIG_SOC_BK7251)
+//         return (void*)pvPortMalloc(size);
+// #else
+//         return (void*)os_malloc(size);
+// #endif
+// }
 
 /// @}

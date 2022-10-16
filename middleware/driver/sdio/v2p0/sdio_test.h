@@ -65,6 +65,28 @@ typedef enum
 }SDIO_TEST_RX_CASE_ID_T;
 
 /**
+ * @brief	Set the sdio test case.
+ *
+ * This API set the sdio driver test case.
+ *	 - It will tested with the selected case.
+ *	 - Every case param has itself mean.
+ *
+ * @attention 1. This API should be called after sdio test inited.
+ *
+ * @return
+ *	  - BK_OK: succeed
+ *	  - others: other errors.
+ */
+bk_err_t bk_sdio_set_test_case(
+							uint8_t main_case,
+							uint8_t sub_case,
+							uint32_t param1,
+							uint32_t param2,
+							uint32_t param3,
+							uint32_t param4
+							);
+
+/**
  * @brief	Init the sdio driver test program.
  *
  * This API init the sdio driver test program.

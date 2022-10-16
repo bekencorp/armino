@@ -217,11 +217,11 @@ static bk_err_t spi_id_init_common(spi_id_t id)
 
 	if (s_spi[id].tx_sema == NULL) {
 		ret = rtos_init_semaphore(&(s_spi[id].tx_sema), 1);
-		BK_ASSERT(kNoErr == ret);
+		BK_ASSERT(kNoErr == ret); /* ASSERT VERIFIED */
 	}
 	if (s_spi[id].rx_sema == NULL) {
 		ret = rtos_init_semaphore(&(s_spi[id].rx_sema), 1);
-		BK_ASSERT(kNoErr == ret);
+		BK_ASSERT(kNoErr == ret); /* ASSERT VERIFIED */
 	}
 	s_spi[id].is_tx_blocked = false;
 	s_spi[id].is_sw_tx_finished = true;

@@ -53,7 +53,8 @@ static i2s_role_t i2s_role = I2S_ROLE_MAX;
 static void i2s_isr(void);
 extern void delay(int num);//TODO fix me
 
-
+#if CONFIG_GPIO_DEFAULT_SET_SUPPORT
+#else
 static void i2s_init_gpio(i2s_gpio_group_id_t id)
 {
 	switch(id)
@@ -94,7 +95,7 @@ static void i2s_init_gpio(i2s_gpio_group_id_t id)
 			break;
 	}
 }
-
+#endif
 bk_err_t bk_i2s_driver_init(void)
 {
 	if (s_i2s_driver_is_init)
@@ -159,8 +160,15 @@ bk_err_t bk_i2s_init(i2s_gpio_group_id_t id, const i2s_config_t *config)
 	I2S_RETURN_ON_NOT_INIT();
 	if (!config)
 		return BK_ERR_I2S_PARAM;
-
+#if CONFIG_GPIO_DEFAULT_SET_SUPPORT
+	/*
+	 * GPIO info is setted in GPIO_DEFAULT_DEV_CONFIG and
+	 * inited in bk_gpio_driver_init->gpio_hal_default_map_init.
+	 * If needs to re-config GPIO, can deal it here.
+	 */
+#else
 	i2s_init_gpio(id);
+#endif
 	i2s_hal_config(config);
 	i2s_role = config->role;
 

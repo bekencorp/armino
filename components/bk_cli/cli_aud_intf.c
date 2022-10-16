@@ -22,6 +22,11 @@ extern void cli_aud_intf_set_voc_param_cmd(char *pcWriteBuffer, int xWriteBuffer
 extern void cli_aud_intf_set_aec_param_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void cli_aud_intf_get_aec_param_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void cli_aud_intf_set_samp_rate_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+extern void cli_aud_intf_doorbell_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+#if CONFIG_AUD_TRAS_DAC_DEBUG
+extern void cli_aud_intf_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
 
 #define AUD_INTF_CMD_CNT (sizeof(s_aud_intf_commands) / sizeof(struct cli_command))
 static const struct cli_command s_aud_intf_commands[] = {
@@ -32,6 +37,11 @@ static const struct cli_command s_aud_intf_commands[] = {
 	{"aud_intf_set_aec_param_test", "aud_intf_set_aec_param_test {param value}", cli_aud_intf_set_aec_param_cmd},
 	{"aud_intf_get_aec_param_test", "aud_intf_get_aec_param_test", cli_aud_intf_get_aec_param_cmd},
 	{"aud_intf_set_samp_rate_test", "aud_intf_set_samp_rate_test {param value}", cli_aud_intf_set_samp_rate_cmd},
+	{"aud_intf_doorbell_test", "aud_intf_doorbell_test {start|stop}", cli_aud_intf_doorbell_cmd},
+	/* debug cmd */
+#if CONFIG_AUD_TRAS_DAC_DEBUG
+	{"aud_intf_debug_test", "aud_intf_debug_test {on|off}", cli_aud_intf_debug_cmd},
+#endif
 };
 
 int cli_aud_intf_init(void)

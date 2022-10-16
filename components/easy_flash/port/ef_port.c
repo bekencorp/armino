@@ -70,7 +70,7 @@ EfErrCode ef_port_init(ef_env const **default_env, size_t *default_env_size)
 	*default_env_size = sizeof(default_env_set) / sizeof(default_env_set[0]);
 
 	ret = rtos_init_semaphore_adv(&env_cache_lock, 1, 1);
-	BK_ASSERT(kNoErr == ret);
+	BK_ASSERT(kNoErr == ret); /* ASSERT VERIFIED */
 
 	return result;
 }

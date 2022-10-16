@@ -30,6 +30,14 @@ void __platform_init(void)
 	__asm("ret");
 }
 
+void smem_reset_lastblock(void)
+{
+#define MEMSET(s, c, n)         __builtin_memset ((s), (c), (n))
+	
+	MEMSET((void *)g_sram_addr_map[SRAM_BLOCK_MEM3], 0x0, SRAM_BLOCK_SIZE);
+	
+}
+
 void c_startup(void)
 {
 #define MEMCPY(des, src, n)     __builtin_memcpy ((des), (src), (n))

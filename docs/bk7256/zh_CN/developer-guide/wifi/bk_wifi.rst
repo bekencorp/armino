@@ -98,8 +98,7 @@ Armino Wi-Fi失败代码原因
 
 Armino Wi-Fi MAC地址配置
 -------------------------------------------------------
-Wi-Fi MAC地址配置位于 ``bk_system\mac.c`` , 分为base_mac、sta_mac、ap_mac,配置
-STA MAC地址有以下几种方式:
+Wi-Fi MAC地址配置位于 ``bk_system\mac.c`` , 分为base_mac、sta_mac、ap_mac,配置STA MAC地址有以下几种方式:
 
 - 通过EFUSE写入
 - 随机数产生,需使能 ``bk72xx.defconfig`` 配置文件中 ``CONFIG_RANDOM_MAC_ADDR`` 宏定义

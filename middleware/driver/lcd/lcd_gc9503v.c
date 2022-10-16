@@ -18,11 +18,12 @@
 #include <driver/lcd_spi.h>
 #include "bk_misc.h"
 #include "lcd_devices.h"
+#include "gpio_driver.h"
 
 
 static const lcd_rgb_t lcd_rgb =
 {
-	.clk = LCD_26M,
+	.clk = LCD_20M,
 	.data_out_clk_edge = NEGEDGE_OUTPUT,
 
 	.hsync_back_porch = 40,  //3
@@ -33,6 +34,11 @@ static const lcd_rgb_t lcd_rgb =
 
 static void lcd_gc9503v_config(void)
 {
+	bk_gpio_set_output_low(LCD_SPI_RST);
+	delay_ms(15);
+	bk_gpio_set_output_high(LCD_SPI_RST);
+	delay_ms(150);
+
 	lcd_spi_write_cmd(0xF0);
 	lcd_spi_write_data(0x55);
 	lcd_spi_write_data(0xAA);
@@ -262,7 +268,7 @@ static void lcd_gc9503v_config(void)
 	lcd_spi_write_data(0x00);
 	lcd_spi_write_data(0x7A);
 	lcd_spi_write_data(0x7A);
-	
+
 	lcd_spi_write_cmd(0x63);
 	lcd_spi_write_data(0x38);
 	lcd_spi_write_data(0x0A);
@@ -284,7 +290,7 @@ static void lcd_gc9503v_config(void)
 
 	lcd_spi_write_cmd(0x6B);
 	lcd_spi_write_data(0x07);
-	
+
 	lcd_spi_write_cmd(0x7A);
 	lcd_spi_write_data(0x08);
 	lcd_spi_write_data(0x13);
@@ -621,40 +627,40 @@ static void lcd_gc9503v_config(void)
 	lcd_spi_write_data(0x55);
 
 	lcd_spi_write_cmd(0x11);
-	delay_ms(20);
+	delay_ms(120);
 	lcd_spi_write_cmd(0x29);
 	delay_ms(10);
 }
 
-static void lcd_gc9503v_reset(void)
+static void lcd_gc9503v_backlight_io_init(void)
 {
-	BK_LOG_ON_ERR(bk_gpio_disable_input(34));
+	gpio_dev_unmap(34);
+	bk_gpio_set_capacity(34, 0);
 	BK_LOG_ON_ERR(bk_gpio_enable_output(34));
-	// pull up gpio34, enable lcd backlight control
-	bk_gpio_set_output_low(34);
-	delay_ms(15);
-	bk_gpio_set_output_high(34);
-
-	BK_LOG_ON_ERR(bk_gpio_enable_output(8));
-	bk_gpio_set_output_high(8);
-	delay_ms(15);
-	bk_gpio_set_output_low(8);
-
-	BK_LOG_ON_ERR(bk_gpio_enable_output(6));
-	bk_gpio_set_output_low(6);
-	delay_ms(15);
-	bk_gpio_set_output_high(6);
-	delay_ms(150);
+	BK_LOG_ON_ERR(bk_gpio_pull_down(34));
 }
 
 
 
-void lcd_gc9503v_init(void)
+static void lcd_gc9503v_init(void)
 {
-	lcd_gc9503v_reset();
+	lcd_gc9503v_backlight_io_init();
 	lcd_spi_init_gpio();
 	lcd_gc9503v_config();
 }
+
+static void gc9503v_lcd_backlight_open(void)
+{
+	BK_LOG_ON_ERR(bk_gpio_pull_up(34));
+	// pull up gpio34, enable lcd backlight control
+	bk_gpio_set_output_high(34);
+}
+
+static void gc9503v_lcd_backlight_close(void)
+{
+	bk_gpio_set_output_low(34);
+}
+
 const lcd_device_t lcd_device_gc9503v =
 {
 	.id = LCD_DEVICE_GC9503V,
@@ -662,6 +668,10 @@ const lcd_device_t lcd_device_gc9503v =
 	.type = LCD_TYPE_RGB565,
 	.ppi = PPI_480X800,
 	.rgb = &lcd_rgb,
+	.backlight_open = gc9503v_lcd_backlight_open,
+	.backlight_set = NULL,
 	.init = lcd_gc9503v_init,
+	.backlight_close = gc9503v_lcd_backlight_close,
+	.lcd_off = NULL,
 };
 

@@ -180,18 +180,18 @@ ble通过ATT数据库作为双端的操作实体，所有的读写通知等操�
 	...
 	//
 
-	//蓝牙广播数据，请参考ble标准格式
+	//扫描响应数据，请参考ble标准格式
 	const uint8_t scan_data[] = {0x02, 0x01, 0x06, 0x0A, 0x09, 0x37 0x32, 0x33, 0x31, 0x4e, 0x5f, 0x42, 0x4c, 0x45};
 	bk_ble_set_scan_rsp_data(actv_idx, scan_data, sizeof(scan_data), ble_at_cmd_cb);
 
 
-	//在ble_at_cmd_cb中，等待BLE_SET_ADV_DATA事件
+	//在ble_at_cmd_cb中，等待BLE_SET_RSP_DATA事件
 	...
 	//
 
 	//开启广播
 	bk_ble_start_advertising(actv_idx, 0, ble_at_cmd_cb);
-	
+
 	//在ble_at_cmd_cb中，等待BLE_START_ADV事件
 	...
 	//
@@ -239,23 +239,22 @@ ble通过ATT数据库作为双端的操作实体，所有的读写通知等操�
 	conn_param.intv_min = 0x40; //interval
 	conn_param.intv_max = 0x40; //interval
 	conn_param.con_latency = 0;
-	//超时时间
 	conn_param.sup_to = 0x200;//supervision timeout
 	conn_param.init_phys = 1;// 1M
-	//获取当前空闲的active index，用于开启扫描
+	//获取当前空闲的active index，用于建立连接
 	con_idx = bk_ble_get_idle_conn_idx_handle();
-	
-	
+
+
 	bk_ble_create_init(con_idx, &conn_param, ble_at_cmd);
-	
+
 	//在ble_at_cmd_cb中，等待BLE_INIT_CREATE
 	...
 	//
-	
+
 	//设置对端地址类型，不匹配会导致连接不上
 	bk_ble_init_set_connect_dev_addr(con_idx, bt_mac, 1);
-	
-	
+
+
 	bk_ble_init_start_conn(con_idx, ble_at_cmd)
 
 	//在ble_at_cmd_cb中，等待BLE_INIT_START_CONN

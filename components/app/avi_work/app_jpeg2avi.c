@@ -1,11 +1,8 @@
 #include <common/bk_include.h>
 #include "bk_arm_arch.h"
-
 #include "bk_uart.h"
 #include <os/os.h>
 #include <common/bk_kernel_err.h>
-
-#include "avilib.h"
 #include "app_jpeg2avi.h"
 #include <os/mem.h>
 
@@ -39,8 +36,8 @@ typedef struct jpeg2Avi_st {
 	beken_mutex_t m_csLock;
 } JPEG2AVI_ST, *JPEG2AVI_PTR;
 
-#define J2AVI_MALLOC            sdram_malloc   // sdram_malloc         os_malloc       
-#define J2AVI_FREE              sdram_free     // sdram_free           sdram_free
+#define J2AVI_MALLOC            os_malloc   // sdram_malloc         os_malloc       
+#define J2AVI_FREE              os_free     // sdram_free           sdram_free
 #define J2AVI_PRINT             os_printf
 #define J2AVI_TRUE              1
 #define J2AVI_FALSE             0
@@ -168,8 +165,8 @@ int jpeg2avi_start_record(const char *szFileName)
 		//	AVI_set_video(g_jpeg2avi->m_pAviHandle, g_jpeg2avi->m_nWidth,
 		//   g_jpeg2avi->m_nHeight, g_jpeg2avi->m_nFps, VideoFmtMJPG);
 
-		AVI_set_video(g_jpeg2avi->m_pAviHandle, 1280,
-					  720, g_jpeg2avi->m_nFps, VideoFmtMJPG);
+		AVI_set_video(g_jpeg2avi->m_pAviHandle, g_jpeg2avi->m_nWidth,
+					  g_jpeg2avi->m_nHeight, g_jpeg2avi->m_nFps, VideoFmtMJPG);
 
 	}
 	if (g_jpeg2avi->m_bSetAudio) {
@@ -308,57 +305,264 @@ int jpeg2avi_deinit(void)
 	return 0;
 }
 
-////////////////////////////////////////
+#include "ff.h"
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-void j2avi_test(int argc, char **argv)
+static beken_thread_t aud_thread_handle = NULL;
+static void aud_task( void *para )
 {
-	int ret;
-
-	if (jpeg2avi_init() != 1) {
-		J2AVI_PRINT("jpeg2avi_init failed\r\n");
-		return;
-	}
-
-	jpeg2avi_set_video_param(320, 240, 20);
-	jpeg2avi_set_audio_param(1, 8000, 16);
-
-	jpeg2avi_start_record("sd/jpeg2avi_000.avi");
-
 	void *pdata = (void *)(0x00001000);
-	int ldata = 1024 * 30;
+	uint32_t ldata = 320;
 
-	//REG_WRITE((0x00802800+(14*4)), 0x02);
-	//REG_WRITE((0x00802800+(14*4)), 0x00);
+	uint32_t loop_cnt = 600;
+	int ret = 0;
 
-	//REG_WRITE((0x00802800+(15*4)), 0x02);
-	//REG_WRITE((0x00802800+(15*4)), 0x00);
-
-	int loop_cnt = 2;
-
-	while (loop_cnt --) {
-		//REG_WRITE((0x00802800+(14*4)), 0x02);
-		ret = jpeg2avi_input_data(pdata, ldata, eTypeVideo);
-		//REG_WRITE((0x00802800+(14*4)), 0x00);
-		if (ret <= 0) {
-			J2AVI_PRINT("jpeg2avi_input video failed\r\n");
-			goto j2avi_exit;
-		}
-
-		//REG_WRITE((0x00802800+(15*4)), 0x02);
+	while (loop_cnt --) 
+	{
 		ret = jpeg2avi_input_data(pdata, ldata, eTypeAudio);
-		//REG_WRITE((0x00802800+(15*4)), 0x00);
-		if (ret <= 0) {
+		if (ret <= 0) 
+		{
 			J2AVI_PRINT("jpeg2avi_input audio failed\r\n");
-			goto j2avi_exit;
+			break;
 		}
+
+		rtos_delay_milliseconds(40);
 	}
 
-j2avi_exit:
-
-	jpeg2avi_stop_record();
-	jpeg2avi_deinit();
+	rtos_delete_thread(NULL);
 
 }
-FINSH_FUNCTION_EXPORT_ALIAS(j2avi_test, __cmd_j2avi_test, j2avi test);
 
+static void aud_task_init(void)
+{
+	rtos_create_thread(&aud_thread_handle,
+						 3,
+						 "aud",
+						 (beken_thread_function_t)aud_task /*cli_main*/,
+						 4096,
+						 0);
+}
+
+#include <driver/hal/hal_aon_rtc_types.h>
+#include "../time/sys_time.h"
+static void j2avi_test(int argc, char **argv)
+{
+	if(0 == strcmp("avi",argv[1]))
+	{
+		int ret;
+
+		if (jpeg2avi_init() != 1) {
+			J2AVI_PRINT("jpeg2avi_init failed\r\n");
+			return;
+		}
+
+		jpeg2avi_set_video_param(640, 480, 20);
+		jpeg2avi_set_audio_param(1, 8000, 16);
+
+#define DEFAULT_avi_FILE_NAME	   "test.avi"
+		
+		char cFileName[FF_MAX_LFN] = {0};
+
+		if(argv[2])
+			sprintf(cFileName, "%d:/%s", 1, argv[2]);
+		else
+			sprintf(cFileName, "%d:/%s", 1, DEFAULT_avi_FILE_NAME);
+
+		J2AVI_PRINT("****** avi fileName:%s **********\"\r\n", cFileName);
+
+		jpeg2avi_start_record(cFileName);
+
+		//aud_task_init();
+		(void)aud_task_init;
+
+
+		void *pdata = (void *)(0x00001000);
+		uint32_t ldata = 1024 * 30 - 3;
+
+		uint32_t write_bytes = (uint32_t)atoi(argv[3]);
+		ldata = write_bytes;
+		if(0 == ldata)
+		{
+			ldata = 1024 * 30 - 3;
+		}
+		J2AVI_PRINT("write_bytes:%d\r\n", ldata);
+
+		uint32_t loop_cnt = 600;
+		loop_cnt = (uint32_t)atoi(argv[4]);
+		J2AVI_PRINT("loop_cnt:%d\r\n", loop_cnt);
+
+
+		while (loop_cnt --) {
+			//REG_WRITE((0x00802800+(14*4)), 0x02);
+			ret = jpeg2avi_input_data(pdata, ldata, eTypeVideo);
+			//REG_WRITE((0x00802800+(14*4)), 0x00);
+			if (ret <= 0) {
+				J2AVI_PRINT("jpeg2avi_input video failed\r\n");
+				goto j2avi_exit;
+			}
+
+			rtos_delay_milliseconds(50);
+		}
+
+j2avi_exit:
+		J2AVI_PRINT("\r\n\r\njpeg2avi_stop_record\"\r\n");
+
+		jpeg2avi_stop_record();
+		jpeg2avi_deinit();
+	}
+	else if(0 == strcmp("n_avi",argv[1]))
+	{
+#define DEFAULT_TXT_FILE_NAME	   "test.txt"
+
+		FIL file = {0};
+		FRESULT fr = 0;
+		char cFileName[FF_MAX_LFN] = {0};
+		unsigned int uiTemp = 0;
+
+		if(argv[2])
+			sprintf(cFileName, "%d:/%s", 1, argv[2]);
+		else
+			sprintf(cFileName, "%d:/%s", 1, DEFAULT_TXT_FILE_NAME);
+
+		J2AVI_PRINT("=========cFileName:%s========\"\r\n", cFileName);
+
+		fr = f_open(&file, cFileName, FA_READ | FA_WRITE | FA_OPEN_ALWAYS);
+		if (fr != FR_OK)
+		{
+			J2AVI_PRINT("f_open failed 1 fr = %d\r\n", fr);
+			goto exit;
+		}
+
+		void *pdata = (void *)(0x00001000);
+		uint32_t ldata = 30*1024;
+		uint32_t loop_cnt = 6;
+
+		//write:one time write all contents
+		while (loop_cnt --)
+		{
+			//J2AVI_PRINT("f_write len:%d\r\n",ldata);
+			fr = f_write(&file, (uint8_t *)pdata, ldata, &uiTemp);
+			if (fr != FR_OK)
+			{
+				J2AVI_PRINT("f_write fail 1 fr = %d\r\n", fr);
+				goto exit;
+			}
+
+			//J2AVI_PRINT("\r\n");
+		}
+
+		fr = f_close(&file);
+		if (fr != FR_OK)
+		{
+			J2AVI_PRINT("f_close fail 1 fr = %d\r\n", fr);
+			goto exit;
+		}
+	}
+exit:
+	return;
+}
+
+static void cli_avi_intf_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	j2avi_test(argc,argv);
+}
+
+#include "time/time.h"
+#include <os/os.h>
+
+#define DEFAULT_YEAR 	2022
+#define DEFAULT_MONTH 	10
+#define DEFAULT_DAY 	12
+#define DEFAULT_HOUR 	23
+#define DEFAULT_MIN		59
+#define DEFAULT_SEC 	42
+
+static void psram_api_test(int argc, char **argv)
+{
+	static uint8_t *ptr = NULL;
+	static uint8_t *avi_index_ptr = NULL;
+
+
+	if(0 == strcmp("malloc",argv[1]))
+	{
+		uint32_t size = (uint32_t)atoi(argv[2]);
+		J2AVI_PRINT("psram_malloc size = %d\r\n", size);
+		ptr = psram_malloc(size);
+		if(NULL == ptr)
+		{
+			J2AVI_PRINT("psram_malloc fail!\r\n");
+		}
+		else
+		{
+			J2AVI_PRINT("psram_malloc ok %p\r\n",ptr);
+			memset(ptr,0,size);
+		}
+	}
+	else if(0 == strcmp("free",argv[1]))
+	{
+		if(ptr)
+		{
+			psram_free(ptr);
+			J2AVI_PRINT("psram_free ok %p\r\n",ptr);
+			ptr = NULL;
+		}
+	}
+	else if(0 == strcmp("avi_index_malloc",argv[1]))
+	{
+		avi_index_ptr = psram_malloc(AVI_INDEX_COUNT);
+		J2AVI_PRINT("psram_malloc avi_index_ptr: %p\r\n",avi_index_ptr);
+	}
+	else if(0 == strcmp("avi_index_free",argv[1]))
+	{
+		psram_free(avi_index_ptr);
+		avi_index_ptr = NULL;
+		J2AVI_PRINT("psram_free avi_index_ptr: %p\r\n",avi_index_ptr);
+	}
+	else if(0 == strcmp("get_systime",argv[1]))
+	{
+		J2AVI_PRINT("sys running current time:%ldms\r\n",rtos_get_time());
+	}
+	else if(0 == strcmp("rtctime",argv[1]))
+	{
+		extern uint64_t bk_aon_rtc_get_current_tick(aon_rtc_id_t id);
+		aon_rtc_unit_t aon_rtc_id = AON_RTC_ID_1;
+		uint64_t tick = bk_aon_rtc_get_current_tick(aon_rtc_id);
+		J2AVI_PRINT("rtc running current time, tick_h=%d tick_l=%d ms\r\n", (uint32_t)((tick/32)>>32), (uint32_t)(tick/32));
+
+		struct tm time_default = {0};
+		time_default.tm_year = DEFAULT_YEAR - 1900;
+		time_default.tm_mon = DEFAULT_MONTH - 1;
+		time_default.tm_mday = DEFAULT_DAY;
+		time_default.tm_hour = DEFAULT_HOUR;
+		time_default.tm_min = DEFAULT_MIN;
+		time_default.tm_sec = DEFAULT_SEC;
+
+		time_t seconds = mktime(&time_default);
+		J2AVI_PRINT("seconds:%lld\r\n",seconds);
+
+		struct tm *ptm = localtime(&seconds);
+		os_printf("year:%d,mon:%d,mday:%d,hour:%d,minute:%d,sec:%d\r\n",
+			ptm->tm_year,ptm->tm_mon,ptm->tm_mday,ptm->tm_hour,ptm->tm_min,ptm->tm_sec);
+	}
+
+}
+
+static void cli_psram_api_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	psram_api_test(argc,argv);
+}
+
+#include "cli.h"
+#define AVI_INTF_CMD_CNT (sizeof(s_avi_intf_commands) / sizeof(struct cli_command))
+static const struct cli_command s_avi_intf_commands[] = {
+	{"avi_intf_test", "", cli_avi_intf_cmd},
+	{"psram_api_test", "", cli_psram_api_test_cmd},
+};
+
+int cli_avi_intf_init(void)
+{
+	return cli_register_commands(s_avi_intf_commands, AVI_INTF_CMD_CNT);
+}
 

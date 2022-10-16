@@ -69,7 +69,7 @@ static bool btestIotPowerIdleEnterState = false;
 static bool btestIotPowerIdleExitState = false;
 static SemaphoreHandle_t xtestIotPowerIdleEnterSemaphore = NULL;
 static SemaphoreHandle_t xtestIotPowerIdleExitSemaphore = NULL;
-#if 1
+#if 0
 static uint32_t ultestIotPowerSavedInterruptConfig1;
 static uint32_t ultestIotPowerSavedInterruptConfig2;
 #endif

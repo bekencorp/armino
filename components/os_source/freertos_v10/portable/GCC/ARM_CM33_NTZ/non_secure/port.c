@@ -41,6 +41,8 @@
 /* Portasm includes. */
 #include "portasm.h"
 
+#include "cmsis_gcc.h"
+
 #if ( configENABLE_TRUSTZONE == 1 )
     /* Secure components includes. */
     #include "secure_context.h"
@@ -1206,27 +1208,24 @@ void vApplicationIdleHook( void )
 
 uint32_t platform_is_in_interrupt_context(void)
 {
-    //TODO
-    return 0;
+    return xPortIsInsideInterrupt();
 }
 
 uint32_t platform_cpsr_content( void )
 {
-    //TODO
-    return 0;}
+    return __get_xPSR();
+}
 
 int port_disable_interrupts_flag(void)
 {
-    //TODO
-    return 0;
+    uint32_t primask_val = __get_PRIMASK();
+    __disable_irq();
+    return primask_val;
 }
 
-/*
- * Enable Interrupts
- */
 void port_enable_interrupts_flag(int val)
 {
-   //TODO
+    __set_PRIMASK(val);
 }
 
 /*

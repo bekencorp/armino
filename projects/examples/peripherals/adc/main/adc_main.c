@@ -62,13 +62,13 @@ static void adc_task_main(void *arg)
 	adc_config_t *adc_config = &task_config->adc_config;
 
 	//TODO should NOT init size
-	BK_LOG_ON_ERR(bk_adc_init(adc_config->id));
+	BK_LOG_ON_ERR(bk_adc_init(task_config->task_id));
 
 	while (adc_sample_cnt++ < 50) {
 		BK_LOG_ON_ERR(bk_adc_set_config(adc_config));
 		BK_LOG_ON_ERR(bk_adc_register_isr(adc_isr_cb, ADC_BUF_SIZE_1));
 		BK_LOG_ON_ERR(bk_adc_start());
-		BK_LOG_ON_ERR(bk_adc_set_channel(adc_config->id));
+		BK_LOG_ON_ERR(bk_adc_set_channel(task_config->task_id));
 		BK_LOG_ON_ERR(bk_adc_read(&average_sample_value, ADC_READ_TIMEOUT));
 		BK_LOGI(TAG, "adc task(%d) sample value=%d\n", task_config->task_id, average_sample_value);
 		rtos_delay_milliseconds(task_config->delay_ms);
@@ -97,7 +97,7 @@ int start_adc_task(adc_task_config_t *config)
 
 int adc_start_app1(void)
 {
-	s_adc_task1_config.adc_config.id = ADC_DETECT_CHANNEL1;
+	s_adc_task1_config.task_id = ADC_DETECT_CHANNEL1;
 	s_adc_task1_config.adc_config.adc_mode = ADC_CONTINUOUS_MODE;
 	s_adc_task1_config.adc_config.clk = ADC_DETEC_CLK;
 	s_adc_task1_config.adc_config.src_clk = ADC_SCLK_XTAL_26M;
@@ -114,7 +114,7 @@ int adc_start_app1(void)
 
 int adc_start_app2(void)
 {
-	s_adc_task2_config.adc_config.id = ADC_DETECT_CHANNEL2;
+	s_adc_task2_config.task_id = ADC_DETECT_CHANNEL2;
 	s_adc_task2_config.adc_config.adc_mode = ADC_CONTINUOUS_MODE;
 	s_adc_task2_config.adc_config.clk = ADC_DETEC_CLK;
 	s_adc_task2_config.adc_config.src_clk = ADC_SCLK_XTAL_26M;

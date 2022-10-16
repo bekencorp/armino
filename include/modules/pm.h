@@ -11,6 +11,10 @@ extern "C" {
 
 
 #define PARAM_DATA_VALID  (0xFFFF)
+#define PM_APP_AUTO_VOTE_ENABLE          (0x1)
+#define PM_APP_AUTO_VOTE_DISENABLE       (0x0)
+#define PM_CP1_AUTO_POWER_DOWN_ENABLE    (0x1)
+#define PM_CP1_AUTO_POWER_DOWN_DISENABLE (0x0)
 
 typedef enum
 {
@@ -102,38 +106,43 @@ typedef enum
 
 	PM_POWER_MODULE_NAME_NONE               // 27
 }pm_power_module_name_e;
+
 typedef enum
 {
-	PM_SLEEP_MODULE_NAME_MEM1 = 0,   // 0
-	PM_SLEEP_MODULE_NAME_MEM2,       // 1
-	PM_SLEEP_MODULE_NAME_MEM3,       // 2
-	PM_SLEEP_MODULE_NAME_ENCP,       // 3
-	PM_SLEEP_MODULE_NAME_BAKP,       // 4
-	PM_SLEEP_MODULE_NAME_AHBP,       // 5
-	PM_SLEEP_MODULE_NAME_AUDP,       // 6
-	PM_SLEEP_MODULE_NAME_VIDP,       // 7
-	PM_SLEEP_MODULE_NAME_BTSP,       // 8
-	PM_SLEEP_MODULE_NAME_WIFIP_MAC,  // 9
-	PM_SLEEP_MODULE_NAME_WIFI_PHY,   // 10
-	PM_SLEEP_MODULE_NAME_CPU1 ,      // 11
-	PM_SLEEP_MODULE_NAME_APP ,       // 12
-	PM_SLEEP_MODULE_NAME_APP1 ,      // 13
-	PM_SLEEP_MODULE_NAME_APP2 ,      // 14
-	PM_SLEEP_MODULE_NAME_APP3 ,      // 15
-	PM_SLEEP_MODULE_NAME_APP4 ,      // 16
-	PM_SLEEP_MODULE_NAME_APP5 ,      // 17
-	PM_SLEEP_MODULE_NAME_APP6 ,      // 18
-	PM_SLEEP_MODULE_NAME_APP7 ,      // 19
-	PM_SLEEP_MODULE_NAME_APP8 ,      // 20
-	PM_SLEEP_SUB_MODULE_NAME_AUDP_FFT ,     // 21
-	PM_SLEEP_SUB_MODULE_NAME_AUDP_SBC ,     // 22
-	PM_SLEEP_SUB_MODULE_NAME_AUDP_AUDIO ,   // 23
-	PM_SLEEP_SUB_MODULE_NAME_AUDP_I2S ,     // 24
-	PM_SLEEP_SUB_MODULE_NAME_VIDP_JPEG_EN , // 25
-	PM_SLEEP_SUB_MODULE_NAME_VIDP_JPEG_DE , // 26
-	PM_SLEEP_SUB_MODULE_NAME_VIDP_DMA2D ,   // 27
-	PM_SLEEP_SUB_MODULE_NAME_VIDP_LCD ,     // 28
-	PM_SLEEP_MODULE_NAME_NONE               // 29
+	PM_SLEEP_MODULE_NAME_I2C1 = 0, // 0
+	PM_SLEEP_MODULE_NAME_SPI_1,    // 1
+	PM_SLEEP_MODULE_NAME_UART1,    // 2
+	PM_SLEEP_MODULE_NAME_PWM_1,    // 3
+	PM_SLEEP_MODULE_NAME_TIMER_1,  // 4
+	PM_SLEEP_MODULE_NAME_SARADC,   // 5
+	PM_SLEEP_MODULE_NAME_AUDP,     // 6
+	PM_SLEEP_MODULE_NAME_VIDP,     // 7
+	PM_SLEEP_MODULE_NAME_BTSP,     // 8
+	PM_SLEEP_MODULE_NAME_WIFIP_MAC,// 9
+	PM_SLEEP_MODULE_NAME_WIFI_PHY, // 10
+	PM_SLEEP_MODULE_NAME_TIMER_2,  // 11
+	PM_SLEEP_MODULE_NAME_APP,  // 12
+	PM_SLEEP_MODULE_NAME_OTP,      // 13
+	PM_SLEEP_MODULE_NAME_I2S_1,    // 14
+	PM_SLEEP_MODULE_NAME_USB_1,    // 15
+	PM_SLEEP_MODULE_NAME_CAN,      // 16
+	PM_SLEEP_MODULE_NAME_PSRAM,    // 17
+	PM_SLEEP_MODULE_NAME_QSPI_1,   // 18
+	PM_SLEEP_MODULE_NAME_QSPI_2,   // 19
+	PM_SLEEP_MODULE_NAME_SDIO,     // 20
+	PM_SLEEP_MODULE_NAME_AUXS,     // 21
+	PM_SLEEP_MODULE_NAME_CPU,      // 22
+	PM_SLEEP_MODULE_NAME_XVR,      // 23
+	PM_SLEEP_MODULE_NAME_I2C2,     // 24
+	PM_SLEEP_MODULE_NAME_UART2,    // 25
+	PM_SLEEP_MODULE_NAME_UART3,    // 26
+	PM_SLEEP_MODULE_NAME_WDG,      // 27
+	PM_SLEEP_MODULE_NAME_TIMER_3,      // 28
+	PM_SLEEP_MODULE_NAME_APP1,     // 29
+	PM_SLEEP_MODULE_NAME_APP2,     // 30
+	PM_SLEEP_MODULE_NAME_APP3,     // 31
+
+	PM_SLEEP_MODULE_NAME_MAX
 }pm_sleep_module_name_e;
 typedef enum
 {
@@ -243,13 +252,213 @@ typedef enum
 	PM_CPU_FRQ_320M,     // 3:CPU:320M,BUS:160M
 	PM_CPU_FRQ_DEFAULT   // default cpu frequency which control by pm module
 }pm_cpu_freq_e;
-
+typedef enum
+{
+	PM_ROSC_CALI_AUTO = 0,  // 0:auto calibration
+	PM_ROSC_CALI_MANUAL,    // 1:manual calibration
+	PM_ROSC_CALI_STOP,      // 2:stop calibration
+}pm_rosc_cali_mode_e;
 typedef int (*pm_cb)(uint64_t sleep_time, void *args);
 typedef struct {
     pm_cb cb;
     void *args;
 } pm_cb_conf_t;
 
+
+typedef enum
+{
+	PM_LOW_VOL_VOLTAGE_0_6 = 0, // 0.6V
+	PM_LOW_VOL_VOLTAGE_0_7,     // 0.7V
+	PM_LOW_VOL_VOLTAGE_0_8,     // 0.8V
+	PM_LOW_VOL_VOLTAGE_0_9,     // 0.9V
+	PM_LOW_VOL_VOLTAGE_1_0,     // 1.0V
+	PM_LOW_VOL_VOLTAGE_1_1,     // 1.1V
+	PM_LOW_VOL_VOLTAGE_1_2,     // 1.2V
+	PM_LOW_VOL_VOLTAGE_1_3      // 1.3V
+}pm_low_vol_voltage_e;
+
+
+/*=====================CONFIG  SECTION  START====================*/
+/*enter low voltage ,require sleep module config*/
+#define PM_ENTER_LOW_VOL_MODULES_CONFIG \
+{\
+	PM_SLEEP_MODULE_NAME_I2C1,\
+	PM_SLEEP_MODULE_NAME_SPI_1,\
+	PM_SLEEP_MODULE_NAME_UART1,\
+	PM_SLEEP_MODULE_NAME_PWM_1,\
+	PM_SLEEP_MODULE_NAME_TIMER_1,\
+	PM_SLEEP_MODULE_NAME_SARADC,\
+	PM_SLEEP_MODULE_NAME_AUDP,\
+	PM_SLEEP_MODULE_NAME_VIDP,\
+	PM_SLEEP_MODULE_NAME_BTSP,\
+	PM_SLEEP_MODULE_NAME_WIFIP_MAC,\
+	PM_SLEEP_MODULE_NAME_WIFI_PHY,\
+	PM_SLEEP_MODULE_NAME_TIMER_2,\
+	PM_SLEEP_MODULE_NAME_APP,\
+	PM_SLEEP_MODULE_NAME_OTP,\
+	PM_SLEEP_MODULE_NAME_I2S_1,\
+	PM_SLEEP_MODULE_NAME_USB_1,\
+	PM_SLEEP_MODULE_NAME_CAN,\
+	PM_SLEEP_MODULE_NAME_PSRAM,\
+	PM_SLEEP_MODULE_NAME_QSPI_1,\
+	PM_SLEEP_MODULE_NAME_QSPI_2,\
+	PM_SLEEP_MODULE_NAME_SDIO,\
+	PM_SLEEP_MODULE_NAME_AUXS,\
+	PM_SLEEP_MODULE_NAME_CPU,\
+	PM_SLEEP_MODULE_NAME_XVR,\
+	PM_SLEEP_MODULE_NAME_I2C2,\
+	PM_SLEEP_MODULE_NAME_UART2,\
+	PM_SLEEP_MODULE_NAME_UART3,\
+	PM_SLEEP_MODULE_NAME_WDG,\
+	PM_SLEEP_MODULE_NAME_TIMER_3,\
+	PM_SLEEP_MODULE_NAME_APP1,\
+	PM_SLEEP_MODULE_NAME_APP2,\
+	PM_SLEEP_MODULE_NAME_APP3,\
+}
+
+/*enter deep sleep ,require sleep module config*/
+#define PM_ENTER_DEEP_SLEEP_MODULES_CONFIG \
+{\
+	PM_POWER_MODULE_NAME_BTSP,\
+	PM_POWER_MODULE_NAME_WIFIP_MAC,\
+	PM_POWER_MODULE_NAME_AUDP,\
+	PM_POWER_MODULE_NAME_VIDP,\
+}
+
+/*config the voltage at low vol*/
+#define PM_VOLTAGE_OF_LOW_VOL            (PM_LOW_VOL_VOLTAGE_0_6)
+
+/*config the lpo source*/
+#define PM_LPO_SOURCE                    (PM_LPO_SRC_DIVD)
+
+/*config whether auto vote*/
+#define PM_APP_AUTO_VOTE_CTRL            (PM_APP_AUTO_VOTE_ENABLE)
+
+/*config cpu1 auto power down according media*/
+#define PM_CP1_AUTO_POWER_DOWN_CTRL      (PM_CP1_AUTO_POWER_DOWN_ENABLE)
+
+/*=====================CONFIG  SECTION  END=======================*/
+/**
+ * @brief get wakeup source from deepsleep
+ *
+ * get wakeup source from deepsleep
+ *
+ * @attention
+ * - This API is used to get wakeup source from deepsleep
+ *
+ * @param
+ * -void
+ * @return
+ * - wakeup source(0x0:WAKEUP SOURCE OF GPIO;0x1:WAKEUP SOURCE OF RTC;0x2:WAKEUP SOURCE OF WIFI OR BT;0x4:WAKEUP SOURCE OF TOUCHED;0x5:NONE WAKEUP_SOURCE)
+ */
+pm_wakeup_source_e bk_pm_deep_sleep_wakeup_source_get();
+/**
+ * @brief clear wakeup source of exiting low voltage process
+ *
+ * clear wakeup source of exit low voltage
+ *
+ * @attention
+ * - This API is used to clear wakeup source of exiting low voltage process
+ *
+ * @param
+ * -void
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+bk_err_t bk_pm_exit_low_vol_wakeup_source_clear();
+/**
+ * @brief set and save wakeup source of exiting low voltage
+ *
+ * set and save wakeup source of exiting low voltage
+ *
+ * @attention
+ * - This API is used to set and save wakeup source of exiting low voltage
+ *
+ * @param
+ * -0x0:close cp1 auto power down feature ;0x1:open cp1 auto power down feature
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+bk_err_t bk_pm_exit_low_vol_wakeup_source_set();
+/**
+ * @brief get wakeup source of exiting low voltage
+ *
+ * get wakeup source of exiting low voltage
+ *
+ * @attention
+ * - This API is used to get wakeup source of exiting low voltage
+ *
+ * @param
+ * -void
+ * @return
+ * - wakeup source(0x0:WAKEUP SOURCE OF GPIO;0x1:WAKEUP SOURCE OF RTC;0x2:WAKEUP SOURCE OF WIFI OR BT;0x4:WAKEUP SOURCE OF TOUCHED;0x5:NONE WAKEUP_SOURCE)
+ */
+pm_wakeup_source_e bk_pm_exit_low_vol_wakeup_source_get();
+/**
+ * @brief get cp1 auto power down flag
+ *
+ * get cp1 auto power down flag
+ *
+ * @attention
+ * - This API is used to get cp1 auto power down flag
+ *
+ * @param
+ * -void
+ * @return
+ * - cp1 auto power down flag(0x0:close cp1 auto power down feature ;0x1:open cp1 auto power down feature)
+ */
+uint32_t bk_pm_cp1_auto_power_down_state_get();
+/**
+ * @brief cp1 auto power down flag set
+ *
+ * set cp1 auto power down flag
+ *
+ * @attention
+ * - This API is used to set cp1 auto power down flag
+ *
+ * @param
+ * -0x0:close cp1 auto power down feature ;0x1:open cp1 auto power down feature
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+bk_err_t bk_pm_cp1_auto_power_down_state_set(uint32_t value);
+
+/**
+ * @brief get cpu1 boot flag
+ *
+ * get cpu1 boot flag(ready or not ready)
+ *
+ * @attention
+ * - This API is used to get cpu1 boot flag(ready or not ready)
+ *
+ * @param
+ * -void
+ * @return
+ * - the flag of cpu1 boot flag (0x0:cpu1 not boot ready;0x1:cpu1 boot ready)
+ */
+uint32_t bk_pm_cp1_boot_flag_get();
+/**
+ * @brief rosc calibration
+ *
+ * rosc calibration
+ *
+ * @attention
+ * - This API is used to calibrate rosc
+ *
+ * @param
+ * -rosc_cali_mode:0x1:rosc calibrate manual; 0x0:rosc calibrate auto
+ * -cali_interval: 0x0:0.25s;0x1:0.5s;0x2:0.75s;0x3:1.0s;0x4:1.25s;0x5:1.5s;0x6:1.75s;0x7:2s;
+ * @return
+ *  - BK_OK: succeed
+ *  - others: other errors.
+ */
+bk_err_t bk_pm_rosc_calibration(pm_rosc_cali_mode_e rosc_cali_mode, uint32_t cali_interval);
 /**
  * @brief using the gpio to control the external ldo
  *
@@ -658,6 +867,37 @@ bk_err_t bk_pm_suppress_ticks_and_sleep(uint32_t sleep_ticks);
  *
  */
 void  bk_pm_enter_sleep();
+/**
+ * @brief sleep vote init
+ *
+ * the function is for init the enter low voltage sleep vote
+ *
+ * @attention
+ * - This API is used for init the enter low voltage sleep vote
+ *
+ * @param
+ * - void
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+static inline bk_err_t pm_sleep_vote_init()
+{
+	uint32_t i = 0;
+	pm_sleep_module_name_e enter_low_vol_modules[] = PM_ENTER_LOW_VOL_MODULES_CONFIG;
+
+	for(i=0;i<sizeof(enter_low_vol_modules)/sizeof(pm_sleep_module_name_e);i++)
+	{
+		if((enter_low_vol_modules[i] == PM_SLEEP_MODULE_NAME_BTSP)||(enter_low_vol_modules[i] == PM_SLEEP_MODULE_NAME_WIFIP_MAC)||(enter_low_vol_modules[i] == PM_SLEEP_MODULE_NAME_APP))
+		{
+			continue;
+		}
+		bk_pm_module_vote_sleep_ctrl(enter_low_vol_modules[i],0x1,0);
+	}
+
+    return BK_OK;
+}
 
 #ifdef __cplusplus
 }

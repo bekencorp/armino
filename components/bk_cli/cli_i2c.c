@@ -81,7 +81,12 @@ static void cli_i2c_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 	} else if (os_strcmp(argv[2], "memory_write") == 0) {
 		uint32_t buf_len = os_strtoul(argv[3], NULL, 10);
 		uint8_t *data_buf = os_malloc(buf_len);
-		BK_ASSERT(NULL != data_buf);
+		if(NULL == data_buf)
+		{
+			CLI_LOGE("malloc fail\r\n");
+			return;
+		}
+
 		for (uint32_t i = 0; i < buf_len; i++) {
 			data_buf[i] = (i + 1) & 0xff;
 		}
@@ -102,7 +107,12 @@ static void cli_i2c_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 	} else if (os_strcmp(argv[2], "memory_read") == 0) {
 		uint32_t buf_len = os_strtoul(argv[3], NULL, 10);
 		uint8_t *data_buf = os_zalloc(buf_len);
-		BK_ASSERT(NULL != data_buf);
+		if(NULL == data_buf)
+		{
+			CLI_LOGE("os_zalloc fail\r\n");
+			return;
+		}
+
 		i2c_mem_param_t mem_param = {0};
 		mem_param.dev_addr = EEPROM_DEV_ADDR;
 		mem_param.mem_addr = EEPROM_MEM_ADDR;

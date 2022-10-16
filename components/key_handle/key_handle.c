@@ -55,7 +55,11 @@ void key_init(void)
 						  (void *)0);
 	BK_ASSERT(kNoErr == err);
 	err = rtos_start_timer(&key_handle_timer);
-	BK_ASSERT(kNoErr == err);
+	if(kNoErr != err)
+	{
+		KEY_PRT("rtos_start_timer fail\r\n");
+		return;
+	}
 
 	KEY_PRT("==key init==\r\n");
 }

@@ -47,7 +47,6 @@ bk_err_t gpio_sdio_sel(gpio_sdio_map_mode_t gpio_sdio_sel_mode);
 bk_err_t gpio_sdio_one_line_sel(gpio_sdio_map_mode_t gpio_sdio_sel_mode);
 bk_err_t gpio_i2c1_sel(gpio_i2c1_map_mode_t gpio_i2c1_sel_mode);
 bk_err_t gpio_i2s_sel(gpio_i2s_map_mode_t gpio_i2s_sel_mode);
-void icu_sdio_host_enable(void);
 
 #if CONFIG_GPIO_WAKEUP_SUPPORT
 bk_err_t gpio_enter_low_power(void *param);

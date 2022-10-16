@@ -1659,10 +1659,9 @@ const uint8_t gc0328c_init_talbe[][2] = {
 	{0x4F, 0x01},
 	{0x50, 0x88},
 	{0xFE, 0x10},
-//	{0xFE, 0x00},
-	{0xF1, 0x07},
-	{0xF2, 0x01},
 	{0xFE, 0x00},
+	{0xF1, 0x07},// enable output vsync/hsync
+	{0xF2, 0x01},// enable output data
 };
 
 const uint8_t gc0328c_5pfs_talbe[][2] = {
@@ -3513,7 +3512,7 @@ static bk_err_t camera_intf_sccb_write_word(uint16_t addr, uint8_t data)
 	return bk_i2c_memory_write(CONFIG_CAMERA_I2C_ID, &mem_param);
 }
 
-__attribute__((unused)) static void camera_intf_sccb_read_byte(uint8_t addr, uint8_t *data)
+static void camera_intf_sccb_read_byte(uint8_t addr, uint8_t *data)
 {
 	i2c_mem_param_t mem_param = {0};
 	mem_param.dev_addr = s_camera_dev_id;
@@ -3525,7 +3524,7 @@ __attribute__((unused)) static void camera_intf_sccb_read_byte(uint8_t addr, uin
 	BK_LOG_ON_ERR(bk_i2c_memory_read(CONFIG_CAMERA_I2C_ID, &mem_param));
 }
 
-__attribute__((unused)) static void camera_intf_sccb_read_word(uint16_t addr, uint8_t *data)
+static void camera_intf_sccb_read_word(uint16_t addr, uint8_t *data)
 {
 	i2c_mem_param_t mem_param = {0};
 	mem_param.dev_addr = s_camera_dev_id;
@@ -3537,7 +3536,7 @@ __attribute__((unused)) static void camera_intf_sccb_read_word(uint16_t addr, ui
 	BK_LOG_ON_ERR(bk_i2c_memory_read(CONFIG_CAMERA_I2C_ID, &mem_param));
 }
 
-static void camera_inf_write_cfg_byte(const uint8_t (*cfg_table)[2], uint32_t size)
+static bk_err_t camera_inf_write_cfg_byte(const uint8_t (*cfg_table)[2], uint32_t size)
 {
 	bk_err_t ret = kNoErr;
 	uint8_t addr = 0;
@@ -3553,38 +3552,45 @@ static void camera_inf_write_cfg_byte(const uint8_t (*cfg_table)[2], uint32_t si
 
 		if (i2c_error_cnt >= I2C_WRITE_FAILE_TIMES) {
 			CAMERA_LOGE("I2C write failed!\r\n");
+			ret = kInProgressErr;
 			break;
 		}
 	}
+
+	return ret;
 }
 
-#if (CONFIG_SYSTEM_CTRL)
-static void camera_inf_write_init_table(const uint8_t (*cfg_table)[2], uint32_t size)
+static void camera_inf_read_cfg_byte(const uint8_t (*cfg_table)[2], uint32_t size)
 {
-	bk_err_t ret = kNoErr;
+	uint8_t read_value = 0;
 	uint8_t addr = 0;
 	uint8_t data = 0;
-	uint8_t i2c_error_cnt = 0;
 	for (uint32_t i = 0; i < size; i++) {
-		if (i == (size - 1)) {
-			bk_jpeg_enc_dvp_gpio_enable();
-		}
 		addr = cfg_table[i][0];
 		data = cfg_table[i][1];
-		ret = camera_intf_sccb_write_byte(addr, data);
-		if (ret != kNoErr) {
-			i2c_error_cnt++;
-		}
-
-		if (i2c_error_cnt >= I2C_WRITE_FAILE_TIMES) {
-			CAMERA_LOGE("I2C write failed!\r\n");
-			break;
+		camera_intf_sccb_read_byte(addr, &read_value);
+		if (read_value != data) {
+			CAMERA_LOGE("0x%02x, 0x%02x-0x%02x\r\n", addr, data, read_value);
 		}
 	}
 }
-#endif
 
-static void camera_inf_write_cfg_word(const uint16_t (*cfg_table)[2], uint32_t size)
+static void camera_inf_read_cfg_word(const uint16_t (*cfg_table)[2], uint32_t size)
+{
+	uint8_t read_value = 0;
+	uint16_t addr = 0;
+	uint8_t data = 0;
+	for (uint32_t i = 0; i < size; i++) {
+		addr = cfg_table[i][0];
+		data = cfg_table[i][1];
+		camera_intf_sccb_read_word(addr, &read_value);
+		if (read_value != data) {
+			CAMERA_LOGE("0x%04x, 0x%02x-0x%02x\r\n", addr, data, read_value);
+		}
+	}
+}
+
+static bk_err_t camera_inf_write_cfg_word(const uint16_t (*cfg_table)[2], uint32_t size)
 {
 	bk_err_t ret = kNoErr;
 	uint16_t addr = 0;
@@ -3600,88 +3606,98 @@ static void camera_inf_write_cfg_word(const uint16_t (*cfg_table)[2], uint32_t s
 
 		if (i2c_error_cnt >= I2C_WRITE_FAILE_TIMES) {
 			CAMERA_LOGE("I2C write failed!\r\n");
+			ret = kInProgressErr;
 			break;
 		}
 	}
+
+	return ret;
 }
 
-static void camera_inf_cfg_gc0328c_ppi(uint32_t ppi_type)
+static bk_err_t camera_inf_cfg_gc0328c_ppi(uint32_t ppi_type)
 {
+	int ret = kNoErr;
 	uint32_t size;
 	switch (ppi_type) {
 	case VGA_480_272:
 		size = sizeof(gc0328c_WQVGA_480_272_talbe) / 2;
-		camera_inf_write_cfg_byte(gc0328c_WQVGA_480_272_talbe, size);
+		ret = camera_inf_write_cfg_byte(gc0328c_WQVGA_480_272_talbe, size);
 		break;
 	case QVGA_320_240:
 		size = sizeof(gc0328c_QVGA_320_240_talbe) / 2;
-		camera_inf_write_cfg_byte(gc0328c_QVGA_320_240_talbe, size);
+		ret = camera_inf_write_cfg_byte(gc0328c_QVGA_320_240_talbe, size);
 		break;
 	case VGA_320_480:
 		size = sizeof(gc0328c_VGA_320_480_talbe) / 2;
-		camera_inf_write_cfg_byte(gc0328c_VGA_320_480_talbe, size);
+		ret = camera_inf_write_cfg_byte(gc0328c_VGA_320_480_talbe, size);
 		break;
 	case VGA_480_320:
 		size = sizeof(gc0328c_VGA_480_320_talbe) / 2;
-		camera_inf_write_cfg_byte(gc0328c_VGA_480_320_talbe, size);
+		ret = camera_inf_write_cfg_byte(gc0328c_VGA_480_320_talbe, size);
 		break;
 	case VGA_640_480:
 		size = sizeof(gc0328c_VGA_640_480_talbe) / 2;
-		camera_inf_write_cfg_byte(gc0328c_VGA_640_480_talbe, size);
+		ret = camera_inf_write_cfg_byte(gc0328c_VGA_640_480_talbe, size);
 		break;
 	default:
 		CAMERA_LOGW("set PPI unknown\r\n");
 		size = sizeof(gc0328c_VGA_640_480_talbe) / 2;
-		camera_inf_write_cfg_byte(gc0328c_VGA_640_480_talbe, size);
+		ret = camera_inf_write_cfg_byte(gc0328c_VGA_640_480_talbe, size);
 	}
+
+	return ret;
 }
 
-static void camera_inf_cfg_gc0328c_fps(uint32_t fps_type)
+static bk_err_t camera_inf_cfg_gc0328c_fps(uint32_t fps_type)
 {
+	int ret = kNoErr;
 	uint32_t size;
 	switch (fps_type) {
 	case TYPE_5FPS:
 		size = sizeof(gc0328c_5pfs_talbe) / 2;
-		camera_inf_write_cfg_byte(gc0328c_5pfs_talbe, size);
+		ret = camera_inf_write_cfg_byte(gc0328c_5pfs_talbe, size);
 		break;
 	case TYPE_10FPS:
 		size = sizeof(gc0328c_10pfs_talbe) / 2;
-		camera_inf_write_cfg_byte(gc0328c_10pfs_talbe, size);
+		ret = camera_inf_write_cfg_byte(gc0328c_10pfs_talbe, size);
 		break;
 	case TYPE_20FPS:
 		size = sizeof(gc0328c_20pfs_talbe) / 2;
-		camera_inf_write_cfg_byte(gc0328c_20pfs_talbe, size);
+		ret = camera_inf_write_cfg_byte(gc0328c_20pfs_talbe, size);
 		break;
 	case TYPE_25FPS:
 		size = sizeof(gc0328c_25pfs_talbe) / 2;
-		camera_inf_write_cfg_byte(gc0328c_25pfs_talbe, size);
+		ret = camera_inf_write_cfg_byte(gc0328c_25pfs_talbe, size);
 		break;
 	case TYPE_30FPS:
 		size = sizeof(gc0328c_30pfs_talbe) / 2;
-		camera_inf_write_cfg_byte(gc0328c_30pfs_talbe, size);
+		ret = camera_inf_write_cfg_byte(gc0328c_30pfs_talbe, size);
 		break;
 	default:
 		CAMERA_LOGW("set FPS unknown\r\n");
 		size = sizeof(gc0328c_20pfs_talbe) / 2;
-		camera_inf_write_cfg_byte(gc0328c_20pfs_talbe, size);
+		ret = camera_inf_write_cfg_byte(gc0328c_20pfs_talbe, size);
 	}
+
+	return ret;
 }
 
-static void camera_inf_cfg_hm1055_fps(uint32_t fps_type)
+static bk_err_t camera_inf_cfg_hm1055_fps(uint32_t fps_type)
 {
+	int ret = kNoErr;
 	uint32_t size;
 	switch (fps_type) {
 	case TYPE_5FPS:
 		size = sizeof(hm_1055_720P_5fps_talbe) / 4;
-		camera_inf_write_cfg_word(hm_1055_720P_5fps_talbe, size);
+		ret = camera_inf_write_cfg_word(hm_1055_720P_5fps_talbe, size);
 		break;
 	case TYPE_10FPS:
 		size = sizeof(hm_1055_720P_10fps_talbe) / 4;
-		camera_inf_write_cfg_word(hm_1055_720P_10fps_talbe, size);
+		ret = camera_inf_write_cfg_word(hm_1055_720P_10fps_talbe, size);
 		break;
 	case TYPE_15FPS:
 		size = sizeof(hm_1055_720P_15fps_talbe) / 4;
-		camera_inf_write_cfg_word(hm_1055_720P_15fps_talbe, size);
+		ret = camera_inf_write_cfg_word(hm_1055_720P_15fps_talbe, size);
 		break;
 	case TYPE_20FPS:
 		/*size = sizeof(hm_1055_720P_20fps_talbe) / 4;
@@ -3689,114 +3705,177 @@ static void camera_inf_cfg_hm1055_fps(uint32_t fps_type)
 		break;
 	case TYPE_25FPS:
 		size = sizeof(hm_1055_720P_25fps_talbe) / 4;
-		camera_inf_write_cfg_word(hm_1055_720P_25fps_talbe, size);
+		ret = camera_inf_write_cfg_word(hm_1055_720P_25fps_talbe, size);
 		break;
 	case TYPE_30FPS:
 		size = sizeof(hm_1055_720P_30fps_talbe) / 4;
-		camera_inf_write_cfg_word(hm_1055_720P_30fps_talbe, size);
+		ret = camera_inf_write_cfg_word(hm_1055_720P_30fps_talbe, size);
 		break;
 	default:
 		CAMERA_LOGW("set FPS unknown, default 20 fps\r\n");
 		size = sizeof(hm_1055_720P_20fps_talbe) / 4;
-		camera_inf_write_cfg_word(hm_1055_720P_20fps_talbe, size);
+		ret = camera_inf_write_cfg_word(hm_1055_720P_20fps_talbe, size);
 	}
+
+	return ret;
 }
 
-static void camera_inf_cfg_ov2640_ppi(uint32_t ppi_type)
+static bk_err_t camera_inf_cfg_ov2640_ppi(uint32_t ppi_type)
 {
+	int ret = kNoErr;
 	uint32_t size;
 	switch (ppi_type) {
 	case VGA_640_480:
 		size = sizeof(ov_2640_init_640_480_table) / 2;
-		camera_inf_write_cfg_byte(ov_2640_init_640_480_table, size);
+		ret = camera_inf_write_cfg_byte(ov_2640_init_640_480_table, size);
 		break;
 	case VGA_800_600:
 		size = sizeof(ov_2640_init_800_600_table) / 2;
-		camera_inf_write_cfg_byte(ov_2640_init_800_600_table, size);
+		ret = camera_inf_write_cfg_byte(ov_2640_init_800_600_table, size);
 		break;
 	case VGA_1600_1200:
 		size = sizeof(ov_2640_init_1600_1200_table) / 2;
-		camera_inf_write_cfg_byte(ov_2640_init_1600_1200_table, size);
+		ret = camera_inf_write_cfg_byte(ov_2640_init_1600_1200_table, size);
 		break;
 	default:
 		CAMERA_LOGW("set PPI unknown\r\n");
 		size = sizeof(ov_2640_init_640_480_table) / 2;
-		camera_inf_write_cfg_byte(ov_2640_init_640_480_table, size);
+		ret = camera_inf_write_cfg_byte(ov_2640_init_640_480_table, size);
+	}
+
+	return ret;
+}
+
+void camera_inf_power_down(void)
+{
+	switch (s_camera_dev)
+	{
+		case GC0308C_DEV:
+			camera_intf_sccb_write_byte(0xFE, 0x80);
+			break;
+		case HM_1055_DEV:
+			camera_intf_sccb_write_word(0x0004, 0x14);
+			break;
+		default:
+			break;
 	}
 }
 
-void bk_camera_sensor_config(void)
+bk_err_t bk_camera_sensor_config(void)
 {
+	int ret = kNoErr;
 	uint32_t size;
 	switch (s_camera_dev) {
 	case PAS6329_DEV:
 		s_camera_dev_id = PAS6329_DEV_ID;
 		size = sizeof(pas6329_page0) / 2;
 		PAS6329_SET_PAGE0;
-		camera_inf_write_cfg_byte(pas6329_page0, size);
+		ret = camera_inf_write_cfg_byte(pas6329_page0, size);
+		if (ret != kNoErr)
+			return ret;
 		size = sizeof(pas6329_page1) / 2;
 		PAS6329_SET_PAGE1;
-		camera_inf_write_cfg_byte(pas6329_page1, size);
+		ret = camera_inf_write_cfg_byte(pas6329_page1, size);
+		if (ret != kNoErr)
+			return ret;
 		size = sizeof(pas6329_page2) / 2;
 		PAS6329_SET_PAGE2;
-		camera_inf_write_cfg_byte(pas6329_page2, size);
+		ret = camera_inf_write_cfg_byte(pas6329_page2, size);
+		if (ret != kNoErr)
+			return ret;
 		PAS6329_SET_PAGE0;
 		CAMERA_LOGI("PAS6329 init finish\r\n");
 		break;
 	case OV_7670_DEV:
 		s_camera_dev_id = OV_7670_DEV_ID;
 		size = sizeof(ov_7670_init_talbe) / 2;
-		camera_inf_write_cfg_byte(ov_7670_init_talbe, size);
+		ret = camera_inf_write_cfg_byte(ov_7670_init_talbe, size);
+		if (ret != kNoErr)
+			return ret;
 		CAMERA_LOGI("OV_7670 init finish\r\n");
 		break;
 	case PAS6375_DEV:
 		s_camera_dev_id = PAS6375_DEV_ID;
 		size = sizeof(pas6375_init_talbe) / 2;
-		camera_inf_write_cfg_byte(pas6375_init_talbe, size);
+		ret = camera_inf_write_cfg_byte(pas6375_init_talbe, size);
+		if (ret != kNoErr)
+			return ret;
 		CAMERA_LOGI("PAS6375 init finish\r\n");
 		break;
 	case GC0328C_DEV:
 		s_camera_dev_id = GC0328C_DEV_ID;
 		size = sizeof(gc0328c_init_talbe) / 2;
 
-#if (!CONFIG_SYSTEM_CTRL)
-		camera_inf_write_cfg_byte(gc0328c_init_talbe, size);
-#else
-		camera_inf_write_init_table(gc0328c_init_talbe, size);
+		ret = camera_inf_write_cfg_byte(gc0328c_init_talbe, size);
+		if (ret != kNoErr)
+			return ret;
+#if (CONFIG_SYSTEM_CTRL)
+		bk_jpeg_enc_set_gpio(ENABLE_DATA);
 #endif
-		camera_inf_cfg_gc0328c_ppi(CMPARAM_GET_PPI(sener_cfg));
-		camera_inf_cfg_gc0328c_fps(CMPARAM_GET_FPS(sener_cfg));
+
+		ret = camera_inf_cfg_gc0328c_ppi(CMPARAM_GET_PPI(sener_cfg));
+		if (ret != kNoErr)
+			return ret;
+
+		ret = camera_inf_cfg_gc0328c_fps(CMPARAM_GET_FPS(sener_cfg));
+		if (ret != kNoErr)
+			return ret;
+
 		CAMERA_LOGI("GC0328C init finish\r\n");
 		break;
 	case BF_2013_DEV:
 		s_camera_dev_id = BF_2013_DEV_ID;
 		size = sizeof(bf_2013_init_talbe) / 2;
-		camera_inf_write_cfg_byte(bf_2013_init_talbe, size);
+		ret = camera_inf_write_cfg_byte(bf_2013_init_talbe, size);
+		if (ret != kNoErr)
+			return ret;
 		CAMERA_LOGI("BF_2013 init finish\r\n");
 		break;
 	case GC0308C_DEV:
 		s_camera_dev_id = GC0308C_DEV_ID;
 		size = sizeof(gc0308c_init_talbe) / 2;
-		camera_inf_write_cfg_byte(gc0308c_init_talbe, size);
+		ret = camera_inf_write_cfg_byte(gc0308c_init_talbe, size);
+		if (ret != kNoErr)
+			return ret;
 		CAMERA_LOGI("GC0308C init finish\r\n");
 		break;
 	case HM_1055_DEV:
 		s_camera_dev_id = HM_1055_DEV_ID;
 		size = sizeof(hm_1055_init_talbe) / 4;
-		camera_inf_write_cfg_word(hm_1055_init_talbe, size);
-		bk_jpeg_enc_dvp_gpio_enable();
-		camera_inf_cfg_hm1055_fps(CMPARAM_GET_FPS(sener_cfg));
+		ret = camera_inf_write_cfg_word(hm_1055_init_talbe, size);
+		if (ret != kNoErr)
+			return ret;
+
+#if (CONFIG_SYSTEM_CTRL)
+		bk_jpeg_enc_set_gpio(ENABLE_DATA);
+#endif
+
+		ret = camera_inf_cfg_hm1055_fps(CMPARAM_GET_FPS(sener_cfg));
+		if (ret != kNoErr)
+			return ret;
 		CAMERA_LOGI("HM_1055 init finish\r\n");
 		break;
 	case OV_2640_DEV:
 		s_camera_dev_id = OV_2640_DEV_ID;
-		bk_jpeg_enc_dvp_gpio_enable();
-		camera_inf_cfg_ov2640_ppi(CMPARAM_GET_PPI(sener_cfg));
+		size = sizeof(ov_2640_init_640_480_table) / 4;
+		ret = camera_inf_write_cfg_byte(ov_2640_init_640_480_table, size);
+		if (ret != kNoErr)
+			return ret;
+
+#if (CONFIG_SYSTEM_CTRL)
+		bk_jpeg_enc_set_gpio(ENABLE_DATA);
+#endif
+
+		ret = camera_inf_cfg_ov2640_ppi(CMPARAM_GET_PPI(sener_cfg));
+		if (ret != kNoErr)
+			return ret;
 		CAMERA_LOGI("OV_2640 init finish\r\n");
 		break;
 	default:
 		CAMERA_LOGE("NOT Find this sensor\r\n");
 	}
+
+	return ret;
 }
 
 void camera_intf_set_sener_cfg_value(uint32_t cfg)
@@ -3810,6 +3889,28 @@ void camera_intf_set_device(uint32_t dev)
 		s_camera_dev = 0xABC03;
 	} else {
 		s_camera_dev = 0xABC00 + dev;
+	}
+}
+
+void camera_inft_dump_register(void)
+{
+	uint32_t size = 0;
+
+	switch (s_camera_dev) {
+		case GC0328C_DEV:
+			s_camera_dev_id = GC0328C_DEV_ID;
+			size = sizeof(gc0328c_init_talbe) / 2;
+			camera_inf_read_cfg_byte(gc0328c_init_talbe, size);
+			break;
+
+		case HM_1055_DEV:
+			s_camera_dev_id = HM_1055_DEV_ID;
+			size = sizeof(hm_1055_init_talbe) / 4;
+			camera_inf_read_cfg_word(hm_1055_init_talbe, size);
+			break;
+
+		default:
+			break;
 	}
 }
 

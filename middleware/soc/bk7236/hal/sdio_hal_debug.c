@@ -140,7 +140,7 @@ void sdio_host_struct_dump(void)
 	SOC_LOGI("    tx_fifo_reset:     %x\n", hw->sd_fifo_threshold.tx_fifo_reset);
 	SOC_LOGI("    rx_fifo_rd_ready:  %x\n", hw->sd_fifo_threshold.rx_fifo_rd_ready);
 	SOC_LOGI("    tx_fifo_wr_ready:  %x\n", hw->sd_fifo_threshold.tx_fifo_wr_ready);
-	SOC_LOGI("    sd_start_reset:    %x\n", hw->sd_fifo_threshold.sd_start_reset);
+	SOC_LOGI("    sd_state_reset:    %x\n", hw->sd_fifo_threshold.sd_state_reset);
 	SOC_LOGI("    sd_clk_sel:        %x\n", hw->sd_fifo_threshold.sd_clk_sel);
 	SOC_LOGI("    sd_rd_wait_sel:    %x\n", hw->sd_fifo_threshold.sd_rd_wait_sel);
 	SOC_LOGI("    sd_wr_wait_sel:    %x\n", hw->sd_fifo_threshold.sd_wr_wait_sel);

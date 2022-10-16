@@ -1,0 +1,5 @@
+menu "DEMOS_CONFIG"
+	config AUDIO_VAD_TEST
+		bool "Enable AUDIO Voice Activity Detection Test"
+		default n
+endmenu

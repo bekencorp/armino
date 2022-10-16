@@ -141,8 +141,8 @@ const unsigned int g_sram_addr_map[SRAM_BLOCK_COUNT] = {
 const unsigned int g_sram_addr_map[SRAM_BLOCK_COUNT] = {
     0x38000000,
     0x38020000,
-    0x30000000,
-    0x30020000
+    0x30020000,
+    0x30000000
 };
 #endif //#if CONFIG_CACHE_ENABLE
 #else  //#if !CONFIG_CACHE_CUSTOM_SRAM_MAPPING

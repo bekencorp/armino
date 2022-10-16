@@ -18,6 +18,15 @@ menu "FreeRTOS"
 		bool "FreeRTOS POSIX"
 		default n
 
+	config FREERTOS_USE_TICKLESS_IDLE
+		depends on FREERTOS_V10
+		int "Use tickless idle, can be 0/1/2"
+		default 2
+
+	config MEM_MGMT
+		bool "Enable heap management module"
+		default n
+
 	menu "Memory Debug"
 		config MALLOC_STATIS
 			bool "Enable malloc statistics"

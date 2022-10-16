@@ -13,12 +13,6 @@
 #error "if use hspi, need open CONFIG_SPIDMA and CONFIG_HSLAVE_SPI"
 #endif
 
-#if ((!CONFIG_SOC_BK7231U) && (!CONFIG_SOC_BK7251) && (!CONFIG_SOC_BK7271) && (!CONFIG_SOC_BK7236A) && (!CONFIG_SOC_BK7256XX))
-#if (CONFIG_CAMERA == 1)
-#error "chip not support CONFIG_CAMERA"
-#endif
-#endif
-
 #define APP_DEMO_CFG_USE_TCP              1
 #define APP_DEMO_CFG_USE_UDP              1
 #define APP_DEMO_CFG_USE_VIDEO_BUFFER     1

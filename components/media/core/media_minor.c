@@ -42,7 +42,7 @@ static void media_minor_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 
 	switch (cmd_buf->param1 >> MEDIA_EVT_BIT)
 	{
-#ifdef CONFIG_CAMERA
+// #ifdef CONFIG_CAMERA
 		case MAILBOX_CMD:
 		{
 			media_msg_t msg;
@@ -61,7 +61,7 @@ static void media_minor_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 
 		}
 		break;
-#endif
+// #endif
 		default:
 			break;
 	}
@@ -85,11 +85,13 @@ bk_err_t media_send_msg(media_msg_t *msg)
 {
 	bk_err_t ret;
 
+#if 0
 	if (msg->event >> MEDIA_EVT_BIT == MAILBOX_CMD)
 	{
 		LOGE("%s failed, error event\n", __func__);
 		return BK_FAIL;
 	}
+#endif
 
 	if (msg->event >> MEDIA_EVT_BIT == MAILBOX_EVT)
 	{
@@ -127,35 +129,6 @@ static void media_minor_message_handle(void)
 		{
 			switch (msg.event >> MEDIA_EVT_BIT)
 			{
-#if 0
-				case COM_EVENT:
-					comm_event_handle(msg.event, msg.param);
-					break;
-#ifdef CONFIG_CAMERA
-				case DVP_EVENT:
-					dvp_camera_event_handle(msg.event, msg.param);
-					break;
-#endif
-
-#ifdef CONFIG_AUDIO
-				case AUD_EVENT:
-					audio_event_handle(msg.event, msg.param);
-					break;
-#endif
-
-#ifdef CONFIG_LCD
-				case LCD_EVENT:
-					lcd_event_handle(msg.event, msg.param);
-					break;
-#endif
-
-#if CONFIG_USB_UVC
-				case UVC_EVENT:
-					uvc_camera_event_handle(msg.event, msg.param);
-					break;
-#endif
-#endif
-
 #ifdef CONFIG_DUAL_CORE
 				case MAILBOX_CMD:
 					mailbox_cmd_handle(msg.event, msg.param);
@@ -241,6 +214,8 @@ bk_err_t media_minor_init(void)
 	mb_chnl_ctrl(MB_CHNL_MEDIA, MB_CHNL_SET_RX_ISR, media_minor_mailbox_rx_isr);
 	mb_chnl_ctrl(MB_CHNL_MEDIA, MB_CHNL_SET_TX_ISR, media_minor_mailbox_tx_isr);
 	mb_chnl_ctrl(MB_CHNL_MEDIA, MB_CHNL_SET_TX_CMPL_ISR, media_minor_mailbox_tx_cmpl_isr);
+
+	lcd_calc_init();
 
 	LOGI("media minor thread startup complete\n");
 

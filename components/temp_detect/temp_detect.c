@@ -25,6 +25,7 @@
 #if CONFIG_FLASH_ORIGIN_API
 #include "flash.h"
 #endif
+#include <modules/pm.h>
 
 #define CFG_USE_TEMPERATURE_DETECT                 1
 #define CFG_SUPPORT_SARADC                         1
@@ -195,6 +196,8 @@ static int tempd_adc_get_raw_data(void)
 _release_adc:
 	//TODO check it, do we need to always enable temperature sensor?
 	temp_sensor_disable();
+    bk_adc_stop();
+	bk_adc_deinit(ADC_TEMP_SENSOR_CHANNEL);
 	bk_adc_release();
 	return err;
 }
@@ -230,7 +233,7 @@ void temp_detect_send_msg(uint32_t msg_type)
 
 		ret = rtos_push_to_queue(&s_tempd_msg_queue, &msg, BEKEN_NO_WAIT);
 		if (kNoErr != ret)
-			TEMPD_LOGE("send msg failed(%x)\r\n", ret);
+			TEMPD_LOGE("send msg failed ret:%x,m_t:%x\r\n", ret, msg_type);
 	}
 }
 
@@ -289,19 +292,29 @@ int temp_detect_deinit(void)
 
 int temp_detect_stop(void)
 {
-	if (s_tempd.detect_timer.function
+#if TEMP_DETECT_ONESHOT_TIMER
+    if (s_tempd.detect_oneshot_timer.function
+        && rtos_is_oneshot_timer_running(&s_tempd.detect_oneshot_timer))
+        temp_detect_send_msg(TMPD_PAUSE_TIMER);
+#else
+    if (s_tempd.detect_timer.function
 		&& rtos_is_timer_running(&s_tempd.detect_timer))
 		temp_detect_send_msg(TMPD_PAUSE_TIMER);
-
+#endif
 	return BK_OK;
 }
 
 int temp_detect_start(void)
 {
+#if TEMP_DETECT_ONESHOT_TIMER
+	if (s_tempd.detect_oneshot_timer.function &&
+		!rtos_is_oneshot_timer_running(&s_tempd.detect_oneshot_timer))
+		temp_detect_send_msg(TMPD_RESTART_TIMER);
+#else
 	if (s_tempd.detect_timer.function &&
 		!rtos_is_timer_running(&s_tempd.detect_timer))
 		temp_detect_send_msg(TMPD_RESTART_TIMER);
-
+#endif
 	return BK_OK;
 }
 
@@ -310,25 +323,45 @@ bool temp_detect_is_init(void)
 	return !!((s_tempd_task_handle) && (s_tempd_msg_queue));
 }
 
+#if TEMP_DETECT_ONESHOT_TIMER
+static void temp_detect_oneshot_timer_handler(void *data1, void *data2)
+{
+    temp_detect_send_msg(TMPD_TIMER_EXPIRED);
+	temp_detect_send_msg(TMPD_RESTART_TIMER);
+}
+#else
 static void temp_detect_timer_handler(void *data)
 {
 	temp_detect_send_msg(TMPD_TIMER_EXPIRED);
 }
+#endif
 
 static void tempd_notify_temperature_to_calibration(uint16_t temperature)
 {
 #if CONFIG_STA_PS
 	uint16_t threshold = s_tempd.detect_threshold;
+
+#if (CONFIG_SOC_BK7256XX)
+	rwnx_cal_do_temp_detect(temperature, threshold, &s_tempd.last_detect_val);
+#else
 	ps_switch(PS_UNALLOW, PS_EVENT_TEMP, PM_RF_BIT);
 	rwnx_cal_do_temp_detect(temperature, threshold, &s_tempd.last_detect_val);
 	ps_switch(PS_ALLOW, PS_EVENT_TEMP, PM_RF_BIT);
+#endif
+
 #endif
 }
 
 static void tempd_stop(void)
 {
 	int err;
-	err = rtos_stop_timer(&s_tempd.detect_timer);
+    
+#if TEMP_DETECT_ONESHOT_TIMER
+    err = rtos_stop_oneshot_timer(&s_tempd.detect_oneshot_timer);
+#else
+    err = rtos_stop_timer(&s_tempd.detect_timer);
+#endif
+
 	BK_ASSERT(kNoErr == err);
 	TEMPD_LOGD("stop\n");
 }
@@ -336,7 +369,12 @@ static void tempd_stop(void)
 static void tempd_restart(void)
 {
 	int err;
-	err = rtos_reload_timer(&s_tempd.detect_timer);
+
+#if TEMP_DETECT_ONESHOT_TIMER
+    err = rtos_oneshot_reload_timer(&s_tempd.detect_oneshot_timer);
+#else
+    err = rtos_reload_timer(&s_tempd.detect_timer);
+#endif
 	BK_ASSERT(kNoErr == err);
 	TEMPD_LOGD("restart\n");
 }
@@ -359,7 +397,7 @@ static void tempd_detect_temperature(void)
 {
 	uint16_t temperature = 0;
 	int err = BK_OK;
-
+    bk_pm_module_vote_sleep_ctrl(PM_SLEEP_MODULE_NAME_SARADC, 0,0);
 	s_tempd.detect_cnt++;
 	tempd_stop();
 
@@ -367,6 +405,7 @@ static void tempd_detect_temperature(void)
 	if (BK_OK != err) {
 		TEMPD_LOGW("detect failed(%d), retry\n", err);
 		tempd_restart();
+        bk_pm_module_vote_sleep_ctrl(PM_SLEEP_MODULE_NAME_SARADC, 1,0);
 		return; //TODO is that correct?
 	}
 
@@ -380,6 +419,8 @@ static void tempd_detect_temperature(void)
 		temp_detect_send_msg(TMPD_CHANGE_PARAM);
 	else
 		tempd_restart();
+
+    bk_pm_module_vote_sleep_ctrl(PM_SLEEP_MODULE_NAME_SARADC, 1,0);
 }
 
 static void tempd_init(uint32_t init_temperature)
@@ -405,20 +446,34 @@ static void tempd_init(uint32_t init_temperature)
 	TEMPD_LOGI("xtal inital:%d, %d, %d\r\n", s_tempd.last_xtal_val,
 			  s_tempd.xtal_threshold_val, s_tempd.xtal_init_val);
 
-	err = rtos_init_timer(&s_tempd.detect_timer,
+#if TEMP_DETECT_ONESHOT_TIMER
+    err = rtos_init_oneshot_timer(&s_tempd.detect_oneshot_timer,
 						  s_tempd.detect_interval * 1000,
-						  temp_detect_timer_handler,
+						  temp_detect_oneshot_timer_handler,
+						  (void *)0,
 						  (void *)0);
-	BK_ASSERT(kNoErr == err);
-	err = rtos_start_timer(&s_tempd.detect_timer);
+    BK_ASSERT(kNoErr == err);
+    err = rtos_start_oneshot_timer(&s_tempd.detect_oneshot_timer);
+#else
+	err = rtos_init_timer(&s_tempd.detect_timer,
+					  s_tempd.detect_interval * 1000,
+					  temp_detect_timer_handler,
+					  (void *)0);
+    BK_ASSERT(kNoErr == err);
+    err = rtos_start_timer(&s_tempd.detect_timer);
+#endif
 	BK_ASSERT(kNoErr == err);
 }
 
 static void tempd_deinit(void)
 {
 	int err;
-
-	err = rtos_deinit_timer(&s_tempd.detect_timer);
+	
+#if TEMP_DETECT_ONESHOT_TIMER
+    err = rtos_deinit_oneshot_timer(&s_tempd.detect_oneshot_timer);
+#else
+    err = rtos_deinit_timer(&s_tempd.detect_timer);
+#endif
 	BK_ASSERT(kNoErr == err);
 
 	rtos_deinit_queue(&s_tempd_msg_queue);
@@ -527,7 +582,19 @@ void temp_detect_change_configuration(uint32_t interval, uint32_t threshold, uin
 
 	if (s_tempd.detect_interval != interval) {
 		s_tempd.detect_interval = interval;
-
+#if TEMP_DETECT_ONESHOT_TIMER
+        if (s_tempd.detect_oneshot_timer.function) {
+    		err = rtos_deinit_oneshot_timer(&s_tempd.detect_oneshot_timer);
+    		BK_ASSERT(kNoErr == err);
+    	}
+        err = rtos_init_oneshot_timer(&s_tempd.detect_oneshot_timer,
+                                  s_tempd.detect_interval * 1000,
+                                  temp_detect_oneshot_timer_handler,
+                                  (void *)0,
+                                  (void *)0);
+        BK_ASSERT(kNoErr == err);
+        err = rtos_start_oneshot_timer(&s_tempd.detect_oneshot_timer);
+#else
 		if (s_tempd.detect_timer.function) {
 			err = rtos_deinit_timer(&s_tempd.detect_timer);
 			BK_ASSERT(kNoErr == err);
@@ -540,6 +607,7 @@ void temp_detect_change_configuration(uint32_t interval, uint32_t threshold, uin
 		BK_ASSERT(kNoErr == err);
 
 		err = rtos_start_timer(&s_tempd.detect_timer);
+#endif
 		BK_ASSERT(kNoErr == err);
 	}
 }

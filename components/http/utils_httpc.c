@@ -19,6 +19,10 @@
 #endif
 #endif
 
+#ifdef CONFIG_HTTP_AB_PARTITION
+    #include "modules/ota.h"
+    extern part_flag update_part_flag;
+#endif
 #if CONFIG_HTTP
 #define HTTPCLIENT_MIN(x,y) (((x)<(y))?(x):(y))
 #define HTTPCLIENT_MAX(x,y) (((x)>(y))?(x):(y))
@@ -695,10 +699,6 @@ void http_flash_wr(UINT8 *src, unsigned len)
         	}
         }
 }
-
-#ifdef CONFIG_HTTP_AB_PARTITION
-    extern part_flag update_part_flag;
-#endif
 
 void http_flash_init(void)
 {

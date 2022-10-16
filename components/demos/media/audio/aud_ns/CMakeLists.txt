@@ -1,0 +1,7 @@
+if (CONFIG_AUDIO_NS_TEST)
+set(srcs
+	aud_ns_demo.c
+	)
+endif()
+
+armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_common)

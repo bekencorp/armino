@@ -129,10 +129,17 @@ if (CONFIG_GENERAL_DMA)
 endif()
 
 if (CONFIG_I2C)
+if (NOT CONFIG_SIM_I2C)
 	list(APPEND srcs
 		i2c/i2c_driver.c
 		i2c/i2c_statis.c
-		)
+	)
+endif()
+if (CONFIG_SIM_I2C)
+	list(APPEND srcs
+		i2c/sim_i2c_driver.c
+	)
+endif() 
 endif()  #if (CONFIG_I2C)
 
 if (CONFIG_SUPPORT_IRDA)
@@ -191,31 +198,30 @@ if (CONFIG_I2S)
 		i2s/i2s_driver.c
 	)
 endif()
-
-	if (CONFIG_LCD)
+endif()
+	
+if (CONFIG_LCD)
 	list(APPEND srcs
 		"lcd/lcd_driver.c"
 		"lcd/lcd_hx8282.c"
 		"lcd/lcd_st7282.c"
 		"lcd/lcd_st7796s.c"
 		"lcd/lcd_gc9503v.c"
+		"lcd/lcd_nt35512.c"
 		"lcd/lcd_spi.c"
 		)
-	endif()
+endif()
 
-
-
-	if(CONFIG_DMA2D)
-	list(APPEND srcs
-		dma2d/dma2d_driver.c
-	)
-	endif()
-
-	if (CONFIG_JPEG_DEC)
+if (CONFIG_JPEG_DEC)
 	list(APPEND srcs
 		"jpeg_dec/jpeg_dec_driver.c"
 		)
-	endif()
+endif()
+
+if(CONFIG_DMA2D)
+	list(APPEND srcs
+		dma2d/dma2d_driver.c
+	)
 endif()
 
 if (CONFIG_TRNG_SUPPORT)
@@ -239,6 +245,12 @@ if (CONFIG_QSPI)
 		"qspi/qspi_flash.c"
 		)
 endif() #if (CONFIG_QSPI)
+
+if (CONFIG_QSPI AND CONFIG_QSPI_OLED)
+	list(APPEND srcs
+		"lcd/qspi_oled.c"
+		)
+endif()
 
 if (CONFIG_JPEG_ENCODE)
 	list(APPEND srcs
@@ -277,6 +289,7 @@ if (CONFIG_SDCARD_V1P0)
 	list(APPEND srcs
 		"sdcard/sdio_driver.c"
 		"sdcard/sdcard.c"
+		"sdcard/sdcard_test.c"
 		)
 endif() #if (CONFIG_SDCARD_HOST)
 
@@ -292,7 +305,7 @@ if (CONFIG_SDIO_V1P0)
 		)
 endif() #if (CONFIG_SDIO_V1P0)
 
-if (CONFIG_SDIO_V2P0)
+if (CONFIG_SDIO_V2P0 AND CONFIG_SDIO_SLAVE)
 	list(APPEND incs
 		"sdio/v2p0"
 	)
@@ -425,12 +438,13 @@ if( "${target}" STREQUAL "bk7231n"
 endif()
 
 if (CONFIG_CAMERA)
-	list(APPEND srcs
-        	"camera/dvp_camera.c"
-        	"camera/dvp_gc0328c.c"
-        	"camera/dvp_hm1055.c"
-		"camera/dvp_ov2640.c"
-    	)
+    list(APPEND srcs
+        "camera/dvp_camera.c"
+        "camera/dvp_gc0328c.c"
+        "camera/dvp_gc2145.c"
+        "camera/dvp_hm1055.c"
+        "camera/dvp_ov2640.c"
+    )
 endif()
 
 if (CONFIG_USB_UVC)

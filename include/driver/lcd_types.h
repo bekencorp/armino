@@ -29,6 +29,7 @@ typedef enum {
 	LCD_DEVICE_HX8282,  /**< 1024X600 RGB  */
 	LCD_DEVICE_GC9503V, /**< 480X800 RGB  */
 	LCD_DEVICE_ST7796S, /**< 320X480 MCU  */
+	LCD_DEVICE_NT35512,
 } lcd_device_id_t;
 
 typedef enum {
@@ -67,20 +68,6 @@ typedef enum {
 }rgb_out_clk_edge_t;
 
 
-/** rgb lcd input data format, data save in mem is little endian, like VUYY format is [bit31-bit0] is [V U Y Y]*/
-typedef enum {
-	LCD_FMT_RGB565 = 0,        /**< input data format is rgb565*/
-	LCD_FMT_ORGINAL_YUYV,    /**< input data is yuyv format, diaplay module internal may convert to rgb565 data*/
-	LCD_FMT_UYVY,
-	LCD_FMT_YYUV,            /**< input data is yyuv format */
-	LCD_FMT_UVYY,            /**< input data is uvyy format*/
-	LCD_FMT_VUYY,            /**< input data is vuyy format */
-	LCD_FMT_YVYU,
-	LCD_FMT_VYUY,
-	LCD_FMT_YYVU
-}lcd_data_format_t;
-
-
 typedef struct {
 	uint16_t x;
 	uint16_t y;
@@ -110,8 +97,10 @@ typedef struct
 typedef struct
 {
 	lcd_clk_t clk; /**< config lcd clk */
-	void (*set_display_area)(uint16 xs, uint16 xe, uint16 ys, uint16 ye);  /**< if lcd size is smaller then image, 
-									 and set api bk_lcd_pixel_config is image x y, should set partical display */
+	bk_err_t (*set_xy_swap)(bool swap_axes); 
+	bk_err_t (*set_mirror)( bool mirror_x, bool mirror_y);
+	void (*set_display_area)(uint16 xs, uint16 xe, uint16 ys, uint16 ye); 
+	/**< if lcd size is smaller then image, and set api bk_lcd_pixel_config is image x y, should set partical display */
 } lcd_mcu_t;
 
 
@@ -126,19 +115,26 @@ typedef struct
 		const lcd_rgb_t *rgb;  /**< RGB interface lcd device config */
 		const lcd_mcu_t *mcu;  /**< MCU interface lcd device config */
 	};
+	void (*backlight_open)(void);       /**< lcd device initial function */
+	void (*backlight_set)(uint8_t);       /**< lcd device initial function */
 	void (*init)(void);       /**< lcd device initial function */
+	void (*backlight_close)(void);       /**< lcd device initial function */
+	bk_err_t (*lcd_off)(void);       /**< lcd off */
 } lcd_device_t;
 
 
 typedef struct
 {
 	const lcd_device_t *device;  /**< lcd device config */
-	lcd_data_format_t fmt;       /**< display module input data format */
-	uint16_t pixel_x;            /**< lcd display src picture size */
-	uint16_t pixel_y;            /**< lcd display src picture size */
+	pixel_format_t fmt;          /**< display module input data format */
+	int (*fb_display_init) (media_ppi_t max_ppi);
+	void (*fb_free) (frame_buffer_t *frame);
+	frame_buffer_t *(*fb_malloc) (void);
+	int (*fb_display_deinit) (void);
 #if	(USE_LCD_REGISTER_CALLBACKS == 1) 
 	void (*complete_callback)(void); /**< lcd display a frame complete callbace */
 #endif
+	int use_gui;
 } lcd_config_t;
 
 

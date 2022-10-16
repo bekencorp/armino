@@ -269,6 +269,14 @@ uint32_t bk_dma_user(dma_id_t chnl_id)
 
 bk_err_t bk_dma_init(dma_id_t id, const dma_config_t *config)
 {
+#if 0	//TODO:Temp remove before found out the re-init module.
+	if(s_dma.id_init_bits & (1<<id))
+	{
+		DMA_LOGW("id=%d has inited,deinit it first\r\n", id);
+		return BK_ERR_DMA_ID_REINIT;
+	}
+#endif
+
     DMA_RETURN_ON_NOT_INIT();
     BK_RETURN_ON_NULL(config);
     DMA_RETURN_ON_INVALID_ID(id);
@@ -563,6 +571,44 @@ bk_err_t bk_dma_set_dest_data_width(dma_id_t id, dma_data_width_t data_width)
     dma_hal_set_dest_data_width(&s_dma.hal, id, data_width);
     return BK_OK;
 }
+
+#if (CONFIG_GENERAL_DMA_SEC)
+bk_err_t bk_dma_set_dest_sec_attr(dma_id_t id, dma_sec_attr_t attr)
+{
+    DMA_RETURN_ON_NOT_INIT();
+    DMA_RETURN_ON_INVALID_ID(id);
+
+    dma_hal_set_dest_sec_attr(&s_dma.hal, id, attr);
+    return BK_OK;
+}
+
+bk_err_t bk_dma_set_src_sec_attr(dma_id_t id, dma_sec_attr_t attr)
+{
+    DMA_RETURN_ON_NOT_INIT();
+    DMA_RETURN_ON_INVALID_ID(id);
+
+    dma_hal_set_src_sec_attr(&s_dma.hal, id, attr);
+    return BK_OK;
+}
+
+bk_err_t bk_dma_set_sec_attr(dma_id_t id, dma_sec_attr_t attr)
+{
+    DMA_RETURN_ON_NOT_INIT();
+    DMA_RETURN_ON_INVALID_ID(id);
+
+    dma_hal_set_sec_attr(&s_dma.hal, id, attr);
+    return BK_OK;
+}
+
+bk_err_t bk_dma_set_privileged_attr(dma_id_t id, dma_sec_attr_t attr)
+{
+    DMA_RETURN_ON_NOT_INIT();
+    DMA_RETURN_ON_INVALID_ID(id);
+
+    dma_hal_set_privileged_attr(&s_dma.hal, id, attr);
+    return BK_OK;
+}
+#endif
 
 bk_err_t dma_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_id_t cpy_chnl)
 {

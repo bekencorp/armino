@@ -35,6 +35,7 @@ typedef struct
 	u16    packet_tx_len;
 
 	u8     tx_stopped;
+	u8     tx_suspend;
 
 	u8     echo_buff[ECHO_BUFF_SIZE];
 	u8     echo_wr_idx;
@@ -221,9 +222,29 @@ static void shell_uart_tx_isr(int uartn, shell_uart_ext_t *uart_ext)
 
 }
 
+static void shell_uart_tx_trigger(shell_uart_ext_t *uart_ext)
+{
+	if(uart_ext->tx_suspend != 0)
+		return;
+
+	if(uart_ext->tx_stopped == 0)
+		return;
+
+	uart_ext->tx_stopped = 0;   // set tx_stopped to 0 firstly, then enable TX.
+
+	bk_uart_enable_tx_interrupt(uart_ext->uart_id);
+}
+
 static void shell_uart_flush(shell_uart_ext_t *uart_ext)
 {
 	int   ret;
+
+	if(uart_ext->tx_suspend != 0)
+	{
+		// resume tx.....
+		uart_ext->tx_suspend = 0;
+		shell_uart_tx_trigger(uart_ext);
+	}
 
 	while(uart_ext->tx_stopped == 0) /* log tx pending. */
 	{
@@ -233,16 +254,6 @@ static void shell_uart_flush(shell_uart_ext_t *uart_ext)
 			shell_uart_tx_isr(uart_ext->uart_id, uart_ext);
 		}
 	}
-}
-
-static void shell_uart_tx_trigger(shell_uart_ext_t *uart_ext)
-{
-	if(uart_ext->tx_stopped == 0)
-		return;
-
-	uart_ext->tx_stopped = 0;   // set tx_stopped to 0 firstly, then enable TX.
-
-	bk_uart_enable_tx_interrupt(uart_ext->uart_id);
 }
 
 /* ===============================  shell uart driver APIs  =========================== */
@@ -261,6 +272,7 @@ static bool_t shell_uart_init(shell_dev_t * shell_dev)
 	memset(uart_ext, 0, sizeof(shell_uart_ext_t));
 	uart_ext->rx_over_flow = 0;
 	uart_ext->tx_stopped = 1;
+	uart_ext->tx_suspend = 0;
 	uart_ext->uart_id = uart_id;
 
 	return bTRUE;
@@ -474,6 +486,42 @@ static bool_t shell_uart_ctrl(shell_dev_t * shell_dev, u8 cmd, void *param)
 
 		case SHELL_IO_CTRL_FLUSH:
 			shell_uart_flush(uart_ext);
+			break;
+
+		case SHELL_IO_CTRL_TX_SUSPEND:
+			uart_ext->tx_suspend = 1;
+			
+			// disable TX firstly, then set tx_stopped to 1.
+			bk_uart_disable_tx_interrupt(uart_ext->uart_id);
+
+			uart_ext->tx_stopped = 1;  /* suspend, tx stopped after fifo empty.*/
+			
+			extern bool bk_uart_is_tx_over(uart_id_t id);
+
+			while((bk_uart_is_tx_over(uart_ext->uart_id) == 0) && (param != 0))
+			{
+			}
+			bk_uart_set_enable_tx(uart_ext->uart_id, 0);
+
+			break;
+
+		case SHELL_IO_CTRL_TX_RESUME:
+			if(uart_ext->tx_suspend != 0)
+			{
+				bk_uart_set_enable_tx(uart_ext->uart_id, 1);
+				
+				// resume tx.....
+				uart_ext->tx_suspend = 0;
+				shell_uart_tx_trigger(uart_ext);
+			}
+			break;
+
+		case SHELL_IO_CTRL_RX_SUSPEND:
+			bk_uart_set_enable_rx(uart_ext->uart_id, 0);
+			break;
+
+		case SHELL_IO_CTRL_RX_RESUME:
+			bk_uart_set_enable_rx(uart_ext->uart_id, 1);
 			break;
 
 		case SHELL_IO_CTRL_SET_UART_PORT:

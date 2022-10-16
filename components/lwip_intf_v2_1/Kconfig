@@ -37,7 +37,11 @@ menu "LwIP 2.1.2"
 	config LWIP_FAST_DHCP
 		bool "Enable Fast DHCP(use previous IP)"
 		default n
-		
+
+	config MQTT_ACK_NOW
+		bool "Enable ACK_NOW if MQTT is open"
+                default y
+
 	#TODO optimize it
         choice LWIP_MEM
 		depends on LWIP

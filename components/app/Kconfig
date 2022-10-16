@@ -34,4 +34,11 @@ menu "Application"
 	config COMPONENTS_P2P
                 bool "Enable NET_WORK P2P"
                 default n
+				
+	config LVGL_DEMO
+			bool "Enable lvgl demo"
+			default n
+	config VIDEO_AVI
+		bool "Enable VIDEO_AVI"
+		default n
 endmenu

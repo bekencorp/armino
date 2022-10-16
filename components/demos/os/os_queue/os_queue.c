@@ -29,16 +29,13 @@
  *
  ******************************************************************************
  */
-#include "os_queue.h"
-#include <common/bk_include.h>
-
-#if OS_QUEUE_DEMO
 
 #include <common/bk_include.h>
+
+#if CONFIG_OS_QUEUE_DEMO
+
 #include <os/os.h>
-#include "uart_pub.h"
-#include "Error.h"
-#include "portmacro.h"
+#include "os_queue.h"
 
 typedef struct _msg
 {
@@ -92,6 +89,7 @@ void sender_thread( beken_thread_arg_t arg )
         else
         {
             os_printf("send data to queue failed:Err = %d\r\n", err);
+            goto exit;
         }
         rtos_delay_milliseconds( 100 );
     }
@@ -143,5 +141,6 @@ exit:
     }
     return err;
 }
+
 #endif
 

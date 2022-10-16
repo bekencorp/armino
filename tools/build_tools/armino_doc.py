@@ -19,15 +19,15 @@ def build_with_target(clean, target):
 	cur_dir_is_docs_dir = True
 	saved_dir = os.getcwd()
 	if 'ARMINO_PATH' in os.environ:
-		armino_path = os.environ['ARMINO_PATH']
+		armino_path = os.getenv('ARMINO_PATH')
 		DOCS_PATH = f"{armino_path}/docs/{target}"
 		cur_path = os.getcwd()
 		if cur_path != DOCS_PATH:
 			cur_dir_is_docs_dir = False
 		print(f'DOCS_PATH set to {DOCS_PATH}')
 	else:
-		print('ARMINO_PATH env is not set, set DOCS_PATH to current dir')
-		DOCS_PATH =  os.getcwd()
+		#print('ARMINO_PATH env is not set, set DOCS_PATH to current dir')
+		DOCS_PATH = f"{os.getcwd()}/docs/{target}"
 
 	build_dir = f'{DOCS_PATH}/build'
 	run_cmd(f'rm -rf {build_dir}')
@@ -53,24 +53,33 @@ def build_with_target(clean, target):
 		run_cmd(f'mv {DOCS_PATH}/build/ {cur_path}/build/html/{target}')
 	os.chdir(saved_dir)
 
-def build_doc_internal(clean):
-    armino_path = os.environ['ARMINO_PATH']
+def build_doc_internal(clean, target):
+	if 'ARMINO_PATH' in os.environ:
+		armino_path = os.getenv('ARMINO_PATH')
+	else:
+		armino_path = os.getcwd()
 
-    if not os.path.exists(armino_path + "/build/html"):
-        os.makedirs(armino_path + "/build/html")
+	if not os.path.exists(armino_path + "/build/html"):
+		os.makedirs(armino_path + "/build/html")
 
-    build_with_target(clean, "bk7235")
-    build_with_target(clean, "bk7237")
-    build_with_target(clean, "bk7256")
+	if (target == "all"):
+		build_with_target(clean, "bk7235")
+		build_with_target(clean, "bk7237")
+		build_with_target(clean, "bk7256")
+	else:
+		build_with_target(clean, target)
 
-def build_doc():
-	build_doc_internal(False)
+def build_doc(target):
+	build_doc_internal(False, target)
 
 def main(argv):
 	if (len(argv) > 1 and argv[1] == "clean"):
-		build_doc_internal(True)
+		target = "all"
+		if (len(argv) == 3):
+			target = sys.argv[2]
+		build_doc_internal(True, target)
 	else:
-		build_doc_internal(False)
+		build_doc_internal(False, "all")
 
 if __name__ == "__main__":
 	main(sys.argv)

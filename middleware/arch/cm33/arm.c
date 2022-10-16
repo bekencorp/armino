@@ -19,3 +19,7 @@ void arch_init(void)
 
 }
 
+void smem_reset_lastblock(void)
+{
+
+}

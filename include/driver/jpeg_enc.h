@@ -24,11 +24,6 @@ extern "C" {
  *
  */
 
-/**
- * @brief JPEGENC APIs Version 1.0
- * @{
- */
-
 
 /**
  * @brief     Init the jpeg encode driver
@@ -151,11 +146,11 @@ bk_err_t bk_jpeg_enc_dvp_deinit(void);
  *
  * This API will set jpegenc work enable/disable.
  *
- * @param enable: 0/1:jpegenc work disable/enable
- * @param mode: 0/1:jpeg encode mode/yuv mode
+ * @param enable 0/1:jpegenc work disable/enable
+ * @param mode 0/1:jpeg encode mode/yuv mode
  *
- * @attention 1: if work in jpegenc mode, this api can enable/disable jpegenc mode
- * @attention 2: if work in yuv mode, this api only can disable yuv_mode. The bk_jpeg_set_yuv_mode api also can set yuv mode enable/disable.
+ * @attention 1. if work in jpegenc mode, this api can enable/disable jpegenc mode
+ * @attention 2. if work in yuv mode, this api only can disable yuv_mode. The bk_jpeg_set_yuv_mode api also can set yuv mode enable/disable.
  *
  * @return
  *    - BK_OK: succeed
@@ -168,9 +163,9 @@ bk_err_t bk_jpeg_enc_set_enable(uint8_t enable, uint8_t mode);
  *
  * This API will set yuv output format.
  *
- * @param value: 0:yuyv, 1:uyvy, 2:yyuv, 3:uvyy
+ * @param value 0:yuyv, 1:uyvy, 2:yyuv, 3:uvyy
  *
- * @attention 1: this function only used when jpeg at yuv mode
+ * @attention 1. this function only used when jpeg at yuv mode
  *
  * @return
  *    - BK_OK: succeed
@@ -193,14 +188,14 @@ uint32_t bk_jpeg_enc_get_frame_size(void);
  *
  * This API will register jpeg encode isr function, need user defined.The isr function will execute when the isr be triggered.
  *
- * @param type_id: the type of the isr
+ * @param type_id the type of the isr
  *    - END_OF_YUV: (eoy)when jpeg encode work in yuv mode, once a complete frame have been transfer by jpeg encode module, the isr will trigger.
  *    - HEAD_OUTPUT: jpeg encode output head the isrt will be triggered, work in jpeg encode mode.
  *    - START_OFFRAME: (sof) when jpeg encode module start reveice a frame the isr will be triggered.
  *    - END_OF_FRAME: (eof) when jpeg encode module receive a complete frame the isr will be triggered, this only effect in jpeg encode mode.
  *    - VSYNC_NEGEDGE: (vng) when jpeg encode module receive a vsync negedge the isr will be triggered.
- * @param isr: isr_func
- * @param param: other value(default set NULL)
+ * @param isr isr_func
+ * @param param other value(default set NULL)
  *
 .* @attention 1. This API only effect when work yuv mode
  *
@@ -211,25 +206,24 @@ uint32_t bk_jpeg_enc_get_frame_size(void);
 bk_err_t bk_jpeg_enc_register_isr(jpeg_isr_type_t type_id, jpeg_isr_t isr, void *param);
 
 /**
- * @brief     enable jpeg gpio
+ * @brief     set jpeg gpio function
  *
- * This API will enable jpeg data GPIO(d0-d7), hsync and vsync
+ * This API will operate jpeg gpio
  *
- *
-.* @attention 1. in jpegenc init function only enable jpeg MCLK and PCLK GPIO
+ * @param mode: reference jpeg_gpio_mode_t
  *
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-bk_err_t bk_jpeg_enc_dvp_gpio_enable(void);
+ bk_err_t bk_jpeg_enc_set_gpio(jpeg_gpio_mode_t mode);
 
 /**
  * @brief     get jpeg enc fifo addr
  *
  * This API will get jpeg encode fifo addr in param
  *
- * param fifo_addr: fifo addr
+ * @param fifo_addr fifo addr
  *
  * @attention 1. only work in jpeg encode mode is effective
  *
@@ -240,44 +234,14 @@ bk_err_t bk_jpeg_enc_dvp_gpio_enable(void);
 bk_err_t bk_jpeg_enc_get_fifo_addr(uint32_t *fifo_addr);
 
 /**
- * @brief     enable jpeg enc int
- *
- * This API will enable jpeg different int type
- *
- * param type: different bit replace different int
- *
- * @attention 1. only work when jpeg encode driver have been called
- *
- * @return
- *    - BK_OK: succeed
- *    - others: other errors.
- */
-bk_err_t bk_jpeg_enc_enable_int(uint32_t type);
-
-/**
- * @brief     disable jpeg enc int
- *
- * This API will disable jpeg different int type
- *
- * param type: different bit replace different int
- *
- * @attention 1. only work when jpeg encode driver have been called
- *
- * @return
- *    - BK_OK: succeed
- *    - others: other errors.
- */
-bk_err_t bk_jpeg_enc_disable_int(uint32_t type);
-
-/**
  * @brief     set mclk output
  *
  * This API will use for camera config
  *
- * param cksel: 0-3:0:DCO/1:APLL/2:320M/3:480M,use 2 or 3
- * param ckdiv: 0-15, div = 1/(ckdiv+1)
+ * @param cksel 0-3:0:DCO/1:APLL/2:320M/3:480M,use 2 or 3
+ * @param ckdiv 0-15, div = 1/(ckdiv+1)
  *
- * @attenation: this api only used for bk7256xx_mp chip, and when use this api, this api 'bk_jpeg_enc_mclk_enable' will not useful
+ * @attenation 1. this api only used for bk7256xx_mp chip, and when use this api, this api 'bk_jpeg_enc_mclk_enable' will not useful
  *
  * @return
  *    - BK_OK: succeed
@@ -290,7 +254,7 @@ bk_err_t bk_jpeg_enc_set_auxs(uint32_t cksel, uint32_t ckdiv);
  *
  * This API will set jpeg mclk output for sensor
  *
- * attenation: this api must call after bk_jpeg_enc_driver_init, and output 24MHz.
+ * @attenation 1. this api must call after bk_jpeg_enc_driver_init, and output 24MHz.
  *
  * @return
  *    - BK_OK: succeed
@@ -303,7 +267,7 @@ bk_err_t bk_jpeg_enc_mclk_enable(void);
  *
  * This API will use for partial display configure of jpeg encode
  *
- * param offset_config: x_pixel left/right offset and y_pixel left/right offset configure
+ * @param offset_config x_pixel left/right offset and y_pixel left/right offset configure
  *
  * @return
  *    - BK_OK: succeed
@@ -316,19 +280,18 @@ bk_err_t bk_jpeg_enc_partial_display_init(const jpeg_partial_offset_config_t *of
  *
  * This API will use for partial display deinit
  *
- * param offset_config: x_pixel left/right offset and y_pixel left/right offset configure
- *
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-bk_err_t bk_jpeg_enc_partial_display_deinit(const jpeg_partial_offset_config_t *offset_config);
+bk_err_t bk_jpeg_enc_partial_display_deinit(void);
 
 /**
  * @brief     jpeg em base set
  *
  * This API will use for jpeg em base address, 64KB memory align.
  *
+ * @param address set a mem used for jpeg encode
  *
  * @return
  *    - BK_OK: succeed
@@ -341,9 +304,9 @@ bk_err_t bk_jpeg_set_em_base_addr(uint8_t *address);
  *
  * This API will use for enable/disable for auto encode size. only valid in jpeh encode mode
  *
- * @param enable: 0/1:disable/enable
+ * @param enable 0/1:disable/enable
  *
- * @attenation: this api only called in jpeg_eof_isr function
+ * @attenation 1. this api only called in jpeg_eof_isr function
  *
  * @return
  *    - BK_OK: succeed
@@ -356,10 +319,10 @@ bk_err_t bk_jpeg_enc_enable_encode_auto_ctrl(uint8_t enable);
  *
  * This API will use for enable/disable for auto encode size. only valid in jpeh encode mode
  *
- * @param up_size: the jpeg image upper limit, unit byte
- * @param low_size: the jpeg image lower limit, unit byte
+ * @param up_size the jpeg image upper limit, unit byte
+ * @param low_size the jpeg image lower limit, unit byte
  *
- * @attenation: this api only called in jpeg_eof_isr function, and only bk_jpeg_enc_enable_encode_auto_ctrl have been set enable
+ * @attenation 1. this api only called in jpeg_eof_isr function, and only bk_jpeg_enc_enable_encode_auto_ctrl have been set enable
  *
  * @return
  *    - BK_OK: succeed
@@ -367,6 +330,20 @@ bk_err_t bk_jpeg_enc_enable_encode_auto_ctrl(uint8_t enable);
  */
 bk_err_t bk_jpeg_enc_set_target_size(uint32_t up_size, uint32_t low_size);
 
+/**
+ * @brief     jpeg encode mode and yuv mode switch
+ *
+ * This API will use for switch jpeg mode
+ *
+ * @param config jpeg encode config or jpeg yuv config
+ *
+ * @attenation 1. this api must called in jpeg_eof isr or yuv_eof isr
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_jpeg_enc_dvp_switch(jpeg_config_t *config);
 
 #ifdef __cplusplus
 }

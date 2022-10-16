@@ -100,6 +100,27 @@ uint32_t sys_drv_psram_psldo_vsel(uint32_t value)
 
 }
 
+uint32_t sys_drv_psram_psldo_vset(uint32_t value, bool is_add_200mv)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_psram_psldo_vset(value, is_add_200mv);
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+
+}
+
+
+uint32_t sys_drv_psram_psram_disckg(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_psram_psram_disckg(value);
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+
+}
+
 
 /**  psram End **/
 

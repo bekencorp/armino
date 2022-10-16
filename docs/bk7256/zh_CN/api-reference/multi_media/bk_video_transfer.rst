@@ -19,7 +19,6 @@ Most of VIDEO_TRANSFER APIs can be categoried as:
 VIDEO_TRANSFER APIs:
  - :cpp:func:`bk_video_transfer_init` - init video transfer
  - :cpp:func:`bk_video_transfer_deinit` - deinit video transfer
- - :cpp:func:`bk_video_send_msg` - send msg deal video data
  - :cpp:func:`bk_video_buffer_open` - open video buff
  - :cpp:func:`bk_video_buffer_close` - close video buff
  - :cpp:func:`bk_video_buffer_read_frame` - read fix length video data

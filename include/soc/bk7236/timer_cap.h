@@ -22,6 +22,7 @@ extern "C" {
 #define SOC_TIMER_CHAN_NUM_PER_UNIT      6
 #define SOC_TIMER_GROUP_NUM              2
 #define SOC_TIMER_CHAN_NUM_PER_GROUP     3
+#define SOC_TIMER_INTERRUPT_NUM          2
 
 #ifdef __cplusplus
 }

@@ -60,6 +60,10 @@ static uint32_t iperf_priority = THREAD_PROIRITY;
 //data size of iperf
 static uint32_t iperf_size = IPERF_BUFSZ;
 
+#if (CONFIG_TASK_WDT)
+extern void bk_task_wdt_feed(void);
+#endif
+
 static void iperf_reset(void)
 {
 	s_param.mode = IPERF_MODE_NONE;
@@ -342,6 +346,10 @@ tx_retry:
 
 				goto tx_retry;
 			}
+
+			#if (CONFIG_TASK_WDT)
+			bk_task_wdt_feed();
+			#endif
 		}
 
 		closesocket(sock);
@@ -425,6 +433,10 @@ static void iperf_udp_server(void *thread_param)
 				iperf_report(r_size);
 			}
 			tick2 = bk_get_tick();
+
+			#if (CONFIG_TASK_WDT)
+			bk_task_wdt_feed();
+			#endif
 		}
 	}
 

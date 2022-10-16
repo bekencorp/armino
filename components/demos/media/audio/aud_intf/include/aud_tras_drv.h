@@ -61,6 +61,12 @@ typedef enum {
 	AUD_TRAS_DRV_EXIT,
 
 	AUD_TRAS_DRV_CONTROL,
+
+	/* debug op */
+#if CONFIG_AUD_TRAS_DAC_DEBUG
+	AUD_TRAS_VOC_DAC_BEBUG,
+#endif
+
 	AUD_TRAS_DRV_MAX,
 } aud_tras_drv_op_t;
 
@@ -95,7 +101,9 @@ typedef enum {
 	EVENT_AUD_TRAS_DRV_START_CMP,
 	EVENT_AUD_TRAS_DRV_STOP_CMP,
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 	EVENT_AUD_TRAS_DRV_AEC_DUMP,
+#endif
 #endif
 	EVENT_AUD_TRAS_DRV_MAX,
 } aud_tras_drv_event_t;
@@ -161,7 +169,9 @@ typedef struct {
 	void (*aud_tras_drv_voc_event_cb)(aud_tras_drv_voc_event_t event, bk_err_t result);
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 	aec_dump_t aec_dump;
+#endif
 #endif
 
 	aud_intf_voc_data_type_t data_type;

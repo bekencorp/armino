@@ -59,7 +59,7 @@ static void jpeg_hal_set_target_bitrate(jpeg_hal_t *hal, uint32_t x_pixel)
 		jpeg_ll_set_target_low_byte(hal->hw, JPEG_BITRATE_MIN_SIZE_1280_720);
 		break;
 	default:
-		os_printf("Not adapt this image resolution\r\n");
+		//os_printf("Not adapt this image resolution\r\n");
 		jpeg_ll_set_target_high_byte(hal->hw, JPEG_BITRATE_MAX_SIZE);
 		jpeg_ll_set_target_low_byte(hal->hw, JPEG_BITRATE_MIN_SIZE);
 		break;
@@ -98,6 +98,7 @@ bk_err_t jpeg_hal_set_encode_config(jpeg_hal_t *hal, const jpeg_config_t *config
 	jpeg_ll_clear_config(hal->hw);
 
 	jpeg_ll_enable_end_frame_int(hal->hw);
+	jpeg_ll_enable_vsync_negedge_int(hal->hw);
 	jpeg_ll_set_mclk_div(hal->hw, config->mclk_div);
 
 	jpeg_ll_enable_sync_edge_dect(hal->hw);

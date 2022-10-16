@@ -1,4 +1,4 @@
-UVC 拍照 demo
+UVC Capture
 ========================
 
 :link_to_translation:`en:[English]`
@@ -8,8 +8,8 @@ UVC 拍照 demo
 	拍照的作用主要是将UVC sensor采集的一帧原始数据，存储到SDCard上。
 
 2 代码路径
-""""""""""""""""""""""""
-	demo路径：``./components/media/``
+---------------------------
+	demo路径：``./components/media/camera/uvc.c``, ``./components/media/storage/storage_act.c``
 
 3 cli命令简介
 -------------------------------------
@@ -26,31 +26,31 @@ UVC 拍照 demo
 	+----------------------------------------+--------------------------+----------------------+
 
 	demo运行依赖的宏配置：
-	
+
 	+--------------------------------------+------------------------+----------------------------------------------------+---------+
 	|                 NAME                 |      Description       |                      File                          |  value  |
 	+======================================+========================+====================================================+=========+
 	|CONFIG_USB_HOST                       |配置是否支持usb host    |``properties\soc\bk7256_cp1\bk7256_cp1.defconfig``  |    y    |
 	+--------------------------------------+------------------------+----------------------------------------------------+---------+
-	|CONFIG_USB_UVC                        |配置是否支持把uvc       |``properties\soc\bk7256_cp1\bk7256_cp1.defconfig``  |    y    |
+	|CONFIG_USB_UVC                        |配置是否支持uvc         |``properties\soc\bk7256_cp1\bk7256_cp1.defconfig``  |    y    |
 	+--------------------------------------+------------------------+----------------------------------------------------+---------+
 
 4 演示介绍
 -------------------------------------
 	demo执行的步骤如下：
-	
+
 	1、准备好uvc摄像头，连接方式如下图所示：
-	
+
 	2、顺序发送下面命令：
-	
+
 		fatfstest M 1
-		
+
 		media uvc open
-		
+
 		media capture 123.jpg
-		
+
 		media uvc close
-		
+
 .. figure:: ../../../../../common/_static/uvc_display_evb.png
     :align: center
     :alt: uvc屏显时板子的连接示意
@@ -60,17 +60,23 @@ UVC 拍照 demo
 
 5 详细配置及其说明
 -------------------------------------
-	1、显示初始化说明：uvc display_init param1 param2 param3 param4
-	
-	1)media uvc open [param]
-	
+	1、打开uvc摄像头
+
+		media uvc open [param]
+
 		[param]:可选参数，不写默认使用的是640*480的分辨率。
-	
+
 		支持的参数是由uvc设备本身决定，可选：1280X720, 640X480, 800X480, 480X320.
-	
-	2)media caputre param
-	
+
+	2、拍照存SD卡，并设置照片名字
+
+		media caputre param
+
 		param:xxx.jpg, 存储照片的名字
+
+	3、关闭uvc摄像头
+
+		media uvc close
 
 .. note::
 

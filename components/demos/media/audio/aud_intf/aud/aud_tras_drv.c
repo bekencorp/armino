@@ -42,7 +42,24 @@
 #if CONFIG_DOORBELL_DEMO2
 #include <driver/gpio.h>
 #endif
+#if CONFIG_AUD_TRAS_DAC_DEBUG
+#include "ff.h"
+#include "diskio.h"
+#endif
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_UART
+#include <driver/uart.h>
+#include "gpio_driver.h"
+#endif
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_UDP
+#include "aud_debug_udp.h"
+#endif
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TCP
+#include "aud_debug_tcp.h"
+#endif
 
+#if CONFIG_VIDEO_AVI
+#include "app_jpeg2avi.h"
+#endif
 
 #define  AUD_DEBUG  0
 
@@ -84,6 +101,14 @@ static bool aud_trs_drv_mb_busy_status = false;
 static uint8_t mic_delay_num = 0;
 #endif
 
+#if CONFIG_AUD_TRAS_DAC_DEBUG
+static bool aud_voc_dac_debug_flag = false;
+static char dac_debug_file_name[50] = "1:/dac_debug_dump.pcm";
+static FIL dac_debug_file;
+static const uint32_t PCM_8000[8] = {
+	0x00010000, 0x5A825A81, 0x7FFF7FFF, 0x5A825A83, 0x00000000, 0xA57FA57E, 0x80018002, 0xA57EA57E,
+};
+#endif
 
 #define CHECK_AUD_TRAS_DRV_MIC_STA() do {\
 		if (aud_tras_drv_info.mic_info.status == AUD_TRAS_DRV_MIC_STA_NULL) {\
@@ -595,6 +620,10 @@ static bk_err_t aud_tras_aec(void)
 		}
 	}
 
+#if CONFIG_VIDEO_AVI
+	jpeg2avi_input_data((uint8_t*)aec_info_pr->mic_addr,size,eTypeAudio);
+#endif
+
 	/* read ref data from ref_ring_buff */
 	if (ring_buffer_get_fill_size(&(aec_info_pr->ref_rb)) >= aec_info_pr->samp_rate_points*2) {
 		size = ring_buffer_read(&(aec_info_pr->ref_rb), (uint8_t*)aec_info_pr->ref_addr, aec_info_pr->samp_rate_points*2);
@@ -607,18 +636,60 @@ static bk_err_t aud_tras_aec(void)
 	//os_printf("ref_addr: ref_addr[0]= %02x, ref_addr[0]= %02x \r\n", ref_addr[0], ref_addr[1]);
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 	os_memcpy((void *)aud_tras_drv_info.voc_info.aec_dump.mic_dump_addr, aec_info_pr->mic_addr, aec_info_pr->samp_rate_points*2);
 	os_memcpy((void *)aud_tras_drv_info.voc_info.aec_dump.ref_dump_addr, aec_info_pr->ref_addr, aec_info_pr->samp_rate_points*2);
 	//os_printf("memcopy complete \r\n");
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
+
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_UART
+	bk_uart_write_bytes(CONFIG_AUD_TRAS_AEC_DUMP_UART_ID, aec_info_pr->mic_addr, aec_info_pr->samp_rate_points*2);
+	bk_uart_write_bytes(CONFIG_AUD_TRAS_AEC_DUMP_UART_ID, aec_info_pr->ref_addr, aec_info_pr->samp_rate_points*2);
 #endif
+
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_UDP
+	size = bk_aud_debug_voc_udp_send_packet((unsigned char *)aec_info_pr->mic_addr, aec_info_pr->samp_rate_points*2);
+	if (size != aec_info_pr->samp_rate_points*2)
+		os_printf("udp dump mic fail, all:%d, complete:%d \r\n", aec_info_pr->samp_rate_points*2, size);
+	size = bk_aud_debug_voc_udp_send_packet((unsigned char *)aec_info_pr->ref_addr, aec_info_pr->samp_rate_points*2);
+	if (size != aec_info_pr->samp_rate_points*2)
+		os_printf("udp dump ref fail, all:%d, complete:%d \r\n", aec_info_pr->samp_rate_points*2, size);
+#endif
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TCP
+	size = bk_aud_debug_voc_tcp_send_packet((unsigned char *)aec_info_pr->mic_addr, aec_info_pr->samp_rate_points*2);
+	if (size != aec_info_pr->samp_rate_points*2)
+		os_printf("tcp dump mic fail, all:%d, complete:%d \r\n", aec_info_pr->samp_rate_points*2, size);
+	size = bk_aud_debug_voc_tcp_send_packet((unsigned char *)aec_info_pr->ref_addr, aec_info_pr->samp_rate_points*2);
+	if (size != aec_info_pr->samp_rate_points*2)
+		os_printf("tcp dump ref fail, all:%d, complete:%d \r\n", aec_info_pr->samp_rate_points*2, size);
+#endif
+
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 
 	/* aec process data */
 	//os_printf("ref_addr:%p, mic_addr:%p, out_addr:%p \r\n", aec_context_pr->ref_addr, aec_context_pr->mic_addr, aec_context_pr->out_addr);
 	aec_proc(aec_info_pr->aec, aec_info_pr->ref_addr, aec_info_pr->mic_addr, aec_info_pr->out_addr);
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
-		os_memcpy((void *)aud_tras_drv_info.voc_info.aec_dump.out_dump_addr, aec_info_pr->out_addr, aec_info_pr->samp_rate_points*2);
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
+	os_memcpy((void *)aud_tras_drv_info.voc_info.aec_dump.out_dump_addr, aec_info_pr->out_addr, aec_info_pr->samp_rate_points*2);
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
+
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_UART
+	bk_uart_write_bytes(CONFIG_AUD_TRAS_AEC_DUMP_UART_ID, aec_info_pr->out_addr, aec_info_pr->samp_rate_points*2);
 #endif
+
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_UDP
+	size = bk_aud_debug_voc_udp_send_packet((unsigned char *)aec_info_pr->out_addr, aec_info_pr->samp_rate_points*2);
+	if (size != aec_info_pr->samp_rate_points*2)
+		os_printf("udp dump aec out fail, all:%d, complete:%d \r\n", aec_info_pr->samp_rate_points*2, size);
+#endif
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TCP
+	size = bk_aud_debug_voc_tcp_send_packet((unsigned char *)aec_info_pr->out_addr, aec_info_pr->samp_rate_points*2);
+	if (size != aec_info_pr->samp_rate_points*2)
+		os_printf("tcp dump aec out fail, all:%d, complete:%d \r\n", aec_info_pr->samp_rate_points*2, size);
+#endif
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 
 	/* save mic data after aec processed to aec_ring_buffer */
 	if (ring_buffer_get_free_size(&(aec_info_pr->aec_rb)) >= aec_info_pr->samp_rate_points*2) {
@@ -637,11 +708,13 @@ static bk_err_t aud_tras_aec(void)
 	}
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 #if CONFIG_AUD_TRAS_MODE_CPU0
 	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_AEC_DUMP, ret);
-#endif
-#endif
+#endif //CONFIG_AUD_TRAS_MODE_CPU0
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 
 	return ret;
 }
@@ -761,6 +834,38 @@ static void aud_tras_drv_tx_lost_count_dump(timer_id_t timer_id)
 }
 #endif
 
+#if CONFIG_AUD_TRAS_DAC_DEBUG
+static bk_err_t aud_tras_voc_dac_debug(bool enable)
+{
+	os_printf("%s, enable:%d \r\n", __func__, enable);
+	if (enable == aud_voc_dac_debug_flag)
+		return BK_FAIL;
+
+	//open dac debug
+	FRESULT fr;
+	if (enable) {
+		/*open file to save data write to speaker */
+		fr = f_open(&dac_debug_file, dac_debug_file_name, FA_CREATE_ALWAYS | FA_WRITE);
+		if (fr != FR_OK) {
+			LOGE("open %s fail.\r\n", dac_debug_file_name);
+			return BK_FAIL;
+		}
+		aud_voc_dac_debug_flag = true;
+		os_printf("start dac debug \r\n");
+	} else {
+		/*open file to save data write to speaker */
+		fr = f_close(&dac_debug_file);
+		if (fr != FR_OK) {
+			LOGE("open %s fail.\r\n", dac_debug_file_name);
+			return BK_FAIL;
+		}
+		aud_voc_dac_debug_flag = false;
+		os_printf("stop dac debug \r\n");
+	}
+	return BK_OK;
+}
+#endif
+
 static bk_err_t aud_tras_dec(void)
 {
 	uint32_t size = 0;
@@ -832,13 +937,13 @@ static bk_err_t aud_tras_dec(void)
 	}
 
 #if CONFIG_AUD_TRAS_AEC_MIC_DELAY_DEBUG
-			mic_delay_num++;
-			os_memset(aud_tras_drv_info.voc_info.decoder_temp.pcm_data, 0, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2);
-			if (mic_delay_num == 50) {
-				aud_tras_drv_info.voc_info.decoder_temp.pcm_data[0] = 0x2FFF;
-				mic_delay_num = 0;
-				LOGI("mic_delay_num");
-			}
+	mic_delay_num++;
+	os_memset(aud_tras_drv_info.voc_info.decoder_temp.pcm_data, 0, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2);
+	if (mic_delay_num == 50) {
+		aud_tras_drv_info.voc_info.decoder_temp.pcm_data[0] = 0x2FFF;
+		mic_delay_num = 0;
+		LOGI("mic_delay_num");
+	}
 #endif
 
 	if (aud_tras_drv_info.voc_info.aec_enable) {
@@ -869,16 +974,39 @@ static bk_err_t aud_tras_dec(void)
 		}
 	}
 
-	/* save the data after G711A processed to encoder_ring_buffer */
-	if (ring_buffer_get_free_size(&(aud_tras_drv_info.voc_info.speaker_rb)) > aud_tras_drv_info.voc_info.speaker_samp_rate_points*2) {
-		size = ring_buffer_write(&(aud_tras_drv_info.voc_info.speaker_rb), (uint8_t *)aud_tras_drv_info.voc_info.decoder_temp.pcm_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2);
-		if (size != aud_tras_drv_info.voc_info.speaker_samp_rate_points*2) {
-			LOGE("the data writeten to speaker_ring_buff is not a frame, size=%d \r\n", size);
-			goto decoder_exit;
+#if CONFIG_AUD_TRAS_DAC_DEBUG
+	if (aud_voc_dac_debug_flag) {
+		//dump the data write to speaker
+		FRESULT fr;
+		uint32 uiTemp = 0;
+		uint32_t i = 0, j = 0;
+		/* write data to file */
+		fr = f_write(&dac_debug_file, (uint32_t *)aud_tras_drv_info.voc_info.decoder_temp.pcm_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2, &uiTemp);
+		if (fr != FR_OK) {
+			LOGE("write %s fail.\r\n", dac_debug_file_name);
+			return BK_FAIL;
 		}
-		aud_tras_drv_info.voc_info.rx_info.aud_trs_read_seq++;
-	}
 
+		//write 8K sin data
+		for (i = 0; i < aud_tras_drv_info.voc_info.speaker_samp_rate_points*2; i++) {
+			for (j = 0; j < 8; j++) {
+				*(uint32_t *)0x47800048 = PCM_8000[j];
+			}
+			i += 8;
+		}
+	} else 
+#endif
+	{
+	/* save the data after G711A processed to encoder_ring_buffer */
+		if (ring_buffer_get_free_size(&(aud_tras_drv_info.voc_info.speaker_rb)) > aud_tras_drv_info.voc_info.speaker_samp_rate_points*2) {
+			size = ring_buffer_write(&(aud_tras_drv_info.voc_info.speaker_rb), (uint8_t *)aud_tras_drv_info.voc_info.decoder_temp.pcm_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2);
+			if (size != aud_tras_drv_info.voc_info.speaker_samp_rate_points*2) {
+				LOGE("the data writeten to speaker_ring_buff is not a frame, size=%d \r\n", size);
+				goto decoder_exit;
+			}
+			aud_tras_drv_info.voc_info.rx_info.aud_trs_read_seq++;
+		}
+	}
 	/* call callback to notify app */
 	if (aud_tras_drv_info.aud_tras_rx_spk_data)
 		aud_tras_drv_info.aud_tras_rx_spk_data((unsigned int)aud_tras_drv_info.voc_info.speaker_samp_rate_points*2);
@@ -983,8 +1111,6 @@ static bk_err_t aud_tras_drv_spk_init(aud_intf_spk_config_t *spk_cfg)
 		aud_tras_drv_info.spk_info.dac_config->dacr_int_enable = 0x0;
 		aud_tras_drv_info.spk_info.dac_config->dacl_int_enable = 0x0;
 		aud_tras_drv_info.spk_info.dac_config->dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		aud_tras_drv_info.spk_info.dac_config->dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		aud_tras_drv_info.spk_info.dac_config->dac_fracmode_value = 0x0;
 	}
 	aud_tras_drv_info.spk_info.spk_en = true;
 	aud_tras_drv_info.spk_info.spk_chl = spk_cfg->spk_chl;
@@ -1330,8 +1456,6 @@ static bk_err_t aud_tras_drv_mic_init(aud_intf_mic_config_t *mic_cfg)
 		aud_tras_drv_info.mic_info.adc_config->agc_enable = AUD_AGC_DISABLE;
 		aud_tras_drv_info.mic_info.adc_config->manual_pga_value = 0;
 		aud_tras_drv_info.mic_info.adc_config->manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
-		aud_tras_drv_info.mic_info.adc_config->adc_fracmod_manual = AUD_ADC_TRACMOD_MANUAL_DISABLE;
-		aud_tras_drv_info.mic_info.adc_config->adc_fracmod = 0;
 	}
 	aud_tras_drv_info.mic_info.mic_en = true;
 	aud_tras_drv_info.mic_info.mic_chl = mic_cfg->mic_chl;
@@ -1595,6 +1719,9 @@ static bk_err_t aud_tras_drv_mic_set_samp_rate(aud_adc_samp_rate_t samp_rate)
 
 static bk_err_t aud_tras_drv_voc_deinit(void)
 {
+	if (aud_tras_drv_info.voc_info.status == AUD_TRAS_DRV_VOC_STA_NULL)
+		return BK_ERR_AUD_INTF_OK;
+
 #if CONFIG_AUD_TRAS_LOST_COUNT_DEBUG
 		bk_timer_stop(TIMER_ID4);
 #endif
@@ -1701,6 +1828,11 @@ static bk_err_t aud_tras_drv_voc_deinit(void)
 				AUD_TRAS_DRV_VOC_STOP --> AUD_TRAS_DRV_VOC_NULL
 	*/
 	aud_tras_drv_info.voc_info.status = AUD_TRAS_DRV_VOC_STA_NULL;
+
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_UART
+	bk_uart_deinit(CONFIG_AUD_TRAS_AEC_DUMP_UART_ID);
+#endif
+
 	LOGI("voc deinit complete \r\n");
 	return BK_ERR_AUD_INTF_OK;
 }
@@ -1795,8 +1927,6 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 		aud_tras_drv_info.voc_info.adc_config->agc_enable = AUD_AGC_DISABLE;
 		aud_tras_drv_info.voc_info.adc_config->manual_pga_value = 0;
 		aud_tras_drv_info.voc_info.adc_config->manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
-		aud_tras_drv_info.voc_info.adc_config->adc_fracmod_manual = AUD_ADC_TRACMOD_MANUAL_DISABLE;
-		aud_tras_drv_info.voc_info.adc_config->adc_fracmod = 0;
 	}
 
 	/* get audio dac config */
@@ -1824,8 +1954,6 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 		aud_tras_drv_info.voc_info.dac_config->dacr_int_enable = 0x0;
 		aud_tras_drv_info.voc_info.dac_config->dacl_int_enable = 0x0;
 		aud_tras_drv_info.voc_info.dac_config->dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		aud_tras_drv_info.voc_info.dac_config->dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		aud_tras_drv_info.voc_info.dac_config->dac_fracmode_value = 0x0;
 	}
 
 	/* get ring buffer config */
@@ -1857,12 +1985,14 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 	aud_tras_drv_info.voc_info.rx_info = voc_cfg->rx_info;
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 	/* get dump config */
 	aud_tras_drv_info.voc_info.aec_dump.len = voc_cfg->aec_dump.len;
 	aud_tras_drv_info.voc_info.aec_dump.mic_dump_addr = voc_cfg->aec_dump.mic_dump_addr;
 	aud_tras_drv_info.voc_info.aec_dump.ref_dump_addr = voc_cfg->aec_dump.ref_dump_addr;
 	aud_tras_drv_info.voc_info.aec_dump.out_dump_addr = voc_cfg->aec_dump.out_dump_addr;
-#endif
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 
 #if CONFIG_AUD_TRAS_LOST_COUNT_DEBUG
 	aud_tras_drv_info.voc_info.lost_count.complete_size = 0;
@@ -1877,22 +2007,6 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 	aud_tras_mb_init(audio_mailbox_rx_isr, audio_mailbox_tx_isr, audio_mailbox_tx_cmpl_isr);
 	LOGI("step0: config audio mailbox channel complete \r\n");
 #endif
-
-	/*  -------------------------step1: init audio and config ADC and DAC -------------------------------- */
-	ret = aud_tras_adc_config(aud_tras_drv_info.voc_info.adc_config);
-	if (ret != BK_OK) {
-		LOGE("audio adc init fail \r\n");
-		err = BK_ERR_AUD_INTF_ADC;
-		goto aud_tras_drv_voc_init_exit;
-	}
-
-	ret = aud_tras_dac_config(aud_tras_drv_info.voc_info.dac_config);
-	if (ret != BK_OK) {
-		LOGE("audio dac init fail \r\n");
-		err = BK_ERR_AUD_INTF_DAC;
-		goto aud_tras_drv_voc_init_exit;
-	}
-	LOGI("step1: init audio and config ADC and DAC complete \r\n");
 
 	/*  -------------------------step2: init AEC and malloc two ring buffers -------------------------------- */
 	/* init aec and config aec according AEC_enable*/
@@ -2050,6 +2164,39 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 	}
 #endif
 
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_UART
+	uart_config_t config = {0};
+	os_memset(&config, 0, sizeof(uart_config_t));
+	if (CONFIG_AUD_TRAS_AEC_DUMP_UART_ID == 0) {
+		gpio_dev_unmap(GPIO_10);
+		gpio_dev_map(GPIO_10, GPIO_DEV_UART1_RXD);
+		gpio_dev_unmap(GPIO_11);
+		gpio_dev_map(GPIO_11, GPIO_DEV_UART1_TXD);
+	} else if (CONFIG_AUD_TRAS_AEC_DUMP_UART_ID == 2) {
+		gpio_dev_unmap(GPIO_40);
+		gpio_dev_map(GPIO_40, GPIO_DEV_UART3_RXD);
+		gpio_dev_unmap(GPIO_41);
+		gpio_dev_map(GPIO_41, GPIO_DEV_UART3_TXD);
+	} else {
+		gpio_dev_unmap(GPIO_0);
+		gpio_dev_map(GPIO_0, GPIO_DEV_UART2_TXD);
+		gpio_dev_unmap(GPIO_1);
+		gpio_dev_map(GPIO_1, GPIO_DEV_UART2_RXD);
+	}
+
+	config.baud_rate = CONFIG_AUD_TRAS_AEC_DUMP_UART_BAUDRATE;
+	config.data_bits = UART_DATA_8_BITS;
+	config.parity = UART_PARITY_NONE;
+	config.stop_bits = UART_STOP_BITS_1;
+	config.flow_ctrl = UART_FLOWCTRL_DISABLE;
+	config.src_clk = UART_SCLK_XTAL_26M;
+
+	if (bk_uart_init(CONFIG_AUD_TRAS_AEC_DUMP_UART_ID, &config) != BK_OK) {
+		LOGE("init uart fail \r\n");
+		goto aud_tras_drv_voc_init_exit;
+	}
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_MODE_UART
+
 	return BK_ERR_AUD_INTF_OK;
 
 aud_tras_drv_voc_init_exit:
@@ -2077,6 +2224,22 @@ static bk_err_t aud_tras_drv_voc_start(void)
 	} else {
 		os_memset(pcm_data, 0x00, aud_tras_drv_info.voc_info.mic_samp_rate_points*2);
 	}
+
+	/* init audio and config ADC and DAC */
+	ret = aud_tras_adc_config(aud_tras_drv_info.voc_info.adc_config);
+	if (ret != BK_OK) {
+		LOGE("audio adc init fail \r\n");
+		err = BK_ERR_AUD_INTF_ADC;
+		goto audio_start_transfer_exit;
+	}
+
+	ret = aud_tras_dac_config(aud_tras_drv_info.voc_info.dac_config);
+	if (ret != BK_OK) {
+		LOGE("audio dac init fail \r\n");
+		err = BK_ERR_AUD_INTF_DAC;
+		goto audio_start_transfer_exit;
+	}
+	LOGI("init audio and config ADC and DAC complete \r\n");
 
 	/* start DMA */
 	ret = bk_dma_start(aud_tras_drv_info.voc_info.adc_dma_id);
@@ -2159,9 +2322,12 @@ audio_start_transfer_exit:
 static bk_err_t aud_tras_drv_voc_stop(void)
 {
 	bk_err_t ret = BK_OK;
-	//bk_err_t err = BK_ERR_AUD_INTF_FAIL;
 
 	LOGI("%s \r\n", __func__);
+
+#if CONFIG_AUD_TRAS_LOST_COUNT_DEBUG
+			bk_timer_stop(TIMER_ID4);
+#endif
 
 	/* stop adc and dac dma */
 	ret = bk_dma_stop(aud_tras_drv_info.voc_info.adc_dma_id);
@@ -2177,9 +2343,14 @@ static bk_err_t aud_tras_drv_voc_stop(void)
 
 	/* disable adc */
 	bk_aud_stop_adc();
+	bk_aud_adc_deinit();
 
 	/* disable dac */
 	bk_aud_stop_dac();
+	bk_aud_dac_deinit();
+
+	/* deinit audio driver */
+	bk_aud_driver_deinit();
 
 	/* clear adc and dac ring buffer */
 	ring_buffer_clear(&(aud_tras_drv_info.voc_info.speaker_rb));
@@ -2293,36 +2464,14 @@ static bk_err_t aud_tras_drv_get_aec_para(void)
 	return BK_OK;
 }
 
-static bk_err_t aud_tras_drv_spk_set_samp_rate(aud_dac_samp_rate_source_t samp_rate)
+static bk_err_t aud_tras_drv_spk_set_samp_rate(aud_dac_samp_rate_t samp_rate)
 {
 	bk_err_t ret = BK_ERR_AUD_INTF_OK;
-	aud_dac_samp_rate_t dac_samp_rate = AUD_DAC_SAMP_RATE_MAX;
 	//CHECK_AUD_TRAS_DRV_MIC_STA();
 
-	switch (samp_rate) {
-		case AUD_DAC_SAMP_RATE_SOURCE_8K:
-			dac_samp_rate = AUD_DAC_SAMP_RATE_8K;
-			break;
-
-		case AUD_DAC_SAMP_RATE_SOURCE_16K:
-			dac_samp_rate = AUD_DAC_SAMP_RATE_16K;
-			break;
-
-		case AUD_DAC_SAMP_RATE_SOURCE_44_1K:
-			dac_samp_rate = AUD_DAC_SAMP_RATE_44_1K;
-			break;
-
-		case AUD_DAC_SAMP_RATE_SOURCE_48K:
-			dac_samp_rate = AUD_DAC_SAMP_RATE_48K;
-			break;
-
-		default:
-			break;
-	}
-
-	if (dac_samp_rate != AUD_DAC_SAMP_RATE_MAX) {
+	if (samp_rate != AUD_DAC_SAMP_RATE_MAX) {
 		bk_aud_stop_dac();
-		bk_aud_set_dac_samp_rate(dac_samp_rate);
+		bk_aud_set_dac_samp_rate(samp_rate);
 		bk_aud_start_dac();
 		bk_aud_start_dac();
 		ret = BK_ERR_AUD_INTF_OK;
@@ -2444,6 +2593,21 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 	if (aud_tras_drv_info.aud_tras_drv_com_event_cb)
 		aud_tras_drv_info.aud_tras_drv_com_event_cb(EVENT_AUD_TRAS_COM_INIT, BK_ERR_AUD_INTF_OK);
 
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_UDP
+	ret = bk_aud_debug_udp_init();
+	if (ret != BK_OK) {
+		os_printf("bk_aud_debug_udp_init fail \r\n");
+		return;
+	}
+#endif
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TCP
+		ret = bk_aud_debug_tcp_init();
+		if (ret != BK_OK) {
+			os_printf("bk_aud_debug_tcp_init fail \r\n");
+			return;
+		}
+#endif
+
 	while(1) {
 		aud_tras_drv_msg_t msg;
 		ret = rtos_pop_from_queue(&aud_trs_drv_int_msg_que, &msg, BEKEN_WAIT_FOREVER);
@@ -2544,7 +2708,7 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 
 				case AUD_TRAS_DRV_SPK_SET_SAMP_RATE:
 					LOGD("goto: AUD_TRAS_DRV_SPK_STOP \r\n");
-					aud_tras_drv_spk_set_samp_rate(*((aud_dac_samp_rate_source_t *)msg.param));
+					aud_tras_drv_spk_set_samp_rate(*((aud_dac_samp_rate_t *)msg.param));
 					break;
 
 				case AUD_TRAS_DRV_SPK_SET_GAIN:
@@ -2590,7 +2754,7 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 					break;
 
 				case AUD_TRAS_DRV_VOC_SET_AEC_PARA:
-					LOGD("goto: AUD_TRAS_DRV_VOC_SET_AEC_PARA \r\n");
+					LOGI("goto: AUD_TRAS_DRV_VOC_SET_AEC_PARA \r\n");
 					aud_tras_drv_set_aec_para(msg.param);
 					break;
 
@@ -2614,6 +2778,13 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 					LOGD("goto: AUD_TRAS_DRV_DECODER \r\n");
 					aud_tras_dec();
 					break;
+
+#if CONFIG_AUD_TRAS_DAC_DEBUG
+				case AUD_TRAS_VOC_DAC_BEBUG:
+					LOGI("goto: AUD_TRAS_VOC_DAC_BEBUG \r\n");
+					aud_tras_voc_dac_debug(*((bool *)msg.param));
+					break;
+#endif
 
 				default:
 					break;
@@ -2654,6 +2825,19 @@ aud_tras_drv_exit:
 	}
 
 	LOGI("aud_tras_drv_com_event_cb \r\n");
+
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_UDP
+	ret = bk_aud_debug_udp_deinit();
+	if (ret != BK_OK) {
+		os_printf("bk_aud_debug_udp_deinit fail \r\n");
+	}
+#endif
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TCP
+	ret = bk_aud_debug_tcp_deinit();
+	if (ret != BK_OK) {
+		os_printf("bk_aud_debug_tcp_deinit fail \r\n");
+	}
+#endif
 
 	aud_tras_drv_info.work_mode = AUD_INTF_WORK_MODE_NULL;
 	aud_tras_drv_info.aud_tras_tx_mic_data = NULL;

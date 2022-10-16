@@ -77,7 +77,7 @@ void sbc_decoder_hal_set_res_bytem_value(uint32_t bytem_value)
 
 void sbc_decoder_hal_set_res_byteh_value(uint32_t byteh_value)
 {
-	sbc_ll_set_res_bytel_value(byteh_value);
+	sbc_ll_set_res_byteh_value(byteh_value);
 }
 
 void sbc_decoder_hal_set_sbc_bit_num(uint32_t value)

@@ -1137,12 +1137,21 @@ tcp_free_acked_segments(struct tcp_pcb *pcb, struct tcp_seg *seg_list, const cha
  *
  * Called from tcp_process().
  */
+#if CONFIG_MQTT_ACK_NOW
+u32_t tcpin_cnt = 0;
+u32_t start_timer = 0;
+#endif
+
 static void
 tcp_receive(struct tcp_pcb *pcb)
 {
   s16_t m;
   u32_t right_wnd_edge;
   int found_dupack = 0;
+#if CONFIG_MQTT_ACK_NOW
+  u32_t end_timer = 0;
+#define NOW_ACK_TIMEOUT		(10 * 1000)
+#endif
 
   LWIP_ASSERT("tcp_receive: invalid pcb", pcb != NULL);
   LWIP_ASSERT("tcp_receive: wrong state", pcb->state >= ESTABLISHED);
@@ -1620,10 +1629,31 @@ tcp_receive(struct tcp_pcb *pcb)
 #endif /* LWIP_TCP_SACK_OUT */
 #endif /* TCP_QUEUE_OOSEQ */
 
-
-        /* Acknowledge the segment(s). */
-        tcp_ack(pcb);
-
+#if CONFIG_MQTT_ACK_NOW
+	/* Acknowledge the segment(s). set NOW_ACK if 1~ 4 packets of each 10s*/
+	tcpin_cnt++;
+	if(tcpin_cnt == 1) {
+		start_timer = rtos_get_time();
+		tcp_ack_now(pcb);
+	} else {
+		end_timer = rtos_get_time();
+		if((end_timer - start_timer) < NOW_ACK_TIMEOUT) {
+			if(tcpin_cnt <=4)
+				tcp_ack_now(pcb);
+			else {
+				tcp_ack(pcb);
+				start_timer = end_timer;
+			}
+		} else {
+				tcp_ack_now(pcb);
+				tcpin_cnt = 1;
+				start_timer = end_timer;
+		}
+	}
+#else
+	/* Acknowledge the segment(s). */
+	tcp_ack(pcb);
+#endif
 #if LWIP_TCP_SACK_OUT
         if (LWIP_TCP_SACK_VALID(pcb, 0)) {
           /* Normally the ACK for the data received could be piggy-backed on a data packet,

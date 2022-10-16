@@ -91,7 +91,7 @@ typedef enum {
 
 typedef void *HMP3Decoder;
 
-enum {
+typedef enum {
 	ERR_MP3_NONE =                  0,
 	ERR_MP3_INDATA_UNDERFLOW =     -1,
 	ERR_MP3_MAINDATA_UNDERFLOW =   -2,
@@ -107,7 +107,7 @@ enum {
 	ERR_MP3_INVALID_SUBBAND =      -12,
 
 	ERR_UNKNOWN =                  -9999
-};
+} err_mp3_t;
 
 typedef struct _MP3FrameInfo {
 	int bitrate;
@@ -120,11 +120,84 @@ typedef struct _MP3FrameInfo {
 } MP3FrameInfo;
 
 /* public API */
+/**
+ * @brief     Init the decoder of MP3
+ *
+ * This API init the mp3 decoder module:
+ *  - allocate memory for platform-specific data
+ *  - clear all the user-accessible fields
+ *
+ * @param None
+ *
+ * @return None
+ *
+ */
 HMP3Decoder MP3InitDecoder(void);
+
+/**
+ * @brief     Free the decoder of MP3
+ *
+ * This API free the mp3 decoder module:
+ *  - free platform-specific data allocated by InitMP3Decoder
+ *  - zero out the contents of MP3DecInfo struct
+ *
+ * @param HMP3Decoder valid MP3 decoder instance pointer
+ *
+ * @return None
+ *
+ */
 void MP3FreeDecoder(HMP3Decoder hMP3Decoder);
+
+/**
+ * @brief     Decode one frame of MP3 data
+ *
+ * @param hMP3Decoder valid MP3 decoder instance pointer
+ * @param inbuf double pointer to buffer of MP3 data (containing headers + mainData)
+ * @param bytesLeft number of valid bytes remaining in inbuf
+ * @param outbuf pointer to outbuf, big enough to hold one frame of decoded PCM samples
+ * @param useSize flag indicating whether MP3 data is normal MPEG format (useSize = 0) or reformatted as "self-contained" frames (useSize = 1)
+ *
+ * @return error code, defined in mp3dec.h (0 means no error, < 0 means error)
+ *
+ */
 int MP3Decode(HMP3Decoder hMP3Decoder, unsigned char **inbuf, int *bytesLeft, short *outbuf, int useSize);
+
+/**
+ * @brief     Get info about last MP3 frame decoded
+ *
+ * This API get the info about last mp3 decoded:
+ *  - number of sampled decoded, sample rate, bitrate, etc.
+ *
+ * @param hMP3Decoder valid MP3 decoder instance pointer
+ * @param mp3FrameInfo pointer to MP3FrameInfo struct
+ *
+ * @return None
+ *
+ */
 void MP3GetLastFrameInfo(HMP3Decoder hMP3Decoder, MP3FrameInfo *mp3FrameInfo);
+
+/**
+ * @brief     Parse MP3 frame header
+ *
+ * @param hMP3Decoder valid MP3 decoder instance pointer
+ * @param mp3FrameInfo pointer to MP3FrameInfo struct
+ * @param buf pointer to buffer containing valid MP3 frame header
+ *
+ * @return error code, defined in mp3dec.h (0 means no error, < 0 means error)
+ *
+ */
 int MP3GetNextFrameInfo(HMP3Decoder hMP3Decoder, MP3FrameInfo *mp3FrameInfo, unsigned char *buf);
+
+/**
+ * @brief     locate the next byte-alinged sync word in the raw mp3 stream
+ *
+ * @param buf buffer to search for sync word
+ * @param nBytes max number of bytes to search in buffer
+ *
+ * @return
+ *    - offset to first sync word (bytes from start of buf)
+ *    - -1 if sync not found after searching nBytes
+ */
 int MP3FindSyncWord(unsigned char *buf, int nBytes);
 
 #ifdef __cplusplus

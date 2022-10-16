@@ -32,36 +32,36 @@ typedef enum
 
 #define SDIO_LOG_OUTPUT_LEVEL (SDIO_LOG_DEBUG_LEVEL)
 
-#define SDIO_LOG_ERR(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_ERR_LEVEL) { \
-	BK_LOG_RAW("SDIO Err(%s:%d) ", __FUNCTION__, __LINE__); \
+#define SDIO_LOG_ERR(...) do {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_ERR_LEVEL) { \
+	BK_LOG_RAW("SDIO ERR(%s:%d) ", __FUNCTION__, __LINE__); \
 	BK_LOG_RAW(__VA_ARGS__); \
 	BK_LOG_RAW("\r\n"); \
-}}
-#define SDIO_LOG_WARNING(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_WARNING_LEVEL) { \
-	BK_LOG_RAW("SDIO WARN"); \
+}}while(0)
+#define SDIO_LOG_WARNING(...) do {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_WARNING_LEVEL) { \
+	BK_LOG_RAW("[SDIO WARN]"); \
 	BK_LOG_RAW(__VA_ARGS__); \
 	BK_LOG_RAW("\r\n"); \
-}}
-#define SDIO_LOG_INFO(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_INFO_LEVEL) { \
-	BK_LOG_RAW("SDIO INFO"); \
+}}while(0)
+#define SDIO_LOG_INFO(...) do {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_INFO_LEVEL) { \
+	BK_LOG_RAW("[SDIO INFO]"); \
 	BK_LOG_RAW(__VA_ARGS__); \
 	BK_LOG_RAW("\r\n"); \
-}}
-#define SDIO_LOG_DEBUG(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
-	BK_LOG_RAW("SDIO DBG"); \
+}}while(0)
+#define SDIO_LOG_DEBUG(...) do {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
+	BK_LOG_RAW("[SDIO DBG]"); \
 	BK_LOG_RAW(__VA_ARGS__); \
 	BK_LOG_RAW("\r\n"); \
-}}
-#define SDIO_LOG_DUMP(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
+}}while(0)
+#define SDIO_LOG_DUMP(...) do {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
 		BK_LOG_RAW(__VA_ARGS__); \
-	}}
+	}}while(0)
 
-#define SDIO_LOG_DEBUG_FUNCTION_ENTRY(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
-	BK_LOG_RAW("SDIO DEBUG(%s:Entry)\r\n", __FUNCTION__); \
-}}
-#define SDIO_LOG_DEBUG_FUNCTION_EXIT(...) {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
-	BK_LOG_RAW("SDIO DEBUG(%s:Entry)\r\n", __FUNCTION__); \
-}}
+#define SDIO_LOG_DEBUG_FUNCTION_ENTRY(...) do {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
+	BK_LOG_RAW("SDIO DBG(%s:Entry)\r\n", __FUNCTION__); \
+}}while(0)
+#define SDIO_LOG_DEBUG_FUNCTION_EXIT(...) do {if(SDIO_LOG_OUTPUT_LEVEL <= SDIO_LOG_DEBUG_LEVEL) { \
+	BK_LOG_RAW("SDIO DBG(%s:Exit)\r\n", __FUNCTION__); \
+}}while(0)
 
 
 #ifdef CONFIG_SDIO_DEBUG_EN
@@ -81,7 +81,7 @@ typedef enum
 #define SDIO_CMD_INDEX_52	(52)
 #define SDIO_CMD_INDEX_53	(53)
 
-#define SDIO_MAX_BLOCK_SIZE (0x200)		//512 bytes per round
+#define SDIO_BLOCK_SIZE (0x200)		//512 bytes per round
 
 //#define SDIO_IS_CHAN_SUPPORT_BUF (0)	//const value, dont change it
 
@@ -109,12 +109,17 @@ typedef enum
 	SDIO_CHANNEL_INIT,
 	
 	//READ
-	//SDIO_READ_CYCLE_FINISH,	//sdio block finish
-	SDIO_READ_NODE_FINISH,	//the first node is finish/full
+	SDIO_NOTIFY_START_READ,			//CMD53:ISR to Task start to read data to buffer
+	SDIO_READ_TO_FIFO_FINISH,		//sdio block finish,from host to SDIO FIFO
+	SDIO_READ_TO_MEMORY_FINISH,		//DMA finish,from SDIO FIFO to RAM
 	SDIO_MSG_SYNC_READ,
 	SDIO_MSG_ASYNC_READ,
 	
 	//WRITE
+	SDIO_NOTIFY_START_WRITE,		//CMD53:ISR to Task, start to write data from RAM buffer to SDIO FIFO
+	SDIO_WRITE_NOTIFY_FIFO_EMPTY,			//sdio fifo is empty, can write data to SDIO FIFO
+	SDIO_WRITE_TO_FIFO_FINISH,		//DMA finish,from RAM to SDIO FIFO
+	
 	SDIO_WRITE_NODE_FINISH,
 	SDIO_MSG_SYNC_WRITE,
 	SDIO_MSG_ASYNC_WRITE
@@ -136,18 +141,25 @@ typedef union
 {
 	struct
 	{
-		uint32_t rw : 1;	//1:write, 0:read
-		uint32_t func_num : 3;
-		uint32_t block_mode : 1;	//1:block mode, 0:byte mode
-		uint32_t op_mode : 1;		//1:multi-byte read/write increase address, 0:fixed address
-		uint32_t addr : 17;
 		uint32_t count : 9;			//block/byte mode, how many blocks/bytes
+#if CONFIG_SDIO_SW_CHANNEL_EN				//BK7256 ASIC not use this bits, SW use it as self-define function
+		uint32_t channel : 3;		//for BK7256 slave channel id
+		uint32_t start_packet : 1;	//Host write:after this CMD53,the data is a new packet start
+		uint32_t end_packet : 1;	//Host write:after this CMD53,the data is a packet end
+		uint32_t sw_reserved : 12;
+#else
+		uint32_t addr : 17;			//SDIO protocal
+#endif
+		uint32_t op_mode : 1;		//1:multi-byte read/write increase address, 0:fixed address;BK7256 not use this bits
+		uint32_t block_mode : 1;	//1:block mode, 0:byte mode
+		uint32_t func_num : 3;		//BK7256 always 1
+		uint32_t rw : 1;			//1:host write, 0:host read
 	};
 
 	uint32_t v;
 }sdio_cmd53_arg_t;
 
-typedef bk_err_t (*sdio_chan_cb_t)(sdio_node_ptr_t *head_p, sdio_node_ptr_t *tail_p, uint32_t count);
+typedef bk_err_t (*sdio_chan_cb_t)(sdio_node_ptr_t head_p, sdio_node_ptr_t tail_p, uint32_t count);
 
 typedef struct
 {
@@ -179,7 +191,7 @@ typedef struct
 	uint32 chan_id:6;
 	uint32 misc_reserve:24;
 
-#ifdef SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	sdio_chan_buf_t chan_buf[2];	//index 0:tx & index 1:rx
 #else
 	sdio_chan_buf_t chan_buf[1];	//tx or rx

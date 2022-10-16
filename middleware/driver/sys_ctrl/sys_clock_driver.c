@@ -194,16 +194,16 @@ void sys_drv_pwm_select_clock(sys_sel_pwm_t num, pwm_src_clk_t mode)
 
 void sys_drv_timer_select_clock(sys_sel_timer_t num, timer_src_clk_t mode)
 {
-	uint32_t int_level = rtos_disable_int();
-	uint32_t ret = SYS_DRV_FAILURE;
-	ret = sys_amp_res_acquire();
+//	uint32_t int_level = rtos_disable_int();
+//	uint32_t ret = SYS_DRV_FAILURE;
+//	ret = sys_amp_res_acquire();
 
 	sys_hal_timer_select_clock(num, mode);
 
-	if(!ret)
-		ret = sys_amp_res_release();
+//	if(!ret)
+//		ret = sys_amp_res_release();
 
-	rtos_enable_int(int_level);
+//	rtos_enable_int(int_level);
 }
 
 void sys_drv_usb_clock_ctrl(bool ctrl, void *arg)

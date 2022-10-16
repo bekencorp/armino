@@ -125,9 +125,9 @@ typedef enum
 
 typedef struct
 {
-    uint32_t  fps;
-    uint32_t  width;
-    uint32_t  height;
+    uint16_t  fps;
+    uint16_t  width;
+    uint16_t  height;
 } UVC_ResolutionFramerate;
 
 /*

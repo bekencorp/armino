@@ -73,9 +73,11 @@ typedef enum {
 typedef struct
 {
 	uvc_camera_device_t *device;
-	int (*frame_set_ppi)(media_ppi_t ppi, frame_type_t type);
-	void (*frame_complete)(frame_buffer_t* buffer);
-	frame_buffer_t* (*frame_alloc)(void);
+	int (*fb_init)(media_ppi_t max_ppi);
+	int (*fb_deinit) (void);
+	void (*fb_complete)(frame_buffer_t* buffer);
+	frame_buffer_t* (*fb_malloc)(void);
+	void (*fb_free)(frame_buffer_t* buffer);
 	void (*uvc_disconnect)(void);
 } uvc_camera_config_t;
 

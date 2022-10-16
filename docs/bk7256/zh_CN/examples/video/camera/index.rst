@@ -6,8 +6,8 @@ camera
 .. toctree::
    :maxdepth: 1
 
-   DVP 图传 demo <bk_video_transfer>
-   DVP 拍照 demo <bk_dvp_capture>
-   UVC 屏显 demo <bk_uvc_display>
-   UVC 拍照 demo <bk_uvc_capture>
-   DOORBELL 可视门铃 demo <bk_doorbell>
+   DVP Video_transfer <bk_video_transfer>
+   DVP Capture <bk_dvp_capture>
+   UVC LCD_display <bk_uvc_display>
+   UVC Capture <bk_uvc_capture>
+   DOORBELL <bk_doorbell>

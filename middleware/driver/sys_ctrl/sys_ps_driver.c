@@ -207,6 +207,9 @@ int32 sys_drv_module_power_state_get(power_module_name_t module)
 {
 	return sys_hal_module_power_state_get(module);
 }
-
+int32 sys_drv_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval)
+{
+	return sys_hal_rosc_calibration(rosc_cali_mode,cali_interval);
+}
 /*wake up control end*/
 

@@ -18,14 +18,11 @@
 
 extern void cli_sbc_decoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
-extern void cli_msbc_decoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-
 
 #define SBC_CMD_CNT	(sizeof(s_sbc_commands) / sizeof(struct cli_command))
 
 static const struct cli_command s_sbc_commands[] = {
-	{"sbc_decoder_test", "sbc_decoder_test {start|stop}", cli_sbc_decoder_test_cmd},
-	{"msbc_decoder_test", "msbc_decoder_test {start|stop}", cli_msbc_decoder_test_cmd},
+	{"sbc_decoder_test", "sbc_decoder_test {start|stop} {xxx.sbc}", cli_sbc_decoder_test_cmd},
 };
 
 int cli_sbc_init(void)

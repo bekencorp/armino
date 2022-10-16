@@ -175,7 +175,7 @@ static inline void aon_pmu_ll_set_reg1_usbplug_int_en(uint32_t value)
 #define AON_PMU_REG2_RESERVED_POS (9)
 #define AON_PMU_REG2_RESERVED_MASK (0x7FFFFF)
 
-#define AON_PMU_REG2_WDT_RST_MASK (0x1FF)
+#define AON_PMU_REG2_WDT_RST_MASK (0x1FB)
 
 
 static inline uint32_t aon_pmu_ll_get_reg2_value(void)

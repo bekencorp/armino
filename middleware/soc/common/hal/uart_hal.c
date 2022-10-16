@@ -121,3 +121,26 @@ bk_err_t uart_hal_disable_hw_flow_ctrl(uart_hal_t *hal, uart_id_t id)
 	return BK_OK;
 }
 
+uint32_t uart_hal_get_system_interrput_en_status(uart_id_t id)
+{
+	uint32_t sys_int_en_status = 0;
+#if (CONFIG_SYSTEM_CTRL)
+	switch(id)
+	{
+		case UART_ID_0:
+			sys_int_en_status = sys_ll_get_cpu0_int_0_31_en_cpu0_uart_int_en();
+			break;
+		case UART_ID_1:
+			sys_int_en_status = sys_ll_get_cpu0_int_0_31_en_cpu0_uart1_int_en();
+			break;
+		case UART_ID_2:
+			sys_int_en_status = sys_ll_get_cpu0_int_0_31_en_cpu0_uart2_int_en();
+			break;
+		default:
+			sys_int_en_status = 0;
+			break;
+	}
+#endif
+	return sys_int_en_status;
+}
+

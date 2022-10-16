@@ -17,6 +17,18 @@ typedef struct txpwr_st {
     UINT8 value;
 } TXPWR_ST, *TXPWR_PTR;
 
+typedef struct
+{
+    UINT32 cali_mode;
+    INT32 gtx_tssi_thred_chan1_b;
+    INT32 gtx_tssi_thred_chan7_b;
+    INT32 gtx_tssi_thred_chan13_b;
+    INT32 gtx_tssi_thred_chan1_g;
+    INT32 gtx_tssi_thred_chan7_g;
+    INT32 gtx_tssi_thred_chan13_g;
+
+} AUTO_PWR_CALI_CONTEXT;
+
 void vnd_cal_overlay(void);
 
 //typedef void (*hook_function_t)(void);
@@ -34,4 +46,6 @@ extern void vnd_cal_pwr_shift_n_tab_overlay(INT16 *pwr_shift_n_def_ptr);
 extern void vnd_cal_pwr_shift_n40_tab_overlay(INT16 *pwr_shift_n40_def_ptr);
 extern void vnd_cal_pwr_gain_base_ble_overlay(uint32 pwr_gain_base_ble_value);
 extern void vnd_cal_set_ble_pwr_level(uint8 level);
+extern void vnd_cal_set_auto_pwr_flag(uint8 flag);
+extern void vnd_cal_set_auto_pwr_thred(AUTO_PWR_CALI_CONTEXT auto_pwr);
 #endif

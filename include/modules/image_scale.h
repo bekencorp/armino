@@ -68,7 +68,7 @@ int image_16bit_rotate90_clockwise(uint8_t *des, uint8_t *src, uint32_t img_widt
 /**
  * @brief yuyv data clockwise rotate90
  */
-int yuyv_rotate_degree90(unsigned char *yuyv, unsigned char *rotatedYuyv, int width, int height);
+MINOOR_ITCM int yuyv_rotate_degree90(unsigned char *yuyv, unsigned char *rotatedYuyv, int width, int height);
 
 /**
  * @brief yuyv data clockwise rotate90

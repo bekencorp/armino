@@ -26,6 +26,7 @@ extern "C" {
 #define DISP_INT_EN            1  /**< enable lcd cpu level int*/
 #define DSIP_DISCLK_ALWAYS_ON  0  /**< 0: bus clock open when module is select,1:bus clock always open*/
 
+#define BK_ERR_LCD_NOT_INIT    (BK_ERR_LCD_BASE - 1) /**< LCD driver not init */
 
 #define LCD_X_PIXEL_1280 1280
 #define LCD_Y_PIXEL_720  720

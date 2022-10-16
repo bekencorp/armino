@@ -14,7 +14,8 @@
 
 #pragma once
 
-//#include <driver/qspi_types.h>
+#include <driver/psram_types.h>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,6 +90,78 @@ bk_err_t bk_psram_init(void);
  *    - others: other errors.
  */
 bk_err_t bk_psram_deinit(void);
+
+/**
+ * @brief     continue write data to psram
+ *
+ * This API will write more fast than dtim
+ *
+ * @param start_addr write to psram start addr
+ * @param data_buf data buffer pointer
+ * @param len data len need write to psram
+ *
+ * @attation 1. len uint byte
+ *
+ * @return void
+ */
+void bk_psram_memcpy(uint32_t start_addr, uint32_t *data_buf, uint32_t len);
+
+/**
+ * @brief     continue read data from psram
+ *
+ * This API will read more fast than dtim
+ *
+ * @param start_addr read from psram start addr
+ * @param data_buf data buffer pointer
+ * @param len data len need read from psram
+ *
+ * @attation 1. len uint byte
+ *
+ * @return void
+ */
+void bk_psram_memread(uint32_t start_addr, uint32_t *data_buf, uint32_t len);
+
+/**
+ * @brief     set psram clk
+ *
+ * This API used to set psram work clk
+ *
+ * @param clk:80/120/160/240
+ *
+ * @attation 1. current only support 80/120/160
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_psram_set_clk(psram_clk_t clk);
+
+/**
+ * @brief     set psram voltage
+ *
+ * This API used to set psram work voltage
+ *
+ * @param voltage 1.8/2.0/3.0/3.2
+ *
+ * @attation 1. current only used 1.8v
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_psram_set_voltage(psram_voltage_t voltage);
+
+/**
+ * @brief     string cat to psram
+ *
+ * This API is like strcat
+ *
+ * @param start_addr write to psram start addr
+ * @param data_buf string buffer pointer
+ *
+ * @return psram start addr
+ */
+char *bk_psram_strcat(char *start_addr, const char *data_buf);
 
 /**
  * @}

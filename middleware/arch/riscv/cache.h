@@ -1,8 +1,16 @@
 #ifndef __CACHE_H__
 #define __CACHE_H__
 
-#define SRAM_BLOCK_COUNT                        (4)
+
 #define SRAM_BLOCK_SIZE                         (0x20000)
+
+typedef enum {
+	SRAM_BLOCK_MEM0 = 0,
+	SRAM_BLOCK_MEM1 = 1,
+	SRAM_BLOCK_MEM2 = 2,
+	SRAM_BLOCK_MEM3 = 3,
+	SRAM_BLOCK_COUNT  = 4,
+}sram_bock_t;
 
 void sram_dcache_map(void);
 

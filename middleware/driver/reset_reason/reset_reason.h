@@ -18,13 +18,29 @@
 extern "C" {
 #endif
 
-#include "bk_private/bk_sys_ctrl.h"
+#include "sdkconfig.h"
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
-#define     START_TYPE_ADDR        (0x00800000 + 84 * 4)
+
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A)
+	#define     START_TYPE_ADDR        (0x00800000 + 84 * 4)
+	/* 1. For bk7231n/7236, persist memory lost after power on
+	 * 2. For other platform, persist memory lost after interrupt watchdog or power on
+	 * */
+	#define PERSIST_MEMORY_ADDR (0x0040001c)
+#elif (CONFIG_SOC_BK7256XX)
+	#define START_TYPE_ADDR        (0x44000000 + 0x3 * 4)    //aon_pmu reg03
+	#define PERSIST_MEMORY_ADDR    (0x20007FF0)
+	#define REBOOT_TAG_ADDR        (0x20007FF8)   //DTCM last 8 byte
+	#define REBOOT_TAG_REQ         (0xAA55AA55)   //4 byte
+	#define MCAUSE_CAUSE_WATCHDOG  (0x1)
 #else
-#define     START_TYPE_ADDR        (0x0080a080)
+	#define     START_TYPE_ADDR        (0x0080a080)
+	/* 1. For bk7231n/7236, persist memory lost after power on
+	 * 2. For other platform, persist memory lost after interrupt watchdog or power on
+	 * */
+	#define PERSIST_MEMORY_ADDR (0x0040001c)
 #endif
+
 
 #define     CRASH_ILLEGAL_JUMP_VALUE      0xbedead00
 #define     CRASH_UNDEFINED_VALUE         0xbedead01
@@ -32,17 +48,11 @@ extern "C" {
 #define     CRASH_DATA_ABORT_VALUE        0xbedead03
 #define     CRASH_UNUSED_VALUE            0xbedead04
 
-RESET_SOURCE_STATUS bk_misc_get_start_type();
+
 void show_reset_reason(void);
-RESET_SOURCE_STATUS reset_reason_init(void);
-void bk_misc_update_set_type(uint32_t type);
+uint32_t reset_reason_init(void);
 
 
-#if (CONFIG_SOC_BK7256XX)
-#define MCAUSE_CAUSE_WATCHDOG (0x1)
-#define REBOOT_TAG_ADDR     (0x20007FF8)   //DTCM last 8 byte
-#define REBOOT_TAG_REQ      (0xAA55AA55)   //4 byte
-#endif
 void set_reboot_tag(uint32_t tag);
 uint32_t get_reboot_tag(void);
 

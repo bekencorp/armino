@@ -367,7 +367,7 @@ void cli_aud_cp0_sdcard_to_dac_test_cmd(char *pcWriteBuffer, int xWriteBufferLen
 	if (os_strcmp(argv[1], "start") == 0) {
 		os_printf("audio file to dac test start\n");
 
-		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_48K;
+		dac_config.samp_rate = AUD_DAC_SAMP_RATE_48K;
 		dac_config.dac_enable = AUD_DAC_DISABLE;
 		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
 		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
@@ -388,8 +388,6 @@ void cli_aud_cp0_sdcard_to_dac_test_cmd(char *pcWriteBuffer, int xWriteBufferLen
 		dac_config.dacl_int_enable = 0x0;
 
 		dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		dac_config.dac_fracmode_value = 0x0;
 
 		ret = bk_aud_driver_init();
 		ret = bk_aud_dac_init(&dac_config);

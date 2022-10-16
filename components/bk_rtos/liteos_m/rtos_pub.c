@@ -121,7 +121,7 @@ bk_err_t rtos_create_thread( beken_thread_t *thread, uint8_t priority, const cha
 	}
 
 tinit_exit:
-	BK_ASSERT(LOS_OK == uwRet);
+	BK_ASSERT(LOS_OK == uwRet); /* ASSERT VERIFIED */
 	return ret;
 }
 
@@ -171,7 +171,7 @@ uint32_t _thread_get_status(beken_thread_t *thread)
     osThreadState_t stState;
     LosTaskCB *pstTaskCB = NULL;
 
-	BK_ASSERT(thread);
+	BK_ASSERT(thread); /* ASSERT VERIFIED */
     if (OS_INT_ACTIVE || *thread == NULL) {
         return osThreadError;
     }
@@ -197,7 +197,7 @@ uint32_t _thread_get_status(beken_thread_t *thread)
 
 bk_err_t rtos_thread_join(beken_thread_t *thread)
 {
-	BK_ASSERT(thread);
+	BK_ASSERT(thread); /* ASSERT VERIFIED */
     while ( _thread_get_status( *thread ) != osThreadInactive )
     {
         rtos_delay_milliseconds(10);
@@ -362,7 +362,7 @@ bk_err_t rtos_init_semaphore_ex(beken_semaphore_t *semaphore, int max_count, int
     } else {
         uwRet = LOS_SemCreate((UINT16)init_count, &uwSemId);
     }
-	BK_ASSERT(LOS_OK == uwRet);
+	BK_ASSERT(LOS_OK == uwRet); /* ASSERT VERIFIED */
 
     if (uwRet == LOS_OK) {
         *semaphore = (beken_semaphore_t)(GET_SEM(uwSemId));
@@ -379,7 +379,7 @@ bk_err_t rtos_get_semaphore(beken_semaphore_t *semaphore, uint32_t timeout_ms )
     UINT32 uwRet;
     uint32_t timeout;
 
-	BK_ASSERT(semaphore);
+	BK_ASSERT(semaphore); /* ASSERT VERIFIED */
     if(timeout_ms == BEKEN_WAIT_FOREVER)
         timeout = LOS_WAIT_FOREVER;
     else
@@ -416,7 +416,7 @@ int rtos_get_semaphore_count(beken_semaphore_t *semaphore )
         return 0;
     }
 
-	BK_ASSERT(semaphore);
+	BK_ASSERT(semaphore); /* ASSERT VERIFIED */
 
     if (*semaphore == NULL) {
         return 0;
@@ -433,7 +433,7 @@ int rtos_set_semaphore(beken_semaphore_t *semaphore )
 {
     UINT32 uwRet;
 
-	BK_ASSERT(semaphore);
+	BK_ASSERT(semaphore); /* ASSERT VERIFIED */
 
     if (*semaphore == NULL) {
         return kParamErr;
@@ -457,7 +457,7 @@ bk_err_t rtos_deinit_semaphore(beken_semaphore_t *semaphore )
         return kGeneralErr;
     }
 
-	BK_ASSERT(semaphore);
+	BK_ASSERT(semaphore); /* ASSERT VERIFIED */
 
     if (*semaphore == NULL) {
         return kParamErr;
@@ -492,7 +492,7 @@ bk_err_t rtos_init_mutex(beken_mutex_t *mutex)
 		goto init_exit;
     }
 
-	BK_ASSERT(mutex);
+	BK_ASSERT(mutex); /* ASSERT VERIFIED */
 
     uwRet = LOS_MuxCreate(&uwMuxId);
     if (uwRet == LOS_OK) {
@@ -500,7 +500,7 @@ bk_err_t rtos_init_mutex(beken_mutex_t *mutex)
     } else {
         *mutex = (beken_mutex_t)NULL;
     }
-	BK_ASSERT(LOS_OK == uwRet);
+	BK_ASSERT(LOS_OK == uwRet); /* ASSERT VERIFIED */
 
 init_exit:
     if ( *mutex == NULL )
@@ -519,7 +519,7 @@ bk_err_t rtos_trylock_mutex(beken_mutex_t *mutex)
         return kParamErr;
     }
 
-	BK_ASSERT(mutex);
+	BK_ASSERT(mutex); /* ASSERT VERIFIED */
 
     uwRet = LOS_MuxPend(((LosMuxCB *)*mutex)->muxID, 0);
     if (uwRet == LOS_OK) {
@@ -537,7 +537,7 @@ bk_err_t rtos_lock_mutex(beken_mutex_t *mutex)
 {
     UINT32 uwRet;
 
-	BK_ASSERT(mutex);
+	BK_ASSERT(mutex); /* ASSERT VERIFIED */
 
     if (*mutex == NULL) {
         return kParamErr;
@@ -563,7 +563,7 @@ bk_err_t rtos_unlock_mutex(beken_mutex_t *mutex)
         return kParamErr;
     }
 
-	BK_ASSERT(mutex);
+	BK_ASSERT(mutex); /* ASSERT VERIFIED */
 
     uwRet = LOS_MuxPost(((LosMuxCB *)*mutex)->muxID);
     if (uwRet == LOS_OK) {
@@ -581,7 +581,7 @@ bk_err_t rtos_deinit_mutex(beken_mutex_t *mutex)
         return kStateErr;
     }
 
-	BK_ASSERT(mutex);
+	BK_ASSERT(mutex); /* ASSERT VERIFIED */
 
     if (*mutex == NULL) {
         return kParamErr;
@@ -603,7 +603,7 @@ bk_err_t rtos_init_queue( beken_queue_t *queue, const char* name, uint32_t msg_s
     UINT32 uwQueueID;
 	bk_err_t ret = kNoErr;
 
-	BK_ASSERT(queue);
+	BK_ASSERT(queue); /* ASSERT VERIFIED */
 
     if (0 == msg_count || 0 == msg_size || OS_INT_ACTIVE) {
         *queue = (beken_queue_t)NULL;
@@ -619,7 +619,7 @@ bk_err_t rtos_init_queue( beken_queue_t *queue, const char* name, uint32_t msg_s
         *queue = (beken_queue_t)NULL;
 		ret = kNoResourcesErr;
     }
-	BK_ASSERT(LOS_OK == uwRet);
+	BK_ASSERT(LOS_OK == uwRet); /* ASSERT VERIFIED */
 
 qinit_exit:
     return ret;
@@ -632,7 +632,7 @@ bk_err_t rtos_push_to_queue( beken_queue_t *queue, void* msg_ptr, uint32_t timeo
     uint32_t uwBufferSize;
     LosQueueCB *pstQueue = (LosQueueCB *)*queue;
 
-	BK_ASSERT(queue);
+	BK_ASSERT(queue); /* ASSERT VERIFIED */
 
     if(timeout_ms == BEKEN_WAIT_FOREVER)
         timeout = LOS_WAIT_FOREVER;
@@ -665,7 +665,7 @@ bk_err_t rtos_push_to_queue_front( beken_queue_t *queue, void *msg_ptr, uint32_t
     uint32_t uwBufferSize;
     LosQueueCB *pstQueue = (LosQueueCB *)*queue;
 
-	BK_ASSERT(queue);
+	BK_ASSERT(queue); /* ASSERT VERIFIED */
 
     if(timeout_ms == BEKEN_WAIT_FOREVER)
         timeout = LOS_WAIT_FOREVER;
@@ -698,7 +698,7 @@ bk_err_t rtos_pop_from_queue( beken_queue_t *queue, void *msg_ptr, uint32_t time
     UINT32 uwBufferSize;
     LosQueueCB *pstQueue = (LosQueueCB *)*queue;
 
-	BK_ASSERT(queue);
+	BK_ASSERT(queue); /* ASSERT VERIFIED */
 
     if(timeout_ms == BEKEN_WAIT_FOREVER)
         timeout = LOS_WAIT_FOREVER;
@@ -727,7 +727,7 @@ bk_err_t rtos_deinit_queue(beken_queue_t *queue)
     UINT32 uwRet;
     LosQueueCB *pstQueue = (LosQueueCB *)*queue;
 
-	BK_ASSERT(queue);
+	BK_ASSERT(queue); /* ASSERT VERIFIED */
 
     if (pstQueue == NULL) {
         return kParamErr;
@@ -767,7 +767,7 @@ uint32_t _queue_get_count(beken_queue_t *queue)
     UINTPTR uwIntSave;
     LosQueueCB *pstQueue = (LosQueueCB *)*queue;
 
-	BK_ASSERT(queue);
+	BK_ASSERT(queue); /* ASSERT VERIFIED */
 
     if (pstQueue == NULL) {
         count = 0U;
@@ -781,13 +781,13 @@ uint32_t _queue_get_count(beken_queue_t *queue)
 
 bool rtos_is_queue_full(beken_queue_t *queue)
 {
-	BK_ASSERT(queue);
+	BK_ASSERT(queue); /* ASSERT VERIFIED */
     return ( _queue_get_capacity(queue) == _queue_get_count(queue) ) ? true : false;
 }
 
 bool rtos_is_queue_empty(beken_queue_t *queue)
 {
-	BK_ASSERT(queue);
+	BK_ASSERT(queue); /* ASSERT VERIFIED */
     return ( 0 == _queue_get_count(queue) ) ? true : false;
 }
 

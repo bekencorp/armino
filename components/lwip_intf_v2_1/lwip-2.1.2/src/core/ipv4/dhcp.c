@@ -566,7 +566,7 @@ dhcp_t1_timeout(struct netif *netif)
 {
   struct dhcp *dhcp = netif_dhcp_data(netif);
 
-  LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_STATE, ("dhcp_t1_timeout()\n"));
+  LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_STATE | LWIP_BK_DBG_TRACE, ("dhcp_t1_timeout()\n"));
   if ((dhcp->state == DHCP_STATE_REQUESTING) || (dhcp->state == DHCP_STATE_BOUND) ||
       (dhcp->state == DHCP_STATE_RENEWING)) {
     /* just retry to renew - note that the rebind timer (t2) will
@@ -593,7 +593,7 @@ dhcp_t2_timeout(struct netif *netif)
 {
   struct dhcp *dhcp = netif_dhcp_data(netif);
 
-  LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp_t2_timeout()\n"));
+  LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE | LWIP_BK_DBG_TRACE, ("dhcp_t2_timeout()\n"));
   if ((dhcp->state == DHCP_STATE_REQUESTING) || (dhcp->state == DHCP_STATE_BOUND) ||
       (dhcp->state == DHCP_STATE_RENEWING) || (dhcp->state == DHCP_STATE_REBINDING)) {
     /* just retry to rebind */
@@ -1256,7 +1256,7 @@ dhcp_renew(struct netif *netif)
   u16_t options_out_len;
 
   LWIP_ASSERT_CORE_LOCKED();
-  LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE, ("dhcp_renew()\n"));
+  LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE | LWIP_BK_DBG_TRACE, ("dhcp_renew()\n"));
   dhcp_set_state(dhcp, DHCP_STATE_RENEWING);
 
   /* create and initialize the DHCP message header */

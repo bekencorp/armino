@@ -79,7 +79,7 @@
 #endif
 
 /* Tick */
-#define configCPU_CLOCK_HZ                          ( ( unsigned long ) 120000000 )
+#define configCPU_CLOCK_HZ                          CONFIG_CPU_FREQ_HZ
 #define configTICK_RATE_HZ                          ( ( TickType_t ) 500 )
 #define configUSE_16_BIT_TICKS                      0
 #define configUSE_WATCHDOG_TICK                     32000
@@ -89,14 +89,14 @@
 
 /* Timers */
 #define configUSE_TIMERS                            ( 1 )
-#define configTIMER_TASK_PRIORITY                   ( 2 )
+#define configTIMER_TASK_PRIORITY                   ( 5 )
 #define configTIMER_QUEUE_LENGTH                    ( 16 )
 #define configTIMER_TASK_STACK_DEPTH                ( ( unsigned short ) (3072 / sizeof( portSTACK_TYPE )) )
 
 /* Task */
 #if CONFIG_FREERTOS_V10
-#define configUSE_TICKLESS_IDLE                     1
-#endif
+#define configUSE_TICKLESS_IDLE                     CONFIG_FREERTOS_USE_TICKLESS_IDLE
+#endif // CONFIG_FREERTOS_V10
 
 #if CONFIG_FREERTOS_POSIX
 #define configUSE_APPLICATION_TASK_TAG       1
@@ -105,7 +105,7 @@
 
 #define configMAX_PRIORITIES                        ( 10 )
 #define configUSE_PREEMPTION                        1
-#define configMINIMAL_STACK_SIZE                    ( ( unsigned short ) (512/2) )
+#define configMINIMAL_STACK_SIZE                    ( ( unsigned short ) (768/2) )
 #define configMAX_TASK_NAME_LEN                     ( 16 )
 #define configIDLE_SHOULD_YIELD                     1
 #define configUSE_CO_ROUTINES                       0
@@ -129,11 +129,11 @@
 #endif
 
 #if (CONFIG_SLAVE_CORE)
-#define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 30 * 1024 ) )
+#define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 20 * 1024 ) )
 #elif (CONFIG_CUSTOMIZE_HEAP_SIZE)
 #define configTOTAL_HEAP_SIZE                       ( ( size_t ) (CONFIG_CUSTOMIZE_HEAP_SIZE) )
 #else
-#define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 192 * 1024 ) )
+#define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 212 * 1024 ) )
 #endif
 /* Queue & Semaphore & Mutex */
 #define configQUEUE_REGISTRY_SIZE                   0
@@ -193,6 +193,7 @@ to exclude the API function. */
 #define configBK_FREERTOS                           1
 
 #if CONFIG_SOC_BK7256XX
+
 /****** Hardware/compiler specific settings. *******************************************/
 
 #define configISR_STACK_SIZE_WORDS 1024
@@ -257,6 +258,9 @@ Members except log buffer in uncached buffer used at most 6 cache line space. */
 #define configENABLE_MPU                   0
 #define configENABLE_TRUSTZONE             0
 #define configMINIMAL_SECURE_STACK_SIZE    (1024)
+#if CONFIG_FPGA
+#define configRUN_FREERTOS_SECURE_ONLY     1
+#endif
 #endif
 
 

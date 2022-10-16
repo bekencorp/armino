@@ -5,7 +5,7 @@ extern "C" {
 #endif
 
 
-#include "ff.h"
+#include "../../components/fatfs/ff.h"
 
 typedef struct {
 	long pos;

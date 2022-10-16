@@ -184,6 +184,20 @@ bk_err_t bk_flash_write_bytes(uint32_t address, const uint8_t *user_buf, uint32_
 bk_err_t bk_flash_read_bytes(uint32_t address, uint8_t *user_buf, uint32_t size);
 
 /**
+ * @brief     Read data from flas
+ *
+ * @param address address to read
+ * @param user_buf the buffer to read the data, intend to psram addr must aline by 4 Bytes
+ * @param size size to read, length uint by byte
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_FLASH_ADDR_OUT_OF_RANGE: flash address is out of range
+ *    - others: other errors.
+ */
+bk_err_t bk_flash_read_word(uint32_t address, uint32_t *user_buf, uint32_t size);
+
+/**
  * @brief   Get flash  init  flag
  *
  * @return the flash  init  flag

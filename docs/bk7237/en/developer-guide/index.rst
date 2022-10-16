@@ -19,9 +19,11 @@ User and Developer Guide
    Tools <tools/index>
    Wi-Fi <wifi/index>
    Bluetooth <bluetooth/index>
-   Write Examples <examples/index>
-   Documentation <documentation/index>
+   HTTP <http/index>
    OS Abstraction <os_abstraction/index>
+   OS Porting Guide <porting/index>
+   Bootloader <bootloader/index>
    Board Specific Guide <boards/index>
    CPU Specific Guide <cpu/index>
-   Porting Guide <porting/index>
+   Write Examples <examples/index>
+   Documentation <documentation/index>

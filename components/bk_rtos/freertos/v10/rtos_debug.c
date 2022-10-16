@@ -269,7 +269,7 @@ void rtos_dump_task_list(void)
 void rtos_stack_overflow(char *taskname)
 {
 	BK_DUMP_OUT("stack overflow: %s\r\n", taskname);
-	BK_ASSERT(false);
+	BK_ASSERT(false); /* ASSERT VERIFIED */
 	while(1);
 }
 

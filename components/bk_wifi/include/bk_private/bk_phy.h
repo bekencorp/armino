@@ -25,9 +25,11 @@ uint8_t phy_close_cca(void);
 uint8_t phy_show_cca(void);
 
 void cmd_rfcali_cfg_mode(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+void cmd_rfcali_get_cfg_mode(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 void cmd_rfcali_cfg_rate_dist(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 void cmd_rfcali_cfg_tssi_g(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 void cmd_rfcali_cfg_tssi_b(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+void cmd_rfcali_get_cfg_tssi(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 void cmd_rfcali_show_data(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 void cmd_cali(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 

@@ -7,6 +7,7 @@ Wi-Fi部分
    :maxdepth: 1
 
    Armino Wi-Fi说明 <bk_wifi>
+   Wi-Fi Quick Get-Started <bk_wifi_get_started>
    Wi-Fi AP/STA/P2P模式示例说明 <bk_wifi_mode>
    Wi-Fi iPerf示例说明 <bk_wifi_iperf>
    Wi-Fi 扫描示例工程说明 <bk_wifi_scan>

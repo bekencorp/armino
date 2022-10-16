@@ -208,15 +208,15 @@ Armino平台BK7256系统调试命令
     cpu1:firmware version : Apr 14 2022 23:49:08
     #
 
-Armino平台BK7256系统jtag调试
+Armino平台BK7237系统jtag调试
 --------------------------------------
 
- - 需要安装ANDES/AndeSight STD_V5.1.0软件
+ - 需要安装ANDES/AndeSight STD_V5.1.1软件
  - 需要jtag连接线
- - 默认jtag连接cpu0
- - 可以通过setjtagmode 1命令设置jtag连接cpu1
- - 可以通过setjtagmode 0命令设置jtag连接cpu0
- - 可以通过getjtagmode命令查看当前jtag状态
+ - 默认jtag连接cpu0，BK7256有两个Jtag口(grou1/group2)
+ - 可以通过setjtagmode cpu0 group1命令设置jtag连接cpu0
+ - 可以通过setjtagmode cpu1 group1设置jtag连接cpu1
+ - 可以通过jtagmode命令查看当前jtag状态
 
 
 Armino平台BK7256系统异常log分析
@@ -300,7 +300,7 @@ Armino平台BK7256系统异常log分析
 
  ::
 
-    ~/Version$ /opt/risc-v/nds32le-elf-mculib-v5/bin/riscv32-elf-addr2line -piaf -e *.elf cc160
+    ~/Version$ /opt/risc-v/nds32le-elf-mculib-v5/bin/riscv32-elf-addr2line -e *.elf -piaf cc160
     0x000cc160: rwm_upload_data at /home/jenkins/workspace/ArminoMainCI/properties/modules/rwnx_intf/rw_msdu.c:1299
 
  - 根据SP指针0x3002573c，得知当前Task为core_thread：

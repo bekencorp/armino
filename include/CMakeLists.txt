@@ -1,1 +1,1 @@
-armino_component_register(INCLUDE_DIRS . arch/compiler)
+armino_component_register(INCLUDE_DIRS . modules/lvgl arch/compiler)

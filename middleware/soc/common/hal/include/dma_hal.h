@@ -65,6 +65,14 @@ typedef struct {
 #define dma_hal_set_src_data_width(hal, id, data_width) dma_ll_set_src_data_width((hal)->hw, id, data_width)
 #define dma_hal_set_dest_data_width(hal, id, data_width) dma_ll_set_dest_data_width((hal)->hw, id, data_width)
 
+#if (CONFIG_GENERAL_DMA_SEC)
+#define dma_hal_set_dest_sec_attr(hal, id, attr) dma_ll_set_dest_sec_attr((hal)->hw, id, attr)
+#define dma_hal_set_src_sec_attr(hal, id, attr) dma_ll_set_src_sec_attr((hal)->hw, id, attr)
+
+#define dma_hal_set_sec_attr(hal, id, attr) dma_ll_set_secure_attr((hal)->hw, id, attr)
+#define dma_hal_set_privileged_attr(hal, id, attr) dma_ll_set_privileged_attr((hal)->hw, id, attr);
+#endif
+
 bk_err_t dma_hal_init(dma_hal_t *hal);
 bk_err_t dma_hal_init_dma(dma_hal_t *hal, dma_id_t id, const dma_config_t *config);
 bk_err_t dma_hal_start_common(dma_hal_t *hal, dma_id_t id);

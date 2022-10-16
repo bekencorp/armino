@@ -7,6 +7,9 @@ import sys
 dual_core_porjects = [
         ['bk7256', 'app'],
         ['bk7256', 'customization/bk7256_config2'],
+        ['bk7256', 'customization/bk7256_configa'],
+        ['bk7256', 'customization/bk7256_configb'],
+        ['bk7256', 'customization/bk7256_config3'],
         ['bk7235', 'customization/bk7235_config2'],
         ['bk7237', 'app']
     ]

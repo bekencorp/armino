@@ -52,6 +52,9 @@ static bk_err_t ate_gpio_init(void)
 		if(gpio_value == ATE_ENABLE_GPIO_LEVEL)
 			s_ate_enabled = true;
 	}
+#if CONFIG_ATE_TEST
+	s_ate_enabled = true;
+#endif
 	if(s_ate_enabled == true)
 	{
 	    rf_ps_enable_clear();

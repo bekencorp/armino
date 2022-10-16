@@ -6,4 +6,7 @@ menu "MEDIA"
 		bool "Wifi transfer"
 		default y
 		depends on CAMERA
+	config LVGL
+		bool "enable lvgl"
+		default n
 endmenu

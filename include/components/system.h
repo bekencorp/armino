@@ -21,6 +21,28 @@ extern "C" {
 #endif
 
 typedef enum {
+    RESET_SOURCE_POWERON = 0x0,
+    RESET_SOURCE_REBOOT = 0x1,
+    RESET_SOURCE_WATCHDOG = 0x2,
+
+    RESET_SOURCE_DEEPPS_GPIO = 0x3,
+    RESET_SOURCE_DEEPPS_RTC = 0x4,
+    RESET_SOURCE_DEEPPS_USB = 0x5,
+    RESET_SOURCE_DEEPPS_TOUCH = 0x6,
+
+    RESET_SOURCE_CRASH_ILLEGAL_JUMP = 0x7,
+    RESET_SOURCE_CRASH_UNDEFINED = 0x8,
+    RESET_SOURCE_CRASH_PREFETCH_ABORT = 0x9,
+    RESET_SOURCE_CRASH_DATA_ABORT = 0xa,
+    RESET_SOURCE_CRASH_UNUSED = 0xb,
+    RESET_SOURCE_CRASH_ILLEGAL_INSTRUCTION  = 0xc,
+    RESET_SOURCE_CRASH_MISALIGNED = 0xd,
+    RESET_SOURCE_CRASH_ASSERT = 0xe,
+
+    RESET_SOURCE_UNKNOWN = 0xff,
+} RESET_SOURCE_STATUS;
+
+typedef enum {
 	MAC_TYPE_BASE = 0,
 	MAC_TYPE_STA,
 	MAC_TYPE_AP,
@@ -70,6 +92,7 @@ bk_err_t bk_get_mac(uint8_t *mac, mac_type_t type);
  * This function reset the system by triggering the interrupt watchdog.
  */
 void bk_reboot(void);
+void bk_reboot_ex(uint32_t reset_reason);
 
 int bk_tick_init(void);
 int bk_tick_reload(uint32_t time_ms);
@@ -93,6 +116,8 @@ void bk_disable_mod_printf(char *mod_name, uint8_t disable);
 char * bk_get_disable_mod(int * idx);
 void bk_set_printf_port(uint8_t port_num);
 int bk_get_printf_port(void);
+uint32_t bk_misc_get_reset_reason(void);
+void bk_misc_set_reset_reason(uint32_t type);
 
 #ifdef __cplusplus
 }

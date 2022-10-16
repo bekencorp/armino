@@ -154,7 +154,7 @@ typedef volatile struct {
 			uint32_t tx_fifo_reset                  : 1;  //0xd[17],write fifo reset, high active; Host/Slave:Reset self state,0x1,R/W1C
 			uint32_t rx_fifo_rd_ready               : 1;  //0xd[18],host/slave rx fifo not empty,0x0,R
 			uint32_t tx_fifo_wr_ready               : 1;  //0xd[19],host/slave tx fifo not full(data is valid, not used for CMD),0x1,R
-			uint32_t sd_start_reset                 : 1;  //0xd[20],sdcard command and data state reset, high active; Host/Slave:Reset self state; It's better to reset after one round transfer.,0x1,R/W1C
+			uint32_t sd_state_reset                 : 1;  //0xd[20],sdcard command and data state reset, high active; Host/Slave:Reset self state; It's better to reset after one round transfer.,0x1,R/W1C
 			uint32_t sd_clk_sel                     : 2;  //0xd[22:21],sdcard clock div sel, used or not depend on project; Invalid.,0x3,RW
 			uint32_t sd_rd_wait_sel                 : 1;  //0xd[23],read data after command ?; Use default value.,0x1,RW
 			uint32_t sd_wr_wait_sel                 : 1;  //0xd[24],write data after command ?; Use default value.,0x0,RW

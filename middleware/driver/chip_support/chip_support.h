@@ -21,7 +21,6 @@
 #define CHIP_SUPPORT_LOGW(...) BK_LOGW(CHIP_SUPPORT_TAG, ##__VA_ARGS__)
 #define CHIP_SUPPORT_LOGE(...) BK_LOGE(CHIP_SUPPORT_TAG, ##__VA_ARGS__)
 #define CHIP_SUPPORT_LOGD(...) BK_LOGD(CHIP_SUPPORT_TAG, ##__VA_ARGS__)
-#define CHIP_SUPPORT_LOGD(...) BK_LOGD(CHIP_SUPPORT_TAG, ##__VA_ARGS__)
 
 bool bk_is_chip_supported(void);
 

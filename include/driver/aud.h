@@ -274,8 +274,6 @@ bk_err_t bk_aud_disable_adc_int(void);
  *     adc_config.agc_enable = AUD_AGC_DISABLE;
  *     adc_config.manual_pga_value = 0;
  *     adc_config.manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
- *     adc_config.adc_fracmod_manual = AUD_ADC_TRACMOD_MANUAL_DISABLE;
- *     adc_config.adc_fracmod = 0;
  *     bk_aud_adc_init(AUD_ADC_WORK_MODE_ADC, &adc_config, NULL);
  *     CLI_LOGI("init adc successful\n");
  *

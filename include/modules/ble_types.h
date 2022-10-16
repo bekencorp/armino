@@ -390,6 +390,8 @@ typedef enum
     BLE_5_ATT_READ_RESPONSE,
 
     BLE_5_CONN_UPD_PAR_ASK,
+
+    BLE_5_SHUTDOWN_SUCCEED,
 } ble_notice_t;
 
 typedef enum{

@@ -1,63 +1,64 @@
-Wi-Fi 抓包使用说明
+Wi-Fi Capture Introduction
 ==================================================
-卓越的网络分析工具-OmniPeek
+Powerful Network Protocol Analyzer-OmniPeek
 -----------------------------------------------------
-初识Omnipeek
+Meet Omnipeek
 +++++++++++++++++++++++++++++++++++++++++++++++++++
-OmniPeek被誉为世界上功能最强大的网络协议分析器,原属于世界领先的数据包捕获和分析Savvius公司的产品,(以前称为WildPackets)在数据包捕获,深度数据包检测和网络诊断解决方案领域领先25年,现已被Liveaction收购.Liveaction之前主要针对网络数据流级别的分析,收购Savvius之后,两者整合形成互补实现了从流到数据包的全面的分析平台.OmniPeek能对数据包进行深入的解析,分析上千种协议,从多个维度全方位的分析网络流量,提供数十种可直观的图表报告,提供专家级网络事件的分析和诊断.
+Known as the world's most powerful network protocol analyzer, omnipeek is a product of Savvius(formerly known as WildPackets), a worl leader in packet capture and analysis, with 25 years of leadership in packet capture, deep packet detection and network diagnosis solutions. It has been acquired by LiveAction. LiveAction previously focused on network data flow level analysis. With the acquisition of savvius, LiveAction and Savvius are integrated and complementary to achieve a comprehensive analysis platform from streams to packets. Omnipeek can analyze data packets in depth, analyze thousands of protocols, analyze network traffic from multiple dimensions, provide dozens of intuitive chart reports, and provide expert level network analysis and diagnosis.
 
-OmniPeek面板
+OmniPeek Panel
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 .. image:: ../../../_static/omni_panel.png
 
-OmniPeek提供了多种维度的分析方法可图表可供使用,上图展示了指南针面板,该面板是一个交互式的取证的仪表板,显示网随时间的络利用率,包括事件、协议、流、节点、信道、VLAN、数据速率、应用程序和国家统计信息.这些统计信息显示在可选的数据源窗口小部件中,可以从实时捕获或从单个捕获文件中查看.
+Omnipeek provides multiple dimensions of analysis methods and chart to use. The figure above shows the Compass panel, an interactive forensic dashboard that displays network utilization over time, including events、protocols、flows、nodes、channels、VLAN、data rates、applications and national statistics. These statistics are displayed in the optional data source widget and can be viewed from live capture or a single capture file.
 
-OmniPeek应用程序分析
+OmniPeek Application Analysis
 +++++++++++++++++++++++++++++++++++++++++++++++++++
-"应用程序"仪表板在捕获窗口中显示应用程序的关键统计信息.此应用程序可见性可洞悉一天,一周,一个月或一年中特定时间的网络上的用户行为和流量模式.它可以帮助分析人员更好地了解谁将访问哪个网站以及何时使用哪些应用程序.
+"Application" dashboad displays key statistics for the application in the capture window. The application visibility provides insight into user behavior and traffic patterns on the network at specific times of the day, week, month or year. It can help analysts better understand who will visit which sites and which applications when.
 
-OmniPeek统计分析
+OmniPeek Statistical Analysis
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 .. image:: ../../../_static/omni_graphs.png
 
-OmniPeek和捕获引擎实时计算各种关键统计数据,并以直观的图形显示形式呈现这些统计数据.您可以采用多种格式保存、复制、打印或自动生成有关这些统计信息的定期报告.
+Omnipeek and the capture engine compute various key statistics in real time and present these in an intuitive graphical display. You can save、copy、print or automatically genertate periodic reports on these statistics in variety of formats.
 
-总结
+Summary
 +++++++++++++++++++++++++++++++++++++++++++++++++++
-OmniPeek是功能强大的网络分析工具,对于初学者也能轻松上手,但是由于它的功能太过丰富,上面简短的介绍无法让大家了解透彻,更多细节部分请访问官方网站了解. `Onmipeek官方网站 <https://www.liveaction.com/>`_
+Omnipeek is a powerful network analysis tool that can be easily used by beginners. However, due to its rich features, the above brief introduction can't be fully understood. For more details, please visit the official website link.
+`Onmipeek <https://www.liveaction.com/>`_
 
-OmniPeek驱动
+OmniPeek Drivers
 ---------------------------------------------------
-根据软件安装目录 ``Omnipeek\Drivers`` 中的驱动信息,目前OmniPeek可以支持两类抓包网卡,一类基于Atheros芯片 ``Atheros USB 802.11n Wireless LAN card``,只支持11N模式;一类基于 ``Ralink rt2870`` ,可以支持802.11bgn/ac.推荐使用 ``ASUS USB-AC55`` 或者 ``Netgear A6210`` 两款USB抓包网卡.
+According to the driver information in the software installation directory ``Omnipeek\Drivers``, Omnipeek can support two types of capture sniffer at present, one based on Atheros chip ``Atheros USB 802.11n Wireless LAN card``, it can only support 11N mode; another one based on ``Ralink rt2870`` , it can support 802.11bgn/ac. It is recommended to use  ``ASUS USB-AC55`` or ``Netgear A6210`` .
 
-抓包场景
----------------------------------------------------
-- Wi-Fi连接问题,通过抓包分析关键帧
-- Wi-Fi性能问题,通过抓包分析重传、聚合度、Phy Rate等
-- Wi-Fi功耗问题,通过抓包分析PM值等
 
-常见问题
+Capture Scenario
 ---------------------------------------------------
-OmniPeek抓包示例
+- Wi-Fi Connection, analyze key frames with packet capture
+- Wi-Fi Performance, analyze the retransmission, aggregation degree, phy rate, etc
+- Wi-Fi Power consumption, analyze the value of power save mode
+
+FAQ
+---------------------------------------------------
+OmniPeek Capture Example
 +++++++++++++++++++++++++++++++++++++++++++++++++++
-- 扫描阶段
+- Scan
 
 .. image:: ../../../_static/scan.png
 
-- 认证阶段
+- Authentication
 
 .. image:: ../../../_static/auth.png
 
-- 四次握手阶段
+- Four handshake
 
 .. image:: ../../../_static/eapol.png
 
-- 解密
+- Decryption
 
-若能抓到上述完整的认证过程,可以通过 ``Tools-Decrypt WLAN Packets`` 输入SSID和密码进行解密
+If user can catch all above complete authentication process, you can enter SSID and password for decryption through ``Tools-Decrypt WLAN Packets`` .
 
 .. image:: ../../../_static/decrypt.png
 
 
-:link_to_translation:`en:[English]`
 

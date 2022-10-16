@@ -72,7 +72,11 @@ static const flash_config_t flash_config[] = {
 	{0xC84016,   1,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 0,        2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                0,            0,           0xA0,                          0x01}, //gd_25q32c
 #endif
 	{0xC86515,   2,               FLASH_SIZE_2M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x0D,         0x101,                9,            1,           0xA0,                          0x01}, //gd_25w16e
-
+#if CONFIG_FLASH_QUAD_ENABLE
+	{0xC86516,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_FOUR, 14,      2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                9,            1,           0xA0,                          0x02}, //en_25qe32a
+#else
+	{0xC86516,   1,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 0,        2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                0,            0,           0xA0,                          0x01}, //en_25qe32a
+#endif
 	{0xEF4016,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x00,         0x101,                9,            1,           0xA0,                          0x01}, //w_25q32(bfj)
 	{0x204016,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x0E,         0x101,                9,            1,           0xA0,                          0x01}, //xmc_25qh32b
 	{0xC22315,   1,               FLASH_SIZE_2M, FLASH_LINE_MODE_TWO, 0,        2,            0x0F,         0x0F,        0x00,         0x0A,         0x00E,                6,            1,           0xA5,                          0x01}, //mx_25v16b
@@ -157,13 +161,13 @@ static DEV_PM_OPS_S flash_ps_ops = {
 static void flash_init_common(void)
 {
 	int ret = rtos_init_mutex(&s_flash_mutex);
-	BK_ASSERT(kNoErr == ret);
+	BK_ASSERT(kNoErr == ret); /* ASSERT VERIFIED */
 }
 
 static void flash_deinit_common(void)
 {
 	int ret = rtos_deinit_mutex(&s_flash_mutex);
-	BK_ASSERT(kNoErr == ret);
+	BK_ASSERT(kNoErr == ret); /* ASSERT VERIFIED */
 }
 
 static void flash_get_current_config(void)
@@ -295,6 +299,38 @@ static void flash_read_common(uint8_t *buffer, uint32_t address, uint32_t len)
 		}
 
 		for (uint32_t i = address % FLASH_BYTES_CNT; i < FLASH_BYTES_CNT; i++) {
+			*buffer++ = pb[i];
+			address++;
+			len--;
+			if (len == 0) {
+				break;
+			}
+		}
+	}
+	rtos_enable_int(int_level);
+}
+
+static void flash_read_word_common(uint32_t *buffer, uint32_t address, uint32_t len)
+{
+	uint32_t addr = address & (~FLASH_ADDRESS_MASK);
+	uint32_t buf[FLASH_BUFFER_LEN] = {0};
+	//nt8_t *pb = (uint8_t *)&buf[0];
+	uint32_t *pb = (uint32_t *)&buf[0];
+
+	if (len == 0) {
+		return;
+	}
+
+	uint32_t int_level = rtos_disable_int();
+	while (flash_hal_is_busy(&s_flash.hal));
+	while (len) {
+		flash_hal_set_op_cmd_read(&s_flash.hal, addr);
+		addr += FLASH_BYTES_CNT;
+		for (uint32_t i = 0; i < FLASH_BUFFER_LEN; i++) {
+			buf[i] = flash_hal_read_data(&s_flash.hal);
+		}
+
+		for (uint32_t i = address % (FLASH_BYTES_CNT/4); i < (FLASH_BYTES_CNT/4); i++) {
 			*buffer++ = pb[i];
 			address++;
 			len--;
@@ -441,6 +477,17 @@ bk_err_t bk_flash_read_bytes(uint32_t address, uint8_t *user_buf, uint32_t size)
 		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
 	}
 	flash_read_common(user_buf, address, size);
+
+	return BK_OK;
+}
+
+bk_err_t bk_flash_read_word(uint32_t address, uint32_t *user_buf, uint32_t size)
+{
+	if (address >= s_flash.flash_cfg->flash_size) {
+		FLASH_LOGW("read error:invalid address 0x%x\r\n", address);
+		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
+	}
+	flash_read_word_common(user_buf, address, size);
 
 	return BK_OK;
 }

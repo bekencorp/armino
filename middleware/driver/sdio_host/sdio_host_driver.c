@@ -31,7 +31,7 @@
 #include "bk_sys_ctrl.h"
 #endif
 
-#if (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SDIO_V2P0)
 /*
  * TODO: until now(2022-08-20),we use specific value for timeout.
  *       The right way is read the SDCARD speed mode and SDIO clock frequency, and then set a suit value.
@@ -50,7 +50,6 @@ typedef struct {
 	bool is_tx_blocked;
 	beken_semaphore_t tx_sema;
 
-	bool is_rx_blocked;
 	beken_semaphore_t rx_sema;
 } sdio_host_driver_t;
 
@@ -66,6 +65,7 @@ static bool s_sdio_host_driver_is_init = false;
 
 static void sdio_host_isr(void);
 
+#if (!CONFIG_GPIO_DEFAULT_SET_SUPPORT)
 static void sdio_host_init_gpio(void)
 {
 	const sdio_host_gpio_map_t sdio_host_gpio_map_table[] = SDIO_HOST_GPIO_MAP;
@@ -104,7 +104,7 @@ static void sdio_host_init_gpio(void)
 	}
 #endif
 }
-
+#endif
 /* 1. power up sdio host
  * 2. set clock
  * 3. enable sdio host interrupt
@@ -117,7 +117,9 @@ static void sdio_host_init_common(void)
 	sys_hal_set_sdio_clk_sel(0); // set sdio source clock as XTAL 26M
 	//sdio_host_interrupt_enable(id);
 	sys_drv_int_enable(SDIO_INTERRUPT_CTRL_BIT);
+#if CONFIG_SDIO_V2P0
 	sdio_host_hal_enable_all_mask(&s_sdio_host.hal);
+#endif
 #else
 	power_sdio_pwr_up();
 	clk_set_sdio_clk_26m();
@@ -135,8 +137,15 @@ static void sdio_host_init_common(void)
 	sddev_control(DD_DEV_TYPE_SCTRL, CMD_QSPI_VDDRAM_VOLTAGE, &param);
 #endif
 
+#if CONFIG_GPIO_DEFAULT_SET_SUPPORT
+	/*
+	 * GPIO info is setted in GPIO_DEFAULT_DEV_CONFIG and inited in bk_gpio_driver_init->gpio_hal_default_map_init.
+	 * If needs to re-config GPIO, can deal it here.
+	 */
+#else
 	/* config sdio host gpio */
 	sdio_host_init_gpio();
+#endif
 }
 
 static void sdio_host_deinit_common(void)
@@ -170,19 +179,18 @@ bk_err_t bk_sdio_host_driver_init(void)
 								4,
 								16
 							);
-		BK_ASSERT(kNoErr == ret);
+		BK_ASSERT(kNoErr == ret); /* ASSERT VERIFIED */
 	}
 	if (s_sdio_host.tx_sema == NULL) {
 		int ret = rtos_init_semaphore(&(s_sdio_host.tx_sema), 1);
-		BK_ASSERT(kNoErr == ret);
+		BK_ASSERT(kNoErr == ret); /* ASSERT VERIFIED */
 	}
 	s_sdio_host.is_tx_blocked = false;
 
 	if (s_sdio_host.rx_sema == NULL) {
 		int ret = rtos_init_semaphore(&(s_sdio_host.rx_sema), 1);
-		BK_ASSERT(kNoErr == ret);
+		BK_ASSERT(kNoErr == ret); /* ASSERT VERIFIED */
 	}
-	s_sdio_host.is_rx_blocked = false;
 	s_sdio_host_driver_is_init = true;
 	return BK_OK;
 }
@@ -198,20 +206,20 @@ bk_err_t bk_sdio_host_driver_deinit(void)
 
 	if (s_sdio_host.irq_cmd_msg) {
 		ret = rtos_deinit_queue(&s_sdio_host.irq_cmd_msg);
-		BK_ASSERT(kNoErr == ret);
+		BK_ASSERT(kNoErr == ret); /* ASSERT VERIFIED */
 
 		s_sdio_host.irq_cmd_msg = NULL;
 	}
 
 	if (s_sdio_host.tx_sema) {
 		int ret = rtos_deinit_semaphore(&(s_sdio_host.tx_sema));
-		BK_ASSERT(kNoErr == ret);
+		BK_ASSERT(kNoErr == ret); /* ASSERT VERIFIED */
 
 		s_sdio_host.tx_sema = NULL;
 	}
 	if (s_sdio_host.rx_sema) {
 		int ret = rtos_deinit_semaphore(&(s_sdio_host.rx_sema));
-		BK_ASSERT(kNoErr == ret);
+		BK_ASSERT(kNoErr == ret); /* ASSERT VERIFIED */
 
 		s_sdio_host.rx_sema = NULL;
 	}
@@ -225,7 +233,7 @@ bk_err_t bk_sdio_host_init(const sdio_host_config_t *config)
 	BK_RETURN_ON_NULL(config);
 	SDIO_HOST_RETURN_ON_NOT_INIT();
 
-#if CONFIG_SOC_BK7256
+#if (CONFIG_SDIO_V2P0)
 	/* reset sdio host register */
 	sdio_host_hal_reset_config_to_default(&s_sdio_host.hal);
 
@@ -236,7 +244,7 @@ bk_err_t bk_sdio_host_init(const sdio_host_config_t *config)
 	/* reset sdio host register */
 	sdio_host_hal_reset_config_to_default(&s_sdio_host.hal);
 #endif
-#if (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SDIO_V2P0)
 	bk_sdio_host_set_clock_freq(config->clock_freq);
 #else
 	/* set sdio host clock frequence */
@@ -258,7 +266,7 @@ bk_err_t bk_sdio_host_deinit(void)
 	return BK_OK;
 }
 
-#if CONFIG_SOC_BK7256XX
+#if CONFIG_SDIO_V2P0
 /*
  * WARNING:
  * Reset the sdio states:TX FIFO, RX FIFO, SDIO state.
@@ -272,7 +280,7 @@ void bk_sdio_host_reset_sd_state(void)
 	sdio_host_hal_reset_sd_state(&s_sdio_host.hal);
 }
 
-/* 
+/*
  * WARNING: CLOCK(Enable/Disbale/Gate) API are only called in SDK,not for APP.
  * BK7256 Clock scheme:
  * 1.bk_sdio_clock_en: sdio asic module clock enable
@@ -290,7 +298,7 @@ void bk_sdio_clock_en(uint32_t enable)
 	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_SDIO, enable);
 }
 
-/* 
+/*
  * WARNING: CLOCK(Enable/Disbale/Gate) API are only called in SDK,not for APP.
  * BK7256 Clock scheme:
  * 1.bk_sdio_clock_en: sdio asic module clock enable
@@ -308,7 +316,7 @@ void bk_sdio_clk_gate_config(uint32_t enable)
 	sdio_host_hal_set_clock_gate(&s_sdio_host.hal, enable);
 }
 
-/* 
+/*
  * WARNING: CLOCK(Enable/Disbale/Gate) API are only called in SDK,not for APP.
  * BK7256 Clock scheme:
  * 1.bk_sdio_clock_en: sdio asic module clock enable
@@ -349,10 +357,10 @@ bk_err_t bk_sdio_host_set_clock_freq(sdio_host_clock_freq_t clock_freq)
 static void sdio_dump_cmd_info(const sdio_host_cmd_cfg_t *command)
 {
 #if 0
-	SDIO_HOST_LOGD("cmd_index=%d\r\n", command->cmd_index);	
-	SDIO_HOST_LOGD("argument=0x%x\r\n", command->argument);	
-	SDIO_HOST_LOGD("response=0x%x\r\n", command->response);	
-	SDIO_HOST_LOGD("wait_rsp_timeout=%d\r\n", command->wait_rsp_timeout);	
+	SDIO_HOST_LOGD("cmd_index=%d\r\n", command->cmd_index);
+	SDIO_HOST_LOGD("argument=0x%x\r\n", command->argument);
+	SDIO_HOST_LOGD("response=0x%x\r\n", command->response);
+	SDIO_HOST_LOGD("wait_rsp_timeout=%d\r\n", command->wait_rsp_timeout);
 	SDIO_HOST_LOGD("crc_check=%d\r\n", command->crc_check);
 #endif
 }
@@ -373,7 +381,7 @@ bk_err_t bk_sdio_host_send_command(const sdio_host_cmd_cfg_t *command)
 
 bk_err_t bk_sdio_host_wait_cmd_response(uint32_t cmd_index)
 {
-#if CONFIG_SOC_BK7256XX
+#if CONFIG_SDIO_V2P0
 	bk_err_t ret = BK_OK;
 	uint32_t msg = 0;
 #endif
@@ -382,7 +390,7 @@ bk_err_t bk_sdio_host_wait_cmd_response(uint32_t cmd_index)
 
 	uint32_t int_status = sdio_host_hal_get_interrupt_status(&s_sdio_host.hal);
 
-#if CONFIG_SOC_BK7256XX
+#if CONFIG_SDIO_V2P0
 	{
 		//TODO:Timeout and CRC fail should use different case
 		//FreeRTOS doesn't use EVENT,so use msg queue.
@@ -429,7 +437,7 @@ uint32_t bk_sdio_host_get_cmd_rsp_argument(sdio_host_response_t argument_index)
 	return sdio_host_hal_get_cmd_rsp_argument(&s_sdio_host.hal, argument_index);
 }
 
-#if (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SDIO_V2P0)
 bk_err_t bk_sdio_host_config_data(const sdio_host_data_config_t *data_config)
 {
 	BK_RETURN_ON_NULL(data_config);
@@ -496,7 +504,7 @@ bk_err_t bk_sdio_host_set_data_timeout(uint32_t timeout)
 	return BK_OK;
 }
 
-#if CONFIG_SOC_BK7256XX
+#if CONFIG_SDIO_V2P0
 bk_err_t bk_sdio_host_write_fifo(const uint8_t *write_data, uint32_t data_size)
 {
 	BK_RETURN_ON_NULL(write_data);
@@ -506,12 +514,24 @@ bk_err_t bk_sdio_host_write_fifo(const uint8_t *write_data, uint32_t data_size)
 	uint32_t index = 0;
 	uint32 data_tmp = 0;
 	bk_err_t error_state = BK_OK;
+	uint32_t i = 0;
 
 	while ((index < data_size)) {
 		//confirm can write data to fifo(fifo isn't at busy/full status)
-		while((sdio_host_hal_is_tx_fifo_write_ready(hal)) == 0);
+		while((sdio_host_hal_is_tx_fifo_write_ready(hal)) == 0)
+		{
+			i++;
+			if(i % 0x1000000 == 0)
+				SDIO_HOST_LOGE("FIFO can't write i=0x%08x", i);
 
-		//switch byte sequence, as the file system in windows OS is big-endian
+			//avoid dead in while
+			if(i == 0x1000000 * 16) {
+				SDIO_HOST_LOGE("FIFO write fail,the write data is invalid");
+				break;
+			}
+		}
+
+		//switch byte sequence, as the SDIO transfer data with big-endian
 		data_tmp = ((write_data[index] << 24) | (write_data[index + 1] << 16) | (write_data[index + 2] << 8) | write_data[index + 3]);
 		sdio_host_hal_write_fifo(hal, data_tmp);
 		index += 4;
@@ -536,7 +556,7 @@ bk_err_t bk_sdio_host_write_fifo(const uint8_t *write_data, uint32_t data_size)
 		//one block write to sdcard fifo finish
 		if((index % SDIO_BLOCK_SIZE == 0) || (index == data_size))	//maybe isn't a full block(though sdcard always use full block)
 		{
-			/* 
+			/*
 			 * wait write end int which means the data has sent to sdcard and get the sdcard's response.
 			 * empty mask just mean host FIFO is empty but can't indicate that sdcard has dealed data finish.
 			 * write status fail will not set semaphore yet, so it cause here timeout, here set it as tx fail.
@@ -559,13 +579,11 @@ bk_err_t bk_sdio_host_wait_receive_data(void)
 	SDIO_HOST_RETURN_ON_NOT_INIT();
 	bk_err_t error_state = BK_FAIL;
 
-	s_sdio_host.is_rx_blocked = true;
 	//CRC err will not set semaphore yet, so it cause here timeout, here set it as rx fail.
 	error_state = rtos_get_semaphore(&(s_sdio_host.rx_sema), SDIO_MAX_RX_WAIT_TIME);
 	if(error_state != BK_OK)
 	{
 		SDIO_HOST_LOGI("rx fail\r\n");
-		s_sdio_host.is_rx_blocked = false;
 	}
 
 	return error_state;
@@ -647,11 +665,25 @@ void bk_sdio_host_start_read(void)
 
 uint32_t bk_sdio_host_read_fifo(void)
 {
-	while (!sdio_host_hal_is_rx_fifo_read_ready(&s_sdio_host.hal));
+	uint32_t i = 0;
+
+	while (!sdio_host_hal_is_rx_fifo_read_ready(&s_sdio_host.hal))
+	{
+		i++;
+		if(i % 0x1000000 == 0)
+			SDIO_HOST_LOGE("FIFO can't read i=0x%08x", i);
+
+		//avoid dead in while
+		if(i == 0x1000000 * 16) {
+			SDIO_HOST_LOGE("FIFO read fail,the return data is invalid");
+			break;
+		}
+	}
+
 	return sdio_host_hal_read_fifo(&s_sdio_host.hal);
 }
 
-#if (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SDIO_V2P0)
 static void sdio_host_isr(void)
 {
 	sdio_host_hal_t *hal = &s_sdio_host.hal;
@@ -706,7 +738,6 @@ static void sdio_host_isr(void)
 		{
 			if (cmd_index != SEND_OP_COND) {
 				SDIO_HOST_LOGD("isr sdio wait CMD RSP timeout, int_status=0x%x\r\n", int_status);
-				//return BK_ERR_SDIO_HOST_CMD_RSP_TIMEOUT;
 			}
 		}
 
@@ -715,7 +746,7 @@ static void sdio_host_isr(void)
 	}
 	//TX(host write) DATA
 	else if(sdio_host_hal_is_data_write_end_int_triggered(hal, int_status) /* ||
-		sdio_host_hal_is_fifo_empty_int_triggered(hal, int_status) || 
+		sdio_host_hal_is_fifo_empty_int_triggered(hal, int_status) ||
 		sdio_host_hal_is_tx_fifo_need_write_int_triggered(hal, int_status) */)
 	{
 		/*
@@ -735,13 +766,11 @@ static void sdio_host_isr(void)
 		//TODO:check write status
 		if (sdio_host_hal_get_wr_status(&s_sdio_host.hal) != 2) {
 			SDIO_HOST_LOGE("TODO:write data error!!!\r\n");
-			//break;
 		}
 
-		if (s_sdio_host.is_tx_blocked) {
+		{
 			SDIO_HOST_LOGD("write blk end\r\n");
 			rtos_set_semaphore(&s_sdio_host.tx_sema);
-			s_sdio_host.is_tx_blocked = false;
 		}
 
 		sdio_host_hal_clear_write_data_interrupt_status(hal, int_status);
@@ -752,13 +781,9 @@ static void sdio_host_isr(void)
 		sdio_host_hal_is_data_recv_overflow_int_triggered(hal, int_status) || */
 		sdio_host_hal_is_data_timeout_int_triggered(hal, int_status))
 	{
-		if(sdio_host_hal_is_data_crc_ok_int_triggered(hal, int_status))	//CRC OK
+		if(sdio_host_hal_is_data_crc_ok_int_triggered(hal, int_status)) //CRC OK
 		{
-			if (s_sdio_host.is_rx_blocked) {
-				rtos_set_semaphore(&s_sdio_host.rx_sema);
-				s_sdio_host.is_rx_blocked = false;
-			}
-
+			rtos_set_semaphore(&s_sdio_host.rx_sema);
 			sdio_host_hal_clear_read_data_interrupt_status(hal, int_status);
 		}
 		else if(sdio_host_hal_is_data_crc_fail_int_triggered(hal, int_status))	//CRC Fail
@@ -772,10 +797,7 @@ static void sdio_host_isr(void)
 			//TODO:If the data is really CRC fail, should notify APP the data received is error.
 			SDIO_HOST_LOGE("TODO:read data crc error!!!\r\n");
 #if 0	//just not set sema cause rx data timeout, which cause rx fail.
-			if (s_sdio_host.is_rx_blocked) {
-				rtos_set_semaphore(&s_sdio_host.rx_sema);
-				s_sdio_host.is_rx_blocked = false;
-			}
+			rtos_set_semaphore(&s_sdio_host.rx_sema);
 #endif
 			sdio_host_hal_clear_read_data_interrupt_status(hal, int_status);
 		}
@@ -784,6 +806,22 @@ static void sdio_host_isr(void)
 			SDIO_HOST_LOGE("TODO:read data timeout error!!!\r\n");
 			sdio_host_hal_clear_read_data_timeout_interrupt_status(hal, int_status);
 		}
+		/*
+		 * !!!NOTES!!! SDIO pre-read feature time-sequence issue!!!
+		 * If read data finish,SW will clear FIFO(bk_sdio_host_reset_sd_state) when stop read,
+		 * but maybe the ASIC have pre-read one block data finished but SDIO ISR doesn't response.
+		 * After FIFO reset, ISR response found the CRC isn't OK and isn't ERROR,
+		 * which cause ISR status isn't cleared, so the SDIO ISR will entry and exit forever
+		 * cause system abnormall(watchdog timeout reset)
+		 */
+		else
+		{
+			SDIO_HOST_LOGE("read data status err:int_status=0x%08x!!!\r\n", int_status);
+			sdio_host_hal_clear_read_data_interrupt_status(hal, int_status);
+		}
+	}
+	else {
+		SDIO_HOST_LOGD("sdio isr no deal:cmd_index=%d,int_status=%x\r\n", cmd_index, int_status);
 	}
 }
 

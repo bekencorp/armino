@@ -22,7 +22,7 @@ extern "C" {
 *******************************************************************************/
 UINT32 usb_open (UINT32 op_flag);
 UINT32 usb_close (void);
-#if (CONFIG_SOC_BK7271) || (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7271) || (CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7236)
 UINT32 usb_read (UINT32 pos, const void *buffer, UINT32 size);
 UINT32 usb_write (UINT32 pos, const void *buffer, UINT32 size);
 #else
@@ -218,7 +218,7 @@ bk_err_t bk_uvc_register_VSrxed_callback(void *param);
  * This API configure the callback:
  *   - parameter is the registered callback function.
  *   - The callback function needs to be defined.
- * 
+ *
  *
  *  The callback function must be registered.
  *
@@ -327,7 +327,7 @@ uint32_t bk_uvc_get_cur(uint32_t attribute);
  *   - attributes
  *
  *   - Valid values needs to be viewed in camera.
- *        
+ *
  *  Choose to call this API.
  *
  * @return

@@ -140,6 +140,14 @@ function(__build_set_default_build_specifications)
                                     "-nostdlib"
                                      )
 
+
+    if(EXISTS "${armino_path}/properties/modules/ip_ax")
+        list(APPEND compile_definitions "-DCONFIG_DEBUG_FIRMWARE=1")
+    else()
+        list(APPEND compile_definitions "-DCONFIG_RELEASE_VERSION=1")
+        list(APPEND compile_definitions "-DCFG_LOG_LEVEL=2")
+    endif()
+
     armino_build_get_property(soc_path SOC_PATH)
     if (EXISTS ${soc_path}/${armino_target}/compile-options.cmake)
         include (${soc_path}/${armino_target}/compile-options.cmake)

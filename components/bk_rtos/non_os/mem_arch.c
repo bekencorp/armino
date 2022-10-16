@@ -20,13 +20,13 @@ INT32 os_memcmp(const void *s1, const void *s2, UINT32 n)
 
 void *os_memmove(void *out, const void *in, UINT32 n)
 {
-	BK_ASSERT(NULL != in);
+	BK_ASSERT(NULL != in); /* ASSERT VERIFIED */
 	return memmove(out, in, n);
 }
 
 void *os_memcpy(void *out, const void *in, UINT32 n)
 {
-	BK_ASSERT(NULL != in);
+	BK_ASSERT(NULL != in); /* ASSERT VERIFIED */
 	return memcpy(out, in, n);
 }
 

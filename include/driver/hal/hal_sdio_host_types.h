@@ -22,7 +22,7 @@ extern "C" {
 
 typedef uint8_t sdio_host_unit_t; /**< sdio host uint id */
 
-#if (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SDIO_V2P0)
 typedef enum {
 	SDIO_HOST_CLK_13M = 0,    /**< 2 division of clock frequency */
 	SDIO_HOST_CLK_6_5M = 1,    /**< 4 division of clock frequency */

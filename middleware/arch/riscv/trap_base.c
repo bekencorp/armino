@@ -149,8 +149,33 @@ void rtos_regist_ble_dump_hook(hook_func ble_func)
 	s_ble_dump_func = ble_func;
 }
 
+#if !CONFIG_SLAVE_CORE
+static uint32_t get_reset_reason_by_mcause(uint32_t mcause) {
+	switch (mcause) {
+		case 0x2:
+			return RESET_SOURCE_CRASH_ILLEGAL_INSTRUCTION;
+		case 0x4:
+		case 0x6:
+			return RESET_SOURCE_CRASH_MISALIGNED;
+		case TRAP_M_L_ACC_FAULT:
+		case TRAP_M_S_ACC_FAULT:
+			return RESET_SOURCE_CRASH_DATA_ABORT;
+		case TRAP_M_USER_ASSERT:
+			return RESET_SOURCE_CRASH_ASSERT;
+		case TRAP_M_USER_NP_WDT:
+			return RESET_SOURCE_WATCHDOG;
+		default:
+			return RESET_SOURCE_UNKNOWN;
+	}
+}
+#endif
+
 void trap_handler(unsigned long mcause, SAVED_CONTEXT *context)
 {
+#if !CONFIG_SLAVE_CORE
+	uint32_t reset_reason = get_reset_reason_by_mcause((uint32_t)mcause);
+#endif
+
 	if (0 == g_enter_exception) {
 		// Make sure the interrupt is disable
 		uint32_t int_level = rtos_disable_int();
@@ -166,11 +191,17 @@ void trap_handler(unsigned long mcause, SAVED_CONTEXT *context)
 		bk_set_printf_sync(true);
 		
 		user_except_handler(mcause, context);
-		BK_DUMP_OUT("Unhandled Trap : mcause = 0x%x, mepc = 0x%x\r\n", mcause, context->mepc);
+#if !CONFIG_SLAVE_CORE
+		bk_reboot_ex(reset_reason);
+#endif
 		while(g_enter_exception);
 
 		rtos_enable_mie_int(mie_status);
 		rtos_enable_int(int_level);
+	} else {
+#if !CONFIG_SLAVE_CORE
+		bk_reboot_ex(reset_reason);
+#endif
 	}
 
 }
@@ -247,13 +278,16 @@ void sys_delay_sync(uint32_t time_count )
 		;
 }
 
-void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context) {
+void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context)
+{
+
 	BK_DUMP_OUT("***********************************************************************************************\r\n");
 	BK_DUMP_OUT("***********************************user except handler begin***********************************\r\n");
 	BK_DUMP_OUT("***********************************************************************************************\r\n");
 
 	arch_dump_cpu_registers(mcause, context);
 
+#if CONFIG_DEBUG_FIRMWARE
 	if(NULL != s_wifi_dump_func) {
 		s_wifi_dump_func();
 	}
@@ -288,13 +322,11 @@ void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context) {
 #endif
 
 	arch_dump_cpu_registers(mcause, context);
-
+#endif //CONFIG_DEBUG_FIRMWARE
 
 	BK_DUMP_OUT("***********************************************************************************************\r\n");
 	BK_DUMP_OUT("************************************user except handler end************************************\r\n");
 	BK_DUMP_OUT("***********************************************************************************************\r\n");
-
-	bk_reboot();
 
 }
 

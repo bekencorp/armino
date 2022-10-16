@@ -52,7 +52,7 @@ int32_t iot_get_reset_reason( IotResetReason_t * xResetReason )
         BK_LOGE(COMMON_RESET_TAG, "iot_get_reset_reason err,invalid ptr\r\n");
         return IOT_RESET_INVALID_VALUE;
     }
-    RESET_SOURCE_STATUS start_type = bk_misc_get_start_type();
+    RESET_SOURCE_STATUS start_type = bk_misc_get_reset_reason();
     switch (start_type) {
     case RESET_SOURCE_POWERON:
         *xResetReason = eResetPowerOnBoot;

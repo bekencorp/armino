@@ -17,6 +17,7 @@
 #include <soc/soc.h>
 #include <driver/hal/hal_uart_types.h>
 #include <driver/hal/hal_gpio_types.h>
+#include "sys_ll_op_if.h"
 #include "uart_hw.h"
 #include "hal_port.h"
 #include "gpio_map.h"
@@ -115,7 +116,6 @@ static inline uint32_t uart_ll_get_reg_base(uart_id_t id)
 		return UART2_R_BASE;
 	default:
 		return BK_ERR_UART_BASE;
-		break;
 	}
 }
 

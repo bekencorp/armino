@@ -71,7 +71,7 @@ static bk_err_t audio_dac_config(void)
 	aud_dac_config_t dac_config;
 
 	dac_config.dac_enable = AUD_DAC_DISABLE;
-	dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_8K;
+	dac_config.samp_rate = AUD_DAC_SAMP_RATE_8K;
 	dac_config.dac_chl = AUD_DAC_CHL_L_ENABLE;
 	dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 	dac_config.dac_hpf2_coef_B2 = 0x3A22;
@@ -89,8 +89,6 @@ static bk_err_t audio_dac_config(void)
 	dac_config.dacr_int_enable = 0x0;
 	dac_config.dacl_int_enable = 0x0;
 	dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-	dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-	dac_config.dac_fracmode_value = 0x0;
 
 	/* init audio driver and config dac */
 	ret = bk_aud_driver_init();

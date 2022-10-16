@@ -16,7 +16,7 @@
 
 #include <common/sys_config.h>
 
-#define TEMPD_TASK_PRIO                             BEKEN_DEFAULT_WORKER_PRIORITY
+#define TEMPD_TASK_PRIO                             4
 #define TEMPD_TASK_STACK_SIZE                       1024
 #define TEMPD_QUEUE_LEN                             (5)
 
@@ -56,7 +56,7 @@
  * */
 #define ADC_TMEP_DETECT_INTERVAL_INIT               (1)   // 1s
 #define ADC_TMEP_DETECT_INTERVAL                    (15)  // 15s  how many second
-#define ADC_TMEP_DETECT_INTERVAL_CHANGE             (120) // 2 mins
+#define ADC_TMEP_DETECT_INTERVAL_CHANGE             (30) // 30s
 #define ADC_TMEP_XTAL_INIT                          (60)  // 60s
 
 #define ADC_TMEP_DIST_INTIAL_VAL                    (0)
@@ -75,6 +75,7 @@
 #endif
 
 #define TEMP_DETEC_ADC_STEADY_CTRL	            7
+#define TEMP_DETECT_ONESHOT_TIMER               1
 
 
 #define TEMPD_TAG "tempd"
@@ -94,6 +95,9 @@ typedef struct {
 	uint16_t xtal_init_val;
 	uint32_t detect_cnt;
 	beken_timer_t detect_timer;
+#if TEMP_DETECT_ONESHOT_TIMER
+    beken2_timer_t detect_oneshot_timer;
+#endif
 } temp_detect_config_t;
 
 enum {

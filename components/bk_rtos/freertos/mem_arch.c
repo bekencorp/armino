@@ -156,5 +156,7 @@ void* os_malloc_wifi_buffer(size_t size)
 extern void pvShowMemoryConfigInfo(void);
 void os_show_memory_config_info(void)
 {
+#if (!CONFIG_SOC_BK7256XX)
 	pvShowMemoryConfigInfo();
+#endif
 }

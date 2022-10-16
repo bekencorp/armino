@@ -59,7 +59,11 @@ static void cli_sdio_host_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 	if (os_strcmp(argv[1], "init") == 0) {
 		sdio_host_config_t sdio_cfg = {0};
 
+#if (CONFIG_SDIO_V2P0)
+		sdio_cfg.clock_freq = SDIO_HOST_CLK_80M;
+#else
 		sdio_cfg.clock_freq = CONFIG_SDIO_HOST_DEFAULT_CLOCK_FREQ;
+#endif
 		sdio_cfg.bus_width = SDIO_HOST_BUS_WIDTH_1LINE;
 
 		BK_LOG_ON_ERR(bk_sdio_host_init(&sdio_cfg));

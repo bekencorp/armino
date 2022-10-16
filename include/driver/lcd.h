@@ -53,13 +53,13 @@ bk_err_t bk_lcd_driver_init(lcd_clk_t clk);
  * @param
  *     - x_pixel  user can set by any value, can be lcd size x or picture size x
  *     - y_pixel  user can set by any value, can be lcd size y or picture size y
- *     - input_data_format, lcd module input data format, can be rgb565, yuyv, uvyy or other lcd_data_format_t member
+ *     - input_data_format, lcd module input data format, can be rgb565, yuyv, uvyy or other pixel_format_t member
  *
  * @return
  *     - BK_OK: succeed
  *     - others: other errors.
  */
-bk_err_t bk_lcd_8080_init(uint16_t x_pixel, uint16_t y_pixel, lcd_data_format_t input_data_format);
+bk_err_t bk_lcd_8080_init(uint16_t x_pixel, uint16_t y_pixel, pixel_format_t input_data_format);
 
 
 /**
@@ -229,13 +229,13 @@ bk_err_t bk_lcd_int_status_clear(lcd_int_type_t int_type);
  *     - lcd_device_id_t: lcd type select from lcd_device_id_t
  *     - x_pixel
  *     - y_pixel
- *     - input_data_format:  input_data_format select rgb565 data, yuyv, yyuv or other yuv *        mode from struct lcd_data_format_t
+ *     - input_data_format:  input_data_format select rgb565 data, yuyv, yyuv or other yuv *        mode from struct pixel_format_t
  *
  * @return
  *     - BK_OK: succeed
  *     - others: other errors.
  */
-bk_err_t bk_lcd_rgb_init(lcd_device_id_t id, uint16_t x_pixel, uint16_t y_pixel, lcd_data_format_t input_data_format);
+bk_err_t bk_lcd_rgb_init(lcd_device_id_t id, uint16_t x_pixel, uint16_t y_pixel, pixel_format_t input_data_format);
 
 
 /**
@@ -442,6 +442,12 @@ bk_err_t bk_lcd_fill_data(lcd_device_id_t id, lcd_disp_framebuf_t *lcd_disp);
  */
 bk_err_t bk_lcd_draw_point(lcd_device_id_t id, uint16_t x, uint16_t y, uint16_t pixel);
 
+bk_err_t lcd_driver_display_frame(frame_buffer_t *frame);
+const lcd_device_t *get_lcd_device_by_ppi(media_ppi_t ppi);
+const lcd_device_t * get_lcd_device_by_name(char * name);
+
+frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame);
+frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame);
 
 /**
   * @}

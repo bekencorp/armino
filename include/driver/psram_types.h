@@ -23,14 +23,14 @@ typedef enum {
 	PSRAM_240M = 0,
 	PSRAM_160M,
 	PSRAM_120M,
-	PSRAM_60M
+	PSRAM_80M
 }psram_clk_t;
 
 typedef enum {
 	PSRAM_OUT_3_2V = 0,
 	PSRAM_OUT_3V,
 	PSRAM_OUT_2V,
-	PSRAM_OUT_1_3V
+	PSRAM_OUT_1_8V
 }psram_voltage_t;
 
 typedef enum {

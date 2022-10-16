@@ -134,7 +134,7 @@ static int mqtt_publish_resp_data(void *pclient, const char* buffer, uint32_t le
     rtos_lock_mutex(&g_publish_mutex);
 
     /* Initialize topic information */
-    topic_msg.qos = IOTX_MQTT_QOS1;
+    topic_msg.qos = IOTX_MQTT_QOS0;
     topic_msg.retain = 0;
     topic_msg.dup = 0;
 

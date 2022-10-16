@@ -17,7 +17,7 @@ demo简介
  3) 手机通过GATT Service将要连接的WIFI SSID和PASSWORD发送到待配网设备；
  4) 蓝牙设备获得WIFI连接需要的SSID和PASSWORD后进行WIFI连接，配网成功。
  
- demo工程的设计流程图下图所示：
+ demo工程的设计流程图如下图所示：
 
 .. figure:: ../../../_static/ble_boarding_demo_work_flow.png
     :align: center
@@ -38,7 +38,7 @@ demo示例
 --------------------------
  - 蓝牙配网demo使用的API接口详细说明请参考 ``/api-reference/bluetooth/ble.html``
 
- - 蓝牙配网demo具体的示例代码详见bluetooth/ble_boarding_demo.c
+ - 蓝牙配网demo具体的示例代码详见 ``demo/bluetooth/ble_boarding/ble_boarding_demo.c``
 
 demo工作流程
 --------------------------

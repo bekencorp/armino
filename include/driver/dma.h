@@ -399,6 +399,56 @@ uint32_t bk_dma_get_remain_len(dma_id_t id);
  */
 uint32_t bk_dma_get_enable_status(dma_id_t id);
 
+#if (CONFIG_GENERAL_DMA_SEC)
+/**
+ * @brief     Set the current DMA channel dest secure attr
+ *
+ * @param id DMA channel
+ * @param attr DMA secure attr
+ *
+ * @return
+ *    - 0: Channel idle state
+ *    - others: Channel busy state.
+ */
+bk_err_t bk_dma_set_dest_sec_attr(dma_id_t id, dma_sec_attr_t attr);
+
+/**
+ * @brief     Set the current DMA channel src secure attr
+ *
+ * @param id DMA channel
+ * @param attr DMA secure attr
+ *
+ * @return
+ *    - 0: Channel idle state
+ *    - others: Channel busy state.
+ */
+bk_err_t bk_dma_set_src_sec_attr(dma_id_t id, dma_sec_attr_t attr);
+
+/**
+ * @brief     Set the all DMA channel secure attr
+ *
+ * @param id DMA channel
+ * @param attr DMA secure attr
+ *
+ * @return
+ *    - 0: Channel idle state
+ *    - others: Channel busy state.
+ */
+bk_err_t bk_dma_set_sec_attr(dma_id_t id, dma_sec_attr_t attr);
+
+/**
+ * @brief     Set the all DMA channel privileded attr
+ *
+ * @param id DMA channel
+ * @param attr DMA privileged attr
+ *
+ * @return
+ *    - 0: Channel idle state
+ *    - others: Channel busy state.
+ */
+bk_err_t bk_dma_set_privileged_attr(dma_id_t id, dma_sec_attr_t attr);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

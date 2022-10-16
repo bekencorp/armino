@@ -41,13 +41,13 @@ static bk_err_t sdio_test_tx_cb(sdio_node_ptr_t head_p, sdio_node_ptr_t tail_p, 
 
 	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 
-	//just check data
-	while(cur_p && i > 0)
+	//check tx data after finish
+	while(cur_p && (i > 0))
 	{
-		for(j = 0; i < cur_p->len; j++)
+		for(j = 0; j < cur_p->len; j += 4)
 		{
-			os_printf("%x ", (uint8_t *)cur_p + (sizeof(sdio_node_t)) + i);
-			if(i % 16 == 0)
+			os_printf("0x%08x ", *(uint32_t *)((uint8_t *)cur_p + (sizeof(sdio_node_t)) + j));
+			if(j % 16 == 0)
 				os_printf("\r\n");
 		}
 
@@ -95,8 +95,8 @@ static bk_err_t sdio_test_tx_sub_case(SDIO_TEST_MSG_T *msg_p)
 		case SDIO_TEST_TX_INIT:
 		{
 			sdio_chan_id_t id  = msg_p->param1;
-			uint32_t buf_cnt = msg_p->param2;
-			uint32_t buf_size = msg_p->param3;
+			uint32_t buf_size = msg_p->param2;
+			uint32_t buf_cnt = msg_p->param3;
 		
 			ret = sdio_test_tx_init(id, buf_cnt, buf_size);
 			break;
@@ -107,11 +107,11 @@ static bk_err_t sdio_test_tx_sub_case(SDIO_TEST_MSG_T *msg_p)
 		{
 			sdio_node_ptr_t buf_p = NULL;
 			uint32_t len = msg_p->param1;
-			uint8_t value = (uint8_t)msg_p->param2;
+			uint32_t value = (uint32_t)msg_p->param2;
 			uint32_t size;
 			
 			ret = bk_sdio_chan_pop_free_node(SDIO_CHAN_PLATFORM, SDIO_CHAN_TX, &buf_p, &size);
-			if(buf_p)
+			if((ret == BK_OK) && buf_p)
 			{
 				//fill data
 				if(len > size)
@@ -124,7 +124,7 @@ static bk_err_t sdio_test_tx_sub_case(SDIO_TEST_MSG_T *msg_p)
 				buf_p->len = len;
 				
 				//request write
-				ret = bk_sdio_slave_sync_write(SDIO_CHAN_PLATFORM, buf_p, NULL, 1);
+				ret = bk_sdio_slave_sync_write(SDIO_CHAN_PLATFORM, buf_p, buf_p, 1);
 			}
 			else
 			{
@@ -163,12 +163,12 @@ static bk_err_t sdio_test_rx_cb(sdio_node_ptr_t head_p, sdio_node_ptr_t tail_p, 
 	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 
 	//deal data
-	while(cur_p && i > 0)
+	while(cur_p && (i > 0))
 	{
-		for(j = 0; i < cur_p->len; j++)
+		for(j = 0; j < cur_p->len; j += 4)
 		{
-			os_printf("%x ", (uint8_t *)cur_p + (sizeof(sdio_node_t)) + i);
-			if(i % 16 == 0)
+			os_printf("0x%08x ", *(uint32_t *)((uint8_t *)cur_p + (sizeof(sdio_node_t)) + j));
+			if(j % 16 == 0)
 				os_printf("\r\n");
 		}
 
@@ -215,8 +215,8 @@ static bk_err_t sdio_test_rx_sub_case(SDIO_TEST_MSG_T *msg_p)
 		case SDIO_TEST_RX_INIT:
 		{
 			sdio_chan_id_t id  = msg_p->param1;
-			uint32_t buf_cnt = msg_p->param2;
-			uint32_t buf_size = msg_p->param3;
+			uint32_t buf_size = msg_p->param2;
+			uint32_t buf_cnt = msg_p->param3;
 		
 			ret = sdio_test_rx_init(id, buf_cnt, buf_size);
 			break;
@@ -225,20 +225,21 @@ static bk_err_t sdio_test_rx_sub_case(SDIO_TEST_MSG_T *msg_p)
 		//len, value
 		case SDIO_TEST_RX_SINGLE_PACKET:
 		{
-			sdio_node_ptr_t buf_p;
+			sdio_node_ptr_t buf_p = NULL;
 			uint32_t len = msg_p->param1;
 			uint8_t value = (uint8_t)msg_p->param2;
 			uint32_t size = 0;
 
 			ret = bk_sdio_chan_pop_free_node(SDIO_CHAN_PLATFORM, SDIO_CHAN_RX, &buf_p, &size);
-			if(buf_p)
+			if((ret == BK_OK) && buf_p)
 			{
+				len = len < size? len : size;
 				//fill dirty data
 				memset((uint8_t *)buf_p + sizeof(sdio_node_t), value, len);
 				buf_p->len = len;
 				
 				//request read
-				ret = bk_sdio_slave_sync_read(SDIO_CHAN_PLATFORM, buf_p, NULL, 1);
+				ret = bk_sdio_slave_sync_read(SDIO_CHAN_PLATFORM, buf_p, buf_p, 1);
 			}
 			else
 			{

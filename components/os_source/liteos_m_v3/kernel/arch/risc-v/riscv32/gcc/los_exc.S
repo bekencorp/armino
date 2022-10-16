@@ -171,7 +171,7 @@ HalTrapEntry:
     PUSH_CALLEE_REG
     csrw  mscratch, sp
     la    t2, __except_stack_top
-    mv    t2, sp
+    mv    sp, t2
 
     /* Call trap handler */
     csrr a0, mcause
@@ -206,7 +206,7 @@ HalTrapVector:
     beqz  a1, HalTrapEntry
     csrw  mscratch, sp
     la    t0, __start_and_irq_stack_top
-    mv    t0, sp
+    mv    sp, t0
 
     jal   HalHwiInterruptDone
     csrr  sp, mscratch

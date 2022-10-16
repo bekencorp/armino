@@ -154,4 +154,8 @@ menu "DUAL_CORE"
 	config ICU
 		bool "Enable ICU"
 		default y
+
+	config RWNX_PROTO_DEBUG
+		bool "Enable rwnx proto debug"
+		default y
 endmenu

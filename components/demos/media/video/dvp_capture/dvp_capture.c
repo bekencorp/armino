@@ -6,6 +6,7 @@
 #include <driver/timer.h>
 #include <components/video_transfer.h>
 #include <components/dvp_camera.h>
+#include "dvp_camera_config.h"
 
 #if (CONFIG_SDCARD_HOST)
 #include "ff.h"
@@ -402,6 +403,9 @@ error1:
 		bk_camera_set_config(auto_enable, up_size, low_size);
 		os_printf("set OK!\r\n");
 
+	} else if (os_strcmp(argv[1], "dump") == 0) {
+		camera_inft_dump_register();
+		os_printf("dump finish!\r\n");
 	} else {
 		dvp_help();
 	}

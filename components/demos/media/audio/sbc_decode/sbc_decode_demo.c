@@ -22,277 +22,217 @@
 #include <driver/sbc_types.h>
 #include <driver/aud.h>
 #include <driver/aud_types.h>
-#include <driver/dma.h>
-#include "dma_hal.h"
+#include <components/aud_intf.h>
+#include <components/aud_intf_types.h>
+#include "ff.h"
+#include "diskio.h"
 
 
-sbcdecodercontext_t sbc_decoder;
-
-
-static const unsigned char sbc_data[165] = {
-	0x9C, 0xFF, 0x4C, 0xC3, 0xFE, 0xEA, 0x97, 0x77, 0x67, 0x00, 0x00, 0x00, 0x07, 0x80, 0x2B, 0x03,
-	0xA0, 0x4F, 0xDF, 0x3F, 0x7D, 0xFB, 0xF8, 0x10, 0x8F, 0x82, 0x08, 0xF1, 0xFC, 0x07, 0x9F, 0xBF,
-	0x85, 0x4F, 0x11, 0xE2, 0xF1, 0x9D, 0xBA, 0x7A, 0x14, 0x28, 0xD2, 0x52, 0xB6, 0x2C, 0x72, 0x84,
-	0x54, 0x23, 0xC7, 0xB3, 0x0F, 0x57, 0x37, 0x7D, 0x4D, 0x0D, 0x5F, 0x06, 0x0F, 0xAD, 0x05, 0xEA,
-	0x71, 0x98, 0xEB, 0xCD, 0x99, 0x32, 0xB7, 0x6F, 0x1B, 0xA2, 0x8F, 0xDD, 0xBC, 0x7E, 0x0C, 0x13,
-	0x8A, 0xEF, 0x6E, 0x11, 0x05, 0xDB, 0xF8, 0x5F, 0x3E, 0x00, 0x62, 0xFC, 0xE0, 0x50, 0x1F, 0x3E,
-	0x7D, 0xFC, 0x04, 0x85, 0x50, 0x0D, 0xFF, 0x01, 0xFB, 0xF7, 0xDF, 0xBF, 0xC8, 0x03, 0x00, 0x1F,
-	0xD0, 0x20, 0x3E, 0x7D, 0xFB, 0xFF, 0xFA, 0xCF, 0xF1, 0xFD, 0x01, 0xFB, 0xF7, 0xDF, 0xBF, 0xB7,
-	0xA8, 0xFE, 0xDF, 0xEF, 0x9F, 0xBF, 0x7D, 0xFB, 0xF3, 0x7F, 0xAF, 0xFA, 0x00, 0xF9, 0xF4, 0x07,
-	0xDF, 0xBF, 0x00, 0x51, 0x00, 0xA0, 0x0F, 0x9F, 0xBF, 0x7D, 0xFB, 0xF4, 0x85, 0x50, 0x0D, 0xFF,
-	0x01, 0xFB, 0xF7, 0xDF, 0xBF,
-};
-
-static const unsigned char msbc_data[] = {
-	0xAD, 0x31, 0x0C, 0x64, 0xEA, 0x87, 0x66, 0x76, 0x7E, 0xD7, 0xED, 0x82, 0xD8, 0x69, 0xA5, 0x9C,
-	0x28, 0x86, 0xD3, 0xEC, 0x2E, 0xD6, 0xAD,
-};
-
+sbcdecodercontext_t g_sbc_decoder;
+static char sbc_file_name[50];
+static FIL sbc_file;
+static uint8_t *sbc_data_buffer = NULL;
+static bool sbc_file_is_empty = false;
+static uint32_t g_frame_length = 0;
 
 static void cli_sbc_decoder_help(void)
 {
-	SBC_LOGI("sbc_decoder_test {start|stop} \r\n");
-	SBC_LOGI("msbc_decoder_test {start|stop} \r\n");
+	SBC_LOGI("sbc_decoder_test {start|stop} {xxx.sbc} \r\n");
 }
 
-static void cli_sbc_decoder_isr(void *param)
+static bk_err_t read_sbc_data_from_sdcard(unsigned int size)
 {
-	// bk_dma_start(dma_id);
-	bk_aud_start_dac();
+	bk_err_t ret = BK_OK;
+	FRESULT fr;
+	uint32 uiTemp = 0;
+
+	if (sbc_file_is_empty) {
+		fr = f_close(&sbc_file);
+		if (fr != FR_OK) {
+			os_printf("close %s fail!\r\n", sbc_file_name);
+			return fr;
+		}
+		return BK_FAIL;
+	}
+
+	/* read data from file */
+	fr = f_read(&sbc_file, (void *)sbc_data_buffer, g_frame_length, &uiTemp);
+	if (fr != FR_OK) {
+		os_printf("write %s fail.\r\n", sbc_file_name);
+	} else {
+		bk_sbc_decoder_frame_decode(&g_sbc_decoder, sbc_data_buffer, g_frame_length);
+	}
+
+	if (uiTemp == 0) {
+		sbc_file_is_empty = true;
+		os_printf("the %s is empty \r\n", sbc_file_name);
+	}
+
+	/* write a frame speaker data to speaker_ring_buff */
+	ret = bk_aud_intf_write_spk_data((uint8_t*)g_sbc_decoder.pcm_sample, size);
+	if (ret != BK_OK) {
+		os_printf("write spk data fail \r\n");
+		return ret;
+	}
+
+	return ret;
 }
 
 void cli_sbc_decoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	bk_err_t ret = BK_OK;
-	aud_dac_config_t dac_config;
-	dma_config_t dma_config;
-	dma_id_t dma_id = DMA_ID_MAX;
-	uint32_t dac_fifo_addr;
-	uint8 *fb;
-	uint32 fp = 0;
+	bk_err_t ret = BK_ERR_AUD_INTF_OK;
 
-	fb = (uint8_t*)sbc_data;
+	FRESULT fr;
+	uint32 uiTemp = 0;
+	uint8_t sbc_info[4];
+	uint8_t sbc_pcm_length = 0;
+	uint8_t sbc_sample_rate_index = 0;
+	uint8_t sbc_blocks, sbc_subbands, sbc_bitpool, sbc_channel_mode, sbc_channel_number;
 
-	if (argc != 2) {
+	aud_intf_drv_setup_t aud_intf_drv_setup;
+	aud_intf_spk_setup_t aud_intf_spk_setup;
+	aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
+
+	if (argc != 3) {
 		cli_sbc_decoder_help();
 		return;
 	}
 
 	if (os_strcmp(argv[1], "start") == 0) {
 		SBC_LOGI("sbc_decoder_test start\r\n");
-		bk_sbc_decoder_init(&sbc_decoder);
-		bk_sbc_decoder_register_sbc_isr(cli_sbc_decoder_isr, NULL);
-		bk_sbc_decoder_interrupt_enable(1);
+		bk_sbc_decoder_init(&g_sbc_decoder);
 
-		sbc_decoder.sample_rate = (fb[1] >> 6) & 0x03;
-		sbc_decoder.pcm_length = ((((fb[1] >> 4) & 0x03) + 1) << 2) * (((fb[1] & 0x01) + 1) << 2);
-
-		dac_config.dac_enable = AUD_DAC_DISABLE;
-		dac_config.samp_rate = sbc_decoder.sample_rate;
-		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
-		dac_config.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
-		dac_config.dac_hpf2_coef_B2 = 0x3A22;
-		dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
-		dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
-		dac_config.dac_set_gain = 0x20;
-		dac_config.dac_clk_invert = AUD_DAC_CLK_INVERT_RISING;
-
-		dac_config.dac_hpf2_coef_B0 = 0x3A22;
-		dac_config.dac_hpf2_coef_B1 = 0x8BBF;
-
-		dac_config.dac_hpf2_coef_A1 = 0x751C;
-		dac_config.dac_hpf2_coef_A2 = 0xC9E6;
-
-		dac_config.dacr_rd_threshold = 0x4;
-		dac_config.dacl_rd_threshold = 0x4;
-		dac_config.dacr_int_enable = 0x0;
-		dac_config.dacl_int_enable = 0x0;
-
-		dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		dac_config.dac_fracmode_value = 0x0;
-
-		bk_aud_driver_init();
-		bk_aud_dac_init(&dac_config);
-		bk_aud_start_dac();
-
-		//init dma driver
-		bk_dma_driver_init();
-
-		dma_config.mode = DMA_WORK_MODE_REPEAT;
-		dma_config.chan_prio = 1;
-		dma_config.src.dev = DMA_DEV_DTCM;
-		dma_config.src.width = DMA_DATA_WIDTH_32BITS;
-		dma_config.src.addr_inc_en = DMA_ADDR_INC_ENABLE;
-		dma_config.src.addr_loop_en = DMA_ADDR_LOOP_ENABLE;
-		dma_config.dst.dev = DMA_DEV_AUDIO;
-		dma_config.dst.width = DMA_DATA_WIDTH_32BITS;
-
-		//get dac fifo address
-		if (bk_aud_get_dac_fifo_addr(&dac_fifo_addr) != BK_OK) {
-			SBC_LOGE("get dac fifo address failed\r\n");
-			return;
-		} else {
-			dma_config.dst.addr_inc_en = DMA_ADDR_INC_ENABLE;
-			dma_config.dst.addr_loop_en = DMA_ADDR_LOOP_ENABLE;
-			dma_config.dst.start_addr = dac_fifo_addr;
-			dma_config.dst.end_addr = dac_fifo_addr + 4;
-		}
-
-		dma_config.src.start_addr =(uint32_t)&sbc_decoder.pcm_sample;
-		dma_config.src.end_addr = (uint32_t)&sbc_decoder.pcm_sample + sbc_decoder.pcm_length;
-
-		//init dma channel
-		dma_id = bk_dma_alloc(DMA_DEV_AUDIO);
-		if ((dma_id < DMA_ID_0) || (dma_id >= DMA_ID_MAX)) {
-			os_printf("malloc dma fail \r\n");
+		os_memset(sbc_file_name, 0, sizeof(sbc_file_name)/sizeof(sbc_file_name[0]));
+		sprintf(sbc_file_name, "1:/%s", argv[2]);
+		fr = f_open(&sbc_file, sbc_file_name, FA_OPEN_EXISTING | FA_READ);
+		if (fr != FR_OK) {
+			os_printf("open %s fail.\r\n", sbc_file_name);
 			return;
 		}
-		ret = bk_dma_init(DMA_ID_0, &dma_config);
-		if (ret != BK_OK) {
-			SBC_LOGE("dma init failed\r\n");
-			return;
-		}
-		bk_dma_set_transfer_len(dma_id, sbc_decoder.pcm_length * 4);
 
-		while(fp < sizeof(sbc_data))
-		{
-			bk_dma_start(dma_id);
-			int32_t res = bk_sbc_decoder_frame_decode(&sbc_decoder, fb, 512);
-			if (res >= 0) {
-				fb += res;
-				fp += res;
+		fr = f_read(&sbc_file, (void *)sbc_info, 4, &uiTemp);
+		if (fr == FR_OK) {
+			if (sbc_info[0] == SBC_SYNCWORD) {
+				sbc_blocks = (((sbc_info[1] >> 4) & 0x03) + 1) << 2;
+				sbc_subbands = ((sbc_info[1] & 0x01) + 1) << 2;
+				sbc_bitpool = sbc_info[2];
+				sbc_channel_mode = (sbc_info[1] >> 2) & 0x03;
+				sbc_sample_rate_index = (sbc_info[1] >> 6) & 0x03;
+			} else if (sbc_info[0] == MSBC_SYNCWORD) {
+				sbc_blocks = 15;
+				if (sbc_info[1] || sbc_info[2]) {
+					sbc_sample_rate_index = (sbc_info[1] >> 6) & 0x03;
+					sbc_channel_mode = (sbc_info[1] >> 2) & 0x03;
+					sbc_subbands = ((sbc_info[1] & 0x01) + 1) << 2;
+					sbc_bitpool = sbc_info[2];
+				} else {
+					sbc_sample_rate_index = 0;
+					sbc_channel_mode = 0;
+					sbc_subbands = 8;
+					sbc_bitpool = 26;
+				}
+			} else {
+				SBC_LOGI("Not find syncword, valid sbc file!\r\n");
+				return;
 			}
+
+			sbc_channel_number = (sbc_channel_mode == SBC_CHANNEL_MODE_MONO) ? 1 : 2;
+			sbc_pcm_length = sbc_blocks * sbc_subbands;
+
+			g_frame_length = 4 + ((4 * sbc_subbands * sbc_channel_number) >> 3);
+			if (sbc_channel_mode < 2) {
+				g_frame_length += ((uint32_t)sbc_blocks * (uint32_t)sbc_channel_number * (uint32_t)sbc_bitpool + 7) >> 3;
+			} else {
+				g_frame_length += ((sbc_channel_mode == SBC_CHANNEL_MODE_JOINT_STEREO) * sbc_subbands + sbc_blocks * ((uint32_t)sbc_bitpool) + 7) >> 3;
+			}
+			f_lseek(&sbc_file, 0);
+		} else {
+			os_printf("read sbc info failed!\r\n");
+			return;
+		}
+
+		sbc_data_buffer = os_malloc(g_frame_length);
+		if (sbc_data_buffer == NULL) {
+			os_printf("sbc data buffer malloc failed!\r\n");
+			return;
+		}
+
+		aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+		aud_intf_drv_setup.task_config.priority = 3;
+		aud_intf_drv_setup.aud_intf_rx_spk_data = read_sbc_data_from_sdcard;
+		aud_intf_drv_setup.aud_intf_tx_mic_data = NULL;
+		ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_drv_init fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_drv_init complete \r\n");
+		}
+
+		aud_work_mode = AUD_INTF_WORK_MODE_GENERAL;
+		ret = bk_aud_intf_set_mode(aud_work_mode);
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_set_mode fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_set_mode complete \r\n");
+		}
+
+		aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_DUAL;
+
+		if (sbc_sample_rate_index == 0) {
+			aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_16K;
+		} else if (sbc_sample_rate_index == 1) {
+			aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_32K;
+		} else if (sbc_sample_rate_index == 2){
+			aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_44_1K;
+		} else {
+			aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_48K;
+		}
+		aud_intf_spk_setup.frame_size = sbc_pcm_length * 4;
+		aud_intf_spk_setup.spk_gain = 0x2d;
+		aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
+		ret = bk_aud_intf_spk_init(&aud_intf_spk_setup);
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_spk_init fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_spk_init complete \r\n");
+		}
+
+		ret = bk_aud_intf_spk_start();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+		    os_printf("bk_aud_intf_spk_start fail, ret:%d \r\n", ret);
+		} else {
+		    os_printf("bk_aud_intf_spk_start complete \r\n");
 		}
 	}else if (os_strcmp(argv[1], "stop") == 0) {
 		SBC_LOGI("sbc decoder test stop!\r\n");
-		bk_sbc_decoder_deinit();
-		bk_aud_stop_dac();
-		bk_aud_driver_deinit();
-		bk_dma_stop(dma_id);
-		bk_dma_deinit(dma_id);
-		ret = bk_dma_free(DMA_DEV_AUDIO, dma_id);
-		if (ret == BK_OK) {
-			SBC_LOGE("free dma: %d success\r\n", dma_id);
-		}
-	} else {
-		cli_sbc_decoder_help();
-		return;
-	}
-}
 
-void cli_msbc_decoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-	bk_err_t ret = BK_OK;
-	aud_dac_config_t dac_config;
-	dma_config_t dma_config;
-	dma_id_t dma_id = DMA_ID_MAX;
-	uint32_t dac_fifo_addr;
-	uint8 *fb;
-	uint32 fp = 0;
-
-	fb = (uint8_t*)msbc_data;
-
-	if (argc != 2) {
-		cli_sbc_decoder_help();
-		return;
-	}
-
-	if (os_strcmp(argv[1], "start") == 0) {
-		SBC_LOGI("msbc_decoder_test start\r\n");
-		bk_sbc_decoder_init(&sbc_decoder);
-		bk_sbc_decoder_register_sbc_isr(cli_sbc_decoder_isr, NULL);
-		bk_sbc_decoder_interrupt_enable(1);
-
-		sbc_decoder.sample_rate = (fb[1] >> 6) & 0x03;
-		sbc_decoder.pcm_length = 15 * (((fb[1] & 0x01) + 1) << 2);
-
-		dac_config.dac_enable = AUD_DAC_DISABLE;
-		dac_config.samp_rate = sbc_decoder.sample_rate;
-		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
-		dac_config.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
-		dac_config.dac_hpf2_coef_B2 = 0x3A22;
-		dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
-		dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
-		dac_config.dac_set_gain = 0x20;
-		dac_config.dac_clk_invert = AUD_DAC_CLK_INVERT_RISING;
-
-		dac_config.dac_hpf2_coef_B0 = 0x3A22;
-		dac_config.dac_hpf2_coef_B1 = 0x8BBF;
-
-		dac_config.dac_hpf2_coef_A1 = 0x751C;
-		dac_config.dac_hpf2_coef_A2 = 0xC9E6;
-
-		dac_config.dacr_rd_threshold = 0x4;
-		dac_config.dacl_rd_threshold = 0x4;
-		dac_config.dacr_int_enable = 0x0;
-		dac_config.dacl_int_enable = 0x0;
-
-		dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		dac_config.dac_fracmode_value = 0x0;
-
-		bk_aud_driver_init();
-		bk_aud_dac_init(&dac_config);
-		bk_aud_start_dac();
-
-		//init dma driver
-		bk_dma_driver_init();
-
-		dma_config.mode = DMA_WORK_MODE_REPEAT;
-		dma_config.chan_prio = 1;
-		dma_config.src.dev = DMA_DEV_DTCM;
-		dma_config.src.width = DMA_DATA_WIDTH_32BITS;
-		dma_config.src.addr_inc_en = DMA_ADDR_INC_ENABLE;
-		dma_config.src.addr_loop_en = DMA_ADDR_LOOP_ENABLE;
-
-		//get dac fifo address
-		if (bk_aud_get_dac_fifo_addr(&dac_fifo_addr) != BK_OK) {
-			SBC_LOGE("get dac fifo address failed\r\n");
-			return;
+		ret = bk_aud_intf_spk_stop();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_spk_stop fail, ret:%d \r\n", ret);
 		} else {
-			dma_config.dst.start_addr = dac_fifo_addr;
-			dma_config.dst.end_addr = dac_fifo_addr + 4;
-			dma_config.dst.dev = DMA_DEV_AUDIO;
-			dma_config.dst.width = DMA_DATA_WIDTH_32BITS;
+			os_printf("bk_aud_intf_spk_stop complete \r\n");
+		}
+		
+		ret = bk_aud_intf_spk_deinit();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_spk_deinit fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_spk_deinit complete \r\n");
 		}
 
-		dma_config.src.start_addr =(uint32_t)&sbc_decoder.pcm_sample;
-		dma_config.src.end_addr = (uint32_t)&sbc_decoder.pcm_sample + sbc_decoder.pcm_length;
+		ret = bk_aud_intf_drv_deinit();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_drv_deinit fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_drv_deinit complete \r\n");
+		}
 
-		//init dma channel
-		dma_id = bk_dma_alloc(DMA_DEV_AUDIO);
-		if ((dma_id < DMA_ID_0) || (dma_id >= DMA_ID_MAX)) {
-			os_printf("malloc dma fail \r\n");
+		sbc_file_is_empty = false;
+
+		fr = f_close(&sbc_file);
+		if (fr != FR_OK) {
+			os_printf("close %s fail!\r\n", sbc_file_name);
 			return;
-		}
-		ret = bk_dma_init(dma_id, &dma_config);
-		if (ret != BK_OK) {
-			SBC_LOGE("dma init failed\r\n");
-			return;
-		}
-		bk_dma_set_transfer_len(dma_id, sbc_decoder.pcm_length * 4);
-
-		while(fp < sizeof(msbc_data))
-		{
-			bk_dma_start(dma_id);
-			int32_t res = bk_sbc_decoder_frame_decode(&sbc_decoder, fb, 512);
-			if (res >= 0) {
-				fb += res;
-				fp += res;
-			}
-		}
-	}else if (os_strcmp(argv[1], "stop") == 0) {
-		SBC_LOGI("msbc decoder test stop!\r\n");
-		bk_sbc_decoder_support_msbc(0);
-		bk_sbc_decoder_deinit();
-		bk_aud_stop_dac();
-		bk_aud_driver_deinit();
-		bk_dma_stop(dma_id);
-		bk_dma_deinit(dma_id);
-		ret = bk_dma_free(DMA_DEV_AUDIO, dma_id);
-		if (ret == BK_OK) {
-			SBC_LOGE("free dma: %d success\r\n", dma_id);
 		}
 	} else {
 		cli_sbc_decoder_help();

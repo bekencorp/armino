@@ -23,7 +23,7 @@ extern "C" {
  *
  * This API init jpeg and i2c, enable camera at last
 .*
- * param data: configure for camera and jpeg
+ * @param data configure for camera and jpeg
  *
  * @attention 1. work for imaging transfer
  *
@@ -52,17 +52,18 @@ bk_err_t bk_camera_deinit(void);
  * This API will use i2c write camera_init_table, image_resolution_table and frame_rate_table
  *
  * @return
- *    - void
+ *    - kNoErr: succeed
+ *    - others: other errors.
  */
-void bk_camera_sensor_config(void);
+bk_err_t bk_camera_sensor_config(void);
 
 /**
  * @brief	  set camera pps and fps
  *
  * This API will set jpeg pps and camera pps and fps
  *
- * param dev: dvp type
- * param cfg: frame rate:bit[0-15], image resolution:bit[31-16]
+ * @param dev dvp type
+ * @param cfg frame rate:bit[0-15], image resolution:bit[31-16]
  *
  * @attention 1. need call before camera_intf_config_senser
  *
@@ -75,7 +76,8 @@ bk_err_t bk_camera_set_param(uint32_t dev, uint32_t cfg);
 /**
  * @brief config lcd display
  *
- * param   x_pixel, image  x pixel
+ * @param x_pixel image width
+ *
  * @return
  *	  - kNoErr: succeed
  *	  - others: other errors.

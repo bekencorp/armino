@@ -63,9 +63,9 @@ uint16_t sbc_common_sample_rate_get(uint32_t idx)
     return SBC_SAMPLE_RATES[idx];
 }
 
-static uint32_t bk_sbc_decoder_get_mem0_addr(uint32_t *mem0_addr)
+static uint32_t bk_sbc_decoder_get_mem0_addr(uint32_t **mem0_addr)
 {
-	*mem0_addr = SBC_SBC_MEM0_ADDR;
+	*mem0_addr = (uint32_t *)SBC_SBC_MEM0_ADDR;
 
 	return BK_OK;
 }
@@ -95,7 +95,7 @@ static uint32_t sbc_decoder_frame_length_calc(sbcdecodercontext_t *sbc)
 bk_err_t bk_sbc_decoder_frame_decode(sbcdecodercontext_t *sbc, const uint8_t *data, uint32_t length)
 {
 	int32_t channel, subband, block, consumed;
-	uint32_t mem0_addr = 0;
+	uint32_t *mem0_addr = NULL;
 	uint32_t pcm_data = 0;
 	sbc_config_t sbc_config;
 
@@ -213,7 +213,7 @@ bk_err_t bk_sbc_decoder_frame_decode(sbcdecodercontext_t *sbc, const uint8_t *da
 					bk_sbc_decoder_set_sbc_bit_num(bits[subband]);
 					bk_sbc_decoder_set_scale_factor(scale_factor[subband]);
 					bk_sbc_decoder_set_sbc_level(levels[subband]);
-					bk_sbc_decoder_set_sbc_res_bit(consumed_byte & 0x7);
+					bk_sbc_decoder_set_sbc_res_bit(consumed & 0x7);
 					sbc_decoder_hal_set_res_bytel_value(data[consumed_byte]);
 					sbc_decoder_hal_set_res_bytem_value(data[consumed_byte + 1]);
 					sbc_decoder_hal_set_res_byteh_value(data[consumed_byte + 2]);
@@ -295,7 +295,7 @@ bk_err_t bk_sbc_decoder_frame_decode(sbcdecodercontext_t *sbc, const uint8_t *da
 		    *dst++ = *src++;
 		}
 	}
-	os_printf("consumed = %d\r\n", consumed);
+//	os_printf("consumed = %d\r\n", consumed);
 
 	return consumed;
 

@@ -17,6 +17,12 @@
 #include <driver/lcd_types.h>
 
 #include "lcd_devices.h"
+#include "gpio_map.h"
+#include <driver/lcd.h>
+
+#if CONFIG_PWM
+#include <driver/pwm.h>
+#endif
 
 static const lcd_rgb_t lcd_rgb =
 {
@@ -29,6 +35,37 @@ static const lcd_rgb_t lcd_rgb =
 	.vsync_front_porch = 8,
 };
 
+static void lcd_backlight_open(void)
+{
+#if CONFIG_PWM
+	lcd_driver_backlight_init(LCD_RGB_PWM_BACKLIGHT, 100);
+#endif
+}
+
+static void lcd_set_backlight(uint8_t percent)
+{
+#if CONFIG_PWM
+	pwm_period_duty_config_t config = {0};
+
+	if (percent > 100)
+	{
+		percent  = 100;
+	}
+
+	config.period_cycle = 100;
+	config.duty_cycle = percent;
+
+	bk_pwm_set_period_duty(LCD_RGB_PWM_BACKLIGHT, &config);
+#endif
+}
+
+static void lcd_backlight_close(void)
+{
+#if CONFIG_PWM
+	lcd_driver_backlight_deinit(LCD_RGB_PWM_BACKLIGHT);
+#endif
+}
+
 const lcd_device_t lcd_device_st7282 =
 {
 	.id = LCD_DEVICE_ST7282,
@@ -36,6 +73,10 @@ const lcd_device_t lcd_device_st7282 =
 	.type = LCD_TYPE_RGB565,
 	.ppi = PPI_480X272,
 	.rgb = &lcd_rgb,
+	.backlight_open = lcd_backlight_open,
+	.backlight_set = lcd_set_backlight,
 	.init = NULL,
+	.backlight_close = lcd_backlight_close,
+	.lcd_off = NULL,
 };
 

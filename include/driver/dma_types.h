@@ -32,6 +32,7 @@ extern "C" {
 #define BK_ERR_DMA_ID_NOT_INIT    (BK_ERR_DMA_BASE - 3) /**< DMA id not init */
 #define BK_ERR_DMA_ID_NOT_START   (BK_ERR_DMA_BASE - 4) /**< DMA id not start */
 #define BK_ERR_DMA_INVALID_ADDR   (BK_ERR_DMA_BASE - 5) /**< DMA addr is invalid */
+#define BK_ERR_DMA_ID_REINIT      (BK_ERR_DMA_BASE - 6) /**< DMA id has inited, if reinit,please de-init firstly */
 
 /**
  * @brief DMA interrupt service routine

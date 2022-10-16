@@ -15,6 +15,7 @@
 #pragma once
 
 #include <common/bk_include.h>
+#include <driver/dvp_camera_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +30,7 @@ typedef enum
 
 typedef struct
 {
+	dvp_mode_t mode;
 	camera_state_t state;
 	uint32_t debug : 1;
 	uint32_t param;

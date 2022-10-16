@@ -43,8 +43,6 @@ list(APPEND srcs
 	"hal/jpeg_hal_debug.c"
 	"hal/jpeg_ll.c"
 	"hal/fft_hal_debug.c"
-	"hal/lcd_disp_ll.c"
-	"hal/lcd_disp_hal.c"
 	"hal/i2s_hal_debug.c"
 	"hal/jpeg_dec_hal.c"
 	"hal/flash_hal_debug.c"

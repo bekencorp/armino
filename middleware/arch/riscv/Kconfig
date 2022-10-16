@@ -28,4 +28,7 @@ menu "ARCH_RISCV"
 		bool "Custom defined sram mapping"
 		default n
 
+        config CPU_FREQ_HZ
+                int "CPU frequency"
+                default 120000000
 endmenu

@@ -1,5 +1,5 @@
 // Copyright 2020-2021 Beken
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright 2020-2021 Beken 
-// 
+// Copyright 2020-2021 Beken
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -127,7 +127,7 @@ bk_err_t bk_dma2d_start_transfer(dma2d_config_t *dma2d, uint32_t pdata, uint32_t
 
 /**
   * @brief  bk_dma2d_wait_transfer_done
-  * @retval return 0: transfer done, return others not transfer done 
+  * @retval return 0: transfer done, return others not transfer done
   */
 bool bk_dma2d_is_transfer_busy(void)
 {
@@ -241,7 +241,7 @@ static uint32_t HAL_GetTick()
 bk_err_t bk_driver_dma2d_abort(bool abort)
 {
 	uint32_t tickstart;
-	
+
 	/* Abort the DMA2D transfer */
 	/* START bit is reset to make sure not to set it again, in the event the HW clears it
 	   between the register read and the register write by the CPU (writing 0 has no
@@ -276,7 +276,7 @@ static void dma2d_isr_common(void)
 	uint32_t int_status;
 	int_status = bk_dma2d_int_status_get();
 	if (int_status & DMA2D_CFG_ERROR_STATUS) {
-		
+
 		if (s_dma2d_isr[DMA2D_CFG_ERROR_ISR]) {
 			s_dma2d_isr[DMA2D_CFG_ERROR_ISR]();
 		}
@@ -327,7 +327,7 @@ static void dma2d_isr_common(void)
   */
 bk_err_t bk_dma2d_register_int_callback_isr(DMA2D_ISR_ID isr_id, dma2d_isr_t cb_isr)
 {
-	if ((isr_id) >= DMA2D_ISR_NUM) 
+	if ((isr_id) >= DMA2D_ISR_NUM)
 		return BK_FAIL;
 
 	uint32_t int_level = rtos_disable_int();

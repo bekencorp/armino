@@ -13,13 +13,16 @@
 // limitations under the License.
 
 #include <components/log.h>
-#include "bk_api_i2c.h"
+#include <driver/i2c.h>
 
 #define TAG "i2c_example"
 #define I2C_EXAMPLE_ID         I2C_ID_1
 #define I2C_EXAMPLE_BUF_LEN    10
 #define EEPROM_DEV_ADDR        0x50
 #define EEPROM_MEM_ADDR        0x10
+#define I2C_SLAVE_ADDR           0x73
+#define I2C_WRITE_WAIT_MAX_MS    (500)
+
 
 static bk_err_t i2c_example_eeprom_write(void)
 {

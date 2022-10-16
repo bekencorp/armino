@@ -28,9 +28,11 @@ if(CONFIG_FREERTOS)
 			)
 		endif()
 	endif()
-	if(CONFIG_FULLY_HOSTED)
+
+	if(CONFIG_FULLY_HOSTED OR CONFIG_MEM_MGMT)
 		list(APPEND srcs freertos/mmgmt.c)
 	endif()
+
 	if(CONFIG_FREERTOS_POSIX)
 		list(APPEND incs
 					freertos/posix/include

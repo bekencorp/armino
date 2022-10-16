@@ -38,11 +38,7 @@ extern "C" {
 #define UART_CLOCK_FREQ_52M          52000000
 #define UART_CLOCK_FREQ_120M         120000000
 
-#if (CONFIG_FPGA)
-#define UART_CLOCK                   UART_CLOCK_FREQ_24M
-#else
 #define UART_CLOCK                   CONFIG_XTAL_FREQ
-#endif
 
 #define UART_TX_FIFO_THRESHOLD       (0x20)
 #define UART_RX_FIFO_THRESHOLD       (0x40)

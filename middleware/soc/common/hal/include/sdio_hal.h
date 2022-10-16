@@ -73,6 +73,20 @@ uint32_t sdio_hal_slave_get_rx_count(void);
 	void sdio_hal_slave_set_samp_sel(uint32_t value);
 #endif
 
+#if CONFIG_SDIO_SLAVE
+uint32_t sdio_hal_slave_get_wr_end_int(void);
+void sdio_hal_slave_clear_wr_end_int(void);
+uint32_t sdio_hal_get_tx_fifo_empty_int_status(void);
+void sdio_hal_clear_tx_fifo_empty_int_status(void);
+void sdio_hal_set_tx_fifo_empty_int(uint32_t value);
+void sdio_hal_slave_set_cmd_res_end_int(uint32_t value);
+void sdio_hal_slave_set_write_end_int(uint32_t value);
+void sdio_hal_slave_set_read_end_int(uint32_t value);
+void sdio_hal_slave_set_blk_size(uint32_t value);
+uint32_t sdio_ll_get_sd_slave_wr_finish(void);
+void sdio_hal_fifo_reset(void);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

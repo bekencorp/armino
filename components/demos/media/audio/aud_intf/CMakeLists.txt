@@ -1,4 +1,4 @@
-if (CONFIG_AUD_INTF AND CONFIG_AUD_INTF_VER_NEW)
+if (CONFIG_AUD_INTF)
 if (CONFIG_AUDIO_TRANSFER)
 if (NOT (CONFIG_AUD_TRAS_MODE_CPU1 AND (NOT CONFIG_DUAL_CORE)))
 
@@ -17,6 +17,17 @@ if (NOT CONFIG_SLAVE_CORE)
 if (CONFIG_AUD_INTF_TEST)
 	list(APPEND srcs
 		demo/aud_intf_demo.c
+	)
+endif()
+
+if (CONFIG_AUD_TRAS_AEC_DUMP_MODE_UDP)
+	list(APPEND srcs
+		debug/aud_debug_udp.c
+	)
+endif()
+if (CONFIG_AUD_TRAS_AEC_DUMP_MODE_TCP)
+	list(APPEND srcs
+		debug/aud_debug_tcp.c
 	)
 endif()
 

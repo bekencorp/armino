@@ -11,7 +11,7 @@ int bk_flash_enable_security(PROTECT_TYPE type)
 	uint32_t param = type;
 
 	flash_hdl = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
-	BK_ASSERT(DD_HANDLE_UNVALID != flash_hdl);
+	BK_ASSERT(DD_HANDLE_UNVALID != flash_hdl); /* ASSERT VERIFIED */
 	ddev_control(flash_hdl, CMD_FLASH_SET_PROTECT, (void *)&param);
 
 	return kNoErr;
@@ -46,7 +46,7 @@ bk_err_t bk_flash_erase(bk_partition_t inPartition, uint32_t off_set, uint32_t s
 	end_sector = (off_set + size - 1) >> 12;
 
 	flash_hdl = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
-	BK_ASSERT(DD_HANDLE_UNVALID != flash_hdl);
+	BK_ASSERT(DD_HANDLE_UNVALID != flash_hdl); /* ASSERT VERIFIED */
 	for (i = start_sector; i <= end_sector; i ++) {
 		param = partition_info->partition_start_addr + (i << 12);
 		GLOBAL_INT_DISABLE();
@@ -65,13 +65,17 @@ bk_err_t bk_flash_write(bk_partition_t inPartition, volatile uint32_t off_set, u
 	bk_logic_partition_t *partition_info;
 	GLOBAL_INT_DECLARATION();
 
-	BK_ASSERT(inBuffer);
+	if(NULL == inBuffer)
+	{
+		os_printf("inBuffer null\r\n");
+		return BK_ERR_PARAM;
+	}
 
 	partition_info = bk_flash_get_info(inPartition);
 	start_addr = partition_info->partition_start_addr + off_set;
 
 	flash_hdl = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
-	BK_ASSERT(DD_HANDLE_UNVALID != flash_hdl);
+	BK_ASSERT(DD_HANDLE_UNVALID != flash_hdl); /* ASSERT VERIFIED */
 
 	GLOBAL_INT_DISABLE();
 	ddev_write(flash_hdl, (char *)inBuffer, inBufferLength, start_addr);
@@ -88,13 +92,17 @@ bk_err_t bk_flash_read(bk_partition_t inPartition, volatile uint32_t off_set, ui
 	bk_logic_partition_t *partition_info;
 	GLOBAL_INT_DECLARATION();
 
-	BK_ASSERT(outBuffer);
+	if(NULL == outBuffer)
+	{
+		os_printf("outBuffer null\r\n");
+		return BK_ERR_PARAM;
+	}
 
 	partition_info = bk_flash_get_info(inPartition);
 	start_addr = partition_info->partition_start_addr + off_set;
 
 	flash_hdl = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
-	BK_ASSERT(DD_HANDLE_UNVALID != flash_hdl);
+	BK_ASSERT(DD_HANDLE_UNVALID != flash_hdl); /* ASSERT VERIFIED */
 
 	GLOBAL_INT_DISABLE();
 	ddev_read(flash_hdl, (char *)outBuffer, inBufferLength, start_addr);

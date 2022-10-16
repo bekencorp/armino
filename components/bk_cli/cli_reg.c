@@ -165,6 +165,7 @@ static void cli_reg_write_read_cmd(char *pcWriteBuffer, int xWriteBufferLen, int
 		os_printf("regshow -w/r addr [value]\r\n");
 }
 
+
 static void cli_reg_dump_help(void)
 {
 	CLI_LOGI("regdump icu\n");
@@ -180,14 +181,15 @@ static void cli_reg_dump_help(void)
 	CLI_LOGI("        spi\n");
 }
 
+
 static void cli_reg_dump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	uint8_t index = os_strtoul(argv[2], NULL, 10);
-
 	if (argc == 1) {
 		cli_reg_dump_help();
 		return;
 	}
+#if CONFIG_DEBUG_FIRMWARE
+	uint8_t index = os_strtoul(argv[2], NULL, 10);
 
 	if (os_strcmp(argv[1], "icu") == 0) {
 #if (CONFIG_ICU)
@@ -254,6 +256,7 @@ static void cli_reg_dump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 		cli_reg_dump_help();
 		return;
 	}
+#endif
 }
 
 #define REG_CMD_CNT (sizeof(s_reg_commands) / sizeof(struct cli_command))

@@ -91,8 +91,6 @@ void mailbox_evt_handle(uint32_t event, uint32_t param)
 
 #ifdef CONFIG_LCD
 		case EVENT_LCD_ROTATE_RIGHT_COMP_EVT:
-			//LOGI("EVENT_LCD_ROTATE_RIGHT_COMP_EVT\n");
-			lcd_act_rotate_complete((frame_buffer_t *)param);
 			break;
 #endif
 

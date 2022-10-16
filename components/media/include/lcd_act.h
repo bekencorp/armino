@@ -25,7 +25,16 @@ typedef enum
 {
 	LCD_STATE_DISABLED,
 	LCD_STATE_ENABLED,
+	LCD_STATE_DISPLAY,
 } lcd_state_t;
+
+
+typedef enum
+{
+	DISPLAY_EVENT,
+	LOAD_JPEG_EVENT,
+	DISPLAY_EXIT_EVENT,
+} display_event_t;
 
 
 typedef struct
@@ -34,20 +43,13 @@ typedef struct
 	uint8_t rotate : 1;
 	uint8_t step_mode : 1;
 	uint8_t step_trigger : 1;
-	camera_type_t camera;
 	lcd_state_t state;
-	uint32_t param;
-	uint16_t src_pixel_x;
-	uint16_t src_pixel_y;
-	uint16_t lcd_pixel_x;
-	uint16_t lcd_pixel_y;
-	uint32_t pixel_size;
-	frame_buffer_t *jpeg_frame;
-	frame_buffer_t *decoder_frame;
-	frame_buffer_t *rotate_frame;
-	frame_buffer_t *display_frame;
-	frame_buffer_t *pingpong_frame;
 } lcd_info_t;
+
+typedef struct {
+	uint32_t device_ppi;			/**< lcd open by ppi */
+	char * device_name; 			/**< lcd open by lcd Driver IC name */
+} lcd_open_t;
 
 void lcd_event_handle(uint32_t event, uint32_t param);
 lcd_state_t get_lcd_state(void);
@@ -56,7 +58,13 @@ void lcd_init(void);
 void lcd_frame_complete_notify(frame_buffer_t *buffer);
 
 void lcd_act_rotate_degree90(uint32_t param);
-void lcd_act_rotate_complete(frame_buffer_t *frame);
+
+void lcd_calc_init(void);
+
+void lcd_decoder_task_stop(void);
+void camera_display_task_stop(void);
+void camera_display_task_start(bool rotate);
+void jpeg_display_task_stop(void);
 
 
 #ifdef __cplusplus

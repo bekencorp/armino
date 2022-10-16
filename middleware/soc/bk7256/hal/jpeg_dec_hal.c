@@ -101,6 +101,11 @@ int jpg_decoder_init(void)
 	jpg_dec_st.rd_ptr = 0;//init rd pointer
 	jpg_dec_st.jpg_file_size = 1024;
 
+	if(NULL != jpg_dec_st.workbuf)
+	{
+		os_free(jpg_dec_st.workbuf);
+		jpg_dec_st.workbuf = NULL;
+	}
 	jpg_dec_st.workbuf = os_malloc(WORK_AREA_SIZE);
 
 	if (NULL == jpg_dec_st.workbuf)
@@ -618,11 +623,12 @@ void jpeg_dec_auto_frame_end_int_en(bool auto_int_en)
 	jpeg_dec_ll_set_reg0x2_jpeg_line_num(0);
 }
 
-void jpeg_dec_auto_line_num_int_en(bool line_int_en, uint16_t line_num)
+void jpeg_dec_auto_line_num_int_en(bool line_int_en )
 {
 	jpeg_dec_ll_set_reg0x2_jpeg_dec_auto(line_int_en);
+	jpeg_dec_ll_set_reg0x5e_dec_frame_int(line_int_en);
 	jpeg_dec_ll_set_reg0x2_jpeg_dec_linen(line_int_en);
-	jpeg_dec_ll_set_reg0x2_jpeg_line_num(line_num);
+//	jpeg_dec_ll_set_reg0x2_jpeg_line_num(line_num);
 }
 
 JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * output_buf, uint32_t *ppi)
@@ -640,7 +646,7 @@ JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * ou
 
 	ret = jd_prepare(&jdec, jpeg_dec_input_func, jpg_dec_st.workbuf, WORK_AREA_SIZE, NULL);
 	if(ret != JDR_OK) {
-		os_printf("jd prepare error return %x \r\n", ret);
+//		os_printf("jd prepare error return %x \r\n", ret);
 		return ret;
 	}
 
@@ -777,6 +783,10 @@ JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * ou
 	jpg_dec_st.line_wbyte = xs;//only output Y
 	*ppi = ((jpg_dec_st.width<<16) | (jpg_dec_st.heigth));
 	jpg_dec_config(jpg_dec_st.width, jpg_dec_st.heigth, length, input_buf, output_buf);
+#if (USE_LINE_INT_JPEG_DEC == 1)
+	jpeg_dec_ll_set_reg0x2_jpeg_line_num(2);  //UVC 640*480 LINE24 int 480 / ((2+1)*8) = 480/24=20 times int every 24 line decode
+#endif
+
 	return JDR_OK;
 }
 
@@ -795,7 +805,6 @@ JRESULT jd_decomp(void)
 {
 	//uint16_t	mx, my;
 	JRESULT rc;
-	jpeg_dec_auto_frame_end_int_en(1);
 	jpeg_dec_ll_set_reg0x0_jpeg_dec_en(1);
 	jpeg_dec_ll_set_reg0x5_mcu_x(0);
 	jpeg_dec_ll_set_reg0x6_mcu_y(0);

@@ -94,11 +94,11 @@ CPU0_LOAD2 0x00018800  0x1A7800
 
 	SRAM_VIDEO 0x30000000 0xA000
 	{
-		ADDR NEXT   _vedio_start
+		ADDR NEXT   _video_start
 		* KEEP (.video_spec_data)
 	}
 
-	SRAM_BT 0x3000A000 0x15C00
+	SRAM_BT 0x3000A000 0x16000
 	{
 		LOADADDR NEXT _bt_data_lmastart
 		ADDR NEXT   _bt_data_start
@@ -111,13 +111,8 @@ CPU0_LOAD2 0x00018800  0x1A7800
 		LOADADDR _bt_data_end
 	}
 
-	SWAP  0x3000FC00 0x400
-	{
-		ADDR NEXT   _swap_start
-		* KEEP (.swap_data)
-	}
 
-	SRAM_DATA 0x30020000 0x54000
+	SRAM_DATA 0x30020000 0x58C00
 	{
 		LOADADDR NEXT _data_lmastart
 		ADDR NEXT _data_start
@@ -125,4 +120,9 @@ CPU0_LOAD2 0x00018800  0x1A7800
 		STACK = 0x20007FE0
 	}
 
+	SWAP  0x3007FC00 0x400
+	{
+		ADDR NEXT   _swap_start
+		* KEEP (.swap_data)
+	}
 }

@@ -6,6 +6,12 @@ menu "Driver"
 			bool "Enable chip support"
 			default n
 	endmenu
+	
+	menu "Interrupt"
+		config ISR_REG_DISABLE
+			bool "Disable irq"
+			default n
+	endmenu
 
 	menu "Watchdog"
 		config INT_WDT
@@ -46,14 +52,14 @@ menu "Driver"
 	menu "UART"
 		config UART1
 			bool "Enable UART1"
-			default y
+			default n
 		config UART1_FLOW_CTRL
 			bool "Uart1 Flow Ctrl"
 			default n
 
 		config UART2
 			bool "Enable UART2"
-			default y
+			default n
 
 		config UART3
 			bool "Enable UART3"
@@ -106,6 +112,10 @@ menu "Driver"
 		config UART_STATIS
 			bool "Enable UART Statis"
 			default n
+
+		config UART_LOW_VOLTAGE_SUPPORT
+			bool "Enable UART support low power"
+			default n
 	endmenu
 
 	menu "TRNG"
@@ -113,7 +123,7 @@ menu "Driver"
 			bool "Support hardware TRNG"
 			default y
 	endmenu
-	
+
 	menu "SDIO_HOST"
 		config SDIO_HOST
 			bool "Enable sdio host"
@@ -183,7 +193,6 @@ menu "Driver"
 		
 		config SDIO_V2P0
 			bool "SDIO Version V2P0"
-			depends on SDIO
 			default n
 
 		config SDIO_TRANS
@@ -290,6 +299,16 @@ menu "Driver"
 				bool "Enable QSPI Statis"
 				default y
 	endmenu
+	
+	menu "QSPI_OLED"
+			config QSPI
+				bool "Enable QSPI"
+				default n
+				
+			config QSPI_OLED
+				bool "Enable QSPI_OLED"
+				default n
+	endmenu
 
 	menu "AON_RTC"
 			config AON_RTC
@@ -334,6 +353,11 @@ menu "Driver"
 			config GPIO_SIMULATE_UART_WRITE
 				bool "Enable GPIO simulate uart write data"
 				default n
+							
+			config GPIO_DEFAULT_SET_SUPPORT
+				bool "Enable GPIO default set devs"
+				default n
+
 	endmenu
 
 	menu "AON_PMU"
@@ -346,6 +370,9 @@ menu "Driver"
 			config GENERAL_DMA
 				bool "Enable General DMA"
 				default y
+			config GENERAL_DMA_SEC
+				bool "Enable General DMA SEC"
+				default n
 	endmenu
 
 	menu "TOUCH"
@@ -371,6 +398,10 @@ menu "Driver"
 				bool "Enable PSRAM"
 				default n
 
+			config PSRAM_AS_SYS_MEMORY
+				depends on PSRAM
+				bool "Enable psram_malloc API"
+				default n
 	endmenu
 	
 	menu "CALENDAR"
@@ -458,6 +489,10 @@ menu "Driver"
 		config FM_I2C
 			bool "Enable FM I2C"
 			default y
+
+		config SIM_I2C
+			bool "Enable GPIO Simulate I2C"
+			default n
 	endmenu
 
 	menu "PWM"

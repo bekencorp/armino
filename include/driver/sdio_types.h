@@ -59,7 +59,7 @@ typedef enum
 #define BK_ERR_SDIO_NULL_POINTER_PARAM            (BK_ERR_SDIO_BASE - 10) /**< Err pointer param */
 #define BK_ERR_SDIO_LIST            (BK_ERR_SDIO_BASE - 11) /**< Err link list */
 #define BK_ERR_SDIO_NO_TRANSACTION_FINISH_NODE            (BK_ERR_SDIO_BASE - 12) /**< Err link list */
-
+#define BK_ERR_SDIO_CHAN_DIRECT_NOT_INIT (BK_ERR_SDIO_BASE - 13) /**< The selected direct isn't init */
 
 
 /**

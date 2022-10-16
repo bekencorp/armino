@@ -18,41 +18,26 @@
 extern "C" {
 #endif
 
-#define DMA_R_BASE                   (SOC_DMA_REG_BASE)
-
-#define DMA_R_INT_STATUS             (DMA_R_BASE + (0x4 * 0x38))
-
-#define DMA_F_FINI_INT_ST            (BIT(0))
-#define DMA_F_FINI_INT_ST_M          (BIT(0))
-#define DMA_F_FINI_INT_ST_V          0x3f
-#define DMA_F_FINI_INT_ST_S          0
-#define DMA_F_FINI_INT_ST_MS(_ch)    (DMA_F_FINI_INT_ST_S + (1 << (_ch)))
-
-#define DMA_F_HF_FINI_INT_ST         (BIT(8))
-#define DMA_F_HF_FINI_INT_ST_M       (BIT(8))
-#define DMA_F_HF_FINI_INT_ST_V       0x3f
-#define DMA_F_HF_FINI_INT_ST_S       8
-#define DMA_F_HF_FINI_INT_ST_MS(_ch) (DMA_F_HF_FINI_INT_ST_S + (1 << (_ch)))
-
 #define DMA_V_WORK_MODE_SINGLE       0x0
 #define DMA_V_WORK_MODE_REPEAT       0x1
-
-#define DMA_R_DEST_START_ADDR(ch)        (DMA_R_BASE + (0x4 * 0x01) + (0x4 * 0x8 * ch))
-#define DMA_R_SRC_START_ADDR(ch)         (DMA_R_BASE + (0x4 * 0x02) + (0x4 * 0x8 * ch))
-#define DMA_R_DEST_LOOP_END_ADDR(ch)     (DMA_R_BASE + (0x4 * 0x03) + (0x4 * 0x8 * ch))
-#define DMA_R_DEST_LOOP_START_ADDR(ch)   (DMA_R_BASE + (0x4 * 0x04) + (0x4 * 0x8 * ch))
-#define DMA_R_SRC_LOOP_END_ADDR(ch)      (DMA_R_BASE + (0x4 * 0x05) + (0x4 * 0x8 * ch))
-#define DMA_R_SRC_LOOP_START_ADDR(ch)    (DMA_R_BASE + (0x4 * 0x06) + (0x4 * 0x8 * ch))
 
 #define DMA_V_PRIO_MODE_ROUND_ROBIN      0x0
 #define DMA_V_PRIO_MODE_FIXED_PRIO       0x1
 
-#define DMA_V_REQ_MUX_DTCM          0x0
-#define DMA_V_REQ_MUX_LA            0x1
-#define DMA_V_REQ_MUX_SDIO          0x3
-#define DMA_V_REQ_MUX_UART1         0x4
-#define DMA_V_REQ_MUX_UART2         0x5
-#define DMA_V_REQ_MUX_GSPI0         0x7
+#define DMA_V_REQ_MUX_AHB_MEM          0x0
+#define DMA_V_REQ_MUX_UART0            0x1
+#define DMA_V_REQ_MUX_SPI0             0x2
+#define DMA_V_REQ_MUX_SDIO             0x3
+#define DMA_V_REQ_MUX_UART1            0x4
+#define DMA_V_REQ_MUX_UART2            0x5
+#define DMA_V_REQ_MUX_SPI1             0x6
+#define DMA_V_REQ_MUX_USB              0x7
+#define DMA_V_REQ_MUX_AUDIO            0x8
+#define DMA_V_REQ_MUX_I2S_CHAN0        0x9
+#define DMA_V_REQ_MUX_LCD_CMD          0xa
+#define DMA_V_REQ_MUX_LCD_DATA         0xb
+#define DMA_V_REQ_MUX_I2S_CHAN1        0xc
+#define DMA_V_REQ_MUX_I2S_CHAN2        0xd
 
 #ifdef __cplusplus
 }

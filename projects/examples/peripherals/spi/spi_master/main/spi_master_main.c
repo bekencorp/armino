@@ -25,6 +25,8 @@
 #define CONFIG_SPI_EXAM_BUF_LEN    1024
 #define CONFIG_SPI_EXAM_TX_TIMEOUT BEKEN_WAIT_FOREVER
 #define CONFIG_SPI_EXAM_RX_TIMEOUT BEKEN_WAIT_FOREVER
+#define CONFIG_UART_EXAMPLE_UART_ID 1
+
 
 static bk_err_t spi_example_send_data(void)
 {
@@ -40,13 +42,12 @@ static bk_err_t spi_example_send_data(void)
 	};
 	uint8_t send_exam_buf[CONFIG_SPI_EXAM_BUF_LEN] = {0};
 	for (int i = 0; i < CONFIG_SPI_EXAM_BUF_LEN; i++) {
-		send_exam_buf = i & 0xff;
+		send_exam_buf[i] = i & 0xff;
 	}
 	BK_LOG_ON_ERR(bk_spi_init(CONFIG_SPI_EXAM_SPI_ID, &config));
 	BK_LOG_ON_ERR(bk_spi_write_bytes(CONFIG_SPI_EXAM_SPI_ID,
 									send_exam_buf,
-									CONFIG_SPI_EXAM_BUF_LEN,
-									CONFIG_SPI_EXAM_TX_TIMEOUT));
+									CONFIG_SPI_EXAM_BUF_LEN));
 	return BK_OK;
 }
 
@@ -64,14 +65,13 @@ static bk_err_t spi_example_dma_send_data(void)
 	};
 	uint8_t send_exam_buf[CONFIG_SPI_EXAM_BUF_LEN] = {0};
 	for (int i = 0; i < CONFIG_SPI_EXAM_BUF_LEN; i++) {
-		send_exam_buf = i & 0xff;
+		send_exam_buf[i] = i & 0xff;
 	}
 
-	BK_LOG_ON_ERR(bk_spi_init(CONFIG_UART_EXAMPLE_UART_ID, &s_config));
+	BK_LOG_ON_ERR(bk_spi_init(CONFIG_UART_EXAMPLE_UART_ID, &config));
 	BK_LOG_ON_ERR(bk_spi_dma_write_bytes(CONFIG_SPI_EXAM_SPI_ID,
 										send_exam_buf,
-										CONFIG_SPI_EXAM_BUF_LEN,
-										CONFIG_SPI_EXAM_TX_TIMEOUT));
+										CONFIG_SPI_EXAM_BUF_LEN));
 	return BK_OK;
 }
 
@@ -91,8 +91,7 @@ static bk_err_t spi_example_recv_data(void)
 	BK_LOG_ON_ERR(bk_spi_init(CONFIG_SPI_EXAM_SPI_ID, &config));
 	BK_LOG_ON_ERR(bk_spi_read_bytes(CONFIG_SPI_EXAM_SPI_ID,
 									recv_exam_buf,
-									CONFIG_SPI_EXAM_BUF_LEN,
-									CONFIG_SPI_EXAM_RX_TIMEOUT));
+									CONFIG_SPI_EXAM_BUF_LEN));
 	for (int i = 0; i < CONFIG_SPI_EXAM_BUF_LEN; i++) {
 		BK_LOGI(TAG, "recv_data[%d]=%x\r\n", i, recv_exam_buf[i]);
 	}
@@ -115,8 +114,7 @@ static bk_err_t spi_example_dma_recv_data(void)
 	BK_LOG_ON_ERR(bk_spi_init(CONFIG_SPI_EXAM_SPI_ID, &config));
 	BK_LOG_ON_ERR(bk_spi_dma_read_bytes(CONFIG_SPI_EXAM_SPI_ID,
 										recv_exam_buf,
-										CONFIG_SPI_EXAM_BUF_LEN,
-										CONFIG_SPI_EXAM_RX_TIMEOUT));
+										CONFIG_SPI_EXAM_BUF_LEN));
 	for (int i = 0; i < CONFIG_SPI_EXAM_BUF_LEN; i++) {
 		BK_LOGI(TAG, "dma_recv_data[%d]=%x\r\n", i, recv_exam_buf[i]);
 	}

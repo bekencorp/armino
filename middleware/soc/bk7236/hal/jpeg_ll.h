@@ -41,6 +41,8 @@ extern "C" {
 	{GPIO_39, GPIO_DEV_JPEG_PXDATA7},\
 }
 
+#define JPEG_GPIO_AUXS GPIO_27
+
 void jpeg_ll_init_quant_table(jpeg_hw_t *hw);
 
 static inline void jpeg_ll_reset_config_to_default(jpeg_hw_t *hw)
@@ -54,6 +56,7 @@ static inline void jpeg_ll_reset_config_to_default(jpeg_hw_t *hw)
 
 static inline void jpeg_ll_init(jpeg_hw_t *hw)
 {
+	hw->global_ctrl.soft_reset = 1;
 	jpeg_ll_reset_config_to_default(hw);
 }
 
@@ -74,67 +77,72 @@ static inline void jpeg_ll_disable(jpeg_hw_t *hw)
 
 static inline void jpeg_ll_set_x_pixel(jpeg_hw_t *hw, uint32_t x_pixel)
 {
-	hw->cfg.x_pixel = x_pixel & JPEG_F_X_PIXEL_M;
+	hw->cfg.v &= (~(JPEG_F_X_PIXEL_M << JPEG_F_X_PIXEL_S));
+	hw->cfg.v |= ((x_pixel & JPEG_F_X_PIXEL_M) << JPEG_F_X_PIXEL_S);
 }
 
 static inline void jpeg_ll_set_y_pixel(jpeg_hw_t *hw, uint32_t y_pixel)
 {
-	hw->cfg.y_pixel = y_pixel & JPEG_F_Y_PIXEL_M;
+	hw->cfg.v &= (~(JPEG_F_Y_PIXEL_M << JPEG_F_Y_PIXEL_S));
+	hw->cfg.v |= ((y_pixel & JPEG_F_Y_PIXEL_M) << JPEG_F_Y_PIXEL_S);
 }
 
 static inline void jpeg_ll_set_yuv_mode(jpeg_hw_t *hw, uint32_t mode)
 {
-	// NOT Support
+	if (mode == 1)
+		hw->cfg.yuvbuf_mode = 1;
+	else
+		hw->cfg.yuvbuf_mode = 0;
 }
 
 static inline void jpeg_ll_enable_end_yuv_int(jpeg_hw_t *hw)
 {
-	// NOT Support
+	hw->int_en.eoy_int_en = 1;
 }
 
 static inline void jpeg_ll_disable_end_yuv_int(jpeg_hw_t *hw)
 {
-	// NOT Support
+	hw->int_en.eoy_int_en = 0;
 }
 
 static inline void jpeg_ll_enable_head_output_int(jpeg_hw_t *hw)
 {
-	// NOT Support
+	hw->int_en.head_int_en = 1;
 }
 
 static inline void jpeg_ll_disable_head_output_int(jpeg_hw_t *hw)
 {
-	// NOT Support
+	hw->int_en.head_int_en = 0;
 }
 
 static inline void jpeg_ll_enable_start_frame_int(jpeg_hw_t *hw)
 {
-	hw->int_en.int_en |= BIT(0);
+	hw->int_en.sof_int_en = 1;
 }
 
 static inline void jpeg_ll_disable_start_frame_int(jpeg_hw_t *hw)
 {
-	hw->int_en.int_en &= ~BIT(0);
+	hw->int_en.sof_int_en = 0;
 }
 
 static inline void jpeg_ll_enable_end_frame_int(jpeg_hw_t *hw)
 {
-	hw->int_en.int_en |= BIT(1);
+	hw->int_en.eof_int_en = 1;
 }
 
 static inline void jpeg_ll_disable_end_frame_int(jpeg_hw_t *hw)
 {
-	hw->int_en.int_en &= ~BIT(1);
+	hw->int_en.eof_int_en = 0;
 }
 
 static inline void jpeg_ll_enable_vsync_negedge_int(jpeg_hw_t *hw)
 {
-	// NOT Support
+	hw->int_en.vsync_int_en = 1;
 }
 
 static inline void jpeg_ll_disable_vsync_negedge_int(jpeg_hw_t *hw)
 {
-	// NOT Support
+	hw->int_en.vsync_int_en = 0;
 }
 
 static inline void jpeg_ll_set_mclk_div(jpeg_hw_t *hw, uint32_t value)
@@ -154,17 +162,17 @@ static inline void jpeg_ll_disable_enc_size(jpeg_hw_t *hw)
 
 static inline void jpeg_ll_enable_yuv_word_reverse(jpeg_hw_t *hw)
 {
-	// NOT Support
+	hw->cfg.yuv_word_reverse = 1;
 }
 
 static inline void jpeg_ll_disable_yuv_word_reverse(jpeg_hw_t *hw)
 {
-	// NOT Support
+	hw->cfg.yuv_word_reverse = 0;
 }
 
 static inline void jpeg_ll_yuv_fml_sel(jpeg_hw_t *hw, uint32_t value)
 {
-	// NOT Support
+	hw->cfg.yuv_fmt_sel = value;
 }
 
 static inline void jpeg_ll_enable_video_byte_reverse(jpeg_hw_t *hw)
@@ -204,12 +212,12 @@ static inline void jpeg_ll_set_bitrate_step(jpeg_hw_t *hw, uint32_t step)
 
 static inline void jpeg_ll_set_default_bitrate_step(jpeg_hw_t *hw)
 {
-	hw->cfg.bitrate_step = 7;
+	hw->cfg.bitrate_step = 3;
 }
 
 static inline void jpeg_ll_set_bitrate_mode(jpeg_hw_t *hw, uint32_t mode)
 {
-	// NOT Support
+	hw->cfg.bitrate_mode = mode;
 }
 
 static inline void jpeg_ll_enable_bitrate_ctrl(jpeg_hw_t *hw, uint32_t value)
@@ -244,65 +252,62 @@ static inline bool jpeg_ll_is_frame_end_int_triggered(jpeg_hw_t *hw, uint32_t in
 
 static inline bool jpeg_ll_is_head_output_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	// NOT Support
-	return 0;
+	return int_status & BIT(2);
 }
 
 static inline bool jpeg_ll_is_yuv_end_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	// NOT Support
-	return 0;
+	return int_status & BIT(3);
 }
 
 static inline bool jpeg_ll_is_vsync_negedge_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	// NOT Support
-	return 0;
+	return int_status & BIT(4);
 }
 
 static inline void jpeg_ll_set_em_base_addr(jpeg_hw_t *hw, uint32_t value)
 {
-	// NOT Support
+	hw->em_base_addr.em_base_addr = ((value >> 16) | (0x20 << 16));
 }
 
 static inline void jpeg_ll_set_x_partial_offset_l(jpeg_hw_t *hw, uint32_t value)
 {
-	// NOT Support
+	hw->x_partial.x_partial_offset_l = value;
 }
 
 static inline void jpeg_ll_set_x_partial_offset_r(jpeg_hw_t *hw, uint32_t value)
 {
-	// NOT Support
+	hw->x_partial.x_partial_offset_r = value;
 }
 
 static inline void jpeg_ll_enable_partial_display(jpeg_hw_t *hw)
 {
-	// NOT Support
+	hw->x_partial.partial_display_en = 1;
 }
 
 static inline void jpeg_ll_disable_partial_display(jpeg_hw_t *hw)
 {
-	// NOT Support
+	hw->x_partial.partial_display_en = 0;
 }
 
 static inline void jpeg_ll_enable_sync_edge_dect(jpeg_hw_t *hw)
 {
-	// NOT Support
+	hw->x_partial.sync_edge_dect_en = 1;
 }
 
 static inline void jpeg_ll_disable_sync_edge_dect(jpeg_hw_t *hw)
 {
-	// NOT Support
+	hw->x_partial.sync_edge_dect_en = 0;
 }
 
 static inline void jpeg_ll_set_y_partial_offset_l(jpeg_hw_t *hw, uint32_t value)
 {
-	// NOT Support
+	hw->y_partial.y_partial_offset_l = value;
 }
 
 static inline void jpeg_ll_set_y_partial_offset_r(jpeg_hw_t *hw, uint32_t value)
 {
-	// NOT Support
+	hw->y_partial.y_partial_offset_r = value;
 }
 
 #ifdef __cplusplus

@@ -19,16 +19,28 @@ void key_configure(void)
 	bk_err_t result;
 
 	result = rtos_init_mutex(&g_key_mutex);
-	BK_ASSERT(kNoErr == result);
+	if(kNoErr != result)
+	{
+		KEY_PRT("rtos_init_mutex fail\r\n");
+		return;
+	}
 
 	result = rtos_init_timer(&g_key_timer,
 							 KEY_TMR_DURATION,
 							 button_ticks,
 							 (void *)0);
-	BK_ASSERT(kNoErr == result);
+	if(kNoErr != result)
+	{
+		KEY_PRT("rtos_init_timer fail\r\n");
+		return;
+	}
 
 	result = rtos_start_timer(&g_key_timer);
-	BK_ASSERT(kNoErr == result);
+	if(kNoErr != result)
+	{
+		KEY_PRT("rtos_start_timer fail\r\n");
+		return;
+	}
 }
 
 void key_unconfig(void)
@@ -36,16 +48,28 @@ void key_unconfig(void)
 	bk_err_t ret;
 
 	ret = rtos_deinit_mutex(&g_key_mutex);
-	BK_ASSERT(kNoErr == ret);
+	if(kNoErr != ret)
+	{
+		KEY_PRT("rtos_deinit_mutex fail\r\n");
+		return;
+	}
 
 	if (rtos_is_timer_init(&g_key_timer)) {
 		if (rtos_is_timer_running(&g_key_timer)) {
 			ret = rtos_stop_timer(&g_key_timer);
-			BK_ASSERT(kNoErr == ret);
+			if(kNoErr != ret)
+			{
+				KEY_PRT("rtos_stop_timer fail\r\n");
+				return;
+			}
 		}
 
 		ret = rtos_deinit_timer(&g_key_timer);
-		BK_ASSERT(kNoErr == ret);
+		if(kNoErr != ret)
+		{
+			KEY_PRT("rtos_deinit_timer fail\r\n");
+			return;
+		}
 	}
 }
 

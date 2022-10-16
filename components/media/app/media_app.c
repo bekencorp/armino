@@ -30,7 +30,6 @@
 #include "camera_act.h"
 #include "lcd_act.h"
 
-#include "wlan_ui_pub.h"
 
 #define TAG "media_app"
 
@@ -41,6 +40,7 @@
 
 static beken_thread_t media_app_th_hd = NULL;
 static beken_queue_t media_app_msg_queue = NULL;
+static app_camera_type_t app_camera_type = APP_CAMERA_INVALIED;
 
 extern void rwnxl_set_video_transfer_flag(uint32_t video_transfer_flag);
 
@@ -100,6 +100,8 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 
 	LOGI("%s\n", __func__);
 
+	app_camera_type = type;
+
 	if (type == APP_CAMERA_DVP)
 	{
 		if (CAMERA_STATE_DISABLED != get_camera_state())
@@ -120,6 +122,16 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 
 		ret = media_send_msg_sync(EVENT_CAM_DVP_YUV_OPEN_IND, ppi);
 	}
+	else if (type == APP_CAMERA_MIX)
+	{
+		if (CAMERA_STATE_DISABLED != get_camera_state())
+		{
+			LOGI("%s already opened\n", __func__);
+			return kNoErr;
+		}
+
+		ret = media_send_msg_sync(EVENT_CAM_DVP_MIX_OPEN_IND, ppi);
+	}
 	else if (type == APP_CAMERA_UVC)
 	{
 
@@ -134,6 +146,8 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 #endif
 	}
 
+	LOGI("%s complete\n", __func__);
+
 	return ret;
 }
 
@@ -142,6 +156,12 @@ bk_err_t media_app_camera_close(app_camera_type_t type)
 	int ret = kGeneralErr;
 
 	LOGI("%s\n", __func__);
+
+	if (app_camera_type != type)
+	{
+		LOGE("The camera type of open and close not match!\n");
+		return ret;
+	}
 
 	if (type == APP_CAMERA_DVP)
 	{
@@ -171,13 +191,17 @@ bk_err_t media_app_camera_close(app_camera_type_t type)
 
 		if (CAMERA_STATE_DISABLED == get_camera_state())
 		{
-			LOGI("%s already opened\n", __func__);
+			LOGI("%s already closed\n", __func__);
 			return kNoErr;
 		}
 
 		ret = media_send_msg_sync(EVENT_CAM_UVC_CLOSE_IND, 0);
 #endif
 	}
+
+	app_camera_type = APP_CAMERA_INVALIED;
+
+	LOGI("%s complete\n", __func__);
 
 	return ret;
 }
@@ -203,8 +227,6 @@ bk_err_t media_app_transfer_open(void *setup_cfg)
 
 	LOGI("%s, %p\n", __func__, ((video_setup_t *)setup_cfg)->send_func);
 
-	bk_wlan_ps_disable();
-
 	rwnxl_set_video_transfer_flag(true);
 
 	if (TRS_STATE_DISABLED != get_transfer_state())
@@ -220,6 +242,8 @@ bk_err_t media_app_transfer_open(void *setup_cfg)
 
 	os_free(ptr);
 
+	LOGI("%s complete\n", __func__);
+
 	return ret;
 }
 
@@ -230,54 +254,155 @@ bk_err_t media_app_transfer_pause(bool pause)
 
 bk_err_t media_app_transfer_close(void)
 {
+	bk_err_t ret;
+
+	LOGI("%s\n", __func__);
+
 	if (TRS_STATE_ENABLED != get_transfer_state())
 	{
 		LOGI("%s already closed\n", __func__);
 		return kNoErr;
 	}
 
-	return media_send_msg_sync(EVENT_TRANSFER_CLOSE_IND, 0);
+	ret = media_send_msg_sync(EVENT_TRANSFER_CLOSE_IND, 0);
+
+	LOGI("%s complete\n", __func__);
+
+	return ret;
 }
 
 bk_err_t media_app_lcd_rotate(bool enable)
 {
+	bk_err_t ret;
+
 	LOGI("%s\n", __func__);
 
-	return media_send_msg_sync(EVENT_LCD_ROTATE_ENABLE_IND, enable);
+	ret = media_send_msg_sync(EVENT_LCD_ROTATE_ENABLE_IND, enable);
+
+	LOGI("%s complete\n", __func__);
+
+	return ret;
 }
 
-bk_err_t media_app_lcd_open(uint32_t lcd_ppi)
+
+static bk_err_t _media_app_lcd_open(void *lcd_open, app_lcd_open_type_t is_open_with_gui)
 {
-	if (LCD_STATE_DISABLED != get_lcd_state())
+	int ret = kNoErr;
+	lcd_open_t *ptr = NULL;
+
+//	if (LCD_STATE_ENABLED == get_lcd_state())
+//	{
+//		LOGI("%s already opened\n", __func__);
+//		return ret;
+//	}
+	LOGI("%s \n", __func__);
+
+	ptr = (lcd_open_t *)os_malloc(sizeof(lcd_open_t));
+	os_memcpy(ptr, (lcd_open_t *)lcd_open, sizeof(lcd_open_t));
+
+	if(!is_open_with_gui)
+		ret = media_send_msg_sync(EVENT_LCD_OPEN_IND, (uint32_t)ptr);
+	else
+		ret = media_send_msg_sync(EVENT_LCD_OPEN_WITH_GUI, (uint32_t)ptr);
+
+	os_free(ptr);
+
+	LOGI("%s complete\n", __func__);
+
+	return ret;
+}
+
+bk_err_t media_app_lcd_display_beken(void)
+{
+	bk_err_t ret;
+	
+	ret = media_send_msg_sync(EVENT_LCD_BEKEN_LOGO_DISPLAY, 0);
+	LOGI("%s complete\n", __func__);
+
+	return ret;
+}
+
+bk_err_t media_app_lcd_open(void *lcd_open)
+{
+	return _media_app_lcd_open(lcd_open, APP_LCD_NO_USE_GUI);
+}
+
+bk_err_t media_app_lcd_open_withgui(void *lcd_open)
+{
+	return _media_app_lcd_open(lcd_open, APP_LCD_USE_GUI);
+}
+
+
+bk_err_t media_app_lcd_display(char *name, uint32_t lcd_ppi)
+{
+	bk_err_t ret;
+	char *capture_name = NULL;
+
+	LOGI("%s\n", __func__);
+	if (name != NULL)
 	{
-		LOGI("%s already opened\n", __func__);
-		return kNoErr;
+		uint32_t len = os_strlen(name) + 1;
+
+		if (len > 31)
+		{
+			len = 31;
+		}
+
+		capture_name = (char *)os_malloc(len);
+		os_memset(capture_name, 0, len);
+		os_memcpy(capture_name, name, len);
+		capture_name[len - 1] = '\0';
 	}
 
-	return media_send_msg_sync(EVENT_LCD_OPEN_IND, lcd_ppi);
+	//ret = media_send_msg_sync(EVENT_LCD_OPEN_IND, (uint32_t)lcd_ppi);
+
+	ret = media_send_msg_sync(EVENT_LCD_DISPLAY_IND, (uint32_t)capture_name);
+
+	LOGI("%s complete\n", __func__);
+
+	return ret;
 }
+
 
 bk_err_t media_app_lcd_close(void)
 {
-	if (LCD_STATE_ENABLED != get_lcd_state())
+	bk_err_t ret;
+
+	LOGI("%s\n", __func__);
+
+	if (LCD_STATE_ENABLED == get_lcd_state() || LCD_STATE_DISPLAY == get_lcd_state())
+	{
+		ret = media_send_msg_sync(EVENT_LCD_CLOSE_IND, 0);
+	}
+	else
 	{
 		LOGI("%s already closed\n", __func__);
-		return kNoErr;
+		return BK_OK;
 	}
 
-	return media_send_msg_sync(EVENT_LCD_CLOSE_IND, 0);
+	LOGI("%s complete\n", __func__);
+
+	return ret;
 }
 
 
 bk_err_t media_app_lcd_set_backlight(uint8_t level)
 {
+	bk_err_t ret;
+
+	LOGI("%s\n", __func__);
+
 	if (LCD_STATE_ENABLED != get_lcd_state())
 	{
 		LOGI("%s not open\n", __func__);
 		return kNoErr;
 	}
 
-	return media_send_msg_sync(EVENT_LCD_SET_BACKLIGHT_IND, level);
+	ret = media_send_msg_sync(EVENT_LCD_SET_BACKLIGHT_IND, level);
+
+	LOGI("%s complete\n", __func__);
+
+	return ret;
 }
 
 
@@ -324,6 +449,8 @@ bk_err_t media_app_capture(char *name)
 
 	ret = media_send_msg_sync(EVENT_STORAGE_CAPTURE_IND, (uint32_t)capture_name);
 	os_free(capture_name);
+
+	LOGI("%s complete\n", __func__);
 
 	return ret;
 }
@@ -420,7 +547,7 @@ bk_err_t media_app_init(void)
 	}
 
 
-	LOGI("media minor thread startup complete\n");
+	LOGI("media app thread startup complete\n");
 
 	return kNoErr;
 error:

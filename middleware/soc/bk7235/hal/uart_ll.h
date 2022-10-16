@@ -17,6 +17,7 @@
 #include <soc/soc.h>
 #include "uart_hw.h"
 #include "hal_port.h"
+#include "sys_ll_op_if.h"
 #include <driver/hal/hal_uart_types.h>
 #include <driver/hal/hal_gpio_types.h>
 
@@ -116,6 +117,11 @@ static inline uint32_t uart_ll_to_reg_parity(uart_parity_t parity)
     }
 }
 
+static inline bool uart_ll_get_tx_enable(uart_hw_t *hw)
+{
+	return hw->config.tx_enable;
+}
+
 static inline void uart_ll_set_tx_enable(uart_hw_t *hw, uart_id_t id, uint32_t value)
 {
 	hw->config.tx_enable = value & 0x01;
@@ -129,6 +135,11 @@ static inline void uart_ll_enable_tx(uart_hw_t *hw, uart_id_t id)
 static inline void uart_ll_disable_tx(uart_hw_t *hw, uart_id_t id)
 {
 	uart_ll_set_tx_enable(hw, id, 0);
+}
+
+static inline bool uart_ll_get_rx_enable(uart_hw_t *hw)
+{
+	return hw->config.rx_enable;
 }
 
 static inline void uart_ll_set_rx_enable(uart_hw_t *hw, uart_id_t id, uint32_t value)
@@ -298,6 +309,11 @@ static inline void uart_ll_disable_tx_interrupt(uart_hw_t *hw, uart_id_t id)
 static inline uint32_t uart_ll_get_int_enable_status(uart_hw_t *hw, uart_id_t id)
 {
 	return hw->int_enable.v & 0xff;
+}
+
+static inline void uart_ll_set_int_enable_status(uart_hw_t *hw, uart_id_t id, uint32_t value)
+{
+	hw->int_enable.v = value;
 }
 
 static inline uint32_t uart_ll_get_interrupt_status(uart_hw_t *hw, uart_id_t id)

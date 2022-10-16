@@ -29,25 +29,32 @@
  *
  ******************************************************************************
  */
+
+#include <common/bk_include.h>
+
+#if CONFIG_OS_SEM_DEMO
+
 #include "os_sem.h"
-#include <common/bk_include.h>
-
-#if OS_SEM_DEMO
-
-#include <common/bk_include.h>
 #include <os/os.h>
-#include "uart_pub.h"
-#include "Error.h"
-#include "portmacro.h"
 
 static beken_semaphore_t os_sem = NULL;
 
 void set_semaphore_thread( beken_thread_arg_t arg )
 {
+    bk_err_t err;
+
     while ( 1 )
     {
-        os_printf( "release semaphore!\r\n" );
-        rtos_set_semaphore( &os_sem );
+        err = rtos_set_semaphore( &os_sem );
+        if(err == kNoErr)
+        {
+            os_printf("Set_Sem Succend!\r\n");
+        }
+        else
+        {
+            os_printf("Set_Sem Err:%d\r\n", err);
+            goto exit;
+        }
         rtos_delay_milliseconds( 500 );
     }
 

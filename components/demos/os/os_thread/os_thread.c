@@ -29,22 +29,20 @@
  *
  ******************************************************************************
  */
-#include "os_thread.h"
+
 #include <common/bk_include.h>
 
-#if OS_THREAD_DEMO
-#include <common/bk_include.h>
+#if CONFIG_OS_THREAD_DEMO
+
 #include <os/os.h>
-#include "uart_pub.h"
-#include "Error.h"
-#include "portmacro.h"
+#include "os_thread.h"
 
 void thread_0( beken_thread_arg_t arg )
 {
     (void)( arg );
 
     os_printf( "This is thread 0\r\n");
-    rtos_delay_milliseconds((TickType_t)1000 );
+    rtos_delay_milliseconds(1000 );
 
     /* Make with terminate state and IDLE thread will clean resources */
     rtos_delete_thread(NULL);
@@ -81,7 +79,7 @@ void thread_2( beken_thread_arg_t arg )
     while ( 1 )
     {
         os_printf( "This is thread 2\r\n" );
-        rtos_delay_milliseconds((TickType_t)600);
+        rtos_delay_milliseconds(600);
     }
 }
 
@@ -135,7 +133,6 @@ exit:
 
     return err;
 }
-
 
 #endif
 // eof

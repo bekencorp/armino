@@ -1,7 +1,7 @@
-Samples and Demos (TBC)
+Samples and Demos
 ===============================
 
-:link_to_translation:`zh_CN:[中文]`
+:link_to_translation:`zh_CN:[Chinese]`
 
 .. toctree::
    :maxdepth: 1

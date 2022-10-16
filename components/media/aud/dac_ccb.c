@@ -49,6 +49,7 @@
 
 dma_id_t aud_dac_dma_id = DMA_ID_MAX;
 
+uint8_t *dac_ring_buffer = NULL;
 
 static bk_err_t audio_dac_config(void)
 {
@@ -56,7 +57,7 @@ static bk_err_t audio_dac_config(void)
 	aud_dac_config_t dac_config;
 
 	dac_config.dac_enable = AUD_DAC_DISABLE;
-	dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_8K;
+	dac_config.samp_rate = AUD_DAC_SAMP_RATE_8K;
 	dac_config.dac_hpf2_coef_B2 = 0x3A22;
 	dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
 	dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
@@ -72,8 +73,6 @@ static bk_err_t audio_dac_config(void)
 	dac_config.dacr_int_enable = 0x0;
 	dac_config.dacl_int_enable = 0x0;
 	dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-	dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-	dac_config.dac_fracmode_value = 0x0;
 
 	/* init audio driver and config dac */
 	ret = bk_aud_driver_init();
@@ -180,11 +179,18 @@ void audio_dac_start(void)
 		return;
 	}
 
-#ifdef CONFIG_PSRAM
-	ret = audio_dac_dma_config(aud_dac_dma_id, (int32_t *)psram_map->aud_dac, AUD_8K_FRAME_SAMP_SIZE, AUD_8K_FRAME_SAMP_SIZE);
-#else
-	ret = audio_dac_dma_config(aud_dac_dma_id, (int32_t *)NULL, AUD_8K_FRAME_SAMP_SIZE, AUD_8K_FRAME_SAMP_SIZE);
-#endif
+	if (dac_ring_buffer == NULL)
+	{
+		dac_ring_buffer = (uint8_t *)os_malloc(AUD_8K_FRAME_SAMP_SIZE);
+
+		if (dac_ring_buffer == NULL)
+		{
+			os_printf("malloc dac_ring_buffer fail \r\n");
+			return;
+		}
+	}
+
+	ret = audio_dac_dma_config(aud_dac_dma_id, (int32_t *)dac_ring_buffer, AUD_8K_FRAME_SAMP_SIZE, AUD_8K_FRAME_SAMP_SIZE);
 
 	ret = bk_dma_start(aud_dac_dma_id);
 	if (ret != BK_OK)

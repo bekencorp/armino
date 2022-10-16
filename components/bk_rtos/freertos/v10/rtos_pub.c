@@ -921,6 +921,17 @@ void rtos_enable_int(uint32_t int_level)
 {
 	port_enable_interrupts_flag(int_level);
 }
+
+uint32_t rtos_before_sleep(void)
+{
+    return port_disable_interrupts_flag();
+}
+
+void rtos_after_sleep(uint32_t int_level)
+{
+    port_enable_interrupts_flag(int_level);
+}
+
 uint32_t rtos_disable_mie_int(void)
 {
     return port_disable_mie_flag();
@@ -963,8 +974,8 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
 /* If the buffers to be provided to the Idle task are declared inside this
 function then they must be declared static - otherwise they will be allocated on
 the stack and so not exists after this function exits. */
-static StaticTask_t xIdleTaskTCB;
-static StackType_t uxIdleTaskStack[ configMINIMAL_STACK_SIZE ];
+static __attribute__((section(".dtcm_sec_data "))) StaticTask_t xIdleTaskTCB;
+static __attribute__((section(".dtcm_sec_data "))) StackType_t uxIdleTaskStack[ configMINIMAL_STACK_SIZE ];
 
     /* Pass out a pointer to the StaticTask_t structure in which the Idle task's
     state will be stored. */

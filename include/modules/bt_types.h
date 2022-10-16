@@ -61,12 +61,15 @@ typedef enum
     BT_CMD_CREATE_CONNECT,
     BT_CMD_DISCONNECT,
     BT_CMD_SDP,
+    BT_CMD_READ_SCAN_ENABLE,
+    BT_CMD_WRITE_SCAN_ENABLE,
     BT_CMD_MAX,
 } bt_cmd_t;
 
 typedef enum{
     BT_EVENT_INQUIRY_RESULT,
     BT_EVENT_DISCONNECT,
+    BT_EVENT_COMPLETE,
 }bt_event_t;
 /**
  * @defgroup bk_bt_api_v1_typedef struct

@@ -42,6 +42,7 @@ typedef struct {
 #define uart_hal_clear_id_tx_interrupt_status(hal, id) uart_ll_clear_id_tx_interrupt_status((hal)->hw, id)
 #define uart_hal_clear_id_rx_interrupt_status(hal, id) uart_ll_clear_id_rx_interrupt_status((hal)->hw, id)
 
+#define uart_hal_set_int_enable_status(hal, id, value) uart_ll_set_int_enable_status((hal)->hw, id, value)
 #define uart_hal_get_int_enable_status(hal, id) uart_ll_get_int_enable_status((hal)->hw, id)
 #define uart_hal_is_rx_interrupt_triggered(hal, id, status) uart_ll_is_rx_interrupt_triggered((hal)->hw, id, status)
 #define uart_hal_is_tx_interrupt_triggered(hal, id, status) uart_ll_is_tx_interrupt_triggered((hal)->hw, id, status)
@@ -52,6 +53,8 @@ typedef struct {
 #define uart_hal_disable_rx(hal, id) uart_ll_disable_rx((hal)->hw, id)
 #define uart_hal_set_tx_enable(hal, id, enable) uart_ll_set_tx_enable((hal)->hw, id, enable)
 #define uart_hal_set_rx_enable(hal, id, enable) uart_ll_set_rx_enable((hal)->hw, id, enable)
+#define uart_hal_get_tx_enable(hal) uart_ll_get_tx_enable((hal)->hw)
+#define uart_hal_get_rx_enable(hal) uart_ll_get_rx_enable((hal)->hw)
 
 #define uart_hal_set_data_bits(hal, id, data_bits) uart_ll_set_data_bits((hal)->hw, id, data_bits)
 #define uart_hal_set_stop_bits(hal, id, stop_bits) uart_ll_set_stop_bits((hal)->hw, id, stop_bits)
@@ -93,6 +96,8 @@ bk_err_t uart_hal_set_baud_rate(uart_hal_t *hal, uart_id_t id, uint32_t sclk, ui
 bk_err_t uart_hal_set_parity(uart_hal_t *hal, uart_id_t id, uart_parity_t parity);
 bk_err_t uart_hal_set_hw_flow_ctrl(uart_hal_t *hal, uart_id_t id, uint8_t rx_threshold);
 bk_err_t uart_hal_disable_hw_flow_ctrl(uart_hal_t *hal, uart_id_t id);
+uint32_t uart_hal_get_system_interrput_en_status(uart_id_t id);
+
 
 #if CFG_HAL_DEBUG_UART
 void uart_struct_dump(uart_id_t id);

@@ -27,13 +27,25 @@
 
 extern volatile unsigned int g_enter_exception;
 
-void bk_reboot(void)
+#if (CONFIG_SOC_BK7256XX)
+static uint32_t bk_get_return_address_value()
+{
+	UINT32 return_address_value;
+
+	__asm volatile( "mv %0, ra":"=r"( return_address_value ) );
+
+	return return_address_value;
+}
+#endif
+
+void bk_reboot_ex(uint32_t reset_reason)
 {
 	UINT32 wdt_val = 5;
 
 	BK_LOGI(TAG, "bk_reboot\r\n");
 
 #if (CONFIG_SOC_BK7256XX)
+	BK_DUMP_OUT("sys: Return address value:%x\r\n", bk_get_return_address_value());
 	set_reboot_tag(REBOOT_TAG_REQ);
 	g_enter_exception = 1;
 #endif
@@ -44,7 +56,10 @@ void bk_reboot(void)
 	aon_pmu_drv_reg_set(PMU_REG0x41,param);
 	aon_pmu_drv_wdt_rst_dev_enable();
 #endif
-	bk_misc_update_set_type(RESET_SOURCE_REBOOT);
+
+	if (reset_reason < RESET_SOURCE_UNKNOWN) {
+		bk_misc_set_reset_reason(reset_reason);
+	}
 
 	GLOBAL_INT_DECLARATION();
 
@@ -58,4 +73,9 @@ void bk_reboot(void)
 	bk_wdt_start(wdt_val);
 	while (1);
 	GLOBAL_INT_RESTORE();
+}
+
+void bk_reboot(void)
+{
+	bk_reboot_ex(RESET_SOURCE_REBOOT);
 }

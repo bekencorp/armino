@@ -7,7 +7,6 @@ extern void lcd_rgb_display_jpeg(char *pcWriteBuffer, int xWriteBufferLen, int a
 extern void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void lcd_rgb_close(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void sdcard_read_to_psram(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-extern void lcd_rgb_gc9503v_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void jpeg_dec_display_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void sdcard_write_from_mem(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
@@ -21,7 +20,6 @@ static const struct cli_command s_lcd_commands[] = {
 	{"lcd_rgb_yuv", "lcd_rgb=480p,1,display_partical", lcd_rgb_display_yuv},
 	{"lcd_rgb_jpeg", "lcd_rgb_jpeg =480p ,25", lcd_rgb_display_jpeg},
 	{"lcd_close", "lcd_close=yuv|jpeg,", lcd_rgb_close},
-	{"lcd_device_init_handler", " init , gc9503v ,display", lcd_rgb_gc9503v_test},
 	{"sdcard_write_from_mem", "file_name|pixelx|pixely|addr", sdcard_write_from_mem},
 	{"sdcard_read_to_mem", "file_name,addr", sdcard_read_to_psram},
 	{"lcd", " file_display,file name", jpeg_dec_display_demo},

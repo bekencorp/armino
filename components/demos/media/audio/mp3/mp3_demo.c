@@ -26,6 +26,8 @@
 #include <modules/mp3dec.h>
 #include "ff.h"
 #include "diskio.h"
+#include <components/aud_intf.h>
+#include <components/aud_intf_types.h>
 
 
 #define TU_QITEM_COUNT      (60)
@@ -39,7 +41,9 @@ MP3FrameInfo mp3FrameInfo;
 unsigned char *readBuf;
 short *pcmBuf;
 int bytesLeft = 0;
-int mp3_decode_status = 0;
+int g_mp3_decode_status = 0;
+int g_mp3_decode_complete_status = 0;
+int g_mp3_play_is_running = 0;
 short *output;
 
 FIL mp3file;
@@ -48,45 +52,13 @@ uint32 uiTemp = 0;
 uint32 br = 0;
 static char *g_mp3_name;
 static char mp3_file_name[50];
+int offset = 0;
+unsigned char *g_readptr;
 
 static dma_id_t mp3_dac_dma_id = DMA_ID_MAX;
 static int32_t *mp3_play_ring_buff = NULL;
 static RingBufferContext mp3_play_rb;
-
-
-#if 0
-const char audio_mp3_list[AUDIO_MP3_PLAY_LIST_MAX][50] = {
-	"3:/alert.mp3",
-	"3:/be.mp3",
-	"3:/bf.mp3",
-	"3:/bi.mp3",
-	"3:/ble.mp3",
-	"3:/bs.mp3",
-	"3:/dd.mp3",
-	"3:/nf.mp3",
-	"3:/qcs.mp3",
-	"3:/reset.mp3",
-	"3:/upd.mp3",
-	"3:/upds.mp3",
-	"3:/wcs.mp3",
-};
-
-const char audio_mp3_list[AUDIO_MP3_PLAY_LIST_MAX][50] = {
-	"1:/alert.mp3",
-	"1:/be.mp3",
-	"1:/bf.mp3",
-	"1:/bi.mp3",
-	"1:/ble.mp3",
-	"1:/bs.mp3",
-	"1:/dd.mp3",
-	"1:/nf.mp3",
-	"1:/qcs.mp3",
-	"1:/reset.mp3",
-	"1:/upd.mp3",
-	"1:/upds.mp3",
-	"1:/wcs.mp3",
-};
-#endif
+static bool mp3_file_is_empty = false;
 
 static bk_err_t audio_send_msg(audio_mp3_play_msg_t msg)
 {
@@ -109,13 +81,13 @@ static bk_err_t bk_audio_mp3_play_dac_config(void)
 	aud_dac_config_t dac_config;
 
 	dac_config.dac_enable = AUD_DAC_DISABLE;
-	dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_8K;
+	dac_config.samp_rate = AUD_DAC_SAMP_RATE_8K;
 	dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
 	dac_config.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
 	dac_config.dac_hpf2_coef_B2 = 0x3A22;
 	dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
 	dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
-	dac_config.dac_set_gain = 0x20;
+	dac_config.dac_set_gain = 0x2d;
 	dac_config.dac_clk_invert = AUD_DAC_CLK_INVERT_RISING;
 
 	dac_config.dac_hpf2_coef_B0 = 0x3A22;
@@ -127,8 +99,6 @@ static bk_err_t bk_audio_mp3_play_dac_config(void)
 	dac_config.dacr_int_enable = 0x0;
 	dac_config.dacl_int_enable = 0x0;
 	dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-	dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-	dac_config.dac_fracmode_value = 0x0;
 
 	/* init audio driver and config dac */
 	ret = bk_aud_driver_init();
@@ -291,7 +261,7 @@ static void bk_audio_mp3_play_decode_start(DISK_NUMBER disk_id, char *mp3_name, 
 
 	FRESULT fr;
 
-	if (!mp3_decode_status) {
+	if (!g_mp3_decode_status) {
 		/*open file to read mp3 data */
 		os_memset(mp3_file_name, 0, sizeof(mp3_file_name)/sizeof(mp3_file_name[0]));
 		sprintf(mp3_file_name, "%d:/%s", disk_id, mp3_name);
@@ -316,7 +286,7 @@ static void bk_audio_mp3_play_decode_start(DISK_NUMBER disk_id, char *mp3_name, 
 			f_lseek(&mp3file, 0);
 		}
 
-		mp3_decode_status = 1;
+		g_mp3_decode_status = 1;
 	}
 
 	/* start mp3 decode */
@@ -377,6 +347,7 @@ static void audio_mp3_play_main(void)
 {
 	bk_err_t ret = BK_OK;
 	unsigned char *readptr;
+	uint32_t size = 0;
 
 	ret = bk_audio_mp3_play_dac_config();
 	if (ret != BK_OK) {
@@ -398,33 +369,34 @@ static void audio_mp3_play_main(void)
 	}
 //	os_printf("mp3_dac_dma_id: %d \r\n", mp3_dac_dma_id);
 
+	/* start mp3 init and decode */
+	bk_audio_mp3_play_decode_init();
+	readptr = readBuf;
+	bk_audio_mp3_play_decode_start(DISK_NUMBER_SDIO_SD, g_mp3_name, &readptr);
+
+
 	mp3_play_ring_buff = os_malloc(PCM_SIZE_MAX * 5);
 	if (mp3_play_ring_buff == NULL) {
 		os_printf("mp3 play ring buffer malloc failed!\r\n");
 		return;
 	}
 
-	ring_buffer_init(&mp3_play_rb, (uint8_t*)mp3_play_ring_buff, PCM_SIZE_MAX * 5, mp3_dac_dma_id, RB_DMA_TYPE_READ);
-
-	/* start mp3 init and decode */
-	bk_audio_mp3_play_decode_init();
-	mp3_decode_status = 0;
-	readptr = readBuf;
-	bk_audio_mp3_play_decode_start(DISK_NUMBER_SDIO_SD, g_mp3_name, &readptr);
-	bk_audio_mp3_play_dac_sample_rate_set();
-
-	uint32_t size = ring_buffer_write(&mp3_play_rb, (uint8_t *)pcmBuf, mp3FrameInfo.outputSamps * 2);
-//	os_printf("ring buffer write size = %d!\r\n", size);
-
-	bk_audio_mp3_play_decode_start(DISK_NUMBER_SDIO_SD, g_mp3_name, &readptr);
-	size = ring_buffer_write(&mp3_play_rb, (uint8_t *)pcmBuf, mp3FrameInfo.outputSamps * 2);
-//	os_printf("ring buffer write size = %d!\r\n", size);
-
 	ret = bk_audio_mp3_play_dma_config(mp3_dac_dma_id, mp3_play_ring_buff, PCM_SIZE_MAX * 5, mp3FrameInfo.outputSamps * 2);
 	if (ret != BK_OK) {
 		os_printf("audio mp3 play dma config failed!\r\n");
 		return;
 	}
+
+	ring_buffer_init(&mp3_play_rb, (uint8_t*)mp3_play_ring_buff, PCM_SIZE_MAX * 5, mp3_dac_dma_id, RB_DMA_TYPE_READ);
+
+	bk_audio_mp3_play_dac_sample_rate_set();
+
+	size = ring_buffer_write(&mp3_play_rb, (uint8_t *)pcmBuf, mp3FrameInfo.outputSamps * 2);
+//	os_printf("ring buffer write size = %d!\r\n", size);
+
+	bk_audio_mp3_play_decode_start(DISK_NUMBER_SDIO_SD, g_mp3_name, &readptr);
+	size = ring_buffer_write(&mp3_play_rb, (uint8_t *)pcmBuf, mp3FrameInfo.outputSamps * 2);
+//	os_printf("ring buffer write size = %d!\r\n", size);
 
 	bk_aud_start_dac();
 	bk_dma_start(mp3_dac_dma_id);
@@ -444,9 +416,18 @@ static void audio_mp3_play_main(void)
 				case AUDIO_MP3_PLAY_START:
 					size = ring_buffer_get_free_size(&mp3_play_rb);
 //					os_printf("speaker_rb: free_size=%d \r\n", size);
+					if (g_mp3_decode_complete_status == 1) {
+						if (size > PCM_SIZE_MAX * 5 - mp3FrameInfo.outputSamps * 2) {
+							goto audio_mp3_play_exit;
+						} else {
+							break;
+						}
+					}
+					
 					if (size > PCM_SIZE_MAX) {
 						bk_audio_mp3_play_decode_start(DISK_NUMBER_SDIO_SD, g_mp3_name, &readptr);
-						ring_buffer_write(&mp3_play_rb, (uint8_t *)pcmBuf, mp3FrameInfo.outputSamps * 2);
+						size = ring_buffer_write(&mp3_play_rb, (uint8_t *)pcmBuf, mp3FrameInfo.outputSamps * 2);
+//						os_printf("ring buffer write size = %d!\r\n", size);
 					}
 					break;
 
@@ -454,7 +435,7 @@ static void audio_mp3_play_main(void)
 					break;
 
 				case AUDIO_MP3_PLAY_EXIT:
-					goto audio_mp3_play_exit;
+					g_mp3_decode_complete_status = 1;
 					break;
 
 				default:
@@ -465,7 +446,11 @@ static void audio_mp3_play_main(void)
 	}
 
 audio_mp3_play_exit:
+	bytesLeft = 0;
 	f_close(&mp3file);
+	g_mp3_play_is_running = 0;
+	g_mp3_decode_status = 0;
+	g_mp3_decode_complete_status = 0;
 
 	MP3FreeDecoder(hMP3Decoder);
     os_free(readBuf);
@@ -503,6 +488,8 @@ bk_err_t bk_audio_mp3_play_init(void)
 {
 	bk_err_t ret = BK_OK;
 
+	g_mp3_play_is_running = 1;
+
 	ret = rtos_init_queue(&audio_mp3_play_msg_que,
 							"audio_mp3_play_queue",
 							sizeof(audio_mp3_play_msg_t),
@@ -534,7 +521,7 @@ bk_err_t bk_audio_mp3_play_deinit(void)
 
 	audio_mp3_play_msg_t msg;
 
-	msg.op = AUDIO_MP3_PLAY_STOP;
+	msg.op = AUDIO_MP3_PLAY_EXIT;
 	ret = audio_send_msg(msg);
 	if (ret != kNoErr) {
 		os_printf("send msg: %d fails \r\n", msg.op);
@@ -558,10 +545,15 @@ void cli_mp3_play_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 
 		g_mp3_name = argv[2];
 
-		/* init audio mp3 play task */
-		ret = bk_audio_mp3_play_init();
-		if (ret != BK_OK) {
-			os_printf("init audio mp3 play task fail!\r\n");
+		if (!g_mp3_play_is_running) {
+			/* init audio mp3 play task */
+			ret = bk_audio_mp3_play_init();
+			if (ret != BK_OK) {
+				os_printf("init audio mp3 play task fail!\r\n");
+				return;
+			}
+		} else {
+			os_printf("mp3 play task is running, please input stop command firstly!\r\n");
 			return;
 		}
 
@@ -738,6 +730,221 @@ void cli_mp3_decode_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 		return;
 	}
 
+}
+
+static bk_err_t mp3_decode_handler(unsigned int size)
+{
+	bk_err_t ret = BK_OK;
+
+	FRESULT fr;
+	uint32 uiTemp = 0;
+
+	if (mp3_file_is_empty) {
+		os_printf("==========================================================\r\n");
+		os_printf("%s playback is over, please input the stop command!\r\n", mp3_file_name);
+		os_printf("==========================================================\r\n");
+		return BK_FAIL;
+	}
+
+	if (bytesLeft < MAINBUF_SIZE) {
+		os_memmove(readBuf, g_readptr, bytesLeft);
+		fr = f_read(&mp3file, (void *)(readBuf + bytesLeft), MAINBUF_SIZE - bytesLeft, &uiTemp);
+		if (fr != FR_OK) {
+			os_printf("read %s failed!\r\n", mp3_file_name);
+			return fr;
+		}
+
+		if ((uiTemp == 0) && (bytesLeft == 0)) {
+			os_printf("uiTemp = 0 and bytesLeft = 0\r\n");
+			mp3_file_is_empty = true;
+			os_printf("the %s is empty \r\n", mp3_file_name);
+			return ret;
+		}
+
+		bytesLeft = bytesLeft + uiTemp;
+		g_readptr = readBuf;
+	}
+
+	offset = MP3FindSyncWord(g_readptr, bytesLeft);
+
+	if (offset < 0) {
+		os_printf("MP3FindSyncWord not find!\r\n");
+		bytesLeft = 0;
+	} else {
+		g_readptr += offset;
+		bytesLeft -= offset;
+		
+		ret = MP3Decode(hMP3Decoder, &g_readptr, &bytesLeft, pcmBuf, 0);
+		if (ret != ERR_MP3_NONE) {
+			os_printf("MP3Decode failed, code is %d", ret);
+			return ret;
+		}
+
+		MP3GetLastFrameInfo(hMP3Decoder, &mp3FrameInfo);
+//		os_printf("Bitrate: %d kb/s, Samprate: %d\r\n", (mp3FrameInfo.bitrate) / 1000, mp3FrameInfo.samprate);
+//		os_printf("Channel: %d, Version: %d, Layer: %d\r\n", mp3FrameInfo.nChans, mp3FrameInfo.version, mp3FrameInfo.layer);
+//		os_printf("OutputSamps: %d\r\n", mp3FrameInfo.outputSamps);
+
+		/* write a frame speaker data to speaker_ring_buff */
+		ret = bk_aud_intf_write_spk_data((uint8_t*)pcmBuf, mp3FrameInfo.outputSamps * 2);
+		if (ret != BK_OK) {
+			os_printf("write spk data fail \r\n");
+			return ret;
+		}
+	}
+
+	return ret;
+
+}
+
+void cli_aud_intf_mp3_play_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	bk_err_t ret = BK_ERR_AUD_INTF_OK;
+	FRESULT fr;
+
+	aud_intf_drv_setup_t aud_intf_drv_setup;
+	aud_intf_spk_setup_t aud_intf_spk_setup;
+	aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
+
+	if (argc != 3) {
+		os_printf("aud_intf_mp3_play_test {start|stop} xx.mp3\r\n");
+		return;
+	}
+
+	if (os_strcmp(argv[1], "start") == 0) {
+		bk_audio_mp3_play_decode_init();
+		os_printf("audio mp3 play decode init completely!\r\n");
+
+		/*open file to read mp3 data */
+		os_memset(mp3_file_name, 0, sizeof(mp3_file_name)/sizeof(mp3_file_name[0]));
+		sprintf(mp3_file_name, "%d:/%s", DISK_NUMBER_SDIO_SD, argv[2]);
+		fr = f_open(&mp3file, mp3_file_name, FA_OPEN_EXISTING | FA_READ);
+		if (fr != FR_OK) {
+			MP3FreeDecoder(hMP3Decoder);
+			os_free(readBuf);
+			os_free(output);
+			os_printf("open %s failed!\r\n", mp3_file_name);
+			return;
+		}
+		os_printf("mp3 file open successfully!\r\n");	
+
+		aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+		aud_intf_drv_setup.task_config.priority = 3;
+		aud_intf_drv_setup.aud_intf_rx_spk_data = mp3_decode_handler;
+		aud_intf_drv_setup.aud_intf_tx_mic_data = NULL;
+		ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_drv_init fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_drv_init complete \r\n");
+		}
+
+		aud_work_mode = AUD_INTF_WORK_MODE_GENERAL;
+		ret = bk_aud_intf_set_mode(aud_work_mode);
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_set_mode fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_set_mode complete \r\n");
+		}
+
+		g_readptr = readBuf;
+		mp3_decode_handler(mp3FrameInfo.outputSamps * 2);
+
+		aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_DUAL;
+
+		switch(mp3FrameInfo.samprate) {
+			case 8000:
+				aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_8K;
+				break;
+	
+			case 11025:
+				aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_11_025K;
+				break;
+	
+			case 12000:
+				aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_12K;
+				break;
+	
+			case 16000:
+				aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_16K;
+				break;
+	
+			case 22050:
+				aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_22_05K;
+				break;
+	
+			case 24000:
+				aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_24K;
+				break;
+	
+			case 32000:
+				aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_32K;
+				break;
+	
+			case 44100:
+				aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_44_1K;
+				break;
+	
+			case 48000:
+				aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_48K;
+				break;
+	
+			default:
+				break;
+		}
+		
+		aud_intf_spk_setup.frame_size = mp3FrameInfo.outputSamps * 2;
+		aud_intf_spk_setup.spk_gain = 0x2d;
+		aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
+		ret = bk_aud_intf_spk_init(&aud_intf_spk_setup);
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_spk_init fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_spk_init complete \r\n");
+		}
+
+		ret = bk_aud_intf_spk_start();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_spk_start fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_spk_start complete \r\n");
+		}
+
+	}else if (os_strcmp(argv[1], "stop") == 0) {
+		ret = bk_aud_intf_spk_stop();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_spk_stop fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_spk_stop complete \r\n");
+		}
+		
+		ret = bk_aud_intf_spk_deinit();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_spk_deinit fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_spk_deinit complete \r\n");
+		}
+
+		ret = bk_aud_intf_drv_deinit();
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			os_printf("bk_aud_intf_drv_deinit fail, ret:%d \r\n", ret);
+		} else {
+			os_printf("bk_aud_intf_drv_deinit complete \r\n");
+		}
+
+		bytesLeft = 0;
+		mp3_file_is_empty = false;
+
+		fr = f_close(&mp3file);
+		if (fr != FR_OK) {
+			os_printf("close %s fail!\r\n", mp3_file_name);
+			return;
+		}
+
+		MP3FreeDecoder(hMP3Decoder);
+	    os_free(readBuf);
+	    os_free(pcmBuf);
+	}
 }
 
 

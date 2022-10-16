@@ -23,6 +23,13 @@ extern "C" {
 /* @brief Overview about this API header
  *
  */
+typedef struct
+{
+	bool ok;			/**< jpeg decoder success */
+	uint16_t pixel_x;  /**< jpeg x pixel */
+	uint16_t pixel_y;  /**< jpeg y pixel */
+	uint32_t size;	   /**< jpeg size */
+} sw_jpeg_dec_res_t;
 
 /**
  * @brief JPEG_DEC APIs Version 1.0
@@ -36,8 +43,8 @@ extern "C" {
  *  - config jpeg_dec image resoult, and simple_rate
  *  - malloc buffer for jpeg_dec
  *
- * @param src_buf: input image address
- * @param dst_buf: output decode image address
+ * @param src_buf input image address
+ * @param dst_buf output decode image address
  *
  * @attention 1. only for software jpeg_dec 
  *
@@ -45,7 +52,7 @@ extern "C" {
  *    - kNoErr: succeed
  *    - other: errors.
  */
-bk_err_t bk_jpeg_dec_sw_init(uint8_t *src_buf, uint8_t *dst_buf);
+bk_err_t bk_jpeg_dec_sw_init(void);
 
 /**
  * @brief     Deinit the jpeg_dec
@@ -69,7 +76,7 @@ bk_err_t bk_jpeg_dec_sw_deinit(void);
  *  - jpeg_prepare for jpeg_dec
  *  - start jpeg_dec
  *
- * @param frame_size: input image size
+ * @param frame_size input image size
  *
  * @attention 1. only for software jpeg_dec 
  *
@@ -77,14 +84,14 @@ bk_err_t bk_jpeg_dec_sw_deinit(void);
  *    - kNoErr: succeed
  *    - other: errors.
  */
-bk_err_t bk_jpeg_dec_sw_start(uint32_t frame_size);
+bk_err_t bk_jpeg_dec_sw_start(uint32_t frame_size, uint8_t *src_buf, uint8_t *dst_buf, sw_jpeg_dec_res_t *result);
 
 /**
  * @brief     jpegdec register finish icallback_func
  *
  * This API jpeg_decoder_fun, the callback function wiil execute when decode success
  *
- * @param cb: finish jpeg_dec callback function
+ * @param cb finish jpeg_dec callback function
  *
  * @attention 1. only for software jpeg_dec 
  *

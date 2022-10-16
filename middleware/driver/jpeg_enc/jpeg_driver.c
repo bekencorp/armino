@@ -57,36 +57,6 @@ static void jpeg_power_config_set(const jpeg_config_t *config)
 }
 #endif
 
-static void jpeg_init_gpio(void)
-{
-	jpeg_gpio_map_t jpeg_gpio_map_table[] = JPEG_GPIO_MAP;
-#if (CONFIG_SYSTEM_CTRL)
-
-	for (uint32_t i = 0; i < 2; i++) {
-		gpio_dev_unmap(jpeg_gpio_map_table[i].gpio_id);
-		gpio_dev_map(jpeg_gpio_map_table[i].gpio_id, jpeg_gpio_map_table[i].dev);
-		if (i == 0) {
-			// enhance mclk capability
-			bk_gpio_set_capacity(jpeg_gpio_map_table[i].gpio_id, 3);
-		}
-	}
-#else
-	for(uint32_t i = 0; i < JPEG_GPIO_PIN_NUMBER; i++) {
-		gpio_dev_unmap(jpeg_gpio_map_table[i].gpio_id);
-		gpio_dev_map(jpeg_gpio_map_table[i].gpio_id, jpeg_gpio_map_table[i].dev);
-	}
-#endif
-}
-
-static void jpeg_deinit_gpio(void)
-{
-	jpeg_gpio_map_t jpeg_gpio_map_table[] = JPEG_GPIO_MAP;
-
-	for(uint32_t i = 0; i < JPEG_GPIO_PIN_NUMBER; i++) {
-		gpio_dev_unmap(jpeg_gpio_map_table[i].gpio_id);
-	}
-}
-
 static void jpeg_dma_rx_init(const jpeg_config_t *config)
 {
 	dma_config_t dma_config = {0};
@@ -124,12 +94,12 @@ static void jpeg_init_common(const jpeg_config_t *config)
 #if (CONFIG_SYSTEM_CTRL)
 	jpeg_power_config_set(config);
 	sys_drv_int_enable(JPEGENC_INTERRUPT_CTRL_BIT);
+	bk_jpeg_enc_set_gpio(ENABLE_CLK);
 #else
 	power_jpeg_pwr_up();
 	icu_enable_jpeg_interrupt();
+	bk_jpeg_enc_set_gpio(ENABLE_ALL);
 #endif
-
-	jpeg_init_gpio();
 }
 
 static void jpeg_deinit_common(void)
@@ -146,7 +116,7 @@ static void jpeg_deinit_common(void)
 #endif
 
 	jpeg_dma_rx_deinit();
-	jpeg_deinit_gpio();
+	bk_jpeg_enc_set_gpio(DISABLE_ALL);
 }
 
 bk_err_t bk_jpeg_enc_driver_init(void)
@@ -154,7 +124,11 @@ bk_err_t bk_jpeg_enc_driver_init(void)
 	if (s_jpeg_driver_is_init) {
 		return BK_OK;
 	}
+
+	bk_jpeg_enc_set_gpio(DISABLE_ALL);
+
 #if CONFIG_SYSTEM_CTRL
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_JPEG, PM_CPU_FRQ_320M);
 	//power on
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_EN, PM_POWER_MODULE_STATE_ON);
 #endif
@@ -174,6 +148,7 @@ bk_err_t bk_jpeg_enc_driver_deinit(void)
 	}
 	bk_int_isr_unregister(INT_SRC_JPEG);
 #if CONFIG_SYSTEM_CTRL
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_JPEG, PM_CPU_FRQ_DEFAULT);
 	// power off
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_EN, PM_POWER_MODULE_STATE_OFF);
 #endif
@@ -203,6 +178,7 @@ bk_err_t bk_jpeg_enc_init(const jpeg_config_t *config)
 
 bk_err_t bk_jpeg_enc_deinit(void)
 {
+	JPEG_RETURN_ON_NOT_INIT();
 	jpeg_deinit_common();
 
 	return BK_OK;
@@ -217,11 +193,10 @@ bk_err_t bk_jpeg_enc_partial_display_init(const jpeg_partial_offset_config_t *of
 	return BK_OK;
 }
 
-bk_err_t bk_jpeg_enc_partial_display_deinit(const jpeg_partial_offset_config_t *offset_config)
+bk_err_t bk_jpeg_enc_partial_display_deinit(void)
 {
-	jpeg_hal_enable_partial_display(&s_jpeg.hal, 0);;
-	os_memset((void *)offset_config, 0, sizeof(jpeg_partial_offset_config_t));
-	jpeg_hal_partial_display_offset_config(&s_jpeg.hal, offset_config);
+	JPEG_RETURN_ON_NOT_INIT();
+	jpeg_hal_enable_partial_display(&s_jpeg.hal, 0);
 
 	return BK_OK;
 }
@@ -242,8 +217,23 @@ bk_err_t bk_jpeg_enc_dvp_init(const jpeg_config_t *config)
 	return BK_OK;
 }
 
+
+bk_err_t bk_jpeg_enc_dvp_switch(jpeg_config_t *config)
+{
+	JPEG_RETURN_ON_NOT_INIT();
+	if (config->yuv_mode) {
+		jpeg_hal_set_yuv_config(&s_jpeg.hal, config);
+	} else {
+		jpeg_hal_set_encode_config(&s_jpeg.hal, config);
+	}
+
+	return BK_OK;
+}
+
+
 bk_err_t bk_jpeg_enc_dvp_deinit(void)
 {
+	JPEG_RETURN_ON_NOT_INIT();
 	jpeg_hal_stop_common(&s_jpeg.hal, JPEG_ENC_MODE);
 	jpeg_hal_stop_common(&s_jpeg.hal, JPEG_YUV_MODE);
 	jpeg_hal_reset_config_to_default(&s_jpeg.hal);
@@ -253,8 +243,7 @@ bk_err_t bk_jpeg_enc_dvp_deinit(void)
 #if (CONFIG_SYSTEM_CTRL)
 	sys_drv_int_disable(JPEGENC_INTERRUPT_CTRL_BIT);
 #endif
-	jpeg_deinit_gpio();
-
+	bk_jpeg_enc_set_gpio(DISABLE_ALL);
 
 	return BK_OK;
 }
@@ -297,11 +286,100 @@ uint32_t bk_jpeg_enc_get_frame_size(void)
 
 bk_err_t bk_jpeg_enc_register_isr(jpeg_isr_type_t type_id, jpeg_isr_t isr, void *param)
 {
+	JPEG_RETURN_ON_NOT_INIT();
 	uint32_t int_level = rtos_disable_int();
 	s_jpeg.jpeg_isr_handler[type_id].isr_handler = isr;
 	s_jpeg.jpeg_isr_handler[type_id].param = param;
 
+	switch (type_id)
+	{
+		case END_OF_YUV:
+			jpeg_hal_enable_end_yuv_int(&s_jpeg.hal);
+			break;
+		case HEAD_OUTPUT:
+			jpeg_hal_enable_head_output_int(&s_jpeg.hal);
+			break;
+		case START_OF_FRAME:
+			jpeg_hal_enable_start_frame_int(&s_jpeg.hal);
+			break;
+		case END_OF_FRAME:
+			jpeg_hal_enable_end_frame_int(&s_jpeg.hal);
+			break;
+		case VSYNC_NEGEDGE:
+			jpeg_hal_enable_vsync_negedge_int(&s_jpeg.hal);
+			break;
+		default:
+			break;
+	}
+
 	rtos_enable_int(int_level);
+	return BK_OK;
+}
+
+bk_err_t bk_jpeg_enc_unregister_isr(jpeg_isr_type_t type_id)
+{
+	JPEG_RETURN_ON_NOT_INIT();
+	uint32_t int_level = rtos_disable_int();
+	s_jpeg.jpeg_isr_handler[type_id].isr_handler = NULL;
+	s_jpeg.jpeg_isr_handler[type_id].param = NULL;
+
+	switch (type_id)
+	{
+		case END_OF_YUV:
+			jpeg_hal_disable_end_yuv_int(&s_jpeg.hal);
+			break;
+		case HEAD_OUTPUT:
+			jpeg_hal_disable_head_output_int(&s_jpeg.hal);
+			break;
+		case START_OF_FRAME:
+			jpeg_hal_disable_start_frame_int(&s_jpeg.hal);
+			break;
+		case END_OF_FRAME:
+			jpeg_hal_disable_end_frame_int(&s_jpeg.hal);
+			break;
+		case VSYNC_NEGEDGE:
+			jpeg_hal_disable_vsync_negedge_int(&s_jpeg.hal);
+			break;
+		default:
+			break;
+	}
+
+	rtos_enable_int(int_level);
+	return BK_OK;
+}
+
+bk_err_t bk_jpeg_enc_set_gpio(jpeg_gpio_mode_t mode)
+{
+	jpeg_gpio_map_t jpeg_gpio_map_table[] = JPEG_GPIO_MAP;
+
+	if (mode == ENABLE_CLK)
+	{
+		for (uint32_t i = 0; i < 2; i++) {
+			gpio_dev_unmap(jpeg_gpio_map_table[i].gpio_id);
+			gpio_dev_map(jpeg_gpio_map_table[i].gpio_id, jpeg_gpio_map_table[i].dev);
+		}
+	}
+	else if (mode == ENABLE_DATA)
+	{
+		for (uint32_t i = 2; i < JPEG_GPIO_PIN_NUMBER; i++) {
+			gpio_dev_unmap(jpeg_gpio_map_table[i].gpio_id);
+			gpio_dev_map(jpeg_gpio_map_table[i].gpio_id, jpeg_gpio_map_table[i].dev);
+		}
+	}
+	else if (mode == ENABLE_ALL)
+	{
+		for (uint32_t i = 0; i < JPEG_GPIO_PIN_NUMBER; i++) {
+			gpio_dev_unmap(jpeg_gpio_map_table[i].gpio_id);
+			gpio_dev_map(jpeg_gpio_map_table[i].gpio_id, jpeg_gpio_map_table[i].dev);
+		}
+	}
+	else
+	{
+		for (uint32_t i = 0; i < JPEG_GPIO_PIN_NUMBER; i++) {
+			gpio_dev_unmap(jpeg_gpio_map_table[i].gpio_id);
+		}
+	}
+
 	return BK_OK;
 }
 
@@ -318,60 +396,7 @@ bk_err_t bk_jpeg_enc_dvp_gpio_enable(void)
 
 bk_err_t bk_jpeg_enc_get_fifo_addr(uint32_t *fifo_addr)
 {
-	JPEG_RETURN_ON_NOT_INIT();
 	*fifo_addr = JPEG_R_RX_FIFO;
-	return BK_OK;
-}
-
-bk_err_t bk_jpeg_enc_enable_int(uint32_t type)
-{
-	JPEG_RETURN_ON_NOT_INIT();
-	if (type & JPEG_END_YUV_INT) {
-		jpeg_hal_enable_end_yuv_int(&s_jpeg.hal);
-	}
-
-	if (type & JPEG_HEAD_OUTPUT_INT) {
-		jpeg_hal_enable_head_output_int(&s_jpeg.hal);
-	}
-
-	if (type & JPEG_START_FRAME_INT) {
-		jpeg_hal_enable_start_frame_int(&s_jpeg.hal);
-	}
-
-	if (type & JPEG_END_FRAME_INT) {
-		jpeg_hal_enable_end_frame_int(&s_jpeg.hal);
-	}
-
-	if (type & JPEG_VSYNC_NEGEDGE_INT) {
-		jpeg_hal_enable_vsync_negedge_int(&s_jpeg.hal);
-	}
-
-	return BK_OK;
-}
-
-bk_err_t bk_jpeg_enc_disable_int(uint32_t type)
-{
-	JPEG_RETURN_ON_NOT_INIT();
-	if (type & JPEG_END_YUV_INT) {
-		jpeg_hal_disable_end_yuv_int(&s_jpeg.hal);
-	}
-
-	if (type & JPEG_HEAD_OUTPUT_INT) {
-		jpeg_hal_disable_head_output_int(&s_jpeg.hal);
-	}
-
-	if (type & JPEG_START_FRAME_INT) {
-		jpeg_hal_disable_start_frame_int(&s_jpeg.hal);
-	}
-
-	if (type & JPEG_END_FRAME_INT) {
-		jpeg_hal_disable_end_frame_int(&s_jpeg.hal);
-	}
-
-	if (type & JPEG_VSYNC_NEGEDGE_INT) {
-		jpeg_hal_disable_vsync_negedge_int(&s_jpeg.hal);
-	}
-
 	return BK_OK;
 }
 

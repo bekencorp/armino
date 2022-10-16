@@ -29,7 +29,7 @@ void delay(INT32 num)
 
 
 
-#if (CONFIG_SYSTEM_CTRL)
+#if (CONFIG_ARCH_RISCV)
 //RISC-V has mtimer which clock is 26M and it doesn't change frequency.
 //as delay_us is just compare risc-v timer which block system runs, so the param
 //of us should be not too big. F.E: < 100*000
@@ -147,7 +147,7 @@ void delay_ms(UINT32 ms_count)
 	SYS_CTRL_U param;
 
 	ret = sddev_control(DD_DEV_TYPE_SCTRL, CMD_GET_SCTRL_CONTROL, &param);
-	BK_ASSERT(SCTRL_SUCCESS == ret);
+	BK_ASSERT(SCTRL_SUCCESS == ret); /* ASSERT VERIFIED */
 
 	div = param.bits.mclk_div;
 	switch (param.bits.mclk_mux) {
@@ -168,7 +168,7 @@ void delay_ms(UINT32 ms_count)
 		break;
 	}
 
-	BK_ASSERT(clk);
+	BK_ASSERT(clk); /* ASSERT VERIFIED */
 
 	cell = 100 * clk / 26000000;
 	delay(ms_count * cell);
@@ -183,7 +183,7 @@ void delay_us(UINT32 ms_count)
 	SYS_CTRL_U param;
 
 	ret = sddev_control(DD_DEV_TYPE_SCTRL, CMD_GET_SCTRL_CONTROL, &param);
-	BK_ASSERT(SCTRL_SUCCESS == ret);
+	BK_ASSERT(SCTRL_SUCCESS == ret); /* ASSERT VERIFIED */
 
 	div = param.bits.mclk_div;
 	switch (param.bits.mclk_mux) {
@@ -204,7 +204,7 @@ void delay_us(UINT32 ms_count)
 		break;
 	}
 
-	BK_ASSERT(clk);
+	BK_ASSERT(clk); /* ASSERT VERIFIED */
 
 	cell = 100 * clk / 26000;
 	delay(ms_count * cell);

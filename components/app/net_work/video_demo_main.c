@@ -1,5 +1,6 @@
 #include <common/bk_include.h>
 #include "video_demo_config.h"
+#include <components/video_transfer.h>
 
 #if (CONFIG_NET_WORK_VIDEO_TRANSFER == 1)
 #include <os/str.h>
@@ -150,6 +151,18 @@ static int video_transfer(int argc, char **argv)
         #endif
         return 1;
     }
+	else if (os_strcmp(argv[1], "start") == 0)
+	{
+		bk_video_transfer_start();
+
+		return 0;
+	}
+	else if (os_strcmp(argv[1], "stop") == 0)
+	{
+		bk_video_transfer_stop();
+
+		return 0;
+	}
     else
     {
         goto __usage;

@@ -88,7 +88,7 @@ int __wrap_strlen (char *src)
 
 int __wrap_strncmp(const char *s1, const char *s2, size_t n)
 {
-    BK_ASSERT(s1 && s2);
+    BK_ASSERT(s1 && s2); /* ASSERT VERIFIED */
 
     if(0 == n) return 0;
 
@@ -121,7 +121,7 @@ int __wrap_printf(const char *fmt, ...)
 void __assert_func(const char *file, int line, const char *func, const char *failedexpr)
 {
 	os_printf("%s %d func %s expr %s\n", file, line, func, failedexpr);
-	BK_ASSERT(0);
+	BK_ASSERT(0); /* ASSERT VERIFIED */
 }
 // eof
 

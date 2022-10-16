@@ -633,7 +633,12 @@ static SDIO_Error sdcard_cmd9_process(uint8 card_type)
 
 	sdcard.block_size = SD_DEFAULT_BLOCK_SIZE;
 	SDCARD_PRT("Bsize:%x;Total_block:%x\r\n", sdcard.block_size, sdcard.total_block);
-	BK_ASSERT(sdcard.block_size == SD_DEFAULT_BLOCK_SIZE);
+	//BK_ASSERT(sdcard.block_size == SD_DEFAULT_BLOCK_SIZE);
+	if(sdcard.block_size != SD_DEFAULT_BLOCK_SIZE)
+	{
+		SDCARD_PRT("Err:block size\r\n");
+		return SD_ERROR;
+	}
 
 	return SD_OK;
 }

@@ -139,7 +139,10 @@ static void aon_rtc_release_node(aon_rtc_id_t id, alarm_node_t *node_p)
 		}
 	}
 
-	BK_ASSERT(i < AON_RTC_MAX_ALARM_CNT);
+	if(i >= AON_RTC_MAX_ALARM_CNT)
+	{
+		AON_RTC_LOGE("release node err\r\n");
+	}
 }
 
 static int32_t alarm_insert_node(aon_rtc_id_t id, alarm_node_t *node_p)
@@ -262,7 +265,7 @@ static alarm_node_t *alarm_remove_node(aon_rtc_id_t id, uint8_t *name_p)
 	{
 		//double check pointer is valid
 		node_cnt++;
-		BK_ASSERT(node_cnt <= AON_RTC_MAX_ALARM_CNT);
+		BK_ASSERT(node_cnt <= AON_RTC_MAX_ALARM_CNT); /* ASSERT VERIFIED */
 
 		if(strncmp((const char *)cur_p->name, (const char *)name_p, ALARM_NAME_MAX_LEN) == 0)
 		{
@@ -296,7 +299,7 @@ static alarm_node_t *alarm_remove_node(aon_rtc_id_t id, uint8_t *name_p)
 
 	if(remove_node_p == NULL)
 	{
-		AON_RTC_LOGE("%s:can't find %s alarm\r\n", __func__, name_p);
+		AON_RTC_LOGD("%s:can't find %s alarm\r\n", __func__, name_p);
 	}
 
 	//dump list info
@@ -330,7 +333,7 @@ static void alarm_update_expeired_nodes(aon_rtc_id_t id)
 
 		//double check pointer is valid
 		node_cnt++;
-		BK_ASSERT(node_cnt <= AON_RTC_MAX_ALARM_CNT);
+		BK_ASSERT(node_cnt <= AON_RTC_MAX_ALARM_CNT); /* ASSERT VERIFIED */
 
 		next_p = cur_p->next;
 
@@ -426,17 +429,21 @@ bk_err_t bk_aon_rtc_register_tick_isr(aon_rtc_id_t id, aon_rtc_isr_t isr, void *
  */
 static void aon_rtc_set_tick(aon_rtc_hal_t *hal, uint32_t val)
 {
-	volatile int i = 0;
+	#define SET_TICK_TIMEOUT    (3)     //4/32=125us
+
+	uint64_t start_tick = 0, cur_tick = 0;
 
 	aon_rtc_hal_set_tick_val(hal, val);
+	start_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 	while(aon_rtc_hal_get_tick_val_lpo(hal) != val)
 	{
-		i++;
-		if(i > 768)	//32k, 3ticks == 3/32 ms:++is 30 cycles
+		cur_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
+		if(cur_tick - start_tick > SET_TICK_TIMEOUT)	//125us
 		{
 			AON_RTC_LOGE("%s:set tick timeout\r\n", __func__);
 			break;
 		}
+		aon_rtc_hal_set_tick_val(hal, val);
 	}
 }
 
@@ -509,7 +516,12 @@ static bk_err_t aon_rtc_isr_handler(aon_rtc_id_t id)
 		if(s_aon_rtc[id].alarm_head_p)
 		{
 			//+1:to assume set it valid,maybe aon rtc add 1 tick when set the value now.
-			BK_ASSERT(bk_aon_rtc_get_current_tick(id) + 1/*AON_RTC_PRECISION_TICK*/ < s_aon_rtc[id].alarm_head_p->expired_tick);	//4:reserve enough time to set the tick
+			//BK_ASSERT(bk_aon_rtc_get_current_tick(id) + 1/*AON_RTC_PRECISION_TICK*/ < s_aon_rtc[id].alarm_head_p->expired_tick);	//4:reserve enough time to set the tick
+			if((bk_aon_rtc_get_current_tick(id) + 1 > s_aon_rtc[id].alarm_head_p->expired_tick))
+			{
+				AON_RTC_LOGE("next expired tick is invalid\r\n");
+				return BK_FAIL;
+			}
 			aon_rtc_set_tick(&s_aon_rtc[id].hal, (uint32_t)s_aon_rtc[id].alarm_head_p->expired_tick);
 #if AON_RTC_DEBUG
 			s_isr_debug_set_tick[(s_isr_cnt)%AON_RTC_ISR_DEBUG_MAX_CNT] = (uint32_t)s_aon_rtc[id].alarm_head_p->expired_tick;
@@ -519,7 +531,7 @@ static bk_err_t aon_rtc_isr_handler(aon_rtc_id_t id)
 		else
 		{
 			aon_rtc_set_tick(&s_aon_rtc[id].hal, AON_RTC_ROUND_TICK);
-			AON_RTC_LOGI("no alarm:cur_tick=0x%x\r\n", (uint32_t)bk_aon_rtc_get_current_tick(id));
+			AON_RTC_LOGD("no alarm:cur_tick=0x%x\r\n", (uint32_t)bk_aon_rtc_get_current_tick(id));
 		}
 	}
 
@@ -827,7 +839,14 @@ bk_err_t bk_alarm_register(aon_rtc_id_t id, alarm_info_t *alarm_info_p)
 	node_p->name[ALARM_NAME_MAX_LEN] = 0;
 	node_p->start_tick = bk_aon_rtc_get_current_tick(id);	//tick
 	node_p->period_tick = alarm_info_p->period_tick;
-	BK_ASSERT(alarm_info_p->period_cnt);
+	//BK_ASSERT(alarm_info_p->period_cnt);
+	if(alarm_info_p->period_cnt == 0)
+	{
+		rtos_enable_int(int_level);
+		AON_RTC_LOGE("no set period cnt\r\n");
+		return BK_ERR_PARAM;
+	}
+
 	node_p->period_cnt = alarm_info_p->period_cnt;
 	node_p->expired_tick = node_p->start_tick + (alarm_info_p->period_tick);
 	
@@ -844,7 +863,14 @@ bk_err_t bk_alarm_register(aon_rtc_id_t id, alarm_info_t *alarm_info_p)
 	if(node_p == s_aon_rtc[id].alarm_head_p)	//insert node is the first one, should reset tick val
 	{
 		//+1:to assume set it valid,maybe aon rtc add 1 tick when set the value now.
-		BK_ASSERT(bk_aon_rtc_get_current_tick(id) + 1/*AON_RTC_PRECISION_TICK*/ < s_aon_rtc[id].alarm_head_p->expired_tick);	//4:reserve enough time to set the tick
+		//BK_ASSERT(bk_aon_rtc_get_current_tick(id) + 1/*AON_RTC_PRECISION_TICK*/ < s_aon_rtc[id].alarm_head_p->expired_tick);	//4:reserve enough time to set the tick
+		if((bk_aon_rtc_get_current_tick(id) + 1 > s_aon_rtc[id].alarm_head_p->expired_tick))
+		{
+			rtos_enable_int(int_level);
+			AON_RTC_LOGE("next expired tick is invalid\r\n");
+			return BK_FAIL;
+		}
+
 		aon_rtc_set_tick(&s_aon_rtc[id].hal, (uint32_t)s_aon_rtc[id].alarm_head_p->expired_tick);
 	}
 
@@ -884,14 +910,21 @@ bk_err_t bk_alarm_unregister(aon_rtc_id_t id, uint8_t *name_p)
 		if(s_aon_rtc[id].alarm_head_p)	//new head exist
 		{
 			//+1:to assume set it valid,maybe aon rtc add 1 tick when set the value now.
-			BK_ASSERT(bk_aon_rtc_get_current_tick(id) + 1/*AON_RTC_PRECISION_TICK*/ < s_aon_rtc[id].alarm_head_p->expired_tick);	//reserve enough time to set the tick
+			//BK_ASSERT(bk_aon_rtc_get_current_tick(id) + 1/*AON_RTC_PRECISION_TICK*/ < s_aon_rtc[id].alarm_head_p->expired_tick);	//reserve enough time to set the tick
+			if((bk_aon_rtc_get_current_tick(id) + 1 > s_aon_rtc[id].alarm_head_p->expired_tick))
+			{
+				rtos_enable_int(int_level);
+				AON_RTC_LOGE("next expired tick is invalid\r\n");
+				return BK_FAIL;
+			}
+
 			aon_rtc_set_tick(&s_aon_rtc[id].hal, (uint32_t)s_aon_rtc[id].alarm_head_p->expired_tick);
 			AON_RTC_LOGD("next tick=0x%x, cur_tick=0x%x\r\n", s_aon_rtc[id].alarm_head_p->expired_tick, bk_aon_rtc_get_current_tick(id));
 		}
 		else	//has no nodes now
 		{
-			aon_rtc_set_tick(&s_aon_rtc[id].hal, AON_RTC_ROUND_TICK);
-			AON_RTC_LOGI("no alarm:cur_tick=0x%x\r\n", bk_aon_rtc_get_current_tick(id));
+			// aon_rtc_set_tick(&s_aon_rtc[id].hal, AON_RTC_ROUND_TICK);
+			// AON_RTC_LOGD("no alarm:cur_tick=0x%x\r\n", bk_aon_rtc_get_current_tick(id));
 		}
 	}
 

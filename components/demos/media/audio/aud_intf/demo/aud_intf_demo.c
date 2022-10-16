@@ -17,14 +17,8 @@
 #include <os/str.h>
 #include <stdio.h>
 #include <stdlib.h>
-//#include <driver/aud.h>
-//#include <driver/aud_types.h>
-//#include <driver/dma.h>
-//#include "aud_hal.h"
 #include "sys_driver.h"
 #include "aud_driver.h"
-//#include "audio_play_types.h"
-//#include <modules/audio_ring_buff.h>
 #include <components/aud_intf.h>
 #include <components/aud_intf_types.h>
 #include "ff.h"
@@ -47,6 +41,7 @@ static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 static int32_t *temp_spk_addr = NULL;     //存放从SDcard中取的pcm信号
 static bool spk_file_empty = false;
 
+
 extern void delay(int num);
 
 static void cli_aud_intf_help(void)
@@ -58,6 +53,7 @@ static void cli_aud_intf_help(void)
 	os_printf("aud_intf_set_aec_param_test {param value} \r\n");
 	os_printf("aud_intf_get_aec_param_test \r\n");
 	os_printf("aud_intf_set_samp_rate_test {param value} \r\n");
+	os_printf("aud_intf_doorbell_test {start|stop} \r\n");
 }
 
 static int send_mic_data_to_sd(uint8_t *data, unsigned int len)
@@ -631,7 +627,7 @@ void cli_aud_intf_set_samp_rate_cmd(char *pcWriteBuffer, int xWriteBufferLen, in
 {
 	bk_err_t ret = BK_OK;
 	aud_adc_samp_rate_t adc_samp_rate;
-	aud_dac_samp_rate_source_t dac_samp_rate;
+	aud_dac_samp_rate_t dac_samp_rate;
 
 	if (argc != 3) {
 		cli_aud_intf_help();
@@ -644,7 +640,7 @@ void cli_aud_intf_set_samp_rate_cmd(char *pcWriteBuffer, int xWriteBufferLen, in
 		} else if (os_strcmp(argv[2], "16K") == 0) {
 			adc_samp_rate = AUD_ADC_SAMP_RATE_16K;
 		} else if (os_strcmp(argv[2], "44K") == 0) {
-			adc_samp_rate = AUD_ADC_SAMP_RATE_44K;
+			adc_samp_rate = AUD_ADC_SAMP_RATE_44_1K;
 		} else if (os_strcmp(argv[2], "48K") == 0) {
 			adc_samp_rate = AUD_ADC_SAMP_RATE_48K;
 		} else {
@@ -661,7 +657,7 @@ void cli_aud_intf_set_samp_rate_cmd(char *pcWriteBuffer, int xWriteBufferLen, in
 		} else if (os_strcmp(argv[2], "16K") == 0) {
 			dac_samp_rate = AUD_ADC_SAMP_RATE_16K;
 		} else if (os_strcmp(argv[2], "44K") == 0) {
-			dac_samp_rate = AUD_ADC_SAMP_RATE_44K;
+			dac_samp_rate = AUD_ADC_SAMP_RATE_44_1K;
 		} else if (os_strcmp(argv[2], "48K") == 0) {
 			dac_samp_rate = AUD_ADC_SAMP_RATE_48K;
 		} else {
@@ -684,3 +680,54 @@ void cli_aud_intf_set_samp_rate_cmd(char *pcWriteBuffer, int xWriteBufferLen, in
 	os_printf("set samp rate complete \r\n");
 }
 
+/* set mic and speaker sample rate */
+void cli_aud_intf_doorbell_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	bk_err_t ret = BK_OK;
+
+	if (argc != 2) {
+		cli_aud_intf_help();
+		return;
+	}
+
+	if (os_strcmp(argv[1], "stop") == 0) {
+		ret = bk_aud_intf_voc_stop();
+		if (ret != BK_ERR_AUD_INTF_OK)
+			os_printf("stop doorbell fail \r\n");
+		os_printf("stop doorbell complete \r\n");
+	} else if (os_strcmp(argv[1], "start") == 0) {
+		ret = bk_aud_intf_voc_start();
+		if (ret != BK_ERR_AUD_INTF_OK)
+			os_printf("start doorbell fail \r\n");
+		os_printf("start doorbell complete \r\n");
+	} else {
+		cli_aud_intf_help();
+		return;
+	}
+
+	if (ret != BK_OK)
+		os_printf("test fail \r\n");
+
+	os_printf("set samp rate complete \r\n");
+}
+
+#if CONFIG_AUD_TRAS_DAC_DEBUG
+void cli_aud_intf_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc != 2) {
+		cli_aud_intf_help();
+		return;
+	}
+
+	if (os_strcmp(argv[1], "on") == 0) {
+		os_printf("turn on voc dac debug \r\n");
+		bk_aud_intf_set_voc_dac_debug(true);
+	} else if (os_strcmp(argv[1], "off") == 0) {
+		bk_aud_intf_set_voc_dac_debug(false);
+		os_printf("turn off voc dac debug \r\n");
+	} else {
+		cli_aud_intf_help();
+		return;
+	}
+}
+#endif

@@ -19,7 +19,7 @@
 #include "bk_general_dma.h"
 #endif
 
-#define JPEG_EOF_CHECK              0
+#define JPEG_EOF_CHECK              1
 #define TVIDEO_DEBUG                1
 #include "bk_uart.h"
 #if TVIDEO_DEBUG
@@ -32,10 +32,8 @@
 #define TVIDEO_FATAL                null_prf
 #endif
 
-#if (JPEG_EOF_CHECK)
 #define TVIDEO_TIMER_CHANNEL        TIMER_ID1
-#define TVIDEO_TIMER_VALUE          1000// 1 second
-#endif
+#define TVIDEO_TIMER_VALUE          2000// 1 second
 
 video_config_t tvideo_st;
 video_pool_t tvideo_pool;
@@ -131,11 +129,11 @@ static bk_err_t tvideo_pool_init(void *data)
 		TVIDEO_WPRT("dma alloc failed!\r\n");
 		g_dma_id = DMA_ID_MAX;
 	}
+	TVIDEO_PRT("video_transfer dma:%d\r\n", g_dma_id);
 
 	return ret;
 }
 
-#if (JPEG_EOF_CHECK)
 static void tvideo_timer_check_callback(timer_id_t timer_id)
 {
 	tvideo_send_msg(VIDEO_CPU0_EOF_CHECK, 0);
@@ -143,6 +141,7 @@ static void tvideo_timer_check_callback(timer_id_t timer_id)
 
 static void tvideo_jpeg_eof_check_handler(void)
 {
+#if JPEG_EOF_CHECK
 	if (g_frame_total_num < 10) {
 		// jpeg eof error, reboot jpeg
 		// step 1: stop timer
@@ -158,10 +157,14 @@ static void tvideo_jpeg_eof_check_handler(void)
 		// step 4: restart timer
 		bk_timer_start(TVIDEO_TIMER_CHANNEL, TVIDEO_TIMER_VALUE, tvideo_timer_check_callback);
 	} else {
+		//TVIDEO_PRT("jpg:%d\r\n", g_frame_total_num);
 		g_frame_total_num = 0;
 	}
-}
+#else
+	//TVIDEO_PRT("jpg:%d\r\n", g_frame_total_num);
 #endif
+}
+
 
 static void tvideo_rx_handler(void *curptr, uint32_t newlen, uint32_t is_eof, uint32_t frame_len)
 {
@@ -179,8 +182,8 @@ static void tvideo_rx_handler(void *curptr, uint32_t newlen, uint32_t is_eof, ui
 			g_lost_flag = 0;
 		}
 
-		if (g_lost_flag) {
-			break;
+		if (g_lost_flag && is_eof == 0) {
+			return;
 		}
 
 #if TVIDEO_DROP_DATA_NONODE
@@ -269,13 +272,17 @@ static void tvideo_rx_handler(void *curptr, uint32_t newlen, uint32_t is_eof, ui
 			TVIDEO_WPRT("lost\r\n");
 			g_lost_flag = 1;
 			g_lost_frame_id = tvideo_pool.frame_id;
-			tvideo_send_msg(VIDEO_CPU0_SEND, 0);
-			return;
 #endif
 		}
 	} while (0);
 
-	if (g_packet_count == 4 || ((g_packet_count > 0 && g_packet_count < 4) && is_eof == 1)) {
+	if((g_packet_count >= 0 && g_packet_count < 4) && is_eof == 1) {
+		tvideo_send_msg(VIDEO_CPU0_SEND, 0);
+		g_packet_count = 0;
+		return;
+	}
+
+	if (g_packet_count == 4) {
 		tvideo_send_msg(VIDEO_CPU0_SEND, 0);
 		g_packet_count = 0;
 	}
@@ -327,11 +334,14 @@ static bk_err_t tvideo_config_desc(void)
 		return ret;
 	}
 
-	tvideo_st.rxbuf = os_malloc(sizeof(uint8_t) * TVIDEO_RXBUF_LEN);
-	if (tvideo_st.rxbuf == NULL) {
-		TVIDEO_WPRT("malloc rxbuf failed!\r\n");
-		ret = kNoMemoryErr;
-		return ret;
+	if (tvideo_st.rxbuf == NULL)
+	{
+		tvideo_st.rxbuf = os_malloc(sizeof(uint8_t) * TVIDEO_RXBUF_LEN);
+		if (tvideo_st.rxbuf == NULL) {
+			TVIDEO_WPRT("malloc rxbuf failed!\r\n");
+			ret = kNoMemoryErr;
+			return ret;
+		}
 	}
 
 	tvideo_st.rxbuf_len = node_len * 4;
@@ -361,9 +371,13 @@ static void tvideo_poll_handler(void)
 		elem = (video_elem_t *)co_list_pick(&tvideo_pool.ready);
 		if (elem) {
 			if (tvideo_pool.send_func) {
-				send_len = tvideo_pool.send_func(elem->buf_start, elem->buf_len);
-				if (send_len != elem->buf_len)
-					break;
+				if (elem->frame_id == g_lost_frame_id) {
+
+				} else {
+					send_len = tvideo_pool.send_func(elem->buf_start, elem->buf_len);
+					if (send_len != elem->buf_len)
+						break;
+				}
 			}
 
 			co_list_pop_front(&tvideo_pool.ready);
@@ -389,9 +403,10 @@ static void video_transfer_main(beken_thread_arg_t data)
 	}
 
 
-		if (tvideo_pool.open_type == TVIDEO_OPEN_SPIDMA) {
+	if (tvideo_pool.open_type == TVIDEO_OPEN_SPIDMA) {
+
 #if CONFIG_SPIDMA
-			spidma_intfer_init(&tvideo_st);
+		spidma_intfer_init(&tvideo_st);
 #endif
 		} else {//if(tvideo_pool.open_type == TVIDEO_OPEN_SCCB)
 			err = bk_camera_init(&tvideo_st);
@@ -405,9 +420,7 @@ static void video_transfer_main(beken_thread_arg_t data)
 	if (tvideo_pool.start_cb != NULL)
 		tvideo_pool.start_cb();
 
-#if (JPEG_EOF_CHECK)
 	bk_timer_start(TVIDEO_TIMER_CHANNEL, TVIDEO_TIMER_VALUE, tvideo_timer_check_callback);
-#endif
 
 	while (1) {
 		video_msg_t msg;
@@ -418,11 +431,9 @@ static void video_transfer_main(beken_thread_arg_t data)
 				tvideo_poll_handler();
 				break;
 
-#if (JPEG_EOF_CHECK)
 			case VIDEO_CPU0_EOF_CHECK:
 				tvideo_jpeg_eof_check_handler();
 				break;
-#endif
 
 			case VIDEO_CPU0_EXIT:
 				goto tvideo_exit;
@@ -440,10 +451,8 @@ static void video_transfer_main(beken_thread_arg_t data)
 tvideo_exit:
 	TVIDEO_PRT("video_transfer_main exit\r\n");
 
-#if (JPEG_EOF_CHECK)
 	bk_timer_stop(TVIDEO_TIMER_CHANNEL);
 	g_frame_total_num = 0;
-#endif
 
 	if (g_dma_id != DMA_ID_MAX)
 	{
@@ -454,18 +463,18 @@ tvideo_exit:
 		bk_dma_free(DMA_DEV_DTCM, g_dma_id);
 	}
 
-	if (tvideo_pool.pool) {
-		os_free(tvideo_pool.pool);
-		tvideo_pool.pool = NULL;
-	}
-
 	if (tvideo_pool.open_type == TVIDEO_OPEN_SPIDMA) {
 #if CONFIG_SPIDMA
 		spidma_intfer_deinit();
 #endif
-	} else {//if(tvideo_pool.open_type == TVIDEO_OPEN_SCCB)
+	} else {
 		if (tvideo_open)
 			bk_camera_deinit();
+	}
+
+	if (tvideo_pool.pool) {
+		os_free(tvideo_pool.pool);
+		tvideo_pool.pool = NULL;
 	}
 
 	if (tvideo_st.rxbuf) {
@@ -533,3 +542,65 @@ bk_err_t bk_video_transfer_deinit(void)
 	return kNoErr;
 }
 
+
+bk_err_t bk_video_transfer_stop(void)
+{
+	int ret = kNoErr;
+
+	// stop jpeg
+	if (!tvideo_open)
+	{
+		TVIDEO_PRT("video_transfer_stop already!\r\n");
+		return ret;
+	}
+
+	bk_timer_stop(TVIDEO_TIMER_CHANNEL);
+
+	if (tvideo_pool.open_type == TVIDEO_OPEN_SPIDMA) {
+#if CONFIG_SPIDMA
+		spidma_intfer_deinit();
+#endif
+	} else {
+		ret = bk_camera_deinit();
+	}
+
+	tvideo_open = false;
+
+	return ret;
+}
+
+bk_err_t bk_video_transfer_start(void)
+{
+	int ret = kNoErr;
+
+	if (tvideo_open)
+	{
+		TVIDEO_PRT("video_transfer_start already!\r\n");
+		return ret;
+	}
+
+	// start jpeg
+	if (tvideo_pool.open_type == TVIDEO_OPEN_SPIDMA)
+	{
+
+#if CONFIG_SPIDMA
+		spidma_intfer_init(&tvideo_st);
+#endif
+	}
+	else
+	{
+		ret = bk_camera_init(&tvideo_st);
+	}
+
+	if (ret != kNoErr)
+	{
+		TVIDEO_PRT("video_transfer_start failed!\r\n");
+		return ret;
+	}
+
+	bk_timer_start(TVIDEO_TIMER_CHANNEL, TVIDEO_TIMER_VALUE, tvideo_timer_check_callback);
+
+	tvideo_open = true;
+
+	return ret;
+}

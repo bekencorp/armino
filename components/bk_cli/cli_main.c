@@ -23,6 +23,7 @@
 #include <components/log.h>
 #include <driver/uart.h>
 #include "bk_rtos_debug.h"
+#include <modules/pm.h>
 #if CONFIG_SHELL_ASYNCLOG
 #include "components/shell_task.h"
 #endif
@@ -64,7 +65,9 @@ extern int video_demo_register_cmd(void);
 #define BKREG_MIN_LEN                     3
 #endif
 
-#define SHELL_TASK_PRIORITY               1
+
+#define SHELL_TASK_PRIORITY               4
+
 
 /* Find the command 'name' in the cli commands table.
 * If len is 0 then full match will be performed else upto len bytes.
@@ -105,7 +108,7 @@ int lookup_cmd_table(const struct cli_command *cmd_table, int table_items, char 
 {
 	int i;
 
-	for (i = 0; i < table_items; i++) 
+	for (i = 0; i < table_items; i++)
 	{
 		if (cmd_table[i].name == NULL)
 		{
@@ -337,7 +340,12 @@ static void cli_ate_main(uint32_t data)
 		if (kNoErr != ret)
 			os_printf("cli_ate_main: ATE create background sema failed\r\n");
 	}
-
+	#if (CONFIG_MASTER_CORE)
+	bk_pm_cp1_auto_power_down_state_set(0x0);
+	bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_ON);
+	extern void start_slave_core(void);
+	start_slave_core();
+	#endif
 	bk_uart_disable_sw_fifo(CONFIG_UART_PRINT_PORT);
 	bk_uart_register_rx_isr(CONFIG_UART_PRINT_PORT, (uart_isr_t)ate_uart_rx_isr, NULL);
 	bk_uart_enable_rx_interrupt(CONFIG_UART_PRINT_PORT);
@@ -783,7 +791,7 @@ static void log_setting_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 	int echo_level;
 	int level;
 	int sync_lvl;
-	
+
 	if (argc > 1)
 	{
 		echo_level = strtoul(argv[1], NULL, 0);
@@ -796,7 +804,7 @@ static void log_setting_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 		else
 			echo_level = 1;
 		pCli->echo_disabled = echo_level;
-#endif //#if (CONFIG_SHELL_ASYNCLOG)		
+#endif //#if (CONFIG_SHELL_ASYNCLOG)
 	}
 
 #if (CONFIG_SHELL_ASYNCLOG)
@@ -810,14 +818,26 @@ static void log_setting_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 		sync_lvl = strtoul(argv[3], NULL, 0);
 		bk_set_printf_sync(sync_lvl);
 	}
+	if (argc > 4)
+	{
+		extern void bk_enable_white_list(int enabled);
+
+		level = strtoul(argv[4], NULL, 0);
+		bk_enable_white_list(level);
+	}
 #endif
 
 #if (CONFIG_SHELL_ASYNCLOG)
 	echo_level = shell_echo_get();
 	level = shell_get_log_level();
 	sync_lvl = bk_get_printf_sync();
-	
-	sprintf(pcWriteBuffer, "log: echo %d, level %d, sync %d.\r\n", echo_level, level, sync_lvl);
+
+	extern int bk_white_list_state(void);
+
+	u8 white_state = bk_white_list_state();
+
+
+	sprintf(pcWriteBuffer, "log: echo %d, level %d, sync %d, white_list %d.\r\n", echo_level, level, sync_lvl, white_state);
 #else
 
 	sprintf(pcWriteBuffer,"log: echo %d.\r\n", pCli->echo_disabled ? 0 : 1);
@@ -843,7 +863,7 @@ void cli_cpu1_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 	for(i = 1; i < argc; i++)
 	{
 		str_len = strlen(argv[i]);
-		if ((buf_len + str_len + 3) < CPU1_CMD_BUF_SIZE) 
+		if ((buf_len + str_len + 3) < CPU1_CMD_BUF_SIZE)
 		{
 			os_memcpy(&cpu1_cmd_buf[buf_len], argv[i], str_len);
 			buf_len += str_len;
@@ -934,7 +954,7 @@ void cli_log_statist(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 
 static void cli_log_disable(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	if (argc < 3) 
+	if (argc < 3)
 	{
 		int 	i = 0, buf_len = 0;
 		char *	mod_name;
@@ -959,15 +979,15 @@ static void cli_log_disable(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 			else
 				break;
 		}
-		
+
 		return;
 	}
 
-	if (!os_strcasecmp(argv[2], "on")) 
+	if (!os_strcasecmp(argv[2], "on"))
 	{
 		bk_disable_mod_printf(argv[1], 0);
-	} 
-	else if (!os_strcasecmp(argv[2], "off")) 
+	}
+	else if (!os_strcasecmp(argv[2], "off"))
 	{
 		bk_disable_mod_printf(argv[1], 1);
 	}
@@ -1013,9 +1033,11 @@ void bkreg_cmd_handle_input(char *inbuf, int len)
 
 static const struct cli_command built_ins[] = {
 	{"help", NULL, help_command},
-	{"log", "log [echo(0,1)] [level(0~5)] [sync(0,1)]", log_setting_cmd},
+	{"log", "log [echo(0,1)] [level(0~5)] [sync(0,1)] [Whitelist(0,1)]", log_setting_cmd},
 //	{"sort", NULL, cli_sort_command},
+#if !CONFIG_RELEASE_VERSION
 	{"debug", "debug cmd [param] (ex:debug help)", cli_debug_command},
+#endif
 #if (CONFIG_SHELL_ASYNCLOG && CONFIG_MASTER_CORE)
 	{"cpu1", "cpu1 cmd (ex:cpu1 help)", cli_cpu1_command},
 #endif
@@ -1224,6 +1246,14 @@ int bk_cli_init(void)
 	if (cli_register_commands(user_clis, sizeof(user_clis) / sizeof(struct cli_command)))
 		goto init_general_err;
 
+#if CONFIG_FPGA
+
+#if (CLI_CFG_REG == 1)
+	cli_reg_init();
+#endif
+
+#else
+
 #if (CLI_CFG_WIFI == 1)
 	cli_wifi_init();
 #endif
@@ -1292,7 +1322,7 @@ int bk_cli_init(void)
 	cli_flash_init();
 #endif
 
-#if (CLI_CFG_FLASH == 1)
+#if (CLI_CFG_FLASH == 1 && CONFIG_SOC_BK7256XX == 1)
 	cli_flash_test_init();
 #endif
 
@@ -1382,7 +1412,7 @@ int bk_cli_init(void)
 #endif
 
 #if (CONFIG_SOC_BK7256XX)
-#if CONFIG_USB_HOST
+#if CONFIG_USB
 	usb_cli_init();
 #endif
 #endif
@@ -1419,6 +1449,22 @@ int bk_cli_init(void)
 	cli_aud_intf_init();
 #endif
 
+#if (CLI_CFG_AUD_RSP == 1)
+	cli_aud_rsp_init();
+#endif
+
+#if (CLI_CFG_AUD_VAD == 1)
+	cli_aud_vad_init();
+#endif
+
+#if (CLI_CFG_AUD_NS == 1)
+	cli_aud_ns_init();
+#endif
+
+#if (CLI_CFG_AUD_FLAC == 1)
+	cli_aud_flac_init();
+#endif
+
 #if (CLI_CFG_AUD_CP0 == 1)
 	cli_aud_cp0_init();
 #endif
@@ -1447,12 +1493,12 @@ int bk_cli_init(void)
 	cli_dma2d_init();
 #endif
 
-#if (CLI_CFG_CALENDAR == 1)
-	cli_calendar_init();
+#if (CLI_CFG_QSPI_OLED == 1)
+	cli_qspi_oled_init();
 #endif
 
-#if (CLI_CFG_UVC == 1)
-	cli_uvc_init();
+#if (CLI_CFG_CALENDAR == 1)
+	cli_calendar_init();
 #endif
 
 #if (CONFIG_AT_CMD)
@@ -1493,6 +1539,7 @@ int bk_cli_init(void)
 	cli_psram_init();
 #endif
 
+#endif /* end CONFIG_FPGA */
 
 	/* sort cmds after registered all cmds. */
 	cli_sort_command(NULL, 0, 0, NULL);

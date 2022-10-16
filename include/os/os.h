@@ -800,6 +800,8 @@ uint32_t rtos_get_tick_count(void);
 
 uint32_t rtos_disable_int(void);
 void rtos_enable_int(uint32_t int_level);
+uint32_t rtos_before_sleep(void);
+void rtos_after_sleep(uint32_t int_level);
 bool rtos_is_in_interrupt_context(void);
 void rtos_wait_for_interrupt(void);
 

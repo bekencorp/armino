@@ -40,7 +40,6 @@
 .. toctree::
     :maxdepth: 1
 
-        BK7231N <../boards/bk7231n>
         BK7256 <../boards/bk7256>
 
 
@@ -49,7 +48,13 @@
 Armino SDK代码下载
 ------------------------------------
 
-您可从 github 上下载最新 Armino::
+您可从 gitlab 上下载 Armino::
+
+    mkdir -p ~/armino
+    cd ~/armino
+    git clone http://gitlab.bekencorp.com/wifi/armino.git
+
+您也可从 github 上下载 Armino::
 
     mkdir -p ~/armino
     cd ~/armino
@@ -57,7 +62,7 @@ Armino SDK代码下载
 
 .. note::
 
-    另外可以从官网的gitlab，下载最新的SDK代码，相关账号找项目上审核申请。
+    从官网的gitlab下载的为最近的SDK代码，相关账号找项目上审核申请。
 
 
 构建编译环境
@@ -74,8 +79,8 @@ Armino SDK代码下载
 BK7256工具链下载路径如下：
 
 	工具链下载：
-	http://dl.bekencorp.com:8192/tools/toolchain/toolchain_v5.1.1.tgz
-
+	http://dl.bekencorp.com/tools/toolchain/
+	在此目录下获取最新版本，如：toolchain_v5.1.1.tgz
 
 
 工具包下载后，通过如下操作命令解压至 /opt/risc-v目录下：
@@ -151,14 +156,13 @@ BK7256工具链下载路径如下：
 - 您也可以直接通过工程配置文件来进行差异化配置::
 
     工程配置文件 Override 芯片配置文件 Override 默认配置
-    如： sdkconfig.default >> bk7256.defconfig >> KConfig
+    如： bk7256.config >> bk7256.defconfig >> KConfig
     + 工程配置文件示例：
-        projects/app/sdkconfig.defaults
-        projects/harmony/sdkconfig.defaults
+        projects/app/config/bk7256.config
+        projects/harmony/config/bk7256.config
+	projects/customization/bk7256_config1/config/bk7256.config
     + 芯片配置文件示例：
         middleware/arch/bk7256/bk7256.defconfig
-        middleware/arch/bk7256_cp1/bk7256_cp1.defconfig
-        middleware/arch/bk7231n/bk7231n.defconfig
     + KConfig配置文件示例：
         middleware/arch/riscv/Kconfig
         components/bk_cli/Kconfig
@@ -246,7 +250,8 @@ BK7256工具链下载路径如下：
 
 烧录工具获取：
 
-	http://dl.bekencorp.com:8192/tools/flash/BEKEN_WRITER_EN_V2.6.28_20220326.zip
+	http://dl.bekencorp.com/tools/flash/
+	在此目录下获取最新版本，如：BEKEN_WRITER_V1.6.38_20220905.zip
 
 bk_writer.exe 界面及相关配置如下图所示：
 

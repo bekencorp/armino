@@ -6,8 +6,8 @@
  * @date     25. June 2020
  ******************************************************************************/
 /*
- * Copyright (c) 2009-2018 Arm Limited. 
- * Copyright (c) 2018-2020 ArmChina. 
+ * Copyright (c) 2009-2018 Arm Limited.
+ * Copyright (c) 2018-2020 ArmChina.
  * All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -62,8 +62,64 @@ typedef enum IRQn
   Interrupt6_IRQn               =   6,
   Interrupt7_IRQn               =   7,
   Interrupt8_IRQn               =   8,
-  Interrupt9_IRQn               =   9
-  /* Interrupts 10 .. 480 are left out */
+  Interrupt9_IRQn               =   9,
+  Interrupt10_IRQn              =   10,
+  Interrupt11_IRQn              =   11,
+  Interrupt12_IRQn              =   12,
+  Interrupt13_IRQn              =   13,
+  Interrupt14_IRQn              =   14,
+  Interrupt15_IRQn              =   15,
+  Interrupt16_IRQn              =   16,
+  Interrupt17_IRQn              =   17,
+  Interrupt18_IRQn              =   18,
+  Interrupt19_IRQn              =   19,
+  Interrupt20_IRQn              =   20,
+  Interrupt21_IRQn              =   21,
+  Interrupt22_IRQn              =   22,
+  Interrupt23_IRQn              =   23,
+  Interrupt24_IRQn              =   24,
+  Interrupt25_IRQn              =   25,
+  Interrupt26_IRQn              =   26,
+  Interrupt27_IRQn              =   27,
+  Interrupt28_IRQn              =   28,
+  Interrupt29_IRQn              =   29,
+  Interrupt30_IRQn              =   30,
+  Interrupt31_IRQn              =   31,
+  Interrupt32_IRQn              =   32,
+  Interrupt33_IRQn              =   33,
+  Interrupt34_IRQn              =   34,
+  Interrupt35_IRQn              =   35,
+  Interrupt36_IRQn              =   36,
+  Interrupt37_IRQn              =   37,
+  Interrupt38_IRQn              =   38,
+  Interrupt39_IRQn              =   39,
+  Interrupt40_IRQn              =   40,
+  Interrupt41_IRQn              =   41,
+  Interrupt42_IRQn              =   42,
+  Interrupt43_IRQn              =   43,
+  Interrupt44_IRQn              =   44,
+  Interrupt45_IRQn              =   45,
+  Interrupt46_IRQn              =   46,
+  Interrupt47_IRQn              =   47,
+  Interrupt48_IRQn              =   48,
+  Interrupt49_IRQn              =   49,
+  Interrupt50_IRQn              =   50,
+  Interrupt51_IRQn              =   51,
+  Interrupt52_IRQn              =   52,
+  Interrupt53_IRQn              =   53,
+  Interrupt54_IRQn              =   54,
+  Interrupt55_IRQn              =   55,
+  Interrupt56_IRQn              =   56,
+  Interrupt57_IRQn              =   57,
+  Interrupt58_IRQn              =   58,
+  Interrupt59_IRQn              =   59,
+  Interrupt60_IRQn              =   60,
+  Interrupt61_IRQn              =   61,
+  Interrupt62_IRQn              =   62,
+  Interrupt63_IRQn              =   63,
+
+  InterruptMAX_IRQn
+  /* Interrupts 64 .. 480 are left out */
 } IRQn_Type;
 
 

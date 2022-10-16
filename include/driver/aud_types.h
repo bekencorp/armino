@@ -67,10 +67,15 @@ typedef enum {
 } aud_adc_work_mode_t;
 
 typedef enum {
-	AUD_ADC_SAMP_RATE_8K = 0, /**< ADC sample rate : 8k */
-	AUD_ADC_SAMP_RATE_16K,    /**< ADC sample rate : 16k */
-	AUD_ADC_SAMP_RATE_44K,    /**< ADC sample rate : 44.1k */
-	AUD_ADC_SAMP_RATE_48K,    /**< ADC sample rate : 48k */
+	AUD_ADC_SAMP_RATE_8K = 0,  /**< ADC sample rate : 8k */
+	AUD_ADC_SAMP_RATE_16K,     /**< ADC sample rate : 16k */
+	AUD_ADC_SAMP_RATE_44_1K,   /**< ADC sample rate : 44.1k */
+	AUD_ADC_SAMP_RATE_48K,     /**< ADC sample rate : 48k */
+	AUD_ADC_SAMP_RATE_11_025K, /**< ADC sample rate : 11.025k */
+	AUD_ADC_SAMP_RATE_12K,     /**< ADC sample rate : 12k */
+	AUD_ADC_SAMP_RATE_22_05K,  /**< ADC sample rate : 22.05k */
+	AUD_ADC_SAMP_RATE_24K,     /**< ADC sample rate : 24k */
+	AUD_ADC_SAMP_RATE_32K,     /**< ADC sample rate : 32k */
 	AUD_ADC_SAMP_RATE_MAX,
 } aud_adc_samp_rate_t;
 
@@ -312,14 +317,6 @@ typedef enum {
 	AUD_DAC_SAMP_RATE_MAX,
 } aud_dac_samp_rate_t;
 
-typedef enum {
-	AUD_DAC_SAMP_RATE_SOURCE_8K = 0,	/**< DAC sample rate : 8k */
-	AUD_DAC_SAMP_RATE_SOURCE_16K,		/**< DAC sample rate : 16k */
-	AUD_DAC_SAMP_RATE_SOURCE_44_1K,		/**< DAC sample rate : 44.1k */
-	AUD_DAC_SAMP_RATE_SOURCE_48K,		/**< DAC sample rate : 48k */
-	AUD_DAC_SAMP_RATE_SOURCE_MAX,
-} aud_dac_samp_rate_source_t;
-
 typedef enum
 {
 	AUD_DAC_HPF_BYPASS_DISABLE = 0,		/**< AUD DAC hpf bypass disable */
@@ -480,16 +477,12 @@ typedef struct {
 	aud_agc_enable_t agc_enable;                    /**< AUD AGC enable */
 	uint32_t manual_pga_value;                      /**< AUD AGC manual set PGA value */
 	aud_agc_manual_pga_en_t manual_pga_enable;      /**< AUD AGC manual set PGA enable */
-
-	/* extend_config */
-	aud_adc_fracmod_manual_en_t adc_fracmod_manual; /**< AUD ADC fractional frequency division enable of manual set */
-	uint32_t adc_fracmod;                           /**< AUD ADC fractional frequency division value N * 2^24 */
 } aud_adc_config_t;
 
 typedef struct {
 	/* audio_config */
 	aud_dac_enable_t dac_enable;						/**< AUD dac enable */
-	aud_dac_samp_rate_source_t samp_rate;				/**< AUD dac sample rate */
+	aud_dac_samp_rate_t samp_rate;				/**< AUD dac sample rate */
 	aud_dac_chl_enable_t dac_chl;						/**< AUD dac channel */
 	aud_dac_work_mode_t work_mode;						/**< AUD dac work mode */
 
@@ -516,8 +509,6 @@ typedef struct {
 
 	/* extend_config */
 	aud_dac_filt_enable_t dac_filt_enable;				/**< AUD dac filter enable */
-	aud_dac_fracmod_manual_t dac_fracmod_manual_enable;	/**< AUD dac fractional frequency division enable of manual set */
-	uint32_t dac_fracmode_value;						/**< AUD dac fractional frequency division value N * 2^24 */
 } aud_dac_config_t;
 
 typedef struct {

@@ -214,6 +214,19 @@ TMP_PWR_ST tmp_pwr_tab_overlay[TMP_PWR_TAB_LEN] = {
     {  0x00,        7,       11,       3,         127},  // 38    ,150
 };
 
+
+static AUTO_PWR_CALI_CONTEXT auto_pwr_overlay =
+{
+    0x0,      /*0: CALI_MODE_AUTO  1: CALI_MODE_MANUAL */
+    0x28F,   /* gtx_tssi_thred_chan1_b */
+    0x28F,   /* gtx_tssi_thred_chan7_b */
+    0x27F,   /* gtx_tssi_thred_chan13_b */
+    0x260,   /* gtx_tssi_thred_chan1_g */
+    0x249,   /* gtx_tssi_thred_chan7_g */
+    0x21C,   /* gtx_tssi_thred_chan13_g */
+};
+
+
 UINT32 g_xtal_overlay = DEFAULT_TXID_XTAL;
 UINT32 g_cmtag_overlay = CMTAG_FROM_FLASH;
 uint32 g_pwr_gain_base_ble_overlay = PWR_GAIN_BASE_BLE;
@@ -259,6 +272,8 @@ void vnd_cal_overlay(void)
 #else
     vnd_cal_set_ble_pwr_level(0);
 #endif
+    vnd_cal_set_auto_pwr_thred(auto_pwr_overlay);
+
 }
 
 

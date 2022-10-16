@@ -29,16 +29,14 @@
  *
  ******************************************************************************
  */
-#include "os_mutex.h"
+
 #include <common/bk_include.h>
 
-#if OS_MUTEX_DEMO
-#include <common/bk_include.h>
+#if CONFIG_OS_MUTEX_DEMO
+#include "os_mutex.h"
 #include <os/os.h>
-#include "uart_pub.h"
-#include "Error.h"
-#include "portmacro.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 static beken_mutex_t os_mutex = NULL;
 

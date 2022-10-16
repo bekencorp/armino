@@ -91,7 +91,7 @@ typedef enum {
 /* audio interface speaker setup configuration */
 typedef struct {
 	aud_intf_spk_chl_t spk_chl;
-	aud_dac_samp_rate_source_t samp_rate;		/**< speaker sample rate */
+	aud_dac_samp_rate_t samp_rate;		/**< speaker sample rate */
 	uint16_t frame_size;						/**< size: a frame packet speaker data size(byte) */
 	uint8_t spk_gain;							/**< audio dac gain: value range:0x0 ~ 0x3f, suggest:0x2d */
 	aud_dac_work_mode_t work_mode;				/**< audio dac mode: signal_ended/differen */

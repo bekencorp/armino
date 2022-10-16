@@ -58,6 +58,8 @@
     #include <stdio.h>
 #endif /* configUSE_STATS_FORMATTING_FUNCTIONS == 1 ) */
 
+#define TAG "os"
+
 #if ( configUSE_PREEMPTION == 0 )
 
 /* If the cooperative scheduler is being used then a yield should not be
@@ -328,7 +330,7 @@ typedef struct tskTaskControlBlock       /* The old naming convention is used to
     #if ( configUSE_POSIX_ERRNO == 1 )
         int iTaskErrno;
     #endif
-	
+
     #if configBK_FREERTOS
         uint16_t                        ulStackSize;
     #endif
@@ -830,6 +832,14 @@ static void prvInitialiseNewTask( TaskFunction_t pxTaskCode,
 {
     StackType_t * pxTopOfStack;
     UBaseType_t x;
+
+    BK_LOGI(TAG, "create %s, tcb=%x, stack=[%x-%x:%d], prio=%d\r\n",
+                pcName,
+                pxNewTCB,
+                pxNewTCB->pxStack,
+                (size_t)pxNewTCB->pxStack + (((size_t)ulStackDepth) * sizeof(StackType_t)),
+                (((size_t)ulStackDepth) * sizeof(StackType_t)),
+                uxPriority);
 
     #if ( portUSING_MPU_WRAPPERS == 1 )
         /* Should the task be created in privileged mode? */
@@ -2623,11 +2633,25 @@ char * pcTaskGetName( TaskHandle_t xTaskToQuery ) /*lint !e971 Unqualified char 
 
     void vTaskStepTick( const TickType_t xTicksToJump )
     {
+        const TickType_t xConstTickCount = xTickCount;
+        const TickType_t xConstTickNext = xConstTickCount + xTicksToJump;
         /* Correct the tick count value after a period during which the tick
          * was suppressed.  Note this does *not* call the tick hook function for
          * each stepped tick. */
-        configASSERT( ( xTickCount + xTicksToJump ) <= xNextTaskUnblockTime );
-        xTickCount += xTicksToJump;
+
+        if (xConstTickNext > xConstTickCount)
+        {
+            if (xConstTickNext > xNextTaskUnblockTime ) {
+                xTickCount = xConstTickNext - 1;
+                xTaskIncrementTick();
+            } else {
+                xTickCount = xConstTickNext;
+            }
+        }  else {
+            xTickCount = portMAX_DELAY - 1;
+            xNextTaskUnblockTime = 0;
+            xTaskIncrementTick();
+        }
         traceINCREASE_TICK_COUNT( xTicksToJump );
     }
 
@@ -5443,7 +5467,7 @@ static void prvAddCurrentTaskToDelayedList( TickType_t xTicksToWait,
     {
         return pdFALSE;
     }
-	
+
     taskENTER_CRITICAL();
 
     if ( ( listIS_CONTAINED_WITHIN( &xSuspendedTaskList, &( pxTCB->xStateListItem ) ) != pdFALSE ) ||
@@ -5454,7 +5478,7 @@ static void prvAddCurrentTaskToDelayedList( TickType_t xTicksToWait,
         taskEXIT_CRITICAL();
         return pdFALSE;
     }
-		 
+
     for ( i = 0; i < configMAX_PRIORITIES; i++ )
     {
         if ( listIS_CONTAINED_WITHIN( &pxReadyTasksLists[ i ], &( pxTCB->xStateListItem ) ) != pdFALSE )
@@ -5463,9 +5487,9 @@ static void prvAddCurrentTaskToDelayedList( TickType_t xTicksToWait,
             return pdFALSE;
         }
     }
-	
+
     taskEXIT_CRITICAL();
-	
+
     return pdTRUE;
 }
 

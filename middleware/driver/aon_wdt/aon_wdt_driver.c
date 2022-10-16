@@ -82,7 +82,7 @@ bk_err_t bk_aon_wdt_driver_init(void)
 	os_memset(&s_aon_wdt, 0, sizeof(s_aon_wdt));
 	aon_wdt_hal_init(&s_aon_wdt.hal);
 #if (CONFIG_SYSTEM_CTRL)
-	bk_timer_start(TIMER_ID3, AON_WDT_BARK_TIME_MS, (timer_isr_t)bk_wdt_feed_handle);//what's this used for?
+	bk_timer_start(TIMER_ID3, AON_WDT_BARK_TIME_MS, (timer_isr_t)bk_wdt_feed_handle);
 #endif
 	s_aon_wdt_driver_is_init = true;
 
@@ -157,7 +157,8 @@ bk_err_t bk_aon_wdt_feed(void)
 	AON_WDT_RETURN_ON_DRIVER_NOT_INIT();
 	AON_WDT_RETURN_ON_NOT_INIT();
 	aon_wdt_hal_init_aon_wdt(&s_aon_wdt.hal, s_aon_wdt_period);
-	bk_misc_update_set_type(RESET_SOURCE_WATCHDOG);
+
+	bk_misc_set_reset_reason(RESET_SOURCE_WATCHDOG);
 
 	return BK_OK;
 }
@@ -184,7 +185,7 @@ void bk_aon_wdt_set_feed_time(uint32_t dw_set_time)
 	s_feed_aon_watchdog_time = dw_set_time;
 }
 
-#endif/*#if (CONFIG_INT_AON_WDT)*/
+#endif/* #if (CONFIG_INT_AON_WDT) */
 
 void bk_aon_wdt_feed_handle(void)
 {

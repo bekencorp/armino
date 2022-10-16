@@ -310,8 +310,11 @@ static inline void gpio_ll_restore_configs(uint16_t *gpio_cfg, uint32_t count)
 	{
 		val = REG_READ(GPIO_LL_REG_BASE+i*4);
 		val &= 0xffff0000;
-		val |= gpio_cfg[i];
-		REG_WRITE((GPIO_LL_REG_BASE+i*4), val);
+		if((val & 0x0000ffff) != (gpio_cfg[i] & 0x0000ffff))
+		{
+			val |= gpio_cfg[i];
+			REG_WRITE((GPIO_LL_REG_BASE+i*4), val);
+		}
 	}
 }
 
@@ -368,13 +371,15 @@ static inline void gpio_ll_restore_int_enable_configs(uint32_t *gpio_int_cfg, ui
 }
 
 /* gpio switch to low power status:set all gpios to input mode */
-static inline void gpio_ll_switch_to_low_power_status(void)
+static inline void gpio_ll_switch_to_low_power_status(uint64_t skip_io)
 {
 	uint32_t  i = 0;
 	uint32_t val = 0;
 
 	for(i = 0; i < GPIO_NUM_MAX; i ++)
 	{
+		if(skip_io & (uint64_t)(0x1 << i))
+			continue;
 		val = REG_READ(GPIO_LL_REG_BASE+i*4);
 		val &= 0xffff0000;
 		val |= 0x0008;

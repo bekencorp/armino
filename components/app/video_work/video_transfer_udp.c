@@ -19,14 +19,8 @@
 #include <os/mem.h>
 #include <components/video_transfer.h>
 #if APP_DEMO_EN_VOICE_TRANSFER
-#if CONFIG_AUD_INTF_VER_OLD
-#include <components/audio_transfer.h>
-#include <components/audio_transfer_types.h>
-#endif
-#if CONFIG_AUD_INTF_VER_NEW
 #include <components/aud_intf.h>
 #include <components/aud_intf_types.h>
-#endif
 #endif	//APP_DEMO_EN_VOICE_TRANSFER
 #include "video_demo_pub.h"
 
@@ -59,14 +53,9 @@ struct sockaddr_in *app_demo_remote = NULL;
 volatile int app_demo_udp_voice_romote_connected = 0;
 struct sockaddr_in *app_demo_udp_voice_remote = NULL;
 int app_demo_udp_voice_fd = -1;
-#if CONFIG_AUD_INTF_VER_OLD
-static audio_tras_setup_t aud_tras_setup;
-#endif
-#if CONFIG_AUD_INTF_VER_NEW
 static aud_intf_drv_setup_t aud_intf_drv_setup;
 static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 static aud_intf_voc_setup_t aud_voc_setup;
-#endif
 #endif	//APP_DEMO_EN_VOICE_TRANSFER
 
 typedef struct tvideo_hdr_st {
@@ -130,24 +119,14 @@ static void app_demo_udp_handle_cmd_data(UINT8 *data, UINT16 len)
 	{
 #if APP_DEMO_EN_VOICE_TRANSFER
 		case 0:
-#if CONFIG_AUD_INTF_VER_OLD
-			audio_tras_deinit();
-#endif
-#if CONFIG_AUD_INTF_VER_NEW
+			bk_aud_intf_voc_stop();
 			bk_aud_intf_voc_deinit();
 			aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 			bk_aud_intf_set_mode(aud_work_mode);
 			bk_aud_intf_drv_deinit();
-#endif
 			break;
 
 		case 1:
-#if CONFIG_AUD_INTF_VER_OLD
-			aud_tras_setup.aec_enable = true;
-			aud_tras_setup.audio_send_mic_data = app_demo_udp_voice_send_packet;
-			audio_tras_init(aud_tras_setup);
-#endif
-#if CONFIG_AUD_INTF_VER_NEW
 			aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
 			aud_intf_drv_setup.task_config.priority = 3;
 			aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
@@ -168,7 +147,7 @@ static void app_demo_udp_handle_cmd_data(UINT8 *data, UINT16 len)
 			aud_voc_setup.aec_cfg.ns_level = 2;
 			aud_voc_setup.aec_cfg.ns_para = 1;
 			bk_aud_intf_voc_init(aud_voc_setup);
-#endif
+			bk_aud_intf_voc_start();
 			break;
 #endif
 
@@ -276,12 +255,7 @@ static void app_demo_udp_voice_receiver(UINT8 *data, UINT32 len, struct sockaddr
 		app_demo_udp_voice_romote_connected = 1;
 	}
 
-#if CONFIG_AUD_INTF_VER_OLD
-	ret = audio_tras_write_spk_data(data, len);
-#endif
-#if CONFIG_AUD_INTF_VER_NEW
 	ret = bk_aud_intf_write_spk_data(data, len);
-#endif
 	if (ret != BK_OK)
 	{
 		os_printf("write speaker data fial \r\n", len);
@@ -515,7 +489,7 @@ UINT32 app_demo_udp_init(void)
 								 4,
 								 "app_udp",
 								 (beken_thread_function_t)app_demo_udp_main,
-								 1024,
+								 1024 * 2,
 								 (beken_thread_arg_t)NULL);
 		if (ret != kNoErr) {
 			APP_DEMO_UDP_PRT("Error: Failed to create spidma_intfer: %d\r\n", ret);

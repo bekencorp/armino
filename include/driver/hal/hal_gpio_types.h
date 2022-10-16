@@ -132,6 +132,28 @@ typedef enum {
 	GPIO_INT_TYPE_MAX,			/**< Invalid intterrupt type mode */
 } gpio_int_type_t;
 
+/**
+ * @brief GPIO Driver Capacity
+ */
+typedef enum {
+	GPIO_DRIVER_CAPACITY_0 = 0,		/**<GPIO Driver Capacity level 0 */
+	GPIO_DRIVER_CAPACITY_1 = 1,		/**<GPIO Driver Capacity level 1 */
+	GPIO_DRIVER_CAPACITY_2 = 2,		/**<GPIO Driver Capacity level 2 */
+	GPIO_DRIVER_CAPACITY_3 = 3,		/**<GPIO Driver Capacity level 3 */
+} gpio_driver_capacity_t;
+
+#if CONFIG_GPIO_DEFAULT_SET_SUPPORT
+typedef enum {
+	GPIO_LOW_POWER_DISCARD_IO_STATUS = 0,	//low power switch to no-input,no-output,wakeup restore status
+	GPIO_LOW_POWER_KEEP_INPUT_STATUS = 1,
+	GPIO_LOW_POWER_KEEP_OUTPUT_STATUS = 3,
+}gpio_lowpower_mode_t;
+
+typedef enum {
+	GPIO_INT_DISABLE = 0,
+	GPIO_INT_ENABLE
+}gpio_int_mode_t;
+#endif
 
 /**
  * @brief GPIOs device number
@@ -165,15 +187,17 @@ typedef enum {
 	GPIO_DEV_ADC11,
 	GPIO_DEV_ADC12,
 	GPIO_DEV_ADC13,
+	GPIO_DEV_ADC14,
+	GPIO_DEV_ADC15,
 
-	GPIO_DEV_UART1_TXD= 0x1E,
+	GPIO_DEV_UART1_TXD= 0x1F,
 	GPIO_DEV_UART1_RXD,
 	GPIO_DEV_UART2_TXD,
 	GPIO_DEV_UART2_RXD,
 	GPIO_DEV_UART3_TXD,
 	GPIO_DEV_UART3_RXD,
 
-	GPIO_DEV_I2C0_SCL = 0x24,
+	GPIO_DEV_I2C0_SCL = 0x25,
 	GPIO_DEV_I2C0_SDA,
 	GPIO_DEV_I2C1_SCL,
 	GPIO_DEV_I2C1_SDA,
@@ -181,7 +205,7 @@ typedef enum {
 	GPIO_DEV_I2C2_SDA,
 
 
-	GPIO_DEV_SPI0_SCK = 0x2A,
+	GPIO_DEV_SPI0_SCK = 0x2B,
 	GPIO_DEV_SPI0_CSN,
 	GPIO_DEV_SPI0_MOSI,
 	GPIO_DEV_SPI0_MISO,
@@ -363,6 +387,9 @@ typedef enum {
 	GPIO_DEV_DEBUG29,
 	GPIO_DEV_DEBUG30,
 	GPIO_DEV_DEBUG31,
+
+	GPIO_DEV_QSPI1_CLK,
+	GPIO_DEV_QSPI1_CSN,
 
 	GPIO_DEV_INVALID = 0xFF,
 } gpio_dev_t;

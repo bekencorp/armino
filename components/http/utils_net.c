@@ -1,7 +1,7 @@
 #include <string.h>
 #include <common/bk_include.h>
 #if CONFIG_HTTP
-#include "utils_net.h"
+//#include "utils_net.h"
 #include "lite-log.h"
 #include "lwip/errno.h"
 #include "lwip/sockets.h"
@@ -10,8 +10,13 @@
 #include <os/str.h>
 #include <os/mem.h>
 #include "time.h"
-#include "iot_export_errno.h"
-
+//#include "iot_export_errno.h"
+#include "utils_httpc.h"
+#ifdef CONFIG_HTTP_AB_PARTITION
+#include "driver/flash.h"
+#include "modules/ota.h"
+extern part_flag update_part_flag;
+#endif
 uintptr_t HAL_TCP_Establish(const char *host, uint16_t port)
 {
 	struct addrinfo hints;
@@ -72,22 +77,22 @@ ES_RETRY:
 
 int32_t HAL_TCP_Destroy(uintptr_t fd)
 {
-	int rc;
+	int rc = 0;
 
 	//Shutdown both send and receive operations.
 	rc = shutdown((int) fd, 2);
 	if (0 != rc) {
 		log_err("shutdown error");
-		return -1;
+		// return -1;
 	}
 
 	rc = close((int) fd);
 	if (0 != rc) {
 		log_err("closesocket error");
-		return -1;
+		// return -1;
 	}
 
-	return 0;
+	return rc;
 }
 
 
@@ -223,10 +228,29 @@ int32_t HAL_TCP_Read(uintptr_t fd, char *buf, uint32_t len, uint32_t timeout_ms)
 		} else {
 		}
 		os_printf("cyg_recvlen_per:(%.2f)%%\r\n",(((float)(len_recv))/((float)(bk_http_ptr->http_total)))*100);
-	} while ((bk_http_ptr->do_data == 1 && len_recv < bk_http_ptr->http_total) || ((len_recv < len) && (0 == data_over)));
 
+	} while ((bk_http_ptr->do_data == 1 && len_recv < bk_http_ptr->http_total) || ((len_recv < len) && (0 == data_over)));
+#ifdef CONFIG_HTTP_AB_PARTITION
+    if(((((float)(len_recv))/((float)(bk_http_ptr->http_total)))*100 == 100) &&((((float)(len_recv))/((float)(bk_http_ptr->http_total)))*100> 90))
+    {
+        u8 cust_confirm_flag = 0x1;
+
+        ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, cust_confirm_flag, 8);
+        if(update_part_flag == UPDATE_B_PART)
+        {
+            exec_flag ota_exec_flag = EXEC_B_PART;           
+            ota_write_flash( BK_PARTITION_OTA_FINA_EXECUTIVE, ota_exec_flag, 0);
+        }
+        else
+        {
+            exec_flag ota_exec_flag = EXEX_A_PART;         
+            ota_write_flash( BK_PARTITION_OTA_FINA_EXECUTIVE, ota_exec_flag, 0);
+        }
+    }
 	//priority to return data bytes if any data be received from TCP connection.
 	//It will get error code on next calling
+
+#endif
 	return (0 != len_recv) ? len_recv : err_code;
 }
 
@@ -244,12 +268,16 @@ static int write_tcp(utils_network_pt pNetwork, const char *buffer, uint32_t len
 
 static int disconnect_tcp(utils_network_pt pNetwork)
 {
+	log_info("disconnect_tcp fd(%d).\r\n", pNetwork->handle);
 	if (0 == pNetwork->handle)
 		return -1;
 
-	HAL_TCP_Destroy(pNetwork->handle);
-	pNetwork->handle = 0;
-	return 0;
+	if(0 == HAL_TCP_Destroy(pNetwork->handle)) {
+		pNetwork->handle = 0;
+		return 0;
+	}
+
+	return -1;
 }
 
 
@@ -261,6 +289,7 @@ static int connect_tcp(utils_network_pt pNetwork)
 	}
 
 	pNetwork->handle = HAL_TCP_Establish(pNetwork->pHostAddress, pNetwork->port);
+	log_info("connect_tcp fd(%d).\r\n", pNetwork->handle);
 	if (0 == pNetwork->handle)
 		return -1;
 

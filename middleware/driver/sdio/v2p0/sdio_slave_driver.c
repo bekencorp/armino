@@ -36,53 +36,65 @@
 #include "sdio_slave_driver.h"
 
 
+#define SDIO_TX_DMA_ID (DMA_ID_1)
+#define SDIO_RX_DMA_ID (DMA_ID_0)
+
+static bk_err_t sdio_slave_add_ongoing_buf_trans_len(sdio_chan_id_t chan_id, chan_direct_t direct, uint32_t trans_len);
+static void sdio_send_msg(sdio_msg_t *msg_p);
+
 #if CONFIG_SDIO_V2P0
 
 static sdio_driver_t s_sdio_driver;
 static bool s_sdio_driver_is_init = false;
 static beken_queue_t s_sdio_msg_que = NULL;
 static beken_thread_t s_sdio_thread = NULL;
-
+static uint32_t s_sdio_rx_bytes = 0;	//RX:how many bytes Host write at current read transaction
+static uint32_t s_sdio_tx_bytes = 0;	//TX:how many bytes Host read
 
 #define SDIO_RETURN_ON_NOT_INIT() do {\
 		if (!s_sdio_driver_is_init) {\
-			SDIO_LOG_ERR("driver not init\r\n");\
+			SDIO_LOG_ERR("driver not init");\
 			return BK_ERR_SDIO_NOT_INIT;\
 		}\
 	} while(0)
 
 #define SDIO_RETURN_CHAN_ID(chan_id) do {\
 		if (chan_id >= SDIO_CHAN_MAX_CNT) {\
-			SDIO_LOG_ERR("chan id %d\r\n", chan_id);\
+			SDIO_LOG_ERR("chan id %d", chan_id);\
 			return BK_ERR_SDIO_CHAN_ID_INVALID;\
 		}\
 	} while(0)
 
 #define SDIO_RETURN_CHAN_DIRECT(direct) do {\
 		if (direct > SDIO_CHAN_RX) {\
-			SDIO_LOG_ERR("direct %d\r\n", direct);\
+			SDIO_LOG_ERR("direct %d", direct);\
 			return BK_ERR_SDIO_DIRECT_INVALID;\
 		}\
 	} while(0)
 
 
 #if CONFIG_SDIO_GDMA_EN
-void sdio_slave_tx_finish(dma_id_t dma_id)
+void sdio_slave_dma_tx_finish(dma_id_t dma_id)
 {
+	sdio_msg_t msg;
 
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
+
+	msg.id = SDIO_WRITE_TO_FIFO_FINISH;
+	sdio_send_msg(&msg);
 }
 
 static bk_err_t sdio_tx_dma_set_src_buf(uint8_t *psrc, uint32_t count)
 {
-	return bk_dma_set_src_addr(DMA_ID_5, (uint32_t)psrc, (uint32_t)(psrc+count));
-	//BK_LOG_ON_ERR(bk_dma_set_transfer_len(DMA_ID_5, count));
+	return bk_dma_set_src_addr(SDIO_TX_DMA_ID, (uint32_t)psrc, (uint32_t)(psrc+count));
+	//BK_LOG_ON_ERR(bk_dma_set_transfer_len(SDIO_TX_DMA_ID, count));
 }
 
 static bk_err_t sdio_dma_tx_init(void)
 {
 	dma_config_t dma_config = {0};
 
-	SDIO_LOG_DEBUG_FUNCTION_ENTRY();	
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 
 	dma_config.mode = DMA_WORK_MODE_SINGLE;
 	dma_config.chan_prio = 0;
@@ -91,29 +103,35 @@ static bk_err_t sdio_dma_tx_init(void)
 	dma_config.src.width = DMA_DATA_WIDTH_32BITS;
 	//dma_config.src.start_addr = (uint32) psrc;
 	//dma_config.src.end_addr =  (uint32) psrc + count;
+	dma_config.src.addr_inc_en = DMA_ADDR_INC_ENABLE;
 
 	dma_config.dst.dev = DMA_DEV_SDIO;
 	dma_config.dst.width = DMA_DATA_WIDTH_32BITS;
 	dma_config.dst.start_addr = (uint32_t) SDIO_REG0XB_ADDR;
 	dma_config.dst.end_addr = (uint32_t) SDIO_REG0XB_ADDR;
 
-	BK_LOG_ON_ERR(bk_dma_init(DMA_ID_5, &dma_config));
-	BK_LOG_ON_ERR(bk_dma_register_isr(DMA_ID_5, NULL, sdio_slave_tx_finish));
-	BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(DMA_ID_5));
+	BK_LOG_ON_ERR(bk_dma_init(SDIO_TX_DMA_ID, &dma_config));
+	BK_LOG_ON_ERR(bk_dma_register_isr(SDIO_TX_DMA_ID, NULL, sdio_slave_dma_tx_finish));
+	BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(SDIO_TX_DMA_ID));
 
 	SDIO_LOG_DEBUG_FUNCTION_EXIT();	
 
 	return BK_OK;
 }
 
-void sdio_slave_rx_finish(dma_id_t dma_id)
+void sdio_slave_dma_rx_finish(dma_id_t dma_id)
 {
+	sdio_msg_t msg;
 
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
+
+	msg.id = SDIO_READ_TO_MEMORY_FINISH;
+	sdio_send_msg(&msg);
 }
 
 static bk_err_t sdio_rx_dma_set_dst_buf(uint8_t *pdst, uint32_t count)
 {
-	return bk_dma_set_dest_addr(DMA_ID_5, (uint32_t)pdst, (uint32_t)(pdst+count));
+	return bk_dma_set_dest_addr(SDIO_RX_DMA_ID, (uint32_t)pdst, (uint32_t)(pdst+count));
 }
 
 static bk_err_t sdio_dma_rx_init()
@@ -134,11 +152,12 @@ static bk_err_t sdio_dma_rx_init()
 	dma_config.dst.width = DMA_DATA_WIDTH_32BITS;
 	//dma_config.dst.start_addr = (uint32) pbuf;
 	//dma_config.dst.end_addr = (uint32) pbuf + count;
+	dma_config.dst.addr_inc_en = DMA_ADDR_INC_ENABLE;
 
-	BK_LOG_ON_ERR(bk_dma_init(DMA_ID_5, &dma_config));
-	//BK_LOG_ON_ERR(bk_dma_set_transfer_len(DMA_ID_5, count));
-	BK_LOG_ON_ERR(bk_dma_register_isr(DMA_ID_5, NULL, sdio_slave_rx_finish));
-	BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(DMA_ID_5));
+	BK_LOG_ON_ERR(bk_dma_init(SDIO_RX_DMA_ID, &dma_config));
+	//BK_LOG_ON_ERR(bk_dma_set_transfer_len(SDIO_RX_DMA_ID, count));
+	BK_LOG_ON_ERR(bk_dma_register_isr(SDIO_RX_DMA_ID, NULL, sdio_slave_dma_rx_finish));
+	BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(SDIO_RX_DMA_ID));
 
 	SDIO_LOG_DEBUG_FUNCTION_EXIT();	
 
@@ -316,7 +335,7 @@ static void sdio_gpio_notify_from_host_deinit(uint8_t gpio_num)
  */
 static void set_controller_wk_slp_status(uint32_t allow_slp)
 {
-	SDIO_LOG_DEBUG("v=%d\r\n", allow_slp);
+	SDIO_LOG_DEBUG("v=%d", allow_slp);
 	allow_sleep = allow_slp;	
 }
 
@@ -425,7 +444,7 @@ uint64_t check_wakeup_contorller_validity_timeout(void)
 {
 	uint8_t timeout;
 
-	//LOG_D(GWS, "%s[+],last_time=%d\r\n", __func__, last_rx_data_time);
+	//LOG_D(GWS, "%s[+],last_time=%d", __func__, last_rx_data_time);
 	if(get_controller_wk_slp_status() == 0)
 	{
 		timeout = (bk_get_tick() > (last_rx_data_time + FORBID_SLEEP_TIMEOUT) ? 1 : 0);
@@ -485,6 +504,12 @@ static void sdio_send_msg(sdio_msg_t *msg_p)
 {
 	bk_err_t ret;
 
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
+	if(msg_p)
+	{
+		SDIO_LOG_DEBUG("msg.id=%d,param=%d", msg_p->id, msg_p->param);
+	}
+
 	if (s_sdio_msg_que) {
 		ret = rtos_push_to_queue(&s_sdio_msg_que, msg_p, BEKEN_NO_WAIT);
 		if (kNoErr != ret)
@@ -503,11 +528,8 @@ static bk_err_t sdio_gpio_init(void)
 
 static bk_err_t sdio_gpio_deinit(void)
 {
-#if CONFIG_SDIO_4LINES_EN
-	return gpio_sdio_sel(GPIO_SDIO_MAP_MODE0);
-#else
-	return gpio_sdio_one_line_sel(GPIO_SDIO_MAP_MODE0);
-#endif
+	SDIO_LOG_ERR("%s:TODO");
+	return BK_OK;
 }
 
 /**
@@ -554,16 +576,43 @@ void bk_sdio_driver_dump_sdio_regs(void)
 
 	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 
-	for(reg_addr = SDIO_LL_REG_BASE; reg_addr < SDIO_LL_REG_END; reg_addr += 4)
+	for(reg_addr = SDIO_LL_REG_BASE(0); reg_addr <= SDIO_LL_REG_END; reg_addr += 4)
 	{
 		if(reg_addr != SDIO_REG0XC_ADDR)	//skip read data out.
 		{
-			SDIO_LOG_DUMP("Reg0x%x=0x%x\r\n", (reg_addr - SDIO_LL_REG_BASE)/4, *(volatile uint32_t *)reg_addr);
+			SDIO_LOG_DUMP("Reg0x%x=0x%x\r\n", (reg_addr - SDIO_LL_REG_BASE(0))/4, *(volatile uint32_t *)reg_addr);
 		}
 	}
 
 	SDIO_LOG_DEBUG_FUNCTION_EXIT();
 }
+
+#if 0
+static void sdio_driver_logout_cmd53_args(sdio_cmd53_arg_t cmd53_arg)
+{
+	//uint32_t reg_addr = 0;
+
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
+
+	SDIO_LOG_DEBUG("value=0x%x", cmd53_arg.v);
+
+	SDIO_LOG_DEBUG("count=%d", cmd53_arg.count);
+#if CONFIG_SDIO_SW_CHANNEL_EN
+	SDIO_LOG_DEBUG("channel=%d", cmd53_arg.channel);
+	SDIO_LOG_DEBUG("start_packet=%d", cmd53_arg.start_packet);
+	SDIO_LOG_DEBUG("end_packet=%d", cmd53_arg.end_packet);
+	SDIO_LOG_DEBUG("sw_reserved=%d", cmd53_arg.sw_reserved);
+#else
+	SDIO_LOG_DEBUG("addr=0x%08x", cmd53_arg.addr);
+#endif
+	SDIO_LOG_DEBUG("block_mode=%d", cmd53_arg.block_mode);
+	SDIO_LOG_DEBUG("rw=%d", cmd53_arg.rw);
+	//SDIO_LOG_DEBUG("func=%d", cmd53_arg.func_num);
+	//SDIO_LOG_DEBUG("count=%d", cmd53_arg.op_mode);
+
+	SDIO_LOG_DEBUG_FUNCTION_EXIT();
+}
+#endif
 
 #if CONFIG_SDIO_CHANNEL_EN
 
@@ -596,23 +645,27 @@ bk_err_t bk_sdio_chan_push_free_list(
 {
 	bk_err_t ret = BK_OK;
 	uint32_t int_level = 0;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
 	sdio_chan_buf_t *chan_buf_p = NULL;
 
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
 	int_level = rtos_disable_int();
 
 	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
+	sdio_list_dump_info(head_p, tail_p, count);
+	sdio_list_dump_info(chan_buf_p->free_list.head, chan_buf_p->free_list.tail, chan_buf_p->free_list.count);
 	sdio_list_push_list(&chan_buf_p->free_list, head_p, tail_p, count);
-	chan_buf_p->free_list.count += count;
+	sdio_list_dump_info(chan_buf_p->free_list.head, chan_buf_p->free_list.tail, chan_buf_p->free_list.count);
 
 	rtos_enable_int(int_level);
+	SDIO_LOG_DEBUG_FUNCTION_EXIT();
 
 	return ret;
 }
@@ -639,13 +692,14 @@ bk_err_t bk_sdio_chan_pop_free_node(sdio_chan_id_t chan_id, chan_direct_t direct
 {
 	bk_err_t ret = BK_OK;
 	uint32_t int_level = 0;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
 	sdio_chan_buf_t *chan_buf_p = NULL;
 
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 	if(node_p == NULL)
@@ -656,6 +710,7 @@ bk_err_t bk_sdio_chan_pop_free_node(sdio_chan_id_t chan_id, chan_direct_t direct
 
 	int_level = rtos_disable_int();
 	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
+	sdio_list_dump_info(chan_buf_p->free_list.head, chan_buf_p->free_list.tail, chan_buf_p->free_list.count);
 
 	if(chan_buf_p->free_list.count)
 	{
@@ -665,6 +720,7 @@ bk_err_t bk_sdio_chan_pop_free_node(sdio_chan_id_t chan_id, chan_direct_t direct
 		if(ret != BK_OK)
 		{
 			SDIO_LOG_ERR("no free buf");
+			rtos_enable_int(int_level);
 			return BK_ERR_SDIO_NO_BUFFER;
 		}
 		*node_p = tmp_node_p;
@@ -675,10 +731,16 @@ bk_err_t bk_sdio_chan_pop_free_node(sdio_chan_id_t chan_id, chan_direct_t direct
 		*size_p = 0;
 		*node_p = NULL;
 		SDIO_LOG_ERR("no free node");
+		rtos_enable_int(int_level);
 		return BK_ERR_SDIO_NO_BUFFER;
 	}
 
+	SDIO_LOG_DEBUG("chan-%d TX/RX=%d get buf:buf=0x%08x,size=%d", chan_id, direct, *node_p, *size_p);
+	sdio_list_dump_info(chan_buf_p->free_list.head, chan_buf_p->free_list.tail, chan_buf_p->free_list.count);
 	rtos_enable_int(int_level);
+
+	SDIO_LOG_DEBUG_FUNCTION_EXIT();
+
 	return BK_OK;
 }
 
@@ -691,7 +753,7 @@ void sdio_chan_push_ongoing_node(
 										)
 {
 	uint32_t int_level = 0;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
@@ -702,9 +764,9 @@ void sdio_chan_push_ongoing_node(
 
 	int_level = rtos_disable_int();
 	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
-
+	sdio_list_dump_info(chan_buf_p->ongoing_list.head, chan_buf_p->ongoing_list.tail, chan_buf_p->ongoing_list.count);
 	sdio_list_push_list(&chan_buf_p->ongoing_list, head_p, tail_p, count);
-	chan_buf_p->ongoing_list.count += count;
+	sdio_list_dump_info(chan_buf_p->ongoing_list.head, chan_buf_p->ongoing_list.tail, chan_buf_p->ongoing_list.count);
 
 	rtos_enable_int(int_level);
 }
@@ -713,18 +775,20 @@ bk_err_t sdio_chan_pop_ongoing_node(sdio_chan_id_t chan_id, chan_direct_t direct
 {
 	bk_err_t ret = BK_OK;
 	uint32_t int_level = 0;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
 	sdio_chan_buf_t *chan_buf_p = NULL;
 
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
 	int_level = rtos_disable_int();
 	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
+	sdio_list_dump_info(chan_buf_p->ongoing_list.head, chan_buf_p->ongoing_list.tail, chan_buf_p->ongoing_list.count);
 	if(chan_buf_p->ongoing_list.count)
 	{
 		sdio_node_ptr_t tmp_node_p;
@@ -743,7 +807,10 @@ bk_err_t sdio_chan_pop_ongoing_node(sdio_chan_id_t chan_id, chan_direct_t direct
 		return BK_FAIL;
 	}
 
+	sdio_list_dump_info(chan_buf_p->ongoing_list.head, chan_buf_p->ongoing_list.tail, chan_buf_p->ongoing_list.count);
 	rtos_enable_int(int_level);
+
+	SDIO_LOG_DEBUG_FUNCTION_EXIT();
 
 	return BK_OK;
 }
@@ -757,23 +824,27 @@ bk_err_t sdio_chan_push_finish_list(
 										)
 {
 	uint32_t int_level = 0;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
 	sdio_chan_buf_t *chan_buf_p = NULL;
 
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
 	int_level = rtos_disable_int();
 	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
+	sdio_list_dump_info(chan_buf_p->finish_list.head, chan_buf_p->finish_list.tail, chan_buf_p->finish_list.count);
 
 	sdio_list_push_list(&chan_buf_p->finish_list, head_p, tail_p, count);
-	chan_buf_p->finish_list.count += count;
 
+	sdio_list_dump_info(chan_buf_p->finish_list.head, chan_buf_p->finish_list.tail, chan_buf_p->finish_list.count);
 	rtos_enable_int(int_level);
+
+	SDIO_LOG_DEBUG_FUNCTION_EXIT();
 
 	return BK_OK;
 }
@@ -782,33 +853,39 @@ bk_err_t sdio_chan_pop_finish_node(sdio_chan_id_t chan_id, chan_direct_t direct,
 {
 	bk_err_t ret = BK_OK;
 	uint32_t int_level = 0;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
 	sdio_chan_buf_t *chan_buf_p = NULL;
 
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
 	int_level = rtos_disable_int();
 	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 
+	sdio_list_dump_info(chan_buf_p->finish_list.head, chan_buf_p->finish_list.tail, chan_buf_p->finish_list.count);
+
 	if(chan_buf_p->finish_list.count)
 	{
 		sdio_node_ptr_t tmp_node_p;
-		ret = sdio_list_pop_node(&chan_buf_p->ongoing_list, &tmp_node_p);
+		ret = sdio_list_pop_node(&chan_buf_p->finish_list, &tmp_node_p);
 		if(ret != BK_OK)
 		{
-			SDIO_LOG_ERR("no free buf");
+			SDIO_LOG_ERR("no node");
 			return BK_ERR_SDIO_NO_BUFFER;
 		}
 
 		*node_p = tmp_node_p;
 	}
 
+	sdio_list_dump_info(chan_buf_p->finish_list.head, chan_buf_p->finish_list.tail, chan_buf_p->finish_list.count);
 	rtos_enable_int(int_level);
+
+	SDIO_LOG_DEBUG_FUNCTION_EXIT();
 
 	return BK_OK;
 }
@@ -833,13 +910,14 @@ bk_err_t sdio_chan_pop_finish_node(sdio_chan_id_t chan_id, chan_direct_t direct,
 bk_err_t bk_sdio_register_chan_cb(sdio_chan_id_t chan_id, chan_direct_t direct, sdio_chan_cb_t cb)
 {
 	uint32_t int_level = 0;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
 	sdio_chan_buf_t *chan_buf_p = NULL;
 
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
@@ -848,6 +926,7 @@ bk_err_t bk_sdio_register_chan_cb(sdio_chan_id_t chan_id, chan_direct_t direct, 
 	chan_buf_p->cb = cb;
 
 	rtos_enable_int(int_level);
+	SDIO_LOG_DEBUG_FUNCTION_EXIT();
 
 	return BK_OK;
 }
@@ -856,7 +935,7 @@ bk_err_t bk_sdio_register_chan_cb(sdio_chan_id_t chan_id, chan_direct_t direct, 
 static bk_err_t sdio_chan_notify_cb(sdio_chan_id_t chan_id, chan_direct_t direct)
 {
 	bk_err_t ret = BK_OK;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
@@ -865,22 +944,23 @@ static bk_err_t sdio_chan_notify_cb(sdio_chan_id_t chan_id, chan_direct_t direct
 
 	if(chan_buf_p->cb)
 	{
-		chan_buf_p->cb(&chan_buf_p->finish_list.head, &chan_buf_p->finish_list.tail, chan_buf_p->finish_list.count);
+		chan_buf_p->cb(chan_buf_p->finish_list.head, chan_buf_p->finish_list.tail, chan_buf_p->finish_list.count);
 	}
 
+#if 0
 	ret = rtos_set_semaphore(&chan_buf_p->semaphore);
 	if(ret != BK_OK)
 	{
 		SDIO_LOG_ERR("set sema");
 		return ret;
 	}
-
+#endif
 	return ret;
 }
 
 static bool sdio_chan_direct_is_inited(sdio_chan_id_t chan_id, chan_direct_t direct)
 {
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
@@ -920,13 +1000,14 @@ bk_err_t bk_sdio_init_channel(sdio_chan_id_t chan_id, chan_direct_t direct, uint
 	bk_err_t ret = BK_OK;
 	uint32_t int_level = 0;
 	uint32_t sema_count = SDIO_CHAN_SEMAPHORE_COUNT;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
 	sdio_chan_buf_t *chan_buf_p = NULL;
 
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
@@ -966,6 +1047,7 @@ bk_err_t bk_sdio_init_channel(sdio_chan_id_t chan_id, chan_direct_t direct, uint
 		ret = sdio_list_init(count, size, &chan_buf_p->free_list.head, &chan_buf_p->free_list.tail);
 		if (BK_OK != ret) 
 		{
+			rtos_deinit_semaphore(&chan_buf_p->semaphore);
 			SDIO_LOG_ERR("list init");
 			goto err_exit;
 		}
@@ -986,6 +1068,7 @@ bk_err_t bk_sdio_init_channel(sdio_chan_id_t chan_id, chan_direct_t direct, uint
 
 	//add this to avoid modify err_exit involve issue.
 	rtos_enable_int(int_level);
+	SDIO_LOG_DEBUG_FUNCTION_EXIT();
 	return ret;
 
 err_exit:
@@ -1013,13 +1096,14 @@ bk_err_t bk_sdio_deinit_channel(sdio_chan_id_t chan_id, chan_direct_t direct)
 {
 	bk_err_t ret = BK_OK;
 	uint32_t int_level = 0;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
 	sdio_chan_buf_t *chan_buf_p = NULL;
 
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
@@ -1098,6 +1182,7 @@ bk_err_t bk_sdio_deinit_channel(sdio_chan_id_t chan_id, chan_direct_t direct)
 
 	//add this to avoid modify err_exit involve issue.
 	rtos_enable_int(int_level);
+	SDIO_LOG_DEBUG_FUNCTION_EXIT();
 	return ret;
 
 err_exit:
@@ -1110,24 +1195,39 @@ static bk_err_t sdio_slave_get_valid_ongoing_rx_buf_ptr(sdio_chan_id_t chan_id, 
 	bk_err_t ret = BK_OK;
 	uint32_t int_level = 0;
 	uint32_t left_size = 0;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = SDIO_CHAN_RX;
 #else
 	uint32_t buf_index = 0;
 #endif
 	sdio_chan_buf_t *chan_buf_p = NULL;
 
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 	SDIO_RETURN_CHAN_ID(chan_id);
+	if(s_sdio_driver.chan[chan_id].rx_direct == 0)
+	{
+		SDIO_LOG_DEBUG("chan%d RX isn't init", chan_id);
+		return BK_ERR_SDIO_CHAN_DIRECT_NOT_INIT;
+	}
 
 	int_level = rtos_disable_int();
 	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 
+	if(chan_buf_p->ongoing_list.head == NULL)
+	{
+		rtos_enable_int(int_level);
+		//should use bk_sdio_slave_sync_read to push buffer
+		SDIO_LOG_WARNING("chan%d RX hasn't buffer node", chan_id);
+		return BK_ERR_SDIO_NO_BUFFER;
+	}
+
 	if(count > chan_buf_p->buf_size)
 	{
 		//TODO:Assert
+		SDIO_LOG_ERR("chan%d RX no buf", chan_id);
 		return BK_FAIL;
 	}
-		
+
 	//*trans_len_p = s_sdio_driver.chan[chan_id].chan_buf[buf_index].transaction_len;
 	left_size = chan_buf_p->buf_size - s_sdio_driver.chan[chan_id].chan_buf[buf_index].transaction_len;
 	if(left_size >= count)
@@ -1138,19 +1238,23 @@ static bk_err_t sdio_slave_get_valid_ongoing_rx_buf_ptr(sdio_chan_id_t chan_id, 
 	{
 		sdio_node_ptr_t head_p = NULL;
 
+		SDIO_LOG_DEBUG("chan-%d rx buf next", chan_id);
 		//pop out the buffer node from ongoing list
 		ret = sdio_chan_pop_ongoing_node(chan_id, SDIO_CHAN_RX, &head_p);
+		if((ret == BK_OK) && head_p)
+		{
+			//push current node to rx finish list
+			//here can't confirm this is one packet as maybe host packet size is large then slave node capacity.
+			sdio_chan_push_finish_list(chan_id, SDIO_CHAN_RX, head_p, head_p, 1);
 
-		//push current node to rx finish list
-		//here can't confirm this is one packet as maybe host packet size is large then slave node capacity.
-		sdio_chan_push_finish_list(chan_id, SDIO_CHAN_RX, head_p, NULL, 1);
-
-		//get next valid node
-		s_sdio_driver.chan[chan_id].chan_buf[buf_index].transaction_len = 0;
-		*buf_p = (uint8_t *)chan_buf_p->ongoing_list.head + sizeof(sdio_node_t);
+			s_sdio_driver.chan[chan_id].chan_buf[buf_index].transaction_len = 0;
+			*buf_p = (uint8_t *)head_p + sizeof(sdio_node_t);
+		}
 	}
 
+	SDIO_LOG_DEBUG("chan-%d rx buf addr=0x%08x,cnt=%d", chan_id, *buf_p, count);
 	rtos_enable_int(int_level);
+	SDIO_LOG_DEBUG_FUNCTION_EXIT();
 
 	return ret;
 }
@@ -1160,7 +1264,7 @@ static bk_err_t sdio_slave_get_valid_ongoing_tx_buf_ptr(sdio_chan_id_t chan_id, 
 	bk_err_t ret = BK_OK;
 	uint32_t int_level = 0;
 	uint32_t left_size = 0;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = SDIO_CHAN_TX;
 #else
 	uint32_t buf_index = 0;
@@ -1168,8 +1272,12 @@ static bk_err_t sdio_slave_get_valid_ongoing_tx_buf_ptr(sdio_chan_id_t chan_id, 
 	sdio_chan_buf_t *chan_buf_p = NULL;
 
 	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
-
 	SDIO_RETURN_CHAN_ID(chan_id);
+	if(s_sdio_driver.chan[chan_id].tx_direct == 0)
+	{
+		SDIO_LOG_DEBUG("chan%d TX isn't init", chan_id);
+		return BK_ERR_SDIO_CHAN_DIRECT_NOT_INIT;
+	}
 
 	int_level = rtos_disable_int();
 	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
@@ -1178,8 +1286,11 @@ static bk_err_t sdio_slave_get_valid_ongoing_tx_buf_ptr(sdio_chan_id_t chan_id, 
 	{
 		*buf_p = (uint8_t *)chan_buf_p->ongoing_list.head + sizeof(sdio_node_t) + s_sdio_driver.chan[chan_id].chan_buf[buf_index].transaction_len;
 	}
-	else	//this packet finish, next packet
+	else	//this buffer finish, next buffer
 	{
+		*buf_p = NULL;
+		SDIO_LOG_ERR("TODO:chan%d TX", chan_id);
+#if 0
 		sdio_node_ptr_t head_p = NULL;
 		sdio_msg_t msg;
 
@@ -1188,28 +1299,19 @@ static bk_err_t sdio_slave_get_valid_ongoing_tx_buf_ptr(sdio_chan_id_t chan_id, 
 		ret = sdio_chan_pop_ongoing_node(chan_id, SDIO_CHAN_TX, &head_p);
 		if(ret != BK_OK)
 		{
-			SDIO_LOG_ERR("pop node");
-			rtos_enable_int(int_level);
-			return ret;
-		}
-
-		//push to tx finish list
-		ret = sdio_chan_push_finish_list(chan_id, SDIO_CHAN_TX, head_p, NULL, 1);
-		if(ret != BK_OK)
-		{
-			SDIO_LOG_ERR("push lish");
+			SDIO_LOG_ERR("no data to tx");
 			rtos_enable_int(int_level);
 			return ret;
 		}
 #endif
-		//notify application can release buffer
-		msg.id = SDIO_WRITE_NODE_FINISH;
-		sdio_send_msg(&msg);
 
 		//get next tx node
 		s_sdio_driver.chan[chan_id].chan_buf[buf_index].transaction_len = 0;
 		*buf_p = (uint8_t *)chan_buf_p->ongoing_list.head + sizeof(sdio_node_t);
+#endif
 	}	
+
+	SDIO_LOG_DEBUG("chan-%d tx buf addr=0x%08x,cnt=%d", chan_id, *buf_p, len);
 
 	rtos_enable_int(int_level);
 
@@ -1222,13 +1324,14 @@ static bk_err_t sdio_slave_add_ongoing_buf_trans_len(sdio_chan_id_t chan_id, cha
 {
 	bk_err_t ret = BK_OK;
 	uint32_t int_level = 0;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = direct;
 #else
 	uint32_t buf_index = 0;
 #endif
 	sdio_chan_buf_t *chan_buf_p = NULL;
 
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 	SDIO_RETURN_CHAN_ID(chan_id);
 	SDIO_RETURN_CHAN_DIRECT(direct);
 
@@ -1236,9 +1339,47 @@ static bk_err_t sdio_slave_add_ongoing_buf_trans_len(sdio_chan_id_t chan_id, cha
 
 	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 	chan_buf_p->transaction_len += trans_len;
+
+	//buffer full
+	if(chan_buf_p->transaction_len == chan_buf_p->buf_size)
+	{
+		sdio_node_ptr_t head_p = NULL;
+
+		SDIO_LOG_DEBUG("chan-%d tx/rx buf next", chan_id);
+		//pop out the buffer node from ongoing list
+		ret = sdio_chan_pop_ongoing_node(chan_id, direct, &head_p);
+		if(ret == BK_OK)
+		{
+			chan_buf_p->transaction_len = 0;	//set next transaction len to 0
+			//push current node to tx/rx finish list
+			sdio_chan_push_finish_list(chan_id, direct, head_p, head_p, 1);
+		}
+
+#if CONFIG_SDIO_CHANNEL_EN
+		sdio_chan_notify_cb(chan_id, direct);
+#endif
+
+		SDIO_LOG_ERR("TODO:maybe need to notify APP without the buffer full");
+#if 0
+		//notify APP read finish
+		ret = rtos_set_semaphore(&chan_buf_p->semaphore);
+		if(ret != BK_OK)
+		{
+			SDIO_LOG_ERR("get sema");
+			rtos_enable_int(int_level);
+			return BK_FAIL;
+		}
+#endif
+
+		//remove node from finish list
+		sdio_chan_pop_finish_node(chan_id, direct, &head_p);
+		SDIO_LOG_ERR("TODO:APP maybe still wants to use the buffer, so can't release it here");
+	}
+
 	rtos_enable_int(int_level);
 
 	SDIO_LOG_DEBUG("chan_id=%d,tx/rx=%d,tarns_len=%d,total_len=%d", chan_id, direct, trans_len, chan_buf_p->transaction_len);
+	SDIO_LOG_DEBUG_FUNCTION_EXIT();
 
 	return ret;
 }
@@ -1249,12 +1390,14 @@ static bk_err_t sdio_slave_add_ongoing_buf_trans_len(sdio_chan_id_t chan_id, cha
 static bk_err_t sdio_slave_rx_fifo_to_buf(uint8_t *tar_addr_p, uint32_t count)
 {
 	//TODO:DMA not support until now.
-#ifdef CONFIG_SDIO_GDMA_EN
+#if CONFIG_SDIO_GDMA_EN
+	BK_LOG_ON_ERR(bk_dma_set_transfer_len(SDIO_RX_DMA_ID, count));
 	sdio_rx_dma_set_dst_buf(tar_addr_p, count);
-	return bk_dma_start(DMA_ID_5);
+	return bk_dma_start(SDIO_RX_DMA_ID);
 #else	//if not use GDMA, here will block IRQ too much time
 	uint32_t i, byte_cnt = count % 4, word_cnt = count/4;
 	uint8_t *cur_p = tar_addr_p;
+	sdio_msg_t msg;
 
 	//read data from SDIO REG to buffer
 	for(i = 0; i < word_cnt; i = i + 4)
@@ -1279,6 +1422,8 @@ static bk_err_t sdio_slave_rx_fifo_to_buf(uint8_t *tar_addr_p, uint32_t count)
 		*(uint32_t *)cur_p = sdio_hal_slave_read_data();
 	}
 
+	msg.id = SDIO_READ_TO_MEMORY_FINISH;
+	sdio_send_msg(&msg);
 #endif
 
 	return BK_OK;
@@ -1287,10 +1432,12 @@ static bk_err_t sdio_slave_rx_fifo_to_buf(uint8_t *tar_addr_p, uint32_t count)
 static bk_err_t sdio_slave_rx(uint32_t count)
 {
 	uint8_t *tar_addr_p = NULL;
+
 	//TODO: As SW doesn't check header chan_id, so here use default value.
 #if CONFIG_SDIO_CHANNEL_EN
 	sdio_chan_id_t chan_id = SDIO_CHAN_PLATFORM;
 #endif
+
 	//search current channel
 	//TODO:uses CHAN_ID_PLATFORM
 
@@ -1306,13 +1453,9 @@ static bk_err_t sdio_slave_rx(uint32_t count)
 	}
 	else
 	{
+		SDIO_LOG_DEBUG("rx no buf");
 		return BK_FAIL;
 	}
-
-	//update rx transaction len
-#if CONFIG_SDIO_CHANNEL_EN
-	sdio_slave_add_ongoing_buf_trans_len(chan_id, SDIO_CHAN_RX, count);
-#endif
 
 	return BK_OK;
 }
@@ -1326,6 +1469,7 @@ static bk_err_t sdio_slave_rx(uint32_t count)
  * @param chan_id	The selected chan id.
  * @param head_p    The list head of which data will be save read data from peer side
  * @param tail_p    The list tail of which data will be save read data from peer side
+ *                  If there is only one node, the head_p == tail_p
  * @param count     How many nodes will be used to save data.
  *
  * @attention 1. 
@@ -1338,39 +1482,45 @@ bk_err_t bk_sdio_slave_sync_read(sdio_chan_id_t chan_id, sdio_node_ptr_t head_p,
 {
 	bk_err_t ret = BK_OK;
 	uint32_t int_level = 0;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = SDIO_CHAN_RX;
 #else
 	uint32_t buf_index = 0;
 #endif
 	sdio_chan_buf_t *chan_buf_p = NULL;
 
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 	SDIO_RETURN_CHAN_ID(chan_id);
 
 	int_level = rtos_disable_int();
 	chan_buf_p = &s_sdio_driver.chan[chan_id].chan_buf[buf_index];
 
 	ret = sdio_list_push_list(&chan_buf_p->ongoing_list, head_p, tail_p, count);
+	if(ret != BK_OK)
 	{
 		SDIO_LOG_ERR("push list");
 		goto err_exit;
 	}
-
-	chan_buf_p->ongoing_list.count += count;
+	//add this to avoid modify err_exit involve issue.
+	rtos_enable_int(int_level);
 
 	//CMD start
 	sdio_hal_slave_cmd_start(1);
 
 	//TODO:wait read finish
+	SDIO_LOG_ERR("TODO:how to notify APP read finish:Sema/Callback");
+
+#if 0
 	ret = rtos_get_semaphore(&chan_buf_p->semaphore, BEKEN_WAIT_FOREVER);
 	if(ret != BK_OK)
 	{
 		SDIO_LOG_ERR("get sema");
 		goto err_exit;
 	}
+#endif
 
-	//add this to avoid modify err_exit involve issue.
-	rtos_enable_int(int_level);
+	SDIO_LOG_DEBUG_FUNCTION_EXIT();
+
 	return ret;
 
 err_exit:
@@ -1402,12 +1552,14 @@ bk_err_t sdio_slave_async_read(sdio_chan_id_t chan_id, sdio_node_ptr_t head_p, s
 static bk_err_t sdio_slave_tx_buf_to_fifo(uint8_t *src_addr_p, uint32_t count)
 {
 	//TODO:DMA not support until now.
-#ifdef CONFIG_SDIO_GDMA_EN
+#if CONFIG_SDIO_GDMA_EN
+	BK_LOG_ON_ERR(bk_dma_set_transfer_len(SDIO_TX_DMA_ID, count));
 	sdio_tx_dma_set_src_buf(src_addr_p, count);
-	return bk_dma_start(DMA_ID_5);
+	return bk_dma_start(SDIO_TX_DMA_ID);
 #else	//if not use GDMA, here will block IRQ too much time
 	uint32_t i, byte_cnt = count % 4, word_cnt = count/4;
 	uint8_t *cur_p = src_addr_p;
+	sdio_msg_t msg;
 
 	//read data from buffer to SDIO REG(SDIO FIFO)
 	for(i = 0; i < word_cnt; i = i + 4)
@@ -1431,6 +1583,9 @@ static bk_err_t sdio_slave_tx_buf_to_fifo(uint8_t *src_addr_p, uint32_t count)
 		sdio_hal_slave_write_data(*(uint32_t *)cur_p);
 	}
 
+	msg.id = SDIO_WRITE_TO_FIFO_FINISH;
+	sdio_send_msg(&msg);
+
 #endif
 
 	return BK_OK;
@@ -1452,13 +1607,9 @@ static bk_err_t sdio_slave_tx(sdio_chan_id_t chan_id, uint32_t len)
 	}
 	else
 	{
+		SDIO_LOG_DEBUG("tx no data");
 		return BK_FAIL;
 	}
-
-	//update tx transaction len
-#if CONFIG_SDIO_CHANNEL_EN
-	sdio_slave_add_ongoing_buf_trans_len(chan_id, SDIO_CHAN_TX, len);
-#endif
 
 	return BK_OK;
 }
@@ -1484,13 +1635,14 @@ bk_err_t bk_sdio_slave_sync_write(sdio_chan_id_t chan_id, sdio_node_ptr_t head_p
 {
 	bk_err_t ret = BK_OK;
 	uint32_t int_level = 0;
-#if SDIO_BIDIRECT_CHANNEL_EN
+#if CONFIG_SDIO_BIDIRECT_CHANNEL_EN
 	uint32_t buf_index = SDIO_CHAN_TX;
 #else
 	uint32_t buf_index = 0;
 #endif
 	sdio_chan_buf_t *chan_buf_p = NULL;
 	
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 	SDIO_RETURN_CHAN_ID(chan_id);
 
 	int_level = rtos_disable_int();
@@ -1515,15 +1667,20 @@ bk_err_t bk_sdio_slave_sync_write(sdio_chan_id_t chan_id, sdio_node_ptr_t head_p
 #endif
 
 	//TODO:wait write finish
+	SDIO_LOG_ERR("TODO:how to notify APP write finish:Sema/Callback");
+#if 0
+	//TODO:wait write finish
 	ret = rtos_get_semaphore(&chan_buf_p->semaphore, BEKEN_WAIT_FOREVER);
 	if(ret != BK_OK)
 	{
 		SDIO_LOG_ERR("get sema");
 		goto err_exit;
 	}
-
+#endif
 	//add this to avoid modify err_exit involve issue.
 	rtos_enable_int(int_level);
+	SDIO_LOG_DEBUG_FUNCTION_EXIT();
+
 	return ret;
 
 err_exit:
@@ -1555,6 +1712,13 @@ bk_err_t sdio_slave_async_write(sdio_chan_id_t chan_id, sdio_node_ptr_t head_p, 
 static void sdio_thread(void *arg)
 {
 	bk_err_t ret;
+	uint32_t rx_left_bytes = 0;
+	uint32_t tx_left_bytes = 0;
+	//uint32_t tx_app_left_bytes = 0;	//app cnt;
+	sdio_chan_id_t chan_id = SDIO_CHAN_PLATFORM;
+	uint32_t packet_len = 0;
+
+	SDIO_LOG_DEBUG_FUNCTION_ENTRY();
 
 	while(1)
 	{
@@ -1562,25 +1726,146 @@ static void sdio_thread(void *arg)
 		ret = rtos_pop_from_queue(&s_sdio_msg_que, &msg, BEKEN_WAIT_FOREVER);
 		if (kNoErr == ret)
 		{
+			SDIO_LOG_DEBUG("rsp:msg.id=%d,param=%d", msg.id, msg.param);
 			switch(msg.id)
 			{
-				case SDIO_READ_NODE_FINISH:
+				//from SDIO IRQ
+				case SDIO_NOTIFY_START_READ:
 				{
-#if CONFIG_SDIO_CHANNEL_EN
-					sdio_chan_notify_cb(SDIO_CHAN_PLATFORM, SDIO_CHAN_RX);
+					sdio_cmd53_arg_t cmd53_arg;
+
+					cmd53_arg.v = msg.param;
+					if(cmd53_arg.block_mode)
+						rx_left_bytes = cmd53_arg.count * SDIO_BLOCK_SIZE;
+					else
+						rx_left_bytes = cmd53_arg.count;
+
+#if CONFIG_SDIO_SW_CHANNEL_EN
+					chan_id = cmd53_arg.channel;
+#else
+					chan_id = SDIO_CHAN_PLATFORM;
 #endif
 					break;
 				}
 
-				case SDIO_WRITE_NODE_FINISH:
+				//Host to SDIO FIFO finish, so start read data from FIFO to RAM
+				//TODO:move it to sdio_slave_isr to improve the throughput
+				case SDIO_READ_TO_FIFO_FINISH:
 				{
-#if CONFIG_SDIO_CHANNEL_EN
-					sdio_chan_notify_cb(SDIO_CHAN_PLATFORM, SDIO_CHAN_TX);
-#endif
+					if(rx_left_bytes >= SDIO_BLOCK_SIZE)
+					{
+						packet_len = SDIO_BLOCK_SIZE;
+					}
+					else
+						packet_len = rx_left_bytes;
+
+					if(packet_len)
+					{
+						sdio_slave_rx(packet_len);
+					}
+
 					break;
 				}
 
-				//DMA INT notify
+				//SDIO FIFO to RAM read finish,now data is in RAM
+				case SDIO_READ_TO_MEMORY_FINISH:
+				{
+					//slave can receive data again
+					sdio_hal_slave_rx_clear_host_wait_write_data();
+					
+					//allow host send next block
+					sdio_hal_slave_notify_host_next_block();
+
+					if(rx_left_bytes >= SDIO_BLOCK_SIZE)
+					{
+						rx_left_bytes -= SDIO_BLOCK_SIZE;
+					}
+					else
+					{
+						rx_left_bytes = 0;	//last block
+					}
+
+					//save data from sdio to buffer
+					SDIO_LOG_ERR("TODO:chan_id should check");
+
+					sdio_slave_add_ongoing_buf_trans_len(chan_id, SDIO_CHAN_RX, packet_len);
+					SDIO_LOG_DEBUG("read left %d bytes", rx_left_bytes);
+
+					//NOTES:if wants to keep fifo clean, here do reset
+					if(rx_left_bytes == 0)
+					{
+						SDIO_LOG_DEBUG("TODO:reset fifo to keep clean");
+						//sdio_hal_fifo_reset();
+					}
+					break;
+				}
+
+				//from SDIO IRQ
+				case SDIO_NOTIFY_START_WRITE:
+				{
+					tx_left_bytes = msg.param;
+					sdio_hal_set_tx_fifo_empty_int(1);	//start to wait empty and write first block data
+					break;
+				}
+
+				case SDIO_WRITE_TO_FIFO_FINISH:
+				{
+					//enable int mask to wait finish
+					sdio_hal_set_tx_fifo_empty_int(1);
+
+					if(tx_left_bytes > SDIO_BLOCK_SIZE)
+					{
+						tx_left_bytes -= SDIO_BLOCK_SIZE;
+					}
+					else
+						tx_left_bytes = 0;	//last block
+
+					sdio_hal_slave_set_blk_size(packet_len);
+					
+					//start transaction from FIFO to HOST, wait host read finish
+					while(sdio_ll_get_sd_slave_wr_finish())
+					{
+						volatile uint32_t itemp = 0;
+						itemp++;
+						if(itemp > 0x100000)
+						{
+							SDIO_LOG_ERR("previous block write timeout");
+							break;
+						}
+					}
+					
+					sdio_hal_slave_tx_transaction_en();
+
+					//update tx buffer write pointer
+					sdio_slave_add_ongoing_buf_trans_len(chan_id, SDIO_CHAN_TX, packet_len);
+					SDIO_LOG_DEBUG("write left %d bytes", tx_left_bytes);
+
+					break;
+				}
+
+				case SDIO_WRITE_NOTIFY_FIFO_EMPTY:
+				{
+					SDIO_LOG_INFO("TODO:TX channel should get from the channel list");
+					chan_id = SDIO_CHAN_PLATFORM;
+					
+					if(tx_left_bytes > SDIO_BLOCK_SIZE)
+					{
+						packet_len = SDIO_BLOCK_SIZE;
+					}
+					else
+						packet_len = tx_left_bytes;
+
+					//TODO:CHAN ID is fixed. 
+					//save data to sdio fifo
+					if(packet_len)
+					{
+						sdio_slave_tx(chan_id, packet_len);
+					}
+					else	//slave no data need to tx
+						sdio_hal_set_tx_fifo_empty_int(0);
+
+					break;
+				}
 
 				default:
 					break;
@@ -1647,7 +1932,10 @@ static void sdio_slave_isr(void)
 	//uint32_t cmd_arg0 = 0;
 	//uint32_t cmd_arg1 = 0;
 
-	os_printf("SDIO enter interrupt Reg0x9=0x%x \r\n", reg0x9_v);
+	SDIO_LOG_DEBUG("%s[+]: Reg0x9=0x%x",__func__, reg0x9_v);
+
+	//Temp debug
+	//bk_sdio_driver_dump_sdio_regs();
 
 	//Slave response end int
 	if(sdio_hal_slave_get_cmd_response_end_int())
@@ -1658,28 +1946,13 @@ static void sdio_slave_isr(void)
 			{
 				uint32_t cmd52_arg0 = sdio_hal_slave_get_func_reg_value();
 
-				//host write func reg0 to 1, notify slave stop, which means one packet send finish.
+				//host write func reg0 to 1, notify slave stop multi-blk infinite transfer.
 				if(((sdio_cmd52_func_arg0_t) cmd52_arg0).stop == 1)
 				{
-					sdio_msg_t  msg;
-
-#if CONFIG_SDIO_CHANNEL_EN
-					sdio_node_ptr_t head_p = NULL;
-					//pop out the buffer node from ongoing list
-					//TODO:channel value is fixed.
-					sdio_chan_pop_ongoing_node(SDIO_CHAN_PLATFORM, SDIO_CHAN_RX, &head_p);
-
-					//push to rx finish list
-					//TODO:channel value is fixed.
-					sdio_chan_push_finish_list(SDIO_CHAN_PLATFORM, SDIO_CHAN_RX, head_p, NULL, 1);
-#endif
-					//notify data finish
-					msg.id = SDIO_READ_NODE_FINISH;
-					sdio_send_msg(&msg);
-
 					//clear stop status
 					sdio_hal_slave_clear_stop();
 				}
+
 				//host read:get slave tx length
 				{
 					//do nothing, just wait next cmd:cmd53
@@ -1694,64 +1967,120 @@ static void sdio_slave_isr(void)
 			
 			case SDIO_CMD_INDEX_53:
 			{
-				uint32_t cmd53_arg = sdio_hal_slave_get_cmd_arg0();
-				
-				if(((sdio_cmd53_arg_t)cmd53_arg).rw)	//host read, slave write
+				sdio_cmd53_arg_t cmd53_arg;
+				uint32_t cmd53_arg_value = 0;
+				cmd53_arg.v = cmd53_arg_value = sdio_hal_slave_get_cmd_arg0();
+
+				SDIO_LOG_DEBUG("cmd53_arg_value=0x%x", cmd53_arg_value);
+				//sdio_driver_logout_cmd53_args(cmd53_arg);
+
+				if(cmd53_arg.rw)	//host write, slave read
 				{
-					//TODO:CHAN ID is fixed. 
-					//save data to sdio fifo
-					sdio_slave_tx(SDIO_CHAN_PLATFORM, (uint32_t)((sdio_cmd53_arg_t)cmd53_arg).count);
-					//start transaction en, wait host read
-					sdio_hal_slave_tx_transaction_en();
+					//notify sdio task to read data
+					if(cmd53_arg.block_mode)
+					{
+						s_sdio_rx_bytes = SDIO_BLOCK_SIZE * cmd53_arg.count;
+						if(cmd53_arg.count)
+							SDIO_LOG_DEBUG("Host write:%d blocks(x 512bytes)", cmd53_arg.count);
+						else
+							SDIO_LOG_DEBUG("Host write:multi-blocks till stop");
+					}
+					else
+					{
+						s_sdio_rx_bytes = cmd53_arg.count;
+						SDIO_LOG_DEBUG("Host write:%d bytes", cmd53_arg.count);
+					}
+
+					sdio_msg_t msg;
+
+					msg.id = SDIO_NOTIFY_START_READ;
+					msg.param = cmd53_arg.v;
+					sdio_send_msg(&msg);
 				}
-				else	//host write, slave read
+				else	//host read, slave write
 				{
-					//donothing, just wait next cmd
+					//notify sdio task to read data
+					if(cmd53_arg.block_mode)
+					{
+						s_sdio_tx_bytes = SDIO_BLOCK_SIZE * cmd53_arg.count;
+						if(cmd53_arg.count)
+							SDIO_LOG_DEBUG("Host read:%d blocks(x 512bytes)", cmd53_arg.count);
+						else
+							SDIO_LOG_DEBUG("Host read:multi-blocks till stop");
+					}
+					else
+					{
+						s_sdio_tx_bytes = cmd53_arg.count;
+						SDIO_LOG_DEBUG("Host read:%d bytes", cmd53_arg.count);
+					}
+
+					sdio_msg_t msg;
+
+					msg.id = SDIO_NOTIFY_START_WRITE;
+					msg.param = s_sdio_tx_bytes;
+					sdio_send_msg(&msg);
 				}
+
 				break;
 			}
 
 			default:
+			{
+				SDIO_LOG_ERR("doesn't support CMD%d", cmd_index);
 				break;
+			}
 		}
 
 		sdio_hal_slave_clear_cmd_response_end_int();	//CMD_S_RES_END_INT
-		os_printf("CMD%d Respond end \r\n", cmd_index);
+		SDIO_LOG_DEBUG("CMD%d Respond end", cmd_index);
 
 		sdio_hal_slave_cmd_start(1);	//wait to receive next CMD.
 
 		//TODO:need to check whether return.
-		//return;
+		return;
 	}
 
 	//slave rx full or finish data int
 	if(sdio_hal_slave_get_read_int_status())
 	{
-		uint32_t cmd53_arg = sdio_hal_slave_get_cmd_arg0();
-		uint32_t rx_cnt = ((sdio_cmd53_arg_t)cmd53_arg).count;
+		sdio_msg_t	msg;
+
+		SDIO_LOG_DEBUG("ISR to Task:Read");
+		msg.id = SDIO_READ_TO_FIFO_FINISH;
+		sdio_send_msg(&msg);
 
 		//clear self int status
 		sdio_hal_slave_clear_read_int_status();
+	}
 
-		//save data from sdio to buffer
-		rx_cnt = sdio_hal_slave_get_rx_count();
-		sdio_slave_rx(rx_cnt);
+	//slave tx fifo empty int
+	if(sdio_hal_get_tx_fifo_empty_int_status())
+	{
+		sdio_msg_t	msg;
 
-		//slave can receive data again
-		sdio_hal_slave_rx_clear_host_wait_write_data();
+		SDIO_LOG_DEBUG("ISR to Task:write");
+		msg.id = SDIO_WRITE_NOTIFY_FIFO_EMPTY;
+		sdio_send_msg(&msg);
 
-		//allow host send next block
-		sdio_hal_slave_notify_host_next_block();
+		//disable int mask
+		sdio_hal_set_tx_fifo_empty_int(0);
 
-		//TODO:need to check whether return.
-		//return;
+		//clear self int status
+		sdio_hal_clear_tx_fifo_empty_int_status();
+	}
+
+	//slave tx write data end int
+	if(sdio_hal_slave_get_wr_end_int())
+	{
+		SDIO_LOG_ERR("TODO:write end int whether similar with empty");
+		sdio_hal_slave_clear_wr_end_int();
 	}
 
 //TODO:
 #if 0
 	if(SDIO_REG0X9_ADDR & (1<<4)){
 		SDIO_REG0X9_ADDR  = (1<<4);	//SD_DATA_WR_END_INT
-		os_printf("write end \r\n");
+		SDIO_LOG_DEBUG("write end");
 		s_write_end = 1;
 	}
 
@@ -1805,12 +2134,19 @@ static bk_err_t sdio_slave_hw_init(void)
 #endif
 
 	//interrupt
+	sdio_hal_slave_set_cmd_res_end_int(1);
+	sdio_hal_slave_set_write_end_int(1);
+	sdio_hal_slave_set_read_end_int(1);
+
 	bk_int_isr_register(INT_SRC_SDIO, sdio_slave_isr, NULL);
 #if	(defined CONFIG_DUAL_CORE && defined CONFIG_SLAVE_CORE)
 	sys_driver_set_cpu1_sdio_int_en(true);
 #else
 	sys_driver_set_cpu0_sdio_int_en(true);
 #endif
+
+	//CMD start:wait Host CMD
+	sdio_hal_slave_cmd_start(1);
 
 	return ret;
 }

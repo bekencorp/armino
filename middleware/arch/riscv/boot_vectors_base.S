@@ -94,7 +94,7 @@ nmi_handler:
 	csrr a0, mcause
 	mv  a1, ra
 	call user_nmi_handler
-	li t0, TRAP_M_USER_NP
+	li t0, TRAP_M_USER_NP_WDT
 	csrw mcause, t0
 	j freertos_risc_v_trap_handler
 	ret

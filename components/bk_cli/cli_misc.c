@@ -14,6 +14,8 @@
 #include <driver/gpio.h>
 #include "bk_ps.h"
 #include "bk_pm_internal_api.h"
+#include "reset_reason.h"
+#include <modules/pm.h>
 #if CONFIG_ARCH_RISCV
 #include "cache.h"
 #endif
@@ -24,7 +26,7 @@ static void efuse_cmd_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 static void efuse_mac_cmd_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif //#if (CONFIG_EFUSE)
 
-static void cli_misc_help(void)
+__maybe_unused static void cli_misc_help(void)
 {
 	CLI_LOGI("pwm_driver init {26M|DCO}\n");
 #if (CONFIG_WIFI_ENABLE)
@@ -57,6 +59,12 @@ void get_version(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv
 	//os_printf("firmware version : %s", BEKEN_SDK_REV);
 	CLI_LOGI("firmware version : %s", build_version);
 }
+
+void cli_show_reset_reason(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	show_reset_reason();
+}
+
 
 void get_id(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
@@ -169,9 +177,15 @@ static void boot_slave_core(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 	
 	//reset_slave_core(offset, reset_value);
 	if(reset_value == 1)
+	{
+		bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_ON);
 		start_slave_core();
+	}
 	else if(reset_value == 0)
+	{
 		stop_slave_core();
+		bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_OFF);
+	}
 	else	//test start/stop many times.
 	{
 		uint32_t i = 0;
@@ -179,11 +193,13 @@ static void boot_slave_core(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 		//start first:odd will be at start status, even will be at stop status
 		while(1)
 		{
+			bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_ON);
 			start_slave_core();
 			i++;
 			if(i == reset_value)
 				break;
 			stop_slave_core();
+			bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_OFF);
 			i++;
 			if(i == reset_value)
 				break;
@@ -196,6 +212,7 @@ static void boot_slave_core(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 }
 #endif
 
+#if (!CONFIG_SLAVE_CORE)
 static void get_jtag_mode(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv) 
 {
 	uint32 jtag_mode = sys_drv_get_jtag_mode();
@@ -275,6 +292,7 @@ static void set_jtag_mode(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 
 	CLI_LOGI("set_jtag_mode end.\r\n");
 }
+#endif
 
 #if CONFIG_COMMON_IO
 extern int common_io_test_main(int argc, const char * argv[]);
@@ -286,7 +304,7 @@ void test_common_io(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **a
 }
 #endif
 
-#if CONFIG_ARCH_RISCV
+#if (CONFIG_ARCH_RISCV && !CONFIG_SLAVE_CORE)
 extern void show_pmp_config(void);
 static void pmp_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
@@ -303,7 +321,7 @@ static void pmp_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		}
 	}
 
-	os_printf("pmp test, get/test1/test2 pmp. e.g. pmp test\r\n");
+	os_printf("Show pmp config info.\r\n");
 	show_pmp_config();
 }
 #endif
@@ -402,6 +420,7 @@ static void cli_adc_key_op(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 #define MISC_CMD_CNT (sizeof(s_misc_commands) / sizeof(struct cli_command))
 static const struct cli_command s_misc_commands[] = {
 	{"version", NULL, get_version},
+	{"starttype", "show start reason type",cli_show_reset_reason},
 	{"id", NULL, get_id},
 	{"reboot", "reboot system", reboot},
 	{"time",   "system time",   uptime_Command},
@@ -418,21 +437,26 @@ static const struct cli_command s_misc_commands[] = {
 #if (CONFIG_MASTER_CORE) 
 	{"bootcore1", "boot slave core,1:start,0:stop,others:start and stop many times", boot_slave_core},
 #endif
+
+#if (!CONFIG_SLAVE_CORE)
+
 	{"jtagmode", "get jtag mode", get_jtag_mode},
 	{"setjtagmode", "set jtag mode {cpu0|cpu1} {group1|group2}", set_jtag_mode},
 #if CONFIG_COMMON_IO
 	{"testcommonio", "test common io", test_common_io},
 #endif
 #if CONFIG_ARCH_RISCV
-	{"pmp", "pmp test, get/test pmp. e.g. pmp test", pmp_command},
+	{"pmp", "show pmp config info", pmp_command},
 #endif
 	{"setprintport", "set log/shell uart port 0/1/2", set_printf_uart_port},
 #if CONFIG_CACHE_ENABLE
 	{"cache", "show cache config info", show_cache_config},
 #endif
 #if CONFIG_ADC_KEY
-		{"adc_key", "adc_key {init|deinit}", cli_adc_key_op},
+	{"adc_key", "adc_key {init|deinit}", cli_adc_key_op},
 #endif
+
+#endif //#if (!CONFIG_SLAVE_CORE)
 };
 
 int cli_misc_init(void)

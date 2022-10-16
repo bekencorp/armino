@@ -154,8 +154,6 @@ bk_err_t bk_aud_adc_deinit(void)
 	adc_config.agc_enable = AUD_AGC_DISABLE;
 	adc_config.manual_pga_value = 0;
 	adc_config.manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
-	adc_config.adc_fracmod_manual = AUD_ADC_TRACMOD_MANUAL_DISABLE;
-	adc_config.adc_fracmod = 0;
 
 	dtmf_config.adc_enable = AUD_ADC_DISABLE;
 	dtmf_config.line_enable = AUD_ADC_LINE_DISABLE;
@@ -279,7 +277,7 @@ bk_err_t bk_aud_driver_deinit(void)
 bk_err_t bk_aud_set_adc_samp_rate(aud_adc_samp_rate_t samp_rate)
 {
 	AUD_RETURN_ON_NOT_INIT();
-	aud_hal_set_audio_config_samp_rate_adc(samp_rate);
+	aud_hal_adc_set_sample_rate(samp_rate);
 	return BK_OK;
 }
 
@@ -327,7 +325,6 @@ bk_err_t bk_aud_set_mic_chl(aud_mic_enable_t mic_chl)
 /* get adc fifo port address */
 bk_err_t bk_aud_get_adc_fifo_addr(uint32_t *adc_fifo_addr)
 {
-	AUD_RETURN_ON_NOT_INIT();
 	*adc_fifo_addr = AUD_ADC_FPORT_ADDR;
 	return BK_OK;
 }
@@ -335,7 +332,6 @@ bk_err_t bk_aud_get_adc_fifo_addr(uint32_t *adc_fifo_addr)
 /* get dtmf fifo port address */
 bk_err_t bk_aud_get_dtmf_fifo_addr(uint32_t *dtmf_fifo_addr)
 {
-	AUD_RETURN_ON_NOT_INIT();
 	*dtmf_fifo_addr = AUD_DTMF_FPORT_ADDR;
 	return BK_OK;
 }
@@ -343,7 +339,6 @@ bk_err_t bk_aud_get_dtmf_fifo_addr(uint32_t *dtmf_fifo_addr)
 /* get dac fifo port address */
 bk_err_t bk_aud_get_dac_fifo_addr(uint32_t *dac_fifo_addr)
 {
-	AUD_RETURN_ON_NOT_INIT();
 	*dac_fifo_addr = AUD_DACL_FPORT_ADDR;
 	return BK_OK;
 }
@@ -559,7 +554,7 @@ bk_err_t bk_aud_dac_deinit(void)
 	aud_dac_config_t dac_config;
 
 	dac_config.dac_enable = AUD_DAC_DISABLE;
-	dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_8K;
+	dac_config.samp_rate = AUD_DAC_SAMP_RATE_8K;
 	dac_config.dac_hpf2_coef_B2 = 0x0;
 	dac_config.dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
 	dac_config.dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_DISABLE;
@@ -578,8 +573,6 @@ bk_err_t bk_aud_dac_deinit(void)
 	dac_config.dacl_int_enable = 0x0;
 
 	dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-	dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-	dac_config.dac_fracmode_value = 0x0;
 
 	aud_hal_dac_config(&dac_config);
 

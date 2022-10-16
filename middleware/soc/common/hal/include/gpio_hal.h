@@ -44,6 +44,29 @@ typedef struct {
 } gpio_wakeup_t;
 #endif
 
+#if CONFIG_GPIO_DEFAULT_SET_SUPPORT
+typedef struct {
+	uint32_t gpio_id:				6;	//gpio_id_t
+
+	/* if second func en,then second_func_dev value is valid */
+	uint32_t second_func_en:		1;	//gpio_func_mode_t
+	uint32_t second_func_dev:		8;	//gpio_dev_t
+
+	uint32_t io_mode:				2;	//gpio_io_mode_t
+	uint32_t pull_mode:				2;	//gpio_pull_mode_t
+
+	/* if int en and then int_type is valid */
+	uint32_t int_en:				1;	//gpio_int_mode_t
+	uint32_t int_type:				2;	//gpio_int_type_t
+
+	uint32_t low_power_io_ctrl:		2;	//gpio_lowpower_mode_t
+
+	uint32_t driver_capacity:		2;	//gpio_driver_capacity_t
+}gpio_default_map_t;
+
+bk_err_t gpio_hal_default_map_init(gpio_hal_t *hal);
+#endif
+
 bk_err_t gpio_hal_init(gpio_hal_t *hal);
 bk_err_t gpio_hal_disable_jtag_mode(gpio_hal_t *hal);
 
@@ -75,7 +98,7 @@ bk_err_t gpio_hal_restore_int_type_configs(uint32_t *gpio_int_type_cfg, uint32_t
 bk_err_t gpio_hal_bak_int_enable_configs(uint32_t *gpio_int_enable_cfg, uint32_t count);
 bk_err_t gpio_hal_restore_int_enable_configs(uint32_t *gpio_int_enable_cfg, uint32_t count);
 /* gpio switch to low power status:set all gpios to input mode */
-bk_err_t gpio_hal_switch_to_low_power_status(void);
+bk_err_t gpio_hal_switch_to_low_power_status(uint64_t skip_io);
 #else
 bk_err_t gpio_hal_reg_save(uint32_t*  gpio_cfg);
 bk_err_t gpio_hal_reg_restore(uint32_t*  gpio_cfg);

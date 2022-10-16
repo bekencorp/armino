@@ -15,16 +15,13 @@
 #define TAG "init"
 #define DISPLAY_START_TYPE_STR 1
 
-/* 1. For bk7231n/7236, persist memory lost after power on
- * 2. For other platform, persist memory lost after interrupt watchdog or power on
- * */
-#define PERSIST_MEMORY_ADDR (0x0040001c)
 
-static RESET_SOURCE_STATUS s_start_type;
+
+static uint32_t s_start_type;
 static uint32_t s_misc_value_save;
 static uint32_t s_mem_value_save;
 
-RESET_SOURCE_STATUS bk_misc_get_start_type(void)
+uint32_t bk_misc_get_reset_reason(void)
 {
 	return s_start_type;
 }
@@ -66,6 +63,9 @@ static char *misc_get_start_type_str(uint32_t start_type)
 	case RESET_SOURCE_DEEPPS_RTC:
 		return "deep sleep rtc";
 
+	case RESET_SOURCE_DEEPPS_TOUCH:
+		return "deep sleep touch";
+
 	case RESET_SOURCE_CRASH_ILLEGAL_JUMP:
 		return "illegal jump";
 
@@ -81,12 +81,21 @@ static char *misc_get_start_type_str(uint32_t start_type)
 	case RESET_SOURCE_CRASH_UNUSED:
 		return "unused";
 
+	case RESET_SOURCE_CRASH_ILLEGAL_INSTRUCTION:
+		return "illegal instruction";
+
+	case RESET_SOURCE_CRASH_MISALIGNED:
+		return "misaligned";
+
+	case RESET_SOURCE_CRASH_ASSERT:
+		return "assert";
+
 	case RESET_SOURCE_DEEPPS_USB:
 		return "deep sleep usb";
 
 	case RESET_SOURCE_UNKNOWN:
 	default:
-		return "unknow";
+		return "unknown";
 	}
 #else
 	return "";
@@ -107,7 +116,7 @@ void show_reset_reason(void)
 
 #if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A)
 //only can be do once
-RESET_SOURCE_STATUS reset_reason_init(void)
+uint32_t reset_reason_init(void)
 {
 	uint32_t misc_value;
 	sctrl_ctrl(CMD_GET_SCTRL_RETETION, &misc_value);
@@ -155,24 +164,39 @@ RESET_SOURCE_STATUS reset_reason_init(void)
 	return s_start_type;
 }
 
-void bk_misc_update_set_type(uint32_t type)
+void bk_misc_set_reset_reason(uint32_t type)
 {
 	uint32_t misc_value = type & SW_RETENTION_VAL_MASK;
 	sctrl_ctrl(CMD_SET_SCTRL_RETETION, &misc_value);
 }
+
 #elif (CONFIG_SOC_BK7256XX)
-RESET_SOURCE_STATUS reset_reason_init(void)
-{
-	return RESET_SOURCE_UNKNOWN;
+
+uint32_t reset_reason_init(void) {
+#if (!CONFIG_SLAVE_CORE)
+	uint32_t misc_value = REG_READ(START_TYPE_ADDR) >> 1;
+	s_start_type = misc_value;
+
+	s_misc_value_save = misc_value;
+	s_mem_value_save = persist_memory_get();
+	persist_memory_init();
+
+#endif
+
+	return s_start_type;
 }
 
-void bk_misc_update_set_type(uint32_t type)
+void bk_misc_set_reset_reason(uint32_t type)
 {
-
+#if (!CONFIG_SLAVE_CORE)
+	uint32_t misc_value = (type << 1) | REG_GET_BIT(START_TYPE_ADDR, 0x1);
+	REG_WRITE(START_TYPE_ADDR, misc_value);
+#endif
 }
+
 #else
 //only can be do once
-RESET_SOURCE_STATUS reset_reason_init(void)
+uint32_t reset_reason_init(void)
 {
 	uint32_t misc_value = *((volatile uint32_t *)(START_TYPE_ADDR));
 
@@ -224,7 +248,7 @@ RESET_SOURCE_STATUS reset_reason_init(void)
 	return s_start_type;
 }
 
-void bk_misc_update_set_type(uint32_t type)
+void bk_misc_set_reset_reason(uint32_t type)
 {
 	*((volatile uint32_t *)(START_TYPE_ADDR)) = (uint32_t)type;
 }

@@ -25,7 +25,6 @@
 
 #include "boot.h"
 
-
 #if (!CONFIG_SLAVE_CORE)
 
 static beken_thread_function_t s_user_app_entry = NULL;
@@ -191,7 +190,7 @@ void reset_slave_core(uint32 offset, uint32_t reset_value)
 void start_slave_core(void)
 {
 #if (CONFIG_SLAVE_CORE_OFFSET && CONFIG_SLAVE_CORE_RESET_VALUE)
-	bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_ON);
+	//bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_ON);
 	reset_slave_core(CONFIG_SLAVE_CORE_OFFSET, CONFIG_SLAVE_CORE_RESET_VALUE);
 #endif
 	os_printf("start_slave_core end.\r\n");
@@ -202,7 +201,7 @@ void stop_slave_core(void)
 #if (CONFIG_SLAVE_CORE_OFFSET && CONFIG_SLAVE_CORE_RESET_VALUE)
 	uint32_t reset_value = ( 0x1) & (~CONFIG_SLAVE_CORE_RESET_VALUE);
 	reset_slave_core(CONFIG_SLAVE_CORE_OFFSET, reset_value);
-	bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_OFF);
+	//bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_OFF);
 #endif
 
 	os_printf("stop_slave_core end.\r\n");
@@ -213,6 +212,7 @@ void stop_slave_core(void)
 #if (!CONFIG_SLAVE_CORE)
 static void user_app_thread( void *arg )
 {
+	rtos_user_app_waiting_for_launch();
 	/* add your user_main*/
 	os_printf("user app entry(0x%0x)\r\n", s_user_app_entry);
 	if(NULL != s_user_app_entry) {
@@ -259,7 +259,8 @@ static void app_main_thread(void *arg)
 	main();
 
 #if (CONFIG_MASTER_CORE)
-	start_slave_core();
+	//bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_ON);
+	//start_slave_core();
 #endif
 
 #if CONFIG_MATTER_START
@@ -322,17 +323,14 @@ void entry_main(void)
 	start_user_app_thread();
 #endif
 
+#if (!CONFIG_SLAVE_CORE) && (CONFIG_ARCH_RISCV) && (CONFIG_FREERTOS_V10)
+	extern void rtos_init_base_time(void);
+	rtos_init_base_time();
+#endif
+
 #if CONFIG_SAVE_BOOT_TIME_POINT
 	save_mtime_point(CPU_START_SCHE_TIME);
 #endif
 
 	rtos_start_scheduler();
 }
-
-#if CONFIG_CMSIS
-__attribute__((weak)) void _start(void)
-{
-    entry_main();
-}
-#endif
-

@@ -64,8 +64,22 @@ static uint32_t audio_tras_mb_busy_status = false;
 static bk_err_t audio_tras_send_msg(audio_tras_opcode_t op, uint32_t param1, uint32_t param2, uint32_t param3);
 #endif
 
+#if CONFIG_AUD_TRAS_DAC_DEBUG
+static bool dac_debug_enable = false ;
+#endif
+
+static bk_err_t aud_intf_voc_write_spk_data(uint8_t *dac_buff, uint32_t size);
+
+#if CONFIG_AUD_TRAS_DAC_DEBUG
+bk_err_t bk_aud_intf_set_voc_dac_debug(bool enable)
+{
+	dac_debug_enable = enable;
+	return aud_tras_drv_send_msg(AUD_TRAS_VOC_DAC_BEBUG, (void *)&dac_debug_enable);
+}
+#endif
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 static void audio_tras_aec_dump_config(void)
 {
 	sprintf(aud_intf_info.sin_file_name, "1:/%s", "aec_dump_sin.pcm");
@@ -160,7 +174,8 @@ static bk_err_t audio_tras_aec_dump_handle(void)
 
 	return BK_OK;
 }
-#endif
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 
 static bk_err_t aud_intf_send_msg_with_sem(aud_tras_drv_op_t op, void *param, uint32_t ms)
 {
@@ -315,7 +330,7 @@ bk_err_t bk_aud_intf_set_spk_gain(uint8_t value)
 	return BK_ERR_AUD_INTF_STA;
 }
 
-bk_err_t bk_aud_intf_set_spk_samp_rate(aud_dac_samp_rate_source_t samp_rate)
+bk_err_t bk_aud_intf_set_spk_samp_rate(aud_dac_samp_rate_t samp_rate)
 {
 	CHECK_AUD_INTF_BUSY_STA();
 
@@ -704,6 +719,7 @@ static void aud_intf_voc_deconfig(void)
 #endif
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 	os_free(aud_intf_info.voc_info.aec_dump.mic_dump_addr);
 	aud_intf_info.voc_info.aec_dump.mic_dump_addr = NULL;
 	os_free(aud_intf_info.voc_info.aec_dump.ref_dump_addr);
@@ -717,7 +733,8 @@ static void aud_intf_voc_deconfig(void)
 	if (ret != BK_OK) {
 		LOGE("close aec dump file fail \r\n");
 	}
-#endif
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 }
 
 static void aud_tras_drv_voc_event_cb_handle(aud_tras_drv_voc_event_t event, bk_err_t result)
@@ -739,14 +756,9 @@ static void aud_tras_drv_voc_event_cb_handle(aud_tras_drv_voc_event_t event, bk_
 
 		case EVENT_AUD_TRAS_VOC_STOP:
 			LOGD("stop voc transfer complete \r\n");
-#if CONFIG_AUD_TRAS_MODE_CPU1
-			audio_tras_send_msg(AUD_TRAS_EXIT, 0, 0, 0);
-#endif
-
-#if CONFIG_AUD_TRAS_MODE_CPU0
-			//bk_aud_tras_drv_deconfig();
-			//aud_intf_info.status = AUD_INTF_STA_IDLE;
-#endif
+			aud_intf_info.voc_status = AUD_INTF_VOC_STA_STOP;
+			aud_intf_info.api_info.result = result;
+			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
 
 		case EVENT_AUD_TRAS_VOC_DEINIT:
@@ -770,10 +782,12 @@ static void aud_tras_drv_voc_event_cb_handle(aud_tras_drv_voc_event_t event, bk_
 			break;
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 		case EVENT_AUD_TRAS_VOC_AEC_DUMP:
 			audio_tras_aec_dump_handle();
 			//os_printf("stop audio transfer complete \r\n");
 			break;
+#endif
 #endif
 
 		default:
@@ -796,7 +810,7 @@ bk_err_t bk_aud_intf_voc_init(aud_intf_voc_setup_t setup)
 	/* audio config */
 	aud_intf_info.voc_info.aud_setup.adc_gain = setup.mic_gain;	//default: 0x2d
 	aud_intf_info.voc_info.aud_setup.dac_gain = setup.spk_gain;	//default: 0x2d
-	aud_intf_info.voc_info.aud_setup.mic_frame_number = 2;
+	aud_intf_info.voc_info.aud_setup.mic_frame_number = 15;
 	aud_intf_info.voc_info.aud_setup.mic_samp_rate_points = 160;	//if AEC enable , the value is equal to aec_samp_rate_points, and the value not need to set
 	aud_intf_info.voc_info.aud_setup.speaker_frame_number = 2;
 	aud_intf_info.voc_info.aud_setup.speaker_samp_rate_points = 160;	//if AEC enable , the value is equal to aec_samp_rate_points, and the value not need to set
@@ -892,6 +906,7 @@ bk_err_t bk_aud_intf_voc_init(aud_intf_voc_setup_t setup)
 	aud_intf_info.voc_info.aud_tras_drv_voc_event_cb = aud_tras_drv_voc_event_cb_handle;
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 	if (aud_intf_info.voc_info.samp_rate == AUD_INTF_VOC_SAMP_RATE_8K)
 		aud_intf_info.voc_info.aec_dump.len = 320;
 	else if (aud_intf_info.voc_info.samp_rate == AUD_INTF_VOC_SAMP_RATE_16K)
@@ -927,7 +942,8 @@ bk_err_t bk_aud_intf_voc_init(aud_intf_voc_setup_t setup)
 		err = BK_ERR_AUD_INTF_FILE;
 		goto aud_intf_voc_init_exit;
 	}
-#endif
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 
 	ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_VOC_INIT, (void *)&aud_intf_info.voc_info);
 	if (ret != BK_OK) {
@@ -964,13 +980,15 @@ aud_intf_voc_init_exit:
 	aud_intf_info.voc_info.aud_tras_drv_voc_event_cb = NULL;
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 	if (aud_intf_info.voc_info.aec_dump.mic_dump_addr != NULL)
 		os_free(aud_intf_info.voc_info.aec_dump.mic_dump_addr);
 	if (aud_intf_info.voc_info.aec_dump.ref_dump_addr != NULL)
 		os_free(aud_intf_info.voc_info.aec_dump.ref_dump_addr);
 	if (aud_intf_info.voc_info.aec_dump.out_dump_addr != NULL)
 		os_free(aud_intf_info.voc_info.aec_dump.out_dump_addr);
-#endif
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 	aud_intf_info.api_info.busy_status = false;
 
 	return err;
@@ -989,12 +1007,51 @@ bk_err_t bk_aud_intf_voc_deinit(void)
 
 bk_err_t bk_aud_intf_voc_start(void)
 {
+	switch (aud_intf_info.voc_status) {
+		case AUD_INTF_VOC_STA_NULL:
+		case AUD_INTF_VOC_STA_START:
+			return BK_ERR_AUD_INTF_STA;
+
+		case AUD_INTF_VOC_STA_IDLE:
+		case AUD_INTF_VOC_STA_STOP:
+			if (ring_buffer_get_fill_size(aud_intf_info.voc_info.rx_info.decoder_rb)/aud_intf_info.voc_info.rx_info.frame_size < aud_intf_info.voc_info.rx_info.fifo_frame_num) {
+				uint8_t *temp_buff = NULL;
+				uint32_t temp_size = aud_intf_info.voc_info.rx_info.frame_size * aud_intf_info.voc_info.rx_info.fifo_frame_num - ring_buffer_get_fill_size(aud_intf_info.voc_info.rx_info.decoder_rb);
+				temp_buff = os_malloc(temp_size);
+				if (temp_buff == NULL) {
+					return BK_ERR_AUD_INTF_MEMY;
+				} else {
+					os_memset(temp_buff, 0xD5, temp_size);
+					aud_intf_voc_write_spk_data(temp_buff, temp_size);
+					os_free(temp_buff);
+				}
+			}
+			break;
+
+		default:
+			return BK_ERR_AUD_INTF_FAIL;
+	}
+
 	CHECK_AUD_INTF_BUSY_STA();
 	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_START, NULL, 2000);
 }
 
 bk_err_t bk_aud_intf_voc_stop(void)
 {
+	switch (aud_intf_info.voc_status) {
+		case AUD_INTF_VOC_STA_NULL:
+		case AUD_INTF_VOC_STA_IDLE:
+		case AUD_INTF_VOC_STA_STOP:
+			return BK_ERR_AUD_INTF_STA;
+			break;
+
+		case AUD_INTF_VOC_STA_START:
+			break;
+
+		default:
+			return BK_ERR_AUD_INTF_FAIL;
+	}
+
 	CHECK_AUD_INTF_BUSY_STA();
 	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_STOP, NULL, 1000);
 }
@@ -1463,39 +1520,20 @@ aud_intf_drv_deinit_exit:
 static bk_err_t aud_intf_voc_write_spk_data(uint8_t *dac_buff, uint32_t size)
 {
 	uint32_t write_size = 0;
-	bk_err_t ret = BK_OK;
 
 	//os_printf("enter: %s \r\n", __func__);
 
-	if (aud_intf_info.voc_status == AUD_INTF_VOC_STA_IDLE || aud_intf_info.voc_status == AUD_INTF_VOC_STA_START) {
-		if (ring_buffer_get_free_size(aud_intf_info.voc_info.rx_info.decoder_rb) >= size) {
-			write_size = ring_buffer_write(aud_intf_info.voc_info.rx_info.decoder_rb, dac_buff, size);
-			if (write_size != size) {
-				LOGE("write decoder_ring_buff fail, size:%d \r\n", size);
-				return BK_FAIL;
-			}
-			aud_intf_info.voc_info.rx_info.rx_buff_seq_tail += size/(aud_intf_info.voc_info.rx_info.frame_size);
-		}
+	/* check aud_intf status */
+	if (aud_intf_info.voc_status == AUD_INTF_VOC_STA_NULL)
+		return BK_ERR_AUD_INTF_STA;
 
-		if (aud_intf_info.voc_status == AUD_INTF_VOC_STA_START) {
-			return BK_OK;
+	if (ring_buffer_get_free_size(aud_intf_info.voc_info.rx_info.decoder_rb) >= size) {
+		write_size = ring_buffer_write(aud_intf_info.voc_info.rx_info.decoder_rb, dac_buff, size);
+		if (write_size != size) {
+			LOGE("write decoder_ring_buff fail, size:%d \r\n", size);
+			return BK_FAIL;
 		}
-
-		/* send audio msg to start audio transfer */
-		if ((aud_intf_info.voc_status == AUD_INTF_VOC_STA_IDLE) && (ring_buffer_get_fill_size(aud_intf_info.voc_info.rx_info.decoder_rb)/aud_intf_info.voc_info.rx_info.frame_size == aud_intf_info.voc_info.rx_info.fifo_frame_num)) {
-#if CONFIG_AUD_TRAS_MODE_CPU0
-			ret = bk_aud_intf_voc_start();
-#endif
-
-#if CONFIG_AUD_TRAS_MODE_CPU1
-			audio_tras_send_aud_mb_msg(AUD_TRAS_MB_CMD_START_TRANSFER, 0, 0, 0);
-#endif
-			if (ret != BK_OK) {
-				LOGE("start audio transfer fail \r\n");
-				return ret;
-			}
-			//aud_intf_info.status = AUD_TRAS_STA_WORKING;
-		}
+		aud_intf_info.voc_info.rx_info.rx_buff_seq_tail += size/(aud_intf_info.voc_info.rx_info.frame_size);
 	}
 
 	return BK_OK;

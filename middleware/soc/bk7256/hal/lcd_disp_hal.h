@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "lcd_disp_ll_macro_def_mp2.h"
+#include "lcd_disp_ll_macro_def.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,10 +39,12 @@ extern "C" {
 //common rgb and 8080 all use
 #define lcd_hal_soft_reset                 lcd_disp_ll_set_display_int_soft_rset
 #define lcd_hal_display_yuv_sel            lcd_disp_ll_set_hsync_vsync_yuv_sel
+#define lcd_hal_get_display_yuv_sel        lcd_disp_ll_get_hsync_vsync_yuv_sel
 #define lcd_hal_set_rgb_data_revert        lcd_disp_ll_set_rgb_sync_low_pfc_pixel_reve  //rgb display input data two byte revert
 #define lcd_hal_set_display_read_base_addr lcd_disp_ll_set_mater_rd_base_addr
 #define lcd_hal_set_partial_display_en     lcd_disp_ll_set_rgb_clum_offset_partial_area_ena
 #define lcd_hal_set_pixel_reverse          lcd_disp_ll_set_rgb_sync_low_pfc_pixel_reve
+#define lcd_hal_get_pixel_reverse          lcd_disp_ll_get_rgb_sync_low_pfc_pixel_reve
 
 void lcd_hal_set_partical_display(uint8_t partial_en, uint16_t partial_clum_l, uint16_t partial_clum_r, uint16_t partial_line_l, uint16_t partial_line_r);
 void lcd_hal_set_data_fifo_thrd(uint16_t wr_threshold_val, uint16_t rd_threshold_val);
@@ -62,6 +64,7 @@ void lcd_hal_set_sync_low(uint8_t hsync_back_low, uint16_t vsync_back_low);
 #define lcd_hal_get_8080_fifo_empty_status      lcd_disp_ll_get_disp_status_disp_fifo_empty
 #define lcd_hal_get_8080_fifo_near_full_status  lcd_disp_ll_get_disp_status_disp_fifo_near_full
 void lcd_hal_8080_cmd_send(uint8_t param_count, uint32_t command, uint32_t *param);
+void bk_lcd_send_data(uint32_t command, uint16_t *data, uint32_t len);
 
 
 //common

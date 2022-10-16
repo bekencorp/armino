@@ -276,11 +276,9 @@ void cli_aud_adc_dma_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 		adc_config.agc_enable = AUD_AGC_DISABLE;
 		adc_config.manual_pga_value = 0;
 		adc_config.manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
-		adc_config.adc_fracmod_manual = AUD_ADC_TRACMOD_MANUAL_DISABLE;
-		adc_config.adc_fracmod = 0;
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
-		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_48K;
+		dac_config.samp_rate = AUD_DAC_SAMP_RATE_48K;
 		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
 		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
@@ -301,8 +299,6 @@ void cli_aud_adc_dma_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 		dac_config.dacl_int_enable = 0x0;
 
 		dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		dac_config.dac_fracmode_value = 0x0;
 
 		//init audio driver
 		bk_aud_driver_init();
@@ -443,11 +439,9 @@ void cli_aud_adc_mcp_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 		adc_config.agc_enable = AUD_AGC_DISABLE;
 		adc_config.manual_pga_value = 0;
 		adc_config.manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
-		adc_config.adc_fracmod_manual = AUD_ADC_TRACMOD_MANUAL_DISABLE;
-		adc_config.adc_fracmod = 0;
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
-		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_8K;
+		dac_config.samp_rate = AUD_DAC_SAMP_RATE_8K;
 		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
 		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
@@ -468,8 +462,6 @@ void cli_aud_adc_mcp_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 		dac_config.dacl_int_enable = 0x0;
 
 		dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		dac_config.dac_fracmode_value = 0x0;
 
 		//init audio driver
 		bk_aud_driver_init();
@@ -543,7 +535,7 @@ void cli_aud_dtmf_mcp_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 		dtmf_config.loop_ton2dac = AUD_LOOP_DTMF2DAC_DISABLE;
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
-		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_8K;
+		dac_config.samp_rate = AUD_DAC_SAMP_RATE_8K;
 		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
 		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
@@ -564,8 +556,6 @@ void cli_aud_dtmf_mcp_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 		dac_config.dacl_int_enable = 0x0;
 
 		dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		dac_config.dac_fracmode_value = 0x0;
 
 		//init audio driver
 		bk_aud_driver_init();
@@ -658,11 +648,9 @@ void cli_aud_adc_loop_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 		adc_config.agc_enable = AUD_AGC_DISABLE;
 		adc_config.manual_pga_value = 0;
 		adc_config.manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
-		adc_config.adc_fracmod_manual = AUD_ADC_TRACMOD_MANUAL_DISABLE;
-		adc_config.adc_fracmod = 0;
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
-		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_16K;
+		dac_config.samp_rate = AUD_DAC_SAMP_RATE_16K;
 		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
 		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
@@ -683,8 +671,6 @@ void cli_aud_adc_loop_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 		dac_config.dacl_int_enable = 0x0;
 
 		dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		dac_config.dac_fracmode_value = 0x0;
 
 		//init audio driver
 		ret = bk_aud_driver_init();
@@ -776,7 +762,7 @@ void cli_aud_dtmf_loop_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 		dtmf_config.loop_ton2dac = AUD_LOOP_DTMF2DAC_DISABLE;
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
-		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_8K;
+		dac_config.samp_rate = AUD_DAC_SAMP_RATE_8K;
 		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
 		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
@@ -797,8 +783,6 @@ void cli_aud_dtmf_loop_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 		dac_config.dacl_int_enable = 0x0;
 
 		dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		dac_config.dac_fracmode_value = 0x0;
 
 		//init audio driver
 		ret = bk_aud_driver_init();
@@ -889,26 +873,24 @@ void cli_aud_pcm_mcp_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 		dac_config.dacl_int_enable = 0x0;
 
 		dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		dac_config.dac_fracmode_value = 0x0;
 
 		if (os_strcmp(argv[1], "8000") == 0) {
-			dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_8K;
+			dac_config.samp_rate = AUD_DAC_SAMP_RATE_8K;
 			aud_ptr = (uint32_t *)PCM_8000;
 			aud_len = sizeof(PCM_8000) / sizeof(PCM_8000[0]);
 			os_printf("audio pcm test 8000 start\n");
 		} else if (os_strcmp(argv[1], "16000") == 0) {
-			dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_16K;
+			dac_config.samp_rate = AUD_DAC_SAMP_RATE_16K;
 			aud_ptr = (uint32_t *)PCM_16000;
 			aud_len = sizeof(PCM_16000) / sizeof(PCM_16000[0]);
 			os_printf("audio pcm test 16000 start\n");
 		}else if (os_strcmp(argv[1], "44100") == 0) {
-			dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_44_1K;
+			dac_config.samp_rate = AUD_DAC_SAMP_RATE_44_1K;
 			aud_ptr = (uint32_t *)PCM_44100;
 			aud_len = sizeof(PCM_44100) / sizeof(PCM_44100[0]);
 			os_printf("audio pcm test 44100 start\n");
 		}else if (os_strcmp(argv[1], "48000") == 0) {
-			dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_48K;
+			dac_config.samp_rate = AUD_DAC_SAMP_RATE_48K;
 			aud_ptr = (uint32_t *)PCM_48000;
 			aud_len = sizeof(PCM_48000) / sizeof(PCM_48000[0]);
 			os_printf("audio pcm test 48000 start\n");
@@ -965,22 +947,22 @@ void cli_aud_pcm_dma_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 
 	if (os_strcmp(argv[2], "start") == 0) {
 		if (os_strcmp(argv[1], "8000") == 0) {
-			dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_8K;
+			dac_config.samp_rate = AUD_DAC_SAMP_RATE_8K;
 			aud_ptr = (uint32_t *)PCM_8000;
 			aud_len = sizeof(PCM_8000) / sizeof(PCM_8000[0]);
 			os_printf("audio pcm dma test 8000 start\n");
 		} else if (os_strcmp(argv[1], "16000") == 0) {
-			dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_16K;
+			dac_config.samp_rate = AUD_DAC_SAMP_RATE_16K;
 			aud_ptr = (uint32_t *)PCM_16000;
 			aud_len = sizeof(PCM_16000) / sizeof(PCM_16000[0]);
 			os_printf("audio pcm dma test 16000 start\n");
 		}else if (os_strcmp(argv[1], "44100") == 0) {
-			dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_44_1K;
+			dac_config.samp_rate = AUD_DAC_SAMP_RATE_44_1K;
 			aud_ptr = (uint32_t *)PCM_44100;
 			aud_len = sizeof(PCM_44100) / sizeof(PCM_44100[0]);
 			os_printf("audio pcm dma test 44100 start\n");
 		}else if (os_strcmp(argv[1], "48000") == 0) {
-			dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_48K;
+			dac_config.samp_rate = AUD_DAC_SAMP_RATE_48K;
 			aud_ptr = (uint32_t *)PCM_48000;
 			aud_len = sizeof(PCM_48000) / sizeof(PCM_48000[0]);
 			os_printf("audio pcm dma test 48000 start\n");
@@ -1009,8 +991,6 @@ void cli_aud_pcm_dma_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 		dac_config.dacl_int_enable = 0x0;
 
 		dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		dac_config.dac_fracmode_value = 0x0;
 
 		//init audio driver
 		ret = bk_aud_driver_init();
@@ -1174,11 +1154,9 @@ void cli_aud_eq_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 		adc_config.agc_enable = AUD_AGC_DISABLE;
 		adc_config.manual_pga_value = 0;
 		adc_config.manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
-		adc_config.adc_fracmod_manual = AUD_ADC_TRACMOD_MANUAL_DISABLE;
-		adc_config.adc_fracmod = 0;
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
-		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_48K;
+		dac_config.samp_rate = AUD_DAC_SAMP_RATE_48K;
 		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
 		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
@@ -1199,8 +1177,6 @@ void cli_aud_eq_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 		dac_config.dacl_int_enable = 0x0;
 
 		dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		dac_config.dac_fracmode_value = 0x0;
 
 		eq_config.flt0_A1 = ~(-2085356);
 		eq_config.flt0_A2 = ~(1036853);
@@ -1493,11 +1469,9 @@ void cli_aud_mic_to_pcm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 		adc_config.agc_enable = AUD_AGC_DISABLE;
 		adc_config.manual_pga_value = 0;
 		adc_config.manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
-		adc_config.adc_fracmod_manual = AUD_ADC_TRACMOD_MANUAL_DISABLE;
-		adc_config.adc_fracmod = 0;
 
 		dac_config.dac_enable = AUD_DAC_DISABLE;
-		dac_config.samp_rate = AUD_DAC_SAMP_RATE_SOURCE_48K;
+		dac_config.samp_rate = AUD_DAC_SAMP_RATE_48K;
 		dac_config.dac_chl = AUD_DAC_CHL_LR_ENABLE;
 		dac_config.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 		dac_config.dac_hpf2_coef_B2 = 0x3A22;
@@ -1515,8 +1489,6 @@ void cli_aud_mic_to_pcm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 		dac_config.dacr_int_enable = 0x0;
 		dac_config.dacl_int_enable = 0x0;
 		dac_config.dac_filt_enable = AUD_DAC_FILT_DISABLE;
-		dac_config.dac_fracmod_manual_enable = AUD_DAC_FRACMOD_MANUAL_DISABLE;
-		dac_config.dac_fracmode_value = 0x0;
 
 		//init audio driver
 		bk_aud_driver_init();

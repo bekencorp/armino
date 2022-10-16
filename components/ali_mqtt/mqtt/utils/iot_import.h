@@ -28,7 +28,7 @@ extern "C" {
 #define log_info(...) BK_LOGI(MQTT_TAG, ##__VA_ARGS__)   /**< Output MQTT Info log */
 #define log_warning(...) BK_LOGW(MQTT_TAG, ##__VA_ARGS__)   /**< Output MQTT Warning log */
 #define log_err(...) BK_LOGE(MQTT_TAG, ##__VA_ARGS__)   /**< Output MQTT Error log */
-#define log_debug(...) BK_LOGI(MQTT_TAG, ##__VA_ARGS__)   /**< Output MQTT Debug log */
+#define log_debug(...) BK_LOGD(MQTT_TAG, ##__VA_ARGS__)   /**< Output MQTT Debug log */
 
 void *os_realloc(void *ptr, size_t size);
 

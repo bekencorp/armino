@@ -26,6 +26,8 @@
  *
  */
 
+#define AON_PMU_CHIP_ID_SHIFT (16)
+
 typedef struct {
 	uint32_t chip_id;
 	uint32_t chip_id_mask;
@@ -35,29 +37,20 @@ typedef struct {
 	uint32_t software_chip_id_mask;
 } chip_info_t;
 
-static uint32_t bk_get_software_chip_id_from_otp()
+static uint32_t bk_get_software_chip_id_from_aon_pmu()
 {
-	uint32_t OTP_software_chip_id;
+	uint32_t aon_pmu_software_chip_id;
 
-#ifndef OTP_SOFTWARE_CHIP_ID
-	sys_drv_module_power_ctrl(POWER_MODULE_NAME_ENCP,POWER_MODULE_STATE_ON);
-	delay_ms(1);
-	OTP_REGISTER_VDD |= 0x1;
-	OTP_software_chip_id = OTP_SOFTWARE_CHIP_ID;
-	OTP_REGISTER_VDD &= 0x0;
-	sys_drv_module_power_ctrl(POWER_MODULE_NAME_ENCP,POWER_MODULE_STATE_OFF);
-#else
-	OTP_software_chip_id = 0x0;
-#endif
+	aon_pmu_software_chip_id = AON_PMU_SOFTWARE_CHIP_ID >> AON_PMU_CHIP_ID_SHIFT;
 
-	return OTP_software_chip_id;
+	return aon_pmu_software_chip_id;
 }
 
 static int bk_get_chip_info(chip_info_t *chip_info)
 {
 	chip_info->chip_id = sys_drv_get_chip_id();
 	chip_info->dev_id = sys_drv_get_device_id();
-	chip_info->software_chip_id = bk_get_software_chip_id_from_otp();
+	chip_info->software_chip_id = bk_get_software_chip_id_from_aon_pmu();
 	return BK_OK;
 }
 
@@ -86,16 +79,22 @@ bool bk_is_chip_supported(void)
 
 		if ( (supported_chips[i].chip_id & chip_id_mask) !=
 			(chip_info.chip_id & chip_id_mask) ) {
+			CHIP_SUPPORT_LOGE("Current chip_id(%x)unsupport this hardware(%x).\n",
+					  supported_chips[i].chip_id,chip_info.chip_id);
 			continue;
 		}
 
 		if ( (supported_chips[i].dev_id & dev_id_mask) !=
 			(chip_info.dev_id & dev_id_mask) ) {
+			CHIP_SUPPORT_LOGE("Current dev_id(%x) unsupport this hardware(%x).\n",
+					  supported_chips[i].dev_id,chip_info.dev_id);
 			continue;
 		}
 
-		if ( (supported_chips[i].software_chip_id & software_chip_id_mask) !=
+		if ( (supported_chips[i].software_chip_id & software_chip_id_mask) <=
 			(chip_info.software_chip_id & software_chip_id_mask) ) {
+			CHIP_SUPPORT_LOGE("Current software unsupport this hardware (%x <= %x),please updata software.\n",
+					  supported_chips[i].software_chip_id,chip_info.software_chip_id);
 			continue;
 		}
 
@@ -106,10 +105,6 @@ bool bk_is_chip_supported(void)
 		return true;
 	}
 
-	CHIP_SUPPORT_LOGI("UNSUPPORTED chip or dev or software_chip (%x.%x.%x)\n",
-					  chip_info.chip_id,
-					  chip_info.dev_id,
-					  chip_info.software_chip_id);
 	return false;
 }
 

@@ -107,7 +107,7 @@ static void cli_pm_rtc_callback(aon_rtc_id_t id, uint8_t *name_p, void *param)
 		bk_pm_module_vote_sleep_ctrl(s_pm_vote2,0x0,0x0);
 		bk_pm_module_vote_sleep_ctrl(s_pm_vote3,0x0,0x0);
 	}
-	os_printf("cli_pm_rtc_callback\r\n");
+	os_printf("cli_pm_rtc_callback[%d]\r\n",bk_pm_exit_low_vol_wakeup_source_get());
 }
 #endif
 #if CONFIG_TOUCH
@@ -129,7 +129,7 @@ void cli_pm_touch_callback(void *param)
 		bk_pm_module_vote_sleep_ctrl(s_pm_vote2,0x0,0x0);
 		bk_pm_module_vote_sleep_ctrl(s_pm_vote3,0x0,0x0);
 	}
-	os_printf("cli_pm_touch_callback\r\n");
+	os_printf("cli_pm_touch_callback[%d]\r\n",bk_pm_exit_low_vol_wakeup_source_get());
 }
 #endif
 void cli_pm_gpio_callback(gpio_id_t gpio_id)
@@ -150,7 +150,7 @@ void cli_pm_gpio_callback(gpio_id_t gpio_id)
 		bk_pm_module_vote_sleep_ctrl(s_pm_vote2,0x0,0x0);
 		bk_pm_module_vote_sleep_ctrl(s_pm_vote3,0x0,0x0);
 	}
-	os_printf("cli_pm_gpio_callback\r\n");
+	os_printf("cli_pm_gpio_callback[%d]\r\n",bk_pm_exit_low_vol_wakeup_source_get());
 }
 
 #define PM_MANUAL_LOW_VOL_VOTE_ENABLE    (0)
@@ -164,9 +164,6 @@ static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 	UINT32 pm_param1 = 0,pm_param2 = 0,pm_param3 = 0;
 	//rtc_wakeup_param_t      rtc_wakeup_param         = {0};
 	system_wakeup_param_t   system_wakeup_param      = {0};
-	#if (!CONFIG_GPIO_WAKEUP_SUPPORT) && (!CONFIG_SLAVE_CORE)
-	gpio_wakeup_param_t     gpio_wakeup_param        = {0};
-	#endif
 	#if CONFIG_TOUCH
 	touch_wakeup_param_t    touch_wakeup_param       = {0};
 	#endif
@@ -211,7 +208,7 @@ static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 
 	if(pm_sleep_mode == PM_MODE_LOW_VOLTAGE)
 	{
-		if((pm_vote1 > PM_SLEEP_MODULE_NAME_NONE) ||(pm_vote2 > PM_SLEEP_MODULE_NAME_NONE) ||(pm_vote3 > PM_SLEEP_MODULE_NAME_NONE))
+		if((pm_vote1 > PM_SLEEP_MODULE_NAME_MAX) ||(pm_vote2 > PM_SLEEP_MODULE_NAME_MAX) ||(pm_vote3 > PM_SLEEP_MODULE_NAME_MAX))
 		{
 			os_printf("set pm vote low vol parameter value invalid\r\n");
 			return;
@@ -223,17 +220,9 @@ static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 	s_pm_vote2 = pm_vote2;
 	s_pm_vote3 = pm_vote3;
 
-
-
-
-	/*set sleep mode*/
-	//bk_pm_sleep_mode_set(pm_sleep_mode);
-
 	/*set wakeup source*/
 	if(pm_wake_source == PM_WAKEUP_SOURCE_INT_RTC)
 	{
-		//rtc_wakeup_param.period = pm_param1;
-		//rtc_wakeup_param.isr_callback = cli_pm_rtc_callback;
 		#if CONFIG_AON_RTC
 		alarm_info_t low_valtage_alarm = {
 										"low_vol",
@@ -256,14 +245,6 @@ static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		bk_gpio_register_isr(pm_param1, cli_pm_gpio_callback);
 		bk_gpio_register_wakeup_source(pm_param1,pm_param2);
 		bk_pm_wakeup_source_set(PM_WAKEUP_SOURCE_INT_GPIO, NULL);
-	#else
-		#if !CONFIG_SLAVE_CORE
-		gpio_wakeup_param.gpio_id = pm_param1;
-		gpio_wakeup_param.gpio_valid = PARAM_DATA_VALID;
-		gpio_wakeup_param.gpio_trigger_interrupt_type = pm_param2;
-
-		bk_pm_wakeup_source_set(PM_WAKEUP_SOURCE_INT_GPIO, &gpio_wakeup_param);
-		#endif
 	#endif
 	}
 	else if(pm_wake_source == PM_WAKEUP_SOURCE_INT_SYSTEM_WAKE)
@@ -690,7 +671,7 @@ static void cli_pm_rosc_accuracy(char *pcWriteBuffer, int xWriteBufferLen, int a
 
 	if (argc != 2)
 	{
-		os_printf("set osc_accurac parameter invalid %d\r\n",argc);
+		os_printf("set rosc_accuracy parameter invalid %d\r\n",argc);
 		return;
 	}
 
@@ -698,7 +679,59 @@ static void cli_pm_rosc_accuracy(char *pcWriteBuffer, int xWriteBufferLen, int a
 	bk_timer_start(0, timer_count_interval, cli_pm_timer_isr);
 #endif
 }
+static void cli_pm_rosc_cali(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	UINT32 cali_interval = 0;
+	UINT32 cali_mode = 0;
 
+	if (argc != 3)
+	{
+		os_printf("set rosc cali parameter invalid %d\r\n",argc);
+		return;
+	}
+
+	cali_mode   = os_strtoul(argv[1], NULL, 10);
+	cali_interval   = os_strtoul(argv[2], NULL, 10);
+	bk_pm_rosc_calibration(cali_mode, cali_interval);
+}
+static void cli_pm_wakeup_source(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	UINT32 sleep_mode = 0;
+
+	if (argc != 2)
+	{
+		os_printf("set get wakeup source parameter invalid %d\r\n",argc);
+		return;
+	}
+
+	sleep_mode   = os_strtoul(argv[1], NULL, 10);
+	if(sleep_mode == PM_MODE_LOW_VOLTAGE)
+	{
+		os_printf("low voltage wakeup source [%d]\r\n",bk_pm_exit_low_vol_wakeup_source_get());
+	}
+	else if(sleep_mode == PM_MODE_DEEP_SLEEP)
+	{
+		os_printf("deepsleep wakeup source [%d]\r\n",bk_pm_deep_sleep_wakeup_source_get());
+	}
+	else
+	{
+		os_printf("it not support the sleep mode[%d] for wakeup source \r\n",sleep_mode);
+	}
+
+}
+static void cli_pm_cp1_ctrl(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	UINT32 cp1_ctrl = 0;
+
+	if (argc != 2)
+	{
+		os_printf("cp1 ctrl parameter invalid %d\r\n",argc);
+		return;
+	}
+
+	cp1_ctrl   = os_strtoul(argv[1], NULL, 10);
+	bk_pm_cp1_auto_power_down_state_set(cp1_ctrl);
+}
 #endif
 #if CONFIG_MCU_PS
 static void cli_deep_sleep_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -871,6 +904,9 @@ static const struct cli_command s_pwr_commands[] = {
 	{"pm_pwr_state", "pm_pwr_state [pwr_state]", cli_pm_pwr_state},
 	{"pm_auto_vote", "pm_auto_vote [auto_vote_value]", cli_pm_auto_vote},
 	{"pm_rosc", "pm_rosc [rosc_accuracy_count_interval]", cli_pm_rosc_accuracy},
+	{"pm_rosc_cali", "pm_rosc_cali [cali_mode][cal_intval]", cli_pm_rosc_cali},
+	{"pm_wakeup_source", "pm_wakeup_source [pm_sleep_mode]", cli_pm_wakeup_source},
+	{"pm_cp1_ctrl", "pm_cp1_ctrl [cp1_auto_pw_ctrl]", cli_pm_cp1_ctrl},
 #endif
 #if CONFIG_TPC_PA_MAP
 	{"pwr", "pwr {sta|ap} pwr", cli_pwr_cmd },

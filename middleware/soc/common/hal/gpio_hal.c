@@ -282,9 +282,9 @@ bk_err_t gpio_hal_restore_int_enable_configs(uint32_t *gpio_int_enable_cfg, uint
 }
 
 /* gpio switch to low power status:set all gpios to input mode to avoid power leakage */
-bk_err_t gpio_hal_switch_to_low_power_status(void)
+bk_err_t gpio_hal_switch_to_low_power_status(uint64_t skip_io)
 {
-	gpio_ll_switch_to_low_power_status();
+	gpio_ll_switch_to_low_power_status(skip_io);
 	return BK_OK;
 }
 #else
@@ -310,3 +310,99 @@ bk_err_t gpio_hal_wakeup_interrupt_clear()
 }
 #endif
 
+#if CONFIG_GPIO_DEFAULT_SET_SUPPORT
+bk_err_t gpio_hal_default_map_init(gpio_hal_t *hal)
+{
+	gpio_interrupt_status_t gpio_status;
+	const gpio_default_map_t default_map[] = GPIO_DEFAULT_DEV_CONFIG;
+
+	for(int i = 0; i < sizeof(default_map)/sizeof(gpio_default_map_t); i++)
+	{
+		gpio_hal_output_enable(hal, default_map[i].gpio_id, 0);
+		gpio_hal_input_enable(hal, default_map[i].gpio_id, 0);
+		gpio_hal_pull_enable(hal, default_map[i].gpio_id, 0);
+		gpio_hal_disable_interrupt(hal, default_map[i].gpio_id);
+
+		HAL_LOGD("gpio_id: %d, second_func_en:%d, second_func_dev %d, low_power_io_ctrl:%d",
+					default_map[i].gpio_id,
+					default_map[i].second_func_en, default_map[i].second_func_dev,
+					default_map[i].low_power_io_ctrl);
+
+		HAL_LOGD("int_en: %d, int_type:%d \r\n",
+				default_map[i].int_en, default_map[i].int_type);
+
+		//function mode
+		if(default_map[i].second_func_en) {
+			gpio_hal_func_unmap(hal, default_map[i].gpio_id);
+			gpio_hal_func_map(hal, default_map[i].gpio_id, default_map[i].second_func_dev);
+		}
+
+		//low power
+		if (default_map[i].low_power_io_ctrl == GPIO_LOW_POWER_KEEP_OUTPUT_STATUS)
+			gpio_hal_output_enable(hal, default_map[i].gpio_id, 1);
+		else if (default_map[i].low_power_io_ctrl == GPIO_LOW_POWER_KEEP_INPUT_STATUS)
+			gpio_hal_input_enable(hal, default_map[i].gpio_id, 1);
+
+		//io mode
+		switch(default_map[i].io_mode)
+		{
+			case GPIO_IO_DISABLE:
+				gpio_hal_output_enable(hal, default_map[i].gpio_id, 0);
+				gpio_hal_input_enable(hal, default_map[i].gpio_id, 0);
+				break;
+			case GPIO_OUTPUT_ENABLE:
+				gpio_hal_output_enable(hal, default_map[i].gpio_id, 1);
+				gpio_hal_input_enable(hal, default_map[i].gpio_id, 0);
+				//NOTES:special combine use it with pull mode
+				if(default_map[i].pull_mode == GPIO_PULL_DOWN_EN)
+					gpio_hal_set_output_value(hal, i, 0);
+				if(default_map[i].pull_mode == GPIO_PULL_UP_EN)
+					gpio_hal_set_output_value(hal, i, 1);
+				break;
+			case GPIO_INPUT_ENABLE:
+				gpio_hal_output_enable(hal, default_map[i].gpio_id, 0);
+				gpio_hal_input_enable(hal, default_map[i].gpio_id, 1);
+				break;
+			default:
+				break;
+		}
+
+		//pull mode
+		switch(default_map[i].pull_mode)
+		{
+			case GPIO_PULL_DISABLE:
+				gpio_hal_pull_enable(hal, default_map[i].gpio_id, 0);
+				break;
+			case GPIO_PULL_DOWN_EN:
+				gpio_hal_pull_enable(hal, default_map[i].gpio_id, 1);
+				gpio_hal_pull_up_enable(hal, default_map[i].gpio_id, 0);
+				break;
+			case GPIO_PULL_UP_EN:
+				gpio_hal_pull_enable(hal, default_map[i].gpio_id, 1);
+				gpio_hal_pull_up_enable(hal, default_map[i].gpio_id, 1);
+				break;
+			default:
+				break;
+		}
+
+		//interrupt
+		if(default_map[i].int_en) {
+			gpio_hal_disable_interrupt(hal, default_map[i].gpio_id);	//disable it first to avoid enable IRQ and comes an interrupt at once.
+			gpio_hal_set_int_type(hal, default_map[i].gpio_id, default_map[i].int_type);
+			gpio_hal_enable_interrupt(hal, default_map[i].gpio_id);
+		} else
+			gpio_hal_disable_interrupt(hal, default_map[i].gpio_id);
+
+		//driver_capacity
+		gpio_hal_set_capacity(hal, default_map[i].gpio_id, default_map[i].driver_capacity);
+	}
+
+	/* After disable interrupt,and then clear int status, to avoid level-interrupt comes again
+	 * if clear interrupt status before disable interrupt.
+	 */
+	gpio_hal_get_interrupt_status(hal, &gpio_status);
+	gpio_hal_clear_interrupt_status(hal, &gpio_status);
+
+	return BK_OK;
+}
+#endif

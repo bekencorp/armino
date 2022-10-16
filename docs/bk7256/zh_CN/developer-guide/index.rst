@@ -19,10 +19,11 @@ User and Developer Guide
    工具 <tools/index>
    Wi-Fi <wifi/index>
    Bluetooth <bluetooth/index>
-   用例编写 <examples/index>
-   文档系统 <documentation/index>
+   HTTP <http/index>
    OS 抽象层 <os_abstraction/index>
+   OS 移植指南 <porting/index>
+   Bootloader <bootloader/index>
    特定芯片相关指南 <boards/index>
    特定 CPU 相关指南 <cpu/index>
-   移植指南 <porting/index>
-   Bootloader <bootloader/index>
+   用例编写 <examples/index>
+   文档系统 <documentation/index>

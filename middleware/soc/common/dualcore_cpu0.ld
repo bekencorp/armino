@@ -278,7 +278,7 @@ SECTIONS
 	SRAM_VIDEO_BEGIN = .;
 	.video_spec_data 	: AT(LOADADDR (.dtcm_sec_bss) + SIZEOF (.dtcm_sec_bss))
 		{ KEEP(*(.video_spec_data )) }
-	_vedio_start = ADDR(.video_spec_data);
+	_video_start = ADDR(.video_spec_data);
 	SRAM_VIDEO_SIZE = . - SRAM_VIDEO_BEGIN;
 	. = 0x3000A000;
 	SRAM_BT_BEGIN = .;
@@ -317,18 +317,12 @@ SECTIONS
 	".bss_*ble_util_buf.c.obj" 	(NOLOAD)	: { *ble_util_buf.c.obj(.dynbss ) *sch_prog.c.obj(.dynbss ) *sch_slice.c.obj(.dynbss ) *llm.c.obj(.dynbss ) *ble_util_buf.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *sch_prog.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *sch_slice.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *llm.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *ble_util_buf.c.obj(COMMON ) *sch_prog.c.obj(COMMON ) *sch_slice.c.obj(COMMON ) *llm.c.obj(COMMON ) . = ALIGN(8); }
 	_bt_data_end =  LOADADDR (.ble_bss_data) + SIZEOF (.ble_bss_data);
 	SRAM_BT_SIZE = . - SRAM_BT_BEGIN;
-	. = 0x3000FC00;
-	SWAP_BEGIN = .;
-	.swap_data 	: AT(LOADADDR (.ble_bss_data) + SIZEOF (.ble_bss_data))
-		{ KEEP(*(.swap_data )) }
-	_swap_start = ADDR(.swap_data);
-	SWAP_SIZE = . - SWAP_BEGIN;
 	. = 0x30020000;
 	SRAM_DATA_BEGIN = .;
 	. = ALIGN(8);
 	. = ALIGN(0x20);
 	. = ALIGN(ALIGNOF(.eh_frame));
-	.eh_frame 	: AT(ALIGN(LOADADDR (.swap_data) + SIZEOF (.swap_data), 32))
+	.eh_frame 	: AT(ALIGN(LOADADDR (.ble_bss_data) + SIZEOF (.ble_bss_data), 32))
 		{ KEEP(*(.eh_frame )) }
 	_data_lmastart =  LOADADDR (.eh_frame);
 	_data_start = ADDR(.eh_frame);
@@ -414,7 +408,13 @@ SECTIONS
 	PROVIDE (end = .);
 	PROVIDE (_stack = 0x20007FE0);
 	SRAM_DATA_SIZE = . - SRAM_DATA_BEGIN;
-	CPU0_LOAD2_SIZE = LOADADDR(.sdata_f) + SIZEOF(.sdata_f) - CPU0_LOAD2_BEGIN;
+	. = 0x3007FC00;
+	SWAP_BEGIN = .;
+	.swap_data 	: AT(LOADADDR (.sdata_f) + SIZEOF (.sdata_f))
+		{ KEEP(*(.swap_data )) }
+	_swap_start = ADDR(.swap_data);
+	SWAP_SIZE = . - SWAP_BEGIN;
+	CPU0_LOAD2_SIZE = LOADADDR(.swap_data) + SIZEOF(.swap_data) - CPU0_LOAD2_BEGIN;
 	.stab	0 : { *(.stab) }
 	.stabstr	0 : { *(.stabstr) }
 	.stab.excl	0 : { *(.stab.excl) }
@@ -446,7 +446,7 @@ ASSERT((DEFINED (_RELAX_END_) ? ITCM_SIZE : 0x0)<= 0x8000, "ITCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD1_SIZE : 0x0)<= 0x8800, "CPU0_LOAD1 OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x7800, "DTCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM_VIDEO_SIZE : 0x0)<= 0xA000, "SRAM_VIDEO OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? SRAM_BT_SIZE : 0x0)<= 0x15C00, "SRAM_BT OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? SRAM_BT_SIZE : 0x0)<= 0x16000, "SRAM_BT OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? SRAM_DATA_SIZE : 0x0)<= 0x58C00, "SRAM_DATA OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SWAP_SIZE : 0x0)<= 0x400, "SWAP OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? SRAM_DATA_SIZE : 0x0)<= 0x54000, "SRAM_DATA OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD2_SIZE : 0x0)<= 0x1A7800, "CPU0_LOAD2 OVERFLOW");

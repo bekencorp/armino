@@ -15,12 +15,16 @@
 #pragma once
 
 #include <common/bk_err.h>
-#include <bk_list.h>
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @brief define all image resolution, unit pixel
+ * @{
+ */
 
 #define PIXEL_240 	(240)
 #define PIXEL_272 	(272)
@@ -34,6 +38,13 @@ extern "C" {
 #define PIXEL_1200 (1200)
 #define PIXEL_1280 (1280)
 #define PIXEL_1600 (1600)
+
+typedef enum {
+	MSTATE_TURN_OFF,
+	MSTATE_TURNING_OFF,
+	MSTATE_TURNING_ON,
+	MSTATE_TURN_ON,
+} media_state_t;
 
 
 typedef enum
@@ -68,55 +79,77 @@ typedef enum
 	PPI_CAP_1600X1200   = (1 << 10), /**< 1600 * 1200 */
 } media_ppi_cap_t;
 
+/** rgb lcd input data format, data save in mem is little endian, like VUYY format is [bit31-bit0] is [V U Y Y]*/
+typedef enum {
+	PIXEL_FMT_UNKNOW,
+	PIXEL_FMT_DVP_JPEG,
+	PIXEL_FMT_UVC_JPEG,
+	PIXEL_FMT_RGB565,        /**< input data format is rgb565*/
+	PIXEL_FMT_YUYV,    /**< input data is yuyv format, diaplay module internal may convert to rgb565 data*/
+	PIXEL_FMT_UYVY,
+	PIXEL_FMT_YYUV,            /**< input data is yyuv format */
+	PIXEL_FMT_UVYY,            /**< input data is uvyy format*/
+	PIXEL_FMT_VUYY,            /**< input data is vuyy format */
+	PIXEL_FMT_YVYU,
+	PIXEL_FMT_VYUY,
+	PIXEL_FMT_YYVU
+} pixel_format_t;
 
-typedef enum
-{
-	STATE_INVALID = 0,
-	STATE_ALLOCED,
-	STATE_FRAMED,
-} frame_state_t;
-
-typedef enum
-{
-	FRAME_DISPLAY,
-	FRAME_JPEG,
-} frame_type_t;
-
+/**
+ * @brief define frame buffer
+ * @{
+ */
 typedef struct
 {
-	LIST_HEADER_T list;
-	frame_state_t state;
-	frame_type_t type;
-	uint8_t id;
-	uint8_t lock;
+	pixel_format_t fmt;
+	uint8_t mix : 1;
 	uint8_t *frame;
+	uint16_t width;
+	uint16_t height;
 	uint32_t length;
 	uint32_t size;
 	uint32_t sequence;
 } frame_buffer_t;
 
+/**
+ * @brief define camera type
+ * @{
+ */
 typedef enum
 {
 	UNKNOW_CAMERA,
-	DVP_CAMERA,
-	UVC_CAMERA,
+	DVP_CAMERA,    /**< dvp camera */
+	UVC_CAMERA,    /**< uvc camera */
 } camera_type_t;
 
+/**
+ * @brief define struct for debug
+ * @{
+ */
 typedef struct
 {
-	uint16_t isr_jpeg;
-	uint16_t isr_decoder;
-	uint16_t err_dec;
-	uint16_t isr_lcd;
-	uint16_t fps_lcd;
-	uint16_t fps_wifi;
+	uint16_t isr_jpeg;    /**< jpeg frame count */
+	uint16_t isr_decoder; /**< jpeg decode frame count */
+	uint16_t err_dec;     /**< jpeg decode error count */
+	uint16_t isr_lcd;     /**< lcd display count */
+	uint16_t fps_lcd;     /**< lcd display fps */
+	uint16_t fps_wifi;    /**< wifi transfer fps */
+	uint16_t wifi_read;   /**< wifi transfer read cnt */
 } media_debug_t;
 
+/**
+ * @brief get camera width
+ * @{
+ */
 static inline uint16_t ppi_to_pixel_x(media_ppi_t ppi)
 {
 	return ppi >> 16;
 }
 
+/**
+ * @brief get camera height
+ * @{
+ */
 static inline uint16_t ppi_to_pixel_y(media_ppi_t ppi)
 {
 	return ppi & 0xFFFF;
@@ -132,7 +165,10 @@ static inline uint16_t ppi_to_pixel_y_block(media_ppi_t ppi)
 	return (ppi & 0xFFFF) / 8;
 }
 
-
+/**
+ * @brief get camera support ppi compare with user set
+ * @{
+ */
 static inline media_ppi_cap_t pixel_ppi_to_cap(media_ppi_t ppi)
 {
 	media_ppi_cap_t cap = PPI_CAP_UNKNOW;
@@ -191,6 +227,10 @@ static inline media_ppi_cap_t pixel_ppi_to_cap(media_ppi_t ppi)
 	return cap;
 }
 
+/**
+ * @brief get yuv422 image size
+ * @{
+ */
 static inline uint32_t get_ppi_size(media_ppi_t ppi)
 {
 	return (ppi >> 16) * (ppi & 0xFFFF) * 2;

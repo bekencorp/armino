@@ -27,13 +27,25 @@
 extern "C" {
 #endif
 
-#define I2C_LL_REG_BASE(_i2c_unit_id)    (SOC_I2C0_REG_BASE + _i2c_unit_id * 0x100000)
+#define I2C_LL_REG_BASE(_i2c_unit_id)    (i2c_ll_get_reg_base(_i2c_unit_id))
 
 #define I2C0_LL_SCL_PIN    GPIO_20
 #define I2C0_LL_SDA_PIN    GPIO_21
 
 #define I2C1_LL_SCL_PIN    GPIO_0
 #define I2C1_LL_SDA_PIN    GPIO_1
+
+static inline uint32_t i2c_ll_get_reg_base(i2c_id_t id)
+{
+	switch (id) {
+	case I2C_ID_0:
+		return SOC_I2C0_REG_BASE;
+	case I2C_ID_1:
+		return SOC_I2C1_REG_BASE;
+	default:
+		return BK_ERR_UART_BASE;
+	}
+}
 
 static inline void i2c_ll_soft_reset(i2c_hw_t *hw)
 {
@@ -100,10 +112,7 @@ static inline void i2c_ll_disable(i2c_hw_t *hw, i2c_id_t id)
 
 static inline void i2c_ll_set_pin(i2c_hw_t *hw, i2c_id_t id)
 {
-	if (id == I2C_ID_1) {
-//		icu_hw_t *icu_hw = (icu_hw_t *)ICU_LL_REG_BASE();
-//		power_ll_pwr_down_i2c(icu_hw, 1);
-	}
+
 }
 
 static inline void i2c_ll_set_idle_detect_threshold(i2c_hw_t *hw, i2c_id_t id, uint32_t threshold)
@@ -469,10 +478,17 @@ static inline uint32_t i2c_ll_get_interrupt_status(i2c_hw_t *hw, i2c_id_t id)
 
 static inline void i2c_ll_clear_interrupt_status(i2c_hw_t *hw, i2c_id_t id, uint32_t int_status)
 {
-	if (int_status & I2C_F_SM_INT) {
-		int_status &= ~I2C_F_SM_INT; /* clear sm_bus_int */
+	if (id == I2C_ID_0) {
+		if (int_status & I2C0_F_SM_INT) {
+			int_status &= ~I2C0_F_SM_INT; /* clear sm_bus_int */
+		}
+		REG_WRITE(I2C0_R_INT_STAUS, int_status);
+	} else {
+		if (int_status & I2C1_F_SM_INT) {
+			int_status &= ~I2C1_F_SM_INT; /* clear sm_bus_int */
+		}
+		REG_WRITE(I2C1_R_INT_STAUS, int_status);
 	}
-	REG_WRITE(I2C_R_INT_STAUS(id), int_status);
 }
 
 static inline bool i2c_ll_is_sm_int_triggered(i2c_hw_t *hw, i2c_id_t id, uint32_t int_status)
@@ -515,24 +531,20 @@ static inline void i2c_ll_tx_non_ack(i2c_hw_t *hw, i2c_id_t id)
 
 static inline void i2c_ll_set_tx_mode(i2c_hw_t *hw, i2c_id_t id)
 {
-	if (id == I2C_ID_0) {
-//		hw->i2c0_hw->sm_bus_cfg.op_mode = 1;
-	}
+
 }
 
 static inline void i2c_ll_set_rx_mode(i2c_hw_t *hw, i2c_id_t id)
 {
-	if (id == I2C_ID_0) {
-//		hw->i2c0_hw->sm_bus_cfg.op_mode = 0;
-	}
+
 }
 
 static inline void i2c_ll_write_byte(i2c_hw_t *hw, i2c_id_t id, uint32_t data)
 {
 	if (id == I2C_ID_0) {
-		hw->i2c0_hw->sm_bus_data.data = data & I2C_F_DATA_M;
+		REG_WRITE(I2C0_R_DATA, data & I2C_F_DATA_M);
 	} else {
-		hw->i2c1_hw->sm_bus_data.data = data & I2C_F_DATA_M;
+		REG_WRITE(I2C1_R_DATA, data & I2C_F_DATA_M);
 	}
 }
 

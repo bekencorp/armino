@@ -17,7 +17,7 @@
 #include "hal_config.h"
 #include <soc/soc.h>
 #include "psram_ll_macro_def.h"
-//#include <driver/aud_types.h>
+#include <driver/psram_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,6 +76,21 @@ void psram_hal_set_cmd_reset(void);
 void psram_hal_cmd_write(uint32_t addr, uint32_t value);
 uint32_t psram_hal_cmd_read(uint32_t addr);
 void psram_hal_set_transfer_mode(uint32_t value);
+bk_err_t psram_hal_power_enable(uint8_t enable);
+
+bk_err_t psram_hal_config_init(void);
+
+bk_err_t psram_hal_clk_power_enable(uint8_t enable);
+
+void psram_hal_continue_write(uint32_t start_addr, uint32_t *data_buf, uint32_t len);
+
+void psram_hal_continue_read(uint32_t start_addr, uint32_t *data_buf, uint32_t len);
+
+void psram_hal_set_clk(psram_clk_t clk);
+
+void psram_hal_set_voltage(psram_voltage_t voltage);
+
+char* psram_strcat(char* start_addr, const char *data_buf);
 
 #if CFG_HAL_DEBUG_PSRAM
 void psram_struct_dump(void);

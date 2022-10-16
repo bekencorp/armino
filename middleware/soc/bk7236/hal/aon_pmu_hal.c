@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <common/bk_include.h>
 #include "aon_pmu_hal.h"
 #include "aon_pmu_ll.h"
+#include "sys_ll_op_if.h"
 
 static aon_pmu_hal_t s_aon_pmu_hal = {0};
 
@@ -76,8 +78,28 @@ uint32_t aon_pmu_hal_get_adc_cal()
 	return aon_pmu_ll_get_reg7d_adc_cal(s_aon_pmu_hal.hw);
 }
 
-uint32_t aon_pmu_hal_lpo_src_get()                                                                                                                                                                             
+uint32_t aon_pmu_hal_lpo_src_get()
 {
 	return 0;
+}
+
+void aon_pmu_hal_reg_set(pmu_reg_e reg, uint32_t value)
+{
+
+}
+
+uint32_t aon_pmu_hal_reg_get(pmu_reg_e reg)
+{
+	return 0;
+}
+
+void aon_pmu_hal_lpo_src_set(uint32_t lpo_src)
+{
+
+}
+
+void aon_pmu_hal_wdt_rst_dev_enable()
+{
+
 }
 

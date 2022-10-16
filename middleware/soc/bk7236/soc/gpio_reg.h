@@ -28,10 +28,10 @@ extern "C" {
 #define GPIO_F_PULL_SET(mode)           (mode << 4)
 #define GPIO_F_PULL_EN_M                (0x03 << 4)
 
-#define GPIO_F_PERIAL_MODE              0x03
-#define GPIO_F_PERIAL_MODE_V            0x03
-#define GPIO_F_PERIAL_MODE_S            0x02
-#define GPIO_F_PERIAL_MODE_MS(_ch)      (2 * (_ch))
+#define GPIO_F_PERIAL_MODE              0x0F
+#define GPIO_F_PERIAL_MODE_V            0x0F
+#define GPIO_F_PERIAL_MODE_S            0x04
+#define GPIO_F_PERIAL_MODE_MS(_ch)      (4 * (_ch))
 #define GPIO_F_PERIAL_MODE_M            (GPIO_F_PERIAL_MODE_V << GPIO_F_PERIAL_MODE_S)
 
 #define GPIO_F_INT_EN                   0x01

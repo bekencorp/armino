@@ -54,6 +54,41 @@ image_name = args.image_name
 out_path = "tmp.json"
 enc_out_path = "enc_tmp.json"
 pack_out_path = "pack_tmp.json"
+
+project_bootloader_a_b = "properties/modules/bootloader/aboot/bootloader-a-b"
+project_bootloader = "properties/modules/bootloader/aboot/bootloader-v4"
+#copy bootloader bin-elf-asm to relating directory
+if os.getenv("PROJECT_DIR") != "projects/ate_mini_code":
+    if os.path.exists(os.getenv("ARMINO_PATH")+"/projects/"+os.getenv("PROJECT")+"/pj_config.mk"):
+        if not os.path.exists("bootloader_out"):
+            os.mkdir("bootloader_out")
+        if os.path.exists(os.getenv("ARMINO_PATH")+"/projects/"+os.getenv("PROJECT")+"/config/configurationab.json"):
+            print("PROJECT_DIRab:",os.getenv("PROJECT_DIR"))
+            #print("PROJECT_DIRab:","{}/{}/l_boot/out/l_bootloader.map".format(armino_path,project_bootloader_a_b))
+            #copy bootloader bin to os.getenv("PROJECT_DIR")
+            shutil.copy("{}/{}/PACK/generate_out/bootloader.bin".format(armino_path,project_bootloader_a_b), 
+                        "{}/{}".format(armino_path, os.getenv("PROJECT_DIR")))
+            #copy bootloader elf-map-asm to build directory
+            shutil.copy("{}/{}/l_boot/out/l_bootloader.asm".format(armino_path,project_bootloader_a_b), "./bootloader_out/")
+            shutil.copy("{}/{}/l_boot/out/l_bootloader.elf".format(armino_path,project_bootloader_a_b), "./bootloader_out/")
+            shutil.copy("{}/{}/l_boot/out/l_bootloader.map".format(armino_path,project_bootloader_a_b), "./bootloader_out/")
+            shutil.copy("{}/{}/up_boot/out/u_bootloader.asm".format(armino_path,project_bootloader_a_b), "./bootloader_out/")
+            shutil.copy("{}/{}/up_boot/out/u_bootloader.elf".format(armino_path,project_bootloader_a_b), "./bootloader_out/")
+            shutil.copy("{}/{}/up_boot/out/u_bootloader.map".format(armino_path,project_bootloader_a_b), "./bootloader_out/")
+        else:
+            print("PROJECT_DIR:",os.getenv("PROJECT_DIR"))
+            #print("PROJECT_DIRab:","{}/{}/l_boot/out/l_bootloader.map".format(armino_path,project_bootloader))
+            #copy bootloader bin to middleware boards
+            shutil.copy("{}/{}/PACK/generate_out/bootloader.bin".format(armino_path,project_bootloader), 
+                        "{}/middleware/boards/{}/bootloader.bin".format(armino_path,chip))
+            #copy bootloader elf-map-asm to build directory
+            shutil.copy("{}/{}/l_boot/out/l_bootloader.asm".format(armino_path,project_bootloader), "./bootloader_out/")
+            shutil.copy("{}/{}/l_boot/out/l_bootloader.elf".format(armino_path,project_bootloader), "./bootloader_out/")
+            shutil.copy("{}/{}/l_boot/out/l_bootloader.map".format(armino_path,project_bootloader), "./bootloader_out/")
+            shutil.copy("{}/{}/up_boot/out/u_bootloader.asm".format(armino_path,project_bootloader), "./bootloader_out/")
+            shutil.copy("{}/{}/up_boot/out/u_bootloader.elf".format(armino_path,project_bootloader), "./bootloader_out/")
+            shutil.copy("{}/{}/up_boot/out/u_bootloader.map".format(armino_path,project_bootloader), "./bootloader_out/")
+
 def package_json_rebuild():
     if os.path.exists("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR"))):
         with open("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR")), 'r') as local_json:
@@ -75,7 +110,16 @@ def package_json_rebuild():
             shutil.copy(pakfile, "{}/{}".format(build_path, firmware_file["firmware"]))
 
         firmware_file["firmware"] = "{}/{}".format(build_path, firmware_file["firmware"])
-
+        
+        if firmware_file["partition"] == "bootloader":
+            bootloader_security_name = firmware_file["partition"]+"_security.bin"
+            packfile = "{}/middleware/boards/{}/{}".format(armino_path, chip, bootloader_security_name)
+            if os.path.exists(packfile):
+                shutil.copy(packfile, "{}/{}".format(build_path, bootloader_security_name));
+                tmp_config["bootloader_security_path"] = bootloader_security_name;
+            else:
+                print("ERR: need bin {}".format(bootloader_security_name))
+        
     return json.dumps(config_json, sort_keys=True, indent=4)
 
 def package_json_enc_rebuild():
@@ -164,7 +208,7 @@ else:
     # shutil.copy(tmp_config["boot_loader_path"], tmp_config["sign_boot_loader_name"])
     # print("$$$$$$$$$$$${}".format(tmp_config["boot_loader_size"]))
     if tmp_config["with_boot_loader"]:
-        os.system("{}/tools/env_tools/beken_packager/SignTool sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, tmp_config["boot_loader_path"], prikey, tmp_config["sign_boot_loader_name"], tmp_config["boot_loader_size"]))
+        os.system("{}/tools/env_tools/beken_packager/SignTool sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, tmp_config["bootloader_security_path"], prikey, tmp_config["sign_boot_loader_name"], tmp_config["boot_loader_size"]))
     #2.pack app & cup*
     if(tmp_config["count"] > 2):
         infile = ""
@@ -175,22 +219,22 @@ else:
         os.system("{}/tools/env_tools/beken_packager/cmake_Gen_image genfile -injsonfile {} -infile {} -outfile {}".format(armino_path, enc_out_path, infile, "app_pack.bin"))
         #2.5 crc pack app&cup* out - app_pack_crc.bin
         os.system("{}/tools/env_tools/beken_packager/cmake_encrypt_crc -crc {}".format(armino_path, "app_pack.bin"))
-    #3.sign app
-        #sign app_pack.bin ./SignTool sign -infile bootloader.bin -prikey ecdsa256.der -outfile bootloader_sign.bin -len 10000
-        #to do: prikey need change
-        os.system("{}/tools/env_tools/beken_packager/SignTool sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, "app_pack.bin", prikey, tmp_config["sign_app_name"], hex(tmp_config["app_all_size"]*1024)))
-        # shutil.copy("app_pack.bin", tmp_config["sign_app_name"])
     else:
         shutil.copy(tmp_config["app_path"], "app_pack.bin")
         os.system("{}/tools/env_tools/beken_packager/cmake_encrypt_crc -crc {}".format(armino_path, "app_pack.bin"))
         # os.system("{}/tools/env_tools/beken_packager/SignTool sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, tmp_config["app_path"], prikey, tmp_config["sign_app_name"], hex(tmp_config["app_all_size"]*1024)))
         shutil.copy(tmp_config["app_path"], tmp_config["sign_app_name"])
+    #3.sign app
+    #sign app_pack.bin ./SignTool sign -infile app_pack.bin -prikey ecdsa256.der -outfile app_pack_sign.bin -len length
+    #to do: prikey need change
+    os.system("{}/tools/env_tools/beken_packager/SignTool sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, "app_pack.bin", prikey, tmp_config["sign_app_name"], hex(tmp_config["app_all_size"]*1024)))
+    # shutil.copy("app_pack.bin", tmp_config["sign_app_name"])
     #4.enc app
     #./cmake_xts_aes encrypt -infile app.bin -startaddress 0x10000 -keyfile 123_bk7235.txt -outfile app_xts.bin
     key_file = "{}/tools/env_tools/beken_packager/key.txt".format(armino_path)
     if os.path.exists("{}/middleware/boards/{}/key.txt".format(armino_path, chip)):
         key_file = "{}/middleware/boards/{}/key.txt".format(armino_path, chip)
-    os.system("{}/tools/env_tools/beken_packager/cmake_xts_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, tmp_config["sign_app_name"], tmp_config["app_enc_addr"], key_file, "app_pack_enc.bin"))
+    os.system("{}/tools/env_tools/beken_packager/cmake_xts_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, tmp_config["sign_app_name"], tmp_config["app_enc_addr"], key_file, "app_pack_sign_enc.bin"))
     # print("{}/tools/env_tools/beken_packager/cmake_xts_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, tmp_config["sign_app_name"], tmp_config["app_enc_addr"], key_file, "app_pack_enc.bin"))
     #5.pack bootloader app
     if tmp_config["with_boot_loader"]:
@@ -204,7 +248,7 @@ else:
         #5.5 crc all
         os.system("{}/tools/env_tools/beken_packager/cmake_encrypt_crc -crc {}".format(armino_path, "all_app_pack.bin"))
         #6.enc all_app
-        os.system("{}/tools/env_tools/beken_packager/cmake_xts_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, "all_app_pack.bin", 0, key_file, "all_app_pack_enc.bin"))
+        os.system("{}/tools/env_tools/beken_packager/cmake_xts_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, "all_app_pack.bin", 0, key_file, "all_app_pack_sign_enc.bin"))
         # print("{}/tools/env_tools/beken_packager/cmake_xts_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, "all_app_pack.bin", 0, key_file, "all_app_pack_enc.bin"))
     # print("******************************over******************************")
 
@@ -220,6 +264,9 @@ for file in os.listdir("./"):
     if re.findall("\w*_pack\w*.bin", file):
         # print(file)
         shutil.move(os.path.join(cwd, file), os.path.join(cwd+"/encrypt", file))
+
+header_path = "{}/tools/env_tools/rtt_ota/ota-rbl/".format(armino_path)
+os.system("python {}/tools/env_tools/rtt_ota/ota-rbl/ota_packager_python.py -i {} -o {} -g {} packager".format(armino_path, "encrypt/app_pack.bin", "encrypt/app_pack.rbl", header_path))
 
 os.remove(out_path)
 os.remove(enc_out_path)

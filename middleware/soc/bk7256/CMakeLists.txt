@@ -79,6 +79,13 @@ if(CONFIG_SDIO_HOST)
 		"hal/sdio_host_ll.c" )
 endif()
 
+if(CONFIG_PSRAM)
+	list(APPEND srcs
+		"hal/psram_ll.c"
+		"hal/psram_write.S"
+	)
+endif()
+
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}")
 
 armino_build_get_property(sdkconfig_header SDKCONFIG_HEADER)

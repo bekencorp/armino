@@ -625,7 +625,8 @@ def init_cli(verbose_output=None):
 
                     print('Executing action: %s' % name_with_aliases)
                     task(ctx, global_args, task.action_args)
-
+                    if (len(sys.argv) == 7):
+                        break
                 self._print_closing_message(global_args, tasks_to_run.keys())
 
             return tasks_to_run
@@ -800,6 +801,8 @@ if __name__ == '__main__':
                 raise SystemExit(ret)
 
         else:
+            if (len(sys.argv) == 7):
+                os.environ['temp_soc'] = sys.argv[6]
             main()
 
     except FatalError as e:

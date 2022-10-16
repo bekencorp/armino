@@ -58,6 +58,8 @@ media_debug_t *media_debug = NULL;
 media_debug_t *media_debug_cached = NULL;
 
 camera_info_t camera_info;
+bool dvp_camera_reset_open_ind = false;
+beken_semaphore_t camera_act_sema = NULL;
 
 static void camera_debug_dump(timer_id_t timer_id)
 {
@@ -77,12 +79,50 @@ static void camera_debug_dump(timer_id_t timer_id)
 	media_debug_cached->fps_wifi = media_debug->fps_wifi;
 	media_debug_cached->err_dec = media_debug->err_dec;
 
-	LOGI("jpg: %d[%d], dec: %d[%d, %d], lcd: %d[%d], fps: %d[%d], wifi: %d[%d]\n",
-		jpg, media_debug->isr_jpeg,
-		dec, media_debug->isr_decoder, err_dec,
-		lcd, media_debug->isr_lcd,
-		fps, media_debug->fps_lcd,
-		wifi, media_debug->fps_wifi);
+	LOGI("jpg: %d[%d], dec: %d[%d, %d], lcd: %d[%d], fps: %d[%d], wifi: %d[%d], wifi_read: [%d]\n",
+	     jpg, media_debug->isr_jpeg,
+	     dec, media_debug->isr_decoder, err_dec,
+	     lcd, media_debug->isr_lcd,
+	     fps, media_debug->fps_lcd,
+	     wifi, media_debug->fps_wifi, media_debug->wifi_read);
+
+	if ((jpg == 0) && (camera_info.mode == DVP_MODE_JPG || camera_info.mode == DVP_MODE_MIX))
+	{
+		if (CAMERA_STATE_DISABLED == get_camera_state())
+		{
+			// have been closed by up layer
+			return;
+		}
+
+		media_msg_t msg;
+
+		msg.event = EVENT_CAM_DVP_RESET_OPEN_IND;
+		msg.param = camera_info.param;
+
+		media_send_msg(&msg);
+
+	}
+}
+
+void camera_dvp_reset_open_handle(uint32_t param)
+{
+	bk_err_t ret = kNoErr;
+
+	if (dvp_camera_reset_open_ind)
+	{
+		bk_dvp_camera_close();
+		dvp_camera_reset_open_ind = false;
+	}
+
+	ret = bk_dvp_camera_open(param, camera_info.mode);
+	if (ret != kNoErr)
+	{
+		dvp_camera_reset_open_ind = false;
+	}
+	else
+	{
+		dvp_camera_reset_open_ind = true;
+	}
 }
 
 void camera_dvp_open_handle(param_pak_t *param, dvp_mode_t mode)
@@ -100,7 +140,8 @@ void camera_dvp_open_handle(param_pak_t *param, dvp_mode_t mode)
 
 	//pm_core_bus_clock_ctrl(2, 0, 1, 0, 0);
 
-	frame_buffer_enable(true);
+	camera_info.param = param->param;
+	camera_info.mode = mode;
 
 	ret = bk_dvp_camera_open(param->param, mode);
 
@@ -110,6 +151,8 @@ void camera_dvp_open_handle(param_pak_t *param, dvp_mode_t mode)
 		LOGE("%s open failed\n", __func__);
 		goto out;
 	}
+
+	dvp_camera_reset_open_ind = true;
 
 	set_camera_state(CAMERA_STATE_ENABLED);
 
@@ -139,13 +182,12 @@ void camera_dvp_close_handle(param_pak_t *param)
 
 	set_camera_state(CAMERA_STATE_DISABLED);
 
+	dvp_camera_reset_open_ind = false;
+
 	if (camera_info.debug)
 	{
 		bk_timer_stop(TIMER_ID1);
 	}
-
-
-	frame_buffer_enable(false);
 
 	//pm_core_bus_clock_ctrl(3, 1, 1, 0, 0);
 
@@ -154,6 +196,18 @@ out:
 }
 
 #ifdef CONFIG_USB_UVC
+
+void uvc_ble_notice_cb(ble_notice_t notice, void *param)
+{
+	switch (notice) {
+	case BLE_5_SHUTDOWN_SUCCEED:
+		LOGI("ble shutdown ok\n");
+		rtos_set_semaphore(&camera_act_sema);
+		break;
+	default:
+		break;
+	}
+}
 
 void camera_uvc_open_handle(param_pak_t *param)
 {
@@ -170,9 +224,18 @@ void camera_uvc_open_handle(param_pak_t *param)
 
 	if (bk_ble_get_env_state())
 	{
+		bk_ble_set_notice_cb(uvc_ble_notice_cb);
 		LOGI("bluetooth is enabled, shutdown bluetooth\n");
+		rtos_init_semaphore(&camera_act_sema, 1);
 		bk_ble_deinit();
-		rtos_delay_milliseconds(900);
+		if (rtos_get_semaphore(&camera_act_sema, 1000) != BK_OK)
+		{
+			LOGI("%s TIMEOUT\n", __func__);
+		}
+
+		rtos_deinit_semaphore(&camera_act_sema);
+		camera_act_sema = NULL;
+		bk_ble_set_notice_cb(NULL);
 	}
 	else
 	{
@@ -180,9 +243,7 @@ void camera_uvc_open_handle(param_pak_t *param)
 	}
 
 
-	//pm_core_bus_clock_ctrl(2, 0, 1, 0, 0);
-
-	frame_buffer_enable(true);
+	camera_info.mode = DVP_MODE_INVALIED;
 
 	ret = bk_uvc_camera_open(param->param);
 
@@ -226,7 +287,7 @@ void camera_uvc_close_handle(param_pak_t *param)
 
 	set_camera_state(CAMERA_STATE_DISABLED);
 
-	frame_buffer_enable(false);
+	//frame_buffer_enable(false);
 
 	//pm_core_bus_clock_ctrl(3, 1, 1, 0, 0);
 	LOGI("uvc close success!\n");
@@ -247,8 +308,14 @@ void camera_event_handle(uint32_t event, uint32_t param)
 		case EVENT_CAM_DVP_YUV_OPEN_IND:
 			camera_dvp_open_handle((param_pak_t *)param, DVP_MODE_YUV);
 			break;
+		case EVENT_CAM_DVP_MIX_OPEN_IND:
+			camera_dvp_open_handle((param_pak_t *)param, DVP_MODE_MIX);
+			break;
 		case EVENT_CAM_DVP_CLOSE_IND:
 			camera_dvp_close_handle((param_pak_t *)param);
+			break;
+		case EVENT_CAM_DVP_RESET_OPEN_IND:
+			camera_dvp_reset_open_handle(param);
 			break;
 
 #ifdef CONFIG_USB_UVC
@@ -276,7 +343,7 @@ void camera_init(void)
 {
 	if (media_debug == NULL)
 	{
-		media_debug = (media_debug_t*)os_malloc(sizeof(media_debug_t));
+		media_debug = (media_debug_t *)os_malloc(sizeof(media_debug_t));
 
 		if (media_debug == NULL)
 		{
@@ -286,7 +353,7 @@ void camera_init(void)
 
 	if (media_debug_cached == NULL)
 	{
-		media_debug_cached = (media_debug_t*)os_malloc(sizeof(media_debug_t));
+		media_debug_cached = (media_debug_t *)os_malloc(sizeof(media_debug_t));
 		if (media_debug_cached == NULL)
 		{
 			LOGE("malloc media_debug_cached fail\n");

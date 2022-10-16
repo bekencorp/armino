@@ -173,7 +173,8 @@ bk_err_t bk_wdt_feed(void)
 	WDT_RETURN_ON_NOT_INIT();
 
 	wdt_hal_init_wdt(&s_wdt.hal, s_wdt_period);
-	bk_misc_update_set_type(RESET_SOURCE_WATCHDOG);
+
+	bk_misc_set_reset_reason(RESET_SOURCE_WATCHDOG);
 
 	return BK_OK;
 }

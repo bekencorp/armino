@@ -116,7 +116,7 @@ at the top of this file. */
 .extern portasmHANDLE_INTERRUPT
 .extern g_enter_interrupt_nest
 
-#if( configUSE_TICKLESS_IDLE == 1 )
+#if( configUSE_TICKLESS_IDLE != 0 )
 	.extern FreeRTOS_tickless_handler
 #endif
 
@@ -191,7 +191,7 @@ handle_asynchronous:
 		bne a0, t1, test_if_external_interrupt
 
 		/* Handle tickless idle before Timer ISR sets mtimecmp. */
-		#if( configUSE_TICKLESS_IDLE == 1 )
+		#if( configUSE_TICKLESS_IDLE != 0 )
 			call FreeRTOS_tickless_handler
 		#endif
 

@@ -1179,7 +1179,7 @@ void sctrl_enter_rtos_idle_sleep(PS_DEEP_CTRL_PARAM deep_param)
 
 	/* Flash 26MHz clock select dco clock*/
 	flash_hdl = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
-	BK_ASSERT(DD_HANDLE_UNVALID != flash_hdl);
+	BK_ASSERT(DD_HANDLE_UNVALID != flash_hdl); /* ASSERT VERIFIED */
 	ddev_control(flash_hdl, CMD_FLASH_SET_DCO, 0);
 
 	/* MCLK(main clock) select:dco*/ /* MCLK division*/
@@ -1408,7 +1408,7 @@ int bk_misc_wakeup_get_gpio_num(void)
 	return wakeup_gpio_num;
 }
 
-RESET_SOURCE_STATUS sctrl_get_deep_sleep_wake_soure(void)
+UINT32 sctrl_get_deep_sleep_wake_soure(void)
 {
 	RESET_SOURCE_STATUS waked_source = 0;
 

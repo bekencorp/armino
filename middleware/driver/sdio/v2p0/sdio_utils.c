@@ -30,6 +30,7 @@
 int32_t sdio_list_dump_info(sdio_node_t *head, sdio_node_t *tail, uint32_t count)
 {
 	sdio_node_t *cur_p = head;
+	sdio_node_t *next_p = NULL;
 
 	//TODO:log out each node info.
 	for(uint32_t i = 0; i < count; i++)
@@ -37,13 +38,19 @@ int32_t sdio_list_dump_info(sdio_node_t *head, sdio_node_t *tail, uint32_t count
 		if(cur_p)
 		{
 			SDIO_LOG_INFO("nd%d=0x%x,next=0x%x len=%d", i, cur_p, cur_p->next, cur_p->len);
+			next_p = cur_p->next;
 		}
-		else
+
+		if(next_p == NULL)
 			break;
+
+		cur_p = next_p;
 	}
 
-	if(tail && cur_p != tail)
-		SDIO_LOG_INFO("tail=0x%x, len=%d", tail, tail->len);
+	if(tail && (tail != cur_p))
+	{
+		SDIO_LOG_ERR("list err:tail=0x%x, len=%d", tail, tail->len);
+	}
 
 	return 0;
 }
@@ -90,7 +97,7 @@ bk_err_t sdio_list_init(uint32_t count, uint32_t size, sdio_node_ptr_t *head_p, 
 		cur_p = *head_p = *tail_p = (sdio_node_t *)os_malloc(buf_len);
 		if(*head_p == NULL)
 		{
-			SDIO_LOG_ERR("mem malloc");		
+			SDIO_LOG_ERR("mem malloc,len=%d", buf_len);		
 			return BK_ERR_SDIO_NO_MEM;
 		}
 
@@ -101,12 +108,12 @@ bk_err_t sdio_list_init(uint32_t count, uint32_t size, sdio_node_ptr_t *head_p, 
 #endif
 	}
 
-	for(i = 1; i  < count; i++)
+	for(i = 1; i < count; i++)
 	{
 		next_p = (sdio_node_t *)os_malloc(buf_len);
 		if(next_p == NULL)
 		{
-			SDIO_LOG_ERR("mem malloc");		
+			SDIO_LOG_ERR("mem malloc,i=%d,len=%d", i, buf_len);
 			return BK_ERR_SDIO_NO_MEM;
 		}
 		next_p->len = 0;
@@ -170,7 +177,7 @@ bk_err_t sdio_list_deinit(sdio_list_t *list_p)
 static bk_err_t sdio_list_check(sdio_node_t *push_head, sdio_node_t *push_tail, uint32_t count)
 {
 	sdio_node_t *cur_p = push_head;
-	uint32_t compute = 0;
+	uint32_t compute = 1;
 
 	if(push_head == NULL)
 	{
@@ -186,8 +193,6 @@ static bk_err_t sdio_list_check(sdio_node_t *push_head, sdio_node_t *push_tail, 
 
 	while(cur_p)
 	{
-		cur_p = cur_p->next;
-		compute++;
 		if(compute == count)
 		{
 			if(cur_p == push_tail)
@@ -200,9 +205,13 @@ static bk_err_t sdio_list_check(sdio_node_t *push_head, sdio_node_t *push_tail, 
 				return BK_ERR_SDIO_LIST;
 			}	
 		}
+
+		cur_p = cur_p->next;
+		compute++;
 	}
 
-	return BK_OK;
+	SDIO_LOG_ERR("list invalid really node cnt=%d, set count=%d", compute-1, count);
+	return BK_ERR_SDIO_LIST;
 }
 
 /**
@@ -229,16 +238,18 @@ bk_err_t sdio_list_pop_node(sdio_list_t *list_p, sdio_node_ptr_t *node_p)
 	if(ret != BK_OK)
 	{
 		SDIO_LOG_ERR("list fail");
-		goto err_exit;
+		*node_p = NULL;
+		return BK_FAIL;
 	}
 
 	if(list_p->count)
 	{
 		sdio_node_ptr_t tmp_node_p = list_p->head;
+
 		*node_p = tmp_node_p;
 		if(list_p->head == list_p->tail)	//last one
 		{
-			list_p->head = list_p->tail =NULL;
+			list_p->head = list_p->tail = NULL;
 		}
 		else
 		{
@@ -250,11 +261,8 @@ bk_err_t sdio_list_pop_node(sdio_list_t *list_p, sdio_node_ptr_t *node_p)
 	}
 
 #ifdef CONFIG_SDIO_DEBUG_EN
-	sdio_list_dump_info(list_p->head, NULL, 1);
+	sdio_list_dump_info(list_p->head, list_p->tail, list_p->count);
 #endif
-
-err_exit:
-	*node_p = NULL;
 	return ret;
 }
 
@@ -307,6 +315,7 @@ bk_err_t sdio_list_push_list(sdio_list_t *list_p, sdio_node_t *head_p, sdio_node
 
 		list_p->tail->next = head_p;
 		list_p->tail = tail_p;
+		list_p->tail->next = NULL;
 		list_p->count += count;
 	}
 

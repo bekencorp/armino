@@ -70,15 +70,15 @@ int msg_queue_simple_init(void)
 
 	/* 初始化消息队列 */
 	ret = rtos_init_queue(&mq, "msg_queue", MSG_SIZE, MSG_NUM);
-	BK_ASSERT(ret == kNoErr);
+	BK_ASSERT(ret == kNoErr); /* ASSERT VERIFIED */
 
 	/* 创建recive线程 */
 	ret = rtos_create_thread(&queue_thread_revive, 24, "recv_thread", thread_queue_recive_entry, 1024, RT_NULL);
-	BK_ASSERT(ret == kNoErr);
+	BK_ASSERT(ret == kNoErr); /* ASSERT VERIFIED */
 
 	/* 创建send线程 */
 	rtos_create_thread(&queue_thread_send, 25, "send_thread", thread_queue_send_entry, 1024, RT_NULL);
-	BK_ASSERT(ret == kNoErr);
+	BK_ASSERT(ret == kNoErr); /* ASSERT VERIFIED */
 
 	return kNoErr;
 }
@@ -100,10 +100,10 @@ int one_shot_time_simple_init(void)
 {
 	bk_err_t ret;
 	ret = rtos_init_oneshot_timer(&one_shot, 10000, one_shot_timeout, RT_NULL, RT_NULL);
-	BK_ASSERT(ret == kNoErr);
+	BK_ASSERT(ret == kNoErr); /* ASSERT VERIFIED */
 
 	ret = rtos_start_oneshot_timer(&one_shot);
-	BK_ASSERT(ret == kNoErr);
+	BK_ASSERT(ret == kNoErr); /* ASSERT VERIFIED */
 
 	return kNoErr;
 }

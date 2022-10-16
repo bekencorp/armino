@@ -12,7 +12,6 @@ extern "C" {
  * @{
  */
 
-
 /**
  * @brief     Init the AUD INTF driver
  *
@@ -461,6 +460,20 @@ bk_err_t bk_aud_intf_voc_stop(void);
  */
 bk_err_t bk_aud_intf_write_spk_data(uint8_t *dac_buff, uint32_t size);
 
+#if CONFIG_AUD_TRAS_DAC_DEBUG
+/**
+ * @brief     debug api of audio dac
+ *
+ * @param enable enable/disable audio dac debug
+ *
+ * This API should be called in voice work mode.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_intf_set_voc_dac_debug(bool enable);
+#endif
 
 /**
  * @}

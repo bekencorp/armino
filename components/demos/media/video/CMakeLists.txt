@@ -5,23 +5,9 @@ set(incs
 	uvc
 	video_common
 	video_transfer
-	video_transfer_frame_buff
 	dvp_capture
-	"../lcd/common"
-	"../lcd/lcd_8080"
 	)
 set(srcs)
-
-if (CONFIG_DUAL_CORE AND CONFIG_PSRAM)
-	list(APPEND srcs
-		"uvc_capture_display/uvc_mailbox.c"
-		)
-if (NOT CONFIG_SLAVE_CORE)
-	list(APPEND srcs
-			"uvc_capture_display/uvc_process_cpu0.c"
-			)
-endif()
-endif()
 
 if (CONFIG_CAMERA)
 	list(APPEND srcs
@@ -45,8 +31,6 @@ endif()
 
 if (CONFIG_USB_UVC)
 	list(APPEND srcs
-		"uvc/uvc_camera_driver.c"
-		"uvc_capture_display/uvc_process_cpu1.c"
 		"uvc_display/uvc_display.c"
 		)
 endif()

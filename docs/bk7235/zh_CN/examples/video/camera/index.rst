@@ -6,4 +6,4 @@ camera
 .. toctree::
    :maxdepth: 1
 
-   DVP 图传 demo <bk_video_transfer>
+   DVP Video_transfer <bk_video_transfer>

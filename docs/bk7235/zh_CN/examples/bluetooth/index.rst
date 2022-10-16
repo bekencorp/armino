@@ -1,4 +1,4 @@
-bluetooth
+蓝牙
 -------------------------------------
 
 :link_to_translation:`en:[English]`

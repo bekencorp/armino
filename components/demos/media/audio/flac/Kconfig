@@ -1,0 +1,3 @@
+config AUDIO_FLAC_TEST
+	bool "Enable Audio FLAC Encoder and Decoder Test"
+	default n

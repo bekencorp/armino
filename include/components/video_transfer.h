@@ -29,7 +29,7 @@ extern "C" {
  *
  * This API will create video thread, init msg queue, and excute camera init
  *
- * param setup_cfg: configure of the video transfer include packet process, method of transfer, etc.
+ * @param setup_cfg configure of the video transfer include packet process, method of transfer, etc.
  *
  * @return
  *    - kNoErr: succeed
@@ -77,10 +77,10 @@ bk_err_t bk_video_buffer_close(void);
  *
  * This API will malloc a data_buffer, and save video data to this buffer
  *
- * param buf: malloc buf pointer
- * param buf_len: buf length
- * param err_code:  0: success, -1: param error, -2: buffer full, -3: frame data err, -4: timeout, -5: unknow err
- * param timeout: read frame data timeout
+ * @param buf malloc buf pointer
+ * @param buf_len buf length
+ * @param err_code  0: success, -1: param error, -2: buffer full, -3: frame data err, -4: timeout, -5: unknow err
+ * @param timeout read frame data timeout
  *
  * @return
  *    - 0: failed
@@ -88,6 +88,29 @@ bk_err_t bk_video_buffer_close(void);
  */
 uint32_t bk_video_buffer_read_frame(uint8_t *buf, uint32_t buf_len, int *err_code, uint32_t timeout);
 
+/**
+ * @brief     read video buffer frame
+ *
+ * This API will stop camera, but not free malloc memory for transfer
+ *
+ * @return
+ *    - kNoErr: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_video_transfer_stop(void);
+
+/**
+ * @brief     read video buffer frame
+ *
+ * This API will start camera after stopping camera
+ *
+ * @attation 1. this function must called after bk_video_transfer_stop
+ *
+ * @return
+ *    - kNoErr: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_video_transfer_start(void);
 /**
  * @}
  */

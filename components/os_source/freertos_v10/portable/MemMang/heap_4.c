@@ -92,6 +92,10 @@ task.h is included from an application file. */
 #include "bk_list.h"
 #include <os/str.h>
 #endif
+#include <os/mem.h>
+#if CONFIG_PSRAM_AS_SYS_MEMORY
+#include <driver/psram.h>
+#endif
 
 #undef MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
@@ -102,12 +106,14 @@ task.h is included from an application file. */
 #endif
 
 /* Block sizes must not get too small. */
-#define heapMINIMUM_BLOCK_SIZE	( ( size_t ) ( xHeapStructSize + 8 ) )
+#define heapMINIMUM_BLOCK_SIZE    ( ( size_t ) ( xHeapStructSize << 1 ) )
 
 /* Assumes 8bit bytes! */
 #define heapBITS_PER_BYTE		( ( size_t ) 8 )
 
-#define MEM_OVERFLOW_TAG      0xcd
+#define MEM_OVERFLOW_TAG        0xcd
+#define MEM_OVERFLOW_WORD_TAG   0xcdcdcdcd
+
 #if CONFIG_MEM_DEBUG
 #define MEM_CHECK_TAG_LEN      0x4
 #else
@@ -214,16 +220,67 @@ static size_t psram_xMinimumEverFreeBytesRemaining = 0U;
 #endif
 
 #if (CONFIG_SOC_BK7256)
-#if (CONFIG_SLAVE_CORE)
-#define PSRAM_START_ADDRESS    (void*)(0x607CA000)
-#define PSRAM_END_ADDRESS      (void*)(0x60800000)   //192KB
-#else
+#if (!CONFIG_SLAVE_CORE)
 #define PSRAM_START_ADDRESS    (void*)(0x60700000)
-#define PSRAM_END_ADDRESS      (void*)(0x607CA000)   //808KB
+#define PSRAM_END_ADDRESS      (void*)(0x60800000)   //1MB
 #endif
 #endif
 
 /*-----------------------------------------------------------*/
+
+void bk_psram_heap_init(void) {
+
+	BlockLink_t *pxFirstFreeBlock;
+	uint8_t *pucAlignedHeap;
+	size_t uxAddress;
+	size_t xTotalHeapSize;
+
+	bk_psram_init();
+
+	xTotalHeapSize = PSRAM_END_ADDRESS - PSRAM_START_ADDRESS;
+	psram_ucHeap = PSRAM_START_ADDRESS;
+
+	BK_LOGI(TAG, "prvHeapInit-psram start addr:0x%x, size:%d\r\n", psram_ucHeap, xTotalHeapSize);
+
+	os_memset_word((uint32_t *)psram_ucHeap, 0x0, xTotalHeapSize);
+
+	/* Ensure the heap starts on a correctly aligned boundary. */
+	uxAddress = ( size_t ) psram_ucHeap;
+
+	if( ( uxAddress & portBYTE_ALIGNMENT_MASK ) != 0 )
+	{
+		uxAddress += ( portBYTE_ALIGNMENT - 1 );
+		uxAddress &= ~( ( size_t ) portBYTE_ALIGNMENT_MASK );
+		xTotalHeapSize -= uxAddress - ( size_t ) psram_ucHeap;
+	}
+
+	pucAlignedHeap = ( uint8_t * ) uxAddress;
+
+	/* psram_xStart is used to hold a pointer to the first item in the list of free
+	blocks.  The void cast is used to prevent compiler warnings. */
+	psram_xStart.pxNextFreeBlock = ( void * ) pucAlignedHeap;
+	psram_xStart.xBlockSize = ( size_t ) 0;
+
+	/* psram_pxEnd is used to mark the end of the list of free blocks and is inserted
+	at the end of the heap space. */
+	uxAddress = ( ( size_t ) pucAlignedHeap ) + xTotalHeapSize;
+	uxAddress -= xHeapStructSize;
+	uxAddress &= ~( ( size_t ) portBYTE_ALIGNMENT_MASK );
+	psram_pxEnd = ( void * ) uxAddress;
+	psram_pxEnd->xBlockSize = 0;
+	psram_pxEnd->pxNextFreeBlock = NULL;
+
+	/* To start with there is a single free block that is sized to take up the
+	entire heap space, minus the space taken by psram_pxEnd. */
+	pxFirstFreeBlock = ( void * ) pucAlignedHeap;
+	pxFirstFreeBlock->xBlockSize = uxAddress - ( size_t ) pxFirstFreeBlock;
+	pxFirstFreeBlock->pxNextFreeBlock = psram_pxEnd;
+
+	/* Only one block exists - and it covers the entire usable heap space. */
+	psram_xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
+	psram_xFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
+
+}
 
 static void psram_prvInsertBlockIntoFreeList( BlockLink_t *pxBlockToInsert )
 {
@@ -297,7 +354,7 @@ void *pvReturn = NULL;
 		initialisation to setup the list of free blocks. */
 		if( psram_pxEnd == NULL )
 		{
-			prvHeapInit();
+			bk_psram_heap_init();
 		}
 		else
 		{
@@ -467,20 +524,20 @@ void *psram_malloc( size_t xWantedSize )
 #if CONFIG_MEM_DEBUG
 		pxLink->allocTime = xTaskGetTickCount();
 #if CONFIG_MEM_DEBUG_FUNC_NAME
-		os_strlcpy(pxLink->funcName, call_func_name, sizeof(pxLink->funcName) - 1);
+		os_memcpy_word((uint32_t *)pxLink->funcName, (uint32_t *)call_func_name, sizeof(pxLink->funcName));
 #endif
 #if CONFIG_MEM_DEBUG_TASK_NAME
 		//malloc can only be called in Task context!
 		if (rtos_is_scheduler_started())
-			os_strlcpy(pxLink->taskName, pcTaskGetName(NULL), sizeof(pxLink->taskName) - 1);
+			os_memcpy_word((uint32_t *)pxLink->taskName, (uint32_t *)pcTaskGetName(NULL), sizeof(pxLink->taskName));
 		else
-			os_strlcpy(pxLink->taskName, "NA", sizeof(pxLink->taskName) - 1);
+			os_memcpy_word((uint32_t *)pxLink->taskName, (uint32_t *)"NA", sizeof(pxLink->taskName));
 #endif
 		pxLink->line = line;
 		pxLink->wantedSize = xWantedSize;
 
 		mem_end = (uint8_t *)pxLink + (pxLink->xBlockSize & ~xBlockAllocatedBit) - MEM_CHECK_TAG_LEN;
- 		os_memset(mem_end, MEM_OVERFLOW_TAG, MEM_CHECK_TAG_LEN);
+ 		os_memset_word((uint32_t *)mem_end, MEM_OVERFLOW_WORD_TAG, MEM_CHECK_TAG_LEN);
 #endif
 	}
 	#endif
@@ -488,8 +545,8 @@ void *psram_malloc( size_t xWantedSize )
 
 	#if CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG
 	if(pvReturn && need_zero)
-		os_memset(pvReturn, 0, xWantedSize);
-	
+		os_memset_word(pvReturn, 0, xWantedSize);
+
 	#endif
 	return pvReturn;
 }
@@ -525,7 +582,7 @@ void *psram_realloc( void *pv, size_t xWantedSize )
 	pvReturn = psram_malloc_without_lock(xWantedSize);
 	if (pvReturn != NULL) {
 		if (pvReturn != pv)
-			os_memcpy(pvReturn, pv, datasize);
+			os_memcpy_word(pvReturn, pv, datasize);
 	} else { // if can't realloc such big memory, we should NOT put pv in free list.
 		pxPreviousBlock = &psram_xStart;
 		pxIterator = psram_xStart.pxNextFreeBlock;
@@ -602,10 +659,10 @@ static inline void mem_overflow_check(BlockLink_t *pxLink)
 	uint8_t *mem_end;
 
 	mem_end = (uint8_t *)pxLink + (pxLink->xBlockSize & ~xBlockAllocatedBit) - MEM_CHECK_TAG_LEN;
-	
+
 	if (MEM_OVERFLOW_TAG != mem_end[0]
 		|| MEM_OVERFLOW_TAG != mem_end[1]
-		|| MEM_OVERFLOW_TAG != mem_end[2] 
+		|| MEM_OVERFLOW_TAG != mem_end[2]
 		|| MEM_OVERFLOW_TAG != mem_end[3])
 	{
 		BK_LOG_RAW("Mem Overflow ............\r\n");
@@ -819,7 +876,7 @@ void *pvPortMalloc( size_t xWantedSize )
 	#if CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG
 	if(pvReturn && need_zero)
 		os_memset(pvReturn, 0, xWantedSize);
-	
+
 	#endif
 	return pvReturn;
 }
@@ -940,7 +997,7 @@ void xPortDumpMemStats(uint32_t start_tick, uint32_t ticks_since_malloc, const c
 	vTaskSuspendAll();
 
 	list_for_each_entry(pxLink, &xUsed, node) {
-		
+
 		if (pxLink->allocTime < start_tick)
 			continue;
 
@@ -1005,7 +1062,8 @@ extern unsigned char _empty_ram;
 #define HEAP_END_ADDRESS      (void*)(0x00400000 + 192 * 1024)
 #elif (CONFIG_SOC_BK7271)
 #define HEAP_END_ADDRESS      (void*)(0x00400000 + 512 * 1024)
-
+#elif (CONFIG_SOC_BK7236)
+#define HEAP_END_ADDRESS      (void*)(SOC_SRAM0_DATA_BASE + 256 * 1024)
 #elif (CONFIG_SOC_BK7235 && !CONFIG_DUAL_CORE)
 #define HEAP_END_ADDRESS      (void*)(0x30000000 + 512 * 1024)
 #elif (CONFIG_SOC_BK7235 && CONFIG_MASTER_CORE)
@@ -1101,47 +1159,8 @@ static void prvHeapInit( void )
 	xFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
 
 #if (CONFIG_PSRAM_AS_SYS_MEMORY)
-    xTotalHeapSize = PSRAM_END_ADDRESS - PSRAM_START_ADDRESS;
-    psram_ucHeap = PSRAM_START_ADDRESS;
-
-    BK_LOGI(TAG, "prvHeapInit-psram start addr:0x%x, size:%d\r\n", psram_ucHeap, xTotalHeapSize);
-
-
-    /* Ensure the heap starts on a correctly aligned boundary. */
-    uxAddress = ( size_t ) psram_ucHeap;
-
-    if( ( uxAddress & portBYTE_ALIGNMENT_MASK ) != 0 )
-    {
-        uxAddress += ( portBYTE_ALIGNMENT - 1 );
-        uxAddress &= ~( ( size_t ) portBYTE_ALIGNMENT_MASK );
-        xTotalHeapSize -= uxAddress - ( size_t ) psram_ucHeap;
-    }
-
-    pucAlignedHeap = ( uint8_t * ) uxAddress;
-
-    /* psram_xStart is used to hold a pointer to the first item in the list of free
-    blocks.  The void cast is used to prevent compiler warnings. */
-    psram_xStart.pxNextFreeBlock = ( void * ) pucAlignedHeap;
-    psram_xStart.xBlockSize = ( size_t ) 0;
-
-    /* psram_pxEnd is used to mark the end of the list of free blocks and is inserted
-    at the end of the heap space. */
-    uxAddress = ( ( size_t ) pucAlignedHeap ) + xTotalHeapSize;
-    uxAddress -= xHeapStructSize;
-    uxAddress &= ~( ( size_t ) portBYTE_ALIGNMENT_MASK );
-    psram_pxEnd = ( void * ) uxAddress;
-    psram_pxEnd->xBlockSize = 0;
-    psram_pxEnd->pxNextFreeBlock = NULL;
-
-    /* To start with there is a single free block that is sized to take up the
-    entire heap space, minus the space taken by psram_pxEnd. */
-    pxFirstFreeBlock = ( void * ) pucAlignedHeap;
-    pxFirstFreeBlock->xBlockSize = uxAddress - ( size_t ) pxFirstFreeBlock;
-    pxFirstFreeBlock->pxNextFreeBlock = psram_pxEnd;
-
-    /* Only one block exists - and it covers the entire usable heap space. */
-    psram_xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
-    psram_xFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
+	// It's too early init psram maybe failed
+	// bk_psram_heap_init();
 #endif
 
 #if CONFIG_MEM_DEBUG

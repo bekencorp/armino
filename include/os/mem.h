@@ -8,6 +8,36 @@
 extern"C" {
 #endif
 
+#define os_write_word(addr,val)                 *((volatile uint32_t *)(addr)) = val
+#define os_read_word(addr,val)                  val = *((volatile uint32_t *)(addr))
+#define os_get_word(addr)                       *((volatile uint32_t *)(addr))
+
+__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) \
+static inline void os_memcpy_word(uint32_t *out, const uint32_t *in, uint32_t n)
+{
+    // Note:
+    // the word count == sizeof(buf)/sizeof(uint32_t)
+    uint32_t word_cnt = n>>2;
+
+    for(int i = 0; i < word_cnt; i++)
+    {
+        os_write_word((out + i), os_get_word(in + i));
+    }
+}
+
+__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) \
+static inline void os_memset_word(uint32_t *b, int32_t c, uint32_t n)
+{
+    // Note:
+    // the word count == sizeof(buf)/sizeof(uint32_t)
+    uint32_t word_cnt = n>>2;
+
+    for(int i = 0; i < word_cnt; i++)
+    {
+        os_write_word((b + i), c);
+    }
+}
+
 INT32 os_memcmp(const void *s1, const void *s2, UINT32 n);
 void *os_memmove(void *out, const void *in, UINT32 n);
 void *os_memcpy(void *out, const void *in, UINT32 n);
@@ -34,7 +64,8 @@ void *os_zalloc(size_t size);
 void *psram_malloc(size_t size);
 void *psram_zalloc(size_t size);
 #endif
-//#define psram_free        os_free
+
+#define psram_free        os_free
 
 void* os_malloc_wifi_buffer(size_t size);
 void os_show_memory_config_info(void);

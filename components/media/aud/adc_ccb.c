@@ -48,7 +48,7 @@
 #define AUD_8K_FRAME_SAMP_SIZE           160*2
 
 dma_id_t aud_adc_dma_id = DMA_ID_MAX;
-
+uint8_t *adc_ring_buffer = NULL;
 
 static bk_err_t audio_adc_config()
 {
@@ -93,8 +93,6 @@ static bk_err_t audio_adc_config()
 	adc_config.agc_enable = AUD_AGC_DISABLE;
 	adc_config.manual_pga_value = 0;
 	adc_config.manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
-	adc_config.adc_fracmod_manual = AUD_ADC_TRACMOD_MANUAL_DISABLE;
-	adc_config.adc_fracmod = 0;
 
 	/* init audio driver and config adc */
 	ret = bk_aud_driver_init();
@@ -205,11 +203,19 @@ void audio_adc_start(void)
 		return;
 	}
 
-#ifdef CONFIG_PSRAM
-	ret = audio_adc_dma_config(aud_adc_dma_id, (int32_t *)psram_map->aud_adc, AUD_8K_FRAME_SAMP_SIZE * 2, AUD_8K_FRAME_SAMP_SIZE);
-#else
-	ret = audio_adc_dma_config(aud_adc_dma_id, (int32_t *)NULL, AUD_8K_FRAME_SAMP_SIZE * 2, AUD_8K_FRAME_SAMP_SIZE);
-#endif
+	if (adc_ring_buffer == NULL)
+	{
+		adc_ring_buffer = (uint8_t *)os_malloc(AUD_8K_FRAME_SAMP_SIZE * 2);
+
+		if (adc_ring_buffer == NULL)
+		{
+			os_printf("malloc dac_ring_buffer fail \r\n");
+			return;
+		}
+	}
+
+	ret = audio_adc_dma_config(aud_adc_dma_id, (int32_t *)adc_ring_buffer, AUD_8K_FRAME_SAMP_SIZE * 2, AUD_8K_FRAME_SAMP_SIZE);
+
 	ret = bk_dma_start(aud_adc_dma_id);
 	if (ret != BK_OK)
 	{

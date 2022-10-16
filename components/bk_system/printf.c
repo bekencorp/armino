@@ -41,11 +41,13 @@ static volatile uint8_t s_printf_sync = 0;
 
 typedef  struct
 {
-	char	mod_name[15];
+	char	mod_name[11];
 	u8		disabled;
 } __bk_packed mod_disable_list_t;
 
-static mod_disable_list_t mod_tag_list[20];
+static mod_disable_list_t mod_tag_list[6];
+
+static u8 whitelist_enabled = 0;
 
 #endif
 
@@ -92,7 +94,7 @@ static void exception_mode_printf(const char *fmt, va_list ap)
 	uart_write_string(bk_get_printf_port(), s_exception_mode_printf_buf);
 }
 
-#if (!CONFIG_ARCH_RISCV)
+#if CONFIG_ARCH_ARM9
 static void irq_printf(const char *fmt, va_list ap)
 {
 	char string[CONFIG_PRINTF_BUF_SIZE];
@@ -120,7 +122,7 @@ static void bk_printf_sync(const char *fmt, va_list args)
 	if(!printf_is_init())
 		return;
 
-#if (CONFIG_ARCH_RISCV)
+#if (CONFIG_ARCH_RISCV || CONFIG_ARCH_CM33)
 
 	if (rtos_is_in_interrupt_context() || (!rtos_is_scheduler_started()))
 		exception_mode_printf(fmt, args);
@@ -180,7 +182,7 @@ void bk_printf(const char *fmt, ...)
 		return;
 
 	if(!s_printf_enable)
-	    return;
+		return;
 
 	va_start(args, fmt);
 
@@ -209,6 +211,20 @@ static int bk_mod_printf_disbled(char * tag)
 
 	return 0;
 }
+
+void bk_enable_white_list(int enabled)
+{
+	if(enabled)
+		whitelist_enabled = 1;
+	else
+		whitelist_enabled = 0;
+}
+
+int bk_white_list_state(void)
+{
+	return whitelist_enabled;
+}
+
 #endif // #if CONFIG_SHELL_ASYNCLOG
 
 void bk_buf_printf_sync(char *buf, int buf_len)
@@ -242,7 +258,7 @@ void bk_printf_ex(int level, char *tag, const char *fmt, ...)
 	if(level > shell_get_log_level())  /* check here instead of in shell_log_out to reduce API instructions. */
 		return;
 
-	if(bk_mod_printf_disbled(tag))
+	if(bk_mod_printf_disbled(tag) ^ whitelist_enabled)
 		return;
 
 	va_start(args, fmt);
@@ -294,6 +310,8 @@ void bk_disable_mod_printf(char *mod_name, uint8_t disable)
 #if CONFIG_SHELL_ASYNCLOG
 
 	int		i, j, result;
+
+	disable = disable ^ whitelist_enabled;
 
 	if(disable == 0)
 	{

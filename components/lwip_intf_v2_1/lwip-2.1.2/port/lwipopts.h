@@ -154,7 +154,7 @@
  * a lot of data that needs to be copied, this should be set high.
  */
 #if (MEM_TRX_DYNAMIC_EN)
-#define MEM_SIZE (60*1024)
+#define MEM_SIZE (40*1024)
 #define MEM_MAX_TX_SIZE (MEM_SIZE*5)/6
 #define MEM_MAX_RX_SIZE (MEM_SIZE*3)/4
 #else

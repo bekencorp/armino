@@ -22,7 +22,7 @@
 #define JPEG_DEC_720P_FRAME_SIZE ((DISPLAY_720P_FRAME_SIZE / JPEG_DEC_ALINE_SIZE + 1) * JPEG_DEC_ALINE_SIZE)
 #define JPEG_ENC_FRAME_SIZE (1024 * 250)
 #define JPEG_ENC_FRAME_COUNT (4)
-#define DISPLAY_FRAME_COUNT (4)
+#define DISPLAY_FRAME_COUNT (5)
 #define DISPLAY_720P_FRAME_COUNT (3)
 
 #define AUDIO_FRAME_SIZE (1024 * 10)
@@ -39,17 +39,26 @@ typedef struct
 {
 	uint8_t display[DISPLAY_FRAME_COUNT][JPEG_DEC_FRAME_SIZE];
 	uint8_t jpeg_enc[JPEG_ENC_FRAME_COUNT][JPEG_ENC_FRAME_SIZE];
-	uint8_t aud_adc[AUDIO_FRAME_SIZE];
-	uint8_t aud_dac[AUDIO_FRAME_SIZE];
-} psram_map_t;
+} layout_800x600_t;
 
 typedef struct
 {
 	uint8_t display[DISPLAY_720P_FRAME_COUNT][JPEG_DEC_720P_FRAME_SIZE];
 	uint8_t jpeg_enc[JPEG_ENC_FRAME_COUNT][JPEG_ENC_FRAME_SIZE];
-	uint8_t aud_adc[AUDIO_FRAME_SIZE];
-	uint8_t aud_dac[AUDIO_FRAME_SIZE];
-} psram_720p_map_t;
+} layout_1280x720_t;
+
+typedef struct
+{
+	union {
+		layout_800x600_t layout_800x600;
+		layout_1280x720_t layout_1280x720;
+	};
+	uint32 reserved;
+} psram_map_t;
 
 #define psram_map ((psram_map_t*)PSRAM_NONCACHEABLE)
-#define psram_720p_map ((psram_720p_map_t*)PSRAM_NONCACHEABLE)
+#define FRAME_BUFF_BASE ((layout_1280x720_t*)(&psram_map->layout_1280x720))
+#define LCD_FRAMME_BUFF_ADDR_1        FRAME_BUFF_BASE->display[0]   //this is only for lcd open, without camera
+#define LCD_FRAMME_BUFF_ADDR_2        FRAME_BUFF_BASE->display[1]   //this is only for lcd open, without camera
+
+

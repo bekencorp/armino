@@ -101,7 +101,7 @@ if (CONFIG_FLASH)
 	)
 endif()
 
-if (CONFIG_FLASH)
+if (CONFIG_FLASH AND CONFIG_SOC_BK7256XX)
 	list(APPEND srcs
 		cli_flash_test.c
 	)
@@ -178,12 +178,6 @@ if (CONFIG_SOC_BK7256XX)
 	list(APPEND srcs "cli_usb.c")
 endif()
 
-if (CONFIG_SOC_BK7256XX OR CONFIG_USB_UVC)
-if (CONFIG_DUAL_CORE AND CONFIG_PSRAM)
-	list(APPEND srcs "cli_uvc.c")
-endif()
-endif()
-
 if (CONFIG_SECURITYIP)
 	list(APPEND srcs "cli_securityip.c")
 endif()
@@ -221,6 +215,11 @@ if (CONFIG_DMA2D_TEST)
 	)
 endif() #CONFIG_DMA2D_TEST
 
+if (CONFIG_QSPI_OLED_TEST)
+	list(APPEND srcs
+		"cli_qspi_oled.c"
+	)
+endif()
 
 if (CONFIG_AUDIO_TEST AND CONFIG_AUDIO_RISCV_IP_V1_0)
 	list(APPEND srcs "cli_aud.c")
@@ -294,11 +293,27 @@ if (CONFIG_AUD_INTF_TEST)
 	list(APPEND srcs cli_aud_intf.c)
 endif()
 
+if (CONFIG_AUDIO_RSP_TEST)
+	list(APPEND srcs cli_aud_rsp.c)
+endif()
+
+if (CONFIG_AUDIO_VAD_TEST)
+	list(APPEND srcs cli_aud_vad.c)
+endif()
+
+if (CONFIG_AUDIO_NS_TEST)
+	list(APPEND srcs cli_aud_ns.c)
+endif()
+
+if (CONFIG_AUDIO_FLAC_TEST)
+	list(APPEND srcs cli_aud_flac.c)
+endif()
+
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
 	REQUIRES utf8 temp_detect app driver user_driver bk_system iperf fatfs user_driver http adc_key
 	#PRIV_REQUIRES airkiss bk_common bk_netif bk_ble bk_ps
-	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_init at bk_wifi compal media_common media bk_bt
+	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_init at bk_wifi compal media_common media bk_bt ota
 	)
 
 if(CONFIG_ARCH_RISCV)

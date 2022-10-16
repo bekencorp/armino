@@ -59,7 +59,9 @@ static qspi_callback_t s_qspi_rx_isr = {NULL};
 static void qspi_init_gpio(void)
 {
 #if (CONFIG_SYSTEM_CTRL)
+	gpio_dev_unmap(QSPI_LL_CLK_PIN);
 	gpio_dev_map(QSPI_LL_CLK_PIN, GPIO_DEV_QSPI_CLK);
+	gpio_dev_unmap(QSPI_LL_CSN_PIN);
 	gpio_dev_map(QSPI_LL_CSN_PIN, GPIO_DEV_QSPI_CSN);
 	bk_gpio_set_capacity(QSPI_LL_CLK_PIN, 3);
 	bk_gpio_set_capacity(QSPI_LL_CSN_PIN, 3);
@@ -67,6 +69,10 @@ static void qspi_init_gpio(void)
 	gpio_dev_map(QSPI_LL_RAM_CSN_PIN, GPIO_DEV_QSPI_RAM_CSN);
 	gpio_dev_map(QSPI_LL_RAM_CLK_PIN, GPIO_DEV_QSPI_RAM_CLK);
 #endif
+	gpio_dev_unmap(QSPI_LL_IO0_PIN);
+	gpio_dev_unmap(QSPI_LL_IO1_PIN);
+	gpio_dev_unmap(QSPI_LL_IO2_PIN);
+	gpio_dev_unmap(QSPI_LL_IO3_PIN);
 	gpio_dev_map(QSPI_LL_IO0_PIN, GPIO_DEV_QSPI_IO0);
 	gpio_dev_map(QSPI_LL_IO1_PIN, GPIO_DEV_QSPI_IO1);
 	gpio_dev_map(QSPI_LL_IO2_PIN, GPIO_DEV_QSPI_IO2);

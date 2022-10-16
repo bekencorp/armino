@@ -10,7 +10,7 @@ DVP_CAMERA APIs
 DVP_CAMERA Interface
 ----------------------------
 
-   Current software version support two types dvp sensor: gc0328c and hm1055, they are comunicate by i2c with chip.
+   Current software version support two types dvp sensor: gc0328c and hm1055. they are comunicate by i2c with chip.
    gc0328c have 20pins interface, hm1055 have 24pins interface.
 
    gc0328c support different image resolution and frame rate:
@@ -28,13 +28,17 @@ Most of DVP_CAMERA APIs can be categoried as:
 
  - DVP_CAMERA APIs
 
-   The common APIs are prefixed with bk_camera, e.g. bk_camera_init() etc.
+   The common APIs are prefixed with bk_camera, e.g. bk_camera_driver_init() etc.
 
 DVP_CAMERA APIs:
- - :cpp:func:`bk_camera_init` - init dvp camera(power on sensor)
- - :cpp:func:`bk_camera_deinit` - deinit dvp camera(power off sensor)
- - :cpp:func:`bk_camera_sensor_config` - set sensor register value(inorder to work at fix pps and fps that user wanted)
- - :cpp:func:`bk_camera_set_ppi_fps` - set dvp camera pps(image resolution) and fps(frame rate)
+ - :cpp:func:`bk_dvp_camera_driver_init` - init dvp camera(power on sensor, begin to sample image)
+ - :cpp:func:`bk_dvp_camera_driver_deinit` - deinit dvp camera(power off sensor)
+ - :cpp:func:`bk_dvp_camera_get_device` - get current dvp dendor config
+ - :cpp:func:`bk_dvp_camera_encode_config` - change encode image upper and lower size or close auto encode
+ - :cpp:func:`dvp_camera_i2c_read_uint8` - master read dvp senor register value by byte
+ - :cpp:func:`dvp_camera_i2c_read_uint16` - master read dvp senor register value by double byte
+ - :cpp:func:`dvp_camera_i2c_read_uint8` - master write dvp senor register value by byte
+ - :cpp:func:`dvp_camera_i2c_write_uint16` - master write dvp senor register value by double byte
 
 API Reference
 ----------------------------------------

@@ -244,12 +244,13 @@ typedef volatile struct {
 			uint32_t io2_io3_mode:      1;   /**< bit[3] */
 			uint32_t io2:               1;   /**< bit[4] */
 			uint32_t io3:               1;   /**< bit[5] */
-			uint32_t reserved:          1;   /**< bit[6] */
+			uint32_t force_spi_cs_low:  1;   /**< bit[6] */
 			uint32_t nss_h_gen_sck:     1;   /**< bit[7] */
-			uint32_t clk_rate:          8;   /**< bit[ 8:15] */
-			uint32_t reserved1:          2;   /**< bit[16:17] */
-			uint32_t first_bit_mode:    1;   /**< bit[18]    */
-			uint32_t reserved2:          5;   /**< bit[19:23] */
+			uint32_t clk_rate:          8;   /**< bit[8:15] */
+			uint32_t disable_cmd_sck:   1;   /**< bit[16] */
+			uint32_t reserved1:         1;   /**< bit[17] */
+			uint32_t first_bit_mode:    1;   /**< bit[18] */
+			uint32_t reserved2:         5;   /**< bit[19:23] */
 			uint32_t qspi_cs_h_wait:    8;   /**< bit[24:31] */
 		};
 		uint32_t v;

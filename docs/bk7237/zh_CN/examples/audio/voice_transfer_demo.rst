@@ -96,13 +96,35 @@ demo执行的步骤如下:
 (2) mic延迟点数调试
 	- 1、将调试宏 ``CONFIG_AUD_TRAS_AEC_DUMP_DEBUG`` 和 ``CONFIG_AUD_TRAS_AEC_MIC_DELAY_DEBUG`` 设置为y, 编译bin进行测试, 通话一分钟, 将AEC算法的数据dump到tf卡;
 	- 2、根据dump的数据, 计算mic的延迟点数, 并将点数值设置为宏 ``CONFIG_AUD_TRAS_AEC_MIC_DELAY_POINTS`` 的值(正常情况下使用默认值55即可);
-	- 3、将调试宏 ``CONFIG_AUD_TRAS_AEC_DUMP_DEBUG`` 设置为y, 编译bin进行测试, 通话一分钟, 将AEC算法的数据dump到tf卡;
-	- 4、根据dump的数据, 确认AEC算法的合适参数值。
-	- 5、板子Tx性能不稳定时, 可以将调试宏 ``CONFIG_AUD_TRAS_LOST_COUNT_DEBUG`` 设置为y, 会统计丢包信息定时打印Tx.
+
+(3) aec回声消除效果调试
+	- 1、打开语音通话;
+	- 2、根据听到的回声效果, 使用 ``Realtime Video`` apk (可从github上开源的armino平台下载) 在线调试AEC和NS的参数, 并记录来最后的最优值;
+	- 3、首先调整 ``echo depth`` , 回声越大值设置越大, 当继续增大该值, 但是无法提升回声消除效果时停止设置该值;
+	- 4、其次设置根据回声的大小范围设置 ``max amplitude`` 和 ``min amplitude`` 的值, 优化回声消除效果;
+	- 5、然后根据听到的底噪大小设置 ``noise level`` 底噪越大，设置的值越大, 优化底噪消除效果;
+	- 4、最后设置 ``noise param`` 的值, 分别设置为0、1、2，选择效果最好的值;
+	- 5、记录下所有参数的在线调试结果, 并设置为语音初始化时的默认参数。
+.. note::
+ - 1.也可以采用AT指令的方式在线调试, 通过uart发送串口指令 ``aud_intf_set_aec_param_test {param value}`` 设置各参数的值。具体的调试流程和上述方法一致，详情请参考 ``\components\demos\media\aud\aud_intf\demo\aud_intf_demo.c`` 中的示例.
+ - 2.AEC在线调试参数设置界面如下图所示.
+
+.. figure:: ../../../_static/aud_voc_aec_1.png
+    :align: center
+    :alt: AEC参数设置入口界面
+    :figclass: align-center
+
+    Figure 1. AEC参数设置入口界面
+
+.. figure:: ../../../_static/aud_voc_aec_2.png
+    :align: center
+    :alt: AEC参数设置界面
+    :figclass: align-center
+
+    Figure 1. AEC参数设置界面
 
 (3) 关闭所有调试宏
 	- 调试工作完成后关闭所有调试宏
 
 .. note::
  - 1.当前语音通话基于单mic场景, 8K采样率;
- - 2.mic延迟点数的计算和AEC算法参数值的确认请准备好dump数据联系开发人员确认;

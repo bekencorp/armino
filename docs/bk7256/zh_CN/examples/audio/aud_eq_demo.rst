@@ -45,14 +45,14 @@ demo运行依赖的库和驱动:
 demo执行的步骤如下:
 
 	1.执行测试
-	 - Uart发送AT指令 ``cpu1 aud_eq_test start`` 执行测试
-	
+	 - 串口工具发送指令 ``cpu1 aud_eq_test start`` 执行测试
+
 	2.输入一段扫频信号经ADC采样并将采集到的数据通过DAC播放出来
-	
+
 	3.通过仪器采集DAC输出信号来查看频响信号与设计的EQ频响是否一致
-	
+
 	4.停止测试
-	 - Uart发送AT指令 ``cpu1 aud_eq_test stop`` 停止测试
+	 - 串口工具发送指令 ``cpu1 aud_eq_test stop`` 停止测试
 
 5、详细配置及说明
 --------------------

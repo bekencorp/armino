@@ -123,4 +123,9 @@ void *psram_malloc_debug(const char *func_name, int line, size_t size, int need_
 {
 	return NULL;
 }
+#else
+void *psram_malloc(size_t size)
+{
+	return NULL;
+}
 #endif

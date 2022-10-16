@@ -21,13 +21,14 @@ Most of UVC_CAMERA APIs can be categoried as:
    The common APIs are prefixed with bk_uvc, e.g. bk_uvc_init() etc.
 
 UVC_CAMERA APIs:
- - :cpp:func:`bk_uvc_init` - init uvc camera(open uvc device)
- - :cpp:func:`bk_uvc_deinit` - deinit uvc camera(close uvc device)
- - :cpp:func:`bk_uvc_save_frame` - save a frame to sdcard
- - :cpp:func:`bk_uvc_set_ppi_fps` - set uvc camera pps(image resolution) and fps(frame rate)
- - :cpp:func:`bk_uvc_set_start` - start uvc, begin simple image information
- - :cpp:func:`bk_uvc_set_stop` - stop uvc, stop simple image information
- - :cpp:func:`bk_uvc_register_frame_end_callback` - register uvc finish simple a frame callback function
+ - :cpp:func:`bk_uvc_camera_driver_init` - init uvc camera(open uvc device)
+ - :cpp:func:`bk_uvc_camera_driver_deinit` - deinit uvc camera(close uvc device)
+ - :cpp:func:`bk_uvc_camera_power_on` - power on uvc
+ - :cpp:func:`bk_uvc_camera_get_config` - set uvc camera pps(image resolution) and fps(frame rate)
+ - :cpp:func:`bk_uvc_camera_set_config` - set uvc camera pps(image resolution) and fps(frame rate)
+ - :cpp:func:`bk_uvc_camera_driver_start` - start uvc, start simple image information
+ - :cpp:func:`bk_uvc_camera_driver_stop` - stop uvc, stop simple image information
+ - :cpp:func:`bk_uvc_camera_get_device` - get current working uvc device
 
 API Reference
 ----------------------------------------

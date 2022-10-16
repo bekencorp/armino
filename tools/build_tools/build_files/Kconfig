@@ -22,14 +22,9 @@ mainmenu "Beken Development Configuration"
 			endmenu
 
 			menu "Debug"
-				config DEBUG_FIRMWARE
-				bool "Enable building debug firmware"
-				default y
-
-				#TODO optimize assert option and make it global
 				choice ASSERT
 					prompt "Assert options"
-					default ASSERT_IGNORE
+					default ASSERT_REBOOT
 
 					config ASSERT_IGNORE
 						bool "Ignore Assert"

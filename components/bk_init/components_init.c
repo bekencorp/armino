@@ -74,9 +74,17 @@ void mem_debug_start_timer(void)
 						  1000,
 						  memleak_timer_cb,
 						  (void *)0);
-	BK_ASSERT(kNoErr == err);
+	if(kNoErr != err)
+	{
+		BK_LOGE(TAG, "rtos_init_timer fail\r\n");
+		return;
+	}
 	err = rtos_start_timer(&memleak_timer);
-	BK_ASSERT(kNoErr == err);
+	if(kNoErr != err)
+	{
+		BK_LOGE(TAG, "rtos_start_timer fail\r\n");
+		return;
+	}
 }
 #endif
 
@@ -182,12 +190,8 @@ static void show_armino_version(void)
 
 static void show_init_info(void)
 {
-#if CONFIG_SOC_BK7256XX
-    show_armino_version();
-#else
 	show_reset_reason();
 	show_armino_version();
-#endif
 }
 #if CONFIG_SOC_BK7256XX
 #define NCV_SIM                     0x1
@@ -257,16 +261,19 @@ int components_init(void)
 {
 /*for bringup test*/
 #if CONFIG_SOC_BK7256XX
+
 	if(driver_init())
 		return BK_FAIL;
 
 	pm_init_todo();
+	reset_reason_init();
 	show_init_info();
 	random_init();
 #if (!CONFIG_SLAVE_CORE)
 	wdt_init();
-#if (CONFIG_PSRAM_AS_SYS_MEMORY)
-	bk_psram_init();
+#if (CONFIG_PSRAM_AS_SYS_MEMORY && CONFIG_FREERTOS_V10)
+	extern void bk_psram_heap_init(void);
+	bk_psram_heap_init();
 #endif
 #endif
 	ipc_init();

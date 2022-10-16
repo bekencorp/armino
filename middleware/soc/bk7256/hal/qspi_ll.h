@@ -74,6 +74,11 @@ static inline void qspi_ll_set_cmd_a_cfg1(qspi_hw_t *hw, uint32_t cmd_line)
 	hw->cmd_a_cfg1.v = cmd_line;
 }
 
+static inline void qspi_ll_set_cmd_a_cfg2(qspi_hw_t *hw, uint32_t cmd_config)
+{
+	hw->cmd_a_cfg2.v = cmd_config;
+}
+
 static inline void qspi_ll_set_cmd_a_data_line(qspi_hw_t *hw, qspi_wire_mode_t data_line)
 {
 	hw->cmd_a_cfg2.data_line = data_line;
@@ -114,14 +119,29 @@ static inline void qspi_ll_set_cmd_c_l(qspi_hw_t *hw, uint32_t cmd_value)
 	hw->cmd_c_l.v = cmd_value;
 }
 
+static inline uint32_t qspi_ll_get_cmd_c_l(qspi_hw_t *hw)
+{
+	return hw->cmd_c_l.v;
+}
+
 static inline void qspi_ll_set_cmd_c_h(qspi_hw_t *hw, uint32_t cmd_value)
 {
 	hw->cmd_c_h.v = cmd_value;
 }
 
+static inline uint32_t qspi_ll_get_cmd_c_h(qspi_hw_t *hw)
+{
+	return hw->cmd_c_h.v;
+}
+
 static inline void qspi_ll_set_cmd_c_cfg1(qspi_hw_t *hw, uint32_t cmd_line)
 {
 	hw->cmd_c_cfg1.v = cmd_line;
+}
+
+static inline void qspi_ll_cmd_c_start(qspi_hw_t *hw)
+{
+	hw->cmd_c_cfg2.cmd_start = 1;
 }
 
 static inline void qspi_ll_set_cmd_c_data_line(qspi_hw_t *hw, qspi_wire_mode_t data_line)
@@ -177,6 +197,26 @@ static inline void qspi_ll_enable_io2_io3_mode(qspi_hw_t *hw)
 static inline void qspi_ll_disable_io2_io3_mode(qspi_hw_t *hw)
 {
 	hw->config.io2_io3_mode = 0;
+}
+
+static inline void qspi_ll_force_spi_cs_low_enable(qspi_hw_t *hw)
+{
+	hw->config.force_spi_cs_low = 1;
+}
+
+static inline void qspi_ll_force_spi_cs_low_disable(qspi_hw_t *hw)
+{
+	hw->config.force_spi_cs_low = 0;
+}
+
+static inline void qspi_ll_disable_cmd_sck_enable(qspi_hw_t *hw)
+{
+	hw->config.disable_cmd_sck = 1;
+}
+
+static inline void qspi_ll_disable_cmd_sck_disable(qspi_hw_t *hw)
+{
+	hw->config.disable_cmd_sck = 0;
 }
 
 static inline void qspi_ll_set_clk_div(qspi_hw_t *hw, uint32_t clk_div)

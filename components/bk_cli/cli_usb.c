@@ -12,7 +12,7 @@
 #include "drv_model_pub.h"
 #include "cli.h"
 
-#if CONFIG_USB_HOST
+#if CONFIG_USB
 #if CONFIG_USB_MSD
 #include "ff.h"
 #include "diskio.h"
@@ -368,8 +368,7 @@ void cli_usb_open_close(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 	if (os_strcmp(argv[1], "open_host") == 0) {
 		CLI_LOGI("cli_usb_open host! %d\r\n", bk_usb_open(0));
 	} else if (os_strcmp(argv[1], "open_dev") == 0) {
-		CLI_LOGI("cli_usb_open device!\r\n");
-		bk_usb_open(1);
+		CLI_LOGI("cli_usb_open device! %d\r\n", bk_usb_open(1));
 	} else if (os_strcmp(argv[1], "close") == 0) {
 		bk_usb_close();
 	} else {

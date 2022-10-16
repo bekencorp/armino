@@ -17,11 +17,14 @@
 #include <components/log.h>
 #include <components/system.h>
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define BK_ASSERT_TAG "ASSERT"
+
+void bk_reboot(void);
 
 #if CONFIG_ARCH_RISCV
 extern void trap_entry(void);
@@ -73,15 +76,33 @@ do {                                                         \
     }                                                        \
 } while (0)
 
-#else // #if (CONFIG_DEBUG_FIRMWARE)
+#elif (CONFIG_ASSERT_REBOOT)
+
+#define BK_ASSERT(exp)                                       \
+do {                                                         \
+    if ( !(exp) ) {                                          \
+        rtos_disable_int();                                  \
+        BK_LOG_FLUSH();                                      \
+        BK_DUMP_OUT("(%d)Assert at: %s:%d\r\n", rtos_get_time(), __FUNCTION__, __LINE__);    \
+        bk_reboot_ex(RESET_SOURCE_CRASH_ASSERT);                                         \
+    }                                                        \
+} while (0)
+
+#define BK_ASSERT_EX(exp, format, ... )                      \
+do {                                                         \
+    if ( !(exp) ) {                                          \
+        rtos_disable_int();                                  \
+        BK_LOG_FLUSH();                                      \
+        BK_DUMP_OUT(format, ##__VA_ARGS__);                  \
+        BK_DUMP_OUT("(%d)Assert at: %s:%d\r\n", rtos_get_time(), __FUNCTION__, __LINE__);    \
+        bk_reboot_ex(RESET_SOURCE_CRASH_ASSERT);                                          \
+    }                                                        \
+} while (0)
+#else  //(CONFIG_ASSERT_IGNORE)
 
 #define BK_ASSERT(exp)
-
 #define BK_ASSERT_EX(exp, format, ... )
 
-#define BK_DUMP_OUT(format, ... )
-
-#define BK_DUMP_RAW_OUT(buf, len)
 
 #endif // #if (CONFIG_DEBUG_FIRMWARE)
 

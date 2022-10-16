@@ -24,6 +24,7 @@
 #include <driver/gpio_types.h>
 
 #include <driver/dma.h>
+#include "lcd_act.h"
 
 
 #include <driver/jpeg_enc.h>
@@ -42,7 +43,15 @@
 #include "diskio.h"
 #endif
 
+#include "driver/flash.h"
+#include "driver/flash_partition.h"
+
 #define TAG "storage"
+
+extern u64 riscv_get_mtimer(void);
+extern void transfer_memcpy_word(uint32_t *dst, uint32_t *src, uint32_t size);
+
+#define SECTOR                  0x1000
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
@@ -61,13 +70,14 @@ typedef struct
 
 typedef enum
 {
-	STORAGE_TASK_DATA,
+	STORAGE_TASK_CAPTURE,
 	STORAGE_TASK_EXIT,
 } storage_task_evt_t;
 
 storage_info_t storage_info;
 
 char *capture_name = NULL;
+storage_flash_t storge_flash;
 
 bk_err_t storage_task_send_msg(uint8_t msg_type, uint32_t data)
 {
@@ -91,19 +101,9 @@ bk_err_t storage_task_send_msg(uint8_t msg_type, uint32_t data)
 	return kNoResourcesErr;
 }
 
-
-void storage_task_stop(void)
-{
-	storage_task_send_msg(STORAGE_TASK_EXIT, 0);
-	while (storage_task_thread)
-	{
-		rtos_delay_milliseconds(10);
-	}
-}
-
 void storage_frame_buffer_dump(frame_buffer_t *frame, char *name)
 {
-	LOGI("%s dump frame: %d, %p, %u, size: %d\n", __func__, frame->id, frame->frame, frame->sequence, frame->length);
+	LOGI("%s dump frame: %p, %u, size: %d\n", __func__, frame->frame, frame->sequence, frame->length);
 
 #if (CONFIG_SDCARD_HOST)
 	FIL fp1;
@@ -136,10 +136,9 @@ void storage_frame_buffer_dump(frame_buffer_t *frame, char *name)
 
 static void storage_capture_save(frame_buffer_t *frame)
 {
-	media_msg_t msg;
-
-	LOGI("%s save frame: %d, size: %d", __func__, frame->id, frame->length);
-
+	LOGI("%s save frame: %d, size: %d\n", __func__, frame->sequence ,frame->length);
+	uint64_t before, after;
+	before = riscv_get_mtimer();
 #if (CONFIG_SDCARD_HOST)
 	FIL fp1;
 	unsigned int uiTemp = 0;
@@ -151,7 +150,7 @@ static void storage_capture_save(frame_buffer_t *frame)
 	if (fr != FR_OK)
 	{
 		LOGE("can not open file: %s, error: %d\n", file_name, fr);
-		goto error;
+		return;
 	}
 
 	LOGI("open file:%s!\n", file_name);
@@ -161,21 +160,130 @@ static void storage_capture_save(frame_buffer_t *frame)
 	{
 		LOGE("f_write failed 1 fr = %d\r\n", fr);
 	}
-
 	f_close(&fp1);
+#else  //save in flash
+	bk_err_t ret;
+	if (frame == NULL)
+	{
+		LOGI("jpeg frame = NULL \n");
+		return;
+	}
+	bk_logic_partition_t *pt = bk_flash_partition_get_info(BK_PARTITION_USR_CONFIG);
+	LOGI("flash addr %x \n", pt->partition_start_addr);
 
+	storge_flash.flash_image_addr = pt->partition_start_addr;
+	storge_flash.flasg_img_length = frame->length;
+
+	bk_flash_set_protect_type(FLASH_PROTECT_NONE);
+	for (int i = 0; i < frame->length / SECTOR + 1; i++)
+	{
+		bk_flash_erase_sector(pt->partition_start_addr + (SECTOR * i));
+	}
+
+	ret = bk_flash_write_bytes(pt->partition_start_addr, (uint8_t *)frame->frame, frame->length);
+	if (ret != BK_OK)
+	{
+		LOGI("%s: storge to flsah error \n", __func__);
+	}
+	bk_flash_set_protect_type(FLASH_UNPROTECT_LAST_BLOCK);
+#endif
 	LOGI("%s, complete\n", __func__);
+	after = riscv_get_mtimer();
+	LOGI("save jpeg to sd/flash use %lu\n", (after - before) / 26000);
+}
+bk_err_t sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *total_len)
+{
+#if (CONFIG_SDCARD_HOST)
+	char cFileName[FF_MAX_LFN];
+	FIL file;
+	FRESULT fr;
+	FSIZE_t size_64bit = 0;
+	unsigned int uiTemp = 0;
+	uint8_t *sram_addr = NULL;
+	uint32_t once_read_len = 1024*2;
 
-error:
+	// step 1: read picture from sd to psram
+	sprintf(cFileName, "%d:/%s", DISK_NUMBER_SDIO_SD, filename);
+	sram_addr = os_malloc(once_read_len);
+	if (sram_addr == NULL) {
+		os_printf("sd buffer malloc failed\r\n");
+		return BK_FAIL;
+	}
 
+	char *ucRdTemp = (char *)sram_addr;
+
+	/*open pcm file*/
+	fr = f_open(&file, cFileName, FA_OPEN_EXISTING | FA_READ);
+	if (fr != FR_OK) {
+//		os_printf("open %s fail.\r\n", filename);
+		return BK_FAIL;
+	}
+	size_64bit = f_size(&file);
+	uint32_t total_size = (uint32_t)size_64bit;// total byte
+	os_printf("read file total_size = %d.\r\n", total_size);
+	*total_len = total_size;
+
+	while(1)
+	{
+		fr = f_read(&file, ucRdTemp, once_read_len, &uiTemp);
+		if (fr != FR_OK) {
+			os_printf("read file fail.\r\n");
+			return BK_FAIL;
+		}
+		if (uiTemp == 0)
+		{
+			os_printf("read file complete.\r\n");
+			break;
+		}
+		if(once_read_len != uiTemp)
+		{
+			if (uiTemp % 4)
+			{
+				uiTemp = (uiTemp / 4 + 1) * 4;
+			}
+			transfer_memcpy_word(paddr, (uint32_t *)sram_addr, uiTemp);
+		} 
+		else
+		{
+			transfer_memcpy_word(paddr, (uint32_t *)sram_addr, once_read_len);
+			paddr += (once_read_len/4);
+		}
+	}
+
+	os_free(sram_addr);
+
+	fr = f_close(&file);
+	if (fr != FR_OK) {
+		os_printf("close %s fail!\r\n", filename);
+		return BK_FAIL;
+	}
+#else
+		os_printf("Not support\r\n");
 #endif
 
-	msg.event = EVENT_COM_FRAME_CAPTURE_FREE_IND;
-	msg.param = (uint32_t)frame;
-	media_send_msg(&msg);
+	return BK_OK;
+}
+
+static void storage_capture_save_handle(void)
+{
+	frame_buffer_t *frame = NULL;
+
+	frame = frame_buffer_fb_read(MODULE_CAPTURE);
+
+	if (frame == NULL)
+	{
+		LOGE("read jpeg NULL\n");
+		return;
+	}
+
+	storage_capture_save(frame);
+
+	frame_buffer_fb_free(frame, MODULE_CAPTURE);
 
 	storage_info.capture_state = STORAGE_STATE_DISABLED;
+
 }
+
 
 static void storage_task_entry(beken_thread_arg_t data)
 {
@@ -190,8 +298,8 @@ static void storage_task_entry(beken_thread_arg_t data)
 		{
 			switch (msg.type)
 			{
-				case STORAGE_TASK_DATA:
-					storage_capture_save((frame_buffer_t *)msg.data);
+				case STORAGE_TASK_CAPTURE:
+					storage_capture_save_handle();
 					break;
 
 				case STORAGE_TASK_EXIT:
@@ -228,6 +336,8 @@ int storage_task_start(void)
 
 	if (storage_task_thread == NULL)
 	{
+		frame_buffer_fb_register(MODULE_CAPTURE, FB_INDEX_JPEG);
+
 		ret = rtos_create_thread(&storage_task_thread,
 		                         4,
 		                         "storage_task_thread",
@@ -245,6 +355,8 @@ int storage_task_start(void)
 	return kNoErr;
 
 error:
+
+	frame_buffer_fb_deregister(MODULE_CAPTURE);
 
 	if (storage_task_queue)
 	{
@@ -269,11 +381,6 @@ void storage_open_handle(void)
 	LOGI("%s register camera init\n", __func__);
 }
 
-void storage_capture_frame_callback(frame_buffer_t *frame)
-{
-	storage_task_send_msg(STORAGE_TASK_DATA, (uint32_t)frame);
-}
-
 
 void storage_capture_handle(param_pak_t *param)
 {
@@ -293,9 +400,9 @@ void storage_capture_handle(param_pak_t *param)
 	os_memcpy(capture_name, (char *)param->param, 31);
 	capture_name[31] = 0;
 
-	frame_buffer_frame_register(MODULE_CAPTURE, storage_capture_frame_callback);
-
 	storage_info.capture_state = STORAGE_STATE_ENABLED;
+
+	storage_task_send_msg(STORAGE_TASK_CAPTURE, 0);
 
 out:
 	MEDIA_EVT_RETURN(param, kNoErr);

@@ -118,9 +118,6 @@ bk_err_t gpio_sdio_sel(gpio_sdio_map_mode_t mode)
 
 	gpio_hal_devs_map(&s_gpio.hal, sdio_gpio_map[mode].gpio_bits, sdio_gpio_map[mode].devs, GPIO_SDIO_USED_GPIO_NUM);
 
-	GPIO_LOGI("Warning bk7256 USE PLIC  NOT icu\n");
-	//icu_sdio_gpio_sel(mode);
-
 	return BK_OK;
 }
 
@@ -132,13 +129,6 @@ bk_err_t gpio_sdio_one_line_sel(gpio_sdio_map_mode_t mode)
 
 	gpio_hal_devs_map(&s_gpio.hal, sdio_gpio_map[mode].gpio_bits, sdio_gpio_map[mode].devs, GPIO_SDIO_ONE_LINE_USED_GPIO_NUM);
 
-	GPIO_LOGI("Warning bk7256 USE PLIC  NOT icu\n");
-	//icu_sdio_gpio_sel(mode);
-
 	return BK_OK;
 }
 
-void icu_sdio_host_enable(void)
-{
-
-}

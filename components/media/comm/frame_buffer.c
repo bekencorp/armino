@@ -38,710 +38,1105 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
+#define list_for_each_safe_edge(pos, n, head) \
+	for (pos = (head)->next, n = pos->next; (pos != (head)) && (pos->next != pos); \
+	     pos = n, n = pos->next)
 
-frame_buffer_info_t *frame_buffer_info = NULL;
+#define PSRAM_ADDRESS (0x60000000UL)
+#define ALINE_SIZE (1024 * 64)
 
-LIST_HEADER_T jpeg_free_node_list = {&jpeg_free_node_list, &jpeg_free_node_list};
-LIST_HEADER_T jpeg_ready_node_list = {&jpeg_ready_node_list, &jpeg_ready_node_list};
+#define DIS_800X600_SIZE (((800 * 600 * 2) / ALINE_SIZE + 1) * ALINE_SIZE)
+#define DIS_800X600_COUNT (4)
+#define DIS_800X600_ADDRESS (PSRAM_ADDRESS)
+#define JPG_800X600_SIZE (1024 * 200)
+#define JPG_800X600_COUNT (4)
+#define JPG_800X600_ADDRESS (PSRAM_ADDRESS + (DIS_800X600_SIZE * DIS_800X600_COUNT))
 
-LIST_HEADER_T display_free_node_list = {&display_free_node_list, &display_free_node_list};
-LIST_HEADER_T display_ready_node_list = {&display_ready_node_list, &display_ready_node_list};
+#define DIS_1280X720_SIZE (((1280 * 720 * 2) / ALINE_SIZE + 1) * ALINE_SIZE)
+#define DIS_1280X720_COUNT (3)
+#define DIS_1280X720_ADDRESS (PSRAM_ADDRESS)
+#define JPG_1280X720_SIZE (1024 * 250)
+#define JPG_1280X720_COUNT (4)
+#define JPG_1280X720_ADDRESS (PSRAM_ADDRESS + (DIS_1280X720_SIZE * DIS_1280X720_COUNT))
 
+extern uint32_t platform_is_in_interrupt_context(void);
 
-
-void frame_buffer_free_frame(frame_buffer_t *buffer)
+const fb_layout_t fb_layout[] =
 {
-	LIST_HEADER_T *list = NULL;
-
-	if (buffer->type == FRAME_JPEG)
 	{
-		list = &jpeg_free_node_list;
-	}
-	else if (buffer->type == FRAME_DISPLAY)
+		.ppi = PPI_800X600,
+		.set = {
+			{/* display */
+				DIS_800X600_COUNT,
+				DIS_800X600_SIZE,
+				DIS_800X600_ADDRESS,
+			},
+			{/* jpeg */
+				JPG_800X600_COUNT,
+				JPG_800X600_SIZE,
+				JPG_800X600_ADDRESS,
+			},
+		},
+	},
 	{
-		list = &display_free_node_list;
-	}
-	else
-	{
-		LOGE("%s unknow type: %d\n", __func__, buffer->type);
-		return;
-	}
-
-	GLOBAL_INT_DECLARATION();
-	GLOBAL_INT_DISABLE();
-
-	if (buffer->lock)
-	{
-		buffer->lock--;
-	}
-	else
-	{
-		frame_buffer_t *tmp = NULL;
-		LIST_HEADER_T *pos, *n;
-
-		list_for_each_safe(pos, n, list)
-		{
-			tmp = list_entry(pos, frame_buffer_t, list);
-			if (tmp->frame == buffer->frame)
-			{
-				LOGW("%s refree\n", __func__);
-				GLOBAL_INT_RESTORE();
-				return;
-			}
-		}
-	}
-
-	LOGD("free: %p, lock: %d\n", buffer->frame, buffer->lock);
-
-	if (buffer->lock == 0)
-	{
-
-		LOGD("free: %p\n");
-		buffer->state = STATE_FRAMED;
-		list_add_tail(&buffer->list, list);
-	}
-
-	GLOBAL_INT_RESTORE();
-}
+		.ppi = PPI_1280X720,
+		.set = {
+			{/* display */
+				DIS_1280X720_COUNT,
+				DIS_1280X720_SIZE,
+				DIS_1280X720_ADDRESS,
+			},
+			{/* jpeg */
+				JPG_1280X720_COUNT,
+				JPG_1280X720_SIZE,
+				JPG_1280X720_ADDRESS,
+			},
+		},
+	},
+};
 
 
-frame_buffer_t *frame_buffer_alloc(frame_type_t type)
+
+fb_info_t *fb_info = NULL;
+fb_mem_list_t fb_mem_list[FB_INDEX_MAX] = {0};
+
+
+fb_mem_list_t *frame_buffer_list_get(pixel_format_t fmt)
 {
-	frame_buffer_t *frame = NULL, *tmp = NULL;
-	LIST_HEADER_T *free_list = NULL, *ready_list = NULL;
-	LIST_HEADER_T *pos, *n;
+	fb_mem_list_t *ret = NULL;
 
-	if (type == FRAME_JPEG)
+	switch (fmt)
 	{
-		free_list = &jpeg_free_node_list;
-		ready_list = &jpeg_ready_node_list;
-	}
-	else if (type == FRAME_DISPLAY)
-	{
-		free_list = &display_free_node_list;
-		ready_list = &display_ready_node_list;
-	}
-	else
-	{
-		LOGE("%s unknow type: %d\n", __func__, type);
-		return NULL;
-	}
-
-	GLOBAL_INT_DECLARATION();
-
-	GLOBAL_INT_DISABLE();
-
-	list_for_each_safe(pos, n, free_list)
-	{
-		tmp = list_entry(pos, frame_buffer_t, list);
-		if (tmp->state != STATE_ALLOCED)
-		{
-			frame = tmp;
-			list_del(pos);
+		case PIXEL_FMT_DVP_JPEG:
+		case PIXEL_FMT_UVC_JPEG:
+			ret = &fb_mem_list[FB_INDEX_JPEG];
 			break;
-		}
+		case PIXEL_FMT_RGB565:
+		case PIXEL_FMT_YUYV:
+		case PIXEL_FMT_UYVY:
+		case PIXEL_FMT_YYUV:
+		case PIXEL_FMT_UVYY:
+		case PIXEL_FMT_VUYY:
+		case PIXEL_FMT_YVYU:
+		case PIXEL_FMT_VYUY:
+		case PIXEL_FMT_YYVU:
+			ret = &fb_mem_list[FB_INDEX_DISPLAY];
+			break;
+		case PIXEL_FMT_UNKNOW:
+		default:
+			break;
 	}
 
-	if (frame == NULL)
-	{
-		list_for_each_safe(pos, n, ready_list)
-		{
-			tmp = list_entry(pos, frame_buffer_t, list);
-			if (tmp->state != STATE_ALLOCED)
-			{
-				frame = tmp;
-				list_del(pos);
-				break;
-			}
-		}
-	}
-
-	if (frame != NULL)
-	{
-		frame->state = STATE_ALLOCED;
-		frame->lock++;
-	}
-
-	LOGD("alloc: %p\n", frame->frame);
-
-	GLOBAL_INT_RESTORE();
-
-	return frame;
+	return ret;
 }
 
-
-void frame_buffer_lock_frame(frame_buffer_t *frame)
+fb_type_t frame_buffer_type_get(pixel_format_t fmt)
 {
-	frame->lock++;
+	fb_type_t ret = FB_INDEX_MAX;
+
+	switch (fmt)
+	{
+		case PIXEL_FMT_DVP_JPEG:
+		case PIXEL_FMT_UVC_JPEG:
+			ret = FB_INDEX_JPEG;
+			break;
+		case PIXEL_FMT_RGB565:
+		case PIXEL_FMT_YUYV:
+		case PIXEL_FMT_UYVY:
+		case PIXEL_FMT_YYUV:
+		case PIXEL_FMT_UVYY:
+		case PIXEL_FMT_VUYY:
+		case PIXEL_FMT_YVYU:
+		case PIXEL_FMT_VYUY:
+		case PIXEL_FMT_YYVU:
+			ret = FB_INDEX_DISPLAY;
+			break;
+		case PIXEL_FMT_UNKNOW:
+		default:
+			break;
+	}
+
+	return ret;
 }
 
-void frame_buffer_push_frame(frame_buffer_t *buffer)
+bk_err_t frame_buffer_list_remove(frame_buffer_t *frame, LIST_HEADER_T *list)
 {
-	LIST_HEADER_T *list = NULL;
-
-	if (buffer->type == FRAME_JPEG)
-	{
-		list = &jpeg_ready_node_list;
-	}
-	else if (buffer->type == FRAME_DISPLAY)
-	{
-		list = &display_ready_node_list;
-	}
-	else
-	{
-		LOGE("%s unknow type: %d\n", __func__, buffer->type);
-		return;
-	}
-
-	GLOBAL_INT_DECLARATION();
-	GLOBAL_INT_DISABLE();
-
-	buffer->lock--;
-	buffer->state = STATE_FRAMED;
-	list_add_tail(&buffer->list, list);
-
-	GLOBAL_INT_RESTORE();
-
-}
-
-
-frame_buffer_t *frame_buffer_pop_frame(frame_type_t type)
-{
-	frame_buffer_t *frame = NULL, *tmp = NULL;
-	LIST_HEADER_T *list = NULL;
+	frame_buffer_node_t *tmp = NULL;
+	frame_buffer_node_t *node = list_entry(frame, frame_buffer_node_t, frame);
 	LIST_HEADER_T *pos, *n;
+	bk_err_t ret = BK_FAIL;
 
-	if (type == FRAME_JPEG)
-	{
-		list = &jpeg_ready_node_list;
-	}
-	else if (type == FRAME_DISPLAY)
-	{
-		list = &display_ready_node_list;
-	}
-	else
-	{
-		LOGE("%s unknow type: %d\n", __func__, type);
-		return NULL;
-	}
-
-	GLOBAL_INT_DECLARATION();
-
-	GLOBAL_INT_DISABLE();
 
 	list_for_each_safe(pos, n, list)
 	{
-		tmp = list_entry(pos, frame_buffer_t, list);
-		if (tmp->state == STATE_FRAMED)
+		tmp = list_entry(pos, frame_buffer_node_t, list);
+		if (tmp != NULL
+		    && (tmp->frame.frame == node->frame.frame))
 		{
-			frame = tmp;
 			list_del(pos);
+			ret = BK_OK;
 			break;
-		}
-	}
-
-	frame->state = STATE_ALLOCED;
-	frame->lock++;
-
-
-	GLOBAL_INT_RESTORE();
-
-	if (frame == NULL)
-	{
-		LOGE("%s get frame failed: %d\n", __func__, type);
-	}
-
-	return frame;
-}
-
-
-void frame_buffer_complete_notify(frame_buffer_t *buffer)
-{
-	if (buffer->type == FRAME_JPEG)
-	{
-		if (true == frame_buffer_info->wifi_register
-		    && (!frame_buffer_info->wifi_lock)
-		    && frame_buffer_info->wifi_comp_cb)
-		{
-			frame_buffer_lock_frame(buffer);
-			frame_buffer_info->wifi_lock = true;
-			frame_buffer_info->wifi_comp_cb(buffer);
-		}
-
-#ifdef CONFIG_LCD
-
-		if (true == frame_buffer_info->decoder_register
-		    && (!frame_buffer_info->decoder_lock)
-		    && frame_buffer_info->decoder_comp_cb)
-		{
-			frame_buffer_lock_frame(buffer);
-			frame_buffer_info->decoder_lock = true;
-			frame_buffer_info->decoder_comp_cb(buffer);
-			//LOGD("lcd alloc %p %d:%d:%d\n", buffer, buffer->id, buffer->state, buffer->lock);
-			//lcd_frame_complete_notify(buffer);
-		}
-#endif
-
-		if (true == frame_buffer_info->capture_register
-		    && (!frame_buffer_info->capture_lock)
-		    && frame_buffer_info->capture_comp_cb)
-		{
-			frame_buffer_lock_frame(buffer);
-			frame_buffer_info->capture_lock = true;
-			frame_buffer_info->capture_comp_cb(buffer);
-			//storage_capture_frame_notify(buffer);
-		}
-	}
-
-	if (buffer->type == FRAME_DISPLAY)
-	{
-#ifdef CONFIG_LCD
-
-		if (true == frame_buffer_info->display_register
-		    && (!frame_buffer_info->display_lock)
-		    && frame_buffer_info->display_comp_cb)
-		{
-			frame_buffer_lock_frame(buffer);
-			frame_buffer_info->display_comp_cb(buffer);
-		}
-
-#endif
-	}
-
-	frame_buffer_free_frame(buffer);
-}
-
-bool is_workflow_freezing(frame_type_t type)
-{
-	bool ret = true;
-
-	LOGD("WIFI %d:%d, DEC %d:%d\n",
-	     frame_buffer_info->wifi_register, frame_buffer_info->wifi_lock,
-	     frame_buffer_info->decoder_register, frame_buffer_info->decoder_lock);
-
-	if (type == FRAME_JPEG)
-	{
-		if (true == frame_buffer_info->wifi_register
-		    && (!frame_buffer_info->wifi_lock)
-		    && frame_buffer_info->wifi_comp_cb)
-		{
-			ret = false;
-		}
-
-		if (true == frame_buffer_info->decoder_register
-		    && (!frame_buffer_info->decoder_lock)
-		    && frame_buffer_info->decoder_comp_cb)
-		{
-			ret = false;
-		}
-
-		if (true == frame_buffer_info->capture_register
-		    && (!frame_buffer_info->capture_lock)
-		    && frame_buffer_info->capture_comp_cb)
-		{
-			ret = false;
-		}
-	}
-
-	if (type == FRAME_DISPLAY)
-	{
-		if (true == frame_buffer_info->display_register
-		    && (!frame_buffer_info->display_lock)
-		    && frame_buffer_info->display_comp_cb)
-		{
-			ret = false;
 		}
 	}
 
 	return ret;
 }
 
-void frame_buffer_generate_complete(frame_buffer_t *buffer, frame_type_t type)
+void frame_buffer_fb_free(frame_buffer_t *frame, frame_module_t index)
 {
-	GLOBAL_INT_DECLARATION();
-	GLOBAL_INT_DISABLE();
-
-	frame_buffer_push_frame(buffer);
-
-	if (!is_workflow_freezing(type))
-	{
-		LOGD("notify frame[%d]: %u complete, %d\n", buffer->id, buffer->sequence, type);
-
-		frame_buffer_t *frame = frame_buffer_pop_frame(type);
-		frame_buffer_complete_notify(frame);
-	}
-	else
-	{
-		LOGD("covery frame[%d]: %u complete, %d\n", buffer->id, buffer->sequence, type);
-	}
-
-	GLOBAL_INT_RESTORE();
-}
-
-void frame_buffer_frame_register(frame_module_t module, void *callback)
-{
-	GLOBAL_INT_DECLARATION();
-	GLOBAL_INT_DISABLE();
-
-	switch (module)
-	{
-		case MODULE_WIFI:
-			frame_buffer_info->wifi_register = true;
-			frame_buffer_info->wifi_comp_cb = callback;
-			break;
-		case MODULE_DECODER:
-			frame_buffer_info->decoder_register = true;
-			frame_buffer_info->decoder_comp_cb = callback;
-			break;
-		case MODULE_RECODER:
-			frame_buffer_info->recoder_register = true;
-			frame_buffer_info->recoder_comp_cb = callback;
-			break;
-		case MODULE_CAPTURE:
-			frame_buffer_info->capture_register = true;
-			frame_buffer_info->capture_lock = false;
-			frame_buffer_info->capture_comp_cb = callback;
-			break;
-		case MODULE_DISPLAY:
-			frame_buffer_info->display_register = true;
-			frame_buffer_info->display_lock = false;
-			frame_buffer_info->display_comp_cb = callback;
-			break;
-	}
-
-	GLOBAL_INT_RESTORE();
-}
-
-void frame_buffer_frame_deregister(frame_module_t module)
-{
-	GLOBAL_INT_DECLARATION();
-	GLOBAL_INT_DISABLE();
-
-	LOGI("dereg: %d\n", module);
-
-	switch (module)
-	{
-		case MODULE_WIFI:
-			frame_buffer_info->wifi_register = false;
-			frame_buffer_info->wifi_lock = false;
-			frame_buffer_info->wifi_comp_cb = NULL;
-			break;
-		case MODULE_DECODER:
-			frame_buffer_info->decoder_register = false;
-			frame_buffer_info->decoder_lock = false;
-			frame_buffer_info->decoder_comp_cb = NULL;
-			break;
-		case MODULE_RECODER:
-			frame_buffer_info->recoder_register = false;
-			frame_buffer_info->recoder_lock = false;
-			frame_buffer_info->recoder_comp_cb = NULL;
-			break;
-		case MODULE_CAPTURE:
-			frame_buffer_info->capture_register = false;
-			frame_buffer_info->capture_lock = false;
-			frame_buffer_info->capture_comp_cb = NULL;
-			break;
-		case MODULE_DISPLAY:
-			frame_buffer_info->display_register = false;
-			frame_buffer_info->display_lock = false;
-			frame_buffer_info->display_comp_cb = NULL;
-			break;
-	}
-
-	GLOBAL_INT_RESTORE();
-}
-
-
-void frame_buffer_free_request(frame_buffer_t *buffer, frame_module_t module)
-{
+	fb_mem_list_t *mem_list = frame_buffer_list_get(frame->fmt);
+	frame_buffer_node_t *node = list_entry(frame, frame_buffer_node_t, frame);
+	uint32_t isr_context = platform_is_in_interrupt_context();
 	GLOBAL_INT_DECLARATION();
 
-	if (buffer->lock == 0)
+	if (mem_list == NULL)
 	{
-		LOGE("%s invalid frame free\n", __func__);
+		LOGE("%s invalid mem_list: %p\n", __func__, mem_list);
 		return;
 	}
 
-	frame_buffer_free_frame(buffer);
+	if (index >= MODULE_MAX)
+	{
+		LOGE("%s invalid module: %d\n", __func__, index);
+		return;
+	}
 
+	if (!isr_context)
+	{
+		rtos_lock_mutex(&mem_list->lock);
+		GLOBAL_INT_DISABLE();
+	}
+
+	if (node->free_mask & INDEX_MASK(index))
+	{
+		LOGE("%s refree: %d\n", __func__, index);
+		goto out;
+	}
+	else
+	{
+		node->free_mask |= INDEX_MASK(index);
+	}
+
+	if (node->read_mask)
+	{
+		if ((node->read_mask == node->free_mask)
+		    && ((node->free_mask & fb_info->register_mask) == fb_info->register_mask))
+		{
+			if (BK_OK != frame_buffer_list_remove(frame, &mem_list->ready))
+			{
+				LOGE("%s remove failed\n", __func__);
+			}
+
+			node->free_mask = 0;
+			node->read_mask = 0;
+			list_add_tail(&node->list, &mem_list->free);
+		}
+
+		if (fb_info->modules[index].enable
+		    && rtos_set_semaphore(&fb_info->modules[index].sem) != BK_OK)
+		{
+			LOGE("%s semaphore set faile\n", __func__);
+		}
+	}
+	else
+	{
+		/* safte check */
+		if (BK_OK != frame_buffer_list_remove(frame, &mem_list->ready))
+		{
+			LOGD("%s remove failed\n", __func__);
+		}
+
+
+		node->free_mask = 0;
+		node->read_mask = 0;
+		list_add_tail(&node->list, &mem_list->free);
+	}
+
+out:
+
+	if (!isr_context)
+	{
+		GLOBAL_INT_RESTORE();
+		rtos_unlock_mutex(&mem_list->lock);
+	}
+}
+
+
+frame_buffer_t *frame_buffer_fb_malloc(fb_type_t type)
+{
+	frame_buffer_node_t *node = NULL, *tmp = NULL;
+	fb_mem_list_t *mem_list = &fb_mem_list[type];
+	LIST_HEADER_T *pos, *n;
+	uint32_t isr_context = platform_is_in_interrupt_context();
+	GLOBAL_INT_DECLARATION();
+
+	if (mem_list == NULL)
+	{
+		LOGE("%s invalid mem_list: %p\n", __func__, mem_list);
+		return NULL;
+	}
+
+	if (!isr_context)
+	{
+		rtos_lock_mutex(&mem_list->lock);
+		GLOBAL_INT_DISABLE();
+	}
+
+	list_for_each_safe(pos, n, &mem_list->free)
+	{
+		tmp = list_entry(pos, frame_buffer_node_t, list);
+		if (tmp != NULL)
+		{
+			node = tmp;
+			list_del(pos);
+			break;
+		}
+	}
+
+	if (node == NULL)
+	{
+		list_for_each_safe(pos, n, &mem_list->ready)
+		{
+			tmp = list_entry(pos, frame_buffer_node_t, list);
+			if (tmp != NULL
+			    && (tmp->read_mask == tmp->free_mask))
+			{
+				node = tmp;
+				list_del(pos);
+				break;
+			}
+		}
+	}
+
+	if (!isr_context)
+	{
+		GLOBAL_INT_RESTORE();
+		rtos_unlock_mutex(&mem_list->lock);
+	}
+
+	if (node == NULL)
+	{
+		LOGE("%s failed\n", __func__);
+		return NULL;
+	}
+
+	node->frame.length = 0;
+	node->frame.width = 0;
+	node->frame.height = 0;
+	node->frame.fmt = 0;
+	node->read_mask = 0;
+	node->free_mask = 0;
+	node->frame.mix = 0;
+
+	return &node->frame;
+}
+
+void frame_buffer_fb_push(frame_buffer_t *frame)
+{
+	fb_mem_list_t *mem_list = NULL;
+	fb_type_t type = frame_buffer_type_get(frame->fmt);
+	frame_buffer_node_t *node = list_entry(frame, frame_buffer_node_t, frame);
+	uint32_t isr_context = platform_is_in_interrupt_context();
+	uint32_t i;
+	bk_err_t ret;
+	GLOBAL_INT_DECLARATION();
+
+	if (type > FB_INDEX_MAX)
+	{
+		LOGE("%s invalid frame type\n", __func__);
+		return;
+	}
+
+	mem_list = &fb_mem_list[type];
+
+	if (!isr_context)
+	{
+		rtos_lock_mutex(&mem_list->lock);
+		GLOBAL_INT_DISABLE();
+	}
+
+	node->read_mask = 0;
+	node->free_mask = 0;
+
+	list_add_tail(&node->list, &mem_list->ready);
+
+	if (!isr_context)
+	{
+		GLOBAL_INT_RESTORE();
+		rtos_unlock_mutex(&mem_list->lock);
+	}
+
+	for (i = 0; i < MODULE_MAX; i++)
+	{
+		if (fb_info->modules[i].enable == true
+		    && fb_info->modules[i].type == type)
+		{
+			LOGD("cmp plugin\n");
+
+			if ((frame->fmt == PIXEL_FMT_DVP_JPEG)
+			    && (i == MODULE_DECODER)
+			    && (frame->mix == true))
+			{
+				//TODO: do not return for decoder
+				continue;
+			}
+
+			if (mem_list->mode == FB_MEM_SHARED
+			    && fb_info->modules[i].plugin == false)
+			{
+				ret = rtos_set_semaphore(&fb_info->modules[i].sem);
+
+				if (ret != BK_OK)
+				{
+					LOGE("%s semaphore set failed: %d\n", __func__, ret);
+				}
+
+				fb_info->modules[i].plugin = true;
+			}
+		}
+	}
+}
+
+
+frame_buffer_t *frame_buffer_fb_pop(frame_module_t index, fb_type_t type)
+{
+	fb_mem_list_t *mem_list = &fb_mem_list[type];
+	LIST_HEADER_T *pos, *n;
+	frame_buffer_node_t *node = NULL, *tmp = NULL;
+	uint32_t isr_context = platform_is_in_interrupt_context();
+	GLOBAL_INT_DECLARATION();
+
+	if (mem_list == NULL)
+	{
+		LOGE("%s invalid mem_list: %p\n", __func__, mem_list);
+		return NULL;
+	}
+
+	if (fb_info == NULL)
+	{
+		LOGE("%s fb_info was NULL\n", __func__);
+		return NULL;
+	}
+
+	if (!isr_context)
+	{
+		rtos_lock_mutex(&mem_list->lock);
+		GLOBAL_INT_DISABLE();
+	}
+
+	LOGD("type: %d, %p\n", type, mem_list);
+
+	list_for_each_safe_edge(pos, n, &mem_list->ready)
+	{
+		tmp = list_entry(pos, frame_buffer_node_t, list);
+		if (tmp != NULL
+		    && ((tmp->read_mask & INDEX_MASK(index)) == 0))
+		{
+			//LOGI("GET %u, %x, %x\n", tmp->frame.sequence, tmp->read_mask, tmp->read_mask & INDEX_MASK(index));
+			node = tmp;
+			break;
+		}
+	}
+
+	if (node != NULL)
+	{
+		node->read_mask |= INDEX_MASK(index);
+	}
+
+	if (!isr_context)
+	{
+		GLOBAL_INT_RESTORE();
+		rtos_unlock_mutex(&mem_list->lock);
+	}
+
+	if (node == NULL)
+	{
+		LOGD("pop NULL\n");
+		return NULL;
+	}
+
+	//LOGI("pop %u, %x, %x\n", node->frame.sequence, node->read_mask, tmp->read_mask);
+
+	return &node->frame;
+}
+
+fb_type_t frame_buffer_available_index(void)
+{
+	uint32_t isr_context = platform_is_in_interrupt_context();
+	fb_type_t index = FB_INDEX_JPEG;
+	GLOBAL_INT_DECLARATION();
+	uint32_t i = 0;
+
+	if (!isr_context)
+	{
+		rtos_lock_mutex(&fb_info->lock);
+		GLOBAL_INT_DISABLE();
+	}
+
+
+	for (i = 0; i < FB_INDEX_MAX; i++)
+	{
+		if (!list_empty(&fb_mem_list[i].ready))
+		{
+			index = i;
+			break;
+		}
+	}
+
+	if (!isr_context)
+	{
+		GLOBAL_INT_RESTORE();
+		rtos_unlock_mutex(&fb_info->lock);
+	}
+
+	return index;
+}
+
+
+frame_buffer_t *frame_buffer_fb_read(frame_module_t index)
+{
+	frame_buffer_t *frame = NULL;
+	bk_err_t ret = BK_FAIL;
+	uint32_t isr_context = platform_is_in_interrupt_context();
+	GLOBAL_INT_DECLARATION();
+	fb_type_t type;
+
+	if (index >= MODULE_MAX)
+	{
+		LOGE("%s invalid module: %d\n", __func__, index);
+		goto out;
+	}
+
+	if (fb_info->modules[index].enable == false)
+	{
+		LOGE("%s module not register: %d\n", __func__, index);
+		goto out;
+	}
+
+	do
+	{
+
+		rtos_lock_mutex(&fb_info->modules[index].lock);
+
+		ret = rtos_get_semaphore(&fb_info->modules[index].sem, BEKEN_NEVER_TIMEOUT);
+
+		if (ret != BK_OK)
+		{
+			LOGE("%s semaphore get failed: %d\n", __func__, ret);
+			rtos_unlock_mutex(&fb_info->modules[index].lock);
+			goto out;
+		}
+
+		if (fb_info->modules[index].enable == false)
+		{
+			rtos_unlock_mutex(&fb_info->modules[index].lock);
+			break;
+		}
+
+		rtos_unlock_mutex(&fb_info->modules[index].lock);
+
+		//type = frame_buffer_available_index();
+		type = fb_info->modules[index].type;
+
+		frame = frame_buffer_fb_pop(index, type);
+
+		if (frame == NULL)
+		{
+			LOGD("%s faild, plugin: %d\n", __func__, fb_info->modules[index].plugin);
+
+			if (!isr_context)
+			{
+				rtos_lock_mutex(&fb_info->lock);
+				GLOBAL_INT_DISABLE();
+			}
+
+			fb_info->modules[index].plugin = false;
+
+			if (!isr_context)
+			{
+				GLOBAL_INT_RESTORE();
+				rtos_unlock_mutex(&fb_info->lock);
+			}
+		}
+		else
+		{
+			break;
+		}
+	}
+	while (fb_info && fb_info->modules[index].enable);
+
+out:
+
+	return frame;
+}
+
+bk_err_t frame_buffer_fb_register(frame_module_t index, fb_type_t type)
+{
+	bk_err_t ret = BK_FAIL;
+	uint32_t isr_context = platform_is_in_interrupt_context();
+	GLOBAL_INT_DECLARATION();
+
+	if (index >= MODULE_MAX)
+	{
+		LOGE("%s invalid module: %d\n", __func__, index);
+		return ret;
+	}
+
+	if (fb_info == NULL)
+	{
+		LOGE("%s fb_info was NULL\n", __func__);
+		return ret;
+	}
+
+	if (!isr_context)
+	{
+		rtos_lock_mutex(&fb_info->lock);
+		GLOBAL_INT_DISABLE();
+	}
+
+	rtos_init_mutex(&fb_info->modules[index].lock);
+
+	ret = rtos_init_semaphore_ex(&fb_info->modules[index].sem, 1, 0);
+
+	if (ret != BK_OK)
+	{
+		LOGE("%s semaphore init failed: %d\n", __func__, ret);
+		goto out;
+	}
+
+	fb_info->modules[index].enable = true;
+	fb_info->modules[index].plugin = false;
+	fb_info->modules[index].type = type;
+	fb_info->register_mask |= INDEX_MASK(index);
+
+out:
+
+	if (!isr_context)
+	{
+		GLOBAL_INT_RESTORE();
+		rtos_unlock_mutex(&fb_info->lock);
+	}
+
+	return ret;
+}
+
+bk_err_t frame_buffer_fb_deregister(frame_module_t index)
+{
+	bk_err_t ret = BK_FAIL;
+	uint32_t isr_context = platform_is_in_interrupt_context();
+	GLOBAL_INT_DECLARATION();
+
+	if (index >= MODULE_MAX)
+	{
+		LOGE("%s invalid module: %d\n", __func__, index);
+		return ret;
+	}
+
+	if (fb_info == NULL)
+	{
+		LOGE("%s fb_info was NULL\n", __func__);
+		return ret;
+	}
+
+	if (!isr_context)
+	{
+		rtos_lock_mutex(&fb_info->lock);
+		GLOBAL_INT_DISABLE();
+	}
+
+	fb_info->modules[index].enable = false;
+	fb_info->register_mask &= INDEX_UNMASK(index);
+
+	ret = rtos_set_semaphore(&fb_info->modules[index].sem);
+
+
+	rtos_lock_mutex(&fb_info->modules[index].lock);
+	ret = rtos_deinit_semaphore(&fb_info->modules[index].sem);
+	rtos_unlock_mutex(&fb_info->modules[index].lock);
+	rtos_deinit_mutex(&fb_info->modules[index].lock);
+
+	if (ret != BK_OK)
+	{
+		LOGE("%s semaphore deinit failed: %d\n", __func__, ret);
+		goto out;
+	}
+
+out:
+
+	if (!isr_context)
+	{
+		GLOBAL_INT_RESTORE();
+		rtos_unlock_mutex(&fb_info->lock);
+	}
+
+	return ret;
+}
+
+
+int frame_buffer_fb_deinit(fb_type_t type)
+{
+	fb_mem_list_t *mem_list = NULL;
+	frame_buffer_node_t *tmp = NULL;
+	LIST_HEADER_T *pos, *n;
+
+	mem_list = &fb_mem_list[type];
+
+	if (type == FB_INDEX_DISPLAY)
+	{
+		LOGI("display mem deinit\n");
+
+		if (rtos_deinit_semaphore(&mem_list->free_sem) != BK_OK)
+		{
+			LOGE("%s free_sem init failed\n", __func__);
+		}
+
+		if (rtos_deinit_semaphore(&mem_list->ready_sem) != BK_OK)
+		{
+			LOGE("%s ready_sem init failed\n", __func__);
+		}
+	}
+	else if (type == FB_INDEX_JPEG)
+	{
+		LOGI("jpeg mem deinit\n");
+	}
+	else
+	{
+		LOGE("%s unknow type: %d\n", __func__, type);
+		return BK_FAIL;
+	}
+
+	if (mem_list->enable == false)
+	{
+		LOGE("%s already deinit\n", __func__);
+		return BK_FAIL;
+	}
+
+	if (!list_empty(&mem_list->free))
+	{
+		list_for_each_safe(pos, n, &mem_list->free)
+		{
+			tmp = list_entry(pos, frame_buffer_node_t, list);
+			LOGI("free list: %p\n", tmp);
+			if (tmp != NULL)
+			{
+				list_del(pos);
+				os_free(tmp);
+				break;
+			}
+		}
+
+		INIT_LIST_HEAD(&mem_list->free);
+	}
+
+	if (!list_empty(&mem_list->ready))
+	{
+		list_for_each_safe(pos, n, &mem_list->ready)
+		{
+			LOGI("ready list: %p\n", tmp);
+			tmp = list_entry(pos, frame_buffer_node_t, list);
+			if (tmp != NULL)
+			{
+				list_del(pos);
+				os_free(tmp);
+				break;
+			}
+		}
+
+		INIT_LIST_HEAD(&mem_list->ready);
+	}
+
+	mem_list->enable = false;
+
+	return BK_OK;
+}
+
+
+int frame_buffer_fb_init(media_ppi_t max_ppi, fb_type_t type)
+{
+	fb_mem_list_t *mem_list = NULL;
+	const fb_mem_set_t *fb_mem_set = NULL;
+
+	if (get_ppi_size(max_ppi) <= get_ppi_size(PPI_800X600))
+	{
+		fb_mem_set = &fb_layout[0].set[type];
+	}
+	else
+	{
+		fb_mem_set = &fb_layout[1].set[type];
+	}
+
+	mem_list = &fb_mem_list[type];
+
+	if (mem_list->enable == true)
+	{
+		LOGE("%s already init\n", __func__);
+		return BK_FAIL;
+	}
+
+	if (type == FB_INDEX_DISPLAY)
+	{
+		mem_list->mode = FB_MEM_ALONE;
+		mem_list->count = fb_mem_set->count;
+		mem_list->free_request = false;
+		mem_list->ready_request = false;
+
+		if (rtos_init_semaphore_ex(&mem_list->free_sem, mem_list->count, 0) != BK_OK)
+		{
+			LOGE("%s free_sem init failed\n", __func__);
+		}
+
+		if (rtos_init_semaphore_ex(&mem_list->ready_sem, mem_list->count, 0) != BK_OK)
+		{
+			LOGE("%s ready_sem init failed\n", __func__);
+		}
+
+		LOGI("display mem init size: %X, count: %d\n", fb_mem_set->size, fb_mem_set->count);
+	}
+	else if (type == FB_INDEX_JPEG)
+	{
+		mem_list->mode = FB_MEM_SHARED;
+		mem_list->count = fb_mem_set->count;
+		LOGI("jpeg mem init size: %X, count: %d\n", fb_mem_set->size, fb_mem_set->count);
+	}
+	else
+	{
+		LOGE("%s unknow type: %d\n", __func__, type);
+		return BK_FAIL;
+	}
+
+	for (int i = 0; i < fb_mem_set->count; i ++)
+	{
+		frame_buffer_node_t *node = (frame_buffer_node_t *)os_malloc(sizeof(frame_buffer_node_t));
+
+		if (node == NULL)
+		{
+			LOGE("%s os_malloc node failed\n", __func__);
+			return BK_FAIL;
+		}
+
+		os_memset(node, 0, sizeof(frame_buffer_node_t));
+
+		node->frame.frame = (uint8_t *)(fb_mem_set->base + fb_mem_set->size * i);
+		node->frame.size = fb_mem_set->size;
+		node->frame.length = 0;
+		node->frame.sequence = 0;
+
+		LOGI("free list add: %p\n", node);
+
+		list_add_tail(&node->list, &mem_list->free);
+
+		LOGI("init: %p\n", node->frame.frame);
+	}
+
+	mem_list->enable = true;
+
+	return BK_OK;
+}
+
+
+int frame_buffer_fb_jpeg_init(media_ppi_t max_ppi)
+{
+	return frame_buffer_fb_init(max_ppi, FB_INDEX_JPEG);
+}
+
+int frame_buffer_fb_display_init(media_ppi_t max_ppi)
+{
+	return frame_buffer_fb_init(max_ppi, FB_INDEX_DISPLAY);
+}
+
+int frame_buffer_fb_jpeg_deinit(void)
+{
+	return frame_buffer_fb_deinit(FB_INDEX_JPEG);
+}
+
+int frame_buffer_fb_display_deinit(void)
+{
+	return frame_buffer_fb_deinit(FB_INDEX_DISPLAY);
+}
+
+frame_buffer_t *frame_buffer_fb_jpeg_malloc(void)
+{
+	return frame_buffer_fb_malloc(FB_INDEX_JPEG);
+}
+
+
+void frame_buffer_fb_jpeg_free(frame_buffer_t *frame)
+{
+	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_JPEG];
+	frame_buffer_node_t *node = list_entry(frame, frame_buffer_node_t, frame);
+	uint32_t isr_context = platform_is_in_interrupt_context();
+	GLOBAL_INT_DECLARATION();
+
+	if (mem_list == NULL)
+	{
+		LOGE("%s invalid mem_list: %p\n", __func__, mem_list);
+		return;
+	}
+	LOGI("%s ========= fb_jpeg_free mem_list: %p\n", __func__, mem_list);
+
+	if (!isr_context)
+	{
+		rtos_lock_mutex(&mem_list->lock);
+		GLOBAL_INT_DISABLE();
+	}
+
+	node->free_mask = 0;
+	node->read_mask = 0;
+	list_add_tail(&node->list, &mem_list->free);
+
+	if (!isr_context)
+	{
+		GLOBAL_INT_RESTORE();
+		rtos_unlock_mutex(&mem_list->lock);
+	}
+}
+
+
+frame_buffer_t *frame_buffer_fb_display_malloc(void)
+{
+	return frame_buffer_fb_malloc(FB_INDEX_DISPLAY);
+}
+
+frame_buffer_t *frame_buffer_fb_display_malloc_wait(void)
+{
+	frame_buffer_t *frame = NULL;
+	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_DISPLAY];
+	uint32_t isr_context = platform_is_in_interrupt_context();
+	bk_err_t ret;
+	GLOBAL_INT_DECLARATION();
+
+	do
+	{
+		frame = frame_buffer_fb_display_malloc();
+
+		if (frame == NULL)
+		{
+			if (!isr_context)
+			{
+				rtos_lock_mutex(&mem_list->lock);
+				GLOBAL_INT_DISABLE();
+			}
+
+			mem_list->free_request = true;
+
+			if (!isr_context)
+			{
+				GLOBAL_INT_RESTORE();
+				rtos_unlock_mutex(&mem_list->lock);
+			}
+
+			ret = rtos_get_semaphore(&mem_list->free_sem, BEKEN_NEVER_TIMEOUT);
+
+			if (ret != BK_OK)
+			{
+				LOGE("%s semaphore get failed: %d\n", __func__, ret);
+			}
+
+			continue;
+		}
+
+	}
+	while (0);
+
+	return frame;
+}
+
+void frame_buffer_fb_display_free(frame_buffer_t *frame)
+{
+	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_DISPLAY];
+	frame_buffer_node_t *tmp = NULL, *node = list_entry(frame, frame_buffer_node_t, frame);
+	uint32_t length = 0, isr_context = platform_is_in_interrupt_context();
+	GLOBAL_INT_DECLARATION() = 0;
+	bk_err_t ret;
+	LIST_HEADER_T *pos, *n;
+
+	//LOGI("dis free\n");
+
+	if (!isr_context)
+	{
+		rtos_lock_mutex(&mem_list->lock);
+		GLOBAL_INT_DISABLE();
+	}
+
+	list_add_tail(&node->list, &mem_list->free);
+
+	list_for_each_safe(pos, n, &mem_list->free)
+	{
+		tmp = list_entry(pos, frame_buffer_node_t, list);
+		if (tmp != NULL)
+		{
+			length++;
+		}
+	}
+
+	if (mem_list->free_request == true)
+	{
+		ret = rtos_set_semaphore(&mem_list->free_sem);
+
+		if (ret != BK_OK)
+		{
+			LOGE("%s semaphore set failed: %d\n", __func__, ret);
+		}
+
+		mem_list->free_request = false;
+	}
+
+
+	if (!isr_context)
+	{
+		GLOBAL_INT_RESTORE();
+		rtos_unlock_mutex(&mem_list->lock);
+	}
+
+	//LOGI("free\n");
+}
+
+void frame_buffer_fb_display_push(frame_buffer_t *frame)
+{
+	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_DISPLAY];
+	frame_buffer_node_t *tmp = NULL, *node = list_entry(frame, frame_buffer_node_t, frame);
+	uint32_t isr_context = platform_is_in_interrupt_context();
+	uint32_t length = 0;
+	GLOBAL_INT_DECLARATION() = 0;
+	bk_err_t ret;
+	LIST_HEADER_T *pos, *n;
+
+	//LOGI("dis push\n");
+
+
+	if (!isr_context)
+	{
+		rtos_lock_mutex(&mem_list->lock);
+		GLOBAL_INT_DISABLE();
+	}
+
+	list_add_tail(&node->list, &mem_list->ready);
+
+	list_for_each_safe(pos, n, &mem_list->ready)
+	{
+		tmp = list_entry(pos, frame_buffer_node_t, list);
+		if (tmp != NULL)
+		{
+			length++;
+		}
+	}
+
+	if (length == 1)
+	{
+		ret = rtos_set_semaphore(&mem_list->ready_sem);
+
+		if (ret != BK_OK)
+		{
+			LOGD("%s semaphore set failed: %d\n", __func__, ret);
+		}
+	}
+
+
+	if (!isr_context)
+	{
+		GLOBAL_INT_RESTORE();
+		rtos_unlock_mutex(&mem_list->lock);
+	}
+
+	//LOGI("push\n");
+
+}
+
+frame_buffer_t *frame_buffer_fb_display_pop(void)
+{
+	frame_buffer_node_t *node = NULL, *tmp = NULL;
+	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_DISPLAY];
+	LIST_HEADER_T *pos, *n;
+	GLOBAL_INT_DECLARATION() = 0;
+
+	//LOGI("dis pop\n");
+	rtos_lock_mutex(&mem_list->lock);
 	GLOBAL_INT_DISABLE();
 
-	switch (module)
+	list_for_each_safe(pos, n, &mem_list->ready)
 	{
-		case MODULE_WIFI:
-			frame_buffer_info->wifi_lock = false;
-			LOGD("wifi free %p %d:%d:%d:%d\n", buffer, buffer->id, buffer->state, buffer->lock, buffer->sequence);
+		tmp = list_entry(pos, frame_buffer_node_t, list);
+		if (tmp != NULL)
+		{
+			node = tmp;
+			list_del(pos);
 			break;
-		case MODULE_DECODER:
-			frame_buffer_info->decoder_lock = false;
-			LOGD("lcd free %p %d:%d:%d:%d\n", buffer, buffer->id, buffer->state, buffer->lock, buffer->sequence);
-			break;
-		case MODULE_RECODER:
-			break;
-		case MODULE_CAPTURE:
-			LOGD("capture free %p %d:%d:%d:%d\n", buffer, buffer->id, buffer->state, buffer->lock, buffer->sequence);
-			break;
-		case MODULE_DISPLAY:
-			frame_buffer_info->display_lock = false;
-			LOGD("lcd free %p %d:%d:%d:%d\n", buffer, buffer->id, buffer->state, buffer->lock, buffer->sequence);
-			break;
+		}
 	}
 
 	GLOBAL_INT_RESTORE();
+	rtos_unlock_mutex(&mem_list->lock);
+
+	if (node == NULL)
+	{
+		LOGD("%s failed\n", __func__);
+		return NULL;
+	}
+
+	//LOGI("pop\n");
+
+	return &node->frame;
 }
 
-int frame_buffer_jpeg_frame_init(void)
+
+frame_buffer_t *frame_buffer_fb_display_pop_wait(void)
 {
-	LOGI("frame_buffer_jpeg_frame_init, %d\n", frame_buffer_info->minimal_layout);
+	frame_buffer_t *frame = NULL;
+	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_DISPLAY];
+	bk_err_t ret;
 
-#ifdef CONFIG_PSRAM
-	frame_buffer_t *tmp = NULL;
-	LIST_HEADER_T *pos, *n;
-
-	if (!list_empty(&jpeg_free_node_list))
+	do
 	{
-		list_for_each_safe(pos, n, &jpeg_free_node_list)
+		frame = frame_buffer_fb_display_pop();
+
+		if (frame != NULL)
 		{
-			tmp = list_entry(pos, frame_buffer_t, list);
-			if (tmp != NULL)
-			{
-				list_del(pos);
-				os_free(tmp);
-				break;
-			}
+			break;
 		}
 
-		INIT_LIST_HEAD(&jpeg_free_node_list);
-	}
+		ret = rtos_get_semaphore(&mem_list->ready_sem, 2000);
 
-	if (!list_empty(&jpeg_ready_node_list))
-	{
-		list_for_each_safe(pos, n, &jpeg_ready_node_list)
+		if (ret != BK_OK)
 		{
-			tmp = list_entry(pos, frame_buffer_t, list);
-			if (tmp != NULL)
-			{
-				list_del(pos);
-				os_free(tmp);
-				break;
-			}
+			LOGE("%s semaphore get failed: %d\n", __func__, ret);
+			break;
 		}
 
-		INIT_LIST_HEAD(&jpeg_ready_node_list);
 	}
+	while (true);
 
-	if (frame_buffer_info->minimal_layout == true)
-	{
-		for (int i = 0; i < JPEG_ENC_FRAME_COUNT; i ++)
-		{
-			frame_buffer_t *frame = (frame_buffer_t *)os_malloc(sizeof(frame_buffer_t));
-
-			os_memset(frame, 0, sizeof(frame_buffer_t));
-
-			frame->state = STATE_INVALID;
-
-			frame->frame = psram_map->jpeg_enc[i];
-			frame->size = sizeof(psram_map->jpeg_enc[i]);
-
-			frame->id = i;
-			frame->type = FRAME_JPEG;
-			frame->length = 0;
-			frame->sequence = 0;
-			frame->lock = 0;
-			list_add_tail(&frame->list, &jpeg_free_node_list);
-
-			LOGI("init: %p\n", frame->frame);
-		}
-	}
-	else
-	{
-		for (int i = 0; i < JPEG_ENC_FRAME_COUNT; i ++)
-		{
-			frame_buffer_t *frame = (frame_buffer_t *)os_malloc(sizeof(frame_buffer_t));
-
-			os_memset(frame, 0, sizeof(frame_buffer_t));
-
-			frame->state = STATE_INVALID;
-			frame->frame = psram_720p_map->jpeg_enc[i];
-			frame->size = sizeof(psram_720p_map->jpeg_enc[i]);
-			frame->id = i;
-			frame->type = FRAME_JPEG;
-			frame->length = 0;
-			frame->sequence = 0;
-			frame->lock = 0;
-			list_add_tail(&frame->list, &jpeg_free_node_list);
-		}
-	}
-
-#endif
-	return BK_OK;
-}
-
-int frame_buffer_display_frame_init(void)
-{
-#ifdef CONFIG_PSRAM
-
-	frame_buffer_t *tmp = NULL;
-	LIST_HEADER_T *pos, *n;
-
-	if (!list_empty(&display_free_node_list))
-	{
-		list_for_each_safe(pos, n, &display_free_node_list)
-		{
-			tmp = list_entry(pos, frame_buffer_t, list);
-			if (tmp != NULL)
-			{
-				list_del(pos);
-				os_free(tmp);
-				break;
-			}
-		}
-
-		INIT_LIST_HEAD(&display_free_node_list);
-	}
-
-	if (!list_empty(&display_ready_node_list))
-	{
-		list_for_each_safe(pos, n, &display_ready_node_list)
-		{
-			tmp = list_entry(pos, frame_buffer_t, list);
-			if (tmp != NULL)
-			{
-				list_del(pos);
-				os_free(tmp);
-				break;
-			}
-		}
-
-		INIT_LIST_HEAD(&display_ready_node_list);
-	}
-
-	if (frame_buffer_info->minimal_layout)
-	{
-		for (int i = 0; i < DISPLAY_FRAME_COUNT; i++)
-		{
-			frame_buffer_t *frame = (frame_buffer_t *)os_malloc(sizeof(frame_buffer_t));
-
-			os_memset(frame, 0, sizeof(frame_buffer_t));
-
-			frame->state = STATE_INVALID;
-			frame->frame = psram_map->display[i];
-			frame->size = sizeof(psram_map->display[i]);
-			frame->id = i;
-			frame->type = FRAME_DISPLAY;
-			frame->length = 0;
-			frame->sequence = 0;
-			frame->lock = 0;
-			list_add_tail(&frame->list, &display_free_node_list);
-		}
-	}
-	else
-	{
-		for (int i = 0; i < DISPLAY_720P_FRAME_COUNT; i ++)
-		{
-			frame_buffer_t *frame = (frame_buffer_t *)os_malloc(sizeof(frame_buffer_t));
-
-			os_memset(frame, 0, sizeof(frame_buffer_t));
-
-			frame->state = STATE_INVALID;
-			frame->frame = psram_720p_map->display[i];
-			frame->size = sizeof(psram_720p_map->display[i]);
-			frame->id = i;
-			frame->type = FRAME_DISPLAY;
-			frame->length = 0;
-			frame->sequence = 0;
-			frame->lock = 0;
-			list_add_tail(&frame->list, &display_free_node_list);
-		}
-	}
-
-#endif
-	return BK_OK;
+	return frame;
 }
 
 
 void frame_buffer_init(void)
 {
-	if (frame_buffer_info == NULL)
-	{
-		frame_buffer_info = (frame_buffer_info_t *)os_malloc(sizeof(frame_buffer_info_t));
-		os_memset((void *)frame_buffer_info, 0, sizeof(frame_buffer_info_t));
-	}
-	frame_buffer_info->minimal_layout = true;
+	uint32_t i = 0;
 
-	LOGI("frame_buffer_init, %d\n", frame_buffer_info->minimal_layout);
+	for (i = 0; i < FB_INDEX_MAX; i++)
+	{
+		fb_mem_list[i].free.next = &fb_mem_list[i].free;
+		fb_mem_list[i].free.prev = &fb_mem_list[i].free;
+		fb_mem_list[i].ready.next = &fb_mem_list[i].ready;
+		fb_mem_list[i].ready.prev = &fb_mem_list[i].ready;
+		fb_mem_list[i].enable = false;
+		rtos_init_mutex(&fb_mem_list[i].lock);
+	}
+
+	if (fb_info == NULL)
+	{
+		fb_info = (fb_info_t *)os_malloc(sizeof(fb_info_t));
+		os_memset((void *)fb_info, 0, sizeof(fb_info_t));
+		rtos_init_mutex(&fb_info->lock);
+	}
 }
 
-int frame_buffer_set_ppi(media_ppi_t ppi, frame_type_t type)
-{
-	uint16 width, heigth;
-
-	LOGI("%s, ppi %dX%d\n", __func__, ppi >> 16, ppi & 0xFFFF);
-
-
-	if (frame_buffer_info == NULL)
-	{
-		LOGE("%s frame_buffer_info is NULL\n", __func__);
-		return BK_FAIL;
-	}
-
-	width = ppi_to_pixel_x(ppi);
-	heigth = ppi_to_pixel_y(ppi);
-
-	if (width * heigth > PIXEL_800 * PIXEL_600)
-	{
-		LOGI("%s, 720P Memory Layout Set\n", __func__);
-		frame_buffer_info->minimal_layout = false;
-	}
-	else
-	{
-		frame_buffer_info->minimal_layout = true;
-	}
-
-
-	if (type == FRAME_JPEG)
-	{
-		frame_buffer_jpeg_frame_init();
-	}
-
-	if (type == FRAME_DISPLAY)
-	{
-		frame_buffer_display_frame_init();
-	}
-
-	return BK_OK;
-}
-bool frame_buffer_get_state(void)
-{
-	bool ret = false;
-
-	if (frame_buffer_info)
-	{
-		ret = frame_buffer_info->enable;
-	}
-
-	return ret;
-}
-
-void frame_buffer_enable(bool enable)
-{
-	LOGI("%s, %d\n", __func__, enable);
-
-	if (frame_buffer_info)
-	{
-		os_memset((void *)frame_buffer_info, 0, sizeof(frame_buffer_info_t));
-
-		frame_buffer_info->enable = enable;
-	}
-	frame_buffer_info->minimal_layout = true;
-}
 
 void frame_buffer_deinit(void)
 {
-	if (frame_buffer_info)
+	if (fb_info)
 	{
-		os_free(frame_buffer_info);
-		frame_buffer_info = NULL;
-		frame_buffer_info->minimal_layout = true;
+		os_free(fb_info);
+		fb_info = NULL;
 	}
 }

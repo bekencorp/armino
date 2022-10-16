@@ -498,6 +498,10 @@ int32 sys_hal_module_power_state_get(power_module_name_t module)
 {
 	return 0;
 }
+int32 sys_hal_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval)
+{
+	return 0;
+}
 void sys_hal_module_RF_power_ctrl (module_name_t module,power_module_state_t power_state)
 {
     uint32_t value = 0;

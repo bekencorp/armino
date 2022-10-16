@@ -51,7 +51,7 @@
 #include "sdcard.h"
 #endif
 
-#if CONFIG_SDIO_V2P0
+#if (CONFIG_SDIO_V2P0 && CONFIG_SDIO_SLAVE)
 #include "sdio_slave_driver.h"
 #endif
 
@@ -137,7 +137,7 @@ void power_clk_rf_init()
    /*cpu0:240m ,matrix:120m*/
 	//sys_drv_core_bus_clock_ctrl(HIGH_FREQUECY_CLOCK_MODULE_CPU0, 0,0, HIGH_FREQUECY_CLOCK_MODULE_CPU0_MATRIX,0,0);
 	#if !CONFIG_SLAVE_CORE
-	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DEFAULT,PM_CPU_FRQ_240M);
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DEFAULT,PM_CPU_FRQ_120M);
 	#endif
    /*5.config the analog*/
    //sys_drv_analog_set(ANALOG_REG0, param);
@@ -152,15 +152,16 @@ void power_clk_rf_init()
 	//sys_drv_analog_set(ANALOG_REG4, param);
 
 	/*set low power low voltage value */
-	param = sys_drv_analog_get(ANALOG_REG2);
-	param |= (0x1 << 25);
-	sys_drv_analog_set(ANALOG_REG2, param);
 
 	param = 0;
 	param = sys_drv_analog_get(ANALOG_REG3);
 	param &= ~(0x7 << 29);
 	param |= (0x4 << 29);
 	sys_drv_analog_set(ANALOG_REG3, param);
+
+	param = sys_drv_analog_get(ANALOG_REG2);
+	param |= (0x1 << 25);
+	sys_drv_analog_set(ANALOG_REG2, param);
 	/*tempreture det enable for VIO*/
 	param = 0;
 	param = sys_drv_analog_get(ANALOG_REG6);
@@ -208,6 +209,7 @@ void power_clk_rf_init()
 	/*b.config calibration*/
 	param = 0;
 	param = sys_drv_analog_get(ANALOG_REG4);
+	param &= ~(SYS_ANA_REG4_ROSC_CAL_INTVAL_MASK << SYS_ANA_REG4_ROSC_CAL_INTVAL_POS);//clear the data
 	param |= 0x4 << SYS_ANA_REG4_ROSC_CAL_INTVAL_POS;//Rosc Calibration Interlval 0.25s~2s (4:1s)
 	param |= 0x1 << SYS_ANA_REG4_ROSC_CAL_MODE_POS;//0x1: 32K ;0x0: 31.25K
 	param |= 0x1 << SYS_ANA_REG4_ROSC_CAL_EN_POS;//Rosc Calibration Enable
@@ -248,6 +250,11 @@ int driver_init(void)
 	interrupt_init();
 
 	bk_gpio_driver_init();
+
+#if CONFIG_DOORBELL_DEMO1
+	bk_uvc_camera_power_on();
+	os_printf("bk_uvc_camera_power_on \r\n");
+#endif
 
 	//Important notice!!!!!
 	//ATE uses UART TX PIN as the detect ATE mode pin,
@@ -338,7 +345,7 @@ int driver_init(void)
 	sdcard_init();
 #endif
 
-#if CONFIG_SDIO_V2P0
+#if (CONFIG_SDIO_V2P0 && CONFIG_SDIO_SLAVE)
 	bk_sdio_slave_driver_init();
 #endif
 
@@ -351,17 +358,8 @@ int driver_init(void)
 	os_printf("ate enabled is %d\r\n", ate_is_enabled());
 #endif
 
-#if CONFIG_DOORBELL_DEMO1
-	bk_uvc_camera_power_on();
-#endif
-
 #if CONFIG_USB
 	bk_usb_init();
-#if CONFIG_USB_HOST
-	bk_usb_open(USB_HOST_MODE);
-#else
-	bk_usb_open(USB_DEVICE_MODE);
-#endif
 #endif
 
 	os_printf("driver_init end\r\n");

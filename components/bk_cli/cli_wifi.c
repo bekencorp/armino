@@ -283,12 +283,27 @@ void cli_wifi_stop_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 void cli_wifi_iplog_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	char *iplog_mode = NULL;
+	char *iplog_type = NULL;
 
-	if (argc == 2)
+	if (argc == 3)
+	{
 		iplog_mode = argv[1];
+		iplog_type = argv[2];
+		if (iplog_mode && iplog_type)
+			demo_wifi_iplog_init(iplog_mode, iplog_type);
+	}
+	else if (argc == 2)
+	{
+		iplog_mode = argv[1];
+		if (iplog_mode)
+			demo_wifi_iplog_init(iplog_mode, iplog_type);
+	}
+	else
+	{
+		CLI_LOGI("cli_wifi_iplog_cmd:invalid argc num\r\n");
+		return;
+	}
 
-	if (iplog_mode)
-		demo_wifi_iplog_init(iplog_mode);
 }
 void cli_wifi_ipdbg_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
@@ -375,6 +390,37 @@ void cli_monitor_show(void)
 		BK_LOG_RAW(">=1024:     %u\n", s_monitor_result->rx_cnt_1024);
 	}
 }
+
+#if CONFIG_RWNX_PROTO_DEBUG
+void cli_wifi_set_proto_debug_flag(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	uint8_t pd_flag = 0;
+	int ret = 0;
+
+	if (argc < 2) {
+		CLI_LOGI("invalid argc num");
+		return;
+	}
+
+	pd_flag = (uint8_t)os_strtoul(argv[1], NULL, 10);
+	if(pd_flag == 1) {
+		ret = bk_wifi_enable_proto_debug(pd_flag);
+
+		if (!ret)
+			CLI_LOGI("enable proto debug ok");
+		else
+			CLI_LOGI("enable proto debug failed");
+	} else if(pd_flag == 0){
+		ret = bk_wifi_disable_proto_debug(pd_flag);
+		if (!ret)
+			CLI_LOGI("disable proto debug ok");
+		else
+			CLI_LOGI("disable proto debug failed");
+	} else {
+		CLI_LOGI("invalid argv of pd_flag");
+	}
+}
+#endif
 
 void cli_wifi_set_interval_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
@@ -1046,8 +1092,23 @@ void cli_wifi_capa_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 	else if(os_strcmp(argv[1], "rx_ampdu") == 0) {
 		capa_id = WIFI_CAPA_ID_RX_AMPDU_EN;
 	}
+	else if(os_strcmp(argv[1], "tx_ampdu_num") == 0) {
+		capa_id = WIFI_CAPA_ID_TX_AMPDU_NUM;
+	}
+	else if(os_strcmp(argv[1], "rx_ampdu_num") == 0) {
+		capa_id = WIFI_CAPA_ID_RX_AMPDU_NUM;
+	}
+	else if(os_strcmp(argv[1], "vht_mcs") == 0) {
+		capa_id = WIFI_CAPA_ID_VHT_MCS;
+	}
 	else if(os_strcmp(argv[1], "he_mcs") == 0) {
 		capa_id = WIFI_CAPA_ID_HE_MCS;
+	}
+	else if(os_strcmp(argv[1], "b40") == 0) {
+		capa_id = WIFI_CAPA_ID_B40;
+	}
+	else if(os_strcmp(argv[1], "sgi") == 0) {
+		capa_id = WIFI_CAPA_ID_SGI;
 	}
 	else {
 		CLI_LOGI("invalid CAPA paramter\n");
@@ -1097,13 +1158,16 @@ static const struct cli_command s_wifi_commands[] = {
 	{"sta_eap", "sta_eap ssid password [identity] [client_cert] [private_key]", cli_wifi_sta_eap_cmd},
 #endif
 	{"stop", "stop {sta|ap}", cli_wifi_stop_cmd},
+#if CONFIG_RWNX_PROTO_DEBUG
+	{"set_pd_flag", "set proto flag for enable or disable proto debug {1|0}", cli_wifi_set_proto_debug_flag},
+#endif
 	{"set_interval", "set listen interval}", cli_wifi_set_interval_cmd},
 	{"monitor", "monitor {1~13|15|99}", cli_wifi_monitor_cmd},
 	{"state", "state - show STA/AP state", cli_wifi_state_cmd},
 	{"channel", "channel {1~13} - set monitor channel", cli_wifi_monitor_channel_cmd},
 	{"net", "net {sta/ap} ... - wifi net config", cli_wifi_net_cmd},
 	{"get", "get wifi status", cli_wifi_get_cmd},
-	{"iplog", "iplog [modle]", cli_wifi_iplog_cmd},
+	{"iplog", "iplog [modle][type]", cli_wifi_iplog_cmd},
 	{"ipdbg", "ipdbg [module][para][value]", cli_wifi_ipdbg_cmd},
 
 #ifdef CONFIG_COMPONENTS_WPA_TWT_TEST

@@ -21,7 +21,7 @@
             "firmware": "bk7256_cpu1.bin",
             "version": "2M.1220",
             "partition": "cpu1",
-            "start_addr": "0x0001DC000",
+            "start_addr": "0x001DC000",
             "size": "476K"
         }
     ]

@@ -25,6 +25,23 @@ typedef int16_t jd_yuv_t;
 typedef uint8_t jd_yuv_t;
 #endif
 
+/*Specifies output pixel format.*/
+typedef enum {
+	JDF_RGB888 = 0, /* 0: RGB888 (24-bit/pix) */
+	JDF_RGB565, 	/* 1: RGB565 (16-bit/pix) */
+	JDF_Grayscale,  /* 2: Grayscale (8-bit/pix) */
+	JDF_VYUY,		/* 3: VYUY (16-bit/pix) */
+	JDF_YUYV, 		/* 4: YUYV (16-bit/pix) */
+	JDF_MAX,
+}JFORMAT;
+
+#if 0
+#define JPEG_DTCM  __attribute__((section(".dtcm_sec_data")))
+#define JPEG_ITCM  __attribute__((section(".itcm_sec_code")))
+#else
+#define JPEG_DTCM
+#define JPEG_ITCM
+#endif
 
 /* Error code */
 typedef enum {
@@ -54,7 +71,7 @@ typedef struct {
 /* Decompressor object structure */
 typedef struct JDEC JDEC;
 struct JDEC {
-	uint16_t dctr;				/* Number of bytes available in the input buffer */
+	size_t dctr;				/* Number of bytes available in the input buffer */
 	uint8_t* dptr;				/* Current data read ptr */
 	uint8_t* inbuf;				/* Bit stream input buffer */
 	uint8_t dbit;				/* Number of bits availavble in wreg or reading bit mask */
@@ -81,16 +98,15 @@ struct JDEC {
 	void* workbuf;				/* Working buffer for IDCT and RGB output */
 	jd_yuv_t* mcubuf;			/* Working buffer for the MCU */
 	void* pool;					/* Pointer to available memory pool */
-	uint16_t sz_pool;				/* Size of momory pool (bytes available) */
-	uint16_t (*infunc)(JDEC*, uint8_t*, uint16_t);	/* Pointer to jpeg stream input function */
+	size_t sz_pool;				/* Size of momory pool (bytes available) */
+	size_t (*infunc)(JDEC*, uint8_t*, size_t);	/* Pointer to jpeg stream input function */
 	void* device;				/* Pointer to I/O device identifiler for the session */
 };
 
 
-
 /* TJpgDec API functions */
-JRESULT jd_prepare_sw (JDEC* jd, uint16_t (*infunc)(JDEC*,uint8_t*,uint16_t), void* pool, uint16_t sz_pool, void* dev);
-JRESULT jd_decomp_sw (JDEC* jd, int (*outfunc)(JDEC*,void*,JRECT*), uint8_t scale);
+JPEG_ITCM JRESULT jd_prepare_sw (JDEC* jd, size_t (*infunc)(JDEC*,uint8_t*,size_t), void* pool, size_t sz_pool, void* dev);
+JPEG_ITCM JRESULT jd_decomp_sw (JDEC* jd, int (*outfunc)(JDEC*,void*,JRECT*), uint8_t scale);
 
 
 #ifdef __cplusplus

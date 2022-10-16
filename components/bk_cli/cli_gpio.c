@@ -17,6 +17,7 @@ static void cli_gpio_help(void)
 #if CONFIG_GPIO_DYNAMIC_WAKEUP_SUPPORT
 	CLI_LOGI("gpio_wake    [index][low/high_level/rising/falling edge][enable/disable wakeup]\r\n");
 	CLI_LOGI("gpio_low_power    [simulate][param]\r\n");
+	CLI_LOGI("gpio_kpsta [register/unregister][index][io_mode][pull_mode][func_mode]\r\n");
 #endif
 #if CONFIG_GPIO_SIMULATE_UART_WRITE
 	CLI_LOGI("gpio_uart_write    [index][div(baud_rate=1Mbps/(1+div))][string(len < 8)]\r\n");
@@ -229,6 +230,47 @@ static void cli_gpio_set_wake_source_cmd(char *pcWriteBuffer, int xWriteBufferLe
 		return cli_gpio_help();
 }
 
+static void cli_gpio_set_keep_status_config(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		cli_gpio_help();
+		return;
+	}
+
+	gpio_id_t gpio_id = 0;
+	gpio_config_t config;
+
+	gpio_id = os_strtoul(argv[2], NULL, 10);
+
+	if(argc > 2)
+		config.io_mode = os_strtoul(argv[3], NULL, 10);
+	else
+		config.io_mode = GPIO_IO_DISABLE;
+
+	if(argc > 3)
+		config.pull_mode = os_strtoul(argv[4], NULL, 10);
+	else
+		config.pull_mode = GPIO_PULL_DISABLE;
+
+	if(argc > 4)
+		config.func_mode = os_strtoul(argv[5], NULL, 10);
+	else
+		config.func_mode = GPIO_SECOND_FUNC_DISABLE;
+
+
+	if(os_strcmp(argv[1], "register") == 0) {
+		CLI_LOGI("cli_gpio_set_keep_status_config register gpio_id: %d\r\n", gpio_id);
+		bk_gpio_register_lowpower_keep_status(gpio_id, &config);
+	} else if(os_strcmp(argv[1], "unregister") == 0) {
+		CLI_LOGI("cli_gpio_set_keep_status_config unregister gpio_id: %d\r\n", gpio_id);
+		bk_gpio_unregister_lowpower_keep_status(gpio_id);
+	} else
+		return cli_gpio_help();
+
+
+
+}
+
 static void cli_gpio_simulate_low_power_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	if (argc < 3) {
@@ -350,6 +392,7 @@ static const struct cli_command s_gpio_commands[] = {
 	{"gpio_map", "gpio_map     [sdio_map/spi_map]",cli_gpio_map_cmd},
 #if CONFIG_GPIO_DYNAMIC_WAKEUP_SUPPORT
 	{"gpio_wake", "gpio_wake [index][low/high_level/rising/falling edge][enable/disable wakeup]", cli_gpio_set_wake_source_cmd},
+	{"gpio_kpsta", "gpio_kpsta [register/unregister][index][io_mode][pull_mode][func_mode]", cli_gpio_set_keep_status_config},
 	{"gpio_low_power", "gpio_low_power [simulate][param]", cli_gpio_simulate_low_power_cmd},
 #endif
 #if CONFIG_GPIO_SIMULATE_UART_WRITE

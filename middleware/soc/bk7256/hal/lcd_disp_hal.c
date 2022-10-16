@@ -13,8 +13,10 @@
 // limitations under the License.
 
 #include <common/bk_include.h>
-#include "lcd_disp_ll_macro_def_mp2.h"
+#include "lcd_disp_ll_macro_def.h"
 #include "lcd_disp_hal.h"
+
+extern void delay_us(UINT32 us);
 
 /******************************************8080 API********************************************/
 void lcd_hal_8080_cmd_send(uint8_t param_count, uint32_t command, uint32_t *param)
@@ -44,9 +46,25 @@ void lcd_hal_8080_cmd_send(uint8_t param_count, uint32_t command, uint32_t *para
 	{
 		reg_DISP_DAT_FIFO = *(param + i);
 	}
-
+	delay_us(1);
 	while((reg_DISP_STATUS & 0x0000800) == 0);
 #endif
+}
+
+void bk_lcd_send_data(uint32_t command, uint16_t *data, uint32_t len)
+{
+	uint16_t *pixel = (uint16_t *)data;
+	lcd_disp_ll_set_dat_fifo_thrd_i8080_cmd_para_count(len*2);
+	lcd_disp_ll_set_i8080_cmd_fifo_value(command);
+
+	for(int i = 0; i < len; i++)
+	{
+		reg_DISP_DAT_FIFO = ((*(pixel + i)) >> 8);
+		reg_DISP_DAT_FIFO =  ((*(pixel + i)) & 0xff);
+	}
+	
+	delay_us(1);
+	while((lcd_disp_ll_get_disp_status_value() & 0x0000800) == 0);
 }
 
 void lcd_hal_set_data_fifo_thrd(uint16_t wr_threshold_val, uint16_t rd_threshold_val)

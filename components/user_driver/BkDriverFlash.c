@@ -133,7 +133,7 @@ bk_logic_partition_t *bk_flash_get_info(bk_partition_t inPartition)
 {
 	bk_logic_partition_t *pt = NULL;
 
-	BkFlashPartitionAssert(inPartition);
+	BkFlashPartitionAssert(inPartition); /* ASSERT VERIFIED */
 
 	if (BkFlashPartitionIsValid(inPartition)){
 #if (CONFIG_SOC_BK7256XX)
@@ -172,7 +172,7 @@ bk_err_t bk_flash_erase(bk_partition_t inPartition, uint32_t off_set, uint32_t s
 	end_sector = (off_set + size - 1) >> 12;
 
 	flash_hdl = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
-	BK_ASSERT(DD_HANDLE_UNVALID != flash_hdl);
+	BK_ASSERT(DD_HANDLE_UNVALID != flash_hdl); /* ASSERT VERIFIED */
 	for (i = start_sector; i <= end_sector; i ++) {
 		param = partition_info->partition_start_addr + (i << 12);
 		GLOBAL_INT_DISABLE();
@@ -350,7 +350,7 @@ bk_err_t test_flash_write(volatile uint32_t start_addr, uint32_t len)
 		buf[i] = i;
 
 	flash_hdl = ddev_open(DD_DEV_TYPE_FLASH, &status, 0);
-	BK_ASSERT(DD_HANDLE_UNVALID != flash_hdl);
+	BK_ASSERT(DD_HANDLE_UNVALID != flash_hdl); /* ASSERT VERIFIED */
 	for (; addr < tmp; addr += 256) {
 		os_printf("write addr(size:256):%d\r\n", addr);
 		ddev_write(flash_hdl, (char *)buf, 256, addr);

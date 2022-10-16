@@ -42,7 +42,7 @@ __bk_weak beken_thread_t* rtos_get_current_thread(void)
 
 __bk_weak bk_err_t rtos_init_semaphore(beken_semaphore_t* semaphore, int maxCount)
 {
-	*(uint32_t *)semaphore = s_sema_bit++;
+	//*(uint32_t *)semaphore = s_sema_bit++;
 
 	return BK_OK;
 }
@@ -54,15 +54,6 @@ __bk_weak bk_err_t rtos_init_semaphore_ex(beken_semaphore_t* semaphore, int maxC
 
 __bk_weak bk_err_t rtos_get_semaphore(beken_semaphore_t* semaphore, uint32_t timeout_ms)
 {
-	uint32_t sema_bit = *(uint32_t *)semaphore;
-
-	while (1) {
-		if (s_sema_cnt & BIT(sema_bit)) {
-			s_sema_cnt &= (~BIT(sema_bit));
-			return BK_OK;
-		}
-	}
-
 	return BK_OK;
 }
 
@@ -73,9 +64,6 @@ __bk_weak int rtos_get_semaphore_count(beken_semaphore_t* semaphore)
 
 __bk_weak int rtos_set_semaphore(beken_semaphore_t* semaphore)
 {
-	uint32_t sema_bit = *(uint32_t *)semaphore;
-
-	s_sema_cnt |= BIT(sema_bit);
 	return BK_OK;
 }
 
@@ -274,3 +262,17 @@ __bk_weak bool rtos_is_in_interrupt_context(void)
 	return false;
 }
 
+__bk_weak int32 sys_drv_int_disable(uint32 param)
+{
+	return 0;
+}
+
+__bk_weak int32 sys_drv_int_enable(uint32 param)
+{
+	return 0;
+}
+
+__bk_weak int32 sys_drv_int_group2_enable(uint32 param)
+{
+	return 0;
+}

@@ -593,6 +593,23 @@ uint8_t *wlan_get_mesh_bssid(void);
  */
 void bk_wifi_set_video_transfer_state(bool enable);
 
+#if CONFIG_RWNX_PROTO_DEBUG
+/** @brief  enable or diasble proto debug of Wi-Fi driver
+ *
+ * @param flag indicate enable or diasble proto debug
+ *
+ */
+bk_err_t bk_wifi_enable_proto_debug(uint8_t flag);
+
+/**
+ * @brief  enable or diasble proto debug of Wi-Fi driver
+ *
+ * @param flag indicate enable or diasble proto debug
+ *
+ */
+bk_err_t bk_wifi_disable_proto_debug(uint8_t flag);
+#endif
+
 /**
  * @brief  Prepare Deepsleep
  *

@@ -40,17 +40,16 @@ void dma_struct_dump(dma_id_t id)
 	SOC_LOGI("    channel_prioprity:      %x\n", hw->config_group[id].ctrl.chan_prio);
 	SOC_LOGI("    reserved:               %x\n", hw->config_group[id].ctrl.reserved);
 	SOC_LOGI("    transfer_len:           %x\n", hw->config_group[id].ctrl.transfer_len);
-
 	SOC_LOGI("\n");
+
 	SOC_LOGI("  dest_start_addr addr=0x%x value=0x%x\n", &hw->config_group[id].dest_start_addr, hw->config_group[id].dest_start_addr);
 	SOC_LOGI("  src_start_addr addr=0x%x value=0x%x\n", &hw->config_group[id].src_start_addr, hw->config_group[id].src_start_addr);
 	SOC_LOGI("  dest_loop_end_addr addr=0x%x value=0x%x\n", &hw->config_group[id].dest_loop_end_addr, hw->config_group[id].dest_loop_end_addr);
 	SOC_LOGI("  dest_loop_start_addr addr=0x%x value=0x%x\n", &hw->config_group[id].dest_loop_start_addr, hw->config_group[id].dest_loop_start_addr);
 	SOC_LOGI("  src_loop_end_addr addr=0x%x value=0x%x\n", &hw->config_group[id].src_loop_end_addr, hw->config_group[id].src_loop_end_addr);
 	SOC_LOGI("  src_loop_start_addr addr=0x%x value=0x%x\n", &hw->config_group[id].src_loop_start_addr, hw->config_group[id].src_loop_start_addr);
-
-
 	SOC_LOGI("\n");
+
 	SOC_LOGI("  req_mux addr=0x%x value=0x%x\n", &hw->config_group[id].req_mux, hw->config_group[id].req_mux.v);
 	SOC_LOGI("    source_request_mux:  %x\n", hw->config_group[id].req_mux.src_req_mux);
 	SOC_LOGI("    dest_request_mux:    %x\n", hw->config_group[id].req_mux.dest_req_mux);
@@ -60,14 +59,18 @@ void dma_struct_dump(dma_id_t id)
 	SOC_LOGI("    reserved:            %x\n", hw->config_group[id].req_mux.reserved1);
 	SOC_LOGI("\n");
 
-	SOC_LOGI("channel(%x)\r\n", id);
+	SOC_LOGI("  DMA%x source_pause_addr addr=0x%x value=0x%x\n", id, &hw->config_group[id].src_pause_addr, hw->config_group[id].src_pause_addr);
+	SOC_LOGI("  DMA%x dest_pause_addr addr=0x%x value=0x%x\n", id, &hw->config_group[id].dest_pause_addr, hw->config_group[id].dest_pause_addr);
+	SOC_LOGI("  DMA%x source_read_addr addr=0x%x value=0x%x\n", id, &hw->config_group[id].src_rd_addr, hw->config_group[id].src_rd_addr);
+	SOC_LOGI("  DMA%x dest_write_addr addr=0x%x value=0x%x\n", id, &hw->config_group[id].dest_wr_addr, hw->config_group[id].dest_wr_addr);
+	SOC_LOGI("\n");
 
-	SOC_LOGI("  dma_status addr=0x%x value=0x%x\n", &hw->status_group[id].status, hw->status_group[id].status.v);
-	SOC_LOGI("    remain_len_indication:   %x\n", hw->status_group[id].status.remain_len);
-	SOC_LOGI("    flush_src_buff:          %x\n", hw->status_group[id].status.flush_src_buff);
-	SOC_LOGI("    reserved:                %x\n", hw->status_group[id].status.reserved);
-	SOC_LOGI("    finish_int_counter:      %x\n", hw->status_group[id].status.finish_int_counter);
-	SOC_LOGI("    half_finish_int_counter: %x\n", hw->status_group[id].status.half_finish_int_counter);
+	SOC_LOGI("  dma_status addr=0x%x value=0x%x\n", &hw->config_group[id].status, hw->config_group[id].status.v);
+	SOC_LOGI("    remain_len_indication:   %x\n", hw->config_group[id].status.remain_len);
+	SOC_LOGI("    flush_src_buff:          %x\n", hw->config_group[id].status.flush_src_buff);
+	SOC_LOGI("    reserved:                %x\n", hw->config_group[id].status.reserved);
+	SOC_LOGI("    finish_int_counter:      %x\n", hw->config_group[id].status.finish_int_counter);
+	SOC_LOGI("    half_finish_int_counter: %x\n", hw->config_group[id].status.half_finish_int_counter);
 	SOC_LOGI("\n");
 
 	SOC_LOGI("  prio_mode addr=0x%x value=0x%x\n", &hw->prio_mode, hw->prio_mode.v);
@@ -75,17 +78,11 @@ void dma_struct_dump(dma_id_t id)
 	SOC_LOGI("    reserved:  %x\n", hw->prio_mode.reserved);
 	SOC_LOGI("\n");
 
-	SOC_LOGI("  int_status addr=0x%x value=0x%x\n", &hw->int_status, hw->int_status.v);
-	SOC_LOGI("    finish_int_status:      %x\n", hw->int_status.finish_int_status);
-	SOC_LOGI("    reserved:               %x\n", hw->int_status.reserved0);
-	SOC_LOGI("    half_finish_int_status: %x\n", hw->int_status.half_finish_int_status);
-	SOC_LOGI("    reserved:               %x\n", hw->int_status.reserved1);
+	SOC_LOGI("  secure_attr addr=0x%x value=0x%x\n", &hw->secure_attr, hw->secure_attr.v);
+	SOC_LOGI("  int_status_nonsec addr=0x%x value=0x%x\n", &hw->privileged_attr, hw->privileged_attr.v);
+	SOC_LOGI("  int_status_sec addr=0x%x value=0x%x\n", &hw->int_status_sec, hw->int_status_sec.v);
+	SOC_LOGI("  int_status_nonsec addr=0x%x value=0x%x\n", &hw->int_status_nonsec, hw->int_status_nonsec.v);
 	SOC_LOGI("\n");
-
-	SOC_LOGI("  DMA%x source_pause_addr addr=0x%x value=0x%x\n", id, &hw->src_pause_addr[id], hw->src_pause_addr[id]);
-	SOC_LOGI("  DMA%x dest_pause_addr addr=0x%x value=0x%x\n", id, &hw->dest_pause_addr[id], hw->dest_pause_addr[id]);
-	SOC_LOGI("  DMA%x source_read_addr addr=0x%x value=0x%x\n", id, &hw->src_rd_addr[id], hw->src_rd_addr[id]);
-	SOC_LOGI("  DMA%x dest_write_addr addr=0x%x value=0x%x\n", id, &hw->dest_wr_addr[id], hw->dest_wr_addr[id]);
 }
 
 #endif

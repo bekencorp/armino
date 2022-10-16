@@ -39,7 +39,6 @@ CONFIG_TOOLCHAIN_PREFIX="arm-none-eabi-"
 #
 # Debug
 #
-CONFIG_DEBUG_FIRMWARE=y
 CONFIG_ASSERT_IGNORE=y
 # CONFIG_ASSERT_HALT is not set
 # CONFIG_ASSERT_REBOOT is not set
@@ -64,10 +63,15 @@ CONFIG_BLUETOOTH=y
 # Components Configuration
 #
 # CONFIG_AUDIO_AEC is not set
+# CONFIG_AUDIO_NS is not set
+# CONFIG_AUDIO_VAD is not set
 # CONFIG_AUDIO_RING_BUFF is not set
+# CONFIG_AUDIO_FLAC is not set
 # CONFIG_AUDIO_G711 is not set
 # CONFIG_AUDIO_MP3 is not set
 # CONFIG_AUDIO_OPUS is not set
+# CONFIG_AUDIO_RSP is not set
+# CONFIG_AUDIO_SBC is not set
 
 #
 # BK_AIRKISS_CONFIG
@@ -120,6 +124,12 @@ CONFIG_BK_HOSTAPD=y
 # end of SOFTWARE_SUPPORT_CHIP
 
 #
+# Interrupt
+#
+# CONFIG_ISR_REG_DISABLE is not set
+# end of Interrupt
+
+#
 # Watchdog
 #
 CONFIG_INT_WDT=y
@@ -153,6 +163,7 @@ CONFIG_PRINTF_BUF_SIZE=256
 # CONFIG_BACKGROUND_PRINT is not set
 CONFIG_KFIFO_SIZE=128
 # CONFIG_UART_STATIS is not set
+# CONFIG_UART_LOW_VOLTAGE_SUPPORT is not set
 # end of UART
 
 #
@@ -190,6 +201,7 @@ CONFIG_MAC_PHY_BYPASS=y
 # SDIO
 #
 # CONFIG_SDIO is not set
+# CONFIG_SDIO_V2P0 is not set
 # end of SDIO
 
 #
@@ -213,6 +225,12 @@ CONFIG_QSPI_STATIS=y
 # end of QSPI
 
 #
+# QSPI_OLED
+#
+# CONFIG_QSPI_OLED is not set
+# end of QSPI_OLED
+
+#
 # AON_RTC
 #
 # CONFIG_AON_RTC is not set
@@ -227,6 +245,7 @@ CONFIG_QSPI_STATIS=y
 # CONFIG_GPIO_WAKEUP_SUPPORT is not set
 CONFIG_GPIO_DYNAMIC_WAKEUP_SOURCE_MAX_CNT=4
 # CONFIG_GPIO_SIMULATE_UART_WRITE is not set
+# CONFIG_GPIO_DEFAULT_SET_SUPPORT is not set
 # end of GPIO
 
 #
@@ -239,6 +258,7 @@ CONFIG_GPIO_DYNAMIC_WAKEUP_SOURCE_MAX_CNT=4
 # DMA
 #
 CONFIG_GENERAL_DMA=y
+# CONFIG_GENERAL_DMA_SEC is not set
 # end of DMA
 
 #
@@ -314,6 +334,7 @@ CONFIG_DCO_FREQ=120000000
 CONFIG_I2C=y
 CONFIG_I2C_SUPPORT_ID_BITS=1
 CONFIG_FM_I2C=y
+# CONFIG_SIM_I2C is not set
 # end of I2C
 
 #
@@ -370,6 +391,7 @@ CONFIG_EFUSE=y
 # ARCH_RISCV
 #
 # CONFIG_ARCH_RISCV is not set
+CONFIG_CPU_FREQ_HZ=120000000
 # end of ARCH_RISCV
 
 #
@@ -439,6 +461,7 @@ CONFIG_ICU=y
 # DUAL_CORE
 #
 # CONFIG_DUAL_CORE is not set
+CONFIG_RWNX_PROTO_DEBUG=y
 # end of DUAL_CORE
 
 #
@@ -447,6 +470,7 @@ CONFIG_ICU=y
 CONFIG_FREERTOS=y
 CONFIG_FREERTOS_V9=y
 # CONFIG_FREERTOS_V10 is not set
+# CONFIG_MEM_MGMT is not set
 
 #
 # Memory Debug
@@ -495,6 +519,7 @@ CONFIG_LWIP_MEM_REDUCE=y
 # CONFIG_IPV6 is not set
 # CONFIG_MIDEA is not set
 # CONFIG_LWIP_FAST_DHCP is not set
+CONFIG_MQTT_ACK_NOW=y
 # end of LwIP 2.1.2
 # end of Shared Configs with Public components
 
@@ -508,6 +533,7 @@ CONFIG_BLE_HOST_RW=y
 # CONFIG_BLE_HOST_ZEPHYR is not set
 CONFIG_BLE_MESH_NONE=y
 # CONFIG_BLE_MESH_RW is not set
+# CONFIG_BLE_MESH_ZEPHYR is not set
 CONFIG_BLE_ADV_NUM=1
 CONFIG_BLE_SCAN_NUM=1
 CONFIG_BLE_INIT_NUM=0
@@ -526,6 +552,12 @@ CONFIG_BLE_WIFI_EXCHANGE=y
 # BT Configuration
 #
 # end of BT Configuration
+
+#
+# FT Test
+#
+# CONFIG_FT_TEST_TRANSFER is not set
+# end of FT Test
 
 #
 # HOMEKIT CONFIG
@@ -564,6 +596,12 @@ CONFIG_MM_BEACON_LOSS_RSSI_THRESHOLD=-80
 # ATE_TEST
 #
 # end of ATE_TEST
+
+#
+# lcd with gui
+#
+# CONFIG_LVGL is not set
+# end of lcd with gui
 
 #
 # NET_PARAM_INTF_CONFIG
@@ -629,6 +667,7 @@ CONFIG_VAD=y
 # end of VAD_CONFIG
 
 # CONFIG_VIDEO_AVI is not set
+# CONFIG_VIDEO_QR_CODE_GEN is not set
 
 #
 # VIDEO_CONFIG

@@ -108,6 +108,8 @@ static void i2c1_isr(void);
 static void i2c2_isr(void);
 #endif
 
+#if CONFIG_GPIO_DEFAULT_SET_SUPPORT
+#else
 static void i2c_init_gpio(i2c_id_t id)
 {
 	switch(id) {
@@ -128,7 +130,7 @@ static void i2c_init_gpio(i2c_id_t id)
 		break;
 	}
 }
-
+#endif
 
 #if (CONFIG_SYSTEM_CTRL)
 static void i2c_clock_enable(i2c_id_t id)
@@ -219,16 +221,23 @@ static void i2c_id_init_common(i2c_id_t id)
 	clk_set_i2c_clk_26m(id);
 	icu_enable_i2c_interrupt(id);
 #endif
+#if CONFIG_GPIO_DEFAULT_SET_SUPPORT
+	/*
+	 * GPIO info is setted in GPIO_DEFAULT_DEV_CONFIG and
+	 * inited in bk_gpio_driver_init->gpio_hal_default_map_init.
+	 * If needs to re-config GPIO, can deal it here.
+	 */
+#else
 	i2c_init_gpio(id);
-
+#endif
 	if (s_i2c[id].tx_sema == NULL) {
 		ret = rtos_init_semaphore(&(s_i2c[id].tx_sema), 1);
-		BK_ASSERT(kNoErr == ret);
+		BK_ASSERT(kNoErr == ret); /* ASSERT VERIFIED */
 	}
 
 	if (s_i2c[id].rx_sema == NULL) {
 		ret = rtos_init_semaphore(&(s_i2c[id].rx_sema), 1);
-		BK_ASSERT(kNoErr == ret);
+		BK_ASSERT(kNoErr == ret); /* ASSERT VERIFIED */
 	}
 
 	s_i2c[id].id_init_bits |= BIT(id);

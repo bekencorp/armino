@@ -17,7 +17,7 @@ if(CONFIG_FREERTOS)
 			freertos_v9/portable/MemMang/heap_4.c
 			)
 
-		if(CONFIG_FULLY_HOSTED)
+		if(CONFIG_FULLY_HOSTED OR CONFIG_MEM_MGMT)
 			list(REMOVE_ITEM  srcs freertos_v9/portable/MemMang/heap_4.c)
 		endif()
 		set_source_files_properties("${CMAKE_CURRENT_LIST_DIR}/freertos_v9/portable/Keil/ARM968es/port.c" PROPERTIES COMPILE_FLAGS "-marm")
@@ -66,7 +66,7 @@ if(CONFIG_FREERTOS)
 			set_source_files_properties("${CMAKE_CURRENT_LIST_DIR}/freertos_v10/portable/Keil/ARM968es/port.c" PROPERTIES COMPILE_FLAGS "-marm")
 		endif()
 		
-		if(CONFIG_FULLY_HOSTED)
+		if(CONFIG_FULLY_HOSTED OR CONFIG_MEM_MGMT)
 			list(REMOVE_ITEM srcs freertos_v10/portable/MemMang/heap_4.c)
 		endif()
 	endif()
@@ -237,5 +237,8 @@ endif()
 
 armino_component_register(SRCS "${srcs}"
 		INCLUDE_DIRS "${incs}"
-		PRIV_REQUIRES bk_common bk_rtos)
+		PRIV_REQUIRES bk_common bk_rtos cmsis)
 
+if(CONFIG_ARCH_RISCV)
+target_compile_options(${COMPONENT_LIB} PRIVATE -mno-relax)
+endif()

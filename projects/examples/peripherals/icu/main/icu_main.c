@@ -20,7 +20,7 @@
 
 #define TAG "icu_example"
 
-gpio_driver_t s_gpio;
+extern gpio_driver_t s_gpio;
 
 static void cli_int_service_gpio_isr(void)
 {

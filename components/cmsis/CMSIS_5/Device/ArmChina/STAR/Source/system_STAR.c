@@ -10,7 +10,7 @@
  ******************************************************************************/
 /*
  * Copyright (c) 2009-2018 Arm Limited.
- * Copyright (c) 2018-2020 ArmChina. 
+ * Copyright (c) 2018-2020 ArmChina.
  * All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -105,7 +105,7 @@ void SystemInit (void)
     SCB_EnableDCache();
   //else
   	//_sys_exit("no DCache included");
-#endif 
+#endif
 
 
 }

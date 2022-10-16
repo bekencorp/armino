@@ -18,9 +18,11 @@
 #include <components/aud_intf_types.h>
 #include <modules/audio_ring_buff.h>
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 #include "ff.h"
 #include "diskio.h"
-#endif
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
+#endif //CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 
 #ifdef __cplusplus
 extern "C" {
@@ -81,7 +83,7 @@ typedef enum {
 /* audio interface speaker setup configuration */
 typedef struct {
 	aud_intf_spk_chl_t spk_chl;
-	aud_dac_samp_rate_source_t samp_rate;		/**< speaker sample rate */
+	aud_dac_samp_rate_t samp_rate;		/**< speaker sample rate */
 	uint16_t frame_size;				/**< size: a frame packet speaker data size(byte) */
 	uint8_t spk_gain;					/**< audio dac gain: value range:0x0 ~ 0x3f */
 	aud_dac_work_mode_t work_mode;				/**< audio dac mode: signal_ended/differen */
@@ -105,7 +107,9 @@ typedef enum {
 	EVENT_AUD_TRAS_VOC_SET_AEC_PARA,
 	EVENT_AUD_TRAS_VOC_GET_AEC_PARA,
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 	EVENT_AUD_TRAS_VOC_AEC_DUMP,
+#endif
 #endif
 	EVENT_AUD_TRAS_VOC_MAX,
 } aud_tras_drv_voc_event_t;
@@ -173,6 +177,7 @@ typedef struct {
 } rx_info_t;
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 typedef struct {
 	/* aec dump config */
 	int16_t *mic_dump_addr;
@@ -180,6 +185,7 @@ typedef struct {
 	int16_t *out_dump_addr;
 	uint32_t len;
 } aec_dump_t;
+#endif
 #endif
 
 /* audio transfer driver setup config */
@@ -196,7 +202,9 @@ typedef struct {
 
 //	aud_cb_t aud_cb;
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 	aec_dump_t aec_dump;
+#endif
 #endif
 	void (*aud_tras_drv_voc_event_cb)(aud_tras_drv_voc_event_t event, bk_err_t result);
 } aud_intf_voc_config_t;
@@ -259,12 +267,14 @@ typedef struct {
 	aud_intf_voc_config_t voc_info;
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
+#if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 	char sin_file_name[50];
 	char ref_file_name[50];
 	char out_file_name[50];
 	FIL sin_file;
 	FIL ref_file;
 	FIL out_file;
+#endif
 #endif
 
 	aud_intf_api_ex_t api_info;

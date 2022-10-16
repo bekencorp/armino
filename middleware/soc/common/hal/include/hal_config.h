@@ -23,6 +23,7 @@ extern "C" {
  **/
 
 //TODO disable all of them
+#if CONFIG_DEBUG_FIRMWARE
 #define CFG_HAL_DEBUG_ICU        1
 #define CFG_HAL_DEBUG_PWM        1
 #define CFG_HAL_DEBUG_GPIO       1
@@ -48,7 +49,37 @@ extern "C" {
 #define CFG_HAL_DEBUG_MPC        1
 #define CFG_HAL_DEBUG_PRRO       1
 #define CFG_HAL_DEBUG_AON_WDT    1
-
+#define CFG_HAL_DEBUG_DMA2D      1
+#define CFG_HAL_DEBUG_JPEG_DEC   1
+#else
+#define CFG_HAL_DEBUG_ICU        0
+#define CFG_HAL_DEBUG_PWM        0
+#define CFG_HAL_DEBUG_GPIO       0
+#define CFG_HAL_DEBUG_TIMER      0
+#define CFG_HAL_DEBUG_DMA        0
+#define CFG_HAL_DEBUG_UART       0
+#define CFG_HAL_DEBUG_WDT        0
+#define CFG_HAL_DEBUG_TRNG       0
+#define CFG_HAL_DEBUG_EFUSE      0
+#define CFG_HAL_DEBUG_ADC        0
+#define CFG_HAL_DEBUG_SPI        0
+#define CFG_HAL_DEBUG_QSPI       0
+#define CFG_HAL_DEBUG_AON_RTC    0
+#define CFG_HAL_DEBUG_I2C        0
+#define CFG_HAL_DEBUG_AUD        0
+#define CFG_HAL_DEBUG_JPEG       0
+#define CFG_HAL_DEBUG_FFT        0
+#define CFG_HAL_DEBUG_LCD_DISP   0
+#define CFG_HAL_DEBUG_I2S        0
+#define CFG_HAL_DEBUG_CALENDAR   0
+#define CFG_HAL_DEBUG_FLASH      0
+#define CFG_HAL_DEBUG_SDIO_HOST  0
+#define CFG_HAL_DEBUG_MPC        0
+#define CFG_HAL_DEBUG_PRRO       0
+#define CFG_HAL_DEBUG_AON_WDT    0
+#define CFG_HAL_DEBUG_DMA2D      0
+#define CFG_HAL_DEBUG_JPEG_DEC   0
+#endif
 #ifdef __cplusplus
 }
 #endif

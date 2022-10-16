@@ -108,8 +108,6 @@ static bk_err_t audio_adc_config(audio_sample_rate_t samp_rate)
 	adc_config.agc_enable = AUD_AGC_DISABLE;
 	adc_config.manual_pga_value = 0;
 	adc_config.manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
-	adc_config.adc_fracmod_manual = AUD_ADC_TRACMOD_MANUAL_DISABLE;
-	adc_config.adc_fracmod = 0;
 
 	/* init audio driver and config adc */
 	ret = bk_aud_driver_init();

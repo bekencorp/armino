@@ -23,7 +23,7 @@ extern "C" {
  *
  * This API init spidma, open spidma
 .*
- * param data: configure for camera and jpeg
+ * @param data configure for camera and jpeg
  *
  * @attention 1. work for imaging transfer by spidma transfer way
  *
@@ -38,7 +38,7 @@ bk_err_t spidma_intfer_init(void *data);
  *
  * This API deinit spidma, reset spidma config, close spidma function
 .*
- * param data: configure for camera and jpeg
+ * @param data configure for camera and jpeg
  *
  * @attention 1. work for imaging transfer by spidma transfer way
  *

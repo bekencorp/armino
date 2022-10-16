@@ -116,7 +116,7 @@ static void arch_dump_exception_info(const char* exception_str, struct arm9_regi
  */
 void boot_exception_undefine(struct arm9_register *regs)
 {
-    bk_misc_update_set_type(CRASH_UNDEFINED_VALUE);
+    bk_misc_set_reset_reason(CRASH_UNDEFINED_VALUE);
 
     arch_dump_exception_info("undefined instruction", regs);
     rtos_shutdown();
@@ -147,7 +147,7 @@ void boot_exception_swi(struct arm9_register *regs)
  */
 void boot_exception_prefetch_abort(struct arm9_register *regs)
 {
-    bk_misc_update_set_type(CRASH_PREFETCH_ABORT_VALUE);
+    bk_misc_set_reset_reason(CRASH_PREFETCH_ABORT_VALUE);
 
     arch_dump_exception_info("prefetch abort", regs);
     rtos_shutdown();
@@ -163,7 +163,7 @@ void boot_exception_prefetch_abort(struct arm9_register *regs)
  */
 void boot_exception_data_abort(struct arm9_register *regs)
 {
-    bk_misc_update_set_type(CRASH_DATA_ABORT_VALUE);
+    bk_misc_set_reset_reason(CRASH_DATA_ABORT_VALUE);
 
     arch_dump_exception_info("data abort", regs);
     rtos_shutdown();
@@ -178,7 +178,7 @@ void boot_exception_data_abort(struct arm9_register *regs)
  */
 void boot_exception_reserved(struct arm9_register *regs)
 {
-    bk_misc_update_set_type(CRASH_UNUSED_VALUE);
+    bk_misc_set_reset_reason(CRASH_UNUSED_VALUE);
 
     arch_dump_exception_info("not used", regs);
     rtos_shutdown();

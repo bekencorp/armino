@@ -1,0 +1,21 @@
+menu "OS_DEMOS"
+	config OS_THREAD_DEMO
+		bool "Enable os thread demos"
+		default n
+
+	config OS_QUEUE_DEMO
+		bool "Enable os queue demos"
+		default n
+
+	config OS_SEM_DEMO
+		bool "Enable os semaphore demos"
+		default n
+
+	config OS_MUTEX_DEMO
+		bool "Enable os mutex demos"
+		default n
+
+	config OS_TIMER_DEMO
+		bool "Enable os timer demos"
+		default n
+endmenu

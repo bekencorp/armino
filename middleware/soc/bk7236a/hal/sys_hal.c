@@ -177,6 +177,10 @@ int32 sys_hal_module_power_state_get(power_module_name_t module)
 {
 	return 0;
 }
+int32 sys_hal_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval)
+{
+	return 0;
+}
 /*low power feature end*/
 void sys_hal_enable_mac_wakeup_source()
 {

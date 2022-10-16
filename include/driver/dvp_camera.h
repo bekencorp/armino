@@ -20,65 +20,127 @@
 extern "C" {
 #endif
 
-
-typedef struct
-{
-	media_ppi_t ppi;
-	dvp_mode_t mode;
-	int (*frame_set_ppi)(media_ppi_t ppi, frame_type_t type);
-	void (*frame_complete)(frame_buffer_t* buffer);
-	frame_buffer_t* (*frame_alloc)(void);
-} dvp_camera_config_t;
-
-typedef struct
-{
-	int (*read_uint8) (uint8_t addr, uint8_t reg, uint8_t *value);
-	int (*read_uint16) (uint8_t addr, uint16_t reg, uint8_t *value);
-	int (*write_uint8) (uint8_t addr, uint8_t reg, uint8_t value);
-	int (*write_uint16) (uint8_t addr, uint16_t reg, uint8_t value);
-} dvp_camera_i2c_callback_t;
-
-
-typedef struct
-{
-	char *name;
-	media_ppi_t def_ppi;
-	sensor_fps_t def_fps;
-	uint16 id;
-	uint8 clk;
-	uint16 address;
-	uint16 fps_cap;
-	uint16 ppi_cap;
-	bool (*detect)(const dvp_camera_i2c_callback_t *cb);
-	int (*init)(const dvp_camera_i2c_callback_t *cb);
-	int (*set_ppi)(const dvp_camera_i2c_callback_t *cb, media_ppi_t ppi);
-	int (*set_fps)(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps);
-} dvp_sensor_config_t;
-
-#define GC_QVGA_USE_SUBSAMPLE          1
-
-typedef struct
-{
-	media_ppi_t ppi;
-	sensor_fps_t fps;
-	char *name;
-	uint16 id;
-	uint16 fps_cap;
-	uint16 ppi_cap;
-	uint32 pixel_size;
-	dvp_mode_t mode;
-} dvp_camera_device_t;
-
+/**
+ * @brief     Init the camera
+ *
+ * This API will auto detect dvp sensor, and init sensor, jpeg module, i2c module, psram, dma, ect.
+ *
+ * @param config process for sensor data
+ *
+ * @attation 1. you need make sure upper module exist.
+ *
+ * @return
+ *    - kNoErr: succeed
+ *    - others: other errors.
+ */
 
 bk_err_t bk_dvp_camera_driver_init(dvp_camera_config_t *config);
+
+/**
+ * @brief     Deinit the camera
+ *
+ * This API will deinit  sensor, jpeg module, i2c module, psram, dma, ect.
+ *
+ * @return
+ *    - kNoErr: succeed
+ *    - others: other errors.
+ */
 bk_err_t bk_dvp_camera_driver_deinit(void);
+
+/**
+ * @brief     Get current use camera
+ *
+ * This API will called after bk_dvp_camera_driver_init
+ *
+ * @return
+ *    - dvp_camera_device_t *: succeed
+ *    - NULL: current no sensor work.
+ */
 dvp_camera_device_t *bk_dvp_camera_get_device(void);
 
+/**
+ * @brief     Read sensor register value
+ *
+ * This API will called after bk_i2c_init
+ *
+ * @param addr sensor read address
+ *
+ * @param reg sensor register address
+ *
+ * @param value sensor register value
+ *
+ * @return
+ *    - 0 : succeed
+ *    - other: other errors.
+ */
 int dvp_camera_i2c_read_uint8(uint8_t addr, uint8_t reg, uint8_t *value);
+
+/**
+ * @brief     Read sensor register value
+ *
+ * This API will called after bk_i2c_init
+ *
+ * @param addr sensor read address
+ *
+ * @param reg sensor register address
+ *
+ * @param value sensor register value
+ *
+ * @return
+ *    - 0 : succeed
+ *    - other: other errors.
+ */
 int dvp_camera_i2c_read_uint16(uint8_t addr, uint16_t reg, uint8_t *value);
+
+/**
+ * @brief     Write sensor register value
+ *
+ * This API will called after bk_i2c_init
+ *
+ * @param addr sensor read address
+ *
+ * @param reg sensor register address
+ *
+ * @param value sensor register value
+ *
+ * @return
+ *    - 0 : succeed
+ *    - other: other errors.
+ */
 int dvp_camera_i2c_write_uint8(uint8_t addr, uint8_t reg, uint8_t value);
+
+/**
+ * @brief     Write sensor register value
+ *
+ * This API will called after bk_i2c_init
+ *
+ * @param addr sensor write address
+ *
+ * @param reg sensor register address
+ *
+ * @param value sensor register value
+ *
+ * @return
+ *    - 0 : succeed
+ *    - other: other errors.
+ */
 int dvp_camera_i2c_write_uint16(uint8_t addr, uint16_t reg, uint8_t value);
 
+/**
+ * @brief     jpeg encode config
+ *
+ * This API will called after bk_dvp_camera_driver_init
+ *
+ * @param auto_ctrl 0/1:disable/enable auto jpeg encode
+ *
+ * @param up_size jpeg encode output image upper size, only effect auto_ctrl = 1
+ *
+ * @param low_size jpeg encode output image lower size, only effect auto_ctrl = 1
+ *
+ * @return
+ *    - kNoErr: succeed
+ *    - others: other errors.
+ */
 bk_err_t bk_dvp_camera_encode_config(uint8_t auto_ctrl, uint32_t up_size, uint32_t low_size);
 
 #ifdef __cplusplus

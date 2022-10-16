@@ -317,6 +317,33 @@ bk_err_t bk_gpio_unregister_wakeup_source(gpio_id_t gpio_id);
  */
 gpio_id_t bk_gpio_get_wakeup_gpio_id();
 
+/**
+ * @brief     Register the GPIO channel to keep status.
+ *
+ * This API regist gpio to keep status when enter low power or deepsleep.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_GPIO_CHAN_ID: invalid gpio channel
+ *    - CONFIG_GPIO_DYNAMIC_KEEP_STATUS_MAX_CNT: too many gpio is register to keep status
+ *      default max value is: CONFIG_GPIO_DYNAMIC_KEEP_STATUS_MAX_CNT
+ *    - others: other errors.
+ */
+bk_err_t bk_gpio_register_lowpower_keep_status(gpio_id_t gpio_id, const gpio_config_t *config);
+
+/**
+ * @brief     Unregister the GPIO channel from keep status.
+ *
+ * This API unregist gpio from keep status.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_GPIO_CHAN_ID: invalid gpio channel
+ *    - others: other errors.
+ */
+bk_err_t bk_gpio_unregister_lowpower_keep_status(gpio_id_t gpio_id);
+
+
 #else
 /**
  * @brief     Register save all gpio reg value
@@ -363,6 +390,7 @@ bk_err_t bk_gpio_wakeup_enable(int64_t index, uint64_t type_l, uint64_t type_h);
  *    - others: other errors.
  */
 bk_err_t bk_gpio_wakeup_interrupt_clear();
+
 #endif
 
 /**

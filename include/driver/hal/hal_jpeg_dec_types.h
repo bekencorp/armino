@@ -22,6 +22,7 @@ extern "C" {
 #endif
 int jpg_decoder_fun(unsigned char *jpg_buf, unsigned char ** Y_buf, int pic_size);
 void jpg_get_pic_size(int *width, int *heigth);
+#define BK_ERR_JPEGDEC_NOT_INIT    (BK_ERR_JPEGDEC_BASE - 1) /**< JPEGDEC driver not init */
 
 
 typedef struct _JPG_DECODER_ST
@@ -63,6 +64,7 @@ typedef struct _JPG_DECODER_ST
 
 #define JPEGDEC_START    1
 #define JPEGDEC_DC_CLEAR 4
+#define USE_LINE_INT_JPEG_DEC 1
 
 
 /*

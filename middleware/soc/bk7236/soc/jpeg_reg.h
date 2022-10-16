@@ -20,9 +20,9 @@ extern "C" {
 
 #define JPEG_R_BASE          (SOC_JPEG_REG_BASE)
 
-#define JPEG_R_INT_EN        (JPEG_R_BASE + 4 * 0x0)
+#define JPEG_R_INT_EN        (JPEG_R_BASE + 4 * 0x0C)
 
-#define JPEG_R_CFG           (JPEG_R_BASE + 4 * 0x1)
+#define JPEG_R_CFG           (JPEG_R_BASE + 4 * 0x0D)
 
 #define JPEG_F_X_PIXEL       (BIT(8))
 #define JPEG_F_X_PIXEL_M     0xFF

@@ -44,7 +44,6 @@ static inline void sys_ll_set_analog_reg_value(uint32_t addr, uint32_t value)
 
     REG_WRITE(addr, value);
 
-    delay_10us(1);
     while(REG_READ(SYS_ANALOG_REG_SPI_STATE_REG) & (1 << SYS_ANALOG_REG_SPI_STATE_POS(idx)));
 }
 

@@ -18,3 +18,10 @@ BK7256 (TBC)
 
     BK7256 Demo Board
 
+
+.. figure:: ../../_static/demo_board_7256_02.png
+    :align: center
+    :alt: BK7256 Demo Board Back Side
+    :figclass: align-center
+
+    BK7256 Demo Board Back Side

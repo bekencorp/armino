@@ -23,7 +23,7 @@ extern "C" {
  /* @brief Overview about jpeg dec API header
   *
   */
- 
+
  /**
   * @brief HW JPEG DEC API
   * @{
@@ -54,7 +54,7 @@ bk_err_t bk_jpeg_dec_driver_deinit(void);
 *	  - BK_OK: succeed
 *	  - others: other errors.
 
-* @return 
+* @return
 */
 //bk_err_t bk_jpeg_dec_hw_init(uint16_t xpixel, uint16_t ypixel, uint32_t length, unsigned char *input_buf, unsigned char * output_buf);
 
@@ -71,7 +71,7 @@ bk_err_t bk_jpeg_dec_driver_deinit(void);
 *	  - BK_OK: succeed
 *	  - others: other errors.
 
-* @return 
+* @return
 */
 bk_err_t bk_jpeg_dec_line_int_en(uint32_t line_num);
 
@@ -91,11 +91,11 @@ bk_err_t bk_jpeg_dec_line_int_dis(void);
 *           - input_buf jpeg data src addr
 *           - output_buf jpeg decode output addr
 *
-* @return 
+* @return
 *         0: jpeg decode ok;
 *        others: error
 */
-JRESULT bk_jpeg_dec_hw_start(uint32_t length, unsigned char *input_buf, unsigned char * output_buf);
+bk_err_t bk_jpeg_dec_hw_start(uint32_t length, unsigned char *input_buf, unsigned char * output_buf);
 
 /**
 * @brief	 this api start jpeg decode
@@ -104,17 +104,17 @@ JRESULT bk_jpeg_dec_hw_start(uint32_t length, unsigned char *input_buf, unsigned
 *           - input_buf jpeg data src addr
 *           - output_buf jpeg decode output addr
 *
-* @return 
+* @return
 *         0: jpeg decode ok;
 *        others: error
 */
-JRESULT bk_jpeg_dec_dma_start(uint32_t length, unsigned char *input_buf, unsigned char * output_buf);
+bk_err_t bk_jpeg_dec_dma_start(uint32_t length, unsigned char *input_buf, unsigned char * output_buf);
 
 
 /**
 * @brief	 stop jpeg decode
 *
-* @return 
+* @return
 *         0: jpeg decode stop ok;
 *        others: error
 */
@@ -128,7 +128,7 @@ bk_err_t bk_jpeg_dec_stop(void);
 * @param   isr_id  select from DEC_END_OF_FRAME or DEC_END_OF_LINE_NUM
 *	     - cb_isr
 *
-* @return 
+* @return
 *         0: jpeg decode ok;
 *        others: error
 */

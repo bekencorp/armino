@@ -29,5 +29,5 @@
 #define UART1_BASE_S                   SOC_S_BASE(SOC_UART1_REG_BASE)
 #define UART1_BASE_NS                  SOC_NS_BASE(SOC_UART1_REG_BASE)
 #define TIMER0_BASE_S                  SOC_S_BASE(SOC_TIMER0_REG_BASE)
-#define TIMER0_BASE_S                  SOC_NS_BASE(SOC_TIMER0_REG_BASE)
+#define TIMER1_BASE_S                  SOC_NS_BASE(SOC_TIMER1_REG_BASE)
 

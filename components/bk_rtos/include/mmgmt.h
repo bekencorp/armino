@@ -15,9 +15,9 @@
 #ifndef _MMGMT_H_
 #define _MMGMT_H_
 
-#include "rwnx_config.h"
+#include "FreeRTOSConfig.h"
 
-//#define		MMGMT_DEBUG
+// #define		MMGMT_DEBUG
 
 #define MM_MAGIC		0x1234abcd
 
@@ -33,7 +33,10 @@
  * @{
  ****************************************************************************************
  */
-#define KE_HEAP_SIZE             CFG_HEAP_SIZE
+
+
+#define KE_HEAP_SIZE            configTOTAL_HEAP_SIZE //CFG_HEAP_SIZE
+
 
 /// Free memory block delimiter structure (size must be word multiple)
 struct mblock_free {
@@ -82,7 +85,7 @@ struct mblock_free *mmgmt_init(void);
  *
  ****************************************************************************************
  */
-#if CONFIG_MALLOC_STATIS
+#if CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG
 void *mmgmt_malloc(const char *call_func_name, int line, uint32_t size);
 #else
 void *mmgmt_malloc(uint32_t size);
@@ -101,7 +104,7 @@ uint32_t mmgmt_alloc_space(void);
  *
  ****************************************************************************************
  */
-#if CONFIG_MALLOC_STATIS
+#if CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG
 void mmgmt_free(const char *call_func_name, int line, void *mem_ptr);
 #else
 void mmgmt_free(void *mem_ptr);

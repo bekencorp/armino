@@ -1,0 +1,5 @@
+menu "DEMOS_CONFIG"
+	config AUDIO_NS_TEST
+		bool "Enable AUDIO Noise Suppression Test"
+		default n
+endmenu

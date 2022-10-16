@@ -1,12 +1,36 @@
 #ifndef __AVI_ADP_H__
 #define __AVI_ADP_H__
 
-#include "dfs_posix.h"
+/*user cfg param*/
 
-#define AVILIB_MALLOC               sdram_malloc   // sdram_malloc         os_malloc       
-#define AVILIB_REALLOC              sdram_realloc  // sdram_realloc        os_realloc
-#define AVILIB_FREE                 sdram_free     // sdram_free           sdram_free
-#define AVILIB_MEMSET
-#define AVILIB_MEMCPY
+#define VIDEO_FPS				25
+#define AUDIO_FPS				50
+#define VIDEO_FRAME_WIDTH		640
+#define VIDEO_FRAME_HEIGHT		480
+
+#define AUDIO_CHANEL_NUM		1
+#define AUDIO_SAMPLE_RATE		8000
+#define AUDIO_SAMPLE_BITS		16
+
+#define AVI_INDEX_USE_PSRAM		1
+
+#if AVI_INDEX_USE_PSRAM
+#define AVI_PSRAM_TOTAL_TIME	600//300s
+#else
+#define AVI_SRAM_TOTAL_TIME		10//10s
+#endif
+
+#if AVI_INDEX_USE_PSRAM
+#define AVI_INDEX_START_ADDR	(0x60700000)//no cache last 1M space
+
+#define AVI_VIDEO_FRAMES_MAX	(VIDEO_FPS*AVI_PSRAM_TOTAL_TIME)
+#define AVI_AUDIO_FRAMES_MAX	(AUDIO_FPS*AVI_PSRAM_TOTAL_TIME)
+#define AVI_INDEX_COUNT			(AVI_VIDEO_FRAMES_MAX+AVI_AUDIO_FRAMES_MAX+AVI_PSRAM_TOTAL_TIME*5)
+
+#else
+#define AVI_VIDEO_FRAMES_MAX	(VIDEO_FPS*AVI_SRAM_TOTAL_TIME)
+#define AVI_AUDIO_FRAMES_MAX	(AUDIO_FPS*AVI_SRAM_TOTAL_TIME)
+#define AVI_INDEX_COUNT			(AVI_VIDEO_FRAMES_MAX+AVI_AUDIO_FRAMES_MAX+AVI_SRAM_TOTAL_TIME*5)
+#endif
 
 #endif // __AVI_ADP_H__

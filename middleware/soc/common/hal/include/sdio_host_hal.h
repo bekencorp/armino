@@ -85,7 +85,7 @@ typedef struct {
  * 3.ISR: Use ISR to avoid sync wait SDCARD operate finish, as some special SDCARD busy time is too long(> 5ms)
  *   F.E:CMD response, programming data to memory...
  */
-#if CONFIG_SOC_BK7256XX
+#if CONFIG_SDIO_V2P0
 #define sdio_host_hal_is_tx_fifo_need_write_int_triggered(hal, int_status) sdio_host_ll_is_tx_fifo_need_write((hal)->hw, int_status)
 #define sdio_host_hal_clear_read_data_timeout_interrupt_status(hal, int_status) sdio_host_ll_clear_read_data_timeout_interrupt_status((hal)->hw, int_status)
 #define sdio_host_hal_is_data_recv_need_read_int_triggered(hal, int_status) sdio_host_ll_is_data_recv_need_read_int_triggered((hal)->hw, int_status)

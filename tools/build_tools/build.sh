@@ -15,6 +15,7 @@ BUILD_TARGET_PREFIX=${BUILD_TARGET:0:5}
 need_build_properties_lib=0
 need_build_soc=0
 need_clean=0
+need_doc=0
 
 if [ "${BUILD_TARGET_PREFIX}" == "libbk" ]; then
 	ARMINO_SOC=${BUILD_TARGET#lib}
@@ -34,6 +35,11 @@ elif [ "${BUILD_TARGET_PREFIX}" == "clean" ]; then
 	ARMINO_SOC=${BUILD_TARGET#clean}
 	BUILD_DIR=build/${BUILD_DIR}/${ARMINO_SOC}
 	need_clean=1
+elif [ "${BUILD_TARGET_PREFIX}" == "docbk" ]; then
+	ARMINO_SOC=${BUILD_TARGET#doc}
+	BUILD_DIR=build/${BUILD_DIR}/${ARMINO_SOC}
+	echo "build armino ${ARMINO_SOC} doc only"
+	need_doc=1
 else
 	ARMINO_SOC=${BUILD_TARGET}
 	need_build_soc=1
@@ -60,6 +66,12 @@ if [ "${need_clean}" == "1" ]; then
 	rm -rf ${ARMINO_DIR}/${BUILD_DIR}
 	echo "remove ${PROPERTIES_LIB_BUILD_DIR}"
 	rm -rf ${PROPERTIES_LIB_BUILD_DIR}
+	python ${ARMINO_DIR}/tools/build_tools/armino_doc.py clean ${ARMINO_SOC}
+	exit 0
+fi
+
+if [ "${need_doc}" == "1" ]; then
+	${ARMINO_TOOL} -B ./${BUILD_DIR} -P ./${PROJECT_DIR} doc ${ARMINO_SOC}
 	exit 0
 fi
 

@@ -19,10 +19,11 @@
 #include "bk_private/components_init.h"
 #include <common/bk_err.h>
 #include "bk_arch.h"
+#include "mmgmt.h"
 
 int rtos_memory_init(void)
 {
-#if CONFIG_FULLY_HOSTED
+#if (CONFIG_FULLY_HOSTED || CONFIG_MEM_MGMT)
 	sys_mem_init();
 #endif
 

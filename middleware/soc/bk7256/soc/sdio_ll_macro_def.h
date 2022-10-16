@@ -462,11 +462,7 @@ static inline uint32_t sdio_ll_get_reg0x9_sd_data_wr_end_int(void)
 
 static inline void sdio_ll_set_reg0x9_sd_data_wr_end_int(uint32_t value)
 {
-    uint32_t reg_value;
-    reg_value = REG_READ(SDIO_REG0X9_ADDR);
-    reg_value &= ~(SDIO_REG0X9_SD_DATA_WR_END_INT_MASK << SDIO_REG0X9_SD_DATA_WR_END_INT_POS);
-    reg_value |= ((value & SDIO_REG0X9_SD_DATA_WR_END_INT_MASK) << SDIO_REG0X9_SD_DATA_WR_END_INT_POS);
-    REG_WRITE(SDIO_REG0X9_ADDR,reg_value);
+    REG_WRITE(SDIO_REG0X9_ADDR, ((value & SDIO_REG0X9_SD_DATA_WR_END_INT_MASK) << SDIO_REG0X9_SD_DATA_WR_END_INT_POS));
 }
 
 /* REG_0x09:reg0x9->SD_DATA_TIME_OUT_INT:0x9[5],sd host wait slave data over time int,0x0,R/W1C*/
@@ -530,6 +526,11 @@ static inline uint32_t sdio_ll_get_reg0x9_tx_fifo_empt(void)
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
     reg_value = ((reg_value >> SDIO_REG0X9_TX_FIFO_EMPT_POS)&SDIO_REG0X9_TX_FIFO_EMPT_MASK);
     return reg_value;
+}
+
+static inline void sdio_ll_clear_reg0x9_tx_fifo_empt(void)
+{
+    REG_WRITE(SDIO_REG0X9_ADDR, ((1 & SDIO_REG0X9_TX_FIFO_EMPT_MASK) << SDIO_REG0X9_TX_FIFO_EMPT_POS));
 }
 
 /* REG_0x09:reg0x9->SD_RSP_CMD_CRC_OK:0x9[10],sd host/slave received peer side slave/host command crc check indication signal 1: crc ok  ,0x0,R*/
@@ -607,9 +608,12 @@ static inline uint32_t sdio_ll_get_reg0x9_cmd_s_res_end_int(void)
 static inline void sdio_ll_set_reg0x9_cmd_s_res_end_int(uint32_t value)
 {
     uint32_t reg_value;
-    reg_value = REG_READ(SDIO_REG0X9_ADDR);
-    reg_value &= ~(SDIO_REG0X9_CMD_S_RES_END_INT_MASK << SDIO_REG0X9_CMD_S_RES_END_INT_POS);
-    reg_value |= ((value & SDIO_REG0X9_CMD_S_RES_END_INT_MASK) << SDIO_REG0X9_CMD_S_RES_END_INT_POS);
+    //reg_value = REG_READ(SDIO_REG0X9_ADDR);
+    //reg_value &= ~(SDIO_REG0X9_CMD_S_RES_END_INT_MASK << SDIO_REG0X9_CMD_S_RES_END_INT_POS);
+    //reg_value |= ((value & SDIO_REG0X9_CMD_S_RES_END_INT_MASK) << SDIO_REG0X9_CMD_S_RES_END_INT_POS);
+
+    //write clear feature
+    reg_value = ((value & SDIO_REG0X9_CMD_S_RES_END_INT_MASK) << SDIO_REG0X9_CMD_S_RES_END_INT_POS);
     REG_WRITE(SDIO_REG0X9_ADDR,reg_value);
 }
 
@@ -625,9 +629,12 @@ static inline uint32_t sdio_ll_get_reg0x9_dat_s_wr_wai_int(void)
 static inline void sdio_ll_set_reg0x9_dat_s_wr_wai_int(uint32_t value)
 {
     uint32_t reg_value;
-    reg_value = REG_READ(SDIO_REG0X9_ADDR);
-    reg_value &= ~(SDIO_REG0X9_DAT_S_WR_WAI_INT_MASK << SDIO_REG0X9_DAT_S_WR_WAI_INT_POS);
-    reg_value |= ((value & SDIO_REG0X9_DAT_S_WR_WAI_INT_MASK) << SDIO_REG0X9_DAT_S_WR_WAI_INT_POS);
+    //reg_value = REG_READ(SDIO_REG0X9_ADDR);
+    //reg_value &= ~(SDIO_REG0X9_DAT_S_WR_WAI_INT_MASK << SDIO_REG0X9_DAT_S_WR_WAI_INT_POS);
+    //reg_value |= ((value & SDIO_REG0X9_DAT_S_WR_WAI_INT_MASK) << SDIO_REG0X9_DAT_S_WR_WAI_INT_POS);
+
+    //write clear feature
+    reg_value = ((value & SDIO_REG0X9_DAT_S_WR_WAI_INT_MASK) << SDIO_REG0X9_DAT_S_WR_WAI_INT_POS);
     REG_WRITE(SDIO_REG0X9_ADDR,reg_value);
 }
 
@@ -643,9 +650,12 @@ static inline uint32_t sdio_ll_get_reg0x9_dat_s_rd_bus_int(void)
 static inline void sdio_ll_set_reg0x9_dat_s_rd_bus_int(uint32_t value)
 {
     uint32_t reg_value;
-    reg_value = REG_READ(SDIO_REG0X9_ADDR);
-    reg_value &= ~(SDIO_REG0X9_DAT_S_RD_BUS_INT_MASK << SDIO_REG0X9_DAT_S_RD_BUS_INT_POS);
-    reg_value |= ((value & SDIO_REG0X9_DAT_S_RD_BUS_INT_MASK) << SDIO_REG0X9_DAT_S_RD_BUS_INT_POS);
+    //reg_value = REG_READ(SDIO_REG0X9_ADDR);
+    //reg_value &= ~(SDIO_REG0X9_DAT_S_RD_BUS_INT_MASK << SDIO_REG0X9_DAT_S_RD_BUS_INT_POS);
+    //reg_value |= ((value & SDIO_REG0X9_DAT_S_RD_BUS_INT_MASK) << SDIO_REG0X9_DAT_S_RD_BUS_INT_POS);
+
+    //write clear feature
+    reg_value = (value & SDIO_REG0X9_DAT_S_RD_BUS_INT_MASK) << SDIO_REG0X9_DAT_S_RD_BUS_INT_POS;
     REG_WRITE(SDIO_REG0X9_ADDR,reg_value);
 }
 
@@ -1019,12 +1029,12 @@ static inline uint32_t sdio_ll_get_reg0xd_rx_fifo_rst(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xd_rx_fifo_rst(uint32_t value)
+//low active:0 reset(read value is 1, write 0 to reset, asic auto set it to 1)
+static inline void sdio_ll_set_reg0xd_rx_fifo_rst(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
     reg_value &= ~(SDIO_REG0XD_RX_FIFO_RST_MASK << SDIO_REG0XD_RX_FIFO_RST_POS);
-    reg_value |= ((value & SDIO_REG0XD_RX_FIFO_RST_MASK) << SDIO_REG0XD_RX_FIFO_RST_POS);
     REG_WRITE(SDIO_REG0XD_ADDR,reg_value);
 }
 
@@ -1037,12 +1047,12 @@ static inline uint32_t sdio_ll_get_reg0xd_tx_fifo_rst(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xd_tx_fifo_rst(uint32_t value)
+//low active:0 reset(read value is 1, write 0 to reset, asic auto set it to 1)
+static inline void sdio_ll_set_reg0xd_tx_fifo_rst(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
     reg_value &= ~(SDIO_REG0XD_TX_FIFO_RST_MASK << SDIO_REG0XD_TX_FIFO_RST_POS);
-    reg_value |= ((value & SDIO_REG0XD_TX_FIFO_RST_MASK) << SDIO_REG0XD_TX_FIFO_RST_POS);
     REG_WRITE(SDIO_REG0XD_ADDR,reg_value);
 }
 
@@ -1064,7 +1074,7 @@ static inline uint32_t sdio_ll_get_reg0xd_txfifo_wr_ready(void)
     return reg_value;
 }
 
-/* REG_0x0d:reg0xd->SD_STA_RST:0xd[20],sdcard command and data state reset, high active; Host/Slave:Reset self state; It's better to reset after one round transfer.,0x1,R/W1C*/
+/* REG_0x0d:reg0xd->SD_STA_RST:0xd[20],sdcard command and data state reset, low active; Host/Slave:Reset self state; It's better to reset after one round transfer.,0x1,R/W1C*/
 static inline uint32_t sdio_ll_get_reg0xd_sd_sta_rst(void)
 {
     uint32_t reg_value;
@@ -1073,12 +1083,12 @@ static inline uint32_t sdio_ll_get_reg0xd_sd_sta_rst(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xd_sd_sta_rst(uint32_t value)
+//low active:0 reset(read value is 1, write 0 to reset, asic auto set it to 1)
+static inline void sdio_ll_set_reg0xd_sd_sta_rst(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
     reg_value &= ~(SDIO_REG0XD_SD_STA_RST_MASK << SDIO_REG0XD_SD_STA_RST_POS);
-    reg_value |= ((value & SDIO_REG0XD_SD_STA_RST_MASK) << SDIO_REG0XD_SD_STA_RST_POS);
     REG_WRITE(SDIO_REG0XD_ADDR,reg_value);
 }
 

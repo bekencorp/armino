@@ -89,12 +89,16 @@ INPUT = \
     ../../../include/driver/hal/hal_i2c_types.h \
     ../../../include/driver/touch.h \
     ../../../include/driver/touch_types.h \
+    ../../../include/driver/flash.h \
+    ../../../include/driver/flash_types.h \
+    ../../../include/driver/hal/hal_flash_types.h \
+    ../../../include/driver/flash_partition.h \
     ## Multi-Media
     ../../../include/driver/aud.h \
     ../../../include/driver/aud_types.h \
     ../../../include/driver/hal/hal_aud_types.h \
     ../../../include/driver/lcd.h \
-    ../../../include/driver/lcd_disp_types.h \
+    ../../../include/driver/lcd_types.h \
     ../../../include/driver/dma2d.h \
     ../../../include/driver/hal/hal_dma2d_types.h \
     ../../../include/driver/jpeg_dec.h \
@@ -108,14 +112,17 @@ INPUT = \
     ../../../include/driver/jpeg_enc.h \
     ../../../include/driver/jpeg_enc_types.h \
     ../../../include/driver/hal/hal_jpeg_types.h \
+    ../../../include/driver/dvp_camera.h \
+    ../../../include/driver/dvp_camera_types.h \
+    ../../../include/driver/uvc_camera.h \
+    ../../../include/driver/uvc_camera_types.h \
+    ../../../include/driver/media_types.h \
     ../../../include/components/jpeg_decode.h \
-    ../../../include/components/dvp_camera.h \
-    ../../../include/components/dvp_camera_types.h \
-    ../../../include/components/uvc_camera.h \
     ../../../include/components/video_transfer.h \
     ../../../include/components/video_types.h \
     ../../../include/modules/aec.h \
     ../../../include/modules/g711.h \
+	../../../include/modules/mp3dec.h \
     ../../../include/components/aud_intf.h \
     ../../../include/components/aud_intf_types.h \
     ## PM

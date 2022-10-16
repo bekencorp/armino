@@ -22,12 +22,23 @@
 #include <driver/jpeg_dec.h>
 #include <driver/jpeg_dec_types.h>
 #include <driver/lcd.h>
+#include <./lcd/lcd_devices.h>
+#if CONFIG_PWM
+#include <driver/pwm.h>
+#endif
 
+#if (CONFIG_JPEG_DECODE)
+#include <components/jpeg_decode.h>
+#endif
 
 #if (CONFIG_SDCARD_HOST)
 char *g_filename = NULL;
 FIL file;
 #endif
+extern bk_err_t bk_lcd_set_yuv_mode(pixel_format_t input_data_format);
+
+#define TAG "lcd_jpegdec_display"
+
 //extern MINOOR_ITCM void memcpy_word(uint32_t *dst, uint32_t *src, uint32_t size);
 
 typedef enum
@@ -48,6 +59,7 @@ typedef struct
 } lcd_jpeg_display_t;
 
 lcd_jpeg_display_t lcd_jpeg_display = {0};
+lcd_config_t lcd_config = {0};
 
 
 #if (CONFIG_SDCARD_HOST)
@@ -62,7 +74,8 @@ static  __attribute__((section(".itcm_sec_code "))) void memcpy_word(uint32_t *d
 }
 #endif
 
-static void lcd_sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *total_len)
+
+bk_err_t lcd_sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *total_len)
 {
 #if (CONFIG_SDCARD_HOST)
 	char cFileName[FF_MAX_LFN];
@@ -76,13 +89,18 @@ static void lcd_sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *to
 	// step 1: read picture from sd to psram
 	sprintf(cFileName, "%d:/%s", DISK_NUMBER_SDIO_SD, filename);
 	sram_addr = os_malloc(once_read_len);
+	if (sram_addr == NULL) {
+		os_printf("sd buffer malloc failed\r\n");
+		return BK_FAIL;
+	}
+
 	char *ucRdTemp = (char *)sram_addr;
 
 	/*open pcm file*/
 	fr = f_open(&file, cFileName, FA_OPEN_EXISTING | FA_READ);
 	if (fr != FR_OK) {
-		os_printf("open %s fail.\r\n", filename);
-		return;
+//		os_printf("open %s fail.\r\n", filename);
+		return BK_FAIL;
 	}
 	size_64bit = f_size(&file);
 	uint32_t total_size = (uint32_t)size_64bit;// total byte
@@ -94,12 +112,12 @@ static void lcd_sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *to
 		fr = f_read(&file, ucRdTemp, once_read_len, &uiTemp);
 		if (fr != FR_OK) {
 			os_printf("read file fail.\r\n");
-			return;
+			return BK_FAIL;
 		}
 		if (uiTemp == 0)
 		{
 			os_printf("read file complete.\r\n");
-			return;
+			break;
 		}
 		if(once_read_len != uiTemp)
 		{
@@ -116,17 +134,19 @@ static void lcd_sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *to
 			paddr += (once_read_len/4);
 		}
 	}
-	os_printf("\r\n");
+
 	os_free(sram_addr);
 
 	fr = f_close(&file);
 	if (fr != FR_OK) {
 		os_printf("close %s fail!\r\n", filename);
-		return;
+		return BK_FAIL;
 	}
 #else
 		os_printf("Not support\r\n");
 #endif
+
+	return BK_OK;
 }
 
 
@@ -198,95 +218,113 @@ static uint32_t get_ppi_from_cmd(int argc, char **argv, uint32_t pre)
 
 static void lcd_complete_callback(void)
 {
-	lcd_driver_display_continue();
+	bk_lcd_8080_start_transfer(0);
 }
 
 
 static void jpeg_dec_complete_callback(jpeg_dec_res_t *result)
 {
-	bk_lcd_pixel_config(result->pixel_x, result->pixel_y);
+	os_printf("the picture w/h	(%d,%d)\n", result->pixel_x, result->pixel_y);
 
-	if (lcd_jpeg_display.lcd_size_x < result->pixel_x  || lcd_jpeg_display.lcd_size_y < result->pixel_y)
-	{
-		lcd_jpeg_display.partical_xs = (result->pixel_x - lcd_jpeg_display.lcd_size_x) / 2 + 1;
-		lcd_jpeg_display.partical_xe = lcd_jpeg_display.partical_xs  +	lcd_jpeg_display.lcd_size_x - 1;
-		lcd_jpeg_display.partical_ys = (result->pixel_y - lcd_jpeg_display.lcd_size_y) / 2 + 1;
-		lcd_jpeg_display.partical_ye = lcd_jpeg_display.partical_ys + lcd_jpeg_display.lcd_size_y - 1;
-	}
-	bk_lcd_set_partical_display(1, lcd_jpeg_display.partical_xs, lcd_jpeg_display.partical_xe, lcd_jpeg_display.partical_ys, lcd_jpeg_display.partical_ye);
-	lcd_driver_set_display_base_addr(0x60200000);
-	lcd_driver_display_enable();
+	lcd_disp_framebuf_t lcd_disp = {0};
+	lcd_disp.rect.x = 0;
+	lcd_disp.rect.y = 0;
+	lcd_disp.rect.width = result->pixel_x;
+	lcd_disp.rect.height = result->pixel_y;
+	lcd_disp.buffer = (uint32_t *)0x60200000;
+	bk_lcd_fill_data( lcd_config.device->id, &lcd_disp);
 }
+
 
 void jpeg_dec_display_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	bk_err_t ret = BK_OK;
 	char *filename = NULL;
 	unsigned char *jpeg_psram = (unsigned char *)0x60000000;
-	lcd_config_t lcd_config = {0};
 	uint32_t jpeg_len = 0;
 	unsigned char *dec_buf = (unsigned char *) 0x60200000;
 
 	if (os_strcmp(argv[1], "file_display") == 0)
 	{
-		//step 1 sd card jpeg read
-		bk_psram_init();
+	
+		if (LCD_STATE_CLOSE == lcd_jpeg_display.state)
+		{
+			//step 1 sd card jpeg read
+			bk_psram_init();
+		}
+
 		filename = argv[2];
 		os_printf("filename  = %s \r\n", filename);
 
 		lcd_sdcard_read_to_mem(filename, (uint32_t *)jpeg_psram, &jpeg_len);
-
+		os_printf("read jpeg complete\r\n");
+		rtos_delay_milliseconds(100);
 		if (LCD_STATE_CLOSE == lcd_jpeg_display.state)
 		{
-			//step 2 jpeg dec driver init
-			ret = bk_jpeg_dec_driver_init();
-			bk_jpeg_dec_isr_register(DEC_END_OF_FRAME, jpeg_dec_complete_callback);
+#if CONFIG_PWM
+			lcd_driver_backlight_init(PWM_ID_1, 100);
+#endif
 			//step 2 lcd driver init
 			media_ppi_t lcd_ppi = get_ppi_from_cmd(argc, argv, PPI_DEFAULT);
-
-			if (lcd_ppi == PPI_1024X600)
+			lcd_config.device= get_lcd_device_by_ppi(lcd_ppi);
+			lcd_jpeg_display.lcd_size_x =  ppi_to_pixel_x(lcd_config.device->ppi);
+			lcd_jpeg_display.lcd_size_y =  ppi_to_pixel_y(lcd_config.device->ppi);
+			if ((lcd_ppi == PPI_1024X600) || (lcd_ppi == PPI_480X800) || (lcd_ppi == PPI_480X272))
 			{
-				lcd_config.device = get_lcd_device_by_id(LCD_DEVICE_HX8282);
+				bk_lcd_driver_init(LCD_12M);
+				bk_lcd_isr_register(RGB_OUTPUT_EOF, lcd_complete_callback);
+				bk_lcd_rgb_init(lcd_config.device->id, lcd_jpeg_display.lcd_size_x, lcd_jpeg_display.lcd_size_y, PIXEL_FMT_RGB565);
 			}
 			else if (lcd_ppi == PPI_320X480)
 			{
-				lcd_config.device = get_lcd_device_by_id(LCD_DEVICE_ST7796S);
-			}
-			else if (lcd_ppi == PPI_480X800)
-			{
-				lcd_config.device = get_lcd_device_by_id(LCD_DEVICE_GC9503V);
+				bk_lcd_driver_init(LCD_20M);
+				bk_lcd_8080_init(lcd_jpeg_display.lcd_size_x, lcd_jpeg_display.lcd_size_y, PIXEL_FMT_YUYV);
+				bk_lcd_isr_register(I8080_OUTPUT_EOF, lcd_complete_callback);
+				lcd_st7796s_init();
 			}
 			else
 			{
-				lcd_config.device = get_lcd_device_by_id(LCD_DEVICE_ST7282);
+				os_printf("lcd type not support. \r\n");
 			}
 
-			lcd_config.complete_callback = lcd_complete_callback;
-			lcd_config.fmt = LCD_FMT_VUYY;
-//			lcd_config.pixel_x = 0;  //jpeg pixelx
-//			lcd_config.pixel_y = 0;  //jpeg pixelx
-			lcd_driver_init(&lcd_config);
-			lcd_jpeg_display.lcd_size_x =  ppi_to_pixel_x(lcd_config.device->ppi);
-			lcd_jpeg_display.lcd_size_y =  ppi_to_pixel_y(lcd_config.device->ppi);
-
-#if CONFIG_PWM
-			lcd_driver_set_backlight(100);
+#if CONFIG_JPEG_DECODE
+			bk_lcd_set_yuv_mode(PIXEL_FMT_YUYV);
+			ret = bk_jpeg_dec_sw_init();
+			if (ret != kNoErr) {
+				os_printf("init jpeg_decoder failed\r\n");
+				return;
+			}
+#else
+			bk_lcd_set_yuv_mode(PIXEL_FMT_VUYY);
+			//hardware jpeg decode
+			ret = bk_jpeg_dec_driver_init();
 #endif
 			lcd_jpeg_display.state = LCD_STATE_OPEN;
 		}
-
-		//jpeg decode process
+#if CONFIG_JPEG_DECODE
+		//software decode
+		os_printf("start jpeg_dec.\r\n");
+		bk_jpeg_dec_sw_register_finish_callback(jpeg_dec_complete_callback);
+		ret = bk_jpeg_dec_sw_start(jpeg_len, jpeg_psram, dec_buf, NULL);
+		if (ret != kNoErr) {
+			os_printf("jpeg_decoder failed\r\n");
+			return;
+		}
+#else
+		bk_jpeg_dec_isr_register(DEC_END_OF_FRAME, jpeg_dec_complete_callback);
+		os_printf("start hw jpeg_dec.\r\n");
 		ret = bk_jpeg_dec_hw_start(jpeg_len, jpeg_psram, dec_buf);
 		if (ret != BK_OK)
 		{
+			os_printf("jpegdec error code %x.\r\n", ret);
 			return;
 		}
-		os_printf("frame decoder complete\n");
+#endif
 	}
 	else if (os_strcmp(argv[1], "close") == 0)
 	{
 		bk_jpeg_dec_driver_deinit();
-		lcd_driver_deinit();
+		bk_lcd_rgb_deinit();
 		lcd_jpeg_display.state = LCD_STATE_CLOSE;
 	}
 	else
@@ -295,6 +333,8 @@ void jpeg_dec_display_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 		return;
 	}
 }
+
+
 void sdcard_write_from_mem(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 #if (CONFIG_SDCARD_HOST)
@@ -416,4 +456,3 @@ void sdcard_read_to_psram(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	os_printf("Not support\r\n");
 #endif
 }
-

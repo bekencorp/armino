@@ -9,6 +9,7 @@
 
 
 #include <common/bk_include.h>
+#include <driver/psram_types.h>
 #include "psram_hal.h"
 #include "psram_ll_macro_def.h"
 

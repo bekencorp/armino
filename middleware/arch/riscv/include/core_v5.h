@@ -55,7 +55,7 @@
 #define TRAP_M_STACKOVF     	32
 #define TRAP_M_STACKUDF     	33
 #define TRAP_M_USER_ASSERT      0x77
-#define TRAP_M_USER_NP          0x88
+#define TRAP_M_USER_NP_WDT          0x88
 #define TRAP_M_USER_OTHER       0x99
 
 

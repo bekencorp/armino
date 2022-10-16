@@ -14,9 +14,11 @@
 
 #pragma once
 
+#include "sdkconfig.h"
+
 #define SOC_S_NS_ADDR_DIFF       (0x10000000)
 
-#ifdef CONFIG_SPE
+#if CONFIG_SPE
 #define SOC_ADDR_OFFSET          (0)
 #define SOC_S_BASE(addr)         (addr)
 #define SOC_NS_BASE(addr)        ((addr) + SOC_S_NS_ADDR_DIFF)

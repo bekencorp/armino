@@ -43,54 +43,30 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
-
-void frame_buffer_jpg_complete(frame_buffer_t *buffer)
-{
-	frame_buffer_generate_complete(buffer, FRAME_JPEG);
-}
-
-frame_buffer_t *frame_buffer_jpg_alloc(void)
-{
-	return frame_buffer_alloc(FRAME_JPEG);
-}
-
-void frame_buffer_yuv_complete(frame_buffer_t *buffer)
-{
-	frame_buffer_generate_complete(buffer, FRAME_DISPLAY);
-}
-
-frame_buffer_t *frame_buffer_yuv_alloc(void)
-{
-	return frame_buffer_alloc(FRAME_DISPLAY);
-}
-
 bk_err_t bk_dvp_camera_open(media_ppi_t ppi, dvp_mode_t mode)
 {
-	int ret = BK_OK;
 	dvp_camera_config_t config;
 
-	if (DVP_MODE_JPG == mode)
-	{
-		config.ppi = ppi;
-		config.mode = DVP_MODE_JPG;
-		config.frame_set_ppi = frame_buffer_set_ppi;
-		config.frame_complete = frame_buffer_jpg_complete;
-		config.frame_alloc = frame_buffer_jpg_alloc;
+	config.fb_jpeg_init = frame_buffer_fb_jpeg_init;
+	config.fb_jpeg_deinit = frame_buffer_fb_jpeg_deinit;
+	config.fb_display_init = frame_buffer_fb_display_init;
+	config.fb_display_deinit = frame_buffer_fb_display_deinit;
+	config.fb_jpeg_complete = frame_buffer_fb_push;
+	config.fb_display_complete = frame_buffer_fb_display_push;
+	config.fb_jpeg_malloc = frame_buffer_fb_jpeg_malloc;
+	config.fb_display_malloc = frame_buffer_fb_display_malloc;
+	config.fb_jpeg_free = frame_buffer_fb_jpeg_free;
+	config.fb_display_free = frame_buffer_fb_display_free;
 
-		ret = bk_dvp_camera_driver_init(&config);
-	}
-	else if (DVP_MODE_YUV == mode)
-	{
-		config.ppi = ppi;
-		config.mode = DVP_MODE_YUV;
-		config.frame_set_ppi = frame_buffer_set_ppi;
-		config.frame_complete = frame_buffer_yuv_complete;
-		config.frame_alloc = frame_buffer_yuv_alloc;
+	config.ppi = ppi;
+	config.mode = mode;
 
-		ret = bk_dvp_camera_driver_init(&config);
+	if (mode == DVP_MODE_JPG)
+	{
+		config.mode = DVP_MODE_MIX;
 	}
 
-	return ret;
+	return bk_dvp_camera_driver_init(&config);
 }
 
 bk_err_t bk_dvp_camera_close(void)

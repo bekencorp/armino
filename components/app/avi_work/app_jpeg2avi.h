@@ -1,7 +1,8 @@
 #ifndef __APP_JPEG2AVI_H__
 #define __APP_JPEG2AVI_H__
 
-#include "avilib.h"
+#include <modules/avilib.h>
+#include "avilib_adp.h"
 
 typedef enum in_typte {
 	eTypeVideo     = 0,

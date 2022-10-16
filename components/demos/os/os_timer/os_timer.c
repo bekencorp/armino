@@ -29,15 +29,13 @@
  *
  ******************************************************************************
  */
-#include "os_timer.h"
+
 #include <common/bk_include.h>
 
-#if OS_TIMER_DEMO
-#include <common/bk_include.h>
+#if CONFIG_OS_TIMER_DEMO
+
+#include "os_timer.h"
 #include <os/os.h>
-#include "uart_pub.h"
-#include "Error.h"
-#include "portmacro.h"
 
 beken_timer_t timer_handle, timer_handle2;
 

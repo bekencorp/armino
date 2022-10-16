@@ -168,7 +168,7 @@ void lcd_rgb_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 		os_printf("lcd rgb reg init.\r\n");
 
 		bk_lcd_isr_register(RGB_OUTPUT_EOF, lcd_rgb_isr_test);
-		bk_lcd_rgb_init(LCD_DEVICE_ST7282, PIXEL_480, PIXEL_272, LCD_FMT_RGB565);
+		bk_lcd_rgb_init(LCD_DEVICE_ST7282, PIXEL_480, PIXEL_272, PIXEL_FMT_RGB565);
 		lcd_driver_set_display_base_addr(LCD_FRAMEADDR);
 		bk_lcd_rgb_display_en(1);
 	} else if (os_strcmp(argv[1], "display_pause") == 0) {
@@ -181,7 +181,7 @@ void lcd_rgb_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 		os_printf("lcd driver init. \r\n");
 		bk_lcd_driver_init(LCD_12M);
 		os_printf("lcd rgb reg init.\r\n");
-		bk_lcd_rgb_init(LCD_DEVICE_ST7282, PIXEL_640, PIXEL_480, LCD_FMT_RGB565 );
+		bk_lcd_rgb_init(LCD_DEVICE_ST7282, PIXEL_640, PIXEL_480, PIXEL_FMT_RGB565 );
 		bk_lcd_set_partical_display(1, PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
 		lcd_driver_set_display_base_addr(LCD_FRAMEADDR);
 		bk_lcd_rgb_display_en(1);
@@ -191,7 +191,7 @@ void lcd_rgb_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 		os_printf("lcd driver init. \r\n");
 		bk_lcd_driver_init(LCD_12M);
 		os_printf("lcd rgb reg init.\r\n");
-		bk_lcd_rgb_init(LCD_DEVICE_ST7282, PIXEL_640, PIXEL_480, LCD_FMT_ORGINAL_YUYV);
+		bk_lcd_rgb_init(LCD_DEVICE_ST7282, PIXEL_640, PIXEL_480, PIXEL_FMT_YUYV);
 		bk_lcd_set_partical_display(1, PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
 		lcd_driver_set_display_base_addr(LCD_FRAMEADDR);
 		bk_lcd_rgb_display_en(1);
@@ -303,7 +303,7 @@ void lcd_rgb_display_jpeg(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	}
 	fps = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
 
-	bk_lcd_rgb_init(LCD_DEVICE_ST7282, xpixel, ypixel, LCD_FMT_VUYY);
+	bk_lcd_rgb_init(LCD_DEVICE_ST7282, xpixel, ypixel, PIXEL_FMT_VUYY);
 	
 	os_printf("jpeg enc init.\r\n");
 	jpeg_config.yuv_mode = 0;
@@ -379,7 +379,7 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				jpeg_config.y_pixel = Y_PIXEL_480;
 				xpixel = PIXEL_640;
 				ypixel = PIXEL_480;
-				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, LCD_FMT_ORGINAL_YUYV);
+				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, PIXEL_FMT_YUYV);
 				bk_lcd_set_partical_display(1,PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
 			}
 			else if (os_strcmp(argv[3], "yuv_partical") == 0)
@@ -389,13 +389,12 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				jpeg_config.y_pixel = Y_PIXEL_480;
 				xpixel = PIXEL_480;
 				ypixel = PIXEL_272;
-				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, LCD_FMT_ORGINAL_YUYV);
+				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, PIXEL_FMT_YUYV);
 				offset_config.x_partial_offset_l = PARTICAL_XS;
 				offset_config.x_partial_offset_r = PARTICAL_XE;
 				offset_config.y_partial_offset_l = PARTICAL_YS;
 				offset_config.y_partial_offset_r = PARTICAL_YE;
 				bk_jpeg_enc_partial_display_init(&offset_config);
-				bk_jpeg_enc_enable_int(JPEG_VSYNC_NEGEDGE_INT);
 			}
 			else
 			{
@@ -404,7 +403,7 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				jpeg_config.y_pixel = Y_PIXEL_272;
 				xpixel = PIXEL_480;
 				ypixel = PIXEL_272;
-				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, LCD_FMT_ORGINAL_YUYV);
+				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, PIXEL_FMT_YUYV);
 			}
 		} 
 		else 
@@ -427,7 +426,7 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				os_printf("set display module partical func. \n");
 				xpixel = PIXEL_1280;
 				ypixel = PIXEL_720;
-				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, LCD_FMT_ORGINAL_YUYV);
+				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, PIXEL_FMT_YUYV);
 				bk_lcd_set_partical_display(1, PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
 			}
 			else if (os_strcmp(argv[3], "yuv_partical") == 0)
@@ -435,13 +434,12 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				os_printf("set jpeg yuv module partical func. \n");
 				xpixel = PIXEL_480;
 				ypixel = PIXEL_272;
-				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, LCD_FMT_VUYY);
+				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, PIXEL_FMT_VUYY);
 				offset_config.x_partial_offset_l = PARTICAL_XS;
 				offset_config.x_partial_offset_r = PARTICAL_XE;
 				offset_config.y_partial_offset_l = PARTICAL_YS;
 				offset_config.y_partial_offset_r = PARTICAL_YE;
 				bk_jpeg_enc_partial_display_init(&offset_config);
-				bk_jpeg_enc_enable_int(JPEG_VSYNC_NEGEDGE_INT);
 			}
 			else
 			{
@@ -455,7 +453,7 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				os_printf("set display module partical func. \n");
 				xpixel = PIXEL_1280;
 				ypixel = PIXEL_720;
-				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, LCD_FMT_ORGINAL_YUYV);
+				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, PIXEL_FMT_YUYV);
 				bk_lcd_set_partical_display(1, LCD2_PARTICAL_XS, LCD2_PARTICAL_XE, LCD2_PARTICAL_YS, LCD2_PARTICAL_YE);
 			}
 			else if (os_strcmp(argv[3], "yuv_partical") == 0)
@@ -463,13 +461,12 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				os_printf("set jpeg yuv module partical func. \n");
 				xpixel = PIXEL_1024;
 				ypixel = PIXEL_600;
-				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, LCD_FMT_VUYY);
+				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, PIXEL_FMT_VUYY);
 				offset_config.x_partial_offset_l = LCD2_PARTICAL_XS;
 				offset_config.x_partial_offset_r = LCD2_PARTICAL_XE;
 				offset_config.y_partial_offset_l = LCD2_PARTICAL_YS;
 				offset_config.y_partial_offset_r = LCD2_PARTICAL_YE;
 				bk_jpeg_enc_partial_display_init(&offset_config);
-				bk_jpeg_enc_enable_int(JPEG_VSYNC_NEGEDGE_INT);
 			}
 			else
 			{

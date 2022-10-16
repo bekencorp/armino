@@ -94,10 +94,14 @@ SECTIONS
 	_itcm_ema_start = ADDR(.itcm_sec_code);
 	_itcm_lma_end =  LOADADDR (.itcm_sec_code) + SIZEOF (.itcm_sec_code);
 	_itcm_ema_end = .;
+	_itcm_bss_start = .;
+	.itcm_sec_bss 	: AT(LOADADDR (.itcm_sec_code) + SIZEOF (.itcm_sec_code))
+		{ KEEP(*(.itcm_sec_bss )) }
+	_itcm_bss_end = .;
 	ITCM_SIZE = . - ITCM_BEGIN;
 	. = 0x20000000;
 	DTCM_BEGIN = .;
-	.dtcm_sec_data 	: AT(LOADADDR (.itcm_sec_code) + SIZEOF (.itcm_sec_code))
+	.dtcm_sec_data 	: AT(LOADADDR (.itcm_sec_bss) + SIZEOF (.itcm_sec_bss))
 		{ KEEP(*(.dtcm_sec_data )) }
 	_dtcm_lma_start =  LOADADDR (.dtcm_sec_data);
 	_dtcm_ema_start = ADDR(.dtcm_sec_data);
@@ -112,20 +116,14 @@ SECTIONS
 	SRAM1_BEGIN = .;
 	.video_spec_data 	: AT(LOADADDR (.dtcm_sec_bss) + SIZEOF (.dtcm_sec_bss))
 		{ KEEP(*(.video_spec_data )) }
-	_vedio_start = ADDR(.video_spec_data);
+	_video_start = ADDR(.video_spec_data);
 	SRAM1_SIZE = . - SRAM1_BEGIN;
-	. = 0x3000FC00;
-	SWAP_BEGIN = .;
-	.swap_data 	: AT(LOADADDR (.video_spec_data) + SIZEOF (.video_spec_data))
-		{ KEEP(*(.swap_data )) }
-	_swap_start = ADDR(.swap_data);
-	SWAP_SIZE = . - SWAP_BEGIN;
-	. = 0x30074000;
+	. = 0x30078C00;
 	SRAM2_BEGIN = .;
 	. = ALIGN(8);
 	. = ALIGN(0x20);
 	. = ALIGN(ALIGNOF(.eh_frame));
-	.eh_frame 	: AT(ALIGN(LOADADDR (.swap_data) + SIZEOF (.swap_data), 32))
+	.eh_frame 	: AT(ALIGN(LOADADDR (.video_spec_data) + SIZEOF (.video_spec_data), 32))
 		{ KEEP(*(.eh_frame )) }
 	_data_lmastart =  LOADADDR (.eh_frame);
 	_data_start = ADDR(.eh_frame);
@@ -214,7 +212,13 @@ SECTIONS
 	PROVIDE (end = .);
 	PROVIDE (_stack = 0x20007FE0);
 	SRAM2_SIZE = . - SRAM2_BEGIN;
-	CPU1_SIZE = LOADADDR(.sdata_f) + SIZEOF(.sdata_f) - CPU1_BEGIN;
+	. = 0x3007FC00;
+	SWAP_BEGIN = .;
+	.swap_data 	: AT(LOADADDR (.sdata_f) + SIZEOF (.sdata_f))
+		{ KEEP(*(.swap_data )) }
+	_swap_start = ADDR(.swap_data);
+	SWAP_SIZE = . - SWAP_BEGIN;
+	CPU1_SIZE = LOADADDR(.swap_data) + SIZEOF(.swap_data) - CPU1_BEGIN;
 	.stab	0 : { *(.stab) }
 	.stabstr	0 : { *(.stabstr) }
 	.stab.excl	0 : { *(.stab.excl) }
@@ -244,6 +248,6 @@ SECTIONS
 ASSERT((DEFINED (_RELAX_END_) ? ITCM_SIZE : 0x0)<= 0x8000, "ITCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x7800, "DTCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM1_SIZE : 0x0)<= 0xA000, "SRAM1 OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? SRAM2_SIZE : 0x0)<= 0x7000, "SRAM2 OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SWAP_SIZE : 0x0)<= 0x400, "SWAP OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? SRAM2_SIZE : 0x0)<= 0xC000, "SRAM2 OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? CPU1_SIZE : 0x0)<= 0x80000, "CPU1 OVERFLOW");

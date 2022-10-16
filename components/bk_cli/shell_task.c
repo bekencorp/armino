@@ -7,27 +7,47 @@
 #include <os/os.h>
 #include <common/bk_compiler.h>
 #include "shell_drv.h"
+#include <components/ate.h>
+#include <modules/pm.h>
+#include <driver/gpio.h>
 
-#define SHELL_TASK_DEF_TICK  (1000)		// 1000ms -> 1s
-#define SHELL_EVENT_TX_REQ   0x01
-#define SHELL_EVENT_RX_IND   0x02
+#define SHELL_TASK_WAIT_TIME	(100)		// 100ms
+#define SHELL_TASK_WAKE_CYCLE	(20)		// 2s
+
+#define SHELL_EVENT_TX_REQ  	0x01
+#define SHELL_EVENT_RX_IND  	0x02
 
 #define SHELL_LOG_BUF1_LEN      136
 #define SHELL_LOG_BUF2_LEN      64
 #define SHELL_LOG_BUF3_LEN      40
 
 #ifdef CONFIG_SLAVE_CORE
+
+#if CONFIG_RELEASE_VERSION
+#define SHELL_LOG_BUF1_NUM      2
+#define SHELL_LOG_BUF2_NUM      4
+#define SHELL_LOG_BUF3_NUM      8
+#else
 #define SHELL_LOG_BUF1_NUM      6
 #define SHELL_LOG_BUF2_NUM      16
 #define SHELL_LOG_BUF3_NUM      20
+#endif
 
 #define SHELL_LOG_BUF_NUM       (SHELL_LOG_BUF1_NUM + SHELL_LOG_BUF2_NUM + SHELL_LOG_BUF3_NUM)
 #define SHELL_LOG_PEND_NUM      (SHELL_LOG_BUF_NUM + 3)  /* 1: for RSP, 1: reserved(queue empty), 1: cmd ovf. */
 #define SHELL_LOG_BUSY_NUM      (SHELL_LOG_PEND_NUM)     /* depending on lower driver's pending queue size. IPC drv no busy state. */
+
 #else
-#define SHELL_LOG_BUF1_NUM      16
+
+#if CONFIG_RELEASE_VERSION
+#define SHELL_LOG_BUF1_NUM      6
+#define SHELL_LOG_BUF2_NUM      16
+#define SHELL_LOG_BUF3_NUM      32
+#else
+#define SHELL_LOG_BUF1_NUM      8
 #define SHELL_LOG_BUF2_NUM      48
 #define SHELL_LOG_BUF3_NUM      64
+#endif
 
 #define SHELL_LOG_BUF_NUM       (SHELL_LOG_BUF1_NUM + SHELL_LOG_BUF2_NUM + SHELL_LOG_BUF3_NUM)
 #define SHELL_LOG_PEND_NUM      (SHELL_LOG_BUF_NUM * 2 + 3)  /* 1: for RSP, 1: reserved(queue empty, 1: cmd ovf). */ /* the worst case may be (one log + one hint) in pending queue.*/
@@ -191,11 +211,16 @@ static const u16     shell_fault_str_len = sizeof(shell_fault_str) - 1;
 
 static const char	 shell_cmd_ovf_str[] = "\r\n!!some CMDs lost!!\r\n";
 static const u16     shell_cmd_ovf_str_len = sizeof(shell_cmd_ovf_str) - 1;
+static const char  * shell_prompt_str[2] = {"\r\n$", "\r\n#"};
 
 static bool_t shell_init_ok = bFALSE;
 static u8     fault_hint_print = 0;
 static u32    shell_log_overflow = 0;
 static u32    shell_log_count = 0;
+static u8     prompt_str_idx = 0;
+
+static u32    shell_pm_wake_time = SHELL_TASK_WAKE_CYCLE;   // wait cycles before enter sleep.
+static u8     shell_pm_wake_flag = 1;
 
 static beken_semaphore_t   shell_semaphore;  // will release from ISR.
 
@@ -932,7 +957,7 @@ static void rx_ind_process(void)
 
 					if(cr_lf != 0)
 					{
-						echo_out((u8 *)"\r\n#", sizeof("\r\n#") - 1);
+						echo_out((u8 *)shell_prompt_str[prompt_str_idx], 3);
 						echo_len = 0;
 					}
 				}
@@ -968,7 +993,7 @@ static void rx_ind_process(void)
 				buf_len += sprintf((char *)&cmd_line_buf.rsp_buff[buf_len], "%x ", cmd_line_buf.cmd_buff[i]);
 			}
 
-			strcpy((char *)&cmd_line_buf.rsp_buff[buf_len], "\r\n#");
+			strcpy((char *)&cmd_line_buf.rsp_buff[buf_len], shell_prompt_str[prompt_str_idx]);
 			rsp_out(cmd_line_buf.rsp_buff, strlen((char *)cmd_line_buf.rsp_buff));
 
 			shell_trace_out(0x39, 8, cmd_line_buf.cmd_buff[0], cmd_line_buf.cmd_buff[1], cmd_line_buf.cmd_buff[2], cmd_line_buf.cmd_buff[3],  \
@@ -999,7 +1024,7 @@ static void rx_ind_process(void)
 			buf_len = strlen((char *)cmd_line_buf.rsp_buff);
 			if(buf_len > (SHELL_RSP_BUF_LEN - 4))
 				buf_len = (SHELL_RSP_BUF_LEN - 4);
-			buf_len += sprintf((char *)&cmd_line_buf.rsp_buff[buf_len], "\r\n#");
+			buf_len += sprintf((char *)&cmd_line_buf.rsp_buff[buf_len], shell_prompt_str[prompt_str_idx]);
 
 			rsp_out(cmd_line_buf.rsp_buff, buf_len);
 		}
@@ -1024,6 +1049,8 @@ static void rx_ind_process(void)
 
 	return;
 }
+
+void shell_rx_wakeup(int);
 
 static void shell_task_init(void)
 {
@@ -1056,7 +1083,7 @@ static void shell_task_init(void)
 	create_shell_event();
 
 	cmd_dev->dev_drv->init(cmd_dev);
-	cmd_dev->dev_drv->open(cmd_dev, shell_tx_complete, shell_rx_indicate);
+	cmd_dev->dev_drv->open(cmd_dev, shell_tx_complete, shell_rx_indicate); // rx cmd, tx rsp.
 
 	if(log_dev != cmd_dev)
 	{
@@ -1071,28 +1098,62 @@ static void shell_task_init(void)
 
 	shell_init_ok = bTRUE;
 
+	shell_rx_wakeup(0);
+
+	if(ate_is_enabled())
+		prompt_str_idx = 1;
+	else
+		prompt_str_idx = 0;
+	
 }
 
 void shell_task( void *para )
 {
 	u32    Events;
+	u32    timeout = SHELL_TASK_WAIT_TIME;
 
 	shell_task_init();
 
-	echo_out((u8 *)"\r\n#", sizeof("\r\n#") - 1);
+	echo_out((u8 *)shell_prompt_str[prompt_str_idx], 3);
 
 	while(bTRUE)
 	{
-		Events = wait_any_event(SHELL_TASK_DEF_TICK); // WAIT_EVENT;
+		Events = wait_any_event(timeout);  // WAIT_EVENT;
 
 		if(Events & SHELL_EVENT_TX_REQ)
 		{
-			echo_out((u8 *)"Unsolicited\r\n#", sizeof("Unsolicited\r\n#") - 1);
+			echo_out((u8 *)"Unsolicited", sizeof("Unsolicited") - 1);
+			echo_out((u8 *)shell_prompt_str[prompt_str_idx], 3);
 		}
 
 		if(Events & SHELL_EVENT_RX_IND)
 		{
 			rx_ind_process();
+			shell_pm_wake_time = SHELL_TASK_WAKE_CYCLE;
+		}
+
+		if(Events == 0)
+		{
+			if(shell_pm_wake_time > 0)
+				shell_pm_wake_time--;
+
+			if(shell_pm_wake_time == 0)
+			{
+				if(shell_pm_wake_flag != 0)
+				{
+					shell_pm_wake_flag = 0;
+					// bk_pm_module_vote_sleep_ctrl(PM_POWER_MODULE_NAME_APP, 1, 0);
+				}
+			}
+		}
+
+		if(shell_pm_wake_flag)
+		{
+			timeout = SHELL_TASK_WAIT_TIME;
+		}
+		else
+		{
+			timeout = BEKEN_WAIT_FOREVER;
 		}
 	}
 }
@@ -1532,6 +1593,44 @@ void shell_log_flush(void)
 	log_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_FLUSH, NULL);
 
 	rtos_enable_int(int_mask);
+}
+
+extern gpio_id_t bk_uart_get_rx_gpio(uart_id_t id);
+void shell_power_save_enter(void)
+{
+	u32		flush_log = 1;
+	
+	log_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_TX_SUSPEND, (void *)flush_log);
+	cmd_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_RX_SUSPEND, NULL);
+
+	if(cmd_dev->dev_type == SHELL_DEV_UART)
+	{
+		//u32  gpio_id = bk_uart_get_rx_gpio(bk_get_printf_port());
+		//bk_gpio_register_isr(gpio_id, (gpio_isr_t)shell_rx_wakeup);
+	}
+}
+
+void shell_power_save_exit(void)
+{
+	log_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_TX_RESUME, NULL);
+	cmd_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_RX_RESUME, NULL);
+
+	if(cmd_dev->dev_type == SHELL_DEV_UART)
+	{
+		//u32  gpio_id = bk_uart_get_rx_gpio(bk_get_printf_port());
+		//bk_gpio_register_isr(gpio_id, NULL);
+	}
+}
+
+void shell_rx_wakeup(int gpio_id)
+{
+	(void)gpio_id;
+
+	// bk_pm_module_vote_sleep_ctrl(PM_POWER_MODULE_NAME_APP, 0, 0);
+	shell_pm_wake_flag = 1;
+	shell_pm_wake_time = SHELL_TASK_WAKE_CYCLE;
+	bk_uart_set_enable_rx(bk_get_printf_port(), 1);
+	shell_log_raw_data((const u8*)"wakeup\r\n", sizeof("wakeup\r\n") - 1);
 }
 
 void shell_set_uart_port(uint8_t uart_port) {

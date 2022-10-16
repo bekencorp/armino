@@ -719,6 +719,7 @@ extern "C" {
 
 
 bk_err_t aud_hal_dtmf_config(const aud_dtmf_config_t *config);
+bk_err_t aud_hal_adc_set_sample_rate(aud_adc_samp_rate_t sample_rate);
 bk_err_t aud_hal_adc_config(const aud_adc_config_t *config);
 bk_err_t aud_hal_adc_enable(void);
 bk_err_t aud_hal_adc_disable(void);

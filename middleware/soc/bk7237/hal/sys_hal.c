@@ -160,8 +160,8 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_deep_sleep(void * 
 	clock_value &= ~(1 << 5);
 	sys_ll_set_ana_reg9_value(clock_value);
 
-	clock_value = 0;
-    sys_ll_set_ana_reg19_value(clock_value);
+	//clock_value = 0;
+    //sys_ll_set_ana_reg19_value(clock_value);
 
 	/*4.set PMU parameters*/
     ret = aon_pmu_hal_set_sleep_parameters(0x2);
@@ -272,7 +272,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	{
 		sys_ll_set_cpu0_int_0_31_en_value(int_state1);
 		sys_ll_set_cpu0_int_32_63_en_value(int_state2);
-
+		set_csr(NDS_MIE, MIP_MTIP);
 		return;
 	}
 
@@ -289,8 +289,8 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	clk_div_val1 =  sys_hal_all_modules_clk_div_get(CLK_DIV_REG1);
 	clk_div_val2 =  sys_hal_all_modules_clk_div_get(CLK_DIV_REG2);
 
-	sys_ll_set_ana_reg2_spi_latchb(0x1);
 	h_vol = sys_ll_get_ana_reg3_vhsel_ldodig();
+
 	/*1.switch cpu clock to xtal26m*/
 	sys_ll_set_cpu_clk_div_mode1_cksel_core(0);
 	sys_ll_set_cpu_clk_div_mode1_clkdiv_core(0);
@@ -357,6 +357,9 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	sys_ll_set_cpu0_int_32_63_en_cpu0_dm_irq_en(0x1);
 
 	sys_ll_set_ana_reg8_en_lpmode(0x1);// touch enter low power mode
+
+	sys_ll_set_ana_reg2_iovoc(0);//set the io voltage to 2.9v 
+	sys_ll_set_ana_reg6_vaon_sel(0);//0:vddaon drop enable ,aon voltage to 0.9v
 //just debug:maybe some guys changed the CPU clock or Flash clock caused the time of
 //MTIMER_LOW_VOLTAGE_MINIMUM_TICK isn't enough.
 //here can statistic the MAX time value.
@@ -394,8 +397,14 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 #endif
 	s_pm_wakeup_from_lowvol_consume_time = 0;
 	s_pm_wakeup_from_lowvol_consume_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
-	sys_ll_set_ana_reg2_spi_latchb(0x1);
+
+
+	sys_ll_set_ana_reg6_vaon_sel(0x1);//0:vddaon drop disable, aon voltage to 1.1v
+	sys_ll_set_ana_reg2_iovoc(0x2);//set the io voltage to 3.1v 
+	sys_ll_set_ana_reg2_iovoc(0x4);//set the io voltage to 3.3v 
+
 	sys_ll_set_ana_reg3_vhsel_ldodig(h_vol);
+	sys_ll_set_ana_reg2_spi_latchb(0x1);
 	extern uint32_t pm_wake_int_flag1, pm_wake_int_flag2;
 	extern uint32_t pm_wake_gpio_flag1, pm_wake_gpio_flag2;
 	extern gpio_driver_t s_gpio;
@@ -615,6 +624,68 @@ int32 sys_hal_module_power_state_get(power_module_name_t module)
     }
 	return -1;
 }
+int32 sys_hal_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval)
+{
+	uint32_t param =0;
+	if((rosc_cali_mode > 0x2)||(cali_interval > SYS_ANA_REG4_ROSC_CAL_INTVAL_MASK))
+	{
+		return BK_FAIL;
+	}
+	switch(rosc_cali_mode)
+	{
+		case 0x0:
+			param =0;
+			param = sys_ll_get_ana_reg4_value();
+			param &= ~(SYS_ANA_REG4_ROSC_CAL_INTVAL_MASK << SYS_ANA_REG4_ROSC_CAL_INTVAL_POS);//clear the data
+			param |= cali_interval << SYS_ANA_REG4_ROSC_CAL_INTVAL_POS;//Rosc Calibration Interlval 0.25s~2s (4:1s)
+			param |= 0x1 << SYS_ANA_REG4_ROSC_CAL_MODE_POS;//0x1: 32K ;0x0: 31.25K
+			param |= 0x1 << SYS_ANA_REG4_ROSC_CAL_EN_POS;//Rosc Calibration Enable
+			param &= ~(0x1 << SYS_ANA_REG4_ROSC_MANU_EN_POS);//0:close Rosc Calibration Manual Mode
+			sys_ll_set_ana_reg4_value(param);
+
+			/*trigger calibration*/
+			param = 0;
+			param = sys_ll_get_ana_reg4_value();
+			param &= ~(0x1 << SYS_ANA_REG4_ROSC_CAL_TRIG_POS);//trigger clear
+			sys_ll_set_ana_reg4_value(param);
+
+			param = 0;
+			param = sys_ll_get_ana_reg4_value();
+			param |= (0x1 << SYS_ANA_REG4_ROSC_CAL_TRIG_POS);//trigger enable
+			sys_ll_set_ana_reg4_value(param);
+			break;
+		case 0x1:
+			param =0;
+			param = sys_ll_get_ana_reg4_value();
+			param |= 0x1 << SYS_ANA_REG4_ROSC_CAL_MODE_POS;//0x1: 32K ;0x0: 31.25K
+			param |= 0x1 << SYS_ANA_REG4_ROSC_CAL_EN_POS;//Rosc Calibration Enable
+			param &= ~(0x1 << SYS_ANA_REG4_ROSC_MANU_EN_POS);//0:close Rosc Calibration Manual Mode
+			sys_ll_set_ana_reg4_value(param);
+
+			/*trigger calibration*/
+			param = 0;
+			param = sys_ll_get_ana_reg4_value();
+			param &= ~(0x1 << SYS_ANA_REG4_ROSC_CAL_TRIG_POS);//trigger clear
+			sys_ll_set_ana_reg4_value(param);
+
+			param = 0;
+			param = sys_ll_get_ana_reg4_value();
+			param |= (0x1 << SYS_ANA_REG4_ROSC_CAL_TRIG_POS);//trigger enable
+			sys_ll_set_ana_reg4_value(param);
+			break;
+		case 0x2:
+			param =0;
+			param = sys_ll_get_ana_reg4_value();
+			param &= ~(0x1 << SYS_ANA_REG4_ROSC_CAL_EN_POS);//Rosc Calibration Enable
+			param &= ~(0x1 << SYS_ANA_REG4_ROSC_MANU_EN_POS);//0:close Rosc Calibration Manual Mode
+			sys_ll_set_ana_reg4_value(param);
+			break;
+		default:
+			break;
+	}
+
+	return 0;
+}
 void sys_hal_module_RF_power_ctrl (module_name_t module,power_module_state_t power_state)
 {
     uint32_t value = 0;
@@ -757,8 +828,8 @@ void sys_hal_low_power_hardware_init()
 	uint32_t  pmu_state = 0;
 
 	param = 0x4;
-	sys_ll_set_ana_reg2_spi_latchb(0x1);
 	sys_ll_set_ana_reg3_vhsel_ldodig(param);
+	sys_ll_set_ana_reg2_spi_latchb(0x1);
 
 	sys_ll_set_ana_reg0_band(0x13);//open the dpll 320m
 
@@ -777,6 +848,14 @@ void sys_hal_low_power_hardware_init()
 	param |= ((0x7 << SYS_ANA_REG6_RXTAL_LP_POS)|(0x7 << SYS_ANA_REG6_RXTAL_HP_POS));
 	sys_ll_set_ana_reg6_value(param);
 
+	param = 0;
+	param = sys_ll_get_ana_reg9_value();
+	param |= (0x1 << 5);//Ibias 5u enable
+	sys_ll_set_ana_reg9_value(param);
+
+	sys_ll_set_ana_reg8_en_lpmode(0x0);// touch exit low power mode
+	sys_ll_set_ana_reg6_vaon_sel(0x1);//  0x1 :vddaon drop disable, aon voltage to 1.1v
+
 	/*set wakeup source*/
 	pmu_state =  aon_pmu_hal_reg_get(PMU_REG0x41);
 	pmu_state |= BIT_AON_PMU_WAKEUP_ENA;
@@ -785,13 +864,12 @@ void sys_hal_low_power_hardware_init()
 }
 int32 sys_hal_lp_vol_set(uint32_t value)
 {
-	sys_ll_set_ana_reg2_spi_latchb(0x1);
 	sys_ll_set_ana_reg3_vlsel_ldodig(value);
+	sys_ll_set_ana_reg2_spi_latchb(0x1);
 	return 0;
 }
 uint32_t sys_hal_lp_vol_get()
 {
-	sys_ll_set_ana_reg2_spi_latchb(0x1);
 	return sys_ll_get_ana_reg3_vlsel_ldodig();
 }
 /*for low power function end*/
@@ -1899,6 +1977,11 @@ void sys_hal_aud_int_en(uint32_t value)
 	sys_ll_set_cpu0_int_0_31_en_cpu0_aud_int_en(value);
 }
 
+void sys_hal_sbc_int_en(uint32_t value)
+{
+	sys_ll_set_cpu0_int_0_31_en_cpu0_sbc_int_en(value);
+}
+
 void sys_hal_aud_power_en(uint32_t value)
 {
 	sys_ll_set_cpu_power_sleep_wakeup_pwd_audp(value);
@@ -2135,13 +2218,23 @@ void sys_hal_psram_power_enable(void)
 {
 	uint32_t value = sys_ll_get_ana_reg6_value();
 	value |= (0x1 << 9);
-	//value &= ~(0x1 << 5);
 	sys_ll_set_ana_reg6_value(value);
 }
 
 void sys_hal_psram_psldo_vsel(uint32_t value)
 {
 	sys_ll_set_ana_reg9_psldo_vsel(value);
+}
+
+void sys_hal_psram_psldo_vset(uint32_t output_voltage, bool is_add_200mv)
+{
+	sys_ll_set_ana_reg6_psldo_vsel(output_voltage); //1-1.8v, 0-3.3v
+	sys_ll_set_ana_reg9_psldo_vsel(is_add_200mv);
+}
+
+void sys_hal_psram_psram_disckg(uint32_t value)
+{
+	sys_ll_set_cpu_mode_disckg1_psram_disckg(value);
 }
 
 /**  psram End **/

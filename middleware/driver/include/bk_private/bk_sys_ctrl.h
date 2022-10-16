@@ -377,24 +377,6 @@ typedef enum
 
 } CHARGE_STEP;
 
-typedef enum {
-	RESET_SOURCE_POWERON = 0x0,
-	RESET_SOURCE_REBOOT = 0x1,
-	RESET_SOURCE_WATCHDOG = 0x2,
-
-	RESET_SOURCE_DEEPPS_GPIO = 0x3,
-	RESET_SOURCE_DEEPPS_RTC = 0x4,
-
-	RESET_SOURCE_CRASH_ILLEGAL_JUMP = 0x5,
-	RESET_SOURCE_CRASH_UNDEFINED = 0x6,
-	RESET_SOURCE_CRASH_PREFETCH_ABORT = 0x7,
-	RESET_SOURCE_CRASH_DATA_ABORT = 0x8,
-	RESET_SOURCE_CRASH_UNUSED = 0x9,
-
-	RESET_SOURCE_DEEPPS_USB = 0xa,
-	RESET_SOURCE_UNKNOWN = 0xb,
-} RESET_SOURCE_STATUS;
-
 typedef struct charge_oper_st
 {
     CHARGE_TYPE type;
@@ -457,7 +439,7 @@ extern void sctrl_ps_dump();
 extern void sctrl_flash_select_dco(void);
 extern UINT32 charger_is_full(void);
 extern UINT32 usb_power_is_pluged(void);
-RESET_SOURCE_STATUS sctrl_get_deep_sleep_wake_soure(void);
+extern UINT32 sctrl_get_deep_sleep_wake_soure(void);
 extern void rf_ps_enable_set(void);
 extern void rf_ps_enable_clear(void);
 extern int rf_ps_enabled(void);

@@ -33,6 +33,7 @@
 #include <components/system.h>
 #if (CONFIG_SYSTEM_CTRL)
 #include "sys_driver.h"
+#include <modules/pm.h>
 #endif
 
 static void uart_isr_common(uart_id_t id) __BK_SECTION(".itcm");
@@ -107,7 +108,7 @@ static uart_sema_t s_uart_sema[SOC_UART_ID_NUM_PER_UNIT] = {0};
 #endif
 
 #if (CONFIG_SYSTEM_CTRL)
-static void uart_clock_enable(uart_id_t id)
+void uart_clock_enable(uart_id_t id)
 {
 	switch(id)
 	{
@@ -125,7 +126,7 @@ static void uart_clock_enable(uart_id_t id)
 	}
 }
 
-static void uart_clock_disable(uart_id_t id)
+void uart_clock_disable(uart_id_t id)
 {
 	switch(id)
 	{
@@ -186,6 +187,8 @@ static void uart_init_gpio(uart_id_t id)
 	{
 		case UART_ID_0:
 		{
+			gpio_dev_unmap(uart_hal_get_tx_pin(id));
+			gpio_dev_unmap(uart_hal_get_rx_pin(id));
 			gpio_dev_map(uart_hal_get_tx_pin(id), GPIO_DEV_UART1_TXD);
 			gpio_dev_map(uart_hal_get_rx_pin(id), GPIO_DEV_UART1_RXD);
 			bk_gpio_pull_up(uart_hal_get_tx_pin(id));
@@ -205,6 +208,8 @@ static void uart_init_gpio(uart_id_t id)
 		}
 		case UART_ID_1:
 		{
+			gpio_dev_unmap(uart_hal_get_tx_pin(id));
+			gpio_dev_unmap(uart_hal_get_rx_pin(id));
 			gpio_dev_map(uart_hal_get_tx_pin(id), GPIO_DEV_UART2_TXD);
 			gpio_dev_map(uart_hal_get_rx_pin(id), GPIO_DEV_UART2_RXD);
 			bk_gpio_pull_up(uart_hal_get_tx_pin(id));
@@ -213,6 +218,8 @@ static void uart_init_gpio(uart_id_t id)
 		}
 		case UART_ID_2:
 		{
+			gpio_dev_unmap(uart_hal_get_tx_pin(id));
+			gpio_dev_unmap(uart_hal_get_rx_pin(id));
 			gpio_dev_map(uart_hal_get_tx_pin(id), GPIO_DEV_UART3_TXD);
 			gpio_dev_map(uart_hal_get_rx_pin(id), GPIO_DEV_UART3_RXD);
 			bk_gpio_pull_up(uart_hal_get_tx_pin(id));
@@ -321,7 +328,7 @@ static bk_err_t uart_id_init_common(uart_id_t id)
 	s_uart_sema[id].rx_blocked = false;
 	if (s_uart_sema[id].rx_int_sema == NULL) {
 		ret = rtos_init_semaphore(&(s_uart_sema[id].rx_int_sema), 1);
-		BK_ASSERT(kNoErr == ret);
+		BK_ASSERT(kNoErr == ret); /* ASSERT VERIFIED */
 	}
 	s_uart[id].id_init_bits |= BIT(id);
 	s_uart[id].id_sw_fifo_enable_bits |= BIT(id);
@@ -484,18 +491,192 @@ static void uart_isr_register_functions(uart_id_t id)
 	switch(id)
 	{
 		case UART_ID_0:
-			bk_int_isr_register(INT_SRC_UART1, uart0_isr, NULL);
+			bk_int_isr_register(INT_SRC_UART0, uart0_isr, NULL);
 			break;
 		case UART_ID_1:
-			bk_int_isr_register(INT_SRC_UART2, uart1_isr, NULL);
+			bk_int_isr_register(INT_SRC_UART1, uart1_isr, NULL);
 			break;
 		case UART_ID_2:
-			bk_int_isr_register(INT_SRC_UART3, uart2_isr, NULL);
+			bk_int_isr_register(INT_SRC_UART2, uart2_isr, NULL);
 			break;
 		default:
 			break;
 	}
 }
+
+#if CONFIG_UART_LOW_VOLTAGE_SUPPORT
+typedef struct
+{
+	bool tx_status;
+	bool rx_status;
+	bool sys_int_en_status;
+	uart_id_t uart_id;
+} uart_lowpower_sleep_status;
+static uart_lowpower_sleep_status s_uart_lvsleep_status[SOC_UART_ID_NUM_PER_UNIT] = {0};
+
+static void bk_uart_before_lvsleep_record_status(uart_id_t id)
+{
+	if(uart_hal_get_tx_enable(&s_uart[id].hal))
+		s_uart_lvsleep_status[id].tx_status = true;
+	else
+		s_uart_lvsleep_status[id].tx_status = false;
+
+	if(uart_hal_get_rx_enable(&s_uart[id].hal))
+		s_uart_lvsleep_status[id].rx_status = true;
+	else
+		s_uart_lvsleep_status[id].rx_status = false;
+
+	if(uart_hal_get_system_interrput_en_status(id))
+		s_uart_lvsleep_status[id].sys_int_en_status = true;
+	else
+		s_uart_lvsleep_status[id].sys_int_en_status = false;
+}
+
+static void bk_uart_lvsleep_restore_status(uart_id_t id)
+{
+	if(s_uart_lvsleep_status[id].tx_status)
+		uart_hal_set_tx_enable(&s_uart[id].hal, id, 1);
+
+	if(s_uart_lvsleep_status[id].rx_status)
+		uart_hal_set_rx_enable(&s_uart[id].hal, id, 1);
+}
+
+static void bk_uart_enter_lvsleep_disable_config(uart_id_t id)
+{
+	bk_uart_set_enable_rx(id, false);
+	bk_uart_set_enable_tx(id, false);
+	bk_uart_disable_rx_interrupt(id);
+	bk_uart_disable_tx_interrupt(id);
+	delay_us(uart_wait_tx_over());
+}
+
+static void bk_uart_exit_lvsleep_enable_config(uart_id_t id)
+{
+	if(s_uart_lvsleep_status[id].sys_int_en_status) {
+		bk_uart_enable_rx_interrupt(id);
+		bk_uart_enable_tx_interrupt(id);
+	}
+}
+
+static void bk_uart_enter_lvsleep(uint64_t sleep_time, void *args)
+{
+	uint32_t *uart_id = args;
+
+	switch((uart_id_t)*uart_id)
+	{
+		case UART_ID_0:
+			bk_uart_before_lvsleep_record_status(UART_ID_0);
+			bk_uart_enter_lvsleep_disable_config(UART_ID_0);
+			break;
+		case UART_ID_1:
+			bk_uart_before_lvsleep_record_status(UART_ID_1);
+			bk_uart_enter_lvsleep_disable_config(UART_ID_1);
+			break;
+		case UART_ID_2:
+			bk_uart_before_lvsleep_record_status(UART_ID_2);
+			bk_uart_enter_lvsleep_disable_config(UART_ID_2);
+			break;
+		default:
+			break;
+	}
+
+	return;
+}
+
+static void bk_uart_exit_lvsleep(uint64_t sleep_time, void *args)
+{
+	uint32_t *uart_id = args;
+
+	switch((uart_id_t)*uart_id)
+	{
+		case UART_ID_0:
+			bk_uart_lvsleep_restore_status(UART_ID_0);
+			bk_uart_exit_lvsleep_enable_config(UART_ID_0);
+			break;
+		case UART_ID_1:
+			bk_uart_lvsleep_restore_status(UART_ID_1);
+			bk_uart_exit_lvsleep_enable_config(UART_ID_1);
+			break;
+		case UART_ID_2:
+			bk_uart_lvsleep_restore_status(UART_ID_2);
+			bk_uart_exit_lvsleep_enable_config(UART_ID_2);
+			break;
+		default:
+			break;
+	}
+
+	return;
+}
+
+static void uart_register_lvsleep_cb(void *param, uart_id_t id)
+{
+	pm_cb_conf_t uart_enter_config = {
+			.cb = (pm_cb)bk_uart_enter_lvsleep,
+			.args = param
+			};
+	pm_cb_conf_t uart_exit_config = {
+			.cb = (pm_cb)bk_uart_exit_lvsleep,
+			.args = param
+			};
+
+	switch(id)
+	{
+		case UART_ID_0:
+			bk_pm_sleep_register_cb(PM_MODE_LOW_VOLTAGE, PM_DEV_ID_UART1, &uart_enter_config, &uart_exit_config);
+			break;
+		case UART_ID_1:
+			bk_pm_sleep_register_cb(PM_MODE_LOW_VOLTAGE, PM_DEV_ID_UART2, &uart_enter_config, &uart_exit_config);
+			break;
+		case UART_ID_2:
+			bk_pm_sleep_register_cb(PM_MODE_LOW_VOLTAGE, PM_DEV_ID_UART3, &uart_enter_config, &uart_exit_config);
+			break;
+		default:
+			break;
+	}
+}
+
+static void uart_unregister_lvsleep_cb(uart_id_t id)
+{
+	switch(id)
+	{
+		case UART_ID_0:
+			bk_pm_sleep_unregister_cb(PM_MODE_LOW_VOLTAGE, PM_DEV_ID_UART1, true, true);
+			break;
+		case UART_ID_1:
+			bk_pm_sleep_unregister_cb(PM_MODE_LOW_VOLTAGE, PM_DEV_ID_UART2, true, true);
+			break;
+		case UART_ID_2:
+			bk_pm_sleep_unregister_cb(PM_MODE_LOW_VOLTAGE, PM_DEV_ID_UART3, true, true);
+			break;
+		default:
+			break;
+	}
+
+}
+
+static void uart_lvsleep_init(void)
+{
+	for(uart_id_t id = UART_ID_0; id < SOC_UART_ID_NUM_PER_UNIT; id++) {
+		s_uart_lvsleep_status[id].tx_status = false;
+		s_uart_lvsleep_status[id].rx_status = false;
+		s_uart_lvsleep_status[id].sys_int_en_status = false;
+		s_uart_lvsleep_status[id].uart_id = id;
+		uart_register_lvsleep_cb(&(s_uart_lvsleep_status[id].uart_id), id);
+	}
+}
+
+static void uart_lvsleep_deinit(void)
+{
+	for(uart_id_t id = UART_ID_0; id < SOC_UART_ID_NUM_PER_UNIT; id++) {
+		s_uart_lvsleep_status[id].tx_status = false;
+		s_uart_lvsleep_status[id].rx_status = false;
+		s_uart_lvsleep_status[id].sys_int_en_status = false;
+		s_uart_lvsleep_status[id].uart_id = UART_ID_MAX;
+		uart_unregister_lvsleep_cb(id);
+	}
+}
+
+#endif
 
 bk_err_t bk_uart_driver_init(void)
 {
@@ -516,9 +697,14 @@ bk_err_t bk_uart_driver_init(void)
 	uart_statis_init();
 	s_uart_driver_is_init = true;
 
+#if CONFIG_UART_LOW_VOLTAGE_SUPPORT
+	uart_lvsleep_init();
+#endif
+
 #ifndef CONFIG_BK_PRINTF_DISABLE
 	bk_printf_init();
 #endif
+
 
 	return BK_OK;
 }
@@ -531,6 +717,10 @@ bk_err_t bk_uart_driver_deinit(void)
 	for (uart_id_t id = UART_ID_0; id < SOC_UART_ID_NUM_PER_UNIT; id++) {
 		uart_id_deinit_common(id);
 	}
+
+#if CONFIG_UART_LOW_VOLTAGE_SUPPORT
+	uart_lvsleep_deinit();
+#endif
 	s_uart_driver_is_init = false;
 
 	return BK_OK;
@@ -900,6 +1090,16 @@ uint32_t bk_uart_get_ate_detect_gpio(void)
 	return uart_hal_get_tx_pin(CONFIG_UART_ATE_PORT);
 }
 
+gpio_id_t bk_uart_get_rx_gpio(uart_id_t id)
+{
+	return uart_hal_get_rx_pin(id);
+}
+
+bool bk_uart_is_tx_over(uart_id_t id)
+{
+	return uart_hal_is_tx_fifo_empty(&s_uart[id].hal, id);
+}
+
 uint32_t uart_wait_tx_over(void)
 {
 	return uart_hal_wait_tx_over();
@@ -938,42 +1138,68 @@ static void uart_isr_common(uart_id_t id)
 	UART_STATIS_GET(uart_statis, id);
 	UART_STATIS_INC(uart_statis->uart_isr_cnt);
 
-	if (uart_hal_is_rx_interrupt_triggered(&s_uart[id].hal, id, status)) {
+	if (uart_hal_is_rx_interrupt_triggered(&s_uart[id].hal, id, status))
+	{
+		if(int_status & (BIT(2) | BIT(3) | BIT(4)))
+		{
+			int ret = 0;
+			uint8_t rx_data;
+
+			/* read all data from rx-FIFO. */
+		 	while (1)
+			{
+				ret = uart_read_byte_ex(id, &rx_data);
+				if (ret == -1)
+				{
+					break;
+				}
+			}
+		}
+
 		UART_STATIS_INC(uart_statis->rx_isr_cnt);
 		UART_STATIS_SET(uart_statis->rx_fifo_cnt, uart_hal_get_rx_fifo_cnt(&s_uart[id].hal, id));
-		if (uart_id_is_sw_fifo_enabled(id)) {
-			if (uart_id_read_fifo_frame(id, s_uart_rx_kfifo[id]) > 0) {
-				if (s_uart_sema[id].rx_int_sema && s_uart_sema[id].rx_blocked) {
+		if (uart_id_is_sw_fifo_enabled(id))
+		{
+			if (uart_id_read_fifo_frame(id, s_uart_rx_kfifo[id]) > 0)
+			{
+				if (s_uart_sema[id].rx_int_sema && s_uart_sema[id].rx_blocked)
+				{
 					rtos_set_semaphore(&(s_uart_sema[id].rx_int_sema));
 					s_uart_sema[id].rx_blocked = false;
 				}
 			}
-			if (s_uart_rx_isr[id].callback) {
+		}
+		else if (s_uart_rx_isr[id].callback)
+		{
 				s_uart_rx_isr[id].callback(id, s_uart_rx_isr[id].param);
-			}
-		}  else {
-			if (s_uart_rx_isr[id].callback) {
-				s_uart_rx_isr[id].callback(id, s_uart_rx_isr[id].param);
-			} else {
-				int ret = 0;
-				uint8_t rx_data;
+		}
+		else
+		{
+			int ret = 0;
+			uint8_t rx_data;
 
-				/* read all data from rx-FIFO. */
-			 	while (1) {
-					ret = uart_read_byte_ex(id, &rx_data);
-					if (ret == -1) {
-						break;
-					}
+			/* read all data from rx-FIFO. */
+		 	while (1)
+			{
+				ret = uart_read_byte_ex(id, &rx_data);
+				if (ret == -1)
+				{
+					break;
 				}
 			}
 		}
 	}
-	if (uart_hal_is_tx_interrupt_triggered(&s_uart[id].hal, id, status)) {
-		if (s_uart_tx_isr[id].callback) {
+
+	if (uart_hal_is_tx_interrupt_triggered(&s_uart[id].hal, id, status))
+	{
+		if (s_uart_tx_isr[id].callback)
+		{
 			s_uart_tx_isr[id].callback(id, s_uart_tx_isr[id].param);
 		}
 	}
-	if(uart_hal_is_rx_parity_err_int_triggered(&s_uart[id].hal, id, status)) {
+
+	if(uart_hal_is_rx_parity_err_int_triggered(&s_uart[id].hal, id, status))
+	{
 		uart_hal_flush_fifo(&s_uart[id].hal, id);
 	}
 }

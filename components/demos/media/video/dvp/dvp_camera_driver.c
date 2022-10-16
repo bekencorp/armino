@@ -31,9 +31,9 @@
 #include "bk_general_dma.h"
 #endif
 
-#define EJPEG_DROP_COUNT              (4)
+#define EJPEG_DROP_COUNT              (0)
 #define EJPEG_DELAY_HTIMER_CHANNEL     5
-#define EJPEG_I2C_DEFAULT_BAUD_RATE    I2C_BAUD_RATE_100KHZ
+#define EJPEG_I2C_DEFAULT_BAUD_RATE    I2C_BAUD_RATE_50KHZ
 #define EJPEG_DELAY_HTIMER_VAL         (2)  // 2ms
 
 static uint32_t s_camera_sensor = 0x01E00014;//(480 << 16) | 20;
@@ -45,6 +45,8 @@ static uint32_t lower_size = 10 * 1024;
 static uint8_t jpeg_auto_encode = 0;
 static uint8_t jpeg_config_set = 0;
 static uint8_t jpeg_drop_image = 0;
+static beken_semaphore_t ejpeg_sema = NULL;
+static volatile uint8_t jpeg_eof_flag = 0;
 
 static void camera_intf_delay_timer_hdl(timer_id_t timer_id)
 {
@@ -74,13 +76,14 @@ static void camera_intf_delay_timer_hdl(timer_id_t timer_id)
 		CAMERA_LOGE("jpeg frame len crc error:%d-%d\r\n", frame_len, frame_total_len);
 	}
 
-	frame_total_len = 0;
 
 	if (jpeg_drop_image == 0)
 	{
 		if ((ejpeg_cfg.node_full_handler != NULL) && (rec_len > 0))
-		ejpeg_cfg.node_full_handler(ejpeg_cfg.rxbuf + already_len, rec_len, 1, frame_len);
+		ejpeg_cfg.node_full_handler(ejpeg_cfg.rxbuf + already_len, rec_len, 1, frame_total_len);
 	}
+
+	frame_total_len = 0;
 
 	already_len += rec_len;
 	if (already_len >= ejpeg_cfg.rxbuf_len)
@@ -106,6 +109,7 @@ static void camera_intf_delay_timer_hdl(timer_id_t timer_id)
 #if (!CONFIG_SYSTEM_CTRL)
 	bk_timer_disable(EJPEG_DELAY_HTIMER_CHANNEL);
 #endif
+
 }
 
 static void camera_intf_start_delay_timer(void)
@@ -142,6 +146,20 @@ static void camera_intf_ejpeg_end_handler(jpeg_unit_t id, void *param)
 {
 	camera_intf_start_delay_timer();
 }
+
+static void camera_intf_vsync_negedge_handler(jpeg_unit_t id, void *param)
+{
+	if (jpeg_eof_flag)
+	{
+		bk_jpeg_enc_set_enable(0, JPEG_ENC_MODE);
+		jpeg_eof_flag = 0;
+		if (ejpeg_sema != NULL)
+		{
+			rtos_set_semaphore(&ejpeg_sema);
+		}
+	}
+}
+
 
 static void camera_intf_init_ejpeg_pixel(uint32_t ppi_type)
 {
@@ -268,6 +286,13 @@ bk_err_t bk_camera_init(void *data)
 	uint8_t ppi = 0;
 	jpeg_drop_image = EJPEG_DROP_COUNT;
 
+	err = rtos_init_semaphore(&ejpeg_sema, 1);
+	if (err != kNoErr)
+	{
+		CAMERA_LOGE("jpeg sema not init ok\r\n");
+		return err;
+	}
+
 #if CONFIG_SOC_BK7256XX
 	bk_jpeg_enc_driver_init();
 #endif
@@ -295,21 +320,33 @@ bk_err_t bk_camera_init(void *data)
 
 	bk_jpeg_enc_init(&jpeg_config);
 	bk_jpeg_enc_register_isr(END_OF_FRAME, camera_intf_ejpeg_end_handler, NULL);
+	bk_jpeg_enc_register_isr(VSYNC_NEGEDGE, camera_intf_vsync_negedge_handler, NULL);
 
 	i2c_config.baud_rate = EJPEG_I2C_DEFAULT_BAUD_RATE;
 	i2c_config.addr_mode = I2C_ADDR_MODE_7BIT;
 	bk_i2c_init(CONFIG_CAMERA_I2C_ID, &i2c_config);
 
-	bk_camera_sensor_config();
+	err = bk_camera_sensor_config();
+
 	return err;
 }
 
 bk_err_t bk_camera_deinit(void)
 {
+	int ret = kNoErr;
 
-	os_printf("bk_jpeg_enc_deinit\r\n");
+	jpeg_eof_flag = 1;
+
+	ret = rtos_get_semaphore(&ejpeg_sema, 200);
+	if (ret != kNoErr)
+	{
+		CAMERA_LOGE("Not wait jpeg eof!\r\n");
+	}
+
+	camera_inf_power_down();
+
 	bk_jpeg_enc_deinit();
-	os_printf("bk_dma_deinit\r\n");
+
 	bk_dma_deinit(ejpeg_cfg.dma_channel);
 	bk_dma_free(DMA_DEV_JPEG, ejpeg_cfg.dma_channel);
 
@@ -319,18 +356,22 @@ bk_err_t bk_camera_deinit(void)
 	bk_jpeg_enc_driver_deinit();
 #endif
 
+	jpeg_eof_flag = 0;
 	jpeg_drop_image = 0;
 	frame_total_len = 0;
 	os_memset(&ejpeg_cfg, 0, sizeof(jpegenc_desc_t));
 
+	rtos_deinit_semaphore(&ejpeg_sema);
+	ejpeg_sema = NULL;
+
 	CAMERA_LOGI("camera deinit finish\r\n");
-	return kNoErr;
+	return ret;
 }
 
 bk_err_t bk_camera_set_param(uint32_t dev, uint32_t cfg)
 {
 	camera_intf_set_device(dev);
-	
+
 	s_camera_sensor = cfg;
 	camera_intf_set_sener_cfg(cfg);
 	return kNoErr;

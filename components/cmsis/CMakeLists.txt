@@ -5,6 +5,7 @@ if (CONFIG_CMSIS)
 	list(APPEND srcs
 		CMSIS_5/Device/ArmChina/STAR/Source/startup_STAR.c
 		CMSIS_5/Device/ArmChina/STAR/Source/system_STAR.c
+		port/start.c
 		)
 
 	list(APPEND incs

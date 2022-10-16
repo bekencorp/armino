@@ -140,6 +140,7 @@ uint32_t sys_drv_cpu_clk_div_get(uint32_t core_index);
 void sys_drv_low_power_hardware_init();
 int32 sys_drv_lp_vol_set(uint32_t value);
 uint32_t sys_drv_lp_vol_get();
+int32 sys_drv_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval);
 /*for  low power  function end*/
 uint32 sys_drv_get_device_id(void); // CMD_GET_DEVICE_ID
 uint32 sys_drv_get_chip_id(void); // CMD_GET_CHIP_ID
@@ -392,6 +393,8 @@ uint32_t sys_drv_psram_clk_sel(uint32_t value);
 uint32_t sys_drv_psram_set_clkdiv(uint32_t value);
 uint32_t sys_drv_psram_power_enable(void);
 uint32_t sys_drv_psram_psldo_vsel(uint32_t value);
+uint32_t sys_drv_psram_psldo_vset(uint32_t value, bool is_add_200mv);
+uint32_t sys_drv_psram_psram_disckg(uint32_t value);
 
 /**  psram End **/
 

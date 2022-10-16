@@ -1,6 +1,6 @@
 export PROPERTIES_PROJECT_DIR := projects/properties_libs
 ARMINO_DIR := $(shell pwd)
-
+ARMINO_BOOTLOADER := $(ARMINO_DIR)/properties/modules/bootloader/aboot/bootloader-v4
 ARMINO_TOOL := @$(ARMINO_DIR)/tools/build_tools/armino
 ARMINO_TOOL_WRAPPER := @$(ARMINO_DIR)/tools/build_tools/build.sh
 # 1. soc_targets contains all supported SoCs
@@ -14,6 +14,7 @@ soc_targets := $(shell find  middleware/soc/ -name "*.defconfig" -exec basename 
 properties_lib_targets := $(subst bk, libbk, $(soc_targets))
 rel_targets := $(subst bk, relbk, $(soc_targets))
 clean_targets := $(subst bk, cleanbk, $(soc_targets))
+doc_targets := $(subst bk, docbk, $(soc_targets))
 cmake_supported_targets := menuconfig doc
 cmake_not_supported_targets = help clean
 all_targets = cmake_not_supported_targets soc_targets cmake_supported_targets
@@ -44,7 +45,6 @@ else
 	export PROJECT_LIBS := $(PROJECT_LIBS)
 endif
 
-
 ifeq ("$(PROJECT_DIR)", "")
 	export PROJECT_DIR := projects/$(PROJECT)
 else
@@ -62,12 +62,15 @@ endif
 
 PROJECT_NAME := $(notdir $(PROJECT_DIR))
 
-
 ifdef BUILD_DIR
 	PROJECT_BUILD_DIR := $(BUILD_DIR)
 else
 	PROJECT_BUILD_DIR := build/$(PROJECT_NAME)/$(ARMINO_SOC)
 endif
+
+# overwrite project config
+-include $(ARMINO_DIR)/middleware/soc/$(ARMINO_SOC)/soc_config.mk
+-include $(ARMINO_DIR)/$(PROJECT_DIR)/pj_config.mk
 
 .PHONY: all_targets
 
@@ -96,6 +99,10 @@ common:
 has_lib_src := $(shell $(ARMINO_DIR)/tools/build_tools/detect_internal_lib_src.py)
 build_dual_core := $(shell $(ARMINO_DIR)/tools/build_tools/detect_build_dual_core.py $(ARMINO_SOC) $(PROJECT))
 
+$(info $$(PROJECT) is $(PROJECT))
+bootloader:
+	make -C ${ARMINO_BOOTLOADER}
+
 ifeq ($(has_lib_src), 1)
 $(properties_lib_targets): common
 	@$(ARMINO_TOOL_WRAPPER) $(ARMINO_DIR) $(PROJECT_DIR) $(PROJECT_BUILD_DIR) $@
@@ -104,22 +111,8 @@ endif
 liball: $(properties_lib_targets)
 
 
-need_buid_cpu1_bin := 0
-
-ifeq ($(has_lib_src), 1)
-ifeq ($(build_dual_core), 1)
-	need_buid_cpu1_bin := 1
-endif
-endif
-
-
-ifeq ($(need_buid_cpu1_bin), 1)
-$(soc_targets): $(ARMINO_SOC)_cp1
+$(soc_targets): ${PRE_BUILD_TARGET}
 	@$(ARMINO_TOOL_WRAPPER) $(ARMINO_DIR) $(PROJECT_DIR) $(PROJECT_BUILD_DIR) $@
-else
-$(soc_targets):
-	@$(ARMINO_TOOL_WRAPPER) $(ARMINO_DIR) $(PROJECT_DIR) $(PROJECT_BUILD_DIR) $@
-endif
 
 all: $(soc_targets)
 
@@ -134,6 +127,10 @@ $(cmake_supported_targets): common
 $(clean_targets):
 	@$(ARMINO_TOOL_WRAPPER) $(ARMINO_DIR) $(PROJECT_DIR) $(PROJECT_NAME) $@
 
+$(doc_targets):
+	@$(ARMINO_TOOL_WRAPPER) $(ARMINO_DIR) $(PROJECT_DIR) $(PROJECT_NAME) $@
+
 clean:
 	@echo "rm ./build"
 	@rm -rf ./build
+	@python tools/build_tools/armino_doc.py clean

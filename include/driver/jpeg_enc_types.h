@@ -68,16 +68,12 @@ typedef enum {
 	ISR_MAX,
 }jpeg_isr_type_t;
 
-/**
- * @brief jpeg int type
- */
 typedef enum {
-	JPEG_END_YUV_INT = (1 << 0),
-	JPEG_HEAD_OUTPUT_INT = (1 << 1),
-	JPEG_START_FRAME_INT = (1 << 2),
-	JPEG_END_FRAME_INT = (1 << 3),
-	JPEG_VSYNC_NEGEDGE_INT = (1 << 6),
-} jpeg_int_type_t;
+	ENABLE_CLK = 0, /**< enable jpeg mclk and pclk gpio function */
+	ENABLE_DATA,    /**< enable jpeg vsync/hsync/D0-D7 gpio function */
+	ENABLE_ALL,     /**< enable all jpeg gpio function */
+	DISABLE_ALL,    /**< disable all jpeg gpio function */
+}jpeg_gpio_mode_t;
 
 /**
  * @brief jpeg isr callback relay jpeg driver
@@ -124,28 +120,16 @@ typedef struct {
 	uint8_t dma_channel;           /**< dma channel used for transfer jpeg encoder data */
 #endif
 
-#if CONFIG_VIDEO_DVP_LCD
-	uint8_t dma_lcd_channel;      /**< dma channel used for lcd display */
-	uint8_t *jpeg_dec_src_addr;   /**< jepg data, and jpeg dec arc addr */
-	uint8_t *jpeg_dec_dst_addr;    /**< jepg dec data dst addr */
-	uint8_t *lcd_display_addr;     /**< lcd diaplay data base addr */
-	uint16_t jpeg_dec_pixel_x;    /**< jepg dec x_pixel */
-	uint8_t dma_lcd_int_cnt;      /**< lcd disaply dma transfer cnt */
-	uint8_t lcd_blend_frame_cnt;
-	void (*jpeg_dec_callback)(void * src, void * dst); /**< jpeg dec callback */
-#endif
 } jpegenc_desc_t;
 
 typedef enum {
-	READY = 0, 	       	 /**<  jpeg deca and display ready */
-	MEMCPYING, 	       	 /**<  jepg data mem cpying */
-	JPEGDE_START, 	     /**<  jepg dec start */
-	JPEGDECING,	      	 /**<  jepg decing */
-	DISPLAYING, 	       	 /**<  jepg dec complete, lcd display */
+	READY = 0,           /**<  jpeg deca and display ready */
+	MEMCPYING,           /**<  jepg data mem cpying */
+	JPEGDE_START,        /**<  jepg dec start */
+	JPEGDECING,          /**<  jepg decing */
+	DISPLAYING,          /**<  jepg dec complete, lcd display */
 	JPEGDED,
 }lcd_satus_t;
-
-
 
 
 /**

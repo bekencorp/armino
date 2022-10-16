@@ -25,6 +25,11 @@
 #include "legacy_include/bluetooth_legacy_include.h"
 #endif
 
+#if (CONFIG_OTA_UPDATE_DEFAULT_PARTITION && CONFIG_HTTP_AB_PARTITION)
+#include <modules/ota.h>
+extern void bk_ota_confirm_update_partition(ota_confirm_flag ota_confirm_val);
+#endif
+
 #if ((CONFIG_FREERTOS) || (CONFIG_LITEOS_M) || (CONFIG_LITEOS_M_V3)) && (CONFIG_CLI)
 #include "bk_api_cli.h"
 #endif
@@ -260,6 +265,15 @@ int legacy_init(void)
 #endif
 #if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
 	demo_wifi_fast_connect();
+#endif
+#if (CONFIG_OTA_UPDATE_DEFAULT_PARTITION&& CONFIG_HTTP_AB_PARTITION)
+    #ifdef CONFIG_OTA_UPDATE_B_PARTITION
+    os_printf("exec part a\r\n");
+    bk_ota_confirm_update_partition(CONFIRM_EXEC_A);
+    #else
+    os_printf("exec part b\r\n");
+    bk_ota_confirm_update_partition(CONFIRM_EXEC_B);
+    #endif
 #endif
 	return 0;
 }

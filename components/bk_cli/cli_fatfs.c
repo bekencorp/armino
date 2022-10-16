@@ -44,6 +44,14 @@ static void fatfs_operate(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 			test_mount(drv_num);
 			os_printf("mount:%s\r\n", disk_name[drv_num%DISK_NUMBER_COUNT]);
 			break;
+		case 'U':
+			test_unmount(drv_num);
+			os_printf("unmount:%s\r\n", disk_name[drv_num%DISK_NUMBER_COUNT]);
+			break;
+		case 'G':
+			test_getfree(drv_num);
+			os_printf("getfree:%s\r\n", disk_name[drv_num%DISK_NUMBER_COUNT]);
+			break;
 		case 'R':
 			if (argc >= 5)
 				content_len = os_strtoul(argv[4], NULL, 10);

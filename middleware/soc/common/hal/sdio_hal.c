@@ -56,11 +56,6 @@ void sdio_hal_set_host_slave_mode(sdio_host_slave_mode_t mode)
 	sdio_ll_set_reg0x10_sd_slave(mode);
 }
 
-uint32_t sdio_hal_slave_get_cmd_arg0(void)
-{
-	return sdio_ll_get_reg0x13_sd_slave_wdat_0();
-}
-
 uint32_t sdio_hal_slave_read_data(void)
 {
 	return sdio_ll_get_reg0xc_value();
@@ -95,8 +90,8 @@ void sdio_hal_slave_notify_host_next_block(void)
 {
 	sdio_ll_set_reg0x10_dat_s_rd_mul_blk(0);
 
-	//confirm the reg status is stable.
-	for(volatile int i = 0; i < 10; i++);
+	//confirm the reg status is stable.delay time should more then one cycle of SDIO
+	for(volatile int i = 0; i < 200; i++);
 
 	sdio_ll_set_reg0x10_dat_s_rd_mul_blk(1);
 }
@@ -141,3 +136,72 @@ void sdio_hal_slave_set_samp_sel(uint32_t value)
 }
 #endif
 
+#if CONFIG_SDIO_SLAVE
+uint32_t sdio_hal_slave_get_cmd_arg0(void)
+{
+	return sdio_ll_get_reg0x5_value();
+}
+
+uint32_t sdio_hal_get_tx_fifo_empty_int_status(void)
+{
+    return sdio_ll_get_reg0x9_tx_fifo_empt();
+}
+
+void sdio_hal_clear_tx_fifo_empty_int_status(void)
+{
+    sdio_ll_clear_reg0x9_tx_fifo_empt();
+}
+
+
+//NOTES:be care this is for slave write end, and sdio_ll_get_reg0x9_sd_data_wr_end_int is for host write end
+uint32_t sdio_hal_slave_get_wr_end_int(void)
+{
+    return sdio_ll_get_reg0x9_dat_s_wr_wai_int();
+}
+
+void sdio_hal_slave_clear_wr_end_int(void)
+{
+	//write 1 to clear INT status, 0 do nothing.
+    sdio_ll_set_reg0x9_dat_s_wr_wai_int(1);
+}
+
+void sdio_hal_set_tx_fifo_empty_int(uint32_t value)
+{
+	//write 1 to mask clock gate of "tx fifo need write".
+    sdio_ll_set_reg0xa_tx_fifo_empt_mask(value);
+}
+
+void sdio_hal_slave_set_cmd_res_end_int(uint32_t value)
+{
+	//write 1 to mask clock gate of "tx fifo need write".
+    sdio_ll_set_reg0xa_cmd_s_res_end_int_mask(value);
+}
+
+void sdio_hal_slave_set_write_end_int(uint32_t value)
+{
+    sdio_ll_set_reg0xa_dat_s_wr_wai_int_mask(value);
+}
+
+void sdio_hal_slave_set_read_end_int(uint32_t value)
+{
+    sdio_ll_set_reg0xa_dat_s_rd_bus_int_mask(value);
+}
+
+void sdio_hal_slave_set_blk_size(uint32_t value)
+{
+	sdio_ll_set_reg0x3_sd_data_blk_size(value);
+}
+
+uint32_t sdio_ll_get_sd_slave_wr_finish(void)
+{
+	return sdio_ll_get_sd_slave_status_sd_start_wr_en_r3();
+}
+
+//WARNING:it will reset fifo status.
+void sdio_hal_fifo_reset(void)
+{
+	sdio_ll_set_reg0xd_tx_fifo_rst();
+	sdio_ll_set_reg0xd_rx_fifo_rst();
+	sdio_ll_set_reg0xd_sd_sta_rst();
+}
+#endif

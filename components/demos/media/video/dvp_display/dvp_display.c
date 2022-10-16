@@ -13,7 +13,7 @@ void dvp_display_test()
 {
     rtos_delay_milliseconds(1000);
 #if (CONFIG_MEDIA)
-    frame_buffer_enable(true);
+    //frame_buffer_enable(true);
 #endif
     bk_dvp_camera_open(PPI_640X480, DVP_MODE_JPG);
 

@@ -20,6 +20,7 @@
 extern "C" {
 #endif
 
+#define I2C_BAUD_RATE_50KHZ      50000
 #define I2C_BAUD_RATE_100KHZ     100000
 #define I2C_BAUD_RATE_200KHZ     200000
 #define I2C_BAUD_RATE_400KHZ     400000

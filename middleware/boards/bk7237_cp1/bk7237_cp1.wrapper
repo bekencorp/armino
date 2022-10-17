@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+
+#TODO - optimize it, should finally remove this packer
+
+import os
+import sys
+import json
+import shutil
+import argparse
+
+armino_path = os.getenv("ARMINO_PATH")
+
+if(os.path.exists("app.bin")):
+    if(os.path.exists(armino_path+"/middleware/boards/bk7237")):
+        os.system("cp app.bin "+armino_path+"/middleware/boards/bk7237/bk7237_cpu1.bin")
+    else:
+        print("path middleware/boards/bk7237 is not exist")

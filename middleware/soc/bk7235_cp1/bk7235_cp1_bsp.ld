@@ -1,0 +1,1 @@
+../common/dualcore_cpu1.ld

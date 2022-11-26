@@ -62,6 +62,7 @@ extern uint64_t ullNextTime;
 extern const size_t uxTimerIncrementsForOneTick;
 extern volatile uint64_t * pullMachineTimerCompareRegister;
 extern uint32_t pm_debug_mode();
+extern void bk_task_wdt_feed(void);
 
 #if( configUSE_TICKLESS_IDLE != 0 )
 	/* Flag set from the timer interrupt to allow the sleep processing to know if
@@ -98,14 +99,26 @@ uint32_t rtos_get_time_diff(void) {
 	uint64_t cur_aon_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 	uint64_t cur_os_time = (uint64_t)rtos_get_time(); //ms
 	uint64_t diff_time = (cur_aon_time - base_aon_time)/RTC_TICKS_PER_1MS; //ms
+	uint32_t diff_ms = 0;
 
-
+	if((uint32_t)(diff_time >> 32) & 0x7FF0000) {
+		BK_LOGI(TAG, "aon_rtc overfollow....\r\n");
+		BK_DUMP_OUT("diff time: 0x%x:0x%08x\r\n", (u32)(diff_time >> 32), (u32)(diff_time & 0xFFFFFFFF));
+		return 0;
+	}
 
 	if (diff_time + base_os_time < cur_os_time) {
 		return 0;
 	}
 
-	return (uint32_t)(diff_time - cur_os_time + base_os_time) / OS_MS_PER_TICK; // tick
+	diff_ms = (uint32_t)(diff_time + base_os_time - cur_os_time);
+
+	if (diff_ms > 20000) {
+		BK_LOGI(TAG, "aon_rtc diff_ms: %dms.\r\n", diff_ms);
+		BK_LOGI(TAG, "cur aon time: 0x%x:0x%08x\r\n", (u32)(cur_aon_time >> 32), (u32)(cur_aon_time & 0xFFFFFFFF));
+	}
+
+	return  diff_ms / OS_MS_PER_TICK; // tick
 #else
 	return 0;
 #endif
@@ -440,6 +453,7 @@ __attribute__((section(".itcm_sec_code")))	void vPortSuppressTicksAndSleep( Tick
        			}
 
 				vTaskStepTick(xSleepTicks - 1);
+				bk_task_wdt_feed();
 			}
 #endif
 			/* Exit with interrpts enabled. */

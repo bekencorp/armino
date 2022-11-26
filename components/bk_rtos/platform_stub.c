@@ -14,7 +14,7 @@
  *  permission of BEKEN Corporation.
  ******************************************************************************
  */
-#include <common/bk_include.h> 
+#include <common/bk_include.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/times.h>
@@ -117,11 +117,11 @@ int __wrap_printf(const char *fmt, ...)
     return len;
 }
 
-
-void __assert_func(const char *file, int line, const char *func, const char *failedexpr)
+void __wrap___assert_func(const char *file, int line, const char *func, const char *failedexpr)
 {
 	os_printf("%s %d func %s expr %s\n", file, line, func, failedexpr);
 	BK_ASSERT(0); /* ASSERT VERIFIED */
 }
+
 // eof
 

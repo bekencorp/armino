@@ -1,1 +1,6 @@
-.. include:: ../../../zh_CN/developer-guide/peripheral/bk_pwm.rst
+PWM (TBC)
+==========
+
+:link_to_translation:`zh_CN:[中文]`
+
+

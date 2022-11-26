@@ -68,6 +68,13 @@ typedef struct tvideo_hdr_st {
 #endif
 } HDR_ST, *HDR_PTR;
 
+/** define audio transfer cmd */
+typedef enum
+{
+	VIDEO_TRAS_AUDIO_CLOSE = 0,
+	VIDEO_TRAS_AUDIO_OPEN = 1,
+} video_transfer_cmd_t;
+
 void app_demo_add_pkt_header(video_packet_t *param)
 {
 	HDR_PTR elem_tvhdr = (HDR_PTR)param->ptk_ptr;
@@ -118,7 +125,7 @@ static void app_demo_udp_handle_cmd_data(UINT8 *data, UINT16 len)
 	switch (cmd)
 	{
 #if APP_DEMO_EN_VOICE_TRANSFER
-		case 0:
+		case VIDEO_TRAS_AUDIO_CLOSE:
 			bk_aud_intf_voc_stop();
 			bk_aud_intf_voc_deinit();
 			aud_work_mode = AUD_INTF_WORK_MODE_NULL;
@@ -126,7 +133,7 @@ static void app_demo_udp_handle_cmd_data(UINT8 *data, UINT16 len)
 			bk_aud_intf_drv_deinit();
 			break;
 
-		case 1:
+		case VIDEO_TRAS_AUDIO_OPEN:
 			aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
 			aud_intf_drv_setup.task_config.priority = 3;
 			aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
@@ -134,16 +141,31 @@ static void app_demo_udp_handle_cmd_data(UINT8 *data, UINT16 len)
 			bk_aud_intf_drv_init(&aud_intf_drv_setup);
 			aud_work_mode = AUD_INTF_WORK_MODE_VOICE;
 			bk_aud_intf_set_mode(aud_work_mode);
-			aud_voc_setup.aec_enable = true;
-			aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
+			if (data[9] == 1) {
+				aud_voc_setup.aec_enable = true;
+			} else {
+				aud_voc_setup.aec_enable = false;
+			}
 			aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711A;
 			//aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_PCM;
 			aud_voc_setup.mic_gain = 0x2d;
 			aud_voc_setup.spk_gain = 0x2d;
 			aud_voc_setup.spk_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
+			aud_voc_setup.mic_en = AUD_INTF_VOC_MIC_OPEN;
+			aud_voc_setup.spk_en = AUD_INTF_VOC_SPK_OPEN;
+			if (data[8] == 1) {
+				aud_voc_setup.mic_type = AUD_INTF_MIC_TYPE_UAC;
+				aud_voc_setup.spk_type = AUD_INTF_SPK_TYPE_UAC;
+				aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_16K;
+			} else {
+				aud_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
+				aud_voc_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
+				aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
+			}
 			aud_voc_setup.aec_cfg.ec_depth = 20;
 			aud_voc_setup.aec_cfg.TxRxThr = 30;
 			aud_voc_setup.aec_cfg.TxRxFlr = 6;
+			aud_voc_setup.aec_cfg.ref_scale = 1;
 			aud_voc_setup.aec_cfg.ns_level = 2;
 			aud_voc_setup.aec_cfg.ns_para = 1;
 			bk_aud_intf_voc_init(aud_voc_setup);

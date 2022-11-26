@@ -31,7 +31,7 @@
 
 static void debug_help_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
-#if CONFIG_DUAL_CORE
+#if 0
 #include "mb_ipc_cmd.h"
 #include <driver/gpio.h>
 
@@ -54,7 +54,7 @@ static void debug_show_boot_time(char *pcWriteBuffer, int xWriteBufferLen, int a
 
 const struct cli_command debug_cmds[] = {
 	{"help", "list debug cmds", debug_help_command},
-#if CONFIG_DUAL_CORE
+#if 0
 	{"ipc", "ipc", debug_ipc_command},
 	{"rpc", "rpc", debug_rpc_command},
 	{"gpio_out", "gpio_out gpio_id {0|1}", debug_rpc_gpio_command},
@@ -108,7 +108,7 @@ static void debug_help_command(char *pcWriteBuffer, int xWriteBufferLen, int arg
 	print_cmd_table(debug_cmds, ARRAY_SIZE(debug_cmds));
 }
 
-#if CONFIG_DUAL_CORE
+#if 0
 static void print_debug_cmd_help(void *func)
 {
 	print_cmd_help(debug_cmds, ARRAY_SIZE(debug_cmds), func);

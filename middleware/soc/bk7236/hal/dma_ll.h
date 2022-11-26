@@ -52,6 +52,7 @@ static inline void dma_ll_init(dma_hw_t *hw)
 static inline uint32_t dma_ll_dev_to_req_mux(uint32 req_mux)
 {
 	switch (req_mux) {
+		CASE_DEV(DTCM);
 		CASE_DEV(AHB_MEM);
 		CASE_DEV(UART0);
 		CASE_DEV(SPI0);
@@ -66,6 +67,7 @@ static inline uint32_t dma_ll_dev_to_req_mux(uint32 req_mux)
 		CASE_DEV(LCD_DATA);
 		CASE_DEV(I2S_CHAN1);
 		CASE_DEV(I2S_CHAN2);
+		CASE_DEV(JPEG);
 		CASE_D();
 	}
 }
@@ -124,12 +126,14 @@ static inline void dma_ll_disable_interrupt(dma_hw_t *hw, dma_id_t id)
 
 static inline void dma_ll_clear_finish_interrupt_status(dma_hw_t *hw, dma_id_t id)
 {
-	hw->config_group[id].status.finish_int = 1;
+	/*other interrupt bit also wirte 1 to clear, so should not effect other bits*/
+	hw->config_group[id].status.v = BIT(DMA_FINISH_INT_POS);
 }
 
 static inline void dma_ll_clear_half_finish_interrupt_status(dma_hw_t *hw, dma_id_t id)
 {
-	hw->config_group[id].status.half_finish_int = 1;
+	/*other interrupt bit also wirte 1 to clear, so should not effect other bits*/
+	hw->config_group[id].status.v = BIT(DMA_HALF_FINISH_INT_POS);
 }
 
 static inline void dma_ll_clear_interrupt_status(dma_hw_t *hw, dma_id_t id)

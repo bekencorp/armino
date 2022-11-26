@@ -23,18 +23,27 @@
 
 #include <driver/dvp_camera.h>
 #include "lcd_act.h"
+#include "storage_act.h"
+#include <components/aud_intf.h>
 
 #define TAG "mcli"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
+#define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
 #define UNKNOW_ERROR (-686)
 #define CMD_CONTAIN(value) cmd_contain(argc, argv, value)
 #define GET_PPI(value)     get_ppi_from_cmd(argc, argv, value)
 #define GET_NAME(value)    get_name_from_cmd(argc, argv, value)
 
-
+#if defined(CONFIG_USB_UVC) && !defined(CONFIG_SLAVE_CORE)
+void uvc_disconnect_callback(void)
+{
+	LOGI("%s +++\n", __func__);
+	//media_app_camera_open(APP_CAMERA_UVC, PPI_640X480);
+}
+#endif
 
 uint32_t get_string_to_ppi(char *string, uint32_t pre)
 {
@@ -80,6 +89,16 @@ uint32_t get_string_to_ppi(char *string, uint32_t pre)
 		value = PPI_800X480;
 	}
 
+	if (os_strcmp(string, "480X854") == 0)
+	{
+		value = PPI_480X854;
+	}
+
+	if (os_strcmp(string, "864X480") == 0)
+	{
+		value = PPI_864X480;
+	}
+
 	return value;
 }
 
@@ -105,6 +124,22 @@ char * get_string_to_name(char *string, char * pre)
 	if (os_strcmp(string, "hx8282") == 0)
 	{
 		value = "hx8282";
+	}
+	if (os_strcmp(string, "nt35510") == 0)
+	{
+		value = "nt35510";
+	}
+	if (os_strcmp(string, "h050iwv") == 0)
+	{
+		value = "h050iwv";
+	}
+	if (os_strcmp(string, "md0430r") == 0)
+	{
+		value = "md0430r";
+	}
+	if (os_strcmp(string, "md0700r") == 0)
+	{
+		value = "md0700r";
 	}
 
 	return value;
@@ -161,11 +196,14 @@ bool cmd_contain(int argc, char **argv, char *string)
 	return ret;
 }
 
-
+#if CONFIG_WIFI_TRANSFER
+extern storage_flash_t storge_flash;
+#endif
 
 void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int ret = UNKNOW_ERROR;
+	char *msg = NULL;
 
 	LOGI("%s +++\n", __func__);
 
@@ -326,17 +364,87 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 					ret = media_app_lcd_step_trigger();
 				}
 			}
-			
+
 			if (os_strcmp(argv[2], "display") == 0)
 			{
 				if (argc >= 4)
 				{
-					ret = media_app_lcd_display(argv[3], ppi); //argv[3] sd card jpeg file name
+					ret = media_app_lcd_display_file(argv[3]);
 				}
+			}
+			if (os_strcmp(argv[2], "flash_display") == 0)
+			{
+#if CONFIG_WIFI_TRANSFER
+				lcd_display_t lcd_display;
+				lcd_display.image_addr = storge_flash.flash_image_addr;
+				lcd_display.img_length = storge_flash.flasg_img_length;
+				ret = media_app_lcd_display(&lcd_display);
+#endif
 			}
 			if (os_strcmp(argv[2], "beken_logo") == 0)
 			{
-				ret = media_app_lcd_display_beken();  
+				lcd_display_t lcd_display;
+				lcd_display.image_addr = os_strtoul(argv[3], NULL, 16) & 0xFFFFFFFF;
+				lcd_display.img_length = os_strtoul(argv[4], NULL, 16) & 0xFFFFFFFF;
+				ret = media_app_lcd_display_beken(&lcd_display);
+			}
+			if (os_strcmp(argv[2], "dma2d_blend") == 0)
+			{
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
+				lcd_blend_msg_t blend = {0} ;
+				if (os_memcmp (argv[3], "wifi", 4) == 0)
+				{
+					blend.blend_on = 1;
+					blend.lcd_blend_type = LCD_BLEND_WIFI;
+					blend.data[0] =  os_strtoul(argv[4], NULL, 10) & 0xFFFF;
+					LOGD("wifi dma2d blend data = %d\r\n", blend.data[0]);
+				}
+				else if (os_memcmp (argv[3], "clock", 4) == 0)
+				{
+					blend.blend_on = 1;
+					blend.lcd_blend_type = LCD_BLEND_TIME;
+					os_memcpy(blend.data, argv[4], 5);
+					LOGD("time dma2d blend data = %s\r\n", blend.data);
+				}
+				else if (os_memcmp (argv[3], "ver", 3) == 0)
+				{
+					uint8_t version[] = "VL4  V1.23.34";
+					blend.blend_on = 1;
+					blend.lcd_blend_type = LCD_BLEND_VERSION;
+					os_memcpy(blend.data, version, sizeof(version));
+					LOGD("ver dma2d blend data = %s\r\n", blend.data);
+				}
+				else if (os_strcmp(argv[3], "close") == 0)
+				{
+					if (os_strcmp(argv[4], "wifi") == 0)
+					{
+						blend.blend_on = 0;
+						blend.lcd_blend_type = LCD_BLEND_WIFI;
+					}
+					else if (os_strcmp(argv[4], "clock") == 0)
+					{
+						blend.blend_on = 0;
+						blend.lcd_blend_type = LCD_BLEND_TIME;
+					}
+					else if (os_strcmp(argv[4], "ver") == 0)
+					{
+						blend.blend_on = 0;
+						blend.lcd_blend_type = LCD_BLEND_VERSION;
+					}
+					else
+					{
+						blend.blend_on = 0;
+						blend.lcd_blend_type = LCD_BLEND_VERSION | LCD_BLEND_TIME | LCD_BLEND_WIFI;
+					}
+				}
+				else
+				{
+					LOGI("cmd not support \r\n");
+				}
+				ret = media_app_lcd_blend(&blend);
+#else
+				LOGI(" macro CONFIG_LCD_DMA2D_BLEND_FLASH_IMG is close \r\n");
+#endif
 			}
 #endif
 		}
@@ -347,6 +455,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 			if (os_strcmp(argv[2], "open") == 0)
 			{
+				media_app_register_uvc_disconnect_cb(uvc_disconnect_callback);
 				ret = media_app_camera_open(APP_CAMERA_UVC, ppi);
 			}
 
@@ -392,17 +501,48 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			if (os_strcmp(argv[2], "pause") == 0
 			    && os_strcmp(argv[3], "0") == 0)
 			{
-				media_app_transfer_pause(false);
+				ret = media_app_transfer_pause(false);
 			}
 
 			if (os_strcmp(argv[2], "pause") == 0
 			    && os_strcmp(argv[3], "1") == 0)
 			{
-				media_app_transfer_pause(true);
+				ret = media_app_transfer_pause(true);
 			}
 
 		}
 #endif
+
+        if (os_strcmp(argv[1], "avi") == 0)
+        {
+#if defined(CONFIG_CAMERA) && !defined(CONFIG_SLAVE_CORE) && defined(CONFIG_VIDEO_AVI)
+            if (0 == os_strcmp(argv[2], "v_open"))
+            {
+                ret = media_app_avi_open();
+                os_printf("media_app_avi_open\r\n");
+            }
+
+            if (0 == os_strcmp(argv[2], "v_close"))
+            {
+                ret = media_app_avi_close();
+                os_printf("media_app_avi_close\r\n");
+            }
+#endif
+
+#if (CONFIG_AUD_INTF && CONFIG_VIDEO_AVI)
+			if (0 == os_strcmp(argv[2], "aud_open"))
+			{
+				ret = bk_aud_intf_mic_save_start();
+				os_printf("bk_aud_intf_mic_save_start\r\n");
+			}
+
+			if (0 == os_strcmp(argv[2], "aud_close"))
+			{
+				ret = bk_aud_intf_mic_save_stop();
+				os_printf("bk_aud_intf_mic_save_stop\r\n");
+			}
+#endif
+        }
 	}
 
 	if (ret == UNKNOW_ERROR)
@@ -410,7 +550,18 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		LOGE("%s unknow cmd\n", __func__);
 	}
 
+	if (ret != BK_OK)
+	{
+		msg = CLI_CMD_RSP_ERROR;
+	}
+	else
+	{
+		msg = CLI_CMD_RSP_SUCCEED;
+	}
+
 	LOGI("%s ---\n", __func__);
+
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
 
 

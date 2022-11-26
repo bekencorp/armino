@@ -100,7 +100,7 @@ INPUT = \
     ../../../include/driver/lcd.h \
     ../../../include/driver/lcd_types.h \
     ../../../include/driver/dma2d.h \
-    ../../../include/driver/hal/hal_dma2d_types.h \
+    ../../../include/driver/dma2d_types.h \
     ../../../include/driver/jpeg_dec.h \
     ../../../include/driver/jpeg_dec_types.h \
     ../../../include/driver/fft.h \

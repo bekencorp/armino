@@ -99,7 +99,6 @@ if(BL2)
 
     target_compile_definitions(bl2_crypto_hw
         PRIVATE
-            TEE_M
             ARM_CE_DUBHE
             DUBHE_SECURE
             ARM_CE_DUBHE_SCA
@@ -107,7 +106,6 @@ if(BL2)
             ARM_CE_DUBHE_OTP
             ARM_CE_DUBHE_HASH
             ARM_CE_DUBHE_ACA
-            DUBHE_FOR_RUNTIME
     )
 
     target_link_libraries(bl2_crypto_hw
@@ -229,7 +227,6 @@ target_link_libraries(crypto_service_crypto_hw
 
 target_compile_definitions(crypto_service_crypto_hw
     PRIVATE
-        TEE_M
         ARM_CE_DUBHE
         DUBHE_SECURE
         ARM_CE_DUBHE_SCA
@@ -237,8 +234,15 @@ target_compile_definitions(crypto_service_crypto_hw
         ARM_CE_DUBHE_OTP
         ARM_CE_DUBHE_HASH
         ARM_CE_DUBHE_ACA
+)
+
+if (NOT BL2)
+target_compile_definitions(crypto_service_crypto_hw
+    PRIVATE
+        TEE_M
         DUBHE_FOR_RUNTIME
 )
+endif()
 
 target_include_directories(crypto_service_mbedcrypto
     PUBLIC

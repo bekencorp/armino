@@ -16,7 +16,6 @@
 #include "cli.h"
 
 
-#if CONFIG_TOUCH
 extern void cli_touch_single_channel_calib_mode_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 extern void cli_touch_single_channel_manul_mode_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -42,6 +41,6 @@ int cli_touch_init(void)
 	return cli_register_commands(s_touch_commands, TOUCH_CMD_CNT);
 }
 
-#endif
+
 
 

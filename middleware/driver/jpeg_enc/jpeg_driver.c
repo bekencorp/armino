@@ -163,17 +163,13 @@ bk_err_t bk_jpeg_enc_init(const jpeg_config_t *config)
 	BK_RETURN_ON_NULL(config);
 	JPEG_RETURN_ON_NOT_INIT();
 
-	jpeg_init_common(config);
-
-	if (config->yuv_mode) {
-		jpeg_hal_set_yuv_config(&s_jpeg.hal, config);
-	} else {
-		jpeg_hal_set_encode_config(&s_jpeg.hal, config);
+	bk_err_t ret = bk_jpeg_enc_dvp_init(config);
+	if (ret != BK_OK) {
+		return ret;
 	}
-
 	jpeg_dma_rx_init(config);
 
-	return BK_OK;
+	return ret;
 }
 
 bk_err_t bk_jpeg_enc_deinit(void)
@@ -209,14 +205,15 @@ bk_err_t bk_jpeg_enc_dvp_init(const jpeg_config_t *config)
 	jpeg_init_common(config);
 
 	if (config->yuv_mode) {
+		JPEG_LOGI("set yuv config\r\n");
 		jpeg_hal_set_yuv_config(&s_jpeg.hal, config);
 	} else {
+		JPEG_LOGI("set encode config\r\n");
 		jpeg_hal_set_encode_config(&s_jpeg.hal, config);
 	}
 
 	return BK_OK;
 }
-
 
 bk_err_t bk_jpeg_enc_dvp_switch(jpeg_config_t *config)
 {
@@ -383,17 +380,6 @@ bk_err_t bk_jpeg_enc_set_gpio(jpeg_gpio_mode_t mode)
 	return BK_OK;
 }
 
-bk_err_t bk_jpeg_enc_dvp_gpio_enable(void)
-{
-	jpeg_gpio_map_t jpeg_gpio_map_table[] = JPEG_GPIO_MAP;
-	for (uint32_t i = 2; i < JPEG_GPIO_PIN_NUMBER; i++) {
-		gpio_dev_unmap(jpeg_gpio_map_table[i].gpio_id);
-		gpio_dev_map(jpeg_gpio_map_table[i].gpio_id, jpeg_gpio_map_table[i].dev);
-	}
-
-	return BK_OK;
-}
-
 bk_err_t bk_jpeg_enc_get_fifo_addr(uint32_t *fifo_addr)
 {
 	*fifo_addr = JPEG_R_RX_FIFO;
@@ -449,6 +435,8 @@ static void jpeg_isr(void)
 {
 	jpeg_hal_t *hal = &s_jpeg.hal;
 	uint32_t int_status = jpeg_hal_get_interrupt_status(hal);
+	JPEG_LOGD("[jpeg_isr] int_status:%x\r\n", int_status);
+
 	jpeg_hal_clear_interrupt_status(hal, int_status);
 
 	if (jpeg_hal_is_frame_start_int_triggered(hal, int_status)) {

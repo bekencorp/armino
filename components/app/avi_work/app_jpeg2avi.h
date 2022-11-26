@@ -11,6 +11,7 @@ typedef enum in_typte {
 
 int jpeg2avi_init(void);
 int jpeg2avi_deinit(void);
+int jpeg2avi_is_create(void);
 
 // for record video & audio
 void jpeg2avi_set_video_param(int nWidth, int nHeight, int nFps);

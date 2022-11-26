@@ -140,6 +140,7 @@ void delay_10us(UINT32 count)
  */
 void delay_ms(UINT32 ms_count)
 {
+#if !CONFIG_SOC_BK7236
 	UINT32 ret;
 	UINT32 div;
 	UINT32 clk = 0;
@@ -172,10 +173,42 @@ void delay_ms(UINT32 ms_count)
 
 	cell = 100 * clk / 26000000;
 	delay(ms_count * cell);
+#else
+	uint32_t mux;
+	uint32_t div;
+	uint32_t clk = 0;
+	uint32_t cell;
+
+	mux = sys_drv_mclk_mux_get();
+	div = sys_drv_mclk_div_get();
+
+	// os_printf("mux1 %d, div1 %d, ms_count %d\n", mux, div, ms_count);
+
+	switch (mux) {
+	case 0: // XTAL
+	case 1: // DCO
+		clk = 26000000;
+		break;
+	case 2: // 320M
+		clk = 320000000 / (2 << div);
+		break;
+	case 3: // 480M
+		clk = 480000000 / (2 << div);
+		break;
+	default:
+		break;
+	}
+
+	BK_ASSERT(clk); /* ASSERT VERIFIED */
+
+	cell = clk / 26000000;
+	delay(ms_count * cell);
+#endif
 }
 
 void delay_us(UINT32 ms_count)
 {
+#if !CONFIG_SOC_BK7236
 	UINT32 ret;
 	UINT32 div;
 	UINT32 clk = 0;
@@ -208,6 +241,37 @@ void delay_us(UINT32 ms_count)
 
 	cell = 100 * clk / 26000;
 	delay(ms_count * cell);
+#else
+	uint32_t mux;
+	uint32_t div;
+	uint32_t clk = 0;
+	uint32_t cell;
+
+	mux = sys_drv_mclk_mux_get();
+	div = sys_drv_mclk_div_get();
+
+	// os_printf("mux2 %d, div2 %d, ms_count %d\n", mux, div, ms_count);
+
+	switch (mux) {
+	case 0: // XTAL
+	case 1: // DCO
+		clk = 26000000;
+		break;
+	case 2: // 320M
+		clk = 320000000 / (2 << div);
+		break;
+	case 3: // 480M
+		clk = 480000000 / (2 << div);
+		break;
+	default:
+		break;
+	}
+
+	BK_ASSERT(clk); /* ASSERT VERIFIED */
+
+	cell = clk / 26000;
+	delay(ms_count * cell);
+#endif
 }
 #endif
 

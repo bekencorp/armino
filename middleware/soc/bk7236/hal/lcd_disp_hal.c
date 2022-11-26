@@ -38,8 +38,8 @@ void lcd_hal_8080_cmd_send(uint8_t param_count, uint32_t command, uint32_t *para
 	int i = 0;
 	uint32_t param_reg;
 
-	param_reg = reg_DISP_THRD & 0xffffffe0;
-	reg_DISP_THRD = param_reg + param_count;
+	param_reg = reg_DISP_PARA_CNT & 0xffc00000;
+	reg_DISP_PARA_CNT = param_reg + param_count;//params behind cmd
 	reg_DISP_CMD_FIFO = command;
 
 	for(i = 0; i < param_count; i++ )
@@ -62,7 +62,6 @@ void bk_lcd_send_data(uint32_t command, uint16_t *data, uint32_t len)
 		reg_DISP_DAT_FIFO = ((*(pixel + i)) >> 8);
 		reg_DISP_DAT_FIFO =  ((*(pixel + i)) & 0xff);
 	}
-
 	delay_us(1);
 	while((lcd_disp_ll_get_disp_status_value() & 0x0000800) == 0);
 }

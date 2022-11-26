@@ -29,6 +29,8 @@ bk_err_t bk_uvc_camera_start(void);
 bk_err_t bk_uvc_camera_stop(void);
 bk_err_t bk_uvc_camera_close(void);
 bk_err_t bk_uvc_camera_param_set(param_pak_t *param);
+bk_err_t bk_net_camera_open(void);
+bk_err_t bk_net_camera_close(void);
 
 #ifdef __cplusplus
 }

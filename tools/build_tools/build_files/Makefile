@@ -101,7 +101,9 @@ build_dual_core := $(shell $(ARMINO_DIR)/tools/build_tools/detect_build_dual_cor
 
 $(info $$(PROJECT) is $(PROJECT))
 bootloader:
+ifeq ($(has_lib_src), 1)
 	make -C ${ARMINO_BOOTLOADER}
+endif
 
 ifeq ($(has_lib_src), 1)
 $(properties_lib_targets): common
@@ -132,5 +134,6 @@ $(doc_targets):
 
 clean:
 	@echo "rm ./build"
+	@python3 tools/build_tools/armino_doc.py clean
 	@rm -rf ./build
-	@python tools/build_tools/armino_doc.py clean
+

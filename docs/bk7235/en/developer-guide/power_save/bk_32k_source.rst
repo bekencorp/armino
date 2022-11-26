@@ -1,33 +1,33 @@
-32k的时钟源说明
+config 32k clock source description
 -----------------------------------------------
 
-32k的时钟源，有以下几种：
+32k clock source：
 
 - rosc
  
-优缺点:
-功耗低，但是时钟精度相对来说不好，最优功耗时可以选用它。
+Advantages and disadvantages:
+Low power consumption good，but the clock is relatively inaccurate，You can use it when you need the best power consumption。
 
 
-- 外部26M分频出的时钟
+- external 26M division 32k
 
-优缺点：
-精度好，功耗高相对高
-
-
-- 外部32k时钟
-
-优缺点：
-精度好，功耗相对外部26M分频的时钟低
+Advantages and disadvantages：
+Good precision, but higher power consumption
 
 
-因此可以根据不同的业务和场景选用不同的32k时钟
+- external 32k
+
+Advantages and disadvantages：
+The precision is good, and the power consumption is lower than that of the external 26M division 32k clock
 
 
-切换32k时钟源函数接口说明
------------------------------------------------
+so you can select different 32k source clock based on owner using scenarios
 
-枚举类型：
+
+switch 32k source clock interface instructions
+--------------------------------------------------------
+
+enum type：
 
 typedef enum
 {
@@ -43,12 +43,12 @@ typedef enum
 }pm_lpo_src_e;
 +++++++++++++++++++++++++++++++++++++++++++++++
 
--  设置32K时钟源函数接口：
+-  set and select 32k source ：
 
 bk_pm_lpo_src_set(pm_lpo_src_e lpo_src)
 
 
--  获取当前使用32K时钟源函数接口:
+-  get the current 32k source:
 
 pm_lpo_src_e bk_pm_lpo_src_get()
 

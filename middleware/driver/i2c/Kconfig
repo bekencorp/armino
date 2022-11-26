@@ -1,0 +1,21 @@
+menu "I2C"
+	config I2C
+		bool "Enable I2C"
+		default y
+
+	config I2C_SUPPORT_ID_BITS
+		int "i2c support id bits"
+		range 1 255
+		default 1
+		help
+		The value should be changed if need to change i2c id
+
+	config FM_I2C
+		bool "Enable FM I2C"
+		default y
+
+	config SIM_I2C
+		bool "Enable GPIO Simulate I2C"
+		default n
+endmenu
+

@@ -129,8 +129,9 @@ int memory_debug_todo(void)
 #endif
 	return BK_OK;
 }
+
 //TODO put it to better place, check with XB/HT
-static int pm_init_todo(void)
+__attribute__((unused)) static int pm_init_todo(void)
 {
 #if CONFIG_SOC_BK7256XX
 
@@ -261,12 +262,13 @@ int components_init(void)
 {
 /*for bringup test*/
 #if CONFIG_SOC_BK7256XX
+	reset_reason_init();
 
 	if(driver_init())
 		return BK_FAIL;
 
 	pm_init_todo();
-	reset_reason_init();
+	//reset_reason_init();
 	show_init_info();
 	random_init();
 #if (!CONFIG_SLAVE_CORE)
@@ -280,8 +282,12 @@ int components_init(void)
 
 #else
 	driver_init();
+#if CONFIG_POWER_SAVE
 	pm_init_todo();
+#endif
+#if CONFIG_RESET_REASON
 	reset_reason_init();
+#endif
 	random_init();
 	wdt_init();
 	show_init_info();

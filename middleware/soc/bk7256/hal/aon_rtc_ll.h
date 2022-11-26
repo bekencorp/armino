@@ -108,7 +108,12 @@ static inline bool aon_rtc_ll_get_tick_int_status(aon_rtc_hw_t *hw)
 //write 1 to clear interrupt
 static inline void aon_rtc_ll_clear_tick_int_status(aon_rtc_hw_t *hw)
 {
-	hw->ctrl.tick_int_sts = 1;
+	uint32_t v = hw->ctrl.ctrl_v;
+
+	//hw->ctrl.tick_int_sts = 1;
+	v |= 1 << 5;	//tick_int_sts to 1;
+	v &= ~(1 << 4);	//up_int_sts to 0, avoid clear up int status
+	hw->ctrl.ctrl_v = v;
 }
 
 static inline void aon_rtc_ll_set_upper_val(aon_rtc_hw_t *hw, uint32_t up_val)
@@ -144,7 +149,12 @@ static inline bool aon_rtc_ll_get_upper_int_status(aon_rtc_hw_t *hw)
 //write 1 to clear interrupt
 static inline void aon_rtc_ll_clear_upper_int_status(aon_rtc_hw_t *hw)
 {
-	hw->ctrl.up_int_sts = 1;
+	uint32_t v = hw->ctrl.ctrl_v;
+
+	//hw->ctrl.up_int_sts = 1;
+	v |= 1 << 4;	//up_int_sts to 1, write 1 to clear
+	v &= ~(1 << 5);	//tick_int_sts to 0, avoid clear tick int status
+	hw->ctrl.ctrl_v = v;
 }
 
 static inline uint32_t aon_rtc_ll_get_counter_val(aon_rtc_hw_t *hw)

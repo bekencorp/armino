@@ -42,6 +42,4 @@ struct tm {
   const char *tm_zone;		/* Timezone abbreviation.  */
 };
 
-int gettimeofday(struct s_timeval *tp, void *ignore);
-
 #endif

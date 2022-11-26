@@ -59,7 +59,7 @@ void stack_thread_show(uint32_t *total_cnt, uint32_t *used_cnt)
 	TaskStatus_t *pxTaskStatusArray, *pxTaskItem;
 	unsigned portBASE_TYPE uxCurrentNumberOfTasks = uxTaskGetNumberOfTasks();
 
-	BK_DUMP_OUT("%-16s   %-10s   %-22s   %-10s   %-13s   %-11s\r\n", "task", "stack_size", "address", "peak_used", "current_used", "available");
+	BK_DUMP_OUT("%-16s   %-10s   %-22s   %-10s   %-13s   %-11s\r\n", "task", "stack_size", "address", "peak_used", "current_used", "water");
 
 	pxTaskStatusArray = (TaskStatus_t *)os_malloc(uxCurrentNumberOfTasks * sizeof(TaskStatus_t));
 	if (NULL == pxTaskStatusArray)
@@ -77,9 +77,9 @@ void stack_thread_show(uint32_t *total_cnt, uint32_t *used_cnt)
 				  pxTaskItem->pcTaskName,
 				  pxTaskItem->uxStackSize, pxTaskItem->pxStackBase,
 				  (StackType_t *)((StackType_t)pxTaskItem->pxStackBase + pxTaskItem->uxStackSize),
-				  pxTaskItem->uxStackSize - pxTaskItem->usStackHighWaterMark,
+				  pxTaskItem->uxStackSize - pxTaskItem->usStackHighWaterMark * sizeof( StackType_t ),
 				  ((StackType_t)pxTaskItem->pxStackBase + pxTaskItem->uxStackSize) - (StackType_t)pxTaskItem->ptrTopOfStack,
-				  pxTaskItem->usStackHighWaterMark);
+				  pxTaskItem->usStackHighWaterMark * sizeof( StackType_t ));
 	}
 	*total_cnt = all;
 	*used_cnt = used;

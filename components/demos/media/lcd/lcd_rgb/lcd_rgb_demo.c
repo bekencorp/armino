@@ -18,7 +18,7 @@
 #include <driver/dma2d.h>
 #include <lcd_rgb_demo.h>
 #include <lcd_dma2d_config.h>
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 #include "ff.h"
 #include "diskio.h"
 #include "test_fatfs.h"

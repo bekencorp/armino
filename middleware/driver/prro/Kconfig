@@ -1,0 +1,35 @@
+menu "PRRO"
+	config PRRO
+		bool "Enable PRRO"
+		default n
+
+	config GPIO_GROUP0_SECURE_BITMAP
+		depends on PRRO
+		int  "GPIO 0~31 secure attribute bitmap"
+		default 0
+
+	config GPIO_GROUP1_SECURE_BITMAP
+		depends on PRRO
+		int  "GPIO 32~47 secure attribute bitmap"
+		default 0
+
+	config AHB_DEV_SECURE_BITMAP
+		depends on PRRO
+		int  "AHB devices secure attribute bitmap"
+		default 0
+
+	config APB_DEV_SECURE_BITMAP
+		depends on PRRO
+		int  "APB devices secure attribute bitmap"
+		default 0
+
+	config AHB_PRIVILEGE_BITMAP
+		depends on PRRO
+		int  "AHB devices privilege attribute bitmap"
+		default 0
+
+	config APB_PRIVILEGE_BITMAP
+		depends on PRRO
+		int  "APB devices privilege attribute bitmap"
+		default 0
+endmenu

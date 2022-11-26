@@ -1,5 +1,20 @@
-BK7256 (TBC)
+BK7235 (TBC)
 ===================
 
 :link_to_translation:`zh_CN:[中文]`
+
+Introduction to Development Board
+------------------------------------------------------------------------
+
+ - BK7256 is configured with dual cores by default,which belongs to RISCV instruction set architecture
+ - Platform BK7256 supports FreeRTOS V10.4
+ - Platform BK7256 supports HongmengOS V3.0.1
+
+
+.. figure:: ../../_static/demo_board_7235.png
+    :align: center
+    :alt: BK7235 Demo Board
+    :figclass: align-center
+
+    BK7235 Demo Board
 

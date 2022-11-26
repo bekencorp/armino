@@ -14,14 +14,34 @@
 
 #include <common/bk_include.h>
 #include <os/mem.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include "string.h"
 
 #include <driver/int.h>
 #include "sys_driver.h"
+#include "sys/time.h"
 
 #include <driver/aon_rtc.h>
 #include "aon_rtc_hal.h"
 #include "aon_rtc_driver.h"
+
+/* 
+ * NOTES: System entery deepsleep or reboot, the aon rtc time should reserved.
+ * 1.When enter deep sleep, the DTCM power is lost,so have to save time to flash.
+ * 2.Write time to flash takes about 200us~3ms, When reboot system,the easy flash API call rtos_get_semaphore in ISR cause assert
+ * 3.When reboot system,DTCM doesn't loss power,so can save time in DTCM.
+ */
+#if CONFIG_AON_RTC_KEEP_TIME_SUPPORT
+#include <modules/pm.h>
+#include "reset_reason.h"
+#if CONFIG_EASY_FLASH
+#include "bk_ef.h"
+#endif
+#endif
+#if CONFIG_AON_PMU
+#include "aon_pmu_driver.h"
+#endif
 
 #define AON_RTC_UNIT_NUM (AON_RTC_HAL_UNIT_NUM)
 #define AON_RTC_NAME ((uint8_t *)"aon_rtc")
@@ -58,9 +78,240 @@ static aon_rtc_callback_t s_aon_rtc_upper_isr[AON_RTC_UNIT_NUM] = {NULL};
 static aon_rtc_nodes_memory_t *s_aon_rtc_nodes_p[AON_RTC_UNIT_NUM];
 static uint64_t s_high_tick[AON_RTC_UNIT_NUM];
 
+#define AONRTC_GET_SET_TIME_RTC_ID AON_RTC_ID_1
+#define S_RTC_CLK_FREQ    32000 //unit:31us
+int64_t s_boot_time_us = 0;	//timeofday value
+
+#define AON_RTC_OPS_SAFE_DELAY_US (125)
+/*
+ * AON RTC uses 32k clock,and 3 cycles later can be clock sync.
+ * CPU clock is more faster then AON RTC, so software operates AON RTC register
+ * will be effect after 125 us(RTC 3+1 clock cycles).
+ * So if operate the same register in 125 us, the second operation will be failed.
+ */
+static void aon_rtc_delay_to_grantee_ops_safe()
+{
+	extern void delay_us(UINT32 us);
+
+	delay_us(AON_RTC_OPS_SAFE_DELAY_US);
+}
+
+#if CONFIG_AON_RTC_KEEP_TIME_SUPPORT
+int32_t s_rtc_keep_tick_offset = 0x0;
+#define AONRTC_DEEPSLEEP_KEEPTIME_EF_KEYNUM 2
+
+static bool bk_rtc_get_aon_pmu_deepsleep_flag()
+{
+#if CONFIG_AON_PMU
+	return (aon_pmu_drv_reg_get(PMU_REG2) & BIT(BIT_SLEEP_FLAG_DEEP_SLEEP));
+#endif
+	return false;
+}
+
+/*
+ * WARNING:
+ * This function is only called by AON RTC driver before deepsleep!!!
+ * WORKAROUND:
+ * aon rtc is 32bits counter, 37.4 hours will be data overflow.
+ * so before power lost, we should save the time value to flash.
+ * after system wakeup,restore the baked time.
+ */
+static bk_err_t aon_rtc_bake_entry_deepsleep_timeofday()
+{
+    struct timeval rtc_keep_time = {0, 0};
+//bake up current time to flash
+#if CONFIG_EASY_FLASH
+    char *rtc_keep_time_key[2] = {"rtc_tv_sec", "rtc_tv_usec"};
+    char value[AONRTC_DEEPSLEEP_KEEPTIME_EF_KEYNUM * 16];	//uint32_t max digital num is 10, here set it 16
+    uint32_t data = 0;
+    uint32_t ret = 0;
+#endif
+
+	AON_RTC_LOGD("%s[+]\r\n", __func__);
+
+    bk_rtc_gettimeofday(&rtc_keep_time, 0);
+    AON_RTC_LOGD("bake:tv_sec:%d,tv_usec:%d\n", rtc_keep_time.tv_sec, rtc_keep_time.tv_usec);
+
+#if CONFIG_EASY_FLASH
+	memset(value, 0, sizeof(value));
+    for(int key_index = 0; key_index < AONRTC_DEEPSLEEP_KEEPTIME_EF_KEYNUM; key_index++)
+	{
+        if(key_index == 0)
+            data = rtc_keep_time.tv_sec;
+        else if(key_index == 1)
+            data = rtc_keep_time.tv_usec;
+
+        sprintf(value, "%d", data);
+
+        ret = ef_set_env(rtc_keep_time_key[key_index], value);
+        if(ret)
+            AON_RTC_LOGI("%s %s ret: %d\n",__func__, rtc_keep_time_key[key_index], ret);
+        AON_RTC_LOGD("%s %s\n",__func__, value);
+    }
+
+    ef_save_env();
+#else
+    AON_RTC_LOGI("TODO:Please save the time to none lost memory\r\n", __func__);
+#endif
+
+    return BK_OK;
+}
+
+static void aon_rtc_get_deepsleep_timeofday(struct timeval *time_p)
+{
+	AON_RTC_LOGD("%s[+]\r\n", __func__);
+
+#if CONFIG_EASY_FLASH
+	char *rtc_keep_time_key[2] = {"rtc_tv_sec", "rtc_tv_usec"};
+	char *value;
+
+	for(int key_index = 0; key_index < AONRTC_DEEPSLEEP_KEEPTIME_EF_KEYNUM; key_index++){
+
+		value = ef_get_env(rtc_keep_time_key[key_index]);
+		AON_RTC_LOGD("%s %s value:%s\r\n",__func__, rtc_keep_time_key[key_index], value);
+
+		if(key_index == 0)
+			time_p->tv_sec = atol(value);
+		else if(key_index == 1)
+			time_p->tv_usec = atol(value);
+
+		AON_RTC_LOGD("%s tv_sec:%d tv_usec:%d\n",__func__, time_p->tv_sec, time_p->tv_usec);
+	}
+#else
+	AON_RTC_LOGI("TODO:%s\n");
+#endif
+}
+
+static void aon_rtc_get_reboot_time(struct timeval *time_p)
+{
+	time_p->tv_sec = *(uint32_t *)RTC_TIME_SEC_ADDR;
+	time_p->tv_usec = *(uint32_t *)RTC_TIME_USEC_ADDR;
+	AON_RTC_LOGD("%s[-]sec=%d,usec=%d\r\n", __func__, time_p->tv_sec, time_p->tv_usec);
+}
+
+/*
+ * WARNING:
+ * This function is only called by AON RTC driver before reboot!!!
+ * WORKAROUND:
+ * aon rtc is 32bits counter, 37.4 hours will be data overflow.
+ * so before reboot, we should save the time value to DTCM.
+ * after system reboot,restore the baked time.
+ */
+bk_err_t aon_rtc_enter_reboot(void)
+{
+    struct timeval rtc_keep_time = {0, 0};
+
+	AON_RTC_LOGD("%s[+]\r\n", __func__);
+
+	//bake poweroff time
+    bk_rtc_gettimeofday(&rtc_keep_time, 0);
+    AON_RTC_LOGD("bake:tv_sec:%d,tv_usec:%d\n", rtc_keep_time.tv_sec, rtc_keep_time.tv_usec);
+
+	*(uint32_t *)RTC_TIME_SEC_ADDR = rtc_keep_time.tv_sec;
+	*(uint32_t *)RTC_TIME_USEC_ADDR = rtc_keep_time.tv_usec;
+
+	//deinit
+	bk_aon_rtc_driver_deinit();
+
+    return BK_OK;
+}
+
+static void aon_rtc_compute_boot_timeofday(void)
+{
+	struct timeval time = {0, 0};
+
+	AON_RTC_LOGD("%s[+]\r\n", __func__);
+
+	//deepsleep boot
+	if(bk_rtc_get_aon_pmu_deepsleep_flag())
+	{
+		aon_rtc_get_deepsleep_timeofday(&time);
+
+		//the time interval of deepsleep to wakeup time, tick offset
+		s_rtc_keep_tick_offset = aon_rtc_hal_get_counter_val(&s_aon_rtc[AON_RTC_ID_1].hal);
+		AON_RTC_LOGD("s_rtc_keep_tick_offset=%d\r\n", (uint32_t)s_rtc_keep_tick_offset);
+
+		s_boot_time_us = ((uint64_t)time.tv_sec)*1000000LL+time.tv_usec +
+						((uint64_t)(s_rtc_keep_tick_offset/AON_RTC_MS_TICK_CNT))*1000;
+	}
+	else if(bk_misc_get_reset_reason() != RESET_SOURCE_POWERON)	//hot reboot
+	{
+		aon_rtc_get_reboot_time(&time);
+		s_boot_time_us = ((uint64_t)time.tv_sec)*1000000LL+time.tv_usec;
+	}
+	else	//cold boot,power on
+	{
+		s_boot_time_us = 0;
+		AON_RTC_LOGD("power on\r\n");
+	}
+
+	//clear it
+	*(uint32_t *)RTC_TIME_SEC_ADDR = 0;
+	*(uint32_t *)RTC_TIME_USEC_ADDR = 0;
+}
+
+static void bk_rtc_keep_time_enter_deepsleep(void)
+{
+    uint32_t tick_val_offset;
+
+    AON_RTC_LOGD("[+]%s\r\n", __func__);
+
+	aon_rtc_bake_entry_deepsleep_timeofday();
+
+    tick_val_offset = aon_rtc_hal_get_tick_val(&s_aon_rtc[AON_RTC_ID_1].hal)
+                      - aon_rtc_hal_get_counter_val(&s_aon_rtc[AON_RTC_ID_1].hal);
+	//reset
+    aon_rtc_hal_reset_counter(&s_aon_rtc[AON_RTC_ID_1].hal);
+
+	//reset counter is the same register.
+	aon_rtc_delay_to_grantee_ops_safe();
+
+	//reset the nearest isr tick value, to confirm aon rtc can wakeup system
+    aon_rtc_hal_set_tick_val(&s_aon_rtc[AON_RTC_ID_1].hal, (uint32_t)tick_val_offset);
+    AON_RTC_LOGD("%s tick_val_offset:%x\n",__func__, tick_val_offset);
+
+	//reset release
+    if(aon_rtc_hal_is_counter_reset(&s_aon_rtc[AON_RTC_ID_1].hal)) {
+        AON_RTC_LOGD("%s:reset counter\n",__func__);
+        aon_rtc_hal_clear_reset_counter(&s_aon_rtc[AON_RTC_ID_1].hal);
+    } else
+      AON_RTC_LOGW("%s PLEASE reset counter\n",__func__);
+
+	AON_RTC_LOGD("[-]%s\r\n", __func__);
+}
+
+static void bk_rtc_keep_time_exit_deepsleep(void)
+{
+	AON_RTC_LOGD("%s\r\n", __func__);
+}
+
+static void aon_rtc_register_deepsleep_cb(void)
+{
+    pm_cb_conf_t aon_rtc_enter_config = {
+            .cb = (pm_cb)bk_rtc_keep_time_enter_deepsleep,
+            .args = NULL
+            };
+    pm_cb_conf_t aon_rtc_exit_config = {
+            .cb = (pm_cb)bk_rtc_keep_time_exit_deepsleep,
+            .args = NULL
+            };
+    bk_pm_sleep_register_cb(PM_MODE_DEEP_SLEEP, PM_DEV_ID_RTC, &aon_rtc_enter_config, &aon_rtc_exit_config);
+}
+
+#endif
+
+bk_err_t bk_rtc_get_deepsleep_duration_seconds(uint32_t *deepsleep_seconds)
+{
+#if CONFIG_AON_RTC_KEEP_TIME_SUPPORT
+    *deepsleep_seconds = s_rtc_keep_tick_offset/S_RTC_CLK_FREQ;
+    return BK_OK;
+#endif
+    return BK_FAIL;
+}
+
 static void alarm_dump_node(alarm_node_t *node_p)
 {
-#if AON_RTC_DEBUG
+#if CONFIG_AON_RTC_DEBUG
 	AON_RTC_LOGD("%s[+]\r\n", __func__);
 
 	AON_RTC_LOGD("node_p=0x%x\r\n", node_p);
@@ -80,7 +331,7 @@ static void alarm_dump_node(alarm_node_t *node_p)
 
 static void alarm_dump_list(alarm_node_t *head_p)
 {
-#if AON_RTC_DEBUG
+#if CONFIG_AON_RTC_DEBUG
 	alarm_node_t *cur_p = head_p;
 	uint32_t count = 0;
 	uint32_t int_level = 0;
@@ -429,8 +680,6 @@ bk_err_t bk_aon_rtc_register_tick_isr(aon_rtc_id_t id, aon_rtc_isr_t isr, void *
  */
 static void aon_rtc_set_tick(aon_rtc_hal_t *hal, uint32_t val)
 {
-	#define SET_TICK_TIMEOUT    (3)     //4/32=125us
-
 	uint64_t start_tick = 0, cur_tick = 0;
 
 	aon_rtc_hal_set_tick_val(hal, val);
@@ -438,9 +687,9 @@ static void aon_rtc_set_tick(aon_rtc_hal_t *hal, uint32_t val)
 	while(aon_rtc_hal_get_tick_val_lpo(hal) != val)
 	{
 		cur_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
-		if(cur_tick - start_tick > SET_TICK_TIMEOUT)	//125us
+		if(cur_tick - start_tick > AON_RTC_OPS_SAFE_DELAY_US)
 		{
-			AON_RTC_LOGE("%s:set tick timeout\r\n", __func__);
+			AON_RTC_LOGE("%s:set tick timeout,set_tick=0x%x, lpo_tick=0x%x\r\n", __func__, val, aon_rtc_hal_get_tick_val_lpo(hal));
 			break;
 		}
 		aon_rtc_hal_set_tick_val(hal, val);
@@ -487,18 +736,19 @@ static bk_err_t aon_rtc_isr_handler(aon_rtc_id_t id)
 }
 #else
 
-#if AON_RTC_DEBUG
+#if CONFIG_AON_RTC_DEBUG
 #define AON_RTC_ISR_DEBUG_MAX_CNT (256)
 static uint32_t s_isr_cnt = 0;
 static uint32_t s_isr_debug_in_tick[AON_RTC_ISR_DEBUG_MAX_CNT];
 static uint32_t s_isr_debug_out_tick[AON_RTC_ISR_DEBUG_MAX_CNT];
 static uint32_t s_isr_debug_set_tick[AON_RTC_ISR_DEBUG_MAX_CNT];
 #endif
+
 static bk_err_t aon_rtc_isr_handler(aon_rtc_id_t id)
 {
 	uint32_t int_level = rtos_disable_int();
 
-#if AON_RTC_DEBUG
+#if CONFIG_AON_RTC_DEBUG
 	s_isr_debug_in_tick[(s_isr_cnt)%AON_RTC_ISR_DEBUG_MAX_CNT] = bk_aon_rtc_get_current_tick(id);
 #endif
 
@@ -520,10 +770,11 @@ static bk_err_t aon_rtc_isr_handler(aon_rtc_id_t id)
 			if((bk_aon_rtc_get_current_tick(id) + 1 > s_aon_rtc[id].alarm_head_p->expired_tick))
 			{
 				AON_RTC_LOGE("next expired tick is invalid\r\n");
+				rtos_enable_int(int_level);
 				return BK_FAIL;
 			}
 			aon_rtc_set_tick(&s_aon_rtc[id].hal, (uint32_t)s_aon_rtc[id].alarm_head_p->expired_tick);
-#if AON_RTC_DEBUG
+#if CONFIG_AON_RTC_DEBUG
 			s_isr_debug_set_tick[(s_isr_cnt)%AON_RTC_ISR_DEBUG_MAX_CNT] = (uint32_t)s_aon_rtc[id].alarm_head_p->expired_tick;
 #endif
 			AON_RTC_LOGD("next tick=0x%x, cur_tick=0x%x\r\n", (uint32_t)s_aon_rtc[id].alarm_head_p->expired_tick, (uint32_t)bk_aon_rtc_get_current_tick(id));
@@ -539,7 +790,7 @@ static bk_err_t aon_rtc_isr_handler(aon_rtc_id_t id)
 	if(aon_rtc_hal_get_upper_int_status(&s_aon_rtc[id].hal))
 	{
 		s_high_tick[id]++;
-		AON_RTC_LOGI("32bits data overflow:high_tick=%d\r\n", s_high_tick[id]);
+		AON_RTC_LOGI("32bits data overflow:high_tick=%d\r\n", (uint32_t)s_high_tick[id]);
 		if (s_aon_rtc_upper_isr[id].callback) {
 			s_aon_rtc_upper_isr[id].callback(id, AON_RTC_NAME, s_aon_rtc_upper_isr[id].isr_param);
 		}
@@ -550,7 +801,7 @@ static bk_err_t aon_rtc_isr_handler(aon_rtc_id_t id)
 	//TODO: clear NVIC/INTC/PLIC int pending status
 
 	AON_RTC_LOGD("%s[-]\r\n", __func__);
-#if AON_RTC_DEBUG
+#if CONFIG_AON_RTC_DEBUG
 	s_isr_debug_out_tick[(s_isr_cnt)%AON_RTC_ISR_DEBUG_MAX_CNT] = bk_aon_rtc_get_current_tick(id);
 	s_isr_cnt++;
 #endif
@@ -641,6 +892,10 @@ static bk_err_t aon_rtc_sw_init(aon_rtc_id_t id)
 		return BK_ERR_NO_MEM;
 	}
 
+#if CONFIG_AON_RTC_KEEP_TIME_SUPPORT
+	aon_rtc_register_deepsleep_cb();
+#endif
+
 	return BK_OK;
 }
 
@@ -648,6 +903,8 @@ static void aon_rtc_hw_init(aon_rtc_id_t id)
 {
 	aon_rtc_int_config_t int_config_table[] = AON_RTC_INT_CONFIG_TABLE;
 	aon_rtc_int_config_t *cur_int_cfg = &int_config_table[id];
+
+	AON_RTC_LOGD("%s[+]cur_tick=%d\r\n", __func__, (uint32_t)bk_aon_rtc_get_current_tick(id));
 
 	aon_rtc_hal_init(&s_aon_rtc[id].hal);
 
@@ -660,17 +917,26 @@ static void aon_rtc_hw_init(aon_rtc_id_t id)
 	aon_rtc_interrupt_enable(id);
 #endif
 	aon_rtc_hal_start_counter(&s_aon_rtc[id].hal);
+
+	AON_RTC_LOGD("%s[-]cur_tick=%d\r\n", __func__, (uint32_t)bk_aon_rtc_get_current_tick(id));
 }
 
 bk_err_t bk_aon_rtc_driver_init(void)
 {
-
 	AON_RTC_LOGD("%s[+]\r\n", __func__);
 
 	//TOTO: Enter critical protect
 	for (int id = AON_RTC_ID_1; id < AON_RTC_ID_MAX; id++) {
 		if(!s_aon_rtc[id].inited)
 		{
+#if CONFIG_AON_RTC_KEEP_TIME_SUPPORT
+			if(id == AON_RTC_ID_1)
+			{
+				//get baked time which saved entry sleep/reboot
+				aon_rtc_compute_boot_timeofday();
+			}
+#endif
+
 			aon_rtc_sw_init(id);
 			aon_rtc_hw_init(id);
 			s_aon_rtc[id].inited = true;
@@ -692,10 +958,12 @@ bk_err_t bk_aon_rtc_driver_deinit(void)
 	for (int id = AON_RTC_ID_1; id < AON_RTC_ID_MAX; id++) {
 		if(s_aon_rtc[id].inited)
 		{
-			bk_int_isr_unregister(int_cfg_table[id].int_src);
+			aon_rtc_hal_deinit(&s_aon_rtc[id].hal);
 #if (CONFIG_SYSTEM_CTRL)
 			aon_rtc_interrupt_disable(id);
 #endif
+			bk_int_isr_unregister(int_cfg_table[id].int_src);
+
 			if(s_aon_rtc_nodes_p[id] != NULL)
 			{
 				os_free(s_aon_rtc_nodes_p[id]);
@@ -705,6 +973,10 @@ bk_err_t bk_aon_rtc_driver_deinit(void)
 			s_aon_rtc[id].inited = false;
 		}
 	}
+
+#if CONFIG_AON_RTC_KEEP_TIME_SUPPORT
+	bk_pm_sleep_unregister_cb(PM_MODE_DEEP_SLEEP, PM_DEV_ID_RTC, true, true);
+#endif
 
 	AON_RTC_LOGD("%s[-]\r\n", __func__);
 	return BK_OK;
@@ -958,7 +1230,7 @@ uint64_t bk_aon_rtc_get_current_tick(aon_rtc_id_t id)
 	return ((s_high_tick[id] << 32) + aon_rtc_hal_get_counter_val(&s_aon_rtc[id].hal));
 }
 
-#if AON_RTC_DEBUG
+#if CONFIG_AON_RTC_DEBUG
 void bk_aon_rtc_timing_test(aon_rtc_id_t id, uint32_t round, uint32_t cycles, uint32_t set_tick)
 {
 	uint32_t int_level = 0;
@@ -1058,7 +1330,7 @@ void bk_aon_rtc_timing_test(aon_rtc_id_t id, uint32_t round, uint32_t cycles, ui
 
 void bk_aon_rtc_dump(aon_rtc_id_t id)
 {
-#if AON_RTC_DEBUG
+#if CONFIG_AON_RTC_DEBUG
 	uint32_t i = 0, index = 0;
 
 	for(i = s_isr_cnt - AON_RTC_ISR_DEBUG_MAX_CNT; i < s_isr_cnt; i++)
@@ -1075,7 +1347,41 @@ void bk_aon_rtc_dump(aon_rtc_id_t id)
 	alarm_dump_list(s_aon_rtc[id].alarm_head_p);
 }
 
-#if AON_RTC_DEBUG
+bk_err_t bk_rtc_gettimeofday(struct timeval *tv, void *ptz)
+{
+    (void)ptz;
+
+    if(tv!=NULL)
+    {
+        uint64_t uCurTimeUs = s_boot_time_us + bk_aon_rtc_get_current_tick(AONRTC_GET_SET_TIME_RTC_ID)*1000000LL/S_RTC_CLK_FREQ;
+
+        tv->tv_sec=uCurTimeUs/1000000;
+        tv->tv_usec=uCurTimeUs%1000000;
+        AON_RTC_LOGD("s_boot_time_us:h=0x%x,l=0x%x \r\n", s_boot_time_us>>32, (uint32_t)s_boot_time_us);
+        AON_RTC_LOGD("%s sec=%d,us:%d\n", __func__, tv->tv_sec, tv->tv_usec);
+    } else
+        AON_RTC_LOGW("%s tv is null \r\n",__func__);
+
+    return BK_OK;
+}
+
+bk_err_t bk_rtc_settimeofday(const struct timeval *tv,const struct timezone *tz)
+{
+    (void)tz;
+    if(tv)
+    {
+        uint64_t setTimeUs = ((uint64_t)tv->tv_sec)*1000000LL + tv->tv_usec ;
+        uint64_t getCurTimeUs = bk_aon_rtc_get_current_tick(AONRTC_GET_SET_TIME_RTC_ID)*1000000LL/S_RTC_CLK_FREQ;
+
+        s_boot_time_us = setTimeUs - getCurTimeUs;
+        AON_RTC_LOGD("%s:sec=%d us=%d\n", __func__, tv->tv_sec, tv->tv_usec);
+		AON_RTC_LOGD("get us:h=0x%x,l=0x%x\n", getCurTimeUs>>32, (uint32_t)getCurTimeUs);
+    }
+
+    return BK_OK;
+}
+
+#if CONFIG_AON_RTC_DEBUG
 void bk_64bits_test(void)
 {
 	uint64_t val_64bits = 0xffffffffffff;

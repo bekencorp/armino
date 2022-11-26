@@ -1,0 +1,13 @@
+menu "bk7236"
+	config UART_DOWNLOAD
+		bool "Build binary for legacy uart download"
+		default y
+
+	config SPE_TOTAL_RAM_SIZE
+		hex "Total RAM size for SPE"
+		default 0x60000
+
+	config NSPE_TOTA_LRAM_SIZE
+		hex "Total RAM size for NSPE"
+		default 0x40000
+endmenu

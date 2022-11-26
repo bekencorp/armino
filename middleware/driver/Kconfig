@@ -1,4 +1,3 @@
-#TODO optimize it
 menu "Driver"
 
 	menu "SOFTWARE_SUPPORT_CHIP"
@@ -13,553 +12,43 @@ menu "Driver"
 			default n
 	endmenu
 
-	menu "Watchdog"
-		config INT_WDT
-			bool "Enable Interrupt Watchdog"
-			default y
-
-		config INT_WDT_PERIOD_MS
-			int "Interrupt Watchdog Period(ms)"
-			default 1000
-
-		config TASK_WDT
-			bool "Enable Task Watchdog"
-			default y
-
-		config TASK_WDT_PERIOD_MS
-			int "Interrupt Watchdog Period(ms)"
-			default 60000
-
-		config NMI_WDT_EN
-			bool "Enable NMI Watchdog"
-			default n
-	endmenu
-	
-	menu "AON_Watchdog"
-		config AON_WDT
-			bool "Enable AON Watchingdog"
-			default n
-
-		config INT_AON_WDT
-			bool "Enable Interrupt AON Watchdog"
-			default y
-
-		config INT_AON_WDT_PERIOD_MS
-			int "Interrupt AON Watchdog Period(ms)"
-			default 1000
-	endmenu
-
-	menu "UART"
-		config UART1
-			bool "Enable UART1"
-			default n
-		config UART1_FLOW_CTRL
-			bool "Uart1 Flow Ctrl"
-			default n
-
-		config UART2
-			bool "Enable UART2"
-			default n
-
-		config UART3
-			bool "Enable UART3"
-			default n
-
-		choice UART_PRINT_PORT
-			prompt "Debug port"
-			default PRINT_PORT_UART2
-
-			config PRINT_PORT_UART1
-				bool "UART1"
-			config PRINT_PORT_UART2
-				bool "UART2"
-			config PRINT_PORT_UART3
-				bool "UART3"
-		endchoice
-
-		config UART_PRINT_PORT
-			int
-			default 0 if PRINT_PORT_UART1
-			default 1 if PRINT_PORT_UART2
-			default 2 if PRINT_PORT_UART3
-
-		config UART_ATE_PORT
-			int "Config Uart ATE Port"
-			range 0 2
-			default 1
-			help
-			Default 1 mean use UART2
-
-		config PRINTF_BUF_SIZE
-			int "Print Buffer Size"
-			range 1 4096
-			default 128
-			help
-			The value should be changed if print size is more than 128
-
-		# TODO do we need to put it to uart_debug component?
-		config BACKGROUND_PRINT
-			bool "Enable background print"
-			default n
-
-		config KFIFO_SIZE
-			int "Kfifo Size"
-			range 1 4096
-			default 128
-			help
-				This will set kfifo size when software uses kfifo to cache data receiving.
-
-		config UART_STATIS
-			bool "Enable UART Statis"
-			default n
-
-		config UART_LOW_VOLTAGE_SUPPORT
-			bool "Enable UART support low power"
-			default n
-	endmenu
-
-	menu "TRNG"
-		config TRNG_SUPPORT
-			bool "Support hardware TRNG"
-			default y
-	endmenu
-
-	menu "SDIO_HOST"
-		config SDIO_HOST
-			bool "Enable sdio host"
-			default n
-
-		config SDIO_HOST_DEFAULT_CLOCK_FREQ
-			int "SDIO Host default clock freq"
-			default 200000
-	endmenu
-
-	menu "SDCARD"
-		config SDCARD_HOST
-			bool "Enable SDCARD Host"
-			default y if (USB && USB_DEVICE)
-			default n if !(USB && USB_DEVICE)
-
-		choice SD_HOST_INTF
-			prompt "SD Host Interface"
-			depends on SDCARD_HOST
-			default SD_HOST_INTF
-
-			config SD_HOST_INTF
-				bool "SD Host Interface"
-
-			config SD1_HOST_INTF
-				bool "SD1 Host Interface"
-		endchoice
-
-		config SDCARD_V2P0
-			bool "Support SDCARD refactor code which version is 2.0"
-			default y
-
-		config SDCARD_V1P0
-			bool "Before SDCARD refactor code which version is 1.0"
-			default n
-
-		config SDCARD_BUSWIDTH_4LINE
-			bool "Support SDCARD 4 Data Wires"
-			default n
-	endmenu
-
-	menu "FATFS"
-		config FATFS
-			bool "Support FATFS"
-			default n
-		
-		config FATFS_SDCARD
-			bool "Support SDCARD FATFS"
-			default n
-	endmenu
+	source "${ARMINO_PATH}/middleware/driver/wdt/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/aon_wdt/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/uart/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/trng/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/sdio_host/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/sdcard/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/fatfs/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/sdio/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/spi/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/qspi/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/qspi_oled/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/rtc/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/gpio/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/pmu/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/general_dma/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/touch/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/sbc/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/jpeg_enc/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/psram/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/calendar/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/mpc/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/prro/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/sys_ctrl/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/phy/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/i2s/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/i2c/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/i2s/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/pwm/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/icu/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/timer/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/saradc/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/flash/Kconfig"
 
 	config MAC_PHY_BYPASS
 		bool "Enable MAC/PHY by pass mode"
 		default y
-
-	#TODO check SDIO configuration again
-	menu "SDIO"
-		config SDIO
-			bool "Enable SDIO"
-			default y if FULLY_HOSTED
-			default n if !FULLY_HOSTED
-
-		config SDIO_V1P0
-			bool "SDIO Version V1P0"
-			depends on SDIO
-			default n
-		
-		config SDIO_V2P0
-			bool "SDIO Version V2P0"
-			default n
-
-		config SDIO_TRANS
-			bool "Enable SDIO Trans"
-			depends on SDIO
-			default n
-
-		config REAL_SDIO
-			bool "Enable Real SDIO"
-			depends on SDIO
-			default y if FULLY_HOSTED
-			default n if !FULLY_HOSTED
-
-		config SDIO_BLOCK_512
-			bool "Enable SDIO 512 Bytes Block"
-			depends on REAL_SDIO
-			default y if FULLY_HOSTED
-			default n if !FULLY_HOSTED
-
-		config SDIO_SLAVE
-			bool "Enable SDIO Slave Device, BEKEN Chip Is A SDIO Slave Device"
-			depends on SDIO
-			default n
-
-		config SDIO_CHANNEL_EN
-			bool "Enable SDIO channel"
-			depends on SDIO_SLAVE
-			default n
-
-		config SDIO_BIDIRECT_CHANNEL_EN
-			bool "Enable SDIO two derect channel"
-			depends on SDIO_CHANNEL_EN
-			default n
-
-		config SDIO_GDMA_EN
-			bool "BK7256 First Version Chip Doesn't Support GDMA"
-			depends on SDIO_SLAVE
-			default n
-
-		config GPIO_NOTIFY_TRANSACTION_EN
-			bool "Host Wake BK7256"
-			depends on SDIO
-			default y
-
-		config SDIO_4LINES_EN
-			bool "SDIO Uses 4 Lines Transfer Data"
-			depends on SDIO
-			default y
-
-		config SDIO_TEST_EN
-			bool "SDIO Test Program Enable"
-			depends on SDIO
-			default n
-
-		config SDIO_DEBUG_EN
-			bool "SDIO Debug Program Enable"
-			depends on SDIO
-			default n
-
-	endmenu
-
-	menu "SPI"
-			#TODO optimize SPI_DMA and GENERAL_DMA when optimize driver
-			config SPI_DMA
-				bool "Enable SPI DMA"
-				default y
-
-			config SPI_SLAVE
-				bool "Enable SPI Slave"
-				default y
-
-			config SPI_MASTER
-				bool "Enable SPI Master"
-				default y
-			
-			config SPI_STATIS
-				bool "Enable SPI Statis"
-				default y
-			
-			config SPI_SUPPORT_TX_FIFO_WR_READY
-				bool "Support TX FIFO Write Ready"
-				default y
-
-			config HSLAVE_SPI
-				bool "Enable HSlave SPI"
-				default y
-
-			config SPI_MST_FLASH
-				bool "SPI MST Flash"
-				default n
-
-			config SPI_MST_PSRAM
-				bool "SPI MST PSRAM"
-				default n
-
-	endmenu
-
-	menu "QSPI"
-			config QSPI
-				bool "Enable QSPI"
-				default n
-			
-			config QSPI_STATIS
-				bool "Enable QSPI Statis"
-				default y
-	endmenu
 	
-	menu "QSPI_OLED"
-			config QSPI
-				bool "Enable QSPI"
-				default n
-				
-			config QSPI_OLED
-				bool "Enable QSPI_OLED"
-				default n
-	endmenu
-
-	menu "AON_RTC"
-			config AON_RTC
-				bool "Enable AON_RTC"
-				default n
-
-			config AON_RTC_MANY_USERS
-				bool "Enable AON_RTC support many users"
-				default n
-
-			config AON_RTC_TEST
-				bool "Enable AON_RTC Test,F.E:Command line test"
-				default n
-
-			config AON_RTC_DEBUG
-				bool "Enable AON_RTC Debug"
-				default n
-	endmenu
-
-	menu "GPIO"
-			config GPIO_WAKEUP_SUPPORT
-				bool "Enable GPIO WAKEUP system if at low voltage status"
-				default n
-
-			config GPIO_DYNAMIC_WAKEUP_SUPPORT
-				bool "Enable GPIO dynamic config to wake system if at low volatage status"
-				depends on GPIO_WAKEUP_SUPPORT
-				default n
-
-			config GPIO_WAKEUP_DEBUG
-				bool "Enable GPIO wakeup module debug code"
-				depends on GPIO_WAKEUP_SUPPORT
-				default n
-
-			config GPIO_DYNAMIC_WAKEUP_SOURCE_MAX_CNT
-				int "how many gpio can dynamic set to wakeup system at low power status"
-				range 0 48
-				default 4
-				help
-				The value should be changed if need more then 4 gpio
-
-			config GPIO_SIMULATE_UART_WRITE
-				bool "Enable GPIO simulate uart write data"
-				default n
-							
-			config GPIO_DEFAULT_SET_SUPPORT
-				bool "Enable GPIO default set devs"
-				default n
-
-	endmenu
-
-	menu "AON_PMU"
-			config AON_PMU
-				bool "Enable AON_PMU"
-				default n
-	endmenu
-
-	menu "DMA"
-			config GENERAL_DMA
-				bool "Enable General DMA"
-				default y
-			config GENERAL_DMA_SEC
-				bool "Enable General DMA SEC"
-				default n
-	endmenu
-
-	menu "TOUCH"
-			config TOUCH
-				bool "Enable TOUCH"
-				default n
-	endmenu
-	
-	menu "SBC"
-			config SBC
-				bool "Enable SBC"
-				default n
-	endmenu
-	
-	menu "JPEG_ENCODE"
-			config JPEG_ENCODE
-				bool "Enable JPEG_ENCODE"
-				default n
-	endmenu
-	
-	menu "PSRAM"
-			config PSRAM
-				bool "Enable PSRAM"
-				default n
-
-			config PSRAM_AS_SYS_MEMORY
-				depends on PSRAM
-				bool "Enable psram_malloc API"
-				default n
-	endmenu
-	
-	menu "CALENDAR"
-			config CALENDAR
-				bool "Enable CALENDAR"
-				default n
-	endmenu
-	
-	menu "MPC"
-			config MPC
-				bool "Enable MPC"
-				default n
-	endmenu
-	
-	menu "PRRO"
-			config PRRO
-				bool "Enable PRRO"
-				default n
-	endmenu
-
-	menu "System control"
-		config SYS_REDUCE_NORMAL_POWER
-		bool "Reduce system normal power"
-		default n
-
-		choice XTAL_FREQ
-			prompt "Xtal frequence"
-			default XTAL_FREQ_26M
-
-			config XTAL_FREQ_40M
-				bool "XTAL frequency 40M"
-
-			config XTAL_FREQ_26M
-				bool "XTAL frequency 26M"
-		endchoice
-
-		#TODO fixed it
-		config XTAL_FREQ
-			int "26000000"
-			default 26000000 if XTAL_FREQ_26M
-			default 40000000 if XTAL_FREQ_40M
-
-		config DCO_FREQ
-			int "DCO frequency"
-			default 120000000
-
-		config SYSTEM_CTRL
-			bool "Enable system_ctrl"
-			default n
-
-		config POWER_CLOCK_RF
-			bool "Enable rf power clock"
-			default n
-	endmenu
-
-	menu "PHY"
-		#TODO is here the right place to put CONFIG_PTA?
-		config PTA
-		bool "Enable PTA"
-		default n
-
-		config ATE_TEST
-		    bool "Enable ATE Test"
-		    default n
-	endmenu
-
-	menu "I2S"
-		config I2S
-		bool "Enable I2S"
-		default n
-	endmenu
-
-	menu "I2C"
-		config I2C
-			bool "Enable I2C"
-			default y
-
-		config I2C_SUPPORT_ID_BITS
-			int "i2c support id bits"
-			range 1 255
-			default 1
-			help
-			The value should be changed if need to change i2c id
-
-		config FM_I2C
-			bool "Enable FM I2C"
-			default y
-
-		config SIM_I2C
-			bool "Enable GPIO Simulate I2C"
-			default n
-	endmenu
-
-	menu "PWM"
-		config PWM
-			bool "Enable pwm"
-			default y
-
-		config PWM_HAS_TWO_INT
-			bool "Enable pwm has two int"
-			default n
-	endmenu
-
-	menu "ICU"
-		config ICU_GPIO
-			bool "Enable icu gpio"
-			default n
-	endmenu
-
-	menu "TIMER"
-		config TIMER
-			bool "Enable TIMER"
-			default y
-		
-		config TIMER_COUNTER
-			bool "Enable timer counter"
-			default y
-
-		config TIMER_SUPPORT_ID_BITS
-			int "timer support id bits"
-			range 0 255
-			default 0
-			help
-			0 indicates that all IDs are supported by default, no configuration required
-	endmenu	
-
-	menu "SARADC"
-		config SARADC
-			bool "Enable saradc"
-			default y
-
-		config SARADC_NEED_FLUSH
-			bool "SARADC whether need flush data"
-			default y
-
-		config SARADC_RANGE_DIVIDE
-			bool "Enable saradc measure range divide"
-			default n
-	endmenu
-	
-	menu "FLASH"
-		config FLASH
-			bool "Enable flash"
-			default y
-
-		config FLASH_QUAD_ENABLE
-			bool "Enable flash quad enable"
-			default n
-		
-		config FLASH_SRC_CLK_60M
-			bool "Enable flash source clock 60M"
-			default n
-		
-		config FLASH_ORIGIN_API
-			bool "Enable flash old api"
-			default n
-	endmenu
-
 	config SUPPORT_IRDA
 		bool "Enable IRDA"
 		default y
@@ -571,9 +60,17 @@ menu "Driver"
 	config LCD
 		bool "Enable LCD Display"
 		default n
+
+	config TP
+		bool "Enable TP"
+		default n
 		
 	config DMA2D
 		bool "Enable DMA2D"
+		default n
+	
+	config YUV_BUF
+		bool "Enable yuv_buf"
 		default n
 
 	config JPEG_DEC
@@ -599,4 +96,8 @@ menu "Driver"
 	config CHANGE_JTAG_GPIO
 		bool "Enable change jtag group"
 		default n
+	
+	config RESET_REASON
+		bool "Enable reset reason"
+		default y
 endmenu

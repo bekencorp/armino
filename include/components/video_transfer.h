@@ -79,7 +79,13 @@ bk_err_t bk_video_buffer_close(void);
  *
  * @param buf malloc buf pointer
  * @param buf_len buf length
- * @param err_code  0: success, -1: param error, -2: buffer full, -3: frame data err, -4: timeout, -5: unknow err
+ * @param err_code  
+ *            - 0: success
+ *            - 1: param error
+ *            - 2: buffer full
+ *            - 3: frame data err
+ *            - 4: timeout
+ *            - 5: unknow err
  * @param timeout read frame data timeout
  *
  * @return

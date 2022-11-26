@@ -64,12 +64,13 @@ typedef volatile struct {
 			uint32_t vidp_ahb_jpgd_ap  : 1;  //0x4[14],vidp_ahb jpg decoder_privilege cfg,0x1,R/W
 			uint32_t vidp_ahb_disp_ap  : 1;  //0x4[15],vidp_ahb display_privilege cfg,0x1,R/W
 			uint32_t vidp_ahb_dmad_ap  : 1;  //0x4[16],vidp_ahb dmad_privilege cfg,0x1,R/W
-			uint32_t wifi_mac_ahb_ap   : 1;  //0x4[17],wifi_ahb_privilege cfg,0x3,R/W
-			uint32_t wifi_modem_ahb_ap : 1;  //0x4[18],wifi_ahb_privilege cfg,0x3,R/W
-			uint32_t btdm_ahb_ap       : 1;  //0x4[19],btdm_ahb_privilege cfg,0x1,R/W
-			uint32_t mbox0_ahb_ap      : 1;  //0x4[20],mbox0_ahb_privilege cfg,0x1,R/W
-			uint32_t mbox1_ahb_ap      : 1;  //0x4[21],mbox1_ahb_privilege cfg,0x1,R/W
-			uint32_t reserved          :10;  //0x4[31:22],Reserved,0,R
+			uint32_t vidp_ahb_rott_ap  : 1;  //0x4[17],vidp_ahb_rott_ap dmad_privilege cfg,0x1,R/W
+			uint32_t wifi_mac_ahb_ap   : 1;  //0x4[18],wifi_ahb_privilege cfg,0x3,R/W
+			uint32_t wifi_modem_ahb_ap : 1;  //0x4[19],wifi_ahb_privilege cfg,0x3,R/W
+			uint32_t btdm_ahb_ap       : 1;  //0x4[20],btdm_ahb_privilege cfg,0x1,R/W
+			uint32_t mbox0_ahb_ap      : 1;  //0x4[21],mbox0_ahb_privilege cfg,0x1,R/W
+			uint32_t mbox1_ahb_ap      : 1;  //0x4[22],mbox1_ahb_privilege cfg,0x1,R/W
+			uint32_t reserved          : 9;  //0x4[31:23],Reserved,0,R
 		};
 		uint32_t v;
 	} ahb_cfg_ap;
@@ -94,12 +95,13 @@ typedef volatile struct {
 			uint32_t  vidp_ahb_jpgd_nsec             : 1;  //0x4[14],vidp_ahb jpg decoder_nonsecure cfg,0x0,R/W
 			uint32_t  vidp_ahb_disp_nsec             : 1;  //0x4[15],vidp_ahb display_nonsecure cfg,0x0,R/W
 			uint32_t  vidp_ahb_dmad_nsec             : 1;  //0x4[16],vidp_ahb dmad_nonsecure cfg,0x0,R/W
-			uint32_t  wifi_mac_ahb_nsec              : 1;  //0x4[17],wifi_ahb_nonsecure cfg,0x0,R/W
-			uint32_t  wifi_modem_ahb_nsec            : 1;  //0x4[18],wifi_ahb_nonsecure cfg,0x0,R/W
-			uint32_t  btdm_ahb_nsec                  : 1;  //0x4[19],btdm_ahb_nonsecure cfg,0x0,R/W
-			uint32_t  mbox0_ahb_nsec                 : 1;  //0x4[20],mbox0_ahb_nonsecure cfg,0x0,R/W
-			uint32_t  mbox1_ahb_nsec                 : 1;  //0x4[21],mbox1_ahb_nonsecure cfg,0x0,R/W
-			uint32_t  reserved                       :10;  //0x4[22:31],Reserved,0,R
+			uint32_t  vidp_ahb_rott_nsec             : 1;  //0x4[17],vidp_ahb_rott_nsec dmad_nonsecure cfg,0x0,R/W
+			uint32_t  wifi_mac_ahb_nsec              : 1;  //0x4[18],wifi_ahb_nonsecure cfg,0x0,R/W
+			uint32_t  wifi_modem_ahb_nsec            : 1;  //0x4[19],wifi_ahb_nonsecure cfg,0x0,R/W
+			uint32_t  btdm_ahb_nsec                  : 1;  //0x4[20],btdm_ahb_nonsecure cfg,0x0,R/W
+			uint32_t  mbox0_ahb_nsec                 : 1;  //0x4[21],mbox0_ahb_nonsecure cfg,0x0,R/W
+			uint32_t  mbox1_ahb_nsec                 : 1;  //0x4[22],mbox1_ahb_nonsecure cfg,0x0,R/W
+			uint32_t  reserved                       : 9;  //0x4[23:31],Reserved,0,R
 		};
 		uint32_t v;
 	} ahb_cfg_nsec;
@@ -211,10 +213,10 @@ typedef volatile struct {
 	} aonp_apb_nonsec;
 
 	/* REG_0x0b */
-	uint32_t aon_gio_nonsec0;  //0xb[31:0],aon_gio_nonsec0,0x0,R/W
+	uint32_t aon_gpio_nonsec0;  //0xb[31:0],aon_gpio_nonsec0,0x0,R/W
 
 	/* REG_0x0c */
-	uint32_t aon_gio_nonsec1;  //0xc[31:0],aon_gio_nonsec1,0x0,R/W
+	uint32_t aon_gpio_nonsec1;  //0xc[31:0],aon_gpio_nonsec1,0x0,R/W
 
 	/* REG_0x0d */
 	union {
@@ -296,6 +298,27 @@ typedef volatile struct {
 		};
 		uint32_t v;
 	} enc_m_hnonsec;
+
+	uint32_t reg22_reserved;
+
+	/* REG_0x17~REG_0x22 */
+	union {
+		uint32_t start;
+		uint32_t end;
+		uint32_t src;
+		uint32_t dst;
+	} cmp_addr[3];
+
+	/* REG_0x23 */
+	union {
+		struct {
+			uint32_t  cmp0_mismatch_int         : 1;  //0x23[0], compare group0 mismatch interrupt triggered
+			uint32_t  cmp1_mismatch_int         : 1;  //0x23[1], compare group1 mismatch interrupt triggered
+			uint32_t  cmp2_mismatch_int         : 1;  //0x23[2], compare group2 mismatch interrupt triggered
+			uint32_t  reserved                  :31;  //0x23[31:3]
+		};
+		uint32_t v;
+	} cmp_int_status;
 } prro_hw_t;
 
 #ifdef __cplusplus

@@ -820,7 +820,7 @@ JPEG_ITCM static JRESULT mcu_output (
 	jd_yuv_t *py, *pc;
 	uint8_t *pix;
 	JRECT rect;
-
+	uint8_t y1,y2;
 
 	mx = jd->msx << 3; my = jd->msy << 3;					/* MCU size (pixel) */
 	rx = (x + mx <= jd->width) ? mx : jd->width - x;	/* Output rectangular size (it may be clipped at right/bottom end of image) */
@@ -896,6 +896,14 @@ JPEG_ITCM static JRESULT mcu_output (
 							*pix++ = ((219 * cr) >> 8) + 128;
 						}
 						*pix++ = ((219 * yy) >> 8) + 16;
+
+						if (ix & 0x01)
+						{
+							y1 = *(pix -1);
+							y2 = *(pix - 3);
+							*(pix -1) = y2;
+							*(pix - 3) = y1;
+						}
 					}
 					#elif (JD_FORMAT == 4)
 					{

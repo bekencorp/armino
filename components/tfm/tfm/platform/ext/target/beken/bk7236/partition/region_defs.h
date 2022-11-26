@@ -33,56 +33,9 @@
  */
 #define PSA_INITIAL_ATTEST_TOKEN_MAX_SIZE   (0x250)
 
-/* MPC granularity is 128 KB on BK7236 image. Alignment
- * of partitions is defined in accordance with this constraint.
- */
-
-#ifdef BL2
-#ifndef LINK_TO_SECONDARY_PARTITION
-#define S_IMAGE_PRIMARY_PARTITION_OFFSET   (FLASH_AREA_0_OFFSET)
-#define S_IMAGE_SECONDARY_PARTITION_OFFSET (FLASH_AREA_2_OFFSET)
-#else
-#define S_IMAGE_PRIMARY_PARTITION_OFFSET   (FLASH_AREA_2_OFFSET)
-#define S_IMAGE_SECONDARY_PARTITION_OFFSET (FLASH_AREA_0_OFFSET)
-#endif /* !LINK_TO_SECONDARY_PARTITION */
-#else
-#define S_IMAGE_PRIMARY_PARTITION_OFFSET (0x0)
-#endif /* BL2 */
-
-#ifndef LINK_TO_SECONDARY_PARTITION
-#define NS_IMAGE_PRIMARY_PARTITION_OFFSET (FLASH_AREA_0_OFFSET \
-                                           + FLASH_S_PARTITION_SIZE)
-#else
-#define NS_IMAGE_PRIMARY_PARTITION_OFFSET (FLASH_AREA_2_OFFSET \
-                                           + FLASH_S_PARTITION_SIZE)
-#endif /* !LINK_TO_SECONDARY_PARTITION */
-
-/* Boot partition structure if MCUBoot is used:
- * 0x0_0000 Bootloader header
- * 0x0_0400 Image area
- * 0x7_0000 Trailer
- */
-/* IMAGE_CODE_SIZE is the space available for the software binary image.
- * It is less than the FLASH_S_PARTITION_SIZE + FLASH_NS_PARTITION_SIZE
- * because we reserve space for the image header and trailer introduced
- * by the bootloader.
- */
-
-#if (!defined(MCUBOOT_IMAGE_NUMBER) || (MCUBOOT_IMAGE_NUMBER == 1)) && \
-    (NS_IMAGE_PRIMARY_PARTITION_OFFSET > S_IMAGE_PRIMARY_PARTITION_OFFSET)
-/* If secure image and nonsecure image are concatenated, and nonsecure image
- * locates at the higher memory range, then the secure image does not need
- * the trailer area.
- */
-#define IMAGE_S_CODE_SIZE \
-            (FLASH_S_PARTITION_SIZE - BL2_HEADER_SIZE)
-#else
-#define IMAGE_S_CODE_SIZE \
-            (FLASH_S_PARTITION_SIZE - BL2_HEADER_SIZE - BL2_TRAILER_SIZE)
-#endif
-
-#define IMAGE_NS_CODE_SIZE \
-            (FLASH_NS_PARTITION_SIZE - BL2_HEADER_SIZE - BL2_TRAILER_SIZE)
+#define S_IMAGE_PRIMARY_PARTITION_OFFSET   CONFIG_PRIMARY_S_PHY_PARTITION_OFFSET
+#define S_IMAGE_SECONDARY_PARTITION_OFFSET CONFIG_SECONDARY_S_PHY_PARTITION_OFFSET
+#define NS_IMAGE_PRIMARY_PARTITION_OFFSET  CONFIG_PRIMARY_NS_PHY_PARTITION_OFFSET
 
 /* Alias definitions for secure and non-secure areas*/
 #define S_ROM_ALIAS(x)  (S_ROM_ALIAS_BASE + (x))
@@ -92,10 +45,8 @@
 #define NS_RAM_ALIAS(x) (NS_RAM_ALIAS_BASE + (x))
 
 /* Secure regions */
-#define S_IMAGE_PRIMARY_AREA_OFFSET \
-             (S_IMAGE_PRIMARY_PARTITION_OFFSET + BL2_HEADER_SIZE)
-#define S_CODE_START    (S_ROM_ALIAS(S_IMAGE_PRIMARY_AREA_OFFSET))
-#define S_CODE_SIZE     (IMAGE_S_CODE_SIZE)
+#define S_CODE_START    S_ROM_ALIAS(CONFIG_PRIMARY_S_VIRTUAL_CODE_START)
+#define S_CODE_SIZE     CONFIG_PRIMARY_S_VIRTUAL_CODE_SIZE
 #define S_CODE_LIMIT    (S_CODE_START + S_CODE_SIZE - 1)
 
 /* Size of vector table: 139 interrupt handlers + 4 bytes MPS initial value */
@@ -106,10 +57,8 @@
 #define S_DATA_LIMIT    (S_DATA_START + S_DATA_SIZE - 1)
 
 /* Non-secure regions */
-#define NS_IMAGE_PRIMARY_AREA_OFFSET \
-                        (NS_IMAGE_PRIMARY_PARTITION_OFFSET + BL2_HEADER_SIZE)
-#define NS_CODE_START   (NS_ROM_ALIAS(NS_IMAGE_PRIMARY_AREA_OFFSET))
-#define NS_CODE_SIZE    (IMAGE_NS_CODE_SIZE)
+#define NS_CODE_START   NS_ROM_ALIAS(CONFIG_PRIMARY_NS_VIRTUAL_CODE_START)
+#define NS_CODE_SIZE    CONFIG_PRIMARY_NS_VIRTUAL_CODE_SIZE
 #define NS_CODE_LIMIT   (NS_CODE_START + NS_CODE_SIZE - 1)
 
 #define NS_DATA_START   (NS_RAM_ALIAS(TOTAL_RAM_SIZE / 2))
@@ -134,8 +83,8 @@
 
 #ifdef BL2
 /* Bootloader regions */
-#define BL2_CODE_START    (S_ROM_ALIAS(FLASH_AREA_BL2_OFFSET))
-#define BL2_CODE_SIZE     (FLASH_AREA_BL2_SIZE)
+#define BL2_CODE_START    (CONFIG_BL2_RAM_LOAD_ADDR)
+#define BL2_CODE_SIZE     CONFIG_SECONDARY_BL2_VIRTUAL_CODE_SIZE
 #define BL2_CODE_LIMIT    (BL2_CODE_START + BL2_CODE_SIZE - 1)
 
 #define BL2_DATA_START    (S_RAM_ALIAS(0x0))

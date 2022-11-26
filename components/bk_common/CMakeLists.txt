@@ -1,5 +1,5 @@
 set(incs include)
-set(srcs)
+set(srcs bk_feature.c)
 
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"

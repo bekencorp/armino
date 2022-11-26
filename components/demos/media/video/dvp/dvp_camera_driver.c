@@ -25,7 +25,6 @@
 #include <components/dvp_camera_types.h>
 #include "dvp_camera_config.h"
 #include "bk_drv_model.h"
-#include "dvp_capture.h"
 
 #if CONFIG_GENERAL_DMA
 #include "bk_general_dma.h"
@@ -74,8 +73,8 @@ static void camera_intf_delay_timer_hdl(timer_id_t timer_id)
 
 	if (frame_len != frame_total_len) {
 		CAMERA_LOGE("jpeg frame len crc error:%d-%d\r\n", frame_len, frame_total_len);
+		CAMERA_LOGE("dma_state:%d\r\n", bk_dma_get_enable_status(ejpeg_cfg.dma_channel));
 	}
-
 
 	if (jpeg_drop_image == 0)
 	{
@@ -151,6 +150,9 @@ static void camera_intf_vsync_negedge_handler(jpeg_unit_t id, void *param)
 {
 	if (jpeg_eof_flag)
 	{
+#if (CONFIG_I2C_SIM)
+		camera_intf_power_down();
+#endif
 		bk_jpeg_enc_set_enable(0, JPEG_ENC_MODE);
 		jpeg_eof_flag = 0;
 		if (ejpeg_sema != NULL)
@@ -159,7 +161,6 @@ static void camera_intf_vsync_negedge_handler(jpeg_unit_t id, void *param)
 		}
 	}
 }
-
 
 static void camera_intf_init_ejpeg_pixel(uint32_t ppi_type)
 {
@@ -261,7 +262,7 @@ static void camera_intf_set_sener_cfg(uint32_t cfg)
 	camera_intf_set_sener_cfg_value(ejpeg_cfg.sener_cfg);
 }
 
-static void camera_intf_config_ejpeg(void *data)
+static bk_err_t camera_intf_config_ejpeg(void *data)
 {
 	os_memset(&ejpeg_cfg, 0, sizeof(jpegenc_desc_t));
 	os_memcpy(&ejpeg_cfg, data, sizeof(video_config_t));
@@ -273,9 +274,14 @@ static void camera_intf_config_ejpeg(void *data)
 	ejpeg_cfg.dma_channel = bk_dma_alloc(DMA_DEV_JPEG);
 	if ((ejpeg_cfg.dma_channel < DMA_ID_0) || (ejpeg_cfg.dma_channel >= DMA_ID_MAX)) {
 		CAMERA_LOGE("malloc dma fail \r\n");
-		return;
+		return kGeneralErr;
 	}
+
+	CAMERA_LOGI("%s, dma:%d \r\n", __func__, ejpeg_cfg.dma_channel);
+
 #endif
+
+	return kNoErr;
 }
 
 bk_err_t bk_camera_init(void *data)
@@ -296,7 +302,13 @@ bk_err_t bk_camera_init(void *data)
 #if CONFIG_SOC_BK7256XX
 	bk_jpeg_enc_driver_init();
 #endif
-	camera_intf_config_ejpeg(data);
+
+	err = camera_intf_config_ejpeg(data);
+	if (err != BK_OK)
+	{
+		CAMERA_LOGE("camera_intf_config_ejpeg failed\r\n");
+		return err;
+	}
 
 	ppi = CMPARAM_GET_PPI(ejpeg_cfg.sener_cfg);
 	jpeg_config.rx_buf = ejpeg_cfg.rxbuf;
@@ -327,6 +339,10 @@ bk_err_t bk_camera_init(void *data)
 	bk_i2c_init(CONFIG_CAMERA_I2C_ID, &i2c_config);
 
 	err = bk_camera_sensor_config();
+	if (err != BK_OK)
+	{
+		CAMERA_LOGE("bk_camera_sensor_config failed\r\n");
+	}
 
 	return err;
 }
@@ -343,7 +359,7 @@ bk_err_t bk_camera_deinit(void)
 		CAMERA_LOGE("Not wait jpeg eof!\r\n");
 	}
 
-	camera_inf_power_down();
+	camera_intf_power_down();
 
 	bk_jpeg_enc_deinit();
 
@@ -360,6 +376,7 @@ bk_err_t bk_camera_deinit(void)
 	jpeg_drop_image = 0;
 	frame_total_len = 0;
 	os_memset(&ejpeg_cfg, 0, sizeof(jpegenc_desc_t));
+	ejpeg_cfg.dma_channel = DMA_ID_MAX;
 
 	rtos_deinit_semaphore(&ejpeg_sema);
 	ejpeg_sema = NULL;

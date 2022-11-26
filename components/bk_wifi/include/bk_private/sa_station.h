@@ -16,28 +16,9 @@
 
 #define SCANU_IND_PAYLOAD_LEN                   512
 
-typedef struct _scan_result_
-{
-    /// Length of the frame
-    UINT16 length;
-    /// Frame control field of the frame.
-    UINT16 framectrl;
-    /// Center frequency on which we received the packet
-    UINT16 center_freq;
-    /// PHY band
-    UINT8 band;
-    /// Index of the station that sent the frame. 0xFF if unknown.
-    UINT8 sta_idx;
-    /// Index of the VIF that received the frame. 0xFF if unknown.
-    UINT8 inst_nbr;
-    /// RSSI of the received frame.
-    INT8 rssi;
-    /// Frame payload.
-    UINT32 payload[1];
-} SCAN_IND_T, *SCAN_IND_PTR;
+typedef struct rxu_mgt_ind SCAN_IND_T, *SCAN_IND_PTR;
 
-typedef struct probe_rsp
-{
+typedef struct probe_rsp {
     UINT8 timestamp[8];
     UINT16 beacon_int;
     UINT16 capab_info;
@@ -47,8 +28,7 @@ typedef struct probe_rsp
     UINT8 variable[1];
 } __attribute__ ((packed)) PROBE_RSP_T;
 
-typedef struct ieee802_11_probe_rsp
-{
+typedef struct ieee802_11_probe_rsp {
     UINT16 frame_control;
     UINT16 duration;
     UINT8 da[6];

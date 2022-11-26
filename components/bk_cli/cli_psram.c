@@ -18,7 +18,7 @@
 #include <driver/trng.h>
 #include "bk_general_dma.h"
 
-
+#if (CONFIG_ARCH_RISCV)
 extern u64 riscv_get_mtimer(void);
 
 #define PSRAM_QITEM_COUNT      (30)
@@ -124,7 +124,7 @@ static void psram_write_continue_test(void)
 	}
 
 	timer1 = riscv_get_mtimer();
-	
+
 	total_time = (uint32_t) (timer1 - timer0)/26000;
 	CLI_LOGI("finish write, use time: %ld ms, write_rate:%ld byte/ms\r\n", total_time, test_len / total_time);
 
@@ -273,6 +273,7 @@ static bk_err_t psram_task_init(void)
 static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int ret = BK_OK;
+	char *msg = NULL;
 
 	if (os_strcmp(argv[1], "start") == 0)
 	{
@@ -282,6 +283,8 @@ static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 		if (psram_debug == NULL)
 		{
 			CLI_LOGE("psram test malloc failed!\r\n");
+			msg = CLI_CMD_RSP_ERROR;
+			os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 			return;
 		}
 
@@ -334,20 +337,19 @@ static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 		if (psram_task_init() != kNoErr)
 		{
 			CLI_LOGE("psram test failed!\r\n");
+			msg = CLI_CMD_RSP_ERROR;
+			os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+			return;
 		}
 
 		CLI_LOGI("psram test start success!\r\n");
+		msg = CLI_CMD_RSP_SUCCEED;
 	}
 	else if (os_strcmp(argv[1], "stop") == 0)
 	{
 		if (psram_thread_hdl)
 		{
 			psram_debug->test_running = 0;
-		}
-		else
-		{
-			CLI_LOGI("psram test have been stopped or not started!\r\n");
-			return;
 		}
 
 		while (psram_thread_hdl)
@@ -356,6 +358,7 @@ static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 		}
 
 		CLI_LOGI("psram test stop success!\r\n");
+		msg = CLI_CMD_RSP_SUCCEED;
 	}
 	else if (os_strcmp(argv[1], "clk") == 0)
 	{
@@ -363,7 +366,6 @@ static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 
 		switch (clk)
 		{
-
 			case 60:
 				bk_psram_set_clk(PSRAM_80M);
 				break;
@@ -376,29 +378,21 @@ static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 				bk_psram_set_clk(PSRAM_160M);
 				break;
 
-			case 2400:
+			case 240:
 				bk_psram_set_clk(PSRAM_240M);
 				break;
 
 			default:
 				CLI_LOGE("can not support this clk!\r\n");
+				goto error;
 				break;
 		}
 
 		CLI_LOGI("set psram clk ok!\r\n");
+		msg = CLI_CMD_RSP_SUCCEED;
 
-	}
-	else if (os_strcmp(argv[1], "drv_init") == 0)
-	{
-		ret = bk_psram_driver_init();
-		if (ret != BK_OK)
-		{
-			CLI_LOGE("psram driver init failed!\r\n");
-		}
-		else
-		{
-			CLI_LOGI("psram driver init ok!\r\n");
-		}
+		error:
+			msg = CLI_CMD_RSP_ERROR;
 	}
 	else if (os_strcmp(argv[1], "init") == 0)
 	{
@@ -406,10 +400,12 @@ static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 		if (ret != BK_OK)
 		{
 			CLI_LOGE("psram init failed!\r\n");
+			msg = CLI_CMD_RSP_ERROR;
 		}
 		else
 		{
 			CLI_LOGI("psram init ok!\r\n");
+			msg = CLI_CMD_RSP_SUCCEED;
 		}
 	}
 	else if (os_strcmp(argv[1], "deinit") == 0)
@@ -418,20 +414,12 @@ static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 		if (ret != BK_OK)
 		{
 			CLI_LOGE("psram init failed!\r\n");
+			msg = CLI_CMD_RSP_ERROR;
 		}
 		else
 		{
 			CLI_LOGI("psram init ok!\r\n");
-		}
-
-		ret = bk_psram_driver_deinit();
-		if (ret != BK_OK)
-		{
-			CLI_LOGE("psram driver init failed!\r\n");
-		}
-		else
-		{
-			CLI_LOGI("psram driver init ok!\r\n");
+			msg = CLI_CMD_RSP_SUCCEED;
 		}
 	}
 	else if (os_strcmp(argv[1], "strcat") == 0)
@@ -441,6 +429,8 @@ static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 		if (data == NULL)
 		{
 			CLI_LOGI("psram malloc error!\r\n");
+			msg = CLI_CMD_RSP_ERROR;
+			os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 			return;
 		}
 		os_memset(data, 0, 20);
@@ -448,17 +438,74 @@ static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 		bk_psram_strcat((char *)data, (char *)argv[2]);
 		bk_psram_strcat((char *)data, (char *)argv[2]);
 		psram_free(data);
+		msg = CLI_CMD_RSP_SUCCEED;
 	}
 	else
 	{
 		cli_psram_help();
+		msg = CLI_CMD_RSP_ERROR;
 	}
 
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
+#endif
+
+#if (CONFIG_MPC)
+#include <driver/mpc.h>
+
+#define BUFFER_SIZE         (34)
+#define TEST_VALUE_START    0x41
+
+uint8_t psram_tx_buffer[BUFFER_SIZE] = {0};
+uint8_t psram_rx_buffer[BUFFER_SIZE] = {0};
+
+static void fill_buffer(uint8_t *pBuffer, uint32_t uwBufferLenght, uint32_t uwOffset)
+{
+	uint32_t tmpIndex = 0;
+
+	/* Put in global buffer different values */
+	for (tmpIndex = 0; tmpIndex < uwBufferLenght; tmpIndex++ ) {
+		pBuffer[tmpIndex] = tmpIndex + uwOffset;
+	}
+}
+
+static void cli_psram_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	int i;
+	uint32_t test_addr_sec;
+	char *msg = NULL;
+
+	fill_buffer(psram_tx_buffer, BUFFER_SIZE, TEST_VALUE_START);
+
+	/*set first block non-sec and second block sec*/
+	bk_mpc_driver_init();
+	bk_mpc_set_secure_attribute(MPC_DEV_PSRAM, 0, 1, MPC_BLOCK_NON_SECURE);
+	bk_mpc_set_secure_attribute(MPC_DEV_PSRAM, bk_mpc_get_block_size(MPC_DEV_PSRAM), 1, MPC_BLOCK_SECURE);
+
+	/*init psram*/
+	bk_psram_init();
+
+	test_addr_sec = SOC_PSRAM_DATA_ADDR_SEC + bk_mpc_get_block_size(MPC_DEV_PSRAM);
+	bk_psram_memcpy(test_addr_sec, (uint32_t *)psram_tx_buffer, BUFFER_SIZE);
+	bk_psram_memread(test_addr_sec, (uint32_t *)psram_rx_buffer, BUFFER_SIZE);
+
+	for (i = 0; i < BUFFER_SIZE; i++) {
+		bk_printf("%02x ", psram_rx_buffer[i]);
+	}
+	bk_printf("\r\n");
+	msg = CLI_CMD_RSP_SUCCEED;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+}
+#endif
 
 #define PSRAM_CNT (sizeof(s_psram_commands) / sizeof(struct cli_command))
 static const struct cli_command s_psram_commands[] = {
+#if (CONFIG_ARCH_RISCV)
 	{"psram_test", "start|stop", cli_psram_cmd_handle},
+#endif
+#if (CONFIG_MPC)
+	{"psram_test", "", cli_psram_test},
+#endif
 };
 
 int cli_psram_init(void)

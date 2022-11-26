@@ -126,6 +126,19 @@ bk_err_t bk_uvc_camera_driver_stop(void);
  */
 uvc_camera_device_t *bk_uvc_camera_get_device(void);
 
+/**
+ * @brief     drop first number frame
+ *
+ * This API called by user, before uvc start work
+ *
+ * @attation 1. this function must called before bk_uvc_camera_driver_init
+ *
+ * @return
+ *    - NULL
+ */
+void bk_uvc_camera_drop_frame(uint8_t number);
+
+
 #ifdef __cplusplus
 }
 #endif

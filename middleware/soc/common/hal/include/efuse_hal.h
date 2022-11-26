@@ -33,7 +33,7 @@ typedef struct {
 
 bk_err_t efuse_hal_init(efuse_hal_t *hal);
 bk_err_t efuse_hal_write(efuse_hal_t *hal, uint8_t addr, uint8_t wr_data);
-uint8_t efuse_hal_read(efuse_hal_t *hal, uint8_t addr);
+bk_err_t efuse_hal_read(efuse_hal_t *hal, uint8_t addr, uint8_t *data);
 
 #if CFG_HAL_DEBUG_EFUSE
 void efuse_struct_dump(void);

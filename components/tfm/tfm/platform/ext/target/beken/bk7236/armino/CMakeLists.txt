@@ -24,6 +24,8 @@ set(incs
         ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/common/hal/include
         ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/soc
         ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal
+        ${ARMINO_MIDDLEWARE_REPO_PATH}/boards/${SOC}/partitions
+	${PARTITION_HDR_DIR}
 )
 
 set(srcs
@@ -37,6 +39,9 @@ set(srcs
         ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/spinlock/amp_res_lock.c
         ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/icu/icu_driver.c
         ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/flash/flash_driver.c
+        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/sys_ctrl/sys_driver.c
+        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/sys_ctrl/sys_driver_common.c
+        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/sys_ctrl/sys_clock_driver.c
 
         ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/common/hal/uart_hal.c
         ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal/uart_hal_debug.c
@@ -49,10 +54,12 @@ set(srcs
         ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/common/hal/flash_hal.c
         ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal/flash_hal_debug.c
         ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal/flash_ll.c
+
+        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal/sys_hal.c
 )
 
 set(s_srcs
-        driver/bk_mpc.c
+        driver/bk_tfm_mpc.c
 
         ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/mpc/mpc_driver.c
         ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/common/hal/mpc_hal.c
@@ -71,8 +78,10 @@ target_include_directories(platform_ns PUBLIC ${incs})
 target_sources(platform_ns PRIVATE ${srcs})
 
 if(BL2)
-	target_include_directories(platform_bl2 PUBLIC ${incs})
-	target_sources(platform_bl2 PRIVATE ${srcs})
+	set(bl2_srcs driver/bk_tfm_flash.c)
+	set(bl2_incs driver)
+	target_include_directories(platform_bl2 PUBLIC ${incs} ${bl2_incs})
+	target_sources(platform_bl2 PRIVATE ${srcs} ${bl2_srcs})
 endif()
 
 

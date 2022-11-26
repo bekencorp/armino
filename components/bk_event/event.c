@@ -434,7 +434,6 @@ static void event_task(beken_thread_arg_t arg)
 {
 	event_msg_t *msg = NULL;
 	int event_ret;
-
 	event_task_init();
 
 	while (1) {

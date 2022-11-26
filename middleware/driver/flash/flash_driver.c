@@ -21,6 +21,7 @@
 #include "flash_driver.h"
 #include "flash_hal.h"
 #include "sys_driver.h"
+#include "driver/flash_partition.h"
 
 #if CONFIG_FLASH_QUAD_ENABLE
 #include "flash_bypass.h"
@@ -65,6 +66,11 @@ static const flash_config_t flash_config[] = {
 #endif
 	{0x0B4017,   2,               FLASH_SIZE_8M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x05,        0x00,         0x0E,         0x109,                9,            1,           0xA0,                          0x01}, //xtx_25f64b
 	{0x0E4016,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x0E,         0x101,                9,            1,           0xA0,                          0x01}, //xtx_FT25H32
+#if CONFIG_FLASH_QUAD_ENABLE
+	{0x1C4116,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_FOUR, 14,      2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                9,            1,           0xA0,                          0x02}, //en_25qe32a
+#else
+	{0x1C4116,   1,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 0,        2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                0,            0,           0xA0,                          0x01}, //en_25qe32a
+#endif
 	{0xC84015,   2,               FLASH_SIZE_2M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x0D,         0x101,                9,            1,           0xA0,                          0x01}, //gd_25q16c
 #if CONFIG_FLASH_QUAD_ENABLE
 	{0xC84016,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_FOUR, 14,      2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                9,            1,           0xA0,                          0x02}, //gd_25q32c
@@ -431,8 +437,13 @@ bk_err_t bk_flash_driver_init(void)
 #endif
 	bk_flash_set_line_mode(s_flash.flash_cfg->line_mode);
 	flash_hal_set_default_clk(&s_flash.hal);
+
 #if (CONFIG_SOC_BK7256XX)
+	#if CONFIG_ATE_TEST
+	bk_flash_clk_switch(FLASH_SPEED_LOW, 0);
+	#else
 	bk_flash_clk_switch(FLASH_SPEED_HIGH, 0);
+	#endif
 #endif
 
 	flash_init_common();
@@ -704,4 +715,25 @@ bk_err_t bk_flash_register_ps_resume_callback(flash_ps_callback_t ps_resume_cb)
 	s_flash_ps_resume_cb = ps_resume_cb;
 	return BK_OK;
 }
+
+bk_err_t bk_spec_flash_write_bytes(bk_partition_t partition, const uint8_t *user_buf, uint32_t size,uint32_t offset)
+{
+	bk_logic_partition_t *bk_ptr = NULL;
+	u8 *save_flashdata_buff  = NULL;
+
+	bk_ptr = bk_flash_partition_get_info(partition);	
+	save_flashdata_buff= os_malloc(bk_ptr->partition_length);	
+	//os_printf("ota_write_flash:partition_start_addr:0x%x  size :%d\r\n",(bk_ptr->partition_start_addr),bk_ptr->partition_length);
+	bk_flash_read_bytes((bk_ptr->partition_start_addr),(uint8_t *)save_flashdata_buff, bk_ptr->partition_length);
+
+	bk_flash_set_protect_type(FLASH_PROTECT_NONE);
+	bk_flash_erase_sector(bk_ptr->partition_start_addr);
+	os_memcpy((save_flashdata_buff + offset), user_buf, size);
+	bk_flash_write_bytes(bk_ptr->partition_start_addr ,(uint8_t *)save_flashdata_buff, bk_ptr->partition_length);	
+    	bk_flash_set_protect_type(FLASH_UNPROTECT_LAST_BLOCK);
+	os_free(save_flashdata_buff);
+	return BK_OK;
+
+}
+
 

@@ -1,1 +1,4 @@
-.. include:: ../../../zh_CN/developer-guide/documentation/bk_doc_write.rst
+Documentation Guide (TBC)
+-------------------------
+
+:link_to_translation:`en:[English]`

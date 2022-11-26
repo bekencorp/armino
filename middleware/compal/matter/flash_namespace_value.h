@@ -163,6 +163,7 @@ uint32_t bk_erase_all( bk_partition_t type );
 uint32_t bk_write_ota_data_to_flash( char * indata,uint32_t data_offset_addr,uint32_t data_length);
 uint32_t bk_read_ota_data_in_flash( char * outdata,uint32_t data_offset_addr,uint32_t data_length);
 uint32_t bk_erase_ota_data_in_flash();
+uint32_t bk_erase_ota_data_in_flash_per_sector( uint32_t dw_offaddr);
 
 #if 1
 void bk_write_data_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv );

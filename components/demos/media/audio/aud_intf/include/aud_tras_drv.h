@@ -47,10 +47,16 @@ typedef enum {
 	AUD_TRAS_DRV_VOC_DEINIT,	/**< deinit voc */
 	AUD_TRAS_DRV_VOC_START,		/**< start voc */
 	AUD_TRAS_DRV_VOC_STOP,		/**< stop voc */
+	AUD_TRAS_DRV_VOC_CTRL_MIC,	/**< set voc mic enable */
+	AUD_TRAS_DRV_VOC_CTRL_SPK,	/**< set voc spk enable */
+	AUD_TRAS_DRV_VOC_CTRL_AEC,	/**< set voc aec enable */
 	AUD_TRAS_DRV_VOC_SET_MIC_GAIN,		/**< set audio adc gain */
 	AUD_TRAS_DRV_VOC_SET_SPK_GAIN,		/**< set audio dac gain */
 	AUD_TRAS_DRV_VOC_SET_AEC_PARA,		/**< set AEC parameters */
 	AUD_TRAS_DRV_VOC_GET_AEC_PARA,		/**< get AEC parameters */
+	AUD_TRAS_DRV_VOC_TX_DEBUG,			/**< dump tx data */
+	AUD_TRAS_DRV_VOC_RX_DEBUG,			/**< dump rx data */
+	AUD_TRAS_DRV_VOC_AEC_DEBUG,			/**< dump aec data */
 	/* voc int op */
 	AUD_TRAS_DRV_AEC,			/**< aec process mic data */
 	AUD_TRAS_DRV_ENCODER,		/**< encoder mic data processed by aec */
@@ -65,6 +71,11 @@ typedef enum {
 	/* debug op */
 #if CONFIG_AUD_TRAS_DAC_DEBUG
 	AUD_TRAS_VOC_DAC_BEBUG,
+#endif
+
+#if CONFIG_VIDEO_AVI
+	AUD_TRAS_DRV_AVI_START,
+	AUD_TRAS_DRV_AVI_STOP,
 #endif
 
 	AUD_TRAS_DRV_MAX,
@@ -175,6 +186,10 @@ typedef struct {
 #endif
 
 	aud_intf_voc_data_type_t data_type;
+	aud_intf_voc_mic_ctrl_t mic_en;
+	aud_intf_voc_spk_ctrl_t spk_en;
+	aud_intf_mic_type_t mic_type;			/**< audio mic type: uac or microphone */
+	aud_intf_spk_type_t spk_type;			/**< audio speaker type: uac or speaker */
 
 #if CONFIG_AUD_TRAS_LOST_COUNT_DEBUG
 	lost_count_debug_t lost_count;
@@ -182,6 +197,13 @@ typedef struct {
 
 	aud_tras_drv_encode_temp_t encoder_temp;
 	aud_tras_drv_decode_temp_t decoder_temp;
+	uint8_t *uac_spk_buff;			//uac speaker read data buffer
+	uint32_t uac_spk_buff_size; 	//uac speaker read data buffer size (byte)
+
+	/* audio debug callback */
+	aud_intf_dump_data_callback aud_tras_dump_tx_cb;		//dump audio tx data callback
+	aud_intf_dump_data_callback aud_tras_dump_rx_cb;		//dump audio rx data callback
+	aud_intf_dump_data_callback aud_tras_dump_aec_cb;		//dump audio aec mic, ref and out data callback
 } aud_tras_drv_voc_info_t;
 
 /******************************** mic info ****************************************/
@@ -200,8 +222,9 @@ typedef struct {
 	bool mic_en;						/**< mic enable, true: enable, false: disable */
 	aud_tras_mic_sta_t status;
 	aud_intf_mic_chl_t mic_chl;
+	aud_intf_mic_type_t mic_type;		/**< audio mic type: uac or microphone */
 	aud_adc_config_t *adc_config;
-	uint32_t frame_size;									/* size of one frame mic data, the size
+	uint32_t frame_size;									/* size of one frame mic data, (byte)
 																when AUD_MIC_CHL_MIC1 mode, the size must bean integer multiple of two bytes
 																when AUD_MIC_CHL_DUAL mode, the size must bean integer multiple of four bytes */
 
@@ -230,6 +253,7 @@ typedef struct {
 	bool spk_en;						/**< mic enable, true: enable, false: disable */
 	aud_tras_spk_sta_t status;
 	aud_intf_spk_chl_t spk_chl;
+	aud_intf_spk_type_t spk_type;				/**< audio speaker type: uac or speaker */
 	aud_dac_config_t *dac_config;
 	uint32_t frame_size;									/* size of one frame speaker data, the size
 																when AUD_MIC_CHL_MIC1 mode, the size must bean integer multiple of two bytes
@@ -243,6 +267,8 @@ typedef struct {
 	uint32_t *spk_rx_ring_buff;				/**< the ring buffer address of received speaker data */
 	uint16_t fifo_frame_num;				/**< audio dac start work when the fram number received is equal to fifo_frame_num */
 	RingBufferContext *spk_rx_rb;			/**< speaker received ring buffer context */
+	uint8_t *uac_spk_buff;			//uac speaker read data buffer
+	uint32_t uac_spk_buff_size; 	//uac speaker read data buffer size (byte)
 
 	void (*aud_tras_drv_spk_event_cb)(aud_tras_drv_spk_event_t event, bk_err_t result);
 } aud_tras_drv_spk_info_t;

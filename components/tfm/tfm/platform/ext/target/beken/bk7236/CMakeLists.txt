@@ -9,10 +9,12 @@ cmake_policy(SET CMP0076 NEW)
 set(CMAKE_CURRENT_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 #========================= Platform region defs ===============================#
-
+string(REGEX REPLACE "beken/" "" SOC "${TFM_PLATFORM}")
 target_include_directories(platform_region_defs
     INTERFACE
         partition
+        ${ARMINO_MIDDLEWARE_REPO_PATH}/boards/${SOC}/partitions
+	${PARTITION_HDR_DIR}
 )
 
 #========================= Platform common defs ===============================#
@@ -77,6 +79,8 @@ target_include_directories(platform_s
         cmsis_drivers
         native_drivers
         partition
+        ${ARMINO_MIDDLEWARE_REPO_PATH}/boards/${SOC}/partitions
+	${PARTITION_HDR_DIR}
         retarget
         cmsis_core
         native_drivers/timer_cmsdk
@@ -117,6 +121,12 @@ target_compile_options(platform_s
         ${COMPILER_CMSE_FLAG}
 )
 
+target_compile_definitions(platform_bl2
+    PUBLIC
+        -DMCUBOOT_IMAGE_ACCESS_HOOKS=1
+        #-DCRYPTO_HW_ACCELERATOR  TODO peter, need to enable it finally
+)
+
 #========================= Platform Non-Secure ================================#
 
 target_sources(platform_ns
@@ -148,17 +158,31 @@ if(BL2)
             cmsis_drivers/Driver_Flash.c
             native_drivers/arm_uart_drv.c
             cmsis_drivers/Driver_USART.c
+            bl2/boot_hal_bl2.c
+            bl2/int_bl2.c
+            bl2/hooks_bl2.c
+            bl2/flash_map.c
     )
 
     target_include_directories(platform_bl2
         PUBLIC
             partition
+            ${ARMINO_MIDDLEWARE_REPO_PATH}/boards/${SOC}/partitions
+            ${PARTITION_HDR_DIR}
             cmsis_core
             retarget
+            bl2
+
         PRIVATE
             .
             ${PLATFORM_DIR}/..
             native_drivers
+            ${MCUBOOT_PATH}/boot/bootutil/include
+            ${MCUBOOT_PATH}/boot/bootutil/config
+
+            #TODO peter, do we have better way??
+            ${MCUBOOT_PATH}/../../../bl2/ext/mcuboot #TODO peter, do we have better way???
+            ${PLATFORM_DIR}/../bl2/ext/mcuboot/include #TODO
     )
 endif()
 

@@ -25,7 +25,7 @@
 #include "gpio_driver.h"
 #include <driver/gpio.h>
 #include "cli.h"
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 #include "ff.h"
 #include "diskio.h"
 #endif
@@ -35,7 +35,7 @@
 #define write_data(addr,val)                 *((volatile uint32_t *)(addr)) = val
 #define get_addr_data(addr)                  *((volatile uint32_t *)(addr))
 
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 static  __attribute__((section(".itcm_sec_code "))) void memcpy_word(uint32_t *dst, uint32_t *src, uint32_t size)
 {
 	uint32_t i = 0;
@@ -98,9 +98,10 @@ void cli_qspi_oled_display_picture_test_cmd(char *pcWriteBuffer, int xWriteBuffe
 		rtos_delay_milliseconds(5);
 
 		bk_qspi_oled_init();
-        	uint32_t psram_addr = os_strtoul(argv[3], NULL, 16) & 0xFFFFFFFF;
-        
-#if (CONFIG_SDCARD_HOST)
+
+		uint32_t psram_addr = os_strtoul(argv[3], NULL, 16) & 0xFFFFFFFF;
+
+#if (CONFIG_FATFS)
 		char cFileName[50];
 		FIL file;
 		FRESULT fr;

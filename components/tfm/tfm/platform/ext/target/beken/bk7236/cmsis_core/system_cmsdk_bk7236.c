@@ -48,7 +48,4 @@ void SystemInit (void)
   SCB->CCR |= SCB_CCR_UNALIGN_TRP_Msk;
 #endif
 #endif /* __DOMAIN_NS != 1U */
-
-  SystemCoreClock = SYSTEM_CLOCK;
-  PeripheralClock = PERIPHERAL_CLOCK;
 }

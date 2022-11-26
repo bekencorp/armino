@@ -24,9 +24,11 @@ static const lcd_rgb_t lcd_rgb =
 {
 	.clk = LCD_20M,
 	.data_out_clk_edge = NEGEDGE_OUTPUT,
-
+	.hsync_pulse_width = 2,
 	.hsync_back_porch = 2,  //3
 	.hsync_front_porch = 10,  //2
+	
+	.vsync_pulse_width = 2,
 	.vsync_back_porch = 5,   //
 	.vsync_front_porch = 9,  //1
 };

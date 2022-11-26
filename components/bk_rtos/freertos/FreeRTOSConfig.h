@@ -182,6 +182,7 @@ to exclude the API function. */
 #if CONFIG_FREERTOS_V10
 #define INCLUDE_xTaskGetHandle                      1
 #define INCLUDE_eTaskGetState                       1
+#define INCLUDE_xSemaphoreGetMutexHolder            1
 #endif
 
 #if CONFIG_FREERTOS_POSIX
@@ -258,8 +259,10 @@ Members except log buffer in uncached buffer used at most 6 cache line space. */
 #define configENABLE_MPU                   0
 #define configENABLE_TRUSTZONE             0
 #define configMINIMAL_SECURE_STACK_SIZE    (1024)
-#if CONFIG_FPGA
+#if CONFIG_SPE
 #define configRUN_FREERTOS_SECURE_ONLY     1
+#else
+#define configRUN_FREERTOS_SECURE_ONLY     0
 #endif
 #endif
 

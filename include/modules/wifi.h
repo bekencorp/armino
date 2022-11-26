@@ -834,6 +834,17 @@ bk_err_t bk_wifi_send_listen_interval_req(uint8_t interval);
 bk_err_t bk_wifi_get_statistic_info(wifi_statistics_info_t *wifiinfo);
 
 /**
+ * @brief  set wifi ps dtim info.
+ *
+ * @param  dtim 1 open or not
+ *
+ * @return
+ * 	-void.
+ */
+void bk_wifi_ota_dtim(bool is_open);
+
+
+/**
  * @}
  */
 

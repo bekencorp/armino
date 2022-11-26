@@ -970,23 +970,41 @@ void xPortDumpMemStats(uint32_t start_tick, uint32_t ticks_since_malloc, const c
 #endif
 
 /*-----------------------------------------------------------*/
-
 size_t xPortGetFreeHeapSize( void )
 {
-#if (CONFIG_SOC_BK7251)
-    return xFreeBytesRemaining + psram_xFreeBytesRemaining;
-#else
 	return xFreeBytesRemaining;
-#endif
 }
-/*-----------------------------------------------------------*/
 
 size_t xPortGetMinimumEverFreeHeapSize( void )
 {
-#if (CONFIG_SOC_BK7251)
-    return xMinimumEverFreeBytesRemaining + psram_xMinimumEverFreeBytesRemaining;
-#else
 	return xMinimumEverFreeBytesRemaining;
+}
+
+/*-----------------------------------------------------------*/
+size_t xPortGetPsramTotalHeapSize( void )
+{
+#if (CONFIG_PSRAM_AS_SYS_MEMORY || CONFIG_SOC_BK7251)
+	return (PSRAM_END_ADDRESS - PSRAM_START_ADDRESS);
+#else
+	return 0x0;
+#endif
+}
+
+size_t xPortGetPsramFreeHeapSize( void )
+{
+#if (CONFIG_PSRAM_AS_SYS_MEMORY || CONFIG_SOC_BK7251)
+	return psram_xFreeBytesRemaining;
+#else
+	return 0x0;
+#endif
+}
+
+size_t xPortGetPsramMinimumFreeHeapSize( void )
+{
+#if (CONFIG_PSRAM_AS_SYS_MEMORY || CONFIG_SOC_BK7251)
+	return psram_xMinimumEverFreeBytesRemaining;
+#else
+	return 0x0;
 #endif
 }
 /*-----------------------------------------------------------*/

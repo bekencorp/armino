@@ -161,6 +161,12 @@ DRESULT disk_read (
 				res = RES_OK;
 		}
 #endif
+		if(res != RES_OK) {
+			FATFS_LOGI("%s ERROR res:%d\r\n", __func__, res);
+			bk_sd_card_deinit();
+			bk_sd_card_init();
+		}
+
 		return res;
 
 	case DEV_USB :
@@ -237,6 +243,8 @@ DRESULT disk_write (
 		if(res != RES_OK) {
 			FATFS_LOGI("Check the remaining space!\r\n");
 			FATFS_LOGI("Get the value of the remaining space. res: %d\r\n", sd_disk_check_space_size());
+			bk_sd_card_deinit();
+			bk_sd_card_init();
 		}
 #elif (CONFIG_SDCARD_V1P0)
 		// translate the arguments here

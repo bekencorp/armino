@@ -27,10 +27,8 @@ extern "C" {
  * @ingroup bk_api_wdt
  * @{
  */
-#define BK_ERR_AON_WDT_DRIVER_NOT_INIT    (BK_ERR_AON_WDT_BASE - 1) /**< AON_WDT driver not init */
-#define BK_ERR_AON_WDT_NOT_INIT           (BK_ERR_AON_WDT_BASE - 2) /**< AON_WDT not init */
-#define BK_ERR_AON_WDT_INVALID_PERIOD     (BK_ERR_AON_WDT_BASE - 3) /**< AON_WDT invalid period */
-#define BK_ERR_AON_WDT_DEBUG_DISABLED     (BK_ERR_AON_WDT_BASE - 4) /**< AON_WDT disabled via cmdline flag */
+
+#define BK_ERR_AON_WDT_INVALID_PERIOD     (BK_ERR_AON_WDT_BASE - 1) /*< AON_WDT invalid period */
 
 /**
  * @}

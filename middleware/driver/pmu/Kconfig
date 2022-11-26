@@ -1,0 +1,6 @@
+menu "AON_PMU"
+	config AON_PMU
+		bool "Enable AON_PMU"
+		default n
+endmenu
+

@@ -37,12 +37,18 @@
 #include <driver/gpio.h>
 #include <driver/int.h>
 #include "dma2d_hal.h"
-#include <driver/hal/hal_dma2d_types.h>
+#include <driver/dma2d_types.h>
 #include <driver/dma2d.h>
 #include <modules/pm.h>
 
 #define DMA2D_TIMEOUT_ABORT           (1000U)  /**<  1s  */
 #define DMA2D_TIMEOUT_SUSPEND         (1000U)  /**<  1s  */
+
+#define TAG "dma2d_drv"
+#define DMA2D_LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
+#define DMA2D_LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
+#define DMA2D_LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
+#define DMA2D_LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
 #if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
 
@@ -52,6 +58,13 @@ static void dma2d_isr_common(void);
 
 #endif
 
+#define DMA2D_RETURN_ON_NOT_INIT() do {\
+		if (!s_dma2d_driver_is_init) {\
+			return BK_ERR_DMA2D_NOT_INIT;\
+		}\
+	} while(0)
+static bool s_dma2d_driver_is_init = false;
+
 /**
   * @brief  initializes the DMA2D peripheral registers
   * @param  dma2d_init_t pointr structure that contains
@@ -60,21 +73,27 @@ static void dma2d_isr_common(void);
   *
   * @retval None
   */
-bk_err_t bk_dma2d_driver_init(dma2d_config_t *dma2d)
+bk_err_t bk_dma2d_driver_init(void)
 {
-//if(sys_drv_dma2d_set(0, 0) != 0) {
-//		os_printf("dma2d sys clk config error \r\n");
-//		return BK_FAIL;
-//	}
+	if (s_dma2d_driver_is_init) {
+		DMA2D_LOGW("%s already init. \n", __func__);
+		return BK_OK;
+	}
+
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_DMA2D, PM_POWER_MODULE_STATE_ON);
 #if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
 	os_memset(&s_dma2d_isr, 0, sizeof(s_dma2d_isr));
 	bk_int_isr_register(INT_SRC_DMA2D, dma2d_isr, NULL);
 #endif
+	s_dma2d_driver_is_init = true;
+	DMA2D_LOGI("%s \n", __func__);
+	return BK_OK;
+}
 
+bk_err_t bk_dma2d_init(dma2d_config_t *dma2d)
+{
 	dma2d_hal_init(dma2d);
 	dma2d_hal_start_transfer(0);
-
 	return BK_OK;
 }
 
@@ -84,9 +103,17 @@ bk_err_t bk_dma2d_driver_init(dma2d_config_t *dma2d)
   */
 bk_err_t bk_dma2d_driver_deinit(void)
 {
+	if (!s_dma2d_driver_is_init) {
+		DMA2D_LOGW("%s already deinit. \n", __func__);
+		return BK_OK;
+	}
+
 	bk_int_isr_unregister(INT_SRC_DMA2D);
 	dma2d_hal_deinit();
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_DMA2D, PM_POWER_MODULE_STATE_OFF);
+	s_dma2d_driver_is_init = false;
+	
+	DMA2D_LOGI("%s deinit \n", __func__);
 	return BK_OK;
 }
 
@@ -341,5 +368,85 @@ bk_err_t bk_dma2d_register_int_callback_isr(DMA2D_ISR_ID isr_id, dma2d_isr_t cb_
 
 #endif /* USE_HAL_DMA2D_REGISTER_CALLBACKS */
 
+
+
+	
+bk_err_t bk_dma2d_blend(dma2d_blend_t *dma2d_blebnd)
+{
+	dma2d_config_t dma2d_config = {0};
+
+	/*##-1- Configure the DMA2D Mode, Output Color Mode and output offset #############*/
+	dma2d_config.init.mode		   = DMA2D_M2M_BLEND;				   /**< Mode Memory To Memory */
+	dma2d_config.init.color_mode	= dma2d_blebnd->dst_color_mode;			  /**< output format of DMA2D */
+	dma2d_config.init.output_offset= dma2d_blebnd->dest_offline;	 /**< output offset */
+	dma2d_config.init.red_blue_swap   = DMA2D_RB_REGULAR;				 /**< No R&B swap for the output image */
+	dma2d_config.init.alpha_inverted = DMA2D_REGULAR_ALPHA; 			/**< No alpha inversion for the output image */
+
+	/**< Foreground layer Configuration */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].alpha_mode = DMA2D_NO_MODIF_ALPHA;	/**< Keep original Alpha from ARGB4444 input */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_alpha = dma2d_blebnd->fg_alpha_value;					/**< 127 : semi-transparent */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_color_mode = dma2d_blebnd->fg_color_mode; /**< Foreground color is RGB565 : 16 bpp */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_offset = dma2d_blebnd->fg_offline;					/**< No offset in input */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].red_blue_swap   = dma2d_blebnd->red_bule_swap;	  /**< No R&B swap for the input image */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].alpha_inverted = DMA2D_REGULAR_ALPHA; /**< No alpha inversion for the input image */
+
+	/**< Background layer Configuration */
+	dma2d_config.layer_cfg[DMA2D_BACKGROUND_LAYER].alpha_mode  = DMA2D_NO_MODIF_ALPHA;
+	dma2d_config.layer_cfg[DMA2D_BACKGROUND_LAYER].input_alpha	 = dma2d_blebnd->bg_alpha_value;							/**< 255 : fully opaque */
+	dma2d_config.layer_cfg[DMA2D_BACKGROUND_LAYER].input_color_mode = dma2d_blebnd->bg_color_mode;		   /**< Background format is ARGB8888*/
+	dma2d_config.layer_cfg[DMA2D_BACKGROUND_LAYER].input_offset    = dma2d_blebnd->bg_offline;/**< Background input offset*/
+	dma2d_config.layer_cfg[DMA2D_BACKGROUND_LAYER].red_blue_swap	= DMA2D_RB_REGULAR; 			 /**< No R&B swap for the input background image */
+	dma2d_config.layer_cfg[DMA2D_BACKGROUND_LAYER].alpha_inverted  = DMA2D_REGULAR_ALPHA;			/**< No alpha inversion for the input background image */
+
+	bk_dma2d_init(&dma2d_config);
+	bk_dma2d_layer_config(&dma2d_config, DMA2D_FOREGROUND_LAYER);
+	bk_dma2d_layer_config(&dma2d_config, DMA2D_BACKGROUND_LAYER);
+
+//	bk_dma2d_int_config(DMA2D_TRANS_ERROR | DMA2D_TRANS_COMPLETE ,1);
+//	bk_dma2d_isr_register(dma2d_isr);
+
+	/*## RGB565_240x130_1[] is the foreground layer and LCD_FRAME_BUFFER is the background layer */
+	bk_dma2d_start_blending(&dma2d_config,
+								  (uint32_t)dma2d_blebnd->pfg_addr,													  /**< Foreground image */
+								  (uint32_t)dma2d_blebnd->pbg_addr,   /**< Background image */
+								  (uint32_t)dma2d_blebnd->pdst_addr,  /**< Destination address */
+								  dma2d_blebnd->xsize ,																	 /**< width in pixels	*/
+								  dma2d_blebnd->ysize);																	 /**< height in pixels	 */
+
+	while (bk_dma2d_is_transfer_busy()) {}
+
+	return BK_OK;
+}
+
+void bk_dma2d_pixel_convert(dma2d_pixel_convert_t *pixel_convert)
+{
+	dma2d_config_t dma2d_config = {0};
+
+	/*##-1- Configure the DMA2D Mode, Output Color Mode and output offset #############*/
+	dma2d_config.init.mode         = DMA2D_M2M_PFC;                  /**< DMA2D Mode memory to memory  with PFC*/
+	dma2d_config.init.color_mode    = pixel_convert->output_color_mode;          /**< output format of DMA2D */
+	dma2d_config.init.output_offset = pixel_convert->output_offline; 
+	dma2d_config.init.red_blue_swap   = pixel_convert->output_red_blue_swap;               /**< No R&B swap for the output image */
+	dma2d_config.init.alpha_inverted = DMA2D_REGULAR_ALPHA;            /**< No alpha inversion for the output image */
+
+	/**< Foreground layer Configuration */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].alpha_mode = DMA2D_NO_MODIF_ALPHA;    /**< Keep original Alpha from ARGB4444 input */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_alpha = pixel_convert->intput_alpha;                   /**< Fully opaque */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_color_mode = pixel_convert->input_color_mode; /**< Input color is RGB565 : 16 bpp */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_offset = pixel_convert->intput_offline;                   /**< No offset in input */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].red_blue_swap   = pixel_convert->intput_red_blue_swap;   /**< No R&B swap for the input image */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].alpha_inverted = DMA2D_REGULAR_ALPHA; /**< No alpha inversion for the input image */
+
+	bk_dma2d_init(&dma2d_config);
+	bk_dma2d_layer_config(&dma2d_config, DMA2D_FOREGROUND_LAYER);
+
+	bk_dma2d_start_transfer(&dma2d_config,
+                                  (uint32_t)pixel_convert->input_addr, /**< Source buffer in format RGB565 and size 320x240      */
+                                  (uint32_t)(pixel_convert->output_addr ),/**< framebuf+2*(LCD_X_SIZE*sy+sx)*/
+                                  pixel_convert->xsize,           /**< width in pixels  */
+                                  pixel_convert->ysize);        /**< height in pixels */
+
+	while (bk_dma2d_is_transfer_busy()) {}
+}
 
 

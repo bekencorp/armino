@@ -12,8 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <sdkconfig.h>
+
+/* TODO:
+ * The weak doesn't work, define CONFIG_DEFAULT_CMSIS_START to overwrite the
+ * default _start. Need to find out why the weak not work!!!
+ */
+#ifdef CONFIG_DEFAULT_CMSIS_START
 __attribute__((weak)) void _start(void)
 {
-	//TODO
         //entry_main();
 }
+#endif

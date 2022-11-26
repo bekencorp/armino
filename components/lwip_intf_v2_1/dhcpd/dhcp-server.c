@@ -258,12 +258,12 @@ static int send_response(int sock, struct sockaddr *addr, char *msg, int len)
 {
 	int nb;
 	unsigned int sent = 0;
-    // // in AP+STA mode, should set ap-netif as default
-    int dest_ip = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
-    if ((dest_ip == IPADDR_ANY) || (dest_ip == IPADDR_BROADCAST))
-        ap_set_default_netif();
+	/* in AP+STA mode, should set ap-netif as default */
+	int dest_ip = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
+	if((dest_ip == IPADDR_ANY) || (dest_ip == IPADDR_BROADCAST))
+		ap_set_default_netif();
 
-    while (sent < len) {
+	while (sent < len) {
 		nb = lwip_sendto(sock, msg + sent, len - sent, 0, addr,
 			    sizeof(struct sockaddr_in));
 		if (nb < 0) {
@@ -274,10 +274,9 @@ static int send_response(int sock, struct sockaddr *addr, char *msg, int len)
 		}
 		sent += nb;
 	}
-
-    // rest default netif to sta's netif
-    //if((dest_ip == IPADDR_ANY) || (dest_ip == IPADDR_BROADCAST))
-        //reset_default_netif();
+	/* rest default netif to sta's netif */
+	if((dest_ip == IPADDR_ANY) || (dest_ip == IPADDR_BROADCAST))
+		reset_default_netif();
 
 	dhcp_d("sent response, %d bytes %s\r\n", sent,
 	    inet_ntoa(((struct sockaddr_in *)addr)->sin_addr));

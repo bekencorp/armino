@@ -436,6 +436,8 @@ void test_fatfs_auto_test(DISK_NUMBER number, char *filename, uint32_t len, uint
 	unsigned int uiTemp = 0;
 	uint8_t *buf_p = 0;
 	uint32_t packet_cnt = 0, bytes_cnt = 0;
+	FATFS *checkspace_pfs = NULL;
+	DWORD freenclst;
 
 	FATFS_LOGD("\r\n----- %s %d start -----\r\n", __func__, number);
 	FATFS_LOGD("file_name=%s,len=%d,test_cnt=%d \r\n", filename, len, test_count);
@@ -460,6 +462,16 @@ void test_fatfs_auto_test(DISK_NUMBER number, char *filename, uint32_t len, uint
 	for(i = 0; i < test_count; i++)
 	{
 		FATFS_LOGD("test round=%d start \r\n", i);
+		fr = f_getfree(cFileName, &freenclst, &checkspace_pfs);
+		if(fr != FR_OK)
+		{
+			FATFS_LOGE("f_getfree failed 1 fr = %d\r\n", fr);
+			goto exit;
+		} else if(freenclst < SD_MIN_NUMBER_REMAINING_CLUSTERS) {
+			FATFS_LOGE("Insufficient Space! freenclst: %d free_mem:%d MB\r\n",freenclst, freenclst/SD_CLUSTER_TO_MEM_64KB);
+			goto exit;
+		}
+
 		fr = f_open(&file, cFileName, FA_OPEN_APPEND | FA_WRITE);
 		if (fr != FR_OK)
 		{

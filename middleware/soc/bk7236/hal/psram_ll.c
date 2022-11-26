@@ -20,17 +20,7 @@ static void psram_delay(volatile uint32_t times)
 	while(times--);
 }
 
-bk_err_t psram_hal_power_enable(uint8_t enable)
-{
-	if (enable)
-		sys_drv_psram_power_enable();
-	else
-		sys_drv_psram_ldo_enable(0);
-
-	return BK_OK;
-}
-
-bk_err_t psram_hal_config_init(void)
+void psram_hal_config_init(void)
 {
 	int value;
 
@@ -73,18 +63,20 @@ bk_err_t psram_hal_config_init(void)
 	value = psram_hal_get_reg2_value();
 	value |= (0x1 << 1);
 	psram_hal_set_reg2_value(value);
-
-	return BK_OK;
 }
 
-bk_err_t psram_hal_clk_power_enable(uint8_t enable)
+void psram_hal_power_clk_enable(uint8_t enable)
 {
 	if (enable)
+	{
+		sys_drv_psram_ldo_enable(1);
 		sys_drv_dev_clk_pwr_up(CLK_PWR_ID_PSRAM, CLK_PWR_CTRL_PWR_UP);
+	}
 	else
+	{
 		sys_drv_dev_clk_pwr_up(CLK_PWR_ID_PSRAM, CLK_PWR_CTRL_PWR_DOWN);
-
-	return BK_OK;
+		sys_drv_psram_ldo_enable(0);
+	}
 }
 
 void psram_hal_continue_write(uint32_t start_addr, uint32_t *data_buf, uint32_t len)

@@ -9,3 +9,4 @@ Samples and Demos
    video <video/index>
    audio <audio/index>
    bluetooth <bluetooth/index>
+   doorbell <doorbell/index>

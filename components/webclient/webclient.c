@@ -36,7 +36,7 @@
 
 #define os_calloc(nmemb,size)   ((size) && (nmemb) > (~( unsigned int) 0)/(size))?0:os_zalloc((nmemb)*(size))
 
-
+#define TAG  "http"
 
 /* default receive or send timeout */
 #define WEBCLIENT_DEFAULT_TIMEO        30
@@ -130,7 +130,7 @@ static int webclient_read_line(struct webclient_session *session, char *buffer, 
 
     if (count > size)
     {
-        os_printf("read line failed. The line data length is out of buffer size(%d)!", count);
+        BK_LOGE(TAG,"read line failed. The line data length is out of buffer size(%d)!\r\n", count);
         return -WEBCLIENT_ERROR;
     }
 
@@ -262,7 +262,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
         session->host = host_addr_new;
     }
 
-    // os_printf("host address: %s , port: %s", session->host, port_str);
+    // BK_LOGI(TAG,"host address: %s , port: %s\r\n", session->host, port_str);
 
 #ifdef WEBCLIENT_USING_MBED_TLS
     if (session->tls_session)
@@ -292,7 +292,7 @@ static int webclient_resolve_address(struct webclient_session *session, struct a
         // ret = getaddrinfo("baidu.com", "80", &hint, res);
         if (ret != 0)
         {
-            os_printf("getaddrinfo err: %d '%s'.", ret, session->host);
+            BK_LOGE(TAG,"getaddrinfo err: %d '%s'.\r\n", ret, session->host);
             rc = -WEBCLIENT_ERROR;
             goto __exit;
         }
@@ -344,13 +344,13 @@ static int webclient_open_tls(struct webclient_session *session, const char *URI
     session->tls_session->buffer = web_malloc(session->tls_session->buffer_len);
     if(session->tls_session->buffer == RT_NULL)
     {
-        os_printf("no memory for tls_session buffer!");
+        BK_LOGE(TAG,"no memory for tls_session buffer!\r\n");
         return -WEBCLIENT_ERROR;
     }
 
     if((tls_ret = mbedtls_client_init(session->tls_session, (void *)pers, strlen(pers))) < 0)
     {
-        os_printf("initialize https client failed return: -0x%x.", -tls_ret);
+        BK_LOGE(TAG,"initialize https client failed return: -0x%x.\r\n", -tls_ret);
         return -WEBCLIENT_ERROR;
     }
 
@@ -388,12 +388,12 @@ int webclient_connect(struct webclient_session *session, const char *URI)
 #elif defined(WEBCLIENT_USING_MBED_TLS)
         if(webclient_open_tls(session, URI) < 0)
         {
-            os_printf("connect failed, https client open URI(%s) failed!", URI);
+            BK_LOGE(TAG,"connect failed, https client open URI(%s) failed!\r\n", URI);
             return -WEBCLIENT_ERROR;
         }
         session->is_tls = RT_TRUE;
 #else
-        os_printf("not support https connect, please enable webclient https configure!");
+        BK_LOGE(TAG,"not support https connect, please enable webclient https configure!\r\n");
         rc = -WEBCLIENT_ERROR;
         goto __exit;
 #endif
@@ -403,7 +403,7 @@ int webclient_connect(struct webclient_session *session, const char *URI)
     rc = webclient_resolve_address(session, &res, URI, &req_url);
     if (rc != WEBCLIENT_OK)
     {
-        os_printf("connect failed, resolve address error(%d).", rc);
+        BK_LOGE(TAG,"connect failed, resolve address error(%d).\r\n", rc);
         goto __exit;
     }
 
@@ -421,7 +421,7 @@ int webclient_connect(struct webclient_session *session, const char *URI)
     }
     else
     {
-        os_printf("connect failed, resolve request address error.");
+        BK_LOGE(TAG,"connect failed, resolve request address error.\r\n");
         rc = -WEBCLIENT_ERROR;
         goto __exit;
     }
@@ -433,13 +433,13 @@ int webclient_connect(struct webclient_session *session, const char *URI)
 
         if ((tls_ret = mbedtls_client_context(session->tls_session)) < 0)
         {
-            os_printf("connect failed, https client context return: -0x%x", -tls_ret);
+            BK_LOGE(TAG,"connect failed, https client context return: -0x%x\r\n", -tls_ret);
             return -WEBCLIENT_ERROR;
         }
 
         if ((tls_ret = mbedtls_client_connect(session->tls_session)) < 0)
         {
-            os_printf("connect failed, https client connect return: -0x%x", -tls_ret);
+            BK_LOGE(TAG,"connect failed, https client connect return: -0x%x\r\n", -tls_ret);
             return -WEBCLIENT_CONNECT_FAILED;
         }
 
@@ -473,7 +473,7 @@ int webclient_connect(struct webclient_session *session, const char *URI)
 
         if (socket_handle < 0)
         {
-            os_printf("connect failed, create socket(%d) error.", socket_handle);
+            BK_LOGE(TAG,"connect failed, create socket(%d) error.\r\n", socket_handle);
             rc = -WEBCLIENT_NOSOCKET;
             goto __exit;
         }
@@ -490,7 +490,7 @@ int webclient_connect(struct webclient_session *session, const char *URI)
         if (connect(socket_handle, res->ai_addr, res->ai_addrlen) != 0)
         {
             /* connect failed, close socket */
-            os_printf("connect failed, connect socket(%d) error.", socket_handle);
+            BK_LOGE(TAG,"connect failed, connect socket(%d) error.\r\n", socket_handle);
             closesocket(socket_handle);
             rc = -WEBCLIENT_CONNECT_FAILED;
             goto __exit;
@@ -530,7 +530,7 @@ int webclient_header_fields_add(struct webclient_session *session, const char *f
             session->header->size - session->header->length, fmt, args);
     if (length < 0)
     {
-        os_printf("add fields header data failed, return length(%d) error.", length);
+        BK_LOGE(TAG,"add fields header data failed, return length(%d) error.\r\n", length);
         return -WEBCLIENT_ERROR;
     }
     va_end(args);
@@ -540,7 +540,7 @@ int webclient_header_fields_add(struct webclient_session *session, const char *f
     /* check header size */
     if (session->header->length >= session->header->size)
     {
-        os_printf("not enough header buffer size(%d)!", session->header->size);
+        BK_LOGE(TAG,"not enough header buffer size(%d)!\r\n", session->header->size);
         return -WEBCLIENT_ERROR;
     }
 
@@ -656,7 +656,7 @@ int webclient_send_header(struct webclient_session *session, int method)
                 header_buffer = web_strdup(session->header->buffer);
                 if (header_buffer == RT_NULL)
                 {
-                    os_printf("no memory for header buffer!");
+                    BK_LOGE(TAG,"no memory for header buffer!\r\n");
                     rc = -WEBCLIENT_NOMEM;
                     goto __exit;
                 }
@@ -699,7 +699,7 @@ int webclient_send_header(struct webclient_session *session, int method)
             /* check header size */
             if (session->header->length > session->header->size)
             {
-                os_printf("send header failed, not enough header buffer size(%d)!", session->header->size);
+                BK_LOGE(TAG,"send header failed, not enough header buffer size(%d)!\r\n", session->header->size);
                 rc = -WEBCLIENT_NOBUFFER;
                 goto __exit;
             }
@@ -716,7 +716,7 @@ int webclient_send_header(struct webclient_session *session, int method)
     {
         char *header_str, *header_ptr;
         int header_line_len;
-        printf("request header:");
+        BK_LOGI(TAG,"request header:\r\n");
 
         for(header_str = session->header->buffer; (header_ptr = strstr(header_str, "\r\n")) != RT_NULL; )
         {
@@ -724,7 +724,7 @@ int webclient_send_header(struct webclient_session *session, int method)
 
             if (header_line_len > 0)
             {
-                printf("%.*s", header_line_len, header_str);
+                BK_LOGI(TAG,"%.*s\r\n", header_line_len, header_str);
             }
             header_str = header_ptr + strlen("\r\n");
         }
@@ -760,7 +760,7 @@ int webclient_handle_response(struct webclient_session *session)
     memset(session->header->buffer, 0x00, session->header->size);
     session->header->length = 0;
 
-    printf("response header:");
+    BK_LOGI(TAG,"response header:\r\n");
     /* We now need to read the header information */
     while (1)
     {
@@ -783,13 +783,13 @@ int webclient_handle_response(struct webclient_session *session)
         mime_buffer[rc - 1] = '\0';
 
         /* echo response header data */
-        printf("%s", mime_buffer);
+        BK_LOGI(TAG,"%s\r\n", mime_buffer);
 
         session->header->length += rc;
 
         if (session->header->length >= session->header->size)
         {
-            os_printf("not enough header buffer size(%d)!", session->header->size);
+            BK_LOGE(TAG,"not enough header buffer size(%d)!\r\n", session->header->size);
             return -WEBCLIENT_NOMEM;
         }
     }
@@ -798,7 +798,7 @@ int webclient_handle_response(struct webclient_session *session)
     mime_ptr = web_strdup(session->header->buffer);
     if (mime_ptr == RT_NULL)
     {
-        os_printf("no memory for get http status code buffer!");
+        BK_LOGE(TAG,"no memory for get http status code buffer!\r\n");
         return -WEBCLIENT_NOMEM;
     }
 
@@ -871,7 +871,7 @@ struct webclient_session *webclient_session_create(size_t header_sz)
     session = (struct webclient_session *) web_calloc(1, sizeof(struct webclient_session));
     if (session == RT_NULL)
     {
-        os_printf("webclient create failed, no memory for webclient session!");
+        BK_LOGE(TAG,"webclient create failed, no memory for webclient session!\r\n");
         return RT_NULL;
     }
 
@@ -882,7 +882,7 @@ struct webclient_session *webclient_session_create(size_t header_sz)
     session->header = (struct webclient_header *) web_calloc(1, sizeof(struct webclient_header));
     if (session->header == RT_NULL)
     {
-        os_printf("webclient create failed, no memory for session header!");
+        BK_LOGE(TAG,"webclient create failed, no memory for session header!\r\n");
         web_free(session);
         session = RT_NULL;
         return RT_NULL;
@@ -892,7 +892,7 @@ struct webclient_session *webclient_session_create(size_t header_sz)
     session->header->buffer = (char *) web_calloc(1, header_sz);
     if (session->header->buffer == RT_NULL)
     {
-        os_printf("webclient create failed, no memory for session header buffer!");
+        BK_LOGE(TAG,"webclient create failed, no memory for session header buffer!\r\n");
         web_free(session->header);
         web_free(session);
         session = RT_NULL;
@@ -941,7 +941,7 @@ int webclient_get(struct webclient_session *session, const char *URI)
     /* handle the response header of webclient server */
     resp_status = webclient_handle_response(session);
 
-    printf("get position handle response(%d).", resp_status);
+    BK_LOGI(TAG,"get position handle response(%d).\r\n", resp_status);
 
     if (resp_status > 0)
     {
@@ -1011,7 +1011,7 @@ int webclient_get_position(struct webclient_session *session, const char *URI, i
     /* handle the response header of webclient server */
     resp_status = webclient_handle_response(session);
 
-    printf("get position handle response(%d).", resp_status);
+    BK_LOGI(TAG,"get position handle response(%d).\r\n", resp_status);
 
     if (resp_status > 0)
     {
@@ -1065,7 +1065,7 @@ int webclient_post(struct webclient_session *session, const char *URI, const voi
 
     if ((post_data != RT_NULL) && (data_len == 0))
     {
-        os_printf("input post data length failed");
+        BK_LOGE(TAG,"input post data length failed.\r\n");
         return -WEBCLIENT_ERROR;
     }
 
@@ -1089,7 +1089,7 @@ int webclient_post(struct webclient_session *session, const char *URI, const voi
 
         /* resolve response data, get http status code */
         resp_status = webclient_handle_response(session);
-        printf("post handle response(%d).", resp_status);
+        BK_LOGI(TAG,"post handle response(%d).\r\n", resp_status);
     }
 
     return resp_status;
@@ -1125,7 +1125,7 @@ int webclient_post_extern(struct webclient_session *session, const char *URI, co
 
         /* resolve response data, get http status code */
         resp_status = webclient_handle_response(session);
-        printf("post handle response(%d).", resp_status); 
+        BK_LOGI(TAG,"post handle response(%d).\r\n", resp_status);
     }
 
     return resp_status;
@@ -1302,7 +1302,7 @@ int webclient_read(struct webclient_session *session, void *buffer, size_t lengt
             }
 
 #endif
-            printf("receive data error(%d).", bytes_read);
+            BK_LOGI(TAG,"receive data error(%d).\r\n", bytes_read);
 
             if (total_read)
             {
@@ -1313,7 +1313,7 @@ int webclient_read(struct webclient_session *session, void *buffer, size_t lengt
                 if (errno == EWOULDBLOCK || errno == EAGAIN)
                 {
                     /* recv timeout */
-                    os_printf("receive data timeout.");
+                    BK_LOGI(TAG,"receive data timeout.\r\n");
                     return -WEBCLIENT_TIMEOUT;
                 }
                 else
@@ -1528,7 +1528,7 @@ int webclient_response(struct webclient_session *session, void **response, size_
             new_resp = web_realloc(response_buf, result_sz + 1);
             if (new_resp == RT_NULL)
             {
-                os_printf("no memory for realloc new response buffer!");
+                BK_LOGE(TAG,"no memory for realloc new response buffer!\r\n");
                 break;
             }
 
@@ -1605,7 +1605,7 @@ int webclient_request_header_add(char **request_header, const char *fmt, ...)
         header = os_calloc(1, WEBCLIENT_HEADER_BUFSZ);
         if (header == RT_NULL)
         {
-            os_printf("No memory for webclient request header add.");
+            BK_LOGE(TAG,"No memory for webclient request header add.\r\n");
             return -1;
         }
         *request_header = header;
@@ -1620,7 +1620,7 @@ int webclient_request_header_add(char **request_header, const char *fmt, ...)
     length = vsnprintf(header + header_length, WEBCLIENT_HEADER_BUFSZ - header_length, fmt, args);
     if (length < 0)
     {
-        os_printf("add request header data failed, return length(%d) error.", length);
+        BK_LOGE(TAG,"add request header data failed, return length(%d) error.\r\n", length);
         return -WEBCLIENT_ERROR;
     }
     va_end(args);
@@ -1628,7 +1628,7 @@ int webclient_request_header_add(char **request_header, const char *fmt, ...)
     /* check header size */
     if (strlen(header) >= WEBCLIENT_HEADER_BUFSZ)
     {
-        os_printf("not enough request header data size(%d)!", WEBCLIENT_HEADER_BUFSZ);
+        BK_LOGE(TAG,"not enough request header data size(%d)!\r\n", WEBCLIENT_HEADER_BUFSZ);
         return -WEBCLIENT_ERROR;
     }
 
@@ -1662,20 +1662,20 @@ int webclient_request(const char *URI, const char *header, const void *post_data
 
     if (post_data == RT_NULL && response == RT_NULL)
     {
-        os_printf("request get failed, get response data cannot be empty.");
+        BK_LOGE(TAG,"request get failed, get response data cannot be empty.\r\n");
         return -WEBCLIENT_ERROR;
     }
 
     if ((post_data != RT_NULL) && (data_len == 0))
     {
-        os_printf("input post data length failed");
+        BK_LOGE(TAG,"input post data length failed.\r\n");
         return -WEBCLIENT_ERROR;
     }
 
     if ((response != RT_NULL && resp_len == RT_NULL) || 
         (response == RT_NULL && resp_len != RT_NULL))
     {
-        os_printf("input response data or length failed");
+        BK_LOGE(TAG,"input response data or length failed.\r\n");
         return -WEBCLIENT_ERROR;
     }
 
@@ -1799,7 +1799,7 @@ int test_http_post_case1(void)
     buffer = (unsigned char *) web_malloc(RCV_BUF_SIZE);
     if (buffer == RT_NULL)
     {
-        os_printf("no memory for receive response buffer.\n");
+        BK_LOGE(TAG,"no memory for receive response buffer.\n");
         ret = -5;
         goto __exit;
     }
@@ -1821,12 +1821,12 @@ int test_http_post_case1(void)
     /* send POST request by default header */
     if ((resp_status = webclient_post(session, uri, post_data, data_len)) != 200)
     {
-        os_printf("webclient POST request failed, response(%d) error.\n", resp_status);
+        BK_LOGE(TAG,"webclient POST request failed, response(%d) error.\n", resp_status);
         ret = -1;
         goto __exit;
     }
 
-    os_printf("webclient post response data: \n");
+    BK_LOGI(TAG,"webclient post response data: \n");
     do
     {
         bytes_read = webclient_read(session, buffer, RCV_BUF_SIZE);
@@ -1837,7 +1837,7 @@ int test_http_post_case1(void)
         strncat(rep_data,(char*)buffer,bytes_read);
     } while (1);
 
-    os_printf("rep_data %s", rep_data);
+    BK_LOGI(TAG,"rep_data %s.\n", rep_data);
 
 __exit:
     if (session)
@@ -1870,7 +1870,7 @@ static int webclient_get_comm(const char *uri)
     buffer = (unsigned char *) web_malloc(GET_RESP_BUFSZ);
     if (buffer == RT_NULL)
     {
-        os_printf("no memory for receive buffer.\n");
+        BK_LOGE(TAG,"no memory for receive buffer.\n");
         ret = BK_ERR_NO_MEM;
         goto __exit;
 
@@ -1887,17 +1887,17 @@ static int webclient_get_comm(const char *uri)
     /* send GET request by default header */
     if ((resp_status = webclient_get(session, uri)) != 200)
     {
-        os_printf("webclient GET request failed, response(%d) error.\n", resp_status);
+        BK_LOGE(TAG,"webclient GET request failed, response(%d) error.\n", resp_status);
         ret = BK_ERR_STATE;
         goto __exit;
     }
 
-    os_printf("webclient get response data: \n");
+    BK_LOGI(TAG,"webclient get response data: \n");
 
     content_length = webclient_content_length_get(session);
     if (content_length < 0)
     {
-        os_printf("webclient GET request type is chunked.\n");
+        BK_LOGI(TAG,"webclient GET request type is chunked.\n");
         do
         {
             bytes_read = webclient_read(session, (void *)buffer, GET_RESP_BUFSZ);
@@ -1908,11 +1908,11 @@ static int webclient_get_comm(const char *uri)
 
             for (index = 0; index < bytes_read; index++)
             {
-                os_printf("%c", buffer[index]);
+                BK_LOG_RAW("%c", buffer[index]);
             }
         } while (1);
 
-        os_printf("\n");
+        BK_LOGI(TAG,"\n");
     }
     else
     {
@@ -1930,13 +1930,13 @@ static int webclient_get_comm(const char *uri)
 
             for (index = 0; index < bytes_read; index++)
             {
-                os_printf("%c", buffer[index]);
+                BK_LOG_RAW("%c", buffer[index]);
             }
 
             content_pos += bytes_read;
         } while (content_pos < content_length);
 
-        os_printf("\n");
+        BK_LOGI(TAG,"\n");
     }
 
 __exit:
@@ -1963,7 +1963,7 @@ int test_http_get_case1(void)
     uri = web_strdup(GET_LOCAL_URI);
     if(uri == RT_NULL)
     {
-        os_printf("no memory for create get request uri buffer.\n");
+        BK_LOGE(TAG,"no memory for create get request uri buffer.\n");
         return BK_ERR_NO_MEM;
     }
 
@@ -1987,17 +1987,17 @@ static int webclient_get_smpl(const char *uri)
 
     if (webclient_request(uri, RT_NULL, RT_NULL, 0, (void **)&response, &resp_len) < 0)
     {
-        os_printf("webclient send get request failed.");
+        BK_LOGE(TAG,"webclient send get request failed.\n");
         return BK_FAIL;
     }
 
-    os_printf("webclient send get request by simplify request interface.\n");
-    os_printf("webclient get response data: \n");
+    BK_LOGI(TAG,"webclient send get request by simplify request interface.\n");
+    BK_LOGI(TAG,"webclient get response data: \n");
     for (index = 0; index < os_strlen(response); index++)
     {
-        os_printf("%c", response[index]);
+        BK_LOG_RAW("%c", response[index]);
     }
-    os_printf("\n");
+    BK_LOGI(TAG,"\n");
 
     if (response)
     {
@@ -2015,7 +2015,7 @@ int test_http_get_case2(void)
     uri = web_strdup(GET_LOCAL_URI);
     if(uri == RT_NULL)
     {
-        os_printf("no memory for create get request uri buffer.\n");
+        BK_LOGE(TAG,"no memory for create get request uri buffer.\n");
         return BK_ERR_NO_MEM;
     }
 
@@ -2034,9 +2034,11 @@ int test_http(void) {
     int ret = 0;
 
     ret = test_http_post_case1();
+    BK_LOGI(TAG,"http test post case1 result(%d).\n", ret);
     ret |= test_http_get_case1();
+    BK_LOGI(TAG,"http test get case1 result(%d).\n", ret);
     ret |= test_http_get_case2();
-
+    BK_LOGI(TAG,"http test get case2 result(%d).\n", ret);
     return ret;
 }
 

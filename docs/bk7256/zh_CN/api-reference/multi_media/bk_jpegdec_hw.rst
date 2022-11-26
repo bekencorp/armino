@@ -10,9 +10,7 @@ JPEGDEC APIs:
  - :cpp:func:`bk_jpeg_dec_driver_init` - init jpeg decode hardware module
  - :cpp:func:`bk_jpeg_dec_driver_deinit` - deinit jpeg decode hardware module
  - :cpp:func:`bk_jpeg_dec_hw_start` - start jpeg decode
-  - :cpp:func:`bk_jpeg_dec_stop` - stop jpeg decode
-
-
+ - :cpp:func:`bk_jpeg_dec_stop` - stop jpeg decode
  - :cpp:func:`bk_jpeg_dec_isr_register` - register jpeg dec complete callback
 
 

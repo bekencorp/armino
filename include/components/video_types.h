@@ -106,10 +106,10 @@ typedef struct {
 	 *
 	 * This is a transfer camera data to uplayer api, when transfer node_len jpeg data finish , this function will be called
 	 *
-	 * @param curptr: the start address of transfer data.
-	 * @param newlen: the transfer data length
-	 * @param is_eof: 0/1: whether this packet data is the last packet of this frame, will called in jpeg_end_frame isr
-	 * @param frame_len: the complete jpeg frame size, if is_eof=1, the frame_len is the true value of jpeg frame size, 
+	 * @param curptr the start address of transfer data.
+	 * @param newlen the transfer data length
+	 * @param is_eof 0/1: whether this packet data is the last packet of this frame, will called in jpeg_end_frame isr
+	 * @param frame_len the complete jpeg frame size, if is_eof=1, the frame_len is the true value of jpeg frame size, 
 	 * is_eof=0, the frame_len=0, in other words, only when transfer really frame_len at the last packet in jpeg_end_frame isr
 	 *
 	**/
@@ -152,6 +152,53 @@ typedef struct {
 	uint32_t pkt_header_size;            /**< packet header size */
 	tvideo_add_pkt_header add_pkt_header;/**< function ptr for add packet header */
 } video_setup_t;
+
+
+typedef struct {
+	/// the frame id
+	uint8_t id;
+	/// the flag of end frame, 1 for end
+	uint8_t is_eof;
+	/// the packet count of one frame
+	uint8_t pkt_cnt;
+	/// the packet header's count of one frame
+	uint8_t pkt_seq;
+} video_header_t;
+
+typedef struct {
+	/// the video data receive complete
+	beken_semaphore_t aready_semaphore;
+	/// the receive video data, malloc by user
+	uint8_t *buf_base;  // handler in usr thread
+	/// video buff length, malloc by user
+	uint32_t buf_len;
+	/// frame id
+	uint32_t frame_id;
+	/// the packet count of one frame
+	uint32_t frame_pkt_cnt;
+	/// recoder the buff ptr of every time receive video packte
+	uint8_t *buf_ptr;
+	/// the length of receive one frame
+	uint32_t frame_len;
+	/// video buff receive state
+	uint32_t start_buf;
+} video_buff_t;
+
+typedef enum {
+	/// video buff init
+	BUF_STA_INIT = 0,
+	/// video buff begin copy
+	BUF_STA_COPY,
+	/// video frame get
+	BUF_STA_GET,
+	/// video buff full
+	BUF_STA_FULL,
+	/// video buff deinit
+	BUF_STA_DEINIT,
+	/// other error
+	BUF_STA_ERR,
+} video_buff_state_t;
+
 
 #ifdef __cplusplus
 }

@@ -295,6 +295,36 @@ static inline void uart_ll_disable_tx_interrupt(uart_hw_t *hw, uart_id_t id)
 	hw->int_enable.tx_fifo_need_write = 0;
 }
 
+static inline void uart_ll_enable_fifo_over_flow_interrupt(uart_hw_t *hw, uart_id_t id)
+{
+	hw->int_enable.rx_fifo_overflow = 1;
+}
+
+static inline void uart_ll_disable_fifo_over_flow_interrupt(uart_hw_t *hw, uart_id_t id)
+{
+	hw->int_enable.rx_fifo_overflow = 0;
+}
+
+static inline void uart_ll_enable_parity_err_interrupt(uart_hw_t *hw, uart_id_t id)
+{
+	hw->int_enable.rx_parity_err = 1;
+}
+
+static inline void uart_ll_disable_parity_err_interrupt(uart_hw_t *hw, uart_id_t id)
+{
+	hw->int_enable.rx_parity_err = 0;
+}
+
+static inline void uart_ll_enable_stop_bit_err_interrupt(uart_hw_t *hw, uart_id_t id)
+{
+	hw->int_enable.rx_stop_bits_err = 1;
+}
+
+static inline void uart_ll_disable_stop_bit_err_interrupt(uart_hw_t *hw, uart_id_t id)
+{
+	hw->int_enable.rx_stop_bits_err = 0;
+}
+
 static inline uint32_t uart_ll_get_int_enable_status(uart_hw_t *hw, uart_id_t id)
 {
 	return hw->int_enable.v & 0xff;
@@ -342,9 +372,19 @@ static inline bool uart_ll_is_tx_interrupt_triggered(uart_hw_t *hw, uart_id_t id
 	return !!(status & BIT(0));
 }
 
+static inline bool uart_ll_is_rx_over_flow_int_triggered(uart_hw_t *hw, uart_id_t id, uint32_t status)
+{
+	return !!(status & BIT(2));
+}
+
 static inline bool uart_ll_is_rx_parity_err_int_triggered(uart_hw_t *hw, uart_id_t id, uint32_t status)
 {
 	return !!(status & BIT(3));
+}
+
+static inline bool uart_ll_is_rx_stop_bits_err_int_triggered(uart_hw_t *hw, uart_id_t id, uint32_t status)
+{
+	return !!(status & BIT(4));
 }
 
 static inline void uart_ll_reset_flow_control_to_default(uart_hw_t *hw, uart_id_t id)

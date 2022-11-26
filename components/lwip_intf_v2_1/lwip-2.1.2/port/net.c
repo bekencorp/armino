@@ -441,7 +441,11 @@ void ap_set_default_netif(void)
 
 void reset_default_netif(void)
 {
-    netifapi_netif_set_default(NULL);
+	if (sta_ip_is_start()) {
+		netifapi_netif_set_default(net_get_sta_handle());
+	} else {
+		netifapi_netif_set_default(NULL);
+	}
 }
 
 uint32_t sta_ip_is_start(void)
@@ -558,15 +562,16 @@ int net_configure_address(struct ipv4_config *addr, void *intrfc_handle)
 		netifapi_netif_set_addr(&if_handle->netif, ip_2_ip4(&if_handle->ipaddr),
 					ip_2_ip4(&if_handle->nmask), ip_2_ip4(&if_handle->gw));
 
-		//AP never configure DNS server address!!!
-
 		if(if_handle == &g_mlan)
 		{
 			netif_set_status_callback(&if_handle->netif,
 										wm_netif_status_static_callback);
-		}
-		netifapi_netif_set_up(&if_handle->netif);
-		net_configure_dns((struct wlan_ip_config *)addr);
+			netifapi_netif_set_up(&if_handle->netif);
+			net_configure_dns((struct wlan_ip_config *)addr);
+		}else{
+				/*AP never configure DNS server address!!!*/
+				netifapi_netif_set_up(&if_handle->netif);
+			}
 		break;
 
 	case ADDR_TYPE_DHCP:
@@ -610,21 +615,29 @@ int net_configure_address(struct ipv4_config *addr, void *intrfc_handle)
 
 int net_get_if_addr(struct wlan_ip_config *addr, void *intrfc_handle)
 {
-	const ip_addr_t *tmp;
-	struct interface *if_handle = (struct interface *)intrfc_handle;
+    const ip_addr_t *tmp;
+    struct interface *if_handle = (struct interface *)intrfc_handle;
 
-    if(netif_is_up(&if_handle->netif)) {
-    	addr->ipv4.address = ip_addr_get_ip4_u32(&if_handle->netif.ip_addr);
-    	addr->ipv4.netmask = ip_addr_get_ip4_u32(&if_handle->netif.netmask);
-    	addr->ipv4.gw = ip_addr_get_ip4_u32(&if_handle->netif.gw);
+    if(netif_is_up(&if_handle->netif)){
+      /*    STA Mode    */
+      if(if_handle == &g_mlan){
+      addr->ipv4.address = ip_addr_get_ip4_u32(&if_handle->netif.ip_addr);
+      addr->ipv4.netmask = ip_addr_get_ip4_u32(&if_handle->netif.netmask);
+      addr->ipv4.gw = ip_addr_get_ip4_u32(&if_handle->netif.gw);
 
-    	tmp = dns_getserver(0);
-    	addr->ipv4.dns1 = ip_addr_get_ip4_u32(tmp);
-    	tmp = dns_getserver(1);
-    	addr->ipv4.dns2 = ip_addr_get_ip4_u32(tmp);
+      tmp = dns_getserver(0);
+      addr->ipv4.dns1 = ip_addr_get_ip4_u32(tmp);
+      tmp = dns_getserver(1);
+      addr->ipv4.dns2 = ip_addr_get_ip4_u32(tmp);
+      /*    SoftAP Mode    */
+    }else{
+          addr->ipv4.address = ip_addr_get_ip4_u32(&if_handle->netif.ip_addr);
+          addr->ipv4.netmask = ip_addr_get_ip4_u32(&if_handle->netif.netmask);
+          addr->ipv4.gw = ip_addr_get_ip4_u32(&if_handle->netif.gw);
+         }
     }
 
-	return 0;
+    return 0;
 }
 
 int net_get_if_macaddr(void *macaddr, void *intrfc_handle)

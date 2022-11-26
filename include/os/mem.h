@@ -26,7 +26,7 @@ static inline void os_memcpy_word(uint32_t *out, const uint32_t *in, uint32_t n)
 }
 
 __attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) \
-static inline void os_memset_word(uint32_t *b, int32_t c, uint32_t n)
+__attribute__((section(".itcm_sec_code"))) static inline void os_memset_word(uint32_t *b, int32_t c, uint32_t n)
 {
     // Note:
     // the word count == sizeof(buf)/sizeof(uint32_t)

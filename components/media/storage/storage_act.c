@@ -38,7 +38,7 @@
 #include "media_evt.h"
 #include "storage_act.h"
 
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 #include "ff.h"
 #include "diskio.h"
 #endif
@@ -75,7 +75,6 @@ typedef enum
 } storage_task_evt_t;
 
 storage_info_t storage_info;
-
 char *capture_name = NULL;
 storage_flash_t storge_flash;
 
@@ -105,7 +104,7 @@ void storage_frame_buffer_dump(frame_buffer_t *frame, char *name)
 {
 	LOGI("%s dump frame: %p, %u, size: %d\n", __func__, frame->frame, frame->sequence, frame->length);
 
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 	FIL fp1;
 	unsigned int uiTemp = 0;
 	char file_name[50] = {0};
@@ -138,8 +137,12 @@ static void storage_capture_save(frame_buffer_t *frame)
 {
 	LOGI("%s save frame: %d, size: %d\n", __func__, frame->sequence ,frame->length);
 	uint64_t before, after;
+#if (CONFIG_ARCH_RISCV)
 	before = riscv_get_mtimer();
-#if (CONFIG_SDCARD_HOST)
+#else
+	before = 0;
+#endif
+#if (CONFIG_FATFS)
 	FIL fp1;
 	unsigned int uiTemp = 0;
 	char file_name[50] = {0};
@@ -188,12 +191,16 @@ static void storage_capture_save(frame_buffer_t *frame)
 	bk_flash_set_protect_type(FLASH_UNPROTECT_LAST_BLOCK);
 #endif
 	LOGI("%s, complete\n", __func__);
+#if (CONFIG_ARCH_RISCV)
 	after = riscv_get_mtimer();
+#else
+	after = 0;
+#endif
 	LOGI("save jpeg to sd/flash use %lu\n", (after - before) / 26000);
 }
 bk_err_t sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *total_len)
 {
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 	char cFileName[FF_MAX_LFN];
 	FIL file;
 	FRESULT fr;
@@ -242,7 +249,7 @@ bk_err_t sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *total_len
 				uiTemp = (uiTemp / 4 + 1) * 4;
 			}
 			transfer_memcpy_word(paddr, (uint32_t *)sram_addr, uiTemp);
-		} 
+		}
 		else
 		{
 			transfer_memcpy_word(paddr, (uint32_t *)sram_addr, once_read_len);

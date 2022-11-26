@@ -31,6 +31,13 @@ typedef struct {
 	}\
 } while(0)
 
+#define PRRO_RETURN_ON_INVALID_ID(id) do {\
+	if (((id) < 0) || ((id) >= PRRO_DEV_MAX)) {\
+		PRRO_LOGE("Invalid device id=%d\r\n", (id));\
+		return BK_ERR_PRRO_DEV_ID;\
+	}\
+} while(0)
+
 static prro_driver_t s_prro = {0};
 static bool s_prro_driver_is_init = false;
 
@@ -58,19 +65,84 @@ bk_err_t bk_prro_driver_deinit(void)
 	return BK_OK;
 }
 
-bk_err_t bk_prro_set_privilege_attribute(prro_dev_t dev, prro_privilege_type_t privilege_type)
+bk_err_t bk_prro_set_privilege(prro_dev_t dev, prro_privilege_type_t privilege_type)
 {
 	PRRO_RETURN_ON_DRIVER_NOT_INIT();
-	prro_hal_set_privilege_attribute(&s_prro.hal, dev, privilege_type);
+	PRRO_RETURN_ON_INVALID_ID(dev);
+	return prro_hal_set_privilege(dev, privilege_type);
+}
 
+bk_err_t bk_prro_set_ahb_dev_privilege(uint64_t ahb_priv_bits)
+{
+	PRRO_RETURN_ON_DRIVER_NOT_INIT();
+	PRRO_LOGD("set ahb priv: %x\r\n", ahb_priv_bits);
+	prro_hal_set_ahb_dev_privilege(ahb_priv_bits);
 	return BK_OK;
 }
 
-bk_err_t bk_prro_set_secure_attribute(prro_dev_t dev, prro_secure_type_t secure_type)
+bk_err_t bk_prro_set_apb_dev_privilege(uint64_t apb_priv_bits)
 {
 	PRRO_RETURN_ON_DRIVER_NOT_INIT();
-	prro_hal_set_secure_attribute(&s_prro.hal, dev, secure_type);
-
+	PRRO_LOGD("set apb priv: %x\r\n", apb_priv_bits);
+	prro_hal_set_apb_dev_privilege(apb_priv_bits);
 	return BK_OK;
 }
+
+bk_err_t bk_prro_set_secure(prro_dev_t dev, prro_secure_type_t secure_type)
+{
+	PRRO_RETURN_ON_DRIVER_NOT_INIT();
+	PRRO_RETURN_ON_INVALID_ID(dev);
+	PRRO_LOGD("set dev%d to %s\r\n", dev, secure_type == PRRO_SECURE ? "s" : "ns");
+	return prro_hal_set_secure(dev, secure_type);
+}
+
+bk_err_t bk_prro_set_gpios_secure(uint64_t gpio_secure_bits)
+{
+	PRRO_RETURN_ON_DRIVER_NOT_INIT();
+	PRRO_LOGD("set gpio to "BK_U64_FORMAT"\r\n", BK_U64_TO_U32(gpio_secure_bits));
+	prro_hal_set_gpios_secure(gpio_secure_bits);
+	return BK_OK;
+}
+
+bk_err_t bk_prro_set_ahb_dev_secure(uint64_t ahb_dev_secure_bits)
+{
+	PRRO_RETURN_ON_DRIVER_NOT_INIT();
+	PRRO_LOGD("set ahb to "BK_U64_FORMAT"\r\n", BK_U64_TO_U32(ahb_dev_secure_bits));
+	prro_hal_set_ahb_dev_secure(ahb_dev_secure_bits);
+	return BK_OK;
+}
+
+bk_err_t bk_prro_set_apb_dev_secure(uint64_t aph_dev_secure_bits)
+{
+	PRRO_RETURN_ON_DRIVER_NOT_INIT();
+	PRRO_LOGD("set ahb to "BK_U64_FORMAT"\r\n", BK_U64_TO_U32(aph_dev_secure_bits));
+	prro_hal_set_apb_dev_secure(aph_dev_secure_bits);
+	return BK_OK;
+}
+
+//TODO user better name!!!
+bk_err_t bk_prro_set_hnonsec_dev_secure(uint64_t dev_secure_bits)
+{
+	PRRO_RETURN_ON_DRIVER_NOT_INIT();
+	PRRO_LOGD("set hnonsec to "BK_U64_FORMAT"\r\n", BK_U64_TO_U32(dev_secure_bits));
+	prro_hal_set_hnonsec_dev_secure(dev_secure_bits);
+	return BK_OK;
+}
+
+bk_err_t bk_prro_set_hw_cmp_condition(prro_cmp_id_t id, uint32_t start, uint32_t end)
+{
+	return BK_OK;
+}
+
+bk_err_t bk_prro_set_hw_cmp_src(prro_cmp_id_t id, uint32_t src)
+{
+	return BK_OK;
+}
+
+bk_err_t bk_prro_set_hw_cmp_dst(prro_cmp_id_t id, uint32_t dst)
+{
+	return BK_OK;
+}
+
+
 

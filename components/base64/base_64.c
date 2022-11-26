@@ -92,8 +92,8 @@ unsigned char base64_encode(const unsigned char *src, int len,
  */
 unsigned int base64_calc_decode_length(const unsigned char *src, unsigned int src_Len)
 {
-	unsigned int dec_len;
-	unsigned char *dtable;
+	unsigned int dec_len = 0;
+	unsigned char *dtable = NULL;
 	unsigned int i;
 
 	dtable = (unsigned char *)os_zalloc(DTABLE_LEN);
@@ -112,6 +112,8 @@ unsigned int base64_calc_decode_length(const unsigned char *src, unsigned int sr
 	}
 	if (dec_len % 4)
 		dec_len = 0;
+
+	os_free(dtable);
 	return dec_len;
 }
 
@@ -129,7 +131,7 @@ unsigned char base64_decode(const unsigned char *src, int len,
 {
 	unsigned char *pos, in[4], block[4], tmp;
 	unsigned int i, count;
-	unsigned char *dtable;
+	unsigned char *dtable = NULL;
 
 	dtable = (unsigned char *)os_zalloc(DTABLE_LEN);
 	if (NULL == dtable) {
@@ -148,10 +150,13 @@ unsigned char base64_decode(const unsigned char *src, int len,
 			count++;
 	}
 
-	if (count % 4)
+	if (count % 4) {
+		os_free(dtable);
 		return 0;
+	}
 	if (out == ((unsigned char *)0)) {
 		*out_len = (count * 3) / 4;
+		os_free(dtable);
 		return 0;
 	}
 	pos = out;
@@ -182,6 +187,7 @@ unsigned char base64_decode(const unsigned char *src, int len,
 
 	(*out_len) = pos - out;
 
+	os_free(dtable);
 	return 1;
 }
 #endif

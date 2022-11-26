@@ -208,14 +208,38 @@ if (CONFIG_LCD)
 		"lcd/lcd_st7796s.c"
 		"lcd/lcd_gc9503v.c"
 		"lcd/lcd_nt35512.c"
+		"lcd/lcd_h050iwv.c"
+		"lcd/lcd_md0430r.c"
+		"lcd/lcd_md0700r.c"
 		"lcd/lcd_spi.c"
+		"lcd/lcd_nt35510.c"
 		)
+endif()
+if (CONFIG_LCD)
+if (CONFIG_TP)
+	list(APPEND srcs
+		"tp/tp_driver.c"
+		"tp/tp_gt911.c"
+		"tp/tp_gt1151.c"
+		"tp/bk_queue.c"
+		"tp/drv_tp.c"
+		)
+endif()
 endif()
 
 if (CONFIG_JPEG_DEC)
 	list(APPEND srcs
 		"jpeg_dec/jpeg_dec_driver.c"
 		)
+endif()
+
+if (CONFIG_YUV_BUF)
+	list(APPEND incs 
+		yuv_buf
+	)
+	list(APPEND srcs
+		"yuv_buf/yuv_buf_driver.c"
+	)
 endif()
 
 if(CONFIG_DMA2D)
@@ -335,6 +359,7 @@ if (CONFIG_AUDIO_RISCV_IP_V1_0)
 		)
 	list(APPEND srcs
 		"audio/aud_driver.c"
+		"audio/uac_driver.c"
 		)
 endif()
 
@@ -456,5 +481,5 @@ endif()
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
 	REQUIRES arm9 riscv cm33
-	PRIV_REQUIRES bk_log bk_ate
+	PRIV_REQUIRES bk_log bk_ate easy_flash
 )

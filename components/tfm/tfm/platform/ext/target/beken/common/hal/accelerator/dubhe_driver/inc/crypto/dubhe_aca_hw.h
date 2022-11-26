@@ -15,7 +15,8 @@
 #ifndef __ACA_HW_RESOURCES_H__
 #define __ACA_HW_RESOURCES_H__
 
-#define ACA_REG_SRAM_BASE_ADDR 0x01000000
+//TODO peter, is 28060000 correct?
+#define ACA_REG_SRAM_BASE_ADDR 0x28060000
 #include <stdint.h>
 #include <stddef.h>
 

@@ -60,7 +60,6 @@ typedef struct {
 		}\
 	} while(0)
 
-
 #define WDT_BARK_TIME_MS    2000
 #define NMI_WDT_CLK_DIV_16  3
 
@@ -81,7 +80,7 @@ static uint32_t s_feed_watchdog_time = INT_WDG_FEED_PERIOD_TICK;
 
 static void wdt_init_common(void)
 {
-#if (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SYSTEM_CTRL)
 	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_WDG_CPU, CLK_PWR_CTRL_PWR_UP);
 #else
 	power_up_wdt();
@@ -92,7 +91,7 @@ static void wdt_deinit_common(void)
 {
 	s_wdt_period = CONFIG_INT_WDT_PERIOD_MS;
 	wdt_hal_reset_config_to_default(&s_wdt.hal);
-#if (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SYSTEM_CTRL)
 	extern void close_wdt(void);
 	close_wdt();
 	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_WDG_CPU, CLK_PWR_CTRL_PWR_DOWN);
@@ -109,7 +108,9 @@ bk_err_t bk_wdt_driver_init(void)
 
 	os_memset(&s_wdt, 0, sizeof(s_wdt));
 	wdt_hal_init(&s_wdt.hal);
-#if ((CONFIG_SOC_BK7256XX) && (!CONFIG_SLAVE_CORE))
+#if (CONFIG_SOC_BK7236)
+	sys_drv_nmi_wdt_set_clk_div(NMI_WDT_CLK_DIV_16);
+#elif ((CONFIG_SOC_BK7256XX) && (!CONFIG_SLAVE_CORE))
 	bk_timer_start(TIMER_ID2, WDT_BARK_TIME_MS, (timer_isr_t)bk_wdt_feed_handle);
 	sys_drv_nmi_wdt_set_clk_div(NMI_WDT_CLK_DIV_16);
 	aon_pmu_drv_wdt_rst_dev_enable();
@@ -232,12 +233,7 @@ void bk_task_wdt_timeout_check(void)
 			if ((current_tick - s_last_task_wdt_log_tick) > TASK_WDG_PERIOD_TICK) {
 				WDT_LOGW("task watchdog tiggered\n");
 				s_last_task_wdt_log_tick = current_tick;
-#if DUMP_THREAD_WHEN_TASK_WDG_TIGGERED
-				rtos_dump_task_list();
-#endif
-#if DUMP_STACK_WHEN_TASK_WDG_TIGGERED
-				rtos_dump_backtrace();
-#endif
+				BK_ASSERT(0);
 			}
 		}
 	}

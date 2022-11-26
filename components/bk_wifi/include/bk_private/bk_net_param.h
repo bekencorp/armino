@@ -22,6 +22,9 @@ extern "C" {
 
 #define INFO_TLV_HEADER           (0x00564c54)   // ASCII TLV
 
+#define NET_INFO_MAC_ADDR_OFFSET			0x0
+#define NET_INFO_FAST_CONNECT_OFFSET		0x6
+
 typedef enum{
 #if CONFIG_WIFI_FAST_CONNECT
     FAST_CONNECT_ITEM	= 0x00001111,
@@ -33,16 +36,10 @@ typedef enum{
     SSID_KEY_ITEM	= 0x55555555,
     IP_CONFIG_ITEM	= 0x66666666,
     RF_CFG_TSSI_ITEM    = 0x77777777,
-    RF_CFG_TSSI_CHAN1_G_ITEM    = 0x77771111,
-    RF_CFG_TSSI_CHAN7_G_ITEM    = 0x77772222,
-    RF_CFG_TSSI_CHAN13_G_ITEM    = 0x77773333,
     RF_CFG_DIST_ITEM    = 0x88888888,
     RF_CFG_MODE_ITEM    = 0x99999999,
     CHARGE_CONFIG_ITEM  = 0xaaaaaaaa,
     RF_CFG_TSSI_B_ITEM  = 0xbbbbbbbb,
-    RF_CFG_TSSI_CHAN1_B_ITEM  = 0xbbbb1111,
-    RF_CFG_TSSI_CHAN7_B_ITEM  = 0xbbbb2222,
-    RF_CFG_TSSI_CHAN13_B_ITEM  = 0xbbbb3333,
     USER_COMM1_ITEM	= 0x11112222,	
     DID_STR_ITEM	= 0xcccccccc,
     USER_PSW_ITEM	= 0xdddddddd,
@@ -83,7 +80,6 @@ typedef struct item_charge_st
 #if CONFIG_WIFI_FAST_CONNECT
 typedef struct item_fastconnect_st
 {
-    INFO_ITEM_ST head;
 	uint8_t ssid[33];
 	uint8_t bssid[6];
 	uint8_t security;
@@ -115,7 +111,8 @@ typedef struct item_ip_config_st
 UINT32 test_get_whole_tbl(UINT8 *ptr);
 UINT32 save_info_item(NET_INFO_ITEM item,UINT8 *ptr0,UINT8*ptr1,UINT8 *ptr2);
 UINT32 get_info_item(NET_INFO_ITEM item,UINT8 *ptr0,UINT8 *ptr1, UINT8 *ptr2);
-
+UINT32 save_net_info(NET_INFO_ITEM item, UINT8 *ptr0, UINT8 *ptr1, UINT8 *ptr2);
+UINT32 get_net_info(NET_INFO_ITEM item, UINT8 *ptr0, UINT8 *ptr1, UINT8 *ptr2);
 #ifdef __cplusplus
 }
 #endif

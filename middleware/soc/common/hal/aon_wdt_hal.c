@@ -1,4 +1,4 @@
-// Copyright 2020-2021 Beken
+// Copyright 2021-2022 Beken
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,19 +13,21 @@
 // limitations under the License.
 
 #include "aon_wdt_hal.h"
-#include "aon_wdt_ll.h"
 
-bk_err_t aon_wdt_hal_init(aon_wdt_hal_t *hal)
+uint32_t aon_wdt_hal_get_period(void)
 {
-	hal->hw = (aon_wdt_hw_t *)AON_WDT_LL_REG_BASE(hal->id);
-	aon_wdt_ll_init(hal->hw);
+	return aon_wdt_ll_get_wd_period();
+}
+
+bk_err_t aon_wdt_hal_set_period(uint32_t timeout)
+{
+	aon_wdt_ll_set_period(timeout);
 	return BK_OK;
 }
 
-bk_err_t aon_wdt_hal_init_wdt(aon_wdt_hal_t *hal, uint32_t timeout)
+bk_err_t aon_wdt_hal_stop_aon_wdt(void)
 {
-	aon_wdt_ll_set_period(hal->hw, timeout);
+	aon_wdt_ll_set_period(0);
 	return BK_OK;
 }
-
 

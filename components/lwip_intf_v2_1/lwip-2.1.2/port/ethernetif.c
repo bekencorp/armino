@@ -154,7 +154,11 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
 	int ret;
 	err_t err = ERR_OK;
 	uint8_t vif_idx = wifi_netif_vif_to_vifid(netif->state);
-    
+
+	// Sanity check
+	if (vif_idx == 0xff)
+		return ERR_ARG;
+	
 #if CONFIG_WIFI6_CODE_STACK
 	//LWIP_LOGI("output:%x\r\n", p);
 	extern bool special_arp_flag;

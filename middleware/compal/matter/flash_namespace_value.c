@@ -1235,6 +1235,63 @@ uint32_t bk_erase_ota_data_in_flash( )
     return dw_rtn;
 }
 
+
+/*********************************************************************
+ * Funtion Name:bk_erase_ota_data_in_flash_per_sector
+ *
+ * Funtion Discription:erase ota data in flash 
+ *
+ * 
+ *
+ * 
+ * Date:2022-02-10
+ *******************************************************************/
+uint32_t bk_erase_ota_data_in_flash_per_sector( uint32_t dw_offaddr)
+{
+#if CONFIG_FLASH_ORIGIN_API
+        DD_HANDLE flash_hdl = 0;
+        uint32_t status = 0,protect_param = 0,protect_flag = 0;
+#endif
+        uint32_t operation_addr = 0;
+        bk_logic_partition_t *partition_info = NULL;
+        
+#if CONFIG_FLASH_ORIGIN_API
+        partition_info = bk_flash_get_info(BK_PARTITION_OTA);
+#else
+        partition_info = bk_flash_partition_get_info(BK_PARTITION_OTA);
+#endif
+        BK_CHECK_POINTER_NULL(partition_info);
+    
+        operation_addr = partition_info->partition_start_addr;
+    
+#if CONFIG_FLASH_ORIGIN_API
+        flash_hdl = ddev_open(DD_DEV_TYPE_FLASH, (UINT32 *)&status, 0);
+        ddev_control(flash_hdl, CMD_FLASH_GET_PROTECT, &protect_flag);
+        protect_param = FLASH_PROTECT_NONE;
+        ddev_control(flash_hdl, CMD_FLASH_SET_PROTECT, &protect_param);
+#else
+        flash_protect_type_t protect_type;
+        protect_type = bk_flash_get_protect_type();
+        bk_flash_set_protect_type(FLASH_PROTECT_NONE);
+#endif
+        operation_addr += dw_offaddr;
+
+#if CONFIG_FLASH_ORIGIN_API
+        ddev_control(flash_hdl, CMD_FLASH_ERASE_SECTOR, &operation_addr);
+#else
+        bk_flash_erase_sector(operation_addr);
+#endif
+    
+#if CONFIG_FLASH_ORIGIN_API
+        ddev_control(flash_hdl, CMD_FLASH_SET_PROTECT, &protect_flag);
+#else
+        bk_flash_set_protect_type(protect_type);
+#endif
+    
+    return kNoErr;
+}
+
+
 #if 1
 /*********************************************************************
  * Funtion Name:test bk_flash write 

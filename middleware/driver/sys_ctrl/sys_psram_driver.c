@@ -81,15 +81,6 @@ uint32_t sys_drv_psram_ldo_enable(uint32_t value)
 	return SYS_DRV_SUCCESS;
 }
 
-uint32_t sys_drv_psram_power_enable(void)
-{
-	uint32_t int_level = rtos_disable_int();
-
-	sys_hal_psram_power_enable();
-	rtos_enable_int(int_level);
-	return SYS_DRV_SUCCESS;
-}
-
 uint32_t sys_drv_psram_psldo_vsel(uint32_t value)
 {
 	uint32_t int_level = rtos_disable_int();

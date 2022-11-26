@@ -22,7 +22,8 @@ endif
 
 CROSS_COMPILE = $(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)
 
-CHIP_DIR = $(BASEDIR)/components/matter
+#CHIP_DIR = $(BASEDIR)/components/matter
+CHIP_DIR = $(BASEDIR)/components/matter/connectedhomeip
 
 # Compilation tools
 AR = $(CROSS_COMPILE)ar
@@ -55,13 +56,11 @@ INCLUDES += -I$(BASEDIR)/middleware/arch/bk7256/soc
 ifeq ($(CROSS_COMPILE_CHOICE),1)
 INCLUDES += -I$(BASEDIR)/components/os_source/freertos_v9/include
 INCLUDES += -I$(BASEDIR)/components/os_source/freertos_v9/portable/Keil/ARM968es
-INCLUDES += -I$(BASEDIR)/properties/modules/ble_5_x_rw/ble_pub/include
 else
 INCLUDES += -I$(BASEDIR)/components/os_source/freertos_v10/include
 INCLUDES += -I$(BASEDIR)/components/os_source/freertos_v10/portable/GCC/RISC-V
 INCLUDES += -I$(BASEDIR)/middleware/arch/riscv/include
 INCLUDES += -I$(BASEDIR)/middleware/arch/riscv/include/bk_private
-INCLUDES += -I$(BASEDIR)/properties/modules/btdm_5_2_rw/ble_pub/include
 endif
 
 INCLUDES += -I$(BASEDIR)/include
@@ -112,8 +111,6 @@ INCLUDES += -I$(BASEDIR)/middleware/driver/mailbox
 INCLUDES += -I$(BASEDIR)/middleware/driver/touch
 INCLUDES += -I$(BASEDIR)/middleware/driver/sbc
 INCLUDES += -I$(BASEDIR)/middleware/driver/rtc
-INCLUDES += -I$(BASEDIR)/middleware/arch/bk7231n/soc
-INCLUDES += -I$(BASEDIR)/middleware/arch/bk7231n/hal
 INCLUDES += -I$(BASEDIR)/middleware/arch/common/soc/include
 INCLUDES += -I$(BASEDIR)/middleware/arch/common/hal/include
 
@@ -127,124 +124,11 @@ INCLUDES += -I$(BASEDIR)/components/lwip_intf_v2_1/lwip-2.1.2/src/include
 #INCLUDES += -I$(BASEDIR)/components/lwip_intf_v2_0/lwip-2.0.2/src/include
 
 INCLUDES += -I$(BASEDIR)/components/mbedtls/mbedtls/include
-
-
-
-
-#examples
-INCLUDES += -I$(CHIP_DIR)/examples/lighting-app/beken
-INCLUDES += -I$(CHIP_DIR)/examples/lighting-app/beken/main
-INCLUDES += -I$(CHIP_DIR)/examples/lighting-app/beken/main/include
-
-#src
-INCLUDES += -I$(CHIP_DIR)/src
-INCLUDES += -I$(CHIP_DIR)/src/app/server
-INCLUDES += -I$(CHIP_DIR)/src/lib
+INCLUDES += -I$(BASEDIR)/components/mbedtls/mbedtls-port/inc
 
 INCLUDES += -I$(CONFIG_DIR)
 
-INCLUDES += -I$(OUTPUT_DIR)/out/$(TARGET)/gen/include
-INCLUDES += -I$(CHIP_DIR)/src/include
-
-#zzz_generated
-INCLUDES += -I$(CHIP_DIR)/zzz_generated
-INCLUDES += -I$(CHIP_DIR)/zzz_generated/app-common
-INCLUDES += -I$(CHIP_DIR)/zzz_generated/lighting-app
-
-
-#third_party
-INCLUDES += -I$(CHIP_DIR)/third_party/nlassert/repo/include
-INCLUDES += -I$(CHIP_DIR)/third_party/nlio/repo/include
-
-
-
-# -------------------------------------------------------------------
-# CHIP application layer source
-# -------------------------------------------------------------------
-SRC_CPP = 
-SRC_CPP += $(CHIP_DIR)/src/app/server/EchoHandler.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/server/Dnssd.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/server/OnboardingCodesUtil.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/server/Server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/server/CommissioningWindowManager.cpp
-
-SRC_CPP += $(CHIP_DIR)/src/app/util/af-event.cpp
-#SRC_CPP += $(CHIP_DIR)/src/app/util/af-main-common.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/util/attribute-size-util.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/util/attribute-storage.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/util/attribute-table.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/util/binding-table.cpp
-#SRC_CPP += $(CHIP_DIR)/src/app/util/CHIPDeviceCallbacksMgr.cpp
-#SRC_CPP += $(CHIP_DIR)/src/app/util/chip-message-send.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/util/client-api.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/util/DataModelHandler.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/util/ember-compatibility-functions.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/util/ember-print.cpp
-#SRC_CPP += $(CHIP_DIR)/src/app/util/esi-management.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/util/message.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/util/util.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/util/error-mapping.cpp
-
-#SRC_CPP += $(CHIP_DIR)/src/lib/dnssd/minimal_mdns/responders/IP.cpp
-
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/basic/basic.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/bindings/bindings.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/diagnostic-logs-server/diagnostic-logs-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/general-commissioning-server/general-commissioning-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/on-off-server/on-off-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/fixed-label-server/fixed-label-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/operational-credentials-server/operational-credentials-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/level-control/level-control.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/localization-configuration-server/localization-configuration-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/network-commissioning/network-commissioning.cpp
-#SRC_CPP += $(CHIP_DIR)/src/app/clusters/network-commissioning-old/network-commissioning-ember.cpp
-#SRC_CPP += $(CHIP_DIR)/src/app/clusters/network-commissioning-old/network-commissioning-old.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/color-control-server/color-control-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/occupancy-sensor-server/occupancy-sensor-server.cpp
-#SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-provider/ota-provider.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/BDXDownloader.cpp
-#SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/OTARequestor.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/ota-requestor-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/DefaultOTARequestor.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/ExtendedOTARequestorDriver.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/DefaultOTARequestorStorage.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/ota-requestor/DefaultOTARequestorDriver.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/user-label-server/user-label-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/ethernet-network-diagnostics-server/ethernet-network-diagnostics-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/software-diagnostics-server/software-diagnostics-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/switch-server/switch-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/thread-network-diagnostics-server/thread-network-diagnostics-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/wifi-network-diagnostics-server/wifi-network-diagnostics-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/administrator-commissioning-server/administrator-commissioning-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/general-diagnostics-server/general-diagnostics-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/identify-server/identify-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/descriptor/descriptor.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/time-format-localization-server/time-format-localization-server.cpp
-
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/access-control-server/access-control-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/group-key-mgmt-server/group-key-mgmt-server.cpp
-SRC_CPP += $(CHIP_DIR)/src/app/clusters/groups-server/groups-server.cpp
-
-#SRC_CPP += $(CHIP_DIR)/src/app/reporting/Engine.cpp
-
-SRC_CPP += $(CHIP_DIR)/zzz_generated/app-common/app-common/zap-generated/attributes/Accessors.cpp
-
-SRC_CPP += $(CHIP_DIR)/zzz_generated/lighting-app/zap-generated/callback-stub.cpp
-SRC_CPP += $(CHIP_DIR)/zzz_generated/lighting-app/zap-generated/IMClusterCommandHandler.cpp
-
-#SRC_CPP += $(CHIP_DIR)/zzz_generated/lighting-app/zap-generated/CHIPClientCallbacks.cpp
-
-SRC_CPP += $(CHIP_DIR)/examples/lighting-app/beken/main/chipinterface.cpp
-SRC_CPP += $(CHIP_DIR)/examples/lighting-app/beken/main/DeviceCallbacks.cpp
-SRC_CPP += $(CHIP_DIR)/examples/lighting-app/beken/main/CHIPDeviceManager.cpp
-#SRC_CPP += $(CHIP_DIR)/examples/lighting-app/beken/main/Globals.cpp
-SRC_CPP += $(CHIP_DIR)/examples/lighting-app/beken/main/DsoHack.cpp
-#SRC_CPP += $(CHIP_DIR)/examples/lighting-app/beken/main/LEDWidget.cpp
-# ------------------------------------------------------------------
-# Generate obj list
-# -------------------------------------------------------------------
-OBJS = $(SRC_CPP:.cpp=.o)
-OBJ_CPP_LIST = $(notdir $(OBJS))
+INCLUDES += -I$(CHIP_DIR)/src/platform/Beken/bk7235
 
 # -------------------------------------------------------------------
 # CHIP compile options
@@ -271,6 +155,7 @@ CFLAGS += -DCHIP_SYSTEM_CONFIG_USE_LWIP=1
 CFLAGS += -DCHIP_SYSTEM_CONFIG_USE_SOCKETS=0
 CFLAGS += -DCHIP_SYSTEM_CONFIG_USE_NETWORK_FRAMEWORK=0
 CFLAGS += -DCHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER="<lib/address_resolve/AddressResolve_DefaultImpl.h>"
+CFLAGS += -DMBEDTLS_CONFIG_FILE=\"tls_config.h\"
 
 CXXFLAGS =
 ifeq ($(CROSS_COMPILE_CHOICE),1)
@@ -278,6 +163,7 @@ CXXFLAGS += -marm -mcpu=arm968e-s -march=armv5te -mthumb-interwork -mlittle-endi
 CXXFLAGS += --specs=nosys.specs --specs=nano.specs
 else
 CXXFLAGS += -mstrict-align
+CXXFLAGS += -Wl,--defsym,memcpy=memcpy_ss
 endif
 
 CXXFLAGS += -Wno-conversion
@@ -312,7 +198,7 @@ export BUILD_ROOT_ENV=$(CHIP_DIR)/build
 #*****************************************************************************#
 
 # Define the Rules to build the core targets
-all: CHIP_CORE APP
+all: CHIP_CORE
 
 CHIP_CORE:
 	@echo "target=$(TARGET)"
@@ -334,17 +220,9 @@ CHIP_CORE:
 	@echo beken_ar = \"$(AR)\"    >> $(OUTPUT_DIR)/args.gn
 	@echo beken_cc = \"$(CC)\"   >> $(OUTPUT_DIR)/args.gn
 	@echo beken_cxx = \"$(CXX)\"  >> $(OUTPUT_DIR)/args.gn
-	cd $(CHIP_DIR)/config/beken && gn gen --check --fail-on-unused-args $(OUTPUT_DIR)/out/$(TARGET) && cp $(OUTPUT_DIR)/args.gn $(OUTPUT_DIR)/out/$(TARGET)/
-	cd $(CHIP_DIR)/config/beken ; ninja -C $(OUTPUT_DIR)/out/$(TARGET)
+	cd $(CHIP_DIR)/examples/lighting-app/beken && gn gen --check --fail-on-unused-args $(OUTPUT_DIR)/out/$(TARGET) && cp $(OUTPUT_DIR)/args.gn $(OUTPUT_DIR)/out/$(TARGET)/
+	cd $(CHIP_DIR)/examples/lighting-app/beken ; ninja -C $(OUTPUT_DIR)/out/$(TARGET)
 
-APP: $(OBJS)
-	@echo "Archive the libAPPLICATION.a"
-	@cd $(OUTPUT_DIR)/app_obj; $(AR) crs libAPPLICATION.a $(OBJ_CPP_LIST); mv ./libAPPLICATION.a ../out/$(TARGET)/lib/
-	@echo "Done"
-.cpp.o:
-	@$(CXX) $(CXXFLAGS) $(CFLAGS) -o $@ -c $< $(INCLUDES)
-	@echo "CXX $@"
-	@mv $@ $(OUTPUT_DIR)/app_obj/$(notdir $@)
 
 .PHONY: clean
 clean:

@@ -3,7 +3,6 @@ set(incs
 	spidma
 	jpeg_dec
 	uvc
-	video_common
 	video_transfer
 	dvp_capture
 	)
@@ -36,11 +35,15 @@ if (CONFIG_USB_UVC)
 endif()
 
 if (CONFIG_CAMERA OR CONFIG_SPIDMA)
-if (CONFIG_APP_DEMO_VIDEO_TRANSFER)
 	list(APPEND srcs
 		"video_transfer/video_transfer.c"
-		"dvp_capture/dvp_capture.c"
+		"video_transfer/video_buffer.c"
 		"dvp_display/dvp_display.c"
+		)
+
+if (CONFIG_DVP_TEST)
+		list(APPEND srcs
+		"dvp_capture/dvp_capture.c"
 		)
 endif()
 endif()

@@ -542,6 +542,103 @@ static void cli_dma_chnl_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int 
 	}
 }
 
+#if (CONFIG_GENERAL_DMA_SEC)
+#include "bk7236.h"
+
+#define BUFFER_SIZE         (32 * 1024)
+#define TEST_VALUE_START    (0x71)
+
+#define SRC_MEM_ADDR    (0x28040000)
+#define DEST_MEM_ADDR   (0x28050000)
+
+static volatile int s_dma_full_int_flag = 0;
+
+static void cli_dma_fill_buffer(uint8_t *pBuffer, uint32_t uwBufferLenght, uint32_t uwOffset)
+{
+	/* Put in global buffer different values */
+	for (uint32_t index = 0; index < uwBufferLenght; index++ ) {
+		pBuffer[index] = (index + uwOffset) % 0xFF;
+	}
+}
+
+static uint8_t cli_dma_compare_buffer(uint8_t *pBuffer1, uint8_t *pBuffer2, uint32_t BufferLength)
+{
+	while (BufferLength--) {
+		if (*pBuffer1 != *pBuffer2) {
+			return 1;
+		}
+
+		pBuffer1++;
+		pBuffer2++;
+	}
+
+	return 0;
+}
+
+static void dma_finish_int_cb(dma_id_t dma_id)
+{
+	CLI_LOGI("recv finish int, idx: %d\r\n", dma_id);
+	if (dma_id == DMA_ID_0) {
+		s_dma_full_int_flag = 1;
+	}
+}
+
+static void dma_half_finish_int_cb(dma_id_t dma_id)
+{
+	CLI_LOGI("recv half finish int, idx: %d\r\n", dma_id);
+}
+
+static void cli_dma_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	uint8_t *src_mem_addr = (uint8_t *)SRC_MEM_ADDR;
+	uint8_t *dest_mem_addr = (uint8_t *)DEST_MEM_ADDR;
+	dma_config_t dma_config;
+
+	os_memset(src_mem_addr, 0, BUFFER_SIZE);
+	os_memset(dest_mem_addr, 0, BUFFER_SIZE);
+	cli_dma_fill_buffer(src_mem_addr, BUFFER_SIZE, TEST_VALUE_START);
+	SCB_CleanInvalidateDCache();
+
+	CLI_LOGI("start dma test\r\n");
+
+	dma_config.mode = DMA_WORK_MODE_SINGLE;
+	dma_config.chan_prio = 7;
+
+	dma_config.src.dev = DMA_DEV_AHB_MEM;
+	dma_config.src.width = DMA_DATA_WIDTH_32BITS;
+	dma_config.src.addr_inc_en = DMA_ADDR_INC_ENABLE;
+	dma_config.src.addr_loop_en = DMA_ADDR_LOOP_DISABLE;
+	dma_config.src.start_addr = SRC_MEM_ADDR;
+	dma_config.src.end_addr = (SRC_MEM_ADDR + BUFFER_SIZE);
+
+	dma_config.dst.dev = DMA_DEV_AHB_MEM;
+	dma_config.dst.width = DMA_DATA_WIDTH_32BITS;
+	dma_config.dst.addr_inc_en = DMA_ADDR_INC_ENABLE;
+	dma_config.dst.addr_loop_en = DMA_ADDR_LOOP_DISABLE;
+	dma_config.dst.start_addr = DEST_MEM_ADDR;
+	dma_config.dst.end_addr = (DEST_MEM_ADDR + BUFFER_SIZE);
+
+	bk_dma_init(DMA_ID_0, &dma_config);
+	bk_dma_set_transfer_len(DMA_ID_0, BUFFER_SIZE);
+	bk_dma_register_isr(DMA_ID_0, dma_half_finish_int_cb, dma_finish_int_cb);
+	bk_dma_enable_finish_interrupt(DMA_ID_0);
+	bk_dma_enable_half_finish_interrupt(DMA_ID_0);
+	bk_dma_set_dest_sec_attr(DMA_ID_0, DMA_ATTR_SEC);
+	bk_dma_set_src_sec_attr(DMA_ID_0, DMA_ATTR_SEC);
+	bk_dma_start(DMA_ID_0);
+
+	CLI_LOGI("dma wait interrupt\r\n");
+	while (!s_dma_full_int_flag);
+
+	if (cli_dma_compare_buffer(src_mem_addr, dest_mem_addr, BUFFER_SIZE)) {
+		CLI_LOGI("dma test fail\r\n");
+	} else {
+		CLI_LOGI("dma test success\r\n");
+	}
+}
+
+#endif
+
 #define DMA_CMD_CNT (sizeof(s_dma_commands) / sizeof(struct cli_command))
 static const struct cli_command s_dma_commands[] = {
     {"dma_driver", "dma_driver {init|deinit}", cli_dma_driver_cmd},
@@ -551,6 +648,9 @@ static const struct cli_command s_dma_commands[] = {
     {"dma_chnl_free", "dma_chnl_free {id}", cli_dma_chnl_free},
     {"dma_memcopy_test", "copy {count|in_number1|in_number2|out_number1|out_number2}", cli_dma_memcpy_test},
     {"dma_chnl_test", "{start|stop} {uart1|uart2|uart3} {wait_ms}", cli_dma_chnl_test_cmd},
+#if (CONFIG_GENERAL_DMA_SEC)
+    {"dma_test", "dma test", cli_dma_test_cmd},
+#endif
 };
 
 int cli_dma_init(void)

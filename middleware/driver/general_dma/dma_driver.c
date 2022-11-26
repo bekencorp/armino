@@ -642,6 +642,10 @@ bk_err_t dma_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_id_t cp
     bk_dma_init(cpy_chnl, &dma_config);
     dma_hal_set_transfer_len(&s_dma.hal, cpy_chnl, len);
     dma_hal_start_common(&s_dma.hal, cpy_chnl);
+#if (CONFIG_GENERAL_DMA_SEC)
+    dma_hal_set_src_sec_attr(&s_dma.hal, cpy_chnl, DMA_ATTR_SEC);
+    dma_hal_set_dest_sec_attr(&s_dma.hal, cpy_chnl, DMA_ATTR_SEC);
+#endif
     GLOBAL_INT_RESTORE();
     BK_WHILE (dma_hal_get_enable_status(&s_dma.hal, cpy_chnl));
 

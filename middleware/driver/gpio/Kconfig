@@ -1,0 +1,32 @@
+menu "GPIO"
+	config GPIO_WAKEUP_SUPPORT
+		bool "Enable GPIO WAKEUP system if at low voltage status"
+		default n
+
+	config GPIO_DYNAMIC_WAKEUP_SUPPORT
+		bool "Enable GPIO dynamic config to wake system if at low volatage status"
+		depends on GPIO_WAKEUP_SUPPORT
+		default n
+
+	config GPIO_WAKEUP_DEBUG
+		bool "Enable GPIO wakeup module debug code"
+		depends on GPIO_WAKEUP_SUPPORT
+		default n
+
+	config GPIO_DYNAMIC_WAKEUP_SOURCE_MAX_CNT
+		int "how many gpio can dynamic set to wakeup system at low power status"
+		range 0 48
+		default 4
+		help
+		The value should be changed if need more then 4 gpio
+
+	config GPIO_SIMULATE_UART_WRITE
+		bool "Enable GPIO simulate uart write data"
+		default n
+							
+	config GPIO_DEFAULT_SET_SUPPORT
+		bool "Enable GPIO default set devs"
+		default n
+
+endmenu
+

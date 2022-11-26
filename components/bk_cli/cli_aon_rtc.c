@@ -252,7 +252,7 @@ static void cli_aon_rtc_auto_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, 
 		cli_aon_rtc_help();
 }
 
-#if AON_RTC_DEBUG
+#if CONFIG_AON_RTC_DEBUG
 static void cli_aon_rtc_timing_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	uint32_t aon_rtc_id;
@@ -286,6 +286,44 @@ static void cli_aon_rtc_dump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int a
 	bk_aon_rtc_dump(aon_rtc_id);
 }
 
+static void cli_aon_rtc_time_of_day(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		cli_aon_rtc_help();
+		return;
+	}
+	struct timeval tv;
+	struct timezone tz;
+
+	if (os_strcmp(argv[1], "get") == 0)
+	{
+		bk_rtc_gettimeofday(&tv, 0);
+	}
+	else if (os_strcmp(argv[1], "set") == 0)
+	{
+		tv.tv_sec = os_strtoul(argv[2], NULL, 10);
+		tv.tv_usec = os_strtoul(argv[3], NULL, 10);
+		bk_rtc_settimeofday(&tv, &tz);
+	}
+	else if (os_strcmp(argv[1], "enter") == 0)
+	{
+		//bk_rtc_keep_time_enter_deepsleep();
+	}
+	else if (os_strcmp(argv[1], "exit") == 0)
+	{
+		//bk_rtc_keep_time_exit_deepsleep();
+	}
+	else if (os_strcmp(argv[1], "get_deepsleep_time") == 0)
+	{
+		uint32_t time = 0;
+		uint32_t ret;
+		ret = bk_rtc_get_deepsleep_duration_seconds(&time);
+		CLI_LOGI("%s deepsleep_second = %ds ret: %d\r\n", __func__, time, ret);
+	}
+	else
+		cli_aon_rtc_help();
+
+}
 
 #define AON_RTC_CMD_CNT (sizeof(s_aon_rtc_commands) / sizeof(struct cli_command))
 static const struct cli_command s_aon_rtc_commands[] = {
@@ -298,7 +336,8 @@ static const struct cli_command s_aon_rtc_commands[] = {
 	{"aon_rtc_register", "aon_rtc_register {id} {name} {period_tick} {period_cnt}, {callback}", cli_aon_rtc_register_cmd},
 	{"aon_rtc_unregister", "aon_rtc_unregister {id} {name}", cli_aon_rtc_unregister_cmd},
 	{"aon_rtc_auto_test", "{id} {start|stop}", cli_aon_rtc_auto_test_cmd},
-#if AON_RTC_DEBUG
+	{"aon_rtc_time_of_day", "aon_rtc_time_of_day {get|set} {sec|usec}", cli_aon_rtc_time_of_day},
+#if CONFIG_AON_RTC_DEBUG
 	{"aon_rtc_timing_test", "{id} {rounds} {cycles} {set tick val}", cli_aon_rtc_timing_test_cmd},
 #endif
 	{"aon_rtc_dump", "{id}", cli_aon_rtc_dump_cmd},

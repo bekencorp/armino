@@ -11,7 +11,7 @@
 #include <driver/psram.h>
 #include "bk_cli.h"
 #include "stdio.h"
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 #include "ff.h"
 #include "diskio.h"
 #include "test_fatfs.h"
@@ -31,7 +31,7 @@
 #include <components/jpeg_decode.h>
 #endif
 
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 char *g_filename = NULL;
 FIL file;
 #endif
@@ -61,8 +61,7 @@ typedef struct
 lcd_jpeg_display_t lcd_jpeg_display = {0};
 lcd_config_t lcd_config = {0};
 
-
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 static  __attribute__((section(".itcm_sec_code "))) void memcpy_word(uint32_t *dst, uint32_t *src, uint32_t size)
 {
 	uint32_t i = 0;
@@ -77,7 +76,7 @@ static  __attribute__((section(".itcm_sec_code "))) void memcpy_word(uint32_t *d
 
 bk_err_t lcd_sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *total_len)
 {
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 	char cFileName[FF_MAX_LFN];
 	FIL file;
 	FRESULT fr;
@@ -218,14 +217,14 @@ static uint32_t get_ppi_from_cmd(int argc, char **argv, uint32_t pre)
 
 static void lcd_complete_callback(void)
 {
-	bk_lcd_8080_start_transfer(0);
+
 }
 
 
-static void jpeg_dec_complete_callback(jpeg_dec_res_t *result)
+void jpeg_dec_complete_callback(jpeg_dec_res_t *result)
 {
-	os_printf("the picture w/h	(%d,%d)\n", result->pixel_x, result->pixel_y);
 
+	os_printf("the picture w/h	(%d,%d)\n", result->pixel_x, result->pixel_y);
 	lcd_disp_framebuf_t lcd_disp = {0};
 	lcd_disp.rect.x = 0;
 	lcd_disp.rect.y = 0;
@@ -244,6 +243,8 @@ void jpeg_dec_display_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 	uint32_t jpeg_len = 0;
 	unsigned char *dec_buf = (unsigned char *) 0x60200000;
 
+	uint32_t sw_decode = os_strtoul(argv[3], NULL, 10) & 0xffff;
+
 	if (os_strcmp(argv[1], "file_display") == 0)
 	{
 	
@@ -252,7 +253,7 @@ void jpeg_dec_display_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 			//step 1 sd card jpeg read
 			bk_psram_init();
 		}
-
+	
 		filename = argv[2];
 		os_printf("filename  = %s \r\n", filename);
 
@@ -285,41 +286,51 @@ void jpeg_dec_display_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 			else
 			{
 				os_printf("lcd type not support. \r\n");
+			}	
+			
+			if(!sw_decode)
+			{
+				bk_lcd_set_yuv_mode(PIXEL_FMT_VUYY);
+				//hardware jpeg decode
+				ret = bk_jpeg_dec_driver_init();
+				if (ret != kNoErr) {
+					os_printf("jpeg_decoder failed\r\n");
+					return;
+				}
+				bk_jpeg_dec_isr_register(DEC_END_OF_FRAME, jpeg_dec_complete_callback);
 			}
+			lcd_jpeg_display.state = LCD_STATE_OPEN;
+		}
+		if(!sw_decode)
+		{
+			os_printf("start hw jpeg_dec.\r\n");
+			ret = bk_jpeg_dec_hw_start(jpeg_len, jpeg_psram, dec_buf);
+			if (ret != BK_OK)
+			{
+				os_printf("jpegdec error code %x.\r\n", ret);
+				return;
+			}
+		}
+		else
+		{
+#if (CONFIG_JPEG_DECODE)
+			sw_jpeg_dec_res_t result;
 
-#if CONFIG_JPEG_DECODE
+			bk_jpeg_dec_driver_deinit();
 			bk_lcd_set_yuv_mode(PIXEL_FMT_YUYV);
 			ret = bk_jpeg_dec_sw_init();
 			if (ret != kNoErr) {
 				os_printf("init jpeg_decoder failed\r\n");
 				return;
 			}
-#else
-			bk_lcd_set_yuv_mode(PIXEL_FMT_VUYY);
-			//hardware jpeg decode
-			ret = bk_jpeg_dec_driver_init();
+			//software decode
+			os_printf("start jpeg_dec.\r\n");
+			bk_jpeg_dec_sw_register_finish_callback(jpeg_dec_complete_callback);
+			ret = bk_jpeg_dec_sw_start(jpeg_len, jpeg_psram, dec_buf, &result);
+			bk_jpeg_dec_sw_deinit();
 #endif
-			lcd_jpeg_display.state = LCD_STATE_OPEN;
 		}
-#if CONFIG_JPEG_DECODE
-		//software decode
-		os_printf("start jpeg_dec.\r\n");
-		bk_jpeg_dec_sw_register_finish_callback(jpeg_dec_complete_callback);
-		ret = bk_jpeg_dec_sw_start(jpeg_len, jpeg_psram, dec_buf, NULL);
-		if (ret != kNoErr) {
-			os_printf("jpeg_decoder failed\r\n");
-			return;
-		}
-#else
-		bk_jpeg_dec_isr_register(DEC_END_OF_FRAME, jpeg_dec_complete_callback);
-		os_printf("start hw jpeg_dec.\r\n");
-		ret = bk_jpeg_dec_hw_start(jpeg_len, jpeg_psram, dec_buf);
-		if (ret != BK_OK)
-		{
-			os_printf("jpegdec error code %x.\r\n", ret);
-			return;
-		}
-#endif
+
 	}
 	else if (os_strcmp(argv[1], "close") == 0)
 	{
@@ -337,7 +348,7 @@ void jpeg_dec_display_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 
 void sdcard_write_from_mem(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 		char *filename = NULL;
 		char cFileName[FF_MAX_LFN];
 		FIL file;
@@ -382,10 +393,37 @@ void sdcard_write_from_mem(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 #endif
 } 
 
+void lcd_storage_capture_save(char * capture_name, uint8_t *addr, uint32_t len)
+{
+#if (CONFIG_FATFS)
+	FIL fp1;
+	unsigned int uiTemp = 0;
+	char file_name[50] = {0};
+
+	sprintf(file_name, "%d:/%s", DISK_NUMBER_SDIO_SD, capture_name);
+
+	FRESULT fr = f_open(&fp1, file_name, FA_CREATE_ALWAYS | FA_WRITE);
+	if (fr != FR_OK)
+	{
+		os_printf("can not open file: %s, error: %d\n", file_name, fr);
+		return;
+	}
+
+	os_printf("open file:%s!\n", file_name);
+
+	fr = f_write(&fp1, addr, len, &uiTemp);
+	if (fr != FR_OK)
+	{
+		os_printf("f_write failed 1 fr = %d\r\n", fr);
+	}
+	f_close(&fp1);
+#endif
+}
+
 
 void sdcard_read_to_psram(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 	char cFileName[FF_MAX_LFN];
 	FIL file;
 	FRESULT fr;

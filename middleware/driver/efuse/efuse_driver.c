@@ -87,10 +87,14 @@ bk_err_t bk_efuse_write_byte(uint8_t addr, uint8_t data)
 
 bk_err_t bk_efuse_read_byte(uint8_t addr, uint8_t *data)
 {
+	int ret;
 	EFUSE_RETURN_ON_DRIVER_NOT_INIT();
 	EFUSE_RETURN_ON_ADDR_OUT_OF_RANGE(addr);
 
-	*data = efuse_hal_read(&s_efuse.hal, addr);
+	ret = efuse_hal_read(&s_efuse.hal, addr, data);
+	if(ret != BK_OK){
+		return BK_ERR_EFUSE_READ_FAIL;
+	}
 	return BK_OK;
 }
 

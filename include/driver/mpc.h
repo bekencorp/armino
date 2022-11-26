@@ -94,6 +94,15 @@ bk_err_t bk_mpc_set_secure_attribute(mpc_dev_t dev, uint32_t mem_addr_offset, ui
  */
 bk_err_t bk_mpc_lockdown(mpc_dev_t dev);
 
+/**
+ * @brief     Dump secure attributes of specified MPC device
+ *
+ * @param dev the MPC device
+ *
+ * @return
+ *    - BK_OK: succeed
+ */
+bk_err_t bk_mpc_dump_secure_attribute(mpc_dev_t dev);
 #ifdef __cplusplus
 }
 #endif

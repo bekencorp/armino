@@ -2,6 +2,8 @@
 #include <common/bk_include.h>
 #include "bk_arm_arch.h"
 #include <os/os.h>
+#include <driver/hal/hal_aon_rtc_types.h>
+#include <string.h>
 
 
 /* days per month -- nonleap! */
@@ -20,7 +22,7 @@ const short __spm[13] =
     (31+28+31+30+31+30+31+31+30+31+30),
     (31+28+31+30+31+30+31+31+30+31+30+31),
   };
-static long  timezone = 0;//(8*60*60);//east 8 zone
+static long  timezone_sec = 0;//(8*60*60);//east 8 zone
 static const char days[] = "Sun Mon Tue Wed Thu Fri Sat ";
 static const char months[] = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec ";
 
@@ -73,10 +75,7 @@ struct tm *gmtime_r(const time_t *timep, struct tm *r)
 
 struct tm* localtime_r(const time_t* t, struct tm* r)
 {
-	struct s_timeval time = {0};
-	gettimeofday(&time, NULL);
-
-	time_t tmp = time.tv_sec + *t + timezone;
+	time_t tmp = *t + timezone_sec;
 	return gmtime_r(&tmp, r);
 }
 
@@ -199,65 +198,83 @@ char *ctime(const time_t *timep)
 }
 
 
-int gettimeofday(struct s_timeval *tp, void *ignore)
+int64_t g_seconds_offset = 0;
+extern uint64_t bk_aon_rtc_get_current_tick(aon_rtc_id_t id);
+
+static int gettimeofday(struct s_timeval *tp, void *ignore)
 {
-	#include <driver/hal/hal_aon_rtc_types.h>
-	extern uint64_t bk_aon_rtc_get_current_tick(aon_rtc_id_t id);
-	aon_rtc_unit_t aon_rtc_id = AON_RTC_ID_1;
-	long time = 0;
+	if(NULL == tp)
+	{
+		return -1;
+	}
 
-	(void)ignore;
-
-	uint64_t tick = bk_aon_rtc_get_current_tick(aon_rtc_id);
-	//os_printf("bk_aon_rtc_get_current_tick:%lld\r\n",tick);
+    (void)ignore;
+ 
 	if (tp != NULL)
 	{
-		tp->tv_sec = tick/32/1000;
+		uint64_t tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
+
+		long current_time = g_seconds_offset + tick/32/1000;
+
+		tp->tv_sec = current_time;
 		tp->tv_usec = 0;
-		//os_printf("sys run time second:%ld\r\n",tp->tv_sec);
-
-		time = tp->tv_sec;
-
-		return time;
 	}
 
 	return 0;
 }
 
+static int settimeofday(const struct s_timeval *tp,const struct timezone *tz)
+{	
+	if(NULL == tp)
+	{
+		return -1;
+	}
 
-#define DEFAULT_YEAR 	2022
-#define DEFAULT_MONTH 	10
-#define DEFAULT_DAY 	12
-#define DEFAULT_HOUR 	10
-#define DEFAULT_MIN		10
-#define DEFAULT_SEC 	10
+    (void)tz;
 
-int get_curtime_str(char *buf,uint8_t opera)
-{
-	struct tm time_default = {0};
-	time_default.tm_year = DEFAULT_YEAR - 1900;
-	time_default.tm_mon = DEFAULT_MONTH - 1;
-	time_default.tm_mday = DEFAULT_DAY;
-	time_default.tm_hour = DEFAULT_HOUR;
-	time_default.tm_min = DEFAULT_MIN;
-	time_default.tm_sec = DEFAULT_SEC;
+    if(tp)
+    {
+        uint64_t tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
+		long current_tick_seconds = tick/32/1000;
 
-	time_t seconds = mktime(&time_default);
-	//os_printf("seconds:%lld\r\n",seconds);
+        long settime_seconds = tp->tv_sec;
 
-	struct tm *ptm = localtime(&seconds);
-	//os_printf("year:%d,mon:%d,mday:%d,hour:%d,minute:%d,sec:%d\r\n",
-	//	ptm->tm_year,ptm->tm_mon,ptm->tm_mday,ptm->tm_hour,ptm->tm_min,ptm->tm_sec);
+        g_seconds_offset = settime_seconds - current_tick_seconds;
+    }
 
-	num2str(buf, (ptm->tm_year+1900) / 100);
-	num2str(buf + 2, (ptm->tm_year+1900) % 100);
-	num2str(buf + 4, ptm->tm_mon+1);
-	num2str(buf + 6, ptm->tm_mday);
-	num2str(buf + 8, ptm->tm_hour);
-	num2str(buf + 10, ptm->tm_min);
-	num2str(buf + 12, ptm->tm_sec);
-	buf[14] = 0;
-
-	return 0;
+    return 0;
 }
 
+int datetime_set(time_t      sec)
+{
+	struct s_timeval t = {0};
+
+	t.tv_sec = sec;
+	t.tv_usec = 0;
+
+	return settimeofday(&t,NULL);
+}
+
+int datetime_get(struct tm *t)
+{
+	if(NULL == t)
+	{
+		return -1;
+	}
+
+    struct s_timeval get_time = {0};
+    struct tm *tmp = NULL;
+	struct tm r_time = {0};
+
+  	gettimeofday(&get_time,NULL);
+    tmp = gmtime_r(&get_time.tv_sec,&r_time);
+    t->tm_year = tmp->tm_year;
+    t->tm_mon = tmp->tm_mon;
+    t->tm_mday = tmp->tm_mday;
+    t->tm_hour = tmp->tm_hour;
+    t->tm_min = tmp->tm_min;
+    t->tm_sec = tmp->tm_sec;
+    t->tm_wday = tmp->tm_wday;
+
+    return 0;
+} 

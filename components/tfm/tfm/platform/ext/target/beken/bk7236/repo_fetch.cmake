@@ -43,7 +43,7 @@ endif()
 #set(MCUBOOT_IMAGE_VERSION_S             ${TFM_VERSION} CACHE STRING "Version number of S image")
 set(MCUBOOT_IMAGE_VERSION_S             0.0.1 CACHE STRING "Version number of S image")
 set(MCUBOOT_IMAGE_VERSION_NS            0.0.1       CACHE STRING    "Version number of NS image")
-set(MCUBOOT_VERSION                     "adc1670"  CACHE STRING    "The version of MCUboot to use")
+set(MCUBOOT_VERSION                     "60d4e39c"  CACHE STRING    "The version of MCUboot to use")
 FetchContent_Declare(mcuboot
     GIT_REPOSITORY ssh://${USER}@192.168.0.46:29418/iot/wcn/bootloader/mcuboot
     GIT_TAG ${MCUBOOT_VERSION}

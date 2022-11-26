@@ -1,0 +1,39 @@
+menu "SYS_CTRL"
+	config SYS_REDUCE_NORMAL_POWER
+	bool "Reduce system normal power"
+	default n
+
+	choice XTAL_FREQ
+		prompt "Xtal frequence"
+		default XTAL_FREQ_26M
+
+		config XTAL_FREQ_40M
+			bool "XTAL frequency 40M"
+
+		config XTAL_FREQ_26M
+			bool "XTAL frequency 26M"
+	endchoice
+
+	#TODO fixed it
+	config XTAL_FREQ
+		int "26000000"
+		default 26000000 if XTAL_FREQ_26M
+		default 40000000 if XTAL_FREQ_40M
+
+	config DCO_FREQ
+		int "DCO frequency"
+		default 120000000
+
+	config SYSTEM_CTRL
+		bool "Enable system_ctrl"
+		default n
+
+	config POWER_CLOCK_RF
+		bool "Enable rf power clock"
+		default n
+
+	config SYSTEM_CLOCK
+		bool "Enable system clock"
+		default n
+endmenu
+

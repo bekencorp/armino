@@ -70,6 +70,18 @@ void bk_reboot_ex(uint32_t reset_reason)
 #if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 	delay_ms(100); //add delay for bk_writer BEKEN_DO_REBOOT cmd
 #endif
+#if CONFIG_AON_RTC_KEEP_TIME_SUPPORT
+{
+	/* 
+	 * NOTES:special requirements
+	 * Some customers system reboot, needs to reserve the network time,
+	 * maybe after reboot, the network can't work at once.
+	 * so before reboot, save the network time to flash.
+	 */
+	extern bk_err_t aon_rtc_enter_reboot(void);
+	aon_rtc_enter_reboot();
+}
+#endif
 	bk_wdt_start(wdt_val);
 	while (1);
 	GLOBAL_INT_RESTORE();

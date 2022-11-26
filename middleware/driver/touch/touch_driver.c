@@ -25,6 +25,9 @@
 #include <driver/touch_types.h>
 #include <os/os.h>
 
+#if CONFIG_TOUCH_PM_SUPPORT
+	#include <modules/pm.h>
+#endif
 
 extern void delay(int num);
 
@@ -40,9 +43,15 @@ typedef struct {
 		}\
 	} while(0)
 
-static uint32_t s_touch_channel = 0;
+uint32_t s_touch_channel = 0;
+uint32_t s_touch_wakeup_channel = 0;
 
 static touch_callback_t s_touch_isr[SOC_TOUCH_ID_NUM] = {NULL};
+
+uint8_t digital_led_gpio_map[9] = {GPIO_26, GPIO_8, GPIO_9, GPIO_0, GPIO_1, GPIO_24, GPIO_45, GPIO_44, GPIO_39};
+
+uint16_t disp_value_table[10] = {0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90};
+
 
 static uint32_t bk_touch_channel_transfer(touch_channel_t touch_id)
 {
@@ -299,6 +308,154 @@ uint32_t bk_touch_get_touch_status(void)
 	return touch_status;
 }
 
+bk_err_t bk_touch_digital_tube_init(void)
+{
+	uint8_t i = 0;
+	for (i = 0; i < 9; i++) {
+		gpio_dev_unmap(digital_led_gpio_map[i]);
+		bk_gpio_enable_output(digital_led_gpio_map[i]);
+		bk_gpio_set_output_high(digital_led_gpio_map[i]);
+	}
+
+	return BK_OK;
+}
+
+void bk_touch_digital_tube_display(uint8_t disp_value)
+{
+	if (0 <= disp_value && disp_value <= 9) {
+		bk_gpio_set_output_high(digital_led_gpio_map[8]);
+		bk_gpio_set_output_low(digital_led_gpio_map[7]);
+	
+		for (uint8_t j = 0; j < 7; j++) {
+			if (((disp_value_table[0] >> j) & 0x01) == 0) {
+				bk_gpio_set_output_low(digital_led_gpio_map[j]);
+			} else {
+				bk_gpio_set_output_high(digital_led_gpio_map[j]);
+			}
+		}
+		rtos_delay_milliseconds(10);
+	
+		bk_gpio_set_output_high(digital_led_gpio_map[7]);
+		bk_gpio_set_output_low(digital_led_gpio_map[8]);
+		for (uint8_t k = 0; k < 7; k++) {
+			if (((disp_value_table[disp_value] >> k) & 0x01) == 0) {
+				bk_gpio_set_output_low(digital_led_gpio_map[k]);
+			} else {
+				bk_gpio_set_output_high(digital_led_gpio_map[k]);
+			}
+		}
+		rtos_delay_milliseconds(10);
+
+	} else if (10 <= disp_value && disp_value < 16) {
+		bk_gpio_set_output_high(digital_led_gpio_map[8]);
+		bk_gpio_set_output_low(digital_led_gpio_map[7]);
+	
+		for (uint8_t i = 0; i < 7; i++) {
+			if (((disp_value_table[1] >> i) & 0x01) == 0) {
+				bk_gpio_set_output_low(digital_led_gpio_map[i]);
+			} else {
+				bk_gpio_set_output_high(digital_led_gpio_map[i]);
+			}
+		}
+		rtos_delay_milliseconds(10);
+	
+		bk_gpio_set_output_high(digital_led_gpio_map[7]);
+		bk_gpio_set_output_low(digital_led_gpio_map[8]);
+	
+		for (uint8_t j = 0; j < 7; j++) {
+			if (((disp_value_table[disp_value % 10] >> j) & 0x01) == 0) {
+				bk_gpio_set_output_low(digital_led_gpio_map[j]);
+			} else {
+				bk_gpio_set_output_high(digital_led_gpio_map[j]);
+			}
+		}
+		rtos_delay_milliseconds(10);
+
+	} else {
+		TOUCH_LOGI("Invalid touch channel!\r\n");
+		return;
+	}
+
+}
+
+#if CONFIG_TOUCH_PM_SUPPORT
+void bk_touch_wakeup_channel_set(touch_channel_t channel)
+{
+	s_touch_wakeup_channel = channel;
+}
+
+uint32_t bk_touch_wakeup_channel_get(void)
+{
+	return s_touch_wakeup_channel;
+}
+
+static int touch_pm_enter_cb(uint64_t sleep_time_ms, void *args)
+{
+	uint32_t cap_out = 0;
+	touch_config_t touch_config;
+
+	bk_touch_gpio_init(s_touch_wakeup_channel);
+	bk_touch_scan_mode_enable(0);
+	bk_touch_enable(s_touch_wakeup_channel);
+
+	touch_config.sensitivity_level = TOUCH_SENSITIVITY_LEVLE_1;
+	touch_config.detect_threshold = TOUCH_DETECT_THRESHOLD_6;
+	touch_config.detect_range = TOUCH_DETECT_RANGE_8PF;
+	bk_touch_config(&touch_config);
+
+	bk_touch_calibration_start();
+	cap_out = bk_touch_get_calib_value();
+	TOUCH_LOGI("cap_out0 = %x\r\n", cap_out);
+	if (cap_out >= 0x1F0) {
+		touch_config.detect_range = TOUCH_DETECT_RANGE_12PF;
+		bk_touch_config(&touch_config);
+		bk_touch_calibration_start();
+		cap_out = bk_touch_get_calib_value();
+		TOUCH_LOGI("cap_out1 = %x\r\n", cap_out);
+		if (cap_out >= 0x1F0) {
+			touch_config.detect_range = TOUCH_DETECT_RANGE_19PF;
+			bk_touch_config(&touch_config);
+			bk_touch_calibration_start();
+			cap_out = bk_touch_get_calib_value();
+			TOUCH_LOGI("cap_out2 = %x\r\n", cap_out);
+			if (cap_out >= 0x1F0) {
+				touch_config.detect_range = TOUCH_DETECT_RANGE_27PF;
+				bk_touch_config(&touch_config);
+				bk_touch_calibration_start();
+				cap_out = bk_touch_get_calib_value();
+				TOUCH_LOGI("cap_out3 = %x\r\n", cap_out);
+				if (cap_out >= 0x1F0) {
+					TOUCH_LOGE("Calibration value is out of the detect range, the channel cannot be used, please select the other channel!\r\n");
+					return BK_FAIL;
+				}
+			}
+		}
+	}
+	bk_touch_int_enable(s_touch_wakeup_channel, 1);
+
+	return BK_OK;
+}
+
+bk_err_t bk_touch_pm_init(void)
+{
+	bk_err_t ret = BK_OK;
+
+	pm_cb_conf_t enter_config_touch = {touch_pm_enter_cb, NULL};
+	ret = bk_pm_sleep_register_cb(PM_MODE_DEEP_SLEEP, PM_DEV_ID_TOUCH, &enter_config_touch, NULL);
+	if (ret != BK_OK) {
+		TOUCH_LOGE("register touch pm deep sleep cb fail!\r\n");
+	}
+
+	ret = bk_pm_sleep_register_cb(PM_MODE_LOW_VOLTAGE, PM_DEV_ID_TOUCH, &enter_config_touch, NULL);
+	if (ret != BK_OK) {
+		TOUCH_LOGE("register touch pm low voltage cb fail!\r\n");
+	}
+
+	return ret;
+
+}
+#endif
+
 bk_err_t bk_touch_register_touch_isr(touch_channel_t touch_id, touch_isr_t isr, void *param)
 {
 	uint32_t touch_channel = 0;
@@ -341,7 +498,7 @@ void touch_isr(void)
 				s_touch_isr[touch_id].callback(s_touch_isr[touch_id].param);
 			}
 
-			ret = bk_timer_start(TIMER_ID0, 100, touch_timer_isr);
+			ret = bk_timer_start(TIMER_ID0, 200, touch_timer_isr);
 			if (ret != BK_OK) {
 				os_printf("Timer start failed\r\n");
 			}

@@ -15,7 +15,6 @@
 
 #define APP_DEMO_CFG_USE_TCP              1
 #define APP_DEMO_CFG_USE_UDP              1
-#define APP_DEMO_CFG_USE_VIDEO_BUFFER     1
 #define APP_DEMO_CFG_USE_UDP_SDP          1
 
 #define SUPPORT_TIANZHIHENG_DRONE         0

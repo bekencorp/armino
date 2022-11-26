@@ -1,3 +1,13 @@
+/*
+   !!!!!!!!!!! attention:
+   1. easyflash v4.X can't compatible v3.X, so if your's product uses v3.X version to store env before, 
+      and the env data is important for you, you should use V3.X version continue;
+
+   2. easyflash v4.X can support any type value data, so recommend to use blow new api:
+         bk_set_env_enhance, bk_get_env_enhance;
+*/
+
+
 #include <common/bk_include.h>
 #include "bk_ef.h"
 #include "base_64.h"
@@ -5,6 +15,37 @@
 #include <os/str.h>
 
 #if CONFIG_EASY_FLASH
+#if CONFIG_EASY_FLASH_V4
+/**
+ *<!!!!!!!!!!!!!!!!!!Strongly recommended to use this new api>
+ * @brief modify key value data, aoto save, so you don't need to save. 
+ * @param[in] key: key info
+ * @param[in] value: can support any type data
+ * @param[in] value_len: len of value
+ * @retval  EF_NO_ERR:success
+ * @retval  other:fail
+ */
+EfErrCode bk_set_env_enhance(const char *key, const void *value, int value_len)
+{
+    return ef_set_env_blob(key, value, value_len);
+}
+
+/**
+ *<!!!!!!!!!!!!!!!!!!Strongly recommended to use this new api>
+ * @brief get value of the key
+ * @param[in] key: key info
+ * @param[in] value: the buff which uses to store, can support any type data
+ * @param[in] value_len: len of value
+ * @retval  the actual len of the value
+ */
+int bk_get_env_enhance(const char *key, void *value, int value_len)
+{
+    return ef_get_env_blob(key, value, value_len, NULL);
+}
+
+#endif
+
+#if 1  //!!!!!!!!!!!!!!!!!!bandoned api, don't recommended on above 4.X version
 char *bk_get_env(const char *key)
 {
 	return ef_get_env(key);
@@ -90,6 +131,7 @@ EfErrCode bk_get_buf_env(const char *key, const char *buf, int len)
 
 	return EF_NO_ERR;
 }
+#endif
 #endif // CONFIG_EASY_FLASH
 
 // eof

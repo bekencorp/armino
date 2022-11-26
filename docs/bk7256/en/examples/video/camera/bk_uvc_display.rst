@@ -10,7 +10,7 @@ UVC LCD_display
 
 2 Code Path
 -------------------------------------
-	demo path：``./components/media/camera/camera_act.c, uvc.c``, ``lcd/lcd_act.c``
+	demo path锛歚`./components/media/camera/camera_act.c, uvc.c``, ``lcd/lcd_act.c``
 
 3 Client command
 ---------------------------------------
@@ -33,9 +33,9 @@ UVC LCD_display
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 	|                 NAME                 |      Description       |                      File                  |  value  |
 	+======================================+========================+============================================+=========+
-	|CONFIG_USB_HOST                       |配置是否支持usb host    |``properties\soc\bk7256\bk7256.defconfig``  |    y    |
+	|CONFIG_USB_HOST                       |閰嶇疆鏄惁鏀寔usb host    |``properties\soc\bk7256\bk7256.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_USB_UVC                        |配置是否支持把uvc       |``properties\soc\bk7256\bk7256.defconfig``  |    y    |
+	|CONFIG_USB_UVC                        |閰嶇疆鏄惁鏀寔鎶妘vc       |``properties\soc\bk7256\bk7256.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 
 4 Demo introduction
@@ -62,7 +62,7 @@ UVC LCD_display
     Figure 1. uvc connection diagrame
 
 5 Detailed configuration and its description
--------------------------------------
+----------------------------------------------
 	1. Display initialization instructions:
 
 	media uvc open [param]
@@ -86,7 +86,7 @@ UVC LCD_display
 
     Figure 2. uvc_display function call
 
-	3、Inter-module call of image transmission
+	3銆両nter-module call of image transmission
 
 .. figure:: ../../../../../common/_static/uvc_display_message.png
     :align: center

@@ -1,0 +1,17 @@
+menu "TIMER"
+	config TIMER
+		bool "Enable TIMER"
+		default y
+		
+	config TIMER_COUNTER
+		bool "Enable timer counter"
+		default y
+
+	config TIMER_SUPPORT_ID_BITS
+		int "timer support id bits"
+		range 0 255
+		default 0
+		help
+		0 indicates that all IDs are supported by default, no configuration required
+endmenu	
+

@@ -1,6 +1,7 @@
 menu "DEMOS_DOORBELL"
 	config DOORBELL
 		bool "Enable doorbell"
+		depends on MEDIA
 		default n
 
 	config DOORBELL_DEMO1

@@ -49,22 +49,22 @@ void sys_hal_usb_enable_clk(bool en)
 
 void sys_hal_usb_analog_phy_en(bool en)
 {
-	sys_ll_set_ana_reg6_en_usb(en);
+	//sys_ll_set_ana_reg6_en_usb(en);
 }
 
 void sys_hal_usb_analog_speed_en(bool en)
 {
-	sys_ll_set_ana_reg9_usb_speed(en);
+	//sys_ll_set_ana_reg9_usb_speed(en);
 }
 
 void sys_hal_usb_analog_ckmcu_en(bool en)
 {
-	sys_ll_set_ana_reg11_ck2mcu(en);
+	//sys_ll_set_ana_reg11_ck2mcu(en);
 }
 
 void sys_hal_usb_enable_charge(bool en)
 {
-	sys_ll_set_ana_reg5_vctrl_dpllldo(en);
+	//sys_ll_set_ana_reg5_vctrl_dpllldo(en);
 }
 
 void sys_hal_usb_charge_vlcf_cal()
@@ -141,13 +141,13 @@ void sys_hal_enter_deep_sleep(void * param)
 	/*3.close high frequncy clock*/
 	clock_value = 0;
     clock_value = sys_ll_get_ana_reg6_value();
-	clock_value |= (1 << SYS_ANA_REG6_EN_SLEEP_POS);
-	clock_value &= ~((1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_AUDPLL_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS)|(1 << SYS_ANA_REG6_EN_DCO_POS)|(1 << SYS_ANA_REG6_EN_USB_POS));
+	//clock_value |= (1 << SYS_ANA_REG6_EN_SLEEP_POS);
+	//clock_value &= ~((1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_AUDPLL_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS)|(1 << SYS_ANA_REG6_EN_DCO_POS)|(1 << SYS_ANA_REG6_EN_USB_POS));
     sys_ll_set_ana_reg6_value(clock_value);
 
 	clock_value = 0;
     clock_value = sys_ll_get_ana_reg5_value();
-	clock_value &= ~(1 << SYS_ANA_REG5_ENCB_POS);//global central bias enable
+	//clock_value &= ~(1 << SYS_ANA_REG5_ENCB_POS);//global central bias enable
     sys_ll_set_ana_reg5_value(clock_value);
 
 	clock_value = 0;
@@ -257,7 +257,7 @@ void sys_hal_enter_low_voltage(void)
 	/*temp close analog clk solution, we will record the opened clk,then it will close them ,when wakeup will open them*/
 	//clock_value |= (1 << SYS_ANA_REG6_EN_SLEEP_POS);//enable xtal26m sleep
 	//clock_value &= ~((1 << SYS_ANA_REG6_XTAL_LPMODE_CTRL_POS)|(1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_AUDPLL_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS)|(1 << SYS_ANA_REG6_EN_DCO_POS)|(1 << SYS_ANA_REG6_EN_XTALL_POS)|(1 << SYS_ANA_REG6_EN_USB_POS));
-	clock_value &= ~((1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_USB_POS)|(1 << SYS_ANA_REG6_EN_AUDPLL_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS));
+	//clock_value &= ~((1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_USB_POS)|(1 << SYS_ANA_REG6_EN_AUDPLL_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS));
 	sys_ll_set_ana_reg6_value(clock_value);
 
 
@@ -329,8 +329,8 @@ void sys_hal_enter_low_voltage(void)
 	/*8.restore the analog clk*/
 	clock_value = 0;
 	clock_value = sys_ll_get_ana_reg6_value();
-	clock_value |= ((1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_USB_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS));//en_dpll, en_usb,en_PSRAM_LDO
-	clock_value &= ~(1 << SYS_ANA_REG6_EN_SLEEP_POS);//disable xtal26m sleep
+	//clock_value |= ((1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_USB_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS));//en_dpll, en_usb,en_PSRAM_LDO
+	//clock_value &= ~(1 << SYS_ANA_REG6_EN_SLEEP_POS);//disable xtal26m sleep
 	sys_ll_set_ana_reg6_value(clock_value);
 	//os_printf("low voltage wake up 123456\r\n");
 	/*add delay for xtal 26m, analog suggest 800us,we add protect time to 1ms*/
@@ -508,7 +508,7 @@ void sys_hal_module_RF_power_ctrl (module_name_t module,power_module_state_t pow
 	value = sys_ll_get_ana_reg6_value();
     if(power_state == POWER_MODULE_STATE_ON)//power on
     {
-		value |= ((1 << SYS_ANA_REG6_EN_SYSLDO_POS)|(1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_TEMPDET_POS));//en_sysldo,en_dpll
+		//value |= ((1 << SYS_ANA_REG6_EN_SYSLDO_POS)|(1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_TEMPDET_POS));//en_sysldo,en_dpll
 		//value &= ~(1 << SYS_ANA_REG6_XTAL_LPMODE_CTRL_POS);//when using the xtal as the 32k,it need close the xtal low power mode
 		//value |= (1 << 11);//en_audpll //temp close,we will open when be neeeded
 		//value |= (1 << 8);//en_dco     //now no module using,temp close,we will open when be neeeded
@@ -649,17 +649,17 @@ void sys_hal_low_power_hardware_init()
 
 	param = 0;
 	param = sys_ll_get_ana_reg5_value();
-	param |= (1 << SYS_ANA_REG5_ENCB_POS);//global central bias enable
+	//param |= (1 << SYS_ANA_REG5_ENCB_POS);//global central bias enable
     sys_ll_set_ana_reg5_value(param);
 
 	param = 0;
 	param = sys_ll_get_ana_reg6_value();
-	param &= ~((0x1 << SYS_ANA_REG6_EN_SLEEP_POS)|(1 << SYS_ANA_REG6_XTAL_LPMODE_CTRL_POS));
+	//param &= ~((0x1 << SYS_ANA_REG6_EN_SLEEP_POS)|(1 << SYS_ANA_REG6_XTAL_LPMODE_CTRL_POS));
 	sys_ll_set_ana_reg6_value(param);
 
 	param = 0;
 	param = sys_ll_get_ana_reg6_value();
-	param |= ((0x7 << SYS_ANA_REG6_RXTAL_LP_POS)|(0x7 << SYS_ANA_REG6_RXTAL_HP_POS));
+	//param |= ((0x7 << SYS_ANA_REG6_RXTAL_LP_POS)|(0x7 << SYS_ANA_REG6_RXTAL_HP_POS));
 	sys_ll_set_ana_reg6_value(param);
 
 	/*set wakeup source*/
@@ -673,6 +673,14 @@ int32 sys_hal_lp_vol_set(uint32_t value)
 	return 0;
 }
 uint32_t sys_hal_lp_vol_get()
+{
+	return 0;
+}
+int32 sys_hal_bandgap_cali_set(uint32_t value)//increase or decrease the dvdddig voltage
+{
+	return 0;
+}
+uint32_t sys_hal_bandgap_cali_get()
 {
 	return 0;
 }
@@ -1125,10 +1133,12 @@ void sys_hal_sadc_int_disable(void)
 
 void sys_hal_sadc_pwr_up(void)
 {
+	sys_ll_set_cpu_device_clk_enable_sadc_cken(1);
 }
 
 void sys_hal_sadc_pwr_down(void)
 {
+	sys_ll_set_cpu_device_clk_enable_sadc_cken(0);
 }
 
 void sys_hal_set_clksel_spi0(uint32_t value)
@@ -1157,7 +1167,7 @@ void sys_hal_set_clksel_spi(uint32_t value)
 
 void sys_hal_en_tempdet(uint32_t value)
 {
-    sys_ll_set_ana_reg6_en_tempdet(value);
+    //sys_ll_set_ana_reg6_en_tempdet(value);
 }
 
 uint32_t sys_hal_mclk_mux_get(void)
@@ -1531,7 +1541,7 @@ void sys_hal_cali_dpll_spi_detect_enable(void)
 
 void sys_hal_set_xtalh_ctune(uint32_t value)
 {
-    sys_ll_set_ana_reg5_xtalh_ctune(value);
+    //sys_ll_set_ana_reg5_xtalh_ctune(value);
 }
 
 void sys_hal_analog_set(analog_reg_t reg, uint32_t value)
@@ -1639,37 +1649,41 @@ uint32_t sys_hal_bias_reg_clean(uint32_t param)
 
 uint32_t sys_hal_get_xtalh_ctune(void)
 {
-    return sys_ll_get_ana_reg5_xtalh_ctune();
+    //	TODO
+    //return sys_ll_get_ana_reg5_xtalh_ctune();
+    return 0;
 }
 
 uint32_t sys_hal_get_bgcalm(void)
 {
-    return sys_ll_get_ana_reg5_bgcalm();
+    //	TODO
+    //return sys_ll_get_ana_reg5_bgcalm();
+    return 0;
 }
 
 void sys_hal_set_bgcalm(uint32_t value)
 {
-    sys_ll_set_ana_reg5_bgcalm(value);
+    //sys_ll_set_ana_reg5_bgcalm(value);
 }
 
 void sys_hal_set_audioen(uint32_t value)
 {
-	sys_ll_set_ana_reg11_audioen(value);
+	//sys_ll_set_ana_reg11_audioen(value);
 }
 
 void sys_hal_set_dpll_div_cksel(uint32_t value)
 {
-    sys_ll_set_ana_reg11_cksel(value);
+    //sys_ll_set_ana_reg11_cksel(value);
 }
 
 void sys_hal_set_dpll_reset(uint32_t value)
 {
-    sys_ll_set_ana_reg11_reset(value);
+    //sys_ll_set_ana_reg11_reset(value);
 }
 
 void sys_hal_set_gadc_ten(uint32_t value)
 {
-    sys_ll_set_ana_reg7_gadc_ten(value);
+    //sys_ll_set_ana_reg7_gadc_ten(value);
 }
 /**  WIFI End **/
 
@@ -1687,82 +1701,82 @@ void sys_hal_aud_clock_en(uint32_t value)
 
 void sys_hal_aud_vdd1v_en(uint32_t value)
 {
-	sys_ll_set_ana_reg12_enaudvdd1v(value);
+	//sys_ll_set_ana_reg12_enaudvdd1v(value);
 }
 
 void sys_hal_aud_vdd1v5_en(uint32_t value)
 {
-	sys_ll_set_ana_reg12_enaudvdd1v5(value);
+	//sys_ll_set_ana_reg12_enaudvdd1v5(value);
 }
 
 void sys_hal_aud_mic1_en(uint32_t value)
 {
-	sys_ll_set_ana_reg14_micen(value);
+	//sys_ll_set_ana_reg14_micen(value);
 }
 
 void sys_hal_aud_mic2_en(uint32_t value)
 {
-	sys_ll_set_ana_reg15_micen(value);
+	//sys_ll_set_ana_reg15_micen(value);
 }
 
 void sys_hal_aud_audpll_en(uint32_t value)
 {
-	sys_ll_set_ana_reg6_en_audpll(value);
+	//sys_ll_set_ana_reg6_en_audpll(value);
 }
 
 void sys_hal_aud_dacdrv_en(uint32_t value)
 {
-	sys_ll_set_ana_reg16_dacdrven(value);
+	//sys_ll_set_ana_reg16_dacdrven(value);
 }
 
 void sys_hal_aud_bias_en(uint32_t value)
 {
-	sys_ll_set_ana_reg17_enbias(value);
+	//sys_ll_set_ana_reg17_enbias(value);
 }
 
 void sys_hal_aud_dacr_en(uint32_t value)
 {
-	sys_ll_set_ana_reg16_dacren(value);
+	//sys_ll_set_ana_reg16_dacren(value);
 }
 
 void sys_hal_aud_dacl_en(uint32_t value)
 {
-	sys_ll_set_ana_reg16_daclen(value);
+	//sys_ll_set_ana_reg16_daclen(value);
 }
 
 void sys_hal_aud_rvcmd_en(uint32_t value)
 {
-	sys_ll_set_ana_reg16_renvcmd(value);
+	//sys_ll_set_ana_reg16_renvcmd(value);
 }
 
 void sys_hal_aud_lvcmd_en(uint32_t value)
 {
-	sys_ll_set_ana_reg16_lenvcmd(value);
+	//sys_ll_set_ana_reg16_lenvcmd(value);
 }
 
 void sys_hal_aud_micbias1v_en(uint32_t value)
 {
-	sys_ll_set_ana_reg12_enmicbias1v(value);
+	//sys_ll_set_ana_reg12_enmicbias1v(value);
 }
 
 void sys_hal_aud_micbias_trim_set(uint32_t value)
 {
-	sys_ll_set_ana_reg12_micbias_trim(value);
+	//sys_ll_set_ana_reg12_micbias_trim(value);
 }
 
 void sys_hal_aud_mic_rst_set(uint32_t value)
 {
-	sys_ll_set_ana_reg13_rst(value);
+	//sys_ll_set_ana_reg13_rst(value);
 }
 
 void sys_hal_aud_mic1_gain_set(uint32_t value)
 {
-	sys_ll_set_ana_reg14_micgain(value);
+	//sys_ll_set_ana_reg14_micgain(value);
 }
 
 void sys_hal_aud_mic2_gain_set(uint32_t value)
 {
-	sys_ll_set_ana_reg15_micgain(value);
+	//sys_ll_set_ana_reg15_micgain(value);
 }
 
 void sys_hal_aud_int_en(uint32_t value)
@@ -1814,27 +1828,27 @@ void sys_hal_i2s_int_en(uint32_t value)
 
 void sys_hal_apll_en(uint32_t value)
 {
-	sys_ll_set_ana_reg6_en_audpll(value);
+	//sys_ll_set_ana_reg6_en_audpll(value);
 }
 
 void sys_hal_cb_manu_val_set(uint32_t value)
 {
-	sys_ll_set_ana_reg4_cb_manu_val(value);
+	//sys_ll_set_ana_reg4_cb_manu_val(value);
 }
 
 void sys_hal_ana_reg11_vsel_set(uint32_t value)
 {
-	sys_ll_set_ana_reg11_vsel(value);
+	//sys_ll_set_ana_reg11_vsel(value);
 }
 
 void sys_hal_ana_reg10_sdm_val_set(uint32_t value)
 {
-	sys_ll_set_ana_reg10_sdm_val(value);
+	//sys_ll_set_ana_reg10_sdm_val(value);
 }
 
 void sys_hal_ana_reg11_spi_trigger_set(uint32_t value)
 {
-	sys_ll_set_ana_reg11_spi_trigger(value);
+	//sys_ll_set_ana_reg11_spi_trigger(value);
 }
 
 /**  I2S End  **/
@@ -1842,47 +1856,47 @@ void sys_hal_ana_reg11_spi_trigger_set(uint32_t value)
 /**  Touch Start **/
 void sys_hal_touch_power_down(uint32_t value)
 {
-	sys_ll_set_ana_reg8_pwd_td(value);
+	//sys_ll_set_ana_reg8_pwd_td(value);
 }
 
 void sys_hal_touch_sensitivity_level_set(uint32_t value)
 {
-	sys_ll_set_ana_reg8_gain_s(value);
+	//sys_ll_set_ana_reg8_gain_s(value);
 }
 
 void sys_hal_touch_scan_mode_enable(uint32_t value)
 {
-	sys_ll_set_ana_reg8_en_scm(value);
+	//sys_ll_set_ana_reg8_en_scm(value);
 }
 
 void sys_hal_touch_detect_threshold_set(uint32_t value)
 {
-	sys_ll_set_ana_reg9_vrefs(value);
+	//sys_ll_set_ana_reg9_vrefs(value);
 }
 
 void sys_hal_touch_detect_range_set(uint32_t value)
 {
-	sys_ll_set_ana_reg9_crg(value);
+	//sys_ll_set_ana_reg9_crg(value);
 }
 
 void sys_hal_touch_calib_enable(uint32_t value)
 {
-	sys_ll_set_ana_reg9_en_cal(value);
+	//sys_ll_set_ana_reg9_en_cal(value);
 }
 
 void sys_hal_touch_manul_mode_calib_value_set(uint32_t value)
 {
-	sys_ll_set_ana_reg8_cap_calspi(value);
+	//sys_ll_set_ana_reg8_cap_calspi(value);
 }
 
 void sys_hal_touch_manul_mode_enable(uint32_t value)
 {
-	sys_ll_set_ana_reg9_man_mode(value);
+	//sys_ll_set_ana_reg9_man_mode(value);
 }
 
 void sys_hal_touch_scan_mode_chann_set(uint32_t value)
 {
-	sys_ll_set_ana_reg8_chs_scan(value);
+	//sys_ll_set_ana_reg8_chs_scan(value);
 }
 
 void sys_hal_touch_int_enable(uint32_t value)
@@ -2002,13 +2016,6 @@ void sys_hal_psram_set_clkdiv(uint32_t value)
 	sys_ll_set_cpu_clk_div_mode2_ckdiv_psram(value);
 }
 
-void sys_hal_psram_power_enable(void)
-{
-	uint32_t value = sys_ll_get_ana_reg6_value();
-	value |= (0x1 << 12) | (0x1 << 7) | (0x1 << 5) | (0x1 << 8) | (0x1 << 9);
-	sys_ll_set_ana_reg6_value(value);
-}
-
 /**  psram End **/
 
 /* REG_0x03:cpu_storage_connect_op_select->flash_sel:0: normal flash operation 1:flash download by spi,R/W,0x3[9]*/
@@ -2028,51 +2035,51 @@ void sys_hal_set_cpu_storage_connect_op_select_flash_sel(uint32_t value)
 
 void sys_hal_set_ana_trxt_tst_enable(uint32_t value)
 {
-	sys_ll_set_ana_reg5_trxt_tst_enable(value);
+	//sys_ll_set_ana_reg5_trxt_tst_enable(value);
 }
 
 
 void sys_hal_set_ana_scal_en(uint32_t value)
 {
-	sys_ll_set_ana_reg7_scal_en(value);
+	//sys_ll_set_ana_reg7_scal_en(value);
 }
 
 
 void sys_hal_set_ana_gadc_buf_ictrl(uint32_t value)
 {
-   sys_ll_set_ana_reg7_gadc_buf_ictrl(value);
+   //sys_ll_set_ana_reg7_gadc_buf_ictrl(value);
 }
 
 void sys_hal_set_ana_gadc_cmp_ictrl(uint32_t value)
 {
-    sys_ll_set_ana_reg7_gadc_cmp_ictrl(value);
+    //sys_ll_set_ana_reg7_gadc_cmp_ictrl(value);
 }
 
 void sys_hal_set_ana_pwd_gadc_buf(uint32_t value)
 {
-	sys_ll_set_ana_reg6_pwd_gadc_buf(value);
+	//sys_ll_set_ana_reg6_pwd_gadc_buf(value);
 }
 
 void sys_hal_set_ana_vref_sel(uint32_t value)
 {
-	sys_ll_set_ana_reg7_vref_sel(value);
+	//sys_ll_set_ana_reg7_vref_sel(value);
 }
 void sys_hal_set_ana_cb_cal_manu(uint32_t value)
 {
-    sys_ll_set_ana_reg4_cb_cal_manu(value);
+    //sys_ll_set_ana_reg4_cb_cal_manu(value);
 }
 
 void sys_hal_set_ana_cb_cal_trig(uint32_t value)
 {
-    sys_ll_set_ana_reg4_cb_cal_trig(value);
+    //sys_ll_set_ana_reg4_cb_cal_trig(value);
 }
 void sys_hal_set_ana_vlsel_ldodig(uint32_t value)
 {
-    sys_ll_set_ana_reg3_vlsel_ldodig(value);
+    //sys_ll_set_ana_reg3_vlsel_ldodig(value);
 }
 void sys_hal_set_ana_vhsel_ldodig(uint32_t value)
 {
-    sys_ll_set_ana_reg3_vhsel_ldodig(value);
+    //sys_ll_set_ana_reg3_vhsel_ldodig(value);
 }
 
 void sys_hal_set_sdio_clk_en(uint32_t value)
@@ -2113,6 +2120,26 @@ uint32_t sys_hal_get_sdio_clk_sel()
 
 void sys_hal_set_ana_vctrl_sysldo(uint32_t value)
 {
-    sys_ll_set_ana_reg5_vctrl_sysldo(value);
+    //sys_ll_set_ana_reg5_vctrl_sysldo(value);
+}
+
+void sys_hal_set_yuv_buf_clock_en(uint32_t value)
+{
+	sys_ll_set_yuv_buf_clock_en(value);
+}
+
+void sys_hal_set_h264_clock_en(uint32_t value)
+{
+	sys_ll_set_h264_clock_en(value);
+}
+
+void sys_hal_nmi_wdt_set_clk_div(uint32_t value)
+{
+	sys_ll_set_cpu_26m_wdt_clk_div_ckdiv_wdt(value);
+}
+
+uint32_t sys_hal_nmi_wdt_get_clk_div(void)
+{
+	return sys_ll_get_cpu_26m_wdt_clk_div_ckdiv_wdt();
 }
 

@@ -1,0 +1,6 @@
+menu "I2S"
+	config I2S
+	bool "Enable I2S"
+	default n
+endmenu
+

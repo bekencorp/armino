@@ -1,0 +1,9 @@
+menu "GENERAL_DMA"
+	config GENERAL_DMA
+		bool "Enable General DMA"
+		default y
+	config GENERAL_DMA_SEC
+		bool "Enable General DMA SEC"
+		default n
+endmenu
+

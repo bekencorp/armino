@@ -38,6 +38,8 @@ extern "C" {
 
 #define JPEG_R_INT_STATUS    (JPEG_R_BASE + 4 * 0x6)
 
+#define JPEG_R_BYTE_COUNT_PER_FRAME    (JPEG_R_BASE + 4 * 0x7)
+
 #define JPEG_R_QUANT_TABLE   (JPEG_R_BASE + 4 * 0x20)
 
 #ifdef __cplusplus

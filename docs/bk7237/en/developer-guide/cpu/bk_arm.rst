@@ -1,1 +1,5 @@
-.. include:: ../../../zh_CN/developer-guide/cpu/bk_arm.rst
+ARM Guide (TBC)
+=====================
+
+:link_to_translation:`zh_CN:[中文]`
+

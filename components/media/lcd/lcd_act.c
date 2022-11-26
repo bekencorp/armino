@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include <string.h>
+#include <stdlib.h>
 
 #include <os/os.h>
 #include <components/log.h>
@@ -57,8 +59,13 @@
 #include "driver/flash_partition.h"
 #include "beken_image.h"
 #include <components/jpeg_decode.h>
+#include <os/str.h>
+#include <blend_logo.h>
+#include "modules/image_scale.h"
+#include <driver/dma2d.h>
+#include "driver/drv_tp.h"
 
-#define TAG "lcd"
+#define TAG "lcd_act"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
@@ -68,6 +75,7 @@
 extern media_debug_t *media_debug;
 
 lcd_info_t lcd_info = {0};
+
 
 beken_semaphore_t step_sem;
 
@@ -88,7 +96,11 @@ static frame_buffer_t *dbg_jpeg_frame = NULL;
 static frame_buffer_t *dbg_display_frame = NULL;
 lcd_open_t lcd_transfer_info = {0};
 
-char *jpeg_name = NULL;
+///char *g_blend_name = NULL;
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
+static lcd_blend_data_t g_blend_data = {0};
+#endif
+
 static int g_lcd_with_gui = 0;
 static int g_lcd_display_logo_first = 0;
 
@@ -108,20 +120,29 @@ static void jpeg_display_task_entry(beken_thread_arg_t data)
 
 		if (frame == NULL)
 		{
-			LOGE("read display frame NULL\n");
+			LOGD("read display frame NULL\n");
 			continue;
 		}
 
 		if (rotate == true)
 		{
-			frame = lcd_driver_rotate_frame(frame);
+			if (lcd_transfer_info.device_ppi == PPI_320X480)
+			{
+				frame = lcd_driver_rotate_frame_ppi(frame, PPI_320X480);
+			}
+			else
+			{
+				frame = lcd_driver_rotate_frame(frame);
+			}
 
 			if (frame == NULL)
 			{
-				LOGE("rotate frame NULL\n");
+				LOGD("rotate frame NULL\n");
 				continue;
 			}
 		}
+
+		lcd_blend_handle(frame);
 
 		lcd_driver_display_frame(frame);
 	}
@@ -160,7 +181,7 @@ void jpeg_display_task_start(bool rotate)
 	                         4,
 	                         "jpeg_display_thread",
 	                         (beken_thread_function_t)jpeg_display_task_entry,
-	                         4 * 1024,
+	                         8 * 1024,
 	                         (beken_thread_arg_t)rotate);
 
 	if (BK_OK != ret)
@@ -228,7 +249,7 @@ static void camera_display_task_entry(beken_thread_arg_t data)
 
 			if (jpeg_frame == NULL)
 			{
-				LOGE("%s read jpeg frame NULL\n", __func__);
+				LOGD("%s read jpeg frame NULL\n", __func__);
 				continue;
 			}
 
@@ -252,7 +273,7 @@ static void camera_display_task_entry(beken_thread_arg_t data)
 
 				if (dec_frame == NULL)
 				{
-					LOGE("rotate frame NULL\n");
+					LOGD("rotate frame NULL\n");
 					continue;
 				}
 			}
@@ -279,7 +300,7 @@ static void camera_display_task_entry(beken_thread_arg_t data)
 
 			if (jpeg_frame == NULL)
 			{
-				LOGE("read jpeg frame NULL\n");
+				LOGD("read jpeg frame NULL\n");
 				continue;
 			}
 
@@ -302,7 +323,7 @@ static void camera_display_task_entry(beken_thread_arg_t data)
 
 				if (dec_frame == NULL)
 				{
-					LOGE("rotate frame NULL\n");
+					LOGD("rotate frame NULL\n");
 					continue;
 				}
 			}
@@ -397,56 +418,83 @@ void camera_display_task_stop(void)
 }
 
 
+
+
 static bk_err_t display_logo(void)
 {
 	bk_err_t ret = BK_OK;
-	unsigned char *jpeg_psram = (unsigned char *)JPEG_SRAM_ADDRESS;
-	frame_buffer_t *src_frame = NULL;
-	uint32_t img_len = sizeof(beken_800_480_jpg);
+	frame_buffer_t *jpeg_frame = NULL;
+	frame_buffer_t *dec_frame = NULL;
 	sw_jpeg_dec_res_t result;
-	
-	src_frame = frame_buffer_fb_display_malloc();
-	if (src_frame == NULL)
+	uint32_t * img_addr = NULL;
+	uint32_t img_len = 0;
+
+#if CONFIG_LCD_FLASH_JPEG_DISPLAY
+		/// use define addr and len
+		img_addr= (uint32_t *)(beken_800_480_jpg);
+		img_len = sizeof(beken_800_480_jpg);
+#else
+		LOGE("flash img display macro is not enable \n");
+		return BK_FAIL;
+#endif
+
+	ret = frame_buffer_fb_jpeg_init(PPI_800X600);
+	frame_buffer_fb_register(MODULE_DECODER, FB_INDEX_JPEG);
+	jpeg_frame = frame_buffer_fb_jpeg_malloc();
+
+	if (jpeg_frame == NULL)
 	{
-		frame_buffer_fb_display_free(src_frame);
-		LOGE("src_frame malloc failed\r\n");
+		LOGE("jpeg frame malloc failed\r\n");
 		return BK_FAIL;
 	}
-	os_memcpy(jpeg_psram, (uint8_t *)beken_800_480_jpg, img_len);
+
+	os_memcpy_word((uint32_t *)jpeg_frame->frame, img_addr, img_len);
 	ret = bk_jpeg_dec_sw_init();
 	if (ret != kNoErr) {
 		LOGE("init sw jpeg decoder failed\r\n");
+		frame_buffer_fb_jpeg_free(jpeg_frame); //frame_buffer_fb_free
 		return BK_FAIL;
 	}
 
-	ret = bk_jpeg_dec_sw_start(img_len, jpeg_psram, src_frame->frame, &result);
+	dec_frame = frame_buffer_fb_display_malloc();
+	if (dec_frame == NULL)
+	{
+		LOGE("src_frame malloc failed\r\n");
+		frame_buffer_fb_jpeg_free(jpeg_frame); //frame_buffer_fb_free
+		return BK_FAIL;
+	}
+
+	ret = bk_jpeg_dec_sw_start(img_len, jpeg_frame->frame, dec_frame->frame, &result);
 	bk_jpeg_dec_sw_deinit();
 
 	if (ret != kNoErr) {
+		frame_buffer_fb_jpeg_free(jpeg_frame); //frame_buffer_fb_free
+		frame_buffer_fb_display_free(dec_frame);
 		LOGE("sw jpeg decoder failed\r\n");
-		frame_buffer_fb_display_free(src_frame);
 		return BK_FAIL;
 	}
 
 	LOGI("sw jpeg decode (pixel_x pixel_y) : (%x, %x) \r\n", result.pixel_x, result.pixel_y);
-	src_frame->width = result.pixel_x;
-	src_frame->height = result.pixel_y;
-	src_frame->fmt = PIXEL_FMT_YUYV;
+	dec_frame->width = result.pixel_x;
+	dec_frame->height = result.pixel_y;
+	dec_frame->fmt = PIXEL_FMT_YUYV;
 
-	frame_buffer_fb_display_push(src_frame);
+	frame_buffer_fb_jpeg_free(jpeg_frame); //frame_buffer_fb_free
 
-	return BK_OK;
+	frame_buffer_fb_display_push(dec_frame);
+
+	return 	BK_OK;
 }
 
 void lcd_open_handle(param_pak_t *param)
 {
 	int ret = BK_OK;
 
-	LOGI("%s \n", __func__);
 	if (LCD_STATE_DISPLAY == get_lcd_state())
 	{
 		camera_display_task_start(lcd_info.rotate); 
 		set_lcd_state(LCD_STATE_ENABLED);
+		LOGI("%s: open camera_display_task \n", __func__);
 	}
 
 	if (LCD_STATE_ENABLED == get_lcd_state())
@@ -487,20 +535,28 @@ void lcd_open_handle(param_pak_t *param)
 #ifdef DISPLAY_PIPELINE_TASK
 		jpeg_display_task_start(lcd_info.rotate);
 #endif
-		if(g_lcd_display_logo_first == 1)
+		set_lcd_state(LCD_STATE_ENABLED);
+
+		if (g_lcd_display_logo_first == 1)
 		{
 			ret= display_logo();
+			g_lcd_display_logo_first=0;
 			if(ret != BK_OK)
 			{
-				LOGE("%s yikang_test display logo frist err \n", __func__);
-				goto out;
+				LOGE("%s display logo frist err \n", __func__);
 			}
 		}
 		
 	}
-	set_lcd_state(LCD_STATE_ENABLED);
 
 	LOGI("%s complete\n", __func__);
+
+	#if (CONFIG_TP)
+		uint16_t hor_size = ppi_to_pixel_x(lcd_config.device->ppi);  //lcd size x
+		uint16_t ver_size = ppi_to_pixel_y(lcd_config.device->ppi);  //lcd size y
+
+		drv_tp_open(hor_size, ver_size);
+	#endif
 
 	#if (CONFIG_LVGL)
 	if(g_lcd_with_gui){
@@ -512,77 +568,119 @@ void lcd_open_handle(param_pak_t *param)
 		bk_gui_disp_task_init(hor_size, ver_size);
 	}
 	#endif
-	
+
 out:
 		MEDIA_EVT_RETURN(param, ret);
 
 }
 
-char * display_name = NULL;
 extern storage_flash_t storge_flash;
 
 void lcd_display_handle(param_pak_t *param)
 {
 	int ret = BK_OK;
-
-	char *ptr = (char *)param->param;
-    bk_psram_init();
-
-	if(display_name != NULL)
+	lcd_display_t *lcd_display = (lcd_display_t *)param->param;
+	LOGI("display img addr: %p , length %d \n", lcd_display->image_addr, lcd_display->img_length);
+	if(lcd_display==NULL||lcd_display->image_addr==0||lcd_display->img_length<=0)
 	{
-		os_free(display_name);
-		display_name = NULL;
+		goto out;
 	}
-	display_name = ptr;
-
+	
 	camera_display_task_stop();
 	set_lcd_state(LCD_STATE_DISPLAY);
 	rtos_delay_milliseconds(10);
-	LOGI("display_name: %s , length %d \n", display_name,  storge_flash.flasg_img_length);
 
+	ret = frame_buffer_fb_jpeg_init(PPI_800X600);
 	frame_buffer_fb_register(MODULE_DECODER, FB_INDEX_JPEG);
 	frame_buffer_t *jpeg_frame = frame_buffer_fb_jpeg_malloc();
 	if (jpeg_frame == NULL)
 	{
-		frame_buffer_fb_jpeg_free(jpeg_frame);	   //frame_buffer_fb_free
 		LOGE("src_frame malloc failed\r\n");
 		goto out;
 	}
-#if CONFIG_SDCARD_HOST
-		ret = sdcard_read_to_mem((char *)display_name, (uint32_t *)jpeg_frame->frame, &jpeg_frame->length );
-#else   //display flash data
-		jpeg_frame->length =  storge_flash.flasg_img_length;
-
+	
+	jpeg_frame->length = lcd_display->img_length;
 //		extern void bk_mem_dump_ex(const char *title, unsigned char *data, uint32_t data_len);
 //		uint8_t read_ptr[10] = {0};
 //		bk_flash_read_bytes(storge_flash.flash_image_addr, (uint8_t*)read_ptr, 10);
 //		bk_mem_dump_ex("befor flash data", read_ptr, 10);
-		ret = bk_flash_read_word(storge_flash.flash_image_addr, (uint32_t *)jpeg_frame->frame, storge_flash.flasg_img_length);
+	ret = bk_flash_read_word(lcd_display->image_addr, (uint32_t *)jpeg_frame->frame, jpeg_frame->length);
 //		bk_mem_dump_ex("befor psram data",(uint8_t *)jpeg_frame->frame, 10);
 //		bk_mem_dump_ex("befor psram data",(uint8_t *) (jpeg_frame->frame + storge_flash.flasg_img_length - 3), 4);
-#endif
-		if (BK_OK != ret)
-		{
-			frame_buffer_fb_jpeg_free(jpeg_frame); //frame_buffer_fb_free
-			camera_display_task_start(lcd_info.rotate);
-			set_lcd_state(LCD_STATE_ENABLED);
-			LOGE("%s, sd/flash read file failed\n", __func__);
-			goto out;
-		}
+	if (BK_OK != ret)
+	{
+		frame_buffer_fb_jpeg_free(jpeg_frame); //frame_buffer_fb_free
+		LOGE("%s, sd/flash read file failed\n", __func__);
+		goto out;
+	}
 
-		jpeg_frame->fmt = PIXEL_FMT_UVC_JPEG;
-		frame_buffer_t *dec_frame = lcd_driver_decoder_frame(jpeg_frame);
+	jpeg_frame->fmt = PIXEL_FMT_UVC_JPEG;
+	frame_buffer_t *dec_frame = lcd_driver_decoder_frame(jpeg_frame);
 
-		if (dec_frame == NULL)
-		{
-			LOGD("display handler jpeg decoder frame error\n");
-			goto out;
-		}
-
+	if (dec_frame == NULL)
+	{
 		frame_buffer_fb_jpeg_free(jpeg_frame);	   //frame_buffer_fb_free
-		frame_buffer_fb_display_push(dec_frame);
+		LOGE("display handler jpeg decoder frame error\n");
+		goto out;
+	}
 
+	frame_buffer_fb_jpeg_free(jpeg_frame);	   //frame_buffer_fb_free
+	frame_buffer_fb_display_push(dec_frame);
 out:
+
+	MEDIA_EVT_RETURN(param, ret);
+}
+
+
+void lcd_display_file_handle(param_pak_t *param)
+{
+	int ret = BK_OK;
+	LOGI("%s, %s\n", __func__, (char *)param->param);
+	char *file_name = NULL;
+	
+	file_name = (char *)os_malloc(32);
+	os_memcpy(file_name, (char *)param->param, 31);
+	file_name[31] = 0;
+	LOGI("display sd card file name: %s \n", file_name);
+
+	camera_display_task_stop();
+	set_lcd_state(LCD_STATE_DISPLAY);
+	rtos_delay_milliseconds(10);
+
+	ret = frame_buffer_fb_jpeg_init(PPI_800X600);
+	frame_buffer_fb_register(MODULE_DECODER, FB_INDEX_JPEG);
+	frame_buffer_t *jpeg_frame = frame_buffer_fb_jpeg_malloc();
+	if (jpeg_frame == NULL)
+	{
+		LOGE("src_frame malloc failed\r\n");
+		goto out;
+	}
+
+#if CONFIG_FATFS
+		ret = sdcard_read_to_mem((char *)file_name, (uint32_t *)jpeg_frame->frame, &jpeg_frame->length );
+#endif
+
+	if (BK_OK != ret)
+	{
+		frame_buffer_fb_jpeg_free(jpeg_frame); //frame_buffer_fb_free
+		LOGE("%s, sd/flash read file failed\n", __func__);
+		goto out;
+	}
+
+	jpeg_frame->fmt = PIXEL_FMT_UVC_JPEG;
+	frame_buffer_t *dec_frame = lcd_driver_decoder_frame(jpeg_frame);
+
+	if (dec_frame == NULL)
+	{
+		frame_buffer_fb_jpeg_free(jpeg_frame);	   //frame_buffer_fb_free
+		LOGE("display handler jpeg decoder frame error\n");
+		goto out;
+	}
+
+	frame_buffer_fb_jpeg_free(jpeg_frame);    //frame_buffer_fb_free
+	frame_buffer_fb_display_push(dec_frame);
+out:
+	os_free(file_name);
 
 	MEDIA_EVT_RETURN(param, ret);
 }
@@ -590,50 +688,231 @@ out:
 void lcd_display_beken_logo_handle(param_pak_t *param)
 {
 	bk_err_t ret = BK_OK;
-	unsigned char *jpeg_psram = (unsigned char *)JPEG_SRAM_ADDRESS;
-	frame_buffer_t *src_frame = NULL;
-	uint32_t img_len = sizeof(beken_800_480_jpg);
+	frame_buffer_t *jpeg_frame = NULL;
+	frame_buffer_t *dec_frame = NULL;
 	sw_jpeg_dec_res_t result;
 
+	lcd_display_t *logo_info = (lcd_display_t *)param->param;
+
+#if CONFIG_LCD_FLASH_JPEG_DISPLAY
+	if (logo_info->image_addr == 1)
+	{
+		/// use define addr and len
+		logo_info->image_addr = (uint32_t)(beken_800_480_jpg);
+		logo_info->img_length = sizeof(beken_800_480_jpg);
+	}
+	// else
+	// {
+	// 	logo_info->image_addr = (uint32_t)(QR_Code);
+	// 	logo_info->img_length = sizeof(QR_Code);
+	// }
+#else
+	LOGE("flash img display macro is not enable \n");
+	goto out;
+#endif
+
 	camera_display_task_stop();  //USB Camera
-	
-	rtos_delay_milliseconds(50);
+	rtos_delay_milliseconds(10);
 	set_lcd_state(LCD_STATE_DISPLAY);
 
-	src_frame = frame_buffer_fb_display_malloc();
-	if (src_frame == NULL)
+	ret = frame_buffer_fb_jpeg_init(PPI_800X600);
+	frame_buffer_fb_register(MODULE_DECODER, FB_INDEX_JPEG);
+	jpeg_frame = frame_buffer_fb_jpeg_malloc();
+
+	if (jpeg_frame == NULL)
 	{
-		frame_buffer_fb_display_free(src_frame);
-		LOGE("src_frame malloc failed\r\n");
+		LOGE("jpeg frame malloc failed\r\n");
 		goto out;
 	}
-	os_memcpy(jpeg_psram, (uint8_t *)beken_800_480_jpg, img_len);
+
+	os_memcpy_word((uint32_t *)jpeg_frame->frame, (uint32_t *)logo_info->image_addr, logo_info->img_length);
 	ret = bk_jpeg_dec_sw_init();
 	if (ret != kNoErr) {
 		LOGE("init sw jpeg decoder failed\r\n");
+		frame_buffer_fb_jpeg_free(jpeg_frame); //frame_buffer_fb_free
 		goto out;
 	}
 
-	ret = bk_jpeg_dec_sw_start(img_len, jpeg_psram, src_frame->frame, &result);
+	dec_frame = frame_buffer_fb_display_malloc();
+	if (dec_frame == NULL)
+	{
+		LOGE("src_frame malloc failed\r\n");
+		frame_buffer_fb_jpeg_free(jpeg_frame); //frame_buffer_fb_free
+		goto out;
+	}
+
+	ret = bk_jpeg_dec_sw_start(logo_info->img_length, jpeg_frame->frame, dec_frame->frame, &result);
 	bk_jpeg_dec_sw_deinit();
 
 	if (ret != kNoErr) {
+		frame_buffer_fb_jpeg_free(jpeg_frame); //frame_buffer_fb_free
+		frame_buffer_fb_display_free(dec_frame);
 		LOGE("sw jpeg decoder failed\r\n");
 		goto out;
 	}
 
 	LOGI("sw jpeg decode (pixel_x pixel_y) : (%x, %x) \r\n", result.pixel_x, result.pixel_y);
-	src_frame->width = result.pixel_x;
-	src_frame->height = result.pixel_y;
-	src_frame->fmt = PIXEL_FMT_YUYV;
+	dec_frame->width = result.pixel_x;
+	dec_frame->height = result.pixel_y;
+	dec_frame->fmt = PIXEL_FMT_YUYV;
 
-	frame_buffer_fb_display_push(src_frame);
+	frame_buffer_fb_jpeg_free(jpeg_frame); //frame_buffer_fb_free
+	frame_buffer_fb_deregister(MODULE_DECODER);
+
+	frame_buffer_fb_display_push(dec_frame);
 
 out:
 
 	MEDIA_EVT_RETURN(param, ret);
-
 }
+
+
+
+
+bk_err_t lcd_blend_handle(frame_buffer_t *frame)
+{
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
+	uint8_t temp[5] = {0};
+	uint8_t *clock[5] = {0};
+	uint8_t *version[12] = {0};
+
+	char ch[MAX_BLEND_NAME_LEN]={0};
+	//LOGE("lcd_blend_handle frame =%p \n", frame);
+
+	lcd_blend_t lcd_blend = {0};
+	
+	if(g_blend_data.lcd_blend_type == 0)
+	{
+		return BK_OK;
+	}		
+
+	if ((g_blend_data.lcd_blend_type & LCD_BLEND_TIME) != 0)
+	{
+		LOGD("lcd blend time =%s\n", g_blend_data.time_data);
+		for (int i = 0; i < MAX_BLEND_NAME_LEN; i++)
+		{
+			*(ch + i) = (g_blend_data.time_data[i]);
+		}
+
+		if (ch[0] >= '0' && ch[0] <= '9') // to do : check 25:00 or 1:00 err case
+		{
+			temp[0] = *(ch + 0) - '0';
+			temp[1] = *(ch + 1) - '0';
+			temp[2] = *(ch + 2) - '0'; // temp[2] = *(ch + 2) - ':' + 10;
+			temp[3] = *(ch + 3) - '0';
+			temp[4] = *(ch + 4) - '0';
+
+			for (int j = 0; j < 5; j++)
+			{
+				clock[j] = (uint8_t *)clock_logo[temp[j]];
+			}
+
+			LOGD("temp = %x, %x, %x, %x, %x \n", temp[0], temp[1], temp[2], temp[3], temp[4]);
+		}
+		for(int i = 0; i < 5; i++)
+		{
+			lcd_blend.pfg_addr = (uint8_t *)(clock)[i];
+			lcd_blend.pbg_addr = (uint8_t *)(frame->frame + (CLOCK_LOGO_W * i * 2));
+			lcd_blend.fg_offline = 0;
+			lcd_blend.bg_offline = frame->width - CLOCK_LOGO_W;;
+			lcd_blend.xsize = CLOCK_LOGO_W;
+			lcd_blend.ysize = CLOCK_LOGO_H;
+			lcd_blend.fg_alpha_value = FG_ALPHA;
+#if (FG_RGB565_FORMAT)
+			lcd_blend.fg_data_format = RGB565;
+#endif
+#if (FG_ARGB8888_FORMAT)
+			lcd_blend.fg_data_format = ARGB8888;
+#endif
+			lcd_blend.bg_data_format = frame->fmt;
+			lcd_driver_blend(&lcd_blend);
+		}
+	}
+
+	if ((g_blend_data.lcd_blend_type & LCD_BLEND_WIFI) != 0)
+	{
+		LOGD("lcd wifi blend level =%d \n", g_blend_data.wifi_data);
+		lcd_blend.pfg_addr = (uint8_t *)wifi_logo[g_blend_data.wifi_data];
+		lcd_blend.pbg_addr = (uint8_t *)(frame->frame + (frame->width - WIFI_LOGO_W) * 2);
+		lcd_blend.fg_offline = 0;
+		lcd_blend.bg_offline = frame->width - WIFI_LOGO_W;
+		lcd_blend.xsize = WIFI_LOGO_W;
+		lcd_blend.ysize = WIFI_LOGO_H;
+		lcd_blend.fg_alpha_value = FG_ALPHA;
+#if (FG_RGB565_FORMAT)
+		lcd_blend.fg_data_format = RGB565;
+#endif
+#if (FG_ARGB8888_FORMAT)
+		lcd_blend.fg_data_format = ARGB8888;
+#endif
+		lcd_blend.bg_data_format = frame->fmt;
+		lcd_driver_blend(&lcd_blend);
+	}
+	uint8_t tab = 0;
+
+	if ((g_blend_data.lcd_blend_type & LCD_BLEND_VERSION) != 0)
+	{
+		LOGD("lcd blend version =%d \n", g_blend_data.ver_data);  
+		uint8_t len = strlen((char*)g_blend_data.ver_data);
+
+		for (int i = 0; i < len; i++)
+		{
+			*(ch + i) = (g_blend_data.ver_data[i]);
+			if (*(ch + i) == 32)  // if "VL4  V1.23.34" have 2 tab, and 1 is bit6
+			{
+				tab = i;           //if "VL4  V1.23.34"  tab = 4
+			}
+		}
+		tab ++;                      //tab = 5
+
+		//for V1.XX.XX
+		if (os_memcmp(g_blend_data.ver_data, "V", 1) == 0)
+		{
+			version[0] = (uint8_t *)rgb565_V;
+			version[1] = (uint8_t *)clock565_logo[*(ch + tab + 1) - '0'];  // 1 is bit6
+			version[2] = (uint8_t *)rgb565_point;
+			version[3] = (uint8_t *)clock565_logo[*(ch + tab + 3) - '0'];
+			version[4] = (uint8_t *)clock565_logo[*(ch + tab + 4) - '0'];
+			version[5] = (uint8_t *)rgb565_point;
+			version[6] = (uint8_t *)clock565_logo[*(ch + tab + 6) - '0'];
+			version[7] = (uint8_t *)clock565_logo[*(ch + tab + 7) - '0'];
+		}
+
+		///for "VL4"
+		for (int i = 0; i < 3; i++)
+		{
+			lcd_blend.pfg_addr = (uint8_t *)(project_logo)[i];
+			lcd_blend.pbg_addr = (uint8_t *)(frame->frame + ((VERSION_POSTION_Y * frame->width) + (VERSION_POSTION_X + CLOCK_LOGO_W * i ))* 2);
+			lcd_blend.fg_offline = 0;
+			lcd_blend.bg_offline = frame->width - VERSION_LOGO_W;;
+			lcd_blend.xsize = VERSION_LOGO_W;
+			lcd_blend.ysize = VERSION_LOGO_H;
+			lcd_blend.fg_alpha_value = FG_ALPHA;
+			lcd_blend.fg_data_format = RGB565;
+            lcd_blend.bg_data_format = frame->fmt;
+			lcd_driver_blend(&lcd_blend);
+		}
+
+		//for V1.XX.XX
+		for(int i = 0; i < 8; i++)
+		{
+			lcd_blend.pfg_addr = (uint8_t *)(version)[i];
+			lcd_blend.pbg_addr = (uint8_t *)(frame->frame + ((VERSION_POSTION_Y * frame->width) + (VERSION_POSTION_X + CLOCK_LOGO_W * (i + tab) ))* 2); // 1 is bit6
+			lcd_blend.fg_offline = 0;
+			lcd_blend.bg_offline = frame->width - VERSION_LOGO_W;;
+			lcd_blend.xsize = VERSION_LOGO_W;
+			lcd_blend.ysize = VERSION_LOGO_H;
+			lcd_blend.fg_alpha_value = FG_ALPHA;
+			lcd_blend.fg_data_format = RGB565;
+            lcd_blend.bg_data_format = frame->fmt;
+			lcd_driver_blend(&lcd_blend);
+		}
+	}
+#endif
+	return BK_OK;
+}
+
+
 
 void lcd_close_handle(param_pak_t *param)
 {
@@ -668,6 +947,10 @@ void lcd_close_handle(param_pak_t *param)
 #if (CONFIG_LVGL)
 	else
 		bk_gui_disp_task_deinit();
+#endif
+
+#if (CONFIG_TP)
+	drv_tp_close();
 #endif
 
 	lcd_driver_deinit();
@@ -770,7 +1053,7 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 	{
 		case EVENT_LCD_OPEN_IND:
 			g_lcd_with_gui = 0;
-			g_lcd_display_logo_first = 1;
+			////g_lcd_display_logo_first = 1;
 			lcd_open_handle((param_pak_t *)param);
 			break;
 
@@ -869,14 +1152,73 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 			MEDIA_EVT_RETURN(param_pak, BK_OK);
 			break;
 
-		case EVENT_LCD_DISPLAY_IND:
-			lcd_display_handle((param_pak_t *)param);
+		case EVENT_LCD_DISPLAY_FILE_IND:
+			lcd_display_file_handle((param_pak_t *)param);
 			break;
 
 		case EVENT_LCD_BEKEN_LOGO_DISPLAY:
 			lcd_display_beken_logo_handle((param_pak_t *)param);
 			break;
 
+		case EVENT_LCD_DISPLAY_IND:
+			lcd_display_handle((param_pak_t *)param);
+			break;
+
+		case EVENT_LCD_BLEND_IND:
+		{
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
+			param_pak = (param_pak_t *)param;
+			lcd_blend_msg_t  *blend_data =(lcd_blend_msg_t  *)param_pak->param;
+			if(blend_data != NULL)
+			{
+				LOGD("lcd_EVENT_LCD_BLEND_IND type=%d on=%d\n", blend_data->lcd_blend_type, blend_data->blend_on);
+
+				if ((blend_data->lcd_blend_type & LCD_BLEND_WIFI) == LCD_BLEND_WIFI)
+				{
+					if(blend_data->blend_on == 0)
+					{
+						g_blend_data.lcd_blend_type &= (~LCD_BLEND_WIFI);
+					}
+					else
+					{
+						g_blend_data.lcd_blend_type |= LCD_BLEND_WIFI;
+						g_blend_data.wifi_data = blend_data->data[0];
+						
+						LOGD("g_blend_data.wifi_data =%d\n", g_blend_data.wifi_data );
+					}
+				}
+				if ((blend_data->lcd_blend_type & LCD_BLEND_TIME) == LCD_BLEND_TIME)
+				{
+					if(blend_data->blend_on == 0)
+					{
+						g_blend_data.lcd_blend_type &= (~LCD_BLEND_TIME);
+					}
+					else
+					{
+						g_blend_data.lcd_blend_type |= LCD_BLEND_TIME;
+						os_memcpy(g_blend_data.time_data, blend_data->data, MAX_BLEND_NAME_LEN);
+						LOGD("g_blend_data.time_data =%s\n", g_blend_data.time_data );
+					}
+				}
+				if ((blend_data->lcd_blend_type & LCD_BLEND_VERSION) == LCD_BLEND_VERSION)
+				{
+					if(blend_data->blend_on == 0)
+					{
+						g_blend_data.lcd_blend_type &= (~LCD_BLEND_VERSION);
+					}
+					else
+					{
+						g_blend_data.lcd_blend_type |= LCD_BLEND_VERSION;
+						os_memcpy(g_blend_data.ver_data, blend_data->data, MAX_BLEND_NAME_LEN);
+						LOGE("g_blend_data.ver_data =%s\n", g_blend_data.ver_data );
+					}
+				}
+			 }				
+
+			MEDIA_EVT_RETURN(param_pak, BK_OK);
+break;
+#endif
+		}
 	}
 }
 
@@ -891,6 +1233,7 @@ void set_lcd_state(lcd_state_t state)
 	lcd_info.state = state;
 }
 
+
 void lcd_init(void)
 {
 	os_memset(&lcd_info, 0, sizeof(lcd_info_t));
@@ -898,3 +1241,11 @@ void lcd_init(void)
 	lcd_info.debug = false;
 	lcd_info.rotate = false;
 }
+void lcd_set_logo_on(int status)
+{
+	g_lcd_display_logo_first = status;
+}
+
+
+
+

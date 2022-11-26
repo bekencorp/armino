@@ -94,6 +94,8 @@ typedef int bk_err_t;
 #define BK_ERR_AON_WDT_BASE        (-0x3d00)
 #define BK_ERR_JPEGDEC_BASE        (-0x3e00)
 #define BK_ERR_LCD_BASE            (-0x3f00)
+#define BK_ERR_DMA2D_BASE          (-0x4000)
+#define BK_ERR_YUV_BUF_BASE        (-0x4100)
 
 /* -0x1a2c to -0x1a7b is reserved for kXxx error code
  * #define kGenericErrorBase           -6700

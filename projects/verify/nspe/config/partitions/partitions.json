@@ -1,0 +1,6 @@
+{
+    "description": "Paritions for legacy download",
+    "partitions": [
+        { "partition": "primary_app", "offset": "0x00044000", "size": "272k", "bin": "app.bin", "bin_type": "code"}
+   ]
+}

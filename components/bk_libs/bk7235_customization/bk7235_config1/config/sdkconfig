@@ -69,6 +69,7 @@ CONFIG_BLUETOOTH=y
 # CONFIG_AUDIO_FLAC is not set
 # CONFIG_AUDIO_G711 is not set
 # CONFIG_AUDIO_MP3 is not set
+# CONFIG_AUDIO_OGG is not set
 # CONFIG_AUDIO_OPUS is not set
 # CONFIG_AUDIO_RSP is not set
 # CONFIG_AUDIO_SBC is not set
@@ -87,6 +88,7 @@ CONFIG_MANUAL_CALI=y
 CONFIG_TPC_PA_MAP=y
 CONFIG_TEMP_DETECT=y
 # CONFIG_SARADC_CALI is not set
+CONFIG_LA_CAPTURE_MAC_DIAGS=y
 # end of Calibration
 
 #
@@ -143,7 +145,7 @@ CONFIG_NMI_WDT_EN=y
 # AON_Watchdog
 #
 # CONFIG_AON_WDT is not set
-CONFIG_INT_AON_WDT=y
+# CONFIG_INT_AON_WDT is not set
 CONFIG_INT_AON_WDT_PERIOD_MS=1000
 # end of AON_Watchdog
 
@@ -164,6 +166,7 @@ CONFIG_PRINTF_BUF_SIZE=128
 CONFIG_KFIFO_SIZE=128
 # CONFIG_UART_STATIS is not set
 CONFIG_UART_LOW_VOLTAGE_SUPPORT=y
+# CONFIG_UART_ERR_INTERRUPT is not set
 # end of UART
 
 #
@@ -194,8 +197,6 @@ CONFIG_SDCARD_V2P0=y
 # CONFIG_FATFS is not set
 # CONFIG_FATFS_SDCARD is not set
 # end of FATFS
-
-CONFIG_MAC_PHY_BYPASS=y
 
 #
 # SDIO
@@ -237,6 +238,7 @@ CONFIG_AON_RTC=y
 CONFIG_AON_RTC_MANY_USERS=y
 CONFIG_AON_RTC_TEST=y
 # CONFIG_AON_RTC_DEBUG is not set
+CONFIG_AON_RTC_KEEP_TIME_SUPPORT=y
 # end of AON_RTC
 
 #
@@ -257,16 +259,17 @@ CONFIG_AON_PMU=y
 # end of AON_PMU
 
 #
-# DMA
+# GENERAL_DMA
 #
 CONFIG_GENERAL_DMA=y
 # CONFIG_GENERAL_DMA_SEC is not set
-# end of DMA
+# end of GENERAL_DMA
 
 #
 # TOUCH
 #
 # CONFIG_TOUCH is not set
+# CONFIG_TOUCH_PM_SUPPORT is not set
 # end of TOUCH
 
 #
@@ -276,10 +279,10 @@ CONFIG_GENERAL_DMA=y
 # end of SBC
 
 #
-# JPEG_ENCODE
+# JPEG_ENC
 #
 # CONFIG_JPEG_ENCODE is not set
-# end of JPEG_ENCODE
+# end of JPEG_ENC
 
 #
 # PSRAM
@@ -306,7 +309,7 @@ CONFIG_GENERAL_DMA=y
 # end of PRRO
 
 #
-# System control
+# SYS_CTRL
 #
 # CONFIG_SYS_REDUCE_NORMAL_POWER is not set
 # CONFIG_XTAL_FREQ_40M is not set
@@ -315,7 +318,8 @@ CONFIG_XTAL_FREQ=26000000
 CONFIG_DCO_FREQ=120000000
 CONFIG_SYSTEM_CTRL=y
 CONFIG_POWER_CLOCK_RF=y
-# end of System control
+# CONFIG_SYSTEM_CLOCK is not set
+# end of SYS_CTRL
 
 #
 # PHY
@@ -338,6 +342,11 @@ CONFIG_I2C_SUPPORT_ID_BITS=1
 # CONFIG_FM_I2C is not set
 CONFIG_SIM_I2C=y
 # end of I2C
+
+#
+# I2S
+#
+# end of I2S
 
 #
 # PWM
@@ -377,16 +386,20 @@ CONFIG_FLASH_SRC_CLK_60M=y
 # CONFIG_FLASH_ORIGIN_API is not set
 # end of FLASH
 
+CONFIG_MAC_PHY_BYPASS=y
 # CONFIG_SUPPORT_IRDA is not set
 # CONFIG_MAILBOX is not set
 # CONFIG_LCD is not set
+# CONFIG_TP is not set
 # CONFIG_DMA2D is not set
+# CONFIG_YUV_BUF is not set
 # CONFIG_JPEG_DEC is not set
 CONFIG_EFUSE=y
 # CONFIG_FFT is not set
 # CONFIG_AUDIO_RISCV_IP_V1_0 is not set
 # CONFIG_AUDIO_DSP_IP_V1_0 is not set
 CONFIG_CHANGE_JTAG_GPIO=y
+CONFIG_RESET_REASON=y
 # end of Driver
 
 #
@@ -400,6 +413,14 @@ CONFIG_CACHE_ENABLE=y
 # CONFIG_CACHE_CUSTOM_SRAM_MAPPING is not set
 CONFIG_CPU_FREQ_HZ=120000000
 # end of ARCH_RISCV
+
+#
+# ARCH_CORTEX_M33
+#
+# CONFIG_ARCH_CM33 is not set
+# CONFIG_FPGA is not set
+# CONFIG_SPE is not set
+# end of ARCH_CORTEX_M33
 
 #
 # WiFi
@@ -439,6 +460,7 @@ CONFIG_BTDM_5_2=y
 # Cli
 #
 CONFIG_CLI=y
+# CONFIG_CLI_USER_CONFIG is not set
 CONFIG_BKREG=y
 CONFIG_MAX_COMMANDS=255
 CONFIG_IPERF_TEST=y
@@ -452,6 +474,7 @@ CONFIG_SPI_TEST=y
 CONFIG_PERI_TEST=y
 # CONFIG_RF_OTA_TEST is not set
 CONFIG_SHELL_ASYNCLOG=y
+# CONFIG_TOUCH_TEST is not set
 # CONFIG_SBC_TEST is not set
 # CONFIG_AUDIO is not set
 # CONFIG_ICU is not set
@@ -462,13 +485,18 @@ CONFIG_IDLE_UART_OUT_TEST=y
 # CONFIG_COMPONENTS_WPA_TWT_TEST is not set
 # CONFIG_COMPONENTS_WFA_CA is not set
 # CONFIG_ENABLE_WIFI_DEFAULT_CONNECT is not set
+# CONFIG_PSRAM_TEST is not set
+# CONFIG_DVP_TEST is not set
+# CONFIG_CM33_TEST is not set
+# CONFIG_MPC_TEST is not set
+# CONFIG_PRRO_TEST is not set
 # end of Cli
 
 #
 # DUAL_CORE
 #
 # CONFIG_DUAL_CORE is not set
-CONFIG_RWNX_PROTO_DEBUG=y
+# CONFIG_RWNX_PROTO_DEBUG is not set
 # end of DUAL_CORE
 
 #
@@ -561,6 +589,7 @@ CONFIG_ACLSEMI_BTC_FEATURE_INCLUDED=y
 # end of BTDM 5.2 Mindtree Controller
 
 # CONFIG_BLE_HOST_ETHERMIND is not set
+CONFIG_ACLSEMI_BT_MESH_DEBUG_LEVEL=4
 
 #
 # BTDM 5.2 Mindtree Host
@@ -671,6 +700,12 @@ CONFIG_MSDU_RESV_HEAD_LEN=96
 CONFIG_MSDU_RESV_TAIL_LEN=16
 CONFIG_WPA_TWT_TEST=y
 # CONFIG_RWNX_SW_TXQ is not set
+# CONFIG_RWNX_FAST_CONNECT is not set
+# CONFIG_P2P is not set
+# CONFIG_P2P_GO is not set
+# CONFIG_TX_BUFING is not set
+# CONFIG_AP_PS is not set
+# CONFIG_USE_P2P_PS is not set
 # end of WiFi RWNX Interface
 
 # CONFIG_SECURITYIP_SELFTEST is not set
@@ -682,6 +717,13 @@ CONFIG_ATE=y
 #
 # CONFIG_USB is not set
 # end of USB configuration
+
+#
+# DSP
+#
+# CONFIG_DSP is not set
+CONFIG_DSP_SRC_ADD=0x130000
+# end of DSP
 
 #
 # VAD_CONFIG
@@ -723,8 +765,6 @@ CONFIG_AP_VSIE=y
 # CONFIG_STA_VSIE is not set
 # CONFIG_STA_AUTO_RECONNECT is not set
 # CONFIG_WPA_LOG is not set
-# CONFIG_P2P is not set
-# CONFIG_P2P_GO is not set
 # CONFIG_WIFI_WPS is not set
 # CONFIG_WPS is not set
 # CONFIG_WPA2_ENTERPRISE is not set

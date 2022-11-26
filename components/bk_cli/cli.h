@@ -32,6 +32,10 @@
 extern "C" {
 #endif
 
+#define CLI_CMD_RSP_SUCCEED               "CMDRSP:OK\r\n"
+#define CLI_CMD_RSP_ERROR                 "CMDRSP:ERROR\r\n"
+#define CLI_CMDMSG_ERROR_RSP              "CMDRSP:ERROR\r\n"
+
 #define CLI_TAG "cli"
 
 #define CLI_LOGI(...) BK_LOGI(CLI_TAG, ##__VA_ARGS__)
@@ -45,6 +49,19 @@ extern "C" {
 			return;\
 		}\
 	}while(0)
+
+#define WIFI_CMDRSP_HEAD                   "CMDRSP:"
+#define WIFI_READY_MSG                     "\r\nready\r\n"
+#define WIFI_CMD_RSP_SUCCEED               "CMDRSP:OK\r\n"
+#define WIFI_CMD_RSP_ERROR                 "CMDRSP:ERROR\r\n"
+#define WIFI_CMDMSG_ERROR_RSP              "CMDRSP:ERROR\r\n"
+#define WIFI_RET_CHAR                      '\r'
+#define WIFI_END_CHAR                      '\n'
+
+#define WIFI_EVENT_HEAD                    "EVT:"
+#define WIFI_EVT_WLAN_DISCONNECTED         "EVT:WLAN DISCONNECTED\r\n"
+#define WIFI_EVT_WLAN_CONNECTED            "EVT:WLAN CONNECTED\r\n"
+#define WIFI_EVT_GOT_IP                    "EVT:GOT-IP\r\n"
 
 int cli_wifi_init(void);
 int cli_ble_init(void);
@@ -118,6 +135,11 @@ int cli_dvp_init(void);
 int cli_doorbell_init(void);
 int cli_sdio_host_init(void);
 int cli_psram_init(void);
+int cli_qrcodegen_init(void);
+int cli_cm33_init(void);
+int cli_usb_init(void);
+int cli_mpc_init(void);
+int cli_prro_init(void);
 
 extern int hexstr2bin(const char *hex, u8 *buf, size_t len);
 

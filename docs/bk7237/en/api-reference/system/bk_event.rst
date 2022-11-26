@@ -1,1 +1,6 @@
-.. include:: ../../../zh_CN/api-reference/system/bk_event.rst
+EVENT
+=======================
+
+:link_to_translation:`zh_CN:[中文]`
+
+.. include:: ../../_build/inc/event.inc

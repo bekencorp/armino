@@ -9,7 +9,7 @@ static void fatfs_operate(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	uint32_t cmd;
 	char *disk_name[DISK_NUMBER_COUNT] = {"ram", "sdio_sd", "udisk", "flash"};
 	DISK_NUMBER drv_num = DISK_NUMBER_SDIO_SD;
-	char file_name[64];
+	char file_name[64] = {'d', 'e', 'f', 'a', 'u', 'l', 't', 'f', 'i', 'l', 'e', 'n', 'a', 'm', 'e', '.', 't', 'x', 't', 0};
 	char write_content[64];
 	uint64_t content_len = 0;
 	uint32_t test_cnt = 0;
@@ -25,7 +25,7 @@ static void fatfs_operate(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 			if(argc >= 5)
 			{
 				snprintf(&write_content[0], sizeof(write_content) - 1, argv[4]);
-				write_content[sizeof(file_name)-1] = 0;
+				write_content[sizeof(write_content)-1] = 0;
 
 				if(argc >= 6)
 				{
@@ -38,6 +38,8 @@ static void fatfs_operate(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 				}
 			}
 		}
+		else
+			os_printf("error file name,use defaultfilename.txt\r\n");
 
 		switch (cmd) {
 		case 'M':
@@ -84,6 +86,11 @@ static void fatfs_operate(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 		//fatfstest A 1 autotest.txt 12487 3
 		case 'A':
 		{
+			if(argc < 4)
+			{
+				os_printf("Autotest Fatfs argc < 4! Please input correctly\r\n");
+				return;
+			}
 			uint32_t start_addr = 0;
 			if(argc >= 5)
 			{

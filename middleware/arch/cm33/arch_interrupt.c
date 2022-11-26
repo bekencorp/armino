@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "arch_interrupt.h"
-#include "STAR_SE.h"
+#include "bk7236xx.h"
 
 #define INT_NUMBER_MAX              (64)
 #define NESTED_IRQ_ENTER()
@@ -27,8 +27,38 @@ static void arch_interrupt_enable(void)
 	__enable_irq();
 	__enable_fault_irq();
 
-	for (IRQn_Type irq_type = Interrupt0_IRQn; irq_type < InterruptMAX_IRQn; irq_type++) {
+	for (IRQn_Type irq_type = 0; irq_type < InterruptMAX_IRQn; irq_type++) {
 		__NVIC_EnableIRQ(irq_type);
+	}
+}
+
+void arch_interrupt_disable(void)
+{
+        __disable_irq();
+        __disable_fault_irq();
+
+        for (IRQn_Type irq_type = 0; irq_type < InterruptMAX_IRQn; irq_type++) {
+                __NVIC_DisableIRQ(irq_type);
+        }
+}
+
+uint64_t arch_interrupt_dump(void)
+{
+	uint64_t int_ena_bits = 0;
+
+        for (IRQn_Type irq_type = 0; irq_type < InterruptMAX_IRQn; irq_type++) {
+		if (__NVIC_GetEnableIRQ(irq_type)) {
+			int_ena_bits |= BIT(irq_type);
+		}
+	}
+
+	return int_ena_bits;
+}
+
+void arch_interrupt_retarget(void)
+{
+        for (IRQn_Type irq_type = 0; irq_type < InterruptMAX_IRQn; irq_type++) {
+		NVIC_SetTargetState(irq_type);
 	}
 }
 
@@ -68,7 +98,7 @@ void arch_interrupt_unregister_int(arch_int_src_t int_number)
 	s_irq_handler[int_number] = NULL;
 }
 
-void __attribute__ ((interrupt)) Interrupt0_Handler(void)
+void __attribute__ ((interrupt)) DMA0_NSEC_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -81,7 +111,7 @@ void __attribute__ ((interrupt)) Interrupt0_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt1_Handler(void)
+void __attribute__ ((interrupt)) ENCP_SEC_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -94,7 +124,7 @@ void __attribute__ ((interrupt)) Interrupt1_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt2_Handler(void)
+void __attribute__ ((interrupt)) ENCP_NSEC_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -107,7 +137,7 @@ void __attribute__ ((interrupt)) Interrupt2_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt3_Handler(void)
+void __attribute__ ((interrupt)) TIMER0_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -120,7 +150,7 @@ void __attribute__ ((interrupt)) Interrupt3_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt4_Handler(void)
+void __attribute__ ((interrupt)) UART0_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -133,7 +163,7 @@ void __attribute__ ((interrupt)) Interrupt4_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt5_Handler(void)
+void __attribute__ ((interrupt)) PWM0_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -146,7 +176,7 @@ void __attribute__ ((interrupt)) Interrupt5_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt6_Handler(void)
+void __attribute__ ((interrupt)) I2C0_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -159,7 +189,7 @@ void __attribute__ ((interrupt)) Interrupt6_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt7_Handler(void)
+void __attribute__ ((interrupt)) SPI0_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -172,7 +202,7 @@ void __attribute__ ((interrupt)) Interrupt7_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt8_Handler(void)
+void __attribute__ ((interrupt)) SARADC_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -185,7 +215,7 @@ void __attribute__ ((interrupt)) Interrupt8_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt9_Handler(void)
+void __attribute__ ((interrupt)) IRDA_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -198,7 +228,7 @@ void __attribute__ ((interrupt)) Interrupt9_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt10_Handler(void)
+void __attribute__ ((interrupt)) SDIO_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -211,7 +241,7 @@ void __attribute__ ((interrupt)) Interrupt10_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt11_Handler(void)
+void __attribute__ ((interrupt)) GDMA_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -224,7 +254,7 @@ void __attribute__ ((interrupt)) Interrupt11_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt12_Handler(void)
+void __attribute__ ((interrupt)) LA_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -237,7 +267,7 @@ void __attribute__ ((interrupt)) Interrupt12_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt13_Handler(void)
+void __attribute__ ((interrupt)) TIMER1_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -250,7 +280,7 @@ void __attribute__ ((interrupt)) Interrupt13_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt14_Handler(void)
+void __attribute__ ((interrupt)) I2C1_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -263,7 +293,7 @@ void __attribute__ ((interrupt)) Interrupt14_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt15_Handler(void)
+void __attribute__ ((interrupt)) UART1_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -276,7 +306,7 @@ void __attribute__ ((interrupt)) Interrupt15_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt16_Handler(void)
+void __attribute__ ((interrupt)) UART2_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -289,7 +319,7 @@ void __attribute__ ((interrupt)) Interrupt16_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt17_Handler(void)
+void __attribute__ ((interrupt)) SPI1_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -302,7 +332,7 @@ void __attribute__ ((interrupt)) Interrupt17_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt18_Handler(void)
+void __attribute__ ((interrupt)) CAN_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -315,7 +345,7 @@ void __attribute__ ((interrupt)) Interrupt18_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt19_Handler(void)
+void __attribute__ ((interrupt)) USB_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -328,7 +358,7 @@ void __attribute__ ((interrupt)) Interrupt19_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt20_Handler(void)
+void __attribute__ ((interrupt)) QSPI0_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -341,7 +371,7 @@ void __attribute__ ((interrupt)) Interrupt20_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt21_Handler(void)
+void __attribute__ ((interrupt)) FFT_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -354,7 +384,7 @@ void __attribute__ ((interrupt)) Interrupt21_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt22_Handler(void)
+void __attribute__ ((interrupt)) SBC_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -367,7 +397,7 @@ void __attribute__ ((interrupt)) Interrupt22_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt23_Handler(void)
+void __attribute__ ((interrupt)) AUDIO_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -380,7 +410,7 @@ void __attribute__ ((interrupt)) Interrupt23_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt24_Handler(void)
+void __attribute__ ((interrupt)) I2S0_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -393,7 +423,7 @@ void __attribute__ ((interrupt)) Interrupt24_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt25_Handler(void)
+void __attribute__ ((interrupt)) JPEG_ENC_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -406,7 +436,7 @@ void __attribute__ ((interrupt)) Interrupt25_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt26_Handler(void)
+void __attribute__ ((interrupt)) JPEG_DEC_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -419,7 +449,7 @@ void __attribute__ ((interrupt)) Interrupt26_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt27_Handler(void)
+void __attribute__ ((interrupt)) DISPLAY_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -432,7 +462,7 @@ void __attribute__ ((interrupt)) Interrupt27_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt28_Handler(void)
+void __attribute__ ((interrupt)) DMA2D_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -445,7 +475,7 @@ void __attribute__ ((interrupt)) Interrupt28_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt29_Handler(void)
+void __attribute__ ((interrupt)) PHY_MBP_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -458,7 +488,7 @@ void __attribute__ ((interrupt)) Interrupt29_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt30_Handler(void)
+void __attribute__ ((interrupt)) PHY_RIU_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -471,7 +501,7 @@ void __attribute__ ((interrupt)) Interrupt30_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt31_Handler(void)
+void __attribute__ ((interrupt)) MAC_INT_TX_RX_TIMER_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -484,7 +514,7 @@ void __attribute__ ((interrupt)) Interrupt31_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt32_Handler(void)
+void __attribute__ ((interrupt)) MAC_INT_TX_RX_MISC_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -497,7 +527,7 @@ void __attribute__ ((interrupt)) Interrupt32_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt33_Handler(void)
+void __attribute__ ((interrupt)) MAC_INT_RX_TRIGGER_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -510,7 +540,7 @@ void __attribute__ ((interrupt)) Interrupt33_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt34_Handler(void)
+void __attribute__ ((interrupt)) MAC_INT_TX_TRIGGER_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -523,7 +553,7 @@ void __attribute__ ((interrupt)) Interrupt34_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt35_Handler(void)
+void __attribute__ ((interrupt)) MAC_INT_PORT_TRIGGER_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -536,7 +566,7 @@ void __attribute__ ((interrupt)) Interrupt35_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt36_Handler(void)
+void __attribute__ ((interrupt)) MAC_INT_GEN_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -549,7 +579,7 @@ void __attribute__ ((interrupt)) Interrupt36_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt37_Handler(void)
+void __attribute__ ((interrupt)) HSU_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -562,7 +592,7 @@ void __attribute__ ((interrupt)) Interrupt37_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt38_Handler(void)
+void __attribute__ ((interrupt)) INT_MAC_WAKEUP_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -575,7 +605,7 @@ void __attribute__ ((interrupt)) Interrupt38_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt39_Handler(void)
+void __attribute__ ((interrupt)) DM_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -588,7 +618,7 @@ void __attribute__ ((interrupt)) Interrupt39_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt40_Handler(void)
+void __attribute__ ((interrupt)) BLE_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -601,7 +631,7 @@ void __attribute__ ((interrupt)) Interrupt40_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt41_Handler(void)
+void __attribute__ ((interrupt)) BT_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -614,7 +644,7 @@ void __attribute__ ((interrupt)) Interrupt41_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt42_Handler(void)
+void __attribute__ ((interrupt)) QSPI1_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -627,7 +657,7 @@ void __attribute__ ((interrupt)) Interrupt42_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt43_Handler(void)
+void __attribute__ ((interrupt)) PWM1_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -640,7 +670,7 @@ void __attribute__ ((interrupt)) Interrupt43_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt44_Handler(void)
+void __attribute__ ((interrupt)) I2S1_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -653,7 +683,7 @@ void __attribute__ ((interrupt)) Interrupt44_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt45_Handler(void)
+void __attribute__ ((interrupt)) I2S2_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -666,7 +696,7 @@ void __attribute__ ((interrupt)) Interrupt45_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt46_Handler(void)
+void __attribute__ ((interrupt)) H264_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -679,7 +709,7 @@ void __attribute__ ((interrupt)) Interrupt46_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt47_Handler(void)
+void __attribute__ ((interrupt)) SDMADC_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -692,7 +722,7 @@ void __attribute__ ((interrupt)) Interrupt47_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt48_Handler(void)
+void __attribute__ ((interrupt)) MBOX0_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -705,7 +735,7 @@ void __attribute__ ((interrupt)) Interrupt48_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt49_Handler(void)
+void __attribute__ ((interrupt)) MBOX1_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -718,7 +748,7 @@ void __attribute__ ((interrupt)) Interrupt49_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt50_Handler(void)
+void __attribute__ ((interrupt)) BMC64_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -731,7 +761,7 @@ void __attribute__ ((interrupt)) Interrupt50_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt51_Handler(void)
+void __attribute__ ((interrupt)) DPLL_UNLOCK_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -744,7 +774,7 @@ void __attribute__ ((interrupt)) Interrupt51_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt52_Handler(void)
+void __attribute__ ((interrupt)) TOUCH_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -757,7 +787,7 @@ void __attribute__ ((interrupt)) Interrupt52_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt53_Handler(void)
+void __attribute__ ((interrupt)) USB_PLUG_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -770,7 +800,7 @@ void __attribute__ ((interrupt)) Interrupt53_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt54_Handler(void)
+void __attribute__ ((interrupt)) RTC_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -783,7 +813,7 @@ void __attribute__ ((interrupt)) Interrupt54_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt55_Handler(void)
+void __attribute__ ((interrupt)) GPIO_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -796,7 +826,7 @@ void __attribute__ ((interrupt)) Interrupt55_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt56_Handler(void)
+void __attribute__ ((interrupt)) DMA1_SEC_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -809,7 +839,7 @@ void __attribute__ ((interrupt)) Interrupt56_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt57_Handler(void)
+void __attribute__ ((interrupt)) DMA1_NSEC_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -822,7 +852,7 @@ void __attribute__ ((interrupt)) Interrupt57_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
-void __attribute__ ((interrupt)) Interrupt58_Handler(void)
+void __attribute__ ((interrupt)) YUV_BUF_Handler(void)
 {
 	NESTED_IRQ_ENTER();
 
@@ -831,71 +861,6 @@ void __attribute__ ((interrupt)) Interrupt58_Handler(void)
 	}
 
 	NESTED_VPLIC_COMPLETE_INTERRUPT(58);
-
-	NESTED_IRQ_EXIT();
-}
-
-void __attribute__ ((interrupt)) Interrupt59_Handler(void)
-{
-	NESTED_IRQ_ENTER();
-
-	if (s_irq_handler[59] != NULL) {
-		(*(s_irq_handler[59]))();
-	}
-
-	NESTED_VPLIC_COMPLETE_INTERRUPT(59);
-
-	NESTED_IRQ_EXIT();
-}
-
-void __attribute__ ((interrupt)) Interrupt60_Handler(void)
-{
-	NESTED_IRQ_ENTER();
-
-	if (s_irq_handler[60] != NULL) {
-		(*(s_irq_handler[60]))();
-	}
-
-	NESTED_VPLIC_COMPLETE_INTERRUPT(60);
-
-	NESTED_IRQ_EXIT();
-}
-
-void __attribute__ ((interrupt)) Interrupt61_Handler(void)
-{
-	NESTED_IRQ_ENTER();
-
-	if (s_irq_handler[61] != NULL) {
-		(*(s_irq_handler[61]))();
-	}
-
-	NESTED_VPLIC_COMPLETE_INTERRUPT(61);
-
-	NESTED_IRQ_EXIT();
-}
-
-void __attribute__ ((interrupt)) Interrupt62_Handler(void)
-{
-	NESTED_IRQ_ENTER();
-
-	if (s_irq_handler[62] != NULL) {
-		(*(s_irq_handler[62]))();
-	}
-
-	NESTED_VPLIC_COMPLETE_INTERRUPT(62);
-
-	NESTED_IRQ_EXIT();
-}
-
-void __attribute__ ((interrupt)) Interrupt63_Handler(void)
-{
-	NESTED_IRQ_ENTER();
-
-	if (s_irq_handler[63] != NULL) {
-		(*(s_irq_handler[63]))();
-	}
-
-	NESTED_VPLIC_COMPLETE_INTERRUPT(63);
 
 	NESTED_IRQ_EXIT();
 }

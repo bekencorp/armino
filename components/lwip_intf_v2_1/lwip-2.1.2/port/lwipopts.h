@@ -232,7 +232,7 @@
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
 #if (MEM_TRX_DYNAMIC_EN)
-#define PBUF_POOL_SIZE                  3
+#define PBUF_POOL_SIZE                  10
 #else
 #define PBUF_POOL_SIZE                  20
 #endif
@@ -456,11 +456,11 @@ The STM32F107 allows computing and verifying the IP, UDP, TCP and ICMP checksums
 #if (CONFIG_LWIP_MEM_REDUCE)
 #define TCP_MSS                 (1500 - 40)
 /* TCP receive window. */
-#define TCP_WND                 (10 * TCP_MSS)
+#define TCP_WND                 (16 * TCP_MSS)
 /* TCP sender buffer space (bytes). */
-#define TCP_SND_BUF             (10*TCP_MSS)
+#define TCP_SND_BUF             (16*TCP_MSS)
 
-#define TCP_SND_QUEUELEN        (20)
+#define TCP_SND_QUEUELEN        (32)
 #else
 #define TCP_MSS                 (1500 - 40)
 /* TCP receive window. */

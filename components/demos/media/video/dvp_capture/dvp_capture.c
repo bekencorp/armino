@@ -1,14 +1,19 @@
-#include "dvp_capture.h"
+#include <common/bk_include.h>
+
+#include <os/mem.h>
+#include <os/str.h>
+#include <os/os.h>
+#include <driver/int.h>
+#include <common/bk_err.h>
+
 #include <driver/psram.h>
-#include <driver/dma.h>
-#include <driver/jpeg_enc.h>
-#include <driver/i2c.h>
-#include <driver/timer.h>
+
 #include <components/video_transfer.h>
 #include <components/dvp_camera.h>
+
 #include "dvp_camera_config.h"
 
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 #include "ff.h"
 #include "diskio.h"
 #endif
@@ -17,277 +22,23 @@
 #include "bk_general_dma.h"
 #endif
 
+#include "cli.h"
 
 #define EJPEG_DATA_ADDR                (0x60010000) // PSRAM
 
-extern void delay(int num);//TODO fix me
-
-//#if (CONFIG_CAMERA && CONFIG_APP_DEMO_VIDEO_TRANSFER && (CONFIG_SDCARD_HOST || CONFIG_USB_HOST))
-
 static void dvp_help(void)
 {
-	os_printf("dvp_image {init|capture file_id|set_cfg|log|save_image|video_transfer|deinit}\r\n");
+	os_printf("dvp_image {init|capture file_id|set_cfg|save_image|read|deinit}\r\n");
 }
-
-#if (CONFIG_PSRAM)
-static video_buff_t *g_video_buff = NULL;
-static uint32_t g_pkt_seq = 0;
-static int video_buffer_recv_data(uint8_t * data, uint32_t len)
-{
-	if (g_video_buff->buf_base) {
-		vbuf_header_t *hdr = (vbuf_header_t *)data;
-		uint32_t org_len, left_len;
-		GLOBAL_INT_DECLARATION();
-
-		if (len < sizeof(vbuf_header_t)) {
-			os_printf("unknow err!\r\n");
-			return len;
-		}
-
-		org_len = len - sizeof(vbuf_header_t);
-		data = data + sizeof(vbuf_header_t);
-
-		if ((hdr->id != g_video_buff->frame_id) && (hdr->pkt_seq == 1)) {
-			// start of frame;
-			GLOBAL_INT_DISABLE();
-			g_video_buff->frame_id = hdr->id;
-			g_video_buff->frame_len = 0;
-			g_video_buff->frame_pkt_cnt = 0;
-			g_video_buff->buf_ptr = g_video_buff->buf_base;
-			g_video_buff->receive_state = VIDEO_BUFF_COPY;
-			GLOBAL_INT_RESTORE();
-			//os_printf("sof:%d\r\n", g_vbuf->frame_id);
-		}
-
-		/*os_printf("%d-%d: %d-%d: %d\r\n", hdr->id, g_video_buff->frame_id,
-			hdr->pkt_seq, (g_video_buff->frame_pkt_cnt + 1), g_video_buff->receive_state);*/
-
-		if ((hdr->id == g_video_buff->frame_id)
-			&& ((g_video_buff->frame_pkt_cnt + 1) == hdr->pkt_seq)
-			&& (g_video_buff->receive_state == VIDEO_BUFF_COPY)) {
-			left_len = g_video_buff->buf_len - g_video_buff->frame_len;
-			if (org_len <= left_len) {
-#if CONFIG_GENERAL_DMA
-				dma_memcpy(g_video_buff->buf_ptr, data, org_len);
-#else
-				os_memcpy(g_video_buff->buf_ptr, data, org_len);
-#endif
-
-				GLOBAL_INT_DISABLE();
-				g_video_buff->frame_len += org_len;
-				g_video_buff->buf_ptr += org_len;
-				g_video_buff->frame_pkt_cnt += 1;
-				GLOBAL_INT_RESTORE();
-
-				if (hdr->is_eof == 1) {
-					uint8_t *sof_ptr, *eof_ptr, *crc_ptr;
-					uint32_t p_len, right_image = 0;
-
-					sof_ptr = g_video_buff->buf_base;
-					eof_ptr = g_video_buff->buf_base + (g_video_buff->frame_len - 7);
-					crc_ptr = eof_ptr + 3;
-
-					/*os_printf("sof:%02x, %02x\r\n", sof_ptr[0], sof_ptr[1]);
-					os_printf("eof:%02x, %02x\r\n", eof_ptr[0], eof_ptr[1]);
-					os_printf("crc:%02x, %02x, %02x, %02x\r\n", crc_ptr[0], crc_ptr[1], crc_ptr[2], crc_ptr[3]);*/
-					p_len = crc_ptr[0] + (crc_ptr[1] << 8)
-						+ (crc_ptr[2] << 16) + (crc_ptr[3] << 24);
-					os_printf("p_len:%d, frame_len:%d\r\n", p_len, g_video_buff->frame_len);
-
-					if (((sof_ptr[0] == 0xff) && (sof_ptr[1] == 0xd8)) &&
-						((eof_ptr[0] == 0xff) && (eof_ptr[1] == 0xd9))) {
-						p_len = crc_ptr[0] + (crc_ptr[1] << 8)
-								+ (crc_ptr[2] << 16) + (crc_ptr[3] << 24);
-
-						if (p_len == (g_video_buff->frame_len - 5))
-							right_image = 1;
-					}
-
-					if (right_image) {
-						GLOBAL_INT_DISABLE();
-						g_video_buff->receive_state = VIDEO_BUFF_IDLE;
-						GLOBAL_INT_RESTORE();
-
-						// all frame data have received, wakeup usr thread
-						rtos_set_semaphore(&g_video_buff->aready_semaphore);
-					}
-				}
-			} else {
-				os_printf("vbuf full!\r\n");
-				GLOBAL_INT_DISABLE();
-				g_video_buff->receive_state = VIDEO_BUFF_FULL;
-				GLOBAL_INT_RESTORE();
-				// all frame data not have received, psram not enough
-				rtos_set_semaphore(&g_video_buff->aready_semaphore);
-			}
-		}
-		return len;
-	}
-
-	return len;
-}
-
-static void video_buffer_add_pkt_header(video_packet_t *param)
-{
-	vbuf_header_t *elem_tvhdr = (vbuf_header_t *)param->ptk_ptr;
-
-	g_pkt_seq++;
-	elem_tvhdr->id = (uint8_t)param->frame_id;
-	elem_tvhdr->is_eof = param->is_eof;
-	elem_tvhdr->pkt_cnt = param->frame_len;
-	elem_tvhdr->pkt_seq = g_pkt_seq;
-
-	//os_printf("i:%d,%d\r\n", param->frame_id, g_pkt_seq);
-
-	if (param->is_eof) {
-		//os_printf("eof\r\n");
-		g_pkt_seq = 0;
-	}
-}
-
-static int video_buff_set_open(void)
-{
-	if (g_video_buff == NULL) {
-		int ret;
-		GLOBAL_INT_DECLARATION();
-		video_setup_t setup;
-
-		g_video_buff = (video_buff_t *)os_malloc(sizeof(video_buff_t));
-		if (g_video_buff == NULL) {
-			os_printf("vbuf init no mem\r\n");
-			ret = kNoMemoryErr;
-			return ret;
-		}
-
-		ret = rtos_init_semaphore(&g_video_buff->aready_semaphore, 1);
-		if (ret != kNoErr) {
-			os_printf("vbuf init semaph failed\r\n");
-			os_free(g_video_buff);
-			g_video_buff = NULL;
-			return ret;
-		}
-
-		GLOBAL_INT_DISABLE();
-		g_video_buff->buf_base = NULL;
-		g_video_buff->buf_len = 0;
-
-		g_video_buff->frame_len = 0;
-		g_video_buff->buf_ptr = NULL;
-		g_video_buff->receive_state = VIDEO_BUFF_IDLE;
-
-		g_video_buff->frame_id = 0xffff;
-		g_video_buff->frame_pkt_cnt = 0;
-		GLOBAL_INT_RESTORE();
-
-		setup.open_type = TVIDEO_OPEN_SCCB;
-		setup.send_type = TVIDEO_SND_INTF;
-		setup.send_func = video_buffer_recv_data;
-		setup.start_cb = NULL;
-		setup.end_cb = NULL;
-
-		setup.pkt_header_size = sizeof(vbuf_header_t);
-		setup.add_pkt_header = video_buffer_add_pkt_header;
-
-		ret = bk_video_transfer_init(&setup);
-		if (ret != kNoErr) {
-			os_printf("video_transfer_init failed\r\n");
-			rtos_deinit_semaphore(&g_video_buff->aready_semaphore);
-			os_free(g_video_buff);
-			g_video_buff = NULL;
-		}
-
-		os_printf("vbuf opened\r\n");
-		return ret;
-	}
-
-	return kGeneralErr;
-}
-
-static int video_buff_set_close(void)
-{
-	if (g_video_buff) {
-		int ret;
-		ret = bk_video_transfer_deinit();
-		if (ret != kNoErr) {
-			os_printf("video_buffer_close failed\r\n");
-			return ret;
-		}
-
-		if (g_video_buff->buf_base) {
-			// user all video_buffer_read_frame and blocked, so wakeup it
-			rtos_set_semaphore(&g_video_buff->aready_semaphore);
-
-			// wait until clear the buf flag
-			while (g_video_buff->buf_base);
-		}
-
-		rtos_deinit_semaphore(&g_video_buff->aready_semaphore);
-
-		GLOBAL_INT_DECLARATION();
-
-		GLOBAL_INT_DISABLE();
-		g_video_buff->aready_semaphore = NULL;
-		GLOBAL_INT_RESTORE();
-
-		os_free(g_video_buff);
-		g_video_buff = NULL;
-		os_printf("voide close\r\n");
-		return kNoErr;
-	}
-
-	os_printf("video not open\r\n");
-	return kGeneralErr;
-}
-#endif
-
-#if defined(CONFIG_SDCARD_HOST) && defined(CONFIG_PSRAM)
-static int video_buff_read_image(void)
-{
-	uint32_t frame_len = 0;
-	GLOBAL_INT_DECLARATION();
-
-	if (g_video_buff && (g_video_buff->buf_base == NULL))
-	{
-		int ret;
-		uint32_t timeout;
-
-		// try to get semaphore, clear send by the previous frame
-		while (rtos_get_semaphore(&g_video_buff->aready_semaphore, 0) == kNoErr);
-
-		GLOBAL_INT_DISABLE();
-		g_video_buff->buf_base = (uint8_t *)EJPEG_DATA_ADDR;
-		g_video_buff->receive_state = VIDEO_BUFF_IDLE;
-		g_video_buff->buf_len = 0x3F000;
-		GLOBAL_INT_RESTORE();
-
-		timeout = 2000;// 2 second
-
-		ret = rtos_get_semaphore(&g_video_buff->aready_semaphore, timeout);
-		if (ret == kNoErr) {
-			frame_len = g_video_buff->frame_len;
-		} else {
-			os_printf("capture time out\r\n");
-			frame_len = 0;
-		}
-
-		GLOBAL_INT_DISABLE();
-		g_video_buff->buf_base = NULL;
-		g_video_buff->buf_len = 0;
-		GLOBAL_INT_RESTORE();
-	}
-
-	return frame_len;
-}
-#endif
-
 
 void image_save_dvp(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	bk_err_t err;
+	char *msg = CLI_CMD_RSP_SUCCEED;
 
 	if (argc < 2) {
 		dvp_help();
-		return;
+		goto error;
 	}
 
 	if (os_strcmp(argv[1], "init") == 0) {
@@ -295,47 +46,59 @@ void image_save_dvp(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **a
 		err = bk_psram_init();
 		if (err != kNoErr) {
 			os_printf("psram init failed\r\n");
-			return;
-		}
-		err = video_buff_set_open();
-		if (err != kNoErr) {
-			os_printf("camera init failed\r\n");
-			return;
+			goto error;
 		}
 #else
 		os_printf("Not Support, PSRAM NOT support!\r\n");
 #endif
-	} else if(os_strcmp(argv[1], "deinit") == 0) {
-#if (CONFIG_PSRAM)
-		err = video_buff_set_close();
+
+		err = bk_video_buffer_open();
 		if (err != kNoErr) {
-			os_printf("video close failed\r\n");
-			return;
+			os_printf("camera init failed\r\n");
+			goto error;
 		}
 
-		delay(2000);
+	} else if(os_strcmp(argv[1], "deinit") == 0) {
+
+		err = bk_video_buffer_close();
+		if (err != kNoErr) {
+			os_printf("video close failed\r\n");
+			goto error;
+		}
+
+#if (CONFIG_PSRAM)
 		err = bk_psram_deinit();
 		if (err != BK_OK) {
 			os_printf("vpsram deinit failed\r\n");
-			return;
+			goto error;
 		}
 #else
 		os_printf("Not Support, PSRAM NOT support!\n");
 #endif
 	} else if (os_strcmp(argv[1], "capture") == 0) {
-#if (CONFIG_SDCARD_HOST) && (CONFIG_PSRAM)
+#if (CONFIG_FATFS)
+		int error_code = 0;
 		FIL fp1;
 		char *file_path = "dvp.jpg";
 		uint8_t file_id = 0;
 		char cFileName[50];
 		unsigned int uiTemp = 0;
-		uint32_t addr = EJPEG_DATA_ADDR;
-		uint32_t frame_len = 0;
+		uint32_t frame_len = 60 * 1024;
+#if (CONFIG_PSRAM)
+		uint8_t *addr = (uint8_t *)EJPEG_DATA_ADDR;
+#else
+		uint8_t *addr = (uint8_t *)os_malloc(frame_len);
+		if (addr == NULL)
+		{
+			os_printf("malloc frame buffer error!\r\n");
+			goto error;
+		}
+#endif
 
 		if (argc != 3)
 		{
 			os_printf("input param error\n");
-			return;
+			goto error;
 		}
 
 		file_id = os_strtoul(argv[2], NULL, 10) & 0xFF;
@@ -345,13 +108,13 @@ void image_save_dvp(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **a
 		FRESULT fr = f_open(&fp1, cFileName, FA_CREATE_ALWAYS | FA_WRITE);
 		if (fr != FR_OK) {
 			os_printf("can not open file:%s!\n", cFileName);
-			return;
+			goto error;
 		}
 		os_printf("open file:%s!\n", cFileName);
 
-		frame_len = video_buff_read_image();
-		if (frame_len == 0) {
-			os_printf("read image failed!!!\n");
+		frame_len = bk_video_buffer_read_frame((uint8_t *)addr, frame_len, &error_code, 1000);
+		if (frame_len == 0 || error_code != 0) {
+			os_printf("read image failed error_code:%d!!!\n", error_code);
 			goto error1;
 		} else {
 			fr = f_write(&fp1, (char *)addr, frame_len, &uiTemp);
@@ -362,24 +125,62 @@ void image_save_dvp(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **a
 		}
 
 		f_close(&fp1);
+#if (!CONFIG_PSRAM)
+		os_free(addr);
+		addr = NULL;
+#endif
+		msg = CLI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 		return;
 
 error1:
-		fr = f_close(&fp1);
-		if (fr != FR_OK) {
-			os_printf("can not close file:%s!\n", file_path);
-		}
-		video_buff_set_close();
+
+		f_close(&fp1);
+#if (!CONFIG_PSRAM)
+		os_free(addr);
+		addr = NULL;
+#endif
+		goto error;
 #else
 		os_printf("Not Support, SDcard not support!\r\n");
+		goto error;
 #endif
+	} else if (os_strcmp(argv[1], "read") == 0) {
+		uint8_t *mybuf;
+		uint32_t my_len, get_len = 0;
+		int get_ret = 0;
+
+		if (argc < 3) {
+			os_printf("input param error\n");
+			goto error;
+		}
+
+		my_len = os_strtoul(argv[2], NULL, 10);
+		mybuf = (uint8_t *)os_malloc(my_len);
+		
+		if (mybuf == NULL) {
+			os_printf("vbuf test no buff\r\n");
+			goto error;
+		}
+
+		get_len = bk_video_buffer_read_frame(mybuf, my_len, &get_ret, 1000);
+		os_printf("get frame ret: %d, len:%d\r\n", get_ret, get_len);
+
+		os_free(mybuf);
+
+		if (get_ret != 0)
+		{
+			goto error;
+		}
+
+		msg = CLI_CMD_RSP_SUCCEED;
 	} else if (os_strcmp(argv[1], "set_cfg") == 0) {
 		uint32_t dev = 0;
 		uint32_t camera_cfg = 0;
 
 		if (argc != 5) {
 			os_printf("input param error\n");
-			return;
+			goto error;
 		}
 
 		dev = os_strtoul(argv[2], NULL, 10);
@@ -387,8 +188,9 @@ error1:
 		err = bk_camera_set_param(dev, camera_cfg);
 		if (err != kNoErr) {
 			os_printf("set camera ppi and fps error\n");
-			return;
+			goto error;
 		}
+		msg = CLI_CMD_RSP_SUCCEED;
 	} else if (os_strcmp(argv[1], "auto_encode") == 0) {
 		uint8_t auto_enable = 0;
 		uint32_t up_size = 0, low_size = 0;
@@ -402,12 +204,22 @@ error1:
 
 		bk_camera_set_config(auto_enable, up_size, low_size);
 		os_printf("set OK!\r\n");
+		msg = CLI_CMD_RSP_SUCCEED;
 
 	} else if (os_strcmp(argv[1], "dump") == 0) {
 		camera_inft_dump_register();
 		os_printf("dump finish!\r\n");
+		msg = CLI_CMD_RSP_SUCCEED;
 	} else {
 		dvp_help();
+		goto error;
 	}
+
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
+
+error:
+	msg = CLI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
 

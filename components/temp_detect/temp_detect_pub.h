@@ -17,16 +17,19 @@
 //TODO remove it
 #include "temp_detect.h"
 
-#define TMP_DETECT_DEBUG    1
+#define TMP_DETECT_DEBUG        1
 
 #if TMP_DETECT_DEBUG
-#define TMP_DETECT_PRT      os_printf
-#define TMP_DETECT_WARN     warning_prf
-#define TMP_DETECT_FATAL    fatal_prf
+
+#define CFG_USE_VOLTAGE_DETECT  0
+
+#define TMP_DETECT_PRT          os_printf
+#define TMP_DETECT_WARN         warning_prf
+#define TMP_DETECT_FATAL        fatal_prf
 #else
-#define TMP_DETECT_PRT      os_printf
-#define TMP_DETECT_WARN     null_prf
-#define TMP_DETECT_FATAL    null_prf
+#define TMP_DETECT_PRT          os_printf
+#define TMP_DETECT_WARN         null_prf
+#define TMP_DETECT_FATAL        null_prf
 #endif
 
 #if CFG_USE_TEMPERATURE_DETECT && CFG_USE_VOLTAGE_DETECT
@@ -35,7 +38,7 @@
 #define ADC_TMEP_DETECT_INTVAL_CHANGE               (120) // 2 mins
 #endif
 
-#if (CONFIG_SOC_BK7256XX) ||(CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7231N)
+#if (CONFIG_SOC_BK7256XX) ||(CONFIG_SOC_BK7236A) ||(CONFIG_SOC_BK7236) || (CONFIG_SOC_BK7231N)
 #define ADC_VOLT_SENSER_CHANNEL                     0
 #endif
 

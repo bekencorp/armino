@@ -21,6 +21,7 @@ extern "C" {
 #include <stdio.h>
 #include <driver/hal/hal_gpio_types.h>
 #include <soc/soc.h>
+#include "sdkconfig.h"
 
 #define GPIO_DEV_MAP  \
 {\
@@ -246,10 +247,10 @@ struct {\
 #define CAMERA_DVP_PXDATA7_FUNC         (GPIO_DEV_JPEG_PXDATA7)
 
 #define CAMERA_DVP_I2C_ID               (CONFIG_CAMERA_I2C_ID)
-#define CAMERA_DVP_I2C_BAUD_RATE        (I2C_BAUD_RATE_50KHZ)
+#define CAMERA_DVP_I2C_BAUD_RATE        (I2C_BAUD_RATE_100KHZ)
 #define CAMERA_DVP_I2C_MODE             (I2C_ADDR_MODE_7BIT)
 
-/* 
+/*
  * LCD RGB GPIO MAP
  */
 #define LCD_RGB_R0_PIN 				(GPIO_23)

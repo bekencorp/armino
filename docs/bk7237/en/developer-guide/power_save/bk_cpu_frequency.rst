@@ -1,6 +1,6 @@
-CPU时钟源说明
+CPU frequency instructions
 =============================
-CPU有以下时钟源：
+The CPU has the following clock sources：
 
 - 26M
 - DCO
@@ -8,13 +8,15 @@ CPU有以下时钟源：
 - 480M
 
 
-备注：
-CPU主频最高可以达到320M，系统不能运行到480M，只能通过分频使用240M。
+note：
+The CPU frequency can reach up to 320M; The system cannot run up to 480M，240M can be used through frequency division.。
 
-CPU主频切换说明
+CPU frequency switch description
 -----------------------------------------------
-- 可以根据业务需要动态的切频率来达到最优功耗,CPU主频切换相对来说比较复杂，SDK内部来实现。
-- CPU主频最高可以达到320M
+- It can dynamically switch the cpu frequency according to the business , in order to achieve the optimal power consumption. 
+The CPU main frequency switching is relatively complex, which is implemented internally by SDK
+
+- The maximum CPU frequency is 320M
 
 :link_to_translation:`en:[English]`
 

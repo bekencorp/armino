@@ -35,6 +35,7 @@ static void phy_cca_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 extern void cmd_saradc_auto_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void cmd_sigtest(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void cmd_inter_freq_config(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+extern void nv_ate_param_select(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
 #define PHY_CMD_CNT (sizeof(s_phy_commands) / sizeof(struct cli_command))
 static const struct cli_command s_phy_commands[] = {
@@ -53,23 +54,25 @@ static const struct cli_command s_phy_commands[] = {
 
 	
 #if (CONFIG_SOC_BK7256XX)
-	{"cali", "cali auto_test",    cmd_cali},
+	{"cali", "cali auto_test",                        cmd_cali},
     {"rfcali_get_cfg_mode",      "",                  cmd_rfcali_get_cfg_mode},
     {"rfcali_get_cfg_tssi",    "",                    cmd_rfcali_get_cfg_tssi},
-#if CONFIG_PSRAM
-	{"psram", "psram enable clk_div",    cmd_psram},
-#endif
-	{"saradc", "start close", cmd_saradc_auto_test},
-	{"sigtest", "sigtest enable format_mod mcs_index", cmd_sigtest}, 
-	{"inter_freq", "start close", cmd_inter_freq_config},
 
+	{"saradc", "start close",                         cmd_saradc_auto_test},
+	{"inter_freq", "start close",                     cmd_inter_freq_config},
+	{"ate_param_select", "flag",                      nv_ate_param_select},
+	{"rfcali_cfg_to_flash",  "",                      cmd_rfcali_cfg_to_flash},
 #endif
 #endif
 #if CONFIG_POWER_TABLE
 	{"pwrtbl", "pwrtbl cal/set/get <value>", pwr_tbl_command},
 #endif
-#if ((CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236A))
-    {"la", "bk7256:la rf_adc/fe_adc/rf_dac/fe_dac;bk7236a:la rx_adc/rx_dac/tx_dac", cmd_la_sample_test},
+#if (CONFIG_SOC_BK7256XX)
+    {"la", "la rf_adc/fe_adc/rf_dac/fe_dac", cmd_la_sample_test},
+#elif (CONFIG_SOC_BK7236)
+    {"la", "la rf_adc_40M/rf_adc[_80M]/fe_adc/rf_dac/fe_dac", cmd_la_sample_test},
+#elif (CONFIG_SOC_BK7236A)
+    {"la", "la rx_adc/rx_dac/tx_dac", cmd_la_sample_test},
 #endif
 };
 

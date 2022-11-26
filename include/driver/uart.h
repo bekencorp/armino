@@ -406,6 +406,17 @@ bk_err_t bk_uart_take_rx_isr(uart_id_t id, uart_isr_t isr, void *param);
  */
 bk_err_t bk_uart_recover_rx_isr(uart_id_t id);
 
+/**
+ * @brief     Get whether the uart tx over(tx fifo empty)
+ *
+ * @param id UART id
+ *
+ * @return
+ *    - true: uart tx over
+ *    - false: uart tx not over
+ */
+bool bk_uart_is_tx_over(uart_id_t id);
+
 #ifdef __cplusplus
 }
 #endif

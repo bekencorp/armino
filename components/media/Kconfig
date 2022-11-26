@@ -4,9 +4,15 @@ menu "MEDIA"
 		default n
 	config WIFI_TRANSFER
 		bool "Wifi transfer"
-		default y
 		depends on CAMERA
+		default y
 	config LVGL
 		bool "enable lvgl"
+		default n
+	config LCD_FLASH_JPEG_DISPLAY 
+		bool "enable lcd display flash img"
+		default n
+	config LCD_DMA2D_BLEND_FLASH_IMG 
+		bool "enable lcd dma2d blend flash logo"
 		default n
 endmenu

@@ -47,7 +47,7 @@ extern void trap_entry(void);
 #else // #if CONFIG_SHELL_ASYNCLOG
 
 #define BK_DUMP_OUT                         _OS_PRINTF
-#define BK_DUMP_RAW_OUT(buf, len)           uart_write_string(bk_get_printf_port(), buf)
+#define BK_DUMP_RAW_OUT(buf, len)           do { (len); uart_write_string(bk_get_printf_port(), buf); } while (0)
 
 #endif // #if CONFIG_SHELL_ASYNCLOG
 

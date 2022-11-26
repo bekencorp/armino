@@ -14,7 +14,7 @@
 
 #include <driver/jpeg_enc.h>
 #include "cli.h"
-//#include "jpeg_hw.h"
+#include "jpeg_hw.h"
 
 static void cli_jpeg_help(void)
 {
@@ -26,41 +26,53 @@ static void cli_jpeg_help(void)
 
 static void cli_jpeg_driver_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+	char *msg = NULL;
 	if (argc < 2) {
 		cli_jpeg_help();
+		msg = CLI_CMD_RSP_ERROR;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 		return;
 	}
 
 	if (os_strcmp(argv[1], "init") == 0) {
 		BK_LOG_ON_ERR(bk_jpeg_enc_driver_init());
-		CLI_LOGI("jpeg driver init\n");
+		msg = CLI_CMD_RSP_SUCCEED;
 	} else if (os_strcmp(argv[1], "deinit") == 0) {
 		BK_LOG_ON_ERR(bk_jpeg_enc_driver_deinit());
-		CLI_LOGI("jpeg driver deinit\n");
+		msg = CLI_CMD_RSP_SUCCEED;
 	} else {
 		cli_jpeg_help();
-		return;
+		msg = CLI_CMD_RSP_ERROR;
 	}
+
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
 
 static void cli_jpeg_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+	char *msg = NULL;
 	if (argc < 2) {
 		cli_jpeg_help();
-		return;
+		msg = CLI_CMD_RSP_ERROR;
 	}
 
 	if (os_strcmp(argv[1], "init") == 0) {
 		jpeg_config_t jpeg_cfg = {0};
 		BK_LOG_ON_ERR(bk_jpeg_enc_driver_init());
 		BK_LOG_ON_ERR(bk_jpeg_enc_init(&jpeg_cfg));
-		CLI_LOGI("jpeg init\r\n");
+		msg = CLI_CMD_RSP_SUCCEED;
 	} else if (os_strcmp(argv[1], "deinit") == 0) {
 		BK_LOG_ON_ERR(bk_jpeg_enc_deinit());
-		CLI_LOGI("jpeg deinit\r\n");
+		msg = CLI_CMD_RSP_SUCCEED;
+	} else if (os_strcmp(argv[1], "debug") == 0) {
+		CLI_LOGI("jpeg_rx_fifo_data:%x\r\n", REG_READ(JPEG_R_RX_FIFO));
+		msg = CLI_CMD_RSP_SUCCEED;
 	} else {
 		cli_jpeg_help();
+		msg = CLI_CMD_RSP_ERROR;
 	}
+
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
 
 #define JPEG_CMD_CNT (sizeof(s_jpeg_commands) / sizeof(struct cli_command))
@@ -71,7 +83,6 @@ static const struct cli_command s_jpeg_commands[] = {
 
 int cli_jpeg_init(void)
 {
-	//BK_LOG_ON_ERR(bk_jpeg_enc_driver_init());
 	return cli_register_commands(s_jpeg_commands, JPEG_CMD_CNT);
 }
 

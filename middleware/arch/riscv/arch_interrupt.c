@@ -37,7 +37,7 @@ do {                                                    \
 
 #define CONFIG_NEST_INT_TEST  0
 
-interrupt_handle_p p_intn_func_handle[INT_NUMBER_MAX];
+__attribute__((section(".dtcm_sec_data "))) interrupt_handle_p p_intn_func_handle[INT_NUMBER_MAX];
 
 /* The flag to trigger UART output message */
 static volatile char trigger_mswi_uart_msg_flag = 0;

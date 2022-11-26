@@ -1,5 +1,5 @@
 menu "DEMOS_CONFIG"
-	config TOUCH
+	config TOUCH_TEST
 		bool "Enable touch demos"
 		default n
 endmenu

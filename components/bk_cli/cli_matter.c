@@ -37,6 +37,87 @@ void matter_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv
     
 }
 
+void bk_matter_data(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    char help_str[] = "matter_data {read|write|erase} {namespace} {name} {str|BK_HEX:hex}";
+    int err;
+    if (argc >= 4 && 0==strcmp("read", argv[1]))
+    {
+        unsigned char buf[1000] = {0};
+        long unsigned int buf_len = 0;
+        err = bk_read_data(argv[2], argv[3], (char*)buf, 1000, &buf_len);
+        if (kNoErr != err) {
+            buf[buf_len] = '\0';
+            bk_printf("[matter_data,error,%d] read %s %s %s(%lu)\r\n", err, argv[2], argv[3], buf, buf_len);
+        } else {
+            buf[buf_len] = '\0';
+            bk_printf("[matter_data,sucess,%d] ", err, buf, buf_len, buf);
+            for(int i=0;i<buf_len;i++){
+                bk_printf("%02x",buf[i]);
+            }
+            bk_printf("(%d)",buf_len);
+            bk_printf("\r\n");
+            return;
+        }
+    }
+    if (argc >= 5 && 0==strcmp("write", argv[1])) {
+        char prefix[10] = {0};
+        long unsigned int buf_len = 0;
+        memcpy(prefix, argv[4], min(strlen(argv[4]), 9));
+        prefix[7] = '\0';
+        if(strlen(argv[4]) >= 9 && (0 == strcmp(prefix, "BK_HEX:"))) // BK_HEX:
+        {
+            buf_len = (strlen(argv[4]) - 7) / 2;
+            unsigned char* buf = malloc(buf_len * sizeof(char));
+            hexstr2bin(argv[4] + 7, buf, buf_len);
+            err = bk_write_data(argv[2], argv[3], (char*)buf, buf_len);
+            free(buf);
+        } else { // str
+            buf_len = strlen(argv[4]);
+            err = bk_write_data(argv[2], argv[3], argv[4], buf_len);
+        }
+
+        if (kNoErr != err) {
+            bk_printf("[matter_data,error,%d] write %s %s %s(%d)\r\n", err, argv[2], argv[3], argv[4], buf_len);
+        } else {
+            bk_printf("[matter_data,sucess,%d] write %s %s %s(%d)\r\n", err, argv[2], argv[3], argv[4], buf_len);
+            return;
+        }
+    }
+    if (argc >= 2 && 0==strcmp("erase", argv[1])) {
+      if (argc == 2) {
+        const char *namespaces[] = {"BEKEN0", "BEKEN1", "BEKEN2",
+                                    "BEKEN3", "BEKEN4", "chip-config"};
+        for (int i = 0; i < sizeof(namespaces) / sizeof(namespaces[0]); i++) {
+          err = bK_clear_namespace(namespaces[i]);
+          if (kNoErr != err) {
+            bk_printf("[matter_data,error,%d] erase %s\r\n", err, namespaces[i]);
+          } else {
+            bk_printf("[matter_data,sucess,%d] erase %s\r\n", err, namespaces[i]);
+          }
+        }
+      }
+      if (argc == 3) {
+        err = bK_clear_namespace(argv[2]);
+        if (kNoErr != err) {
+          bk_printf("[matter_data,error,%d] erase %s\r\n", err, argv[2]);
+        } else {
+          bk_printf("[matter_data,sucess,%d] erase %s\r\n", err, argv[2]);
+        }
+      }
+      if (argc >= 4) {
+        err = bk_clean_data(argv[2], argv[3]);
+        if (kNoErr != err) {
+          bk_printf("[matter_data,error,%d] erase %s %s\r\n", err, argv[2], argv[3]);
+        } else {
+          bk_printf("[matter_data,sucess,%d] erase %s %s\r\n", err, argv[2], argv[3]);
+        }
+      }
+    }
+    bk_printf("help:");
+    bk_printf("%s", help_str);
+    return;
+}
 
 
 #define NAMEKEY_CMD_CNT              (sizeof(s_nameKey_commands) / sizeof(struct cli_command))
@@ -68,6 +149,9 @@ static const struct cli_command s_nameKey_commands[] =
     },
     {
         "BkApplyUpdateCmdHandler", "BkApplyUpdateCmdHandler", BkApplyUpdateCmdHandler
+    },
+    {
+        "bk_matter_data", "matter_data {read|write|erase} {namespace} {name} {str|BK_HEX:hex}", bk_matter_data
     },
 };
 

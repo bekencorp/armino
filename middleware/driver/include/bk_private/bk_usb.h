@@ -107,7 +107,8 @@ typedef enum
     UVC_FRAME_800_480 = 10,
     UVC_FRAME_800_600 = 11,
     UVC_FRAME_960_540 = 12,
-    UVC_FRAME_1280_720 =13,
+    UVC_FRAME_1280_720 = 13,
+    UVC_FRAME_864_480 = 14,
     UVC_FRAME_COUNT
 } E_FRAME_ID_USB20;
 #endif
@@ -130,6 +131,14 @@ typedef struct
     uint16_t  height;
 } UVC_ResolutionFramerate;
 
+typedef enum
+{
+    USB_UVC_DEVICE = 0,
+    USB_UAC_MIC_DEVICE = 1,
+    USB_UAC_SPEAKER_DEVICE = 2,
+    USB_MSD_DEVICE = 3,
+} USB_DEVICE_WORKING_STATUS;
+
 /*
 * Finish DRC interrupt processing
 */
@@ -145,6 +154,27 @@ enum
     BSR_WRITE_OK_EVENT
 };
 
+typedef struct {
+    uint8_t bLength;
+    uint8_t bDescriptorType;
+    uint8_t bDescriptorSubtype;
+    uint8_t bTerminalLink;
+    uint8_t bDelay;
+    uint16_t wFormatTag;
+} s_audio_as_general_descriptor;
+
+typedef struct {
+    uint8_t bLength;
+    uint8_t bDescriptorType;
+    uint8_t bDescriptorSubtype;
+    uint8_t bFormatType;
+    uint8_t bNrChannels;
+    uint8_t bSubframeSize;
+    uint8_t bBitResolution;
+    uint8_t bSamFreqType;
+    uint8_t tSamFreq[3];
+} s_audio_format_type_descriptor;
+
 /*******************************************************************************
 * Function Declarations
 *******************************************************************************/
@@ -155,7 +185,7 @@ extern uint32_t MUSB_HfiRead( uint32_t first_block, uint32_t block_num, uint8_t
 extern uint32_t MUSB_HfiWrite( uint32_t first_block, uint32_t block_num, uint8_t
                                *dest);
 extern void MGC_RegisterCBTransferComplete(FUNCPTR func);
-extern uint8_t MUSB_GetConnect_Flag(void);
+extern uint32_t MGC_DevGetConnectStatus(void);
 
 extern void fuvc_test_init(uint8_t);
 extern void printf_test_buff(void);
@@ -163,6 +193,8 @@ extern bk_err_t bk_usb_init(void);
 extern bk_err_t bk_usb_deinit(void);
 extern bk_err_t bk_usb_open (uint32_t usb_mode);
 extern bk_err_t bk_usb_close (void);
+extern void usb_device_set_using_status(bool use_or_no, USB_DEVICE_WORKING_STATUS dev);
+
 extern bk_err_t bk_uvc_start(void);
 extern bk_err_t bk_uvc_stop(void);
 extern bk_err_t bk_uvc_set_parameter(uint32_t resolution_id, uint32_t fps);
@@ -173,6 +205,7 @@ extern bk_err_t bk_uvc_register_disconnect_callback(void *param);
 extern bk_err_t bk_uvc_register_config_callback(void *param);
 extern bk_err_t bk_uvc_register_VSrxed_callback(void *param);
 extern bk_err_t bk_uvc_register_VSrxed_packet_callback(void *param);
+extern bk_err_t bk_uvc_unregister_VSrxed_packet_callback();
 extern bk_err_t bk_uvc_register_link(uint32_t param);
 extern bk_err_t bk_uvc_set_cur(uint32_t attribute, uint32_t param);
 extern uint32_t bk_uvc_get_cur(uint32_t attribute);
@@ -183,6 +216,27 @@ extern uint32_t bk_uvc_get_len(uint32_t attribute);
 extern uint32_t bk_uvc_get_info(uint32_t attribute);
 extern uint32_t bk_uvc_get_def(uint32_t attribute);
 extern void bk_uvc_get_resolution_framerate(void *param, uint16_t count);
+
+#ifdef CONFIG_USB_UAC
+bk_err_t bk_usb_uac_get_format_descriptor(USB_DEVICE_WORKING_STATUS dev,
+											s_audio_as_general_descriptor *interfacedesc,
+											s_audio_format_type_descriptor *formatdesc);
+
+#if CONFIG_USB_UAC_MIC
+extern bk_err_t bk_uac_start_mic(void);
+extern bk_err_t bk_uac_stop_mic(void);
+extern bk_err_t bk_uac_register_micrxed_packet_callback(void *param);
+extern bk_err_t bk_uac_unregister_micrxed_packet_callback();
+extern bk_err_t bk_uac_receive_mic_stream();
+#endif
+#if CONFIG_USB_UAC_SPEAKER
+extern bk_err_t bk_uac_start_speaker(void);
+extern bk_err_t bk_uac_stop_speaker(void);
+extern bk_err_t bk_uac_register_speakerstream_txed_callback(void *param);
+extern bk_err_t bk_uac_unregister_speakerstream_txed_callback(void);
+extern bk_err_t bk_uac_register_tx_speakerstream_buffptr(void *buffer_ptr, uint32_t buffer_len);
+#endif
+#endif
 
 #if (CONFIG_SOC_BK7251) || (CONFIG_SOC_BK7271)
 #define USB_PLUG_FAILURE                (1)

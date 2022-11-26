@@ -12,12 +12,30 @@ if (NOT CONFIG_SLAVE_CORE)
 	)
 
 if (CONFIG_CAMERA OR CONFIG_USB_UVC)
+	list(APPEND incs camera)
 	list(APPEND srcs
 		camera/camera_act.c
+	)
+
+if (CONFIG_CAMERA)
+		list(APPEND srcs
 		camera/dvp.c
+	)
+endif()
+
+if (CONFIG_USB_UVC)
+		list(APPEND srcs
 		camera/uvc.c
 	)
 endif()
+
+if (CONFIG_WIFI_TRANSFER)
+		list(APPEND srcs
+		camera/net_camera.c
+	)
+endif()
+
+endif()#(CONFIG_CAMERA OR CONFIG_USB_UVC)
 
 if (CONFIG_WIFI_TRANSFER)
 	list(APPEND srcs
@@ -48,7 +66,7 @@ if (CONFIG_DUAL_CORE)
 	)
 endif()
 
-else()
+else()# NOT CONFIG_SLAVE_CORE
 	set(srcs
 		core/media_minor.c
 		cli/media_cli.c
@@ -59,12 +77,31 @@ else()
 
 
 if (CONFIG_CAMERA OR CONFIG_USB_UVC)
+	list(APPEND incs camera)
 	list(APPEND srcs
 		camera/camera_act.c
+	)
+
+if (CONFIG_CAMERA)
+		list(APPEND srcs
 		camera/dvp.c
+	)
+endif()
+
+if (CONFIG_USB_UVC)
+		list(APPEND srcs
 		camera/uvc.c
 	)
 endif()
+
+if (CONFIG_AV_DEMO)
+		list(APPEND srcs
+		camera/net_camera.c
+	)
+endif()
+
+endif()#(CONFIG_CAMERA OR CONFIG_USB_UVC)
+
 
 if (CONFIG_WIFI_TRANSFER)
 	list(APPEND srcs
@@ -97,8 +134,8 @@ if (CONFIG_DUAL_CORE)
 	)
 endif()
 
-endif()
+endif()# NOT CONFIG_SLAVE_CORE
 
-endif()
+endif()# CONFIG_MEDIA
 
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_cli)

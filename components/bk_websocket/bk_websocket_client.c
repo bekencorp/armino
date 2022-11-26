@@ -1024,23 +1024,35 @@ transport websocket_client_init(const websocket_client_input_t *input)
 		goto _websocket_init_fail;
 	}
 
-	if(client->config->path)
+	if(client->config->path) {
+		if(client->ws_transport->path)
+		{
+			free(client->ws_transport->path);
+		}
 		client->ws_transport->path = strdup(client->config->path);
-	else
+	}
+	else {
+		free(client->ws_transport->path);
 		client->ws_transport->path = strdup("/");
-
+	}
 	client->ws_transport->buffer = os_malloc(WS_BUFFER_SIZE);
 	if (!client->ws_transport->buffer) {
 		BK_LOGE(TAG, "alloc ws_transport buffer fail\r\n");
 		goto _websocket_init_fail;
 	}
 
-	if (input->subprotocol)
+	if (input->subprotocol) {
+		free(client->ws_transport->sub_protocol);
 		client->ws_transport->sub_protocol = strdup(input->subprotocol);
-	if (input->user_agent)
+	}
+	if (input->user_agent) {
+		free(client->ws_transport->user_agent);
 		client->ws_transport->user_agent = strdup(input->user_agent);
-	if (input->headers)
-		client->ws_transport->headers = strdup(input->headers);	
+	}
+	if (input->headers) {
+		free(client->ws_transport->headers);
+		client->ws_transport->headers = strdup(input->headers);
+	}
 	client->ws_transport->frame_state.bytes_remaining = 0;
 
 	//tick...
@@ -1108,6 +1120,54 @@ int test_case_text(transport client)
 	//send text packet
 	char *a = "hello,BEKEN";
 	return websocket_client_send_text(client, a, strlen(a), WEBSOCKET_NETWORK_TIMEOUT_MS);
+}
+
+static void free_client(transport client)
+{
+
+	if(client==NULL)
+		return ;
+	if (client->tx_buffer)
+	{
+		os_free(client->tx_buffer);
+		client->tx_buffer=NULL;
+	}
+
+	if (client->rx_buffer)
+	{
+		os_free(client->rx_buffer);
+		client->rx_buffer=NULL;
+	}
+
+	if (client->ws_transport)
+	{
+
+		if (client->ws_transport->buffer)
+		{
+			os_free(client->ws_transport->buffer);
+			client->ws_transport->buffer=NULL;
+		}
+		if (client->ws_transport->path)
+		{
+			os_free(client->ws_transport->path);
+		}
+		if (client->ws_transport->sub_protocol)
+		{
+			os_free(client->ws_transport->sub_protocol);
+		}
+		if (client->ws_transport->headers)
+		{
+			os_free(client->ws_transport->headers);
+		}
+		if (client->ws_transport->user_agent)
+		{
+			os_free(client->ws_transport->user_agent);
+		}
+		os_free(client->ws_transport);
+	}
+
+	os_free(client);
+	client = NULL;
 }
 
 void websocket_client_task(beken_thread_arg_t *thread_param)
@@ -1223,11 +1283,7 @@ void websocket_client_task(beken_thread_arg_t *thread_param)
 	if(websocket_client_destory_config(client)) {
 		BK_LOGE(TAG, "client config already free\r\n");
 	}
-	if(client->tx_buffer)
-		os_free(client->tx_buffer);
-	if(client->rx_buffer)
-		os_free(client->rx_buffer);
-	os_free(client);
+	free_client(client);
 	client = NULL;
 	rtos_delete_thread(NULL);
 }

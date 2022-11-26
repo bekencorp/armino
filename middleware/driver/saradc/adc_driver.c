@@ -77,7 +77,7 @@ saradc_calibrate_val saradc_val = {
 #endif
 };
 
-adc_config_t g_adc_cfg[10] = {0};
+__attribute__((section(".dtcm_sec_data "))) adc_config_t g_adc_cfg[10] = {0};
 
 
 //TODO - by Frank

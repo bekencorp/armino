@@ -15,6 +15,8 @@
 #pragma once
 
 #include <driver/aon_rtc_types.h>
+#include "sys/time.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -187,7 +189,7 @@ bk_err_t bk_aon_rtc_open_rtc_wakeup(uint32_t period);
  */
 uint64_t bk_aon_rtc_get_current_tick(aon_rtc_id_t id);
 
-#if AON_RTC_DEBUG
+#if CONFIG_AON_RTC_DEBUG
 /**
  * @brief     test rtc get/set tick(round *cycles count) consume time.
  *
@@ -212,6 +214,41 @@ void bk_aon_rtc_timing_test(aon_rtc_id_t id, uint32_t round, uint32_t cycles, ui
  *    - others: other errors.
  */
 void bk_aon_rtc_dump(aon_rtc_id_t id);
+
+/**
+ * @brief     Get time of day
+ *
+ * @tv: Define parameters according to "structure timeval"
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_rtc_gettimeofday(struct timeval *tv, void *ptz);
+
+/**
+ * @brief     Set time of day
+ *
+ * @tv: Define parameters according to "structure timeval"
+ * @tz: Define parameters according to "structure timezone"
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_rtc_settimeofday(const struct timeval *tv,const struct timezone *tz);
+
+/**
+ * @brief     Get Deepsleep duration seconds
+ *
+ * @deepsleep_seconds: The incoming formal parameter is assigned the deepsleep time
+ * Unit : second
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_rtc_get_deepsleep_duration_seconds(uint32_t *deepsleep_seconds);
 
 
 /**

@@ -510,6 +510,7 @@ typedef struct
 	bool tx_status;
 	bool rx_status;
 	bool sys_int_en_status;
+	uint32_t int_en_status;
 	uart_id_t uart_id;
 } uart_lowpower_sleep_status;
 static uart_lowpower_sleep_status s_uart_lvsleep_status[SOC_UART_ID_NUM_PER_UNIT] = {0};
@@ -530,31 +531,30 @@ static void bk_uart_before_lvsleep_record_status(uart_id_t id)
 		s_uart_lvsleep_status[id].sys_int_en_status = true;
 	else
 		s_uart_lvsleep_status[id].sys_int_en_status = false;
+
+	s_uart_lvsleep_status[id].int_en_status = uart_hal_get_int_enable_status(&s_uart[id].hal, id);
+
 }
 
 static void bk_uart_lvsleep_restore_status(uart_id_t id)
 {
-	if(s_uart_lvsleep_status[id].tx_status)
+	if(s_uart_lvsleep_status[id].tx_status) {
 		uart_hal_set_tx_enable(&s_uart[id].hal, id, 1);
+	}
 
-	if(s_uart_lvsleep_status[id].rx_status)
+	if(s_uart_lvsleep_status[id].rx_status) {
 		uart_hal_set_rx_enable(&s_uart[id].hal, id, 1);
-}
-
-static void bk_uart_enter_lvsleep_disable_config(uart_id_t id)
-{
-	bk_uart_set_enable_rx(id, false);
-	bk_uart_set_enable_tx(id, false);
-	bk_uart_disable_rx_interrupt(id);
-	bk_uart_disable_tx_interrupt(id);
-	delay_us(uart_wait_tx_over());
+	}
 }
 
 static void bk_uart_exit_lvsleep_enable_config(uart_id_t id)
 {
 	if(s_uart_lvsleep_status[id].sys_int_en_status) {
-		bk_uart_enable_rx_interrupt(id);
-		bk_uart_enable_tx_interrupt(id);
+		sys_drv_int_enable(id);
+	}
+
+	if(s_uart_lvsleep_status[id].int_en_status) {
+		uart_hal_set_int_enable_status(&s_uart[id].hal, id, s_uart_lvsleep_status[id].int_en_status);
 	}
 }
 
@@ -566,15 +566,15 @@ static void bk_uart_enter_lvsleep(uint64_t sleep_time, void *args)
 	{
 		case UART_ID_0:
 			bk_uart_before_lvsleep_record_status(UART_ID_0);
-			bk_uart_enter_lvsleep_disable_config(UART_ID_0);
+			uart_hal_stop_common(&s_uart[UART_ID_0].hal, UART_ID_0);
 			break;
 		case UART_ID_1:
 			bk_uart_before_lvsleep_record_status(UART_ID_1);
-			bk_uart_enter_lvsleep_disable_config(UART_ID_1);
+			uart_hal_stop_common(&s_uart[UART_ID_1].hal, UART_ID_1);
 			break;
 		case UART_ID_2:
 			bk_uart_before_lvsleep_record_status(UART_ID_2);
-			bk_uart_enter_lvsleep_disable_config(UART_ID_2);
+			uart_hal_stop_common(&s_uart[UART_ID_2].hal, UART_ID_2);
 			break;
 		default:
 			break;
@@ -1198,10 +1198,25 @@ static void uart_isr_common(uart_id_t id)
 		}
 	}
 
-	if(uart_hal_is_rx_parity_err_int_triggered(&s_uart[id].hal, id, status))
-	{
-		uart_hal_flush_fifo(&s_uart[id].hal, id);
-	}
+	#if CONFIG_UART_ERR_INTERRUPT
+		if(uart_hal_is_rx_over_flow_int_triggered(&s_uart[id].hal, id, status))
+		{
+			uart_hal_flush_fifo(&s_uart[id].hal, id);
+			UART_LOGW("uart rx_over_flow_int triggered!\r\n");
+		}
+
+		if(uart_hal_is_rx_parity_err_int_triggered(&s_uart[id].hal, id, status))
+		{
+			uart_hal_flush_fifo(&s_uart[id].hal, id);
+			UART_LOGW("uart rx_parity_err_int triggered!\r\n");
+		}
+
+		if(uart_hal_is_rx_stop_bits_err_int_triggered(&s_uart[id].hal, id, status))
+		{
+			uart_hal_flush_fifo(&s_uart[id].hal, id);
+			UART_LOGW("uart rx_stop_bits_err_int triggered!\r\n");
+		}
+	#endif
 }
 
 void uart0_isr(void)

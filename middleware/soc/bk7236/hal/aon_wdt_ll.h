@@ -1,4 +1,4 @@
-// Copyright 2020-2021 Beken
+// Copyright 2021-2022 Beken
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,38 +15,38 @@
 #pragma once
 
 #include <soc/soc.h>
-#include "hal_port.h"
-#include "aon_wdt_hw.h"
-#include <driver/hal/hal_aon_wdt_types.h>
+#include <common/bk_err.h>
+
+#include "aon_wdt_reg.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define AON_WDT_LL_REG_BASE(_aon_wdt_unit_id)    (SOC_AON_WDT_REG_BASE)
+#define AON_WDT_CONFIG_WD_KEY_POS (0)
+#define AON_WDT_CONFIG_WD_KEY_MASK (0xffff)
 
-static inline void aon_wdt_ll_reset_config_to_default(aon_wdt_hw_t *hw)
+#define AON_WDT_CONFIG_WD_PERIOD_POS (16)
+#define AON_WDT_CONFIG_WD_PERIOD_MASK (0xff)
+
+static inline uint32_t aon_wdt_ll_get_wd_key(void)
 {
-	hw->ctrl.key = 0;
-	hw->ctrl.period = AON_WDT_V_PERIOD_DEFAULT_VALUE;
+    uint32_t reg_value;
+    reg_value = REG_READ(AON_WDT_R_CTRL);
+    reg_value = ((reg_value >> AON_WDT_CONFIG_WD_KEY_POS) & AON_WDT_CONFIG_WD_KEY_MASK);
+    return reg_value;
 }
 
-static inline void aon_wdt_ll_init(aon_wdt_hw_t *hw)
+static inline uint32_t aon_wdt_ll_get_wd_period(void)
 {
-	aon_wdt_ll_reset_config_to_default(hw);
+    uint32_t reg_value;
+    reg_value = REG_READ(AON_WDT_R_CTRL);
+    reg_value = ((reg_value >> AON_WDT_CONFIG_WD_PERIOD_POS) & AON_WDT_CONFIG_WD_PERIOD_MASK);
+    return reg_value;
 }
 
-static inline void aon_wdt_ll_set_1st_key(aon_wdt_hw_t *hw)
-{
-	hw->ctrl.key = AON_WDT_V_KEY_1ST;
-}
-
-static inline void aon_wdt_ll_set_2nd_key(aon_wdt_hw_t *hw)
-{
-	hw->ctrl.key = AON_WDT_V_KEY_2ND;
-}
-
-static inline void aon_wdt_ll_set_period(aon_wdt_hw_t *hw, uint32_t period)
+static inline void aon_wdt_ll_set_period(uint32_t period)
 {
 	uint32_t ctrl_val = (period & AON_WDT_F_PERIOD_M) | (AON_WDT_V_KEY_1ST << AON_WDT_F_KEY_S);
 	REG_WRITE(AON_WDT_R_CTRL, ctrl_val);
@@ -57,4 +57,4 @@ static inline void aon_wdt_ll_set_period(aon_wdt_hw_t *hw, uint32_t period)
 
 #ifdef __cplusplus
 }
-#endif¸¼æ}
+#endif

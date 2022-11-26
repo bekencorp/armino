@@ -82,18 +82,16 @@ BK7256工具链下载路径如下：
 	http://dl.bekencorp.com/tools/toolchain/
 	在此目录下获取最新版本，如：toolchain_v5.1.1.tgz
 
+工具包下载后，通过如下操作命令解压至 /opt/risc-v目录下::
 
-工具包下载后，通过如下操作命令解压至 /opt/risc-v目录下：
-
-    $ sudo mkdir -p /opt/
-    $ tar -zxvf toolchain_v5.1.1.tgz -C /
+    $ sudo tar -zxvf toolchain_v5.1.1.tgz -C /
 
 
 .. note::
 
-    默认工具链在tools/build_tools/cmake/toolchain-bk7237.cmake文件中定义，
-    如果您将工具链放置到其他目录下，那么在编译 Armino 时需要显式指定工具链绝对路径，
-    例如: make bk7237 TOOLCHAIN_DIR=/usr/risc-v/nds32le-elf-mculib-v5/bin
+    工具链默认路径在middleware/soc/bk7256/bk7256.defconfig文件中定义，客户可自行配置::
+
+    CONFIG_TOOLCHAIN_PATH="/opt/risc-v/nds32le-elf-mculib-v5/bin"
 
 程序编译依赖库安装
 ------------------------------------
@@ -161,7 +159,7 @@ BK7256工具链下载路径如下：
         projects/app/config/bk7237.config
         projects/harmony/config/bk7237.config
     + 芯片配置文件示例：
-        middleware/arch/bk7237/bk7237.defconfig
+        middleware/soc/bk7237/bk7237.defconfig
     + KConfig配置文件示例：
         middleware/arch/riscv/Kconfig
         components/bk_cli/Kconfig

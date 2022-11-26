@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #TODO - optimize it, should finally remove this packer
 
@@ -60,34 +60,26 @@ project_bootloader = "properties/modules/bootloader/aboot/bootloader-v4"
 #copy bootloader bin-elf-asm to relating directory
 if os.getenv("PROJECT_DIR") != "projects/ate_mini_code":
     if os.path.exists(os.getenv("ARMINO_PATH")+"/projects/"+os.getenv("PROJECT")+"/pj_config.mk"):
-        if not os.path.exists("bootloader_out"):
-            os.mkdir("bootloader_out")
         if os.path.exists(os.getenv("ARMINO_PATH")+"/projects/"+os.getenv("PROJECT")+"/config/configurationab.json"):
             print("PROJECT_DIRab:",os.getenv("PROJECT_DIR"))
             #print("PROJECT_DIRab:","{}/{}/l_boot/out/l_bootloader.map".format(armino_path,project_bootloader_a_b))
             #copy bootloader bin to os.getenv("PROJECT_DIR")
-            shutil.copy("{}/{}/PACK/generate_out/bootloader.bin".format(armino_path,project_bootloader_a_b), 
-                        "{}/{}".format(armino_path, os.getenv("PROJECT_DIR")))
-            #copy bootloader elf-map-asm to build directory
-            shutil.copy("{}/{}/l_boot/out/l_bootloader.asm".format(armino_path,project_bootloader_a_b), "./bootloader_out/")
-            shutil.copy("{}/{}/l_boot/out/l_bootloader.elf".format(armino_path,project_bootloader_a_b), "./bootloader_out/")
-            shutil.copy("{}/{}/l_boot/out/l_bootloader.map".format(armino_path,project_bootloader_a_b), "./bootloader_out/")
-            shutil.copy("{}/{}/up_boot/out/u_bootloader.asm".format(armino_path,project_bootloader_a_b), "./bootloader_out/")
-            shutil.copy("{}/{}/up_boot/out/u_bootloader.elf".format(armino_path,project_bootloader_a_b), "./bootloader_out/")
-            shutil.copy("{}/{}/up_boot/out/u_bootloader.map".format(armino_path,project_bootloader_a_b), "./bootloader_out/")
+            if (os.path.exists("{}/{}".format(armino_path,project_bootloader_a_b))):
+                shutil.copy("{}/{}/PACK/generate_out/bootloader.bin".format(armino_path,project_bootloader_a_b), 
+                            "{}/{}".format(armino_path, os.getenv("PROJECT_DIR")))
+                #copy bootloader elf-map-asm to build directory
+                shutil.copytree("{}/{}/l_boot/out/".format(armino_path,project_bootloader_a_b), "./bootloader_out/l_boot",ignore=shutil.ignore_patterns("temp","*.bin","l_bootloader1.asm"))
+                shutil.copytree("{}/{}/up_boot/out/".format(armino_path,project_bootloader_a_b), "./bootloader_out/u_boot",ignore=shutil.ignore_patterns("temp","*.bin","u_bootloader1.asm"))
         else:
-            print("PROJECT_DIR:",os.getenv("PROJECT_DIR"))
-            #print("PROJECT_DIRab:","{}/{}/l_boot/out/l_bootloader.map".format(armino_path,project_bootloader))
-            #copy bootloader bin to middleware boards
-            shutil.copy("{}/{}/PACK/generate_out/bootloader.bin".format(armino_path,project_bootloader), 
-                        "{}/middleware/boards/{}/bootloader.bin".format(armino_path,chip))
-            #copy bootloader elf-map-asm to build directory
-            shutil.copy("{}/{}/l_boot/out/l_bootloader.asm".format(armino_path,project_bootloader), "./bootloader_out/")
-            shutil.copy("{}/{}/l_boot/out/l_bootloader.elf".format(armino_path,project_bootloader), "./bootloader_out/")
-            shutil.copy("{}/{}/l_boot/out/l_bootloader.map".format(armino_path,project_bootloader), "./bootloader_out/")
-            shutil.copy("{}/{}/up_boot/out/u_bootloader.asm".format(armino_path,project_bootloader), "./bootloader_out/")
-            shutil.copy("{}/{}/up_boot/out/u_bootloader.elf".format(armino_path,project_bootloader), "./bootloader_out/")
-            shutil.copy("{}/{}/up_boot/out/u_bootloader.map".format(armino_path,project_bootloader), "./bootloader_out/")
+            if (os.path.exists("{}/{}".format(armino_path,project_bootloader))):
+                print("PROJECT_DIR:",os.getenv("PROJECT_DIR"))
+                #print("PROJECT_DIRab:","{}/{}/l_boot/out/l_bootloader.map".format(armino_path,project_bootloader))
+                #copy bootloader bin to middleware boards
+                shutil.copy("{}/{}/PACK/generate_out/bootloader.bin".format(armino_path,project_bootloader), 
+                            "{}/middleware/boards/{}/bootloader.bin".format(armino_path,chip))
+                #copy bootloader elf-map-asm to build directory
+                shutil.copytree("{}/{}/l_boot/out/".format(armino_path,project_bootloader), "./bootloader_out/l_boot",ignore=shutil.ignore_patterns("temp","*.bin","l_bootloader1.asm"))
+                shutil.copytree("{}/{}/up_boot/out/".format(armino_path,project_bootloader), "./bootloader_out/u_boot",ignore=shutil.ignore_patterns("temp","*.bin","u_bootloader1.asm"))
 
 def package_json_rebuild():
     if os.path.exists("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR"))):
@@ -110,6 +102,8 @@ def package_json_rebuild():
             shutil.copy(pakfile, "{}/{}".format(build_path, firmware_file["firmware"]))
 
         firmware_file["firmware"] = "{}/{}".format(build_path, firmware_file["firmware"])
+        firmware_file["start_addr"] = str(hex(int(int(firmware_file["start_addr"], 16)/34*32)))
+        firmware_file["size"] = "{}K".format(int(int(re.findall("^\d+", firmware_file["size"])[0])/34*32))
         
         if firmware_file["partition"] == "bootloader":
             bootloader_security_name = firmware_file["partition"]+"_security.bin"
@@ -198,7 +192,16 @@ if sys.platform == 'win32':
 elif sys.platform == 'darwin':
     os.system("{}/tools/env_tools/beken_packager/beken_packager.darwin {}".format(armino_path, out_path))
 else:
-    os.system("{}/tools/env_tools/beken_packager/beken_packager {}".format(armino_path, out_path))
+    infile = ""
+    with open(out_path, "r") as f:
+        config_json = json.load(f)
+        for firmware_file in config_json["section"]:
+            infile += "{} ".format(firmware_file["firmware"])
+    os.system("{}/tools/env_tools/beken_packager/cmake_Gen_image genfile -injsonfile {} -infile {} -outfile {}".format(armino_path, out_path, infile, "all_app.bin"))
+    #2.5 crc pack app&cup* out - app_pack_crc.bin
+    os.system("{}/tools/env_tools/beken_packager/cmake_encrypt_crc -crc {}".format(armino_path, "all_app.bin"))
+    os.rename("all_app_crc.bin","all-app.bin");
+    os.remove("all_app.bin");
 
     # new enc pack steps:
     #1.sign bootloader ./SignTool sign -infile bootloader.bin -prikey ecdsa256.der -outfile bootloader_sign.bin -len 10000
@@ -252,9 +255,7 @@ else:
         # print("{}/tools/env_tools/beken_packager/cmake_xts_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, "all_app_pack.bin", 0, key_file, "all_app_pack_enc.bin"))
     # print("******************************over******************************")
 
-shutil.move("all_2M.1220.bin", "{}".format(image_name))
 shutil.move(tmp_config["sign_app_name"], "app_pack_sign.bin")
-shutil.copy("app_pack_crc.bin", "pure_app.bin")
 
 if not os.path.exists("encrypt"):
     os.mkdir("encrypt")
@@ -266,7 +267,8 @@ for file in os.listdir("./"):
         shutil.move(os.path.join(cwd, file), os.path.join(cwd+"/encrypt", file))
 
 header_path = "{}/tools/env_tools/rtt_ota/ota-rbl/".format(armino_path)
-os.system("python {}/tools/env_tools/rtt_ota/ota-rbl/ota_packager_python.py -i {} -o {} -g {} packager".format(armino_path, "encrypt/app_pack.bin", "encrypt/app_pack.rbl", header_path))
+os.system("python3 {}/tools/env_tools/rtt_ota/ota-rbl/ota_packager_python.py -i {} -o {} -g {} packager".format(armino_path, "encrypt/app_pack.bin", "encrypt/app_pack.rbl", header_path))
+os.system("python3 {}/tools/env_tools/rtt_ota/ota-rbl/ota_packager_python.py -i {} -o {} -g {} packager".format(armino_path, "encrypt/app_pack_sign.bin", "encrypt/app_pack_sign.rbl", header_path))
 
 os.remove(out_path)
 os.remove(enc_out_path)

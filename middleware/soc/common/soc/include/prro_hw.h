@@ -18,4 +18,7 @@
 #include <soc/soc.h>
 
 #include "prro_struct.h"
+#include "prro_cfg.h"
+#include "driver/prro_types.h"
+#include "soc/soc.h"
 

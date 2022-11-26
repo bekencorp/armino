@@ -27,16 +27,30 @@ class ConfigChecking:
 		f = open(sdkconfig_path, 'r')
 		for l in f:
 			l = ' '.join(l.split())
-			line_keys = l.split('=')
-			if len(line_keys) != 2:
-				continue
-			k = line_keys[0]
-			v = line_keys[1]
-			if k[0:7] != "CONFIG_":
+			line_words = l.split(' ')
+			if len(line_words) < 1:
 				continue
 
-			d[k] = v
-			#print(f'add key={k} value={v}')
+			if line_words[0] == '#':
+				if (len(line_words) != 5):
+					continue
+				if (line_words[2] == 'is') and (line_words[3] == 'not') and (line_words[4] == 'set'):
+					if line_words[1][0:7] != 'CONFIG_':
+						continue
+					k = line_words[1]
+					v = 'is not set'
+					d[k] = v
+				#print(f'add key={k} value={v}')
+			else:
+				line_key_value = l.split('=')
+				if len(line_key_value) != 2:
+					continue
+				k = line_key_value[0]
+				v = line_key_value[1]
+				if k[0:7] != "CONFIG_":
+					continue
+				d[k] = v
+				#print(f'add key={k} value={v}')
 
 		f.close()
 		return (d)
@@ -46,9 +60,8 @@ class ConfigChecking:
 		for lib_key,lib_value in self.lib_configs.items():
 			for armino_key, armino_value in self.armino_configs.items():
 				if (lib_key == armino_key) and (lib_value != armino_value):
-					print(f"mismatched config={lib_key} properties={lib_value} armino={armino_value}")
+					print(f"\033[31m--mismatched config={lib_key} properties={lib_value} armino={armino_value}\033[0m")
 					mismatch_cnt = mismatch_cnt + 1
-
 		if (mismatch_cnt != 0):
 			exit(1)
 

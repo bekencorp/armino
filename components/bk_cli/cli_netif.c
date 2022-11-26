@@ -34,6 +34,8 @@ static void ip_cmd_show_ip(int ifx)
 
 void cli_ip_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+        int ret = 0;
+        char *msg = NULL;
         netif_ip4_config_t config = {0};
         int ifx = NETIF_IF_COUNT;
 
@@ -44,7 +46,7 @@ void cli_ip_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
                         ifx = NETIF_IF_AP;
                 } else {
                         CLI_LOGE("invalid netif name\n");
-                        return;
+                        goto error;
                 }
         }
 
@@ -61,7 +63,19 @@ void cli_ip_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
                 CLI_DUMP_IP("set static ip, ", ifx, &config);
         } else {
                 CLI_LOGE("usage: ip [sta|ap][{ip}{mask}{gate}{dns}]\n");
+                goto error;
         }
+
+        if (!ret) {
+                msg = WIFI_CMD_RSP_SUCCEED;
+                os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+                return;
+        }
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 
 #if CONFIG_IPV6
@@ -81,6 +95,8 @@ void cli_ip6_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv
 
 {
        int ifx = NETIF_IF_COUNT;
+       int ret = 0;
+       char *msg = NULL;
 
        if (argc > 1) {
                if (os_strcmp("sta", argv[1]) == 0) {
@@ -89,7 +105,7 @@ void cli_ip6_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv
                        ifx = NETIF_IF_AP;
                } else {
                        CLI_LOGE("invalid netif name\n");
-                       return;
+                       goto error;
                }
        }
 
@@ -98,30 +114,58 @@ void cli_ip6_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv
        } else if (argc == 2) {
                ip6_cmd_show_ip(ifx);
        }
+
+       if (!ret) {
+               msg = WIFI_CMD_RSP_SUCCEED;
+               os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+               return;
+       }
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 #endif
 
 void cli_dhcpc_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	BK_LOG_ON_ERR(bk_netif_dhcpc_start(NETIF_IF_STA));
+	int ret =0;
+	char *msg = NULL;
+
+	ret = bk_netif_dhcpc_start(NETIF_IF_STA);
 	CLI_LOGI("STA start dhcp client\n");
+
+	if(ret == 0)
+		msg = WIFI_CMD_RSP_SUCCEED;
+	else
+		msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
 
 void arp_Command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+	char *msg = NULL;
 	os_printf("arp_Command\r\n");
+
+	msg = WIFI_CMD_RSP_SUCCEED;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
 
 void cli_ping_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 #if CONFIG_LWIP
+	int ret = 0;
+	char *msg = NULL;
 	uint32_t cnt = 4;
 	if (argc == 1) {
 		os_printf("Please input: ping <host address>\n");
-		return;
+		goto error;
 	}
 	if (argc == 2 && (os_strcmp("--stop", argv[1]) == 0)) {
 		ping_stop();
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 		return;
 	}
 	if (argc > 2)
@@ -129,6 +173,18 @@ void cli_ping_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **arg
 
 	os_printf("ping IP address:%s\n", argv[1]);
 	ping_start(argv[1], cnt, 0);
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
+
 #endif
 }
 
@@ -137,6 +193,9 @@ extern void test_mqtt_start(const char *host_name, const char *username,
                      		const char *password, const char *topic);
 void cli_ali_mqtt_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+	char *msg = NULL;
+	int ret = 0;
+
 	os_printf("start test mqtt...\n");
 	if (argc == 4) {
 		test_mqtt_start(argv[1], argv[2], argv[3], NULL);
@@ -145,7 +204,19 @@ void cli_ali_mqtt_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 	} else {
 		// mqttali 222.71.10.2 aclsemi ****** /aclsemi/bk7256/cmd/1234
 	    CLI_LOGE("usage: mqttali [host name|ip] [username] [password] [topic]\n");
+	    goto error;
 	}
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 #endif
 
@@ -155,6 +226,8 @@ extern void LITE_closelog(void);
 void cli_http_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	uint32 http_log = 0;
+	int ret = 0;
+	char *msg = NULL;
 
 	if (argc == 2) {
 		http_log = os_strtoul(argv[1], NULL, 10);
@@ -165,31 +238,50 @@ void cli_http_debug_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		}
 	} else {
 		CLI_LOGE("usage: httplog [1|0].\n");
+		goto error;
 	}
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 #endif
 
-uint32_t g_per_packet_info_output_bitmap = 0;
+__attribute__((weak)) void set_output_bitmap(uint32 output_bitmap);
 
 void set_per_packet_info_output_bitmap(const char *bitmap)
 {
-    g_per_packet_info_output_bitmap = os_strtoul(bitmap, NULL, 16);
-    CLI_LOGI("set per_packet_info_output_bitmap:0x%x\n",g_per_packet_info_output_bitmap);
+    uint32 output_bitmap = os_strtoul(bitmap, NULL, 16);
+    set_output_bitmap(output_bitmap);
+    CLI_LOGI("set per_packet_info_output_bitmap:0x%x\n",output_bitmap);
 }
 
 void cli_per_packet_info_output_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+	char *msg = NULL;
+
 	if (argc == 2) {
-		set_per_packet_info_output_bitmap(argv[1]);   
+		set_per_packet_info_output_bitmap(argv[1]);
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 	} else {
 	    CLI_LOGE("usage: per_packet_info [per_packet_info_output_bitmap(base 16)]\n");
+		msg = WIFI_CMD_RSP_ERROR;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 	}
 }
-
 
 #define NETIF_CMD_CNT (sizeof(s_netif_commands) / sizeof(struct cli_command))
 static const struct cli_command s_netif_commands[] = {
 	{"ip", "ip [sta|ap][{ip}{mask}{gate}{dns}]", cli_ip_cmd},
+	{"ipconfig", "ipconfig [sta|ap][{ip}{mask}{gate}{dns}]", cli_ip_cmd},
 	{"dhcpc", "dhcpc", cli_dhcpc_cmd},
 	{"ping", "ping <ip>", cli_ping_cmd},
 #ifdef CONFIG_IPV6

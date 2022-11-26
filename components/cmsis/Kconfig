@@ -1,3 +1,19 @@
 config CMSIS
 	bool "Enable CMSIS"
 	default n
+
+menu "CMSIS"
+	depends on CMSIS
+
+	config DEFAULT_CMSIS_START
+		bool "Use default CMSIS start"
+		default y
+
+	config DCACHE
+		bool "Enable data cache"
+		default n
+
+	config ICACHE
+		bool "Enable code cache"
+		default y
+endmenu

@@ -17,6 +17,7 @@
 #include <soc/soc_port.h>
 #include "soc_cap.h"
 #include "reg_base.h"
+#include "soc_debug.h"
 
 #ifdef __cplusplus
 extern "C" {

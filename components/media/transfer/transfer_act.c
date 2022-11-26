@@ -57,7 +57,9 @@
 
 #include "bk_misc.h"
 
+#if CONFIG_ARCH_RISCV
 #include "cache.h"
+#endif
 
 #if CONFIG_VIDEO_AVI
 #include "app_jpeg2avi.h"
@@ -224,7 +226,9 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 	transfer_data->eof = 0;
 	transfer_data->cnt = 0;
 
+#if CONFIG_ARCH_RISCV
 	flush_dcache(src_address, buffer->size);
+#endif
 
 	for (i = 0; i < count && transfer_task_running; i++)
 	{
@@ -302,9 +306,76 @@ char *filename_get(void)
 
 	os_memset(file_name,0,sizeof(file_name));
 	snprintf(file_name, FULL_FILENAME_PAHT_LEN,"%d:/%s.avi", DISK_NUMBER_SDIO_SD, date);
-	os_printf("file_name:%s\r\n",file_name);
+	LOGI("file_name:%s\r\n",file_name);
 
 	return file_name;
+}
+
+static volatile bool g_avi_enable = false;
+static volatile uint32_t picture_cnt = 0;
+static void avi_open(param_pak_t *param)
+{
+    if(g_avi_enable)
+    {
+	    LOGI("avi already open\n");
+        goto exit;
+    }
+
+	LOGI("%s\n", __func__);
+
+	GLOBAL_INT_DECLARATION();
+	GLOBAL_INT_DISABLE();
+
+	g_avi_enable = true;
+	picture_cnt = 0;
+
+	GLOBAL_INT_RESTORE();
+
+	jpeg2avi_init();
+
+	jpeg2avi_set_video_param(VIDEO_FRAME_WIDTH, VIDEO_FRAME_HEIGHT, VIDEO_FPS);
+	jpeg2avi_set_audio_param(AUDIO_CHANEL_NUM, AUDIO_SAMPLE_RATE, AUDIO_SAMPLE_BITS);
+
+exit:
+    if(param)
+    {
+        MEDIA_EVT_RETURN(param, BK_OK);
+    }
+}
+
+static void avi_close(param_pak_t *param)
+{
+    if(!g_avi_enable)
+    {
+	    LOGI("avi already close\n");
+        goto exit;
+    }
+
+	LOGI("%\n", __func__);
+
+	GLOBAL_INT_DECLARATION();
+	GLOBAL_INT_DISABLE();
+
+	g_avi_enable = false;
+	picture_cnt = 0;
+
+	GLOBAL_INT_RESTORE();
+
+	jpeg2avi_stop_record();
+	jpeg2avi_deinit();
+
+exit:
+    if(param)
+    {
+        MEDIA_EVT_RETURN(param, BK_OK);
+    }
+
+	LOGI("%\n", __func__);
+}
+
+static bool avi_is_enable(void)
+{
+    return g_avi_enable;
 }
 #endif
 
@@ -316,15 +387,6 @@ static void transfer_task_entry(beken_thread_arg_t data)
 	media_debug->wifi_read = 0;
 
 	rtos_set_semaphore(&transfer_sem);
-
-#if CONFIG_VIDEO_AVI
-	uint32_t picture_cnt = 0;
-
-	jpeg2avi_init();
-
-	jpeg2avi_set_video_param(VIDEO_FRAME_WIDTH, VIDEO_FRAME_HEIGHT, VIDEO_FPS);
-	jpeg2avi_set_audio_param(AUDIO_CHANEL_NUM, AUDIO_SAMPLE_RATE, AUDIO_SAMPLE_BITS);
-#endif
 
 	while (transfer_task_running)
 	{
@@ -338,23 +400,30 @@ static void transfer_task_entry(beken_thread_arg_t data)
 
 		media_debug->wifi_read++;
 
+#if (CONFIG_ARCH_RISCV)
 		before = riscv_get_mtimer();
+#else
+		before = 0;
+#endif
 
 #if CONFIG_VIDEO_AVI
-		if(0 == picture_cnt%AVI_VIDEO_FRAMES_MAX)
+		if(avi_is_enable())
 		{
-			os_printf("jpeg2avi_start_record\r\n");
-			jpeg2avi_start_record(filename_get());
-		}
+			if(0 == picture_cnt)
+			{
+				LOGI("jpeg2avi_start_record\r\n");
+				jpeg2avi_start_record(filename_get());
+			}
 
-		jpeg2avi_input_data(jpeg_frame->frame,jpeg_frame->length,eTypeVideo);
+			jpeg2avi_input_data(jpeg_frame->frame,jpeg_frame->length,eTypeVideo);
 
-		picture_cnt++;
-		if(0 == picture_cnt%AVI_VIDEO_FRAMES_MAX)
-		{
-			picture_cnt = 0;
-			jpeg2avi_stop_record();
-			os_printf("jpeg2avi_stop_record\r\n");
+			picture_cnt++;
+			if(0 == picture_cnt%AVI_VIDEO_FRAMES_MAX)
+			{
+				picture_cnt = 0;
+				jpeg2avi_stop_record();
+				LOGI("jpeg2avi_stop_record\r\n");
+			}
 		}
 #endif
 
@@ -362,23 +431,24 @@ static void transfer_task_entry(beken_thread_arg_t data)
 
 		frame_buffer_fb_free(jpeg_frame, MODULE_WIFI);
 
+#if (CONFIG_ARCH_RISCV)
 		after = riscv_get_mtimer();
+#else
+		after = 0;
+#endif
 		LOGD("transfer time: %lu\n", (after - before) / 26000);
 	}
 
 	LOGI("transfer task exit\n");
 
-#if CONFIG_USE_AVI
-	jpeg2avi_stop_record();
-	jpeg2avi_deinit();
-	os_printf("jpeg2avi exit\r\n");
+#if CONFIG_VIDEO_AVI
+    avi_close(NULL);
 #endif
 
 	transfer_task = NULL;
 	rtos_set_semaphore(&transfer_sem);
 	rtos_delete_thread(NULL);
 }
-
 
 void transfer_task_start(void)
 {
@@ -532,6 +602,14 @@ void transfer_event_handle(uint32_t event, uint32_t param)
 		case EVENT_TRANSFER_PAUSE_IND:
 			transfer_pause_handle((param_pak_t *)param);
 			break;
+#if CONFIG_VIDEO_AVI
+        case EVENT_AVI_OPEN_IND:
+            avi_open((param_pak_t *)param);
+            break;
+        case EVENT_AVI_CLOSE_IND:
+            avi_close((param_pak_t *)param);
+            break;
+#endif
 	}
 }
 

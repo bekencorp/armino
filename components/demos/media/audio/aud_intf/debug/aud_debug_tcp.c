@@ -34,7 +34,10 @@
 #define LEN_IND_LB                                  (7)
 
 #define TCP_CHANNEL_CMD                             (0)
-#define TCP_CHANNEL_AUDIO                           (1)
+#define TCP_CHANNEL_CAMERA                          (1)
+#define TCP_CHANNEL_AUDIO_TX                        (2)
+#define TCP_CHANNEL_AUDIO_RX                        (3)
+#define TCP_CHANNEL_AUDIO_AEC                       (4)
 
 
 #define TCP_HEAD_ID (TCP_HEAD_ID_HB << 8 | TCP_HEAD_ID_LB)
@@ -120,9 +123,23 @@ static int aud_debug_tcp_send_packet(uint16_t channel, uint8_t *data, uint32_t l
 
 int bk_aud_debug_voc_tcp_send_packet(unsigned char *data, unsigned int len)
 {
-	return aud_debug_tcp_send_packet(TCP_CHANNEL_AUDIO, data, len);
+	return aud_debug_tcp_send_packet(TCP_CHANNEL_AUDIO_AEC, data, len);
 }
 
+int bk_aud_debug_voc_tx_tcp_send_packet(unsigned char *data, unsigned int len)
+{
+	return aud_debug_tcp_send_packet(TCP_CHANNEL_AUDIO_TX, data, len);
+}
+
+int bk_aud_debug_voc_rx_tcp_send_packet(unsigned char *data, unsigned int len)
+{
+	return aud_debug_tcp_send_packet(TCP_CHANNEL_AUDIO_RX, data, len);
+}
+
+int bk_aud_debug_voc_aec_tcp_send_packet(unsigned char *data, unsigned int len)
+{
+	return aud_debug_tcp_send_packet(TCP_CHANNEL_AUDIO_AEC, data, len);
+}
 
 void aud_debug_dump(uint8_t *data, uint32_t length)
 {
@@ -154,29 +171,73 @@ static void aud_debug_tcp_cmd_data_handle(uint8_t *data, uint16_t length)
 	{
 		switch (cmd)
 		{
-			case ECHO_DEPTH:
+			case AUD_DEBUG_ECHO_DEPTH:
 				LOGI("set ECHO_DEPTH: %d\n", param);
 				bk_aud_intf_set_aec_para(AUD_INTF_VOC_AEC_EC_DEPTH, param);
 				break;
 
-			case MAX_AMPLITUDE:
+			case AUD_DEBUG_MAX_AMPLITUDE:
 				LOGI("set MAX_AMPLITUDE: %d\n", param);
 				bk_aud_intf_set_aec_para(AUD_INTF_VOC_AEC_TXRX_THR, param);
 				break;
 
-			case MIN_AMPLITUDE:
+			case AUD_DEBUG_MIN_AMPLITUDE:
 				LOGI("set MIN_AMPLITUDE: %d\n", param);
 				bk_aud_intf_set_aec_para(AUD_INTF_VOC_AEC_TXRX_FLR, param);
 				break;
 
-			case NOISE_LEVEL:
+			case AUD_DEBUG_NOISE_LEVEL:
 				LOGI("set NOISE_LEVEL: %d\n", param);
 				bk_aud_intf_set_aec_para(AUD_INTF_VOC_AEC_NS_LEVEL, param);
 				break;
 
-			case NOISE_PARAM:
+			case AUD_DEBUG_NOISE_PARAM:
 				LOGI("set NOISE_PARAM: %d\n", param);
 				bk_aud_intf_set_aec_para(AUD_INTF_VOC_AEC_NS_PARA, param);
+				break;
+/*
+			case AUD_DEBUG_REF_SCALE:
+				LOGI("set NOISE_PARAM: %d\n", param);
+				bk_aud_intf_set_aec_para(AUD_INTF_VOC_AEC_NS_PARA, param);
+				break;
+
+			case AUD_DEBUG_CLOSE:
+				LOGI("close audio debug \n");
+				bk_aud_debug_tcp_deinit();
+				break;
+			*/
+
+			case AUD_DEBUG_TX:
+				LOGI("set audio tx debug: %d\n", param);
+				if (param) {
+					LOGI("open audio tx debug \n");
+					bk_aud_intf_voc_tx_debug(bk_aud_debug_voc_tx_tcp_send_packet);
+				} else {
+					LOGI("close audio tx debug \n");
+					bk_aud_intf_voc_tx_debug(NULL);
+				}
+				break;
+
+			case AUD_DEBUG_RX:
+				LOGI("set audio rx debug: %d\n", param);
+				if (param) {
+					LOGI("open audio rx debug \n");
+					bk_aud_intf_voc_rx_debug(bk_aud_debug_voc_rx_tcp_send_packet);
+				} else {
+					LOGI("close audio rx debug \n");
+					bk_aud_intf_voc_rx_debug(NULL);
+				}
+				break;
+
+			case AUD_DEBUG_AEC:
+				LOGI("set audio aec debug: %d\n", param);
+				if (param) {
+					LOGI("open audio aec debug \n");
+					bk_aud_intf_voc_aec_debug(bk_aud_debug_voc_aec_tcp_send_packet);
+				} else {
+					LOGI("close audio aec debug \n");
+					bk_aud_intf_voc_aec_debug(NULL);
+				}
 				break;
 
 			default:
@@ -380,7 +441,7 @@ static void aud_debug_tcp_main(beken_thread_arg_t data)
 	}
 
 	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(DEMO_DOORBELL_TCP_SERVER_PORT);
+	server_addr.sin_port = htons(AUD_DEBUG_TCP_VOICE_PORT);
 	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	srvaddr_len = (socklen_t)sizeof(server_addr);
@@ -574,7 +635,7 @@ uint32_t bk_aud_debug_tcp_init(void)
 		                         4,
 		                         "demo_doorbell_tcp",
 		                         (beken_thread_function_t)aud_debug_tcp_main,
-		                         1024 * 6,
+		                         1024 * 2,
 		                         (beken_thread_arg_t)NULL);
 		if (ret != kNoErr)
 		{

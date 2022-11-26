@@ -18,7 +18,6 @@
 #include "bk_drv_model.h"
 #include "bk_uart.h"
 #include "bk_wifi_private.h"
-#include "bk_net_param.h" //TODO should finally remove this include
 #include "bk_sys_ctrl.h"
 #include <driver/efuse.h>
 #include <os/mem.h>
@@ -28,6 +27,7 @@
 #if (CONFIG_RANDOM_MAC_ADDR)
 #include <driver/trng.h>
 #endif
+#include "bk_private/bk_net_param.h"
 
 #define TAG "mac"
 
@@ -163,6 +163,15 @@ static void random_mac_address(u8 *mac)
 	    os_printf("%02X ", mac[i]);
 	os_printf("\n");
 }
+
+static int bk_check_mac_address(u8 *mac)
+{
+	if (mac[0] != 0xc8 || mac[1] != 0x47 || mac[2] != 0x8c) {
+		BK_LOGE(TAG, "not a beken mac addr\n");
+		return 1;
+	} else
+		return 0;
+}
 #endif
 
 static int mac_init(void)
@@ -172,19 +181,31 @@ static int mac_init(void)
 #if (CONFIG_BASE_MAC_FROM_EFUSE)
         ret = read_base_mac_from_efuse(s_base_mac);
 #elif (CONFIG_BASE_MAC_FROM_RF_OTP_FLASH)
+#if CONFIG_WIFI6_CODE_STACK
+        ret = get_net_info(WIFI_MAC_ITEM, s_base_mac, NULL, NULL);
+#else
         ret = read_base_mac_from_rf_otp_flash(s_base_mac);
+#endif
 #elif (CONFIG_BASE_MAC_FROM_NVS)
 	ret = read_base_mac_from_nvs(s_base_mac);
 #endif
 
 #if (CONFIG_RANDOM_MAC_ADDR)
-	if ((BK_OK != ret) ||BK_IS_GROUP_MAC(s_base_mac)) {
+	if ((BK_OK != ret) ||BK_IS_GROUP_MAC(s_base_mac)
+#if CONFIG_WIFI6_CODE_STACK
+		|| bk_check_mac_address(s_base_mac)
+#endif
+		) {
 		os_memcpy(s_base_mac, DEFAULT_MAC_ADDR, BK_MAC_ADDR_LEN);
 		random_mac_address(s_base_mac);
 #if (CONFIG_BASE_MAC_FROM_EFUSE)
 		ret = write_base_mac_to_efuse(s_base_mac);
 #elif (CONFIG_BASE_MAC_FROM_RF_OTP_FLASH)
+#if CONFIG_WIFI6_CODE_STACK
+		save_net_info(WIFI_MAC_ITEM, s_base_mac, NULL, NULL);
+#else
 		ret = write_base_mac_to_rf_otp_flash(s_base_mac);
+#endif
 #elif (CONFIG_BASE_MAC_FROM_NVS)
 		ret = write_base_mac_to_nvs(s_base_mac);
 #endif
@@ -266,7 +287,11 @@ bk_err_t bk_set_base_mac(const uint8_t *mac)
 #if (CONFIG_BASE_MAC_FROM_EFUSE)
 	ret = write_base_mac_to_efuse(mac);
 #elif (CONFIG_BASE_MAC_FROM_RF_OTP_FLASH)
-	ret = write_base_mac_to_rf_otp_flash(mac);
+#if CONFIG_WIFI6_CODE_STACK
+		ret = save_net_info(WIFI_MAC_ITEM, s_base_mac, NULL, NULL);
+#else
+		ret = write_base_mac_to_rf_otp_flash(s_base_mac);
+#endif
 #elif (CONFIG_BASE_MAC_FROM_NVS)
 	ret = write_base_mac_to_nvs(mac);
 #endif

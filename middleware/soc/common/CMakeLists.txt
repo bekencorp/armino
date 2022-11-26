@@ -18,6 +18,12 @@ set(srcs
 	hal/adc_hal.c
 	)
 
+if (CONFIG_AON_WDT)
+	list(APPEND srcs
+		hal/aon_wdt_hal.c
+	)
+endif()
+
 if (CONFIG_FLASH)
 	list(APPEND srcs
 		hal/flash_hal.c
@@ -75,6 +81,12 @@ endif()
 if(CONFIG_JPEG_ENCODE)
 	list(APPEND srcs
 		"hal/jpeg_hal.c"
+	)
+endif()
+
+if(CONFIG_YUV_BUF)
+	list(APPEND srcs
+		"hal/yuv_buf_hal.c"
 	)
 endif()
 

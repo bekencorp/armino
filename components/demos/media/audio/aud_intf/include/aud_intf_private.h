@@ -63,6 +63,7 @@ typedef struct {
 	aud_adc_samp_rate_t samp_rate;		/**< mic sample rate */
 	uint16_t frame_size;				/**< size: a frame packet mic data size(byte) */
 	uint8_t mic_gain;					/**< audio adc gain: value range:0x0 ~ 0x3f */
+	aud_intf_mic_type_t mic_type;		/**< audio mic type: uac or microphone */
 
 	void (*aud_tras_drv_mic_event_cb)(aud_tras_drv_mic_event_t event, bk_err_t result);
 } aud_intf_mic_config_t;
@@ -87,6 +88,7 @@ typedef struct {
 	uint16_t frame_size;				/**< size: a frame packet speaker data size(byte) */
 	uint8_t spk_gain;					/**< audio dac gain: value range:0x0 ~ 0x3f */
 	aud_dac_work_mode_t work_mode;				/**< audio dac mode: signal_ended/differen */
+	aud_intf_spk_type_t spk_type;				/**< audio speaker type: uac or speaker */
 
 	uint32_t *spk_rx_ring_buff;				/**< the ring buffer address of received speaker data */
 	uint16_t fifo_frame_num;			/**< audio dac start work when the fram number received is equal to fifo_frame_num */
@@ -104,8 +106,14 @@ typedef enum {
 	EVENT_AUD_TRAS_VOC_START,
 	EVENT_AUD_TRAS_VOC_PAUSE,
 	EVENT_AUD_TRAS_VOC_STOP,
+	EVENT_AUD_TRAS_VOC_CTRL_SPK,
+	EVENT_AUD_TRAS_VOC_CTRL_MIC,
+	EVENT_AUD_TRAS_VOC_CTRL_AEC,
 	EVENT_AUD_TRAS_VOC_SET_AEC_PARA,
 	EVENT_AUD_TRAS_VOC_GET_AEC_PARA,
+	EVENT_AUD_TRAS_VOC_TX_DEBUG,
+	EVENT_AUD_TRAS_VOC_RX_DEBUG,
+	EVENT_AUD_TRAS_VOC_AEC_DEBUG,
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 #if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 	EVENT_AUD_TRAS_VOC_AEC_DUMP,
@@ -158,7 +166,7 @@ typedef struct {
 	bool tx_buff_status;		//malloc tx buffer complete
 	tx_buff_t ping;
 	tx_buff_t pang;
-	uint16_t buff_length;
+	uint16_t buff_length;		//byte
 } tx_info_t;
 
 /* rx buffer config of audio transfer */
@@ -199,6 +207,10 @@ typedef struct {
 	rx_info_t rx_info;
 
 	aud_intf_voc_data_type_t data_type;
+	aud_intf_voc_mic_ctrl_t mic_en;			/**< mic default status */
+	aud_intf_voc_spk_ctrl_t spk_en;			/**< spk default status */
+	aud_intf_mic_type_t mic_type;			/**< audio mic type: uac or microphone */
+	aud_intf_spk_type_t spk_type;			/**< audio speaker type: uac or speaker */
 
 //	aud_cb_t aud_cb;
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
@@ -301,7 +313,14 @@ typedef struct {
 	uint32_t param3;
 } aud_intf_msg_t;
 
+/**************** audio interface avi ****************/
+typedef enum {
+	EVENT_AUD_TRAS_AVI_START,
+	EVENT_AUD_TRAS_AVI_STOP,
+	EVENT_AUD_TRAS_AVI_MAX,
+} aud_tras_drv_avi_event_t;
 
+typedef void (*aud_tras_drv_avi_event_cb)(aud_tras_drv_avi_event_t event, bk_err_t result);
 
 #ifdef __cplusplus
 }

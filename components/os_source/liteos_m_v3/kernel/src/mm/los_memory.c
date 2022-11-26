@@ -1972,9 +1972,9 @@ VOID OsMemInfoPrint(VOID *pool)
 #endif
 }
 
-UINT32 OsMemGetFreeSize(VOID *pool)
+UINT32 OsGetTotalHeapSize(VOID *pool)
 {
-	UINT32 count = 0;
+    UINT32 count = 0;
 
 #if (LOSCFG_KERNEL_PRINTF != 0)
     LOS_MEM_POOL_STATUS status = {0};
@@ -1983,10 +1983,27 @@ UINT32 OsMemGetFreeSize(VOID *pool)
         return 0;
     }
 
-	count = status.totalFreeSize;
+    count = status.totalFreeSize;
 #endif
 
-	return count;
+    return count;
+}
+
+UINT32 OsMemGetFreeSize(VOID *pool)
+{
+    UINT32 count = 0;
+
+#if (LOSCFG_KERNEL_PRINTF != 0)
+    LOS_MEM_POOL_STATUS status = {0};
+
+    if (LOS_MemInfoGet(pool, &status) == LOS_NOK) {
+        return 0;
+    }
+
+    count = status.totalFreeSize;
+#endif
+
+    return count;
 }
 
 UINT32 LOS_MemFreeNodeShow(VOID *pool)

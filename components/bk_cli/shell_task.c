@@ -149,21 +149,12 @@ typedef struct
 	u32     empty_cnt;
 } free_queue_t;
 
-#if CONFIG_ARCH_RISCV && !CONFIG_SLAVE_CORE
-static __attribute__((section(".dtcm_sec_data "))) u8    shell_log_buff1[SHELL_LOG_BUF1_NUM * SHELL_LOG_BUF1_LEN];
-static __attribute__((section(".dtcm_sec_data "))) u8    shell_log_buff2[SHELL_LOG_BUF2_NUM * SHELL_LOG_BUF2_LEN];
-static __attribute__((section(".dtcm_sec_data "))) u8    shell_log_buff3[SHELL_LOG_BUF3_NUM * SHELL_LOG_BUF3_LEN];
-static __attribute__((section(".dtcm_sec_data "))) u16   buff1_free_list[SHELL_LOG_BUF1_NUM];
-static __attribute__((section(".dtcm_sec_data "))) u16   buff2_free_list[SHELL_LOG_BUF2_NUM];
-static __attribute__((section(".dtcm_sec_data "))) u16   buff3_free_list[SHELL_LOG_BUF3_NUM];
-#else
 static u8    shell_log_buff1[SHELL_LOG_BUF1_NUM * SHELL_LOG_BUF1_LEN];
 static u8    shell_log_buff2[SHELL_LOG_BUF2_NUM * SHELL_LOG_BUF2_LEN];
 static u8    shell_log_buff3[SHELL_LOG_BUF3_NUM * SHELL_LOG_BUF3_LEN];
 static u16   buff1_free_list[SHELL_LOG_BUF1_NUM];
 static u16   buff2_free_list[SHELL_LOG_BUF2_NUM];
 static u16   buff3_free_list[SHELL_LOG_BUF3_NUM];
-#endif
 
 /*    queue sort ascending in blk_len.    */
 static free_queue_t       free_queue[3] =
@@ -399,8 +390,11 @@ static void shell_tx_complete(u8 *pbuf, u16 buf_tag)
 
 		cmd_line_buf.rsp_ongoing = bFALSE;   /* rsp compelete, rsp_buff can be used for next cmd/response. */
 
-		//set_shell_event(SHELL_EVENT_TX_REQ);  // notify shell task to process the log tx.
-		tx_req_process();
+		if(log_dev == cmd_dev)
+		{
+			//set_shell_event(SHELL_EVENT_TX_REQ);  // notify shell task to process the log tx.
+			tx_req_process();
+		}
 
 		return;  
 	}
@@ -575,7 +569,7 @@ static bool_t cmd_hint_out(void)
 
 		u32  int_mask = rtos_disable_int();
 
-		push_pending_queue(hint_blk_tag, shell_fault_str_len);
+		push_pending_queue(hint_blk_tag, shell_cmd_ovf_str_len);
 
 		//set_shell_event(SHELL_EVENT_TX_REQ);  // notify shell task to process the log tx.
 		tx_req_process();
@@ -1051,6 +1045,7 @@ static void rx_ind_process(void)
 }
 
 void shell_rx_wakeup(int);
+extern gpio_id_t bk_uart_get_rx_gpio(uart_id_t id);
 
 static void shell_task_init(void)
 {
@@ -1098,7 +1093,7 @@ static void shell_task_init(void)
 
 	shell_init_ok = bTRUE;
 
-	shell_rx_wakeup(0);
+	shell_rx_wakeup(bk_uart_get_rx_gpio(bk_get_printf_port()));
 
 	if(ate_is_enabled())
 		prompt_str_idx = 1;
@@ -1595,7 +1590,6 @@ void shell_log_flush(void)
 	rtos_enable_int(int_mask);
 }
 
-extern gpio_id_t bk_uart_get_rx_gpio(uart_id_t id);
 void shell_power_save_enter(void)
 {
 	u32		flush_log = 1;
@@ -1605,8 +1599,8 @@ void shell_power_save_enter(void)
 
 	if(cmd_dev->dev_type == SHELL_DEV_UART)
 	{
-		//u32  gpio_id = bk_uart_get_rx_gpio(bk_get_printf_port());
-		//bk_gpio_register_isr(gpio_id, (gpio_isr_t)shell_rx_wakeup);
+		u32  gpio_id = bk_uart_get_rx_gpio(bk_get_printf_port());
+		bk_gpio_register_isr(gpio_id, (gpio_isr_t)shell_rx_wakeup);
 	}
 }
 
@@ -1624,12 +1618,16 @@ void shell_power_save_exit(void)
 
 void shell_rx_wakeup(int gpio_id)
 {
-	(void)gpio_id;
-
 	// bk_pm_module_vote_sleep_ctrl(PM_POWER_MODULE_NAME_APP, 0, 0);
 	shell_pm_wake_flag = 1;
 	shell_pm_wake_time = SHELL_TASK_WAKE_CYCLE;
-	bk_uart_set_enable_rx(bk_get_printf_port(), 1);
+
+	if(cmd_dev->dev_type == SHELL_DEV_UART)
+	{
+		bk_gpio_register_isr(gpio_id, NULL);
+		bk_uart_set_enable_rx(bk_get_printf_port(), 1);
+	}
+
 	shell_log_raw_data((const u8*)"wakeup\r\n", sizeof("wakeup\r\n") - 1);
 }
 

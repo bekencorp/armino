@@ -112,6 +112,9 @@ static void cli_sd_card_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 	if (os_strcmp(argv[1], "init") == 0) {
 		BK_LOG_ON_ERR(bk_sd_card_init());
 		CLI_LOGI("sd card init ok\r\n");
+	} else if(os_strcmp(argv[1], "deinit") == 0){
+		BK_LOG_ON_ERR(bk_sd_card_deinit());
+		CLI_LOGI("sd card deinit ok\r\n");
 	} else if (os_strcmp(argv[1], "read") == 0) {
 		uint32_t block_num = os_strtoul(argv[2], NULL, 10);
 		uint8_t *buf = os_malloc(SD_CARD_READ_BUFFER_SIZE * block_num);
@@ -198,7 +201,7 @@ static void cli_sd_card_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 static const struct cli_command s_sdio_host_commands[] = {
 	{"sdio_host_driver", "sdio_host_driver {init|deinit}", cli_sdio_host_driver_cmd},
 	{"sdio", "sdio {init|deinit|send_cmd|config_data}", cli_sdio_host_cmd},
-	{"sd_card", "sd_card {init|read|write|erase|cmp|}", cli_sd_card_cmd},
+	{"sd_card", "sd_card {init|deinit|read|write|erase|cmp|}", cli_sd_card_cmd},
 };
 
 int cli_sdio_host_init(void)

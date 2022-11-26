@@ -16,16 +16,23 @@ set(TEST_NS_SLIH_IRQ                  OFF   CACHE BOOL    "Whether to build NS r
 set(CRYPTO_HW_ACCELERATOR               ON          CACHE BOOL      "Whether to enable the crypto hardware accelerator on supported platforms")
 set(CRYPTO_NV_SEED                      OFF         CACHE BOOL      "Use stored NV seed to provide entropy")
 set(BL2                                 ON         CACHE BOOL      "Whether to build BL2")
-
+set(DEFAULT_MCUBOOT_FLASH_MAP           OFF          CACHE BOOL      "Whether to use the default flash map defined by TF-M project")
+set(FPGA                         OFF         CACHE BOOL      "Build for FPGA")
 if(BL2)
-    set(BL2_TRAILER_SIZE 0x10000 CACHE STRING "Trailer size")
+    #At least 1 flash sector for header/trailer
+    set(BL2_HEADER_SIZE  0x1000 CACHE STRING "Header size")
+    set(BL2_TRAILER_SIZE 0x1000 CACHE STRING "Trailer size")
 else()
     #No header if no bootloader, but keep IMAGE_CODE_SIZE the same
-    set(BL2_TRAILER_SIZE 0x10400 CACHE STRING "Trailer size")
+    set(BL2_TRAILER_SIZE 0x2000 CACHE STRING "Trailer size")
 endif()
 
 include(platform/ext/target/beken/bk7236/repo_fetch.cmake)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DCONFIG_BUILD_DEBUG)
+endif()
+
+if(FPGA)
+    add_definitions(-DCONFIG_FPGA)
 endif()

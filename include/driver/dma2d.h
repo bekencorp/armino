@@ -13,7 +13,7 @@
 // limitations under the License.                                              
 
 #pragma once
-#include <driver/hal/hal_dma2d_types.h>
+#include <driver/dma2d_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,28 +28,43 @@ extern "C" {
 /**
  * @brief    initializes the DMA2D system and peripheral registers
  *          - open dma2d sys interrupt enable
- *          - config dma2d work mode/ data format/ offset etc.
  *
  * @attention  you can reference cli_dma2d.c for all API usage
  *
  * @param  dma2d_config pointer to a dma2d_config_t structure that contains
  *         the configuration information for the DMA2D.
  *
- * Usage example:
- *
- *            dma2d_config_t dma2d_config = {0};
- *            dma2d_config.init.mode = DMA2D_R2M;                     Mode Register to Memory 
- *            dma2d_config.init.color_mode = DMA2D_OUTPUT_RGB565;       DMA2D Output color mode is ARGB4444 (16 bpp)
- *            dma2d_config.init.output_offset = 0;            No offset in output 
- *            dma2d_config.init.red_blue_swap = DMA2D_RB_REGULAR;       No R&B swap for the output image 
- *            dma2d_config.init.alpha_inverted = DMA2D_REGULAR_ALPHA;   No alpha inversion for the output image
- *            bk_dma2d_driver_init(&dma2d_config);
  *
  * @return
  *        - BK_OK: succeed
  *        - others: other errors.
  */
- bk_err_t bk_dma2d_driver_init(dma2d_config_t *dma2d);
+bk_err_t bk_dma2d_driver_init(void);
+
+ /**
+  * @brief	   config dma2d work mode/ data format/ offset etc.
+  *
+  * @attention	you can reference cli_dma2d.c for all API usage
+  *
+  * @param	dma2d_config pointer to a dma2d_config_t structure that contains
+  * 		the configuration information for the DMA2D.
+  *
+  * Usage example:
+  *
+  * 		   dma2d_config_t dma2d_config = {0};
+  * 		   dma2d_config.init.mode = DMA2D_R2M;					   Mode Register to Memory 
+  * 		   dma2d_config.init.color_mode = DMA2D_OUTPUT_RGB565;		 DMA2D Output color mode is ARGB4444 (16 bpp)
+  * 		   dma2d_config.init.output_offset = 0; 		   No offset in output 
+  * 		   dma2d_config.init.red_blue_swap = DMA2D_RB_REGULAR;		 No R&B swap for the output image 
+  * 		   dma2d_config.init.alpha_inverted = DMA2D_REGULAR_ALPHA;	 No alpha inversion for the output image
+  * 		   bk_dma2d_init(&dma2d_config);
+  *
+  * @return
+  * 	   - BK_OK: succeed
+  * 	   - others: other errors.
+  */
+
+bk_err_t bk_dma2d_init(dma2d_config_t *dma2d);
 
 /**
   * @brief  Deinitializes the DMA2D peripheral registers to their default reset values.
@@ -270,6 +285,31 @@ bk_err_t bk_dma2d_isr_register(dma2d_isr_t dma2d_isr);
   */
 bk_err_t bk_dma2d_register_int_callback_isr(dm2d_isr_id_t isr_id, dma2d_isr_t cb_isr);
 #endif
+
+
+
+/**
+  * @brief  config dma2d blend
+  *
+  * @param    - dma2d_blend struct to config blend params
+  * 
+  * @return
+  *     - BK_OK: succeed
+  *     - others: other errors.
+  */
+bk_err_t bk_dma2d_blend(dma2d_blend_t *dma2d_blend);
+
+
+/**
+  * @brief  config dma2d pixel revert
+  *
+  * @param    - dma2d_pixel_convert_t struct  to config pixel convert params
+  * 
+  * @return
+  *     - BK_OK: succeed
+  *     - others: other errors.
+  */
+void bk_dma2d_pixel_convert(dma2d_pixel_convert_t *pixel_convert);
 
 /**
   * @brief  DMA2D API END

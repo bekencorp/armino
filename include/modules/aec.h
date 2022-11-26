@@ -20,9 +20,7 @@
 extern "C" {
 #endif//__cplusplus
 
-//#define AEC_MAX_MIC_DELAY       (2000)
-
-
+typedef struct _AECContext AECContext;
 /**
  * @brief AEC enum defines
  * @defgroup AEC enums
@@ -53,9 +51,13 @@ enum AEC_CTRL_CMD
 	AEC_CTRL_CMD_SET_REF_SCALE,    /**<Set reference scale */
 	AEC_CTRL_CMD_SET_TxRxThr,      /**<Set TxRxThr */
 	AEC_CTRL_CMD_SET_TxRxFlr,      /**<Set TxRxFlr */
+    AEC_CTRL_CMD_SET_ECRSD1,       /**<Set ECRSD1 */
+	AEC_CTRL_CMD_SET_ECRSD2,       /**<Set ECRSD2 */
+	AEC_CTRL_CMD_SET_RSDBAND,      /**<Set RSDBAND */
 	AEC_CTRL_CMD_SET_NS_PARA,      /**<Set ns parameter */
 	AEC_CTRL_CMD_SET_PARAMS,       /**<Set parameters */
-
+    AEC_CTRL_CMD_SET_EC_COE,       /**<Set EC_COE */
+    AEC_CTRL_CMD_SET_DRC_TAB,      /**<Set DRC_TAB */
 	AEC_CTRL_CMD_GET_RX_BUF,       /**<Get rx buffer addr */
 	AEC_CTRL_CMD_GET_TX_BUF,       /**<Get tx buffer addr */
 	AEC_CTRL_CMD_GET_OUT_BUF,      /**<Get output buffer addr */
@@ -65,8 +67,6 @@ enum AEC_CTRL_CMD
 /**
  * @}
  */
-	typedef struct _AECContext AECContext;         /**<AEC struct */
-
 /**
  * @brief AUD struct defines
  * @defgroup bk_api_aud_structs structs in AUD
@@ -90,10 +90,12 @@ enum AEC_CTRL_CMD
 /**
  * @brief     Get AECContext size (byte)
  *
+ * @param delay delay samples
+ *
  * @return
  *    - uint32_t: size(byte)
  */
-uint32_t aec_size    (void);
+uint32_t  aec_size    (uint32_t delay);
 
 /**
  * @brief     Init aec

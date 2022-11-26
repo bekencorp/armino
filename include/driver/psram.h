@@ -32,42 +32,12 @@ extern "C" {
  */
 
 /**
- * @brief     Init the PSRAM driver
- *
- * This API init the resoure common to PSRAM:
- *   - Init PSRAM driver control register
- *   - Configure PSRAM Clock and voltage selection
- *
- * This API should be called before any other use PSRAM.
- *
- * @return
- *    - BK_OK: succeed
- *    - others: other errors.
- */
-bk_err_t bk_psram_driver_init(void);
-
-/**
- * @brief     Deinit the PSRAM driver
- *
- * This API free the resoure common to PSRAM:
- *   - Init PSRAM driver control register
- *   - power down PSRAM voltage
- *
- *
- * @return
- *    - BK_OK: succeed
- *    - others: other errors.
- */
-bk_err_t bk_psram_driver_deinit(void);
-
-/**
  * @brief     Init the PSRAM HW
  *
  * This API init the resoure common to all PSRAM:
- *   - Configure the clock control register
+ *   - Psram power up, configure the clock control register
  *   - Select a frequency multiple
- *   - Flash clock select
- *   - Enable the clock
+ *   - Psram config
  *
  * This API should be called before any other PSRAM APIs.
  *
@@ -84,12 +54,40 @@ bk_err_t bk_psram_init(void);
  *   - Init PSRAM HW control register
  *   - power down PSRAM voltage
  *
- *
+ * @attation 1. after calling this function, this api bk_psram_resume can not enable psram function
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
  */
 bk_err_t bk_psram_deinit(void);
+
+/**
+ * @brief     close psram function
+ *
+ * This API will total clear psram function, cannot called repeate whitout called bk_psram_resume
+ *
+ * @attation 1. if call bk_psram_resume psram will enable function again.
+ * @attation 2. this api will only valied when bk_psram_init have been called before
+ *
+ * @return void
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_psram_suspend(void);
+
+/**
+ * @brief     enable psram function function
+ *
+ * This API will total enable psram function, cannot called repeate whitout called bk_psram_suspend
+ *
+ * @attation 1. if call bk_psram_resume psram will enable function again
+ * @attation 2. this api will only valied when bk_psram_init have been called before
+ *
+ * @return void
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_psram_resume(void);
 
 /**
  * @brief     continue write data to psram

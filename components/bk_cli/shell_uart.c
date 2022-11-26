@@ -102,6 +102,16 @@ shell_dev_t     shell_uart3 =
 	};
 #endif
 
+static const uart_config_t config = 
+	{
+        .baud_rate = UART_BAUD_RATE,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_NONE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_FLOWCTRL_DISABLE,
+        .src_clk = UART_SCLK_XTAL_26M
+	};
+
 /* ===============================  internal functions  =========================== */
 
 static void shell_uart_rx_isr(int uartn, shell_uart_ext_t *uart_ext)
@@ -274,6 +284,10 @@ static bool_t shell_uart_init(shell_dev_t * shell_dev)
 	uart_ext->tx_stopped = 1;
 	uart_ext->tx_suspend = 0;
 	uart_ext->uart_id = uart_id;
+
+	bk_uart_init(uart_id, &config);
+	bk_uart_set_enable_rx(uart_id, 0);
+	bk_uart_set_enable_rx(uart_id, 1);
 
 	return bTRUE;
 }

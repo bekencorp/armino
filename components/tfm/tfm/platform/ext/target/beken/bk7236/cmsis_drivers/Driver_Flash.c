@@ -18,7 +18,15 @@
 #include "platform_retarget.h"
 #include "RTE_Device.h"
 #include "driver/flash.h"
+#include "components/log.h"
 #include "common/bk_err.h"
+#include "bk_tfm_log.h"
+
+#define TAG "cmsis_flash"
+#define BK_TFM_FLASH_LOGD BK_LOGD
+#define BK_TFM_FLASH_LOGI BK_LOGI
+#define BK_TFM_FLASH_LOGW BK_LOGW
+#define BK_TFM_FLASH_LOGE BK_LOGE
 
 #ifndef ARG_UNUSED
 #define ARG_UNUSED(arg)  ((void)arg)
@@ -27,6 +35,9 @@
 /* Driver version */
 #define ARM_FLASH_DRV_VERSION      ARM_DRIVER_VERSION_MAJOR_MINOR(1, 1)
 #define ARM_FLASH_DRV_ERASE_VALUE  0xFF
+
+#define FLASH_CBUS_ADDR_FLAG          (1<<31)
+#define FLASH_CLR_CBUS_ADDR_FLAG(x)   (x) &= ~FLASH_CBUS_ADDR_FLAG
 
 /**
  * Data width values for ARM_FLASH_CAPABILITIES::data_width
@@ -75,9 +86,9 @@ static const ARM_FLASH_CAPABILITIES DriverCapabilities = {
     1  /* erase_chip */
 };
 
-static bool is_access_from_code_bus(uint32_t absolute_addr)
+static bool is_access_from_code_bus(uint32_t addr)
 {
-    return true;
+    return !!(addr & FLASH_CBUS_ADDR_FLAG);
 }
 
 static uint32_t flash_sector_count(void)
@@ -196,9 +207,18 @@ static int32_t Flash_PowerControl(ARM_POWER_STATE state)
 
 static int32_t Flash_ReadData(uint32_t addr, void *data, uint32_t cnt)
 {
-    uint32_t offset = addr;
-    uint32_t start_addr = FLASH0_DEV->memory_base + addr;
+    bool use_cbus = false;
     int32_t rc = 0;
+
+    BK_TFM_FLASH_LOGD(TAG, "read off=%x cnt=%x\r\n", addr, cnt);
+
+    if (cnt == 0) {
+        BK_TFM_FLASH_LOGW(TAG, "read 0B\r\n");
+        return ARM_DRIVER_OK;
+    }
+
+    use_cbus = is_access_from_code_bus(addr);
+    FLASH_CLR_CBUS_ADDR_FLAG(addr);
 
     /* CMSIS ARM_FLASH_ReadData API requires the `addr` data type size aligned.
      * Data type size is specified by the data_width in ARM_FLASH_CAPABILITIES.
@@ -213,27 +233,39 @@ static int32_t Flash_ReadData(uint32_t addr, void *data, uint32_t cnt)
     /* Check flash memory boundaries */
     rc = is_range_valid(FLASH0_DEV, addr + cnt);
     if (rc != 0) {
+        BK_TFM_FLASH_LOGE(TAG, "invalid addr range, addr=%x cnt=%x\r\n", addr, cnt);
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    if (is_access_from_code_bus(start_addr)) {
-        memcpy(data, (void *)start_addr, cnt);
+    if (use_cbus) {
+        BK_TFM_FLASH_LOGD(TAG, "flash cbus read, addr=%x cnt=%x+\r\n", FLASH0_DEV->memory_base + addr, cnt);
+        memcpy(data, (volatile void *)(FLASH0_DEV->memory_base + addr), cnt);
+        BK_TFM_FLASH_LOGD(TAG, "flash cbus read-\r\n");
     } else {
-        BK_LOG_ON_ERR(bk_flash_read_bytes(offset, data, cnt));
+        BK_LOG_ON_ERR(bk_flash_read_bytes(addr, data, cnt));
     }
 
     /* Conversion between bytes and data items */
     cnt /= data_width_byte[DriverCapabilities.data_width];
 
+    BK_TFM_DUMP_BUF("cmsis flash read", data, cnt);
     return cnt;
 }
 
 static int32_t Flash_ProgramData(uint32_t addr, const void *data,
                                      uint32_t cnt)
 {
-    uint32_t offset = addr;
-    uint32_t start_addr = FLASH0_DEV->memory_base + addr;
+    bool use_cbus = false;
     int32_t rc = 0;
+
+    BK_TFM_FLASH_LOGD(TAG, "write off=%x cnt=%x base=%x\r\n", addr, cnt, FLASH0_DEV->memory_base);
+
+    if (cnt == 0) {
+        BK_TFM_FLASH_LOGW(TAG, "write 0B\r\n");
+        return ARM_DRIVER_OK;
+    }
+    use_cbus = is_access_from_code_bus(addr);
+    FLASH_CLR_CBUS_ADDR_FLAG(addr);
 
     /* Conversion between data items and bytes */
     cnt *= data_width_byte[DriverCapabilities.data_width];
@@ -247,12 +279,12 @@ static int32_t Flash_ProgramData(uint32_t addr, const void *data,
     }
 
     /* Check if the flash area to write the data was erased previously */
-    rc = is_flash_ready_to_write((const uint8_t*)start_addr, cnt);
 
-    if (is_access_from_code_bus(start_addr)) {
-        memcpy((void *)start_addr, data, cnt);
+    if (use_cbus) {
+        memcpy((volatile uint8_t*)(FLASH0_DEV->memory_base + addr), (uint8_t*)data, cnt);
     } else {
-        BK_LOG_ON_ERR(bk_flash_write_bytes(offset, data, cnt));
+        rc = is_flash_ready_to_write((const uint8_t*)addr, cnt);
+        BK_LOG_ON_ERR(bk_flash_write_bytes(addr, data, cnt));
     }
 
     /* Conversion between bytes and data items */
@@ -267,19 +299,15 @@ static int32_t Flash_EraseSector(uint32_t addr)
     uint32_t start_addr = FLASH0_DEV->memory_base + addr;
     uint32_t rc = 0;
 
+    BK_TFM_FLASH_LOGD(TAG, "flash erase off=%x\r\n", addr);
+
     rc  = is_range_valid(FLASH0_DEV, addr);
     rc |= is_sector_aligned(FLASH0_DEV, addr);
     if (rc != 0) {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
-    if (is_access_from_code_bus(addr)) {
-        memset((void *)start_addr,
-               FLASH0_DEV->data->erased_value,
-               FLASH0_DEV->data->sector_size);
-    } else {
-        BK_LOG_ON_ERR(bk_flash_erase_sector(offset));
-    }
+    BK_LOG_ON_ERR(bk_flash_erase_sector(offset));
 
     return ARM_DRIVER_OK;
 }
@@ -294,14 +322,8 @@ static int32_t Flash_EraseChip(void)
     /* Check driver capability erase_chip bit */
     if (DriverCapabilities.erase_chip == 1) {
         for (i = 0; i < flash_sector_count(); i++) {
-            if (is_access_from_code_bus(addr)) {
-                memset((void *)addr,
-                       FLASH0_DEV->data->erased_value,
-                       FLASH0_DEV->data->sector_size);
-            } else {
                 offset = addr - FLASH0_DEV->memory_base;
                 BK_LOG_ON_ERR(bk_flash_erase_sector(addr)); //TODO double check address offset
-            }
 
             addr += FLASH0_DEV->data->sector_size;
             rc = ARM_DRIVER_OK;

@@ -10,4 +10,3 @@ camera
    DVP Capture <bk_dvp_capture>
    UVC LCD_display <bk_uvc_display>
    UVC Capture <bk_uvc_capture>
-   DOORBELL <bk_doorbell>

@@ -280,6 +280,15 @@ void rtos_suspend_thread(beken_thread_t *thread);
 void rtos_suspend_all_thread(void);
 
 
+/** @brief    resume a thread
+  *
+  * @param    thread     : the handle of the thread to resume, NULL is the current thread
+  *
+  * @return   none
+  */
+void rtos_resume_thread(beken_thread_t* thread);
+
+
 /** @brief    Rresume all other thread
   *
   * @param    none
@@ -795,7 +804,13 @@ uint32_t rtos_get_cpsr(void);
 char* rtos_get_name(void);
 char* rtos_get_version(void);
 
+size_t rtos_get_total_heap_size(void);
 size_t rtos_get_free_heap_size(void);
+size_t rtos_get_minimum_free_heap_size(void);
+size_t rtos_get_psram_total_heap_size(void);
+size_t rtos_get_psram_free_heap_size(void);
+size_t rtos_get_psram_minimum_free_heap_size(void);
+
 uint32_t rtos_get_tick_count(void);
 
 uint32_t rtos_disable_int(void);

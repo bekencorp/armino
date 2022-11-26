@@ -1,0 +1,22 @@
+menu "AON_RTC"
+	config AON_RTC
+		bool "Enable AON_RTC"
+		default n
+
+	config AON_RTC_MANY_USERS
+		bool "Enable AON_RTC support many users"
+		default n
+
+	config AON_RTC_TEST
+		bool "Enable AON_RTC Test,F.E:Command line test"
+		default n
+
+	config AON_RTC_DEBUG
+		bool "Enable AON_RTC Debug"
+		default n
+
+	config AON_RTC_KEEP_TIME_SUPPORT
+		bool "Enable rtc keep time when enter deepsleep,set data on flash"
+		default n
+endmenu
+

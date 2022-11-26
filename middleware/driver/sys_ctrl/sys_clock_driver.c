@@ -208,16 +208,17 @@ void sys_drv_timer_select_clock(sys_sel_timer_t num, timer_src_clk_t mode)
 
 void sys_drv_usb_clock_ctrl(bool ctrl, void *arg)
 {
-	uint32_t int_level = rtos_disable_int();
+	uint32_t int_level;
 	uint32_t ret = SYS_DRV_FAILURE;
 	ret = sys_amp_res_acquire();
 
+	int_level = rtos_disable_int();
 	sys_hal_usb_enable_clk(ctrl);
+	rtos_enable_int(int_level);
 
 	if(!ret)
 		ret = sys_amp_res_release();
 
-	rtos_enable_int(int_level);
 }
 
 //sys_ctrl CMD: CMD_SCTRL_SET_FLASH_DCO
@@ -368,3 +369,32 @@ void sys_drv_trng_disckg_set(uint32_t value)
 	sys_hal_trng_disckg_set(value);
 	rtos_enable_int(int_level);
 }
+
+void sys_drv_yuv_buf_pwr_up(void)
+{
+	uint32_t int_level = rtos_disable_int();
+	sys_hal_set_yuv_buf_clock_en(1);
+	rtos_enable_int(int_level);
+}
+
+void sys_drv_yuv_buf_pwr_down(void)
+{
+	uint32_t int_level = rtos_disable_int();
+	sys_hal_set_yuv_buf_clock_en(0);
+	rtos_enable_int(int_level);
+}
+
+void sys_drv_h264_pwr_up(void)
+{
+	uint32_t int_level = rtos_disable_int();
+	sys_hal_set_h264_clock_en(1);
+	rtos_enable_int(int_level);
+}
+
+void sys_drv_h264_pwr_down(void)
+{
+	uint32_t int_level = rtos_disable_int();
+	sys_hal_set_h264_clock_en(0);
+	rtos_enable_int(int_level);
+}
+

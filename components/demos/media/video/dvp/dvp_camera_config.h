@@ -30,9 +30,11 @@ void camera_intf_set_sener_cfg_value(uint32_t cfg);
 
 void camera_intf_set_device(uint32_t dev);
 
-void camera_inf_power_down(void);
+void camera_intf_power_down(void);
 
 void camera_inft_dump_register(void);
+
+void bk_camera_set_config(uint8_t auto_ctrl, uint32_t up_size, uint32_t low_size);
 
 
 #ifdef __cplusplus

@@ -40,6 +40,16 @@
 #define MBEDTLS_SM3_C
 #define MBEDTLS_SM4_C
 
+#define TEE_M 1
+#define ARM_CE_DUBHE 1
+#define DUBHE_SECURE 1
+#define ARM_CE_DUBHE_SCA 1
+#define ARM_CE_DUBHE_TRNG 1
+#define ARM_CE_DUBHE_OTP 1
+#define ARM_CE_DUBHE_HASH 1
+#define ARM_CE_DUBHE_ACA 1
+#define DUBHE_FOR_RUNTIME 1
+
 /*below two macro is used for side channel attack mitigation
  * it will be commented by default, if you want to enable the
  * SCA mitigation,remember to uncomment it

@@ -67,11 +67,13 @@ static inline void jpeg_ll_clear_config(jpeg_hw_t *hw)
 
 static inline void jpeg_ll_enable(jpeg_hw_t *hw)
 {
+	hw->global_ctrl.clk_gate_bypass = 1;
 	hw->cfg.jpeg_enc_en = 1;
 }
 
 static inline void jpeg_ll_disable(jpeg_hw_t *hw)
 {
+	hw->global_ctrl.clk_gate_bypass = 0;
 	hw->cfg.jpeg_enc_en = 0;
 }
 
@@ -147,7 +149,12 @@ static inline void jpeg_ll_disable_vsync_negedge_int(jpeg_hw_t *hw)
 
 static inline void jpeg_ll_set_mclk_div(jpeg_hw_t *hw, uint32_t value)
 {
-    hw->int_en.mclk_div = value;
+	/* set yuv_buf reg4 bit[15] to output MCLK */
+	uint32_t val = REG_READ(SOC_YUV_BUF_REG_BASE + 0x4 * 4);
+	val |= (1 << 15);
+	REG_WRITE(SOC_YUV_BUF_REG_BASE + 0x4 * 4, val);
+
+	hw->int_en.mclk_div = 2;
 }
 
 static inline void jpeg_ll_enable_enc_size(jpeg_hw_t *hw)
@@ -220,6 +227,16 @@ static inline void jpeg_ll_set_bitrate_mode(jpeg_hw_t *hw, uint32_t mode)
 	hw->cfg.bitrate_mode = mode;
 }
 
+static inline void jpeg_ll_enable_auto_step_2_times(jpeg_hw_t *hw)
+{
+	hw->cfg.auto_step = 1;
+}
+
+static inline void jpeg_ll_auto_step_4_times(jpeg_hw_t *hw)
+{
+	hw->cfg.auto_step = 0;
+}
+
 static inline void jpeg_ll_enable_bitrate_ctrl(jpeg_hw_t *hw, uint32_t value)
 {
 	hw->cfg.bitrate_ctrl = value;
@@ -257,17 +274,29 @@ static inline bool jpeg_ll_is_head_output_int_triggered(jpeg_hw_t *hw, uint32_t 
 
 static inline bool jpeg_ll_is_yuv_end_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return int_status & BIT(3);
+	return false;
 }
 
+static inline bool jpeg_ll_is_frame_err_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
+{
+	return (int_status & BIT(3));
+}
+
+//use in no sensor case
+static inline bool jpeg_ll_is_l_clear_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
+{
+	return (int_status & BIT(5));
+}
+
+//move to yuv_buf module
 static inline bool jpeg_ll_is_vsync_negedge_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return int_status & BIT(4);
+	return false;
 }
 
 static inline void jpeg_ll_set_em_base_addr(jpeg_hw_t *hw, uint32_t value)
 {
-	hw->em_base_addr.em_base_addr = ((value >> 16) | (0x20 << 16));
+	hw->em_base_addr.v = ((value >> 16) | (0x20 << 16));
 }
 
 static inline void jpeg_ll_set_x_partial_offset_l(jpeg_hw_t *hw, uint32_t value)

@@ -1,9 +1,14 @@
 set(incs include include/bk_private)
 
+
 list(APPEND incs
 	../../properties/modules/aec/
 	.
 	)
+
+if (CONFIG_CLI_USER_CONFIG)
+list(APPEND incs ${CONFIG_CLI_USER_CONFIG_DIR})
+endif()
 
 if (CONFIG_CLI)
 set(srcs
@@ -174,7 +179,7 @@ if (CONFIG_SOC_BK7271)
 	list(APPEND srcs "cli_dsp_bk7271.c")
 endif()
 
-if (CONFIG_SOC_BK7256XX)
+if (CONFIG_USB)
 	list(APPEND srcs "cli_usb.c")
 endif()
 
@@ -221,6 +226,12 @@ if (CONFIG_QSPI_OLED_TEST)
 	)
 endif()
 
+if (CONFIG_EASY_FLASH)
+	list(APPEND srcs
+		"cli_easyflash.c"
+	)
+endif()
+
 if (CONFIG_AUDIO_TEST AND CONFIG_AUDIO_RISCV_IP_V1_0)
 	list(APPEND srcs "cli_aud.c")
 endif() #if(CONFIG_AUDIO)
@@ -257,7 +268,7 @@ if (CONFIG_I2S_TEST)
 	list(APPEND srcs "cli_i2s.c")
 endif()
 
-if (CONFIG_TOUCH)
+if (CONFIG_TOUCH_TEST)
 	list(APPEND srcs "cli_touch.c")
 endif()
 
@@ -275,17 +286,15 @@ if (CONFIG_JPEG_DECODE)
 	list(APPEND srcs cli_jpegdec.c)
 endif()
 
-if (CONFIG_CAMERA OR CONFIG_SPIDMA)
-if (CONFIG_APP_DEMO_VIDEO_TRANSFER)
+if (CONFIG_CAMERA AND CONFIG_DVP_TEST)
 	list(APPEND srcs "cli_dvp.c")
-endif()
 endif()
 
 if (CONFIG_DOORBELL)
 	list(APPEND srcs cli_doorbell.c)
 endif()
 
-if (CONFIG_PSRAM)
+if (CONFIG_PSRAM AND CONFIG_PSRAM_TEST)
 	list(APPEND srcs cli_psram.c)
 endif()
 
@@ -309,11 +318,27 @@ if (CONFIG_AUDIO_FLAC_TEST)
 	list(APPEND srcs cli_aud_flac.c)
 endif()
 
+if (CONFIG_QRCODEGEN_TEST)
+	list(APPEND srcs cli_qrcodegen.c)
+endif()
+
+if (CONFIG_CM33_TEST)
+	list(APPEND srcs cli_cm33.c)
+endif()
+
+if (CONFIG_MPC_TEST)
+	list(APPEND srcs cli_mpc.c)
+endif()
+
+if (CONFIG_PRRO_TEST)
+	list(APPEND srcs cli_prro.c)
+endif()
+
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
 	REQUIRES utf8 temp_detect app driver user_driver bk_system iperf fatfs user_driver http adc_key
 	#PRIV_REQUIRES airkiss bk_common bk_netif bk_ble bk_ps
-	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_init at bk_wifi compal media_common media bk_bt ota
+	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_init at bk_wifi compal media_common media bk_bt ota cmsis
 	)
 
 if(CONFIG_ARCH_RISCV)

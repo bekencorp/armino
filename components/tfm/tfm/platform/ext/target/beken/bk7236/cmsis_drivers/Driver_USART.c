@@ -17,7 +17,9 @@
 #include "cmsis.h"
 #include "cmsis_driver_config.h"
 #include "RTE_Device.h"
+#include "device_cfg.h"
 #include "driver/uart.h"
+#include "driver/gpio.h"
 
 #ifndef ARG_UNUSED
 #define ARG_UNUSED(arg)  (void)arg
@@ -79,13 +81,17 @@ typedef struct {
 static int32_t USARTx_Initialize(UARTx_Resources* uart_dev)
 {
     uart_config_t config = {
-        config.baud_rate = UART_BAUDRATE_921600,
+        config.baud_rate = DEFAULT_UART_BAUDRATE,
         config.data_bits = UART_DATA_8_BITS,
         config.parity = UART_PARITY_NONE,
         config.stop_bits = UART_STOP_BITS_1,
         config.flow_ctrl = UART_FLOWCTRL_DISABLE,
         config.src_clk = UART_SCLK_XTAL_26M,
     };
+
+    extern void sys_drv_init(void); //TODO peter
+    sys_drv_init();
+    bk_gpio_driver_init();
 
     bk_uart_driver_init();
     bk_uart_init(uart_dev->id, &config);

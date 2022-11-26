@@ -8,7 +8,7 @@
  BK7237的安全功能基于BK130，实现了security boot与flash加解密等功能。
 
  - security boot基于BOOT ROM的信任链延申，在BOOT ROM中对bootloader bin进行验签，在bootlaoder bin中对app bin进行验签，保证bootloader和app的真实性+完整性，用于确保只有客户的代码可以在芯片上运行；
- - 使用加解密功能需要使用加密工具对bin文件进行加密，正常启动后硬件会自动解密，保障镜像的机密性。
+ - 使用flash加解密功能需要使用加密工具对bin文件进行加密，正常启动后硬件会自动解密，保障镜像的机密性。
 
  使用BK7237的安全功能需要以下五个步骤：
 
@@ -21,12 +21,12 @@
 1. 镜像签名
 ----------------------------------
 
-	当secureboot功能使能之后，BOOT ROM会强制对bootlaoder bin（flash的0x0地址开始）进行验签，只有通过BOOT ROM验签的bootlaoder才能够运行；对app验签在bootlaoder中进行，此功能是否开启可在bootloader中控制。
+    当secureboot功能使能之后，BOOT ROM会强制对bootlaoder bin（flash的0x0地址开始）进行验签，只有通过BOOT ROM验签的bootlaoder才能够运行；对app验签在bootlaoder中进行，此功能是否开启可在bootloader中控制。
     客户可以自己生成密钥对对镜像进行签名。
 
 签名算法
 ********************
-		 - ECDSA P256
+		 - ECDSA P256/P384
 		 - SHA256
 
 签名指令
@@ -98,9 +98,9 @@
 |           | -injsonfile   | configuration.json | input json file                 |
 |           +---------------+--------------------+---------------------------------+
 |  genfile  | -infile       | xx1.bin xx2.bin    | input bin file                  |
-|           +---------------+-------------+----------------------------------------+
+|           +---------------+--------------------+---------------------------------+
 |           | -outfile      | all bin            | Output all bin file             |
-+-----------+---------------+-------------+----------------------------------------+
++-----------+---------------+--------------------+---------------------------------+
 |  version  |  To print the current version of this utility                        |
 +-----------+----------------------------------------------------------------------+
 |  help     | To print this help message                                           |
@@ -172,7 +172,9 @@
 4. 添加CRC校验
 ----------------------------------
 
-    镜像需要添加CRC之后才可以烧写到flash中。上一步镜像加密后会输出对应添加CRC后的版本，可直接用于烧写。
+    CPU在读取FLASH上镜像时硬件会进行CRC校验，因此镜像需要添加CRC之后才可以烧写到flash中。
+    CRC插入规则：每32个字节计算出2个字节的CRC值，插入到该32字节之后；插入CRC之前的地址对应逻辑地址，插入CRC之后的地址对应物理地址。
+    上一步镜像加密后会输出对应添加CRC后的版本，可直接用于烧写。
     提供工具cmake_encrypt_crc.exe用于添加CRC。
 
 - 将需要添加CRC镜像和工具放置在同一目录下，运行脚本add_crc.bat即可。
@@ -193,9 +195,9 @@
 配置文件project.txt的相关配置和烧写过程如下：
 
      - 1.选择对应的project.txt
-     - 2.勾选main bin file，选择all_enc_crc.bin镜像
+     - 2.勾选main bin file，选择all_app_pack_sign_enc_crc.bin镜像
      - 3.勾选OTP选项，会烧写public_key和aes_key
-     - 4.勾选updata eFuse选项，会烧写efuse_cfg和security_boot
+     - 4.勾选updata eFuse选项，会烧写efuse_cfg和security_boot项
      - 5.串口波特率设置为2000000，点击program后上电开始烧写
 
 
@@ -212,7 +214,7 @@
 开启安全后镜像升级方式
 +++++++++++++++++++++++++
 
-    开启安全后，bootloader将不能够升级，只能对app镜像进行升级。
+    开启安全后，当前bootloader将不能够升级，只能对app镜像进行升级。
 
      - 方式一：使用bk_write.exe工具将加密、加CRC之后的app镜像烧写到对应的物理分区上。用于烧写的镜像可根据step1-4生成，也可以直接从编译服务器上获取。
-     - 方式二: 使用OTA升级方式，和非安全版本升级方式一样，见OTA升级。
+     - 方式二: 使用OTA升级方式，使用签名后的app，升级方法和非安全版本一样，见OTA升级。

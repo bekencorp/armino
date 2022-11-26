@@ -37,6 +37,9 @@ extern "C" {
 #define BK_ERR_AUD_INTF_TX_MSG            (BK_ERR_AUD_INTF_BASE - 10)         /**< aud_intf api send message fail */
 #define BK_ERR_AUD_INTF_BUSY              (BK_ERR_AUD_INTF_BASE - 11)         /**< aud_intf is busying */
 #define BK_ERR_AUD_INTF_FILE              (BK_ERR_AUD_INTF_BASE - 12)         /**< aud_intf file operate fail */
+#define BK_ERR_AUD_INTF_UAC_DRV           (BK_ERR_AUD_INTF_BASE - 13)         /**< aud_intf uac driver fail */
+#define BK_ERR_AUD_INTF_UAC_MIC           (BK_ERR_AUD_INTF_BASE - 14)         /**< aud_intf uac mic fail */
+#define BK_ERR_AUD_INTF_UAC_SPK           (BK_ERR_AUD_INTF_BASE - 15)         /**< aud_intf uac spk operate fail */
 
 
 
@@ -62,6 +65,7 @@ typedef struct {
 	bk_err_t (*aud_intf_rx_spk_data)(unsigned int size);						/**< the api is called when playing a frame speaker packet data is complete */
 } aud_intf_drv_setup_t;
 
+typedef bk_err_t (*aud_intf_dump_data_callback)(unsigned char *data, unsigned int size);
 
 /**************** audio interface mic ****************/
 /* audio interface mic channel enum */
@@ -71,12 +75,20 @@ typedef enum {
 	AUD_INTF_MIC_CHL_MAX,
 } aud_intf_mic_chl_t;
 
+/* audio interface mic type */
+typedef enum {
+	AUD_INTF_MIC_TYPE_BOARD = 0,
+	AUD_INTF_MIC_TYPE_UAC,
+	AUD_INTF_MIC_TYPE_MAX,
+} aud_intf_mic_type_t;
+
 /* audio interface mic setup configuration */
 typedef struct {
 	aud_intf_mic_chl_t mic_chl;
 	aud_adc_samp_rate_t samp_rate;		/**< mic sample rate */
 	uint16_t frame_size;				/**< size: a frame packet mic data size(byte) */
 	uint8_t mic_gain;					/**< audio adc gain: value range:0x0 ~ 0x3f, suggest:0x2d */
+	aud_intf_mic_type_t mic_type;		/**< audio mic type: uac or microphone */
 } aud_intf_mic_setup_t;
 
 
@@ -88,6 +100,13 @@ typedef enum {
 	AUD_INTF_SPK_CHL_MAX,
 } aud_intf_spk_chl_t;
 
+/* audio interface mic type */
+typedef enum {
+	AUD_INTF_SPK_TYPE_BOARD = 0,
+	AUD_INTF_SPK_TYPE_UAC,
+	AUD_INTF_SPK_TYPE_MAX,
+} aud_intf_spk_type_t;
+
 /* audio interface speaker setup configuration */
 typedef struct {
 	aud_intf_spk_chl_t spk_chl;
@@ -95,6 +114,7 @@ typedef struct {
 	uint16_t frame_size;						/**< size: a frame packet speaker data size(byte) */
 	uint8_t spk_gain;							/**< audio dac gain: value range:0x0 ~ 0x3f, suggest:0x2d */
 	aud_dac_work_mode_t work_mode;				/**< audio dac mode: signal_ended/differen */
+	aud_intf_spk_type_t spk_type;				/**< audio speaker type: uac or speaker */
 } aud_intf_spk_setup_t;
 
 
@@ -120,6 +140,7 @@ typedef struct {
 	uint32_t ec_depth;			/**< recommended value range: 1~50, the greater the echo, the greater the value setting */
 	uint32_t TxRxThr;			/**< the max amplitude of rx audio data */
 	uint32_t TxRxFlr;			/**< the min amplitude of rx audio data */
+	uint8_t ref_scale;			/**< value range:0,1,2, the greater the signal amplitude, the greater the setting */
 	/* ns */
 	uint8_t ns_level;			/**< recommended value range: 1~8, the lower the noise, the lower the level */
 	uint8_t ns_para;			/**< value range:0,1,2, the lower the noise, the lower the level, the default valude is recommended */
@@ -141,6 +162,20 @@ typedef enum {
 	AUD_INTF_VOC_AEC_MAX,
 } aud_intf_voc_aec_para_t;
 
+/* mic control */
+typedef enum {
+	AUD_INTF_VOC_MIC_OPEN = 0,		/**< open mic */
+	AUD_INTF_VOC_MIC_CLOSE,			/**< close spk */
+	AUD_INTF_VOC_MIC_MAX,
+} aud_intf_voc_mic_ctrl_t;
+
+/* speaker control */
+typedef enum {
+	AUD_INTF_VOC_SPK_OPEN = 0,		/**< open spk */
+	AUD_INTF_VOC_SPK_CLOSE, 		/**< close spk */
+	AUD_INTF_VOC_SPK_MAX,
+} aud_intf_voc_spk_ctrl_t;
+
 /* audio interface voice setup configuration */
 typedef struct {
 	bool aec_enable;						/**< true: enable aec, false: disable aec */
@@ -150,6 +185,11 @@ typedef struct {
 	uint8_t spk_gain;						/**< spk gain: value range:0x0 ~ 0x3f, suggest:0x2d */
 	aud_dac_work_mode_t spk_mode;			/**< audio spk mode: signal_ended/differen */
 	aud_intf_voc_aec_cfg_t aec_cfg;
+
+	aud_intf_voc_mic_ctrl_t mic_en;			/**< mic default status */
+	aud_intf_voc_spk_ctrl_t spk_en;			/**< spk default status */
+	aud_intf_mic_type_t mic_type;			/**< audio mic type: uac or microphone */
+	aud_intf_spk_type_t spk_type;			/**< audio speaker type: uac or speaker */
 } aud_intf_voc_setup_t;
 
 #ifdef __cplusplus

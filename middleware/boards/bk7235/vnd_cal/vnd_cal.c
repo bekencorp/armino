@@ -1,13 +1,22 @@
 #include "vnd_cal.h"
+#include <driver/hal/hal_gpio_types.h>
 
-
-#define DEFAULT_TXID_XTAL               (0x10)
+#define DEFAULT_TXID_XTAL               (0x1C)
 #define CMTAG_FROM_FLASH                1
 #define CMTAG_FROM_CALI                 0
 #if CONFIG_BLE_USE_HIGH_POWER_LEVEL
 #define PWR_GAIN_BASE_BLE               (0xE0A91800)
 #else
 #define PWR_GAIN_BASE_BLE               (0x40695800)
+#endif
+
+#define EPA_ENABLE_FLAG                 0
+#if EPA_ENABLE_FLAG
+#define PWR_GAIN_BASE_B                 (0x6094A800)
+#define PWR_GAIN_BASE_G                 (0x60B09800)
+#else
+#define PWR_GAIN_BASE_G                 (0xE0AB1800)
+#define PWR_GAIN_BASE_B                 (0xE0A2A800)
 #endif
 
 #define TXPWR_ELEM_INUSED               (0)
@@ -217,25 +226,27 @@ TMP_PWR_ST tmp_pwr_tab_overlay[TMP_PWR_TAB_LEN] = {
 
 static AUTO_PWR_CALI_CONTEXT auto_pwr_overlay =
 {
-    0x0,      /*0: CALI_MODE_AUTO  1: CALI_MODE_MANUAL */
-    0x28F,   /* gtx_tssi_thred_chan1_b */
-    0x28F,   /* gtx_tssi_thred_chan7_b */
-    0x27F,   /* gtx_tssi_thred_chan13_b */
-    0x260,   /* gtx_tssi_thred_chan1_g */
-    0x249,   /* gtx_tssi_thred_chan7_g */
-    0x21C,   /* gtx_tssi_thred_chan13_g */
+    0x1,      /*0: CALI_MODE_AUTO  1: CALI_MODE_MANUAL */
+    0x253,   /* gtx_tssi_thred_chan1_b */
+    0x253,   /* gtx_tssi_thred_chan7_b */
+    0x257,   /* gtx_tssi_thred_chan13_b */
+    0x23F,   /* gtx_tssi_thred_chan1_g */
+    0x22B,   /* gtx_tssi_thred_chan7_g */
+    0x22B,   /* gtx_tssi_thred_chan13_g */
 };
 
 
-UINT32 g_xtal_overlay = DEFAULT_TXID_XTAL;
-UINT32 g_cmtag_overlay = CMTAG_FROM_FLASH;
-uint32 g_pwr_gain_base_ble_overlay = PWR_GAIN_BASE_BLE;
+UINT32 g_xtal_overlay               = DEFAULT_TXID_XTAL;
+UINT32 g_cmtag_overlay              = CMTAG_FROM_FLASH;
+UINT32 g_pwr_gain_base_ble_overlay  = PWR_GAIN_BASE_BLE;
+UINT32 pwr_gain_base_gain_b_overlay = PWR_GAIN_BASE_B;
+UINT32 pwr_gain_base_gain_g_overlay = PWR_GAIN_BASE_G;
 
-INT16 shift_tab_b_overlay[4] = {0, 0, 0, 0}; // 11M base,5.5M,2M,1M
+INT16 shift_tab_b_overlay[4]        = {0, 0, 0, 0}; // 11M base,5.5M,2M,1M
 // 54M base -54M,48M,36M,24M,18M,12M,9M,6M
-INT16 shift_tab_g_overlay[8] = {0,  2,  2, 2,  3, 3,  4, 4/*4*/}; // 54M base -  12M,9M,6M//do
-INT16 shift_tab_n20_overlay[10] = {-4,  -4,  0, 2,  2, 2,  3, 3,  4, 4/*4*/}; // n20 mcs8 mcs9 mcs7(base) -  mcs0,
-INT16 shift_tab_n40_overlay[10] = {-4,  -4,  0, 2,  2, 2,  3, 3,  4, 4/*4*/}; // n40 mcs8 mcs9 mcs7(base) -  mcs0,
+INT16 shift_tab_g_overlay[8]        = {0,  2,  2, 2,  3, 3,  4, 4/*4*/}; // 54M base -  12M,9M,6M//do
+INT16 shift_tab_n20_overlay[10]     = {-4,  -4,  0, 2,  2, 2,  3, 3,  4, 4/*4*/}; // n20 mcs8 mcs9 mcs7(base) -  mcs0,
+INT16 shift_tab_n40_overlay[10]     = {-4,  -4,  0, 2,  2, 2,  3, 3,  4, 4/*4*/}; // n40 mcs8 mcs9 mcs7(base) -  mcs0,
 
 void vnd_cal_overlay(void)
 {

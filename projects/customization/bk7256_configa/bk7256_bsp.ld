@@ -194,21 +194,28 @@ SECTIONS
 		{ *(.eh_frame_hdr ) }
 	. = 0x20000000;
 	DTCM_BEGIN = .;
-	.dtcm_sec_data 	: AT(LOADADDR (.eh_frame_hdr) + SIZEOF (.eh_frame_hdr))
+	. = ALIGN(8);
+	.dtcm_sec_data 	: AT(ALIGN(ALIGN(LOADADDR (.eh_frame_hdr) + SIZEOF (.eh_frame_hdr), ALIGNOF(.dtcm_sec_data)), 8))
 		{ KEEP(*(.dtcm_sec_data )) }
 	_dtcm_lma_start =  LOADADDR (.dtcm_sec_data);
 	_dtcm_ema_start = ADDR(.dtcm_sec_data);
-	"*data*_*bam.c.obj" 	: AT(LOADADDR (.dtcm_sec_data) + SIZEOF (.dtcm_sec_data))
+	. = ALIGN(8);
+	"*data*_*bam.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR (.dtcm_sec_data) + SIZEOF (.dtcm_sec_data), ALIGNOF("*data*_*bam.c.obj")), 8))
 		{ *bam.c.obj(*data* ) *ke_env.c.obj(*data* ) *hal_dma.c.obj(*data* ) *hal_machw.c.obj(*data* ) *txu_cntrl.c.obj(*data* ) *bam_task.c.obj(*data* ) }
-	"*data*_*rxl_cntrl.c.obj" 	: AT(LOADADDR ("*data*_*bam.c.obj") + SIZEOF ("*data*_*bam.c.obj"))
+	. = ALIGN(8);
+	"*data*_*rxl_cntrl.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR ("*data*_*bam.c.obj") + SIZEOF ("*data*_*bam.c.obj"), ALIGNOF("*data*_*rxl_cntrl.c.obj")), 8))
 		{ *rxl_cntrl.c.obj(*data* ) *tx_swdesc.c.obj(*data* ) *txl_cfm.c.obj(*data* ) *txl_cntrl.c.obj(*data* ) }
-	"*data*_*sta_mgmt.c.obj" 	: AT(LOADADDR ("*data*_*rxl_cntrl.c.obj") + SIZEOF ("*data*_*rxl_cntrl.c.obj"))
+	. = ALIGN(8);
+	"*data*_*sta_mgmt.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR ("*data*_*rxl_cntrl.c.obj") + SIZEOF ("*data*_*rxl_cntrl.c.obj"), ALIGNOF("*data*_*sta_mgmt.c.obj")), 8))
 		{ *sta_mgmt.c.obj(*data* ) *vif_mgmt.c.obj(*data* ) *rc.c.obj(*data* ) *rwnx.c.obj(*data* ) *me_task.c.obj(*data* ) *sm.c.obj(*data* ) }
-	"*data*_*sm_task.c.obj" 	: AT(LOADADDR ("*data*_*sta_mgmt.c.obj") + SIZEOF ("*data*_*sta_mgmt.c.obj"))
+	. = ALIGN(8);
+	"*data*_*sm_task.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR ("*data*_*sta_mgmt.c.obj") + SIZEOF ("*data*_*sta_mgmt.c.obj"), ALIGNOF("*data*_*sm_task.c.obj")), 8))
 		{ *sm_task.c.obj(*data* ) *me.c.obj(*data* ) *mm.c.obj(*data* ) *mm_bcn.c.obj(*data* ) *mm_task.c.obj(*data* ) *mm_timer.c.obj(*data* ) }
-	"*data*_*td.c.obj" 	: AT(LOADADDR ("*data*_*sm_task.c.obj") + SIZEOF ("*data*_*sm_task.c.obj"))
+	. = ALIGN(8);
+	"*data*_*td.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR ("*data*_*sm_task.c.obj") + SIZEOF ("*data*_*sm_task.c.obj"), ALIGNOF("*data*_*td.c.obj")), 8))
 		{ *td.c.obj(*data* ) *chan.c.obj(*data* ) *ps.c.obj(*data* ) }
-	"*data*_*scan_task.c.obj" 	: AT(LOADADDR ("*data*_*td.c.obj") + SIZEOF ("*data*_*td.c.obj"))
+	. = ALIGN(8);
+	"*data*_*scan_task.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR ("*data*_*td.c.obj") + SIZEOF ("*data*_*td.c.obj"), ALIGNOF("*data*_*scan_task.c.obj")), 8))
 		{ *scan_task.c.obj(*data* ) *scan.c.obj(*data* ) *scanu.c.obj(*data* ) *scanu_task.c.obj(*data* ) }
 	_dtcm_lma_end =  LOADADDR ("*data*_*scan_task.c.obj") + SIZEOF ("*data*_*scan_task.c.obj");
 	_dtcm_ema_end = .;
@@ -282,11 +289,13 @@ SECTIONS
 	SRAM_VIDEO_SIZE = . - SRAM_VIDEO_BEGIN;
 	. = 0x3000A000;
 	SRAM_BT_BEGIN = .;
-	.bt_spec_data 	: AT(LOADADDR (.video_spec_data) + SIZEOF (.video_spec_data))
+	. = ALIGN(8);
+	.bt_spec_data 	: AT(ALIGN(ALIGN(LOADADDR (.video_spec_data) + SIZEOF (.video_spec_data), ALIGNOF(.bt_spec_data)), 8))
 		{ KEEP(*(.bt_spec_data )) }
 	_bt_data_lmastart =  LOADADDR (.bt_spec_data);
 	_bt_data_start = ADDR(.bt_spec_data);
-	.ble_bss_data 	: AT(LOADADDR (.bt_spec_data) + SIZEOF (.bt_spec_data))
+	. = ALIGN(8);
+	.ble_bss_data 	: AT(ALIGN(ALIGN(LOADADDR (.bt_spec_data) + SIZEOF (.bt_spec_data), ALIGNOF(.ble_bss_data)), 8))
 		{ KEEP(*(.ble_bss_data )) }
 	. = ALIGN(8);
 	".tbss_*rwip.c.obj" 	(NOLOAD)	: { *rwip.c.obj(.tbss .tbss.* .gnu.linkonce.tb.* ) *rwip_driver.c.obj(.tbss .tbss.* .gnu.linkonce.tb.* ) *uart_ble.c.obj(.tbss .tbss.* .gnu.linkonce.tb.* ) *uart_controller_only.c.obj(.tbss .tbss.* .gnu.linkonce.tb.* ) *rwip.c.obj(.tcommon ) *rwip_driver.c.obj(.tcommon ) *uart_ble.c.obj(.tcommon ) *uart_controller_only.c.obj(.tcommon ) }
@@ -315,7 +324,6 @@ SECTIONS
 	".sbss_w_*ble_util_buf.c.obj" 	(NOLOAD)	: { *ble_util_buf.c.obj(.sbss_w .sbss_w.* ) *sch_prog.c.obj(.sbss_w .sbss_w.* ) *sch_slice.c.obj(.sbss_w .sbss_w.* ) *llm.c.obj(.sbss_w .sbss_w.* ) *ble_util_buf.c.obj(.scommon_w .scommon_w.* ) *sch_prog.c.obj(.scommon_w .scommon_w.* ) *sch_slice.c.obj(.scommon_w .scommon_w.* ) *llm.c.obj(.scommon_w .scommon_w.* ) *ble_util_buf.c.obj(.dynsbss ) *sch_prog.c.obj(.dynsbss ) *sch_slice.c.obj(.dynsbss ) *llm.c.obj(.dynsbss ) *ble_util_buf.c.obj(.scommon ) *sch_prog.c.obj(.scommon ) *sch_slice.c.obj(.scommon ) *llm.c.obj(.scommon ) . = ALIGN(8); }
 	".sbss_d_*ble_util_buf.c.obj" 	(NOLOAD)	: { *ble_util_buf.c.obj(.sbss_d .sbss_d.* ) *sch_prog.c.obj(.sbss_d .sbss_d.* ) *sch_slice.c.obj(.sbss_d .sbss_d.* ) *llm.c.obj(.sbss_d .sbss_d.* ) *ble_util_buf.c.obj(.scommon_d .scommon_d.* ) *sch_prog.c.obj(.scommon_d .scommon_d.* ) *sch_slice.c.obj(.scommon_d .scommon_d.* ) *llm.c.obj(.scommon_d .scommon_d.* ) }
 	".bss_*ble_util_buf.c.obj" 	(NOLOAD)	: { *ble_util_buf.c.obj(.dynbss ) *sch_prog.c.obj(.dynbss ) *sch_slice.c.obj(.dynbss ) *llm.c.obj(.dynbss ) *ble_util_buf.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *sch_prog.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *sch_slice.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *llm.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *ble_util_buf.c.obj(COMMON ) *sch_prog.c.obj(COMMON ) *sch_slice.c.obj(COMMON ) *llm.c.obj(COMMON ) . = ALIGN(8); }
-	_bt_data_end =  LOADADDR (.ble_bss_data) + SIZEOF (.ble_bss_data);
 	SRAM_BT_SIZE = . - SRAM_BT_BEGIN;
 	. = 0x30020000;
 	SRAM_DATA_BEGIN = .;
@@ -324,6 +332,7 @@ SECTIONS
 	. = ALIGN(ALIGNOF(.eh_frame));
 	.eh_frame 	: AT(ALIGN(LOADADDR (.ble_bss_data) + SIZEOF (.ble_bss_data), 32))
 		{ KEEP(*(.eh_frame )) }
+	_bt_data_end = ADDR(.eh_frame);
 	_data_lmastart =  LOADADDR (.eh_frame);
 	_data_start = ADDR(.eh_frame);
 	. = ALIGN(ALIGNOF(.gcc_except_table));

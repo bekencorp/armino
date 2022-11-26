@@ -141,7 +141,7 @@ static inline void jpeg_ll_enable_vsync_negedge_int(jpeg_hw_t *hw)
 
 static inline void jpeg_ll_disable_vsync_negedge_int(jpeg_hw_t *hw)
 {
-	hw->int_en.vsync_int_en =0;
+	hw->int_en.vsync_int_en = 0;
 }
 
 static inline void jpeg_ll_set_mclk_div(jpeg_hw_t *hw, uint32_t value)
@@ -217,6 +217,16 @@ static inline void jpeg_ll_set_default_bitrate_step(jpeg_hw_t *hw)
 static inline void jpeg_ll_set_bitrate_mode(jpeg_hw_t *hw, uint32_t mode)
 {
 	hw->cfg.bitrate_mode = mode;
+}
+
+static inline void jpeg_ll_enable_auto_step_2_times(jpeg_hw_t *hw)
+{
+	hw->cfg.auto_step = 1;
+}
+
+static inline void jpeg_ll_auto_step_4_times(jpeg_hw_t *hw)
+{
+	hw->cfg.auto_step = 0;
 }
 
 static inline void jpeg_ll_enable_bitrate_ctrl(jpeg_hw_t *hw, uint32_t value)

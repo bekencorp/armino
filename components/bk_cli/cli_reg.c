@@ -43,6 +43,13 @@
 #if CONFIG_SDIO_HOST
 #include "sdio_host_hal.h"
 #endif
+#if CONFIG_YUV_BUF
+#include "yuv_buf_hal.h"
+#endif
+#if CONFIG_PRRO
+#include "prro_hal.h"
+#endif
+
 
 static int hex2num(char c)
 {
@@ -250,6 +257,22 @@ static void cli_reg_dump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 #if CONFIG_SDIO_HOST
 	else if (os_strcmp(argv[1], "sdio_host") == 0) {
 		sdio_host_struct_dump();
+	}
+#endif
+#if CONFIG_YUV_BUF
+	else if (os_strcmp(argv[1], "yuv_buf") == 0) {
+		yuv_buf_struct_dump();
+	}
+#endif
+#if CONFIG_SYSTEM_CLOCK
+	else if (os_strcmp(argv[1], "sys_clock") == 0) {
+		extern void sys_clock_struct_dump(void);
+		sys_clock_struct_dump();
+	}
+#endif
+#if CONFIG_PRRO_TEST
+	else if (os_strcmp(argv[1], "prro") == 0) {
+		prro_struct_dump();
 	}
 #endif
 	else {

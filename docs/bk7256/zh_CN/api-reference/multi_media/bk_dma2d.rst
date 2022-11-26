@@ -28,6 +28,8 @@ DMA2D API Categories
 +===========================================+==============================================+
 | :cpp:func:`bk_dma2d_driver_init`          | initializes the DMA2D                        |
 +-------------------------------------------+----------------------------------------------+
+| :cpp:func:`bk_dma2d_init`                 | config the DMA2D                             |
++-------------------------------------------+----------------------------------------------+
 | :cpp:func:`bk_dma2d_driver_deinit`        | Deinitializes the DMA2D peripheral           |
 +-------------------------------------------+----------------------------------------------+
 | :cpp:func:`bk_dma2d_layer_config`         | Configure the background or foreground Layer |
@@ -98,4 +100,4 @@ API Reference
 
 API Typedefs
 -------------------------------------------------
-.. include:: ../../_build/inc/hal_dma2d_types.inc
+.. include:: ../../_build/inc/dma2d_types.inc

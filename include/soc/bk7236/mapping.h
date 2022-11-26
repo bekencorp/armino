@@ -13,3 +13,8 @@
 // limitations under the License.
 
 #pragma once
+
+#include "reg_base.h"
+
+#define JPEG_SRAM_ADDRESS (SOC_SRAM0_DATA_BASE)
+

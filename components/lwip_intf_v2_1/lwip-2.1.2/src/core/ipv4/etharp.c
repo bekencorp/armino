@@ -225,6 +225,19 @@ etharp_tmr(void)
                                    arp_table[i].state >= ETHARP_STATE_STABLE ? "stable" : "pending", i));
         /* clean up entries that have just been expired */
         etharp_free_entry(i);
+#if CONFIG_LWIP_FAST_DHCP
+	 if (rtos_is_oneshot_timer_init(&arp_conflict_tmr) == 0) {
+		 int clk_time = 1000;
+		 rtos_init_oneshot_timer(&arp_conflict_tmr,
+					 clk_time,
+					 (timer_2handler_t)net_restart_dhcp,
+					 NULL,
+					 NULL);
+	 }
+	 if (rtos_is_oneshot_timer_running(&arp_conflict_tmr) == 0) {
+	     rtos_start_oneshot_timer(&arp_conflict_tmr);
+	 }
+#endif
       }else if (arp_table[i].state == ETHARP_STATE_STABLE_REREQUESTING_1) {
         /* Don't send more than one request every 2 seconds. */
         arp_table[i].state = ETHARP_STATE_STABLE_REREQUESTING_2;

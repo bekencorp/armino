@@ -78,6 +78,11 @@ MINOOR_ITCM int vuyy_rotate_degree90(unsigned char *vuyy, unsigned char *rotated
 /**
  * @brief  uyvy422 data convert to RGB565 data
  */
+int vuyy_to_rgb565_convert(unsigned char *src_buf, unsigned char *out_buf,int img_width, int img_height);
+
+/**
+ * @brief  uyvy422 data convert to RGB565 data
+ */
 int uyvy_to_rgb565_convert(unsigned char *src_buf, unsigned char *out_buf,int img_width, int img_height);
 
 /**
@@ -96,7 +101,14 @@ int rgb565_to_uyvy_convert(uint16_t *sourceLcdBuffer, uint16_t *destLcdBuffer,in
 int rgb565_to_yuyv_convert(uint16_t *sourceLcdBuffer, uint16_t *destLcdBuffer,int img_width, int img_height);
 
 
+
 void yyuv_to_rgb888(uint8_t *input_ptr, uint8_t *output_ptr, uint32_t width, uint32_t height);
+
+
+/**
+ * @brief   yuyv (H->L : YUYV) convert to rgb888
+ */
+void yuyv_to_rgb888_convert(uint8_t *input_ptr, uint8_t *output_ptr, uint32_t width, uint32_t height);
 
 void vuyy_to_rgb888(uint8_t *input_ptr, uint8_t *output_ptr, uint32_t width, uint32_t height);
 

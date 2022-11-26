@@ -18,66 +18,7 @@
 #include <modules/ble_types.h>
 #include <driver/timer.h>
 
-
-#if CONFIG_MCU_PS
-static void cli_ps_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-#if PS_SUPPORT_MANUAL_SLEEP
-	UINT32 standby_time = 0;
-	UINT32 dtim_wait_time = 0;
-#endif
-
-	if (argc != 3)
-		goto _invalid_ps_arg;
-
-#if CONFIG_MCU_PS
-	if (0 == os_strcmp(argv[1], "mcudtim")) {
-		UINT32 dtim = os_strtoul(argv[2], NULL, 10);
-		if (dtim == 1)
-			bk_wlan_mcu_ps_mode_enable();
-		else if (dtim == 0)
-			bk_wlan_mcu_ps_mode_disable();
-		else
-			goto _invalid_ps_arg;
-	}
-#endif
-#if CONFIG_STA_PS
-	else if (0 == os_strcmp(argv[1], "rfdtim")) {
-		UINT32 dtim = os_strtoul(argv[2], NULL, 10);
-		if (dtim == 1) {
-			if (bk_wlan_ps_enable())
-				os_printf("dtim enable failed\r\n");
-		} else if (dtim == 0) {
-			if (bk_wlan_ps_disable())
-				os_printf("dtim disable failed\r\n");
-		} else
-			goto _invalid_ps_arg;
-	}
-#if PS_USE_KEEP_TIMER
-	else if (0 == os_strcmp(argv[1], "rf_timer")) {
-		UINT32 dtim = os_strtoul(argv[2], NULL, 10);
-
-		if (dtim == 1) {
-			extern int bk_wlan_ps_timer_start(void);
-			bk_wlan_ps_timer_start();
-		} else  if (dtim == 0) {
-			extern int bk_wlan_ps_timer_pause(void);
-			bk_wlan_ps_timer_pause();
-		} else
-			goto _invalid_ps_arg;
-	}
-#endif
-#endif
-	else
-		goto _invalid_ps_arg;
-
-
-	return;
-
-_invalid_ps_arg:
-	os_printf("Usage:ps {rfdtim|mcudtim|rf_timer} {1/0}\r\n");
-}
-#endif
+#if !CONFIG_SLAVE_CORE
 #if CONFIG_SYSTEM_CTRL
 #define PM_MANUAL_LOW_VOL_VOTE_ENABLE    (0)
 #define PM_DEEP_SLEEP_REGISTER_CALLBACK_ENABLE (0x1)
@@ -346,6 +287,44 @@ static void cli_pm_debug(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	pm_debug_ctrl(pm_debug);
 
 }
+static void cli_pm_vote_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	UINT32 pm_sleep_mode   = 0;
+	UINT32 pm_vote         = 0;
+	UINT32 pm_vote_value   = 0;
+	UINT32 pm_sleep_time   = 0;
+	if (argc != 5)
+	{
+		os_printf("set low power vote parameter invalid %d\r\n",argc);
+		return;
+	}
+	pm_sleep_mode        = os_strtoul(argv[1], NULL, 10);
+	pm_vote              = os_strtoul(argv[2], NULL, 10);
+	pm_vote_value        = os_strtoul(argv[3], NULL, 10);
+	pm_sleep_time        = os_strtoul(argv[4], NULL, 10);
+	if((pm_sleep_mode > LOW_POWER_MODE_NONE)|| (pm_vote > POWER_MODULE_NAME_NONE)||(pm_vote_value > 1))
+	{
+		os_printf("set low power vote parameter value  invalid\r\n");
+		return;
+	}
+	/*vote*/
+	if(pm_sleep_mode == LOW_POWER_DEEP_SLEEP)
+	{
+		if((pm_vote == POWER_MODULE_NAME_BTSP)||(pm_vote == POWER_MODULE_NAME_WIFIP_MAC))
+		{
+			bk_pm_module_vote_power_ctrl(pm_vote,pm_vote_value);
+		}
+	}
+	else if(pm_sleep_mode == LOW_POWER_MODE_LOW_VOLTAGE)
+	{
+		bk_pm_module_vote_sleep_ctrl(pm_vote,pm_vote_value,pm_sleep_time);
+	}
+	else
+	{
+		;//do something
+	}
+}
+#if CONFIG_DEBUG_FIRMWARE
 static void cli_pm_vol(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	UINT32 pm_vol  = 0;
@@ -513,45 +492,7 @@ static void cli_pm_auto_vote(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 	bk_pm_app_auto_vote_state_set(pm_ctrl);
 
 }
-static void cli_pm_vote_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-	UINT32 pm_sleep_mode   = 0;
-	UINT32 pm_vote         = 0;
-	UINT32 pm_vote_value   = 0;
-	UINT32 pm_sleep_time   = 0;
-	if (argc != 5) 
-	{
-		os_printf("set low power vote parameter invalid %d\r\n",argc);
-		return;
-	}
-	pm_sleep_mode        = os_strtoul(argv[1], NULL, 10);
-	pm_vote              = os_strtoul(argv[2], NULL, 10);
-	pm_vote_value        = os_strtoul(argv[3], NULL, 10);
-	pm_sleep_time        = os_strtoul(argv[4], NULL, 10);
-	if((pm_sleep_mode > LOW_POWER_MODE_NONE)|| (pm_vote > POWER_MODULE_NAME_NONE)||(pm_vote_value > 1))
-	{
-		os_printf("set low power vote parameter value  invalid\r\n");
-		return;
-	}
-	/*vote*/
-	if(pm_sleep_mode == LOW_POWER_DEEP_SLEEP)
-	{
-		if((pm_vote == POWER_MODULE_NAME_BTSP)||(pm_vote == POWER_MODULE_NAME_WIFIP_MAC))
-		{
-			bk_pm_module_vote_power_ctrl(pm_vote,pm_vote_value);
-		}
-	}
-	else if(pm_sleep_mode == LOW_POWER_MODE_LOW_VOLTAGE)
-	{
-		bk_pm_module_vote_sleep_ctrl(pm_vote,pm_vote_value,pm_sleep_time);
-	}
-	else
-	{
-		;//do something
-	}
 
-	
-}
 #define CLI_DVFS_FREQUNCY_DIV_MAX      (15)
 #define CLI_DVFS_FREQUNCY_DIV_BUS_MAX  (1)
 static void cli_dvfs_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -707,11 +648,15 @@ static void cli_pm_wakeup_source(char *pcWriteBuffer, int xWriteBufferLen, int a
 	sleep_mode   = os_strtoul(argv[1], NULL, 10);
 	if(sleep_mode == PM_MODE_LOW_VOLTAGE)
 	{
+		#if !CONFIG_SLAVE_CORE
 		os_printf("low voltage wakeup source [%d]\r\n",bk_pm_exit_low_vol_wakeup_source_get());
+		#endif
 	}
 	else if(sleep_mode == PM_MODE_DEEP_SLEEP)
 	{
+		#if !CONFIG_SLAVE_CORE
 		os_printf("deepsleep wakeup source [%d]\r\n",bk_pm_deep_sleep_wakeup_source_get());
+		#endif
 	}
 	else
 	{
@@ -721,6 +666,7 @@ static void cli_pm_wakeup_source(char *pcWriteBuffer, int xWriteBufferLen, int a
 }
 static void cli_pm_cp1_ctrl(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+#if !CONFIG_SLAVE_CORE
 	UINT32 cp1_ctrl = 0;
 
 	if (argc != 2)
@@ -731,9 +677,73 @@ static void cli_pm_cp1_ctrl(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 
 	cp1_ctrl   = os_strtoul(argv[1], NULL, 10);
 	bk_pm_cp1_auto_power_down_state_set(cp1_ctrl);
-}
 #endif
+}
+#endif//CONFIG_DEBUG_FIRMWARE
+
+#endif//CONFIG_SYSTEM_CTRL
+
+#endif//!CONFIG_SLAVE_CORE
+static void cli_ps_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+#if PS_SUPPORT_MANUAL_SLEEP
+	UINT32 standby_time = 0;
+	UINT32 dtim_wait_time = 0;
+#endif
+
+	if (argc != 3)
+		goto _invalid_ps_arg;
+
 #if CONFIG_MCU_PS
+	if (0 == os_strcmp(argv[1], "mcudtim")) {
+		UINT32 dtim = os_strtoul(argv[2], NULL, 10);
+		if (dtim == 1)
+			bk_wlan_mcu_ps_mode_enable();
+		else if (dtim == 0)
+			bk_wlan_mcu_ps_mode_disable();
+		else
+			goto _invalid_ps_arg;
+	}
+#endif
+#if CONFIG_STA_PS
+	else if (0 == os_strcmp(argv[1], "rfdtim")) {
+		UINT32 dtim = os_strtoul(argv[2], NULL, 10);
+		if (dtim == 1) {
+			if (bk_wlan_ps_enable())
+				os_printf("dtim enable failed\r\n");
+		} else if (dtim == 0) {
+			if (bk_wlan_ps_disable())
+				os_printf("dtim disable failed\r\n");
+		} else
+			goto _invalid_ps_arg;
+	}
+#if PS_USE_KEEP_TIMER
+	else if (0 == os_strcmp(argv[1], "rf_timer")) {
+		UINT32 dtim = os_strtoul(argv[2], NULL, 10);
+
+		if (dtim == 1) {
+			extern int bk_wlan_ps_timer_start(void);
+			bk_wlan_ps_timer_start();
+		} else  if (dtim == 0) {
+			extern int bk_wlan_ps_timer_pause(void);
+			bk_wlan_ps_timer_pause();
+		} else
+			goto _invalid_ps_arg;
+	}
+#endif
+#endif
+	else
+		goto _invalid_ps_arg;
+
+
+	return;
+
+_invalid_ps_arg:
+	os_printf("Usage:ps {rfdtim|mcudtim|rf_timer} {1/0}\r\n");
+}
+#if !CONFIG_SYSTEM_CTRL
+#if CONFIG_MCU_PS
+
 static void cli_deep_sleep_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	PS_DEEP_CTRL_PARAM deep_sleep_param;
@@ -882,15 +892,24 @@ void cli_pwr_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv
 		bk_wifi_ap_set_power(pwr);
 	}
 }
-#endif
+#endif 
+#endif //!CONFIG_SYSTEM_CTRL
 #define PWR_CMD_CNT (sizeof(s_pwr_commands) / sizeof(struct cli_command))
 static const struct cli_command s_pwr_commands[] = {
-#if CONFIG_MCU_PS
 	{"ps", "ps {rfdtim|mcudtim|rf_timer} {1|0}", cli_ps_cmd},
+#if !CONFIG_SYSTEM_CTRL
+#if CONFIG_MCU_PS
 	{"mac_ps", "mac_ps {func} [param1] [param2]", cli_mac_ps_cmd},
 	{"deep_sleep", "deep_sleep [param]", cli_deep_sleep_cmd},
 #endif
+#if CONFIG_TPC_PA_MAP
+	{"pwr", "pwr {sta|ap} pwr", cli_pwr_cmd },
+#endif
+#endif //!CONFIG_SYSTEM_CTRL
+
+#if !CONFIG_SLAVE_CORE
 #if CONFIG_SYSTEM_CTRL
+#if CONFIG_DEBUG_FIRMWARE
 	{"pm", "pm [sleep_mode] [wake_source] [vote1] [vote2] [vote3] [param1] [param2] [param3]", cli_pm_cmd},
 	{"dvfs", "dvfs [cksel_core] [ckdiv_core] [ckdiv_bus] [ckdiv_cpu0] [ckdiv_cpu1]", cli_dvfs_cmd},
 	{"pm_vote", "pm_vote [pm_sleep_mode] [pm_vote] [pm_vote_value] [pm_sleep_time]", cli_pm_vote_cmd},
@@ -907,10 +926,13 @@ static const struct cli_command s_pwr_commands[] = {
 	{"pm_rosc_cali", "pm_rosc_cali [cali_mode][cal_intval]", cli_pm_rosc_cali},
 	{"pm_wakeup_source", "pm_wakeup_source [pm_sleep_mode]", cli_pm_wakeup_source},
 	{"pm_cp1_ctrl", "pm_cp1_ctrl [cp1_auto_pw_ctrl]", cli_pm_cp1_ctrl},
-#endif
-#if CONFIG_TPC_PA_MAP
-	{"pwr", "pwr {sta|ap} pwr", cli_pwr_cmd },
-#endif
+#else
+	{"pm", "pm [sleep_mode] [wake_source] [vote1] [vote2] [vote3] [param1] [param2] [param3]", cli_pm_cmd},
+	{"pm_vote", "pm_vote [pm_sleep_mode] [pm_vote] [pm_vote_value] [pm_sleep_time]", cli_pm_vote_cmd},
+	{"pm_debug", "pm_debug [debug_en_value]", cli_pm_debug},
+#endif //CONFIG_DEBUG_FIRMWARE
+#endif //CONFIG_SYSTEM_CTRL
+#endif //!CONFIG_SLAVE_CORE
 };
 
 int cli_pwr_init(void)

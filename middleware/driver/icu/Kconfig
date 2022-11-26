@@ -1,0 +1,6 @@
+menu "ICU"
+	config ICU_GPIO
+		bool "Enable icu gpio"
+		default n
+endmenu
+

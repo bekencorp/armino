@@ -1,0 +1,10 @@
+menu "QSPI_OLED"
+	config QSPI
+		bool "Enable QSPI"
+		default n
+				
+	config QSPI_OLED
+		bool "Enable QSPI_OLED"
+		default n
+endmenu
+

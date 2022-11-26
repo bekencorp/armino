@@ -88,11 +88,34 @@ uint32_t lcd_height = 0;
 
 lcd_info_t *lcd_info_ptr = NULL;
 
+/**<
+	case img_width=864  block_width=108
+	case img_width=800/480  block_width=160
+*/
 
-#define BLOCK_WIDTH     (160)
-#define BLOCK_HEIGHT    (40)
-#define BLOCK_SIZE      (BLOCK_WIDTH * BLOCK_HEIGHT * 2)
+typedef struct {
+	uint16_t width;
+	uint16_t height;
+}block_ppi_t;
 
+#define MAX_BLOCK_WIDTH     (160)
+#define MAX_BLOCK_HEIGHT    (40)
+
+const block_ppi_t block_ppi_aray[] = {
+	{108, 40},
+	{160, 40},
+
+	{MAX_BLOCK_WIDTH, MAX_BLOCK_HEIGHT}
+	
+};
+
+MINOOR_DTCM uint16_t block_width;
+MINOOR_DTCM uint16_t block_height;
+MINOOR_DTCM uint16_t block_size;
+
+
+
+#define BLOCK_SIZE      (MAX_BLOCK_WIDTH * MAX_BLOCK_HEIGHT * 2)
 MINOOR_DTCM uint8_t rx_block[BLOCK_SIZE];
 MINOOR_ITCM_BSS uint8_t tx_block[BLOCK_SIZE];
 
@@ -153,31 +176,31 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 		return;
 	}
 
-	for (j = 0; j < (src_height / BLOCK_HEIGHT); j++)
+	for (j = 0; j < (src_height / block_height); j++)
 	{
 
-		for (i = 0; i < (src_width / BLOCK_WIDTH); i++)
+		for (i = 0; i < (src_width / block_width); i++)
 		{
-			for (k = 0; k < BLOCK_HEIGHT; k++)
+			for (k = 0; k < block_height; k++)
 			{
 #if(1) // cpu1 cache enable 
-				cp_ptr = src_frame_temp + i * BLOCK_WIDTH * 2 + j * BLOCK_HEIGHT * src_width * 2 + k * src_width * 2;
+				cp_ptr = src_frame_temp + i * block_width * 2 + j * block_height * src_width * 2 + k * src_width * 2;
 #else
-				cp_ptr =  decoder_frame->frame  + i * BLOCK_WIDTH * 2 + j * BLOCK_HEIGHT * src_width * 2 + k * src_width * 2;
+				cp_ptr =  decoder_frame->frame  + i * block_width * 2 + j * block_height * src_width * 2 + k * src_width * 2;
 #endif
-				memcpy_word((uint32_t *)(rx_block + BLOCK_WIDTH * 2 * k), (uint32_t *)cp_ptr, BLOCK_WIDTH * 2 / 4);
+				memcpy_word((uint32_t *)(rx_block + block_width * 2 * k), (uint32_t *)cp_ptr, block_width * 2 / 4);
 			}
 
-			vuyy_rotate_degree90(rx_block, tx_block, BLOCK_WIDTH, BLOCK_HEIGHT);
+			vuyy_rotate_degree90(rx_block, tx_block, block_width, block_height);
 
-			for (k = 0; k < BLOCK_WIDTH; k++)
+			for (k = 0; k < block_width; k++)
 			{
 #if(1) // cpu1 cache enable 
-				cp_ptr = dst_frame_temp + (src_height / BLOCK_HEIGHT - j - 1) * BLOCK_HEIGHT * 2 + (i) * BLOCK_WIDTH * src_height * 2 + k * src_height * 2;
+				cp_ptr = dst_frame_temp + (src_height / block_height - j - 1) * block_height * 2 + (i) * block_width * src_height * 2 + k * src_height * 2;
 #else
-				cp_ptr = rotate_frame->frame + (src_height / BLOCK_HEIGHT - j - 1) * BLOCK_HEIGHT * 2 + (i) * BLOCK_WIDTH * src_height * 2 + k * src_height * 2;
+				cp_ptr = rotate_frame->frame + (src_height / block_height - j - 1) * block_height * 2 + (i) * block_width * src_height * 2 + k * src_height * 2;
 #endif
-				memcpy_word((uint32_t *)cp_ptr, (uint32_t *)(tx_block + BLOCK_HEIGHT * 2 * k), BLOCK_HEIGHT * 2 / 4);
+				memcpy_word((uint32_t *)cp_ptr, (uint32_t *)(tx_block + block_height * 2 * k), block_height * 2 / 4);
 			}
 		}
 	}
@@ -198,6 +221,21 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 	src_width = decoder_frame->width;
 	src_height = decoder_frame->height;
 
+	switch ((src_width << 16) | src_height)
+	{
+		case PPI_864X480:
+			block_width = block_ppi_aray[0].width;
+			block_height = block_ppi_aray[0].height;
+			block_size = block_width * block_height * 2;
+			break;
+
+		default:
+			block_width = block_ppi_aray[1].width;
+			block_height = block_ppi_aray[1].height;
+			block_size = block_width * block_height * 2;
+			break;
+	};
+	
 	register uint8_t *dst_frame_temp = rotate_frame->frame + 0x4000000;
 	register uint8_t *src_frame_temp = decoder_frame->frame + 0x4000000;
 
@@ -215,23 +253,59 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 	flush_dcache(src_frame_temp, JPEG_DEC_FRAME_SIZE);
 	flush_dcache(dst_frame_temp, JPEG_DEC_FRAME_SIZE);
 
-	for (j = 0; j < (src_height / BLOCK_HEIGHT); j++)
+	//LOGI("width:-%d-%d, height:%d-%d\r\n", src_width, rotate_frame->height, src_height, rotate_frame->width);
+
+	if (src_width == rotate_frame->height && src_height == rotate_frame->width)
 	{
-
-		for (i = 0; i < (src_width / BLOCK_WIDTH); i++)
+		// rotate a complete frame
+		for (j = 0; j < (src_height / block_height); j++)
 		{
-			for (k = 0; k < BLOCK_HEIGHT; k++)
+
+			for (i = 0; i < (src_width / block_width); i++)
 			{
-				cp_ptr = src_frame_temp + i * BLOCK_WIDTH * 2 + j * BLOCK_HEIGHT * src_width * 2 + k * src_width * 2;
-				memcpy_word((uint32_t *)(rx_block + BLOCK_WIDTH * 2 * k), (uint32_t *)cp_ptr, BLOCK_WIDTH * 2 / 4);
+				for (k = 0; k < block_height; k++)
+				{
+					cp_ptr = src_frame_temp + i * block_width * 2 + j * block_height * src_width * 2 + k * src_width * 2;
+					memcpy_word((uint32_t *)(rx_block + block_width * 2 * k), (uint32_t *)cp_ptr, block_width * 2 / 4);
+				}
+
+				func(rx_block, tx_block, block_width, block_height);
+
+				for (k = 0; k < block_width; k++)
+				{
+					cp_ptr = dst_frame_temp + (src_height / block_height - j - 1) * block_height * 2 + (i) * block_width * src_height * 2 + k * src_height * 2;
+					memcpy_word((uint32_t *)cp_ptr, (uint32_t *)(tx_block + block_height * 2 * k), block_height * 2 / 4);
+				}
 			}
+		}
+	}
+	else
+	{
+		// ensure the roi range need rotate
+		uint16_t width_top_left = (src_width - rotate_frame->height) >> 2;
+		uint16_t height_top_left = (src_height - rotate_frame->width) >> 2;
+		//uint16_t width_bottom_right = width_top_left + rotate_frame->height;
+		//uint16_t height_bottom_right = height_top_left + rotate_frame->width;
+		src_frame_temp += height_top_left * src_width * 2 + width_top_left * 2;
 
-			func(rx_block, tx_block, BLOCK_WIDTH, BLOCK_HEIGHT);
+		for (j = 0; j < (rotate_frame->width / block_height); j++)
+		{
 
-			for (k = 0; k < BLOCK_WIDTH; k++)
+			for (i = 0; i < (rotate_frame->height / block_width); i++)
 			{
-				cp_ptr = dst_frame_temp + (src_height / BLOCK_HEIGHT - j - 1) * BLOCK_HEIGHT * 2 + (i) * BLOCK_WIDTH * src_height * 2 + k * src_height * 2;
-				memcpy_word((uint32_t *)cp_ptr, (uint32_t *)(tx_block + BLOCK_HEIGHT * 2 * k), BLOCK_HEIGHT * 2 / 4);
+				for (k = 0; k < block_height; k++)
+				{
+					cp_ptr = src_frame_temp + i * block_width * 2 + j * block_height * src_width * 2 + k * src_width * 2;
+					memcpy_word((uint32_t *)(rx_block + block_width * 2 * k), (uint32_t *)cp_ptr, block_width * 2 / 4);
+				}
+
+				func(rx_block, tx_block, block_width, block_height);
+
+				for (k = 0; k < block_width; k++)
+				{
+					cp_ptr = dst_frame_temp + (rotate_frame->width / block_height - j - 1) * block_height * 2 + (i) * block_width * rotate_frame->width * 2 + k * rotate_frame->width * 2;
+					memcpy_word((uint32_t *)cp_ptr, (uint32_t *)(tx_block + block_height * 2 * k), block_height * 2 / 4);
+				}
 			}
 		}
 	}

@@ -25,7 +25,10 @@
 
 
 uint32_t g_gain_s = 0;
+
+static beken_thread_t touch_digital_tube_disp_thread_hdl = NULL;
 extern void delay(int num);
+extern uint32_t s_touch_channel;
 
 static void cli_touch_help(void)
 {
@@ -119,6 +122,35 @@ static void touch_cyclic_calib_timer_isr(timer_id_t chan)
 	bk_touch_int_enable(multi_chann_value, 1);
 
 }
+
+static void touch_digital_tube_disp_main(void)
+{
+	bk_touch_digital_tube_init();
+
+	while(1) {
+		bk_touch_digital_tube_display(s_touch_channel);
+
+	}
+}
+
+bk_err_t bk_touch_digital_tube_display_init(void)
+{
+	bk_err_t ret = BK_OK;
+
+	ret = rtos_create_thread(&touch_digital_tube_disp_thread_hdl,
+								BEKEN_DEFAULT_WORKER_PRIORITY,
+								"touch_digital_tube_disp",
+								(beken_thread_function_t)touch_digital_tube_disp_main,
+								4096,
+								NULL);
+	if (ret != kNoErr) {
+		os_printf("create touch digital tube disp task failed!\r\n");
+		touch_digital_tube_disp_thread_hdl = NULL;
+	}
+
+	return ret;
+}
+
 void cli_touch_single_channel_calib_mode_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	uint32_t touch_id = 0;
@@ -225,7 +257,9 @@ void cli_touch_single_channel_manul_mode_test_cmd(char *pcWriteBuffer, int xWrit
 
 void cli_touch_multi_channel_scan_mode_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	uint32_t multi_chann_value = 0xffff;
+	bk_err_t ret = BK_OK;
+
+	uint32_t multi_chann_value = 0xCF3F;
 	uint32_t touch_crg[16] = {0};
 	uint32_t touch_crg_max = 0;
 	uint32_t touch_id = 0;
@@ -238,11 +272,20 @@ void cli_touch_multi_channel_scan_mode_test_cmd(char *pcWriteBuffer, int xWriteB
 		return;
 	}
 
+	ret = bk_touch_digital_tube_display_init();
+	if (ret != BK_OK) {
+		os_printf("init touch digital tube display task failed!\r\n");
+		return;
+	}
+
 	if (os_strcmp(argv[1], "start") == 0) {
 		TOUCH_LOGI("multi_channel_scan_mode_test start!\r\n");
 		gain_s = os_strtoul(argv[2], NULL, 10) & 0xFF;
 		for(touch_id = 0; touch_id < 16; touch_id++)
 		{
+			if (touch_id == 6 || touch_id == 7 || touch_id == 13 || touch_id == 12) {
+				continue;
+			}
 			bk_touch_gpio_init(1 << touch_id);
 			bk_touch_enable(1 << touch_id);
 			bk_touch_register_touch_isr(1 << touch_id, cli_touch_isr, NULL);
@@ -284,6 +327,10 @@ void cli_touch_multi_channel_scan_mode_test_cmd(char *pcWriteBuffer, int xWriteB
 
 		for (touch_id = 0; touch_id < 16; touch_id++)
 		{
+			if (touch_id == 6 || touch_id == 7 || touch_id == 13 || touch_id == 12) {
+				continue;
+			}
+
 			if (touch_crg_max < touch_crg[touch_id]) {
 				touch_crg_max = touch_crg[touch_id];
 			}
@@ -292,6 +339,10 @@ void cli_touch_multi_channel_scan_mode_test_cmd(char *pcWriteBuffer, int xWriteB
 
 		for (touch_id = 0; touch_id < 16; touch_id++)
 		{
+			if (touch_id == 6 || touch_id == 7 || touch_id == 13 || touch_id == 12) {
+				continue;
+			}
+
 			if (touch_crg_max != touch_crg[touch_id]) {
 				bk_touch_enable(1 << touch_id);
 				touch_config.detect_range = touch_crg_max;

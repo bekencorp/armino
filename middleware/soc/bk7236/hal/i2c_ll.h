@@ -43,7 +43,7 @@ static inline uint32_t i2c_ll_get_reg_base(i2c_id_t id)
 	case I2C_ID_1:
 		return SOC_I2C1_REG_BASE;
 	default:
-		return BK_ERR_UART_BASE;
+		return BK_ERR_I2C_BASE;
 	}
 }
 
@@ -95,8 +95,11 @@ static inline void i2c_ll_init(i2c_hw_t *hw)
 static inline void i2c_ll_enable(i2c_hw_t *hw, i2c_id_t id)
 {
 	if (id == I2C_ID_0) {
+		/* need open clock bypass, otherwise cannot read ack(BIT8) in i2c_isr */
+		hw->i2c0_hw->global_ctrl.clk_gate_bypass = 1;
 		hw->i2c0_hw->sm_bus_cfg.en = 1;
 	} else {
+		hw->i2c1_hw->global_ctrl.clk_gate_bypass = 1;
 		hw->i2c1_hw->sm_bus_cfg.en = 1;
 	}
 }
@@ -140,7 +143,6 @@ static inline void i2c_ll_set_clk_src(i2c_hw_t *hw, i2c_id_t id, uint32_t clk_sr
 	} else {
 		hw->i2c1_hw->sm_bus_cfg.clk_src = clk_src;
 	}
-
 }
 
 static inline void i2c_ll_enable_scl_timeout(i2c_hw_t *hw, i2c_id_t id)

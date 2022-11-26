@@ -368,6 +368,7 @@ int ping(char* target_name, uint32_t times, size_t size)
     }
 
     lwip_setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(struct timeval));
+    lwip_setsockopt(s, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(struct timeval));
 
     while (p_param.state == PING_STATE_STARTED)
     {

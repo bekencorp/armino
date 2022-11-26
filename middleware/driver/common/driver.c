@@ -24,6 +24,7 @@
 #include <driver/dma.h>
 #include <driver/uart.h>
 #include <driver/wdt.h>
+#include <driver/aon_wdt.h>
 #include <driver/trng.h>
 #include <driver/efuse.h>
 #include <os/mem.h>
@@ -32,6 +33,8 @@
 #include <driver/i2c.h>
 #include <driver/aon_rtc.h>
 #include <modules/pm.h>
+#include <driver/mpc.h>
+#include <driver/prro.h>
 #include "bk_driver.h"
 #include "interrupt_base.h"
 
@@ -47,6 +50,10 @@
 #include <driver/flash.h>
 #endif
 
+#if CONFIG_EASY_FLASH
+#include "bk_ef.h"
+#endif
+
 #if CONFIG_SDCARD_HOST
 #include "sdcard.h"
 #endif
@@ -57,10 +64,6 @@
 
 #if CONFIG_QSPI
 #include <driver/qspi.h>
-#endif
-
-#if CONFIG_PSRAM
-#include <driver/psram.h>
 #endif
 
 #if CONFIG_JPEG_ENCODE
@@ -80,6 +83,10 @@
 #include "bk_usb.h"
 #endif
 
+#if CONFIG_TOUCH_PM_SUPPORT
+#include <driver/touch.h>
+#endif
+
 #if CONFIG_CHIP_SUPPORT
 #include "chip_support.h"
 #endif
@@ -88,6 +95,9 @@
 #include <driver/uvc_camera.h>
 #endif
 
+#if CONFIG_YUV_BUF
+#include <driver/yuv_buf.h>
+#endif
 
 //TODO only init driver model and necessary drivers
 #if CONFIG_POWER_CLOCK_RF
@@ -137,7 +147,7 @@ void power_clk_rf_init()
    /*cpu0:240m ,matrix:120m*/
 	//sys_drv_core_bus_clock_ctrl(HIGH_FREQUECY_CLOCK_MODULE_CPU0, 0,0, HIGH_FREQUECY_CLOCK_MODULE_CPU0_MATRIX,0,0);
 	#if !CONFIG_SLAVE_CORE
-	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DEFAULT,PM_CPU_FRQ_120M);
+	//bk_pm_module_vote_cpu_freq(PM_DEV_ID_DEFAULT,PM_CPU_FRQ_120M);
 	#endif
    /*5.config the analog*/
    //sys_drv_analog_set(ANALOG_REG0, param);
@@ -239,6 +249,14 @@ int driver_init(void)
 {
 	sys_drv_init();
 
+#if CONFIG_MPC
+	bk_mpc_driver_init();
+#endif
+
+#if CONFIG_PRRO
+	bk_prro_driver_init();
+#endif
+
 #if CONFIG_AON_PMU
 	aon_pmu_drv_init();
 #endif
@@ -288,6 +306,10 @@ int driver_init(void)
 #endif
 #endif
 
+#if CONFIG_EASY_FLASH
+	easyflash_init();
+#endif
+
 #if CONFIG_SECURITY
 	bk_secrity_init();
 #endif
@@ -305,6 +327,10 @@ int driver_init(void)
 #endif
 
 	bk_wdt_driver_init();
+
+#if CONFIG_AON_WDT && !CONFIG_INT_AON_WDT
+	bk_aon_wdt_stop();
+#endif
 
 #if CONFIG_TRNG_SUPPORT
 	bk_trng_driver_init();
@@ -327,14 +353,14 @@ int driver_init(void)
 	bk_qspi_driver_init();
 #endif
 
+#if CONFIG_YUV_BUF
+	bk_yuv_buf_driver_init();
+#endif
+
 #if !CONFIG_SYSTEM_CTRL
 #if CONFIG_JPEG_ENCODE
 	bk_jpeg_enc_driver_init();
 #endif
-#endif
-
-#if CONFIG_PSRAM
-	bk_psram_driver_init();
 #endif
 
 #if CONFIG_AON_RTC
@@ -360,6 +386,10 @@ int driver_init(void)
 
 #if CONFIG_USB
 	bk_usb_init();
+#endif
+
+#if CONFIG_TOUCH_PM_SUPPORT
+	bk_touch_pm_init();
 #endif
 
 	os_printf("driver_init end\r\n");

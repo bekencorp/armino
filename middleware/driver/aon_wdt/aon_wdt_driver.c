@@ -1,4 +1,4 @@
-// Copyright 2020-2022 Beken
+// Copyright 2021-2022 Beken
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,55 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <common/bk_include.h>
-#include <os/os.h>
 #include <os/mem.h>
-
-#include <driver/aon_wdt.h>
-#include "driver/aon_wdt_types.h"
-#include "aon_wdt_driver.h"
-#include "aon_wdt_hal.h"
-
-#include "sys_driver.h"
-#include "power_driver.h"
-
 #include "reset_reason.h"
 #include "bk_fake_clock.h"
-#include "bk_rtos_debug.h"
-#include <driver/timer.h>
 
-
-typedef struct {
-	aon_wdt_hal_t hal;
-	uint8_t init_bits;
-} aon_wdt_driver_t;
-
-#define AON_WDT_BARK_TIME_MS    200
+#include "driver/aon_wdt_types.h"
+#include "aon_wdt_hal.h"
+#include <driver/aon_wdt.h>
+#include "aon_wdt_driver.h"
+#include "bk_aon_wdt.h"
 
 #define INT_AON_WDG_FEED_PERIOD_TICK ((BK_MS_TO_TICKS(CONFIG_INT_AON_WDT_PERIOD_MS)) >> 4)
-
-static bool s_aon_wdt_driver_is_init = false;
-static bool s_aon_wdt_debug_enabled = true;
-
-static aon_wdt_driver_t s_aon_wdt = {0};
-static uint32_t s_aon_wdt_period = CONFIG_INT_AON_WDT_PERIOD_MS;
 
 #if (CONFIG_INT_AON_WDT)
 	static uint32_t s_feed_aon_watchdog_time = INT_AON_WDG_FEED_PERIOD_TICK;
 #endif
 
-#define AON_WDT_RETURN_ON_DRIVER_NOT_INIT() do {\
-		if (!s_aon_wdt_driver_is_init) {\
-			AON_WDT_LOGE("AON_WDT driver not init\r\n");\
-			return BK_ERR_AON_WDT_DRIVER_NOT_INIT;\
-		}\
-	} while(0)
-
-#define AON_WDT_RETURN_ON_NOT_INIT() do {\
-		if (!s_aon_wdt.init_bits &BIT(0)) {\
-			return BK_ERR_AON_WDT_NOT_INIT;\
-		}\
-	} while(0)
+static uint32_t s_aon_wdt_period = CONFIG_INT_AON_WDT_PERIOD_MS;
 
 #define AON_WDT_RETURN_ON_INVALID_PERIOD(timeout) do {\
 		if ((timeout) > AON_WDT_F_PERIOD_V) {\
@@ -69,94 +37,45 @@ static uint32_t s_aon_wdt_period = CONFIG_INT_AON_WDT_PERIOD_MS;
 		}\
 	} while(0)
 
-bool bk_aon_wdt_is_driver_inited()
+uint32_t bk_aon_wdt_get_period(void)
 {
-	return s_aon_wdt_driver_is_init;
+	return aon_wdt_hal_get_period();
 }
 
-bk_err_t bk_aon_wdt_driver_init(void)
+bk_err_t bk_aon_wdt_set_period(uint32_t timeout_ms)
 {
-	if (s_aon_wdt_driver_is_init) {
-		return BK_OK;
-	}
-	os_memset(&s_aon_wdt, 0, sizeof(s_aon_wdt));
-	aon_wdt_hal_init(&s_aon_wdt.hal);
-#if (CONFIG_SYSTEM_CTRL)
-	bk_timer_start(TIMER_ID3, AON_WDT_BARK_TIME_MS, (timer_isr_t)bk_wdt_feed_handle);
-#endif
-	s_aon_wdt_driver_is_init = true;
-
-	return BK_OK;
-}
-
-bk_err_t bk_aon_wdt_driver_deinit(void)
-{
-	if (!s_aon_wdt_driver_is_init) {
-		return BK_OK;
-	}
-	aon_wdt_deinit_common();
-#if (CONFIG_SYSTEM_CTRL)
-	bk_timer_stop(TIMER_ID3);
-#endif
-	s_aon_wdt_driver_is_init = false;
-
-	return BK_OK;
-}
-
-static void aon_wdt_init_common(void)
-{
-
-}
-
-static void aon_wdt_deinit_common(void)
-{
-	s_aon_wdt_period = CONFIG_INT_AON_WDT_PERIOD_MS;
-	aon_wdt_hal_reset_config_to_default(&s_aon_wdt.hal);
-#if (CONFIG_SYSTEM_CTRL)
-	extern void close_wdt(void);
-	close_wdt();
-#else
-	power_down_wdt();
-#endif
-}
-
-bk_err_t bk_aon_wdt_start(uint32_t timeout_ms)
-{
-	AON_WDT_RETURN_ON_DRIVER_NOT_INIT();
 	AON_WDT_RETURN_ON_INVALID_PERIOD(timeout_ms);
-
-	if (!s_aon_wdt_debug_enabled) {
-		return BK_ERR_AON_WDT_DEBUG_DISABLED;
-	}
 
 	if (!timeout_ms) {
 		timeout_ms = CONFIG_INT_AON_WDT_PERIOD_MS;
 	}
 
 	s_aon_wdt_period = timeout_ms;
-	aon_wdt_init_common();
-	aon_wdt_hal_init_aon_wdt(&s_aon_wdt.hal, timeout_ms);
-	s_aon_wdt.init_bits |= BIT(0);
-	AON_WDT_LOGD("bk_wdt_start, s_aon_wdt.init_bits:%x\n", s_aon_wdt.init_bits);
+	aon_wdt_hal_set_period(timeout_ms);
+	AON_WDT_LOGD("bk_aon_wdt set period: %d.\r\n", timeout_ms);
 
 	return BK_OK;
 }
 
+static void aon_wdt_deinit_common(void)
+{
+	s_aon_wdt_period = CONFIG_INT_AON_WDT_PERIOD_MS;
+#if (CONFIG_SYSTEM_CTRL)
+	aon_wdt_hal_stop_aon_wdt();
+#endif
+}
+
 bk_err_t bk_aon_wdt_stop(void)
 {
-	AON_WDT_RETURN_ON_DRIVER_NOT_INIT();
 	aon_wdt_deinit_common();
-	s_aon_wdt.init_bits &= ~BIT(0);
-	AON_WDT_LOGD("bk_aon_wdt_stop, s_aon_wdt.init_bits:%x\n", s_aon_wdt.init_bits);
+	AON_WDT_LOGD("bk_aon_wdt_stop.\r\n");
 
 	return BK_OK;
 }
 
 bk_err_t bk_aon_wdt_feed(void)
 {
-	AON_WDT_RETURN_ON_DRIVER_NOT_INIT();
-	AON_WDT_RETURN_ON_NOT_INIT();
-	aon_wdt_hal_init_aon_wdt(&s_aon_wdt.hal, s_aon_wdt_period);
+	aon_wdt_hal_set_period(s_aon_wdt_period);
 
 	bk_misc_set_reset_reason(RESET_SOURCE_WATCHDOG);
 
@@ -175,17 +94,18 @@ void bk_int_aon_wdt_feed(void)
 	}
 }
 
-uint32_t bk_aon_wdt_get_feed_time()
+uint32_t bk_aon_wdt_get_feed_time(void)
 {
 	return s_feed_aon_watchdog_time;
 }
 
-void bk_aon_wdt_set_feed_time(uint32_t dw_set_time)
+bk_err_t bk_aon_wdt_set_feed_time(uint32_t feed_time)
 {
-	s_feed_aon_watchdog_time = dw_set_time;
+	s_feed_aon_watchdog_time = feed_time;
+	return BK_OK;
 }
 
-#endif/* #if (CONFIG_INT_AON_WDT) */
+#endif /* #if (CONFIG_INT_AON_WDT) */
 
 void bk_aon_wdt_feed_handle(void)
 {
@@ -199,12 +119,3 @@ void bk_aon_wdt_feed_handle(void)
 	GLOBAL_INT_RESTORE();
 }
 
-void aon_wdt_debug_enable(void)
-{
-	s_aon_wdt_debug_enabled = true;
-}
-
-void aon_wdt_debug_disable(void)
-{
-	s_aon_wdt_debug_enabled = false;
-}

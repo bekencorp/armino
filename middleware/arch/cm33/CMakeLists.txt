@@ -13,6 +13,7 @@ if("${CONFIG_SOC_ARCH}" STREQUAL ${COMPONENT_NAME})
 		trap_base.c
 		arm.c
 		arch_interrupt.c
+		jump.c
 	)
 
 if(CONFIG_FREERTOS)

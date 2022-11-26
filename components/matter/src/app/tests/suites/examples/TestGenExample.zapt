@@ -1,8 +1,0 @@
-{{#chip_tests (getTests)}}
-{{#chip_tests_config}}
-"Argument Name {{name}}"
-"Argument Type {{type}}"
-"Argument Type {{defaultValue}}"
-
-{{/chip_tests_config}}
-{{/chip_tests}}

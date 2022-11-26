@@ -66,7 +66,11 @@ bool ate_is_enabled(void)
 {
 	return s_ate_enabled;
 }
-
+int bk_ate_ctrl(bool enable)
+{
+	s_ate_enabled = enable;
+	return BK_OK;
+}
 //This function should be called before UART init, or caused UART can't work.
 int bk_ate_init(void)
 {

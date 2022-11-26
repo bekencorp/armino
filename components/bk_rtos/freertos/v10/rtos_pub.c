@@ -902,14 +902,34 @@ char* rtos_get_version(void)
 	return RTOS_VERSION;
 }
 
+size_t rtos_get_total_heap_size(void)
+{
+	return prvHeapGetTotalSize();
+}
+
 size_t rtos_get_free_heap_size(void)
 {
 	return xPortGetFreeHeapSize();
 }
 
-size_t rtos_get_min_ever_free_heap_size(void)
+size_t rtos_get_minimum_free_heap_size(void)
 {
 	return xPortGetMinimumEverFreeHeapSize();
+}
+
+size_t rtos_get_psram_total_heap_size(void)
+{
+	return xPortGetPsramTotalHeapSize();
+}
+
+size_t rtos_get_psram_free_heap_size(void)
+{
+	return xPortGetPsramFreeHeapSize();
+}
+
+size_t rtos_get_psram_minimum_free_heap_size(void)
+{
+	return xPortGetPsramMinimumFreeHeapSize();
 }
 
 uint32_t rtos_disable_int(void)

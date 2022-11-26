@@ -228,15 +228,19 @@ static size_t psram_xMinimumEverFreeBytesRemaining = 0U;
 
 /*-----------------------------------------------------------*/
 
-void bk_psram_heap_init(void) {
+__attribute__((section(".itcm_sec_code"))) void bk_psram_heap_init(void) {
 
 	BlockLink_t *pxFirstFreeBlock;
 	uint8_t *pucAlignedHeap;
 	size_t uxAddress;
 	size_t xTotalHeapSize;
-
+	#if !CONFIG_SLAVE_CORE
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DEFAULT,PM_CPU_FRQ_120M);
+	#endif
 	bk_psram_init();
-
+	#if !CONFIG_SLAVE_CORE
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DEFAULT,PM_CPU_FRQ_320M);
+	#endif
 	xTotalHeapSize = PSRAM_END_ADDRESS - PSRAM_START_ADDRESS;
 	psram_ucHeap = PSRAM_START_ADDRESS;
 
@@ -1019,26 +1023,45 @@ void xPortDumpMemStats(uint32_t start_tick, uint32_t ticks_since_malloc, const c
 #endif
 
 /*-----------------------------------------------------------*/
-
 size_t xPortGetFreeHeapSize( void )
 {
-#if (CONFIG_PSRAM_AS_SYS_MEMORY)
-    return xFreeBytesRemaining + psram_xFreeBytesRemaining;
-#else
-	return xFreeBytesRemaining;
-#endif
+    return xFreeBytesRemaining;
 }
-/*-----------------------------------------------------------*/
 
 size_t xPortGetMinimumEverFreeHeapSize( void )
 {
+    return xMinimumEverFreeBytesRemaining;
+}
+
+/*-----------------------------------------------------------*/
+size_t xPortGetPsramTotalHeapSize( void )
+{
 #if (CONFIG_PSRAM_AS_SYS_MEMORY)
-    return xMinimumEverFreeBytesRemaining + psram_xMinimumEverFreeBytesRemaining;
+    return (PSRAM_END_ADDRESS - PSRAM_START_ADDRESS);
 #else
-	return xMinimumEverFreeBytesRemaining;
+    return 0x0;
+#endif
+}
+
+size_t xPortGetPsramFreeHeapSize( void )
+{
+#if (CONFIG_PSRAM_AS_SYS_MEMORY)
+    return psram_xFreeBytesRemaining;
+#else
+    return 0x0;
+#endif
+}
+
+size_t xPortGetPsramMinimumFreeHeapSize( void )
+{
+#if (CONFIG_PSRAM_AS_SYS_MEMORY)
+    return psram_xMinimumEverFreeBytesRemaining;
+#else
+    return 0x0;
 #endif
 }
 /*-----------------------------------------------------------*/
+
 
 void vPortInitialiseBlocks( void )
 {
@@ -1047,9 +1070,13 @@ void vPortInitialiseBlocks( void )
 /*-----------------------------------------------------------*/
 
 #if configDYNAMIC_HEAP_SIZE
+
 #if (CONFIG_ARCH_RISCV)
 extern unsigned char _end;  //the end of bss section in sram
 #define HEAP_START_ADDRESS    (void*)(&_end)
+#elif (CONFIG_SOC_BK7236)
+extern unsigned char _heap_start, _heap_end;
+#define HEAP_START_ADDRESS    (void*)&_heap_start
 #else
 extern unsigned char _empty_ram;
 #define HEAP_START_ADDRESS    (void*)&_empty_ram
@@ -1058,12 +1085,17 @@ extern unsigned char _empty_ram;
 #if (CONFIG_SOC_BK7231N)
 #define HEAP_END_ADDRESS      (void*)(0x00400000 + 192 * 1024)
 #elif (CONFIG_SOC_BK7236A)
-// TBD: mem size for bk7236
 #define HEAP_END_ADDRESS      (void*)(0x00400000 + 192 * 1024)
 #elif (CONFIG_SOC_BK7271)
 #define HEAP_END_ADDRESS      (void*)(0x00400000 + 512 * 1024)
 #elif (CONFIG_SOC_BK7236)
-#define HEAP_END_ADDRESS      (void*)(SOC_SRAM0_DATA_BASE + 256 * 1024)
+
+#if CONFIG_SPE
+#define HEAP_END_ADDRESS      (void*)&_heap_end
+#else
+#define HEAP_END_ADDRESS      (void*)&_heap_end
+#endif
+
 #elif (CONFIG_SOC_BK7235 && !CONFIG_DUAL_CORE)
 #define HEAP_END_ADDRESS      (void*)(0x30000000 + 512 * 1024)
 #elif (CONFIG_SOC_BK7235 && CONFIG_MASTER_CORE)
@@ -1330,13 +1362,25 @@ INSERTED:
 //
 // TODO - after we support bk_eary_printf() API, we can remove this API.
 //
+#if CONFIG_SOC_BK7236
+extern unsigned char __data_start__;
+#define RAM_START_ADDRESS  ((uint32_t)&__data_start__)
+#else
 #define RAM_START_ADDRESS 0x400000
+#endif
 
-#define DATA_START_ADDRESS &_data_ram_begin
-#define DATA_END_ADDRESS &_data_ram_end
-#define BSS_START_ADDRESS &_bss_start
-#define BSS_END_ADDRESS &_bss_end
-extern unsigned char _bss_start, _bss_end, _data_ram_begin, _data_ram_end;
+extern unsigned char _data_ram_begin;
+#define DATA_START_ADDRESS (uint32_t)&_data_ram_begin
+
+extern unsigned char _data_ram_end;
+#define DATA_END_ADDRESS (uint32_t)&_data_ram_end
+
+extern unsigned char _bss_start;
+#define BSS_START_ADDRESS (uint32_t)&_bss_start
+
+extern unsigned char _bss_end;
+#define BSS_END_ADDRESS (uint32_t)&_bss_end
+
 void pvShowMemoryConfigInfo(void)
 {
 #if CONFIG_SOC_BK7256XX

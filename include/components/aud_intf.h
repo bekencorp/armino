@@ -447,6 +447,51 @@ bk_err_t bk_aud_intf_voc_start(void);
 bk_err_t bk_aud_intf_voc_stop(void);
 
 /**
+ * @brief     Control mic
+ *
+ * @param mic_en
+ *    - AUD_INTF_VOC_MIC_OPEN: enable mic
+ *    - AUD_INTF_VOC_MIC_CLOSE: disable mic
+ *
+ * This API should be called in voice work mode.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_intf_voc_mic_ctrl(aud_intf_voc_mic_ctrl_t mic_en);
+
+/**
+ * @brief     Control speaker
+ *
+ * @param spk_en
+ *    - AUD_INTF_VOC_SPK_OPEN: enable speaker
+ *    - AUD_INTF_VOC_SPK_CLOSE: disable speaker
+ *
+ * This API should be called in voice work mode.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_intf_voc_spk_ctrl(aud_intf_voc_spk_ctrl_t spk_en);
+
+/**
+ * @brief     Control aec enable or disable
+ *
+ * @param aec_en
+ *    - true: enable aec
+ *    - false: disable aec
+ *
+ * This API should be called in voice work mode.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_intf_voc_aec_ctrl(bool aec_en);
+
+/**
  * @brief     Write the speaker data to audio dac
  *
  * @param dac_buff the address of speaker data written
@@ -476,8 +521,68 @@ bk_err_t bk_aud_intf_set_voc_dac_debug(bool enable);
 #endif
 
 /**
+ * @brief     register callback to dump tx data in voice work mode
+ *
+ * @param dump_callback callback
+ *
+ * This API should be called in voice work mode. And audio transfer driver will call the callback to save data.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_intf_voc_tx_debug(aud_intf_dump_data_callback dump_callback);
+
+/**
+ * @brief     register callback to dump rx data in voice work mode
+ *
+ * @param dump_callback callback
+ *
+ * This API should be called in voice work mode. And audio transfer driver will call the callback to save data.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_intf_voc_rx_debug(aud_intf_dump_data_callback dump_callback);
+
+/**
+ * @brief     register callback to dump aec data(include mic data, ref data, and out data) in voice work mode
+ *
+ * @param dump_callback callback
+ *
+ * This API should be called in voice work mode. And audio transfer driver will call the callback to save data.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_intf_voc_aec_debug(aud_intf_dump_data_callback dump_callback);
+
+#if CONFIG_VIDEO_AVI
+/**
+ * @brief     Start the AVI save work
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_intf_mic_save_start(void);
+
+/**
+ * @brief     Stop the AVI save work
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_intf_mic_save_stop(void);
+#endif
+
+/**
  * @}
  */
+
 
 #ifdef __cplusplus
 }

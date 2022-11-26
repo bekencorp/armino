@@ -1,4 +1,4 @@
-if (CONFIG_TOUCH)
+if (CONFIG_TOUCH_TEST)
 set(srcs
 	touch_demo.c
 	)

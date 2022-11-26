@@ -1,4 +1,5 @@
 #include <common/bk_include.h>
+#include "sdkconfig.h"
 #include "stdarg.h"
 #include <os/mem.h>
 #include "sys_rtos.h"
@@ -11,6 +12,7 @@
 #include "bk_usb.h"
 #include "drv_model_pub.h"
 #include "cli.h"
+
 
 #if CONFIG_USB
 #if CONFIG_USB_MSD
@@ -272,11 +274,12 @@ void uvc_start_stream(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 	}
 
 	if (os_strcmp(argv[1], "start") == 0) {
+		usb_device_set_using_status(1, USB_UVC_DEVICE);
 		bk_uvc_start();
 	} else if(os_strcmp(argv[1], "stop") == 0) {
+		usb_device_set_using_status(0, USB_UVC_DEVICE);
 		bk_uvc_stop();
-	}
-	else {
+	} else {
 		cli_usb_help();
 		return;
 	}
@@ -284,16 +287,17 @@ void uvc_start_stream(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 }
 
 
-#ifdef CONFIG_USB_UVC
+#if CONFIG_USB_UVC
 void cli_fuvc_test_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	if (argc < 2) {
 		cli_usb_help();
 		return;
 	}
-
+	uint8_t param;
 	if (os_strcmp(argv[1], "init") == 0) {
-		fuvc_test_init(1);
+		param = os_strtoul(argv[2], NULL, 10);
+		fuvc_test_init(param);
 	} else {
 		cli_usb_help();
 		return;
@@ -378,6 +382,84 @@ void cli_usb_open_close(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 }
 
+#ifdef CONFIG_USB_UAC
+void uac_start_stop(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		cli_usb_help();
+		return;
+	}
+
+	s_audio_as_general_descriptor interfacedesc;
+	s_audio_format_type_descriptor formatdesc;
+	if(os_strcmp(argv[1], "get_mic_desc") == 0){
+		CLI_LOGI("uac_start_stop get_mic_desc\r\n");
+		bk_usb_uac_get_format_descriptor(USB_UAC_MIC_DEVICE, &interfacedesc, &formatdesc);
+		CLI_LOGI(" %s GeneralInerfaceDesc->bLength %x\r\n", __func__, interfacedesc.bLength);
+		CLI_LOGI(" %s GeneralInerfaceDesc->bDescriptorType %x\r\n", __func__, interfacedesc.bDescriptorType);
+		CLI_LOGI(" %s GeneralInerfaceDesc->bDescriptorSubtype %x\r\n", __func__,interfacedesc.bDescriptorSubtype);
+		CLI_LOGI(" %s GeneralInerfaceDesc->bTerminalLink %x\r\n", __func__, interfacedesc.bTerminalLink);
+		CLI_LOGI(" %s GeneralInerfaceDesc->bDelay %x\r\n", __func__, interfacedesc.bDelay);
+		CLI_LOGI(" %s GeneralInerfaceDesc->wFormatTag %x\r\n", __func__, interfacedesc.wFormatTag);
+		CLI_LOGI(" %s FormatTypeDesc->bLength %x\r\n", __func__, formatdesc.bLength);
+		CLI_LOGI(" %s FormatTypeDesc->bDescriptorType %x\r\n", __func__, formatdesc.bDescriptorType);
+		CLI_LOGI(" %s FormatTypeDesc->bDescriptorSubtype %x\r\n", __func__,formatdesc.bDescriptorSubtype);
+		CLI_LOGI(" %s FormatTypeDesc->bFormatType %x\r\n", __func__, formatdesc.bFormatType);
+		CLI_LOGI(" %s FormatTypeDesc->bNrChannels %x\r\n", __func__, formatdesc.bNrChannels);
+		CLI_LOGI(" %s FormatTypeDesc->bSubframeSize %x\r\n", __func__, formatdesc.bSubframeSize);
+		CLI_LOGI(" %s FormatTypeDesc->bBitResolution %x\r\n", __func__, formatdesc.bBitResolution);
+		CLI_LOGI(" %s FormatTypeDesc->bSamFreqType %x\r\n", __func__, formatdesc.bSamFreqType);
+		CLI_LOGI(" %s FormatTypeDesc->tSamFreq[0] %x\r\n", __func__, formatdesc.tSamFreq[0]);
+		CLI_LOGI(" %s FormatTypeDesc->tSamFreq[1] %x\r\n", __func__, formatdesc.tSamFreq[1]);
+		CLI_LOGI(" %s FormatTypeDesc->tSamFreq[2] %x\r\n", __func__, formatdesc.tSamFreq[2]);
+	} else if(os_strcmp(argv[1], "get_speaker_desc") == 0){
+		CLI_LOGI("uac_start_stop get_speaker_desc\r\n");
+		bk_usb_uac_get_format_descriptor(USB_UAC_MIC_DEVICE, &interfacedesc, &formatdesc);
+		CLI_LOGI(" %s GeneralInerfaceDesc->bLength %x\r\n", __func__, interfacedesc.bLength);
+		CLI_LOGI(" %s GeneralInerfaceDesc->bDescriptorType %x\r\n", __func__, interfacedesc.bDescriptorType);
+		CLI_LOGI(" %s GeneralInerfaceDesc->bDescriptorSubtype %x\r\n", __func__,interfacedesc.bDescriptorSubtype);
+		CLI_LOGI(" %s GeneralInerfaceDesc->bTerminalLink %x\r\n", __func__, interfacedesc.bTerminalLink);
+		CLI_LOGI(" %s GeneralInerfaceDesc->bDelay %x\r\n", __func__, interfacedesc.bDelay);
+		CLI_LOGI(" %s GeneralInerfaceDesc->wFormatTag %x\r\n", __func__, interfacedesc.wFormatTag);
+		CLI_LOGI(" %s FormatTypeDesc->bLength %x\r\n", __func__, formatdesc.bLength);
+		CLI_LOGI(" %s FormatTypeDesc->bDescriptorType %x\r\n", __func__, formatdesc.bDescriptorType);
+		CLI_LOGI(" %s FormatTypeDesc->bDescriptorSubtype %x\r\n", __func__,formatdesc.bDescriptorSubtype);
+		CLI_LOGI(" %s FormatTypeDesc->bFormatType %x\r\n", __func__, formatdesc.bFormatType);
+		CLI_LOGI(" %s FormatTypeDesc->bNrChannels %x\r\n", __func__, formatdesc.bNrChannels);
+		CLI_LOGI(" %s FormatTypeDesc->bSubframeSize %x\r\n", __func__, formatdesc.bSubframeSize);
+		CLI_LOGI(" %s FormatTypeDesc->bBitResolution %x\r\n", __func__, formatdesc.bBitResolution);
+		CLI_LOGI(" %s FormatTypeDesc->bSamFreqType %x\r\n", __func__, formatdesc.bSamFreqType);
+		CLI_LOGI(" %s FormatTypeDesc->tSamFreq[0] %x\r\n", __func__, formatdesc.tSamFreq[0]);
+		CLI_LOGI(" %s FormatTypeDesc->tSamFreq[1] %x\r\n", __func__, formatdesc.tSamFreq[1]);
+		CLI_LOGI(" %s FormatTypeDesc->tSamFreq[2] %x\r\n", __func__, formatdesc.tSamFreq[2]);
+	}
+
+
+#if CONFIG_USB_UAC_MIC
+	if(os_strcmp(argv[1], "start_mic") == 0){
+		CLI_LOGI("uac_start_stop start_mic\r\n");
+		usb_device_set_using_status(1, USB_UAC_MIC_DEVICE);
+		bk_uac_start_mic();
+	} else if(os_strcmp(argv[1], "stop_mic") == 0){
+		CLI_LOGI("uac_start_stop stop_mic\r\n");
+		usb_device_set_using_status(0, USB_UAC_MIC_DEVICE);
+		bk_uac_stop_mic();
+	}
+#endif
+#if CONFIG_USB_UAC_SPEAKER
+	if(os_strcmp(argv[1], "start_speaker") == 0){
+		CLI_LOGI("uac_start_stop start_mic\r\n");
+		usb_device_set_using_status(1, USB_UAC_SPEAKER_DEVICE);
+		bk_uac_start_speaker();
+	} else if(os_strcmp(argv[1], "stop_speaker") == 0){
+		CLI_LOGI("uac_start_stop start_mic\r\n");
+		usb_device_set_using_status(0, USB_UAC_SPEAKER_DEVICE);
+		bk_uac_stop_speaker();
+	}
+#endif
+}
+#endif
+
 const struct cli_command usb_host_clis[] = {
 
 #if CONFIG_USB_MSD
@@ -392,6 +474,11 @@ const struct cli_command usb_host_clis[] = {
 	{"uvc_ctrl_set", "uvc ctrl set attribute param", uvc_set_param},
 	{"uvc_stream", "uvc ctrl set attribute param", uvc_start_stream},
 #endif
+
+#if CONFIG_USB_UAC
+	{"uac", "uac start_mic|stop_mic|start_speaker|stop_speaker", uac_start_stop},
+#endif
+
 #if CONFIG_USB_PLUG_IN_OUT
 	{"usb_plug", "usb plug init|out", cli_usb_plug_init},
 	{"usb_plug_inout", "usb open|close", cli_usb_plug_inout},
@@ -399,11 +486,13 @@ const struct cli_command usb_host_clis[] = {
 	{"usb", "usb open_host|open_dev|close", cli_usb_open_close},
 };
 
-void usb_cli_init(void)
+int cli_usb_init(void)
 {
 	int ret;
 	ret = cli_register_commands(usb_host_clis, sizeof(usb_host_clis) / sizeof(struct cli_command));
 	if (ret)
 		CLI_LOGI("register usb host commands fail.\r\n");
+
+	return ret;
 }
 #endif

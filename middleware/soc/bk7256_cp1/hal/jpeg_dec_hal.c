@@ -356,7 +356,7 @@ JRESULT jd_prepare (JDEC* jd, uint16_t (*infunc)(JDEC*, uint8_t*, uint16_t), voi
 
 			if (seg[5] != 3)
 			{
-				os_printf("7--JDR_FMT3-- = %x \r\n", JDR_FMT3);
+				//os_printf("7--JDR_FMT3-- = %x \r\n", JDR_FMT3);
 				return JDR_FMT3;	/* Err: Supports only Y/Cb/Cr format */
 			}
 

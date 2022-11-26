@@ -3,7 +3,6 @@
 
 #define APP_DEMO_CFG_USE_TCP              1
 #define APP_DEMO_CFG_USE_UDP              1
-#define APP_DEMO_CFG_USE_VIDEO_BUFFER     1
 #define APP_DEMO_CFG_USE_UDP_SDP          1
 
 // UDP_SDP_CONFIG
@@ -26,11 +25,6 @@
 #define DOORBELL_UVC_STOP               0x39
 
 
-
-
-
-
-
 #define CMD_VOICE_HEADER                  0x30
 #define CMD_VOICE_START                   0x66
 #define CMD_VOICE_STOP                    0x67
@@ -43,6 +37,9 @@
 #define DEMO_DOORBELL_EN_VOICE_TRANSFER        1
 
 #define AUDIO_TRANSFER_ENABLE           1
+
+#define APP_DEMO_RCV_BUF_LEN        1472
+#define APP_DEMO_SOCKET_TIMEOUT     100  // ms
 
 
 /** define video transfer cmd */
@@ -64,6 +61,7 @@ typedef enum
 	MIN_AMPLITUDE = 6,
 	NOISE_LEVEL = 7,
 	NOISE_PARAM = 8,
+	AUD_DEBUG_OPEN = 9,
 } doorbell_transfer_cmd_t;
 
 typedef struct
@@ -78,12 +76,18 @@ typedef struct
 } media_hdr_t;
 
 int demo_doorbell_udp_send_packet(uint8_t *data, uint32_t len);
-uint32_t demo_doorbell_udp_init(void);
+bk_err_t demo_doorbell_udp_init(void);
 void demo_doorbell_udp_deinit(void);
 void demo_doorbell_disconnect_cmd_udp(void);
 
 
-uint32_t demo_doorbell_tcp_init(void);
+bk_err_t demo_doorbell_tcp_init(void);
+
+bk_err_t demo_doorbell_udp_client_init(int argc, char **argv);
+void demo_doorbell_udp_client_deinit(void);
+
+bk_err_t demo_doorbell_udp_server_init(int argc, char **argv);
+void demo_doorbell_udp_server_deinit(void);
 
 #endif
 // eof

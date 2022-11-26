@@ -14,4 +14,7 @@ char *asctime_r(const struct tm *t, char *buf);
 struct tm *gmtime_r(const time_t *timep, struct tm *r);
 struct tm* localtime_r(const time_t* t, struct tm* r);
 
+int datetime_set(time_t       sec);
+int datetime_get(struct tm *t);
+
 #endif

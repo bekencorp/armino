@@ -29,7 +29,6 @@
 
 #define CFG_USE_TEMPERATURE_DETECT                 1
 #define CFG_SUPPORT_SARADC                         1
-#define CFG_USE_VOLTAGE_DETECT                     0
 //TODO - more optimization for temp detect
 //1. Keep temperature detection related work here, such as detection task, config etc.
 //2. Move temp sensor and adc related work to driver, better implenented temp sensor
@@ -646,7 +645,7 @@ int temp_detect_get_temperature(uint32_t *temperature)
 	return err;
 }
 
-#if (CONFIG_SOC_BK7256XX) ||(CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7231N)
+#if (CONFIG_SOC_BK7256XX) ||(CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236)
 static void temp_single_get_disable(void)
 {
     UINT32 status = DRV_SUCCESS;

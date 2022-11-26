@@ -1,25 +1,24 @@
-电源域说明
+power domain instructions
 ==================================================
-电源域说明
+power domain instructions
 -----------------------------------------------------
-初识电源域
+power domain brief introduce
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 
-整个开发板分为三类电源域：
- -  板级的电源域
- -  模拟部分电源域
- -  数字部分电源域
+There are three types power domain：
+ -  PCB power domain
+ -  analog power domain
+ -  DVDD digtal power domain
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 
-数字部分分为两个大的电源域：
- -  Aon电源域
- -  Digital Core电源域
+There are two types power domain in digtal：
+ -  Aon
+ -  Digital Core
 
-Digital Core电源域
+Digital Core power domain
 +++++++++++++++++++++++++++++++++++++++++++++++++++
-Digital Core电源域下根据业务场景，各个业务模块有自己单独的电源域，各个业务可以根据自己的工作场景来决定上电还是下电，这样功耗控制很灵活，不同的产品形态达到最优给功耗。
-
+Digital Core power domain has different modules, different sub modules has their sub power domain，which can according to the usage scenario to switch power on or power off ，so the power control strategy is flexible，Different product forms can reach optimal power consumption according the usage scenario.
 
 :link_to_translation:`en:[English]`
 

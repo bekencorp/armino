@@ -30,8 +30,8 @@ extern "C" {
 #define UART_V_MODE_UART        0x0
 #define UART_V_MODE_IRDA        0x1
 
-#define UART_V_PARITY_ODD       0x0
-#define UART_V_PARITY_EVEN      0x1
+#define UART_V_PARITY_ODD       0x1
+#define UART_V_PARITY_EVEN      0x0
 
 #define UART_R_FIFO_STATUS      (UART_R_BASE + 4 * 0x2)
 

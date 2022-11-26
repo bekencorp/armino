@@ -104,10 +104,14 @@ typedef uintptr_t mem_ptr_t;
 #ifndef BYTE_ORDER
 #define BYTE_ORDER          LITTLE_ENDIAN
 #endif
-
+#ifdef CONFIG_TRNG_SUPPORT
 extern int bk_rand();		/* FIXME: move to right place */
 
 #define LWIP_RAND()        ((uint32_t)bk_rand())
+#else
+extern int rand();
+#define LWIP_RAND()        (rand())
+#endif
 #endif
 // eof
 

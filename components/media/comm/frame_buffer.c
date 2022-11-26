@@ -276,6 +276,12 @@ frame_buffer_t *frame_buffer_fb_malloc(fb_type_t type)
 		return NULL;
 	}
 
+	if (mem_list->lock == NULL)
+	{
+		LOGE("[%s]:mem_list->lock is NULL\r\n", __func__);
+		return NULL;
+	}
+
 	if (!isr_context)
 	{
 		rtos_lock_mutex(&mem_list->lock);
@@ -522,7 +528,7 @@ frame_buffer_t *frame_buffer_fb_read(frame_module_t index)
 
 		if (ret != BK_OK)
 		{
-			LOGE("%s semaphore get failed: %d\n", __func__, ret);
+			LOGD("%s semaphore get failed: %d\n", __func__, ret);
 			rtos_unlock_mutex(&fb_info->modules[index].lock);
 			goto out;
 		}
@@ -576,6 +582,12 @@ bk_err_t frame_buffer_fb_register(frame_module_t index, fb_type_t type)
 	uint32_t isr_context = platform_is_in_interrupt_context();
 	GLOBAL_INT_DECLARATION();
 
+	if (fb_info->modules[index].enable == true)
+	{
+		LOGE("%s frame_module index already register\n", __func__);
+		return ret;
+	}
+
 	if (index >= MODULE_MAX)
 	{
 		LOGE("%s invalid module: %d\n", __func__, index);
@@ -625,6 +637,12 @@ bk_err_t frame_buffer_fb_deregister(frame_module_t index)
 	bk_err_t ret = BK_FAIL;
 	uint32_t isr_context = platform_is_in_interrupt_context();
 	GLOBAL_INT_DECLARATION();
+
+	if (fb_info->modules[index].enable == false)
+	{
+		LOGE("%s frame_module index already degister\n", __func__);
+		return ret;
+	}
 
 	if (index >= MODULE_MAX)
 	{
@@ -929,7 +947,7 @@ frame_buffer_t *frame_buffer_fb_display_malloc_wait(void)
 
 			if (ret != BK_OK)
 			{
-				LOGE("%s semaphore get failed: %d\n", __func__, ret);
+				LOGD("%s semaphore get failed: %d\n", __func__, ret);
 			}
 
 			continue;
@@ -1098,7 +1116,7 @@ frame_buffer_t *frame_buffer_fb_display_pop_wait(void)
 
 		if (ret != BK_OK)
 		{
-			LOGE("%s semaphore get failed: %d\n", __func__, ret);
+			LOGD("%s semaphore get failed: %d\n", __func__, ret);
 			break;
 		}
 

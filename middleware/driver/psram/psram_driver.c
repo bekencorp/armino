@@ -21,18 +21,9 @@
 #include "driver/psram_types.h"
 
 
-#define BK_ERR_PSRAM_DRIVER_NOT_INIT       (BK_ERR_PSRAM_BASE - 1) /**< psram driver not init */
-#define BK_ERR_PSRAM_SERVER_NOT_INIT       (BK_ERR_PSRAM_BASE - 2) /**< psram server not init */
+#define BK_ERR_PSRAM_SERVER_NOT_INIT       (BK_ERR_PSRAM_BASE - 1) /**< psram server not init */
 
-
-static bool s_psram_driver_is_init = false;
 static bool s_psram_server_is_init = false;
-
-#define PSRAM_RETURN_ON_DRIVER_NOT_INIT() do {\
-        if (!s_psram_driver_is_init) {\
-            return BK_ERR_PSRAM_DRIVER_NOT_INIT;\
-        }\
-    } while(0)
 
 #define PSRAM_RETURN_ON_SERVER_NOT_INIT() do {\
 				if (!s_psram_server_is_init) {\
@@ -67,62 +58,57 @@ bk_err_t bk_psram_set_transfer_mode(psram_tansfer_mode_t transfer_mode)
 	return ret;
 }
 
-
-bk_err_t bk_psram_driver_init(void)
-{
-	if (s_psram_driver_is_init)
-		return BK_OK;
-
-	bk_err_t ret = psram_hal_power_enable(1);
-	if (ret != BK_OK)
-		return ret;
-
-	s_psram_driver_is_init = true;
-
-	return BK_OK;
-}
-
-bk_err_t bk_psram_driver_deinit(void)
-{
-	if (!s_psram_driver_is_init) {
-		return BK_OK;
-	}
-
-	psram_hal_power_enable(0);
-
-	s_psram_driver_is_init = false;
-	s_psram_server_is_init = false;
-
-	return BK_OK;
-}
-
 bk_err_t bk_psram_init(void)
 {
-	PSRAM_RETURN_ON_DRIVER_NOT_INIT();
-
 	if (s_psram_server_is_init) {
 		return BK_OK;
 	}
 
-	bk_err_t ret = psram_hal_config_init();
-	if (ret != BK_OK)
-		return ret;
+	// power up and clk config
+	psram_hal_power_clk_enable(1);
+
+	// psram config
+	psram_hal_config_init();
 
 	s_psram_server_is_init = true;
+
 	return BK_OK;
 }
 
 bk_err_t bk_psram_deinit(void)
 {
-	PSRAM_RETURN_ON_DRIVER_NOT_INIT();
-
 	if (!s_psram_server_is_init) {
 		return BK_OK;
 	}
 
-	psram_hal_clk_power_enable(0);
+	psram_hal_power_clk_enable(0);
 
 	s_psram_server_is_init = false;
+
+	return BK_OK;
+}
+
+bk_err_t bk_psram_resume(void)
+{
+	if (s_psram_server_is_init)
+	{
+		// power up and clk config
+		psram_hal_power_clk_enable(1);
+
+		// psram config
+		psram_hal_config_init();
+	}
+
+	return BK_OK;
+}
+
+bk_err_t bk_psram_suspend(void)
+{
+	if (s_psram_server_is_init)
+	{
+		psram_hal_power_clk_enable(0);
+	}
+
 	return BK_OK;
 }
 

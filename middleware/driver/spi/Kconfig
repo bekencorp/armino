@@ -1,0 +1,36 @@
+menu "SPI"
+	#TODO optimize SPI_DMA and GENERAL_DMA when optimize driver
+	config SPI_DMA
+		bool "Enable SPI DMA"
+		default y
+
+	config SPI_SLAVE
+		bool "Enable SPI Slave"
+		default y
+
+	config SPI_MASTER
+		bool "Enable SPI Master"
+		default y
+			
+	config SPI_STATIS
+		bool "Enable SPI Statis"
+		default y
+			
+	config SPI_SUPPORT_TX_FIFO_WR_READY
+		bool "Support TX FIFO Write Ready"
+		default y
+
+	config HSLAVE_SPI
+		bool "Enable HSlave SPI"
+		default y
+
+	config SPI_MST_FLASH
+		bool "SPI MST Flash"
+		default n
+
+	config SPI_MST_PSRAM
+		bool "SPI MST PSRAM"
+		default n
+
+endmenu
+

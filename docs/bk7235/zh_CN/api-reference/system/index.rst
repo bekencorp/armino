@@ -6,6 +6,6 @@
 .. toctree::
     :maxdepth: 2
 
-    OS <os>
+    操作系统 <os>
     事件机制 <bk_event>
     POSIX <posix/index>

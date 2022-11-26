@@ -106,10 +106,6 @@ void bk7271_ble_cli_init(void);
 #endif
 #endif
 
-#if (CONFIG_SOC_BK7256XX)
-void usb_cli_init(void);
-#endif
-
 /** Register a CLI command
  *
  * This function registers a command with the command-line interface.

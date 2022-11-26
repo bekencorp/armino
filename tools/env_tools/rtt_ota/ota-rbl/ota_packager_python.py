@@ -16,8 +16,12 @@ import os
 import struct
 import zlib
 
-from Crypto import Random
-from Crypto.Cipher import AES
+try:
+    from Crypto import Random
+    from Crypto.Cipher import AES
+except ModuleNotFoundError:
+    from Cryptodome import Random
+    from Cryptodome.Cipher import AES
 
 s_base_addr = 0
 SZ_16M = 0x1000000
@@ -703,13 +707,16 @@ def packager(args):
                     section = json_dict["section"]
                     size = section[1]["size"]
                     #print("============size：>>>>",size)
-                    iSize = (size2int(size)) - 96
+                    iSize = (size2int(size))
                     #print("============iSize：>>>>",iSize)
                     #print("============dest_obj：>>>>",len(dest_obj))                    
-                    for i in range(iSize - len(dest_obj)):
+                    for i in range(iSize - len(dest_obj) - 4096):
                         a = struct.pack('B',255)
                         f.write(a)
             f.write(my_head)
+            for i in range(4000):
+                a = struct.pack('B',255)
+                f.write(a)
         else:
             f.write(my_head)
             f.write(dest_obj)

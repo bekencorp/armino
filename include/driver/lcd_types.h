@@ -23,13 +23,21 @@ extern "C" {
 #define  USE_LCD_REGISTER_CALLBACKS  1
 typedef void (*lcd_isr_t)(void);
 
+#define LOGO_MAX_W 40
+#define LOGO_MAX_H 40
+#define DMA2D_MALLOC_MAX  (LOGO_MAX_W*LOGO_MAX_H*2)
+
 typedef enum {
 	LCD_DEVICE_UNKNOW,
 	LCD_DEVICE_ST7282,  /**< 480X270  RGB */
 	LCD_DEVICE_HX8282,  /**< 1024X600 RGB  */
 	LCD_DEVICE_GC9503V, /**< 480X800 RGB  */
 	LCD_DEVICE_ST7796S, /**< 320X480 MCU  */
-	LCD_DEVICE_NT35512,
+	LCD_DEVICE_NT35512, /**< 480X800 MCU  */
+	LCD_DEVICE_NT35510, /**< 480X854 MCU  */
+	LCD_DEVICE_H050IWV, /**< 800X480 RGB  */
+	LCD_DEVICE_MD0430R, /**< 800X480 RGB  */
+	LCD_DEVICE_MD0700R, /**< 1024X600 RGB  */
 } lcd_device_id_t;
 
 typedef enum {
@@ -82,18 +90,21 @@ typedef struct
 } lcd_disp_framebuf_t;
 
 
-/** rgb config param */
+/** rgb interface config param */
 typedef struct
 {
 	lcd_clk_t clk;                         /**< config lcd clk */
 	rgb_out_clk_edge_t data_out_clk_edge;  /**< rgb data output in clk edge, should refer lcd device spec*/
 
-	uint16_t hsync_back_porch;            /**< rgb hsync back porch, should refer lcd device spec*/
-	uint16_t hsync_front_porch;           /**< rgb hsync front porch, should refer lcd device spec*/
-	uint16_t vsync_back_porch;            /**< rgb vsyn back porch, should refer lcd device spec*/
-	uint16_t vsync_front_porch;           /**< rgb vsyn front porch, should refer lcd device spec*/
+	uint16_t hsync_back_porch;            /**< rang 0~0xFF (0~255), should refer lcd device spec*/
+	uint16_t hsync_front_porch;           /**< rang 0~0x3F (0~127), should refer lcd device spec*/
+	uint16_t vsync_back_porch;            /**< rang 0~0x1F (0~31), should refer lcd device spec*/
+	uint16_t vsync_front_porch;           /**< rang 0~0x7F (0~127), should refer lcd device spec*/
+	uint8_t hsync_pulse_width;            /**< rang 0~0x3F (0~63), should refer lcd device spec*/
+	uint8_t vsync_pulse_width;            /**< rang 0~0x3F (0~63), should refer lcd device spec*/
 } lcd_rgb_t;
 
+/** mcu interface config param */
 typedef struct
 {
 	lcd_clk_t clk; /**< config lcd clk */
@@ -115,11 +126,11 @@ typedef struct
 		const lcd_rgb_t *rgb;  /**< RGB interface lcd device config */
 		const lcd_mcu_t *mcu;  /**< MCU interface lcd device config */
 	};
-	void (*backlight_open)(void);       /**< lcd device initial function */
+	void (*backlight_open)(void);         /**< lcd device initial function */
 	void (*backlight_set)(uint8_t);       /**< lcd device initial function */
-	void (*init)(void);       /**< lcd device initial function */
-	void (*backlight_close)(void);       /**< lcd device initial function */
-	bk_err_t (*lcd_off)(void);       /**< lcd off */
+	void (*init)(void);                   /**< lcd device initial function */
+	void (*backlight_close)(void);        /**< lcd device initial function */
+	bk_err_t (*lcd_off)(void);            /**< lcd off */
 } lcd_device_t;
 
 
@@ -137,6 +148,27 @@ typedef struct
 	int use_gui;
 } lcd_config_t;
 
+
+typedef enum {
+	ARGB8888 = 0, /**< ARGB8888 DMA2D color mode */
+	RGB888,       /**< RGB888 DMA2D color mode   */
+	RGB565,       /**< RGB565 DMA2D color mode   */
+} data_format_t;
+
+/** lcd blend config */
+typedef struct
+{
+	void *pfg_addr;                /**< lcd blend background addr */
+	void *pbg_addr;                /**< lcd blend foregound addr */
+	uint32_t fg_offline;           /**< foregound addr offset */
+	uint32_t bg_offline;           /**< background addr offset*/
+	uint32 xsize;                  /**< lcd blend logo width */
+	uint32 ysize;                  /**< lcd blend logo height */
+	uint8_t fg_alpha_value;        /**< foregound logo alpha value,depend on alpha_mode*/
+	uint8_t bg_alpha_value;        /**< background logo alpha value,depend on alpha_mode*/
+	data_format_t fg_data_format;  /**< foregound data format */
+	pixel_format_t bg_data_format; /**< background data format */
+}lcd_blend_t;
 
 
 /*

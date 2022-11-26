@@ -9,7 +9,23 @@
 
 void cli_memory_free_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	cmd_printf("free memory %d\r\n", rtos_get_free_heap_size());
+	uint32_t total_size,free_size,mini_size;
+
+	cmd_printf("%-5s   %-5s   %-5s   %-5s   %-5s\r\n",
+		"name", "total", "free", "minimum", "peak");
+	
+	total_size = rtos_get_total_heap_size();
+	free_size  = rtos_get_free_heap_size();
+	mini_size  = rtos_get_minimum_free_heap_size();
+	cmd_printf("heap\t%d\t%d\t%d\t%d\r\n",  total_size,free_size,mini_size,total_size-mini_size);
+
+#if CONFIG_PSRAM_AS_SYS_MEMORY
+	total_size = rtos_get_psram_total_heap_size();
+	free_size  = rtos_get_psram_free_heap_size();
+	mini_size  = rtos_get_psram_minimum_free_heap_size();
+	cmd_printf("psram\t%d\t%d\t%d\t%d\r\n", total_size,free_size,mini_size,total_size-mini_size);
+#endif
+
 }
 
 void cli_memory_dump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)

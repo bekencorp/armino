@@ -54,8 +54,15 @@ bk_err_t efuse_hal_init(efuse_hal_t *hal)
 bk_err_t efuse_hal_write(efuse_hal_t *hal, uint8_t addr, uint8_t wr_data)
 {
 	/* read before write, ensure this byte and this bit no wrote */
-	uint8_t read_data = efuse_hal_read(hal, addr);
-	int ret = efuse_hal_check_can_write(read_data, wr_data);
+	int ret;
+	uint8_t read_data = 0;
+
+	ret = efuse_hal_read(hal, addr, &read_data);
+	if(ret != BK_OK){
+		return BK_ERR_EFUSE_READ_FAIL;
+	}
+
+	ret = efuse_hal_check_can_write(read_data, wr_data);
 	if (ret == -1) {
 		return BK_OK;
 	}
@@ -74,7 +81,11 @@ bk_err_t efuse_hal_write(efuse_hal_t *hal, uint8_t addr, uint8_t wr_data)
 
 	efuse_ll_disable_vdd25(hal->hw);
 
-	read_data = efuse_hal_read(hal, addr);
+	ret = efuse_hal_read(hal, addr, &read_data);
+	if(ret != BK_OK){
+		return BK_ERR_EFUSE_READ_FAIL;
+	}
+
 	if (read_data != wr_data) {
 		return BK_ERR_EFUSE_WRTIE_NOT_EQUAL;
 	}
@@ -87,7 +98,7 @@ bk_err_t efuse_hal_write(efuse_hal_t *hal, uint8_t addr, uint8_t wr_data)
  * 3. wait for efuse operate finished
  * 4. if rd_data valid, read data
  */
-uint8_t efuse_hal_read(efuse_hal_t *hal, uint8_t addr)
+bk_err_t efuse_hal_read(efuse_hal_t *hal, uint8_t addr, uint8_t *data)
 {
 	efuse_ll_set_direction_read(hal->hw);
 	efuse_ll_set_addr(hal->hw, addr);
@@ -97,9 +108,10 @@ uint8_t efuse_hal_read(efuse_hal_t *hal, uint8_t addr)
 	BK_WHILE (!efuse_ll_is_operate_finished(hal->hw));
 
 	if (efuse_ll_is_rd_data_valid(hal->hw)) {
-		return efuse_ll_get_rd_data(hal->hw);
+		*data = efuse_ll_get_rd_data(hal->hw);
+		return BK_OK;
 	} else {
-		return 0xFF;
+		return BK_ERR_EFUSE_READ_FAIL;
 	}
 }
 

@@ -31,6 +31,7 @@ extern "C" {
 #define BK_ERR_EFUSE_ADDR_OUT_OF_RANGE  (BK_ERR_EFUSE_BASE - 2) /**< EFUSE address is out of range */
 #define BK_ERR_EFUSE_CANNOT_WRTIE       (BK_ERR_EFUSE_BASE - 3) /**< EFUSE cannot write, cannot change bit from 1 to 0 */
 #define BK_ERR_EFUSE_WRTIE_NOT_EQUAL    (BK_ERR_EFUSE_BASE - 4) /**< EFUSE data read is not equal to the data written */
+#define BK_ERR_EFUSE_READ_FAIL          (BK_ERR_EFUSE_BASE - 5) /**< EFUSE data read fail */
 
 typedef uint8_t efuse_unit_t; /**< efuse uint id */
 

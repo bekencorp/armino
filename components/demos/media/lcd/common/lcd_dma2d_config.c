@@ -29,7 +29,7 @@ void dma2d_lcd_fill(uint32_t frameaddr, uint16_t x, uint16_t y, uint16_t width, 
 	dma2d_config.init.output_offset  = 320 - width;            /**< offset in output */
 	dma2d_config.init.red_blue_swap   = DMA2D_RB_REGULAR;       /**< No R&B swap for the output image */
 	dma2d_config.init.alpha_inverted = DMA2D_REGULAR_ALPHA;     /**< No alpha inversion for the output image */
-	bk_dma2d_driver_init(&dma2d_config);
+	bk_dma2d_init(&dma2d_config);
 	bk_dma2d_start_transfer(&dma2d_config, color, (uint32_t)pDiSt, width, high);
 	while (bk_dma2d_is_transfer_busy()) {
 	}
@@ -44,7 +44,7 @@ void dm2d_lcd_create_picture(uint32_t frameaddr, uint16_t width, uint16_t height
 	dma2d_config.init.output_offset  = 0;                      /**< offset in output */
 	dma2d_config.init.red_blue_swap   = DMA2D_RB_REGULAR;       /**< No R&B swap for the output image */
 	dma2d_config.init.alpha_inverted = DMA2D_REGULAR_ALPHA;     /**< No alpha inversion for the output image */
-	bk_dma2d_driver_init(&dma2d_config);
+	bk_dma2d_init(&dma2d_config);
 	bk_dma2d_start_transfer(&dma2d_config, color, (uint32_t)frameaddr, width, height);
 	while (bk_dma2d_is_transfer_busy()) {
 	}
@@ -66,7 +66,7 @@ static void dma2d_memcpy_rgb565_data(uint32_t src_addr, uint32_t dst_addr, uint3
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].red_blue_swap   = DMA2D_RB_REGULAR;	   /**< No R&B swap for the input image */
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].alpha_inverted = DMA2D_REGULAR_ALPHA;   /**< No alpha inversion for the input image */
 
-	bk_dma2d_driver_init(&dma2d_config);
+	bk_dma2d_init(&dma2d_config);
 	bk_dma2d_layer_config(&dma2d_config, DMA2D_FOREGROUND_LAYER);
 
 	bk_dma2d_start_transfer(&dma2d_config, (uint32_t)src_addr, (uint32_t)dst_addr, x_pixel, y_pixel); 
@@ -94,7 +94,7 @@ void bk_example_dma2d_rgb888_to_arg565pixel(uint32_t srcaddr, uint32_t dstaddr, 
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].red_blue_swap   = RedBlueSwapConfig;   /**< No R&B swap for the input image */
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].alpha_inverted = DMA2D_REGULAR_ALPHA; /**< No alpha inversion for the input image */
 
-	bk_dma2d_driver_init(&dma2d_config);
+	bk_dma2d_init(&dma2d_config);
 	bk_dma2d_layer_config(&dma2d_config, DMA2D_FOREGROUND_LAYER);
 
 	bk_dma2d_start_transfer(&dma2d_config,
@@ -133,7 +133,7 @@ void dma2d_blend_rgb565_data(void *p_fg_addr, void *p_bg_addr, void *p_dst_addr,
 	dma2d_config.layer_cfg[DMA2D_BACKGROUND_LAYER].red_blue_swap	= DMA2D_RB_REGULAR; 			 /**< No R&B swap for the input background image */
 	dma2d_config.layer_cfg[DMA2D_BACKGROUND_LAYER].alpha_inverted  = DMA2D_REGULAR_ALPHA;			/**< No alpha inversion for the input background image */
 
-	bk_dma2d_driver_init(&dma2d_config);
+	bk_dma2d_init(&dma2d_config);
 	bk_dma2d_layer_config(&dma2d_config, DMA2D_FOREGROUND_LAYER);
 	bk_dma2d_layer_config(&dma2d_config, DMA2D_BACKGROUND_LAYER);
 	bk_dma2d_start_blending(&dma2d_config, (uint32_t)p_fg_addr, (uint32_t)p_bg_addr, (uint32_t)p_dst_addr, xsize ,ysize);
@@ -210,7 +210,7 @@ void dma2d_crop_image(dma2d_crop_params_t *crop_params)
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].red_blue_swap   = DMA2D_RB_REGULAR;	   /**< No R&B swap for the input image */
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].alpha_inverted = DMA2D_REGULAR_ALPHA;   /**< No alpha inversion for the input image */
 
-	bk_dma2d_driver_init(&dma2d_config);
+	bk_dma2d_init(&dma2d_config);
 	bk_dma2d_layer_config(&dma2d_config, DMA2D_FOREGROUND_LAYER);
 
 	bk_dma2d_start_transfer(&dma2d_config, (uint32_t)src_crop_start_addr, (uint32_t)crop_params->dst_addr, crop_params->dst_width, crop_params->dst_height); 

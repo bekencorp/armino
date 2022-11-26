@@ -1,4 +1,4 @@
-// Copyright 2020-2022 Beken
+// Copyright 2021-2022 Beken
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,8 +21,6 @@
 extern "C" {
 #endif
 
-
-
 /* @brief Overview about this API header
  *
  */
@@ -34,49 +32,26 @@ extern "C" {
  */
 
 /**
- * @brief     Init the AON_WDT driver
+ * @brief   Get watchdog period
+ *    - return 0 means close aon_wdt
  *
- * This API init the resoure common:
- *   - Init AON_WDT driver control memory
- *
- * @attention 1. This API should be called before any other AON_WDT APIs.
+ * @return
+ *    - aon_wdt period.
+ *    - period 0 means aon_wdt closed.
+ */
+uint32_t bk_aon_wdt_get_period(void);
+
+/**
+ * @brief  set watchdog period
  *
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-bk_err_t bk_aon_wdt_driver_init(void);
+bk_err_t bk_aon_wdt_set_period(uint32_t timeout_ms);
 
 /**
- * @brief     Deinit the AON_WDT driver
- *
- * This API free all resource related to AON_WDT and power down AON_WDT.
- *
- * @return
- *    - BK_OK: succeed
- *    - others: other errors.
- */
-bk_err_t bk_aon_wdt_driver_deinit(void);
-
-/**
- * @brief     Start the AON_WDT
- *
- * This API start the AON_WDT:
- *  - Power up the AON_WDT
- *  - Init the watch dog timer period
- *
- * @param timeout_ms AON_WDT period
- *
- * @return
- *    - BK_OK: succeed
- *    - BK_ERR_AON_WDT_DRIVER_NOT_INIT: AON_WDT driver not init
- *    - BK_ERR_AON_WDT_INVALID_PERIOD: AON_WDT invalid period
- *    - others: other errors.
- */
-bk_err_t bk_aon_wdt_start(uint32_t timeout_ms);
-
-/**
- * @brief     Stop the AON_WDT
+ * @brief   Stop the AON_WDT
  *
  * This API stop the AON_WDT:
  *   - Reset all configuration of AON_WDT to default value
@@ -110,19 +85,10 @@ uint32_t bk_aon_wdt_get_feed_time(void);
  * @brief  set feed watchdog time
  *
  * @return
- *    - NULL
- *
- */
-void bk_aon_wdt_set_feed_time(uint32_t dw_set_time);
-
-/**
- * @brief   Get AON_WDT driver init flag
- *
- * @return
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-bool bk_aon_wdt_is_driver_inited(void);
+bk_err_t bk_aon_wdt_set_feed_time(uint32_t feed_time);
 
 /**
  * @}

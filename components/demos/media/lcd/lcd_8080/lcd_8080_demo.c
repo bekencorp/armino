@@ -102,6 +102,7 @@ static void dma2d_lcd_fill_test(uint32_t frameaddr, uint16_t width, uint16_t hei
 {
 	uint32_t color_temp = (color << 16) | color;
 	os_printf("displat color :%x\r\n", color_temp);
+	bk_dma2d_driver_init();
 
 	dma2d_config_t dma2d_config = {0};
 
@@ -110,7 +111,7 @@ static void dma2d_lcd_fill_test(uint32_t frameaddr, uint16_t width, uint16_t hei
 	dma2d_config.init.output_offset  = 0;                      /**< offset in output */
 	dma2d_config.init.red_blue_swap   = DMA2D_RB_REGULAR;       /**< No R&B swap for the output image */
 	dma2d_config.init.alpha_inverted = DMA2D_REGULAR_ALPHA;     /**< No alpha inversion for the output image */
-	bk_dma2d_driver_init(&dma2d_config);
+	bk_dma2d_init(&dma2d_config);
 	if (width == 0)
 	{
 		height = height/2;
@@ -143,8 +144,8 @@ static volatile uint8_t lcd_cnt;
 static void lcd_i8080_isr_test(void)
 {
 	g_disp_frame_done_flag=1;
-	bk_lcd_8080_start_transfer(0);
 }
+extern void bk_mem_dump_ex(const char *title, unsigned char *data, uint32_t data_len);
 
 void lcd_8080_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
@@ -174,17 +175,16 @@ void lcd_8080_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 		cpu_lcd_fill_test((uint32_t*) addr, color);
 	} else if (os_strcmp(argv[1], "init") == 0) {
 		bk_psram_init();
-		uint32_t clk = os_strtoul(argv[2], NULL, 16) & 0xffff;
+		bk_dma2d_driver_init();
 		os_printf("lcd driver init. \r\n");
-		uint32_t yuv_mode = os_strtoul(argv[3], NULL, 16) & 0xffff;
 		os_printf("lcd driver init. \r\n");
-		ret = bk_lcd_driver_init(clk);
+		ret = bk_lcd_driver_init(LCD_20M);
 		if (ret != BK_OK) {
 			os_printf("bk_lcd_driver_init failed\r\n");
 			return;
 		}
 		os_printf("i8080 lcd init. \r\n");
-		ret = bk_lcd_8080_init(PIXEL_320, PIXEL_480, yuv_mode);
+		ret = bk_lcd_8080_init(PIXEL_320, PIXEL_480, PIXEL_FMT_YUYV);
 		if (ret != BK_OK) {
 			os_printf("bk_lcd_8080_initinit failed\r\n");
 			return;
@@ -253,7 +253,7 @@ void lcd_8080_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 		lcd_disp.rect.height = h;
 		lcd_disp.buffer = (uint32_t *)data_addr;
 		bk_lcd_fill_data(LCD_DEVICE_ST7796S, &lcd_disp);
-		bk_lcd_8080_ram_write(RAM_WRITE);
+//		bk_lcd_8080_ram_write(RAM_WRITE);
 	} else if (os_strcmp(argv[1], "close") == 0) {
 		bk_lcd_8080_deinit();
 	}

@@ -181,6 +181,14 @@ int32 sys_hal_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval)
 {
 	return 0;
 }
+int32 sys_hal_bandgap_cali_set(uint32_t value)//increase or decrease the dvdddig voltage
+{
+	return 0;
+}
+uint32_t sys_hal_bandgap_cali_get()
+{
+	return 0;
+}
 /*low power feature end*/
 void sys_hal_enable_mac_wakeup_source()
 {

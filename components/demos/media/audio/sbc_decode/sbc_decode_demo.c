@@ -190,6 +190,7 @@ void cli_sbc_decoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 		aud_intf_spk_setup.frame_size = sbc_pcm_length * 4;
 		aud_intf_spk_setup.spk_gain = 0x2d;
 		aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
+		aud_intf_spk_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
 		ret = bk_aud_intf_spk_init(&aud_intf_spk_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
 			os_printf("bk_aud_intf_spk_init fail, ret:%d \r\n", ret);

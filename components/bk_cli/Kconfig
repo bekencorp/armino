@@ -3,6 +3,16 @@ menu "Cli"
 		bool "Enable BK Cli"
 		default y
 
+	config CLI_USER_CONFIG
+		depends on CLI
+		bool "Enable cli user configuration header"
+		default n
+
+	config CLI_USER_CONFIG_DIR
+		depends on CLI_USER_CONFIG
+		string "Set cli user configuration header dir"
+		default ""
+
 	config BKREG
 		depends on CLI
 		bool "Enable BK Reg read/write"
@@ -70,7 +80,7 @@ menu "Cli"
 		bool "Enable Shell and Async log optimize"
 		default n
 
-	config TOUCH
+	config TOUCH_TEST
 		depends on CLI
 		bool "Enable TOUCH Test"
 		default n
@@ -105,19 +115,44 @@ menu "Cli"
 		default n
 
 	config COMPONENTS_WPA2_ENTERPRISE
-                bool "Enable WPA2 ENTERPRISE"
-                default n
+		bool "Enable WPA2 ENTERPRISE"
+		default n
 
-        config COMPONENTS_WPA_TWT_TEST
-                bool "Enable WPA TWT TEST"
-                default n
+	config COMPONENTS_WPA_TWT_TEST
+		bool "Enable WPA TWT TEST"
+		default n
 
-        config COMPONENTS_WFA_CA
-                bool "WFA_CA"
-                default n
+	config COMPONENTS_WFA_CA
+		bool "WFA_CA"
+		default n
 
 	config ENABLE_WIFI_DEFAULT_CONNECT
 		bool "Enable Wi-Fi Default Connect"
+		default n
+
+	config PSRAM_TEST
+		depends on CLI
+		bool "Enable PSRAM Test"
+		default n
+
+	config DVP_TEST
+		depends on CLI
+		bool "Enable DVP Test"
+		default n
+
+	config CM33_TEST
+		depends on CLI
+		bool "Enable CM33 Test"
+		default n
+
+	config MPC_TEST
+		depends on CLI
+		bool "Enable MPC Test"
+		default n
+
+	config PRRO_TEST
+		depends on CLI
+		bool "Enable PRRO Test"
 		default n
 endmenu
 
@@ -157,5 +192,5 @@ menu "DUAL_CORE"
 
 	config RWNX_PROTO_DEBUG
 		bool "Enable rwnx proto debug"
-		default y
+		default n
 endmenu

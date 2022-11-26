@@ -1,5 +1,5 @@
 #include <common/bk_include.h>
-
+#include "cli.h"
 #include <os/mem.h>
 #include <os/str.h>
 #include <os/os.h>
@@ -8,6 +8,7 @@
 
 #include "doorbell.h"
 
+#if 0
 #define CMD_CONTAIN(value) doorbell_cmd_contain(argc, argv, value)
 
 static bool doorbell_cmd_contain(int argc, char **argv, char *string)
@@ -25,16 +26,41 @@ static bool doorbell_cmd_contain(int argc, char **argv, char *string)
 
 	return ret;
 }
+#endif
 
 void cli_doorbell_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	if (CMD_CONTAIN("tcp"))
+	char *msg = NULL;
+	int ret = BK_FAIL;
+
+	if (os_strcmp(argv[1], "tcp") == 0)
 	{
-		demo_doorbell_tcp_init();
+		ret = demo_doorbell_tcp_init();
+	}
+#ifdef CONFIG_AV_DEMO
+	else if (os_strcmp(argv[1], "udp_c") == 0)
+	{
+		ret = demo_doorbell_udp_client_init(argc - 2, &argv[2]);
+	}
+	else if (os_strcmp(argv[1], "udp_s") == 0)
+	{
+		ret = demo_doorbell_udp_server_init(argc - 2, &argv[2]);
+	}
+#endif
+	else
+	{
+		ret = demo_doorbell_udp_init();
+	}
+
+	if (ret != BK_OK)
+	{
+		msg = CLI_CMD_RSP_ERROR;
 	}
 	else
 	{
-		demo_doorbell_udp_init();
+		msg = CLI_CMD_RSP_SUCCEED;
 	}
+
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
 

@@ -64,5 +64,7 @@ Andes sag转ld文件方法
 
  1. 通过D:\\Tools\\Andestech\\AndeSight_STD_v510\\toolchains\\nds32le-elf-mculib-v5\\cygwin-andes.bat 进入cygwin
  2. 进入D:\\Tools\\Andestech\\AndeSight_STD_v510\\utils目录，将sag文件放入该目录下
- 3. 在cygwin环境执行如下命令::
-    nds_ldsag.exe --version=v5 -t ./nds32_template_v5.txt bk7256_bsp.sag -o bk7256_bsp.ld
+
+在cygwin环境执行如下命令::
+
+    nds_ldsag.exe --version=v5 -t ./nds32_template_v5.txt bk7237_bsp.sag -o bk7237_bsp.ld

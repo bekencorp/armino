@@ -141,6 +141,8 @@ void sys_drv_low_power_hardware_init();
 int32 sys_drv_lp_vol_set(uint32_t value);
 uint32_t sys_drv_lp_vol_get();
 int32 sys_drv_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval);
+int32 sys_drv_bandgap_cali_set(uint32_t value);//increase or decrease the dvdddig voltage
+uint32_t sys_drv_bandgap_cali_get();
 /*for  low power  function end*/
 uint32 sys_drv_get_device_id(void); // CMD_GET_DEVICE_ID
 uint32 sys_drv_get_chip_id(void); // CMD_GET_CHIP_ID
@@ -391,7 +393,6 @@ uint32_t sys_drv_psram_dpll_enable(uint32_t value);
 uint32_t sys_drv_psram_ldo_enable(uint32_t value);
 uint32_t sys_drv_psram_clk_sel(uint32_t value);
 uint32_t sys_drv_psram_set_clkdiv(uint32_t value);
-uint32_t sys_drv_psram_power_enable(void);
 uint32_t sys_drv_psram_psldo_vsel(uint32_t value);
 uint32_t sys_drv_psram_psldo_vset(uint32_t value, bool is_add_200mv);
 uint32_t sys_drv_psram_psram_disckg(uint32_t value);
@@ -452,13 +453,10 @@ void sys_drv_set_cpu_storage_connect_op_select_flash_sel(uint32_t value);
 
 /**  WIFI End **/
 
-
-
-
-/**  Misc Start **/
-//Misc
-/**  Misc End **/
-
+void sys_drv_yuv_buf_pwr_up(void);
+void sys_drv_yuv_buf_pwr_down(void);
+void sys_drv_h264_pwr_up(void);
+void sys_drv_h264_pwr_down(void);
 
 #endif //_SYS_DRV_H_
 // eof

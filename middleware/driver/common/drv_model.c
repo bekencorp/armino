@@ -8,7 +8,7 @@
 #include <os/os.h>
 
 
-static DRV_DEV_S drv_dev_tbl[DD_MAX_DEV] = {
+static __attribute__((section(".dtcm_sec_data "))) DRV_DEV_S drv_dev_tbl[DD_MAX_DEV] = {
 	{0},
 };
 
@@ -187,6 +187,9 @@ UINT32 ddev_control(DD_HANDLE handle, UINT32 cmd, VOID *param)
 	if (DD_ID_UNVALID == idx)
 		return DRV_FAILURE;
 
+	if(idx >= DD_MAX_DEV)
+		return DRV_FAILURE;
+	
 	status    = DRV_FAILURE;
 	dev_ptr   = &drv_dev_tbl[idx];
 	operation = dev_ptr->op;

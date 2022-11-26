@@ -25,7 +25,7 @@ extern "C" {
 #define BK_ERR_I2C_SM_BUS_BUSY           (BK_ERR_I2C_BASE - 3) /**< I2C bus busy */
 #define BK_ERR_I2C_ACK_TIMEOUT           (BK_ERR_I2C_BASE - 4) /**< I2C receive ack timeout */
 #define BK_ERR_I2C_CHECK_DEFCONFIG       (BK_ERR_I2C_BASE - 5) /**< I2C please check defconfig */
-
+#define BK_ERR_I2C_SCL_TIMEOUT           (BK_ERR_I2C_BASE - 6) /**< I2C SCL timeout */
 
 typedef enum {
 	I2C_MASTER_WRITE = 0, /**< I2C master write */

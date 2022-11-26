@@ -34,6 +34,12 @@
 #include <modules/pm.h>
 #include "bk_general_dma.h"
 
+#define JPEGDEC_TAG "jpeg hw_decode"
+#define JPEGDEC_LOGI(...) BK_LOGI(JPEGDEC_TAG, ##__VA_ARGS__)
+#define JPEGDEC_LOGW(...) BK_LOGW(JPEGDEC_TAG, ##__VA_ARGS__)
+#define JPEGDEC_LOGE(...) BK_LOGE(JPEGDEC_TAG, ##__VA_ARGS__)
+#define JPEGDEC_LOGD(...) BK_LOGD(JPEGDEC_TAG, ##__VA_ARGS__)
+
 #if (USE_JPEG_DEC_COMPLETE_CALLBACKS == 1)
 jpeg_dec_isr_cb_t  s_jpeg_dec_isr[DEC_ISR_MAX] = {NULL};
 static jpeg_dec_res_t result = {0};
@@ -61,20 +67,20 @@ uint8_t jpeg_dec_dma = 0;
 bk_err_t bk_jpeg_dec_driver_init(void)
 {
 	if (s_jpegdec_driver_is_init) {
-		os_printf("%s, jpegdec already init. \n", __func__);
+		JPEGDEC_LOGW("%s, jpegdec already init. \n", __func__);
 		return BK_OK;
 	}
 
 	jpeg_dec_dma = bk_dma_alloc(DMA_DEV_JPEG);
 	if ((jpeg_dec_dma < DMA_ID_0) || (jpeg_dec_dma >= DMA_ID_MAX))
 	{
-		os_printf("jpeg dec malloc dma fail \r\n");
+		JPEGDEC_LOGE("%s, jpeg dec malloc dma fail \r\n", __func__);
 		return BK_FAIL;
 	}
 
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_DE, PM_POWER_MODULE_STATE_ON);
 	if(sys_drv_jpeg_dec_set(1, 1) != 0) {
-		os_printf("jpeg dec sys clk config error \r\n");
+		JPEGDEC_LOGE("jpeg dec sys clk config error \r\n");
 		return BK_FAIL;
 	}
 #if (USE_JPEG_DEC_COMPLETE_CALLBACKS == 1)
@@ -82,19 +88,19 @@ bk_err_t bk_jpeg_dec_driver_init(void)
 #endif
 	jpg_decoder_init();
 	s_jpegdec_driver_is_init = true;
-
+	JPEGDEC_LOGI("hw jpeg dec init, malloc dma channal %d\n", jpeg_dec_dma);
 	return BK_OK;
 }
 
 bk_err_t bk_jpeg_dec_driver_deinit(void)
 {
 	if (!s_jpegdec_driver_is_init) {
-		os_printf("%s, jpegdec already deinit. \n", __func__);
+		JPEGDEC_LOGW("%s, jpegdec already deinit. \n", __func__);
 		return BK_OK;
 	}
 
 	if(sys_drv_jpeg_dec_set(0, 0) != 0) {
-		os_printf("jpeg dec sys clk config error \r\n");
+		JPEGDEC_LOGE("jpeg dec sys clk config error \r\n");
 		return BK_FAIL;
 	}
 	bk_int_isr_unregister(INT_SRC_JPEG_DEC);
@@ -106,6 +112,7 @@ bk_err_t bk_jpeg_dec_driver_deinit(void)
 	bk_dma_free(DMA_DEV_JPEG, jpeg_dec_dma);
 
 	s_jpegdec_driver_is_init = false;
+	JPEGDEC_LOGI("hw jpeg dec deinit, free dma channal %d\n", jpeg_dec_dma);
 
 	return BK_OK;
 }
@@ -121,26 +128,43 @@ bk_err_t bk_jpeg_dec_line_int_en(uint32_t line_en)
 bk_err_t bk_jpeg_dec_dma_start(uint32_t length, unsigned char *input_buf, unsigned char * output_buf)
 {
 	int ret = 0;
+	uint32_t left_len = 0;
 	JPEGDEC_RETURN_ON_NOT_INIT();
 
 	jpeg_address = input_buf;
 	jpeg_size = length;
 
-	dma_memcpy_by_chnl((void*)JPEG_SRAM_ADDRESS,
+	if (jpeg_size <= 0xFFFF)
+	{
+		dma_memcpy_by_chnl((void*)JPEG_SRAM_ADDRESS,
 		input_buf,
 		(length % 4) ? ((length  / 4 + 1) * 4) : length,
 		jpeg_dec_dma);
+	}
+	else
+	{
+		dma_memcpy_by_chnl((void*)JPEG_SRAM_ADDRESS,
+						  input_buf,
+						  0xFFFF,
+						  jpeg_dec_dma);
+
+		left_len = length - 0xFFFF;
+		dma_memcpy_by_chnl((void*)JPEG_SRAM_ADDRESS + 0xFFFF,
+						  input_buf + 0xFFFF,
+						  (left_len % 4) ? ((left_len  / 4 + 1) * 4) : left_len,
+						  jpeg_dec_dma);
+	}
 
 	ret = JpegdecInit(length, (void*)JPEG_SRAM_ADDRESS, output_buf, &image_ppi);
 	if(ret != JDR_OK)
 	{
-		os_printf("JpegdecInit error %x \r\n", ret);
+		JPEGDEC_LOGE("JpegdecInit error %x \r\n", ret);
 		return ret;
 	}
 	ret = jd_decomp();
 	if(ret != JDR_OK)
 	{
-		os_printf("jd_decomp error %x \r\n", ret);
+		JPEGDEC_LOGE("jd_decomp error %x \r\n", ret);
 		return ret;
 	}
 	return JDR_OK;
@@ -157,13 +181,13 @@ bk_err_t bk_jpeg_dec_hw_start(uint32_t length, unsigned char *input_buf, unsigne
 	ret = JpegdecInit(length, input_buf, output_buf, &image_ppi);
 	if(ret != JDR_OK)
 	{
-		os_printf("JpegdecInit error %x \r\n", ret);
+		JPEGDEC_LOGE("JpegdecInit error %x \r\n", ret);
 		return ret;
 	}
 	ret = jd_decomp();
 	if(ret != JDR_OK)
 	{
-		os_printf("jd_decomp error %x \r\n", ret);
+		JPEGDEC_LOGE("jd_decomp error %x \r\n", ret);
 		return ret;
 	}
 	return JDR_OK;
@@ -329,7 +353,7 @@ static void jpeg_decoder_isr(void)
 			}
 		}
 	} else {
-		os_printf("int status = %x not auto int and line int \r\n", jpeg_dec_ll_get_reg0x5f_value());
+		JPEGDEC_LOGE("int status = %x not auto int and line int \r\n", jpeg_dec_ll_get_reg0x5f_value());
 	}
 }
 

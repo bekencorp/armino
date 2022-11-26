@@ -50,6 +50,8 @@ typedef struct {
 #define jpeg_hal_set_x_pixel(hal, x_pixel) jpeg_ll_set_x_pixel((hal)->hw, x_pixel)
 #define jpeg_hal_set_y_pixel(hal, x_pixel) jpeg_ll_set_y_pixel((hal)->hw, x_pixel)
 #define jpeg_hal_set_yuv_mode(hal, mode) jpeg_ll_set_yuv_mode((hal)->hw, mode)
+#define jpeg_hal_enable_jpeg_mode(hal) jpeg_ll_enable((hal)->hw)
+#define jpeg_hal_disable_jpeg_mode(hal) jpeg_ll_disable((hal)->hw)
 
 #define jpeg_hal_get_frame_byte_number(hal) jpeg_ll_get_frame_byte_number((hal)->hw)
 
@@ -74,7 +76,7 @@ bk_err_t jpeg_hal_set_yuv_config(jpeg_hal_t *hal, const jpeg_config_t *config);
 bk_err_t jpeg_hal_set_encode_config(jpeg_hal_t *hal, const jpeg_config_t *config);
 bk_err_t jpeg_hal_enable_bitrate_ctrl(jpeg_hal_t *hal, uint8_t enable);
 bk_err_t jpeg_hal_set_target_size(jpeg_hal_t *hal, uint32_t up_size, uint32_t low_size);
-
+uint32_t jpeg_hal_get_jpeg_share_mem_addr(void);
 
 #if CFG_HAL_DEBUG_JPEG
 void jpeg_struct_dump(void);

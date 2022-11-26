@@ -1128,6 +1128,14 @@ __STATIC_FORCEINLINE uint32_t __get_MSP(void)
   return(result);
 }
 
+__STATIC_FORCEINLINE uint32_t __get_LR(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, lr" : "=r" (result) );
+  return(result);
+}
+
 
 #if (defined (__ARM_FEATURE_CMSE ) && (__ARM_FEATURE_CMSE == 3))
 /**

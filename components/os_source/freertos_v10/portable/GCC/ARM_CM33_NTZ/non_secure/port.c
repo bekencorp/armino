@@ -42,6 +42,8 @@
 #include "portasm.h"
 
 #include "cmsis_gcc.h"
+#include "bk_wdt.h"
+#include "bk_aon_wdt.h"
 
 #if ( configENABLE_TRUSTZONE == 1 )
     /* Secure components includes. */
@@ -753,6 +755,18 @@ void SysTick_Handler( void ) /* PRIVILEGED_FUNCTION */
 
     ulPreviousMask = portSET_INTERRUPT_MASK_FROM_ISR();
     {
+#if (CONFIG_INT_WDT)
+        bk_int_wdt_feed();
+#endif
+
+#if (CONFIG_INT_AON_WDT)
+		bk_int_aon_wdt_feed();
+#endif
+
+#if (CONFIG_TASK_WDT)
+        bk_task_wdt_timeout_check();
+#endif
+
         /* Increment the RTOS tick. */
         if( xTaskIncrementTick() != pdFALSE )
         {

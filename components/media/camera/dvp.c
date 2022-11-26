@@ -61,10 +61,12 @@ bk_err_t bk_dvp_camera_open(media_ppi_t ppi, dvp_mode_t mode)
 	config.ppi = ppi;
 	config.mode = mode;
 
+#if (!CONFIG_YUV_BUF)
 	if (mode == DVP_MODE_JPG)
 	{
 		config.mode = DVP_MODE_MIX;
 	}
+#endif
 
 	return bk_dvp_camera_driver_init(&config);
 }

@@ -4,7 +4,7 @@
 #include <components/system.h>
 #include "bk_rtos_debug.h"
 
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 #include "ff.h"
 #include "diskio.h"
 #endif
@@ -416,7 +416,7 @@ void cli_yuv_rotate_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 void jpeg_dec_read_sdcard_to_psram(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 	int ret = 0;
 	char *filename;
 	uint32_t srcaddr;
@@ -554,7 +554,7 @@ void jpeg_sw_dec_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 
 void jpeg_dec_write_psram_to_sdcard(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 	int ret = 0;
 	char *filename = NULL;
 	char cFileName[FF_MAX_LFN];

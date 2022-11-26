@@ -1,26 +1,26 @@
-// Copyright 2020-2021 Beken 
-// 
-// Licensed under the Apache License, Version 2.0 (the "License");           
-// you may not use this file except in compliance with the License.            
-// You may obtain a copy of the License at                                     
-//                                                                             
-//     http://www.apache.org/licenses/LICENSE-2.0                              
-//                                                                             
-// Unless required by applicable law or agreed to in writing, software         
-// distributed under the License is distributed on an "AS IS" BASIS,         
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.    
-// See the License for the specific language governing permissions and         
-// limitations under the License.                                              
+// Copyright 2020-2021 Beken
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#pragma once                 
-                            
-#include <soc/soc.h>          
+#pragma once
+
+#include <soc/soc.h>
 #include "system_hw.h"
 #include "sys_ll_macro_def.h"
 
-#ifdef __cplusplus          
-extern "C" {              
-#endif                      
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 //int_0_31_en DIRTY define
 #define BMC32_INTERRUPT_CTRL_BIT       (1 << SYS_CPU0_INT_0_31_EN_CPU0_BMC32_INT_EN_POS)
@@ -73,6 +73,7 @@ extern "C" {
 #define USBPLUG_INTERRUPT_CTRL_BIT     (1 << SYS_CPU0_INT_32_63_EN_CPU0_USBPLUG_INT_EN_POS)
 #define RTC_INTERRUPT_CTRL_BIT         (1 << SYS_CPU0_INT_32_63_EN_CPU0_RTC_INT_EN_POS)
 #define GPIO_INTERRUPT_CTRL_BIT        (1 << SYS_CPU0_INT_32_63_EN_CPU0_GPIO_INT_EN_POS)
+#define YUV_BUF_INTERRUPT_CTRL_BIT     (1 << SYS_CPU0_INT_32_63_EN_CPU0_YUV_BUF_INT_EN_POS)
 
 #define RTC_TICKS_PER_1MS                                (32)
 #define LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME          (0.5) //0.5ms
@@ -98,38 +99,38 @@ typedef enum
 /*clock power control start*/
 /*
 clock power enable for periphral unit
-0xc[0],1:i2c0_clk enable,0,R/W   
-0xc[1],1:spi0_clk enable ,0,R/W  
-0xc[2],1:uart0_clk enable,0,R/W  
-0xc[3],1:pwm0_clk enable ,0,R/W  
-0xc[4],1:tim0_clk enable ,0,R/W  
-0xc[5],1:sadc_clk enable ,0,R/W  
-0xc[6],1:irda_clk enable ,0,R/W  
-0xc[7],1:efuse_clk enable,0,R/W  
-0xc[8],1:i2c1_clk enable ,0,R/W  
-0xc[9],1:spi1_clk enable ,0,R/W  
-0xc[10],1:uart1_clk enable,0,R/W 
-0xc[11],1:uart2_clk enable,0,R/W 
-0xc[12],1:pwm1_clk enable ,0,R/W 
-0xc[13],1:tim1_clk enable ,0,R/W 
-0xc[14],1:tim2_clk enable ,0,R/W 
-0xc[15],1:otp_clk enable  ,1,R/W 
-0xc[16],1:i2s_clk enable  ,0,R/W 
-0xc[17],1:usb_clk enable  ,0,R/W 
-0xc[18],1:can_clk enable  ,0,R/W 
-0xc[19],1:psram_clk enable,0,R/W 
-0xc[20],1:qspi0_clk enable,0,R/W 
-0xc[21],1:qspi1_clk enable,0,R/W 
-0xc[22],1:sdio_clk enable ,0,R/W 
-0xc[23],1:auxs_clk enable ,0,R/W 
-0xc[24],1:btdm_clk enable ,0,R/W 
-0xc[25],1:xvr_clk enable  ,0,R/W 
-0xc[26],1:mac_clk enable  ,0,R/W 
-0xc[27],1:phy_clk enable  ,0,R/W 
-0xc[28],1:jpeg_clk enable ,0,R/W 
-0xc[29],1:disp_clk enable ,0,R/W 
-0xc[30],1:aud_clk enable  ,0,R/W 
-0xc[31],1:wdt_clk enable  ,0,R/W 
+0xc[0],1:i2c0_clk enable,0,R/W
+0xc[1],1:spi0_clk enable ,0,R/W
+0xc[2],1:uart0_clk enable,0,R/W
+0xc[3],1:pwm0_clk enable ,0,R/W
+0xc[4],1:tim0_clk enable ,0,R/W
+0xc[5],1:sadc_clk enable ,0,R/W
+0xc[6],1:irda_clk enable ,0,R/W
+0xc[7],1:efuse_clk enable,0,R/W
+0xc[8],1:i2c1_clk enable ,0,R/W
+0xc[9],1:spi1_clk enable ,0,R/W
+0xc[10],1:uart1_clk enable,0,R/W
+0xc[11],1:uart2_clk enable,0,R/W
+0xc[12],1:pwm1_clk enable ,0,R/W
+0xc[13],1:tim1_clk enable ,0,R/W
+0xc[14],1:tim2_clk enable ,0,R/W
+0xc[15],1:otp_clk enable  ,1,R/W
+0xc[16],1:i2s_clk enable  ,0,R/W
+0xc[17],1:usb_clk enable  ,0,R/W
+0xc[18],1:can_clk enable  ,0,R/W
+0xc[19],1:psram_clk enable,0,R/W
+0xc[20],1:qspi0_clk enable,0,R/W
+0xc[21],1:qspi1_clk enable,0,R/W
+0xc[22],1:sdio_clk enable ,0,R/W
+0xc[23],1:auxs_clk enable ,0,R/W
+0xc[24],1:btdm_clk enable ,0,R/W
+0xc[25],1:xvr_clk enable  ,0,R/W
+0xc[26],1:mac_clk enable  ,0,R/W
+0xc[27],1:phy_clk enable  ,0,R/W
+0xc[28],1:jpeg_clk enable ,0,R/W
+0xc[29],1:disp_clk enable ,0,R/W
+0xc[30],1:aud_clk enable  ,0,R/W
+0xc[31],1:wdt_clk enable  ,0,R/W
 */
 typedef enum	//SYS TYPES index is from 1~X
 {
@@ -160,7 +161,7 @@ typedef enum	//SYS TYPES index is from 1~X
 	CLK_PWR_ID_BTDM,
 	CLK_PWR_ID_XVR,
 	CLK_PWR_ID_MAC,
-	CLK_PWR_ID_PHY, 
+	CLK_PWR_ID_PHY,
 	CLK_PWR_ID_JPEG,
 	CLK_PWR_ID_DISP,
 	CLK_PWR_ID_AUDIO,
@@ -420,6 +421,6 @@ typedef enum
 	LOW_POWER_MODE_NONE
 }low_power_sleep_mode_e;
 
-#ifdef __cplusplus 
-}                  
-#endif             
+#ifdef __cplusplus
+}
+#endif

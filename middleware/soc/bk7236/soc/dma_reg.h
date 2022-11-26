@@ -24,6 +24,7 @@ extern "C" {
 #define DMA_V_PRIO_MODE_ROUND_ROBIN      0x0
 #define DMA_V_PRIO_MODE_FIXED_PRIO       0x1
 
+#define DMA_V_REQ_MUX_DTCM             0x0
 #define DMA_V_REQ_MUX_AHB_MEM          0x0
 #define DMA_V_REQ_MUX_UART0            0x1
 #define DMA_V_REQ_MUX_SPI0             0x2
@@ -38,6 +39,10 @@ extern "C" {
 #define DMA_V_REQ_MUX_LCD_DATA         0xb
 #define DMA_V_REQ_MUX_I2S_CHAN1        0xc
 #define DMA_V_REQ_MUX_I2S_CHAN2        0xd
+#define DMA_V_REQ_MUX_JPEG             0x19
+
+#define DMA_FINISH_INT_POS             (18)
+#define DMA_HALF_FINISH_INT_POS        (19)
 
 #ifdef __cplusplus
 }

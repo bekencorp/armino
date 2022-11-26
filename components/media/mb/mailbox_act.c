@@ -42,16 +42,6 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
-
-
-
-
-
-
-
-
-
-
 #if CONFIG_SLAVE_CORE
 void mailbox_cmd_handle(uint32_t event, uint32_t param)
 {

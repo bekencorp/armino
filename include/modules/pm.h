@@ -210,7 +210,7 @@ typedef enum
 	PM_DEV_ID_I2C1 = 0, // 0
 	PM_DEV_ID_SPI_1,    // 1
 	PM_DEV_ID_UART1,    // 2
-	PM_DEV_ID_PWM_1,    // 3
+	PM_DEV_ID_WDG,      // 3
 	PM_DEV_ID_TIMER_1,  // 4
 	PM_DEV_ID_SARADC,   // 5
 	PM_DEV_ID_IRDA,     // 6
@@ -222,7 +222,7 @@ typedef enum
 	PM_DEV_ID_PWM_2,    // 12
 	PM_DEV_ID_TIMER_2,  // 13
 	PM_DEV_ID_TIMER_3,  // 14
-	PM_DEV_ID_OTP,      // 15
+	PM_DEV_ID_TOUCH,    // 15
 	PM_DEV_ID_I2S_1,    // 16
 	PM_DEV_ID_USB_1,    // 17
 	PM_DEV_ID_CAN,      // 18
@@ -238,7 +238,7 @@ typedef enum
 	PM_DEV_ID_JPEG,     // 28
 	PM_DEV_ID_DISP,     // 29
 	PM_DEV_ID_AUDIO,    // 30
-	PM_DEV_ID_WDG,      // 31
+	PM_DEV_ID_RTC,      // 31
 
 	PM_DEV_ID_DEFAULT,  // 32  it is used by pm module set default cpu frequency
 

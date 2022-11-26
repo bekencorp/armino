@@ -19,7 +19,7 @@
 #include "camera_act.h"
 #include "media_evt.h"
 #include "storage_act.h"
-
+#include "media_app.h"
 #include <driver/int.h>
 #include <os/mem.h>
 #include <driver/gpio.h>
@@ -50,7 +50,7 @@
 
 #define DEBUG_INTERVAL (1000 * 2)
 
-extern bk_err_t pm_core_bus_clock_ctrl(uint32_t cksel_core, uint32_t ckdiv_core, uint32_t ckdiv_bus, uint32_t ckdiv_cpu0, uint32_t ckdiv_cpu1);
+typedef void (*camera_disconnect_t)(void);
 
 extern void transfer_dump(uint32_t ms);
 
@@ -60,6 +60,11 @@ media_debug_t *media_debug_cached = NULL;
 camera_info_t camera_info;
 bool dvp_camera_reset_open_ind = false;
 beken_semaphore_t camera_act_sema = NULL;
+
+static beken_thread_t disc_task = NULL;
+
+camera_disconnect_t camera_disconnect_cb = NULL;
+
 
 static void camera_debug_dump(timer_id_t timer_id)
 {
@@ -106,6 +111,8 @@ static void camera_debug_dump(timer_id_t timer_id)
 
 void camera_dvp_reset_open_handle(uint32_t param)
 {
+#ifdef CONFIG_CAMERA
+
 	bk_err_t ret = kNoErr;
 
 	if (dvp_camera_reset_open_ind)
@@ -123,6 +130,7 @@ void camera_dvp_reset_open_handle(uint32_t param)
 	{
 		dvp_camera_reset_open_ind = true;
 	}
+#endif
 }
 
 void camera_dvp_open_handle(param_pak_t *param, dvp_mode_t mode)
@@ -130,6 +138,7 @@ void camera_dvp_open_handle(param_pak_t *param, dvp_mode_t mode)
 	int ret = 0;
 
 	LOGI("%s\n", __func__);
+#ifdef CONFIG_CAMERA
 
 	if (CAMERA_STATE_DISABLED != get_camera_state())
 	{
@@ -137,8 +146,6 @@ void camera_dvp_open_handle(param_pak_t *param, dvp_mode_t mode)
 		ret = kNoErr;
 		goto out;
 	}
-
-	//pm_core_bus_clock_ctrl(2, 0, 1, 0, 0);
 
 	camera_info.param = param->param;
 	camera_info.mode = mode;
@@ -162,6 +169,8 @@ void camera_dvp_open_handle(param_pak_t *param, dvp_mode_t mode)
 	}
 
 out:
+#endif
+
 	MEDIA_EVT_RETURN(param, ret);
 }
 
@@ -170,6 +179,8 @@ void camera_dvp_close_handle(param_pak_t *param)
 	int ret = 0;
 
 	LOGI("%s\n", __func__);
+
+#ifdef CONFIG_CAMERA
 
 	if (CAMERA_STATE_DISABLED == get_camera_state())
 	{
@@ -189,13 +200,12 @@ void camera_dvp_close_handle(param_pak_t *param)
 		bk_timer_stop(TIMER_ID1);
 	}
 
-	//pm_core_bus_clock_ctrl(3, 1, 1, 0, 0);
-
 out:
+#endif
+
 	MEDIA_EVT_RETURN(param, ret);
 }
-
-#ifdef CONFIG_USB_UVC
+//#endif
 
 void uvc_ble_notice_cb(ble_notice_t notice, void *param)
 {
@@ -209,11 +219,44 @@ void uvc_ble_notice_cb(ble_notice_t notice, void *param)
 	}
 }
 
+static void camera_uvc_disconnect_task_entry(beken_thread_arg_t data)
+{
+	if (camera_disconnect_cb)
+	{
+		camera_disconnect_cb();
+	}
+	else
+	{
+		// restart by self
+	}
+
+	disc_task = NULL;
+	rtos_delete_thread(NULL);
+}
+
+void camera_uvc_disconect(void)
+{
+	int ret = rtos_create_thread(&disc_task,
+						 4,
+						 "disc_task",
+						 (beken_thread_function_t)camera_uvc_disconnect_task_entry,
+						 1024,
+						 (beken_thread_arg_t)NULL);
+
+	if (BK_OK != ret)
+	{
+		LOGE("%s camera_uvc_disconnect_task_entry init failed\n");
+		return;
+	}
+}
+
 void camera_uvc_open_handle(param_pak_t *param)
 {
 	int ret = 0;
 
 	LOGI("%s\n", __func__);
+
+#if CONFIG_USB_UVC
 
 	if (CAMERA_STATE_DISABLED != get_camera_state())
 	{
@@ -221,7 +264,7 @@ void camera_uvc_open_handle(param_pak_t *param)
 		ret = kNoErr;
 		goto out;
 	}
-
+#if CONFIG_BTDM_5_2
 	if (bk_ble_get_env_state())
 	{
 		bk_ble_set_notice_cb(uvc_ble_notice_cb);
@@ -241,7 +284,7 @@ void camera_uvc_open_handle(param_pak_t *param)
 	{
 		LOGI("bluetooth state: %d\n", bk_ble_get_env_state());
 	}
-
+#endif
 
 	camera_info.mode = DVP_MODE_INVALIED;
 
@@ -261,15 +304,18 @@ void camera_uvc_open_handle(param_pak_t *param)
 	}
 
 out:
+#endif
+
 	MEDIA_EVT_RETURN(param, ret);
 }
-
 
 void camera_uvc_close_handle(param_pak_t *param)
 {
 	int ret = 0;
 
 	LOGI("%s\n", __func__);
+
+#ifdef CONFIG_USB_UVC
 
 	if (CAMERA_STATE_DISABLED == get_camera_state())
 	{
@@ -289,14 +335,130 @@ void camera_uvc_close_handle(param_pak_t *param)
 
 	//frame_buffer_enable(false);
 
-	//pm_core_bus_clock_ctrl(3, 1, 1, 0, 0);
-	LOGI("uvc close success!\n");
+	LOGI("%s complete!\n", __func__);
 
 out:
+#endif
+
 	MEDIA_EVT_RETURN(param, ret);
 }
 
+void camera_uvc_reset_handle(uint32_t param)
+{
+	LOGI("%s\n", __func__);
+
+#ifdef CONFIG_USB_UVC
+
+	if (CAMERA_STATE_DISABLED == get_camera_state())
+	{
+		LOGI("%s already close\n", __func__);
+		return;
+	}
+
+	if (camera_info.debug)
+	{
+		bk_timer_stop(TIMER_ID1);
+	}
+
+	bk_uvc_camera_close();
+
+	set_camera_state(CAMERA_STATE_DISABLED);
+
+	//frame_buffer_enable(false);
+
+	camera_uvc_disconect();
+
 #endif
+
+	LOGI("%s, complete!\n", __func__);
+
+}
+
+void camera_net_open_handle(param_pak_t *param)
+{
+	int ret = 0;
+
+	LOGI("%s\n", __func__);
+
+#ifdef CONFIG_WIFI_TRANSFER
+
+	if (CAMERA_STATE_DISABLED != get_camera_state())
+	{
+		LOGI("%s already opened\n", __func__);
+		ret = kNoErr;
+		goto out;
+	}
+
+	camera_info.mode = DVP_MODE_INVALIED;
+
+#if CONFIG_BTDM_5_2
+	if (bk_ble_get_env_state())
+	{
+		bk_ble_set_notice_cb(uvc_ble_notice_cb);
+		LOGI("bluetooth is enabled, shutdown bluetooth\n");
+		rtos_init_semaphore(&camera_act_sema, 1);
+		bk_ble_deinit();
+		if (rtos_get_semaphore(&camera_act_sema, 1000) != BK_OK)
+		{
+			LOGI("%s TIMEOUT\n", __func__);
+		}
+
+		rtos_deinit_semaphore(&camera_act_sema);
+		camera_act_sema = NULL;
+		bk_ble_set_notice_cb(NULL);
+	}
+	else
+	{
+		LOGI("bluetooth state: %d\n", bk_ble_get_env_state());
+	}
+#endif
+
+	ret = bk_net_camera_open();
+
+	if (ret != kNoErr)
+	{
+		LOGE("%s open failed\n", __func__);
+		goto out;
+	}
+
+	set_camera_state(CAMERA_STATE_ENABLED);
+
+	if (camera_info.debug)
+	{
+		bk_timer_start(TIMER_ID1, DEBUG_INTERVAL, camera_debug_dump);
+	}
+
+out:
+#endif
+
+	MEDIA_EVT_RETURN(param, ret);
+
+}
+
+void camera_net_close_handle(param_pak_t *param)
+{
+	int ret = 0;
+
+	LOGI("%s\n", __func__);
+
+#ifdef CONFIG_WIFI_TRANSFER
+	if (CAMERA_STATE_DISABLED == get_camera_state())
+	{
+		LOGI("%s already close\n", __func__);
+		ret = kNoErr;
+		goto out;
+	}
+
+	bk_net_camera_close();
+
+	set_camera_state(CAMERA_STATE_DISABLED);
+
+out:
+#endif
+
+	MEDIA_EVT_RETURN(param, ret);
+}
+//#endif
 
 void camera_event_handle(uint32_t event, uint32_t param)
 {
@@ -317,15 +479,24 @@ void camera_event_handle(uint32_t event, uint32_t param)
 		case EVENT_CAM_DVP_RESET_OPEN_IND:
 			camera_dvp_reset_open_handle(param);
 			break;
-
-#ifdef CONFIG_USB_UVC
 		case EVENT_CAM_UVC_OPEN_IND:
 			camera_uvc_open_handle((param_pak_t *)param);
 			break;
 		case EVENT_CAM_UVC_CLOSE_IND:
 			camera_uvc_close_handle((param_pak_t *)param);
 			break;
-#endif
+		case EVENT_CAM_UVC_RESET_IND:
+			camera_uvc_reset_handle(param);
+			break;
+		case EVENT_CAM_NET_OPEN_IND:
+			camera_net_open_handle((param_pak_t *)param);
+			break;
+		case EVENT_CAM_NET_CLOSE_IND:
+			camera_net_close_handle((param_pak_t *)param);
+			break;
+
+		default:
+			break;
 	}
 }
 
@@ -363,4 +534,12 @@ void camera_init(void)
 	camera_info.state = CAMERA_STATE_DISABLED;
 	camera_info.debug = true;
 }
+
+bk_err_t media_app_register_uvc_disconnect_cb(void *cb)
+{
+	camera_disconnect_cb = cb;
+
+	return BK_OK;
+}
+
 

@@ -99,4 +99,13 @@ menu "AUD_TRAS_CONFIG"
 		bool "Audio Transfer DAC ERROR DEBUG"
 		default n
 
+	config AUD_TRAS_DAC_PA_CTRL
+		depends on AUDIO_TRANSFER
+		bool "Audio Transfer DAC PA Control Enable"
+		default n
+
+	config AUD_RING_BUFF_SAFE_INTERVAL
+		int "Audio ring buff safe interval"
+		range 0 320
+		default 0
 endmenu

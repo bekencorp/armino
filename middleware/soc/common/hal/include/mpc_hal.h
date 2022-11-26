@@ -34,8 +34,10 @@ typedef struct {
 #define mpc_hal_enable_sec_lock(hal) mpc_ll_enable_sec_lock((hal)->hw)
 #define mpc_hal_get_max_block_index(hal) mpc_ll_get_max_block_index((hal)->hw)
 #define mpc_hal_set_block_index(hal, index) mpc_ll_set_block_index((hal)->hw, index)
+#define mpc_hal_get_block_index(hal) mpc_ll_get_block_index((hal)->hw)
 #define mpc_hal_enable_auto_increase(hal) mpc_ll_enable_auto_increase((hal)->hw)
 #define mpc_hal_disable_auto_increase(hal) mpc_ll_disable_auto_increase((hal)->hw)
+#define mpc_hal_get_block_lut(hal) mpc_ll_get_block_lut((hal)->hw)
 
 bk_err_t mpc_hal_init(mpc_hal_t *hal);
 bk_err_t mpc_hal_config_block_lut(mpc_hal_t *hal, uint32_t block_offset, uint32_t block_num, mpc_block_secure_type_t secure_type);

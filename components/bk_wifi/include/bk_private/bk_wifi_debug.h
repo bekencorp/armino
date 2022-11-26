@@ -59,8 +59,9 @@ void MQTTPacket_header_parse(uint32_t buf,uint16_t packet_len);
 #define TX_PER_PACKET_INFO_OUTPUT (1<<0)
 #define TX_PAYLOAD_PARSE (1<<1)
 #define TX_MQTT_PACKET_HEADER_PARSE (1<<2)
+#define TX_DISCARD_PACKET_INFO_OUTPUT (1<<6)
 
-#define RX_PER_PACKET_INFO_OUTPUT (1<<3)    
+#define RX_PER_PACKET_INFO_OUTPUT (1<<3)
 #define RX_PAYLOAD_PARSE (1<<4)
 #define RX_MQTT_PACKET_HEADER_PARSE (1<<5)
 

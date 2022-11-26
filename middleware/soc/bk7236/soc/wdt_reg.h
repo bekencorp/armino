@@ -20,7 +20,7 @@ extern "C" {
 
 #define WDT_R_BASE                  (SOC_WDT_REG_BASE)
 
-#define WDT_R_CTRL                  (WDT_R_BASE)
+#define WDT_R_CTRL                  (WDT_R_BASE + 0x4 * 4)
 
 #define WDT_F_PERIOD                (BIT(0))
 #define WDT_F_PERIOD_M              (0xffff)

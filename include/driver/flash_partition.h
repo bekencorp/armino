@@ -118,6 +118,21 @@ bk_err_t bk_flash_partition_write(bk_partition_t partition, const uint8_t *buffe
  */
 bk_err_t bk_flash_partition_read(bk_partition_t partition, uint8_t *out_buffer, uint32_t offset, uint32_t buffer_len);
 
+/**
+ * @brief     Write data to flash (only operating 4k flash space)
+ *
+ * @param partition partition to write  (eg:partition BK_PARTITION_RF_FIRMWARE)
+ * @param user_buf the pointer to data which is to write
+ * @param size size to write
+ * @param offset offset to write
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_FLASH_ADDR_OUT_OF_RANGE: flash address is out of range
+ *    - others: other errors.
+ */
+bk_err_t  bk_spec_flash_write_bytes(bk_partition_t partition, const uint8_t *user_buf, uint32_t size,uint32_t offset);
+
 #ifdef __cplusplus
 }
 #endif

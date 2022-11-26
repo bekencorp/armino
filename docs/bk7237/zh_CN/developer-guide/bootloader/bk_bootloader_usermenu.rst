@@ -41,6 +41,10 @@ Bootloader分为l_bootloader和up_bootloader两个模块，l_bootloader实现uar
     :figclass: align-center
 
     图2 bootloader的执行流程
+.. note::
+
+   图2中Download分区标志指的是进行ota升级的时候，会判断OTA数据区是否有数据，即判断是否是0xFFFFFFFF,如果全是的话，证明OTA升级区没有升级数据，
+   则直接跳转到app区域，如果不是0xFF的话，则进行ota升级。
 
 四．l_bootloader简介
 ----------------------------
@@ -85,12 +89,12 @@ l_bootloader：主要是uart下载功能，流程图如上图2所示。
   - 4）在PACK目录下执行generate.bat脚本，在generate_out目录下生成bootloader.bin以及对应的bootloader_crc.bin
 - 2.generate.bat脚本解析如下：
 
-  - 1）打包脚本如下：.\tools\cmake_Gen_image.exe genfile -injsonfile .\tools\bootloader.json -infile .\bootloader_l\l_bootloader.bin .\bootloader_u\u_bootloader.bin -outfile  .\generate_out\bootloader.bin -genjson .\tools\partition_bk7256.json
+  - 1）打包脚本如下：./tools/cmake_Gen_image.exe genfile -injsonfile ./tools/bootloader.json -infile ./bootloader_l/l_bootloader.bin ./bootloader_u/u_bootloader.bin -outfile  ./generate_out/bootloader.bin -genjson ./tools/partition_bk7237.json
   - 2）使用打包工具cmake_Gen_image.exe根据bootloader.json将l_bootloader与u_bootloader连接成一个bootloader.bin（此时该bin不含分区信息）。
   - 3）通过cmake_Gen_image.exe将分区表（partition_bk7256.json）相关信息放在将bootloader.bin后面（此时的
     bootlaoder.bin为实际大小），分区表供OTA升级使用。
-  - 4）.\tools\encrypt.exe .\generate_out\bootloader.bin 00000000最后，使用工具encrypt.exe添加crc，生成 bootloader_crc.bin。
-  - 5）bootloader.json存放的是l_bootloader与u_bootloader模块的逻辑分配信息；partition_bk7256.json是boloader、app、app1以及download分区配置信息。（bootloader.json与partition_bk7256.json均可根据实际开发需求更改）。
+  - 4）./tools/encrypt.exe ./generate_out/bootloader.bin 00000000最后，使用工具encrypt.exe添加crc，生成 bootloader_crc.bin。
+  - 5）bootloader.json存放的是l_bootloader与u_bootloader模块的逻辑分配信息；partition_bk7237.json是boloader、app、app1以及download分区配置信息。（bootloader.json与partition_bk7237.json均可根据实际开发需求更改）。
   - 6）bootloade_crc.bin制作如图5所示：
 
  .. figure:: ../../../_static/make_bootloade_crc.png
@@ -102,14 +106,7 @@ l_bootloader：主要是uart下载功能，流程图如上图2所示。
 
 七.Bootloader升级固件制作
 ----------------------------
-- 1.OTA升级固件支持压缩和加密，使用rt_ota_packaging_tool.exe打包工具制作升级固件，选择需要升级的app.bin,生成同名的*.rbl文件，如图6所示：
-
- .. figure:: ../../../_static/bootloader_pack_firmware.png
-    :align: center
-    :alt: bootloader_pack_firmware
-    :figclass: align-center
-
-    图6 固件打包
+- 1.OTA升级固件支持压缩和加密，升级固件已自动制作完毕。在编译app的时候，在目录build/app/bk7237生成app.bin同时，在build/app/bk7237/encrypt/目录下已经生成固件app_pack.rbl。
 
 - 2.打开Everything-1.4.1.935.x64-Setup.exe，工具->选项->HTTP服务器，绑定本机ip。使用浏览器打开本机的ip地址，找到本地的升级文件 *.rbl，拷贝url出来，用于cli命令。
 
@@ -118,7 +115,7 @@ l_bootloader：主要是uart下载功能，流程图如上图2所示。
     :alt: bootlaoder_everthing
     :figclass: align-center
 
-    图7 Everything工具页面
+    图6 Everything工具页面
 
 - 3.使用串口发送cli命令，例如：
   http_ota http://192.168.21.101/D%3A/E/build/app.rbl

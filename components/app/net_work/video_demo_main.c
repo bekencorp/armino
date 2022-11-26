@@ -1,6 +1,7 @@
 #include <common/bk_include.h>
 #include "video_demo_config.h"
 #include <components/video_transfer.h>
+#include "cli.h"
 
 #if (CONFIG_NET_WORK_VIDEO_TRANSFER == 1)
 #include <os/str.h>
@@ -39,8 +40,9 @@ void video_transfer_usage(void)
     return;
 }
 
-static int video_transfer(int argc, char **argv)
+void cmd_video_transfer(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+	char *msg = NULL;
     char *oob_ssid = NULL, *tmp_oob_ssid = "beken p2p";
     char *connect_key = NULL;
     static UINT32 video_transfer_mode = 0;
@@ -85,7 +87,6 @@ static int video_transfer(int argc, char **argv)
         #else
         os_printf("APP_VIDEO_TRANSFER_MODE not support softap mode \n");
         #endif
-        return 1;
     }
     else if (os_strcmp(argv[1], "-s") == 0)
     {
@@ -115,7 +116,6 @@ static int video_transfer(int argc, char **argv)
         #else
         os_printf("APP_VIDEO_TRANSFER_MODE not support station mode \n");
         #endif
-        return 1;
     }
 	 else if (os_strcmp(argv[1], "-p") == 0)
     {
@@ -149,68 +149,29 @@ static int video_transfer(int argc, char **argv)
         #else
         os_printf("APP_VIDEO_TRANSFER_MODE not support station mode \n");
         #endif
-        return 1;
     }
 	else if (os_strcmp(argv[1], "start") == 0)
 	{
 		bk_video_transfer_start();
-
-		return 0;
 	}
 	else if (os_strcmp(argv[1], "stop") == 0)
 	{
 		bk_video_transfer_stop();
-
-		return 0;
 	}
     else
     {
         goto __usage;
     }
 
+	msg = CLI_CMD_RSP_SUCCEED;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
+
 __usage:
     video_transfer_usage();
-    return 0;
+	msg = CLI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
 
-#if CONFIG_RTT
-FINSH_FUNCTION_EXPORT_ALIAS(video_transfer, __cmd_video_transfer, video transfer);
-#else
-void cmd_video_transfer(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-    video_transfer(argc, argv);
-}
 #endif
-#endif
-
-#ifndef CONFIG_RTT
-#ifdef CONFIG_ALIOS
-#include <aos/aos.h>
-#else
-#include "bk_cli.h"
-#endif
-#if ((CONFIG_CAMERA) && (APP_DEMO_CFG_USE_VIDEO_BUFFER))
-extern void video_buffer_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-#endif
-
-static const struct cli_command video_transfer_clis[] =
-{
-    #if (CONFIG_NET_WORK_VIDEO_TRANSFER == 1)
-    {"video_transfer", "video_transfer --help",    cmd_video_transfer},
-    #endif
-    #if ((CONFIG_CAMERA) && (APP_DEMO_CFG_USE_VIDEO_BUFFER))
-    {"video_buffer",   "open / close / read len",  video_buffer_cmd},
-    #endif
-};
-
-int video_demo_register_cmd(void)
-{
-    #ifdef CONFIG_ALIOS
-    return aos_cli_register_commands(video_transfer_clis, sizeof(video_transfer_clis) / sizeof(struct cli_command));
-    #else
-    return cli_register_commands(video_transfer_clis, sizeof(video_transfer_clis) / sizeof(struct cli_command));
-    #endif
-}
-#endif
-
 

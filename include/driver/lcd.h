@@ -15,6 +15,7 @@
 #pragma once
 
 #include "driver/lcd_types.h"
+#include <driver/dma2d_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -442,12 +443,91 @@ bk_err_t bk_lcd_fill_data(lcd_device_id_t id, lcd_disp_framebuf_t *lcd_disp);
  */
 bk_err_t bk_lcd_draw_point(lcd_device_id_t id, uint16_t x, uint16_t y, uint16_t pixel);
 
+
+/**
+ * @brief push lcd display frame
+ *
+ *
+ * @param lcd frame include addr, format, width, hight etc.
+ *
+ * @return
+ *     - BK_OK: succeed
+ *     - others: other errors.
+ */
 bk_err_t lcd_driver_display_frame(frame_buffer_t *frame);
+
+/**
+ * @brief get lcd device struct by ppi
+ *
+ *
+ * @param lcd ppi
+ *
+ * @return
+ *     - return true is lcd_device_t member
+ *     - or not find device, return NULL.
+ */
 const lcd_device_t *get_lcd_device_by_ppi(media_ppi_t ppi);
+
+/**
+ * @brief get lcd device struct by device name
+ *
+ *
+ * @param lcd name
+ *
+ * @return
+ *     - return true is lcd_device_t member
+ *     - or not find device, return NULL.
+ */
 const lcd_device_t * get_lcd_device_by_name(char * name);
 
+/**
+ * @brief push jpeg frame to decode
+ *
+ *
+ * @param jpeg frame, include addr, format, width, hight,size etc.
+ *
+ * @return
+ *     - BK_OK: succeed
+ *     - others: other errors.
+ */
 frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame);
+
+/**
+ * @brief push decode complete frame to rotate
+ *
+ *
+ * @param jpeg decode frame, include addr, format, width, hight,size etc.
+ *
+ * @return
+ *     - BK_OK: succeed
+ *     - others: other errors.
+ */
 frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame);
+
+/**
+ * @brief for rotate local area, like decode image is 640X480, can only rotate centre 320X480 area
+ *
+ *
+ * @param jpeg decode frame, include addr, format, width, hight,size etc.
+ * @param the local area ppi, like 320X480.
+ *
+ * @return
+ *     - BK_OK: succeed
+ *     - others: other errors.
+ */
+frame_buffer_t *lcd_driver_rotate_frame_ppi(frame_buffer_t *frame, media_ppi_t ppi);
+
+/**
+ * @brief this api for lcd blend foreground logo
+ *
+ *
+ * @param lcd_blend_t config blend background/foreground addr, data format, addr offset and orther params
+ *
+ * @return
+ *     - BK_OK: succeed
+ *     - others: other errors.
+ */
+bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend);
 
 /**
   * @}

@@ -470,6 +470,7 @@ extern VOID LOS_MemUnlockEnable(VOID *pool);
 
 extern UINT32 OsMemSystemInit(VOID);
 extern VOID OsTaskMemUsed(VOID *pool, UINT32 *tskMemInfoBuf, UINT32 tskMemInfoCnt);
+extern UINT32 OsMemGetFreeSize(VOID *pool);
 
 #ifdef __cplusplus
 #if __cplusplus

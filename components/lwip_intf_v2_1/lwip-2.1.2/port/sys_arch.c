@@ -302,6 +302,9 @@ void sys_sem_free(sys_sem_t *sem)
       --lwip_stats.sys.sem.used;
 #endif /* SYS_STATS */
 
+	if (sem == NULL || *sem == NULL)
+		return;
+
 	rtos_deinit_semaphore(sem);
 }
 /*-----------------------------------------------------------------------------------*/

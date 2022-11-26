@@ -1,0 +1,5 @@
+menu "lcd with gui"
+	config LVGL
+		bool "Enable lvgl"
+		default n
+endmenu

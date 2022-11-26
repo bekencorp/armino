@@ -23,9 +23,9 @@ CPU0_LOAD1 0x00090000 0x8800
 		LOADADDR NEXT _itcm_lma_start
 		ADDR NEXT _itcm_ema_start
 		* KEEP (.itcm_sec_code LMA_FORCE_ALIGN)
-		*txl_he.c.obj   (+RO-CODE)
-		*txl_agg.c.obj  (+RO-CODE)
-		*txl_cntrl.c.obj *rxl_hwdesc.c.obj *rxu_cntrl.c.obj (+RO-CODE)
+		*txl_he.c.obj   (+RO-CODE LMA_FORCE_ALIGN)
+		*txl_agg.c.obj  (+RO-CODE LMA_FORCE_ALIGN)
+		*txl_cntrl.c.obj *rxl_hwdesc.c.obj *rxu_cntrl.c.obj (+RO-CODE LMA_FORCE_ALIGN)
 		LOADADDR _itcm_lma_end
 		ADDR _itcm_ema_end
 	}
@@ -48,23 +48,23 @@ CPU0_LOAD2 0x00098800  0x1F7800
 		LOADADDR NEXT _dtcm_lma_start
 		ADDR NEXT _dtcm_ema_start
 
-		* KEEP (.dtcm_sec_data)
+		* KEEP (.dtcm_sec_data LMA_FORCE_ALIGN)
 
 		;WiFi Data Path
-		*bam.c.obj *ke_env.c.obj *hal_dma.c.obj *hal_machw.c.obj *txu_cntrl.c.obj *bam_task.c.obj(*data*)
-		*rxl_cntrl.c.obj *tx_swdesc.c.obj *txl_cfm.c.obj *txl_cntrl.c.obj (*data*)
+		*bam.c.obj *ke_env.c.obj *hal_dma.c.obj *hal_machw.c.obj *txu_cntrl.c.obj *bam_task.c.obj(*data* LMA_FORCE_ALIGN)
+		*rxl_cntrl.c.obj *tx_swdesc.c.obj *txl_cfm.c.obj *txl_cntrl.c.obj (*data* LMA_FORCE_ALIGN)
 
 		;WiFi SM/MM/RC/VIF/TD/CHAN/PS
-		*sta_mgmt.c.obj *vif_mgmt.c.obj *rc.c.obj *rwnx.c.obj *me_task.c.obj *sm.c.obj(*data*)
-		*sm_task.c.obj *me.c.obj *mm.c.obj *mm_bcn.c.obj *mm_task.c.obj *mm_timer.c.obj(*data*)
-		*td.c.obj *chan.c.obj *ps.c.obj(*data*)
+		*sta_mgmt.c.obj *vif_mgmt.c.obj *rc.c.obj *rwnx.c.obj *me_task.c.obj *sm.c.obj(*data* LMA_FORCE_ALIGN)
+		*sm_task.c.obj *me.c.obj *mm.c.obj *mm_bcn.c.obj *mm_task.c.obj *mm_timer.c.obj(*data* LMA_FORCE_ALIGN)
+		*td.c.obj *chan.c.obj *ps.c.obj(*data* LMA_FORCE_ALIGN)
 
 		;WiFi SCAN/APM
-		*scan_task.c.obj *scan.c.obj *scanu.c.obj *scanu_task.c.obj(*data*)
+		*scan_task.c.obj *scan.c.obj *scanu.c.obj *scanu_task.c.obj(*data* LMA_FORCE_ALIGN)
 
 		;Flowling obj can't move to DTCM
-		;*hal_desc.c.obj  *rxu_cntrl.c.obj *txl_agg.c.obj *txl_he.c.obj *txl_buffer_shared.c.obj *txl_frame_shared.c.obj(*data*)
-		;*rxl_hwdesc.c.obj *scanu_shared.c.obj *scan_shared.c.obj *apm_task.c.obj(*data*)
+		;*hal_desc.c.obj  *rxu_cntrl.c.obj *txl_agg.c.obj *txl_he.c.obj *txl_buffer_shared.c.obj *txl_frame_shared.c.obj(*data* LMA_FORCE_ALIGN)
+		;*rxl_hwdesc.c.obj *scanu_shared.c.obj *scan_shared.c.obj *apm_task.c.obj(*data* LMA_FORCE_ALIGN)
 
 		LOADADDR _dtcm_lma_end
 		ADDR _dtcm_ema_end
@@ -102,13 +102,13 @@ CPU0_LOAD2 0x00098800  0x1F7800
 	{
 		LOADADDR NEXT _bt_data_lmastart
 		ADDR NEXT   _bt_data_start
-		* KEEP (.bt_spec_data)
-		* KEEP (.ble_bss_data)
+		* KEEP (.bt_spec_data LMA_FORCE_ALIGN)
+		* KEEP (.ble_bss_data LMA_FORCE_ALIGN)
 		*rwip.c.obj *rwip_driver.c.obj *uart_ble.c.obj *uart_controller_only.c.obj(+ZI)
 		*sdp_common.c.obj *app_ble.c.obj *prf.c.obj *gapm.c.obj(+ZI)
 		*ble_util_buf.c.obj *sch_prog.c.obj *sch_slice.c.obj *llm.c.obj(+ZI)
 
-		LOADADDR _bt_data_end
+		ADDR NEXT _bt_data_end
 	}
 
 

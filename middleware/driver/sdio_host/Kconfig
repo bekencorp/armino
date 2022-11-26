@@ -1,0 +1,10 @@
+menu "SDIO_HOST"
+	config SDIO_HOST
+		bool "Enable sdio host"
+		default n
+
+	config SDIO_HOST_DEFAULT_CLOCK_FREQ
+		int "SDIO Host default clock freq"
+		default 200000
+endmenu
+

@@ -1261,13 +1261,37 @@ void rtos_dump_task_list(void)
 	OsGetAllTskInfo();
 }
 
-size_t rtos_get_free_heap_size(void)
-{	
-	UINT32 OsMemGetFreeSize(VOID *pool);
+size_t rtos_get_total_heap_size(void)
+{
+	return LOS_MemPoolSizeGet(m_aucSysMem0);
+}
 
+size_t rtos_get_free_heap_size(void)
+{
 	OsMemInfoPrint(m_aucSysMem0);
 	LOS_MemFreeNodeShow(m_aucSysMem0);
 	return OsMemGetFreeSize(m_aucSysMem0);
 }
+
+size_t rtos_get_minimum_free_heap_size(void)
+{
+	return  0x0;
+}
+
+size_t rtos_get_psram_total_heap_size(void)
+{
+	return 0x0;
+}
+
+size_t rtos_get_psram_free_heap_size(void)
+{
+	return 0x0;
+}
+
+size_t rtos_get_psram_minimum_free_heap_size(void)
+{
+	return 0x0;
+}
+
 // eof
 

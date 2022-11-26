@@ -71,38 +71,54 @@ uint32_t bk_mpc_get_max_block_index(mpc_dev_t dev)
 	return mpc_hal_get_max_block_index(&s_mpc[dev].hal);
 }
 
-bk_err_t bk_mpc_set_secure_attribute(mpc_dev_t dev, uint32_t mem_addr_offset, uint32_t block_num, mpc_block_secure_type_t secure_type)
+bk_err_t bk_mpc_dump_secure_attribute(mpc_dev_t dev)
+{
+	mpc_hal_t *hal = &s_mpc[dev].hal;
+	uint32_t block_size = bk_mpc_get_block_size(dev);
+	uint32_t max_index = bk_mpc_get_max_block_index(dev);
+
+	MPC_LOGI("mpc dev%d: block_size=0x%x, max_block_index=%d\r\n", dev, block_size, max_index);
+	BK_LOG_RAW("%4s    %8s\r\n", "id", "sec bits");
+	BK_LOG_RAW("----------------\r\n");
+	mpc_hal_disable_auto_increase(hal);
+	for (uint32_t block_index = 0; block_index <= max_index; block_index++) {
+		mpc_hal_set_block_index(hal, block_index);
+		uint32_t lut = mpc_hal_get_block_lut(hal);
+		BK_LOG_RAW("%4d    %08x\r\n", mpc_hal_get_block_index(hal), lut);
+	}
+	BK_LOG_RAW("\r\n");
+	return BK_OK;
+}
+
+bk_err_t bk_mpc_set_secure_attribute(mpc_dev_t dev, uint32_t mem_addr_offset, uint32_t mem_block_num, mpc_block_secure_type_t secure_type)
 {
 	MPC_RETURN_ON_DRIVER_NOT_INIT();
 
-	uint32_t block_offset = 0;
-	uint32_t block_index = 0;
-	uint32_t block_size = bk_mpc_get_block_size(dev);
+	uint32_t mem_block_index = 0;
+	uint32_t lut_block_index = 0;
+	uint32_t mem_block_size = bk_mpc_get_block_size(dev);
 	bk_err_t ret = BK_OK;
 	mpc_hal_t *hal = &s_mpc[dev].hal;
 
-	if (mem_addr_offset % block_size) {
-		MPC_LOGW("mem_addr_offset not block size:%d aligned\r\n", block_size);
+	if (mem_addr_offset % mem_block_size) {
+		MPC_LOGW("mpc dev%d mem_addr_offset not block size:%d aligned\r\n", dev, mem_block_size);
 	}
 
-	/* enable block index auto increase */
-	mpc_hal_enable_auto_increase(hal);
+	mpc_hal_disable_auto_increase(hal);
+	MPC_LOGI("mpc dev%d offset=%x, mem_block_num=%d, secure_type=%d\r\n", dev, mem_addr_offset, mem_block_num, secure_type);
+	MPC_LOGI("mpc mem_block_size=%x, current_idx=%d\r\n", mem_block_size, mpc_hal_get_block_index(hal));
 
 	/* set mpc block index */
-	block_offset = mem_addr_offset / (bk_mpc_get_block_size(dev));
-	block_index = block_offset / MPC_BLOCK_LUT_MAX_BIT_NUM;
-	if (block_index > bk_mpc_get_max_block_index(dev)) {
-		MPC_LOGW("block index:%d is out of range\r\n", block_index);
+	mem_block_index = mem_addr_offset / mem_block_size;
+	lut_block_index = mem_block_index / MPC_BLOCK_LUT_MAX_BIT_NUM;
+
+	if (lut_block_index > bk_mpc_get_max_block_index(dev)) {
+		MPC_LOGW("block index:%d is out of range\r\n", lut_block_index);
 		return BK_ERR_MPC_BLOCK_INDEX_OUT_OF_RANGE;
-	} else {
-		mpc_hal_set_block_index(hal, block_index);
 	}
 
 	/* set block lut */
-	ret = mpc_hal_config_block_lut(hal, block_offset, block_num, secure_type);
-
-	/* disable block index auto increase */
-	mpc_hal_disable_auto_increase(hal);
+	ret = mpc_hal_config_block_lut(hal, mem_block_index, mem_block_num, secure_type);
 
 	return ret;
 }

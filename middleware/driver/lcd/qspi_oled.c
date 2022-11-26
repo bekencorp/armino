@@ -222,6 +222,8 @@ bk_err_t bk_qspi_oled_init(void)
 
 	bk_qspi_oled_display_on();
 
+	bk_dma2d_driver_init();
+
 	os_printf("qspi oled init complete!\r\n");
 
 	return BK_OK;
@@ -270,8 +272,8 @@ void bk_qspi_oled_dma2d_fill(uint32_t width, uint32_t height, uint32_t color)
 	dma2d_config.init.red_blue_swap  = DMA2D_RB_REGULAR;       /**< No R&B swap for the output image */
 	dma2d_config.init.alpha_inverted = DMA2D_REGULAR_ALPHA;    /**< No alpha inversion for the output image */
 	dma2d_config.init.data_reverse   = 1;
+	bk_dma2d_init(&dma2d_config);
 
-	bk_dma2d_driver_init(&dma2d_config);
 
 	if (width == 0) {
 		width = QSPI_OLED_X_PIXEL / 2;
@@ -303,7 +305,7 @@ void bk_qspi_oled_dma2d_memcpy(uint32_t *Psrc, uint32_t xsize, uint32_t ysize)
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].red_blue_swap   = DMA2D_RB_REGULAR;      /**< No R&B swap for the input image */
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].alpha_inverted = DMA2D_REGULAR_ALPHA;   /**< No alpha inversion for the input image */
 
-	bk_dma2d_driver_init(&dma2d_config);
+	bk_dma2d_init(&dma2d_config);
 	bk_dma2d_layer_config(&dma2d_config, DMA2D_FOREGROUND_LAYER);
 
 	bk_dma2d_start_transfer(&dma2d_config, (uint32_t)Psrc, QSPI_OLED_DISPLAY_PSRAM_ADDR, xsize, ysize); 

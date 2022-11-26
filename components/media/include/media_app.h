@@ -27,6 +27,7 @@ typedef enum
 	APP_CAMERA_YUV,
 	APP_CAMERA_MIX,
 	APP_CAMERA_UVC,
+	APP_CAMERA_NET,
 	APP_CAMERA_INVALIED,
 } app_camera_type_t;
 
@@ -59,8 +60,17 @@ bk_err_t media_app_dump_jpeg_frame(void);
 bk_err_t media_app_lcd_step_mode(bool enable);
 bk_err_t media_app_lcd_step_trigger(void);
 bk_err_t media_app_transfer_pause(bool pause);
-bk_err_t media_app_lcd_display(char *name, uint32_t lcd_ppi);
-bk_err_t media_app_lcd_display_beken(void);
+bk_err_t  media_app_lcd_display_file(char *file_name);  //display sd card file
+bk_err_t media_app_lcd_display(void* lcd_display);
+bk_err_t media_app_lcd_display_beken(void* lcd_display);
+bk_err_t media_app_lcd_blend(void *param);
+bk_err_t media_app_register_uvc_disconnect_cb(void *cb);
+
+
+#if CONFIG_VIDEO_AVI
+bk_err_t media_app_avi_open(void);
+bk_err_t media_app_avi_close(void);
+#endif
 
 
 #ifdef __cplusplus

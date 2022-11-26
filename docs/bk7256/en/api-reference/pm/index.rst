@@ -1,5 +1,5 @@
-低功耗与电源管理
-**************
+power management
+***********************
 
 :link_to_translation:`en:[English]`
 

@@ -21,14 +21,17 @@ menu "Application"
 
 	config USE_APP_DEMO_VIDEO_TRANSSER
 		bool "Enable USE APP DEMO VIDEO TRANSSER"
+		depends on CAMERA
 		default n
 
 	config APP_DEMO_VIDEO_TRANSFER
 		bool "Enable APP DEMO VIDEO TRANSSER"
+		depends on CAMERA
 		default n
 
 	config NET_WORK_VIDEO_TRANSFER
 		bool "Enable NET_WORK VIDEO TRANSFER"
+		depends on CAMERA
 		default n
 
 	config COMPONENTS_P2P
@@ -39,6 +42,16 @@ menu "Application"
 			bool "Enable lvgl demo"
 			default n
 	config VIDEO_AVI
+		depends on NTP_SYNC_RTC
 		bool "Enable VIDEO_AVI"
+		default n
+		
+	config NTP_SYNC_RTC
+		depends on AON_RTC
+		bool "Enable NTP_SYNC_RTC"
+		default n
+
+	config LITTLEFS
+		bool "Enable littlefs"
 		default n
 endmenu

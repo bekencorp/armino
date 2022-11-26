@@ -27,6 +27,10 @@ extern const lcd_device_t lcd_device_hx8282;
 extern const lcd_device_t lcd_device_st7796s;
 extern const lcd_device_t lcd_device_gc9503v;
 extern const lcd_device_t lcd_device_nt35512;
+extern const lcd_device_t  lcd_device_nt35510;
+extern const lcd_device_t lcd_device_h050iwv;
+extern const lcd_device_t lcd_device_md0430r;
+extern const lcd_device_t lcd_device_md0700r;
 
 void lcd_st7796s_set_display_mem_area(uint16 xs, uint16 xe, uint16 ys, uint16 ye);
 

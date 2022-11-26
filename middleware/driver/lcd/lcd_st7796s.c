@@ -195,7 +195,7 @@ void lcd_st7796s_set_display_mem_area(uint16 xs, uint16 xe, uint16 ys, uint16 ye
 
 static const lcd_mcu_t lcd_mcu =
 {
-	.clk = LCD_26M,
+	.clk = LCD_80M,
 	.set_xy_swap = lcd_st7796s_swap_xy,
 	.set_mirror = lcd_st7796s_mirror,
 	.set_display_area = lcd_st7796s_set_display_mem_area,

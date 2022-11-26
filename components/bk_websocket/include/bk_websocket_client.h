@@ -97,6 +97,7 @@ typedef struct {
 typedef websocket_transport_info_t *transport;
 typedef void (*websocket_event_cb)(int32_t event_id, char *event_data, int data_len);
 
+void bk_websocket_register_cb(websocket_event_cb cb);
 bk_err_t websocket_client_set_uri(transport client, const char *uri);
 transport websocket_client_init(const websocket_client_input_t *input);
 bk_err_t websocket_client_destroy(transport client);

@@ -1,0 +1,5 @@
+menu "MPC"
+	config MPC
+		bool "Enable MPC"
+		default n
+endmenu

@@ -55,7 +55,12 @@ void uvc_device_disconnect_callback(void)
 
 	uvc_state_flag = false;
 
-	media_app_camera_close(APP_CAMERA_UVC);
+	media_msg_t media_msg;
+
+	media_msg.event = EVENT_CAM_UVC_RESET_IND;
+	media_msg.param = 0;
+
+	media_send_msg(&media_msg);
 }
 
 const uvc_camera_config_t uvc_camera_config =

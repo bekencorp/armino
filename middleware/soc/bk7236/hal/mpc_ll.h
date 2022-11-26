@@ -75,6 +75,11 @@ static inline void mpc_ll_set_block_index(mpc_hw_t *hw, uint32_t index)
 	hw->block_index = index;
 }
 
+static inline uint32_t mpc_ll_get_block_index(mpc_hw_t *hw)
+{
+	return hw->block_index;
+}
+
 static inline void mpc_ll_enable_sec_lock(mpc_hw_t *hw)
 {
 	hw->ctrl.sec_lock = 1;

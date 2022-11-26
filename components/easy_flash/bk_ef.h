@@ -4,6 +4,17 @@
 #include "easyflash.h"
 
 #if CONFIG_EASY_FLASH
+
+#if !CONFIG_EASY_FLASH_V4 && !CONFIG_EASY_FLASH_V3
+#error "you shold config CONFIG_EASY_FLASH_V4 or CONFIG_EASY_FLASH_V3"
+#endif
+
+#if CONFIG_EASY_FLASH_V4
+//!!!new api, Strongly recommended to use
+EfErrCode bk_set_env_enhance(const char *key, const void *value, int value_len);
+int bk_get_env_enhance(const char *key, void *value, int value_len);
+#endif
+
 EfErrCode bk_save_env(void);
 char *bk_get_env(const char *key);
 EfErrCode bk_set_env(const char *key, const char *value);

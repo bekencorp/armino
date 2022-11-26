@@ -2,12 +2,12 @@ menu "USB configuration"
 
 config USB
 	bool "Enable USB"
-	default y
+	default n
 
 menu "USB"
 	depends on USB
 
-	#TODO HOST/DEVICE mode mutual exclusive
+	#TODO HOST/DEVICE mode mutual exclusive???
 	choice USB_MODE
 		prompt "Enable USB HOST mode"
 		default USB_HOST 
@@ -18,14 +18,14 @@ menu "USB"
 			bool "USB Device Mode"
 	endchoice
 
-		choice USB_PORT
-			prompt "Select USB Port"
-			default USB2_PORT
-	config USB1_PORT
-				bool "USB1 port"
-			config USB2_PORT
-				bool "USB2 port"
-		endchoice
+	choice USB_PORT
+		prompt "Select USB Port"
+		default USB2_PORT
+		config USB1_PORT
+			bool "USB1 port"
+		config USB2_PORT
+			bool "USB2 port"
+	endchoice
 
 	config TASK_USB_PRIO
 		int "Priority of USB task"
@@ -48,19 +48,31 @@ menu "USB"
 		bool "Enable USB UVC"
 		default n
 
+	config USB_UAC
+		bool "Enable USB UAC"
+		default n
+
+	config USB_UAC_MIC
+		bool "Enable USB UAC Mic"
+		default n
+
+	config USB_UAC_SPEAKER
+		bool "Enable USB UAC Speaker"
+		default n
+
 	config USB_CHARGE
 		bool "Enable USB Charge"
 		default n
-	menu "DSP"
 
-		config DSP
-			bool "Enable DSP"
-				default n 
-
-		#TODO delete it
-		config DSP_SRC_ADD
-			hex "DSP srouce address"
-			default 0x130000
-	endmenu
 endmenu
+endmenu
+
+menu "DSP"
+	config DSP
+		bool "Enable DSP"
+			default n 
+	#TODO delete it
+	config DSP_SRC_ADD
+		hex "DSP srouce address"
+		default 0x130000
 endmenu

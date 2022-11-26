@@ -19,12 +19,17 @@
 
 extern void cli_doorbell_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
-
+#if CONFIG_AV_DEMO
+extern void cli_av_udp_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
 
 #define DOORBELL_CMD_CNT	(sizeof(s_doorbell_commands) / sizeof(struct cli_command))
 
 static const struct cli_command s_doorbell_commands[] = {
 	{"doorbell", "doorbell...", cli_doorbell_test_cmd},
+#if CONFIG_AV_DEMO
+	{"av_udp_test", "av_udp_test {server|client}", cli_av_udp_test_cmd},
+#endif
 };
 
 int cli_doorbell_init(void)

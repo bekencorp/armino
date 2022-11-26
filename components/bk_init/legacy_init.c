@@ -19,6 +19,7 @@
 #include <driver/uart.h>
 #include <string.h>
 #include "boot.h"
+#include <modules/pm.h>
 #if CONFIG_BLE
 #include "modules/ble.h"
 #include "ble_api_5_x.h"
@@ -34,6 +35,10 @@ extern void bk_ota_confirm_update_partition(ota_confirm_flag ota_confirm_val);
 #include "bk_api_cli.h"
 #endif
 
+#if (CONFIG_NTP_SYNC_RTC)
+#include <components/app_time_intf.h>
+#endif
+
 #define TAG "app_init"
 
 #ifdef CONFIG_VND_CAL
@@ -46,6 +51,9 @@ extern void bk_ota_confirm_update_partition(ota_confirm_flag ota_confirm_val);
 
 #include "sdk_version.h"
 
+#if (CONFIG_SOC_BK7256XX && CONFIG_DEBUG_FIRMWARE)
+extern bk_err_t bk_dbg_init(void);
+#endif
 void rtos_user_app_launch_over(void);
 
 volatile const uint8_t build_version[] = __DATE__ " " __TIME__;
@@ -57,6 +65,10 @@ static int app_wifi_init(void)
 	BK_LOG_ON_ERR(bk_event_init());
 	BK_LOG_ON_ERR(bk_netif_init());
 	BK_LOG_ON_ERR(bk_wifi_init(&wifi_config));
+#if (CONFIG_SOC_BK7256XX && CONFIG_DEBUG_FIRMWARE)
+	BK_LOG_ON_ERR(bk_dbg_init());
+#endif
+
 #endif
 	return BK_OK;
 }
@@ -207,11 +219,12 @@ int legacy_init(void)
 	BK_LOGI(TAG, "APP Version: %s\n", APP_VERSION);
 #endif
 
-
+	#if !CONFIG_SLAVE_CORE
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DEFAULT,PM_CPU_FRQ_120M);
+	#endif
 #ifdef CONFIG_VND_CAL
 	vnd_cal_overlay();
 #endif
-
 #if (CONFIG_SOC_BK7256XX && !CONFIG_SLAVE_CORE)
 
 	#if CONFIG_SAVE_BOOT_TIME_POINT
@@ -223,11 +236,6 @@ int legacy_init(void)
 	#endif
 
 	rtos_user_app_launch_over();
-
-#ifdef CONFIG_MEDIA
-	media_major_init();
-#endif
-
 
 #if (CONFIG_BLUETOOTH)
 	app_ble_init();
@@ -250,9 +258,18 @@ int legacy_init(void)
 
 	app_cli_init();
 
-#if defined(CONFIG_MEDIA) && defined(CONFIG_SLAVE_CORE)
+#if (CONFIG_MEDIA)
+#if (CONFIG_SLAVE_CORE)
 	media_minor_init();
+#else
+	media_major_init();
 #endif
+#endif
+
+#if (CONFIG_NTP_SYNC_RTC)
+	app_time_rtc_ntp_sync_init();
+#endif
+
 
 #if (CONFIG_FREERTOS)
 #if CONFIG_SEMI_HOSTED
@@ -275,5 +292,6 @@ int legacy_init(void)
     bk_ota_confirm_update_partition(CONFIRM_EXEC_B);
     #endif
 #endif
+
 	return 0;
 }

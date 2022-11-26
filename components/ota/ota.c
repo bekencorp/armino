@@ -6,6 +6,7 @@
 #include "modules/ota.h"
 #if CONFIG_OTA_HTTP
 #include "utils_httpc.h"
+#include "modules/wifi.h"
 #endif
 
 #ifdef CONFIG_HTTP_AB_PARTITION
@@ -136,7 +137,7 @@ int bk_http_ota_download(const char *uri)
 	char http_content[HTTP_RESP_CONTENT_LEN];
     
     CLI_LOGI("http_ota_download :0x%x",bk_http_ota_download);
-    
+
     //__asm volatile ("j .");
 #ifdef CONFIG_HTTP_AB_PARTITION
     bk_logic_partition_t *bk_ptr =NULL;
@@ -177,6 +178,9 @@ int bk_http_ota_download(const char *uri)
         return -1;
 #endif
 
+#if CONFIG_SYSTEM_CTRL
+	bk_wifi_ota_dtim(1);
+#endif
 	os_memset(&httpclient, 0, sizeof(httpclient_t));
 	os_memset(&httpclient_data, 0, sizeof(httpclient_data));
 	os_memset(&http_content, 0, sizeof(HTTP_RESP_CONTENT_LEN));
@@ -192,9 +196,15 @@ int bk_http_ota_download(const char *uri)
 							&httpclient_data);
 
 	if (0 != ret)
-		CLI_LOGI("request epoch time from remote server failed.");
-	else {
-		CLI_LOGI("sucess.\r\n");
+        {
+            CLI_LOGI("request epoch time from remote server failed.");
+#if CONFIG_SYSTEM_CTRL
+	    bk_wifi_ota_dtim(0);
+#endif
+        }
+	else
+        {
+	    CLI_LOGI("sucess.\r\n");
 #ifdef CONFIG_HTTP_AB_PARTITION
         #ifndef CONFIG_OTA_UPDATE_DEFAULT_PARTITION
             temp_exec_flag = ota_temp_execute_partition(ret); //temp_exec_flag :3 :A ,4:B

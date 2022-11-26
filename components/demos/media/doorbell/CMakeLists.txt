@@ -11,6 +11,14 @@ if (CONFIG_DOORBELL)
 		"src/doorbell_udp.c"
 		"src/doorbell_tcp.c"
 	)
+
+if (CONFIG_AV_DEMO)
+		list(APPEND srcs
+		"src/doorbell_udp_client.c"
+		"src/doorbell_udp_server.c"
+	)
+endif()
+
 endif()
 
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES media aud_intf bk_common)

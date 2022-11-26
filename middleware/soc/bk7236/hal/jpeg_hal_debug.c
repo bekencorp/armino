@@ -21,6 +21,14 @@
 
 void jpeg_struct_dump(void)
 {
+	SOC_LOGI("system_reg8:%x\r\n", REG_READ(SOC_SYSTEM_REG_BASE + 0x8 * 4));
+	SOC_LOGI("system_reg9:%x\r\n", REG_READ(SOC_SYSTEM_REG_BASE + 0x9* 4));
+	SOC_LOGI("system_rega:%x\r\n", REG_READ(SOC_SYSTEM_REG_BASE + 0xa* 4));
+	SOC_LOGI("system_clock_en_c:%x\r\n", REG_READ(SOC_SYSTEM_REG_BASE + 0xc * 4));
+	SOC_LOGI("system_clock_en_d:%x\r\n", REG_READ(SOC_SYSTEM_REG_BASE + 0xd * 4));
+	SOC_LOGI("cpu0_int_en_low:%x\r\n", REG_READ(SOC_SYSTEM_REG_BASE + 0x20 * 4));
+	SOC_LOGI("cpu0_int_en_high:%x\r\n", REG_READ(SOC_SYSTEM_REG_BASE + 0x21 * 4));
+
 	jpeg_hw_t *hw = (jpeg_hw_t *)JPEG_LL_REG_BASE(0);
 	SOC_LOGI("base=%x\r\n", (uint32_t)hw);
 

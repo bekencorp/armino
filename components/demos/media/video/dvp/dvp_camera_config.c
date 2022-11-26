@@ -25,6 +25,8 @@
 static uint32_t s_camera_dev_id = 0;
 static uint32_t s_camera_dev = GC0328C_DEV;
 static uint32_t sener_cfg = 0;
+#define CONFIG_INPUT_FPS (30)
+
 
 const uint8_t pas6329_page0[][2] = {
 	{0x04, 0x00},    // 00//01//AE Indoor stage select[0];0:11 ; 1:12 ..
@@ -3485,7 +3487,784 @@ const uint8_t ov_2640_init_1600_1200_table[][2] = {
 	{0xe0, 0x00},
 	{0xdd, 0x7f},
 	{0x05, 0x00},
+};
 
+const uint8_t gc2145_init_talbe[][2] =
+{
+	{0xfe, 0xf0},
+	{0xfe, 0xf0},
+	{0xfe, 0xf0},
+	{0xfc, 0x06},
+	{0xf6, 0x00},
+	{0xf7, 0x1d},
+	{0xf8, 0x82}, //pclk=mclk * (v[0:3] + 1)   //96M
+	{0xfa, 0x00},
+	{0xf9, 0xfe},
+	{0xf2, 0x00},
+	/////////////////////////////////////////////////
+	//////////////////ISP reg//////////////////////
+	////////////////////////////////////////////////////
+	{0xfe, 0x00},
+	{0x03, 0x04},
+	{0x04, 0xe2},
+	{0x09, 0x00},
+	{0x0a, 0x00},
+	{0x0b, 0x00},
+	{0x0c, 0x00},
+
+	{0x13, 0x10},
+	{0x14, 0x04},
+	{0x12, 0x2e},
+	{0x17, 0x13},  //mirror
+	{0x18, 0x22},
+	{0x19, 0x0e},
+	{0x1a, 0x01},
+	{0x1b, 0x4b},
+	{0x1c, 0x07},
+	{0x1d, 0x10},
+	{0x1e, 0x88},
+	{0x1f, 0x78},
+	{0x20, 0x03},
+	{0x21, 0x40},
+	{0x22, 0xa0},
+	/*{0x24 , 0x16},*/
+	{0x24, 0xab}, //强驱
+	{0x25, 0x01},
+	{0x26, 0x10},
+	{0x2d, 0x60},
+	{0x30, 0x01},
+	{0x31, 0x90},
+	{0x33, 0x06},
+	{0x34, 0x01},
+	/////////////////////////////////////////////////
+	//////////////////ISP reg////////////////////
+	/////////////////////////////////////////////////
+	{0xfe, 0x00},
+	{0x80, 0x7f},
+	{0x81, 0x26},
+	{0x82, 0xfa},
+	{0x83, 0x00},
+	{0x84, 0x02},//yuyv
+	{0x86, 0x03},//HSNC VYNC极性选择
+	{0x88, 0x03},
+	{0x89, 0x03},
+	{0x85, 0x08},
+	{0x8a, 0x00},
+	{0x8b, 0x00},
+	{0xb0, 0x55},
+	{0xc3, 0x00},
+	{0xc4, 0x80},
+	{0xc5, 0x90},
+	{0xc6, 0x3b},
+	{0xc7, 0x46},
+	{0xec, 0x06},
+	{0xed, 0x04},
+	{0xee, 0x60},
+	{0xef, 0x90},
+	{0xb6, 0x01},
+	{0x90, 0x01},
+	{0x91, 0x00},
+	{0x92, 0x00},
+	{0x93, 0x00},
+	{0x94, 0x00},
+
+	{0x95, 0x04},
+	{0x96, 0xb0}, // 1200
+	{0x97, 0x06},
+	{0x98, 0x40},//1600
+
+	/////////////////////////////////////////
+	/////////// BLK ////////////////////////
+	/////////////////////////////////////////
+	{0xfe, 0x00},
+	{0x40, 0x42},
+	{0x41, 0x00},
+	{0x43, 0x5b},
+	{0x5e, 0x00},
+	{0x5f, 0x00},
+	{0x60, 0x00},
+	{0x61, 0x00},
+	{0x62, 0x00},
+	{0x63, 0x00},
+	{0x64, 0x00},
+	{0x65, 0x00},
+	{0x66, 0x20},
+	{0x67, 0x20},
+	{0x68, 0x20},
+	{0x69, 0x20},
+	{0x76, 0x00},
+	{0x6a, 0x08},
+	{0x6b, 0x08},
+	{0x6c, 0x08},
+	{0x6d, 0x08},
+	{0x6e, 0x08},
+	{0x6f, 0x08},
+	{0x70, 0x08},
+	{0x71, 0x08},
+	{0x76, 0x00},
+	{0x72, 0xf0},
+	{0x7e, 0x3c},
+	{0x7f, 0x00},
+	{0xfe, 0x02},
+	{0x48, 0x15},
+	{0x49, 0x00},
+	{0x4b, 0x0b},
+	{0xfe, 0x00},
+	////////////////////////////////////////
+	/////////// AEC ////////////////////////
+	////////////////////////////////////////
+	{0xfe, 0x01},
+	{0x01, 0x04},
+	{0x02, 0xc0},
+	{0x03, 0x04},
+	{0x04, 0x90},
+	{0x05, 0x30},
+	{0x06, 0x90},
+	{0x07, 0x30},
+	{0x08, 0x80},
+	{0x09, 0x00},
+	{0x0a, 0x82},
+	{0x0b, 0x11},
+	{0x0c, 0x10},
+	{0x11, 0x10},
+	{0x13, 0x7b},
+	{0x17, 0x00},
+	{0x1c, 0x11},
+	{0x1e, 0x61},
+	{0x1f, 0x35},
+	{0x20, 0x40},
+	{0x22, 0x40},
+	{0x23, 0x20},
+	{0xfe, 0x02},
+	{0x0f, 0x04},
+	{0xfe, 0x01},
+	{0x12, 0x35},
+	{0x15, 0xb0},
+	{0x10, 0x31},
+	{0x3e, 0x28},
+	{0x3f, 0xb0},
+	{0x40, 0x90},
+	{0x41, 0x0f},
+
+	/////////////////////////////
+	//////// INTPEE /////////////
+	/////////////////////////////
+	{0xfe, 0x02},
+	{0x90, 0x6c},
+	{0x91, 0x03},
+	{0x92, 0xcb},
+	{0x94, 0x33},
+	{0x95, 0x84},
+	{0x97, 0x65},
+	{0xa2, 0x11},
+	{0xfe, 0x00},
+	/////////////////////////////
+	//////// DNDD///////////////
+	/////////////////////////////
+	{0xfe, 0x02},
+	{0x80, 0xc1},
+	{0x81, 0x08},
+	{0x82, 0x05},
+	{0x83, 0x08},
+	{0x84, 0x0a},
+	{0x86, 0xf0},
+	{0x87, 0x50},
+	{0x88, 0x15},
+	{0x89, 0xb0},
+	{0x8a, 0x30},
+	{0x8b, 0x10},
+	/////////////////////////////////////////
+	/////////// ASDE ////////////////////////
+	/////////////////////////////////////////
+	{0xfe, 0x01},
+	{0x21, 0x04},
+	{0xfe, 0x02},
+	{0xa3, 0x50},
+	{0xa4, 0x20},
+	{0xa5, 0x40},
+	{0xa6, 0x80},
+	{0xab, 0x40},
+	{0xae, 0x0c},
+	{0xb3, 0x46},
+	{0xb4, 0x64},
+	{0xb6, 0x38},
+	{0xb7, 0x01},
+	{0xb9, 0x2b},
+	{0x3c, 0x04},
+	{0x3d, 0x15},
+	{0x4b, 0x06},
+	{0x4c, 0x20},
+	{0xfe, 0x00},
+	/////////////////////////////////////////
+	/////////// GAMMA   ////////////////////////
+	/////////////////////////////////////////
+
+	///////////////////gamma1////////////////////
+	////Gamma
+	{0xfe, 0x02},
+	{0x10, 0x10},
+	{0x11, 0x15},
+	{0x12, 0x1a},
+	{0x13, 0x1f},
+	{0x14, 0x2c},
+	{0x15, 0x39},
+	{0x16, 0x45},
+	{0x17, 0x54},
+	{0x18, 0x69},
+	{0x19, 0x7d},
+	{0x1a, 0x8f},
+	{0x1b, 0x9d},
+	{0x1c, 0xa9},
+	{0x1d, 0xbd},
+	{0x1e, 0xcd},
+	{0x1f, 0xd9},
+	{0x20, 0xe3},
+	{0x21, 0xea},
+	{0x22, 0xef},
+	{0x23, 0xf5},
+	{0x24, 0xf9},
+	{0x25, 0xff},
+
+	/////auto gamma/////
+	{0xfe, 0x02},
+	{0x26, 0x0f},
+	{0x27, 0x14},
+	{0x28, 0x19},
+	{0x29, 0x1e},
+	{0x2a, 0x27},
+	{0x2b, 0x33},
+	{0x2c, 0x3b},
+	{0x2d, 0x45},
+	{0x2e, 0x59},
+	{0x2f, 0x69},
+	{0x30, 0x7c},
+	{0x31, 0x89},
+	{0x32, 0x98},
+	{0x33, 0xae},
+	{0x34, 0xc0},
+	{0x35, 0xcf},
+	{0x36, 0xda},
+	{0x37, 0xe2},
+	{0x38, 0xe9},
+	{0x39, 0xf3},
+	{0x3a, 0xf9},
+	{0x3b, 0xff},
+	///////////////////////////////////////////////
+	///////////YCP ///////////////////////
+	///////////////////////////////////////////////
+	{0xfe, 0x02},
+	{0xd1, 0x32},
+	{0xd2, 0x32},
+	{0xd3, 0x40},
+	{0xd6, 0xf0},
+	{0xd7, 0x10},
+	{0xd8, 0xda},
+	{0xdd, 0x14},
+	{0xde, 0x86},
+	{0xed, 0x80},
+	{0xee, 0x00},
+	{0xef, 0x3f},
+	{0xd8, 0xd8},
+	///////////////////abs/////////////////
+	{0xfe, 0x01},
+	{0x9f, 0x40},
+	/////////////////////////////////////////////
+	//////////////////////// LSC ///////////////
+	//////////////////////////////////////////
+	{0xfe, 0x01},
+	{0xc2, 0x14},
+	{0xc3, 0x0d},
+	{0xc4, 0x0c},
+	{0xc8, 0x15},
+	{0xc9, 0x0d},
+	{0xca, 0x0a},
+	{0xbc, 0x24},
+	{0xbd, 0x10},
+	{0xbe, 0x0b},
+	{0xb6, 0x25},
+	{0xb7, 0x16},
+	{0xb8, 0x15},
+	{0xc5, 0x00},
+	{0xc6, 0x00},
+	{0xc7, 0x00},
+	{0xcb, 0x00},
+	{0xcc, 0x00},
+	{0xcd, 0x00},
+	{0xbf, 0x07},
+	{0xc0, 0x00},
+	{0xc1, 0x00},
+	{0xb9, 0x00},
+	{0xba, 0x00},
+	{0xbb, 0x00},
+	{0xaa, 0x01},
+	{0xab, 0x01},
+	{0xac, 0x00},
+	{0xad, 0x05},
+	{0xae, 0x06},
+	{0xaf, 0x08},
+	{0xb0, 0x0b},
+	{0xb1, 0x07},
+	{0xb2, 0x06},
+	{0xb3, 0x17},
+	{0xb4, 0x0e},
+	{0xb5, 0x0e},
+	{0xd0, 0x09},
+	{0xd1, 0x00},
+	{0xd2, 0x00},
+	{0xd6, 0x08},
+	{0xd7, 0x00},
+	{0xd8, 0x00},
+	{0xd9, 0x00},
+	{0xda, 0x00},
+	{0xdb, 0x00},
+	{0xd3, 0x0a},
+	{0xd4, 0x00},
+	{0xd5, 0x00},
+	{0xa4, 0x00},
+	{0xa5, 0x00},
+	{0xa6, 0x77},
+	{0xa7, 0x77},
+	{0xa8, 0x77},
+	{0xa9, 0x77},
+	{0xa1, 0x80},
+	{0xa2, 0x80},
+	{0xfe, 0x01},
+	{0xdf, 0x0d},
+	{0xdc, 0x25},
+	{0xdd, 0x30},
+	{0xe0, 0x77},
+	{0xe1, 0x80},
+	{0xe2, 0x77},
+	{0xe3, 0x90},
+	{0xe6, 0x90},
+	{0xe7, 0xa0},
+	{0xe8, 0x90},
+	{0xe9, 0xa0},
+	{0xfe, 0x00},
+	///////////////////////////////////////////////
+	/////////// AWB////////////////////////
+	///////////////////////////////////////////////
+	{0xfe , 0x01},
+	{0x4f , 0x00},
+	{0x4f , 0x00},
+	{0x4b , 0x01},
+	{0x4f , 0x00},
+	{0x4c , 0x01}, // D75
+	{0x4d , 0x71},
+	{0x4e , 0x01},
+	{0x4c , 0x01},
+	{0x4d , 0x91},
+	{0x4e , 0x01},
+	{0x4c , 0x01},
+	{0x4d , 0x70},
+	{0x4e , 0x01},
+	{0x4c , 0x01}, // D65
+	{0x4d , 0x90},
+	{0x4e , 0x02},
+	{0x4c , 0x01},
+	{0x4d , 0xb0},
+	{0x4e , 0x02},
+	{0x4c , 0x01},
+	{0x4d , 0x8f},
+	{0x4e , 0x02},
+	{0x4c , 0x01},
+	{0x4d , 0x6f},
+	{0x4e , 0x02},
+	{0x4c , 0x01},
+	{0x4d , 0xaf},
+	{0x4e , 0x02},
+	{0x4c , 0x01},
+	{0x4d , 0xd0},
+	{0x4e , 0x02},
+	{0x4c , 0x01},
+	{0x4d , 0xf0},
+	{0x4e , 0x02},
+	{0x4c , 0x01},
+	{0x4d , 0xcf},
+	{0x4e , 0x02},
+	{0x4c , 0x01},
+	{0x4d , 0xef},
+	{0x4e , 0x02},
+	{0x4c , 0x01},//D50
+	{0x4d , 0x6e},
+	{0x4e , 0x03},
+	{0x4c , 0x01}, 
+	{0x4d , 0x8e},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0xae},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0xce},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0x4d},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0x6d},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0x8d},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0xad},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0xcd},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0x4c},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0x6c},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0x8c},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0xac},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0xcc},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0xcb},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0x4b},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0x6b},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0x8b},
+	{0x4e , 0x03},
+	{0x4c , 0x01},
+	{0x4d , 0xab},
+	{0x4e , 0x03},
+	{0x4c , 0x01},//CWF
+	{0x4d , 0x8a},
+	{0x4e , 0x04},
+	{0x4c , 0x01},
+	{0x4d , 0xaa},
+	{0x4e , 0x04},
+	{0x4c , 0x01},
+	{0x4d , 0xca},
+	{0x4e , 0x04},
+	{0x4c , 0x01},
+	{0x4d , 0xca},
+	{0x4e , 0x04},
+	{0x4c , 0x01},
+	{0x4d , 0xc9},
+	{0x4e , 0x04},
+	{0x4c , 0x01},
+	{0x4d , 0x8a},
+	{0x4e , 0x04},
+	{0x4c , 0x01},
+	{0x4d , 0x89},
+	{0x4e , 0x04},
+	{0x4c , 0x01},
+	{0x4d , 0xa9},
+	{0x4e , 0x04},
+	{0x4c , 0x02},//tl84
+	{0x4d , 0x0b},
+	{0x4e , 0x05},
+	{0x4c , 0x02},
+	{0x4d , 0x0a},
+	{0x4e , 0x05},
+	{0x4c , 0x01},
+	{0x4d , 0xeb},
+	{0x4e , 0x05},
+	{0x4c , 0x01},
+	{0x4d , 0xea},
+	{0x4e , 0x05},
+	{0x4c , 0x02},
+	{0x4d , 0x09},
+	{0x4e , 0x05},
+	{0x4c , 0x02},
+	{0x4d , 0x29},
+	{0x4e , 0x05},
+	{0x4c , 0x02},
+	{0x4d , 0x2a},
+	{0x4e , 0x05},
+	{0x4c , 0x02},
+	{0x4d , 0x4a},
+	{0x4e , 0x05},
+	{0x4c , 0x02},
+	{0x4d , 0x8a},
+	{0x4e , 0x06},
+	{0x4c , 0x02},
+	{0x4d , 0x49},
+	{0x4e , 0x06},
+	{0x4c , 0x02},
+	{0x4d , 0x69},
+	{0x4e , 0x06},
+	{0x4c , 0x02},
+	{0x4d , 0x89},
+	{0x4e , 0x06},
+	{0x4c , 0x02},
+	{0x4d , 0xa9},
+	{0x4e , 0x06},
+	{0x4c , 0x02},
+	{0x4d , 0x48},
+	{0x4e , 0x06},
+	{0x4c , 0x02},
+	{0x4d , 0x68},
+	{0x4e , 0x06},
+	{0x4c , 0x02},
+	{0x4d , 0x69},
+	{0x4e , 0x06},
+	{0x4c , 0x02},//H
+	{0x4d , 0xca},
+	{0x4e , 0x07},
+	{0x4c , 0x02},
+	{0x4d , 0xc9},
+	{0x4e , 0x07},
+	{0x4c , 0x02},
+	{0x4d , 0xe9},
+	{0x4e , 0x07},
+	{0x4c , 0x03},
+	{0x4d , 0x09},
+	{0x4e , 0x07},
+	{0x4c , 0x02},
+	{0x4d , 0xc8},
+	{0x4e , 0x07},
+	{0x4c , 0x02},
+	{0x4d , 0xe8},
+	{0x4e , 0x07},
+	{0x4c , 0x02},
+	{0x4d , 0xa7},
+	{0x4e , 0x07},
+	{0x4c , 0x02},
+	{0x4d , 0xc7},
+	{0x4e , 0x07},
+	{0x4c , 0x02},
+	{0x4d , 0xe7},
+	{0x4e , 0x07},
+	{0x4c , 0x03},
+	{0x4d , 0x07},
+	{0x4e , 0x07},
+	{0x4f , 0x01},
+	{0x50 , 0x80},
+	{0x51 , 0xa8},
+	{0x52 , 0x47},
+	{0x53 , 0x38},
+	{0x54 , 0xc7},
+	{0x56 , 0x0e},
+	{0x58 , 0x08},
+	{0x5b , 0x00},
+	{0x5c , 0x74},
+	{0x5d , 0x8b},
+	{0x61 , 0xdb},
+	{0x62 , 0xb8},
+	{0x63 , 0x86},
+	{0x64 , 0xc0},
+	{0x65 , 0x04},
+	{0x67 , 0xa8},
+	{0x68 , 0xb0},
+	{0x69 , 0x00},
+	{0x6a , 0xa8},
+	{0x6b , 0xb0},
+	{0x6c , 0xaf},
+	{0x6d , 0x8b},
+	{0x6e , 0x50},
+	{0x6f , 0x18},
+	{0x73 , 0xf0},
+	{0x70 , 0x0d},
+	{0x71 , 0x60},
+	{0x72 , 0x80},
+	{0x74 , 0x01},
+	{0x75 , 0x01},
+	{0x7f , 0x0c},
+	{0x76 , 0x70},
+	{0x77 , 0x58},
+	{0x78 , 0xa0},
+
+	{0xfe, 0x00},
+	//
+	//////////////////////////////////////////
+	///////////CC////////////////////////
+	//////////////////////////////////////////
+	{0xfe, 0x02},
+
+	{0xc0, 0x01}, //[5:4] CC mode [0]CCT enable
+
+	{0xC1, 0x50}, //D50/D65
+	{0xc2, 0xF9},
+	{0xc3, 0x00}, //0
+	{0xc4, 0xe8}, //e0
+	{0xc5, 0x48},
+	{0xc6, 0xf0},
+
+
+	{0xC7, 0x50},
+	{0xc8, 0xf2},
+	{0xc9, 0x00},
+	{0xcA, 0xE0},
+	{0xcB, 0x45},
+	{0xcC, 0xec},
+
+	{0xCd, 0x45},
+	{0xce, 0xf0},
+	{0xcf, 0x00},
+	{0xe3, 0xf0},
+	{0xe4, 0x45},
+	{0xe5, 0xe8},
+
+
+	{0xfe, 0x00},
+
+	{0xf2, 0x0f},
+	//////////////////////////////////////////
+	///////////ABS ////////////////////
+	//////////////////////////////////////////
+	{0xfe, 0x01},
+	{0x9f, 0x40},
+	{0xfe, 0x00},
+	//////////////////////////////////////
+	///////////  OUTPUT   ////////////////
+	//////////////////////////////////////
+	{0xfe, 0x00},
+	{0xf2, 0x0f},
+	///////////////dark sun////////////////////
+	{0xfe, 0x02},
+	{0x40, 0xbf},
+	{0x46, 0xcf},
+
+	{0xfe, 0x00},
+	{0xfe, 0x00},
+	{0xfd, 0x00},
+	{0xf8, 0x83},
+	{0xfa, 0x00},
+	//////////////////////////////////////
+	/////////  crop window   /////////////
+	//////////////////////////////////////
+	{0xfe, 0x00},
+
+	// out windows VGA
+	{0x90, 0x01},
+	{0x91, 0x00},
+	{0x92, 0x00},
+	{0x93, 0x00},
+	{0x94, 0x00},
+	{0x95, 0x02}, // 720
+	{0x96, 0xd0},
+	{0x97, 0x05}, // 1280
+	{0x98, 0x00},
+
+	{0x99, 0x55},
+	{0x9a, 0x06},
+	{0x9b, 0x00},
+	{0x9c, 0x00},
+	{0x9d, 0x01},
+	{0x9e, 0x23},
+
+	{0x9f, 0x00},
+	{0xa0, 0x00},
+	{0xa1, 0x01},
+	{0xa2, 0x23},
+	/******/
+	/******/
+	//// AWB
+	{0xfe, 0x00},
+	{0xec, 0x06},
+	{0xed, 0x04},
+	{0xee, 0x60},
+	{0xef, 0x90},
+	{0xfe, 0x01},
+	{0x74, 0x01},
+	//// AEC
+	{0xfe, 0x01},
+	{0x01, 0x04},
+	{0x02, 0xc0},
+	{0x03, 0x04},
+	{0x04, 0x90},
+	{0x05, 0x30},
+	{0x06, 0x90},
+	{0x07, 0x30},
+	{0x08, 0x80},
+	{0x0a, 0x82},
+	{0xfe, 0x01},
+	{0x21, 0x15},
+	{0xfe, 0x00},
+	{0x20, 0x15},
+	{0xfe, 0x00},
+	//////////////frame rate 50Hz/////////
+	{0xfe, 0x00},
+	{0x05, 0x01},//PCLK:72M , 25FPS
+	{0x06, 0x56},
+	{0x07, 0x00},
+	{0x08, 0x44},
+	{0xfe, 0x01},
+	{0x25, 0x00},
+	{0x26, 0xc8},
+	{0x27, 0x03},
+	{0x28, 0xe8},
+	{0x29, 0x03},
+	{0x2a, 0xe8},
+	{0x2b, 0x03},
+	{0x2c, 0xe8},
+	{0x2d, 0x03},
+	{0x2e, 0xe8},
+	{0xfe, 0x00},
+};
+
+
+const uint8_t gc2145_VGA_640_480_table[][2] =
+{
+	{0xfe, 0x00},
+	{0xfe, 0x00},
+	{0xfd, 0x01},
+	{0xf8, 0x85},
+	{0xfa, 0x00},
+	//////////////////////////////////////
+	/////////  crop window   /////////////
+	//////////////////////////////////////
+	{0xfe, 0x00},
+
+	// out windows VGA
+	{0x90, 0x01},
+	{0x91, 0x00},
+	{0x92, 0x00},
+	{0x93, 0x00},
+	{0x94, 0x00},
+	{0x95, 0x01}, // 480
+	{0x96, 0xe0},
+	{0x97, 0x02}, // 640
+	{0x98, 0x80},
+};
+
+const uint8_t gc2145_1280_720_table[][2] =
+{
+	{0xfe, 0x00},
+	{0xfe, 0x00},
+	{0xfd, 0x00},
+	{0xf8, 0x82},//0x83 20fps
+	{0xfa, 0x00},
+	//////////////////////////////////////
+	/////////  crop window   /////////////
+	//////////////////////////////////////
+	{0xfe, 0x00},
+	{0x09, 0x00},
+	{0x0a, 0x96},
+	{0x0b, 0x00},
+	{0x0c, 0x00},
+
+	{0x0d, 0x03},
+	{0x0e, 0x94},//916
+	{0x0f, 0x06},
+	{0x10, 0x52},
+
+	// out windows VGA
+	{0x90, 0x01},
+	{0x91, 0x00},
+	{0x92, 0x00},
+	{0x93, 0x00},
+	{0x94, 0x00},
+	{0x95, 0x02}, // 720
+	{0x96, 0xd0},
+	{0x97, 0x05}, // 1280
+	{0x98, 0x00},
 };
 
 static bk_err_t camera_intf_sccb_write_byte(uint8_t addr, uint8_t data)
@@ -3536,7 +4315,7 @@ static void camera_intf_sccb_read_word(uint16_t addr, uint8_t *data)
 	BK_LOG_ON_ERR(bk_i2c_memory_read(CONFIG_CAMERA_I2C_ID, &mem_param));
 }
 
-static bk_err_t camera_inf_write_cfg_byte(const uint8_t (*cfg_table)[2], uint32_t size)
+static bk_err_t camera_intf_write_cfg_byte(const uint8_t (*cfg_table)[2], uint32_t size)
 {
 	bk_err_t ret = kNoErr;
 	uint8_t addr = 0;
@@ -3560,7 +4339,7 @@ static bk_err_t camera_inf_write_cfg_byte(const uint8_t (*cfg_table)[2], uint32_
 	return ret;
 }
 
-static void camera_inf_read_cfg_byte(const uint8_t (*cfg_table)[2], uint32_t size)
+static void camera_intf_read_cfg_byte(const uint8_t (*cfg_table)[2], uint32_t size)
 {
 	uint8_t read_value = 0;
 	uint8_t addr = 0;
@@ -3575,7 +4354,7 @@ static void camera_inf_read_cfg_byte(const uint8_t (*cfg_table)[2], uint32_t siz
 	}
 }
 
-static void camera_inf_read_cfg_word(const uint16_t (*cfg_table)[2], uint32_t size)
+static void camera_intf_read_cfg_word(const uint16_t (*cfg_table)[2], uint32_t size)
 {
 	uint8_t read_value = 0;
 	uint16_t addr = 0;
@@ -3590,7 +4369,7 @@ static void camera_inf_read_cfg_word(const uint16_t (*cfg_table)[2], uint32_t si
 	}
 }
 
-static bk_err_t camera_inf_write_cfg_word(const uint16_t (*cfg_table)[2], uint32_t size)
+static bk_err_t camera_intf_write_cfg_word(const uint16_t (*cfg_table)[2], uint32_t size)
 {
 	bk_err_t ret = kNoErr;
 	uint16_t addr = 0;
@@ -3614,139 +4393,209 @@ static bk_err_t camera_inf_write_cfg_word(const uint16_t (*cfg_table)[2], uint32
 	return ret;
 }
 
-static bk_err_t camera_inf_cfg_gc0328c_ppi(uint32_t ppi_type)
+static bk_err_t camera_intf_cfg_gc0328c_ppi(uint32_t ppi_type)
 {
 	int ret = kNoErr;
 	uint32_t size;
 	switch (ppi_type) {
 	case VGA_480_272:
 		size = sizeof(gc0328c_WQVGA_480_272_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(gc0328c_WQVGA_480_272_talbe, size);
+		ret = camera_intf_write_cfg_byte(gc0328c_WQVGA_480_272_talbe, size);
 		break;
 	case QVGA_320_240:
 		size = sizeof(gc0328c_QVGA_320_240_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(gc0328c_QVGA_320_240_talbe, size);
+		ret = camera_intf_write_cfg_byte(gc0328c_QVGA_320_240_talbe, size);
 		break;
 	case VGA_320_480:
 		size = sizeof(gc0328c_VGA_320_480_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(gc0328c_VGA_320_480_talbe, size);
+		ret = camera_intf_write_cfg_byte(gc0328c_VGA_320_480_talbe, size);
 		break;
 	case VGA_480_320:
 		size = sizeof(gc0328c_VGA_480_320_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(gc0328c_VGA_480_320_talbe, size);
+		ret = camera_intf_write_cfg_byte(gc0328c_VGA_480_320_talbe, size);
 		break;
 	case VGA_640_480:
 		size = sizeof(gc0328c_VGA_640_480_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(gc0328c_VGA_640_480_talbe, size);
+		ret = camera_intf_write_cfg_byte(gc0328c_VGA_640_480_talbe, size);
 		break;
 	default:
 		CAMERA_LOGW("set PPI unknown\r\n");
 		size = sizeof(gc0328c_VGA_640_480_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(gc0328c_VGA_640_480_talbe, size);
+		ret = camera_intf_write_cfg_byte(gc0328c_VGA_640_480_talbe, size);
 	}
 
 	return ret;
 }
 
-static bk_err_t camera_inf_cfg_gc0328c_fps(uint32_t fps_type)
+static bk_err_t camera_intf_cfg_gc0328c_fps(uint32_t fps_type)
 {
 	int ret = kNoErr;
 	uint32_t size;
 	switch (fps_type) {
 	case TYPE_5FPS:
 		size = sizeof(gc0328c_5pfs_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(gc0328c_5pfs_talbe, size);
+		ret = camera_intf_write_cfg_byte(gc0328c_5pfs_talbe, size);
 		break;
 	case TYPE_10FPS:
 		size = sizeof(gc0328c_10pfs_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(gc0328c_10pfs_talbe, size);
+		ret = camera_intf_write_cfg_byte(gc0328c_10pfs_talbe, size);
 		break;
 	case TYPE_20FPS:
 		size = sizeof(gc0328c_20pfs_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(gc0328c_20pfs_talbe, size);
+		ret = camera_intf_write_cfg_byte(gc0328c_20pfs_talbe, size);
 		break;
 	case TYPE_25FPS:
 		size = sizeof(gc0328c_25pfs_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(gc0328c_25pfs_talbe, size);
+		ret = camera_intf_write_cfg_byte(gc0328c_25pfs_talbe, size);
 		break;
 	case TYPE_30FPS:
 		size = sizeof(gc0328c_30pfs_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(gc0328c_30pfs_talbe, size);
+		ret = camera_intf_write_cfg_byte(gc0328c_30pfs_talbe, size);
 		break;
 	default:
 		CAMERA_LOGW("set FPS unknown\r\n");
 		size = sizeof(gc0328c_20pfs_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(gc0328c_20pfs_talbe, size);
+		ret = camera_intf_write_cfg_byte(gc0328c_20pfs_talbe, size);
 	}
 
 	return ret;
 }
 
-static bk_err_t camera_inf_cfg_hm1055_fps(uint32_t fps_type)
+static bk_err_t camera_intf_cfg_hm1055_fps(uint32_t fps_type)
 {
 	int ret = kNoErr;
 	uint32_t size;
 	switch (fps_type) {
 	case TYPE_5FPS:
 		size = sizeof(hm_1055_720P_5fps_talbe) / 4;
-		ret = camera_inf_write_cfg_word(hm_1055_720P_5fps_talbe, size);
+		ret = camera_intf_write_cfg_word(hm_1055_720P_5fps_talbe, size);
 		break;
 	case TYPE_10FPS:
 		size = sizeof(hm_1055_720P_10fps_talbe) / 4;
-		ret = camera_inf_write_cfg_word(hm_1055_720P_10fps_talbe, size);
+		ret = camera_intf_write_cfg_word(hm_1055_720P_10fps_talbe, size);
 		break;
 	case TYPE_15FPS:
 		size = sizeof(hm_1055_720P_15fps_talbe) / 4;
-		ret = camera_inf_write_cfg_word(hm_1055_720P_15fps_talbe, size);
+		ret = camera_intf_write_cfg_word(hm_1055_720P_15fps_talbe, size);
 		break;
 	case TYPE_20FPS:
 		/*size = sizeof(hm_1055_720P_20fps_talbe) / 4;
-		camera_inf_write_cfg_word(hm_1055_720P_20fps_talbe, size);*/
+		camera_intf_write_cfg_word(hm_1055_720P_20fps_talbe, size);*/
 		break;
 	case TYPE_25FPS:
 		size = sizeof(hm_1055_720P_25fps_talbe) / 4;
-		ret = camera_inf_write_cfg_word(hm_1055_720P_25fps_talbe, size);
+		ret = camera_intf_write_cfg_word(hm_1055_720P_25fps_talbe, size);
 		break;
 	case TYPE_30FPS:
 		size = sizeof(hm_1055_720P_30fps_talbe) / 4;
-		ret = camera_inf_write_cfg_word(hm_1055_720P_30fps_talbe, size);
+		ret = camera_intf_write_cfg_word(hm_1055_720P_30fps_talbe, size);
 		break;
 	default:
 		CAMERA_LOGW("set FPS unknown, default 20 fps\r\n");
 		size = sizeof(hm_1055_720P_20fps_talbe) / 4;
-		ret = camera_inf_write_cfg_word(hm_1055_720P_20fps_talbe, size);
+		ret = camera_intf_write_cfg_word(hm_1055_720P_20fps_talbe, size);
 	}
 
 	return ret;
 }
 
-static bk_err_t camera_inf_cfg_ov2640_ppi(uint32_t ppi_type)
+static bk_err_t camera_intf_cfg_ov2640_ppi(uint32_t ppi_type)
 {
 	int ret = kNoErr;
 	uint32_t size;
 	switch (ppi_type) {
 	case VGA_640_480:
 		size = sizeof(ov_2640_init_640_480_table) / 2;
-		ret = camera_inf_write_cfg_byte(ov_2640_init_640_480_table, size);
+		ret = camera_intf_write_cfg_byte(ov_2640_init_640_480_table, size);
 		break;
 	case VGA_800_600:
 		size = sizeof(ov_2640_init_800_600_table) / 2;
-		ret = camera_inf_write_cfg_byte(ov_2640_init_800_600_table, size);
+		ret = camera_intf_write_cfg_byte(ov_2640_init_800_600_table, size);
 		break;
 	case VGA_1600_1200:
 		size = sizeof(ov_2640_init_1600_1200_table) / 2;
-		ret = camera_inf_write_cfg_byte(ov_2640_init_1600_1200_table, size);
+		ret = camera_intf_write_cfg_byte(ov_2640_init_1600_1200_table, size);
 		break;
 	default:
 		CAMERA_LOGW("set PPI unknown\r\n");
 		size = sizeof(ov_2640_init_640_480_table) / 2;
-		ret = camera_inf_write_cfg_byte(ov_2640_init_640_480_table, size);
+		ret = camera_intf_write_cfg_byte(ov_2640_init_640_480_table, size);
 	}
 
 	return ret;
 }
 
-void camera_inf_power_down(void)
+static bk_err_t camera_intf_cfg_gc2145_ppi(uint32_t ppi_type)
+{
+	int ret = kNoErr;
+	uint32_t size;
+	switch (ppi_type) {
+	case VGA_640_480:
+		size = sizeof(gc2145_VGA_640_480_table) / 2;
+		ret = camera_intf_write_cfg_byte(gc2145_VGA_640_480_table, size);
+		break;
+	case VGA_1280_720:
+		size = sizeof(gc2145_1280_720_table) / 2;
+		ret = camera_intf_write_cfg_byte(gc2145_1280_720_table, size);
+		break;
+	default:
+		CAMERA_LOGW("set PPI unknown\r\n");
+		size = sizeof(gc2145_1280_720_table) / 2;
+		ret = camera_intf_write_cfg_byte(gc2145_1280_720_table, size);
+		break;
+	}
+
+	return ret;
+}
+
+
+static bk_err_t camera_intf_cfg_gc2145_fps(uint32_t ppi_type, uint32_t fps_type)
+{
+	int ret = kNoErr;
+
+	if (ppi_type == VGA_640_480)
+	{
+		switch (fps_type) {
+		case TYPE_10FPS:
+			ret = camera_intf_sccb_write_byte(0xf8, 0x82);
+			break;
+		case TYPE_15FPS:
+			ret = camera_intf_sccb_write_byte(0xf8, 0x83);
+			break;
+		case TYPE_20FPS:
+			ret = camera_intf_sccb_write_byte(0xf8, 0x84);
+			break;
+		case TYPE_25FPS:
+			ret = camera_intf_sccb_write_byte(0xf8, 0x85);
+			break;
+		default:
+			CAMERA_LOGW("set FPS not support\r\n");
+			ret = camera_intf_sccb_write_byte(0xf8, 0x85);
+		}
+	}
+	else
+	{
+		switch (fps_type) {
+		case TYPE_15FPS:
+			ret = camera_intf_sccb_write_byte(0xf8, 0x81);
+			break;
+		case TYPE_20FPS:
+			ret = camera_intf_sccb_write_byte(0xf8, 0x82);
+			break;
+		case TYPE_25FPS:
+			ret = camera_intf_sccb_write_byte(0xf8, 0x83);
+			break;
+		default:
+			CAMERA_LOGW("set FPS not support\r\n");
+			ret = camera_intf_sccb_write_byte(0xf8, 0x82);
+		}
+	}
+
+	return ret;
+}
+
+
+void camera_intf_power_down(void)
 {
 	switch (s_camera_dev)
 	{
@@ -3770,17 +4619,17 @@ bk_err_t bk_camera_sensor_config(void)
 		s_camera_dev_id = PAS6329_DEV_ID;
 		size = sizeof(pas6329_page0) / 2;
 		PAS6329_SET_PAGE0;
-		ret = camera_inf_write_cfg_byte(pas6329_page0, size);
+		ret = camera_intf_write_cfg_byte(pas6329_page0, size);
 		if (ret != kNoErr)
 			return ret;
 		size = sizeof(pas6329_page1) / 2;
 		PAS6329_SET_PAGE1;
-		ret = camera_inf_write_cfg_byte(pas6329_page1, size);
+		ret = camera_intf_write_cfg_byte(pas6329_page1, size);
 		if (ret != kNoErr)
 			return ret;
 		size = sizeof(pas6329_page2) / 2;
 		PAS6329_SET_PAGE2;
-		ret = camera_inf_write_cfg_byte(pas6329_page2, size);
+		ret = camera_intf_write_cfg_byte(pas6329_page2, size);
 		if (ret != kNoErr)
 			return ret;
 		PAS6329_SET_PAGE0;
@@ -3789,7 +4638,7 @@ bk_err_t bk_camera_sensor_config(void)
 	case OV_7670_DEV:
 		s_camera_dev_id = OV_7670_DEV_ID;
 		size = sizeof(ov_7670_init_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(ov_7670_init_talbe, size);
+		ret = camera_intf_write_cfg_byte(ov_7670_init_talbe, size);
 		if (ret != kNoErr)
 			return ret;
 		CAMERA_LOGI("OV_7670 init finish\r\n");
@@ -3797,7 +4646,7 @@ bk_err_t bk_camera_sensor_config(void)
 	case PAS6375_DEV:
 		s_camera_dev_id = PAS6375_DEV_ID;
 		size = sizeof(pas6375_init_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(pas6375_init_talbe, size);
+		ret = camera_intf_write_cfg_byte(pas6375_init_talbe, size);
 		if (ret != kNoErr)
 			return ret;
 		CAMERA_LOGI("PAS6375 init finish\r\n");
@@ -3806,18 +4655,18 @@ bk_err_t bk_camera_sensor_config(void)
 		s_camera_dev_id = GC0328C_DEV_ID;
 		size = sizeof(gc0328c_init_talbe) / 2;
 
-		ret = camera_inf_write_cfg_byte(gc0328c_init_talbe, size);
+		ret = camera_intf_write_cfg_byte(gc0328c_init_talbe, size);
 		if (ret != kNoErr)
 			return ret;
 #if (CONFIG_SYSTEM_CTRL)
 		bk_jpeg_enc_set_gpio(ENABLE_DATA);
 #endif
 
-		ret = camera_inf_cfg_gc0328c_ppi(CMPARAM_GET_PPI(sener_cfg));
+		ret = camera_intf_cfg_gc0328c_ppi(CMPARAM_GET_PPI(sener_cfg));
 		if (ret != kNoErr)
 			return ret;
 
-		ret = camera_inf_cfg_gc0328c_fps(CMPARAM_GET_FPS(sener_cfg));
+		ret = camera_intf_cfg_gc0328c_fps(CMPARAM_GET_FPS(sener_cfg));
 		if (ret != kNoErr)
 			return ret;
 
@@ -3826,7 +4675,7 @@ bk_err_t bk_camera_sensor_config(void)
 	case BF_2013_DEV:
 		s_camera_dev_id = BF_2013_DEV_ID;
 		size = sizeof(bf_2013_init_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(bf_2013_init_talbe, size);
+		ret = camera_intf_write_cfg_byte(bf_2013_init_talbe, size);
 		if (ret != kNoErr)
 			return ret;
 		CAMERA_LOGI("BF_2013 init finish\r\n");
@@ -3834,7 +4683,7 @@ bk_err_t bk_camera_sensor_config(void)
 	case GC0308C_DEV:
 		s_camera_dev_id = GC0308C_DEV_ID;
 		size = sizeof(gc0308c_init_talbe) / 2;
-		ret = camera_inf_write_cfg_byte(gc0308c_init_talbe, size);
+		ret = camera_intf_write_cfg_byte(gc0308c_init_talbe, size);
 		if (ret != kNoErr)
 			return ret;
 		CAMERA_LOGI("GC0308C init finish\r\n");
@@ -3842,7 +4691,7 @@ bk_err_t bk_camera_sensor_config(void)
 	case HM_1055_DEV:
 		s_camera_dev_id = HM_1055_DEV_ID;
 		size = sizeof(hm_1055_init_talbe) / 4;
-		ret = camera_inf_write_cfg_word(hm_1055_init_talbe, size);
+		ret = camera_intf_write_cfg_word(hm_1055_init_talbe, size);
 		if (ret != kNoErr)
 			return ret;
 
@@ -3850,7 +4699,7 @@ bk_err_t bk_camera_sensor_config(void)
 		bk_jpeg_enc_set_gpio(ENABLE_DATA);
 #endif
 
-		ret = camera_inf_cfg_hm1055_fps(CMPARAM_GET_FPS(sener_cfg));
+		ret = camera_intf_cfg_hm1055_fps(CMPARAM_GET_FPS(sener_cfg));
 		if (ret != kNoErr)
 			return ret;
 		CAMERA_LOGI("HM_1055 init finish\r\n");
@@ -3858,7 +4707,7 @@ bk_err_t bk_camera_sensor_config(void)
 	case OV_2640_DEV:
 		s_camera_dev_id = OV_2640_DEV_ID;
 		size = sizeof(ov_2640_init_640_480_table) / 4;
-		ret = camera_inf_write_cfg_byte(ov_2640_init_640_480_table, size);
+		ret = camera_intf_write_cfg_byte(ov_2640_init_640_480_table, size);
 		if (ret != kNoErr)
 			return ret;
 
@@ -3866,10 +4715,27 @@ bk_err_t bk_camera_sensor_config(void)
 		bk_jpeg_enc_set_gpio(ENABLE_DATA);
 #endif
 
-		ret = camera_inf_cfg_ov2640_ppi(CMPARAM_GET_PPI(sener_cfg));
+		ret = camera_intf_cfg_ov2640_ppi(CMPARAM_GET_PPI(sener_cfg));
 		if (ret != kNoErr)
 			return ret;
 		CAMERA_LOGI("OV_2640 init finish\r\n");
+		break;
+	case GC_2145_DEV:
+		s_camera_dev_id = GC_2145_DEV_ID;
+		size = sizeof(gc2145_init_talbe) / 2;
+		ret = camera_intf_write_cfg_byte(gc2145_init_talbe, size);
+		if (ret != kNoErr)
+			return ret;
+
+		camera_intf_cfg_gc2145_ppi(CMPARAM_GET_PPI(sener_cfg));
+
+		camera_intf_cfg_gc2145_fps(CMPARAM_GET_PPI(sener_cfg), CMPARAM_GET_FPS(sener_cfg));
+
+#if (CONFIG_SYSTEM_CTRL)
+		bk_jpeg_enc_set_gpio(ENABLE_DATA);
+#endif
+
+		CAMERA_LOGI("gc2145 init finish\r\n");
 		break;
 	default:
 		CAMERA_LOGE("NOT Find this sensor\r\n");
@@ -3900,16 +4766,17 @@ void camera_inft_dump_register(void)
 		case GC0328C_DEV:
 			s_camera_dev_id = GC0328C_DEV_ID;
 			size = sizeof(gc0328c_init_talbe) / 2;
-			camera_inf_read_cfg_byte(gc0328c_init_talbe, size);
+			camera_intf_read_cfg_byte(gc0328c_init_talbe, size);
 			break;
 
 		case HM_1055_DEV:
 			s_camera_dev_id = HM_1055_DEV_ID;
 			size = sizeof(hm_1055_init_talbe) / 4;
-			camera_inf_read_cfg_word(hm_1055_init_talbe, size);
+			camera_intf_read_cfg_word(hm_1055_init_talbe, size);
 			break;
 
 		default:
+			CAMERA_LOGE("NOT Support\r\n");
 			break;
 	}
 }

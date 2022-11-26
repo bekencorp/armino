@@ -25,6 +25,7 @@
 #endif
 #include "lcd_act.h"
 
+#include "aud_debug_tcp.h"
 
 #include "media_app.h"
 
@@ -56,7 +57,6 @@ static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 static aud_intf_voc_setup_t aud_voc_setup;
 #endif
 
-extern void delay(int num);
 extern int delay_ms(INT32 ms_count);
 
 int demo_doorbell_udp_send_packet(uint8_t *data, uint32_t len)
@@ -123,13 +123,18 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 {
 	bk_err_t ret = BK_ERR_AUD_INTF_OK;
 	uint32_t param = 0;
+	bool lcd_rotate = 0;
 	uint32_t cmd = (uint32_t)data[0] << 24 | (uint32_t)data[1] << 16 | (uint32_t)data[2] << 8 | data[3];
-	if (len >= 8)
+	if (len > 4)
 	{
 		param = (uint32_t)data[4] << 24 | (uint32_t)data[5] << 16 | (uint32_t)data[6] << 8 | data[7];
 	}
 
-	LOGI("doorbell cmd: %08X, param: %d, len: %d\n", cmd, param, len);
+	LOGI("doorbell cmd: %x, param: %d, len: %d\n", cmd, param, len);
+	if (len > 8)
+	{
+		lcd_rotate = data[8];
+	}
 
 	if (len >= 8)
 	{
@@ -137,6 +142,7 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 		{
 #if AUDIO_TRANSFER_ENABLE
 			case AUDIO_CLOSE:
+				LOGI("close audio \n");
 				bk_aud_intf_voc_stop();
 				bk_aud_intf_voc_deinit();
 				aud_work_mode = AUD_INTF_WORK_MODE_NULL;
@@ -145,6 +151,7 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 				break;
 
 			case AUDIO_OPEN:
+				LOGI("open audio \n");
 				aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
 				aud_intf_drv_setup.task_config.priority = 3;
 				aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
@@ -162,11 +169,26 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 					LOGE("bk_aud_intf_set_mode fail, ret:%d\n", ret);
 					break;
 				}
-				aud_voc_setup.aec_enable = true;
-				aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
+				if (data[9] == 1) {
+					aud_voc_setup.aec_enable = true;
+				} else {
+					aud_voc_setup.aec_enable = false;
+				}
 				aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711A;
 				//aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_PCM;
 				aud_voc_setup.spk_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
+				aud_voc_setup.mic_en = AUD_INTF_VOC_MIC_OPEN;
+				aud_voc_setup.spk_en = AUD_INTF_VOC_SPK_OPEN;
+				if (data[8] == 1) {
+					aud_voc_setup.mic_type = AUD_INTF_MIC_TYPE_UAC;
+					aud_voc_setup.spk_type = AUD_INTF_SPK_TYPE_UAC;
+					aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_16K;
+				} else {
+					aud_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
+					aud_voc_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
+					aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
+				}
+				aud_voc_setup.aec_cfg.ref_scale = 1;
 #if CONFIG_DOORBELL_DEMO2
 				aud_voc_setup.mic_gain = 0x2d;
 				aud_voc_setup.spk_gain = 0x27;
@@ -206,7 +228,8 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 				break;
 
 			case DISPLAY_OPEN:
-				LOGI("LCD OPEN: %dX%d\n", param >> 16, param & 0xFFFF);
+				LOGI("LCD OPEN: %dX%d ROTATE: %d\n", param >> 16, param & 0xFFFF, lcd_rotate);
+				media_app_lcd_rotate(lcd_rotate);
 				lcd_open_t lcd_open;
 				lcd_open.device_ppi = param;
 				media_app_lcd_open(&lcd_open);
@@ -235,6 +258,17 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 			case NOISE_PARAM:
 				LOGI("set NOISE_PARAM: %d\n", param);
 				bk_aud_intf_set_aec_para(AUD_INTF_VOC_AEC_NS_PARA, param);
+				break;
+
+			/* open audio debug, create tcp port for audio debug */
+			case AUD_DEBUG_OPEN:
+				if (param) {
+					LOGI("open audio debug: %d\n", param);
+					bk_aud_debug_tcp_init();
+				} else {
+					LOGI("close audio debug: %d\n", param);
+					bk_aud_debug_tcp_deinit();
+				}
 				break;
 
 			default:
@@ -694,7 +728,7 @@ out:
 	rtos_delete_thread(NULL);
 }
 
-uint32_t demo_doorbell_udp_init(void)
+bk_err_t demo_doorbell_udp_init(void)
 {
 	int ret;
 

@@ -15,7 +15,7 @@
 #define AVI_INDEX_USE_PSRAM		1
 
 #if AVI_INDEX_USE_PSRAM
-#define AVI_PSRAM_TOTAL_TIME	600//300s
+#define AVI_PSRAM_TOTAL_TIME	60//300s
 #else
 #define AVI_SRAM_TOTAL_TIME		10//10s
 #endif

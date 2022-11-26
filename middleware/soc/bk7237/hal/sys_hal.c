@@ -23,7 +23,8 @@
 #include "platform.h"
 #include <arch_interrupt.h>
 #include "modules/pm.h"
-#include "bk_pm_control.h"
+#include "bk_pm_control.h"  
+#include "psram_hal.h"
 
 static sys_hal_t s_sys_hal;
 uint32 sys_hal_get_int_group2_status(void);
@@ -175,6 +176,11 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_deep_sleep(void * 
 	sys_ll_set_cpu_power_sleep_wakeup_value(modules_power_state);
 
 	/*6.set sleep flag*/
+	pmu_val2 = 0;
+	pmu_val2 =  aon_pmu_hal_reg_get(PMU_REG3);
+	pmu_val2 |= 0x1 << 0;//fast boot enable
+	aon_pmu_hal_reg_set(PMU_REG3,pmu_val2);
+
 	pmu_val2 =  aon_pmu_hal_reg_get(PMU_REG2);
 	pmu_val2 |= BIT(BIT_SLEEP_FLAG_DEEP_SLEEP);
 	aon_pmu_hal_reg_set(PMU_REG2,pmu_val2);
@@ -219,13 +225,14 @@ void sys_hal_exit_low_voltage()
 #if 1
 #define MTIMER_LOW_VOLTAGE_MINIMUM_TICK (10400)	//26M, 400 us
 extern void mtimer_reset_next_tick(uint32_t minimum_offset);
+
 #define CONFIG_LOW_VOLTAGE_DEBUG 0
 #if CONFIG_LOW_VOLTAGE_DEBUG
 uint64_t g_low_voltage_tick = 0;
 extern u64 riscv_get_mtimer(void);
 #endif
 #endif
-extern uint32_t s_pm_wakeup_from_lowvol_consume_time;
+extern uint32_t ps_mac_wakeup_from_lowvol;
 __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 {
 	uint32_t  modules_power_state = 0;
@@ -395,9 +402,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	__asm volatile( "nop" );
 	for(count = PM_EXIT_WFI_FROM_LOWVOL_WAIT_COUNT; count > 0; count--);//for protect stability when exit wfi or halt cpu
 #endif
-	s_pm_wakeup_from_lowvol_consume_time = 0;
-	s_pm_wakeup_from_lowvol_consume_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
-
+	ps_mac_wakeup_from_lowvol = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 
 	sys_ll_set_ana_reg6_vaon_sel(0x1);//0:vddaon drop disable, aon voltage to 1.1v
 	sys_ll_set_ana_reg2_iovoc(0x2);//set the io voltage to 3.1v 
@@ -419,7 +424,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 		pm_wake_gpio_flag1 = gpio_status.gpio_0_31_int_status;
 		pm_wake_gpio_flag2 = gpio_status.gpio_32_64_int_status;
 	}
-	s_pm_wakeup_from_lowvol_consume_time -= ((aon_pmu_ll_get_reg40_wake1_delay()+1)+(aon_pmu_ll_get_reg40_wake2_delay()+1)+(aon_pmu_ll_get_reg40_wake3_delay()+1))+PM_HARDEARE_DELAY_TIME_FROM_LOWVOL_WAKE;
+
 	/*7.restore state before low voltage*/
 	modules_power_state = 0;
 	modules_power_state = sys_ll_get_cpu_power_sleep_wakeup_value();
@@ -443,8 +448,11 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	clock_value = sys_ll_get_ana_reg9_value();
 	clock_value |= en_bias_5u;
 	sys_ll_set_ana_reg9_value(clock_value);
+#if CONFIG_PSRAM
+	psram_hal_power_clk_enable(0x1);//psram config1
 
-
+	psram_hal_reset();//psram config2
+#endif
 	previous_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 
 	current_tick = previous_tick;
@@ -473,7 +481,9 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 		ps_switch(PS_UNALLOW, PS_EVENT_STA, PM_RF_BIT);
 		bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_PHY_WIFI,PM_POWER_MODULE_STATE_ON);
 	}
-
+#if CONFIG_PSRAM
+	psram_hal_config();//psram config3
+#endif
 	sys_ll_set_cpu0_int_0_31_en_value(int_state1);
 	sys_ll_set_cpu0_int_32_63_en_value(int_state2);
 	sys_ll_set_ana_reg8_en_lpmode(0x0);// touch exit low power mode
@@ -833,6 +843,11 @@ void sys_hal_low_power_hardware_init()
 
 	sys_ll_set_ana_reg0_band(0x13);//open the dpll 320m
 
+	pmu_state = 0;
+	pmu_state =  aon_pmu_hal_reg_get(PMU_REG0);
+	pmu_state |= 0x1 << 0;//memory check by pass
+	aon_pmu_hal_reg_set(PMU_REG0,pmu_state);
+
 	param = 0;
 	param = sys_ll_get_ana_reg5_value();
 	param |= (1 << SYS_ANA_REG5_ENCB_POS);//global central bias enable
@@ -869,6 +884,15 @@ int32 sys_hal_lp_vol_set(uint32_t value)
 	return 0;
 }
 uint32_t sys_hal_lp_vol_get()
+{
+	return sys_ll_get_ana_reg3_vlsel_ldodig();
+}
+int32 sys_hal_bandgap_cali_set(uint32_t value)//increase or decrease the dvdddig voltage
+{
+	sys_ll_set_ana_reg5_bgcalm(value);
+	return 0;
+}
+uint32_t sys_hal_bandgap_cali_get()
 {
 	return sys_ll_get_ana_reg3_vlsel_ldodig();
 }
@@ -2212,13 +2236,6 @@ void sys_hal_psram_clk_sel(uint32_t value)
 void sys_hal_psram_set_clkdiv(uint32_t value)
 {
 	sys_ll_set_cpu_clk_div_mode2_ckdiv_psram(value);
-}
-
-void sys_hal_psram_power_enable(void)
-{
-	uint32_t value = sys_ll_get_ana_reg6_value();
-	value |= (0x1 << 9);
-	sys_ll_set_ana_reg6_value(value);
 }
 
 void sys_hal_psram_psldo_vsel(uint32_t value)

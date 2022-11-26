@@ -445,7 +445,7 @@ static bk_err_t sd_card_cmd_set_bus_width(bool four_lines)
 	}
 
 	cmd_cfg.cmd_index = SD_CMD_APP_CMD6_SET_BUS_WIDTH;
-#ifdef CONFIG_SDCARD_BUSWIDTH_4LINE
+#if CONFIG_SDCARD_BUSWIDTH_4LINE
 	if(four_lines)
 		cmd_cfg.argument = 2;
 	else
@@ -929,7 +929,11 @@ static bk_err_t sd_card_init_card(void)
 	rtos_delay_milliseconds(2);
 
 	/* Set sdcard buswidth four lines or one line */
+#if CONFIG_SDCARD_BUSWIDTH_4LINE
+	error_state = sd_card_cmd_set_bus_width(true);
+#else
 	error_state = sd_card_cmd_set_bus_width(false);
+#endif
 	if (error_state != BK_OK) {
 		return error_state;
 	}
@@ -997,7 +1001,11 @@ bk_err_t bk_sd_card_init(void)
 #else
 	sdio_cfg.clock_freq = CONFIG_SDIO_HOST_DEFAULT_CLOCK_FREQ;
 #endif
+#if CONFIG_SDIO_4LINES_EN
+	sdio_cfg.bus_width = SDIO_HOST_BUS_WIDTH_4LINE;
+#else
 	sdio_cfg.bus_width = SDIO_HOST_BUS_WIDTH_1LINE;
+#endif
 	s_sd_card_obj.clock_freq = sdio_cfg.clock_freq;
 
 #if CONFIG_SDIO_V2P0
@@ -1184,7 +1192,11 @@ bk_err_t bk_sdcard_wait_busy_to_idle(uint32_t max_time)
 	while(1)
 	{
 		retry_cnt++;
+#if CONFIG_SDCARD_BUSWIDTH_4LINE
+		error_state = sd_card_cmd_set_bus_width(true);
+#else
 		error_state = sd_card_cmd_set_bus_width(false);
+#endif
 		if(error_state == BK_OK)
 		{
 			break;

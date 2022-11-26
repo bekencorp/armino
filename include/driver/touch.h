@@ -225,6 +225,81 @@ uint32_t bk_touch_get_calib_value(void);
 uint32_t bk_touch_get_touch_status(void);
 
 /**
+ * @brief     init the digital tube of touch
+ *
+ * This API init the digital tube:
+ *
+ *
+ * @param
+ *    - None
+ *
+ * @return
+ *    - BK_OK: succeed
+ */
+bk_err_t bk_touch_digital_tube_init(void);
+
+/**
+ * @brief     display the value in the digital tube 
+ *
+ * This API display the value in the digital tube
+ *
+ *
+ * @param
+ *    - disp_value: the value need to display;
+ *
+ *
+ * @return
+ *    - None
+ */
+void bk_touch_digital_tube_display(uint8_t disp_value);
+
+/**
+ * @brief     get the touch channel for low voltage and deepsleep wake up 
+ *
+ * This API get the touch channel for low voltage and deepsleep wake up
+ *
+ *
+ * @param
+ *    - channel: touch channel, channel 0 ~ channel 15. See the enum of touch_channel_t.
+ *
+ *
+ * @return
+ *    - None
+ */
+void bk_touch_wakeup_channel_set(touch_channel_t channel);
+
+/**
+ * @brief     set the touch channel for low voltage and deepsleep wake up
+ *
+ * This API set the touch channel for low voltage and deepsleep wake up
+ *
+ *
+ * @param
+ *    - None
+ *
+ *
+ * @return
+ *    - s_touch_wakeup_channel: the channel number of touch
+ */
+uint32_t bk_touch_wakeup_channel_get(void);
+
+/**
+ * @brief     Register touch low voltage and deepsleep config
+ *
+ * This API register touch low voltage and deepsleep config
+ *
+ *
+ * @param
+ *    - None
+ *
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_touch_pm_init(void);
+
+/**
  * @brief     Register touch isr
  *
  * This API register touch isr

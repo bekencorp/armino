@@ -488,7 +488,7 @@
  * (requires the ARP_QUEUEING option)
  */
 #if !defined MEMP_NUM_ARP_QUEUE || defined __DOXYGEN__
-#define MEMP_NUM_ARP_QUEUE              30
+#define MEMP_NUM_ARP_QUEUE              4
 #endif
 
 /**
@@ -564,7 +564,7 @@
  * (before freeing the corresponding memory using lwip_freeaddrinfo()).
  */
 #if !defined MEMP_NUM_NETDB || defined __DOXYGEN__
-#define MEMP_NUM_NETDB                  1
+#define MEMP_NUM_NETDB                  8
 #endif
 
 /**
@@ -652,7 +652,7 @@
  * packet in a row to an IP address that is not in the ARP cache.
  */
 #if !defined ARP_QUEUEING || defined __DOXYGEN__
-#define ARP_QUEUEING                    0
+#define ARP_QUEUEING                    1
 #endif
 
 /** The maximum number of packets which may be queued for each

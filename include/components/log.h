@@ -81,33 +81,33 @@ extern "C" {
 #define BK_LOG_FORMAT(letter, format)  LOG_COLOR_ ## letter #letter " (%d) %s: " format  LOG_RESET_COLOR
 
 #if (LOG_LEVEL >= BK_LOG_ERROR)
-#define BK_LOGE( tag, format, ... ) _OS_PRINTF(BK_LOG_FORMAT(E, format), rtos_get_time(), tag, ##__VA_ARGS__)
+#define BK_LOGE(tag, format, ...) _OS_PRINTF(BK_LOG_FORMAT(E, format), rtos_get_time(), tag, ## __VA_ARGS__)
 #else
-#define BK_LOGE( tag, format, ... )
+#define BK_LOGE(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_WARN)
-#define BK_LOGW( tag, format, ... ) _OS_PRINTF(BK_LOG_FORMAT(W, format), rtos_get_time(), tag, ##__VA_ARGS__)
+#define BK_LOGW(tag, format, ...) _OS_PRINTF(BK_LOG_FORMAT(W, format), rtos_get_time(), tag, ## __VA_ARGS__)
 #else
-#define BK_LOGW( tag, format, ... )
+#define BK_LOGW(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_INFO)
-#define BK_LOGI( tag, format, ... ) _OS_PRINTF(BK_LOG_FORMAT(I, format), rtos_get_time(), tag, ##__VA_ARGS__)
+#define BK_LOGI(tag, format, ...) _OS_PRINTF(BK_LOG_FORMAT(I, format), rtos_get_time(), tag, ## __VA_ARGS__)
 #else
-#define BK_LOGI( tag, format, ... )
+#define BK_LOGI(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_DEBUG)
-#define BK_LOGD( tag, format, ... ) _OS_PRINTF(BK_LOG_FORMAT(D, format), rtos_get_time(), tag, ##__VA_ARGS__)
+#define BK_LOGD(tag, format, ...) _OS_PRINTF(BK_LOG_FORMAT(D, format), rtos_get_time(), tag, ## __VA_ARGS__)
 #else
-#define BK_LOGD( tag, format, ... )
+#define BK_LOGD(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_VERBOSE)
-#define BK_LOGV( tag, format, ... ) _OS_PRINTF(BK_LOG_FORMAT(V, format), rtos_get_time(), tag, ##__VA_ARGS__)
+#define BK_LOGV(tag, format, ...) _OS_PRINTF(BK_LOG_FORMAT(V, format), rtos_get_time(), tag, ## __VA_ARGS__)
 #else
-#define BK_LOGV( tag, format, ... )
+#define BK_LOGV(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
 #endif
 
 #endif // CFG_LEGACY_LOG
@@ -119,6 +119,9 @@ extern "C" {
 #define BK_MAC_FORMAT "%02x:%02x:%02x:%02x:%02x:%02x"
 #define BK_MAC_STR(_m) (_m)[0], (_m)[1], (_m)[2], (_m)[3], (_m)[4], (_m)[5]
 #define BK_MAC_STR_INVERT(_m) (_m)[5], (_m)[4], (_m)[3], (_m)[2], (_m)[1], (_m)[0]
+
+#define BK_U64_FORMAT "%x.%x"
+#define BK_U64_TO_U32(x) (((uint32_t)(((x) >> 32) & 0xFFFFFFFF)), ((uint32_t)((x) & 0xFFFFFFFF)))
 
 void bk_mem_dump(const char* titile, uint32_t start, uint32_t len);
 #define BK_MEM_DUMP(_title, _start, _len) bk_mem_dump((_title), (_start), (_len))
@@ -134,7 +137,7 @@ void bk_mem_dump(const char* titile, uint32_t start, uint32_t len);
 #undef BK_LOGD
 #undef BK_LOGV
 
-#define BK_LOG_FORMAT(letter, format)   #letter "(%d):" format 
+#define BK_LOG_FORMAT(letter, format)   #letter "(%d):" format
 
 #define BK_LOGE( tag, format, ... ) bk_printf_ex(BK_LOG_ERROR, tag, tag ":" BK_LOG_FORMAT(E, format), rtos_get_time(),  ##__VA_ARGS__)
 #define BK_LOGW( tag, format, ... ) bk_printf_ex(BK_LOG_WARN, tag, tag ":" BK_LOG_FORMAT(W, format), rtos_get_time(),  ##__VA_ARGS__)

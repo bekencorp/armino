@@ -63,7 +63,9 @@ int bk_update_tick(uint32_t tick)
 
 	GLOBAL_INT_DISABLE();
 	mcu_ps_increase_clr();
+#if CONFIG_FREERTOS_USE_TICKLESS_IDLE
 	vTaskStepTick(tick);
+#endif
 	GLOBAL_INT_RESTORE();
 	return 0;
 }
@@ -86,7 +88,7 @@ uint32_t bk_get_ticks_per_second(void)
 {
 	return configTICK_RATE_HZ;
 }
-    
+
 uint32_t bk_get_ms_per_tick(void)
 {
 	return (1000/configTICK_RATE_HZ);

@@ -1,0 +1,3 @@
+config AV_DEMO
+	bool "Enable AV Demo"
+	default n

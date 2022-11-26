@@ -14,67 +14,60 @@
 
 #include "sys_driver.h"
 #include "psram_hal.h"
+#include "bk_misc.h"
 
-extern int delay(INT32 num);
 
-//extern uint32_t hb_read_data(uint32_t addr);
-
-//extern void hb_write_data_12w(uint32_t addr ,uint32_t data);
-
-//extern void hb_write_data_8w(uint32_t addr ,uint32_t data);
-
-//extern void hb_write_data(uint32_t addr ,uint32_t data);
-
-bk_err_t psram_hal_power_enable(uint8_t enable)
+// config 1: psram power and clk config, need wait clk stable
+void psram_hal_power_clk_enable(uint8_t enable)
 {
 	if (enable)
-		sys_drv_psram_power_enable();
+	{
+		// ldo power up
+		sys_drv_psram_ldo_enable(1);
+
+		// psram bus clk always open
+		sys_drv_psram_psram_disckg(1);
+
+		//psram 160M
+		psram_hal_set_clk(PSRAM_160M);
+
+		// when use psram 120M, need open this code
+		//aon_pmu_hal_psram_iodrv_set(0x2);
+
+		//setf_SYSTEM_Reg0xc_psram_cken;
+		sys_drv_dev_clk_pwr_up(CLK_PWR_ID_PSRAM, CLK_PWR_CTRL_PWR_UP);//psram_clk_enable bit19=1
+	}
 	else
+	{
+		sys_drv_dev_clk_pwr_up(CLK_PWR_ID_PSRAM, CLK_PWR_CTRL_PWR_DOWN);//psram_clk_disable
+
+		// power down
 		sys_drv_psram_ldo_enable(0);
-
-	return BK_OK;
+	}
 }
 
-static void psram_init_common(void)
+// config 2: reset psram and wait psram ready
+void psram_hal_reset(void)
 {
-	// psram bus clk always open
-	sys_drv_psram_psram_disckg(1);
-
-	//psram 160M
-	psram_hal_set_clk(PSRAM_160M);
-
-	// when use psram 120M, need open this code
-	//aon_pmu_hal_psram_iodrv_set(0x2);
-
-	//setf_SYSTEM_Reg0xc_psram_cken;
-	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_PSRAM, CLK_PWR_CTRL_PWR_UP);//psram_clk_enable bit19=1
-}
-
-bk_err_t psram_hal_config_init(void)
-{
-	uint32_t mode = 0xa8054043;
-	uint32_t val = 0;
-
-	psram_init_common();
-	delay(1000);
-
 	psram_hal_set_sf_reset(1);
 
-	psram_hal_set_mode_value(mode);
-	delay(1500);
+	psram_hal_set_mode_value(0xa8054043);
 
 	psram_hal_set_cmd_reset();
-	delay(1500);
+}
+
+// config 3: psram config
+void psram_hal_config(void)
+{
+	uint32_t val = 0;
 
 	psram_hal_cmd_read(0x00000000);//1 0001 10001101
-	delay(100);
 
 	val = psram_hal_get_regb_value();
-	//val = (val & ~(0x7 << 10)) | (0x4 << 10) | (0x3 << 8);//read latency 100 166Mhz
+
 	val = (val & ~(0x1F << 8)) | (0x4 << 10) | (0x3 << 8);
-	//	val = (val & ~(0x1f << 8)) | (0x10 << 8);//read latency 100 166Mhz dstr set 00
+
 	psram_hal_cmd_write(0x00000000, val);
-	delay(100);
 
 	psram_hal_cmd_read(0x00000000);//1 0001 10001101
 
@@ -84,17 +77,40 @@ bk_err_t psram_hal_config_init(void)
 	val = (val & ~(0x7 << 13)) | (0x6 << 13);//write latency 110 166Mhz
 
 	psram_hal_cmd_write(0x00000004, val);
-	delay(100);
-
-	return BK_OK;
 }
 
-bk_err_t psram_hal_clk_power_enable(uint8_t enable)
-{
-	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_PSRAM, CLK_PWR_CTRL_PWR_DOWN);//psram_clk_disable
-	delay(100);
 
-	return BK_OK;
+void psram_hal_config_init(void)
+{
+	uint32_t mode = 0xa8054043;
+	uint32_t val = 0;
+
+	// wait clk stable
+	delay_us(5);
+
+	psram_hal_set_sf_reset(1);
+
+	psram_hal_set_mode_value(mode);
+
+	psram_hal_set_cmd_reset();
+	delay_us(100);//40
+
+	psram_hal_cmd_read(0x00000000);//1 0001 10001101
+
+	val = psram_hal_get_regb_value();
+
+	val = (val & ~(0x1F << 8)) | (0x4 << 10) | (0x3 << 8);
+
+	psram_hal_cmd_write(0x00000000, val);
+
+	psram_hal_cmd_read(0x00000000);//1 0001 10001101
+
+	psram_hal_cmd_read(0x00000004);
+
+	val = psram_hal_get_regb_value();
+	val = (val & ~(0x7 << 13)) | (0x6 << 13);//write latency 110 166Mhz
+
+	psram_hal_cmd_write(0x00000004, val);
 }
 
 void psram_hal_continue_write(uint32_t start_addr, uint32_t *data_buf, uint32_t len)

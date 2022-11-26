@@ -43,7 +43,7 @@ typedef struct jpeg2Avi_st {
 #define J2AVI_FALSE             0
 
 
-JPEG2AVI_PTR g_jpeg2avi = NULL;
+static volatile JPEG2AVI_PTR g_jpeg2avi = NULL;
 
 static void jpeg2avi_lock(void)
 {
@@ -290,12 +290,8 @@ int jpeg2avi_deinit(void)
 	if (g_jpeg2avi == NULL)
 		return 0;
 
-	J2AVI_LOCK();
-
 	jpeg2avi_stop_record();
 	jpeg2avi_stop_read();
-
-	J2AVI_UNLOCK();
 
 	rtos_deinit_mutex(&g_jpeg2avi->m_csLock);
 
@@ -304,6 +300,15 @@ int jpeg2avi_deinit(void)
 
 	return 0;
 }
+
+int jpeg2avi_is_create(void)
+{
+	if (g_jpeg2avi == NULL)
+		return 0;
+	else
+		return 1;
+}
+
 
 #include "ff.h"
 #include <string.h>
@@ -470,14 +475,8 @@ static void cli_avi_intf_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 }
 
 #include "time/time.h"
+#include <components/app_time_intf.h>
 #include <os/os.h>
-
-#define DEFAULT_YEAR 	2022
-#define DEFAULT_MONTH 	10
-#define DEFAULT_DAY 	12
-#define DEFAULT_HOUR 	23
-#define DEFAULT_MIN		59
-#define DEFAULT_SEC 	42
 
 static void psram_api_test(int argc, char **argv)
 {
@@ -524,29 +523,14 @@ static void psram_api_test(int argc, char **argv)
 	{
 		J2AVI_PRINT("sys running current time:%ldms\r\n",rtos_get_time());
 	}
-	else if(0 == strcmp("rtctime",argv[1]))
+	else if(0 == strcmp("gettime",argv[1]))
 	{
-		extern uint64_t bk_aon_rtc_get_current_tick(aon_rtc_id_t id);
-		aon_rtc_unit_t aon_rtc_id = AON_RTC_ID_1;
-		uint64_t tick = bk_aon_rtc_get_current_tick(aon_rtc_id);
-		J2AVI_PRINT("rtc running current time, tick_h=%d tick_l=%d ms\r\n", (uint32_t)((tick/32)>>32), (uint32_t)(tick/32));
+		char datetime[16] = {0};
+		app_time_timestr_get(datetime,16);
 
-		struct tm time_default = {0};
-		time_default.tm_year = DEFAULT_YEAR - 1900;
-		time_default.tm_mon = DEFAULT_MONTH - 1;
-		time_default.tm_mday = DEFAULT_DAY;
-		time_default.tm_hour = DEFAULT_HOUR;
-		time_default.tm_min = DEFAULT_MIN;
-		time_default.tm_sec = DEFAULT_SEC;
-
-		time_t seconds = mktime(&time_default);
-		J2AVI_PRINT("seconds:%lld\r\n",seconds);
-
-		struct tm *ptm = localtime(&seconds);
-		os_printf("year:%d,mon:%d,mday:%d,hour:%d,minute:%d,sec:%d\r\n",
-			ptm->tm_year,ptm->tm_mon,ptm->tm_mday,ptm->tm_hour,ptm->tm_min,ptm->tm_sec);
+		user_datetime_t user_datetime;
+		app_time_datetime_get(&user_datetime);
 	}
-
 }
 
 static void cli_psram_api_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)

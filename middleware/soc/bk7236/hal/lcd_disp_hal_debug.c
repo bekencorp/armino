@@ -34,6 +34,7 @@ void lcd_disp_struct_dump(void)
 
 	SOC_LOGI("lcd base=%x\r\n", (uint32_t)SOC_LCD_DISP_REG_BASE);
 
+	SOC_LOGI("   soft_reset:  %x\r\n", lcd_disp_ll_get_module_control_soft_reset());
 	SOC_LOGI("  display_int=0x%x value=0x%x\n", LCD_DISP_DISPLAY_INT_ADDR, lcd_disp_ll_get_display_int_value());
 	SOC_LOGI("    rgb_int_en: %x\n", lcd_disp_ll_get_display_int_rgb_int_en());
 	SOC_LOGI("    i8080_int_en:    %x\n",lcd_disp_ll_get_display_int_i8080_int_en());
@@ -63,10 +64,11 @@ void lcd_disp_struct_dump(void)
 	SOC_LOGI("    i8080_dat_on:   %x\n", lcd_disp_ll_get_i8080_config_i8080_dat_on());
 	SOC_LOGI("    i8080_fifo_mode:   %x\n", lcd_disp_ll_get_i8080_config_i8080_fifo_mode());
 	SOC_LOGI("    reset_sleep_in:    %x\n", lcd_disp_ll_get_i8080_config_reset_sleep_in());
+	SOC_LOGI("    i8080_ena:      %x\n", lcd_disp_ll_get_i8080_config_i8080_ena());
 	SOC_LOGI("    tik_cnt:   %x\n", lcd_disp_ll_get_i8080_config_tik_cnt());
 	SOC_LOGI("    i8080_1ms_count:   %x\n", lcd_disp_ll_get_i8080_config_i8080_1ms_count());
 
-	SOC_LOGI("  i8080_cmd_fido=0x%x value=0x%x\n", LCD_DISP_I8080_CMD_FIFO_ADDR, lcd_disp_ll_get_i8080_cmd_fifo_value());
+	SOC_LOGI("  i8080_cmd_fifo=0x%x value=0x%x\n", LCD_DISP_I8080_CMD_FIFO_ADDR, lcd_disp_ll_get_i8080_cmd_fifo_value());
 	SOC_LOGI("    8080_cmd_fifo:    %x\n", lcd_disp_ll_get_i8080_cmd_fifo_i8080_cmd_fifo());
 
 	SOC_LOGI("  i8080_dat_fifo=0x%x value=0x%x\n",LCD_DISP_I8080_DAT_FIFO_ADDR, lcd_disp_ll_get_i8080_dat_fifo_value());
@@ -97,11 +99,12 @@ void lcd_disp_struct_dump(void)
 	SOC_LOGI("   partial_offset_clum_r:   %x\n", lcd_disp_ll_get_rgb_line_offset_partial_offset_clum_r());
 
 	SOC_LOGI("  dat_fifo_thrd=0x%x value=0x%x\n", LCD_DISP_DAT_FIFO_THRD_ADDR, lcd_disp_ll_get_dat_fifo_thrd_value());
-	SOC_LOGI("    i8080_cmd_para_count:    %x\n", lcd_disp_ll_get_dat_fifo_thrd_i8080_cmd_para_count());
+
 	SOC_LOGI("   dat_wr_thrd:   %x\n", lcd_disp_ll_get_dat_fifo_thrd_dat_wr_thrd());
 	SOC_LOGI("   dat_rd_thrd:   %x\n", lcd_disp_ll_get_dat_fifo_thrd_dat_rd_thrd());
 
 	SOC_LOGI("  mater_rd_base_addr=0x%x value=0x%x\n", LCD_DISP_MATER_RD_BASE_ADDR_ADDR, lcd_disp_ll_get_mater_rd_base_addr());
+	SOC_LOGI("    i8080_cmd_para_count:    %x\n", lcd_disp_ll_get_cmd_count_i8080_cmd_para_count());
 
 }
 

@@ -20,12 +20,12 @@
 
 #if CONFIG_SPE
 #define SOC_ADDR_OFFSET          (0)
-#define SOC_S_BASE(addr)         (addr)
-#define SOC_NS_BASE(addr)        ((addr) + SOC_S_NS_ADDR_DIFF)
+#define SOC_GET_S_ADDR(addr)     (addr)
+#define SOC_GET_NS_ADDR(addr)    ((addr) + SOC_S_NS_ADDR_DIFF)
 #else
 #define SOC_ADDR_OFFSET          SOC_S_NS_ADDR_DIFF
-#define SOC_S_BASE(addr)         ((addr) - SOC_S_NS_ADDR_DIFF)
-#define SOC_NS_BASE(addr)        (addr)
+#define SOC_GET_S_ADDR(addr)     ((addr) - SOC_S_NS_ADDR_DIFF)
+#define SOC_GET_NS_ADDR(addr)    (addr)
 #endif
 
 #define SOC_FLASH_DATA_BASE      (0x02000000 + SOC_ADDR_OFFSET)
@@ -77,7 +77,7 @@
 #define SOC_PWM01_REG_BASE       (0x458a0000 + SOC_ADDR_OFFSET)
 #define SOC_PWM23_REG_BASE       (0x458f0000 + SOC_ADDR_OFFSET)
 #define SOC_SDMADC_REG_BASE      (0x45810000 + SOC_ADDR_OFFSET)
-#define SOC_SADC_REG_BASE        (0x44890000 + SOC_ADDR_OFFSET)
+#define SOC_SADC_REG_BASE        (0x45890000 + SOC_ADDR_OFFSET)
 #define SOC_AUD_REG_BASE         (0x47800000 + SOC_ADDR_OFFSET)
 #define SOC_EFUSE_REG_BASE       (0x44880000 + SOC_ADDR_OFFSET)
 #define SOC_IRDA_REG_BASE        (0x458b0000 + SOC_ADDR_OFFSET)

@@ -19,7 +19,7 @@
 #include "region_defs.h"
 #include "tfm_plat_defs.h"
 #include "region.h"
-#include "bk_mpc.h"
+#include "bk_tfm_mpc.h"
 
 #ifdef PSA_API_TEST_IPC
 #define PSA_FF_TEST_SECURE_UART2

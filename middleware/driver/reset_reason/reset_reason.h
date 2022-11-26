@@ -30,7 +30,9 @@ extern "C" {
 #elif (CONFIG_SOC_BK7256XX)
 	#define START_TYPE_ADDR        (0x44000000 + 0x3 * 4)    //aon_pmu reg03
 	#define PERSIST_MEMORY_ADDR    (0x20007FF0)
-	#define REBOOT_TAG_ADDR        (0x20007FF8)   //DTCM last 8 byte
+	#define REBOOT_TAG_ADDR        (0x20007FF4)
+	#define RTC_TIME_SEC_ADDR      (0x20007FF8)
+	#define RTC_TIME_USEC_ADDR     (0x20007FFC)
 	#define REBOOT_TAG_REQ         (0xAA55AA55)   //4 byte
 	#define MCAUSE_CAUSE_WATCHDOG  (0x1)
 #else

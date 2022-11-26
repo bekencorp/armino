@@ -57,6 +57,7 @@ typedef struct {
 	beken_semaphore_t tx_sema;
 	beken_semaphore_t rx_sema;
 	uint32_t int_status;
+	volatile bk_err_t err_code;
 } i2c_driver_t;
 
 typedef struct {
@@ -585,6 +586,7 @@ bk_err_t bk_i2c_master_write(i2c_id_t id, uint32_t dev_addr, const uint8_t *data
 		i2ccallback[id].asyncflag = 1;
 	}
 	uint32_t int_level = rtos_disable_int();
+	s_i2c[id].err_code = BK_OK;
 	s_i2c[id].work_mode = I2C_MASTER_WRITE;
 	s_i2c[id].is_with_mem_addr = false;
 	s_i2c[id].dev_addr = dev_addr;
@@ -599,7 +601,7 @@ bk_err_t bk_i2c_master_write(i2c_id_t id, uint32_t dev_addr, const uint8_t *data
 
 	rtos_get_semaphore(&s_i2c[id].tx_sema, timeout_ms);
 
-	return BK_OK;
+	return s_i2c[id].err_code;
 }
 
 bk_err_t bk_i2c_master_read(i2c_id_t id, uint32_t dev_addr, uint8_t *data, uint32_t size, uint32_t timeout_ms)
@@ -611,6 +613,7 @@ bk_err_t bk_i2c_master_read(i2c_id_t id, uint32_t dev_addr, uint8_t *data, uint3
 		i2ccallback[id].asyncflag = 1;
 	}
 	uint32_t int_level = rtos_disable_int();
+	s_i2c[id].err_code = BK_OK;
 	s_i2c[id].work_mode = I2C_MASTER_READ;
 	s_i2c[id].is_with_mem_addr = false;
 	s_i2c[id].dev_addr = dev_addr;
@@ -626,7 +629,7 @@ bk_err_t bk_i2c_master_read(i2c_id_t id, uint32_t dev_addr, uint8_t *data, uint3
 
 	rtos_get_semaphore(&s_i2c[id].rx_sema, timeout_ms);
 
-	return BK_OK;
+	return s_i2c[id].err_code;
 }
 
 bk_err_t bk_i2c_slave_write(i2c_id_t id, const uint8_t *data, uint32_t size, uint32_t timeout_ms)
@@ -680,6 +683,7 @@ bk_err_t bk_i2c_memory_write(i2c_id_t id, const i2c_mem_param_t *mem_param)
 	BK_RETURN_ON_ERR(i2c_wait_sm_bus_idle(id, mem_param->timeout_ms));
 
 	uint32_t int_level = rtos_disable_int();
+	s_i2c[id].err_code = BK_OK;
 	s_i2c[id].work_mode = I2C_MASTER_WRITE;
 	s_i2c[id].is_with_mem_addr = true;
 	s_i2c[id].dev_addr = mem_param->dev_addr;
@@ -696,7 +700,7 @@ bk_err_t bk_i2c_memory_write(i2c_id_t id, const i2c_mem_param_t *mem_param)
 
 	rtos_get_semaphore(&s_i2c[id].tx_sema, mem_param->timeout_ms);
 
-	return BK_OK;
+	return s_i2c[id].err_code;
 }
 
 bk_err_t bk_i2c_memory_read(i2c_id_t id, const i2c_mem_param_t *mem_param)
@@ -706,6 +710,7 @@ bk_err_t bk_i2c_memory_read(i2c_id_t id, const i2c_mem_param_t *mem_param)
 	BK_RETURN_ON_ERR(i2c_wait_sm_bus_idle(id, mem_param->timeout_ms));
 
 	uint32_t int_level = rtos_disable_int();
+	s_i2c[id].err_code = BK_OK;
 	s_i2c[id].work_mode = I2C_MASTER_READ;
 	s_i2c[id].is_with_mem_addr = true;
 	s_i2c[id].dev_addr = mem_param->dev_addr;
@@ -722,7 +727,7 @@ bk_err_t bk_i2c_memory_read(i2c_id_t id, const i2c_mem_param_t *mem_param)
 
 	rtos_get_semaphore(&s_i2c[id].rx_sema, mem_param->timeout_ms);
 
-	return BK_OK;
+	return s_i2c[id].err_code;
 }
 
 bk_err_t bk_i2c_set_baud_rate(i2c_id_t id, uint32_t baud_rate)
@@ -893,6 +898,12 @@ static void i2c1_isr_common(i2c_id_t id)
 			/* i2c must close->open when SCL low timeout triggered */
 			i2c_hal_disable(hal);
 			i2c_hal_enable(hal);
+			s_i2c[id].err_code = BK_ERR_I2C_SCL_TIMEOUT;
+			if (s_i2c[id].work_mode == I2C_MASTER_WRITE) {
+				rtos_set_semaphore(&s_i2c[id].tx_sema);
+			} else if (s_i2c[id].work_mode == I2C_MASTER_READ) {
+				rtos_set_semaphore(&s_i2c[id].rx_sema);
+			}
 		}
 		if (i2c_hal_is_arb_lost_triggered(hal, int_status)) {
 			I2C_LOGW("arb lost int triggered\r\n");
@@ -908,6 +919,7 @@ static void i2c1_isr_common(i2c_id_t id)
 			I2C_LOGW("i2c(%d) master_write get ack failed\r\n", id);
 			i2c_transtate_set(id);
 			i2c_master_stop(id);
+			s_i2c[id].err_code = BK_ERR_I2C_ACK_TIMEOUT;
 			rtos_set_semaphore(&s_i2c[id].tx_sema);
 			break;
 		}
@@ -921,6 +933,7 @@ static void i2c1_isr_common(i2c_id_t id)
 			I2C_LOGW("i2c(%d) master_read get ack failed\r\n", id);
 			s_i2c[id].master_status = I2C_IDLE;
 			s_i2c[id].int_status |= I2C1_F_STOP;
+			s_i2c[id].err_code = BK_ERR_I2C_ACK_TIMEOUT;
 			rtos_set_semaphore(&s_i2c[id].rx_sema);
 			break;
 		}

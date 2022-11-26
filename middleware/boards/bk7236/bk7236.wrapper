@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+
+import os
+import subprocess
+import sys
+import logging
+import getpass
+
+from argparse import _MutuallyExclusiveGroup
+from genericpath import exists
+import click
+from click_option_group import optgroup,RequiredMutuallyExclusiveOptionGroup
+
+def run_cmd(cmd):
+	p = subprocess.Popen(cmd, shell=True)
+	ret = p.wait()
+	if (ret):
+		logging.error(f'failed to run "{cmd}"')
+		exit(1)
+
+def install_configs(cfg_dir, install_dir):
+	logging.debug(f'install configs from: {cfg_dir}')
+	logging.debug(f'to: {install_dir}')
+	if os.path.exists(f'{cfg_dir}') == False:
+            return
+
+	if os.path.exists(f'{cfg_dir}/bl1') == True:
+		run_cmd(f'cp -r {cfg_dir}/bl1/* {install_dir} 2>/dev/null || :')
+
+	if os.path.exists(f'{cfg_dir}/bl2') == True:
+		run_cmd(f'cp -r {cfg_dir}/bl2/* {install_dir} 2>/dev/null || :')
+
+	if os.path.exists(f'{cfg_dir}/partitions') == True:
+		run_cmd(f'cp -r {cfg_dir}/partitions/* {install_dir} 2>/dev/null || :')
+
+def copy_binary(bin_name, src_dir, dst_dir):
+	logging.debug(f'copy {bin_name} from {src_dir}')
+	logging.debug(f'to {dst_dir}')
+	if os.path.exists(f'{src_dir}/{bin_name}') == True:
+		run_cmd(f'cp -r {src_dir}/{bin_name} {dst_dir}')
+	
+
+def pack(tools_dir, bin_dir, base_cfg_dir, prefered_cfg_dir, soc, gencodeonly, gen_dir=None, debug=False):
+	logging.debug(f'tools_dir={tools_dir}')
+	logging.debug(f'base_cfg_dir={base_cfg_dir}')
+	logging.debug(f'prefered_cfg_dir={prefered_cfg_dir}')
+	logging.debug(f'soc={soc}')
+	logging.debug(f'pack={pack}')
+
+	SH_SEC_TOOL = f'{tools_dir}/sh_sec_tools/secure_boot_tool'
+	BK_IMG_TOOL = f'{tools_dir}/beken_imgtools/image.py'
+	MCUBOOT_IMG_TOOL = f'{tools_dir}/mcuboot_tools'
+
+	CMAKE_BIN_DIR = bin_dir
+	BASE_CFG_DIR = base_cfg_dir
+	_BUILD_DIR = f'{bin_dir}/_build'
+
+	logging.debug(f'Create temporary _build')
+	run_cmd(f'mkdir -p {_BUILD_DIR}')
+
+	saved_cur_dir = os.getcwd()
+	os.chdir(_BUILD_DIR)
+	logging.debug(f'cd {_BUILD_DIR}')
+
+	install_configs(BASE_CFG_DIR, _BUILD_DIR)
+	install_configs(prefered_cfg_dir, _BUILD_DIR)
+	install_configs(f'{prefered_cfg_dir}/{soc}', _BUILD_DIR)
+
+	logging.debug(f'Copy Armino bin to {_BUILD_DIR}')
+	run_cmd(f'cp -r {CMAKE_BIN_DIR}/app.bin {_BUILD_DIR}')
+	TFM_BIN_DIR = f'{CMAKE_BIN_DIR}/install/outputs'
+	if (os.path.exists(TFM_BIN_DIR) == True):
+		logging.debug(f'Copy TFM bin to {_BUILD_DIR}')
+		run_cmd(f'cp -r {TFM_BIN_DIR}/*.bin {_BUILD_DIR}')
+
+	run_cmd(f'cp -r {CMAKE_BIN_DIR}/app.bin {_BUILD_DIR}')
+	logging.debug(f'Generate BL1 public key')
+	run_cmd(f'{_BUILD_DIR}/gen_key.sh')
+
+	debug_option = ''
+	if (debug):
+		debug_option = f'--debug'
+	logging.debug(f'partition pre-processing')
+	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions.json --genhdr --genbl1 --genbl2 {debug_option}')
+	if (gencodeonly == True):
+		if (gen_dir == None):
+			logging.error(f'Generated dir should NOT be empty')
+			exit(1)
+		run_cmd(f'cp -r {_BUILD_DIR}/*.h {gen_dir}/partitions_gen.h')
+		return
+
+	if (os.path.exists(f'{_BUILD_DIR}/key_desc.json') == True):
+		if (os.path.exists(f'{_BUILD_DIR}/primary_manifest.json') == True):
+			logging.debug(f'Generate BL1 primary manifest.bin')
+			run_cmd(f'{SH_SEC_TOOL} -k key_desc.json -m primary_manifest.json -o {_BUILD_DIR}/')
+			run_cmd(f'mv {_BUILD_DIR}/manifest.bin {_BUILD_DIR}/primary_manifest.bin')
+		else:
+			logging.debug(f'Skip generate BL1 primary manifest.bin')
+	
+		if (os.path.exists(f'{_BUILD_DIR}/secondary_manifest.json') == True):
+			logging.debug(f'Generate BL1 secondary manifest.bin')
+			run_cmd(f'{SH_SEC_TOOL} -k key_desc.json -m secondary_manifest.json -o {_BUILD_DIR}/')
+			run_cmd(f'mv {_BUILD_DIR}/manifest.bin {_BUILD_DIR}/secondary_manifest.bin')
+		else:
+			logging.debug(f'Skip generate BL1 secondary manifest.bin')
+
+	if (os.path.exists(f'{_BUILD_DIR}/puk_digest.bin') == True):
+		logging.debug(f'Generate BL1 bl1_control.bin')
+		run_cmd(f'{BK_IMG_TOOL} merge_tlv -j {_BUILD_DIR}/bl1_control.json -o {_BUILD_DIR}/bl1_control.bin {debug_option}')
+	else:
+		logging.debug(f'Skip generate BL1 bl1_control.bin')
+
+	logging.debug(f'partition post-processing')
+	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions.json --genota --genapp --genall {debug_option}')
+
+	logging.debug(f'copy binaries')
+	copy_binary('ota.bin', _BUILD_DIR, CMAKE_BIN_DIR)
+	copy_binary('apps.bin', _BUILD_DIR, CMAKE_BIN_DIR)
+	copy_binary('all.bin', _BUILD_DIR, CMAKE_BIN_DIR)
+
+	os.chdir(saved_cur_dir)
+	logging.debug(f'cd {saved_cur_dir}')
+
+@click.group()
+@click.version_option(version='1.0.0.0')
+def wrapper():
+	"""BK7236 post-build scripts to pack the binaries."""
+	pass
+
+@wrapper.command("pack")
+@click.option("-t", "--tools_dir", type=click.Path(exists=True, dir_okay=True),required=True, help="tools directory.")
+@click.option("-b", "--bin_dir", type=click.Path(exists=True, dir_okay=True),required=True, help="binary directory.")
+@click.option("-c", "--base_cfg_dir", type=click.Path(exists=True, dir_okay=True),required=True, help="base configuration directory.")
+@click.option("-p", "--prefered_cfg_dir", type=click.Path(exists=False, dir_okay=True),required=True, help="prefered configuration directory.")
+@click.option("-s", "--soc", type=str, default = "7236", show_default = True, help="chip name.")
+@click.option("--gencodeonly/--no-gencodeonly", default=False, help="Only generate the partition.h.")
+@click.option("-g", "--gen_dir", type=click.Path(exists=False, dir_okay=True),required=False, help="Code generated dir.")
+@click.option("--debug/--no-debug", default=False, help="Enable debug.")
+def pack_bin(tools_dir, bin_dir, base_cfg_dir, prefered_cfg_dir, soc, gencodeonly, gen_dir, debug):
+	"""Pack armino binaries."""
+	if (debug):
+		logging.basicConfig()
+		logging.getLogger().setLevel(logging.DEBUG)
+	pack(tools_dir, bin_dir, base_cfg_dir, prefered_cfg_dir, soc, gencodeonly, gen_dir, debug)
+	pass
+
+if __name__ == '__main__':
+	logging.basicConfig()
+	logging.getLogger().setLevel(logging.INFO)
+	wrapper()

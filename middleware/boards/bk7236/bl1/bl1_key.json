@@ -1,0 +1,5 @@
+{
+    "sec_boot": true,
+    "prvkey": "ec_256_privkey.pem",
+    "pubkey": "ec_256_pubkey.pem"
+}

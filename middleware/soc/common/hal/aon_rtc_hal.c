@@ -174,7 +174,13 @@ uint32_t aon_rtc_hal_get_tick_val_lpo(aon_rtc_hal_t *hal)
 
 bk_err_t aon_rtc_hal_init(aon_rtc_hal_t *hal)
 {
+	extern void delay_us(uint32_t us);
 	hal->hw = (aon_rtc_hw_t *)AON_RTC_LL_REG_BASE(hal->id);
+
+	//enter deepsleep/reboot,before init,the tick is still on-going
+	aon_rtc_ll_reset_counter(hal->hw);
+	delay_us(125);
+	aon_rtc_ll_clear_reset_counter(hal->hw);
 
 	aon_rtc_ll_clear_ctrl(hal->hw);
 	aon_rtc_ll_set_tick_val(hal->hw, 0);
@@ -188,9 +194,12 @@ bk_err_t aon_rtc_hal_deinit(aon_rtc_hal_t *hal)
 {
 	hal->hw = (aon_rtc_hw_t *)AON_RTC_LL_REG_BASE(hal->id);
 
-	aon_rtc_ll_clear_ctrl(hal->hw);
+	aon_rtc_ll_reset_counter(hal->hw);
+	aon_rtc_ll_clear_tick_int_status(hal->hw);
+	aon_rtc_ll_clear_upper_int_status(hal->hw);
 	aon_rtc_ll_set_tick_val(hal->hw, 0);
 	aon_rtc_ll_set_upper_val(hal->hw, 0);
+	aon_rtc_ll_clear_ctrl(hal->hw);
 	aon_rtc_ll_disable(hal->hw);
 
 	return BK_OK;

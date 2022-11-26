@@ -28,7 +28,7 @@
 
 #include <common/bk_include.h>
 #include <soc/soc.h>
-#include <driver/hal/hal_dma2d_types.h>
+#include <driver/dma2d_types.h>
 //#include "dma2d_ll.h"
 #include "dma2d_hal.h"
 #include "dma2d_ll_macro_def.h"
@@ -253,13 +253,7 @@ bk_err_t dma2d_hal_layer_config(dma2d_config_t *dma2d, uint32_t LayerIdx)
 		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_alpha_mode(pLayerCfg->alpha_mode);
 		dma2d_ll_set_dma2d_bg_pfc_ctrl_alpha_invert(pLayerCfg->alpha_inverted);
 		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_rb_swap(pLayerCfg->red_blue_swap);
-
-		if (pLayerCfg->alpha_mode == DMA2D_REPLACE_ALPHA) {
 			dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_alpha(pLayerCfg->input_alpha);
-		}
-		if (pLayerCfg->alpha_mode == DMA2D_COMBINE_ALPHA) {
-			dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_alpha((pLayerCfg->input_alpha & dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_alpha()));
-		}
 
 		/* DMA2D BGOR register configuration -------------------------------------*/
 		dma2d_ll_set_dma2d_bg_offset_bg_line_offset(pLayerCfg->input_offset);
@@ -278,12 +272,7 @@ bk_err_t dma2d_hal_layer_config(dma2d_config_t *dma2d, uint32_t LayerIdx)
 		dma2d_ll_set_dma2d_fg_pfc_ctrl_alpha_invert(pLayerCfg->alpha_inverted);
 		dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_rb_swap(pLayerCfg->red_blue_swap);
 
-		if (pLayerCfg->alpha_mode == DMA2D_REPLACE_ALPHA) {
 			dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_alpha(pLayerCfg->input_alpha);
-		}
-		if (pLayerCfg->alpha_mode == DMA2D_COMBINE_ALPHA) {
-			dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_alpha((pLayerCfg->input_alpha & dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_alpha()));
-		}
 
 		/* DMA2D FGOR register configuration -------------------------------------*/
 		dma2d_ll_set_dma2d_fg_offset_fg_line_offset(pLayerCfg->input_offset);

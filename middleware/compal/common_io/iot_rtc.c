@@ -102,8 +102,6 @@ int settimeofday(const struct timeval *tv,const struct timezone *tz)
     return IOT_RTC_SUCCESS;
 }
 
-
-
 static bool is_rtc_opened=false;
 
 IotRtcHandle_t iot_rtc_open( int32_t lRtcInstance )

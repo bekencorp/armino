@@ -255,7 +255,7 @@ void init_pmp_config()
 					pmp_tor_config_table[i].pmp_addr,
 					pmp_tor_config_table[i].pmp_config);
 
-		sys_delay_sync(SYS_DELAY_TIME_10US);
+		//sys_delay_sync(SYS_DELAY_TIME_10US);
 	}
 
 #endif

@@ -111,8 +111,14 @@ static inline uint32_t lcd_disp_ll_get_global_status(void)
 #define LCD_DISP_DISPLAY_INT_I8080_EOF_POS (7)
 #define LCD_DISP_DISPLAY_INT_I8080_EOF_MASK (0x1)
 
-#define LCD_DISP_DISPLAY_INT_RESERVED1_POS (8)
-#define LCD_DISP_DISPLAY_INT_RESERVED1_MASK (0xFFFFF)
+#define LCD_DISP_DISPLAY_INT_I8080_DE_POS (8)
+#define LCD_DISP_DISPLAY_INT_I8080_DE_MASK (0x1)
+
+#define LCD_DISP_DISPLAY_INT_RESERVED1_POS (9)
+#define LCD_DISP_DISPLAY_INT_RESERVED1_MASK (0x3FFFF)
+
+#define LCD_DISP_DISPLAY_INT_DE_INT_EN_POS (27)
+#define LCD_DISP_DISPLAY_INT_DE_INT_EN_MASK (0x1)
 
 #define LCD_DISP_DISPLAY_INT_DISCONTI_MODE_POS (28)
 #define LCD_DISP_DISPLAY_INT_DISCONTI_MODE_MASK (0x1)
@@ -229,6 +235,40 @@ static inline void lcd_disp_ll_set_display_int_i8080_eof(uint32_t value)
     reg_value = REG_READ(LCD_DISP_DISPLAY_INT_ADDR);
     reg_value &= ~(LCD_DISP_DISPLAY_INT_I8080_EOF_MASK << LCD_DISP_DISPLAY_INT_I8080_EOF_POS);
     reg_value |= ((value & LCD_DISP_DISPLAY_INT_I8080_EOF_MASK) << LCD_DISP_DISPLAY_INT_I8080_EOF_POS);
+    REG_WRITE(LCD_DISP_DISPLAY_INT_ADDR,reg_value);
+}
+
+static inline uint32_t lcd_disp_ll_get_display_int_i8080_de(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(LCD_DISP_DISPLAY_INT_ADDR);
+    reg_value = ((reg_value >> LCD_DISP_DISPLAY_INT_I8080_DE_POS) & LCD_DISP_DISPLAY_INT_I8080_DE_MASK);
+    return reg_value;
+}
+
+static inline void lcd_disp_ll_set_display_int_i8080_de(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(LCD_DISP_DISPLAY_INT_ADDR);
+    reg_value &= ~(LCD_DISP_DISPLAY_INT_I8080_DE_MASK << LCD_DISP_DISPLAY_INT_I8080_DE_POS);
+    reg_value |= ((value & LCD_DISP_DISPLAY_INT_I8080_DE_MASK) << LCD_DISP_DISPLAY_INT_I8080_DE_POS);
+    REG_WRITE(LCD_DISP_DISPLAY_INT_ADDR,reg_value);
+}
+
+static inline uint32_t lcd_disp_ll_get_display_int_de_int_en(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(LCD_DISP_DISPLAY_INT_ADDR);
+    reg_value = ((reg_value >> LCD_DISP_DISPLAY_INT_I8080_DE_POS) & LCD_DISP_DISPLAY_INT_I8080_DE_MASK);
+    return reg_value;
+}
+
+static inline void lcd_disp_ll_set_display_int_de_int_en(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(LCD_DISP_DISPLAY_INT_ADDR);
+    reg_value &= ~(LCD_DISP_DISPLAY_INT_DE_INT_EN_MASK << LCD_DISP_DISPLAY_INT_DE_INT_EN_POS);
+    reg_value |= ((value & LCD_DISP_DISPLAY_INT_DE_INT_EN_MASK) << LCD_DISP_DISPLAY_INT_DE_INT_EN_POS);
     REG_WRITE(LCD_DISP_DISPLAY_INT_ADDR,reg_value);
 }
 
@@ -521,14 +561,20 @@ static inline void lcd_disp_ll_set_sync_cfg_yuv_sel(uint32_t value)
 #define LCD_DISP_I8080_CONFIG_I8080_FIFO_MODE_POS (2)
 #define LCD_DISP_I8080_CONFIG_I8080_FIFO_MODE_MASK (0x1)
 
-#define LCD_DISP_I8080_CONFIG_RESERVED3_POS (3)
-#define LCD_DISP_I8080_CONFIG_RESERVED3_MASK (0x3)
+#define LCD_DISP_I8080_CONFIG_I8080_FIFO_CLR_POS (3)
+#define LCD_DISP_I8080_CONFIG_I8080_FIFO_CLR_MASK (0x1)
+
+#define LCD_DISP_I8080_CONFIG_I8080_CMDFIFO_CLR_POS (4)
+#define LCD_DISP_I8080_CONFIG_I8080_CMDFIFO_CLR_MASK (0x1)
 
 #define LCD_DISP_I8080_CONFIG_RESET_SLEEP_IN_POS (5)
 #define LCD_DISP_I8080_CONFIG_RESET_SLEEP_IN_MASK (0x1)
 
 #define LCD_DISP_I8080_CONFIG_RESERVED2_POS (6)
-#define LCD_DISP_I8080_CONFIG_RESERVED2_MASK (0x3)
+#define LCD_DISP_I8080_CONFIG_RESERVED2_MASK (0x1)
+
+#define LCD_DISP_I8080_CONFIG_I8080_ENA_POS (7)
+#define LCD_DISP_I8080_CONFIG_I8080_ENA_MASK (0x1)
 
 #define LCD_DISP_I8080_CONFIG_TIK_CNT_POS (8)
 #define LCD_DISP_I8080_CONFIG_TIK_CNT_MASK (0x3)
@@ -603,6 +649,40 @@ static inline void lcd_disp_ll_set_i8080_config_i8080_fifo_mode(uint32_t value)
     REG_WRITE(LCD_DISP_I8080_CONFIG_ADDR,reg_value);
 }
 
+static inline uint32_t lcd_disp_ll_get_i8080_config_i8080_fifo_clr(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(LCD_DISP_I8080_CONFIG_ADDR);
+    reg_value = ((reg_value >> LCD_DISP_I8080_CONFIG_I8080_FIFO_CLR_POS) & LCD_DISP_I8080_CONFIG_I8080_FIFO_CLR_MASK);
+    return reg_value;
+}
+
+static inline void lcd_disp_ll_set_i8080_config_i8080_fifo_clr(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(LCD_DISP_I8080_CONFIG_ADDR);
+    reg_value &= ~(LCD_DISP_I8080_CONFIG_I8080_FIFO_CLR_MASK << LCD_DISP_I8080_CONFIG_I8080_FIFO_CLR_POS);
+    reg_value |= ((value & LCD_DISP_I8080_CONFIG_I8080_FIFO_CLR_MASK) << LCD_DISP_I8080_CONFIG_I8080_FIFO_CLR_POS);
+    REG_WRITE(LCD_DISP_I8080_CONFIG_ADDR,reg_value);
+}
+
+static inline uint32_t lcd_disp_ll_get_i8080_config_i8080_cmdfifo_clr(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(LCD_DISP_I8080_CONFIG_ADDR);
+    reg_value = ((reg_value >> LCD_DISP_I8080_CONFIG_I8080_CMDFIFO_CLR_POS) & LCD_DISP_I8080_CONFIG_I8080_CMDFIFO_CLR_MASK);
+    return reg_value;
+}
+
+static inline void lcd_disp_ll_set_i8080_config_i8080_cmdfifo_clr(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(LCD_DISP_I8080_CONFIG_ADDR);
+    reg_value &= ~(LCD_DISP_I8080_CONFIG_I8080_CMDFIFO_CLR_MASK << LCD_DISP_I8080_CONFIG_I8080_CMDFIFO_CLR_POS);
+    reg_value |= ((value & LCD_DISP_I8080_CONFIG_I8080_CMDFIFO_CLR_MASK) << LCD_DISP_I8080_CONFIG_I8080_CMDFIFO_CLR_POS);
+    REG_WRITE(LCD_DISP_I8080_CONFIG_ADDR,reg_value);
+}
+
 static inline uint32_t lcd_disp_ll_get_i8080_config_reset_sleep_in(void)
 {
     uint32_t reg_value;
@@ -617,6 +697,23 @@ static inline void lcd_disp_ll_set_i8080_config_reset_sleep_in(uint32_t value)
     reg_value = REG_READ(LCD_DISP_I8080_CONFIG_ADDR);
     reg_value &= ~(LCD_DISP_I8080_CONFIG_RESET_SLEEP_IN_MASK << LCD_DISP_I8080_CONFIG_RESET_SLEEP_IN_POS);
     reg_value |= ((value & LCD_DISP_I8080_CONFIG_RESET_SLEEP_IN_MASK) << LCD_DISP_I8080_CONFIG_RESET_SLEEP_IN_POS);
+    REG_WRITE(LCD_DISP_I8080_CONFIG_ADDR,reg_value);
+}
+
+static inline uint32_t lcd_disp_ll_get_i8080_config_i8080_ena(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(LCD_DISP_I8080_CONFIG_ADDR);
+    reg_value = ((reg_value >> LCD_DISP_I8080_CONFIG_I8080_ENA_POS) & LCD_DISP_I8080_CONFIG_I8080_ENA_MASK);
+    return reg_value;
+}
+
+static inline void lcd_disp_ll_set_i8080_config_i8080_ena(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(LCD_DISP_I8080_CONFIG_ADDR);
+    reg_value &= ~(LCD_DISP_I8080_CONFIG_I8080_ENA_MASK << LCD_DISP_I8080_CONFIG_I8080_ENA_POS);
+    reg_value |= ((value & LCD_DISP_I8080_CONFIG_I8080_ENA_MASK) << LCD_DISP_I8080_CONFIG_I8080_ENA_POS);
     REG_WRITE(LCD_DISP_I8080_CONFIG_ADDR,reg_value);
 }
 
@@ -1000,7 +1097,7 @@ static inline void lcd_disp_ll_set_rgb_clum_offset_partial_area_ena(uint32_t val
     REG_WRITE(LCD_DISP_RGB_CLUM_OFFSET_ADDR,reg_value);
 }
 
-/* REG_0x0f */
+/* REG_0xf */
 #define LCD_DISP_RGB_LINE_OFFSET_ADDR  (LCD_DISP_LL_REG_BASE  + 0xf*4)
 #define LCD_DISP_RGB_LINE_OFFSET_PARTIAL_OFFSET_CLUM_L_POS (0)
 #define LCD_DISP_RGB_LINE_OFFSET_PARTIAL_OFFSET_CLUM_L_MASK (0x7FF)
@@ -1060,11 +1157,9 @@ static inline void lcd_disp_ll_set_rgb_line_offset_partial_offset_clum_r(uint32_
 
 /* REG_0x10 */
 #define LCD_DISP_DAT_FIFO_THRD_ADDR  (LCD_DISP_LL_REG_BASE  + 0x10*4)
-#define LCD_DISP_DAT_FIFO_THRD_I8080_CMD_PARA_COUNT_POS (0)
-#define LCD_DISP_DAT_FIFO_THRD_I8080_CMD_PARA_COUNT_MASK (0x1F)
 
-#define LCD_DISP_DAT_FIFO_THRD_RESERVED2_POS (5)
-#define LCD_DISP_DAT_FIFO_THRD_RESERVED2_MASK (0x7)
+#define LCD_DISP_DAT_FIFO_THRD_RESERVED2_POS (0)
+#define LCD_DISP_DAT_FIFO_THRD_RESERVED2_MASK (0xFF)
 
 #define LCD_DISP_DAT_FIFO_THRD_DAT_WR_THRD_POS (8)
 #define LCD_DISP_DAT_FIFO_THRD_DAT_WR_THRD_MASK (0x1FF)
@@ -1086,23 +1181,6 @@ static inline uint32_t lcd_disp_ll_get_dat_fifo_thrd_value(void)
 static inline void lcd_disp_ll_set_dat_fifo_thrd_value(uint32_t value)
 {
     REG_WRITE(LCD_DISP_DAT_FIFO_THRD_ADDR,value);
-}
-
-static inline uint32_t lcd_disp_ll_get_dat_fifo_thrd_i8080_cmd_para_count(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(LCD_DISP_DAT_FIFO_THRD_ADDR);
-    reg_value = ((reg_value >> LCD_DISP_DAT_FIFO_THRD_I8080_CMD_PARA_COUNT_POS) & LCD_DISP_DAT_FIFO_THRD_I8080_CMD_PARA_COUNT_MASK);
-    return reg_value;
-}
-
-static inline void lcd_disp_ll_set_dat_fifo_thrd_i8080_cmd_para_count(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(LCD_DISP_DAT_FIFO_THRD_ADDR);
-    reg_value &= ~(LCD_DISP_DAT_FIFO_THRD_I8080_CMD_PARA_COUNT_MASK << LCD_DISP_DAT_FIFO_THRD_I8080_CMD_PARA_COUNT_POS);
-    reg_value |= ((value & LCD_DISP_DAT_FIFO_THRD_I8080_CMD_PARA_COUNT_MASK) << LCD_DISP_DAT_FIFO_THRD_I8080_CMD_PARA_COUNT_POS);
-    REG_WRITE(LCD_DISP_DAT_FIFO_THRD_ADDR,reg_value);
 }
 
 static inline uint32_t lcd_disp_ll_get_dat_fifo_thrd_dat_wr_thrd(void)
@@ -1140,7 +1218,7 @@ static inline void lcd_disp_ll_set_dat_fifo_thrd_dat_rd_thrd(uint32_t value)
 }
 
 /* REG_0x11 */
-#define LCD_DISP_MATER_RD_BASE_ADDR_ADDR  (LCD_DISP_LL_REG_BASE  + 0x11)
+#define LCD_DISP_MATER_RD_BASE_ADDR_ADDR  (LCD_DISP_LL_REG_BASE  + 0x11*4)
 #define LCD_DISP_MATER_RD_BASE_ADDR_MASTER_RD_BASE_ADR_POS (0)
 #define LCD_DISP_MATER_RD_BASE_ADDR_MASTER_RD_BASE_ADR_MASK (0xFFFFFFFF)
 
@@ -1152,6 +1230,40 @@ static inline uint32_t lcd_disp_ll_get_mater_rd_base_addr(void)
 static inline void lcd_disp_ll_set_mater_rd_base_addr(uint32_t value)
 {
     REG_WRITE(LCD_DISP_MATER_RD_BASE_ADDR_ADDR,value);
+}
+
+
+/* REG_0x13 */
+#define LCD_DISP_CMD_COUNT_ADDR  (LCD_DISP_LL_REG_BASE  + 0x13*4)
+#define LCD_DISP_CMD_COUNT_I8080_CMD_PARA_COUNT_POS (0)
+#define LCD_DISP_CMD_COUNT_I8080_CMD_PARA_COUNT_MASK (0x3FFFFF)
+
+static inline uint32_t lcd_disp_ll_get_cmd_count_value(void)
+{
+    return REG_READ(LCD_DISP_CMD_COUNT_ADDR);
+}
+
+static inline void lcd_disp_ll_set_cmd_count_value(uint32_t value)
+{
+    REG_WRITE(LCD_DISP_CMD_COUNT_ADDR,value);
+}
+
+
+static inline uint32_t lcd_disp_ll_get_cmd_count_i8080_cmd_para_count(void)
+{
+	uint32_t reg_value;
+	reg_value = REG_READ(LCD_DISP_CMD_COUNT_ADDR);
+	reg_value = ((reg_value >> LCD_DISP_CMD_COUNT_I8080_CMD_PARA_COUNT_POS) & LCD_DISP_CMD_COUNT_I8080_CMD_PARA_COUNT_MASK);
+	return reg_value;
+}
+
+static inline void lcd_disp_ll_set_dat_fifo_thrd_i8080_cmd_para_count(uint32_t value)
+{
+	uint32_t reg_value;
+	reg_value = REG_READ(LCD_DISP_CMD_COUNT_ADDR);
+	reg_value &= ~(LCD_DISP_CMD_COUNT_I8080_CMD_PARA_COUNT_MASK << LCD_DISP_CMD_COUNT_I8080_CMD_PARA_COUNT_POS);
+	reg_value |= ((value & LCD_DISP_CMD_COUNT_I8080_CMD_PARA_COUNT_MASK) << LCD_DISP_CMD_COUNT_I8080_CMD_PARA_COUNT_POS);
+	REG_WRITE(LCD_DISP_CMD_COUNT_ADDR,reg_value);
 }
 
 #ifdef __cplusplus

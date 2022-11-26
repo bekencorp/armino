@@ -219,6 +219,16 @@ static inline void jpeg_ll_set_bitrate_mode(jpeg_hw_t *hw, uint32_t mode)
 	hw->cfg.bitrate_mode = mode;
 }
 
+static inline void jpeg_ll_enable_auto_step_2_times(jpeg_hw_t *hw)
+{
+	hw->cfg.auto_step = 1;
+}
+
+static inline void jpeg_ll_auto_step_4_times(jpeg_hw_t *hw)
+{
+	hw->cfg.auto_step = 0;
+}
+
 static inline void jpeg_ll_enable_bitrate_ctrl(jpeg_hw_t *hw, uint32_t value)
 {
 	hw->cfg.bitrate_ctrl = value;

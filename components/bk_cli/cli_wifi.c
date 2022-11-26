@@ -176,15 +176,23 @@ void demo_wifi_fast_connect(void)
 
 void cli_wifi_scan_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+	int ret = 0;
+	char *msg = NULL;
+
 	if (argc < 2) {
 		demo_scan_app_init();
-		return;
 	} else {
 		uint8_t *ap_ssid;
 
 		ap_ssid = (uint8_t *)argv[1];
 		demo_scan_adv_app_init(ap_ssid);
 	}
+
+	if(ret == 0)
+		msg = WIFI_CMD_RSP_SUCCEED;
+	else
+		msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
 
 void cli_wifi_ap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -192,6 +200,8 @@ void cli_wifi_ap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 	char *ap_ssid = NULL;
 	char *ap_key = "";
 	char *ap_channel = NULL;
+	int ret = 0;
+	char *msg = NULL;
 
 #if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
 	if (wifi_cli_find_id(argc, argv, "-w") > 0 ||
@@ -261,29 +271,57 @@ void cli_wifi_ap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 		}
 #endif
 	}
+	if(ret == 0)
+		msg = WIFI_CMD_RSP_SUCCEED;
+	else
+		msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
 
 void cli_wifi_stop_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+	int ret = 0;
+	char *msg = NULL;
+
 	if (argc == 2) {
 		if (os_strcmp(argv[1], "sta") == 0) {
 #if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
 			bk_event_unregister_cb(EVENT_MOD_WIFI, EVENT_WIFI_STA_CONNECTED,
 									fast_connect_cb);
 #endif
-			BK_LOG_ON_ERR(bk_wifi_sta_stop());
+			ret = bk_wifi_sta_stop();
 		} else if (os_strcmp(argv[1], "ap") == 0)
-			BK_LOG_ON_ERR(bk_wifi_ap_stop());
-		else
+			ret = bk_wifi_ap_stop();
+		else {
 			CLI_LOGI("unknown WiFi interface\n");
-	} else
+			goto error;
+		}
+	} else {
 		CLI_LOGI("bad parameters\r\n");
+		goto error;
+	}
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+	else {
+		goto error;
+	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 
 void cli_wifi_iplog_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	char *iplog_mode = NULL;
 	char *iplog_type = NULL;
+	int ret = 0;
+	char *msg = NULL;
 
 	if (argc == 3)
 	{
@@ -301,40 +339,84 @@ void cli_wifi_iplog_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 	else
 	{
 		CLI_LOGI("cli_wifi_iplog_cmd:invalid argc num\r\n");
+		goto error;
+	}
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 		return;
 	}
 
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 void cli_wifi_ipdbg_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	char *ipdbg_module = NULL;
-	char *ipdbg_para = NULL;
-	char *ipdbg_para_value = NULL;
+	uint32_t func = 0;
+	uint16_t value = 0;
+	int ret = 0;
+	char *msg = NULL;
 
 	if (argc == 3)
 	{
-		ipdbg_module = argv[1];
-		ipdbg_para = argv[2];
-		if (ipdbg_module && ipdbg_para)
-			demo_wifi_ipdbg_init(ipdbg_module, ipdbg_para, ipdbg_para_value);
-		else
-			CLI_LOGI("cli_wifi_ipdbg_cmd:invalid argc param\r\n");
-	}
-	else if(argc == 4)
-	{
-		ipdbg_module = argv[1];
-		ipdbg_para = argv[2];
-		ipdbg_para_value = argv[3];
-		if (ipdbg_module && ipdbg_para && ipdbg_para_value)
-			demo_wifi_ipdbg_init(ipdbg_module, ipdbg_para, ipdbg_para_value);
-		else
-			CLI_LOGI("cli_wifi_ipdbg_cmd:invalid argc param\r\n");
+		func = (uint32_t)os_strtoul(argv[1], NULL, 10);
+		value =  (uint16_t)os_strtoul(argv[2], NULL, 10);
+		demo_wifi_ipdbg_init(func, value);
 	}
 	else
 	{
 		CLI_LOGI("cli_wifi_ipdbg_cmd:invalid argc num\r\n");
+		goto error;
+	}
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 		return;
 	}
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
+}
+
+void cli_wifi_mem_apply_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	uint8_t value = 0;
+	uint8_t module = 0;
+	int ret = 0;
+	char *msg = NULL;
+
+	if (argc < 3)
+	{
+		CLI_LOGI("cli_wifi_mem_cmd_cmd:invalid argc num");
+		goto error;
+	}
+	else if(3 == argc)
+	{
+		module = (uint8_t)(os_strtoul(argv[1], NULL, 16) & 0xFF);
+		value =  (uint8_t)os_strtoul(argv[2], NULL, 10);
+		demo_wifi_mem_apply_init(module, value);
+	}
+	else
+	{
+		CLI_LOGI("cli_wifi_mem_cmd_cmd:invalid argc num\r\n");
+		goto error;
+	}
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 
 typedef struct {
@@ -396,29 +478,48 @@ void cli_wifi_set_proto_debug_flag(char *pcWriteBuffer, int xWriteBufferLen, int
 {
 	uint8_t pd_flag = 0;
 	int ret = 0;
+	char *msg = NULL;
 
 	if (argc < 2) {
 		CLI_LOGI("invalid argc num");
-		return;
+		goto error;
 	}
 
 	pd_flag = (uint8_t)os_strtoul(argv[1], NULL, 10);
 	if(pd_flag == 1) {
 		ret = bk_wifi_enable_proto_debug(pd_flag);
 
-		if (!ret)
+		if (!ret) {
 			CLI_LOGI("enable proto debug ok");
-		else
+			msg = WIFI_CMD_RSP_SUCCEED;
+			os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+			return;
+		}
+		else {
 			CLI_LOGI("enable proto debug failed");
+			goto error;
+		}
 	} else if(pd_flag == 0){
 		ret = bk_wifi_disable_proto_debug(pd_flag);
-		if (!ret)
+		if (!ret) {
 			CLI_LOGI("disable proto debug ok");
-		else
+			msg = WIFI_CMD_RSP_SUCCEED;
+			os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+			return;
+		}
+		else {
 			CLI_LOGI("disable proto debug failed");
+			goto error;
+		}
 	} else {
 		CLI_LOGI("invalid argv of pd_flag");
+		goto error;
 	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 #endif
 
@@ -426,19 +527,31 @@ void cli_wifi_set_interval_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 {
 	uint8_t interval = 0;
 	int ret = 0;
+	char *msg = NULL;
 
 	if (argc < 2) {
 		CLI_LOGI("invalid argc num");
-		return;
+		goto error;
 	}
 
 	interval = (uint8_t)os_strtoul(argv[1], NULL, 10);
 	ret = bk_wifi_send_listen_interval_req(interval);
 
-	if (!ret)
+	if (!ret) {
 		CLI_LOGI("set_interval ok");
-	else
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+	else {
 		CLI_LOGI("set_interval failed");
+		goto error;
+	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 
 void cli_monitor_stop(void)
@@ -471,10 +584,12 @@ void cli_monitor_start(uint32_t primary_channel)
 void cli_wifi_monitor_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	uint32_t primary_channel;
+	int ret = 0;
+	char *msg = NULL;
 
 	if (argc != 2) {
 		CLI_LOGI("monitor_parameter invalid\r\n");
-		return;
+		goto error;
 	}
 
 	primary_channel = os_strtoul(argv[1], NULL, 10);
@@ -484,6 +599,16 @@ void cli_wifi_monitor_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 		cli_monitor_start(primary_channel);
 	else
 		cli_monitor_show();
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 
 #include "conv_utf8_pub.h"
@@ -491,11 +616,28 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 {
 	char *ssid = NULL;
 	char *password = "";
+	int ret = 0;
+	char *msg = NULL;
 
 	if ((argc < 2) || (argc > 6)) {
 		CLI_LOGI("invalid argc number\n");
+		goto error;
+	}
+#ifdef CONFIG_BSSID_CONNECT
+	uint8_t bssid[6] = {0};
+	if (os_strcmp(argv[1], "bssid") == 0) {
+		if(argc >= 3) {
+			hexstr2bin(argv[2], bssid, 6);
+		}
+		if(argc >= 4) {
+			password = argv[3];
+		}
+		demo_sta_bssid_app_init(bssid, password);
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 		return;
 	}
+#endif
 
 #if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
 	if (wifi_cli_find_id(argc, argv, "-w") > 0 ||
@@ -563,7 +705,17 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 #endif
 	} else {
 		CLI_LOGI("not buf for utf8\r\n");
+		goto error;
 	}
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 
 #if CONFIG_COMPONENTS_WPA2_ENTERPRISE
@@ -584,10 +736,13 @@ void cli_wifi_sta_eap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	char *private_key = "beken-iot-1.key";
 	char *private_key_passwd = "12345678";
 	char *identity = "user";
+	int ret = 0;
+	int err = 0;
+	char *msg = NULL;
 
 	if ((argc < 2) || (argc > 5)) {
 		CLI_LOGI("invalid argc number\n");
-		return;
+		goto error;
 	}
 
 	ssid = argv[1];
@@ -604,13 +759,13 @@ void cli_wifi_sta_eap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 		len = os_strlen((char *)oob_ssid_tp);
 		if (WLAN_SSID_MAX_LEN < len) {
 			CLI_LOGI("ssid name more than 32 Bytes\n");
-			return;
+			goto error;
 		}
 
 		sta_config = os_zalloc(sizeof(*sta_config));
 		if (!sta_config) {
 			CLI_LOGI("Cannot alloc STA config\n");
-			return;
+			goto error;
 		}
 
 		os_strlcpy(sta_config->ssid, oob_ssid_tp, sizeof(sta_config->ssid));
@@ -627,8 +782,8 @@ void cli_wifi_sta_eap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 		CLI_LOGI("eap:%s identity:%s\n", sta_config->eap, sta_config->identity);
 		CLI_LOGI("ca:%s client_cert:%s\n", sta_config->ca, sta_config->client_cert);
 		CLI_LOGI("private_key:%s\n", sta_config->private_key);
-		BK_LOG_ON_ERR(bk_wifi_sta_set_config(sta_config));
-		BK_LOG_ON_ERR(bk_wifi_sta_start());
+		ret = bk_wifi_sta_set_config(sta_config);
+		err = bk_wifi_sta_start();
 
 		os_free(sta_config);
 
@@ -637,23 +792,51 @@ void cli_wifi_sta_eap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 #endif
 	} else {
 		CLI_LOGI("not buf for utf8\r\n");
+		goto error;
 	}
+
+	if (!ret && !err) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+	else {
+		goto error;
+	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 #endif
 
 void cli_wifi_state_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+	int ret = 0;
+	char *msg = NULL;
+
 	demo_state_app_init();
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+
 }
 
 #if CONFIG_WIFI_SENSOR
 static void cli_wifi_sensor_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int status;
+	int ret = 0;
+	char *msg = NULL;
 
-	if (argc != 2)
+	if (argc != 2) {
 		bk_printf("param error");
-
+		goto error;
+	}
 
 	if (os_strcmp(argv[1], "start") == 0)
 		bk_wifi_detect_movement_start();
@@ -664,11 +847,24 @@ static void cli_wifi_sensor_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 	if (os_strcmp(argv[1], "status") == 0) {
 		status = bk_get_movement_status();
 
-		if (status == 0)
+		if (status == 0) {
 			bk_printf("detect something");
-		else
+		}
+		else {
 			bk_printf("detect nothing");
+		}
 	}
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 #endif
 
@@ -678,15 +874,29 @@ extern void wfa_ca_stop();
 
 void cli_wifi_wfa_ca_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+	int ret = 0;
+	char *msg = NULL;
+
 	if (argc != 2) {
 		os_printf("param error");
-		return;
+		goto error;
 	}
 
 	if (os_strcmp(argv[1], "start") == 0)
 		wfa_ca_start();
 	else if (os_strcmp(argv[1], "stop") == 0)
 		wfa_ca_stop();
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 #endif
 
@@ -771,9 +981,13 @@ static void cli_wifi_filter_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 {
 	wifi_filter_config_t filter_config = {0};
 	uint32_t filter = 0;
-
+	int ret = 0;
+	int err = 0;
+	char *msg = NULL;
 	if (argc != 2) {
 		wifi_mgmt_filter_help();
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 		return;
 	}
 
@@ -784,18 +998,28 @@ static void cli_wifi_filter_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 			os_free(s_filter_result);
 			s_filter_result = NULL;
 		}
-		BK_LOG_ON_ERR(bk_wifi_filter_set_config(&filter_config));
-		BK_LOG_ON_ERR(bk_wifi_filter_register_cb(NULL));
-		return;
+		ret = bk_wifi_filter_set_config(&filter_config);
+		err = bk_wifi_filter_register_cb(NULL);
+		if (!ret && !err) {
+			msg = WIFI_CMD_RSP_SUCCEED;
+			os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+			return;
+		}
+		else {
+			goto error;
+		}
 	} else if (filter == -1) {
 		wifi_filter_result_dump();
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 		return;
 	}
 
 	if (!s_filter_result) {
 		s_filter_result = (wifi_filter_result_t *)os_zalloc(sizeof(wifi_filter_result_t));
-		if (!s_filter_result)
-			return;
+		if (!s_filter_result) {
+			goto error;
+		}
 	}
 
 	if (filter & (1 << 0))
@@ -813,8 +1037,21 @@ static void cli_wifi_filter_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 	if (filter & (1 << 4))
 		filter_config.rx_action = 1;
 
-	BK_LOG_ON_ERR(bk_wifi_filter_set_config(&filter_config));
-	BK_LOG_ON_ERR(bk_wifi_filter_register_cb(wifi_filter_cb));
+	ret = bk_wifi_filter_set_config(&filter_config);
+	err = bk_wifi_filter_register_cb(wifi_filter_cb);
+	if (!ret && !err) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+	else {
+		goto error;
+	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 
 #if CONFIG_WIFI_RAW_TX_TEST
@@ -864,18 +1101,18 @@ static void cli_wifi_raw_tx_cmd(char *pcWriteBuffer, int xWriteBufferLen,
 								int argc, char **argv)
 {
 	bk_err_t ret;
-
+	char *msg = NULL;
 	if (argc != 3) {
 		CLI_LOGE("param error");
 		CLI_LOGI("usage: wifi_raw_tx interval counter");
-		return;
+		goto error;
 	}
 
 	wifi_raw_tx_param_t *tx_param;
 	tx_param = (wifi_raw_tx_param_t *)os_malloc(sizeof(wifi_raw_tx_param_t));
 	if (!tx_param) {
 		CLI_LOGE("out of memory\n");
-		return;
+		goto error;
 	}
 
 	tx_param->interval = os_strtoul(argv[1], NULL, 10);
@@ -886,8 +1123,18 @@ static void cli_wifi_raw_tx_cmd(char *pcWriteBuffer, int xWriteBufferLen,
 	if (kNoErr != ret) {
 		os_free(tx_param);
 		CLI_LOGI("Create raw tx thread failed, ret=%d\r\n", ret);
+		goto error;
+	}
+	else {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 		return;
 	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 #endif
 
@@ -895,16 +1142,18 @@ static void cli_wifi_monitor_channel_cmd(char *pcWriteBuffer, int xWriteBufferLe
 {
 	wifi_channel_t chan = {0};
 	int channel, i = 0;
+	int ret = 0;
+	char *msg = NULL;
 
 	if (argc == 1) {
 		CLI_LOGI("Usage: channel [1~13].");
-		return;
+		goto error;
 	}
 
 	while (argv[1][i]) {
 		if ((argv[1][i] < '0') || (argv[1][i] > '9')) {
 			CLI_LOGE("parameter should be a number\r\n");
-			return ;
+			goto error ;
 		}
 		i++;
 	}
@@ -913,11 +1162,25 @@ static void cli_wifi_monitor_channel_cmd(char *pcWriteBuffer, int xWriteBufferLe
 
 	if ((channel < 1) || (channel > 13)) {
 		CLI_LOGE("Invalid channel number \r\n");
-		return ;
+		goto error;
 	}
 	BK_LOG_RAW("monitor mode, set to channel %d\r\n", channel);
 	chan.primary = channel;
-	BK_LOG_ON_ERR(bk_wifi_monitor_set_channel(&chan));
+	ret = bk_wifi_monitor_set_channel(&chan);
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+	else {
+		goto error;
+	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 
 int cli_netif_event_cb(void *arg, event_module_t event_module,
@@ -984,12 +1247,13 @@ void cli_wifi_net_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 {
 	char buf[128];
 	int i, left = sizeof(buf) - 1, len = 0;
-
+	int ret = 0;
+	char *msg = NULL;
 	// net sta xxx
 	// net ap xxx
 	if (argc <= 2) {
 		CLI_LOGI("Usage: net sta/ap <param...>\n");
-		return;
+		goto error;
 	}
 
 	buf[0] = 0;
@@ -1002,26 +1266,42 @@ void cli_wifi_net_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 
 #if 1
 	if (os_strcmp(argv[1], "sta") == 0)
-		cmd_wlan_sta_exec(buf);
+		ret = cmd_wlan_sta_exec(buf);
 	else if (os_strcmp(argv[1], "ap") == 0)
-		cmd_wlan_ap_exec(buf);
+		ret = cmd_wlan_ap_exec(buf);
 #if CONFIG_COMPONENTS_P2P
 	else if (os_strcmp(argv[1], "p2p") == 0)
-		cmd_wlan_p2p_exec(buf);
+		ret = cmd_wlan_p2p_exec(buf);
 #endif
 	else {
 		CLI_LOGI("Usage: net sta/ap <param...>\n");
-		return;
+		goto error;
 	}
 #endif
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+	else {
+		goto error;
+	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 
 void cli_wifi_get_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv) {
+	int ret = 0;
+	char *msg = NULL;
 	// get pm status
 	// get xx status
 	if (argc <= 2) {
 		CLI_LOGI("Usage get xx status\n");
-		return;
+		goto error;
 	}
 
 	if(os_strcmp(argv[1], "ps") == 0) {
@@ -1031,6 +1311,7 @@ void cli_wifi_get_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 			CLI_LOGI("ps status: %s \n", (state?"sleep":"active"));
 		} else {
 			CLI_LOGI("Usage get ps status\n");
+			goto error;
 		}
 	}
 	else if (os_strcmp(argv[1], "mac_trx") == 0) {
@@ -1046,17 +1327,31 @@ void cli_wifi_get_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 			bk_wifi_get_mac_trx_status(reset_status);
 		} else {
 			CLI_LOGI("Usage get MAC TRX status\n");
+			goto error;
 		}
 	}
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 void cli_wifi_rc_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv) {
 
 	uint8_t sta_idx = 0;
 	uint16_t rate_cfg = 0;
+	int ret = 0;
+	char *msg = NULL;
 
 	if (argc <= 2) {
 		CLI_LOGI("invalid RC command\n");
-		return;
+		goto error;
 	}
 
 	if(os_strcmp(argv[1], "set_fixrate") == 0) {
@@ -1066,15 +1361,28 @@ void cli_wifi_rc_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 	}
 	else {
 		CLI_LOGI("invalid RC paramter\n");
+		goto error;
 	}
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 void cli_wifi_capa_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv) {
 	uint32_t capa_id = 0;
 	uint32_t capa_val = 0;
+	int ret = 0;
+	char *msg = NULL;
 
 	if (argc <= 2) {
 		CLI_LOGI("invalid CAPA command\n");
-		return;
+		goto error;
 	}
 
 	if(os_strcmp(argv[1], "ht") == 0) {
@@ -1112,19 +1420,31 @@ void cli_wifi_capa_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 	}
 	else {
 		CLI_LOGI("invalid CAPA paramter\n");
-		return;
+		goto error;
 	}
 
 	capa_val = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
 	bk_wifi_capa_config(capa_id, capa_val);
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 
-#ifdef CONFIG_COMPONENTS_WPA_TWT_TEST
+#ifdef CONFIG_WPA_TWT_TEST
 void cli_wifi_twt_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	uint16_t mantissa = 0;
 	uint8_t min_twt = 0;
-	
+	int ret = 0;
+	char *msg = NULL;
+
 	if(os_strcmp(argv[1], "setup") == 0) {
 		int setup_command = 0;
 
@@ -1136,16 +1456,32 @@ void cli_wifi_twt_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 		}
 		else {
 			CLI_LOGI("Usage: twt setup suggest/demand <param...>\n");
-			return;
+			goto error;
 		}
 		mantissa = os_strtoul(argv[3], NULL, 10) & 0xFF;
 		min_twt = os_strtoul(argv[4], NULL, 10) & 0xFF;
-		bk_wifi_twt_setup(setup_command, mantissa, min_twt);
+		ret = bk_wifi_twt_setup(setup_command, mantissa, min_twt);
 	}
 	else if (os_strcmp(argv[1], "teardown") == 0)
-		bk_wifi_twt_teardown();
-	else
+		ret = bk_wifi_twt_teardown();
+	else {
 		CLI_LOGI("Usage: twt setup/teardown \n");
+		goto error;
+	}
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+	else {
+		goto error;
+	}
+
+error:
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
 }
 #endif
 
@@ -1168,9 +1504,11 @@ static const struct cli_command s_wifi_commands[] = {
 	{"net", "net {sta/ap} ... - wifi net config", cli_wifi_net_cmd},
 	{"get", "get wifi status", cli_wifi_get_cmd},
 	{"iplog", "iplog [modle][type]", cli_wifi_iplog_cmd},
-	{"ipdbg", "ipdbg [module][para][value]", cli_wifi_ipdbg_cmd},
+	{"ipdbg", "ipdbg [function][value]", cli_wifi_ipdbg_cmd},
+	{"mem_apply", "mem_apply [module][value]", cli_wifi_mem_apply_cmd},
 
-#ifdef CONFIG_COMPONENTS_WPA_TWT_TEST
+
+#ifdef CONFIG_WPA_TWT_TEST
 	{"twt", "twt {setup|teardown}", cli_wifi_twt_cmd},
 #endif
 

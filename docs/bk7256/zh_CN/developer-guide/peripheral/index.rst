@@ -15,4 +15,4 @@
    UART <bk_uart>
    WDT <bk_wdt>
    I2C <bk_i2c>
-
+   USB <bk_usb>

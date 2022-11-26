@@ -59,7 +59,22 @@ int bk_ate_deinit(void);
  *    - others: other errors.
  */
 bool ate_is_enabled(void);
-
+/**
+ * @brief ate enable or disable
+ *
+ * enable or disable ate
+ *
+ * @attention
+ * - This API is used to ctrl ate(enable or disable)
+ *
+ * @param
+ * -0x0:close ate feature;0x1:open ate feature
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+int bk_ate_ctrl(bool enable);
 /**
  * @}
  */

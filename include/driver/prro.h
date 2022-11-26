@@ -1,4 +1,4 @@
-// Copyright 2020-2021 Beken
+// Copyright 2022-2023 Beken
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46,28 +46,145 @@ bk_err_t bk_prro_driver_init(void);
 bk_err_t bk_prro_driver_deinit(void);
 
 /**
- * @brief     Set peripherals privilege attribute
+ * @brief     Set privilege attribute of specified peripheral
  *
- * @param dev the peripherals
- * @param privilege_type the privilege type, with each element must be PRRO_UNPRIVILEGED or PRRO_PRIVILEGED
+ * @param dev the peripheral
+ * @param privilege_type the privilege type
  *
  * @return
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
  */
-bk_err_t bk_prro_set_privilege_attribute(prro_dev_t dev, prro_privilege_type_t privilege_type);
+bk_err_t bk_prro_set_privilege(prro_dev_t dev, prro_privilege_type_t privilege_type);
+
+/**
+ * @brief     Set privilege attribute of all AHB peripherals
+ *
+ * @param ahb_dev_privilege_bits the privilege bitmap of AHB peripherals,
+ *        each bit indicates a devices, 1 means PRRO_PRIVILEGED, and 0 means PRRO_PRIVILEGED.
+ *        refers to the PRRO manual for bits and peripheral map.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
+ */
+bk_err_t bk_prro_set_ahb_dev_privilege(uint64_t ahb_dev_privilege_bits);
+
+/**
+ * @brief     Set privilege attribute of all APB peripherals
+ *
+ * @param apb_dev_privilege_bits the privilege bitmap of APB peripherals,
+ *        each bit indicates a devices, 1 means PRRO_PRIVILEGED, and 0 means PRRO_PRIVILEGED.
+ *        refers to the PRRO manual for bits and peripheral map.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
+ */
+bk_err_t bk_prro_set_apb_dev_privilege(uint64_t apb_dev_privilege_bits);
 
 /**
  * @brief     Set peripherals secure attribute
  *
  * @param dev the peripherals
+ * @param secure_type the secure type
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
+ */
+bk_err_t bk_prro_set_secure(prro_dev_t dev, prro_secure_type_t secure_type);
+
+/**
+ * @brief     Set secure attribute of all GPIOs
+ *
+ * @param gpio_secure_bits the privilege bitmap of GPIO,
+ *        each bit indicates a GPIO, 1 means PRRO_SECURE, and 0 means PRRO_NON_SECURE.
+ *        refers to the PRRO manual for bits and peripheral map.
  * @param secure_type the secure type, with each element must be PRRO_SECURE or PRRO_NON_SECURE
  *
  * @return
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
  */
-bk_err_t bk_prro_set_secure_attribute(prro_dev_t dev, prro_secure_type_t secure_type);
+bk_err_t bk_prro_set_gpios_secure(uint64_t gpio_secure_bits);
+
+/**
+ * @brief     Set secure attribute of all AHB peripherals
+ *
+ * @param ahb_dev_secure_bits the privilege bitmap of AHB peripherals,
+ *        each bit indicates a AHB peripherals, 1 means PRRO_SECURE, and 0 means PRRO_NON_SECURE.
+ *        refers to the PRRO manual for bits and peripheral map.
+ 
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
+ */
+bk_err_t bk_prro_set_ahb_dev_secure(uint64_t ahb_dev_secure_bits);
+
+/**
+ * @brief     Set secure attribute of all APB peripherals
+ *
+ * @param apb_dev_secure_bits the privilege bitmap of APB peripherals,
+ *        each bit indicates a APB peripherals, 1 means PRRO_SECURE, and 0 means PRRO_NON_SECURE.
+ *        refers to the PRRO manual for bits and peripheral map.
+ 
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
+ */
+bk_err_t bk_prro_set_apb_dev_secure(uint64_t apb_dev_secure_bits);
+
+/**
+ * @brief     Set secure attribute of all hnonsec peripherals
+ *
+ * @param hnonsec_dev_secure_bits the privilege bitmap of hnonsec peripherals,
+ *        each bit indicates a APB peripherals, 1 means PRRO_SECURE, and 0 means PRRO_NON_SECURE.
+ *        refers to the PRRO manual for bits and peripheral map.
+ 
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
+ */
+bk_err_t bk_prro_set_hnonsec_dev_secure(uint64_t hnonsec_dev_bits);
+
+/**
+ * @brief     Set hardware comparison condition
+ *
+ * @param prro_cmp_id hardware comparison id
+ * @param start the start address, the hardware comparison is triggered when
+ *        CPU fetch the first instruction from address start to end
+ * @param end the end address
+ 
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
+ */
+bk_err_t bk_prro_set_hw_cmp_condition(prro_cmp_id_t it, uint32_t start, uint32_t end);
+
+/**
+ * @brief     Set hardware comparison source value
+ *
+ * @param prro_cmp_id hardware comparison id
+ * @param src the hardware comparison source value
+ 
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
+ */
+bk_err_t bk_prro_set_hw_cmp_src(prro_cmp_id_t id, uint32_t src);
+
+/**
+ * @brief     Set hardware comparison destination value
+ *
+ * @param prro_cmp_id hardware comparison id
+ * @param src the hardware comparison destination value
+ 
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
+ */
+bk_err_t bk_prro_set_hw_cmp_dst(prro_cmp_id_t it, uint32_t dst);
 
 #ifdef __cplusplus
 }

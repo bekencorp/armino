@@ -17,7 +17,7 @@
 #include <components/log.h>
 #include "clock_hal.h"
 
-#if (CONFIG_SOC_BK7256XX) //bk7256 to do
+#if (CONFIG_SYSTEM_CTRL)
 #include "sys_hal.h"
 
 #define clk_set_uart_clk_26m(id)    sys_hal_uart_select_clock(id,UART_SCLK_XTAL_26M)

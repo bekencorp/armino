@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include "stdio.h"
 
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 #include "ff.h"
 #include "diskio.h"
 #include "test_fatfs.h"
@@ -13,7 +13,7 @@
 
 void lcd_sdcard_read_to_mem(char *filename, uint32_t paddr)
 {
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 		char cFileName[FF_MAX_LFN];
 		FIL file;
 		FRESULT fr;
@@ -54,7 +54,7 @@ void lcd_sdcard_read_to_mem(char *filename, uint32_t paddr)
 
 void sdcard_write_from_mem(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 		char *filename = NULL;
 		char cFileName[FF_MAX_LFN];
 		FIL file;
@@ -100,7 +100,7 @@ void sdcard_write_from_mem(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 } 
 void sdcard_read_to_mem(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-#if (CONFIG_SDCARD_HOST)
+#if (CONFIG_FATFS)
 		char *filename = NULL;
 		char cFileName[FF_MAX_LFN];
 		FIL file;

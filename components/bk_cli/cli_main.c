@@ -24,6 +24,8 @@
 #include <driver/uart.h>
 #include "bk_rtos_debug.h"
 #include <modules/pm.h>
+#include "components/ate.h"
+//#include <driver/flash.h>
 #if CONFIG_SHELL_ASYNCLOG
 #include "components/shell_task.h"
 #endif
@@ -340,7 +342,7 @@ static void cli_ate_main(uint32_t data)
 		if (kNoErr != ret)
 			os_printf("cli_ate_main: ATE create background sema failed\r\n");
 	}
-	#if (CONFIG_MASTER_CORE)
+	#if (!CONFIG_SLAVE_CORE)
 	bk_pm_cp1_auto_power_down_state_set(0x0);
 	bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_ON);
 	extern void start_slave_core(void);
@@ -646,6 +648,10 @@ static int get_input(char *inbuf, unsigned int *bp)
 			}
 		}
 #endif
+		/* find first invalid input data, discard input data more than 0x7f */
+		if ((uint8_t)inbuf[0] > 0x7f) {
+			continue;
+		}
 		if (inbuf[*bp] == RET_CHAR)
 			continue;
 		if (inbuf[*bp] == END_CHAR) {   /* end of input line */
@@ -715,11 +721,17 @@ static void print_bad_command(char *cmd_string)
 */
 void icu_struct_dump(void);
 
+void arch_interrupt_enable(void);
 static void cli_main(uint32_t data)
 {
-
 	char *msg = NULL;
 	int ret;
+	char prompt[5];
+
+	if (ate_is_enabled())
+		strcpy(prompt,"\r\n# ");
+	else
+		strcpy(prompt,"\r\n$ ");
 
 #if CONFIG_RF_OTA_TEST
 	demo_sta_app_init("CMW-AP", "12345678");
@@ -741,7 +753,7 @@ static void cli_main(uint32_t data)
 			else if (ret == 2)
 				os_printf("syntax error\r\n");
 
-			os_printf(PROMPT);
+			os_printf(prompt);
 		}
 	}
 
@@ -1067,7 +1079,7 @@ void cli_sort_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 
 	build_in_count = sizeof(built_ins) / sizeof(struct cli_command);
 
-	os_printf("cmd_count:%d, built_in_count:%d\r\n", pCli->num_commands, build_in_count);
+	//os_printf("cmd_count:%d, built_in_count:%d\r\n", pCli->num_commands, build_in_count);
 
 	GLOBAL_INT_DISABLE();
 	qsort(&pCli->commands[build_in_count], pCli->num_commands - build_in_count, sizeof(struct cli_command *), _cli_name_cmp);
@@ -1232,7 +1244,6 @@ beken_thread_t cli_thread_handle = NULL;
 int bk_cli_init(void)
 {
 	int ret;
-
 	pCli = (struct cli_st *)os_malloc(sizeof(struct cli_st));
 	if (pCli == NULL)
 		return kNoMemoryErr;
@@ -1246,14 +1257,7 @@ int bk_cli_init(void)
 	if (cli_register_commands(user_clis, sizeof(user_clis) / sizeof(struct cli_command)))
 		goto init_general_err;
 
-#if CONFIG_FPGA
-
-#if (CLI_CFG_REG == 1)
-	cli_reg_init();
-#endif
-
-#else
-
+/*-----------------WIFI cli command init begin-------------------*/
 #if (CLI_CFG_WIFI == 1)
 	cli_wifi_init();
 #endif
@@ -1262,28 +1266,161 @@ int bk_cli_init(void)
 	cli_netif_init();
 #endif
 
-#if (CLI_CFG_BLE == 1)
-	cli_ble_init();
-#endif
-
-#if (CLI_CFG_MISC == 1)
-	cli_misc_init();
-#endif
-
-#if (CLI_CFG_MEM == 1)
-	cli_mem_init();
-#endif
-
-#if (CLI_CFG_AIRKISS == 1)
-	cli_airkiss_init();
-#endif
-
 #if (CLI_CFG_PHY == 1)
 	cli_phy_init();
 #endif
 
 #if (CLI_CFG_IPERF == 1)
 	cli_phy_init();
+#endif
+
+#if (CLI_CFG_IPERF == 1)
+	cli_iperf_init();
+#endif
+
+#if (CONFIG_AT_CMD)
+    cli_at_init();
+#endif
+#if (CLI_CFG_EVENT == 1)
+	cli_event_init();
+#endif
+
+#if CONFIG_DEBUG_FIRMWARE
+#if (CLI_CFG_TEMP_DETECT == 1)
+	cli_temp_detect_init();
+#endif
+#if (CLI_CFG_AIRKISS == 1)
+	cli_airkiss_init();
+#endif
+
+#if CONFIG_LWIP
+	cli_lwip_init();
+#endif
+#endif //CONFIG_DEBUG_FIRMWARE
+
+/*----------------WIFI cli command init end----------------------*/
+
+
+/*-------------BT&MultMedia cli command init begin----------------*/
+#if (CLI_CFG_BLE == 1)
+	cli_ble_init();
+#endif
+
+#if (CLI_CFG_AUD == 1)
+	cli_aud_init();
+#endif
+
+#if (CLI_CFG_AUD_INTF == 1)
+	cli_aud_intf_init();
+#endif
+
+#if (CLI_CFG_AUD_RSP == 1)
+	cli_aud_rsp_init();
+#endif
+
+#if (CLI_CFG_AUD_VAD == 1)
+	cli_aud_vad_init();
+#endif
+
+#if (CLI_CFG_AUD_NS == 1)
+	cli_aud_ns_init();
+#endif
+
+#if (CLI_CFG_AUD_FLAC == 1)
+	cli_aud_flac_init();
+#endif
+
+#if (CLI_CFG_AUD_CP0 == 1)
+	cli_aud_cp0_init();
+#endif
+
+#if (CLI_CFG_FFT == 1)
+	cli_fft_init();
+#endif
+
+#if (CLI_CFG_SBC == 1)
+	cli_sbc_init();
+#endif
+
+#if (CLI_CFG_I2S == 1)
+	cli_i2s_init();
+#endif
+
+#if (CLI_CFG_TOUCH == 1)
+	cli_touch_init();
+#endif
+
+#if (CLI_CFG_LCD == 1)
+	cli_lcd_init();
+#endif
+
+#if (CLI_CFG_DMA2D == 1)
+	cli_dma2d_init();
+#endif
+
+#if (CLI_CFG_QSPI_OLED == 1)
+	cli_qspi_oled_init();
+#endif
+
+#if (CLI_CFG_QRCODEGEN == 1)
+	cli_qrcodegen_init();
+#endif
+
+#if (CLI_CFG_JPEGDEC == 1)
+	cli_jpegdec_init();
+#endif
+
+#if (CLI_CFG_AEC == 1)
+	cli_aec_init();
+#endif
+
+#if (CLI_CFG_G711 == 1)
+	cli_g711_init();
+#endif
+
+#if (CLI_CFG_MP3 == 1)
+	cli_mp3_init();
+#endif
+
+#if (CLI_CFG_DVP == 1)
+	cli_dvp_init();
+#endif
+
+#if (CONFIG_DOORBELL == 1)
+//#if (CONFIG_DUAL_CORE)
+	cli_doorbell_init();
+//#endif
+#endif
+
+#if (CONFIG_MEDIA == 1)
+	media_cli_init();
+#endif
+
+#if (CLI_CFG_PSRAM)
+	cli_psram_init();
+#endif
+
+#if (CONFIG_SOC_BK7271)
+#if CONFIG_BT
+	bk7271_ble_cli_init();
+#endif
+#endif
+
+#if (CLI_CFG_MATTER == 1)
+    cli_matter_init();
+#endif
+/*--------------BT&MultMedia cli command init end------------------*/
+
+
+
+/*----------------platform cli command init begin------------------*/
+#if CONFIG_DEBUG_FIRMWARE
+#if (CLI_CFG_MISC == 1)
+	cli_misc_init();
+#endif
+
+#if (CLI_CFG_MEM == 1)
+	cli_mem_init();
 #endif
 
 #if (CLI_CFG_TIMER == 1)
@@ -1334,10 +1471,6 @@ int bk_cli_init(void)
     cli_keyVaule_init();
 #endif
 
-#if (CLI_CFG_MATTER == 1)
-    cli_matter_init();
-#endif
-
 #if (CLI_CFG_UART == 1)
 	cli_uart_init();
 #endif
@@ -1374,10 +1507,6 @@ int bk_cli_init(void)
 	cli_fatfs_init();
 #endif
 
-#if (CLI_CFG_TEMP_DETECT == 1)
-	cli_temp_detect_init();
-#endif
-
 #if (CLI_CFG_SECURITY == 1)
 	cli_security_init();
 #endif
@@ -1386,47 +1515,16 @@ int bk_cli_init(void)
 	cli_mico_init();
 #endif
 
-#if (CLI_CFG_EVENT == 1)
-	cli_event_init();
-#endif
-
-#if (CLI_CFG_PWR == 1)
-	cli_pwr_init();
-#endif
-
 #if (CLI_CFG_REG == 1)
 	cli_reg_init();
 #endif
 
-#if CONFIG_CAMERA
-	if (video_demo_register_cmd())
-		goto init_general_err;
-#endif
-#if (CONFIG_SOC_BK7271)
-#if CONFIG_BT
-	bk7271_ble_cli_init();
-#endif
-#if CONFIG_USB_HOST
-	bk7271_dsp_cli_init();
-#endif
-#endif
-
-#if (CONFIG_SOC_BK7256XX)
 #if CONFIG_USB
-	usb_cli_init();
-#endif
+	cli_usb_init();
 #endif
 
 #if (CLI_CFG_PWM == 1)
 	cli_pwm_init();
-#endif
-
-#if (CLI_CFG_IPERF == 1)
-	cli_iperf_init();
-#endif
-
-#if CONFIG_LWIP
-	cli_lwip_init();
 #endif
 
 #if (CLI_CFG_EXCEPTION == 1)
@@ -1441,105 +1539,47 @@ int bk_cli_init(void)
 	cli_vault_init();
 #endif
 
-#if (CLI_CFG_AUD == 1)
-	cli_aud_init();
-#endif
-
-#if (CLI_CFG_AUD_INTF == 1)
-	cli_aud_intf_init();
-#endif
-
-#if (CLI_CFG_AUD_RSP == 1)
-	cli_aud_rsp_init();
-#endif
-
-#if (CLI_CFG_AUD_VAD == 1)
-	cli_aud_vad_init();
-#endif
-
-#if (CLI_CFG_AUD_NS == 1)
-	cli_aud_ns_init();
-#endif
-
-#if (CLI_CFG_AUD_FLAC == 1)
-	cli_aud_flac_init();
-#endif
-
-#if (CLI_CFG_AUD_CP0 == 1)
-	cli_aud_cp0_init();
-#endif
-
-#if (CLI_CFG_FFT == 1)
-	cli_fft_init();
-#endif
-
-#if (CLI_CFG_SBC == 1)
-	cli_sbc_init();
-#endif
-
-#if (CLI_CFG_I2S == 1)
-	cli_i2s_init();
-#endif
-
-#if (CONFIG_TOUCH)
-	cli_touch_init();
-#endif
-
-#if (CLI_CFG_LCD == 1)
-	cli_lcd_init();
-#endif
-
-#if (CLI_CFG_DMA2D == 1)
-	cli_dma2d_init();
-#endif
-
-#if (CLI_CFG_QSPI_OLED == 1)
-	cli_qspi_oled_init();
-#endif
-
 #if (CLI_CFG_CALENDAR == 1)
 	cli_calendar_init();
 #endif
-
-#if (CONFIG_AT_CMD)
-    cli_at_init();
+#if (CONFIG_SOC_BK7271)
+#if CONFIG_USB_HOST
+	bk7271_dsp_cli_init();
+#endif
+#endif
+#if CONFIG_EASY_FLASH
+    int cli_easyflash_init(void);
+    cli_easyflash_init();
 #endif
 
-#if (CLI_CFG_JPEGDEC == 1)
-	cli_jpegdec_init();
+#endif //CONFIG_DEBUG_FIRMWARE
+
+/*-----open the cli comand both at release and debug vertion begin-----*/
+#if (CLI_CFG_PWR == 1)
+	cli_pwr_init();
 #endif
 
-#if (CLI_CFG_AEC == 1)
-	cli_aec_init();
+#if CONFIG_CM33_TEST
+	cli_cm33_init();
 #endif
 
-#if (CLI_CFG_G711 == 1)
-	cli_g711_init();
+#if (CONFIG_LITTLEFS == 1)
+	extern int cli_lfs_init(void);
+	cli_lfs_init();
 #endif
 
-#if (CLI_CFG_MP3 == 1)
-	cli_mp3_init();
+#if CONFIG_MPC_TEST
+	cli_mpc_init();
 #endif
 
-#if (CLI_CFG_DVP == 1)
-	cli_dvp_init();
+#if CONFIG_PRRO_TEST
+	cli_prro_init();
 #endif
 
-#if (CONFIG_DOORBELL == 1)
-//#if (CONFIG_DUAL_CORE)
-	cli_doorbell_init();
-//#endif
-#endif
+/*-----open the cli comand both at release and debug vertion end ------*/
 
-#if (CONFIG_MEDIA == 1)
-	media_cli_init();
-#endif
 
-#if (CLI_CFG_PSRAM)
-	cli_psram_init();
-#endif
-
-#endif /* end CONFIG_FPGA */
+/*--------------------platform cli command init end--------------------*/
 
 	/* sort cmds after registered all cmds. */
 	cli_sort_command(NULL, 0, 0, NULL);

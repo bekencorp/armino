@@ -23,24 +23,16 @@
 #include "aud_hal.h"
 #include "sys_driver.h"
 #include "aud_driver.h"
-#if CONFIG_AUD_TRAS_MODE_CPU1
-#include "audio_mailbox.h"
-#include "media_common.h"
-#endif
 #include "aud_intf_private.h"
 #include "aud_tras_drv.h"
 #include <driver/psram.h>
 #include <modules/aec.h>
 #include <modules/audio_ring_buff.h>
 #include <modules/g711.h>
+#include "gpio_driver.h"
+#include <driver/gpio.h>
 #if CONFIG_AUD_TRAS_LOST_COUNT_DEBUG
 #include <driver/timer.h>
-#endif
-#if CONFIG_DOORBELL_DEMO1
-#include <driver/gpio.h>
-#endif
-#if CONFIG_DOORBELL_DEMO2
-#include <driver/gpio.h>
 #endif
 #if CONFIG_AUD_TRAS_DAC_DEBUG
 #include "ff.h"
@@ -59,9 +51,11 @@
 
 #if CONFIG_VIDEO_AVI
 #include "app_jpeg2avi.h"
+#include "aud_tras_drv_co_list.h"
 #endif
+#include <driver/uac.h>
+//#include "BK7256_RegList.h"
 
-#define  AUD_DEBUG  0
 
 #define AUD_TRAS_DRV_TAG "aud_tras_drv"
 
@@ -74,28 +68,13 @@
 #define AUD_LOST_DEBUG_INTERVAL (1000 * 2)
 #endif
 
-#define TU_QITEM_COUNT      (60)
+#define TU_QITEM_COUNT      (120)
 static beken_thread_t  aud_trs_drv_thread_hdl = NULL;
 static beken_queue_t aud_trs_drv_int_msg_que = NULL;
 
 aud_tras_drv_info_t aud_tras_drv_info;
-
-#if CONFIG_DOORBELL_DEMO1
-static bool aud_pa_en = false;
 extern int delay_ms(INT32 ms_count);
-#endif
-#if CONFIG_DOORBELL_DEMO2
-static bool aud_pa_en = false;
-extern int delay_ms(INT32 ms_count);
-#endif
-
-
-#if CONFIG_AUD_TRAS_MODE_CPU1
-#define AUD_TRS_MAILBOX_CHECK_CONTROL    0
-#if AUD_TRS_MAILBOX_CHECK_CONTROL
-static bool aud_trs_drv_mb_busy_status = false;
-#endif
-#endif //CONFIG_AUD_TRAS_MODE_CPU1
+static bool uac_mic_read_flag = false;
 
 #if CONFIG_AUD_TRAS_AEC_MIC_DELAY_DEBUG
 static uint8_t mic_delay_num = 0;
@@ -108,6 +87,12 @@ static FIL dac_debug_file;
 static const uint32_t PCM_8000[8] = {
 	0x00010000, 0x5A825A81, 0x7FFF7FFF, 0x5A825A83, 0x00000000, 0xA57FA57E, 0x80018002, 0xA57EA57E,
 };
+#endif
+
+#if CONFIG_VIDEO_AVI
+static int aud_tras_drv_save_data_pool(uint8_t *data,uint16_t len);
+static int aud_tras_drv_save_aud_start(void *param);
+static int aud_tras_drv_save_aud_stop(void *param);
 #endif
 
 #define CHECK_AUD_TRAS_DRV_MIC_STA() do {\
@@ -141,139 +126,35 @@ static const uint32_t PCM_8000[8] = {
 /* extern api */
 bk_err_t aud_tras_drv_deinit(void);
 
-/*
-bk_err_t aud_tras_drv_start_work(void)
+
+static void aud_tras_dac_pa_ctrl(bool en)
 {
-	bk_err_t ret;
-	audio_tras_drv_msg_t msg;
-	os_printf("audio send msg: AUD_TRAS_DRV_START \r\n");
-
-	msg.op = AUD_TRAS_DRV_START;
-	if (aud_trs_drv_int_msg_que) {
-		ret = rtos_push_to_queue_front(&aud_trs_drv_int_msg_que, &msg, BEKEN_NO_WAIT);
-		if (kNoErr != ret) {
-			os_printf("audio send msg: AUD_TRAS_DRV_START fail \r\n");
-			return kOverrunErr;
-		}
-
-		return ret;
-	}
-	return kNoResourcesErr;
-}
-*/
-
-#if CONFIG_AUD_TRAS_MODE_CPU1
-static void audio_transfer_tx_done_process(uint32_t *buff_addr, uint32_t leng)
-{
-	tx_context_t temp_tx_context = audio_transfer_context.tx_context;
-
-	if ((temp_tx_context.ping.buff_addr == buff_addr) && (temp_tx_context.buff_length == leng))
-		temp_tx_context.ping.busy_status = false;
-	else if ((temp_tx_context.pang.buff_addr == buff_addr) && (temp_tx_context.buff_length == leng))
-		temp_tx_context.pang.busy_status = false;
-	else
-		os_printf("tx buff addr error \r\n");
-}
-
-static bk_err_t audio_send_aud_mailbox_msg(audio_tras_mb_cmd_t mb_cmd, uint32_t param1, uint32_t param2, uint32_t param3)
-{
-	bk_err_t ret = BK_OK;
-	audio_tras_mb_msg_t mb_msg;
-
-	mb_msg.mb_cmd = mb_cmd;
-	mb_msg.param1 = param1;
-	mb_msg.param2 = param2;
-	mb_msg.param3 = param3;
-
-#if AUD_TRS_MAILBOX_CHECK_CONTROL
-	/* wait send audio_mailbox_msg complete */
-	while(aud_trs_drv_mb_busy_status)
-		;
-
-	aud_trs_drv_mb_busy_status = true;
-
-	ret = aud_tras_mb_send_msg(&mb_msg);
-	if (ret != BK_OK)
-		aud_trs_drv_mb_busy_status = false;
+	if (en) {
+#if CONFIG_AUD_TRAS_DAC_PA_CTRL
+	/* delay 2ms to avoid po audio data, and then open pa */
+	delay_ms(2);
+	/* open pa according to congfig */
+	gpio_dev_unmap(AUD_DAC_PA_CTRL_GPIO);
+	bk_gpio_enable_output(AUD_DAC_PA_CTRL_GPIO);
+#if AUD_DAC_PA_ENABLE_LEVEL
+	bk_gpio_set_output_high(AUD_DAC_PA_CTRL_GPIO);
 #else
-	ret = aud_tras_mb_send_msg(&mb_msg);
+	bk_gpio_set_output_low(AUD_DAC_PA_CTRL_GPIO);
 #endif
-
-	return ret;
-}
-
-static void audio_mailbox_rx_isr(aud_mb_t *aud_mb, mb_chnl_cmd_t *cmd_buf)
-{
-	/* check mailbox msg and send msg to task */
-	switch(cmd_buf->hdr.cmd) {
-		case AUD_TRAS_MB_CMD_START_TRANSFER:
-			//aud_tras_drv_start_work();
-			break;
-
-		case AUD_TRAS_MB_CMD_TX_DONE:
-			audio_transfer_tx_done_process((uint32_t *)cmd_buf->param1, cmd_buf->param2);
-			break;
-
-		case AUD_TRAS_MB_CMD_STOP_TRANSFER:
-			aud_tras_drv_deinit();
-			break;
-
-		default:
-			break;
+#endif
+	} else {
+#if CONFIG_AUD_TRAS_DAC_PA_CTRL
+		/* open pa according to congfig */
+		//gpio_dev_unmap(AUD_DAC_PA_CTRL_GPIO);
+		//bk_gpio_enable_output(AUD_DAC_PA_CTRL_GPIO);
+#if AUD_DAC_PA_ENABLE_LEVEL
+		bk_gpio_set_output_low(AUD_DAC_PA_CTRL_GPIO);
+#else
+		bk_gpio_set_output_high(AUD_DAC_PA_CTRL_GPIO);
+#endif
+#endif
 	}
 }
-
-static void audio_mailbox_tx_isr(aud_mb_t *aud_mb)
-{
-	//os_printf("enter cp1_mailbox_tx_isr \r\n");
-}
-
-static void audio_mailbox_tx_cmpl_isr(aud_mb_t *aud_mb, mb_chnl_ack_t *cmd_buf)
-{
-	//os_printf("enter cp1_mailbox_tx_cmpl_isr \r\n");
-	/* clear audio mailbox busy status */
-#if AUD_TRS_MAILBOX_CHECK_CONTROL
-	aud_trs_drv_mb_busy_status = false;
-#endif
-}
-
-#if 0
-static void audio_transfer_mailbox_init(void)
-{
-	switch (audio_transfer_context.mode) {
-		case AUD_TRAS_DRV_MODE_CPU0:
-			break;
-
-		case AUD_TRAS_DRV_MODE_CPU1:
-			/* init audio maibox channel */
-			aud_tras_mb_init(audio_mailbox_rx_isr, audio_mailbox_tx_isr, audio_mailbox_tx_cmpl_isr);
-			os_printf("step1: config audio mailbox channel complete \r\n");
-			break;
-
-		default:
-			break;
-	}
-}
-
-static void audio_transfer_mailbox_deinit(void)
-{
-	switch (audio_transfer_context.mode) {
-		case AUD_TRAS_DRV_MODE_CPU0:
-			break;
-
-		case AUD_TRAS_DRV_MODE_CPU1:
-			/* deinit audio maibox channel */
-			aud_tras_mb_deinit();
-			os_printf("close audio mailbox channel complete \r\n");
-			break;
-
-		default:
-			break;
-	}
-}
-#endif
-
-#endif	//CONFIG_AUD_TRAS_MODE_CPU1
 
 bk_err_t aud_tras_drv_send_msg(aud_tras_drv_op_t op, void *param)
 {
@@ -349,9 +230,9 @@ static bk_err_t aud_tras_drv_aec_cfg(void)
 	uint32_t aec_context_size = 0;
 	uint32_t val = 0;
 	aec_info_t *temp_aec_info = aud_tras_drv_info.voc_info.aec_info;
-
 	/* init aec context */
-	aec_context_size = aec_size();
+	aec_context_size = aec_size(1000);
+	LOGI("malloc aec size: %d \r\n", aec_context_size);
 	temp_aec_info->aec = (AECContext*)os_malloc(aec_context_size);
 	if (temp_aec_info->aec == NULL) {
 		LOGE("malloc aec fail, aec_context_size: %d \r\n", aec_context_size);
@@ -406,24 +287,24 @@ static bk_err_t aud_tras_drv_aec_buff_cfg(aec_info_t *aec_info)
 
 	/* malloc aec ref ring buffer to save ref data */
 	LOGI("ref_ring_buff size: %d \r\n", samp_rate_points*2*2);
-	aec_info->aec_ref_ring_buff = (int16_t *)os_malloc(samp_rate_points*2*2);
+	aec_info->aec_ref_ring_buff = (int16_t *)os_malloc(samp_rate_points*2*2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL);
 	if (aec_info->aec_ref_ring_buff == NULL) {
 		LOGE("malloc ref ring buffer fail \r\n");
 		goto aud_tras_drv_aec_buff_cfg_exit;
 	}
 
 	/* malloc aec out ring buffer to save mic data has been aec processed */
-	aec_info->aec_out_ring_buff = (int16_t *)os_malloc(samp_rate_points*2*2);
+	aec_info->aec_out_ring_buff = (int16_t *)os_malloc(samp_rate_points*2*2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL);
 	if (aec_info->aec_out_ring_buff == NULL) {
 		LOGE("malloc aec out ring buffer fail \r\n");
 		goto aud_tras_drv_aec_buff_cfg_exit;
 	}
 
 	/* init ref_ring_buff */
-	ring_buffer_init(&(aec_info->ref_rb), (uint8_t*)aec_info->aec_ref_ring_buff, samp_rate_points*2*2, DMA_ID_MAX, RB_DMA_TYPE_NULL);
+	ring_buffer_init(&(aec_info->ref_rb), (uint8_t*)aec_info->aec_ref_ring_buff, samp_rate_points*2*2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, DMA_ID_MAX, RB_DMA_TYPE_NULL);
 
 	/* init aec_ring_buff */
-	ring_buffer_init(&(aec_info->aec_rb), (uint8_t*)aec_info->aec_out_ring_buff, samp_rate_points*2*2, DMA_ID_MAX, RB_DMA_TYPE_NULL);
+	ring_buffer_init(&(aec_info->aec_rb), (uint8_t*)aec_info->aec_out_ring_buff, samp_rate_points*2*2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, DMA_ID_MAX, RB_DMA_TYPE_NULL);
 
 	return BK_OK;
 
@@ -609,6 +490,10 @@ static bk_err_t aud_tras_aec(void)
 {
 	bk_err_t ret = BK_OK;
 	uint32_t size = 0;
+
+	if (aud_tras_drv_info.voc_info.status == AUD_TRAS_DRV_VOC_STA_NULL)
+		return BK_OK;
+
 	aec_info_t *aec_info_pr = aud_tras_drv_info.voc_info.aec_info;
 
 	/* get a fram mic data from mic_ring_buff */
@@ -621,8 +506,28 @@ static bk_err_t aud_tras_aec(void)
 	}
 
 #if CONFIG_VIDEO_AVI
-	jpeg2avi_input_data((uint8_t*)aec_info_pr->mic_addr,size,eTypeAudio);
+	aud_tras_drv_save_data_pool((uint8_t*)aec_info_pr->mic_addr,size);
 #endif
+
+	if (aud_tras_drv_info.voc_info.spk_en == AUD_INTF_VOC_SPK_CLOSE || aud_tras_drv_info.voc_info.aec_enable == false) {
+		/* save mic data after aec processed to aec_ring_buffer */
+		if (ring_buffer_get_free_size(&(aec_info_pr->aec_rb)) >= aec_info_pr->samp_rate_points*2) {
+			size = ring_buffer_write(&(aec_info_pr->aec_rb), (uint8_t*)aec_info_pr->mic_addr, aec_info_pr->samp_rate_points*2);
+			if (size != aec_info_pr->samp_rate_points*2) {
+				LOGE("the data writeten to aec_ring_buff is not a frame \r\n");
+				//return BK_FAIL;
+			}
+		}
+
+		/* send msg to encoder to encoding data */
+		ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_ENCODER, NULL);
+		if (ret != kNoErr) {
+			LOGE("send msg: AUD_TRAS_DRV_ENCODER fail \r\n");
+			return BK_FAIL;
+		}
+
+		return BK_OK;
+	}
 
 	/* read ref data from ref_ring_buff */
 	if (ring_buffer_get_fill_size(&(aec_info_pr->ref_rb)) >= aec_info_pr->samp_rate_points*2) {
@@ -634,6 +539,11 @@ static bk_err_t aud_tras_aec(void)
 		}
 	}
 	//os_printf("ref_addr: ref_addr[0]= %02x, ref_addr[0]= %02x \r\n", ref_addr[0], ref_addr[1]);
+
+	if (aud_tras_drv_info.voc_info.aud_tras_dump_aec_cb) {
+		aud_tras_drv_info.voc_info.aud_tras_dump_aec_cb((uint8_t *)aec_info_pr->mic_addr, aec_info_pr->samp_rate_points*2);
+		aud_tras_drv_info.voc_info.aud_tras_dump_aec_cb((uint8_t *)aec_info_pr->ref_addr, aec_info_pr->samp_rate_points*2);
+	}
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 #if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
@@ -669,6 +579,10 @@ static bk_err_t aud_tras_aec(void)
 	/* aec process data */
 	//os_printf("ref_addr:%p, mic_addr:%p, out_addr:%p \r\n", aec_context_pr->ref_addr, aec_context_pr->mic_addr, aec_context_pr->out_addr);
 	aec_proc(aec_info_pr->aec, aec_info_pr->ref_addr, aec_info_pr->mic_addr, aec_info_pr->out_addr);
+
+	if (aud_tras_drv_info.voc_info.aud_tras_dump_aec_cb) {
+		aud_tras_drv_info.voc_info.aud_tras_dump_aec_cb((uint8_t *)aec_info_pr->out_addr, aec_info_pr->samp_rate_points*2);
+	}
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 #if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
@@ -727,7 +641,10 @@ static bk_err_t aud_tras_enc(void)
 	uint16_t temp_mic_samp_rate_points = aud_tras_drv_info.voc_info.mic_samp_rate_points;
 	tx_info_t temp_tx_info;
 
-	if (aud_tras_drv_info.voc_info.aec_enable) {
+	if (aud_tras_drv_info.voc_info.status == AUD_TRAS_DRV_VOC_STA_NULL)
+		return BK_OK;
+
+	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
 		/* get data from aec_ring_buff */
 		size = ring_buffer_read(&(aud_tras_drv_info.voc_info.aec_info->aec_rb), (uint8_t *)aud_tras_drv_info.voc_info.encoder_temp.pcm_data, temp_mic_samp_rate_points*2);
 		if (size != temp_mic_samp_rate_points*2) {
@@ -773,6 +690,11 @@ static bk_err_t aud_tras_enc(void)
 			break;
 	}
 
+	/* dump tx data */
+	if (aud_tras_drv_info.voc_info.aud_tras_dump_tx_cb) {
+		aud_tras_drv_info.voc_info.aud_tras_dump_tx_cb((uint8_t *)temp_tx_info.ping.buff_addr, (uint32_t)temp_tx_info.buff_length);
+	}
+
 	/* call sendto api of lwip UDP */
 	if (aud_tras_drv_info.aud_tras_tx_mic_data != NULL) {
 		size = aud_tras_drv_info.aud_tras_tx_mic_data((uint8_t *)temp_tx_info.ping.buff_addr, (uint32_t)temp_tx_info.buff_length);
@@ -785,31 +707,6 @@ static bk_err_t aud_tras_enc(void)
 			aud_tras_drv_info.voc_info.lost_count.complete_size += temp_tx_info.buff_length;
 #endif
 		}
-	}
-#endif
-
-#if CONFIG_AUD_TRAS_MODE_CPU1
-	/* save the data after G711A processed to ping pang buffer of tx */
-	uint32_t *temp_tx_buffer = NULL;
-	//temp_tx_context = audio_transfer_context.tx_context;
-	if (temp_tx_info.ping.busy_status != true) {
-		os_memcpy(temp_tx_info.ping.buff_addr, aud_tras_drv_info.voc_info.encoder_temp.law_data, temp_mic_samp_rate_points);
-		temp_tx_info.ping.busy_status = true;
-		if (temp_tx_info.pang.busy_status == true) {
-			temp_tx_buffer = temp_tx_info.pang.buff_addr;
-		} else {
-			temp_tx_buffer = temp_tx_info.ping.buff_addr;
-		}
-	} else {
-		os_memcpy(temp_tx_info.pang.buff_addr, aud_tras_drv_info.voc_info.encoder_temp.law_data, temp_mic_samp_rate_points);
-		temp_tx_info.pang.busy_status = true;
-		temp_tx_buffer = temp_tx_info.ping.buff_addr;
-	}
-
-	/* send mailbox to notify cpu0 to send data by lwip of wifi */
-	ret = audio_send_aud_mailbox_msg(AUD_TRAS_MB_CMD_TX_REQ, (uint32_t)temp_tx_buffer, (uint32_t)temp_tx_info.buff_length, 0);
-	if (ret != BK_OK) {
-		LOGE("send mailbox msg: AUD_TRAS_MB_CMD_TX_REQ fail \r\n");
 	}
 #endif
 
@@ -871,64 +768,112 @@ static bk_err_t aud_tras_dec(void)
 	uint32_t size = 0;
 	uint32_t i = 0;
 
-#if CONFIG_DOORBELL_DEMO1
-		if (aud_pa_en == false) {
-			bk_gpio_disable_input(39);
-			bk_gpio_enable_output(39);
-			// pull up gpio39, enable audio pa vol
-			bk_gpio_set_output_low(39);
-			delay_ms(15);
-			bk_gpio_set_output_high(39);
-			aud_pa_en = true;
-			LOGI("[DOORBELL_DEMO1] open audio dac pa \r\n");
-		}
-#endif
+	if (aud_tras_drv_info.voc_info.status == AUD_TRAS_DRV_VOC_STA_NULL)
+		return BK_OK;
 
-#if CONFIG_DOORBELL_DEMO2
-			if (aud_pa_en == false) {
-				bk_gpio_disable_input(26);
-				bk_gpio_enable_output(26);
-				// pull up gpio39, enable audio pa vol
-				bk_gpio_set_output_high(26);
-				delay_ms(15);
-				bk_gpio_set_output_low(26);
-				aud_pa_en = true;
-				LOGI("[DOORBELL_DEMO2] open audio dac pa \r\n");
-			}
-#endif
+	if ((aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_UAC) && (ring_buffer_get_fill_size(&aud_tras_drv_info.voc_info.speaker_rb) >= aud_tras_drv_info.voc_info.uac_spk_buff_size)) {
+		/* get G711A data from decoder_ring_buff */
+		size = ring_buffer_read(&aud_tras_drv_info.voc_info.speaker_rb, aud_tras_drv_info.voc_info.uac_spk_buff, aud_tras_drv_info.voc_info.uac_spk_buff_size);
+		if (size != aud_tras_drv_info.voc_info.uac_spk_buff_size) {
+			LOGE("read speaker_rb uac spk data fail \r\n");
+			os_memset(aud_tras_drv_info.voc_info.uac_spk_buff, 0x00, aud_tras_drv_info.voc_info.uac_spk_buff_size);
+		}
+	} else {
+		os_memset(aud_tras_drv_info.voc_info.uac_spk_buff, 0x00, aud_tras_drv_info.voc_info.uac_spk_buff_size);
+	}
 
 	switch (aud_tras_drv_info.voc_info.data_type) {
 		case AUD_INTF_VOC_DATA_TYPE_G711A:
 			/* check the frame number in decoder_ring_buffer */
-			if (ring_buffer_get_fill_size(aud_tras_drv_info.voc_info.rx_info.decoder_rb) >= aud_tras_drv_info.voc_info.speaker_samp_rate_points) {
-				//os_printf("decoder process \r\n", size);
-				/* get G711A data from decoder_ring_buff */
-				size = ring_buffer_read(aud_tras_drv_info.voc_info.rx_info.decoder_rb, (uint8_t*)aud_tras_drv_info.voc_info.decoder_temp.law_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points);
-				if (size != aud_tras_drv_info.voc_info.speaker_samp_rate_points) {
-					LOGE("read decoder_ring_buff G711A data fail \r\n");
+			if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+				if (ring_buffer_get_fill_size(aud_tras_drv_info.voc_info.rx_info.decoder_rb) >= aud_tras_drv_info.voc_info.speaker_samp_rate_points) {
+					//os_printf("decoder process \r\n", size);
+					/* get G711A data from decoder_ring_buff */
+					size = ring_buffer_read(aud_tras_drv_info.voc_info.rx_info.decoder_rb, (uint8_t*)aud_tras_drv_info.voc_info.decoder_temp.law_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points);
+					if (size != aud_tras_drv_info.voc_info.speaker_samp_rate_points) {
+						LOGE("read decoder_ring_buff G711A data fail \r\n");
+						os_memset(aud_tras_drv_info.voc_info.decoder_temp.law_data, 0xD5, aud_tras_drv_info.voc_info.speaker_samp_rate_points);
+					}
+				} else {
 					os_memset(aud_tras_drv_info.voc_info.decoder_temp.law_data, 0xD5, aud_tras_drv_info.voc_info.speaker_samp_rate_points);
 				}
-			} else {
-				os_memset(aud_tras_drv_info.voc_info.decoder_temp.law_data, 0xD5, aud_tras_drv_info.voc_info.speaker_samp_rate_points);
-			}
 
-			/* G711A decoding a-law data to pcm data*/
-			for (i=0; i<aud_tras_drv_info.voc_info.speaker_samp_rate_points; i++) {
-				aud_tras_drv_info.voc_info.decoder_temp.pcm_data[i] = alaw2linear(aud_tras_drv_info.voc_info.decoder_temp.law_data[i]);
+				/* dump rx data */
+				if (aud_tras_drv_info.voc_info.aud_tras_dump_rx_cb) {
+					aud_tras_drv_info.voc_info.aud_tras_dump_rx_cb(aud_tras_drv_info.voc_info.decoder_temp.law_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points);
+				}
+
+				/* G711A decoding a-law data to pcm data*/
+				for (i=0; i<aud_tras_drv_info.voc_info.speaker_samp_rate_points; i++) {
+					aud_tras_drv_info.voc_info.decoder_temp.pcm_data[i] = alaw2linear(aud_tras_drv_info.voc_info.decoder_temp.law_data[i]);
+				}
+			} else {
+				if (ring_buffer_get_free_size(&aud_tras_drv_info.voc_info.speaker_rb) > aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2) {
+					/* check the frame number in decoder_ring_buffer */
+					if (ring_buffer_get_fill_size(aud_tras_drv_info.voc_info.rx_info.decoder_rb) >= aud_tras_drv_info.voc_info.speaker_samp_rate_points) {
+						//os_printf("decoder process \r\n", size);
+						/* get G711A data from decoder_ring_buff */
+						//addAON_GPIO_Reg0x9 = 2;
+						size = ring_buffer_read(aud_tras_drv_info.voc_info.rx_info.decoder_rb, (uint8_t*)aud_tras_drv_info.voc_info.decoder_temp.law_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points);
+						if (size != aud_tras_drv_info.voc_info.speaker_samp_rate_points) {
+							LOGE("read decoder_ring_buff G711A data fail \r\n");
+							os_memset(aud_tras_drv_info.voc_info.decoder_temp.law_data, 0xD5, aud_tras_drv_info.voc_info.speaker_samp_rate_points);
+						}
+						//addAON_GPIO_Reg0x9 = 0;
+					} else {
+						os_memset(aud_tras_drv_info.voc_info.decoder_temp.law_data, 0xD5, aud_tras_drv_info.voc_info.speaker_samp_rate_points);
+					}
+
+					/* dump rx data */
+					if (aud_tras_drv_info.voc_info.aud_tras_dump_rx_cb) {
+						aud_tras_drv_info.voc_info.aud_tras_dump_rx_cb(aud_tras_drv_info.voc_info.decoder_temp.law_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points);
+					}
+
+					/* G711A decoding a-law data to pcm data*/
+					for (i=0; i<aud_tras_drv_info.voc_info.speaker_samp_rate_points; i++) {
+						aud_tras_drv_info.voc_info.decoder_temp.pcm_data[i] = alaw2linear(aud_tras_drv_info.voc_info.decoder_temp.law_data[i]);
+					}
+				}
 			}
 			break;
 
 		case AUD_INTF_VOC_DATA_TYPE_PCM:
-			if (ring_buffer_get_fill_size(aud_tras_drv_info.voc_info.rx_info.decoder_rb) >= aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2) {
-				//os_printf("decoder process \r\n", size);
-				/* get pcm data from decoder_ring_buff */
-				size = ring_buffer_read(aud_tras_drv_info.voc_info.rx_info.decoder_rb, (uint8_t*)aud_tras_drv_info.voc_info.decoder_temp.pcm_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2);
-				if (size != aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2) {
-					LOGE("read decoder_ring_buff pcm data fail \r\n");
+			if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+				if (ring_buffer_get_fill_size(aud_tras_drv_info.voc_info.rx_info.decoder_rb) >= aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2) {
+					//os_printf("decoder process \r\n", size);
+					/* get pcm data from decoder_ring_buff */
+					size = ring_buffer_read(aud_tras_drv_info.voc_info.rx_info.decoder_rb, (uint8_t*)aud_tras_drv_info.voc_info.decoder_temp.pcm_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2);
+					if (size != aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2) {
+						LOGE("read decoder_ring_buff pcm data fail \r\n");
+						os_memset(aud_tras_drv_info.voc_info.decoder_temp.pcm_data, 0x00, aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2);
+					}
+				} else {
 					os_memset(aud_tras_drv_info.voc_info.decoder_temp.pcm_data, 0x00, aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2);
 				}
+				/* dump rx data */
+				if (aud_tras_drv_info.voc_info.aud_tras_dump_rx_cb) {
+					aud_tras_drv_info.voc_info.aud_tras_dump_rx_cb((uint8_t *)aud_tras_drv_info.voc_info.decoder_temp.pcm_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2);
+				}
 			} else {
-				os_memset(aud_tras_drv_info.voc_info.decoder_temp.pcm_data, 0x00, aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2);
+				if (ring_buffer_get_free_size(&aud_tras_drv_info.voc_info.speaker_rb) > aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2) {
+					/* check the frame number in decoder_ring_buffer */
+					if (ring_buffer_get_fill_size(aud_tras_drv_info.voc_info.rx_info.decoder_rb) >= aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2) {
+						//os_printf("decoder process \r\n", size);
+						/* get pcm data from decoder_ring_buff */
+						size = ring_buffer_read(aud_tras_drv_info.voc_info.rx_info.decoder_rb, (uint8_t*)aud_tras_drv_info.voc_info.decoder_temp.pcm_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2);
+						if (size != aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2) {
+							LOGE("read decoder_ring_buff pcm data fail \r\n");
+							os_memset(aud_tras_drv_info.voc_info.decoder_temp.pcm_data, 0x00, aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2);
+						}
+					} else {
+						os_memset(aud_tras_drv_info.voc_info.decoder_temp.pcm_data, 0x00, aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2);
+					}
+
+					/* dump rx data */
+					if (aud_tras_drv_info.voc_info.aud_tras_dump_rx_cb) {
+						aud_tras_drv_info.voc_info.aud_tras_dump_rx_cb((uint8_t *)aud_tras_drv_info.voc_info.decoder_temp.pcm_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2);
+					}
+				}
 			}
 			break;
 
@@ -1048,31 +993,82 @@ static bk_err_t aud_tras_drv_spk_req_data(void)
 	bk_err_t ret = BK_OK;
 	uint32_t size = 0;
 
-	/* get speaker data from spk_rx_ring_buff */
-	if (ring_buffer_get_fill_size(aud_tras_drv_info.spk_info.spk_rx_rb) >= aud_tras_drv_info.spk_info.frame_size) {
-		size = ring_buffer_read(aud_tras_drv_info.spk_info.spk_rx_rb, (uint8_t*)aud_tras_drv_info.spk_info.temp_spk_addr, aud_tras_drv_info.spk_info.frame_size);
-		if (size != aud_tras_drv_info.spk_info.frame_size) {
-			LOGE("read spk_rx_ring_buff fail, size:%d \r\n", size);
+	if (aud_tras_drv_info.spk_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+		/* get speaker data from spk_rx_ring_buff */
+		if (ring_buffer_get_fill_size(aud_tras_drv_info.spk_info.spk_rx_rb) >= aud_tras_drv_info.spk_info.frame_size) {
+			size = ring_buffer_read(aud_tras_drv_info.spk_info.spk_rx_rb, (uint8_t*)aud_tras_drv_info.spk_info.temp_spk_addr, aud_tras_drv_info.spk_info.frame_size);
+			if (size != aud_tras_drv_info.spk_info.frame_size) {
+				LOGE("read spk_rx_ring_buff fail, size:%d \r\n", size);
+				os_memset(aud_tras_drv_info.spk_info.temp_spk_addr, 0, aud_tras_drv_info.spk_info.frame_size);
+			}
+		} else {
+			LOGW("spk_rx_rb is empty \r\n");
 			os_memset(aud_tras_drv_info.spk_info.temp_spk_addr, 0, aud_tras_drv_info.spk_info.frame_size);
 		}
+
+		/* write spk_rx_data to audio dac */
+		size = ring_buffer_write(&(aud_tras_drv_info.spk_info.spk_rb), (uint8_t*)aud_tras_drv_info.spk_info.temp_spk_addr, aud_tras_drv_info.spk_info.frame_size);
+		if (size != aud_tras_drv_info.spk_info.frame_size) {
+			LOGE("write spk_data to audio dac fail, size:%d \r\n", size);
+			//TODO
+			//add handle code
+		}
+
+		/* call callback to notify app */
+		if (aud_tras_drv_info.aud_tras_rx_spk_data)
+			ret = aud_tras_drv_info.aud_tras_rx_spk_data((unsigned int)aud_tras_drv_info.spk_info.frame_size);
 	} else {
-		LOGW("spk_rx_rb is empty \r\n");
-		os_memset(aud_tras_drv_info.spk_info.temp_spk_addr, 0, aud_tras_drv_info.spk_info.frame_size);
-	}
+		if (ring_buffer_get_fill_size(&aud_tras_drv_info.spk_info.spk_rb) >= aud_tras_drv_info.spk_info.uac_spk_buff_size) {
+			/* get pcm data from spk_rb */
+			size = ring_buffer_read(&aud_tras_drv_info.spk_info.spk_rb, aud_tras_drv_info.spk_info.uac_spk_buff, aud_tras_drv_info.spk_info.uac_spk_buff_size);
+			if (size != aud_tras_drv_info.spk_info.uac_spk_buff_size) {
+				LOGE("read spk_rb uac spk data fail \r\n");
+				os_memset(aud_tras_drv_info.spk_info.uac_spk_buff, 0x00, aud_tras_drv_info.spk_info.uac_spk_buff_size);
+			}
+		} else {
+			os_memset(aud_tras_drv_info.spk_info.uac_spk_buff, 0x00, aud_tras_drv_info.spk_info.uac_spk_buff_size);
+		}
 
-	/* write spk_rx_data to audio dac */
-	size = ring_buffer_write(&(aud_tras_drv_info.spk_info.spk_rb), (uint8_t*)aud_tras_drv_info.spk_info.temp_spk_addr, aud_tras_drv_info.spk_info.frame_size);
-	if (size != aud_tras_drv_info.spk_info.frame_size) {
-		LOGE("write spk_data to audio dac fail, size:%d \r\n", size);
-		//TODO
-		//add handle code
-	}
+		/* save the data after G711A processed to encoder_ring_buffer */
+		if (ring_buffer_get_free_size(&(aud_tras_drv_info.spk_info.spk_rb)) > aud_tras_drv_info.spk_info.frame_size) {
+			/* get speaker data from spk_rx_ring_buff */
+			if (ring_buffer_get_fill_size(aud_tras_drv_info.spk_info.spk_rx_rb) >= aud_tras_drv_info.spk_info.frame_size) {
+				size = ring_buffer_read(aud_tras_drv_info.spk_info.spk_rx_rb, (uint8_t*)aud_tras_drv_info.spk_info.temp_spk_addr, aud_tras_drv_info.spk_info.frame_size);
+				if (size != aud_tras_drv_info.spk_info.frame_size) {
+					LOGE("read spk_rx_ring_buff fail, size:%d \r\n", size);
+					os_memset(aud_tras_drv_info.spk_info.temp_spk_addr, 0, aud_tras_drv_info.spk_info.frame_size);
+				}
+			} else {
+				LOGW("spk_rx_rb is empty \r\n");
+				os_memset(aud_tras_drv_info.spk_info.temp_spk_addr, 0, aud_tras_drv_info.spk_info.frame_size);
+			}
 
-	/* call callback to notify app */
-	if (aud_tras_drv_info.aud_tras_rx_spk_data)
-		ret = aud_tras_drv_info.aud_tras_rx_spk_data((unsigned int)aud_tras_drv_info.spk_info.frame_size);
+			/* write spk_rx_data to audio dac */
+			size = ring_buffer_write(&(aud_tras_drv_info.spk_info.spk_rb), (uint8_t*)aud_tras_drv_info.spk_info.temp_spk_addr, aud_tras_drv_info.spk_info.frame_size);
+			if (size != aud_tras_drv_info.spk_info.frame_size) {
+				LOGE("write spk_data to audio dac fail, size:%d \r\n", size);
+				//TODO
+				//add handle code
+			}
+
+			/* call callback to notify app */
+			if (aud_tras_drv_info.aud_tras_rx_spk_data)
+				ret = aud_tras_drv_info.aud_tras_rx_spk_data((unsigned int)aud_tras_drv_info.spk_info.frame_size);
+		}
+	}
 
 	return ret;
+}
+
+static void aud_tras_drv_spk_uac_spk_cb(void)
+{
+	bk_err_t ret = BK_OK;
+
+	/* send msg to notify app to write speaker data */
+	ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_SPK_REQ_DATA, NULL);
+	if (ret != kNoErr) {
+		LOGE("send msg: AUD_TRAS_DRV_DECODER fails \r\n");
+	}
 }
 
 static bk_err_t aud_tras_drv_spk_init(aud_intf_spk_config_t *spk_cfg)
@@ -1083,87 +1079,123 @@ static bk_err_t aud_tras_drv_spk_init(aud_intf_spk_config_t *spk_cfg)
 	/* get callback */
 	aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb = spk_cfg->aud_tras_drv_spk_event_cb;
 
-	/* get audio dac config */
-	aud_tras_drv_info.spk_info.dac_config = os_malloc(sizeof(aud_dac_config_t));
-	if (aud_tras_drv_info.spk_info.dac_config == NULL) {
-		LOGE("adc_config os_malloc fail \r\n");
-		err = BK_ERR_AUD_INTF_MEMY;
-		goto aud_tras_drv_spk_init_exit;
-	} else {
-		aud_tras_drv_info.spk_info.dac_config->dac_enable = AUD_DAC_DISABLE;
-		aud_tras_drv_info.spk_info.dac_config->samp_rate = spk_cfg->samp_rate;
-		if (spk_cfg->spk_chl == AUD_INTF_SPK_CHL_LEFT)
-			aud_tras_drv_info.spk_info.dac_config->dac_chl = AUD_DAC_CHL_L_ENABLE;
-		else
-			aud_tras_drv_info.spk_info.dac_config->dac_chl = AUD_DAC_CHL_LR_ENABLE;
-		aud_tras_drv_info.spk_info.dac_config->work_mode = spk_cfg->work_mode;
-		aud_tras_drv_info.spk_info.dac_config->dac_hpf2_coef_B2 = 0x3A22;
-		aud_tras_drv_info.spk_info.dac_config->dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
-		aud_tras_drv_info.spk_info.dac_config->dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
-		aud_tras_drv_info.spk_info.dac_config->dac_set_gain = spk_cfg->spk_gain;	//default 2D  3F  15
-		aud_tras_drv_info.spk_info.dac_config->dac_clk_invert = AUD_DAC_CLK_INVERT_RISING;
-		aud_tras_drv_info.spk_info.dac_config->dac_hpf2_coef_B0 = 0x3A22;
-		aud_tras_drv_info.spk_info.dac_config->dac_hpf2_coef_B1 = 0x8BBF;
-		aud_tras_drv_info.spk_info.dac_config->dac_hpf2_coef_A1 = 0x751C;
-		aud_tras_drv_info.spk_info.dac_config->dac_hpf2_coef_A2 = 0xC9E6;
-		aud_tras_drv_info.spk_info.dac_config->dacr_rd_threshold = 0x4;
-		aud_tras_drv_info.spk_info.dac_config->dacl_rd_threshold = 0x4;
-		aud_tras_drv_info.spk_info.dac_config->dacr_int_enable = 0x0;
-		aud_tras_drv_info.spk_info.dac_config->dacl_int_enable = 0x0;
-		aud_tras_drv_info.spk_info.dac_config->dac_filt_enable = AUD_DAC_FILT_DISABLE;
+	aud_tras_drv_info.spk_info.spk_type = spk_cfg->spk_type;
+	if (aud_tras_drv_info.spk_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+		/* get audio dac config */
+		aud_tras_drv_info.spk_info.dac_config = os_malloc(sizeof(aud_dac_config_t));
+		if (aud_tras_drv_info.spk_info.dac_config == NULL) {
+			LOGE("adc_config os_malloc fail \r\n");
+			err = BK_ERR_AUD_INTF_MEMY;
+			goto aud_tras_drv_spk_init_exit;
+		} else {
+			aud_tras_drv_info.spk_info.dac_config->dac_enable = AUD_DAC_DISABLE;
+			aud_tras_drv_info.spk_info.dac_config->samp_rate = spk_cfg->samp_rate;
+			if (spk_cfg->spk_chl == AUD_INTF_SPK_CHL_LEFT)
+				aud_tras_drv_info.spk_info.dac_config->dac_chl = AUD_DAC_CHL_L_ENABLE;
+			else
+				aud_tras_drv_info.spk_info.dac_config->dac_chl = AUD_DAC_CHL_LR_ENABLE;
+			aud_tras_drv_info.spk_info.dac_config->work_mode = spk_cfg->work_mode;
+			aud_tras_drv_info.spk_info.dac_config->dac_hpf2_coef_B2 = 0x3A22;
+			aud_tras_drv_info.spk_info.dac_config->dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
+			aud_tras_drv_info.spk_info.dac_config->dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
+			aud_tras_drv_info.spk_info.dac_config->dac_set_gain = spk_cfg->spk_gain;	//default 2D  3F  15
+			aud_tras_drv_info.spk_info.dac_config->dac_clk_invert = AUD_DAC_CLK_INVERT_RISING;
+			aud_tras_drv_info.spk_info.dac_config->dac_hpf2_coef_B0 = 0x3A22;
+			aud_tras_drv_info.spk_info.dac_config->dac_hpf2_coef_B1 = 0x8BBF;
+			aud_tras_drv_info.spk_info.dac_config->dac_hpf2_coef_A1 = 0x751C;
+			aud_tras_drv_info.spk_info.dac_config->dac_hpf2_coef_A2 = 0xC9E6;
+			aud_tras_drv_info.spk_info.dac_config->dacr_rd_threshold = 0x4;
+			aud_tras_drv_info.spk_info.dac_config->dacl_rd_threshold = 0x4;
+			aud_tras_drv_info.spk_info.dac_config->dacr_int_enable = 0x0;
+			aud_tras_drv_info.spk_info.dac_config->dacl_int_enable = 0x0;
+			aud_tras_drv_info.spk_info.dac_config->dac_filt_enable = AUD_DAC_FILT_DISABLE;
+		}
+		aud_tras_drv_info.spk_info.spk_en = true;
 	}
-	aud_tras_drv_info.spk_info.spk_en = true;
+
 	aud_tras_drv_info.spk_info.spk_chl = spk_cfg->spk_chl;
 	aud_tras_drv_info.spk_info.frame_size = spk_cfg->frame_size;
 	aud_tras_drv_info.spk_info.fifo_frame_num = spk_cfg->fifo_frame_num;
 	aud_tras_drv_info.spk_info.spk_rx_rb = spk_cfg->spk_rx_rb;
 	aud_tras_drv_info.spk_info.spk_rx_ring_buff = spk_cfg->spk_rx_ring_buff;
 
-	/* audio dac config */
-	ret = aud_tras_dac_config(aud_tras_drv_info.spk_info.dac_config);
-	if (ret != BK_OK) {
-		LOGE("audio dac init fail \r\n");
-		err = BK_ERR_AUD_INTF_DAC;
-		goto aud_tras_drv_spk_init_exit;
-	}
-	LOGI("step1: init audio and config DAC complete \r\n");
-
-	/* init dma driver */
-	ret = bk_dma_driver_init();
-	if (ret != BK_OK) {
-		LOGE("dma driver init failed\r\n");
-		err = BK_ERR_AUD_INTF_DMA;
-		goto aud_tras_drv_spk_init_exit;
-	}
-
-	/* allocate free DMA channel */
-	aud_tras_drv_info.spk_info.spk_dma_id = bk_dma_alloc(DMA_DEV_AUDIO);
-	if ((aud_tras_drv_info.spk_info.spk_dma_id < DMA_ID_0) || (aud_tras_drv_info.spk_info.spk_dma_id >= DMA_ID_MAX)) {
-		LOGE("malloc dac dma fail \r\n");
-		err = BK_ERR_AUD_INTF_DMA;
-		goto aud_tras_drv_spk_init_exit;
-	}
-
-	aud_tras_drv_info.spk_info.spk_ring_buff = (int32_t *)os_malloc(aud_tras_drv_info.spk_info.frame_size * 2);
+	/* malloc spk_ring_buff to save audio data */
+	aud_tras_drv_info.spk_info.spk_ring_buff = (int32_t *)os_malloc(aud_tras_drv_info.spk_info.frame_size * 2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL);
 	if (aud_tras_drv_info.spk_info.spk_ring_buff == NULL) {
 		LOGE("malloc speakerk ring buffer fail \r\n");
 		err = BK_ERR_AUD_INTF_MEMY;
 		goto aud_tras_drv_spk_init_exit;
 	}
 
-	/* config audio dac dma to carry speaker data to "spk_ring_buff" */
-	ret = aud_tras_dac_dma_config(aud_tras_drv_info.spk_info.spk_dma_id, aud_tras_drv_info.spk_info.spk_ring_buff, aud_tras_drv_info.spk_info.frame_size * 2, aud_tras_drv_info.spk_info.frame_size, aud_tras_drv_info.spk_info.spk_chl);
-	if (ret != BK_ERR_AUD_INTF_OK) {
-		LOGE("config audio dac dma fail \r\n");
-		ret = ret;
+	if (aud_tras_drv_info.spk_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+		/* audio dac config */
+		ret = aud_tras_dac_config(aud_tras_drv_info.spk_info.dac_config);
+		if (ret != BK_OK) {
+			LOGE("audio dac init fail \r\n");
+			err = BK_ERR_AUD_INTF_DAC;
+			goto aud_tras_drv_spk_init_exit;
+		}
+		LOGI("step1: init audio and config DAC complete \r\n");
+
+		/* init dma driver */
+		ret = bk_dma_driver_init();
+		if (ret != BK_OK) {
+			LOGE("dma driver init failed\r\n");
+			err = BK_ERR_AUD_INTF_DMA;
+			goto aud_tras_drv_spk_init_exit;
+		}
+
+		/* allocate free DMA channel */
+		aud_tras_drv_info.spk_info.spk_dma_id = bk_dma_alloc(DMA_DEV_AUDIO);
+		if ((aud_tras_drv_info.spk_info.spk_dma_id < DMA_ID_0) || (aud_tras_drv_info.spk_info.spk_dma_id >= DMA_ID_MAX)) {
+			LOGE("malloc dac dma fail \r\n");
+			err = BK_ERR_AUD_INTF_DMA;
+			goto aud_tras_drv_spk_init_exit;
+		}
+
+		/* config audio dac dma to carry speaker data to "spk_ring_buff" */
+		ret = aud_tras_dac_dma_config(aud_tras_drv_info.spk_info.spk_dma_id, aud_tras_drv_info.spk_info.spk_ring_buff, aud_tras_drv_info.spk_info.frame_size * 2, aud_tras_drv_info.spk_info.frame_size, aud_tras_drv_info.spk_info.spk_chl);
+		if (ret != BK_ERR_AUD_INTF_OK) {
+			LOGE("config audio dac dma fail \r\n");
+			ret = ret;
+			goto aud_tras_drv_spk_init_exit;
+		}
+
+		/* init spk_ring_buff */
+		ring_buffer_init(&(aud_tras_drv_info.spk_info.spk_rb), (uint8_t*)aud_tras_drv_info.spk_info.spk_ring_buff, aud_tras_drv_info.spk_info.frame_size * 2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, aud_tras_drv_info.spk_info.spk_dma_id, RB_DMA_TYPE_READ);
+		LOGI("step2: init dma:%d, and spk ring buff:%p, size:%d complete \r\n", aud_tras_drv_info.spk_info.spk_dma_id, aud_tras_drv_info.spk_info.spk_ring_buff, aud_tras_drv_info.spk_info.frame_size * 2);
+	} else if (aud_tras_drv_info.spk_info.spk_type == AUD_INTF_SPK_TYPE_UAC) {
+		/* init spk_ring_buff */
+		ring_buffer_init(&(aud_tras_drv_info.spk_info.spk_rb), (uint8_t*)aud_tras_drv_info.spk_info.spk_ring_buff, aud_tras_drv_info.spk_info.frame_size*2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, DMA_ID_MAX, RB_DMA_TYPE_NULL);
+
+		/* close spk */
+		aud_tras_drv_info.spk_info.spk_en = false;
+
+		//TODO
+		aud_tras_drv_info.spk_info.uac_spk_buff_size = 32;
+		aud_tras_drv_info.spk_info.uac_spk_buff = (uint8_t *)os_malloc(aud_tras_drv_info.spk_info.uac_spk_buff_size);
+
+		bk_aud_uac_register_spk_buff_ptr(aud_tras_drv_info.spk_info.uac_spk_buff, aud_tras_drv_info.spk_info.uac_spk_buff_size);
+
+		bk_aud_uac_register_spk_callback((void *)aud_tras_drv_spk_uac_spk_cb);
+
+		LOGI("init uac driver \r\n");
+		ret = bk_aud_uac_driver_init();
+		if (ret != BK_OK) {
+			LOGE("init uac driver fail \r\n");
+			err = BK_ERR_AUD_INTF_UAC_DRV;
+			goto aud_tras_drv_spk_init_exit;
+		}
+		//TODO
+		rtos_delay_milliseconds(4500);
+
+		LOGI("step2: init spk ring buff:%p, size:%d complete \r\n", aud_tras_drv_info.spk_info.spk_ring_buff, aud_tras_drv_info.spk_info.frame_size*2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL);
+	} else {
+		err = BK_ERR_AUD_INTF_PARAM;
 		goto aud_tras_drv_spk_init_exit;
 	}
 
-	/* init spk_ring_buff */
-	ring_buffer_init(&(aud_tras_drv_info.spk_info.spk_rb), (uint8_t*)aud_tras_drv_info.spk_info.spk_ring_buff, aud_tras_drv_info.spk_info.frame_size * 2, aud_tras_drv_info.spk_info.spk_dma_id, RB_DMA_TYPE_READ);
-	LOGI("step2: init dma:%d, and spk ring buff:%p, size:%d complete \r\n", aud_tras_drv_info.spk_info.spk_dma_id, aud_tras_drv_info.spk_info.spk_ring_buff, aud_tras_drv_info.spk_info.frame_size * 2);
-
-	/* init mic temp buffer */
+	/* init spk temp buffer */
 	aud_tras_drv_info.spk_info.temp_spk_addr = (int32_t *)os_malloc(aud_tras_drv_info.spk_info.frame_size);
 	if (aud_tras_drv_info.spk_info.temp_spk_addr == NULL) {
 		LOGE("malloc temp spk ring buffer fail \r\n");
@@ -1219,14 +1251,26 @@ aud_tras_drv_spk_init_exit:
 
 static bk_err_t aud_tras_drv_spk_deinit(void)
 {
-	/* disable audio dac */
-	bk_aud_stop_dac();
-	bk_dma_stop(aud_tras_drv_info.spk_info.spk_dma_id);
-	bk_dma_deinit(aud_tras_drv_info.spk_info.spk_dma_id);
-	bk_dma_free(DMA_DEV_AUDIO, aud_tras_drv_info.spk_info.spk_dma_id);
-	bk_aud_adc_deinit();
-	os_free(aud_tras_drv_info.spk_info.dac_config);
-	aud_tras_drv_info.spk_info.dac_config = NULL;
+	if (aud_tras_drv_info.spk_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+		/* disable audio dac */
+		bk_aud_stop_dac();
+		aud_tras_dac_pa_ctrl(false);
+		bk_dma_stop(aud_tras_drv_info.spk_info.spk_dma_id);
+		bk_dma_deinit(aud_tras_drv_info.spk_info.spk_dma_id);
+		bk_dma_free(DMA_DEV_AUDIO, aud_tras_drv_info.spk_info.spk_dma_id);
+		bk_aud_dac_deinit();
+		bk_aud_driver_deinit();
+		os_free(aud_tras_drv_info.spk_info.dac_config);
+		aud_tras_drv_info.spk_info.dac_config = NULL;
+	} else {
+		bk_aud_uac_stop_spk();
+		bk_aud_uac_unregister_spk_callback();
+		bk_aud_uac_driver_deinit();
+
+		os_free(aud_tras_drv_info.spk_info.uac_spk_buff);
+		aud_tras_drv_info.spk_info.uac_spk_buff = NULL;
+		aud_tras_drv_info.spk_info.uac_spk_buff_size = 0;
+	}
 
 	aud_tras_drv_info.spk_info.spk_en = false;
 	aud_tras_drv_info.spk_info.spk_chl = AUD_INTF_MIC_CHL_MIC1;
@@ -1261,15 +1305,22 @@ static bk_err_t aud_tras_drv_spk_start(void)
 		goto spk_start_err;
 	}
 
-	/* enable dac */
-	bk_aud_start_dac();
-	bk_aud_start_dac();
+	if (aud_tras_drv_info.spk_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+		/* enable dac */
+		bk_aud_start_dac();
+		bk_aud_start_dac();
 
-	ret = bk_dma_start(aud_tras_drv_info.spk_info.spk_dma_id);
-	if (ret != BK_OK) {
-		LOGE("start speaker dma fail \r\n");
-		err = BK_ERR_AUD_INTF_DMA;
-		goto spk_start_err;
+		aud_tras_dac_pa_ctrl(true);
+
+		ret = bk_dma_start(aud_tras_drv_info.spk_info.spk_dma_id);
+		if (ret != BK_OK) {
+			LOGE("start speaker dma fail \r\n");
+			err = BK_ERR_AUD_INTF_DMA;
+			goto spk_start_err;
+		}
+	} else {
+		LOGI("start uac spk \r\n");
+		bk_aud_uac_start_spk();
 	}
 
 	if (aud_tras_drv_info.spk_info.status == AUD_TRAS_DRV_SPK_STA_IDLE) {
@@ -1331,9 +1382,15 @@ static bk_err_t aud_tras_drv_spk_pause(void)
 		goto spk_pause_err;
 	}
 
-	/* disable adc */
-	bk_aud_stop_dac();
-	bk_dma_stop(aud_tras_drv_info.spk_info.spk_dma_id);
+	if (aud_tras_drv_info.spk_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+		/* disable adc */
+		bk_aud_stop_dac();
+		aud_tras_dac_pa_ctrl(false);
+		bk_dma_stop(aud_tras_drv_info.spk_info.spk_dma_id);
+	} else {
+		bk_aud_uac_stop_spk();
+	}
+
 	aud_tras_drv_info.spk_info.status = AUD_TRAS_DRV_SPK_STA_PAUSE;
 
 	if (aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb)
@@ -1354,9 +1411,15 @@ static bk_err_t aud_tras_drv_spk_stop(void)
 		goto spk_stop_err;
 	}
 
-	/* disable adc */
-	bk_aud_stop_dac();
-	bk_dma_stop(aud_tras_drv_info.spk_info.spk_dma_id);
+	if (aud_tras_drv_info.spk_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+		/* disable adc */
+		bk_aud_stop_dac();
+		aud_tras_dac_pa_ctrl(false);
+		bk_dma_stop(aud_tras_drv_info.spk_info.spk_dma_id);
+	} else {
+		bk_aud_uac_stop_spk();
+	}
+
 	ring_buffer_clear(&(aud_tras_drv_info.spk_info.spk_rb));
 	aud_tras_drv_info.spk_info.status = AUD_TRAS_DRV_SPK_STA_IDLE;
 
@@ -1396,6 +1459,35 @@ static bk_err_t aud_tras_drv_spk_set_chl(aud_intf_spk_chl_t spk_chl)
 	return ret;
 }
 
+static void aud_tras_drv_mic_uac_mic_cb(uint8_t *buff, uint32_t count)
+{
+	bk_err_t ret = BK_OK;
+	uint32_t write_size = 0;
+	uint32_t data = 0;
+
+	if (aud_tras_drv_info.mic_info.status == AUD_TRAS_DRV_MIC_STA_START && count > 0) {
+		if (ring_buffer_get_free_size(&aud_tras_drv_info.mic_info.mic_rb) >= count) {
+			for (write_size = 0; write_size < count/4; write_size++) {
+				data = *((uint32_t *)buff);
+				ring_buffer_write(&aud_tras_drv_info.mic_info.mic_rb, (uint8_t *)&data, 4);
+			}
+		}
+	}
+
+	if (uac_mic_read_flag && (ring_buffer_get_fill_size(&aud_tras_drv_info.mic_info.mic_rb) < aud_tras_drv_info.mic_info.frame_size))
+		uac_mic_read_flag = false;
+
+	if ((ring_buffer_get_fill_size(&aud_tras_drv_info.mic_info.mic_rb) > aud_tras_drv_info.mic_info.frame_size) && (uac_mic_read_flag == false)) {
+		uac_mic_read_flag = true;
+		/* send msg to TX_DATA to process mic data */
+		ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_MIC_TX_DATA, NULL);
+		if (ret != kNoErr) {
+			LOGE("send msg: AUD_TRAS_DRV_MIC_TX_DATA fail \r\n");
+			uac_mic_read_flag = false;
+		}
+	}
+}
+
 static bk_err_t aud_tras_drv_mic_init(aud_intf_mic_config_t *mic_cfg)
 {
 	bk_err_t ret = BK_OK;
@@ -1404,107 +1496,137 @@ static bk_err_t aud_tras_drv_mic_init(aud_intf_mic_config_t *mic_cfg)
 	LOGD("mic_cfg->frame_size: %d \r\n", mic_cfg->frame_size);
 
 	aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb = mic_cfg->aud_tras_drv_mic_event_cb;
-	/* get audio adc config */
-	aud_tras_drv_info.mic_info.adc_config = os_malloc(sizeof(aud_adc_config_t));
-	if (aud_tras_drv_info.mic_info.adc_config == NULL) {
-		LOGE("adc_config os_malloc fail \r\n");
-		err = BK_ERR_AUD_INTF_MEMY;
-		goto aud_tras_drv_mic_init_exit;
-	} else {
-		if (mic_cfg->mic_chl == AUD_INTF_MIC_CHL_MIC1) {
-			aud_tras_drv_info.mic_info.adc_config->mic_config = AUD_MIC_MIC1_ENABLE;
-		} else if (mic_cfg->mic_chl == AUD_INTF_MIC_CHL_DUAL) {
-			aud_tras_drv_info.mic_info.adc_config->mic_config = AUD_MIC_ALL_ENABLE;
+	aud_tras_drv_info.mic_info.mic_type = mic_cfg->mic_type;
+	if (aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+		/* get audio adc config */
+		aud_tras_drv_info.mic_info.adc_config = os_malloc(sizeof(aud_adc_config_t));
+		if (aud_tras_drv_info.mic_info.adc_config == NULL) {
+			LOGE("adc_config os_malloc fail \r\n");
+			err = BK_ERR_AUD_INTF_MEMY;
+			goto aud_tras_drv_mic_init_exit;
 		} else {
-			LOGW("mic chl is error, set default: AUD_MIC_MIC1_ENABLE \r\n");
-			aud_tras_drv_info.mic_info.adc_config->mic_config = AUD_MIC_MIC1_ENABLE;
+			if (mic_cfg->mic_chl == AUD_INTF_MIC_CHL_MIC1) {
+				aud_tras_drv_info.mic_info.adc_config->mic_config = AUD_MIC_MIC1_ENABLE;
+			} else if (mic_cfg->mic_chl == AUD_INTF_MIC_CHL_DUAL) {
+				aud_tras_drv_info.mic_info.adc_config->mic_config = AUD_MIC_ALL_ENABLE;
+			} else {
+				LOGW("mic chl is error, set default: AUD_MIC_MIC1_ENABLE \r\n");
+				aud_tras_drv_info.mic_info.adc_config->mic_config = AUD_MIC_MIC1_ENABLE;
+			}
+			aud_tras_drv_info.mic_info.adc_config->samp_rate = mic_cfg->samp_rate;
+			aud_tras_drv_info.mic_info.adc_config->adc_enable = AUD_ADC_DISABLE;
+			aud_tras_drv_info.mic_info.adc_config->line_enable = AUD_ADC_LINE_DISABLE;
+			aud_tras_drv_info.mic_info.adc_config->dtmf_enable = AUD_DTMF_DISABLE;
+			aud_tras_drv_info.mic_info.adc_config->adc_hpf2_coef_B2 = 0;
+			aud_tras_drv_info.mic_info.adc_config->adc_hpf2_bypass_enable = AUD_ADC_HPF_BYPASS_ENABLE;
+			aud_tras_drv_info.mic_info.adc_config->adc_hpf1_bypass_enable = AUD_ADC_HPF_BYPASS_ENABLE;
+			aud_tras_drv_info.mic_info.adc_config->adc_set_gain = mic_cfg->mic_gain;	//default: 0x2d
+			aud_tras_drv_info.mic_info.adc_config->adc_samp_edge = AUD_ADC_SAMP_EDGE_RISING;
+			aud_tras_drv_info.mic_info.adc_config->adc_hpf2_coef_B0 = 0;
+			aud_tras_drv_info.mic_info.adc_config->adc_hpf2_coef_B1 = 0;
+			aud_tras_drv_info.mic_info.adc_config->adc_hpf2_coef_A0 = 0;
+			aud_tras_drv_info.mic_info.adc_config->adc_hpf2_coef_A1 = 0;
+			aud_tras_drv_info.mic_info.adc_config->dtmf_wr_threshold = 8;
+			aud_tras_drv_info.mic_info.adc_config->adcl_wr_threshold = 8;
+			aud_tras_drv_info.mic_info.adc_config->dtmf_int_enable = AUD_DTMF_INT_DISABLE;
+			aud_tras_drv_info.mic_info.adc_config->adcl_int_enable = AUD_ADCL_INT_DISABLE;
+			aud_tras_drv_info.mic_info.adc_config->loop_adc2dac = AUD_LOOP_ADC2DAC_DISABLE;
+			aud_tras_drv_info.mic_info.adc_config->agc_noise_thrd = 101;
+			aud_tras_drv_info.mic_info.adc_config->agc_noise_high = 101;
+			aud_tras_drv_info.mic_info.adc_config->agc_noise_low = 160;
+			aud_tras_drv_info.mic_info.adc_config->agc_noise_min = 1;
+			aud_tras_drv_info.mic_info.adc_config->agc_noise_tout = 0;
+			aud_tras_drv_info.mic_info.adc_config->agc_high_dur = 3;
+			aud_tras_drv_info.mic_info.adc_config->agc_low_dur = 3;
+			aud_tras_drv_info.mic_info.adc_config->agc_min = 1;
+			aud_tras_drv_info.mic_info.adc_config->agc_max = 4;
+			aud_tras_drv_info.mic_info.adc_config->agc_ng_method = AUD_AGC_NG_METHOD_MUTE;
+			aud_tras_drv_info.mic_info.adc_config->agc_ng_enable = AUD_AGC_NG_DISABLE;
+			aud_tras_drv_info.mic_info.adc_config->agc_decay_time = AUD_AGC_DECAY_TIME_128;
+			aud_tras_drv_info.mic_info.adc_config->agc_attack_time = AUD_AGC_ATTACK_TIME_128;
+			aud_tras_drv_info.mic_info.adc_config->agc_high_thrd = 18;
+			aud_tras_drv_info.mic_info.adc_config->agc_low_thrd = 0;
+			aud_tras_drv_info.mic_info.adc_config->agc_iir_coef = AUD_AGC_IIR_COEF_1_1024;
+			aud_tras_drv_info.mic_info.adc_config->agc_enable = AUD_AGC_DISABLE;
+			aud_tras_drv_info.mic_info.adc_config->manual_pga_value = 0;
+			aud_tras_drv_info.mic_info.adc_config->manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
 		}
-		aud_tras_drv_info.mic_info.adc_config->samp_rate = mic_cfg->samp_rate;
-		aud_tras_drv_info.mic_info.adc_config->adc_enable = AUD_ADC_DISABLE;
-		aud_tras_drv_info.mic_info.adc_config->line_enable = AUD_ADC_LINE_DISABLE;
-		aud_tras_drv_info.mic_info.adc_config->dtmf_enable = AUD_DTMF_DISABLE;
-		aud_tras_drv_info.mic_info.adc_config->adc_hpf2_coef_B2 = 0;
-		aud_tras_drv_info.mic_info.adc_config->adc_hpf2_bypass_enable = AUD_ADC_HPF_BYPASS_ENABLE;
-		aud_tras_drv_info.mic_info.adc_config->adc_hpf1_bypass_enable = AUD_ADC_HPF_BYPASS_ENABLE;
-		aud_tras_drv_info.mic_info.adc_config->adc_set_gain = mic_cfg->mic_gain;	//default: 0x2d
-		aud_tras_drv_info.mic_info.adc_config->adc_samp_edge = AUD_ADC_SAMP_EDGE_RISING;
-		aud_tras_drv_info.mic_info.adc_config->adc_hpf2_coef_B0 = 0;
-		aud_tras_drv_info.mic_info.adc_config->adc_hpf2_coef_B1 = 0;
-		aud_tras_drv_info.mic_info.adc_config->adc_hpf2_coef_A0 = 0;
-		aud_tras_drv_info.mic_info.adc_config->adc_hpf2_coef_A1 = 0;
-		aud_tras_drv_info.mic_info.adc_config->dtmf_wr_threshold = 8;
-		aud_tras_drv_info.mic_info.adc_config->adcl_wr_threshold = 8;
-		aud_tras_drv_info.mic_info.adc_config->dtmf_int_enable = AUD_DTMF_INT_DISABLE;
-		aud_tras_drv_info.mic_info.adc_config->adcl_int_enable = AUD_ADCL_INT_DISABLE;
-		aud_tras_drv_info.mic_info.adc_config->loop_adc2dac = AUD_LOOP_ADC2DAC_DISABLE;
-		aud_tras_drv_info.mic_info.adc_config->agc_noise_thrd = 101;
-		aud_tras_drv_info.mic_info.adc_config->agc_noise_high = 101;
-		aud_tras_drv_info.mic_info.adc_config->agc_noise_low = 160;
-		aud_tras_drv_info.mic_info.adc_config->agc_noise_min = 1;
-		aud_tras_drv_info.mic_info.adc_config->agc_noise_tout = 0;
-		aud_tras_drv_info.mic_info.adc_config->agc_high_dur = 3;
-		aud_tras_drv_info.mic_info.adc_config->agc_low_dur = 3;
-		aud_tras_drv_info.mic_info.adc_config->agc_min = 1;
-		aud_tras_drv_info.mic_info.adc_config->agc_max = 4;
-		aud_tras_drv_info.mic_info.adc_config->agc_ng_method = AUD_AGC_NG_METHOD_MUTE;
-		aud_tras_drv_info.mic_info.adc_config->agc_ng_enable = AUD_AGC_NG_DISABLE;
-		aud_tras_drv_info.mic_info.adc_config->agc_decay_time = AUD_AGC_DECAY_TIME_128;
-		aud_tras_drv_info.mic_info.adc_config->agc_attack_time = AUD_AGC_ATTACK_TIME_128;
-		aud_tras_drv_info.mic_info.adc_config->agc_high_thrd = 18;
-		aud_tras_drv_info.mic_info.adc_config->agc_low_thrd = 0;
-		aud_tras_drv_info.mic_info.adc_config->agc_iir_coef = AUD_AGC_IIR_COEF_1_1024;
-		aud_tras_drv_info.mic_info.adc_config->agc_enable = AUD_AGC_DISABLE;
-		aud_tras_drv_info.mic_info.adc_config->manual_pga_value = 0;
-		aud_tras_drv_info.mic_info.adc_config->manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
+		aud_tras_drv_info.mic_info.mic_en = true;
 	}
-	aud_tras_drv_info.mic_info.mic_en = true;
+
 	aud_tras_drv_info.mic_info.mic_chl = mic_cfg->mic_chl;
 	aud_tras_drv_info.mic_info.frame_size = mic_cfg->frame_size;
 
-	/* audio adc config */
-	ret = aud_tras_adc_config(aud_tras_drv_info.mic_info.adc_config);
-	if (ret != BK_OK) {
-		LOGE("audio adc init fail \r\n");
-		err = BK_ERR_AUD_INTF_ADC;
-		goto aud_tras_drv_mic_init_exit;
-	}
-	LOGI("step1: init audio and config ADC complete \r\n");
-
-	/* init dma driver */
-	ret = bk_dma_driver_init();
-	if (ret != BK_OK) {
-		LOGE("dma driver init failed\r\n");
-		err = BK_ERR_AUD_INTF_DMA;
-		goto aud_tras_drv_mic_init_exit;
-	}
-
-	/* allocate free DMA channel */
-	aud_tras_drv_info.mic_info.mic_dma_id = bk_dma_alloc(DMA_DEV_AUDIO);
-	if ((aud_tras_drv_info.mic_info.mic_dma_id < DMA_ID_0) || (aud_tras_drv_info.mic_info.mic_dma_id >= DMA_ID_MAX)) {
-		LOGE("malloc adc dma fail \r\n");
-		err = BK_ERR_AUD_INTF_DMA;
-		goto aud_tras_drv_mic_init_exit;
-	}
-
-	LOGD("mic_ring_buff size: %d \r\n", aud_tras_drv_info.mic_info.frame_size * 2);
-	aud_tras_drv_info.mic_info.mic_ring_buff = (int32_t *)os_malloc(aud_tras_drv_info.mic_info.frame_size * 2);
+	/* config audio adc or uac and dma */
+	LOGD("mic_ring_buff size: %d \r\n", aud_tras_drv_info.mic_info.frame_size * 2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL);
+	aud_tras_drv_info.mic_info.mic_ring_buff = (int32_t *)os_malloc(aud_tras_drv_info.mic_info.frame_size * 2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL);
 	if (aud_tras_drv_info.mic_info.mic_ring_buff == NULL) {
 		LOGE("malloc mic ring buffer fail \r\n");
 		err = BK_ERR_AUD_INTF_MEMY;
 		goto aud_tras_drv_mic_init_exit;
 	}
 
-	/* config audio adc dma to carry mic data to "mic_ring_buff" */
-	ret = aud_tras_adc_dma_config(aud_tras_drv_info.mic_info.mic_dma_id, aud_tras_drv_info.mic_info.mic_ring_buff, aud_tras_drv_info.mic_info.frame_size * 2, aud_tras_drv_info.mic_info.frame_size, aud_tras_drv_info.mic_info.mic_chl);
-	if (ret != BK_OK) {
-		LOGE("config audio adc dma fail \r\n");
-		err = ret;
+	if (aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+		/* audio adc config */
+		ret = aud_tras_adc_config(aud_tras_drv_info.mic_info.adc_config);
+		if (ret != BK_OK) {
+			LOGE("audio adc init fail \r\n");
+			err = BK_ERR_AUD_INTF_ADC;
+			goto aud_tras_drv_mic_init_exit;
+		}
+		LOGI("step1: init audio and config ADC complete \r\n");
+
+		/* init dma driver */
+		ret = bk_dma_driver_init();
+		if (ret != BK_OK) {
+			LOGE("dma driver init failed\r\n");
+			err = BK_ERR_AUD_INTF_DMA;
+			goto aud_tras_drv_mic_init_exit;
+		}
+
+		/* allocate free DMA channel */
+		aud_tras_drv_info.mic_info.mic_dma_id = bk_dma_alloc(DMA_DEV_AUDIO);
+		if ((aud_tras_drv_info.mic_info.mic_dma_id < DMA_ID_0) || (aud_tras_drv_info.mic_info.mic_dma_id >= DMA_ID_MAX)) {
+			LOGE("malloc adc dma fail \r\n");
+			err = BK_ERR_AUD_INTF_DMA;
+			goto aud_tras_drv_mic_init_exit;
+		}
+
+		/* config audio adc dma to carry mic data to "mic_ring_buff" */
+		ret = aud_tras_adc_dma_config(aud_tras_drv_info.mic_info.mic_dma_id, aud_tras_drv_info.mic_info.mic_ring_buff, aud_tras_drv_info.mic_info.frame_size * 2, aud_tras_drv_info.mic_info.frame_size, aud_tras_drv_info.mic_info.mic_chl);
+		if (ret != BK_OK) {
+			LOGE("config audio adc dma fail \r\n");
+			err = ret;
+			goto aud_tras_drv_mic_init_exit;
+		}
+
+		/* init mic_ring_buff */
+		ring_buffer_init(&(aud_tras_drv_info.mic_info.mic_rb), (uint8_t*)aud_tras_drv_info.mic_info.mic_ring_buff, aud_tras_drv_info.mic_info.frame_size * 2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, aud_tras_drv_info.mic_info.mic_dma_id, RB_DMA_TYPE_WRITE);
+		LOGI("step2: init dma:%d, and mic ring buff:%p, size:%d complete \r\n", aud_tras_drv_info.mic_info.mic_dma_id, aud_tras_drv_info.mic_info.mic_ring_buff, aud_tras_drv_info.mic_info.frame_size * 2);
+	} else if (aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_UAC) {
+		/* init mic_ring_buff */
+		ring_buffer_init(&(aud_tras_drv_info.mic_info.mic_rb), (uint8_t*)aud_tras_drv_info.mic_info.mic_ring_buff, aud_tras_drv_info.mic_info.frame_size*2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, DMA_ID_MAX, RB_DMA_TYPE_NULL);
+
+		/* close mic */
+		aud_tras_drv_info.mic_info.mic_en = false;
+		bk_aud_uac_register_mic_callback((void *)aud_tras_drv_mic_uac_mic_cb);
+
+		LOGI("init uac driver \r\n");
+
+		ret = bk_aud_uac_driver_init();
+		if (ret != BK_OK) {
+			LOGE("init uac driver fail \r\n");
+			err = BK_ERR_AUD_INTF_UAC_DRV;
+			goto aud_tras_drv_mic_init_exit;
+		}
+		//TODO
+		rtos_delay_milliseconds(4500);
+
+		LOGI("step2: init mic ring buff:%p, size:%d complete \r\n", aud_tras_drv_info.mic_info.mic_ring_buff, aud_tras_drv_info.voc_info.mic_samp_rate_points*2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL);
+	} else {
+		err = BK_ERR_AUD_INTF_UAC_MIC;
 		goto aud_tras_drv_mic_init_exit;
 	}
-
-	/* init mic_ring_buff */
-	ring_buffer_init(&(aud_tras_drv_info.mic_info.mic_rb), (uint8_t*)aud_tras_drv_info.mic_info.mic_ring_buff, aud_tras_drv_info.mic_info.frame_size * 2, aud_tras_drv_info.mic_info.mic_dma_id, RB_DMA_TYPE_WRITE);
-	LOGI("step2: init dma:%d, and mic ring buff:%p, size:%d complete \r\n", aud_tras_drv_info.mic_info.mic_dma_id, aud_tras_drv_info.mic_info.mic_ring_buff, aud_tras_drv_info.mic_info.frame_size * 2);
 
 	/* init mic temp buffer */
 	aud_tras_drv_info.mic_info.temp_mic_addr = (int32_t *)os_malloc(aud_tras_drv_info.mic_info.frame_size);
@@ -1551,6 +1673,8 @@ aud_tras_drv_mic_init_exit:
 		os_free(aud_tras_drv_info.mic_info.temp_mic_addr);
 	aud_tras_drv_info.mic_info.temp_mic_addr = NULL;
 
+	aud_tras_drv_info.mic_info.mic_type = AUD_INTF_MIC_TYPE_MAX;
+
 	if (aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb)
 		aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb(EVENT_AUD_TRAS_MIC_INIT, err);
 	aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb = NULL;
@@ -1559,14 +1683,21 @@ aud_tras_drv_mic_init_exit:
 
 static bk_err_t aud_tras_drv_mic_deinit(void)
 {
-	/* disable audio adc */
-	bk_aud_stop_adc();
-	bk_dma_stop(aud_tras_drv_info.mic_info.mic_dma_id);
-	bk_dma_deinit(aud_tras_drv_info.mic_info.mic_dma_id);
-	bk_dma_free(DMA_DEV_AUDIO, aud_tras_drv_info.mic_info.mic_dma_id);
-	bk_aud_adc_deinit();
-	os_free(aud_tras_drv_info.mic_info.adc_config);
-	aud_tras_drv_info.mic_info.adc_config = NULL;
+	if (aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+		/* disable audio adc */
+		bk_aud_stop_adc();
+		bk_dma_stop(aud_tras_drv_info.mic_info.mic_dma_id);
+		bk_dma_deinit(aud_tras_drv_info.mic_info.mic_dma_id);
+		bk_dma_free(DMA_DEV_AUDIO, aud_tras_drv_info.mic_info.mic_dma_id);
+		bk_aud_adc_deinit();
+		bk_aud_driver_deinit();
+		os_free(aud_tras_drv_info.mic_info.adc_config);
+		aud_tras_drv_info.mic_info.adc_config = NULL;
+	} else {
+		bk_aud_uac_stop_mic();
+		bk_aud_uac_register_mic_callback(NULL);
+		bk_aud_uac_driver_deinit();
+	}
 
 	aud_tras_drv_info.mic_info.mic_en = false;
 	aud_tras_drv_info.mic_info.mic_chl = AUD_INTF_MIC_CHL_MIC1;
@@ -1598,16 +1729,27 @@ static bk_err_t aud_tras_drv_mic_start(void)
 		err = BK_ERR_AUD_INTF_STA;
 		goto mic_start_err;
 	}
-	ret = bk_dma_start(aud_tras_drv_info.mic_info.mic_dma_id);
-	if (ret != BK_OK) {
-		LOGE("start mic dma fail \r\n");
-		err = BK_ERR_AUD_INTF_DMA;
-		goto mic_start_err;
-	}
 
-	/* enable adc */
-	if (aud_tras_drv_info.mic_info.status == AUD_TRAS_DRV_MIC_STA_IDLE)
-		bk_aud_start_adc();
+	if (aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+		ret = bk_dma_start(aud_tras_drv_info.mic_info.mic_dma_id);
+		if (ret != BK_OK) {
+			LOGE("start mic dma fail \r\n");
+			err = BK_ERR_AUD_INTF_DMA;
+			goto mic_start_err;
+		}
+
+		/* enable adc */
+		if (aud_tras_drv_info.mic_info.status == AUD_TRAS_DRV_MIC_STA_IDLE)
+			bk_aud_start_adc();
+	} else {
+		LOGI("start uac mic \r\n");
+		ret = bk_aud_uac_start_mic();
+		if (ret != BK_OK) {
+			LOGE("start uac mic fail \r\n");
+			err = BK_ERR_AUD_INTF_UAC_MIC;
+			goto mic_start_err;
+		}
+	}
 
 	aud_tras_drv_info.mic_info.status = AUD_TRAS_DRV_MIC_STA_START;
 
@@ -1624,16 +1766,29 @@ mic_start_err:
 /* not stop dma, only disable adc */
 static bk_err_t aud_tras_drv_mic_pause(void)
 {
+	bk_err_t ret = BK_OK;
 	bk_err_t err = BK_ERR_AUD_INTF_FAIL;
 	if (aud_tras_drv_info.mic_info.status != AUD_TRAS_DRV_MIC_STA_START) {
 		err = BK_ERR_AUD_INTF_STA;
 		goto mic_pause_err;
 	}
 
-	/* stop adc dma */
-	//bk_aud_stop_adc();
-	bk_dma_stop(aud_tras_drv_info.mic_info.mic_dma_id);
+	if (aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+		/* stop adc dma */
+		//bk_aud_stop_adc();
+		bk_dma_stop(aud_tras_drv_info.mic_info.mic_dma_id);
+	} else {
+		LOGI("stop uac mic \r\n");
+		ret = bk_aud_uac_stop_mic();
+		if (ret != BK_OK) {
+			LOGE("stop uac mic fail \r\n");
+			err = BK_ERR_AUD_INTF_UAC_MIC;
+			goto mic_pause_err;
+		}
+	}
+
 	aud_tras_drv_info.mic_info.status = AUD_TRAS_DRV_MIC_STA_PAUSE;
+
 	if (aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb)
 		aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb(EVENT_AUD_TRAS_MIC_PAUSE, BK_ERR_AUD_INTF_OK);
 	return BK_ERR_AUD_INTF_OK;
@@ -1646,16 +1801,28 @@ mic_pause_err:
 
 static bk_err_t aud_tras_drv_mic_stop(void)
 {
+	bk_err_t ret = BK_OK;
 	bk_err_t err = BK_ERR_AUD_INTF_FAIL;
 	if ((aud_tras_drv_info.mic_info.status != AUD_TRAS_DRV_MIC_STA_START) && (aud_tras_drv_info.mic_info.status != AUD_TRAS_DRV_MIC_STA_PAUSE)) {
 		err = BK_ERR_AUD_INTF_STA;
 		goto mic_stop_err;
 	}
 
-	/* disable adc */
-	bk_aud_stop_adc();
-	bk_dma_stop(aud_tras_drv_info.mic_info.mic_dma_id);
-	ring_buffer_clear(&(aud_tras_drv_info.mic_info.mic_rb));
+	if (aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+		/* disable adc */
+		bk_aud_stop_adc();
+		bk_dma_stop(aud_tras_drv_info.mic_info.mic_dma_id);
+		ring_buffer_clear(&(aud_tras_drv_info.mic_info.mic_rb));
+	} else {
+		LOGI("stop uac mic \r\n");
+		ret = bk_aud_uac_stop_mic();
+		if (ret != BK_OK) {
+			LOGE("stop uac mic fail \r\n");
+			err = BK_ERR_AUD_INTF_UAC_MIC;
+			goto mic_stop_err;
+		}
+	}
+
 	aud_tras_drv_info.mic_info.status = AUD_TRAS_DRV_MIC_STA_IDLE;
 
 	if (aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb)
@@ -1726,32 +1893,42 @@ static bk_err_t aud_tras_drv_voc_deinit(void)
 		bk_timer_stop(TIMER_ID4);
 #endif
 
-	/* disable audio adc and dac */
-	bk_aud_stop_adc();
-	bk_aud_adc_deinit();
-	bk_aud_stop_dac();
-	bk_aud_dac_deinit();
-	bk_aud_driver_deinit();
-	os_free(aud_tras_drv_info.voc_info.adc_config);
-	aud_tras_drv_info.voc_info.adc_config = NULL;
-	os_free(aud_tras_drv_info.voc_info.dac_config);
-	aud_tras_drv_info.voc_info.dac_config = NULL;
+	/* disable mic */
+	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+		bk_aud_stop_adc();
+		bk_aud_adc_deinit();
+		bk_dma_stop(aud_tras_drv_info.voc_info.adc_dma_id);
+		bk_dma_deinit(aud_tras_drv_info.voc_info.adc_dma_id);
+		bk_dma_free(DMA_DEV_AUDIO, aud_tras_drv_info.voc_info.adc_dma_id);
+		os_free(aud_tras_drv_info.voc_info.adc_config);
+		aud_tras_drv_info.voc_info.adc_config = NULL;
+	} else {
+		bk_aud_uac_stop_mic();
+		bk_aud_uac_unregister_mic_callback();
+	}
 
-#if CONFIG_DOORBELL_DEMO1
-	aud_pa_en = false;
-#endif
+	/* disable spk */
+	if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+		bk_aud_stop_dac();
+		aud_tras_dac_pa_ctrl(false);
+		bk_aud_dac_deinit();
+		os_free(aud_tras_drv_info.voc_info.dac_config);
+		aud_tras_drv_info.voc_info.dac_config = NULL;
+		/* stop dma */
+		bk_dma_stop(aud_tras_drv_info.voc_info.dac_dma_id);
+		bk_dma_deinit(aud_tras_drv_info.voc_info.dac_dma_id);
+		bk_dma_free(DMA_DEV_AUDIO, aud_tras_drv_info.voc_info.dac_dma_id);
+	} else {
+		bk_aud_uac_stop_spk();
+		bk_aud_uac_unregister_spk_callback();
+		bk_aud_uac_register_spk_buff_ptr(NULL, 0);
+	}
 
-#if CONFIG_DOORBELL_DEMO2
-	aud_pa_en = false;
-#endif
+	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD || aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD)
+		bk_aud_driver_deinit();
 
-	/* stop dma */
-	bk_dma_stop(aud_tras_drv_info.voc_info.adc_dma_id);
-	bk_dma_stop(aud_tras_drv_info.voc_info.dac_dma_id);
-	bk_dma_deinit(aud_tras_drv_info.voc_info.adc_dma_id);
-	bk_dma_deinit(aud_tras_drv_info.voc_info.dac_dma_id);
-	bk_dma_free(DMA_DEV_AUDIO, aud_tras_drv_info.voc_info.adc_dma_id);
-	bk_dma_free(DMA_DEV_AUDIO, aud_tras_drv_info.voc_info.dac_dma_id);
+	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_UAC || aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_UAC)
+		bk_aud_uac_driver_deinit();
 
 	/* disable AEC */
 	aud_tras_drv_aec_decfg();
@@ -1788,39 +1965,31 @@ static bk_err_t aud_tras_drv_voc_deinit(void)
 	aud_tras_drv_info.voc_info.rx_info.aud_trs_read_seq = 0;
 	aud_tras_drv_info.voc_info.rx_info.fifo_frame_num = 0;
 
+	/* uac spk buffer */
+	if (aud_tras_drv_info.voc_info.uac_spk_buff) {
+		os_free(aud_tras_drv_info.voc_info.uac_spk_buff);
+		aud_tras_drv_info.voc_info.uac_spk_buff = NULL;
+		aud_tras_drv_info.voc_info.uac_spk_buff_size = 0;
+	}
+
 	/* encoder_temp and decoder_temp deconfig*/
-	switch (aud_tras_drv_info.voc_info.data_type) {
-		case AUD_INTF_VOC_DATA_TYPE_G711A:
-			os_free(aud_tras_drv_info.voc_info.encoder_temp.law_data);
-			aud_tras_drv_info.voc_info.encoder_temp.law_data = NULL;
-			break;
-
-		case AUD_INTF_VOC_DATA_TYPE_PCM:
-			os_free(aud_tras_drv_info.voc_info.decoder_temp.law_data);
-			aud_tras_drv_info.voc_info.decoder_temp.law_data = NULL;
-			break;
-
-		default:
-			break;
+	if (aud_tras_drv_info.voc_info.encoder_temp.law_data) {
+		os_free(aud_tras_drv_info.voc_info.encoder_temp.law_data);
+		aud_tras_drv_info.voc_info.encoder_temp.law_data = NULL;
 	}
-	os_free(aud_tras_drv_info.voc_info.encoder_temp.pcm_data);
-	aud_tras_drv_info.voc_info.encoder_temp.pcm_data = NULL;
-	os_free(aud_tras_drv_info.voc_info.decoder_temp.pcm_data);
-	aud_tras_drv_info.voc_info.decoder_temp.pcm_data = NULL;
-
+	if (aud_tras_drv_info.voc_info.decoder_temp.law_data) {
+		os_free(aud_tras_drv_info.voc_info.decoder_temp.law_data);
+		aud_tras_drv_info.voc_info.decoder_temp.law_data = NULL;
+	}
+	if (aud_tras_drv_info.voc_info.encoder_temp.pcm_data) {
+		os_free(aud_tras_drv_info.voc_info.encoder_temp.pcm_data);
+		aud_tras_drv_info.voc_info.encoder_temp.pcm_data = NULL;
+	}
+	if (aud_tras_drv_info.voc_info.decoder_temp.pcm_data) {
+		os_free(aud_tras_drv_info.voc_info.decoder_temp.pcm_data);
+		aud_tras_drv_info.voc_info.decoder_temp.pcm_data = NULL;
+	}
 	aud_tras_drv_info.voc_info.data_type = AUD_INTF_VOC_DATA_TYPE_PCM;
-
-	/* notify audio transfer task to stop test */
-#if CONFIG_AUD_TRAS_MODE_CPU1
-	/* notify cpu0 by mailbox */
-	if (audio_send_aud_mailbox_msg(AUD_TRAS_MB_CMD_STOP_TRANSFER_DONE, 0, 0, 0) != BK_OK) {
-		LOGE("send mailbox msg: AUD_TRAS_MB_CMD_STOP_TRANSFER_DONE fail \r\n");
-	}
-
-	/* deinit audio maibox channel */
-	aud_tras_mb_deinit();
-	LOGI("close audio mailbox channel complete \r\n");
-#endif
 
 	/* change status:
 				AUD_TRAS_DRV_VOC_IDLE --> AUD_TRAS_DRV_VOC_NULL
@@ -1836,6 +2005,47 @@ static bk_err_t aud_tras_drv_voc_deinit(void)
 	LOGI("voc deinit complete \r\n");
 	return BK_ERR_AUD_INTF_OK;
 }
+
+static void aud_tras_drv_voc_uac_mic_cb(uint8_t *buff, uint32_t count)
+{
+	bk_err_t ret = BK_OK;
+	uint32_t write_size = 0;
+	uint32_t data = 0;
+
+	if (aud_tras_drv_info.voc_info.status == AUD_TRAS_DRV_VOC_STA_START && count > 0) {
+		if (ring_buffer_get_free_size(&aud_tras_drv_info.voc_info.mic_rb) >= count) {
+			for (write_size = 0; write_size < count/4; write_size++) {
+				data = *((uint32_t *)buff);
+				ring_buffer_write(&aud_tras_drv_info.voc_info.mic_rb, (uint8_t *)&data, 4);
+			}
+		}
+	}
+
+	if (uac_mic_read_flag && (ring_buffer_get_fill_size(&aud_tras_drv_info.voc_info.mic_rb) < aud_tras_drv_info.voc_info.mic_samp_rate_points * 2))
+		uac_mic_read_flag = false;
+
+	if ((ring_buffer_get_fill_size(&aud_tras_drv_info.voc_info.mic_rb) > aud_tras_drv_info.voc_info.mic_samp_rate_points * 2) && (uac_mic_read_flag == false)) {
+		uac_mic_read_flag = true;
+		/* send msg to AEC to process mic and ref data */
+		ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_ENCODER, NULL);
+		if (ret != kNoErr) {
+			LOGE("send msg: AUD_TRAS_DRV_ENCODER fail \r\n");
+			uac_mic_read_flag = false;
+		}
+	}
+}
+
+static void aud_tras_drv_voc_uac_spk_cb(void)
+{
+	bk_err_t ret = BK_OK;
+
+	/* send msg to decoder to decoding recevied data */
+	ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_DECODER, NULL);
+	if (ret != kNoErr) {
+		LOGE("send msg: AUD_TRAS_DRV_DECODER fails \r\n");
+	}
+}
+
 
 /* audio transfer driver voice mode init */
 static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
@@ -1874,109 +2084,120 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 				aud_tras_drv_info.voc_info.aec_info->aec_config->drc = voc_cfg->aec_setup->drc;
 			}
 		}
-	}
-	else {
+	} else {
 		aud_tras_drv_info.voc_info.aec_info = NULL;
 	}
 
 	aud_tras_drv_info.voc_info.data_type = voc_cfg->data_type;
 	LOGD("aud_tras_drv_info.voc_info.data_type:%d \r\n", aud_tras_drv_info.voc_info.data_type);
+	aud_tras_drv_info.voc_info.mic_en = voc_cfg->mic_en;
+	aud_tras_drv_info.voc_info.spk_en = voc_cfg->spk_en;
+	aud_tras_drv_info.voc_info.mic_type = voc_cfg->mic_type;
+	aud_tras_drv_info.voc_info.spk_type = voc_cfg->spk_type;
 
-	/* get audio adc config */
-	aud_tras_drv_info.voc_info.adc_config = os_malloc(sizeof(aud_adc_config_t));
-	if (aud_tras_drv_info.voc_info.adc_config == NULL) {
-		LOGE("adc_config os_malloc fail \r\n");
-		err = BK_ERR_AUD_INTF_MEMY;
-		goto aud_tras_drv_voc_init_exit;
-	} else {
-		aud_tras_drv_info.voc_info.adc_config->mic_config = AUD_MIC_MIC1_ENABLE;
-		aud_tras_drv_info.voc_info.adc_config->samp_rate = voc_cfg->samp_rate;
-		aud_tras_drv_info.voc_info.adc_config->adc_enable = AUD_ADC_DISABLE;
-		aud_tras_drv_info.voc_info.adc_config->line_enable = AUD_ADC_LINE_DISABLE;
-		aud_tras_drv_info.voc_info.adc_config->dtmf_enable = AUD_DTMF_DISABLE;
-		aud_tras_drv_info.voc_info.adc_config->adc_hpf2_coef_B2 = 0;
-		aud_tras_drv_info.voc_info.adc_config->adc_hpf2_bypass_enable = AUD_ADC_HPF_BYPASS_ENABLE;
-		aud_tras_drv_info.voc_info.adc_config->adc_hpf1_bypass_enable = AUD_ADC_HPF_BYPASS_ENABLE;
-		aud_tras_drv_info.voc_info.adc_config->adc_set_gain = voc_cfg->aud_setup.adc_gain;	//default: 0x2d
-		aud_tras_drv_info.voc_info.adc_config->adc_samp_edge = AUD_ADC_SAMP_EDGE_RISING;
-		aud_tras_drv_info.voc_info.adc_config->adc_hpf2_coef_B0 = 0;
-		aud_tras_drv_info.voc_info.adc_config->adc_hpf2_coef_B1 = 0;
-		aud_tras_drv_info.voc_info.adc_config->adc_hpf2_coef_A0 = 0;
-		aud_tras_drv_info.voc_info.adc_config->adc_hpf2_coef_A1 = 0;
-		aud_tras_drv_info.voc_info.adc_config->dtmf_wr_threshold = 8;
-		aud_tras_drv_info.voc_info.adc_config->adcl_wr_threshold = 8;
-		aud_tras_drv_info.voc_info.adc_config->dtmf_int_enable = AUD_DTMF_INT_DISABLE;
-		aud_tras_drv_info.voc_info.adc_config->adcl_int_enable = AUD_ADCL_INT_DISABLE;
-		aud_tras_drv_info.voc_info.adc_config->loop_adc2dac = AUD_LOOP_ADC2DAC_DISABLE;
-		aud_tras_drv_info.voc_info.adc_config->agc_noise_thrd = 101;
-		aud_tras_drv_info.voc_info.adc_config->agc_noise_high = 101;
-		aud_tras_drv_info.voc_info.adc_config->agc_noise_low = 160;
-		aud_tras_drv_info.voc_info.adc_config->agc_noise_min = 1;
-		aud_tras_drv_info.voc_info.adc_config->agc_noise_tout = 0;
-		aud_tras_drv_info.voc_info.adc_config->agc_high_dur = 3;
-		aud_tras_drv_info.voc_info.adc_config->agc_low_dur = 3;
-		aud_tras_drv_info.voc_info.adc_config->agc_min = 1;
-		aud_tras_drv_info.voc_info.adc_config->agc_max = 4;
-		aud_tras_drv_info.voc_info.adc_config->agc_ng_method = AUD_AGC_NG_METHOD_MUTE;
-		aud_tras_drv_info.voc_info.adc_config->agc_ng_enable = AUD_AGC_NG_DISABLE;
-		aud_tras_drv_info.voc_info.adc_config->agc_decay_time = AUD_AGC_DECAY_TIME_128;
-		aud_tras_drv_info.voc_info.adc_config->agc_attack_time = AUD_AGC_ATTACK_TIME_128;
-		aud_tras_drv_info.voc_info.adc_config->agc_high_thrd = 18;
-		aud_tras_drv_info.voc_info.adc_config->agc_low_thrd = 0;
-		aud_tras_drv_info.voc_info.adc_config->agc_iir_coef = AUD_AGC_IIR_COEF_1_1024;
-		aud_tras_drv_info.voc_info.adc_config->agc_enable = AUD_AGC_DISABLE;
-		aud_tras_drv_info.voc_info.adc_config->manual_pga_value = 0;
-		aud_tras_drv_info.voc_info.adc_config->manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
+	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+		/* get audio adc config */
+		aud_tras_drv_info.voc_info.adc_config = os_malloc(sizeof(aud_adc_config_t));
+		if (aud_tras_drv_info.voc_info.adc_config == NULL) {
+			LOGE("adc_config os_malloc fail \r\n");
+			err = BK_ERR_AUD_INTF_MEMY;
+			goto aud_tras_drv_voc_init_exit;
+		} else {
+			aud_tras_drv_info.voc_info.adc_config->mic_config = AUD_MIC_MIC1_ENABLE;
+			if (voc_cfg->samp_rate == AUD_INTF_VOC_SAMP_RATE_16K)
+				aud_tras_drv_info.voc_info.adc_config->samp_rate = AUD_ADC_SAMP_RATE_16K;
+			else
+				aud_tras_drv_info.voc_info.adc_config->samp_rate = AUD_ADC_SAMP_RATE_8K;
+			//aud_tras_drv_info.voc_info.adc_config->samp_rate = voc_cfg->samp_rate;
+			aud_tras_drv_info.voc_info.adc_config->adc_enable = AUD_ADC_DISABLE;
+			aud_tras_drv_info.voc_info.adc_config->line_enable = AUD_ADC_LINE_DISABLE;
+			aud_tras_drv_info.voc_info.adc_config->dtmf_enable = AUD_DTMF_DISABLE;
+			aud_tras_drv_info.voc_info.adc_config->adc_hpf2_coef_B2 = 0;
+			aud_tras_drv_info.voc_info.adc_config->adc_hpf2_bypass_enable = AUD_ADC_HPF_BYPASS_ENABLE;
+			aud_tras_drv_info.voc_info.adc_config->adc_hpf1_bypass_enable = AUD_ADC_HPF_BYPASS_ENABLE;
+			aud_tras_drv_info.voc_info.adc_config->adc_set_gain = voc_cfg->aud_setup.adc_gain;	//default: 0x2d
+			aud_tras_drv_info.voc_info.adc_config->adc_samp_edge = AUD_ADC_SAMP_EDGE_RISING;
+			aud_tras_drv_info.voc_info.adc_config->adc_hpf2_coef_B0 = 0;
+			aud_tras_drv_info.voc_info.adc_config->adc_hpf2_coef_B1 = 0;
+			aud_tras_drv_info.voc_info.adc_config->adc_hpf2_coef_A0 = 0;
+			aud_tras_drv_info.voc_info.adc_config->adc_hpf2_coef_A1 = 0;
+			aud_tras_drv_info.voc_info.adc_config->dtmf_wr_threshold = 8;
+			aud_tras_drv_info.voc_info.adc_config->adcl_wr_threshold = 8;
+			aud_tras_drv_info.voc_info.adc_config->dtmf_int_enable = AUD_DTMF_INT_DISABLE;
+			aud_tras_drv_info.voc_info.adc_config->adcl_int_enable = AUD_ADCL_INT_DISABLE;
+			aud_tras_drv_info.voc_info.adc_config->loop_adc2dac = AUD_LOOP_ADC2DAC_DISABLE;
+			aud_tras_drv_info.voc_info.adc_config->agc_noise_thrd = 101;
+			aud_tras_drv_info.voc_info.adc_config->agc_noise_high = 101;
+			aud_tras_drv_info.voc_info.adc_config->agc_noise_low = 160;
+			aud_tras_drv_info.voc_info.adc_config->agc_noise_min = 1;
+			aud_tras_drv_info.voc_info.adc_config->agc_noise_tout = 0;
+			aud_tras_drv_info.voc_info.adc_config->agc_high_dur = 3;
+			aud_tras_drv_info.voc_info.adc_config->agc_low_dur = 3;
+			aud_tras_drv_info.voc_info.adc_config->agc_min = 1;
+			aud_tras_drv_info.voc_info.adc_config->agc_max = 4;
+			aud_tras_drv_info.voc_info.adc_config->agc_ng_method = AUD_AGC_NG_METHOD_MUTE;
+			aud_tras_drv_info.voc_info.adc_config->agc_ng_enable = AUD_AGC_NG_DISABLE;
+			aud_tras_drv_info.voc_info.adc_config->agc_decay_time = AUD_AGC_DECAY_TIME_128;
+			aud_tras_drv_info.voc_info.adc_config->agc_attack_time = AUD_AGC_ATTACK_TIME_128;
+			aud_tras_drv_info.voc_info.adc_config->agc_high_thrd = 18;
+			aud_tras_drv_info.voc_info.adc_config->agc_low_thrd = 0;
+			aud_tras_drv_info.voc_info.adc_config->agc_iir_coef = AUD_AGC_IIR_COEF_1_1024;
+			aud_tras_drv_info.voc_info.adc_config->agc_enable = AUD_AGC_DISABLE;
+			aud_tras_drv_info.voc_info.adc_config->manual_pga_value = 0;
+			aud_tras_drv_info.voc_info.adc_config->manual_pga_enable = AUD_GAC_MANUAL_PGA_DISABLE;
+		}
 	}
 
-	/* get audio dac config */
-	aud_tras_drv_info.voc_info.dac_config = os_malloc(sizeof(aud_dac_config_t));
-	if (aud_tras_drv_info.voc_info.adc_config == NULL) {
-		LOGE("dac_config os_malloc fail \r\n");
-		err = BK_ERR_AUD_INTF_MEMY;
-		goto aud_tras_drv_voc_init_exit;
-	} else {
-		aud_tras_drv_info.voc_info.dac_config->dac_enable = AUD_DAC_DISABLE;
-		aud_tras_drv_info.voc_info.dac_config->samp_rate = voc_cfg->samp_rate;
-		aud_tras_drv_info.voc_info.dac_config->dac_chl = AUD_DAC_CHL_L_ENABLE;
-		aud_tras_drv_info.voc_info.dac_config->work_mode = voc_cfg->aud_setup.spk_mode;
-		aud_tras_drv_info.voc_info.dac_config->dac_hpf2_coef_B2 = 0x3A22;
-		aud_tras_drv_info.voc_info.dac_config->dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
-		aud_tras_drv_info.voc_info.dac_config->dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
-		aud_tras_drv_info.voc_info.dac_config->dac_set_gain = voc_cfg->aud_setup.dac_gain;	//default 2D  3F  15
-		aud_tras_drv_info.voc_info.dac_config->dac_clk_invert = AUD_DAC_CLK_INVERT_RISING;
-		aud_tras_drv_info.voc_info.dac_config->dac_hpf2_coef_B0 = 0x3A22;
-		aud_tras_drv_info.voc_info.dac_config->dac_hpf2_coef_B1 = 0x8BBF;
-		aud_tras_drv_info.voc_info.dac_config->dac_hpf2_coef_A1 = 0x751C;
-		aud_tras_drv_info.voc_info.dac_config->dac_hpf2_coef_A2 = 0xC9E6;
-		aud_tras_drv_info.voc_info.dac_config->dacr_rd_threshold = 0x4;
-		aud_tras_drv_info.voc_info.dac_config->dacl_rd_threshold = 0x4;
-		aud_tras_drv_info.voc_info.dac_config->dacr_int_enable = 0x0;
-		aud_tras_drv_info.voc_info.dac_config->dacl_int_enable = 0x0;
-		aud_tras_drv_info.voc_info.dac_config->dac_filt_enable = AUD_DAC_FILT_DISABLE;
+	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+		/* get audio dac config */
+		aud_tras_drv_info.voc_info.dac_config = os_malloc(sizeof(aud_dac_config_t));
+		if (aud_tras_drv_info.voc_info.adc_config == NULL) {
+			LOGE("dac_config os_malloc fail \r\n");
+			err = BK_ERR_AUD_INTF_MEMY;
+			goto aud_tras_drv_voc_init_exit;
+		} else {
+			aud_tras_drv_info.voc_info.dac_config->dac_enable = AUD_DAC_DISABLE;
+			if (voc_cfg->samp_rate == AUD_INTF_VOC_SAMP_RATE_16K)
+				aud_tras_drv_info.voc_info.dac_config->samp_rate = AUD_DAC_SAMP_RATE_16K;
+			else
+				aud_tras_drv_info.voc_info.dac_config->samp_rate = AUD_DAC_SAMP_RATE_8K;
+			//aud_tras_drv_info.voc_info.dac_config->samp_rate = voc_cfg->samp_rate;
+			aud_tras_drv_info.voc_info.dac_config->dac_chl = AUD_DAC_CHL_L_ENABLE;
+			aud_tras_drv_info.voc_info.dac_config->work_mode = voc_cfg->aud_setup.spk_mode;
+			aud_tras_drv_info.voc_info.dac_config->dac_hpf2_coef_B2 = 0x3A22;
+			aud_tras_drv_info.voc_info.dac_config->dac_hpf2_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
+			aud_tras_drv_info.voc_info.dac_config->dac_hpf1_bypass_enable = AUD_DAC_HPF_BYPASS_ENABLE;
+			aud_tras_drv_info.voc_info.dac_config->dac_set_gain = voc_cfg->aud_setup.dac_gain;	//default 2D  3F  15
+			aud_tras_drv_info.voc_info.dac_config->dac_clk_invert = AUD_DAC_CLK_INVERT_RISING;
+			aud_tras_drv_info.voc_info.dac_config->dac_hpf2_coef_B0 = 0x3A22;
+			aud_tras_drv_info.voc_info.dac_config->dac_hpf2_coef_B1 = 0x8BBF;
+			aud_tras_drv_info.voc_info.dac_config->dac_hpf2_coef_A1 = 0x751C;
+			aud_tras_drv_info.voc_info.dac_config->dac_hpf2_coef_A2 = 0xC9E6;
+			aud_tras_drv_info.voc_info.dac_config->dacr_rd_threshold = 0x4;
+			aud_tras_drv_info.voc_info.dac_config->dacl_rd_threshold = 0x4;
+			aud_tras_drv_info.voc_info.dac_config->dacr_int_enable = 0x0;
+			aud_tras_drv_info.voc_info.dac_config->dacl_int_enable = 0x0;
+			aud_tras_drv_info.voc_info.dac_config->dac_filt_enable = AUD_DAC_FILT_DISABLE;
+		}
 	}
 
 	/* get ring buffer config */
 	//aud_tras_drv_info.voc_info.mode = setup->aud_trs_mode;
-	if (aud_tras_drv_info.voc_info.aec_enable) {
-		switch (voc_cfg->samp_rate) {
-			case AUD_INTF_VOC_SAMP_RATE_8K:
-				aud_tras_drv_info.voc_info.mic_samp_rate_points = 160;
-				aud_tras_drv_info.voc_info.speaker_samp_rate_points = 160;
-				break;
+	switch (voc_cfg->samp_rate) {
+		case AUD_INTF_VOC_SAMP_RATE_8K:
+			aud_tras_drv_info.voc_info.mic_samp_rate_points = 160;
+			aud_tras_drv_info.voc_info.speaker_samp_rate_points = 160;
+			break;
 
-			case AUD_INTF_VOC_SAMP_RATE_16K:
-				aud_tras_drv_info.voc_info.mic_samp_rate_points = 320;
-				aud_tras_drv_info.voc_info.speaker_samp_rate_points = 320;
-				break;
+		case AUD_INTF_VOC_SAMP_RATE_16K:
+			aud_tras_drv_info.voc_info.mic_samp_rate_points = 320;
+			aud_tras_drv_info.voc_info.speaker_samp_rate_points = 320;
+			break;
 
-			default:
-				break;
-		}
-	} else {
-		aud_tras_drv_info.voc_info.mic_samp_rate_points = voc_cfg->aud_setup.mic_samp_rate_points;
-		aud_tras_drv_info.voc_info.speaker_samp_rate_points = voc_cfg->aud_setup.speaker_samp_rate_points;
+		default:
+			break;
 	}
+
 	aud_tras_drv_info.voc_info.mic_frame_number = voc_cfg->aud_setup.mic_frame_number;
 	aud_tras_drv_info.voc_info.speaker_frame_number = voc_cfg->aud_setup.speaker_frame_number;
 
@@ -2001,12 +2222,6 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 
 	/*  -------------------------step0: init audio and config ADC and DAC -------------------------------- */
 	/* config mailbox according audio transfer work mode */
-#if CONFIG_AUD_TRAS_MODE_CPU1
-	//audio_transfer_mailbox_init();
-	/* init audio maibox channel */
-	aud_tras_mb_init(audio_mailbox_rx_isr, audio_mailbox_tx_isr, audio_mailbox_tx_cmpl_isr);
-	LOGI("step0: config audio mailbox channel complete \r\n");
-#endif
 
 	/*  -------------------------step2: init AEC and malloc two ring buffers -------------------------------- */
 	/* init aec and config aec according AEC_enable*/
@@ -2025,81 +2240,109 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 		LOGI("step2: init AEC and malloc two ring buffers complete \r\n");
 	}
 
-	/*  -------------------step3: init and config DMA to carry mic and ref data ----------------------------- */
-	/* init dma driver */
-	ret = bk_dma_driver_init();
-	if (ret != BK_OK) {
-		LOGE("dma driver init failed\r\n");
-		err = BK_ERR_AUD_INTF_DMA;
-		goto aud_tras_drv_voc_init_exit;
-	}
-
-	/* allocate free DMA channel */
-	aud_tras_drv_info.voc_info.adc_dma_id = bk_dma_alloc(DMA_DEV_AUDIO);
-	if ((aud_tras_drv_info.voc_info.adc_dma_id < DMA_ID_0) || (aud_tras_drv_info.voc_info.adc_dma_id >= DMA_ID_MAX)) {
-		LOGE("malloc adc dma fail \r\n");
-		err = BK_ERR_AUD_INTF_DMA;
-		goto aud_tras_drv_voc_init_exit;
-	}
-
-	aud_tras_drv_info.voc_info.mic_ring_buff = (int32_t *)os_malloc(aud_tras_drv_info.voc_info.mic_samp_rate_points*2*aud_tras_drv_info.voc_info.mic_frame_number);
+	/* -------------------step3: init and config DMA to carry mic and ref data ----------------------------- */
+	aud_tras_drv_info.voc_info.mic_ring_buff = (int32_t *)os_malloc(aud_tras_drv_info.voc_info.mic_samp_rate_points*2*aud_tras_drv_info.voc_info.mic_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL);
 	if (aud_tras_drv_info.voc_info.mic_ring_buff == NULL) {
 		LOGE("malloc mic ring buffer fail \r\n");
 		err = BK_ERR_AUD_INTF_MEMY;
 		goto aud_tras_drv_voc_init_exit;
 	}
 
-	/* config audio adc dma to carry mic data to "mic_ring_buff" */
-	ret = aud_tras_adc_dma_config(aud_tras_drv_info.voc_info.adc_dma_id, aud_tras_drv_info.voc_info.mic_ring_buff, (aud_tras_drv_info.voc_info.mic_samp_rate_points*2)*aud_tras_drv_info.voc_info.mic_frame_number, aud_tras_drv_info.voc_info.mic_samp_rate_points*2, AUD_INTF_MIC_CHL_MIC1);
-	if (ret != BK_OK) {
-		LOGE("config audio adc dma fail \r\n");
-		err = ret;
+	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+		/* init dma driver */
+		ret = bk_dma_driver_init();
+		if (ret != BK_OK) {
+			LOGE("dma driver init failed\r\n");
+			err = BK_ERR_AUD_INTF_DMA;
+			goto aud_tras_drv_voc_init_exit;
+		}
+
+		/* allocate free DMA channel */
+		aud_tras_drv_info.voc_info.adc_dma_id = bk_dma_alloc(DMA_DEV_AUDIO);
+		if ((aud_tras_drv_info.voc_info.adc_dma_id < DMA_ID_0) || (aud_tras_drv_info.voc_info.adc_dma_id >= DMA_ID_MAX)) {
+			LOGE("malloc adc dma fail \r\n");
+			err = BK_ERR_AUD_INTF_DMA;
+			goto aud_tras_drv_voc_init_exit;
+		}
+
+		/* config audio adc dma to carry mic data to "mic_ring_buff" */
+		ret = aud_tras_adc_dma_config(aud_tras_drv_info.voc_info.adc_dma_id, aud_tras_drv_info.voc_info.mic_ring_buff, (aud_tras_drv_info.voc_info.mic_samp_rate_points*2)*aud_tras_drv_info.voc_info.mic_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, aud_tras_drv_info.voc_info.mic_samp_rate_points*2, AUD_INTF_MIC_CHL_MIC1);
+		if (ret != BK_OK) {
+			LOGE("config audio adc dma fail \r\n");
+			err = ret;
+			goto aud_tras_drv_voc_init_exit;
+		}
+
+		ring_buffer_init(&(aud_tras_drv_info.voc_info.mic_rb), (uint8_t*)aud_tras_drv_info.voc_info.mic_ring_buff, aud_tras_drv_info.voc_info.mic_samp_rate_points*2*aud_tras_drv_info.voc_info.mic_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, aud_tras_drv_info.voc_info.adc_dma_id, RB_DMA_TYPE_WRITE);
+
+		LOGI("step3: init and config mic DMA complete, adc_dma_id:%d, mic_ring_buff:%p, size:%d, carry_length:%d \r\n", aud_tras_drv_info.voc_info.adc_dma_id, aud_tras_drv_info.voc_info.mic_ring_buff, (aud_tras_drv_info.voc_info.mic_samp_rate_points*2)*aud_tras_drv_info.voc_info.mic_frame_number, aud_tras_drv_info.voc_info.mic_samp_rate_points*2);
+	} else if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_UAC) {
+		/* init mic_ring_buff */
+		ring_buffer_init(&(aud_tras_drv_info.voc_info.mic_rb), (uint8_t*)aud_tras_drv_info.voc_info.mic_ring_buff, aud_tras_drv_info.voc_info.mic_samp_rate_points*2*aud_tras_drv_info.voc_info.mic_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, DMA_ID_MAX, RB_DMA_TYPE_NULL);
+
+		/* close mic */
+		aud_tras_drv_info.voc_info.mic_en = false;
+		bk_aud_uac_register_mic_callback((void *)aud_tras_drv_voc_uac_mic_cb);
+
+		LOGI("step3: init voc mic ring buff:%p, size:%d complete \r\n", aud_tras_drv_info.voc_info.mic_ring_buff, aud_tras_drv_info.voc_info.mic_samp_rate_points*2*aud_tras_drv_info.voc_info.mic_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL);
+	} else {
+		err = BK_ERR_AUD_INTF_UAC_MIC;
 		goto aud_tras_drv_voc_init_exit;
 	}
-	LOGI("step3: init and config mic DMA complete, adc_dma_id:%d, mic_ring_buff:%p, size:%d, carry_length:%d \r\n", aud_tras_drv_info.voc_info.adc_dma_id, aud_tras_drv_info.voc_info.mic_ring_buff, (aud_tras_drv_info.voc_info.mic_samp_rate_points*2)*aud_tras_drv_info.voc_info.mic_frame_number, aud_tras_drv_info.voc_info.mic_samp_rate_points*2);
 
 	/*  -------------------step4: init and config DMA to carry dac data ----------------------------- */
-	/* init dma driver */
-	ret = bk_dma_driver_init();
-	if (ret != BK_OK) {
-		LOGE("dma driver init failed\r\n");
-		err = BK_ERR_AUD_INTF_DMA;
-		goto aud_tras_drv_voc_init_exit;
-	}
-
-	/* allocate free DMA channel */
-	aud_tras_drv_info.voc_info.dac_dma_id = bk_dma_alloc(DMA_DEV_AUDIO);
-	if ((aud_tras_drv_info.voc_info.dac_dma_id < DMA_ID_0) || (aud_tras_drv_info.voc_info.dac_dma_id >= DMA_ID_MAX)) {
-		LOGE("malloc dac dma fail \r\n");
-		err = BK_ERR_AUD_INTF_DMA;
-		goto aud_tras_drv_voc_init_exit;
-	}
-
-	aud_tras_drv_info.voc_info.speaker_ring_buff = (int32_t *)os_malloc(aud_tras_drv_info.voc_info.speaker_samp_rate_points*2*aud_tras_drv_info.voc_info.speaker_frame_number);
+	aud_tras_drv_info.voc_info.speaker_ring_buff = (int32_t *)os_malloc(aud_tras_drv_info.voc_info.speaker_samp_rate_points*2*aud_tras_drv_info.voc_info.speaker_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL);
 	if (aud_tras_drv_info.voc_info.speaker_ring_buff == NULL) {
 		LOGE("malloc speaker ring buffer fail \r\n");
 		err = BK_ERR_AUD_INTF_MEMY;
 		goto aud_tras_drv_voc_init_exit;
 	}
 
-	/* config audio dac dma to carry dac data to "speaker_ring_buff" */
-	ret = aud_tras_dac_dma_config(aud_tras_drv_info.voc_info.dac_dma_id, aud_tras_drv_info.voc_info.speaker_ring_buff, (aud_tras_drv_info.voc_info.speaker_samp_rate_points*2)*aud_tras_drv_info.voc_info.speaker_frame_number, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2, AUD_INTF_SPK_CHL_LEFT);
-	if (ret != BK_OK) {
-		LOGE("config audio adc dma fail \r\n");
-		err = ret;
-		goto aud_tras_drv_voc_init_exit;
+	if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+		/* init dma driver */
+		ret = bk_dma_driver_init();
+		if (ret != BK_OK) {
+			LOGE("dma driver init failed\r\n");
+			err = BK_ERR_AUD_INTF_DMA;
+			goto aud_tras_drv_voc_init_exit;
+		}
+
+		/* allocate free DMA channel */
+		aud_tras_drv_info.voc_info.dac_dma_id = bk_dma_alloc(DMA_DEV_AUDIO);
+		if ((aud_tras_drv_info.voc_info.dac_dma_id < DMA_ID_0) || (aud_tras_drv_info.voc_info.dac_dma_id >= DMA_ID_MAX)) {
+			LOGE("malloc dac dma fail \r\n");
+			err = BK_ERR_AUD_INTF_DMA;
+			goto aud_tras_drv_voc_init_exit;
+		}
+
+		/* config audio dac dma to carry dac data to "speaker_ring_buff" */
+		ret = aud_tras_dac_dma_config(aud_tras_drv_info.voc_info.dac_dma_id, aud_tras_drv_info.voc_info.speaker_ring_buff, (aud_tras_drv_info.voc_info.speaker_samp_rate_points*2)*aud_tras_drv_info.voc_info.speaker_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2, AUD_INTF_SPK_CHL_LEFT);
+		if (ret != BK_OK) {
+			LOGE("config audio adc dma fail \r\n");
+			err = ret;
+			goto aud_tras_drv_voc_init_exit;
+		}
+
+		ring_buffer_init(&(aud_tras_drv_info.voc_info.speaker_rb), (uint8_t*)aud_tras_drv_info.voc_info.speaker_ring_buff, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2*aud_tras_drv_info.voc_info.speaker_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, aud_tras_drv_info.voc_info.dac_dma_id, RB_DMA_TYPE_READ);
+
+		LOGI("step4: init and config speaker DMA complete, dac_dma_id:%d, speaker_ring_buff:%p, size:%d, carry_length:%d \r\n", aud_tras_drv_info.voc_info.dac_dma_id, aud_tras_drv_info.voc_info.speaker_ring_buff, (aud_tras_drv_info.voc_info.speaker_samp_rate_points*2)*aud_tras_drv_info.voc_info.speaker_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2);
+	} else if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_UAC) {
+		aud_tras_drv_info.voc_info.spk_en = false;
+		/* get uac info, and set uac_spk_buff_size */
+		//TODO
+		aud_tras_drv_info.voc_info.uac_spk_buff_size = 32;
+		aud_tras_drv_info.voc_info.uac_spk_buff = (uint8_t *)os_malloc(aud_tras_drv_info.voc_info.uac_spk_buff_size);
+
+		bk_aud_uac_register_spk_buff_ptr(aud_tras_drv_info.voc_info.uac_spk_buff, aud_tras_drv_info.voc_info.uac_spk_buff_size);
+
+		bk_aud_uac_register_spk_callback(aud_tras_drv_voc_uac_spk_cb);
+
+		ring_buffer_init(&(aud_tras_drv_info.voc_info.speaker_rb), (uint8_t*)aud_tras_drv_info.voc_info.speaker_ring_buff, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2*aud_tras_drv_info.voc_info.speaker_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, DMA_ID_MAX, RB_DMA_TYPE_NULL);
+
+		LOGI("step4: init uac speaker_ring_buff:%p, spk_ring_buff_size:%d, uac_spk_buff:%p, uac_spk_buff_size:%d\r\n", aud_tras_drv_info.voc_info.speaker_ring_buff, (aud_tras_drv_info.voc_info.speaker_samp_rate_points*2)*aud_tras_drv_info.voc_info.speaker_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, aud_tras_drv_info.voc_info.uac_spk_buff, aud_tras_drv_info.voc_info.uac_spk_buff_size);
+	} else {
+		//TODO
 	}
-	LOGI("step4: init and config speaker DMA complete, dac_dma_id:%d, speaker_ring_buff:%p, size:%d, carry_length:%d \r\n", aud_tras_drv_info.voc_info.dac_dma_id, aud_tras_drv_info.voc_info.speaker_ring_buff, (aud_tras_drv_info.voc_info.speaker_samp_rate_points*2)*aud_tras_drv_info.voc_info.speaker_frame_number, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2);
-
-	/*  -------------------------step5: init all audio ring buffers -------------------------------- */
-	/* init mic_ring_buff */
-	//ring_buffer_init(&mic_rb, (uint8_t*)mic_ring_buff, frame_sample*2*2, adc_dma_id, RB_DMA_TYPE_WRITE);
-	ring_buffer_init(&(aud_tras_drv_info.voc_info.mic_rb), (uint8_t*)aud_tras_drv_info.voc_info.mic_ring_buff, aud_tras_drv_info.voc_info.mic_samp_rate_points*2*aud_tras_drv_info.voc_info.mic_frame_number, aud_tras_drv_info.voc_info.adc_dma_id, RB_DMA_TYPE_WRITE);
-
-	/* init speaker_ref_ring_buff */
-	//ring_buffer_init(&speaker_rb, (uint8_t*)speaker_ring_buff, PSRAM_AUD_DECD_RING_BUFF_SIZE*2, dac_dma_id, RB_DMA_TYPE_READ);
-	ring_buffer_init(&(aud_tras_drv_info.voc_info.speaker_rb), (uint8_t*)aud_tras_drv_info.voc_info.speaker_ring_buff, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2*aud_tras_drv_info.voc_info.speaker_frame_number, aud_tras_drv_info.voc_info.dac_dma_id, RB_DMA_TYPE_READ);
-	LOGI("step5: init all audio ring buffers complete \r\n");
 
 	/*  -------------------------step6: init all audio ring buffers -------------------------------- */
 	/* init encoder and decoder temp buffer */
@@ -2143,6 +2386,10 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 			break;
 	}
 
+	/* audio debug */
+	aud_tras_drv_info.voc_info.aud_tras_dump_tx_cb = NULL;
+	aud_tras_drv_info.voc_info.aud_tras_dump_rx_cb = NULL;
+	aud_tras_drv_info.voc_info.aud_tras_dump_aec_cb = NULL;
 
 	/* change status: AUD_TRAS_DRV_VOC_NULL --> AUD_TRAS_DRV_VOC_IDLE */
 	aud_tras_drv_info.voc_info.status = AUD_TRAS_DRV_VOC_STA_IDLE;
@@ -2154,14 +2401,6 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 	/* audio transfer init callback */
 	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_INIT, BK_ERR_AUD_INTF_OK);
-#endif
-
-#if CONFIG_AUD_TRAS_MODE_CPU1
-	ret = media_send_com_mb_msg(CMD_COM_MB_AUD_TRAS_INIT_CMPL, 0, 0, 0);
-	if (ret != BK_OK) {
-		LOGE("send media common mailbox:CMD_COM_MB_AUD_TRAS_INIT_CMPL fail \r\n");
-		goto aud_tras_drv_voc_init_exit;
-	}
 #endif
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_MODE_UART
@@ -2211,81 +2450,133 @@ static bk_err_t aud_tras_drv_voc_start(void)
 	bk_err_t ret = BK_OK;
 	bk_err_t err = BK_ERR_AUD_INTF_FAIL;
 	uint32_t size = 0;
-	//uint8_t pcm_data[audio_transfer_context.mic_samp_rate_points*2]= {0};
 	uint8_t *pcm_data = NULL;
 
 	LOGI("%s \r\n", __func__);
 
-	pcm_data = (uint8_t *)os_malloc(aud_tras_drv_info.voc_info.mic_samp_rate_points*2);
-	if (pcm_data == NULL) {
-		LOGE("malloc temp pcm_data fial \r\n");
-		err = BK_ERR_AUD_INTF_MEMY;
-		goto audio_start_transfer_exit;
-	} else {
-		os_memset(pcm_data, 0x00, aud_tras_drv_info.voc_info.mic_samp_rate_points*2);
+	if (aud_tras_drv_info.voc_info.mic_en == AUD_INTF_VOC_MIC_OPEN) {
+		if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+			/* init audio and config ADC and DAC */
+			ret = aud_tras_adc_config(aud_tras_drv_info.voc_info.adc_config);
+			if (ret != BK_OK) {
+				LOGE("audio adc init fail \r\n");
+				err = BK_ERR_AUD_INTF_ADC;
+				goto audio_start_transfer_exit;
+			}
+
+			/* start DMA */
+			ret = bk_dma_start(aud_tras_drv_info.voc_info.adc_dma_id);
+			if (ret != BK_OK) {
+				LOGE("start adc dma fail \r\n");
+				err = BK_ERR_AUD_INTF_DMA;
+				goto audio_start_transfer_exit;
+			}
+
+			/* enable adc */
+			/* wait receive data and then open adc */
+			bk_aud_start_adc();
+		} else {
+			LOGI("init uac \r\n");
+#if 0
+			ret = bk_aud_uac_register_mic_callback((void *)aud_tras_drv_voc_uac_mic_cb);
+			if (ret != BK_OK) {
+				LOGE("malloc mic ring buffer fail \r\n");
+				err = BK_ERR_AUD_INTF_UAC_MIC;
+				goto audio_start_transfer_exit;
+			}
+#endif
+
+			ret = bk_aud_uac_driver_init();
+			if (ret != BK_OK) {
+				LOGE("init uac driver fail \r\n");
+				err = BK_ERR_AUD_INTF_UAC_DRV;
+				goto audio_start_transfer_exit;
+			}
+
+			LOGI("start uac mic \r\n");
+			ret = bk_aud_uac_start_mic();
+			if (ret != BK_OK) {
+				LOGE("start uac mic fail \r\n");
+				err = BK_ERR_AUD_INTF_UAC_MIC;
+				goto audio_start_transfer_exit;
+			}
+		}
 	}
 
-	/* init audio and config ADC and DAC */
-	ret = aud_tras_adc_config(aud_tras_drv_info.voc_info.adc_config);
-	if (ret != BK_OK) {
-		LOGE("audio adc init fail \r\n");
-		err = BK_ERR_AUD_INTF_ADC;
-		goto audio_start_transfer_exit;
+	if (aud_tras_drv_info.voc_info.spk_en == AUD_INTF_VOC_SPK_OPEN) {
+		pcm_data = (uint8_t *)os_malloc(aud_tras_drv_info.voc_info.speaker_samp_rate_points*2);
+		if (pcm_data == NULL) {
+			LOGE("malloc temp pcm_data fial \r\n");
+			err = BK_ERR_AUD_INTF_MEMY;
+			goto audio_start_transfer_exit;
+		} else {
+			os_memset(pcm_data, 0x00, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2);
+		}
+
+		if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+			ret = aud_tras_dac_config(aud_tras_drv_info.voc_info.dac_config);
+			if (ret != BK_OK) {
+				LOGE("audio dac init fail \r\n");
+				err = BK_ERR_AUD_INTF_DAC;
+				goto audio_start_transfer_exit;
+			}
+
+			/* enable dac */
+			bk_aud_start_dac();
+			aud_tras_dac_pa_ctrl(true);
+
+			ret = bk_dma_start(aud_tras_drv_info.voc_info.dac_dma_id);
+			if (ret != BK_OK) {
+				LOGE("start dac dma fail \r\n");
+				err = BK_ERR_AUD_INTF_DMA;
+				goto audio_start_transfer_exit;
+			}
+		} else {
+			LOGI("start uac spk \r\n");
+#if 0
+			ret = bk_aud_uac_driver_init();
+			if (ret != BK_OK) {
+				LOGE("init uac driver fail \r\n");
+				err = BK_ERR_AUD_INTF_UAC_DRV;
+				goto audio_start_transfer_exit;
+			}
+			//delay_ms(2000);
+#endif
+
+			//bk_aud_uac_register_spk_buff_ptr(aud_tras_drv_info.voc_info.uac_spk_buff, aud_tras_drv_info.voc_info.uac_spk_buff_size);
+			//rtos_delay_milliseconds(1000);
+
+			//bk_aud_uac_register_spk_callback(aud_tras_drv_voc_uac_spk_cb);
+			//rtos_delay_milliseconds(1000);
+
+			bk_aud_uac_start_spk();
+			//rtos_delay_milliseconds(1000);
+		}
+
+		/* write two frame data to speaker and ref ring buffer */
+		size = ring_buffer_write(&(aud_tras_drv_info.voc_info.speaker_rb), (uint8_t *)pcm_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2);
+		if (size != aud_tras_drv_info.voc_info.speaker_samp_rate_points*2) {
+			LOGE("the data writeten to speaker_ring_buff error, size=%d \r\n", size);
+			err = BK_ERR_AUD_INTF_RING_BUFF;
+			goto audio_start_transfer_exit;
+		}
+		size = ring_buffer_write(&(aud_tras_drv_info.voc_info.speaker_rb), (uint8_t *)pcm_data, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2);
+		if (size != aud_tras_drv_info.voc_info.speaker_samp_rate_points*2) {
+			LOGE("the data writeten to speaker_ring_buff error, size=%d \r\n", size);
+			err = BK_ERR_AUD_INTF_RING_BUFF;
+			goto audio_start_transfer_exit;
+		}
+
+		os_free(pcm_data);
+		pcm_data = NULL;
 	}
-
-	ret = aud_tras_dac_config(aud_tras_drv_info.voc_info.dac_config);
-	if (ret != BK_OK) {
-		LOGE("audio dac init fail \r\n");
-		err = BK_ERR_AUD_INTF_DAC;
-		goto audio_start_transfer_exit;
-	}
-	LOGI("init audio and config ADC and DAC complete \r\n");
-
-	/* start DMA */
-	ret = bk_dma_start(aud_tras_drv_info.voc_info.adc_dma_id);
-	if (ret != BK_OK) {
-		LOGE("start adc dma fail \r\n");
-		err = BK_ERR_AUD_INTF_DMA;
-		goto audio_start_transfer_exit;
-	}
-
-	/* enable adc */
-	/* wait receive data and then open adc */
-	bk_aud_start_adc();
-
-	/* enable dac */
-	bk_aud_start_dac();
-
-	ret = bk_dma_start(aud_tras_drv_info.voc_info.dac_dma_id);
-	if (ret != BK_OK) {
-		LOGE("start dac dma fail \r\n");
-		err = BK_ERR_AUD_INTF_DMA;
-		goto audio_start_transfer_exit;
-	}
-	/* write two frame data to speaker and ref ring buffer */
-	size = ring_buffer_write(&(aud_tras_drv_info.voc_info.speaker_rb), (uint8_t *)pcm_data, aud_tras_drv_info.voc_info.mic_samp_rate_points*2);
-	if (size != aud_tras_drv_info.voc_info.mic_samp_rate_points*2) {
-		LOGE("the data writeten to speaker_ring_buff error, size=%d \r\n", size);
-		err = BK_ERR_AUD_INTF_RING_BUFF;
-		goto audio_start_transfer_exit;
-	}
-
-	size = ring_buffer_write(&(aud_tras_drv_info.voc_info.speaker_rb), (uint8_t *)pcm_data, aud_tras_drv_info.voc_info.mic_samp_rate_points*2);
-	if (size != aud_tras_drv_info.voc_info.mic_samp_rate_points*2) {
-		LOGE("the data writeten to speaker_ring_buff error, size=%d \r\n", size);
-		err = BK_ERR_AUD_INTF_RING_BUFF;
-		goto audio_start_transfer_exit;
-	}
-
-	os_free(pcm_data);
-	pcm_data = NULL;
-	LOGI("enable audio and dma to start audio transfer complete \r\n");
+	LOGI("enable audio to start audio transfer complete \r\n");
 
 	/* change status:
-				AUD_TRAS_DRV_VOC_IDLE --> AUD_TRAS_DRV_VOC_START
-				AUD_TRAS_DRV_VOC_STOP --> AUD_TRAS_DRV_VOC_START
+				AUD_TRAS_DRV_VOC_STA_IDLE --> AUD_TRAS_DRV_VOC_STA_START
+				AUD_TRAS_DRV_VOC_STA_STOP --> AUD_TRAS_DRV_VOC_STA_START
 	*/
-	aud_tras_drv_info.voc_info.status = AUD_TRAS_DRV_VOC_START;
+	aud_tras_drv_info.voc_info.status = AUD_TRAS_DRV_VOC_STA_START;
 
 #if CONFIG_AUD_TRAS_LOST_COUNT_DEBUG
 		//bk_timer_driver_init();
@@ -2299,13 +2590,6 @@ static bk_err_t aud_tras_drv_voc_start(void)
 #if CONFIG_AUD_TRAS_MODE_CPU0
 		if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 			aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_START, BK_ERR_AUD_INTF_OK);
-#endif
-
-#if CONFIG_AUD_TRAS_MODE_CPU1
-		ret = audio_send_aud_mailbox_msg(AUD_TRAS_MB_CMD_START_TRANSFER_DONE, 0, 0, 0);
-		if (ret != BK_OK) {
-			LOGE("send mailbox msg: AUD_TRAS_MB_CMD_START_TRANSFER_DONE fail \r\n");
-		}
 #endif
 
 	return BK_ERR_AUD_INTF_OK;
@@ -2330,43 +2614,62 @@ static bk_err_t aud_tras_drv_voc_stop(void)
 #endif
 
 	/* stop adc and dac dma */
-	ret = bk_dma_stop(aud_tras_drv_info.voc_info.adc_dma_id);
-	if (ret != BK_OK) {
-		//err = BK_ERR_AUD_INTF_DMA;
-		LOGE("start adc dma fail \r\n");
+	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+		ret = bk_dma_stop(aud_tras_drv_info.voc_info.adc_dma_id);
+		if (ret != BK_OK) {
+			//err = BK_ERR_AUD_INTF_DMA;
+			LOGE("start adc dma fail \r\n");
+		}
+	} else {
+		LOGI("stop uac mic \r\n");
+		bk_aud_uac_stop_mic();
 	}
-	ret = bk_dma_stop(aud_tras_drv_info.voc_info.dac_dma_id);
-	if (ret != BK_OK) {
-		//err = BK_ERR_AUD_INTF_DMA;
-		LOGE("stop dac dma fail \r\n");
+
+	if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+		ret = bk_dma_stop(aud_tras_drv_info.voc_info.dac_dma_id);
+		if (ret != BK_OK) {
+			//err = BK_ERR_AUD_INTF_DMA;
+			LOGE("stop dac dma fail \r\n");
+		}
+	} else {
+		LOGI("stop uac spk \r\n");
+		ret = bk_aud_uac_stop_spk();
+		if (ret != BK_OK) {
+			//err = BK_ERR_AUD_INTF_DMA;
+			LOGE("stop uac spk fail \r\n");
+		}
 	}
 
-	/* disable adc */
-	bk_aud_stop_adc();
-	bk_aud_adc_deinit();
+	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+		/* disable adc */
+		bk_aud_stop_adc();
+		bk_aud_adc_deinit();
+	}
 
-	/* disable dac */
-	bk_aud_stop_dac();
-	bk_aud_dac_deinit();
+	if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+		/* disable dac */
+		bk_aud_stop_dac();
+		aud_tras_dac_pa_ctrl(false);
+		bk_aud_dac_deinit();
+	}
 
+	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD || aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD)
 	/* deinit audio driver */
-	bk_aud_driver_deinit();
+		bk_aud_driver_deinit();
+
+	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_UAC || aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_UAC)
+		bk_aud_uac_driver_deinit();
 
 	/* clear adc and dac ring buffer */
 	ring_buffer_clear(&(aud_tras_drv_info.voc_info.speaker_rb));
 	ring_buffer_clear(&(aud_tras_drv_info.voc_info.mic_rb));
 
+	uac_mic_read_flag = false;
+
 	/* notify cpu0 that audio transfer start */
 #if CONFIG_AUD_TRAS_MODE_CPU0
 	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_STOP, BK_ERR_AUD_INTF_OK);
-#endif
-
-#if CONFIG_AUD_TRAS_MODE_CPU1
-	ret = audio_send_aud_mailbox_msg(AUD_TRAS_MB_CMD_START_TRANSFER_DONE, 0, 0, 0);
-	if (ret != BK_OK) {
-		LOGE("send mailbox msg: AUD_TRAS_MB_CMD_START_TRANSFER_DONE fail \r\n");
-	}
 #endif
 
 	/* change status:
@@ -2378,6 +2681,200 @@ static bk_err_t aud_tras_drv_voc_stop(void)
 	LOGI("stop voice transfer complete \r\n");
 
 	return ret;
+}
+
+static bk_err_t aud_tras_drv_voc_ctrl_mic(aud_intf_voc_mic_ctrl_t mic_en)
+{
+	bk_err_t ret = BK_OK;
+	bk_err_t err = BK_ERR_AUD_INTF_FAIL;
+
+	GLOBAL_INT_DECLARATION();
+
+	if (mic_en == AUD_INTF_VOC_MIC_OPEN) {
+		if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+			LOGI("open mic \r\n");
+			/* enable adc */
+			bk_aud_start_adc();
+
+			ret = bk_dma_start(aud_tras_drv_info.voc_info.adc_dma_id);
+			if (ret != BK_OK) {
+				LOGE("start adc dma fail \r\n");
+				err = BK_ERR_AUD_INTF_DMA;
+				goto voc_ctrl_mic_fail;
+			}
+		} else {
+			LOGI("open uac mic \r\n");
+			ret = bk_aud_uac_start_mic();
+			if (ret != BK_OK) {
+				LOGE("start uac mic fail \r\n");
+				err = BK_ERR_AUD_INTF_UAC_MIC;
+				goto voc_ctrl_mic_fail;
+			}
+		}
+	} else if (mic_en == AUD_INTF_VOC_MIC_CLOSE) {
+		if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+			LOGI("close mic \r\n");
+			bk_aud_stop_adc();
+			bk_dma_stop(aud_tras_drv_info.voc_info.adc_dma_id);
+			ring_buffer_clear(&(aud_tras_drv_info.voc_info.mic_rb));
+		} else {
+			LOGI("close uac mic \r\n");
+			ret = bk_aud_uac_stop_mic();
+			if (ret != BK_OK) {
+				LOGE("stop uac mic fail \r\n");
+				err = BK_ERR_AUD_INTF_UAC_MIC;
+				goto voc_ctrl_mic_fail;
+			}
+			uac_mic_read_flag = false;
+		}
+	} else {
+		err = BK_ERR_AUD_INTF_PARAM;
+		goto voc_ctrl_mic_fail;
+	}
+
+	GLOBAL_INT_DISABLE();
+	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD)
+		aud_tras_drv_info.voc_info.mic_en = mic_en;
+	GLOBAL_INT_RESTORE();
+
+	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
+		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_CTRL_MIC, BK_ERR_AUD_INTF_OK);
+
+	return BK_OK;
+
+voc_ctrl_mic_fail:
+	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+		bk_aud_stop_adc();
+		bk_dma_stop(aud_tras_drv_info.voc_info.adc_dma_id);
+	}
+
+	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
+		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_CTRL_MIC, err);
+
+	return err;
+}
+
+static bk_err_t aud_tras_drv_voc_ctrl_spk(aud_intf_voc_spk_ctrl_t spk_en)
+{
+	bk_err_t ret = BK_OK;
+	bk_err_t err = BK_ERR_AUD_INTF_FAIL;
+	uint32_t size = 0;
+	uint8_t *pcm_data = NULL;
+
+	GLOBAL_INT_DECLARATION();
+
+	if (spk_en == AUD_INTF_VOC_SPK_OPEN) {
+		pcm_data = (uint8_t *)os_malloc(aud_tras_drv_info.voc_info.mic_samp_rate_points*2);
+		if (pcm_data == NULL) {
+			LOGE("malloc temp pcm_data fial \r\n");
+			err = BK_ERR_AUD_INTF_MEMY;
+			goto voc_ctrl_spk_fail;
+		} else {
+			os_memset(pcm_data, 0x00, aud_tras_drv_info.voc_info.mic_samp_rate_points*2);
+		}
+
+		if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+			LOGI("open spk \r\n");
+			/* enable dac */
+			bk_aud_start_dac();
+			aud_tras_dac_pa_ctrl(true);
+
+			ret = bk_dma_start(aud_tras_drv_info.voc_info.dac_dma_id);
+			if (ret != BK_OK) {
+				LOGE("start dac dma fail \r\n");
+				err = BK_ERR_AUD_INTF_DMA;
+				goto voc_ctrl_spk_fail;
+			}
+		} else {
+			LOGI("open uac spk \r\n");
+			ret = bk_aud_uac_start_spk();
+			if (ret != BK_OK) {
+				LOGE("open uac spk fail \r\n");
+				err = BK_ERR_AUD_INTF_UAC_SPK;
+				goto voc_ctrl_spk_fail;
+			}
+		}
+
+		/* write two frame data to speaker and ref ring buffer */
+		size = ring_buffer_write(&(aud_tras_drv_info.voc_info.speaker_rb), (uint8_t *)pcm_data, aud_tras_drv_info.voc_info.mic_samp_rate_points*2);
+		if (size != aud_tras_drv_info.voc_info.mic_samp_rate_points*2) {
+			LOGE("the data writeten to speaker_ring_buff error, size=%d \r\n", size);
+			err = BK_ERR_AUD_INTF_RING_BUFF;
+			goto voc_ctrl_spk_fail;
+		}
+
+		size = ring_buffer_write(&(aud_tras_drv_info.voc_info.speaker_rb), (uint8_t *)pcm_data, aud_tras_drv_info.voc_info.mic_samp_rate_points*2);
+		if (size != aud_tras_drv_info.voc_info.mic_samp_rate_points*2) {
+			LOGE("the data writeten to speaker_ring_buff error, size=%d \r\n", size);
+			err = BK_ERR_AUD_INTF_RING_BUFF;
+			goto voc_ctrl_spk_fail;
+		}
+
+		os_free(pcm_data);
+		pcm_data = NULL;
+	} else if (spk_en == AUD_INTF_VOC_SPK_CLOSE) {
+		if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+			LOGI("open spk \r\n");
+			bk_aud_stop_dac();
+			aud_tras_dac_pa_ctrl(false);
+			bk_dma_stop(aud_tras_drv_info.voc_info.dac_dma_id);
+		} else {
+			LOGI("close uac spk \r\n");
+			ret = bk_aud_uac_stop_spk();
+			if (ret != BK_OK) {
+				LOGE("close uac spk fail \r\n");
+				err = BK_ERR_AUD_INTF_UAC_SPK;
+				goto voc_ctrl_spk_fail;
+			}
+		}
+		ring_buffer_clear(&(aud_tras_drv_info.voc_info.speaker_rb));
+	} else {
+		err = BK_ERR_AUD_INTF_PARAM;
+		goto voc_ctrl_spk_fail;
+	}
+
+	GLOBAL_INT_DISABLE();
+	if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD)
+		aud_tras_drv_info.voc_info.spk_en = spk_en;
+	GLOBAL_INT_RESTORE();
+
+	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
+		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_CTRL_SPK, BK_ERR_AUD_INTF_OK);
+
+	return BK_OK;
+
+voc_ctrl_spk_fail:
+	if (pcm_data)
+		os_free(pcm_data);
+
+	if (spk_en == AUD_INTF_VOC_SPK_OPEN) {
+		if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+			bk_aud_stop_dac();
+			aud_tras_dac_pa_ctrl(false);
+			bk_dma_stop(aud_tras_drv_info.voc_info.dac_dma_id);
+		} else {
+			bk_aud_uac_stop_spk();
+		}
+	}
+
+	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
+		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_CTRL_SPK, err);
+
+	return err;
+}
+
+static bk_err_t aud_tras_drv_voc_ctrl_aec(bool aec_en)
+{
+	GLOBAL_INT_DECLARATION();
+
+	GLOBAL_INT_DISABLE();
+	aud_tras_drv_info.voc_info.aec_enable = aec_en;
+	GLOBAL_INT_RESTORE();
+
+	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
+		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_CTRL_AEC, BK_ERR_AUD_INTF_OK);
+
+	return BK_OK;
 }
 
 static bk_err_t aud_tras_drv_set_aec_para(aud_intf_voc_aec_ctl_t *aec_ctl)
@@ -2464,6 +2961,48 @@ static bk_err_t aud_tras_drv_get_aec_para(void)
 	return BK_OK;
 }
 
+static bk_err_t aud_tras_drv_voc_tx_debug(aud_intf_dump_data_callback callback)
+{
+	GLOBAL_INT_DECLARATION();
+
+	GLOBAL_INT_DISABLE();
+	aud_tras_drv_info.voc_info.aud_tras_dump_tx_cb = callback;
+	GLOBAL_INT_RESTORE();
+
+	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
+		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_TX_DEBUG, BK_ERR_AUD_INTF_OK);
+
+	return BK_OK;
+}
+
+static bk_err_t aud_tras_drv_voc_rx_debug(aud_intf_dump_data_callback callback)
+{
+	GLOBAL_INT_DECLARATION();
+
+	GLOBAL_INT_DISABLE();
+	aud_tras_drv_info.voc_info.aud_tras_dump_rx_cb = callback;
+	GLOBAL_INT_RESTORE();
+
+	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
+		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_RX_DEBUG, BK_ERR_AUD_INTF_OK);
+
+	return BK_OK;
+}
+
+static bk_err_t aud_tras_drv_voc_aec_debug(aud_intf_dump_data_callback callback)
+{
+	GLOBAL_INT_DECLARATION();
+
+	GLOBAL_INT_DISABLE();
+	aud_tras_drv_info.voc_info.aud_tras_dump_aec_cb = callback;
+	GLOBAL_INT_RESTORE();
+
+	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
+		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_AEC_DEBUG, BK_ERR_AUD_INTF_OK);
+
+	return BK_OK;
+}
+
 static bk_err_t aud_tras_drv_spk_set_samp_rate(aud_dac_samp_rate_t samp_rate)
 {
 	bk_err_t ret = BK_ERR_AUD_INTF_OK;
@@ -2471,9 +3010,11 @@ static bk_err_t aud_tras_drv_spk_set_samp_rate(aud_dac_samp_rate_t samp_rate)
 
 	if (samp_rate != AUD_DAC_SAMP_RATE_MAX) {
 		bk_aud_stop_dac();
+		aud_tras_dac_pa_ctrl(false);
 		bk_aud_set_dac_samp_rate(samp_rate);
 		bk_aud_start_dac();
 		bk_aud_start_dac();
+		aud_tras_dac_pa_ctrl(true);
 		ret = BK_ERR_AUD_INTF_OK;
 	} else {
 		ret = BK_ERR_AUD_INTF_PARAM;
@@ -2743,6 +3284,21 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 					aud_tras_drv_voc_stop();
 					break;
 
+				case AUD_TRAS_DRV_VOC_CTRL_MIC:
+					LOGD("goto: AUD_TRAS_DRV_VOC_CTRL_MIC \r\n");
+					aud_tras_drv_voc_ctrl_mic(*((aud_intf_voc_mic_ctrl_t *)msg.param));
+					break;
+
+				case AUD_TRAS_DRV_VOC_CTRL_SPK:
+					LOGD("goto: AUD_TRAS_DRV_VOC_CTRL_SPK \r\n");
+					aud_tras_drv_voc_ctrl_spk(*((aud_intf_voc_spk_ctrl_t *)msg.param));
+					break;
+
+				case AUD_TRAS_DRV_VOC_CTRL_AEC:
+					LOGD("goto: AUD_TRAS_DRV_VOC_CTRL_MIC \r\n");
+					aud_tras_drv_voc_ctrl_aec(*((bool *)msg.param));
+					break;
+
 				case AUD_TRAS_DRV_VOC_SET_MIC_GAIN:
 					LOGD("goto: AUD_TRAS_DRV_VOC_SET_MIC_GAIN \r\n");
 					aud_tras_drv_set_mic_gain(*((uint8_t *)msg.param));
@@ -2763,6 +3319,21 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 					aud_tras_drv_get_aec_para();
 					break;
 
+				case AUD_TRAS_DRV_VOC_TX_DEBUG:
+					LOGD("goto: AUD_TRAS_DRV_VOC_TX_DEBUG \r\n");
+					aud_tras_drv_voc_tx_debug((aud_intf_dump_data_callback)msg.param);
+					break;
+
+				case AUD_TRAS_DRV_VOC_RX_DEBUG:
+					LOGD("goto: AUD_TRAS_DRV_VOC_RX_DEBUG \r\n");
+					aud_tras_drv_voc_rx_debug((aud_intf_dump_data_callback)msg.param);
+					break;
+
+				case AUD_TRAS_DRV_VOC_AEC_DEBUG:
+					LOGD("goto: AUD_TRAS_DRV_VOC_AEC_DEBUG \r\n");
+					aud_tras_drv_voc_aec_debug((aud_intf_dump_data_callback)msg.param);
+					break;
+
 				/* voc int op */
 				case AUD_TRAS_DRV_AEC:
 					LOGD("goto: AUD_TRAS_DRV_AEC \r\n");
@@ -2778,6 +3349,18 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 					LOGD("goto: AUD_TRAS_DRV_DECODER \r\n");
 					aud_tras_dec();
 					break;
+
+#if CONFIG_VIDEO_AVI
+				case AUD_TRAS_DRV_AVI_START:
+					LOGI("goto: AUD_TRAS_DRV_AVI_START \r\n");
+					aud_tras_drv_save_aud_start(msg.param);
+					break;
+
+				case AUD_TRAS_DRV_AVI_STOP:
+					LOGI("goto: AUD_TRAS_DRV_AVI_STOP \r\n");
+					aud_tras_drv_save_aud_stop(msg.param);
+					break;
+#endif
 
 #if CONFIG_AUD_TRAS_DAC_DEBUG
 				case AUD_TRAS_VOC_DAC_BEBUG:
@@ -2920,4 +3503,273 @@ bk_err_t aud_tras_drv_deinit(void)
 	}
 	return kNoResourcesErr;
 }
+
+#if CONFIG_VIDEO_AVI
+#define PCM_QITEM_COUNT				(15)
+
+#define AUDIO_PCM_NODE_SIZE			320
+#define AUDIO_SAVE_LEN				(AUDIO_PCM_NODE_SIZE * PCM_QITEM_COUNT)
+
+typedef enum
+{
+	AUD_AVI_TASK_SAVE,
+	AUD_AVI_TASK_EXIT,
+} aud_avi_task_evt_t;
+
+typedef struct
+{
+	uint32_t data;
+} aud_avi_task_que_msg_t;
+
+typedef struct
+{
+    struct co_list_hdr hdr;
+    void *buf_start;
+    uint32_t buf_len;
+} audio_elem_t;
+
+typedef struct
+{
+    uint8_t *pool;
+    audio_elem_t elem[AUDIO_SAVE_LEN / AUDIO_PCM_NODE_SIZE];
+    struct co_list free;
+    struct co_list ready;
+	beken_thread_t	thread_hdl;
+	beken_queue_t 	msg_que;
+} audio_save_t;
+
+static audio_save_t  audio_save = {0};
+
+static bk_err_t aud_tras_drv_avi_pool_init(void)
+{
+    if(audio_save.pool == NULL)
+    {
+        audio_save.pool = (uint8_t *)os_malloc(AUDIO_SAVE_LEN);
+        if(NULL == audio_save.pool)
+        {
+			LOGI("malloc pool fail!\r\n");
+			return BK_FAIL;
+        }
+    }
+
+    os_memset(audio_save.pool, 0, AUDIO_SAVE_LEN);
+    co_list_init(&audio_save.free);
+    co_list_init(&audio_save.ready);
+
+    for(int i = 0; i < (AUDIO_SAVE_LEN / AUDIO_PCM_NODE_SIZE); i++)
+    {
+        audio_save.elem[i].buf_start =
+            (void *)&audio_save.pool[i * AUDIO_PCM_NODE_SIZE];
+        audio_save.elem[i].buf_len = 0;
+
+        co_list_push_back(&audio_save.free,
+                          (struct co_list_hdr *)&audio_save.elem[i].hdr);
+    }
+
+	return BK_OK;
+}
+static bk_err_t aud_tras_drv_avi_pool_deinit(void)
+{
+    if(audio_save.pool)
+    {
+		os_free(audio_save.pool);
+		audio_save.pool = NULL;
+    }
+
+	return BK_OK;
+}
+
+static bk_err_t aud_tras_drv_send_avi_task_msg(aud_avi_task_evt_t evt)
+{
+	bk_err_t ret = BK_OK;
+
+	if(audio_save.msg_que)
+	{
+		aud_avi_task_que_msg_t msg = {0};
+		msg.data = evt;
+		ret = rtos_push_to_queue(&audio_save.msg_que, &msg, BEKEN_WAIT_FOREVER);
+		if (ret != kNoErr)
+		{
+			LOGI("push audio_save.msg_que fail!\r\n");
+		}
+	}
+
+	return ret;
+}
+
+static bk_err_t aud_tras_drv_save_data_pool(uint8_t *data,uint16_t len)
+{
+	if(audio_save.msg_que && audio_save.thread_hdl)
+	{
+		audio_elem_t *elem = (audio_elem_t *)co_list_pick(&audio_save.free);
+		if(elem)
+		{
+			os_memcpy(elem->buf_start, data, len);
+			elem->buf_len = len;
+
+			co_list_pop_front(&audio_save.free);
+			co_list_push_back(&audio_save.ready, (struct co_list_hdr *)&elem->hdr);
+
+			return aud_tras_drv_send_avi_task_msg(AUD_AVI_TASK_SAVE);
+		}
+		else
+		{
+			LOGI("no free audio elem!\r\n");
+			return BK_FAIL;
+		}
+	}
+
+	return BK_OK;
+}
+
+static void aud_tras_drv_poll_save_handler(void)
+{
+    audio_elem_t *elem = NULL;
+
+    do
+	{
+        elem = (audio_elem_t *)co_list_pick(&audio_save.ready);
+        if(elem)
+		{
+			jpeg2avi_input_data(elem->buf_start,elem->buf_len,eTypeAudio);
+            co_list_pop_front(&audio_save.ready);
+            co_list_push_back(&audio_save.free, (struct co_list_hdr *)&elem->hdr);
+        }
+    }
+    while(elem);
+}
+
+static void aud_tras_drv_avi_task_entry(beken_thread_arg_t data)
+{
+	bk_err_t ret = BK_OK;
+	aud_avi_task_que_msg_t msg;
+
+	aud_tras_drv_avi_pool_init();
+
+	while (1)
+	{
+		ret = rtos_pop_from_queue(&audio_save.msg_que, &msg, BEKEN_WAIT_FOREVER);
+		if (kNoErr == ret)
+		{
+			switch (msg.data)
+			{
+				case AUD_AVI_TASK_SAVE:
+					aud_tras_drv_poll_save_handler();
+					break;
+
+				case AUD_AVI_TASK_EXIT:
+					goto exit;
+				default:
+					break;
+			}
+		}
+		else
+		{
+			LOGI("pop audio_save msg_que fail!\r\n");
+		}
+	}
+
+exit:
+	LOGI("exit avi task\r\n");
+
+	aud_tras_drv_avi_pool_deinit();
+
+	rtos_deinit_queue(&audio_save.msg_que);
+	audio_save.msg_que = NULL;
+
+	audio_save.thread_hdl = NULL;
+	rtos_delete_thread(NULL);
+}
+
+static bk_err_t aud_tras_drv_save_aud_start(void *param)
+{
+	bk_err_t ret = BK_FAIL;
+
+	aud_tras_drv_avi_event_cb cb = (aud_tras_drv_avi_event_cb)param;
+	LOGI("%s\r\n",__func__);
+	if(!jpeg2avi_is_create())
+	{
+		LOGI("AVI NOT CREATED! PLEASE CALL VIDEO API CREATE AVI FISRT!\r\n");
+		goto exit;
+	}
+
+	if(audio_save.thread_hdl)
+	{
+		ret = BK_OK;
+		goto exit;
+	}
+
+	if ((!audio_save.thread_hdl) && (!audio_save.msg_que))
+	{
+		ret = rtos_init_queue(&audio_save.msg_que,
+							  "aud_tras_avi_que",
+							  sizeof(audio_save.msg_que),
+							  PCM_QITEM_COUNT);
+		if (ret != kNoErr)
+		{
+			LOGI("ceate audio_save msg_que fail!\r\n");
+			goto exit;
+		}
+		LOGI("ceate audio_save msg_que complete\r\n");
+
+		ret = rtos_create_thread(&audio_save.thread_hdl,
+							 3,
+							 "aud_avi_thd",
+							 (beken_thread_function_t)aud_tras_drv_avi_task_entry,
+							 4096,
+							 NULL);
+		if (ret != kNoErr)
+		{
+			LOGI("create audio_save task fail!\r\n");
+			rtos_deinit_queue(&audio_save.msg_que);
+			audio_save.msg_que = NULL;
+			audio_save.thread_hdl = NULL;
+			goto exit;
+		}
+		LOGI("create audio_save task complete\r\n");
+	}
+
+	ret = BK_OK;
+exit:
+	if(cb)
+	{
+		cb(EVENT_AUD_TRAS_AVI_START,ret);
+	}
+
+	return ret;
+}
+
+static bk_err_t aud_tras_drv_save_aud_stop(void *param)
+{
+	bk_err_t ret = BK_FAIL;
+
+	aud_tras_drv_avi_event_cb cb = (aud_tras_drv_avi_event_cb)param;
+	LOGI("%s\r\n",__func__);
+	if (NULL == audio_save.thread_hdl)
+	{
+		ret = BK_OK;
+		goto exit;
+	}
+
+	ret = aud_tras_drv_send_avi_task_msg(AUD_AVI_TASK_EXIT);
+	if (ret != kNoErr)
+	{
+		goto exit;
+	}
+
+	while(audio_save.thread_hdl)
+	{
+		rtos_delay_milliseconds(10);
+	}
+
+	ret = BK_OK;
+exit:
+	if(cb)
+	{
+		cb(EVENT_AUD_TRAS_AVI_STOP,ret);
+	}
+
+	return ret;
+}
+#endif
 

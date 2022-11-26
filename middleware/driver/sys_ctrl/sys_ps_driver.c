@@ -169,6 +169,15 @@ uint32_t sys_drv_lp_vol_get()
 {
 	return sys_hal_lp_vol_get();
 }
+int32 sys_drv_bandgap_cali_set(uint32_t value)//increase or decrease the dvdddig voltage
+{
+	sys_hal_bandgap_cali_set(value);
+	return 0;
+}
+uint32_t sys_drv_bandgap_cali_get()
+{
+	return sys_hal_bandgap_cali_get();
+}
 /*for low power function end*/
 
 /*wake up control start*/

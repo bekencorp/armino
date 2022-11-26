@@ -111,6 +111,8 @@ int32 sys_hal_lp_vol_set(uint32_t value);
 uint32_t sys_hal_lp_vol_get();
 int32 sys_hal_module_power_state_get(power_module_name_t module);
 int32 sys_hal_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval);
+int32 sys_hal_bandgap_cali_set(uint32_t value);//increase or decrease the dvdddig voltage
+uint32_t sys_hal_bandgap_cali_get();
 /*low power feature end*/
 uint32 sys_hal_get_chip_id(void);
 uint32 sys_hal_get_device_id(void);
@@ -383,7 +385,6 @@ void sys_hal_psram_dpll_enable(uint32_t enable);
 void sys_hal_psram_ldo_enable(uint32_t enable);
 void sys_hal_psram_clk_sel(uint32_t value);
 void sys_hal_psram_set_clkdiv(uint32_t value);
-void sys_hal_psram_power_enable(void);
 void sys_hal_psram_psldo_vsel(uint32_t value);
 void sys_hal_psram_psldo_vset(uint32_t output_voltage, bool is_add_200mv);
 void sys_hal_psram_psram_disckg(uint32_t value);
@@ -3175,7 +3176,8 @@ void sys_hal_set_ana_vlsel_ldodig(uint32_t value);
 void sys_hal_set_ana_vhsel_ldodig(uint32_t value);
 void sys_hal_set_ana_vctrl_sysldo(uint32_t value);
 
-
+void sys_hal_set_yuv_buf_clock_en(uint32_t value);
+void sys_hal_set_h264_clock_en(uint32_t value);
 
 #ifdef __cplusplus
 }

@@ -76,7 +76,7 @@ static void sdio_host_init_gpio(void)
 	}
 
 #if (CONFIG_SYSTEM_CTRL)
-#if CONFIG_SDCARD_BUSWIDTH_4LINE
+#if CONFIG_SDIO_4LINES_EN
 	gpio_sdio_sel(GPIO_SDIO_MAP_MODE0);
 #else
 	gpio_sdio_one_line_sel(GPIO_SDIO_MAP_MODE0);
@@ -96,7 +96,7 @@ static void sdio_host_init_gpio(void)
 	bk_gpio_pull_up(sdio_host_gpio_map_table[SDIO_HOST_GPIO_DATA0_INDEX].gpio_id);
 	bk_gpio_set_capacity(sdio_host_gpio_map_table[SDIO_HOST_GPIO_DATA0_INDEX].gpio_id, 3);
 
-#if CONFIG_SDCARD_BUSWIDTH_4LINE
+#if CONFIG_SDIO_4LINES_EN
 	/* sdio host data1,data2,data3 */
 	for (uint32_t i = SDIO_HOST_GPIO_DATA1_INDEX; i < SDIO_HOST_GPIO_PIN_NUMBER; i++) {
 		bk_gpio_pull_up(sdio_host_gpio_map_table[i].gpio_id);

@@ -6,7 +6,7 @@
 #include "tfm_plat_otp.h"
 #include "mbedtls/hkdf.h"
 
-#define DUBHE_BASE_S   (0x4b000000)
+#define DUBHE_BASE_S   (0x4b110000)
 
 int crypto_hw_accelerator_init(void)
 {

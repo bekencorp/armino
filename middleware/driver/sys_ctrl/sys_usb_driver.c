@@ -28,40 +28,43 @@ uint32_t sys_drv_usb_analog_phy_en(bool ctrl, void *arg)
 
 uint32_t sys_drv_usb_analog_speed_en(bool ctrl, void *arg)
 {
-	uint32_t int_level = rtos_disable_int();
 	uint32_t ret = SYS_DRV_FAILURE;
+	uint32_t int_level;
 	ret = sys_amp_res_acquire();
 	if(ret != BK_OK)
 		return ret;
 
+	int_level = rtos_disable_int();
+
 	sys_hal_usb_analog_speed_en(ctrl);
+
+	rtos_enable_int(int_level);
 
 	if(!ret)
 		ret = sys_amp_res_release();
 	if(ret != BK_OK)
 		return ret;
 
-	rtos_enable_int(int_level);
 	return SYS_DRV_SUCCESS;
 }
 
 uint32_t sys_drv_usb_analog_ckmcu_en(bool ctrl, void *arg)
 {
-	uint32_t int_level = rtos_disable_int();
+	uint32_t int_level;
 	uint32_t ret = SYS_DRV_FAILURE;
-
 	ret = sys_amp_res_acquire();
 	if(ret != BK_OK)
 		return ret;
 
+	int_level = rtos_disable_int();
 	sys_hal_usb_analog_ckmcu_en(ctrl);
+	rtos_enable_int(int_level);
 
 	if(!ret)
 		ret = sys_amp_res_release();
 	if(ret != BK_OK)
 		return ret;
 
-	rtos_enable_int(int_level);
 	return SYS_DRV_SUCCESS;
 }
 

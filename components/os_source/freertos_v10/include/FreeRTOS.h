@@ -1226,6 +1226,9 @@ typedef struct xSTATIC_TCB
     #if configBK_FREERTOS
         uint16_t        ulDummy23;
     #endif
+    #if (portSTACK_GROWTH <= 0)
+        UBaseType_t     uxSizeOfStack;      /*< Support For CmBacktrace >*/
+    #endif
 } StaticTask_t;
 
 /*

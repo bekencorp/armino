@@ -21,6 +21,9 @@
 extern "C" {
 #endif
 
+#if CONFIG_CLI_USER_CONFIG
+#include "cli_user_config.h"
+#else
 #if (CONFIG_WIFI_ENABLE) &&(!CONFIG_SLAVE_CORE)
 #define CLI_CFG_WIFI        1
 #else
@@ -91,12 +94,12 @@ extern "C" {
 
 #if (!CONFIG_SLAVE_CORE)
 #define CLI_CFG_UART        1
-#define CLI_CFG_ADC         1
+#define CLI_CFG_ADC         0
 #define CLI_CFG_SPI         1
 #define CLI_CFG_MICO        1
 #define CLI_CFG_REG         1
 #define CLI_CFG_EXCEPTION   1
-#else 
+#else
 #define CLI_CFG_UART        0
 #define CLI_CFG_ADC         0
 #define CLI_CFG_SPI         0
@@ -160,7 +163,7 @@ extern "C" {
 #endif
 
 #if (CONFIG_JPEG_DECODE && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_JPEGDEC     1
+#define CLI_CFG_JPEGDEC     0
 #else
 #define CLI_CFG_JPEGDEC     0
 #endif
@@ -211,7 +214,7 @@ extern "C" {
 #endif
 
 #if (CONFIG_I2S && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_I2S         1
+#define CLI_CFG_I2S         0
 #else
 #define CLI_CFG_I2S         0
 #endif
@@ -219,72 +222,88 @@ extern "C" {
 #if (CONFIG_SOC_BK7256XX)
 
 #if (CONFIG_DMA2D_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_DMA2D  1
+#define CLI_CFG_DMA2D  0
 #else
 #define CLI_CFG_DMA2D  0
 #endif
 
 #if (CONFIG_AUDIO && CONFIG_DUAL_CORE && CONFIG_AUDIO_TEST && CONFIG_AUDIO_RISCV_IP_V1_0 && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_AUD         1
+#define CLI_CFG_AUD         0
 #endif
 
 #if (CONFIG_AUD_INTF_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_AUD_INTF    1
+#define CLI_CFG_AUD_INTF    0
 #endif
 
 #if (CONFIG_AUDIO_RSP_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_AUD_RSP    1
+#define CLI_CFG_AUD_RSP    0
 #endif
 
 #if (CONFIG_AUDIO_VAD_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_AUD_VAD    1
+#define CLI_CFG_AUD_VAD    0
 #endif
 
 #if (CONFIG_AUDIO_NS_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_AUD_NS    1
+#define CLI_CFG_AUD_NS    0
 #endif
 
 #if (CONFIG_AUDIO_FLAC_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_AUD_FLAC    1
+#define CLI_CFG_AUD_FLAC    0
 #endif
 
 #if (CONFIG_SBC_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_SBC	1
+#define CLI_CFG_SBC		0
+#else
+#define CLI_CFG_SBC		0
+#endif
+
+#if (CONFIG_TOUCH_TEST && (!CONFIG_SLAVE_CORE))
+#define CLI_CFG_TOUCH	0
+#else
+#define CLI_CFG_TOUCH	0
 #endif
 
 #if (CONFIG_LCD_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_LCD  1
+#define CLI_CFG_LCD  0
 #else
 #define CLI_CFG_LCD  0
 #endif
 
 #if (CONFIG_QSPI_OLED_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_QSPI_OLED	1
+#define CLI_CFG_QSPI_OLED	0
 #else
 #define CLI_CFG_QSPI_OLED	0
 #endif
 
+#if (CONFIG_QRCODEGEN_TEST && (!CONFIG_SLAVE_CORE))
+#define CLI_CFG_QRCODEGEN	0
+#else
+#define CLI_CFG_QRCODEGEN	0
+#endif
+
 #if (CONFIG_DUAL_CORE && CONFIG_AUDIO_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_AUD_CP0     1
+#define CLI_CFG_AUD_CP0     0
 #endif
 
 #if (CONFIG_FFT_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_FFT         1
+#define CLI_CFG_FFT         0
 #else
 #define CLI_CFG_FFT         0
 #endif
 #endif
 
 #if (CONFIG_AUDIO_AEC_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_AEC         1
+#define CLI_CFG_AEC         0
 #endif
 
 #if (CONFIG_AUDIO_G711_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_G711         1
+#define CLI_CFG_G711         0
 #endif
 
-#if (CONFIG_AUDIO_MP3_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_MP3		1
+#if (CONFIG_AUDIO_MP3_TEST && (!CONFIG_SLAVE_CORE) && CONFIG_FATFS)
+#define CLI_CFG_MP3		0
+#else
+#define CLI_CFG_MP3		0
 #endif
 
 #if (CONFIG_SECURITYIP && (!CONFIG_SLAVE_CORE))
@@ -293,17 +312,18 @@ extern "C" {
 #define CLI_CFG_vault		0
 #endif
 
-#if ((CONFIG_CAMERA || CONFIG_SPIDMA) && CONFIG_APP_DEMO_VIDEO_TRANSFER && (!CONFIG_SLAVE_CORE))
+#if (CONFIG_CAMERA && CONFIG_DVP_TEST &&(!CONFIG_SLAVE_CORE))
 #define CLI_CFG_DVP        1
 #else
 #define CLI_CFG_DVP        0
 #endif
 
-#if (CONFIG_PSRAM && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_PSRAM        1
+#if (CONFIG_PSRAM_TEST && (!CONFIG_SLAVE_CORE))
+#define CLI_CFG_PSRAM        0
 #else
 #define CLI_CFG_PSRAM        0
 
+#endif
 #endif
 
 #ifdef __cplusplus

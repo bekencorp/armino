@@ -1,6 +1,6 @@
-时钟说明
+Clock instructions
 =============================================
-系统时钟源，有以下几种：
+The system clock source includes the following types：
 
 - ROSC
 - DCO
@@ -9,42 +9,44 @@
 - AUPLL
 - DPLL
 
-备注：XTAL是指外部时钟：
+note：XTAL is external clock：
 
-- XTAL-32k：外部的32k；
-- XTAL-26M: 外部的26M；
+- XTAL-32k：external 32k；
+- XTAL-26M: external 26M；
 
-系统默认带外部的26M，外部的32K可以根据项目需要来考虑是否接上。
+The system is equipped with an external 26M clock default. The external 32K clock can accorde to project requirements。
 
-时钟配置说明
+Clock Configuration
 -----------------------------------------------
-32k的时钟源，有以下几种：
+The 32k clock source has the following types：
 
 - rosc
 
-优缺点：
-功耗低，但是时钟精度相对来说不好，最优功耗时可以选用它。
-
-- 外部26M分频出的时钟
-
-优缺点：精度好，功耗高相对高
+Advantages and disadvantages:
+Low power consumption good，but the clock is relatively inaccurate，You can use it when you need the best power consumption。
 
 
-- 外部32k时钟
+- external 26M division 32k
 
-优缺点：精度好，功耗相对外部26M分频的时钟低
-
-
-因此可以根据不同的业务和场景选用不同的32k时钟
+Advantages and disadvantages：
+Good precision, but higher power consumption
 
 
-DPLL使用介绍
+- external 32k
+
+Advantages and disadvantages：
+The precision is good, and the power consumption is lower than that of the external 26M division 32k clock
+
+
+so you can select different 32k source clock based on owner using scenarios
+
+Introduction to DPLL usage
 -----------------------------------------------
-DPLL是通过外部26M时钟倍频上去
+DPLL is external 26M Frequency doubling(a.320M;b.480M)
 +++++++++++++++++++++++++++++++++++++++++++++++
-- WIFI在执行业务的工作时钟是DPLL
-- BT在执行业务的工作时钟是DPLL
-- 可以根据业务需要使用不同的DPLL分频时钟来节省功耗
+- The working clock of WIFI is DPLL(480M)
+- The working clock of BT is DPLL(480M)
+- it can select different DPLL according to the specific scenarios
 
 :link_to_translation:`en:[English]`
 

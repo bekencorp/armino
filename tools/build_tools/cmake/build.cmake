@@ -119,6 +119,8 @@ function(__build_set_default_build_specifications)
                                     "-Wno-unknown-pragmas"
                                     "-Wno-address-of-packed-member"  # gcc 5 don't recognize no-address-of-packed-member
                                     "-Wno-deprecated-declarations"   # prefer to use -Wno-error=deprecated-declarations
+                                    "-Wno-unused-value"              # ignore statement with no effect warning
+                                    "-Wno-unused-function"           # ignore unused function warning
 
                                     "-ffunction-sections"
                                     "-fsigned-char"
@@ -616,18 +618,38 @@ function(armino_build_executable bin)
         set(armino_pack "$ENV{ARMINO_PATH}/tools/env_tools/beken_packager/cmake_packager_wrapper")
     endif()
 
-    set(target  ${ARMINO_SOC})
-    add_custom_command(OUTPUT "${bin_dir}/bin_tmp"
-        COMMAND "${armino_objcopy}" -O binary "${bin_dir}/${bin}" "${bin_dir}/${bin_name}.bin"
-        COMMAND "${armino_readelf}" -a -h -l -S -g -s "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.txt"
-        COMMAND "${armino_nm}" -n -l -C -a -A -g "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.nm"
-        COMMAND "${armino_objdump}" -d "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.lst"
-        COMMAND python "${armino_pack}" -n "all-${bin_name}.bin" -f "${bin_name}.bin" -c "${ARMINO_SOC}"
-        DEPENDS ${bin}
-        VERBATIM
-        WORKING_DIRECTORY ${bin_dir}
-        COMMENT "Generating binary image from built executable"
-    )
+    set(target ${ARMINO_SOC})
+
+    set(TOOLS_PATH ${ARMINO_PATH}/tools/env_tools)
+    set(BASE_CFG_DIR $ENV{ARMINO_PATH}/middleware/boards/${ARMINO_SOC})
+    set(PREFERED_CFG_DIR ${PROJECT_DIR}/config)
+    set(BIN_DIR ${CMAKE_BINARY_DIR}/)
+
+    if ("${target}" STREQUAL "bk7236")
+        add_custom_command(OUTPUT "${bin_dir}/bin_tmp"
+            COMMAND "${armino_objcopy}" -O binary "${bin_dir}/${bin}" "${bin_dir}/${bin_name}.bin"
+            COMMAND "${armino_readelf}" -a -h -l -S -g -s "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.txt"
+            COMMAND "${armino_nm}" -n -l -C -a -A -g "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.nm"
+            COMMAND "${armino_objdump}" -d "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.lst"
+            COMMAND python3 ${armino_pack} pack -t "${TOOLS_PATH}" -b "${BIN_DIR}" -c "${BASE_CFG_DIR}" -p "${PREFERED_CFG_DIR}" -s "${ARMINO_SOC}" #--debug
+            DEPENDS ${bin}
+            VERBATIM
+            WORKING_DIRECTORY ${bin_dir}
+            COMMENT "Generating binary image from built executable"
+        )
+    else()
+        add_custom_command(OUTPUT "${bin_dir}/bin_tmp"
+            COMMAND "${armino_objcopy}" -O binary "${bin_dir}/${bin}" "${bin_dir}/${bin_name}.bin"
+            COMMAND "${armino_readelf}" -a -h -l -S -g -s "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.txt"
+            COMMAND "${armino_nm}" -n -l -C -a -A -g "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.nm"
+            COMMAND "${armino_objdump}" -d "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.lst"
+            COMMAND python "${armino_pack}" -n "all-${bin_name}.bin" -f "${bin_name}.bin" -c "${ARMINO_SOC}"
+            DEPENDS ${bin}
+            VERBATIM
+            WORKING_DIRECTORY ${bin_dir}
+            COMMENT "Generating binary image from built executable"
+        )
+    endif()
 
     set(armino_size_statistic ${python} ${armino_path}/tools/build_tools/armino_size_statistic.py)
     add_custom_target(gen_project_binary DEPENDS "${bin_dir}/bin_tmp")

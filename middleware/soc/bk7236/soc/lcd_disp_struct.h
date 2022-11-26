@@ -47,7 +47,9 @@ typedef volatile struct {
 			uint32_t rgb_eof:        1; /**<  */
 			uint32_t i8080_sof:      1; /**< 8080 display output start of frame */
 			uint32_t i8080_eof:      1; /**< 8080 display output end of frame */
-			uint32_t reserved:       20; /**rgb fifo wr thrd */
+			uint32_t int_de:         1;
+			uint32_t reserved:       18;
+			uint32_t de_int_en:      1;
 			uint32_t disconti_mode:  1; /**<  open in 20mhz, defult 1  */
 			uint32_t reserved:       3;
 		};
@@ -57,14 +59,14 @@ typedef volatile struct {
 	/* REG_0x05 */
 	union {
 		struct {
-			uint32_t x_pixel:         11; /**< bit[0:10] */
+			uint32_t x_pixel:         11;
 			uint32_t dclk_rev:        1;
-			uint32_t y_pixel:         11; /**<  bit[12:22]  */
-			uint32_t reserved:        1; /**<  bit[23]  */
-			uint32_t rgb_disp_on :    1;  /**<  bit[24] rgb modle enable */
-			uint32_t rgb_on:          1; /**<  bit[25]  */
-			uint32_t lcd_display_on:  1;	/**<   bit[26] Rgb output signal. */
-			uint32_t reserved:	      5; /**<  bit[31:27] rgb_clk_div + 1 */
+			uint32_t y_pixel:         11;
+			uint32_t reserved:        1;
+			uint32_t rgb_disp_on :    1;
+			uint32_t rgb_on:          1;
+			uint32_t lcd_display_on:  1;
+			uint32_t reserved:	      5;
 		};
 		uint32_t v;
 	} rgb_cfg;
@@ -89,15 +91,17 @@ typedef volatile struct {
 	/* REG_0x08 */
 	union {
 		struct {
-			uint32_t i8080_disp_en:      1; /**< bit[0] */
-			uint32_t i8080_dat_on:       1; /**< bit[1] */
-			uint32_t i8080_fifo_mode:    1; /**< bit[2] 0:when i8080_disp_en=0, invalid write fifo, 1:valid whenever time*/
+			uint32_t i8080_disp_en:      1;
+			uint32_t i8080_dat_on:       1;
+			uint32_t i8080_fifo_mode:    1;
+			uint32_t i8080_fifo_clr:     1;
+			uint32_t i8080_cmd_fifo_clr:  1;
+			uint32_t reset_sleep_in:     1;
+			uint32_t i8080_ena:          1;
+			uint32_t reserved:           1;
+			uint32_t tik_cnt:            2;
 			uint32_t reserved:           2;
-			uint32_t reset_sleep_in:     1; /**< bit[5] */
-			uint32_t reserved:           2; /**< bit[6:7] */
-			uint32_t tik_cnt:            2; /**<bit[8:9]0：8clk；1：6clk；2：4clk；3：2clk */
-			uint32_t reserved:           2;
-			uint32_t i8080_1ms_count:    9; /**< bit[12:20] */
+			uint32_t i8080_1ms_count:    9;
 			uint32_t reservsed:          11;
 		};
 		uint32_t v;
@@ -113,7 +117,7 @@ typedef volatile struct {
 	} i8080_cmd_fifo;
 
 	/* REG_0x0a */
-	uint32_t 8080_dat_fifo;
+	uint32_t i8080_dat_fifo;
 
 	/* REG_0x0b */
 	union {
@@ -179,8 +183,7 @@ typedef volatile struct {
 	/* REG_0x10 */
 	union {
 		struct {
-			uint32_t i8080_cmd_para_count:   5;
-			uint32_t reserved:               3;
+			uint32_t reserved:               8;
 			uint32_t dat_wr_thrd:            9;
 			uint32_t reserved:               3;
 			uint32_t dat_rd_thrd:            9;
@@ -191,6 +194,17 @@ typedef volatile struct {
 
 	/* REG_0x11 */
 	uint32_t mater_rd_base_addr;
+
+	uint32_t reserved;
+
+	/* REG_0x13 */
+	union {
+		struct {
+			uint32_t i8080_cmd_para_count:   22;
+			uint32_t reserved:               10;
+		};
+		uint32_t v;
+	} cmd_count;
 
 } lcd_disp_hw_t;
 

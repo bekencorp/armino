@@ -1,0 +1,14 @@
+menu "SARADC"
+	config SARADC
+		bool "Enable saradc"
+		default y
+
+	config SARADC_NEED_FLUSH
+		bool "SARADC whether need flush data"
+		default y
+
+	config SARADC_RANGE_DIVIDE
+		bool "Enable saradc measure range divide"
+		default n
+endmenu	
+

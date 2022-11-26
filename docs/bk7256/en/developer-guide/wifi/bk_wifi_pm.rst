@@ -1,87 +1,67 @@
-WiFi STA 低功耗指南
+Wi-Fi STA Low Power
 =============================================
 
-:link_to_translation:`en:[English]`
+Armino supports the TWT power saving mode defined in Wi-Fi6 and other power saving modes defined in the protocol(traditional power saving mode for short). In addition, Armino has made a number of proprietary optimizations for applications that require low performance but high power consumption.
 
-
-Armino 支持 WiFi-6 标准中定义的 TWT 省电模式与协议中定义的其他省电模式（简称 “传统省电模式”）。
-
-另外，针对某些但对性能要求不高，但对功耗要求特别高应用，Amino 还做了很多专属优化。
-
-
-传统省电模式
+Traditional Power Saving Mode
 --------------------------------------------
-
-
-省电流程
+Power Save Process
 ++++++++++++++++++++++++++++++++++++++++++++
 
-.. figure:: ../../../_static/Based_on_DTIM.png
+.. figure:: ../../../_static/Based_on_DTIM_EN.png
     :align: center
     :alt: Based on DTIM
     :figclass: align-center
 
     Based on DTIM
 
-典型省电流程如上图所示:
+The typical power saving process is shown in the figure above:
 
- - STA 连接 AP 时，与 AP 交换与休眠相关的关键参数:
-   - Beacon 周期 - AP 周期性广播 beacon，beacon 中会携带指示已休眠的 STA 是否有单播包要接收。
-   - DTIM 周期 - 为 beacon interval 的整数倍，DTIM beacon 中会指示是否有广播包要发送，并在随后的 beacon 周期中发送广播包。
-   - Listen Interval - STA 在睡眠状态时,需要 AP 为 STA 缓存单播包的最长时间。
- - 当睡眠条件具备时(通常是 STA 没有包要收发时），STA 通知 AP 自己将要进入休眠模式。
- - 得到 AP 确认后，STA 关闭 RF/MAC 电源或时钟，进入休眠状态。
- - 当 STA 处于休眠状态时，AP 会缓存发向 STA 的单播包；如果 AP 有广播包要发送，会在随后的 DTIM beacon 中通知 STA。
- - STA 在 DTIM 周期醒来，查看是否需要接收广播包；如果有广播，则醒来接收广播包，如果有单播包要接收，则通知 AP 自己已醒，随后 AP 向 STA 发送单播包。
+- When STA connects to AP, it exchanges key parameters related to sleep with the AP:
+    - Beacon Period - AP periodically broadcasts beacon, which indicates whether the dormant STA has unicast pakcets to receive
+    - DTIM Period - integer multiple of beacon interval. DTIM beacon indicates whether there are broadcast packets to be sent, and the broadcast packets are sent in the subsequent beacon period
+    - Listen Interval - STA specifies the maximum time for the AP to store unicast packets for STA when it is asleep
+- When sleep conditions are available(usually when the STA has no packets to send or receive), the STA notifies AP that it is going to sleep mode
+- After receiving AP confirmation, STA turns off RF/MAC power or clock and enters sleep mode
+- When STA is in sleep state, AP will cache unicast packets sent to the STA. If AP has a broadcast packet to send, the STA is notified in a subsequent DTIM beacon
+- STA wakes up during the DTIM cycle to see if it needs to receive broadcast packets. If there is broadcast packet, it wakes up to receive; if there is a unicast packet, it notifies AP that it is awake, and then AP will send the unicast to STA
 
- STA 定期睡眠和唤醒，在睡眠状态下，RF、MAC 和 MODEM 理论上处于关闭状态，在 WiFi 与 BLE 共存模式下，RF 可能无法关闭。
+STA sleeps and wakes up regularly, RF、MAC and modem will turn off in sleep state theoretically. RF could not be off in Wi-Fi and BLE coexistence mode.
 
-进一步降低功耗
+Further Power Reduction
 ++++++++++++++++++++++++++++++++++++++++++
+From `Power Save Process`_ , as you can see, in sleep mode, STA must wake up every DTIM cycle, which can be a major cause of power consumption in some scenarios, especially when DTIM is very small (like 1). To reduce the frequency of STAs waking up, Armino provides a mechanism to wake up only during listen interval. The process is as follows:
 
-从 <省电流程>_ 可以看到，在休眠模式下，STA 每个 DTIM 周期都必须醒来，这在某些场景下可能成为耗电的主要原因，特别是
-当 DTIM 值很小时（如 DTIM 为 1 时）；为降低 STA 醒来频率，Armino 提供了一种机制：仅在 listen interval 间隔醒来。
-流程如下：
-
-.. figure:: ../../../_static/Based_on_Listen_Interval.png
+.. figure:: ../../../_static/Based_on_Listen_Interval_EN.png
     :align: center
     :alt: Based on Listen Interval
     :figclass: align-center
 
     Based on Listen Interval
 
-应用可以通过 ``CONFIG_MM_PS_BASED_ON_LISTEN_INTERVAL`` 来使能这种机制，通过 ``CONFIG_MM_PS_SET_LISTEN_INTERVAL_VALUE``
-来配置 listen interval 值。
+Application can enable this mechanism by setting ``CONFIG_MM_PS_BASED_ON_LISTEN_INTERVAL`` and configure listen interval by definition ``CONFIG_MM_PS_SET_LISTEN_INTERVAL_VALUE``. The example setting is as follows:
 
 .. code::
 
- CONFIG_MM_PS_SET_LISTEN_INTERVAL_VALUE=30
- CONFIG_MM_PS_BASED_ON_LISTEN_INTERVAL=y
+  CONFIG_MM_PS_SET_LISTEN_INTERVAL_VALUE=30
+  CONFIG_MM_PS_BASED_ON_LISTEN_INTERVAL=y
 
-通常 listen interval 越大，节能效果越好，但 listen interval 越大，性能与连接稳定性越差。
+Generally, the larger listen interval, the better power saving , accompanying worse performance and connection stability.
 
-.. note:
+.. note:: AP sends broadcast frames at DTIM interval, STA may miss broadcast packet when this "wake up only at listen interval" mechanism is enabled. On the other hand, if listen interval is too large, AP may cache too many unicast packets for STA. When AP memory is insufficient, packet loss may occur. Both of these conditions affect Wi-Fi performance and connection stability, so this mechanism is only suitable for applications that require low performance but high power saving.
 
-  因为 AP 会在 DTIM 间隔发送广播帧，因此“仅在 listen interval 醒来" 机制使能时，STA 可能会错失广播包；
-  另一方面，如果 listen interval 设置过长，可能会导致 AP 为 STA 缓存过多的单播包，当 AP 内存不足
-  时，可能会引起丢包；这两种情况都会影响 WiFi 性能，连接稳定性，因此，这种机制尽适合那些对性能要
-  求不高，但对功耗要求特别高的应用。
-
-关闭省电模式
+Disable Power Saving Mode
 ++++++++++++++++++++++++++++++++++++++++++
+STA hibernation is enabled by default. User can disable it by function ``bk_wifi_sta_pm_disable()`` and enable by ``bk_wifi_sta_pm_enable()`` .
 
-默认 STA 休眠开启，用户可通过 bk_wifi_sta_pm_disable() 关闭休眠, 通过 bk_wifi_sta_pm_enable() 使能休眠。
+Note that STA hibernation has specific requirements for certain applications, such as:
 
-要注意，在某些特定应用中，STA 休眠有特定的要求，如：
+- When STA and SoftAP coexist, even the mode is enabled, it will not actually enter low power
+- When STA and BLE coexist, sleep mode must be enabled. When STA RF handovers to BLE, it should enter sleep mode first. Otherwise, packet loss may occur
+- For devices that are not sensitive to power consumption, such as refrigerators and rice cookers, user can choose to turn off sleep for the best performance
 
- - 当 STA 与 AP 共存时，由于 AP 存在，即使开启，实际上也不会进入低功耗;
- - 当 STA 与 BLE 共存时，休眠模式必须开启。因为 STA RF 在切向 BLE 时，应该先进入休眠状态，否则可能造成丢包。
- - 对功耗不敏感的设备，如冰箱，电饭煲等，为获取最佳性能，可选择关闭休眠。
-
-
-TWT 省电模式
+TWT Power Saving Mode
 --------------------------------------------
-
-待完成。
+To Be Continued.
 
 

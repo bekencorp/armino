@@ -1,0 +1,10 @@
+menu "PWM"
+	config PWM
+		bool "Enable pwm"
+		default y
+
+	config PWM_HAS_TWO_INT
+		bool "Enable pwm has two int"
+		default n
+endmenu
+

@@ -88,7 +88,7 @@ uint8 media_is_online(void);
 #define ATA_GET_SN			22	/* Get serial number */
 
 /* SDcard Cluster to memory conversion */
-#define SD_MIN_NUMBER_REMAINING_CLUSTERS 800
+#define SD_MIN_NUMBER_REMAINING_CLUSTERS 8
 #define SD_CLUSTER_TO_MEM_64KB 16
 
 #ifdef __cplusplus

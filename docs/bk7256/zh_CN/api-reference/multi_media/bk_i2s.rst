@@ -10,17 +10,7 @@ I2S APIs
 I2S Interface
 ----------------------------
 
-The BK I2S Driver supports following work modes:
-
- - I2S (Philips)
- - Left Justified
- - Right Justified
- - Short Frame Sync
- - Long Frame Sync
- - Normal 2B+D
- - Delay 2B+D
-
- The BK I2S Driver supports following sample rates:
+The BK I2S Driver supports following sample rates:
 
  - 8K
  - 12K
@@ -34,6 +24,92 @@ The BK I2S Driver supports following work modes:
  - 22.050K
  - 44.1K
  - 88.2K
+
+The BK I2S Driver supports following work modes:
+
+ - I2S (Philips)
+	在此工作模式下信号传输时序图如 ``图1`` 所示:
+
+ - Left Justified
+	在此工作模式下信号传输时序图如 ``图2`` 所示:
+
+ - Right Justified
+	在此工作模式下信号传输时序图如 ``图3`` 所示:
+
+ - Short Frame Sync
+	在此工作模式下信号传输时序图如 ``图4`` 所示:
+
+ - Long Frame Sync
+	在此工作模式下信号传输时序图如 ``图5`` 所示:
+
+ - Normal 2B+D
+	在此工作模式下信号传输时序图如 ``图6和图7`` 所示:
+
+ - Delay 2B+D
+	在此工作模式下信号传输时序图如 ``图8和图9`` 所示:
+
+.. figure:: ../../../_static/i2s_Philips.png
+    :align: center
+    :alt: Philips_mode_time_sequence_diagram
+    :figclass: align-center
+
+    Figure 1. Philips mode time sequence diagram
+
+.. figure:: ../../../_static/i2s_Left_Justified.png
+    :align: center
+    :alt: Left Justified mode time sequence diagram
+    :figclass: align-center
+
+    Figure 2. Left Justified mode time sequence diagram
+
+.. figure:: ../../../_static/i2s_RightJustified.png
+    :align: center
+    :alt: Right Justified mode time sequence diagram
+    :figclass: align-center
+
+    Figure 3. Right Justified mode time sequence diagram
+
+.. figure:: ../../../_static/i2s_ShortSyncFrame.png
+    :align: center
+    :alt: Short Frame Sync mode time sequence diagram
+    :figclass: align-center
+
+    Figure 4. Short Frame Sync mode time sequence diagram
+
+.. figure:: ../../../_static/i2s_LongSyncFrame.png
+    :align: center
+    :alt: Long Frame Sync mode time sequence diagram
+    :figclass: align-center
+
+    Figure 5. Long Frame Sync mode time sequence diagram
+
+.. figure:: ../../../_static/i2s_Normal2BD_D0.png
+    :align: center
+    :alt: Normal 2B+D mode time sequence diagram
+    :figclass: align-center
+
+    Figure 6. Normal 2B+D mode time sequence diagram
+
+.. figure:: ../../../_static/i2s_Normal2BD_Dx.png
+    :align: center
+    :alt: Normal 2B+D mode time sequence diagram
+    :figclass: align-center
+
+    Figure 7. Normal 2B+D mode time sequence diagram
+
+.. figure:: ../../../_static/i2s_Delay2BD_D0.png
+    :align: center
+    :alt: Delay 2B+D mode time sequence diagram
+    :figclass: align-center
+
+    Figure 8. Delay 2B+D mode time sequence diagram
+
+.. figure:: ../../../_static/i2s_Delay2BD_Dx.png
+    :align: center
+    :alt: Delay 2B+D mode time sequence diagram
+    :figclass: align-center
+
+    Figure 9. Delay 2B+D mode time sequence diagram
 
 Each function can be operated independently. However both function share the same resources,  only one function can exit and work at a time.
 
@@ -71,8 +147,12 @@ I2S APIs:
  - :cpp:func:`bk_i2s_write_data` - write data to i2s tx fifo
  - :cpp:func:`bk_i2s_read_data` - read data from i2s rx fifo
  - :cpp:func:`bk_i2s_get_data_addr` - get i2s data address
- - :cpp:func:`bk_i2s_set_ratio` - config i2s sample rate
+ - :cpp:func:`bk_i2s_set_samp_rate` - config i2s sample rate
  - :cpp:func:`bk_i2s_register_i2s_isr` - register i2s isr
+ - :cpp:func:`bk_i2s_chl_init` - i2s channel init
+ - :cpp:func:`bk_i2s_chl_deinit` - i2s channel deinit
+ - :cpp:func:`bk_i2s_start` - start i2s transfer
+ - :cpp:func:`bk_i2s_stop` - stop i2s transfer
 
 API Reference
 ----------------------------------------

@@ -109,6 +109,7 @@ fb_mem_list_t *frame_buffer_list_get(pixel_format_t fmt)
 	{
 		case PIXEL_FMT_DVP_JPEG:
 		case PIXEL_FMT_UVC_JPEG:
+		case PIXEL_FMT_UVC_H264:
 			ret = &fb_mem_list[FB_INDEX_JPEG];
 			break;
 		case PIXEL_FMT_RGB565:
@@ -138,6 +139,7 @@ fb_type_t frame_buffer_type_get(pixel_format_t fmt)
 	{
 		case PIXEL_FMT_DVP_JPEG:
 		case PIXEL_FMT_UVC_JPEG:
+		case PIXEL_FMT_UVC_H264:
 			ret = FB_INDEX_JPEG;
 			break;
 		case PIXEL_FMT_RGB565:

@@ -52,6 +52,7 @@ void storage_capture_frame_notify(frame_buffer_t *frame);
 
 void storage_event_handle(uint32_t event, uint32_t param);
 bk_err_t sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *total_len);
+bk_err_t sdcard_read_filelen(char *filename);
 
 
 #ifdef __cplusplus

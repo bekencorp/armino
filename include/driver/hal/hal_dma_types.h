@@ -63,17 +63,29 @@ typedef enum {
     DMA_DEV_LA,          /**< DMA device LA */
     DMA_DEV_HSSPI,       /**< DMA device HSSPI */
     DMA_DEV_AUDIO,       /**< DMA device AUDIO */
+    DMA_DEV_AUDIO_RX,    /**< DMA device AUDIO */
     DMA_DEV_SDIO,        /**< DMA device SDIO */
-    DMA_DEV_UART0,       /**< DMA device UART0 */
+    DMA_DEV_SDIO_RX,     /**< DMA device SDIO */
     DMA_DEV_UART1,       /**< DMA device UART1 */
+    DMA_DEV_UART1_RX,    /**< DMA device UART1 */
     DMA_DEV_UART2,       /**< DMA device UART2 */
+    DMA_DEV_UART2_RX,    /**< DMA device UART 2 RX */
     DMA_DEV_UART3,       /**< DMA device UART3 */
+    DMA_DEV_UART3_RX,    /**< DMA device UART3 */
     DMA_DEV_I2S,         /**< DMA device I2S */
-    DMA_DEV_I2S_CHAN0,   /**< DMA device I2S CHAN 0 */
-    DMA_DEV_I2S_CHAN1,   /**< DMA device I2S CHAN 1*/
-    DMA_DEV_I2S_CHAN2,   /**< DMA device I2S CHAN 2*/
+    DMA_DEV_I2S_CH1,     /**< DMA device I2S */
+    DMA_DEV_I2S_CH2,     /**< DMA device I2S */
+    DMA_DEV_I2S_RX,      /**< DMA device I2S */
+    DMA_DEV_I2S_RX_CH1,  /**< DMA device I2S */
+    DMA_DEV_I2S_RX_CH2,  /**< DMA device I2S */
+    DMA_DEV_I2S1,        /**< DMA device I2S */
+    DMA_DEV_I2S1_RX,     /**< DMA device I2S */
+    DMA_DEV_I2S2,        /**< DMA device I2S */
+    DMA_DEV_I2S2_RX,     /**< DMA device I2S */
     DMA_DEV_GSPI0,       /**< DMA device GSPI1 */
+    DMA_DEV_GSPI0_RX,    /**< DMA device GSPI1 */
     DMA_DEV_GSPI1,       /**< DMA device GSPI2 */
+    DMA_DEV_GSPI1_RX,    /**< DMA device GSPI2 */
     DMA_DEV_GSPI2,       /**< DMA device GSPI3 */
     DMA_DEV_JPEG,        /**< DMA device JPEG */
     DMA_DEV_PSRAM_VIDEO, /**< DMA device PSRAM VIDEO */
@@ -82,8 +94,9 @@ typedef enum {
     DMA_DEV_LCD_CMD,     /**< DMA device LCD CMD */
     DMA_DEV_LCD_DATA,    /**< DMA device LCD DATA */
     DMA_DEV_AHB_MEM,     /**< DMA device AHB_MEM */
-    DMA_DEV_SPI0,        /**< DMA device SPI 0 */
-    DMA_DEV_SPI1,        /**< DMA device SPI 1 */
+    DMA_DEV_DISP_RX,     /**< DMA device DISP RX */
+    DMA_DEV_SDMADC_RX,   /**< DMA device SDMADC RX */
+    DMA_DEV_H264,        /**< DMA device H264 */
     DMA_DEV_MAX,
 } dma_dev_t;
 

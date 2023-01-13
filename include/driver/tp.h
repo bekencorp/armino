@@ -21,6 +21,11 @@
 extern "C" {
 #endif
 
+// TP support maximum number.
+#ifndef TP_SUPPORT_MAX_NUM
+    #define TP_SUPPORT_MAX_NUM (1)
+#endif
+
 /**
  * @brief     Init the tp
  *

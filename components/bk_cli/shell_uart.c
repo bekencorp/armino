@@ -102,6 +102,7 @@ shell_dev_t     shell_uart3 =
 	};
 #endif
 
+#if 0
 static const uart_config_t config = 
 	{
         .baud_rate = UART_BAUD_RATE,
@@ -111,6 +112,7 @@ static const uart_config_t config =
         .flow_ctrl = UART_FLOWCTRL_DISABLE,
         .src_clk = UART_SCLK_XTAL_26M
 	};
+#endif
 
 /* ===============================  internal functions  =========================== */
 
@@ -285,10 +287,11 @@ static bool_t shell_uart_init(shell_dev_t * shell_dev)
 	uart_ext->tx_suspend = 0;
 	uart_ext->uart_id = uart_id;
 
+#if 0
 	bk_uart_init(uart_id, &config);
 	bk_uart_set_enable_rx(uart_id, 0);
 	bk_uart_set_enable_rx(uart_id, 1);
-
+#endif
 	return bTRUE;
 }
 

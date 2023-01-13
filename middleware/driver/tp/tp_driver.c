@@ -18,14 +18,13 @@
 #include <os/str.h>
 #include <driver/gpio.h>
 #include <driver/gpio_types.h>
+#include <gpio_map.h>
+#include "gpio_driver.h"
 #include <driver/i2c.h>
 #include <driver/media_types.h>
 #include <driver/tp.h>
 #include <driver/tp_types.h>
 #include "tp_sensor_devices.h"
-#include <gpio_map.h>
-#include "gpio_driver.h"
-#include <driver/gpio.h>
 #include "driver/drv_tp.h"
 #include <common/bk_compiler.h>
 
@@ -36,8 +35,6 @@
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
-// macros define
-#define TP_SUPPORT_MAX_NUM (5)
 
 #define TP_RST_GPIO_ID (GPIO_9)
 #define TP_INT_GPIO_ID (GPIO_6)
@@ -46,7 +43,7 @@
 #define TP_I2C_ID (1)
 #define TP_I2C_TIMEOUT (2000)  // 2s
 
-#define TP_THREAD_PRIORITY   (5)
+#define TP_THREAD_PRIORITY   (4)
 #define TP_THREAD_STACK_SIZE (1024)
 
 
@@ -310,9 +307,6 @@ void tp_process_task(beken_thread_arg_t arg)
 	int ret;
 	tp_data_t tp_data[TP_SUPPORT_MAX_NUM];
 
-	// // when finish interrupt gpio configure, must delay 100ms.
-	// rtos_delay_milliseconds(100);
-
 	while (1)
 	{
 		ret = rtos_get_semaphore(&tp_sema, BEKEN_NEVER_TIMEOUT);
@@ -332,7 +326,7 @@ void tp_process_task(beken_thread_arg_t arg)
 			{
 				for (uint8_t i=0; i<TP_SUPPORT_MAX_NUM; i++)
 				{
-					if (tp_data[i].event == TP_EVENT_TYPE_DOWN || tp_data[i].event == TP_EVENT_TYPE_UP)
+					if ((TP_EVENT_TYPE_DOWN == tp_data[i].event) || (TP_EVENT_TYPE_UP == tp_data[i].event) || (TP_EVENT_TYPE_MOVE == tp_data[i].event))
 					{
 						LOGD("event=%d, track_id=%d, x=%d, y=%d, s=%d, timestamp=%u.\r\n", 
 									tp_data[i].event,
@@ -409,7 +403,7 @@ bk_err_t bk_tp_driver_init(tp_config_t *config)
 		return BK_FAIL;
 	}
 
-	rtos_delay_milliseconds(100);	
+	rtos_delay_milliseconds(100);
 
 	current_sensor = tp_get_sensor_auto_detect(&tp_i2c_cb);
 	if (NULL == current_sensor)

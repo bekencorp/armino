@@ -53,7 +53,8 @@
 //#include <driver/media_types.h>
 #include <driver/psram.h>
 
-#include "modules/lvgl/lcd_task.h"
+#include "lvgl.h"
+#include "lcd_task.h"
 
 #include "driver/flash.h"
 #include "driver/flash_partition.h"
@@ -64,6 +65,7 @@
 #include "modules/image_scale.h"
 #include <driver/dma2d.h>
 #include "driver/drv_tp.h"
+#include "modules/lcd_font.h"
 
 #define TAG "lcd_act"
 
@@ -97,12 +99,26 @@ static frame_buffer_t *dbg_display_frame = NULL;
 lcd_open_t lcd_transfer_info = {0};
 
 ///char *g_blend_name = NULL;
-#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
 static lcd_blend_data_t g_blend_data = {0};
+static uint8_t *yuv_blend_addr = NULL;
+static uint8_t *rgb_blend_addr = NULL;
 #endif
 
 static int g_lcd_with_gui = 0;
 static int g_lcd_display_logo_first = 0;
+static short g_lcd_width = 0;
+static short g_lcd_height = 0;
+#if CONFIG_BLEND_USE_GUI
+static short g_cammer_width = 0;
+static short g_blend_x_size = 0;
+static short g_blend_y_size = 0;
+static short g_blend_hor_align = 0;   //0£ºË®Æ½×ó¶ÔÆë  1£ºË®Æ½¾ÓÖÐ   2£ºË®Æ½ÓÒ¶ÔÆë
+static short g_blend_ver_offset = 0;  //´¹Ö±Æ«ÒÆ
+static beken_mutex_t g_disp_mutex_blend;
+static int g_gui_blend_switch = BK_FALSE;
+lcd_blend_t g_lcd_blend_data;
+#endif
 
 #ifdef DISPLAY_PIPELINE_TASK
 static void jpeg_display_task_entry(beken_thread_arg_t data)
@@ -413,12 +429,9 @@ void camera_display_task_stop(void)
 	{
 		LOGE("%s decoder_sem deinit failed\n");
 	}
-	
+
 	LOGI("%s complete\n", __func__);
 }
-
-
-
 
 static bk_err_t display_logo(void)
 {
@@ -506,6 +519,54 @@ void lcd_open_handle(param_pak_t *param)
 	lcd_open_t *lcd_open = (lcd_open_t *)param->param;
 	lcd_config_t lcd_config;
 
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG  || CONFIG_LCD_FONT_BLEND
+
+#if CONFIG_CAMERA
+	if (bk_dvp_camera_get_device() == NULL)
+	{
+		yuv_blend_addr = (uint8_t *)LCD_BLEND_JPEGSRAM_ADDR_1;
+		rgb_blend_addr = (uint8_t *)LCD_BLEND_JPEGSRAM_ADDR_2;
+	}
+	else
+	{
+		if (yuv_blend_addr == NULL)
+		{
+			yuv_blend_addr = (uint8_t *)os_malloc(LCD_BLEND_MALLOC_SIZE);
+		}
+
+		if (rgb_blend_addr == NULL)
+		{
+			rgb_blend_addr = (uint8_t *)os_malloc(LCD_BLEND_MALLOC_SIZE);
+		}
+	}
+#else
+	yuv_blend_addr = (uint8_t *)LCD_BLEND_JPEGSRAM_ADDR_1;
+	rgb_blend_addr = (uint8_t *)LCD_BLEND_JPEGSRAM_ADDR_2;
+#endif
+
+	if (yuv_blend_addr == NULL || rgb_blend_addr == NULL)
+	{
+		LOGE("lcd blen malloc error\r\n");
+		if (yuv_blend_addr)
+		{
+			os_free(yuv_blend_addr);
+			yuv_blend_addr = NULL;
+		}
+
+		if (rgb_blend_addr)
+		{
+			os_free(rgb_blend_addr);
+			rgb_blend_addr = NULL;
+		}
+
+		goto out;
+	}
+
+	lcd_config.yuv_addr = yuv_blend_addr;
+	lcd_config.rgb565_addr = rgb_blend_addr;
+
+#endif
+
 	os_memcpy(&lcd_transfer_info, lcd_open, sizeof(lcd_open_t));
 
 	lcd_config.device = get_lcd_device_by_name(lcd_transfer_info.device_name);
@@ -513,6 +574,11 @@ void lcd_open_handle(param_pak_t *param)
 	if (lcd_config.device == NULL)
 	{
 		lcd_config.device = get_lcd_device_by_ppi(lcd_transfer_info.device_ppi);
+		lcd_transfer_info.device_name = lcd_config.device->name;
+	}
+	else
+	{
+		lcd_transfer_info.device_ppi = lcd_config.device->ppi;
 	}
 
 	if (lcd_config.device == NULL)
@@ -550,6 +616,9 @@ void lcd_open_handle(param_pak_t *param)
 	}
 
 	LOGI("%s complete\n", __func__);
+	set_lcd_state(LCD_STATE_ENABLED);
+	g_lcd_width = ppi_to_pixel_x(lcd_config.device->ppi);
+	g_lcd_height = ppi_to_pixel_y(lcd_config.device->ppi);
 
 	#if (CONFIG_TP)
 		uint16_t hor_size = ppi_to_pixel_x(lcd_config.device->ppi);  //lcd size x
@@ -565,7 +634,7 @@ void lcd_open_handle(param_pak_t *param)
 
 		bk_err_t bk_psram_init(void);
 		bk_psram_init();
-		bk_gui_disp_task_init(hor_size, ver_size);
+		bk_gui_disp_task_init(hor_size, ver_size, BK_FALSE);
 	}
 	#endif
 
@@ -573,6 +642,58 @@ out:
 		MEDIA_EVT_RETURN(param, ret);
 
 }
+
+#if CONFIG_LVGL && CONFIG_BLEND_USE_GUI
+bk_err_t media_app_lcd_set_pos(int hor_pos, int ver_offset)
+{
+    if(hor_pos >= 0 && hor_pos <= 2)
+        g_blend_hor_align = hor_pos;
+
+    if(ver_offset < (g_lcd_height - g_blend_y_size))
+        g_blend_ver_offset = ver_offset;
+
+    bk_printf("g_blend_hor_align:%d, g_blend_ver_offset:%d\r\n", g_blend_hor_align, g_blend_ver_offset);
+    return kNoErr;
+}
+
+bk_err_t media_app_lcd_gui_blend_open(int blend_x_size, int blend_y_size)
+{
+    if(g_lcd_with_gui)
+    {
+        bk_printf("[%s][%d] you should close gui first: media lcd close\r\n", __FUNCTION__, __LINE__);
+        return kGeneralErr;
+    }
+
+    if(g_lcd_width> 0 && blend_x_size > g_lcd_width)
+    {
+        bk_printf("[%s][%d] blend_x_size %d is two big, should <= lcd width \r\n", 
+                                                            __FUNCTION__, __LINE__, blend_x_size);
+        return kGeneralErr;
+    }
+
+    rtos_init_mutex(&g_disp_mutex_blend);
+    g_blend_x_size = blend_x_size;
+    g_blend_y_size = blend_y_size;
+    bk_err_t bk_psram_init(void);
+    bk_psram_init();
+    bk_gui_disp_task_init(blend_x_size, blend_y_size, BK_TRUE);
+    g_gui_blend_switch = BK_TRUE;
+    
+    return kNoErr;
+}
+
+bk_err_t media_app_lcd_gui_blend_close(void)
+{
+    g_gui_blend_switch = BK_FALSE;
+
+    bk_gui_disp_task_deinit();
+    rtos_deinit_mutex(&g_disp_mutex_blend);
+
+    os_memset(&g_lcd_blend_data, 0, sizeof(g_lcd_blend_data));
+
+    return kNoErr;
+}
+#endif
 
 extern storage_flash_t storge_flash;
 
@@ -766,8 +887,51 @@ out:
 	MEDIA_EVT_RETURN(param, ret);
 }
 
+void lcd_driver_set_blend_data(uint8_t *gui_addr, uint32 xsize, uint32 ysize, uint32 color_size)
+{
+#if CONFIG_BLEND_USE_GUI
+    u8 *gui_bak_addr = NULL;
 
+    if(g_gui_blend_switch == BK_TRUE)
+    {
+        rtos_lock_mutex(&g_disp_mutex_blend);
+        void lv_get_gui_blend_buff(u8 **yuv_data, u8 **rgb565_data, u8 **gui_bak_data);
+        void dma2d_memcpy_psram(void *Psrc, void *Pdst, uint32_t xsize, uint32_t ysize, uint32_t src_offline, uint32_t dest_offline);
 
+        lv_get_gui_blend_buff(NULL, NULL, &gui_bak_addr);
+        if(g_cammer_width < xsize)   //eg:lcd:800*480 camera:640*480  blend:700*480
+        {
+            if(color_size == 2)
+                dma2d_memcpy_psram(gui_addr, gui_bak_addr, g_cammer_width, ysize, (xsize-g_cammer_width), 0);
+            else if(color_size == 4)
+                dma2d_memcpy_psram(gui_addr, gui_bak_addr, g_cammer_width*2, ysize, (xsize-g_cammer_width)*2, 0);
+            //os_memcpy_word((uint32_t*)gui_bak_addr, (const uint32_t *)gui_addr, xsize*ysize*color_size);
+            g_lcd_blend_data.xsize = g_cammer_width;
+        }
+        else
+        {
+            if(color_size == 2)
+                dma2d_memcpy_psram(gui_addr, gui_bak_addr, xsize, ysize, 0, 0);
+            else
+                dma2d_memcpy_psram(gui_addr, gui_bak_addr, xsize*2, ysize, 0, 0);
+            //os_memcpy_word((uint32_t*)gui_bak_addr, (const uint32_t *)gui_addr, xsize*ysize*color_size*2);
+            g_lcd_blend_data.xsize = xsize;
+        }
+        
+        g_lcd_blend_data.pfg_addr = (uint8_t *)gui_bak_addr;
+        
+        g_lcd_blend_data.fg_offline = 0;
+        g_lcd_blend_data.ysize = ysize;
+        g_lcd_blend_data.fg_alpha_value = 255;
+#if !CONFIG_BLEND_GUI_OUTPUT_888
+        g_lcd_blend_data.fg_data_format = RGB565;
+#else
+        g_lcd_blend_data.fg_data_format = ARGB8888;
+#endif
+        rtos_unlock_mutex(&g_disp_mutex_blend);
+    }
+#endif
+}
 
 bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 {
@@ -909,6 +1073,150 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 		}
 	}
 #endif
+
+#if CONFIG_BLEND_USE_GUI
+    int x_offset = 0;
+    int y_offset = 0;
+
+    if(g_gui_blend_switch == BK_TRUE)
+    {
+        if(0 == g_cammer_width)
+            g_cammer_width = frame->width;
+        
+        rtos_lock_mutex(&g_disp_mutex_blend);
+        if(g_lcd_blend_data.xsize > 0)
+        {
+            if(0 == g_blend_hor_align)
+            {
+                if(frame->width >= g_lcd_width)
+                    x_offset = (frame->width - g_lcd_width)/2;
+                else
+                    x_offset = 0;
+            }
+            else if(1 == g_blend_hor_align)
+            {
+                x_offset = (frame->width - g_blend_x_size)/2;
+            }
+            else if(2 == g_blend_hor_align)
+            {
+                if(frame->width >= g_lcd_width)
+                    x_offset = (frame->width - g_lcd_width)/2 + (g_lcd_width - g_blend_x_size);
+                else
+                    x_offset = frame->width - g_blend_x_size;
+            }
+
+            if(frame->height >= g_lcd_height)
+                y_offset = (frame->height - g_lcd_height)/2 + g_blend_ver_offset;
+            else
+                y_offset = 0 + g_blend_ver_offset;
+            
+            g_lcd_blend_data.pbg_addr = (uint8_t *)(frame->frame + y_offset*frame->width*2 + x_offset*2);
+            g_lcd_blend_data.bg_offline = frame->width - g_lcd_blend_data.xsize;
+            lcd_driver_blend(&g_lcd_blend_data);
+        }
+        rtos_unlock_mutex(&g_disp_mutex_blend);
+    }
+#endif
+
+#if CONFIG_LCD_FONT_BLEND
+	lcd_blend_t lcd_blend = {0};
+	lcd_font_config_t lcd_font_config = {0};
+
+	uint16_t start_x = 0;
+	uint16_t start_y = 0;
+	uint32_t frame_addr_offset = 0;
+
+	if(g_blend_data.lcd_blend_type == 0)
+	{
+		return BK_OK;
+	}
+	if ((g_lcd_width < frame->width)  || (g_lcd_height < frame->height) ) //for lcd size is small then frame image size
+	{
+		if (g_lcd_width < frame->width)
+			start_x = (frame->width - g_lcd_width) / 2;
+		if (g_lcd_height < frame->height)
+			start_y = (frame->height - g_lcd_height) / 2;
+	}
+	if ((g_blend_data.lcd_blend_type & LCD_BLEND_TIME) != 0)         /// start display lcd (0,0)
+	{
+		LOGD("lcd time blend =%s \n", g_blend_data.time_data);
+		frame_addr_offset = (start_y * frame->width + start_x) * 2;
+
+		lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
+		lcd_font_config.bg_offline = frame->width - CLOCK_LOGO_W;
+		lcd_font_config.xsize = CLOCK_LOGO_W;
+		lcd_font_config.ysize = CLOCK_LOGO_H;
+		lcd_font_config.str_num = 1;
+		#if 0
+		lcd_font_config.str[0] = (font_str_t){(const char *)g_blend_data.time_data, RGB565_WHITE, font_digit_Roboto53, 0,0}; 
+		lcd_font_config.font_format = FONT_BG_RGB565;
+		#else
+		lcd_font_config.str[0] = (font_str_t){(const char *)g_blend_data.time_data, YUV_WHITE, font_noanti_newsong48, 0, 0}; 
+		lcd_font_config.font_format = FONT_BG_YUV;
+		#endif
+		lcd_font_config.bg_data_format = frame->fmt;
+		lcd_font_config.bg_width = frame->width;
+		lcd_font_config.bg_height = frame->height;
+		lcd_driver_font_blend(&lcd_font_config);
+	}
+	if ((g_blend_data.lcd_blend_type & LCD_BLEND_WIFI) != 0)      /// start display lcd (lcd_width,0)
+	{
+		LOGD("lcd wifi blend level =%d \n", g_blend_data.wifi_data);
+		frame_addr_offset = (start_y * frame->width + start_x + (g_lcd_width - WIFI_LOGO_W)) * 2;
+
+		lcd_blend.pfg_addr = (uint8_t *)wifi_logo[g_blend_data.wifi_data];
+		lcd_blend.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
+		lcd_blend.fg_offline = 0;
+		lcd_blend.bg_offline = frame->width - WIFI_LOGO_W;
+		lcd_blend.xsize = WIFI_LOGO_W;
+		lcd_blend.ysize = WIFI_LOGO_H;
+		lcd_blend.fg_alpha_value = FG_ALPHA;
+		lcd_blend.fg_data_format = ARGB8888;
+		lcd_blend.bg_data_format = frame->fmt;
+		lcd_blend.bg_width = frame->width;
+		lcd_blend.bg_height = frame->height;
+		lcd_driver_blend(&lcd_blend);
+	}
+	if ((g_blend_data.lcd_blend_type & LCD_BLEND_DATA) != 0)   /// tart display lcd (DATA_POSTION_X,DATA_POSTION_Y)
+	{
+		frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X) * 2;
+		lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
+		lcd_font_config.bg_offline = frame->width - DATA_LOGO_W;
+		lcd_font_config.xsize = DATA_LOGO_W;
+		lcd_font_config.ysize = DATA_LOGO_H;
+		lcd_font_config.str_num = 2;
+		#if 0
+//		lcd_font_config.str[0] = (font_str_t){(const char *)("æ˜ŸæœŸä¸‰"), RGB565_WHITE, font_digitSource_Han_Sans17, 0, 0};
+//		lcd_font_config.str[1] = (font_str_t){(const char *)("2022-12-12 "), RGB565_WHITE, font_digitSource_Han_Sans17, 0, 20};
+		#else
+		lcd_font_config.str[0] = (font_str_t){(const char *)("æ™´è½¬å¤šäº‘, 27â„ƒ"), YUV_WHITE, font_noanti_newsong24, 0, 0};
+		lcd_font_config.str[1] = (font_str_t){(const char *)("2022-12-12 æ˜ŸæœŸä¸‰"), YUV_WHITE, font_noanti_newsong24, 0, 24};
+		#endif
+		lcd_font_config.bg_data_format = frame->fmt;
+		lcd_font_config.bg_width = frame->width;
+		lcd_font_config.bg_height = frame->height;
+		lcd_font_config.font_format = FONT_BG_YUV;
+		lcd_driver_font_blend(&lcd_font_config);
+	}
+	
+	if ((g_blend_data.lcd_blend_type & LCD_BLEND_VERSION) != 0) /// start display lcd (VERSION_POSTION_X,VERSION_POSTION_Y)
+	{
+		LOGD("lcd blend version =%s \n", g_blend_data.ver_data);  
+		frame_addr_offset = ((start_y + VERSION_POSTION_Y) * frame->width + start_x + VERSION_POSTION_X) * 2;
+		///for "VL4"
+		lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
+		lcd_font_config.bg_offline = frame->width - VERSION_LOGO_W;
+		lcd_font_config.xsize = VERSION_LOGO_W;
+		lcd_font_config.ysize = VERSION_LOGO_H;
+		lcd_font_config.str_num = 1;
+		lcd_font_config.str[0] = (font_str_t){(const char *)g_blend_data.ver_data, YUV_BLACK, font_noanti_newsong48, 0, 0};
+		lcd_font_config.bg_data_format = frame->fmt;
+		lcd_font_config.bg_width = frame->width;
+		lcd_font_config.bg_height = frame->height;
+		lcd_font_config.font_format = FONT_BG_YUV;
+		lcd_driver_font_blend(&lcd_font_config);
+	}
+#endif
 	return BK_OK;
 }
 
@@ -946,7 +1254,11 @@ void lcd_close_handle(param_pak_t *param)
 	}
 #if (CONFIG_LVGL)
 	else
+	{
 		bk_gui_disp_task_deinit();
+		void lcd_driver_gui_wait_display(void);
+		lcd_driver_gui_wait_display();
+	}
 #endif
 
 #if (CONFIG_TP)
@@ -954,6 +1266,27 @@ void lcd_close_handle(param_pak_t *param)
 #endif
 
 	lcd_driver_deinit();
+
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
+	g_blend_data.lcd_blend_type = 0;
+
+	if (yuv_blend_addr != NULL && (uint32_t)yuv_blend_addr != LCD_BLEND_JPEGSRAM_ADDR_1)
+	{
+		if (yuv_blend_addr)
+		{
+			os_free(yuv_blend_addr);
+		}
+
+		if (rgb_blend_addr)
+		{
+			os_free(rgb_blend_addr);
+		}
+	}
+
+	yuv_blend_addr = NULL;
+	rgb_blend_addr = NULL;
+
+#endif
 
 	lcd_info.rotate = false;
 
@@ -987,6 +1320,8 @@ static char *frame_suffix(pixel_format_t fmt)
 			return "_dvp.jpg";
 		case PIXEL_FMT_UVC_JPEG:
 			return "_uvc.jpg";
+		case PIXEL_FMT_UVC_H264:
+			return "_uvc.h264";
 		case PIXEL_FMT_RGB565:
 			return ".rgb565";
 		case PIXEL_FMT_YUYV:
@@ -1005,6 +1340,8 @@ static char *frame_suffix(pixel_format_t fmt)
 			return ".vyuy";
 		case PIXEL_FMT_YYVU:
 			return ".yyvu";
+		default:
+			break;
 	}
 
 	return ".unknow";
@@ -1083,8 +1420,14 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 			break;
 
 		case EVENT_LCD_OPEN_WITH_GUI:
+#if LV_COLOR_DEPTH == 16
 			g_lcd_with_gui = 1;
 			lcd_open_handle((param_pak_t *)param);
+#else
+			param_pak = (param_pak_t *)param;
+			LOGE("gui only support depth 16 color\r\n");
+			MEDIA_EVT_RETURN(param_pak, BK_FAIL);
+#endif
 			break;
 
 		case EVENT_LCD_SET_BACKLIGHT_IND:
@@ -1166,7 +1509,7 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 
 		case EVENT_LCD_BLEND_IND:
 		{
-#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
 			param_pak = (param_pak_t *)param;
 			lcd_blend_msg_t  *blend_data =(lcd_blend_msg_t  *)param_pak->param;
 			if(blend_data != NULL)
@@ -1198,6 +1541,19 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 						g_blend_data.lcd_blend_type |= LCD_BLEND_TIME;
 						os_memcpy(g_blend_data.time_data, blend_data->data, MAX_BLEND_NAME_LEN);
 						LOGD("g_blend_data.time_data =%s\n", g_blend_data.time_data );
+					}
+				}
+				if ((blend_data->lcd_blend_type & LCD_BLEND_DATA) == LCD_BLEND_DATA)
+				{
+					if(blend_data->blend_on == 0)
+					{
+						g_blend_data.lcd_blend_type &= (~LCD_BLEND_DATA);
+					}
+					else
+					{
+						g_blend_data.lcd_blend_type |= LCD_BLEND_DATA;
+						os_memcpy(g_blend_data.year_to_data, blend_data->data, MAX_BLEND_NAME_LEN);
+						LOGD("g_blend_data.chs =%s\n", g_blend_data.year_to_data);
 					}
 				}
 				if ((blend_data->lcd_blend_type & LCD_BLEND_VERSION) == LCD_BLEND_VERSION)

@@ -14,6 +14,14 @@
 video_buff_t *g_vbuf = NULL;
 static uint32_t g_pkt_seq = 0;
 
+media_camera_device_t cam_device =
+{
+	.camera_type = MEDIA_DVP_MJPEG,
+	.ppi = PPI_640X480,
+	.fps = FPS20,
+}; /**< config of camera */
+
+
 static void video_buffer_add_pkt_header(video_packet_t *param)
 {
 	video_header_t * elem_tvhdr = (video_header_t *)param->ptk_ptr;
@@ -87,14 +95,22 @@ static int video_buffer_recv_video_data(uint8_t *data, uint32_t len)
 					eof_ptr = g_vbuf->buf_base + (g_vbuf->frame_len - 7);
 					crc_ptr = eof_ptr + 3;
 
-					if (((sof_ptr[0] == 0xff) && (sof_ptr[1] == 0xd8)) &&
-						((eof_ptr[0] == 0xff) && (eof_ptr[1] == 0xd9))) {
-						p_len = crc_ptr[0] + (crc_ptr[1] << 8)
+					if (cam_device.camera_type == MEDIA_DVP_MJPEG)
+					{
+						if (((sof_ptr[0] == 0xff) && (sof_ptr[1] == 0xd8)) &&
+							((eof_ptr[0] == 0xff) && (eof_ptr[1] == 0xd9)))
+						{
+							p_len = crc_ptr[0] + (crc_ptr[1] << 8)
 								+ (crc_ptr[2] << 16) + (crc_ptr[3] << 24);
 
-						//os_printf("vb,len:%d - %d\r\n", p_len, (g_vbuf->frame_len - 5));
-						if (p_len == (g_vbuf->frame_len - 5))
-							right_image = 1;
+							//os_printf("vb,len:%d - %d\r\n", p_len, (g_vbuf->frame_len - 5));
+							if (p_len == (g_vbuf->frame_len - 5))
+								right_image = 1;
+							}
+					}
+					else
+					{
+						right_image = 1;
 					}
 
 					if (right_image) {
@@ -128,7 +144,7 @@ static int video_buffer_recv_video_data(uint8_t *data, uint32_t len)
 	}
 }
 
-bk_err_t bk_video_buffer_open(void)
+bk_err_t bk_video_buffer_open(media_camera_device_t *device)
 {
 	if (g_vbuf == NULL) {
 		int ret = kNoErr;
@@ -160,6 +176,13 @@ bk_err_t bk_video_buffer_open(void)
 
 		g_vbuf->frame_id = 0xffff;
 		g_vbuf->frame_pkt_cnt = 0;
+
+		if (device->camera_type != MEDIA_CAMERA_UNKNOW)
+			cam_device.camera_type = device->camera_type;
+		if (device->ppi != PPI_DEFAULT)
+			cam_device.ppi = device->ppi;
+		if (device->fps != FPS0)
+			cam_device.fps = device->fps;
 		GLOBAL_INT_RESTORE();
 
 		setup.open_type = TVIDEO_OPEN_SCCB;
@@ -167,6 +190,7 @@ bk_err_t bk_video_buffer_open(void)
 		setup.send_func = video_buffer_recv_video_data;
 		setup.start_cb = NULL;
 		setup.end_cb = NULL;
+		setup.device = &cam_device;
 
 		setup.pkt_header_size = sizeof(video_header_t);
 		setup.add_pkt_header = video_buffer_add_pkt_header;

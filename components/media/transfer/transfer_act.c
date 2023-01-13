@@ -68,7 +68,7 @@
 
 #define TAG "transfer"
 
-#define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
+#define LOGI(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
@@ -155,7 +155,6 @@ video_setup_t vido_transfer_info = {0};
 
 uint32_t lost_size = 0;
 uint32_t complete_size = 0;
-uint32_t transfer_timer_us = 0; // unit us
 
 
 beken_semaphore_t transfer_sem;
@@ -166,6 +165,15 @@ transfer_data_t *transfer_data = NULL;
 
 extern u64 riscv_get_mtimer(void);
 extern void rwnxl_set_video_transfer_flag(uint32_t video_transfer_flag);
+
+// define TRANSFER_STRIP
+
+#ifdef TRANSFER_STRIP
+void check_frame_header_handle(uint8_t * data)
+{
+	LOGI("[%02x, %02x, %02x, %02x, %02x]\r\n", data[0], data[1], data[2], data[3], data[4]);
+}
+#endif
 
 int dvp_frame_send(uint8_t *data, uint32_t size, uint32_t retry_max, uint32_t ms_time, uint32_t us_delay_time)
 {
@@ -212,6 +220,7 @@ void transfer_memcpy_word(uint32_t *dst, uint32_t *src, uint32_t size)
 static void dvp_frame_handle(frame_buffer_t *buffer)
 {
 	uint32_t i;
+	uint32_t delay_time_us = 0;
 	uint32_t count = buffer->length / MAX_COPY_SIZE;
 	uint32_t tail = buffer->length % MAX_COPY_SIZE;
 	uint8_t id = frame_id++;
@@ -221,10 +230,19 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 	WIFI_TRANSFER_START();
 
 	LOGD("seq: %u, length: %u, size: %u\n", buffer->sequence, buffer->length, buffer->size);
+#ifdef TRANSFER_STRIP
+	check_frame_header_handle(buffer->frame);
+#endif
 	transfer_data->id = id;
 	transfer_data->size = count + (tail ? 1 : 0);
 	transfer_data->eof = 0;
 	transfer_data->cnt = 0;
+
+#if 0
+	delay_time_us = media_debug->transfer_timer_us / transfer_data->size;
+#else
+	delay_time_us = 1000;
+#endif
 
 #if CONFIG_ARCH_RISCV
 	flush_dcache(src_address, buffer->size);
@@ -242,7 +260,7 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 		transfer_memcpy_word((uint32_t *)transfer_data->data, (uint32_t *)(src_address + (MAX_COPY_SIZE * i)), MAX_COPY_SIZE);
 		WIFI_DMA_END();
 
-		ret = dvp_frame_send((uint8_t *)transfer_data, MAX_TX_SIZE, MAX_RETRY, RETRANSMITS_TIME, 1);
+		ret = dvp_frame_send((uint8_t *)transfer_data, MAX_TX_SIZE, MAX_RETRY, RETRANSMITS_TIME, delay_time_us);
 
 		if (ret != BK_OK)
 		{
@@ -260,7 +278,7 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 		transfer_memcpy_word((uint32_t *)transfer_data->data, (uint32_t *)(src_address + (MAX_COPY_SIZE * i)), (tail % 4) ? ((tail / 4 + 1) * 4) : tail);
 		WIFI_DMA_END();
 
-		ret = dvp_frame_send((uint8_t *)transfer_data, tail + sizeof(transfer_data_t), MAX_RETRY, RETRANSMITS_TIME, 1);
+		ret = dvp_frame_send((uint8_t *)transfer_data, tail + sizeof(transfer_data_t), MAX_RETRY, RETRANSMITS_TIME, delay_time_us);
 
 		if (ret != BK_OK)
 		{
@@ -385,6 +403,7 @@ static void transfer_task_entry(beken_thread_arg_t data)
 	uint64 before, after;
 
 	media_debug->wifi_read = 0;
+	media_debug->transfer_timer_us = 50000;
 
 	rtos_set_semaphore(&transfer_sem);
 

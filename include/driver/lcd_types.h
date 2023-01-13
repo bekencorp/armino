@@ -19,13 +19,20 @@ extern "C" {
 #endif
 
 #include <driver/media_types.h>
+#include "modules/lcd_font.h"
 
 #define  USE_LCD_REGISTER_CALLBACKS  1
 typedef void (*lcd_isr_t)(void);
 
+#define  USE_DMA2D_BLEND_ISR_CALLBACKS  0
+
+
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
 #define LOGO_MAX_W 40
 #define LOGO_MAX_H 40
 #define DMA2D_MALLOC_MAX  (LOGO_MAX_W*LOGO_MAX_H*2)
+#endif
+
 
 typedef enum {
 	LCD_DEVICE_UNKNOW,
@@ -34,10 +41,12 @@ typedef enum {
 	LCD_DEVICE_GC9503V, /**< 480X800 RGB  */
 	LCD_DEVICE_ST7796S, /**< 320X480 MCU  */
 	LCD_DEVICE_NT35512, /**< 480X800 MCU  */
-	LCD_DEVICE_NT35510, /**< 480X854 MCU  */
+	LCD_DEVICE_NT35510, /**< 480X854 RGB  */
+	LCD_DEVICE_NT35510_MCU, /**< 480X800 MCU  */
 	LCD_DEVICE_H050IWV, /**< 800X480 RGB  */
 	LCD_DEVICE_MD0430R, /**< 800X480 RGB  */
 	LCD_DEVICE_MD0700R, /**< 1024X600 RGB  */
+	LCD_DEVIDE_ST7710S, /**< 480X800 RGB  */
 } lcd_device_id_t;
 
 typedef enum {
@@ -112,6 +121,9 @@ typedef struct
 	bk_err_t (*set_mirror)( bool mirror_x, bool mirror_y);
 	void (*set_display_area)(uint16 xs, uint16 xe, uint16 ys, uint16 ye); 
 	/**< if lcd size is smaller then image, and set api bk_lcd_pixel_config is image x y, should set partical display */
+
+	void (*start_transform)(void); 
+	void (*continue_transform)(void); 
 } lcd_mcu_t;
 
 
@@ -136,6 +148,8 @@ typedef struct
 
 typedef struct
 {
+	uint8_t *yuv_addr;           /**< blend yuv_data addr */
+	uint8_t *rgb565_addr;        /**< blend rgb_data addr*/
 	const lcd_device_t *device;  /**< lcd device config */
 	pixel_format_t fmt;          /**< display module input data format */
 	int (*fb_display_init) (media_ppi_t max_ppi);
@@ -148,18 +162,20 @@ typedef struct
 	int use_gui;
 } lcd_config_t;
 
-
 typedef enum {
 	ARGB8888 = 0, /**< ARGB8888 DMA2D color mode */
 	RGB888,       /**< RGB888 DMA2D color mode   */
 	RGB565,       /**< RGB565 DMA2D color mode   */
 } data_format_t;
 
+
 /** lcd blend config */
 typedef struct
 {
 	void *pfg_addr;                /**< lcd blend background addr */
 	void *pbg_addr;                /**< lcd blend foregound addr */
+	uint16_t bg_width;             /**< background img width*/
+	uint16_t bg_height;            /**< background img height*/
 	uint32_t fg_offline;           /**< foregound addr offset */
 	uint32_t bg_offline;           /**< background addr offset*/
 	uint32 xsize;                  /**< lcd blend logo width */
@@ -169,6 +185,38 @@ typedef struct
 	data_format_t fg_data_format;  /**< foregound data format */
 	pixel_format_t bg_data_format; /**< background data format */
 }lcd_blend_t;
+
+
+
+typedef enum{
+	FONT_BG_RGB565 = 0,
+	FONT_BG_YUV,
+}font_format_t;
+
+typedef struct
+{
+	const char * str;              /**< background data format */
+	font_colot_t font_color;       /**< 1: white; 0:black */
+	const gui_font_digit_struct * font_digit_type;                  /**< lcd blend logo width */
+	int x_pos;                    /**< based on param xsize, to config really draw pos, value 0 is draw in start  xsize */
+	int y_pos;                    /**< based on param ysize, to config really draw pos, value 0 is draw in start  xsize */
+}font_str_t;
+
+
+
+typedef struct
+{
+	void *pbg_addr;                /**< lcd draw font foregound addr */
+	uint32_t bg_offline;           /**< background addr offset*/
+	uint16_t bg_width;             /**< background img width*/
+	uint16_t bg_height;            /**< background img height*/
+	pixel_format_t bg_data_format; /**< background data format */
+	uint32 xsize;                  /**< lcd draw font logo width */
+	uint32 ysize;                  /**< lcd draw font logo height */
+	uint8_t str_num;
+	font_str_t str[3];
+	font_format_t font_format;
+}lcd_font_config_t;
 
 
 /*

@@ -19,14 +19,18 @@ MEDIA_TRA
 	|             Command                    |            Param               |              Description              |
 	+========================================+================================+=======================================+
 	|                                        | param1:camera_type             | set the camera type used              |
-	| doorbell udp_c [param1] [param2]       +--------------------------------+---------------------------------------+
+	|                                        +--------------------------------+---------------------------------------+
 	|                                        | param2:camera_ppi              | set the camera output resolution      |
+	|    doorbell udp_c [param1] [param2]    +--------------------------------+---------------------------------------+
+	|           [param3] [param4]            | param3:LCD ppi                 | LCD screen support resolution         |
+	|                                        +--------------------------------+---------------------------------------+
+	|                                        | param4:LCD name                | LCD screen name                       |
 	+----------------------------------------+--------------------------------+---------------------------------------+
-	|                                        | param1:LCD ppi                 | LCD screen support resolution         |
-	| doorbell udp_s [param1] [param2]       +--------------------------------+---------------------------------------+
-	|                                        | param2:rotate                  | display rotate or not                 |
+	|                                        | param3:LCD ppi                 | LCD screen support resolution         |
+	|  doorbell udp_s [param1] [param2]      +--------------------------------+---------------------------------------+
+	|                                        | param4:LCD name                | LCD screen name                       |
 	+----------------------------------------+--------------------------------+---------------------------------------+
-	| av_udp_test param                      | param:current chip role        | udp transfer play client or server    |
+	|   av_udp_test param                    | param:current chip role        | udp transfer play client or server    |
 	+----------------------------------------+--------------------------------+---------------------------------------+
 
 	demo运行依赖的宏配置：

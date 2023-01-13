@@ -1346,10 +1346,6 @@ int bk_cli_init(void)
 	cli_i2s_init();
 #endif
 
-#if (CLI_CFG_TOUCH == 1)
-	cli_touch_init();
-#endif
-
 #if (CLI_CFG_LCD == 1)
 	cli_lcd_init();
 #endif
@@ -1533,6 +1529,10 @@ int bk_cli_init(void)
 
 #if (CLI_CFG_ICU == 1)
 	cli_icu_init();
+#endif
+
+#if (CLI_CFG_TOUCH == 1)
+	cli_touch_init();
 #endif
 
 #if (CLI_CFG_VAULT == 1)

@@ -131,8 +131,6 @@ static inline const char *lv_version_info(void)
     return LVGL_VERSION_INFO;
 }
 
-void bk_disp_lock(void);
-void bk_disp_unlock(void);
 
 
 #ifdef __cplusplus

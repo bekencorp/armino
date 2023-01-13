@@ -25,6 +25,7 @@
 #include "modules/pm.h"
 #include "bk_pm_control.h"  
 #include "psram_hal.h"
+#include <driver/efuse.h>
 
 static sys_hal_t s_sys_hal;
 uint32 sys_hal_get_int_group2_status(void);
@@ -63,6 +64,15 @@ void sys_hal_usb_analog_speed_en(bool en)
 void sys_hal_usb_analog_ckmcu_en(bool en)
 {
 	sys_ll_set_ana_reg11_ck2mcu(en);
+}
+
+void sys_hal_set_usb_analog_dp_capability(uint8_t capability)
+{
+	sys_ll_set_ana_reg9_usbpen(capability);
+}
+void sys_hal_set_usb_analog_dn_capability(uint8_t capability)
+{
+	sys_ll_set_ana_reg9_usbnen(capability);
 }
 
 void sys_hal_usb_enable_charge(bool en)
@@ -120,12 +130,15 @@ uint32_t sys_hal_flash_get_clk_div(void)
 /** Flash end **/
 
 /*sleep feature start*/
+#define EFUSE_OPERT_ADDRE    (0x1F)//byte31
+#define EFUSE_FLASH_AES_POS  (0x5)
 __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_deep_sleep(void * param)
 {
     uint32_t modules_power_state=0;
 	uint32_t  clock_value = 0;
 	uint32_t  pmu_val2 = 0;
 	int       ret = 0;
+	uint8_t   efuse_data= 0;
 	/*mask all interner interrupt*/
 	sys_ll_set_cpu0_int_halt_clk_op_cpu0_int_mask(1);
 
@@ -133,6 +146,16 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_deep_sleep(void * 
 	sys_ll_set_cpu_clk_div_mode1_cksel_core(0);
 	sys_ll_set_cpu_clk_div_mode1_clkdiv_core(0);
 	sys_ll_set_cpu_clk_div_mode1_clkdiv_bus(0);
+
+	if((aon_pmu_ll_get_reg7c_value()>>PM_CHIP_ID_HIGH_POS) > PM_CHIP_ID_HIGH_VALUE)//Get the chipid
+	{
+		//close the rosc auto calibration
+		clock_value =0;
+		clock_value = sys_ll_get_ana_reg4_value();
+		clock_value &= ~(0x1 << SYS_ANA_REG4_ROSC_CAL_EN_POS); //0:Rosc Calibration disable
+		clock_value &= ~(0x1 << SYS_ANA_REG4_ROSC_MANU_EN_POS); //0:close Rosc Calibration Manual Mode
+		sys_ll_set_ana_reg4_value(clock_value);
+	}
 
 	/*2.switch flash clock to xtal26m*/
 	clock_value = 0;
@@ -151,11 +174,14 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_deep_sleep(void * 
 
 	sys_ll_set_ana_reg6_value(clock_value);
 
-	clock_value = 0;
-	clock_value = sys_ll_get_ana_reg5_value();
-	clock_value &= ~(1 << SYS_ANA_REG5_ENCB_POS);//global central bias enable
-	sys_ll_set_ana_reg5_value(clock_value);
-
+	bk_efuse_read_byte(EFUSE_OPERT_ADDRE, &efuse_data);//get the efuse for checking whether the flash aes enable
+	if(!(efuse_data&(0x1<<EFUSE_FLASH_AES_POS)))//if the flash aes disable,disable the global central bias
+	{
+		clock_value = 0;
+		clock_value = sys_ll_get_ana_reg5_value();
+		clock_value &= ~(1 << SYS_ANA_REG5_ENCB_POS);//global central bias enable
+		sys_ll_set_ana_reg5_value(clock_value);
+	}
 	clock_value = 0;
 	clock_value = sys_ll_get_ana_reg9_value();
 	clock_value &= ~(1 << 5);
@@ -232,7 +258,7 @@ uint64_t g_low_voltage_tick = 0;
 extern u64 riscv_get_mtimer(void);
 #endif
 #endif
-extern uint32_t ps_mac_wakeup_from_lowvol;
+extern uint64_t ps_mac_wakeup_from_lowvol;
 __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 {
 	uint32_t  modules_power_state = 0;
@@ -251,6 +277,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	uint32_t  center_bias = 0;
 	uint32_t  en_bias_5u = 0;
 	//uint32_t  count = 0;
+	uint64_t wakeup_time = 0;
 
 #if CONFIG_LOW_VOLTAGE_DEBUG
 	uint64_t start_tick = riscv_get_mtimer();
@@ -311,6 +338,16 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	clock_value &= ~(SYS_CPU_CLK_DIV_MODE2_CKSEL_FLASH_MASK << SYS_CPU_CLK_DIV_MODE2_CKSEL_FLASH_POS);
 	clock_value &= ~(SYS_CPU_CLK_DIV_MODE2_CKDIV_FLASH_MASK << SYS_CPU_CLK_DIV_MODE2_CKDIV_FLASH_POS);
 	sys_ll_set_cpu_clk_div_mode2_value(clock_value);
+
+	if((aon_pmu_ll_get_reg7c_value()>>PM_CHIP_ID_HIGH_POS) > PM_CHIP_ID_HIGH_VALUE)//Get the chipid
+	{
+		/*close the rosc auto calibration*/
+		clock_value =0;
+		clock_value = sys_ll_get_ana_reg4_value();
+		clock_value &= ~(0x1 << SYS_ANA_REG4_ROSC_CAL_EN_POS); //0:Rosc Calibration disable
+		clock_value &= ~(0x1 << SYS_ANA_REG4_ROSC_MANU_EN_POS); //0:close Rosc Calibration Manual Mode
+		sys_ll_set_ana_reg4_value(clock_value);
+	}
 
 	/*3.close analog clk */
 	clock_value = 0;
@@ -402,7 +439,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	__asm volatile( "nop" );
 	for(count = PM_EXIT_WFI_FROM_LOWVOL_WAIT_COUNT; count > 0; count--);//for protect stability when exit wfi or halt cpu
 #endif
-	ps_mac_wakeup_from_lowvol = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
+	wakeup_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 
 	sys_ll_set_ana_reg6_vaon_sel(0x1);//0:vddaon drop disable, aon voltage to 1.1v
 	sys_ll_set_ana_reg2_iovoc(0x2);//set the io voltage to 3.1v 
@@ -478,6 +515,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 
 	if(pm_wake_int_flag2&(WIFI_MAC_GEN_INT_BIT))
 	{
+		ps_mac_wakeup_from_lowvol = wakeup_time;
 		ps_switch(PS_UNALLOW, PS_EVENT_STA, PM_RF_BIT);
 		bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_PHY_WIFI,PM_POWER_MODULE_STATE_ON);
 	}
@@ -487,6 +525,16 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	sys_ll_set_cpu0_int_0_31_en_value(int_state1);
 	sys_ll_set_cpu0_int_32_63_en_value(int_state2);
 	sys_ll_set_ana_reg8_en_lpmode(0x0);// touch exit low power mode
+
+	if((aon_pmu_ll_get_reg7c_value()>>PM_CHIP_ID_HIGH_POS) > PM_CHIP_ID_HIGH_VALUE)//Get the chipid
+	{
+		/*restore the rosc auto calibration*/
+		clock_value =0;
+		clock_value = sys_ll_get_ana_reg4_value();
+		clock_value |= (0x1 << SYS_ANA_REG4_ROSC_CAL_EN_POS);  //1:Rosc Calibration enable
+		clock_value &= ~(0x1 << SYS_ANA_REG4_ROSC_MANU_EN_POS);//0:close Rosc Calibration Manual Mode
+		sys_ll_set_ana_reg4_value(clock_value);
+	}
 
 	set_csr(NDS_MIE, MIP_MTIP);
 
@@ -837,9 +885,18 @@ void sys_hal_low_power_hardware_init()
 	uint32_t param = 0;
 	uint32_t  pmu_state = 0;
 
-	param = 0x4;
-	sys_ll_set_ana_reg3_vhsel_ldodig(param);
-	sys_ll_set_ana_reg2_spi_latchb(0x1);
+	if((aon_pmu_hal_reg_get(PMU_REG0x7c)>>PM_CHIP_ID_HIGH_POS) <= PM_CHIP_ID_HIGH_VALUE)//Get the chipid
+	{
+		param = 0x4;// 1.1V
+		sys_ll_set_ana_reg3_vhsel_ldodig(param);
+		sys_ll_set_ana_reg2_spi_latchb(0x1);
+	}
+	else
+	{
+		param = 0x7;//  1.15v(C version)
+		sys_ll_set_ana_reg3_vhsel_ldodig(param);
+		sys_ll_set_ana_reg2_spi_latchb(0x1);
+	}
 
 	sys_ll_set_ana_reg0_band(0x13);//open the dpll 320m
 
@@ -2133,6 +2190,16 @@ void sys_hal_touch_manul_mode_enable(uint32_t value)
 void sys_hal_touch_scan_mode_chann_set(uint32_t value)
 {
 	sys_ll_set_ana_reg8_chs_scan(value);
+}
+
+void sys_hal_touch_serial_cap_enable(void)
+{
+	sys_ll_set_ana_reg9_touch_serial_cap(0);
+}
+
+void sys_hal_touch_serial_cap_disable(void)
+{
+	sys_ll_set_ana_reg9_touch_serial_cap(1);
 }
 
 void sys_hal_touch_int_enable(uint32_t value)

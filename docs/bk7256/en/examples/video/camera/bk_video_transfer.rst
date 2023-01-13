@@ -1,11 +1,11 @@
-DVP Video_transfer
+Video_transfer
 ========================
 
 :link_to_translation:`zh_CN:[Chinese]`
 
 1 Overview
 -------------------------------------
-	The function of image transmission is mainly to compress and encode the original data collected by the dvp sensor through
+	The function of image transmission is mainly to compress and encode the original data collected by the dvp/uvc sensor through
 	the jpeg encode module, and then send the data to the mobile phone by means of WiFi connection. The packet is parsed, and then the encoded video data stream is displayed in real time.
 
 2 Code Path
@@ -19,17 +19,21 @@ DVP Video_transfer
 	+----------------------------------------+--------------------------+----------------------+
 	|             Command                    |      Param               |   Description        |
 	+========================================+==========================+======================+
-	|                                        | param1:dev_id            |the type of using dvp |
-	|                                        +--------------------------+----------------------+
-	| dvp set_cfg param1 param2 param3       | param2:image resolution  |the resolution output |
-	|                                        +--------------------------+----------------------+
-	|                                        | param3:frame rate        |the frame rate output |
-	+----------------------------------------+--------------------------+----------------------+
 	|                                        | param1:connect method    |wifi connecttion type |
 	|                                        +--------------------------+----------------------+
-	| video_transfer param1 param2 [param3]  | param2:ssid              |ssid                  |
+	|                                        | param2:ssid              |ssid                  |
 	|                                        +--------------------------+----------------------+
-	|                                        | param3:ssid_key          |key                   |
+	| video_transfer param1 param2 [param3]  | param4:key               +key                   |
+	|                param4 param5           +--------------------------+----------------------+
+	|                                        | param4:camera_type       |camera_type           |
+	+                                        +--------------------------+----------------------+
+	|                                        | param5:resolution        |resolution            |
+	+                                        +--------------------------+----------------------+
+	|                                        | param6:frame_rate        |frame_rate            |
+	+----------------------------------------+--------------------------+----------------------+
+	| video_transfer start                   | param:NULL               |start transfer        |
+	+----------------------------------------+--------------------------+----------------------+
+	| video_transfer stop                    | param:NULL               |stop transfer         |
 	+----------------------------------------+--------------------------+----------------------+
 
 	The macro configuration that the demo runs depends on:
@@ -56,15 +60,21 @@ DVP Video_transfer
 
 	1. Prepare the dvp camera, the connection method is shown in Figure 1:
 
-		The camera used in position 1 in the figure is gc0328c, dev_id=3, and supports a resolution of 640*480
+		The camera used in position 1 in the figure is gc0328c, and supports a resolution of 640*480
 
 	(1) When only the app image transmission command is executed, the operation is as follows:
 
 	2. Send the following commands in sequence:
 
-		dvp set_cfg 3 480 20
+		To test the picture of dvp camera: video_transfer -a test 12345678 dvp_jpg 640X480 25
 
-		video_transfer -a test 12345678
+		If you test the h264 image of the dvp camera: video_transfer -a test 12345678 dvp_h264 640X480 20.
+		(dvp needs to support h264 compressed data output, and the app supports h264 data)
+
+		If testing the image of the uvc camera: video_transfer -a test 12345678 uvc_jpg 640X480 20
+
+		If testing the h264 image of the uvc camera: video_transfer -a test 12345678 uvc_h264 640X480 20
+		(uvc needs to support h264 compressed data output, and the app supports h264 data output)
 
 	3. Connect the mobile phone wifi to the route of the test name, the password is: 12345678
 
@@ -74,9 +84,7 @@ DVP Video_transfer
 
 	1. If you use the hm1055 camera to start image transmission, send the following commands in sequence:
 
-		dvp set_cfg 6 720 15
-
-		video_transfer -a test 12345678
+		video_transfer -a test 12345678 1280X720 25
 
 	2. The mobile phone wifi is connected to the route of the test name, the password is: 12345678
 
@@ -117,37 +125,39 @@ DVP Video_transfer
 
 5 Detailed configuration and its description
 --------------------------------------------------
-	1. Set dvp parameters: dvp set_cfg param1 param2 param3
+	1. video_transfer -s|a ssid [key] [camera_type] [ppi] [fps]
 
-	- param1:0-7, corresponding to the following types of dvp cameras, currently only 3 and 6 are supported.
+	-a|s: device as softap or station
 
-		PAS6329_DEV             0
+	ssid: softap or station name
 
-		OV_7670_DEV             1
+	key: softap or station connect key
 
-		PAS6375_DEV             2
+	camera_type: reference ``media_camera_type_t``
+		- "dvp_jpg" means: use dvp camera, and the output is JPEG data;
+		- "dvp_h264" means: use a dvp camera, and the output is H264 data, the current BK7256 series chip does not support
+		- "uvc_jpg" means: use uvc camera, and the output is JPEG data;
+		- "uvc_h264" means: use uvc camera, and the output is H264 data;
+		- "dvp_jpg" means: use dvp camera, and the output is JPEG data;
+		- "dvp_h264" means: use a dvp camera, and the output is H264 data, the current BK7256 series chip does not support
+		- "uvc_jpg" means: use uvc camera, and the output is JPEG data;
+		- "uvc_h264" means: use uvc camera, and the output is H264 data;
 
-		GC0328C_DEV             3
+	ppi:resolution，sensor output ppi，reference: ``media_ppi_t``.
 
-		BF_2013_DEV             4
+		GC0328C: 640X480, 480X272, 480X320
 
-		GC0308C_DEV             5
+		HM_1055: 1280X720
 
-		HM_1055_DEV             6
+		GC2145: 1280X720, 800X600, 640X480
 
-		GC_2145_DEV             7
+	fps:frame_rate，sensor output frame_rate，reference: ``sensor_fps_t``
 
-	param2:resoultion
+		GC0328C：5、10、20、25
 
-		GC0328C_DEV：480(640*480)，240(320*240), 272(480*272)
+		HM_1055：5、10、15、20
 
-		HM_1055_DEV: 720(1280*720)
-
-	param3:frame rate
-
-		GC0328C_DEV：5、10、20、25
-
-		HM_1055_DEV：5、10、15、20
+		GC2145: 10、15、20、25
 
 	2、wifi connection type
 

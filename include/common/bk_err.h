@@ -96,6 +96,7 @@ typedef int bk_err_t;
 #define BK_ERR_LCD_BASE            (-0x3f00)
 #define BK_ERR_DMA2D_BASE          (-0x4000)
 #define BK_ERR_YUV_BUF_BASE        (-0x4100)
+#define BK_ERR_UVC_BASE            (-0x4200)
 
 /* -0x1a2c to -0x1a7b is reserved for kXxx error code
  * #define kGenericErrorBase           -6700
@@ -141,6 +142,7 @@ typedef int bk_err_t;
 
 #define BK_RETURN_ON_NULL(_x) do {\
 	if (!(_x)) {\
+		BK_LOGE(ERR_TAG, "Null %s\n", __FUNCTION__);\
 		return BK_ERR_NULL_PARAM;\
 	}\
 } while(0)

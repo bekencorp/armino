@@ -4,14 +4,13 @@
 #include <os/str.h>
 #include <driver/gpio.h>
 #include <driver/gpio_types.h>
+#include <gpio_map.h>
+#include "gpio_driver.h"
 #include <driver/i2c.h>
 #include <driver/media_types.h>
 #include <driver/tp.h>
 #include <driver/tp_types.h>
 #include "tp_sensor_devices.h"
-#include <gpio_map.h>
-#include "gpio_driver.h"
-#include <driver/gpio.h>
 #include "bk_misc.h"
 #include <driver/media_types.h>
 #include "driver/drv_tp.h"
@@ -57,8 +56,8 @@ int drv_tp_open(int hor_size, int ver_size)
         ppi |= ver_size;
         tp_config.ppi = ppi;
         tp_config.int_type = TP_INT_TYPE_FALLING_EDGE;
-        tp_config.refresh_rate = 5;
-        tp_config.tp_num = 5;
+        tp_config.refresh_rate = 20;  // unit: ms
+        tp_config.tp_num = TP_SUPPORT_MAX_NUM;
 
         bk_tp_driver_init(&tp_config);
     }while(0);
@@ -109,7 +108,6 @@ int drv_tp_close(void)
  */
 int drv_tp_read(tp_point_infor_t *point)
 {
-#if CONFIG_TP
     int ret = kGeneralErr;
     tp_point_infor_t *tp_pstr = NULL;
 
@@ -148,9 +146,6 @@ int drv_tp_read(tp_point_infor_t *point)
     }while(0);
 
     return ret;
-#else
-	return kGeneralErr;
-#endif
 }
 
 /**
@@ -170,7 +165,7 @@ int drv_tp_write(uint16_t x, uint16_t y, uint16_t state)
         point = (tp_point_infor_t *)os_malloc(sizeof(tp_point_infor_t));
         if(!point)
         {
-            bk_printf("malloc failed\r\n");
+            LOGE("%s, malloc failed!\r\n", __func__);
             break;
         }
 
@@ -186,7 +181,7 @@ int drv_tp_write(uint16_t x, uint16_t y, uint16_t state)
         }
         else
         {
-            bk_printf("tp data queue is full\r\n");
+            LOGW("%s, tp data queue is full!\r\n", __func__);
         }
         rtos_unlock_mutex(&g_tp_dev.m_mutex);
 

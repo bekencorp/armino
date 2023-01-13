@@ -24,10 +24,12 @@ The record and play function can be operated independently.
 The Voice mode supports following features:
  - voice transfer by G711A data
  - voice transfer by PCM data
- - 8k sample rate
+ - 8k and 16k sample rate
  - software AEC
  - set mic gain
  - set speaker gain
+ - onboard mic and speaker
+ - UAC mic and speaker
 
 Audio Interface API Categories
 ------------------------------------------
@@ -87,6 +89,9 @@ Voc APIs:
  - :cpp:func:`bk_aud_intf_voc_stop` - stop voice transfer
  - :cpp:func:`bk_aud_intf_set_aec_para` - set aec parameter
  - :cpp:func:`bk_aud_intf_get_aec_para` - get aec parameter
+ - :cpp:func:`bk_aud_intf_voc_tx_debug` - register voice tx debug callback
+ - :cpp:func:`bk_aud_intf_voc_rx_debug` - register voice rx debug callback
+ - :cpp:func:`bk_aud_intf_voc_aec_debug` - register voice aec debug callback
 
 API Reference
 ----------------------------------------

@@ -237,6 +237,10 @@ int legacy_init(void)
 
 	rtos_user_app_launch_over();
 
+#if (CONFIG_MEDIA)
+	media_major_init();
+#endif
+
 #if (CONFIG_BLUETOOTH)
 	app_ble_init();
 #endif
@@ -256,15 +260,11 @@ int legacy_init(void)
 	app_uart_debug_init_todo();
 #endif
 
-	app_cli_init();
-
-#if (CONFIG_MEDIA)
-#if (CONFIG_SLAVE_CORE)
+#if (CONFIG_MEDIA && CONFIG_SLAVE_CORE)
 	media_minor_init();
-#else
-	media_major_init();
 #endif
-#endif
+
+	app_cli_init();
 
 #if (CONFIG_NTP_SYNC_RTC)
 	app_time_rtc_ntp_sync_init();

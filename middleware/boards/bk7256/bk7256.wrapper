@@ -110,7 +110,7 @@ def package_json_rebuild():
         firmware_file["size"] = "{}K".format(int(int(re.findall("^\d+", firmware_file["size"])[0])/34*32))
         
         if firmware_file["partition"] == "bootloader":
-            bootloader_security_name = firmware_file["partition"]+"_security.bin"
+            bootloader_security_name = firmware_file["partition"]+".bin"
             packfile = "{}/middleware/boards/{}/{}".format(armino_path, chip, bootloader_security_name)
             if os.path.exists(packfile):
                 shutil.copy(packfile, "{}/{}".format(build_path, bootloader_security_name));
@@ -232,13 +232,11 @@ else:
 
     # new enc pack steps:
     #1.sign bootloader ./SignTool sign -infile bootloader.bin -prikey ecdsa256.der -outfile bootloader_sign.bin -len 10000
-    prikey = "{}/tools/env_tools/beken_packager/ecdsa256.der".format(armino_path)
-    if os.path.exists("{}/middleware/boards/{}/ecdsa.der".format(armino_path, chip)):
-        prikey = "{}/middleware/boards/{}/ecdsa.der".format(armino_path, chip)
+    prikey = "{}/tools/env_tools/beken_packager/ecdsa384.der".format(armino_path)
     # shutil.copy(tmp_config["boot_loader_path"], tmp_config["sign_boot_loader_name"])
     # print("$$$$$$$$$$$${}".format(tmp_config["boot_loader_size"]))
     if tmp_config["with_boot_loader"]:
-        os.system("{}/tools/env_tools/beken_packager/SignTool sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, tmp_config["bootloader_security_path"], prikey, tmp_config["sign_boot_loader_name"], tmp_config["boot_loader_size"]))
+        os.system("{}/tools/env_tools/beken_packager/SignTool_P384 sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, tmp_config["bootloader_security_path"], prikey, tmp_config["sign_boot_loader_name"], tmp_config["boot_loader_size"]))
     #2.pack app & cup*
     if(tmp_config["count"] > 2):
         infile = ""
@@ -255,9 +253,9 @@ else:
         # os.system("{}/tools/env_tools/beken_packager/SignTool sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, tmp_config["app_path"], prikey, tmp_config["sign_app_name"], hex(tmp_config["app_all_size"]*1024)))
         shutil.copy(tmp_config["app_path"], tmp_config["sign_app_name"])
     #3.sign app
-    #sign app_pack.bin ./SignTool sign -infile app_pack.bin -prikey ecdsa256.der -outfile app_pack_sign.bin -len length
+    #sign app_pack.bin ./SignTool sign -infile app_pack.bin -prikey ecdsa384.der -outfile app_pack_sign.bin -len length
     #to do: prikey need change
-    os.system("{}/tools/env_tools/beken_packager/SignTool sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, "app_pack.bin", prikey, tmp_config["sign_app_name"], hex(tmp_config["app_all_size"]*1024)))
+    os.system("{}/tools/env_tools/beken_packager/SignTool_P384 sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, "app_pack.bin", prikey, tmp_config["sign_app_name"], hex(tmp_config["app_all_size"]*1024)))
     # shutil.copy("app_pack.bin", tmp_config["sign_app_name"])
     #4.enc app
     #./cmake_xts_aes encrypt -infile app.bin -startaddress 0x10000 -keyfile 123_bk7235.txt -outfile app_xts.bin

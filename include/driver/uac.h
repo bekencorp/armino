@@ -40,6 +40,8 @@ bk_err_t bk_aud_uac_unregister_mic_callback(void);
 bk_err_t bk_aud_uac_register_spk_buff_ptr(void *buff, uint32_t size);
 bk_err_t bk_aud_uac_register_spk_callback(void *cb);
 bk_err_t bk_aud_uac_unregister_spk_callback(void);
+bk_err_t bk_aud_uac_set_mic_samp_rate(uint32_t value);
+bk_err_t bk_aud_uac_set_spk_samp_rate(uint32_t value);
 
 
 /**

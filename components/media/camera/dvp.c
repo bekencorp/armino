@@ -43,7 +43,7 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
-bk_err_t bk_dvp_camera_open(media_ppi_t ppi, dvp_mode_t mode)
+bk_err_t bk_dvp_camera_open(media_ppi_t ppi, media_camera_type_t type)
 {
 	dvp_camera_config_t config;
 
@@ -59,12 +59,12 @@ bk_err_t bk_dvp_camera_open(media_ppi_t ppi, dvp_mode_t mode)
 	config.fb_display_free = frame_buffer_fb_display_free;
 
 	config.ppi = ppi;
-	config.mode = mode;
+	config.type = type;
 
 #if (!CONFIG_YUV_BUF)
-	if (mode == DVP_MODE_JPG)
+	if (type == MEDIA_DVP_MJPEG)
 	{
-		config.mode = DVP_MODE_MIX;
+		config.type = MEDIA_DVP_MIX;
 	}
 #endif
 

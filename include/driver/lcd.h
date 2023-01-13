@@ -530,6 +530,43 @@ frame_buffer_t *lcd_driver_rotate_frame_ppi(frame_buffer_t *frame, media_ppi_t p
 bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend);
 
 /**
+ * @brief this api for lcd blend font
+ *
+ *
+ * @param lcd_font config blend background addr, addr offset and orther params
+ *
+ * @return
+ *     - BK_OK: succeed
+ *     - others: other errors.
+ */
+bk_err_t lcd_driver_font_blend(lcd_font_config_t *lcd_font);
+
+/**
+ * @brief this api for lcd power
+ *
+ *
+ * @param enable enable/disable lcd power: 1/0
+ *
+ * @return
+ *     - BK_OK: succeed
+ *     - others: other errors.
+ */
+bk_err_t lcd_ldo_power_enable(uint8_t enable);
+
+/**
+ * @brief this api for lcd backlight control
+ *
+ *
+ * @param enable enable/disable lcd backlight: 1/0
+ *
+ * @attation 1. this function must enable lcd power, for api lcd_ldo_power_enable
+ * @return
+ *     - BK_OK: succeed
+ *     - others: other errors.
+ */
+bk_err_t lcd_backlight_control_enable(uint8_t enable);
+
+/**
   * @}
   */
 

@@ -240,7 +240,7 @@ function(__build_init armino_path)
 
     armino_build_set_property(COMPILE_DEFINITIONS "-DAPP_VERSION=\"$ENV{APP_VERSION}\"" APPEND)
 
-    if($ENV{LIB_HASH} STREQUAL "NULL")
+    if("$ENV{LIB_HASH}" STREQUAL "NULL")
         LOGI("LIB_HASH IS NULL")
     else()
         armino_build_set_property(COMPILE_DEFINITIONS "-DLIB_HASH=\"$ENV{LIB_HASH}\"" APPEND)

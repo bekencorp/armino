@@ -1,11 +1,11 @@
-DVP Video_transfer
+Video_transfer
 ========================
 
 :link_to_translation:`en:[English]`
 
 1 功能概述
 -------------------------------------
-	图传的作用主要是将dvp sensor采集的原始数据，经jpeg encode模块压缩编码后，以WiFi连接的方式，将数据发送给手机，手机的图传应用（app）接收到数据后，会对数据包进行解析，然后实时显示编码之后的视频数据流。
+	图传的作用主要是将dvp/uvc sensor采集的原始数据，经jpeg encode模块压缩编码后，以WiFi连接的方式，将数据发送给手机，手机的图传应用（app）接收到数据后，会对数据包进行解析，然后实时显示编码之后的视频数据流。
 
 2 代码路径
 -------------------------------------
@@ -18,17 +18,21 @@ DVP Video_transfer
 	+----------------------------------------+--------------------------+----------------------+
 	|             Command                    |      Param               |   Description        |
 	+========================================+==========================+======================+
-	|                                        | param1:dev_id            |使用的dvp设备类型     |
-	|                                        +--------------------------+----------------------+
-	| dvp set_cfg param1 param2 param3       | param2:image resolution  |dvp输出的分辨率       |
-	|                                        +--------------------------+----------------------+
-	|                                        | param3:frame rate        |dvp输出的帧率         |
-	+----------------------------------------+--------------------------+----------------------+
 	|                                        | param1:connect method    |芯片与手机的连接方式  |
 	|                                        +--------------------------+----------------------+
-	| video_transfer param1 param2 [param3]  | param2:ssid              |路由的名字            |
-	|                                        +--------------------------+----------------------+
+	|                                        | param2:ssid              |路由的名字            |
+	| video_transfer param1 param2 param3    +--------------------------+----------------------+
 	|                                        | param3:ssid_key          |连接的密钥            |
+	|                                        +--------------------------+----------------------+
+	|                                        | param4:camera_type       |摄像头类型和输出类型  |
+	|     param4 param5 param6               +--------------------------+----------------------+
+	|                                        | param5:resolution        |摄像头输出分辨率      |
+	|                                        +--------------------------+----------------------+
+	|                                        | param6:frame_rate        |摄像头输出帧率        |
+	+----------------------------------------+--------------------------+----------------------+
+	| video_transfer start                   | param:NULL               |开始图传              |
+	+----------------------------------------+--------------------------+----------------------+
+	| video_transfer stop                    | param:NULL               |停止图传              |
 	+----------------------------------------+--------------------------+----------------------+
 
 	demo运行依赖的宏配置：
@@ -55,31 +59,23 @@ DVP Video_transfer
 
 	1、准备好dvp摄像头，连接方式如图1所示：
 
-		图中位置1所用的摄像头是gc0328c, dev_id=3，支持640*480的分辨率
+		图中位置1所用的摄像头是gc0328c, 支持输出的分辨率有很多类型，例如640X480, 480X272, 320X480等，另外图中位置1也是dvp摄像头的接口
 
-	(一)、只执行app图传命令时，操作如下：
-
-	2、顺序发送下面命令：
-
-		dvp set_cfg 3 480 20
+	2、顺序发送下面命令：(分辨率和帧率可以省略，默认640X480和20)
 
 		video_transfer -a test 12345678
+
+		如果测试dvp摄像头的图传: video_transfer -a test 12345678 dvp_jpg 640X480 25
+
+		如果测试dvp摄像头h264的图传: video_transfer -a test 12345678 dvp_h264 640X480 20 (需要dvp支持h264格式的压缩数据输出，app支持h264数据解码)
+
+		如果测试uvc摄像头的图传: video_transfer -a test 12345678 uvc_jpg 640X480 20
+
+		如果测试uvc摄像头h264的图传: video_transfer -a test 12345678 uvc_h264 640X480 20 (需要uvc支持h264格式的压缩数据输出，app支持h264数据解码)
 
 	3、手机wifi连接上test名字的路由, 密码为: 12345678
-	
-	4、连接成功后打开图传的app即可。
 
-	上图中位置2用的摄像头是hm1055, dev_id=6, 支持1280*720的分辨率
-
-	1、如果用hm1055的摄像头开始图传，顺序发送下面命令：
-
-		dvp set_cfg 6 720 15
-
-		video_transfer -a test 12345678
-
-	2、手机wifi连接上test名字的路由, 密码为: 12345678
-
-	3、连接成功后打开图传的app即可，图传app操作如图2，3和4所示。
+	4、连接成功后打开图传的app即可，图传app操作如图2，3和4所示。
 
 .. figure:: ../../../../../common/_static/video_transfer_evb.png
     :align: center
@@ -103,7 +99,7 @@ DVP Video_transfer
     Figure 3. WiFi Camera app set
 
 	如上图所示，当要进行图传时，连接上图传命令中设置的ssid后，位置1会提示``使用UDP广播指定的IP地址和端口``，否则图传将不会生效；
-	看到提示1后，点击位置2，开启图传，图传效果如图4所示。
+	看到提示1后，点击位置2，开启图传，图传效果如图4所示。发送停止和开始的命令可以让图传停止和开始。
 
 .. figure:: ../../../../../common/_static/wifi_camera_start.jpg
     :align: center
@@ -114,37 +110,37 @@ DVP Video_transfer
 
 5 详细配置及其说明
 -------------------------------------
-	1、设置dvp参数：dvp set_cfg param1 param2 param3
+	1、设置参数：video_transfer -s|a ssid [key] [camera_type] [ppi] [fps]
 
-	param1:0-7, 分别对应下面类型的dvp camera, 当前仅支持3和6.
+	上述参数[]包括的可以省略，camera_type默认是dvp摄像头，且输出的是JPEG数据；ppi默认是640X480；fps默认是25帧
 
-		PAS6329_DEV             0
+	-s|a: 设备作为station或softap.
 
-		OV_7670_DEV             1
+	ssid: station或softap的名字.
 
-		PAS6375_DEV             2
+	key: station或softap的连接密码，可选填
 
-		GC0328C_DEV             3
+	camera_type: 参考 ``media_camera_type_t``
+		- "dvp_jpg"表示：使用dvp摄像头，且输出的是JPEG数据；
+		- "dvp_h264"表示：使用dvp摄像头，且输出的是H264数据，当前BK7256系列芯片不支持
+		- "uvc_jpg"表示：使用uvc摄像头，且输出的是JPEG数据；
+		- "uvc_h264"表示：使用uvc摄像头，且输出的是H264数据；
 
-		BF_2013_DEV             4
+	ppi:分辨率，表示摄像头期望输出的分辨率，参考：``media_ppi_t``.
 
-		GC0308C_DEV             5
+		GC0328C: 640X480, 480X272, 480X320
 
-		HM_1055_DEV             6
+		HM_1055: 1280X720
 
-		GC_2145_DEV             7
-	
-	param2:分辨率
+		GC2145: 1280X720, 800X600, 640X480
 
-		GC0328C_DEV：480(640*480)，240(320*240), 272(480*272)
+	fps:帧率，表示摄像头期望输出的帧率，参考：``sensor_fps_t``
 
-		HM_1055_DEV: 720(1280*720)
+		GC0328C：5、10、20、25
 
-	param3:帧率
+		HM_1055：5、10、15、20
 
-		GC0328C_DEV：5、10、20、25
-
-		HM_1055_DEV：5、10、15、20
+		GC2145: 10、15、20、25
 
 	2、设置wifi连接方式
 
@@ -168,7 +164,14 @@ DVP Video_transfer
 
 	- 在退出图传之后，发送dvp set_cfg param1 param2 param3命令，param1不能改动，param2和param3可以修改。
 
-	4、图传软件流程
+	4、可测试的方案
+		- dvp图传：video_transfer -a name_test 12345678
+		- dvp图传：video_transfer -s name_station key dvp_jpg 640X480 25
+		- uvc图传：video_transfer -s name_station key uvc_jpg 800X480 20
+		- uvc图传：video_transfer -s name_station key uvc_h264 800X480 20
+		- 支持关闭图传后，再次发送上面的进行摄像头参数的重设，包括摄像头类型、输出分辨率、和帧率。
+
+	5、图传软件流程
 
 .. figure:: ../../../../../common/_static/video_transfer_function_call.png
     :align: center
@@ -177,7 +180,7 @@ DVP Video_transfer
 
     Figure 5. video transfer function call
 
-	5、图传模块间调用
+	6、图传模块间调用
 
 .. figure:: ../../../../../common/_static/video_transfer_message.png
     :align: center

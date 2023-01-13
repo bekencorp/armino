@@ -802,8 +802,8 @@ void cli_aud_intf_mp3_play_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, in
 	bk_err_t ret = BK_ERR_AUD_INTF_OK;
 	FRESULT fr;
 
-	aud_intf_drv_setup_t aud_intf_drv_setup;
-	aud_intf_spk_setup_t aud_intf_spk_setup;
+	aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
+	aud_intf_spk_setup_t aud_intf_spk_setup = DEFAULT_AUD_INTF_SPK_SETUP_CONFIG();
 	aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 
 	if (argc != 3) {
@@ -828,10 +828,10 @@ void cli_aud_intf_mp3_play_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, in
 		}
 		os_printf("mp3 file open successfully!\r\n");	
 
-		aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
-		aud_intf_drv_setup.task_config.priority = 3;
+		//aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+		//aud_intf_drv_setup.task_config.priority = 3;
 		aud_intf_drv_setup.aud_intf_rx_spk_data = mp3_decode_handler;
-		aud_intf_drv_setup.aud_intf_tx_mic_data = NULL;
+		//aud_intf_drv_setup.aud_intf_tx_mic_data = NULL;
 		ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
 			os_printf("bk_aud_intf_drv_init fail, ret:%d \r\n", ret);
@@ -894,9 +894,9 @@ void cli_aud_intf_mp3_play_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, in
 		}
 		
 		aud_intf_spk_setup.frame_size = mp3FrameInfo.outputSamps * 2;
-		aud_intf_spk_setup.spk_gain = 0x2d;
+		//aud_intf_spk_setup.spk_gain = 0x2d;
 		aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
-		aud_intf_spk_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
+		//aud_intf_spk_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
 		ret = bk_aud_intf_spk_init(&aud_intf_spk_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
 			os_printf("bk_aud_intf_spk_init fail, ret:%d \r\n", ret);

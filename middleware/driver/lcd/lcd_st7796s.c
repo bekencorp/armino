@@ -18,6 +18,7 @@
 #include "lcd_disp_hal.h"
 //#include "include/bk_lcd_commands.h"
 
+//#if CONFIG_LCD_ST7796S
 #define SLEEP_OUT          0x11
 #define COMMAND_1          0xf0
 #define COMMAND_2          0xf0
@@ -199,6 +200,8 @@ static const lcd_mcu_t lcd_mcu =
 	.set_xy_swap = lcd_st7796s_swap_xy,
 	.set_mirror = lcd_st7796s_mirror,
 	.set_display_area = lcd_st7796s_set_display_mem_area,
+	.start_transform = NULL,
+	.continue_transform = NULL,
 };
 
 const lcd_device_t lcd_device_st7796s =
@@ -215,3 +218,8 @@ const lcd_device_t lcd_device_st7796s =
 	.lcd_off = st7796s_lcd_off,
 };
 
+//#else
+//const lcd_device_t lcd_device_st7796s = 
+//{};
+//
+//#endif

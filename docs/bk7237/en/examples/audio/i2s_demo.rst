@@ -5,7 +5,7 @@ I2S demo
 
 1、Function overview
 --------------------
-	The I2S demo supports the transmission of audio signals under different I2S configurations.
+	The I2S demo supports the master sending data and the slave receiving data in different working modes.
 
 2、Code path
 --------------------
@@ -17,99 +17,66 @@ I2S demo
 -------------------------------
 The commands supported by the demo are as follows:
 
-+-----------------------------------+----------------------------------+
-|Command                            |Description                       |
-+===================================+==================================+
-|cpu1 i2s_master_test {start|stop}  |Run the I2S test demo as master   |
-+-----------------------------------+----------------------------------+
-|cpu1 i2s_slave_test {start|stop}   |Run the I2S test demo as a slave  |
-+-----------------------------------+----------------------------------+
++-----------------------------------+---------------------------------------------+
+|Command                            |Description                                  |
++===================================+=============================================+
+|i2s_master_test {start|stop}       |Send data in I2S mode as master              |
++-----------------------------------+---------------------------------------------+
+|i2s_slave_test {start|stop}        |Receive data as a slave in I2S mode          |
++-----------------------------------+---------------------------------------------+
+|pcm_master_test {start|stop}       |Send data in PCM mode as master              |
++-----------------------------------+---------------------------------------------+
+|pcm_slave_test {start|stop}        |Receive data as a slave in PCM mode          |
++-----------------------------------+---------------------------------------------+
+|dtm_master_test {start|stop}       |Send data in DTM+PCM mode as master          |
++-----------------------------------+---------------------------------------------+
+|dtm_slave_test {start|stop}        |Receive data as a slave in DTM+PCM mode      |
++-----------------------------------+---------------------------------------------+
+|2bd_master_test {start|stop}       |Send data in 2B+D mode as master             |
++-----------------------------------+---------------------------------------------+
+|2bd_slave_test {start|stop}        |Receive data as a slave in 2B+D mode         |
++-----------------------------------+---------------------------------------------+
 
 The macro configuration that the demo runs depends on:
 
-+---------------------+------------------------------+---------------------------------------------------+-----+
-|Name                 |Description                   |   File                                            |value|
-+=====================+==============================+===================================================+=====+
-|CONFIG_I2S           |Configure I2S function enable |``\properties\soc\bk7237_cp1\bk7237_cp1.defconfig``|  y  |
-+---------------------+------------------------------+---------------------------------------------------+-----+
-|CONFIG_I2S_TEST      |Configure demo enable         |``\properties\soc\bk7237_cp1\bk7237_cp1.defconfig``|  y  |
-+---------------------+------------------------------+---------------------------------------------------+-----+
++---------------------+--------------------------------------------+---------------------------------------------------+-----+
+|Name                 |Description                                 |   File                                            |value|
++=====================+============================================+===================================================+=====+
+|CONFIG_I2S           |Configure the I2S function to enable        |``\middleware\soc\bk7256\bk7256.defconfig``        |  y  |
++---------------------+--------------------------------------------+---------------------------------------------------+-----+
+|CONFIG_I2S_TEST      |Whether the configuration demo takes effect |``\middleware\soc\bk7256\bk7256.defconfig``        |  y  |
++---------------------+--------------------------------------------+---------------------------------------------------+-----+
 
 Demo runs dependent libraries and drivers:
  - GPIO GPIO driver
+ - DMA DMA driver
 
 
 4、Demo introduction
 --------------------
 
-The steps performed by the demo are as follows:
+Taking the demo of the I2S working mode as an example, the steps performed by the demo are as follows:
 
 	1.Connect two test boards
-	 - Test with two development boards, as the master and as the slave
+	 - Use two development boards for testing, one as master and one as slave
 	 - Interconnect the GPIO6 and GPIO7 pins of the two boards
 	 - Connect GPIO8 on the master side to GPIO9 on the slave side
 	 - Connect GPIO9 on the master side to GPIO8 on the slave side
 
-	2.Start slave test
-	 - The slave side Uart sends the AT command ``cpu1 i2s_slave_test start`` to execute the I2S function test of the slave role
+	2.Start the slave side test
+	 - The Uart on the slave side sends the AT command ``i2s_slave_test start`` to execute the I2S function test of the slave role
 
 	3.Start the master test
-	 - Uart sends AT command ``cpu1 i2s_master_test start`` to execute the I2S function test of the master role
+	 - Uart sends the AT command ``i2s_master_test start`` to perform the I2S function test of the master role
 
-	4.stop test
-	 - Observe the serial port log printing. After the test is completed, the slave and master ends respectively send AT commands ``cpu1 i2s_slave_test stop`` and ``cpu1 i2s_master_test stop`` to stop the execution of the I2S function test.
+	4.Stop the test
+	 - Observe the serial port log printing. After the test is completed, the slave and master end Uart respectively send AT commands ``i2s_slave_test stop`` and ``i2s_master_test stop`` to stop executing the I2S function test
 
-Execute the test command, the workflow of the case is shown in the following figure:
-
-.. figure:: ../../../_static/i2s_demo_flow.png
-    :align: center
-    :alt: i2s software flow
-    :figclass: align-center
-
-    Figure 1. i2s work flow chart
 
 5、Detailed configuration and description
 ------------------------------------------------
-
-The working modes and sampling rates supported by I2S are described as follows:
-
-- Work mode
-
-	The I2S module supports the following multiple working modes:
-	 - Philips
-	 - Left Justified
-	 - Right Justified
-	 - Short Sync Frame
-	 - Long Sync Frame
-	 - Normal 2B+D
-	 - Delay 2B+D
-	 - TDM
-
-.. important::
-
-  When using TDM mode, you only need to configure the working mode as one of the other 7 working modes, and then enable multiple channels. The module will combine the data of multiple channels into time-division multiplexing and send it out.
-
-- Sampling Rate
-
-	The I2S module supports the following sampling rates Fs (bps):
-	 - 8K
-	 - 12K
-	 - 16K
-	 - 24K
-	 - 32K
-	 - 48K
-	 - 96K
-	 - 8.0182K
-	 - 11.025K
-	 - 22.05K
-	 - 44.1K
-	 - 88.2K
-
-.. note::
-  The first 6 commonly used sampling rates are recommended
 
 .. important::
   Precautions:
    - 1.During I2S communication, the DIN and DOUT pins of the master and the slave should be connected correctly, the DIN of the master should be connected to the DOUT of the slave, and the DOUT of the master should be connected to the DIN of the slave;
    - 2.The working mode of master and slave should be consistent;
-   - 3.The test demo mainly tests the first three working modes and different sampling rates.

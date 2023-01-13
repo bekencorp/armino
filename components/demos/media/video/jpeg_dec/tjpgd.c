@@ -78,7 +78,7 @@ static const uint16_t Jpeg_Ipsf[64] = {	/* See also aa_idct.png */
 
 #if JD_TBLCLIP
 
-#if (JD_FORMAT == 0) || (JD_FORMAT == 1) || (JD_FORMAT == 2)
+//#if (JD_FORMAT == 0) || (JD_FORMAT == 1) || (JD_FORMAT == 2)
 #define BYTECLIP(v) Jpeg_Clip8[(unsigned int)(v) & 0x3FF]
 
 #if 0
@@ -123,7 +123,7 @@ static const uint8_t Jpeg_Clip8[1024] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
-#endif
+//#endif
 
 #else	/* JD_TBLCLIP */
 
@@ -816,7 +816,7 @@ JPEG_ITCM static JRESULT mcu_output (
 	unsigned int ix, iy, mx, my, rx, ry;
 	int yy, cb, cr;
 	// uint8_t rr, gg, bb;
-	//uint8_t gg;
+	uint8_t gg;
 	jd_yuv_t *py, *pc;
 	uint8_t *pix;
 	JRECT rect;
@@ -866,7 +866,7 @@ JPEG_ITCM static JRESULT mcu_output (
 	if (!JD_USE_SCALE || jd->scale != 3) {	/* Not for 1/8 scaling */
 		pix = (uint8_t*)jd->workbuf;
 
-		#if (JD_FORMAT != 2)
+		if (JD_FORMAT != 2)
 		{	/* RGB output (build an RGB MCU from Y/C component) */
 			for (iy = 0; iy < my; iy++) {
 				pc = py = jd->mcubuf;
@@ -888,7 +888,7 @@ JPEG_ITCM static JRESULT mcu_output (
 					}
 					yy = *py++;			/* Get Y component */
 
-					#if (JD_FORMAT == 3)
+					if (JD_FORMAT == 3)
 					{
 						if ((ix & 0x1) == 1) {
 							*pix++ = ((219 * cb) >> 8) + 128;
@@ -905,7 +905,7 @@ JPEG_ITCM static JRESULT mcu_output (
 							*(pix - 3) = y1;
 						}
 					}
-					#elif (JD_FORMAT == 4)
+					else if (JD_FORMAT == 4)
 					{
 						*pix++ = ((219 * yy) >> 8) + 16;
 						if ((ix & 0x1) == 0) {
@@ -914,13 +914,13 @@ JPEG_ITCM static JRESULT mcu_output (
 							*pix++ = ((219 * cr) >> 8) + 128;
 						}
 					}
-					#elif (JD_FORMAT == 0)
+					else if (JD_FORMAT == 0)
 					{
                        *pix++ = /*R*/ BYTECLIP(yy + ((int)(1.402 * CVACC) * cr) / CVACC);
                        *pix++ = /*G*/ BYTECLIP(yy - ((int)(0.344 * CVACC) * cb + (int)(0.714 * CVACC) * cr) / CVACC);
                        *pix++ = /*B*/ BYTECLIP(yy + ((int)(1.772 * CVACC) * cb) / CVACC);
 					}
-					#elif (JD_FORMAT == 1)
+					else if (JD_FORMAT == 1)
 					{
 						#if 0
                         rr = /*R*/ BYTECLIP(yy + ((int)(1.402 * CVACC) * cr) / CVACC);
@@ -937,12 +937,11 @@ JPEG_ITCM static JRESULT mcu_output (
 						*pix++ = ((BYTECLIP(yy + ((2871 * cr) >> 11)) & 0xF8) | ((gg & 0xE0) >> 5));
 						#endif
 					}
-					#endif
 
 				}
 			}
 		}
-		#else
+		else
 		{	/* Monochrome output (build a grayscale MCU from Y comopnent) */
 			for (iy = 0; iy < my; iy++) {
 				py = jd->mcubuf + iy * 8;
@@ -957,7 +956,6 @@ JPEG_ITCM static JRESULT mcu_output (
 				}
 			}
 		}
-		#endif
 
 #if JD_USE_SCALE
 		/* Descale the MCU rectangular if needed */
@@ -1045,6 +1043,16 @@ JPEG_ITCM static JRESULT mcu_output (
 
 #define	LDB_WORD(ptr)		(uint16_t)(((uint16_t)*((uint8_t*)(ptr))<<8)|(uint16_t)*(uint8_t*)((ptr)+1))
 
+int g_jd_format = JD_FORMAT_VYUY;
+void jd_set_JD_FORMAT(JD_FORMAT_OUTPUT format)
+{
+	g_jd_format = format;
+}
+
+JD_FORMAT_OUTPUT jd_get_JD_FORMAT(void)
+{
+	return g_jd_format;
+}
 
 JPEG_ITCM JRESULT jd_prepare_sw (
 	JDEC* jd,				/* Blank decompressor object */

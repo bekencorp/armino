@@ -28,8 +28,11 @@ typedef void (*dma2d_isr_t)(void);
  */
 #define BK_ERR_DMA2D_NOT_INIT    (BK_ERR_DMA2D_BASE - 1) /**< LCD driver not init */
 
-#define USE_HAL_DMA2D_REGISTER_CALLBACKS 0 /**< if use int type isr register, set this value 1.
+#define USE_HAL_DMA2D_REGISTER_CALLBACKS  0 /**< if use int type isr register, set this value 1.
                                              always use with API @refs bk_dma2d_register_int_callback_isr*/
+
+#define DMA2D_OCOLR_WHITE    (0xFFFF)              /**< define Mode_RGB565 white Value*/
+#define DMA2D_OCOLR_BLACK    (0x0)                 /**< define Mode_RGB565 black Value*/
 
 #define DMA2D_OCOLR_BLUE_1   (0x000000FFUL)              /**< define  Mode_ARGB8888/RGB888 Blue Value */
 #define DMA2D_OCOLR_GREEN_1   (0x0000FF00UL)             /**< define  Mode_ARGB8888/RGB888 Green Value  */
@@ -166,12 +169,12 @@ typedef enum
 /** dma2d int status*/
 typedef enum
 {
-	DMA2D_TRANS_ERROR_STATUS = 0x1,
-	DMA2D_TRANS_COMPLETE_STATUS,
-	DMA2D_WARTERMARK_INT_STATUS,
-	DMA2D_CLUT_TRANS_ERROR_STATUS,
-	DMA2D_CLUT_TRANS_COMPLETE_STATUS,
-	DMA2D_CFG_ERROR_STATUS
+	DMA2D_TRANS_ERROR_STATUS = 1 << 0,
+	DMA2D_TRANS_COMPLETE_STATUS = 1 << 1,
+	DMA2D_WARTERMARK_INT_STATUS = 1 << 2,
+	DMA2D_CLUT_TRANS_ERROR_STATUS = 1 << 3,
+	DMA2D_CLUT_TRANS_COMPLETE_STATU = 1 << 4,
+	DMA2D_CFG_ERROR_STATUS = 1 << 5
 }dma2d_int_status_t;
 
 typedef enum {
@@ -272,6 +275,17 @@ typedef struct
 	uint32_t output_red_blue_swap;        /**< src img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
 }dma2d_pixel_convert_t;
 
+typedef struct {
+	void * frameaddr;          /**< dma2d fill frame baseaddr , normally LCD start frame addr*/
+	uint16_t frame_xsize;        /**< img/lcd x size */
+	uint16_t frame_ysize;        /**< img/lcd y size  */
+	uint16_t xpos;               /**< dma2d fill x pos based on frame_xsize */
+	uint16_t ypos;               /**< dma2d fill y pos based on frame_ysize */
+	uint16_t width;              /**< dma2d fill width */
+	uint16_t high;               /**< dma2d fill height */
+	out_color_mode_t color_format;
+	uint16_t color;              /**< dma2d fill color */
+}dma2d_fill_t;
 
 
 /**

@@ -13,11 +13,12 @@ extern void user_app_main(void);
 extern void rtos_set_user_app_entry(beken_thread_function_t entry);
 
 void user_app_main(void){
+	char *lcd_param[4] = {"480X272"};
 	os_printf("start av server \r\n");
 	demo_softap_app_init("av_demo", "", "13");
 	os_printf("start ap: av_demo \r\n");
 	av_udp_server_init();
-	demo_doorbell_udp_server_init(0, NULL);
+	demo_doorbell_udp_server_init(1, (char **)&lcd_param);
 	os_printf("av server run \r\n");
 }
 #endif

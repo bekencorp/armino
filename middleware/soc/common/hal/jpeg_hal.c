@@ -29,6 +29,8 @@
 #define JPEG_BITRATE_MAX_SIZE             JPEG_BITRATE_MAX_SIZE_640_480
 #define JPEG_BITRATE_MIN_SIZE             JPEG_BITRATE_MIN_SIZE_640_480
 
+#define PSRAM_BASEADDR                    0x60000000
+
 
 __attribute__((section(".video_spec_data"))) uint8_t video_sram[40*1024];
 #define JPEG_SHARE_MEM                    (&video_sram[0])
@@ -53,12 +55,10 @@ static void jpeg_hal_set_target_bitrate(jpeg_hal_t *hal, uint32_t x_pixel)
 		break;
 	case X_PIXEL_1280:
 	case X_PIXEL_1600:
-		//jpeg_ll_enable_bitrate_ctrl(hal->hw, 1);
 		jpeg_ll_set_target_high_byte(hal->hw, JPEG_BITRATE_MAX_SIZE_1280_720);
 		jpeg_ll_set_target_low_byte(hal->hw, JPEG_BITRATE_MIN_SIZE_1280_720);
 		break;
 	default:
-		//os_printf("Not adapt this image resolution\r\n");
 		jpeg_ll_set_target_high_byte(hal->hw, JPEG_BITRATE_MAX_SIZE);
 		jpeg_ll_set_target_low_byte(hal->hw, JPEG_BITRATE_MIN_SIZE);
 		break;
@@ -71,48 +71,49 @@ bk_err_t jpeg_hal_set_em_base_addr(jpeg_hal_t *hal, uint8_t *address)
 	return BK_OK;
 }
 
-bk_err_t jpeg_hal_set_yuv_config(jpeg_hal_t *hal, const jpeg_config_t *config)
+bk_err_t jpeg_hal_switch_mode(jpeg_hal_t *hal, const jpeg_config_t *config)
 {
-	jpeg_ll_init(hal->hw);
 	jpeg_ll_clear_config(hal->hw);
 
-	jpeg_ll_enable_end_yuv_int(hal->hw);
-	jpeg_ll_enable_vsync_negedge_int(hal->hw);
-	jpeg_ll_set_mclk_div(hal->hw, config->mclk_div);
+	if (config->vsync == JPEG_SYNC_LOW_LEVEL)
+	{
+		jpeg_ll_enable_vsync_reverse(hal->hw, 1);
+	}
+	else
+	{
+		jpeg_ll_enable_sync_edge_dect(hal->hw);
+	}
 
-	jpeg_ll_enable_sync_edge_dect(hal->hw);
+	if (config->hsync == JPEG_SYNC_LOW_LEVEL)
+	{
+		jpeg_ll_enable_hsync_reverse(hal->hw, 1);
+	}
 
-	jpeg_ll_set_x_pixel(hal->hw, config->x_pixel);
-	jpeg_ll_set_y_pixel(hal->hw, config->y_pixel);
-	jpeg_ll_enable_yuv_word_reverse(hal->hw);
-	jpeg_ll_set_yuv_mode(hal->hw, 1);
-	jpeg_ll_set_em_base_addr(hal->hw, PSRAM_BASEADDR);//PSRAM_BASEADDR
+	if (config->mode == JPEG_ENC_MODE)
+	{
+		jpeg_ll_enable_end_frame_int(hal->hw);
 
-	return BK_OK;
-}
+		jpeg_ll_set_x_pixel(hal->hw, config->x_pixel);
+		jpeg_ll_set_y_pixel(hal->hw, config->y_pixel);
+		jpeg_ll_init_quant_table(hal->hw);
+		jpeg_hal_set_target_bitrate(hal, config->x_pixel);
 
-bk_err_t jpeg_hal_set_encode_config(jpeg_hal_t *hal, const jpeg_config_t *config)
-{
-	jpeg_ll_init(hal->hw);
-	jpeg_ll_clear_config(hal->hw);
+		jpeg_ll_set_default_bitrate_step(hal->hw);
+		jpeg_ll_enable_video_byte_reverse(hal->hw);
+		jpeg_ll_enable_enc_size(hal->hw);
+		jpeg_ll_set_em_base_addr(hal->hw, (uint32_t)JPEG_SHARE_MEM);
+		jpeg_ll_enable(hal->hw);
+	}
+	else
+	{
+		jpeg_ll_enable_end_yuv_int(hal->hw);
 
-	jpeg_ll_enable_end_frame_int(hal->hw);
-	jpeg_ll_enable_vsync_negedge_int(hal->hw);
-	jpeg_ll_set_mclk_div(hal->hw, config->mclk_div);
-
-	jpeg_ll_enable_sync_edge_dect(hal->hw);
-
-	jpeg_ll_set_x_pixel(hal->hw, config->x_pixel);
-	jpeg_ll_set_y_pixel(hal->hw, config->y_pixel);
-	jpeg_ll_init_quant_table(hal->hw);
-	jpeg_hal_set_target_bitrate(hal, config->x_pixel);
-
-	jpeg_ll_set_default_bitrate_step(hal->hw);
-	jpeg_ll_enable_video_byte_reverse(hal->hw);
-	jpeg_ll_enable_enc_size(hal->hw);
-	jpeg_ll_set_em_base_addr(hal->hw, (uint32_t)JPEG_SHARE_MEM);
-
-	jpeg_ll_enable(hal->hw);
+		jpeg_ll_set_x_pixel(hal->hw, config->x_pixel);
+		jpeg_ll_set_y_pixel(hal->hw, config->y_pixel);
+		jpeg_ll_enable_yuv_word_reverse(hal->hw, 1);
+		jpeg_ll_set_em_base_addr(hal->hw, PSRAM_BASEADDR);//PSRAM_BASEADDR
+		jpeg_ll_set_yuv_mode(hal->hw, 1);
+	}
 
 	return BK_OK;
 }

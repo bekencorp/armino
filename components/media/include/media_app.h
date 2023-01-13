@@ -23,13 +23,23 @@ extern "C" {
 
 typedef enum
 {
-	APP_CAMERA_DVP,
-	APP_CAMERA_YUV,
-	APP_CAMERA_MIX,
-	APP_CAMERA_UVC,
-	APP_CAMERA_NET,
+	APP_CAMERA_DVP_JPEG,
+	APP_CAMERA_DVP_YUV,
+	APP_CAMERA_DVP_MIX,
+	APP_CAMERA_UVC_MJPEG,
+	APP_CAMERA_UVC_H264,
+	APP_CAMERA_NET_MJPEG,
+	APP_CAMERA_NET_H264,
 	APP_CAMERA_INVALIED,
 } app_camera_type_t;
+
+/*
+* legacy
+*/
+#define APP_CAMERA_DVP APP_CAMERA_DVP_JPEG
+#define APP_CAMERA_YUV APP_CAMERA_DVP_YUV
+#define APP_CAMERA_MIX APP_CAMERA_DVP_MIX
+#define APP_CAMERA_UVC APP_CAMERA_UVC_MJPEG
 
 typedef enum
 {
@@ -51,6 +61,8 @@ bk_err_t media_app_lcd_open(void *lcd_open);
 bk_err_t media_app_lcd_open_withgui(void *lcd_open);
 bk_err_t media_app_lcd_close(void);
 bk_err_t media_app_capture(char *name);
+bk_err_t media_app_save_start(char *name);
+bk_err_t media_app_save_stop(void);
 bk_err_t media_app_lcd_set_backlight(uint8_t level);
 bk_err_t media_app_mailbox_test(void);
 bk_err_t media_app_lcd_rotate(bool enable);
@@ -64,8 +76,9 @@ bk_err_t  media_app_lcd_display_file(char *file_name);  //display sd card file
 bk_err_t media_app_lcd_display(void* lcd_display);
 bk_err_t media_app_lcd_display_beken(void* lcd_display);
 bk_err_t media_app_lcd_blend(void *param);
-bk_err_t media_app_register_uvc_disconnect_cb(void *cb);
-
+bk_err_t media_app_register_uvc_connect_state_cb(void *cb);
+bk_err_t media_app_lcd_gui_blend_open(int blend_x_size, int blend_y_size);
+bk_err_t media_app_lcd_gui_blend_close(void);
 
 #if CONFIG_VIDEO_AVI
 bk_err_t media_app_avi_open(void);

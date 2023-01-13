@@ -89,8 +89,8 @@ void cli_sbc_decoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 	uint8_t sbc_sample_rate_index = 0;
 	uint8_t sbc_blocks, sbc_subbands, sbc_bitpool, sbc_channel_mode, sbc_channel_number;
 
-	aud_intf_drv_setup_t aud_intf_drv_setup;
-	aud_intf_spk_setup_t aud_intf_spk_setup;
+	aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
+	aud_intf_spk_setup_t aud_intf_spk_setup = DEFAULT_AUD_INTF_SPK_SETUP_CONFIG();
 	aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 
 	if (argc != 3) {
@@ -157,10 +157,10 @@ void cli_sbc_decoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 			return;
 		}
 
-		aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
-		aud_intf_drv_setup.task_config.priority = 3;
+		//aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+		//aud_intf_drv_setup.task_config.priority = 3;
 		aud_intf_drv_setup.aud_intf_rx_spk_data = read_sbc_data_from_sdcard;
-		aud_intf_drv_setup.aud_intf_tx_mic_data = NULL;
+		//aud_intf_drv_setup.aud_intf_tx_mic_data = NULL;
 		ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
 			os_printf("bk_aud_intf_drv_init fail, ret:%d \r\n", ret);
@@ -188,9 +188,9 @@ void cli_sbc_decoder_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 			aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_48K;
 		}
 		aud_intf_spk_setup.frame_size = sbc_pcm_length * 4;
-		aud_intf_spk_setup.spk_gain = 0x2d;
-		aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
-		aud_intf_spk_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
+		//aud_intf_spk_setup.spk_gain = 0x2d;
+		//aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
+		//aud_intf_spk_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
 		ret = bk_aud_intf_spk_init(&aud_intf_spk_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
 			os_printf("bk_aud_intf_spk_init fail, ret:%d \r\n", ret);

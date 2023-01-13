@@ -60,7 +60,19 @@ CONFIG_BLUETOOTH=y
 # end of Features Configuration
 
 #
+# Modules Configuration
+#
+
+#
 # Components Configuration
+#
+
+#
+# Middleware Configuration
+#
+
+#
+# Properties Configuration
 #
 # CONFIG_AUDIO_AEC is not set
 # CONFIG_AUDIO_NS is not set
@@ -269,6 +281,7 @@ CONFIG_GENERAL_DMA=y
 # TOUCH
 #
 CONFIG_TOUCH=y
+# CONFIG_TOUCH_INTERNAL_SERIAL_CAP is not set
 # CONFIG_TOUCH_PM_SUPPORT is not set
 # end of TOUCH
 
@@ -386,10 +399,10 @@ CONFIG_FLASH_SRC_CLK_60M=y
 # CONFIG_FLASH_ORIGIN_API is not set
 # end of FLASH
 
+# CONFIG_LCD is not set
 CONFIG_MAC_PHY_BYPASS=y
 # CONFIG_SUPPORT_IRDA is not set
 # CONFIG_MAILBOX is not set
-# CONFIG_LCD is not set
 # CONFIG_TP is not set
 # CONFIG_DMA2D is not set
 # CONFIG_YUV_BUF is not set
@@ -400,6 +413,9 @@ CONFIG_EFUSE=y
 # CONFIG_AUDIO_DSP_IP_V1_0 is not set
 CONFIG_CHANGE_JTAG_GPIO=y
 CONFIG_RESET_REASON=y
+# CONFIG_LCD_POWER_GPIO_CTRL is not set
+# CONFIG_LCD_BACKLIGHT_GPIO_CTRL is not set
+# CONFIG_CAMERA_POWER_GPIO_CTRL is not set
 # end of Driver
 
 #
@@ -485,7 +501,7 @@ CONFIG_IDLE_UART_OUT_TEST=y
 # CONFIG_COMPONENTS_WFA_CA is not set
 # CONFIG_ENABLE_WIFI_DEFAULT_CONNECT is not set
 # CONFIG_PSRAM_TEST is not set
-# CONFIG_DVP_TEST is not set
+# CONFIG_CAMERA_TEST is not set
 # CONFIG_CM33_TEST is not set
 # CONFIG_MPC_TEST is not set
 # CONFIG_PRRO_TEST is not set
@@ -558,7 +574,7 @@ CONFIG_LWIP_MEM_REDUCE=y
 #
 # CONFIG_IPV6 is not set
 # CONFIG_MIDEA is not set
-# CONFIG_LWIP_FAST_DHCP is not set
+# CONFIG_WIFI_FAST_DHCP is not set
 CONFIG_MQTT_ACK_NOW=y
 # end of LwIP 2.1.2
 # end of Shared Configs with Public components
@@ -731,6 +747,13 @@ CONFIG_VAD=y
 # end of VAD_CONFIG
 
 # CONFIG_VIDEO_AVI is not set
+
+#
+# LCD_DMA2D_BLEND_FONT
+#
+# CONFIG_LCD_DMA2D_BLEND_FONT is not set
+# end of LCD_DMA2D_BLEND_FONT
+
 # CONFIG_VIDEO_QR_CODE_GEN is not set
 
 #
@@ -770,5 +793,6 @@ CONFIG_AP_VSIE=y
 # CONFIG_USE_MBEDTLS is not set
 # CONFIG_WIFI_OWE is not set
 # end of Supplicant
-# end of Components Configuration
+# end of Properties Configuration
+# end of Modules Configuration
 # end of ARMINO Configuration

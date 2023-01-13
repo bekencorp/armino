@@ -68,7 +68,6 @@ static void media_major_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 
 	switch (cmd_buf->param1 >> MEDIA_EVT_BIT)
 	{
-#ifdef CONFIG_CAMERA
 		case MAILBOX_EVT:
 		{
 			media_msg_t msg;
@@ -89,7 +88,7 @@ static void media_major_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 
 		}
 		break;
-#endif
+
 		default:
 			break;
 	}
@@ -160,6 +159,7 @@ static void media_major_message_handle(void)
 
 #if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
 	camera_init();
+	storage_init();
 #endif
 
 #ifdef CONFIG_WIFI_TRANSFER
@@ -168,10 +168,6 @@ static void media_major_message_handle(void)
 
 #ifdef CONFIG_LCD
 	lcd_init();
-#endif
-
-#ifdef CONFIG_CAMERA
-	storage_init();
 #endif
 
 	while (1)
@@ -211,7 +207,7 @@ static void media_major_message_handle(void)
 					break;
 #endif
 
-#ifdef CONFIG_CAMERA
+#if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
 				case STORAGE_EVENT:
 					storage_event_handle(msg.event, msg.param);
 					break;

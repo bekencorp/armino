@@ -30,8 +30,8 @@
 
 static beken_thread_t vad_thread_handle = NULL;
 static beken_queue_t vad_int_msg_que = NULL;
-static aud_intf_drv_setup_t aud_intf_drv_setup;
-static aud_intf_mic_setup_t aud_intf_mic_setup;
+static aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
+static aud_intf_mic_setup_t aud_intf_mic_setup = DEFAULT_AUD_INTF_MIC_SETUP_CONFIG();
 static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 
 
@@ -90,9 +90,9 @@ static void vad_test_task_main(beken_thread_arg_t param_data)
 	bk_err_t ret = BK_OK;
 	vad_ctrl_msg_t msg;
 
-	aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
-	aud_intf_drv_setup.task_config.priority = 3;
-	aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
+	//aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+	//aud_intf_drv_setup.task_config.priority = 3;
+	//aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
 	aud_intf_drv_setup.aud_intf_tx_mic_data = check_mic_data;
 	ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
 	if (ret != BK_ERR_AUD_INTF_OK) {
@@ -109,10 +109,10 @@ static void vad_test_task_main(beken_thread_arg_t param_data)
 		os_printf("bk_aud_intf_set_mode complete \r\n");
 	}
 
-	aud_intf_mic_setup.mic_chl = AUD_INTF_MIC_CHL_MIC1;
-	aud_intf_mic_setup.samp_rate = AUD_ADC_SAMP_RATE_8K;
-	aud_intf_mic_setup.frame_size = 320;
-	aud_intf_mic_setup.mic_gain = 0x2d;
+	//aud_intf_mic_setup.mic_chl = AUD_INTF_MIC_CHL_MIC1;
+	//aud_intf_mic_setup.samp_rate = AUD_ADC_SAMP_RATE_8K;
+	//aud_intf_mic_setup.frame_size = 320;
+	//aud_intf_mic_setup.mic_gain = 0x2d;
 	ret = bk_aud_intf_mic_init(&aud_intf_mic_setup);
 	if (ret != BK_ERR_AUD_INTF_OK) {
 		os_printf("bk_aud_intf_mic_init fail, ret:%d \r\n", ret);

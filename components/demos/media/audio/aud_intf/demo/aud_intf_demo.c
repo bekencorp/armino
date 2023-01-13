@@ -61,10 +61,10 @@ static char mic_file_name[50];
 static char spk_file_name[50];
 static char voc_record_file_name[50];
 static char voc_play_file_name[50];
-static aud_intf_drv_setup_t aud_intf_drv_setup;
-static aud_intf_mic_setup_t aud_intf_mic_setup;
-static aud_intf_spk_setup_t aud_intf_spk_setup;
-static aud_intf_voc_setup_t aud_intf_voc_setup;
+static aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
+static aud_intf_mic_setup_t aud_intf_mic_setup = DEFAULT_AUD_INTF_MIC_SETUP_CONFIG();
+static aud_intf_spk_setup_t aud_intf_spk_setup = DEFAULT_AUD_INTF_SPK_SETUP_CONFIG();
+static aud_intf_voc_setup_t aud_intf_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
 static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 static int32_t *temp_spk_addr = NULL;     //存放从SDcard中取的pcm信号
 static bool spk_file_empty = false;
@@ -180,9 +180,9 @@ void cli_aud_intf_record_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 			return;
 		}
 
-		aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
-		aud_intf_drv_setup.task_config.priority = 3;
-		aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
+		//aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+		//aud_intf_drv_setup.task_config.priority = 3;
+		//aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
 		aud_intf_drv_setup.aud_intf_tx_mic_data = send_mic_data_to_sd;
 		ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
@@ -199,11 +199,11 @@ void cli_aud_intf_record_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 			os_printf("bk_aud_intf_set_mode complete \r\n");
 		}
 
-		aud_intf_mic_setup.mic_chl = AUD_INTF_MIC_CHL_MIC1;
-		aud_intf_mic_setup.samp_rate = AUD_ADC_SAMP_RATE_8K;
-		aud_intf_mic_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
-		aud_intf_mic_setup.frame_size = 320;
-		aud_intf_mic_setup.mic_gain = 0x2d;
+		//aud_intf_mic_setup.mic_chl = AUD_INTF_MIC_CHL_MIC1;
+		//aud_intf_mic_setup.samp_rate = AUD_ADC_SAMP_RATE_8K;
+		//aud_intf_mic_setup.mic_type = AUD_INTF_MIC_TYPE_UAC;
+		//aud_intf_mic_setup.frame_size = 320;
+		//aud_intf_mic_setup.mic_gain = 0x2d;
 		ret = bk_aud_intf_mic_init(&aud_intf_mic_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
 			os_printf("bk_aud_intf_mic_init fail, ret:%d \r\n", ret);
@@ -342,10 +342,10 @@ void cli_aud_intf_play_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 			return;
 		}
 
-		aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
-		aud_intf_drv_setup.task_config.priority = 3;
+		//aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+		//aud_intf_drv_setup.task_config.priority = 3;
 		aud_intf_drv_setup.aud_intf_rx_spk_data = read_spk_data_from_sd;
-		aud_intf_drv_setup.aud_intf_tx_mic_data = NULL;
+		//aud_intf_drv_setup.aud_intf_tx_mic_data = NULL;
 		ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
 			os_printf("bk_aud_intf_drv_init fail, ret:%d \r\n", ret);
@@ -361,12 +361,12 @@ void cli_aud_intf_play_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 			os_printf("bk_aud_intf_set_mode complete \r\n");
 		}
 
-		aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_LEFT;
-		aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_16K;
+		//aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_LEFT;
+		//aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_8K;
 		aud_intf_spk_setup.frame_size = 640;
-		aud_intf_spk_setup.spk_gain = 0x2d;
+		//aud_intf_spk_setup.spk_gain = 0x2d;
 		aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
-		aud_intf_spk_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
+		//aud_intf_spk_setup.spk_type = AUD_INTF_SPK_TYPE_UAC;
 		ret = bk_aud_intf_spk_init(&aud_intf_spk_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
 			os_printf("bk_aud_intf_spk_init fail, ret:%d \r\n", ret);
@@ -551,25 +551,25 @@ void cli_aud_intf_sd_voc_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 			return;
 		}
 
-		aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
-		aud_intf_drv_setup.task_config.priority = 3;
+		//aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+		//aud_intf_drv_setup.task_config.priority = 3;
 		aud_intf_drv_setup.aud_intf_rx_spk_data = aud_write_sd_data_to_spk;
 		aud_intf_drv_setup.aud_intf_tx_mic_data = aud_voc_write_mic_to_sd;
 		bk_aud_intf_drv_init(&aud_intf_drv_setup);
 		aud_work_mode = AUD_INTF_WORK_MODE_VOICE;
 		bk_aud_intf_set_mode(aud_work_mode);
-		aud_intf_voc_setup.aec_enable = true;
-		aud_intf_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
+		//aud_intf_voc_setup.aec_enable = true;
+		//aud_intf_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
 		//aud_intf_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711A;
 		aud_intf_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_PCM;
 		aud_intf_voc_setup.spk_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
-		aud_intf_voc_setup.mic_gain = 0x2d;
-		aud_intf_voc_setup.spk_gain = 0x2d;
-		aud_intf_voc_setup.aec_cfg.ec_depth = 20;
-		aud_intf_voc_setup.aec_cfg.TxRxThr = 30;
-		aud_intf_voc_setup.aec_cfg.TxRxFlr = 6;
-		aud_intf_voc_setup.aec_cfg.ns_level = 2;
-		aud_intf_voc_setup.aec_cfg.ns_para = 1;
+		//aud_intf_voc_setup.mic_gain = 0x2d;
+		//aud_intf_voc_setup.spk_gain = 0x2d;
+		//aud_intf_voc_setup.aec_cfg.ec_depth = 20;
+		//aud_intf_voc_setup.aec_cfg.TxRxThr = 30;
+		//aud_intf_voc_setup.aec_cfg.TxRxFlr = 6;
+		//aud_intf_voc_setup.aec_cfg.ns_level = 2;
+		//aud_intf_voc_setup.aec_cfg.ns_para = 1;
 		bk_aud_intf_voc_init(aud_intf_voc_setup);
 
 		temp_spk_addr = os_malloc(640);
@@ -923,9 +923,9 @@ void cli_aud_intf_loop_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 	}
 
 	if (os_strcmp(argv[1], "start") == 0) {
-		aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
-		aud_intf_drv_setup.task_config.priority = 3;
-		aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
+		//aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+		//aud_intf_drv_setup.task_config.priority = 3;
+		//aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
 		aud_intf_drv_setup.aud_intf_tx_mic_data = send_mic_data_to_spk;
 		ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
@@ -942,10 +942,10 @@ void cli_aud_intf_loop_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 			os_printf("bk_aud_intf_set_mode complete \r\n");
 		}
 
-		aud_intf_mic_setup.mic_chl = AUD_INTF_MIC_CHL_MIC1;
-		aud_intf_mic_setup.samp_rate = AUD_ADC_SAMP_RATE_8K;
-		aud_intf_mic_setup.frame_size = 320;
-		aud_intf_mic_setup.mic_gain = 0x2d;
+		//aud_intf_mic_setup.mic_chl = AUD_INTF_MIC_CHL_MIC1;
+		//aud_intf_mic_setup.samp_rate = AUD_ADC_SAMP_RATE_8K;
+		//aud_intf_mic_setup.frame_size = 320;
+		//aud_intf_mic_setup.mic_gain = 0x2d;
 		ret = bk_aud_intf_mic_init(&aud_intf_mic_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
 			os_printf("bk_aud_intf_mic_init fail, ret:%d \r\n", ret);
@@ -953,12 +953,12 @@ void cli_aud_intf_loop_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 			os_printf("bk_aud_intf_mic_init complete \r\n");
 		}
 
-		aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_LEFT;
-		aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_8K;
-		aud_intf_spk_setup.frame_size = 320;
-		aud_intf_spk_setup.spk_gain = 0x2d;
+		//aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_LEFT;
+		//aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_8K;
+		//aud_intf_spk_setup.frame_size = 320;
+		//aud_intf_spk_setup.spk_gain = 0x2d;
 		aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
-		aud_intf_spk_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
+		//aud_intf_spk_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
 		ret = bk_aud_intf_spk_init(&aud_intf_spk_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
 			os_printf("bk_aud_intf_spk_init fail, ret:%d \r\n", ret);
@@ -1047,10 +1047,10 @@ void cli_aud_intf_play_const_data_cmd(char *pcWriteBuffer, int xWriteBufferLen, 
 	if (os_strcmp(argv[1], "start") == 0) {
 		os_printf("init play test \r\n");
 
-		aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
-		aud_intf_drv_setup.task_config.priority = 3;
+		//aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+		//aud_intf_drv_setup.task_config.priority = 3;
 		aud_intf_drv_setup.aud_intf_rx_spk_data = read_spk_data_from_const_data;
-		aud_intf_drv_setup.aud_intf_tx_mic_data = NULL;
+		//aud_intf_drv_setup.aud_intf_tx_mic_data = NULL;
 		ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
 			os_printf("bk_aud_intf_drv_init fail, ret:%d \r\n", ret);
@@ -1066,12 +1066,12 @@ void cli_aud_intf_play_const_data_cmd(char *pcWriteBuffer, int xWriteBufferLen, 
 			os_printf("bk_aud_intf_set_mode complete \r\n");
 		}
 
-		aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_LEFT;
-		aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_8K;
-		aud_intf_spk_setup.frame_size = 320;
-		aud_intf_spk_setup.spk_gain = 0x2d;
+		//aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_LEFT;
+		//aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_8K;
+		//aud_intf_spk_setup.frame_size = 320;
+		//aud_intf_spk_setup.spk_gain = 0x2d;
 		aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
-		aud_intf_spk_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
+		//aud_intf_spk_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
 		ret = bk_aud_intf_spk_init(&aud_intf_spk_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
 			os_printf("bk_aud_intf_spk_init fail, ret:%d \r\n", ret);

@@ -167,7 +167,6 @@ DOORBELL
 
     Figure 5. RealtimeVideo_function set
 
-
 6 新增屏幕适配
 -----------------------------
 

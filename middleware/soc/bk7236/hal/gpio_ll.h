@@ -349,7 +349,7 @@ static inline void gpio_ll_switch_to_low_power_status(uint64_t skip_io)
 
 	for(i = 0; i < GPIO_NUM_MAX; i ++)
 	{
-		if(skip_io & (uint64_t)(0x1 << i))
+		if(skip_io & (0x1ULL << i))
 			continue;
 		val = REG_READ(GPIO_LL_REG_BASE+i*4);
 		val &= 0xffff0000;

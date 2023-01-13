@@ -30,7 +30,7 @@ typedef enum
 
 typedef struct
 {
-	dvp_mode_t mode;
+	media_camera_type_t type;
 	camera_state_t state;
 	uint32_t debug : 1;
 	uint32_t param;

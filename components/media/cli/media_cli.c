@@ -22,9 +22,11 @@
 #include "media_app.h"
 
 #include <driver/dvp_camera.h>
+#include <driver/jpeg_enc.h>
 #include "lcd_act.h"
 #include "storage_act.h"
 #include <components/aud_intf.h>
+#include <driver/uvc_camera.h>
 
 #define TAG "mcli"
 
@@ -38,69 +40,13 @@
 #define GET_NAME(value)    get_name_from_cmd(argc, argv, value)
 
 #if defined(CONFIG_USB_UVC) && !defined(CONFIG_SLAVE_CORE)
-void uvc_disconnect_callback(void)
+void uvc_connect_state_callback(uint8_t state)
 {
-	LOGI("%s +++\n", __func__);
-	//media_app_camera_open(APP_CAMERA_UVC, PPI_640X480);
+	LOGI("%s %d+++\n", __func__, state);
+	if (state == UVC_CONNECTED)
+		media_app_camera_open(APP_CAMERA_UVC, PPI_640X480);
 }
 #endif
-
-uint32_t get_string_to_ppi(char *string, uint32_t pre)
-{
-	uint32_t value = pre;
-
-	if (os_strcmp(string, "1280X720") == 0)
-	{
-		value = PPI_1280X720;
-	}
-
-	if (os_strcmp(string, "1024X600") == 0)
-	{
-		value = PPI_1024X600;
-	}
-
-	if (os_strcmp(string, "640X480") == 0)
-	{
-		value = PPI_640X480;
-	}
-
-	if (os_strcmp(string, "480X320") == 0)
-	{
-		value = PPI_480X320;
-	}
-
-	if (os_strcmp(string, "480X272") == 0)
-	{
-		value = PPI_480X272;
-	}
-
-	if (os_strcmp(string, "320X480") == 0)
-	{
-		value = PPI_320X480;
-	}
-
-	if (os_strcmp(string, "480X800") == 0)
-	{
-		value = PPI_480X800;
-	}
-
-	if (os_strcmp(string, "800X480") == 0)
-	{
-		value = PPI_800X480;
-	}
-
-	if (os_strcmp(string, "480X854") == 0)
-	{
-		value = PPI_480X854;
-	}
-
-	if (os_strcmp(string, "864X480") == 0)
-	{
-		value = PPI_864X480;
-	}
-
-	return value;
-}
 
 char * get_string_to_name(char *string, char * pre)
 {
@@ -129,6 +75,10 @@ char * get_string_to_name(char *string, char * pre)
 	{
 		value = "nt35510";
 	}
+	if (os_strcmp(string, "nt35510_mcu") == 0)
+	{
+		value = "nt35510_mcu";
+	}
 	if (os_strcmp(string, "h050iwv") == 0)
 	{
 		value = "h050iwv";
@@ -141,6 +91,10 @@ char * get_string_to_name(char *string, char * pre)
 	{
 		value = "md0700r";
 	}
+	if (os_strcmp(string, "st7710s") == 0)
+	{
+		value = "st7710s";
+	}
 
 	return value;
 }
@@ -152,12 +106,19 @@ uint32_t get_ppi_from_cmd(int argc, char **argv, uint32_t pre)
 
 	for (i = 0; i < argc; i++)
 	{
-		value = get_string_to_ppi(argv[i], pre);
+		value = get_string_to_ppi(argv[i]);
 
-		if (value != pre)
+		if (value != PPI_DEFAULT)
 		{
 			break;
 		}
+	}
+
+	LOGI("%s %d-%d+++\n", __func__, value >> 16, value & 0xFFFF);
+
+	if (value == PPI_DEFAULT)
+	{
+		value = pre;
 	}
 
 	return value;
@@ -207,22 +168,27 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 	LOGI("%s +++\n", __func__);
 
-	if (argc > 0)
+	if (argc <= 2)
+	{
+		ret = kParamErr;
+		goto output;
+	}
+	else
 	{
 		if (os_strcmp(argv[1], "dvp") == 0)
 		{
 #if (defined(CONFIG_CAMERA) && !defined(CONFIG_SLAVE_CORE))
-			media_ppi_t ppi = GET_PPI(PPI_DEFAULT);
-			app_camera_type_t camera_type = APP_CAMERA_DVP;
+			media_ppi_t ppi = GET_PPI(PPI_640X480);
+			app_camera_type_t camera_type = APP_CAMERA_DVP_JPEG;
 
 			if (CMD_CONTAIN("yuv"))
 			{
-				camera_type = APP_CAMERA_YUV;
+				camera_type = APP_CAMERA_DVP_YUV;
 			}
 
 			if (CMD_CONTAIN("mix"))
 			{
-				camera_type = APP_CAMERA_MIX;
+				camera_type = APP_CAMERA_DVP_MIX;
 			}
 
 			if (os_strcmp(argv[2], "open") == 0)
@@ -238,7 +204,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			if (os_strcmp(argv[2], "auto_encode") == 0)
 			{
 				uint8_t auto_enable = 0;
-				uint32_t up_size = 0, low_size = 0;
+				uint16_t up_size = 0, low_size = 0;
 
 				auto_enable = os_strtoul(argv[3], NULL, 10) & 0xF;
 				if (auto_enable)
@@ -247,7 +213,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 					low_size = os_strtoul(argv[5], NULL, 10) * 1024;
 				}
 
-				ret = bk_dvp_camera_encode_config(auto_enable, up_size, low_size);
+				ret = bk_jpeg_enc_encode_config(auto_enable, up_size, low_size);
 			}
 
 			if (os_strcmp(argv[2], "register_dump") == 0)
@@ -259,6 +225,12 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			if (os_strcmp(argv[2], "register_read") == 0)
 			{
 				extern bk_err_t bk_dvp_camera_read_register_enable(bool enable);
+
+				if (argc != 4)
+				{
+					ret = kParamErr;
+					goto output;
+				}
 
 				if (os_strcmp(argv[3], "1") == 0)
 				{
@@ -284,10 +256,10 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		}
 #endif
 
+#if ((defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC)) && !defined(CONFIG_SLAVE_CORE) && defined(CONFIG_FATFS))
 		if (os_strcmp(argv[1], "capture") == 0)
 		{
 			LOGI("capture\n");
-#if defined(CONFIG_CAMERA) && !defined(CONFIG_SLAVE_CORE)
 
 			if (argc >= 3)
 			{
@@ -297,8 +269,25 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			{
 				ret = media_app_capture("unknow.jpg");
 			}
-#endif
 		}
+
+		if (os_strcmp(argv[1], "save_start") == 0)
+		{
+			if (argc >= 3)
+			{
+				ret = media_app_save_start(argv[2]);
+			}
+			else
+			{
+				ret = media_app_save_start("unknow.264");
+			}
+		}
+
+		if (os_strcmp(argv[1], "save_stop") == 0)
+		{
+			ret = media_app_save_stop();
+		}
+#endif
 
 		if (os_strcmp(argv[1], "lcd") == 0)
 		{
@@ -313,6 +302,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			{
 				media_app_lcd_rotate(true);
 			}
+
 			if (os_strcmp(argv[2], "open") == 0)
 			{
 				lcd_open_t lcd_open;
@@ -321,6 +311,30 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				ret = media_app_lcd_open(&lcd_open);
 			}
 #if (CONFIG_LVGL)
+			#if CONFIG_BLEND_USE_GUI
+			else if (os_strcmp(argv[2], "gui_blend") == 0)
+			{
+				if(argc >= 4)
+				{
+					if(os_strcmp(argv[3], "on") == 0)
+					{
+						if(argc >= 6)
+						{
+							ret = media_app_lcd_gui_blend_open(atoi(argv[4]), atoi(argv[5]));
+						}
+					}
+					else if(os_strcmp(argv[3], "off") == 0)
+					{
+						ret = media_app_lcd_gui_blend_close();
+					}
+					else if(os_strcmp(argv[3], "set") == 0)
+					{
+						bk_err_t media_app_lcd_set_pos(int hor_pos, int ver_offset);
+						ret = media_app_lcd_set_pos(atoi(argv[4]), atoi(argv[5]));
+					}
+				}
+			}
+			#endif
 			else if (os_strcmp(argv[2], "opengui") == 0)
 			{
 				lcd_open_t lcd_open;
@@ -330,8 +344,22 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			}
 			else if(os_strcmp(argv[2], "demoui") == 0)
 			{
-				void lv_example_meter(void);
-				lv_example_meter();
+				if(argc >= 4)
+				{
+					int value = atoi(argv[3]);
+
+					bk_printf("value:%d\r\n", value);
+					if(0 == value)
+					{
+						void lv_example_img_display_init(int switch_time_ms);
+						lv_example_img_display_init(3000);
+					}
+				}
+				else
+				{
+					void lv_example_meter(void);
+					lv_example_meter();
+				}
 				ret = kNoErr;
 			}
 #endif
@@ -390,10 +418,23 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			}
 			if (os_strcmp(argv[2], "dma2d_blend") == 0)
 			{
-#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
+
+				if (argc < 4)
+				{
+					ret = kParamErr;
+					goto output;
+				}
+
 				lcd_blend_msg_t blend = {0} ;
 				if (os_memcmp (argv[3], "wifi", 4) == 0)
 				{
+					if (argc < 5)
+					{
+						ret = kParamErr;
+						goto output;
+					}
+
 					blend.blend_on = 1;
 					blend.lcd_blend_type = LCD_BLEND_WIFI;
 					blend.data[0] =  os_strtoul(argv[4], NULL, 10) & 0xFFFF;
@@ -401,14 +442,27 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				}
 				else if (os_memcmp (argv[3], "clock", 4) == 0)
 				{
+					if (argc < 5)
+					{
+						ret = kParamErr;
+						goto output;
+					}
+
 					blend.blend_on = 1;
 					blend.lcd_blend_type = LCD_BLEND_TIME;
 					os_memcpy(blend.data, argv[4], 5);
 					LOGD("time dma2d blend data = %s\r\n", blend.data);
 				}
+				else if (os_memcmp (argv[3], "data", 4) == 0)
+				{
+					blend.blend_on = 1;
+					blend.lcd_blend_type = LCD_BLEND_DATA;
+					//os_memcpy(blend.data, argv[4], 5);
+					LOGI("chs dma2d blend data = %s \r\n", blend.data);
+				}
 				else if (os_memcmp (argv[3], "ver", 3) == 0)
 				{
-					uint8_t version[] = "VL4  V1.23.34";
+					uint8_t version[] = "VL4 V1.23.34";
 					blend.blend_on = 1;
 					blend.lcd_blend_type = LCD_BLEND_VERSION;
 					os_memcpy(blend.data, version, sizeof(version));
@@ -416,25 +470,38 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				}
 				else if (os_strcmp(argv[3], "close") == 0)
 				{
-					if (os_strcmp(argv[4], "wifi") == 0)
+					if (argc < 5)
 					{
 						blend.blend_on = 0;
-						blend.lcd_blend_type = LCD_BLEND_WIFI;
-					}
-					else if (os_strcmp(argv[4], "clock") == 0)
-					{
-						blend.blend_on = 0;
-						blend.lcd_blend_type = LCD_BLEND_TIME;
-					}
-					else if (os_strcmp(argv[4], "ver") == 0)
-					{
-						blend.blend_on = 0;
-						blend.lcd_blend_type = LCD_BLEND_VERSION;
+						blend.lcd_blend_type = LCD_BLEND_VERSION | LCD_BLEND_TIME | LCD_BLEND_WIFI | LCD_BLEND_DATA;
 					}
 					else
 					{
-						blend.blend_on = 0;
-						blend.lcd_blend_type = LCD_BLEND_VERSION | LCD_BLEND_TIME | LCD_BLEND_WIFI;
+						if (os_strcmp(argv[4], "wifi") == 0)
+						{
+							blend.blend_on = 0;
+							blend.lcd_blend_type = LCD_BLEND_WIFI;
+						}
+						else if (os_strcmp(argv[4], "clock") == 0)
+						{
+							blend.blend_on = 0;
+							blend.lcd_blend_type = LCD_BLEND_TIME;
+						}
+						else if (os_strcmp(argv[4], "ver") == 0)
+						{
+							blend.blend_on = 0;
+							blend.lcd_blend_type = LCD_BLEND_VERSION;
+						}
+						else if (os_strcmp(argv[4], "data") == 0)
+						{
+							blend.blend_on = 0;
+							blend.lcd_blend_type = LCD_BLEND_DATA;
+						}
+						else
+						{
+							blend.blend_on = 0;
+							blend.lcd_blend_type = LCD_BLEND_VERSION | LCD_BLEND_TIME | LCD_BLEND_WIFI | LCD_BLEND_DATA;
+						}
 					}
 				}
 				else
@@ -451,17 +518,33 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		if (os_strcmp(argv[1], "uvc") == 0)
 		{
 #if defined(CONFIG_USB_UVC) && !defined(CONFIG_SLAVE_CORE)
-			media_ppi_t ppi = GET_PPI(PPI_DEFAULT);
+			media_ppi_t ppi = GET_PPI(PPI_640X480);
+			app_camera_type_t camera_type = APP_CAMERA_UVC_MJPEG;
+
+
+			if (CMD_CONTAIN("h264"))
+			{
+				camera_type = APP_CAMERA_UVC_H264;
+			}
 
 			if (os_strcmp(argv[2], "open") == 0)
 			{
-				media_app_register_uvc_disconnect_cb(uvc_disconnect_callback);
-				ret = media_app_camera_open(APP_CAMERA_UVC, ppi);
+				if (ppi == 0)
+				{
+					LOGI("resolution not support\r\n");
+					ret = BK_FAIL;
+				}
+				else
+				{
+					media_app_register_uvc_connect_state_cb(uvc_connect_state_callback);
+
+					ret = media_app_camera_open(camera_type, ppi);
+				}
 			}
 
 			if (os_strcmp(argv[2], "close") == 0)
 			{
-				ret = media_app_camera_close(APP_CAMERA_UVC);
+				ret = media_app_camera_close(camera_type);
 			}
 #endif
 		}
@@ -498,6 +581,12 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 #ifdef CONFIG_MASTER_CORE
 		if (os_strcmp(argv[1], "transfer") == 0)
 		{
+			if (argc < 4)
+			{
+				ret = kParamErr;
+				goto output;
+			}
+
 			if (os_strcmp(argv[2], "pause") == 0
 			    && os_strcmp(argv[3], "0") == 0)
 			{
@@ -509,7 +598,6 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			{
 				ret = media_app_transfer_pause(true);
 			}
-
 		}
 #endif
 
@@ -519,13 +607,13 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
             if (0 == os_strcmp(argv[2], "v_open"))
             {
                 ret = media_app_avi_open();
-                os_printf("media_app_avi_open\r\n");
+                LOGI("media_app_avi_open\r\n");
             }
 
             if (0 == os_strcmp(argv[2], "v_close"))
             {
                 ret = media_app_avi_close();
-                os_printf("media_app_avi_close\r\n");
+                LOGI("media_app_avi_close\r\n");
             }
 #endif
 
@@ -533,21 +621,28 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			if (0 == os_strcmp(argv[2], "aud_open"))
 			{
 				ret = bk_aud_intf_mic_save_start();
-				os_printf("bk_aud_intf_mic_save_start\r\n");
+				LOGI("bk_aud_intf_mic_save_start\r\n");
 			}
 
 			if (0 == os_strcmp(argv[2], "aud_close"))
 			{
 				ret = bk_aud_intf_mic_save_stop();
-				os_printf("bk_aud_intf_mic_save_stop\r\n");
+				LOGI("bk_aud_intf_mic_save_stop\r\n");
 			}
 #endif
         }
 	}
 
+output:
+
 	if (ret == UNKNOW_ERROR)
 	{
 		LOGE("%s unknow cmd\n", __func__);
+	}
+
+	if (ret == kParamErr)
+	{
+		LOGE("%s param error cmd\n", __func__);
 	}
 
 	if (ret != BK_OK)
@@ -563,8 +658,6 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
-
-
 
 #define MEDIA_CMD_CNT   (sizeof(s_media_commands) / sizeof(struct cli_command))
 

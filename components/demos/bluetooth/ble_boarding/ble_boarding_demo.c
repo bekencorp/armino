@@ -54,6 +54,7 @@ enum {
     BOARDING_IDX_SVC,
     BOARDING_IDX_CHAR_DECL,
     BOARDING_IDX_CHAR_VALUE,
+	BOARDING_IDX_CHAR_DESC,
 
 	BOARDING_IDX_CHAR_SSID_DECL,
 	BOARDING_IDX_CHAR_SSID_VALUE,
@@ -75,6 +76,8 @@ ble_attm_desc_t boarding_service_db[BOARDING_IDX_NB] = {
     [BOARDING_IDX_CHAR_DECL]  = {DECL_CHARACTERISTIC_128,  BK_BLE_PERM_SET(RD, ENABLE), 0, 0},
     // Characteristic Value
     [BOARDING_IDX_CHAR_VALUE] = {{0x34, 0x12, 0}, BK_BLE_PERM_SET(NTF, ENABLE), BK_BLE_PERM_SET(RI, ENABLE) | BK_BLE_PERM_SET(UUID_LEN, UUID_16), 128},
+	//Client Characteristic Configuration Descriptor
+	[BOARDING_IDX_CHAR_DESC] = {DESC_CLIENT_CHAR_CFG_128, BK_BLE_PERM_SET(RD, ENABLE) | BK_BLE_PERM_SET(WRITE_REQ, ENABLE), 0, 0},
 
     //ssid
     [BOARDING_IDX_CHAR_SSID_DECL]  = {DECL_CHARACTERISTIC_128, BK_BLE_PERM_SET(RD, ENABLE), 0, 0},
@@ -138,7 +141,15 @@ static void ble_at_notice_cb(ble_notice_t notice, void *param)
                 break;
             case BOARDING_IDX_CHAR_VALUE:
                 break;
-
+			case BOARDING_IDX_CHAR_DESC: {
+				uint8_t con_idx = *(uint8_t *)param;
+				uint8_t value[3] = {0};
+				value[0] = 0x12;
+				value[1] = 0x34;
+				value[2] = 0x56;
+				bk_ble_send_noti_value(con_idx, 3, value, PRF_TASK_ID_BOARDING, BOARDING_IDX_CHAR_VALUE);
+				break;
+			}
             case BOARDING_IDX_CHAR_SSID_DECL:
                 break;
             case BOARDING_IDX_CHAR_SSID_VALUE:
@@ -177,6 +188,9 @@ static void ble_at_notice_cb(ble_notice_t notice, void *param)
                     break;
                 case BOARDING_IDX_CHAR_VALUE:
                     break;
+				case BOARDING_IDX_CHAR_DESC:
+					bk_ble_read_response_value(sizeof(s_boarding_notify)/sizeof(s_boarding_notify[0]), s_boarding_notify, r_req->prf_id, r_req->att_idx);
+					break;
 
                 case BOARDING_IDX_CHAR_SSID_DECL:
                     break;
@@ -200,17 +214,39 @@ static void ble_at_notice_cb(ble_notice_t notice, void *param)
     }
     case BLE_5_REPORT_ADV: {
         ble_recv_adv_t *r_ind = (ble_recv_adv_t *)param;
-        uint8_t adv_type = r_ind->evt_type & 0x03;
+        uint8_t adv_type = r_ind->evt_type & REPORT_INFO_REPORT_TYPE_MASK;
         os_printf("r_ind:actv_idx:%d,", r_ind->actv_idx);
         switch (adv_type)
         {
-            case 0:
+            case REPORT_TYPE_ADV_EXT:
                 os_printf("evt_type:EXT_ADV,");
                 break;
-            case 1:
-                os_printf("evt_type:LEG_ADV,");
+            case REPORT_TYPE_ADV_LEG:
+                {
+                    switch (r_ind->evt_type)
+                    {
+                        case (REPORT_INFO_SCAN_ADV_BIT | REPORT_INFO_CONN_ADV_BIT | REPORT_INFO_COMPLETE_BIT | REPORT_TYPE_ADV_LEG):
+                            os_printf("evt_type:ADV_IND,");
+                            break;
+                        case (REPORT_INFO_DIR_ADV_BIT | REPORT_INFO_CONN_ADV_BIT | REPORT_INFO_COMPLETE_BIT | REPORT_TYPE_ADV_LEG):
+                            os_printf("evt_type:ADV_DIRECT_IND,");
+                            break;
+                        case (REPORT_INFO_SCAN_ADV_BIT | REPORT_INFO_COMPLETE_BIT | REPORT_TYPE_ADV_LEG):
+                            os_printf("evt_type:ADV_SCAN_IND,");
+                            break;
+                        case (REPORT_INFO_COMPLETE_BIT | REPORT_TYPE_ADV_LEG):
+                            os_printf("evt_type:ADV_NONCONN_IND,");
+                            break;
+                        case (REPORT_INFO_COMPLETE_BIT | REPORT_TYPE_SCAN_RSP_LEG):
+                            os_printf("evt_type:SCAN_RSP,");
+                            break;
+                        default:
+                            os_printf("evt_type:ERR_LEG_ADV,");
+                            break;
+                    }
+                }
                 break;
-            case 4:
+            case REPORT_TYPE_PER_ADV:
                 os_printf("evt_type:PER_ADV,");
                 break;
             default:

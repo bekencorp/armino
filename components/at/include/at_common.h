@@ -23,12 +23,13 @@
 #define MAX_VIDEO_AT_CMD_LEN            10
 #define AT_SYNC_CMD_TIMEOUT_MS          4000
 
+extern uint8_t atcmd_updated;
 
-#define AT_CMDRSP_HEAD                   "CMDRSP:"
+#define AT_CMDRSP_HEAD                   (atcmd_updated ? "ATRSP:" : "CMDRSP:")
 #define AT_READY_MSG                     "\r\nready\r\n"
-#define AT_CMD_RSP_SUCCEED               "CMDRSP:OK\r\n"
-#define AT_CMD_RSP_ERROR                 "CMDRSP:ERROR\r\n"
-#define AT_CMDMSG_ERROR_RSP              "CMDRSP:ERROR\r\n"
+#define AT_CMD_RSP_SUCCEED               (atcmd_updated ? "ATRSP:OK\r\n" : "CMDRSP:OK\r\n")
+#define AT_CMD_RSP_ERROR                 (atcmd_updated ? "ATRSP:ERROR\r\n" : "CMDRSP:ERROR\r\n")
+#define AT_CMDMSG_ERROR_RSP              (atcmd_updated ? "ATRSP:ERROR\r\n" : "CMDRSP:ERROR\r\n")
 #define AT_RET_CHAR                      '\r'
 #define AT_END_CHAR                      '\n'
 
@@ -36,6 +37,13 @@
 #define AT_EVT_WLAN_DISCONNECTED         "EVT:WLAN DISCONNECTED\r\n"
 #define AT_EVT_WLAN_CONNECTED            "EVT:WLAN CONNECTED\r\n"
 #define AT_EVT_GOT_IP                    "EVT:GOT-IP\r\n"
+
+#define AT_TAG "AT"
+
+#define AT_LOGI(...) BK_LOGI(AT_TAG, ##__VA_ARGS__)
+#define AT_LOGW(...) BK_LOGW(AT_TAG, ##__VA_ARGS__)
+#define AT_LOGE(...) BK_LOGE(AT_TAG, ##__VA_ARGS__)
+#define AT_LOGD(...) BK_LOGD(AT_TAG, ##__VA_ARGS__)
 
 typedef struct
 {

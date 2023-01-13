@@ -114,6 +114,8 @@
  */
 #define SYS_LIGHTWEIGHT_PROT            1
 
+#define BK_LWIP                     1
+
 /*
    ------------------------------------
    ---------- Memory options ----------
@@ -154,7 +156,7 @@
  * a lot of data that needs to be copied, this should be set high.
  */
 #if (MEM_TRX_DYNAMIC_EN)
-#define MEM_SIZE (40*1024)
+#define MEM_SIZE (50*1024)
 #define MEM_MAX_TX_SIZE (MEM_SIZE*5)/6
 #define MEM_MAX_RX_SIZE (MEM_SIZE*3)/4
 #else
@@ -456,11 +458,11 @@ The STM32F107 allows computing and verifying the IP, UDP, TCP and ICMP checksums
 #if (CONFIG_LWIP_MEM_REDUCE)
 #define TCP_MSS                 (1500 - 40)
 /* TCP receive window. */
-#define TCP_WND                 (16 * TCP_MSS)
+#define TCP_WND                 (20*TCP_MSS)
 /* TCP sender buffer space (bytes). */
-#define TCP_SND_BUF             (16*TCP_MSS)
+#define TCP_SND_BUF             (20*TCP_MSS)
 
-#define TCP_SND_QUEUELEN        (32)
+#define TCP_SND_QUEUELEN        (40)
 #else
 #define TCP_MSS                 (1500 - 40)
 /* TCP receive window. */
@@ -476,13 +478,6 @@ The STM32F107 allows computing and verifying the IP, UDP, TCP and ICMP checksums
 
 #define TCP_MAX_ACCEPT_CONN 5
 #define MEMP_NUM_TCP_SEG               (TCP_SND_QUEUELEN*2)
-
-#define IP_REASS_MAX_PBUFS              0
-#define IP_REASSEMBLY                   0
-#define IP_REASS_MAX_PBUFS              0
-#define IP_REASSEMBLY                   0
-#define MEMP_NUM_REASSDATA              0
-#define IP_FRAG                         0
 
 #define MEM_LIBC_MALLOC                (0)
 

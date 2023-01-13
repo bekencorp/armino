@@ -27,7 +27,7 @@
 
 #define TAG "uvc"
 
-#define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
+#define LOGI(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
@@ -35,66 +35,103 @@
 #ifdef CONFIG_USB_UVC
 
 static bool uvc_state_flag = false;
+static uvc_camera_config_t *uvc_camera_config_st = NULL;
 
-uvc_camera_device_t uvc_camera_device =
+void uvc_device_connect_state_callback(uvc_state_t state)
 {
-	.width = 640,
-	.height = 480,
-	.fps = 25,
-};
+	LOGI("%s, %d\n", __func__, state);
 
-
-void uvc_device_disconnect_callback(void)
-{
-	LOGI("%s\n", __func__);
-
-	if (!uvc_state_flag)
+	if (state == UVC_DISCONNECT_ABNORMAL)
 	{
-		return;
+		if (!uvc_state_flag)
+		{
+			return;
+		}
+
+		uvc_state_flag = false;
+
+		media_msg_t media_msg;
+
+		media_msg.event = EVENT_CAM_UVC_RESET_IND;
+		media_msg.param = state;
+
+		media_send_msg(&media_msg);
+	}
+	else if (state == UVC_CONNECTED)
+	{
+		if (uvc_state_flag)
+			return;
+
+		media_msg_t media_msg;
+
+		media_msg.event = EVENT_CAM_UVC_RESET_IND;
+		media_msg.param = state;
+
+		media_send_msg(&media_msg);
 	}
 
-	uvc_state_flag = false;
-
-	media_msg_t media_msg;
-
-	media_msg.event = EVENT_CAM_UVC_RESET_IND;
-	media_msg.param = 0;
-
-	media_send_msg(&media_msg);
 }
 
-const uvc_camera_config_t uvc_camera_config =
+bk_err_t bk_uvc_camera_open(media_ppi_t ppi, media_camera_type_t type)
 {
-	.device = &uvc_camera_device,
-	.fb_init = frame_buffer_fb_jpeg_init,
-	.fb_deinit = frame_buffer_fb_jpeg_deinit,
-	.fb_complete = frame_buffer_fb_push,
-	.fb_malloc = frame_buffer_fb_jpeg_malloc,
-	.fb_free = frame_buffer_fb_jpeg_free,
-	.uvc_disconnect = uvc_device_disconnect_callback,
-};
+	int ret = BK_FAIL;
 
-
-bk_err_t bk_uvc_camera_open(media_ppi_t ppi)
-{
-	if (ppi != 0)
+	if (uvc_camera_config_st == NULL)
 	{
-		uvc_camera_device.width = ppi >> 16;
-		uvc_camera_device.height = ppi & 0xFFFF;
+		uvc_camera_config_st = (uvc_camera_config_t *)os_malloc(sizeof(uvc_camera_config_t));
+		if (uvc_camera_config_st == NULL)
+		{
+			LOGE("uvc_camera_config_st malloc failed\r\n");
+			ret = kNoMemoryErr;
+			return ret;
+		}
+
+		os_memset(uvc_camera_config_st, 0, sizeof(uvc_camera_config_t));
+
+		if (uvc_camera_config_st->uvc_config == NULL)
+		{
+			uvc_camera_config_st->uvc_config = (uvc_config_t *)os_malloc(sizeof(uvc_config_t));
+			if (uvc_camera_config_st->uvc_config == NULL)
+			{
+				LOGE("uvc_config malloc failed\r\n");
+				os_free(uvc_camera_config_st);
+				uvc_camera_config_st = NULL;
+				ret = kNoMemoryErr;
+				return ret;
+			}
+
+			os_memset(uvc_camera_config_st->uvc_config, 0, sizeof(uvc_config_t));
+		}
 	}
+
+	uvc_camera_config_st->uvc_config->type = type;
+	uvc_camera_config_st->uvc_config->device.fps = 20;
+	uvc_camera_config_st->uvc_config->device.width = ppi >> 16;
+	uvc_camera_config_st->uvc_config->device.height = ppi & 0xFFFF;
+	uvc_camera_config_st->uvc_config->connect_state_change_cb = NULL;
+	uvc_camera_config_st->uvc_config->uvc_packet_rx_cb = NULL;
+
+	uvc_camera_config_st->fb_init = frame_buffer_fb_jpeg_init;
+	uvc_camera_config_st->fb_deinit = frame_buffer_fb_jpeg_deinit;
+	uvc_camera_config_st->fb_complete = frame_buffer_fb_push;
+	uvc_camera_config_st->fb_malloc = frame_buffer_fb_jpeg_malloc;
+	uvc_camera_config_st->fb_free = frame_buffer_fb_jpeg_free;
+	uvc_camera_config_st->uvc_connect_state_change_cb = uvc_device_connect_state_callback;
+
 	uvc_state_flag = true;
 
-	return bk_uvc_camera_driver_init(&uvc_camera_config);
-}
+	ret = bk_uvc_camera_driver_init(uvc_camera_config_st);
+	if (ret == BK_OK)
+	{
+		uvc_state_flag = true;
+	}
+	else
+	{
+		LOGE("%s failed\r\n", __func__);
+		uvc_state_flag = false;
+	}
 
-bk_err_t bk_uvc_camera_start(void)
-{
-	return bk_uvc_camera_driver_start();
-}
-
-bk_err_t bk_uvc_camera_stop(void)
-{
-	return bk_uvc_camera_driver_stop();
+	return ret;
 }
 
 bk_err_t bk_uvc_camera_close(void)
@@ -103,27 +140,22 @@ bk_err_t bk_uvc_camera_close(void)
 	{
 		uvc_state_flag = false;
 		bk_uvc_camera_driver_deinit();
+
+		if (uvc_camera_config_st)
+		{
+			LOGI("%s\r\n", __func__);
+			if (uvc_camera_config_st->uvc_config)
+			{
+				os_free(uvc_camera_config_st->uvc_config);
+				uvc_camera_config_st->uvc_config = NULL;
+			}
+
+			os_free(uvc_camera_config_st);
+			uvc_camera_config_st = NULL;
+		}
 	}
+
 	return 0;
-}
-
-bk_err_t bk_uvc_camera_param_set(param_pak_t *param)
-{
-	uvc_camera_device_t *config = (uvc_camera_device_t *)param->param;
-
-	if (config->fps != 0 && config->width != 0 && config->height != 0)
-	{
-		uvc_camera_device.width = config->width;
-		uvc_camera_device.height = config->height;
-		uvc_camera_device.fps = config->fps;
-	}
-	else
-	{
-		LOGE("%s, param error!\n", __func__);
-		return BK_FAIL;
-	}
-
-	return bk_uvc_camera_set_config(&uvc_camera_device);
 }
 
 #endif

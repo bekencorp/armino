@@ -51,6 +51,10 @@ uint32_t sys_drv_usb_analog_speed_en(bool ctrl, void *arg);
 
 uint32_t sys_drv_usb_analog_ckmcu_en(bool ctrl, void *arg);
 
+uint32_t sys_drv_usb_analog_dp_capability(uint8_t value);
+
+uint32_t sys_drv_usb_analog_dn_capability(uint8_t value);
+
 void sys_drv_usb_charge_ctrl(bool ctrl, void *arg);
 
 void sys_drv_usb_charge_cal(sys_drv_charge_step_t step, void *arg);
@@ -370,6 +374,8 @@ uint32_t sys_drv_touch_calib_enable(uint32_t enable);
 uint32_t sys_drv_touch_manul_mode_calib_value_set(uint32_t value);
 uint32_t sys_drv_touch_manul_mode_enable(uint32_t enable);
 uint32_t sys_drv_touch_scan_mode_chann_set(uint32_t value);
+uint32_t sys_drv_touch_serial_cap_enable(void);
+uint32_t sys_drv_touch_serial_cap_disable(void);
 uint32_t sys_drv_touch_int_enable(uint32_t value);
 
 /**  Touch End **/

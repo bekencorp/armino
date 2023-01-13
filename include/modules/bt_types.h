@@ -70,6 +70,7 @@ typedef enum{
     BT_EVENT_INQUIRY_RESULT,
     BT_EVENT_DISCONNECT,
     BT_EVENT_COMPLETE,
+    BT_EVENT_CONNECTION_COMPLETE,
 }bt_event_t;
 /**
  * @defgroup bk_bt_api_v1_typedef struct

@@ -23,6 +23,7 @@
 #ifdef CONFIG_IPV6
 #include "wlan_ui_pub.h"
 #endif
+#include "wlan_defs_pub.h"
 /* forward declaration */
 FUNC_1PARAM_PTR bk_wlan_get_status_cb(void);
 
@@ -84,6 +85,7 @@ extern int net_configure_address(struct ipv4_config *addr, void *intrfc_handle);
 extern int dhcp_server_start(void *intrfc_handle);
 extern void dhcp_server_stop(void);
 extern void net_configure_dns(struct wlan_ip_config *ip);
+extern bk_err_t bk_wifi_get_ip_status(IPStatusTypedef *outNetpara, WiFi_Interface inInterface);
 
 #ifdef CONFIG_IPV6
 char *ipv6_addr_state_to_desc(unsigned char addr_state)
@@ -466,6 +468,20 @@ void ip_address_set(int iface, int dhcp, char *ip, char *mask, char*gw, char*dns
 		memcpy(&sta_ip_settings, &addr, sizeof(addr));
 	else
 		memcpy(&uap_ip_settings, &addr, sizeof(addr));
+}
+
+void sta_ip_mode_set(int dhcp)
+{
+	if (dhcp == 1) {
+		ip_address_set(1, DHCP_CLIENT, NULL, NULL, NULL, NULL);
+	} else {
+	        IPStatusTypedef ipStatus;
+	        bk_err_t ret = kNoErr;
+		os_memset(&ipStatus, 0x0, sizeof(IPStatusTypedef));
+		ret = bk_wifi_get_ip_status(&ipStatus, BK_STATION);
+		if (ret == kNoErr)
+		    ip_address_set(1, DHCP_DISABLE, ipStatus.ip, ipStatus.mask, ipStatus.gate, ipStatus.dns);
+	}
 }
 
 int net_configure_address(struct ipv4_config *addr, void *intrfc_handle)

@@ -191,7 +191,7 @@ typedef enum {
 
 
 typedef void (*interrupt_handle_p)();
-
+typedef void (*hook_func)(void);
 
 bk_err_t arch_isr_entry_init(void);
 void arch_interrupt_set_priority(arch_int_src_t int_number, uint32_t int_priority);
@@ -202,6 +202,10 @@ unsigned int arch_is_enter_exception(void);
 void mext_interrupt(void);
 bool mtimer_is_timeout();
 uint64_t arch_get_plic_pending_status(void);
+void rtos_regist_wifi_dump_hook(hook_func wifi_func);
+void rtos_regist_ble_dump_hook(hook_func ble_func);
+void rtos_regist_plat_dump_hook(uint32_t reg_base_addr, uint32_t reg_size);
+void rtos_dump_plat_sys_regs(void);
 
 #endif	/* __ARCH_INTERRUPT_H__ */
 

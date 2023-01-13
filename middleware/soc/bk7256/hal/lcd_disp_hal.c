@@ -114,12 +114,12 @@ void lcd_hal_rgb_int_enable(bool         is_sof_en, bool is_eof_en)
 	lcd_disp_ll_set_display_int_rgb_int_en(is_sof_en | (is_eof_en << 1));
 }
 
-void lcd_hal_rgb_eof_int_status_clear(void)
+__attribute__((section(".itcm_sec_code"))) void lcd_hal_rgb_eof_int_status_clear(void)
 {
 	lcd_disp_ll_set_display_int_rgb_eof(1);
 }
 
-void lcd_hal_rgb_sof_int_status_clear(void)
+__attribute__((section(".itcm_sec_code"))) void lcd_hal_rgb_sof_int_status_clear(void)
 {
 	lcd_disp_ll_set_display_int_rgb_sof(1);
 }
@@ -133,7 +133,7 @@ void lcd_hal_8080_int_enable(bool is_sof_en, bool is_eof_en)
 	lcd_disp_ll_set_display_int_i8080_int_en(is_sof_en| (is_eof_en << 1));
 }
 
-void lcd_hal_eof_int_status_clear(void)
+__attribute__((section(".itcm_sec_code"))) void lcd_hal_eof_int_status_clear(void)
 {
 	lcd_disp_ll_set_display_int_i8080_eof(1);
 }

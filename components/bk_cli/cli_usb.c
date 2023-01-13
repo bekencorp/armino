@@ -139,6 +139,12 @@ void usb_ls_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **a
 }
 #endif
 
+#if CONFIG_USB_UVC_DEBUG
+#if (CONFIG_FATFS)
+#include "ff.h"
+#include "diskio.h"
+#endif
+
 void uvc_get_param(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	if (argc < 3) {
@@ -266,10 +272,319 @@ void uvc_set_param(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 
 }
 
+static void uvc_disconnect_uvc_configed(void)
+{
+	CLI_LOGI("fuvc_notify_uvc_disconnect\r\n");
+	return;
+}
+
+static void uvc_notify_uvc_configed(void)
+{
+	CLI_LOGD("uvc_notify_uvc_configed\r\n");
+	return;
+}
+
+static void uvc_fiddle_rx_vs(void)
+{
+	CLI_LOGD("uvc_fiddle_rx_vs\r\n");
+	bk_uvc_receive_video_stream();
+	return;
+}
+
+#if (CONFIG_FATFS)
+static FIL fp1;
+#endif
+static beken_semaphore_t s_uvc_test_fifo_data_to_sdcard_sema = NULL;
+static beken_thread_t s_uvc_test_fifo_data_to_sdcard_handle = NULL;
+static char s_uvc_save_to_sdcard_testname[] = "tduvc.jpg";
+static uint32_t s_save_sdcard_count = 0;
+static uint32_t s_get_packets_count = 0;
+static uint32_t s_get_packet_buff_size_count = 0;
+static uint32_t s_packet_max_count_size = 1024;
+static uint8_t *s_uvc_stream_data_to_sdcard_1;
+static uint8_t *s_uvc_stream_data_to_sdcard_2;
+static bool s_uvc_stream_data_to_sdcard_pp_flag = false;
+static uint8_t *s_uvc_stream_test_buff;
+static bool s_uvc_test_inited_flag = false;
+
+static void uvc_get_packet_rx_vs(uint8_t *arg, uint32_t count)
+{
+	s_get_packets_count++;
+	if((s_get_packets_count%1000) == 0)
+		CLI_LOGI("get_packets_rx_vs: arg: %x count %d s_get_packets_count: %d\r\n", arg, count, s_get_packets_count);
+
+	uint8_t *get_data_to_sram_buff;
+	int dwIndex = 0;
+
+	if(((s_get_packet_buff_size_count + count) > s_packet_max_count_size) && !s_uvc_stream_data_to_sdcard_pp_flag) {
+		s_uvc_stream_data_to_sdcard_pp_flag = true;
+		rtos_set_semaphore(&s_uvc_test_fifo_data_to_sdcard_sema);
+		s_get_packet_buff_size_count = 0;
+	} else if(((s_get_packet_buff_size_count + count) > s_packet_max_count_size) && s_uvc_stream_data_to_sdcard_pp_flag) {
+		s_uvc_stream_data_to_sdcard_pp_flag = false;
+		rtos_set_semaphore(&s_uvc_test_fifo_data_to_sdcard_sema);
+		s_get_packet_buff_size_count = 0;
+	}
+
+	if(s_uvc_stream_data_to_sdcard_pp_flag) {
+		get_data_to_sram_buff = (s_uvc_stream_data_to_sdcard_2 + s_get_packet_buff_size_count);
+		s_get_packet_buff_size_count += count;
+		CLI_LOGD("To SDCARD2 count:%d s_save_sdcard_count %d s_get_packet_buff_size_count: %d\r\n",count, s_save_sdcard_count, s_get_packet_buff_size_count);
+	} else {
+		get_data_to_sram_buff = (s_uvc_stream_data_to_sdcard_1 + s_get_packet_buff_size_count);
+		s_get_packet_buff_size_count += count;
+		CLI_LOGD("To SDCARD1 count:%d s_save_sdcard_count %d s_get_packet_buff_size_count: %d\r\n",count, s_save_sdcard_count, s_get_packet_buff_size_count);
+	}
+
+    for(dwIndex = 0; dwIndex < count; dwIndex++)
+    {
+        get_data_to_sram_buff[dwIndex] = *((volatile uint8_t *)(arg));
+    }
+	return;
+}
+
+static void uvc_sram_data_write_to_sdcard(void)
+{
+#if (CONFIG_FATFS)
+	int ret = kNoErr;
+	unsigned int uiTemp = 0;
+	char file_name[50] = {0};
+	int num = 1;
+	FRESULT fr;
+
+	CLI_LOGI("uvc_sram_data_write_to_sdcard\r\n");
+
+	sprintf(file_name, "%d:/%s", num, s_uvc_save_to_sdcard_testname);
+
+	fr = f_open(&fp1, file_name, FA_OPEN_APPEND | FA_WRITE);
+	if (fr != 0)
+	{
+		CLI_LOGI("f_open fail\r\n");
+		return;
+	}
+
+	while(1)
+	{
+		ret = rtos_get_semaphore(&s_uvc_test_fifo_data_to_sdcard_sema, BEKEN_WAIT_FOREVER);
+		if (kNoErr == ret)
+		{
+			s_save_sdcard_count++;
+			if(s_uvc_stream_data_to_sdcard_pp_flag)
+				fr = f_write(&fp1, (char *)(s_uvc_stream_data_to_sdcard_2), s_get_packet_buff_size_count, &uiTemp);
+			else
+				fr = f_write(&fp1, (char *)(s_uvc_stream_data_to_sdcard_1), s_get_packet_buff_size_count, &uiTemp);
+			if (fr != 0)
+			{
+				CLI_LOGI("f_write failed\n");
+			}
+		}
+	}
+#endif
+}
+
+static void uvc_register_rx_vstream_buffptr_len(void *param, uint32_t len)
+{
+	bk_uvc_register_rx_vstream_buffptr(param);
+	bk_uvc_register_rx_vstream_bufflen(len);
+}
+
+static void uvc_test_init(uint16_t width, uint16_t height, uint16_t fps, uint16_t len)
+{
+	if(!s_uvc_test_inited_flag)
+		s_uvc_test_inited_flag = true;
+	else {
+		CLI_LOGI("uvc_test_init Please Deinit first\r\n");
+		return;
+	}
+
+	void *parameter;
+	s_uvc_stream_data_to_sdcard_1 = os_malloc(sizeof(uint8_t) * s_packet_max_count_size);
+	if(!s_uvc_stream_data_to_sdcard_1) {
+		CLI_LOGI("uvc_test_init s_uvc_stream_data_to_sdcard_1 is null\r\n");
+		return;
+	}
+
+	s_uvc_stream_data_to_sdcard_2 = os_malloc(sizeof(uint8_t) * s_packet_max_count_size);
+	if(!s_uvc_stream_data_to_sdcard_2) {
+		CLI_LOGI("uvc_test_init s_uvc_stream_data_to_sdcard_2 is null\r\n");
+		return;
+	}
+	s_uvc_stream_test_buff = os_malloc(sizeof(uint8_t) * len);
+	if(!s_uvc_stream_test_buff) {
+		CLI_LOGI("uvc_test_init s_uvc_stream_test_buff is null\r\n");
+		return;
+	} else
+		os_memset((void *)s_uvc_stream_test_buff, 0x77, sizeof(uint8_t) * len);//for debug
+
+	parameter = (void *)uvc_disconnect_uvc_configed;
+	bk_uvc_register_disconnect_callback(parameter);
+	parameter = (void *)uvc_notify_uvc_configed;
+	bk_uvc_register_config_callback(parameter);
+
+	parameter = (void *)uvc_fiddle_rx_vs;
+	bk_uvc_register_VSrxed_callback(parameter);
+
+	parameter = (void *)uvc_get_packet_rx_vs;
+	bk_uvc_register_VSrxed_packet_callback(parameter);
+
+	parameter = (void *)s_uvc_stream_test_buff;
+	uvc_register_rx_vstream_buffptr_len(parameter, len);
+
+	bk_uvc_register_link(1);
+	UVC_ResolutionFramerate uvc_param;
+	uvc_param.fps = fps;
+	uvc_param.width = width;
+	uvc_param.height = height;
+	bk_uvc_set_resolution_framerate(&uvc_param);
+
+#if (CONFIG_FATFS)
+	int ret = kNoErr;
+
+	if ((!s_uvc_test_fifo_data_to_sdcard_sema) && (!s_uvc_test_fifo_data_to_sdcard_handle))
+	{
+		ret = rtos_init_semaphore(&s_uvc_test_fifo_data_to_sdcard_sema, 1);
+		if (ret != kNoErr)
+			return;
+
+
+		ret = rtos_create_thread(&s_uvc_test_fifo_data_to_sdcard_handle,
+								 5,
+								 "uvc_fifo_to_SD",
+								 (beken_thread_function_t)uvc_sram_data_write_to_sdcard,
+								 4 * 1024,
+								 (beken_thread_arg_t)0);
+
+	}
+#endif
+
+}
+
+static void uvc_test_printf_buff_data(uint16_t len)
+{
+
+	for(int i = 0;i < len; i++)
+	{
+		os_printf("%x ", s_uvc_stream_test_buff[i]);
+		if((i%16) == 0)
+			os_printf("\r\n");
+	}
+
+}
+
+static void uvc_test_save_buff_data_to_sdcard()
+{
+#if (CONFIG_FATFS)
+	CLI_LOGI("uvc_test delete write to sdcard thread\r\n");
+	if(s_uvc_test_fifo_data_to_sdcard_handle)
+		rtos_delete_thread(&s_uvc_test_fifo_data_to_sdcard_handle);
+	s_uvc_test_fifo_data_to_sdcard_handle = NULL;
+
+	f_close(&fp1);
+
+	if(s_uvc_test_fifo_data_to_sdcard_sema)
+		rtos_deinit_semaphore(&s_uvc_test_fifo_data_to_sdcard_sema);
+	s_uvc_test_fifo_data_to_sdcard_sema = NULL;
+#endif
+}
+
+static void uvc_test_deinit()
+{
+	if(s_uvc_test_inited_flag)
+		s_uvc_test_inited_flag = false;
+	else {
+		CLI_LOGI("uvc_test_deinit please init first\r\n");
+		return;
+	}
+
+	uint32_t param;
+	void *parameter;
+
+	parameter = NULL;
+	bk_uvc_register_disconnect_callback(parameter);
+	parameter = NULL;
+	bk_uvc_register_config_callback(parameter);
+
+	parameter = NULL;
+	bk_uvc_register_VSrxed_callback(parameter);
+
+	parameter = NULL;
+	bk_uvc_register_VSrxed_packet_callback(parameter);
+
+	parameter = NULL;
+	bk_uvc_register_rx_vstream_buffptr(parameter);
+	param = 0;
+	bk_uvc_register_rx_vstream_bufflen(param);
+
+	if(s_uvc_stream_test_buff)
+		os_free(s_uvc_stream_test_buff);
+	if(s_uvc_stream_data_to_sdcard_1)
+		os_free(s_uvc_stream_data_to_sdcard_1);
+	if(s_uvc_stream_data_to_sdcard_2)
+		os_free(s_uvc_stream_data_to_sdcard_2);
+
+	s_get_packets_count = 0;
+	s_save_sdcard_count = 0;
+
+}
+
+void cli_uvc_test_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		cli_usb_help();
+		return;
+	}
+
+	uint16_t width, height, fps, buffer_len;
+
+	if (os_strcmp(argv[1], "init") == 0) {
+		if (argc > 2)
+			width = os_strtoul(argv[2], NULL, 10);
+		else
+			width = 640;
+
+		if (argc > 3)
+			height = os_strtoul(argv[3], NULL, 10);
+		else
+			height = 480;
+
+		if (argc > 4)
+			fps = os_strtoul(argv[4], NULL, 10);
+		else
+			fps = 25;
+
+		if (argc > 5)
+			buffer_len = os_strtoul(argv[5], NULL, 10);
+		else
+			buffer_len = 512;
+
+		if (argc > 6)
+			s_packet_max_count_size = os_strtoul(argv[6], NULL, 10);
+		else
+			s_packet_max_count_size = 1024;
+
+		uvc_test_init(width, height, fps, buffer_len);
+	} else if(os_strcmp(argv[1], "deinit") == 0) {
+		uvc_test_deinit();
+	} else if(os_strcmp(argv[1], "debug_info") == 0) {
+		CLI_LOGI("debug info s_uvc_test_inited_flag: %d\r\n", s_uvc_test_inited_flag);
+		CLI_LOGI("debug info s_save_sdcard_count: %d\r\n", s_save_sdcard_count);
+		CLI_LOGI("debug info s_get_packets_count: %d\r\n", s_get_packets_count);
+	} else {
+		cli_usb_help();
+		return;
+	}
+
+}
+
 void uvc_start_stream(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	if (argc < 2) {
 		cli_usb_help();
+		return;
+	}
+
+	if(!s_uvc_test_inited_flag) {
+		CLI_LOGI("uvc_start_stream Please Init first\r\n");
 		return;
 	}
 
@@ -279,6 +594,16 @@ void uvc_start_stream(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 	} else if(os_strcmp(argv[1], "stop") == 0) {
 		usb_device_set_using_status(0, USB_UVC_DEVICE);
 		bk_uvc_stop();
+	} else if(os_strcmp(argv[1], "enable_h264") == 0) {
+		if(!bk_uvc_enable_H264())
+			CLI_LOGI("H264 Support!\r\n");
+		else
+			CLI_LOGI("H264 Unsupport!\r\n");
+	} else if(os_strcmp(argv[1], "enable_mjpeg") == 0) {
+		if(!bk_uvc_enable_mjpeg())
+			CLI_LOGI("MJPEG Support!\r\n");
+		else
+			CLI_LOGI("MJPEG Unsupport!\r\n");
 	} else {
 		cli_usb_help();
 		return;
@@ -286,34 +611,22 @@ void uvc_start_stream(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 
 }
 
-
-#if CONFIG_USB_UVC
-void cli_fuvc_test_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-	if (argc < 2) {
-		cli_usb_help();
-		return;
-	}
-	uint8_t param;
-	if (os_strcmp(argv[1], "init") == 0) {
-		param = os_strtoul(argv[2], NULL, 10);
-		fuvc_test_init(param);
-	} else {
-		cli_usb_help();
-		return;
-	}
-
-}
-
-void cli_fuvc_printf_test_buff(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+static void cli_uvc_test_buff_ops(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	if (argc < 2) {
 		cli_usb_help();
 		return;
 	}
 
+	uint16_t buffer_len;
 	if (os_strcmp(argv[1], "print") == 0) {
-		printf_test_buff();
+		if (argc > 2)
+			buffer_len = os_strtoul(argv[2], NULL, 10);
+		else
+			buffer_len = 256;
+		uvc_test_printf_buff_data(buffer_len);
+	} else if(os_strcmp(argv[1], "save") == 0){
+		uvc_test_save_buff_data_to_sdcard();
 	} else {
 		cli_usb_help();
 		return;
@@ -362,6 +675,181 @@ void cli_usb_plug_inout(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 }
 #endif
 
+#if CONFIG_USB_UAC_DEBUG
+static void usb_uac_disconnect_callback(void)
+{
+	CLI_LOGI("usb_uac_disconnect_callback\r\n");
+	return;
+}
+
+static void usb_uac_connect_callback(void)
+{
+	CLI_LOGI("usb_uac_connect_callback\r\n");
+	return;
+}
+static void uac_print_descriptor(	s_audio_as_general_descriptor *interfacedesc, s_audio_format_type_descriptor *formatdesc)
+{
+	uint32_t tSamFreq_hz = 0x0;
+
+	CLI_LOGI(" %s GeneralInerfaceDesc->bLength %x\r\n", __func__, interfacedesc->bLength);
+	CLI_LOGI(" %s GeneralInerfaceDesc->bDescriptorType %x\r\n", __func__, interfacedesc->bDescriptorType);
+	CLI_LOGI(" %s GeneralInerfaceDesc->bDescriptorSubtype %x\r\n", __func__,interfacedesc->bDescriptorSubtype);
+	CLI_LOGI(" %s GeneralInerfaceDesc->bTerminalLink %x\r\n", __func__, interfacedesc->bTerminalLink);
+	CLI_LOGI(" %s GeneralInerfaceDesc->bDelay %x\r\n", __func__, interfacedesc->bDelay);
+	CLI_LOGI(" %s GeneralInerfaceDesc->wFormatTag %x\r\n", __func__, interfacedesc->wFormatTag);
+	CLI_LOGI(" %s FormatTypeDesc->bLength %x\r\n", __func__, formatdesc->bLength);
+	CLI_LOGI(" %s FormatTypeDesc->bDescriptorType %x\r\n", __func__, formatdesc->bDescriptorType);
+	CLI_LOGI(" %s FormatTypeDesc->bDescriptorSubtype %x\r\n", __func__,formatdesc->bDescriptorSubtype);
+	CLI_LOGI(" %s FormatTypeDesc->bFormatType %x\r\n", __func__, formatdesc->bFormatType);
+	CLI_LOGI(" %s FormatTypeDesc->bNrChannels %x\r\n", __func__, formatdesc->bNrChannels);
+	CLI_LOGI(" %s FormatTypeDesc->bSubframeSize %x\r\n", __func__, formatdesc->bSubframeSize);
+	CLI_LOGI(" %s FormatTypeDesc->bBitResolution %x\r\n", __func__, formatdesc->bBitResolution);
+	CLI_LOGI(" %s FormatTypeDesc->bSamFreqType %x\r\n", __func__, formatdesc->bSamFreqType);
+
+	if(formatdesc->bSamFreqType > 0) {
+		for(int i = 0, j = 1; i < (formatdesc->bSamFreqType) * 3; i += 3, j++)
+		{
+			tSamFreq_hz |= (uint32_t)formatdesc->tSamFreq[i];
+			tSamFreq_hz |= ((uint32_t)formatdesc->tSamFreq[i+1]) << 8;
+			tSamFreq_hz |= ((uint32_t)formatdesc->tSamFreq[i+2]) << 16;
+			CLI_LOGI(" %s FormatTypeDesc->SamFreq[%d] = 0x%x, %d Hz\r\n", __func__, j, tSamFreq_hz, tSamFreq_hz);
+			tSamFreq_hz = 0x0;
+		}
+	}
+}
+
+#if CONFIG_USB_UAC_MIC
+#define UAC_TEST_BUFFER_SIZE        1024 * 1
+UINT8 uac_test_buff[UAC_TEST_BUFFER_SIZE] = {0};
+static uint16_t count_mic_num = 0;
+static void uac_mic_get_packet_rx_vs(uint8_t *arg, uint32_t count)
+{
+    int dwIndex = 0;
+
+    count_mic_num++;
+	if (count_mic_num == 1000){
+        CLI_LOGI("uac_get_packet_rx_vs : arg: %x count %d\r\n", arg, count);
+        count_mic_num = 0;
+    }
+    for (dwIndex = 0; dwIndex < count; dwIndex += 4)
+    {
+        *((uint32_t *) & (uac_test_buff[dwIndex])) = *((volatile uint32_t *)(arg));
+    }
+
+    return;
+}
+
+void uac_printf_test_buff(void)
+{
+	for(int i = 0;i < UAC_TEST_BUFFER_SIZE; i++)
+	{
+		os_printf("%x ", uac_test_buff[i]);
+		if((i%16) == 0)
+			os_printf("\r\n");
+	}
+}
+
+#endif
+
+#if CONFIG_USB_UAC_SPEAKER
+static const uint32_t uac_speaker_PCM_8000[8] = {
+	0x00010000, 0x5A825A81, 0x7FFF7FFF, 0x5A825A83, 0x00000000, 0xA57FA57E, 0x80018002, 0xA57EA57E,
+};
+
+static uint16_t count_speaker_num = 0;
+static void uac_speaker_fiddle_txed(void)
+{
+	count_speaker_num++;
+
+	if (count_speaker_num == 1000){
+		CLI_LOGI("fuac_speaker_fiddle_txed\r\n");
+		count_speaker_num = 0;
+	}
+
+
+	return;
+}
+#endif
+
+void cli_uac_operation(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		cli_usb_help();
+		return;
+	}
+	void *parameter;
+	uint32_t hz;
+	if(os_strcmp(argv[1], "init") == 0) {
+		parameter = (void *)usb_uac_disconnect_callback;
+		bk_usb_uac_register_disconnect_callback(parameter);
+		parameter = (void *)usb_uac_connect_callback;
+		bk_usb_uac_register_connect_callback(parameter);
+	} else if(os_strcmp(argv[1], "deinit") == 0) {
+		parameter = NULL;
+		bk_usb_uac_register_disconnect_callback(parameter);
+		parameter = NULL;
+		bk_usb_uac_register_connect_callback(parameter);
+	}
+
+	s_audio_as_general_descriptor interfacedesc;
+	s_audio_format_type_descriptor formatdesc;
+	if(os_strcmp(argv[1], "get_mic_desc") == 0){
+		CLI_LOGI("cli_uac_operation get_mic_desc\r\n");
+		bk_usb_uac_get_format_descriptor(USB_UAC_MIC_DEVICE, &interfacedesc, &formatdesc);
+		uac_print_descriptor(&interfacedesc, &formatdesc);
+	} else if(os_strcmp(argv[1], "get_speaker_desc") == 0){
+		CLI_LOGI("cli_uac_operation get_speaker_desc\r\n");
+		bk_usb_uac_get_format_descriptor(USB_UAC_SPEAKER_DEVICE, &interfacedesc, &formatdesc);
+		uac_print_descriptor(&interfacedesc, &formatdesc);
+	}
+
+#if CONFIG_USB_UAC_MIC
+	if(os_strcmp(argv[1], "init_mic") == 0) {
+		parameter = (void *)uac_mic_get_packet_rx_vs;
+		bk_uac_register_micrxed_packet_callback(parameter);
+	} else if(os_strcmp(argv[1], "start_mic") == 0){
+		CLI_LOGI("cli_uac_operation start_mic\r\n");
+		usb_device_set_using_status(1, USB_UAC_MIC_DEVICE);
+		bk_uac_start_mic();
+	} else if(os_strcmp(argv[1], "stop_mic") == 0){
+		CLI_LOGI("cli_uac_operation stop_mic\r\n");
+		usb_device_set_using_status(0, USB_UAC_MIC_DEVICE);
+		bk_uac_stop_mic();
+	} else if(os_strcmp(argv[1], "mic_sethz") == 0){
+		if (argc > 2)
+			hz = os_strtoul(argv[2], NULL, 10);
+		else
+			hz = 32000;
+		CLI_LOGI("cli_uac_operation mic_sethz = %d\r\n", hz);
+		bk_usb_uac_set_hz(USB_UAC_MIC_DEVICE, hz);
+	}
+#endif
+#if CONFIG_USB_UAC_SPEAKER
+	if(os_strcmp(argv[1], "init_speaker") == 0) {
+		parameter = (void *)uac_speaker_fiddle_txed;
+		bk_uac_register_speakerstream_txed_callback(parameter);
+		parameter = (void *)uac_speaker_PCM_8000;
+		bk_uac_register_tx_speakerstream_buffptr(parameter, 32);
+	} else if(os_strcmp(argv[1], "start_speaker") == 0){
+		CLI_LOGI("cli_uac_operation start_speaker\r\n");
+		usb_device_set_using_status(1, USB_UAC_SPEAKER_DEVICE);
+		bk_uac_start_speaker();
+	} else if(os_strcmp(argv[1], "stop_speaker") == 0){
+		CLI_LOGI("cli_uac_operation stop_speaker\r\n");
+		usb_device_set_using_status(0, USB_UAC_SPEAKER_DEVICE);
+		bk_uac_stop_speaker();
+	} else if(os_strcmp(argv[1], "speaker_sethz") == 0){
+		if (argc > 2)
+			hz = os_strtoul(argv[2], NULL, 10);
+		else
+			hz = 32000;
+		CLI_LOGI("cli_uac_operation speaker_sethz = %d\r\n", hz);
+		bk_usb_uac_set_hz(USB_UAC_SPEAKER_DEVICE, hz);
+	}
+#endif
+}
+#endif
+
 void cli_usb_open_close(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	if (argc < 2) {
@@ -382,84 +870,6 @@ void cli_usb_open_close(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 }
 
-#ifdef CONFIG_USB_UAC
-void uac_start_stop(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-	if (argc < 2) {
-		cli_usb_help();
-		return;
-	}
-
-	s_audio_as_general_descriptor interfacedesc;
-	s_audio_format_type_descriptor formatdesc;
-	if(os_strcmp(argv[1], "get_mic_desc") == 0){
-		CLI_LOGI("uac_start_stop get_mic_desc\r\n");
-		bk_usb_uac_get_format_descriptor(USB_UAC_MIC_DEVICE, &interfacedesc, &formatdesc);
-		CLI_LOGI(" %s GeneralInerfaceDesc->bLength %x\r\n", __func__, interfacedesc.bLength);
-		CLI_LOGI(" %s GeneralInerfaceDesc->bDescriptorType %x\r\n", __func__, interfacedesc.bDescriptorType);
-		CLI_LOGI(" %s GeneralInerfaceDesc->bDescriptorSubtype %x\r\n", __func__,interfacedesc.bDescriptorSubtype);
-		CLI_LOGI(" %s GeneralInerfaceDesc->bTerminalLink %x\r\n", __func__, interfacedesc.bTerminalLink);
-		CLI_LOGI(" %s GeneralInerfaceDesc->bDelay %x\r\n", __func__, interfacedesc.bDelay);
-		CLI_LOGI(" %s GeneralInerfaceDesc->wFormatTag %x\r\n", __func__, interfacedesc.wFormatTag);
-		CLI_LOGI(" %s FormatTypeDesc->bLength %x\r\n", __func__, formatdesc.bLength);
-		CLI_LOGI(" %s FormatTypeDesc->bDescriptorType %x\r\n", __func__, formatdesc.bDescriptorType);
-		CLI_LOGI(" %s FormatTypeDesc->bDescriptorSubtype %x\r\n", __func__,formatdesc.bDescriptorSubtype);
-		CLI_LOGI(" %s FormatTypeDesc->bFormatType %x\r\n", __func__, formatdesc.bFormatType);
-		CLI_LOGI(" %s FormatTypeDesc->bNrChannels %x\r\n", __func__, formatdesc.bNrChannels);
-		CLI_LOGI(" %s FormatTypeDesc->bSubframeSize %x\r\n", __func__, formatdesc.bSubframeSize);
-		CLI_LOGI(" %s FormatTypeDesc->bBitResolution %x\r\n", __func__, formatdesc.bBitResolution);
-		CLI_LOGI(" %s FormatTypeDesc->bSamFreqType %x\r\n", __func__, formatdesc.bSamFreqType);
-		CLI_LOGI(" %s FormatTypeDesc->tSamFreq[0] %x\r\n", __func__, formatdesc.tSamFreq[0]);
-		CLI_LOGI(" %s FormatTypeDesc->tSamFreq[1] %x\r\n", __func__, formatdesc.tSamFreq[1]);
-		CLI_LOGI(" %s FormatTypeDesc->tSamFreq[2] %x\r\n", __func__, formatdesc.tSamFreq[2]);
-	} else if(os_strcmp(argv[1], "get_speaker_desc") == 0){
-		CLI_LOGI("uac_start_stop get_speaker_desc\r\n");
-		bk_usb_uac_get_format_descriptor(USB_UAC_MIC_DEVICE, &interfacedesc, &formatdesc);
-		CLI_LOGI(" %s GeneralInerfaceDesc->bLength %x\r\n", __func__, interfacedesc.bLength);
-		CLI_LOGI(" %s GeneralInerfaceDesc->bDescriptorType %x\r\n", __func__, interfacedesc.bDescriptorType);
-		CLI_LOGI(" %s GeneralInerfaceDesc->bDescriptorSubtype %x\r\n", __func__,interfacedesc.bDescriptorSubtype);
-		CLI_LOGI(" %s GeneralInerfaceDesc->bTerminalLink %x\r\n", __func__, interfacedesc.bTerminalLink);
-		CLI_LOGI(" %s GeneralInerfaceDesc->bDelay %x\r\n", __func__, interfacedesc.bDelay);
-		CLI_LOGI(" %s GeneralInerfaceDesc->wFormatTag %x\r\n", __func__, interfacedesc.wFormatTag);
-		CLI_LOGI(" %s FormatTypeDesc->bLength %x\r\n", __func__, formatdesc.bLength);
-		CLI_LOGI(" %s FormatTypeDesc->bDescriptorType %x\r\n", __func__, formatdesc.bDescriptorType);
-		CLI_LOGI(" %s FormatTypeDesc->bDescriptorSubtype %x\r\n", __func__,formatdesc.bDescriptorSubtype);
-		CLI_LOGI(" %s FormatTypeDesc->bFormatType %x\r\n", __func__, formatdesc.bFormatType);
-		CLI_LOGI(" %s FormatTypeDesc->bNrChannels %x\r\n", __func__, formatdesc.bNrChannels);
-		CLI_LOGI(" %s FormatTypeDesc->bSubframeSize %x\r\n", __func__, formatdesc.bSubframeSize);
-		CLI_LOGI(" %s FormatTypeDesc->bBitResolution %x\r\n", __func__, formatdesc.bBitResolution);
-		CLI_LOGI(" %s FormatTypeDesc->bSamFreqType %x\r\n", __func__, formatdesc.bSamFreqType);
-		CLI_LOGI(" %s FormatTypeDesc->tSamFreq[0] %x\r\n", __func__, formatdesc.tSamFreq[0]);
-		CLI_LOGI(" %s FormatTypeDesc->tSamFreq[1] %x\r\n", __func__, formatdesc.tSamFreq[1]);
-		CLI_LOGI(" %s FormatTypeDesc->tSamFreq[2] %x\r\n", __func__, formatdesc.tSamFreq[2]);
-	}
-
-
-#if CONFIG_USB_UAC_MIC
-	if(os_strcmp(argv[1], "start_mic") == 0){
-		CLI_LOGI("uac_start_stop start_mic\r\n");
-		usb_device_set_using_status(1, USB_UAC_MIC_DEVICE);
-		bk_uac_start_mic();
-	} else if(os_strcmp(argv[1], "stop_mic") == 0){
-		CLI_LOGI("uac_start_stop stop_mic\r\n");
-		usb_device_set_using_status(0, USB_UAC_MIC_DEVICE);
-		bk_uac_stop_mic();
-	}
-#endif
-#if CONFIG_USB_UAC_SPEAKER
-	if(os_strcmp(argv[1], "start_speaker") == 0){
-		CLI_LOGI("uac_start_stop start_mic\r\n");
-		usb_device_set_using_status(1, USB_UAC_SPEAKER_DEVICE);
-		bk_uac_start_speaker();
-	} else if(os_strcmp(argv[1], "stop_speaker") == 0){
-		CLI_LOGI("uac_start_stop start_mic\r\n");
-		usb_device_set_using_status(0, USB_UAC_SPEAKER_DEVICE);
-		bk_uac_stop_speaker();
-	}
-#endif
-}
-#endif
-
 const struct cli_command usb_host_clis[] = {
 
 #if CONFIG_USB_MSD
@@ -467,16 +877,16 @@ const struct cli_command usb_host_clis[] = {
 	{"usb_unmount", "usb unmount", usb_unmount_command},
 	{"usb_ls", "usb list system", usb_ls_command},
 #endif
-#ifdef CONFIG_USB_UVC
-	{"fuvc_test", "cli_fuvc_test_init", cli_fuvc_test_init},
-	{"fuvc_printf_buff", "fuvc_printf_buff", cli_fuvc_printf_test_buff},
+#ifdef CONFIG_USB_UVC_DEBUG
+	{"uvc", "uvc [init|deinit|debug_info]", cli_uvc_test_init},
+	{"uvc_data", "uvc_data [print|save]", cli_uvc_test_buff_ops},
 	{"uvc_ctrl_get", "uvc ctrl get attribute information", uvc_get_param},
 	{"uvc_ctrl_set", "uvc ctrl set attribute param", uvc_set_param},
 	{"uvc_stream", "uvc ctrl set attribute param", uvc_start_stream},
 #endif
 
-#if CONFIG_USB_UAC
-	{"uac", "uac start_mic|stop_mic|start_speaker|stop_speaker", uac_start_stop},
+#if CONFIG_USB_UAC_DEBUG
+	{"uac", "uac init|deinit|init_mic|init_speaker|start_mic|stop_mic|start_speaker|stop_speaker", cli_uac_operation},
 #endif
 
 #if CONFIG_USB_PLUG_IN_OUT

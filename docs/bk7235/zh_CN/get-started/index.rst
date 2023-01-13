@@ -96,12 +96,12 @@ BK7256工具链下载路径如下：
 程序编译依赖库安装
 ------------------------------------
 
-在终端输入下述命令安装 python3，CMake，Ninja 以及依赖库::
+在终端输入下述命令安装 python3，CMake，Ninja， Crypto以及依赖库::
 
     sudo dpkg --add-architecture i386
     sudo apt-get update
     sudo apt-get install build-essential cmake python3 python3-pip doxygen ninja-build libc6:i386 libstdc++6:i386 libncurses5-dev lib32z1 -y
-
+    sudo pip3 install pycrypto
 
 文档编译依赖库安装
 ------------------------------------

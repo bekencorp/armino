@@ -99,12 +99,12 @@ After downloading the tool kit, decompress it to '/opt/risc-v' through the follo
 Program compilation depends on library installation
 -----------------------------------------------------------------
 
-Enter the following command in the terminal to install python\CMake\Ninja::
+Enter the following command in the terminal to install python\CMake\Ninja\crypto::
 
     sudo dpkg --add-architecture i386
     sudo apt-get update
     sudo apt-get install build-essential cmake python3 python3-pip doxygen ninja-build libc6:i386 libstdc++6:i386 libncurses5-dev lib32z1 -y
-
+    sudo pip3 install pycrypto
 
 Document Compilation Dependent Library Installation
 ------------------------------------------------------------------------------

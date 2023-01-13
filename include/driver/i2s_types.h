@@ -69,11 +69,6 @@ typedef enum {
 	I2S_ISR_CHL3_TXINT, /**< I2S channel3 tx interrupt */
 	I2S_ISR_CHL3_RXINT, /**< I2S channel3 rx interrupt */
 
-	I2S_ISR_CHL4_TXUDF, /**< I2S channel4 tx_udf interrupt */
-	I2S_ISR_CHL4_RXOVF, /**< I2S channel4 rx_ovf interrupt */
-	I2S_ISR_CHL4_TXINT, /**< I2S channel4 tx interrupt */
-	I2S_ISR_CHL4_RXINT, /**< I2S channel4 rx interrupt */
-
 	I2S_ISR_MAX
 } i2s_isr_id_t;
 
@@ -157,7 +152,6 @@ typedef enum {
 	I2S_CHANNEL_1 = 0, /**< I2S channel: 1 */
 	I2S_CHANNEL_2,     /**< I2S channel: 2 */
 	I2S_CHANNEL_3,     /**< I2S channel: 3 */
-	I2S_CHANNEL_4,     /**< I2S channel: 4 */
 	I2S_CHANNEL_MAX,
 } i2s_channel_id_t;
 
@@ -184,6 +178,11 @@ typedef enum {
 	I2S_SAMP_RATE_MAX
 } i2s_samp_rate_t;
 
+typedef enum {
+	I2S_TXRX_TYPE_TX = 0,
+	I2S_TXRX_TYPE_RX,
+	I2S_TXRX_TYPE_MAX
+} i2s_txrx_type_t;
 
 /**
  * @}
@@ -195,18 +194,15 @@ typedef enum {
  * @ingroup bk_api_i2s
  * @{
  */
-typedef struct {
-	i2s_role_t role;
-} i2s_driver_t;
-
 
 typedef struct {
 	icu_int_src_t int_src;
 	int_group_isr_t isr;
 } i2s_int_config_t;
 
+typedef int (*i2s_data_handle_cb)(uint32_t size);
+
 typedef struct {
-	i2s_en_t i2s_en;
 	i2s_role_t role;
 	i2s_work_mode_t work_mode;
 	i2s_lrck_invert_en_t lrck_invert;
@@ -215,44 +211,66 @@ typedef struct {
 	uint32_t sync_length;
 	uint32_t data_length;
 	uint32_t pcm_dlength;
-	uint32_t sample_ratio;
-	uint32_t sck_ratio;
-	i2s_parallel_en_t parallel_en;
 	i2s_lrcom_store_mode_t store_mode;
-	uint32_t sck_ratio_h4b;
-	uint32_t sample_ratio_h2b;
-	i2s_txint_level_t txint_level;
-	i2s_rxint_level_t rxint_level;
+	i2s_samp_rate_t samp_rate;
+	uint8_t pcm_chl_num;					//the channel number need to transfer in pcm mode
 } i2s_config_t;
 
-typedef struct {
-	i2s_channel_id_t channel_id;
-	i2s_int_en_t tx_udf_en;
-	i2s_int_en_t rx_ovf_en;
-	i2s_int_en_t tx_int_en;
-	i2s_int_en_t rx_int_en;
-} i2s_int_en_config_t;
+#define DEFAULT_I2S_CONFIG() {                         \
+        .role = I2S_ROLE_MASTER,                       \
+        .work_mode = I2S_WORK_MODE_I2S,                \
+        .lrck_invert = I2S_LRCK_INVERT_DISABLE,        \
+        .sck_invert = I2S_SCK_INVERT_DISABLE,          \
+        .lsb_first_en = I2S_LSB_FIRST_DISABLE,         \
+        .sync_length = 0,                              \
+        .data_length = 16,                             \
+        .pcm_dlength = 0,                              \
+        .store_mode = I2S_LRCOM_STORE_LRLR,            \
+        .samp_rate = I2S_SAMP_RATE_8000,               \
+        .pcm_chl_num = 2,                              \
+    }
 
-typedef struct {
-	i2s_channel_id_t channel_id;
-	bool tx_udf;
-	bool rx_ovf;
-	bool tx_int;
-	bool rx_int;
-} i2s_int_status_t;
+#define DEFAULT_PCM_CONFIG() {                         \
+        .role = I2S_ROLE_MASTER,                       \
+        .work_mode = I2S_WORK_MODE_SHORTFAMSYNC,        \
+        .lrck_invert = I2S_LRCK_INVERT_DISABLE,        \
+        .sck_invert = I2S_SCK_INVERT_DISABLE,          \
+        .lsb_first_en = I2S_LSB_FIRST_DISABLE,         \
+        .sync_length = 1,                              \
+        .data_length = 16,                             \
+        .pcm_dlength = 0,                              \
+        .store_mode = I2S_LRCOM_STORE_LRLR,            \
+        .samp_rate = I2S_SAMP_RATE_8000,               \
+        .pcm_chl_num = 1,                              \
+    }
 
-typedef struct {
-	i2s_data_width_t datawidth;
-	i2s_samp_rate_t samp_rate;
-} i2s_rate_t;
+#define DEFAULT_TDM_CONFIG() {                         \
+        .role = I2S_ROLE_MASTER,                       \
+        .work_mode = I2S_WORK_MODE_SHORTFAMSYNC,        \
+        .lrck_invert = I2S_LRCK_INVERT_DISABLE,        \
+        .sck_invert = I2S_SCK_INVERT_DISABLE,          \
+        .lsb_first_en = I2S_LSB_FIRST_DISABLE,         \
+        .sync_length = 1,                              \
+        .data_length = 32,                             \
+        .pcm_dlength = 0,                              \
+        .store_mode = I2S_LRCOM_STORE_LRLR,            \
+        .samp_rate = I2S_SAMP_RATE_32000,               \
+        .pcm_chl_num = 3,                              \
+    }
 
-typedef struct {
-	i2s_samp_rate_t samp_rate;
-	i2s_data_width_t datawidth;
-	uint32_t sys_clk;
-	uint32_t smp_ratio;
-	uint32_t bit_ratio;
-} i2s_rate_table_node_t;
+#define DEFAULT_2BD_CONFIG() {                         \
+        .role = I2S_ROLE_MASTER,                       \
+        .work_mode = I2S_WORK_MODE_NORMAL2BD,           \
+        .lrck_invert = I2S_LRCK_INVERT_DISABLE,        \
+        .sck_invert = I2S_SCK_INVERT_DISABLE,          \
+        .lsb_first_en = I2S_LSB_FIRST_DISABLE,         \
+        .sync_length = 0,                              \
+        .data_length = 16,                             \
+        .pcm_dlength = 0,                              \
+        .store_mode = I2S_LRCOM_STORE_LRLR,            \
+        .samp_rate = I2S_SAMP_RATE_8000,               \
+        .pcm_chl_num = 1,                              \
+    }
 
 /**
  * @}

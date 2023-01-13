@@ -975,7 +975,58 @@ bk_err_t gpio_exit_low_power(void *param)
 
 	return BK_OK;
 }
+static gpio_ctrl_ldo_t s_gpio_ctrl_ldo_output[] = GPIO_CTRL_LDO_MAP;
+bk_err_t bk_gpio_ctrl_external_ldo(gpio_ctrl_ldo_module_e module,gpio_id_t gpio_id,gpio_output_state_e value)
+{
+	uint32_t i = 0;
 
+	if(value == GPIO_OUTPUT_STATE_HIGH)//output higt
+	{
+		for(i = 0; i < sizeof(s_gpio_ctrl_ldo_output)/sizeof(gpio_ctrl_ldo_t); i++)
+		{
+			if(s_gpio_ctrl_ldo_output[i].gpio_id >= 0 && s_gpio_ctrl_ldo_output[i].gpio_id < GPIO_NUM_MAX)
+			{
+				if(gpio_id == s_gpio_ctrl_ldo_output[i].gpio_id)
+				{
+					s_gpio_ctrl_ldo_output[i].ldo_state |= (0x1 << module);
+
+					gpio_dev_unmap(s_gpio_ctrl_ldo_output[i].gpio_id);
+					BK_LOG_ON_ERR(bk_gpio_set_capacity(s_gpio_ctrl_ldo_output[i].gpio_id, 0));
+					BK_LOG_ON_ERR(bk_gpio_disable_input(s_gpio_ctrl_ldo_output[i].gpio_id));
+					BK_LOG_ON_ERR(bk_gpio_enable_output(s_gpio_ctrl_ldo_output[i].gpio_id));
+					BK_LOG_ON_ERR(bk_gpio_set_output_high(s_gpio_ctrl_ldo_output[i].gpio_id));
+				}
+			}
+		}
+	}
+	else if(value == GPIO_OUTPUT_STATE_LOW)//output low
+	{
+		for(i = 0; i < sizeof(s_gpio_ctrl_ldo_output)/sizeof(gpio_ctrl_ldo_t); i++)
+		{
+			if(s_gpio_ctrl_ldo_output[i].gpio_id >= 0 && s_gpio_ctrl_ldo_output[i].gpio_id < GPIO_NUM_MAX)
+			{
+				if(gpio_id == s_gpio_ctrl_ldo_output[i].gpio_id)
+				{
+					s_gpio_ctrl_ldo_output[i].ldo_state &= ~(0x1 << module);
+
+					if(s_gpio_ctrl_ldo_output[i].ldo_state == 0x0)
+					{
+						gpio_dev_unmap(s_gpio_ctrl_ldo_output[i].gpio_id);
+						BK_LOG_ON_ERR(bk_gpio_set_capacity(s_gpio_ctrl_ldo_output[i].gpio_id, 0));
+						BK_LOG_ON_ERR(bk_gpio_disable_input(s_gpio_ctrl_ldo_output[i].gpio_id));
+						BK_LOG_ON_ERR(bk_gpio_enable_output(s_gpio_ctrl_ldo_output[i].gpio_id));
+						BK_LOG_ON_ERR(bk_gpio_set_output_low(s_gpio_ctrl_ldo_output[i].gpio_id));
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+	}
+
+	return BK_OK;
+}
 #else
 bk_err_t bk_gpio_reg_save(uint32_t*  gpio_cfg)
 {

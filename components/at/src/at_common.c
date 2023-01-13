@@ -2,6 +2,8 @@
 #if CONFIG_BT
 #include "bt_include.h"
 #endif
+
+uint8_t atcmd_updated = 0;
 //#if (CONFIG_BLE_5_X || CONFIG_BTDM_5_2)
 const at_command_t *lookup_ble_at_command(char *str1)
 {

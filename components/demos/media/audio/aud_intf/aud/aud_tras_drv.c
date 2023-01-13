@@ -771,17 +771,6 @@ static bk_err_t aud_tras_dec(void)
 	if (aud_tras_drv_info.voc_info.status == AUD_TRAS_DRV_VOC_STA_NULL)
 		return BK_OK;
 
-	if ((aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_UAC) && (ring_buffer_get_fill_size(&aud_tras_drv_info.voc_info.speaker_rb) >= aud_tras_drv_info.voc_info.uac_spk_buff_size)) {
-		/* get G711A data from decoder_ring_buff */
-		size = ring_buffer_read(&aud_tras_drv_info.voc_info.speaker_rb, aud_tras_drv_info.voc_info.uac_spk_buff, aud_tras_drv_info.voc_info.uac_spk_buff_size);
-		if (size != aud_tras_drv_info.voc_info.uac_spk_buff_size) {
-			LOGE("read speaker_rb uac spk data fail \r\n");
-			os_memset(aud_tras_drv_info.voc_info.uac_spk_buff, 0x00, aud_tras_drv_info.voc_info.uac_spk_buff_size);
-		}
-	} else {
-		os_memset(aud_tras_drv_info.voc_info.uac_spk_buff, 0x00, aud_tras_drv_info.voc_info.uac_spk_buff_size);
-	}
-
 	switch (aud_tras_drv_info.voc_info.data_type) {
 		case AUD_INTF_VOC_DATA_TYPE_G711A:
 			/* check the frame number in decoder_ring_buffer */
@@ -1171,8 +1160,35 @@ static bk_err_t aud_tras_drv_spk_init(aud_intf_spk_config_t *spk_cfg)
 		/* close spk */
 		aud_tras_drv_info.spk_info.spk_en = false;
 
-		//TODO
-		aud_tras_drv_info.spk_info.uac_spk_buff_size = 32;
+		switch (spk_cfg->samp_rate) {
+			case AUD_DAC_SAMP_RATE_8K:
+				aud_tras_drv_info.spk_info.uac_spk_buff_size = 16;
+				break;
+
+			case AUD_DAC_SAMP_RATE_12K:
+				aud_tras_drv_info.spk_info.uac_spk_buff_size = 24;
+				break;
+
+			case AUD_DAC_SAMP_RATE_16K:
+				aud_tras_drv_info.spk_info.uac_spk_buff_size = 32;
+				break;
+
+			case AUD_DAC_SAMP_RATE_24K:
+				aud_tras_drv_info.spk_info.uac_spk_buff_size = 48;
+				break;
+
+			case AUD_DAC_SAMP_RATE_32K:
+				aud_tras_drv_info.spk_info.uac_spk_buff_size = 64;
+				break;
+
+			case AUD_DAC_SAMP_RATE_48K:
+				aud_tras_drv_info.spk_info.uac_spk_buff_size = 96;
+				break;
+
+			default:
+				aud_tras_drv_info.spk_info.uac_spk_buff_size = 32;
+				break;
+		}
 		aud_tras_drv_info.spk_info.uac_spk_buff = (uint8_t *)os_malloc(aud_tras_drv_info.spk_info.uac_spk_buff_size);
 
 		bk_aud_uac_register_spk_buff_ptr(aud_tras_drv_info.spk_info.uac_spk_buff, aud_tras_drv_info.spk_info.uac_spk_buff_size);
@@ -1186,8 +1202,41 @@ static bk_err_t aud_tras_drv_spk_init(aud_intf_spk_config_t *spk_cfg)
 			err = BK_ERR_AUD_INTF_UAC_DRV;
 			goto aud_tras_drv_spk_init_exit;
 		}
-		//TODO
-		rtos_delay_milliseconds(4500);
+
+		switch (spk_cfg->samp_rate) {
+			case AUD_DAC_SAMP_RATE_8K:
+				ret = bk_aud_uac_set_spk_samp_rate(8000);
+				break;
+
+			case AUD_DAC_SAMP_RATE_12K:
+				ret = bk_aud_uac_set_spk_samp_rate(12000);
+				break;
+
+			case AUD_DAC_SAMP_RATE_16K:
+				ret = bk_aud_uac_set_spk_samp_rate(16000);
+				break;
+
+			case AUD_DAC_SAMP_RATE_24K:
+				ret = bk_aud_uac_set_spk_samp_rate(24000);
+				break;
+
+			case AUD_DAC_SAMP_RATE_32K:
+				ret = bk_aud_uac_set_spk_samp_rate(32000);
+				break;
+
+			case AUD_DAC_SAMP_RATE_48K:
+				ret = bk_aud_uac_set_spk_samp_rate(48000);
+				break;
+
+			default:
+				ret = bk_aud_uac_set_spk_samp_rate(16000);
+				break;
+		}
+		if (ret != BK_OK) {
+			LOGE("init uac spk samp rate fail \r\n");
+			err = BK_ERR_AUD_INTF_PARAM;
+			goto aud_tras_drv_spk_init_exit;
+		}
 
 		LOGI("step2: init spk ring buff:%p, size:%d complete \r\n", aud_tras_drv_info.spk_info.spk_ring_buff, aud_tras_drv_info.spk_info.frame_size*2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL);
 	} else {
@@ -1619,8 +1668,48 @@ static bk_err_t aud_tras_drv_mic_init(aud_intf_mic_config_t *mic_cfg)
 			err = BK_ERR_AUD_INTF_UAC_DRV;
 			goto aud_tras_drv_mic_init_exit;
 		}
-		//TODO
-		rtos_delay_milliseconds(4500);
+
+		switch (mic_cfg->samp_rate) {
+			case AUD_ADC_SAMP_RATE_8K:
+				ret = bk_aud_uac_set_mic_samp_rate(8000);
+				break;
+
+			case AUD_ADC_SAMP_RATE_16K:
+				ret = bk_aud_uac_set_mic_samp_rate(16000);
+				break;
+
+			case AUD_ADC_SAMP_RATE_44_1K:
+				ret = bk_aud_uac_set_mic_samp_rate(44100);
+				break;
+
+			case AUD_ADC_SAMP_RATE_48K:
+				ret = bk_aud_uac_set_mic_samp_rate(48000);
+				break;
+
+			case AUD_ADC_SAMP_RATE_11_025K:
+				ret = bk_aud_uac_set_mic_samp_rate(11025);
+				break;
+
+			case AUD_ADC_SAMP_RATE_22_05K:
+				ret = bk_aud_uac_set_mic_samp_rate(22050);
+				break;
+
+			case AUD_ADC_SAMP_RATE_24K:
+				ret = bk_aud_uac_set_mic_samp_rate(24000);
+				break;
+
+			case AUD_ADC_SAMP_RATE_32K:
+				ret = bk_aud_uac_set_mic_samp_rate(32000);
+				break;
+
+			default:
+				ret = bk_aud_uac_set_mic_samp_rate(16000);
+				break;
+		}
+		if (ret != BK_OK) {
+			err = BK_ERR_AUD_INTF_UAC_MIC;
+			goto aud_tras_drv_mic_init_exit;
+		}
 
 		LOGI("step2: init mic ring buff:%p, size:%d complete \r\n", aud_tras_drv_info.mic_info.mic_ring_buff, aud_tras_drv_info.voc_info.mic_samp_rate_points*2 + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL);
 	} else {
@@ -2038,6 +2127,21 @@ static void aud_tras_drv_voc_uac_mic_cb(uint8_t *buff, uint32_t count)
 static void aud_tras_drv_voc_uac_spk_cb(void)
 {
 	bk_err_t ret = BK_OK;
+	uint32_t size = 0;
+
+	if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_UAC) {
+		/* get G711A data from decoder_ring_buff */
+		if (ring_buffer_get_fill_size(&aud_tras_drv_info.voc_info.speaker_rb) >= aud_tras_drv_info.voc_info.uac_spk_buff_size) {
+			size = ring_buffer_read(&aud_tras_drv_info.voc_info.speaker_rb, aud_tras_drv_info.voc_info.uac_spk_buff, aud_tras_drv_info.voc_info.uac_spk_buff_size);
+			if (size != aud_tras_drv_info.voc_info.uac_spk_buff_size) {
+				LOGE("read speaker_rb uac spk data fail \r\n");
+				os_memset(aud_tras_drv_info.voc_info.uac_spk_buff, 0x00, aud_tras_drv_info.voc_info.uac_spk_buff_size);
+			}
+		} else {
+			LOGW("write 0x00 uac spk data fail \r\n");
+			os_memset(aud_tras_drv_info.voc_info.uac_spk_buff, 0x00, aud_tras_drv_info.voc_info.uac_spk_buff_size);
+		}
+	}
 
 	/* send msg to decoder to decoding recevied data */
 	ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_DECODER, NULL);
@@ -2329,8 +2433,20 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 	} else if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_UAC) {
 		aud_tras_drv_info.voc_info.spk_en = false;
 		/* get uac info, and set uac_spk_buff_size */
-		//TODO
-		aud_tras_drv_info.voc_info.uac_spk_buff_size = 32;
+		switch (voc_cfg->samp_rate) {
+			case AUD_INTF_VOC_SAMP_RATE_8K:
+				aud_tras_drv_info.voc_info.uac_spk_buff_size = 16;
+				break;
+
+			case AUD_INTF_VOC_SAMP_RATE_16K:
+				aud_tras_drv_info.voc_info.uac_spk_buff_size = 32;
+				break;
+
+			default:
+				aud_tras_drv_info.voc_info.uac_spk_buff_size = 32;
+				break;
+		}
+		//aud_tras_drv_info.voc_info.uac_spk_buff_size = 32;
 		aud_tras_drv_info.voc_info.uac_spk_buff = (uint8_t *)os_malloc(aud_tras_drv_info.voc_info.uac_spk_buff_size);
 
 		bk_aud_uac_register_spk_buff_ptr(aud_tras_drv_info.voc_info.uac_spk_buff, aud_tras_drv_info.voc_info.uac_spk_buff_size);
@@ -2493,6 +2609,19 @@ static bk_err_t aud_tras_drv_voc_start(void)
 				goto audio_start_transfer_exit;
 			}
 
+			if (aud_tras_drv_info.voc_info.mic_samp_rate_points == 160) {
+				/* 8K sample rate */
+				ret = bk_aud_uac_set_mic_samp_rate(8000);
+			} else {
+				/* 16K sample rate */
+				ret = bk_aud_uac_set_mic_samp_rate(16000);
+			}
+			if (ret != BK_OK) {
+				LOGE("set uac mic samp rate fail \r\n");
+				err = BK_ERR_AUD_INTF_UAC_MIC;
+				goto audio_start_transfer_exit;
+			}
+
 			LOGI("start uac mic \r\n");
 			ret = bk_aud_uac_start_mic();
 			if (ret != BK_OK) {
@@ -2542,6 +2671,19 @@ static bk_err_t aud_tras_drv_voc_start(void)
 			}
 			//delay_ms(2000);
 #endif
+
+			if (aud_tras_drv_info.voc_info.uac_spk_buff_size == 16) {
+				/* 8K sample rate */
+				ret = bk_aud_uac_set_spk_samp_rate(8000);
+			} else {
+				/* 16K sample rate */
+				ret = bk_aud_uac_set_spk_samp_rate(16000);
+			}
+			if (ret != BK_OK) {
+				LOGE("set uac spk samp rate fail \r\n");
+				err = BK_ERR_AUD_INTF_UAC_SPK;
+				goto audio_start_transfer_exit;
+			}
 
 			//bk_aud_uac_register_spk_buff_ptr(aud_tras_drv_info.voc_info.uac_spk_buff, aud_tras_drv_info.voc_info.uac_spk_buff_size);
 			//rtos_delay_milliseconds(1000);

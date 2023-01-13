@@ -5,8 +5,9 @@ Samples and Demos
 
 .. toctree::
    :maxdepth: 1
-   
+
    video <video/index>
    audio <audio/index>
    bluetooth <bluetooth/index>
    doorbell <doorbell/index>
+   Command Line <cli/index>

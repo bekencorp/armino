@@ -217,6 +217,11 @@ extern "C" {
 	/* GPIO_4, */\
 	/* GPIO_26, */\
 }
+/*---multi modules use one gpio to control different ldo---*/
+#define GPIO_CTRL_LDO_MAP  \
+{\
+	{GPIO_8,  GPIO_OUTPUT_STATE_LOW} \
+}
 #ifdef __cplusplus
 }
 #endif

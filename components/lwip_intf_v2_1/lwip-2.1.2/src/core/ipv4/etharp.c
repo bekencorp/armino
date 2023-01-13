@@ -57,6 +57,7 @@
 
 #include <string.h>
 #include "net.h"
+#include "bk_feature.h"
 
 #ifdef LWIP_HOOK_FILENAME
 #include LWIP_HOOK_FILENAME
@@ -104,9 +105,7 @@ struct etharp_entry {
 };
 
 static struct etharp_entry arp_table[ARP_TABLE_SIZE];
-#if CONFIG_LWIP_FAST_DHCP
 static beken2_timer_t arp_conflict_tmr = {0};
-#endif
 
 #if !LWIP_NETIF_HWADDRHINT
 static netif_addr_idx_t etharp_cached_entry;
@@ -223,21 +222,22 @@ etharp_tmr(void)
         /* pending or stable entry has become old! */
         LWIP_DEBUGF(ETHARP_DEBUG, ("etharp_timer 1hour: expired %s entry %d.\n",
                                    arp_table[i].state >= ETHARP_STATE_STABLE ? "stable" : "pending", i));
+	 if (bk_feature_fast_dhcp_enable() && (arp_table[i].state == ETHARP_STATE_PENDING) &&
+           (arp_table[i].ctime >= ARP_MAXPENDING)) {
+			if (rtos_is_oneshot_timer_init(&arp_conflict_tmr) == 0) {
+				int clk_time = 1000;
+				rtos_init_oneshot_timer(&arp_conflict_tmr,
+					clk_time,
+					(timer_2handler_t)net_restart_dhcp,
+					NULL,
+					NULL);
+			}
+			if (rtos_is_oneshot_timer_running(&arp_conflict_tmr) == 0) {
+				rtos_start_oneshot_timer(&arp_conflict_tmr);
+			}
+		}
         /* clean up entries that have just been expired */
         etharp_free_entry(i);
-#if CONFIG_LWIP_FAST_DHCP
-	 if (rtos_is_oneshot_timer_init(&arp_conflict_tmr) == 0) {
-		 int clk_time = 1000;
-		 rtos_init_oneshot_timer(&arp_conflict_tmr,
-					 clk_time,
-					 (timer_2handler_t)net_restart_dhcp,
-					 NULL,
-					 NULL);
-	 }
-	 if (rtos_is_oneshot_timer_running(&arp_conflict_tmr) == 0) {
-	     rtos_start_oneshot_timer(&arp_conflict_tmr);
-	 }
-#endif
       }else if (arp_table[i].state == ETHARP_STATE_STABLE_REREQUESTING_1) {
         /* Don't send more than one request every 2 seconds. */
         arp_table[i].state = ETHARP_STATE_STABLE_REREQUESTING_2;
@@ -802,21 +802,21 @@ etharp_input(struct pbuf *p, struct netif *netif)
 #endif /* (LWIP_DHCP && DHCP_DOES_ARP_CHECK) */
 
 	 if (ip4_addr_cmp(&sipaddr, netif_ip4_addr(netif))) {
-		 bk_printf("ip conflict!!!\r\n");	 //check for conflict
-#if CONFIG_LWIP_FAST_DHCP
-		 if (rtos_is_oneshot_timer_init(&arp_conflict_tmr) == 0) {
-			 int clk_time = 1000;
-			 rtos_init_oneshot_timer(&arp_conflict_tmr,
+		bk_printf("ip conflict!!!\r\n");	 //check for conflict
+		if (bk_feature_fast_dhcp_enable()) {
+			if (rtos_is_oneshot_timer_init(&arp_conflict_tmr) == 0) {
+				int clk_time = 1000;
+				rtos_init_oneshot_timer(&arp_conflict_tmr,
 						 clk_time,
 						 (timer_2handler_t)net_restart_dhcp,
 						 NULL,
 						 NULL);
-		 }
-		 if (rtos_is_oneshot_timer_running(&arp_conflict_tmr) == 0) {
-		     rtos_start_oneshot_timer(&arp_conflict_tmr);
-		 }
-#endif
-	 }
+			}
+			if (rtos_is_oneshot_timer_running(&arp_conflict_tmr) == 0) {
+				rtos_start_oneshot_timer(&arp_conflict_tmr);
+			}
+		}
+	}
 
       break;
     default:

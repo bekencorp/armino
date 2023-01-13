@@ -48,17 +48,30 @@ menu "USB"
 		bool "Enable USB UVC"
 		default n
 
+	config USB_UVC_DEBUG
+		bool "Enable USB UVC_DEBUG"
+		default n
+
 	config USB_UAC
 		bool "Enable USB UAC"
 		default n
 
-	config USB_UAC_MIC
-		bool "Enable USB UAC Mic"
-		default n
+	menu "USB_UAC"
+		depends on USB_UAC
 
-	config USB_UAC_SPEAKER
-		bool "Enable USB UAC Speaker"
-		default n
+		config USB_UAC_DEBUG
+			bool "Enable USB UAC_DEBUG"
+			default n
+
+		config USB_UAC_MIC
+			bool "Enable USB UAC Mic"
+			default n
+
+		config USB_UAC_SPEAKER
+			bool "Enable USB UAC Speaker"
+			default n
+
+	endmenu
 
 	config USB_CHARGE
 		bool "Enable USB Charge"

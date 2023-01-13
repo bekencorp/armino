@@ -44,11 +44,11 @@ static void cli_dvp_camera_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 #if (CONFIG_MEDIA)
 		frame_buffer_init();
 #if (CONFIG_CAMERA)
-		BK_LOG_ON_ERR(bk_dvp_camera_open(PPI_640X480, DVP_MODE_JPG));
+		BK_LOG_ON_ERR(bk_dvp_camera_open(PPI_640X480, MEDIA_DVP_MJPEG));
 #endif
 #endif
 	} else if (os_strcmp(argv[1], "clock") == 0) { /* enable mclk */
-		BK_LOG_ON_ERR(bk_jpeg_enc_set_gpio(ENABLE_CLK));
+		BK_LOG_ON_ERR(bk_jpeg_enc_set_gpio(JPEG_ENABLE_CLK));
 #if (CONFIG_YUV_BUF)
 		BK_LOG_ON_ERR(bk_yuv_buf_enable_mclk());
 		BK_LOG_ON_ERR(bk_yuv_buf_start(YUV_BUF_MODE_YUV));

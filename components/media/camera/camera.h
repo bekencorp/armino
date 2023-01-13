@@ -17,19 +17,17 @@
 #include <common/bk_include.h>
 #include "media_evt.h"
 #include <driver/dvp_camera_types.h>
+#include <driver/uvc_camera_types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-bk_err_t bk_dvp_camera_open(media_ppi_t ppi, dvp_mode_t mode);
+bk_err_t bk_dvp_camera_open(media_ppi_t ppi, media_camera_type_t type);
 bk_err_t bk_dvp_camera_close(void);
-bk_err_t bk_uvc_camera_open(media_ppi_t ppi);
-bk_err_t bk_uvc_camera_start(void);
-bk_err_t bk_uvc_camera_stop(void);
+bk_err_t bk_uvc_camera_open(media_ppi_t ppi, media_camera_type_t type);
 bk_err_t bk_uvc_camera_close(void);
-bk_err_t bk_uvc_camera_param_set(param_pak_t *param);
-bk_err_t bk_net_camera_open(void);
+bk_err_t bk_net_camera_open(media_ppi_t ppi, media_camera_type_t type);
 bk_err_t bk_net_camera_close(void);
 
 #ifdef __cplusplus

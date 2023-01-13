@@ -193,9 +193,14 @@ int ble_stability_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
 static void ble_stability_show_recv_info(uint8_t *value, uint16_t len);
 void ble_stability_test_master_reconnect_timer_hdl(void *param, unsigned int ulparam);
 
+int ble_set_atcmd_version_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+int ble_unregister_service_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+int ble_create_bond_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
 #ifdef CONFIG_ALI_MQTT
 static void ble_send_data_2_mqtt(uint8 con_idx, uint16_t len, uint8 *data);
 uint8_t loop_type = 0;
+
 
 enum {
     LT_NONE,
@@ -263,8 +268,68 @@ const at_command_t ble_at_cmd_table[] = {
     {36, "POWER", 0, "power on/off", ble_power_handle},
     {37, "ATTREAD", 1, "att read <DEVICE_HANDLE> <ATT_CON_ID> <ATT_ATTR_HANDLE>", ble_att_read_handle},
     {38, "STABILITYTEST", 0, "stability test", ble_stability_test_handle},
+
+/*************************add for new at cmd format*****************************/
+    {39, "ATVERSION", 0, "set at cmd version", ble_set_atcmd_version_handle},
+#ifdef CONFIG_BT
+    {0, "BLENAME", 1, "return ble name", set_ble_name_handle},
+    {1, "BLENAME?", 1, "return ble name", get_ble_name_handle},
+#else
+    {0, "BLENAME", 0, "return ble name", set_ble_name_handle},
+    {1, "BLENAME?", 0, "return ble name", get_ble_name_handle},
+#endif
+    {2, "ADVPARAM", 1, "help", ble_set_adv_param_handle},
+    {3, "ADVDATA", 1, "set adv data", ble_set_adv_data_handle},
+    {4, "PERADVDATA", 1, "set perodic adv data", ble_set_per_adv_data_handle},
+    {5, "SCANRSPDATA", 1, "set scan response data", ble_set_scan_rsp_data_handle},
+    {6, "ADVENABLE", 1, "set adv enable(1)/disable(0)", ble_set_adv_enable_handle},
+    {7, "SCANPARAM", 1, "set scan param", ble_set_scan_param_handle},
+    {8, "SCANENABLE", 1, "set scan enable(1)/disable(0)", ble_set_scan_enable_handle},
+
+    {12, "CONNPARAM", 1, "update connection param", ble_update_conn_param_handle},
+
+    {13, "CONNECTSTATE?", 0, "get connection state", ble_get_conn_state_handle},
+#ifdef CONFIG_BT
+    {14, "LOCALADDR?", 1, "get ble local address", ble_get_local_addr_handle},
+#else
+    {14, "LOCALADDR?", 0, "get ble local address", ble_get_local_addr_handle},
+#endif
+    {15, "LOCALADDR", 0, "set ble local address", ble_set_local_addr_handle},
+
+    {17, "PHY?", 1, "read current tx/rx phy", ble_read_phy_handle},
+    {18, "PHY", 1, "set current tx/rx phy", ble_set_phy_handle},
+
+    {22, "TXTESTPARAM", 0, "set tx test param: <data_len> <interv>", ble_tx_test_param_handle},
+    {23, "TXTESTENABLE", 0, "enable tx test: <1|0>", ble_tx_test_enable_handle},
+
+    {27, "MAXMTU", 0, "set att maximal mtu", ble_set_max_mtu_handle},
+/******************************************************************************/
+
+    {40, "UNREGISTERSERVICE", 1, "unregister a service", ble_unregister_service_handle},
+    {41, "BOND", 1, "Create Bluetooth Bonding", ble_create_bond_handle},
+
 //#endif
 };
+
+int ble_set_atcmd_version_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    char *msg = AT_CMD_RSP_ERROR;
+    int err = kNoErr;
+
+
+    if (argc != 1) {
+        os_printf("input param error\r\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    atcmd_updated = os_strtoul(argv[0], NULL, 10) & 0xFF;
+    msg = AT_CMD_RSP_SUCCEED;
+
+error:
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    return err;
+}
 
 int ble_at_cmd_cnt(void)
 {
@@ -544,17 +609,39 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
         if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
         {
             ble_recv_adv_t *r_ind = (ble_recv_adv_t *)param;
-            uint8_t adv_type = r_ind->evt_type & 0x03;
+            uint8_t adv_type = r_ind->evt_type & REPORT_INFO_REPORT_TYPE_MASK;
             os_printf("r_ind:actv_idx:%d,", r_ind->actv_idx);
             switch (adv_type)
             {
-                case 0:
+                case REPORT_TYPE_ADV_EXT:
                     os_printf("evt_type:EXT_ADV,");
                     break;
-                case 1:
-                    os_printf("evt_type:LEG_ADV,");
+                case REPORT_TYPE_ADV_LEG:
+                    {
+                        switch (r_ind->evt_type)
+                        {
+                            case (REPORT_INFO_SCAN_ADV_BIT | REPORT_INFO_CONN_ADV_BIT | REPORT_INFO_COMPLETE_BIT | REPORT_TYPE_ADV_LEG):
+                                os_printf("evt_type:ADV_IND,");
+                                break;
+                            case (REPORT_INFO_DIR_ADV_BIT | REPORT_INFO_CONN_ADV_BIT | REPORT_INFO_COMPLETE_BIT | REPORT_TYPE_ADV_LEG):
+                                os_printf("evt_type:ADV_DIRECT_IND,");
+                                break;
+                            case (REPORT_INFO_SCAN_ADV_BIT | REPORT_INFO_COMPLETE_BIT | REPORT_TYPE_ADV_LEG):
+                                os_printf("evt_type:ADV_SCAN_IND,");
+                                break;
+                            case (REPORT_INFO_COMPLETE_BIT | REPORT_TYPE_ADV_LEG):
+                                os_printf("evt_type:ADV_NONCONN_IND,");
+                                break;
+                            case (REPORT_INFO_COMPLETE_BIT | REPORT_TYPE_SCAN_RSP_LEG):
+                                os_printf("evt_type:SCAN_RSP,");
+                                break;
+                            default:
+                                os_printf("evt_type:ERR_LEG_ADV,");
+                                break;
+                        }
+                    }
                     break;
-                case 4:
+                case REPORT_TYPE_PER_ADV:
                     os_printf("evt_type:PER_ADV,");
                     break;
                 default:
@@ -1081,8 +1168,35 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
 
     case BLE_5_PAIRING_SUCCEED:
         bk_printf("BLE_5_PAIRING_SUCCEED\r\n");
+        at_cmd_status = 0;
+        if (ble_at_cmd_sema != NULL)
+            rtos_set_semaphore( &ble_at_cmd_sema);
         break;
 
+    case BLE_5_PAIRING_FAILED:
+        bk_printf("BLE_5_PAIRING_FAILED\r\n");
+        ble_smp_ind_t *s_ind = (ble_smp_ind_t *)param;
+        at_cmd_status = s_ind->status;
+        if (ble_at_cmd_sema != NULL)
+            rtos_set_semaphore( &ble_at_cmd_sema);
+        break;
+
+    case BLE_5_DELETE_SERVICE_DONE:
+        {
+            if(bk_ble_get_controller_stack_type() == BK_BLE_CONTROLLER_STACK_TYPE_BTDM_5_2)
+            {
+                if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+                {
+                    ble_create_db_t *cd_ind = (ble_create_db_t *)param;
+                    os_printf("delete dervice done, prf_id:%d, status:%d\r\n", cd_ind->prf_id, cd_ind->status);
+
+                    at_cmd_status = cd_ind->status;
+                    if (ble_at_cmd_sema != NULL)
+                        rtos_set_semaphore( &ble_at_cmd_sema );
+                }
+            }
+            break;
+        }
     default:
         break;
     }
@@ -2703,11 +2817,11 @@ int ble_get_conn_state_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
     {
         if (conn_state == 1)
         {
-            sprintf(pcWriteBuffer, "%s%s\r\n", AT_CMDRSP_HEAD, "BLE_CONNECT");
+            sprintf(pcWriteBuffer, "%s%s\r\n%s", AT_CMDRSP_HEAD, (atcmd_updated ? "BLE_CONNECTED" : "BLE_CONNECT"), AT_CMD_RSP_SUCCEED);
         }
         else
         {
-            sprintf(pcWriteBuffer, "%s:%s\r\n", AT_CMDRSP_HEAD, "BLE_DISCONNECT");
+            sprintf(pcWriteBuffer, "%s:%s\r\n%s", AT_CMDRSP_HEAD, (atcmd_updated ? "BLE_DISCONNECTED" : "BLE_DISCONNECT"), AT_CMD_RSP_SUCCEED);
         }
 
     }
@@ -2719,7 +2833,7 @@ int ble_get_conn_state_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
         }
         else if (conn_state == AT_INIT_STATE_IDLE)
         {
-            sprintf(pcWriteBuffer, "%s:%s\r\n", AT_CMDRSP_HEAD, "BLE_DISCONNECT");
+            sprintf(pcWriteBuffer, "%s:%s\r\n", AT_CMDRSP_HEAD, "BLE_DISCONNECTED");
         }
         else if (conn_state == AT_INIT_STATE_CONNECTTING)
         {
@@ -2731,7 +2845,7 @@ int ble_get_conn_state_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
         }
         else
         {
-            sprintf(pcWriteBuffer, "%s:%s\r\n", AT_CMDRSP_HEAD, "BLE_DISCONNECT");
+            sprintf(pcWriteBuffer, "%s:%s\r\n", AT_CMDRSP_HEAD, "BLE_DISCONNECTED");
         }
     }
     return err;
@@ -5067,17 +5181,31 @@ error:
     return err;
 }
 
+static void ble_att_sdp_charac_callback(CHAR_TYPE type,uint8 conidx,uint16_t hdl,uint16_t len,uint8 *data)
+{
+    if (CHARAC_READ == type)
+    {
+        os_printf("%s, read hdl %d, len %d\r\n",__func__, hdl, len);
+        os_printf("data-> ");
+        for(int i = 0; i<len; i++)
+        {
+            os_printf("0x%x ", data[i]);
+        }
+        os_printf("\r\n");
+
+        if (s_read_tmp_attr_handle == hdl)
+        {
+            if (ble_at_cmd_sema != NULL)
+                rtos_set_semaphore(&ble_at_cmd_sema);
+        }
+    }
+}
+
 static int ble_att_read_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     int err = kNoErr;
     char *msg = NULL;
     ATT_HANDLE att_handle;
-
-    if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
-    {
-        err = kParamErr;
-        goto error;
-    }
 
     if (argc < 3)
     {
@@ -5102,6 +5230,11 @@ static int ble_att_read_handle(char *pcWriteBuffer, int xWriteBufferLen, int arg
     }
 
     bk_ble_set_notice_cb(ble_at_notice_cb);
+
+    if (bk_ble_get_host_stack_type() == BK_BLE_HOST_STACK_TYPE_RW_5_2)
+    {
+        bk_ble_register_app_sdp_charac_callback(ble_att_sdp_charac_callback);
+    }
 
     bk_ble_att_read(att_handle.att_id, s_read_tmp_attr_handle);
 
@@ -6309,6 +6442,180 @@ void ble_stability_test_master_reconnect_timer_hdl(void *param, unsigned int ulp
 
         rtos_deinit_semaphore(&ble_at_cmd_sema);
     }
+}
+
+int ble_unregister_service_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    int err = kNoErr;
+    char *msg = NULL;
+    uint16 my_service_uuid = 0;
+    struct bk_ble_db_cfg ble_db_cfg;
+
+    if(bk_ble_get_controller_stack_type() != BK_BLE_CONTROLLER_STACK_TYPE_BTDM_5_2)
+    {
+        err = kParamErr;
+        goto error;
+    }
+
+    if (argc < 1)
+    {
+        os_printf("\nThe number of param is wrong!\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    my_service_uuid = os_strtoul(argv[0], NULL, 16) & 0xFFFF;
+
+    if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+    {
+        os_memset(&ble_db_cfg, 0, sizeof(ble_db_cfg));
+
+        ble_db_cfg.svc_perm = BK_BLE_PERM_SET(SVC_UUID_LEN, UUID_16);
+        os_memcpy(&(ble_db_cfg.uuid[0]), &my_service_uuid, 2);
+
+        if (1)//ble_at_cmd_table[19].is_sync_cmd)
+        {
+            err = rtos_init_semaphore(&ble_at_cmd_sema, 1);
+            if (err != kNoErr)
+            {
+                goto error;
+            }
+        }
+        bk_ble_set_notice_cb(ble_at_notice_cb);
+
+        err = bk_ble_delete_service(&ble_db_cfg);
+
+        if (err != BK_ERR_BLE_SUCCESS)
+        {
+            goto error;
+        }
+        else
+        {
+            err = rtos_get_semaphore(&ble_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
+            if (err != kNoErr)
+            {
+                goto error;
+            }
+            else
+            {
+                if (at_cmd_status == BK_ERR_BLE_SUCCESS)
+                {
+                    msg = AT_CMD_RSP_SUCCEED;
+                    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+                    rtos_deinit_semaphore(&ble_at_cmd_sema);
+                    return err;
+                }
+                else
+                {
+                    err = at_cmd_status;
+                    at_cmd_status = BK_ERR_BLE_SUCCESS;
+                    goto error;
+                }
+            }
+        }
+    }
+
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    if (ble_at_cmd_sema != NULL)
+        rtos_deinit_semaphore(&ble_at_cmd_sema);
+    return err;
+}
+
+int ble_create_bond_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    char *msg = NULL;
+    int err = kNoErr;
+    bd_addr_t bond_addr;
+    uint8_t conn_idx;
+    uint8_t central_count = 0;
+
+    if(!bk_ble_if_support_central(&central_count) || central_count == 0)
+    {
+        os_printf("not support central\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    if (argc != 1)
+    {
+        os_printf("input param error\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    err = get_addr_from_param(&bond_addr, argv[0]);
+    if (err != kNoErr)
+    {
+        os_printf("input addr param error\n");
+        err = kParamErr;
+        goto error;
+    }
+
+    err = rtos_init_semaphore(&ble_at_cmd_sema, 1);
+    if(err != kNoErr)
+    {
+        os_printf("rtos_init_semaphore error\n");
+        goto error;
+    }
+
+    if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+    {
+        conn_idx = bk_ble_find_conn_idx_from_addr(&bond_addr);
+        if (conn_idx == AT_BLE_MAX_CONN)
+        {
+            os_printf("ble not connection\n");
+            err = kNoResourcesErr;
+            goto error;
+        }
+        bk_ble_set_notice_cb(ble_at_notice_cb);
+        err = bk_ble_create_bond(conn_idx, GAP_AUTH_REQ_NO_MITM_BOND, GAP_IO_CAP_NO_INPUT_NO_OUTPUT,
+                                GAP_SEC1_NOAUTH_PAIR_ENC, GAP_OOB_AUTH_DATA_NOT_PRESENT);
+    }
+    else
+    {
+        err = kParamErr;
+        goto error;
+    }
+
+    if (err != BK_ERR_BLE_SUCCESS)
+    {
+        goto error;
+    }
+
+    if (ble_at_cmd_sema != NULL)
+    {
+        err = rtos_get_semaphore(&ble_at_cmd_sema, 15000);
+        if(err != kNoErr)
+        {
+            goto error;
+        }
+        else
+        {
+            if (at_cmd_status == BK_ERR_BLE_SUCCESS)
+            {
+                msg = AT_CMD_RSP_SUCCEED;
+                os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+                rtos_deinit_semaphore(&ble_at_cmd_sema);
+                return err;
+            }
+            else
+            {
+                err = at_cmd_status;
+                goto error;
+            }
+        }
+    }
+
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    if (ble_at_cmd_sema != NULL)
+    {
+        rtos_deinit_semaphore(&ble_at_cmd_sema);
+    }
+    return err;
 }
 
 #endif

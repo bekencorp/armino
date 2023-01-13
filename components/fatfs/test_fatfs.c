@@ -479,6 +479,13 @@ void test_fatfs_auto_test(DISK_NUMBER number, char *filename, uint32_t len, uint
 			goto exit;
 		}
 
+		//set file pointer to head
+		fr = f_lseek(&file, 0);
+		if (fr != FR_OK)
+		{
+			FATFS_LOGE("f_lseek fail 1 fr = %d\r\n", fr);
+			goto exit;
+		}
 		//write:one time write all contents
 		do
 		{

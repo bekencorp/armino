@@ -1,4 +1,4 @@
-// Copyright 2020-2021 Beken
+// Copyright 2020-2022 Beken
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,5 +12,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/* @brief Overview about this API header
+ *
+ */
+
+/**
+ * @brief     Interface for customer to Enable/Disable bssid connect functionality
+ *
+ * @attention 1 Controled by middleware/soc/bk72xx.defconfig
+ * @attention 2 Support to use with fast connect
+ *
+ * @return
+ *    - 1: enable
+ *    - 0: disable
+ */
 int bk_feature_bssid_connect_enable(void);
+
+/**
+ * @brief     Interface for customer to Enable/Disable fast connect functionality
+ *
+ * @attention 1 This API only enable phase 1 fast connect (skip psk calculate、all channel scanning)
+ * @attention 2 Controled by middleware/soc/bk72xx.defconfig
+ *
+ * @return
+ *    - 1: enable
+ *    - 0: disable
+ */
+int bk_feature_fast_connect_enable(void);
+
+/**
+ * @brief     Interface for customer to Enable/Disable fast dhcp functionality
+ *
+ * @attention 1 This API only enable phase 2 fast connect (skip dhcp and use static ip saved in flash)
+ * @attention 2 Controled by middleware/soc/bk72xx.defconfig
+ *
+ * @return
+ *    - 1: enable
+ *    - 0: disable
+ */
+int bk_feature_fast_dhcp_enable(void);
 

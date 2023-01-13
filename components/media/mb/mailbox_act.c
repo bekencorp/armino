@@ -53,6 +53,7 @@ void mailbox_cmd_handle(uint32_t event, uint32_t param)
 			msg.event = EVENT_LCD_DEFAULT_EVT;
 			msg.param = param;
 			media_send_msg(&msg);
+			break;
 
 		case EVENT_LCD_ROTATE_RIGHT_CMD:
 			//LOGI("EVENT_LCD_ROTATE_RIGHT_CMD \n");

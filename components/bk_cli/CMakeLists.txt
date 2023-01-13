@@ -118,12 +118,6 @@ if (CONFIG_TRNG_SUPPORT)
 	)
 endif()
 
-if (CONFIG_I2S)
-	list(APPEND srcs
-		cli_i2s.c
-		)
-endif()
-
 if (CONFIG_FATFS)
 	list(APPEND srcs "cli_fatfs.c")
 endif()
@@ -286,7 +280,7 @@ if (CONFIG_JPEG_DECODE)
 	list(APPEND srcs cli_jpegdec.c)
 endif()
 
-if (CONFIG_CAMERA AND CONFIG_DVP_TEST)
+if (CONFIG_CAMERA AND CONFIG_CAMERA_TEST)
 	list(APPEND srcs "cli_dvp.c")
 endif()
 

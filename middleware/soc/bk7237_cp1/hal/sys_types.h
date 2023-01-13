@@ -76,6 +76,8 @@ extern "C" {
 #define RTC_INTERRUPT_CTRL_BIT         (1 << SYS_CPU1_INT_32_63_EN_CPU1_RTC_INT_EN_POS)
 #define GPIO_INTERRUPT_CTRL_BIT        (1 << SYS_CPU1_INT_32_63_EN_CPU1_GPIO_INT_EN_POS)
 
+#define PM_CHIP_ID_HIGH_POS            (16)
+#define PM_CHIP_ID_HIGH_VALUE          (0x2204)
 
 typedef enum
 {
@@ -359,6 +361,7 @@ typedef enum
 	PMU_REG0x43,
 	PMU_REG0x70,
 	PMU_REG0x71,
+	PMU_REG0x7c,
 	PMU_NONE
 } pmu_reg_e;
 #define PMU_ADDRESS_MAP  \
@@ -373,6 +376,7 @@ typedef enum
 	{PMU_REG0x43, AON_PMU_REG43_ADDR, }, \
 	{PMU_REG0x70, AON_PMU_REG70_ADDR, }, \
 	{PMU_REG0x71, AON_PMU_REG71_ADDR, }, \
+	{PMU_REG0x7c, AON_PMU_REG7C_ADDR, }, \
 }
 typedef struct {
 	pmu_reg_e pmu_reg;

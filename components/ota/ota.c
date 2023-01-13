@@ -128,6 +128,7 @@ uint8 ota_temp_execute_partition(int state_val)
 
 #endif
 
+u8  ota_flag =0;
 #if CONFIG_OTA_HTTP
 int bk_http_ota_download(const char *uri)
 {
@@ -181,6 +182,8 @@ int bk_http_ota_download(const char *uri)
 #if CONFIG_SYSTEM_CTRL
 	bk_wifi_ota_dtim(1);
 #endif
+
+	ota_flag = 1;
 	os_memset(&httpclient, 0, sizeof(httpclient_t));
 	os_memset(&httpclient_data, 0, sizeof(httpclient_data));
 	os_memset(&http_content, 0, sizeof(HTTP_RESP_CONTENT_LEN));
@@ -195,9 +198,11 @@ int bk_http_ota_download(const char *uri)
 							180000,
 							&httpclient_data);
 
+
+        ota_flag = 0;
 	if (0 != ret)
         {
-            CLI_LOGI("request epoch time from remote server failed.");
+            CLI_LOGI("request epoch time from remote server failed.ret:%d\r\n",ret);
 #if CONFIG_SYSTEM_CTRL
 	    bk_wifi_ota_dtim(0);
 #endif

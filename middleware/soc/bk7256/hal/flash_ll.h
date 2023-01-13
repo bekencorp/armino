@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include "sdkconfig.h"
 #include <soc/soc.h>
 #include "hal_port.h"
 #include "flash_hw.h"
@@ -176,15 +177,27 @@ static inline void flash_ll_set_quad_m_value(flash_hw_t *hw, uint32_t m_value)
 
 }
 
+#if CONFIG_LCD 
+extern __attribute__((section(".itcm_sec_code"))) void lcd_isr();
+#endif
+extern u8 ota_flag;
 static inline void flash_ll_erase_sector(flash_hw_t *hw, uint32_t erase_addr)
 {
 	while (flash_ll_is_busy(hw));
 	hw->op_sw.addr_sw_reg = erase_addr;
 	hw->op_sw.op_type_sw = FLASH_OP_CMD_SE;
 	hw->op_sw.op_sw = 1;
-	while (flash_ll_is_busy(hw));
+	
+	while (flash_ll_is_busy(hw))
+	{
+		if(ota_flag)
+                {
+        	#if CONFIG_LCD	
+			lcd_isr();
+        	#endif
+                }
+	}
 }
-
 static inline void flash_ll_set_op_cmd_read(flash_hw_t *hw, uint32_t read_addr)
 {
 	hw->op_sw.addr_sw_reg = read_addr;

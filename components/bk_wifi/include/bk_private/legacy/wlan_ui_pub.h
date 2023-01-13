@@ -618,6 +618,15 @@ bk_err_t bk_wifi_disable_proto_debug(uint8_t flag);
  */
 void bk_wifi_prepare_deepsleep(void);
 
+/**
+ * @brief  Get sta state
+ *
+ * This function get Wi-Fi station state
+ * 1: started or connect
+ * 0: others
+ */
+bool wifi_sta_is_started_or_connected(void);
+
 typedef struct {
 	uint32_t sta_start_tick;		/**< sta start connect tick */
 	uint32_t sta_assoc_tick;		/**< sta complete assoc tick */

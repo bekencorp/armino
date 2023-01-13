@@ -53,13 +53,15 @@ bk_err_t bk_video_transfer_deinit(void);
  *
  * This API will open video tranfer data_buffer, and star transfer
  *
+ * @param device referenc type : meida_camera_device_t
+ *
  * @attention 1. when call this function, the video date will transfer to wifi(UDP/others)
  *
  * @return
  *    - kNoErr: succeed
  *    - others: other errors.
  */
-bk_err_t bk_video_buffer_open(void);
+bk_err_t bk_video_buffer_open(media_camera_device_t *device);
 
 /**
  * @brief     set video buffer close

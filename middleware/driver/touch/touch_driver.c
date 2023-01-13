@@ -185,6 +185,11 @@ bk_err_t bk_touch_enable(touch_channel_t touch_id)
 	bk_int_isr_register(INT_SRC_TOUCH, touch_isr, NULL);
 	aon_pmu_drv_touch_select(touch_select);
 
+#if (CONFIG_TOUCH_INTERNAL_SERIAL_CAP)
+	sys_drv_touch_serial_cap_enable();
+#else
+	sys_drv_touch_serial_cap_disable();
+#endif
 	sys_drv_touch_power_down(0);
 
 	return BK_OK;
@@ -378,7 +383,7 @@ void bk_touch_digital_tube_display(uint8_t disp_value)
 
 }
 
-#if CONFIG_TOUCH_PM_SUPPORT
+#if (CONFIG_TOUCH_PM_SUPPORT)
 void bk_touch_wakeup_channel_set(touch_channel_t channel)
 {
 	s_touch_wakeup_channel = channel;

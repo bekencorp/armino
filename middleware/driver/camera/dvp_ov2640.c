@@ -23,6 +23,8 @@
 
 #include <driver/i2c.h>
 
+#include "dvp_sensor_devices.h"
+
 #define OV2640_WRITE_ADDRESS (0x60)
 #define OV2640_READ_ADDRESS (0x61)
 
@@ -32,8 +34,15 @@
 #define OV2640_CHIP_PIDH (0x26)
 #define OV2640_CHIP_PIDL (0x42)
 
-#define SENSOR_I2C_READ(reg, value)  cb->read_uint8((OV2640_WRITE_ADDRESS >> 1), reg, value)
-#define SENSOR_I2C_WRITE(reg, value)  cb->write_uint8((OV2640_WRITE_ADDRESS >> 1), reg, value)
+#define SENSOR_I2C_READ(reg, value) \
+	do {\
+		dvp_camera_i2c_read_uint8((OV2640_WRITE_ADDRESS >> 1), reg, value);\
+	} while (0)
+
+#define SENSOR_I2C_WRITE(reg, value) \
+	do {\
+		dvp_camera_i2c_write_uint8((OV2640_WRITE_ADDRESS >> 1), reg, value);\
+	}while (0)
 
 bool ov2640_read_flag = false;
 
@@ -1088,7 +1097,7 @@ const uint8_t sensor_ov2640_640X480_talbe[][2] =
 };
 
 
-bool ov2640_detect(const dvp_camera_i2c_callback_t *cb)
+bool ov2640_detect(void)
 {
 	uint8_t pidh_data = 0, pidhl_data = 0;
 
@@ -1107,7 +1116,7 @@ bool ov2640_detect(const dvp_camera_i2c_callback_t *cb)
 	return false;
 }
 
-void ov2640_read_register(const dvp_camera_i2c_callback_t *cb, uint8_t addr, uint8_t data)
+void ov2640_read_register(uint8_t addr, uint8_t data)
 {
 	if (ov2640_read_flag)
 	{
@@ -1123,7 +1132,7 @@ void ov2640_read_register(const dvp_camera_i2c_callback_t *cb, uint8_t addr, uin
 
 
 
-int ov2640_init(const dvp_camera_i2c_callback_t *cb)
+int ov2640_init(void)
 {
 	uint32_t size = sizeof(sensor_ov2640_init_talbe) / 2, i;
 	//uint8_t value;
@@ -1136,7 +1145,7 @@ int ov2640_init(const dvp_camera_i2c_callback_t *cb)
 		SENSOR_I2C_WRITE(sensor_ov2640_init_talbe[i][0],
 		                 sensor_ov2640_init_talbe[i][1]);
 
-		ov2640_read_register(cb, sensor_ov2640_init_talbe[i][0],
+		ov2640_read_register(sensor_ov2640_init_talbe[i][0],
 		                     sensor_ov2640_init_talbe[i][1]);
 	}
 
@@ -1144,7 +1153,7 @@ int ov2640_init(const dvp_camera_i2c_callback_t *cb)
 }
 
 
-int ov2640_set_ppi(const dvp_camera_i2c_callback_t *cb, media_ppi_t ppi)
+int ov2640_set_ppi(media_ppi_t ppi)
 {
 	uint32_t size, i;
 	int ret = -1;
@@ -1162,7 +1171,7 @@ int ov2640_set_ppi(const dvp_camera_i2c_callback_t *cb, media_ppi_t ppi)
 				SENSOR_I2C_WRITE(sensor_ov2640_1600X1200_talbe[i][0],
 				                 sensor_ov2640_1600X1200_talbe[i][1]);
 
-				ov2640_read_register(cb, sensor_ov2640_1600X1200_talbe[i][0],
+				ov2640_read_register(sensor_ov2640_1600X1200_talbe[i][0],
 				                     sensor_ov2640_1600X1200_talbe[i][1]);
 			}
 
@@ -1178,7 +1187,7 @@ int ov2640_set_ppi(const dvp_camera_i2c_callback_t *cb, media_ppi_t ppi)
 				SENSOR_I2C_WRITE(sensor_ov2640_1280X720_talbe[i][0],
 				                 sensor_ov2640_1280X720_talbe[i][1]);
 
-				ov2640_read_register(cb, sensor_ov2640_1280X720_talbe[i][0],
+				ov2640_read_register(sensor_ov2640_1280X720_talbe[i][0],
 				                     sensor_ov2640_1280X720_talbe[i][1]);
 			}
 
@@ -1195,7 +1204,7 @@ int ov2640_set_ppi(const dvp_camera_i2c_callback_t *cb, media_ppi_t ppi)
 				SENSOR_I2C_WRITE(sensor_ov2640_800X600_talbe[i][0],
 				                 sensor_ov2640_800X600_talbe[i][1]);
 
-				ov2640_read_register(cb, sensor_ov2640_800X600_talbe[i][0],
+				ov2640_read_register(sensor_ov2640_800X600_talbe[i][0],
 				                     sensor_ov2640_800X600_talbe[i][1]);
 			}
 
@@ -1211,7 +1220,7 @@ int ov2640_set_ppi(const dvp_camera_i2c_callback_t *cb, media_ppi_t ppi)
 				SENSOR_I2C_WRITE(sensor_ov2640_640X480_talbe[i][0],
 				                 sensor_ov2640_640X480_talbe[i][1]);
 
-				ov2640_read_register(cb, sensor_ov2640_640X480_talbe[i][0],
+				ov2640_read_register(sensor_ov2640_640X480_talbe[i][0],
 				                     sensor_ov2640_640X480_talbe[i][1]);
 			}
 
@@ -1228,7 +1237,7 @@ int ov2640_set_ppi(const dvp_camera_i2c_callback_t *cb, media_ppi_t ppi)
 }
 
 
-int ov2640_set_fps(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps)
+int ov2640_set_fps(sensor_fps_t fps)
 {
 	int ret = -1;
 
@@ -1238,7 +1247,7 @@ int ov2640_set_fps(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps)
 	return ret;
 }
 
-int ov2640_dump(const dvp_camera_i2c_callback_t *cb, media_ppi_t ppi)
+int ov2640_dump(media_ppi_t ppi)
 {
 	uint32_t size, i;
 	int ret = -1;
@@ -1270,12 +1279,15 @@ const dvp_sensor_config_t dvp_sensor_ov2640 =
 {
 	.name = "ov2640",
 	.clk = JPEG_96M_MCLK_16M,
+	.fmt = PIXEL_FMT_YUYV,
+	.vsync = JPEG_SYNC_HiGH_LEVEL,
+	.hsync = JPEG_SYNC_HiGH_LEVEL,
 	/* default config */
 	.def_ppi = PPI_1280X720,
 	.def_fps = FPS15,
 	/* capability config */
 	.fps_cap = FPS15,
-	.ppi_cap = PPI_CAP_1280X720 | PPI_CAP_1600X1200,
+	.ppi_cap = PPI_CAP_1280X720 | PPI_CAP_1600X1200 | PPI_CAP_800X600,
 	.id = ID_OV2640,
 	.address = (OV2640_WRITE_ADDRESS >> 1),
 	.init = ov2640_init,

@@ -16,12 +16,35 @@
 
 #include <components/log.h>
 #include <driver/i2s_types.h>
+#include <modules/audio_ring_buff.h>
 
 #define I2S_TAG "i2s"
 #define I2S_LOGI(...) BK_LOGI(I2S_TAG, ##__VA_ARGS__)
 #define I2S_LOGW(...) BK_LOGW(I2S_TAG, ##__VA_ARGS__)
 #define I2S_LOGE(...) BK_LOGE(I2S_TAG, ##__VA_ARGS__)
 #define I2S_LOGD(...) BK_LOGD(I2S_TAG, ##__VA_ARGS__)
+
+typedef struct {
+	uint8_t *buff_addr;
+	uint32_t buff_size;
+	RingBufferContext *rb;
+	dma_id_t dma_id;
+	i2s_txrx_state_t state;
+	int (*data_handle_cb)(uint32_t size);
+} i2s_txrx_cfg_t;
+
+typedef struct {
+	i2s_txrx_cfg_t *tx_cfg;
+	i2s_txrx_cfg_t *rx_cfg;
+} i2s_chl_cfg_t;
+
+typedef struct {
+	i2s_cfg_t config;
+	bool i2s_enable_state;
+	i2s_chl_cfg_t *chl1_cfg;
+	i2s_chl_cfg_t *chl2_cfg;
+	i2s_chl_cfg_t *chl3_cfg;
+} i2s_drv_info_t;
 
 /**
  * @brief     clear i2s tx_udf interrupt flag

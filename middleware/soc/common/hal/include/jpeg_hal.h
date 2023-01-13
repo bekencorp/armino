@@ -23,9 +23,6 @@
 extern "C" {
 #endif
 
-#define PSRAM_BASEADDR                    0x60000000
-
-
 typedef struct {
 	jpeg_hw_t *hw;
 	jpeg_unit_t id;
@@ -62,9 +59,9 @@ typedef struct {
 #define jpeg_hal_is_yuv_end_int_triggered(hal, int_status) jpeg_ll_is_yuv_end_int_triggered((hal)->hw, int_status)
 #define jpeg_hal_is_head_output_int_triggered(hal, int_status) jpeg_ll_is_head_output_int_triggered((hal)->hw, int_status)
 #define jpeg_hal_is_sync_negedge_int_triggered(hal, int_status) jpeg_ll_is_vsync_negedge_int_triggered((hal)->hw, int_status)
+#define jpeg_hal_set_mclk_div(hal, value) jpeg_ll_set_mclk_div((hal)->hw, value)
 
 bk_err_t jpeg_hal_init(jpeg_hal_t *hal);
-bk_err_t jpeg_hal_configure(jpeg_hal_t *hal, const jpeg_config_t *config);
 bk_err_t jpeg_hal_yuv_fmt_sel(jpeg_hal_t *hal, uint32_t value);
 bk_err_t jpeg_hal_start_common(jpeg_hal_t *hal, uint8_t mode);
 bk_err_t jpeg_hal_stop_common(jpeg_hal_t *hal, uint8_t mode);
@@ -72,8 +69,7 @@ bk_err_t jpeg_hal_enable_clk(jpeg_hal_t *hal, uint32_t value);
 bk_err_t jpeg_hal_enable_partial_display(jpeg_hal_t *hal, uint32_t enable);
 bk_err_t jpeg_hal_partial_display_offset_config(jpeg_hal_t *hal, const jpeg_partial_offset_config_t *offset_config);
 bk_err_t jpeg_hal_set_em_base_addr(jpeg_hal_t *hal, uint8_t *address);
-bk_err_t jpeg_hal_set_yuv_config(jpeg_hal_t *hal, const jpeg_config_t *config);
-bk_err_t jpeg_hal_set_encode_config(jpeg_hal_t *hal, const jpeg_config_t *config);
+bk_err_t jpeg_hal_switch_mode(jpeg_hal_t *hal, const jpeg_config_t *config);
 bk_err_t jpeg_hal_enable_bitrate_ctrl(jpeg_hal_t *hal, uint8_t enable);
 bk_err_t jpeg_hal_set_target_size(jpeg_hal_t *hal, uint32_t up_size, uint32_t low_size);
 uint32_t jpeg_hal_get_jpeg_share_mem_addr(void);

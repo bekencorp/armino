@@ -80,6 +80,8 @@ extern "C" {
 #define LOW_POWER_DPLL_STABILITY_DELAY_TIME              (1)   // 1ms
 #define LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME_HARDWARE (1.5) // 1.5ms(the delay time config into hardware)
 #define LOW_POWER_XTAL_DPLL_STABILITY_DELAY_TIME  ((LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME_HARDWARE+LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME+LOW_POWER_DPLL_STABILITY_DELAY_TIME)*1000)// 3000us
+#define PM_CHIP_ID_HIGH_POS                              (16)
+#define PM_CHIP_ID_HIGH_VALUE                            (0x2204)
 
 typedef enum
 {
@@ -364,6 +366,7 @@ typedef enum
 	PMU_REG0x43,
 	PMU_REG0x70,
 	PMU_REG0x71,
+	PMU_REG0x7c,
 	PMU_NONE
 } pmu_reg_e;
 #define PMU_ADDRESS_MAP  \
@@ -378,6 +381,7 @@ typedef enum
 	{PMU_REG0x43, AON_PMU_REG43_ADDR, }, \
 	{PMU_REG0x70, AON_PMU_REG70_ADDR, }, \
 	{PMU_REG0x71, AON_PMU_REG71_ADDR, }, \
+	{PMU_REG0x7c, AON_PMU_REG7C_ADDR, }, \
 }
 typedef struct {
 	pmu_reg_e pmu_reg;

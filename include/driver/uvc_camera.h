@@ -31,7 +31,7 @@ extern "C" {
  *    - kNoErr: succeed
  *    - others: other errors.
  */
-bk_err_t bk_uvc_camera_driver_init(const uvc_camera_config_t * config);
+bk_err_t bk_uvc_camera_driver_init(uvc_camera_config_t * config);
 
 /**
  * @brief     Deinit the uvc
@@ -51,13 +51,15 @@ bk_err_t bk_uvc_camera_driver_deinit(void);
  *
  * This API called by user, before calling bk_uvc_camera_driver_init, you should power on uvc
  *
- * @attation 1. This api only work when CONFIG_DOORBALL_DEMO1=y
+ * @param enable power up/down:1/0
+ *
+ * @attation 1. This api config different gpio and different active level
  *
  * @return
  *    - kNoErr: succeed
  *    - others: other errors.
  */
-bk_err_t bk_uvc_camera_power_on(void);
+bk_err_t bk_uvc_camera_power_enable(uint8_t enable);
 
 /**
  * @brief     Get uvc config
@@ -69,7 +71,7 @@ bk_err_t bk_uvc_camera_power_on(void);
  * @param count the param1 malloc size, the count config of uvc support
  *
  * @return
- *    - kNoErr: succeed
+ *    - BK_OK: succeed
  *    - others: other errors.
  */
 bk_err_t bk_uvc_camera_get_config(uvc_camera_device_t *param, uint16_t count);
@@ -79,13 +81,14 @@ bk_err_t bk_uvc_camera_get_config(uvc_camera_device_t *param, uint16_t count);
  *
  * This API called by user, Set uvc support fps and resolutions
  *
+ * @param mode the uvc work type, reference ``media_camera_type_t``
  * @param config the uvc need support param the user set
  *
  * @return
  *    - kNoErr: succeed
  *    - others: other errors.
  */
-bk_err_t bk_uvc_camera_set_config(uvc_camera_device_t * config);
+bk_err_t bk_uvc_camera_set_config(media_camera_type_t type, uvc_camera_device_t *config);
 
 /**
  * @brief     Set uvc start
@@ -98,7 +101,7 @@ bk_err_t bk_uvc_camera_set_config(uvc_camera_device_t * config);
  *    - kNoErr: succeed
  *    - others: other errors.
  */
-bk_err_t bk_uvc_camera_driver_start(void);
+bk_err_t bk_uvc_camera_start(void);
 
 /**
  * @brief     Stop uvc start
@@ -111,7 +114,7 @@ bk_err_t bk_uvc_camera_driver_start(void);
  *    - kNoErr: succeed
  *    - others: other errors.
  */
-bk_err_t bk_uvc_camera_driver_stop(void);
+bk_err_t bk_uvc_camera_stop(void);
 
 /**
  * @brief     Get current uvc device
@@ -137,6 +140,13 @@ uvc_camera_device_t *bk_uvc_camera_get_device(void);
  *    - NULL
  */
 void bk_uvc_camera_drop_frame(uint8_t number);
+
+bk_err_t bk_uvc_camera_set_type(media_camera_type_t type);
+
+bk_err_t bk_uvc_camera_init(uvc_config_t *config);
+
+bk_err_t bk_uvc_camera_deinit();
+
 
 
 #ifdef __cplusplus

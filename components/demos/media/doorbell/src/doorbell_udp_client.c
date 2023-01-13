@@ -14,7 +14,7 @@
 #include <components/video_types.h>
 
 #include "media_app.h"
-
+#include "lcd_act.h"
 
 #define TAG "doorbell-UDP-Client"
 
@@ -31,6 +31,8 @@ static struct sockaddr_in *doorbell_udp_cli_remote = NULL;
 static uint32_t video_pkt_seq = 0;
 static uint8_t camera_type = APP_CAMERA_INVALIED;
 static media_ppi_t camera_ppi = PPI_640X480;
+static media_ppi_t lcd_ppi = PPI_480X272;
+static char lcd_name[10] = {'0'};
 
 
 static void doorbell_udp_cli_connected(void)
@@ -97,14 +99,19 @@ static void demo_doorbell_udp_client_main(beken_thread_arg_t data)
 		setup.pkt_header_size = sizeof(media_hdr_t);
 		setup.add_pkt_header = NULL;
 
-		if (camera_type == APP_CAMERA_DVP)
-			media_app_camera_open(APP_CAMERA_DVP, camera_ppi);
-		else if (camera_type == APP_CAMERA_UVC)
-			media_app_camera_open(APP_CAMERA_UVC, camera_ppi);
+		if (camera_type == APP_CAMERA_DVP_JPEG)
+			media_app_camera_open(APP_CAMERA_DVP_JPEG, camera_ppi);
+		else if (camera_type == APP_CAMERA_UVC_MJPEG)
+			media_app_camera_open(APP_CAMERA_UVC_MJPEG, camera_ppi);
 		else
 			goto out;
 
 		media_app_transfer_open(&setup);
+
+		lcd_open_t lcd_open;
+		lcd_open.device_ppi = lcd_ppi;
+		lcd_open.device_name = lcd_name;
+		media_app_lcd_open(&lcd_open);
 	}
 
 	doorbell_udp_cli_run = 1;
@@ -120,10 +127,10 @@ out:
 
 	media_app_transfer_close();
 
-	if (camera_type == APP_CAMERA_DVP)
-		media_app_camera_close(APP_CAMERA_DVP);
-	else if (camera_type == APP_CAMERA_UVC)
-		media_app_camera_close(APP_CAMERA_UVC);
+	if (camera_type == APP_CAMERA_DVP_JPEG)
+		media_app_camera_close(APP_CAMERA_DVP_JPEG);
+	else if (camera_type == APP_CAMERA_UVC_MJPEG)
+		media_app_camera_close(APP_CAMERA_UVC_MJPEG);
 
 	video_pkt_seq = 0;
 
@@ -152,8 +159,9 @@ bk_err_t demo_doorbell_udp_client_init(int argc, char **argv)
 
 	if (argc == 0)
 	{
-		camera_type = APP_CAMERA_DVP;
+		camera_type = APP_CAMERA_DVP_JPEG;
 		camera_ppi = PPI_640X480;
+		lcd_ppi = PPI_480X272;
 	}
 	else if (argc == 1)
 	{
@@ -163,33 +171,75 @@ bk_err_t demo_doorbell_udp_client_init(int argc, char **argv)
 		}
 		else
 		{
-			camera_type = APP_CAMERA_DVP;
+			camera_type = APP_CAMERA_DVP_JPEG;
 		}
 		camera_ppi = PPI_640X480;
+		lcd_ppi = PPI_480X272;
 	}
-
-	if (argc >= 2)
+	else if (argc == 2)
 	{
-		if (os_strcmp(argv[1], "320X480") == 0)
+		if (os_strcmp(argv[0], "uvc") == 0)
 		{
-			camera_ppi = PPI_320X480;
-		}
-		else if (os_strcmp(argv[1], "480X272") == 0)
-		{
-			camera_ppi = PPI_480X272;
-		}
-		else if (os_strcmp(argv[1], "800X480") == 0)
-		{
-			camera_ppi = PPI_800X480;
-		}
-		else if (os_strcmp(argv[1], "1280X720") == 0)
-		{
-			camera_ppi = PPI_1280X720;
+			camera_type = APP_CAMERA_UVC;
 		}
 		else
 		{
+			camera_type = APP_CAMERA_DVP_JPEG;
+		}
+
+		camera_ppi = get_string_to_ppi(argv[1]);
+		if (camera_ppi == PPI_DEFAULT)
+		{
 			camera_ppi = PPI_640X480;
 		}
+	}
+	else if (argc == 3)
+	{
+		if (os_strcmp(argv[0], "uvc") == 0)
+		{
+			camera_type = APP_CAMERA_UVC;
+		}
+		else
+		{
+			camera_type = APP_CAMERA_DVP_JPEG;
+		}
+
+		camera_ppi = get_string_to_ppi(argv[1]);
+		if (camera_ppi == PPI_DEFAULT)
+		{
+			camera_ppi = PPI_640X480;
+		}
+
+		lcd_ppi = get_string_to_ppi(argv[2]);
+		if (lcd_ppi == PPI_DEFAULT)
+		{
+			lcd_ppi = PPI_480X272;
+		}
+	}
+	else
+	{
+		if (os_strcmp(argv[0], "uvc") == 0)
+		{
+			camera_type = APP_CAMERA_UVC;
+		}
+		else
+		{
+			camera_type = APP_CAMERA_DVP_JPEG;
+		}
+
+		camera_ppi = get_string_to_ppi(argv[1]);
+		if (camera_ppi == PPI_DEFAULT)
+		{
+			camera_ppi = PPI_640X480;
+		}
+
+		lcd_ppi = get_string_to_ppi(argv[2]);
+		if (lcd_ppi == PPI_DEFAULT)
+		{
+			lcd_ppi = PPI_480X272;
+		}
+
+		os_memcpy(lcd_name, argv[3], os_strlen(argv[3]));
 	}
 
 	LOGI("%s\n", __func__);

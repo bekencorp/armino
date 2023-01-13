@@ -65,6 +65,13 @@ typedef struct {
 	bk_err_t (*aud_intf_rx_spk_data)(unsigned int size);						/**< the api is called when playing a frame speaker packet data is complete */
 } aud_intf_drv_setup_t;
 
+#define DEFAULT_AUD_INTF_DRV_SETUP_CONFIG() {          \
+        .work_mode = AUD_INTF_WORK_MODE_NULL,          \
+        .task_config = {.priority = 3},                \
+        .aud_intf_tx_mic_data = NULL,                  \
+        .aud_intf_rx_spk_data = NULL,                  \
+    }
+
 typedef bk_err_t (*aud_intf_dump_data_callback)(unsigned char *data, unsigned int size);
 
 /**************** audio interface mic ****************/
@@ -91,6 +98,13 @@ typedef struct {
 	aud_intf_mic_type_t mic_type;		/**< audio mic type: uac or microphone */
 } aud_intf_mic_setup_t;
 
+#define DEFAULT_AUD_INTF_MIC_SETUP_CONFIG() {          \
+        .mic_chl = AUD_INTF_MIC_CHL_MIC1,              \
+        .samp_rate = AUD_ADC_SAMP_RATE_8K,             \
+        .frame_size = 320,                             \
+        .mic_gain = 0x2d,                              \
+        .mic_type = AUD_INTF_MIC_TYPE_BOARD,           \
+    }
 
 /**************** audio interface speaker ****************/
 /* audio interface speaker channel enum */
@@ -117,7 +131,14 @@ typedef struct {
 	aud_intf_spk_type_t spk_type;				/**< audio speaker type: uac or speaker */
 } aud_intf_spk_setup_t;
 
-
+#define DEFAULT_AUD_INTF_SPK_SETUP_CONFIG() {          \
+        .spk_chl = AUD_INTF_SPK_CHL_LEFT,              \
+        .samp_rate = AUD_DAC_SAMP_RATE_8K,            \
+        .frame_size = 320,                             \
+        .spk_gain = 0x2d,                              \
+        .work_mode = AUD_DAC_WORK_MODE_DIFFEN,         \
+        .spk_type = AUD_INTF_SPK_TYPE_BOARD,           \
+    }
 
 /**************** audio interface voice ****************/
 /* audio interface voice transfer sample rate */
@@ -191,6 +212,27 @@ typedef struct {
 	aud_intf_mic_type_t mic_type;			/**< audio mic type: uac or microphone */
 	aud_intf_spk_type_t spk_type;			/**< audio speaker type: uac or speaker */
 } aud_intf_voc_setup_t;
+
+#define DEFAULT_AUD_INTF_VOC_SETUP_CONFIG() {          \
+        .aec_enable = true,                            \
+        .samp_rate = AUD_INTF_VOC_SAMP_RATE_8K,        \
+        .data_type = AUD_INTF_VOC_DATA_TYPE_G711A,     \
+        .mic_gain = 0x2d,                              \
+        .spk_gain = 0x2d,                              \
+        .spk_mode = AUD_DAC_WORK_MODE_DIFFEN,          \
+        .aec_cfg = {                                   \
+                       .ec_depth = 20,                 \
+                       .TxRxThr = 30,                  \
+                       .TxRxFlr = 6,                   \
+                       .ref_scale = 0,                 \
+                       .ns_level = 2,                  \
+                       .ns_para = 1,                   \
+                    },                                 \
+        .mic_en = AUD_INTF_VOC_MIC_OPEN,               \
+        .spk_en = AUD_INTF_VOC_SPK_OPEN,               \
+        .mic_type = AUD_INTF_MIC_TYPE_BOARD,           \
+        .spk_type = AUD_INTF_SPK_TYPE_BOARD,           \
+    }
 
 #ifdef __cplusplus
 }

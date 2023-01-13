@@ -5,6 +5,8 @@
 #include <os/os.h>
 #include <os/os.h>
 
+static UINT8 flag = 0;
+
 static void cli_adc_help(void)
 {
 	CLI_LOGI("adc_driver init/deinit\n");
@@ -37,6 +39,59 @@ static void cli_adc_driver_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 		cli_adc_help();
 		return;
 	}
+}
+
+static float cli_adc_read(UINT8 adc_chan)
+{
+    uint16_t value   = 0;
+    float cali_value = 0;
+
+    if(flag == 1)
+    {
+        CLI_LOGI("adc_read is running\r\n");
+        return 0;
+    }
+
+    flag = 1;
+    BK_LOG_ON_ERR(bk_adc_acquire());
+    BK_LOG_ON_ERR(bk_adc_init(adc_chan));
+    adc_config_t config = {0};
+
+    config.chan = adc_chan;
+    config.adc_mode = 3;
+    config.src_clk = 1;
+    config.clk = 0x30e035;
+    config.saturate_mode = 4;
+    config.steady_ctrl= 7;
+    config.adc_filter = 0;
+    if(config.adc_mode == ADC_CONTINUOUS_MODE) {
+        config.sample_rate = 0;
+    }
+
+    BK_LOG_ON_ERR(bk_adc_set_config(&config));
+    BK_LOG_ON_ERR(bk_adc_enable_bypass_clalibration());
+    BK_LOG_ON_ERR(bk_adc_start());
+    BK_LOG_ON_ERR(bk_adc_read(&value, ADC_READ_SEMAPHORE_WAIT_TIME));
+
+    if(adc_chan == 0)
+    {
+        cali_value = ((float)value/4096*5)*1.2*1000;
+    }
+    else if(adc_chan == 7 || adc_chan == 8 || adc_chan == 9)
+    {
+        CLI_LOGI("adc_chan %d has been used\r\n", adc_chan);
+    }
+    else
+    {
+        cali_value = ((float)value/4096*2)*1.2*1000;
+    }
+
+    bk_adc_stop();
+    bk_adc_deinit(adc_chan);
+    bk_adc_release();
+    CLI_LOGI("volt value:%d mv\n",(uint32_t)cali_value);
+    flag = 0;
+    return cali_value;
 }
 
 static void cli_adc_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -229,32 +284,7 @@ static void cli_adc_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
     }
     else if(os_strcmp(argv[2], "adc_example") == 0)
     {
-        uint16_t value = 0;
-        float cali_value = 0;
-        BK_LOG_ON_ERR(bk_adc_acquire());
-        BK_LOG_ON_ERR(bk_adc_init(adc_chan));
-        adc_config_t config = {0};
-
-        config.chan = adc_chan;
-        config.adc_mode = 3;
-        config.src_clk = 1;
-        config.clk = 0x30e035;
-        config.saturate_mode = 4;
-        config.steady_ctrl= 7;
-        config.adc_filter = 0;
-        if(config.adc_mode == ADC_CONTINUOUS_MODE) {
-            config.sample_rate = 0;
-        }
-
-        BK_LOG_ON_ERR(bk_adc_set_config(&config));
-        BK_LOG_ON_ERR(bk_adc_enable_bypass_clalibration());
-        BK_LOG_ON_ERR(bk_adc_start());
-        BK_LOG_ON_ERR(bk_adc_read(&value, ADC_READ_SEMAPHORE_WAIT_TIME));
-        cali_value = saradc_calculate(value);
-        bk_adc_stop();
-        bk_adc_deinit(adc_chan);
-        bk_adc_release();
-        CLI_LOGI("code:%d,value:%d mv\n", value,(uint32_t)(cali_value * 1000));
+        cli_adc_read(adc_chan);
     }
     else
     {

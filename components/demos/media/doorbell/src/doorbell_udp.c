@@ -52,9 +52,9 @@ struct sockaddr_in *demo_doorbell_voice_udp_remote = NULL;
 int demo_doorbell_udp_voice_fd = -1;
 
 #if AUDIO_TRANSFER_ENABLE
-static aud_intf_drv_setup_t aud_intf_drv_setup;
+static aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
 static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
-static aud_intf_voc_setup_t aud_voc_setup;
+static aud_intf_voc_setup_t aud_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
 #endif
 
 extern int delay_ms(INT32 ms_count);
@@ -152,9 +152,9 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 
 			case AUDIO_OPEN:
 				LOGI("open audio \n");
-				aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
-				aud_intf_drv_setup.task_config.priority = 3;
-				aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
+				//aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+				//aud_intf_drv_setup.task_config.priority = 3;
+				//aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
 				aud_intf_drv_setup.aud_intf_tx_mic_data = demo_doorbell_udp_voice_send_packet;
 				ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
 				if (ret != BK_ERR_AUD_INTF_OK)
@@ -174,21 +174,37 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 				} else {
 					aud_voc_setup.aec_enable = false;
 				}
-				aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711A;
+				//aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711A;
 				//aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_PCM;
 				aud_voc_setup.spk_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
-				aud_voc_setup.mic_en = AUD_INTF_VOC_MIC_OPEN;
-				aud_voc_setup.spk_en = AUD_INTF_VOC_SPK_OPEN;
+				//aud_voc_setup.mic_en = AUD_INTF_VOC_MIC_OPEN;
+				//aud_voc_setup.spk_en = AUD_INTF_VOC_SPK_OPEN;
 				if (data[8] == 1) {
 					aud_voc_setup.mic_type = AUD_INTF_MIC_TYPE_UAC;
 					aud_voc_setup.spk_type = AUD_INTF_SPK_TYPE_UAC;
-					aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_16K;
-				} else {
+					//aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_16K;
+				}
+				else
+				{
 					aud_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
 					aud_voc_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
-					aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
 				}
-				aud_voc_setup.aec_cfg.ref_scale = 1;
+				switch (data[10])
+				{
+					case 8:
+						aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
+						break;
+
+					case 16:
+						aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_16K;
+						break;
+
+					default:
+						aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
+						break;
+				}
+
+				//aud_voc_setup.aec_cfg.ref_scale = 1;
 #if CONFIG_DOORBELL_DEMO2
 				aud_voc_setup.mic_gain = 0x2d;
 				aud_voc_setup.spk_gain = 0x27;
@@ -340,7 +356,7 @@ static void demo_doorbell_udp_receiver(uint8_t *data, uint32_t len, struct socka
 				setup.pkt_header_size = sizeof(media_hdr_t);
 				setup.add_pkt_header = demo_doorbell_add_pkt_header;
 
-				media_app_camera_open(APP_CAMERA_DVP, ppi);
+				media_app_camera_open(APP_CAMERA_DVP_JPEG, ppi);
 
 				media_app_transfer_open(&setup);
 			}
@@ -354,7 +370,7 @@ static void demo_doorbell_udp_receiver(uint8_t *data, uint32_t len, struct socka
 
 				media_app_transfer_close();
 
-				media_app_camera_close(APP_CAMERA_DVP);
+				media_app_camera_close(APP_CAMERA_DVP_JPEG);
 			}
 			break;
 
@@ -389,7 +405,7 @@ static void demo_doorbell_udp_receiver(uint8_t *data, uint32_t len, struct socka
 				setup.pkt_header_size = sizeof(media_hdr_t);
 				setup.add_pkt_header = demo_doorbell_add_pkt_header;
 
-				media_app_camera_open(APP_CAMERA_UVC, ppi);
+				media_app_camera_open(APP_CAMERA_UVC_MJPEG, ppi);
 				media_app_transfer_open(&setup);
 			}
 			break;
@@ -401,7 +417,7 @@ static void demo_doorbell_udp_receiver(uint8_t *data, uint32_t len, struct socka
 				GLOBAL_INT_RESTORE();
 
 				media_app_transfer_close();
-				media_app_camera_close(APP_CAMERA_UVC);
+				media_app_camera_close(APP_CAMERA_UVC_MJPEG);
 			}
 			break;
 		}
@@ -670,9 +686,9 @@ out:
 	LOGE("demo_doorbell_udp_main exit %d\n", demo_doorbell_udp_run);
 	media_app_transfer_close();
 
-	media_app_camera_close(APP_CAMERA_DVP);
+	media_app_camera_close(APP_CAMERA_DVP_JPEG);
 
-	media_app_camera_close(APP_CAMERA_UVC);
+	media_app_camera_close(APP_CAMERA_UVC_MJPEG);
 
 #if AUDIO_TRANSFER_ENABLE
 	/* deinit audio transfer driver */

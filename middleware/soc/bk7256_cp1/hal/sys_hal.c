@@ -53,6 +53,15 @@ void sys_hal_usb_analog_ckmcu_en(bool en)
 	sys_ll_set_ana_reg11_ck2mcu(en);
 }
 
+void sys_hal_set_usb_analog_dp_capability(uint8_t capability)
+{
+	sys_ll_set_ana_reg9_usbpen(capability);
+}
+void sys_hal_set_usb_analog_dn_capability(uint8_t capability)
+{
+	sys_ll_set_ana_reg9_usbnen(capability);
+}
+
 void sys_hal_usb_enable_charge(bool en)
 {
 	sys_ll_set_ana_reg5_vctrl_dpllldo(en);

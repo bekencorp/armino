@@ -33,6 +33,12 @@ void cli_doorbell_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 	char *msg = NULL;
 	int ret = BK_FAIL;
 
+	if (argc == 1)
+	{
+		ret = demo_doorbell_udp_init();
+		goto output;
+	}
+
 	if (os_strcmp(argv[1], "tcp") == 0)
 	{
 		ret = demo_doorbell_tcp_init();
@@ -51,6 +57,8 @@ void cli_doorbell_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 	{
 		ret = demo_doorbell_udp_init();
 	}
+
+output:
 
 	if (ret != BK_OK)
 	{

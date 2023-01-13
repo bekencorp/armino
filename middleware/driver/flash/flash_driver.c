@@ -22,6 +22,8 @@
 #include "flash_hal.h"
 #include "sys_driver.h"
 #include "driver/flash_partition.h"
+#include <modules/chip_support.h>
+
 
 #if CONFIG_FLASH_QUAD_ENABLE
 #include "flash_bypass.h"
@@ -463,7 +465,7 @@ bk_err_t bk_flash_driver_deinit(void)
 	return BK_OK;
 }
 
-bk_err_t bk_flash_erase_sector(uint32_t address)
+__attribute__((section(".itcm_sec_code"))) bk_err_t bk_flash_erase_sector(uint32_t address)
 {
 	uint32_t erase_addr = address & FLASH_ERASE_SECTOR_MASK;
 
@@ -579,6 +581,8 @@ bk_err_t bk_flash_set_clk(flash_clk_src_t flash_src_clk, uint8_t flash_dpll_div)
 bk_err_t bk_flash_clk_switch(uint32_t flash_speed_type, uint32_t modules)
 {
 	uint32_t int_level = rtos_disable_int();
+	int chip_id = 0;
+
 	switch (flash_speed_type) {
 		case FLASH_SPEED_LOW:
 			s_hold_low_speed_status |= modules;
@@ -592,7 +596,11 @@ bk_err_t bk_flash_clk_switch(uint32_t flash_speed_type, uint32_t modules)
 			s_hold_low_speed_status &= ~(modules);
 			FLASH_LOGD("%s: clear low bit, 0x%x 0x%x\r\n", __func__, s_hold_low_speed_status, modules);
 			if (0 == s_hold_low_speed_status) {
-				bk_flash_set_clk(FLASH_CLK_DPLL, FLASH_DPLL_DIV_VALUE_TEN);
+				chip_id = bk_get_hardware_chip_id_version();
+				if (chip_id == CHIP_VERSION_C)
+					bk_flash_set_clk(FLASH_CLK_DPLL, FLASH_DPLL_DIV_VALUE_SIX);
+				else
+					bk_flash_set_clk(FLASH_CLK_DPLL, FLASH_DPLL_DIV_VALUE_TEN);
 			}
 			break;
 	}

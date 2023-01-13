@@ -5,7 +5,16 @@
 #define	JD_SZBUF		1024
 /* Specifies size of stream input buffer */
 
-#define JD_FORMAT		3
+extern int g_jd_format;
+#define JD_FORMAT		g_jd_format
+typedef enum{
+	JD_FORMAT_RGB888 = 0,
+	JD_FORMAT_RGB565 = 1,
+	JD_FORMAT_Grayscale = 2,
+	JD_FORMAT_VYUY,
+	JD_FORMAT_YUYV
+}JD_FORMAT_OUTPUT;
+	
 /* Specifies output pixel format.
 /  0: RGB888 (24-bit/pix)
 /  1: RGB565 (16-bit/pix)

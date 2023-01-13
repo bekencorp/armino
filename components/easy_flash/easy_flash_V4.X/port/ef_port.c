@@ -89,7 +89,7 @@ EfErrCode ef_port_read(uint32_t addr, uint32_t *buf, size_t size)
 {
 	EfErrCode result = EF_NO_ERR;
 
-	EF_ASSERT(size % 4 == 0);
+	//EF_ASSERT(size % 4 == 0);
 
 #if CONFIG_FLASH_ORIGIN_API
 	flash_read((char *)buf, (unsigned long)size, addr);

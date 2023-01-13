@@ -16,23 +16,26 @@
 
 
 extern void cli_i2s_master_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-extern void cli_i2s_master_sin_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+//extern void cli_i2s_master_sin_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+//extern void cli_i2s_slave_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void cli_i2s_slave_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-
-#if CONFIG_AUDIO
-void cli_i2s_master_mic_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-void cli_i2s_slave_mic_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-#endif
+extern void cli_pcm_master_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+extern void cli_pcm_slave_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+extern void cli_dtm_master_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+extern void cli_dtm_slave_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+extern void cli_2bd_master_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+extern void cli_2bd_slave_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 #define I2S_CMD_CNT (sizeof(s_i2s_commands) / sizeof(struct cli_command))
 static const struct cli_command s_i2s_commands[] = {
 	{"i2s_master_test", "i2s_master_test {start|stop}", cli_i2s_master_test_cmd},
-	{"i2s_master_sin_test", "i2s_master_sin_test {start|stop}", cli_i2s_master_sin_test_cmd},
 	{"i2s_slave_test", "i2s_slave_test {start|stop}", cli_i2s_slave_test_cmd},
-#if CONFIG_AUDIO
-	{"i2s_master_mic_test", "i2s_master_mic_test {start|stop}", cli_i2s_master_mic_test_cmd},
-	{"i2s_slave_mic_test", "i2s_slave_mic_test {start|stop}", cli_i2s_slave_mic_test_cmd},
-#endif
+	{"pcm_master_test", "pcm_master_test {start|stop}", cli_pcm_master_test_cmd},
+	{"pcm_slave_test", "pcm_slave_test {start|stop}", cli_pcm_slave_test_cmd},
+	{"dtm_master_test", "dtm_master_test {start|stop}", cli_dtm_master_test_cmd},
+	{"dtm_slave_test", "dtm_slave_test {start|stop}", cli_dtm_slave_test_cmd},
+	{"2bd_master_test", "2bd_master_test {start|stop}", cli_2bd_master_test_cmd},
+	{"2bd_slave_test", "2bd_slave_test {start|stop}", cli_2bd_slave_test_cmd},
 };
 
 int cli_i2s_init(void)

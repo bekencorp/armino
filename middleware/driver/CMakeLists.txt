@@ -203,18 +203,68 @@ endif()
 if (CONFIG_LCD)
 	list(APPEND srcs
 		"lcd/lcd_driver.c"
-		"lcd/lcd_hx8282.c"
-		"lcd/lcd_st7282.c"
-		"lcd/lcd_st7796s.c"
-		"lcd/lcd_gc9503v.c"
-		"lcd/lcd_nt35512.c"
-		"lcd/lcd_h050iwv.c"
-		"lcd/lcd_md0430r.c"
-		"lcd/lcd_md0700r.c"
 		"lcd/lcd_spi.c"
+		)
+
+if (CONFIG_LCD_GC9503V)
+	list(APPEND srcs
+		"lcd/lcd_gc9503v.c"
+		)
+endif()
+if (CONFIG_LCD_H050IWV)
+	list(APPEND srcs
+		"lcd/lcd_h050iwv.c"
+		)
+endif()
+if (CONFIG_LCD_HX8282)
+	list(APPEND srcs
+		"lcd/lcd_hx8282.c"
+		)
+endif()
+if (CONFIG_LCD_MD0430R)
+	list(APPEND srcs
+		"lcd/lcd_md0430r.c"
+		)
+endif()
+if (CONFIG_LCD_MD0700R)
+	list(APPEND srcs
+		"lcd/lcd_md0700r.c"
+		)
+endif()
+if (CONFIG_LCD_NT35512)
+	list(APPEND srcs
+		"lcd/lcd_nt35512.c"
+		)
+endif()
+if (CONFIG_LCD_NT35510)
+	list(APPEND srcs
 		"lcd/lcd_nt35510.c"
 		)
 endif()
+if (CONFIG_LCD_NT35510_MCU)
+	list(APPEND srcs
+		"lcd/lcd_nt35510_mcu.c"
+		)
+endif()
+if (CONFIG_LCD_ST7282)
+	list(APPEND srcs
+		"lcd/lcd_st7282.c"
+		)
+endif()
+if (CONFIG_LCD_ST7796S)
+	list(APPEND srcs
+		"lcd/lcd_st7796s.c"
+		)
+endif()
+
+if (CONFIG_LCD_ST7710S)
+	list(APPEND srcs
+		"lcd/lcd_st7710s.c"
+		)
+endif()
+
+endif()
+
 if (CONFIG_LCD)
 if (CONFIG_TP)
 	list(APPEND srcs
@@ -464,18 +514,20 @@ endif()
 
 if (CONFIG_CAMERA)
     list(APPEND srcs
-        "camera/dvp_camera.c"
-        "camera/dvp_gc0328c.c"
-        "camera/dvp_gc2145.c"
-        "camera/dvp_hm1055.c"
-        "camera/dvp_ov2640.c"
-    )
+		"camera/dvp_camera.c"
+		"camera/dvp_gc0328c.c"
+		"camera/dvp_gc2145.c"
+		"camera/dvp_hm1055.c"
+		"camera/dvp_ov2640.c"
+		"camera/dvp_sensor_devices.c"
+		)
 endif()
 
 if (CONFIG_USB_UVC)
 	list(APPEND srcs
-        	"camera/uvc_camera.c"
-	)
+		"camera/uvc_camera.c"
+		"camera/uvc_sensor_devices.c"
+		)
 endif()
 
 armino_component_register(SRCS "${srcs}"

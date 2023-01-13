@@ -34,6 +34,7 @@
 #include <driver/jpeg_dec.h>
 #include <driver/jpeg_dec_types.h>
 #include <driver/timer.h>
+#include <soc/mapping.h>
 
 #if CONFIG_PWM
 #include <driver/pwm.h>
@@ -50,7 +51,11 @@
 #endif
 #include <driver/dma2d.h>
 #include "modules/image_scale.h"
+#include <driver/dma2d_types.h>
 
+#if  CONFIG_LCD_FONT_BLEND
+#include "modules/lcd_font.h"
+#endif
 
 
 #define TAG "lcd_drv"
@@ -170,7 +175,10 @@ typedef struct
 	beken_semaphore_t dec_sem;
 	beken_semaphore_t rot_sem;
 	beken_semaphore_t disp_sem;
-
+#if (USE_DMA2D_BLEND_ISR_CALLBACKS == 1)
+	beken_semaphore_t dma2d_complete_sem;
+	beken_semaphore_t dma2d_err_sem;
+#endif
 	beken_mutex_t dec_lock;
 	beken_mutex_t rot_lock;
 	beken_mutex_t disp_lock;
@@ -182,15 +190,40 @@ extern bk_err_t bk_lcd_set_yuv_mode(pixel_format_t input_data_format);
 
 const lcd_device_t *lcd_devices[] =
 {
+#if CONFIG_LCD_ST7282
 	&lcd_device_st7282,
+#endif
+#if CONFIG_LCD_HX8282
 	&lcd_device_hx8282,
+#endif
+#if CONFIG_LCD_ST7796S
 	&lcd_device_st7796s,
+#endif
+#if CONFIG_LCD_GC9503V
 	&lcd_device_gc9503v,
+#endif
+#if CONFIG_LCD_NT35512
 	&lcd_device_nt35512,
+#endif
+#if CONFIG_LCD_NT35510
 	&lcd_device_nt35510,
+#endif
+#if CONFIG_LCD_NT35510_MCU
+	&lcd_device_nt35510_mcu,
+#endif
+#if CONFIG_LCD_H050IWV
 	&lcd_device_h050iwv,
+#endif
+#if CONFIG_LCD_MD0430R
 	&lcd_device_md0430r,
+#endif
+#if CONFIG_LCD_MD0700R
 	&lcd_device_md0700r,
+#endif
+
+#if CONFIG_LCD_ST7710S
+	&lcd_device_st7710s,
+#endif
 };
 
 static lcd_driver_t s_lcd = {0};
@@ -366,7 +399,7 @@ static void lcd_driver_mailbox_tx_cmpl_isr(void *param, mb_chnl_ack_t *ack_buf)
 
 
 #if (USE_LCD_REGISTER_CALLBACKS == 1)
-static void lcd_isr(void);
+__attribute__((section(".itcm_sec_code"))) void lcd_isr();
 
 bk_err_t  bk_lcd_isr_register(lcd_int_type_t int_type, lcd_isr_t isr)
 {
@@ -389,8 +422,9 @@ bk_err_t  bk_lcd_isr_register(lcd_int_type_t int_type, lcd_isr_t isr)
 	return BK_OK;
 }
 
-static void lcd_isr(void)
+__attribute__((section(".itcm_sec_code"))) void lcd_isr()
 {
+
 	uint32_t int_status = lcd_hal_int_status_get();
 
 	if (int_status & RGB_OUTPUT_SOF)
@@ -586,7 +620,11 @@ bk_err_t bk_lcd_set_yuv_mode(pixel_format_t input_data_format)
 	{
 		case PIXEL_FMT_RGB565:
 			lcd_hal_display_yuv_sel(0);
-			lcd_hal_set_pixel_reverse(0);
+
+			if(s_lcd.config.use_gui)
+				lcd_hal_set_pixel_reverse(1);
+			else
+				lcd_hal_set_pixel_reverse(0);
 			break;
 		case PIXEL_FMT_YUYV:
 			lcd_hal_display_yuv_sel(1);
@@ -931,6 +969,16 @@ bk_err_t lcd_driver_display_enable(void)
 	}
 	else if (type == LCD_TYPE_MCU8080)
 	{
+		if(s_lcd.config.device->id == LCD_DEVICE_NT35510_MCU)
+		{
+			lcd_hal_8080_start_transfer(0);
+			if(s_lcd.config.device->mcu->set_display_area)
+				s_lcd.config.device->mcu->set_display_area(0, 479, 0, 799);
+
+			if(s_lcd.config.device->mcu->start_transform)
+				s_lcd.config.device->mcu->start_transform();
+		}
+
 		lcd_hal_8080_start_transfer(1);
 		lcd_hal_8080_cmd_param_count(1);
 		lcd_hal_8080_write_cmd(0x2c);
@@ -948,7 +996,21 @@ bk_err_t lcd_driver_display_continue(void)
 
 	if (type == LCD_TYPE_MCU8080)
 	{
-		lcd_hal_8080_write_cmd(0x3c);
+		if(s_lcd.config.device->id != LCD_DEVICE_NT35510_MCU)
+		{
+			lcd_hal_8080_write_cmd(0x3c);
+		}
+		else
+		{
+			lcd_hal_8080_start_transfer(0);
+
+			if(s_lcd.config.device->mcu->continue_transform)
+				s_lcd.config.device->mcu->continue_transform();
+
+			lcd_hal_8080_start_transfer(1);
+			lcd_hal_8080_cmd_param_count(1);
+			lcd_hal_8080_write_cmd(0x3c);
+		}
 	}
 	return BK_OK;
 }
@@ -979,16 +1041,23 @@ void lcd_driver_ppi_set(uint16_t width, uint16_t height)
 	uint16_t y = ppi_to_pixel_y(s_lcd.config.device->ppi);
 
 	lcd_hal_pixel_config(width, height);
+	uint16_t start_x = 1;
+	uint16_t start_y = 1;
+	uint16_t end_x = x;
+	uint16_t end_y = y;
 
 	if (x < width || y < height)
 	{
-		uint16_t start_x, end_x, start_y, end_y;
-
-		start_x = (width - x) / 2 + 1;
-		end_x = start_x + x - 1;
-
-		start_y = (height - y) / 2 + 1;
-		end_y = start_y + y - 1;
+		if (x < width)
+		{
+			start_x = (width - x) / 2 + 1;
+			end_x = start_x + x - 1;
+		}
+		if (y < height)
+		{
+			start_y = (height - y) / 2 + 1;
+			end_y = start_y + y - 1;
+		}
 
 		LOGD("%s, offset %d, %d, %d, %d\n", __func__, start_x, end_x, start_y, end_y);
 
@@ -1057,9 +1126,12 @@ static void jpeg_dec_eof_cb(jpeg_dec_res_t *result)
 	{
 		return;
 	}
-	s_lcd.decoder_frame->height = result->pixel_y;
-	s_lcd.decoder_frame->width = result->pixel_x ;
-	s_lcd.decoder_frame->size = result->size;
+	if (s_lcd.decoder_frame)
+	{
+		s_lcd.decoder_frame->height = result->pixel_y;
+		s_lcd.decoder_frame->width = result->pixel_x ;
+		s_lcd.decoder_frame->size = result->size;
+	}
 
 	if (result->ok == false)
 	{
@@ -1080,6 +1152,27 @@ static void jpeg_dec_eof_cb(jpeg_dec_res_t *result)
 		LOGE("%s semaphore set failed: %d\n", __func__, ret);
 	}
 }
+
+
+#if (USE_DMA2D_BLEND_ISR_CALLBACKS == 1)
+static void dma2d_config_error(void)
+{
+	LOGE("%s \n", __func__);
+	rtos_set_semaphore(&s_lcd.dma2d_err_sem);
+}
+
+static void dma2d_transfer_error(void)
+{
+	LOGE("%s \n", __func__);
+	rtos_set_semaphore(&s_lcd.dma2d_err_sem);
+}
+
+static void dma2d_transfer_complete(void)
+{
+	LOGD("%s \n", __func__);
+	rtos_set_semaphore(&s_lcd.dma2d_complete_sem);
+}
+#endif
 
 static void lcd_driver_decoder_timeout(timer_id_t timer_id)
 {
@@ -1451,9 +1544,30 @@ error:
 }
 
 
+static u8 g_gui_need_to_wait = BK_FALSE;
+void lcd_driver_gui_wait_display(void)
+{
+    bk_err_t ret;
+
+    if(s_lcd.config.use_gui && g_gui_need_to_wait)
+    {
+        ret = rtos_get_semaphore(&s_lcd.disp_sem, 2000);
+
+        if (ret != BK_OK)
+        {
+            LOGE("%s semaphore get failed: %d\n", __func__, ret);
+        }
+
+        g_gui_need_to_wait = BK_FALSE;
+    }
+}
+
 void lcd_driver_display_frame_with_gui(void *buffer, int width, int height)
 {
     frame_buffer_t *frame = s_lcd.config.fb_malloc();
+
+    if(s_lcd.config.use_gui)
+        lcd_driver_gui_wait_display();
 
     if(frame){
         frame->fmt = PIXEL_FMT_RGB565;
@@ -1461,6 +1575,7 @@ void lcd_driver_display_frame_with_gui(void *buffer, int width, int height)
         frame->width = width;
         frame->height = height;
         lcd_driver_display_frame(frame);
+        g_gui_need_to_wait = BK_TRUE;
     }
     else{
         LOGI("[%s][%d] fb malloc fail\r\n", __FUNCTION__, __LINE__);
@@ -1505,22 +1620,152 @@ void dma2d_memcpy_psram(void *Psrc, void *Pdst, uint32_t xsize, uint32_t ysize, 
 	while (bk_dma2d_is_transfer_busy()) {}
 }
 
-//extern void lcd_storage_capture_save(char * capture_name, uint8_t *addr, uint32_t len);
+void dma2d_memcpy_psram_wait_last_transform(void *Psrc, void *Pdst, uint32_t xsize, uint32_t ysize, uint32_t src_offline, uint32_t dest_offline)
+{
+	dma2d_config_t dma2d_config = {0};
+	static u8 flag = 0;
+
+	if(1 == flag)
+	{
+		while (bk_dma2d_is_transfer_busy()) {}
+		flag = 0;
+	}
+	
+	/*##-1- Configure the DMA2D Mode, Output Color Mode and output offset #############*/
+	dma2d_config.init.mode         = DMA2D_M2M;             /**< Mode Memory To Memory */
+	dma2d_config.init.color_mode    = DMA2D_OUTPUT_ARGB8888; /**< Output color mode is ARGB4444 : 16 bpp */
+	dma2d_config.init.output_offset = dest_offline/2;                   /**< No offset on output */
+	dma2d_config.init.red_blue_swap   = DMA2D_RB_REGULAR;     /**< No R&B swap for the output image */
+	dma2d_config.init.alpha_inverted = DMA2D_REGULAR_ALPHA;  /**< No alpha inversion for the output image */
+
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].alpha_mode = DMA2D_NO_MODIF_ALPHA;      /**< Keep original Alpha from ARGB4444 input */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_alpha = 0xFF;                     /**< Fully opaque */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_color_mode = DMA2D_INPUT_ARGB8888; /**< Input color is ARGB4444 : 16 bpp */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_offset = src_offline/2;                     /**< No offset in input */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].red_blue_swap   = DMA2D_RB_REGULAR;      /**< No R&B swap for the input image */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].alpha_inverted = DMA2D_REGULAR_ALPHA;   /**< No alpha inversion for the input image */
+
+	bk_dma2d_init(&dma2d_config);
+	bk_dma2d_layer_config(&dma2d_config, DMA2D_FOREGROUND_LAYER);
+
+	bk_dma2d_start_transfer(&dma2d_config, (uint32_t)Psrc, (uint32_t)Pdst, xsize/2, ysize); 
+	flag = 1;
+}
+
+extern void lcd_storage_capture_save(char * capture_name, uint8_t *addr, uint32_t len);
 //extern void bk_mem_dump_ex(const char * title, unsigned char * data, uint32_t data_len);
 
 bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend)
 {
+#if CONFIG_BLEND_USE_GUI
+#define BLEND_DATA_MAX_ROW   2
+    uint8_t *tmp_yuv_data = NULL;
+    uint8_t *tmp_rgb565_data = NULL;
+    uint8_t *tmp_blend_data = NULL;
+    int tmp_blend_data_size = 0;
+    int y = 0;
+    int blend_y_size = 0;
+    dma2d_blend_t dma2d_config;
+    int addr_offset = 0;
+
+    void lv_get_gui_blend_buff(u8 **yuv_data, u8 **rgb565_data, u8 **gui_bak_data);
+    lv_get_gui_blend_buff(&tmp_yuv_data, &tmp_rgb565_data, NULL);
+
+    pixel_format_t format = lcd_blend->bg_data_format;
+    
+    //STEP 1 : bg img yuyv copy to sram and pixel convert to rgb565
+    dma2d_memcpy_psram(lcd_blend->pbg_addr, tmp_yuv_data, lcd_blend->xsize, lcd_blend->ysize, lcd_blend->bg_offline, 0);
+
+    if (PIXEL_FMT_VUYY == format)
+    {
+        vuyy_to_rgb565_convert((unsigned char *)tmp_yuv_data, (unsigned char *)tmp_rgb565_data, lcd_blend->xsize, lcd_blend->ysize);
+    }
+    else
+    {
+        yuyv_to_rgb565_convert((unsigned char *)tmp_yuv_data, (unsigned char *)tmp_rgb565_data, lcd_blend->xsize, lcd_blend->ysize);
+    }
+
+    tmp_blend_data_size = lcd_blend->xsize * BLEND_DATA_MAX_ROW * 2;
+    tmp_blend_data = (uint8_t *)os_malloc(tmp_blend_data_size);
+    if(!tmp_blend_data)
+    {
+        bk_printf("[%s][%d] malloc fail\r\n", __FUNCTION__, __LINE__);
+        return BK_FAIL;
+    }
+
+    //STEP 2 : bg img rgb565 and fg img argb8888 blend , the resulr output bg mem
+    for(y=0; y<lcd_blend->ysize; y+=BLEND_DATA_MAX_ROW)
+    {
+        if((y+BLEND_DATA_MAX_ROW) <= lcd_blend->ysize)
+            blend_y_size = BLEND_DATA_MAX_ROW;
+        else
+            blend_y_size = lcd_blend->ysize - y;
+
+        dma2d_memcpy_psram(tmp_rgb565_data + addr_offset, tmp_blend_data, lcd_blend->xsize, blend_y_size, 0, 0);
+        //os_memcpy(tmp_blend_data, tmp_rgb565_data + addr_offset, lcd_blend->xsize * blend_y_size * 2);
+
+#if CONFIG_BLEND_GUI_OUTPUT_888
+        dma2d_config.pfg_addr = lcd_blend->pfg_addr + addr_offset*2;
+#else
+        dma2d_config.pfg_addr = lcd_blend->pfg_addr + addr_offset;
+#endif
+        dma2d_config.pbg_addr = tmp_blend_data;
+        dma2d_config.pdst_addr = tmp_blend_data;
+#if CONFIG_BLEND_GUI_OUTPUT_888
+        dma2d_config.fg_color_mode = DMA2D_INPUT_ARGB8888;
+        dma2d_config.red_bule_swap = DMA2D_RB_SWAP;
+#else
+        dma2d_config.fg_color_mode = DMA2D_INPUT_RGB565;
+        dma2d_config.red_bule_swap = DMA2D_RB_REGULAR;
+#endif
+        dma2d_config.bg_color_mode = DMA2D_INPUT_RGB565;
+        dma2d_config.dst_color_mode = DMA2D_OUTPUT_RGB565;
+        dma2d_config.fg_offline = 0;
+        dma2d_config.bg_offline = 0;
+        dma2d_config.dest_offline = 0;
+        dma2d_config.xsize = lcd_blend->xsize;
+        dma2d_config.ysize = blend_y_size;
+        dma2d_config.fg_alpha_value = lcd_blend->fg_alpha_value;
+        dma2d_config.bg_alpha_value = lcd_blend->bg_alpha_value;
+        bk_dma2d_blend(&dma2d_config);
+		while (bk_dma2d_is_transfer_busy()) {}
+
+        dma2d_memcpy_psram(tmp_blend_data, tmp_yuv_data + addr_offset, lcd_blend->xsize, blend_y_size, 0, 0);
+        //os_memcpy_word((uint32_t *)(tmp_yuv_data + addr_offset), (const uint32_t *)tmp_blend_data, lcd_blend->xsize * blend_y_size * 2);
+        addr_offset += lcd_blend->xsize * blend_y_size * 2;
+    }
+
+    os_free(tmp_blend_data);
+    tmp_blend_data = NULL;
+
+    if (PIXEL_FMT_VUYY == format)
+    {
+        rgb565_to_vuyy_convert((uint16_t *)tmp_yuv_data, (uint16_t *)tmp_rgb565_data, lcd_blend->xsize, lcd_blend->ysize);
+    }
+    else
+    {
+        rgb565_to_yuyv_convert((uint16_t *)tmp_yuv_data, (uint16_t *)tmp_rgb565_data, lcd_blend->xsize, lcd_blend->ysize);
+    }
+    dma2d_memcpy_psram(tmp_rgb565_data, lcd_blend->pbg_addr, lcd_blend->xsize, lcd_blend->ysize, 0, lcd_blend->bg_offline);
+#elif CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
 	if (s_lcd.dma2d_blend == true)
 	{
-		if (DMA2D_MALLOC_MAX < (lcd_blend->xsize * lcd_blend->ysize))
-		{
-			return BK_FAIL;
-		}
-
 		pixel_format_t format = lcd_blend->bg_data_format;
 
 		//STEP 1 : bg img yuyv copy to sram and pixel convert to rgb565
+#if 0
 		dma2d_memcpy_psram(lcd_blend->pbg_addr, yuv_data, lcd_blend->xsize, lcd_blend->ysize, lcd_blend->bg_offline, 0);
+#else
+		register uint32_t i =0;
+		uint32_t * p_yuv_src = (uint32_t *)lcd_blend->pbg_addr;
+		uint32_t * p_yuv_dst = (uint32_t *)yuv_data;
+		for(i = 0; i < lcd_blend->ysize; i++)
+		{
+			os_memcpy_word(p_yuv_dst, p_yuv_src, lcd_blend->xsize*2);
+			p_yuv_dst += (lcd_blend->xsize/2);
+			p_yuv_src += (lcd_blend->bg_width/2);
+		}
+#endif
 	//	lcd_storage_capture_save("yuv_data.yuv", yuv_data, len);
 
 		if (PIXEL_FMT_VUYY == format)
@@ -1559,7 +1804,15 @@ bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend)
 		dma2d_config.bg_alpha_value = lcd_blend->bg_alpha_value;
 		bk_dma2d_blend(&dma2d_config);
 	//	lcd_storage_capture_save("blend.rgb", rgb565_data, len);
-
+	
+#if (USE_DMA2D_BLEND_ISR_CALLBACKS == 1)
+		if (rtos_get_semaphore(&s_lcd.dma2d_complete_sem, BEKEN_NEVER_TIMEOUT) != BK_OK)
+		{
+			LOGE("%s, dma2d_complete_sem get failed: %d\n", __func__);
+		}
+#else
+		while (bk_dma2d_is_transfer_busy()) {}
+#endif
 		if (PIXEL_FMT_VUYY == format)
 		{
 			rgb565_to_vuyy_convert((uint16_t *)rgb565_data, (uint16_t *)yuv_data, lcd_blend->xsize, lcd_blend->ysize);
@@ -1569,17 +1822,203 @@ bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend)
 			rgb565_to_yuyv_convert((uint16_t *)rgb565_data, (uint16_t *)yuv_data, lcd_blend->xsize, lcd_blend->ysize);
 		}
 	//	lcd_storage_capture_save("blend_to_yuv.yuv", yuv_data, len);
-
-		dma2d_memcpy_psram(yuv_data, lcd_blend->pbg_addr, lcd_blend->xsize, lcd_blend->ysize, 0, lcd_blend->bg_offline);
+#if 0
+			dma2d_memcpy_psram(yuv_data, lcd_blend->pbg_addr, lcd_blend->xsize, lcd_blend->ysize, 0, lcd_blend->bg_offline);
+#else
+			p_yuv_src = (uint32_t *)yuv_data;
+			p_yuv_dst = lcd_blend->pbg_addr;
+			for(i = 0; i < lcd_blend->ysize; i++)
+			{
+				os_memcpy_word(p_yuv_dst, p_yuv_src, lcd_blend->xsize*2);
+				p_yuv_src += (lcd_blend->xsize/2);
+				p_yuv_dst += (lcd_blend->bg_width/2);
+			}
+#endif
 	//	lcd_storage_capture_save("pbg_addr.yuv", (uint8_t *)0x60000000, (640*480*2));
 	}
 	else
 	{
 		LOGE("%s s_lcd.dma2d_blend == false \n", __func__);
 	}
-
+#endif
 	return BK_OK;
 }
+
+#if CONFIG_LCD_FONT_BLEND
+bk_err_t lcd_driver_font_blend(lcd_font_config_t *lcd_font)
+{
+	int ret = BK_OK;
+	if (s_lcd.dma2d_blend == true)
+	{
+		if(lcd_font->font_format == FONT_BG_RGB565) 
+		{
+			//STEP 1 : bg img yuyv copy to sram and pixel convert to rgb565
+			#if 0
+			dma2d_memcpy_psram(lcd_font->pbg_addr, yuv_data, lcd_font->xsize, lcd_font->ysize, lcd_font->bg_offline, 0);
+			#else
+			register uint32_t i =0;
+			uint32_t * p_yuv_src = (uint32_t *)lcd_font->pbg_addr;
+			uint32_t * p_yuv_dst = (uint32_t *)yuv_data;
+			for(i = 0; i < lcd_font->ysize; i++)
+			{
+				os_memcpy_word(p_yuv_dst, p_yuv_src, lcd_font->xsize*2);
+				p_yuv_dst += (lcd_font->xsize/2);
+				p_yuv_src += (lcd_font->bg_width/2);
+			}
+			#endif
+			//	lcd_storage_capture_save("yuv_data.yuv", yuv_data, len);
+			pixel_format_t format = lcd_font->bg_data_format;
+			if (PIXEL_FMT_VUYY == format)
+			{
+				vuyy_to_rgb565_convert((unsigned char *)yuv_data, (unsigned char *)rgb565_data, lcd_font->xsize, lcd_font->ysize);
+			}
+			else
+			{
+				yuyv_to_rgb565_convert((unsigned char *)yuv_data, (unsigned char *)rgb565_data, lcd_font->xsize, lcd_font->ysize);
+			}
+			//	lcd_storage_capture_save("yuv_to_rgb565.rgb", rgb565_data, len);
+
+			font_t font;
+			font.info = (ui_display_info_struct){rgb565_data,0,lcd_font->ysize,0,{0}};
+			font.width = lcd_font->xsize;
+			font.height = lcd_font->ysize;
+			for(int i = 0; i < lcd_font->str_num; i++)
+			{
+				font.digit_info = lcd_font->str[i].font_digit_type;
+				font.s = lcd_font->str[i].str;
+				font.font_color = lcd_font->str[i].font_color;
+				font.x_pos = lcd_font->str[i].x_pos;
+				font.y_pos = lcd_font->str[i].y_pos;
+				lcd_draw_font(&font);
+			}
+
+			if (PIXEL_FMT_VUYY == format)
+			{
+				rgb565_to_vuyy_convert((uint16_t *)rgb565_data, (uint16_t *)yuv_data, lcd_font->xsize, lcd_font->ysize);
+			}
+			else
+			{
+				rgb565_to_yuyv_convert((uint16_t *)rgb565_data, (uint16_t *)yuv_data, lcd_font->xsize, lcd_font->ysize);
+			}
+			//	lcd_storage_capture_save("blend_to_yuv.yuv", yuv_data, len);
+			#if 0
+				dma2d_memcpy_psram(yuv_data, lcd_font->pbg_addr, lcd_font->xsize, lcd_font->ysize, 0, lcd_font->bg_offline);
+			#else
+					p_yuv_src = (uint32_t *)yuv_data;
+					p_yuv_dst = lcd_font->pbg_addr;
+					for(i = 0; i < lcd_font->ysize; i++)
+					{
+						os_memcpy_word(p_yuv_dst, p_yuv_src, lcd_font->xsize*2);
+						p_yuv_src += (lcd_font->xsize/2);
+						p_yuv_dst += (lcd_font->bg_width/2);
+					}
+			#endif
+	}
+		//	lcd_storage_capture_save("pbg_addr.yuv", (uint8_t *)0x60000000, (640*480*2));
+	else if (lcd_font->font_format == FONT_BG_YUV)
+	{
+			register uint32_t i =0;
+			register uint32_t check_color = 0;
+			register uint32_t fill_color = 0;
+			uint32_t * p_yuv_src = (uint32_t *)lcd_font->pbg_addr;
+			uint32_t * p_yuv_dst = (uint32_t *)yuv_data;
+		#if 0 //direct font bg yuyv
+			//step 1: copy font area (lcd_font->xsize, lcd_font->ysize)
+			for(i = 0; i < lcd_font->ysize; i++)
+			{
+				os_memcpy_word(p_yuv_dst, p_yuv_src, lcd_font->xsize*2);
+				p_yuv_dst += (lcd_font->xsize/2);
+				p_yuv_src += (lcd_font->bg_width/2);
+			}
+			//step 2: start font yuyv direct
+			font_t font;
+			font.info = (ui_display_info_struct){yuv_data,0,lcd_font->ysize,0,{0}};
+			font.width = lcd_font->xsize;
+			font.height = lcd_font->ysize;
+			for(int i = 0; i < lcd_font->str_num; i++)
+			{
+				font.digit_info = lcd_font->str[i].font_digit_type;
+				font.s = lcd_font->str[i].str;
+				font.font_color = lcd_font->str[i].font_color;
+				font.x_pos = lcd_font->str[i].x_pos;
+				font.y_pos = lcd_font->str[i].y_pos;
+				lcd_draw_font(&font);
+			}
+			//step 2: copy return bg addr 
+			p_yuv_src = (uint32_t *)yuv_data;
+			p_yuv_dst = (uint32_t *)lcd_font->pbg_addr;
+			for(i = 0; i < lcd_font->ysize; i++)
+			{
+				os_memcpy_word(p_yuv_dst, p_yuv_src, lcd_font->xsize*2);
+				p_yuv_src += (lcd_font->xsize/2);
+				p_yuv_dst += (lcd_font->bg_width/2);
+			}
+			#else //font on pure color
+			font_t font;
+			font.info = (ui_display_info_struct){yuv_data,0,lcd_font->ysize,0,{0}};
+			font.width = lcd_font->xsize;
+			font.height = lcd_font->ysize;
+			if(lcd_font->bg_data_format == PIXEL_FMT_YUYV)
+			{
+				if(lcd_font->str[0].font_color == YUV_BLACK)
+				{
+					os_memset_word((uint32_t *)p_yuv_dst, UI_COLOR_YUYV_WHITE, lcd_font->xsize*lcd_font->ysize*2);
+					check_color = UI_COLOR_YUYV_WHITE;
+					fill_color = UI_COLOR_YUYV_BLACK;
+				}
+				else if (lcd_font->str[0].font_color == YUV_WHITE)
+				{
+					os_memset_word((uint32_t *)p_yuv_dst,UI_COLOR_YUYV_BLACK, lcd_font->xsize*lcd_font->ysize*2);
+					check_color = UI_COLOR_YUYV_BLACK;
+					fill_color =  UI_COLOR_YUYV_WHITE;
+				}
+			}
+			else //PIXEL_FMT_VUYY)
+			{
+				if (lcd_font->str[0].font_color == YUV_BLACK)
+				{
+					os_memset_word((uint32_t *)p_yuv_dst, UI_COLOR_VUYY_WHITE, lcd_font->xsize*lcd_font->ysize*2);
+					check_color = UI_COLOR_VUYY_WHITE;
+					fill_color = UI_COLOR_VUYY_BLACK ;
+				}
+				else if (lcd_font->str[0].font_color == YUV_WHITE)
+				{
+					os_memset_word((uint32_t *)p_yuv_dst, UI_COLOR_VUYY_BLACK, lcd_font->xsize*lcd_font->ysize*2);
+					check_color = UI_COLOR_VUYY_BLACK;
+					fill_color = UI_COLOR_VUYY_WHITE;
+				}
+			}
+			for(int i = 0; i < lcd_font->str_num; i++)
+			{
+				font.digit_info = lcd_font->str[i].font_digit_type;
+				font.s = lcd_font->str[i].str;
+				font.font_color = lcd_font->str[i].font_color;
+				font.x_pos = lcd_font->str[i].x_pos;
+				font.y_pos = lcd_font->str[i].y_pos;
+				lcd_draw_font(&font);
+			}
+
+			for(i = 0; i < lcd_font->ysize; i++)
+			{
+				for(int j = 0; j < lcd_font->xsize/2; j++)
+				{
+					if(*(p_yuv_dst++) != check_color)
+					{
+						os_write_word((p_yuv_src + j), fill_color);
+					}
+				}
+				p_yuv_src += (lcd_font->bg_width/2);
+			}
+			#endif
+		}
+	}
+	else
+	{
+		LOGE("%s s_lcd.dma2d_blend == false \n", __func__);
+	}
+	return ret;
+}
+#endif
 
 bk_err_t lcd_driver_display_frame(frame_buffer_t *frame)
 {
@@ -1643,11 +2082,14 @@ bk_err_t lcd_driver_display_frame(frame_buffer_t *frame)
 
 	GLOBAL_INT_RESTORE();
 
-	ret = rtos_get_semaphore(&s_lcd.disp_sem, BEKEN_NEVER_TIMEOUT);
-
-	if (ret != BK_OK)
+	if(!s_lcd.config.use_gui)
 	{
-		LOGE("%s semaphore get failed: %d\n", __func__, ret);
+		ret = rtos_get_semaphore(&s_lcd.disp_sem, BEKEN_NEVER_TIMEOUT);
+
+		if (ret != BK_OK)
+		{
+			LOGE("%s semaphore get failed: %d\n", __func__, ret);
+		}
 	}
 
 	rtos_unlock_mutex(&s_lcd.disp_lock);
@@ -1663,43 +2105,72 @@ bk_err_t lcd_driver_display_frame(frame_buffer_t *frame)
 	return ret;
 }
 
-#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
-static bk_err_t lcd_blend_mem_malloc(void)
+bk_err_t lcd_ldo_power_enable(uint8_t enable)
 {
-	if (yuv_data != NULL)
+#if (CONFIG_LCD_POWER_GPIO_CTRL)
+
+	if (enable)
 	{
-		os_free(yuv_data);
-		yuv_data = NULL;
+		gpio_dev_unmap(LCD_LDO_CTRL_GPIO);
+		bk_gpio_set_capacity(LCD_LDO_CTRL_GPIO, 0);
+		BK_LOG_ON_ERR(bk_gpio_disable_input(LCD_LDO_CTRL_GPIO));
+		BK_LOG_ON_ERR(bk_gpio_enable_output(LCD_LDO_CTRL_GPIO));
+
+#if (LCD_LDO_CTRL_ACTIVE_LEVEL)
+		bk_gpio_set_output_high(LCD_LDO_CTRL_GPIO);
+#else
+		bk_gpio_set_output_low(LCD_LDO_CTRL_GPIO);
+#endif
+		rtos_delay_milliseconds(5);
 	}
-	if (rgb565_data != NULL)
+	else
 	{
-		os_free(rgb565_data);
-		rgb565_data = NULL;
+
+#if (LCD_LDO_CTRL_ACTIVE_LEVEL)
+		bk_gpio_set_output_low(LCD_LDO_CTRL_GPIO);
+#else
+		bk_gpio_set_output_high(LCD_LDO_CTRL_GPIO);
+#endif
 	}
 
-	yuv_data = os_malloc(DMA2D_MALLOC_MAX);
-	rgb565_data = os_malloc(DMA2D_MALLOC_MAX);
-	LOGI("lcd blend malloc %p, size = %d \n", yuv_data, DMA2D_MALLOC_MAX);
-	LOGI("lcd blend malloc %p, size = %d \n", rgb565_data, DMA2D_MALLOC_MAX);
+#endif
 
-	if ((yuv_data == NULL) || (rgb565_data == NULL))
-	{
-		if (yuv_data != NULL)
-		{
-			os_free(yuv_data);
-			yuv_data = NULL;
-		}
-		if (rgb565_data != NULL)
-		{
-			os_free(rgb565_data);
-			rgb565_data = NULL;
-		}
-		LOGE("DMA2D blend malloc error \n");
-		return BK_FAIL;
-	}
 	return BK_OK;
 }
+
+bk_err_t lcd_backlight_control_enable(uint8_t enable)
+{
+#if (CONFIG_LCD_BACKLIGHT_GPIO_CTRL)
+
+	if (enable)
+	{
+		gpio_dev_unmap(LCD_BACKLIGHT_CTRL_GPIO);
+		bk_gpio_set_capacity(LCD_BACKLIGHT_CTRL_GPIO, 0);
+		BK_LOG_ON_ERR(bk_gpio_disable_input(LCD_BACKLIGHT_CTRL_GPIO));
+		BK_LOG_ON_ERR(bk_gpio_enable_output(LCD_BACKLIGHT_CTRL_GPIO));
+
+#if (LCD_BACKLIGHT_CTRL_ACTIVE_LEVEL)
+		bk_gpio_set_output_high(LCD_BACKLIGHT_CTRL_GPIO);
+#else
+		bk_gpio_set_output_low(LCD_BACKLIGHT_CTRL_GPIO);
 #endif
+		rtos_delay_milliseconds(5);
+	}
+	else
+	{
+
+#if (LCD_BACKLIGHT_CTRL_ACTIVE_LEVEL)
+		bk_gpio_set_output_low(LCD_BACKLIGHT_CTRL_GPIO);
+#else
+		bk_gpio_set_output_high(LCD_BACKLIGHT_CTRL_GPIO);
+#endif
+	}
+
+#endif
+
+	return BK_OK;
+}
+
 
 bk_err_t lcd_driver_init(const lcd_config_t *config)
 {
@@ -1708,6 +2179,8 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 	const lcd_device_t *device = config->device;
 
 	LCD_DIAG_DEBUG_INIT();
+
+	lcd_ldo_power_enable(1);
 
 	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DISP, PM_CPU_FRQ_320M);
 
@@ -1863,17 +2336,36 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 		device->backlight_open();
 	}
 
-#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
 	bk_dma2d_driver_init();
-	ret = lcd_blend_mem_malloc();
+	yuv_data = config->yuv_addr;
+	rgb565_data = config->rgb565_addr;
 	s_lcd.dma2d_blend = true;
-	if (ret != BK_OK)
+	/*if (ret != BK_OK)
 	{
 		bk_dma2d_driver_deinit();
 		s_lcd.dma2d_blend = false;
+	}*/
+#if (USE_DMA2D_BLEND_ISR_CALLBACKS == 1)
+	ret = rtos_init_semaphore_ex(&s_lcd.dma2d_complete_sem, 1, 0);
+	if (ret != BK_OK)
+	{
+		LOGE("%s dma2d_sem init failed: %d\n", __func__, ret);
+		return ret;
 	}
-#endif
+	ret = rtos_init_semaphore_ex(&s_lcd.dma2d_err_sem, 1, 0);
+	if (ret != BK_OK)
+	{
+		LOGE("%s dma2d_err_sem init failed: %d\n", __func__, ret);
+		return ret;
+	}
+	bk_dma2d_int_enable(DMA2D_CFG_ERROR | DMA2D_TRANS_ERROR | DMA2D_TRANS_COMPLETE,1);
+	bk_dma2d_register_int_callback_isr(DMA2D_CFG_ERROR_ISR, dma2d_config_error);
+	bk_dma2d_register_int_callback_isr(DMA2D_TRANS_ERROR_ISR, dma2d_transfer_error);
+	bk_dma2d_register_int_callback_isr(DMA2D_TRANS_COMPLETE_ISR, dma2d_transfer_complete);
+#endif 
 
+#endif
 	s_lcd.enable = true;
 
 	return ret;
@@ -1955,20 +2447,28 @@ bk_err_t lcd_driver_deinit(void)
 			goto out;
 		}
 	}
-#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG  || CONFIG_LCD_FONT_BLEND
 	if (s_lcd.dma2d_blend == true)
 	{
 		bk_dma2d_driver_deinit();
-		if (yuv_data != NULL)
+		yuv_data = NULL;
+		rgb565_data = NULL;
+
+
+#if USE_DMA2D_BLEND_ISR_CALLBACKS
+		ret = rtos_deinit_semaphore(&s_lcd.dma2d_complete_sem);
+		if (ret != BK_OK)
 		{
-			os_free(yuv_data);
-			yuv_data = NULL;
+			LOGE("%s dma2d_complete_sem deinit failed: %d\n", __func__, ret);
+			return ret;
 		}
-		if (rgb565_data != NULL)
+		ret = rtos_deinit_semaphore(&s_lcd.dma2d_err_sem);
+		if (ret != BK_OK)
 		{
-			os_free(rgb565_data);
-			rgb565_data = NULL;
+			LOGE("%s dma2d_err_sem deinit failed: %d\n", __func__, ret);
+			return ret;
 		}
+#endif
 	}
 #endif
 
@@ -2030,12 +2530,14 @@ out:
 
 	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DISP, PM_CPU_FRQ_DEFAULT);
 
+	lcd_ldo_power_enable(0);
+
 	return ret;
 }
 
 static void dma2d_lcd_fill(uint32_t frameaddr, uint16_t width, uint16_t height, uint32_t color)
 {
-	uint32_t color_temp = (color << 16) | color;
+	//uint32_t color_temp = (color << 16) | color;
 	//  os_printf("displat color :%x\r\n", color_temp);
 	dma2d_config_t dma2d_config = {0};
 
@@ -2061,7 +2563,7 @@ static void dma2d_lcd_fill(uint32_t frameaddr, uint16_t width, uint16_t height, 
 	{
 		width = width / 2;
 	}
-	bk_dma2d_start_transfer(&dma2d_config, color_temp, (uint32_t)frameaddr, width, height);
+	bk_dma2d_start_transfer(&dma2d_config, color, (uint32_t)frameaddr, width, height);
 	while (bk_dma2d_is_transfer_busy())
 	{
 	}
@@ -2120,6 +2622,7 @@ bk_err_t bk_lcd_fill_color(lcd_device_id_t id, lcd_disp_framebuf_t *lcd_disp, ui
 
 	switch (id)
 	{
+	#if CONFIG_LCD_ST7796S
 		case LCD_DEVICE_ST7796S:
 		{
 			uint16_t lcd_size_x = 320;
@@ -2168,6 +2671,7 @@ bk_err_t bk_lcd_fill_color(lcd_device_id_t id, lcd_disp_framebuf_t *lcd_disp, ui
 			}
 			break;
 		}
+		#endif
 		default:
 			break;
 	}
@@ -2186,6 +2690,7 @@ bk_err_t bk_lcd_fill_data(lcd_device_id_t id, lcd_disp_framebuf_t *lcd_disp)
 
 	switch (id)
 	{
+#if CONFIG_LCD_ST7796S
 		case LCD_DEVICE_ST7796S:
 		{
 			lcd_size_x = 320;
@@ -2241,6 +2746,7 @@ bk_err_t bk_lcd_fill_data(lcd_device_id_t id, lcd_disp_framebuf_t *lcd_disp)
 #endif
 			break;
 		}
+#endif
 		case LCD_DEVICE_ST7282:
 			lcd_size_x = 480;
 			lcd_size_y = 272;
@@ -2268,6 +2774,7 @@ bk_err_t bk_lcd_draw_point(lcd_device_id_t id, uint16_t x, uint16_t y, uint16_t 
 
 	switch (id)
 	{
+#if CONFIG_LCD_ST7796S
 		case LCD_DEVICE_ST7796S:
 			if (x >= 320 || y >= 480)
 			{
@@ -2276,6 +2783,7 @@ bk_err_t bk_lcd_draw_point(lcd_device_id_t id, uint16_t x, uint16_t y, uint16_t 
 			}
 			lcd_st7796s_set_display_mem_area(x, x + 1, y, y + 1);
 			break;
+#endif
 		default:
 			break;
 	}

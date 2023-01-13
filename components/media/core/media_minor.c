@@ -42,7 +42,6 @@ static void media_minor_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 
 	switch (cmd_buf->param1 >> MEDIA_EVT_BIT)
 	{
-// #ifdef CONFIG_CAMERA
 		case MAILBOX_CMD:
 		{
 			media_msg_t msg;
@@ -61,7 +60,7 @@ static void media_minor_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 
 		}
 		break;
-// #endif
+
 		default:
 			break;
 	}

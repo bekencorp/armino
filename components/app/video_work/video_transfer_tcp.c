@@ -40,6 +40,8 @@ int app_demo_watch_fd_list[APP_DEMO_TCP_LISTEN_MAX];
 int app_demo_tcp_server_fd;
 volatile int app_demo_tcp_run = 0;
 
+media_camera_device_t *get_camera_device(void);
+
 static void app_demo_tcp_set_keepalive(int fd)
 {
 	int opt = 1, ret;
@@ -163,6 +165,7 @@ static void app_demo_tcp_main(beken_thread_arg_t data)
 						setup.send_func = app_demo_tcp_send_packet;
 						setup.start_cb = app_demo_tcp_app_connected;
 						setup.end_cb = app_demo_tcp_app_disconnected;
+						setup.device = get_camera_device();
 
 						setup.pkt_header_size = 0;
 						setup.add_pkt_header = NULL;

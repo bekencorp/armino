@@ -53,7 +53,7 @@ extern void transfer_memcpy_word(uint32_t *dst, uint32_t *src, uint32_t size);
 
 #define SECTOR                  0x1000
 
-#define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
+#define LOGI(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
@@ -71,12 +71,16 @@ typedef struct
 typedef enum
 {
 	STORAGE_TASK_CAPTURE,
+	STORAGE_TASK_SAVE,
 	STORAGE_TASK_EXIT,
 } storage_task_evt_t;
 
 storage_info_t storage_info;
 char *capture_name = NULL;
 storage_flash_t storge_flash;
+bool storage_task_running = false;
+beken_semaphore_t storage_save_sem = NULL;
+
 
 bk_err_t storage_task_send_msg(uint8_t msg_type, uint32_t data)
 {
@@ -198,6 +202,46 @@ static void storage_capture_save(frame_buffer_t *frame)
 #endif
 	LOGI("save jpeg to sd/flash use %lu\n", (after - before) / 26000);
 }
+
+bk_err_t sdcard_read_filelen(char *filename)
+{
+    int ret = BK_FAIL;
+
+#if (CONFIG_FATFS)
+    char cFileName[FF_MAX_LFN];
+    FIL file;
+    FRESULT fr;
+    
+    do{
+        if(!filename)
+        {
+            os_printf("%s param is null\r\n", __FUNCTION__);
+            ret = BK_ERR_PARAM;
+            break;
+        }
+        
+        // step 1: read picture from sd to psram
+        sprintf(cFileName, "%d:/%s", DISK_NUMBER_SDIO_SD, filename);
+        /*open pcm file*/
+        fr = f_open(&file, cFileName, FA_OPEN_EXISTING | FA_READ);
+        if (fr != FR_OK) 
+        {
+            os_printf("open %s fail.\r\n", filename);
+            ret = BK_ERR_OPEN;
+            break;
+        }
+        
+        ret = f_size(&file);
+        f_close(&file);
+    }while(0);
+#else
+    os_printf("Not support\r\n");
+    ret = BK_ERR_NOT_SUPPORT;
+#endif
+
+    return ret;
+}
+
 bk_err_t sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *total_len)
 {
 #if (CONFIG_FATFS)
@@ -271,6 +315,32 @@ bk_err_t sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *total_len
 	return BK_OK;
 }
 
+
+static void  storage_save_frame(frame_buffer_t *frame)
+{
+#if (CONFIG_FATFS)
+	FIL fp1;
+	unsigned int uiTemp = 0;
+	char file_name[50] = {0};
+
+	sprintf(file_name, "%d:/%s", DISK_NUMBER_SDIO_SD, capture_name);
+
+	FRESULT fr = f_open(&fp1, file_name, FA_OPEN_APPEND | FA_WRITE);
+	if (fr != FR_OK)
+	{
+		LOGE("can not open file: %s, error: %d\n", file_name, fr);
+		return;
+	}
+
+	fr = f_write(&fp1, (char *)frame->frame, frame->length, &uiTemp);
+	if (fr != FR_OK)
+	{
+		LOGE("f_write failed 1 fr = %d\r\n", fr);
+	}
+	f_close(&fp1);
+#endif
+}
+
 static void storage_capture_save_handle(void)
 {
 	frame_buffer_t *frame = NULL;
@@ -291,6 +361,33 @@ static void storage_capture_save_handle(void)
 
 }
 
+static void storage_save_frame_handle(void)
+{
+	frame_buffer_t *frame = NULL;
+
+	frame = frame_buffer_fb_read(MODULE_CAPTURE);
+
+	if (frame == NULL)
+	{
+		LOGE("read jpeg NULL\n");
+		return;
+	}
+
+	storage_save_frame(frame);
+
+	frame_buffer_fb_free(frame, MODULE_CAPTURE);
+}
+
+static void storage_save_video_handle(void)
+{
+	while (storage_task_running)
+	{
+		storage_save_frame_handle();
+	};
+
+	rtos_set_semaphore(&storage_save_sem);
+}
+
 
 static void storage_task_entry(beken_thread_arg_t data)
 {
@@ -307,6 +404,10 @@ static void storage_task_entry(beken_thread_arg_t data)
 			{
 				case STORAGE_TASK_CAPTURE:
 					storage_capture_save_handle();
+					break;
+
+				case STORAGE_TASK_SAVE:
+					storage_save_video_handle();
 					break;
 
 				case STORAGE_TASK_EXIT:
@@ -415,6 +516,82 @@ out:
 	MEDIA_EVT_RETURN(param, kNoErr);
 }
 
+
+void storage_save_handle(param_pak_t *param)
+{
+	LOGI("%s, %s\n", __func__, (char *)param->param);
+
+	if (storage_info.capture_state == STORAGE_STATE_ENABLED)
+	{
+		LOGI("%s already capture\n", __func__);
+		goto out;
+	}
+
+	if (storage_task_running)
+	{
+		LOGI("%s save frame is working\n", __func__);
+		goto out;
+	}
+
+	int ret = rtos_init_semaphore_ex(&storage_save_sem, 1, 0);
+
+	if (BK_OK != ret)
+	{
+		LOGE("%s semaphore init failed\n", __func__);
+		goto out;
+	}
+
+	if (capture_name == NULL)
+	{
+		capture_name = (char *)os_malloc(32);
+	}
+
+	os_memcpy(capture_name, (char *)param->param, 31);
+	capture_name[31] = 0;
+
+	storage_task_running = true;
+
+	storage_info.capture_state = STORAGE_STATE_ENABLED;
+
+	storage_task_send_msg(STORAGE_TASK_SAVE, 0);
+
+out:
+	MEDIA_EVT_RETURN(param, kNoErr);
+}
+
+void storage_save_exit_handle(param_pak_t *param)
+{
+	LOGI("%s\n", __func__);
+
+	if (!storage_task_running)
+	{
+		LOGE("%s already exit\n", __func__);
+		goto out;
+	}
+
+	storage_task_running = false;
+
+	storage_info.capture_state = STORAGE_STATE_DISABLED;
+
+	int ret = rtos_get_semaphore(&storage_save_sem, BEKEN_NEVER_TIMEOUT);
+
+	if (BK_OK != ret)
+	{
+		LOGE("%s storage_save_sem get failed\n", __func__);
+	}
+
+	ret = rtos_deinit_semaphore(&storage_save_sem);
+
+	if (BK_OK != ret)
+	{
+		LOGE("%s storage_save_sem deinit failed\n");
+	}
+
+out:
+	MEDIA_EVT_RETURN(param, kNoErr);
+}
+
+
 void storage_event_handle(uint32_t event, uint32_t param)
 {
 	switch (event)
@@ -425,6 +602,14 @@ void storage_event_handle(uint32_t event, uint32_t param)
 
 		case EVENT_STORAGE_CAPTURE_IND:
 			storage_capture_handle((param_pak_t *)param);
+			break;
+
+		case EVENT_STORAGE_SAVE_START_IND:
+			storage_save_handle((param_pak_t *)param);
+			break;
+
+		case EVENT_STORAGE_SAVE_STOP_IND:
+			storage_save_exit_handle((param_pak_t *)param);
 			break;
 	}
 }
@@ -446,5 +631,33 @@ void storage_init(void)
 	storage_info.state = STORAGE_STATE_DISABLED;
 	storage_info.capture_state = STORAGE_STATE_DISABLED;
 	storage_task_start();
+}
+
+
+void lcd_storage_capture_save(char * capture_name, uint8_t *addr, uint32_t len)
+{
+#if (CONFIG_FATFS)
+	FIL fp1;
+	unsigned int uiTemp = 0;
+	char file_name[50] = {0};
+
+	sprintf(file_name, "%d:/%s", DISK_NUMBER_SDIO_SD, capture_name);
+
+	FRESULT fr = f_open(&fp1, file_name, FA_CREATE_ALWAYS | FA_WRITE);
+	if (fr != FR_OK)
+	{
+		os_printf("can not open file: %s, error: %d\n", file_name, fr);
+		return;
+	}
+
+	os_printf("open file:%s!\n", file_name);
+
+	fr = f_write(&fp1, addr, len, &uiTemp);
+	if (fr != FR_OK)
+	{
+		os_printf("f_write failed 1 fr = %d\r\n", fr);
+	}
+	f_close(&fp1);
+#endif
 }
 

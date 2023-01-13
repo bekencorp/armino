@@ -43,14 +43,14 @@
 
 #define TAG "cam_act"
 
-#define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
+#define LOGI(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
 #define DEBUG_INTERVAL (1000 * 2)
 
-typedef void (*camera_disconnect_t)(void);
+typedef void (*camera_connect_state_t)(uint8_t state);
 
 extern void transfer_dump(uint32_t ms);
 
@@ -63,8 +63,7 @@ beken_semaphore_t camera_act_sema = NULL;
 
 static beken_thread_t disc_task = NULL;
 
-camera_disconnect_t camera_disconnect_cb = NULL;
-
+camera_connect_state_t camera_connect_state_change_cb = NULL;
 
 static void camera_debug_dump(timer_id_t timer_id)
 {
@@ -84,14 +83,23 @@ static void camera_debug_dump(timer_id_t timer_id)
 	media_debug_cached->fps_wifi = media_debug->fps_wifi;
 	media_debug_cached->err_dec = media_debug->err_dec;
 
-	LOGI("jpg: %d[%d], dec: %d[%d, %d], lcd: %d[%d], fps: %d[%d], wifi: %d[%d], wifi_read: [%d]\n",
-	     jpg, media_debug->isr_jpeg,
+	if (jpg > 30 || jpg == 0)
+	{
+		media_debug->transfer_timer_us = 50000;
+	}
+	else
+	{
+		media_debug->transfer_timer_us = 1000000 / jpg;
+	}
+
+	LOGI("jpg: %d[%d, %d], dec: %d[%d, %d], lcd: %d[%d], fps: %d[%d], wifi: %d[%d], wifi_read: [%d]\n",
+	     jpg, media_debug->isr_jpeg, media_debug->psram_busy,
 	     dec, media_debug->isr_decoder, err_dec,
 	     lcd, media_debug->isr_lcd,
 	     fps, media_debug->fps_lcd,
 	     wifi, media_debug->fps_wifi, media_debug->wifi_read);
 
-	if ((jpg == 0) && (camera_info.mode == DVP_MODE_JPG || camera_info.mode == DVP_MODE_MIX))
+	if ((jpg == 0) && (camera_info.type == MEDIA_DVP_MJPEG || camera_info.type == MEDIA_DVP_MIX))
 	{
 		if (CAMERA_STATE_DISABLED == get_camera_state())
 		{
@@ -121,7 +129,7 @@ void camera_dvp_reset_open_handle(uint32_t param)
 		dvp_camera_reset_open_ind = false;
 	}
 
-	ret = bk_dvp_camera_open(param, camera_info.mode);
+	ret = bk_dvp_camera_open(param, camera_info.type);
 	if (ret != kNoErr)
 	{
 		dvp_camera_reset_open_ind = false;
@@ -133,7 +141,7 @@ void camera_dvp_reset_open_handle(uint32_t param)
 #endif
 }
 
-void camera_dvp_open_handle(param_pak_t *param, dvp_mode_t mode)
+void camera_dvp_open_handle(param_pak_t *param, media_camera_type_t type)
 {
 	int ret = 0;
 
@@ -148,9 +156,9 @@ void camera_dvp_open_handle(param_pak_t *param, dvp_mode_t mode)
 	}
 
 	camera_info.param = param->param;
-	camera_info.mode = mode;
+	camera_info.type = type;
 
-	ret = bk_dvp_camera_open(param->param, mode);
+	ret = bk_dvp_camera_open(param->param, type);
 
 
 	if (ret != kNoErr)
@@ -219,29 +227,54 @@ void uvc_ble_notice_cb(ble_notice_t notice, void *param)
 	}
 }
 
-static void camera_uvc_disconnect_task_entry(beken_thread_arg_t data)
+static void camera_uvc_connect_state_change_task_entry(beken_thread_arg_t data)
 {
-	if (camera_disconnect_cb)
+	uint8_t state = *(uint8_t *)data;
+
+	LOGI("%s, state:%d\r\n", __func__, state);
+
+	if (camera_connect_state_change_cb)
 	{
-		camera_disconnect_cb();
+		camera_connect_state_change_cb(state);
 	}
 	else
 	{
 		// restart by self
+		if (CAMERA_STATE_ENABLED != get_camera_state())
+		{
+			LOGI("%s, state:%d\r\n", __func__, state);
+			if (state == UVC_CONNECTED)
+			{
+				int ret = bk_uvc_camera_open(camera_info.param, camera_info.type);
+
+				if (ret != kNoErr)
+				{
+					LOGE("%s open failed\n", __func__);
+					return;
+				}
+
+				set_camera_state(CAMERA_STATE_ENABLED);
+
+				if (camera_info.debug)
+				{
+					bk_timer_start(TIMER_ID1, DEBUG_INTERVAL, camera_debug_dump);
+				}
+			}
+		}
 	}
 
 	disc_task = NULL;
 	rtos_delete_thread(NULL);
 }
 
-void camera_uvc_disconect(void)
+void camera_uvc_conect_state(uint8_t state)
 {
 	int ret = rtos_create_thread(&disc_task,
 						 4,
 						 "disc_task",
-						 (beken_thread_function_t)camera_uvc_disconnect_task_entry,
+						 (beken_thread_function_t)camera_uvc_connect_state_change_task_entry,
 						 1024,
-						 (beken_thread_arg_t)NULL);
+						 (beken_thread_arg_t)&state);
 
 	if (BK_OK != ret)
 	{
@@ -250,7 +283,7 @@ void camera_uvc_disconect(void)
 	}
 }
 
-void camera_uvc_open_handle(param_pak_t *param)
+void camera_uvc_open_handle(param_pak_t *param, media_camera_type_t type)
 {
 	int ret = 0;
 
@@ -264,6 +297,7 @@ void camera_uvc_open_handle(param_pak_t *param)
 		ret = kNoErr;
 		goto out;
 	}
+
 #if CONFIG_BTDM_5_2
 	if (bk_ble_get_env_state())
 	{
@@ -286,9 +320,10 @@ void camera_uvc_open_handle(param_pak_t *param)
 	}
 #endif
 
-	camera_info.mode = DVP_MODE_INVALIED;
+	camera_info.type = type;
+	camera_info.param = param->param;
 
-	ret = bk_uvc_camera_open(param->param);
+	ret = bk_uvc_camera_open(param->param, type);
 
 	if (ret != kNoErr)
 	{
@@ -349,24 +384,27 @@ void camera_uvc_reset_handle(uint32_t param)
 
 #ifdef CONFIG_USB_UVC
 
-	if (CAMERA_STATE_DISABLED == get_camera_state())
+	if (param == UVC_DISCONNECT_ABNORMAL)
 	{
-		LOGI("%s already close\n", __func__);
-		return;
+		if (CAMERA_STATE_DISABLED == get_camera_state())
+		{
+			LOGI("%s already close\n", __func__);
+			return;
+		}
+
+		if (camera_info.debug)
+		{
+			bk_timer_stop(TIMER_ID1);
+		}
+
+		bk_uvc_camera_close();
+
+		set_camera_state(CAMERA_STATE_DISABLED);
+
+		//camera_uvc_disconect();
 	}
 
-	if (camera_info.debug)
-	{
-		bk_timer_stop(TIMER_ID1);
-	}
-
-	bk_uvc_camera_close();
-
-	set_camera_state(CAMERA_STATE_DISABLED);
-
-	//frame_buffer_enable(false);
-
-	camera_uvc_disconect();
+	camera_uvc_conect_state((uint8_t)param);
 
 #endif
 
@@ -374,7 +412,7 @@ void camera_uvc_reset_handle(uint32_t param)
 
 }
 
-void camera_net_open_handle(param_pak_t *param)
+void camera_net_open_handle(param_pak_t *param, media_camera_type_t type)
 {
 	int ret = 0;
 
@@ -389,7 +427,7 @@ void camera_net_open_handle(param_pak_t *param)
 		goto out;
 	}
 
-	camera_info.mode = DVP_MODE_INVALIED;
+	camera_info.type = MEDIA_CAMERA_UNKNOW;
 
 #if CONFIG_BTDM_5_2
 	if (bk_ble_get_env_state())
@@ -413,7 +451,7 @@ void camera_net_open_handle(param_pak_t *param)
 	}
 #endif
 
-	ret = bk_net_camera_open();
+	ret = bk_net_camera_open(param->param, type);
 
 	if (ret != kNoErr)
 	{
@@ -465,13 +503,13 @@ void camera_event_handle(uint32_t event, uint32_t param)
 	switch (event)
 	{
 		case EVENT_CAM_DVP_JPEG_OPEN_IND:
-			camera_dvp_open_handle((param_pak_t *)param, DVP_MODE_JPG);
+			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_MJPEG);
 			break;
 		case EVENT_CAM_DVP_YUV_OPEN_IND:
-			camera_dvp_open_handle((param_pak_t *)param, DVP_MODE_YUV);
+			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_YUV);
 			break;
 		case EVENT_CAM_DVP_MIX_OPEN_IND:
-			camera_dvp_open_handle((param_pak_t *)param, DVP_MODE_MIX);
+			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_MIX);
 			break;
 		case EVENT_CAM_DVP_CLOSE_IND:
 			camera_dvp_close_handle((param_pak_t *)param);
@@ -479,8 +517,11 @@ void camera_event_handle(uint32_t event, uint32_t param)
 		case EVENT_CAM_DVP_RESET_OPEN_IND:
 			camera_dvp_reset_open_handle(param);
 			break;
-		case EVENT_CAM_UVC_OPEN_IND:
-			camera_uvc_open_handle((param_pak_t *)param);
+		case EVENT_CAM_UVC_MJPEG_OPEN_IND:
+			camera_uvc_open_handle((param_pak_t *)param, MEDIA_UVC_MJPEG);
+			break;
+		case EVENT_CAM_UVC_H264_OPEN_IND:
+			camera_uvc_open_handle((param_pak_t *)param, MEDIA_UVC_H264);
 			break;
 		case EVENT_CAM_UVC_CLOSE_IND:
 			camera_uvc_close_handle((param_pak_t *)param);
@@ -488,8 +529,11 @@ void camera_event_handle(uint32_t event, uint32_t param)
 		case EVENT_CAM_UVC_RESET_IND:
 			camera_uvc_reset_handle(param);
 			break;
-		case EVENT_CAM_NET_OPEN_IND:
-			camera_net_open_handle((param_pak_t *)param);
+		case EVENT_CAM_NET_MJPEG_OPEN_IND:
+			camera_net_open_handle((param_pak_t *)param, MEDIA_UVC_MJPEG);
+			break;
+		case EVENT_CAM_NET_H264_OPEN_IND:
+			camera_net_open_handle((param_pak_t *)param, MEDIA_UVC_H264);
 			break;
 		case EVENT_CAM_NET_CLOSE_IND:
 			camera_net_close_handle((param_pak_t *)param);
@@ -535,9 +579,9 @@ void camera_init(void)
 	camera_info.debug = true;
 }
 
-bk_err_t media_app_register_uvc_disconnect_cb(void *cb)
+bk_err_t media_app_register_uvc_connect_state_cb(void *cb)
 {
-	camera_disconnect_cb = cb;
+	camera_connect_state_change_cb = cb;
 
 	return BK_OK;
 }

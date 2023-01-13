@@ -312,6 +312,26 @@ bk_err_t bk_dma2d_blend(dma2d_blend_t *dma2d_blend);
 void bk_dma2d_pixel_convert(dma2d_pixel_convert_t *pixel_convert);
 
 /**
+  * @brief  config dma2d fill color
+  *
+  * @param    - dma2d_fill_t struct  to config dma2d fill  params
+  * 
+  * @return
+  *     - BK_OK: succeed
+  *     - others: other errors.
+  */
+bk_err_t dma2d_fill(dma2d_fill_t *fill);
+
+/**
+  * @brief  start dma2d transfer
+  * 
+  * @return
+  *     - BK_OK: succeed
+  *     - others: other errors.
+  */
+bk_err_t dma2d_start_transfer(void);
+
+/**
   * @brief  DMA2D API END
   */
 

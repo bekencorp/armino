@@ -57,6 +57,11 @@ static inline uint32_t dma_ll_dev_to_req_mux(uint32 req_mux)
         CASE_DEV(USB);
         CASE_DEV(AUDIO);
         CASE_DEV(I2S);
+        CASE_DEV(I2S_CH1);
+        CASE_DEV(I2S_CH2);
+        CASE_DEV(I2S_RX);
+        CASE_DEV(I2S_RX_CH1);
+        CASE_DEV(I2S_RX_CH2);
         CASE_DEV(LCD_CMD);
         CASE_DEV(LCD_DATA);
         CASE_DEV(JPEG);

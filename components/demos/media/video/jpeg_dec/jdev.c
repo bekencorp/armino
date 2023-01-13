@@ -97,47 +97,49 @@ JPEG_ITCM int output_func (	/* 1:Ok, 0:Aborted */
 	uint32_t nx, ny, xc, wd;
 	uint8_t unit = 0;
 
-#if (JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4)
-	uint32_t *src_w, *dst_w;
-#else
-	uint8_t *src, *dst;
-#endif
+	uint32_t *src_w = NULL, *dst_w = NULL;
+	uint8_t *src = NULL, *dst = NULL;
 
-#if (JD_FORMAT == 0)
+if (JD_FORMAT == 0)
 	{
 		unit = 3;		/* Byte width of a pixel */
 	}
-#elif (JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4)
+else if ((JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4))
 	{
 		unit = 2;		/* Byte width of a pixel */
 	}
-#elif  (JD_FORMAT == 2)
+else if  (JD_FORMAT == 2)
 	{
 		unit = 1;
 	}
-#else
+else
 	{
 		os_printf("JD_FORMAT error!\r\n");
 		return JDR_FMT1;
 	}
-#endif
 
 	nx = rect->right - rect->left + 1;
 	ny = rect->bottom - rect->top + 1;	/* Number of lines of the rectangular */
 
-#if (JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4)
+if ((JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4))
+{
 	src_w = (uint32_t*)bitmap;
-#else
+}
+else
+{
 	src = (uint8_t*)bitmap;				/* RGB bitmap to be output */
-#endif
+}
 
 	wd = jpeg_dec_st.line_wbyte;							/* Number of bytes a line of the frame buffer */
 
-#if (JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4)
+if ((JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4))
+{
 	dst_w = (uint32_t*)(jpeg_dec_st.outputbuf + rect->top * wd + rect->left * unit);
-#else
+}
+else
+{
 	dst = jpeg_dec_st.outputbuf + rect->top * wd + rect->left * unit;	/* Left-top of the destination rectangular in the frame buffer */
-#endif
+}
 
 	// os_printf("output_func[%d %d %d %d]: dst: %p.\r\n",
 	// 			 rect->top, rect->left, rect->bottom, rect->right,dst);
@@ -146,23 +148,27 @@ JPEG_ITCM int output_func (	/* 1:Ok, 0:Aborted */
 	do {	/* Copy the rectangular to the frame buffer */
 		xc = nx;
 		do {
-#if (JD_FORMAT == 0)
+if (JD_FORMAT == 0)
+{
 				*dst++ = *src++;
 				*dst++ = *src++;
 				*dst++ = *src++;
-#elif (JD_FORMAT == 2)
+}
+else if (JD_FORMAT == 2)
+{
 				*dst++ = *src++;
-#elif (JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4)
+}
+else if ((JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4))
+{
 				*dst_w++ = *src_w++;
 				--xc;
-#endif
+}
 		} while (--xc);
 
-#if (JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4)
+if ((JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4))
 		dst_w += (wd - nx * unit) >> 2;
-#else
+else
 		dst += wd - nx * unit;
-#endif
 	} while (--ny);
 
 	return 1;	/* Continue to decompress */
@@ -204,6 +210,27 @@ bk_err_t bk_jpeg_dec_sw_init(void)
 	return kNoErr;
 }
 
+JPEG_ITCM bk_err_t bk_jpeg_get_img_info(uint32_t frame_size, uint8_t *src_buf, sw_jpeg_dec_res_t *result)
+{
+	bk_err_t ret = BK_OK;
+	JDEC jd;		/* TJpgDec decompression object */
+
+	jpeg_dec_st.rd_ptr = 0;
+	jpeg_dec_st.inputbuf = src_buf;
+	jpeg_dec_st.jpg_file_size = frame_size;
+	ret = jd_prepare_sw(&jd, input_func, jpeg_dec_st.workbuf, WORK_AREA_SIZE, NULL);
+
+	if (ret == JDR_OK) {
+		result->pixel_x = jd.width >> SCALE;		/* Image size to output */
+		result->pixel_y = jd.height >> SCALE;
+	} else {	/* Error occured on prepare */
+		os_printf("jpeg get img infor fail %d\r\n", ret);
+	}
+
+	return ret;
+}
+
+
 JPEG_ITCM bk_err_t bk_jpeg_dec_sw_start(uint32_t frame_size, uint8_t *src_buf, uint8_t *dst_buf, sw_jpeg_dec_res_t *result)
 {
 	bk_err_t ret = BK_OK;
@@ -229,25 +256,24 @@ JPEG_ITCM bk_err_t bk_jpeg_dec_sw_start(uint32_t frame_size, uint8_t *src_buf, u
 		jpeg_dec_st.width = xs;
 		jpeg_dec_st.height = ys;
 
-#if (JD_FORMAT == 0)
+if (JD_FORMAT == 0)
 		{
 			xb = (xs * 3 + 3) & ~3;		/* Byte width of the frame buffer */
 		}
-#elif (JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4)
+else if ((JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4))
 		{
 			xb = xs * 2;		/* Byte width of the frame buffer */
 		}
-#elif (JD_FORMAT == 2)
+else if (JD_FORMAT == 2)
 		{
 			xb = xs;
 		}
-#else
+else
 		{
 			os_printf("JD_FORMAT error!\r\n");
 			ret = JDR_FMT1;
 			return ret;
 		}
-#endif
 		
 		jpeg_dec_st.line_wbyte = xb;
 

@@ -135,9 +135,9 @@ menu "Cli"
 		bool "Enable PSRAM Test"
 		default n
 
-	config DVP_TEST
+	config CAMERA_TEST
 		depends on CLI
-		bool "Enable DVP Test"
+		bool "Enable CAMERA Test"
 		default n
 
 	config CM33_TEST

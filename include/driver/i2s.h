@@ -15,6 +15,8 @@
 #pragma once
 #include <common/bk_include.h>
 #include <driver/i2s_types.h>
+#include <modules/audio_ring_buff.h>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -533,7 +535,7 @@ bk_err_t bk_i2s_get_data_addr(uint32_t *i2s_data_addr);
  *    - BK_ERR_AUD_NOT_INIT: i2s driver is not init
  *    - others: other errors.
  */
-bk_err_t bk_i2s_set_ratio(i2s_rate_t *rate);
+bk_err_t bk_i2s_set_samp_rate(i2s_samp_rate_t samp_rate);
 
 /**
  * @brief     register i2s isr
@@ -567,6 +569,94 @@ bk_err_t bk_i2s_set_ratio(i2s_rate_t *rate);
  */
 bk_err_t bk_i2s_register_i2s_isr(i2s_isr_id_t isr_id, i2s_isr_t isr, void *param);
 
+/**
+ * @brief     init i2s channel to send or receive data by dma
+ *
+ * This API config dma to carry i2s data
+ *
+ * @param chl i2s channel
+ * @type Tx or Rx config
+ * @buff_size the size(byte) of ring buffer to send or receive data
+ * @data_handle_cb the callback called by dma finish isr when dma carry "buff_size/2" data complete
+ * @rb save RingBufferContext, and send or receive data use it
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_AUD_NOT_INIT: i2s driver is not init
+ *    - others: other errors.
+ */
+bk_err_t bk_i2s_chl_init(i2s_channel_id_t chl, i2s_txrx_type_t type, uint32_t buff_size, i2s_data_handle_cb data_handle_cb, RingBufferContext **rb);
+
+/**
+ * @brief     deinit i2s channel
+ *
+ * This API config dma to carry i2s data
+ *
+ * @param chl i2s channel
+ * @type Tx or Rx config
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_AUD_NOT_INIT: i2s driver is not init
+ *    - others: other errors.
+ */
+bk_err_t bk_i2s_chl_deinit(i2s_channel_id_t chl, i2s_txrx_type_t type);
+
+/**
+ * @brief     start i2s
+ *
+ * This API start dma and i2s to send and receive data
+ *
+ * Usage example:
+ *
+ *     static RingBufferContext *ch1_tx_rb;
+ *
+ *     //channel 1 tx callback
+ *     static int ch1_tx_data_handle_cb(uint32_t size)
+ *     {
+ *         ring_buffer_write(ch1_tx_rb, ch1_temp, size);
+ *         return size;
+ *     }
+ *
+ *     i2s_config_t i2s_config = DEFAULT_I2S_CONFIG();
+ *     //init i2s driver
+ *     bk_i2s_driver_init();
+ *     //init and config i2s
+ *     bk_i2s_init(I2S_GPIO_GROUP_0, &i2s_config);
+ *     bk_i2s_chl_init(I2S_CHANNEL_1, I2S_TXRX_TYPE_TX, 640, ch1_tx_data_handle_cb, &ch1_tx_rb);
+ *     uint8_t *temp_data = (uint8_t *)os_malloc(640);
+ *     os_memset(temp_data, 0x00, 640);
+ *     size = ring_buffer_write(ch1_tx_rb, temp_data, 640);
+ *     os_printf("ring_buffer_write, size: %d \n", size);
+ *     os_free(temp_data);
+ *     bk_i2s_start();
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_AUD_NOT_INIT: i2s driver is not init
+ *    - BK_ERR_I2S_ISR_ID: i2s isr id is invalid
+ *    - others: other errors.
+ */
+bk_err_t bk_i2s_start(void);
+
+/**
+ * @brief     stop i2s
+ *
+ * This API stop i2s and dma to carry i2s data
+ *
+ * Usage example:
+ *
+ *     bk_i2s_stop();
+ *     bk_i2s_chl_deinit(I2S_CHANNEL_1, I2S_TXRX_TYPE_TX);
+ *     bk_i2s_deinit();
+ *     bk_i2s_driver_deinit();
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_AUD_NOT_INIT: i2s driver is not init
+ *    - others: other errors.
+ */
+bk_err_t bk_i2s_stop(void);
 
 /**
  * @}

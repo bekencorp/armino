@@ -138,3 +138,21 @@ bk_err_t bk_aud_uac_unregister_spk_callback(void)
 #endif
 }
 
+bk_err_t bk_aud_uac_set_spk_samp_rate(uint32_t value)
+{
+#if CONFIG_USB_UAC
+	return bk_usb_uac_set_hz(USB_UAC_SPEAKER_DEVICE, value);
+#else
+	return BK_OK;
+#endif
+}
+
+bk_err_t bk_aud_uac_set_mic_samp_rate(uint32_t value)
+{
+#if CONFIG_USB_UAC
+	return bk_usb_uac_set_hz(USB_UAC_MIC_DEVICE, value);
+#else
+	return BK_OK;
+#endif
+}
+

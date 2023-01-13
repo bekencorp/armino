@@ -213,8 +213,8 @@ extern "C" {
 #define CLI_CFG_IPERF       0
 #endif
 
-#if (CONFIG_I2S && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_I2S         0
+#if (CONFIG_I2S_TEST && (!CONFIG_SLAVE_CORE))
+#define CLI_CFG_I2S         1
 #else
 #define CLI_CFG_I2S         0
 #endif
@@ -232,7 +232,7 @@ extern "C" {
 #endif
 
 #if (CONFIG_AUD_INTF_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_AUD_INTF    0
+#define CLI_CFG_AUD_INTF    1
 #endif
 
 #if (CONFIG_AUDIO_RSP_TEST && (!CONFIG_SLAVE_CORE))
@@ -258,7 +258,7 @@ extern "C" {
 #endif
 
 #if (CONFIG_TOUCH_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_TOUCH	0
+#define CLI_CFG_TOUCH	1
 #else
 #define CLI_CFG_TOUCH	0
 #endif
@@ -312,7 +312,7 @@ extern "C" {
 #define CLI_CFG_vault		0
 #endif
 
-#if (CONFIG_CAMERA && CONFIG_DVP_TEST &&(!CONFIG_SLAVE_CORE))
+#if (CONFIG_CAMERA && CONFIG_CAMERA_TEST &&(!CONFIG_SLAVE_CORE))
 #define CLI_CFG_DVP        1
 #else
 #define CLI_CFG_DVP        0

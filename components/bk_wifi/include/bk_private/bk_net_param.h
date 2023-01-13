@@ -26,9 +26,7 @@ extern "C" {
 #define NET_INFO_FAST_CONNECT_OFFSET		0x6
 
 typedef enum{
-#if CONFIG_WIFI_FAST_CONNECT
     FAST_CONNECT_ITEM	= 0x00001111,
-#endif
     AUTO_CONNECT_ITEM	= 0x11111111,
     WIFI_MODE_ITEM	= 0x22222222,
     DHCP_MODE_ITEM	= 0x33333333,
@@ -77,7 +75,6 @@ typedef struct item_charge_st
 #endif
 }ITEM_CHARGE_ST,*ITEM_CHARGE_ST_PTR;
 
-#if CONFIG_WIFI_FAST_CONNECT
 typedef struct item_fastconnect_st
 {
 	uint8_t ssid[33];
@@ -91,7 +88,6 @@ typedef struct item_fastconnect_st
 	uint8_t gw[4];
 	uint8_t dns1[4];
 }ITEM_FASTCONNECT_ST,*ITEM_FASTCONNECT_ST_PTR;
-#endif
 
 typedef struct item_ssidkey_st
 {

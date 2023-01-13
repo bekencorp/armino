@@ -124,7 +124,7 @@ $(rel_targets):
 relall: $(rel_targets)
 
 $(cmake_supported_targets): common
-	@$(ARMINO_TOOL) -B ./$(PROJECT_BUILD_DIR) -P ./$(PROJECT_DIR) $(ARMINO_TARGET)
+	@$(ARMINO_TOOL) -B ./$(PROJECT_BUILD_DIR) -P ./$(PROJECT_DIR) $@
 
 $(clean_targets):
 	@$(ARMINO_TOOL_WRAPPER) $(ARMINO_DIR) $(PROJECT_DIR) $(PROJECT_NAME) $@

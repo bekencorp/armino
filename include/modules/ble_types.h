@@ -392,6 +392,9 @@ typedef enum
     BLE_5_CONN_UPD_PAR_ASK,
 
     BLE_5_SHUTDOWN_SUCCEED,
+
+    ///delete service event
+    BLE_5_DELETE_SERVICE_DONE,
 } ble_notice_t;
 
 typedef enum{
@@ -553,10 +556,41 @@ typedef struct
     uint16_t length;      /**< The data length read */
 } ble_read_req_t;
 
+
+/**<Advertising report type(evt_type(bit0~bit2))*/
+enum adv_report_type
+{
+    /// Extended advertising report
+    REPORT_TYPE_ADV_EXT = 0,
+    /// Legacy advertising report
+    REPORT_TYPE_ADV_LEG,
+    /// Extended scan response report
+    REPORT_TYPE_SCAN_RSP_EXT,
+    /// Legacy scan response report
+    REPORT_TYPE_SCAN_RSP_LEG,
+    /// Periodic advertising report
+    REPORT_TYPE_PER_ADV,
+};
+
+/**<Advertising report information(evt_type(bit3~bit6))*/
+enum adv_report_info
+{
+    /// Report Type
+    REPORT_INFO_REPORT_TYPE_MASK    = 0x07,
+    /// Report is complete
+    REPORT_INFO_COMPLETE_BIT        = (1 << 3),
+    /// Connectable advertising
+    REPORT_INFO_CONN_ADV_BIT        = (1 << 4),
+    /// Scannable advertising
+    REPORT_INFO_SCAN_ADV_BIT        = (1 << 5),
+    /// Directed advertising
+    REPORT_INFO_DIR_ADV_BIT         = (1 << 6),
+};
+
 typedef struct
 {
     uint8_t actv_idx;     /**< The index of the activity */
-    uint8_t evt_type;     /**< Event type */
+    uint8_t evt_type;     /**< Event type (see enum adv_report_info and adv_report_type)*/
     uint8_t adv_addr_type;/**< Advertising address type: public/random */
     uint8_t adv_addr[6];  /**<Advertising address value */
     uint8_t data_len;     /**< Data length in advertising packet */
@@ -606,9 +640,9 @@ typedef struct
 {
     /// 16 bits UUID LSB First
     uint8_t uuid[16];
-    /// Attribute Permissions (see enum attm_perm_mask)
+    /// Attribute Permissions (see enum bk_ble_perm_mask)
     uint16_t perm;
-    /// Attribute Extended Permissions (see enum attm_value_perm_mask)
+    /// Attribute Extended Permissions (see enum bk_ble_ext_perm_mask)
     uint16_t ext_perm;
     /// Attribute Max Size
     /// note: for characteristic declaration contains handle offset
@@ -654,67 +688,154 @@ typedef struct
     uint8_t  phy_opt;                       /**< PHY options  */
 } ble_set_phy_t;
 
+/// Type of advertising that can be created
+enum adv_type
+{
+    /// Legacy advertising
+    ADV_TYPE_LEGACY = 0,
+    /// Extended advertising
+    ADV_TYPE_EXTENDED,
+    /// Periodic advertising
+    ADV_TYPE_PERIODIC,
+};
+
+/// Advertising properties bit field bit positions
+enum adv_prop_bf
+{
+    /// Indicate that advertising is connectable, reception of CONNECT_REQ or AUX_CONNECT_REQ
+    /// PDUs is accepted. Not applicable for periodic advertising.
+    ADV_PROP_CONNECTABLE_BIT     = (1UL<<(0)),
+
+    /// Indicate that advertising is scannable, reception of SCAN_REQ or AUX_SCAN_REQ PDUs is
+    /// accepted
+    ADV_PROP_SCANNABLE_BIT       = (1UL<<(1)),
+
+    /// Indicate that advertising targets a specific device. Only apply in following cases:
+    ///   - Legacy advertising: if connectable
+    ///   - Extended advertising: connectable or (non connectable and non discoverable)
+    ADV_PROP_DIRECTED_BIT        = (1UL<<(2)),
+
+    /// Indicate that High Duty Cycle has to be used for advertising on primary channel
+    /// Apply only if created advertising is not an extended advertising
+    ADV_PROP_HDC_BIT             = (1UL<<(3)),
+
+    /// Use legacy advertising PDUs
+    ADV_PROP_PROP_LEGACY_BIT     = (1UL<<(4)),
+
+    /// Enable anonymous mode. Device address won't appear in send PDUs
+    /// Valid only if created advertising is an extended advertising
+    ADV_PROP_ANONYMOUS_BIT       = (1UL<<(5)),
+
+    /// Include TX Power in the extended header of the advertising PDU.
+    /// Valid only if created advertising is not a legacy advertising
+    ADV_PROP_TX_PWR_BIT          = (1UL<<(6)),
+};
+
+///Advertising channels enables
+enum adv_chnl_map
+{
+    ///Byte value for advertising channel map for channel 37 enable
+    ADV_CHNL_37                = 0x01,
+    ///Byte value for advertising channel map for channel 38 enable
+    ADV_CHNL_38                = 0x02,
+    ///Byte value for advertising channel map for channel 39 enable
+    ADV_CHNL_39                = 0x04,
+    ///Byte value for advertising channel map for channel 37, 38 and 39 enable
+    ADV_ALL_CHNLS              = 0x07,
+};
+
+/// PHY Type
+enum phy_type_le
+{
+    /// LE 1M
+    PHY_TYPE_LE_1M = 1,
+    /// LE 2M
+    PHY_TYPE_LE_2M,
+    /// LE Coded
+    PHY_TYPE_LE_CODED,
+};
+
+/// Initiating PHY Type
+enum initiating_phy_type_le
+{
+    /// LE 1M
+    INIT_PHY_TYPE_LE_1M = (1UL<<(0)),
+    /// LE 2M
+    INIT_PHY_TYPE_LE_2M = (1UL<<(1)),
+    /// LE Coded
+    INIT_PHY_TYPE_LE_CODED = (1UL<<(2)),
+};
+
 typedef struct
 {
     /// Own address type:  public=0 / random=1 / rpa_or_pub=2 / rpa_or_rnd=3
     uint8_t own_addr_type;
-    /// Advertising type (@see enum gapm_adv_type)
+    /// Advertising type (@see enum adv_type)
     uint8_t adv_type;
-    /// Bit field indicating the channel mapping
+    /// Bit field indicating the channel mapping (@see enum adv_chnl_map)
     uint8_t chnl_map;
-    /// Bit field value provided advertising properties (@see enum gapm_adv_prop for bit signification)
+    /// Bit field value provided advertising properties (@see enum adv_prop_bf)
     uint16_t adv_prop;
-    /// Minimum advertising interval (in unit of 625us). Must be greater than 20ms
+    /// Minimum advertising interval (in unit of 625us). Must be greater than or equal to 20ms
     uint32_t adv_intv_min;
-    /// Maximum advertising interval (in unit of 625us). Must be greater than 20ms
+    /// Maximum advertising interval (in unit of 625us). Must be greater than or equal to 20ms
     uint32_t adv_intv_max;
-    /// Indicate on which PHY primary advertising has to be performed (@see enum gapm_phy_type)
+    /// Indicate on which PHY primary advertising has to be performed (@see enum phy_type_le)
     /// Note that LE 2M PHY is not allowed and that legacy advertising only support LE 1M PHY
     uint8_t prim_phy;
-    /// Indicate on which PHY secondary advertising has to be performed (@see enum gapm_phy_type)
+    /// Indicate on which PHY secondary advertising has to be performed (@see enum phy_type_le)
     uint8_t second_phy;
 } ble_adv_param_t;
 
 typedef struct
 {
-    /// Own address type (@see enum gapm_own_addr)
+    /// Own address type:  public=0 / random=1 / rpa_or_pub=2 / rpa_or_rnd=3
     uint8_t own_addr_type;
-    /// on which the advertising packets should be received
+    /// on which the advertising packets should be received:  LE 1M=1 / LE CODED=4 / LE 1M and LE CODED=5
     uint8_t scan_phy;
-    /// Scan interval
+    /// Scan interval (in unit of 625us). Must be greater than or equal to 2.5ms
     uint16_t scan_intv;
-    /// Scan window
+    /// Scan window (in unit of 625us). Must be greater than or equal to 2.5ms
     uint16_t scan_wd;
 } ble_scan_param_t;
 
 typedef struct
 {
-    /// Connection interval minimum
+    /// Connection interval minimum (in unit of 1.25ms). Must be greater than or equal to 7.5ms
     uint16_t intv_min;
-    /// Connection interval maximum
+    /// Connection interval maximum (in unit of 1.25ms). Must be greater than or equal to 7.5ms
     uint16_t intv_max;
-    /// Connection latency
+    /// Connection latency. The range is 0x0000 to 0x01F3
     uint16_t con_latency;
-    /// Link supervision timeout
+    /// Link supervision timeout(in unit of 10ms). Must be greater than or equal to 100ms 
     uint16_t sup_to;
-    /// on which the advertising packets should be received on the primary advertising physical channel
+    /// on which the advertising packets should be received on the primary advertising physical channel (@see enum phy_type_le)
     uint8_t init_phys;
 } ble_conn_param_t;
 
 
+/// Constant Tone Extension sync filtering type
+enum ble_sync_cte_type
+{
+    /// Do not sync to packets with an AoA Constant Tone Extension
+    CTE_NO_SYNC_WITH_AOA          = (1 << 0),
+    /// Do not sync to packets with an AoD Constant Tone Extension with 1 us slots
+    CTE_NO_SYNC_WITH_AOD_1US_SLOT = (1 << 1),
+    /// Do not sync to packets with an AoD Constant Tone Extension with 2 us slots
+    CTE_NO_SYNC_WITH_AOD_2US_SLOT = (1 << 2),
+    /// Do not sync to packets with a type 3 Constant Tone Extension (currently reserved for future use)
+    CTE_NO_SYNC_WITH_TYPE_3       = (1 << 3),
+    /// Do not sync to packets without a Constant Tone Extension
+    CTE_NO_SYNC_WITHOUT_CTE       = (1 << 4),
+};
+
 typedef struct
 {
-
-    /// Periodic synchronization type (@see enum gapm_per_sync_type)
-//    uint8_t                         type;
-    /// Connection index used for periodic sync info reception (only valid for GAPM_PER_SYNC_TYPE_PAST)
-//    uint8_t                         conidx;
-
     /// 1 to disable periodic advertising report, 0 to enable them by default
     uint8_t                         report_disable;
 
 
-    /// adv sid of advertiser
+    /// adv sid of advertiser(0x00 to 0x0F)
     uint8_t adv_sid;
 
     /// Address of advertiser with which synchronization has to be established (used only if use_pal is false)
@@ -727,7 +848,7 @@ typedef struct
     uint16_t                        skip;
     /// Synchronization timeout for the periodic advertising (in unit of 10ms between 100ms and 163.84s)
     uint16_t                        sync_to;
-    /// Type of Constant Tone Extension device should sync on (@see enum gapm_sync_cte_type).
+    /// Type of Constant Tone Extension device should sync on (@see enum ble_sync_cte_type).
     uint8_t                         cte_type;
 } ble_periodic_param_t;
 

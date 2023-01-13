@@ -4,11 +4,6 @@ menu "DEMOS_DOORBELL"
 		depends on MEDIA
 		default n
 
-	config DOORBELL_DEMO1
-		depends on DOORBELL
-		bool "enable doorbell demo1"
-		default n
-
 	config DOORBELL_DEMO2
 		depends on DOORBELL
 		bool "enable doorbell demo2"

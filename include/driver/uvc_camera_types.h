@@ -21,6 +21,48 @@
 extern "C" {
 #endif
 
+#define BK_UVC_CONFIG_ERROR    (BK_ERR_UVC_BASE)
+#define BK_UVC_NO_MEMORY       (BK_ERR_UVC_BASE - 1)
+#define BK_UVC_NO_RESOURCE     (BK_ERR_UVC_BASE - 2)
+#define BK_UVC_PPI_ERROR       (BK_ERR_UVC_BASE - 3)
+#define BK_UVC_DISCONNCT       (BK_ERR_UVC_BASE - 4)
+#define BK_UVC_NO_RESPON       (BK_ERR_UVC_BASE - 5)
+#define BK_UVC_DMA_ERROR       (BK_ERR_UVC_BASE - 6)
+#define BK_UVC_NOT_PERMIT      (BK_ERR_UVC_BASE - 7)
+
+#define USB_UVC_FIFO_ADDR      (0x46002024)
+#define USB_UVC_HEAD_LEN       12
+#define UVC_PPI_TYPE_CNT       15
+
+typedef enum {
+	UVC_DISCONNECT_NORMAL,
+	UVC_DISCONNECT_ABNORMAL,
+	UVC_CONNECTED,
+	UVC_WORKING_START,
+	UVC_WORKING_STOP,
+	UVC_STATE_UNKNOW,
+} uvc_state_t;
+
+typedef enum {
+	UVC_SET_PARAM,
+	UVC_START,
+	UVC_STOP,
+	UVC_EOF,
+	UVC_CAPTURE,
+	UVC_EXIT,
+}uvc_msg_type_t;
+
+typedef struct {
+	uint8_t  type;
+	uint32_t data;
+}uvc_msg_t;
+
+typedef struct {
+	uint16_t fps;
+	uint16_t width;
+	uint16_t height;
+}uvc_camera_device_t;
+
 typedef struct {
 	uint8_t *rxbuf;
 	uint8_t mem_status;
@@ -44,41 +86,21 @@ typedef struct {
 } uvc_desc_t;
 
 typedef struct {
-	uint16_t fps;
-	uint16_t width;
-	uint16_t height;
-}uvc_camera_device_t;
-
-typedef struct {
-	uint8_t  type;
-	uint32_t data;
-}uvc_msg_t;
-
-typedef enum {
-	UVC_MEM_IDLE,
-	UVC_MEM_BUSY,
-	UVC_STATUS_MAX,
-} uvc_memory_status_t;
-
-typedef enum {
-	UVC_SET_PARAM,
-	UVC_START,
-	UVC_STOP,
-	UVC_EOF,
-	UVC_CAPTURE,
-	UVC_EXIT,
-}uvc_msg_type_t;
-
+	media_camera_type_t type;
+	uvc_camera_device_t device;
+	void (*connect_state_change_cb)(uvc_state_t state);
+	void (*uvc_packet_rx_cb)(uint8_t *data, uint32_t length);
+} uvc_config_t;
 
 typedef struct
 {
-	uvc_camera_device_t *device;
+	uvc_config_t *uvc_config;
 	int (*fb_init)(media_ppi_t max_ppi);
 	int (*fb_deinit) (void);
 	void (*fb_complete)(frame_buffer_t* buffer);
 	frame_buffer_t* (*fb_malloc)(void);
 	void (*fb_free)(frame_buffer_t* buffer);
-	void (*uvc_disconnect)(void);
+	void (*uvc_connect_state_change_cb)(uvc_state_t state);
 } uvc_camera_config_t;
 
 

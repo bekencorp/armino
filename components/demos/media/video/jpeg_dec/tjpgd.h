@@ -107,6 +107,8 @@ struct JDEC {
 /* TJpgDec API functions */
 JPEG_ITCM JRESULT jd_prepare_sw (JDEC* jd, size_t (*infunc)(JDEC*,uint8_t*,size_t), void* pool, size_t sz_pool, void* dev);
 JPEG_ITCM JRESULT jd_decomp_sw (JDEC* jd, int (*outfunc)(JDEC*,void*,JRECT*), uint8_t scale);
+void jd_set_JD_FORMAT(JD_FORMAT_OUTPUT format);
+JD_FORMAT_OUTPUT jd_get_JD_FORMAT(void);
 
 
 #ifdef __cplusplus

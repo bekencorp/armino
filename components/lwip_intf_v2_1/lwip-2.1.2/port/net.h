@@ -23,9 +23,7 @@ extern void sta_ip_mode_set(int dhcp);
 extern bool etharp_tmr_flag;
 extern void net_begin_send_arp_reply(bool is_send_arp, bool is_allow_send_req);
 #endif
-#if CONFIG_LWIP_FAST_DHCP
 extern void net_restart_dhcp(void);
-#endif
 
 #ifdef __cplusplus
 }

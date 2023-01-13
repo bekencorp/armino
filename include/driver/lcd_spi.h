@@ -7,10 +7,16 @@
 extern "C" {
 #endif
 
-
+#if CONFIG_LCD_ST7710S
+#define LCD_SPI_CLK_GPIO  GPIO_9
+#define LCD_SPI_CSX_GPIO  GPIO_5//GPIO_5//GPIO_8
+#define LCD_SPI_SDA_GPIO  GPIO_8//GPIO_8//GPIO_5
+#else
 #define LCD_SPI_CLK_GPIO  GPIO_2
 #define LCD_SPI_CSX_GPIO  GPIO_3
 #define LCD_SPI_SDA_GPIO  GPIO_4
+#endif
+
 #define LCD_SPI_RST       GPIO_6
 
 #define LCD_SPI_DELAY     2

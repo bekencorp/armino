@@ -15,68 +15,11 @@
 #pragma once
 
 #include <common/bk_include.h>
+#include <driver/media_types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define    PARAM_JPEG_SRC_ADDR_BASE       0X60100000 /**< LCD DISPLAY Define jpeg dec src addr*/
-#define    PARAM_JPEG_DEC_DST_ADDR_BASE   0X60300000 /**< LCD DISPLAY Define jpeg dec dst addr*/
-#define    PARAM_LCD_DISPLAY_ADDR_BASE    0X60500000 /**< if lcd display data is jpegdec data,the display addr = PARAM_JPEG_DEC_DST_ADDR_BASE*/
-#define    PARAM_LCD_ROTATE_BASE          0X60700000 /**< if ENABLE rotate function*/
-
-/**
- * @brief camera image resolution type
- */
-typedef enum {
-	QVGA_320_240    = 0,  /**< 320*240 */
-	VGA_480_272,          /**< 480*272 */
-	VGA_320_480,          /**< 640*480 */
-	VGA_480_320,          /**< 480*320 */
-	VGA_640_480,          /**< 640*480 */
-	VGA_800_600,          /**< 800*600 */
-	VGA_1280_720,         /**< 1280*720 */
-	VGA_1600_1200,        /**< 1600*1200 */
-	PPI_MAX
-} ppi_type_t; // Pixel per inch
-
-/**
- * @brief camera frame rate type
- */
-typedef enum {
-	TYPE_5FPS     = 0,     /**< 5fps */
-	TYPE_10FPS,            /**< 10fps */
-	TYPE_15FPS,            /**< 15fps */
-	TYPE_20FPS,            /**< 20fps */
-	TYPE_25FPS,            /**< 25fps */
-	TYPE_30FPS,            /**< 30fps */
-	FPS_MAX
-} fps_type_t; // frame per second
-
-#define PPI_POSI        0        /**< replace ppi bit position, start bit 0 */
-#define PPI_MASK        0xFF     /**< ppi occupy 8bits, bit[7-0] */
-#define FPS_POSI        8        /**< replace fps bit position, start bit 8 */
-#define FPS_MASK        0xFF     /**< fps occupy 8bits, bit[15-8] */
-
-/**
- * @brief set ppi type to camera sensor
- */
-#define CMPARAM_SET_PPI(p, x)   (p = ((p & ~(PPI_MASK << PPI_POSI)) | ((x & PPI_MASK) << PPI_POSI)))
-
-/**
- * @brief get ppi type from camera sensor param
- */
-#define CMPARAM_GET_PPI(p)      ((p >> PPI_POSI) & PPI_MASK)
-
-/**
- * @brief set fps type to camera sensor
- */
-#define CMPARAM_SET_FPS(p, x)   (p = ((p & ~(FPS_MASK << FPS_POSI)) | ((x & FPS_MASK) << FPS_POSI)))
-
-/**
- * @brief get fps type from camera sensor param
- */
-#define CMPARAM_GET_FPS(p)      ((p >> FPS_POSI) & FPS_MASK)
 
 /**
  * @brief video sample module protocol type
@@ -123,10 +66,10 @@ typedef struct {
 	**/
 	void (*data_end_handler)(void);
 
+	media_camera_device_t *device; /**< config of camera */
 	uint16_t rxbuf_len;  /**< The length  of receiving camera data buff */
 	uint16_t rx_read_len;/**< manage the node_full_handler callback function input params */
 	uint32_t node_len;   /**< video transfer network comunication protocol length a time */
-	uint32_t sener_cfg; /**< camera config, ppi[15-8], fps[7-0] */
 } video_config_t;
 
 typedef struct {
@@ -143,12 +86,12 @@ typedef void (*video_transfer_start_cb)(void);
 typedef void (*video_transfer_end_cb)(void);
 
 typedef struct {
+	media_camera_device_t *device;       /**< config of camera */
 	uint16_t open_type;                  /**< video transfer network comunication protocol type, video_open_type_t */
 	uint16_t send_type;                  /**< video transfer network comunication protocol type, video_send_type_t */
 	video_transfer_send_func send_func;  /**< function ptr for send to uplayer */
 	video_transfer_start_cb start_cb;    /**< function ptr for start to send to uplayer */
 	video_transfer_start_cb end_cb;      /**< function ptr for end to send to uplayer */
-
 	uint32_t pkt_header_size;            /**< packet header size */
 	tvideo_add_pkt_header add_pkt_header;/**< function ptr for add packet header */
 } video_setup_t;

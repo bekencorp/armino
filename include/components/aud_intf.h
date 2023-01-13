@@ -62,7 +62,8 @@ bk_err_t bk_aud_intf_set_mode(aud_intf_work_mode_t work_mode);
  *
  * @param value the gain value range:0x00 ~ 0x3f
  *
- * This API should be called when mic has been initialized
+ * This API should be called when onboard mic has been initialized.
+ * And this API should not be called when UAC mic has been used.
  *
  * @return
  *    - BK_OK: succeed
@@ -76,6 +77,7 @@ bk_err_t bk_aud_intf_set_mic_gain(uint8_t value);
  * @param value the gain value range:0x00 ~ 0x3f
  *
  * This API should be called when speaker has been initialized
+ * And this API should not be called when UAC speaker has been used.
  *
  * @return
  *    - BK_OK: succeed
@@ -89,7 +91,7 @@ bk_err_t bk_aud_intf_set_spk_gain(uint8_t value);
  * @param aec_para the parameter
  * @param value the parameter value
  *
- * This API should be called when voice has been initialized
+ * This API should be called when voice has been initialized and AEC is enable.
  *
  * @return
  *    - BK_OK: succeed
@@ -99,6 +101,8 @@ bk_err_t bk_aud_intf_set_aec_para(aud_intf_voc_aec_para_t aec_para, uint32_t val
 
 /**
  * @brief     Get the aec parameter
+ *
+ * This API should be called when voice has been initialized and AEC is enable.
  *
  * @return
  *    - BK_OK: succeed
@@ -114,6 +118,7 @@ bk_err_t bk_aud_intf_get_aec_para(void);
  *   - Init AUD adc driver
  *   - Configure AUD adc paramter
  *   - Configure DMA to carry adc data
+ *   - Configure UAC mic
  *
  * This API should be called after bk_aud_intf_drv_init.
  *
@@ -121,22 +126,16 @@ bk_err_t bk_aud_intf_get_aec_para(void);
  *
  * Usage example:
  *
- *     audio_tras_setup_t aud_tras_setup;
- *     aud_intf_mic_setup_t aud_mic_setup;
+ *     audio_tras_setup_t aud_tras_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
+ *     aud_intf_mic_setup_t aud_mic_setup = DEFAULT_AUD_INTF_MIC_SETUP_CONFIG();
  *
  *     aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
- *     aud_intf_drv_setup.task_config.priority = 3;
- *     aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
  *     aud_intf_drv_setup.aud_intf_tx_mic_data = demo_udp_voice_send_packet;
  *     bk_aud_intf_drv_init(&aud_intf_drv_setup);
  *
  *     aud_work_mode = AUD_INTF_WORK_MODE_GENERAL;
  *     bk_aud_intf_set_mode(aud_work_mode);
  *
- *     aud_intf_mic_setup.mic_chl = AUD_INTF_MIC_CHL_MIC1;
- *     aud_intf_mic_setup.samp_rate = AUD_ADC_SAMP_RATE_8K;
- *     aud_intf_mic_setup.frame_size = 320;
- *     aud_intf_mic_setup.mic_gain = 0x2d;
  *     bk_aud_intf_mic_init(&aud_intf_mic_setup);
  *
  * @return
@@ -152,6 +151,7 @@ bk_err_t bk_aud_intf_mic_init(aud_intf_mic_setup_t *mic_setup);
  *   - Deinit AUD adc driver
  *   - Reset AUD adc paramter
  *   - Close DMA
+ *   - Close UAC mic
  *
  * This API should be called after bk_aud_intf_mic_stop.
  *
@@ -195,6 +195,7 @@ bk_err_t bk_aud_intf_mic_stop(void);
  * @brief     Set the AUD INTF mic channel
  *
  * This API should be called after bk_aud_intf_mic_init.
+ * This API only support onboard mic, and not support UAC mic.
  *
  * @param mic_chl audio interface mic channel
  *
@@ -207,6 +208,9 @@ bk_err_t bk_aud_intf_set_mic_chl(aud_intf_mic_chl_t mic_chl);
 /**
  * @brief     Get the AUD INTF mic channel
  *
+ * This API should be called after bk_aud_intf_mic_init.
+ * This API only support onboard mic, and not support UAC mic.
+ *
  * @param mic_chl save audio interface mic channel
  *
  * @return
@@ -218,6 +222,9 @@ bk_err_t bk_aud_intf_get_mic_chl(aud_intf_mic_chl_t *mic_chl);
 /**
  * @brief     Set the AUD INTF mic sample rate
  *
+ * This API should be called after bk_aud_intf_mic_init.
+ * This API only support onboard mic, and not support UAC mic.
+ *
  * @param samp_rate audio interface mic sample rate
  *
  * @return
@@ -228,6 +235,9 @@ bk_err_t bk_aud_intf_set_mic_samp_rate(aud_adc_samp_rate_t samp_rate);
 
 /**
  * @brief     Get the AUD INTF mic sample rate
+ *
+ * This API should be called after bk_aud_intf_mic_init.
+ * This API only support onboard mic, and not support UAC mic.
  *
  * @param samp_rate save audio interface mic sample rate
  *
@@ -246,10 +256,11 @@ bk_err_t bk_aud_intf_get_mic_samp_rate(aud_adc_samp_rate_t *samp_rate);
  *   - Init AUD dac driver
  *   - Configure AUD dac paramter
  *   - Configure DMA to carry dac data
+ *   - Configure UAC speaker
  *
  * This API should be called after bk_aud_intf_drv_init.
  *
- * @param spk_setup audio dac setup configuration
+ * @param spk_setup audio speaker setup configuration
  *
  * @return
  *    - BK_OK: succeed
@@ -257,22 +268,16 @@ bk_err_t bk_aud_intf_get_mic_samp_rate(aud_adc_samp_rate_t *samp_rate);
  *
  * Usage example:
  *
- *     audio_tras_setup_t aud_tras_setup;
- *     aud_intf_spk_setup_t aud_spk_setup;
+ *     audio_tras_setup_t aud_tras_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
+ *     aud_intf_spk_setup_t aud_spk_setup = DEFAULT_AUD_INTF_SPK_SETUP_CONFIG();
  *
- *     aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
- *     aud_intf_drv_setup.task_config.priority = 3;
- *     aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
- *     aud_intf_drv_setup.aud_intf_tx_mic_data = demo_udp_voice_send_packet;
+ *     aud_intf_drv_setup.aud_intf_rx_spk_data = aud_read_pcm_data_from_sd;
  *     bk_aud_intf_drv_init(&aud_intf_drv_setup);
  *
  *     aud_work_mode = AUD_INTF_WORK_MODE_GENERAL;
  *     bk_aud_intf_set_mode(aud_work_mode);
  *
- *     aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_SPK1;
- *     aud_intf_spk_setup.samp_rate = AUD_DAC_SAMP_RATE_8K;
  *     aud_intf_spk_setup.frame_size = 640;
- *     aud_intf_spk_setup.spk_gain = 0x2d;
  *     bk_aud_intf_spk_init(&aud_intf_spk_setup);
  *
  */
@@ -285,6 +290,7 @@ bk_err_t bk_aud_intf_spk_init(aud_intf_spk_setup_t *spk_setup);
  *   - Deinit AUD dac driver
  *   - Reset AUD dac paramter
  *   - Close DMA
+ *   - Close UAC speaker
  *
  * This API should be called after bk_aud_intf_spk_stop.
  *
@@ -326,6 +332,9 @@ bk_err_t bk_aud_intf_spk_stop(void);
  *
  * @param spk_chl audio interface speaker channel
  *
+ * This API should be called after bk_aud_intf_spk_init.
+ * This API only support onboard speaker, and not support UAC speaker.
+ *
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
@@ -337,6 +346,9 @@ bk_err_t bk_aud_intf_set_spk_chl(aud_intf_spk_chl_t spk_chl);
  *
  * @param spk_chl save audio interface speaker channel
  *
+ * This API should be called after bk_aud_intf_spk_init.
+ * This API only support onboard speaker, and not support UAC speaker.
+ *
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
@@ -345,6 +357,9 @@ bk_err_t bk_aud_intf_get_spk_chl(aud_intf_mic_chl_t *spk_chl);
 
 /**
  * @brief     Set the AUD INTF speaker sample rate
+ *
+ * This API should be called after bk_aud_intf_spk_init.
+ * This API only support onboard speaker, and not support UAC speaker.
  *
  * @param samp_rate audio interface speaker sample rate
  *
@@ -356,6 +371,9 @@ bk_err_t bk_aud_intf_set_spk_samp_rate(aud_dac_samp_rate_t samp_rate);
 
 /**
  * @brief     Get the AUD INTF speaker sample rate
+ *
+ * This API should be called after bk_aud_intf_spk_init.
+ * This API only support onboard speaker, and not support UAC speaker.
  *
  * @param samp_rate save audio interface speaker sample rate
  *
@@ -374,6 +392,7 @@ bk_err_t bk_aud_intf_get_spk_samp_rate(aud_dac_samp_rate_t *samp_rate);
  *   - Init AUD voice transfer driver
  *   - Configure AUD dac and adc paramter
  *   - Configure DMA to carry adc and dac data
+ *   - Configure UAC mic and speaker
  *
  * This API should be called after bk_aud_intf_drv_init.
  *
@@ -385,28 +404,15 @@ bk_err_t bk_aud_intf_get_spk_samp_rate(aud_dac_samp_rate_t *samp_rate);
  *
  * Usage example:
  *
- *     audio_tras_setup_t aud_tras_setup;
- *     aud_intf_voc_setup_t aud_voc_setup;
+ *     audio_tras_setup_t aud_tras_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
+ *     aud_intf_voc_setup_t aud_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
  *
- *     aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
- *     aud_intf_drv_setup.task_config.priority = 3;
- *     aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
  *     aud_intf_drv_setup.aud_intf_tx_mic_data = demo_udp_voice_send_packet;
  *     bk_aud_intf_drv_init(&aud_intf_drv_setup);
  *
  *     aud_work_mode = AUD_INTF_WORK_MODE_VOICE;
  *     bk_aud_intf_set_mode(aud_work_mode);
  *
- *     aud_voc_setup.aec_enable = true;
- *     aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
- *     aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711A;
- *     aud_voc_setup.mic_gain = 0x2d;
- *     aud_voc_setup.spk_gain = 0x2d;
- *     aud_voc_setup.aec_cfg.ec_depth = 20;
- *     aud_voc_setup.aec_cfg.TxRxThr = 30;
- *     aud_voc_setup.aec_cfg.TxRxFlr = 6;
- *     aud_voc_setup.aec_cfg.ns_level = 2;
- *     aud_voc_setup.aec_cfg.ns_para = 1;
  *     bk_aud_intf_voc_init(aud_voc_setup);
  *
  */

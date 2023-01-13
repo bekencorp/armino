@@ -4,8 +4,7 @@ menu "MEDIA"
 		default n
 	config WIFI_TRANSFER
 		bool "Wifi transfer"
-		depends on CAMERA
-		default y
+		default n
 	config LVGL
 		bool "enable lvgl"
 		default n
@@ -15,4 +14,14 @@ menu "MEDIA"
 	config LCD_DMA2D_BLEND_FLASH_IMG 
 		bool "enable lcd dma2d blend flash logo"
 		default n
+	config BLEND_USE_GUI 
+		bool "enable lcd dma2d blend from gui"
+		default n
+	config BLEND_GUI_OUTPUT_888 
+		bool "enable lcd dma2d blend from gui, gui data is rgb888"
+		default n
+	config LCD_FONT_BLEND
+		bool "enable lcd  blend by font logo"
+		default n
+
 endmenu

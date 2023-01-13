@@ -12,16 +12,30 @@ extern"C" {
 #define os_read_word(addr,val)                  val = *((volatile uint32_t *)(addr))
 #define os_get_word(addr)                       *((volatile uint32_t *)(addr))
 
+void *os_memcpy(void *out, const void *in, UINT32 n);
 __attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) \
 static inline void os_memcpy_word(uint32_t *out, const uint32_t *in, uint32_t n)
 {
     // Note:
     // the word count == sizeof(buf)/sizeof(uint32_t)
     uint32_t word_cnt = n>>2;
+    uint32_t src_data = 0;
+    int i = 0;
 
-    for(int i = 0; i < word_cnt; i++)
+    if((((uint32_t)in) & 0x3) != 0)
     {
-        os_write_word((out + i), os_get_word(in + i));
+        for(; i < word_cnt; i++)
+        {
+            os_memcpy((void *)&src_data, (const void *)(in + i), 4);
+            os_write_word((out + i), src_data);
+        }
+    }
+    else
+    {
+        for(; i < word_cnt; i++)
+        {
+            os_write_word((out + i), os_get_word(in + i));
+        }
     }
 }
 

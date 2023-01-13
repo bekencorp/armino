@@ -22,6 +22,17 @@
 #include <string.h>
 
 
+#define TAG "gt911"
+#define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
+#define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
+#define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
+#define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
+
+
+// external statement.
+extern void bk_mem_dump_ex(const char *title, unsigned char *data, uint32_t data_len);
+
+
 // macro define
 #define GT911_WRITE_ADDRESS    (0x28) //(0XBA)
 #define GT911_READ_ADDRESS     (0x29) //(0XBB)
@@ -30,7 +41,7 @@
 #define GT911_ADDR_LEN          (1)
 #define GT911_REG_LEN           (2)
 #define GT911_MAX_TOUCH_NUM     (5)
-#define GT911_POINT_INFO_NUM    (5)
+#define GT911_POINT_INFO_NUM    TP_SUPPORT_MAX_NUM
 #define GT911_POINT_INFO_SIZE   (8)
 #define GT911_POINT_INFO_TOTAL_SIZE  (GT911_POINT_INFO_NUM * GT911_POINT_INFO_SIZE)
 
@@ -64,41 +75,45 @@
 #define GT911_REFRESH_RATE_POS (15)
 #define GT911_REFRESH_RATE_MIN (5)
 #define GT911_REFRESH_RATE_MAX (20)
+#define GT911_CHECK_SUM_POS (184)
 
-
-#define TAG "gt911"
-#define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
-#define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
-#define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
-#define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
-
+#define GT911_REGS_DEBUG_EN (0)
 
 #define SENSOR_I2C_READ(reg, buff, len)  cb->read_uint16((GT911_WRITE_ADDRESS >> 1), reg, buff, len)
 #define SENSOR_I2C_WRITE(reg, buff, len)  cb->write_uint16((GT911_WRITE_ADDRESS >> 1), reg, buff, len)
 
 
 // gt911
+#define GT911_CFG_TABLE_SIZE sizeof(sensor_gt911_cfg_table)
 const uint8_t sensor_gt911_cfg_table[] =
 {
-	0X00,0X20,0X03,0XE0,0X01,0X05,0X3D,0X00,0X02,0X08,
-	0X1E,0X08,0X50,0X3C,0X0F,0X05,0X00,0X00,0XFF,0X67,
-	0X50,0X00,0X00,0X18,0X1A,0X1E,0X14,0X89,0X28,0X0A,
-	0X30,0X2E,0XBB,0X0A,0X03,0X00,0X00,0X02,0X33,0X1D,
-	0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X32,0X00,0X00,
-	0X2A,0X1C,0X5A,0X94,0XC5,0X02,0X07,0X00,0X00,0X00,
-	0XB5,0X1F,0X00,0X90,0X28,0X00,0X77,0X32,0X00,0X62,
-	0X3F,0X00,0X52,0X50,0X00,0X52,0X00,0X00,0X00,0X00,
-	0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
-	0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X0F,
-	0X0F,0X03,0X06,0X10,0X42,0XF8,0X0F,0X14,0X00,0X00,
-	0X00,0X00,0X1A,0X18,0X16,0X14,0X12,0X10,0X0E,0X0C,
-	0X0A,0X08,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
-	0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
-	0X00,0X00,0X29,0X28,0X24,0X22,0X20,0X1F,0X1E,0X1D,
-	0X0E,0X0C,0X0A,0X08,0X06,0X05,0X04,0X02,0X00,0XFF,
-	0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
-	0X00,0XFF,0XFF,0XFF,0XFF,0XFF,0XFF,0XFF,0XFF,0XFF,
-	0XFF,0XFF,0XFF,0XFF
+#if 0
+	0x41,0x20,0x03,0xe0,0x01,0x05,0x3d,0x00,0x01,0x08,0x28,0x05,0x50,0x32,0x03,0x05,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x18,0x1a,0x1f,0x14,0x8c,0x24,0x0a,0x1b,0x19,
+	0xf4,0x0a,0x00,0x00,0x00,0x21,0x04,0x1d,0x00,0x00,0x00,0x00,0x00,0x03,0x64,0x32,
+	0x00,0x00,0x00,0x11,0xb2,0x94,0xc5,0x02,0x07,0x00,0x00,0x04,0x8e,0x16,0x00,0x5d,
+	0x23,0x00,0x3d,0x38,0x00,0x2a,0x5a,0x00,0x22,0x90,0x00,0x22,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x14,0x12,0x10,0x0e,0x0c,0x0a,0x08,0x06,0x04,0x02,0xff,0xff,0xff,0xff,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x1d,0x1c,
+	0x18,0x16,0x14,0x13,0x12,0x10,0x0f,0x0c,0x0a,0x08,0x06,0x04,0x02,0x00,0xff,0xff,
+	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x2a,0x00
+#else
+	0x42,0x20,0x03,0xE0,0x01,0x01,0x3D,0x00,0x01,0x08,0x28,0x05,0x50,0x32,0x03,0x05,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x18,0x1A,0x1F,0x14,0x8C,0x24,0x0A,0x1B,0x19,
+	0xF4,0x0A,0x00,0x00,0x00,0x20,0x04,0x1C,0x00,0x00,0x00,0x00,0x00,0x03,0x64,0x32,
+	0x00,0x00,0x00,0x11,0xB2,0x94,0xC5,0x02,0x07,0x00,0x00,0x04,0x8E,0x16,0x00,0x5D,
+	0x23,0x00,0x3D,0x38,0x00,0x2A,0x5A,0x00,0x22,0x90,0x00,0x22,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x14,0x12,0x10,0x0E,0x0C,0x0A,0x08,0x06,0x04,0x02,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+	0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x1D,0x1C,
+	0x18,0x16,0x14,0x13,0x12,0x10,0x0F,0x0C,0x0A,0x08,0x06,0x04,0x02,0x00,0xFF,0xFF,
+	0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+	0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x4F,0x00
+#endif
 };
 
 
@@ -129,28 +144,56 @@ bool gt911_detect(const tp_i2c_callback_t *cb)
 	return false;
 }
 
+static int gt911_obtain_config(const tp_i2c_callback_t *cb, uint8_t *config, uint8_t size)
+{
+	#ifdef GT911_REGS_RECONFIG_EN
+		os_memcpy((uint8_t *)config, (uint8_t *)sensor_gt911_cfg_table, size);
+	#else
+		if (BK_OK != SENSOR_I2C_READ(GT911_CONFIG_REG, (uint8_t *)config, size))
+		{
+			LOGE("%s, obtain config regs fail!\r\n", __func__);
+			return BK_FAIL;
+		}
+
+		#if (GT911_REGS_DEBUG_EN > 0)
+			bk_mem_dump_ex("tp_gt911", (unsigned char *)(config), size);
+		#endif
+
+		uint8_t check_sum = 0;
+
+		for (uint8_t index=0; index<size-2; ++index)
+		{
+			// checksum
+			check_sum += config[index];
+		}
+		check_sum = (~check_sum) + 1;
+
+		if (config[GT911_CHECK_SUM_POS] != check_sum)
+		{
+			LOGE("%s, check sum 0X%02x and 0X%02x is not equal!\r\n", __func__, config[GT911_CHECK_SUM_POS], check_sum);
+			return BK_FAIL;
+		}
+	#endif
+
+	return BK_OK;
+}
+
 static int gt911_update_config(const tp_i2c_callback_t *cb, uint8_t *config, uint8_t size)
 {
-	uint8_t buff[2];
+	uint8_t check_sum = 0;
 
-	buff[0] = 0;
-	buff[1] = 0;
-	for (uint8_t temp=0; temp<size; ++temp)
+	for (uint8_t index=0; index<size-2; ++index)
 	{
 		// checksum
-		buff[0] += config[temp];
+		check_sum += config[index];
 	}
-	buff[0] = (~buff[0]) + 1;
+	check_sum = (~check_sum) + 1;
+	config[GT911_CHECK_SUM_POS] = check_sum;
+	config[GT911_CHECK_SUM_POS + 1] = 1;
 
 	if (BK_OK != SENSOR_I2C_WRITE(GT911_CONFIG_REG, (uint8_t *)config, size))
 	{
 		LOGE("%s, write config regs fail!\r\n", __func__);
-		return BK_FAIL;
-	}
-
-	if (BK_OK != SENSOR_I2C_WRITE(GT911_CHECK_SUM, (uint8_t *)buff, sizeof(buff)))
-	{
-		LOGE("%s, write checksum reg fail!\r\n", __func__);
 		return BK_FAIL;
 	}
 
@@ -166,7 +209,7 @@ int gt911_init(const tp_i2c_callback_t *cb, tp_sensor_user_config_t *config)
 	}
 
 	int ret = BK_OK;
-	uint8_t *cfg_table = (uint8_t *)os_malloc(sizeof(sensor_gt911_cfg_table));
+	uint8_t *cfg_table = (uint8_t *)os_malloc(GT911_CFG_TABLE_SIZE);
 
 	if (NULL == cfg_table)
 	{
@@ -175,8 +218,14 @@ int gt911_init(const tp_i2c_callback_t *cb, tp_sensor_user_config_t *config)
 		goto exit_;
 	}
 
-	// copy default config table.
-	os_memcpy((uint8_t *)cfg_table, (uint8_t *)sensor_gt911_cfg_table, sizeof(sensor_gt911_cfg_table));
+	// obtain config table.
+	os_memset((uint8_t *)cfg_table, 0x00, GT911_CFG_TABLE_SIZE);
+	ret = gt911_obtain_config(cb, cfg_table, GT911_CFG_TABLE_SIZE);
+	if (BK_OK != ret)
+	{
+		LOGE("%s, obtain config fail!\r\n", __func__);
+		goto exit_;
+	}
 
 	// renew config parameters.
 	// x output max.
@@ -198,7 +247,7 @@ int gt911_init(const tp_i2c_callback_t *cb, tp_sensor_user_config_t *config)
 	{
 		cfg_table[GT911_MODULE_SWITCH1_POS] &= 0xFC;
 		cfg_table[GT911_MODULE_SWITCH1_POS] |= 0x02;
-	}	
+	}
 	else if (TP_INT_TYPE_HIGH_LEVEL == config->int_type)
 	{
 		cfg_table[GT911_MODULE_SWITCH1_POS] &= 0xFC;
@@ -231,7 +280,7 @@ int gt911_init(const tp_i2c_callback_t *cb, tp_sensor_user_config_t *config)
 		cfg_table[GT911_TOUCH_NUMBER_POS] = config->tp_num;
 	}
 
-	ret = gt911_update_config(cb, cfg_table, sizeof(sensor_gt911_cfg_table));
+	ret = gt911_update_config(cb, cfg_table, GT911_CFG_TABLE_SIZE);
 	if (BK_OK != ret)
 	{
 		LOGE("%s, update config fail!\r\n", __func__);
@@ -287,24 +336,15 @@ int gt911_clear_status(const tp_i2c_callback_t *cb)
 static int16_t pre_x[GT911_MAX_TOUCH_NUM] = {-1, -1, -1, -1, -1};
 static int16_t pre_y[GT911_MAX_TOUCH_NUM] = {-1, -1, -1, -1, -1};
 static int16_t pre_w[GT911_MAX_TOUCH_NUM] = {-1, -1, -1, -1, -1};
-static uint8_t s_tp_dowm[GT911_MAX_TOUCH_NUM];
-
-uint32_t gt911_get_time(void)
-{
-	uint32_t temp = 0;
-
-	beken_time_get_time((beken_time_t *)&temp);
-
-	return temp;
-}
+static uint8_t s_tp_down[GT911_MAX_TOUCH_NUM];
 
 void gt911_touch_up(void *buf, int8_t id)
 {
     tp_data_t *read_data = (tp_data_t *)buf;
 
-    if(s_tp_dowm[id] == 1)
+    if(s_tp_down[id] == 1)
     {
-        s_tp_dowm[id] = 0;
+        s_tp_down[id] = 0;
         read_data[id].event = TP_EVENT_TYPE_UP;
     }
     else
@@ -312,7 +352,7 @@ void gt911_touch_up(void *buf, int8_t id)
         read_data[id].event = TP_EVENT_TYPE_NONE;
     }
 
-    read_data[id].timestamp = gt911_get_time();
+    read_data[id].timestamp = rtos_get_time();
     read_data[id].width = pre_w[id];
     read_data[id].x_coordinate = pre_x[id];
     read_data[id].y_coordinate = pre_y[id];
@@ -327,7 +367,7 @@ void gt911_touch_down(void *buf, int8_t id, int16_t x, int16_t y, int16_t w)
 {
     tp_data_t *read_data = (tp_data_t *)buf;
 
-    if (s_tp_dowm[id] == 1)
+    if (s_tp_down[id] == 1)
     {
         read_data[id].event = TP_EVENT_TYPE_MOVE;
 
@@ -335,10 +375,10 @@ void gt911_touch_down(void *buf, int8_t id, int16_t x, int16_t y, int16_t w)
     else
     {
         read_data[id].event = TP_EVENT_TYPE_DOWN;
-        s_tp_dowm[id] = 1;
+        s_tp_down[id] = 1;
     }
 
-    read_data[id].timestamp = gt911_get_time();
+    read_data[id].timestamp = rtos_get_time();
     read_data[id].width = w;
     read_data[id].x_coordinate = x;
     read_data[id].y_coordinate = y;
@@ -414,8 +454,6 @@ void gt911_read_point(uint8_t *input_buff, void *buf, uint8_t num)
     pre_touch = touch_num;
 }
 
-extern void bk_mem_dump_ex(const char *title, unsigned char *data, uint32_t data_len);
-
 static uint8_t read_buff[GT911_POINT_INFO_TOTAL_SIZE];
 int gt911_read_tp_info(const tp_i2c_callback_t *cb, uint8_t max_num, uint8_t *buff)
 {
@@ -463,8 +501,11 @@ int gt911_read_tp_info(const tp_i2c_callback_t *cb, uint8_t max_num, uint8_t *bu
 		goto exit_;
 	}
 
-	LOGD("%s, pointer num is %d!\r\n", __func__, temp_status&0x0F);
-	//bk_mem_dump_ex("tp_gt911", (unsigned char *)(read_buff), sizeof(read_buff));
+	// original registers datas.
+	LOGD("%s, status=0x%02X, pointer num is %d!\r\n", __func__, temp_status, temp_status&0x0F);
+	#if (GT911_REGS_DEBUG_EN > 0)
+		bk_mem_dump_ex("tp_gt911", (unsigned char *)(read_buff), sizeof(read_buff));
+	#endif
 	
 	gt911_read_point(read_buff, buff, temp_status&0x0F);
 
@@ -530,4 +571,3 @@ const tp_sensor_config_t tp_sensor_gt911 =
 	.init = gt911_init,
 	.read_tp_info = gt911_read_tp_info,
 };
-

@@ -394,7 +394,26 @@ typedef enum {
 	GPIO_DEV_INVALID = 0xFF,
 } gpio_dev_t;
 
+/**
+ * @brief use the gpio ctrl module name
+ */
+typedef enum
+{
+	GPIO_CTRL_LDO_MODULE_SDIO = 0, // 0
+	GPIO_CTRL_LDO_MODULE_LCD,      // 1
 
+	GPIO_CTRL_LDO_MODULE_MAX
+}gpio_ctrl_ldo_module_e;
+/**
+ * @brief gpio output state
+ */
+typedef enum
+{
+	GPIO_OUTPUT_STATE_LOW = 0, // 0
+	GPIO_OUTPUT_STATE_HIGH,    // 1
+
+	GPIO_OUTPUT_STATE_INVALID
+}gpio_output_state_e;
 /**
  * @}
  */

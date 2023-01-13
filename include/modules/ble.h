@@ -947,6 +947,57 @@ ble_err_t bk_ble_init(void);
  */
 ble_err_t bk_ble_deinit(void);
 
+/**
+ * @brief     Unregister a gatt service
+ * @param
+ *     - ble_db_cfg: service param
+ *
+ * @attention 1.you must set the uuid of service and the len of uuid.
+ *
+ * User example:
+ * @code
+ *     struct bk_ble_db_cfg ble_db_cfg;
+ *     uint16 service_uuid = 0x1800;
+ *
+ *     os_memcpy(&(ble_db_cfg.uuid[0]), &service_uuid, 2);
+ *     ble_db_cfg.svc_perm = BK_BLE_PERM_SET(SVC_UUID_LEN, UUID_16);
+ * @endcode
+ *
+ * @return
+ *    - BK_ERR_BLE_SUCCESS: succeed
+ *    - others: other errors.
+ */
+ble_err_t bk_ble_delete_service(struct bk_ble_db_cfg* ble_db_cfg);
+
+/**
+ * @brief As master, read attribute value, the result is reported in the callback registered through bk_ble_register_app_sdp_charac_callback
+ *
+ * @param
+ *    - con_idx: the index of connection
+ *    - att_handle: the handle of attribute value
+ *
+ * @return
+ * - BK_ERR_BLE_SUCCESS: succeed
+ * - others: fail
+ */
+ble_err_t bk_ble_att_read(uint8_t con_idx, uint16_t att_handle);
+
+/**
+ * @brief Create Bluetooth Bonding
+ *
+ * @param
+ *    - con_idx: the index of connection
+ *    - auth: authentication features(@see enum gap_auth)
+ *    - iocap: IO Capability Values(@see enum gap_io_cap)
+ *    - sec_req: Security Defines(@see enum gap_sec_req)
+ *    - oob: OOB Data Present Flag Values(@see enum gap_oob)
+ *
+ * @return
+ * - BK_ERR_BLE_SUCCESS: succeed
+ * - others: fail
+ */
+ble_err_t bk_ble_create_bond(uint8_t con_idx, uint8_t auth, uint8_t iocap, uint8_t sec_req, uint8_t oob);
+
 /*
  * @}
  */

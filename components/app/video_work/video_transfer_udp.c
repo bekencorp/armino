@@ -39,6 +39,8 @@
 #define APP_DEMO_UDP_RCV_BUF_LEN        1472
 #define APP_DEMO_UDP_SOCKET_TIMEOUT     100  // ms
 
+media_camera_device_t *get_camera_device(void);
+
 extern void app_demo_softap_send_msg(u32 new_msg, u32 new_data);
 
 uint32_t g_pkt_send_fail = 0;
@@ -53,9 +55,9 @@ struct sockaddr_in *app_demo_remote = NULL;
 volatile int app_demo_udp_voice_romote_connected = 0;
 struct sockaddr_in *app_demo_udp_voice_remote = NULL;
 int app_demo_udp_voice_fd = -1;
-static aud_intf_drv_setup_t aud_intf_drv_setup;
+static aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
 static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
-static aud_intf_voc_setup_t aud_voc_setup;
+static aud_intf_voc_setup_t aud_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
 #endif	//APP_DEMO_EN_VOICE_TRANSFER
 
 typedef struct tvideo_hdr_st {
@@ -134,9 +136,9 @@ static void app_demo_udp_handle_cmd_data(UINT8 *data, UINT16 len)
 			break;
 
 		case VIDEO_TRAS_AUDIO_OPEN:
-			aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
-			aud_intf_drv_setup.task_config.priority = 3;
-			aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
+			//aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+			//aud_intf_drv_setup.task_config.priority = 3;
+			//aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
 			aud_intf_drv_setup.aud_intf_tx_mic_data = app_demo_udp_voice_send_packet;
 			bk_aud_intf_drv_init(&aud_intf_drv_setup);
 			aud_work_mode = AUD_INTF_WORK_MODE_VOICE;
@@ -146,28 +148,41 @@ static void app_demo_udp_handle_cmd_data(UINT8 *data, UINT16 len)
 			} else {
 				aud_voc_setup.aec_enable = false;
 			}
-			aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711A;
+			//aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711A;
 			//aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_PCM;
-			aud_voc_setup.mic_gain = 0x2d;
-			aud_voc_setup.spk_gain = 0x2d;
+			//aud_voc_setup.mic_gain = 0x2d;
+			//aud_voc_setup.spk_gain = 0x2d;
 			aud_voc_setup.spk_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
-			aud_voc_setup.mic_en = AUD_INTF_VOC_MIC_OPEN;
-			aud_voc_setup.spk_en = AUD_INTF_VOC_SPK_OPEN;
+			//aud_voc_setup.mic_en = AUD_INTF_VOC_MIC_OPEN;
+			//aud_voc_setup.spk_en = AUD_INTF_VOC_SPK_OPEN;
 			if (data[8] == 1) {
 				aud_voc_setup.mic_type = AUD_INTF_MIC_TYPE_UAC;
 				aud_voc_setup.spk_type = AUD_INTF_SPK_TYPE_UAC;
-				aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_16K;
+				//aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_16K;
 			} else {
 				aud_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
 				aud_voc_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
-				aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
 			}
-			aud_voc_setup.aec_cfg.ec_depth = 20;
-			aud_voc_setup.aec_cfg.TxRxThr = 30;
-			aud_voc_setup.aec_cfg.TxRxFlr = 6;
-			aud_voc_setup.aec_cfg.ref_scale = 1;
-			aud_voc_setup.aec_cfg.ns_level = 2;
-			aud_voc_setup.aec_cfg.ns_para = 1;
+			switch (data[10]) {
+				case 8:
+					aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
+					break;
+			
+				case 16:
+					aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_16K;
+					break;
+			
+				default:
+					aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
+					break;
+			}
+
+			//aud_voc_setup.aec_cfg.ec_depth = 20;
+			//aud_voc_setup.aec_cfg.TxRxThr = 30;
+			//aud_voc_setup.aec_cfg.TxRxFlr = 6;
+			//aud_voc_setup.aec_cfg.ref_scale = 1;
+			//aud_voc_setup.aec_cfg.ns_level = 2;
+			//aud_voc_setup.aec_cfg.ns_para = 1;
 			bk_aud_intf_voc_init(aud_voc_setup);
 			bk_aud_intf_voc_start();
 			break;
@@ -237,6 +252,7 @@ static void app_demo_udp_receiver(UINT8 *data, UINT32 len, struct sockaddr_in *a
 			setup.send_func = app_demo_udp_send_packet;
 			setup.start_cb = app_demo_udp_app_connected;
 			setup.end_cb = app_demo_udp_app_disconnected;
+			setup.device = get_camera_device();
 
 			setup.pkt_header_size = sizeof(HDR_ST);
 			setup.add_pkt_header = app_demo_add_pkt_header;

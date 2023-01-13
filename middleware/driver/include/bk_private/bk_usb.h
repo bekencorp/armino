@@ -187,8 +187,6 @@ extern uint32_t MUSB_HfiWrite( uint32_t first_block, uint32_t block_num, uint8_t
 extern void MGC_RegisterCBTransferComplete(FUNCPTR func);
 extern uint32_t MGC_DevGetConnectStatus(void);
 
-extern void fuvc_test_init(uint8_t);
-extern void printf_test_buff(void);
 extern bk_err_t bk_usb_init(void);
 extern bk_err_t bk_usb_deinit(void);
 extern bk_err_t bk_usb_open (uint32_t usb_mode);
@@ -197,6 +195,8 @@ extern void usb_device_set_using_status(bool use_or_no, USB_DEVICE_WORKING_STATU
 
 extern bk_err_t bk_uvc_start(void);
 extern bk_err_t bk_uvc_stop(void);
+extern bk_err_t bk_uvc_enable_H264();
+extern bk_err_t bk_uvc_enable_mjpeg();
 extern bk_err_t bk_uvc_set_parameter(uint32_t resolution_id, uint32_t fps);
 extern bk_err_t bk_uvc_register_rx_vstream_buffptr(void *param);
 extern bk_err_t bk_uvc_register_rx_vstream_bufflen(uint32_t param);
@@ -216,12 +216,15 @@ extern uint32_t bk_uvc_get_len(uint32_t attribute);
 extern uint32_t bk_uvc_get_info(uint32_t attribute);
 extern uint32_t bk_uvc_get_def(uint32_t attribute);
 extern void bk_uvc_get_resolution_framerate(void *param, uint16_t count);
+extern void bk_uvc_set_resolution_framerate(void *param);
 
 #ifdef CONFIG_USB_UAC
-bk_err_t bk_usb_uac_get_format_descriptor(USB_DEVICE_WORKING_STATUS dev,
+extern bk_err_t bk_usb_uac_register_disconnect_callback(void *param);
+extern bk_err_t bk_usb_uac_register_connect_callback(void *param);
+extern bk_err_t bk_usb_uac_set_hz(uint32_t dev, uint32 hz);
+extern bk_err_t bk_usb_uac_get_format_descriptor(USB_DEVICE_WORKING_STATUS dev,
 											s_audio_as_general_descriptor *interfacedesc,
 											s_audio_format_type_descriptor *formatdesc);
-
 #if CONFIG_USB_UAC_MIC
 extern bk_err_t bk_uac_start_mic(void);
 extern bk_err_t bk_uac_stop_mic(void);

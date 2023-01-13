@@ -600,8 +600,8 @@ void http_flash_wr(UINT8 *src, unsigned len)
     UINT32  anchor_time = 0;
     UINT32  temp_time = 0;
     UINT8   flash_erase_ready = 0;
-	GLOBAL_INT_DECLARATION();
 
+	//GLOBAL_INT_DECLARATION();
 	if (bk_http_ptr->flash_address % 0x1000 == 0)
     {
         anchor_time = rtos_get_time();
@@ -626,14 +626,14 @@ void http_flash_wr(UINT8 *src, unsigned len)
             if(flash_erase_ready == 1)
     	    {
         		param = bk_http_ptr->flash_address;
-        		GLOBAL_INT_DISABLE();
+        		//GLOBAL_INT_DISABLE();
+			
 #if CONFIG_FLASH_ORIGIN_API
         		ddev_control(bk_http_ptr->flash_hdl, CMD_FLASH_ERASE_SECTOR, (void *)&param);
 #else
         		bk_flash_erase_sector(param);
 #endif
-        		GLOBAL_INT_RESTORE();
-
+		      //GLOBAL_INT_RESTORE();
                 flash_erase_ready = 0;
                 break;
             }
@@ -667,21 +667,21 @@ void http_flash_wr(UINT8 *src, unsigned len)
                 //os_printf("flash_erase_ready~222 :%d\n",flash_erase_ready);
                 if(flash_erase_ready == 1)
     	        {
-            		GLOBAL_INT_DISABLE();
+            		//GLOBAL_INT_DISABLE();
 #if CONFIG_FLASH_ORIGIN_API
             		ddev_write(bk_http_ptr->flash_hdl, (char *)src, len, (u32)bk_http_ptr->flash_address);
 #else
             		bk_flash_write_bytes(bk_http_ptr->flash_address, (uint8_t *)src, len);
 #endif
-            		GLOBAL_INT_RESTORE();
+            		//GLOBAL_INT_RESTORE();
             		if (bk_http_ptr->wr_tmp_buf) {
-            			GLOBAL_INT_DISABLE();
+            			//GLOBAL_INT_DISABLE();
 #if CONFIG_FLASH_ORIGIN_API
             			ddev_read(bk_http_ptr->flash_hdl, (char *)bk_http_ptr->wr_tmp_buf, len, (u32)bk_http_ptr->flash_address);
 #else
             			bk_flash_read_bytes(bk_http_ptr->flash_address, (uint8_t *)bk_http_ptr->wr_tmp_buf, len);
 #endif
-            			GLOBAL_INT_RESTORE();
+            			//GLOBAL_INT_RESTORE();
             			if (!os_memcmp(src, bk_http_ptr->wr_tmp_buf, len)) {
             			} else
             				os_printf("wr flash write err\n");

@@ -59,89 +59,21 @@ bk_err_t bk_dvp_camera_driver_deinit(void);
 dvp_camera_device_t *bk_dvp_camera_get_device(void);
 
 /**
- * @brief     Read sensor register value
+ * @brief     uvc power on
  *
- * This API will called after bk_i2c_init
+ * This API called by user, before calling bk_dvp_driver_init, you should power on dvp
  *
- * @param addr sensor read address
+ * @param enable power up/down:1/0
  *
- * @param reg sensor register address
- *
- * @param value sensor register value
+ * @attation 1. This api config ctrl by marco VIDEO_GPIO_CTRL_LDO_ENABLE
  *
  * @return
- *    - 0 : succeed
- *    - other: other errors.
- */
-int dvp_camera_i2c_read_uint8(uint8_t addr, uint8_t reg, uint8_t *value);
-
-/**
- * @brief     Read sensor register value
- *
- * This API will called after bk_i2c_init
- *
- * @param addr sensor read address
- *
- * @param reg sensor register address
- *
- * @param value sensor register value
- *
- * @return
- *    - 0 : succeed
- *    - other: other errors.
- */
-int dvp_camera_i2c_read_uint16(uint8_t addr, uint16_t reg, uint8_t *value);
-
-/**
- * @brief     Write sensor register value
- *
- * This API will called after bk_i2c_init
- *
- * @param addr sensor read address
- *
- * @param reg sensor register address
- *
- * @param value sensor register value
- *
- * @return
- *    - 0 : succeed
- *    - other: other errors.
- */
-int dvp_camera_i2c_write_uint8(uint8_t addr, uint8_t reg, uint8_t value);
-
-/**
- * @brief     Write sensor register value
- *
- * This API will called after bk_i2c_init
- *
- * @param addr sensor write address
- *
- * @param reg sensor register address
- *
- * @param value sensor register value
- *
- * @return
- *    - 0 : succeed
- *    - other: other errors.
- */
-int dvp_camera_i2c_write_uint16(uint8_t addr, uint16_t reg, uint8_t value);
-
-/**
- * @brief     jpeg encode config
- *
- * This API will called after bk_dvp_camera_driver_init
- *
- * @param auto_ctrl 0/1:disable/enable auto jpeg encode
- *
- * @param up_size jpeg encode output image upper size, only effect auto_ctrl = 1
- *
- * @param low_size jpeg encode output image lower size, only effect auto_ctrl = 1
- *
- * @return
- *    - kNoErr: succeed
+ *    - BK_OK: succeed
  *    - others: other errors.
  */
-bk_err_t bk_dvp_camera_encode_config(uint8_t auto_ctrl, uint32_t up_size, uint32_t low_size);
+bk_err_t bk_dvp_camera_power_enable(uint8_t enable);
+
+const dvp_sensor_config_t *bk_dvp_get_sensor_auto_detect(void);
 
 #ifdef __cplusplus
 }

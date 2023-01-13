@@ -61,4 +61,13 @@ typedef struct
 #define LCD_FRAMME_BUFF_ADDR_1        FRAME_BUFF_BASE->display[0]   //this is only for lcd open, without camera
 #define LCD_FRAMME_BUFF_ADDR_2        FRAME_BUFF_BASE->display[1]   //this is only for lcd open, without camera
 
+#define LCD_BLEND_FRAME_COUNT     (2)
+
+#define LCD_BLEND_MALLOC_SIZE      (100 * 44 * 2)
+
+#define LCD_BLEND_JPEGSRAM_ADDR_1 0x30014000
+#define LCD_BLEND_JPEGSRAM_ADDR_2 0x3001A000
+#define LCD_BLEND_JPEGSRAM_SIZE    (1024 * 24)
+
+
 

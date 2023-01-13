@@ -215,7 +215,11 @@ struct {\
 	/* GPIO_4, */\
 	/* GPIO_26, */\
 }
-
+/*---multi modules use one gpio to control different ldo---*/
+#define GPIO_CTRL_LDO_MAP  \
+{\
+	{GPIO_8,  GPIO_OUTPUT_STATE_LOW} \
+}
 /*
  * Camera DVP GPIO MAP
  */
@@ -330,6 +334,30 @@ struct {\
 #define LCD_MCU_RSX_FUNC 		 	(GPIO_DEV_LCD_RGB13)
 #define LCD_MCU_RESET_FUNC 		 	(GPIO_DEV_LCD_RGB14)
 #define LCD_MCU_CSX_FUNC 		 	(GPIO_DEV_LCD_RGB15)
+
+/*
+* AUDIO PA GPIO MAP
+*/
+#define AUD_DAC_PA_CTRL_GPIO		(GPIO_39)
+#define AUD_DAC_PA_ENABLE_LEVEL		(1)
+
+/*
+* VIDEO PA GPIO MAP
+*/
+// LCD AND SD POWER CTRL
+#define LCD_LDO_CTRL_GPIO                  (GPIO_8)
+#define LCD_LDO_CTRL_ACTIVE_LEVEL          (1)// 0
+
+#define SDCARD_LDO_CTRL_GPIO               (GPIO_8)
+#define SDCARD_LDO_CTRL_ACTIVE_LEVEL       (1)
+
+// LCD BACKLIGHT CTRL
+#define LCD_BACKLIGHT_CTRL_GPIO            (GPIO_7) // GPIO_34 // GPIO_7
+#define LCD_BACKLIGHT_CTRL_ACTIVE_LEVEL    (1)
+
+// DVP AND UVC PA CTRL
+#define CAMERA_LCD_CTRL_GPIO               (GPIO_9) // GPIO_37 // GPIO_9
+#define CAMERA_LDO_CTRL_ACTIVE_LEVEL       (1)
 
 #ifdef __cplusplus
 }

@@ -84,8 +84,16 @@ mainmenu "Beken Development Configuration"
 				default y
 		endmenu
 
-		menu "Components Configuration"
-			source "$COMPONENT_KCONFIGS_SOURCE_FILE"
+		menu "Modules Configuration"
+			menu "Components Configuration"
+				source "$COMPONENTS_KCONFIGS_SOURCE_FILE"
+			endmenu
+			menu "Middleware Configuration"
+				source "$MIDDLEWARE_KCONFIGS_SOURCE_FILE"
+			endmenu
+			menu "Properties Configuration"
+				source "$PROPERTIES_KCONFIGS_SOURCE_FILE"
+			endmenu
 		endmenu
 	endmenu
 

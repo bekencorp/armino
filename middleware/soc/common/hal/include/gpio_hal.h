@@ -43,6 +43,10 @@ typedef struct {
 	gpio_int_type_t int_type;
 } gpio_wakeup_t;
 #endif
+typedef struct {
+	gpio_id_t gpio_id;
+	uint32_t ldo_state;
+} gpio_ctrl_ldo_t;
 
 #if CONFIG_GPIO_DEFAULT_SET_SUPPORT
 typedef struct {

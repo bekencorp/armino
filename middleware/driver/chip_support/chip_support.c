@@ -14,7 +14,7 @@
 
 #include <common/bk_include.h>
 #include <os/mem.h>
-#include "chip_support.h"
+#include "modules/chip_support.h"
 #include "chip_support_map.h"
 #include "sys_ctrl_pub.h"
 #include "sys_driver.h"
@@ -106,6 +106,34 @@ bool bk_is_chip_supported(void)
 	}
 
 	return false;
+}
+
+#include "sys_types.h"
+extern uint32_t aon_pmu_hal_reg_get(pmu_reg_e reg);
+
+hardware_chip_version_e bk_get_hardware_chip_id_version()
+{
+	uint32_t hardware_chip_id;
+	hardware_chip_version_e chip_version;
+	
+	hardware_chip_id = aon_pmu_hal_reg_get(PMU_REG0x7c);
+	//os_printf("hardware_chip_id value is 0x%x",hardware_chip_id);
+	switch(hardware_chip_id)
+	{
+		case CHIP_ID_A_VALUE:
+			chip_version = CHIP_VERSION_A;
+			break;
+		case CHIP_ID_B_VALUE:
+			chip_version = CHIP_VERSION_B;
+			break;
+		case CHIP_ID_C_VALUE:
+			chip_version = CHIP_VERSION_C;
+			break;
+		default:
+			chip_version = CHIP_VERSION_DEFAULT;
+	}
+
+	return chip_version;
 }
 
 #endif //CONFIG_CHIP_SUPPORT

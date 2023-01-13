@@ -32,13 +32,23 @@ extern "C" {
 #define DMA_V_REQ_MUX_GSPI1         0x6
 #define DMA_V_REQ_MUX_USB           0x7
 #define DMA_V_REQ_MUX_AUDIO         0x8
-#define DMA_V_REQ_MUX_I2S           0x9
+
 //dest 0xa for LCD_CMD
 #define DMA_V_REQ_MUX_LCD_CMD       0xa
 #define DMA_V_REQ_MUX_LCD_DATA      0xb
 
+//dest 0x9 0xc 0xd for I2S
+#define DMA_V_REQ_MUX_I2S           0x9
+#define DMA_V_REQ_MUX_I2S_CH1       0xc
+#define DMA_V_REQ_MUX_I2S_CH2       0xd
+//src 0x9 0xb 0xc for I2S
+#define DMA_V_REQ_MUX_I2S_RX        0x9
+#define DMA_V_REQ_MUX_I2S_RX_CH1    0xb
+#define DMA_V_REQ_MUX_I2S_RX_CH2    0xc
+
 //src 0xa for JPEG
 #define DMA_V_REQ_MUX_JPEG          0xa
+
 
 
 #ifdef __cplusplus

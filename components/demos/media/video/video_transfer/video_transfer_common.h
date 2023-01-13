@@ -22,10 +22,6 @@
 extern "C" {
 #endif
 
-#define IMAGE_1        (0x60000000)
-#define IMAGE_2        (0x60032000)
-#define IMAGE_3        (0x60064000)
-#define IMAGE_LEN      (200 * 1024)// 200K
 
 #define TVIDEO_DROP_DATA_NONODE     0
 #define TVIDEO_USE_HDR              1
@@ -58,46 +54,15 @@ typedef struct {
 } frame_information_t;
 
 typedef enum {
-	BUFF_IDLE,
-	BUFF_COPY,
-	BUFF_READY,
-	BUFF_BUSY,
-	BUFF_NULL,
-} frame_buff_state_t;
-
-
-typedef struct {
-	uint32_t dev_id;
-	uint32_t x_pixel;
-	uint32_t y_pixel;
-	uint32_t sener_cfg;
-}camera_config_t;
-
-typedef enum {
-	VIDEO_CPU1_IDLE,
-	VIDEO_CPU1_INIT,
-	VIDEO_CPU1_EOF,
-	VIDEO_CPU1_BUFF_STATE,
-	VIDEO_CPU1_SEND,
-	VIDEO_CPU1_EOF_CHECK,
-	VIDEO_CPU1_EXIT,
-	VIDEO_CPU0_IDLE,
-	VIDEO_CPU0_REQUEST,
-	VIDEO_CPU0_SEND,
-	VIDEO_CPU0_EOF_CHECK,
-	VIDEO_CPU0_EXIT,
+	VIDEO_SEND,
+	VIDEO_EOF_CHECK,
+	VIDEO_EXIT,
 } video_msg_type_t;
 
 typedef struct {
-	uint8_t type;
+	video_msg_type_t type;
 	uint32_t data;
 }video_msg_t;
-
-typedef struct {
-	uint32_t dev_id;
-	uint32_t frame_rate;
-	uint32_t resolution;
-} video_transfer_setup_t;
 
 typedef struct {
 	struct co_list_hdr hdr;
@@ -107,7 +72,6 @@ typedef struct {
 } video_elem_t;
 
 typedef struct {
-	//uint8_t*  pool[TVIDEO_POOL_LEN];
 	uint8_t *pool;
 	video_elem_t elem[TVIDEO_POOL_LEN / TVIDEO_RXNODE_SIZE];
 	struct co_list free;
@@ -124,7 +88,7 @@ typedef struct {
 	video_transfer_start_cb start_cb;
 	video_transfer_end_cb end_cb;
 
-#if(TVIDEO_USE_HDR && CONFIG_CAMERA)
+#if(TVIDEO_USE_HDR)
 	uint16_t frame_id;
 	uint16_t pkt_header_size;
 	tvideo_add_pkt_header add_pkt_header;

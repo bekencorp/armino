@@ -10,6 +10,8 @@ set(incs
 
 set(srcs
 	lvgl_demo/lv_example_meter.c
+	lvgl_demo/lv_example_image_show.c
+	lvgl_demo/img_utility.c
 	)
 
 if (CONFIG_VIDEO_AVI)

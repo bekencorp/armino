@@ -45,34 +45,10 @@ extern "C" {
 #define Y_PIXEL_1200    (150) /**< image resolution for hight: Y * 8 = 1200 */
 
 typedef enum {
-	JPEG_ENC_MODE = 0,
-	JPEG_YUV_MODE,
-}jpeg_mode_t;
-
-/**
- * @brief jpeg_yuv_format_t when jpeg encode at yuv mode, the output yuv format type
- */
-typedef enum {
-	JPEG_YUYV = 0, /**< YUYV, bit[31-0]=[YUYV] */
-	JPEG_UYVY = 1, /**< UYVY, bit[31-0]=[UYVY] */
-	JPEG_YYUV = 2, /**< YYUV, bit[31-0]=[YYUV] */
-	JPEG_UVYY = 3, /**< UVYY, bit[31-0]=[UVYY] */
-}jpeg_yuv_format_t;
-
-typedef enum {
-	END_OF_YUV = 0, /**< when work at yuv mode, transfer a complete frame will trigger this isr */
-	HEAD_OUTPUT,    /**< when work at jpeg encode mode, the head output complete will trigger this isr */
-	START_OF_FRAME, /**< when work at jpeg encode mode, detect vsync rising edge after few cycle will trigger this isr */
-	END_OF_FRAME,   /**< when work at jpeg encode mode, transfer a complete frame will trigger this isr */
-	VSYNC_NEGEDGE,  /**< when detect vsync negedge will trigger this isr */
-	ISR_MAX,
-}jpeg_isr_type_t;
-
-typedef enum {
-	ENABLE_CLK = 0, /**< enable jpeg mclk and pclk gpio function */
-	ENABLE_DATA,    /**< enable jpeg vsync/hsync/D0-D7 gpio function */
-	ENABLE_ALL,     /**< enable all jpeg gpio function */
-	DISABLE_ALL,    /**< disable all jpeg gpio function */
+	JPEG_ENABLE_CLK = 0, /**< enable jpeg mclk and pclk gpio function */
+	JPEG_ENABLE_DATA,    /**< enable jpeg vsync/hsync/D0-D7 gpio function */
+	JPEG_ENABLE_ALL,     /**< enable all jpeg gpio function */
+	JPEG_DISABLE_ALL,    /**< disable all jpeg gpio function */
 }jpeg_gpio_mode_t;
 
 /**
@@ -82,55 +58,6 @@ typedef enum {
  * @param param: NULL default
  */
 typedef void (*jpeg_isr_t)(jpeg_unit_t id, void *param);
-
-typedef struct {
-	uint8_t *rxbuf; /**< the address of receiving jpeg data */
-
-	/**
-	 * @brief node full handler
-	 *
-	 * This is a transfer jpeg data to uplayer api, when transfer node_len jpeg data finish , this function will be called
-	 *
-	 * @param curptr: the start address of transfer data.
-	 * @param newlen: the transfer data length
-	 * @param is_eof: 0/1: whether this packet data is the last packet of this frame, will called in jpeg_end_frame isr
-	 * @param frame_len: the complete jpeg frame size, if is_eof=1, the frame_len is the true value of jpeg frame size, 
-	 * is_eof=0, the frame_len=0, in other words, only when transfer really frame_len at the last packet in jpeg_end_frame isr
-	 *
-	**/
-	void (*node_full_handler)(void *curptr, uint32_t newlen, uint32_t is_eof, uint32_t frame_len);
-
-	/**
-	 * brief data_end_handler
-	 *
-	 * This api use to inforamte video transfer thread to deal transfer jpegenc data
-	 *
-	**/
-	void (*data_end_handler)(void);
-
-	uint16_t rxbuf_len;   /**< The length  of receiving jpegenc data buff */
-	uint16_t rx_read_len; /**< manage the node_full_handler callback function input params */
-	uint32_t node_len;    /**< dma transfer length */
-	uint32_t sener_cfg;   /**< The sensor config:[0-15]:image_resolution, [16-31]:image rate */
-	uint16_t x_pixel;     /**< jpeg encoder image resolution for width */
-	uint16_t y_pixel;     /**< jpeg encoder image resolution for height */
-
-#if CONFIG_GENERAL_DMA
-	dma_isr_t dma_rx_handler;       /**< dma transfer finish isr callbck */
-	uint8_t dma_channel;           /**< dma channel used for transfer jpeg encoder data */
-#endif
-
-} jpegenc_desc_t;
-
-typedef enum {
-	READY = 0,           /**<  jpeg deca and display ready */
-	MEMCPYING,           /**<  jepg data mem cpying */
-	JPEGDE_START,        /**<  jepg dec start */
-	JPEGDECING,          /**<  jepg decing */
-	DISPLAYING,          /**<  jepg dec complete, lcd display */
-	JPEGDED,
-}lcd_satus_t;
-
 
 /**
  * @}

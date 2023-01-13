@@ -486,10 +486,10 @@ static void lcd_nt35510_config(void)
 
 static void lcd_nt35510_backlight_io_init(void)
 {
-	gpio_dev_unmap(34);
-	bk_gpio_set_capacity(34, 0);
-	BK_LOG_ON_ERR(bk_gpio_enable_output(34));
-	BK_LOG_ON_ERR(bk_gpio_pull_down(34));
+	gpio_dev_unmap(LCD_BACKLIGHT_CTRL_GPIO);
+	bk_gpio_set_capacity(LCD_BACKLIGHT_CTRL_GPIO, 0);
+	BK_LOG_ON_ERR(bk_gpio_enable_output(LCD_BACKLIGHT_CTRL_GPIO));
+	BK_LOG_ON_ERR(bk_gpio_pull_down(LCD_BACKLIGHT_CTRL_GPIO));
 }
 
 
@@ -503,14 +503,14 @@ static void lcd_nt35510_init(void)
 
 static void nt35510_lcd_backlight_open(void)
 {
-	BK_LOG_ON_ERR(bk_gpio_pull_up(34));
-	// pull up gpio34, enable lcd backlight control
-	bk_gpio_set_output_high(34);
+	BK_LOG_ON_ERR(bk_gpio_pull_up(LCD_BACKLIGHT_CTRL_GPIO));
+	// pull up gpio, enable lcd backlight control
+	bk_gpio_set_output_high(LCD_BACKLIGHT_CTRL_GPIO);
 }
 
 static void nt35510_lcd_backlight_close(void)
 {
-	bk_gpio_set_output_low(34);
+	bk_gpio_set_output_low(LCD_BACKLIGHT_CTRL_GPIO);
 }
 
 const lcd_device_t lcd_device_nt35510 =

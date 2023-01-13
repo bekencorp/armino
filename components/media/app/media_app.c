@@ -33,7 +33,7 @@
 
 #define TAG "media_app"
 
-#define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
+#define LOGI(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
@@ -71,7 +71,7 @@ bk_err_t media_send_msg_sync(uint32_t event, uint32_t param)
 
 	media_send_msg(&msg);
 
-	ret = rtos_get_semaphore(&param_pak->sem, BEKEN_WAIT_FOREVER);
+	ret = rtos_get_semaphore(&param_pak->sem, 4000);//BEKEN_WAIT_FOREVER
 
 	if (ret != kNoErr)
 	{
@@ -98,13 +98,13 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 {
 	int ret = kGeneralErr;
 
-	LOGI("%s\n", __func__);
+	LOGI("%s, type:%d, ppi:%d-%d\n", __func__, type, ppi >> 16, ppi & 0xFFFF);
 
 	app_camera_type = type;
 
 	switch (type)
 	{
-		case APP_CAMERA_DVP:
+		case APP_CAMERA_DVP_JPEG:
 			if (CAMERA_STATE_DISABLED != get_camera_state())
 			{
 				LOGI("%s already opened\n", __func__);
@@ -114,7 +114,7 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 			ret = media_send_msg_sync(EVENT_CAM_DVP_JPEG_OPEN_IND, ppi);
 			break;
 
-		case APP_CAMERA_YUV:
+		case APP_CAMERA_DVP_YUV:
 			if (CAMERA_STATE_DISABLED != get_camera_state())
 			{
 				LOGI("%s already opened\n", __func__);
@@ -124,7 +124,7 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 			ret = media_send_msg_sync(EVENT_CAM_DVP_JPEG_OPEN_IND, ppi);
 			break;
 
-		case APP_CAMERA_MIX:
+		case APP_CAMERA_DVP_MIX:
 			if (CAMERA_STATE_DISABLED != get_camera_state())
 			{
 				LOGI("%s already opened\n", __func__);
@@ -134,24 +134,43 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 			ret = media_send_msg_sync(EVENT_CAM_DVP_MIX_OPEN_IND, ppi);
 			break;
 
-		case APP_CAMERA_UVC:
+		case APP_CAMERA_UVC_MJPEG:
 			if (CAMERA_STATE_DISABLED != get_camera_state())
 			{
 				LOGI("%s already opened\n", __func__);
 				return kNoErr;
 			}
 
-			ret = media_send_msg_sync(EVENT_CAM_UVC_OPEN_IND, ppi);
+			ret = media_send_msg_sync(EVENT_CAM_UVC_MJPEG_OPEN_IND, ppi);
+			break;
+		case APP_CAMERA_UVC_H264:
+			if (CAMERA_STATE_DISABLED != get_camera_state())
+			{
+				LOGI("%s already opened\n", __func__);
+				return kNoErr;
+			}
+
+			ret = media_send_msg_sync(EVENT_CAM_UVC_H264_OPEN_IND, ppi);
 			break;
 
-		case APP_CAMERA_NET:
+		case APP_CAMERA_NET_MJPEG:
 			if (CAMERA_STATE_DISABLED != get_camera_state())
 			{
 				LOGI("%s already opened\n", __func__);
 				return kNoErr;
 			}
 
-			ret = media_send_msg_sync(EVENT_CAM_NET_OPEN_IND, 0);
+			ret = media_send_msg_sync(EVENT_CAM_NET_MJPEG_OPEN_IND, ppi);
+			break;
+
+		case APP_CAMERA_NET_H264:
+			if (CAMERA_STATE_DISABLED != get_camera_state())
+			{
+				LOGI("%s already opened\n", __func__);
+				return kNoErr;
+			}
+
+			ret = media_send_msg_sync(EVENT_CAM_NET_H264_OPEN_IND, ppi);
 			break;
 
 		default:
@@ -177,27 +196,28 @@ bk_err_t media_app_camera_close(app_camera_type_t type)
 
 	switch (type)
 	{
-		case APP_CAMERA_DVP:
+		case APP_CAMERA_DVP_JPEG:
 			if (CAMERA_STATE_ENABLED != get_camera_state())
 			{
 				LOGI("%s already closed\n", __func__);
 				return kNoErr;
 			}
 
-			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, DVP_MODE_JPG);
+			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, MEDIA_DVP_MJPEG);
 			break;
 
-		case APP_CAMERA_YUV:
+		case APP_CAMERA_DVP_YUV:
 			if (CAMERA_STATE_ENABLED != get_camera_state())
 			{
 				LOGI("%s already closed\n", __func__);
 				return kNoErr;
 			}
 
-			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, DVP_MODE_YUV);
+			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, MEDIA_DVP_YUV);
 			break;
 
-		case APP_CAMERA_UVC:
+		case APP_CAMERA_UVC_H264:
+		case APP_CAMERA_UVC_MJPEG:
 			if (CAMERA_STATE_DISABLED == get_camera_state())
 			{
 				LOGI("%s already closed\n", __func__);
@@ -207,7 +227,8 @@ bk_err_t media_app_camera_close(app_camera_type_t type)
 			ret = media_send_msg_sync(EVENT_CAM_UVC_CLOSE_IND, 0);
 			break;
 
-		case APP_CAMERA_NET:
+		case APP_CAMERA_NET_MJPEG:
+		case APP_CAMERA_NET_H264:
 			if (CAMERA_STATE_ENABLED != get_camera_state())
 			{
 				LOGI("%s already closed\n", __func__);
@@ -320,6 +341,11 @@ static bk_err_t _media_app_lcd_open(void *lcd_open, app_lcd_open_type_t is_open_
 	LOGI("%s \n", __func__);
 
 	ptr = (lcd_open_t *)os_malloc(sizeof(lcd_open_t));
+	if (ptr == NULL) {
+		LOGE("malloc lcd_open_t failed\r\n");
+		return kGeneralErr;
+	}
+
 	os_memcpy(ptr, (lcd_open_t *)lcd_open, sizeof(lcd_open_t));
 
 	if(!is_open_with_gui)
@@ -510,6 +536,49 @@ bk_err_t media_app_capture(char *name)
 	return ret;
 }
 
+bk_err_t media_app_save_start(char *name)
+{
+	int ret;
+
+	char *save_name = NULL;
+
+	LOGI("%s, %s\n", __func__, name);
+
+	if (name != NULL)
+	{
+		uint32_t len = os_strlen(name) + 1;
+
+		if (len > 31)
+		{
+			len = 31;
+		}
+
+		save_name = (char *)os_malloc(len);
+		os_memset(save_name, 0, len);
+		os_memcpy(save_name, name, len);
+		save_name[len - 1] = '\0';
+	}
+
+	ret = media_send_msg_sync(EVENT_STORAGE_SAVE_START_IND, (uint32_t)save_name);
+
+	LOGI("%s complete\n", __func__);
+
+	return ret;
+}
+
+
+bk_err_t media_app_save_stop(void)
+{
+	int ret;
+
+	LOGI("%s\n", __func__);
+
+	ret = media_send_msg_sync(EVENT_STORAGE_SAVE_STOP_IND, 0);
+
+	LOGI("%s complete\n", __func__);
+
+	return ret;
+}
 
 static void media_app_message_handle(void)
 {
@@ -555,7 +624,6 @@ exit:
 	media_app_th_hd = NULL;
 	rtos_delete_thread(NULL);
 
-	LOGE("delate task complete\n");
 }
 
 bk_err_t media_app_init(void)

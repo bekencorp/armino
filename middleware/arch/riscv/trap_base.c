@@ -135,6 +135,16 @@ static hook_func s_ble_dump_func = NULL;
 
 volatile unsigned int g_enter_exception = 0;
 
+typedef struct sys_reg_info
+{
+    uint32_t reg_base_addr;
+    uint32_t reg_size;
+} sys_reg_info_t;
+
+#define MAX_DUMP_SYS_REGS_COUNT       (8)
+static unsigned int s_reg_count = 0;
+static sys_reg_info_t s_dump_sys_regs_info[MAX_DUMP_SYS_REGS_COUNT] = {0};
+
 unsigned int arch_is_enter_exception(void) {
 	return g_enter_exception;
 }
@@ -147,6 +157,25 @@ void rtos_regist_wifi_dump_hook(hook_func wifi_func)
 void rtos_regist_ble_dump_hook(hook_func ble_func)
 {
 	s_ble_dump_func = ble_func;
+}
+
+void rtos_regist_plat_dump_hook(uint32_t reg_base_addr, uint32_t reg_size)
+{
+	if (s_reg_count < MAX_DUMP_SYS_REGS_COUNT) {
+		s_dump_sys_regs_info[s_reg_count].reg_base_addr = reg_base_addr;
+		s_dump_sys_regs_info[s_reg_count].reg_size = reg_size;
+		s_reg_count++;
+	} else {
+		BK_DUMP_OUT("rtos_regist_plat_dump_hook failed:s_reg_count(%d).\r\n", s_reg_count);
+	}
+}
+
+void rtos_dump_plat_sys_regs(void) {
+	for (int i = 0; i < s_reg_count; i++) {
+		uint32_t begin = s_dump_sys_regs_info[i].reg_base_addr;
+		uint32_t end = begin + s_dump_sys_regs_info[i].reg_size;
+		stack_mem_dump(begin, end);
+	}
 }
 
 #if !CONFIG_SLAVE_CORE
@@ -265,7 +294,7 @@ void arch_dump_cpu_registers (unsigned long mcause, SAVED_CONTEXT *context)
 
 	BK_DUMP_OUT("\r\n");
 
-	if (mcause == 0x2) {
+	if (mcause == 0x1 || mcause == 0x2) {
 		stack_mem_dump((uint32_t)(context->mepc - 32), (uint32_t)(context->mepc + 32));
 	}
 }
@@ -277,6 +306,7 @@ void sys_delay_sync(uint32_t time_count )
 	for (i = 0; i < time_count; i ++)
 		;
 }
+
 
 void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context)
 {
@@ -295,6 +325,8 @@ void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context)
 	if(NULL != s_ble_dump_func) {
 		s_ble_dump_func();
 	}
+
+	rtos_dump_plat_sys_regs();
 
 	BK_DUMP_OUT("System will dump memory in 5s, please ready to save whole log.........\r\n");
 

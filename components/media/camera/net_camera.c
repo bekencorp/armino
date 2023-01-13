@@ -50,7 +50,7 @@ const net_camera_config_t net_camera_config =
 };
 
 
-bk_err_t bk_net_camera_open(void)
+bk_err_t bk_net_camera_open(media_ppi_t ppi, media_camera_type_t type)
 {
 	//step 1: init lcd, shou do it after calling this api
 	if (net_camera_buf == NULL)
@@ -67,7 +67,7 @@ bk_err_t bk_net_camera_open(void)
 
 	os_memset(net_camera_buf, 0, sizeof(net_camera_buffer_t));
 
-	net_camera_config.fb_jpeg_init((uint32_t)(PPI_640X480));
+	net_camera_config.fb_jpeg_init((uint32_t)(ppi));
 
 	net_camera_buf->frame = net_camera_config.fb_jpeg_malloc();
 	if (net_camera_buf->frame == NULL)
@@ -75,7 +75,12 @@ bk_err_t bk_net_camera_open(void)
 		return BK_FAIL;
 	}
 
-	net_camera_buf->frame->fmt = PIXEL_FMT_UVC_JPEG; //all set uvc_jpeg, because jpeg need jepg decode
+	if (type == MEDIA_UVC_MJPEG || type == MEDIA_DVP_MJPEG)
+		net_camera_buf->frame->fmt = PIXEL_FMT_UVC_JPEG; //all set uvc_jpeg, because jpeg need jpeg decode
+	else if (type == MEDIA_UVC_H264)
+		net_camera_buf->frame->fmt = PIXEL_FMT_UVC_H264; //all set uvc_jpeg, because jpeg need h264 decode
+	else
+		return BK_FAIL;
 
 	net_camera_buf->buf_ptr = net_camera_buf->frame->frame;
 	net_camera_buf->frame_pkt_cnt = 0;

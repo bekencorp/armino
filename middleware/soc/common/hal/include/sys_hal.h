@@ -31,6 +31,8 @@ void sys_hal_usb_enable_clk(bool en);
 void sys_hal_usb_analog_phy_en(bool en);
 void sys_hal_usb_analog_speed_en(bool en);
 void sys_hal_usb_analog_ckmcu_en(bool en);
+void sys_hal_set_usb_analog_dp_capability(uint8_t capability);
+void sys_hal_set_usb_analog_dn_capability(uint8_t capability);
 void sys_hal_usb_enable_charge(bool en);
 void sys_hal_usb_charge_vlcf_cal();
 void sys_hal_usb_charge_icp_cal();
@@ -360,6 +362,8 @@ void sys_hal_touch_calib_enable(uint32_t value);
 void sys_hal_touch_manul_mode_calib_value_set(uint32_t value);
 void sys_hal_touch_manul_mode_enable(uint32_t value);
 void sys_hal_touch_scan_mode_chann_set(uint32_t value);
+void sys_hal_touch_serial_cap_enable(void);
+void sys_hal_touch_serial_cap_disable(void);
 void sys_hal_touch_int_enable(uint32_t value);
 
 /**  Touch End **/

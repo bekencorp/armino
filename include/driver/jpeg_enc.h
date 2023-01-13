@@ -62,7 +62,6 @@ bk_err_t bk_jpeg_enc_driver_deinit(void);
  *  - Enable Jpegenc interrupt
  *  - Map the jpegenc to dedicated GPIO port(MCLK and PCLK)
  *  - Set the jpegenc parameters
- *  - set and start the dma function
  *  - Enable jpeg encode module
  *
  * Usage example:
@@ -96,7 +95,7 @@ bk_err_t bk_jpeg_enc_init(const jpeg_config_t *config);
 /**
  * @brief     Deinit the jpeg
  *
- * This API stop jpeg encode, dma and close jpeg gpio, power off jpeg module at last.
+ * This API stop jpeg encode, close jpeg gpio, power off jpeg module at last.
  *
  * @attention 1. only work for imaging transfer
  *
@@ -105,41 +104,6 @@ bk_err_t bk_jpeg_enc_init(const jpeg_config_t *config);
  *    - others: other errors.
  */
 bk_err_t bk_jpeg_enc_deinit(void);
-
-/**
- * @brief     Init the jpeg when use dvp
- *
- * This API init the jpeg
- *  - Configure clock and Power up the jpegenc clock
- *  - enable the JPEG encode interrupt
- *  - Map the jpegenc to dedicated GPIO port(MCLK and PCLK)
- *  - Set the jpegenc parameters
- *  - Enable Jpeg encode module
- *
- * @param config jpeg parameter settings
- *
- * @attention 1. not init dma function compare with bk_jpeg_init, need user init dma
-
- * @return
- *    - BK_OK: succeed
- *    - BK_ERR_NULL_PARAM: jpegenc config paramter is NULL
- *    - BK_ERR_JPEG_NOT_INIT: jpegenc driver not init
- *    - others: other errors.
- */
-bk_err_t bk_jpeg_enc_dvp_init(const jpeg_config_t *config);
-
-/**
- * @brief     Deinit the jpeg when use dvp
- *
- * This API stop jpeg encode, close jpeg gpio, and power off jpeg module at last.
- *
- * @attention 1. not stop dma compare with bk_jpeg_deinit
- *
- * @return
- *    - BK_OK: succeed
- *    - others: other errors.
- */
-bk_err_t bk_jpeg_enc_dvp_deinit(void);
 
 /**
  * @brief     set jpegenc enable
@@ -189,11 +153,11 @@ uint32_t bk_jpeg_enc_get_frame_size(void);
  * This API will register jpeg encode isr function, need user defined.The isr function will execute when the isr be triggered.
  *
  * @param type_id the type of the isr
- *    - END_OF_YUV: (eoy)when jpeg encode work in yuv mode, once a complete frame have been transfer by jpeg encode module, the isr will trigger.
- *    - HEAD_OUTPUT: jpeg encode output head the isrt will be triggered, work in jpeg encode mode.
+ *    - JPEG_EOY: (eoy)when jpeg encode work in yuv mode, once a complete frame have been transfer by jpeg encode module, the isr will trigger.
+ *    - JPEG_HEAD_OUTPUT: jpeg encode output head the isrt will be triggered, work in jpeg encode mode.
  *    - START_OFFRAME: (sof) when jpeg encode module start reveice a frame the isr will be triggered.
- *    - END_OF_FRAME: (eof) when jpeg encode module receive a complete frame the isr will be triggered, this only effect in jpeg encode mode.
- *    - VSYNC_NEGEDGE: (vng) when jpeg encode module receive a vsync negedge the isr will be triggered.
+ *    - JPEG_EOF: (eof) when jpeg encode module receive a complete frame the isr will be triggered, this only effect in jpeg encode mode.
+ *    - JPEG_VSYNC_NEGEDGE: (vng) when jpeg encode module receive a vsync negedge the isr will be triggered.
  * @param isr isr_func
  * @param param other value(default set NULL)
  *
@@ -304,21 +268,6 @@ bk_err_t bk_jpeg_set_em_base_addr(uint8_t *address);
  *
  * This API will use for enable/disable for auto encode size. only valid in jpeh encode mode
  *
- * @param enable 0/1:disable/enable
- *
- * @attenation 1. this api only called in jpeg_eof_isr function
- *
- * @return
- *    - BK_OK: succeed
- *    - others: other errors.
- */
-bk_err_t bk_jpeg_enc_enable_encode_auto_ctrl(uint8_t enable);
-
-/**
- * @brief     jpeg encode enable encode auto contrl
- *
- * This API will use for enable/disable for auto encode size. only valid in jpeh encode mode
- *
  * @param up_size the jpeg image upper limit, unit byte
  * @param low_size the jpeg image lower limit, unit byte
  *
@@ -328,7 +277,7 @@ bk_err_t bk_jpeg_enc_enable_encode_auto_ctrl(uint8_t enable);
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-bk_err_t bk_jpeg_enc_set_target_size(uint32_t up_size, uint32_t low_size);
+bk_err_t bk_jpeg_enc_encode_config(uint8_t enable, uint16_t up_size, uint16_t low_size);
 
 /**
  * @brief     jpeg encode mode and yuv mode switch
@@ -343,7 +292,7 @@ bk_err_t bk_jpeg_enc_set_target_size(uint32_t up_size, uint32_t low_size);
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-bk_err_t bk_jpeg_enc_dvp_switch(jpeg_config_t *config);
+bk_err_t bk_jpeg_enc_mode_switch(jpeg_config_t *config);
 
 #ifdef __cplusplus
 }

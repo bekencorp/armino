@@ -706,6 +706,38 @@ bk_err_t bk_wifi_ap_get_mac(uint8_t *mac);
 bk_err_t bk_wifi_send_raw(uint8_t *buffer, int len);
 
 /**
+* @brief Send raw 802.11 frame
+*
+* @attention 1. This API can be used in WiFi station, softap, or monitor mode.
+* @attention 2. Only support to send non-QoS frame.
+* @attention 3. The frame sequence will be overwritten by WiFi driver.
+* @attention 4. The API doesn't check the correctness of the raw frame, the
+*               caller need to guarantee the correctness of the frame.
+*
+* @param buffer : raw 802.11 frame
+* @param len : the length of the 802.11 frame
+* @param cb : send status call back
+* @param param : send status call back paramter
+*
+* @return
+*    - kNoErr: succeed
+*    - otherwise: fail
+*/
+bk_err_t bk_wifi_send_raw_ex(uint8_t *buffer, int len, void *cb, void *param);
+
+/**
+ * @brief Update raw 802.11 frame TX rate and power
+ *
+ * @param rate : TX rate control
+ * @param power : TX power control
+ *
+ * @return
+ *    - kNoErr: succeed
+ *    - otherwise: fail
+ */
+bk_err_t bk_wifi_set_tx_raw_rate_power(uint32_t rate, uint32_t power);
+
+/**
  * @brief     configure country info
  *
  * @attention 1. The default country is {.cc="CN", .schan=1, .nchan=13, policy=WIFI_COUNTRY_POLICY_AUTO}

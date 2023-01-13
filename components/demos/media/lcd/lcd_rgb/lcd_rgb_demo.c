@@ -10,7 +10,6 @@
 #include <driver/gpio.h>
 #include <driver/psram.h>
 #include <components/video_transfer.h>
-#include <components/dvp_camera.h>
 #include <driver/i2c.h>
 #include <driver/jpeg_dec.h>
 #include "bk_cli.h"
@@ -30,6 +29,16 @@
 extern void delay(INT32 num);
 #define           LCD_FRAMEADDR    0x60000000   /**<define frame base addr */
 #define jpeg_dec_length    (20480*4-1)  //80k
+
+
+typedef enum {
+	READY = 0,           /**<  jpeg deca and display ready */
+	MEMCPYING,           /**<  jepg data mem cpying */
+	JPEGDE_START,        /**<  jepg dec start */
+	JPEGDECING,          /**<  jepg decing */
+	DISPLAYING,          /**<  jepg dec complete, lcd display */
+	JPEGDED,
+}lcd_satus_t;
 
 static volatile uint8_t jpeg_frame_id = 0;
 
@@ -100,10 +109,75 @@ static void  lcd_rgb_jpeg_isr(void)
 static void jpeg_dec_end_of_frame_cb(jpeg_dec_res_t *result)
 {
 	bk_dma_start(jpeg_dma_id);
-	
+
 	lcd_driver_set_display_base_addr((uint32_t)psram_lcd->display[0]);
 	bk_lcd_rgb_display_en(1);
 }
+
+static bk_err_t dvp_camera_init(jpeg_mode_t mode, media_ppi_t ppi)
+{
+	int ret = kNoErr;
+	jpeg_config_t jpeg_config = {0};
+	i2c_config_t i2c_config = {0};
+	const dvp_sensor_config_t *current_sensor = NULL;
+
+	// step 1: enbale dvp power
+	bk_dvp_camera_power_enable(1);
+
+	bk_jpeg_enc_driver_init();
+
+	// step 2: enable jpeg mclk for i2c communicate with dvp
+	bk_jpeg_enc_mclk_enable();
+
+	rtos_delay_milliseconds(5);
+
+	// step 3: init i2c
+	i2c_config.baud_rate = I2C_BAUD_RATE_100KHZ;
+	i2c_config.addr_mode = I2C_ADDR_MODE_7BIT;
+	bk_i2c_init(CONFIG_CAMERA_I2C_ID, &i2c_config);
+
+	current_sensor = bk_dvp_get_sensor_auto_detect();
+	if (current_sensor == NULL)
+	{
+		os_printf("NOT find camera\r\n");
+		ret = kParamErr;
+		return ret;
+	}
+
+	jpeg_config.mode = mode;
+	jpeg_config.x_pixel = ppi_to_pixel_x(ppi) / 8;
+	jpeg_config.y_pixel = ppi_to_pixel_y(ppi) / 8;
+	jpeg_config.vsync = current_sensor->vsync;
+	jpeg_config.hsync = current_sensor->hsync;
+	jpeg_config.clk = current_sensor->clk;
+
+
+	bk_jpeg_enc_register_isr(JPEG_VSYNC_NEGEDGE, jpeg_enc_end_of_yuv, NULL);
+
+	if (mode == JPEG_YUV_MODE)
+	{
+		bk_jpeg_enc_register_isr(JPEG_EOY, jpeg_enc_end_of_yuv, NULL);
+	}
+	else
+	{
+		bk_jpeg_enc_register_isr(JPEG_EOF, jpeg_enc_end_of_frame_isr, NULL);
+	}
+
+	ret = bk_jpeg_enc_init(&jpeg_config);
+	if (ret != kNoErr) {
+		os_printf("jpeg init error\n");
+		return ret;
+	}
+
+	current_sensor->init();
+	current_sensor->set_ppi(current_sensor->def_ppi);
+	current_sensor->set_fps(current_sensor->def_fps);
+
+	bk_jpeg_enc_set_gpio(JPEG_ENABLE_DATA);
+
+	return ret;
+}
+
 
 static void lcd_rgb_isr_test(void)
 {
@@ -239,11 +313,7 @@ static void dma_jpeg_config(uint32_t dma_ch)
 void lcd_rgb_display_jpeg(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int err = kNoErr;
-	jpeg_config_t jpeg_config = {0};
-	i2c_config_t i2c_config = {0};
-	uint32_t fps;
-	uint32_t dev = 0; 
-	uint32_t camera_cfg = 0;
+
 	uint16_t xpixel = 0;
 	uint16_t ypixel = 0;
 #if CONFIG_PWM
@@ -256,10 +326,7 @@ void lcd_rgb_display_jpeg(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	BK_LOG_ON_ERR(bk_pwm_init(PWM_ID_1, &config));
 	BK_LOG_ON_ERR(bk_pwm_start(PWM_ID_1));
 #endif
-	err=bk_jpeg_dec_driver_init();
-	if (err != BK_OK)
-		return;
-	os_printf("jpegdec driver init successful.\r\n");
+
 	os_printf("psram init. \r\n");
 	bk_psram_init();
 
@@ -274,76 +341,42 @@ void lcd_rgb_display_jpeg(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	bk_jpeg_dec_isr_register(DEC_END_OF_FRAME, jpeg_dec_end_of_frame_cb);
 
 	bk_lcd_driver_init(LCD_20M);
-	
+
 #if (USE_LCD_REGISTER_CALLBACKS == 1)
 	bk_lcd_isr_register(RGB_OUTPUT_EOF, lcd_rgb_jpeg_isr);
 #else
 	bk_lcd_isr_register(lcd_rgb_jpeg_isr);
 #endif
+
+
 	if (os_strcmp(argv[1], "480p") == 0) {
 		xpixel = PIXEL_480;
 		ypixel = PIXEL_272;
-		dev = 3;// gc0328c
-		jpeg_config.x_pixel = X_PIXEL_480;
-		jpeg_config.y_pixel = Y_PIXEL_272;
-		jpeg_config.sys_clk_div = 4;
-		jpeg_config.mclk_div = 0;
-		bk_jpeg_enc_register_isr(END_OF_FRAME, jpeg_enc_end_of_frame_isr, NULL);
+		bk_lcd_rgb_init(LCD_DEVICE_ST7282, xpixel, ypixel, PIXEL_FMT_VUYY);
+		err = dvp_camera_init(JPEG_ENC_MODE, PPI_640X480);
 	} else 	if (os_strcmp(argv[1], "720p") == 0) {
 		xpixel = PIXEL_1280;
 		ypixel = PIXEL_720;
-		dev = 6;
-		jpeg_config.x_pixel = X_PIXEL_1280;
-		jpeg_config.y_pixel = Y_PIXEL_720;
-		jpeg_config.sys_clk_div = 3;
-		jpeg_config.mclk_div = 0;
-		bk_jpeg_enc_register_isr(END_OF_FRAME, jpeg_enc_end_of_frame_isr, NULL);
+		bk_lcd_rgb_init(LCD_DEVICE_ST7282, xpixel, ypixel, PIXEL_FMT_VUYY);
+		err = dvp_camera_init(JPEG_ENC_MODE, PPI_1280X720);
 	} else {
 		os_printf("NOT SUPPORE pixel \n");
-	}
-	fps = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
-
-	bk_lcd_rgb_init(LCD_DEVICE_ST7282, xpixel, ypixel, PIXEL_FMT_VUYY);
-	
-	os_printf("jpeg enc init.\r\n");
-	jpeg_config.yuv_mode = 0;
-	camera_cfg = (ypixel << 16) | fps;
-	err = bk_jpeg_enc_dvp_init(&jpeg_config);
-	if (err != BK_OK) {
-		os_printf("jpeg init error\r\n");
 		return;
 	}
 
-	os_printf("jpeg dma config\r\n");
-	dma_jpeg_config(jpeg_dma_id);
+	if (err != kNoErr)
+	{
+		os_printf("camera set failed\r\n");
+	}
 
-	i2c_config.baud_rate = 100000;// 400k
-	i2c_config.addr_mode = 0;
-	err = bk_i2c_init(CONFIG_CAMERA_I2C_ID, &i2c_config);
-	if (err != BK_OK) {
-		os_printf("i2c init error\r\n");
-		return;
-	}
-	err = bk_camera_set_param(dev, camera_cfg);
-	if (err != BK_OK) {
-		os_printf("set camera ppi and fps error\n");
-		return;
-	}
-	bk_camera_sensor_config();
 }
 
 void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	int err = kNoErr;
-	jpeg_config_t jpeg_config = {0};
-	i2c_config_t i2c_config = {0};
-	uint32_t fps = 20;
-	uint32_t dev = 3; // gc0328c
-	uint32_t camera_cfg = 0;
 	uint16_t xpixel = 0;
 	uint16_t ypixel = 0;
 	uint8_t lcd_type = 0;
-	 jpeg_partial_offset_config_t offset_config = {0};
+	jpeg_partial_offset_config_t offset_config = {0};
 	os_printf("psram init. \r\n");
 	bk_psram_init();
 #if CONFIG_PWM
@@ -355,38 +388,32 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	BK_LOG_ON_ERR(bk_pwm_init(PWM_ID_1, &config));
 	BK_LOG_ON_ERR(bk_pwm_start(PWM_ID_1));
 #endif
-	BK_LOG_ON_ERR(bk_jpeg_enc_driver_init());
+
 	bk_lcd_driver_init(LCD_20M);
 
 #if (USE_LCD_REGISTER_CALLBACKS == 1)
 		bk_lcd_isr_register(RGB_OUTPUT_EOF, lcd_rgb_isr);
 #else
 		bk_lcd_isr_register(lcd_rgb_isr);
-#endif	
+#endif
 	lcd_type = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
 
 	if (os_strcmp(argv[1], "480p") == 0)
 	{
-		dev = 3;// gc0328c
-		jpeg_config.sys_clk_div = 4;
-		jpeg_config.mclk_div = 0;
 		if (lcd_type == LCD_DEVICE_ST7282)  //480*272 lcd
 		{
 			if (os_strcmp(argv[3], "display_partical") == 0)
 			{
 				os_printf("set display module partical func. \n");
-				jpeg_config.x_pixel = X_PIXEL_640;
-				jpeg_config.y_pixel = Y_PIXEL_480;
 				xpixel = PIXEL_640;
 				ypixel = PIXEL_480;
 				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, PIXEL_FMT_YUYV);
 				bk_lcd_set_partical_display(1,PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
+				dvp_camera_init(JPEG_YUV_MODE, PPI_640X480);
 			}
 			else if (os_strcmp(argv[3], "yuv_partical") == 0)
 			{
 				os_printf("set jpeg yuv module partical func. \n");
-				jpeg_config.x_pixel = X_PIXEL_640;
-				jpeg_config.y_pixel = Y_PIXEL_480;
 				xpixel = PIXEL_480;
 				ypixel = PIXEL_272;
 				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, PIXEL_FMT_YUYV);
@@ -394,31 +421,25 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				offset_config.x_partial_offset_r = PARTICAL_XE;
 				offset_config.y_partial_offset_l = PARTICAL_YS;
 				offset_config.y_partial_offset_r = PARTICAL_YE;
+				dvp_camera_init(JPEG_YUV_MODE, PPI_640X480);
 				bk_jpeg_enc_partial_display_init(&offset_config);
 			}
 			else
 			{
 				os_printf("no partical set jpeg yuv pixel adapt lcd size. \n");
-				jpeg_config.x_pixel = X_PIXEL_480;
-				jpeg_config.y_pixel = Y_PIXEL_272;
 				xpixel = PIXEL_480;
 				ypixel = PIXEL_272;
 				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, PIXEL_FMT_YUYV);
+				dvp_camera_init(JPEG_YUV_MODE, PPI_480X272);
 			}
-		} 
-		else 
+		}
+		else
 		{
 			os_printf("lcd size not support.0:480*RGB*272 \n");
 		}
 	}
 	else  if (os_strcmp(argv[1], "720p") == 0)
 	{
-		dev = 6;
-		jpeg_config.sys_clk_div = 3;
-		jpeg_config.mclk_div = 0;
-		jpeg_config.x_pixel = X_PIXEL_1280;
-		jpeg_config.y_pixel = Y_PIXEL_720;
-		bk_jpeg_enc_set_auxs(3, 0xF);
 		if (lcd_type == LCD_DEVICE_ST7282)	//480*272 lcd
 		{
 			if (os_strcmp(argv[3], "display_partical") == 0)
@@ -428,6 +449,7 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				ypixel = PIXEL_720;
 				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, PIXEL_FMT_YUYV);
 				bk_lcd_set_partical_display(1, PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
+				dvp_camera_init(JPEG_YUV_MODE, PPI_1280X720);
 			}
 			else if (os_strcmp(argv[3], "yuv_partical") == 0)
 			{
@@ -439,14 +461,15 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				offset_config.x_partial_offset_r = PARTICAL_XE;
 				offset_config.y_partial_offset_l = PARTICAL_YS;
 				offset_config.y_partial_offset_r = PARTICAL_YE;
+				dvp_camera_init(JPEG_YUV_MODE, PPI_1280X720);
 				bk_jpeg_enc_partial_display_init(&offset_config);
 			}
 			else
 			{
 				os_printf("no partical set, not support. \n");
 			}
-		} 
-		else if (lcd_type == LCD_DEVICE_HX8282) 
+		}
+		else if (lcd_type == LCD_DEVICE_HX8282)
 		{
 			if (os_strcmp(argv[3], "display_partical") == 0)
 			{
@@ -455,6 +478,7 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				ypixel = PIXEL_720;
 				bk_lcd_rgb_init(lcd_type, xpixel, ypixel, PIXEL_FMT_YUYV);
 				bk_lcd_set_partical_display(1, LCD2_PARTICAL_XS, LCD2_PARTICAL_XE, LCD2_PARTICAL_YS, LCD2_PARTICAL_YE);
+				dvp_camera_init(JPEG_YUV_MODE, PPI_1280X720);
 			}
 			else if (os_strcmp(argv[3], "yuv_partical") == 0)
 			{
@@ -466,51 +490,19 @@ void lcd_rgb_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 				offset_config.x_partial_offset_r = LCD2_PARTICAL_XE;
 				offset_config.y_partial_offset_l = LCD2_PARTICAL_YS;
 				offset_config.y_partial_offset_r = LCD2_PARTICAL_YE;
+				dvp_camera_init(JPEG_YUV_MODE, PPI_1280X720);
 				bk_jpeg_enc_partial_display_init(&offset_config);
 			}
 			else
 			{
 				os_printf("no partical set ,not support. \n");
 			}
-		}	
+		}
 	}
 	else
 	{
 		os_printf("not support camera, 720p/480p \n");
 	}
-
-	if (os_strcmp(argv[3], "yuv_partical") == 0)
-	{
-		bk_jpeg_enc_register_isr(VSYNC_NEGEDGE, jpeg_enc_end_of_yuv, NULL);
-	} 
-	else
-	{
-		bk_jpeg_enc_register_isr(END_OF_YUV, jpeg_enc_end_of_yuv, NULL);
-	}
-	jpeg_config.yuv_mode = 1;
-	camera_cfg = (ypixel << 16) | fps;
-	lcd_driver_set_display_base_addr((uint32_t)psram_lcd->display[0]);
-	err = bk_jpeg_enc_dvp_init(&jpeg_config);
-	if (err != kNoErr) {
-		os_printf("jpeg init error\n");
-		return;
-	}
-
-	i2c_config.baud_rate = 100000;// 400k
-	i2c_config.addr_mode = 0;
-	err = bk_i2c_init(CONFIG_CAMERA_I2C_ID, &i2c_config);
-	if (err != kNoErr) {
-		os_printf("i2c init error\n");
-		return;
-	}
-
-	err = bk_camera_set_param(dev, camera_cfg);
-	if (err != kNoErr) {
-		os_printf("set camera ppi and fps error\n");
-		return;
-	}
-	bk_camera_sensor_config();
-
 }
 
 void lcd_rgb_close(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -520,13 +512,11 @@ void lcd_rgb_close(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 			os_printf("deinit rgb \r\n");
 		}
 		os_printf("close rgb ok \r\n");
-		
-		if (bk_jpeg_enc_dvp_deinit() != BK_OK) {
+
+		if (bk_jpeg_enc_deinit() != BK_OK) {
 			os_printf("deinit jpeg enc error\r\n");
 		}
-		if (bk_jpeg_enc_deinit() !=BK_OK) {
-			os_printf("deinit rgb \r\n");
-		}
+
 		os_printf("close rgb ok \r\n");
 		if (bk_i2c_deinit(CONFIG_CAMERA_I2C_ID) !=BK_OK) {
 			os_printf("deinit rgb \r\n");
@@ -534,7 +524,7 @@ void lcd_rgb_close(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 		os_printf("close rgb ok \r\n");
 	}
 	else if (os_strcmp(argv[1], "jpeg") == 0) {
-		
+
 		if (bk_dma_deinit(jpeg_dma_id) != BK_OK) {
 			os_printf("deinit jpeg dma error \r\n");
 		}
@@ -545,13 +535,11 @@ void lcd_rgb_close(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 			os_printf("deinit rgb \r\n");
 		}
 		os_printf("close rgb ok \r\n");
-		
-		if (bk_jpeg_enc_dvp_deinit() != BK_OK) {
+
+		if (bk_jpeg_enc_deinit() != BK_OK) {
 			os_printf("deinit jpeg enc error\r\n");
 		}
-		if (bk_jpeg_enc_deinit() !=BK_OK) {
-			os_printf("deinit rgb \r\n");
-		}
+
 		os_printf("close rgb ok \r\n");
 		if (bk_i2c_deinit(CONFIG_CAMERA_I2C_ID) !=BK_OK) {
 			os_printf("deinit rgb \r\n");

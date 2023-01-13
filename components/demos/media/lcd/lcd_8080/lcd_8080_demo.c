@@ -19,8 +19,6 @@
 #include <driver/dvp_camera.h>
 #include <driver/i2c.h>
 #include <driver/jpeg_enc.h>
-#include <components/dvp_camera.h>
-
 
 extern const uint8_t fg_blend_image1[];
 
@@ -28,6 +26,15 @@ extern const uint8_t fg_blend_image1[];
 #define DISPLAY_FRAME_COUNTS (2)
 
 #define PSRAM_BASEADDR (0x60000000UL)
+
+typedef enum {
+	READY = 0,           /**<  jpeg deca and display ready */
+	MEMCPYING,           /**<  jepg data mem cpying */
+	JPEGDE_START,        /**<  jepg dec start */
+	JPEGDECING,          /**<  jepg decing */
+	DISPLAYING,          /**<  jepg dec complete, lcd display */
+	JPEGDED,
+}lcd_satus_t;
 
 typedef struct
 {
@@ -137,6 +144,67 @@ static void cpu_lcd_fill_test(uint32_t *addr, uint32_t color)
 	{
 		*(p_addr + i) = color;
 	}
+}
+
+static bk_err_t dvp_camera_init(jpeg_mode_t mode)
+{
+	int ret = kNoErr;
+	jpeg_config_t jpeg_config = {0};
+	i2c_config_t i2c_config = {0};
+	const dvp_sensor_config_t *current_sensor = NULL;
+
+	// step 1: enbale dvp power
+	bk_dvp_camera_power_enable(1);
+
+	bk_jpeg_enc_driver_init();
+
+	// step 2: enable jpeg mclk for i2c communicate with dvp
+	bk_jpeg_enc_mclk_enable();
+
+	rtos_delay_milliseconds(5);
+
+	// step 3: init i2c
+	i2c_config.baud_rate = I2C_BAUD_RATE_100KHZ;
+	i2c_config.addr_mode = I2C_ADDR_MODE_7BIT;
+	bk_i2c_init(CONFIG_CAMERA_I2C_ID, &i2c_config);
+
+	current_sensor = bk_dvp_get_sensor_auto_detect();
+	if (current_sensor == NULL)
+	{
+		os_printf("NOT find camera\r\n");
+		ret = kParamErr;
+		return ret;
+	}
+
+	jpeg_config.mode = mode;
+	jpeg_config.x_pixel = ppi_to_pixel_x(current_sensor->def_ppi) / 8;
+	jpeg_config.y_pixel = ppi_to_pixel_y(current_sensor->def_ppi) / 8;
+	jpeg_config.vsync = current_sensor->vsync;
+	jpeg_config.hsync = current_sensor->hsync;
+	jpeg_config.clk = current_sensor->clk;
+
+	if (mode == JPEG_YUV_MODE)
+	{
+		bk_jpeg_enc_register_isr(JPEG_EOY, jpeg_enc_end_of_yuv, NULL);
+	}
+	else
+	{
+		//
+	}
+
+	ret = bk_jpeg_enc_init(&jpeg_config);
+	if (ret != kNoErr) {
+		os_printf("jpeg init error\n");
+		return ret;
+	}
+
+	current_sensor->init();
+	current_sensor->set_ppi(current_sensor->def_ppi);
+	current_sensor->set_fps(current_sensor->def_fps);
+
+	bk_jpeg_enc_set_gpio(JPEG_ENABLE_DATA);
+
+	return ret;
 }
 
 static volatile uint8_t lcd_cnt;
@@ -263,25 +331,15 @@ void lcd_8080_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 void lcd_8080_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int err = kNoErr;
-	jpeg_config_t jpeg_config = {0};
-	i2c_config_t i2c_config = {0};
-	uint32_t fps = 25;
-	uint32_t dev = 3; // gc0328c
-	uint32_t camera_cfg = 0;
-	uint32_t ppi = 481;
 
 	os_printf("psram init. \r\n");
 	bk_psram_init();
-	
+
 	uint32_t lcd_clk = os_strtoul(argv[1], NULL, 16) & 0xffff;
-	BK_LOG_ON_ERR(bk_jpeg_enc_driver_init());
 	bk_lcd_driver_init(lcd_clk);
 
 	bk_lcd_isr_register(I8080_OUTPUT_EOF, lcd_i8080_isr);
-	jpeg_config.sys_clk_div = 4;
-	jpeg_config.mclk_div = 0;
-	jpeg_config.x_pixel = X_PIXEL_320;
-	jpeg_config.y_pixel = Y_PIXEL_480;
+
 	bk_lcd_8080_init(PIXEL_320, PIXEL_480, PIXEL_FMT_YUYV);
 	bk_lcd_8080_int_enable(0,1);
 	err = st7796s_init();
@@ -291,55 +349,28 @@ void lcd_8080_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	}
 	os_printf("st7796 init ok. \r\n");
 
-	bk_jpeg_enc_register_isr(END_OF_YUV, jpeg_enc_end_of_yuv, NULL);
-	jpeg_config.yuv_mode = 1;
-	camera_cfg = (ppi << 16) | fps;
 	lcd_driver_set_display_base_addr((uint32_t)psram_lcd->display[0]);
-	err = bk_jpeg_enc_dvp_init(&jpeg_config);
-	if (err != kNoErr) {
-		os_printf("jpeg init error\n");
-		return;
-	}
 
-	i2c_config.baud_rate = 100000;// 400k
-	i2c_config.addr_mode = 0;
-	err = bk_i2c_init(CONFIG_CAMERA_I2C_ID, &i2c_config);
-	if (err != kNoErr) {
-		os_printf("i2c init error\n");
+	err = dvp_camera_init(JPEG_YUV_MODE);
+	if (err != BK_OK) {
+		os_printf("camera failed\r\n");
 		return;
 	}
-
-	err = bk_camera_set_param(dev, camera_cfg);
-	if (err != kNoErr) {
-		os_printf("set camera ppi and fps error\n");
-		return;
-	}
-	bk_camera_sensor_config();
 }
 
 void lcd_8080_display_480p_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int err = kNoErr;
-	jpeg_config_t jpeg_config = {0};
-	i2c_config_t i2c_config = {0};
-	uint32_t fps = 25;
-	uint32_t dev = 3; // gc0328c
-	uint32_t camera_cfg = 0;
 
 	os_printf("psram init. \r\n");
 	bk_psram_init();
-	BK_LOG_ON_ERR(bk_jpeg_enc_driver_init());
-	
+
 	uint32_t lcd_clk = os_strtoul(argv[1], NULL, 16) & 0xffff;
-	
+
 	bk_lcd_driver_init(lcd_clk);
 
 	bk_lcd_isr_register(I8080_OUTPUT_EOF, lcd_i8080_isr);
-	jpeg_config.sys_clk_div = 4;
-	jpeg_config.mclk_div = 0;
-	os_printf("no partical set jpeg yuv pixel adapt lcd size. \n");
-	jpeg_config.x_pixel = X_PIXEL_640;
-	jpeg_config.y_pixel = Y_PIXEL_480;
+
 	bk_lcd_8080_init(PIXEL_640, PIXEL_480, PIXEL_FMT_YUYV);
 	bk_lcd_8080_int_enable(0,1);
 	lcd_driver_set_display_base_addr((uint32_t)psram_lcd->display[0]);
@@ -351,28 +382,10 @@ void lcd_8080_display_480p_yuv(char *pcWriteBuffer, int xWriteBufferLen, int arg
 	}
 	os_printf("st7796 init ok. \r\n");
 
-	bk_jpeg_enc_register_isr(END_OF_YUV, jpeg_enc_end_of_yuv, NULL);
-	jpeg_config.yuv_mode = 1;
-	camera_cfg = (PIXEL_480 << 16) | fps;
-	err = bk_jpeg_enc_dvp_init(&jpeg_config);
-	if (err != kNoErr) {
-		os_printf("jpeg init error\n");
+	err = dvp_camera_init(JPEG_YUV_MODE);
+	if (err != BK_OK) {
+		os_printf("camera failed\r\n");
 		return;
 	}
-
-	i2c_config.baud_rate = 100000;// 400k
-	i2c_config.addr_mode = 0;
-	err = bk_i2c_init(CONFIG_CAMERA_I2C_ID, &i2c_config);
-	if (err != kNoErr) {
-		os_printf("i2c init error\n");
-		return;
-	}
-
-	err = bk_camera_set_param(dev, camera_cfg);
-	if (err != kNoErr) {
-		os_printf("set camera ppi and fps error\n");
-		return;
-	}
-	bk_camera_sensor_config();
 }
 

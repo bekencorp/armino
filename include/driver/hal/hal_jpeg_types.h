@@ -22,20 +22,76 @@ extern "C" {
 #endif
 
 #define BK_ERR_JPEG_NOT_INIT    (BK_ERR_JPEG_BASE - 1) /**< JPEG driver not init */
-
 typedef uint8_t jpeg_unit_t; /**< jpeg uint id */
 
+
+typedef enum {
+	JPEG_ENC_MODE = 0,
+	JPEG_YUV_MODE,
+}jpeg_mode_t;
+
+typedef enum {
+	JPEG_SYS_CLK_320M = 0,
+	JPEG_SYS_CLK_480M,
+} jpeg_sys_clk_t;
+
+typedef enum {
+	JPEG_MCLK_DIV_4 = 0,
+	JPEG_MCLK_DIV_6 = 1,
+	JPEG_MCLK_DIV_2 = 2,
+	JPEG_MCLK_DIV_3 = 3,
+} jpeg_mclk_div_t;
+
+/**
+ * @brief jpeg module work clk and sensor work clk
+ * @{
+ */
+typedef enum
+{
+	JPEG_96M_MCLK_16M,   /**< jpeg module work in 96MHz and sensor work in 16MHz */
+	JPEG_96M_MCLK_24M,
+	JPEG_120M_MCLK_20M,
+	JPEG_120M_MCLK_30M,
+} jpeg_clk_t;
+
+typedef enum
+{
+	JPEG_SYNC_LOW_LEVEL,
+	JPEG_SYNC_HiGH_LEVEL,
+} jpeg_sync_level_t;
+
+/**
+ * @brief jpeg_yuv_format_t when jpeg encode at yuv mode, the output yuv format type
+ *
+ * @attation 1. fllow type out base on input YUYV
+ */
+typedef enum {
+	JPEG_YUYV = 0, /**< YUYV, bit[31-0]=[YUYV] */
+	JPEG_UYVY = 1, /**< UYVY, bit[31-0]=[UYVY] */
+	JPEG_YYUV = 2, /**< YYUV, bit[31-0]=[YYUV] */
+	JPEG_UVYY = 3, /**< UVYY, bit[31-0]=[UVYY] */
+}jpeg_yuv_format_t;
+
+typedef enum {
+	JPEG_EOY = 0,        /**< when work at yuv mode, transfer a complete frame will trigger this isr */
+	JPEG_HEAD_OUTPUT,    /**< when work at jpeg encode mode, the head output complete will trigger this isr */
+	JPEG_SOF,            /**< when work at jpeg encode mode, detect vsync rising edge after few cycle will trigger this isr */
+	JPEG_EOF,            /**< when work at jpeg encode mode, transfer a complete frame will trigger this isr */
+	JPEG_VSYNC_NEGEDGE,  /**< when detect vsync negedge will trigger this isr */
+	JPEG_ISR_MAX,
+}jpeg_isr_type_t;
+
+
 typedef struct {
-	uint8_t *rx_buf;      /**< the address of receiving jpeg data */
-	uint8_t  dma_channel;/**< jpeg encode work mode for transfer data */
-	uint8_t  yuv_mode;    /**< jpeg module work mode:0/1:jpegencoder/yuv */
-	uint32_t sys_clk_div; /**< div system clock for jpeg module, div = 1/(1+sys_clk_div) */
-	uint32_t mclk_div;    /**< div jpeg module clock for MCLK and PCLK, mclk_div:0x00:1/4, 0x01:1/2, 0x10:1/6, 0x11:1/3 */
+	uint8_t    *rx_buf;      /**< the address of receiving jpeg data */
+	jpeg_mode_t mode;        /**< jpeg module work mode:0/1:jpegencoder/yuv */
+	jpeg_clk_t  clk;         /**< jpeg module work clk config */
+	jpeg_sync_level_t vsync; /**< sensor vsync active level  */
+	jpeg_sync_level_t hsync; /**< sensor hsync active level  */
 	uint32_t rx_buf_len;  /**< the length for receiving jpeg data */
 	uint32_t node_len;    /**< dma transfer length */
 	uint32_t x_pixel;     /**< jpeg encode image resolution for width */
 	uint32_t y_pixel;     /**< jpeg encode image resolution for height */
-	dma_isr_t dma_rx_finish_handler; /**< dma transfer finish callback */
 } jpeg_config_t;
 
 typedef struct {

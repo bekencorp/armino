@@ -27,3 +27,4 @@ User and Developer Guide
    特定 CPU 相关指南 <cpu/index>
    用例编写 <examples/index>
    文档系统 <documentation/index>
+   分区规范 <partition_specification/index>

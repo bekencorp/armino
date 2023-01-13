@@ -49,6 +49,8 @@ typedef enum {
 
 bk_err_t gpio_dev_map(gpio_id_t gpio_id, gpio_dev_t dev);
 bk_err_t gpio_dev_unmap(gpio_id_t gpio_id);
+bk_err_t gpio_dev_unprotect_map(gpio_id_t gpio_id, gpio_dev_t dev);
+bk_err_t gpio_dev_unprotect_unmap(gpio_id_t gpio_id);
 bk_err_t gpio_spi_sel(gpio_spi1_map_mode_t gpio_spi_sel_mode);
 bk_err_t gpio_sdio_sel(gpio_sdio_map_mode_t gpio_sdio_sel_mode);
 bk_err_t gpio_sdio_one_line_sel(gpio_sdio_map_mode_t gpio_sdio_sel_mode);

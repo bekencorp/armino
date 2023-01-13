@@ -84,6 +84,10 @@ bk_err_t bk_dma2d_driver_init(void)
 #if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
 	os_memset(&s_dma2d_isr, 0, sizeof(s_dma2d_isr));
 	bk_int_isr_register(INT_SRC_DMA2D, dma2d_isr, NULL);
+	if(sys_drv_dma2d_set(0, 1) != 0) {
+		DMA2D_LOGE("dma2d sys clk config error \r\n");
+		return BK_FAIL;
+	}
 #endif
 	s_dma2d_driver_is_init = true;
 	DMA2D_LOGI("%s \n", __func__);
@@ -159,6 +163,12 @@ bk_err_t bk_dma2d_start_transfer(dma2d_config_t *dma2d, uint32_t pdata, uint32_t
 bool bk_dma2d_is_transfer_busy(void)
 {
 	return dma2d_hal_is_transfer_done();
+}
+
+bk_err_t dma2d_start_transfer(void)
+{
+	dma2d_hal_start_transfer(1);
+	return BK_OK;
 }
 
 /**
@@ -303,38 +313,44 @@ static void dma2d_isr_common(void)
 	uint32_t int_status;
 	int_status = bk_dma2d_int_status_get();
 	if (int_status & DMA2D_CFG_ERROR_STATUS) {
-
 		if (s_dma2d_isr[DMA2D_CFG_ERROR_ISR]) {
 			s_dma2d_isr[DMA2D_CFG_ERROR_ISR]();
 		}
+		bk_dma2d_int_status_clear(DMA2D_CFG_ERROR_STATUS);
 	}
 	//Transfer Error Interrupt management
 	if (int_status & DMA2D_TRANS_ERROR_STATUS) {
 		if (s_dma2d_isr[DMA2D_TRANS_ERROR_ISR]) {
 			s_dma2d_isr[DMA2D_TRANS_ERROR_ISR]();
 		}
+		bk_dma2d_int_status_clear(DMA2D_TRANS_ERROR_STATUS);
 	}
 	if (int_status & DMA2D_TRANS_COMPLETE_STATUS) {
 		if (s_dma2d_isr[DMA2D_TRANS_COMPLETE_ISR]) {
 			s_dma2d_isr[DMA2D_TRANS_COMPLETE_ISR]();
 		}
+		bk_dma2d_int_status_clear(DMA2D_TRANS_COMPLETE_STATUS);
 	}
 	if (int_status & DMA2D_WARTERMARK_INT_STATUS) {
 		if (s_dma2d_isr[DMA2D_WARTERMARK_INT_ISR]) {
 			s_dma2d_isr[DMA2D_WARTERMARK_INT_ISR]();
 		}
+		bk_dma2d_int_status_clear(DMA2D_WARTERMARK_INT_STATUS);
 	}
-	if (int_status & DMA2D_CLUT_TRANS_COMPLETE_STATUS) {
+	if (int_status & DMA2D_CLUT_TRANS_COMPLETE_STATU) {
 		if (s_dma2d_isr[DMA2D_CLUT_TRANS_COMPLETE_ISR]) {
 			s_dma2d_isr[DMA2D_CLUT_TRANS_COMPLETE_ISR]();
 		}
+		bk_dma2d_int_status_clear(DMA2D_CLUT_TRANS_COMPLETE_STATU);
 	}
 	if (int_status & DMA2D_CLUT_TRANS_ERROR_STATUS) {
 		if (s_dma2d_isr[DMA2D_CLUT_TRANS_ERROR_ISR]) {
 			s_dma2d_isr[DMA2D_CLUT_TRANS_ERROR_ISR]();
 		}
+		bk_dma2d_int_status_clear(DMA2D_CLUT_TRANS_ERROR_STATUS);
 	}
 }
+
 
 /**
   * @brief  register dma2d int type isr ,user option function
@@ -352,7 +368,7 @@ static void dma2d_isr_common(void)
   * @param  cb_isr the user register int callback function
   * @retval bk_err_t status
   */
-bk_err_t bk_dma2d_register_int_callback_isr(DMA2D_ISR_ID isr_id, dma2d_isr_t cb_isr)
+bk_err_t bk_dma2d_register_int_callback_isr(dm2d_isr_id_t isr_id, dma2d_isr_t cb_isr)
 {
 	if ((isr_id) >= DMA2D_ISR_NUM)
 		return BK_FAIL;
@@ -381,6 +397,7 @@ bk_err_t bk_dma2d_blend(dma2d_blend_t *dma2d_blebnd)
 	dma2d_config.init.output_offset= dma2d_blebnd->dest_offline;	 /**< output offset */
 	dma2d_config.init.red_blue_swap   = DMA2D_RB_REGULAR;				 /**< No R&B swap for the output image */
 	dma2d_config.init.alpha_inverted = DMA2D_REGULAR_ALPHA; 			/**< No alpha inversion for the output image */
+	dma2d_config.init.trans_ability = TRANS_64BYTES; 
 
 	/**< Foreground layer Configuration */
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].alpha_mode = DMA2D_NO_MODIF_ALPHA;	/**< Keep original Alpha from ARGB4444 input */
@@ -413,7 +430,7 @@ bk_err_t bk_dma2d_blend(dma2d_blend_t *dma2d_blebnd)
 								  dma2d_blebnd->xsize ,																	 /**< width in pixels	*/
 								  dma2d_blebnd->ysize);																	 /**< height in pixels	 */
 
-	while (bk_dma2d_is_transfer_busy()) {}
+	//while (bk_dma2d_is_transfer_busy()) {}
 
 	return BK_OK;
 }
@@ -428,6 +445,7 @@ void bk_dma2d_pixel_convert(dma2d_pixel_convert_t *pixel_convert)
 	dma2d_config.init.output_offset = pixel_convert->output_offline; 
 	dma2d_config.init.red_blue_swap   = pixel_convert->output_red_blue_swap;               /**< No R&B swap for the output image */
 	dma2d_config.init.alpha_inverted = DMA2D_REGULAR_ALPHA;            /**< No alpha inversion for the output image */
+	dma2d_config.init.trans_ability = TRANS_64BYTES; 
 
 	/**< Foreground layer Configuration */
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].alpha_mode = DMA2D_NO_MODIF_ALPHA;    /**< Keep original Alpha from ARGB4444 input */
@@ -447,6 +465,21 @@ void bk_dma2d_pixel_convert(dma2d_pixel_convert_t *pixel_convert)
                                   pixel_convert->ysize);        /**< height in pixels */
 
 	while (bk_dma2d_is_transfer_busy()) {}
+}
+
+bk_err_t dma2d_fill(dma2d_fill_t *fill)
+{
+	dma2d_config_t dma2d_config = {0};
+	void *pDiSt=&(((uint16_t *)fill->frameaddr)[fill->frame_ysize * fill->ypos + fill->xpos]);
+
+	dma2d_config.init.mode   = DMA2D_R2M; 			 /**< Mode Register to Memory */
+	dma2d_config.init.color_mode	   = fill->color_format;  /**< DMA2D Output color mode is ARGB4444 (16 bpp) */
+	dma2d_config.init.output_offset  = fill->frame_xsize - fill->width;					 /**< No offset in output */
+	dma2d_config.init.red_blue_swap   = DMA2D_RB_REGULAR;		 /**< No R&B swap for the output image */
+	dma2d_config.init.alpha_inverted = DMA2D_REGULAR_ALPHA;	 /**< No alpha inversion for the output image */
+	bk_dma2d_init(&dma2d_config);
+	dma2d_hal_config(&dma2d_config, fill->color, (uint32_t)pDiSt, fill->width, fill->high);
+	return BK_OK;
 }
 
 

@@ -7,4 +7,4 @@ bluetooth
    :maxdepth: 1
 
    ble_boarding <ble_boarding_demo>
-
+   DUT <dut>

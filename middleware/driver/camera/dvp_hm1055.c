@@ -23,6 +23,8 @@
 
 #include <driver/i2c.h>
 
+#include "dvp_sensor_devices.h"
+
 #define HM1055_WRITE_ADDRESS (0x48)
 #define HM1055_READ_ADDRESS (0x49)
 
@@ -31,8 +33,15 @@
 #define TAG "hm1055"
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
 
-#define SENSOR_I2C_READ(reg, value)  cb->read_uint16((HM1055_WRITE_ADDRESS >> 1), reg, value)
-#define SENSOR_I2C_WRITE(reg, value)  cb->write_uint16((HM1055_WRITE_ADDRESS >> 1), reg, value)
+#define SENSOR_I2C_READ(reg, value) \
+	do {\
+		dvp_camera_i2c_read_uint16((HM1055_WRITE_ADDRESS >> 1), reg, value);\
+	}while (0)
+
+#define SENSOR_I2C_WRITE(reg, value) \
+	do {\
+		dvp_camera_i2c_write_uint16((HM1055_WRITE_ADDRESS >> 1), reg, value);\
+	}while (0)
 
 bool hm1055_read_flag = false;
 
@@ -701,7 +710,7 @@ const uint16_t sensor_hm1055_720P_5fps_talbe[][2] =
 	{0x0005, 0x01}, //Turn on rolling shutter
 };
 
-bool hm1055_detect(const dvp_camera_i2c_callback_t *cb)
+bool hm1055_detect(void)
 {
 	uint8_t data[2] = {0};
 
@@ -720,7 +729,7 @@ bool hm1055_detect(const dvp_camera_i2c_callback_t *cb)
 	return false;
 }
 
-void hm1055_read_register(const dvp_camera_i2c_callback_t *cb, uint16_t addr, uint8_t data)
+void hm1055_read_register(uint16_t addr, uint8_t data)
 {
 	if (hm1055_read_flag)
 	{
@@ -735,7 +744,7 @@ void hm1055_read_register(const dvp_camera_i2c_callback_t *cb, uint16_t addr, ui
 }
 
 
-int hm1055_init(const dvp_camera_i2c_callback_t *cb)
+int hm1055_init(void)
 {
 	uint32_t size = sizeof(sensor_hm1055_init_talbe) / 4;
 
@@ -744,19 +753,19 @@ int hm1055_init(const dvp_camera_i2c_callback_t *cb)
 		SENSOR_I2C_WRITE(sensor_hm1055_init_talbe[i][0],
 		                 (uint8_t)sensor_hm1055_init_talbe[i][1]);
 
-		hm1055_read_register(cb, sensor_hm1055_init_talbe[i][0],
+		hm1055_read_register(sensor_hm1055_init_talbe[i][0],
 		                     (uint8_t)sensor_hm1055_init_talbe[i][1]);
 	}
 
 	return 0;
 }
 
-int hm1055_set_ppi(const dvp_camera_i2c_callback_t *cb, media_ppi_t ppi)
+int hm1055_set_ppi(media_ppi_t ppi)
 {
 	return 0;
 }
 
-int hm1055_set_fps(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps)
+int hm1055_set_fps(sensor_fps_t fps)
 {
 	uint32_t size, i;
 	int ret = -1;
@@ -772,7 +781,7 @@ int hm1055_set_fps(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps)
 				SENSOR_I2C_WRITE(sensor_hm1055_720P_5fps_talbe[i][0],
 				                 (uint8_t)sensor_hm1055_720P_5fps_talbe[i][1]);
 
-				hm1055_read_register(cb, sensor_hm1055_720P_5fps_talbe[i][0],
+				hm1055_read_register(sensor_hm1055_720P_5fps_talbe[i][0],
 				                     (uint8_t)sensor_hm1055_720P_5fps_talbe[i][1]);
 			}
 
@@ -788,7 +797,7 @@ int hm1055_set_fps(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps)
 				SENSOR_I2C_WRITE(sensor_hm1055_720P_10fps_talbe[i][0],
 				                 (uint8_t)sensor_hm1055_720P_10fps_talbe[i][1]);
 
-				hm1055_read_register(cb, sensor_hm1055_720P_10fps_talbe[i][0],
+				hm1055_read_register(sensor_hm1055_720P_10fps_talbe[i][0],
 				                     (uint8_t)sensor_hm1055_720P_10fps_talbe[i][1]);
 			}
 
@@ -804,7 +813,7 @@ int hm1055_set_fps(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps)
 				SENSOR_I2C_WRITE(sensor_hm1055_720P_15fps_talbe[i][0],
 				                 (uint8_t)sensor_hm1055_720P_15fps_talbe[i][1]);
 
-				hm1055_read_register(cb, sensor_hm1055_720P_15fps_talbe[i][0],
+				hm1055_read_register(sensor_hm1055_720P_15fps_talbe[i][0],
 				                     (uint8_t)sensor_hm1055_720P_15fps_talbe[i][1]);
 			}
 
@@ -834,7 +843,7 @@ int hm1055_set_fps(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps)
 				SENSOR_I2C_WRITE(sensor_hm1055_720P_25fps_talbe[i][0],
 				                 (uint8_t)sensor_hm1055_720P_25fps_talbe[i][1]);
 
-				hm1055_read_register(cb, sensor_hm1055_720P_25fps_talbe[i][0],
+				hm1055_read_register(sensor_hm1055_720P_25fps_talbe[i][0],
 				                     (uint8_t)sensor_hm1055_720P_25fps_talbe[i][1]);
 			}
 
@@ -850,25 +859,27 @@ int hm1055_set_fps(const dvp_camera_i2c_callback_t *cb, sensor_fps_t fps)
 				SENSOR_I2C_WRITE(sensor_hm1055_720P_30fps_talbe[i][0],
 				                 (uint8_t)sensor_hm1055_720P_30fps_talbe[i][1]);
 
-				hm1055_read_register(cb, sensor_hm1055_720P_30fps_talbe[i][0],
+				hm1055_read_register(sensor_hm1055_720P_30fps_talbe[i][0],
 				                     (uint8_t)sensor_hm1055_720P_30fps_talbe[i][1]);
 			}
 
 			ret = 0;
 		}
 		break;
+		default:
+			LOGI("default 20fps");
 	}
 
 	return ret;
 }
 
-int hm1055_power_down(const dvp_camera_i2c_callback_t *cb)
+int hm1055_power_down(void)
 {
 	SENSOR_I2C_WRITE(0x0004, 0x14);
 	return 0;
 }
 
-int hm1055_dump(const dvp_camera_i2c_callback_t *cb, media_ppi_t ppi)
+int hm1055_dump(media_ppi_t ppi)
 {
 	uint32_t size, i;
 	int ret = -1;
@@ -901,6 +912,9 @@ const dvp_sensor_config_t dvp_sensor_hm1055 =
 {
 	.name = "hm1055",
 	.clk = JPEG_120M_MCLK_30M,
+	.fmt = PIXEL_FMT_YUYV,
+	.vsync = JPEG_SYNC_HiGH_LEVEL,
+	.hsync = JPEG_SYNC_HiGH_LEVEL,
 	/* default config */
 	.def_ppi = PPI_1280X720,
 	.def_fps = FPS15,

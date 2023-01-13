@@ -88,11 +88,7 @@
 #endif
 
 #if CONFIG_CHIP_SUPPORT
-#include "chip_support.h"
-#endif
-
-#if CONFIG_DOORBELL_DEMO1
-#include <driver/uvc_camera.h>
+#include "modules/chip_support.h"
 #endif
 
 #if CONFIG_YUV_BUF
@@ -162,7 +158,7 @@ void power_clk_rf_init()
 	//sys_drv_analog_set(ANALOG_REG4, param);
 
 	/*set low power low voltage value */
-
+#if 0
 	param = 0;
 	param = sys_drv_analog_get(ANALOG_REG3);
 	param &= ~(0x7 << 29);
@@ -172,6 +168,7 @@ void power_clk_rf_init()
 	param = sys_drv_analog_get(ANALOG_REG2);
 	param |= (0x1 << 25);
 	sys_drv_analog_set(ANALOG_REG2, param);
+#endif
 	/*tempreture det enable for VIO*/
 	param = 0;
 	param = sys_drv_analog_get(ANALOG_REG6);
@@ -268,11 +265,6 @@ int driver_init(void)
 	interrupt_init();
 
 	bk_gpio_driver_init();
-
-#if CONFIG_DOORBELL_DEMO1
-	bk_uvc_camera_power_on();
-	os_printf("bk_uvc_camera_power_on \r\n");
-#endif
 
 	//Important notice!!!!!
 	//ATE uses UART TX PIN as the detect ATE mode pin,

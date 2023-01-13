@@ -8,3 +8,4 @@
 
    视频 <video/index>
    蓝牙 <bluetooth/index>
+   Command Line <cli/index>

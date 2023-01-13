@@ -5,6 +5,7 @@ Samples and Demos (TBC)
 
 .. toctree::
    :maxdepth: 1
-   
+
    video <video/index>
    bluetooth <bluetooth/index>
+   Command Line <cli/index>

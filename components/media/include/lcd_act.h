@@ -62,9 +62,10 @@ typedef struct {
 
 //added for blend 
 #define MAX_BLEND_NAME_LEN 16
-typedef struct {	 
+typedef struct {
 	uint8_t time_data[MAX_BLEND_NAME_LEN]; 
 	uint8_t ver_data[MAX_BLEND_NAME_LEN]; 
+	uint8_t year_to_data[MAX_BLEND_NAME_LEN]; 
 	uint8_t wifi_data; 
 	uint8_t lcd_blend_type; 
 } lcd_blend_data_t;
@@ -73,7 +74,8 @@ typedef enum {
 	LCD_BLEND_NONE=0x0,
 	LCD_BLEND_WIFI=0x01,
 	LCD_BLEND_TIME=0x02,
-	LCD_BLEND_VERSION=0x04
+	LCD_BLEND_VERSION=0x04,
+	LCD_BLEND_DATA=0x08,
 } lcd_blend_type_em;
 
 typedef struct {

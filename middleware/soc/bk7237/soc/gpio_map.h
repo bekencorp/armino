@@ -254,6 +254,12 @@ extern "C" {
 	{GPIO_10, GPIO_INT_TYPE_FALLING_EDGE},\
 	/*{GPIO_40, GPIO_INT_LEVEL_LOW},*/ \
 }
+
+/*---multi modules use one gpio to control different ldo---*/
+#define GPIO_CTRL_LDO_MAP  \
+{\
+	{GPIO_8,  GPIO_OUTPUT_STATE_LOW} \
+}
 #endif
 #define GPIO_CTRL_LDO_OUTPUT_HIGH_MAP  \
 {\

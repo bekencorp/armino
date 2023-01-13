@@ -30,6 +30,8 @@
 #include "cache.h"
 #endif
 
+#include <os/mem.h>
+
 #define DMA_CPU_MASTER		0
 #define DMA_CPU_SLAVE1		1
 
@@ -45,6 +47,12 @@ static dma_isr_t s_dma_finish_isr[SOC_DMA_CHAN_NUM_PER_UNIT] = {NULL};
 static dma_isr_t s_dma_half_finish_isr[SOC_DMA_CHAN_NUM_PER_UNIT] = {NULL};
 static bool s_dma_driver_is_init = false;
 static dma_chnl_pool_t s_dma_chnl_pool = {0};
+
+#if CONFIG_ARCH_RISCV
+extern uint64_t riscv_get_mtimer(void);
+extern void rtos_dump_plat_sys_regs(void);
+extern void rtos_regist_plat_dump_hook(uint32_t reg_base_addr, uint32_t reg_size);
+#endif
 
 #define DMA_RETURN_ON_NOT_INIT() do {\
         if (!s_dma_driver_is_init) {\
@@ -162,6 +170,9 @@ bk_err_t bk_dma_driver_init(void)
     bk_int_isr_register(INT_SRC_GDMA, dma_isr, NULL);
     dma_hal_init(&s_dma.hal);
 
+#if CONFIG_ARCH_RISCV
+    rtos_regist_plat_dump_hook((uint32_t)(s_dma.hal.hw), sizeof(dma_hw_t));
+#endif
     s_dma_driver_is_init = true;
 
     return BK_OK;
@@ -610,6 +621,7 @@ bk_err_t bk_dma_set_privileged_attr(dma_id_t id, dma_sec_attr_t attr)
 }
 #endif
 
+
 bk_err_t dma_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_id_t cpy_chnl)
 {
     DMA_RETURN_ON_NOT_INIT();
@@ -647,7 +659,25 @@ bk_err_t dma_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_id_t cp
     dma_hal_set_dest_sec_attr(&s_dma.hal, cpy_chnl, DMA_ATTR_SEC);
 #endif
     GLOBAL_INT_RESTORE();
-    BK_WHILE (dma_hal_get_enable_status(&s_dma.hal, cpy_chnl));
+
+#if CONFIG_ARCH_RISCV
+    uint64_t cur_time = 0;
+    uint64_t save_time = 0;
+    uint32_t diff_time = 0;
+    cur_time = riscv_get_mtimer();
+    while (dma_hal_get_enable_status(&s_dma.hal, cpy_chnl)) {
+        save_time = riscv_get_mtimer();
+        diff_time = (uint32_t)(save_time - cur_time)/26000;
+        if (diff_time > 1000) {
+            DMA_LOGW(" ***************dma copy more than 1s..stop.\r\n");
+            dma_hal_stop_common(&s_dma.hal, cpy_chnl);
+            os_memcpy_word(out, in, len);
+            rtos_dump_plat_sys_regs();
+        }
+    }
+#else
+    BK_WHILE(dma_hal_get_enable_status(&s_dma.hal, cpy_chnl));
+#endif
 
     return BK_OK;
 

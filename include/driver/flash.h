@@ -153,7 +153,7 @@ bk_err_t bk_flash_write_status_reg(uint16_t status_reg_data);
  *    - BK_ERR_FLASH_ADDR_OUT_OF_RANGE: flash address is out of range
  *    - others: other errors.
  */
-bk_err_t bk_flash_erase_sector(uint32_t address);
+__attribute__((section(".itcm_sec_code"))) bk_err_t bk_flash_erase_sector(uint32_t address);
 
 /**
  * @brief     Write data to flash

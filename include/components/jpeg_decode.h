@@ -87,6 +87,21 @@ bk_err_t bk_jpeg_dec_sw_deinit(void);
 bk_err_t bk_jpeg_dec_sw_start(uint32_t frame_size, uint8_t *src_buf, uint8_t *dst_buf, sw_jpeg_dec_res_t *result);
 
 /**
+ * @brief     jpeg_decoder_fun
+ *
+ * This API is used to get img width and size
+ *
+ * @param frame_size input image size
+ *
+ * @attention 1. only for software jpeg_dec 
+ *
+ * @return
+ *    - kNoErr: succeed
+ *    - other: errors.
+ */
+bk_err_t bk_jpeg_get_img_info(uint32_t frame_size, uint8_t *src_buf, sw_jpeg_dec_res_t *result);
+
+/**
  * @brief     jpegdec register finish icallback_func
  *
  * This API jpeg_decoder_fun, the callback function wiil execute when decode success

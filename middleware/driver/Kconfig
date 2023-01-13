@@ -45,10 +45,69 @@ menu "Driver"
 	source "${ARMINO_PATH}/middleware/driver/saradc/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/flash/Kconfig"
 
+	config LCD
+		bool "Enable LCD"
+		default n
+
+	config LCD_GC9503V
+		depends on LCD
+		bool "Enable LCD_GC9503V API"
+		default n
+
+	config LCD_H050IWV
+		depends on LCD
+		bool "Enable LCD_H050IWV API"
+		default n
+
+	config LCD_HX8282
+		depends on LCD
+		bool "Enable LCD_HX8282 API"
+		default n
+
+	config LCD_MD0430R
+		depends on LCD
+		bool "Enable LCD_MD0430R API"
+		default n
+
+	config LCD_MD0700R
+		depends on LCD
+		bool "Enable LCD_MD0700R API"
+		default n
+
+	config LCD_NT35512
+		depends on LCD
+		bool "Enable LCD_NT35512 API"
+		default n
+
+	config LCD_NT35510
+		depends on LCD
+		bool "Enable LCD_NT35510 API"
+		default n
+
+	config LCD_NT35510_MCU
+		depends on LCD
+		bool "Enable LCD_NT35510_MCU API"
+		default n
+
+	config LCD_ST7282
+		depends on LCD
+		bool "Enable LCD_ST7282 API"
+		default n
+
+	config LCD_ST7796S
+		depends on LCD
+		bool "Enable LCD_ST7796S API"
+		default n
+
+	config LCD_ST7710S
+		depends on LCD
+		bool "Enable LCD_ST7710S API"
+		default n
+
 	config MAC_PHY_BYPASS
 		bool "Enable MAC/PHY by pass mode"
 		default y
-	
+
 	config SUPPORT_IRDA
 		bool "Enable IRDA"
 		default y
@@ -56,19 +115,15 @@ menu "Driver"
 	config MAILBOX
 		bool "Enable mail_box"
 		default n
-		
-	config LCD
-		bool "Enable LCD Display"
-		default n
 
 	config TP
 		bool "Enable TP"
 		default n
-		
+
 	config DMA2D
 		bool "Enable DMA2D"
 		default n
-	
+
 	config YUV_BUF
 		bool "Enable yuv_buf"
 		default n
@@ -96,8 +151,20 @@ menu "Driver"
 	config CHANGE_JTAG_GPIO
 		bool "Enable change jtag group"
 		default n
-	
+
 	config RESET_REASON
 		bool "Enable reset reason"
 		default y
+
+	config LCD_POWER_GPIO_CTRL
+		bool "Enable lcd power gpio ctrl"
+		default n
+
+	config LCD_BACKLIGHT_GPIO_CTRL
+		bool "Enable lcd backlight gpio ctrl"
+		default n
+
+	config CAMERA_POWER_GPIO_CTRL
+		bool "Enable camera power gpio ctrl"
+		default n
 endmenu

@@ -152,12 +152,7 @@ static inline void jpeg_ll_disable_enc_size(jpeg_hw_t *hw)
 	hw->cfg.jpeg_enc_size = 0;
 }
 
-static inline void jpeg_ll_enable_yuv_word_reverse(jpeg_hw_t *hw)
-{
-	// NOT Support
-}
-
-static inline void jpeg_ll_disable_yuv_word_reverse(jpeg_hw_t *hw)
+static inline void jpeg_ll_enable_yuv_word_reverse(jpeg_hw_t *hw, uint8_t enable)
 {
 	// NOT Support
 }
@@ -195,6 +190,22 @@ static inline void jpeg_ll_set_target_low_byte(jpeg_hw_t *hw, uint32_t low_byte)
 static inline uint32_t jpeg_ll_get_target_low_byte(jpeg_hw_t *hw)
 {
 	return hw->target_byte_l;
+}
+
+static inline void jpeg_ll_enable_vsync_reverse(jpeg_hw_t *hw, uint8_t enable)
+{
+	if (enable == 1)
+		hw->cfg.vsync_rev = 1;
+	else
+		hw->cfg.vsync_rev = 0;
+}
+
+static inline void jpeg_ll_enable_hsync_reverse(jpeg_hw_t *hw, uint8_t enable)
+{
+	if (enable == 1)
+		hw->cfg.hsync_rev = 1;
+	else
+		hw->cfg.hsync_rev = 0;
 }
 
 static inline void jpeg_ll_set_bitrate_step(jpeg_hw_t *hw, uint32_t step)

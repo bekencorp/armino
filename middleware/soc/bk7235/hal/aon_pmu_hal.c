@@ -32,6 +32,9 @@ bk_err_t aon_pmu_hal_init(void)
 #define PM_LOW_VOL_PARAMETER_DEFAULT           (0x2B111111)
 #define PM_LOW_VOL_PARAMETER_32K_FROM_26M      (0x29111111)
 
+#define PM_LOW_VOL_PARAMETER_DEFAULT_ISO       (0x6B111111)//enable isolate
+#define PM_LOW_VOL_PARAMETER_32K_FROM_26M_ISO  (0x69111111)//enable isolate
+
 #define PM_DEEP_SLEEP_PARAMETER_DEFAULT        (0x4e111111)
 int aon_pmu_hal_set_sleep_parameters(uint32_t value)
 {
@@ -42,11 +45,25 @@ int aon_pmu_hal_set_sleep_parameters(uint32_t value)
 	{
 		if(lpo_src == 0x0)//32k from 26m
 		{
-			sleep_parm = PM_LOW_VOL_PARAMETER_32K_FROM_26M;
+			if((aon_pmu_ll_get_reg7c_value()>>PM_CHIP_ID_HIGH_POS) > PM_CHIP_ID_HIGH_VALUE)
+			{
+				sleep_parm = PM_LOW_VOL_PARAMETER_32K_FROM_26M_ISO;
+			}
+			else
+			{
+				sleep_parm = PM_LOW_VOL_PARAMETER_32K_FROM_26M;
+			}
 		}
 		else
 		{
-			sleep_parm = PM_LOW_VOL_PARAMETER_DEFAULT;
+			if((aon_pmu_ll_get_reg7c_value()>>PM_CHIP_ID_HIGH_POS) > PM_CHIP_ID_HIGH_VALUE)
+			{
+				sleep_parm = PM_LOW_VOL_PARAMETER_DEFAULT_ISO;
+			}
+			else
+			{
+				sleep_parm = PM_LOW_VOL_PARAMETER_DEFAULT;
+			}
 		}
 	}
 	else if(value == 0x2)//deep sleep

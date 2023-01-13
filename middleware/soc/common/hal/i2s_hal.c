@@ -18,7 +18,7 @@
 #include "i2s_ll_macro_def.h"
 #include <driver/i2s_types.h>
 
-bk_err_t i2s_hal_config(const i2s_config_t *config)
+bk_err_t i2s_hal_config(const i2s_cfg_t *config)
 {
 	i2s_ll_set_reg0x0_i2spcmen(config->i2s_en);
 	i2s_ll_set_reg0x0_msten(config->role);
@@ -27,7 +27,7 @@ bk_err_t i2s_hal_config(const i2s_config_t *config)
 	i2s_ll_set_reg0x0_sclkinv(config->sck_invert);
 	i2s_ll_set_reg0x0_lsbfirst(config->lsb_first_en);
 	i2s_ll_set_reg0x0_synclen(config->sync_length);
-	i2s_ll_set_reg0x0_datalen(config->data_length);
+	i2s_ll_set_reg0x0_datalen(config->data_length - 1);
 	i2s_ll_set_reg0x0_pcm_dlen(config->pcm_dlength);
 	i2s_ll_set_reg0x0_smpratio(config->sample_ratio);
 	i2s_ll_set_reg0x0_bitratio(config->sck_ratio);
@@ -79,12 +79,14 @@ bk_err_t i2s_hal_int_status_get(i2s_int_status_t *int_status)
 			int_status->tx_int = (bool)i2s_ll_get_reg0x5_tx3int();
 			int_status->rx_int = (bool)i2s_ll_get_reg0x5_rx3int();
 			break;
+/*
 		case I2S_CHANNEL_4:
 			int_status->tx_udf = (bool)i2s_ll_get_reg0x5_tx4udf();
 			int_status->rx_ovf = (bool)i2s_ll_get_reg0x5_rx4ovf();
 			int_status->tx_int = (bool)i2s_ll_get_reg0x5_tx4int();
 			int_status->rx_int = (bool)i2s_ll_get_reg0x5_rx4int();
 			break;
+*/
 		default:
 			break;
 	}
@@ -154,6 +156,7 @@ bk_err_t i2s_hal_int_set(i2s_isr_id_t int_id, uint32_t value)
 			i2s_ll_set_reg0x4_rx3int_en(value);
 			break;
 
+/*
 		case I2S_ISR_CHL4_TXUDF:
 			i2s_ll_set_reg0x4_tx4udf_en(value);
 			break;
@@ -166,7 +169,7 @@ bk_err_t i2s_hal_int_set(i2s_isr_id_t int_id, uint32_t value)
 		case I2S_ISR_CHL4_RXINT:
 			i2s_ll_set_reg0x4_rx4int_en(value);
 			break;
-
+*/
 		default:
 			break;
 	}
@@ -253,9 +256,11 @@ bk_err_t i2s_hal_txudf_int_clear(i2s_channel_id_t channel_id)
 		case I2S_CHANNEL_3:
 			i2s_ll_set_reg0x5_tx3udf(1);
 			break;
+/*
 		case I2S_CHANNEL_4:
 			i2s_ll_set_reg0x5_tx4udf(1);
 			break;
+*/
 		default:
 			break;
 	}
@@ -276,9 +281,11 @@ bk_err_t i2s_hal_rxovf_int_clear(i2s_channel_id_t channel_id)
 		case I2S_CHANNEL_3:
 			i2s_ll_set_reg0x5_rx3ovf(1);
 			break;
+/*
 		case I2S_CHANNEL_4:
 			i2s_ll_set_reg0x5_rx4ovf(1);
 			break;
+*/
 		default:
 			break;
 	}
@@ -311,9 +318,11 @@ bk_err_t i2s_hal_data_write(uint32_t channel_id, uint32_t value)
 		case 3:
 			i2s_ll_set_reg0x7_value(value);
 			break;
+/*
 		case 4:
 			i2s_ll_set_reg0x8_value(value);
 			break;
+*/
 		default:
 			break;
 	}

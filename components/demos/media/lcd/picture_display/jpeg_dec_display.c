@@ -148,55 +148,6 @@ bk_err_t lcd_sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *total
 	return BK_OK;
 }
 
-
-
-static uint32_t get_string_to_ppi(char *string, uint32_t pre)
-{
-	uint32_t value = pre;
-
-	if (os_strcmp(string, "1280X720") == 0)
-	{
-		value = PPI_1280X720;
-	}
-
-	if (os_strcmp(string, "1024X600") == 0)
-	{
-		value = PPI_1024X600;
-	}
-
-	if (os_strcmp(string, "640X480") == 0)
-	{
-		value = PPI_640X480;
-	}
-
-	if (os_strcmp(string, "480X320") == 0)
-	{
-		value = PPI_480X320;
-	}
-
-	if (os_strcmp(string, "480X272") == 0)
-	{
-		value = PPI_480X272;
-	}
-
-	if (os_strcmp(string, "320X480") == 0)
-	{
-		value = PPI_320X480;
-	}
-
-	if (os_strcmp(string, "480X800") == 0)
-	{
-		value = PPI_480X800;
-	}
-
-	if (os_strcmp(string, "800X480") == 0)
-	{
-		value = PPI_800X480;
-	}
-
-	return value;
-}
-
 static uint32_t get_ppi_from_cmd(int argc, char **argv, uint32_t pre)
 {
 	int i;
@@ -204,12 +155,17 @@ static uint32_t get_ppi_from_cmd(int argc, char **argv, uint32_t pre)
 
 	for (i = 0; i < argc; i++)
 	{
-		value = get_string_to_ppi(argv[i], pre);
+		value = get_string_to_ppi(argv[i]);
 
 		if (value != pre)
 		{
 			break;
 		}
+	}
+
+	if (value == PPI_DEFAULT)
+	{
+		value = pre;
 	}
 
 	return value;

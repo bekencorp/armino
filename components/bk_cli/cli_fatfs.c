@@ -96,9 +96,9 @@ static void fatfs_operate(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 			{
 				content_len = os_strtoul(argv[4], NULL, 10);
 			}
-			if(argc >= 6)
+			if(argc >= 7)
 			{
-				start_addr = os_strtoul(argv[5], NULL, 16);
+				start_addr = os_strtoul(argv[6], NULL, 16);
 			}
 			test_fatfs_auto_test(drv_num, file_name, content_len, test_cnt, start_addr);
 			break;

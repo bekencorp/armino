@@ -16,5 +16,5 @@
 
 #include "reg_base.h"
 
-#define JPEG_SRAM_ADDRESS (SOC_SRAM0_DATA_BASE)
+#define JPEG_SRAM_ADDRESS (SOC_SRAM4_DATA_BASE)
 

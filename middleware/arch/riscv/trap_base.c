@@ -36,68 +36,30 @@
 
 #define SYS_DELAY_TIME_5S	    (85000000UL)
 
-#if CONFIG_LITEOS_M_V3
 typedef struct {
 	union {
 		struct {
-			long x2;  //sp
-			long x4;  //tp
-			long x31; //t6
-			long x30; //t5
-			long x29; //t4
-			long x28; //t3
-			long x7;  //t2
-			long x6;  //t1
-			long x5;  //t0
-			long x27; //s11
-			long x26; //s10
-			long x25; //s9
-			long x24; //s8
-			long x23; //s7
-			long x22; //s6
-			long x21; //s5
-			long mstatus;
-			long mepc;
-			long x17; //a7
-			long x16; //a6
-			long x15; //a5
-			long x14; //a4
-			long x13; //a3
-			long x12; //a2
-			long x11; //a1
-			long x10; //a0
-			long x20; //s4
-			long x19; //s3
-			long x18; //s2
-			long x9;  //s1
-			long x8;  //s0
-			long x1; //ra
-		};
-		long riscv_regs[32];
-	};
-} SAVED_CONTEXT;
-
-#else // CONFIG_FREERTOS
-
-typedef struct {
-	union {
-		struct {
-			long mepc;
-			long x1;
-			long x5;
-			long x6;
-			long x7;
-			long x8;
-			long x9;
-			long x10;
+			long x1;		/* ra */
+			long x5;		/* t0 */
+			long x6;		/* t1 */
+			long x7;		/* t2 */
+			long x10;		/* a0 */
 			long x11;
 			long x12;
 			long x13;
 			long x14;
 			long x15;
 			long x16;
-			long x17;
-			long x18;
+			long x17;		/* a7 */
+			long x28;		/* t3 */
+			long x29;
+			long x30;
+			long x31;		/* t6 */
+			long mepc;
+			long mstatus;
+			long x8;		/* s0 */
+			long x9;		/* s1 */
+			long x18;		/* s2 */
 			long x19;
 			long x20;
 			long x21;
@@ -106,22 +68,16 @@ typedef struct {
 			long x24;
 			long x25;
 			long x26;
-			long x27;
-			long x28;
-			long x29;
-			long x30;
-			long x31;
-			long mstatus;
+			long x27;		/* s11 */
 		};
 		long riscv_regs[30];
 	};
 } SAVED_CONTEXT;
-#endif
 
 typedef void (*hook_func)(void);
 
 extern char _dtcm_ema_start, _dtcm_bss_end;
-extern char _end;  //BSS end in SRAM2
+extern char _data_start, _end;  //BSS end in SRAM2
 
 extern void mtime_handler(void);
 extern void mswi_handler(void);
@@ -186,8 +142,8 @@ static uint32_t get_reset_reason_by_mcause(uint32_t mcause) {
 		case 0x4:
 		case 0x6:
 			return RESET_SOURCE_CRASH_MISALIGNED;
-		case TRAP_M_L_ACC_FAULT:
-		case TRAP_M_S_ACC_FAULT:
+		case U_EXCP_L_ACC_FAULT:
+		case U_EXCP_S_ACC_FAULT:
 			return RESET_SOURCE_CRASH_DATA_ABORT;
 		case TRAP_M_USER_ASSERT:
 			return RESET_SOURCE_CRASH_ASSERT;
@@ -208,7 +164,8 @@ void trap_handler(unsigned long mcause, SAVED_CONTEXT *context)
 	if (0 == g_enter_exception) {
 		// Make sure the interrupt is disable
 		uint32_t int_level = rtos_disable_int();
-		uint32_t mie_status = rtos_disable_mie_int();
+		uint32_t mie_status = read_csr(NDS_UIE);
+		clear_csr(NDS_UIE, mie_status);
 
 #if CONFIG_INT_WDT
 		close_wdt();
@@ -225,7 +182,7 @@ void trap_handler(unsigned long mcause, SAVED_CONTEXT *context)
 #endif
 		while(g_enter_exception);
 
-		rtos_enable_mie_int(mie_status);
+		set_csr(NDS_UIE, mie_status);
 		rtos_enable_int(int_level);
 	} else {
 #if !CONFIG_SLAVE_CORE
@@ -283,18 +240,18 @@ void arch_dump_cpu_registers (unsigned long mcause, SAVED_CONTEXT *context)
 		BK_DUMP_OUT("32 pc x 0x%lx\r\n", context->mepc - 4);
 	}
 
-	BK_DUMP_OUT("833 mstatus x 0x%lx\r\n", context->mstatus);
+	BK_DUMP_OUT("833 ustatus x 0x%lx\r\n", context->mstatus);
 
-	BK_DUMP_OUT("838 mtvec x 0x%lx\r\n", read_csr(NDS_MTVEC));
-	BK_DUMP_OUT("897 mscratch x 0x%lx\r\n", read_csr(NDS_MSCRATCH));
-	BK_DUMP_OUT("898 mepc x 0x%lx\r\n", context->mepc);
-	BK_DUMP_OUT("899 mcause x 0x%lx\r\n", mcause);
-	BK_DUMP_OUT("900 mtval x 0x%lx\r\n", read_csr(NDS_MTVAL));
-	BK_DUMP_OUT("2058 mdcause x 0x%lx\r\n", read_csr(NDS_MDCAUSE));
-
+	BK_DUMP_OUT("838 utvec x 0x%lx\r\n", read_csr(NDS_UTVEC));
+	BK_DUMP_OUT("897 uscratch x 0x%lx\r\n", read_csr(NDS_USCRATCH));
+	BK_DUMP_OUT("898 uepc x 0x%lx\r\n", context->mepc);
+	BK_DUMP_OUT("899 ucause x 0x%lx\r\n", mcause);
+	BK_DUMP_OUT("900 utval x 0x%lx\r\n", read_csr(NDS_UTVAL));
+//	BK_DUMP_OUT("2058 mdcause x 0x%lx\r\n", read_csr(NDS_MDCAUSE));
+    BK_DUMP_OUT("2058 udcause x 0x%lx\r\n", read_csr(NDS_UDCAUSE));
 	BK_DUMP_OUT("\r\n");
 
-	if (mcause == 0x1 || mcause == 0x2) {
+	if (mcause == 0x2) {
 		stack_mem_dump((uint32_t)(context->mepc - 32), (uint32_t)(context->mepc + 32));
 	}
 }
@@ -307,7 +264,7 @@ void sys_delay_sync(uint32_t time_count )
 		;
 }
 
-
+extern void smem_dump_lastblock(void);
 void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context)
 {
 
@@ -325,9 +282,9 @@ void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context)
 	if(NULL != s_ble_dump_func) {
 		s_ble_dump_func();
 	}
-
+	
 	rtos_dump_plat_sys_regs();
-
+	
 	BK_DUMP_OUT("System will dump memory in 5s, please ready to save whole log.........\r\n");
 
 	sys_delay_sync(SYS_DELAY_TIME_5S);
@@ -336,10 +293,11 @@ void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context)
 	stack_mem_dump((uint32_t)&_dtcm_ema_start, (uint32_t)&_dtcm_bss_end);
 #if CONFIG_CACHE_ENABLE && (!CONFIG_SLAVE_CORE)
 	for (int i = 0; i < SRAM_BLOCK_COUNT; i++) {
-		stack_mem_dump(g_sram_addr_map[i], g_sram_addr_map[i] + 0x20000);
+		stack_mem_dump(g_sram_addr_map[i], (g_sram_addr_map[i] | (0x20000 - 1)) + 1);
 	}
 #else
-	stack_mem_dump(RAM_BASE_ADDR, (uint32_t)&_end);
+	stack_mem_dump((uint32_t)&_data_start, (uint32_t)&_end);
+	smem_dump_lastblock();
 #endif
 #endif
 

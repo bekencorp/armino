@@ -1,0 +1,5 @@
+menu "VFS"
+	config VFS
+		bool "Enable VFS"
+		default n
+endmenu

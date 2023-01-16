@@ -27,7 +27,6 @@ static const lcd_rgb_t lcd_rgb =
 	.hsync_pulse_width = 2,
 	.hsync_back_porch = 2,  //3
 	.hsync_front_porch = 10,  //2
-
 	.vsync_pulse_width = 2,
 	.vsync_back_porch = 5,   //
 	.vsync_front_porch = 9,  //1
@@ -97,7 +96,7 @@ static void lcd_nt35512_config(void)
     lcd_spi_write_hf_word_cmd(0xBe00); lcd_spi_write_hf_word_data(0x0000);
     lcd_spi_write_hf_word_cmd(0xBe01); lcd_spi_write_hf_word_data(0x004b);
 
-  //Positive Gamma for RED
+    //Positive Gamma for RED
     lcd_spi_write_hf_word_cmd(0xD100); lcd_spi_write_hf_word_data(0x0000);
     lcd_spi_write_hf_word_cmd(0xD101); lcd_spi_write_hf_word_data(0x0037);
     lcd_spi_write_hf_word_cmd(0xD102); lcd_spi_write_hf_word_data(0x0000);
@@ -151,7 +150,7 @@ static void lcd_nt35512_config(void)
     lcd_spi_write_hf_word_cmd(0xD132); lcd_spi_write_hf_word_data(0x0003);
     lcd_spi_write_hf_word_cmd(0xD133); lcd_spi_write_hf_word_data(0x00c1);
 
-  //Positive Gamma for GREEN
+    //Positive Gamma for GREEN
     lcd_spi_write_hf_word_cmd(0xD200); lcd_spi_write_hf_word_data(0x0000);
     lcd_spi_write_hf_word_cmd(0xD201); lcd_spi_write_hf_word_data(0x0037);
     lcd_spi_write_hf_word_cmd(0xD202); lcd_spi_write_hf_word_data(0x0000);
@@ -205,7 +204,7 @@ static void lcd_nt35512_config(void)
     lcd_spi_write_hf_word_cmd(0xD232); lcd_spi_write_hf_word_data(0x0003);
     lcd_spi_write_hf_word_cmd(0xD233); lcd_spi_write_hf_word_data(0x00c1);
 
-  //Positive Gamma for Blue
+    //Positive Gamma for Blue
    lcd_spi_write_hf_word_cmd(0xD300); lcd_spi_write_hf_word_data(0x0000);
     lcd_spi_write_hf_word_cmd(0xD301); lcd_spi_write_hf_word_data(0x0037);
     lcd_spi_write_hf_word_cmd(0xD302); lcd_spi_write_hf_word_data(0x0000);
@@ -259,7 +258,7 @@ static void lcd_nt35512_config(void)
     lcd_spi_write_hf_word_cmd(0xD332); lcd_spi_write_hf_word_data(0x0003);
     lcd_spi_write_hf_word_cmd(0xD333); lcd_spi_write_hf_word_data(0x00c1);
 
-  //Negative Gamma for RED
+    //Negative Gamma for RED
     lcd_spi_write_hf_word_cmd(0xD400); lcd_spi_write_hf_word_data(0x0000);
     lcd_spi_write_hf_word_cmd(0xD401); lcd_spi_write_hf_word_data(0x0037);
     lcd_spi_write_hf_word_cmd(0xD402); lcd_spi_write_hf_word_data(0x0000);
@@ -313,7 +312,7 @@ static void lcd_nt35512_config(void)
     lcd_spi_write_hf_word_cmd(0xD432); lcd_spi_write_hf_word_data(0x0003);
     lcd_spi_write_hf_word_cmd(0xD433); lcd_spi_write_hf_word_data(0x00c1);
 
-   //Negative Gamma for Green
+    //Negative Gamma for Green
     lcd_spi_write_hf_word_cmd(0xD500); lcd_spi_write_hf_word_data(0x0000);
     lcd_spi_write_hf_word_cmd(0xD501); lcd_spi_write_hf_word_data(0x0037);
     lcd_spi_write_hf_word_cmd(0xD502); lcd_spi_write_hf_word_data(0x0000);
@@ -447,10 +446,10 @@ static void lcd_nt35512_config(void)
     lcd_spi_write_hf_word_cmd(0xBC01); lcd_spi_write_hf_word_data(0x0000);
     lcd_spi_write_hf_word_cmd(0xBC02); lcd_spi_write_hf_word_data(0x0000);
 
-    lcd_spi_write_hf_word_cmd(0xcC00); lcd_spi_write_hf_word_data(0x0003); 
+    lcd_spi_write_hf_word_cmd(0xcC00); lcd_spi_write_hf_word_data(0x0003);
     lcd_spi_write_hf_word_cmd(0xcC01); lcd_spi_write_hf_word_data(0x0000);
     lcd_spi_write_hf_word_cmd(0xcC02); lcd_spi_write_hf_word_data(0x0000);
-  
+
     lcd_spi_write_hf_word_cmd(0xBD00); lcd_spi_write_hf_word_data(0x0001); // Setting VGMN and VGSN Voltage
     lcd_spi_write_hf_word_cmd(0xBD01); lcd_spi_write_hf_word_data(0x0084);
     lcd_spi_write_hf_word_cmd(0xBD02); lcd_spi_write_hf_word_data(0x0007);
@@ -463,7 +462,7 @@ static void lcd_nt35512_config(void)
 //    lcd_spi_write_hf_word_cmd(0xff01); lcd_spi_write_hf_word_data(0x0055);
 //    lcd_spi_write_hf_word_cmd(0xff02); lcd_spi_write_hf_word_data(0x0025);
 //    lcd_spi_write_hf_word_cmd(0xff03); lcd_spi_write_hf_word_data(0x0001);
-//  
+
 //    lcd_spi_write_hf_word_cmd(0xf304); lcd_spi_write_hf_word_data(0x0011);
 //    lcd_spi_write_hf_word_cmd(0xf306); lcd_spi_write_hf_word_data(0x0010);
 //    lcd_spi_write_hf_word_cmd(0xf408); lcd_spi_write_hf_word_data(0x0000);
@@ -485,13 +484,13 @@ static void lcd_nt35512_backlight_io_init(void)
 	BK_LOG_ON_ERR(bk_gpio_enable_output(LCD_BACKLIGHT_CTRL_GPIO));
 	BK_LOG_ON_ERR(bk_gpio_pull_down(LCD_BACKLIGHT_CTRL_GPIO));
 }
+
 static void lcd_nt35512_init(void)
 {
 	lcd_nt35512_backlight_io_init();
 	lcd_spi_init_gpio();
 	lcd_nt35512_config();
 }
-
 
 static void nt35512_lcd_backlight_open(void)
 {

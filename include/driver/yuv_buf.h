@@ -33,6 +33,10 @@ bk_err_t bk_yuv_buf_start(yuv_buf_work_mode_t work_mode);
 
 bk_err_t bk_yuv_buf_stop(yuv_buf_work_mode_t work_mode);
 
+bk_err_t bk_yuv_buf_send_data_to_h264(void);
+
+bk_err_t bk_yuv_buf_enable_h264_nosensor_mode(void);
+
 bk_err_t bk_yuv_buf_enable_mclk(void);
 
 bk_err_t bk_yuv_buf_set_em_base_addr(uint32_t em_base_addr);

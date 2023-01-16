@@ -23,6 +23,7 @@
 #include "bk_tfm_log.h"
 
 #define TAG "cmsis_flash"
+
 #define BK_TFM_FLASH_LOGD BK_LOGD
 #define BK_TFM_FLASH_LOGI BK_LOGI
 #define BK_TFM_FLASH_LOGW BK_LOGW
@@ -86,9 +87,17 @@ static const ARM_FLASH_CAPABILITIES DriverCapabilities = {
     1  /* erase_chip */
 };
 
-static bool is_access_from_code_bus(uint32_t addr)
+static bool is_access_from_code_bus(uint32_t absolute_addr)
 {
-    return !!(addr & FLASH_CBUS_ADDR_FLAG);
+	/*true condition:
+	  0, disble flash write protection;
+	  1, enable flash cpu write;*/
+	#define CONFIG_CODE_BUS_OPS_FLASH 0
+	#if CONFIG_CODE_BUS_OPS_FLASH  
+	return true;
+	#else
+    return false;
+	#endif
 }
 
 static uint32_t flash_sector_count(void)
@@ -187,6 +196,8 @@ static int32_t Flash_Initialize(ARM_Flash_SignalEvent_t cb_event)
     ARG_UNUSED(cb_event);
 
     BK_LOG_ON_ERR(bk_flash_driver_init());
+    bk_flash_set_protect_type(FLASH_PROTECT_NONE); //TODO wangzhilei double check
+
     flash_size = bk_flash_get_current_total_size();
 
     /* Optimze it if we support more than one flash */
@@ -239,7 +250,7 @@ static int32_t Flash_ReadData(uint32_t addr, void *data, uint32_t cnt)
 
     if (use_cbus) {
         BK_TFM_FLASH_LOGD(TAG, "flash cbus read, addr=%x cnt=%x+\r\n", FLASH0_DEV->memory_base + addr, cnt);
-        memcpy(data, (volatile void *)(FLASH0_DEV->memory_base + addr), cnt);
+        memcpy(data, (void *)(FLASH0_DEV->memory_base + addr), cnt);
         BK_TFM_FLASH_LOGD(TAG, "flash cbus read-\r\n");
     } else {
         BK_LOG_ON_ERR(bk_flash_read_bytes(addr, data, cnt));
@@ -281,7 +292,7 @@ static int32_t Flash_ProgramData(uint32_t addr, const void *data,
     /* Check if the flash area to write the data was erased previously */
 
     if (use_cbus) {
-        memcpy((volatile uint8_t*)(FLASH0_DEV->memory_base + addr), (uint8_t*)data, cnt);
+        memcpy((uint8_t*)(FLASH0_DEV->memory_base + addr), (uint8_t*)data, cnt);
     } else {
         rc = is_flash_ready_to_write((const uint8_t*)addr, cnt);
         BK_LOG_ON_ERR(bk_flash_write_bytes(addr, data, cnt));
@@ -296,7 +307,6 @@ static int32_t Flash_ProgramData(uint32_t addr, const void *data,
 static int32_t Flash_EraseSector(uint32_t addr)
 {
     uint32_t offset = addr;
-    uint32_t start_addr = FLASH0_DEV->memory_base + addr;
     uint32_t rc = 0;
 
     BK_TFM_FLASH_LOGD(TAG, "flash erase off=%x\r\n", addr);

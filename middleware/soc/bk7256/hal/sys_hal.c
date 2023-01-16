@@ -23,7 +23,7 @@
 #include "platform.h"
 #include <arch_interrupt.h>
 #include "modules/pm.h"
-#include "bk_pm_control.h"  
+#include "bk_pm_control.h"
 #include "psram_hal.h"
 #include <driver/efuse.h>
 
@@ -73,6 +73,11 @@ void sys_hal_set_usb_analog_dp_capability(uint8_t capability)
 void sys_hal_set_usb_analog_dn_capability(uint8_t capability)
 {
 	sys_ll_set_ana_reg9_usbnen(capability);
+}
+
+void sys_hal_usb_analog_deepsleep_en(bool en)
+{
+
 }
 
 void sys_hal_usb_enable_charge(bool en)
@@ -283,7 +288,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	uint64_t start_tick = riscv_get_mtimer();
 #endif
 
-	clear_csr(NDS_MIE, MIP_MTIP);
+	HAL_TI_DISABLE();
 
 	int_state1 = sys_ll_get_cpu0_int_0_31_en_value();
 	int_state2 = sys_ll_get_cpu0_int_32_63_en_value();
@@ -306,7 +311,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	{
 		sys_ll_set_cpu0_int_0_31_en_value(int_state1);
 		sys_ll_set_cpu0_int_32_63_en_value(int_state2);
-		set_csr(NDS_MIE, MIP_MTIP);
+		HAL_TI_ENABLE();
 		return;
 	}
 
@@ -402,7 +407,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 
 	sys_ll_set_ana_reg8_en_lpmode(0x1);// touch enter low power mode
 
-	sys_ll_set_ana_reg2_iovoc(0);//set the io voltage to 2.9v 
+	sys_ll_set_ana_reg2_iovoc(0);//set the io voltage to 2.9v
 	sys_ll_set_ana_reg6_vaon_sel(0);//0:vddaon drop enable ,aon voltage to 0.9v
 //just debug:maybe some guys changed the CPU clock or Flash clock caused the time of
 //MTIMER_LOW_VOLTAGE_MINIMUM_TICK isn't enough.
@@ -442,8 +447,8 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	wakeup_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 
 	sys_ll_set_ana_reg6_vaon_sel(0x1);//0:vddaon drop disable, aon voltage to 1.1v
-	sys_ll_set_ana_reg2_iovoc(0x2);//set the io voltage to 3.1v 
-	sys_ll_set_ana_reg2_iovoc(0x4);//set the io voltage to 3.3v 
+	sys_ll_set_ana_reg2_iovoc(0x2);//set the io voltage to 3.1v
+	sys_ll_set_ana_reg2_iovoc(0x4);//set the io voltage to 3.3v
 
 	sys_ll_set_ana_reg3_vhsel_ldodig(h_vol);
 	sys_ll_set_ana_reg2_spi_latchb(0x1);
@@ -535,9 +540,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 		clock_value &= ~(0x1 << SYS_ANA_REG4_ROSC_MANU_EN_POS);//0:close Rosc Calibration Manual Mode
 		sys_ll_set_ana_reg4_value(clock_value);
 	}
-
-	set_csr(NDS_MIE, MIP_MTIP);
-
+	HAL_TI_ENABLE();
 	//gpio_restore();
 
 }

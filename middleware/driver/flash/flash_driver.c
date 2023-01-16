@@ -297,14 +297,15 @@ static void flash_read_common(uint8_t *buffer, uint32_t address, uint32_t len)
 		return;
 	}
 
-	uint32_t int_level = rtos_disable_int();
-	while (flash_hal_is_busy(&s_flash.hal));
 	while (len) {
+		uint32_t int_level = rtos_disable_int();
+		while (flash_hal_is_busy(&s_flash.hal));
 		flash_hal_set_op_cmd_read(&s_flash.hal, addr);
 		addr += FLASH_BYTES_CNT;
 		for (uint32_t i = 0; i < FLASH_BUFFER_LEN; i++) {
 			buf[i] = flash_hal_read_data(&s_flash.hal);
 		}
+		rtos_enable_int(int_level);
 
 		for (uint32_t i = address % FLASH_BYTES_CNT; i < FLASH_BYTES_CNT; i++) {
 			*buffer++ = pb[i];
@@ -315,7 +316,6 @@ static void flash_read_common(uint8_t *buffer, uint32_t address, uint32_t len)
 			}
 		}
 	}
-	rtos_enable_int(int_level);
 }
 
 static void flash_read_word_common(uint32_t *buffer, uint32_t address, uint32_t len)
@@ -329,14 +329,18 @@ static void flash_read_word_common(uint32_t *buffer, uint32_t address, uint32_t 
 		return;
 	}
 
-	uint32_t int_level = rtos_disable_int();
-	while (flash_hal_is_busy(&s_flash.hal));
 	while (len) {
+		uint32_t int_level = rtos_disable_int();
+
+		while (flash_hal_is_busy(&s_flash.hal));
+
 		flash_hal_set_op_cmd_read(&s_flash.hal, addr);
 		addr += FLASH_BYTES_CNT;
 		for (uint32_t i = 0; i < FLASH_BUFFER_LEN; i++) {
 			buf[i] = flash_hal_read_data(&s_flash.hal);
 		}
+
+		rtos_enable_int(int_level);
 
 		for (uint32_t i = address % (FLASH_BYTES_CNT/4); i < (FLASH_BYTES_CNT/4); i++) {
 			*buffer++ = pb[i];
@@ -347,7 +351,6 @@ static void flash_read_word_common(uint32_t *buffer, uint32_t address, uint32_t 
 			}
 		}
 	}
-	rtos_enable_int(int_level);
 }
 
 static bk_err_t flash_write_common(const uint8_t *buffer, uint32_t address, uint32_t len)
@@ -358,17 +361,8 @@ static bk_err_t flash_write_common(const uint8_t *buffer, uint32_t address, uint
 
 	FLASH_RETURN_ON_WRITE_ADDR_OUT_OF_RANGE(addr, len);
 
-	if (address % FLASH_BYTES_CNT)
-		flash_read_common(pb, addr, FLASH_BYTES_CNT);
-	else
-		os_memset(pb, 0xFF, FLASH_BYTES_CNT);
-
-	while (flash_hal_is_busy(&s_flash.hal));
 	while (len) {
-		if (len < FLASH_BYTES_CNT) {
-			flash_read_common(pb, addr, FLASH_BYTES_CNT);
-			while (flash_hal_is_busy(&s_flash.hal));
-		}
+		os_memset(pb, 0xFF, FLASH_BYTES_CNT);
 		for (uint32_t i = address % FLASH_BYTES_CNT; i < FLASH_BYTES_CNT; i++) {
 			pb[i] = *buffer++;
 			address++;
@@ -379,13 +373,14 @@ static bk_err_t flash_write_common(const uint8_t *buffer, uint32_t address, uint
 		}
 
 		uint32_t int_level = rtos_disable_int();
+		while (flash_hal_is_busy(&s_flash.hal));
 		for (uint32_t i = 0; i < FLASH_BUFFER_LEN; i++) {
 			flash_hal_write_data(&s_flash.hal, buf[i]);
 		}
 		flash_hal_set_op_cmd_write(&s_flash.hal, addr);
 		rtos_enable_int(int_level);
+
 		addr += FLASH_BYTES_CNT;
-		os_memset(pb, 0xFF, FLASH_BYTES_CNT);
 	}
 	return BK_OK;
 }
@@ -724,13 +719,23 @@ bk_err_t bk_flash_register_ps_resume_callback(flash_ps_callback_t ps_resume_cb)
 	return BK_OK;
 }
 
+#define FLASH_OPERATE_SIZE_AND_OFFSET    (4096)
 bk_err_t bk_spec_flash_write_bytes(bk_partition_t partition, const uint8_t *user_buf, uint32_t size,uint32_t offset)
 {
 	bk_logic_partition_t *bk_ptr = NULL;
 	u8 *save_flashdata_buff  = NULL;
 
-	bk_ptr = bk_flash_partition_get_info(partition);	
-	save_flashdata_buff= os_malloc(bk_ptr->partition_length);	
+	bk_ptr = bk_flash_partition_get_info(partition);
+	if((size + offset) > FLASH_OPERATE_SIZE_AND_OFFSET)
+		return BK_FAIL;
+	
+	save_flashdata_buff= os_malloc(bk_ptr->partition_length);
+	if(save_flashdata_buff == NULL)
+	{
+		os_printf("save_flashdata_buff malloc err\r\n");
+		return BK_FAIL;
+	}
+	
 	//os_printf("ota_write_flash:partition_start_addr:0x%x  size :%d\r\n",(bk_ptr->partition_start_addr),bk_ptr->partition_length);
 	bk_flash_read_bytes((bk_ptr->partition_start_addr),(uint8_t *)save_flashdata_buff, bk_ptr->partition_length);
 

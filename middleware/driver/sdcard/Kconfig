@@ -27,5 +27,9 @@ menu "SDCARD"
 	config SDCARD_BUSWIDTH_4LINE
 		bool "Support SDCARD 4 Data Wires"
 		default n
+
+	config SDCARD_POWER_GPIO_CTRL
+		bool "Enable SDcard power gpio ctrl"
+		default n
 endmenu
 

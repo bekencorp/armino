@@ -17,7 +17,7 @@
 #include <soc/soc.h>
 #include <driver/hal/hal_uart_types.h>
 #include <driver/hal/hal_gpio_types.h>
-#include "sys_ll_op_if.h"
+#include "system_hw.h"
 #include "uart_hw.h"
 #include "hal_port.h"
 #include "gpio_map.h"

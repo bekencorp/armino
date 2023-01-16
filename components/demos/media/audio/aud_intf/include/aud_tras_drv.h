@@ -297,6 +297,132 @@ typedef struct {
 	void (*aud_tras_drv_com_event_cb)(aud_tras_drv_com_event_t event, bk_err_t result);
 } aud_tras_drv_info_t;
 
+#define DEFAULT_AUD_TRAS_DRV_INFO() {                                              \
+        .work_mode = AUD_INTF_WORK_MODE_NULL,                                      \
+        .status = AUD_TRAS_DRV_STA_NULL,                                           \
+        .mic_info = {                                                              \
+                        .mic_en = false,                                           \
+                        .status = AUD_TRAS_DRV_MIC_STA_NULL,                       \
+                        .mic_chl = AUD_INTF_MIC_CHL_MAX,                           \
+                        .mic_type = AUD_INTF_MIC_TYPE_MAX,                         \
+                        .adc_config = NULL,                                        \
+                        .frame_size = 0,                                           \
+                        .mic_dma_id = DMA_ID_MAX,                                  \
+                        .mic_rb = {                                                \
+                                      .address = NULL,                             \
+                                      .capacity = 0,                               \
+                                      .wp = 0,                                     \
+                                      .rp = 0,                                     \
+                                      .dma_id = DMA_ID_MAX,                        \
+                                      .dma_type = 0,                               \
+                                  },                                               \
+                        .mic_ring_buff = NULL,                                     \
+                        .temp_mic_addr = NULL,                                     \
+                        .aud_tras_drv_mic_event_cb = NULL,                         \
+                    },                                                             \
+        .spk_info = {                                                              \
+                        .spk_en = false,                                           \
+                        .status = AUD_TRAS_DRV_SPK_STA_NULL,                       \
+                        .spk_chl = AUD_INTF_SPK_CHL_MAX,                           \
+                        .spk_type = AUD_INTF_SPK_TYPE_MAX,                         \
+                        .dac_config = NULL,                                        \
+                        .frame_size = 0,                                           \
+                        .spk_dma_id = DMA_ID_MAX,                                  \
+                        .spk_rb = {                                                \
+                                      .address = NULL,                             \
+                                      .capacity = 0,                               \
+                                      .wp = 0,                                     \
+                                      .rp = 0,                                     \
+                                      .dma_id = DMA_ID_MAX,                        \
+                                      .dma_type = 0,                               \
+                                  },                                               \
+                        .spk_ring_buff = NULL,                                     \
+                        .temp_spk_addr = NULL,                                     \
+                        .spk_rx_ring_buff = NULL,                                  \
+                        .fifo_frame_num = 0,                                       \
+                        .spk_rx_rb = NULL,                                         \
+                        .uac_spk_buff = NULL,                                      \
+                        .uac_spk_buff_size = 0,                                    \
+                        .aud_tras_drv_spk_event_cb = NULL,                         \
+                    },                                                             \
+        .voc_info = {                                                              \
+                        .status = AUD_TRAS_DRV_VOC_STA_NULL,                       \
+                        .aec_enable = false,                                       \
+                        .aec_info = NULL,                                          \
+                        .adc_dma_id = DMA_ID_MAX,                                  \
+                        .mic_samp_rate_points = 0,                                 \
+                        .mic_frame_number = 0,                                     \
+                        .mic_ring_buff = NULL,                                     \
+                        .mic_rb = {                                                \
+                                      .address = NULL,                             \
+                                      .capacity = 0,                               \
+                                      .wp = 0,                                     \
+                                      .rp = 0,                                     \
+                                      .dma_id = DMA_ID_MAX,                        \
+                                      .dma_type = 0,                               \
+                                  },                                               \
+                        .speaker_samp_rate_points = 0,                             \
+                        .speaker_frame_number = 0,                                 \
+                        .speaker_ring_buff =NULL,                                  \
+                        .speaker_rb = {                                            \
+                                          .address = NULL,                         \
+                                          .capacity = 0,                           \
+                                          .wp = 0,                                 \
+                                          .rp = 0,                                 \
+                                          .dma_id = DMA_ID_MAX,                    \
+                                          .dma_type = 0,                           \
+                                      },                                           \
+                        .dac_dma_id = DMA_ID_MAX,                                  \
+                        .adc_config = NULL,                                        \
+                        .dac_config = NULL,                                        \
+                        .tx_info = {                                               \
+                                       .tx_buff_status = false,                    \
+                                       .ping = {                                   \
+                                                   .buff_addr = NULL,              \
+                                                   .busy_status = false,           \
+                                               },                                  \
+                                       .pang = {                                   \
+                                                   .buff_addr = NULL,              \
+                                                   .busy_status = false,           \
+                                               },                                  \
+                                       .buff_length = 0,                           \
+                                   },                                              \
+                        .rx_info = {                                               \
+                                       .rx_buff_status = false,                    \
+                                       .decoder_ring_buff = NULL,                  \
+                                       .decoder_rb = NULL,                         \
+                                       .frame_size = 0,                            \
+                                       .frame_num = 0,                             \
+                                       .rx_buff_seq_tail = 0,                      \
+                                       .aud_trs_read_seq = 0,                      \
+                                       .fifo_frame_num = 0,                        \
+                                   },                                              \
+                        .aud_tras_drv_voc_event_cb = NULL,                         \
+                        .data_type = AUD_INTF_VOC_DATA_TYPE_MAX,                   \
+                        .mic_en = AUD_INTF_VOC_MIC_MAX,                            \
+                        .spk_en = AUD_INTF_VOC_SPK_MAX,                            \
+                        .mic_type = AUD_INTF_MIC_TYPE_MAX,                         \
+                        .spk_type = AUD_INTF_SPK_TYPE_MAX,                         \
+                        .encoder_temp = {                                          \
+                                            .pcm_data = NULL,                      \
+                                            .law_data = NULL,                      \
+                                        },                                         \
+                        .decoder_temp = {                                          \
+                                            .pcm_data = NULL,                      \
+                                            .law_data = NULL,                      \
+                                        },                                         \
+                        .uac_spk_buff = NULL,                                      \
+                        .uac_spk_buff_size = 0,                                    \
+                        .aud_tras_dump_tx_cb = NULL,                               \
+                        .aud_tras_dump_rx_cb = NULL,                               \
+                        .aud_tras_dump_aec_cb = NULL,                              \
+                    },                                                             \
+        .aud_tras_tx_mic_data = NULL,                                              \
+        .aud_tras_rx_spk_data = NULL,                                              \
+        .aud_tras_drv_com_event_cb = NULL,                                         \
+    }
+
+
 #ifdef __cplusplus
 }
 #endif

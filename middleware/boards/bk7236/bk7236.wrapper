@@ -74,8 +74,6 @@ def pack(tools_dir, bin_dir, base_cfg_dir, prefered_cfg_dir, soc, gencodeonly, g
 		run_cmd(f'cp -r {TFM_BIN_DIR}/*.bin {_BUILD_DIR}')
 
 	run_cmd(f'cp -r {CMAKE_BIN_DIR}/app.bin {_BUILD_DIR}')
-	logging.debug(f'Generate BL1 public key')
-	run_cmd(f'{_BUILD_DIR}/gen_key.sh')
 
 	debug_option = ''
 	if (debug):

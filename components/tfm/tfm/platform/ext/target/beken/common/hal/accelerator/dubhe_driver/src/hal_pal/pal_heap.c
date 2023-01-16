@@ -11,21 +11,19 @@
  */
 
 #include "pal_common.h"
-//#include "memmgmt/heap_4.h"
-//#include "heap_4.h"
-//#include "FreeRTOS.h"
 #include "psa_sp_api.h"
 #include "pal_string.h"
 #include "pal_heap.h"
-//#include "../sample_hal_pal_depend.h"
 
 void *pal_malloc( size_t size )
 {
     void *p = NULL;
-    p       = psa_malloc( size );
+
+    p = psa_malloc( size );
     if ( p ) {
         pal_memset( p, 0, size );
     }
+
     return p;
 }
 

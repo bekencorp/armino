@@ -29,6 +29,8 @@ extern "C" {
 #define PIXEL_240 	(240)
 #define PIXEL_272 	(272)
 #define PIXEL_320 	(320)
+#define PIXEL_400	(400)
+#define PIXEL_454	(454)
 #define PIXEL_480 	(480)
 #define PIXEL_600 	(600)
 #define PIXEL_640 	(640)
@@ -54,6 +56,8 @@ typedef enum
 	PPI_DEFAULT     = 0,
 	PPI_320X240     = (PIXEL_320 << 16) | PIXEL_240,
 	PPI_320X480     = (PIXEL_320 << 16) | PIXEL_480,
+	PPI_400X400     = (PIXEL_400 << 16) | PIXEL_400,
+	PPI_454X454     = (PIXEL_454 << 16) | PIXEL_454,
 	PPI_480X272     = (PIXEL_480 << 16) | PIXEL_272,
 	PPI_480X320     = (PIXEL_480 << 16) | PIXEL_320,
 	PPI_640X480     = (PIXEL_640 << 16) | PIXEL_480,
@@ -88,6 +92,7 @@ typedef enum
 typedef enum {
 	PIXEL_FMT_UNKNOW,
 	PIXEL_FMT_DVP_JPEG,
+	PIXEL_FMT_DVP_H264,
 	PIXEL_FMT_UVC_JPEG,
 	PIXEL_FMT_UVC_H264,
 	PIXEL_FMT_RGB565,        /**< input data format is rgb565*/
@@ -104,6 +109,7 @@ typedef enum {
 typedef enum {
 	MEDIA_DVP_MJPEG,
 	MEDIA_DVP_H264,
+	MEDIA_DVP_H264_LOCAL,
 	MEDIA_DVP_YUV,
 	MEDIA_DVP_MIX,
 	MEDIA_UVC_MJPEG,

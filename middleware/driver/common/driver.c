@@ -144,6 +144,9 @@ void power_clk_rf_init()
 	//sys_drv_core_bus_clock_ctrl(HIGH_FREQUECY_CLOCK_MODULE_CPU0, 0,0, HIGH_FREQUECY_CLOCK_MODULE_CPU0_MATRIX,0,0);
 	#if !CONFIG_SLAVE_CORE
 	//bk_pm_module_vote_cpu_freq(PM_DEV_ID_DEFAULT,PM_CPU_FRQ_120M);
+	#if CONFIG_ATE_TEST
+		//bk_pm_module_vote_cpu_freq(PM_DEV_ID_DEFAULT,PM_CPU_FRQ_320M);//improve the cpu frequency for save boot time at ate test
+	#endif
 	#endif
    /*5.config the analog*/
    //sys_drv_analog_set(ANALOG_REG0, param);
@@ -246,12 +249,14 @@ int driver_init(void)
 {
 	sys_drv_init();
 
+#if CONFIG_SPE
 #if CONFIG_MPC
 	bk_mpc_driver_init();
 #endif
 
 #if CONFIG_PRRO
 	bk_prro_driver_init();
+#endif
 #endif
 
 #if CONFIG_AON_PMU

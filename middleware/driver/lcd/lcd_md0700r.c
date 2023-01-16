@@ -25,7 +25,7 @@
 
 static const lcd_rgb_t lcd_rgb =
 {
-	.clk = LCD_54M,
+	.clk = LCD_32M,
 	.data_out_clk_edge = POSEDGE_OUTPUT,
 
 	.hsync_pulse_width = 2,

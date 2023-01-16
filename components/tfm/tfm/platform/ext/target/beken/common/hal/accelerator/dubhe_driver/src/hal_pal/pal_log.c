@@ -16,12 +16,13 @@
 #include "pal_log.h"
 #include "psa_sp_api.h"
 
-static int32_t _g_pal_log_level = PAL_LOG_LEVEL_DEBUG;
+static int32_t _g_pal_log_level = PAL_LOG_LEVEL_DATA;
 
 void pal_log_set_level( int32_t level )
 {
     _g_pal_log_level = level;
 }
+
 int32_t pal_log_get_level( void )
 {
     return _g_pal_log_level;
@@ -38,21 +39,5 @@ int32_t pal_platform_printf( const char *fmt, ... )
 
     return r;
 }
-
-/*int pal_platform_printf(const char *fmt, ...)
-{
-#if 1
-    va_list vargs;
-    int r;
-
-    va_start(vargs, fmt);
-    r = psa_printf(fmt, vargs);
-    va_end(vargs);
-
-    return r;
-#else
-    return psa_printf(fmt,##__VA_ARGS__);
-#endif
-}*/
 
 /*************************** The End Of File*****************************/

@@ -176,6 +176,8 @@ void rtos_thread_func_test()
 #endif
 
 #if (CONFIG_MASTER_CORE)
+extern void mon_reset_cpu1(u32 enable, u32 start_addr);
+
 void reset_slave_core(uint32 offset, uint32_t reset_value)
 {
 	if (0 != reset_value  && 1 != reset_value) {
@@ -183,8 +185,9 @@ void reset_slave_core(uint32 offset, uint32_t reset_value)
 		reset_value = CONFIG_SLAVE_CORE_RESET_VALUE;
 	}
 	os_printf("reset_slave_core at: %08x, reset value:%d\r\n", offset, reset_value);
-	sys_drv_set_cpu1_boot_address_offset(offset >> 8);
-	sys_drv_set_cpu1_reset(reset_value);
+	mon_reset_cpu1(reset_value, offset);
+//	sys_drv_set_cpu1_boot_address_offset(offset >> 8);
+//	sys_drv_set_cpu1_reset(reset_value);
 }
 
 void start_slave_core(void)

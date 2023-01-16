@@ -34,7 +34,7 @@
 #endif
 
 #define SHELL_LOG_BUF_NUM       (SHELL_LOG_BUF1_NUM + SHELL_LOG_BUF2_NUM + SHELL_LOG_BUF3_NUM)
-#define SHELL_LOG_PEND_NUM      (SHELL_LOG_BUF_NUM + 3)  /* 1: for RSP, 1: reserved(queue empty), 1: cmd ovf. */
+#define SHELL_LOG_PEND_NUM      (SHELL_LOG_BUF_NUM + 4)  /* 1: RSP, 1: reserved(queue empty), 1: cmd ovf, 1: ind. */
 #define SHELL_LOG_BUSY_NUM      (SHELL_LOG_PEND_NUM)     /* depending on lower driver's pending queue size. IPC drv no busy state. */
 
 #else
@@ -50,17 +50,19 @@
 #endif
 
 #define SHELL_LOG_BUF_NUM       (SHELL_LOG_BUF1_NUM + SHELL_LOG_BUF2_NUM + SHELL_LOG_BUF3_NUM)
-#define SHELL_LOG_PEND_NUM      (SHELL_LOG_BUF_NUM * 2 + 3)  /* 1: for RSP, 1: reserved(queue empty, 1: cmd ovf). */ /* the worst case may be (one log + one hint) in pending queue.*/
+#define SHELL_LOG_PEND_NUM      (SHELL_LOG_BUF_NUM * 2 + 4)  /* 1: RSP, 1: reserved(queue empty), 1: cmd ovf, 1: ind). */ /* the worst case may be (one log + one hint) in pending queue.*/
 #define SHELL_LOG_BUSY_NUM      (20)         /* depending on lower driver's pending queue size. drv's queue size < BUSY_NUM <= PEND_NUM. */
 #endif
 
 #define SHELL_ASSERT_BUF_LEN	140
 #define SHELL_CMD_BUF_LEN		140
-#define SHELL_RSP_BUF_LEN		200
+#define SHELL_RSP_BUF_LEN		140
+#define SHELL_IND_BUF_LEN		132
 
 #define SHELL_RSP_QUEUE_ID	    (7)
 #define SHELL_FW_QUE_ID         (8)
 #define SHELL_ROM_QUEUE_ID		(9)
+#define SHELL_IND_QUEUE_ID		(10)
 
 #define MAX_TRACE_ARGS      10
 #define MOD_NAME_LEN        4
@@ -94,7 +96,7 @@ enum
 typedef struct
 {
 	u8     rsp_buff[SHELL_RSP_BUF_LEN];
-	bool_t   rsp_ongoing;
+	u8     rsp_ongoing;
 	
 	u8     cur_cmd_type;
 	u8     cmd_buff[SHELL_CMD_BUF_LEN];
@@ -110,7 +112,11 @@ typedef struct
 	u8     assert_data_len;
 
 	u8     log_level;
-	bool_t   echo_enable;
+	u8     echo_enable;
+
+	/* patch for AT cmd handling. */
+	u8     cmd_ind_buff[SHELL_IND_BUF_LEN];
+	beken_semaphore_t   ind_buf_semaphore;
 } cmd_line_t;
 
 #define GET_BLOCK_ID(blocktag)          ((blocktag) & 0xFF)
@@ -204,7 +210,7 @@ static const char	 shell_cmd_ovf_str[] = "\r\n!!some CMDs lost!!\r\n";
 static const u16     shell_cmd_ovf_str_len = sizeof(shell_cmd_ovf_str) - 1;
 static const char  * shell_prompt_str[2] = {"\r\n$", "\r\n#"};
 
-static bool_t shell_init_ok = bFALSE;
+static u8     shell_init_ok = bFALSE;
 static u8     fault_hint_print = 0;
 static u32    shell_log_overflow = 0;
 static u32    shell_log_count = 0;
@@ -286,7 +292,13 @@ static u8 * alloc_log_blk(u16 log_len, u16 *blk_tag)
 		if(/*get_free_buff_cnt(free_q) */ free_q->free_blk_num > 0) 
 		{
 			free_blk_id = free_q->blk_list[free_q->list_out_idx];
-			free_q->list_out_idx = (free_q->list_out_idx + 1) % free_q->blk_num;
+
+			// free_q->list_out_idx = (free_q->list_out_idx + 1) % free_q->blk_num;
+			if((free_q->list_out_idx + 1) < free_q->blk_num)
+				free_q->list_out_idx++;
+			else
+				free_q->list_out_idx = 0;
+
 			free_q->free_blk_num--;
 
 			blk_buf = &free_q->log_buf[free_blk_id * free_q->blk_len];
@@ -334,7 +346,13 @@ static bool_t free_log_blk(u16 block_tag)
 	//disable_interrupt(); // called from tx-complete only, don't lock interrupt.
 
 	free_q->blk_list[free_q->list_in_idx] = blk_id;
-	free_q->list_in_idx = (free_q->list_in_idx + 1) % free_q->blk_num;
+
+	//free_q->list_in_idx = (free_q->list_in_idx + 1) % free_q->blk_num;
+	if((free_q->list_in_idx + 1) < free_q->blk_num)
+		free_q->list_in_idx++;
+	else
+		free_q->list_in_idx = 0;
+
 	free_q->free_blk_num++;
 
 	//enable_interrupt(); // called from tx-complete only, don't lock interrupt.
@@ -349,7 +367,11 @@ static void push_pending_queue(u16 blk_tag, u16 data_len)
 	pending_queue.packet_list[pending_queue.list_in_idx].blk_tag = blk_tag;
 	pending_queue.packet_list[pending_queue.list_in_idx].packet_len = data_len;
 	
-	pending_queue.list_in_idx = (pending_queue.list_in_idx + 1) % SHELL_LOG_PEND_NUM;
+	//pending_queue.list_in_idx = (pending_queue.list_in_idx + 1) % SHELL_LOG_PEND_NUM;
+	if((pending_queue.list_in_idx + 1) < SHELL_LOG_PEND_NUM)
+		pending_queue.list_in_idx++;
+	else
+		pending_queue.list_in_idx = 0;
 
 	//release_shell_mutex();
 
@@ -361,7 +383,11 @@ static void pull_pending_queue(u16 *blk_tag, u16 *data_len)
 	*blk_tag     = pending_queue.packet_list[pending_queue.list_out_idx].blk_tag;
 	*data_len   = pending_queue.packet_list[pending_queue.list_out_idx].packet_len;
 
-	pending_queue.list_out_idx = (pending_queue.list_out_idx + 1) % SHELL_LOG_PEND_NUM;
+	//pending_queue.list_out_idx = (pending_queue.list_out_idx + 1) % SHELL_LOG_PEND_NUM;
+	if((pending_queue.list_out_idx + 1) < SHELL_LOG_PEND_NUM)
+		pending_queue.list_out_idx++;
+	else
+		pending_queue.list_out_idx = 0;
 
 	return;
 }
@@ -389,6 +415,28 @@ static void shell_tx_complete(u8 *pbuf, u16 buf_tag)
 		}
 
 		cmd_line_buf.rsp_ongoing = bFALSE;   /* rsp compelete, rsp_buff can be used for next cmd/response. */
+
+		if(log_dev == cmd_dev)
+		{
+			//set_shell_event(SHELL_EVENT_TX_REQ);  // notify shell task to process the log tx.
+			tx_req_process();
+		}
+
+		return;  
+	}
+
+	if( queue_id == SHELL_IND_QUEUE_ID )    /* cmd_ind. */
+	{
+		/* it is called from cmd_dev tx ISR. */
+
+		if ( (pbuf != cmd_line_buf.cmd_ind_buff) || (blk_id != 0) ) 
+		{
+			/* something wrong!!! */
+			shell_assert_out(bTRUE, "FAULT: indication.\r\n");
+		}
+
+		/* indication tx compelete, cmd_ind_buff can be used for next cmd_indication. */
+		rtos_set_semaphore(&cmd_line_buf.ind_buf_semaphore);
 
 		if(log_dev == cmd_dev)
 		{
@@ -440,7 +488,11 @@ static void shell_tx_complete(u8 *pbuf, u16 buf_tag)
 		}
 
 		/* de-queue from busy queue. */
-		log_busy_queue.list_out_idx = (log_busy_queue.list_out_idx + 1) % SHELL_LOG_BUSY_NUM;
+		//log_busy_queue.list_out_idx = (log_busy_queue.list_out_idx + 1) % SHELL_LOG_BUSY_NUM;
+		if((log_busy_queue.list_out_idx + 1) < SHELL_LOG_BUSY_NUM)
+			log_busy_queue.list_out_idx++;
+		else
+			log_busy_queue.list_out_idx = 0;
 
 		/* free buffer to queue. */
 		free_log_blk(block_tag);
@@ -510,7 +562,7 @@ static bool_t echo_out(u8 * echo_str, u16 len)
 }
 
 /*    NOTICE:  this can only be called by shell task internally (cmd handler). */
-/*             it is not re-enterance function. */
+/*             it is a not re-enterance function. */
 static bool_t rsp_out(u8 * rsp_msg, u16 msg_len)
 {
 	u16    rsp_blk_tag = MAKE_BLOCK_TAG(0, SHELL_RSP_QUEUE_ID);
@@ -536,13 +588,51 @@ static bool_t rsp_out(u8 * rsp_msg, u16 msg_len)
 	}
 	else
 	{
-		/* shared device for response & log, push the rsp msg to pending queue. */
+		/* shared device for cmd & log, push the rsp msg to pending queue. */
 
 		u32  int_mask = rtos_disable_int();
 
 		cmd_line_buf.rsp_ongoing = bTRUE;  // one by one for cmd handler. set to true before trigger the TX.
 
 		push_pending_queue(rsp_blk_tag, msg_len);
+
+		//set_shell_event(SHELL_EVENT_TX_REQ);  // notify shell task to process the log tx.
+		tx_req_process();
+
+		rtos_enable_int(int_mask);
+	}
+
+	return bTRUE;
+}
+
+/* it is not a re-enterance function, should sync using ind_buf_semaphore. */
+static bool_t cmd_ind_out(u8 * ind_msg, u16 msg_len)
+{
+	u16    ind_blk_tag = MAKE_BLOCK_TAG(0, SHELL_IND_QUEUE_ID);
+
+	if(ind_msg != cmd_line_buf.cmd_ind_buff)
+	{
+		if(msg_len > sizeof(cmd_line_buf.cmd_ind_buff))
+		{
+			msg_len = sizeof(cmd_line_buf.cmd_ind_buff);;
+		}
+
+		memcpy(cmd_line_buf.cmd_ind_buff, ind_msg, msg_len);
+	}
+
+	if(log_dev != cmd_dev)
+	{
+		/* dedicated device for cmd/response, don't enqueue the msg to pending queue. */
+		/* send to cmd dev directly. */
+		cmd_dev->dev_drv->write_async(cmd_dev, cmd_line_buf.cmd_ind_buff, msg_len, ind_blk_tag); 
+	}
+	else
+	{
+		/* shared device for cmd & log, push the cmd_ind msg to pending queue. */
+
+		u32  int_mask = rtos_disable_int();
+
+		push_pending_queue(ind_blk_tag, msg_len);
 
 		//set_shell_event(SHELL_EVENT_TX_REQ);  // notify shell task to process the log tx.
 		tx_req_process();
@@ -651,6 +741,19 @@ static void tx_req_process(void)
 			 */
 		}
 	}
+	else if(queue_id == SHELL_IND_QUEUE_ID)
+	{
+		packet_buf = cmd_line_buf.cmd_ind_buff;
+
+		if((log_dev != cmd_dev) || (blk_id != 0))
+		{
+			shell_assert_out(bTRUE, "xFATAL: in Tx_req\r\n");
+			/*		  FAULT !!!!	  */
+			/* if log_dev is not the same with cmd_dev,
+			 * rsp will not be pushed into pending queue.
+			 */
+		}
+	}
 	else if(queue_id == SHELL_ROM_QUEUE_ID)
 	{
 		if(blk_id == 0)
@@ -688,7 +791,11 @@ static void tx_req_process(void)
 	if(queue_id < TBL_SIZE(free_queue))
 	{
 		log_busy_queue.blk_list[log_busy_queue.list_in_idx] = block_tag;
-		log_busy_queue.list_in_idx = (log_busy_queue.list_in_idx + 1) % SHELL_LOG_BUSY_NUM;
+		//log_busy_queue.list_in_idx = (log_busy_queue.list_in_idx + 1) % SHELL_LOG_BUSY_NUM;
+		if((log_busy_queue.list_in_idx + 1) < SHELL_LOG_BUSY_NUM)
+			log_busy_queue.list_in_idx++;
+		else
+			log_busy_queue.list_in_idx = 0;
 	}
 
 	log_dev->dev_drv->write_async(log_dev, packet_buf, log_len, block_tag); /* send to log dev driver. */
@@ -705,7 +812,7 @@ static void rx_ind_process(void)
 {
 	u16   read_cnt, buf_len, echo_len;
 	u16   i = 0;
-	bool_t  cmd_rx_done = bFALSE, need_backspace = bFALSE;
+	u8    cmd_rx_done = bFALSE, need_backspace = bFALSE;
 	
 	if(cmd_line_buf.rsp_ongoing)
 	{
@@ -1011,7 +1118,7 @@ static void rx_ind_process(void)
 			cmd_line_buf.rsp_buff[0] = 0;
 			/* handle command. */
 			if( cmd_line_buf.cmd_data_len > 0 )
-				handle_shell_input( (char *)cmd_line_buf.cmd_buff, cmd_line_buf.cmd_data_len, (char *)cmd_line_buf.rsp_buff, sizeof(cmd_line_buf.rsp_buff) );
+				handle_shell_input( (char *)cmd_line_buf.cmd_buff, cmd_line_buf.cmd_data_len, (char *)cmd_line_buf.rsp_buff, SHELL_RSP_BUF_LEN - 4 );
 
 			cmd_line_buf.rsp_buff[SHELL_RSP_BUF_LEN - 4] = 0;
 
@@ -1074,6 +1181,9 @@ static void shell_task_init(void)
 	cmd_line_buf.assert_data_len = 0;
 	cmd_line_buf.log_level = LOG_LEVEL;
 	cmd_line_buf.echo_enable = bTRUE;
+
+	rtos_init_semaphore_ex(&cmd_line_buf.ind_buf_semaphore, 1, 1);  // one buffer for cmd_ind.
+	//rtos_set_semaphore(&cmd_line_buf.ind_buf_semaphore);  // initial state = 1;
 
 	create_shell_event();
 
@@ -1631,9 +1741,11 @@ void shell_rx_wakeup(int gpio_id)
 	shell_log_raw_data((const u8*)"wakeup\r\n", sizeof("wakeup\r\n") - 1);
 }
 
-void shell_set_uart_port(uint8_t uart_port) {
+void shell_set_uart_port(uint8_t uart_port)
+{
 #if (!CONFIG_SLAVE_CORE)
-	if (bk_get_printf_port() != uart_port && uart_port < UART_ID_MAX) {
+	if (bk_get_printf_port() != uart_port && uart_port < UART_ID_MAX)
+	{
 		u32  int_mask = rtos_disable_int();
 
 		shell_log_flush();
@@ -1648,3 +1760,19 @@ void shell_set_uart_port(uint8_t uart_port) {
 	}
 #endif
 }
+
+void shell_cmd_ind_out(const char *format, ...)
+{
+	u32   timeout = 2000;   /* 2000ms. */
+	u16   data_len, buf_len = SHELL_IND_BUF_LEN;
+	va_list  arg_list;
+
+	rtos_get_semaphore(&cmd_line_buf.ind_buf_semaphore, timeout);
+
+	va_start(arg_list, format);
+	data_len = vsnprintf( (char *)&cmd_line_buf.cmd_ind_buff[0], buf_len - 1, format, arg_list );
+	va_end(arg_list);
+
+	cmd_ind_out(cmd_line_buf.cmd_ind_buff, data_len);
+}
+

@@ -37,7 +37,7 @@ static void demo_doorbell_udp_server_main(beken_thread_arg_t data)
 {
 	int rcv_len = 0;
 	socklen_t srvaddr_len = 0;
-//	struct sockaddr_in server;
+	//  struct sockaddr_in server;
 	struct sockaddr_in sender;
 
 	u8 *rcv_buf = NULL;
@@ -97,11 +97,15 @@ static void demo_doorbell_udp_server_main(beken_thread_arg_t data)
 	while (doorbell_udp_ser_run)
 	{
 		rcv_len = recvfrom(doorbell_udp_ser_video_fd, rcv_buf, APP_DEMO_RCV_BUF_LEN, 0,
-				                   (struct sockaddr *)&sender, &srvaddr_len);
+		                   (struct sockaddr *)&sender, &srvaddr_len);
 		if (rcv_len > 0)
+		{
 			bk_net_camera_receive_data(rcv_buf, rcv_len);
+		}
 		else
+		{
 			LOGE("recvfrom:%d\r\n", rcv_len);
+		}
 	}
 
 out:

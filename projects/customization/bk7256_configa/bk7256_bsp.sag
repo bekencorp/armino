@@ -108,11 +108,11 @@ CPU0_LOAD2 0x00018800  0x197800
 		*sdp_common.c.obj *app_ble.c.obj *prf.c.obj *gapm.c.obj(+ZI)
 		*ble_util_buf.c.obj *sch_prog.c.obj *sch_slice.c.obj *llm.c.obj(+ZI)
 
-		ADDR NEXT _bt_data_end
+		ADDR _bt_data_end
 	}
 
 
-	SRAM_DATA 0x30020000 0x58C00
+	SRAM_DATA 0x30020800 0x58400
 	{
 		LOADADDR NEXT _data_lmastart
 		ADDR NEXT _data_start

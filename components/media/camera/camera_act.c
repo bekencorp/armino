@@ -511,6 +511,9 @@ void camera_event_handle(uint32_t event, uint32_t param)
 		case EVENT_CAM_DVP_MIX_OPEN_IND:
 			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_MIX);
 			break;
+		case EVENT_CAM_DVP_H264_OPEN_IND:
+			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_H264);
+			break;
 		case EVENT_CAM_DVP_CLOSE_IND:
 			camera_dvp_close_handle((param_pak_t *)param);
 			break;

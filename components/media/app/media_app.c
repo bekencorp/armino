@@ -121,7 +121,7 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 				return kNoErr;
 			}
 
-			ret = media_send_msg_sync(EVENT_CAM_DVP_JPEG_OPEN_IND, ppi);
+			ret = media_send_msg_sync(EVENT_CAM_DVP_YUV_OPEN_IND, ppi);
 			break;
 
 		case APP_CAMERA_DVP_MIX:
@@ -171,6 +171,16 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 			}
 
 			ret = media_send_msg_sync(EVENT_CAM_NET_H264_OPEN_IND, ppi);
+			break;
+
+		case APP_CAMERA_DVP_H264:
+			if (CAMERA_STATE_DISABLED != get_camera_state())
+			{
+				LOGI("%s already opened\n", __func__);
+				return kNoErr;
+			}
+
+			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_OPEN_IND, ppi);
 			break;
 
 		default:
@@ -238,6 +248,16 @@ bk_err_t media_app_camera_close(app_camera_type_t type)
 			ret = media_send_msg_sync(EVENT_CAM_NET_CLOSE_IND, 0);
 			break;
 
+		case APP_CAMERA_DVP_H264:
+			if (CAMERA_STATE_ENABLED != get_camera_state())
+			{
+				LOGI("%s already closed\n", __func__);
+				return kNoErr;
+			}
+
+			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, MEDIA_DVP_H264);
+			break;
+
 		default:
 			ret = kNoErr;
 	}
@@ -259,6 +279,49 @@ bk_err_t media_app_mailbox_test(void)
 	ret = media_send_msg_sync(EVENT_LCD_DEFAULT_CMD, param);
 
 	LOGI("%s ---\n", __func__);
+
+	return ret;
+}
+
+bk_err_t media_app_h264_open(void *setup_cfg)
+{
+	int ret = kNoErr;
+	video_setup_t *ptr = NULL;
+
+	rwnxl_set_video_transfer_flag(true);
+
+	if (TRS_STATE_DISABLED != get_transfer_state()) {
+		LOGI("%s already opened\n", __func__);
+		return ret;
+	}
+
+	ptr = (video_setup_t *)os_malloc(sizeof(video_setup_t));
+	os_memcpy(ptr, (video_setup_t *)setup_cfg, sizeof(video_setup_t));
+
+	ret = media_send_msg_sync(EVENT_H264_OPEN_IND, (uint32_t)ptr);
+
+	os_free(ptr);
+
+	LOGI("%s complete\n", __func__);
+
+	return ret;
+}
+
+bk_err_t media_app_h264_close(void)
+{
+	bk_err_t ret;
+
+	LOGI("%s\n", __func__);
+
+	if (TRS_STATE_ENABLED != get_transfer_state())
+	{
+		LOGI("%s already closed\n", __func__);
+		return kNoErr;
+	}
+
+	ret = media_send_msg_sync(EVENT_H264_CLOSE_IND, 0);
+
+	LOGI("%s complete\n", __func__);
 
 	return ret;
 }
@@ -345,7 +408,6 @@ static bk_err_t _media_app_lcd_open(void *lcd_open, app_lcd_open_type_t is_open_
 		LOGE("malloc lcd_open_t failed\r\n");
 		return kGeneralErr;
 	}
-
 	os_memcpy(ptr, (lcd_open_t *)lcd_open, sizeof(lcd_open_t));
 
 	if(!is_open_with_gui)
@@ -353,8 +415,10 @@ static bk_err_t _media_app_lcd_open(void *lcd_open, app_lcd_open_type_t is_open_
 	else
 		ret = media_send_msg_sync(EVENT_LCD_OPEN_WITH_GUI, (uint32_t)ptr);
 
-	os_free(ptr);
-	ptr =NULL;
+	if (ptr) {
+		os_free(ptr);
+		ptr =NULL;
+	}
 
 	LOGI("%s complete\n", __func__);
 
@@ -364,14 +428,14 @@ static bk_err_t _media_app_lcd_open(void *lcd_open, app_lcd_open_type_t is_open_
 bk_err_t media_app_lcd_display_beken(void *lcd_display)
 {
 	bk_err_t ret;
-	
+
 	lcd_display_t *ptr = NULL;
 	ptr = (lcd_display_t *)os_malloc(sizeof(lcd_display_t));
 	os_memcpy(ptr, (lcd_display_t *)lcd_display, sizeof(lcd_display_t));
 
 	ret = media_send_msg_sync(EVENT_LCD_BEKEN_LOGO_DISPLAY, (uint32_t)ptr);
 	LOGI("%s complete\n", __func__);
-	os_free(ptr); 
+	os_free(ptr);
 	ptr =NULL;
 
 	return ret;
@@ -427,7 +491,7 @@ bk_err_t media_app_lcd_display(void *lcd_display)
 
 	ret = media_send_msg_sync(EVENT_LCD_DISPLAY_IND, (uint32_t)ptr);
 	LOGI("%s complete\n", __func__);
-	
+
 	os_free(ptr);
 	return ret;
 }
@@ -440,7 +504,7 @@ bk_err_t media_app_lcd_blend(void *param)
 	os_memcpy(ptr, (lcd_blend_msg_t *)param, sizeof(lcd_blend_msg_t));
 
 	ret = media_send_msg_sync(EVENT_LCD_BLEND_IND, (uint32_t)ptr);
-	
+
 	os_free(ptr);
 	return ret;
 }

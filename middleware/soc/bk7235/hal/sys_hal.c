@@ -282,7 +282,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	uint64_t start_tick = riscv_get_mtimer();
 #endif
 
-	clear_csr(NDS_MIE, MIP_MTIP);
+	HAL_TI_DISABLE();
 
 	int_state1 = sys_ll_get_cpu0_int_0_31_en_value();
 	int_state2 = sys_ll_get_cpu0_int_32_63_en_value();
@@ -305,7 +305,8 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	{
 		sys_ll_set_cpu0_int_0_31_en_value(int_state1);
 		sys_ll_set_cpu0_int_32_63_en_value(int_state2);
-		set_csr(NDS_MIE, MIP_MTIP);
+		HAL_TI_ENABLE();
+
 		return;
 	}
 
@@ -534,8 +535,8 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 		clock_value &= ~(0x1 << SYS_ANA_REG4_ROSC_MANU_EN_POS);//0:close Rosc Calibration Manual Mode
 		sys_ll_set_ana_reg4_value(clock_value);
 	}
-
-	set_csr(NDS_MIE, MIP_MTIP);
+	
+	HAL_TI_ENABLE();
 
 	//gpio_restore();
 

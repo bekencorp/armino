@@ -55,6 +55,8 @@ uint32_t sys_drv_usb_analog_dp_capability(uint8_t value);
 
 uint32_t sys_drv_usb_analog_dn_capability(uint8_t value);
 
+uint32_t sys_drv_usb_analog_deepsleep_en(bool ctrl);
+
 void sys_drv_usb_charge_ctrl(bool ctrl, void *arg);
 
 void sys_drv_usb_charge_cal(sys_drv_charge_step_t step, void *arg);
@@ -388,8 +390,17 @@ uint32_t sys_drv_set_jpeg_disckg(uint32_t value);
 uint32_t sys_drv_set_cpu_clk_div_mode1_clkdiv_bus(uint32_t value);
 uint32_t sys_drv_video_power_en(uint32_t value);
 uint32_t sys_drv_set_auxs(uint32_t cksel, uint32_t ckdiv);
+uint32_t sys_drv_set_jpeg_clk_en();
 
 /**  jPEG End **/
+
+/**  H264 Start **/
+uint32_t sys_drv_set_h264_clk_sel(uint32_t value);
+uint32_t sys_drv_set_clk_div_mode1_clkdiv_h264(uint32_t value);
+uint32_t sys_drv_set_h264_clk_en();
+uint32_t sys_drv_h264_set_mclk_div(uint32_t value);
+
+/**  H264 End **/
 
 /**  psram Start **/
 uint32_t sys_drv_psram_volstage_sel(uint32_t value);

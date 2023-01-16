@@ -78,8 +78,10 @@ void dma_struct_dump(dma_id_t id)
 	SOC_LOGI("    reserved:  %x\n", hw->prio_mode.reserved);
 	SOC_LOGI("\n");
 
+#if CONFIG_SPE
 	SOC_LOGI("  secure_attr addr=0x%x value=0x%x\n", &hw->secure_attr, hw->secure_attr.v);
 	SOC_LOGI("  int_status_nonsec addr=0x%x value=0x%x\n", &hw->privileged_attr, hw->privileged_attr.v);
+#endif
 	SOC_LOGI("  int_status_sec addr=0x%x value=0x%x\n", &hw->int_status_sec, hw->int_status_sec.v);
 	SOC_LOGI("  int_status_nonsec addr=0x%x value=0x%x\n", &hw->int_status_nonsec, hw->int_status_nonsec.v);
 	SOC_LOGI("\n");

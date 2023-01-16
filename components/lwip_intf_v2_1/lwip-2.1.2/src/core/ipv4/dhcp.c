@@ -383,7 +383,7 @@ dhcp_select(struct netif *netif)
   dhcp = netif_dhcp_data(netif);
   LWIP_ERROR("dhcp_select: dhcp != NULL", (dhcp != NULL), return ERR_VAL;);
 
-  LWIP_DEBUGF(DHCP_DEBUG | LWIP_BK_DBG_TRACE, ("dhcp_select(netif=%p) %c%c%"U16_F"\n", (void *)netif, netif->name[0], netif->name[1], (u16_t)netif->num));
+  LWIP_DEBUGF(DHCP_DEBUG | LWIP_BK_DBG_TRACE, ("[KW:]dhcp_select(netif=%p) %c%c%"U16_F"\n", (void *)netif, netif->name[0], netif->name[1], (u16_t)netif->num));
   dhcp_set_state(dhcp, DHCP_STATE_REQUESTING);
 
   /* create and initialize the DHCP message header */
@@ -426,7 +426,7 @@ dhcp_select(struct netif *netif)
 #ifndef CONFIG_MIDEA
   msecs = (u16_t)((dhcp->tries < 6 ? 1 << dhcp->tries : 60) * 1000);
 #else
-  msecs = 200;	
+  msecs = 200;
 #endif
   dhcp->request_timeout = (u16_t)((msecs + DHCP_FINE_TIMER_MSECS - 1) / DHCP_FINE_TIMER_MSECS);
   LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_STATE, ("dhcp_select(): set request timeout %"U16_F" msecs\n", msecs));
@@ -1068,7 +1068,7 @@ dhcp_discover(struct netif *netif)
   struct pbuf *p_out;
   u16_t options_out_len;
 
-  LWIP_DEBUGF(DHCP_DEBUG | LWIP_BK_DBG_TRACE, ("dhcp_discover()\n"));
+  LWIP_DEBUGF(DHCP_DEBUG | LWIP_BK_DBG_TRACE, ("[KW:]dhcp_discover()\n"));
 
   ip4_addr_set_any(&dhcp->offered_ip_addr);
   dhcp_set_state(dhcp, DHCP_STATE_SELECTING);
@@ -1087,7 +1087,7 @@ dhcp_discover(struct netif *netif)
     }
     LWIP_HOOK_DHCP_APPEND_OPTIONS(netif, dhcp, DHCP_STATE_SELECTING, msg_out, DHCP_DISCOVER, &options_out_len);
 #if LWIP_NETIF_HOSTNAME
-    dhcp_option_hostname(options_out_len, (u8_t *)dhcp, netif);
+    options_out_len = dhcp_option_hostname(options_out_len, msg_out->options, netif);
 #endif /* LWIP_NETIF_HOSTNAME */
     dhcp_option_trailer(options_out_len, msg_out->options, p_out);
 
@@ -1840,7 +1840,7 @@ decode_next:
     /* make sure the string is really NULL-terminated */
     dhcp->boot_file_name[DHCP_FILE_LEN-1] = 0;
   }
-#endif /* LWIP_DHCP_BOOTP_FILE */ 
+#endif /* LWIP_DHCP_BOOTP_FILE */
   return ERR_OK;
 }
 
@@ -1918,7 +1918,7 @@ dhcp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr,
   msg_type = (u8_t)dhcp_get_option_value(dhcp, DHCP_OPTION_IDX_MSG_TYPE);
   /* message type is DHCP ACK? */
   if (msg_type == DHCP_ACK) {
-    LWIP_DEBUGF(DHCP_DEBUG | LWIP_BK_DBG_TRACE, ("DHCP_ACK received\n"));
+    LWIP_DEBUGF(DHCP_DEBUG | LWIP_BK_DBG_TRACE, ("[KW:]DHCP_ACK received\n"));
     /* in requesting state? */
     if (dhcp->state == DHCP_STATE_REQUESTING) {
       dhcp_handle_ack(netif, msg_in);
@@ -1951,7 +1951,7 @@ dhcp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr,
   }
   /* received a DHCP_OFFER in DHCP_STATE_SELECTING state? */
   else if ((msg_type == DHCP_OFFER) && (dhcp->state == DHCP_STATE_SELECTING)) {
-    LWIP_DEBUGF(DHCP_DEBUG | LWIP_BK_DBG_TRACE, ("DHCP_OFFER received in DHCP_STATE_SELECTING state\n"));
+    LWIP_DEBUGF(DHCP_DEBUG | LWIP_BK_DBG_TRACE, ("[KW:]DHCP_OFFER received in DHCP_STATE_SELECTING state\n"));
     /* remember offered lease */
     dhcp_handle_offer(netif, msg_in);
   }

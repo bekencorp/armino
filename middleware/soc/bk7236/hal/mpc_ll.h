@@ -110,6 +110,16 @@ static inline uint32_t mpc_ll_get_block_lut(mpc_hw_t *hw)
 	return hw->block_lut;
 }
 
+static inline void mpc_ll_enable_sec_response(mpc_hw_t *hw)
+{
+	hw->ctrl.cfg_sec_rsp = 1;
+}
+
+static inline void mpc_ll_disable_sec_response(mpc_hw_t *hw)
+{
+	hw->ctrl.cfg_sec_rsp = 0;
+}
+
 #ifdef __cplusplus
 }
 #endif

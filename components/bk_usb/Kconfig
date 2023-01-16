@@ -7,10 +7,20 @@ config USB
 menu "USB"
 	depends on USB
 
+	choice USB_PROTOCOL_STACK
+		prompt "USB PROTOCOL STACK"
+		default MENTOR_USB
+
+		config MENTOR_USB
+			bool "MENTOR_USB"
+		config CHERRY_USB
+			bool "CHERRY_USB"
+	endchoice
+
 	#TODO HOST/DEVICE mode mutual exclusive???
 	choice USB_MODE
 		prompt "Enable USB HOST mode"
-		default USB_HOST 
+		default USB_HOST
 
 		config USB_HOST
 			bool "USB Host Mode"
@@ -83,7 +93,7 @@ endmenu
 menu "DSP"
 	config DSP
 		bool "Enable DSP"
-			default n 
+			default n
 	#TODO delete it
 	config DSP_SRC_ADD
 		hex "DSP srouce address"

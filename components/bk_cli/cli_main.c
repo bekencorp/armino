@@ -766,6 +766,11 @@ static void cli_main(uint32_t data)
 
 #endif // #if (!CONFIG_SHELL_ASYNCLOG)
 
+static void cli_cmd_rsp(char *buf, u8 cmd_state)
+{
+	sprintf(buf, "CMDRsp:%s\r\n", cmd_state ? "OK" : "Fail");
+}
+
 void help_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 void cli_sort_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
@@ -968,7 +973,7 @@ static void cli_log_disable(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 {
 	if (argc < 3)
 	{
-		int 	i = 0, buf_len = 0;
+		int 	i = 0, buf_len = 0, fisrt = 1;
 		char *	mod_name;
 
 		buf_len = sprintf(&pcWriteBuffer[0], "Usage: modlog tag_name on/off\r\n");
@@ -979,9 +984,14 @@ static void cli_log_disable(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 
 			if(mod_name != NULL)
 			{
-				if(buf_len == 0)
+				if(fisrt)
 				{
-					buf_len = sprintf(&pcWriteBuffer[0], "disabled mod list:\r\n%s\r\n", mod_name);
+					fisrt = 0;
+
+					extern int bk_white_list_state(void);
+					u8 white_state = bk_white_list_state();
+	
+					buf_len += sprintf(&pcWriteBuffer[buf_len], "%s mod list:\r\n%s\r\n", white_state ? "ON" : "OFF", mod_name);
 				}
 				else
 				{
@@ -992,17 +1002,25 @@ static void cli_log_disable(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 				break;
 		}
 
+		// cli_cmd_rsp(&pcWriteBuffer[buf_len], 1);
+
 		return;
 	}
 
+	u8 cmd_state = 0;
 	if (!os_strcasecmp(argv[2], "on"))
 	{
 		bk_disable_mod_printf(argv[1], 0);
+		cmd_state = 1;
 	}
 	else if (!os_strcasecmp(argv[2], "off"))
 	{
 		bk_disable_mod_printf(argv[1], 1);
+		cmd_state = 1;
 	}
+
+	cli_cmd_rsp(&pcWriteBuffer[0], cmd_state);
+
 }
 #endif
 
@@ -1097,24 +1115,30 @@ void help_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **arg
 	build_in_count++; //For command: micodebug
 #endif
 
-	os_printf("====Build-in Commands====\r\n");
+#if (CONFIG_SHELL_ASYNCLOG)
+#define cmd_ind_printf		shell_cmd_ind_out
+#else
+#define cmd_ind_printf		os_printf
+#endif
+
+	cmd_ind_printf("====Build-in Commands====\r\n");
 	for (i = 0, n = 0; i < MAX_COMMANDS && n < pCli->num_commands; i++) {
 		if (pCli->commands[i]->name) {
 			if (pCli->commands[i]->help)
-				os_printf("%s: %s\r\n", pCli->commands[i]->name,
+				cmd_ind_printf("%s: %s\r\n", pCli->commands[i]->name,
 						  pCli->commands[i]->help ?
 						  pCli->commands[i]->help : "");
 			else
-				os_printf("%s\r\n", pCli->commands[i]->name);
+				cmd_ind_printf("%s\r\n", pCli->commands[i]->name);
 
 			n++;
 			if (n == build_in_count)
-				os_printf("\r\n====User Commands====\r\n");
-
-			if((n & 0x0f) == 0)
-				rtos_delay_milliseconds(50);
+				cmd_ind_printf("\r\n====User Commands====\r\n");
 		}
 	}
+
+	cli_cmd_rsp(&pcWriteBuffer[0], 1);
+
 }
 
 int cli_register_command(const struct cli_command *command)
@@ -1354,8 +1378,8 @@ int bk_cli_init(void)
 	cli_dma2d_init();
 #endif
 
-#if (CLI_CFG_QSPI_OLED == 1)
-	cli_qspi_oled_init();
+#if (CLI_CFG_LCD_QSPI == 1)
+	cli_lcd_qspi_init();
 #endif
 
 #if (CLI_CFG_QRCODEGEN == 1)
@@ -1372,6 +1396,14 @@ int bk_cli_init(void)
 
 #if (CLI_CFG_G711 == 1)
 	cli_g711_init();
+#endif
+
+#if (CLI_CFG_OPUS == 1)
+	cli_opus_init();
+#endif
+
+#if (CLI_CFG_ADPCM == 1)
+	cli_adpcm_init();
 #endif
 
 #if (CLI_CFG_MP3 == 1)
@@ -1542,11 +1574,13 @@ int bk_cli_init(void)
 #if (CLI_CFG_CALENDAR == 1)
 	cli_calendar_init();
 #endif
+
 #if (CONFIG_SOC_BK7271)
 #if CONFIG_USB_HOST
 	bk7271_dsp_cli_init();
 #endif
 #endif
+
 #if CONFIG_EASY_FLASH
     int cli_easyflash_init(void);
     cli_easyflash_init();
@@ -1559,8 +1593,8 @@ int bk_cli_init(void)
 	cli_pwr_init();
 #endif
 
-#if CONFIG_CM33_TEST
-	cli_cm33_init();
+#if CONFIG_SPE_TEST
+	cli_spe_init();
 #endif
 
 #if (CONFIG_LITTLEFS == 1)
@@ -1576,6 +1610,13 @@ int bk_cli_init(void)
 	cli_prro_init();
 #endif
 
+#if CONFIG_INTERRUPT_TEST
+	cli_interrupt_init();
+#endif
+
+#if (CLI_CFG_H264 == 1)
+	cli_h264_init();
+#endif
 /*-----open the cli comand both at release and debug vertion end ------*/
 
 

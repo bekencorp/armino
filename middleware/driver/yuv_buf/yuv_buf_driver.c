@@ -105,7 +105,6 @@ bk_err_t bk_yuv_buf_init(const yuv_buf_config_t *config)
 		yuv_buf_hal_set_yuv_mode_config(&s_yuv_buf.hal, config);
 		break;
 	case YUV_BUF_MODE_H264:
-		//TODO
 		yuv_buf_hal_set_h264_mode_config(&s_yuv_buf.hal, config);
 		break;
 	default:
@@ -158,6 +157,20 @@ bk_err_t bk_yuv_buf_stop(yuv_buf_work_mode_t work_mode)
 	default:
 		break;
 	}
+
+	return BK_OK;
+}
+
+bk_err_t bk_yuv_buf_send_data_to_h264(void)
+{
+	yuv_buf_hal_send_data_to_h264(&s_yuv_buf.hal);
+
+	return BK_OK;
+}
+
+bk_err_t bk_yuv_buf_enable_h264_nosensor_mode(void)
+{
+	yuv_buf_hal_enable_h264_nosensor_mode(&s_yuv_buf.hal);
 
 	return BK_OK;
 }

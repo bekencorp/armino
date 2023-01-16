@@ -44,6 +44,10 @@ extern "C" {
 
 #define WLAN_MAC_LEN		6
 
+#ifndef ETH_ALEN
+#define ETH_ALEN		6
+#endif
+
 /**
  * @brief Wlan ssid definition
  */
@@ -51,6 +55,33 @@ typedef struct wlan_ssid {
 	uint8_t ssid[WLAN_SSID_MAX_LEN];
 	uint8_t ssid_len;
 } wlan_ssid_t;
+
+typedef struct {
+	uint8_t bssid[ETH_ALEN];
+	uint8_t ssid[WLAN_SSID_MAX_LEN];
+	uint8_t ssid_len;
+	uint16_t freq;
+	u16 beacon_int;
+	uint16_t caps;
+	int level;
+	// u64 tsf;
+	uint16_t ie_len;
+	uint8_t  ies[0];  /* FIXME: use dynamic len */
+} wlan_sta_add_bss_t;
+
+typedef struct {
+	int8_t rssi;
+	int len;
+	uint8_t bcn[0];
+} wlan_sta_new_rx_beacon_t;
+
+typedef struct {
+	uint8_t bssid[ETH_ALEN];
+	int akmp;
+	uint8_t pmk_len;
+	uint8_t pmk[64];
+	uint8_t pmkid[16];
+} wlan_sta_add_pmksa_cache_entry_t;
 
 /**
  * @brief Wlan station configuration field definition
@@ -469,6 +500,18 @@ enum {
 	WIFI_CAPA_ID_MAX,
 };
 
+/**
+ * @addr: softap deauth sta's mac addr, all 0xff for deauth all STA.
+ * @reason: reason code: <=0 for automatic select
+ */
+typedef struct {
+	uint8_t addr[6];
+	int     reason;
+} wlan_ap_sta_deauth_t;
+
+typedef struct {
+	uint8_t addr[6];
+} wlan_ap_blacklist_t;
 
 #ifdef __cplusplus
 }

@@ -65,7 +65,7 @@ typedef struct {
 #define dma_hal_set_src_data_width(hal, id, data_width) dma_ll_set_src_data_width((hal)->hw, id, data_width)
 #define dma_hal_set_dest_data_width(hal, id, data_width) dma_ll_set_dest_data_width((hal)->hw, id, data_width)
 
-#if (CONFIG_GENERAL_DMA_SEC)
+#if (CONFIG_SPE)
 #define dma_hal_set_dest_sec_attr(hal, id, attr) dma_ll_set_dest_sec_attr((hal)->hw, id, attr)
 #define dma_hal_set_src_sec_attr(hal, id, attr) dma_ll_set_src_sec_attr((hal)->hw, id, attr)
 

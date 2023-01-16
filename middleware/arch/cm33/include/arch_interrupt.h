@@ -82,11 +82,31 @@ typedef enum {
 	INT_ID_MAX
 } arch_int_src_t;
 
+typedef enum {
+	PRI_GROUP_BITS_7_1 = 0,
+	PRI_GOURP_BITS_7_2,
+	PRI_GOURP_BITS_7_3,
+	PRI_GOURP_BITS_7_4,
+	PRI_GOURP_BITS_7_5,
+	PRI_GOURP_BITS_7_6,
+	PRI_GOURP_BITS_7_7,
+	PRI_GOURP_BITS_NONE,
+} pri_group_t;
+
+#define IRQ_DEFAULT_PRIORITY    (6)
+
 bk_err_t arch_isr_entry_init(void);
 void arch_interrupt_unregister_int(arch_int_src_t int_number);
 void arch_interrupt_register_int(arch_int_src_t int_number, int_group_isr_t isr_callback);
 void arch_interrupt_set_priority(arch_int_src_t int_number, uint32_t int_priority);
-
+void arch_int_enable_irq(arch_int_src_t irq);
+void arch_int_disable_irq(arch_int_src_t irq);
+uint32_t arch_int_get_enable_irq(arch_int_src_t irq);
+void arch_int_set_target_state(arch_int_src_t irq);
+void arch_int_clear_target_state(arch_int_src_t irq);
+uint32_t arch_int_get_target_state(arch_int_src_t irq);
+void arch_int_dump_statis(void);
+void arch_int_set_target_state_all(void);
 void NMI_Handler(void);
 void HardFault_Handler(void);
 void MemManage_Handler(void);

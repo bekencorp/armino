@@ -160,19 +160,31 @@ enum tfm_plat_err_t enable_fault_handlers(void)
     return TFM_PLAT_ERR_SUCCESS;
 }
 
+void platform_disable_watchdog(void)
+{
+	*((volatile uint32_t *)(0x44800000 + 2 * 4)) = 1;
+	*((volatile uint32_t *)(0x44800000 + 4 * 4)) = (0x5A << 16) | (0);
+	*((volatile uint32_t *)(0x44800000 + 4 * 4)) = (0xA5 << 16) | (0);
+
+	*((volatile uint32_t *)(0x44000600 + 0 * 4)) = (0x5A << 16) | (0);
+	*((volatile uint32_t *)(0x44000600 + 0 * 4)) = (0xA5 << 16) | (0);
+}
+
 enum tfm_plat_err_t system_reset_cfg(void)
 {
-    uint32_t reg_value = SCB->AIRCR;
+	uint32_t reg_value = SCB->AIRCR;
 
-    /* Clear SCB_AIRCR_VECTKEY value */
-    reg_value &= ~(uint32_t)(SCB_AIRCR_VECTKEY_Msk);
+	/* Clear SCB_AIRCR_VECTKEY value */
+	reg_value &= ~(uint32_t)(SCB_AIRCR_VECTKEY_Msk);
 
-    /* Enable system reset request only to the secure world */
-    reg_value |= (uint32_t)(SCB_AIRCR_WRITE_MASK | SCB_AIRCR_SYSRESETREQS_Msk);
+	/* Enable system reset request only to the secure world */
+	reg_value |= (uint32_t)(SCB_AIRCR_WRITE_MASK | SCB_AIRCR_SYSRESETREQS_Msk);
 
-    SCB->AIRCR = reg_value;
+	SCB->AIRCR = reg_value;
 
-    return TFM_PLAT_ERR_SUCCESS;
+	platform_disable_watchdog();//TODO disable watchdog, or feed watchdog
+
+	return TFM_PLAT_ERR_SUCCESS;
 }
 
 enum tfm_plat_err_t init_debug(void)
@@ -229,6 +241,7 @@ struct sau_cfg_t {
     bool nsc;
 };
 
+#if CONFIG_SAU_DETAILED_SETTING
 const struct sau_cfg_t sau_cfg[] = {
     {
         ((uint32_t)&REGION_NAME(Load$$LR$$, LR_NS_PARTITION, $$Base)),
@@ -286,6 +299,20 @@ const struct sau_cfg_t sau_cfg[] = {
     },
 #endif
 };
+#else
+const struct sau_cfg_t sau_cfg[] = {
+    {
+        0,
+        0x0fffffff,
+        true,
+    },
+    {
+        0x10000000,
+        0xefffffff,
+        false,
+    }
+};
+#endif
 
 #define NR_SAU_INIT_STEP                 3
 
@@ -316,11 +343,12 @@ int32_t mpc_init_cfg(void)
 }
 
 /*---------------------- PPC configuration functions -------------------------*/
-#define NR_PPC_INIT_STEP                 4
-
 void ppc_init_cfg(void)
 {
-    //TODO
+	*((volatile uint32_t *)(0x41040000 + 2 * 4)) = 1;/*soft reset ppro module*/
+	*((volatile uint32_t *)(0x41040000 + 8 * 4)) = 0;
+	*((volatile uint32_t *)(0x41040000 + 5 * 4)) = 0;
+	*((volatile uint32_t *)(0x41040000 + 11 * 4)) = 0;
 }
 
 void ppc_clear_irq(void)

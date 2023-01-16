@@ -805,10 +805,10 @@ static void _mbedtls_mpi_free( mbedtls_mpi *X )
     {
         return;
     }
+
     cur = (mpi_reg_map_node_t *) X->mhandle;
     if ( cur != NULL )
     {
-        // mbedtls_printf("%s X:0x%x X->mhandle:0x%x\n",__func__,X,X->mhandle);
         mbedtls_rel_dubhe_res_by_mpi( X );
         pal_list_iter_safe( &head_list, entry, next )
         {
@@ -817,9 +817,8 @@ static void _mbedtls_mpi_free( mbedtls_mpi *X )
             if ( ( cur == n ) && ( X == n->map_info.X ) )
             {
                 pal_list_del( entry );
-                // mbedtls_printf("%s X:0x%x
-                // X->mhandle:0x%x\n",__func__,X,X->mhandle);
                 memset( cur, 0, sizeof( mpi_reg_map_node_t ) );
+
                 mbedtls_free( cur );
                 cur = NULL;
                 break;

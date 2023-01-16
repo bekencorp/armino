@@ -153,6 +153,7 @@ enum tfm_hal_status_t tfm_hal_set_up_static_boundaries(void)
     ppc_init_cfg();
 
     /* Set up static isolation boundaries inside SPE */
+#if CONFIG_BEKEN_SUPPORT_MPU	
 #ifdef CONFIG_TFM_ENABLE_MEMORY_PROTECT
     struct mpu_armv8m_region_cfg_t localcfg;
     int32_t i;
@@ -201,6 +202,7 @@ enum tfm_hal_status_t tfm_hal_set_up_static_boundaries(void)
         return TFM_HAL_ERROR_GENERIC;
     }
 #endif /* CONFIG_TFM_ENABLE_MEMORY_PROTECT */
+#endif /* CONFIG_BEKEN_SUPPORT_MPU */
 
     return TFM_HAL_SUCCESS;
 }

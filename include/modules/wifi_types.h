@@ -201,6 +201,7 @@ typedef enum {
 	WIFI_SECURITY_WEP,             /**< WEP security, **it's unsafe security, please don't use it** */
 	WIFI_SECURITY_WPA_TKIP,        /**< WPA TKIP */
 	WIFI_SECURITY_WPA_AES,         /**< WPA AES */
+	WIFI_SECURITY_WPA_MIXED,       /**< WPA AES or TKIP */
 	WIFI_SECURITY_WPA2_TKIP,       /**< WPA2 TKIP */
 	WIFI_SECURITY_WPA2_AES,        /**< WPA2 AES */
 	WIFI_SECURITY_WPA2_MIXED,      /**< WPA2 AES or TKIP */
@@ -217,6 +218,7 @@ typedef enum {
 	WIFI_LINKSTATE_STA_CONNECTING,    /**< sta mode is connecting */
 	WIFI_LINKSTATE_STA_DISCONNECTED,  /**< sta mode is disconnected */
 	WIFI_LINKSTATE_STA_CONNECTED,     /**< sta mode is connected */
+	WIFI_LINKSTATE_STA_CONNECT_FAILED,     /**< sta mode is connec fail */
 	WIFI_LINKSTATE_STA_GOT_IP,        /**< sta mode got ip */
 
 	/* for AP mode */

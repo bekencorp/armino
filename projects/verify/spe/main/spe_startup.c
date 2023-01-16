@@ -10,11 +10,8 @@
 #include "bk_api_cli.h"
 #include "sys_misc.h"
 
-void jump_test(void);
-
 void _start(void)
 {
-	jump_test();
 	close_wdt();
 	backtrace_init();
 	bk7236_sys_init();

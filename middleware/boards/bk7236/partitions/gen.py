@@ -59,9 +59,6 @@ def pack(tools_dir, base_cfg_dir, prefered_cfg_dir, gen_dir, soc):
 	install_configs(prefered_cfg_dir, _BUILD_DIR)
 	install_configs(f'{prefered_cfg_dir}/{soc}', _BUILD_DIR)
 
-	logging.debug(f'Generate BL1 public key')
-	run_cmd(f'{_BUILD_DIR}/gen_key.sh')
-
 	logging.debug(f'partition pre-processing')
 	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions.json --genhdr --genbl1 --genbl2')
 	run_cmd(f'cp {_BUILD_DIR}/partitions.json_partition.h {gen_dir}/partitions_gen.h')

@@ -69,7 +69,7 @@ static int tempd_init_temperature_raw_data(void)
 static void temp_sensor_enable(void)
 {
 
-#if (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
     sys_drv_en_tempdet(1);
 #else
     uint32_t param;
@@ -82,7 +82,7 @@ static void temp_sensor_enable(void)
 
 static void temp_sensor_disable(void)
 {
-#if (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
     sys_drv_en_tempdet(0);
 #else
 
@@ -109,7 +109,7 @@ static uint16_t tempd_calculate_temperature(void)
 {
 	tempd_show_raw_temperature_data();
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7236)
 	uint32_t sum = 0, index, count = 0;
 
 	for (index = 5; index < ADC_TEMP_BUFFER_SIZE; index++) {
@@ -340,7 +340,7 @@ static void tempd_notify_temperature_to_calibration(uint16_t temperature)
 #if CONFIG_STA_PS
 	uint16_t threshold = s_tempd.detect_threshold;
 
-#if (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 	rwnx_cal_do_temp_detect(temperature, threshold, &s_tempd.last_detect_val);
 #else
 	ps_switch(PS_UNALLOW, PS_EVENT_TEMP, PM_RF_BIT);
@@ -436,7 +436,7 @@ static void tempd_init(uint32_t init_temperature)
 	s_tempd.last_xtal_val = (uint32_t)(init_temperature);
 	s_tempd.xtal_threshold_val = ADC_XTAL_DIST_INTIAL_VAL;
 
-    #if (CONFIG_SOC_BK7256XX)
+    #if (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
     s_tempd.xtal_init_val = sys_drv_analog_get_xtalh_ctune();// to do,need remove old interface after all adaption is finished
     #else
     s_tempd.xtal_init_val = sddev_control(DD_DEV_TYPE_SCTRL, CMD_SCTRL_GET_XTALH_CTUNE, NULL);

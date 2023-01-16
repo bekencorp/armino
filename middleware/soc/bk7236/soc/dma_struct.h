@@ -127,7 +127,10 @@ typedef volatile struct {
 				uint32_t src_sec_attr: 1;
 				uint32_t dest_sec_attr: 1;
 				uint32_t bus_err_int_en: 1;
-				uint32_t reserved1: 9;
+				uint32_t reserved1: 1;
+				uint32_t src_burst_len: 2;
+				uint32_t dtst_burst_len: 2;
+				uint32_t reserved2: 4;
 			};
 			uint32_t v;
 		} req_mux;

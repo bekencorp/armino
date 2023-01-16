@@ -822,6 +822,11 @@ static inline void qspi_ll_set_cmd_c_cfg1(qspi_hw_t *hw, uint32_t cmd_line)
 
 }
 
+static inline void qspi_ll_set_cmd_c_cfg2(qspi_hw_t *hw, uint32_t config_value)
+{
+
+}
+
 static inline void qspi_ll_cmd_c_start(qspi_hw_t *hw)
 {
 

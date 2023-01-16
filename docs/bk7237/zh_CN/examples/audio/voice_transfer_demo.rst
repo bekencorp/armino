@@ -105,6 +105,7 @@ demo执行的步骤如下:
 	- 5、然后根据听到的底噪大小设置 ``noise level`` 底噪越大，设置的值越大, 优化底噪消除效果;
 	- 4、最后设置 ``noise param`` 的值, 分别设置为0、1、2，选择效果最好的值;
 	- 5、记录下所有参数的在线调试结果, 并设置为语音初始化时的默认参数。
+
 .. note::
  - 1.也可以采用AT指令的方式在线调试, 通过uart发送串口指令 ``aud_intf_set_aec_param_test {param value}`` 设置各参数的值。具体的调试流程和上述方法一致，详情请参考 ``\components\demos\media\aud\aud_intf\demo\aud_intf_demo.c`` 中的示例.
  - 2.AEC在线调试参数设置界面如下图所示.

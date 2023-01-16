@@ -1299,17 +1299,17 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 
 #endif
 	}
-		if (s_lcd.decoder_frame == NULL)
-		{
-			media_debug->err_dec++;
+	if (s_lcd.decoder_frame == NULL)
+	{
+		media_debug->err_dec++;
 
-			LOGD("%s decoder failed\n", __func__);
-			ret = BK_FAIL;
-			goto out;
-		}
+		LOGD("%s decoder failed\n", __func__);
+		ret = BK_FAIL;
+		goto out;
+	}
 
-		dec_frame = s_lcd.decoder_frame;
-		s_lcd.decoder_frame = NULL;
+	dec_frame = s_lcd.decoder_frame;
+	s_lcd.decoder_frame = NULL;
 
 out:
 
@@ -1630,7 +1630,7 @@ void dma2d_memcpy_psram_wait_last_transform(void *Psrc, void *Pdst, uint32_t xsi
 		while (bk_dma2d_is_transfer_busy()) {}
 		flag = 0;
 	}
-	
+
 	/*##-1- Configure the DMA2D Mode, Output Color Mode and output offset #############*/
 	dma2d_config.init.mode         = DMA2D_M2M;             /**< Mode Memory To Memory */
 	dma2d_config.init.color_mode    = DMA2D_OUTPUT_ARGB8888; /**< Output color mode is ARGB4444 : 16 bpp */
@@ -1648,7 +1648,7 @@ void dma2d_memcpy_psram_wait_last_transform(void *Psrc, void *Pdst, uint32_t xsi
 	bk_dma2d_init(&dma2d_config);
 	bk_dma2d_layer_config(&dma2d_config, DMA2D_FOREGROUND_LAYER);
 
-	bk_dma2d_start_transfer(&dma2d_config, (uint32_t)Psrc, (uint32_t)Pdst, xsize/2, ysize); 
+	bk_dma2d_start_transfer(&dma2d_config, (uint32_t)Psrc, (uint32_t)Pdst, xsize/2, ysize);
 	flag = 1;
 }
 
@@ -1672,7 +1672,7 @@ bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend)
     lv_get_gui_blend_buff(&tmp_yuv_data, &tmp_rgb565_data, NULL);
 
     pixel_format_t format = lcd_blend->bg_data_format;
-    
+
     //STEP 1 : bg img yuyv copy to sram and pixel convert to rgb565
     dma2d_memcpy_psram(lcd_blend->pbg_addr, tmp_yuv_data, lcd_blend->xsize, lcd_blend->ysize, lcd_blend->bg_offline, 0);
 
@@ -2111,25 +2111,20 @@ bk_err_t lcd_ldo_power_enable(uint8_t enable)
 
 	if (enable)
 	{
-		gpio_dev_unmap(LCD_LDO_CTRL_GPIO);
-		bk_gpio_set_capacity(LCD_LDO_CTRL_GPIO, 0);
-		BK_LOG_ON_ERR(bk_gpio_disable_input(LCD_LDO_CTRL_GPIO));
-		BK_LOG_ON_ERR(bk_gpio_enable_output(LCD_LDO_CTRL_GPIO));
 
 #if (LCD_LDO_CTRL_ACTIVE_LEVEL)
-		bk_gpio_set_output_high(LCD_LDO_CTRL_GPIO);
+		bk_gpio_ctrl_external_ldo(GPIO_CTRL_LDO_MODULE_LCD, LCD_LDO_CTRL_GPIO, GPIO_OUTPUT_STATE_HIGH);
 #else
-		bk_gpio_set_output_low(LCD_LDO_CTRL_GPIO);
+		bk_gpio_ctrl_external_ldo(GPIO_CTRL_LDO_MODULE_LCD, LCD_LDO_CTRL_GPIO, GPIO_OUTPUT_STATE_LOW);
 #endif
-		rtos_delay_milliseconds(5);
 	}
 	else
 	{
 
 #if (LCD_LDO_CTRL_ACTIVE_LEVEL)
-		bk_gpio_set_output_low(LCD_LDO_CTRL_GPIO);
+		bk_gpio_ctrl_external_ldo(GPIO_CTRL_LDO_MODULE_LCD, LCD_LDO_CTRL_GPIO, GPIO_OUTPUT_STATE_LOW);
 #else
-		bk_gpio_set_output_high(LCD_LDO_CTRL_GPIO);
+		bk_gpio_ctrl_external_ldo(GPIO_CTRL_LDO_MODULE_LCD, LCD_LDO_CTRL_GPIO, GPIO_OUTPUT_STATE_HIGH);
 #endif
 	}
 
@@ -2181,9 +2176,9 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 	LCD_DIAG_DEBUG_INIT();
 
 	lcd_ldo_power_enable(1);
-
+#if !CONFIG_SOC_BK7236
 	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DISP, PM_CPU_FRQ_320M);
-
+#endif
 	if (device == NULL)
 	{
 		LOGE("%s, device need to be set\n", __func__);

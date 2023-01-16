@@ -893,6 +893,10 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
                 s_performance_tx_bytes += s_test_data_len;
                 ble_test_noti_hdl((void *)((uint32)con_idx));
             }
+            else
+            {
+                BK_LOGI("ble_at","BLE_5_TX_DONE\r\n");
+            }
         }
         else
         {
@@ -3977,7 +3981,6 @@ error:
     return err;
 }
 
-
 void ble_test_noti_hdl(void *param)
 {
     uint8 *write_buffer;
@@ -3995,6 +3998,8 @@ void ble_test_noti_hdl(void *param)
     os_memset(write_buffer, 0, s_test_data_len);
     os_memcpy(write_buffer, &s_test_noti_count, sizeof(s_test_noti_count));
     s_test_noti_count++;
+
+    BK_LOGI("ble_at","%s send_noti_value\r\n", __func__);
 
     ret = bk_ble_send_noti_value(con_idx, s_test_data_len, write_buffer, g_test_prf_task_id, TEST_IDX_CHAR_VALUE);
     if(ret != BK_ERR_BLE_SUCCESS)

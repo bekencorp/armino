@@ -54,7 +54,7 @@
 #include "aud_tras_drv_co_list.h"
 #endif
 #include <driver/uac.h>
-//#include "BK7256_RegList.h"
+#include "bk_misc.h"
 
 
 #define AUD_TRAS_DRV_TAG "aud_tras_drv"
@@ -72,8 +72,7 @@
 static beken_thread_t  aud_trs_drv_thread_hdl = NULL;
 static beken_queue_t aud_trs_drv_int_msg_que = NULL;
 
-aud_tras_drv_info_t aud_tras_drv_info;
-extern int delay_ms(INT32 ms_count);
+aud_tras_drv_info_t aud_tras_drv_info = DEFAULT_AUD_TRAS_DRV_INFO();
 static bool uac_mic_read_flag = false;
 
 #if CONFIG_AUD_TRAS_AEC_MIC_DELAY_DEBUG
@@ -652,11 +651,20 @@ static bk_err_t aud_tras_enc(void)
 			goto encoder_exit;
 		}
 	} else {
-		/* get data from mic_ring_buff */
-		size = ring_buffer_read(&(aud_tras_drv_info.voc_info.mic_rb), (uint8_t *)aud_tras_drv_info.voc_info.encoder_temp.pcm_data, temp_mic_samp_rate_points*2);
-		if (size != temp_mic_samp_rate_points*2) {
-			LOGE("the data readed from mic_ring_buff is not a frame, size:%d \r\n", size);
-			goto encoder_exit;
+		if (aud_tras_drv_info.voc_info.aec_enable) {
+			/* get data from aec_ring_buff */
+			size = ring_buffer_read(&(aud_tras_drv_info.voc_info.aec_info->aec_rb), (uint8_t *)aud_tras_drv_info.voc_info.encoder_temp.pcm_data, temp_mic_samp_rate_points*2);
+			if (size != temp_mic_samp_rate_points*2) {
+				LOGE("the data readed from aec_ring_buff is not a frame, size:%d \r\n", size);
+				goto encoder_exit;
+			}
+		} else {
+			/* get data from mic_ring_buff */
+			size = ring_buffer_read(&(aud_tras_drv_info.voc_info.mic_rb), (uint8_t *)aud_tras_drv_info.voc_info.encoder_temp.pcm_data, temp_mic_samp_rate_points*2);
+			if (size != temp_mic_samp_rate_points*2) {
+				LOGE("the data readed from mic_ring_buff is not a frame, size:%d \r\n", size);
+				goto encoder_exit;
+			}
 		}
 	}
 
@@ -1308,7 +1316,8 @@ static bk_err_t aud_tras_drv_spk_deinit(void)
 		bk_dma_deinit(aud_tras_drv_info.spk_info.spk_dma_id);
 		bk_dma_free(DMA_DEV_AUDIO, aud_tras_drv_info.spk_info.spk_dma_id);
 		bk_aud_dac_deinit();
-		bk_aud_driver_deinit();
+		if (aud_tras_drv_info.mic_info.status == AUD_TRAS_DRV_MIC_STA_NULL)
+			bk_aud_driver_deinit();
 		os_free(aud_tras_drv_info.spk_info.dac_config);
 		aud_tras_drv_info.spk_info.dac_config = NULL;
 	} else {
@@ -1779,7 +1788,8 @@ static bk_err_t aud_tras_drv_mic_deinit(void)
 		bk_dma_deinit(aud_tras_drv_info.mic_info.mic_dma_id);
 		bk_dma_free(DMA_DEV_AUDIO, aud_tras_drv_info.mic_info.mic_dma_id);
 		bk_aud_adc_deinit();
-		bk_aud_driver_deinit();
+		if (aud_tras_drv_info.spk_info.status == AUD_TRAS_DRV_SPK_STA_NULL)
+			bk_aud_driver_deinit();
 		os_free(aud_tras_drv_info.mic_info.adc_config);
 		aud_tras_drv_info.mic_info.adc_config = NULL;
 	} else {
@@ -2115,8 +2125,11 @@ static void aud_tras_drv_voc_uac_mic_cb(uint8_t *buff, uint32_t count)
 
 	if ((ring_buffer_get_fill_size(&aud_tras_drv_info.voc_info.mic_rb) > aud_tras_drv_info.voc_info.mic_samp_rate_points * 2) && (uac_mic_read_flag == false)) {
 		uac_mic_read_flag = true;
-		/* send msg to AEC to process mic and ref data */
-		ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_ENCODER, NULL);
+		/* send msg to AEC or ENCODER to process mic data */
+		if (aud_tras_drv_info.voc_info.aec_enable)
+			ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_AEC, NULL);
+		else
+			ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_ENCODER, NULL);
 		if (ret != kNoErr) {
 			LOGE("send msg: AUD_TRAS_DRV_ENCODER fail \r\n");
 			uac_mic_read_flag = false;

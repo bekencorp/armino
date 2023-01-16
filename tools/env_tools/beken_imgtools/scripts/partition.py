@@ -103,7 +103,7 @@ class Partition:
 
         self.partition_name = self.partition_json['partition']
         all_possible_fields = ["partition", "offset", "size", "bin",
-            "bin_type", "bin_hdr_size", "bin_tail_size", "bin_pad_size", "bin_encrypted_addr", "version", "load_addr", "location"]
+            "bin_type", "bin_hdr_size", "bin_tail_size", "bin_pad_size", "bin_encrypted_addr", "version", "load_addr", "location", "boot_partition"]
         for key in self.partition_json.keys():
             if key not in all_possible_fields:
                 logging.error(f'partition{self.idx} unknown "{key}"')
@@ -113,7 +113,7 @@ class Partition:
         self.bin_location = f''
         if "location" in self.partition_json.keys():
             self.bin_location = self.partition_json['location']
-        logging.error(f'partition{self.idx} location={self.bin_location}')
+        logging.debug(f'partition{self.idx} location={self.bin_location}')
 
     def parse_and_check_bin(self):
         self.bin_name = self.partition_json['bin']
@@ -273,6 +273,16 @@ class Partition:
             self.load_addr = self.static_addr
         logging.debug(f'load address={self.load_addr}')
 
+    def parse_and_check_boot_partition(self):
+
+        self.boot_partition = ''
+        if "boot_partition" in self.partition_json.keys():
+            self.boot_partition = self.partition_json['boot_partition']
+        else:
+            if (self.partition_name == 'primary_manifest') or (self.partition_name == 'secondary_manifest'):
+                logging.error(f'manifest partition missing "boot_partition"')
+                exit(1)
+        logging.debug(f'boot partition={self.boot_partition}') 
 
     '''
     +------------------------+  <--- partition_offset/bin_hdr_offset
@@ -356,6 +366,10 @@ class Partition:
         with open(self.bin_name, 'rb') as f:
             self.partition_buf = f.read()
 
+    def init_buf(self, buf, size, fill):
+        for i in range(size):
+            buf[i] = fill
+
     def process_code_bin(self):
         self.partition_buf = bytearray()
         with open(self.bin_name, 'rb') as f:
@@ -375,13 +389,19 @@ class Partition:
                 self.partition_buf += pad_buf
 
             crc(self.temp_code_bin_name, self.temp_code_bin_name_crc)
-
             #TODO encrypted here!
 
             with open(self.temp_code_bin_name_crc, 'rb') as cf_crc:
                 self.code_buf = cf_crc.read()
                 self.partition_buf += self.code_buf
-                xx_len = os.path.getsize(self.temp_code_bin_name_crc)
+
+            crc_bin_size = os.path.getsize(self.temp_code_bin_name_crc)
+            pad_0xff_buf_size = self.partition_size - crc_bin_size - self.bin_code_aligned_pad_size - self.bin_hdr_size - self.bin_tail_size
+            pad_0xff_buf = bytearray(pad_0xff_buf_size)
+            self.init_buf(pad_0xff_buf, pad_0xff_buf_size, 0xff)
+            self.partition_buf += pad_0xff_buf
+            logging.debug(f'Filled 0xFF size= {pad_0xff_buf_size} crc_bin_size={crc_bin_size}')
+            logging.debug(f'hdr_size={self.bin_hdr_size} tail_size={self.bin_tail_size} align_pad={self.bin_code_aligned_pad_size}')
 
             if (self.bin_tail_size > 0):
                 tail_offset = self.bin_size - self.bin_tail_size
@@ -429,6 +449,7 @@ class Partition:
         self.parse_and_check_bin_version()
         self.check_constraints()
         self.parse_and_check_static_and_load_addr() # call it after check_constraints since it depends on 1st_instruction_offset
+        self.parse_and_check_boot_partition()
 
 class Partitions:
 
@@ -732,6 +753,20 @@ class Partitions:
             self.gen_partitions_bin()
             self.gen_common("ota", self.ota_pack_idx_list)
 
+    def gen_manifest(self, gen, manifest_partition):
+        found_boot_partition = False
+        for idx in range(self.partitions_cnt):
+            p = self.partitions[idx]
+            if p.partition_name == manifest_partition.boot_partition:
+                found_boot_partition = True
+                break
+        if found_boot_partition == False:
+            logging.error(f'failed to find boot_partition {manifest_partition.boot_partition}')
+            exit(1)
+
+        manifest_name = f'{manifest_partition.partition_name}.json'
+        gen.gen_manifest(p.version, p.static_addr, p.load_addr, p.bin_name, manifest_name)
+
     def gen_bl1_config(self):
         g = Genbl1('bl1_key.json')
         g.gen_key_desc()
@@ -739,18 +774,8 @@ class Partitions:
         for idx in range(self.partitions_cnt):
             partition = self.partitions[idx]
 
-            if pre_partition_manifest_type > 0:
-                manifest_name = 'primary_manifest.json'
-                if (pre_partition_manifest_type > 1):
-                    manifest_name = 'secondary_manifest.json'
-                g.gen_manifest(partition.version, partition.static_addr, partition.load_addr, partition.bin_name, manifest_name)
-
-            if (partition.partition_name == 'primary_manifest'):
-                pre_partition_manifest_type = 1
-            elif (partition.partition_name == 'secondary_manifest'):
-                pre_partition_manifest_type = 2
-            else:
-                pre_partition_manifest_type = 0
+            if (partition.partition_name == 'primary_manifest') or (partition.partition_name == 'secondary_manifest'):
+                self.gen_manifest(g, partition)
 
     def gen_bl2_config(self):
         logging.info(f'TODO gen bl2')

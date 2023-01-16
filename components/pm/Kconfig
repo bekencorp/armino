@@ -1,0 +1,5 @@
+menu "PM"
+	config PM
+		bool "Enable Power Management"
+		default n
+endmenu

@@ -21,6 +21,7 @@
 #include "bk_wifi.h"
 #endif
 #include "bk_wifi_rw.h"
+#include "bk_private/bk_wifi_wpa_cmd.h"
 
 #if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
 #include "driver/flash.h"
@@ -32,6 +33,8 @@
 
 #define TAG "wifi_cli"
 #define CMD_WLAN_MAX_BSS_CNT	50
+beken_semaphore_t wifi_cmd_sema = NULL;
+int wifi_cmd_status = 0;
 
 #if (CLI_CFG_WIFI == 1)
 #if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
@@ -239,7 +242,7 @@ void cli_wifi_ap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 #endif
 
 	if (ap_ssid) {
-		demo_softap_app_init(ap_ssid, ap_key, ap_channel);
+		ret = demo_softap_app_init(ap_ssid, ap_key, ap_channel);
 #if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
 		bk_event_unregister_cb(EVENT_MOD_WIFI, EVENT_WIFI_STA_CONNECTED,
 								fast_connect_cb);
@@ -616,13 +619,18 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 {
 	char *ssid = NULL;
 	char *password = "";
-	int ret = 0;
 	char *msg = NULL;
 
 	if ((argc < 2) || (argc > 6)) {
 		CLI_LOGI("invalid argc number\n");
 		goto error;
 	}
+
+	int err = rtos_init_semaphore(&wifi_cmd_sema, 1);
+	if (err != kNoErr) {
+		goto error;
+	}
+
 #ifdef CONFIG_BSSID_CONNECT
 	uint8_t bssid[6] = {0};
 	if (os_strcmp(argv[1], "bssid") == 0) {
@@ -633,9 +641,30 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 			password = argv[3];
 		}
 		demo_sta_bssid_app_init(bssid, password);
-		msg = WIFI_CMD_RSP_SUCCEED;
-		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-		return;
+		if (wifi_cmd_sema != NULL)
+		{
+			err = rtos_get_semaphore(&wifi_cmd_sema, 10000);
+			if (err != kNoErr)
+			{
+				goto error;
+			}
+			else
+			{
+				if (wifi_cmd_status == 1)
+				{
+					msg = WIFI_EVT_GOT_IP;
+					os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+					rtos_deinit_semaphore(&wifi_cmd_sema);
+					wifi_cmd_status = 0;
+					return;
+				}
+				else
+				{
+					goto error;
+				}
+			}
+		}
+
 	}
 #endif
 
@@ -673,6 +702,7 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 
 	if (oob_ssid_tp) {
 		demo_sta_app_init((char *)oob_ssid_tp, password);
+
 #if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
 		if (wifi_cli_find_id(argc, argv, "-w") > 0) {
 			bk_logic_partition_t *pt = bk_flash_partition_get_info(BK_PARTITION_USR_CONFIG);
@@ -703,18 +733,39 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 #if CONFIG_USE_CONV_UTF8
 		os_free(oob_ssid_tp);
 #endif
+		if (wifi_cmd_sema != NULL)
+		{
+			err = rtos_get_semaphore(&wifi_cmd_sema, 10000);
+			if (err != kNoErr)
+			{
+				goto error;
+			}
+			else
+			{
+				if (wifi_cmd_status == 1)
+				{
+					msg = WIFI_EVT_GOT_IP;
+					os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+					rtos_deinit_semaphore(&wifi_cmd_sema);
+					wifi_cmd_status = 0;
+					return;
+				}
+				else
+				{
+					goto error;
+				}
+			}
+		}
 	} else {
 		CLI_LOGI("not buf for utf8\r\n");
 		goto error;
 	}
-	if (!ret) {
-		msg = WIFI_CMD_RSP_SUCCEED;
-		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-		return;
-	}
+
 error:
 	msg = WIFI_CMD_RSP_ERROR;
 	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	if (wifi_cmd_sema != NULL)
+		rtos_deinit_semaphore(&wifi_cmd_sema);
 	return;
 }
 
@@ -816,9 +867,14 @@ void cli_wifi_state_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 	int ret = 0;
 	char *msg = NULL;
 
-	demo_state_app_init();
+	ret = demo_state_app_init();
 
 	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+	else {
 		msg = WIFI_CMD_RSP_SUCCEED;
 		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 		return;
@@ -1190,6 +1246,10 @@ int cli_netif_event_cb(void *arg, event_module_t event_module,
 
 	switch (event_id) {
 	case EVENT_NETIF_GOT_IP4:
+		if (wifi_cmd_sema != NULL) {
+			wifi_cmd_status = 1;
+			rtos_set_semaphore(&wifi_cmd_sema);
+		}
 		got_ip = (netif_event_got_ip4_t *)event_data;
 		CLI_LOGI("%s got ip\n", got_ip->netif_if == NETIF_IF_STA ? "BK STA" : "unknown netif");
 #if CONFIG_WIFI6_CODE_STACK
@@ -1269,7 +1329,7 @@ void cli_wifi_net_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 		ret = cmd_wlan_sta_exec(buf);
 	else if (os_strcmp(argv[1], "ap") == 0)
 		ret = cmd_wlan_ap_exec(buf);
-#if CONFIG_COMPONENTS_P2P
+#if CONFIG_P2P
 	else if (os_strcmp(argv[1], "p2p") == 0)
 		ret = cmd_wlan_p2p_exec(buf);
 #endif

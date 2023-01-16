@@ -3,6 +3,7 @@
  * Beken IoT Development Framework (BEKEN-ARMINO) Configuration Header
  */
 #pragma once
+
 #define CONFIG_SOC_BK7236 1
 #define CONFIG_SOC_STR "bk7236"
 #define CONFIG_SOC_ARCH "cm33"
@@ -26,7 +27,7 @@
 #define CONFIG_MAX_COMMANDS 255
 #define CONFIG_IPERF_TEST 1
 #define CONFIG_EFUSE 1
-#define CONFIG_ICU 1
+#define CONFIG_ICU 0
 #define CONFIG_COMPONENTS_WPA_TWT_TEST 1
 #define CONFIG_MCU_PS 1
 #define CONFIG_DEEP_PS 1
@@ -95,8 +96,19 @@
 #define CONFIG_SARADC_NEED_FLUSH 1
 #define CONFIG_FLASH 1
 
+#ifdef CONFIG_TFM_NS
+#define CONFIG_SPE 0
+#else
+#define CONFIG_SPE 1
+#endif
+
+#define CONFIG_BOOTROM 1
+#define CONFIG_BEKEN_SUPPORT_MPU 0
+#define CONFIG_ENABLE_DEBUG 1
+#define CONFIG_FPGA 1
 #define CONFIG_ISR_REG_DISABLE 1
 #define CONFIG_BK_PRINTF_DISABLE 1
 #define CONFIG_STDIO_PRINTF 1
-#define CONFIG_SPE 1
-#define CFG_HAL_DEBUG_FLASH 1
+#define CONFIG_STDIO_PRINTF_BUF_SIZE 48
+// eof
+

@@ -1,8 +1,4 @@
 #include "pal_semaphore.h"
-//#include "pal_log.h"
-//#include "semphr.h"
-//#include "FreeRTOS.h"
-//#include "semphore.h"
 
 void pal_sema_init( semaphore_t *sem, int val )
 {
@@ -26,3 +22,5 @@ void pal_sema_destroy( semaphore_t sem )
 {
     (void) sem;
 }
+
+/*************************** The End Of File*****************************/

@@ -59,6 +59,11 @@ typedef struct
 	void (*fb_jpeg_free)(frame_buffer_t* buffer);
 	void (*fb_display_free)(frame_buffer_t* buffer);
 	frame_buffer_t* (*fb_display_malloc)(void); /**< malloc yuv psram buffer */
+	int (*fb_h264_init) (media_ppi_t max_ppi); /**< init h264 psram buffer */
+	int (*fb_h264_deinit) (void); /**< deinit h264 psram buffer */
+	void (*fb_h264_complete) (frame_buffer_t* buffer);  /**< dvp notify upper layer a complete frame ready */
+	frame_buffer_t* (*fb_h264_malloc)(void); /**< malloc h264 psram buffer */
+	void (*fb_h264_free)(frame_buffer_t* buffer);
 } dvp_camera_config_t;
 
 

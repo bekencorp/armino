@@ -133,10 +133,7 @@ bk7256_cp1_bsp.sag配置如下：
 - 5.需将middleware/soc/bk7256/bk7256.defconfig中CPU1核的偏移量重置一下 CONFIG_SLAVE_CORE_OFFSET=1835008 （十进制格式）
   (CONFIG_SLAVE_CORE_OFFSET 1835008 == 0x1C0000 in bk7256_cp1_bsp.sag LMA)
 
-.. note::
 
-  当图3分区表(partition)中ota区域的起始地址没有变化，则步骤6不需要执行。
-  
 - 6.使用tools/env_tools/rt_partition_tool/rt_partition_tool.exe 工具修改插入新的bootloader的分区表见图7，简要步骤如下：
 
   - 打开rt_partition_tool.exe工具

@@ -69,6 +69,7 @@ bk_err_t qspi_hal_set_cmd_a_cfg2(qspi_hal_t *hal, uint32_t cmd_value);
 bk_err_t qspi_hal_set_cmd_c_l(qspi_hal_t *hal, uint32_t cmd_value);
 bk_err_t qspi_hal_set_cmd_c_h(qspi_hal_t *hal, uint32_t cmd_value);
 bk_err_t qspi_hal_set_cmd_c_cfg1(qspi_hal_t *hal, uint32_t cmd_value);
+bk_err_t qspi_hal_set_cmd_c_cfg2(qspi_hal_t *hal, uint32_t cmd_value);
 bk_err_t qspi_hal_cmd_c_start(qspi_hal_t *hal);
 bk_err_t qspi_hal_wait_cmd_done(qspi_hal_t *hal);
 bk_err_t qspi_hal_force_spi_cs_low_enable(qspi_hal_t *hal);

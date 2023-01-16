@@ -5,6 +5,11 @@
 #if CONFIG_LWIP
 #include "net.h"
 #include "lwip/ping.h"
+#include <components/event.h>
+#include <components/netif.h>
+
+beken_semaphore_t wifi_at_cmd_sema = NULL;
+int wifi_at_cmd_status = 0;
 
 #define MAC2STR(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
 #define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x "
@@ -62,6 +67,28 @@ error:
 	return err;
 }
 
+int at_netif_event_cb(void *arg, event_module_t event_module,
+					   int event_id, void *event_data)
+{
+	netif_event_got_ip4_t *got_ip;
+
+	switch (event_id) {
+	case EVENT_NETIF_GOT_IP4:
+		if (wifi_at_cmd_sema != NULL) {
+			wifi_at_cmd_status = 1;
+			rtos_set_semaphore(&wifi_at_cmd_sema);
+		}
+		got_ip = (netif_event_got_ip4_t *)event_data;
+		os_printf("%s: %s got ip\n", __func__, got_ip->netif_if == NETIF_IF_STA ? "BK STA" : "unknown netif");
+		break;
+	default:
+		os_printf("rx event <%d %d>\n", event_module, event_id);
+		break;
+	}
+
+	return BK_OK;
+}
+
 #include "conv_utf8_pub.h"
 int at_wifi_staconn_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
@@ -94,7 +121,13 @@ int at_wifi_staconn_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 #if CONFIG_USE_CONV_UTF8
 	oob_ssid_tp = (char *)conv_utf8((uint8_t *)ssid);
 #endif
-	
+	if (wifi_at_cmd_table[1].is_sync_cmd)
+	{
+		err = rtos_init_semaphore(&wifi_at_cmd_sema, 1);
+		if(err != kNoErr){
+			goto error;
+		}
+	}
 	if (oob_ssid_tp) {
 		demo_sta_app_init((char *)oob_ssid_tp, password);
 #if CONFIG_USE_CONV_UTF8
@@ -103,16 +136,44 @@ int at_wifi_staconn_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 	} else {
 		os_printf("not buf for utf8\r\n");
 	}
+	bk_event_register_cb(EVENT_MOD_NETIF, EVENT_NETIF_GOT_IP4,
+			at_netif_event_cb, NULL);
 
-	if (err == kNoErr) {
-		msg = AT_CMD_RSP_SUCCEED;
-		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-		return err;
+	if (wifi_at_cmd_sema != NULL)
+	{
+		err = rtos_get_semaphore(&wifi_at_cmd_sema, 10000);
+		if (err != kNoErr)
+		{
+			goto error;
+		}
+		else
+		{
+			if (wifi_at_cmd_status == 1)
+			{
+				msg = AT_EVT_GOT_IP;
+				os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+				rtos_deinit_semaphore(&wifi_at_cmd_sema);
+				wifi_at_cmd_status = 0;
+				bk_event_unregister_cb(EVENT_MOD_NETIF, EVENT_NETIF_GOT_IP4,
+							at_netif_event_cb);
+				return 0;
+			}
+			else
+			{
+				err = BK_FAIL;
+				goto error;
+			}
+		}
 	}
 
 error:
-	msg = AT_CMD_RSP_ERROR;
+	msg = AT_CMDMSG_ERROR_RSP;
 	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	if (wifi_at_cmd_sema != NULL) {
+		rtos_deinit_semaphore(&wifi_at_cmd_sema);
+		bk_event_unregister_cb(EVENT_MOD_NETIF, EVENT_NETIF_GOT_IP4,
+					at_netif_event_cb);
+	}
 	return err;
 }
 /*
@@ -164,12 +225,15 @@ int at_wifi_ap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 		goto error;
 	}
 	if (ap_ssid)
-		demo_softap_app_init(ap_ssid, ap_key, ap_channel);
+		err = demo_softap_app_init(ap_ssid, ap_key, ap_channel);
 
 	if (err == kNoErr) {
 		msg = AT_CMD_RSP_SUCCEED;
 		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 		return err;
+	}
+	else {
+		goto error;
 	}
 
 error:

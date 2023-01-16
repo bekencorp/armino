@@ -16,7 +16,16 @@
 
 static struct irq_t timer0_irq = {0};
 
-void TFM_TIMER0_IRQ_Handler(void)
+void bfhfnmi_handler(void)
+{
+	uint32_t *psp_ns_pointer = (uint32_t  *)__TZ_get_PSP_NS();
+	printf("\r\n[SPE]psp_ns_pointer:0x%x\r\n", psp_ns_pointer);
+
+	printf_word_buf_hex(psp_ns_pointer, 128);
+	while(1);
+}
+
+void TFM_TIMER0_Handler(void)
 {
     spm_handle_interrupt(timer0_irq.p_pt, timer0_irq.p_ildi);
 }
@@ -35,7 +44,6 @@ enum tfm_hal_status_t tfm_timer0_irq_init(void *p_pt,
 }
 
 #ifdef PSA_API_TEST_IPC
-
 static struct irq_t ff_test_uart_irq;
 
 void FF_TEST_UART_IRQ_Handler(void)

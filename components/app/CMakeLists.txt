@@ -52,7 +52,7 @@ if (CONFIG_NET_WORK_VIDEO_TRANSFER)
 	)
 endif()
 
-if (CONFIG_COMPONENTS_P2P)
+if (CONFIG_P2P)
 	list(APPEND srcs
 	net_work/video_demo_p2p.c
 	)

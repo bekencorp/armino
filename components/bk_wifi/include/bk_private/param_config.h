@@ -63,9 +63,21 @@ typedef struct ap_param {
 	uint8_t cipher_suite;
 	uint8_t key[65];
 	uint8_t key_len;
+	bool hidden_ssid;
 #if CONFIG_AP_VSIE
 	uint8_t vsie[255];
 	uint8_t vsie_len;
+#endif
+#if CONFIG_WIFI_AP_CUSTOM_RATES
+	/* make last basic_rates be zero */
+	int basic_rates[16];
+	/* make last supported_rates be zero */
+	int supported_rates[16];
+	/* don't change mcs_set size */
+	uint8_t mcs_set[16];
+#endif
+#if CONFIG_WIFI_AP_HW_MODE
+	int hw_mode;
 #endif
 } ap_param_t;
 

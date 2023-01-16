@@ -105,12 +105,9 @@
  * @brief Extern declarations.
  */
     extern BaseType_t xPortIsInsideInterrupt( void );
-
     extern void vPortYield( void ) /* PRIVILEGED_FUNCTION */;
-
     extern void vPortEnterCritical( void ) /* PRIVILEGED_FUNCTION */;
     extern void vPortExitCritical( void ) /* PRIVILEGED_FUNCTION */;
-
     extern uint32_t ulSetInterruptMask( void ) /* __attribute__(( naked )) PRIVILEGED_FUNCTION */;
     extern void vClearInterruptMask( uint32_t ulMask ) /* __attribute__(( naked )) PRIVILEGED_FUNCTION */;
 
@@ -222,10 +219,19 @@
 /**
  * @brief Critical section management.
  */
-    #define portSET_INTERRUPT_MASK_FROM_ISR()         ulSetInterruptMask()
-    #define portCLEAR_INTERRUPT_MASK_FROM_ISR( x )    vClearInterruptMask( x )
-    #define portDISABLE_INTERRUPTS()                  ulSetInterruptMask()
-    #define portENABLE_INTERRUPTS()                   vClearInterruptMask( 0 )
+static inline void _disable_irq_(void)
+{
+  __asm volatile ("cpsid i" : : : "memory");
+}
+
+static inline void _enable_irq_(void)
+{
+  __asm volatile ("cpsie i" : : : "memory");
+}
+    #define portSET_INTERRUPT_MASK_FROM_ISR()         port_disable_interrupts_flag()
+    #define portCLEAR_INTERRUPT_MASK_FROM_ISR( x )    port_enable_interrupts_flag( x )
+    #define portDISABLE_INTERRUPTS()                  _disable_irq_()
+    #define portENABLE_INTERRUPTS()                   _enable_irq_()
     #define portENTER_CRITICAL()                      vPortEnterCritical()
     #define portEXIT_CRITICAL()                       vPortExitCritical()
 /*-----------------------------------------------------------*/

@@ -78,6 +78,7 @@ uint32_t bk_mpc_get_max_block_index(mpc_dev_t dev);
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
  *    - BK_ERR_MPC_BLOCK_INDEX_OUT_OF_RANGE: MPC block index is out of range
  *    - BK_ERR_MPC_INVALID_LUT_PARAM: MPC invalid lut parameter
+ *    - BK_ERR_MPC_INVALID_DEV: MPC device id is invalid
  */
 bk_err_t bk_mpc_set_secure_attribute(mpc_dev_t dev, uint32_t mem_addr_offset, uint32_t block_num, mpc_block_secure_type_t secure_type);
 
@@ -91,8 +92,39 @@ bk_err_t bk_mpc_set_secure_attribute(mpc_dev_t dev, uint32_t mem_addr_offset, ui
  * @return
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
+ *    - BK_ERR_MPC_INVALID_DEV: MPC device id is invalid
  */
 bk_err_t bk_mpc_lockdown(mpc_dev_t dev);
+
+/**
+ * @brief     Enable MPC secure exception.
+ *
+ * @attention When secure exception is enabled, access without permission will trigger bus fault.
+ *            Otherwise just write/read ignore.
+ *
+ * @param dev the MPC device
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
+ *    - BK_ERR_MPC_INVALID_DEV: MPC device id is invalid
+ */
+bk_err_t bk_mpc_enable_secure_exception(mpc_dev_t dev);
+
+/**
+ * @brief     Disable MPC secure exception.
+ *
+ * @attention When secure exception is enabled, access without permission will trigger bus fault.
+ *            Otherwise just write/read ignore.
+ *
+ * @param dev the MPC device
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
+ *    - BK_ERR_MPC_INVALID_DEV: MPC device id is invalid
+ */
+bk_err_t bk_mpc_disable_secure_exception(mpc_dev_t dev);
 
 /**
  * @brief     Dump secure attributes of specified MPC device

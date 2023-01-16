@@ -14,8 +14,7 @@
 
 #include "hal_config.h"
 
-#include "sys_ll_macro_def.h"
-#include "sys_ll_op_if.h"
+#include "system_hw.h"
 #include "lcd_disp_ll_macro_def.h"
 
 
@@ -28,9 +27,9 @@ void lcd_disp_struct_dump(void)
 	SOC_LOGI (" lcd cksel=0x%x \n", sys_ll_get_cpu_clk_div_mode2_cksel_disp());
 	SOC_LOGI (" clkdiv_disp_l=0x%x \n", sys_ll_get_cpu_clk_div_mode1_clkdiv_disp_l());
 	SOC_LOGI (" clkdiv_disp_h=0x%x \n", sys_ll_get_cpu_clk_div_mode2_clkdiv_disp_h());
-	SOC_LOGI (" cpu0_lcd_int_en=0x%x \n", sys_ll_get_cpu0_int_0_31_en_cpu0_lcd_int_en());
+	SOC_LOGI (" cpu0_lcd_int_en=0x%x \n", sys_ll_get_cpu0_int_0_31_en_cpu0_lcd_display_int_en());
 	SOC_LOGI (" disp_cken=0x%x \n", sys_ll_get_cpu_device_clk_enable_disp_cken());
-	SOC_LOGI (" disp_disckg=0x%x \n", sys_ll_get_cpu_mode_disckg2_disp_disckg());
+	//SOC_LOGI (" disp_disckg=0x%x \n", sys_ll_get_cpu_mode_disckg2_disp_disckg());
 
 	SOC_LOGI("lcd base=%x\r\n", (uint32_t)SOC_LCD_DISP_REG_BASE);
 

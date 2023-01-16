@@ -219,9 +219,9 @@ CONFIG_FREERTOS_V9=n
 CONFIG_FREERTOS_V10=y
 
 #
-# Customize heap size 256k
+# Customize heap size 252k
 #
-CONFIG_CUSTOMIZE_HEAP_SIZE=260096
+CONFIG_CUSTOMIZE_HEAP_SIZE=258048
 
 #
 # Memory Debug

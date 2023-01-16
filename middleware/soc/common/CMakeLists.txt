@@ -90,6 +90,12 @@ if(CONFIG_YUV_BUF)
 	)
 endif()
 
+if(CONFIG_H264)
+	list(APPEND srcs
+		"hal/h264_hal.c"
+	)
+endif()
+
 if(CONFIG_PSRAM)
 	list(APPEND srcs
 		"hal/psram_hal.c"
@@ -116,6 +122,11 @@ endif()
 
 if(CONFIG_AUDIO)
 if(CONFIG_SOC_BK7256XX)
+	list(APPEND srcs
+		"hal/aud_hal.c"
+	)
+endif()
+if(CONFIG_SOC_BK7236)
 	list(APPEND srcs
 		"hal/aud_hal.c"
 	)

@@ -27,6 +27,85 @@
 #include <driver/flash.h>
 #include <driver/flash_partition.h>
 
+#if CONFIG_SDCARD_POWER_GPIO_CTRL
+#include <driver/gpio.h>
+#include "gpio_map.h"
+
+#define SDCARD_LDO_POWER_CONTROL_WAIT_TIME_MS  10000
+static beken_timer_t sdcard_ldo_power_control_timer;
+static bool s_disk_io_sdcard_init_flag = 0;
+static bool s_disk_io_sdcard_ldo_power_flag = 0;
+#endif
+
+static bk_err_t sdcard_ldo_power_enable(uint8_t enable)
+{
+#if (CONFIG_SDCARD_POWER_GPIO_CTRL)
+	if (enable) {
+		bk_gpio_ctrl_external_ldo(GPIO_CTRL_LDO_MODULE_LCD, SDCARD_LDO_CTRL_GPIO, GPIO_OUTPUT_STATE_HIGH);
+		s_disk_io_sdcard_ldo_power_flag = 1;
+	} else {
+		bk_gpio_ctrl_external_ldo(GPIO_CTRL_LDO_MODULE_LCD, SDCARD_LDO_CTRL_GPIO, GPIO_OUTPUT_STATE_LOW);
+		s_disk_io_sdcard_ldo_power_flag = 0;
+	}
+#endif
+
+	return BK_OK;
+}
+
+static void sdcard_no_operation_timeout_callback(void *param)
+{
+#if CONFIG_SDCARD_POWER_GPIO_CTRL
+	rtos_stop_timer(&sdcard_ldo_power_control_timer);
+	bk_sd_card_deinit();
+	sdcard_ldo_power_enable(0);
+#endif
+}
+
+static void sdcard_operation_timing_initialize_start()
+{
+#if CONFIG_SDCARD_POWER_GPIO_CTRL
+	rtos_init_timer(&sdcard_ldo_power_control_timer,
+					SDCARD_LDO_POWER_CONTROL_WAIT_TIME_MS,
+					sdcard_no_operation_timeout_callback,
+					(void *)NULL);
+	rtos_start_timer(&sdcard_ldo_power_control_timer);
+	s_disk_io_sdcard_init_flag = 1;
+#endif
+}
+
+static void sdcard_operation_timing_uninitialize_stop()
+{
+#if (CONFIG_SDCARD_POWER_GPIO_CTRL)
+	rtos_stop_timer(&sdcard_ldo_power_control_timer);
+	rtos_deinit_timer(&sdcard_ldo_power_control_timer);
+	s_disk_io_sdcard_init_flag = 0;
+#endif
+}
+
+static void sdcard_operation_timing_reload()
+{
+#if CONFIG_SDCARD_POWER_GPIO_CTRL
+	if(s_disk_io_sdcard_init_flag && !s_disk_io_sdcard_ldo_power_flag) {
+		sdcard_ldo_power_enable(1);
+		bk_sd_card_init();
+		rtos_start_timer(&sdcard_ldo_power_control_timer);
+	} else
+		rtos_reload_timer(&sdcard_ldo_power_control_timer);
+#endif
+}
+
+static void sdcard_operation_err_reset()
+{
+#if CONFIG_SDCARD_POWER_GPIO_CTRL
+	rtos_stop_timer(&sdcard_ldo_power_control_timer);
+	rtos_start_timer(&sdcard_ldo_power_control_timer);
+	rtos_reload_timer(&sdcard_ldo_power_control_timer);
+#endif
+
+	bk_sd_card_deinit();
+	bk_sd_card_init();
+}
+
 #define FLASH_SECTOR_SIZE  512
 
 /* Definitions of physical drive number for each drive */
@@ -85,7 +164,9 @@ DSTATUS disk_initialize (
 		return stat;
 	case DEV_SD :
 #if (CONFIG_SDCARD_V2P0)
+		sdcard_ldo_power_enable(1);
 		stat = bk_sd_card_init();
+		sdcard_operation_timing_initialize_start();
 #elif (CONFIG_SDCARD_V1P0)
 		sdcard_hdl = ddev_open(DD_DEV_TYPE_SDCARD, &status, 0);
 		FATFS_LOGI("sdcard_hdl = 0x%x, status=%d\r\n", sdcard_hdl, status);
@@ -152,6 +233,7 @@ DRESULT disk_read (
 		
 	case DEV_SD :
 #if (CONFIG_SDCARD_V2P0)
+		sdcard_operation_timing_reload();
 		res = bk_sd_card_read_blocks((uint8_t *)buff, sector, count);
 #elif (CONFIG_SDCARD_V1P0)
 		// translate the arguments here
@@ -163,8 +245,7 @@ DRESULT disk_read (
 #endif
 		if(res != RES_OK) {
 			FATFS_LOGI("%s ERROR res:%d\r\n", __func__, res);
-			bk_sd_card_deinit();
-			bk_sd_card_init();
+			sdcard_operation_err_reset();
 		}
 
 		return res;
@@ -239,12 +320,12 @@ DRESULT disk_write (
 
 	case DEV_SD :
 #if (CONFIG_SDCARD_V2P0)
+		sdcard_operation_timing_reload();
 		res = bk_sd_card_write_blocks((uint8_t *)buff, sector, count);
 		if(res != RES_OK) {
 			FATFS_LOGI("Check the remaining space!\r\n");
 			FATFS_LOGI("Get the value of the remaining space. res: %d\r\n", sd_disk_check_space_size());
-			bk_sd_card_deinit();
-			bk_sd_card_init();
+			sdcard_operation_err_reset();
 		}
 #elif (CONFIG_SDCARD_V1P0)
 		// translate the arguments here
@@ -296,6 +377,7 @@ DRESULT disk_ioctl (
 #endif
 	switch (pdrv) {
 	case DEV_SD :
+		sdcard_operation_timing_reload();
 		// Process of the command for the MMC/SD card
 		switch(cmd)
 		{
@@ -419,7 +501,9 @@ DSTATUS disk_uninitialize ( BYTE pdrv/* Physical drive nmuber to identify the dr
 
 	case DEV_SD :
 #if (CONFIG_SDCARD_V2P0)
+	sdcard_operation_timing_uninitialize_stop();
 	result = bk_sd_card_deinit();
+	sdcard_ldo_power_enable(0);
 	stat = RES_OK;
 #elif (CONFIG_SDCARD_V1P0)
 	result = ddev_close(sdcard_hdl);

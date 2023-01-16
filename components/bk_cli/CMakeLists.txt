@@ -214,9 +214,9 @@ if (CONFIG_DMA2D_TEST)
 	)
 endif() #CONFIG_DMA2D_TEST
 
-if (CONFIG_QSPI_OLED_TEST)
+if (CONFIG_LCD_QSPI_TEST)
 	list(APPEND srcs
-		"cli_qspi_oled.c"
+		"cli_lcd_qspi.c"
 	)
 endif()
 
@@ -224,6 +224,10 @@ if (CONFIG_EASY_FLASH)
 	list(APPEND srcs
 		"cli_easyflash.c"
 	)
+endif()
+
+if (CONFIG_AUDIO_TEST AND CONFIG_ARCH_CM33)
+	list(APPEND srcs "cli_aud_v1_1.c")
 endif()
 
 if (CONFIG_AUDIO_TEST AND CONFIG_AUDIO_RISCV_IP_V1_0)
@@ -244,6 +248,14 @@ endif()
 
 if (CONFIG_AUDIO_G711_TEST)
 	list(APPEND srcs "cli_g711.c")
+endif()
+
+if (CONFIG_AUDIO_OPUS_TEST)
+	list(APPEND srcs "cli_opus.c")
+endif()
+
+if (CONFIG_AUDIO_ADPCM_TEST)
+	list(APPEND srcs "cli_adpcm.c")
 endif()
 
 if (CONFIG_AUDIO_MP3_TEST)
@@ -316,8 +328,8 @@ if (CONFIG_QRCODEGEN_TEST)
 	list(APPEND srcs cli_qrcodegen.c)
 endif()
 
-if (CONFIG_CM33_TEST)
-	list(APPEND srcs cli_cm33.c)
+if (CONFIG_SPE_TEST)
+	list(APPEND srcs cli_spe.c)
 endif()
 
 if (CONFIG_MPC_TEST)
@@ -326,6 +338,14 @@ endif()
 
 if (CONFIG_PRRO_TEST)
 	list(APPEND srcs cli_prro.c)
+endif()
+
+if (CONFIG_INTERRUPT_TEST)
+	list(APPEND srcs cli_interrupt.c)
+endif()
+
+if (CONFIG_H264)
+	list(APPEND srcs cli_h264.c)
 endif()
 
 armino_component_register(SRCS "${srcs}"

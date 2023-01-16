@@ -105,10 +105,10 @@ CPU0_LOAD2 0x00018800  0x217800
 		* KEEP (.ble_bss_data LMA_FORCE_ALIGN)
 		*rwip_driver.c.obj *uart_ble.c.obj *uart_controller_only.c.obj(+ZI)
 		*sdp_common.c.obj *app_ble.c.obj *prf.c.obj(+ZI)
-		ADDR NEXT _bt_data_end
+		ADDR _bt_data_end
 	}
 
-	SRAM_DATA 0x30020000 0x60000
+	SRAM_DATA 0x30020800 0x5F800
 	{
 		LOADADDR NEXT _data_lmastart
 		ADDR NEXT _data_start

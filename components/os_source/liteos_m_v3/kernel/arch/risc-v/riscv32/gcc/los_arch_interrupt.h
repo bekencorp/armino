@@ -52,7 +52,6 @@ extern "C" {
 typedef struct tagHwiHandleForm {
     HWI_PROC_FUNC pfnHook;
     VOID *uwParam;
-    UINTPTR uwreserved;
 } HWI_HANDLE_FORM_S;
 
 typedef struct {
@@ -83,60 +82,10 @@ typedef struct {
 #define OS_HWI_PRIO_LOWEST         1
 
 /**
- * @ingroup los_arch_interrupt
- * Count of HimiDeer system interrupt vector.
- */
-#define OS_RISCV_SYS_VECTOR_CNT   (RISCV_SYS_MAX_IRQ + 1)
-
-/**
- * @ingroup los_arch_interrupt
- * Count of HimiDeer local interrupt vector 0 - 5, enabled by CSR mie 26 -31 bit.
- */
-#define OS_RISCV_MIE_IRQ_VECTOR_CNT  6
-
-/**
- * @ingroup los_arch_interrupt
- * Count of HimiDeer local interrupt vector 6 - 31, enabled by custom CSR locie0 0 - 25 bit.
- */
-#define OS_RISCV_CUSTOM_IRQ_VECTOR_CNT  RISCV_PLIC_VECTOR_CNT
-
-/**
- * @ingroup los_arch_interrupt
- * Count of HimiDeer local IRQ interrupt vector.
- */
-#define OS_RISCV_LOCAL_IRQ_VECTOR_CNT        (OS_RISCV_MIE_IRQ_VECTOR_CNT + OS_RISCV_SYS_VECTOR_CNT)
-
-/**
- * @ingroup los_arch_interrupt
- * Count of himideer interrupt vector.
- */
-#define OS_RISCV_VECTOR_CNT                  (OS_RISCV_SYS_VECTOR_CNT + OS_RISCV_CUSTOM_IRQ_VECTOR_CNT)
-
-/**
  * Maximum number of supported hardware devices that generate hardware interrupts.
  * The maximum number of hardware devices that generate hardware interrupts supported by hi3518ev200 is 32.
  */
-#define OS_HWI_MAX_NUM        OS_RISCV_VECTOR_CNT
-
-/**
- * Maximum interrupt number.
- */
-#define OS_HWI_MAX            ((OS_HWI_MAX_NUM) - 1)
-
-/**
- * Minimum interrupt number.
- */
-#define OS_HWI_MIN            0
-
-/**
- * Maximum usable interrupt number.
- */
-#define OS_USER_HWI_MAX        OS_HWI_MAX
-
-/**
- * Minimum usable interrupt number.
- */
-#define OS_USER_HWI_MIN        OS_HWI_MIN
+#define OS_HWI_MAX_NUM        12
 
 extern HWI_HANDLE_FORM_S g_hwiForm[OS_HWI_MAX_NUM];
 

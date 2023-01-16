@@ -51,6 +51,9 @@
 #define JPG_800X600_SIZE (1024 * 200)
 #define JPG_800X600_COUNT (4)
 #define JPG_800X600_ADDRESS (PSRAM_ADDRESS + (DIS_800X600_SIZE * DIS_800X600_COUNT))
+#define H264_800X600_SIZE (1024 * 200)
+#define H264_800X600_COUNT (200)
+#define H264_800X600_ADDRESS (JPG_800X600_ADDRESS + (JPG_800X600_SIZE * JPG_800X600_COUNT))
 
 #define DIS_1280X720_SIZE (((1280 * 720 * 2) / ALINE_SIZE + 1) * ALINE_SIZE)
 #define DIS_1280X720_COUNT (3)
@@ -58,6 +61,9 @@
 #define JPG_1280X720_SIZE (1024 * 250)
 #define JPG_1280X720_COUNT (4)
 #define JPG_1280X720_ADDRESS (PSRAM_ADDRESS + (DIS_1280X720_SIZE * DIS_1280X720_COUNT))
+#define H264_1280X720_SIZE (1024 * 200)
+#define H264_1280X720_COUNT (200)
+#define H264_1280X720_ADDRESS (JPG_1280X720_ADDRESS + (JPG_1280X720_SIZE * JPG_1280X720_COUNT))
 
 extern uint32_t platform_is_in_interrupt_context(void);
 
@@ -76,6 +82,11 @@ const fb_layout_t fb_layout[] =
 				JPG_800X600_SIZE,
 				JPG_800X600_ADDRESS,
 			},
+			{/* h264 */
+				H264_800X600_COUNT,
+				H264_800X600_SIZE,
+				H264_800X600_ADDRESS,
+			},
 		},
 	},
 	{
@@ -91,6 +102,11 @@ const fb_layout_t fb_layout[] =
 				JPG_1280X720_SIZE,
 				JPG_1280X720_ADDRESS,
 			},
+			{/* h264 */
+				H264_1280X720_COUNT,
+				H264_1280X720_SIZE,
+				H264_1280X720_ADDRESS
+			}
 		},
 	},
 };
@@ -123,6 +139,9 @@ fb_mem_list_t *frame_buffer_list_get(pixel_format_t fmt)
 		case PIXEL_FMT_YYVU:
 			ret = &fb_mem_list[FB_INDEX_DISPLAY];
 			break;
+		case PIXEL_FMT_DVP_H264:
+			ret = &fb_mem_list[FB_INDEX_H264];
+			break;
 		case PIXEL_FMT_UNKNOW:
 		default:
 			break;
@@ -152,6 +171,9 @@ fb_type_t frame_buffer_type_get(pixel_format_t fmt)
 		case PIXEL_FMT_VYUY:
 		case PIXEL_FMT_YYVU:
 			ret = FB_INDEX_DISPLAY;
+			break;
+		case PIXEL_FMT_DVP_H264:
+			ret = FB_INDEX_H264;
 			break;
 		case PIXEL_FMT_UNKNOW:
 		default:
@@ -701,7 +723,7 @@ int frame_buffer_fb_deinit(fb_type_t type)
 
 	mem_list = &fb_mem_list[type];
 
-	if (type == FB_INDEX_DISPLAY)
+	if (type == FB_INDEX_DISPLAY || type == FB_INDEX_H264)
 	{
 		LOGI("display mem deinit\n");
 
@@ -793,7 +815,7 @@ int frame_buffer_fb_init(media_ppi_t max_ppi, fb_type_t type)
 		return BK_FAIL;
 	}
 
-	if (type == FB_INDEX_DISPLAY)
+	if (type == FB_INDEX_DISPLAY || type == FB_INDEX_H264)
 	{
 		mem_list->mode = FB_MEM_ALONE;
 		mem_list->count = fb_mem_set->count;
@@ -1128,6 +1150,193 @@ frame_buffer_t *frame_buffer_fb_display_pop_wait(void)
 	return frame;
 }
 
+int frame_buffer_fb_h264_init(media_ppi_t max_ppi)
+{
+	return frame_buffer_fb_init(max_ppi, FB_INDEX_H264);
+}
+
+int frame_buffer_fb_h264_deinit(void)
+{
+	return frame_buffer_fb_deinit(FB_INDEX_H264);
+}
+
+frame_buffer_t *frame_buffer_fb_h264_malloc(void)
+{
+	return frame_buffer_fb_malloc(FB_INDEX_H264);
+}
+
+frame_buffer_t *frame_buffer_fb_h264_malloc_wait(void)
+{
+	frame_buffer_t *frame = NULL;
+	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_H264];
+	uint32_t isr_context = platform_is_in_interrupt_context();
+	bk_err_t ret;
+	GLOBAL_INT_DECLARATION();
+
+	do {
+		frame = frame_buffer_fb_h264_malloc();
+
+		if (frame == NULL) {
+			if (!isr_context) {
+				rtos_lock_mutex(&mem_list->lock);
+				GLOBAL_INT_DISABLE();
+			}
+
+			mem_list->free_request = true;
+
+			if (!isr_context) {
+				GLOBAL_INT_RESTORE();
+				rtos_unlock_mutex(&mem_list->lock);
+			}
+
+			ret = rtos_get_semaphore(&mem_list->free_sem, BEKEN_NEVER_TIMEOUT);
+
+			if (ret != BK_OK) {
+				LOGD("%s semaphore get failed: %d\n", __func__, ret);
+			}
+
+			continue;
+		}
+
+	} while (0);
+
+	return frame;
+}
+
+void frame_buffer_fb_h264_free(frame_buffer_t *frame)
+{
+	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_H264];
+	frame_buffer_node_t *tmp = NULL, *node = list_entry(frame, frame_buffer_node_t, frame);
+	uint32_t length = 0, isr_context = platform_is_in_interrupt_context();
+	GLOBAL_INT_DECLARATION() = 0;
+	bk_err_t ret;
+	LIST_HEADER_T *pos, *n;
+
+	if (!isr_context) {
+		rtos_lock_mutex(&mem_list->lock);
+		GLOBAL_INT_DISABLE();
+	}
+
+	list_add_tail(&node->list, &mem_list->free);
+
+	list_for_each_safe(pos, n, &mem_list->free) {
+		tmp = list_entry(pos, frame_buffer_node_t, list);
+		if (tmp != NULL) {
+			length++;
+		}
+	}
+
+	if (mem_list->free_request == true) {
+		ret = rtos_set_semaphore(&mem_list->free_sem);
+
+		if (ret != BK_OK) {
+			LOGE("%s semaphore set failed: %d\n", __func__, ret);
+		}
+
+		mem_list->free_request = false;
+	}
+
+
+	if (!isr_context) {
+		GLOBAL_INT_RESTORE();
+		rtos_unlock_mutex(&mem_list->lock);
+	}
+}
+
+void frame_buffer_fb_h264_push(frame_buffer_t *frame)
+{
+	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_H264];
+	frame_buffer_node_t *tmp = NULL, *node = list_entry(frame, frame_buffer_node_t, frame);
+	uint32_t isr_context = platform_is_in_interrupt_context();
+	uint32_t length = 0;
+	GLOBAL_INT_DECLARATION() = 0;
+	bk_err_t ret;
+	LIST_HEADER_T *pos, *n;
+
+	if (!isr_context) {
+		rtos_lock_mutex(&mem_list->lock);
+		GLOBAL_INT_DISABLE();
+	}
+
+	list_add_tail(&node->list, &mem_list->ready);
+
+	list_for_each_safe(pos, n, &mem_list->ready) {
+		tmp = list_entry(pos, frame_buffer_node_t, list);
+		if (tmp != NULL) {
+			length++;
+		}
+	}
+
+	//if (length == 1) {
+		ret = rtos_set_semaphore(&mem_list->ready_sem);
+
+		if (ret != BK_OK)
+		{
+			LOGD("%s semaphore set failed: %d\n", __func__, ret);
+		}
+	//}
+
+
+	if (!isr_context) {
+		GLOBAL_INT_RESTORE();
+		rtos_unlock_mutex(&mem_list->lock);
+	}
+}
+
+frame_buffer_t *frame_buffer_fb_h264_pop(void)
+{
+	frame_buffer_node_t *node = NULL, *tmp = NULL;
+	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_H264];
+	LIST_HEADER_T *pos, *n;
+	GLOBAL_INT_DECLARATION() = 0;
+
+	rtos_lock_mutex(&mem_list->lock);
+	GLOBAL_INT_DISABLE();
+
+	list_for_each_safe(pos, n, &mem_list->ready) {
+		tmp = list_entry(pos, frame_buffer_node_t, list);
+		if (tmp != NULL) {
+			node = tmp;
+			list_del(pos);
+			break;
+		}
+	}
+
+	GLOBAL_INT_RESTORE();
+	rtos_unlock_mutex(&mem_list->lock);
+
+	if (node == NULL) {
+		LOGD("%s failed\n", __func__);
+		return NULL;
+	}
+
+	return &node->frame;
+}
+
+frame_buffer_t *frame_buffer_fb_h264_pop_wait(void)
+{
+	frame_buffer_t *frame = NULL;
+	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_H264];
+	bk_err_t ret;
+
+	do {
+		frame = frame_buffer_fb_h264_pop();
+
+		if (frame != NULL) {
+			break;
+		}
+
+		ret = rtos_get_semaphore(&mem_list->ready_sem, 2000);
+
+		if (ret != BK_OK) {
+			LOGD("%s semaphore get failed: %d\n", __func__, ret);
+			break;
+		}
+
+	} while (true);
+
+	return frame;
+}
 
 void frame_buffer_init(void)
 {

@@ -197,7 +197,7 @@ void jpeg_display_task_start(bool rotate)
 	                         4,
 	                         "jpeg_display_thread",
 	                         (beken_thread_function_t)jpeg_display_task_entry,
-	                         8 * 1024,
+	                         6 * 1024,
 	                         (beken_thread_arg_t)rotate);
 
 	if (BK_OK != ret)
@@ -1130,6 +1130,7 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 	{
 		return BK_OK;
 	}
+	
 	if ((g_lcd_width < frame->width)  || (g_lcd_height < frame->height) ) //for lcd size is small then frame image size
 	{
 		if (g_lcd_width < frame->width)
@@ -1137,6 +1138,7 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 		if (g_lcd_height < frame->height)
 			start_y = (frame->height - g_lcd_height) / 2;
 	}
+
 	if ((g_blend_data.lcd_blend_type & LCD_BLEND_TIME) != 0)         /// start display lcd (0,0)
 	{
 		LOGD("lcd time blend =%s \n", g_blend_data.time_data);
@@ -1189,8 +1191,8 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 //		lcd_font_config.str[0] = (font_str_t){(const char *)("星期三"), RGB565_WHITE, font_digitSource_Han_Sans17, 0, 0};
 //		lcd_font_config.str[1] = (font_str_t){(const char *)("2022-12-12 "), RGB565_WHITE, font_digitSource_Han_Sans17, 0, 20};
 		#else
-		lcd_font_config.str[0] = (font_str_t){(const char *)("晴转多云, 27℃"), YUV_WHITE, font_noanti_newsong24, 0, 0};
-		lcd_font_config.str[1] = (font_str_t){(const char *)("2022-12-12 星期三"), YUV_WHITE, font_noanti_newsong24, 0, 24};
+		lcd_font_config.str[0] = (font_str_t){(const char *)("晴转多云, 27℃"), YUV_WHITE, font_noanti_newsong24, 0, 2};
+		lcd_font_config.str[1] = (font_str_t){(const char *)("2022-12-12 星期三"), YUV_WHITE, font_noanti_newsong24, 0, 26};
 		#endif
 		lcd_font_config.bg_data_format = frame->fmt;
 		lcd_font_config.bg_width = frame->width;

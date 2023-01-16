@@ -22,7 +22,7 @@
 
 bk_err_t dma2d_hal_init(dma2d_config_t *dma2d)
 {
-	dma2d_ll_set_module_control_soft_reset(1);
+	dma2d_ll_set_module_control_clk_gate(1);
 	// 000:m2m; 001:m2m pixel convert with fg; 010:m2m blend; 011:r2m.only with output; 100: m2m blend fix fg; 101:m2m blend fix bg;
 	dma2d_ll_set_dma2d_control_reg_mode(dma2d->init.mode);
 	dma2d_ll_set_dma2d_control_reg_line_offset_mode(dma2d->init.line_offset_mode);

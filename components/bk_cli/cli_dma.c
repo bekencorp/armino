@@ -542,14 +542,14 @@ static void cli_dma_chnl_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int 
 	}
 }
 
-#if (CONFIG_GENERAL_DMA_SEC)
+#if (CONFIG_SPE)
 #include "bk7236.h"
 
 #define BUFFER_SIZE         (32 * 1024)
 #define TEST_VALUE_START    (0x71)
 
-#define SRC_MEM_ADDR    (0x28040000)
-#define DEST_MEM_ADDR   (0x28050000)
+#define SRC_MEM_ADDR    (0x28050000)
+#define DEST_MEM_ADDR   (0x28060000)
 
 static volatile int s_dma_full_int_flag = 0;
 
@@ -604,14 +604,14 @@ static void cli_dma_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 	dma_config.mode = DMA_WORK_MODE_SINGLE;
 	dma_config.chan_prio = 7;
 
-	dma_config.src.dev = DMA_DEV_AHB_MEM;
+	dma_config.src.dev = DMA_DEV_DTCM;
 	dma_config.src.width = DMA_DATA_WIDTH_32BITS;
 	dma_config.src.addr_inc_en = DMA_ADDR_INC_ENABLE;
 	dma_config.src.addr_loop_en = DMA_ADDR_LOOP_DISABLE;
 	dma_config.src.start_addr = SRC_MEM_ADDR;
 	dma_config.src.end_addr = (SRC_MEM_ADDR + BUFFER_SIZE);
 
-	dma_config.dst.dev = DMA_DEV_AHB_MEM;
+	dma_config.dst.dev = DMA_DEV_DTCM;
 	dma_config.dst.width = DMA_DATA_WIDTH_32BITS;
 	dma_config.dst.addr_inc_en = DMA_ADDR_INC_ENABLE;
 	dma_config.dst.addr_loop_en = DMA_ADDR_LOOP_DISABLE;
@@ -648,7 +648,7 @@ static const struct cli_command s_dma_commands[] = {
     {"dma_chnl_free", "dma_chnl_free {id}", cli_dma_chnl_free},
     {"dma_memcopy_test", "copy {count|in_number1|in_number2|out_number1|out_number2}", cli_dma_memcpy_test},
     {"dma_chnl_test", "{start|stop} {uart1|uart2|uart3} {wait_ms}", cli_dma_chnl_test_cmd},
-#if (CONFIG_GENERAL_DMA_SEC)
+#if (CONFIG_SPE)
     {"dma_test", "dma test", cli_dma_test_cmd},
 #endif
 };

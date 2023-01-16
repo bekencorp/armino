@@ -7,7 +7,7 @@ menu "bk7236"
 		hex "Total RAM size for SPE"
 		default 0x60000
 
-	config NSPE_TOTA_LRAM_SIZE
+	config NSPE_TOTAL_RAM_SIZE
 		hex "Total RAM size for NSPE"
 		default 0x40000
 endmenu

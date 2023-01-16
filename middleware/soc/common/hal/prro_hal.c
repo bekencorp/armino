@@ -17,6 +17,8 @@
 
 bk_err_t prro_hal_init(prro_hal_t *hal)
 {
+        hal->hw = (prro_hw_t *)PRRO_LL_REG_BASE(0);
+        prro_ll_init();
 	return BK_OK;
 }
 

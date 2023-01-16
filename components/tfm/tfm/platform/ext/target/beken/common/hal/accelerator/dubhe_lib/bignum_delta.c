@@ -37,7 +37,7 @@
     ( ( ( X )->p[( i ) / ciL] >> ( ( ( i ) % ciL ) * 8 ) ) & 0xff )
 
 /* Resize X to have exactly n limbs and set it to 0. */
-static int mbedtls_mpi_resize_clear( mbedtls_mpi *X, size_t limbs )
+int mbedtls_mpi_resize_clear( mbedtls_mpi *X, size_t limbs )
 {
     if( limbs == 0 )
     {
@@ -174,7 +174,7 @@ cleanup:
     return( ret );
 }
 
-int mbedtls_mpi_random( mbedtls_mpi *X,
+int mbedtls_mpi_random_3_0( mbedtls_mpi *X,
                         mbedtls_mpi_sint min,
                         const mbedtls_mpi *N,
                         int (*f_rng)(void *, unsigned char *, size_t),
@@ -247,6 +247,53 @@ int mbedtls_mpi_random( mbedtls_mpi *X,
 cleanup:
     mbedtls_mpi_free( &lower_bound );
     return( ret );
+}
+
+int mbedtls_mpi_random( mbedtls_mpi *X,
+                        mbedtls_mpi_sint min,
+                        const mbedtls_mpi *N,
+                        int (*f_rng)(void *, unsigned char *, size_t),
+                        void *p_rng )
+{
+    int ret = MBEDTLS_ERR_MPI_BAD_INPUT_DATA;
+    int count = 0;
+    size_t n_bits = mbedtls_mpi_bitlen( N );
+    size_t n_bytes = ( n_bits + 7 ) / 8;
+
+    if( min < 0 )
+        return( MBEDTLS_ERR_MPI_BAD_INPUT_DATA );
+    if( mbedtls_mpi_cmp_int( N, min ) <= 0 )
+        return( MBEDTLS_ERR_MPI_BAD_INPUT_DATA );
+
+    /*
+     * Match the procedure given in RFC 6979 (deterministic ECDSA):
+     * - use the same byte ordering;
+     * - keep the leftmost nbits bits of the generated octet string;
+     * - try until result is in the desired range.
+     * This also avoids any biais, which is especially important for ECDSA.
+     */
+    do
+    {
+        MBEDTLS_MPI_CHK( mbedtls_mpi_fill_random( X, n_bytes, f_rng, p_rng ) );
+        MBEDTLS_MPI_CHK( mbedtls_mpi_shift_r( X, 8 * n_bytes - n_bytes ) );
+
+        /*
+         * Each try has at worst a probability 1/2 of failing (the msb has
+         * a probability 1/2 of being 0, and then the result will be < N),
+         * so after 30 tries failure probability is a most 2**(-30).
+         *
+         * For most curves, 1 try is enough with overwhelming probability,
+         * since N starts with a lot of 1s in binary, but some curves
+         * such as secp224k1 are actually very close to the worst case.
+         */
+        if( ++count > 30 )
+            return( MBEDTLS_ERR_MPI_NOT_ACCEPTABLE );
+    }
+    while( mbedtls_mpi_cmp_int( X, 1 ) < 0 ||
+           mbedtls_mpi_cmp_mpi( X, N ) >= 0 );
+
+cleanup:
+    return ( ret );
 }
 
 /*

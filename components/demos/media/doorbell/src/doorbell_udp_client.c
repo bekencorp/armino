@@ -100,11 +100,17 @@ static void demo_doorbell_udp_client_main(beken_thread_arg_t data)
 		setup.add_pkt_header = NULL;
 
 		if (camera_type == APP_CAMERA_DVP_JPEG)
+		{
 			media_app_camera_open(APP_CAMERA_DVP_JPEG, camera_ppi);
+		}
 		else if (camera_type == APP_CAMERA_UVC_MJPEG)
+		{
 			media_app_camera_open(APP_CAMERA_UVC_MJPEG, camera_ppi);
+		}
 		else
+		{
 			goto out;
+		}
 
 		media_app_transfer_open(&setup);
 
@@ -128,9 +134,13 @@ out:
 	media_app_transfer_close();
 
 	if (camera_type == APP_CAMERA_DVP_JPEG)
+	{
 		media_app_camera_close(APP_CAMERA_DVP_JPEG);
+	}
 	else if (camera_type == APP_CAMERA_UVC_MJPEG)
+	{
 		media_app_camera_close(APP_CAMERA_UVC_MJPEG);
+	}
 
 	video_pkt_seq = 0;
 

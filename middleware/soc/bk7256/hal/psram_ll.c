@@ -15,6 +15,7 @@
 #include "sys_driver.h"
 #include "psram_hal.h"
 #include "bk_misc.h"
+#include <modules/chip_support.h>
 
 
 // config 1: psram power and clk config, need wait clk stable
@@ -49,9 +50,15 @@ void psram_hal_power_clk_enable(uint8_t enable)
 // config 2: reset psram and wait psram ready
 void psram_hal_reset(void)
 {
+	int chip_id = 0;
 	psram_hal_set_sf_reset(1);
 
-	psram_hal_set_mode_value(0xa8054043);
+	chip_id = bk_get_hardware_chip_id_version();
+
+	if (chip_id == CHIP_VERSION_C)
+		psram_hal_set_mode_value(0xE8054043);
+	else
+		psram_hal_set_mode_value(0xa8054043);
 
 	psram_hal_set_cmd_reset();
 }
@@ -82,7 +89,7 @@ void psram_hal_config(void)
 
 void psram_hal_config_init(void)
 {
-	uint32_t mode = 0xa8054043;
+	uint32_t chip_id = 0;
 	uint32_t val = 0;
 
 	// wait clk stable
@@ -90,7 +97,12 @@ void psram_hal_config_init(void)
 
 	psram_hal_set_sf_reset(1);
 
-	psram_hal_set_mode_value(mode);
+	chip_id = bk_get_hardware_chip_id_version();
+
+	if (chip_id == CHIP_VERSION_C)
+		psram_hal_set_mode_value(0xE8054043);
+	else
+		psram_hal_set_mode_value(0xa8054043);
 
 	psram_hal_set_cmd_reset();
 	delay_us(100);//40

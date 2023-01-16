@@ -773,7 +773,7 @@ const uint8_t sensor_gc2145_VGA_640_480_table[][2] =
 	{0x98, 0x80},
 };
 
-const uint8_t sensor_gc2145_VGA_800_600_table[][2] =
+const uint8_t sensor_gc2145_SVGA_800_600_table[][2] =
 {
 	{0xfe, 0x00},
 	{0xfe, 0x00},
@@ -785,7 +785,7 @@ const uint8_t sensor_gc2145_VGA_800_600_table[][2] =
 	//////////////////////////////////////
 	{0xfe, 0x00},
 
-	// out windows VGA
+	// out windows SVGA
 	{0x90, 0x01},
 	{0x91, 0x00},
 	{0x92, 0x00},
@@ -809,6 +809,51 @@ const uint8_t sensor_gc2145_VGA_800_600_table[][2] =
 	{0xa2, 0x23},
 };
 
+const uint8_t sensor_gc2145_1024_600_table[][2] =
+{
+	{0xfe, 0x00},
+	{0xfe, 0x00},
+	{0xfd, 0x00},
+	{0xf8, 0x82},//0x83 20fps
+	{0xfa, 0x00},
+	//////////////////////////////////////
+	/////////  crop window   /////////////
+	//////////////////////////////////////
+	{0xfe, 0x00},
+	{0x09, 0x00},
+	{0x0a, 0x96},
+	{0x0b, 0x00},
+	{0x0c, 0x00},
+
+	{0x0d, 0x02},
+	{0x0e, 0x68},//916
+	{0x0f, 0x04},
+	{0x10, 0x12},
+
+	// out windows VGA
+	{0x90, 0x01},
+	{0x91, 0x00},
+	{0x92, 0x00},
+	{0x93, 0x00},
+	{0x94, 0x00},
+	{0x95, 0x02}, // 600
+	{0x96, 0x58},
+	{0x97, 0x04}, // 1024
+	{0x98, 0x00},
+
+	{0x99, 0x11},
+	{0x9a, 0x06},
+	{0x9b, 0x00},
+	{0x9c, 0x00},
+	{0x9d, 0x01},
+	{0x9e, 0x23},
+
+	{0x9f, 0x00},
+	{0xa0, 0x00},
+	{0xa1, 0x01},
+	{0xa2, 0x23},
+
+};
 
 const uint8_t sensor_gc2145_1280_720_table[][2] =
 {
@@ -933,15 +978,32 @@ int gc2145_set_ppi(media_ppi_t ppi)
 
 		case PPI_800X600:
 		{
-			size = sizeof(sensor_gc2145_VGA_800_600_table) / 2;
+			size = sizeof(sensor_gc2145_SVGA_800_600_table) / 2;
 
 			for (i = 0; i < size; i++)
 			{
-				SENSOR_I2C_WRITE(sensor_gc2145_VGA_800_600_table[i][0],
-				                 sensor_gc2145_VGA_800_600_table[i][1]);
+				SENSOR_I2C_WRITE(sensor_gc2145_SVGA_800_600_table[i][0],
+				                 sensor_gc2145_SVGA_800_600_table[i][1]);
 
-				gc2145_read_register(sensor_gc2145_VGA_800_600_table[i][0],
-				                      sensor_gc2145_VGA_800_600_table[i][1]);
+				gc2145_read_register(sensor_gc2145_SVGA_800_600_table[i][0],
+				                      sensor_gc2145_SVGA_800_600_table[i][1]);
+			}
+
+			ret = 0;
+		}
+		break;
+
+		case PPI_1024X600:
+		{
+			size = sizeof(sensor_gc2145_1024_600_table) / 2;
+
+			for (i = 0; i < size; i++)
+			{
+				SENSOR_I2C_WRITE(sensor_gc2145_1024_600_table[i][0],
+				                 sensor_gc2145_1024_600_table[i][1]);
+
+				gc2145_read_register(sensor_gc2145_1024_600_table[i][0],
+				                      sensor_gc2145_1024_600_table[i][1]);
 			}
 
 			ret = 0;
@@ -978,13 +1040,16 @@ int gc2145_set_fps(sensor_fps_t fps)
 {
 	int ret = -1;
 	uint8_t width_h, width_l = 0;
+	uint16_t width = 0;
 
 	SENSOR_I2C_READ(0x97, &width_h);
 	SENSOR_I2C_READ(0x98, &width_l);
 
+	width = width_h << 8 | width_l;
+
 	LOGI("%s\n", __func__);
 
-	if (width_h == 0x05 && width_l == 0x00) // 1280*720
+	if (width == 0x0500) // 1280*720
 	{
 		switch (fps)
 		{
@@ -1023,6 +1088,14 @@ int gc2145_set_fps(sensor_fps_t fps)
 				gc2145_read_register(0xf8, 0x81);
 				ret = 0;
 		}
+	}
+	else if (width == 0x0400)
+	{
+		SENSOR_I2C_WRITE(0xf8, 0x81);
+
+		gc2145_read_register(0xf8, 0x81);
+
+		ret = 0;
 	}
 	else
 	{
@@ -1116,7 +1189,7 @@ void gc2145_read_enable(bool enable)
 const dvp_sensor_config_t dvp_sensor_gc2145 =
 {
 	.name = "gc2145",
-	.clk = JPEG_120M_MCLK_30M,
+	.clk = JPEG_96M_MCLK_24M,
 	.fmt = PIXEL_FMT_YUYV,
 	.vsync = JPEG_SYNC_HiGH_LEVEL,
 	.hsync = JPEG_SYNC_HiGH_LEVEL,
@@ -1125,7 +1198,7 @@ const dvp_sensor_config_t dvp_sensor_gc2145 =
 	.def_fps = FPS20,
 	/* capability config */
 	.fps_cap = FPS10 | FPS15 | FPS20 | FPS25,
-	.ppi_cap = PPI_CAP_640X480 | PPI_CAP_800X600 | PPI_CAP_1280X720,
+	.ppi_cap = PPI_CAP_640X480 | PPI_CAP_800X600 | PPI_CAP_1024X600 | PPI_CAP_1280X720,
 	.id = ID_GC2145,
 	.address = (GC2145_WRITE_ADDRESS >> 1),
 	.init = gc2145_init,

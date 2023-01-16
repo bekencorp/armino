@@ -650,6 +650,25 @@ get_mem_size(void *rmem)
 
 }
 
+/**
+ * Security Check Interface : To check the contents of hostids
+ **/
+uint32_t
+mem_sanity_check(void *mem)
+{
+  if (mem) 
+  {
+    if (((u8_t *)mem > ram) && ((struct mem *)mem < ram_end)){
+      return true;
+    } else {
+      return false;
+    }
+  }
+  else {
+      return false;
+  }
+
+}
 
 /**
  * Put a struct mem back on the heap

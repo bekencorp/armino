@@ -94,14 +94,9 @@ if (CONFIG_FLASH_ORIGIN_API)
 	)
 endif()
 
-if (CONFIG_PRRO)
-	list(APPEND incs
-		prro
-	)
-
-	list(APPEND srcs
-		prro/prro_driver.c
-	)
+if (NOT CMAKE_BUILD_EARLY_EXPANSION)
+add_subdirectory(prro)
+add_subdirectory(h264)
 endif()
 
 if (CONFIG_CHIP_SUPPORT)
@@ -320,10 +315,22 @@ if (CONFIG_QSPI)
 		)
 endif() #if (CONFIG_QSPI)
 
-if (CONFIG_QSPI AND CONFIG_QSPI_OLED)
+if (CONFIG_QSPI AND CONFIG_LCD_QSPI)
 	list(APPEND srcs
-		"lcd/qspi_oled.c"
+		"lcd/lcd_qspi_driver.c"
 		)
+
+if (CONFIG_LCD_QSPI_SH8601A)
+	list(APPEND srcs
+		"lcd/lcd_qspi_sh8601a.c"
+		)
+endif()
+
+if (CONFIG_LCD_QSPI_ST77903)
+	list(APPEND srcs
+		"lcd/lcd_qspi_st77903.c"
+		)
+endif()
 endif()
 
 if (CONFIG_JPEG_ENCODE)
@@ -429,6 +436,16 @@ if (CONFIG_SOC_BK7251)
 		"audio/ring_buffer_dma_write.c"
 		)
 endif()
+
+if (CONFIG_SOC_BK7236)
+	list(APPEND incs
+		"audio"
+		)
+	list(APPEND srcs
+		"audio/aud_driver_v1_1.c"
+		)
+endif()
+
 endif() #if (CONFIG_AUDIO)
 
 if (CONFIG_TOUCH)

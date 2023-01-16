@@ -48,6 +48,8 @@ static inline uint32_t efuse_ll_get_dev_status(efuse_hw_t *hw)
 
 static inline void efuse_ll_reset_config_to_default(efuse_hw_t *hw)
 {
+	efuse_ll_soft_reset(hw);
+
 	hw->ctrl.addr = 0;
 	hw->ctrl.wr_data = 0;
 
@@ -73,7 +75,7 @@ static inline void efuse_ll_disable(efuse_hw_t *hw)
 
 static inline bool efuse_ll_is_operate_finished(efuse_hw_t *hw)
 {
-	return !REG_GET_BIT(EFUSE_R_CTRL, BIT(0));
+	return (hw->ctrl.en == 0);
 }
 
 static inline void efuse_ll_set_direction_write(efuse_hw_t *hw)

@@ -34,7 +34,7 @@ menu "Application"
 		depends on CAMERA
 		default n
 
-	config COMPONENTS_P2P
+	config P2P
                 bool "Enable NET_WORK P2P"
                 default n
 				

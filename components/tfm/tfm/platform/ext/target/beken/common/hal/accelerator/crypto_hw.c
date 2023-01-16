@@ -8,6 +8,9 @@
 
 #define DUBHE_BASE_S   (0x4b110000)
 
+extern int dubhe_driver_init( unsigned long dbh_base_addr );
+extern void dubhe_driver_cleanup( void );
+
 int crypto_hw_accelerator_init(void)
 {
 	return dubhe_driver_init(DUBHE_BASE_S);
@@ -16,6 +19,7 @@ int crypto_hw_accelerator_init(void)
 int crypto_hw_accelerator_finish(void)
 {
 	dubhe_driver_cleanup();
+
 	return 0;
 }
 

@@ -120,6 +120,12 @@ bk_err_t qspi_hal_set_cmd_c_cfg1(qspi_hal_t *hal, uint32_t cmd_value)
 	return BK_OK;
 }
 
+bk_err_t qspi_hal_set_cmd_c_cfg2(qspi_hal_t *hal, uint32_t cmd_value)
+{
+	qspi_ll_set_cmd_c_cfg2(hal->hw, cmd_value);
+	return BK_OK;
+}
+
 bk_err_t qspi_hal_cmd_c_start(qspi_hal_t *hal)
 {
 	qspi_ll_cmd_c_start(hal->hw);

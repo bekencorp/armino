@@ -21,9 +21,7 @@
 #include <modules/pm.h>
 #include "bk_usb.h"
 //#include <modules/usb.h>
-//#include "BK7256_RegList.h"
-
-extern int delay_ms(INT32 ms_count);
+#include "bk_misc.h"
 
 bk_err_t bk_aud_uac_driver_init(void)
 {

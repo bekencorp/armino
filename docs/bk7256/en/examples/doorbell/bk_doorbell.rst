@@ -169,7 +169,7 @@ DOORBELL
 
     Figure 5. RealtimeVideo_function set
 
-6 Apps
+6 Add LCD Adapt
 -----------------------------------------
 
 The doorbell project can add new screens according to the needs of users to meet different product needs. For the new driver screen driver code,
@@ -355,6 +355,70 @@ Currently, the SPI3-wire and 4-wire protocols have been adapted in the SDK.
 		delay_us(200);
 	}
 
+
+So far, the adaptation of the screen driver has been completed.
+
+The next simple adaptation is to ensure that the user enters a command or passes a parameter (screen resolution or name), and the corresponding device can be found in the SDK:
+
+1) Obtain the judgment of the LCD device name, and add the judgment of the new screen name in media_cli.c
+
+::
+
+	char * get_string_to_name(char *string, char * pre)
+	{
+		char* value = pre;
+		if (os_strcmp(string, "nt35512") == 0)
+		{
+			value = "nt35512";
+		}
+		
+		.....
+		
+		if (os_strcmp(string, "nt35510") == 0)
+		{
+			value = "nt35510";
+		}
+		
+		......
+
+		return value;
+	}
+
+
+2) Obtain the judgment of the pixels of the LCD device, and add the judgment of new pixels in media_cli.c
+
+::
+
+	uint32_t get_string_to_ppi(char *string, uint32_t pre)
+	{
+		uint32_t value = pre;
+
+		if (os_strcmp(string, "1280X720") == 0)
+		{
+			value = PPI_1280X720;
+		}
+
+		.....
+
+		if (os_strcmp(string, "480X854") == 0)
+		{
+			value = PPI_480X854;
+		}
+
+		return value;
+	}
+
+So far, the adaptation of the screen driver and the adaptation of calling parameters are completed.
+
+Then you can use the new screen display!
+
+::
+
+	lcd_open_t lcd_open;
+	lcd_open.device_ppi = 480X800;
+	lcd_open.device_name = "nt35512";
+	ret = media_app_lcd_open(&lcd_open);
+
 7 Add camera configuration
 -----------------------------
 	The cameras used in the application process are not only those currently supported, but also need to be adapted to other dvp cameras or uvc cameras.
@@ -457,3 +521,68 @@ it may be necessary to add the MCLK input configuration of the new camera;
 	If you need to use the cli command that comes with doorbell, you need to make the newly added resolution take effect, otherwise skip this step
 
 	Refer to the doorbell command line: ``components/media/cli/media_cli.c``, adapt the new command, add a new resolution in the function: ``get_string_to_ppi()``;
+
+
+8 LCD Rotate
+-----------------------------------------------------
+
+When the pixels of the screen and the picture are opposite, for example, the screen is 480X800 and the camera is 800X480, the image can be rotated and displayed.
+Rotated images are currently adapted as follows:
+
+Because the rotation is a block rotation, in order for each row/column to be rotated, the set rotation block unit must be divisible by the length and width of the image.
+
+	+---------------------------+-----------------------+----------------------------------------------------+
+	|LCD parameters (W X H)     |img param(W X H)       |Rotate param (W X H)                                |
+	+===========================+=======================+====================================================+
+	|320X480                    |480X320                |block_width=160,block_height=40                     |
+	+---------------------------+-----------------------+----------------------------------------------------+
+	|480X800                    |800X480                |block_width=160,block_height=40                     |
+	+---------------------------+-----------------------+----------------------------------------------------+
+	|480X854                    |864X480                |block_width=108,block_height=40                     |
+	+---------------------------+-----------------------+----------------------------------------------------+
+
+
+.. Attention::
+
+	 The width of the camera resolution must be divisible by 16 (864/16), and the height must be divisible by 8 (480/8). Otherwise hardware decoding will fail.
+
+
+If the newly added camera needs to be rotated and displayed on the screen, the user needs to make the following modifications in ``components/media/lcd_cal.c``
+
+1. Add the length and width of each rotation to the rotation array
+
+
+::
+
+	const block_ppi_t block_ppi_aray[] = {
+		{108, 40},
+		{160, 40},
+
+		{MAX_BLOCK_WIDTH, MAX_BLOCK_HEIGHT}
+	};
+
+
+
+.. Attention::
+	 The maximum size of the array cannot exceed  MAX_BLOCK_WIDTH(160) and  MAX_BLOCK_HEIGHT(80).
+
+
+2. Then select or add the corresponding local block rotation according to the pixels of the incoming image
+
+::
+
+	switch ((src_width << 16) | src_height)
+	{
+		case PPI_864X480:
+			block_width = block_ppi_aray[0].width;
+			block_height = block_ppi_aray[0].height;
+			block_size = block_width * block_height * 2;
+			break;
+
+		default:
+			block_width = block_ppi_aray[1].width;
+			block_height = block_ppi_aray[1].height;
+			block_size = block_width * block_height * 2;
+			break;
+	};
+

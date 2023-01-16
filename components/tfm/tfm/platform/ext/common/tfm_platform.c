@@ -7,6 +7,7 @@
 
 #include "cmsis.h"
 #include "tfm_hal_platform.h"
+#include "sdkconfig.h"
 
 __WEAK void tfm_hal_system_reset(void)
 {
@@ -26,6 +27,8 @@ __WEAK void tfm_hal_system_halt(void)
      * case a signal wakes up the CPU.
      */
     while (1) {
+        #if (0 == CONFIG_ENABLE_DEBUG)
         __WFE();
+        #endif
     }
 }

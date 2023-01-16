@@ -45,6 +45,7 @@ bk_err_t bk_int_isr_register(icu_int_src_t src, int_group_isr_t isr_callback, vo
 
 	arch_interrupt_unregister_int(int_num);
 	arch_interrupt_register_int(int_num,isr_callback);
+	arch_interrupt_set_priority(int_num, icu_int_map->int_prio);
 
 	return 0;
 }

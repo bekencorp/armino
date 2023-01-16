@@ -1,3 +1,5 @@
+#! /bin/bash
+
 BUILD_TYPE=$1
 DEPLOY_DIR=$2
 

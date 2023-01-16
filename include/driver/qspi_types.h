@@ -15,6 +15,7 @@
 #pragma once
 
 #include <driver/hal/hal_qspi_types.h>
+#include "qspi_hal.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,6 +29,17 @@ extern "C" {
  */
 typedef void (*qspi_isr_t)(qspi_id_t id, void  *param);
 
+typedef struct {
+	qspi_hal_t hal;
+	uint8_t id_init_bits;
+} qspi_driver_t;
+
+typedef struct {
+	qspi_isr_t callback;
+	void *param;
+} qspi_callback_t;
+
 #ifdef __cplusplus
 }
 #endif
+

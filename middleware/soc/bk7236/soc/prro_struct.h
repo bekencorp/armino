@@ -34,8 +34,8 @@ typedef volatile struct {
 	/* REG_0x02 */
 	union {
 		struct {
-			uint32_t soft_reset:      1; /**< bit[0] uart soft reset */
-			uint32_t clk_gate_bypass: 1; /**< bit[1] bypass prro clock gate */
+			uint32_t soft_reset:      1; /**< bit[0] PRRO soft reset */
+			uint32_t clk_gate_bypass: 1; /**< bit[1] bypass PRRO clock gate */
 			uint32_t reserved:       30; /**< bit[2:31] reserved */
 		};
 		uint32_t v;
@@ -70,7 +70,8 @@ typedef volatile struct {
 			uint32_t btdm_ahb_ap       : 1;  //0x4[20],btdm_ahb_privilege cfg,0x1,R/W
 			uint32_t mbox0_ahb_ap      : 1;  //0x4[21],mbox0_ahb_privilege cfg,0x1,R/W
 			uint32_t mbox1_ahb_ap      : 1;  //0x4[22],mbox1_ahb_privilege cfg,0x1,R/W
-			uint32_t reserved          : 9;  //0x4[31:23],Reserved,0,R
+			uint32_t dma1_ahb_ap       : 1;  //0x4[23],dma1_ahb_privilege cfg,0x1,R/W
+			uint32_t reserved          : 8;  //0x4[31:24],Reserved,0,R
 		};
 		uint32_t v;
 	} ahb_cfg_ap;
@@ -101,7 +102,8 @@ typedef volatile struct {
 			uint32_t  btdm_ahb_nsec                  : 1;  //0x4[20],btdm_ahb_nonsecure cfg,0x0,R/W
 			uint32_t  mbox0_ahb_nsec                 : 1;  //0x4[21],mbox0_ahb_nonsecure cfg,0x0,R/W
 			uint32_t  mbox1_ahb_nsec                 : 1;  //0x4[22],mbox1_ahb_nonsecure cfg,0x0,R/W
-			uint32_t  reserved                       : 9;  //0x4[23:31],Reserved,0,R
+			uint32_t  dma1_ahb_nsec                  : 1;  //0x4[23],dma1_ahb_nonsecure cfg,0x0,R/W
+			uint32_t  reserved                       : 8;  //0x4[24:31],Reserved,0,R
 		};
 		uint32_t v;
 	} ahb_cfg_nsec;

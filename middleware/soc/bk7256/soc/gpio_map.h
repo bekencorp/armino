@@ -406,14 +406,14 @@ extern "C" {
 * AUDIO PA GPIO MAP
 */
 #define AUD_DAC_PA_CTRL_GPIO		(GPIO_39)
-#define AUD_DAC_PA_ENABLE_LEVEL		(1)
+#define AUD_DAC_PA_ENABLE_LEVEL		(1) // 0
 
 /*
 * VIDEO PA GPIO MAP
 */
 // LCD AND SD POWER CTRL
 #define LCD_LDO_CTRL_GPIO                  (GPIO_8)
-#define LCD_LDO_CTRL_ACTIVE_LEVEL          (1)// 0
+#define LCD_LDO_CTRL_ACTIVE_LEVEL          (1) // 0
 
 #define SDCARD_LDO_CTRL_GPIO               (GPIO_8)
 #define SDCARD_LDO_CTRL_ACTIVE_LEVEL       (1)

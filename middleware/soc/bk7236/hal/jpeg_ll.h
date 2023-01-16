@@ -273,39 +273,39 @@ static inline void jpeg_ll_clear_interrupt_status(jpeg_hw_t *hw, uint32_t int_st
 
 static inline bool jpeg_ll_is_frame_start_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return int_status & BIT(0);
+	return !!(int_status & BIT(0));
 }
 
 static inline bool jpeg_ll_is_frame_end_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return int_status & BIT(1);
+	return !!(int_status & BIT(1));
 }
 
 static inline bool jpeg_ll_is_head_output_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return int_status & BIT(2);
+	return !!(int_status & BIT(2));
 }
 
 static inline bool jpeg_ll_is_yuv_end_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return false;
+	return !!(int_status & BIT(3));
 }
 
 static inline bool jpeg_ll_is_frame_err_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return (int_status & BIT(3));
+	return !!(int_status & BIT(3));
 }
 
 //use in no sensor case
 static inline bool jpeg_ll_is_l_clear_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return (int_status & BIT(5));
+	return !!(int_status & BIT(5));
 }
 
 //move to yuv_buf module
 static inline bool jpeg_ll_is_vsync_negedge_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return false;
+	return !!(int_status & BIT(4));
 }
 
 static inline void jpeg_ll_set_em_base_addr(jpeg_hw_t *hw, uint32_t value)

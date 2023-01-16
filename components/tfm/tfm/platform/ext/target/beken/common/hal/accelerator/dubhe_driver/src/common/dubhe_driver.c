@@ -25,7 +25,7 @@
 
 unsigned long _g_Dubhe_RegBase;
 
-static void dubhe_dma_disable()
+static void dubhe_dma_disable(void)
 {
     uint32_t value = 0;
 
@@ -105,6 +105,7 @@ int dubhe_driver_init( unsigned long dbh_base_addr )
     _g_Dubhe_RegBase = dbh_base_addr;
 
     dubhe_dma_disable();
+
 #if defined( ARM_CE_DUBHE_ACA )
     dubhe_aca_driver_init( );
 #endif
@@ -136,6 +137,7 @@ void dubhe_driver_cleanup( void )
     extern void mbedtls_dubhe_cleanup( );
     mbedtls_dubhe_cleanup( );
 #endif
+
     dubhe_event_cleanup( );
 }
 

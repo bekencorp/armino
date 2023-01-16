@@ -63,12 +63,15 @@
 	#define portFPWORD_SIZE 8
 	#define fpstore_x fsd
 	#define fpload_x fld
+	#define portasmFPU_CONTEXT_SIZE        ( 1 + ( 32 * portFPWORD_SIZE ) / portWORD_SIZE )
 #elif __riscv_flen == 32
 	#define portFPWORD_SIZE 4
 	#define fpstore_x fsw
 	#define fpload_x flw
+	#define portasmFPU_CONTEXT_SIZE        ( 1 + ( 32 * portFPWORD_SIZE ) / portWORD_SIZE )
 #else
 	#define portFPWORD_SIZE 0
+	#define portasmFPU_CONTEXT_SIZE        ( 0 )
 #endif
 
 #include "FreeRTOSConfig.h"
@@ -88,7 +91,6 @@
 #define ucode   	0x801
 
 /* Additional FPU registers to save and restore (fcsr + 32 FPUs) */
-#define portasmFPU_CONTEXT_SIZE        ( 1 + ( 32 * portFPWORD_SIZE ) / portWORD_SIZE )
 
 /* One additional registers to save and restore, as per the #defines above. */
 #define portasmADDITIONAL_CONTEXT_SIZE ( 2 + portasmFPU_CONTEXT_SIZE )  /* Must be even number on 32-bit cores. */
@@ -102,20 +104,20 @@
 	#define EndStackOffset_TCB		(13 * portWORD_SIZE + configMAX_TASK_NAME_LEN) /* The offset of pxCurrentTCB->pxEndOfStack in TCB structure */
 #endif
 
-
 /* Save additional registers found on the V5 core. */
 .macro portasmSAVE_ADDITIONAL_REGISTERS
 	addi sp, sp, -(portasmADDITIONAL_CONTEXT_SIZE * portWORD_SIZE) /* Make room for the additional registers. */
-	csrr t0, mxstatus							 /* Load additional registers into accessible temporary registers. */
-	store_x t0, 1 * portWORD_SIZE( sp )
+//	csrr t0, mxstatus							 /* Load additional registers into accessible temporary registers. */
+//	store_x t0, 0 * portWORD_SIZE( sp )
 
 	#ifdef __riscv_dsp
 		csrr t0, ucode
-		store_x t0, 2 * portWORD_SIZE( sp )
+		store_x t0, 1 * portWORD_SIZE( sp )
 	#endif
 
 	#ifdef __riscv_flen
 		frcsr t0
+		sw t0, 2 * portWORD_SIZE( sp )
 		fpstore_x f0, ( 3 * portWORD_SIZE + 0 * portFPWORD_SIZE )( sp )
 		fpstore_x f1, ( 3 * portWORD_SIZE + 1 * portFPWORD_SIZE )( sp )
 		fpstore_x f2, ( 3 * portWORD_SIZE + 2 * portFPWORD_SIZE )( sp )
@@ -148,7 +150,6 @@
 		fpstore_x f29, ( 3 * portWORD_SIZE + 29 * portFPWORD_SIZE )( sp )
 		fpstore_x f30, ( 3 * portWORD_SIZE + 30 * portFPWORD_SIZE )( sp )
 		fpstore_x f31, ( 3 * portWORD_SIZE + 31 * portFPWORD_SIZE )( sp )
-		sw t0, ( 3 * portWORD_SIZE + 32 * portFPWORD_SIZE )( sp )
 	#endif
 
 	/*
@@ -184,16 +185,15 @@
 		csrw mhsp_ctl, t0
 	#endif
 
-	load_x t0, 1 * portWORD_SIZE( sp )			/* Load additional registers into accessible temporary registers. */
-	csrw mxstatus, t0
+//	load_x t0, 0 * portWORD_SIZE( sp )			/* Load additional registers into accessible temporary registers. */
+//	csrw mxstatus, t0
 
 	#ifdef __riscv_dsp
-		load_x t0, 2 * portWORD_SIZE( sp )
+		load_x t0, 1 * portWORD_SIZE( sp )
 		csrw ucode, t0
 	#endif
 
 	#ifdef __riscv_flen
-		lw t0, ( 3 * portWORD_SIZE + 32 * portFPWORD_SIZE )( sp )
 		fpload_x f0, ( 3 * portWORD_SIZE + 0 * portFPWORD_SIZE )( sp )
 		fpload_x f1, ( 3 * portWORD_SIZE + 1 * portFPWORD_SIZE )( sp )
 		fpload_x f2, ( 3 * portWORD_SIZE + 2 * portFPWORD_SIZE )( sp )
@@ -226,6 +226,7 @@
 		fpload_x f29, ( 3 * portWORD_SIZE + 29 * portFPWORD_SIZE )( sp )
 		fpload_x f30, ( 3 * portWORD_SIZE + 30 * portFPWORD_SIZE )( sp )
 		fpload_x f31, ( 3 * portWORD_SIZE + 31 * portFPWORD_SIZE )( sp )
+		lw t0,  2 * portWORD_SIZE( sp )
 		fscsr t0
 	#endif
 

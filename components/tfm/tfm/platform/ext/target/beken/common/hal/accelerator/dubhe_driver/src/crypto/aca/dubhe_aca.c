@@ -15,7 +15,6 @@
 #include "dubhe_aca_hw.h"
 #include "dubhe_aca.h"
 #include "dubhe_aca_internal.h"
-
 #include "dubhe_aca_hw_defs.h"
 #include "dubhe_regs.h"
 #include "pal_log.h"
@@ -41,6 +40,7 @@ void aca_dump_word_data( char *prefix, uint32_t *data, unsigned int size )
     }
     __PAL_LOG_PLAT( "\n" );
 }
+
 void aca_dump_byte_data( char *prefix, unsigned char *data, unsigned int size )
 {
     int i, j = 0;

@@ -20,6 +20,7 @@
 #include <string.h>
 #include "boot.h"
 #include <modules/pm.h>
+#include "aon_pmu_driver.h"
 #if CONFIG_BLE
 #include "modules/ble.h"
 #include "ble_api_5_x.h"
@@ -202,6 +203,7 @@ int legacy_init(void)
 	BK_LOGI(TAG, "armino app init: %s\n", build_version);
     BK_LOGI(TAG, "ARMINO Version: %s\n", ARMINO_TAG_VERSION);
 
+#if CONFIG_LIB_HASH_CHECK
 #ifdef LIB_HASH
     #define HASH_VERSION(soc) soc##_HASH_VERSION
     #define HASH_VERSION_STR(soc) #soc"_HASH_VERSION"
@@ -214,6 +216,7 @@ int legacy_init(void)
         BK_LOGI(TAG, "The current version is not the release version\n");
 	}
 #endif
+#endif
 
 #ifdef APP_VERSION
 	BK_LOGI(TAG, "APP Version: %s\n", APP_VERSION);
@@ -225,21 +228,37 @@ int legacy_init(void)
 #ifdef CONFIG_VND_CAL
 	vnd_cal_overlay();
 #endif
+
+#if (CONFIG_MEDIA)
+#if (CONFIG_SLAVE_CORE)
+	media_minor_init();
+#else
+	media_major_init();
+#endif
+#endif
+
 #if (CONFIG_SOC_BK7256XX && !CONFIG_SLAVE_CORE)
 
 	#if CONFIG_SAVE_BOOT_TIME_POINT
 	save_mtime_point(CPU_START_WIFI_INIT_TIME);
 	#endif
+
+#if CONFIG_ATE_TEST
+	/*not init the wifi, in order to save the boot time in ATE test after deepsleep(note:at the wifi ate test not enter power save)*/
+	/*it need first finish test the wifi, at the end test deepsleep, wait wakeup(deepsleep), then test low voltage */
+	if(!(aon_pmu_drv_reg_get(PMU_REG2)&BIT(BIT_SLEEP_FLAG_DEEP_SLEEP)))
+	{
+		app_wifi_init();
+	}
+#else //!CONFIG_ATE_TEST
 	app_wifi_init();
+#endif //CONFIG_ATE_TEST
+
 	#if CONFIG_SAVE_BOOT_TIME_POINT
 	save_mtime_point(CPU_FINISH_WIFI_INIT_TIME);
 	#endif
 
 	rtos_user_app_launch_over();
-
-#if (CONFIG_MEDIA)
-	media_major_init();
-#endif
 
 #if (CONFIG_BLUETOOTH)
 	app_ble_init();
@@ -247,7 +266,7 @@ int legacy_init(void)
 
 #elif (CONFIG_SLAVE_CORE)
 
-#else
+#else //!(CONFIG_SOC_BK7256XX && !CONFIG_SLAVE_CORE)
 	app_sdio_init();
 	app_key_init();
 	app_usb_charge_init();
@@ -258,11 +277,7 @@ int legacy_init(void)
 #endif
 	app_mp3_player_init();
 	app_uart_debug_init_todo();
-#endif
-
-#if (CONFIG_MEDIA && CONFIG_SLAVE_CORE)
-	media_minor_init();
-#endif
+#endif //(CONFIG_SOC_BK7256XX && !CONFIG_SLAVE_CORE)
 
 	app_cli_init();
 

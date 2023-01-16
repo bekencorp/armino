@@ -17,7 +17,7 @@
 #include "prro_hal.h"
 #include "prro_ll.h"
 
-#if CFG_HAL_DEBUG_PRRO
+#if CONFIG_PRRO_TEST
 
 void prro_struct_dump(void)
 {
@@ -60,6 +60,7 @@ void prro_struct_dump(void)
 	SOC_LOGI("\tbtdm_ahb_ap=%x\r\n", hw->ahb_cfg_ap.btdm_ahb_ap);
 	SOC_LOGI("\tmbox0_ahb_ap=%x\r\n", hw->ahb_cfg_ap.mbox0_ahb_ap);
 	SOC_LOGI("\tmbox1_ahb_ap=%x\r\n", hw->ahb_cfg_ap.mbox1_ahb_ap);
+	SOC_LOGI("\tdma1_ahb_ap=%x\r\n", hw->ahb_cfg_ap.dma1_ahb_ap);
 	SOC_LOGI("\treserved=%x\r\n", hw->ahb_cfg_ap.reserved);
 
 	SOC_LOGI("ahb_cfg_nsec[5]=%x\r\n", hw->ahb_cfg_nsec.v);
@@ -89,6 +90,7 @@ void prro_struct_dump(void)
 	SOC_LOGI("\tbtdm_ahb_nsec=%x\r\n", hw->ahb_cfg_nsec.btdm_ahb_nsec);
 	SOC_LOGI("\tmbox0_ahb_nsec=%x\r\n", hw->ahb_cfg_nsec.mbox0_ahb_nsec);
 	SOC_LOGI("\tmbox1_ahb_nsec=%x\r\n", hw->ahb_cfg_nsec.mbox1_ahb_nsec);
+	SOC_LOGI("\tdma1_ahb_nsec=%x\r\n", hw->ahb_cfg_nsec.dma1_ahb_nsec);
 	SOC_LOGI("\treserved=%x\r\n", hw->ahb_cfg_nsec.reserved);
 
 	SOC_LOGI("ahb_cfg_sresp[6]=%x\r\n", hw->ahb_cfg_sresp.v);

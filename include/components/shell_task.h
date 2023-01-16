@@ -31,6 +31,8 @@ int shell_get_log_statist(u32 * info_list, u32 num);
 void shell_log_flush(void);
 void shell_set_uart_port(uint8_t uart_port);
 
+void shell_cmd_ind_out(const char *format, ...);
+
 #ifdef __cplusplus
 }
 #endif

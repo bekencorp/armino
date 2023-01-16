@@ -46,7 +46,7 @@ int bk_mpc_cfg(void)
         dev = alloc_schemes[schem_idx].dev;
         scheme = alloc_schemes[schem_idx].bytes_for_spe;
         block_sz = bk_mpc_get_block_size(dev);
-        max_block_num = bk_mpc_get_max_block_index(dev);
+        max_block_num = 32 * (bk_mpc_get_max_block_index(dev) + 1);
 
         if (scheme == MPC_ALLOC_SCHEME_ALL)
             s_block_num = max_block_num;
@@ -68,9 +68,11 @@ int bk_mpc_cfg(void)
         BK_LOGI(TAG, "dev=%d s blocks=%d ns offset=%d blocks=%d\n", dev, s_block_num, ns_addr_offset, ns_block_num);
     }
 
+	#if (0 == CONFIG_ENABLE_DEBUG)
     for (dev = 0; dev < MPC_DEV_MAX; dev++) {
         BK_LOG_ON_ERR(bk_mpc_lockdown(dev));
     }
+	#endif
 
     __DSB();
     __ISB();

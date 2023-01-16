@@ -201,13 +201,13 @@ static void demo_doorbell_tcp_camera_data_handle(uint8_t *data, uint16_t length)
 {
 	if (data[0] == DOORBELL_CMD_IMG_HEADER)
 	{
+		uint32_t ppi = PPI_DEFAULT;
+		uint8_t fmt = DOORBELL_IMG_FMT_MJPEG;
 
 		switch (data[1])
 		{
 			case DOORBELL_DVP_START:
 			{
-				uint32_t ppi = PPI_DEFAULT;
-
 				if (length >= 6)
 				{
 					ppi = data[2] << 24 | data[3] << 16 | data[4] << 8 | data[5];
@@ -238,12 +238,16 @@ static void demo_doorbell_tcp_camera_data_handle(uint8_t *data, uint16_t length)
 
 			case DOORBELL_UVC_START:
 			{
-				uint32_t ppi = PPI_DEFAULT;
-
 				if (length >= 6)
 				{
 					ppi = data[2] << 24 | data[3] << 16 | data[4] << 8 | data[5];
 				}
+
+				if (length >= 7)
+				{
+					fmt = data[6];
+				}
+
 
 				LOGI("DVP START: %dX%d\n", ppi >> 16, ppi & 0xFFFF);
 
@@ -253,7 +257,15 @@ static void demo_doorbell_tcp_camera_data_handle(uint8_t *data, uint16_t length)
 				setup.send_type = TVIDEO_SND_UDP;
 				setup.send_func = demo_doorbell_tcp_video_send_packet;
 
-				media_app_camera_open(APP_CAMERA_UVC_MJPEG, ppi);
+				if (fmt == DOORBELL_IMG_FMT_H264)
+				{
+					media_app_camera_open(APP_CAMERA_UVC_H264, ppi);
+				}
+				else
+				{
+					media_app_camera_open(APP_CAMERA_UVC_MJPEG, ppi);
+				}
+
 				media_app_transfer_open(&setup);
 			}
 			break;
@@ -262,8 +274,26 @@ static void demo_doorbell_tcp_camera_data_handle(uint8_t *data, uint16_t length)
 			{
 				LOGI("UVC STOP\n");
 
+				if (length >= 6)
+				{
+					ppi = data[2] << 24 | data[3] << 16 | data[4] << 8 | data[5];
+				}
+
+				if (length >= 7)
+				{
+					fmt = data[6];
+				}
+
 				media_app_transfer_close();
-				media_app_camera_close(APP_CAMERA_UVC_MJPEG);
+
+				if (fmt == DOORBELL_IMG_FMT_H264)
+				{
+					media_app_camera_close(APP_CAMERA_UVC_H264);
+				}
+				else
+				{
+					media_app_camera_close(APP_CAMERA_UVC_MJPEG);
+				}
 			}
 			break;
 		}
@@ -315,9 +345,12 @@ static void demo_doorbell_tcp_cmd_data_handle(uint8_t *data, uint16_t length)
 					LOGE("bk_aud_intf_set_mode fail, ret:%d\n", ret);
 					break;
 				}
-				if (data[9] == 1) {
+				if (data[9] == 1)
+				{
 					aud_voc_setup.aec_enable = true;
-				} else {
+				}
+				else
+				{
 					aud_voc_setup.aec_enable = false;
 				}
 				//aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711A;
@@ -325,7 +358,8 @@ static void demo_doorbell_tcp_cmd_data_handle(uint8_t *data, uint16_t length)
 				aud_voc_setup.spk_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 				//aud_voc_setup.mic_en = AUD_INTF_VOC_MIC_OPEN;
 				//aud_voc_setup.spk_en = AUD_INTF_VOC_SPK_OPEN;
-				if (data[8] == 1) {
+				if (data[8] == 1)
+				{
 					aud_voc_setup.mic_type = AUD_INTF_MIC_TYPE_UAC;
 					aud_voc_setup.spk_type = AUD_INTF_SPK_TYPE_UAC;
 					//aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_16K;

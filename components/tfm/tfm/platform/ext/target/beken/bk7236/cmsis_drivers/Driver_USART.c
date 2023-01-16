@@ -297,3 +297,99 @@ ARM_DRIVER_USART Driver_USART0 = {
     USART0_GetModemStatus
 };
 #endif /* RTE_USART0 */
+
+#if (RTE_USART1)
+/* USART1 Driver wrapper functions */
+static UARTx_Resources USART1_DEV = {
+    .id = UART_ID_1,
+    .tx_nbr_bytes = 0,
+    .rx_nbr_bytes = 0,
+};
+
+static int32_t USART1_Initialize(ARM_USART_SignalEvent_t cb_event)
+{
+    return USARTx_Initialize(&USART1_DEV);
+}
+
+static int32_t USART1_Uninitialize(void)
+{
+    bk_uart_driver_deinit();
+    return ARM_DRIVER_OK;
+}
+
+static int32_t USART1_PowerControl(ARM_POWER_STATE state)
+{
+    return ARM_USARTx_PowerControl(&USART1_DEV, state);
+}
+
+static int32_t USART1_Send(const void *data, uint32_t num)
+{
+    return ARM_USARTx_Send(&USART1_DEV, data, num);
+}
+
+static int32_t USART1_Receive(void *data, uint32_t num)
+{
+    return ARM_USARTx_Receive(&USART1_DEV, data, num);
+}
+
+static int32_t USART1_Transfer(const void *data_out, void *data_in,
+                                   uint32_t num)
+{
+    ARG_UNUSED(data_out);
+    ARG_UNUSED(data_in);
+    ARG_UNUSED(num);
+
+    return ARM_DRIVER_ERROR_UNSUPPORTED;
+}
+
+static uint32_t USART1_GetTxCount(void)
+{
+    return ARM_USARTx_GetTxCount(&USART1_DEV);
+}
+
+static uint32_t USART1_GetRxCount(void)
+{
+    return ARM_USARTx_GetRxCount(&USART1_DEV);
+}
+static int32_t USART1_Control(uint32_t control, uint32_t arg)
+{
+    return ARM_USARTx_Control(&USART1_DEV, control, arg);
+}
+
+static ARM_USART_STATUS USART1_GetStatus(void)
+{
+    ARM_USART_STATUS status = {0, 0, 0, 0, 0, 0, 0, 0};
+    return status;
+}
+
+static int32_t USART1_SetModemControl(ARM_USART_MODEM_CONTROL control)
+{
+    ARG_UNUSED(control);
+    return ARM_DRIVER_ERROR_UNSUPPORTED;
+}
+
+static ARM_USART_MODEM_STATUS USART1_GetModemStatus(void)
+{
+    ARM_USART_MODEM_STATUS modem_status = {0, 0, 0, 0, 0};
+    return modem_status;
+}
+
+extern ARM_DRIVER_USART Driver_USART1;
+ARM_DRIVER_USART Driver_USART1 = {
+    USART_GetVersion,
+    USART_GetCapabilities,
+    USART1_Initialize,
+    USART1_Uninitialize,
+    USART1_PowerControl,
+    USART1_Send,
+    USART1_Receive,
+    USART1_Transfer,
+    USART1_GetTxCount,
+    USART1_GetRxCount,
+    USART1_Control,
+    USART1_GetStatus,
+    USART1_SetModemControl,
+    USART1_GetModemStatus
+};
+#endif /* RTE_USART1 */
+

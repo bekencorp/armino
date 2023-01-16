@@ -9,16 +9,16 @@
 #include "reset_reason.h"
 #include "bk_pm_internal_api.h"
 #include "boot.h"
+#include "mon_call.h"
 
+#if CONFIG_ATE_TEST
+extern void c_startup_ate(void);
+#endif
 extern void c_startup(void);
-extern void system_init(void);
+// extern void system_init(void);
 extern void __libc_init_array(void);
 extern void init_pmp_config();
 extern void entry_main(void);
-extern void UartDbgInit();
-extern int print_str(char * st);
-
-//volatile int g_test_mode = 1;
 
 void close_wdt(void)
 {
@@ -34,8 +34,6 @@ void reset_handler(void)
     /// TODO: DEBUG VERSION close the wdt
 	close_wdt();
 
-	//while(g_test_mode);
-
 #if (!CONFIG_SLAVE_CORE)
 	sram_dcache_map();
 #endif
@@ -46,6 +44,14 @@ void reset_handler(void)
 	 */
 	c_startup();
 
+	/* Call platform specific hardware initialization */
+	// system_init();
+
+	/* Do global constructors */
+	__libc_init_array();
+
+	mon_app_started();  // app started, let monitor forward exceptions to U-mode.
+
 	/*power manager init*/
 	pm_hardware_init();
 
@@ -54,15 +60,8 @@ void reset_handler(void)
 	set_reboot_tag(0);
 #endif
 
-	/* Call platform specific hardware initialization */
-	system_init();
-    //while(g_debug_mode){};
-
-	/* Do global constructors */
-	__libc_init_array();
-
 	/*Init pmp configuration*/
-	init_pmp_config();
+	// init_pmp_config();
 	
 	/* Entry function */
 	entry_main();

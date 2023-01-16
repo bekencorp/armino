@@ -140,9 +140,9 @@ menu "Cli"
 		bool "Enable CAMERA Test"
 		default n
 
-	config CM33_TEST
+	config SPE_TEST
 		depends on CLI
-		bool "Enable CM33 Test"
+		bool "Enable SPE Test"
 		default n
 
 	config MPC_TEST
@@ -153,6 +153,16 @@ menu "Cli"
 	config PRRO_TEST
 		depends on CLI
 		bool "Enable PRRO Test"
+		default n
+
+	config INTERRUPT_TEST
+		depends on CLI
+		bool "Enable interrupt Test"
+		default n
+
+	config AON_PMU_TEST
+		depends on CLI
+		bool "Enable Always on PMU Test"
 		default n
 endmenu
 

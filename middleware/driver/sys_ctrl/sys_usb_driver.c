@@ -108,6 +108,26 @@ uint32_t sys_drv_usb_analog_dn_capability(uint8_t value)
 	return SYS_DRV_SUCCESS;
 }
 
+uint32_t sys_drv_usb_analog_deepsleep_en(bool ctrl)
+{
+	uint32_t int_level;
+	uint32_t ret = SYS_DRV_FAILURE;
+	ret = sys_amp_res_acquire();
+	if(ret != BK_OK)
+		return ret;
+
+	int_level = rtos_disable_int();
+	sys_hal_usb_analog_deepsleep_en(ctrl);
+	rtos_enable_int(int_level);
+
+	if(!ret)
+		ret = sys_amp_res_release();
+	if(ret != BK_OK)
+		return ret;
+
+	return SYS_DRV_SUCCESS;
+}
+
 void sys_drv_usb_charge_start()
 {
 /*

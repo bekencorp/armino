@@ -133,7 +133,7 @@ extern "C" {
 #endif
 
 #if(CONFIG_ICU && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_ICU         1
+#define CLI_CFG_ICU         0
 #else
 #define CLI_CFG_ICU         0
 #endif
@@ -269,10 +269,10 @@ extern "C" {
 #define CLI_CFG_LCD  0
 #endif
 
-#if (CONFIG_QSPI_OLED_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_QSPI_OLED	0
+#if (CONFIG_LCD_QSPI_TEST && (!CONFIG_SLAVE_CORE))
+#define CLI_CFG_LCD_QSPI	0
 #else
-#define CLI_CFG_QSPI_OLED	0
+#define CLI_CFG_LCD_QSPI	0
 #endif
 
 #if (CONFIG_QRCODEGEN_TEST && (!CONFIG_SLAVE_CORE))
@@ -292,12 +292,26 @@ extern "C" {
 #endif
 #endif
 
+#if (CONFIG_SOC_BK7236)
+#if (CONFIG_AUDIO && CONFIG_AUDIO_TEST)
+#define CLI_CFG_AUD         1
+#endif
+#endif
+
 #if (CONFIG_AUDIO_AEC_TEST && (!CONFIG_SLAVE_CORE))
 #define CLI_CFG_AEC         0
 #endif
 
 #if (CONFIG_AUDIO_G711_TEST && (!CONFIG_SLAVE_CORE))
 #define CLI_CFG_G711         0
+#endif
+
+#if (CONFIG_AUDIO_OPUS_TEST && (!CONFIG_SLAVE_CORE) && CONFIG_FATFS)
+#define CLI_CFG_OPUS         0
+#endif
+
+#if (CONFIG_AUDIO_ADPCM_TEST && (!CONFIG_SLAVE_CORE) && CONFIG_FATFS)
+#define CLI_CFG_ADPCM         0
 #endif
 
 #if (CONFIG_AUDIO_MP3_TEST && (!CONFIG_SLAVE_CORE) && CONFIG_FATFS)
@@ -322,8 +336,14 @@ extern "C" {
 #define CLI_CFG_PSRAM        0
 #else
 #define CLI_CFG_PSRAM        0
-
 #endif
+
+#if (CONFIG_H264)
+#define CLI_CFG_H264         1
+#else
+#define CLI_CFG_H264         0
+#endif
+
 #endif
 
 #ifdef __cplusplus

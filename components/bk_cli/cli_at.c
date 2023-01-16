@@ -54,6 +54,25 @@ static void at_reset_command(char *pcWriteBuffer, int xWriteBufferLen, int argc,
     os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
 
+extern volatile const uint8_t build_version[];
+static void at_version_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    char *msg = NULL;
+
+    if(argc != 1){
+        msg = AT_CMD_RSP_ERROR;
+    }
+    else
+    {
+        os_printf("get_version\r\n");
+        os_printf("firmware version : %s\n", build_version);
+        msg = AT_CMD_RSP_SUCCEED;
+    }
+
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+
+}
+
 //#if (CONFIG_BLE_5_X || CONFIG_BTDM_5_2)
 #if CONFIG_BLE
 static void bleat_command_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -300,6 +319,7 @@ static const struct cli_command s_at_commands[] = {
 #if (CONFIG_AT_CMD)
     {"AT", "AT", at_base_command},
     {"AT+RST", "AT+RST", at_reset_command},
+    {"AT+VERSION", "AT+VERSION", at_version_command},
 #if CONFIG_BLE//(CONFIG_BLE_5_X || CONFIG_BTDM_5_2)
     {"AT+BLE", "AT+TYPE_CMD=CMD_name,param1,...,paramn", bleat_command_handler},
 #endif

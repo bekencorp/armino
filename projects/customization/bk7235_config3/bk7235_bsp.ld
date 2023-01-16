@@ -315,15 +315,15 @@ SECTIONS
 	".sbss_w_*sdp_common.c.obj" 	(NOLOAD)	: { *sdp_common.c.obj(.sbss_w .sbss_w.* ) *app_ble.c.obj(.sbss_w .sbss_w.* ) *prf.c.obj(.sbss_w .sbss_w.* ) *sdp_common.c.obj(.scommon_w .scommon_w.* ) *app_ble.c.obj(.scommon_w .scommon_w.* ) *prf.c.obj(.scommon_w .scommon_w.* ) *sdp_common.c.obj(.dynsbss ) *app_ble.c.obj(.dynsbss ) *prf.c.obj(.dynsbss ) *sdp_common.c.obj(.scommon ) *app_ble.c.obj(.scommon ) *prf.c.obj(.scommon ) . = ALIGN(8); }
 	".sbss_d_*sdp_common.c.obj" 	(NOLOAD)	: { *sdp_common.c.obj(.sbss_d .sbss_d.* ) *app_ble.c.obj(.sbss_d .sbss_d.* ) *prf.c.obj(.sbss_d .sbss_d.* ) *sdp_common.c.obj(.scommon_d .scommon_d.* ) *app_ble.c.obj(.scommon_d .scommon_d.* ) *prf.c.obj(.scommon_d .scommon_d.* ) }
 	".bss_*sdp_common.c.obj" 	(NOLOAD)	: { *sdp_common.c.obj(.dynbss ) *app_ble.c.obj(.dynbss ) *prf.c.obj(.dynbss ) *sdp_common.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *app_ble.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *prf.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *sdp_common.c.obj(COMMON ) *app_ble.c.obj(COMMON ) *prf.c.obj(COMMON ) . = ALIGN(8); }
+	_bt_data_end = .;
 	SRAM_BT_SIZE = . - SRAM_BT_BEGIN;
-	. = 0x30020000;
+	. = 0x30020800;
 	SRAM_DATA_BEGIN = .;
 	. = ALIGN(8);
 	. = ALIGN(0x20);
 	. = ALIGN(ALIGNOF(.eh_frame));
 	.eh_frame 	: AT(ALIGN(LOADADDR (.ble_bss_data) + SIZEOF (.ble_bss_data), 32))
 		{ KEEP(*(.eh_frame )) }
-	_bt_data_end = ADDR(.eh_frame);
 	_data_lmastart =  LOADADDR (.eh_frame);
 	_data_start = ADDR(.eh_frame);
 	. = ALIGN(ALIGNOF(.gcc_except_table));
@@ -440,5 +440,5 @@ ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD1_SIZE : 0x0)<= 0x8800, "CPU0_LOAD1 OVE
 ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x7800, "DTCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM_VIDEO_SIZE : 0x0)<= 0xA000, "SRAM_VIDEO OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM_BT_SIZE : 0x0)<= 0x16000, "SRAM_BT OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? SRAM_DATA_SIZE : 0x0)<= 0x60000, "SRAM_DATA OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? SRAM_DATA_SIZE : 0x0)<= 0x5F800, "SRAM_DATA OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD2_SIZE : 0x0)<= 0x217800, "CPU0_LOAD2 OVERFLOW");

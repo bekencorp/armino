@@ -22,7 +22,6 @@ menu "Driver"
 	source "${ARMINO_PATH}/middleware/driver/sdio/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/spi/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/qspi/Kconfig"
-	source "${ARMINO_PATH}/middleware/driver/qspi_oled/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/rtc/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/gpio/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/pmu/Kconfig"
@@ -44,6 +43,7 @@ menu "Driver"
 	source "${ARMINO_PATH}/middleware/driver/timer/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/saradc/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/flash/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/h264/Kconfig"
 
 	config LCD
 		bool "Enable LCD"
@@ -104,10 +104,24 @@ menu "Driver"
 		bool "Enable LCD_ST7710S API"
 		default n
 
+	config LCD_QSPI
+		bool "Enable LCD QSPI"
+		default n
+
+	config LCD_QSPI_SH8601A
+		depends on LCD_QSPI
+		bool "Enable LCD_QSPI_SH8601A API"
+		default n
+
+	config LCD_QSPI_ST77903
+		depends on LCD_QSPI
+		bool "Enable LCD_QSPI_ST77903 API"
+		default n
+
 	config MAC_PHY_BYPASS
 		bool "Enable MAC/PHY by pass mode"
 		default y
-
+	
 	config SUPPORT_IRDA
 		bool "Enable IRDA"
 		default y
@@ -119,11 +133,11 @@ menu "Driver"
 	config TP
 		bool "Enable TP"
 		default n
-
+		
 	config DMA2D
 		bool "Enable DMA2D"
 		default n
-
+	
 	config YUV_BUF
 		bool "Enable yuv_buf"
 		default n

@@ -24,6 +24,9 @@
 #define DOORBELL_UVC_START              0x38
 #define DOORBELL_UVC_STOP               0x39
 
+#define DOORBELL_IMG_FMT_MJPEG          0x00
+#define DOORBELL_IMG_FMT_H264           0x01
+
 
 #define CMD_VOICE_HEADER                  0x30
 #define CMD_VOICE_START                   0x66

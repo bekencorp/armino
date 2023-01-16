@@ -71,14 +71,12 @@ static uart_sema_t s_uart_sema[SOC_UART_ID_NUM_PER_UNIT] = {0};
 
 #define UART_RETURN_ON_NOT_INIT() do {\
 		if (!s_uart_driver_is_init) {\
-			UART_LOGE("UART driver not init\r\n");\
 			return BK_ERR_UART_NOT_INIT;\
 		}\
 	} while(0)
 
 #define UART_RETURN_ON_INVALID_ID(id) do {\
 		if ((id) >= SOC_UART_ID_NUM_PER_UNIT) {\
-			UART_LOGE("UART id number(%d) is invalid\r\n", (id));\
 			return BK_ERR_UART_INVALID_ID;\
 		}\
 	} while(0)
@@ -92,7 +90,6 @@ static uart_sema_t s_uart_sema[SOC_UART_ID_NUM_PER_UNIT] = {0};
 #define UART_RETURN_ON_BAUD_RATE_NOT_SUPPORT(baud_rate) do {\
 		if ((baud_rate) < CONFIG_UART_MIN_BAUD_RATE ||\
 			(baud_rate) > CONFIG_UART_MAX_BAUD_RATE) {\
-			UART_LOGE("UART baud rate(%d) not support\r\n", (baud_rate));\
 			return BK_ERR_UART_BAUD_RATE_NOT_SUPPORT;\
 		}\
 	} while(0)
@@ -687,11 +684,13 @@ bk_err_t bk_uart_driver_init(void)
 	os_memset(&s_uart, 0, sizeof(s_uart));
 	os_memset(&s_uart_rx_isr, 0, sizeof(s_uart_rx_isr));
 	os_memset(&s_uart_tx_isr, 0, sizeof(s_uart_tx_isr));
-
-	for(uart_id_t id = UART_ID_0; id < SOC_UART_ID_NUM_PER_UNIT; id++) {
+	for(uart_id_t id = UART_ID_0; id < SOC_UART_ID_NUM_PER_UNIT; id++)
+	{
+#if (0 == CONFIG_SOC_BK7236)
 		uart_isr_register_functions(id);
 		s_uart[id].hal.id = id;
 		uart_hal_init(&s_uart[id].hal);
+#endif
 	}
 
 	uart_statis_init();
@@ -737,6 +736,12 @@ bk_err_t bk_uart_init(uart_id_t id, const uart_config_t *config)
 	BK_RETURN_ON_NULL(config);
 	UART_RETURN_ON_INVALID_ID(id);
 	UART_RETURN_ON_BAUD_RATE_NOT_SUPPORT(config->baud_rate);
+
+#if CONFIG_SOC_BK7236
+	uart_isr_register_functions(id);
+	s_uart[id].hal.id = id;
+	uart_hal_init(&s_uart[id].hal);
+#endif
 
 	uart_id_init_common(id);
 #if (CONFIG_SYSTEM_CTRL)

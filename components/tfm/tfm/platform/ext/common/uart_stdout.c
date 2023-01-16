@@ -21,6 +21,7 @@
 #include "Driver_USART.h"
 #include "target_cfg.h"
 #include "device_cfg.h"
+#include "sdkconfig.h"
 
 #define ASSERT_HIGH(X)  assert(X == ARM_DRIVER_OK)
 
@@ -87,6 +88,7 @@ int putchar(int ch)
 void stdio_init(void)
 {
     int32_t ret;
+
     ret = STDIO_DRIVER.Initialize(NULL);
     ASSERT_HIGH(ret);
 

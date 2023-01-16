@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "cmsis.h"
+#include "platform_irq.h"
+#include "STAR_SE.h"
+#include "core_star.h"
 
 /*
  * BK7236 has different frequencies for system core clock (20MHz) and
@@ -48,4 +50,17 @@ void SystemInit (void)
   SCB->CCR |= SCB_CCR_UNALIGN_TRP_Msk;
 #endif
 #endif /* __DOMAIN_NS != 1U */
+
+#if defined __EN_ICACHE
+  if (SCB->CLIDR & SCB_CLIDR_IC_Msk)
+    SCB_EnableICache();
+#endif
+
+#if defined __EN_DCACHE
+  if (SCB->CLIDR & SCB_CLIDR_IC_Msk)
+    SCB_EnableDCache();
+#endif
+
+  SystemCoreClock = SYSTEM_CLOCK;
+  PeripheralClock = PERIPHERAL_CLOCK;
 }

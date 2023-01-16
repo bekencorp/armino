@@ -9,7 +9,6 @@
 #include "los_memory.h"
 #include "los_interrupt.h"
 #include "los_swtmr.h"
-#include "bk_los_timer.h"
 #include "portmacro.h"
 
 /* OS_TASK_PRIORITY_HIGHEST and OS_TASK_PRIORITY_LOWEST is reserved for internal TIMER and IDLE task use only. */
@@ -1215,15 +1214,6 @@ uint32_t rtos_disable_int(void)
 void rtos_enable_int(uint32_t int_level)
 {
 	port_enable_interrupts_flag(int_level);
-}
-uint32_t rtos_disable_mie_int(void)
-{
-    return port_disable_mie_flag();
-}
-
-void rtos_enable_mie_int(uint32_t int_level)
-{
-	port_enable_mie_flag(int_level);
 }
 
 void rtos_stop_int(void)

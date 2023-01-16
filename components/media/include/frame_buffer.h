@@ -26,6 +26,7 @@ typedef enum
 {
 	FB_INDEX_DISPLAY,
 	FB_INDEX_JPEG,
+	FB_INDEX_H264,
 	FB_INDEX_MAX,
 } fb_type_t;
 
@@ -129,6 +130,14 @@ void frame_buffer_fb_display_push(frame_buffer_t *frame);
 frame_buffer_t *frame_buffer_fb_display_pop(void);
 frame_buffer_t *frame_buffer_fb_display_pop_wait(void);
 
+int frame_buffer_fb_h264_init(media_ppi_t max_ppi);
+int frame_buffer_fb_h264_deinit(void);
+frame_buffer_t *frame_buffer_fb_h264_malloc(void);
+frame_buffer_t *frame_buffer_fb_h264_malloc_wait(void);
+void frame_buffer_fb_h264_free(frame_buffer_t *frame);
+void frame_buffer_fb_h264_push(frame_buffer_t *frame);
+frame_buffer_t *frame_buffer_fb_h264_pop(void);
+frame_buffer_t *frame_buffer_fb_h264_pop_wait(void);
 
 #ifdef __cplusplus
 }

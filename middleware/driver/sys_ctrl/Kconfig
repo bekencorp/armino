@@ -27,6 +27,10 @@ menu "SYS_CTRL"
 	config SYSTEM_CTRL
 		bool "Enable system_ctrl"
 		default n
+	
+	config HAL_DEBUG_SYS
+		bool "system_ctrl debug"
+		default n
 
 	config POWER_CLOCK_RF
 		bool "Enable rf power clock"

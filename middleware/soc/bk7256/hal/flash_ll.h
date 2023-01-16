@@ -191,11 +191,11 @@ static inline void flash_ll_erase_sector(flash_hw_t *hw, uint32_t erase_addr)
 	while (flash_ll_is_busy(hw))
 	{
 		if(ota_flag)
-                {
-        	#if CONFIG_LCD	
+		{
+		#if CONFIG_LCD	
 			lcd_isr();
-        	#endif
-                }
+            	#endif
+          	}
 	}
 }
 static inline void flash_ll_set_op_cmd_read(flash_hw_t *hw, uint32_t read_addr)

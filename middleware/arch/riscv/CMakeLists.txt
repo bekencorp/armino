@@ -7,7 +7,7 @@ set(incs
    include/bk_private)
 
 set(srcs
-	boot_handlers_base.S
+	boot_vectors_base.S
 	riscv_utility.S
 	stack_base.c
 	trap_base.c
@@ -16,6 +16,7 @@ set(srcs
 	pmp.c
 	initfini.c
 	riscv.c
+	mon_call.c
 	)
 
 #if(CONFIG_CACHE_ENABLE)
@@ -24,19 +25,12 @@ set(srcs
 	)
 #endif()
 
-if(CONFIG_FREERTOS)
-	list(APPEND incs os/freertos)
-	list(APPEND srcs
-		os/freertos/cpu.c
-		boot_vectors_base.S
-	)
 endif()
 
 if(CONFIG_LITEOS_M_V3)
 	list(APPEND srcs
 		boot_vectors_liteos_m.S
 	)
-endif()
 endif()
 
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_common)

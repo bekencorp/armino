@@ -12,6 +12,15 @@ var BK7235 =
 	]
 }
 
+var BK7236 =
+{
+	name: "bk7236",
+	lang: [ "zh-cn" ],
+	version: [
+		"latest"
+	]
+}
+
 var BK7237 =
 {
 	name: "bk7237",
@@ -32,6 +41,7 @@ var BK7256 =
 
 
 sdkList.push(BK7235);
+sdkList.push(BK7236);
 sdkList.push(BK7237);
 sdkList.push(BK7256);
 

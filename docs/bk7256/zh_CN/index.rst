@@ -16,8 +16,10 @@
     OS 相关参考 <os/index>
     支持单板 <boards/index>
     样例演示 <examples/index>
+    应用开发 <application/index>
     产品解决方案 <projects/index>
     开发与贡献代码流程 <process/index>
+    云平台 <clounds/index>
     版本 <release-notes/index>
 
 * :ref:`genindex`

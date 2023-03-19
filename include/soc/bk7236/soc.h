@@ -23,9 +23,19 @@
 extern "C" {
 #endif
 
-#define SOC_ICU_REG_BASE      (0xdead0add)
-#define SOC_PWM_REG_BASE      (0xdead0add)
-#define SOC_CALENDAR_REG_BASE (0xdead0add + 0x55 * 4)
+#define SOC_ICU_REG_BASE      (0x00802000)
+#define SOC_PWM_REG_BASE      (0x00802B00)
+//#define SOC_EFUSE_REG_BASE    (0x00800000 + 0x1D * 4)
+//#define SOC_UART_REG_BASE     (0x00802100)
+#define SOC_CALENDAR_REG_BASE (0x00800000 + 0x55 * 4)
+
+#if 0
+#define SOC_SYS_CTRL_REG_BASE ()
+#define SOC_TRNG_REG_BASE     (0x00802480)
+#define SOC_WDT_REG_BASE      (0x00802900)
+#define SOC_FLASH_REG_BASE    (0x00803000)
+#define SOC_JPEG_REG_BASE     (0x00807000)
+#endif
 
 #define SOC_PSRAM_DATA_ADDR_SEC     (0x60000000)
 #define SOC_PSRAM_DATA_ADDR_NONSEC  (0x70000000)

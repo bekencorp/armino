@@ -1,5 +1,5 @@
-menu "VENDOR FLASH CONFIG"
+menu "Boards::Bk7256::Vnd_flash"
 	config OVERRIDE_FLASH_PARTITION
-		bool "Override flash partition"
+		bool "Enable Override Flash Partition"
 		default n
 endmenu

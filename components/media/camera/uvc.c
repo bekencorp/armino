@@ -39,7 +39,7 @@ static uvc_camera_config_t *uvc_camera_config_st = NULL;
 
 void uvc_device_connect_state_callback(uvc_state_t state)
 {
-	LOGI("%s, %d\n", __func__, state);
+	LOGI("%s, %d, %d\n", __func__, state, uvc_state_flag);
 
 	if (state == UVC_DISCONNECT_ABNORMAL)
 	{
@@ -104,6 +104,8 @@ bk_err_t bk_uvc_camera_open(media_ppi_t ppi, media_camera_type_t type)
 		}
 	}
 
+	uvc_state_flag = true;
+
 	uvc_camera_config_st->uvc_config->type = type;
 	uvc_camera_config_st->uvc_config->device.fps = 20;
 	uvc_camera_config_st->uvc_config->device.width = ppi >> 16;
@@ -118,8 +120,6 @@ bk_err_t bk_uvc_camera_open(media_ppi_t ppi, media_camera_type_t type)
 	uvc_camera_config_st->fb_free = frame_buffer_fb_jpeg_free;
 	uvc_camera_config_st->uvc_connect_state_change_cb = uvc_device_connect_state_callback;
 
-	uvc_state_flag = true;
-
 	ret = bk_uvc_camera_driver_init(uvc_camera_config_st);
 	if (ret == BK_OK)
 	{
@@ -130,6 +130,8 @@ bk_err_t bk_uvc_camera_open(media_ppi_t ppi, media_camera_type_t type)
 		LOGE("%s failed\r\n", __func__);
 		uvc_state_flag = false;
 	}
+
+	LOGI("%s, complete, %d\r\n", __func__, uvc_state_flag);
 
 	return ret;
 }

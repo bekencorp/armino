@@ -60,7 +60,6 @@
 struct partition_load_info_t {
     uint32_t        psa_ff_ver;         /* Encode the version with magic    */
     int32_t         pid;                /* Partition ID                     */
-    char *          name;
     uint32_t        flags;              /* ARoT/PRoT, SFN/IPC, priority     */
     uintptr_t       entry;              /* Entry point                      */
     size_t          stack_size;         /* Stack size                       */

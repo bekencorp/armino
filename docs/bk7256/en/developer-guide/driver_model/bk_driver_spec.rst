@@ -108,7 +108,7 @@ receive cache    Write        Driver layer defines a receive cache with a config
                               The API fetches data from the receive cache, supports blocking and 
                               non blocking modes, and sets the blocking timeout.
 
-0-copy    	     Write        The interrupt directly uses the data pointer passed in by the user to write.
+0-copy           Write        The interrupt directly uses the data pointer passed in by the user to write.
                               The API supports blocking and non blocking modes, and the timeout
                               can be set for blocking modes.
                               When using the 'non blocking' mode, there is an independent 
@@ -136,6 +136,7 @@ and the complexity of driver development should be minimized.
 +========================+=======================================================================+
 | ``bk_xxx_driver_init`` |  1. Driver framework related data structure initialization            |
 |                        |  2. Drive the global configuration. For multi-channel devices,        |
+|                        |                                                                       |
 |                        |  the general configuration can be configured here                     |
 +------------------------+-----------------------------------------------------------------------+
 |``bk_xxx_driver_deinit``|  Uninstall the driver framework\free all software/hardware resources  |

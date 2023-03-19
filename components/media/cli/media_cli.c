@@ -48,6 +48,12 @@ void uvc_connect_state_callback(uint8_t state)
 }
 #endif
 
+void media_read_frame_callback(frame_buffer_t *frame)
+{
+	LOGI("frame_id:%d, length:%d, frame_addr:%p\r\n", frame->sequence,
+		frame->length, frame->frame);
+}
+
 char * get_string_to_name(char *string, char * pre)
 {
 	char* value = pre;
@@ -96,6 +102,10 @@ char * get_string_to_name(char *string, char * pre)
 		value = "st7710s";
 	}
 
+	if (os_strcmp(string, "st7701s") == 0)
+	{
+		value = "st7701s";
+	}
 	return value;
 }
 
@@ -157,7 +167,7 @@ bool cmd_contain(int argc, char **argv, char *string)
 	return ret;
 }
 
-#if CONFIG_WIFI_TRANSFER
+#if CONFIG_FATFS
 extern storage_flash_t storge_flash;
 #endif
 
@@ -287,6 +297,18 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		{
 			ret = media_app_save_stop();
 		}
+
+		if (os_strcmp(argv[1], "read_start") == 0)
+		{
+			ret = media_app_register_read_frame_cb(media_read_frame_callback);
+
+			ret = media_app_save_start("unused_name");
+		}
+
+		if (os_strcmp(argv[1], "read_stop") == 0)
+		{
+			ret = media_app_save_stop();
+		}
 #endif
 
 		if (os_strcmp(argv[1], "lcd") == 0)
@@ -310,7 +332,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				lcd_open.device_name = name;
 				ret = media_app_lcd_open(&lcd_open);
 			}
-#if (CONFIG_LVGL)
+#if (CONFIG_LVGL) && (CONFIG_LVGL_DEMO)
 			#if CONFIG_BLEND_USE_GUI
 			else if (os_strcmp(argv[2], "gui_blend") == 0)
 			{
@@ -335,13 +357,6 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				}
 			}
 			#endif
-			else if (os_strcmp(argv[2], "opengui") == 0)
-			{
-				lcd_open_t lcd_open;
-				lcd_open.device_ppi = ppi;
-				lcd_open.device_name = name;
-				ret = media_app_lcd_open_withgui(&lcd_open);
-			}
 			else if(os_strcmp(argv[2], "demoui") == 0)
 			{
 				if(argc >= 4)
@@ -402,7 +417,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			}
 			if (os_strcmp(argv[2], "flash_display") == 0)
 			{
-#if CONFIG_WIFI_TRANSFER
+#if CONFIG_FATFS
 				lcd_display_t lcd_display;
 				lcd_display.image_addr = storge_flash.flash_image_addr;
 				lcd_display.img_length = storge_flash.flasg_img_length;
@@ -517,7 +532,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		}
 		if (os_strcmp(argv[1], "uvc") == 0)
 		{
-#if defined(CONFIG_USB_UVC) && !defined(CONFIG_SLAVE_CORE)
+#if defined(CONFIG_USB_UVC) && defined(CONFIG_MASTER_CORE)
 			media_ppi_t ppi = GET_PPI(PPI_640X480);
 			app_camera_type_t camera_type = APP_CAMERA_UVC_MJPEG;
 

@@ -216,6 +216,11 @@ bk_err_t media_minor_init(void)
 
 	lcd_calc_init();
 
+#ifdef CONFIG_LVGL
+	void lv_draw_sw_slave_init(void);
+	lv_draw_sw_slave_init();
+#endif
+
 	LOGI("media minor thread startup complete\n");
 
 	return kNoErr;

@@ -10,3 +10,4 @@ lcd
    LCD RGB YUV Display <bk_lcd_display_yuv>
    LCD RGB JPEG Display <bk_lcd_display_jpeg>
    LCD 显示一张jpeg图片 <bk_picture_display>
+   LCD QSPI Display <bk_lcd_qspi>

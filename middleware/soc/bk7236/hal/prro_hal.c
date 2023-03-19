@@ -19,20 +19,16 @@
 
 #define TAG "prro_hal"
 #define PRRO_HAL_LOGE BK_LOGE
-#define PRRO_HAL_LOGD BK_LOGD
+#define PRRO_HAL_LOGD BK_LOGI
 
 #define PRIV_TYPE_TO_BITV(type) ((type) == ((uint8_t)PRRO_PRIVILEGED) ? 1 : 0)
 #define SEC_TYPE_TO_BITV(type) ((type) == ((uint8_t)PRRO_NON_SECURE) ? 1 : 0)
 
-static uint32_t config_bits_to_reg_bits(prro_map_t *map, uint32_t map_idx_start, uint32_t map_idx_max, uint32_t config_bits)
+static uint32_t config_bits_to_reg_bits(prro_map_t *map, uint32_t map_idx_start, uint32_t map_idx_max, uint64_t config_bits)
 {
 	uint32_t valid_entry_in_map = map_idx_max - map_idx_start;
 	uint32_t reg_value = 0;
 	uint32_t reg_id = 0;
-
-	if (valid_entry_in_map > 32) {
-		PRRO_HAL_LOGE(TAG, "more than 32 entries\r\n");
-	}
 
 	for (uint32_t bit_idx = 0; bit_idx < valid_entry_in_map; bit_idx++) {
 		uint32_t map_idx = bit_idx + map_idx_start;
@@ -78,20 +74,20 @@ bk_err_t prro_hal_set_privilege(prro_dev_t dev, prro_privilege_type_t privilege_
 	return BK_OK;
 }
 
-bk_err_t prro_hal_set_ahb_dev_privilege(uint32_t ahb_dev_privilege_bits)
+bk_err_t prro_hal_set_ahb_dev_privilege(uint64_t ahb_dev_privilege_bits)
 {
 	PRRO_AP_MAP(ap_map);
 	uint32_t reg_bits = config_bits_to_reg_bits(ap_map, PRRO_DEV_AHB_AON, PRRO_DEV_AHB_MAX, ahb_dev_privilege_bits);
-	PRRO_HAL_LOGD(TAG, "set privilege ahb, reg_bits=%x\r\n", reg_bits);
+	PRRO_HAL_LOGD(TAG, "set privilege ahb\r\n");
 	prro_ll_set_ahb_cfg_ap(reg_bits);
 	return BK_OK;
 }
 
-bk_err_t prro_hal_set_apb_dev_privilege(uint32_t apb_dev_privilege_bits)
+bk_err_t prro_hal_set_apb_dev_privilege(uint64_t apb_dev_privilege_bits)
 {
 	PRRO_AP_MAP(ap_map);
 	uint32_t reg_bits = config_bits_to_reg_bits(ap_map, PRRO_DEV_APB_WDT, PRRO_DEV_APB_MAX, apb_dev_privilege_bits);
-	PRRO_HAL_LOGD(TAG, "set privilege apb, reg_bits=%x\r\n", reg_bits);
+	PRRO_HAL_LOGD(TAG, "set privilege apb\r\n");
 	prro_ll_set_apb_cfg_ap(reg_bits);
 	return BK_OK;
 }
@@ -141,34 +137,36 @@ bk_err_t prro_hal_set_secure(prro_dev_t dev, prro_secure_type_t secure_type)
 
 }
 
-bk_err_t prro_hal_set_gpios_secure(uint32_t group0_bits, uint32_t group1_bits)
+bk_err_t prro_hal_set_gpios_secure(uint64_t gpio_secure_bits)
 {
+	uint32_t group0_bits = gpio_secure_bits & 0xFFFFFFFF;
+	uint32_t group1_bits = (gpio_secure_bits >> 32) & 0xFFFFFFFF;
 	PRRO_HAL_LOGD(TAG, "set gpio 0~31 to %x, 32~64 to %x\r\n", group0_bits, group1_bits);
 	prro_ll_set_aon_gpio_nonsec0(group0_bits);
-	prro_ll_set_aon_gpio_nonsec1(group1_bits);
+	prro_ll_set_aon_gpio_nonsec0(group1_bits);
 	return BK_OK;
 }
 
-bk_err_t prro_hal_set_ahb_dev_secure(uint32_t ahb_dev_secure_bits)
+bk_err_t prro_hal_set_ahb_dev_secure(uint64_t ahb_dev_secure_bits)
 {
 	PRRO_SEC_MAP(sec_map);
 	uint32_t reg_bits = config_bits_to_reg_bits(sec_map, PRRO_DEV_AHB_AON, PRRO_DEV_AHB_MAX, ahb_dev_secure_bits);
-	PRRO_HAL_LOGD(TAG, "set ahb secure, reg_bits=%x\r\n", reg_bits);
+	PRRO_HAL_LOGD(TAG, "set ahb secure\r\n");
 	prro_ll_set_ahb_cfg_nsec(reg_bits);
 	return BK_OK;
 }
 
-bk_err_t prro_hal_set_apb_dev_secure(uint32_t apb_dev_secure_bits)
+bk_err_t prro_hal_set_apb_dev_secure(uint64_t apb_dev_secure_bits)
 {
 	PRRO_SEC_MAP(sec_map);
 	uint32_t reg_bits = config_bits_to_reg_bits(sec_map, PRRO_DEV_APB_WDT, PRRO_DEV_APB_MAX, apb_dev_secure_bits);
-	PRRO_HAL_LOGD(TAG, "set apb secure, reg_bits=%x\r\n", reg_bits);
+	PRRO_HAL_LOGD(TAG, "set apb secure\r\n");
 	prro_ll_set_apb_cfg_nsec(reg_bits);
 	return BK_OK;
 }
 
 //TODO
-bk_err_t prro_hal_set_hnonsec_dev_secure(uint32_t hnonsec_dev_secure_bits)
+bk_err_t prro_hal_set_hnonsec_dev_secure(uint64_t hnonsec_dev_secure_bits)
 {
 	return BK_OK;
 }

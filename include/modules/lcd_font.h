@@ -3,6 +3,7 @@
 #define _LCD_FONT_H
 
 
+#define  FILTER_Y 0x20
 
 #define LCD_FONT_WIDTH  480
 #define LCD_FONT_HEIGHT 36
@@ -19,6 +20,11 @@
 #define UI_COLOR_VUYY_BLACK    0x80800000
 #define UI_COLOR_VUYY_WHITE    0x8080FFFF
 
+typedef enum {
+	FONT_RGB565 = 0,       /**< RGB565 DMA2D color mode   */
+	FONT_YUYV,
+	FONT_VUYY,
+} font_format_t;
 
 typedef struct
 {
@@ -57,10 +63,8 @@ typedef struct
 
 
 typedef enum {
-	RGB565_BLACK = 0,   /**< 0: draw font is black */
-	RGB565_WHITE,       /**< 1: draw font is white */
-	YUV_BLACK,
-	YUV_WHITE,
+	FONT_WHITE = 0,
+	FONT_BLACK,
 
 }font_colot_t;
 
@@ -70,6 +74,7 @@ typedef struct
 	const gui_font_digit_struct *digit_info;
 	const char * s;
 	font_colot_t font_color;
+	font_format_t font_fmt;
 	int width;
 	int height;
 	int x_pos;
@@ -77,7 +82,9 @@ typedef struct
 }font_t;
 
 /*======================antialiased 4bpp===============================*/
-#define FONT_ANTI4BPP_ROBOTO_53           0
+#define FONT_ANTI4BPP_ROBOTO_53           1
+#define FONT_ANTI4BPP_BLACK24             1
+#define FONT_ANTI4BPP_BLACK48             1
 #define FONT_ANTI4BPP_SOURCE_HAN_SANS17   0   /* 思源黑体*/
 #define FONT_ANTI4BPP_SOURCE_HAN_SANS42   0 
 
@@ -90,11 +97,17 @@ extern const gui_font_digit_struct *const font_digitSource_Han_Sans17;
 #if FONT_ANTI4BPP_SOURCE_HAN_SANS42
 extern const gui_font_digit_struct *const font_digitSource_Han_Sans42;
 #endif
+#if FONT_ANTI4BPP_BLACK24
+extern const gui_font_digit_struct *const font_digit_black24;
+#endif
+#if FONT_ANTI4BPP_BLACK48
+extern const gui_font_digit_struct *const font_digit_black48;
+#endif
 
 /*======================no antialiased font===============================*/
 #define FONT_NOANTI_NEWSONG42          0
-#define FONT_NOANTI_NEWSONG48          1
-#define FONT_NOANTI_NEWSONG24          1
+#define FONT_NOANTI_NEWSONG48          0
+#define FONT_NOANTI_NEWSONG24          0
 #define FONT_NOANTI_BLACK48            0
 #define FONT_NOANTI_NSOURCE_HAN_SANS48 0   /* 思源黑体*/
 

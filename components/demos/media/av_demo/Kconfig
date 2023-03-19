@@ -1,3 +1,22 @@
-config AV_DEMO
-	bool "Enable AV Demo"
-	default n
+menu "Demos::Media::Av_demo"
+	config AV_DEMO
+		bool "Enable Av Demo"
+		default n
+
+	choice AV_DEMO_MODE
+		depends on AV_DEMO
+		prompt "Select Av Demo Mode"
+		default AV_DEMO_MODE_UDP
+
+		config AV_DEMO_MODE_UDP
+			bool "AV_DEMO_MODE_UDP"
+			help
+				AV demo work in UDP mode
+
+		config AV_DEMO_MODE_TCP
+			bool "AV_DEMO_MODE_TCP"
+			help
+				AV demo work in TCP mode
+
+	endchoice
+endmenu

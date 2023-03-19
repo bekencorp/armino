@@ -105,7 +105,6 @@ const struct partition_{{manifest.name|lower}}_load_info_t {{manifest.name|lower
         .psa_ff_ver                 = 0x0101 | PARTITION_INFO_MAGIC,
 {% endif %}
         .pid                        = {{manifest.name}},
-        .name                       = __FILE__,
         .flags                      = 0
 {% if manifest.model == "IPC" %}
                                     | PARTITION_MODEL_IPC

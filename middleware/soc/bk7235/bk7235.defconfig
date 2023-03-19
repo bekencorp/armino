@@ -582,3 +582,13 @@ CONFIG_CHIP_SUPPORT=y
 #
 #
 CONFIG_CHANGE_JTAG_GPIO=y
+
+#
+# vault support
+#
+CONFIG_VAULT_SUPPORT=y
+
+#
+# OTP support
+#
+CONFIG_OTP=y

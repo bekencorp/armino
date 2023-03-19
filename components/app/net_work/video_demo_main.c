@@ -13,7 +13,8 @@
 #define VIDE_MODE_STATION        (0x1)
 #define VIDE_MODE_SOFTAP         (0x2)
 #define VIDE_MODE_P2P            (0x4)
-extern void app_demo_sta_start(char *oob_ssid, char *connect_key);
+//extern void app_demo_sta_start(char *oob_ssid, char *connect_key);
+extern void app_demo_sta_start(char *oob_ssid, char *connect_key, int argc, char **argv);
 extern void app_demo_sta_exit(void);
 
 extern void app_demo_softap_start(char *oob_ssid, char *connect_key);
@@ -201,7 +202,16 @@ void cmd_video_transfer(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				/* video_transfer -s ssid key [options] */
 				connect_key = argv[3];
 			}
-			app_demo_sta_start(oob_ssid, connect_key);
+
+			if(argc >= 4)
+			{
+			    app_demo_sta_start(oob_ssid, connect_key, argc - 4, &argv[4]);
+			}
+			else
+			{
+			    app_demo_sta_start(oob_ssid, connect_key, argc - 3, &argv[3]);
+			}
+
 			video_transfer_mode |= VIDE_MODE_STATION;
 		}
 		else
@@ -235,7 +245,7 @@ void cmd_video_transfer(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				connect_key = argv[3];
 			}
 
-#if CONFIG_P2P
+#if CONFIG_COMPONENTS_P2P
 			app_demo_p2p_start(oob_ssid, connect_key);
 			video_transfer_mode |= VIDE_MODE_P2P;
 #endif

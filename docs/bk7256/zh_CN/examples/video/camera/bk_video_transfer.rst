@@ -59,7 +59,7 @@ Video_transfer
 
 	1、准备好dvp摄像头，连接方式如图1所示：
 
-		图中位置1所用的摄像头是gc0328c, 支持输出的分辨率有很多类型，例如640X480, 480X272, 320X480等，另外图中位置1也是dvp摄像头的接口
+		图中位置1所用的摄像头是gc0328c(20-pin), 支持输出的分辨率有很多类型，例如640X480, 480X272, 320X480等，另外图中位置2也是dvp摄像头的接口(24-pin)
 
 	2、顺序发送下面命令：(分辨率和帧率可以省略，默认640X480和20)
 
@@ -75,7 +75,49 @@ Video_transfer
 
 	3、手机wifi连接上test名字的路由, 密码为: 12345678
 
-	4、连接成功后打开图传的app即可，图传app操作如图2，3和4所示。
+	4、连接成功后打开图传的app即可，图2为app示意图，app操作如图3-6所示。
+
+	以下流程以板子作为softap为例，介绍apk的使用，在手机连接到板子使能的ap后：
+
+	5.图3为app的主界面
+
+		其中，选择1可以看到图4
+
+		- 1：设置菜单；
+		- 2：更新apk和回退apk菜单；
+
+	6.图4为设置界面菜单
+
+		其中：
+
+		- 1：为设置界面如图5所示；
+		- 2：为返回主界面按钮；
+
+	7.图5为真正的设置界面
+
+		其中，设置说明如下，设置完成后返回图3主界面
+
+		- 1：设置解决方案，当前支持video_transfer和doorbell，此处选择video_transfer；
+		- 2：设置数据传输模式，当前仅支持UDP，默认选择UDP；
+		- 3：设置对端的ip地址，ap模式下默认为``192.168.0.1``不用修改，sta模式下设置为对端的ip地址；
+		- 4：设置摄像头类型，当前支持DVP和UVC，根据自己使用摄像头类型进行设置；
+		- 5：设置摄像头的输出分辨率；
+		- 6：设置LCD输出的分辨率，根据自己使用的LCD屏幕分辨率进行设置；
+
+	5.图6为功能使能设置界面
+
+		其中，功能使能说明如下所示：
+
+		- 1：开关视频图传；
+		- 2：开关语音；
+		- 3：拍照开关，当前暂不支持；
+		- 4：开关LCD屏幕显示；
+
+.. note::
+
+	在图4中设置对端IP地址，当板子为softap时，默认为``192.168.0.1``，当板子作为staion时，手机和板子连接同一个ap，填入的IP地址可以通过命令``ip``获得。
+	另外该app还支持手机图传功能，即命令``video_transfer -a|s ssid key``，但是必须将图4步骤1设置为``video_transfer``模式。
+	apk的下载地址如下：http://dl.bekencorp.com/apk/RealtimeVideo.apk
 
 .. figure:: ../../../../../common/_static/video_transfer_evb.png
     :align: center
@@ -84,29 +126,40 @@ Video_transfer
 
     Figure 1. sensor connect evb
 
-.. figure:: ../../../../../common/_static/wifi_camera_app.jpg
+.. figure:: ../../../../../common/_static/RealtimeVideo_app.jpg
     :align: center
-    :alt: 图传app
+    :alt: RealtimeVideo_app
     :figclass: align-center
 
-    Figure 2. WiFi Camera app
+    Figure 2. doorbell apk
 
-.. figure:: ../../../../../common/_static/wifi_camera_set0.jpg
+.. figure:: ../../../../../common/_static/RealtimeVideo_set0.jpg
     :align: center
-    :alt: app set
+    :alt: RealtimeVideo_app_screen
     :figclass: align-center
 
-    Figure 3. WiFi Camera app set
+    Figure 3. RealtimeVideo_app Main screen
 
-	如上图所示，当要进行图传时，连接上图传命令中设置的ssid后，位置1会提示``使用UDP广播指定的IP地址和端口``，否则图传将不会生效；
-	看到提示1后，点击位置2，开启图传，图传效果如图4所示。发送停止和开始的命令可以让图传停止和开始。
-
-.. figure:: ../../../../../common/_static/wifi_camera_start.jpg
+.. figure:: ../../../../../common/_static/RealtimeVideo_set1.jpg
     :align: center
-    :alt: app using
+    :alt: RealtimeVideo_app_set_menu
     :figclass: align-center
 
-    Figure 4. WiFi Camera effect drawing
+    Figure 4. RealtimeVideo_app Set menu
+
+.. figure:: ../../../../../common/_static/RealtimeVideo_set2.jpg
+    :align: center
+    :alt: RealtimeVideo_app_set
+    :figclass: align-center
+
+    Figure 5. RealtimeVideo_app set
+
+.. figure:: ../../../../../common/_static/RealtimeVideo_set3.jpg
+    :align: center
+    :alt: RealtimeVideo_function_set
+    :figclass: align-center
+
+    Figure 6. RealtimeVideo_function set
 
 5 详细配置及其说明
 -------------------------------------
@@ -162,7 +215,7 @@ Video_transfer
 
 	3、支持动态设置分辨率和帧率，不支持设置更换dvp设备
 
-	- 在退出图传之后，发送dvp set_cfg param1 param2 param3命令，param1不能改动，param2和param3可以修改。
+	- 在退出图传之后，发送video_transfer -s|a ssid [key] [camera_type] [ppi] [fps]命令，只有camera_type，ppi和fps可以修改。
 
 	4、可测试的方案
 		- dvp图传：video_transfer -a name_test 12345678
@@ -178,7 +231,7 @@ Video_transfer
     :alt: video_transfer软件流程
     :figclass: align-center
 
-    Figure 5. video transfer function call
+    Figure 7. video transfer function call
 
 	6、图传模块间调用
 
@@ -187,4 +240,4 @@ Video_transfer
     :alt: video_transfer模块调用
     :figclass: align-center
 
-    Figure 6. video transfer modules communicate
+    Figure 8. video transfer modules communicate

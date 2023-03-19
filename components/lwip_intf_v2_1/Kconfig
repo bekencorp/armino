@@ -1,57 +1,66 @@
 #TODO add depens for CONFIG_HOST (bk7231u)
-menu "LwIP 2.1.2"
-	config LWIP
-		bool "Enable LWIP"
-		default y
-		
+menu "Lwip_intf_v2_1"
+
 	config IPV6
 		bool "Enable IPV6"
 		default n
 
-	config DHCP
-		bool "Enable DHCP"
-		depends on LWIP
-		default y
-		
-	config AUTOIP
-		bool "Enable AUTOIP"
-		depends on LWIP
-		default n
-
-	config MDNS
-		bool "Enable MDNS"
-		depends on LWIP
-		default n
-		
-	config TASK_LWIP_PRIO
-		int "Priority of LwIP task"
-		depends on LWIP
-		range 1 10
-		default 4
-		
-	config MIDEA
-		bool "Enable MIDEA"
-		depends on LWIP
-		default n
-
 	config WIFI_FAST_DHCP
-		bool "Enable Fast DHCP(use previous IP)"
+		bool "Enable Wifi Fast Dhcp"
 		default n
+		help
+			Enable Fast DHCP(use previous IP)
 
 	config MQTT_ACK_NOW
-		bool "Enable ACK_NOW if MQTT is open"
-                default y
+		bool "Enable Mqtt Ack Now"
+		default y
+		help
+			Enable ACK_NOW if MQTT is open
 
-	#TODO optimize it
-        choice LWIP_MEM
+	config LWIP
+		bool "Enable LWIP"
+		default y
+
+	menu "Modify Lwip Config"
 		depends on LWIP
-                prompt "LWIP Memory Policy"
-                default LWIP_MEM_DEFAULT
 
-                config LWIP_MEM_DEFAULT
-                        bool "Default Memory Policy"
-                config LWIP_MEM_REDUCE
-                        bool "Reduced Memory Policy"
-        endchoice
+		config DHCP
+			bool "Enable DHCP"
+			default y
+		
+		config AUTOIP
+			bool "Enable AUTOIP"
+			default n
+
+		config MDNS
+			bool "Enable MDNS"
+			default n
+
+		config TASK_LWIP_PRIO
+			int "Set Task Lwip Prio"
+			range 1 10
+			default 4
+			help
+				Priority of LwIP task
+
+		config MIDEA
+			bool "Enable MIDEA"
+			default n
+
+		#TODO optimize it
+		choice LWIP_MEM
+			prompt "Select Lwip Mem Policy"
+			default LWIP_MEM_DEFAULT
+
+			config LWIP_MEM_DEFAULT
+				bool "LWIP_MEM_DEFAULT"
+				help
+					Default Memory Policy
+			config LWIP_MEM_REDUCE
+				bool "LWIP_MEM_REDUCE"
+				help
+					Reduced Memory Policy
+		endchoice
+	endmenu
 
 endmenu

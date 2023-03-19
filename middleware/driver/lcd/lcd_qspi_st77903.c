@@ -23,8 +23,8 @@
 #define LCD_QSPI_ST77903_HSYNC_COMMAND				0x60
 #define LCD_QSPI_ST77903_VSYNC_COMMAND				0x61
 #define LCD_QSPI_ST77903_VSW	(1)
-#define LCD_QSPI_ST77903_HFP	(8)
-#define LCD_QSPI_ST77903_HBP	(8)
+#define LCD_QSPI_ST77903_HFP	(4)
+#define LCD_QSPI_ST77903_HBP	(4)
 
 
 #if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
@@ -74,7 +74,7 @@ static const lcd_qspi_init_cmd_t st77903_init_cmds[] = {
 
 static uint8_t st77903_cmd[4] = {0xDE, 0x00, 0x60, 0x00};
 
-
+//st77903 screen without display ram, and need to send data continuously.
 const lcd_qspi_device_t lcd_qspi_device_st77903 =
 {
 	.id = LCD_QSPI_DEVICE_ST77903,

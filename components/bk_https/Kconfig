@@ -1,0 +1,7 @@
+menu "Https"
+	config HTTPS
+	depends on MBEDTLS
+		bool "Enable HTTPS"
+		default n
+
+endmenu

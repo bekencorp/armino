@@ -16,7 +16,6 @@
 
 #include <soc/soc.h>
 #include "adc_hw.h"
-#include "system_hw.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,14 +42,11 @@ static inline uint32_t adc_ll_get_dev_status(adc_hw_t *hw)
 {
 	return hw->dev_status;
 }
+
 static inline void adc_ll_init(adc_hw_t *hw)
 {
 	adc_ll_soft_reset(hw);
 	hw->ctrl.v = 0;
-	//update gadc configure for saradc when clock on, remove it if use sdmadc
-	//keep it without recovery since there would be only one gadc finally
-	sys_ll_set_ana_reg2_sp_nt_ctrl(0x3);
-	sys_ll_set_ana_reg2_gadc_refbuf_ictrl(0x2);
 }
 
 static inline void adc_ll_deinit(adc_hw_t *hw)

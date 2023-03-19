@@ -195,30 +195,6 @@ typedef struct _network_InitTypeDef_st
 	char reserved[26];            /**< Reserved */
 	int  wifi_retry_interval;     /**< Retry interval if an error is occured when connecting an access point,
 						time unit is millisecond. */
-	bool hidden_ssid;			  /**< hidden ssid, only for softap */
-#if CONFIG_WIFI_STA_VSIE || CONFIG_WIFI_AP_VSIE
-	uint8_t vsie[255];			  /**< vendor specific IE for probe req/assoc req. */
-	uint8_t vsie_len;			  /**< vendor specific IE len. */
-#endif
-#if CONFIG_WIFI_AP_CUSTOM_RATES
-	/* mark last basic_rates be zero */
-	int basic_rates[16];
-	/* mark last supported_rates be zero */
-	int supported_rates[16];
-	/* mark last mcs_set be zero, don't change mcs_set length */
-	uint8_t mcs_set[16];
-#endif
-#if CONFIG_WIFI_AP_HW_MODE
-	/* bk_wlan_hw_mode */
-	int hw_mode;
-#endif
-#if CONFIG_QUICK_TRACK
-	int key_mgmt;
-	int pairwise_cipher;
-	int group_cipher;
-	int proto;		// WPA, RSN
-	int ieee80211w;
-#endif
 } network_InitTypeDef_st;
 
 /**
@@ -300,31 +276,6 @@ struct wlan_fast_connect_info
 	uint8_t netmask[4];
 	uint8_t gw[4];
 	uint8_t dns1[4];
-
-#if CONFIG_WLAN_FAST_CONNECT_WITHOUT_SCAN
-	uint16_t freq;
-	u16 beacon_int;
-	uint16_t caps;
-	int level;
-	// u64 tsf;
-	uint16_t ie_len;
-	uint8_t ies[1024];	/* FIXME: use dynamic len */
-#endif
-#if CONFIG_WLAN_FAST_CONNECT_DEAUTH_FIRST
-	uint8_t pmf;
-	uint8_t tk[16];
-#endif
-#if CONFIG_WLAN_FAST_CONNECT_WPA3
-	uint8_t pmk_len;
-	uint8_t pmk[64]; // for WPA2 Personal, pmk = psk
-	uint8_t pmkid[16];
-	int akmp;
-#endif
-
-#if (CONFIG_FAST_CONNECT_INFO_ENC_METHOD == ENC_METHOD_AES)
-	/* aes attention: sizeof(RL_BSSID_INFO_T) = 16 * n */
-	uint8_t padding[0] __attribute__ ((aligned (16)));
-#endif
 };
 
 typedef struct vif_addcfg_st {

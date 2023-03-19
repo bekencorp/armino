@@ -1,7 +1,7 @@
 BLE Cli
 ================
 
-:link_to_translation:`zh_CN:[Chinese]`
+:link_to_translation:`zh_CN:[中文]`
 
 1、Function overview
 --------------------------
@@ -314,3 +314,36 @@ The supported CMDs are as follows:
 
 	 - Test Case
 		``AT+BLE=UNREGISTERSERVICE,ff11``
+
+	14.AT+BLE=BOND
+	 - Function Description
+		Used to ble pairing
+	 - CMD Format
+		AT+BLE=BOND,param1
+
+		+-----------+------------------------------------------------------------------------+
+		|param1     | Peer_Address                                                           |
+		+-----------+------------------------------------------------------------------------+
+
+	 - Test Case
+		``AT+BLE=BOND,db:b4:6f:66:8a:db``
+
+	15.AT+BLE=ATTREAD
+	 - Function Description
+		Used to read the characteristic value of the slave when the device is used as the master
+	 - CMD Format
+		AT+BLE=ATTREAD,param1,param2,param3
+
+		+-----------+------------------------------------------------------------------------+
+		|param1     | Device_ID                                                              |
+		|           |  Default: 0  (Start from value 0)                                      |
+		+-----------+------------------------------------------------------------------------+
+		|param2     | Con_Idx                                                                |
+		|           |  Default: 0  (Start from value 0)                                      |
+		+-----------+------------------------------------------------------------------------+
+		|param3     | Attribute_Handle                                                       |
+		|           |  Start from value 0  (The value is reported during the BLE connection) |
+		+-----------+------------------------------------------------------------------------+
+
+	 - Test Case
+		``AT+BLE=ATTREAD,0,0,9``

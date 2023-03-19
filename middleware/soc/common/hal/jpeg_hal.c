@@ -89,6 +89,8 @@ bk_err_t jpeg_hal_switch_mode(jpeg_hal_t *hal, const jpeg_config_t *config)
 		jpeg_ll_enable_hsync_reverse(hal->hw, 1);
 	}
 
+	jpeg_ll_yuv_fml_sel(hal->hw, config->sensor_fmt);
+
 	if (config->mode == JPEG_ENC_MODE)
 	{
 		jpeg_ll_enable_end_frame_int(hal->hw);

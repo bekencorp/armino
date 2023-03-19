@@ -1,3 +1,7 @@
-config AT
-	bool "Enable AT"
-	default n
+menu "At_server"
+
+	config AT
+		bool "Enable At"
+		default n
+
+endmenu

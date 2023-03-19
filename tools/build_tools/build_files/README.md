@@ -15,12 +15,11 @@ SoC is already supported.
 
 ==Tag version is the officaial release version, please use the official release version for development.==
 
-|Chip                                                                                |          v1.X.X             |
+|Chip                                                                                |          v1.4.0             |
 |:---------------------------------------------------------------------------------- | :-------------------------: |
-|[BK7235](http://docs.bekencorp.com/spec/BK7235/BK7235%C2%A0Datasheet_V0.1.pdf)      | ![alt text][developing]     |
-|[BK7236](http://docs.bekencorp.com/spec/BK7256/BK7236%C2%A0Datasheet_V0.1.pdf)      | ![alt text][developing]     |
-|[BK7237](http://docs.bekencorp.com/spec/BK7237/BK7237%C2%A0Datasheet_V0.3.pdf)      | ![alt text][developing]     |
-|[BK7256](http://docs.bekencorp.com/spec/BK7256/BK7256%C2%A0Datasheet_V0.1.pdf)      | ![alt text][developing]     |
+|[BK7235](http://docs.bekencorp.com/spec/BK7235/BK7235%C2%A0Datasheet_V0.1.pdf)      | ![alt text][supported]     |
+|[BK7237](http://docs.bekencorp.com/spec/BK7237/BK7237%C2%A0Datasheet_V0.3.pdf)      | ![alt text][supported]     |
+|[BK7256](http://docs.bekencorp.com/spec/BK7256/BK7256%C2%A0Datasheet_V0.1.pdf)      | ![alt text][supported]     |
 
 [supported]: https://img.shields.io/badge/-supported-green "supported"
 [developing]: https://img.shields.io/badge/-developing-orange "developing"
@@ -42,19 +41,24 @@ denote developing status and support, respectively.
 [supported]: https://img.shields.io/badge/-supported-green "supported"
 [developing]: https://img.shields.io/badge/-developing-orange "developing"
 
+# Getting Started
+
+See the [Introduction](TODO_link_to_armino_intro_doc) to Armino for a high-level overview, 
+and the documentation's [Introduction](TODO_link_to_armino_get_started_doc) to start developing.
+
 # Community Support
 
- - Report bug or request new feature on [Github Issue Forum](https://github.com/bekencorp/armino/issues)
- - Ask for support or technical discussion on [Cummunity-Forum](https://armino.bekencorp.com/)
- - VIP Customer Support [VIP-Support](https://support.bekencorp.com/login?back_url=http%3A%2F%2Fsupport.bekencorp.com%2F)
+ - Report bug or request new feature on [Github Issue Forum](TODO_link_to_armino_github_forum)  
+ - Ask for support or technical discussion on [Cummunity-Forum](TODO_link_to_armino_forum)
 
 # Resource
 
 Here's a quick summary of resources to help you find your way around:
 
- - Documentation: http://docs.bekencorp.com/
+ - Documentation: http://docs.bekencorp.com/armino/bk7256/en/latest/
  - Source Code: https://github.com/bekencorp/armino is the main repository
- - Releases: https://github.com/bekencorp/armino/tags
- - Resource download center: http://dl.bekencorp.com/
+ - Releases: TODO_link_to_release_page
+ - Samples and example code: TODO_link_to_doc_sample_and_demo_page
+ - Resource download center: TODO_link_to_download_center_page
  - Beken Products: http://www.bekencorp.com/index/goods/product.html to gain overview about different Beken products
  - Beken Home Page: http://www.bekencorp.com to find more resources

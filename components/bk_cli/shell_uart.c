@@ -6,7 +6,7 @@
 #include "shell_drv.h"
 
 #define TX_QUEUE_LEN     8
-#define RX_BUFF_SIZE     160
+#define RX_BUFF_SIZE     200
 #define ECHO_BUFF_SIZE   64
 
 
@@ -103,7 +103,7 @@ shell_dev_t     shell_uart3 =
 #endif
 
 #if 0
-static const uart_config_t config = 
+static const uart_config_t config =
 	{
         .baud_rate = UART_BAUD_RATE,
         .data_bits = UART_DATA_8_BITS,
@@ -507,12 +507,12 @@ static bool_t shell_uart_ctrl(shell_dev_t * shell_dev, u8 cmd, void *param)
 
 		case SHELL_IO_CTRL_TX_SUSPEND:
 			uart_ext->tx_suspend = 1;
-			
+
 			// disable TX firstly, then set tx_stopped to 1.
 			bk_uart_disable_tx_interrupt(uart_ext->uart_id);
 
 			uart_ext->tx_stopped = 1;  /* suspend, tx stopped after fifo empty.*/
-			
+
 			extern bool bk_uart_is_tx_over(uart_id_t id);
 
 			while((bk_uart_is_tx_over(uart_ext->uart_id) == 0) && (param != 0))
@@ -526,7 +526,7 @@ static bool_t shell_uart_ctrl(shell_dev_t * shell_dev, u8 cmd, void *param)
 			if(uart_ext->tx_suspend != 0)
 			{
 				bk_uart_set_enable_tx(uart_ext->uart_id, 1);
-				
+
 				// resume tx.....
 				uart_ext->tx_suspend = 0;
 				shell_uart_tx_trigger(uart_ext);
@@ -548,7 +548,7 @@ static bool_t shell_uart_ctrl(shell_dev_t * shell_dev, u8 cmd, void *param)
 			u8 uart_port = *(u8 *)param;
 			uart_ext->uart_id = uart_port;
 			break;
-			
+
 		case SHELL_IO_CTRL_GET_RX_STATUS:
 			if(param == NULL)
 				return bFALSE;
@@ -557,7 +557,7 @@ static bool_t shell_uart_ctrl(shell_dev_t * shell_dev, u8 cmd, void *param)
 			uart_ext->rx_over_flow = 0; // clear it after read by user.
 
 			break;
-		
+
 		default:
 			return bFALSE;
 			break;

@@ -75,12 +75,21 @@ typedef enum
 	STORAGE_TASK_EXIT,
 } storage_task_evt_t;
 
+typedef void (*frame_cb_t)(frame_buffer_t *frame);
+
 storage_info_t storage_info;
 char *capture_name = NULL;
 storage_flash_t storge_flash;
 bool storage_task_running = false;
 beken_semaphore_t storage_save_sem = NULL;
+frame_cb_t frame_read_callback = NULL;
 
+bk_err_t media_app_register_read_frame_cb(void *cb)
+{
+	frame_read_callback = cb;
+
+	return BK_OK;
+}
 
 bk_err_t storage_task_send_msg(uint8_t msg_type, uint32_t data)
 {
@@ -358,7 +367,6 @@ static void storage_capture_save_handle(void)
 	frame_buffer_fb_free(frame, MODULE_CAPTURE);
 
 	storage_info.capture_state = STORAGE_STATE_DISABLED;
-
 }
 
 static void storage_save_frame_handle(void)
@@ -373,7 +381,18 @@ static void storage_save_frame_handle(void)
 		return;
 	}
 
-	storage_save_frame(frame);
+	if (frame_read_callback)
+	{
+		frame_read_callback(frame);
+	}
+	else
+	{
+#if (CONFIG_FATFS)
+		storage_save_frame(frame);
+#else
+		LOGI("%s, not support save to sdcard\r\n", __func__);
+#endif
+	}
 
 	frame_buffer_fb_free(frame, MODULE_CAPTURE);
 }
@@ -513,6 +532,7 @@ void storage_capture_handle(param_pak_t *param)
 	storage_task_send_msg(STORAGE_TASK_CAPTURE, 0);
 
 out:
+
 	MEDIA_EVT_RETURN(param, kNoErr);
 }
 
@@ -585,6 +605,11 @@ void storage_save_exit_handle(param_pak_t *param)
 	if (BK_OK != ret)
 	{
 		LOGE("%s storage_save_sem deinit failed\n");
+	}
+
+	if (frame_read_callback)
+	{
+		frame_read_callback = NULL;
 	}
 
 out:

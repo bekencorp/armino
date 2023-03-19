@@ -23,8 +23,8 @@ extern "C" {
 #define UART2_R_BASE            (SOC_UART2_REG_BASE)
 
 #define UART_F_CLK_DIV          (BIT(8))
-#define UART_F_CLK_DIV_M        0xffff
-#define UART_F_CLK_DIV_V        0xffff
+#define UART_F_CLK_DIV_M        0x1fff
+#define UART_F_CLK_DIV_V        0x1fff
 #define UART_F_CLK_DIV_S        0x8
 
 #define UART_V_MODE_UART        0x0

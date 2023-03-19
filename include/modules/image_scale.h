@@ -76,6 +76,21 @@ MINOOR_ITCM int yuyv_rotate_degree90(unsigned char *yuyv, unsigned char *rotated
 MINOOR_ITCM int vuyy_rotate_degree90(unsigned char *vuyy, unsigned char *rotatedVuyy, int width, int height);
 
 /**
+ * @brief yuyv to rgb data clockwise rotate90
+ */
+MINOOR_ITCM int yuyv2rgb_rotate_degree90(unsigned char *yuyv, unsigned char *rotatedYuyv, int width, int height);
+
+/**
+ * @brief vuyy to rgb data clockwise rotate90
+*/
+MINOOR_ITCM int vuyy2rgb_rotate_degree90(unsigned char *vuyy, unsigned char *rotatedVuyy, int width, int height);
+
+/**
+ * @brief image scale init
+ */
+void image_scale_init(void);
+
+/**
  * @brief  uyvy422 data convert to RGB565 data
  */
 int vuyy_to_rgb565_convert(unsigned char *src_buf, unsigned char *out_buf,int img_width, int img_height);
@@ -113,6 +128,16 @@ void yuyv_to_rgb888_convert(uint8_t *input_ptr, uint8_t *output_ptr, uint32_t wi
 void vuyy_to_rgb888(uint8_t *input_ptr, uint8_t *output_ptr, uint32_t width, uint32_t height);
 
 int rgb565_to_vuyy_convert(uint16_t *sourceLcdBuffer, uint16_t *destLcdBuffer,int img_width, int img_height);
+
+/*yuyv to rgb565*/
+MINOOR_ITCM int yuyv_to_rgb565(uint8_t *src_buff, uint8_t *dst_buff, int width, int height);
+
+/*vuyy to rgb565*/
+MINOOR_ITCM int vuyy_to_rgb565(uint8_t *src_buff, uint8_t *dst_buff, int width, int height);
+
+
+MINOOR_ITCM void argb8888_to_vuyy_blend(uint8_t *src, uint8_t *dst, uint32_t width, uint32_t height);
+MINOOR_ITCM void argb8888_to_yuyv_blend(uint8_t *src, uint8_t *dst, uint32_t width, uint32_t height);
 
 /*
  * @}

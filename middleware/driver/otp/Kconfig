@@ -1,0 +1,5 @@
+menu "OTP"
+	config OTP
+		bool "Enable OTP"
+		default n
+endmenu

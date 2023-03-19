@@ -13,13 +13,19 @@ SECTIONS
 	. = 0x10000000;
 	ITCM_BEGIN = .;
 	. = ALIGN(8);
+	. = ALIGN(ALIGNOF(".nds_init_*txl_he.c.obj"));
+	".nds_init_*txl_he.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR (.nds_vector) + SIZEOF (.nds_vector), ALIGNOF(".nds_init_*txl_he.c.obj")), 8))
+		{ KEEP(*txl_he.c.obj(.nds_init )) } = 0x0100
+	_itcm_lma_start =  LOADADDR (".nds_init_*txl_he.c.obj");
+	_itcm_ema_start = ADDR(".nds_init_*txl_he.c.obj");
 	. = ALIGN(ALIGNOF(".init_*txl_he.c.obj"));
-	".init_*txl_he.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR (.nds_vector) + SIZEOF (.nds_vector), ALIGNOF(".init_*txl_he.c.obj")), 8))
+	".init_*txl_he.c.obj" 	: AT(ALIGN(LOADADDR (".nds_init_*txl_he.c.obj") + SIZEOF (".nds_init_*txl_he.c.obj"), ALIGNOF(".init_*txl_he.c.obj")))
 		{ KEEP(*txl_he.c.obj(.init )) }
-	_itcm_lma_start =  LOADADDR (".init_*txl_he.c.obj");
-	_itcm_ema_start = ADDR(".init_*txl_he.c.obj");
+	. = ALIGN(ALIGNOF(".plt_*txl_he.c.obj"));
+	".plt_*txl_he.c.obj" 	: AT(ALIGN(LOADADDR (".init_*txl_he.c.obj") + SIZEOF (".init_*txl_he.c.obj"), ALIGNOF(".plt_*txl_he.c.obj")))
+		{ *txl_he.c.obj(.plt ) }
 	. = ALIGN(ALIGNOF(".text_*txl_he.c.obj"));
-	".text_*txl_he.c.obj" 	: AT(ALIGN(LOADADDR (".init_*txl_he.c.obj") + SIZEOF (".init_*txl_he.c.obj"), ALIGNOF(".text_*txl_he.c.obj")))
+	".text_*txl_he.c.obj" 	: AT(ALIGN(LOADADDR (".plt_*txl_he.c.obj") + SIZEOF (".plt_*txl_he.c.obj"), ALIGNOF(".text_*txl_he.c.obj")))
 		{ *txl_he.c.obj(.text .stub .text.* .gnu.linkonce.t.* ) KEEP(*txl_he.c.obj(.text.*personality* )) *txl_he.c.obj(.gnu.warning ) . = ALIGN(4); } = 0x0100
 	. = ALIGN(ALIGNOF(".fini_*txl_he.c.obj"));
 	".fini_*txl_he.c.obj" 	: AT(ALIGN(LOADADDR (".text_*txl_he.c.obj") + SIZEOF (".text_*txl_he.c.obj"), ALIGNOF(".fini_*txl_he.c.obj")))
@@ -31,11 +37,17 @@ SECTIONS
 	PROVIDE (_etext = .);
 	PROVIDE (etext = .);
 	. = ALIGN(8);
+	. = ALIGN(ALIGNOF(".nds_init_*txl_agg.c.obj"));
+	".nds_init_*txl_agg.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR (".exec.itable_*txl_he.c.obj") + SIZEOF (".exec.itable_*txl_he.c.obj"), ALIGNOF(".nds_init_*txl_agg.c.obj")), 8))
+		{ KEEP(*txl_agg.c.obj(.nds_init )) } = 0x0100
 	. = ALIGN(ALIGNOF(".init_*txl_agg.c.obj"));
-	".init_*txl_agg.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR (".exec.itable_*txl_he.c.obj") + SIZEOF (".exec.itable_*txl_he.c.obj"), ALIGNOF(".init_*txl_agg.c.obj")), 8))
+	".init_*txl_agg.c.obj" 	: AT(ALIGN(LOADADDR (".nds_init_*txl_agg.c.obj") + SIZEOF (".nds_init_*txl_agg.c.obj"), ALIGNOF(".init_*txl_agg.c.obj")))
 		{ KEEP(*txl_agg.c.obj(.init )) }
+	. = ALIGN(ALIGNOF(".plt_*txl_agg.c.obj"));
+	".plt_*txl_agg.c.obj" 	: AT(ALIGN(LOADADDR (".init_*txl_agg.c.obj") + SIZEOF (".init_*txl_agg.c.obj"), ALIGNOF(".plt_*txl_agg.c.obj")))
+		{ *txl_agg.c.obj(.plt ) }
 	. = ALIGN(ALIGNOF(".text_*txl_agg.c.obj"));
-	".text_*txl_agg.c.obj" 	: AT(ALIGN(LOADADDR (".init_*txl_agg.c.obj") + SIZEOF (".init_*txl_agg.c.obj"), ALIGNOF(".text_*txl_agg.c.obj")))
+	".text_*txl_agg.c.obj" 	: AT(ALIGN(LOADADDR (".plt_*txl_agg.c.obj") + SIZEOF (".plt_*txl_agg.c.obj"), ALIGNOF(".text_*txl_agg.c.obj")))
 		{ *txl_agg.c.obj(.text .stub .text.* .gnu.linkonce.t.* ) KEEP(*txl_agg.c.obj(.text.*personality* )) *txl_agg.c.obj(.gnu.warning ) . = ALIGN(4); } = 0x0100
 	. = ALIGN(ALIGNOF(".fini_*txl_agg.c.obj"));
 	".fini_*txl_agg.c.obj" 	: AT(ALIGN(LOADADDR (".text_*txl_agg.c.obj") + SIZEOF (".text_*txl_agg.c.obj"), ALIGNOF(".fini_*txl_agg.c.obj")))
@@ -47,11 +59,17 @@ SECTIONS
 	PROVIDE (_etext = .);
 	PROVIDE (etext = .);
 	. = ALIGN(8);
+	. = ALIGN(ALIGNOF(".nds_init_*txl_cntrl.c.obj"));
+	".nds_init_*txl_cntrl.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR (".exec.itable_*txl_agg.c.obj") + SIZEOF (".exec.itable_*txl_agg.c.obj"), ALIGNOF(".nds_init_*txl_cntrl.c.obj")), 8))
+		{ KEEP(*txl_cntrl.c.obj(.nds_init )) KEEP(*rxl_hwdesc.c.obj(.nds_init )) KEEP(*rxu_cntrl.c.obj(.nds_init )) } = 0x0100
 	. = ALIGN(ALIGNOF(".init_*txl_cntrl.c.obj"));
-	".init_*txl_cntrl.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR (".exec.itable_*txl_agg.c.obj") + SIZEOF (".exec.itable_*txl_agg.c.obj"), ALIGNOF(".init_*txl_cntrl.c.obj")), 8))
+	".init_*txl_cntrl.c.obj" 	: AT(ALIGN(LOADADDR (".nds_init_*txl_cntrl.c.obj") + SIZEOF (".nds_init_*txl_cntrl.c.obj"), ALIGNOF(".init_*txl_cntrl.c.obj")))
 		{ KEEP(*txl_cntrl.c.obj(.init )) KEEP(*rxl_hwdesc.c.obj(.init )) KEEP(*rxu_cntrl.c.obj(.init )) }
+	. = ALIGN(ALIGNOF(".plt_*txl_cntrl.c.obj"));
+	".plt_*txl_cntrl.c.obj" 	: AT(ALIGN(LOADADDR (".init_*txl_cntrl.c.obj") + SIZEOF (".init_*txl_cntrl.c.obj"), ALIGNOF(".plt_*txl_cntrl.c.obj")))
+		{ *txl_cntrl.c.obj(.plt ) *rxl_hwdesc.c.obj(.plt ) *rxu_cntrl.c.obj(.plt ) }
 	. = ALIGN(ALIGNOF(".text_*txl_cntrl.c.obj"));
-	".text_*txl_cntrl.c.obj" 	: AT(ALIGN(LOADADDR (".init_*txl_cntrl.c.obj") + SIZEOF (".init_*txl_cntrl.c.obj"), ALIGNOF(".text_*txl_cntrl.c.obj")))
+	".text_*txl_cntrl.c.obj" 	: AT(ALIGN(LOADADDR (".plt_*txl_cntrl.c.obj") + SIZEOF (".plt_*txl_cntrl.c.obj"), ALIGNOF(".text_*txl_cntrl.c.obj")))
 		{ *txl_cntrl.c.obj(.text .stub .text.* .gnu.linkonce.t.* ) *rxl_hwdesc.c.obj(.text .stub .text.* .gnu.linkonce.t.* ) *rxu_cntrl.c.obj(.text .stub .text.* .gnu.linkonce.t.* ) KEEP(*txl_cntrl.c.obj(.text.*personality* )) KEEP(*rxl_hwdesc.c.obj(.text.*personality* )) KEEP(*rxu_cntrl.c.obj(.text.*personality* )) *txl_cntrl.c.obj(.gnu.warning ) *rxl_hwdesc.c.obj(.gnu.warning ) *rxu_cntrl.c.obj(.gnu.warning ) . = ALIGN(4); } = 0x0100
 	. = ALIGN(ALIGNOF(".fini_*txl_cntrl.c.obj"));
 	".fini_*txl_cntrl.c.obj" 	: AT(ALIGN(LOADADDR (".text_*txl_cntrl.c.obj") + SIZEOF (".text_*txl_cntrl.c.obj"), ALIGNOF(".fini_*txl_cntrl.c.obj")))
@@ -78,8 +96,11 @@ SECTIONS
 	.itcm 	: AT(LOADADDR (.interrupt.HalTrapVector.text.HalTrapVector) + SIZEOF (.interrupt.HalTrapVector.text.HalTrapVector))
 		{ KEEP(*(.itcm )) }
 	. = ALIGN(8);
+	. = ALIGN(ALIGNOF(.nds_init));
+	.nds_init 	: AT(ALIGN(ALIGN(LOADADDR (.itcm) + SIZEOF (.itcm), ALIGNOF(.nds_init)), 8))
+		{ KEEP(*(.nds_init )) } = 0x0100
 	. = ALIGN(ALIGNOF(.interp));
-	.interp 	: AT(ALIGN(ALIGN(LOADADDR (.itcm) + SIZEOF (.itcm), ALIGNOF(.interp)), 8))
+	.interp 	: AT(ALIGN(LOADADDR (.nds_init) + SIZEOF (.nds_init), ALIGNOF(.interp)))
 		{ *(.interp ) }
 	. = ALIGN(ALIGNOF(.note.gnu.build-id));
 	.note.gnu.build-id 	: AT(ALIGN(LOADADDR (.interp) + SIZEOF (.interp), ALIGNOF(.note.gnu.build-id)))
@@ -165,8 +186,11 @@ SECTIONS
 	. = ALIGN(ALIGNOF(.init));
 	.init 	: AT(ALIGN(LOADADDR (.rela.plt) + SIZEOF (.rela.plt), ALIGNOF(.init)))
 		{ KEEP(*(.init )) }
+	. = ALIGN(ALIGNOF(.plt));
+	.plt 	: AT(ALIGN(LOADADDR (.init) + SIZEOF (.init), ALIGNOF(.plt)))
+		{ *(.plt ) }
 	. = ALIGN(ALIGNOF(.text));
-	.text 	: AT(ALIGN(LOADADDR (.init) + SIZEOF (.init), ALIGNOF(.text)))
+	.text 	: AT(ALIGN(LOADADDR (.plt) + SIZEOF (.plt), ALIGNOF(.text)))
 		{ *(.text .stub .text.* .gnu.linkonce.t.* ) KEEP(*(.text.*personality* )) *(.gnu.warning ) . = ALIGN(4); } = 0x0100
 	. = ALIGN(ALIGNOF(.fini));
 	.fini 	: AT(ALIGN(LOADADDR (.text) + SIZEOF (.text), ALIGNOF(.fini)))
@@ -315,12 +339,12 @@ SECTIONS
 	".sbss_w_*sdp_common.c.obj" 	(NOLOAD)	: { *sdp_common.c.obj(.sbss_w .sbss_w.* ) *app_ble.c.obj(.sbss_w .sbss_w.* ) *prf.c.obj(.sbss_w .sbss_w.* ) *sdp_common.c.obj(.scommon_w .scommon_w.* ) *app_ble.c.obj(.scommon_w .scommon_w.* ) *prf.c.obj(.scommon_w .scommon_w.* ) *sdp_common.c.obj(.dynsbss ) *app_ble.c.obj(.dynsbss ) *prf.c.obj(.dynsbss ) *sdp_common.c.obj(.scommon ) *app_ble.c.obj(.scommon ) *prf.c.obj(.scommon ) . = ALIGN(8); }
 	".sbss_d_*sdp_common.c.obj" 	(NOLOAD)	: { *sdp_common.c.obj(.sbss_d .sbss_d.* ) *app_ble.c.obj(.sbss_d .sbss_d.* ) *prf.c.obj(.sbss_d .sbss_d.* ) *sdp_common.c.obj(.scommon_d .scommon_d.* ) *app_ble.c.obj(.scommon_d .scommon_d.* ) *prf.c.obj(.scommon_d .scommon_d.* ) }
 	".bss_*sdp_common.c.obj" 	(NOLOAD)	: { *sdp_common.c.obj(.dynbss ) *app_ble.c.obj(.dynbss ) *prf.c.obj(.dynbss ) *sdp_common.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *app_ble.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *prf.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *sdp_common.c.obj(COMMON ) *app_ble.c.obj(COMMON ) *prf.c.obj(COMMON ) . = ALIGN(8); }
-	_bt_data_end = .;
 	SRAM_BT_SIZE = . - SRAM_BT_BEGIN;
-	. = 0x30020800;
+	. = 0x30020000;
 	SRAM_DATA_BEGIN = .;
 	.sram_nocache 	: AT(LOADADDR (.ble_bss_data) + SIZEOF (.ble_bss_data))
 		{ KEEP(*(.sram_nocache )) }
+	_bt_data_end = ADDR(.sram_nocache);
 	. = ALIGN(8);
 	. = ALIGN(0x20);
 	. = ALIGN(ALIGNOF(.eh_frame));
@@ -444,9 +468,9 @@ SECTIONS
 ASSERT((DEFINED (_RELAX_END_) ? FLASH1_SIZE : 0x0)<= 0x800, "FLASH1 OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? ITCM_SIZE : 0x0)<= 0x8000, "ITCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD1_SIZE : 0x0)<= 0x8800, "CPU0_LOAD1 OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x7800, "DTCM OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x7000, "DTCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM_VIDEO_SIZE : 0x0)<= 0xA000, "SRAM_VIDEO OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM_BT_SIZE : 0x0)<= 0x16000, "SRAM_BT OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? SRAM_DATA_SIZE : 0x0)<= 0x1F800, "SRAM_DATA OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? SRAM_DATA_SIZE : 0x0)<= 0x20000, "SRAM_DATA OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM_CACHE_SIZE : 0x0)<= 0x40000, "SRAM_CACHE OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD2_SIZE : 0x0)<= 0x1B6800, "CPU0_LOAD2 OVERFLOW");

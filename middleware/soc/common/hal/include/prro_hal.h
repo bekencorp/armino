@@ -29,16 +29,16 @@ typedef struct {
 
 bk_err_t prro_hal_init(prro_hal_t *hal);
 bk_err_t prro_hal_set_privilege(prro_dev_t dev, prro_privilege_type_t privilege_type);
-bk_err_t prro_hal_set_ahb_dev_privilege(uint32_t ahb_priv_bits);
-bk_err_t prro_hal_set_apb_dev_privilege(uint32_t ahb_priv_bits);
+bk_err_t prro_hal_set_ahb_dev_privilege(uint64_t ahb_priv_bits);
+bk_err_t prro_hal_set_apb_dev_privilege(uint64_t ahb_priv_bits);
 
 bk_err_t prro_hal_set_secure(prro_dev_t dev, prro_secure_type_t secure_type);
-bk_err_t prro_hal_set_gpios_secure(uint32_t gpio_0_31_bits, uint32_t gpio_32_63_bits);
-bk_err_t prro_hal_set_ahb_dev_secure(uint32_t ahb_dev_sec_bits);
-bk_err_t prro_hal_set_apb_dev_secure(uint32_t apb_dev_sec_bits);
-bk_err_t prro_hal_set_hnonsec_dev_secure(uint32_t hnonsec_dev_sec_bits);
+bk_err_t prro_hal_set_gpios_secure(uint64_t gpio_sec_bits);
+bk_err_t prro_hal_set_ahb_dev_secure(uint64_t ahb_dev_sec_bits);
+bk_err_t prro_hal_set_apb_dev_secure(uint64_t apb_dev_sec_bits);
+bk_err_t prro_hal_set_hnonsec_dev_secure(uint64_t hnonsec_dev_sec_bits);
 
-#if CONFIG_PRRO_TEST
+#if CFG_HAL_DEBUG_PRRO
 void prro_struct_dump(void);
 #else
 #define prro_struct_dump()

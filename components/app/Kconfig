@@ -1,57 +1,61 @@
-menu "Application"
+menu "App"
 
 	config DEMO_TEST
-		bool "Enable demo test"
+		bool "Enable Demo Test"
 		default n
 
 	#TODO does UPGRADE here means OTA?
 	config FTPD_UPGRADE
-		bool "Enable FTPD upgrade"
+		bool "Enable Ftpd Upgrade"
 		default n
 
 	config OTA_HTTP
-		bool "Enable HTTP OTA"
+		bool "Enable Ota Http"
 		default y if NO_HOSTED
 		default n if !NO_HOSTED
 
 	#TODO what's the relationship between HTTP and TFTP OTA, exculsive?
 	config OTA_TFTP
-		bool "Enable TFTP OTA"
+		bool "Enable Ota Tftp"
 		default n
 
 	config USE_APP_DEMO_VIDEO_TRANSSER
-		bool "Enable USE APP DEMO VIDEO TRANSSER"
 		depends on CAMERA
+		bool "Enable Use App Demo Video Transser"
 		default n
 
 	config APP_DEMO_VIDEO_TRANSFER
-		bool "Enable APP DEMO VIDEO TRANSSER"
 		depends on CAMERA
+		bool "Enable App Demo Video Transser"
 		default n
 
 	config NET_WORK_VIDEO_TRANSFER
-		bool "Enable NET_WORK VIDEO TRANSFER"
 		depends on CAMERA
+		bool "Enable Net Work Video Transser"
 		default n
 
-	config P2P
-                bool "Enable NET_WORK P2P"
-                default n
-				
-	config LVGL_DEMO
-			bool "Enable lvgl demo"
-			default n
-	config VIDEO_AVI
-		depends on NTP_SYNC_RTC
-		bool "Enable VIDEO_AVI"
+	config COMPONENTS_P2P
+		bool "Enable Components P2P"
 		default n
-		
+		help
+                	Enable NET_WORK P2P
+
+	config LVGL_DEMO
+		bool "Enable Lvgl Demo"
+		default n
+
 	config NTP_SYNC_RTC
 		depends on AON_RTC
-		bool "Enable NTP_SYNC_RTC"
+		bool "Enable Ntp Sync Rtc"
+		default n
+
+	config VIDEO_AVI
+		depends on NTP_SYNC_RTC
+		bool "Enable Video Avi"
 		default n
 
 	config LITTLEFS
-		bool "Enable littlefs"
+		bool "Enable Littlefs"
 		default n
+
 endmenu

@@ -72,7 +72,7 @@ bk_err_t bk_prro_set_privilege(prro_dev_t dev, prro_privilege_type_t privilege_t
 	return prro_hal_set_privilege(dev, privilege_type);
 }
 
-bk_err_t bk_prro_set_ahb_dev_privilege(uint32_t ahb_priv_bits)
+bk_err_t bk_prro_set_ahb_dev_privilege(uint64_t ahb_priv_bits)
 {
 	PRRO_RETURN_ON_DRIVER_NOT_INIT();
 	PRRO_LOGD("set ahb priv: %x\r\n", ahb_priv_bits);
@@ -80,7 +80,7 @@ bk_err_t bk_prro_set_ahb_dev_privilege(uint32_t ahb_priv_bits)
 	return BK_OK;
 }
 
-bk_err_t bk_prro_set_apb_dev_privilege(uint32_t apb_priv_bits)
+bk_err_t bk_prro_set_apb_dev_privilege(uint64_t apb_priv_bits)
 {
 	PRRO_RETURN_ON_DRIVER_NOT_INIT();
 	PRRO_LOGD("set apb priv: %x\r\n", apb_priv_bits);
@@ -96,35 +96,35 @@ bk_err_t bk_prro_set_secure(prro_dev_t dev, prro_secure_type_t secure_type)
 	return prro_hal_set_secure(dev, secure_type);
 }
 
-bk_err_t bk_prro_set_gpios_secure(uint32_t gpio_0_31_bits, uint32_t gpio_32_63_bits)
+bk_err_t bk_prro_set_gpios_secure(uint64_t gpio_secure_bits)
 {
 	PRRO_RETURN_ON_DRIVER_NOT_INIT();
-	PRRO_LOGD("set gpio secure, gpio 0~31=%x, gpio 32~63=%x\r\n", gpio_0_31_bits, gpio_32_63_bits);
-	prro_hal_set_gpios_secure(gpio_0_31_bits, gpio_32_63_bits);
+	PRRO_LOGD("set gpio to "BK_U64_FORMAT"\r\n", BK_U64_TO_U32(gpio_secure_bits));
+	prro_hal_set_gpios_secure(gpio_secure_bits);
 	return BK_OK;
 }
 
-bk_err_t bk_prro_set_ahb_dev_secure(uint32_t ahb_dev_secure_bits)
+bk_err_t bk_prro_set_ahb_dev_secure(uint64_t ahb_dev_secure_bits)
 {
 	PRRO_RETURN_ON_DRIVER_NOT_INIT();
-	PRRO_LOGD("set ahb secure, bits=%x\r\n", ahb_dev_secure_bits);
+	PRRO_LOGD("set ahb to "BK_U64_FORMAT"\r\n", BK_U64_TO_U32(ahb_dev_secure_bits));
 	prro_hal_set_ahb_dev_secure(ahb_dev_secure_bits);
 	return BK_OK;
 }
 
-bk_err_t bk_prro_set_apb_dev_secure(uint32_t aph_dev_secure_bits)
+bk_err_t bk_prro_set_apb_dev_secure(uint64_t aph_dev_secure_bits)
 {
 	PRRO_RETURN_ON_DRIVER_NOT_INIT();
-	PRRO_LOGD("set apb secure, bits=%x\r\n", aph_dev_secure_bits);
+	PRRO_LOGD("set ahb to "BK_U64_FORMAT"\r\n", BK_U64_TO_U32(aph_dev_secure_bits));
 	prro_hal_set_apb_dev_secure(aph_dev_secure_bits);
 	return BK_OK;
 }
 
 //TODO user better name!!!
-bk_err_t bk_prro_set_hnonsec_dev_secure(uint32_t dev_secure_bits)
+bk_err_t bk_prro_set_hnonsec_dev_secure(uint64_t dev_secure_bits)
 {
 	PRRO_RETURN_ON_DRIVER_NOT_INIT();
-	PRRO_LOGD("set hnonsec secure, bits=%x\r\n", dev_secure_bits);
+	PRRO_LOGD("set hnonsec to "BK_U64_FORMAT"\r\n", BK_U64_TO_U32(dev_secure_bits));
 	prro_hal_set_hnonsec_dev_secure(dev_secure_bits);
 	return BK_OK;
 }

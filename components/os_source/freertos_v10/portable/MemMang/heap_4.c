@@ -136,7 +136,7 @@ uint8_t *ucHeap;
 #endif /* configAPPLICATION_ALLOCATED_HEAP */
 
 #ifndef CONFIG_MEM_DEBUG_FUNC_NAME_LEN
-#define CONFIG_MEM_DEBUG_FUNC_NAME_LEN 16
+#define CONFIG_MEM_DEBUG_FUNC_NAME_LEN 24
 #endif
 
 #ifndef CONFIG_MEM_DEBUG_TASK_NAME_LEN
@@ -151,7 +151,7 @@ typedef struct A_BLOCK_LINK
 	size_t xBlockSize;						/*<< The size of the free block. */
 #if CONFIG_MEM_DEBUG
 	struct list_head node;					/*<< linked to xUsed */
-	unsigned int allocTime;					/*<< the leak time (*1sec)*/
+
 #if CONFIG_MEM_DEBUG_FUNC_NAME
 	char funcName[CONFIG_MEM_DEBUG_FUNC_NAME_LEN];		/*<< the function name */
 #endif
@@ -159,7 +159,7 @@ typedef struct A_BLOCK_LINK
 #if CONFIG_MEM_DEBUG_TASK_NAME
 	char taskName[CONFIG_MEM_DEBUG_TASK_NAME_LEN];		/*<< the task name */
 #endif
-
+	unsigned int allocTime;					/*<< the leak time (*1sec)*/
 	unsigned int line;					/*<< the function line */
 	int wantedSize;						/*<< malloc size */
 #endif
@@ -192,6 +192,11 @@ static BlockLink_t xStart, *pxEnd = NULL;
 #if CONFIG_MEM_DEBUG
 static struct list_head xUsed;
 #endif
+
+#if CONFIG_MEM_DEBUG && CONFIG_PSRAM_AS_SYS_MEMORY
+static struct list_head xPsramUsed;
+#endif
+
 
 /* Keeps track of the number of free bytes remaining, but says nothing about
 fragmentation. */
@@ -283,6 +288,10 @@ __attribute__((section(".itcm_sec_code"))) void bk_psram_heap_init(void) {
 	/* Only one block exists - and it covers the entire usable heap space. */
 	psram_xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
 	psram_xFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
+
+	#if CONFIG_MEM_DEBUG
+	INIT_LIST_HEAD(&xPsramUsed);
+	#endif
 
 }
 
@@ -460,7 +469,7 @@ void *pvReturn = NULL;
 					pxBlock->pxNextFreeBlock = NULL;
 
 #if CONFIG_MEM_DEBUG
-					list_add_tail(&pxBlock->node, &xUsed);
+					list_add_tail(&pxBlock->node, &xPsramUsed);
 #endif
 
 				}
@@ -508,7 +517,8 @@ void *psram_malloc( size_t xWantedSize )
 {
 	void *pvReturn = NULL;
 #if CONFIG_MEM_DEBUG
-	uint8_t *mem_end;
+	uint8_t *mem_end = NULL;
+	uint32_t mem_end_len = 0;
 #endif
 
 	if (xWantedSize == 0)
@@ -540,8 +550,9 @@ void *psram_malloc( size_t xWantedSize )
 		pxLink->line = line;
 		pxLink->wantedSize = xWantedSize;
 
-		mem_end = (uint8_t *)pxLink + (pxLink->xBlockSize & ~xBlockAllocatedBit) - MEM_CHECK_TAG_LEN;
- 		os_memset_word((uint32_t *)mem_end, MEM_OVERFLOW_WORD_TAG, MEM_CHECK_TAG_LEN);
+ 		mem_end = pvReturn + xWantedSize;
+ 		mem_end_len = (pxLink->xBlockSize & ~xBlockAllocatedBit) - xHeapStructSize - xWantedSize;
+ 		os_memset_word((uint32_t *)mem_end, MEM_OVERFLOW_WORD_TAG, mem_end_len);
 #endif
 	}
 	#endif
@@ -634,7 +645,7 @@ INSERTED:
 
 	return pvReturn;
 }
-#endif
+#endif //#if CONFIG_PSRAM_AS_SYS_MEMORY
 
 #if CONFIG_MEM_DEBUG
 static inline void show_mem_info(BlockLink_t *pxLink)
@@ -662,7 +673,7 @@ static inline void mem_overflow_check(BlockLink_t *pxLink)
 {
 	uint8_t *mem_end;
 
-	mem_end = (uint8_t *)pxLink + (pxLink->xBlockSize & ~xBlockAllocatedBit) - MEM_CHECK_TAG_LEN;
+	mem_end = (uint8_t *)pxLink + xHeapStructSize + pxLink->wantedSize;
 
 	if (MEM_OVERFLOW_TAG != mem_end[0]
 		|| MEM_OVERFLOW_TAG != mem_end[1]
@@ -838,7 +849,8 @@ void *pvPortMalloc( size_t xWantedSize )
 {
 	void *pvReturn = NULL;
 #if CONFIG_MEM_DEBUG
-	uint8_t *mem_end;
+	uint8_t *mem_end = NULL;
+	uint32_t mem_end_len = 0;
 #endif
 
 	if (xWantedSize == 0)
@@ -870,8 +882,9 @@ void *pvPortMalloc( size_t xWantedSize )
 		pxLink->line = line;
 		pxLink->wantedSize = xWantedSize;
 
-		mem_end = (uint8_t *)pxLink + (pxLink->xBlockSize & ~xBlockAllocatedBit) - MEM_CHECK_TAG_LEN;
- 		os_memset(mem_end, MEM_OVERFLOW_TAG, MEM_CHECK_TAG_LEN);
+ 		mem_end = pvReturn + xWantedSize;
+ 		mem_end_len = (pxLink->xBlockSize & ~xBlockAllocatedBit) - xHeapStructSize - xWantedSize;
+ 		os_memset(mem_end, MEM_OVERFLOW_TAG, mem_end_len);
 #endif
 	}
 	#endif
@@ -1008,15 +1021,36 @@ void xPortDumpMemStats(uint32_t start_tick, uint32_t ticks_since_malloc, const c
 		if ((pxLink->allocTime - start_tick) < ticks_since_malloc)
 			continue;
 
-#if CONFIG_MEM_DEBUG_TASK_NAME
+	#if CONFIG_MEM_DEBUG_TASK_NAME
 		if (task && os_strncmp(task, pxLink->taskName, sizeof(pxLink->taskName)))
 			continue;
-#endif
+	#endif
 
 		show_mem_info(pxLink);
 
 		mem_overflow_check(pxLink);
 	}
+
+#if CONFIG_PSRAM_AS_SYS_MEMORY
+	list_for_each_entry(pxLink, &xPsramUsed, node) {
+
+		if (pxLink->allocTime < start_tick)
+			continue;
+
+		if ((pxLink->allocTime - start_tick) < ticks_since_malloc)
+			continue;
+
+	#if CONFIG_MEM_DEBUG_TASK_NAME
+		if (task && os_strncmp(task, pxLink->taskName, sizeof(pxLink->taskName)))
+			continue;
+	#endif
+
+		show_mem_info(pxLink);
+
+		mem_overflow_check(pxLink);
+	}
+
+#endif //#if CONFIG_PSRAM_AS_SYS_MEMORY
 
 	xTaskResumeAll();
 }

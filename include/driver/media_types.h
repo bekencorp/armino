@@ -60,6 +60,7 @@ typedef enum
 	PPI_454X454     = (PIXEL_454 << 16) | PIXEL_454,
 	PPI_480X272     = (PIXEL_480 << 16) | PIXEL_272,
 	PPI_480X320     = (PIXEL_480 << 16) | PIXEL_320,
+	PPI_480X480     = (PIXEL_480 << 16) | PIXEL_480,
 	PPI_640X480     = (PIXEL_640 << 16) | PIXEL_480,
 	PPI_480X800 	= (PIXEL_480 << 16) | PIXEL_800,
 	PPI_480X854		= (PIXEL_480 << 16) | PIXEL_854,
@@ -86,6 +87,7 @@ typedef enum
 	PPI_CAP_1024X600    = (1 << 9), /**< 1024 * 600 */
 	PPI_CAP_1280X720    = (1 << 10), /**< 1280 * 720 */
 	PPI_CAP_1600X1200   = (1 << 11), /**< 1600 * 1200 */
+	PPI_CAP_480X480     = (1 << 12), /**< 480 * 480 */
 } media_ppi_cap_t;
 
 /** rgb lcd input data format, data save in mem is little endian, like VUYY format is [bit31-bit0] is [V U Y Y]*/
@@ -96,6 +98,7 @@ typedef enum {
 	PIXEL_FMT_UVC_JPEG,
 	PIXEL_FMT_UVC_H264,
 	PIXEL_FMT_RGB565,        /**< input data format is rgb565*/
+	PIXEL_FMT_BGR565,
 	PIXEL_FMT_YUYV,    /**< input data is yuyv format, diaplay module internal may convert to rgb565 data*/
 	PIXEL_FMT_UYVY,
 	PIXEL_FMT_YYUV,            /**< input data is yyuv format */
@@ -232,6 +235,10 @@ static inline media_ppi_cap_t pixel_ppi_to_cap(media_ppi_t ppi)
 			cap = PPI_CAP_480X320;
 			break;
 
+		case PPI_480X480:
+			cap = PPI_CAP_480X480;
+			break;
+
 		case PPI_640X480:
 			cap = PPI_CAP_640X480;
 			break;
@@ -314,6 +321,11 @@ static inline media_ppi_t get_string_to_ppi(char *string)
 		value = PPI_320X480;
 	}
 
+	if (os_strcmp(string, "320X240") == 0)
+	{
+		value = PPI_320X240;
+	}
+
 	if (os_strcmp(string, "480X800") == 0)
 	{
 		value = PPI_480X800;
@@ -339,6 +351,10 @@ static inline media_ppi_t get_string_to_ppi(char *string)
 		value = PPI_864X480;
 	}
 
+	if (os_strcmp(string, "480X480") == 0)
+	{
+		value = PPI_480X480;
+	}
 	return value;
 }
 

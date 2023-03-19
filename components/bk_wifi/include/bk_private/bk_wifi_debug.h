@@ -78,6 +78,8 @@ void MQTTPacket_header_parse(uint32_t buf,uint16_t packet_len);
 #define PACKET_AC_VI (1<<(PACKET_AC_BASE+2))
 #define PACKET_AC_VO (1<<(PACKET_AC_BASE+3))  
 
+#define RAW_TX_AC                   AC_VO
+#define RAW_TX_AC_TIMEOUT_MS        50
 extern uint32_t g_per_packet_info_output_bitmap;
 
 #ifdef __cplusplus

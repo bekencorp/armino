@@ -45,10 +45,10 @@ extern "C" {
 #define Y_PIXEL_1200    (150) /**< image resolution for hight: Y * 8 = 1200 */
 
 typedef enum {
-	JPEG_ENABLE_CLK = 0, /**< enable jpeg mclk and pclk gpio function */
-	JPEG_ENABLE_DATA,    /**< enable jpeg vsync/hsync/D0-D7 gpio function */
-	JPEG_ENABLE_ALL,     /**< enable all jpeg gpio function */
-	JPEG_DISABLE_ALL,    /**< disable all jpeg gpio function */
+	JPEG_GPIO_CLK = 0,    /**< enable jpeg mclk and pclk gpio function */
+	JPEG_GPIO_DATA,       /**< enable jpeg vsync/hsync/D0-D7 gpio function */
+	JPEG_GPIO_HSYNC_DATA, /**< enable jpeg hsync/D0-D7 gpio function */
+	JPEG_GPIO_ALL,        /**< enable all jpeg gpio function */
 }jpeg_gpio_mode_t;
 
 /**

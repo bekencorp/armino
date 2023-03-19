@@ -269,8 +269,6 @@ static void set_jtag_mode(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	pm_core_bus_clock_ctrl(cksel_core, ckdiv_core, ckdiv_bus, ckdiv_cpu0, ckdiv_cpu1);
 
 	/*close watchdog*/
-	extern void wdt_debug_disable(void);
-	wdt_debug_disable();
 #if CONFIG_INT_WDT
 	bk_wdt_stop();
 #endif

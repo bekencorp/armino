@@ -1,72 +1,83 @@
 var preUrl = ""
 var hostRoot = ""
-var sdkList = [];
-
-
-var BK7235 =
-{
-	name: "bk7235",
-	lang: [ "zh-cn" ],
-	version: [
-		"latest"
-	]
-}
-
-var BK7236 =
-{
-	name: "bk7236",
-	lang: [ "zh-cn" ],
-	version: [
-		"latest"
-	]
-}
-
-var BK7237 =
-{
-	name: "bk7237",
-	lang: [ "zh-cn" ],
-	version: [
-		"latest"
-	]
-}
-
-var BK7256 =
-{
-	name: "bk7256",
-	lang: [ "zh-cn" ],
-	version: [
-		"latest"
-	]
-}
-
-
-sdkList.push(BK7235);
-sdkList.push(BK7236);
-sdkList.push(BK7237);
-sdkList.push(BK7256);
+var asyncDone = false;
+var sdkList = [
+    {
+        "name" : "bk7235",
+        "lang" : [ "zh-cn" ],
+        "version" : [
+            "latest"
+        ]
+    },
+    {
+        "name" : "bk7236",
+        "lang" : [ "zh-cn" ],
+        "version" : [
+            "latest"
+        ]
+    },
+    {
+        "name" : "bk7237",
+        "lang" : [ "zh-cn" ],
+        "version" : [
+            "latest"
+        ]
+    },
+    {
+        "name" : "bk7256",
+        "lang" : [ "zh-cn" ],
+        "version" : [
+            "latest"
+        ]
+    }
+]
 
 jQuery(function()
 {
     var origin = window.location.origin;
- 
-	console.log(origin);
-	buildMultiVersionSelector();
 
-    setPageStyle();
+    if (origin.indexOf("file://") == -1)
+    {
+        SdkVersionStartup();
+    }
+    else
+    {
+        buildMultiVersionSelector();
+        setPageStyle();
+    }
 });
 
 
+function SdkVersionStartup()
+{
+    var url = "/armino/version.json";
+    var request = new XMLHttpRequest();
+
+    request.open("get", url);
+    request.send(null);
+    request.onload = function () {
+
+        if (request.status == 200) {
+            var json = JSON.parse(request.responseText);
+            sdkList = json;
+        }
+
+        buildMultiVersionSelector();
+        setPageStyle();
+    }
+
+}
+
 function buildMultiVersionSelector()
 {
- 
     var curUrl = window.location.pathname;
- 
-	console.log("Current URL: " + curUrl)
 
-	var urlList = curUrl.split('/');
- 
-	if (urlList.length <= 3)
-	{
+    console.log("Current URL: " + curUrl)
+
+    var urlList = curUrl.split('/');
+
+    if (urlList.length <= 3)
+    {
         console.log("url error: " + curUrl);
         return;
     }
@@ -74,109 +85,108 @@ function buildMultiVersionSelector()
     var target = urlList[1];
     var language = urlList[2] || "zh-cn";
     var version = urlList[3];
-	var index;
+    var index;
 
-	for (index = 0; index < urlList.length; index++)
-	{
-		if (urlList[index] == "zh_CN" || urlList[index] == "en")
-		{
-			language = urlList[index];
-			target = urlList[index - 1];
-			version = urlList[index + 1];
-			break;
-		}
-	}
+    for (index = 0; index < urlList.length; index++)
+    {
+        if (urlList[index] == "zh_CN" || urlList[index] == "en")
+        {
+            language = urlList[index];
+            target = urlList[index - 1];
+            version = urlList[index + 1];
+            break;
+        }
+    }
 
-	if (urlList.length > 3)
-	{
-		preUrl = ""
+    if (urlList.length > 3)
+    {
+        preUrl = ""
 
-		for (var i = 1; i < index - 1; i++)
-		{
-			preUrl += urlList[i] + "/"
-		}
-	}
+        for (var i = 1; i < index - 1; i++)
+        {
+            preUrl += urlList[i] + "/"
+        }
+    }
 
 
+    hostRoot = "/" + preUrl + target + "/" + language + "/" + version
 
-	hostRoot = "/" + preUrl + target + "/" + language + "/" + version
+    console.log("Index: " + index + " Name: " + target + " Language: " + language + " Version: " + version)
 
-	console.log("Index: " + index + " Name: " + target + " Language: " + language + " Version: " + version)
-
-	console.log("Url: " + hostRoot)
+    console.log("Url: " + hostRoot)
 
     var searchUrl = $("#rtd-search-form").attr('action');
 
-	var versionPage = `
-		<div role="search">
-            <div class="target_selectors"	style="margin-top: 5px; display: flex;">
-		        <select id="target-id" style="width: 55%; margin-top: 5px; border-radius: 5px;"></select>
+    var versionPage = `
+        <div role="search">
+            <div class="target_selectors"    style="margin-top: 5px; display: flex;">
+                <select id="target-id" style="width: 55%; margin-top: 5px; border-radius: 5px;"></select>
                 <span style="color: black; display: flex; align-items: center;">&nbsp;-&nbsp;</span>
                 <select id="version-id" style="width: 60%; margin-top: 5px; border-radius: 5px;"></select>
             </div>
                 <form id="rtd-search-form" class="wy-form" action="search.html" method="get" style="margin-top: 5px;">
-		            <input type="text" name="q" placeholder="Search docs" style="border-radius: 5px; margin-top: 10px; border-color: #CCC; height: 35px;">
+                    <input type="text" name="q" placeholder="Search docs" style="border-radius: 5px; margin-top: 10px; border-color: #CCC; height: 35px;">
                     <input type="hidden" name="check_keywords" value="yes">
                     <input type="hidden" name="area" value="default">
                 </form>
-		</div>
-		`;
+        </div>
+        `;
 
 
     $("[role=search]").html(versionPage);
     $("#rtd-search-form").attr('action', searchUrl);
-	$("#target-id").html("");
-	$("#version-id").html("");
+    $("#target-id").html("");
+    $("#version-id").html("");
 
-	$("#target-id").append("<option value disabled selected>Target...</option>");
-	$("#version-id").append("<option value disabled selected>Version...</option>");
+    $("#target-id").append("<option value disabled selected>Target...</option>");
+    $("#version-id").append("<option value disabled selected>Version...</option>");
 
-	for(var i = 0; i < sdkList.length; i++)
-	{
-		$("#target-id").append("<option value='" + sdkList[i].name + "'>" + sdkList[i].name + "</option>");
+    for(var i = 0; i < sdkList.length; i++)
+    {
+        $("#target-id").append("<option value='" + sdkList[i].name + "'>" + sdkList[i].name + "</option>");
 
-		if(sdkList[i].name == target)
-		{
-			var list = sdkList[i].version;
+        if(sdkList[i].name == target)
+        {
+            var list = sdkList[i].version;
 
-			for(var j = 0; j < list.length; j++)
-			{
-				$("#version-id").append("<option value='" + list[j] + "'>"+ list[j] + "</option>");
-			}
-		}
-	}
+            for(var j = 0; j < list.length; j++)
+            {
+                $("#version-id").append("<option value='" + list[j] + "'>"+ list[j] + "</option>");
+            }
+        }
+    }
 
-	$("#target-id").val(target);
-	$("#version-id").val(version);
+    $("#target-id").val(target);
+    $("#version-id").val(version);
 
-	$("#target-id").bind('change', function()
-	{
+    $("#target-id").bind('change', function()
+    {
         var target = $("#target-id").val();
 
         for(var i = 0; i < sdkList.length; i++)
-		{
+        {
             if(sdkList[i].name == target)
-			{
+            {
                 var list = sdkList[i].version;
 
                 for(var j = 0; j < list.length; j++)
-				{
+                {
                     var url = "/" + preUrl + target + "/" + language + "/" + list[j] + "/index.html";
                     window.location.href = url;
-			    }
-			}
+                }
+            }
         }
-	});
+    });
 
-	$("#version-id").bind('change', function()
-	{
+    $("#version-id").bind('change', function()
+    {
         var target = $("#target-id").val();
         var version = $("#version-id").val();
 
         if(version == "")
-		{
-			return;
-		}
+        {
+            return;
+        }
 
         var url = "/" + preUrl + target + "/" + language + "/" + version + "/index.html";
         window.location.href = url;
@@ -184,10 +194,8 @@ function buildMultiVersionSelector()
     });
 }
 
-
 function setPageStyle()
 {
-
     console.log($(".wy-breadcrumbs-aside").html())
 
     var stylePage = `
@@ -200,38 +208,37 @@ function setPageStyle()
     setPageMode(mode);
 
     $("#styleIcon").bind('click', function()
-	{
-
+    {
        var mode = $("#styleIcon").attr('mode'); 
 
        if(mode == "light")
-	   {
+       {
            mode = "dark";
        }
-	   else
-	   {
+       else
+       {
            mode = "light";
        }
 
        setPageMode(mode);
 
     });
- 
-	var styleSet = localStorage.getItem('styleSet') || "false";
- 
-	setPageWidth(styleSet);
+
+    var styleSet = localStorage.getItem('styleSet') || "false";
+
+    setPageWidth(styleSet);
 
     $("#modeIcon").bind('click', function()
-	{
+    {
 
-       var styleSet = $("#modeIcon").attr('styleSet'); 
+       var styleSet = $("#modeIcon").attr('styleSet');
 
        if(styleSet == "false")
-	   {
+       {
            styleSet = "true";
        }
-	   else
-	   {
+       else
+       {
            styleSet = "false";
        }
        setPageWidth(styleSet);
@@ -241,16 +248,15 @@ function setPageStyle()
 
 function setPageMode(mode)
 {
-
     if(mode == "light")
-	{
+    {
         $("<link>").attr({ rel: "stylesheet", type: "text/css", href: hostRoot + "/_static/css/light.css" }).appendTo("head");
         $("#styleIcon").attr('src', hostRoot + '/_static/dark.png')
         $("#styleIcon").attr('mode', 'light');
         localStorage.setItem('mode', 'light');
     }
-	else
-	{
+    else
+    {
         $("<link>").attr({ rel: "stylesheet", type: "text/css", href: hostRoot + "/_static/css/dark.css" }).appendTo("head");
         $("#styleIcon").attr('src', hostRoot + '/_static/light.png')
         $("#styleIcon").attr('mode', 'dark');
@@ -261,16 +267,15 @@ function setPageMode(mode)
 
 function setPageWidth(styleSet)
 {
- 
-	if(styleSet == "false")
-	{
+    if(styleSet == "false")
+    {
         $("#modeIcon").attr('src', hostRoot + '/_static/open.png')
         $("#modeIcon").attr('styleSet', 'false');
         $(".wy-nav-content").attr('style', 'max-width:888px');
         localStorage.setItem('styleSet', 'false');
     }
-	else
-	{
+    else
+    {
         $("#modeIcon").attr('src', hostRoot + '/_static/close.png')
         $("#modeIcon").attr('styleSet', 'true');
         $(".wy-nav-content").attr('style', 'max-width:none');

@@ -112,6 +112,30 @@ bk_err_t bk_netif_get_ip6_addr_info(netif_if_t ifx);
 bk_err_t bk_netif_dhcpc_start(netif_if_t ifx);
 
 /**
+ * @brief
+ *
+ * this function is only for the interface of NETIF_IF_STA to set a static IP .
+ *
+ * call back this function in netif_wifi_event_cb()(in components/bk_netif/bk_netif.c)
+ * when case EVENT_WIFI_STA_CONNECTED, and pass the param static_ip4_config includes ip,
+ * mask, gateway and dns for your static IP config.
+ * example:
+ * switch (event_id) {
+ * case EVENT_WIFI_STA_CONNECTED:
+ * #if CONFIG_LWIP
+ *     bk_netif_static_ip(static_ip4_config);
+ *     sta_ip_start();
+ * #endif
+ *
+ * @param static_ip4_config  ipv4 config for this netif(only for NETIF_IF_STA).
+ *
+ * @return
+ *   - BK_OK: succeed
+ *   - else: fail
+ */
+bk_err_t bk_netif_static_ip(netif_ip4_config_t static_ip4_config);
+
+/**
  * @}
  */
 

@@ -53,7 +53,7 @@ typedef volatile struct {
 			uint32_t mclk_div:           2; /**< bit[10:11] */
 			uint32_t h264_mode:          1; /**< bit[12] */
 			uint32_t bps_cis:            1; /**< bit[13] */
-			uint32_t memrev:          1; /**< bit[14] */
+			uint32_t reserved1:          1; /**< bit[14] */
 			uint32_t mclk_hold_en:       1; /**< bit[15] */
 			uint32_t sen_mem_clr:        1; /**< bit[16] */
 			uint32_t sen_mem_en_hd:      1; /**< bit[17] */

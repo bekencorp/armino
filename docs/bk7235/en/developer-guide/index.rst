@@ -16,7 +16,6 @@ User and Developer Guide
    Event Mechanism <event/index>
    Error and Log <error_log/index>
    Debug and Trace <debug_trace/index>
-   Tools <tools/index>
    Wi-Fi <wifi/index>
    Bluetooth <bluetooth/index>
    HTTP <http/index>

@@ -1,93 +1,119 @@
-menu "FreeRTOS"
-	config FREERTOS
-		bool "Enable FreeRTOS"
+menu "Bk_rtos"
 
-	choice FREERTOS_VER
-		depends on FREERTOS
-		prompt "FreeRTOS Version"
-		default FREERTOS_V9
+	config CUSTOMIZE_HEAP_SIZE
+		int "Set Customize Heap Size"
+		default 163840
+		help
+			customize heap size, default 160k
 
-		config FREERTOS_V9
-			bool "FreeRTOS v9.0.0"
-		config FREERTOS_V10
-			bool "FreeRTOS v10"
-	endchoice
+	menu "Modify FreeRTOS Config"
 
-	config FREERTOS_POSIX
-		depends on FREERTOS_V10
-		bool "FreeRTOS POSIX"
-		default n
+		config FREERTOS
+			bool "Enable FreeRTOS"
+			default y
 
-	config FREERTOS_USE_TICKLESS_IDLE
-		depends on FREERTOS_V10
-		int "Use tickless idle, can be 0/1/2"
-		default 2
+		config MEM_MGMT
+			bool "Enable Mem Mgmt"
+			default n
+			help
+				Enable heap management module
 
-	config MEM_MGMT
-		bool "Enable heap management module"
-		default n
+		choice FREERTOS_VER
+			depends on FREERTOS
+			prompt "Select FreeRTOS Version"
+			default FREERTOS_V9
 
-	menu "Memory Debug"
-		config MALLOC_STATIS
-			bool "Enable malloc statistics"
+			config FREERTOS_V9
+				bool "FreeRTOS v9.0.0"
+			config FREERTOS_V10
+				bool "FreeRTOS v10"
+		endchoice
+
+		config FREERTOS_POSIX
+			depends on FREERTOS_V10
+			bool "Enable FreeRTOS Posix"
 			default n
 
+		config FREERTOS_USE_TICKLESS_IDLE
+			depends on FREERTOS_V10
+			int "Set FreeRTOS Use Tickless Idle"
+			default 2
+			help
+				Use tickless idle, can be 0/1/2
+
+	endmenu
+
+	menu "Modify LITEOS_M Config"
+
+		config LITEOS_M
+			bool "Enable Liteos_m"
+			default n
+
+		config LITEOS_M_V3
+			bool "Enable Liteos_m_v3"
+			default n
+			help
+				liteos_m v3.0.1-LTS
+
+		config LITEOS_M_BK
+			depends on LITEOS_M_V3
+			bool "Enable Liteos_m_bk"
+			default n
+			help
+				liteos_m bk adapter
+
+	endmenu
+
+	menu "Modify NON_OS Config"
+	
+		config NON_OS
+			bool "Enable Non_os"
+			default n
+
+	endmenu
+
+	menu "Modify Memory Debug Config"
+
+		config MALLOC_STATIS
+			bool "Enable Malloc Statis"
+			default n
+			help
+				enable malloc statistics
+
 		config MEM_DEBUG
-			bool "Enable memory debug"
+			bool "Enable Mem Debug"
 			default n
 			help
 				When this option is enable, more memory will be consumed because
 				a fixed length debug block will be appended to every memory allocated
 				from heap.
-
 				Moreover, suggest disable task/watchdog when this option is enabled
 				in case os_dump_memory_stats() triggers watchdog.
 
 		config MEM_DEBUG_FUNC_NAME
 			depends on MEM_DEBUG
-			bool "Enable memory debug"
+			bool "Enable Mem Debug Func Name"
 			default y
 
 		config MEM_DEBUG_FUNC_NAME_LEN
 			depends on MEM_DEBUG_FUNC_NAME
-			int "Function name length"
+			int "Set Mem Debug Func Name Len"
 			default 16
+			help
+				set memory debug function name length
 
 		config MEM_DEBUG_TASK_NAME
 			depends on MEM_DEBUG
-			bool "Enable memory debug"
+			bool "Enable Mem Debug Task Name"
 			default y
 
 		config MEM_DEBUG_TASK_NAME_LEN
 			depends on MEM_DEBUG_TASK_NAME
-			int "Task name length"
+			int "Set Mem Debug Task Name Len"
 			default 8
+			help
+				set memory debug task name length
+
 	endmenu
+
 endmenu
-
-menu "LITEOS_M"
-
-	config LITEOS_M
-		bool "liteos_m"
-		default n
-
-	config LITEOS_M_V3
-		bool "liteos_m v3.0.1-LTS"
-		default n
-
-
-	config LITEOS_M_BK
-		depends on LITEOS_M_V3
-			bool "liteos_m bk adapter"
-			default n
-endmenu
-
-menu "NON_OS"
-	config NON_OS
-		bool "non_os"
-		default n
-endmenu
-
-config CUSTOMIZE_HEAP_SIZE
-	int "Customize heap size, default 160k"
-	default 163840

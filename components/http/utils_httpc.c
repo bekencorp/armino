@@ -1236,7 +1236,9 @@ int httpclient_common(httpclient_t *client, const char *url, int port, const cha
 		iotx_time_init(&timer);
 		utils_time_countdown_ms(&timer, timeout_ms);
 #ifdef CONFIG_HTTP_OTA_WITH_BLE
+#if (CONFIG_BLE)
         bk_ble_register_sleep_state_callback(ble_sleep_cb);
+#endif
 #endif
 		if ((NULL != client_data->response_buf)
 			|| (0 != client_data->response_buf_len)) {

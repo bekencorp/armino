@@ -98,6 +98,8 @@ typedef int bk_err_t;
 #define BK_ERR_YUV_BUF_BASE        (-0x4100)
 #define BK_ERR_UVC_BASE            (-0x4200)
 #define BK_ERR_H264_BASE           (-0x4300)
+#define BK_ERR_USB_BASE            (-0x4400)
+#define BK_ERR_OTP_BASE            (-0x4500)
 
 /* -0x1a2c to -0x1a7b is reserved for kXxx error code
  * #define kGenericErrorBase           -6700

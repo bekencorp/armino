@@ -1,4 +1,4 @@
-// Copyright 2022-2023 Beken
+// Copyright 2020-2021 Beken
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,13 +28,6 @@ typedef struct {
 	if (!s_mpc_driver_is_init) {\
 		MPC_LOGE("MPC driver not init\r\n");\
 		return BK_ERR_MPC_DRIVER_NOT_INIT;\
-	}\
-} while(0)
-
-#define MPC_RETURN_ON_INVALID_ID(dev) do {\
-	if ((dev) > MPC_DEV_MAX) {\
-		MPC_LOGE("Invalid mpc device id=%d\r\n", (dev));\
-		return BK_ERR_MPC_INVALID_DEV;\
 	}\
 } while(0)
 
@@ -70,15 +63,11 @@ bk_err_t bk_mpc_driver_deinit(void)
 
 uint32_t bk_mpc_get_block_size(mpc_dev_t dev)
 {
-	MPC_RETURN_ON_DRIVER_NOT_INIT();
-	MPC_RETURN_ON_INVALID_ID(dev);
 	return mpc_hal_get_block_size(&s_mpc[dev].hal);
 }
 
 uint32_t bk_mpc_get_max_block_index(mpc_dev_t dev)
 {
-	MPC_RETURN_ON_DRIVER_NOT_INIT();
-	MPC_RETURN_ON_INVALID_ID(dev);
 	return mpc_hal_get_max_block_index(&s_mpc[dev].hal);
 }
 
@@ -88,7 +77,7 @@ bk_err_t bk_mpc_dump_secure_attribute(mpc_dev_t dev)
 	uint32_t block_size = bk_mpc_get_block_size(dev);
 	uint32_t max_index = bk_mpc_get_max_block_index(dev);
 
-	MPC_LOGD("mpc dev%d: block_size=0x%x, max_block_index=%d\r\n", dev, block_size, max_index);
+	MPC_LOGI("mpc dev%d: block_size=0x%x, max_block_index=%d\r\n", dev, block_size, max_index);
 	BK_LOG_RAW("%4s    %8s\r\n", "id", "sec bits");
 	BK_LOG_RAW("----------------\r\n");
 	mpc_hal_disable_auto_increase(hal);
@@ -104,7 +93,6 @@ bk_err_t bk_mpc_dump_secure_attribute(mpc_dev_t dev)
 bk_err_t bk_mpc_set_secure_attribute(mpc_dev_t dev, uint32_t mem_addr_offset, uint32_t mem_block_num, mpc_block_secure_type_t secure_type)
 {
 	MPC_RETURN_ON_DRIVER_NOT_INIT();
-	MPC_RETURN_ON_INVALID_ID(dev);
 
 	uint32_t mem_block_index = 0;
 	uint32_t lut_block_index = 0;
@@ -117,8 +105,8 @@ bk_err_t bk_mpc_set_secure_attribute(mpc_dev_t dev, uint32_t mem_addr_offset, ui
 	}
 
 	mpc_hal_disable_auto_increase(hal);
-	MPC_LOGD("mpc dev%d offset=%x, mem_block_num=%d, secure_type=%d\r\n", dev, mem_addr_offset, mem_block_num, secure_type);
-	MPC_LOGD("mpc mem_block_size=%x, current_idx=%d\r\n", mem_block_size, mpc_hal_get_block_index(hal));
+	MPC_LOGI("mpc dev%d offset=%x, mem_block_num=%d, secure_type=%d\r\n", dev, mem_addr_offset, mem_block_num, secure_type);
+	MPC_LOGI("mpc mem_block_size=%x, current_idx=%d\r\n", mem_block_size, mpc_hal_get_block_index(hal));
 
 	/* set mpc block index */
 	mem_block_index = mem_addr_offset / mem_block_size;
@@ -138,24 +126,9 @@ bk_err_t bk_mpc_set_secure_attribute(mpc_dev_t dev, uint32_t mem_addr_offset, ui
 bk_err_t bk_mpc_lockdown(mpc_dev_t dev)
 {
 	MPC_RETURN_ON_DRIVER_NOT_INIT();
-	MPC_RETURN_ON_INVALID_ID(dev);
+
 	mpc_hal_enable_sec_lock(&s_mpc[dev].hal);
-	return BK_OK;
-}
 
-bk_err_t bk_mpc_enable_secure_exception(mpc_dev_t dev)
-{
-	MPC_RETURN_ON_DRIVER_NOT_INIT();
-	MPC_RETURN_ON_INVALID_ID(dev);
-	mpc_hal_enable_sec_exception(&s_mpc[dev].hal);
-	return BK_OK;
-}
-
-bk_err_t bk_mpc_disable_secure_exception(mpc_dev_t dev)
-{
-	MPC_RETURN_ON_DRIVER_NOT_INIT();
-	MPC_RETURN_ON_INVALID_ID(dev);
-	mpc_hal_disable_sec_exception(&s_mpc[dev].hal);
 	return BK_OK;
 }
 

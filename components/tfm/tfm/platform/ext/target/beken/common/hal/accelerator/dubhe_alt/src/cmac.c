@@ -589,7 +589,7 @@ int dubhe_cmac_update( mbedtls_cipher_context_t *ctx,
     mbedtls_cmac_context_t *cmac_ctx = NULL;
 
     if ( ctx == NULL || ctx->cipher_info == NULL || (ilen && input == NULL) ||
-         ctx->cmac_ctx == NULL ) {
+         ctx->cmac_ctx == NULL || ctx->cmac_ctx->magic != MBEDTLS_CMAC_MAGIC ) {
         return( MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA );
     }
 
@@ -605,10 +605,6 @@ int dubhe_cmac_update( mbedtls_cipher_context_t *ctx,
             return sw_mbedtls_cmac_update( ctx, input, ilen );
     }
 
-    if (ctx->cmac_ctx->magic != MBEDTLS_CMAC_MAGIC) {
-        return( MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA );
-    }
-
     cmac_ctx = ctx->cmac_ctx;
 
     return _convert_retval_to_mbedtls(
@@ -621,7 +617,7 @@ int dubhe_cmac_finish( mbedtls_cipher_context_t *ctx,
     mbedtls_cmac_context_t *cmac_ctx;
 
     if ( ctx == NULL || ctx->cipher_info == NULL || ctx->cmac_ctx == NULL ||
-        output == NULL ) {
+        output == NULL || ctx->cmac_ctx->magic != MBEDTLS_CMAC_MAGIC ) {
         return( MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA );
     }
 
@@ -635,10 +631,6 @@ int dubhe_cmac_finish( mbedtls_cipher_context_t *ctx,
         case MBEDTLS_CIPHER_DES_EDE3_ECB:
         default:
             return sw_mbedtls_cmac_finish( ctx, output );
-    }
-
-    if (ctx->cmac_ctx->magic != MBEDTLS_CMAC_MAGIC) {
-        return( MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA );
     }
 
     cmac_ctx = ctx->cmac_ctx;
@@ -663,7 +655,8 @@ int dubhe_cmac_reset( mbedtls_cipher_context_t *ctx )
 {
     mbedtls_cmac_context_t *cmac_ctx = NULL;
 
-    if( ctx == NULL || ctx->cipher_info == NULL || ctx->cmac_ctx == NULL ) {
+    if( ctx == NULL || ctx->cipher_info == NULL || ctx->cmac_ctx == NULL
+        || ctx->cmac_ctx->magic != MBEDTLS_CMAC_MAGIC ) {
         return( MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA );
     }
 
@@ -677,10 +670,6 @@ int dubhe_cmac_reset( mbedtls_cipher_context_t *ctx )
         case MBEDTLS_CIPHER_DES_EDE3_ECB:
         default:
             return sw_mbedtls_cmac_reset( ctx );
-    }
-
-    if (ctx->cmac_ctx->magic != MBEDTLS_CMAC_MAGIC) {
-        return( MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA );
     }
 
     cmac_ctx = ctx->cmac_ctx;

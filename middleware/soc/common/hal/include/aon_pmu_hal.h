@@ -50,8 +50,6 @@ uint32_t aon_pmu_hal_lpo_src_get();
 uint32_t aon_pmu_hal_bias_cal_get();
 void aon_pmu_hal_psram_iodrv_set(uint32_t io_drv);
 
-void aon_pmu_struct_dump(uint32_t start, uint32_t end);
-
 #ifdef __cplusplus
 }
 #endif

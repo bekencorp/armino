@@ -174,13 +174,14 @@ bk_err_t bk_jpeg_enc_register_isr(jpeg_isr_type_t type_id, jpeg_isr_t isr, void 
  *
  * This API will operate jpeg gpio
  *
+ * @param enable 0/1:unmap/map
  * @param mode: reference jpeg_gpio_mode_t
  *
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
  */
- bk_err_t bk_jpeg_enc_set_gpio(jpeg_gpio_mode_t mode);
+bk_err_t bk_jpeg_enc_set_gpio_enable(uint8_t enable, jpeg_gpio_mode_t mode);
 
 /**
  * @brief     get jpeg enc fifo addr

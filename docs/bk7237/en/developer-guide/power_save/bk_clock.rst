@@ -1,5 +1,8 @@
 Clock instructions
 =============================================
+
+:link_to_translation:`zh_CN:[中文]`
+
 The system clock source includes the following types：
 
 - ROSC
@@ -43,10 +46,7 @@ so you can select different 32k source clock based on owner using scenarios
 Introduction to DPLL usage
 -----------------------------------------------
 DPLL is external 26M Frequency doubling(a.320M;b.480M)
-+++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++
 - The working clock of WIFI is DPLL(480M)
 - The working clock of BT is DPLL(480M)
 - it can select different DPLL according to the specific scenarios
-
-:link_to_translation:`en:[English]`
-

@@ -1,111 +1,168 @@
-menu "AUD_INTF_CONFIG"
-	config AUD_INTF
-		bool "Enable Audio Interface API"
-		default n
+menu "Demos::Media::Audio::Aud_intf"
+	menu "Modify Aud Intf Config"
+		config AUD_INTF
+			bool "Enable Aud Intf"
+			default n
+			help
+				Enable Audio Interface API
 
-	config AUD_INTF_TEST
-		depends on AUD_INTF
-		bool "enable Audio interface test"
-		default n
+		config AUD_INTF_TEST
+			depends on AUD_INTF
+			bool "Enable Aud Intf Test"
+			default n
+			help
+				enable Audio interface test
+	endmenu
 
-endmenu
+	menu "Modify Aud Trasfer Config"
 
-menu "AUD_TRAS_CONFIG"
-	config AUDIO_TRANSFER
-		bool "Enable Audio Transfer Feature"
-		default n
+		config AUD_RING_BUFF_SAFE_INTERVAL
+			int "Set Aud Ring Buff Safe Interval"
+			range 0 320
+			default 0
+			help
+				Audio ring buff safe interval
 
-	choice AUD_TRAS_MODE
-		prompt "Audio Transfer Mode"
-		default AUD_TRAS_MODE_CPU1
+		config AUDIO_TRANSFER
+			bool "Enable Audio Transfer"
+			default n
+			help
+				Enable Audio Transfer Feature
 
-		config AUD_TRAS_MODE_CPU0
+		choice AUD_TRAS_MODE
 			depends on AUDIO_TRANSFER
-			bool "Audio Transfer in CPU0"
+			prompt "Select Audio Transfer Mode"
+			default AUD_TRAS_MODE_CPU1
 
-		config AUD_TRAS_MODE_CPU1
-			depends on AUDIO_TRANSFER
-			bool "Audio Transfer in CPU1"
+			config AUD_TRAS_MODE_CPU0
+				bool "AUD_TRAS_MODE_CPU0"
+				help
+					Audio Transfer in CPU0
 
-	endchoice
-
-	config AUD_TRAS_AEC_DUMP_DEBUG
-		depends on AUDIO_TRANSFER
-		bool "enable Audio Transfer AEC dump debug"
-		default n
-
-	choice AUD_TRAS_AEC_DUMP_MODE
-		prompt "Audio Transfer AEC Dump Mode"
-		default AUD_TRAS_AEC_DUMP_MODE_TF
-
-		config AUD_TRAS_AEC_DUMP_MODE_TF
-			depends on AUD_TRAS_AEC_DUMP_DEBUG
-			bool "Audio Transfer AEC Dump by TFcard"
-
-		config AUD_TRAS_AEC_DUMP_MODE_UART
-			depends on AUD_TRAS_AEC_DUMP_DEBUG
-			bool "Audio Transfer AEC Dump by Uart"
-
-		config AUD_TRAS_AEC_DUMP_MODE_WIFI
-			depends on AUD_TRAS_AEC_DUMP_DEBUG
-			bool "Audio Transfer AEC Dump by udp"
-
-		choice AUD_TRAS_AEC_DUMP_MODE_WIFI_MODE
-			prompt "Audio Transfer AEC WIFI Mode"
-			default AUD_TRAS_AEC_DUMP_MODE_UDP
-
-			config AUD_TRAS_AEC_DUMP_MODE_UDP
-				depends on AUD_TRAS_AEC_DUMP_MODE_WIFI
-				bool "Audio Transfer AEC Dump by UDP"
-
-			config AUD_TRAS_AEC_DUMP_MODE_TCP
-				depends on AUD_TRAS_AEC_DUMP_MODE_WIFI
-				bool "Audio Transfer AEC Dump by TCP"
-
+			config AUD_TRAS_MODE_CPU1
+				bool "AUD_TRAS_MODE_CPU1"
+				help
+					Audio Transfer in CPU1
 		endchoice
 
-	endchoice
+		config AUD_TRAS_AEC_DUMP_DEBUG
+			depends on AUDIO_TRANSFER
+			bool "Enable Aud Tras Aec Dump Debug"
+			default n
+			help
+				enable Audio Transfer AEC dump debug
 
-	config AUD_TRAS_AEC_DUMP_UART_BAUDRATE
-		depends on AUD_TRAS_AEC_DUMP_MODE_UART
-		int "Audio Transfer AEC dump uart baudrate"
-		range 921600 2000000
-		default 921600
+		choice AUD_TRAS_AEC_DUMP_MODE
+			depends on AUD_TRAS_AEC_DUMP_DEBUG
+			prompt "Select Audio Transfer AEC Dump Mode"
+			default AUD_TRAS_AEC_DUMP_MODE_TF
 
-	config AUD_TRAS_AEC_DUMP_UART_ID
-		depends on AUD_TRAS_AEC_DUMP_MODE_UART
-		int "Audio Transfer AEC dump uart id"
-		range 0 2
-		default 1
+			config AUD_TRAS_AEC_DUMP_MODE_TF
+				bool "AUD_TRAS_AEC_DUMP_MODE_TF"
+				help
+					Audio Transfer AEC Dump by TFcard
 
-	config AUD_TRAS_LOST_COUNT_DEBUG
-		depends on AUDIO_TRANSFER
-		bool "enable Audio Transfer lost count debug"
-		default n
+			config AUD_TRAS_AEC_DUMP_MODE_UART
+				bool "AUD_TRAS_AEC_DUMP_MODE_UART"
+				help
+					Audio Transfer AEC Dump by Uart
 
-	config AUD_TRAS_AEC_MIC_DELAY_DEBUG
-		depends on AUDIO_TRANSFER
-		bool "enable Audio Transfer AEC mic Delay debug"
-		default n
+			menu "Modify Aud Tras Aec Dump Uart Config"
+				depends on AUD_TRAS_AEC_DUMP_MODE_UART
+				
+				config AUD_TRAS_AEC_DUMP_UART_BAUDRATE
+					int "Set Aud Tras Aec Dump Uart Baudrate"
+					range 921600 2000000
+					default 921600
+					help
+						Audio Transfer AEC dump uart baudrate
 
-	config AUD_TRAS_AEC_MIC_DELAY_POINTS
-		depends on AUDIO_TRANSFER
-		int "Audio Transfer AEC mic Delay points"
-		range 1 320
-		default 54
+				config AUD_TRAS_AEC_DUMP_UART_ID
+					int "Set Aud Tras Aec Dump Uart Id"
+					range 0 2
+					default 1
+					help
+						Audio Transfer AEC dump uart id
+			endmenu
 
-	config AUD_TRAS_DAC_DEBUG
-		depends on AUDIO_TRANSFER
-		bool "Audio Transfer DAC ERROR DEBUG"
-		default n
+			config AUD_TRAS_AEC_DUMP_MODE_WIFI
+				bool "AUD_TRAS_AEC_DUMP_MODE_WIFI"
+				help
+					Audio Transfer AEC Dump by udp
 
-	config AUD_TRAS_DAC_PA_CTRL
-		depends on AUDIO_TRANSFER
-		bool "Audio Transfer DAC PA Control Enable"
-		default n
+			choice AUD_TRAS_AEC_DUMP_MODE_WIFI_MODE
+				depends on AUD_TRAS_AEC_DUMP_MODE_WIFI
+				prompt "Select Audio Transfer AEC WIFI Mode"
+				default AUD_TRAS_AEC_DUMP_MODE_UDP
 
-	config AUD_RING_BUFF_SAFE_INTERVAL
-		int "Audio ring buff safe interval"
-		range 0 320
-		default 0
+				config AUD_TRAS_AEC_DUMP_MODE_UDP
+					bool "AUD_TRAS_AEC_DUMP_MODE_UDP"
+					help
+						Audio Transfer AEC Dump by UDP
+
+				config AUD_TRAS_AEC_DUMP_MODE_TCP
+					bool "AUD_TRAS_AEC_DUMP_MODE_TCP"
+					help
+						Audio Transfer AEC Dump by TCP
+			endchoice
+		endchoice
+
+		config AUD_TRAS_LOST_COUNT_DEBUG
+			depends on AUDIO_TRANSFER
+			bool "Enable Aud Tras Lost Count Debug"
+			default n
+			help
+				enable Audio Transfer lost count debug
+
+		config AUD_TRAS_AEC_MIC_DELAY_DEBUG
+			depends on AUDIO_TRANSFER
+			bool "Enable Aud Tras Aec Mic Delay Debug"
+			default n
+			help
+				enable Audio Transfer AEC mic Delay debug
+
+		config AUD_TRAS_AEC_MIC_DELAY_POINTS
+			depends on AUDIO_TRANSFER
+			int "Set Aud Tras Aec Mic Delay Points"
+			range 1 320
+			default 54
+			help
+				Audio Transfer AEC mic Delay points
+
+		config AUD_TRAS_DAC_DEBUG
+			depends on AUDIO_TRANSFER
+			bool "Enable Aud Tras Dac Debug"
+			default n
+			help
+				Audio Transfer DAC ERROR DEBUG
+
+		config AUD_TRAS_DAC_PA_CTRL
+			depends on AUDIO_TRANSFER
+			bool "Enable Aud Tras Dac Pa Ctrl"
+			default n
+			help
+				Audio Transfer DAC PA Control Enable
+
+		choice AUD_TRAS_UAC_SPK_VOL_CTRL_MODE
+			depends on AUDIO_TRANSFER
+			prompt "Select UAC speaker volume set Mode"
+			default AUD_TRAS_UAC_SPK_VOL_CTRL_MODE_DIRECT
+
+			config AUD_TRAS_UAC_SPK_VOL_CTRL_MODE_DIRECT
+				bool "Enable direct set uac speaker volume mode"
+				help
+					Direct set uac speaker volume
+
+			config AUD_TRAS_UAC_SPK_VOL_CTRL_MODE_STOP_UAC_TRAS
+				bool "Enable indirect set uac speaker volume mode "
+				help
+					Indirect set uac speaker volume after stop uac mic and speaker transfer, then recover uac mic and speaker transfer
+
+			config AUD_TRAS_UAC_SPK_VOL_CTRL_MODE_MUTE
+				bool "Enable indirect set uac speaker volume mode "
+				help
+					Indirect set uac speaker volume after mute, then unmute
+		endchoice
+
+	endmenu
 endmenu

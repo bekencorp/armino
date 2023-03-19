@@ -28,16 +28,17 @@ GPIO MAP Config
 
   GPIO is configured according to the MAP(GPIO_DEFAULT_DEV_CONFIG) during driver initialization. Each row in the map contains nine elements.
   The 9 elements are as follows:
-	  - gpio_id:           Corresponding PIN number starting from 0
-	  - second_func_en:    Whether to enable the secondary function
-	  - second_func_dev:   Select the second function of the PIN
-	  - io_mode:           Select the IO operating mode, input\output\high resistance
-	  - pull_mode:         Select IO level pull up or pull down
-	  - int_en:            Whether to turn on interrupt
-	  - int_type:          Select trigger interrupt condition, high/low/rise/fall
-	  - low_power_io_ctrl: Low power whether to maintain the output level
-	  - driver_capacity:   Driver ability selection, a total of four levels
-	  
+
+	- gpio_id:           Corresponding PIN number starting from 0
+	- second_func_en:    Whether to enable the secondary function
+	- second_func_dev:   Select the second function of the PIN
+	- io_mode:           Select the IO operating mode, input\output\high resistance
+	- pull_mode:         Select IO level pull up or pull down
+	- int_en:            Whether to turn on interrupt
+	- int_type:          Select trigger interrupt condition, high/low/rise/fall
+	- low_power_io_ctrl: Low power whether to maintain the output level
+	- driver_capacity:   Driver ability selection, a total of four levels
+
 .. note::
 
   gpio_map.h must be configured. GPIO configuration varies with product types.
@@ -52,7 +53,8 @@ Configure GPIO_0 to function [GPIO_DEV_I2C1_SCL] and GPIO_1 to function [GPIO_DE
 	+---------+-------------------------+-------------------+-----------------+------------------+-----------------+------------------------+---------------------------------+-----------------------+
 	| GPIO_1  | GPIO_SECOND_FUNC_ENABLE | GPIO_DEV_I2C1_SDA | GPIO_IO_DISABLE | GPIO_PULL_DISABLE| GPIO_INT_DISABLE| GPIO_INT_TYPE_LOW_LEVEL| GPIO_LOW_POWER_DISCARD_IO_STATUS| GPIO_DRIVER_CAPACITY_3|
 	+---------+-------------------------+-------------------+-----------------+------------------+-----------------+------------------------+---------------------------------+-----------------------+
-	  - PS:GPIO is turned off by default when the second function is used (io_mode is [GPIO_IO_DISABLE]). I2C needs more driving capability (driver_capacity is [GPIO_DRIVER_CAPACITY_3]).
+	 
+	- PS:GPIO is turned off by default when the second function is used (io_mode is [GPIO_IO_DISABLE]). I2C needs more driving capability (driver_capacity is [GPIO_DRIVER_CAPACITY_3]).
 
 GPIO_0 is set to high resistance(Default state):
 	+---------+-------------------------+-------------------+-----------------+------------------+-----------------+------------------------+---------------------------------+-----------------------+
@@ -60,7 +62,9 @@ GPIO_0 is set to high resistance(Default state):
 	+=========+=========================+===================+=================+==================+=================+========================+=================================+=======================+
 	| GPIO_0  | GPIO_SECOND_FUNC_DISABLE| GPIO_DEV_INVALID  | GPIO_IO_DISABLE | GPIO_PULL_DISABLE| GPIO_INT_DISABLE| GPIO_INT_TYPE_LOW_LEVEL| GPIO_LOW_POWER_DISCARD_IO_STATUS| GPIO_DRIVER_CAPACITY_0|
 	+---------+-------------------------+-------------------+-----------------+------------------+-----------------+------------------------+---------------------------------+-----------------------+
-	  - PS:Disable all config
+
+	- PS:Disable all config
+
 
 GPIO_0 is set to input key and falling edge to trigger the interrupt:
 	+---------+-------------------------+-----------------+-----------------+----------------+----------------+--------------------------+----------------------------------+-----------------------+
@@ -68,7 +72,8 @@ GPIO_0 is set to input key and falling edge to trigger the interrupt:
 	+=========+=========================+=================+=================+================+================+==========================+==================================+=======================+
 	| GPIO_0  | GPIO_SECOND_FUNC_DISABLE| GPIO_DEV_INVALID|GPIO_INPUT_ENABLE| GPIO_PULL_UP_EN| GPIO_INT_ENABLE|GPIO_INT_TYPE_FALLING_EDGE| GPIO_LOW_POWER_DISCARD_IO_STATUS | GPIO_DRIVER_CAPACITY_0|
 	+---------+-------------------------+-----------------+-----------------+----------------+----------------+--------------------------+----------------------------------+-----------------------+
-	  - PS:Turn off the second function related. There are 4 interrupt trigger conditions:[GPIO_INT_TYPE_LOW_LEVEL],[GPIO_INT_TYPE_HIGH_LEVEL],[GPIO_INT_TYPE_RISING_EDGE],[GPIO_INT_TYPE_FALLING_EDGE].
+
+	- PS:Turn off the second function related. There are 4 interrupt trigger conditions:[GPIO_INT_TYPE_LOW_LEVEL],[GPIO_INT_TYPE_HIGH_LEVEL],[GPIO_INT_TYPE_RISING_EDGE],[GPIO_INT_TYPE_FALLING_EDGE].
 
 GPIO_0 acts as a low power wake-up source:
 	+---------+-------------------------+-----------------+-----------------+----------------+----------------+--------------------------+----------------------------------+-----------------------+
@@ -76,7 +81,8 @@ GPIO_0 acts as a low power wake-up source:
 	+=========+=========================+=================+=================+================+================+==========================+==================================+=======================+
 	| GPIO_0  | GPIO_SECOND_FUNC_DISABLE| GPIO_DEV_INVALID|GPIO_INPUT_ENABLE| GPIO_PULL_UP_EN| GPIO_INT_ENABLE|GPIO_INT_TYPE_FALLING_EDGE| GPIO_LOW_POWER_DISCARD_IO_STATUS | GPIO_DRIVER_CAPACITY_0|
 	+---------+-------------------------+-----------------+-----------------+----------------+----------------+--------------------------+----------------------------------+-----------------------+
-	  - PS:low_power_io_ctrl is [GPIO_LOW_POWER_KEEP_INPUT_STATUS], int_type is [GPIO_INT_TYPE_RISING_EDGE] or [GPIO_INT_TYPE_FALLING_EDGE];
+
+	- PS:low_power_io_ctrl is [GPIO_LOW_POWER_KEEP_INPUT_STATUS], int_type is [GPIO_INT_TYPE_RISING_EDGE] or [GPIO_INT_TYPE_FALLING_EDGE];
 
 
 GPIO API Status

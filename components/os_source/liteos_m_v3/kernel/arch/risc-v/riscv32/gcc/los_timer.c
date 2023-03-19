@@ -29,75 +29,56 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "riscv_hal.h"
-#include "soc_common.h"
-#include "los_config.h"
-#include "los_debug.h"
-#include "los_reg.h"
 #include "los_timer.h"
+#include "los_config.h"
 #include "los_tick.h"
+#include "los_reg.h"
 #include "los_arch_interrupt.h"
 #include "los_sched.h"
 #include "los_arch_timer.h"
-#include "mon_call.h"
+#include "riscv_hal.h"
 
-extern void riscv_set_mtimercmp(UINT64 new_time);
-extern UINT64 riscv_get_mtimer(void);
 
-UINT32 HalTickStart(OS_TICK_HANDLER handler)
+WEAK UINT32 HalTickStart(OS_TICK_HANDLER handler)
 {
-	(VOID)handler;
-
     g_sysClock = OS_SYS_CLOCK;
     g_cyclesPerTick = g_sysClock / LOSCFG_BASE_CORE_TICK_PER_SECOND;
     g_intCount = 0;
 
-	uint64_t ullNextTime;
+    HalClockInit(handler, (UINT32)LOSCFG_BASE_CORE_TICK_RESPONSE_MAX);
 
-	ullNextTime = riscv_get_mtimer();
-	ullNextTime += ( uint64_t ) ( OS_SYS_CLOCK / LOSCFG_BASE_CORE_TICK_PER_SECOND );
-	riscv_set_mtimercmp(ullNextTime);
-
-	mon_timer_int_clear();
-
-    return LOS_OK;
+    return LOS_OK; /* never return */
 }
 
-VOID HalSysTickReload(UINT64 nextResponseTime)
+WEAK VOID HalSysTickReload(UINT64 nextResponseTime)
 {
-	unsigned int intSave;
+    UINT64 timeMax = (UINT64)LOSCFG_BASE_CORE_TICK_RESPONSE_MAX - 1;
+    UINT64 timer;
+    UINT32 timerL, timerH;
+    READ_UINT32(timerL, MTIMER);
+    READ_UINT32(timerH, MTIMER + MTIMER_HI_OFFSET);
+    timer = OS_COMBINED_64(timerH, timerL);
+    if ((timeMax - nextResponseTime) > timer) {
+        timer += nextResponseTime;
+    } else {
+        timer = timeMax;
+    }
 
-	intSave = LOS_IntLock();
-
-	UINT64 timeMax = (UINT64)LOSCFG_BASE_CORE_TICK_RESPONSE_MAX - 1;
-	UINT64 timer;
-
-	timer = riscv_get_mtimer();
-	if ((timeMax - nextResponseTime) > timer) {
-		timer += nextResponseTime;
-	} else {
-		timer = timeMax;
-	}
-
-	riscv_set_mtimercmp(timer);
-
-	mon_timer_int_clear();
-
-	LOS_IntRestore(intSave);
+    HalIrqDisable(RISCV_MACH_TIMER_IRQ);
+    WRITE_UINT32(0xffffffff, MTIMERCMP + MTIMER_HI_OFFSET);
+    WRITE_UINT32((UINT32)timer, MTIMERCMP);
+    WRITE_UINT32((UINT32)(timer >> SHIFT_32_BIT), MTIMERCMP + MTIMER_HI_OFFSET);
+    HalIrqEnable(RISCV_MACH_TIMER_IRQ);
 }
 
-UINT64 HalGetTickCycle(UINT32 *period)
+WEAK UINT64 HalGetTickCycle(UINT32 *period)
 {
-	(VOID)period;
-	unsigned int intSave;
-	unsigned long long currentTick;
+    (VOID)period;
+    UINT32 timerL, timerH;
 
-	intSave = LOS_IntLock();
-	
-	currentTick = riscv_get_mtimer();
-	LOS_IntRestore(intSave);
-
-	return currentTick;
+    READ_UINT32(timerL, MTIMER);
+    READ_UINT32(timerH, MTIMER + MTIMER_HI_OFFSET);
+    return OS_COMBINED_64(timerH, timerL);
 }
 
 UINT32 HalEnterSleep(VOID)

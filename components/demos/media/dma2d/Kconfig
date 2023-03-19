@@ -1,5 +1,7 @@
-menu "DEMOS_CONFIG"
+menu "Demos::Media::Dma2d"
 	config DMA2D_TEST
-		bool "Enable lcd demos"
+		bool "Enable Dma2d Test"
 		default n
+		help
+			Enable lcd demos
 endmenu

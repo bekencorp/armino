@@ -219,9 +219,9 @@ CONFIG_FREERTOS_V9=n
 CONFIG_FREERTOS_V10=y
 
 #
-# Customize heap size 252k
+# Customize heap size 256k
 #
-CONFIG_CUSTOMIZE_HEAP_SIZE=258048
+CONFIG_CUSTOMIZE_HEAP_SIZE=260096
 
 #
 # Memory Debug
@@ -640,3 +640,13 @@ CONFIG_CHIP_SUPPORT=y
 #
 #
 CONFIG_CHANGE_JTAG_GPIO=y
+
+#
+# vault support
+#
+CONFIG_VAULT_SUPPORT=y
+
+#
+# OTP support
+#
+CONFIG_OTP=y

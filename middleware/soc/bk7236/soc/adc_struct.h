@@ -28,8 +28,8 @@ typedef volatile struct {
 	/* REG_0x02 */
 	union {
 		struct {
-			uint32_t soft_reset:      1; /**< bit[0] PRRO soft reset */
-			uint32_t clk_gate_bypass: 1; /**< bit[1] bypass PRRO clock gate */
+			uint32_t soft_reset:      1; /**< bit[0] uart soft reset */
+			uint32_t clk_gate_bypass: 1; /**< bit[1] bypass uart clock gate */
 			uint32_t reserved:       30; /**< bit[2:31] reserved */
 		};
 		uint32_t v;

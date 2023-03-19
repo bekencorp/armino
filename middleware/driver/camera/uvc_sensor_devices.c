@@ -37,6 +37,7 @@ static uvc_config_t *uvc_camera_config = NULL;
 static bk_err_t uvc_camera_deinit(uvc_state_t state)
 {
 	int ret = BK_OK;
+	void *parameter;
 
 	LOGI("%s, %d\r\n", __func__, uvc_camera_state);
 
@@ -53,6 +54,12 @@ static bk_err_t uvc_camera_deinit(uvc_state_t state)
 		bk_usb_close();
 
 		bk_uvc_camera_power_enable(0);
+
+		// unregister connect & disconnect
+		parameter = NULL;
+		bk_uvc_register_disconnect_callback(parameter);
+		parameter = NULL;
+		bk_uvc_register_config_callback(parameter);
 	}
 
 	if (uvc_rx_stream_buffer)
@@ -451,15 +458,15 @@ bk_err_t bk_uvc_camera_power_enable(uint8_t enable)
 #if (CONFIG_CAMERA_POWER_GPIO_CTRL)
 	if (enable)
 	{
-		gpio_dev_unmap(CAMERA_LCD_CTRL_GPIO);
-		bk_gpio_set_capacity(CAMERA_LCD_CTRL_GPIO, 0);
-		BK_LOG_ON_ERR(bk_gpio_disable_input(CAMERA_LCD_CTRL_GPIO));
-		BK_LOG_ON_ERR(bk_gpio_enable_output(CAMERA_LCD_CTRL_GPIO));
+		gpio_dev_unmap(CAMERA_LDO_CTRL_GPIO);
+		bk_gpio_set_capacity(CAMERA_LDO_CTRL_GPIO, 0);
+		BK_LOG_ON_ERR(bk_gpio_disable_input(CAMERA_LDO_CTRL_GPIO));
+		BK_LOG_ON_ERR(bk_gpio_enable_output(CAMERA_LDO_CTRL_GPIO));
 
 #if (CAMERA_LDO_CTRL_ACTIVE_LEVEL)
-		bk_gpio_set_output_high(CAMERA_LCD_CTRL_GPIO);
+		bk_gpio_set_output_high(CAMERA_LDO_CTRL_GPIO);
 #else
-		bk_gpio_set_output_low(CAMERA_LCD_CTRL_GPIO);
+		bk_gpio_set_output_low(CAMERA_LDO_CTRL_GPIO);
 #endif
 
 		delay_ms(5);
@@ -468,9 +475,9 @@ bk_err_t bk_uvc_camera_power_enable(uint8_t enable)
 	{
 
 #if (CAMERA_LDO_CTRL_ACTIVE_LEVEL)
-		bk_gpio_set_output_low(CAMERA_LCD_CTRL_GPIO);
+		bk_gpio_set_output_low(CAMERA_LDO_CTRL_GPIO);
 #else
-		bk_gpio_set_output_high(CAMERA_LCD_CTRL_GPIO);
+		bk_gpio_set_output_high(CAMERA_LDO_CTRL_GPIO);
 #endif
 	}
 

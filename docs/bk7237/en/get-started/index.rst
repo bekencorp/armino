@@ -235,7 +235,7 @@ On the Windows platform, Armino currently supports UART burning.
 
 
 Burn through serial port
-********************
+****************************************
 
 !note:
 
@@ -257,7 +257,7 @@ Acquisition of burning tools：
 
 bk_writer.exe The interface and related configurations are shown in the figure below：
 
-.. figure:: ../../_static/download_uart_BK7256_en.png
+.. figure:: ../../_static/download_uart_bk7256_en.png
     :align: center
     :alt: Bkwrite GUI
     :figclass: align-center
@@ -278,12 +278,4 @@ Serial port Log and Command Line
     Cpu1 help//Output the command list of cpu1
 
     Cpu1 time//Output the current running time of cpu1
-
-
-Compile options and link options
-------------------------------------------------------
-
-- BK7237, with default compile option "-mstrict-align", link option "-wl,--defsym,memcpy=memcpy_ss"
-- To compile the lib library separately, you need to add the compile option "-mstrict-align".
-- If you do not use platform linking commands, such as compiling HarmonyOS, for Andes v5.1.1 tool chain, you need to add the link option "-wl,--defsym,memcpy=memcpy_ss".
 

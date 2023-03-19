@@ -49,7 +49,7 @@ void yuv_buf_struct_dump(void)
 	SOC_LOGI("    mclk_div:           %x\r\n", hw->ctrl.mclk_div);
 	SOC_LOGI("    h264_mode:          %x\r\n", hw->ctrl.h264_mode);
 	SOC_LOGI("    bps_cis:            %x\r\n", hw->ctrl.bps_cis);
-	SOC_LOGI("    memrev:           %x\r\n", hw->ctrl.memrev);
+	SOC_LOGI("    reserved:           %x\r\n", hw->ctrl.reserved1);
 	SOC_LOGI("    mclk_hold_en:       %x\r\n", hw->ctrl.mclk_hold_en);
 	SOC_LOGI("    sen_mem_clr:        %x\r\n", hw->ctrl.sen_mem_clr);
 	SOC_LOGI("    sen_mem_en_hd:      %x\r\n", hw->ctrl.sen_mem_en_hd);

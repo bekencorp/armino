@@ -7,15 +7,6 @@
 extern"C" {
 #endif
 
-
-enum
-{
-    A2DP_CONNECTION_STATUS_IDLE = 0,
-    A2DP_CONNECTION_STATUS_CONNECTING,
-    A2DP_CONNECTION_STATUS_CONNECTED,
-    A2DP_CONNECTION_STATUS_DISCONNECTING,
-};
-
 union codec_info
 {
     uint8_t codec_type;
@@ -44,13 +35,12 @@ typedef struct
     void (*media_data_ind)(uint8_t *data, uint16_t data_len);
 } bt_a2dp_sink_cb_t;
 
-
 typedef struct
 {
     void (*a2dp_connection_change)(uint8_t status, uint8_t reason);
     void (*a2dp_capabilities_report)(void *arg);
     void (*a2dp_set_config_cnf)(uint8_t result, uint8_t reason);
-    void (*a2dp_start_cnf)(uint8_t result, uint8_t reason, uint32_t mtu);
+    void (*a2dp_start_cnf)(uint8_t result, uint8_t reason);
     void (*a2dp_suspend_cnf)(uint8_t result, uint8_t reason);
 } bt_a2dp_source_cb_t;
 

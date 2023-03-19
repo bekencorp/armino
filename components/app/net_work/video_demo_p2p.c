@@ -16,9 +16,10 @@
 
 #include "video_transfer_tcp.h"
 #include "video_transfer_udp.h"
+#include "video_transfer_cs2_p2p.h"
 #include "video_demo_pub.h"
 #include "video_upd_spd.h"
-#ifdef CONFIG_P2P
+#ifdef CONFIG_COMPONENTS_P2P
 //#include "rw_tx_buffering.h"
 //#include "rw_ieee80211.h"
 #include "net.h"
@@ -164,12 +165,12 @@ static void app_demo_p2p_rw_event_func(void *new_evt)
         APP_DEMO_P2P_PRT("WIFI_LINKSTATE_STA_DISCONNECTED\r\n");
         app_demo_p2p_send_msg(DAP_WIFI_DISCONECTED, 0);
     }
-    else if (info.state == WIFI_LINKSTATE_AP_CONNECTED)
+	else if (evt_type == RW_EVT_AP_CONNECTED)
     {
         APP_DEMO_P2P_PRT("RW_EVT_AP_CONNECTED\r\n");
         app_demo_p2p_send_msg(DAP_WIFI_CONECTED, 1);
     }
-    else if (info.state == WIFI_LINKSTATE_AP_DISCONNECTED)
+    else if (evt_type == RW_EVT_AP_DISCONNECTED)
     {
         APP_DEMO_P2P_PRT("RW_EVT_AP_DISCONNECTED\r\n");
         app_demo_p2p_send_msg(DAP_WIFI_DISCONECTED, 1);
@@ -256,7 +257,11 @@ static void app_demo_p2p_main(beken_thread_arg_t data)
                     vudp_sdp_stop();
                     #endif
 
-#ifdef CONFIG_P2P
+                    #if CONFIG_CS2_P2P_SERVER
+//                    app_demo_cs2_p2p_deinit();
+                    #endif
+
+#ifdef CONFIG_COMPONENTS_P2P
 		wlan_hw_reinit();
 		if (msg.data == 1) {
 			uap_ip_down();
@@ -287,6 +292,10 @@ static void app_demo_p2p_main(beken_thread_arg_t data)
 
                     #if APP_DEMO_CFG_USE_UDP_SDP
                     vudp_sdp_start();
+                    #endif
+
+                    #if CONFIG_CS2_P2P_SERVER
+                    //app_demo_cs2_p2p_init();
                     #endif
 
                     APP_DEMO_P2P_PRT("wifi connected!\r\n");

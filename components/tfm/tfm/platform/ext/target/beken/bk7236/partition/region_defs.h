@@ -25,8 +25,8 @@
 #define S_PSP_STACK_SIZE        (0x0000800)
 
 #define NS_HEAP_SIZE            (0x0001000)
-#define NS_MSP_STACK_SIZE       (0x0000800)
-#define NS_PSP_STACK_SIZE       (0x0000800)
+#define NS_MSP_STACK_SIZE       (0x00000A0)
+#define NS_PSP_STACK_SIZE       (0x0000140)
 
 /* This size of buffer is big enough to store an attestation
  * token produced by initial attestation service
@@ -71,7 +71,8 @@
 #define NS_DATA_LIMIT   (NS_DATA_START + NS_DATA_SIZE - 1)
 
 /* NS partition information is used for MPC and SAU configuration */
-#define NS_PARTITION_START NS_CODE_START
+#define NS_PARTITION_START \
+            (NS_ROM_ALIAS(NS_IMAGE_PRIMARY_PARTITION_OFFSET))
 #define NS_PARTITION_SIZE (FLASH_NS_PARTITION_SIZE)
 
 /* Secondary partition for new images in case of firmware upgrade */

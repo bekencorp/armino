@@ -103,12 +103,12 @@ Wi-Fi MAC地址配置位于 ``bk_system\mac.c`` , 分为base_mac、sta_mac、ap_
 - 通过EFUSE写入
 - 随机数产生,需使能 ``bk72xx.defconfig`` 配置文件中 ``CONFIG_RANDOM_MAC_ADDR`` 宏定义
 - 使用[MAC地址配置工具]:bk_writer烧写MAC地址到FLASH
+-  ``bk_check_mac_address`` 用于检测设置MAC地址是否符合BEKEN规范C8:47:8C, 如客户不需要可去除此功能
 - 使用mac命令写入flash,使用方式如下：
 
 ::
 
     mac c8478caabbcc
-    txevm -e 2
 
 :link_to_translation:`en:[English]`
 

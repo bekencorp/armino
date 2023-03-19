@@ -36,15 +36,13 @@
 
 #if (CONFIG_SOC_BK7231N || CONFIG_SOC_BK7236A)
 #define ADC_TEMP_SATURATE_MODE                      ADC_SATURATE_MODE_1
-#elif(CONFIG_SOC_BK7236)
-#define ADC_TEMP_SATURATE_MODE                      ADC_SATURATE_MODE_2
 #elif(CONFIG_SOC_BK7256XX)
 #define ADC_TEMP_SATURATE_MODE                      ADC_SATURATE_MODE_3
 #else
 #define ADC_TEMP_SATURATE_MODE                      ADC_SATURATE_MODE_3
 #endif
 
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 #define ADC_TEMP_BUFFER_SIZE                        (5+5)//(+5 for skip)
 #define ADC_TMEP_LSB_PER_10DEGREE                   (20)
 #else
@@ -68,7 +66,7 @@
 #define ADC_TEMP_VAL_MAX                            (700)
 #define ADC_XTAL_DIST_INTIAL_VAL                    (70)
 
-#if (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
+#if (CONFIG_SOC_BK7256XX)
 #define TEMP_DETEC_ADC_CLK	                    203125
 #define TEMP_DETEC_ADC_SAMPLE_RATE	            0
 #else

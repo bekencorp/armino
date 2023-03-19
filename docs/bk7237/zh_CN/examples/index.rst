@@ -10,3 +10,5 @@
    音频 <audio/index>
    蓝牙 <bluetooth/index>
    Command Line <cli/index>
+   外设 <peripheral/index>
+   平台 <platform/index>   

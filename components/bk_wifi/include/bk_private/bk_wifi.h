@@ -61,6 +61,34 @@ int wlan_ap_reload(void);
 int wlan_ap_sta_num(int *num);
 int wlan_ap_sta_info(wlan_ap_stas_t *stas);
 int wlan_ap_set_beacon_vsie(wlan_ap_vsie_t *vsie);
+
+/* If SSID blacklist is enabled, the SSID is added into the
+  * blacklist if the STA fails to connect it; the blacklist will be
+  * cleared once the STA successfully connects one SSID or when
+  * STA tries all found SSIDs.
+  *
+  * This feature only impacts the connect behavior when STA finds
+  * several APs with the same SSIDs,
+  *
+  * e.g.  STA find AP1/AP2/AP3 ... with same SSID xxx. STA puts
+  * AP1 into blacklist if it fails to connect AP1 and then tries AP2, STA
+  * puts AP2 into blacklist if it fails to connect AP2 and then tries AP3 ...
+  * the STA repeats this process until it successfully connects one AP or
+  * fails to connect all APs, then the blacklist is cleared.
+  *
+  * Please be notified that the blacklist feature may consume more time
+  * before it can successfully connect to the AP if it finds more than one AP
+  * with same SSID, especially if only one AP has correct password but has
+  * very low RSSI.
+  *
+  * Generally speaking, if you want the STA to iterate all the scanned APs (with
+  * same SSID) one by one, you should enable the blacklist feature.
+  *
+  * The SSID blacklist is enabled by default.
+  */
+int wlan_sta_enable_ssid_blacklist(void);
+int wlan_sta_disable_ssid_blacklist(void);
+
 int wlan_p2p_listen(void);
 int wlan_p2p_find(void);
 int wlan_p2p_stop_find(void);
@@ -75,6 +103,7 @@ int wlan_ap_disable(void);
 int http_ota_download(const char *uri);
 int bk_wlan_set_channel_with_band_width(int channel, int band_width);
 int bmsg_tx_raw_sender(uint8_t *payload, uint16_t length);
+int bmsg_tx_raw_ex_sender(wifi_raw_tx_info_t *raw_tx, void *cb, void *param);
 int bmsg_tx_raw_cb_sender(uint8_t *buffer, int length, void *cb, void *param);
 void wlan_write_fast_connect_info(struct wlan_fast_connect_info *fci);
 void wlan_read_fast_connect_info(struct wlan_fast_connect_info *fci);
@@ -88,7 +117,7 @@ void bk_wifi_dump_ps_regs(void);
 void bk_wifi_udelay(uint32_t us);
 void wlan_hw_reinit(void);
 void wlan_set_multicast_flag(void);
-#ifdef CONFIG_P2P_GO
+#ifdef CONFIG_COMPONENTS_P2P_GO
 uint8_t bk_wlan_ap_get_default_channel(void);
 void app_p2p_rw_event_func(void *new_evt);
 void app_p2p_restart_thread(void);

@@ -39,6 +39,7 @@ extern lcd_qspi_device_t lcd_qspi_device_st77903;
 
 static qspi_driver_t s_lcd_qspi = {0};
 
+
 #if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
 beken_semaphore_t lcd_qspi_semaphore = NULL;
 
@@ -49,7 +50,7 @@ static void dma2d_transfer_complete_isr(void)
 	bk_dma2d_int_status_clear(DMA2D_TRANS_COMPLETE_STATUS);
 	ret = rtos_set_semaphore(&lcd_qspi_semaphore);
 	if (ret != kNoErr) {
-		os_printf("qspi oled semaphore set failed\r\n");
+		os_printf("lcd qspi semaphore set failed\r\n");
 		return;
 	}
 }
@@ -181,7 +182,7 @@ static bk_err_t bk_lcd_qspi_common_init(void)
 #if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
 	ret = rtos_init_semaphore(&lcd_qspi_semaphore, 1);
 	if (ret != kNoErr) {
-		os_printf("qspi oled semaphore init failed.\r\n");
+		os_printf("lcd qspi semaphore init failed.\r\n");
 		return BK_FAIL;
 	}
 
@@ -206,7 +207,7 @@ static bk_err_t bk_lcd_qspi_common_deinit(void)
 
 	ret = rtos_deinit_semaphore(&lcd_qspi_semaphore);
 	if (ret != kNoErr) {
-		os_printf("qspi oled semaphore deinit failed.\r\n");
+		os_printf("lcd qspi semaphore deinit failed.\r\n");
 		return BK_FAIL;
 	}
 #endif
@@ -230,17 +231,22 @@ static void bk_lcd_qspi_dma2d_fill(uint32_t width, uint32_t height, uint32_t col
 	bk_dma2d_init(&dma2d_config);
 
 	bk_dma2d_start_transfer(&dma2d_config, color, LCD_QSPI_DISPLAY_PSRAM_ADDR, width, height);
-
-#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 0)
-	while (bk_dma2d_is_transfer_busy()) {}
-#endif
 }
 
-static void bk_lcd_qspi_dma2d_memcpy(uint32_t *Psrc, uint32_t xsize, uint32_t ysize)
+static void bk_lcd_qspi_dma2d_memcpy(uint32_t *Psrc, uint32_t xsize, uint32_t ysize, bool data_reverse)
 {
 	dma2d_config_t dma2d_config = {0};
 
+#if CONFIG_LVGL
+	dma2d_config.init.mode         = DMA2D_M2M_PFC;
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_color_mode = DMA2D_INPUT_ARGB8888;
+	dma2d_config.init.data_reverse   = data_reverse;
+#else
 	dma2d_config.init.mode         = DMA2D_M2M;             /**< Mode Memory To Memory */
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_color_mode = DMA2D_INPUT_RGB888;	 /**< Input color is RGB888 */
+#endif
+
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].red_blue_swap   = DMA2D_RB_REGULAR;		/**< No R&B swap for the input image */
 	dma2d_config.init.color_mode    = DMA2D_OUTPUT_RGB888; /**< Output color mode is RGB888 */
 	dma2d_config.init.output_offset = 0;                   /**< No offset on output */
 	dma2d_config.init.red_blue_swap   = DMA2D_RB_REGULAR;     /**< No R&B swap for the output image */
@@ -248,19 +254,13 @@ static void bk_lcd_qspi_dma2d_memcpy(uint32_t *Psrc, uint32_t xsize, uint32_t ys
 
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].alpha_mode = DMA2D_NO_MODIF_ALPHA;      /**< Keep original Alpha from RGB888 input */
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_alpha = 0xFF;                     /**< Fully opaque */
-	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_color_mode = DMA2D_INPUT_RGB888; /**< Input color is RGB888 */
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_offset = 0;                     /**< No offset in input */
-	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].red_blue_swap   = DMA2D_RB_REGULAR;      /**< No R&B swap for the input image */
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].alpha_inverted = DMA2D_REGULAR_ALPHA;   /**< No alpha inversion for the input image */
 
 	bk_dma2d_init(&dma2d_config);
 	bk_dma2d_layer_config(&dma2d_config, DMA2D_FOREGROUND_LAYER);
 
 	bk_dma2d_start_transfer(&dma2d_config, (uint32_t)Psrc, LCD_QSPI_DISPLAY_PSRAM_ADDR, xsize, ysize);
-
-#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 0)
-	while (bk_dma2d_is_transfer_busy()) {}
-#endif
 }
 
 lcd_qspi_device_t *lcd_qspi_devices[] = {
@@ -314,14 +314,14 @@ bk_err_t bk_lcd_qspi_init(lcd_qspi_device_t *device)
 
 	ret = bk_lcd_qspi_common_init();
 	if (ret == BK_FAIL) {
-		os_printf("qspi oled common init failed!\r\n");
+		os_printf("lcd qspi common init failed!\r\n");
 		return ret;
 	}
 
 	if (device->backlight_init != NULL) {
 		ret = device->backlight_init(100);
 		if (ret != BK_OK) {
-			os_printf("qspi oled backlight init failed!\r\n");
+			os_printf("lcd qspi backlight init failed!\r\n");
 			return ret;
 		}
 	}
@@ -337,7 +337,7 @@ bk_err_t bk_lcd_qspi_init(lcd_qspi_device_t *device)
 			init++;
 		}
 	} else {
-		os_printf("qspi oled device don't init\r\n");
+		os_printf("lcd qspi device don't init\r\n");
 		return BK_FAIL;
 	}
 
@@ -350,14 +350,14 @@ bk_err_t bk_lcd_qspi_deinit(lcd_qspi_device_t *device)
 
 	ret = bk_lcd_qspi_common_deinit();
 	if (ret == BK_FAIL) {
-		os_printf("qspi oled common deinit failed!\r\n");
+		os_printf("lcd qspi common deinit failed!\r\n");
 		return ret;
 	}
 
 	if (device->backlight_deinit != NULL) {
 		ret = device->backlight_deinit();
 		if (ret != BK_OK) {
-			os_printf("qspi oled backlight deinit failed!\r\n");
+			os_printf("lcd qspi backlight deinit failed!\r\n");
 			return ret;
 		}
 	}
@@ -367,15 +367,17 @@ bk_err_t bk_lcd_qspi_deinit(lcd_qspi_device_t *device)
 
 bk_err_t bk_lcd_qspi_send_data(lcd_qspi_device_t *device, uint32_t *data, uint8_t data_len)
 {
+	bk_err_t ret = BK_OK;
+
 	if (device->refresh_method == LCD_QSPI_REFRESH_BY_LINE) {
 		for (uint16_t i = 0; i < device->refresh_config.vsw; i++) {
 			bk_lcd_qspi_send_cmd(device->reg_write_cmd, device->refresh_config.vsync_cmd, NULL, 0);
-			delay_us(40);
+			delay_us(35);
 		}
 
 		for (uint16_t i = 0; i < device->refresh_config.hfp; i++) {
 			bk_lcd_qspi_send_cmd(device->reg_write_cmd, device->refresh_config.hsync_cmd, NULL, 0);
-			delay_us(40);
+			delay_us(35);
 		}
 
 		for (uint16_t i = 0; i < device->ppi >> 16; i++) {
@@ -383,27 +385,42 @@ bk_err_t bk_lcd_qspi_send_data(lcd_qspi_device_t *device, uint32_t *data, uint8_
 			if (data_len == 1) {
 				bk_lcd_qspi_dma2d_fill(device->ppi >> 16, 1, *data, 0);
 			} else {
-				bk_lcd_qspi_dma2d_memcpy(data, device->ppi >> 16, 1);
+#if CONFIG_LVGL
+				bk_lcd_qspi_dma2d_memcpy(data + i * (device->ppi >> 16), device->ppi >> 16, 1, 0);
+#else
+				bk_lcd_qspi_dma2d_memcpy(data + i * ((device->ppi >> 16) * 3 / 4), device->ppi >> 16, 1, 0);
+#endif			
 			}
+#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
+			ret = rtos_get_semaphore(&lcd_qspi_semaphore, 5);
+			if (ret) {
+				os_printf("ret = %d, lcd qspi get semaphore failed!\r\n", ret);
+				return BK_FAIL;
+			}
+#endif
 			bk_lcd_qspi_quad_write_stop();
-			delay_us(20);
 		}
 
 		for (uint16_t i = 0; i < device->refresh_config.hbp; i++) {
 			bk_lcd_qspi_send_cmd(device->reg_write_cmd, device->refresh_config.hsync_cmd, NULL, 0);
-			delay_us(40);
+			delay_us(30);
 		}
-		rtos_delay_milliseconds(2);
 	} else if (device->refresh_method == LCD_QSPI_REFRESH_BY_FRAME) {
 		bk_lcd_qspi_quad_write_start(&(device->pixel_write_config), 1);
 
 		if (data_len == 1) {
 			bk_lcd_qspi_dma2d_fill(device->ppi >> 16, device->ppi & 0xFFFF, *data, 1);
 		} else {
-			bk_lcd_qspi_dma2d_memcpy(data, device->ppi >> 16, device->ppi & 0xFFFF);
+			bk_lcd_qspi_dma2d_memcpy(data, device->ppi >> 16, device->ppi & 0xFFFF, 1);
 		}
+#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
+		ret = rtos_get_semaphore(&lcd_qspi_semaphore, 30);
+		if (ret) {
+			os_printf("ret = %d, lcd qspi get semaphore failed!\r\n", ret);
+			return BK_FAIL;
+		}
+#endif
 		bk_lcd_qspi_quad_write_stop();
-		rtos_delay_milliseconds(2);
 	} else {
 		os_printf("invalid lcd qspi refresh method\r\n");
 		return BK_FAIL;

@@ -30,7 +30,6 @@ typedef enum
 	APP_CAMERA_UVC_H264,
 	APP_CAMERA_NET_MJPEG,
 	APP_CAMERA_NET_H264,
-	APP_CAMERA_DVP_H264,
 	APP_CAMERA_INVALIED,
 } app_camera_type_t;
 
@@ -48,20 +47,12 @@ typedef enum
 	APP_LCD_MCU,
 } app_lcd_type_t;
 
-typedef enum
-{
-	APP_LCD_NO_USE_GUI = 0,
-	APP_LCD_USE_GUI = 1,
-} app_lcd_open_type_t;
 
 bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi);
 bk_err_t media_app_camera_close(app_camera_type_t type);
-bk_err_t media_app_h264_open(void *setup_cfg);
-bk_err_t media_app_h264_close(void);
 bk_err_t media_app_transfer_open(void *setup_cfg);
 bk_err_t media_app_transfer_close(void);
 bk_err_t media_app_lcd_open(void *lcd_open);
-bk_err_t media_app_lcd_open_withgui(void *lcd_open);
 bk_err_t media_app_lcd_close(void);
 bk_err_t media_app_capture(char *name);
 bk_err_t media_app_save_start(char *name);
@@ -82,6 +73,7 @@ bk_err_t media_app_lcd_blend(void *param);
 bk_err_t media_app_register_uvc_connect_state_cb(void *cb);
 bk_err_t media_app_lcd_gui_blend_open(int blend_x_size, int blend_y_size);
 bk_err_t media_app_lcd_gui_blend_close(void);
+bk_err_t media_app_register_read_frame_cb(void *cb);
 
 #if CONFIG_VIDEO_AVI
 bk_err_t media_app_avi_open(void);

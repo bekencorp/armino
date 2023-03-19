@@ -53,15 +53,26 @@ demo工作流程
 
 demo操作说明
 --------------------------
- 1) 通过SSCOM软件发送命令：AT+BLE=BOARDING,0201060908373235365f424c45,D;
+ 1) 通过SSCOM软件发送命令： ``AT+BLE=BOARDING,0201060908373235365f424c45,D`` ;
  2) 手机打开nRF Connect APP进行scan，找到设备名为7256_BLE的设备并点击连接按钮;
  3) 设备连接上之后找到service UUID为0xFFFF的服务并点击;
  4) 在服务下找到UUID为0x9ABC的characteristic，写入配网所需的WIFI SSID的hex数据并点击send;
  5) 在服务下找到UUID为0xDEF0的characteristic，写入配网所需的WIFI PASSWORD的hex数据并点击send;
  6) 在SSCOM中会输出显示配网成功并获得IP的log;
- 7) 在SSOCM中输入PING 192.xxx.xxx.xxx的命令去ping所连路由器的IP地址检查是否配网成功。
+ 7) 在SSOCM中输入 ``ping 192.xxx.xxx.xxx`` 的命令去ping所连路由器的IP地址检查是否配网成功。
 
 注意事项
 --------------------------
-demo中通过nRF Connect软件发送配网所需的WIFI SSID和PASSWORD需要通过char转hex工具转换为hex数据进行输入。
-	
+ 1) demo中通过nRF Connect软件发送配网所需的WIFI SSID和PASSWORD需要通过char转hex工具转换为hex数据进行输入。
+ 2) 手机与设备连接成功后设备就会停止发送广播，此时无法扫描到该设备，也无法在断开连接后点击connect进行重新连接。若有断开连接可以重连的需求，则需要在断开连接上报消息的函数中重新使能广播即可。具体可在ble_at_notice_cb()函数的BLE_5_DISCONNECT_EVENT案例中添加以下代码。
+
+::
+
+	uint8_t actv_idx = bk_ble_find_actv_state_idx_handle(AT_ACTV_ADV_CREATED);
+
+	if (actv_idx == AT_BLE_MAX_ACTV) {
+		os_printf("ble adv not created!\n");
+	} else {
+		bk_ble_start_advertising(actv_idx, 0, NULL);
+	}
+

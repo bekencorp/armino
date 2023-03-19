@@ -57,7 +57,7 @@ void psram_hal_config_init(void)
 	psram_delay(100);
 
 	/*reset clk 320M*/
-	sys_drv_psram_set_clkdiv(1);
+	sys_drv_psram_set_clkdiv(0);
 
 	/*set psram bypass*/
 	value = psram_hal_get_reg2_value();

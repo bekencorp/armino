@@ -1,0 +1,225 @@
+.nds32_init     : { KEEP(*(.nds32_init)) } =0x9200 /*RO CODE*/ 
+.interp         : { *(.interp) } /*RO DATA*/
+.note.gnu.build-id : { *(.note.gnu.build-id) } /*RO DATA*/
+.note.ABI-tag   : { *(.note.ABI-tag) } /*RO DATA*/
+.hash           : { *(.hash) } /*RO DATA*/ 
+.gnu.hash       : { *(.gnu.hash) } /*RO DATA*/
+.dynsym         : { *(.dynsym) } /*RO DATA*/ 
+.dynstr         : { *(.dynstr) } /*RO DATA*/
+.gnu.version    : { *(.gnu.version) } /*RO DATA*/
+.gnu.version_d  : { *(.gnu.version_d) } /*RO DATA*/
+.gnu.version_r  : { *(.gnu.version_r) } /*RO DATA*/
+.rel.init       : { *(.rel.init) } /*RO DATA*/
+.rela.init      : { *(.rela.init) } /*RO DATA*/
+.rel.text       : { *(.rel.text .rel.text.* .rel.gnu.linkonce.t.*) } /*RO DATA*/
+.rela.text      : { *(.rela.text .rela.text.* .rela.gnu.linkonce.t.*) } /*RO DATA*/
+.rel.fini       : { *(.rel.fini) } /*RO DATA*/
+.rela.fini      : { *(.rela.fini) } /*RO DATA*/
+.rel.rodata     : { *(.rel.rodata .rel.rodata.* .rel.gnu.linkonce.r.*) } /*RO DATA*/
+.rela.rodata    : { *(.rela.rodata .rela.rodata.* .rela.gnu.linkonce.r.*) } /*RO DATA*/
+.rel.data.rel.ro   : { *(.rel.data.rel.ro*) } /*RO DATA*/
+.rela.data.rel.ro   : { *(.rel.data.rel.ro*) } /*RO DATA*/
+.rel.data       : { *(.rel.data .rel.data.* .rel.gnu.linkonce.d.*) } /*RO DATA*/
+.rela.data      : { *(.rela.data .rela.data.* .rela.gnu.linkonce.d.*) } /*RO DATA*/
+.rel.tdata	  : { *(.rel.tdata .rel.tdata.* .rel.gnu.linkonce.td.*) } /*RO DATA*/
+.rela.tdata	  : { *(.rela.tdata .rela.tdata.* .rela.gnu.linkonce.td.*) } /*RO DATA*/
+.rel.tbss	  : { *(.rel.tbss .rel.tbss.* .rel.gnu.linkonce.tb.*) } /*RO DATA*/
+.rela.tbss	  : { *(.rela.tbss .rela.tbss.* .rela.gnu.linkonce.tb.*) } /*RO DATA*/
+.rel.ctors      : { *(.rel.ctors) } /*RO DATA*/
+.rela.ctors     : { *(.rela.ctors) } /*RO DATA*/
+.rel.dtors      : { *(.rel.dtors) } /*RO DATA*/
+.rela.dtors     : { *(.rela.dtors) } /*RO DATA*/
+.rela.dyn       : { *(rela.dyn) *(.rela__libc_subfreeres) *(.rela__libc_atexit) *(.rela__libc_thread_subfreeres) *(.rela.init_array) *(.rela.fini_array) } /*RO DATA*/
+.rel.got        : { *(.rel.got) } /*RO DATA*/
+.rela.got       : { *(.rela.got) } /*RO DATA*/
+.rel.sdata      : { *(.rel.sdata .rel.sdata.* .rel.gnu.linkonce.s.*) } /*RO DATA*/
+.rela.sdata     : { *(.rela.sdata .rela.sdata.* .rela.gnu.linkonce.s.*) } /*RO DATA*/
+.rel.sbss       : { *(.rel.sbss .rel.sbss.* .rel.gnu.linkonce.sb.*) } /*RO DATA*/
+.rela.sbss      : { *(.rela.sbss .rela.sbss.* .rela.gnu.linkonce.sb.*) } /*RO DATA*/
+.rel.sdata2     : { *(.rel.sdata2 .rel.sdata2.* .rel.gnu.linkonce.s2.*) } /*RO DATA*/
+.rela.sdata2    : { *(.rela.sdata2 .rela.sdata2.* .rela.gnu.linkonce.s2.*) } /*RO DATA*/
+.rel.sbss2      : { *(.rel.sbss2 .rel.sbss2.* .rel.gnu.linkonce.sb2.*) } /*RO DATA*/
+.rela.sbss2     : { *(.rela.sbss2 .rela.sbss2.* .rela.gnu.linkonce.sb2.*) } /*RO DATA*/
+.rel.bss        : { *(.rel.bss .rel.bss.* .rel.gnu.linkonce.b.*) } /*RO DATA*/
+.rela.bss       : { *(.rela.bss .rela.bss.* .rela.gnu.linkonce.b.*) } /*RO DATA*/
+.rel.plt        : { *(.rel.plt) } /*RO DATA*/
+.rela.plt       : { *(.rela.plt) } /*RO DATA*/
+.init           :
+{
+  KEEP (*(.init))
+}  /*RO CODE*/
+.plt            : { *(.plt) } /*RO CODE*/
+.text           :
+{
+  *(.text .stub .text.* .gnu.linkonce.t.*)
+  KEEP (*(.text.*personality*))
+  *(.gnu.warning)
+  . = ALIGN (4);
+} =0x9200 /*RO CODE*/
+.fini           :
+{
+  KEEP (*(.fini))
+}  /*RO CODE*/
+.ex9.itable     : { *(.ex9.itable) } /*RO CODE*/
+PROVIDE (__etext = .); /* END */
+PROVIDE (_etext = .); /* END */
+PROVIDE (etext = .); /* END */
+.rodata         : { *(.rodata .rodata.* .gnu.linkonce.r.*) } /*RO DATA*/
+.rodata1        : { *(.rodata1) } /*RO DATA*/
+.sdata2         : { *(.sdata2 .sdata2.* .gnu.linkonce.s2.*) } /*RO DATA*/
+.sbss2          : { *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*) } /*RO DATA*/
+.eh_frame_hdr : { *(.eh_frame_hdr) } /*RO DATA*/ 
+. = ALIGN (0x20); /* RW START*/
+. = DATA_SEGMENT_ALIGN (0x20, 0x20); /* RW START*/
+.eh_frame       : { KEEP (*(.eh_frame)) } /*RW DATA*/
+.gcc_except_table   : { KEEP (*(.gcc_except_table)) *(.gcc_except_table.*) } /*RW DATA*/
+.tdata	  : { *(.tdata .tdata.* .gnu.linkonce.td.*) } /*RW DATA*/
+.tbss		  : { *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon) } /*ZI*/
+. = ALIGN(4); /* START */
+.preinit_array     : {
+  PROVIDE (__preinit_array_start = .);
+  KEEP (*(.preinit_array))
+  PROVIDE (__preinit_array_end = .);
+} /*RW DATA*/
+.init_array     : {
+  PROVIDE (__init_array_start = .);
+  KEEP (*(.init_array))
+  PROVIDE (__init_array_end = .);
+} /*RW DATA*/
+.fini_array     : {
+  PROVIDE (__fini_array_start = .);
+  KEEP (*(.fini_array))
+  PROVIDE (__fini_array_end = .);
+} /*RW DATA*/
+.ctors          :
+{
+  KEEP (*crtbegin*.o(.ctors))
+  KEEP (*(EXCLUDE_FILE (*crtend*.o ) .ctors))
+  KEEP (*(SORT(.ctors.*)))
+  KEEP (*(.ctors))
+} /*RW DATA*/
+.dtors          :
+{
+  KEEP (*crtbegin*.o(.dtors))
+  KEEP (*(EXCLUDE_FILE (*crtend*.o ) .dtors))
+  KEEP (*(SORT(.dtors.*)))
+  KEEP (*(.dtors))
+} /*RW DATA*/
+.jcr            : { KEEP (*(.jcr)) } /*RW DATA*/
+.data.rel.ro : { *(.data.rel.ro.local) *(.data.rel.ro*) } /*RW DATA*/
+.dynamic        : { *(.dynamic) } /*RW DATA*/
+.data           :
+{
+  *(.data .data.* .gnu.linkonce.d.*)
+  KEEP (*(.gnu.linkonce.d.*personality*))
+  SORT(CONSTRUCTORS)
+  . = ALIGN(8);
+} /*RW DATA*/
+.data1          : 
+{ 
+  *(.data1) 
+  . = ALIGN(8);
+} /*RW DATA*/
+. = ALIGN(4); /* START */
+.got            : { *(.got.plt) *(.got) } /*RW DATA*/
+.sdata          :
+{
+  *(.sdata .sdata.* .gnu.linkonce.s.*)
+} /*RW DATA*/
+.sdata_d          :
+{
+  *(.sdata_d .sdata_d.*)
+} /*RW DATA*/
+.sdata_w          :
+{
+  *(.sdata_w .sdata_w.*)
+} /*RW DATA*/
+.sdata_h          :
+{
+  *(.sdata_h .sdata_h.*)
+} /*RW DATA*/
+.sdata_b          :
+{
+  *(.sdata_b .sdata_b.*)
+} /*RW DATA*/
+.sdata_f          :
+{
+  *(.sdata_f .sdata_f.*)
+} /*RW DATA*/
+. = ALIGN(4); /* END */
+_edata = .; /* RW END */
+PROVIDE (edata = .); /* RW END */
+__bss_start = .; /* ZI START */
+PROVIDE (__sbss_start = .); /* ZI START */
+PROVIDE (___sbss_start = .); /* ZI START */
+.sbss           :
+{
+  *(.dynsbss)
+  *(.sbss .sbss.* .gnu.linkonce.sb.*)
+  *(.scommon .scommon.*)
+} /*ZI*/
+.sbss_f           :
+{
+  *(.sbss_f .sbss_f.*)
+  *(.scommon_f .scommon_f.*)
+} /*ZI*/
+.sbss_b           :
+{
+  *(.sbss_b .sbss_b.*)
+  *(.scommon_b .scommon_b.*)
+  . = ALIGN(2);
+} /*ZI*/
+.sbss_h           :
+{
+  *(.sbss_h .sbss_h.*)
+  *(.scommon_h .scommon_h.*)
+  . = ALIGN(4);
+} /*ZI*/
+.sbss_w           :
+{
+  *(.sbss_w .sbss_w.*)
+  *(.scommon_w .scommon_w.*)
+  *(.dynsbss)
+  *(.scommon)
+  . = ALIGN(8);
+} /*ZI*/
+.sbss_d           :
+{
+  *(.sbss_d .sbss_d.*)
+  *(.scommon_d .scommon_d.*)
+} /*ZI*/
+PROVIDE (__sbss_end = .); /* ZI END */
+PROVIDE (___sbss_end = .); /* ZI END */ 
+.bss            :
+{
+ *(.dynbss)
+ *(.bss .bss.* .gnu.linkonce.b.*)
+ *(COMMON)
+ . = ALIGN(4);
+} /*ZI*/
+. = ALIGN(4);/* ZI END */
+_end = .; /* ZI END */
+. = DATA_SEGMENT_END (.); /* ZI END */
+PROVIDE (end = .); /* ZI END */
+.nds32_vector	:
+{
+	KEEP (*(.nds32_vector))
+	KEEP (*(SORT(.nds32_vector.*)))
+} /*ISR*/
+.nds32_nmih	:
+{
+	*(.nds32_nmih)
+} /*ISR*/
+.nds32_wrh	:
+{
+	*(.nds32_wrh)
+} /*ISR*/
+.nds32_jmptbl	:
+{
+	KEEP (*(.nds32_jmptbl))
+	KEEP (*(SORT(.nds32_jmptbl.*)))
+} /*ISR*/
+.nds32_isr	:
+{
+	*(.nds32_isr)
+} /*ISR*/

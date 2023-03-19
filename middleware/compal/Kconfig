@@ -1,11 +1,16 @@
-menu "HOME SYSTEM"
+menu "Compal"
 
 	config SUPPORT_MATTER
-		bool "Enable MATTER"
+		bool "Enable Support Matter"
 		default n
+		help
+			Enable MATTER
 
 	config COMMON_IO
 		depends on FREERTOS_V10
-		bool "Amazon Common IO"
+		bool "Enable Common Io"
 		default n
+		help
+			Amazon Common IO
+
 endmenu

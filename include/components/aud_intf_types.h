@@ -41,7 +41,14 @@ extern "C" {
 #define BK_ERR_AUD_INTF_UAC_MIC           (BK_ERR_AUD_INTF_BASE - 14)         /**< aud_intf uac mic fail */
 #define BK_ERR_AUD_INTF_UAC_SPK           (BK_ERR_AUD_INTF_BASE - 15)         /**< aud_intf uac spk operate fail */
 
-
+/**************** audio uac ****************/
+/* the audio uac connection status */
+typedef enum {
+	AUD_INTF_UAC_CONNECTED,						/**< Connected: uac automatically restore connection after abnormal disconnection */
+	AUD_INTF_UAC_NORMAL_DISCONNECTED,			/**< Normal disconnected: uac normal disconnection */
+	AUD_INTF_UAC_ABNORMAL_DISCONNECTED,			/**< Abnormal disconnected: uac abnormal disconnection */
+	AUD_INTF_UAC_CANNOT_RECOVER_CONNECT,		/**< Cannot automatically connect: uac automatically connect fail */
+} aud_intf_uac_sta_t;
 
 /**************** audio interface common ****************/
 /* audio interface work mode */
@@ -152,6 +159,7 @@ typedef enum {
 typedef enum {
 	AUD_INTF_VOC_DATA_TYPE_G711A = 0,		/**< the data of voice transfer encoded by G711A */
 	AUD_INTF_VOC_DATA_TYPE_PCM,				/**< the data of voice transfer is PCM */
+	AUD_INTF_VOC_DATA_TYPE_G711U,			/**< the data of voice transfer encoded by G711U */
 	AUD_INTF_VOC_DATA_TYPE_MAX,
 } aud_intf_voc_data_type_t;
 
@@ -203,7 +211,7 @@ typedef struct {
 	aud_intf_voc_samp_rate_t samp_rate;		/**< voice transfer sample rate */
 	aud_intf_voc_data_type_t data_type;		/**< voice data type */
 	uint8_t mic_gain;						/**< mic gain: value range:0x0 ~ 0x3f, suggest:0x2d */
-	uint8_t spk_gain;						/**< spk gain: value range:0x0 ~ 0x3f, suggest:0x2d */
+	uint16_t spk_gain;						/**< spk gain: value range:0x0 ~ 0x3f, suggest:0x2d */
 	aud_dac_work_mode_t spk_mode;			/**< audio spk mode: signal_ended/differen */
 	aud_intf_voc_aec_cfg_t aec_cfg;
 

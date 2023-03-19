@@ -15,4 +15,5 @@
 	设置TOUCH作为唤醒源，系统进入深度睡眠和低压睡眠说明 <bk_touch_sleep>
 	设置32K时钟源说明 <bk_32k_source>
 	设置WIFI低压保活说明 <bk_wifi_alive>
+	低功耗问题分析<bk_Lowpower_problem_analysis>
 

@@ -38,19 +38,6 @@
 /* Standard includes. */
 #include "string.h"
 #include "platform.h"
-#include "mon_call.h"
-
-#ifdef configCLINT_BASE_ADDRESS
-	#warning The configCLINT_BASE_ADDRESS constant has been deprecated.  configMTIME_BASE_ADDRESS and configMTIMECMP_BASE_ADDRESS are currently being derived from the (possibly 0) configCLINT_BASE_ADDRESS setting.  Please update to define configMTIME_BASE_ADDRESS and configMTIMECMP_BASE_ADDRESS dirctly in place of configCLINT_BASE_ADDRESS.  See https://www.FreeRTOS.org/Using-FreeRTOS-on-RISC-V.html
-#endif
-
-#ifndef configMTIME_BASE_ADDRESS
-	#warning configMTIME_BASE_ADDRESS must be defined in FreeRTOSConfig.h.  If the target chip includes a memory-mapped mtime register then set configMTIME_BASE_ADDRESS to the mapped address.  Otherwise set configMTIME_BASE_ADDRESS to 0.  See https://www.FreeRTOS.org/Using-FreeRTOS-on-RISC-V.html
-#endif
-
-#ifndef configMTIMECMP_BASE_ADDRESS
-	#warning configMTIMECMP_BASE_ADDRESS must be defined in FreeRTOSConfig.h.  If the target chip includes a memory-mapped mtimecmp register then set configMTIMECMP_BASE_ADDRESS to the mapped address.  Otherwise set configMTIMECMP_BASE_ADDRESS to 0.  See https://www.FreeRTOS.org/Using-FreeRTOS-on-RISC-V.html
-#endif
 
 /* Let the user override the pre-loading of the initial LR with the address of
 prvTaskExitError() in case it messes up unwinding of the stack in the
@@ -66,27 +53,22 @@ debugger. */
 typedef struct {
 	union {
 		struct {
-			long x1;		/* ra */
-			long x5;		/* t0 */
-			long x6;		/* t1 */
-			long x7;		/* t2 */
-			long x10;		/* a0 */
+			long mepc;
+			long x1;
+			long x5;
+			long x6;
+			long x7;
+			long x8;
+			long x9;
+			long x10;
 			long x11;
 			long x12;
 			long x13;
 			long x14;
 			long x15;
 			long x16;
-			long x17;		/* a7 */
-			long x28;		/* t3 */
-			long x29;
-			long x30;
-			long x31;		/* t6 */
-			long mepc;
-			long mstatus;
-			long x8;		/* s0 */
-			long x9;		/* s1 */
-			long x18;		/* s2 */
+			long x17;
+			long x18;
 			long x19;
 			long x20;
 			long x21;
@@ -95,7 +77,12 @@ typedef struct {
 			long x24;
 			long x25;
 			long x26;
-			long x27;		/* s11 */
+			long x27;
+			long x28;
+			long x29;
+			long x30;
+			long x31;
+			long mstatus;
 		};
 		long riscv_regs[30];
 	};
@@ -108,21 +95,16 @@ linker variable names __freertos_irq_stack_top has the same value as the top
 of the stack used by main.  Using the linker script method will repurpose the
 stack that was used by main before the scheduler was started for use as the
 interrupt stack after the scheduler has started. */
-#ifdef configISR_STACK_SIZE_WORDS
-	static __attribute__ ((aligned(16))) __attribute__((section(".dtcm_sec_data "))) StackType_t xISRStack[ configISR_STACK_SIZE_WORDS ] = { 0 };
-	const StackType_t xISRStackTop = ( StackType_t ) &( xISRStack[ configISR_STACK_SIZE_WORDS & ~portBYTE_ALIGNMENT_MASK ] );
 
-	/* Don't use 0xa5 as the stack fill bytes as that is used by the kernerl for
-	the task stacks, and so will legitimately appear in many positions within
-	the ISR stack. */
-	#define portISR_STACK_FILL_BYTE	0xee
-	#define portISR_STACK_FILL_WORD	0xeeeeeeee
-#else
-	extern const uint32_t __freertos_irq_stack_top[];
-	const StackType_t xISRStackTop = ( StackType_t ) __freertos_irq_stack_top;
-#endif
+#define portISR_STACK_FILL_BYTE	0xee
+#define portISR_STACK_FILL_WORD	0xeeeeeeee
 
-volatile unsigned int g_trap_nest_cnt = 0;
+extern char _dtcm_bss_end, _stack;
+const StackType_t * xISRStackTop = ( const StackType_t * )&_stack;
+const StackType_t * xISRStack = (( const StackType_t *)&_dtcm_bss_end) + 4;
+int           isr_stack_size;
+
+volatile uint64_t * pullMachineTimerCompareRegister = ( volatile uint64_t * const ) ( configMTIMECMP_BASE_ADDRESS );
 
 /*
  * Setup the timer to generate the tick interrupts.  The implementation in this
@@ -133,16 +115,21 @@ void vPortSetupTimerInterrupt( void );
 
 /*-----------------------------------------------------------*/
 
+volatile unsigned int g_trap_nest_cnt = 0;
+
 /* Used to program the machine timer compare register. */
 uint64_t ullNextTime = 0ULL;
 const size_t uxTimerIncrementsForOneTick = ( size_t ) ( ( configMTIME_CLOCK_HZ ) / ( configTICK_RATE_HZ ) ); /* Assumes increment won't go over 32-bits. */
-volatile BaseType_t xTickFlag = 0;
+
+#if( configUSE_TICKLESS_IDLE != 0 )
+extern volatile BaseType_t xTickFlag;
+#endif
 
 /* Set configCHECK_FOR_STACK_OVERFLOW to 3 to add ISR stack checking to task
 stack checking.  A problem in the ISR stack will trigger an assert, not call the
 stack overflow hook function (because the stack overflow hook is specific to a
 task stack, not the ISR stack). */
-#if defined( configISR_STACK_SIZE_WORDS ) && ( configCHECK_FOR_STACK_OVERFLOW > 2 ) 
+#if ( configCHECK_FOR_STACK_OVERFLOW > 2 ) 
     #define portCHECK_ISR_STACK()                                                            \
     {                                                                                                 \
 		configASSERT(xISRStack[0] == portISR_STACK_FILL_WORD);                                        \
@@ -156,8 +143,6 @@ task stack, not the ISR stack). */
 #endif /* configCHECK_FOR_STACK_OVERFLOW > 2 */
 
 
-extern unsigned int arch_int_disable(void);
-extern void arch_int_restore(int int_flag);
 extern void riscv_set_mtimercmp(u64 new_time);
 extern u64 riscv_get_mtimer(void);
 
@@ -168,9 +153,13 @@ void port_check_isr_stack(void)
 	portCHECK_ISR_STACK();
 }
 
-/*-----------------------------------------------------------*/
+void port_init_isr_stack(void)
+{
+	isr_stack_size = (int)((uint32_t)xISRStackTop - (uint32_t)xISRStack);
+	memset( ( void * ) xISRStack, portISR_STACK_FILL_BYTE, isr_stack_size );
+}
 
-#if( configMTIME_BASE_ADDRESS != 0 ) && ( configMTIMECMP_BASE_ADDRESS != 0 )
+/*-----------------------------------------------------------*/
 
 void vPortSetupTimerInterrupt( void )
 {
@@ -181,38 +170,37 @@ void vPortSetupTimerInterrupt( void )
 	/* Prepare the time to use after the next tick interrupt. */
 	ullNextTime += ( uint64_t ) uxTimerIncrementsForOneTick;
 
-	mon_timer_int_clear();
 }
 
-#endif /* ( configMTIME_BASE_ADDRESS != 0 ) && ( configMTIME_BASE_ADDRESS != 0 ) */
+/*-----------------------------------------------------------*/
 
 BaseType_t xPortStartScheduler( void )
 {
-	extern void xPortStartFirstTask( void );
+extern void xPortStartFirstTask( void );
 
 	#if( configASSERT_DEFINED == 1 )
 	{
+		volatile uint32_t mtvec = 0;
+
+		/* Check the least significant two bits of mtvec are 00 - indicating
+		single vector mode. */
+		__asm volatile( "csrr %0, mtvec" : "=r"( mtvec ) );
+		configASSERT( ( mtvec & 0x03UL ) == 0 );
+
 		/* Check alignment of the interrupt stack - which is the same as the
 		stack that was being used by main() prior to the scheduler being
 		started. */
-		configASSERT( ( xISRStackTop & portBYTE_ALIGNMENT_MASK ) == 0 );
+		configASSERT( ( (StackType_t)xISRStackTop & portBYTE_ALIGNMENT_MASK ) == 0 );
 
-		#ifdef configISR_STACK_SIZE_WORDS
-		{
-			memset( ( void * ) xISRStack, portISR_STACK_FILL_BYTE, sizeof( xISRStack ) );
-		}
-		#endif	 /* configISR_STACK_SIZE_WORDS */
 	}
 	#endif /* configASSERT_DEFINED */
-
-	extern void arch_init_vector(uint32_t vect);
-	extern void freertos_risc_v_trap_handler(void);
-	arch_init_vector((uint32_t)freertos_risc_v_trap_handler);
 
 	/* If there is a CLINT then it is ok to use the default implementation
 	in this file, otherwise vPortSetupTimerInterrupt() must be implemented to
 	configure whichever clock is to be used to generate the tick interrupt. */
 	vPortSetupTimerInterrupt();
+
+	__asm volatile( "csrs mie, %0" :: "r"(0x880) );
 
 	xPortStartFirstTask();
 
@@ -220,6 +208,7 @@ BaseType_t xPortStartScheduler( void )
 	should be executing. */
 	return pdFAIL;
 }
+/*-----------------------------------------------------------*/
 
 void vPortEndScheduler( void )
 {
@@ -236,12 +225,15 @@ void vApplicationIdleHook( void )
 
 uint32_t platform_is_in_interrupt_context( void )
 {
-    return (arch_get_interrupt_nest_cnt() > 0 /*|| arch_is_enter_exception() > 0*/ );
+    return (arch_get_interrupt_nest_cnt() > 0 || arch_is_enter_exception() > 0 );
 }
 
 int port_disable_interrupts_flag(void)
 {
-	return arch_int_disable();
+	uint32_t uxSavedStatusValue;
+
+	__asm volatile( "csrrc %0, mstatus, 0x8":"=r"( uxSavedStatusValue ) );
+	return uxSavedStatusValue;
 }
 
 /*
@@ -249,10 +241,36 @@ int port_disable_interrupts_flag(void)
  */
 void port_enable_interrupts_flag(int val)
 {
-	arch_int_restore(val);
+	__asm volatile( "csrw mstatus, %0"::"r"( val ) );
+}
+/*
+ * disable mie Interrupts
+ */
+unsigned int port_disable_mie_flag(void)
+{
+	uint32_t uxSavedStatusValue;
+	uxSavedStatusValue = read_csr(NDS_MIE);
+	clear_csr(NDS_MIE, uxSavedStatusValue);
+	return uxSavedStatusValue;
 }
 
-void FreeRTOS_tickless_handler( void )
+/*
+ * Enable mie Interrupts
+ */
+void port_enable_mie_flag(uint32_t val)
+{
+	set_csr(NDS_MIE, val);
+}
+
+uint32_t platform_cpsr_content( void )
+{
+    uint32_t mode = 0;
+
+    return mode;
+}
+
+#if( configUSE_TICKLESS_IDLE != 0 )
+static void FreeRTOS_tickless_handler( void )
 {
 	/* Tick ISR has occured */
 	xTickFlag = 1;
@@ -274,8 +292,9 @@ void FreeRTOS_tickless_handler( void )
 	}
 
 }
+#endif
 
-void FreeRTOS_tick_handler( void )
+static void FreeRTOS_tick_handler( void )
 {
 	/* Handle tickless idle before Timer ISR updates mtimecmp. */
 	#if( configUSE_TICKLESS_IDLE != 0 )
@@ -296,18 +315,17 @@ void FreeRTOS_tick_handler( void )
 
 void freertos_trap_handler(uint32_t mcause, SAVED_CONTEXT *context)
 {
-	if(UCAUSE_INT & mcause)
+	if(MCAUSE_INT & mcause)
 	{
-		switch(mcause & UCAUSE_CAUSE)
+		switch(mcause & MCAUSE_CAUSE)
 		{
-			case IRQ_U_EXT:
+			case IRQ_M_EXT:
 				mext_interrupt();
 				return;
 				break;
 
-			case IRQ_U_TIMER:
+			case IRQ_M_TIMER:
 				FreeRTOS_tick_handler();
-				mon_timer_int_clear();
 				return;
 				break;
 
@@ -317,7 +335,7 @@ void freertos_trap_handler(uint32_t mcause, SAVED_CONTEXT *context)
 	}
 	else
 	{
-		if((mcause == U_EXCP_ECALL) && (g_trap_nest_cnt == 1))
+		if((mcause == TRAP_M_ECALL) && (g_trap_nest_cnt == 1))
 		{
 			context->mepc += 4;
 			vTaskSwitchContext();

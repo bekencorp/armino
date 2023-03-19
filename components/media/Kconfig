@@ -1,27 +1,40 @@
-menu "MEDIA"
+menu "Media"
+
 	config MEDIA
-		bool "Enable media service"
+		bool "Enable Media"
 		default n
+		help
+			Enable media service
 	config WIFI_TRANSFER
-		bool "Wifi transfer"
+		bool "Enable Wifi Transfer"
 		default n
 	config LVGL
-		bool "enable lvgl"
+		bool "Enable Lvgl"
 		default n
 	config LCD_FLASH_JPEG_DISPLAY 
-		bool "enable lcd display flash img"
+		bool "Enable Lcd Flash Jpeg Display"
 		default n
+		help
+			enable lcd display flash img
 	config LCD_DMA2D_BLEND_FLASH_IMG 
-		bool "enable lcd dma2d blend flash logo"
+		bool "Enable Lcd Dma2d Blend Flash Img"
 		default n
+		help
+			enable lcd dma2d blend flash logo
 	config BLEND_USE_GUI 
-		bool "enable lcd dma2d blend from gui"
+		bool "Enable Blend Use Gui"
 		default n
+		help
+			enable lcd dma2d blend from gui
 	config BLEND_GUI_OUTPUT_888 
-		bool "enable lcd dma2d blend from gui, gui data is rgb888"
+		bool "Enable Blend Gui Output 888"
 		default n
+		help
+			enable lcd dma2d blend from gui, gui data is rgb888
 	config LCD_FONT_BLEND
-		bool "enable lcd  blend by font logo"
+		bool "Enable Lcd Font Blend"
 		default n
+		help
+			enable lcd blend by font logo
 
 endmenu

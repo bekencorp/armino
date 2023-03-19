@@ -86,26 +86,6 @@ static inline void yuv_buf_ll_disable_reverse_yuv_data(yuv_buf_hw_t *hw)
 	hw->ctrl.bus_dat_byte_reve = 0;
 }
 
-static inline void yuv_buf_ll_enable_bps_cis(yuv_buf_hw_t *hw)
-{
-	hw->ctrl.bps_cis = 1;
-}
-
-static inline void yuv_buf_ll_disable_bps_cis(yuv_buf_hw_t *hw)
-{
-	hw->ctrl.bps_cis = 0;
-}
-
-static inline void yuv_buf_ll_enable_memrev(yuv_buf_hw_t *hw)
-{
-	hw->ctrl.memrev = 1;
-}
-
-static inline void yuv_buf_ll_disable_memrev(yuv_buf_hw_t *hw)
-{
-	hw->ctrl.memrev = 0;
-}
-
 static inline void yuv_buf_ll_set_yuv_format(yuv_buf_hw_t *hw, yuv_format_t yuv_format)
 {
 	hw->ctrl.yuv_fmt_sel = yuv_format;
@@ -129,11 +109,6 @@ static inline void yuv_buf_ll_set_x_pixel(yuv_buf_hw_t *hw, uint32_t x_pixel)
 static inline void yuv_buf_ll_set_y_pixel(yuv_buf_hw_t *hw, uint32_t y_pixel)
 {
 	hw->pixel.y_pixel = y_pixel;
-}
-
-static inline void yuv_buf_ll_set_frame_blk(yuv_buf_hw_t *hw, uint32_t frame_blk)
-{
-	hw->pixel.frame_blk = frame_blk;
 }
 
 static inline void yuv_buf_ll_set_x_partial_offset_l(yuv_buf_hw_t *hw, uint32_t offset)
@@ -174,11 +149,6 @@ static inline void yuv_buf_ll_enable_vsync_negedge_int(yuv_buf_hw_t *hw)
 static inline void yuv_buf_ll_enable_yuv_arv_int(yuv_buf_hw_t *hw)
 {
 	hw->int_en.yuv_arv_int_en = 1;
-}
-
-static inline void yuv_buf_ll_send_data_to_h264(yuv_buf_hw_t *hw)
-{
-	hw->renc_start.renc_start = 1;
 }
 
 static inline uint32_t yuv_buf_ll_get_interrupt_status(yuv_buf_hw_t *hw)

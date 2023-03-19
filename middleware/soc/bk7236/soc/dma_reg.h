@@ -25,6 +25,7 @@ extern "C" {
 #define DMA_V_PRIO_MODE_FIXED_PRIO       0x1
 
 #define DMA_V_REQ_MUX_DTCM             (0x0)
+#define DMA_V_REQ_MUX_AHB_MEM          (0x0)
 #define DMA_V_REQ_MUX_UART1            (0x1)
 #define DMA_V_REQ_MUX_UART1_RX         (0x2)
 #define DMA_V_REQ_MUX_UART2            (0x3)

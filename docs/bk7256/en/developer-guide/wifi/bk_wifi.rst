@@ -1,6 +1,8 @@
 Armino Wi-Fi Instruction
 =======================================================
 
+:link_to_translation:`zh_CN:[中文]`
+
 Armino Wi-Fi Feature List
 -------------------------------------------------------
 - Compatible with 802.11 b/g/n/ax 2.4GHz Standard
@@ -102,10 +104,10 @@ The configuration of Wi-Fi MAC address is in ``bk_system/mac.c``, it contains ba
 - Write through EFUSE
 - Random generation. This function should enable macro ``CONFIG_RANDOM_MAC_ADDR`` in ``bk72xx.defconfig``
 - MAC address configuration tool: bk_writer_Vxx
+- function ``bk_check_mac_address`` used to validate the setting of MAC address, users can disable it if no need
 - use command ``mac`` for temporary test
 
 ::
 
     mac c8478caabbcc
-    txevm -e 2
 

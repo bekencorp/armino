@@ -9,19 +9,26 @@
 
 .option push
 .option norelax
-
 	.global reset_vector
-	.extern xISRStackTop
 
 reset_vector:
 	/* Decide whether this is an NMI or cold reset */
-//	csrw uscratch, t0
-	csrr t0, ucause
+	csrr t0, mcause
 	bnez t0, nmi_handler
-
 	.global _start
+	.type _start,@function
 
 _start:
+#ifndef CACHE_DISABLE
+   /* enable icache   */
+    csrr	a5,mcache_ctl
+     ori	a5,a5,1
+    csrw	mcache_ctl,a5
+   /* enable dcache */
+    csrr	a5,mcache_ctl
+     ori	a5,a5,2
+    csrw	mcache_ctl,a5
+#endif
 	/* Initialize global pointer */
 	.option push
 	.option norelax
@@ -39,12 +46,34 @@ _start:
 #endif
 
 #ifdef __riscv_flen
+	/* Enable FPU */
+	li t0, MSTATUS_FS
+	csrrs t0, mstatus, t0
+
 	/* Initialize FCSR */
 	fscsr zero
 #endif
 
-	la t0, init_trap_handler
-	csrw utvec, t0
+	/* Initial machine trap-vector Base. Use FreeRTOS trap function. */
+    #ifdef INT_VECTOR_EN
+	    la t0, __vectors
+	#else
+	    la t0, freertos_risc_v_trap_handler
+    #endif
+	csrw mtvec, t0
+
+	/* Enable vectored external PLIC interrupt */
+	#ifdef INT_VECTOR_EN
+	    csrsi mmisc_ctl, 2
+	#endif
+
+#ifndef CACHE_DISABLE
+	/* Enable I/D cache with HW prefetcher and D-cache write-around (threshold: 4 cache lines) */
+	li t0, (0x3 << 13)
+	csrc mcache_ctl, t0
+	li t0, (1 << 13) | (1 << 10) | (1 << 9) | (0x3)
+	csrs mcache_ctl, t0
+#endif
 
 	/* Do system low level setup. It must be a leaf function */
 	call __platform_init
@@ -59,62 +88,16 @@ _start:
 __platform_init:
 	ret
 
+
 	.weak nmi_handler
 nmi_handler:
-
-#if 0
-	csrrw t0, uscratch, x0
-	addi sp, sp, -64
-//	sw ra, 0(sp)
-	
-	sw x5, 4(sp)			
-	sw x6, 8(sp)
-	sw x7, 12(sp)
-
-	sw x10, 16(sp)
-	sw x11, 20(sp)
-	sw x12, 24(sp)
-	sw x13, 28(sp)
-	sw x14, 32(sp)
-	sw x15, 36(sp)
-	sw x16, 40(sp)
-	sw x17, 44(sp)
-	sw x28, 48(sp)
-	sw x29, 52(sp)
-	sw x30, 56(sp)
-	sw x31, 60(sp)
-#endif
-
-	csrrw a0, ucause, x0
+	csrr a0, mcause
 	mv  a1, ra
 	call user_nmi_handler
-	li a0, TRAP_M_USER_NP_WDT
-	csrw ucause, a0
-
-#if 0
-//	lw ra, 0(sp)
-	lw x5, 4(sp)			
-	lw x6, 8(sp)
-	lw x7, 12(sp)
-
-	lw x10, 16(sp)
-	lw x11, 20(sp)
-	lw x12, 24(sp)
-	lw x13, 28(sp)
-	lw x14, 32(sp)
-	lw x15, 36(sp)
-	lw x16, 40(sp)
-	lw x17, 44(sp)
-	lw x28, 48(sp)
-	lw x29, 52(sp)
-	lw x30, 56(sp)
-	lw x31, 60(sp)
-
-	addi sp, sp, 64
-#endif
-
-	csrr ra, utvec
-	jr ra
+	li t0, TRAP_M_USER_NP_WDT
+	csrw mcause, t0
+	j freertos_risc_v_trap_handler
+	ret
 
 .org  0x100
 .word 0x32374B42
@@ -131,56 +114,7 @@ nmi_handler:
 .word 0x00000000
 .word 0x00000000
 .word 0x00000000
-
-1:	j 1b
-
-init_trap_handler:
-	addi sp, sp, -120
-	sw x1, 0(sp)
-	sw x5, 4(sp)
-	sw x6, 8(sp)
-	sw x7, 12(sp)
-	sw x10, 16(sp)
-	sw x11, 20(sp)
-	sw x12, 24(sp)
-	sw x13, 28(sp)
-	sw x14, 32(sp)
-	sw x15, 36(sp)
-	sw x16, 40(sp)
-	sw x17, 44(sp)
-	sw x28, 48(sp)
-	sw x29, 52(sp)
-	sw x30, 56(sp)
-	sw x31, 60(sp)
-
-	csrr a1, uepc
-	csrr a2, ustatus
-	sw a1, 64(sp)
-	sw a2, 68(sp)
-
-	mv a1, sp
-
-	sw x8, 72(sp)
-	sw x9, 76(sp)
-	sw x18, 80(sp)
-	sw x19, 84(sp)
-	sw x20, 88(sp)
-	sw x21, 92(sp)
-	sw x22, 96(sp)
-	sw x23, 100(sp)
-	sw x24, 104(sp)
-	sw x25, 108(sp)
-	sw x26, 112(sp)
-	sw x27, 116(sp)
-
-	csrrw a0, ucause, x0
-
-	call trap_handler
-
-1:	j 1b
-
 .option pop
-
 	.section .text
 
 	.global trap_entry
@@ -188,7 +122,46 @@ init_trap_handler:
 
 trap_entry:
 	li t0, TRAP_M_USER_ASSERT
-	csrw ucause, t0
-	csrr t0, utvec
-	jr t0
+	csrw mcause, t0
+	j freertos_risc_v_trap_handler
+	ret
 
+#ifdef INT_VECTOR_EN
+	.text
+
+	.global default_irq_entry
+	.align 2
+
+default_irq_entry:
+1:	j 1b
+
+.macro INTERRUPT num
+	.weak entry_irq\num
+	.set entry_irq\num, default_irq_entry
+	.long entry_irq\num
+	.endm
+
+	/* Vector table
+	 * NOTE:
+	 * The Vector Table base alignment requirement has to be :
+	 * " 2^ceiling(log2(N)) x 4 " bytes,
+	 * if the PLIC device supports N interrupt sources.
+	 */
+#define VECTOR_NUMINTRS         63
+	.section .vector_table, "a"
+
+	.global __vectors
+//	.balign 4096
+    .balign 128
+__vectors:
+	/* Trap vector */
+	.long trap_entry
+
+	/* PLIC interrupt vector */
+	.altmacro
+	.set irqno, 1
+	.rept VECTOR_NUMINTRS
+	INTERRUPT %irqno
+	.set irqno, irqno+1
+	.endr
+#endif

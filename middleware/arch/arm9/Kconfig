@@ -1,8 +1,13 @@
-menu "ARCH_ARM9"
-	config ARCH_ARM9
-		bool "Enable ARM9"
-		default n
+menu "Arch::Arm9"
+
 	config CPU_FREQ_HZ
-		int "CPU frequency"
+		int "Set Cpu Freq Hz"
 		default 120000000
+		help
+			CPU frequency
+
+	config ARCH_ARM9
+		bool "Enable Arch ARM9"
+		default n
+
 endmenu

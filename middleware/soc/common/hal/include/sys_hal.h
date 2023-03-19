@@ -31,7 +31,6 @@ void sys_hal_usb_enable_clk(bool en);
 void sys_hal_usb_analog_phy_en(bool en);
 void sys_hal_usb_analog_speed_en(bool en);
 void sys_hal_usb_analog_ckmcu_en(bool en);
-void sys_hal_usb_analog_deepsleep_en(bool en);
 void sys_hal_set_usb_analog_dp_capability(uint8_t capability);
 void sys_hal_set_usb_analog_dn_capability(uint8_t capability);
 void sys_hal_usb_enable_charge(bool en);
@@ -261,10 +260,6 @@ void sys_hal_set_ana_reg14_value(uint32_t value);
 void sys_hal_set_ana_reg15_value(uint32_t value);
 void sys_hal_set_ana_reg16_value(uint32_t value);
 void sys_hal_set_ana_reg17_value(uint32_t value);
-void sys_hal_set_ana_reg18_value(uint32_t value);
-void sys_hal_set_ana_reg19_value(uint32_t value);
-void sys_hal_set_ana_reg20_value(uint32_t value);
-void sys_hal_set_ana_reg21_value(uint32_t value);
 void sys_hal_analog_reg4_bits_or(uint32_t value);
 void sys_hal_set_ana_reg6_value(uint32_t value);
 void sys_hal_set_ana_reg7_value(uint32_t value);
@@ -329,12 +324,6 @@ void sys_hal_aud_micbias_trim_set(uint32_t value);
 void sys_hal_aud_mic_rst_set(uint32_t value);
 void sys_hal_aud_mic1_gain_set(uint32_t value);
 void sys_hal_aud_mic2_gain_set(uint32_t value);
-void sys_hal_aud_dcoc_en(uint32_t value);
-void sys_hal_aud_lmdcin_set(uint32_t value);
-void sys_hal_aud_audbias_en(uint32_t value);
-void sys_hal_aud_adcbias_en(uint32_t value);
-void sys_hal_aud_micbias_en(uint32_t value);
-void sys_hal_aud_idac_en(uint32_t value);
 void sys_hal_aud_int_en(uint32_t value);
 void sys_hal_sbc_int_en(uint32_t value);
 void sys_hal_aud_power_en(uint32_t value);
@@ -389,14 +378,8 @@ void sys_hal_set_cpu_clk_div_mode1_clkdiv_bus(uint32_t value);
 void sys_hal_video_power_en(uint32_t value);
 void sys_hal_set_auxs_clk_sel(uint32_t value);
 void sys_hal_set_auxs_clk_div(uint32_t value);
-void sys_hal_set_jpeg_clk_en(uint32_t value);
 
 /** jpeg end **/
-
-/** h264 Start **/
-void sys_hal_set_h264_clk_en(uint32_t value);
-
-/** h264 End **/
 
 /**  psram Start **/
 void sys_hal_psram_volstage_sel(uint32_t enable);
@@ -3199,16 +3182,6 @@ void sys_hal_set_ana_vctrl_sysldo(uint32_t value);
 
 void sys_hal_set_yuv_buf_clock_en(uint32_t value);
 void sys_hal_set_h264_clock_en(uint32_t value);
-
-#if CONFIG_HAL_DEBUG_SYS
-void sys_struct_dump(uint32_t start, uint32_t end);
-#else
-static inline void __sys_struct_dump(uint32_t start, uint32_t end)
-{
-	os_printf("start=%x, end-%x, please generate the hal_debug.c file!\r\n", start, end);
-}
-#define sys_struct_dump(start, end) __sys_struct_dump(start, end)
-#endif
 
 #ifdef __cplusplus
 }

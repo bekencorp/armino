@@ -126,6 +126,56 @@ void lv_refr_now(lv_disp_t * disp)
     }
 }
 
+static int _check_child_is_cover_parent(lv_obj_t * obj)
+{
+    lv_obj_t *child;
+    lv_opa_t child_opa;
+    lv_area_t *child_coords;
+    
+    lv_opa_t parent_opa;
+    lv_area_t *parent_coords;
+    int ret = 0;
+    int child_cnt;
+    int i = 0;
+
+    do{
+        parent_opa = lv_obj_get_style_opa(obj, 0);
+        parent_coords = &(obj->coords);
+
+        if(parent_opa < LV_OPA_MAX)
+        {
+            break;
+        }
+
+        if(LV_VER_RES != lv_area_get_height(parent_coords)
+            || LV_HOR_RES != lv_area_get_width(parent_coords))
+        {
+            break;
+        }
+
+        child_cnt = lv_obj_get_child_cnt(obj);
+        for(i = 0; i < child_cnt; i++) {
+            child = obj->spec_attr->children[i];
+            child_opa = lv_obj_get_style_opa(child, 0);
+            child_coords = &(child->coords);
+
+            if(child_opa >= parent_opa
+                && child_coords->x1 <= parent_coords->x1
+                && child_coords->y1 <= parent_coords->y1
+                && child_coords->x2 >= parent_coords->x2
+                && child_coords->y2 >= parent_coords->y2
+                && lv_obj_get_state(child) & LV_STATE_SCROLLED
+                && 0 == (lv_obj_get_state(child) & LV_STATE_DISABLED))
+            {
+                ret = 1;
+            }
+            break;
+        }
+    }while(0);
+
+    return ret;
+}
+
 void lv_obj_redraw(lv_draw_ctx_t * draw_ctx, lv_obj_t * obj)
 {
     const lv_area_t * clip_area_ori = draw_ctx->clip_area;
@@ -140,6 +190,10 @@ void lv_obj_redraw(lv_draw_ctx_t * draw_ctx, lv_obj_t * obj)
     /*If the object is visible on the current clip area OR has overflow visible draw it.
      *With overflow visible drawing should happen to apply the masks which might affect children */
     bool should_draw = com_clip_res || lv_obj_has_flag(obj, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+
+    if(_check_child_is_cover_parent(obj))
+        should_draw = 0;
+        
     if(should_draw) {
         draw_ctx->clip_area = &clip_coords_for_obj;
 

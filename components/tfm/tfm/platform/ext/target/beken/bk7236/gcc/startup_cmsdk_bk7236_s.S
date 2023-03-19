@@ -18,11 +18,9 @@
 ; */
 
 #include "tfm_plat_config.h"
-#include "sdkconfig.h"
 
     .syntax    unified
-    .arch      armv8-m.main
-    .globl     bfhfnmi_handler
+    .arch    armv8-m.main
 
     .section .vectors, "a"
     .align 2
@@ -53,13 +51,6 @@ __Vectors:
     .long    ENCP_NS_Handler                /* 2: Encrypt enginee NS Handler */
     .long    TFM_TIMER0_Handler             /* 3: TFM Timer Handler */
     .long    UART0_Handler                  /* 4: UART 0 Handler */
-#if CONFIG_BOOTROM
-    .rept    43                             /* bootrom will check the magic word:asc ii:bk7236*/
-    .long    0
-    .endr
-    .long    0x32374b42
-    .long    0x00003633
-#endif
 
     .size    __Vectors, . - __Vectors
 
@@ -205,7 +196,6 @@ Reset_Handler:
     .thumb_func
     .weak    \handler_name
     \handler_name:
-    bl       bfhfnmi_handler
     b        \handler_name
     .endm
 

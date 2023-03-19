@@ -1,30 +1,24 @@
 #include "psa_sp_api.h"
-#include "cmsis_gcc.h"
-#include "sdkconfig.h"
-#include "mbedtls/platform.h"
+#include "psa_service.h"
+
+//TODO peter
 
 void *psa_malloc(size_t size)
 {
-	return mbedtls_calloc(size, 1);
+	void *tmp = mbedtls_calloc(1, size);
+	if (!tmp) printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ malloc failed\r\n");
+	return tmp;
 }
 
+#if 0
 void *psa_realloc(void *buffer, size_t size)
 {
-	void *tmp;
-
-	tmp = (void *)mbedtls_calloc(size, 1);
-	if(tmp){
-		memcpy(tmp, buffer, size);
-		mbedtls_free(buffer);
-	}
-
-	return tmp;
 }
 
 void *psa_calloc(size_t nmemb, size_t size)
 {
-	return mbedtls_calloc(nmemb, size);
 }
+#endif
 
 void psa_free(void *buffer)
 {
@@ -33,126 +27,67 @@ void psa_free(void *buffer)
 
 void *psa_memmove(void *dst, const void *src, size_t size)
 {
-	return memmove(dst, src, size);
+	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %s %d\r\n", __FUNCTION__, __LINE__);
 }
 
+#if 0
 void *psa_memset(void *buffer, int c, size_t size)
 {
-	return spm_memset(buffer, c, size);
 }
 
 int32_t psa_memcmp(const void *buffer1, const void *buffer2, size_t size)
 {
-	return memcmp(buffer1, buffer2, size);
 }
+#endif
 
 int psa_vprintf(const char *format, va_list vargs)
 {
-	int len;
-	char string[CONFIG_STDIO_PRINTF_BUF_SIZE] = {0};
-
-	len = vsnprintf(string, sizeof(string) - 1, format, vargs);
-
-	string[CONFIG_STDIO_PRINTF_BUF_SIZE - 1] = 0;
-
-	stdio_output_string((const unsigned char *)string, len);
-
-	return len;
-}
-
-int psa_vsnprintf(char *out, unsigned int count, const char *format,
-                  va_list vargs)
-{
-	printf("[%s]%d TODO\r\n", __func__, __LINE__);
-	return 0;
 }
 
 void psa_udelay(uint32_t us)
 {
-	volatile int i, j;
-
-	/*TODO time duration maybe is not right*/
-	for(i = 0; i < us; i ++){
-		for(j = 0; j < 5; j ++)
-			;
-	}
 }
 
 void psa_mdelay(uint32_t msecs)
 {
-	volatile int i, j;
-	
-	/*TODO time duration maybe is not right*/
-	for(i = 0; i < 10 * msecs; i ++){
-		for(j = 0; j < 1050; j ++)
-			;
-	}
 }
-
 psa_status_t psa_msleep(uint32_t msecs)
 {
-	printf("[%s]%d TODO\r\n", __func__, __LINE__);
 }
 
 ulong_t psa_get_tick(void)
 {
-	printf("[%s]%d TODO\r\n", __func__, __LINE__);
+	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %s %d\r\n", __FUNCTION__, __LINE__);
 }
 
 uint32_t psa_wait(uint32_t signal_mask, uint32_t timeout)
-{	/*TODO wangzhilei*/
-	return signal_mask;
+{
+	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %s %d\r\n", __FUNCTION__, __LINE__);
 }
 
-#if CONFIG_REDEFINE_PSA_EVENT
 void psa_notify(int32_t partition_id)
 {
+	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %s %d\r\n", __FUNCTION__, __LINE__);
 }
 
 void psa_clear(void)
 {
+	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %s %d\r\n", __FUNCTION__, __LINE__);
 }
-#endif
 
 void psa_eoi(uint32_t irq_signal)
 {
-	/*enable CONFIG_TFM_SLIH_API*/
-	/*end of interrupt*/
-	printf("[%s]%d null routine\r\n", __func__, __LINE__);
+	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %s %d\r\n", __FUNCTION__, __LINE__);
 }
 
 unsigned int hal_irq_disable(void)
 {
-	uint32_t primask_val;
-
-	primask_val = __get_PRIMASK();
-	__disable_irq();
-
-	return primask_val;
+	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %s %d\r\n", __FUNCTION__, __LINE__);
 }
 
 void hal_irq_enable(unsigned int key)
 {
-	__set_PRIMASK(key);
+	printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %s %d\r\n", __FUNCTION__, __LINE__);
 }
 
-void rand_bytes(uint8_t *data, uint32_t len)
-{
-#if (CONFIG_FPGA)
-	int i;
-
-	if (data == NULL || len == 0) {
-		return;
-	}
-
-	for (i = 0; i <len; i++) {
-		data[i] = ((rand()) & 0xFF);
-	}
-#else
-	printf("TODO rand bytes\r\n");
-#endif
-	return;
-}
-
-// eof
 

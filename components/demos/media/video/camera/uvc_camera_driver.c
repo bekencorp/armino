@@ -131,7 +131,7 @@ static bk_err_t uvc_dma_config(void)
 	BK_LOG_ON_ERR(bk_dma_set_transfer_len(uvc_dma_channel, uvc_video_config->node_len));
 	BK_LOG_ON_ERR(bk_dma_register_isr(uvc_dma_channel, NULL, uvc_camera_dma_finish_callback));
 	BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(uvc_dma_channel));
-#if (CONFIG_SPE)
+#if (CONFIG_GENERAL_DMA_SEC)
 	BK_LOG_ON_ERR(bk_dma_set_dest_sec_attr(uvc_dma_channel, DMA_ATTR_SEC));
 	BK_LOG_ON_ERR(bk_dma_set_src_sec_attr(uvc_dma_channel, DMA_ATTR_SEC));
 #endif

@@ -36,6 +36,8 @@ typedef enum {
 	EVENT_AUD_TRAS_COM_SET_MODE,
 	EVENT_AUD_TRAS_COM_SET_MIC_GAIN,
 	EVENT_AUD_TRAS_COM_SET_SPK_GAIN,
+	EVENT_AUD_TRAS_COM_UAC_REGIS_CONT_STATE_CB,
+	EVENT_AUD_TRAS_COM_UAC_AUTO_CONT_CTRL,
 	EVENT_AUD_TRAS_COM_MAX,
 } aud_tras_drv_com_event_t;
 
@@ -86,7 +88,7 @@ typedef struct {
 	aud_intf_spk_chl_t spk_chl;
 	aud_dac_samp_rate_t samp_rate;		/**< speaker sample rate */
 	uint16_t frame_size;				/**< size: a frame packet speaker data size(byte) */
-	uint8_t spk_gain;					/**< audio dac gain: value range:0x0 ~ 0x3f */
+	uint16_t spk_gain;					/**< audio dac gain: value range:0x0 ~ 0x3f */
 	aud_dac_work_mode_t work_mode;				/**< audio dac mode: signal_ended/differen */
 	aud_intf_spk_type_t spk_type;				/**< audio speaker type: uac or speaker */
 
@@ -148,7 +150,7 @@ typedef struct {
 /* audio config */
 typedef struct {
 	uint8_t adc_gain;
-	uint8_t dac_gain;
+	uint16_t dac_gain;
 	uint16_t mic_samp_rate_points;		//the number of points in mic frame
 	uint8_t mic_frame_number;			//the max frame number of mic ring buffer
 	uint16_t speaker_samp_rate_points;	//the number of points in speaker frame
@@ -290,8 +292,96 @@ typedef struct {
 #endif
 
 	aud_intf_api_ex_t api_info;
+	aud_intf_uac_sta_t uac_status;
+	bool uac_auto_connect;
+	void (*aud_intf_uac_connect_state_cb)(uint8_t state);
 } aud_intf_info_t;
 
+#define DEFAULT_AUD_INTF_CONFIG() {                                                 \
+        .drv_status = AUD_INTF_DRV_STA_NULL,                                        \
+        .voc_status = AUD_INTF_VOC_STA_NULL,                                        \
+        .mic_status = AUD_INTF_MIC_STA_NULL,                                        \
+        .spk_status = AUD_INTF_SPK_STA_NULL,                                        \
+        .drv_info = {                                                               \
+                       .setup = {                                                   \
+                                   .work_mode = AUD_INTF_WORK_MODE_NULL,            \
+                                   .task_config = {.priority = 3},                  \
+                                   .aud_intf_tx_mic_data = NULL,                    \
+                                   .aud_intf_rx_spk_data = NULL,                    \
+                                },                                                  \
+                       .aud_tras_drv_com_event_cb = NULL,                           \
+                    },                                                              \
+        .mic_info = {                                                               \
+                       .mic_chl = AUD_INTF_MIC_CHL_MAX,                             \
+                       .samp_rate = AUD_ADC_SAMP_RATE_MAX,                          \
+                       .frame_size = 0,                                             \
+                       .mic_gain = 0x2d,                                            \
+                       .mic_type = AUD_INTF_MIC_TYPE_MAX,                           \
+                       .aud_tras_drv_mic_event_cb = NULL,                           \
+                    },                                                              \
+        .spk_info = {                                                               \
+                       .spk_chl = AUD_INTF_SPK_CHL_MAX,                             \
+                       .samp_rate = AUD_DAC_SAMP_RATE_MAX,                          \
+                       .frame_size = 0,                                             \
+                       .spk_gain = 0x2d,                                            \
+                       .work_mode = AUD_DAC_WORK_MODE_DIFFEN,                       \
+                       .spk_type = AUD_INTF_SPK_TYPE_MAX,                           \
+                       .spk_rx_ring_buff = NULL,                                    \
+                       .fifo_frame_num = 0,                                         \
+                       .spk_rx_rb = NULL,                                           \
+                       .aud_tras_drv_spk_event_cb = NULL,                           \
+                    },                                                              \
+        .voc_info = {                                                               \
+                       .samp_rate = AUD_INTF_VOC_SAMP_RATE_MAX,                     \
+                       .aud_setup = {                                               \
+                                       .adc_gain = 0x2d,                            \
+                                       .dac_gain = 0x2d,                            \
+                                       .mic_samp_rate_points = 0,                   \
+                                       .mic_frame_number = 0,                       \
+                                       .speaker_samp_rate_points = 0,               \
+                                       .speaker_frame_number = 0,                   \
+                                       .spk_mode = AUD_DAC_WORK_MODE_DIFFEN,        \
+                                    },                                              \
+                       .aec_enable = false,                                         \
+                       .aec_setup = NULL,                                           \
+                       .tx_info = {                                                 \
+                                     .tx_buff_status = false,                       \
+                                     .ping = {                                      \
+                                                .buff_addr = NULL,                  \
+                                                .busy_status = false,               \
+                                             },                                     \
+                                     .pang = {                                      \
+                                                .buff_addr = NULL,                  \
+                                                .busy_status = false,               \
+                                             },                                     \
+                                     .buff_length = 0,                              \
+                                  },                                                \
+                       .rx_info = {                                                 \
+                                     .rx_buff_status = false,                       \
+                                     .decoder_ring_buff = NULL,                     \
+                                     .decoder_rb = NULL,                            \
+                                     .frame_size = 0,                               \
+                                     .frame_num = 0,                                \
+                                     .rx_buff_seq_tail = 0,                         \
+                                     .aud_trs_read_seq = 0,                         \
+                                     .fifo_frame_num = 0,                           \
+                                  },                                                \
+                       .data_type = AUD_INTF_VOC_DATA_TYPE_MAX,                     \
+                       .mic_en = AUD_INTF_VOC_MIC_CLOSE,                            \
+                       .spk_en = AUD_INTF_VOC_SPK_CLOSE,                            \
+                       .mic_type = AUD_INTF_MIC_TYPE_MAX,                           \
+                       .spk_type = AUD_INTF_SPK_TYPE_MAX,                           \
+                       .aud_tras_drv_voc_event_cb = NULL,                           \
+                    },                                                              \
+        .api_info = {                                                               \
+                       .sem = NULL,                                                 \
+                       .result = BK_OK,                                             \
+                       .busy_status = false,                                        \
+                    },                                                              \
+        .uac_status = AUD_INTF_UAC_NORMAL_DISCONNECTED,                             \
+        .uac_auto_connect = true,                                                   \
+        .aud_intf_uac_connect_state_cb = NULL,                                      \
+    }
 
 /**************** audio interface information ****************/
 

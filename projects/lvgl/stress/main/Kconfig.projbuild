@@ -1,0 +1,6 @@
+menu "LVLG Stress Configuration"
+
+    config LV_USE_DEMO_STRESS
+        bool "LVLG Stress"
+        default n
+endmenu

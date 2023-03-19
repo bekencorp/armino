@@ -1,5 +1,5 @@
-menu "DEMOS_CONFIG"
+menu "Demos::Media::Audio::Mp3"
 	config AUDIO_MP3_TEST
-		bool "Enable AUDIO MP3 Test"
+		bool "Enable Audio MP3 Test"
 		default n
 endmenu

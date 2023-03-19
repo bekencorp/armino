@@ -34,8 +34,6 @@
 extern "C" {
 #endif
 
-#include "platform.h"
-
 /*-----------------------------------------------------------
  * Port specific definitions.
  *
@@ -94,8 +92,7 @@ not need to be guarded with a critical section. */
 
 /* Scheduler utilities. */
 extern void vTaskSwitchContext( void );
-extern void mon_task_yield(void);
-#define portYIELD() mon_task_yield()
+#define portYIELD() __asm volatile( "ecall" );
 #define portEND_SWITCHING_ISR( xSwitchRequired ) do { if( xSwitchRequired ) vTaskSwitchContext(); } while( 0 )
 #define portYIELD_FROM_ISR( x ) portEND_SWITCHING_ISR( x )
 /*-----------------------------------------------------------*/
@@ -108,13 +105,28 @@ extern void vTaskExitCritical( void );
 
 extern int port_disable_interrupts_flag(void);
 extern void port_enable_interrupts_flag(int val);
+extern unsigned int port_disable_mie_flag(void);
+extern void port_enable_mie_flag(uint32_t val);
 
-#define portSET_INTERRUPT_MASK_FROM_ISR() port_disable_interrupts_flag();
-#define portCLEAR_INTERRUPT_MASK_FROM_ISR( uxSavedStatusValue ) port_enable_interrupts_flag(uxSavedStatusValue)
+__inline static unsigned int port_set_interrupt_mask_from_isr(void)
+{
+	unsigned int val;
 
-#define portDISABLE_INTERRUPTS()	HAL_INT_DISABLE()
-#define portENABLE_INTERRUPTS()		HAL_INT_ENABLE()
+	__asm volatile( "csrrc %0, mstatus, 0x8":"=r"( val ) );
 
+	return val;
+}
+
+__inline static void port_clear_interrupt_mask_from_isr(int val)
+{
+	__asm volatile( "csrw mstatus, %0"::"r"( val ) );
+}
+
+#define portSET_INTERRUPT_MASK_FROM_ISR() port_set_interrupt_mask_from_isr();
+#define portCLEAR_INTERRUPT_MASK_FROM_ISR( uxSavedStatusValue ) port_clear_interrupt_mask_from_isr(uxSavedStatusValue)
+
+#define portDISABLE_INTERRUPTS()	__asm volatile( "csrc mstatus, 8" )
+#define portENABLE_INTERRUPTS()		__asm volatile( "csrs mstatus, 8" )
 #define portENTER_CRITICAL()	vTaskEnterCritical()
 #define portEXIT_CRITICAL()		vTaskExitCritical()
 
@@ -174,6 +186,7 @@ void vPortSetupTimerInterrupt(void);
 void vPortSuppressTicksAndSleep(TickType_t xExpectedIdleTime);
 #define portSUPPRESS_TICKS_AND_SLEEP(xExpectedIdleTime)  vPortSuppressTicksAndSleep(xExpectedIdleTime)
 #endif
+
 
 
 #ifdef __cplusplus

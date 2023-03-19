@@ -1,5 +1,8 @@
 Wi-Fi Scan Example
 ====================================================
+
+:link_to_translation:`zh_CN:[中文]`
+
 This chapter show the example of BEKEN Wi-Fi STA mode to start scanning the SSID around and return the results.
 
 Source Code Process

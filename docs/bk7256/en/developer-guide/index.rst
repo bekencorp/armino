@@ -16,7 +16,6 @@ User and Developer Guide
    Event Mechanism <event/index>
    Error and Log <error_log/index>
    Debug and Trace <debug_trace/index>
-   Tools <tools/index>
    Wi-Fi <wifi/index>
    Bluetooth <bluetooth/index>
    HTTP <http/index>
@@ -27,3 +26,4 @@ User and Developer Guide
    CPU Specific Guide <cpu/index>
    Write Examples <examples/index>
    Documentation <documentation/index>
+   ab_partition_ota <ab_partition_ota/index>

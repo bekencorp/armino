@@ -19,14 +19,6 @@
 
 #define PRRO_LL_REG_BASE(id) SOC_PRRO_REG_BASE
 
-static inline void prro_ll_init(void)
-{
-	prro_hw_t *hw = (prro_hw_t*)PRRO_LL_REG_BASE(0);
-	hw->global_ctrl.soft_reset = 1;
-        hw->ahb_cfg_sresp.v = 0xff;
-        hw->apb_cfg_sresp.v = 0x1f;
-}
-
 static inline void prro_ll_set_reg(uint32_t reg_offset, uint32_t value)
 {
 	uint32_t reg = PRRO_LL_REG_BASE(0) + (reg_offset << 2);

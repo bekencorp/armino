@@ -1,5 +1,8 @@
 Wi-Fi Capture Introduction
 ==================================================
+
+:link_to_translation:`zh_CN:[中文]`
+
 Powerful Network Protocol Analyzer-OmniPeek
 -----------------------------------------------------
 Meet Omnipeek

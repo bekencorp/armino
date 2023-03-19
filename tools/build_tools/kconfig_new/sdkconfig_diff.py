@@ -48,7 +48,7 @@ def sdkconfig_diff_checkout(sdkconfig_path, old_sdkconfig_path, diff_sdkconfig_p
                 diff_sdkconfig_dict[sdkconfig_key] = sdkconfig_val
                 
     old_diff_sdkconfig_dict.update(diff_sdkconfig_dict)
-    
+    '''
     key_del_list = list()
     for diff_sdkconfig_key,diff_sdkconfig_val in old_diff_sdkconfig_dict.items():
         if(diff_sdkconfig_val == 'is not set'):
@@ -56,7 +56,7 @@ def sdkconfig_diff_checkout(sdkconfig_path, old_sdkconfig_path, diff_sdkconfig_p
     
     for key_del in key_del_list:
         old_diff_sdkconfig_dict.pop(key_del)
-    
+    '''
     diff_sdkconfig_list = list()
     for diff_sdkconfig_key,diff_sdkconfig_val in old_diff_sdkconfig_dict.items():
         if(diff_sdkconfig_val == 'is not set'):

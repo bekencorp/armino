@@ -1,0 +1,10 @@
+menu "Demos::Media::Agora"
+
+    config AGORA_IOT_SDK_TEST
+        bool "Enable Agora iot sdk Test"
+		depends on AGORA_IOT_SDK
+        default n
+		help
+			Enable Agora iot sdk lib test
+
+endmenu

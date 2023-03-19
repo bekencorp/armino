@@ -106,7 +106,7 @@ l_bootloader: mainly downloads uart. Figure 2 shows the flowchart.
 -------------------------------------------------
 - 1.OTA upgrade firmware supports compression and encryption. The upgrade firmware is automatically produced. When compiled app, generating app.bin the build/app/bk7256 directory.At the same time, in the build/app/bk7256/encrypt/directory has been generated firmware app_pack.rbl.
 
-- 2.Open Everything-1.4.1.935.x64-Setup.exe, Tools -> Options ->The HTTP server,  then binding the local ip address. Use a browser to open the local ip address, locate the local upgrade file *.rbl,and copy the url to use in the cli command.
+- 2.Open Everything-1.4.1.935.x64-Setup.exe, Tools -> Options ->The HTTP server,  then binding the local ip address. Use a browser to open the local ip address, locate the local upgrade file \*.rbl,and copy the url to use in the cli command.
 
  .. figure:: ../../../_static/bootlaoder_everthing.png
     :align: center

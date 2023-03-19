@@ -25,53 +25,58 @@ extern "C" {
 #define NET_INFO_MAC_ADDR_OFFSET			0x0
 #define NET_INFO_FAST_CONNECT_OFFSET		0x6
 
-typedef enum {
-	FAST_CONNECT_ITEM	= 0x00001111,
-	AUTO_CONNECT_ITEM	= 0x11111111,
-	WIFI_MODE_ITEM	= 0x22222222,
-	DHCP_MODE_ITEM	= 0x33333333,
-	WIFI_MAC_ITEM	= 0x44444444,
-	SSID_KEY_ITEM	= 0x55555555,
-	IP_CONFIG_ITEM	= 0x66666666,
-	RF_CFG_TSSI_ITEM    = 0x77777777,
-	RF_CFG_DIST_ITEM    = 0x88888888,
-	RF_CFG_MODE_ITEM    = 0x99999999,
-	CHARGE_CONFIG_ITEM  = 0xaaaaaaaa,
-	RF_CFG_TSSI_B_ITEM  = 0xbbbbbbbb,
-	USER_COMM1_ITEM	= 0x11112222,
-	DID_STR_ITEM	= 0xcccccccc,
-	USER_PSW_ITEM	= 0xdddddddd,
-	CAMERA_PARA_ITEM	= 0xeeeeeeee,
-	REBOOT_FLAG_ITEM    = 0xffffffff
-} NET_INFO_ITEM;
+typedef enum{
+    FAST_CONNECT_ITEM	= 0x00001111,
+    AUTO_CONNECT_ITEM	= 0x11111111,
+    WIFI_MODE_ITEM	= 0x22222222,
+    DHCP_MODE_ITEM	= 0x33333333,
+    WIFI_MAC_ITEM	= 0x44444444,
+    SSID_KEY_ITEM	= 0x55555555,
+    IP_CONFIG_ITEM	= 0x66666666,
+    RF_CFG_TSSI_ITEM    = 0x77777777,
+    RF_CFG_DIST_ITEM    = 0x88888888,
+    RF_CFG_MODE_ITEM    = 0x99999999,
+    CHARGE_CONFIG_ITEM  = 0xaaaaaaaa,
+    RF_CFG_TSSI_B_ITEM  = 0xbbbbbbbb,
+    USER_COMM1_ITEM	= 0x11112222,	
+    DID_STR_ITEM	= 0xcccccccc,
+    USER_PSW_ITEM	= 0xdddddddd,
+    CAMERA_PARA_ITEM	= 0xeeeeeeee,
+    REBOOT_FLAG_ITEM    = 0xffffffff
+}NET_INFO_ITEM;
 
-typedef struct info_item_st {
-	UINT32 type;
-	UINT32 len;
-} INFO_ITEM_ST, TLV_HEADER_ST, *INFO_ITEM_ST_PTR;
+typedef struct info_item_st
+{
+    UINT32 type;
+    UINT32 len;
+}INFO_ITEM_ST,TLV_HEADER_ST,*INFO_ITEM_ST_PTR;
 
-typedef struct item_common_st {
-	INFO_ITEM_ST head;
-	UINT32 value;
-} ITEM_COMM_ST, *ITEM_COMM_ST_PTR;
+typedef struct item_common_st
+{
+    INFO_ITEM_ST head;
+    UINT32 value;
+}ITEM_COMM_ST,*ITEM_COMM_ST_PTR;
 
-typedef struct item_mac_addr_st {
-	INFO_ITEM_ST head;
-	char mac[6];
-	char reserved[2];// 4bytes boundary
-} ITEM_MAC_ADDR_ST, *ITEM_MAC_ADDR_ST_PTR;
+typedef struct item_mac_addr_st
+{
+    INFO_ITEM_ST head;
+    char mac[6];
+    char reserved[2];// 4bytes boundary
+}ITEM_MAC_ADDR_ST,*ITEM_MAC_ADDR_ST_PTR;
 
-typedef struct item_charge_st {
-	INFO_ITEM_ST head;
+typedef struct item_charge_st
+{
+    INFO_ITEM_ST head;
 #if (CONFIG_SOC_BK7251)
-	char chrg[4];
+    char chrg[4];
 #else
-	char chrg[3];
-	char reserved[1];
+    char chrg[3];
+    char reserved[1];
 #endif
-} ITEM_CHARGE_ST, *ITEM_CHARGE_ST_PTR;
+}ITEM_CHARGE_ST,*ITEM_CHARGE_ST_PTR;
 
-typedef struct item_fastconnect_st {
+typedef struct item_fastconnect_st
+{
 	uint8_t ssid[33];
 	uint8_t bssid[6];
 	uint8_t security;
@@ -82,51 +87,28 @@ typedef struct item_fastconnect_st {
 	uint8_t netmask[4];
 	uint8_t gw[4];
 	uint8_t dns1[4];
-#if CONFIG_WLAN_FAST_CONNECT_WITHOUT_SCAN
-	uint16_t freq;
-	u16 beacon_int;
-	uint16_t caps;
-	int level;
-	// u64 tsf;
-	uint16_t ie_len;
-	uint8_t ies[1024];	/* FIXME: use dynamic len */
-#endif
-#if CONFIG_WLAN_FAST_CONNECT_DEAUTH_FIRST
-	uint8_t pmf;
-	uint8_t tk[16];
-#endif
-#if CONFIG_WLAN_FAST_CONNECT_WPA3
-	uint8_t pmk_len;
-	uint8_t pmk[64]; // for WPA2 Personal, pmk = psk
-	uint8_t pmkid[16];
-	int akmp;
-#endif
+}ITEM_FASTCONNECT_ST,*ITEM_FASTCONNECT_ST_PTR;
 
-#if (CONFIG_FAST_CONNECT_INFO_ENC_METHOD == ENC_METHOD_AES)
-	/* aes attention: sizeof(RL_BSSID_INFO_T) = 16 * n */
-	uint8_t padding[0] __attribute__((aligned(16)));
-#endif
-} ITEM_FASTCONNECT_ST, *ITEM_FASTCONNECT_ST_PTR;
+typedef struct item_ssidkey_st
+{
+    INFO_ITEM_ST head;
+    char wifi_ssid[32];
+    char wifi_key[64]; 
+}ITEM_SSIDKEY_ST,*ITEM_SSIDKEY_ST_PTR;
 
-typedef struct item_ssidkey_st {
-	INFO_ITEM_ST head;
-	char wifi_ssid[32];
-	char wifi_key[64];
-} ITEM_SSIDKEY_ST, *ITEM_SSIDKEY_ST_PTR;
-
-typedef struct item_ip_config_st {
-	INFO_ITEM_ST head;
-	char local_ip_addr[16];
-	char net_mask[16];
-	char gateway_ip_addr[16];
-} ITEM_IP_CONFIG_ST, *ITEM_IP_CONFIG_ST_PTR;
+typedef struct item_ip_config_st
+{
+    INFO_ITEM_ST head;
+    char local_ip_addr[16];
+    char net_mask[16];
+    char gateway_ip_addr[16];    
+}ITEM_IP_CONFIG_ST,*ITEM_IP_CONFIG_ST_PTR;
 
 UINT32 test_get_whole_tbl(UINT8 *ptr);
-UINT32 save_info_item(NET_INFO_ITEM item, UINT8 *ptr0, UINT8 *ptr1, UINT8 *ptr2);
-UINT32 get_info_item(NET_INFO_ITEM item, UINT8 *ptr0, UINT8 *ptr1, UINT8 *ptr2);
+UINT32 save_info_item(NET_INFO_ITEM item,UINT8 *ptr0,UINT8*ptr1,UINT8 *ptr2);
+UINT32 get_info_item(NET_INFO_ITEM item,UINT8 *ptr0,UINT8 *ptr1, UINT8 *ptr2);
 UINT32 save_net_info(NET_INFO_ITEM item, UINT8 *ptr0, UINT8 *ptr1, UINT8 *ptr2);
 UINT32 get_net_info(NET_INFO_ITEM item, UINT8 *ptr0, UINT8 *ptr1, UINT8 *ptr2);
-
 #ifdef __cplusplus
 }
 #endif

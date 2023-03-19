@@ -1,5 +1,8 @@
 power domain instructions
 ==================================================
+
+:link_to_translation:`zh_CN:[中文]`
+
 power domain instructions
 -----------------------------------------------------
 power domain brief introduce
@@ -19,6 +22,3 @@ There are two types power domain in digtal：
 Digital Core power domain
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 Digital Core power domain has different modules, different sub modules has their sub power domain，which can according to the usage scenario to switch power on or power off ，so the power control strategy is flexible，Different product forms can reach optimal power consumption according the usage scenario.
-
-:link_to_translation:`en:[English]`
-

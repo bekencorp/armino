@@ -1,3 +1,7 @@
-config ADC_KEY
-	bool "Enable adc key"
-	default n
+menu "Adc_key"
+
+	config ADC_KEY
+		bool "Enable Adc Key"
+		default n
+
+endmenu

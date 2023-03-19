@@ -72,18 +72,20 @@ bk_err_t bk_aud_intf_set_mode(aud_intf_work_mode_t work_mode);
 bk_err_t bk_aud_intf_set_mic_gain(uint8_t value);
 
 /**
- * @brief     Set the mic gain
+ * @brief     Set the spk gain(volume)
  *
- * @param value the gain value range:0x00 ~ 0x3f
+ * @param value the gain value
+ *    -board speaker: range:0x00 ~ 0x3f
+ *    -uac speaker: range:0x0000 ~ 0xffff
  *
- * This API should be called when speaker has been initialized
- * And this API should not be called when UAC speaker has been used.
+ * This API should be called when speaker has been initialized.
+ * And this API set board speaker gain and uac speaker volume.
  *
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-bk_err_t bk_aud_intf_set_spk_gain(uint8_t value);
+bk_err_t bk_aud_intf_set_spk_gain(uint32_t value);
 
 /**
  * @brief     Set the aec parameter
@@ -382,6 +384,37 @@ bk_err_t bk_aud_intf_set_spk_samp_rate(aud_dac_samp_rate_t samp_rate);
  *    - others: other errors.
  */
 bk_err_t bk_aud_intf_get_spk_samp_rate(aud_dac_samp_rate_t *samp_rate);
+
+/**
+ * @brief     Register callback of uac abnormal disconnection and connection recovery
+ *
+ * This API should be called after bk_aud_intf_spk_init.
+ * This API only support uac mic and uac speaker.
+ *
+ * @param cb callback api
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_intf_register_uac_connect_state_cb(void *cb);
+
+/**
+ * @brief     Control uac automatical connect
+ *
+ * If enable the feature, uac will automatic connect after uac abnormal disconnect.
+ * This API only support uac mic and uac speaker.
+ * This feature is enabled by default.
+ *
+ * @param enable
+ *    - TRUE: enable uac automatic connnet
+ *    - FALSE: disable uac automatic connent
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_intf_uac_auto_connect_ctrl(bool enable);
 
 
 /*************************************** voice api *********************************************/

@@ -101,10 +101,18 @@ char * get_string_to_name(char *string, char * pre)
 	{
 		value = "st7710s";
 	}
-
+	if (os_strcmp(string, "st7701s_ly") == 0)
+	{
+		value = "st7701s_ly";
+	}
 	if (os_strcmp(string, "st7701s") == 0)
 	{
 		value = "st7701s";
+	}
+
+	if (os_strcmp(string, "sn5st7701s") == 0)
+	{
+		value = "sn5st7701s";
 	}
 	return value;
 }
@@ -167,7 +175,7 @@ bool cmd_contain(int argc, char **argv, char *string)
 	return ret;
 }
 
-#if CONFIG_FATFS
+#if (CONFIG_CAMERA || CONFIG_USB_UVC)
 extern storage_flash_t storge_flash;
 #endif
 
@@ -266,7 +274,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		}
 #endif
 
-#if ((defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC)) && !defined(CONFIG_SLAVE_CORE) && defined(CONFIG_FATFS))
+#if ((defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC)) && !defined(CONFIG_SLAVE_CORE))
 		if (os_strcmp(argv[1], "capture") == 0)
 		{
 			LOGI("capture\n");
@@ -417,8 +425,9 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			}
 			if (os_strcmp(argv[2], "flash_display") == 0)
 			{
-#if CONFIG_FATFS
+#if (CONFIG_CAMERA || CONFIG_USB_UVC)
 				lcd_display_t lcd_display;
+				extern storage_flash_t storge_flash;
 				lcd_display.image_addr = storge_flash.flash_image_addr;
 				lcd_display.img_length = storge_flash.flasg_img_length;
 				ret = media_app_lcd_display(&lcd_display);

@@ -230,7 +230,12 @@ int legacy_init(void)
 	#if CONFIG_SAVE_BOOT_TIME_POINT
 	save_mtime_point(CPU_START_WIFI_INIT_TIME);
 	#endif
-	app_wifi_init();
+#if CONFIG_WIFI_ENABLE
+    app_wifi_init();
+#else
+    extern int bk_cal_if_init(void);
+    bk_cal_if_init();
+#endif
 	#if CONFIG_SAVE_BOOT_TIME_POINT
 	save_mtime_point(CPU_FINISH_WIFI_INIT_TIME);
 	#endif

@@ -82,12 +82,13 @@ typedef enum
 	PPI_CAP_640X480     = (1 << 4), /**< 640 * 480 */
 	PPI_CAP_480X800     = (1 << 5), /**< 480 * 800 */
 	PPI_CAP_800X480     = (1 << 6), /**< 800 * 480 */
-	PPI_CAP_800X600     = (1 << 7), /**< 800 * 600 */
-	PPI_CAP_864X480     = (1 << 8), /**< 864 * 480 */
-	PPI_CAP_1024X600    = (1 << 9), /**< 1024 * 600 */
-	PPI_CAP_1280X720    = (1 << 10), /**< 1280 * 720 */
-	PPI_CAP_1600X1200   = (1 << 11), /**< 1600 * 1200 */
-	PPI_CAP_480X480     = (1 << 12), /**< 480 * 480 */
+	PPI_CAP_480X854     = (1 << 7), /**< 800 * 480 */
+	PPI_CAP_800X600     = (1 << 8), /**< 800 * 600 */
+	PPI_CAP_864X480     = (1 << 9), /**< 864 * 480 */
+	PPI_CAP_1024X600    = (1 << 10), /**< 1024 * 600 */
+	PPI_CAP_1280X720    = (1 << 11), /**< 1280 * 720 */
+	PPI_CAP_1600X1200   = (1 << 12), /**< 1600 * 1200 */
+	PPI_CAP_480X480     = (1 << 13), /**< 480 * 480 */
 } media_ppi_cap_t;
 
 /** rgb lcd input data format, data save in mem is little endian, like VUYY format is [bit31-bit0] is [V U Y Y]*/
@@ -249,6 +250,9 @@ static inline media_ppi_cap_t pixel_ppi_to_cap(media_ppi_t ppi)
 
 		case PPI_800X480:
 			cap = PPI_CAP_800X480;
+			break;
+		case PPI_480X854:
+			cap = PPI_CAP_480X854;
 			break;
 		case PPI_864X480:
 			cap = PPI_CAP_864X480;

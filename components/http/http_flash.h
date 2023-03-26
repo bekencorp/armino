@@ -20,7 +20,11 @@ typedef struct http_data_st {
 	DD_HANDLE flash_hdl;
 } HTTP_DATA_ST;
 
+#if CONFIG_UVC_OTA_DEMO
+#define TCP_LEN_MAX             1000//896
+#else
 #define TCP_LEN_MAX             1460
+#endif
 #define HTTP_FLASH_ADDR         0xff000
 
 extern  void store_block(unsigned block, uint8_t *src, unsigned len);

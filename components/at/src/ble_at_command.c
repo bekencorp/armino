@@ -512,7 +512,7 @@ int8_t ethermind_find_index_by_att_con_id(uint8_t *index, ATT_CON_ID att_id)
     return -1;
 }
 
-void ble_at_notice_cb(ble_notice_t notice, void *param)
+static void ble_at_notice_cb(ble_notice_t notice, void *param)
 {
     switch (notice) {
     case BLE_5_STACK_OK:
@@ -611,8 +611,6 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
     }
     case BLE_5_REPORT_ADV:
     {
-        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
-        {
             ble_recv_adv_t *r_ind = (ble_recv_adv_t *)param;
             uint8_t adv_type = r_ind->evt_type & REPORT_INFO_REPORT_TYPE_MASK;
             os_printf("r_ind:actv_idx:%d,", r_ind->actv_idx);
@@ -667,50 +665,12 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
                     rtos_set_semaphore( &ble_at_cmd_sema );
             }
         }
-        else
-        {
-            ble_adv_report_t *r_ind = (typeof(r_ind))param;
-            char dname[64] = {0};
-            uint8_t dname_len = sizeof(dname);
 
-            memset(&dname, 0, sizeof(dname));
 
-            ble_get_device_name_from_adv(r_ind->data, r_ind->data_len, (uint8_t *)dname, &dname_len);
-            dname[dname_len - 1] = 0;
 
-            if(r_ind->evt_type & (1 << 4))
-            {
-                os_printf("evt_type:LEG_ADV,");
-            }
-            else
-            {
-                os_printf("evt_type:EXT_ADV,");
-            }
 
-            os_printf(" adv_addr_type:%d, adv_addr:%02x:%02x:%02x:%02x:%02x:%02x name %s\r\n",
-                    r_ind->peer_address_type,
-                    r_ind->peer_address.addr[5],
-                    r_ind->peer_address.addr[4],
-                    r_ind->peer_address.addr[3],
-                    r_ind->peer_address.addr[2],
-                    r_ind->peer_address.addr[1],
-                    r_ind->peer_address.addr[0],
-                    dname);
 
-            if ((STATE_DISCOVERING == g_peer_dev.state) && (ble_check_device_name(r_ind->data , r_ind->data_len, &(g_peer_dev.dev))))
-            {
-                os_printf("dev : %s is discovered\r\n",g_peer_dev.dev.name);
-                os_memcpy(g_peer_dev.bdaddr.addr, r_ind->peer_address.addr, BK_BLE_GAP_BD_ADDR_LEN);
-                g_peer_dev.addr_type = r_ind->peer_address_type;
-                g_peer_dev.state = STATE_DISCOVERED;
 
-                if (ble_at_cmd_sema != NULL)
-                {
-                    rtos_set_semaphore( &ble_at_cmd_sema );
-                }
-            }
-        }
-    }
     break;
     case BLE_5_MTU_CHANGE: {
         ble_mtu_change_t *m_ind = (ble_mtu_change_t *)param;
@@ -718,45 +678,24 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
         break;
     }
     case BLE_5_CONNECT_EVENT: {
-        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
-        {
             ble_conn_ind_t *c_ind = (ble_conn_ind_t *)param;
             os_printf("c_ind:conn_idx:%d, addr_type:%d, peer_addr:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
                     c_ind->conn_idx, c_ind->peer_addr_type, c_ind->peer_addr[0], c_ind->peer_addr[1],
                     c_ind->peer_addr[2], c_ind->peer_addr[3], c_ind->peer_addr[4], c_ind->peer_addr[5]);
             s_test_conn_ind = c_ind->conn_idx;
-        }
-        else
-        {
-            ble_conn_att_t *conn_att = (typeof(conn_att))param;
-            os_printf("%s ethermind connected, ATT_CON_ID %d atype %d addr 0x%02X:%02X:%02X:%02X:%02X:%02X\n", __func__,
-                      conn_att->conn_handle, conn_att->peer_addr_type,
-                      conn_att->peer_addr[5],
-                      conn_att->peer_addr[4],
-                      conn_att->peer_addr[3],
-                      conn_att->peer_addr[2],
-                      conn_att->peer_addr[1],
-                      conn_att->peer_addr[0]
-                      );
-            s_ethermind_att_handle = conn_att->conn_handle;
-            if ((STATE_CONNECTINIG == g_peer_dev.state) && (!os_memcmp(g_peer_dev.bdaddr.addr, conn_att->peer_addr, BK_BLE_GAP_BD_ADDR_LEN)))
-            {
-                g_peer_dev.state = STATE_CONNECTED;
-            }
-        }
+
+
         break;
     }
     case BLE_5_DISCONNECT_EVENT: {
-        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
-        {
+
             ble_discon_ind_t *d_ind = (ble_discon_ind_t *)param;
             os_printf("d_ind:conn_idx:%d,reason:%d\r\n", d_ind->conn_idx, d_ind->reason);
             s_test_conn_ind = ~0;
 
             if (stability_test_s_enabled)
             {
-                if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
-                {
+
                     uint8_t actv_idx = bk_ble_find_actv_state_idx_handle(AT_ACTV_ADV_CREATED);
 
                     if (actv_idx == AT_BLE_MAX_ACTV)
@@ -767,32 +706,10 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
                     {
                         bk_ble_start_advertising(actv_idx, 0, NULL);
                     }
-                }
-            }
 
         }
-        else
-        {
-            ble_conn_att_t *att_handle = (typeof(att_handle))param;
-            uint8_t index = 0;
-            os_printf("%s ethermind disconnect reason %d attid %d atype %d addr 0x%02X:%02X:%02X:%02X:%02X:%02X\n", __func__,
-                      att_handle->event_result,
-                      att_handle->conn_handle, att_handle->peer_addr_type,
-                      att_handle->peer_addr[5],
-                      att_handle->peer_addr[4],
-                      att_handle->peer_addr[3],
-                      att_handle->peer_addr[2],
-                      att_handle->peer_addr[1],
-                      att_handle->peer_addr[0]
-                      );
 
-            memset(&s_ethermind_att_handle, 0, sizeof(s_ethermind_att_handle));
 
-            if(0 == ethermind_find_index_by_info(&index, att_handle->conn_handle))
-            {
-                ethermind_clean_info_by_index(index);
-            }
-        }
         break;
     }
     case BLE_5_ATT_INFO_REQ: {
@@ -807,19 +724,12 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
 //#if (CONFIG_BTDM_5_2)
         if(bk_ble_get_controller_stack_type() == BK_BLE_CONTROLLER_STACK_TYPE_BTDM_5_2)
         {
-        	if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
-        	{
 				ble_create_db_t *cd_ind = (ble_create_db_t *)param;
 				os_printf("cd_ind:prf_id:%d, status:%d\r\n", cd_ind->prf_id, cd_ind->status);
 
 				at_cmd_status = cd_ind->status;
 				if (ble_at_cmd_sema != NULL)
 					rtos_set_semaphore( &ble_at_cmd_sema );
-        	}
-        	else
-			{
-				os_printf("%s ethermind BLE_5_CREATE_DB ok\n", __func__);
-			}
         }
 //#endif
 
@@ -890,7 +800,6 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
         break;
     }
     case BLE_5_TX_DONE:
-        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
         {
             uint8_t con_idx = *(uint8_t *)param;
             if(s_service_type && s_performance_tx_enable == 1)
@@ -898,44 +807,25 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
                 s_performance_tx_bytes += s_test_data_len;
                 ble_test_noti_hdl((void *)((uint32)con_idx));
             }
-        }
-        else
-        {
-            ble_att_tx_compl_t *tx_comp = (typeof(tx_comp))param;
-            os_printf("%s BLE_5_TX_DONE res %d ATT_CON_ID %d ATT_ATTR_HANDLE %d\n", __func__,
-                      tx_comp->event_result,
-                      tx_comp->conn_handle, tx_comp->attr_handle);
-
-            if(s_ethermind_service_type == 1 && s_ethermind_auto_tx_enable)
+            else
             {
+                BK_LOGI("ble_at","BLE_5_TX_DONE\r\n");
+            }
+        }
+
 //                for (uint8_t i = 0; i < a_wr_c->num_compl; ++i)
 //                {
 //                    ble_tx_test_active_timer_callback(NULL);
 //                }
-            }
-        }
         break;
 
     case BLE_5_CONN_UPDATA_EVENT:
     {
-        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
-        {
             ble_conn_param_t *updata_param = (ble_conn_param_t *)param;
             os_printf("BLE_5_CONN_UPDATA_EVENT:conn_interval:0x%04x, con_latency:0x%04x, sup_to:0x%04x\r\n", updata_param->intv_max,
             updata_param->con_latency, updata_param->sup_to);
-        }
-        else
-        {
-            ble_conn_update_param_compl_ind_t *ind = (typeof(ind))param;
-            os_printf("%s BLE_5_CONN_UPDATA_EVENT mac 0x%02X:%02X:%02X:%02X:%02X:%02X status 0x%X interval 0x%X lantency 0x%X tout 0x%X\n", __func__,
-                      ind->peer_address.addr[5],
-                      ind->peer_address.addr[4],
-                      ind->peer_address.addr[3],
-                      ind->peer_address.addr[2],
-                      ind->peer_address.addr[1],
-                      ind->peer_address.addr[0],
-                      ind->status, ind->conn_interval, ind->conn_latency, ind->supervision_timeout);
-        }
+
+
         break;
     }
 
@@ -1101,28 +991,13 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
         break;
     case BLE_5_CONN_UPD_PAR_ASK:
     {
-        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
-        {
+
             ble_conn_update_para_ind_t *tmp = (typeof(tmp))param;
             os_printf("%s BLE_5_CONN_UPD_PAR_ASK accept\n", __func__);
             tmp->is_agree = 1;
-        }
-        else
-        {
-            ble_conn_update_param_ind_t *ind = (typeof(ind))param;
-            os_printf("%s BLE_5_CONN_UPD_PAR_ASK 0x%02X:%02X:%02X:%02X:%02X:%02X imin 0x%X imax 0x%x latency 0x%X tout 0x%X\n", __func__,
-                      ind->peer_address.addr[5],
-                      ind->peer_address.addr[4],
-                      ind->peer_address.addr[3],
-                      ind->peer_address.addr[2],
-                      ind->peer_address.addr[1],
-                      ind->peer_address.addr[0],
-                      ind->conn_interval_min, ind->conn_interval_max, ind->conn_latency, ind->supervision_timeout);
 
 //            ind->conn_interval_min++;
 //            ind->conn_interval_max++;
-            ind->is_agree = 1;
-        }
     }
         break;
     case BLE_5_ATT_READ_RESPONSE:
@@ -1190,21 +1065,413 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
         {
             if(bk_ble_get_controller_stack_type() == BK_BLE_CONTROLLER_STACK_TYPE_BTDM_5_2)
             {
-                if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
-                {
                     ble_create_db_t *cd_ind = (ble_create_db_t *)param;
                     os_printf("delete dervice done, prf_id:%d, status:%d\r\n", cd_ind->prf_id, cd_ind->status);
 
                     at_cmd_status = cd_ind->status;
                     if (ble_at_cmd_sema != NULL)
                         rtos_set_semaphore( &ble_at_cmd_sema );
-                }
             }
             break;
         }
     default:
         break;
     }
+}
+
+static uint32_t dm_ble_at_event_cb(ble_event_enum_t event, void *param)
+{
+    switch (event)
+    {
+    case BK_DM_BLE_EVENT_STACK_OK:
+        os_printf("ble stack ok\n");
+        break;
+
+    case BK_DM_BLE_EVENT_REPORT_ADV:
+    {
+        ble_adv_report_t *r_ind = (typeof(r_ind)) param;
+        char dname[64] = { 0 };
+        uint8_t dname_len = sizeof(dname);
+
+        memset(&dname, 0, sizeof(dname));
+
+        ble_get_device_name_from_adv(r_ind->data, r_ind->data_len,
+                                     (uint8_t *) dname, &dname_len);
+        dname[dname_len - 1] = 0;
+
+        if (r_ind->evt_type & (1 << 4))
+        {
+            os_printf("evt_type:LEG_ADV,");
+        }
+        else
+        {
+            os_printf("evt_type:EXT_ADV,");
+        }
+
+        os_printf(
+            " adv_addr_type:%d, adv_addr:%02x:%02x:%02x:%02x:%02x:%02x name %s\r\n",
+            r_ind->peer_address_type, r_ind->peer_address.addr[5],
+            r_ind->peer_address.addr[4], r_ind->peer_address.addr[3],
+            r_ind->peer_address.addr[2], r_ind->peer_address.addr[1],
+            r_ind->peer_address.addr[0], dname);
+
+        if ((STATE_DISCOVERING == g_peer_dev.state)
+                && (ble_check_device_name(r_ind->data, r_ind->data_len,
+                                          &(g_peer_dev.dev))))
+        {
+            os_printf("dev : %s is discovered\r\n", g_peer_dev.dev.name);
+            os_memcpy(g_peer_dev.bdaddr.addr, r_ind->peer_address.addr,
+                      BK_BLE_GAP_BD_ADDR_LEN);
+            g_peer_dev.addr_type = r_ind->peer_address_type;
+            g_peer_dev.state = STATE_DISCOVERED;
+
+            if (ble_at_cmd_sema != NULL)
+            {
+                rtos_set_semaphore(&ble_at_cmd_sema);
+            }
+        }
+
+    }
+    break;
+
+    case BK_DM_BLE_EVENT_MTU_CHANGE:
+    {
+        ble_mtu_change_t *m_ind = (ble_mtu_change_t *) param;
+        os_printf("%s m_ind:conn_idx:%d, mtu_size:%d\r\n", __func__,
+                  m_ind->conn_idx, m_ind->mtu_size);
+        break;
+    }
+
+    case BK_DM_BLE_EVENT_CONNECT:
+    {
+
+        ble_conn_att_t *conn_att = (typeof(conn_att)) param;
+        os_printf("%s ethermind connected, ATT_CON_ID %d atype %d addr 0x%02X:%02X:%02X:%02X:%02X:%02X\n",
+                  __func__, conn_att->conn_handle, conn_att->peer_addr_type,
+                  conn_att->peer_addr[5], conn_att->peer_addr[4],
+                  conn_att->peer_addr[3], conn_att->peer_addr[2],
+                  conn_att->peer_addr[1], conn_att->peer_addr[0]);
+        s_ethermind_att_handle = conn_att->conn_handle;
+
+        if ((STATE_CONNECTINIG == g_peer_dev.state)
+                && (!os_memcmp(g_peer_dev.bdaddr.addr, conn_att->peer_addr,
+                               BK_BLE_GAP_BD_ADDR_LEN)))
+        {
+            g_peer_dev.state = STATE_CONNECTED;
+        }
+
+
+        break;
+    }
+
+    case BK_DM_BLE_EVENT_DISCONNECT:
+    {
+        {
+            ble_conn_att_t *att_handle = (typeof(att_handle)) param;
+            uint8_t index = 0;
+            os_printf("%s ethermind disconnect reason %d attid %d atype %d addr 0x%02X:%02X:%02X:%02X:%02X:%02X\n",
+                      __func__, att_handle->event_result, att_handle->conn_handle,
+                      att_handle->peer_addr_type, att_handle->peer_addr[5],
+                      att_handle->peer_addr[4], att_handle->peer_addr[3],
+                      att_handle->peer_addr[2], att_handle->peer_addr[1],
+                      att_handle->peer_addr[0]);
+
+            memset(&s_ethermind_att_handle, 0, sizeof(s_ethermind_att_handle));
+
+            if (0 == ethermind_find_index_by_info(&index, att_handle->conn_handle))
+            {
+                ethermind_clean_info_by_index(index);
+            }
+        }
+
+        break;
+    }
+
+    case BK_DM_BLE_EVENT_CREATE_DB:
+    {
+
+        os_printf("%s ethermind BK_DM_BLE_EVENT_CREATE_DB ok\n", __func__);
+
+        break;
+    }
+
+    case BK_DM_BLE_EVENT_READ_PHY:
+    {
+        s_ble_phy = *(ble_read_phy_t *) param;
+        os_printf("BK_DM_BLE_EVENT_READ_PHY:tx_phy:0x%02x, rx_phy:0x%02x\r\n", s_ble_phy.tx_phy, s_ble_phy.rx_phy);
+        break;
+    }
+
+    case BK_DM_BLE_EVENT_TX_DONE:
+    {
+        ble_att_tx_compl_t *tx_comp = (typeof(tx_comp)) param;
+        os_printf("%s BK_DM_BLE_EVENT_TX_DONE res %d ATT_CON_ID %d ATT_ATTR_HANDLE %d\n",
+                  __func__, tx_comp->event_result, tx_comp->conn_handle,
+                  tx_comp->attr_handle);
+
+        if (s_ethermind_service_type == 1 && s_ethermind_auto_tx_enable)
+        {
+            //                for (uint8_t i = 0; i < a_wr_c->num_compl; ++i)
+            //                {
+            //                    ble_tx_test_active_timer_callback(NULL);
+            //                }
+        }
+    }
+
+    break;
+
+    case BK_DM_BLE_EVENT_CONN_UPDATA:
+    {
+        {
+            ble_conn_update_param_compl_ind_t *ind = (typeof(ind)) param;
+            os_printf("%s BK_DM_BLE_EVENT_CONN_UPDATA mac 0x%02X:%02X:%02X:%02X:%02X:%02X status 0x%X interval 0x%X lantency 0x%X tout 0x%X\n",
+                      __func__,
+                      ind->peer_address.addr[5],
+                      ind->peer_address.addr[4], ind->peer_address.addr[3],
+                      ind->peer_address.addr[2], ind->peer_address.addr[1],
+                      ind->peer_address.addr[0],
+                      ind->status, ind->conn_interval,
+                      ind->conn_latency, ind->supervision_timeout);
+        }
+
+        break;
+    }
+
+    case BK_DM_BLE_EVENT_RECV_NOTIFY:
+    {
+
+        ble_att_notify_t *tmp = (typeof(tmp)) param;
+
+        s_ethermind_performance_rx_bytes += tmp->len;
+
+#ifdef CONFIG_ALI_MQTT
+
+        if (loop_type == LT_COEX)
+        {
+            os_printf("ATT_CON_ID %d data %s len %d sendto mqtt\n",
+                      tmp->conn_handle, tmp->data, tmp->len);
+
+            ble_send_data_2_mqtt(tmp->conn_handle, tmp->len, tmp->data);
+        }
+        else
+#endif
+        {
+            uint8_t index = 0;
+
+            if (0 == ethermind_find_index_by_info(&index, tmp->conn_handle))
+            {
+                os_printf("%s ATT_CON_ID %d, send data to nordic len %d %s\n",
+                          __func__, tmp->conn_handle, tmp->len, tmp->data);
+
+                bk_ble_att_write(tmp->conn_handle,
+                                 s_ethermind_nordic_write_attr_handle[index], tmp->data,
+                                 tmp->len);
+            }
+            else
+            {
+                os_printf("%s cant find info ATT_CON_ID %d\n", __func__,
+                          tmp->conn_handle);
+            }
+        }
+    }
+    break;
+
+    case BK_DM_BLE_EVENT_DISCOVERY_PRIMARY_SERVICE:
+    {
+        ble_discovery_primary_service_t *tmp = (typeof(tmp)) param;
+        os_printf("%s BK_DM_BLE_EVENT_DISCOVERY_PRIMARY_SERVICE count %d\n",
+                  __func__, tmp->count);
+
+        for (uint8_t i = 0; i < tmp->count; i++)
+        {
+            //service's char must in this range
+            bk_printf("%s service uuid 0x%X start %d end %d\n", __func__,
+                      tmp->service[i].uuid.uuid_16,
+                      tmp->service[i].range.start_handle,
+                      tmp->service[i].range.end_handle);
+
+        }
+    }
+    break;
+
+    case BK_DM_BLE_EVENT_DISCOVERY_CHAR:
+    {
+        ble_discovery_char_t *tmp = (typeof(tmp)) param;
+        uint8_t index = 0;
+        uint8_t found = 0;
+        uint8_t i = 0;
+
+        os_printf("%s BK_DM_BLE_EVENT_DISCOVERY_CHAR count %d ATT_CON_ID %d\n",
+                  __func__, tmp->count, tmp->conn_handle);
+
+        //
+
+        for (i = 0; i < tmp->count; ++i)
+        {
+            //os_printf("%s type %d %p\n", __func__, tmp->character[7].uuid_type, &tmp->character[7].uuid_type);
+
+            switch (tmp->character[i].uuid_type)
+            {
+            case ATT_16_BIT_UUID_FORMAT:
+                os_printf("%s char 16bit uuid 0x%04X, attr_handle %d\n",
+                          __func__, tmp->character[i].uuid.uuid_16,
+                          tmp->character[i].value_handle);
+                break;
+
+            case ATT_128_BIT_UUID_FORMAT:
+            {
+                //os_printf("%s char 128bit uuid 0x%08X\n", __func__, (uint32_t *)(tmp->character[i].uuid.uuid_128.value + 11));
+
+                if (!os_memcmp(&tmp->character[i].uuid.uuid_128.value,
+                               nus_rx_uuid, sizeof(nus_rx_uuid)))
+                {
+                    found = 1;
+                    i = tmp->count - 1;
+                    break;
+                }
+            }
+            break;
+            }
+        }
+
+        if (!found)
+        {
+            break;
+        }
+
+        if (0 == ethermind_find_index_by_info(&index, tmp->conn_handle))
+        {
+            os_printf("%s nordic info already exist ! att_id %d\n", __func__,
+                      tmp->conn_handle);
+        }
+        else if (0 == ethermind_find_idle_info_index(&index))
+        {
+        }
+        else
+        {
+            os_printf("%s nordic info list is full !\n", __func__);
+            break;
+        }
+
+        for (i = 0; i < tmp->count; ++i)
+        {
+            //os_printf("%s type %d %p\n", __func__, tmp->character[7].uuid_type, &tmp->character[7].uuid_type);
+
+            switch (tmp->character[i].uuid_type)
+            {
+            case ATT_16_BIT_UUID_FORMAT:
+                break;
+
+            case ATT_128_BIT_UUID_FORMAT:
+            {
+                os_printf("%s char 128bit uuid 0x%08X attr_hdl:%d\n", __func__,
+                          (uint32_t *) (tmp->character[i].uuid.uuid_128.value + 11),
+                          tmp->character[i].value_handle);
+
+                if (!os_memcmp(&tmp->character[i].uuid.uuid_128.value,
+                               nus_rx_uuid, sizeof(nus_rx_uuid)))
+                {
+                    os_printf("%s add to nordic info list %d\n", __func__,
+                              index);
+                    s_ethermind_nordic_used[index] = 1;
+                    s_ethermind_nordic_write_attr_handle[index] =
+                        tmp->character[i].value_handle;
+                    s_ethermind_nordic_att_info[index] = tmp->conn_handle;
+                }
+                else if (!os_memcmp(&tmp->character[i].uuid.uuid_128.value,
+                                    nus_tx_uuid, sizeof(nus_tx_uuid)))
+                {
+                    if (tmp->character[i].desc_index)
+                    {
+                        for (uint8_t j = 0; j < tmp->character[i].desc_index;
+                                ++j)
+                        {
+                            if (ATT_16_BIT_UUID_FORMAT
+                                    == tmp->character[i].descriptor[j].uuid_type
+                                    && GATT_CLIENT_CONFIG
+                                    == tmp->character[i].descriptor[j].uuid.uuid_16)
+                            {
+                                s_ethermind_nordic_write_notify_handle[index] =
+                                    tmp->character[i].descriptor[j].handle;
+                                //                                const uint16_t noti_enable = 0x0001;
+                                //                                os_printf("%s write nordic enable notify\n", __func__);
+                                //                                bk_ble_att_write(&tmp->att_handle, tmp->character[i].descriptor[j].handle, (uint8_t *)&noti_enable, sizeof(noti_enable));
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+
+            default:
+                os_printf("%s unknow uuid type %d %d %p\n", __func__,
+                          tmp->character[i].uuid_type, i,
+                          &tmp->character[i].uuid_type);
+                break;
+            }
+        }
+
+    }
+    break;
+
+    case BK_DM_BLE_EVENT_CONN_UPD_PAR_ASK:
+    {
+        {
+            ble_conn_update_param_ind_t *ind = (typeof(ind)) param;
+            os_printf(
+                "%s BK_DM_BLE_EVENT_CONN_UPD_PAR_ASK 0x%02X:%02X:%02X:%02X:%02X:%02X imin 0x%X imax 0x%x latency 0x%X tout 0x%X\n",
+                __func__, ind->peer_address.addr[5],
+                ind->peer_address.addr[4], ind->peer_address.addr[3],
+                ind->peer_address.addr[2], ind->peer_address.addr[1],
+                ind->peer_address.addr[0], ind->conn_interval_min,
+                ind->conn_interval_max, ind->conn_latency,
+                ind->supervision_timeout);
+
+            //            ind->conn_interval_min++;
+            //            ind->conn_interval_max++;
+            ind->is_agree = 1;
+        }
+    }
+    break;
+
+    case BK_DM_BLE_EVENT_ATT_READ_RESPONSE:
+    {
+        ble_att_rw_t *tmp = (typeof(tmp)) param;
+
+        if (!tmp->event_result)
+        {
+            os_printf("%s att_id:%d, attr_hand:0x%x, result:%d\r\n", __func__,
+                      tmp->conn_handle, s_read_tmp_attr_handle,
+                      tmp->event_result);
+            os_printf("data-> ");
+
+            for (int i = 0; i < tmp->len; i++)
+            {
+                os_printf("0x%x ", *tmp->data);
+            }
+
+            os_printf("\r\n");
+
+            if (ble_at_cmd_sema != NULL)
+            {
+                rtos_set_semaphore(&ble_at_cmd_sema);
+            }
+        }
+        else
+        {
+            os_printf(
+                "%s: Recevied Error Response!!! att_id:%d, attr_hand:%d, resp code:%d",
+                __func__, tmp->conn_handle,
+                ((uint8_t *) (&(tmp->event_result)))[1],
+                ((uint8_t *) (&(tmp->event_result)))[0]);
+        }
+    }
+    break;
+
+    default:
+        break;
+    }
+    return 0;
 }
 
 int set_ble_name_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -1495,8 +1762,23 @@ int ble_set_adv_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc,
     }
     else
     {
-        err = bk_ble_set_advertising_params(adv_param.adv_intv_min, adv_param.adv_intv_max, adv_param.chnl_map,
-            adv_param.own_addr_type,adv_param.prim_phy, adv_param.second_phy, ble_at_cmd_cb);
+        ble_adv_parameter_t tmp_param;
+
+        memset(&tmp_param, 0, sizeof(tmp_param));
+
+        tmp_param.adv_intv_max = adv_param.adv_intv_max;
+        tmp_param.adv_intv_min = adv_param.adv_intv_min;
+        tmp_param.adv_type = adv_param.adv_type;
+        tmp_param.chnl_map = adv_param.chnl_map;
+        tmp_param.filter_policy = ADV_FILTER_POLICY_ALLOW_SCAN_ANY_CONNECT_ANY;
+        tmp_param.own_addr_type = adv_param.own_addr_type;
+        tmp_param.peer_addr_type = 0;
+        //tmp_param.peer_addr;
+
+//        err = bk_ble_set_advertising_params(adv_param.adv_intv_min, adv_param.adv_intv_max, adv_param.chnl_map,
+//            adv_param.own_addr_type,adv_param.prim_phy, adv_param.second_phy, ble_at_cmd_cb);
+
+        err = bk_ble_set_advertising_params(&tmp_param, ble_at_cmd_cb);
 
         if (err != BK_ERR_BLE_SUCCESS)
         {
@@ -1610,7 +1892,7 @@ int ble_set_adv_data_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
     }
     else
     {
-        err = bk_ble_set_advertising_data(adv_data, adv_len, ble_at_cmd_cb);
+        err = bk_ble_set_advertising_data(adv_len, adv_data, ble_at_cmd_cb);
         if (err != BK_ERR_BLE_SUCCESS)
         {
             goto error;
@@ -2030,10 +2312,11 @@ int ble_set_scan_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
         }
     }
 
-    bk_ble_set_notice_cb(ble_at_notice_cb);
+
 
     if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
     {
+        bk_ble_set_notice_cb(ble_at_notice_cb);
         actv_idx = bk_ble_find_actv_state_idx_handle(AT_ACTV_SCAN_CREATED);
         if (actv_idx == AT_BLE_MAX_ACTV)
         {
@@ -2071,7 +2354,7 @@ int ble_set_scan_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
     }
     else
     {
-
+        bk_ble_set_event_callback(dm_ble_at_event_cb);
         err = bk_ble_set_scan_parameters(scan_param.own_addr_type, 0x00, scan_param.scan_phy, scan_param.scan_intv, scan_param.scan_wd, ble_at_cmd_cb);
 
         if (err != BK_ERR_BLE_SUCCESS)
@@ -2172,11 +2455,11 @@ int ble_set_scan_enable_handle(char *pcWriteBuffer, int xWriteBufferLen, int arg
             goto error;
         }
     }
-    bk_ble_set_notice_cb(ble_at_notice_cb);
+
 
     if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
     {
-
+        bk_ble_set_notice_cb(ble_at_notice_cb);
         if (enable == 1)
         {
             actv_idx = bk_ble_find_actv_state_idx_handle(AT_ACTV_SCAN_CREATED);
@@ -2226,6 +2509,7 @@ int ble_set_scan_enable_handle(char *pcWriteBuffer, int xWriteBufferLen, int arg
     }
     else
     {
+        bk_ble_set_event_callback(dm_ble_at_event_cb);
         err = bk_ble_set_scan_enable_extended(enable, filt_duplicate, duration, period, ble_at_cmd_cb);
 
         if (err != BK_ERR_BLE_SUCCESS)
@@ -2394,12 +2678,13 @@ int ble_create_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
         }
     }
 
-    bk_ble_set_notice_cb(ble_at_notice_cb);
+
 
     /*actv_idx = bk_ble_find_master_state_idx_handle(AT_INIT_STATE_CREATED);
     if (actv_idx == AT_BLE_MAX_CONN)*/
     if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
     {
+        bk_ble_set_notice_cb(ble_at_notice_cb);
         /// Do not create actv
 
         actv_idx = bk_ble_get_idle_conn_idx_handle();
@@ -2466,6 +2751,7 @@ int ble_create_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
         tmp.peer_address_type = peer_addr_type;
         memcpy(tmp.peer_address.addr, bdaddr.addr, sizeof(bdaddr.addr));
 
+        bk_ble_set_event_callback(dm_ble_at_event_cb);
         err = bk_ble_create_connection(&tmp, ble_at_cmd_cb);
 
         if (err != BK_ERR_BLE_SUCCESS)
@@ -2647,7 +2933,7 @@ int ble_disconnect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
     }
     else
     {
-        err = bk_ble_disconnect_connection(&connect_addr, addr_type, ble_at_cmd_cb);
+        err = bk_ble_disconnect_connection(&connect_addr, ble_at_cmd_cb);
     }
 
     if (err != BK_ERR_BLE_SUCCESS)
@@ -2671,6 +2957,7 @@ int ble_disconnect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
             }
         }
     }
+    (void)addr_type;
 
 error:
     msg = AT_CMD_RSP_ERROR;
@@ -3105,6 +3392,7 @@ int ble_update_mtu_2_max_handle(char *pcWriteBuffer, int xWriteBufferLen, int ar
     {
         uint8_t conn_handle;
 
+        bk_ble_set_event_callback(dm_ble_at_event_cb);
         conn_handle = os_strtoul(argv[0], NULL, 10) & 0xFF;
         err = bk_ble_set_gatt_mtu(conn_handle, 517);
 
@@ -3550,7 +3838,7 @@ static void ble_tx_test_passive_timer_callback(void *param)
     API_RESULT retval = 0;
     uint8_t *tmp_buff = NULL;
     GATT_DB_HANDLE *gdbh = (GATT_DB_HANDLE *)param;
-    uint8_t conn_handle;
+    uint8_t conn_handle = s_ethermind_att_handle;
 
     tmp_buff = os_malloc(s_ethermind_send_size_value);
 
@@ -3563,12 +3851,7 @@ static void ble_tx_test_passive_timer_callback(void *param)
     os_memset(tmp_buff, 0, s_ethermind_send_size_value);
     tmp_buff[0] = s_ethermind_send_test_value++;
 
-    retval = bk_ble_get_conn_handle_from_device_handle(&conn_handle, &(gdbh->device_id));
 
-    if (retval != 0)
-    {
-        return;
-    }
 
     retval = bk_ble_send_notify(conn_handle, gdbh->service_id, gdbh->char_id,
                        tmp_buff, s_ethermind_send_size_value);
@@ -3586,13 +3869,14 @@ static void ble_tx_test_passive_timer_callback(void *param)
 
 }
 
-static API_RESULT ethermind_test_gatt_char_handler
+static bk_err_t ethermind_test_gatt_char_handler
 (
+    uint8_t conn_handle,
     GATT_DB_HANDLE     *handle,
     GATT_DB_PARAMS     *params
 )
 {
-    API_RESULT retval = 0;
+    bk_err_t retval = 0;
     uint16_t value = 0;
 
     static GATT_DB_HANDLE *gdbh = NULL;
@@ -3838,7 +4122,7 @@ static int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen,
             }
         }
 
-        bk_ble_set_notice_cb(ble_at_notice_cb);
+        bk_ble_set_event_callback(dm_ble_at_event_cb);
 
         bk_printf("%s now last attr_handle %d\n", __func__, bk_ble_get_current_gatt_db_attr_handle());
 
@@ -3994,7 +4278,7 @@ static int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen,
         else
         {
         	bk_printf("%s third char value attr_handle %d\n", __func__, bk_ble_get_current_gatt_db_attr_handle());
-            retval = bk_ble_gatt_db_dyn_register();
+            retval = bk_ble_gatt_db_add_completed();
 
             if (retval != 0)
             {
@@ -4004,11 +4288,11 @@ static int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen,
         }
 
 
-        retval = bk_ble_gatt_db_init_pl(ethermind_test_gatt_char_handler);
+        retval = bk_ble_gatt_db_set_callback(ethermind_test_gatt_char_handler);
 
         if (retval != 0)
         {
-            os_printf("%s bk_ble_gatt_db_init_pl err: 0x%04X\n", __func__, retval);
+            os_printf("%s bk_ble_gatt_db_set_callback err: 0x%04X\n", __func__, retval);
             goto error;
         }
 
@@ -4049,6 +4333,7 @@ void ble_test_noti_hdl(void *param)
     os_memset(write_buffer, 0, s_test_data_len);
     os_memcpy(write_buffer, &s_test_noti_count, sizeof(s_test_noti_count));
     s_test_noti_count++;
+    BK_LOGI("ble_at","%s send_noti_value\r\n", __func__);
 
     ret = bk_ble_send_noti_value(con_idx, s_test_data_len, write_buffer, g_test_prf_task_id, TEST_IDX_CHAR_VALUE);
     if(ret != BK_ERR_BLE_SUCCESS)
@@ -4144,7 +4429,7 @@ int ble_read_phy_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		goto error;
 	}
 
-	bk_ble_set_notice_cb(ble_at_notice_cb);
+
 	err = get_addr_from_param(&connect_addr, argv[0]);
 	if (err != kNoErr)
 	{
@@ -4172,6 +4457,7 @@ int ble_read_phy_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
     if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
     {
+        bk_ble_set_notice_cb(ble_at_notice_cb);
         /// get connect_idx from connect_addr
         conn_idx = bk_ble_find_conn_idx_from_addr(&connect_addr);
         if (conn_idx == AT_BLE_MAX_CONN)
@@ -4185,6 +4471,7 @@ int ble_read_phy_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
     }
     else
     {
+        bk_ble_set_event_callback(dm_ble_at_event_cb);
         err = bk_ble_hci_read_phy(&connect_addr, addr_type, ble_at_cmd_cb);
     }
 
@@ -4262,7 +4549,7 @@ int ble_set_phy_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		}
 	}
 
-	bk_ble_set_notice_cb(ble_at_notice_cb);
+
 	err = get_addr_from_param(&connect_addr, argv[0]);
 	if (err != kNoErr)
 	{
@@ -4301,6 +4588,7 @@ int ble_set_phy_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 
     if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
     {
+        bk_ble_set_notice_cb(ble_at_notice_cb);
         /// get connect_idx from connect_addr
         conn_idx = bk_ble_find_conn_idx_from_addr(&connect_addr);
         if (conn_idx == AT_BLE_MAX_CONN)
@@ -4314,6 +4602,7 @@ int ble_set_phy_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
     }
     else
     {
+        bk_ble_set_event_callback(dm_ble_at_event_cb);
         err = bk_ble_hci_set_phy(&connect_addr, addr_type, &le_set_phy, ble_at_cmd_cb);
     }
     if (err != kNoErr)
@@ -4595,10 +4884,11 @@ int ble_connect_by_name_handle(char *pcWriteBuffer, int xWriteBufferLen, int arg
         }
     }
 
-    bk_ble_set_notice_cb(ble_at_notice_cb);
+
 
     if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
     {
+        bk_ble_set_notice_cb(ble_at_notice_cb);
         if (ble_at_cmd_sema != NULL)
         {
                 err = rtos_get_semaphore(&ble_at_cmd_sema, 10000);
@@ -4678,6 +4968,7 @@ int ble_connect_by_name_handle(char *pcWriteBuffer, int xWriteBufferLen, int arg
         uint16_t duration = 0;
         uint16_t period = 10;
 
+        bk_ble_set_event_callback(dm_ble_at_event_cb);
 
         if(ble_at_cmd_sema != NULL)
         {
@@ -4855,7 +5146,7 @@ int ble_disconnect_by_name_handle(char *pcWriteBuffer, int xWriteBufferLen, int 
     }else
     {
         g_peer_dev.state = STATE_DISCONNECTINIG;
-        err = bk_ble_disconnect_connection(&g_peer_dev.bdaddr, g_peer_dev.addr_type, ble_at_cmd_cb);
+        err = bk_ble_disconnect_connection(&g_peer_dev.bdaddr, ble_at_cmd_cb);
         if (err != BK_ERR_BLE_SUCCESS)
             goto error;
         if(ble_at_cmd_sema != NULL) {
@@ -5295,14 +5586,18 @@ static int ble_att_read_handle(char *pcWriteBuffer, int xWriteBufferLen, int arg
         }
     }
 
-    bk_ble_set_notice_cb(ble_at_notice_cb);
 
-    if (bk_ble_get_host_stack_type() == BK_BLE_HOST_STACK_TYPE_RW_5_2)
+
+    if (bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
     {
+        bk_ble_set_notice_cb(ble_at_notice_cb);
         bk_ble_register_app_sdp_charac_callback(ble_att_sdp_charac_callback);
     }
-
-    bk_ble_att_read(att_handle.att_id, s_read_tmp_attr_handle);
+    else
+    {
+        bk_ble_set_event_callback(dm_ble_at_event_cb);
+        bk_ble_att_read(att_handle.att_id, s_read_tmp_attr_handle);
+    }
 
     if(ble_at_cmd_sema != NULL) {
         err = rtos_get_semaphore(&ble_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
@@ -6073,7 +6368,8 @@ int ble_mqtt_loop_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 		}
 
 		uint8_t sta_mac[6];
-		bk_wifi_sta_get_mac((uint8_t *)sta_mac);
+		//bk_wifi_sta_get_mac((uint8_t *)sta_mac);
+        bk_get_mac((uint8_t *)sta_mac, MAC_TYPE_STA);
         sta_mac[5] += 1;
 
 		snprintf(loop_topic_sr, 25, "/ble/lpsr/%02x%02x%02x", sta_mac[3], sta_mac[4], sta_mac[5]);
@@ -6130,7 +6426,8 @@ int ble_mqtt_loop_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 		loop_type = LT_COEX;
 
 		uint8_t sta_mac[6];
-		bk_wifi_sta_get_mac((uint8_t *)sta_mac);
+		//bk_wifi_sta_get_mac((uint8_t *)sta_mac);
+        bk_get_mac((uint8_t *)sta_mac, MAC_TYPE_STA);
         sta_mac[5] += 1;
 
 		snprintf(loop_topic_sr, 25, "/ble/lpsr/%02x%02x%02x", sta_mac[3], sta_mac[4], sta_mac[5]);

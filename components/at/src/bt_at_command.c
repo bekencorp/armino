@@ -11,6 +11,12 @@
 #include "bt_sbc_encoder.h"
 #endif
 
+#if CONFIG_BT && CONFIG_BLE
+#include "modules/dm_bt.h"
+#endif
+
+#define LOCAL_NAME "soundbar"
+
 #define INQUIRY_LAP 0x9e8B33U
 #define INQUIRY_LEN 0x0A
 
@@ -74,6 +80,7 @@ static bt_err_t at_cmd_status = BK_ERR_BT_SUCCESS;
 static beken_semaphore_t bt_at_cmd_sema = NULL;
 
 static uint16_t conn_handle = 0xff;
+static bk_bt_linkkey_storage_t s_bt_linkkey;
 static spp_env_s spp_env;
 
 
@@ -138,17 +145,17 @@ static bk_err_t bt_at_sema_get(uint32_t timeout_ms)
     return re;
 }
 
-static void bt_at_event_cb(bt_event_t event, void *param)
+static uint32_t bt_at_event_cb(bt_event_enum_t event, void *param)
 {
     switch (event)
     {
-        case BT_EVENT_INQUIRY_RESULT:
+        case BK_DM_BT_EVENT_INQUIRY_RESULT:
             {
                 uint8_t *addr = (uint8_t *)param;
                 os_printf("BT Inquiryed addr: %x %x %x %x %x %x \r\n",*(addr+5), *(addr+4), *(addr+3), *(addr+2),*(addr+1),*(addr));
             }
             break;
-        case BT_EVENT_DISCONNECT:
+        case BK_DM_BT_EVENT_DISCONNECT:
             os_printf("BT Disconnected, conn_handle:0x%02x \r\n", (*(uint16_t *)param));
             if(conn_handle == (*(uint16_t *)param))
             {
@@ -159,19 +166,65 @@ static void bt_at_event_cb(bt_event_t event, void *param)
                 bt_spp_clear();
             }
             break;
-        case BT_EVENT_COMPLETE:
+#if 0
+        case BK_DM_BT_EVENT_CMD_COMPLETE:
             {
                 os_printf("BT Event Complete!!! \r\n");
             }
             break;
-        case BT_EVENT_CONNECTION_COMPLETE:
+#endif
+        case BK_DM_BT_EVENT_CONNECTION_COMPLETE:
             {
                 os_printf("BT Event CONNECTION Complete, conn_handle:0x%02x \r\n", (*(uint16_t *)param));
             }
             break;
+        case BK_DM_BT_EVENT_LINKKEY_NOTIFY:
+        {
+            bk_bt_linkkey_storage_t *linkkey = (typeof(linkkey))param;
+            os_printf("%s recv linkkey %02X:%02X:%02X:%02X:%02X:%02X\n", __func__,
+                    linkkey->addr[5],
+                    linkkey->addr[4],
+                    linkkey->addr[3],
+                    linkkey->addr[2],
+                    linkkey->addr[1],
+                    linkkey->addr[0]);
+            memcpy(&s_bt_linkkey, linkkey, sizeof(s_bt_linkkey));
+        }
+            break;
+        case BK_DM_BT_EVENT_LINKKEY_REQ:
+        {
+            uint8_t *addr = (typeof(addr))param;
+            if(!memcmp(addr, s_bt_linkkey.addr, sizeof(s_bt_linkkey.addr)))
+            {
+                os_printf("%s found linkkey %02X:%02X:%02X:%02X:%02X:%02X\n", __func__,
+                        addr[5],
+                        addr[4],
+                        addr[3],
+                        addr[2],
+                        addr[1],
+                        addr[0]);
+                bk_bt_gap_linkkey_reply(1, &s_bt_linkkey);
+            }
+            else
+            {
+                bk_bt_linkkey_storage_t tmp;
+                os_printf("%s notfound linkkey %02X:%02X:%02X:%02X:%02X:%02X\n", __func__,
+                         addr[5],
+                         addr[4],
+                         addr[3],
+                         addr[2],
+                         addr[1],
+                         addr[0]);
+                memset(&tmp, 0, sizeof(tmp));
+                memcpy(tmp.addr, addr, sizeof(tmp.addr));
+                bk_bt_gap_linkkey_reply(0, &tmp);
+            }
+        }
+            break;
         default:
             break;
     }
+    return 0;
 }
 
 static void bt_at_cmd_cb(bt_cmd_t cmd, bt_cmd_param_t *param)
@@ -474,7 +527,7 @@ static int bt_start_inquiry_handle(char *pcWriteBuffer, int xWriteBufferLen, int
 
     if(bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
     {
-        bk_bt_set_event_callback(bt_at_event_cb);
+        bk_bt_gap_set_event_callback(bt_at_event_cb);
         err = bk_bt_inquiry(INQUIRY_LAP, INQUIRY_LEN, 0, bt_at_cmd_cb);
         if(!err)
         {
@@ -511,7 +564,7 @@ static int bt_create_connection_handle(char *pcWriteBuffer, int xWriteBufferLen,
 
     if(bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
     {
-        bk_bt_set_event_callback(bt_at_event_cb);
+        bk_bt_gap_set_event_callback(bt_at_event_cb);
         bd_addr_t addr;
         uint8_t allow_role_switch = 0;
         err = get_addr_from_param(&addr, argv[0]);
@@ -560,7 +613,7 @@ static int bt_disconnect_handle(char *pcWriteBuffer, int xWriteBufferLen, int ar
 
     if(bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
     {
-        bk_bt_set_event_callback(bt_at_event_cb);
+        bk_bt_gap_set_event_callback(bt_at_event_cb);
         bd_addr_t addr;
         err = get_addr_from_param(&addr, argv[0]);
         if(err) goto error;
@@ -607,7 +660,7 @@ static int bt_spp_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
             os_printf("Spp exisit one connection now, please disconnect first!!\r\n");
             goto error;
         }
-        bk_bt_set_event_callback(bt_at_event_cb);
+        bk_bt_gap_set_event_callback(bt_at_event_cb);
         err = get_addr_from_param(&spp_env.peer_addr, argv[0]);
         if(err) goto error;
         if(!spp_env.spp_init)
@@ -690,7 +743,7 @@ static int bt_spp_tx_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
     }
     if(bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
     {
-        bk_bt_set_event_callback(bt_at_event_cb);
+        bk_bt_gap_set_event_callback(bt_at_event_cb);
         if(spp_env.conn_state != STATE_PROFILE_CONNECTED_AS_CLIENT && spp_env.conn_state != STATE_PROFILE_CONNECTED_AS_SERVER)
         {
             os_printf("Please connet spp first !! \r\n");
@@ -851,10 +904,11 @@ static int bt_spp_init_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
     int err = kNoErr;
     if(bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
     {
+        bk_bt_gap_set_visibility(BK_BT_CONNECTABLE, BK_BT_DISCOVERABLE);
         if(!spp_env.spp_init)
         {
-            bk_bt_set_event_callback(bt_at_event_cb);
-            bk_bt_write_scan_enable(3, bt_at_cmd_cb);
+            bk_bt_gap_set_event_callback(bt_at_event_cb);
+            //bk_bt_write_scan_enable(3, bt_at_cmd_cb);
             bk_bt_spp_init(bt_spp_event_notify_cb);
             spp_env.client_spp_handle = SPP_HANDLE_INVALID;
             bk_bt_spp_start((uint32_t *)&spp_env.client_spp_handle, &spp_env.local_server_channel, &spp_env.spp_record_handle);
@@ -880,7 +934,7 @@ static int bt_write_scan_enable_handle(char *pcWriteBuffer, int xWriteBufferLen,
 
     if(bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
     {
-        bk_bt_set_event_callback(bt_at_event_cb);
+        bk_bt_gap_set_event_callback(bt_at_event_cb);
         uint8_t scan_enable = os_strtoul(argv[0], NULL, 10) & 0xFFFFFFFF;
         if(scan_enable > 0x03)
         {
@@ -888,10 +942,11 @@ static int bt_write_scan_enable_handle(char *pcWriteBuffer, int xWriteBufferLen,
             goto error;
         }
 //        os_printf("%s, %d \r\n", __func__, scan_enable);
-        err = bk_bt_write_scan_enable(scan_enable, bt_at_cmd_cb);
-        if(err) goto error;
+        //serr = bk_bt_write_scan_enable(scan_enable, bt_at_cmd_cb);
+        //if(err) goto error;
 
-        err = rtos_get_semaphore(&bt_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
+        //err = rtos_get_semaphore(&bt_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
+        err = bk_bt_gap_set_visibility(BK_BT_CONNECTABLE, BK_BT_DISCOVERABLE);
         if(!err)
         {
             msg = AT_CMD_RSP_SUCCEED;
@@ -927,7 +982,7 @@ static int bt_read_scan_enable_handle(char *pcWriteBuffer, int xWriteBufferLen, 
 
     if(bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
     {
-        bk_bt_set_event_callback(bt_at_event_cb);
+        bk_bt_gap_set_event_callback(bt_at_event_cb);
 
         err = bk_bt_read_scan_enable(bt_at_cmd_cb);
         if(err) goto error;
@@ -988,7 +1043,7 @@ enum
 #define CODEC_VOICE_MSBC                     0x01U
 
 bt_a2dp_sink_cb_t bt_audio_a2dp_sink_cb;
-uint8_t bt_audio_a2dp_codec = CODEC_AUDIO_SBC;
+bk_a2dp_mcc_t bt_audio_a2dp_codec = {0};
 bt_hfp_unit_cb_t bt_audio_hfp_unit_cb;
 uint8_t bt_audio_hfp_codec = CODEC_VOICE_CVSD;
 
@@ -1101,21 +1156,21 @@ void bt_audio_demo_main(void *arg)
                 case BT_AUDIO_D2DP_START_MSG:
                     {
                         bk_err_t ret = BK_OK;
-                        union codec_info *p_codec_info = (union codec_info *)msg.data;
+                        bk_a2dp_mcc_t *p_codec_info = (bk_a2dp_mcc_t *)msg.data;
                         uint8_t dac_sample_rate = 0;
                         uint16_t frame_size = 0;
 
                         os_printf("BT_AUDIO_D2DP_START_MSG \r\n");
 
-                        if (CODEC_AUDIO_SBC == p_codec_info->codec_type)
+                        if (CODEC_AUDIO_SBC == p_codec_info->type)
                         {
-                            dac_sample_rate = bt_audio_a2dp_convert_to_dac_sample_rate(p_codec_info->codec_type, p_codec_info->sbc_codec.sample_rate);
-                            frame_size = p_codec_info->sbc_codec.sample_rate * 20 / 1000 *2 *2;
+                            dac_sample_rate = bt_audio_a2dp_convert_to_dac_sample_rate(p_codec_info->type, p_codec_info->cie.sbc_codec.sample_rate);
+                            frame_size = p_codec_info->cie.sbc_codec.sample_rate * 20 / 1000 *2 *2;
                             bk_sbc_decoder_init(&bt_audio_sbc_decoder);
                         }
-                        else if (CODEC_AUDIO_AAC == p_codec_info->codec_type)
+                        else if (CODEC_AUDIO_AAC == p_codec_info->type)
                         {
-                            dac_sample_rate = bt_audio_a2dp_convert_to_dac_sample_rate(p_codec_info->codec_type, p_codec_info->aac_codec.sample_rate);
+                            dac_sample_rate = bt_audio_a2dp_convert_to_dac_sample_rate(p_codec_info->type, p_codec_info->cie.aac_codec.sample_rate);
                             frame_size = 4096;
                             aac_decoder = (void*)(os_malloc(aac_decoder_get_ram_size_without_in_buffer()));
                             if (!aac_decoder)
@@ -1124,12 +1179,12 @@ void bt_audio_demo_main(void *arg)
                             }
                             else
                             {
-                                bt_a2dp_aac_decoder_init(aac_decoder, p_codec_info->aac_codec.sample_rate, p_codec_info->aac_codec.channels);
+                                bt_a2dp_aac_decoder_init(aac_decoder, p_codec_info->cie.aac_codec.sample_rate, p_codec_info->cie.aac_codec.channels);
                             }
                         }
                         else
                         {
-                            os_printf("%s, Unsupported codec %d \r\n", __func__, p_codec_info->codec_type);
+                            os_printf("%s, Unsupported codec %d \r\n", __func__, p_codec_info->type);
                         }
 
                         os_printf("dac_sample_rate %d \r\n", dac_sample_rate);
@@ -1197,7 +1252,7 @@ void bt_audio_demo_main(void *arg)
                         bk_err_t ret = BK_OK;
                         uint8 *fb = (uint8_t*)msg.data;;
 
-                        if (CODEC_AUDIO_SBC == bt_audio_a2dp_codec)
+                        if (CODEC_AUDIO_SBC == bt_audio_a2dp_codec.type)
                         {
                             fb++;  //skip Number of Frames
                             uint16_t inlen = msg.len - 1;
@@ -1218,7 +1273,7 @@ void bt_audio_demo_main(void *arg)
                                 }
                             }
                         }
-                        else if (CODEC_AUDIO_AAC == bt_audio_a2dp_codec)
+                        else if (CODEC_AUDIO_AAC == bt_audio_a2dp_codec.type)
                         {
                             uint8_t *outbuf = NULL;
                             uint32_t outlen;
@@ -1424,7 +1479,7 @@ int bt_audio_demo_task_init(void)
     }
 }
 
-void bt_audio_media_data_ind(uint8_t *data, uint16_t data_len)
+void bt_audio_media_data_ind(const uint8_t *data, uint16_t data_len)
 {
     bt_audio_demo_msg_t demo_msg;
     int rc = -1;
@@ -1474,7 +1529,8 @@ void bt_audio_a2dp_suspend_ind(void)
     }
 }
 
-void bt_audio_a2dp_start_ind(union codec_info *codec)
+
+void bt_audio_a2dp_start_ind(bk_a2dp_mcc_t *codec)
 {
     bt_audio_demo_msg_t demo_msg;
     int rc = -1;
@@ -1483,24 +1539,69 @@ void bt_audio_a2dp_start_ind(union codec_info *codec)
     if (bt_audio_demo_msg_que == NULL)
         return;
 
-    demo_msg.data = (char *) os_malloc(sizeof(union codec_info));
+    demo_msg.data = (char *) os_malloc(sizeof(bk_a2dp_mcc_t));
     if (demo_msg.data == NULL)
     {
         os_printf("%s, malloc failed\r\n", __func__);
         return;
     }
 
-    bt_audio_a2dp_codec = codec->codec_type;
-    os_printf("%s, codec_id %d \r\n", __func__, bt_audio_a2dp_codec);
-
-    os_memcpy(demo_msg.data, codec, sizeof(union codec_info));
+    os_memcpy(demo_msg.data, codec, sizeof(bk_a2dp_mcc_t));
     demo_msg.type = BT_AUDIO_D2DP_START_MSG;
-    demo_msg.len = sizeof(union codec_info);
+    demo_msg.len = sizeof(bk_a2dp_mcc_t);
 
     rc = rtos_push_to_queue(&bt_audio_demo_msg_que, &demo_msg, BEKEN_NO_WAIT);
     if (kNoErr != rc)
     {
         os_printf("%s, send queue failed\r\n",__func__);
+    }
+}
+
+static bk_a2dp_audio_state_t s_audio_state = BK_A2DP_AUDIO_STATE_SUSPEND;
+
+void bk_bt_app_a2dp_cb(bk_a2dp_cb_event_t event, bk_a2dp_cb_param_t *p_param)
+{
+    os_printf("%s event: %d\r\n", __func__, event);
+
+    bk_a2dp_cb_param_t *a2dp = (bk_a2dp_cb_param_t *)(p_param);
+
+    switch (event) {
+    case BK_A2DP_CONNECTION_STATE_EVT:
+        {
+            uint8_t *bda = a2dp->conn_state.remote_bda;
+            os_printf("A2DP connection state: %d, [%02x:%02x:%02x:%02x:%02x:%02x]\r\n",
+                a2dp->conn_state.state, bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
+            if ((BK_A2DP_CONNECTION_STATE_DISCONNECTED == a2dp->conn_state.state) && (BK_A2DP_AUDIO_STATE_STARTED == s_audio_state))
+            {
+                s_audio_state = BK_A2DP_AUDIO_STATE_SUSPEND;
+                bt_audio_a2dp_suspend_ind();
+            }
+        }
+        break;
+    case BK_A2DP_AUDIO_STATE_EVT:
+        {
+            os_printf("A2DP audio state: %d\r\n", a2dp->audio_state.state);
+            if (BK_A2DP_AUDIO_STATE_STARTED == a2dp->audio_state.state)
+            {
+                s_audio_state = a2dp->audio_state.state;
+                bt_audio_a2dp_start_ind(&bt_audio_a2dp_codec);
+            }
+            else if ((BK_A2DP_AUDIO_STATE_SUSPEND == a2dp->audio_state.state) && (BK_A2DP_AUDIO_STATE_STARTED == s_audio_state))
+            {
+                s_audio_state = a2dp->audio_state.state;
+                bt_audio_a2dp_suspend_ind();
+            }
+        }
+        break;
+    case BK_A2DP_AUDIO_CFG_EVT:
+        {
+            bt_audio_a2dp_codec = a2dp->audio_cfg.mcc;
+            os_printf("%s, codec_id %d \r\n", __func__, bt_audio_a2dp_codec.type);
+        }
+        break;
+    default:
+        os_printf("Invalid A2DP event: %d\r\n", event);
+        break;
     }
 }
 
@@ -1534,49 +1635,39 @@ static int bt_enable_a2dp_sink_test_handle(char *pcWriteBuffer, int xWriteBuffer
         goto error;
     }
 
-    err = rtos_init_semaphore(&bt_at_cmd_sema, 1);
-    if (err != kNoErr){
-        goto error;
-    }
+    bk_bt_gap_set_event_callback(bt_at_event_cb);
+    bk_bt_gap_set_device_class(COD_SOUNDBAR);
+    bk_bt_gap_set_local_name((uint8_t *)LOCAL_NAME, os_strlen(LOCAL_NAME));
 
-    if (bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
+    err = bk_bt_gap_set_visibility(BK_BT_CONNECTABLE, BK_BT_DISCOVERABLE);
+
+    if (!err)
     {
-        err = bk_bt_write_scan_enable(0x3, bt_at_cmd_cb);
-        if (err) goto error;
+        bt_audio_demo_task_init();
 
-        err = rtos_get_semaphore(&bt_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
+        err = bk_bt_a2dp_sink_init(aac_supported);
+        bk_bt_a2dp_register_callback(bk_bt_app_a2dp_cb);
+        bk_bt_a2dp_sink_register_data_callback(&bt_audio_media_data_ind);
+
         if (!err)
         {
-            bt_audio_demo_task_init();
-
-            bt_audio_a2dp_sink_cb.a2dp_start_ind = bt_audio_a2dp_start_ind;
-            bt_audio_a2dp_sink_cb.a2dp_suspend_ind = bt_audio_a2dp_suspend_ind;
-            bt_audio_a2dp_sink_cb.media_data_ind = bt_audio_media_data_ind;
-            err = bk_bt_a2dp_sink_init(aac_supported, &bt_audio_a2dp_sink_cb);
-            if (!err)
-            {
-                msg = AT_CMD_RSP_SUCCEED;
-                os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-                if (bt_at_cmd_sema != NULL)
-                    rtos_deinit_semaphore(&bt_at_cmd_sema);
-                return err;
-            }
-            else
-            {
-                goto error;
-            }
+            msg = AT_CMD_RSP_SUCCEED;
+            os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+            return err;
         }
         else
         {
             goto error;
         }
-
     }
+    else
+    {
+        goto error;
+    }
+
 error:
     msg = AT_CMD_RSP_ERROR;
     os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-    if (bt_at_cmd_sema != NULL)
-        rtos_deinit_semaphore(&bt_at_cmd_sema);
     return err;
 }
 
@@ -1692,10 +1783,10 @@ static int bt_enable_hfp_unit_test_handle(char *pcWriteBuffer, int xWriteBufferL
 
     if (bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
     {
-        err = bk_bt_write_scan_enable(0x3, bt_at_cmd_cb);
-        if (err) goto error;
+        bk_bt_gap_set_device_class(COD_SOUNDBAR);
 
-        err = rtos_get_semaphore(&bt_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
+        err = bk_bt_gap_set_visibility(BK_BT_CONNECTABLE, BK_BT_DISCOVERABLE);
+
         if (!err)
         {
             bt_audio_demo_task_init();
@@ -1837,10 +1928,8 @@ static int bt_enable_opp_test_handle(char *pcWriteBuffer, int xWriteBufferLen, i
 
     if (bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
     {
-        err = bk_bt_write_scan_enable(0x3, bt_at_cmd_cb);
-        if (err) goto error;
+       err = bk_bt_gap_set_visibility(BK_BT_CONNECTABLE, BK_BT_DISCOVERABLE);
 
-        err = rtos_get_semaphore(&bt_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
         if (!err)
         {
             if (role)

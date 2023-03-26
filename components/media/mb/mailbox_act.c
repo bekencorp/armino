@@ -49,7 +49,7 @@
 #include "mailbox/mailbox_channel.h"
 void mailbox_cmd_handle(uint32_t event, uint32_t param)
 {
-#if LVGL_USE_PSRAM
+#ifdef CONFIG_LVGL_DRAW_ON_CPU1
 	mb_chnl_cmd_t mb_cmd;
 #endif
 
@@ -70,7 +70,7 @@ void mailbox_cmd_handle(uint32_t event, uint32_t param)
 			break;
 
 		case EVENT_LVGL_DRAW_CMD:
-#if LVGL_USE_PSRAM
+#ifdef CONFIG_LVGL_DRAW_ON_CPU1
 			lv_draw_sw_blend_basic_slave(param);
 			mb_cmd.hdr.cmd = 0x19;
 			mb_cmd.param1 = 0;

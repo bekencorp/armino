@@ -260,20 +260,22 @@ etharp_tmr(void)
 /**
  * send arp reply when set interval.
  */
-int cusarpsum = 0;
 bool special_arp_flag = false;
 void
 etharp_reply(void)
 {
 	int i;
 	int mark = 0;
-	struct netif *netif;
-	NETIF_FOREACH(netif) {
-	struct dhcp *dhcp = netif_dhcp_data(netif);
-	if (dhcp != NULL) {
+	struct wlan_ip_config sta_addr;
+	void *netif;
+	ip_addr_t dhcp_server_gw;
+	net_get_if_addr(&sta_addr, net_get_sta_handle());
+	ip_addr_set_ip4_u32(&dhcp_server_gw, sta_addr.ipv4.gw);
+	netif = net_get_sta_handle();
+	if (sta_addr.ipv4.gw != 0) {
 		for (i = 0; i < ARP_TABLE_SIZE; ++i) {
 		u8_t state = arp_table[i].state;
-		if (state != ETHARP_STATE_EMPTY && ip4_addr_cmp(ip_2_ip4(&dhcp->server_ip_addr), &arp_table[i].ipaddr)) {
+		if (state != ETHARP_STATE_EMPTY && ip4_addr_cmp(ip_2_ip4(&dhcp_server_gw), &arp_table[i].ipaddr)) {
 			special_arp_flag = true;
 			etharp_raw(arp_table[i].netif,
 					 (struct eth_addr *)arp_table[i].netif->hwaddr, &arp_table[i].ethaddr,
@@ -286,10 +288,8 @@ etharp_reply(void)
 		if(mark == 0) {
 		special_arp_flag = true;
 		LWIP_DEBUGF(ETHARP_DEBUG, ("mark null, send request\n"));
-		etharp_request(netif, ip_2_ip4(&dhcp->server_ip_addr));
-		cusarpsum = 1;
+		etharp_request(netif, (ip4_addr_t *)&sta_addr.ipv4.gw);
 		}
-	}
 	}
 }
 #endif
@@ -787,14 +787,6 @@ etharp_input(struct pbuf *p, struct netif *netif)
     case PP_HTONS(ARP_REPLY):
       /* ARP reply. We already updated the ARP cache earlier. */
       LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_input: incoming ARP reply\n"));
-
-#if CONFIG_WIFI6_CODE_STACK
-	  if(cusarpsum == 1) {
-		etharp_reply();
-		cusarpsum = 0;
-	    LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_input: go on reply.\n"));
-  	  }
-#endif
 
 #if (LWIP_DHCP && DHCP_DOES_ARP_CHECK)
       /* DHCP wants to know about ARP replies from any host with an

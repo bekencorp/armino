@@ -634,7 +634,7 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 	uint8_t bssid[6] = {0};
 	if (os_strcmp(argv[1], "bssid") == 0) {
 		if(argc >= 3) {
-			hexstr2bin(argv[2], bssid, 6);
+			hexstr2bin_cli(argv[2], bssid, 6);
 		}
 		if(argc >= 4) {
 			password = argv[3];

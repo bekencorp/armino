@@ -1,8 +1,4 @@
 menu "Audio"
-
-	config AUDIO
-		bool "Enable Audio"
-		default n
 	menu "Modify Audio Config"
 		config AUDIO_ADC
 			depends on AUDIO

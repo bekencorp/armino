@@ -620,7 +620,6 @@ void lcd_open_handle(param_pak_t *param)
 
 
 	LOGI("%s complete\n", __func__);
-	set_lcd_state(LCD_STATE_ENABLED);
 	g_lcd_width = ppi_to_pixel_x(lcd_config.device->ppi);
 	g_lcd_height = ppi_to_pixel_y(lcd_config.device->ppi);
 
@@ -681,7 +680,9 @@ bk_err_t media_app_lcd_gui_blend_close(void)
 }
 #endif
 
+#if (CONFIG_CAMERA || CONFIG_USB_UVC)
 extern storage_flash_t storge_flash;
+#endif
 
 void lcd_display_handle(param_pak_t *param)
 {
@@ -695,9 +696,12 @@ void lcd_display_handle(param_pak_t *param)
 	
 	camera_display_task_stop();
 	set_lcd_state(LCD_STATE_DISPLAY);
-	rtos_delay_milliseconds(10);
+//	rtos_delay_milliseconds(10);
 
-	ret = frame_buffer_fb_jpeg_init(PPI_800X600);
+	if (lcd_transfer_info.device_ppi < PPI_1024X600)
+		ret = frame_buffer_fb_jpeg_init(PPI_800X600);
+	else
+		ret = frame_buffer_fb_jpeg_init(PPI_1280X720);
 	frame_buffer_fb_register(MODULE_DECODER, FB_INDEX_JPEG);
 	frame_buffer_t *jpeg_frame = frame_buffer_fb_jpeg_malloc();
 	if (jpeg_frame == NULL)
@@ -752,9 +756,12 @@ void lcd_display_file_handle(param_pak_t *param)
 
 	camera_display_task_stop();
 	set_lcd_state(LCD_STATE_DISPLAY);
-	rtos_delay_milliseconds(10);
+//	rtos_delay_milliseconds(10);
 
-	ret = frame_buffer_fb_jpeg_init(PPI_800X600);
+	if (lcd_transfer_info.device_ppi < PPI_1024X600)
+		ret = frame_buffer_fb_jpeg_init(PPI_800X600);
+	else
+		ret = frame_buffer_fb_jpeg_init(PPI_1280X720);
 	frame_buffer_fb_register(MODULE_DECODER, FB_INDEX_JPEG);
 	frame_buffer_t *jpeg_frame = frame_buffer_fb_jpeg_malloc();
 	if (jpeg_frame == NULL)
@@ -819,7 +826,7 @@ void lcd_display_beken_logo_handle(param_pak_t *param)
 #endif
 
 	camera_display_task_stop();  //USB Camera
-	rtos_delay_milliseconds(10);
+//	rtos_delay_milliseconds(10);
 	set_lcd_state(LCD_STATE_DISPLAY);
 
 	ret = frame_buffer_fb_jpeg_init(PPI_800X600);
@@ -921,145 +928,6 @@ void lcd_driver_set_blend_data(uint8_t *gui_addr, uint32 xsize, uint32 ysize, ui
 
 bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 {
-#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
-	uint8_t temp[5] = {0};
-	uint8_t *clock[5] = {0};
-	uint8_t *version[12] = {0};
-
-	char ch[MAX_BLEND_NAME_LEN]={0};
-	//LOGE("lcd_blend_handle frame =%p \n", frame);
-
-	lcd_blend_t lcd_blend = {0};
-	
-	if(g_blend_data.lcd_blend_type == 0)
-	{
-		return BK_OK;
-	}		
-
-	if ((g_blend_data.lcd_blend_type & LCD_BLEND_TIME) != 0)
-	{
-		LOGD("lcd blend time =%s\n", g_blend_data.time_data);
-		for (int i = 0; i < MAX_BLEND_NAME_LEN; i++)
-		{
-			*(ch + i) = (g_blend_data.time_data[i]);
-		}
-
-		if (ch[0] >= '0' && ch[0] <= '9') // to do : check 25:00 or 1:00 err case
-		{
-			temp[0] = *(ch + 0) - '0';
-			temp[1] = *(ch + 1) - '0';
-			temp[2] = *(ch + 2) - '0'; // temp[2] = *(ch + 2) - ':' + 10;
-			temp[3] = *(ch + 3) - '0';
-			temp[4] = *(ch + 4) - '0';
-
-			for (int j = 0; j < 5; j++)
-			{
-				clock[j] = (uint8_t *)clock_logo[temp[j]];
-			}
-
-			LOGD("temp = %x, %x, %x, %x, %x \n", temp[0], temp[1], temp[2], temp[3], temp[4]);
-		}
-		for(int i = 0; i < 5; i++)
-		{
-			lcd_blend.pfg_addr = (uint8_t *)(clock)[i];
-			lcd_blend.pbg_addr = (uint8_t *)(frame->frame + (CLOCK_LOGO_W * i * 2));
-			lcd_blend.fg_offline = 0;
-			lcd_blend.bg_offline = frame->width - CLOCK_LOGO_W;;
-			lcd_blend.xsize = CLOCK_LOGO_W;
-			lcd_blend.ysize = CLOCK_LOGO_H;
-			lcd_blend.fg_alpha_value = FG_ALPHA;
-#if (FG_RGB565_FORMAT)
-			lcd_blend.fg_data_format = RGB565;
-#endif
-#if (FG_ARGB8888_FORMAT)
-			lcd_blend.fg_data_format = ARGB8888;
-#endif
-			lcd_blend.bg_data_format = frame->fmt;
-			lcd_driver_blend(&lcd_blend);
-		}
-	}
-
-	if ((g_blend_data.lcd_blend_type & LCD_BLEND_WIFI) != 0)
-	{
-		LOGD("lcd wifi blend level =%d \n", g_blend_data.wifi_data);
-		lcd_blend.pfg_addr = (uint8_t *)wifi_logo[g_blend_data.wifi_data];
-		lcd_blend.pbg_addr = (uint8_t *)(frame->frame + (frame->width - WIFI_LOGO_W) * 2);
-		lcd_blend.fg_offline = 0;
-		lcd_blend.bg_offline = frame->width - WIFI_LOGO_W;
-		lcd_blend.xsize = WIFI_LOGO_W;
-		lcd_blend.ysize = WIFI_LOGO_H;
-		lcd_blend.fg_alpha_value = FG_ALPHA;
-#if (FG_RGB565_FORMAT)
-		lcd_blend.fg_data_format = RGB565;
-#endif
-#if (FG_ARGB8888_FORMAT)
-		lcd_blend.fg_data_format = ARGB8888;
-#endif
-		lcd_blend.bg_data_format = frame->fmt;
-		lcd_driver_blend(&lcd_blend);
-	}
-	uint8_t tab = 0;
-
-	if ((g_blend_data.lcd_blend_type & LCD_BLEND_VERSION) != 0)
-	{
-		LOGD("lcd blend version =%d \n", g_blend_data.ver_data);  
-		uint8_t len = strlen((char*)g_blend_data.ver_data);
-
-		for (int i = 0; i < len; i++)
-		{
-			*(ch + i) = (g_blend_data.ver_data[i]);
-			if (*(ch + i) == 32)  // if "VL4  V1.23.34" have 2 tab, and 1 is bit6
-			{
-				tab = i;           //if "VL4  V1.23.34"  tab = 4
-			}
-		}
-		tab ++;                      //tab = 5
-
-		//for V1.XX.XX
-		if (os_memcmp(g_blend_data.ver_data, "V", 1) == 0)
-		{
-			version[0] = (uint8_t *)rgb565_V;
-			version[1] = (uint8_t *)clock565_logo[*(ch + tab + 1) - '0'];  // 1 is bit6
-			version[2] = (uint8_t *)rgb565_point;
-			version[3] = (uint8_t *)clock565_logo[*(ch + tab + 3) - '0'];
-			version[4] = (uint8_t *)clock565_logo[*(ch + tab + 4) - '0'];
-			version[5] = (uint8_t *)rgb565_point;
-			version[6] = (uint8_t *)clock565_logo[*(ch + tab + 6) - '0'];
-			version[7] = (uint8_t *)clock565_logo[*(ch + tab + 7) - '0'];
-		}
-
-		///for "VL4"
-		for (int i = 0; i < 3; i++)
-		{
-			lcd_blend.pfg_addr = (uint8_t *)(project_logo)[i];
-			lcd_blend.pbg_addr = (uint8_t *)(frame->frame + ((VERSION_POSTION_Y * frame->width) + (VERSION_POSTION_X + CLOCK_LOGO_W * i ))* 2);
-			lcd_blend.fg_offline = 0;
-			lcd_blend.bg_offline = frame->width - VERSION_LOGO_W;;
-			lcd_blend.xsize = VERSION_LOGO_W;
-			lcd_blend.ysize = VERSION_LOGO_H;
-			lcd_blend.fg_alpha_value = FG_ALPHA;
-			lcd_blend.fg_data_format = RGB565;
-            lcd_blend.bg_data_format = frame->fmt;
-			lcd_driver_blend(&lcd_blend);
-		}
-
-		//for V1.XX.XX
-		for(int i = 0; i < 8; i++)
-		{
-			lcd_blend.pfg_addr = (uint8_t *)(version)[i];
-			lcd_blend.pbg_addr = (uint8_t *)(frame->frame + ((VERSION_POSTION_Y * frame->width) + (VERSION_POSTION_X + CLOCK_LOGO_W * (i + tab) ))* 2); // 1 is bit6
-			lcd_blend.fg_offline = 0;
-			lcd_blend.bg_offline = frame->width - VERSION_LOGO_W;;
-			lcd_blend.xsize = VERSION_LOGO_W;
-			lcd_blend.ysize = VERSION_LOGO_H;
-			lcd_blend.fg_alpha_value = FG_ALPHA;
-			lcd_blend.fg_data_format = RGB565;
-            lcd_blend.bg_data_format = frame->fmt;
-			lcd_driver_blend(&lcd_blend);
-		}
-	}
-#endif
-
 #if CONFIG_BLEND_USE_GUI
     int x_offset = 0;
     int y_offset = 0;
@@ -1229,7 +1097,10 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 #if CONFIG_CAMERA
 		if (bk_dvp_camera_get_device() == NULL)
 		{
-			frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X) * 2;
+			if ((DATA_POSTION_X + DATA_LOGO_W) > g_lcd_width)
+				frame_addr_offset = ((start_y + DATA_POSTION_Y + g_lcd_height - DATA_LOGO_H) * frame->width + start_x) * 2;
+			else
+				frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X) * 2;
 			lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
 			lcd_font_config.bg_offline = frame->width - DATA_LOGO_W;
 			lcd_font_config.xsize = DATA_LOGO_W;
@@ -1253,7 +1124,7 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 		}
 		else
 		{
-			frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X) * 2;
+			frame_addr_offset = ((start_y + DATA_POSTION_Y + g_lcd_height - DVP_LOGO_H) * frame->width + start_x) * 2;
 			lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
 			lcd_font_config.bg_offline = frame->width - DVP_LOGO_W;
 			lcd_font_config.xsize = DVP_LOGO_W;
@@ -1273,7 +1144,7 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 			lcd_font_config.bg_height = frame->height;
 			lcd_driver_font_blend(&lcd_font_config);
 
-			frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X+60) * 2;
+			frame_addr_offset = frame_addr_offset + 60 * 2;
 			lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
 			lcd_font_config.bg_offline = frame->width - DVP_LOGO_W;
 			lcd_font_config.xsize = DVP_LOGO_W;
@@ -1294,7 +1165,12 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 			lcd_driver_font_blend(&lcd_font_config);
 		}
 #else
-			frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X) * 2;
+			if ((DATA_POSTION_X + DATA_LOGO_W) > g_lcd_width)
+				frame_addr_offset = ((start_y + DATA_POSTION_Y + g_lcd_height - DATA_LOGO_H) * frame->width + start_x) * 2;
+			else
+				frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X) * 2;
+
+//			frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X) * 2;
 			lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
 			lcd_font_config.bg_offline = frame->width - DATA_LOGO_W;
 			lcd_font_config.xsize = DATA_LOGO_W;
@@ -1718,12 +1594,11 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 						LOGE("g_blend_data.ver_data =%s\n", g_blend_data.ver_data );
 					}
 				}
-			 }				
-
+			}				
 			MEDIA_EVT_RETURN(param_pak, BK_OK);
-break;
 #endif
 		}
+		break;
 	}
 }
 

@@ -71,6 +71,14 @@ extern const lcd_device_t lcd_device_md0700r;
 #if CONFIG_LCD_ST7701S
 	extern const lcd_device_t lcd_device_st7701s;
 #endif
+#if CONFIG_LCD_SN5ST7701S
+	extern const lcd_device_t lcd_device_sn5st7701s;
+#endif
+#if CONFIG_LCD_ST7701S_LY
+extern const lcd_device_t lcd_device_st7701s_ly;
+#endif
+
+
 
 
 #ifdef __cplusplus

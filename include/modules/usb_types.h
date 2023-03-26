@@ -164,6 +164,7 @@ typedef enum
     USB_UAC_MIC_DEVICE = 1,
     USB_UAC_SPEAKER_DEVICE = 2,
     USB_MSD_DEVICE = 3,
+    USB_OTA_DEVICE = 4,
 } E_USB_DEVICE_T;
 
 /*
@@ -212,6 +213,31 @@ typedef struct {
     uint8_t bSamFreqType;
     uint8_t tSamFreq[3];
 } s_audio_format_type_descriptor;
+
+
+typedef struct
+{
+    uint8_t bmRequestType;
+    uint8_t bRequest;
+    uint16_t wValue;
+    uint16_t wIndex;
+    uint16_t wLength;
+} s_usb_device_request;
+
+typedef void (*USBControlIrpComplete)(void *, void *);
+
+typedef struct
+{
+    const uint8_t *pOutBuffer;
+    uint32_t dwOutLength;
+    uint8_t *pInBuffer;
+    uint32_t dwInLength;
+
+    USBControlIrpComplete pfIrpComplete;
+    void *pCompleteParam;
+} s_usb_transfer_buffer_info;
+
+
 
 
 #ifdef __cplusplus

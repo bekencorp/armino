@@ -264,7 +264,7 @@ static JRESULT create_huffman_tbl( JDEC* jd, const uint8_t* data, uint16_t ndata
  *     - JDR_OK: succeed
  *     - others: other errors.
  */
-JRESULT jd_prepare (JDEC* jd, uint16_t (*infunc)(JDEC*, uint8_t*, uint16_t), void* pool,
+static JRESULT jd_prepare (JDEC* jd, uint16_t (*infunc)(JDEC*, uint8_t*, uint16_t), void* pool,
 					uint16_t sz_pool, void* dev)
 {
 	uint8_t *seg, b;
@@ -801,7 +801,7 @@ JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * ou
  *	   - BK_OK: succeed
  *	   - others: other errors.
  */
-JRESULT jd_decomp(void)
+JRESULT jd_decomp_start(void)
 {
 	//uint16_t	mx, my;
 	JRESULT rc;

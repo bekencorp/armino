@@ -237,6 +237,15 @@ const lcd_device_t *lcd_devices[] =
 #if CONFIG_LCD_ST7701S
 	&lcd_device_st7701s,
 #endif
+
+#if CONFIG_LCD_SN5ST7701S
+	&lcd_device_sn5st7701s,
+#endif
+
+#if CONFIG_LCD_ST7701S_LY
+	&lcd_device_st7701s_ly,
+#endif
+
 };
 
 static lcd_driver_t s_lcd = {0};
@@ -2158,9 +2167,9 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 	LCD_DIAG_DEBUG_INIT();
 
 	lcd_ldo_power_enable(1);
-
+#if !CONFIG_SOC_BK7236
 	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DISP, PM_CPU_FRQ_320M);
-
+#endif
 	if (device == NULL)
 	{
 		LOGE("%s, device need to be set\n", __func__);
@@ -2472,7 +2481,10 @@ bk_err_t lcd_driver_deinit(void)
 
 	if (s_lcd.display_frame)
 	{
-		s_lcd.config.fb_free(s_lcd.display_frame);
+		if (s_lcd.display_frame != s_lcd.lvgl_frame)
+		{
+			s_lcd.config.fb_free(s_lcd.display_frame);
+		}
 		s_lcd.display_frame = NULL;
 	}
 
@@ -2481,6 +2493,12 @@ bk_err_t lcd_driver_deinit(void)
 		os_free(s_lcd.lvgl_frame);
 		s_lcd.lvgl_frame = NULL;
 	}
+
+#if (CONFIG_LCD_QSPI && CONFIG_LVGL)
+#else
+	g_gui_need_to_wait = BK_FALSE;
+#endif
+
 
 	ret = rtos_deinit_semaphore(&s_lcd.dec_sem);
 
@@ -2780,13 +2798,12 @@ bk_err_t bk_lcd_draw_point(lcd_device_id_t id, uint16_t x, uint16_t y, uint16_t 
 int32_t lcd_driver_get_spi_gpio(LCD_SPI_GPIO_TYPE_E gpio_type)
 {
     int32_t gpio_value = 0;
-    
     switch(gpio_type)
     {
         case SPI_GPIO_CLK:
             if(s_lcd.config.device->id == LCD_DEVICE_ST7701S)
                 gpio_value = GPIO_35;
-            else if(s_lcd.config.device->id == LCD_DEVIDE_ST7710S)
+            else if ((s_lcd.config.device->id == LCD_DEVIDE_ST7710S) || (s_lcd.config.device->id == LCD_DEVICE_ST7701S_LY))
                 gpio_value = GPIO_9;
             else
                 gpio_value = GPIO_2;
@@ -2795,7 +2812,7 @@ int32_t lcd_driver_get_spi_gpio(LCD_SPI_GPIO_TYPE_E gpio_type)
         case SPI_GPIO_CSX:
             if(s_lcd.config.device->id == LCD_DEVICE_ST7701S)
                 gpio_value = GPIO_34;
-            else if(s_lcd.config.device->id == LCD_DEVIDE_ST7710S)
+            else if ((s_lcd.config.device->id == LCD_DEVIDE_ST7710S) || (s_lcd.config.device->id == LCD_DEVICE_ST7701S_LY))
                 gpio_value = GPIO_5;
             else
                 gpio_value = GPIO_3;
@@ -2804,7 +2821,7 @@ int32_t lcd_driver_get_spi_gpio(LCD_SPI_GPIO_TYPE_E gpio_type)
         case SPI_GPIO_SDA:
             if(s_lcd.config.device->id == LCD_DEVICE_ST7701S)
                 gpio_value = GPIO_36;
-            else if(s_lcd.config.device->id == LCD_DEVIDE_ST7710S)
+            else if ((s_lcd.config.device->id == LCD_DEVIDE_ST7710S) || (s_lcd.config.device->id == LCD_DEVICE_ST7701S_LY))
                 gpio_value = GPIO_8;
             else
                 gpio_value = GPIO_4;
@@ -2813,7 +2830,7 @@ int32_t lcd_driver_get_spi_gpio(LCD_SPI_GPIO_TYPE_E gpio_type)
         case SPI_GPIO_RST:
             if(s_lcd.config.device->id == LCD_DEVICE_ST7701S)
                 gpio_value = GPIO_15;
-            else if(s_lcd.config.device->id == LCD_DEVIDE_ST7710S)
+            else if ((s_lcd.config.device->id == LCD_DEVIDE_ST7710S) || (s_lcd.config.device->id == LCD_DEVICE_ST7701S_LY))
                 gpio_value = GPIO_6;
             else
                 gpio_value = GPIO_6;

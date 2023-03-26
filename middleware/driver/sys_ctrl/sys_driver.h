@@ -361,6 +361,7 @@ uint32_t sys_drv_cb_manu_val_set(uint32_t value);
 uint32_t sys_drv_ana_reg11_vsel_set(uint32_t value);
 uint32_t sys_drv_ana_reg10_sdm_val_set(uint32_t value);
 uint32_t sys_drv_ana_reg11_spi_trigger_set(uint32_t value);
+uint32_t sys_drv_i2s0_ckdiv_set(uint32_t value);
 /**  I2S End  **/
 
 
@@ -448,6 +449,7 @@ void sys_drv_set_ana_pwd_gadc_buf(uint32_t value);
 void sys_drv_set_ana_vref_sel(uint32_t value);
 void sys_drv_set_ana_cb_cal_manu(uint32_t value);
 void sys_drv_set_ana_cb_cal_trig(uint32_t value);
+UINT32 sys_drv_get_ana_cb_cal_manu_val(void);
 void sys_drv_set_ana_cb_cal_manu_val(uint32_t value);
 void sys_drv_set_ana_vlsel_ldodig(uint32_t value);
 void sys_drv_set_ana_vhsel_ldodig(uint32_t value);

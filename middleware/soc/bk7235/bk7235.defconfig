@@ -303,7 +303,6 @@ CONFIG_INT_WDT=y
 CONFIG_INT_WDT_PERIOD_MS=20000
 CONFIG_TASK_WDT=y
 CONFIG_TASK_WDT_PERIOD_MS=60000
-CONFIG_NMI_WDT_EN=y
 # end of Watchdog
 
 #
@@ -573,15 +572,20 @@ CONFIG_PAHO_MQTT=n
 #
 CONFIG_MIDEA=n
 
-# chip support id
 #
+# chip support id
 #
 CONFIG_CHIP_SUPPORT=y
 
+#
 # jtag change group gpio
 #
-#
 CONFIG_CHANGE_JTAG_GPIO=y
+
+#
+# clock support external 32k
+#
+CONFIG_EXTERN_32K=n
 
 #
 # vault support

@@ -1,6 +1,7 @@
 if (CONFIG_AT_CMD)
 set(srcs
 	ble_boarding_demo.c
+	ble_boarding_demo_dm_ble.c
 	)
 endif()
 

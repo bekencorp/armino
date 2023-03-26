@@ -293,6 +293,15 @@ uint32_t sys_drv_ana_reg11_spi_trigger_set(uint32_t value)
 	return SYS_DRV_SUCCESS;
 }
 
+uint32_t sys_drv_i2s0_ckdiv_set(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_i2s0_ckdiv_set(value);
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
 /**  I2S End  **/
 
 

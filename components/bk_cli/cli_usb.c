@@ -13,7 +13,6 @@
 #include "drv_model_pub.h"
 #include "cli.h"
 
-
 #if CONFIG_USB
 #if CONFIG_USB_MSD
 #include "ff.h"
@@ -22,7 +21,7 @@
 
 static void cli_usb_help(void)
 {
-	CLI_LOGI("cli_usb_help!\r\n");
+	CLI_LOGD("cli_usb_help!\r\n");
 }
 
 #if CONFIG_USB_MSD
@@ -41,7 +40,7 @@ void usb_mount_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 
 	pfs = os_malloc(sizeof(FATFS));
 	if (NULL == pfs) {
-		CLI_LOGI("f_mount malloc failed!\r\n");
+		CLI_LOGD("f_mount malloc failed!\r\n");
 		return;
 	}
 
@@ -50,10 +49,10 @@ void usb_mount_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 	fr = f_mount(pfs, sys_path, 1);
 	if (fr != FR_OK) {
 		mount_flag = 0;
-		CLI_LOGI("usb mount failed:%d\r\n", fr);
+		CLI_LOGD("usb mount failed:%d\r\n", fr);
 	} else {
 		mount_flag = 1;
-		CLI_LOGI("usb mount OK!\r\n");
+		CLI_LOGD("usb mount OK!\r\n");
 	}
 }
 
@@ -66,7 +65,7 @@ void usb_unmount_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	int number = DISK_NUMBER_UDISK;
 
 	if (mount_flag != 1) {
-		CLI_LOGI("usb hasn't initialization!\r\n");
+		CLI_LOGD("usb hasn't initialization!\r\n");
 		return;
 	}
 
@@ -74,7 +73,7 @@ void usb_unmount_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	sprintf(sys_path, "%d:", number);
 	fr = f_mount(NULL, sys_path, 1);
 	if (fr != FR_OK) {
-		CLI_LOGI("unmount %s fail.\r\n", sys_path);
+		CLI_LOGD("unmount %s fail.\r\n", sys_path);
 		return;
 	}
 
@@ -84,7 +83,7 @@ void usb_unmount_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	}
 
 	mount_flag = 0;
-	CLI_LOGI("usb unmount OK!\r\n");
+	CLI_LOGD("usb unmount OK!\r\n");
 }
 
 static FRESULT usb_scan_files(char *path)
@@ -110,12 +109,12 @@ static FRESULT usb_scan_files(char *path)
 				if (fr != FR_OK) break;
 			} else {
 				/* It is a file. */
-				CLI_LOGI("%s/%s\r\n", path, fno.fname);
+				CLI_LOGD("%s/%s\r\n", path, fno.fname);
 			}
 		}
 		f_closedir(&dir);
 	} else
-		CLI_LOGI("f_opendir failed\r\n");
+		CLI_LOGD("f_opendir failed\r\n");
 
 	return fr;
 }
@@ -127,7 +126,7 @@ void usb_ls_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **a
 	int number = DISK_NUMBER_UDISK;
 
 	if (mount_flag != 1) {
-		CLI_LOGI("usb hasn't initialization!\r\n");
+		CLI_LOGD("usb hasn't initialization!\r\n");
 		return;
 	}
 
@@ -135,7 +134,7 @@ void usb_ls_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **a
 	sprintf(sys_path, "%d:", number);
 	fr = usb_scan_files(sys_path);
 	if (fr != FR_OK)
-		CLI_LOGI("scan_files failed!\r\n");
+		CLI_LOGD("scan_files failed!\r\n");
 }
 #endif
 
@@ -154,111 +153,111 @@ void uvc_view_support_attribute(char *pcWriteBuffer, int xWriteBufferLen, int ar
         {
             case UVC_ATTRIBUTE_BACKLIGHT_COMPENSATION:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT BACKLIGHT_COMPENSATION: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT BACKLIGHT_COMPENSATION: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT BACKLIGHT_COMPENSATION: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT BACKLIGHT_COMPENSATION: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_BRIGHTNESS:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT BRIGHTNESS: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT BRIGHTNESS: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT BRIGHTNESS: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT BRIGHTNESS: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_CONTRAST:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT CONTRAST: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT CONTRAST: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT CONTRAST: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT CONTRAST: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_GAIN:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT GAIN: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT GAIN: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT GAIN: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT GAIN: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_POWER_LINE_FREQUENCY:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT POWER_LINE_FREQUENCY: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT POWER_LINE_FREQUENCY: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT POWER_LINE_FREQUENCY: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT POWER_LINE_FREQUENCY: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_HUE:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT HUE: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT HUE: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT HUE: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT HUE: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_SATURATION:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT SATURATION: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT SATURATION: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT SATURATION: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT SATURATION: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_SHARPNESS:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT SHARPNESS: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT SHARPNESS: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT SHARPNESS: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT SHARPNESS: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_GAMMA:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT GAMMA: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT GAMMA: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT GAMMA: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT GAMMA: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_WHITE_BALANCE_TEMPERATURE:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_TEMPERATURE: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT WHITE_BALANCE_TEMPERATURE: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_TEMPERATURE: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT WHITE_BALANCE_TEMPERATURE: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_WHITE_BALANCE_TEMPERATURE_AUTO:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_TEMPERATURE_AUTO: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT WHITE_BALANCE_TEMPERATURE_AUTO: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_TEMPERATURE_AUTO: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT WHITE_BALANCE_TEMPERATURE_AUTO: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_WHITE_BALANCE_COMPONENT:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_COMPONENT: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT WHITE_BALANCE_COMPONENT: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_COMPONENT: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT WHITE_BALANCE_COMPONENT: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_WHITE_BALANCE_COMPONENT_AUTO:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_COMPONENT_AUTO: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT WHITE_BALANCE_COMPONENT_AUTO: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_COMPONENT_AUTO: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT WHITE_BALANCE_COMPONENT_AUTO: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_DIGITAL_MULTIPLIER:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT DIGITAL_MULTIPLIER: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT DIGITAL_MULTIPLIER: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT DIGITAL_MULTIPLIER: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT DIGITAL_MULTIPLIER: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_DIGITAL_MULTIPLIER_LIMIT:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT DIGITAL_MULTIPLIER_LIMIT: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT DIGITAL_MULTIPLIER_LIMIT: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT DIGITAL_MULTIPLIER_LIMIT: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT DIGITAL_MULTIPLIER_LIMIT: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_HUE_AUTO:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT HUE_AUTO: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT HUE_AUTO: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT HUE_AUTO: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT HUE_AUTO: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_ANALOG_LOCK_STATUS:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT ANALOG_LOCK_STATUS: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT ANALOG_LOCK_STATUS: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT ANALOG_LOCK_STATUS: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT ANALOG_LOCK_STATUS: 1  YES\r\n");
                 break;
             case UVC_ATTRIBUTE_ANALOG_VIDEO_STANDARD:
                 if(bk_usb_uvc_check_support_attribute(attribute))
-                    CLI_LOGI("UVC SUPPORT ANALOG_VIDEO_STANDARD: 0  NO\r\n");
+                    CLI_LOGD("UVC SUPPORT ANALOG_VIDEO_STANDARD: 0  NO\r\n");
                 else
-                    CLI_LOGI("UVC SUPPORT ANALOG_VIDEO_STANDARD: 1  YES\r\n");
+                    CLI_LOGD("UVC SUPPORT ANALOG_VIDEO_STANDARD: 1  YES\r\n");
                 break;
             default:
                 break;
@@ -317,24 +316,24 @@ void uvc_get_param(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 	}
 
 	if (os_strcmp(argv[2], "cur") == 0) {
-		CLI_LOGI("uvc cur 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_CUR, attribute, &param));
+		CLI_LOGD("uvc cur 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_CUR, attribute, &param));
 	} else if (os_strcmp(argv[2], "min") == 0) {
-		CLI_LOGI("uvc min 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_MIN, attribute, &param));
+		CLI_LOGD("uvc min 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_MIN, attribute, &param));
 	} else if (os_strcmp(argv[2], "max") == 0) {
-		CLI_LOGI("uvc max 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_MAX, attribute, &param));
+		CLI_LOGD("uvc max 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_MAX, attribute, &param));
 	} else if (os_strcmp(argv[2], "info") == 0) {
-		CLI_LOGI("uvc info 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_INFO, attribute, &param));
+		CLI_LOGD("uvc info 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_INFO, attribute, &param));
 	} else if (os_strcmp(argv[2], "len") == 0) {
-		CLI_LOGI("uvc len 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_LEN, attribute, &param));
+		CLI_LOGD("uvc len 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_LEN, attribute, &param));
 	} else if (os_strcmp(argv[2], "res") == 0) {
-		CLI_LOGI("uvc res 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_RES, attribute, &param));
+		CLI_LOGD("uvc res 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_RES, attribute, &param));
 	} else if (os_strcmp(argv[2], "def") == 0) {
-		CLI_LOGI("uvc def 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_DEF, attribute, &param));
+		CLI_LOGD("uvc def 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_DEF, attribute, &param));
 	} else {
 		cli_usb_help();
 		return;
 	}
-	CLI_LOGI("uvc param: 0x%x!\r\n", param);
+	CLI_LOGD("uvc param: 0x%x!\r\n", param);
 
 }
 
@@ -342,7 +341,7 @@ void uvc_set_param(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 {
 	if (argc < 3) {
 		cli_usb_help();
-		CLI_LOGI("cli_usb_help!\r\n");
+		CLI_LOGD("cli_usb_help!\r\n");
 		return;
 	}
 	uint32_t attribute = 0x00;
@@ -396,7 +395,7 @@ void uvc_set_param(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 
 static void uvc_disconnect_uvc_configed(void)
 {
-	CLI_LOGI("fuvc_notify_uvc_disconnect\r\n");
+	CLI_LOGD("fuvc_notify_uvc_disconnect\r\n");
 	return;
 }
 
@@ -433,7 +432,7 @@ static void uvc_get_packet_rx_vs(uint8_t *arg, uint32_t count)
 {
 	s_get_packets_count++;
 	if((s_get_packets_count%1000) == 0)
-		CLI_LOGI("get_packets_rx_vs: arg: %x count %d s_get_packets_count: %d\r\n", arg, count, s_get_packets_count);
+		CLI_LOGD("get_packets_rx_vs: arg: %x count %d s_get_packets_count: %d\r\n", arg, count, s_get_packets_count);
 
 	uint8_t *get_data_to_sram_buff;
 	int dwIndex = 0;
@@ -474,14 +473,14 @@ static void uvc_sram_data_write_to_sdcard(void)
 	int num = 1;
 	FRESULT fr;
 
-	CLI_LOGI("uvc_sram_data_write_to_sdcard\r\n");
+	CLI_LOGD("uvc_sram_data_write_to_sdcard\r\n");
 
 	sprintf(file_name, "%d:/%s", num, s_uvc_save_to_sdcard_testname);
 
 	fr = f_open(&fp1, file_name, FA_OPEN_APPEND | FA_WRITE);
 	if (fr != 0)
 	{
-		CLI_LOGI("f_open fail\r\n");
+		CLI_LOGD("f_open fail\r\n");
 		return;
 	}
 
@@ -497,7 +496,7 @@ static void uvc_sram_data_write_to_sdcard(void)
 				fr = f_write(&fp1, (char *)(s_uvc_stream_data_to_sdcard_1), s_get_packet_buff_size_count, &uiTemp);
 			if (fr != 0)
 			{
-				CLI_LOGI("f_write failed\n");
+				CLI_LOGD("f_write failed\n");
 			}
 		}
 	}
@@ -515,25 +514,25 @@ static void uvc_test_init(uint16_t width, uint16_t height, uint16_t fps, uint16_
 	if(!s_uvc_test_inited_flag)
 		s_uvc_test_inited_flag = true;
 	else {
-		CLI_LOGI("uvc_test_init Please Deinit first\r\n");
+		CLI_LOGD("uvc_test_init Please Deinit first\r\n");
 		return;
 	}
 
 	void *parameter;
 	s_uvc_stream_data_to_sdcard_1 = os_malloc(sizeof(uint8_t) * s_packet_max_count_size);
 	if(!s_uvc_stream_data_to_sdcard_1) {
-		CLI_LOGI("uvc_test_init s_uvc_stream_data_to_sdcard_1 is null\r\n");
+		CLI_LOGD("uvc_test_init s_uvc_stream_data_to_sdcard_1 is null\r\n");
 		return;
 	}
 
 	s_uvc_stream_data_to_sdcard_2 = os_malloc(sizeof(uint8_t) * s_packet_max_count_size);
 	if(!s_uvc_stream_data_to_sdcard_2) {
-		CLI_LOGI("uvc_test_init s_uvc_stream_data_to_sdcard_2 is null\r\n");
+		CLI_LOGD("uvc_test_init s_uvc_stream_data_to_sdcard_2 is null\r\n");
 		return;
 	}
 	s_uvc_stream_test_buff = os_malloc(sizeof(uint8_t) * len);
 	if(!s_uvc_stream_test_buff) {
-		CLI_LOGI("uvc_test_init s_uvc_stream_test_buff is null\r\n");
+		CLI_LOGD("uvc_test_init s_uvc_stream_test_buff is null\r\n");
 		return;
 	} else
 		os_memset((void *)s_uvc_stream_test_buff, 0x77, sizeof(uint8_t) * len);//for debug
@@ -596,7 +595,7 @@ static void uvc_test_printf_buff_data(uint16_t len)
 static void uvc_test_save_buff_data_to_sdcard()
 {
 #if (CONFIG_FATFS)
-	CLI_LOGI("uvc_test delete write to sdcard thread\r\n");
+	CLI_LOGD("uvc_test delete write to sdcard thread\r\n");
 	if(s_uvc_test_fifo_data_to_sdcard_handle)
 		rtos_delete_thread(&s_uvc_test_fifo_data_to_sdcard_handle);
 	s_uvc_test_fifo_data_to_sdcard_handle = NULL;
@@ -614,7 +613,7 @@ static void uvc_test_deinit()
 	if(s_uvc_test_inited_flag)
 		s_uvc_test_inited_flag = false;
 	else {
-		CLI_LOGI("uvc_test_deinit please init first\r\n");
+		CLI_LOGD("uvc_test_deinit please init first\r\n");
 		return;
 	}
 
@@ -689,15 +688,15 @@ void cli_uvc_test_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 	} else if(os_strcmp(argv[1], "deinit") == 0) {
 		uvc_test_deinit();
 	} else if(os_strcmp(argv[1], "debug_info") == 0) {
-		CLI_LOGI("debug info s_uvc_test_inited_flag: %d\r\n", s_uvc_test_inited_flag);
-		CLI_LOGI("debug info s_save_sdcard_count: %d\r\n", s_save_sdcard_count);
-		CLI_LOGI("debug info s_get_packets_count: %d\r\n", s_get_packets_count);
+		CLI_LOGD("debug info s_uvc_test_inited_flag: %d\r\n", s_uvc_test_inited_flag);
+		CLI_LOGD("debug info s_save_sdcard_count: %d\r\n", s_save_sdcard_count);
+		CLI_LOGD("debug info s_get_packets_count: %d\r\n", s_get_packets_count);
 	} else if(os_strcmp(argv[1], "check_uvc") == 0) {
 		ret = bk_usb_check_device_supported (USB_UVC_DEVICE);
 		if(ret != BK_OK)
-			CLI_LOGI("cli_uac_operation check_uvc UNsupport\r\n");
+			CLI_LOGD("cli_uac_operation check_uvc UNsupport\r\n");
 		else
-			CLI_LOGI("cli_uac_operation check_uvc Support\r\n");
+			CLI_LOGD("cli_uac_operation check_uvc Support\r\n");
 	} else {
 		cli_usb_help();
 		return;
@@ -713,7 +712,7 @@ void uvc_start_stream(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 	}
 
 	if(!s_uvc_test_inited_flag) {
-		CLI_LOGI("uvc_start_stream Please Init first\r\n");
+		CLI_LOGD("uvc_start_stream Please Init first\r\n");
 		return;
 	}
 
@@ -725,23 +724,23 @@ void uvc_start_stream(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 		bk_uvc_stop();
 	} else if(os_strcmp(argv[1], "enable_h264") == 0) {
 		if(!bk_uvc_enable_H264())
-			CLI_LOGI("H264 Support!\r\n");
+			CLI_LOGD("H264 Support!\r\n");
 		else
-			CLI_LOGI("H264 Unsupport!\r\n");
+			CLI_LOGD("H264 Unsupport!\r\n");
 	} else if(os_strcmp(argv[1], "enable_h265") == 0) {
 		if(!bk_uvc_enable_H265())
-			CLI_LOGI("H265 Support!\r\n");
+			CLI_LOGD("H265 Support!\r\n");
 		else
-			CLI_LOGI("H265 Unsupport!\r\n");
+			CLI_LOGD("H265 Unsupport!\r\n");
 	} else if(os_strcmp(argv[1], "enable_mjpeg") == 0) {
 		if(!bk_uvc_enable_mjpeg())
-			CLI_LOGI("MJPEG Support!\r\n");
+			CLI_LOGD("MJPEG Support!\r\n");
 		else
-			CLI_LOGI("MJPEG Unsupport!\r\n");
+			CLI_LOGD("MJPEG Unsupport!\r\n");
 	} else if(os_strcmp(argv[1], "get_resolution_number") == 0) {
 		uint16_t number = 0;
 		bk_uvc_get_resolution_number(&number);
-		CLI_LOGI("get_resolution_number number:%d!\r\n", number);
+		CLI_LOGD("get_resolution_number number:%d!\r\n", number);
 	} else if(os_strcmp(argv[1], "get_resolution_framerate") == 0) {
 		UVC_ResolutionFramerate support_config[20] = {0};
 		bk_uvc_get_resolution_framerate((void *)support_config, 20);
@@ -806,10 +805,10 @@ void cli_usb_plug_inout(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 	if (os_strcmp(argv[1], "open") == 0) {
 		usb_plug_inout_open();
-		CLI_LOGI("cli_usb_plug_inout inout open!\r\n");
+		CLI_LOGD("cli_usb_plug_inout inout open!\r\n");
 	} else if (os_strcmp(argv[1], "close") == 0) {
 		usb_plug_inout_close();
-		CLI_LOGI("cli_usb_plug_inout inout close!\r\n");
+		CLI_LOGD("cli_usb_plug_inout inout close!\r\n");
 	} else {
 		cli_usb_help();
 		return;
@@ -821,33 +820,33 @@ void cli_usb_plug_inout(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 #if CONFIG_USB_UAC_DEBUG
 static void usb_uac_disconnect_callback(void)
 {
-	CLI_LOGI("usb_uac_disconnect_callback\r\n");
+	CLI_LOGD("usb_uac_disconnect_callback\r\n");
 	return;
 }
 
 static void usb_uac_connect_callback(void)
 {
-	CLI_LOGI("usb_uac_connect_callback\r\n");
+	CLI_LOGD("usb_uac_connect_callback\r\n");
 	return;
 }
 static void uac_print_descriptor(	s_audio_as_general_descriptor *interfacedesc, s_audio_format_type_descriptor *formatdesc)
 {
 	uint32_t tSamFreq_hz = 0x0;
 
-	CLI_LOGI(" %s GeneralInerfaceDesc->bLength %x\r\n", __func__, interfacedesc->bLength);
-	CLI_LOGI(" %s GeneralInerfaceDesc->bDescriptorType %x\r\n", __func__, interfacedesc->bDescriptorType);
-	CLI_LOGI(" %s GeneralInerfaceDesc->bDescriptorSubtype %x\r\n", __func__,interfacedesc->bDescriptorSubtype);
-	CLI_LOGI(" %s GeneralInerfaceDesc->bTerminalLink %x\r\n", __func__, interfacedesc->bTerminalLink);
-	CLI_LOGI(" %s GeneralInerfaceDesc->bDelay %x\r\n", __func__, interfacedesc->bDelay);
-	CLI_LOGI(" %s GeneralInerfaceDesc->wFormatTag %x\r\n", __func__, interfacedesc->wFormatTag);
-	CLI_LOGI(" %s FormatTypeDesc->bLength %x\r\n", __func__, formatdesc->bLength);
-	CLI_LOGI(" %s FormatTypeDesc->bDescriptorType %x\r\n", __func__, formatdesc->bDescriptorType);
-	CLI_LOGI(" %s FormatTypeDesc->bDescriptorSubtype %x\r\n", __func__,formatdesc->bDescriptorSubtype);
-	CLI_LOGI(" %s FormatTypeDesc->bFormatType %x\r\n", __func__, formatdesc->bFormatType);
-	CLI_LOGI(" %s FormatTypeDesc->bNrChannels %x\r\n", __func__, formatdesc->bNrChannels);
-	CLI_LOGI(" %s FormatTypeDesc->bSubframeSize %x\r\n", __func__, formatdesc->bSubframeSize);
-	CLI_LOGI(" %s FormatTypeDesc->bBitResolution %x\r\n", __func__, formatdesc->bBitResolution);
-	CLI_LOGI(" %s FormatTypeDesc->bSamFreqType %x\r\n", __func__, formatdesc->bSamFreqType);
+	CLI_LOGD(" %s GeneralInerfaceDesc->bLength %x\r\n", __func__, interfacedesc->bLength);
+	CLI_LOGD(" %s GeneralInerfaceDesc->bDescriptorType %x\r\n", __func__, interfacedesc->bDescriptorType);
+	CLI_LOGD(" %s GeneralInerfaceDesc->bDescriptorSubtype %x\r\n", __func__,interfacedesc->bDescriptorSubtype);
+	CLI_LOGD(" %s GeneralInerfaceDesc->bTerminalLink %x\r\n", __func__, interfacedesc->bTerminalLink);
+	CLI_LOGD(" %s GeneralInerfaceDesc->bDelay %x\r\n", __func__, interfacedesc->bDelay);
+	CLI_LOGD(" %s GeneralInerfaceDesc->wFormatTag %x\r\n", __func__, interfacedesc->wFormatTag);
+	CLI_LOGD(" %s FormatTypeDesc->bLength %x\r\n", __func__, formatdesc->bLength);
+	CLI_LOGD(" %s FormatTypeDesc->bDescriptorType %x\r\n", __func__, formatdesc->bDescriptorType);
+	CLI_LOGD(" %s FormatTypeDesc->bDescriptorSubtype %x\r\n", __func__,formatdesc->bDescriptorSubtype);
+	CLI_LOGD(" %s FormatTypeDesc->bFormatType %x\r\n", __func__, formatdesc->bFormatType);
+	CLI_LOGD(" %s FormatTypeDesc->bNrChannels %x\r\n", __func__, formatdesc->bNrChannels);
+	CLI_LOGD(" %s FormatTypeDesc->bSubframeSize %x\r\n", __func__, formatdesc->bSubframeSize);
+	CLI_LOGD(" %s FormatTypeDesc->bBitResolution %x\r\n", __func__, formatdesc->bBitResolution);
+	CLI_LOGD(" %s FormatTypeDesc->bSamFreqType %x\r\n", __func__, formatdesc->bSamFreqType);
 
 	if(formatdesc->bSamFreqType > 0) {
 		for(int i = 0, j = 1; i < (formatdesc->bSamFreqType) * 3; i += 3, j++)
@@ -855,7 +854,7 @@ static void uac_print_descriptor(	s_audio_as_general_descriptor *interfacedesc, 
 			tSamFreq_hz |= (uint32_t)formatdesc->tSamFreq[i];
 			tSamFreq_hz |= ((uint32_t)formatdesc->tSamFreq[i+1]) << 8;
 			tSamFreq_hz |= ((uint32_t)formatdesc->tSamFreq[i+2]) << 16;
-			CLI_LOGI(" %s FormatTypeDesc->SamFreq[%d] = 0x%x, %d Hz\r\n", __func__, j, tSamFreq_hz, tSamFreq_hz);
+			CLI_LOGD(" %s FormatTypeDesc->SamFreq[%d] = 0x%x, %d Hz\r\n", __func__, j, tSamFreq_hz, tSamFreq_hz);
 			tSamFreq_hz = 0x0;
 		}
 	}
@@ -871,7 +870,7 @@ static void uac_mic_get_packet_rx_vs(uint8_t *arg, uint32_t count)
 
     count_mic_num++;
 	if (count_mic_num == 1000){
-        CLI_LOGI("uac_get_packet_rx_vs : arg: %x count %d\r\n", arg, count);
+        CLI_LOGD("uac_get_packet_rx_vs : arg: %x count %d\r\n", arg, count);
         count_mic_num = 0;
     }
     for (dwIndex = 0; dwIndex < count; dwIndex += 4)
@@ -905,7 +904,7 @@ static void uac_speaker_fiddle_txed(void)
 	count_speaker_num++;
 
 	if (count_speaker_num == 1000){
-		CLI_LOGI("fuac_speaker_fiddle_txed\r\n");
+		CLI_LOGD("fuac_speaker_fiddle_txed\r\n");
 		count_speaker_num = 0;
 	}
 
@@ -940,48 +939,48 @@ void cli_uac_operation(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		else
 			bk_usb_uac_attribute_op(USB_ATTRIBUTE_GET_MIN, UAC_ATTRIBUTE_VOLUME, &data);
 		bk_usb_uac_attribute_op(USB_ATTRIBUTE_SET_CUR, UAC_ATTRIBUTE_VOLUME, &data);
-		CLI_LOGI("cli_uac_operation set_volume = 0x%x\r\n", data);
+		CLI_LOGD("cli_uac_operation set_volume = 0x%x\r\n", data);
 	} else if(os_strcmp(argv[1], "get_volume") == 0) {
 		bk_usb_uac_attribute_op(USB_ATTRIBUTE_GET_CUR, UAC_ATTRIBUTE_VOLUME, &data);
-		CLI_LOGI("cli_uac_operation get_volume = 0x%x\r\n", data);
+		CLI_LOGD("cli_uac_operation get_volume = 0x%x\r\n", data);
 	} else if(os_strcmp(argv[1], "get_volume_min") == 0) {
 		bk_usb_uac_attribute_op(USB_ATTRIBUTE_GET_MIN, UAC_ATTRIBUTE_VOLUME, &data);
-		CLI_LOGI("cli_uac_operation get_volume_min = 0x%x\r\n", data);
+		CLI_LOGD("cli_uac_operation get_volume_min = 0x%x\r\n", data);
 	} else if(os_strcmp(argv[1], "get_volume_max") == 0) {
 		bk_usb_uac_attribute_op(USB_ATTRIBUTE_GET_MAX, UAC_ATTRIBUTE_VOLUME, &data);
-		CLI_LOGI("cli_uac_operation get_volume_max = 0x%x\r\n", data);
+		CLI_LOGD("cli_uac_operation get_volume_max = 0x%x\r\n", data);
 	} else if(os_strcmp(argv[1], "check_attribute") == 0) {
 		for(E_UAC_ATTRIBUTE_T attribute = UAC_ATTRIBUTE_MUTE; attribute < UAC_ATTRIBUTE_NUM; attribute++)
-			CLI_LOGI("cli_uac_operation attribute:%d\r\n", !bk_usb_uac_check_support_attribute(attribute));
+			CLI_LOGD("cli_uac_operation attribute:%d\r\n", !bk_usb_uac_check_support_attribute(attribute));
 	} else if(os_strcmp(argv[1], "set_mute") == 0) {
 		data = 1;
 		bk_usb_uac_attribute_op(USB_ATTRIBUTE_SET_CUR, UAC_ATTRIBUTE_MUTE, &data);
-		CLI_LOGI("cli_uac_operation set_mute = 0x%x\r\n", data);
+		CLI_LOGD("cli_uac_operation set_mute = 0x%x\r\n", data);
 	} else if(os_strcmp(argv[1], "set_unmute") == 0) {
 		data = 0;
 		bk_usb_uac_attribute_op(USB_ATTRIBUTE_SET_CUR, UAC_ATTRIBUTE_MUTE, &data);
-		CLI_LOGI("cli_uac_operation set_unmute = 0x%x\r\n", data);
+		CLI_LOGD("cli_uac_operation set_unmute = 0x%x\r\n", data);
 	} else if(os_strcmp(argv[1], "get_mute") == 0) {
 		bk_usb_uac_attribute_op(USB_ATTRIBUTE_GET_CUR, UAC_ATTRIBUTE_MUTE, &data);
-		CLI_LOGI("cli_uac_operation get_mute = 0x%x\r\n", data);
+		CLI_LOGD("cli_uac_operation get_mute = 0x%x\r\n", data);
 	} else if(os_strcmp(argv[1], "check_mic") == 0) {
 		if(BK_OK == bk_usb_check_device_supported (USB_UAC_MIC_DEVICE))
 			data = 1;
-		CLI_LOGI("cli_uac_operation check_mic %d\r\n", data);
+		CLI_LOGD("cli_uac_operation check_mic %d\r\n", data);
 	} else if(os_strcmp(argv[1], "check_speaker") == 0) {
 		if(BK_OK == bk_usb_check_device_supported (USB_UAC_SPEAKER_DEVICE))
 			data = 1;
-		CLI_LOGI("cli_uac_operation check_speaker %d\r\n", data);
+		CLI_LOGD("cli_uac_operation check_speaker %d\r\n", data);
 	}
 
 	s_audio_as_general_descriptor interfacedesc;
 	s_audio_format_type_descriptor formatdesc;
 	if(os_strcmp(argv[1], "get_mic_desc") == 0){
-		CLI_LOGI("cli_uac_operation get_mic_desc\r\n");
+		CLI_LOGD("cli_uac_operation get_mic_desc\r\n");
 		bk_usb_uac_get_format_descriptor(USB_UAC_MIC_DEVICE, &interfacedesc, &formatdesc);
 		uac_print_descriptor(&interfacedesc, &formatdesc);
 	} else if(os_strcmp(argv[1], "get_speaker_desc") == 0){
-		CLI_LOGI("cli_uac_operation get_speaker_desc\r\n");
+		CLI_LOGD("cli_uac_operation get_speaker_desc\r\n");
 		bk_usb_uac_get_format_descriptor(USB_UAC_SPEAKER_DEVICE, &interfacedesc, &formatdesc);
 		uac_print_descriptor(&interfacedesc, &formatdesc);
 	}
@@ -991,11 +990,11 @@ void cli_uac_operation(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		parameter = (void *)uac_mic_get_packet_rx_vs;
 		bk_uac_register_micrxed_packet_callback(parameter);
 	} else if(os_strcmp(argv[1], "start_mic") == 0){
-		CLI_LOGI("cli_uac_operation start_mic\r\n");
+		CLI_LOGD("cli_uac_operation start_mic\r\n");
 		usb_device_set_using_status(1, USB_UAC_MIC_DEVICE);
 		bk_uac_start_mic();
 	} else if(os_strcmp(argv[1], "stop_mic") == 0){
-		CLI_LOGI("cli_uac_operation stop_mic\r\n");
+		CLI_LOGD("cli_uac_operation stop_mic\r\n");
 		usb_device_set_using_status(0, USB_UAC_MIC_DEVICE);
 		bk_uac_stop_mic();
 	} else if(os_strcmp(argv[1], "mic_sethz") == 0){
@@ -1003,7 +1002,7 @@ void cli_uac_operation(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 			data = os_strtoul(argv[2], NULL, 10);
 		else
 			data = 16000;
-		CLI_LOGI("cli_uac_operation mic_sethz = %d\r\n", data);
+		CLI_LOGD("cli_uac_operation mic_sethz = %d\r\n", data);
 		bk_usb_uac_set_hz(USB_UAC_MIC_DEVICE, data);
 	}
 #endif
@@ -1014,11 +1013,11 @@ void cli_uac_operation(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		parameter = (void *)uac_speaker_PCM_8000;
 		bk_uac_register_tx_speakerstream_buffptr(parameter, 64);
 	} else if(os_strcmp(argv[1], "start_speaker") == 0){
-		CLI_LOGI("cli_uac_operation start_speaker\r\n");
+		CLI_LOGD("cli_uac_operation start_speaker\r\n");
 		usb_device_set_using_status(1, USB_UAC_SPEAKER_DEVICE);
 		bk_uac_start_speaker();
 	} else if(os_strcmp(argv[1], "stop_speaker") == 0){
-		CLI_LOGI("cli_uac_operation stop_speaker\r\n");
+		CLI_LOGD("cli_uac_operation stop_speaker\r\n");
 		usb_device_set_using_status(0, USB_UAC_SPEAKER_DEVICE);
 		bk_uac_stop_speaker();
 	} else if(os_strcmp(argv[1], "speaker_sethz") == 0){
@@ -1026,7 +1025,7 @@ void cli_uac_operation(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 			data = os_strtoul(argv[2], NULL, 10);
 		else
 			data = 16000;
-		CLI_LOGI("cli_uac_operation speaker_sethz = %d\r\n", data);
+		CLI_LOGD("cli_uac_operation speaker_sethz = %d\r\n", data);
 		bk_usb_uac_set_hz(USB_UAC_SPEAKER_DEVICE, data);
 	}
 #endif
@@ -1041,9 +1040,9 @@ void cli_usb_open_close(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 	}
 
 	if (os_strcmp(argv[1], "open_host") == 0) {
-		CLI_LOGI("cli_usb_open host! %d\r\n", bk_usb_open(0));
+		CLI_LOGD("cli_usb_open host! %d\r\n", bk_usb_open(0));
 	} else if (os_strcmp(argv[1], "open_dev") == 0) {
-		CLI_LOGI("cli_usb_open device! %d\r\n", bk_usb_open(1));
+		CLI_LOGD("cli_usb_open device! %d\r\n", bk_usb_open(1));
 	} else if (os_strcmp(argv[1], "close") == 0) {
 		bk_usb_close();
 	} else {
@@ -1052,6 +1051,209 @@ void cli_usb_open_close(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 	}
 
 }
+
+#if CONFIG_UVC_OTA_DEMO
+#include <components/uvc_ota_common.h>
+static uint32_t cli_usb_ctrl_sync_callback(void *pContext, void *pControlIrp)
+{
+	if(!pContext)
+		return BK_FAIL;
+	s_usb_device_request *pSetup = (s_usb_device_request *)pContext;
+	CLI_LOGD("Control_Transfer Done. pSetup->bmRequestType:0x%x\r\n",pSetup->bmRequestType);
+	CLI_LOGD("Control_Transfer Done. pSetup->bRequest:0x%x\r\n",pSetup->bRequest);
+	CLI_LOGD("Control_Transfer Done. pSetup->wValue:0x%x\r\n",pSetup->wValue);
+	CLI_LOGD("Control_Transfer Done. pSetup->wIndex:0x%x\r\n",pSetup->wIndex);
+	CLI_LOGD("Control_Transfer Done. pSetup->wLength:0x%x\r\n",pSetup->wLength);
+	CLI_LOGD("cli_usb_ctrl_sync_callback Control_Transfer Done.\r\n");
+	return BK_OK;
+}
+
+void cli_usb_ota_ops(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		CLI_LOGD("cli_usb_ota_ops Please Check the number of paramter.\r\n");
+		cli_usb_help();
+		return;
+	}
+	s_usb_device_request *pSetup = {0};
+	s_usb_transfer_buffer_info *buffer_info  = {0};
+	uint8_t *g_ota_outbuffer = {0};
+	uint8_t *g_ota_inbuffer = {0};
+	void *parameter = {0};
+	char verssion[7] = {'V', '1', '.', '0', '.', '2', 0};
+	char firewaredata[6] = {0};
+	uint32_t file_len = 0;
+	bool usb_transfer_sta = 0;
+	bool malloc_status_flag = 0;
+	bk_err_t ret;
+
+	if (os_strcmp(argv[1], "cmd_self_test") == 0) {
+		if (argc < 8) {
+			CLI_LOGD("cli_usb_ota_ops Please Check the number of paramter.\r\n");
+			return;
+		}
+
+		do{
+			pSetup = (s_usb_device_request *)os_malloc(sizeof(s_usb_device_request));
+			if(!pSetup) {
+				CLI_LOGD("%s pSetup malloc fail.\r\n", __func__);
+				malloc_status_flag = 1;
+				break;
+			}
+			
+			buffer_info = (s_usb_transfer_buffer_info *)os_malloc(sizeof(s_usb_transfer_buffer_info));
+			if(!buffer_info) {
+				CLI_LOGD("%s buffer_info malloc fail.\r\n", __func__);
+				malloc_status_flag = 1;
+				break;
+			}
+
+			g_ota_outbuffer = (uint8_t *)os_malloc(sizeof(uint8_t) * (pSetup->wLength));
+			if(!g_ota_outbuffer) {
+				CLI_LOGD("%s g_ota_outbuffer malloc fail.\r\n", __func__);
+				malloc_status_flag = 1;
+				break;
+			}
+
+			g_ota_inbuffer = (uint8_t *)os_malloc(sizeof(uint8_t) * (pSetup->wLength));
+			if(!g_ota_inbuffer) {
+				CLI_LOGD("%s g_ota_inbuffer malloc fail.\r\n", __func__);
+				malloc_status_flag = 1;
+				break;
+			}
+		}while(0);
+
+		if(malloc_status_flag) {
+			if(g_ota_outbuffer != NULL) {
+				os_free(g_ota_outbuffer);
+				g_ota_outbuffer = NULL;
+			}
+			if(g_ota_inbuffer != NULL) {
+				os_free(g_ota_inbuffer);
+				g_ota_inbuffer = NULL;
+			}
+			if(pSetup != NULL) {
+				os_free(pSetup);
+				pSetup = NULL;
+			}
+			if(buffer_info != NULL) {
+				os_free(buffer_info);
+				buffer_info = NULL;
+			}
+
+			return;
+		}
+
+		pSetup->bmRequestType = os_strtoul(argv[2], NULL, 16);
+		pSetup->bRequest = os_strtoul(argv[3], NULL, 16);
+		pSetup->wValue = os_strtoul(argv[4], NULL, 16);
+		pSetup->wIndex = os_strtoul(argv[5], NULL, 16);
+		pSetup->wLength = os_strtoul(argv[6], NULL, 16);
+
+		for(int i = 0; i < (pSetup->wLength); i++)
+		{
+			g_ota_outbuffer[i] = i;
+			CLI_LOGD("%s Outbuffer[%d] : %x\r\n", __FUNCTION__, i, g_ota_outbuffer[i]);
+		}
+		os_memset((void *)g_ota_inbuffer, 0x0, (sizeof(uint8_t) * (pSetup->wLength)));
+
+		buffer_info->pOutBuffer = g_ota_outbuffer;
+		buffer_info->dwOutLength = pSetup->wLength;
+		buffer_info->pInBuffer = g_ota_inbuffer;
+		buffer_info->dwInLength = pSetup->wLength;
+		parameter = (void *)cli_usb_ctrl_sync_callback;
+		buffer_info->pfIrpComplete = parameter;
+		buffer_info->pCompleteParam = pSetup;
+
+		ret = bk_usb_control_transfer(pSetup, buffer_info);
+		if(ret) {
+			CLI_LOGD("bk_usb_control_transfer fail. ret:%d\r\n", ret);
+			os_free(g_ota_outbuffer);
+			os_free(g_ota_inbuffer);
+			os_free(pSetup);
+			os_free(buffer_info);
+			return;
+		}
+
+		for(int j = 0; j < (buffer_info->dwInLength); j++)
+			CLI_LOGD("%s Inbuffer[%d] : %x\r\n", __FUNCTION__, j, g_ota_inbuffer[j]);
+
+		os_free(g_ota_outbuffer);
+		os_free(g_ota_inbuffer);
+		os_free(pSetup);
+		os_free(buffer_info);
+		CLI_LOGD("cli_usb_ota_ops cmd_self_test.\r\n");
+	} else if (os_strcmp(argv[1], "uvc_ota_init") == 0){
+		ret = bk_uvc_ota_demo_init();
+		if(ret) {
+			CLI_LOGD("bk_uvc_ota_demo_init fail. ret:%d\r\n", ret);
+			return;
+		}
+	} else if (os_strcmp(argv[1], "uvc_ota_deinit") == 0){
+		ret = bk_uvc_ota_demo_deinit();
+		if(ret) {
+			CLI_LOGD("bk_uvc_ota_demo_deinit fail. ret:%d\r\n", ret);
+			return;
+		}
+	} else if (os_strcmp(argv[1], "module_version_check") == 0) {
+		firewaredata[0] = 'B';
+		/* Fill in reasonable numbers based on the actual situation 
+		 * and some USB modules cannot be upgraded
+		 */
+		if (argc > 2) {
+			file_len = os_strtoul(argv[2], NULL, 10);
+		} else
+			file_len = 5546649;/* Self test data length */
+		ret = bk_uvc_ota_demo_upgrade_check(verssion, firewaredata, file_len);
+		if(ret) {
+			CLI_LOGD("bk_uvc_ota_demo_upgrade_check fail. ret:%d\r\n", ret);
+			return;
+		}
+		CLI_LOGD("uvc_ota_demo_upgrade_check cli_test\r\n");
+
+	} else if (os_strcmp(argv[1], "uvc_ota_done_result") == 0){
+		uint32_t result = 0;
+		ret = bk_uvc_ota_demo_transmit_result(&result);
+		if(ret) {
+			CLI_LOGD("bk_uvc_ota_demo_transmit_result fail. ret:%d\r\n", ret);
+			return;
+		}
+		CLI_LOGD("uvc_ota_done_result result:%d\r\n", result);
+	} else if (os_strcmp(argv[1], "uvc_ota_persent") == 0){
+		int persent = 0;
+		ret = bk_uvc_ota_demo_get_upgrade_persent(&persent);
+		if(ret) {
+			CLI_LOGD("bk_uvc_ota_demo_get_upgrade_persent fail. ret:%d\r\n", ret);
+			return;
+		}
+		CLI_LOGD("uvc_ota_persent persent:%d\r\n", persent);
+	} else if (os_strcmp(argv[1], "uvc_ota_http_percentage") == 0){
+		float percentage = 0;
+		ret = bk_uvc_ota_http_to_device_status(&percentage, &usb_transfer_sta);
+		if(ret) {
+			CLI_LOGD("bk_uvc_ota_http_to_device_status fail. ret:%d\r\n", ret);
+			return;
+		}
+		CLI_LOGD("uvc_ota_http_percentage percentage::(%.2f)%%  usb_transfer_sta:%d\r\n", percentage, usb_transfer_sta);
+	} else if (os_strcmp(argv[1], "uvc_ota_http_download") == 0){
+		if (argc != 4) {
+			CLI_LOGD("Usage:http_ota [url:]\r\n");
+			return;
+		}
+		uint32_t uri_length = os_strlen(argv[2]) + 1;
+		uint8_t wait_ms = os_strtoul(argv[3], NULL, 10);
+
+		ret = bk_uvc_ota_http_download(argv[2], uri_length, wait_ms);
+		if(ret) {
+			CLI_LOGD("bk_uvc_ota_http_download fail. ret:%d\r\n", ret);
+			return;
+		}
+	} else{
+		CLI_LOGD("cli_usb_ota_ops Please Check the number of paramter.\r\n");
+	}
+
+}
+#endif
 
 const struct cli_command usb_host_clis[] = {
 
@@ -1078,6 +1280,9 @@ const struct cli_command usb_host_clis[] = {
 	{"usb_plug_inout", "usb open|close", cli_usb_plug_inout},
 #endif
 	{"usb", "usb open_host|open_dev|close", cli_usb_open_close},
+#if CONFIG_UVC_OTA_DEMO
+	{"usb_ota", "usb_ota cli_usb_ota_ops|uvc_ota_init|uvc_ota_deinit|uvc_ota_http_download", cli_usb_ota_ops},
+#endif
 };
 
 int cli_usb_init(void)
@@ -1085,7 +1290,7 @@ int cli_usb_init(void)
 	int ret;
 	ret = cli_register_commands(usb_host_clis, sizeof(usb_host_clis) / sizeof(struct cli_command));
 	if (ret)
-		CLI_LOGI("register usb host commands fail.\r\n");
+		CLI_LOGD("register usb host commands fail.\r\n");
 
 	return ret;
 }

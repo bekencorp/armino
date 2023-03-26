@@ -1,0 +1,21 @@
+menu "AUDIO"
+	config AUDIO
+		bool "Enable Audio"
+		default n
+
+	config AUDIO_RISCV_IP_V1_0
+		depends on AUDIO
+		bool "Enable audio riscv driver"
+		default n
+
+	config AUDIO_DSP_IP_V1_0
+		depends on AUDIO
+		bool "Enable audio dsp driver"
+		default n
+
+	config ES8311
+		depends on SIM_I2C
+		depends on I2S
+		bool "Enable audio codec chip ES8311 driver"
+		default n
+endmenu

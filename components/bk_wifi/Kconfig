@@ -93,10 +93,6 @@ menu "Bk_Wifi"
 		bool "Enable Mac Bssid"
 		default n
 
-	config BK_COMPONENTS_P2P_GO
-		bool "Enable Bk Components P2P Go"
-		default n
-
 	config COMPONENTS_STA_VSIE
 		bool "Enable Components Sta Vsie"
 		default n

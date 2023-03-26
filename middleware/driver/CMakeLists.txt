@@ -67,6 +67,7 @@ set(srcs
 	security/hal_aes.c
 	security/hal_sha.c
 	spinlock/amp_res_lock.c
+	pwr_clk/pwr_clk.c
 	)
 if (CONFIG_AON_WDT)
 	list(APPEND incs
@@ -269,6 +270,16 @@ if (CONFIG_LCD_ST7701S)
 		)
 endif()
 
+if (CONFIG_LCD_SN5ST7701S)
+	list(APPEND srcs
+		"lcd/lcd_sn5st7701s.c"
+		)
+endif()
+if (CONFIG_LCD_ST7701S_LY)
+	list(APPEND srcs
+		"lcd/lcd_st7701s_ly.c"
+		)
+endif()
 endif()
 
 if (CONFIG_LCD)
@@ -437,6 +448,12 @@ if (CONFIG_SOC_BK7256XX)
 		"sbc/sbc_driver.c"
 		)
 endif()
+endif()
+
+if (CONFIG_ES8311)
+	list(APPEND srcs
+		"audio/codec/es8311.c"
+		)
 endif()
 
 if (CONFIG_SOC_BK7251)

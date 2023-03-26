@@ -59,9 +59,9 @@ typedef void (*dma2d_isr_t)(void);
 #define DMA2D_FOREGROUND_LAYER             0x00000001U   /**< DMA2D Foreground Layer (layer 1) */
 #define MAX_DMA2D_LAYER                    2U            /**< DMA2D maximum number of layers */
 
-#define DMA2D_NO_MODIF_ALPHA        0x00000000U  /**< define  DMA2D Alpha Mode: No modification of the alpha channel value */
-#define DMA2D_REPLACE_ALPHA         0x00000001U  /**< Replace original alpha channel value by programmed alpha value */
-#define DMA2D_COMBINE_ALPHA         0x00000002U  /**< Replace original foreground image alpha channel value by ALPHA[7:0] multiplied with original alpha channel value */
+//#define DMA2D_NO_MODIF_ALPHA        0x00000000U  /**< define  DMA2D Alpha Mode: No modification of the alpha channel value */
+//#define DMA2D_REPLACE_ALPHA         0x00000001U  /**< Replace original alpha channel value by programmed alpha value */
+//#define DMA2D_COMBINE_ALPHA         0x00000002U  /**< Replace original foreground image alpha channel value by ALPHA[7:0] multiplied with original alpha channel value */
 
 #define DMA2D_REGULAR_ALPHA         0x00000000U  /**< No modification of the alpha channel value */
 #define DMA2D_INVERTED_ALPHA        0x00000001U  /**< Invert the alpha channel value */
@@ -184,6 +184,13 @@ typedef enum {
 	TRANS_64BYTES
 } dma2d_trans_ability_t;
 
+typedef enum {
+	DMA2D_NO_MODIF_ALPHA = 0,
+	DMA2D_REPLACE_ALPHA,
+	DMA2D_COMBINE_ALPHA,
+
+}blend_alpha_mode_t;
+
 /**
   * @}
   */
@@ -253,6 +260,8 @@ typedef struct
 	uint32_t dest_offline;              /**< for partical copy this is to calculate output addr based on dst frame addr, uint by pixel */
 	uint32 xsize;                       /**< dma2d blend x size.. */
 	uint32 ysize;                       /**< dma2d blend y size.. */
+	blend_alpha_mode_t fg_alpha_mode;
+	blend_alpha_mode_t bg_alpha_mode;
 	uint8_t fg_alpha_value;             /**< config fg alpha.. */
 	uint8_t bg_alpha_value;             /**< config bg alpha. */
 	uint8_t red_bule_swap;              /**<DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
@@ -261,19 +270,30 @@ typedef struct
 
 typedef struct
 {
-	void * input_addr;               /**< The pixel convert src addr */
-	void * output_addr;              /**< The pixel convert dst addr */
-	uint32 xsize;                    /**< image width */
-	uint32 ysize;                    /**< image height  */
+	dma2d_mode_t    mode; 
+	void * input_addr;               /**< The image memcpy or pixel convert src addr */
+	void * output_addr;              /**< The mage memcpy or pixel convert dst addr */
+	uint16_t src_frame_width;        /**< memcpy or pfc src image width */
+	uint16_t src_frame_height;       /**< imemcpy or pfc src image height  */
+	uint16_t src_frame_xpos;         /**< src img start copy/pfc x pos*/
+	uint16_t src_frame_ypos;         /**< src img start copy/pfc y pos*/
+
+	uint16_t dst_frame_width;         /**< memcpy to dst image, the dst image width */
+	uint16_t dst_frame_height;        /**< memcpy to dst image, the dst image height   */
+	uint16_t dst_frame_xpos;          /**< dma2d fill x pos based on frame_xsize */
+	uint16_t dst_frame_ypos;          /**< dma2d fill y pos based on frame_ysize */
+	uint16_t dma2d_width;              /**< dma2d memcpy or pfc width */
+	uint16_t dma2d_height;               /**< dma2d memcpy or pfc height */
+
 	input_color_mode_t input_color_mode;  /**< The pixel convert src color mode */
 	out_color_mode_t output_color_mode;   /**< The pixel convert dst color mode */
-	uint32_t intput_offline;              /**< set src offset addr, mem start addr to pixel convert */
-	uint32_t output_offline;              /**< set dst offset addr, write to mem dst addr */
-	uint32_t intput_alpha;                /**< src data alpha, depend on alpha_mode */
-	uint32_t output_alpha;                /**< dst data alpha,depend on alpha_mode */
-	uint32_t intput_red_blue_swap;        /**< src img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
-	uint32_t output_red_blue_swap;        /**< src img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
-}dma2d_pixel_convert_t;
+	uint8_t src_pixel_bit;
+	uint8_t dst_pixel_bit;
+	uint8_t input_alpha;                /**< src data alpha, depend on alpha_mode */
+	uint8_t output_alpha;                /**< dst data alpha,depend on alpha_mode */
+	uint8_t input_red_blue_swap;        /**< src img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
+	uint8_t output_red_blue_swap;        /**< src img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
+}dma2d_memcpy_pfc_t;
 
 typedef struct {
 	void * frameaddr;          /**< dma2d fill frame baseaddr , normally LCD start frame addr*/
@@ -284,7 +304,8 @@ typedef struct {
 	uint16_t width;              /**< dma2d fill width */
 	uint16_t high;               /**< dma2d fill height */
 	out_color_mode_t color_format;
-	uint16_t color;              /**< dma2d fill color */
+	uint8_t pixel_bit;
+	uint32_t color;              /**< dma2d fill color */
 }dma2d_fill_t;
 
 

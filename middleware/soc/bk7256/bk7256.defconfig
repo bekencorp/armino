@@ -95,6 +95,7 @@ CONFIG_DOORBELL_DEMO2=n
 CONFIG_AUD_TRAS_DAC_DEBUG=n
 CONFIG_AUD_TRAS_DAC_PA_CTRL=n
 CONFIG_AUD_TRAS_UAC_SPK_VOL_CTRL_MODE_DIRECT=y
+CONFIG_ES8311=n
 #
 # end of Audio
 
@@ -116,7 +117,8 @@ CONFIG_LCD_ST7282=y
 CONFIG_LCD_ST7796S=y
 CONFIG_LCD_ST7710S=y
 CONFIG_LCD_ST7701S=y
-
+CONFIG_LCD_SN5ST7701S=y
+CONFIG_LCD_ST7701S_LY=y
 CONFIG_LVGL=n
 CONFIG_LVGL_DEMO=n
 CONFIG_DMA2D=y
@@ -228,6 +230,7 @@ CONFIG_SBC=n
 CONFIG_SBC_TEST=n
 CONFIG_FFT_TEST=n
 CONFIG_I2S_TEST=n
+CONFIG_ES8311_TEST=n
 # end of Cli
 
 #
@@ -317,6 +320,7 @@ CONFIG_TASK_USB_PRIO=5
 # CONFIG_USB_CCD is not set
 CONFIG_USB_UVC=y
 CONFIG_USB_UVC_DEBUG=n
+CONFIG_UVC_OTA_DEMO=n
 CONFIG_USB_UAC=y
 CONFIG_USB_UAC_DEBUG=n
 CONFIG_USB_UAC_MIC=y
@@ -380,7 +384,6 @@ CONFIG_INT_WDT=y
 CONFIG_INT_WDT_PERIOD_MS=20000
 CONFIG_TASK_WDT=y
 CONFIG_TASK_WDT_PERIOD_MS=60000
-CONFIG_NMI_WDT_EN=y
 # end of Watchdog
 
 #
@@ -690,42 +693,48 @@ CONFIG_PAHO_MQTT=n
 #
 CONFIG_MIDEA=n
 
-# chip support id
 #
+# chip support id
 #
 CONFIG_CHIP_SUPPORT=y
 
-# jtag change group gpio
 #
+# jtag change group gpio
 #
 CONFIG_CHANGE_JTAG_GPIO=y
 
-# adc key support
 #
+# adc key support
 #
 CONFIG_ADC_KEY=n
 
-# rwnx proto debug
 #
+# rwnx proto debug
 #
 CONFIG_RWNX_PROTO_DEBUG=n
 
-# ntp sync rtc
 #
+# ntp sync rtc
 #
 CONFIG_NTP_SYNC_RTC=n
 
-# littefs
 #
+# littefs
 #
 CONFIG_LITTLEFS=n
 
 #
-# vault support
+# clock support external 32k
 #
-CONFIG_VAULT_SUPPORT=y
+CONFIG_EXTERN_32K=n
+
 
 #
 # OTP support
 #
 CONFIG_OTP=y
+
+#
+# vault support
+#
+CONFIG_VAULT_SUPPORT=y

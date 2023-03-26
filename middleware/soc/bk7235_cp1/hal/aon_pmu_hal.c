@@ -57,6 +57,18 @@ uint32_t aon_pmu_hal_get_wakeup_source_reg(void)
 	return aon_pmu_ll_get_reg41_value();
 }
 
+#define CHIP_ID_VERSION_MASK       0xffff
+#define CHIP_ID_VERSION_C_VLAUE    0x1022
+bool aon_pmu_hal_is_chipid_later_than_version_C(void)
+{
+	uint32_t chip_id = aon_pmu_ll_get_reg7c_value();
+	if((chip_id & CHIP_ID_VERSION_MASK) >= CHIP_ID_VERSION_C_VLAUE) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 void aon_pmu_hal_clear_wakeup_source(wakeup_source_t value)
 {
     uint32_t wakeup_source = 0;

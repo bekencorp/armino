@@ -350,6 +350,10 @@ if (CONFIG_AGORA_IOT_SDK_TEST)
 	list(APPEND srcs cli_agora.c)
 endif()
 
+if (CONFIG_ES8311_TEST)
+	list(APPEND srcs cli_es8311.c)
+endif()
+
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
 	REQUIRES utf8 temp_detect app driver user_driver bk_system iperf fatfs user_driver http adc_key

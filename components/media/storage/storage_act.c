@@ -177,6 +177,8 @@ static void storage_capture_save(frame_buffer_t *frame)
 		LOGE("f_write failed 1 fr = %d\r\n", fr);
 	}
 	f_close(&fp1);
+	
+	LOGI("save jpeg to sd card \n");
 #else  //save in flash
 	bk_err_t ret;
 	if (frame == NULL)
@@ -202,6 +204,8 @@ static void storage_capture_save(frame_buffer_t *frame)
 		LOGI("%s: storge to flsah error \n", __func__);
 	}
 	bk_flash_set_protect_type(FLASH_UNPROTECT_LAST_BLOCK);
+
+	LOGI("save jpeg to flash\n");
 #endif
 	LOGI("%s, complete\n", __func__);
 #if (CONFIG_ARCH_RISCV)
@@ -209,7 +213,8 @@ static void storage_capture_save(frame_buffer_t *frame)
 #else
 	after = 0;
 #endif
-	LOGI("save jpeg to sd/flash use %lu\n", (after - before) / 26000);
+	LOGD("save jpeg time %lu(ms)\n", (after - before) / 26000);
+
 }
 
 bk_err_t sdcard_read_filelen(char *filename)

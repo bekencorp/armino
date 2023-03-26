@@ -1861,6 +1861,11 @@ void sys_hal_ana_reg11_spi_trigger_set(uint32_t value)
 	//sys_ll_set_ana_reg11_spi_trigger(value);
 }
 
+void sys_hal_i2s0_ckdiv_set(uint32_t value)
+{
+	//NOT SUPPORT
+}
+
 /**  I2S End  **/
 
 /**  Touch Start **/

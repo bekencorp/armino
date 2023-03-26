@@ -1416,6 +1416,10 @@ int bk_cli_init(void)
 	cli_agora_init();
 #endif
 
+#if (CLI_CFG_ES8311 == 1)
+	cli_es8311_init();
+#endif
+
 #if (CONFIG_MEDIA == 1)
 	media_cli_init();
 #endif
@@ -1494,6 +1498,10 @@ int bk_cli_init(void)
 
 #if (CLI_CFG_SDIO_HOST == 1)
 	cli_sdio_host_init();
+#endif
+
+#if (CLI_CFG_SDIO_SLAVE == 1)
+	cli_sdio_slave_init();
 #endif
 
 #if (CLI_CFG_KEYVALUE == 1)

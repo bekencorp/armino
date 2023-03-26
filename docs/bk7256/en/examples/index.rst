@@ -12,3 +12,4 @@ Samples and Demos
    doorbell <doorbell/index>
    Command Line <cli/index>
    LVGL <lvgl/lvgl>
+   agora <agora/agora>

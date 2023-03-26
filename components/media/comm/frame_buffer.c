@@ -368,11 +368,6 @@ void frame_buffer_fb_push(frame_buffer_t *frame)
 
 	list_add_tail(&node->list, &mem_list->ready);
 
-	if (!isr_context)
-	{
-		GLOBAL_INT_RESTORE();
-		rtos_unlock_mutex(&mem_list->lock);
-	}
 
 	for (i = 0; i < MODULE_MAX; i++)
 	{
@@ -403,6 +398,12 @@ void frame_buffer_fb_push(frame_buffer_t *frame)
 			}
 		}
 	}
+
+    if (!isr_context)
+    {
+        GLOBAL_INT_RESTORE();
+        rtos_unlock_mutex(&mem_list->lock);
+    }
 }
 
 

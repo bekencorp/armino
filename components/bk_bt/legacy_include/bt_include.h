@@ -92,6 +92,8 @@ bt_err_t bk_bt_inquiry(
                 bt_cmd_cb_t callback);
 
 bt_err_t bk_bt_disconnect(uint8_t *addr, uint8_t reason, bt_cmd_cb_t callback);
+bt_err_t bk_bt_write_scan_enable(uint8_t scan_enable, bt_cmd_cb_t callback);
+bt_err_t bk_bt_read_scan_enable(bt_cmd_cb_t callback);
 
 bt_err_t bk_bt_spp_init(void* bt_spp_event_notify_cb);
 bt_err_t bk_bt_spp_connect(uint8_t *addr, uint8_t server_channel, uint32_t spp_handle, bt_cmd_cb_t callback);
@@ -99,12 +101,9 @@ bt_err_t bk_bt_spp_start(uint32_t* spp_handle, uint8_t *local_server_channel, ui
 bt_err_t bk_bt_spp_tx(uint32_t spp_handle, char *data, uint16_t len, bt_cmd_cb_t callback);
 bt_err_t bk_bt_sdp(uint16_t conn_handle, uint8_t *peer_addr, bt_cmd_cb_t callback);
 
-bt_err_t bk_bt_write_scan_enable(uint8_t scan_enable, bt_cmd_cb_t callback);
-bt_err_t bk_bt_read_scan_enable(bt_cmd_cb_t callback);
 
-void bk_bt_set_event_callback(void *cb);
 
-bt_err_t bk_bt_a2dp_sink_init(uint8_t aac_supported, void *cb);
+
 bt_err_t bk_bt_hfp_unit_init(uint8_t msbc_supported, void *cb);
 bt_err_t bk_bt_voice_out_write(uint8_t *data, uint16_t len);
 bt_err_t bk_bt_opp_server_init(void *cb);

@@ -153,3 +153,12 @@ The supported CMDs are as follows:
 
      - Attention
         Currently, CS2 P2P server/client can't be enable at the same time. CS2 P2P API reference components/bk_thirdparty/P2P/CS2/include/PPCS_API.h
+
+     - How to get test ID
+        | Please contract CS2 Inc.
+
+     - ShenZhen CS2 network Tech Inc.
+        | Room 2002B, Building 3, D part, Tian An Yun Gu center, north of Xuegang Road, Longgang Area, Shenzhen
+        | +86 755 36600360
+        | +86 755 36600361
+        | charlie@cs2-network.com

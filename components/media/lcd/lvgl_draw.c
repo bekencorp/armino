@@ -49,6 +49,7 @@ void lv_draw_sw_master_init(void)
     rtos_init_semaphore_ex(&g_sem, 1, 0);
 }
 
+#ifdef CONFIG_LVGL_DRAW_ON_CPU1
 void lv_draw_sw_blend_basic_to_slave(lv_draw_ctx_t * draw_ctx, const lv_draw_sw_blend_dsc_t * dsc)
 {
     mb_chnl_cmd_t mb_cmd;
@@ -78,11 +79,12 @@ void lv_draw_sw_blend_basic_to_slave(lv_draw_ctx_t * draw_ctx, const lv_draw_sw_
     return ;
 }
 #endif
+#endif
 
 #if CONFIG_SLAVE_CORE
 static void _mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 {
-#if LVGL_USE_PSRAM
+#ifdef CONFIG_LVGL_DRAW_ON_CPU1
     LOGD("%s, %08X\n", __func__, cmd_buf->hdr.cmd);
 
     if (cmd_buf->hdr.cmd == 0x18)

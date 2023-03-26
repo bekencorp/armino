@@ -335,6 +335,10 @@ extern "C" {
 #define CLI_CFG_AGORA        1
 #endif
 
+#if (CONFIG_ES8311_TEST && (!CONFIG_SLAVE_CORE))
+#define CLI_CFG_ES8311        1
+#endif
+
 #endif
 
 #ifdef __cplusplus

@@ -421,9 +421,10 @@ CONFIG_FM_I2C=y
 # end of I2C
 
 #
-# I2S
+# AUDIO
 #
-# end of I2S
+# CONFIG_AUDIO is not set
+# end of AUDIO
 
 #
 # PWM
@@ -464,6 +465,12 @@ CONFIG_FLASH=y
 # end of FLASH
 
 #
+# EXTERN_32K
+#
+# CONFIG_EXTERN_32K is not set
+# end of EXTERN_32K
+
+#
 # VAULT
 #
 # CONFIG_VAULT_SUPPORT is not set
@@ -475,6 +482,12 @@ CONFIG_FLASH=y
 # CONFIG_OTP is not set
 # end of OTP
 
+#
+# FFT
+#
+# CONFIG_FFT is not set
+# end of FFT
+
 # CONFIG_LCD is not set
 # CONFIG_LCD_QSPI is not set
 CONFIG_MAC_PHY_BYPASS=y
@@ -485,9 +498,6 @@ CONFIG_MAC_PHY_BYPASS=y
 # CONFIG_YUV_BUF is not set
 # CONFIG_JPEG_DEC is not set
 CONFIG_EFUSE=y
-# CONFIG_FFT is not set
-# CONFIG_AUDIO_RISCV_IP_V1_0 is not set
-# CONFIG_AUDIO_DSP_IP_V1_0 is not set
 # CONFIG_CHANGE_JTAG_GPIO is not set
 CONFIG_RESET_REASON=y
 # CONFIG_LCD_POWER_GPIO_CTRL is not set
@@ -529,7 +539,6 @@ CONFIG_TASK_RECONNECT_PRIO=4
 CONFIG_WIFI6_IP_DEBUG=y
 # CONFIG_STA_PS is not set
 # CONFIG_MAC_BSSID is not set
-# CONFIG_BK_COMPONENTS_P2P_GO is not set
 # CONFIG_COMPONENTS_STA_VSIE is not set
 # end of Bk_Wifi
 
@@ -569,7 +578,6 @@ CONFIG_IPERF_TEST=y
 # CONFIG_SHELL_ASYNCLOG is not set
 # CONFIG_TOUCH_TEST is not set
 # CONFIG_SBC_TEST is not set
-# CONFIG_AUDIO is not set
 CONFIG_ICU=y
 # CONFIG_SECURITYIP is not set
 # CONFIG_KEYVALUE is not set
@@ -689,6 +697,7 @@ CONFIG_BLE_WIFI_EXCHANGE=y
 # BTDM 5.2 Controller
 #
 CONFIG_ACLSEMI_BTC_FEATURE_INCLUDED=y
+CONFIG_BT_CONN_NUM=7
 # end of BTDM 5.2 Controller
 
 # CONFIG_BLE_HOST_ETHERMIND is not set

@@ -60,7 +60,7 @@ bool net_camera_task_running = false;
 net_camera_buffer_t *net_camera_buf = NULL;
 net_camera_param_t net_camera_param = {0};
 net_camera_pool_t net_camera_pool;
-
+static beken_semaphore_t s_recv_video_data_sem;
 
 const net_camera_config_t net_camera_config =
 {
@@ -256,25 +256,35 @@ static void net_camera_process_packet(uint8_t *data, uint32_t length)
 static void net_camera_task_entry(beken_thread_arg_t data)
 {
 	net_camera_elem_t *elem = NULL;
+    bk_err_t err = 0;
 	net_camera_buf->start_buf = BUF_STA_INIT;
 	net_camera_task_running = true;
 
 	while (net_camera_task_running)
 	{
-		elem = (net_camera_elem_t *)co_list_pick(&net_camera_pool.ready);
-		if (elem)
-		{
-			net_camera_process_packet(elem->buf_start, elem->buf_len);
+	    err = rtos_get_semaphore(&s_recv_video_data_sem, 1000);
 
-			co_list_pop_front(&net_camera_pool.ready);
-			co_list_push_back(&net_camera_pool.free, (struct co_list_hdr *)&elem->hdr);
-		}
-		else
+	    if(!net_camera_task_running)
+	    {
+	        break;
+	    }
+
+	    if(err != 0)
+	    {
+	        LOGD("%s get sem timeout\n", __func__);
+	        continue;
+	    }
+
+		while((elem = (net_camera_elem_t *)co_list_pick(&net_camera_pool.ready)) != NULL)
 		{
-			rtos_delay_milliseconds(20);
+            net_camera_process_packet(elem->buf_start, elem->buf_len);
+
+            co_list_pop_front(&net_camera_pool.ready);
+            co_list_push_back(&net_camera_pool.free, (struct co_list_hdr *)&elem->hdr);
 		}
 	};
 
+	rtos_deinit_semaphore(&s_recv_video_data_sem);
 	net_camera_task = NULL;
 	rtos_delete_thread(NULL);
 
@@ -348,6 +358,13 @@ bk_err_t bk_net_camera_open(media_ppi_t ppi, media_camera_type_t type)
 		goto error;
 	}
 
+	ret = rtos_init_semaphore(&s_recv_video_data_sem, 1);
+
+    if (BK_OK != ret)
+    {
+        LOGE("%s semaphore init failed\n", __func__);
+        goto error;
+    }
 	ret = rtos_create_thread(&net_camera_task,
 	                         6,
 	                         "net_camera_task",
@@ -357,7 +374,7 @@ bk_err_t bk_net_camera_open(media_ppi_t ppi, media_camera_type_t type)
 
 	if (BK_OK != ret)
 	{
-		LOGE("%s transfer_task init failed\n");
+		LOGE("%s transfer_task init failed\n", __func__);
 		goto error;
 	}
 
@@ -416,6 +433,7 @@ uint32_t bk_net_send_data(uint8_t *data, uint32_t length, video_send_type_t type
 
 		co_list_pop_front(&net_camera_pool.free);
 		co_list_push_back(&net_camera_pool.ready, (struct co_list_hdr *)&elem->hdr);
+		rtos_set_semaphore(&s_recv_video_data_sem);
 	}
 	else
 	{

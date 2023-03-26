@@ -1,0 +1,14 @@
+menu "Demos::USB::uvc_ota"
+
+	menu "Modify USB Demo Config"
+		depends on USB && HTTP
+			config UVC_OTA_DEMO
+				bool "Enable Uvc ota demo"
+				default n
+				help
+					Enable uvc ota interface And Requires an HTTP module
+	endmenu
+
+
+
+endmenu

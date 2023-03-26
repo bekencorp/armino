@@ -29,6 +29,7 @@
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
 #define RECV_BUFF_SIZE (3 * 1024)
+#define THROUGHPUT_ANLAYSE_MS (2000)
 
 enum
 {
@@ -57,6 +58,12 @@ static media_ppi_t lcd_ppi = PPI_480X272;
 static char lcd_name[10] = {'0'};
 static uint8_t s_tran_type = TRANSFER_TYPE_NONE;
 
+static beken_timer_t s_throughput_timer;
+
+static volatile uint32_t s_send_audio_bytes = 0;
+static volatile uint32_t s_recv_total_bytes = 0;
+static volatile uint32_t s_recv_video_bytes = 0;
+static volatile uint32_t s_recv_audio_bytes = 0;
 
 static aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
 static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
@@ -216,6 +223,8 @@ static int av_cs2_p2p_voice_server_send_packet(unsigned char *data, unsigned int
     }
     while (index < len);
 
+    s_send_audio_bytes += len;
+
 #if 0
 
     if (send_byte < len)
@@ -301,6 +310,19 @@ static void cs2_p2p_server_aud_voc_stop(void)
 }
 
 
+static void throughput_anlayse_timer_hdl(void *param)
+{
+    BK_LOGI("cs2_tp", "send audio %.3f, recv video %.3f audio %.3f total %.3f KB/s\n",
+            (float)(s_send_audio_bytes / (THROUGHPUT_ANLAYSE_MS / 1000) / 1024.0),
+            (float)(s_recv_video_bytes / (THROUGHPUT_ANLAYSE_MS / 1000) / 1024.0),
+            (float)(s_recv_audio_bytes / (THROUGHPUT_ANLAYSE_MS / 1000) / 1024.0),
+            (float)(s_recv_total_bytes / (THROUGHPUT_ANLAYSE_MS / 1000) / 1024.0));
+
+    s_recv_total_bytes = s_send_audio_bytes = s_recv_video_bytes = s_recv_audio_bytes = 0;
+
+    return;
+}
+
 static int8_t before_start(void)
 {
     s_recv_buff = os_malloc(RECV_BUFF_SIZE);
@@ -329,6 +351,27 @@ static int8_t before_start(void)
         cs2_p2p_server_aud_voc_start();
     }
 
+
+    if (rtos_is_timer_init(&s_throughput_timer))
+    {
+        if (rtos_is_timer_running(&s_throughput_timer))
+        {
+            rtos_stop_timer(&s_throughput_timer);
+        }
+
+        rtos_deinit_timer(&s_throughput_timer);
+    }
+
+    if (!rtos_is_timer_init(&s_throughput_timer))
+    {
+        //        rtos_init_timer(&bt_a2dp_source_write_timer, inter, bt_a2dp_source_write_from_file_timer_hdl, (void *)&pcm_file_fd);
+        rtos_init_timer(&s_throughput_timer, THROUGHPUT_ANLAYSE_MS, throughput_anlayse_timer_hdl, NULL);
+
+    }
+
+
+    rtos_change_period(&s_throughput_timer, THROUGHPUT_ANLAYSE_MS);
+    rtos_start_timer(&s_throughput_timer);
     return 0;
 
 out:;
@@ -339,6 +382,16 @@ out:;
 static int8_t after_end(void)
 {
     LOGE("%s\n", __func__);
+
+    if (rtos_is_timer_init(&s_throughput_timer))
+    {
+        if (rtos_is_timer_running(&s_throughput_timer))
+        {
+            rtos_stop_timer(&s_throughput_timer);
+        }
+
+        rtos_deinit_timer(&s_throughput_timer);
+    }
 
     if (s_tran_type & TRANSFER_TYPE_AUDIO)
     {
@@ -400,6 +453,9 @@ static int32_t recv_callback(uint8_t channel, uint8_t *buff, uint32_t len)
 
         //GLOBAL_INT_DIS();
         //GLOBAL_INT_RES();
+
+        s_recv_total_bytes += len;
+
         switch (channel)
         {
         case CS2_P2P_CHANNEL_CMD:
@@ -408,6 +464,8 @@ static int32_t recv_callback(uint8_t channel, uint8_t *buff, uint32_t len)
 
         case CS2_P2P_CHANNEL_IMG:
         {
+            s_recv_video_bytes += len;
+
             if ((s_tran_type & TRANSFER_TYPE_VIDEO) && len > 0)
             {
 
@@ -508,6 +566,9 @@ static int32_t recv_callback(uint8_t channel, uint8_t *buff, uint32_t len)
 
 
         case CS2_P2P_CHANNEL_VOICE:
+
+            s_recv_audio_bytes += len;
+
             if (s_tran_type & TRANSFER_TYPE_AUDIO)
             {
                 bk_aud_intf_write_spk_data(buff, len);

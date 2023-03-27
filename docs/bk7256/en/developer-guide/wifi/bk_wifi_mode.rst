@@ -1,6 +1,8 @@
 Wi-Fi AP/STA/P2P Mode Example
 =============================================
 
+:link_to_translation:`zh_CN:[中文]`
+
 This chapter shows three modes of BEKEN Wi-Fi module: STA、SoftAP、P2P.
 
 - Wi-Fi Enables STA mode

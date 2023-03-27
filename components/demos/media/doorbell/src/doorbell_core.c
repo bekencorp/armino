@@ -52,7 +52,30 @@ void cli_doorbell_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 	{
 		ret = demo_doorbell_udp_server_init(argc - 2, &argv[2]);
 	}
+	else if (os_strcmp(argv[1], "tcp_c") == 0)
+	{
+		ret = demo_doorbell_tcp_client_init(argc - 2, &argv[2]);
+	}
+	else if (os_strcmp(argv[1], "tcp_s") == 0)
+	{
+		ret = demo_doorbell_tcp_server_init(argc - 2, &argv[2]);
+	}
+#if CONFIG_CS2_P2P_SERVER
+    else if (os_strcmp(argv[1], "cs2_p2p_server") == 0)
+    {
+        ret = demo_doorbell_cs2_p2p_server_init(argc - 2, &argv[2]);
+    }
 #endif
+
+#if CONFIG_CS2_P2P_CLIENT
+    else if (os_strcmp(argv[1], "cs2_p2p_client") == 0)
+    {
+        ret = demo_doorbell_cs2_p2p_client_init(argc - 2, &argv[2]);
+    }
+#endif
+
+#endif
+
 	else
 	{
 		ret = demo_doorbell_udp_init();

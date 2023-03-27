@@ -1,5 +1,7 @@
-menu "DEMOS_CONFIG"
+menu "Demos::Media::Audio::Rsp"
 	config AUDIO_RSP_TEST
-		bool "Enable AUDIO Resample Test"
+		bool "Enable Audio Rsp Test"
 		default n
+		help
+			Enable AUDIO Resample Test
 endmenu

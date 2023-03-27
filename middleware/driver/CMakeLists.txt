@@ -67,6 +67,7 @@ set(srcs
 	security/hal_aes.c
 	security/hal_sha.c
 	spinlock/amp_res_lock.c
+	pwr_clk/pwr_clk.c
 	)
 if (CONFIG_AON_WDT)
 	list(APPEND incs
@@ -94,9 +95,14 @@ if (CONFIG_FLASH_ORIGIN_API)
 	)
 endif()
 
-if (NOT CMAKE_BUILD_EARLY_EXPANSION)
-add_subdirectory(prro)
-add_subdirectory(h264)
+if (CONFIG_PRRO)
+	list(APPEND incs
+		prro
+	)
+
+	list(APPEND srcs
+		prro/prro_driver.c
+	)
 endif()
 
 if (CONFIG_CHIP_SUPPORT)
@@ -255,6 +261,12 @@ endif()
 if (CONFIG_LCD_ST7710S)
 	list(APPEND srcs
 		"lcd/lcd_st7710s.c"
+		)
+endif()
+
+if (CONFIG_LCD_ST7701S)
+	list(APPEND srcs
+		"lcd/lcd_st7701s.c"
 		)
 endif()
 
@@ -436,16 +448,6 @@ if (CONFIG_SOC_BK7251)
 		"audio/ring_buffer_dma_write.c"
 		)
 endif()
-
-if (CONFIG_SOC_BK7236)
-	list(APPEND incs
-		"audio"
-		)
-	list(APPEND srcs
-		"audio/aud_driver_v1_1.c"
-		)
-endif()
-
 endif() #if (CONFIG_AUDIO)
 
 if (CONFIG_TOUCH)
@@ -546,6 +548,28 @@ if (CONFIG_USB_UVC)
 		"camera/uvc_sensor_devices.c"
 		)
 endif()
+
+if (CONFIG_VAULT_SUPPORT)
+	list(APPEND incs
+		"vault"
+	)
+
+	list(APPEND srcs
+		"vault/vault_driver.c"
+	)
+	
+	if (CONFIG_OTP)
+		list(APPEND incs
+			"otp"
+		)
+
+		list(APPEND srcs
+			"otp/otp_driver.c"
+		)
+	endif()
+endif()
+
+
 
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"

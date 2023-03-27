@@ -330,24 +330,13 @@ bool bk_timer_is_interrupt_triggered(timer_id_t timer_id)
     return timer_hal_is_interrupt_triggered(&s_timer.hal, timer_id, int_status);
 }
 
-uint32_t timer_clear_isr_status(void)
+static void timer_isr(void)
 {
-	uint32_t int_status;
     timer_hal_t *hal = &s_timer.hal;
+    uint32_t int_status = 0;
 
     int_status = timer_hal_get_interrupt_status(hal);
     timer_hal_clear_interrupt_status(hal, int_status);
-
-	return int_status;
-}
-
-static void timer_isr(void)
-{
-    uint32_t int_status;
-    timer_hal_t *hal = &s_timer.hal;
-
-    int_status = timer_clear_isr_status();
-
 #if (SOC_TIMER_INTERRUPT_NUM > 1)
      for(int chan = 0; chan < SOC_TIMER_CHAN_NUM_PER_GROUP; chan++) {
 #else
@@ -364,11 +353,11 @@ static void timer_isr(void)
 #if (SOC_TIMER_INTERRUPT_NUM > 1)
 static void timer1_isr(void)
 {
-    uint32_t int_status;
     timer_hal_t *hal = &s_timer.hal;
+    uint32_t int_status = 0;
 
-    int_status = timer_clear_isr_status();
-
+    int_status = timer_hal_get_interrupt_status(hal);
+    timer_hal_clear_interrupt_status(hal, int_status);
     for(int chan = SOC_TIMER_CHAN_NUM_PER_GROUP; chan < SOC_TIMER_CHAN_NUM_PER_UNIT; chan++) {
         if(timer_hal_is_interrupt_triggered(hal, chan, int_status)) {
             if(s_timer_isr[chan]) {

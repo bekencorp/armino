@@ -28,7 +28,7 @@
 #include "jpeg_dec_hal.h"
 #include <driver/hal/hal_jpeg_dec_types.h>
 #include "driver/jpeg_dec_types.h"
-#include "system_hw.h"
+#include "sys_ll_op_if.h"
 #include <driver/media_types.h>
 
 
@@ -96,8 +96,6 @@ static uint16_t jpeg_dec_input_func (JDEC* jd, uint8_t* buff, uint16_t ndata)
  */
 int jpg_decoder_init(void)
 {
-	jpeg_dec_ll_set_reg0x2_soft_reset(1);
-	jpeg_dec_ll_set_reg0x2_clk_gate(1);
 	jpg_dec_st.scale_ratio = 0;
 	jpg_dec_st.rd_ptr = 0;//init rd pointer
 	jpg_dec_st.jpg_file_size = 1024;
@@ -606,25 +604,25 @@ static int jpg_dec_config(uint16_t xpixel, uint16_t ypixel, uint32_t length, uns
 }
 void jpeg_dec_block_int_en(bool auto_int_en)
 {
-	jpeg_dec_ll_set_reg0x52_jpeg_dec_auto(0);
+	jpeg_dec_ll_set_reg0x2_jpeg_dec_auto(0);
 //	jpeg_dec_ll_set_reg0x5e_dec_frame_int(auto_int_en);
 	jpeg_dec_ll_set_reg0x5e_dec_totalbusy_int(1);
 }
 
 void jpeg_dec_auto_frame_end_int_en(bool auto_int_en)
 {
-	jpeg_dec_ll_set_reg0x52_jpeg_dec_auto(auto_int_en);
+	jpeg_dec_ll_set_reg0x2_jpeg_dec_auto(auto_int_en);
 	jpeg_dec_ll_set_reg0x5e_dec_frame_int(auto_int_en);
-	jpeg_dec_ll_set_reg0x52_jpeg_dec_linen(0);
-	jpeg_dec_ll_set_reg0x52_jpeg_line_num(0);
+	jpeg_dec_ll_set_reg0x2_jpeg_dec_linen(0);
+	jpeg_dec_ll_set_reg0x2_jpeg_line_num(0);
 }
 
 void jpeg_dec_auto_line_num_int_en(bool line_int_en )
 {
-	jpeg_dec_ll_set_reg0x52_jpeg_dec_auto(line_int_en);
+	jpeg_dec_ll_set_reg0x2_jpeg_dec_auto(line_int_en);
 	jpeg_dec_ll_set_reg0x5e_dec_frame_int(line_int_en);
-	jpeg_dec_ll_set_reg0x52_jpeg_dec_linen(line_int_en);
-//	jpeg_dec_ll_set_reg0x52_jpeg_line_num(line_num);
+	jpeg_dec_ll_set_reg0x2_jpeg_dec_linen(line_int_en);
+//	jpeg_dec_ll_set_reg0x2_jpeg_line_num(line_num);
 }
 
 JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * output_buf, uint32_t *ppi)
@@ -780,7 +778,7 @@ JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * ou
 	*ppi = ((jpg_dec_st.width<<16) | (jpg_dec_st.heigth));
 	jpg_dec_config(jpg_dec_st.width, jpg_dec_st.heigth, length, input_buf, output_buf);
 #if (USE_LINE_INT_JPEG_DEC == 1)
-	jpeg_dec_ll_set_reg0x52_jpeg_line_num(2);  //UVC 640*480 LINE24 int 480 / ((2+1)*8) = 480/24=20 times int every 24 line decode
+	jpeg_dec_ll_set_reg0x2_jpeg_line_num(2);  //UVC 640*480 LINE24 int 480 / ((2+1)*8) = 480/24=20 times int every 24 line decode
 #endif
 
 	return JDR_OK;
@@ -801,7 +799,7 @@ JRESULT jd_decomp(void)
 {
 	//uint16_t	mx, my;
 	JRESULT rc;
-	jpeg_dec_ll_set_reg0x50_jpeg_dec_en(1);
+	jpeg_dec_ll_set_reg0x0_jpeg_dec_en(1);
 	jpeg_dec_ll_set_reg0x5_mcu_x(0);
 	jpeg_dec_ll_set_reg0x6_mcu_y(0);
 	//mx = jd->msx * 8; my = jd->msy * 8;			/* Size of the MCU (pixel) */
@@ -812,63 +810,3 @@ JRESULT jd_decomp(void)
 	jpeg_dec_ll_set_reg0x8_dec_cmd(JPEGDEC_START);
 	return rc;
 }
-
-uint32_t jpeg_dec_hal_get_jpeg_dec_linen()
-{
-	return jpeg_dec_ll_get_reg0x52_jpeg_dec_linen();
-}
-
-uint32_t jpeg_dec_hal_get_mcu_index()
-{
-	return jpeg_dec_ll_get_reg0x51_mcu_index();
-}
-
-uint32_t jpeg_dec_hal_get_master_rd_cnt()
-{
-	return jpeg_dec_ll_get_reg0x5d_master_rd_cnt();
-}
-
-uint32_t jpeg_dec_hal_get_base_raddr()
-{
-	return jpeg_dec_ll_get_reg0x58_base_raddr();
-}
-
-uint32_t jpeg_dec_hal_get_int_status_value()
-{
-	return jpeg_dec_ll_get_reg0x5f_value();
-}
-
-void jpeg_dec_hal_set_mcu_x(uint32_t value)
-{
-	jpeg_dec_ll_set_reg0x5_mcu_x(value);
-}
-
-void jpeg_dec_hal_set_mcu_y(uint32_t value)
-{
-	jpeg_dec_ll_set_reg0x6_mcu_y(value);
-}
-void jpeg_dec_hal_set_dec_cmd(uint32_t value)
-{
-	jpeg_dec_ll_set_reg0x8_dec_cmd(value);
-}
-
-void jpeg_dec_hal_set_int_status_value(uint32_t value)
-{
-	jpeg_dec_ll_set_reg0x5f_value(value);
-}
-
-void jpeg_dec_hal_set_uv_vld_value(uint32_t value)
-{
-	jpeg_dec_ll_set_reg0x53_value(value);
-}
-
-void jpeg_dec_hal_set_jpeg_dec_en(uint32_t value)
-{
-	jpeg_dec_ll_set_reg0x50_jpeg_dec_en(value);
-}
-
-void jpeg_dec_hal_set_dec_frame_int_clr(uint32_t value)
-{
-	jpeg_dec_ll_set_reg0x5f_dec_frame_int_clr(value);
-}
-

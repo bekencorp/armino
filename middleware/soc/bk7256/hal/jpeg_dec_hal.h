@@ -84,20 +84,6 @@ int jpg_decoder_init(void);
 
 int jpg_decoder_deinit(void);
 
-uint32_t jpeg_dec_hal_get_jpeg_dec_linen();
-uint32_t jpeg_dec_hal_get_mcu_index();
-uint32_t jpeg_dec_hal_get_master_rd_cnt();
-uint32_t jpeg_dec_hal_get_base_raddr();
-uint32_t jpeg_dec_hal_get_int_status_value();
-void jpeg_dec_hal_set_mcu_x(uint32_t value);
-void jpeg_dec_hal_set_mcu_y(uint32_t value);
-void jpeg_dec_hal_set_dec_cmd(uint32_t value);
-void jpeg_dec_hal_set_int_status_value(uint32_t value);
-void jpeg_dec_hal_set_uv_vld_value(uint32_t value);
-void jpeg_dec_hal_set_jpeg_dec_en(uint32_t value);
-void jpeg_dec_hal_set_dec_frame_int_clr(uint32_t value);
-
-
 #ifdef __cplusplus
 }
 #endif

@@ -218,23 +218,21 @@ int32_t dubhe_wait_event( dubhe_event_type_t dubhe_event )
 
     return ret;
 #else
-    int ret = -1;
+    int ret        = -1;
     uint32_t signal;
-
     do {
         signal = pal_wait_signal( _g_signal_mask, 0 );
         if ( _g_signal_mask == signal ) {
             ret = dubhe_intr_sync_handler( dubhe_event );
             pal_clear_signal( _g_signal_mask );
-
             switch ( dubhe_event ) {
             case DBH_EVENT_SCA_CMD_EXCUTED:
-                if (( ret != -1 ) && ( ret < 0 )) {
+                if ( ret < 0 ) {
                     return ret;
                 }
                 break;
             case DBH_EVENT_HASH_CMD_EXCUTED:
-                if (( ret != -1 ) && ( ret < 0 )) {
+                if ( ret < 0 ) {
                     return ret;
                 }
                 break;
@@ -244,7 +242,7 @@ int32_t dubhe_wait_event( dubhe_event_type_t dubhe_event )
                 break;
             }
         }
-    } while ( ret == -1 );
+    } while ( ret != 0 );
 
     return ( 0 );
 #endif

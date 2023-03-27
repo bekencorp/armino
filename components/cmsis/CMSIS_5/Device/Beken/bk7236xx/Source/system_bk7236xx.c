@@ -68,9 +68,7 @@ void SystemInit (void)
 #endif
 
 #if defined (__ARM_FEATURE_CMSE) && (__ARM_FEATURE_CMSE == 3U)
-#if CONFIG_SPE
   TZ_SAU_Setup();
-#endif
 #endif
 
   SystemCoreClock = SYSTEM_CLOCK;

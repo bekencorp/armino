@@ -39,11 +39,9 @@
 #include "los_debug.h"
 #include "los_hook.h"
 #include "riscv_hal.h"
-#include "los_tick.h"
-#include "soc_common.h"
 
 
-// LosExcInfo g_excInfo;
+LosExcInfo g_excInfo;
 #define RISCV_EXC_TYPE_NUM 16
 #define RISCV_EXC_LOAD_MISALIGNED 4
 #define RISCV_EXC_STORE_MISALIGNED 6
@@ -67,24 +65,35 @@ const CHAR g_excInformation[RISCV_EXC_TYPE_NUM][50] = {
 };
 
 LITE_OS_SEC_BSS UINT32  g_intCount = 0;
-
-#if 0
 LITE_OS_SEC_BSS UINT32 g_hwiFormCnt[OS_HWI_MAX_NUM];
 LITE_OS_SEC_DATA_INIT HWI_HANDLE_FORM_S g_hwiForm[OS_HWI_MAX_NUM] = {
-    { .pfnHook = HalHwiDefaultHandler, .uwParam = 0 }, // 0 User software interrupt handler
-    { .pfnHook = HalHwiDefaultHandler, .uwParam = 0 }, // 1 Supervisor software interrupt handler
-    { .pfnHook = HalHwiDefaultHandler, .uwParam = 0 }, // 2 Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 0 User software interrupt handler
+    { .pfnHook = NULL, .uwParam = 0 }, // 1 Supervisor software interrupt handler
+    { .pfnHook = NULL, .uwParam = 0 }, // 2 Reserved
     { .pfnHook = HalHwiDefaultHandler, .uwParam = 0 }, // 3 Machine software interrupt handler
-    { .pfnHook = HalHwiDefaultHandler, .uwParam = 0 }, // 4 User timer interrupt handler
-    { .pfnHook = HalHwiDefaultHandler, .uwParam = 0 }, // 5 Supervisor timer interrupt handler
-    { .pfnHook = HalHwiDefaultHandler, .uwParam = 0 }, // 6  Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 4 User timer interrupt handler
+    { .pfnHook = NULL, .uwParam = 0 }, // 5 Supervisor timer interrupt handler
+    { .pfnHook = NULL, .uwParam = 0 }, // 6  Reserved
     { .pfnHook = HalHwiDefaultHandler, .uwParam = 0 }, // 7 Machine timer interrupt handler
-    { .pfnHook = HalHwiDefaultHandler, .uwParam = 0 }, // 8  User external interrupt handler
-    { .pfnHook = HalHwiDefaultHandler, .uwParam = 0 }, // 9 Supervisor external interrupt handler
-    { .pfnHook = HalHwiDefaultHandler, .uwParam = 0 }, // 10 Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 8  User external interrupt handler
+    { .pfnHook = NULL, .uwParam = 0 }, // 9 Supervisor external interrupt handler
+    { .pfnHook = NULL, .uwParam = 0 }, // 10 Reserved
     { .pfnHook = HalHwiDefaultHandler, .uwParam = 0 }, // 11 Machine external interrupt handler
+    { .pfnHook = HalHwiDefaultHandler, .uwParam = 0 }, // 12 NMI handler
+    { .pfnHook = NULL, .uwParam = 0 }, // 13 Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 14 Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 15 Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 16 Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 17 Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 18 Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 19 Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 20 Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 21 Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 22 Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 23 Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 24 Reserved
+    { .pfnHook = NULL, .uwParam = 0 }, // 25 Reserved
 };
-#endif
 
 LITE_OS_SEC_TEXT_INIT VOID HalHwiDefaultHandler(VOID *arg)
 {
@@ -96,16 +105,12 @@ LITE_OS_SEC_TEXT_INIT VOID HalHwiDefaultHandler(VOID *arg)
 
 LITE_OS_SEC_TEXT_INIT VOID HalHwiInit(VOID)
 {
-	#if 0
     UINT32 index;
-    for (index = 0; index < OS_HWI_MAX_NUM; index++) {
+    for (index = OS_RISCV_SYS_VECTOR_CNT; index < OS_HWI_MAX_NUM; index++) {
         g_hwiForm[index].pfnHook = HalHwiDefaultHandler;
         g_hwiForm[index].uwParam = 0;
     }
-	#endif
 }
-
-extern void mext_interrupt(void);
 
 typedef VOID (*HwiProcFunc)(VOID *arg);
 __attribute__((section(".interrupt.text"))) VOID HalHwiInterruptDone(HWI_HANDLE_T hwiNum)
@@ -114,33 +119,17 @@ __attribute__((section(".interrupt.text"))) VOID HalHwiInterruptDone(HWI_HANDLE_
 
     OsHookCall(LOS_HOOK_TYPE_ISR_ENTER, hwiNum);
 
-	#if 0
     HWI_HANDLE_FORM_S *hwiForm = &g_hwiForm[hwiNum];
     HwiProcFunc func = (HwiProcFunc)(hwiForm->pfnHook);
     func(hwiForm->uwParam);
 
     ++g_hwiFormCnt[hwiNum];
-	#endif
-
-	if(hwiNum == RISCV_USER_EXT_IRQ)
-	{
-		mext_interrupt();
-	}
-	else if(hwiNum == RISCV_USER_TIMER_IRQ)
-	{
-		OsTickHandler();
-	}
-	else
-	{
-		HalHwiDefaultHandler(0);
-	}
 
     OsHookCall(LOS_HOOK_TYPE_ISR_EXIT, hwiNum);
 
     g_intCount--;
 }
 
-#if 0
 LITE_OS_SEC_TEXT UINT32 HalGetHwiFormCnt(HWI_HANDLE_T hwiNum)
 {
     if (hwiNum < OS_HWI_MAX_NUM) {
@@ -154,14 +143,13 @@ LITE_OS_SEC_TEXT HWI_HANDLE_FORM_S *HalGetHwiForm(VOID)
 {
     return g_hwiForm;
 }
-#endif
+
 
 inline UINT32 HalIsIntActive(VOID)
 {
     return (g_intCount > 0);
 }
 
-#if 0
 /*****************************************************************************
  Function    : HalHwiCreate
  Description : create hardware interrupt
@@ -200,6 +188,10 @@ LITE_OS_SEC_TEXT UINT32 HalHwiCreate(HWI_HANDLE_T hwiNum,
     g_hwiForm[hwiNum].pfnHook = hwiHandler;
     g_hwiForm[hwiNum].uwParam = (VOID *)irqParam;
 
+    if (hwiNum >= OS_RISCV_SYS_VECTOR_CNT) {
+        HalSetLocalInterPri(hwiNum, hwiPrio);
+    }
+
     LOS_IntRestore(intSave);
 
     return LOS_OK;
@@ -225,9 +217,7 @@ LITE_OS_SEC_TEXT UINT32 HalHwiDelete(HWI_HANDLE_T hwiNum)
     LOS_IntRestore(intSave);
     return LOS_OK;
 }
-#endif
 
-#if 0
 STATIC VOID DisplayTaskInfo(VOID)
 {
     TSK_INFO_S taskInfo;
@@ -274,9 +264,9 @@ STATIC VOID ExcInfoDisplayContext(const LosExcInfo *exc)
     PRINTK("mtval      = 0x%x\n", exc->context->mtval);
     PRINTK("mcause     = 0x%x\n", exc->context->mcause);
     PRINTK("ra         = 0x%x\n", taskContext->ra);
-//    PRINTK("sp         = 0x%x\n", taskContext->sp);
+    PRINTK("sp         = 0x%x\n", taskContext->sp);
     PRINTK("gp         = 0x%x\n", exc->context->gp);
-//    PRINTK("tp         = 0x%x\n", taskContext->tp);
+    PRINTK("tp         = 0x%x\n", taskContext->tp);
     PRINTK("t0         = 0x%x\n", taskContext->t0);
     PRINTK("t1         = 0x%x\n", taskContext->t1);
     PRINTK("t2         = 0x%x\n", taskContext->t2);
@@ -360,5 +350,4 @@ SYSTEM_DEATH:
     while (1) {
     }
 }
-#endif
 

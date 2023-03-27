@@ -54,7 +54,7 @@ static inline gpio_id_t uart_ll_get_tx_pin(uart_id_t id)
 		case UART_ID_2:
 			return UART3_LL_TX_PIN;
 		default:
-			return GPIO_NUM;
+			return SOC_GPIO_NUM;
 	}
 }
 
@@ -69,7 +69,7 @@ static inline gpio_id_t uart_ll_get_rx_pin(uart_id_t id)
 		case UART_ID_2:
 			return UART3_LL_RX_PIN;
 		default:
-			return GPIO_NUM;
+			return SOC_GPIO_NUM;
 	}
 }
 

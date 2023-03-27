@@ -1,7 +1,9 @@
 概述
 =====================
 
-BK7235具有安全模块BK130，实现了安全启动、安全调试、flash加解密等功能，可以通过烧写eFUSE相关bit位开启。
+:link_to_translation:`en:[English]`
+
+BK7235具有安全模块BK130，实现了安全启动、flash加解密等功能，可以通过烧写eFUSE相关bit位开启。
 BK130可防止密钥和其他敏感数据被未经授权的应用程序使用，内部的OTP和ROM允许安全存储密钥材料和其他安全数据,
 支持加密算法的硬件实现。
 
@@ -29,11 +31,13 @@ BK130安全模块具有以下功能：
 1.eFUSE的32个字节定义：
 +++++++++++++++++++++++++
 
- - Byte 0~15   ： Reserved for user
- - Byte 16~23  ： Firmware usage，UID
- - Byte 24~29  ： Firmware usage，MAC
+ - Byte 00~10  ： unused
+ - Byte 11~29  ： Firmware usage
  - Byte 30     ： used for system control
  - Byte 31     ： used for system control
+
+.. important::
+    eFuse大部分被固件和系统控制分配使用，未使用部分不提供给客户使用；非易失存储建议使用OTP。
 
 控制字节Byte31的位定义：
 -------------------------
@@ -41,7 +45,7 @@ BK130安全模块具有以下功能：
  - Bit 7： 1:close the JTAG interface; 0:use the JTAG interface
  - Bit 6： reserve
  - Bit 5： 1: enable FLASH AES encryption; 0: turn off FLASH AES encryption
- - Bit 4： reserve
+ - Bit 4： 1:read prohibition of bytes 0:15
  - Bit 3： 1:write prohibition of bytes 0:15
  - Bit 2： 1:write prohibition of bytes 16:23
  - Bit 1： 1:write prohibition of bytes 24:29
@@ -49,20 +53,24 @@ BK130安全模块具有以下功能：
 
 控制字节Byte30的位定义：
 -------------------------
- - Bit[0] :  Security Boot enable. 1: enable. 0: disable.
- - Bit[1] :  Security Boot printout control.  0: enable.  1: disable
- - Bit[2] :  fast boot.     0: deepsleep fast boot   1: deepsleep sb boot
- - Bit[6:3]: Reserve.
+ - Bit[0]  : Security Boot enable. 1: enable. 0: disable.
+ - Bit[1]  : Security Boot printout control.  0: enable.  1: disable
+ - Bit[2]  : Fast boot.     0: deepsleep fast boot   1: deepsleep sb boot
+ - Bit[6:3]: Analog control
+ - Bit[7]  : bootloader printout control.  0: disable.  1: enable(Default disable)
 
 2.OTP空间分配：
 +++++++++++++++++++++++++
 
     OTP分为4个bank：
 
- - bank0 ： Reserved for user, address range 0x4B004000 -- 0x4B0047FF
- - bank1 ： Firmware usage, address range 0x4B004800 -- 0x4B004FFF
- - bank2 ： For security, address range 0x4B005000 -- 0x4B0057FF
- - bank3 ： For bk130, address range 0x4B005800 -- 0x4B0058FF
+ - bank0 ： Reserved for user, 2k bytes
+ - bank1 ： Firmware usage, For security, 2k bytes
+ - bank2 ： Firmware usage, For security, 2k bytes
+ - bank3 ： For bk130
+
+.. important::
+    OTP bank0提供给客户使用，通过配置表进行配置后使用BKFIL工具写入，配置方法见 :doc:`bk_OTP_and_eFuse_usermenu<bk_OTP_and_eFuse_usermenu>`
 
 bank0：
 -------------------------
@@ -72,7 +80,7 @@ bank1：
 -------------------------
 固件进行使用和管理
 
- bl version、app version、ecdsa public key在安全功能开启时有效，不使用安全功能时该空间可由用户使用和管理。
+ bl version、app version、ecdsa public key在安全功能开启时有效。
 
 +------------------+---------------+---------------------+-----------------------------------+
 | content          | start address | allocate size(byte) | Description                       |
@@ -100,14 +108,20 @@ bank2：
 +------------------+---------------+---------------------+------------------------------------+
 | content          | start address | allocate size(byte) | Description                        |
 +==================+===============+=====================+====================================+
-| ecdsa public key | 0x4B0048B0    | ecdsa256: 64        | public key for BOOT ROM to verify  |
+| ecdsa public key | 0x4B0048B0    |                     | public key for BOOT ROM to verify  |
 |                  |               | ecdsa384: 96        | the signature of bootloader        |
 +------------------+---------------+---------------------+------------------------------------+
 | AES256 key       | 0x4B004918    | 32                  | used for image encryption on flash |
 +------------------+---------------+---------------------+------------------------------------+
 
-当安全功能关闭的时候，该bank可由用户进行使用和管理。
-
 bank3：
 -------------------------
 bk130模块内部使用和管理
+
+3.OTP和eFuse的配置及读写方法：
+++++++++++++++++++++++++++++++
+
+OTP和eFuse均为一次性存储器件，建议使用BKFIL工具进行写入。
+
+ - 使用配置文件config.json完成对需要读写内容的配置，配置方法见 :doc:`bk_OTP_and_eFuse_usermenu`
+ - 使用BKFIL工具加载config.json完成读写

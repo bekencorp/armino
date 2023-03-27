@@ -10,11 +10,6 @@ extern "C" {
  */
 
 
-typedef enum{
-	YUYV = 0,
-	UYVY,
-
-} yuv_mode_t;
 
 typedef struct{
 	uint32_t src_addr; /*<  src image addr*/

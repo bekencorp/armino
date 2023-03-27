@@ -16,7 +16,7 @@
 #include "platform.h"
 #include "boot.h"
 #include "cache.h"
-#include "aon_pmu_driver.h"
+
 
 extern void reset_vector(void);
 extern unsigned int g_sram_addr_map[SRAM_BLOCK_COUNT];
@@ -34,43 +34,41 @@ void smem_reset_lastblock(void)
 {
 #define MEMSET(s, c, n)         __builtin_memset ((s), (c), (n))
 	
-	MEMSET((void *)g_sram_addr_map[SRAM_BLOCK_MEM3], 0x0, SRAM_BLOCK_SIZE - (g_sram_addr_map[SRAM_BLOCK_MEM3] & (SRAM_BLOCK_SIZE - 1)));
+	MEMSET((void *)g_sram_addr_map[SRAM_BLOCK_MEM3], 0x0, SRAM_BLOCK_SIZE);
 	
-}
-
-void stack_mem_dump(uint32_t stack_top, uint32_t stack_bottom);
-void smem_dump_lastblock(void)
-{
-	unsigned int start_addr =  g_sram_addr_map[SRAM_BLOCK_MEM3];
-	unsigned int end_addr = start_addr + SRAM_BLOCK_SIZE;
-	
-	stack_mem_dump(start_addr, end_addr );	
 }
 
 void c_startup(void)
 {
 #define MEMCPY(des, src, n)     __builtin_memcpy ((des), (src), (n))
 #define MEMSET(s, c, n)         __builtin_memset ((s), (c), (n))
+	/* Data section initialization */
+	extern char  _edata, _end;
+	unsigned int size;
 
 #if !CONFIG_SLAVE_CORE
-	/* Init last sram block for BT/wifi TX-buffer/wifi Rx-buffer/etc. */
-	smem_reset_lastblock();
+	int i = 0;
+
+	/* Init all sram block */
+	for(i = 0; i < SRAM_BLOCK_COUNT; i++)
+	{
+		MEMSET((void *)g_sram_addr_map[i], 0x0, SRAM_BLOCK_SIZE);
+	}
 #endif
 
+#ifdef CFG_XIP
 	extern char _data_lmastart, _data_start;
 	extern char _itcm_lma_start, _itcm_ema_start, _itcm_lma_end;
 	extern char _dtcm_lma_start, _dtcm_ema_start, _dtcm_lma_end;
 	extern char _dtcm_bss_start, _dtcm_bss_end;
-	extern char  _edata, _end;
-	unsigned int size;
 
 	/*Copy ITCM section from LMA to VMA*/
+
 	size = &_itcm_lma_end - &_itcm_lma_start;
 	if(size!=0)
 	{
 		MEMCPY(&_itcm_ema_start, &_itcm_lma_start, size);
 	}
-
 	/*Copy DTCM section from LMA to VMA*/
 	size = &_dtcm_lma_end - &_dtcm_lma_start;
 	if(size!=0)
@@ -84,9 +82,6 @@ void c_startup(void)
 	{
 		MEMSET(&_dtcm_bss_start, 0, size);
 	}
-
-#if CONFIG_CACHE_ENABLE && (!CONFIG_SLAVE_CORE)
-	// copy cacheable data.
 #endif
 
 	/* Copy data section from LMA to VMA */
@@ -102,7 +97,6 @@ void c_startup(void)
 #endif
 }
 
-#if 0
 void system_init(void)
 {
 	/*
@@ -123,15 +117,8 @@ void system_init(void)
 	/* Enable misaligned access and non-blocking load. */
 	set_csr(NDS_MMISC_CTL, (1 << 8) | (1 << 6));
 }
-#endif
 
 void arch_init(void)
 {
 	//arch_enable_align_fault();
 }
-
-void arch_init_vector(uint32_t trap_vect)
-{
-	write_csr(NDS_UTVEC, trap_vect);
-}
-

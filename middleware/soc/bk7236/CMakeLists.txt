@@ -37,7 +37,6 @@ list(APPEND srcs
 	"hal/spi_hal_debug.c"
 	"hal/spi_ll.c"
 	"hal/sys_hal.c"
-	"hal/sys_hal_debug.c"
 	"hal/i2c_hal_debug.c"
 	"hal/i2c_ll.c"
 	"hal/jpeg_hal_debug.c"
@@ -48,7 +47,6 @@ list(APPEND srcs
 	"hal/flash_ll.c"
 	"hal/aon_rtc_hal_debug.c"
 	"hal/aon_pmu_hal.c"
-	"hal/aon_pmu_hal_debug.c"
 	"hal/sdio_hal_debug.c"
 	"hal/dma2d_hal.c"
 	"hal/dma2d_hal_debug.c"
@@ -58,7 +56,6 @@ list(APPEND srcs
 	"hal/lcd_disp_hal_debug.c"
 	"hal/yuv_buf_hal_debug.c"
 	"hal/sys_clock_hal_debug.c"
-	"hal/qspi_hal_debug.c"
 )
 
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" REQUIRES partitions)

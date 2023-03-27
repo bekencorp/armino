@@ -426,7 +426,7 @@ dhcp_select(struct netif *netif)
 #ifndef CONFIG_MIDEA
   msecs = (u16_t)((dhcp->tries < 6 ? 1 << dhcp->tries : 60) * 1000);
 #else
-  msecs = 200;
+  msecs = 200;	
 #endif
   dhcp->request_timeout = (u16_t)((msecs + DHCP_FINE_TIMER_MSECS - 1) / DHCP_FINE_TIMER_MSECS);
   LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_STATE, ("dhcp_select(): set request timeout %"U16_F" msecs\n", msecs));
@@ -1087,7 +1087,7 @@ dhcp_discover(struct netif *netif)
     }
     LWIP_HOOK_DHCP_APPEND_OPTIONS(netif, dhcp, DHCP_STATE_SELECTING, msg_out, DHCP_DISCOVER, &options_out_len);
 #if LWIP_NETIF_HOSTNAME
-    options_out_len = dhcp_option_hostname(options_out_len, msg_out->options, netif);
+    dhcp_option_hostname(options_out_len, (u8_t *)dhcp, netif);
 #endif /* LWIP_NETIF_HOSTNAME */
     dhcp_option_trailer(options_out_len, msg_out->options, p_out);
 
@@ -1840,7 +1840,7 @@ decode_next:
     /* make sure the string is really NULL-terminated */
     dhcp->boot_file_name[DHCP_FILE_LEN-1] = 0;
   }
-#endif /* LWIP_DHCP_BOOTP_FILE */
+#endif /* LWIP_DHCP_BOOTP_FILE */ 
   return ERR_OK;
 }
 

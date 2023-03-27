@@ -19,6 +19,8 @@ SPHINXOPTS    =
 # (which will be the most recently installed version of sphinx and may not match)
 #SPHINXBUILD   = python -m sphinx
 SPHINXBUILD   = sphinx-build
+PROCESSES     = -jauto
+#PROCESSES     =
 PAPER         =
 BUILDDIR      = _build
 DOCS_VERSION := latest
@@ -26,9 +28,11 @@ DOCS_VERSION := latest
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
-ALLSPHINXOPTS   = -d $(BUILDDIR) $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) -w sphinx-warning-log.txt .
+ALLSPHINXOPTS   = -d $(BUILDDIR)/$(DOCS_VERSION)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) -w sphinx-warning-log.txt .
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
+
+START_TIME := $(shell date +%s)
 
 .PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext dependencies version-specific-includes check_python_packages
 
@@ -67,43 +71,47 @@ check_python_packages:
 	#$(ARMINO_PATH)/tools/check_python_dependencies.py -r $(ARMINO_PATH)/docs/requirements.txt
 
 html: | check_python_packages
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html $(PROCESSES)
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 arminodocs: | check_python_packages
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/${DOCS_VERSION}
-	@echo
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/${DOCS_VERSION} $(PROCESSES)
+	@echo "check_python_packages"
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
+	@current_time=`date +%s`; \
+	time_interval=`expr $${current_time} - $(START_TIME)`; \
+	runtime=`date -u -d @$${time_interval} +%Hh:%Mm:%Ss`; \
+	echo ${YELLOW}"######## runtime: $${runtime} ########"${DEFAULT}
 
 dirhtml: | check_python_packages
-	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
+	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml $(PROCESSES)
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/dirhtml."
 
 singlehtml: | check_python_packages
-	$(SPHINXBUILD) -b singlehtml $(ALLSPHINXOPTS) $(BUILDDIR)/singlehtml
+	$(SPHINXBUILD) -b singlehtml $(ALLSPHINXOPTS) $(BUILDDIR)/singlehtml $(PROCESSES)
 	@echo
 	@echo "Build finished. The HTML page is in $(BUILDDIR)/singlehtml."
 
 pickle: | check_python_packages
-	$(SPHINXBUILD) -b pickle $(ALLSPHINXOPTS) $(BUILDDIR)/pickle
+	$(SPHINXBUILD) -b pickle $(ALLSPHINXOPTS) $(BUILDDIR)/pickle $(PROCESSES)
 	@echo
 	@echo "Build finished; now you can process the pickle files."
 
 json: | check_python_packages
-	$(SPHINXBUILD) -b json $(ALLSPHINXOPTS) $(BUILDDIR)/json
+	$(SPHINXBUILD) -b json $(ALLSPHINXOPTS) $(BUILDDIR)/json $(PROCESSES)
 	@echo
 	@echo "Build finished; now you can process the JSON files."
 
 htmlhelp: | check_python_packages
-	$(SPHINXBUILD) -b htmlhelp $(ALLSPHINXOPTS) $(BUILDDIR)/htmlhelp
+	$(SPHINXBUILD) -b htmlhelp $(ALLSPHINXOPTS) $(BUILDDIR)/htmlhelp $(PROCESSES)
 	@echo
 	@echo "Build finished; now you can run HTML Help Workshop with the" \
 	      ".hhp project file in $(BUILDDIR)/htmlhelp."
 
 qthelp: | check_python_packages
-	$(SPHINXBUILD) -b qthelp $(ALLSPHINXOPTS) $(BUILDDIR)/qthelp
+	$(SPHINXBUILD) -b qthelp $(ALLSPHINXOPTS) $(BUILDDIR)/qthelp $(PROCESSES)
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
 	      ".qhcp project file in $(BUILDDIR)/qthelp, like this:"
@@ -112,7 +120,7 @@ qthelp: | check_python_packages
 	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/ReadtheDocsTemplate.qhc"
 
 devhelp: | check_python_packages
-	$(SPHINXBUILD) -b devhelp $(ALLSPHINXOPTS) $(BUILDDIR)/devhelp
+	$(SPHINXBUILD) -b devhelp $(ALLSPHINXOPTS) $(BUILDDIR)/devhelp $(PROCESSES)
 	@echo
 	@echo "Build finished."
 	@echo "To view the help file:"
@@ -121,64 +129,64 @@ devhelp: | check_python_packages
 	@echo "# devhelp"
 
 epub: | check_python_packages
-	$(SPHINXBUILD) -b epub $(ALLSPHINXOPTS) $(BUILDDIR)/epub
+	$(SPHINXBUILD) -b epub $(ALLSPHINXOPTS) $(BUILDDIR)/epub $(PROCESSES)
 	@echo
 	@echo "Build finished. The epub file is in $(BUILDDIR)/epub."
 
 latex: | check_python_packages
-	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
+	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex $(PROCESSES)
 	@echo
 	@echo "Build finished; the LaTeX files are in $(BUILDDIR)/latex."
 	@echo "Run \`make' in that directory to run these through (pdf)latex" \
 	      "(use \`make latexpdf' here to do that automatically)."
 
 latexpdf: | check_python_packages
-	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
+	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex $(PROCESSES)
 	@echo "Running LaTeX files through pdflatex..."
 	$(MAKE) -C $(BUILDDIR)/latex all-pdf
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/latex."
 
 latexpdfja: | check_python_packages
-	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
+	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex $(PROCESSES)
 	@echo "Running LaTeX files through platex and dvipdfmx..."
 	$(MAKE) -C $(BUILDDIR)/latex all-pdf-ja
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/latex."
 
 text: | check_python_packages
-	$(SPHINXBUILD) -b text $(ALLSPHINXOPTS) $(BUILDDIR)/text
+	$(SPHINXBUILD) -b text $(ALLSPHINXOPTS) $(BUILDDIR)/text $(PROCESSES)
 	@echo
 	@echo "Build finished. The text files are in $(BUILDDIR)/text."
 
 man: | check_python_packages
-	$(SPHINXBUILD) -b man $(ALLSPHINXOPTS) $(BUILDDIR)/man
+	$(SPHINXBUILD) -b man $(ALLSPHINXOPTS) $(BUILDDIR)/man $(PROCESSES)
 	@echo
 	@echo "Build finished. The manual pages are in $(BUILDDIR)/man."
 
 texinfo: | check_python_packages
-	$(SPHINXBUILD) -b texinfo $(ALLSPHINXOPTS) $(BUILDDIR)/texinfo
+	$(SPHINXBUILD) -b texinfo $(ALLSPHINXOPTS) $(BUILDDIR)/texinfo $(PROCESSES)
 	@echo
 	@echo "Build finished. The Texinfo files are in $(BUILDDIR)/texinfo."
 	@echo "Run \`make' in that directory to run these through makeinfo" \
 	      "(use \`make info' here to do that automatically)."
 
 info: | check_python_packages
-	$(SPHINXBUILD) -b texinfo $(ALLSPHINXOPTS) $(BUILDDIR)/texinfo
+	$(SPHINXBUILD) -b texinfo $(ALLSPHINXOPTS) $(BUILDDIR)/texinfo $(PROCESSES)
 	@echo "Running Texinfo files through makeinfo..."
-	make -C $(BUILDDIR)/texinfo info
+	make -C $(BUILDDIR)/texinfo info -j32
 	@echo "makeinfo finished; the Info files are in $(BUILDDIR)/texinfo."
 
 gettext: | check_python_packages
-	$(SPHINXBUILD) -b gettext $(I18NSPHINXOPTS) $(BUILDDIR)/locale
+	$(SPHINXBUILD) -b gettext $(I18NSPHINXOPTS) $(BUILDDIR)/locale $(PROCESSES)
 	@echo
 	@echo "Build finished. The message catalogs are in $(BUILDDIR)/locale."
 
 changes: | check_python_packages
-	$(SPHINXBUILD) -b changes $(ALLSPHINXOPTS) $(BUILDDIR)/changes
+	$(SPHINXBUILD) -b changes $(ALLSPHINXOPTS) $(BUILDDIR)/changes $(PROCESSES)
 	@echo
 	@echo "The overview file is in $(BUILDDIR)/changes."
 
 linkcheck: | check_python_packages
-	$(SPHINXBUILD) -b linkcheck $(ALLSPHINXOPTS) $(BUILDDIR)/linkcheck
+	$(SPHINXBUILD) -b linkcheck $(ALLSPHINXOPTS) $(BUILDDIR)/linkcheck $(PROCESSES)
 	@echo
 	@echo "Link check complete; look for any errors in the above output " \
 	      "or in $(BUILDDIR)/linkcheck/output.txt."
@@ -189,16 +197,16 @@ gh-linkcheck: | check_python_packages
 	@echo "No hardcoded links found"
 
 doctest: | check_python_packages
-	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
+	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest $(PROCESSES)
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
 
 xml: | check_python_packages
-	$(SPHINXBUILD) -b xml $(ALLSPHINXOPTS) $(BUILDDIR)/xml
+	$(SPHINXBUILD) -b xml $(ALLSPHINXOPTS) $(BUILDDIR)/xml $(PROCESSES)
 	@echo
 	@echo "Build finished. The XML files are in $(BUILDDIR)/xml."
 
 pseudoxml: | check_python_packages
-	$(SPHINXBUILD) -b pseudoxml $(ALLSPHINXOPTS) $(BUILDDIR)/pseudoxml
+	$(SPHINXBUILD) -b pseudoxml $(ALLSPHINXOPTS) $(BUILDDIR)/pseudoxml $(PROCESSES)
 	@echo
 	@echo "Build finished. The pseudo-XML files are in $(BUILDDIR)/pseudoxml."

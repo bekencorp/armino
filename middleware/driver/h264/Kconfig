@@ -1,5 +1,0 @@
-menu "H264_CONFIG"
-	config H264
-		bool "Enable h264"
-		default n
-endmenu

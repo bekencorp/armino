@@ -6,6 +6,6 @@ Supported Boards
 .. toctree::
    :maxdepth: 1
 
-   概述 <overview>
+   Overview <overview>
    BK7237 <bk7237>
  

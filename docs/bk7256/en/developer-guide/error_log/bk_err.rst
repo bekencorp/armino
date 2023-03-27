@@ -1,7 +1,7 @@
 fault detection & handling
 ==================================
 
-:link_to_translation:`en:[English]`
+:link_to_translation:`zh_CN:[中文]`
 
 it is required for a robust application programming to detect and handle runtime error in time. This section introduces SDK macros for fault dection & handing, and some error code definitions.
 

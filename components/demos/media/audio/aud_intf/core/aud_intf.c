@@ -39,7 +39,7 @@
 	} while(0)
 
 //aud_intf_all_setup_t aud_all_setup;
-aud_intf_info_t aud_intf_info;
+aud_intf_info_t aud_intf_info = DEFAULT_AUD_INTF_CONFIG();
 
 /* extern api */
 //static void audio_tras_demo_deconfig(void);
@@ -215,6 +215,18 @@ static void aud_tras_drv_com_event_cb_handle(aud_tras_drv_com_event_t event, bk_
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
 
+		case EVENT_AUD_TRAS_COM_UAC_REGIS_CONT_STATE_CB:
+			LOGD("register uac connect state change callback complete \r\n");
+			aud_intf_info.api_info.result = result;
+			rtos_set_semaphore(&aud_intf_info.api_info.sem);
+			break;
+
+		case EVENT_AUD_TRAS_COM_UAC_AUTO_CONT_CTRL:
+			LOGD("control uac automatically connect complete \r\n");
+			aud_intf_info.api_info.result = result;
+			rtos_set_semaphore(&aud_intf_info.api_info.sem);
+			break;
+
 		default:
 			break;
 	}
@@ -283,24 +295,49 @@ bk_err_t bk_aud_intf_set_mic_chl(aud_intf_mic_chl_t mic_chl)
 	return BK_ERR_AUD_INTF_STA;
 }
 
-bk_err_t bk_aud_intf_set_spk_gain(uint8_t value)
+bk_err_t bk_aud_intf_set_spk_gain(uint32_t value)
 {
-	/* check value range */
-	if (value > 0x3F)
-		return BK_ERR_AUD_INTF_PARAM;
-
 	CHECK_AUD_INTF_BUSY_STA();
 
 	/*check mic status */
 	if (aud_intf_info.spk_status != AUD_INTF_SPK_STA_NULL || aud_intf_info.voc_status != AUD_INTF_VOC_STA_NULL) {
 		if (aud_intf_info.spk_status != AUD_INTF_SPK_STA_NULL) {
+			/* check value range */
+			if (aud_intf_info.spk_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+				if (value > 0x3F) {
+					LOGE("the spk_gain out of range:0x00-0x3F \n");
+					aud_intf_info.api_info.busy_status = false;
+					return BK_ERR_AUD_INTF_PARAM;
+				}
+			} else {
+				if (value > 0xFFFF) {
+					LOGE("the spk_gain out of range:0x00-0xFFFF \n");
+					aud_intf_info.api_info.busy_status = false;
+					return BK_ERR_AUD_INTF_PARAM;
+				}
+			}
 			aud_intf_info.spk_info.spk_gain = value;
 			//return aud_tras_drv_send_msg(AUD_TRAS_DRV_SPK_SET_GAIN, &aud_intf_info.spk_info.spk_gain);
 			return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_SET_GAIN, &aud_intf_info.spk_info.spk_gain, 1000);
 		}
 
 		if (aud_intf_info.voc_status != AUD_INTF_VOC_STA_NULL) {
-			aud_intf_info.voc_info.aud_setup.dac_gain = value;
+			/* check value range */
+			if (aud_intf_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
+				if (value > 0x3F) {
+					LOGE("the spk_gain out of range:0x00-0x3F \n");
+					aud_intf_info.api_info.busy_status = false;
+					return BK_ERR_AUD_INTF_PARAM;
+				}
+			} else {
+					if (value > 0xFFFF) {
+						LOGE("the spk_gain out of range:0x00-0xFFFF \n");
+						aud_intf_info.api_info.busy_status = false;
+						return BK_ERR_AUD_INTF_PARAM;
+					}
+			}
+			aud_intf_info.voc_info.aud_setup.dac_gain = (uint16_t)(value & 0x0000FFFF);
+			LOGI("set spk_gain: %d \n", aud_intf_info.voc_info.aud_setup.dac_gain);
 			//return aud_tras_drv_send_msg(AUD_TRAS_DRV_VOC_SET_SPK_GAIN, &aud_intf_info.voc_info.aud_setup.dac_gain);
 			return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_SET_SPK_GAIN, &aud_intf_info.voc_info.aud_setup.dac_gain, 1000);
 		}
@@ -336,6 +373,54 @@ bk_err_t bk_aud_intf_set_spk_chl(aud_intf_spk_chl_t spk_chl)
 
 	aud_intf_info.api_info.busy_status = false;
 	return BK_ERR_AUD_INTF_STA;
+}
+
+bk_err_t bk_aud_intf_register_uac_connect_state_cb(void *cb)
+{
+	CHECK_AUD_INTF_BUSY_STA();
+
+	/* check if mic, speaker or voc init */
+	if (aud_intf_info.mic_status == AUD_INTF_MIC_STA_NULL && aud_intf_info.spk_status == AUD_INTF_SPK_STA_NULL && aud_intf_info.voc_status == AUD_INTF_VOC_STA_NULL) {
+		return BK_ERR_AUD_INTF_STA;
+	}
+
+	/* check uac mic and speaker type */
+	if (((aud_intf_info.mic_status != AUD_INTF_MIC_STA_NULL) && (aud_intf_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_UAC))
+			|| ((aud_intf_info.spk_status != AUD_INTF_SPK_STA_NULL) && (aud_intf_info.spk_info.spk_type == AUD_INTF_SPK_TYPE_UAC))
+			|| ((aud_intf_info.voc_status != AUD_INTF_VOC_STA_NULL) && ((aud_intf_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_UAC) || (aud_intf_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_UAC)))) {
+		bk_err_t ret = BK_OK;
+		ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_UAC_REGIS_CONT_STATE_CB, cb, 1000);
+		if (ret == BK_OK) {
+			aud_intf_info.aud_intf_uac_connect_state_cb = cb;
+		}
+		return ret;
+	}
+
+	aud_intf_info.api_info.busy_status = false;
+	return BK_ERR_AUD_INTF_STA;
+}
+
+bk_err_t bk_aud_intf_uac_auto_connect_ctrl(bool enable)
+{
+	if (aud_intf_info.uac_auto_connect == enable) {
+		return BK_ERR_AUD_INTF_OK;
+	}
+
+	/* check if aud_intf driver init */
+	if (aud_intf_info.drv_status != AUD_INTF_DRV_STA_IDLE && aud_intf_info.drv_status != AUD_INTF_DRV_STA_WORK) {
+		return BK_ERR_AUD_INTF_STA;
+	}
+
+	CHECK_AUD_INTF_BUSY_STA();
+
+	aud_intf_info.uac_auto_connect = enable;
+	bk_err_t ret = BK_OK;
+	ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_UAC_AUTO_CONT_CTRL, &aud_intf_info.uac_auto_connect, 1000);
+	if (ret != BK_OK) {
+		aud_intf_info.uac_auto_connect = !enable;
+	}
+
+	return ret;
 }
 
 bk_err_t bk_aud_intf_set_aec_para(aud_intf_voc_aec_para_t aec_para, uint32_t value)
@@ -864,6 +949,7 @@ bk_err_t bk_aud_intf_voc_init(aud_intf_voc_setup_t setup)
 	/* tx config */
 	switch (aud_intf_info.voc_info.data_type) {
 		case AUD_INTF_VOC_DATA_TYPE_G711A:
+		case AUD_INTF_VOC_DATA_TYPE_G711U:
 			aud_intf_info.voc_info.tx_info.buff_length = aud_intf_info.voc_info.aud_setup.mic_samp_rate_points;
 			break;
 
@@ -894,6 +980,7 @@ bk_err_t bk_aud_intf_voc_init(aud_intf_voc_setup_t setup)
 	aud_intf_info.voc_info.rx_info.aud_trs_read_seq = 0;
 	switch (aud_intf_info.voc_info.data_type) {
 		case AUD_INTF_VOC_DATA_TYPE_G711A:
+		case AUD_INTF_VOC_DATA_TYPE_G711U:
 			aud_intf_info.voc_info.rx_info.frame_size = 320;		//apk receive one frame 40ms
 			//aud_intf_info.voc_info.rx_info.frame_size = aud_intf_info.voc_info.aud_setup.mic_samp_rate_points;
 			break;
@@ -1208,6 +1295,8 @@ bk_err_t bk_aud_intf_drv_deinit(void)
 		return BK_OK;
 	}
 */
+	/* reset uac_auto_connect */
+	aud_intf_info.uac_auto_connect = true;
 
 
 #if CONFIG_AUD_TRAS_MODE_CPU0

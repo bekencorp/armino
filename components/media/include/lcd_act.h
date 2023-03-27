@@ -59,6 +59,14 @@ typedef struct {
 	uint32_t img_length;
 } lcd_display_t;
 
+typedef enum {
+	WIFI_LEVEL_0 = 0,
+	WIFI_LEVEL_1,
+	WIFI_LEVEL_2,
+	WIFI_LEVEL_3,
+	WIFI_LEVEL_FULL,
+	WIFI_LEVEL_MAX
+}WIFI_LEVVEL_T;
 
 //added for blend 
 #define MAX_BLEND_NAME_LEN 16

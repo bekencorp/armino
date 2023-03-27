@@ -151,7 +151,7 @@
 ``armino_component_register`` 的参数包括：
 
   - SRCS - 组件的源文件，用于为组件创建静态库；如果没有指定，组件将被视为仅配置组件，从而创建接口库。
-  - SRC_DIRS, EXCLUDE_SRCS - 用于通过指定目录来 glob 源文件 (.c、.cpp、.S)，而不是通过 SRCS 手动指定源文件。请注意，这受 :ref:`CMake 中通配符的限制<cmake-file-globbing>`。 在 EXCLUDE_SRCS 中指定的源文件会从被 glob 的文件中移除。
+  - SRC_DIRS, EXCLUDE_SRCS - 用于通过指定目录来 glob 源文件 (.c、.cpp、.S)，而不是通过 SRCS 手动指定源文件。请注意，这受 :ref:*CMake 中通配符的限制<cmake-file-globbing>*。 在 EXCLUDE_SRCS 中指定的源文件会从被 glob 的文件中移除。
   - INCLUDE_DIRS - 相对于组件目录的路径，该路径将被添加到需要当前组件的所有其他组件的 include 搜索路径中。
   - PRIV_INCLUDE_DIRS - 必须是相对于组件目录的目录路径，它仅被添加到这个组件源文件的 include 搜索路径中。
   - REQUIRES - 组件的公共组件依赖项。
@@ -161,7 +161,7 @@
   - KCONFIG - 覆盖默认的 Kconfig 文件。
   - KCONFIG_PROJBUILD - 覆盖默认的 Kconfig.projbuild 文件。
 
-以下内容用于 :ref:`将数据嵌入到组件中<cmake_embed_data>`，并在确定组件是否仅用于配置时被视为源文件。这意味着，即使组件没有指定源文件，如果组件指定了以下其中之一，仍然会在内部为组件创建一个静态库。
+以下内容用于 :ref:*将数据嵌入到组件中<cmake_embed_data>*，并在确定组件是否仅用于配置时被视为源文件。这意味着，即使组件没有指定源文件，如果组件指定了以下其中之一，仍然会在内部为组件创建一个静态库。
 
   - EMBED_FILES - 嵌入组件的二进制文件
   - EMBED_TXTFILES - 嵌入组件的文本文件
@@ -180,7 +180,7 @@
 
 - COMPONENT_ALIAS - COMPONENT_LIB 的别名，用于将组件链接到外部目标；由 ``armino_build_component`` 设置，别名库本身由 ``armino_component_register`` 创建。
 - COMPONENT_DIR - 组件目录；由 ``armino_build_component`` 设置。
-- COMPONENT_OVERRIDEN_DIR - 如果 :ref:`这个组件覆盖了另一个组件<cmake-components-same-name>`，则包含原组件的目录。
+- COMPONENT_OVERRIDEN_DIR - 如果 :ref:*这个组件覆盖了另一个组件<cmake-components-same-name>*，则包含原组件的目录。
 - COMPONENT_LIB - 所创建的组件静态/接口库的名称；由 ``armino_build_component`` 设置，库本身由 ``armino_component_register`` 创建。
 - COMPONENT_NAME - 组件的名称；由 ``armino_build_component`` 根据组件的目录名设置。
 - COMPONENT_TYPE - 组件的类型（LIBRARY 或 CONFIG_ONLY）。如果一个组件指定了源文件或嵌入了一个文件，那么它的类型就是 LIBRARY。

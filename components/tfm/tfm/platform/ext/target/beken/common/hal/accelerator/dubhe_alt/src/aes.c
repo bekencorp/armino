@@ -63,7 +63,7 @@ void dubhe_aes_free( mbedtls_aes_context *ctx )
 /*
  * AES key schedule (encryption)
  */
-#if defined( MBEDTLS_AES_SETKEY_ENC_ALT ) // TODO wangzhilei
+#if !defined( MBEDTLS_AES_SETKEY_ENC_ALT )
 int dubhe_aes_setkey_enc( mbedtls_aes_context *ctx,
                           const unsigned char *key,
                           unsigned int keybits )
@@ -111,7 +111,7 @@ int dubhe_aes_setkey_enc( mbedtls_aes_context *ctx,
 /*
  * AES key schedule (decryption)
  */
-#if defined( MBEDTLS_AES_SETKEY_DEC_ALT ) // TODO wangzhilei
+#if !defined( MBEDTLS_AES_SETKEY_DEC_ALT )
 int dubhe_aes_setkey_dec( mbedtls_aes_context *ctx,
                           const unsigned char *key,
                           unsigned int keybits )

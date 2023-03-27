@@ -1,5 +1,8 @@
 Wi-Fi iPerf Application Example
 =============================================
+
+:link_to_translation:`zh_CN:[中文]`
+
 This section describes the usage of iPerf based on BEKEN chip. It contains three chapters:
 
 - iPerf Test Example and Configuration

@@ -23,5 +23,3 @@ void pal_udelay( uint32_t usecs )
     //hal_udelay(usecs); TODO pter
 #endif
 }
-
-/*************************** The End Of File*****************************/

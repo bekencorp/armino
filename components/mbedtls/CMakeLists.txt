@@ -55,6 +55,7 @@ set(srcs
 	mbedtls/library/md5.c
 	mbedtls/library/memory_buffer_alloc.c
 	#mbedtls/library/net_sockets.c
+	port/net_sockets.c
 	mbedtls/library/nist_kw.c
 	mbedtls/library/oid.c
 	mbedtls/library/padlock.c
@@ -95,7 +96,7 @@ set(srcs
 	mbedtls/library/x509.c
 	mbedtls/library/x509_create.c
 	mbedtls/library/x509_crl.c
-	#mbedtls/library/x509_crt.c
+	mbedtls/library/x509_crt.c
 	mbedtls/library/x509_csr.c
 	#mbedtls/library/x509write_crt.c
 	mbedtls/library/x509write_csr.c

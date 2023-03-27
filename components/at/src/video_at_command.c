@@ -271,7 +271,7 @@ int video_set_yuv_psram_handler(char *pcWriteBuffer, int xWriteBufferLen, int ar
 	sensor->set_ppi(sensor->def_ppi);
 	sensor->set_fps(sensor->def_fps);
 
-	bk_jpeg_enc_set_gpio(JPEG_ENABLE_DATA);
+	bk_jpeg_enc_set_gpio_enable(1, JPEG_GPIO_DATA);
 
 	err = rtos_get_semaphore(&video_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
 	if(err != kNoErr){

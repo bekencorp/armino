@@ -1,11 +1,11 @@
-menu "DEMOS_DOORBELL"
+menu "Demos::Media::Doorbell"
 	config DOORBELL
-		bool "Enable doorbell"
+		bool "Enable Doorbell"
 		depends on MEDIA
 		default n
 
 	config DOORBELL_DEMO2
 		depends on DOORBELL
-		bool "enable doorbell demo2"
+		bool "Enable Doorbell Demo2"
 		default n
 endmenu

@@ -177,9 +177,15 @@ if (CONFIG_USB)
 	list(APPEND srcs "cli_usb.c")
 endif()
 
-if (CONFIG_SECURITYIP)
-	list(APPEND srcs "cli_securityip.c")
-endif()
+if (CONFIG_VAULT_SUPPORT)
+	if (CONFIG_SECURITYIP)
+		list(APPEND srcs "cli_securityip.c")
+	endif()
+
+	if (CONFIG_OTP)
+		list(APPEND srcs "cli_otp.c")
+	endif()
+ENDIF()
 
 if (CONFIG_QSPI)
 	list(APPEND srcs
@@ -226,10 +232,6 @@ if (CONFIG_EASY_FLASH)
 	)
 endif()
 
-if (CONFIG_AUDIO_TEST AND CONFIG_ARCH_CM33)
-	list(APPEND srcs "cli_aud_v1_1.c")
-endif()
-
 if (CONFIG_AUDIO_TEST AND CONFIG_AUDIO_RISCV_IP_V1_0)
 	list(APPEND srcs "cli_aud.c")
 endif() #if(CONFIG_AUDIO)
@@ -248,14 +250,6 @@ endif()
 
 if (CONFIG_AUDIO_G711_TEST)
 	list(APPEND srcs "cli_g711.c")
-endif()
-
-if (CONFIG_AUDIO_OPUS_TEST)
-	list(APPEND srcs "cli_opus.c")
-endif()
-
-if (CONFIG_AUDIO_ADPCM_TEST)
-	list(APPEND srcs "cli_adpcm.c")
 endif()
 
 if (CONFIG_AUDIO_MP3_TEST)
@@ -328,8 +322,8 @@ if (CONFIG_QRCODEGEN_TEST)
 	list(APPEND srcs cli_qrcodegen.c)
 endif()
 
-if (CONFIG_SPE_TEST)
-	list(APPEND srcs cli_spe.c)
+if (CONFIG_CM33_TEST)
+	list(APPEND srcs cli_cm33.c)
 endif()
 
 if (CONFIG_MPC_TEST)
@@ -346,6 +340,14 @@ endif()
 
 if (CONFIG_H264)
 	list(APPEND srcs cli_h264.c)
+endif()
+
+if (CONFIG_SDMADC_TEST)
+	list(APPEND srcs cli_sdmadc.c)
+endif()
+
+if (CONFIG_AGORA_IOT_SDK_TEST)
+	list(APPEND srcs cli_agora.c)
 endif()
 
 armino_component_register(SRCS "${srcs}"

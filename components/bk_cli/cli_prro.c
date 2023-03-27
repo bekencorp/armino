@@ -23,10 +23,9 @@ static void cli_prro_help(void)
 	CLI_LOGI("prro help - display this menu\r\n");
 
 	CLI_LOGI("prro secure {dev_id} {0|1} - configure device secure\n");
-	CLI_LOGI("prro secure gpio {gpio_0_31} {gpio_32_63} - configure gpio gpios secure\n");
+	CLI_LOGI("prro secure gpio {gpio_bits} - configure gpio group0 secure\n");
 	CLI_LOGI("prro secure ahb {ahb_bits} - configure ahb secure\n");
 	CLI_LOGI("prro secure apb {apb_bits} - configure apb secure\n");
-	CLI_LOGI("prro secure aon {aon_bits} - configure aon secure\n");
 
 	CLI_LOGI("prro privilege {dev_id} {0|1} - configure device privilege\n");
 	CLI_LOGI("prro privilege gpio {grou0} {group1} - configure gpio privilege\n");
@@ -45,11 +44,16 @@ static void cli_prro_secure_cmd(int argc, char **argv)
 	}
 
 	if (os_strcmp(argv[2], "gpio") == 0) {
-		CLI_RET_ON_INVALID_ARGC(argc, 5);
-		uint32_t g0_secure_bits = os_strtoul(argv[3], NULL, 16);
-		uint32_t g1_secure_bits = os_strtoul(argv[4], NULL, 16);
-		CLI_LOGI("set gpio to g0-31=%x, g32-63=%x\r\n", g0_secure_bits, g1_secure_bits);
-		BK_LOG_ON_ERR(bk_prro_set_gpios_secure(g0_secure_bits, g1_secure_bits));
+		if (argc != 5) {
+			cli_prro_help();
+			return;
+		}
+
+		uint64_t g0_secure_bits = os_strtoul(argv[3], NULL, 16);
+		uint64_t g1_secure_bits = os_strtoul(argv[4], NULL, 16);
+		uint64_t gpio_secure_bits = (g1_secure_bits << 32) | g0_secure_bits;
+		CLI_LOGI("set gpio to %x.%x\r\n", g0_secure_bits, g1_secure_bits);
+		BK_LOG_ON_ERR(bk_prro_set_gpios_secure(gpio_secure_bits));
 	} else if (os_strcmp(argv[2], "ahb") == 0) {
 		uint32_t ahb_secure_bits = os_strtoul(argv[3], NULL, 16);
 		CLI_LOGI("set ahb to %x\r\n", ahb_secure_bits);
@@ -58,11 +62,6 @@ static void cli_prro_secure_cmd(int argc, char **argv)
 		uint32_t apb_secure_bits = os_strtoul(argv[3], NULL, 16);
 		CLI_LOGI("set apb to %x\r\n", apb_secure_bits);
 		BK_LOG_ON_ERR(bk_prro_set_apb_dev_secure(apb_secure_bits));
-	} else if (os_strcmp(argv[2], "aon") == 0) {
-		uint32_t aon_secure_bits = os_strtoul(argv[3], NULL, 16);
-		CLI_LOGI("set aon to %x\r\n", aon_secure_bits);
-		//TODO
-		REG_WRITE(0x41040000 + (0xa << 2), aon_secure_bits);
 	} else {
 		uint32_t dev_id = os_strtoul(argv[2], NULL, 10);
 		uint32_t is_secure = os_strtoul(argv[3], NULL, 10);
@@ -91,7 +90,10 @@ static void cli_prro_privilege_cmd(int argc, char **argv)
 		CLI_LOGI("set apb to %x\r\n", apb_privilege_bits);
 		BK_LOG_ON_ERR(bk_prro_set_apb_dev_privilege(apb_privilege_bits));
 	} else {
-		CLI_RET_ON_INVALID_ARGC(argc, 5);
+		if (argc != 5) {
+			cli_prro_help();
+			return;
+		}
 		uint32_t dev_id = os_strtoul(argv[3], NULL, 10);
 		uint32_t is_privilege = os_strtoul(argv[4], NULL, 10);
 		CLI_LOGI("set dev%d to %s\r\n", dev_id, is_privilege ? "privilege" : "non-provilege");
@@ -111,7 +113,11 @@ static void cli_prro_cmp_cmd(int argc, char **argv)
 	}
 
 	if (os_strcmp(argv[2], "condition") == 0) {
-		CLI_RET_ON_INVALID_ARGC(argc, 5);
+		if (argc != 5) {
+			cli_prro_help();
+			return;
+		}
+
 		uint32_t cmp_id = os_strtoul(argv[2], NULL, 10);
 		uint32_t start = os_strtoul(argv[3], NULL, 16);
 		uint32_t end = os_strtoul(argv[4], NULL, 16);
@@ -139,9 +145,7 @@ static void cli_prro_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 		return;
 	}
 
-	if (os_strcmp(argv[1], "init") == 0) {
-		bk_prro_driver_init();
-	} else if (os_strcmp(argv[1], "secure") == 0) {
+	if (os_strcmp(argv[1], "secure") == 0) {
 		cli_prro_secure_cmd(argc, argv);
 	} else if (os_strcmp(argv[1], "privilege") == 0) {
 		cli_prro_privilege_cmd(argc, argv);

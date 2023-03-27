@@ -1,9 +1,10 @@
 camera
 -------------------------------------
 
-:link_to_translation:`zh_CN:[Chinese]`
+:link_to_translation:`zh_CN:[中文]`
 
 .. toctree::
    :maxdepth: 1
 
-   DVP Video_transfer <bk_video_transfer>
+   Video_transfer <bk_video_transfer>
+   Capture <bk_capture>

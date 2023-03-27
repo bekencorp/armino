@@ -17,7 +17,7 @@
 ; * This file is derivative of CMSIS V5.00 startup_ARMCM33.S
 ; */
 
-    .syntax  unified
+    .syntax    unified
     .arch    armv8-m.main
 
     .section .vectors
@@ -44,10 +44,6 @@ __Vectors:
     .long    SysTick_Handler                /* SysTick Handler */
 
     /* External interrupts */
-    .long    dma_ns_handler                 /* 0: dma ns handler */
-    .long    encp_s_handler                 /* 1: encrypt enginee s handler */
-    .long    encp_ns_handler                /* 2: encrypt enginee ns handler */
-    .long    timer0_handler                 /* 3: tfm timer handler */
 
     .size    __Vectors, . - __Vectors
 
@@ -56,7 +52,7 @@ __Vectors:
     .thumb_func
     .align    2
     .globl    Reset_Handler
-    .type     Reset_Handler, %function
+    .type    Reset_Handler, %function
 Reset_Handler:
 /*  Firstly it copies data from read only memory to RAM. There are two schemes
  *  to copy. One can copy more than one sections. Another can only copy
@@ -181,8 +177,6 @@ Reset_Handler:
     ldr     r0, =Image$$ARM_LIB_STACK$$ZI$$Limit
     msr     psp, r0
 
-    bl    SystemInit
-
 #ifndef __START
 #define __START _start
 #endif
@@ -213,9 +207,5 @@ Reset_Handler:
     def_irq_handler     SysTick_Handler
 
     /* External interrupts */
-    def_irq_handler     dma_ns_handler
-    def_irq_handler     encp_s_handler
-    def_irq_handler     encp_ns_handler
-    def_irq_handler     timer0_handler
 
     .end

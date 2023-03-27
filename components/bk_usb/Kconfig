@@ -1,101 +1,104 @@
-menu "USB configuration"
+menu "Bk_usb"
 
-config USB
-	bool "Enable USB"
-	default n
-
-menu "USB"
-	depends on USB
-
-	choice USB_PROTOCOL_STACK
-		prompt "USB PROTOCOL STACK"
-		default MENTOR_USB
-
-		config MENTOR_USB
-			bool "MENTOR_USB"
-		config CHERRY_USB
-			bool "CHERRY_USB"
-	endchoice
-
-	#TODO HOST/DEVICE mode mutual exclusive???
-	choice USB_MODE
-		prompt "Enable USB HOST mode"
-		default USB_HOST
-
-		config USB_HOST
-			bool "USB Host Mode"
-		config USB_DEVICE
-			bool "USB Device Mode"
-	endchoice
-
-	choice USB_PORT
-		prompt "Select USB Port"
-		default USB2_PORT
-		config USB1_PORT
-			bool "USB1 port"
-		config USB2_PORT
-			bool "USB2 port"
-	endchoice
-
-	config TASK_USB_PRIO
-		int "Priority of USB task"
-		range 1 10
-		default 5
-
-	config USB_MSD
-		bool "Enable USB MSD"
-		default y
-
-	config USB_HID
-		bool "Enable USB HID"
+	config USB
+		bool "Enable Usb"
 		default n
 
-	config USB_CCD
-		bool "Enable USB CCD"
-		default n
+	menu "Modify Usb Config"
+		depends on USB
 
-	config USB_UVC
-		bool "Enable USB UVC"
-		default n
+		#TODO HOST/DEVICE mode mutual exclusive???
+		choice USB_MODE
+			prompt "Select Usb Host Mode"
+			default USB_HOST
 
-	config USB_UVC_DEBUG
-		bool "Enable USB UVC_DEBUG"
-		default n
+			config USB_HOST
+				bool "USB_HOST"
+				help
+					USB Host Mode
+			config USB_DEVICE
+				bool "USB_DEVICE"
+				help
+					USB Device Mode
+		endchoice
 
-	config USB_UAC
-		bool "Enable USB UAC"
-		default n
+		choice USB_PORT
+			prompt "Select Usb Port"
+			default USB2_PORT
+			
+			config USB1_PORT
+				bool "USB1_PORT"
+			config USB2_PORT
+				bool "USB2_PORT"
+		endchoice
 
-	menu "USB_UAC"
-		depends on USB_UAC
+		config TASK_USB_PRIO
+			int "Set Task Usb Prio"
+			range 1 10
+			default 5
+			help
+				Priority of USB task
 
-		config USB_UAC_DEBUG
-			bool "Enable USB UAC_DEBUG"
+		config USB_MSD
+			bool "Enable Usb Msd"
+			default y
+
+		config USB_HID
+			bool "Enable Usb Hid"
 			default n
 
-		config USB_UAC_MIC
-			bool "Enable USB UAC Mic"
+		config USB_CCD
+			bool "Enable Usb Ccd"
 			default n
 
-		config USB_UAC_SPEAKER
-			bool "Enable USB UAC Speaker"
+		config USB_UVC
+			bool "Enable Usb Uvc"
+			default n
+
+		config USB_UVC_DEBUG
+			bool "Enable Usb Uvc Debug"
+			default n
+
+		config USB_UAC
+			bool "Enable Usb Uac"
+			default n
+
+		menu "Modify Usb Uac Config"
+			depends on USB_UAC
+
+			config USB_UAC_DEBUG
+				bool "Enable Usb Uac Debug"
+				default n
+
+			config USB_UAC_MIC
+				bool "Enable Usb Uac Mic"
+				default n
+
+			config USB_UAC_SPEAKER
+				bool "Enable Usb Uac Speaker"
+				default n
+
+		endmenu
+
+		config USB_CHARGE
+			bool "Enable Usb Charge"
 			default n
 
 	endmenu
 
-	config USB_CHARGE
-		bool "Enable USB Charge"
-		default n
+	menu "Modify Dsp Config"
 
-endmenu
-endmenu
-
-menu "DSP"
-	config DSP
-		bool "Enable DSP"
+		config DSP
+			bool "Enable Dsp"
 			default n
-	#TODO delete it
-	config DSP_SRC_ADD
-		hex "DSP srouce address"
-		default 0x130000
+
+		#TODO delete it
+		config DSP_SRC_ADD
+			hex "Set Dsp Src Add"
+			default 0x130000
+			help
+				set dsp source address
+
+	endmenu
+
 endmenu

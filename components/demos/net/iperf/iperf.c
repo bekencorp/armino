@@ -11,6 +11,10 @@
 #include <lwip/sockets.h>
 #include <stdlib.h>
 #include <components/system.h>
+#ifndef CONFIG_IPV6
+#include <components/netif.h>
+#include "net.h"
+#endif
 
 #define THREAD_SIZE             (4 * 1024)
 #define THREAD_PROIRITY         4
@@ -122,6 +126,28 @@ static void iperf_report(int pkt_len)
 	}
 }
 
+#ifndef CONFIG_IPV6
+extern err_t
+etharp_request(struct netif *netif, const ip4_addr_t *ipaddr);
+extern void *net_get_sta_handle(void);
+extern void *net_get_uap_handle(void);
+
+struct netif * get_netif(ip4_addr_t *ipaddr)
+{
+	struct wlan_ip_config sta_addr, ap_addr;
+
+	net_get_if_addr(&sta_addr, net_get_sta_handle());
+	net_get_if_addr(&ap_addr, net_get_uap_handle());
+
+	if ((sta_addr.ipv4.gw & 0xFFFFFFl) == (ipaddr->addr & 0xFFFFFFl)) {
+		return (struct netif *)net_get_sta_handle();
+	} else if ((ap_addr.ipv4.gw & 0xFFFFFFl) == (ipaddr->addr & 0xFFFFFFl)) {
+		return (struct netif *)net_get_uap_handle();
+	} else
+		return NULL;
+}
+#endif
+
 static void iperf_client(void *thread_param)
 {
 	int i, sock, ret;
@@ -147,7 +173,16 @@ static void iperf_client(void *thread_param)
 		addr.sin_family = PF_INET;
 		addr.sin_port = htons(s_param.port);
 		addr.sin_addr.s_addr = inet_addr((char *)s_param.host);
-
+#ifndef CONFIG_IPV6
+		{
+			struct netif *netif;
+			netif = get_netif((ip4_addr_t *)&addr.sin_addr.s_addr);
+			if (netif) {
+				etharp_request(netif, (ip4_addr_t *)&addr.sin_addr.s_addr);
+				rtos_delay_milliseconds(1000);
+			}
+		}
+#endif
 		ret = connect(sock, (const struct sockaddr *)&addr, sizeof(addr));
 		if (ret == -1) {
 			os_printf("iperf: connect failed, err=%d!\n", errno);
@@ -319,7 +354,16 @@ static void iperf_udp_client(void *thread_param)
 		server.sin_port = htons(s_param.port);
 		server.sin_addr.s_addr = inet_addr(s_param.host);
 		os_printf("iperf udp mode run...\n");
-
+#ifndef CONFIG_IPV6
+		{
+			struct netif *netif;
+			netif = get_netif((ip4_addr_t *)&server.sin_addr.s_addr);
+			if (netif) {
+				etharp_request(netif, (ip4_addr_t *)&server.sin_addr.s_addr);
+				rtos_delay_milliseconds(1000);
+			}
+		}
+#endif
 		iperf_report_init();
 
 		while (IPERF_STATE_STARTED == s_param.state) {

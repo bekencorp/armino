@@ -23,7 +23,6 @@ extern "C" {
 #define BK_ERR_MPC_DRIVER_NOT_INIT             (BK_ERR_MPC_BASE - 1) /**< MPC driver not init */
 #define BK_ERR_MPC_BLOCK_INDEX_OUT_OF_RANGE    (BK_ERR_MPC_BASE - 2) /**< MPC block index is out of range */
 #define BK_ERR_MPC_INVALID_LUT_PARAM           (BK_ERR_MPC_BASE - 3) /**< MPC invalid lut parameter */
-#define BK_ERR_MPC_INVALID_DEV                 (BK_ERR_MPC_BASE - 4) /**< MPC invalid device ID */
 
 typedef enum {
 	MPC_DEV_PSRAM = 0, /**< MPC device PSRAM */

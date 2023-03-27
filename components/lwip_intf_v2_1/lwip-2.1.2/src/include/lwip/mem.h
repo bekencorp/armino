@@ -86,7 +86,7 @@ void *mem_malloc(mem_size_t size);
 void *mem_calloc(mem_size_t count, mem_size_t size);
 void  mem_free(void *mem);
 u32_t get_mem_size(void *rmem);
-uint32_t mem_sanity_check(void *mem);
+
 #ifdef __cplusplus
 }
 #endif

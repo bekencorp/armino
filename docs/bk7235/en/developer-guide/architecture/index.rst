@@ -1,11 +1,11 @@
 Software Architecture
--------------------------------------
+---------------------
 
 :link_to_translation:`zh_CN:[中文]`
 
 
 Summary
-******************
+*******
 
 	Armino software is divided into middleware layer, component layer and application layer.
 	Armino Armino abstracts the coupling dependence of software on hardware platform and realizes 
@@ -22,7 +22,7 @@ Summary
     Architecture Overview
 
 Software Architecture
-******************
+*********************
 
 	Armino SDK can flexibly support different product software architectures.
 	
@@ -53,13 +53,13 @@ Software Architecture
     Armino customer solution
 
 Hardware Layer
-******************
+**************
 
     Hardware layer, namely hardware layer, refers specifically to the hardware of BEKEN solution.。
 
 
 Middleware Layer
-******************
+****************
 
     Middleware layer, namely the middle layer, is an abstract layer for the underlying hardware and 
 	upper components. Through the M-server, we can seamlessly switch between different solutions.
@@ -79,11 +79,11 @@ As shown in the figure:：
  - boards, Board level configuration is related, covering some engineering configurations of specific projects.
  
 Component Layer
-******************
+***************
 
     The Components layer, or component layer, is a service component that contains many third-party open source or self developed by armono. Developers can configure defconfig in the middleware layer to switch related component services.
 	
 Application Layer
-******************
+*****************
 
     The application layer is organized under the projects directory, and the last level of the CmakeList directory is the building entry for a complete solution. It carries the differentiation of different projects and the configuration set of different product solutions.

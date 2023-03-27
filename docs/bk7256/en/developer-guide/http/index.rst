@@ -1,6 +1,8 @@
 HTTP Component WebClient
 ===================================
 
+:link_to_translation:`zh_CN:[中文]`
+
 WebClient is ported from open source component of RT-Thread
 
 Source Code Path

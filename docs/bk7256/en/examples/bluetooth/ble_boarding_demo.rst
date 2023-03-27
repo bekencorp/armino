@@ -1,7 +1,7 @@
 ble_boarding
 ========================
 
-:link_to_translation:`zh_CN:[Chinese]`
+:link_to_translation:`zh_CN:[中文]`
 
 Overview
 --------------------------
@@ -60,9 +60,20 @@ Demo instruction
  4) Find the characteristic whose UUID is 0x9ABC under the service, write the hex data of the WIFI SSID required for the ble boarding and click send.
  5) Find the characteristic whose UUID is 0xDEF0 under the service, write the hex data of the WIFI PASSWORD required for the ble boarding and click send.
  6) In the SSCOM window, a log showing that the wifi connection is successful and the IP is obtained will be output.
- 7) Input the ``PING 192.xxx.xxx.xxx`` command in SSCOM to ping the IP address of the connected router to check whether the wifi connection is successful.
+ 7) Input the ``ping 192.xxx.xxx.xxx`` command in SSCOM to ping the IP address of the connected router to check whether the wifi connection is successful.
 
 Attention
 --------------------------
-In the demo, the WIFI SSID and PASSWORD required to send through the nRF Connect software need to be converted int hex data through the char to hex tool for input.
-	
+ 1) In the demo, the WIFI SSID and PASSWORD required to send through the nRF Connect software need to be converted int hex data through the char to hex tool for input.
+ 2) After the mobile phone and the device are successfully connected, the device will stop sending broadcasts. At this time, the device cannot be scanned, and cannot be reconnected by click connect button after disconnection. If there is a need to reconnect, you need to re-enable the broadcast in the function of reporting ble disconnection messages. Specifically, add the following code in the BLE_5_DISCONNECT_EVENT case of the ble_at_notice_cb() function.
+
+::
+
+    uint8_t actv_idx = bk_ble_find_actv_state_idx_handle(AT_ACTV_ADV_CREATED);
+
+    if (actv_idx == AT_BLE_MAX_ACTV) {
+        os_printf("ble adv not created!\n");
+    } else {
+        bk_ble_start_advertising(actv_idx, 0, NULL);
+    }
+

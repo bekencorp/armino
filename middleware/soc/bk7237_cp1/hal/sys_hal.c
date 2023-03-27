@@ -455,12 +455,14 @@ uint32 sys_hal_get_device_id(void)
 int32 sys_hal_int_disable(uint32 param) //CMD_ICU_INT_DISABLE
 {
 	uint32 reg = 0;
+	uint32 value = 0;
 
 	reg = sys_ll_get_cpu1_int_0_31_en_value();
+	value = reg;
 	reg &= ~(param);
 	sys_ll_set_cpu1_int_0_31_en_value(reg);
 
-	return 0;
+	return value;
 }
 
 int32 sys_hal_int_enable(uint32 param) //CMD_ICU_INT_ENABLE
@@ -478,12 +480,14 @@ int32 sys_hal_int_enable(uint32 param) //CMD_ICU_INT_ENABLE
 int32 sys_hal_int_group2_disable(uint32 param)
 {
 	uint32 reg = 0;
+	uint32 value = 0;
 
 	reg = sys_ll_get_cpu1_int_32_63_en_value();
+	value = reg;
 	reg &= ~(param);
 	sys_ll_set_cpu1_int_32_63_en_value(reg);
 
-	return 0;
+	return value;
 }
 
 //NOTICE:Temp add for BK7256 product which has more then 32 Interrupt sources
@@ -500,23 +504,11 @@ int32 sys_hal_int_group2_enable(uint32 param)
 
 int32 sys_hal_fiq_disable(uint32 param)
 {
-	uint32 reg = 0;
-
-	reg = sys_ll_get_cpu1_int_32_63_en_value();
-	reg &= ~(param);
-	sys_ll_set_cpu1_int_32_63_en_value(reg);
-
 	return 0;
 }
 
 int32 sys_hal_fiq_enable(uint32 param)
 {
-	uint32 reg = 0;
-
-	reg = sys_ll_get_cpu1_int_32_63_en_value();
-	reg |= (param);
-	sys_ll_set_cpu1_int_32_63_en_value(reg);
-
 	return 0;
 }
 

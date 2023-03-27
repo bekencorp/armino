@@ -1,0 +1,9 @@
+menu "Bk_thirdparty::agora-iot-sdk"
+
+	config AGORA_IOT_SDK
+		bool "Enable Agora iot sdk"
+		default n
+		help
+			Enable Agora iot sdk lib
+
+endmenu

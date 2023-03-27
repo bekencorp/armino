@@ -7,17 +7,18 @@
 extern "C" {
 #endif
 
-#if CONFIG_LCD_ST7710S
-#define LCD_SPI_CLK_GPIO  GPIO_9
-#define LCD_SPI_CSX_GPIO  GPIO_5//GPIO_5//GPIO_8
-#define LCD_SPI_SDA_GPIO  GPIO_8//GPIO_8//GPIO_5
-#else
-#define LCD_SPI_CLK_GPIO  GPIO_2
-#define LCD_SPI_CSX_GPIO  GPIO_3
-#define LCD_SPI_SDA_GPIO  GPIO_4
-#endif
+typedef enum{
+    SPI_GPIO_CLK,
+    SPI_GPIO_CSX,
+    SPI_GPIO_SDA,
+    SPI_GPIO_RST
+}LCD_SPI_GPIO_TYPE_E;
 
-#define LCD_SPI_RST       GPIO_6
+extern int32_t lcd_driver_get_spi_gpio(LCD_SPI_GPIO_TYPE_E gpio_type);
+#define LCD_SPI_CLK_GPIO  lcd_driver_get_spi_gpio(SPI_GPIO_CLK)
+#define LCD_SPI_CSX_GPIO  lcd_driver_get_spi_gpio(SPI_GPIO_CSX)
+#define LCD_SPI_SDA_GPIO  lcd_driver_get_spi_gpio(SPI_GPIO_SDA)
+#define LCD_SPI_RST       lcd_driver_get_spi_gpio(SPI_GPIO_RST)
 
 #define LCD_SPI_DELAY     2
 

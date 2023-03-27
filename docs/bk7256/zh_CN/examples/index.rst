@@ -13,3 +13,4 @@
    命令 <cli/index>
    外设 <peripheral/index>
    平台 <platform/index>
+   LVGL <lvgl/lvgl>

@@ -14,6 +14,7 @@
 //
 #pragma once
 #include <common/bk_include.h>
+#include <driver/aud_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,6 +23,11 @@ extern "C" {
 /* @brief Overview about this API header
  *
  */
+typedef struct {
+	aud_adc_samp_rate_t mic_samp_rate;
+	aud_dac_samp_rate_t spk_samp_rate;
+	uint16_t spk_gain;
+} aud_uac_config_t;
 
 /**
  * @brief AUD API
@@ -42,7 +48,11 @@ bk_err_t bk_aud_uac_register_spk_callback(void *cb);
 bk_err_t bk_aud_uac_unregister_spk_callback(void);
 bk_err_t bk_aud_uac_set_mic_samp_rate(uint32_t value);
 bk_err_t bk_aud_uac_set_spk_samp_rate(uint32_t value);
-
+bk_err_t bk_aud_uac_set_spk_gain(uint32_t value);
+bk_err_t bk_aud_uac_get_spk_gain(uint32_t *value);
+bk_err_t bk_aud_uac_register_disconnect_cb(void *callback);
+bk_err_t bk_aud_uac_register_connect_cb(void *callback);
+bk_err_t bk_aud_uac_check_spk_gain_cfg(void);
 
 /**
  * @}

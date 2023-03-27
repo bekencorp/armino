@@ -132,16 +132,16 @@
 #if !CONFIG_CACHE_CUSTOM_SRAM_MAPPING
 #if !CONFIG_CACHE_ENABLE
 const unsigned int g_sram_addr_map[SRAM_BLOCK_COUNT] = {
-    0x30060000,
-    0x30020800,
+    0x30020000,
     0x30040000,
+    0x30060000,
     0x30000000
 };
 #else //#if CONFIG_CACHE_ENABLE
 const unsigned int g_sram_addr_map[SRAM_BLOCK_COUNT] = {
     0x38000000,
-    0x30020800,
     0x38020000,
+    0x30020000,
     0x30000000
 };
 #endif //#if CONFIG_CACHE_ENABLE
@@ -156,13 +156,12 @@ void sram_dcache_map(void)
 
    for(i = 0; i < SRAM_BLOCK_COUNT; i++)
    {
-        addr = SRAM_CACHE_CONFIG_BASE + (i * sizeof(data));
+        addr = SRAM_CACHE_CONFIG_BASE + (i * SRAM_BLOCK_COUNT);
         data = *((volatile unsigned int *) (addr));
-        *((volatile unsigned int *) (addr)) = (g_sram_addr_map[i] & (~(SRAM_BLOCK_SIZE - 1))) + (data & 0x03ff);
+        *((volatile unsigned int *) (addr)) = (g_sram_addr_map[i]) + (data & 0x03ff);
    }
 }
 
-#if 0
 int show_cache_config_info(void)
 {
     unsigned int iset, iway, isize, dset, dway, dsize;
@@ -304,32 +303,16 @@ void flush_dcache(void *va, long size)
         __nds__fencei();
     }
 }
-#else
-int show_cache_config_info(void)
-{
-	return 1;
-}
-void flush_dcache(void *va, long size)
-{
-	unsigned int i, tmp = 0, line_size = 32;
-
-    /* L1C DCache write back and invalidate */
-    for (i = 0; tmp < size; i++)
-	{
-        /* Write back and invalid one cache line each time */
-        write_csr(NDS_UCCTLBEGINADDR, (unsigned long)(va + (i * line_size)));
-        tmp += line_size;
-        write_csr(NDS_UCCTLCOMMAND, CCTL_L1D_VA_WBINVAL);
-    }
-}
-#endif
 
 void flush_all_dcache(void) {
     int i = 0;
     for(i = 0; i < SRAM_BLOCK_COUNT; i++)
     {
         if(g_sram_addr_map[i] & 0x08000000) {
-            flush_dcache((void *)g_sram_addr_map[i], SRAM_BLOCK_SIZE);
+            // flush_dcache((void *)g_sram_addr_map[i], SRAM_BLOCK_SIZE);
+	        write_csr(NDS_MCCTLBEGINADDR, g_sram_addr_map[i]);
+	        write_csr(NDS_MCCTLCOMMAND, CCTL_L1D_WBINVAL_ALL);
+			return;
         }
     }
 }

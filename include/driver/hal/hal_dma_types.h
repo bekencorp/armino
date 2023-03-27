@@ -93,11 +93,9 @@ typedef enum {
     DMA_DEV_USB,         /**< DMA device USB */
     DMA_DEV_LCD_CMD,     /**< DMA device LCD CMD */
     DMA_DEV_LCD_DATA,    /**< DMA device LCD DATA */
+    DMA_DEV_AHB_MEM,     /**< DMA device AHB_MEM */
     DMA_DEV_DISP_RX,     /**< DMA device DISP RX */
     DMA_DEV_SDMADC_RX,   /**< DMA device SDMADC RX */
-    DMA_DEV_AHB_MEM,     /**< DMA device AHB_MEM */
-    DMA_DEV_SPI0,        /**< DMA device SPI 0 */
-    DMA_DEV_SPI1,        /**< DMA device SPI 1 */
     DMA_DEV_H264,        /**< DMA device H264 */
     DMA_DEV_MAX,
 } dma_dev_t;

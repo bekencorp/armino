@@ -19,6 +19,7 @@ This is the documentation for Beken Armino Development Framework.
     Application Development <application/index>
     Projects and Solutions <projects/index>
     Development and Contribution Process <process/index>
+    Cloud Platform <clounds/index>
     Release Notes <release-notes/index>
 
 * :ref:`genindex`

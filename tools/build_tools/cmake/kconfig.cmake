@@ -153,6 +153,7 @@ function(__kconfig_generate_config sdkconfig sdkconfig_defaults sdkconfig_defaul
     set(kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/kconfigs.in")
 	set(components_kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/components_kconfigs.in")
 	set(middleware_kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/middleware_kconfigs.in")
+	set(projects_kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/projects_kconfigs.in")
 	set(properties_kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/properties_kconfigs.in")
 
     # Place config-related environment arguments into config.env file
@@ -288,6 +289,7 @@ function(__kconfig_generate_config sdkconfig sdkconfig_defaults sdkconfig_defaul
         "COMPONENT_KCONFIGS_PROJBUILD_SOURCE_FILE=${kconfigs_projbuild_path}"
 		"COMPONENTS_KCONFIGS_SOURCE_FILE=${components_kconfigs_path}"
 		"MIDDLEWARE_KCONFIGS_SOURCE_FILE=${middleware_kconfigs_path}"
+		"PROJECTS_KCONFIGS_SOURCE_FILE=${projects_kconfigs_path}"
 		"PROPERTIES_KCONFIGS_SOURCE_FILE=${properties_kconfigs_path}"
         "ARMINO_CMAKE=y"
         "KCONFIG_CONFIG=${sdkconfig}"

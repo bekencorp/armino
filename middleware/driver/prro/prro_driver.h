@@ -20,5 +20,5 @@
 #define PRRO_LOGI(...) BK_LOGI(PRRO_TAG, ##__VA_ARGS__)
 #define PRRO_LOGW(...) BK_LOGW(PRRO_TAG, ##__VA_ARGS__)
 #define PRRO_LOGE(...) BK_LOGE(PRRO_TAG, ##__VA_ARGS__)
-#define PRRO_LOGD(...) BK_LOGD(PRRO_TAG, ##__VA_ARGS__)
+#define PRRO_LOGD(...) BK_LOGI(PRRO_TAG, ##__VA_ARGS__)
 

@@ -59,7 +59,7 @@ static const uint16_t Ipsf[64] = {	/* See also aa_idct.png */
 };
 
 
-/** breaf   User defined input function
+/** breaf   User defined input function 
  *  param1  Decompression object
  *  param2  Pointer to the read buffer (0:skip)
  *  param2  Number of bytes to read/skip
@@ -90,7 +90,7 @@ static uint16_t jpeg_dec_input_func (JDEC* jd, uint8_t* buff, uint16_t ndata)
  * @brief    This API is hw jpeg dec init
  *
  * @param   none
- *
+ * 
  * @return
  *     - BK_OK: succeed
  *     - others: other errors.
@@ -121,7 +121,7 @@ int jpg_decoder_init(void)
  * @brief    This API is hw jpeg dec deinit
  *
  * @param   none
- *
+ * 
  * @return
  *     - BK_OK: succeed
  *     - others: other errors.
@@ -138,10 +138,10 @@ int jpg_decoder_deinit(void)
 
 /**
  * @brief    Pointer to allocated memory block (NULL:no memory available)
- *
+ *  
  * @param1   Pointer to the decompressor object
- *
- * @param2   Number of bytes to allocate
+ * 
+ * @param2   Number of bytes to allocate 
  * @return
  *     - BK_OK: succeed
  *     - others: other errors.
@@ -162,9 +162,9 @@ static void* alloc_pool(JDEC* jd, uint16_t nd)
 
 /**
  * @brief   Create de-quantization and prescaling tables with a DQT segment
- *
+ *  
  * @param1   jd Pointer to the decompressor object
- * @param2   * data  Pointer to the quantizer tables
+ * @param2   * data  Pointer to the quantizer tables 
  * @param3   ndata Size of input data
  * @return
  *     - JDR_OK: succeed
@@ -201,9 +201,9 @@ static JRESULT create_qt_tbl(JDEC* jd, const uint8_t* data, uint16_t ndata)
 
 /**
  * @brief     Create huffman code tables with a DHT segment
- *
+ *  
  * @param1   jd Pointer to the decompressor object
- * @param2   * data Pointer to the packed huffman tables
+ * @param2   * data Pointer to the packed huffman tables 
  * @param3   ndata Size of input data
  * @return
  *     - JDR_OK: succeed
@@ -253,10 +253,10 @@ static JRESULT create_huffman_tbl( JDEC* jd, const uint8_t* data, uint16_t ndata
 }
 
 /**
- * @brief    Analyze the JPEG image and Initialize decompressor object
- *
+ * @brief    Analyze the JPEG image and Initialize decompressor object 
+ *  
  * @param1   Blank decompressor object
- * @param2   JPEG strem input function
+ * @param2   JPEG strem input function 
  * @param3   Working buffer for the decompression session
  * @param4   Size of working buffer
  * @param5   I/O device identifier for the session
@@ -509,7 +509,7 @@ JRESULT jd_prepare (JDEC* jd, uint16_t (*infunc)(JDEC*, uint8_t*, uint16_t), voi
 			if(0xff != seg[2])
 			{
 				pointer += 3;
-				BASE_FFDA = pointer;
+				BASE_FFDA = pointer;				
 				marker = seg[2];
 				if(jd->infunc(jd, &seg[4], 1) != 1)
 				{
@@ -539,14 +539,14 @@ JRESULT jd_prepare (JDEC* jd, uint16_t (*infunc)(JDEC*, uint8_t*, uint16_t), voi
 							return JDR_INP;
 						}
 						if(0xff == seg[0])
-						{
+						{				
 							pointer += 1;
 							BASE_FFDA = pointer;
 							continue;
 						}
 						marker = seg[0];
 						pointer += 1;
-						BASE_FFDA = pointer;
+						BASE_FFDA = pointer;						
 						if(jd->infunc(jd, seg, 2) != 2)
 							return JDR_INP;
 						break;
@@ -669,7 +669,7 @@ JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * ou
 	REG_JPEG_BITS_DC0C = *((jdec).huffbits[0][0] + 12);
 	REG_JPEG_BITS_DC0D = *((jdec).huffbits[0][0] + 13);
 	REG_JPEG_BITS_DC0E = *((jdec).huffbits[0][0] + 14);
-	REG_JPEG_BITS_DC0F = *((jdec).huffbits[0][0] + 15);
+	REG_JPEG_BITS_DC0F = *((jdec).huffbits[0][0] + 15);	
 
 	for(i = 0; i < 16; i = i + 1)
 	{
@@ -682,16 +682,16 @@ JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * ou
 		*(huf_pointer + i) = (*((jdec).huffcode[0][0] + i) << 8) + *((jdec).huffdata[0][0] + i);
 
 	//ind 10
-	REG_JPEG_BITS_DC10 = *((jdec).huffbits[1][0] + 0);
-	REG_JPEG_BITS_DC11 = *((jdec).huffbits[1][0] + 1);
-	REG_JPEG_BITS_DC12 = *((jdec).huffbits[1][0] + 2);
-	REG_JPEG_BITS_DC13 = *((jdec).huffbits[1][0] + 3);
-	REG_JPEG_BITS_DC14 = *((jdec).huffbits[1][0] + 4);
-	REG_JPEG_BITS_DC15 = *((jdec).huffbits[1][0] + 5);
-	REG_JPEG_BITS_DC16 = *((jdec).huffbits[1][0] + 6);
-	REG_JPEG_BITS_DC17 = *((jdec).huffbits[1][0] + 7);
-	REG_JPEG_BITS_DC18 = *((jdec).huffbits[1][0] + 8);
-	REG_JPEG_BITS_DC19 = *((jdec).huffbits[1][0] + 9);
+	REG_JPEG_BITS_DC10 = *((jdec).huffbits[1][0] + 0); 
+	REG_JPEG_BITS_DC11 = *((jdec).huffbits[1][0] + 1); 
+	REG_JPEG_BITS_DC12 = *((jdec).huffbits[1][0] + 2); 
+	REG_JPEG_BITS_DC13 = *((jdec).huffbits[1][0] + 3); 
+	REG_JPEG_BITS_DC14 = *((jdec).huffbits[1][0] + 4); 
+	REG_JPEG_BITS_DC15 = *((jdec).huffbits[1][0] + 5); 
+	REG_JPEG_BITS_DC16 = *((jdec).huffbits[1][0] + 6); 
+	REG_JPEG_BITS_DC17 = *((jdec).huffbits[1][0] + 7); 
+	REG_JPEG_BITS_DC18 = *((jdec).huffbits[1][0] + 8); 
+	REG_JPEG_BITS_DC19 = *((jdec).huffbits[1][0] + 9); 
 	REG_JPEG_BITS_DC1A = *((jdec).huffbits[1][0] + 10);
 	REG_JPEG_BITS_DC1B = *((jdec).huffbits[1][0] + 11);
 	REG_JPEG_BITS_DC1C = *((jdec).huffbits[1][0] + 12);
@@ -699,7 +699,7 @@ JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * ou
 	REG_JPEG_BITS_DC1E = *((jdec).huffbits[1][0] + 14);
 	REG_JPEG_BITS_DC1F = *((jdec).huffbits[1][0] + 15);
 
-	bits_num = 0;
+	bits_num = 0;	
 	for(i = 0; i < 16; i = i + 1)
 	{
 		bits_num = bits_num + *((jdec).huffbits[1][0] + i);
@@ -727,7 +727,7 @@ JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * ou
 	REG_JPEG_BITS_AC0D = *((jdec).huffbits[0][1] + 13);
 	REG_JPEG_BITS_AC0E = *((jdec).huffbits[0][1] + 14);
 	REG_JPEG_BITS_AC0F = *((jdec).huffbits[0][1] + 15);
-	bits_num = 0;
+	bits_num = 0; 
 	for(i = 0; i < 16; i = i + 1)
 	{
 		bits_num = bits_num + *((jdec).huffbits[0][1] + i);
@@ -767,10 +767,10 @@ JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * ou
 	dqt_pointer	= &REG_JPEG_DQT_TABLE0;
 	for(i = 0; i < 64; i = i + 1)
 		*(dqt_pointer + i) = (*((jdec).qttbl[0] + i));
-
+	
 	dqt_pointer	= &REG_JPEG_DQT_TABLE1;
 	for(i = 0; i < 64; i = i + 1)
-		*(dqt_pointer + i) = (*((jdec).qttbl[1] + i));
+		*(dqt_pointer + i) = (*((jdec).qttbl[1] + i));	
 
 	zig_pointer	= &REG_JPEG_Zig;
 	for(i = 0; i < 64; i = i + 1)
@@ -792,11 +792,11 @@ JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * ou
 
 
 /**
- * @brief	 Start to decompress the JPEG picture
- *
+ * @brief	 Start to decompress the JPEG picture  
+ *	
  * @param1	 jd Initialized decompression object
- *
- * @param2	 size of bytes to allocate
+ * 
+ * @param2	 size of bytes to allocate 
  * @return
  *	   - BK_OK: succeed
  *	   - others: other errors.
@@ -816,63 +816,3 @@ JRESULT jd_decomp(void)
 	jpeg_dec_ll_set_reg0x8_dec_cmd(JPEGDEC_START);
 	return rc;
 }
-
-uint32_t jpeg_dec_hal_get_jpeg_dec_linen()
-{
-	return jpeg_dec_ll_get_reg0x2_jpeg_dec_linen();
-}
-
-uint32_t jpeg_dec_hal_get_mcu_index()
-{
-	return jpeg_dec_ll_get_reg0x1_mcu_index();
-}
-
-uint32_t jpeg_dec_hal_get_master_rd_cnt()
-{
-	return jpeg_dec_ll_get_reg0x5d_master_rd_cnt();
-}
-
-uint32_t jpeg_dec_hal_get_base_raddr()
-{
-	return jpeg_dec_ll_get_reg0x58_base_raddr();
-}
-
-uint32_t jpeg_dec_hal_get_int_status_value()
-{
-	return jpeg_dec_ll_get_reg0x5f_value();
-}
-
-void jpeg_dec_hal_set_mcu_x(uint32_t value)
-{
-	jpeg_dec_ll_set_reg0x5_mcu_x(value);
-}
-
-void jpeg_dec_hal_set_mcu_y(uint32_t value)
-{
-	jpeg_dec_ll_set_reg0x6_mcu_y(value);
-}
-void jpeg_dec_hal_set_dec_cmd(uint32_t value)
-{
-	jpeg_dec_ll_set_reg0x8_dec_cmd(value);
-}
-
-void jpeg_dec_hal_set_int_status_value(uint32_t value)
-{
-	jpeg_dec_ll_set_reg0x5f_value(value);
-}
-
-void jpeg_dec_hal_set_uv_vld_value(uint32_t value)
-{
-	jpeg_dec_ll_set_reg0x3_value(value);
-}
-
-void jpeg_dec_hal_set_jpeg_dec_en(uint32_t value)
-{
-	jpeg_dec_ll_set_reg0x0_jpeg_dec_en(value);
-}
-
-void jpeg_dec_hal_set_dec_frame_int_clr(uint32_t value)
-{
-	jpeg_dec_ll_set_reg0x5f_dec_frame_int_clr(value);
-}
-

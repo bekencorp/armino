@@ -66,7 +66,6 @@ typedef struct {
 static wdt_driver_t s_wdt = {0};
 static bool s_wdt_driver_is_init = false;
 static uint32_t s_wdt_period = CONFIG_INT_WDT_PERIOD_MS;
-static bool s_wdt_debug_enabled = true;
 
 #if (CONFIG_TASK_WDT)
 static uint64_t s_last_task_wdt_feed_tick = 0;
@@ -142,10 +141,6 @@ bk_err_t bk_wdt_start(uint32_t timeout_ms)
 	WDT_RETURN_ON_DRIVER_NOT_INIT();
 	WDT_RETURN_ON_INVALID_PERIOD(timeout_ms);
 
-	if (!s_wdt_debug_enabled) {
-		return BK_ERR_WDT_DEBUG_DISABLED;
-	}
-
 	if (!timeout_ms) {
 		timeout_ms = CONFIG_INT_WDT_PERIOD_MS;
 	}
@@ -208,10 +203,6 @@ void bk_wdt_set_feed_time(uint32_t dw_set_time)
 #if (CONFIG_TASK_WDT)
 void bk_task_wdt_start()
 {
-	if (!s_wdt_debug_enabled) {
-		return;
-	}
-
 	s_task_wdt_enabled = true;
 }
 
@@ -261,12 +252,3 @@ void bk_wdt_feed_handle(void)
 	GLOBAL_INT_RESTORE();
 }
 
-void wdt_debug_enable(void)
-{
-	s_wdt_debug_enabled = true;
-}
-
-void wdt_debug_disable(void)
-{
-	s_wdt_debug_enabled = false;
-}

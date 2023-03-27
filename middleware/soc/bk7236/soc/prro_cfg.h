@@ -48,7 +48,6 @@ prro_map_t ap_map[] = \
 	{PRRO_DEV_AHB_BTDM_AHB,   20, 4, 20},\
 	{PRRO_DEV_AHB_MBOX0,      21, 4, 21},\
 	{PRRO_DEV_AHB_MBOX1,      22, 4, 22},\
-	{PRRO_DEV_AHB_DMA1,       23, 4, 23},\
 	{PRRO_DEV_AHB_MAX,        -1, PRRO_INVALID_REG, -1},\
 \
 	{PRRO_DEV_APB_WDT,        32, 7, 0 },\
@@ -106,7 +105,6 @@ prro_map_t sec_map[] = \
 	{PRRO_DEV_AHB_BTDM_AHB,   20, 5, 20},\
 	{PRRO_DEV_AHB_MBOX0,      21, 5, 21},\
 	{PRRO_DEV_AHB_MBOX1,      22, 5, 22},\
-	{PRRO_DEV_AHB_DMA1,       23, 5, 23},\
 	{PRRO_DEV_AHB_MAX,        -1,  PRRO_INVALID_REG, -1},\
 \
 	{PRRO_DEV_APB_WDT,        0, 8, 0 },\

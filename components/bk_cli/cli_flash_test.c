@@ -6,12 +6,11 @@
 #include "flash_bypass.h"
 #include "flash.h"
 #include <driver/psram.h>
-#include "bk_misc.h"
 
 #define  TICK_PER_US    26
 beken_thread_t idle_read_flash_handle = NULL;
 beken_thread_t idle_read_psram_handle = NULL;
-//extern void delay_ms(UINT32 ms_count);
+extern void delay_ms(UINT32 ms_count);
 
 static bk_err_t test_flash_write(volatile uint32_t start_addr, uint32_t len)
 {

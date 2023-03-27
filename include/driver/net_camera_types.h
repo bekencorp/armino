@@ -40,8 +40,10 @@ typedef struct {
 	uint8_t *buf_ptr;
 	/// video buff receive state
 	uint8_t start_buf;
-	/// dma id for memcpy
+	/// dma id for memcpy for sram -> sram
 	uint8_t dma_id;
+	/// dma id for memcpy sram - >psram
+	uint8_t dma_psram;
 	/// the packet count of one frame
 	uint32_t frame_pkt_cnt;
 } net_camera_buffer_t;

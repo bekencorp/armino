@@ -8,6 +8,8 @@
 #include <os/os.h>
 #include <os/str.h>
 #include <common/bk_kernel_err.h>
+#include <components/video_types.h>
+
 
 #include "lwip/sockets.h"
 
@@ -27,11 +29,11 @@ beken_thread_t doorbell_udp_ser_hdl = NULL;
 uint8_t doorbell_udp_ser_run = 0;
 struct sockaddr_in *doorbell_udp_ser_remote = NULL;
 int doorbell_udp_ser_video_fd = -1;
+static media_ppi_t camera_ppi = PPI_640X480;
 static media_ppi_t lcd_ppi = PPI_480X272;
 static char lcd_name[10] = {'0'};
 
-
-extern uint32_t bk_net_camera_receive_data(uint8_t *data, uint32_t length);
+extern uint32_t bk_net_send_data(uint8_t *data, uint32_t length, video_send_type_t type);
 
 static void demo_doorbell_udp_server_main(beken_thread_arg_t data)
 {
@@ -83,7 +85,7 @@ static void demo_doorbell_udp_server_main(beken_thread_arg_t data)
 	}
 	else
 	{
-		media_app_camera_open(APP_CAMERA_NET_MJPEG, PPI_1280X720);
+		media_app_camera_open(APP_CAMERA_NET_MJPEG, camera_ppi);
 
 		lcd_open_t lcd_open;
 		lcd_open.device_ppi = lcd_ppi;
@@ -100,7 +102,7 @@ static void demo_doorbell_udp_server_main(beken_thread_arg_t data)
 		                   (struct sockaddr *)&sender, &srvaddr_len);
 		if (rcv_len > 0)
 		{
-			bk_net_camera_receive_data(rcv_buf, rcv_len);
+			bk_net_send_data(rcv_buf, rcv_len, TVIDEO_SND_UDP);
 		}
 		else
 		{
@@ -147,31 +149,52 @@ bk_err_t demo_doorbell_udp_server_init(int argc, char **argv)
 
 	if (argc == 0)
 	{
+		camera_ppi = PPI_640X480;
 		lcd_ppi = PPI_480X272;
 	}
 	else if (argc == 1)
 	{
-		LOGI("%s, %s\n", __func__, argv[0]);
-		lcd_ppi = get_string_to_ppi(argv[0]);
-		if (lcd_ppi == PPI_DEFAULT)
+		camera_ppi = get_string_to_ppi(argv[0]);
+		if (camera_ppi == PPI_DEFAULT)
 		{
-			lcd_ppi = PPI_480X272;
+			camera_ppi = PPI_640X480;
 		}
 
-		LOGI("%s, lcd_ppi:%d-%d\r\n", __func__, lcd_ppi >> 16, lcd_ppi & 0xFFFF);
+		lcd_ppi = PPI_480X272;
 	}
 	else if (argc == 2)
 	{
-		lcd_ppi = get_string_to_ppi(argv[0]);
+		camera_ppi = get_string_to_ppi(argv[0]);
+		if (camera_ppi == PPI_DEFAULT)
+		{
+			camera_ppi = PPI_640X480;
+		}
+
+		lcd_ppi = get_string_to_ppi(argv[1]);
+		if (lcd_ppi == PPI_DEFAULT)
+		{
+			lcd_ppi = PPI_480X272;
+		}
+	}
+	else if (argc == 3)
+	{
+		camera_ppi = get_string_to_ppi(argv[0]);
+		if (camera_ppi == PPI_DEFAULT)
+		{
+			camera_ppi = PPI_640X480;
+		}
+
+		lcd_ppi = get_string_to_ppi(argv[1]);
 		if (lcd_ppi == PPI_DEFAULT)
 		{
 			lcd_ppi = PPI_480X272;
 		}
 
-		os_memcpy(lcd_name, argv[1], os_strlen(argv[1]));
+		os_memcpy(lcd_name, argv[2], os_strlen(argv[2]));
 	}
 	else
 	{
+		camera_ppi = PPI_640X480;
 		lcd_ppi = PPI_480X272;
 	}
 

@@ -108,7 +108,7 @@ l_bootloader：主要是uart下载功能，流程图如上图2所示。
 ----------------------------
 - 1.OTA升级固件支持压缩和加密，升级固件已自动制作完毕。在编译app的时候，在目录build/app/bk7237生成app.bin同时，在build/app/bk7237/encrypt/目录下已经生成固件app_pack.rbl。
 
-- 2.打开Everything-1.4.1.935.x64-Setup.exe，工具->选项->HTTP服务器，绑定本机ip。使用浏览器打开本机的ip地址，找到本地的升级文件 *.rbl，拷贝url出来，用于cli命令。
+- 2.打开Everything-1.4.1.935.x64-Setup.exe，工具->选项->HTTP服务器，绑定本机ip。使用浏览器打开本机的ip地址，找到本地的升级文件 \*.rbl，拷贝url出来，用于cli命令。
 
  .. figure:: ../../../_static/bootlaoder_everthing.png
     :align: center

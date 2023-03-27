@@ -145,6 +145,127 @@ void usb_ls_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **a
 #include "diskio.h"
 #endif
 
+void uvc_view_support_attribute(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	E_UVC_ATTRIBUTE_T attribute;
+	for(attribute = UVC_ATTRIBUTE_BACKLIGHT_COMPENSATION; attribute < UVC_ATTRIBUTE_NUM; attribute++)
+	{
+        switch(attribute)
+        {
+            case UVC_ATTRIBUTE_BACKLIGHT_COMPENSATION:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT BACKLIGHT_COMPENSATION: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT BACKLIGHT_COMPENSATION: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_BRIGHTNESS:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT BRIGHTNESS: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT BRIGHTNESS: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_CONTRAST:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT CONTRAST: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT CONTRAST: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_GAIN:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT GAIN: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT GAIN: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_POWER_LINE_FREQUENCY:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT POWER_LINE_FREQUENCY: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT POWER_LINE_FREQUENCY: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_HUE:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT HUE: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT HUE: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_SATURATION:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT SATURATION: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT SATURATION: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_SHARPNESS:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT SHARPNESS: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT SHARPNESS: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_GAMMA:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT GAMMA: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT GAMMA: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_WHITE_BALANCE_TEMPERATURE:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_TEMPERATURE: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_TEMPERATURE: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_WHITE_BALANCE_TEMPERATURE_AUTO:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_TEMPERATURE_AUTO: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_TEMPERATURE_AUTO: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_WHITE_BALANCE_COMPONENT:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_COMPONENT: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_COMPONENT: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_WHITE_BALANCE_COMPONENT_AUTO:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_COMPONENT_AUTO: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT WHITE_BALANCE_COMPONENT_AUTO: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_DIGITAL_MULTIPLIER:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT DIGITAL_MULTIPLIER: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT DIGITAL_MULTIPLIER: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_DIGITAL_MULTIPLIER_LIMIT:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT DIGITAL_MULTIPLIER_LIMIT: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT DIGITAL_MULTIPLIER_LIMIT: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_HUE_AUTO:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT HUE_AUTO: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT HUE_AUTO: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_ANALOG_LOCK_STATUS:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT ANALOG_LOCK_STATUS: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT ANALOG_LOCK_STATUS: 1  YES\r\n");
+                break;
+            case UVC_ATTRIBUTE_ANALOG_VIDEO_STANDARD:
+                if(bk_usb_uvc_check_support_attribute(attribute))
+                    CLI_LOGI("UVC SUPPORT ANALOG_VIDEO_STANDARD: 0  NO\r\n");
+                else
+                    CLI_LOGI("UVC SUPPORT ANALOG_VIDEO_STANDARD: 1  YES\r\n");
+                break;
+            default:
+                break;
+        }
+	}
+}
+
 void uvc_get_param(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	if (argc < 3) {
@@ -152,67 +273,68 @@ void uvc_get_param(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 		return;
 	}
 	uint32_t attribute = 0x00;
+	uint32_t param = 0;
 
 	if (os_strcmp(argv[1], "backlight") == 0) {
-		attribute = 0x01;
+		attribute = UVC_ATTRIBUTE_BACKLIGHT_COMPENSATION;
 	} else if (os_strcmp(argv[1], "brightness") == 0) {
-		attribute = 0x02;
+		attribute = UVC_ATTRIBUTE_BRIGHTNESS;
 	} else if (os_strcmp(argv[1], "contrast") == 0) {
-		attribute = 0x03;
+		attribute = UVC_ATTRIBUTE_CONTRAST;
 	} else if (os_strcmp(argv[1], "gain") == 0) {
-		attribute = 0x04;
+		attribute = UVC_ATTRIBUTE_GAIN;
 	} else if (os_strcmp(argv[1], "powerlinefre") == 0) {
-		attribute = 0x05;
+		attribute = UVC_ATTRIBUTE_POWER_LINE_FREQUENCY;
 	} else if (os_strcmp(argv[1], "hue") == 0) {
-		attribute = 0x06;
+		attribute = UVC_ATTRIBUTE_HUE;
 	} else if (os_strcmp(argv[1], "hueauto") == 0) {
-		attribute = 0x10;
+		attribute = UVC_ATTRIBUTE_HUE_AUTO;
 	} else if (os_strcmp(argv[1], "saturation") == 0) {
-		attribute = 0x07;
+		attribute = UVC_ATTRIBUTE_SATURATION;
 	} else if (os_strcmp(argv[1], "sharpness") == 0) {
-		attribute = 0x08;
+		attribute = UVC_ATTRIBUTE_SHARPNESS;
 	} else if (os_strcmp(argv[1], "gamma") == 0) {
-		attribute = 0x09;
+		attribute = UVC_ATTRIBUTE_GAMMA;
 	} else if (os_strcmp(argv[1], "wbt") == 0) {
-		attribute = 0x0a;
+		attribute = UVC_ATTRIBUTE_WHITE_BALANCE_TEMPERATURE;
 	} else if (os_strcmp(argv[1], "wbtauto") == 0) {
-		attribute = 0x0b;
+		attribute = UVC_ATTRIBUTE_WHITE_BALANCE_TEMPERATURE_AUTO;
 	} else if (os_strcmp(argv[1], "wbc") == 0) {
-		attribute = 0x0c;
+		attribute = UVC_ATTRIBUTE_WHITE_BALANCE_COMPONENT;
 	} else if (os_strcmp(argv[1], "wbcauto") == 0) {
-		attribute = 0x0d;
+		attribute = UVC_ATTRIBUTE_WHITE_BALANCE_COMPONENT_AUTO;
 	} else if (os_strcmp(argv[1], "digmu") == 0) {
-		attribute = 0x0e;
+		attribute = UVC_ATTRIBUTE_DIGITAL_MULTIPLIER;
 	} else if (os_strcmp(argv[1], "digmulimit") == 0) {
-		attribute = 0x0f;
+		attribute = UVC_ATTRIBUTE_DIGITAL_MULTIPLIER_LIMIT;
 	} else if (os_strcmp(argv[1], "analogvideo") == 0) {
-		attribute = 0x10;
+		attribute = UVC_ATTRIBUTE_ANALOG_VIDEO_STANDARD;
 	} else if (os_strcmp(argv[1], "analoglock") == 0) {
-		attribute = 0x12;
+		attribute = UVC_ATTRIBUTE_ANALOG_LOCK_STATUS;
 	} else {
 		cli_usb_help();
 		return;
 	}
-
 
 	if (os_strcmp(argv[2], "cur") == 0) {
-		bk_uvc_get_cur(attribute);
+		CLI_LOGI("uvc cur 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_CUR, attribute, &param));
 	} else if (os_strcmp(argv[2], "min") == 0) {
-		bk_uvc_get_min(attribute);
+		CLI_LOGI("uvc min 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_MIN, attribute, &param));
 	} else if (os_strcmp(argv[2], "max") == 0) {
-		bk_uvc_get_max(attribute);
+		CLI_LOGI("uvc max 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_MAX, attribute, &param));
 	} else if (os_strcmp(argv[2], "info") == 0) {
-		bk_uvc_get_info(attribute);
+		CLI_LOGI("uvc info 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_INFO, attribute, &param));
 	} else if (os_strcmp(argv[2], "len") == 0) {
-		bk_uvc_get_len(attribute);
+		CLI_LOGI("uvc len 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_LEN, attribute, &param));
 	} else if (os_strcmp(argv[2], "res") == 0) {
-		bk_uvc_get_res(attribute);
+		CLI_LOGI("uvc res 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_RES, attribute, &param));
 	} else if (os_strcmp(argv[2], "def") == 0) {
-		bk_uvc_get_def(attribute);
+		CLI_LOGI("uvc def 0x%x!\r\n", bk_usb_uvc_attribute_op(USB_ATTRIBUTE_GET_DEF, attribute, &param));
 	} else {
 		cli_usb_help();
 		return;
 	}
+	CLI_LOGI("uvc param: 0x%x!\r\n", param);
 
 }
 
@@ -227,48 +349,48 @@ void uvc_set_param(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 	uint32_t param = 0;
 
 	if (os_strcmp(argv[1], "backlight") == 0) {
-		attribute = 0x01;
+		attribute = UVC_ATTRIBUTE_BACKLIGHT_COMPENSATION;
 	} else if (os_strcmp(argv[1], "brightness") == 0) {
-		attribute = 0x02;
+		attribute = UVC_ATTRIBUTE_BRIGHTNESS;
 	} else if (os_strcmp(argv[1], "contrast") == 0) {
-		attribute = 0x03;
+		attribute = UVC_ATTRIBUTE_CONTRAST;
 	} else if (os_strcmp(argv[1], "gain") == 0) {
-		attribute = 0x04;
+		attribute = UVC_ATTRIBUTE_GAIN;
 	} else if (os_strcmp(argv[1], "powerlinefre") == 0) {
-		attribute = 0x05;
+		attribute = UVC_ATTRIBUTE_POWER_LINE_FREQUENCY;
 	} else if (os_strcmp(argv[1], "hue") == 0) {
-		attribute = 0x06;
+		attribute = UVC_ATTRIBUTE_HUE;
 	} else if (os_strcmp(argv[1], "hueauto") == 0) {
-		attribute = 0x10;
+		attribute = UVC_ATTRIBUTE_HUE_AUTO;
 	} else if (os_strcmp(argv[1], "saturation") == 0) {
-		attribute = 0x07;
+		attribute = UVC_ATTRIBUTE_SATURATION;
 	} else if (os_strcmp(argv[1], "sharpness") == 0) {
-		attribute = 0x08;
+		attribute = UVC_ATTRIBUTE_SHARPNESS;
 	} else if (os_strcmp(argv[1], "gamma") == 0) {
-		attribute = 0x09;
+		attribute = UVC_ATTRIBUTE_GAMMA;
 	} else if (os_strcmp(argv[1], "wbt") == 0) {
-		attribute = 0x0a;
+		attribute = UVC_ATTRIBUTE_WHITE_BALANCE_TEMPERATURE;
 	} else if (os_strcmp(argv[1], "wbtauto") == 0) {
-		attribute = 0x0b;
+		attribute = UVC_ATTRIBUTE_WHITE_BALANCE_TEMPERATURE_AUTO;
 	} else if (os_strcmp(argv[1], "wbc") == 0) {
-		attribute = 0x0c;
+		attribute = UVC_ATTRIBUTE_WHITE_BALANCE_COMPONENT;
 	} else if (os_strcmp(argv[1], "wbcauto") == 0) {
-		attribute = 0x0d;
+		attribute = UVC_ATTRIBUTE_WHITE_BALANCE_COMPONENT_AUTO;
 	} else if (os_strcmp(argv[1], "digmu") == 0) {
-		attribute = 0x0e;
+		attribute = UVC_ATTRIBUTE_DIGITAL_MULTIPLIER;
 	} else if (os_strcmp(argv[1], "digmulimit") == 0) {
-		attribute = 0x0f;
+		attribute = UVC_ATTRIBUTE_DIGITAL_MULTIPLIER_LIMIT;
 	} else if (os_strcmp(argv[1], "analogvideo") == 0) {
-		attribute = 0x10;
+		attribute = UVC_ATTRIBUTE_ANALOG_VIDEO_STANDARD;
 	} else if (os_strcmp(argv[1], "analoglock") == 0) {
-		attribute = 0x12;
+		attribute = UVC_ATTRIBUTE_ANALOG_LOCK_STATUS;
 	} else {
 		cli_usb_help();
 		return;
 	}
 
 	param = os_strtoul(argv[2], NULL, 10);
-	bk_uvc_set_cur(attribute, param);
+	bk_usb_uvc_attribute_op(USB_ATTRIBUTE_SET_CUR, attribute, &param);
 
 }
 
@@ -535,6 +657,7 @@ void cli_uvc_test_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 	}
 
 	uint16_t width, height, fps, buffer_len;
+	bool ret = 0;
 
 	if (os_strcmp(argv[1], "init") == 0) {
 		if (argc > 2)
@@ -569,6 +692,12 @@ void cli_uvc_test_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		CLI_LOGI("debug info s_uvc_test_inited_flag: %d\r\n", s_uvc_test_inited_flag);
 		CLI_LOGI("debug info s_save_sdcard_count: %d\r\n", s_save_sdcard_count);
 		CLI_LOGI("debug info s_get_packets_count: %d\r\n", s_get_packets_count);
+	} else if(os_strcmp(argv[1], "check_uvc") == 0) {
+		ret = bk_usb_check_device_supported (USB_UVC_DEVICE);
+		if(ret != BK_OK)
+			CLI_LOGI("cli_uac_operation check_uvc UNsupport\r\n");
+		else
+			CLI_LOGI("cli_uac_operation check_uvc Support\r\n");
 	} else {
 		cli_usb_help();
 		return;
@@ -599,12 +728,26 @@ void uvc_start_stream(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 			CLI_LOGI("H264 Support!\r\n");
 		else
 			CLI_LOGI("H264 Unsupport!\r\n");
+	} else if(os_strcmp(argv[1], "enable_h265") == 0) {
+		if(!bk_uvc_enable_H265())
+			CLI_LOGI("H265 Support!\r\n");
+		else
+			CLI_LOGI("H265 Unsupport!\r\n");
 	} else if(os_strcmp(argv[1], "enable_mjpeg") == 0) {
 		if(!bk_uvc_enable_mjpeg())
 			CLI_LOGI("MJPEG Support!\r\n");
 		else
 			CLI_LOGI("MJPEG Unsupport!\r\n");
-	} else {
+	} else if(os_strcmp(argv[1], "get_resolution_number") == 0) {
+		uint16_t number = 0;
+		bk_uvc_get_resolution_number(&number);
+		CLI_LOGI("get_resolution_number number:%d!\r\n", number);
+	} else if(os_strcmp(argv[1], "get_resolution_framerate") == 0) {
+		UVC_ResolutionFramerate support_config[20] = {0};
+		bk_uvc_get_resolution_framerate((void *)support_config, 20);
+	} else if(os_strcmp(argv[1], "rx_vs") == 0){
+		uvc_fiddle_rx_vs();
+	}else {
 		cli_usb_help();
 		return;
 	}
@@ -752,8 +895,8 @@ void uac_printf_test_buff(void)
 #endif
 
 #if CONFIG_USB_UAC_SPEAKER
-static const uint32_t uac_speaker_PCM_8000[8] = {
-	0x00010000, 0x5A825A81, 0x7FFF7FFF, 0x5A825A83, 0x00000000, 0xA57FA57E, 0x80018002, 0xA57EA57E,
+static const uint32_t uac_speaker_PCM_8000[16] = {
+	0x00010000, 0x5A825A81, 0x7FFF7FFF, 0x5A825A83, 0x00000000, 0xA57FA57E, 0x80018002, 0xA57EA57E, 0x00010000, 0x5A825A81, 0x7FFF7FFF, 0x5A825A83, 0x00000000, 0xA57FA57E, 0x80018002, 0xA57EA57E,
 };
 
 static uint16_t count_speaker_num = 0;
@@ -778,7 +921,7 @@ void cli_uac_operation(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		return;
 	}
 	void *parameter;
-	uint32_t hz;
+	uint32_t data = 0;
 	if(os_strcmp(argv[1], "init") == 0) {
 		parameter = (void *)usb_uac_disconnect_callback;
 		bk_usb_uac_register_disconnect_callback(parameter);
@@ -789,6 +932,46 @@ void cli_uac_operation(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		bk_usb_uac_register_disconnect_callback(parameter);
 		parameter = NULL;
 		bk_usb_uac_register_connect_callback(parameter);
+	}
+
+	if(os_strcmp(argv[1], "set_volume") == 0) {
+		if (argc > 2)
+			data = os_strtoul(argv[2], NULL, 16);
+		else
+			bk_usb_uac_attribute_op(USB_ATTRIBUTE_GET_MIN, UAC_ATTRIBUTE_VOLUME, &data);
+		bk_usb_uac_attribute_op(USB_ATTRIBUTE_SET_CUR, UAC_ATTRIBUTE_VOLUME, &data);
+		CLI_LOGI("cli_uac_operation set_volume = 0x%x\r\n", data);
+	} else if(os_strcmp(argv[1], "get_volume") == 0) {
+		bk_usb_uac_attribute_op(USB_ATTRIBUTE_GET_CUR, UAC_ATTRIBUTE_VOLUME, &data);
+		CLI_LOGI("cli_uac_operation get_volume = 0x%x\r\n", data);
+	} else if(os_strcmp(argv[1], "get_volume_min") == 0) {
+		bk_usb_uac_attribute_op(USB_ATTRIBUTE_GET_MIN, UAC_ATTRIBUTE_VOLUME, &data);
+		CLI_LOGI("cli_uac_operation get_volume_min = 0x%x\r\n", data);
+	} else if(os_strcmp(argv[1], "get_volume_max") == 0) {
+		bk_usb_uac_attribute_op(USB_ATTRIBUTE_GET_MAX, UAC_ATTRIBUTE_VOLUME, &data);
+		CLI_LOGI("cli_uac_operation get_volume_max = 0x%x\r\n", data);
+	} else if(os_strcmp(argv[1], "check_attribute") == 0) {
+		for(E_UAC_ATTRIBUTE_T attribute = UAC_ATTRIBUTE_MUTE; attribute < UAC_ATTRIBUTE_NUM; attribute++)
+			CLI_LOGI("cli_uac_operation attribute:%d\r\n", !bk_usb_uac_check_support_attribute(attribute));
+	} else if(os_strcmp(argv[1], "set_mute") == 0) {
+		data = 1;
+		bk_usb_uac_attribute_op(USB_ATTRIBUTE_SET_CUR, UAC_ATTRIBUTE_MUTE, &data);
+		CLI_LOGI("cli_uac_operation set_mute = 0x%x\r\n", data);
+	} else if(os_strcmp(argv[1], "set_unmute") == 0) {
+		data = 0;
+		bk_usb_uac_attribute_op(USB_ATTRIBUTE_SET_CUR, UAC_ATTRIBUTE_MUTE, &data);
+		CLI_LOGI("cli_uac_operation set_unmute = 0x%x\r\n", data);
+	} else if(os_strcmp(argv[1], "get_mute") == 0) {
+		bk_usb_uac_attribute_op(USB_ATTRIBUTE_GET_CUR, UAC_ATTRIBUTE_MUTE, &data);
+		CLI_LOGI("cli_uac_operation get_mute = 0x%x\r\n", data);
+	} else if(os_strcmp(argv[1], "check_mic") == 0) {
+		if(BK_OK == bk_usb_check_device_supported (USB_UAC_MIC_DEVICE))
+			data = 1;
+		CLI_LOGI("cli_uac_operation check_mic %d\r\n", data);
+	} else if(os_strcmp(argv[1], "check_speaker") == 0) {
+		if(BK_OK == bk_usb_check_device_supported (USB_UAC_SPEAKER_DEVICE))
+			data = 1;
+		CLI_LOGI("cli_uac_operation check_speaker %d\r\n", data);
 	}
 
 	s_audio_as_general_descriptor interfacedesc;
@@ -817,11 +1000,11 @@ void cli_uac_operation(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		bk_uac_stop_mic();
 	} else if(os_strcmp(argv[1], "mic_sethz") == 0){
 		if (argc > 2)
-			hz = os_strtoul(argv[2], NULL, 10);
+			data = os_strtoul(argv[2], NULL, 10);
 		else
-			hz = 32000;
-		CLI_LOGI("cli_uac_operation mic_sethz = %d\r\n", hz);
-		bk_usb_uac_set_hz(USB_UAC_MIC_DEVICE, hz);
+			data = 16000;
+		CLI_LOGI("cli_uac_operation mic_sethz = %d\r\n", data);
+		bk_usb_uac_set_hz(USB_UAC_MIC_DEVICE, data);
 	}
 #endif
 #if CONFIG_USB_UAC_SPEAKER
@@ -829,7 +1012,7 @@ void cli_uac_operation(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		parameter = (void *)uac_speaker_fiddle_txed;
 		bk_uac_register_speakerstream_txed_callback(parameter);
 		parameter = (void *)uac_speaker_PCM_8000;
-		bk_uac_register_tx_speakerstream_buffptr(parameter, 32);
+		bk_uac_register_tx_speakerstream_buffptr(parameter, 64);
 	} else if(os_strcmp(argv[1], "start_speaker") == 0){
 		CLI_LOGI("cli_uac_operation start_speaker\r\n");
 		usb_device_set_using_status(1, USB_UAC_SPEAKER_DEVICE);
@@ -840,11 +1023,11 @@ void cli_uac_operation(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		bk_uac_stop_speaker();
 	} else if(os_strcmp(argv[1], "speaker_sethz") == 0){
 		if (argc > 2)
-			hz = os_strtoul(argv[2], NULL, 10);
+			data = os_strtoul(argv[2], NULL, 10);
 		else
-			hz = 32000;
-		CLI_LOGI("cli_uac_operation speaker_sethz = %d\r\n", hz);
-		bk_usb_uac_set_hz(USB_UAC_SPEAKER_DEVICE, hz);
+			data = 16000;
+		CLI_LOGI("cli_uac_operation speaker_sethz = %d\r\n", data);
+		bk_usb_uac_set_hz(USB_UAC_SPEAKER_DEVICE, data);
 	}
 #endif
 }
@@ -880,6 +1063,7 @@ const struct cli_command usb_host_clis[] = {
 #ifdef CONFIG_USB_UVC_DEBUG
 	{"uvc", "uvc [init|deinit|debug_info]", cli_uvc_test_init},
 	{"uvc_data", "uvc_data [print|save]", cli_uvc_test_buff_ops},
+	{"uvc_ctrl_support", "uvc ctrl support attribute information", uvc_view_support_attribute},
 	{"uvc_ctrl_get", "uvc ctrl get attribute information", uvc_get_param},
 	{"uvc_ctrl_set", "uvc ctrl set attribute param", uvc_set_param},
 	{"uvc_stream", "uvc ctrl set attribute param", uvc_start_stream},

@@ -34,9 +34,17 @@ DOORBELL
 	+----------------------------------------+--------------------------------+---------------------------------------+
 	| media dvp close                        | NULL                           | close dvp sensor                      |
 	+----------------------------------------+--------------------------------+---------------------------------------+
-	| media lcd open [param]                 | param1:display size            | lcd display size, default:480X272     |
+	|                                        | param1:LCD PIXEL               | default:480X272                       |
+	| media lcd open [param1] [param2]       +--------------------------------+---------------------------------------+
+	|                                        | param2:rotate or null          | rotate open or not                    |
 	+----------------------------------------+--------------------------------+---------------------------------------+
 	| media lcd close                        | NULL                           | close lcd function, and jpeg decode   |
+	+----------------------------------------+--------------------------------+---------------------------------------+
+	|                                        | param1:clock,wifi,data,ver     | blend icon type                       |
+	| media lcd dma2d_blend [param1][param2] +--------------------------------+---------------------------------------+
+	|                                        | param2:12:30 , 0-4             | 0:wifi none, 4:wifi full              |
+	+----------------------------------------+--------------------------------+---------------------------------------+
+	| media lcd dma2d_blend close [param]    | NULL or wifi/clock             | close all blend or one blend          |
 	+----------------------------------------+--------------------------------+---------------------------------------+
 	| media capture param                    | param:xxx.jpg                  | capture save to sdcard, and set name  |
 	+----------------------------------------+--------------------------------+---------------------------------------+
@@ -63,6 +71,8 @@ DOORBELL
 	|CONFIG_LCD                            |support LCD function    |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 	|CONFIG_USB_UVC                        |support UVC camera      |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
+	+--------------------------------------+------------------------+--------------------------------------------+---------+
+	|CONFIG_LCD_FONT_BLEND                 |support font/image blend|``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 
 4 演示介绍
@@ -131,6 +141,7 @@ DOORBELL
 
 	在图4中设置对端IP地址，当板子为softap时，默认为``192.168.0.1``，当板子作为staion时，手机和板子连接同一个ap，填入的IP地址可以通过命令``ip``获得。
 	另外该app还支持手机图传功能，即命令``video_transfer -a|s ssid key``，但是必须将图4步骤1设置为``video_transfer``模式。
+	apk的下载地址如下：http://dl.bekencorp.com/apk/RealtimeVideo.apk
 
 .. figure:: ../../../../common/_static/RealtimeVideo_app.jpg
     :align: center
@@ -139,28 +150,28 @@ DOORBELL
 
     Figure 1. doorbell apk
 
-.. figure:: ../../../../common/_static/app_set0.jpg
+.. figure:: ../../../../common/_static/RealtimeVideo_set0.jpg
     :align: center
     :alt: RealtimeVideo_app_screen
     :figclass: align-center
 
     Figure 2. RealtimeVideo_app Main screen
 
-.. figure:: ../../../../common/_static/app_set1.jpg
+.. figure:: ../../../../common/_static/RealtimeVideo_set1.jpg
     :align: center
     :alt: RealtimeVideo_app_set_menu
     :figclass: align-center
 
     Figure 3. RealtimeVideo_app Set menu
 
-.. figure:: ../../../../common/_static/app_set2.jpg
+.. figure:: ../../../../common/_static/RealtimeVideo_set2.jpg
     :align: center
     :alt: RealtimeVideo_app_set
     :figclass: align-center
 
     Figure 4. RealtimeVideo_app set
 
-.. figure:: ../../../../common/_static/app_set3.jpg
+.. figure:: ../../../../common/_static/RealtimeVideo_set3.jpg
     :align: center
     :alt: RealtimeVideo_function_set
     :figclass: align-center
@@ -450,7 +461,7 @@ lcd_gc9503v_init函数一般是屏幕厂商提供，需要硬件接口模拟SPI�
 
 
 
-7 如何添加前景小图标进行视频融合
+7 图标融合
 -----------------------------------------------------
 
 
@@ -509,30 +520,8 @@ lcd_gc9503v_init函数一般是屏幕厂商提供，需要硬件接口模拟SPI�
 
 准备好了图片数据以及融合的位置，接下来就配置实际融合的参数，请参考lcd_act.c 中API 接口：lcd_blend_handler
 
-比如要融合的时间图标在屏幕的右上角，即屏幕坐标(0,0)处开始融合，其 lcd_blend.pbg_addr 第一张时间数字的时候是没有地址偏移的，后面每融合一张数字就会偏移一张数字的长度。
 
-::
-
-			for(int i = 0; i < 5; i++)
-			{
-				lcd_blend.pfg_addr = (uint8_t *)(clock)[i];
-				lcd_blend.pbg_addr = (uint8_t *)(frame->frame + (CLOCK_LOGO_W * i * 2));
-				lcd_blend.fg_offline = 0;
-				lcd_blend.bg_offline = frame->width - CLOCK_LOGO_W;;
-				lcd_blend.xsize = CLOCK_LOGO_W;
-				lcd_blend.ysize = CLOCK_LOGO_H;
-				lcd_blend.fg_alpha_value = FG_ALPHA;
-	#if (FG_RGB565_FORMAT)
-				lcd_blend.fg_data_format = RGB565;
-	#endif
-	#if (FG_ARGB8888_FORMAT)
-				lcd_blend.fg_data_format = ARGB8888;
-	#endif
-				lcd_driver_blend(&lcd_blend);
-			}
-
-
-比如要融合的wifi图标在在屏幕的左上角，即屏幕坐标(lcd_width-logo_width,0)处开始融合，其 lcd_blend.pbg_addr 就要设置 地址偏移量(frame->frame + (frame->width - WIFI_LOGO_W) * 2,。 如何设置偏移在DMA2D的用例指南有详细介绍。
+比如要融合的wifi图标在在屏幕的右上角，即屏幕坐标(lcd_width-logo_width,0)处开始融合，其 lcd_blend.pbg_addr 就要设置 地址偏移量(frame->frame + (frame->width - WIFI_LOGO_W) * 2。 如何设置偏移在DMA2D的用例指南有详细介绍。
 
 ::
 
@@ -546,33 +535,11 @@ lcd_gc9503v_init函数一般是屏幕厂商提供，需要硬件接口模拟SPI�
 			lcd_blend.xsize = WIFI_LOGO_W;
 			lcd_blend.ysize = WIFI_LOGO_H;
 			lcd_blend.fg_alpha_value = FG_ALPHA;
-	#if (FG_RGB565_FORMAT)
-			lcd_blend.fg_data_format = RGB565;
-	#endif
-	#if (FG_ARGB8888_FORMAT)
 			lcd_blend.fg_data_format = ARGB8888;
-	#endif
 			lcd_driver_blend(&lcd_blend);
 		}
 
-比如要融合的版本图标在在屏幕居中靠下的位置，就是上面设置的宏（VERSION_POSTION_Y, VERSION_POSTION_X）位置,lcd_blend.pbg_addr的配置就在(VERSION_POSTION_X + CLOCK_LOGO_W * (i) ))* 2)的位置。
-
-::
-
-		for(int i = 0; i < 8; i++)
-		{
-			lcd_blend.pfg_addr = (uint8_t *)(version)[i];
-			lcd_blend.pbg_addr = (uint8_t *)(frame->frame + ((VERSION_POSTION_Y * frame->width) + (VERSION_POSTION_X + CLOCK_LOGO_W * (i + tab) ))* 2); // 1 is bit6
-			lcd_blend.fg_offline = 0;
-			lcd_blend.bg_offline = frame->width - VERSION_LOGO_W;;
-			lcd_blend.xsize = VERSION_LOGO_W;
-			lcd_blend.ysize = VERSION_LOGO_H;
-			lcd_blend.fg_alpha_value = FG_ALPHA;
-			lcd_blend.fg_data_format = RGB565;
-			lcd_driver_blend(&lcd_blend);
-		}
-
-7 新增摄像头配置
+8 新增摄像头配置
 -----------------------
 	在应用过程中使用的摄像头不仅仅是当前支持的这些，肯定还需要适配其他的dvp摄像头或者uvc摄像头，下面分开来说明一下针对两种不同类型的摄像头如何适配
 
@@ -650,7 +617,6 @@ lcd_gc9503v_init函数一般是屏幕厂商提供，需要硬件接口模拟SPI�
 		sys_drv_set_jpeg_disckg(1);
 		bk_pm_clock_ctrl(PM_CLK_ID_JPEG, CLK_PWR_CTRL_PWR_UP);
 	}
- - 
 
 
 2.uvc摄像头的适配
@@ -667,67 +633,91 @@ lcd_gc9503v_init函数一般是屏幕厂商提供，需要硬件接口模拟SPI�
 
 	参考doorbell命令行：``components/media/cli/media_cli.c``，适配新的命令，在函数：``get_string_to_ppi()``，中增加新的分辨率;
 
+.. note::
+	注意: 摄像头的分辨率的width 要能被16整除(比如864/16), height 要被8（比如 480/8）整除。否则硬件解码会失败。
 
-8 图像旋转
+9 图像旋转
 -----------------------------------------------------
 
 当屏幕和图片像素相反，比如屏幕是480X800， 摄像头是800X480，可以进行图像旋转显示。
-旋转图像目前已经适配的情况如下：
-
-因为旋转是分块旋转，所以为了每一个行/列都被旋转，设置的旋转块单位要能被图片的长宽整除。
-
-	+---------------------------+-----------------------+----------------------------------------------------+
-	|屏幕参数(WXH)              |图像参数(WXH)          |旋转参数(WXH)                                       |
-	+===========================+=======================+====================================================+
-	|320X480                    |480X320                |block_width=160,block_height=40                     |
-	+---------------------------+-----------------------+----------------------------------------------------+
-	|480X800                    |800X480                |block_width=160,block_height=40                     |
-	+---------------------------+-----------------------+----------------------------------------------------+
-	|480X854                    |864X480                |block_width=108,block_height=40                     |
-	+---------------------------+-----------------------+----------------------------------------------------+
 
 
-.. note::
-	注意: 摄像头的分辨率的width 要能被16整除(864/16), height 要被8（480/8）整除。否则硬件解码会失败。
+10 字库融合
+-----------------------------------------------------
 
+SDK中支持字库的抗锯齿融合,字库以内部库的方式提供给用户，目前支持的字库有:
 
-用户如果新增的摄像头需要旋转显示到屏幕上，需要在 ``components/media/lcd_cal.c`` 中做以下修改:
+::
 
+    #define FONT_ANTI4BPP_ROBOTO_53           1   /* 罗马数字*/
+    #define FONT_ANTI4BPP_BLACK24             1   /* 黑体*/
+    #define FONT_ANTI4BPP_BLACK48             1   /* 黑体*/
+    #define FONT_ANTI4BPP_SOURCE_HAN_SANS17   0   /* 思源黑体*/
+    #define FONT_ANTI4BPP_SOURCE_HAN_SANS42   0   /* 思源黑体*/
 
-1. 在旋转数组中添加每次旋转的长和宽
+    #if FONT_ANTI4BPP_ROBOTO_53
+    extern const gui_font_digit_struct *const font_digit_Roboto53;
+    #endif
+    #if FONT_ANTI4BPP_SOURCE_HAN_SANS17
+    extern const gui_font_digit_struct *const font_digitSource_Han_Sans17;
+    #endif
+    #if FONT_ANTI4BPP_SOURCE_HAN_SANS42
+    extern const gui_font_digit_struct *const font_digitSource_Han_Sans42;
+    #endif
+    #if FONT_ANTI4BPP_BLACK24
+    extern const gui_font_digit_struct *const font_digit_black24;
+    #endif
+    #if FONT_ANTI4BPP_BLACK48
+    extern const gui_font_digit_struct *const font_digit_black48;
+    #endif
+
+目前字的添加是根据不同的客户需求所添加，如果不满足客户需求，请联系支持。
+
+字库融合的代码请参考 ``middleware/driver/lcd_driver.c`` API:lcd_driver_font_blend
 
 
 ::
 
-	const block_ppi_t block_ppi_aray[] = {
-		{108, 40},
-		{160, 40},
-
-		{MAX_BLOCK_WIDTH, MAX_BLOCK_HEIGHT}
-	};
-
-
-
-.. note::
-	注意: 最大不能超过MAX_BLOCK_WIDTH(160)和 MAX_BLOCK_HEIGHT(80)
-
-
-2. 然后根据传入的图片的像素选择或添加对应的局部块旋转
-
-::
-
-	switch ((src_width << 16) | src_height)
+	font_t font;
+	font.info = (ui_display_info_struct){rgb565_data,0,lcd_font->ysize,0,{0}}; 
+	font.width = lcd_font->xsize;
+	font.height = lcd_font->ysize;
+	font.font_fmt = lcd_font->font_format;
+	for(int i = 0; i < lcd_font->str_num; i++)
 	{
-		case PPI_864X480:
-			block_width = block_ppi_aray[0].width;
-			block_height = block_ppi_aray[0].height;
-			block_size = block_width * block_height * 2;
-			break;
+		font.digit_info = lcd_font->str[i].font_digit_type;
+		font.s = lcd_font->str[i].str;
+		font.font_color = lcd_font->str[i].font_color;
+		font.x_pos = lcd_font->str[i].x_pos;
+		font.y_pos = lcd_font->str[i].y_pos;
+		lcd_draw_font(&font);
+	}
 
-		default:
-			block_width = block_ppi_aray[1].width;
-			block_height = block_ppi_aray[1].height;
-			block_size = block_width * block_height * 2;
-			break;
-	};
+各参数的值输入如下：
 
+::
+
+	//融合位置的配置
+	frame_addr_offset = ((start_y + VERSION_POSTION_Y) * frame->width + start_x + VERSION_POSTION_X) * 2;
+	lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset); 	//地址偏移
+	lcd_font_config.bg_offline = frame->width - CLOCK_LOGO_W;
+	lcd_font_config.xsize = CLOCK_LOGO_W;       ///融合区域的宽，根据汉字的宽决定
+	lcd_font_config.ysize = CLOCK_LOGO_H;       ///融合区域的高，根据汉字的高决定
+	lcd_font_config.str_num = 2;                ///一次融合几个字符串
+	#if 1  ///font yuv data to bg yuv image
+	if (frame->fmt == PIXEL_FMT_VUYY)           ///将汉字融合到YUV数据中
+		lcd_font_config.font_format = FONT_VUYY;
+	else
+		lcd_font_config.font_format = FONT_YUYV;
+	#else  ///font rgb data to bg yuv image
+	lcd_font_config.font_format = FONT_RGB565;  ///将汉字融合到RGB565数据中
+	#endif
+
+	///白色字体，字号，融合到区域的起始坐标
+	lcd_font_config.str[0] = (font_str_t){(const char *)("晴转多云, 27℃"), FONT_WHITE, font_digit_black24, 0, 2};
+	lcd_font_config.str[1] = (font_str_t){(const char *)("2022-12-12 星期三"), FONT_WHITE, font_digit_black24, 0, 26};
+
+	lcd_font_config.bg_data_format = frame->fmt;  ///背景数据格式
+	lcd_font_config.bg_width = frame->width;      ///背景图片size
+	lcd_font_config.bg_height = frame->height;
+	lcd_driver_font_blend(&lcd_font_config);

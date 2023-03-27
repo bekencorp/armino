@@ -20,14 +20,14 @@ extern "C" {
 
 #define SPI_R_BASE(_id)          (SOC_SPI_REG_BASE + _id * 0x1010000)
 
-#define SPI_R_CTRL(_id)          (SPI_R_BASE(_id) + 4 * 0x04)
+#define SPI_R_CTRL(_id)          (SPI_R_BASE(_id) + 4 * 0x00)
 
 #define SPI_F_CLK_DIV            (BIT(8))
 #define SPI_F_CLK_DIV_M          (0xFF)
 #define SPI_F_CLK_DIV_V          (0xFF)
 #define SPI_F_CLK_DIV_S          (8)
 
-#define SPI_R_CFG(_id)           (SPI_R_BASE(_id) + 4 * 0x05)
+#define SPI_R_CFG(_id)           (SPI_R_BASE(_id) + 4 * 0x01)
 
 #define SPI_F_TX_TRANS_LEN       (BIT(8))
 #define SPI_F_TX_TRANS_LEN_M     (0xFFF)
@@ -39,14 +39,14 @@ extern "C" {
 #define SPI_F_RX_TRANS_LEN_V     (0xFFF)
 #define SPI_F_RX_TRANS_LEN_S     (20)
 
-#define SPI_R_INT_STATUS(_id)    (SPI_R_BASE(_id) + 4 * 0x06)
+#define SPI_R_INT_STATUS(_id)    (SPI_R_BASE(_id) + 4 * 0x02)
 
 #define SPI_F_RX_FIOF_RD_READY   (BIT(2))
 #define SPI_F_RX_FIOF_RD_READY_M (0x1)
 #define SPI_F_RX_FIOF_RD_READY_V (0x1)
 #define SPI_F_RX_FIOF_RD_READY_S (1)
 
-#define SPI_R_DATA(_id)          (SPI_R_BASE(_id) + 4 * 0x07)
+#define SPI_R_DATA(_id)          (SPI_R_BASE(_id) + 4 * 0x03)
 
 #ifdef __cplusplus
 }

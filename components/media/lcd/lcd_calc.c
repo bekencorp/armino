@@ -243,10 +243,18 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 	{
 		case PIXEL_FMT_VUYY:
 			func = vuyy_rotate_degree90;
+			rotate_frame->fmt = PIXEL_FMT_YUYV;
+
+//			func = vuyy2rgb_rotate_degree90;
+//			rotate_frame->fmt = PIXEL_FMT_RGB565;
 			break;
 		case PIXEL_FMT_YUYV:
 		default:
 			func = yuyv_rotate_degree90;
+			rotate_frame->fmt = PIXEL_FMT_YUYV;
+
+//			func = yuyv2rgb_rotate_degree90;
+//			rotate_frame->fmt = PIXEL_FMT_RGB565;
 			break;
 	}
 

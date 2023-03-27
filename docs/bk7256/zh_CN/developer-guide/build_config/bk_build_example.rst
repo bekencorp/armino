@@ -43,7 +43,7 @@ CMakeLists.txt 说明
 
 .. note::
 
-    请使用 `cmake 中的 set 命令 <cmake set_>`_ 来设置这些变量，如 ``set(VARIABLE "VALUE")``。请注意，``set()`` 命令需放在 ``include(...)`` 之前。
+    请使用 `cmake 中的 set 命令` 来设置这些变量，如 ``set(VARIABLE "VALUE")``。请注意，``set()`` 命令需放在 ``include(...)`` 之前。
 
 默认构建选项
 ******************************************
@@ -338,7 +338,7 @@ TODO
 
   - 设置 ``SOURCE_DIR``、``CONFIGURE_COMMAND``、``BUILD_COMMAND`` 和 ``INSTALL_COMMAND``。如果外部构建系统没有配置这一步骤，可以将 ``CONFIGURE_COMMAND`` 设置为空字符串。在 Armino 的构建系统中，一般会将 ``INSTALL_COMMAND`` 变量设置为空。
   - 设置 ``BUILD_IN_SOURCE``，即构建目录与源目录相同。否则，您也可以设置 ``BUILD_DIR`` 变量。
-  - 有关 ``externalproject_add()`` 命令的详细信息，请参阅 ExternalProject_。
+  - 有关 ``externalproject_add()`` 命令的详细信息，请参阅 `ExternalProject_Add`_。
 
 - 第二组命令添加了一个目标库，指向外部构建系统生成的库文件。为了添加 include 目录，并告知 CMake 该文件的位置，需要再设置一些属性。
 - 最后，生成的库被添加到 `ADDITIONAL_MAKE_CLEAN_FILES`_ 中。即执行 ``make clean`` 后会删除该库。请注意，构建系统中的其他目标文件不会被删除。
@@ -503,3 +503,7 @@ armino 加载 Kconfig 的顺序如下，对于同一配置项，后加载的值�
 
 :example:`示例 <build_system/207_disable_components>`
 
+.. _cmake 中的 set 命令: https://cmake.org/cmake/help/latest/command/set.html
+.. _set_source_files_properties: https://cmake.org/cmake/help/latest/command/set_source_files_properties.html
+.. _ExternalProject_Add: https://cmake.org/cmake/help/latest/module/ExternalProject.html
+.. _ADDITIONAL_MAKE_CLEAN_FILES: https://cmake.org/cmake/help/latest/prop_dir/ADDITIONAL_MAKE_CLEAN_FILES.html

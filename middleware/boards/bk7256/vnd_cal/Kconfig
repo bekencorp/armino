@@ -1,9 +1,13 @@
-menu "VENDOR CAL CONFIG"
+menu "Boards::Bk7256::Vnd_cal"
 	config VND_CAL
-		bool "Enable vendor cal"
+		bool "Enable Vnd Cal"
 		default n
+		help
+			Enable vendor cal
 
 	config BLE_USE_HIGH_POWER_LEVEL
-		bool "Enable high power level"
+		bool "Enable Ble Use High Power Level"
 		default y
+		help
+			Enable high power level
 endmenu

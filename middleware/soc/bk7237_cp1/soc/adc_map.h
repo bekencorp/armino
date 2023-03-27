@@ -22,7 +22,7 @@ extern "C" {
 #include <driver/hal/hal_adc_types.h>
 #include <driver/hal/hal_gpio_types.h>
 
-#define INVALID	GPIO_NUM
+#define INVALID	SOC_GPIO_NUM
 
 #define ADC_DEV_MAP  \
 {\

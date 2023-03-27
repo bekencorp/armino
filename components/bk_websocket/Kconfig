@@ -1,6 +1,8 @@
-menu "WEBSOCKET_CONFIG"
+menu "Bk_websocket"
+
 	config WEBSOCKET
-	depends on MBEDTLS
-		bool "Enable websocket"
+		depends on MBEDTLS
+		bool "Enable Websocket"
 		default y
+
 endmenu

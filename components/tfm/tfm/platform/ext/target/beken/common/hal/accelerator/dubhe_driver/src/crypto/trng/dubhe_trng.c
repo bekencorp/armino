@@ -242,71 +242,8 @@ static void _arm_ce_trng_flush_pool( uint32_t desbuf[POOL_SIZE] )
     }
 }
 
-#define CONFIG_DUBHE_FPGA 1
-#if CONFIG_DUBHE_FPGA
-#include <stdlib.h>
-
 static void
 arm_ce_random_data_read( unsigned char *buf, size_t buf_len, bool need_error )
-{
-	unsigned char *pos;
-	int rand_value, size;
-	int copy_cnt;
-
-	size = buf_len;
-	pos = buf;
-	while(size){
-		rand_value = rand();
-
-		copy_cnt = (size) > (sizeof(int)) ? (size) : (sizeof(int));
-		/*copy_cnt = min(size, sizeof(int));*/
-		memcpy(pos, &rand_value, copy_cnt);
-
-		pos = &pos[copy_cnt];
-		size -= copy_cnt;
-	}
-
-    return;
-}
-
-void arm_ce_trng_driver_init( void )
-{
-}
-
-int arm_ce_seed_read( unsigned char *buf, size_t buf_len )
-{
-    if ( buf_len == 0 ) {
-        return 0;
-    }
-    if ( buf == NULL ) {
-        PAL_LOG_ERR("arm_ce_seed_read input invalid\n");
-        return DBH_TRNG_PARAM_INVALID;
-    }
-
-#if defined( DUBHE_FOR_RUNTIME )
-    dubhe_mutex_lock( DBH_TRNG_MUTEX );
-#endif
-
-    arm_ce_random_data_read( buf, buf_len, false );
-
-#if defined( DUBHE_FOR_RUNTIME )
-    dubhe_mutex_unlock( DBH_TRNG_MUTEX );
-#endif
-    return 0;
-}
-
-int arm_ce_trng_calibration_dump( uint32_t regBase,
-                                  dbh_trng_config_t *cfg,
-                                  void *bulk_buf,
-                                  size_t bulk_size,
-                                  size_t size,
-                                  bool b_conf )
-{
-    return 0;
-}
-#else
-#error "check whether target supports trng!!!"
-static void arm_ce_random_data_read( unsigned char *buf, size_t buf_len, bool need_error )
 {
     uint32_t i, block_size = 0, extra_size = 0, error_count = 0;
     uint32_t random_data[POOL_SIZE];
@@ -437,5 +374,4 @@ __out__:
     return ret;
 }
 
-#endif
 /*************************** The End Of File*****************************/

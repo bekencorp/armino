@@ -1,12 +1,15 @@
 enter deepsleep or low voltage sleep mode,  using the GPIO wakeup source description
 ========================================================================================
 
+:link_to_translation:`zh_CN:[中文]`
 
 enter deepsleep ,  using the GPIO wakeup source description
 --------------------------------------------------------------
 - 1. bk_gpio_register_wakeup_source(GPIO_18,GPIO_INT_TYPE_FALLING_EDGE);
 
-comment： a.wakeup GPIO id:GPIO18;   b.GPIO wake up type：failing edge type
+    comment：
+        a. wakeup GPIO id : GPIO18;
+        b. GPIO wake up type：failing edge type
 
 
 - 2. bk_pm_wakeup_source_set(PM_WAKEUP_SOURCE_INT_GPIO, NULL);
@@ -53,6 +56,3 @@ comment：
 WIFI and BT call "bk_pm_module_vote_sleep_ctrl()"function to vote their ticket，tell the system(mcu) that they have entered sleep.
 
  - 2. when BT and WIFI power off，the system(pm module) will auto vote the WIFI and BT sleep tickets。
-
-:link_to_translation:`en:[English]`
-

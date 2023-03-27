@@ -14,6 +14,7 @@
 #include <driver/timer.h>
 #include <driver/dma.h>
 #include <driver/uvc_camera.h>
+#include <driver/jpeg_enc.h>
 
 #if CONFIG_GENERAL_DMA
 #include "bk_general_dma.h"
@@ -265,7 +266,7 @@ static void tvideo_rx_handler(void *curptr, uint32_t newlen, uint32_t is_eof, ui
 			co_list_push_back(&tvideo_pool.ready, (struct co_list_hdr *)&elem->hdr);
 #endif
 			tvideo_send_msg(VIDEO_SEND, 0);
-		} 
+		}
 		else
 		{
 #if TVIDEO_DROP_DATA_NONODE
@@ -277,7 +278,7 @@ static void tvideo_rx_handler(void *curptr, uint32_t newlen, uint32_t is_eof, ui
 			if (cnt_rdy)
 				co_list_concat(&tvideo_pool.free, &tvideo_pool.receiving);
 #else
-			LOGW("lost\r\n");
+			LOGW("%s lost\r\n", __func__);
 			g_lost_flag = true;
 			g_lost_frame_id = tvideo_pool.frame_id;
 #endif
@@ -307,6 +308,11 @@ static void tvideo_end_frame_handler(void)
 #endif
 
 	tvideo_send_msg(VIDEO_SEND, 0);
+}
+
+static void tvideo_drop_frame_handler(uint8_t index)
+{
+	tvideo_send_msg(VIDEO_DROP, index);
 }
 
 static bk_err_t tvideo_config_desc(void)
@@ -355,6 +361,7 @@ static bk_err_t tvideo_config_desc(void)
 	tvideo_st.device = video_transfer_setup_bak.device;
 	tvideo_st.node_full_handler = tvideo_rx_handler;
 	tvideo_st.data_end_handler = tvideo_end_frame_handler;
+	tvideo_st.frame_drop = tvideo_drop_frame_handler;
 
 	return ret;
 }
@@ -384,6 +391,19 @@ static void tvideo_poll_handler(void)
 		}
 	} while (elem);
 }
+
+static void tvideo_jpeg_drop_frame(uint32_t index)
+{
+	if (index)
+	{
+		bk_jpeg_enc_set_gpio_enable(0, JPEG_GPIO_HSYNC_DATA);
+	}
+	else
+	{
+		bk_jpeg_enc_set_gpio_enable(1, JPEG_GPIO_HSYNC_DATA);
+	}
+}
+
 
 /*---------------------------------------------------------------------------*/
 static void video_transfer_main(beken_thread_arg_t data)
@@ -449,6 +469,10 @@ static void video_transfer_main(beken_thread_arg_t data)
 
 			case VIDEO_EXIT:
 				goto tvideo_exit;
+				break;
+
+			case VIDEO_DROP:
+				tvideo_jpeg_drop_frame(msg.data);
 				break;
 
 			default:

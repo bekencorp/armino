@@ -225,8 +225,8 @@ elseif(CONFIG_LITEOS_M_V3)
 			liteos_m_v3/components/backtrace/los_backtrace.c
 			liteos_m_v3/kernel/arch/risc-v/riscv32/gcc/los_context.c
 			liteos_m_v3/kernel/arch/risc-v/riscv32/gcc/los_interrupt.c
-			liteos_m_v3/kernel/arch/risc-v/riscv32/gcc/los_timer.c
-			# liteos_m_v3/targets/bk72xx/bk_los_timer.c
+			# liteos_m_v3/kernel/arch/risc-v/riscv32/gcc/los_timer.c
+			liteos_m_v3/targets/bk72xx/bk_los_timer.c
 			liteos_m_v3/kernel/arch/risc-v/riscv32/gcc/los_dispatch.S
 			liteos_m_v3/kernel/arch/risc-v/riscv32/gcc/los_exc.S
 		)

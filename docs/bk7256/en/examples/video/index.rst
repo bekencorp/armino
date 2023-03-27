@@ -1,10 +1,11 @@
 Use Case Guidelines
 ===============================
 
-:link_to_translation:`zh_CN:[Chinese]`
+:link_to_translation:`zh_CN:[中文]`
 
 .. toctree::
    :maxdepth: 1
 
    LCD Display <lcd/index>
    Camera <camera/index>
+   QR-Code Generator <qrcodegen>

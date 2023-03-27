@@ -68,7 +68,11 @@
 /* Disable lwIP asserts */
 #define LWIP_NOASSERT			        1
 
+#if CONFIG_AGORA_IOT_SDK
+#define LWIP_DEBUG                      1
+#else
 #define LWIP_DEBUG                      0
+#endif
 #define LWIP_DEBUG_TRACE                0
 #define SOCKETS_DEBUG                   LWIP_DBG_OFF
 #define IP_DEBUG                        LWIP_DBG_OFF
@@ -167,6 +171,18 @@
 #endif //CONFIG_LWIP_MEM_REDUCE
 #endif //MEM_TRX_DYNAMIC_EN
 
+#if CONFIG_AGORA_IOT_SDK
+#define LWIP_TCPIP_CORE_LOCKING         1
+/**
+ * LWIP_TCPIP_CORE_LOCKING_INPUT: when LWIP_TCPIP_CORE_LOCKING is enabled,
+ * this lets tcpip_input() grab the mutex for input packets as well,
+ * instead of allocating a message and passing it to tcpip_thread.
+ *
+ * ATTENTION: this does not work when tcpip_input() is called from
+ * interrupt context!
+ */
+#define LWIP_TCPIP_CORE_LOCKING_INPUT 1
+#endif
 
 /*
    ------------------------------------------------
@@ -200,7 +216,7 @@
  * (only needed if you use tcpip.c)
  */
 
-#define MEMP_NUM_TCPIP_MSG_INPKT        16
+#define MEMP_NUM_TCPIP_MSG_INPKT        32   //default 16
 
 /**
  * MEMP_NUM_SYS_TIMEOUT: the number of simulateously active timeouts.
@@ -390,12 +406,22 @@
 /**
  * TCP_LISTEN_BACKLOG==1: Handle backlog connections.
  */
+#if CONFIG_AGORA_IOT_SDK
+//#define TCP_LISTEN_BACKLOG		        1
+#else
 #define TCP_LISTEN_BACKLOG		        1
+#endif
 #define LWIP_PROVIDE_ERRNO		        1
 
-#include <lwip/errno.h>
-#define ERRNO				            1
+#if CONFIG_AGORA_IOT_SDK
+//#include <errno.h>
+//#define ERRNO				            1
 
+#include "sys/errno.h"
+#else
+#include <errno.h>
+#define ERRNO				            1
+#endif
 //#define LWIP_SNMP 1
 
 
@@ -482,7 +508,7 @@ The STM32F107 allows computing and verifying the IP, UDP, TCP and ICMP checksums
 #define MEM_LIBC_MALLOC                (0)
 
 #if (CONFIG_LWIP_MEM_REDUCE)
-#define DEFAULT_UDP_RECVMBOX_SIZE       16 //each udp socket max buffer 3 packets.
+#define DEFAULT_UDP_RECVMBOX_SIZE       24 //each udp socket max buffer 24 packets.
 #else
 #define DEFAULT_UDP_RECVMBOX_SIZE       16 //each udp socket max buffer 16 packets.
 #endif

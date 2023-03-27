@@ -24,6 +24,4 @@
 #define __FPU_PRESENT             0U        /* no FPU present */
 #define __DSP_PRESENT             0U        /* no DSP extension present */
 
-#include "core_star.h"
-//eof
-
+#include "core_cm33.h"

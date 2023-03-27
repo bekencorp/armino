@@ -28,7 +28,7 @@ typedef void (*dma2d_isr_t)(void);
  */
 #define BK_ERR_DMA2D_NOT_INIT    (BK_ERR_DMA2D_BASE - 1) /**< LCD driver not init */
 
-#define USE_HAL_DMA2D_REGISTER_CALLBACKS  0 /**< if use int type isr register, set this value 1.
+#define USE_HAL_DMA2D_REGISTER_CALLBACKS  1 /**< if use int type isr register, set this value 1.
                                              always use with API @refs bk_dma2d_register_int_callback_isr*/
 
 #define DMA2D_OCOLR_WHITE    (0xFFFF)              /**< define Mode_RGB565 white Value*/

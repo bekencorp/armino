@@ -106,10 +106,10 @@ LITE_OS_SEC_TEXT_INIT VOID *HalTskStackInit(UINT32 taskID, UINT32 stackSize, VOI
 
     context = (TaskContext *)(((UINTPTR)topStack + stackSize) - sizeof(TaskContext));
 
-    context->mstatus = RISCV_MSTATUS_UPIE;
+    context->mstatus = RISCV_MSTATUS_MPP | RISCV_MSTATUS_MPIE;
     context->mepc = (UINT32)(UINTPTR)OsTaskEntry;
-//    context->tp = TP_INIT_VALUE;
-//    context->sp = SP_INIT_VALUE;
+    context->tp = TP_INIT_VALUE;
+    context->sp = SP_INIT_VALUE;
     context->s11 = S11_INIT_VALUE;
     context->s10 = S10_INIT_VALUE;
     context->s9 = S9_INIT_VALUE;
@@ -144,13 +144,12 @@ LITE_OS_SEC_TEXT_INIT VOID *HalTskStackInit(UINT32 taskID, UINT32 stackSize, VOI
 LITE_OS_SEC_TEXT_INIT UINT32 HalStartSchedule(VOID)
 {
     (VOID)LOS_IntLock();
-
-	extern void arch_init_vector(uint32_t vect);
-	extern void HalTrapVector(void);
-
-	arch_init_vector((uint32_t)HalTrapVector);
-
     OsSchedStart();
+
+#if CONFIG_LITEOS_M_BK
+    vPortSetupTimerInterrupt();
+    vPortSetupMEXTInterrupt();
+#endif
 
     HalStartToRun();
     return LOS_OK; /* never return */

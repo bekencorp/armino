@@ -1,7 +1,7 @@
 #include <os/os.h>
 #include <os/str.h>
 #include "lvgl.h"
-#include "lcd_task.h"
+#include "lv_vendor.h"
 
 #if (CONFIG_LCD) && (CONFIG_LVGL) && (CONFIG_LVGL_DEMO)
 
@@ -60,7 +60,7 @@ void lv_example_meter(int value)
     char buff[32];
     
     //lv_obj_set_style_local_bg_opa
-    bk_gui_disp_lock();
+    lv_vendor_disp_lock();
 
     #if (LV_COLOR_DEPTH == 32)
     static lv_style_t style_window;
@@ -100,13 +100,13 @@ void lv_example_meter(int value)
 
     lv_timer_create(timer_cb, 1000, (void *)time_label);
 
-    bk_gui_disp_unlock();
+    lv_vendor_disp_unlock();
 #else
     void bk_gui_set_dma2d_swith(int onoff);
 
     bk_gui_set_dma2d_swith(0);
     
-    bk_gui_disp_lock();
+    lv_vendor_disp_lock();
 
     lv_disp_set_bg_color(lv_disp_get_default(), lv_color_white());
     meter = lv_meter_create(lv_scr_act());
@@ -151,16 +151,16 @@ void lv_example_meter(int value)
     lv_anim_set_var(&a, indic3);
     lv_anim_start(&a);
 
-    bk_gui_disp_unlock();
+    lv_vendor_disp_unlock();
 #endif
 }
 
 void lv_example_meter_exit(void)
 {
-    bk_gui_disp_lock();
+    lv_vendor_disp_lock();
     lv_anim_del_all();
     lv_obj_del(meter);
-    bk_gui_disp_unlock();
+    lv_vendor_disp_unlock();
 }
 #else
 void lv_example_meter(void)

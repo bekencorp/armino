@@ -52,6 +52,7 @@ uint8_t s_test_conn_ind = ~0;
 
 
 static uint8_t s_service_type = 0;
+static uint8_t s_device_name_hdl = 0;
 
 static uint32_t s_performance_tx_bytes = 0;
 static uint32_t s_performance_rx_bytes = 0;
@@ -91,6 +92,7 @@ static uint8_t s_ethermind_nordic_used[8] = {0};
 
 const uint8_t nus_tx_uuid[] = {0x9e,0xca,0xdc,0x24,0x0e,0xe5,0xa9,0xe0,0x93,0xf3,0xa3,0xb5,0x03,0x00,0x40,0x6e};
 const uint8_t nus_rx_uuid[] = {0x9e,0xca,0xdc,0x24,0x0e,0xe5,0xa9,0xe0,0x93,0xf3,0xa3,0xb5,0x02,0x00,0x40,0x6e};
+const uint8_t device_name_uuid[] = {0x00,0x2A,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 static uint16_t plc_ccc_handle[10] = {0};
 static uint16_t plc_rx_handle[10] = {0};
@@ -98,6 +100,8 @@ static uint16_t plc_rx_handle[10] = {0};
 static uint8_t send_value[32] = {0};
 //static ATT_HANDLE att_handle;
 static ATT_ATTR_HANDLE s_read_tmp_attr_handle = 0;
+
+static ble_read_phy_t s_ble_phy = {0, 0};
 
 
 
@@ -301,6 +305,7 @@ const at_command_t ble_at_cmd_table[] = {
 
     {22, "TXTESTPARAM", 0, "set tx test param: <data_len> <interv>", ble_tx_test_param_handle},
     {23, "TXTESTENABLE", 0, "enable tx test: <1|0>", ble_tx_test_enable_handle},
+    {24, "MTU2MAX", 1, "update mtu 2 max: <addr>", ble_update_mtu_2_max_handle},
 
     {27, "MAXMTU", 0, "set att maximal mtu", ble_set_max_mtu_handle},
 /******************************************************************************/
@@ -880,8 +885,8 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
         os_printf("BLE_5_SDP_REGISTER_FAILED\r\n");
         break;
     case BLE_5_READ_PHY_EVENT: {
-        ble_read_phy_t *phy_param = (ble_read_phy_t *)param;
-        os_printf("BLE_5_READ_PHY_EVENT:tx_phy:0x%02x, rx_phy:0x%02x\r\n",phy_param->tx_phy, phy_param->rx_phy);
+        s_ble_phy = *(ble_read_phy_t *)param;
+        os_printf("BLE_5_READ_PHY_EVENT:tx_phy:0x%02x, rx_phy:0x%02x\r\n",s_ble_phy.tx_phy, s_ble_phy.rx_phy);
         break;
     }
     case BLE_5_TX_DONE:
@@ -892,10 +897,6 @@ void ble_at_notice_cb(ble_notice_t notice, void *param)
             {
                 s_performance_tx_bytes += s_test_data_len;
                 ble_test_noti_hdl((void *)((uint32)con_idx));
-            }
-            else
-            {
-                BK_LOGI("ble_at","BLE_5_TX_DONE\r\n");
             }
         }
         else
@@ -1311,7 +1312,14 @@ int get_ble_name_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
             goto error;
         }
 
-        sprintf(pcWriteBuffer, "%s%s", AT_CMDRSP_HEAD, name);
+        if (atcmd_updated)
+        {
+            sprintf(pcWriteBuffer, "%s:%s\r\n%s", "BLENAME", name, AT_CMD_RSP_SUCCEED);
+        }
+        else
+        {
+            sprintf(pcWriteBuffer, "%s%s", AT_CMDRSP_HEAD, name);
+        }
         return kNoErr;
 #ifdef CONFIG_BT
     }
@@ -2257,6 +2265,22 @@ error:
     return err;
 }
 
+static void ble_connect_sdp_comm_callback(MASTER_COMMON_TYPE type, uint8 conidx, void *param)
+{
+	if (MST_TYPE_SVR_UUID == type) {
+		struct ble_sdp_svc_ind *svc_inf = (struct ble_sdp_svc_ind *)param;
+		os_printf("Service UUID: 0x%02x%02x\r\n", svc_inf->uuid[1], svc_inf->uuid[0]);
+	}
+
+	if (MST_TYPE_ATT_UUID == type) {
+		struct ble_sdp_char_inf *char_inf = (struct ble_sdp_char_inf *)param;
+		if (!os_memcmp(char_inf->uuid, device_name_uuid, 2)) {
+			s_device_name_hdl = char_inf->val_hdl;
+		}
+		os_printf("Charac UUID: 0x%02x%02x, val_hdl: %d\r\n", char_inf->uuid[1], char_inf->uuid[0], char_inf->val_hdl);
+	}
+}
+
 int ble_start_connect_handle(uint8_t actv_idx, uint8_t peer_addr_type, bd_addr_t *bdaddr, ble_cmd_cb_t cb)
 {
     int err = kNoErr;
@@ -2400,6 +2424,7 @@ int ble_create_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
             {
                 if (at_cmd_status == BK_ERR_BLE_SUCCESS)
                 {
+	                bk_ble_register_app_sdp_common_callback(ble_connect_sdp_comm_callback);
                     err = ble_start_connect_handle(actv_idx, peer_addr_type, &bdaddr, ble_at_cmd_cb);
                     if (err != kNoErr)
                         goto error;
@@ -2821,11 +2846,25 @@ int ble_get_conn_state_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
     {
         if (conn_state == 1)
         {
-            sprintf(pcWriteBuffer, "%s%s\r\n%s", AT_CMDRSP_HEAD, (atcmd_updated ? "BLE_CONNECTED" : "BLE_CONNECT"), AT_CMD_RSP_SUCCEED);
+            if (atcmd_updated)
+            {
+                sprintf(pcWriteBuffer, "%s:%s\r\n%s", "CONNECTSTATE", "BLE_CONNECTED", AT_CMD_RSP_SUCCEED);
+            }
+            else
+            {
+                sprintf(pcWriteBuffer, "%s%s\r\n%s", AT_CMDRSP_HEAD, "BLE_CONNECT", AT_CMD_RSP_SUCCEED);
+            }
         }
         else
         {
-            sprintf(pcWriteBuffer, "%s:%s\r\n%s", AT_CMDRSP_HEAD, (atcmd_updated ? "BLE_DISCONNECTED" : "BLE_DISCONNECT"), AT_CMD_RSP_SUCCEED);
+            if (atcmd_updated)
+            {
+                sprintf(pcWriteBuffer, "%s:%s\r\n%s", "CONNECTSTATE", "BLE_DISCONNECTED", AT_CMD_RSP_SUCCEED);
+            }
+            else
+            {
+                sprintf(pcWriteBuffer, "%s:%s\r\n%s", AT_CMDRSP_HEAD, "BLE_DISCONNECT", AT_CMD_RSP_SUCCEED);
+            }
         }
 
     }
@@ -2882,6 +2921,17 @@ int ble_get_local_addr_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
         }
         sprintf(pcWriteBuffer, "%s%s%02x:%02x:%02x:%02x:%02x:%02x\r\n", AT_CMDRSP_HEAD, "BLE_ADDR:", local_addr[5],
             local_addr[4], local_addr[3], local_addr[2], local_addr[1], local_addr[0]);
+
+        if (atcmd_updated)
+        {
+            sprintf(pcWriteBuffer, "%s:%02x:%02x:%02x:%02x:%02x:%02x\r\n%s", "LOCALADDR", local_addr[5],local_addr[4],
+                    local_addr[3], local_addr[2], local_addr[1], local_addr[0], AT_CMD_RSP_SUCCEED);
+        }
+        else
+        {
+            sprintf(pcWriteBuffer, "%s%s%02x:%02x:%02x:%02x:%02x:%02x\r\n", AT_CMDRSP_HEAD, "BLE_ADDR:", local_addr[5],
+                    local_addr[4], local_addr[3], local_addr[2], local_addr[1], local_addr[0]);
+        }
         return err;
     }
     else
@@ -3981,6 +4031,7 @@ error:
     return err;
 }
 
+
 void ble_test_noti_hdl(void *param)
 {
     uint8 *write_buffer;
@@ -3998,8 +4049,6 @@ void ble_test_noti_hdl(void *param)
     os_memset(write_buffer, 0, s_test_data_len);
     os_memcpy(write_buffer, &s_test_noti_count, sizeof(s_test_noti_count));
     s_test_noti_count++;
-
-    BK_LOGI("ble_at","%s send_noti_value\r\n", __func__);
 
     ret = bk_ble_send_noti_value(con_idx, s_test_data_len, write_buffer, g_test_prf_task_id, TEST_IDX_CHAR_VALUE);
     if(ret != BK_ERR_BLE_SUCCESS)
@@ -4157,8 +4206,15 @@ int ble_read_phy_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
         {
             if (at_cmd_status == BK_ERR_BLE_SUCCESS)
             {
-                msg = AT_CMD_RSP_SUCCEED;
-                os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+                 if (atcmd_updated)
+                {
+                    sprintf(pcWriteBuffer, "%s:%d,%d\r\n%s", "PHY", s_ble_phy.tx_phy, s_ble_phy.rx_phy, AT_CMD_RSP_SUCCEED);
+                }
+                else
+                {
+                    msg = AT_CMD_RSP_SUCCEED;
+                    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+                }
                 rtos_deinit_semaphore(&ble_at_cmd_sema);
                 return err;
             }
@@ -4581,6 +4637,7 @@ int ble_connect_by_name_handle(char *pcWriteBuffer, int xWriteBufferLen, int arg
                 } else {
                     if (at_cmd_status == BK_ERR_BLE_SUCCESS)
                     {
+                    	bk_ble_register_app_sdp_common_callback(ble_connect_sdp_comm_callback);
                         err = ble_start_connect_handle(actv_idx, g_peer_dev.addr_type, &(g_peer_dev.bdaddr), ble_at_cmd_cb);
                         if (err != kNoErr)
                             goto error;
@@ -5192,12 +5249,16 @@ static void ble_att_sdp_charac_callback(CHAR_TYPE type,uint8 conidx,uint16_t hdl
     {
         os_printf("%s, read hdl %d, len %d\r\n",__func__, hdl, len);
         os_printf("data-> ");
-        for(int i = 0; i<len; i++)
+        for(int i = 0; i < len; i++)
         {
             os_printf("0x%x ", data[i]);
         }
         os_printf("\r\n");
 
+		if (s_device_name_hdl == hdl) {
+        	os_printf("%s\r\n", data);
+		}
+		
         if (s_read_tmp_attr_handle == hdl)
         {
             if (ble_at_cmd_sema != NULL)

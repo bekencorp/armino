@@ -2,7 +2,6 @@
 import os
 import logging
 import json
-import subprocess
 
 s_bc_code = {\
     "//":                   "This is a generate file, do not modify it",\
@@ -69,71 +68,6 @@ s_man = {\
 }\
 
 class Genbl1:
-    def run_cmd(self, cmd):
-            p = subprocess.Popen(cmd, shell=True)
-            ret = p.wait()
-            if (ret):
-                    logging.error(f'failed to run "{cmd}"')
-                    exit(1)
-
-    def validate_key(self):
-        pass
-
-    def sig_sch_to_prvkey(self):
-        if (self.sig_sch == None):
-            return ''
-
-        if (self.sig_sch == 'ec256'):
-            return 'ec256_privkey.pem'
-        elif (self.sig_sch == 'ec521'):
-            return 'ec521_privkey.pem'
-        elif (self.sig_sch == 'rsa1024'):
-            return 'rsa1024_privkey.pem'
-        elif (self.sig_sch == 'rsa2048'):
-            return 'rsa2048_privkey.pem'
-        else:
-            logging.error(f'unknow signature scheme {self.sig_sch}, should be ec256/ec521/rsa1024/rsa2048')
-            exit(1)
-
-    def sig_sch_to_pubkey(self):
-        if (self.sig_sch == None):
-            return ''
-
-        if (self.sig_sch == 'ec256'):
-            return 'ec256_pubkey.pem'
-        elif (self.sig_sch == 'ec521'):
-            return 'ec521_pubkey.pem'
-        elif (self.sig_sch == 'rsa1024'):
-            return 'rsa1024_pubkey.pem'
-        elif (self.sig_sch == 'rsa2048'):
-            return 'rsa2048_pubkey.pem'
-        else:
-            logging.error(f'unknow signature scheme {self.sig_sch}, should be ec256/ec521/rsa1024/rsa2048')
-            exit(1)
-
-    def sig_sch_to_scheme(self):
-        if (self.sig_sch == None):
-            return ''
-
-        if (self.sig_sch == 'ec256'):
-            return 'ECDSA_256_SHA256'
-        elif (self.sig_sch == 'ec521'):
-            return 'ECDSA_521_SHA256'
-        elif (self.sig_sch == 'rsa1024'):
-            return 'RSASSA_1024_PKCS_V21_SHA256'
-        elif (self.sig_sch == 'rsa2048'):
-            return 'RSASSA_2048_PKCS_V21_SHA256'
-        else:
-            logging.error(f'unknow signature scheme {self.sig_sch}, should be ec256/ec521/rsa1024/rsa2048')
-            exit(1)
- 
-    def gen_key(self):
-        if os.path.exists(self.prvkey) and os.path.exists(self.pubkey):
-            logging.debug(f'private/public key exists, skip key generation')
-            return
-
-        self.run_cmd(f'./gen_key.sh {self.sig_sch} {self.prvkey} {self.pubkey}')
-
     def parse_key_config_json(self):
         if os.path.exists(self.key_config_json_file) == False:
             logging.error(f'{self.key_config_json_file} not exists')
@@ -142,40 +76,27 @@ class Genbl1:
         with open(self.key_config_json_file, 'r') as key_file:
             self.key_config_json = json.load(key_file)
 
+        if ("sec_boot" not in self.key_config_json):
+            logging.error(f'{self.key_config_json_file} missing "sec_boot"')
+            exit(1)
         self.is_sec_boot = self.key_config_json['sec_boot']
-        if ("sec_boot" in self.key_config_json):
-            self.is_sec_boot = self.key_config_json['sec_boot']
-        logging.debug(f'sec_boot={self.is_sec_boot}')
 
-        self.sig_sch = 'ec256'
-        if ("sig_sch" in self.key_config_json):
-            self.sig_sch = self.key_config_json['sig_sch']
-        logging.debug(f'sig_sch={self.sig_sch}')
+        if ("prvkey" not in self.key_config_json):
+            logging.error(f'{self.key_config_json_file} missing "prvkey"')
+            exit(1)
+        self.prvkey = self.key_config_json['prvkey']
 
-        if ("prvkey" in self.key_config_json):
-            self.prvkey = self.key_config_json['prvkey']
-        else:
-            self.prvkey = self.sig_sch_to_prvkey()
-        logging.debug(f'prvkey={self.prvkey}')
-
-        if ("pubkey" in self.key_config_json):
-            self.pubkey = self.key_config_json['pubkey']
-        else:
-            self.pubkey = self.sig_sch_to_pubkey()
-        logging.debug(f'pubkey={self.pubkey}')
-
-        self.scheme = self.sig_sch_to_scheme()
-        logging.debug(f'scheme={self.scheme}')
-
-        self.gen_key()
+        if ("pubkey" not in self.key_config_json):
+            logging.error(f'{self.key_config_json_file} missing "pubkey"')
+            exit(1)
+        self.pubkey = self.key_config_json['pubkey']
 
     def gen_key_desc(self):
         self.out_key_desc_file = 'key_desc.json'
         logging.debug(f'start to gen key description file')
         with open(self.out_key_desc_file, 'w+') as f:
-            s_key['mnft_sig_cfg']['mnft_sig_sch'] = self.scheme
-            s_key['mnft_sig_cfg']['mnft_prvkey'] = self.prvkey
-            s_key['mnft_sig_cfg']['mnft_pubkey'] = self.pubkey
+            s_key['mnft_sig_cfg']['mnft_prvkey'] = self.key_config_json['prvkey']
+            s_key['mnft_sig_cfg']['mnft_pubkey'] = self.key_config_json['pubkey']
             json.dump(s_key, f, indent=4, separators=(',', ':'))
 
 

@@ -8,5 +8,5 @@
 
    安全概述 <bk_security_overview>
    安全使用 <bk_security_usermenu>
-
+   OTP和eFuse的配置及读写方法 <bk_OTP_and_eFuse_usermenu>
 

@@ -6,19 +6,24 @@
 #include <components/shell_task.h>
 
 #include "bk_private/bk_wifi_wrapper.h"
-#include "av_udp.h"
+#include "av_audio.h"
 #include "doorbell.h"
 
 extern void user_app_main(void);
 extern void rtos_set_user_app_entry(beken_thread_function_t entry);
 
 void user_app_main(void){
-	char *lcd_param[4] = {"480X272"};
+	char *lcd_param[4] = {"800X480", "480X272"};
 	os_printf("start av server \r\n");
 	demo_softap_app_init("av_demo", "", "13");
 	os_printf("start ap: av_demo \r\n");
-	av_udp_server_init();
-	demo_doorbell_udp_server_init(1, (char **)&lcd_param);
+#if CONFIG_AV_DEMO_MODE_TCP
+	av_voice_tcp_server_init();
+	demo_doorbell_tcp_server_init(2, (char **)&lcd_param);
+#else
+	av_voice_udp_server_init();
+	demo_doorbell_udp_server_init(2, (char **)&lcd_param);
+#endif
 	os_printf("av server run \r\n");
 }
 #endif

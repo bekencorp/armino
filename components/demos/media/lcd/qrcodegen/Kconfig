@@ -1,5 +1,7 @@
-menu "DEMOS_CONFIG"
+menu "Demos::Media::Lcd::Qrcodegen"
 	config QRCODEGEN_TEST
-		bool "Enable qrcodegen demos"
+		bool "Enable Qrcodegen Test"
 		default n
+		help
+			Enable qrcodegen demos
 endmenu

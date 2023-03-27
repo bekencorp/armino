@@ -13,9 +13,9 @@
 // limitations under the License.
 
 /***********************************************************************************************************************************
-* This file is generated from BK7236_ADDR_Mapping_MP2.xlsm automatically
+* This file is generated from BK7256_ADDR_Mapping_MP2.xlsm automatically
 * Modify it manually is not recommended
-* CHIP ID:BK7236,GENARATE TIME:2022-12-6 17:17:11
+* CHIP ID:BK7256,GENARATE TIME:2022-07-27 17:17:11
 ************************************************************************************************************************************/
 
 #pragma once
@@ -26,7 +26,7 @@ extern "C" {
 
 #include <soc/soc.h>
 
-#define DMA2D_LL_REG_BASE      (SOC_DMA2D_REG_BASE)
+#define DMA2D_LL_REG_BASE      (SOC_DMA2D_REG_BASE) //REG_BASE:0x48020000
 
 /* REG_0x00 */
 #define DMA2D_DEVICE_ID_ADDR  (DMA2D_LL_REG_BASE  + 0x0*4)
@@ -1130,8 +1130,14 @@ static inline void dma2d_ll_set_bg_clut_mem_address_bg_clut_address(uint32_t val
 #define DMA2D_OUT_PFC_CONTRL_OUT_COLOR_MODE_POS (0)
 #define DMA2D_OUT_PFC_CONTRL_OUT_COLOR_MODE_MASK (0x7)
 
-#define DMA2D_OUT_PFC_CONTRL_RESERVED2_POS (3)
-#define DMA2D_OUT_PFC_CONTRL_RESERVED2_MASK (0x1FFFF)
+#define DMA2D_OUT_PFC_CONTRL_RESERVED3_POS (3)
+#define DMA2D_OUT_PFC_CONTRL_RESERVED3_MASK (0x3F)
+
+//#define DMA2D_OUT_PFC_CONTRL_OUT_SWAP_BYTES_POS (9)
+//#define DMA2D_OUT_PFC_CONTRL_OUT_SWAP_BYTES_MASK (0x1)
+
+#define DMA2D_OUT_PFC_CONTRL_RESERVED2_POS (10)
+#define DMA2D_OUT_PFC_CONTRL_RESERVED2_MASK (0x3FF)
 
 #define DMA2D_OUT_PFC_CONTRL_OUT_ALPHA_INVERT_POS (20)
 #define DMA2D_OUT_PFC_CONTRL_OUT_ALPHA_INVERT_MASK (0x1)
@@ -1168,6 +1174,24 @@ static inline void dma2d_ll_set_out_pfc_contrl_out_color_mode(uint32_t value)
     reg_value |= ((value & DMA2D_OUT_PFC_CONTRL_OUT_COLOR_MODE_MASK) << DMA2D_OUT_PFC_CONTRL_OUT_COLOR_MODE_POS);
     REG_WRITE(DMA2D_OUT_PFC_CONTRL_ADDR,reg_value);
 }
+
+/* REG_0x11:out_pfc_contrl->out_swap_bytes:0xd[       9],0:bytes in regular order. 1:bytes swaped two by two in output fifo.,0,RW*/
+/*static inline uint32_t dma2d_ll_get_out_pfc_contrl_out_swap_bytes(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(DMA2D_OUT_PFC_CONTRL_ADDR);
+    reg_value = ((reg_value >> DMA2D_OUT_PFC_CONTRL_OUT_SWAP_BYTES_POS) & DMA2D_OUT_PFC_CONTRL_OUT_SWAP_BYTES_MASK);
+    return reg_value;
+}
+
+static inline void dma2d_ll_set_out_pfc_contrl_out_swap_bytes(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(DMA2D_OUT_PFC_CONTRL_ADDR);
+    reg_value &= ~(DMA2D_OUT_PFC_CONTRL_OUT_SWAP_BYTES_MASK << DMA2D_OUT_PFC_CONTRL_OUT_SWAP_BYTES_POS);
+    reg_value |= ((value & DMA2D_OUT_PFC_CONTRL_OUT_SWAP_BYTES_MASK) << DMA2D_OUT_PFC_CONTRL_OUT_SWAP_BYTES_POS);
+    REG_WRITE(DMA2D_OUT_PFC_CONTRL_ADDR,reg_value);
+}*/
 
 static inline uint32_t dma2d_ll_get_out_pfc_contrl_out_alpha_invert(void)
 {

@@ -15,6 +15,17 @@
 #ifndef __RISCV_HAL_H__
 #define __RISCV_HAL_H__
 
-#include "rv_interrupt.h"
+#include "platform.h"
+
+// For liteos_m_3.0.1 LTS riscv
+#define RISCV_PLIC_VECTOR_CNT   (63)
+#define RISCV_SYS_MAX_IRQ          (0)
+
+#define MTIMER                                 (0xE6000000)
+#define MTIMERCMP                          (0xE6000008)
+
+#define HalIrqDisable(irq_no) 	clear_csr(NDS_MIE, (1<<irq_no))
+#define HalIrqEnable(irq_no)        set_csr(NDS_MIE, (1<<irq_no))
+#define HalSetLocalInterPri(irq_no, irq_pri)    __nds__plic_set_priority(irq_no, irq_pri)
 
 #endif //#ifndef __RISCV_HAL_H__

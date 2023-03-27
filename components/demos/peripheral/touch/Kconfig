@@ -1,5 +1,7 @@
-menu "DEMOS_CONFIG"
+menu "Demos::Peripheral::Touch"
 	config TOUCH_TEST
-		bool "Enable touch demos"
+		bool "Enable Touch Test"
 		default n
+		help
+			Enable touch demos
 endmenu

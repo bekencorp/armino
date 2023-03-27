@@ -177,7 +177,6 @@ static void ipc_comp_init_assuredly(struct partition_t *p_pt,
     }
 #endif
 
-	p_pt->thrd.name = p_pt->p_ldinf->name; // todo wangzhilei
     thrd_start(&p_pt->thrd,
                POSITION_TO_ENTRY(sprt_main, thrd_fn_t),
                THRD_GENERAL_EXIT);

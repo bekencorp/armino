@@ -97,22 +97,26 @@ bk7235_bsp.sag配置如下：
 .. note::
 
   计算规则：
-    - bk7235_bsp.sag中CPU0_LOAD1的LMA（cpu视角0x10000）=  Application的partition_start_addr *32/34;
+    - bk7235_bsp.sag中CPU0_LOAD1的LMA（cpu视角0x10000）=  Application的partition_start_addr \*32/34;
 
     - bk7235_bsp.sag中CPU0_LOAD1的length（cpu视角0x8800） =  0x8800;
 
     - bk7235_bsp.sag中CPU0_LOAD2的LMA（cpu视角0x18800）=  CPU0_LOAD1的LMA + 0x8800;
 
-    - bk7235_bsp.sag中CPU0_LOAD2的length（cpu视角0x217800） =  (Application的partition_length + Application1的partition_length)*32/34 - 0x8800;
+    - bk7235_bsp.sag中CPU0_LOAD2的length（cpu视角0x217800） =  (Application的partition_length + Application1的partition_length)\*32/34 - 0x8800;
 
 
 - 4.使用文档《RISC_V》中关于Andes sag转ld文件方法将bk7235_bsp.sag和bk7235_cp1_bsp.sag转化为对应的ld文件；
+
 .. note::
 
   该步骤4仅限新建工程；已有工程不需要该步骤,建议直接修改对应ld文件
 
 - 5.(双核需要执行步骤5，单核不需要，此处不需要)------需将middleware/soc/bk7235/bk7235.defconfig中CPU1核的偏移量重置一下 CONFIG_SLAVE_CORE_OFFSET=1835008 （十进制格式）(CONFIG_SLAVE_CORE_OFFSET 1835008 == 0x1C0000 in bk7235_cp1_bsp.sag LMA)
 
+.. note::
+
+  当图3分区表(partition)中ota区域的起始地址没有变化，则步骤6不需要执行。
 
 - 6.使用tools/env_tools/rt_partition_tool/rt_partition_tool.exe 工具修改插入新的bootloader的分区表见图7，简要步骤如下：
 
@@ -188,13 +192,13 @@ bk7256_bsp.sag配置如下：
 .. note::
 
   计算规则：
-    - bk7256_bsp.sag中CPU0_LOAD1的LMA（cpu视角0x10000）=  Application的partition_start_addr *32/34;
+    - bk7256_bsp.sag中CPU0_LOAD1的LMA（cpu视角0x10000）=  Application的partition_start_addr \*32/34;
 
     - bk7256_bsp.sag中CPU0_LOAD1的length（cpu视角0x8800） =  0x8800;
 
     - bk7256_bsp.sag中CPU0_LOAD2的LMA（cpu视角0x18800）=  CPU0_LOAD1的LMA + 0x8800;
 
-    - bk7256_bsp.sag中CPU0_LOAD2的length（cpu视角0x197800） =  Application的partition_length*32/34 - 0x8800;
+    - bk7256_bsp.sag中CPU0_LOAD2的length（cpu视角0x197800） =  Application的partition_length\*32/34 - 0x8800;
 
 bk7256_cp1_bsp.sag配置如下：
 
@@ -210,11 +214,12 @@ bk7256_cp1_bsp.sag配置如下：
 .. note::
 
   计算规则:
-    - bk7256_cp1_bsp.sag中CPU1的LMA（cpu视角0x1B0000）= Application1的partition_start_addr *32/34;
+    - bk7256_cp1_bsp.sag中CPU1的LMA（cpu视角0x1B0000）= Application1的partition_start_addr \*32/34;
 
-    - bk7256_cp1_bsp.sag中CPU1的length（cpu视角0x20000） = Application1的partition_length*32/34;
+    - bk7256_cp1_bsp.sag中CPU1的length（cpu视角0x20000） = Application1的partition_length\*32/34;
 
 - 4.使用文档《RISC_V》中关于Andes sag转ld文件方法将bk7256_bsp.sag和bk7256_cp1_bsp.sag转化为对应的ld文件；
+
 .. note::
 
   该步骤4仅限新建工程；已有工程不需要该步骤,建议直接修改对应ld文件

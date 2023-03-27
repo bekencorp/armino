@@ -79,7 +79,7 @@ typedef enum {
 	GPIO_45,
 	GPIO_46,
 	GPIO_47,
-	GPIO_NUM,
+	GPIO_NUM, /**<The maximum GPIO number is independent of the chip. Please use SOC_GPIO_NUM for chip */
 } gpio_id_t;
 
 

@@ -50,6 +50,12 @@ if (CONFIG_LCD)
 	)
 endif()
 
+if (CONFIG_LVGL)
+	list(APPEND srcs
+		lcd/lvgl_draw.c
+	)
+endif()
+
 if (CONFIG_AUDIO)
 	list(APPEND srcs
 		aud/aud_api.c
@@ -80,6 +86,7 @@ if (CONFIG_CAMERA OR CONFIG_USB_UVC)
 	list(APPEND incs camera)
 	list(APPEND srcs
 		camera/camera_act.c
+		storage/storage_act.c
 	)
 
 if (CONFIG_CAMERA)
@@ -106,7 +113,6 @@ endif()#(CONFIG_CAMERA OR CONFIG_USB_UVC)
 if (CONFIG_WIFI_TRANSFER)
 	list(APPEND srcs
 		transfer/transfer_act.c
-		storage/storage_act.c
 	)
 endif()
 
@@ -126,7 +132,11 @@ if (CONFIG_LCD)
 	)
 endif()
 
-
+if (CONFIG_LVGL)
+	list(APPEND srcs
+		lcd/lvgl_draw.c
+	)
+endif()
 
 if (CONFIG_DUAL_CORE)
 	list(APPEND srcs

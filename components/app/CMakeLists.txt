@@ -8,11 +8,15 @@ set(incs
 	./
 	)
 
-set(srcs
-	lvgl_demo/lv_example_meter.c
-	lvgl_demo/lv_example_image_show.c
-	lvgl_demo/img_utility.c
+set(srcs "")
+
+if (CONFIG_LVGL_DEMO)
+	list(APPEND srcs
+		lvgl_demo/lv_example_meter.c
+		lvgl_demo/lv_example_image_show.c
+		lvgl_demo/img_utility.c
 	)
+endif()
 
 if (CONFIG_VIDEO_AVI)
 	list(APPEND srcs
@@ -39,6 +43,7 @@ if (CONFIG_APP_DEMO_VIDEO_TRANSFER)
 	list(APPEND srcs
 		video_work/video_transfer_tcp.c
 		video_work/video_transfer_udp.c
+		video_work/video_transfer_cs2_p2p.c
 		video_work/video_upd_spd.c
 		video_work/video_upd_spd_pub.c
 	)
@@ -52,7 +57,7 @@ if (CONFIG_NET_WORK_VIDEO_TRANSFER)
 	)
 endif()
 
-if (CONFIG_P2P)
+if (CONFIG_COMPONENTS_P2P)
 	list(APPEND srcs
 	net_work/video_demo_p2p.c
 	)
@@ -65,6 +70,6 @@ endif()
 #TODO fix main
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
-	REQUIRES bk_wifi bk_cli lwip_intf_v2_0 at_server bk_rtos
+	REQUIRES bk_wifi bk_cli lwip_intf_v2_0 at_server bk_rtos p2p bk_thirdparty
 	PRIV_REQUIRES bk_common aud_intf include  littlefs
 	)

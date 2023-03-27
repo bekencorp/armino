@@ -23,7 +23,7 @@
 #include "platform.h"
 #include <arch_interrupt.h>
 #include "modules/pm.h"
-#include "bk_pm_control.h"
+#include "bk_pm_control.h"  
 #include "psram_hal.h"
 #include <driver/efuse.h>
 
@@ -73,11 +73,6 @@ void sys_hal_set_usb_analog_dp_capability(uint8_t capability)
 void sys_hal_set_usb_analog_dn_capability(uint8_t capability)
 {
 	sys_ll_set_ana_reg9_usbnen(capability);
-}
-
-void sys_hal_usb_analog_deepsleep_en(bool en)
-{
-
 }
 
 void sys_hal_usb_enable_charge(bool en)
@@ -288,7 +283,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	uint64_t start_tick = riscv_get_mtimer();
 #endif
 
-	HAL_TI_DISABLE();
+	clear_csr(NDS_MIE, MIP_MTIP);
 
 	int_state1 = sys_ll_get_cpu0_int_0_31_en_value();
 	int_state2 = sys_ll_get_cpu0_int_32_63_en_value();
@@ -311,7 +306,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	{
 		sys_ll_set_cpu0_int_0_31_en_value(int_state1);
 		sys_ll_set_cpu0_int_32_63_en_value(int_state2);
-		HAL_TI_ENABLE();
+		set_csr(NDS_MIE, MIP_MTIP);
 		return;
 	}
 
@@ -407,7 +402,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 
 	sys_ll_set_ana_reg8_en_lpmode(0x1);// touch enter low power mode
 
-	sys_ll_set_ana_reg2_iovoc(0);//set the io voltage to 2.9v
+	sys_ll_set_ana_reg2_iovoc(0);//set the io voltage to 2.9v 
 	sys_ll_set_ana_reg6_vaon_sel(0);//0:vddaon drop enable ,aon voltage to 0.9v
 //just debug:maybe some guys changed the CPU clock or Flash clock caused the time of
 //MTIMER_LOW_VOLTAGE_MINIMUM_TICK isn't enough.
@@ -447,8 +442,8 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	wakeup_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 
 	sys_ll_set_ana_reg6_vaon_sel(0x1);//0:vddaon drop disable, aon voltage to 1.1v
-	sys_ll_set_ana_reg2_iovoc(0x2);//set the io voltage to 3.1v
-	sys_ll_set_ana_reg2_iovoc(0x4);//set the io voltage to 3.3v
+	sys_ll_set_ana_reg2_iovoc(0x2);//set the io voltage to 3.1v 
+	sys_ll_set_ana_reg2_iovoc(0x4);//set the io voltage to 3.3v 
 
 	sys_ll_set_ana_reg3_vhsel_ldodig(h_vol);
 	sys_ll_set_ana_reg2_spi_latchb(0x1);
@@ -540,7 +535,9 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 		clock_value &= ~(0x1 << SYS_ANA_REG4_ROSC_MANU_EN_POS);//0:close Rosc Calibration Manual Mode
 		sys_ll_set_ana_reg4_value(clock_value);
 	}
-	HAL_TI_ENABLE();
+
+	set_csr(NDS_MIE, MIP_MTIP);
+
 	//gpio_restore();
 
 }
@@ -936,6 +933,15 @@ void sys_hal_low_power_hardware_init()
 	pmu_state |= BIT_AON_PMU_WAKEUP_ENA;
 	aon_pmu_hal_reg_set(PMU_REG0x41,pmu_state);
 
+	/*select lowpower lpo clk source*/
+#if CONFIG_EXTERN_32K
+	sys_ll_set_ana_reg6_itune_xtall(0x0);//0x0 provide highest current for external 32k,because the signal path long
+	sys_ll_set_ana_reg6_en_xtall(0x1);
+	aon_pmu_hal_lpo_src_set(PM_LPO_SRC_X32K);
+#else
+	aon_pmu_hal_lpo_src_set(PM_LPO_SRC_ROSC);
+#endif
+
 }
 int32 sys_hal_lp_vol_set(uint32_t value)
 {
@@ -973,12 +979,14 @@ uint32 sys_hal_get_device_id(void)
 int32 sys_hal_int_disable(uint32 param) //CMD_ICU_INT_DISABLE
 {
 	uint32 reg = 0;
+	uint32 value = 0;
 
 	reg = sys_ll_get_cpu0_int_0_31_en_value();
+	value = reg;
 	reg &= ~(param);
 	sys_ll_set_cpu0_int_0_31_en_value(reg);
 
-	return 0;
+	return value;
 }
 
 int32 sys_hal_int_enable(uint32 param) //CMD_ICU_INT_ENABLE
@@ -996,12 +1004,14 @@ int32 sys_hal_int_enable(uint32 param) //CMD_ICU_INT_ENABLE
 int32 sys_hal_int_group2_disable(uint32 param)
 {
 	uint32 reg = 0;
+	uint32 value = 0;
 
 	reg = sys_ll_get_cpu0_int_32_63_en_value();
+	value = reg;
 	reg &= ~(param);
 	sys_ll_set_cpu0_int_32_63_en_value(reg);
 
-	return 0;
+	return value;
 }
 
 //NOTICE:Temp add for BK7256 product which has more then 32 Interrupt sources
@@ -1018,23 +1028,11 @@ int32 sys_hal_int_group2_enable(uint32 param)
 
 int32 sys_hal_fiq_disable(uint32 param)
 {
-	uint32 reg = 0;
-
-	reg = sys_ll_get_cpu0_int_32_63_en_value();
-	reg &= ~(param);
-	sys_ll_set_cpu0_int_32_63_en_value(reg);
-
 	return 0;
 }
 
 int32 sys_hal_fiq_enable(uint32 param)
 {
-	uint32 reg = 0;
-
-	reg = sys_ll_get_cpu0_int_32_63_en_value();
-	reg |= (param);
-	sys_ll_set_cpu0_int_32_63_en_value(reg);
-
 	return 0;
 }
 

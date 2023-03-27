@@ -213,7 +213,7 @@ bk_err_t gpio_hal_devs_map(gpio_hal_t *hal, uint64 gpios, gpio_dev_t *devs, uint
 		return BK_ERR_NULL_PARAM;
 	}
 
-	for(gpio_index = 0; gpio_index < GPIO_NUM; gpio_index++)
+	for(gpio_index = 0; gpio_index < SOC_GPIO_NUM; gpio_index++)
 	{
 		if (gpios & BIT64(gpio_index)) {
 			HAL_LOGD("gpio_index = %d\r\n", gpio_index);

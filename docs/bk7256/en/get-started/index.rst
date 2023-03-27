@@ -234,7 +234,7 @@ On the Windows platform, Armino currently supports UART burning.
 
 
 Burn through serial port
-********************
+****************************************
 
 !note:
 
@@ -277,12 +277,4 @@ Serial port Log and Command Line
     Cpu1 help//Output the command list of cpu1
 
     Cpu1 time//Output the current running time of cpu1
-
-
-Compile options and link options
-------------------------------------------------------
-
-- BK7256, with default compile option "-mstrict-align", link option "-wl,--defsym,memcpy=memcpy_ss"
-- To compile the lib library separately, you need to add the compile option "-mstrict-align".
-- If you do not use platform linking commands, such as compiling HarmonyOS, for Andes v5.1.1 tool chain, you need to add the link option "-wl,--defsym,memcpy=memcpy_ss".
 

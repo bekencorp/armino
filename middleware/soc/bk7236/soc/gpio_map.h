@@ -344,16 +344,16 @@ struct {\
 /*
 * VIDEO PA GPIO MAP
 */
-// LCD AND SD PA CTRL
+// LCD AND SD POWER CTRL
 #define LCD_LDO_CTRL_GPIO                  (GPIO_8)
 #define LCD_LDO_CTRL_ACTIVE_LEVEL          (1)
 
 // LCD BACKLIGHT CTRL
-#define LCD_BACKLIGHT_CTRL_GPIO            (GPIO_34)
+#define LCD_BACKLIGHT_CTRL_GPIO            (GPIO_7) // GPIO_34 // GPIO_7
 #define LCD_BACKLIGHT_CTRL_ACTIVE_LEVEL    (1)
 
-// DVP AND UVC PA CTRL
-#define CAMERA_LCD_CTRL_GPIO               (GPIO_9)
+// DVP AND UVC POWER CTRL
+#define CAMERA_LDO_CTRL_GPIO               (GPIO_9)
 #define CAMERA_LDO_CTRL_ACTIVE_LEVEL       (1)
 
 #ifdef __cplusplus

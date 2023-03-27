@@ -88,6 +88,7 @@ typedef struct {
 	jpeg_clk_t  clk;         /**< jpeg module work clk config */
 	jpeg_sync_level_t vsync; /**< sensor vsync active level  */
 	jpeg_sync_level_t hsync; /**< sensor hsync active level  */
+	jpeg_yuv_format_t sensor_fmt; /**< sensor input data format */
 	uint32_t rx_buf_len;  /**< the length for receiving jpeg data */
 	uint32_t node_len;    /**< dma transfer length */
 	uint32_t x_pixel;     /**< jpeg encode image resolution for width */

@@ -1,5 +1,119 @@
-menu "lcd with gui"
+menu "Lvgl_source"
 	config LVGL
-		bool "Enable lvgl"
+		bool "Enable Lvgl"
 		default n
+
+	config LV_COLOR_DEPTH
+		int "Set Lv Color Depth"
+		default 16
+		help
+			1 - 1 byte per pixel
+			8 - RGB332
+			16 - RGB565
+			32 - ARGB888
+
+	config LV_COLOR_SCREEN_TRANSP
+		bool "Enable Lv Color Screen Transp"
+		default n
+		help
+			Enable features to draw on transparent background
+
+	config LV_FONT_MONTSERRAT_8
+		bool "Enable Lv Font Montserrat 8"
+		default n
+
+	config LV_FONT_MONTSERRAT_16
+		bool "Enable Lv Font Montserrat 16"
+		default n
+
+	config LV_FONT_MONTSERRAT_12
+		bool "Enable Lv Font Montserrat 12"
+		default n
+
+	config LV_FONT_MONTSERRAT_14
+		bool "Enable Lv Font Montserrat 14"
+		default n
+
+	config LV_FONT_MONTSERRAT_18
+		bool "Enable Lv Font Montserrat 18"
+		default n
+
+	config LV_FONT_MONTSERRAT_20
+		bool "Enable Lv Font Montserrat 20"
+		default n
+
+	config LV_FONT_MONTSERRAT_22
+		bool "Enable Lv Font Montserrat 22"
+		default n
+
+	config LV_FONT_MONTSERRAT_24
+		bool "Enable Lv Font Montserrat 24"
+		default n
+
+	config LV_FONT_MONTSERRAT_26
+		bool "Enable Lv Font Montserrat 26"
+		default n
+
+	config LV_FONT_MONTSERRAT_28
+		bool "Enable Lv Font Montserrat 28"
+		default n
+
+	config LV_FONT_MONTSERRAT_30
+		bool "Enable Lv Font Montserrat 30"
+		default n
+
+	config LV_FONT_MONTSERRAT_32
+		bool "Enable Lv Font Montserrat 32"
+		default n
+
+	config LV_FONT_MONTSERRAT_34
+		bool "Enable Lv Font Montserrat 34"
+		default n
+
+	config LV_FONT_MONTSERRAT_36
+		bool "Enable Lv Font Montserrat 36"
+		default n
+
+	config LV_FONT_MONTSERRAT_38
+		bool "Enable Lv Font Montserrat 38"
+		default n
+
+	config LV_FONT_MONTSERRAT_40
+		bool "Enable Lv Font Montserrat 40"
+		default n
+
+	config LV_FONT_MONTSERRAT_42
+		bool "Enable Lv Font Montserrat 42"
+		default n
+
+	config LV_FONT_MONTSERRAT_44
+		bool "Enable Lv Font Montserrat 44"
+		default n
+
+	config LV_FONT_MONTSERRAT_46
+		bool "Enable Lv Font Montserrat 46"
+		default n
+
+	config LV_FONT_MONTSERRAT_48
+		bool "Enable Lv Font Montserrat 48"
+		default n
+
+	config LV_USE_PERF_MONITOR
+		bool "Enable Lv Use Perf Monitor"
+		default n
+		help
+			Show CPU usage and FPS count
+
+	config LVGL_USE_PSRAM
+		bool "Enable Lvgl Use Psram"
+		default n
+		help
+			Enable PSRAM draw buffer
+
+	config LVGL_USE_DMA2D
+		bool "Enable Lvgl Use Dma2d"
+		default n
+		help
+			Enable DMA2D Hardware blend
+
 endmenu

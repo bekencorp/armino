@@ -202,6 +202,9 @@ etharp_tmr(void)
   int i;
 
   LWIP_DEBUGF(ETHARP_DEBUG, ("etharp_timer\n"));
+  struct wlan_ip_config sta_addr;
+  net_get_if_addr(&sta_addr, net_get_sta_handle());
+
   /* remove expired entries from the ARP table */
   for (i = 0; i < ARP_TABLE_SIZE; ++i) {
     u8_t state = arp_table[i].state;
@@ -223,7 +226,7 @@ etharp_tmr(void)
         LWIP_DEBUGF(ETHARP_DEBUG, ("etharp_timer 1hour: expired %s entry %d.\n",
                                    arp_table[i].state >= ETHARP_STATE_STABLE ? "stable" : "pending", i));
 	 if (bk_feature_fast_dhcp_enable() && (arp_table[i].state == ETHARP_STATE_PENDING) &&
-           (arp_table[i].ctime >= ARP_MAXPENDING)) {
+           (arp_table[i].ctime >= ARP_MAXPENDING)  && ((sta_addr.ipv4.gw) == (arp_table[i].ipaddr.addr))) {
 			if (rtos_is_oneshot_timer_init(&arp_conflict_tmr) == 0) {
 				int clk_time = 1000;
 				rtos_init_oneshot_timer(&arp_conflict_tmr,

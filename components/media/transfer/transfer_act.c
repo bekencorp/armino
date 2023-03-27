@@ -135,7 +135,8 @@ typedef struct
 
 transfer_info_t transfer_info;
 
-
+#define UDP_MAX_TX_SIZE 1472
+#define TCP_MAX_TX_SIZE 1460
 #define MAX_TX_SIZE (1472)
 #define MAX_COPY_SIZE (1472 - sizeof(transfer_data_t))
 #define MAX_RETRY (10000)
@@ -155,6 +156,7 @@ video_setup_t vido_transfer_info = {0};
 
 uint32_t lost_size = 0;
 uint32_t complete_size = 0;
+uint32_t packet_size = 0;
 
 
 beken_semaphore_t transfer_sem;
@@ -217,31 +219,15 @@ void transfer_memcpy_word(uint32_t *dst, uint32_t *src, uint32_t size)
 	}
 }
 
-void transfer_memcpy_word_htonl(uint32_t *dst, uint32_t *src, uint32_t size)
-{
-	uint32_t i = 0;
-
-	size /= 4;
-
-	for (i = 0; i < size; i++)
-	{
-		dst[i] = htonl(src[i]);
-	}
-}
-
 static void dvp_frame_handle(frame_buffer_t *buffer)
 {
 	uint32_t i;
 	uint32_t delay_time_us = 0;
-	uint32_t count = buffer->length / MAX_COPY_SIZE;
-	uint32_t tail = buffer->length % MAX_COPY_SIZE;
+	uint32_t count = buffer->length / packet_size;//MAX_COPY_SIZE
+	uint32_t tail = buffer->length % packet_size;//MAX_COPY_SIZE
 	uint8_t id = frame_id++;
 	int ret;
-	#if (CONFIG_SOC_BK7236)
-	uint8_t *src_address = buffer->frame;
-	#else
 	uint8_t *src_address = buffer->frame + 0x4000000;
-	#endif
 
 	WIFI_TRANSFER_START();
 
@@ -273,14 +259,10 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 		}
 
 		WIFI_DMA_START();
-		if (buffer->fmt == PIXEL_FMT_DVP_H264) {
-			transfer_memcpy_word_htonl((uint32_t *)transfer_data->data, (uint32_t *)(src_address + (MAX_COPY_SIZE * i)), MAX_COPY_SIZE);
-		} else {
-			transfer_memcpy_word((uint32_t *)transfer_data->data, (uint32_t *)(src_address + (MAX_COPY_SIZE * i)), MAX_COPY_SIZE);
-		}
+		transfer_memcpy_word((uint32_t *)transfer_data->data, (uint32_t *)(src_address + (packet_size * i)), packet_size);
 		WIFI_DMA_END();
 
-		ret = dvp_frame_send((uint8_t *)transfer_data, MAX_TX_SIZE, MAX_RETRY, RETRANSMITS_TIME, delay_time_us);
+		ret = dvp_frame_send((uint8_t *)transfer_data, packet_size + sizeof(transfer_data_t), MAX_RETRY, RETRANSMITS_TIME, delay_time_us);//MAX_TX_SIZE
 
 		if (ret != BK_OK)
 		{
@@ -295,14 +277,13 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 
 		/* fix for psram 4bytes alignment */
 		WIFI_DMA_START();
-		if (buffer->fmt == PIXEL_FMT_DVP_H264) {
-			transfer_memcpy_word_htonl((uint32_t *)transfer_data->data, (uint32_t *)(src_address + (MAX_COPY_SIZE * i)), (tail % 4) ? ((tail / 4 + 1) * 4) : tail);
-		} else {
-			transfer_memcpy_word((uint32_t *)transfer_data->data, (uint32_t *)(src_address + (MAX_COPY_SIZE * i)), (tail % 4) ? ((tail / 4 + 1) * 4) : tail);
-		}
+		transfer_memcpy_word((uint32_t *)transfer_data->data, (uint32_t *)(src_address + (packet_size * i)), (tail % 4) ? ((tail / 4 + 1) * 4) : tail);
 		WIFI_DMA_END();
 
-		ret = dvp_frame_send((uint8_t *)transfer_data, tail + sizeof(transfer_data_t), MAX_RETRY, RETRANSMITS_TIME, delay_time_us);
+		if (vido_transfer_info.send_type ==  TVIDEO_SND_UDP)
+			ret = dvp_frame_send((uint8_t *)transfer_data, tail + sizeof(transfer_data_t), MAX_RETRY, RETRANSMITS_TIME, delay_time_us);
+		else
+			ret = dvp_frame_send((uint8_t *)transfer_data, TCP_MAX_TX_SIZE, MAX_RETRY, RETRANSMITS_TIME, delay_time_us);
 
 		if (ret != BK_OK)
 		{
@@ -421,136 +402,6 @@ static bool avi_is_enable(void)
 }
 #endif
 
-static void h264_task_entry(beken_thread_arg_t data)
-{
-	frame_buffer_t *h264_frame = NULL;
-
-	media_debug->wifi_read = 0;
-
-	rtos_set_semaphore(&transfer_sem);
-
-	while (transfer_task_running) {
-		h264_frame = frame_buffer_fb_h264_pop_wait();
-		if (h264_frame == NULL) {
-			LOGE("read h264 frame NULL\n");
-			continue;
-		}
-
-		media_debug->wifi_read++;
-
-		dvp_frame_handle(h264_frame);
-
-		frame_buffer_fb_h264_free(h264_frame);
-	}
-
-	LOGI("transfer task exit\n");
-
-	transfer_task = NULL;
-	rtos_set_semaphore(&transfer_sem);
-	rtos_delete_thread(NULL);
-}
-
-void h264_task_start(void)
-{
-	bk_err_t ret;
-
-	if (transfer_data == NULL) {
-		transfer_data = (transfer_data_t *)os_malloc(sizeof(transfer_data_t) + MAX_COPY_SIZE);
-		if (transfer_data == NULL) {
-			LOGE("%s transfer_data malloc failed\n", __func__);
-			return;
-		}
-	}
-
-	if (transfer_task != NULL) {
-		LOGE("%s transfer_task already running\n", __func__);
-		return;
-	}
-
-	frame_buffer_fb_register(MODULE_WIFI, FB_INDEX_H264);
-
-	ret = rtos_init_semaphore_ex(&transfer_sem, 1, 0);
-	if (BK_OK != ret) {
-		LOGE("%s semaphore init failed\n", __func__);
-		return;
-	}
-
-	transfer_task_running = true;
-
-	ret = rtos_create_thread(&transfer_task,
-	                         4,
-	                         "transfer_task",
-	                         (beken_thread_function_t)h264_task_entry,
-	                         4 * 1024,
-	                         NULL);
-
-	if (BK_OK != ret) {
-		LOGE("%s transfer_task init failed\n");
-		return;
-	}
-
-	ret = rtos_get_semaphore(&transfer_sem, BEKEN_NEVER_TIMEOUT);
-
-	if (BK_OK != ret) {
-		LOGE("%s transfer_sem get failed\n", __func__);
-	}
-
-	LOGI("%s complete\n", __func__);
-}
-
-void h264_task_stop(void)
-{
-	bk_err_t ret;
-
-	transfer_task_running = false;
-
-	frame_buffer_fb_deregister(MODULE_WIFI);
-
-	ret = rtos_get_semaphore(&transfer_sem, BEKEN_NEVER_TIMEOUT);
-
-	if (BK_OK != ret) {
-		LOGE("%s transfer get failed\n");
-	}
-
-	LOGI("%s complete\n", __func__);
-
-	ret = rtos_deinit_semaphore(&transfer_sem);
-
-	if (BK_OK != ret) {
-		LOGE("%s transfer deinit failed\n");
-	}
-
-	if (transfer_data) {
-		os_free(transfer_data);
-		transfer_data = NULL;
-	}
-}
-
-void h264_open_handle(param_pak_t *param)
-{
-	video_setup_t *setup_cfg = (video_setup_t *)param->param;
-
-	os_memcpy(&vido_transfer_info, setup_cfg, sizeof(video_setup_t));
-
-	h264_task_start();
-
-	set_transfer_state(TRS_STATE_ENABLED);
-
-	MEDIA_EVT_RETURN(param, BK_OK);
-}
-
-void h264_close_handle(param_pak_t *param)
-{
-	LOGI("%s\n", __func__);
-
-	h264_task_stop();
-	set_transfer_state(TRS_STATE_DISABLED);
-
-	rwnxl_set_video_transfer_flag(false);
-
-	MEDIA_EVT_RETURN(param, BK_OK);
-}
-
 static void transfer_task_entry(beken_thread_arg_t data)
 {
 	frame_buffer_t *jpeg_frame = NULL;
@@ -631,7 +482,13 @@ void transfer_task_start(void)
 
 	if (transfer_data == NULL)
 	{
-		transfer_data = (transfer_data_t *)os_malloc(sizeof(transfer_data_t) + MAX_COPY_SIZE);
+		if (vido_transfer_info.send_type ==  TVIDEO_SND_UDP) {
+			transfer_data = (transfer_data_t *)os_malloc(UDP_MAX_TX_SIZE);
+			packet_size = UDP_MAX_TX_SIZE - sizeof(transfer_data_t);
+		} else {
+			transfer_data = (transfer_data_t *)os_malloc(TCP_MAX_TX_SIZE);
+			packet_size = TCP_MAX_TX_SIZE - sizeof(transfer_data_t);
+		}
 
 		if (transfer_data == NULL)
 		{
@@ -783,12 +640,6 @@ void transfer_event_handle(uint32_t event, uint32_t param)
             avi_close((param_pak_t *)param);
             break;
 #endif
-		case EVENT_H264_OPEN_IND:
-			h264_open_handle((param_pak_t *)param);
-			break;
-		case EVENT_H264_CLOSE_IND:
-			h264_close_handle((param_pak_t *)param);
-			break;
 	}
 }
 

@@ -86,5 +86,5 @@ API Reference
 .. include:: ../../_build/inc/lcd.inc
 
 API Typedefs
----------------------
-.. include:: ../../_build/inc/lcd_disp_types.inc
+-------------------------------------------
+.. include:: ../../_build/inc/lcd_types.inc

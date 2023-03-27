@@ -23,7 +23,7 @@
 #include "arm_uart_drv.h"
 
 #define TFM_DRIVER_STDIO    Driver_USART0
-#define NS_DRIVER_STDIO     Driver_USART1
+#define NS_DRIVER_STDIO     Driver_USART0
 
 /**
  * \brief Store the addresses of memory regions

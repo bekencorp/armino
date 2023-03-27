@@ -80,12 +80,7 @@ static void qspi_id_init_common(void)
 {
 #if (CONFIG_SYSTEM_CTRL)
 	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_QSPI_1, CLK_PWR_CTRL_PWR_UP);
-#if (SOC_QSPI_UNIT_NUM > 1)
-	sys_drv_int_enable(QSPI0_INTERRUPT_CTRL_BIT);
-	sys_drv_int_enable(QSPI1_INTERRUPT_CTRL_BIT);
-#else
 	sys_drv_int_enable(QSPI_INTERRUPT_CTRL_BIT);
-#endif
 #else
 	power_qspi_pwr_up();
 	clk_set_qspi_clk_26m();
@@ -99,12 +94,7 @@ static void qspi_id_deinit_common(void)
 {
 #if (CONFIG_SYSTEM_CTRL)
 	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_QSPI_1, CLK_PWR_CTRL_PWR_DOWN);
-#if (SOC_QSPI_UNIT_NUM > 1)
-	sys_drv_int_disable(QSPI0_INTERRUPT_CTRL_BIT);
-	sys_drv_int_disable(QSPI1_INTERRUPT_CTRL_BIT);
-#else
 	sys_drv_int_disable(QSPI_INTERRUPT_CTRL_BIT);
-#endif
 #else
 	icu_disable_qspi_interrupt();
 	power_qspi_pwr_down();

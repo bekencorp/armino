@@ -32,6 +32,7 @@ touch初始化的cli command例如：
 touch初始化的cli command例如：
 
 - 1.1. Cli command: "touch_single_channel_calib_mode_test 2 1" 
+
 以上cli command 命令的含义：使用touch的channel 2作为唤醒的触发channel,设置的值为1
 
 

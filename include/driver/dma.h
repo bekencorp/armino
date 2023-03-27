@@ -399,7 +399,7 @@ uint32_t bk_dma_get_remain_len(dma_id_t id);
  */
 uint32_t bk_dma_get_enable_status(dma_id_t id);
 
-#if (CONFIG_SPE)
+#if (CONFIG_GENERAL_DMA_SEC)
 /**
  * @brief     Set the current DMA channel dest secure attr
  *

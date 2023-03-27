@@ -55,7 +55,7 @@
 #endif
 
 #define SHELL_ASSERT_BUF_LEN	140
-#define SHELL_CMD_BUF_LEN		140
+#define SHELL_CMD_BUF_LEN		200
 #define SHELL_RSP_BUF_LEN		140
 #define SHELL_IND_BUF_LEN		132
 
@@ -97,7 +97,7 @@ typedef struct
 {
 	u8     rsp_buff[SHELL_RSP_BUF_LEN];
 	u8     rsp_ongoing;
-	
+
 	u8     cur_cmd_type;
 	u8     cmd_buff[SHELL_CMD_BUF_LEN];
 	u8     cmd_data_len;
@@ -289,7 +289,7 @@ static u8 * alloc_log_blk(u16 log_len, u16 *blk_tag)
 		if(free_q->blk_len < log_len)
 			continue;
 
-		if(/*get_free_buff_cnt(free_q) */ free_q->free_blk_num > 0) 
+		if(/*get_free_buff_cnt(free_q) */ free_q->free_blk_num > 0)
 		{
 			free_blk_id = free_q->blk_list[free_q->list_out_idx];
 
@@ -363,10 +363,10 @@ static bool_t free_log_blk(u16 block_tag)
 static void push_pending_queue(u16 blk_tag, u16 data_len)
 {
 	//get_shell_mutex();
-	
+
 	pending_queue.packet_list[pending_queue.list_in_idx].blk_tag = blk_tag;
 	pending_queue.packet_list[pending_queue.list_in_idx].packet_len = data_len;
-	
+
 	//pending_queue.list_in_idx = (pending_queue.list_in_idx + 1) % SHELL_LOG_PEND_NUM;
 	if((pending_queue.list_in_idx + 1) < SHELL_LOG_PEND_NUM)
 		pending_queue.list_in_idx++;
@@ -407,7 +407,7 @@ static void shell_tx_complete(u8 *pbuf, u16 buf_tag)
 	{
 		/* it is called from cmd_dev tx ISR. */
 
-		if ( (pbuf != cmd_line_buf.rsp_buff) || (blk_id != 0) || 
+		if ( (pbuf != cmd_line_buf.rsp_buff) || (blk_id != 0) ||
 			( !cmd_line_buf.rsp_ongoing ) )
 		{
 			/* something wrong!!! */
@@ -422,14 +422,14 @@ static void shell_tx_complete(u8 *pbuf, u16 buf_tag)
 			tx_req_process();
 		}
 
-		return;  
+		return;
 	}
 
 	if( queue_id == SHELL_IND_QUEUE_ID )    /* cmd_ind. */
 	{
 		/* it is called from cmd_dev tx ISR. */
 
-		if ( (pbuf != cmd_line_buf.cmd_ind_buff) || (blk_id != 0) ) 
+		if ( (pbuf != cmd_line_buf.cmd_ind_buff) || (blk_id != 0) )
 		{
 			/* something wrong!!! */
 			shell_assert_out(bTRUE, "FAULT: indication.\r\n");
@@ -444,7 +444,7 @@ static void shell_tx_complete(u8 *pbuf, u16 buf_tag)
 			tx_req_process();
 		}
 
-		return;  
+		return;
 	}
 
 	if( queue_id == SHELL_ROM_QUEUE_ID )    /* fault hints buffer, point to flash. */
@@ -466,7 +466,7 @@ static void shell_tx_complete(u8 *pbuf, u16 buf_tag)
 		//set_shell_event(SHELL_EVENT_TX_REQ);  // notify shell task to process the log tx.
 		tx_req_process();
 
-		return;  
+		return;
 	}
 
 	if (queue_id < TBL_SIZE(free_queue))   /* from log busy queue. */
@@ -477,7 +477,7 @@ static void shell_tx_complete(u8 *pbuf, u16 buf_tag)
 
 		block_tag = log_busy_queue.blk_list[log_busy_queue.list_out_idx];
 
-		if( ( buf_tag != block_tag ) || (blk_id >= free_q->blk_num) || 
+		if( ( buf_tag != block_tag ) || (blk_id >= free_q->blk_num) ||
 			( (&free_q->log_buf[blk_id * free_q->blk_len]) != pbuf) )
 		{
 			/* something wrong!!! */
@@ -523,7 +523,7 @@ static u16 append_link_data_byte(u8 * link_buf, u16 buf_len, u8 * data_ptr, u16 
 
 	for(i = 0; i < data_len; i++)
 	{
-		if( (*data_ptr == HEX_SYNC_CHAR) || 
+		if( (*data_ptr == HEX_SYNC_CHAR) ||
 			(*data_ptr == HEX_ESC_CHAR) )
 		{
 			if(cnt < (buf_len - 1))
@@ -555,7 +555,7 @@ static bool_t echo_out(u8 * echo_str, u16 len)
 
 	if(len == 0)
 		return bTRUE;
-	
+
 	wr_cnt = cmd_dev->dev_drv->write_echo(cmd_dev, echo_str, len);
 
 	return (wr_cnt == len);
@@ -584,7 +584,7 @@ static bool_t rsp_out(u8 * rsp_msg, u16 msg_len)
 
 		/* dedicated device for cmd/response, don't enqueue the msg to pending queue. */
 		/* send to cmd dev directly. */
-		cmd_dev->dev_drv->write_async(cmd_dev, cmd_line_buf.rsp_buff, msg_len, rsp_blk_tag); 
+		cmd_dev->dev_drv->write_async(cmd_dev, cmd_line_buf.rsp_buff, msg_len, rsp_blk_tag);
 	}
 	else
 	{
@@ -624,7 +624,7 @@ static bool_t cmd_ind_out(u8 * ind_msg, u16 msg_len)
 	{
 		/* dedicated device for cmd/response, don't enqueue the msg to pending queue. */
 		/* send to cmd dev directly. */
-		cmd_dev->dev_drv->write_async(cmd_dev, cmd_line_buf.cmd_ind_buff, msg_len, ind_blk_tag); 
+		cmd_dev->dev_drv->write_async(cmd_dev, cmd_line_buf.cmd_ind_buff, msg_len, ind_blk_tag);
 	}
 	else
 	{
@@ -651,7 +651,7 @@ static bool_t cmd_hint_out(void)
 	{
 		/* dedicated device for cmd_hint, don't enqueue the msg to pending queue. */
 		/* send to cmd dev directly. */
-		cmd_dev->dev_drv->write_async(cmd_dev, (u8 *)shell_cmd_ovf_str, shell_cmd_ovf_str_len, hint_blk_tag); 
+		cmd_dev->dev_drv->write_async(cmd_dev, (u8 *)shell_cmd_ovf_str, shell_cmd_ovf_str_len, hint_blk_tag);
 	}
 	else
 	{
@@ -705,9 +705,9 @@ static void tx_req_process(void)
 	/* maybe tx_req is from tx_complete_callback, check if there any log in queue. */
 	if(pending_queue.list_out_idx == pending_queue.list_in_idx)  /* queue empty! */
 		return;
-	
+
 	tx_ready = 0;
-	
+
 	log_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_GET_STATUS, &tx_ready);
 
 	if(tx_ready == 0)
@@ -813,12 +813,12 @@ static void rx_ind_process(void)
 	u16   read_cnt, buf_len, echo_len;
 	u16   i = 0;
 	u8    cmd_rx_done = bFALSE, need_backspace = bFALSE;
-	
+
 	if(cmd_line_buf.rsp_ongoing)
 	{
 		/* previous cmd not complete, inform itself to handle it later. */
 		set_shell_event(SHELL_EVENT_RX_IND);
-		
+
 		rtos_delay_milliseconds(100);	/* delay 100ms, wait cmd to be completed. */
 
 		return;
@@ -855,7 +855,7 @@ static void rx_ind_process(void)
 					cmd_line_buf.cmd_data_len = 0;
 					cmd_line_buf.cmd_buff[cmd_line_buf.cmd_data_len] = HEX_SYNC_CHAR;
 					cmd_line_buf.cmd_data_len++;
-						
+
 					continue;
 				}
 				#endif
@@ -869,7 +869,7 @@ static void rx_ind_process(void)
 					cmd_line_buf.cmd_data_len = 0;
 					cmd_line_buf.cmd_buff[cmd_line_buf.cmd_data_len] = rx_temp_buff[i];
 					cmd_line_buf.cmd_data_len++;
-						
+
 					continue;
 				}
 
@@ -951,7 +951,7 @@ static void rx_ind_process(void)
 					{
 						cmd_line_buf.cmd_buff[cmd_line_buf.cmd_data_len - 1] = 0;  // in case cmd_data_len overflow.
 					}
-					
+
 					cmd_rx_done = bTRUE;
 					break;
 				}
@@ -1029,19 +1029,19 @@ static void rx_ind_process(void)
 			{
 				if(echo_len > 0)
 				{
-					if( (rx_temp_buff[echo_len - 1] == '\b') || 
+					if( (rx_temp_buff[echo_len - 1] == '\b') ||
 						(rx_temp_buff[echo_len - 1] == 0x7f) ) /* DEL */
 					{
 						echo_len--;
 						if((cmd_line_buf.cmd_data_len > 0) || need_backspace)
 							echo_out((u8 *)"\b \b", 3);
 					}
-					
+
 					u8    cr_lf = 0;
 
 					if(echo_len == 1)
 					{
-						if( (rx_temp_buff[echo_len - 1] == '\r') || 
+						if( (rx_temp_buff[echo_len - 1] == '\r') ||
 							(rx_temp_buff[echo_len - 1] == '\n') )
 						{
 							cr_lf = 1;
@@ -1049,7 +1049,7 @@ static void rx_ind_process(void)
 					}
 					else if(echo_len == 2)
 					{
-						if( (memcmp(rx_temp_buff, "\r\n", 2) == 0) || 
+						if( (memcmp(rx_temp_buff, "\r\n", 2) == 0) ||
 							(memcmp(rx_temp_buff, "\n\r", 2) == 0) )
 						{
 							cr_lf = 1;
@@ -1088,7 +1088,7 @@ static void rx_ind_process(void)
 			buf_len = sprintf((char *)&cmd_line_buf.rsp_buff[0], "\r\nHex count: %d, ", cmd_line_buf.cmd_data_len);
 			buf_len += sprintf((char *)&cmd_line_buf.rsp_buff[buf_len], "Hdr: %x, Tail: %x.\r\n", \
 				           cmd_line_buf.cmd_buff[0], cmd_line_buf.cmd_buff[cmd_line_buf.cmd_data_len - 1]);
-			
+
 			for(i = 1; (i < cmd_line_buf.cmd_data_len) && (i < 18); i++)
 			{
 				buf_len += sprintf((char *)&cmd_line_buf.rsp_buff[buf_len], "%x ", cmd_line_buf.cmd_buff[i]);
@@ -1114,7 +1114,7 @@ static void rx_ind_process(void)
 			{
 				cmd_hint_out();
 			}
-			
+
 			cmd_line_buf.rsp_buff[0] = 0;
 			/* handle command. */
 			if( cmd_line_buf.cmd_data_len > 0 )
@@ -1209,7 +1209,7 @@ static void shell_task_init(void)
 		prompt_str_idx = 1;
 	else
 		prompt_str_idx = 0;
-	
+
 }
 
 void shell_task( void *para )
@@ -1574,11 +1574,11 @@ int shell_assert_out(bool bContinue, char * format, ...)
 	}
 	else
 	{
-		while(bTRUE) 
+		while(bTRUE)
 		{
 		}
 	}
-	
+
 	return 1;//bTRUE;;
 
 }
@@ -1597,11 +1597,11 @@ int shell_assert_raw(bool bContinue, char * data_buff, u16 data_len)
 	}
 	else
 	{
-		while(1) 
+		while(1)
 		{
 		}
 	}
-	
+
 	return 1;//bTRUE;;
 
 }
@@ -1703,7 +1703,7 @@ void shell_log_flush(void)
 void shell_power_save_enter(void)
 {
 	u32		flush_log = 1;
-	
+
 	log_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_TX_SUSPEND, (void *)flush_log);
 	cmd_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_RX_SUSPEND, NULL);
 

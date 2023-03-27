@@ -15,8 +15,8 @@
 #pragma once
 
 #include <common/bk_include.h>
-#include "video_co_list.h"
 #include <components/video_types.h>
+#include <driver/media_co_list.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,6 +57,7 @@ typedef enum {
 	VIDEO_SEND,
 	VIDEO_EOF_CHECK,
 	VIDEO_EXIT,
+	VIDEO_DROP,
 } video_msg_type_t;
 
 typedef struct {

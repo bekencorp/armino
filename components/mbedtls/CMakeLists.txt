@@ -103,6 +103,13 @@ set(srcs
 	)
 endif()
 
+if (CONFIG_HTTPS)
+	list(APPEND srcs
+		"port/net_sockets.c"
+		"mbedtls/library/x509_crt.c"
+		)
+endif()
+
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
 	PRIV_REQUIRES bk_common

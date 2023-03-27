@@ -17,7 +17,7 @@
 #include <soc/soc.h>
 #include <driver/hal/hal_uart_types.h>
 #include <driver/hal/hal_gpio_types.h>
-#include "system_hw.h"
+#include "sys_ll_op_if.h"
 #include "uart_hw.h"
 #include "hal_port.h"
 #include "gpio_map.h"
@@ -67,7 +67,7 @@ static inline gpio_id_t uart_ll_get_tx_pin(uart_id_t id)
 	case UART_ID_2:
 		return UART2_TX_PIN;
 	default:
-		return GPIO_NUM;
+		return SOC_GPIO_NUM;
 	}
 }
 
@@ -81,7 +81,7 @@ static inline gpio_id_t uart_ll_get_rx_pin(uart_id_t id)
 	case UART_ID_2:
 		return UART2_RX_PIN;
 	default:
-		return GPIO_NUM;
+		return SOC_GPIO_NUM;
 	}
 }
 
@@ -91,7 +91,7 @@ static inline gpio_id_t uart_ll_get_cts_pin(uart_id_t id)
 	case UART_ID_0:
 		return UART0_CTS_PIN;
 	default:
-		return GPIO_NUM;
+		return SOC_GPIO_NUM;
 	}
 }
 
@@ -101,7 +101,7 @@ static inline gpio_id_t uart_ll_get_rts_pin(uart_id_t id)
 	case UART_ID_0:
 		return UART0_RTS_PIN;
 	default:
-		return GPIO_NUM;
+		return SOC_GPIO_NUM;
 	}
 }
 

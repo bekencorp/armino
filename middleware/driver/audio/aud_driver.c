@@ -91,13 +91,11 @@ bk_err_t bk_aud_adc_init(aud_adc_work_mode_t adc_work_mode, const aud_adc_config
 			//enable audio adc power
 			sys_drv_aud_aud_en(1);
 
-			/* delete mic reset for time */
-/*
 			//reset mic after configuring parameters
 			sys_drv_aud_mic_rst_set(1);
-			delay(1);
+			delay(10);
 			sys_drv_aud_mic_rst_set(0);
-*/
+
 			AUD_LOGI("configure mic and adc\r\n");
 			aud_hal_adc_config(adc_config);
 			break;

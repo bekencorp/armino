@@ -38,7 +38,6 @@ typedef void (*thrd_fn_t)(void *);
 /* Thread context */
 struct thread_t {
     uint8_t         priority;           /* Priority                          */
-	char *name;
     uint8_t         state;              /* State                             */
     uint16_t        flags;              /* Flags and align, DO NOT REMOVE!   */
     void            *p_context_ctrl;    /* Context control (sp, splimit, lr) */

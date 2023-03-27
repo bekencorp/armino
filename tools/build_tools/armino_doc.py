@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 
 import os
@@ -11,8 +12,9 @@ def run_cmd(cmd):
 def build_lan_doc(doc_path, target, lan):
 	lan_dir = f'{doc_path}/{lan}'
 	os.chdir(lan_dir)
-	run_cmd('make arminodocs')
-	run_cmd(f'cp -r _build ../build/{lan}')
+	run_cmd('make arminodocs -j32')
+	run_cmd(f'mkdir -p ../build/{lan}')
+	run_cmd(f'cp -r _build/* ../build/{lan}')
 	os.chdir(doc_path)
 
 def build_with_target(clean, target):
@@ -30,8 +32,8 @@ def build_with_target(clean, target):
 		DOCS_PATH = f"{os.getcwd()}/docs/{target}"
 
 	build_dir = f'{DOCS_PATH}/build'
-	run_cmd(f'rm -rf {build_dir}')
 	if (clean):
+		run_cmd(f'rm -rf {build_dir}')
 		run_cmd(f'rm -rf {DOCS_PATH}/en/_build')
 		run_cmd(f'rm -rf {DOCS_PATH}/en/xml')
 		run_cmd(f'rm -rf {DOCS_PATH}/en/xml_in')
@@ -43,14 +45,17 @@ def build_with_target(clean, target):
 		run_cmd(f'rm -rf {DOCS_PATH}/__pycache__')
 		return;
 
-	run_cmd(f'mkdir {build_dir}')
+	if not os.path.exists(build_dir):
+		run_cmd(f'mkdir -p {build_dir}')
 
 	build_lan_doc(DOCS_PATH, target, 'zh_CN')
 	build_lan_doc(DOCS_PATH, target, 'en')
 
 	if cur_dir_is_docs_dir == False:
-		run_cmd(f'rm -rf {cur_path}/build/html/{target}')
-		run_cmd(f'mv {DOCS_PATH}/build/ {cur_path}/build/html/{target}')
+		run_cmd(f'rm -rf {cur_path}/build/armino/{target}')
+		run_cmd(f'cp -rf {DOCS_PATH}/build/ {cur_path}/build/armino/{target}')
+		run_cmd(f'rm -rf {cur_path}/build/armino/{target}/*/inc')
+
 	os.chdir(saved_dir)
 
 def build_doc_internal(clean, target):
@@ -59,16 +64,17 @@ def build_doc_internal(clean, target):
 	else:
 		armino_path = os.getcwd()
 
-	if not os.path.exists(armino_path + "/build/html"):
-		os.makedirs(armino_path + "/build/html")
+	if not os.path.exists(armino_path + "/build/armino"):
+		os.makedirs(armino_path + "/build/armino")
 
 	if (target == "all"):
 		build_with_target(clean, "bk7235")
 		build_with_target(clean, "bk7237")
-		build_with_target(clean, "bk7236")
 		build_with_target(clean, "bk7256")
 	else:
 		build_with_target(clean, target)
+
+	run_cmd(f'cp {armino_path}/docs/version.json {armino_path}/build/armino/version.json')
 
 def build_doc(target):
 	build_doc_internal(False, target)

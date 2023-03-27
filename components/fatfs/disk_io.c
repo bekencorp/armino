@@ -7,6 +7,7 @@
 /* storage control modules to the FatFs module with a defined API.       */
 /*-----------------------------------------------------------------------*/
 #include <common/bk_include.h>
+#include <os/mem.h>
 
 
 #include "ff.h"
@@ -41,10 +42,10 @@ static bk_err_t sdcard_ldo_power_enable(uint8_t enable)
 {
 #if (CONFIG_SDCARD_POWER_GPIO_CTRL)
 	if (enable) {
-		bk_gpio_ctrl_external_ldo(GPIO_CTRL_LDO_MODULE_LCD, SDCARD_LDO_CTRL_GPIO, GPIO_OUTPUT_STATE_HIGH);
+		bk_gpio_ctrl_external_ldo(GPIO_CTRL_LDO_MODULE_SDIO, SDCARD_LDO_CTRL_GPIO, GPIO_OUTPUT_STATE_HIGH);
 		s_disk_io_sdcard_ldo_power_flag = 1;
 	} else {
-		bk_gpio_ctrl_external_ldo(GPIO_CTRL_LDO_MODULE_LCD, SDCARD_LDO_CTRL_GPIO, GPIO_OUTPUT_STATE_LOW);
+		bk_gpio_ctrl_external_ldo(GPIO_CTRL_LDO_MODULE_SDIO, SDCARD_LDO_CTRL_GPIO, GPIO_OUTPUT_STATE_LOW);
 		s_disk_io_sdcard_ldo_power_flag = 0;
 	}
 #endif
@@ -64,10 +65,13 @@ static void sdcard_no_operation_timeout_callback(void *param)
 static void sdcard_operation_timing_initialize_start()
 {
 #if CONFIG_SDCARD_POWER_GPIO_CTRL
-	rtos_init_timer(&sdcard_ldo_power_control_timer,
-					SDCARD_LDO_POWER_CONTROL_WAIT_TIME_MS,
-					sdcard_no_operation_timeout_callback,
-					(void *)NULL);
+	if(sdcard_ldo_power_control_timer.handle == NULL)
+	{
+		rtos_init_timer(&sdcard_ldo_power_control_timer,
+						SDCARD_LDO_POWER_CONTROL_WAIT_TIME_MS,
+						sdcard_no_operation_timeout_callback,
+						(void *)NULL);
+	}
 	rtos_start_timer(&sdcard_ldo_power_control_timer);
 	s_disk_io_sdcard_init_flag = 1;
 #endif
@@ -77,7 +81,11 @@ static void sdcard_operation_timing_uninitialize_stop()
 {
 #if (CONFIG_SDCARD_POWER_GPIO_CTRL)
 	rtos_stop_timer(&sdcard_ldo_power_control_timer);
-	rtos_deinit_timer(&sdcard_ldo_power_control_timer);
+	if(sdcard_ldo_power_control_timer.handle)
+	{
+		rtos_deinit_timer(&sdcard_ldo_power_control_timer);
+		os_memset(&sdcard_ldo_power_control_timer, 0, sizeof(sdcard_ldo_power_control_timer));
+	}
 	s_disk_io_sdcard_init_flag = 0;
 #endif
 }
@@ -383,9 +391,13 @@ DRESULT disk_ioctl (
 		{
 		case CTRL_SYNC:
 #if (CONFIG_SDCARD_V2P0)
-			//res = sd_card_cmd_stop_transmission();
-			os_printf("TODO:FATFS sync feature\r\n");
-			res = RES_OK;
+			{
+				res = bk_sd_card_rw_sync();
+				if(res != BK_OK)
+				{
+					os_printf("err:sd sync=%d\r\n", res);
+				}
+			}
 #elif (CONFIG_SDCARD_V1P0)
 			//os_printf("not support CTRL_SYNC \r\n");
 			if(sdcard_hdl!=DD_HANDLE_UNVALID)
@@ -501,8 +513,9 @@ DSTATUS disk_uninitialize ( BYTE pdrv/* Physical drive nmuber to identify the dr
 
 	case DEV_SD :
 #if (CONFIG_SDCARD_V2P0)
-	sdcard_operation_timing_uninitialize_stop();
 	result = bk_sd_card_deinit();
+	if(!result)
+		sdcard_operation_timing_uninitialize_stop();
 	sdcard_ldo_power_enable(0);
 	stat = RES_OK;
 #elif (CONFIG_SDCARD_V1P0)

@@ -70,8 +70,12 @@ def setup(app):
     if DOCS_VERSION is None:
         app.add_role('link_to_translation', crosslink('%s../../%s/latest/%s.html'))
     else:
-        app.add_role('link_to_translation', crosslink('%s../../%s/{}/%s.html').format(DOCS_VERSION))
+        app.add_role('link_to_translation', crosslink('%s../../%s/{}/%s.html'.format(DOCS_VERSION)))
 
+    return {
+        'parallel_read_safe': True,
+        'parallel_write_safe': True,
+    }
     #if len(tag_rev):
     #    app.add_role('link_to_translation', crosslink('%s../../%s/html/{}/%s.html'.format(tag_rev)))
     #else:

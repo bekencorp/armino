@@ -1,6 +1,0 @@
-if (CONFIG_H264)
-	list(APPEND incs h264)
-	list(APPEND srcs h264/h264_driver.c)
-	set(incs ${incs} PARENT_SCOPE)
-	set(srcs ${srcs} PARENT_SCOPE)
-endif()

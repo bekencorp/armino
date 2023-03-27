@@ -28,7 +28,7 @@ CPU1 0x370000 0x20000
 		ADDR _itcm_bss_end
 	}
 
-	DTCM 0x20000000 0x7800
+	DTCM 0x20000000 0x7000
 	{
 		LOADADDR NEXT _dtcm_lma_start
 		ADDR NEXT _dtcm_ema_start

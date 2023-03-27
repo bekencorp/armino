@@ -5,9 +5,9 @@
 
 下面是更多与 Armino 相关资源与链接：
 
- - 文档: http://192.168.0.48/zh_CN/html/
+ - 文档: http://docs.bekencorp.com/
  - 代码: https://github.com/bekencorp/armino
- - 版本: http://192.168.0.48/zh_CN/html/release-notes/index.html
+ - 稳定版本: https://github.com/bekencorp/armino/tags
  - 示例: TODO_link_to_doc_sample_and_demo_page
  - 下载中心: http://bbs.bekencorp.com/forum.php?mod=forumdisplay&fid=39
  - Armino Github Issue Forum: TODO_link_to_github_issue_forum

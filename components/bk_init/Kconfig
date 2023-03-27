@@ -1,7 +1,0 @@
-menu "Init"
-	config LIB_HASH_CHECK
-		bool "Enable Library MD5 check"
-		default y
-endmenu
-
-

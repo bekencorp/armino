@@ -1,11 +1,10 @@
 #include "pal_signal.h"
 #include "pal_log.h"
-
-#include "config_impl.h"
+#if defined( TEE_M )
 #include "psa_service.h"
 
-#define SIGNAL_MASK 0x9
-
+#define SIGNAL_MASK 0x40000
+#endif
 uint32_t pal_signal_init( void )
 {
 #if defined( TEE_M )
@@ -19,7 +18,7 @@ uint32_t pal_wait_signal( uint32_t signal_mask, uint32_t timeout )
 {
 #if defined( TEE_M )
     (void) timeout;
-    return signal_mask;
+    return ( psa_wait( signal_mask, PSA_BLOCK ) );
 #else
     return ( 0 );
 #endif
@@ -31,5 +30,3 @@ void pal_clear_signal( uint32_t signal_mask )
     psa_eoi( signal_mask );
 #endif
 }
-
-/*************************** The End Of File*****************************/

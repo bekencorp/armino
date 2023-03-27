@@ -1,0 +1,17 @@
+menu "SDCARD"
+	config SDCARD_DEFAULT_CLOCK_FREQ
+		int "sd card default clock freq"
+		default 9
+
+	config SDCARD_CHECK_INSERTION_EN
+		bool "Whether to use pin to determine whether the sdcard is connected"
+		default n
+
+	menu "SDCARD_CHECK_INSERTION_EN"
+		depends on SDCARD_CHECK_INSERTION_EN
+
+		config SDCARD_CHECK_INSERTION_GPIO_ID
+			int "Detect whether to connect the GPIO ID of the sdcard"
+			default 0
+	endmenu
+endmenu

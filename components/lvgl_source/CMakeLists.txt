@@ -6,6 +6,7 @@ set(incs
 	./
 	)
 
+if (NOT CONFIG_SLAVE_CORE)
 set(srcs
 	src/core/lv_disp.c
 	src/core/lv_group.c
@@ -167,14 +168,17 @@ set(srcs
 	)
 
 endif()
+endif()
 
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
 	PRIV_REQUIRES include
 	)
 
-
-
-
+if (CONFIG_LVGL)
+if (NOT CONFIG_SLAVE_CORE)
+target_compile_options(${COMPONENT_LIB} PRIVATE -O3)
+endif()
+endif()
 
 

@@ -130,6 +130,11 @@ static bk_err_t read_spk_data_from_const_data(unsigned int size)
 	return ret;
 }
 
+static void uac_connect_state_cb_handle(uint8_t state)
+{
+	os_printf("[--%s--] state: %d \n", __func__, state);
+}
+
 static int send_mic_data_to_spk(uint8_t *data, unsigned int len)
 {
 	bk_err_t ret = BK_OK;
@@ -209,6 +214,21 @@ void cli_aud_intf_record_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 			os_printf("bk_aud_intf_mic_init fail, ret:%d \r\n", ret);
 		} else {
 			os_printf("bk_aud_intf_mic_init complete \r\n");
+		}
+
+		/* register uac connect state callback */
+		if (aud_intf_spk_setup.spk_type == AUD_INTF_SPK_TYPE_UAC) {
+			ret = bk_aud_intf_register_uac_connect_state_cb(uac_connect_state_cb_handle);
+			if (ret != BK_ERR_AUD_INTF_OK)
+			{
+				os_printf("bk_aud_intf_register_uac_connect_state_cb fail, ret:%d\n", ret);
+			}
+		}
+
+		ret = bk_aud_intf_uac_auto_connect_ctrl(false);
+		if (ret != BK_ERR_AUD_INTF_OK)
+		{
+			os_printf("aud_tras_uac_auto_connect_ctrl fail, ret:%d\n", ret);
 		}
 
 		os_printf("init mic record complete \r\n");
@@ -366,12 +386,27 @@ void cli_aud_intf_play_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 		aud_intf_spk_setup.frame_size = 640;
 		//aud_intf_spk_setup.spk_gain = 0x2d;
 		aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
-		//aud_intf_spk_setup.spk_type = AUD_INTF_SPK_TYPE_UAC;
+		aud_intf_spk_setup.spk_type = AUD_INTF_SPK_TYPE_UAC;
 		ret = bk_aud_intf_spk_init(&aud_intf_spk_setup);
 		if (ret != BK_ERR_AUD_INTF_OK) {
 			os_printf("bk_aud_intf_spk_init fail, ret:%d \r\n", ret);
 		} else {
 			os_printf("bk_aud_intf_spk_init complete \r\n");
+		}
+
+		/* register uac connect state callback */
+		if (aud_intf_spk_setup.spk_type == AUD_INTF_SPK_TYPE_UAC) {
+			ret = bk_aud_intf_register_uac_connect_state_cb(uac_connect_state_cb_handle);
+			if (ret != BK_ERR_AUD_INTF_OK)
+			{
+				os_printf("bk_aud_intf_register_uac_connect_state_cb fail, ret:%d\n", ret);
+			}
+		}
+
+		ret = bk_aud_intf_uac_auto_connect_ctrl(false);
+		if (ret != BK_ERR_AUD_INTF_OK)
+		{
+			os_printf("aud_tras_uac_auto_connect_ctrl fail, ret:%d\n", ret);
 		}
 
 		os_printf("init play \r\n");
@@ -828,6 +863,17 @@ void cli_aud_intf_doorbell_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 		if (ret != BK_ERR_AUD_INTF_OK)
 			os_printf("ctrl voc aec fail: %d \r\n", aec_en);
 		os_printf("ctrl voc aec complete \r\n");
+	} else if (os_strcmp(argv[1], "uac_vol") == 0) {
+		uint32_t value = strtoul(argv[2], NULL, 0);
+
+		ret = bk_aud_intf_set_spk_gain(value);
+		if (ret != BK_ERR_AUD_INTF_OK)
+		{
+			os_printf("aud_tras_uac_auto_connect_ctrl fail, ret:%d\n", ret);
+			//break;
+		}
+		os_printf("set uac volume: %d \r\n", value);
+		os_printf("set uac volume complete \r\n");
 	} else if (os_strcmp(argv[1], "start") == 0) {
 		ret = bk_aud_intf_voc_start();
 		if (ret != BK_ERR_AUD_INTF_OK)

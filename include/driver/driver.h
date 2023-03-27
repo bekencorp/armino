@@ -63,4 +63,6 @@
 #include "uvc_camera.h"
 #include "wdt.h"
 #include "yuv_buf.h"
+#include "vault.h"
+#include "otp.h"
 

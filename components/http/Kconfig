@@ -1,14 +1,16 @@
-menu "HTTP_CONFIG"
+menu "Http"
 	config HTTP
-		bool "Enable http"
+		bool "Enable Http"
 		default y
 
 	config HTTP_OTA_WITH_BLE
-		bool "Disable http ota with ble"
+		bool "Enable Http Ota With Ble"
 		default n
 
 	config LITE_LOG_ENABLED
-		bool "Enable http log"
+		bool "Enable Lite Log Enable"
 		default n
+		help
+			Enable http log
 		
 endmenu

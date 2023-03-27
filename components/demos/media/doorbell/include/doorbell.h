@@ -24,9 +24,6 @@
 #define DOORBELL_UVC_START              0x38
 #define DOORBELL_UVC_STOP               0x39
 
-#define DOORBELL_IMG_FMT_MJPEG          0x00
-#define DOORBELL_IMG_FMT_H264           0x01
-
 
 #define CMD_VOICE_HEADER                  0x30
 #define CMD_VOICE_START                   0x66
@@ -40,8 +37,15 @@
 #define DEMO_DOORBELL_EN_VOICE_TRANSFER        1
 
 #define AUDIO_TRANSFER_ENABLE           1
+#define CS2_P2P_AUDIO_TRANSFER_ENABLE 1
+
+#define CS2_P2P_TRANSFER_CHECKSUM 1
+#define CS2_P2P_TRANSFER_DELAY 20
+
 
 #define APP_DEMO_RCV_BUF_LEN        1472
+#define APP_DEMO_TCP_RCV_BUF_LEN    1460
+
 #define APP_DEMO_SOCKET_TIMEOUT     100  // ms
 
 
@@ -78,6 +82,25 @@ typedef struct
 #endif
 } media_hdr_t;
 
+typedef struct __attribute__((packed))
+{
+    uint32_t magic_head;
+//    uint8_t id;
+//    uint8_t is_eof;
+//    uint8_t frame_len;
+    uint32_t package_len;
+
+#if CS2_P2P_TRANSFER_CHECKSUM
+    uint8_t check_sum;
+#endif
+
+#if SUPPORT_TIANZHIHENG_DRONE
+    uint32_t unused;
+#endif
+} media_hdr_ext_t;
+
+#define MAGIC_HEAD 0x25dca6f0
+
 int demo_doorbell_udp_send_packet(uint8_t *data, uint32_t len);
 bk_err_t demo_doorbell_udp_init(void);
 void demo_doorbell_udp_deinit(void);
@@ -91,6 +114,29 @@ void demo_doorbell_udp_client_deinit(void);
 
 bk_err_t demo_doorbell_udp_server_init(int argc, char **argv);
 void demo_doorbell_udp_server_deinit(void);
+
+bk_err_t demo_doorbell_tcp_client_init(int argc, char **argv);
+void demo_doorbell_tcp_cli_deinit(void);
+
+bk_err_t demo_doorbell_tcp_server_init(int argc, char **argv);
+void demo_doorbell_tcp_server_deinit(void);
+
+//bk_err_t demo_doorbell_cs2_p2p_server_init(
+//    char *did_dskey,
+//    char *apilicense_crckey,
+//    char *initstring_p2pkey);
+bk_err_t demo_doorbell_cs2_p2p_server_init(int argc, char **argv);
+void demo_doorbell_cs2_p2p_server_deinit(void);
+
+
+//bk_err_t demo_doorbell_cs2_p2p_client_init(
+//    char *did_dskey,
+//    char *apilicense_crckey,
+//    char *initstring_p2pkey);
+
+bk_err_t demo_doorbell_cs2_p2p_client_init(int argc, char **argv);
+void demo_doorbell_cs2_p2p_client_deinit(void);
+
 
 #endif
 // eof

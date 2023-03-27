@@ -1,6 +1,8 @@
 Wi-Fi STA Low Power
 =============================================
 
+:link_to_translation:`zh_CN:[中文]`
+
 Armino supports the TWT power saving mode defined in Wi-Fi6 and other power saving modes defined in the protocol(traditional power saving mode for short). In addition, Armino has made a number of proprietary optimizations for applications that require low performance but high power consumption.
 
 Traditional Power Saving Mode

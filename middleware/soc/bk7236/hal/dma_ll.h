@@ -32,12 +32,8 @@ static inline void dma_ll_init(dma_hw_t *hw)
 	int dma_id;
 
 	hw->prio_mode.v = 0;
-
-	#if CONFIG_SPE
 	hw->secure_attr.v = 0xFFF;
 	hw->privileged_attr.v = 0xFFF;
-	#endif
-
 	for (dma_id = 0; dma_id < SOC_DMA_CHAN_NUM_PER_UNIT; dma_id++) {
 		hw->config_group[dma_id].ctrl.v = 0;
 		hw->config_group[dma_id].dest_start_addr = 0;
@@ -57,6 +53,7 @@ static inline uint32_t dma_ll_dev_to_req_mux(uint32 req_mux)
 {
 	switch (req_mux) {
 		CASE_DEV(DTCM);
+		CASE_DEV(AHB_MEM);
 		CASE_DEV(UART1);
 		CASE_DEV(UART1_RX);
 		CASE_DEV(UART2);
@@ -296,7 +293,6 @@ static inline void dma_ll_set_prio_mode(dma_hw_t *hw, uint32_t prio_mode)
 #define dma_ll_set_prio_mode_round_robin(hw) dma_ll_set_prio_mode(hw, DMA_V_PRIO_MODE_ROUND_ROBIN)
 #define dma_ll_set_prio_mode_fixed_prio(hw) dma_ll_set_prio_mode(hw, DMA_V_PRIO_MODE_FIXED_PRIO)
 
-#if CONFIG_SPE
 static inline void dma_ll_set_secure_attr(dma_hw_t *hw, dma_id_t id, dma_sec_attr_t attr)
 {
 	if (attr == DMA_ATTR_NON_SEC) {
@@ -314,7 +310,6 @@ static inline void dma_ll_set_privileged_attr(dma_hw_t *hw, dma_id_t id, dma_sec
 		hw->privileged_attr.attr |= (BIT(id) & 0xFFF);
 	}
 }
-#endif
 
 static inline void dma_ll_set_src_pause_addr(dma_hw_t *hw, dma_id_t id, uint32_t addr)
 {

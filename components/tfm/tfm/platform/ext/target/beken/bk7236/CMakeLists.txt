@@ -50,16 +50,6 @@ if(NS)
         $<$<C_COMPILER_ID:GNU>:${CMAKE_CURRENT_SOURCE_DIR}/gcc/bk7236_ns.ld>
         $<$<C_COMPILER_ID:IAR>:${CMAKE_CURRENT_SOURCE_DIR}/iar/bk7236_ns.icf>
     )
-    
-    #TODO wangzhilei
-    target_compile_definitions(tfm_ns
-	PUBLIC
-		CONFIG_TFM_NS
-		DOMAIN_NS    	
-		__EN_ICACHE
-		__EN_DCACHE	
-    )
-    
     target_link_libraries(CMSIS_5_tfm_ns
         INTERFACE
             CMSIS_5_RTX_V8MBN
@@ -131,6 +121,12 @@ target_compile_options(platform_s
         ${COMPILER_CMSE_FLAG}
 )
 
+target_compile_definitions(platform_bl2
+    PUBLIC
+        -DMCUBOOT_IMAGE_ACCESS_HOOKS=1
+        #-DCRYPTO_HW_ACCELERATOR  TODO peter, need to enable it finally
+)
+
 #========================= Platform Non-Secure ================================#
 
 target_sources(platform_ns
@@ -168,12 +164,6 @@ if(BL2)
             bl2/flash_map.c
     )
 
-
-	target_compile_definitions(platform_bl2
-	    PUBLIC
-		-DMCUBOOT_IMAGE_ACCESS_HOOKS=1
-		#-DCRYPTO_HW_ACCELERATOR  TODO peter, need to enable it finally
-	)
     target_include_directories(platform_bl2
         PUBLIC
             partition

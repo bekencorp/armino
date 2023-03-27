@@ -91,6 +91,9 @@ mainmenu "Beken Development Configuration"
 			menu "Middleware Configuration"
 				source "$MIDDLEWARE_KCONFIGS_SOURCE_FILE"
 			endmenu
+			menu "Projects Configuration"
+				source "$PROJECTS_KCONFIGS_SOURCE_FILE"
+			endmenu
 			menu "Properties Configuration"
 				source "$PROPERTIES_KCONFIGS_SOURCE_FILE"
 			endmenu

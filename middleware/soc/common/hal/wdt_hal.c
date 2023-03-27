@@ -17,6 +17,16 @@
 
 bk_err_t wdt_hal_init(wdt_hal_t *hal)
 {
+#if (CONFIG_SOC_BK7256XX)
+#if CONFIG_DEBUG_FIRMWARE
+        hal->id = 1;  //debug version use nmi_wdt to dump
+#else
+	if (aon_pmu_hal_is_chipid_later_than_version_C())
+		hal->id = 0;  //chip version C -> aon_wdt
+	else
+		hal->id = 1;  //chip version A -> nmi_wdt
+#endif
+#endif
 	hal->hw = (wdt_hw_t *)WDT_LL_REG_BASE(hal->id);
 	wdt_ll_init(hal->hw);
 	return BK_OK;

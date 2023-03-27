@@ -40,6 +40,10 @@
 extern "C" {
 #endif
 
+#if CONFIG_AGORA_IOT_SDK
+extern int errno;
+#endif
+
 /* Undefine all errnos to avoid redefinition errors with system errnos. */
 #undef EPERM
 #undef ENOENT
@@ -58,6 +62,13 @@ extern "C" {
 #undef EMSGSIZE
 #undef ENOTSUP
 #undef ETIMEDOUT
+#if CONFIG_AGORA_IOT_SDK
+#undef EWOULDBLOCK
+#undef EINTR
+#undef ENOBUFS
+#undef EHOSTUNREACH
+#undef EIO
+#endif
 
 /**
  * @name Definition of POSIX errnos.
@@ -79,9 +90,34 @@ extern "C" {
 #define ENOSYS          88  /**< Function not supported. */
 #define EMSGSIZE        90  /**< Message too long. */
 #define ENOTSUP         95  /**< Operation not supported. */
+#if CONFIG_AGORA_IOT_SDK
+#define EOPNOTSUPP      95  /* Operation not supported on transport endpoint */
+#endif
 #define ETIMEDOUT       116 /**< Connection timed out. */
+#if CONFIG_AGORA_IOT_SDK
+#define EWOULDBLOCK EAGAIN /* Operation would block */
+#define EINTR 4		/* Interrupted system call */
+#define  ENOBUFS        105  /* No buffer space available */
+#define  EHOSTUNREACH   113  /* No route to host */
+#define  EALREADY       114  /* Operation already in progress */
+#define  EINPROGRESS    115  /* Operation now in progress */
+#define  EADDRINUSE      98  /* Address already in use */
+#define  EISCONN        106  /* Transport endpoint is already connected */
+#define  ENOTCONN       107  /* Transport endpoint is not connected */
+#define  ECONNABORTED   103  /* Software caused connection abort */
+#define  ECONNRESET     104  /* Connection reset by peer */
+#define  EIO              5  /* I/O error */
+#define  ENFILE          23  /* File table overflow */
+#define  EAFNOSUPPORT    97  /* Address family not supported by protocol */
+#define  EADDRNOTAVAIL   99  /* Cannot assign requested address */
+#define  ENODEV          19  /* No such device */
+#define  ENOPROTOOPT     92  /* Protocol not available */
+#define  EFAULT          14  /* Bad address */
+#define  EPIPE           32  /* Broken pipe */
+#endif
 /**@} */
 
+#ifndef CONFIG_AGORA_IOT_SDK
 /**
  * @name System Variable
  *
@@ -95,6 +131,7 @@ extern "C" {
     #define errno    FreeRTOS_errno
 #endif
 /**@} */
+#endif /* CONFIG_AGORA_IOT_SDK */
 
 #ifdef __cplusplus
 }

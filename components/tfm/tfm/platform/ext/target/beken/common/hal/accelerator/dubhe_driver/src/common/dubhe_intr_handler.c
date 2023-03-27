@@ -213,7 +213,7 @@ int dubhe_intr_handler( void )
 int dubhe_intr_sync_handler( dubhe_event_type_t dubhe_event )
 {
     int ret;
-    uint32_t status = STATUS_INTR_UNHAPPEN;
+    uint32_t status = 0;
     volatile uint32_t value = 0;
 
     value = DBH_READ_REGISTER( TOP_STAT, TOP_INTR_STAT_HOST0 );
@@ -231,9 +231,9 @@ int dubhe_intr_sync_handler( dubhe_event_type_t dubhe_event )
             ret = DBH_SCA_BUS_ERR;
             goto exit;
         } else if ( BIT_MASK( ret, DBH_SCA_CMD_INTR ) ) {
-            status = STATUS_INTR_EXPECT_OCCUR;
+            status = 1;
         } else {
-            status = STATUS_INTR_UNHAPPEN;
+            status = 0;
         }
         break;
     case DBH_EVENT_HASH_CMD_EXCUTED:
@@ -248,37 +248,32 @@ int dubhe_intr_sync_handler( dubhe_event_type_t dubhe_event )
             ret = DBH_HASH_PADDING_ERR;
             goto exit;
         } else if ( BIT_MASK( ret, DBH_HASH_CMD_INTR ) ) {
-            status = STATUS_INTR_EXPECT_OCCUR;
+            status = 1;
         } else {
-            status = STATUS_INTR_UNHAPPEN;
+            status = 0;
         }
         break;
     case DBH_EVENT_ACA_DONE:
         if ( DBH_STAT_ACA0_INTR == ( value & 0x01 ) ) {
             dubhe_aca_intr_handler( );
             ACA_GET_ACA_DONE_STATUS( status );
-
-	    status = STATUS_INTR_EXPECT_OCCUR;
         }
         break;
     case DBH_EVENT_ACA_FIFO_READY:
         if ( DBH_STAT_ACA0_INTR == ( value & 0x01 ) ) {
             dubhe_aca_intr_handler( );
             ACA_GET_ACA_FIFO_READY_STATUS( status );
-
-	    status = STATUS_INTR_EXPECT_OCCUR;
         }
         break;
     default:
         return ( -1 );
     }
 
-    if (STATUS_INTR_EXPECT_OCCUR == status ) {
+    if ( status ) {
         ret = 0;
     } else {
         ret = -1;
     }
-
 exit:
     return ( ret );
 }

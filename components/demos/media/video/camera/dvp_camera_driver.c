@@ -32,6 +32,7 @@
 #define EJPEG_DELAY_HTIMER_CHANNEL     5
 #define EJPEG_I2C_DEFAULT_BAUD_RATE    I2C_BAUD_RATE_100KHZ
 #define EJPEG_DELAY_HTIMER_VAL         (2)  // 2ms
+#define EJPEG_DROP_FRAME               (0)
 
 #define TAG "dvp_camera"
 
@@ -49,7 +50,9 @@ static uint32_t frame_total_len = 0;
 static uint8_t jpeg_drop_image = 0;
 static beken_semaphore_t ejpeg_sema = NULL;
 static volatile uint8_t jpeg_eof_flag = 0;
-
+#if (EJPEG_DROP_FRAME)
+static uint8_t vsync_index = 0;
+#endif
 static void camera_intf_delay_timer_hdl(timer_id_t timer_id)
 {
 #if CONFIG_GENERAL_DMA
@@ -175,6 +178,22 @@ static void camera_intf_vsync_negedge_handler(jpeg_unit_t id, void *param)
 			rtos_set_semaphore(&ejpeg_sema);
 		}
 	}
+
+#if (EJPEG_DROP_FRAME)
+	if (vsync_index == 1)
+	{
+		vsync_index = 0;
+		if (dvp_video_config->frame_drop)
+			dvp_video_config->frame_drop(vsync_index);
+	}
+	else
+	{
+		vsync_index = 1;
+		if (dvp_video_config->frame_drop)
+			dvp_video_config->frame_drop(vsync_index);
+	}
+#endif
+
 }
 
 bk_err_t bk_dvp_camera_init(void *data)
@@ -183,6 +202,10 @@ bk_err_t bk_dvp_camera_init(void *data)
 	i2c_config_t i2c_config = {0};
 	jpeg_config_t jpeg_config = {0};
 	jpeg_drop_image = EJPEG_DROP_COUNT;
+
+#if (EJPEG_DROP_FRAME)
+	vsync_index = 0;
+#endif
 
 	dvp_video_config = (video_config_t *)data;
 
@@ -239,6 +262,30 @@ bk_err_t bk_dvp_camera_init(void *data)
 	jpeg_config.hsync = current_sensor->hsync;
 	jpeg_config.clk = current_sensor->clk;
 
+	switch (current_sensor->fmt)
+	{
+		case PIXEL_FMT_YUYV:
+			jpeg_config.sensor_fmt = JPEG_YUYV;
+			break;
+
+		case PIXEL_FMT_UYVY:
+			jpeg_config.sensor_fmt = JPEG_UYVY;
+			break;
+
+		case PIXEL_FMT_YYUV:
+			jpeg_config.sensor_fmt = JPEG_YYUV;
+			break;
+
+		case PIXEL_FMT_UVYY:
+			jpeg_config.sensor_fmt = JPEG_UVYY;
+			break;
+
+		default:
+			LOGE("JPEG MODULE not support this sensor input format\r\n");
+			err = kParamErr;
+			return err;
+	}
+
 	LOGI("x_pixel:%d, y_pixel:%d\r\n", dvp_video_config->device->ppi >> 16, dvp_video_config->device->ppi & 0xFFFF);
 
 	// config jpeg module
@@ -271,7 +318,7 @@ bk_err_t bk_dvp_camera_init(void *data)
 	current_sensor->set_ppi(dvp_video_config->device->ppi);
 	current_sensor->set_fps(dvp_video_config->device->fps);
 
-	bk_jpeg_enc_set_gpio(JPEG_ENABLE_DATA);
+	bk_jpeg_enc_set_gpio_enable(1, JPEG_GPIO_DATA);
 
 	LOGI("%s finish\r\n", __func__);
 

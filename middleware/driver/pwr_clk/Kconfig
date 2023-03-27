@@ -1,0 +1,6 @@
+menu "EXTERN_32K"
+	config EXTERN_32K
+		bool "Use an external 32k crystal"
+		default n
+endmenu
+

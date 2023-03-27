@@ -990,7 +990,7 @@ static void cli_log_disable(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 
 					extern int bk_white_list_state(void);
 					u8 white_state = bk_white_list_state();
-	
+
 					buf_len += sprintf(&pcWriteBuffer[buf_len], "%s mod list:\r\n%s\r\n", white_state ? "ON" : "OFF", mod_name);
 				}
 				else
@@ -1398,14 +1398,6 @@ int bk_cli_init(void)
 	cli_g711_init();
 #endif
 
-#if (CLI_CFG_OPUS == 1)
-	cli_opus_init();
-#endif
-
-#if (CLI_CFG_ADPCM == 1)
-	cli_adpcm_init();
-#endif
-
 #if (CLI_CFG_MP3 == 1)
 	cli_mp3_init();
 #endif
@@ -1420,9 +1412,22 @@ int bk_cli_init(void)
 //#endif
 #endif
 
+#if (CLI_CFG_AGORA == 1)
+	cli_agora_init();
+#endif
+
+#if (CLI_CFG_ES8311 == 1)
+	cli_es8311_init();
+#endif
+
 #if (CONFIG_MEDIA == 1)
 	media_cli_init();
 #endif
+
+#if CONFIG_CS2_P2P_SERVER || CONFIG_CS2_P2P_CLIENT
+	cli_cs2_p2p_init();
+#endif
+
 
 #if (CLI_CFG_PSRAM)
 	cli_psram_init();
@@ -1493,6 +1498,10 @@ int bk_cli_init(void)
 
 #if (CLI_CFG_SDIO_HOST == 1)
 	cli_sdio_host_init();
+#endif
+
+#if (CLI_CFG_SDIO_SLAVE == 1)
+	cli_sdio_slave_init();
 #endif
 
 #if (CLI_CFG_KEYVALUE == 1)
@@ -1567,8 +1576,10 @@ int bk_cli_init(void)
 	cli_touch_init();
 #endif
 
-#if (CLI_CFG_VAULT == 1)
-	cli_vault_init();
+#if CONFIG_VAULT_SUPPORT
+#if (CLI_CFG_SECURITYIP == 1)
+	cli_securityip_init();
+#endif
 #endif
 
 #if (CLI_CFG_CALENDAR == 1)
@@ -1586,6 +1597,12 @@ int bk_cli_init(void)
     cli_easyflash_init();
 #endif
 
+#if CONFIG_VAULT_SUPPORT
+#if CONFIG_OTP
+	cli_otp_init();
+#endif
+#endif
+
 #endif //CONFIG_DEBUG_FIRMWARE
 
 /*-----open the cli comand both at release and debug vertion begin-----*/
@@ -1593,8 +1610,8 @@ int bk_cli_init(void)
 	cli_pwr_init();
 #endif
 
-#if CONFIG_SPE_TEST
-	cli_spe_init();
+#if CONFIG_CM33_TEST
+	cli_cm33_init();
 #endif
 
 #if (CONFIG_LITTLEFS == 1)
@@ -1610,13 +1627,6 @@ int bk_cli_init(void)
 	cli_prro_init();
 #endif
 
-#if CONFIG_INTERRUPT_TEST
-	cli_interrupt_init();
-#endif
-
-#if (CLI_CFG_H264 == 1)
-	cli_h264_init();
-#endif
 /*-----open the cli comand both at release and debug vertion end ------*/
 
 

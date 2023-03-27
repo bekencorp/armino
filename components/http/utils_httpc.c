@@ -796,13 +796,29 @@ void http_wr_to_flash(char *page, UINT32 len)
 }
 #endif
 
-void http_data_process(char *buf, UINT32 len)
+#if CONFIG_UVC_OTA_DEMO
+static http_data_process_callback_func http_data_process_cb = NULL;
+void http_data_process_register_callback(http_data_process_callback_func cb)
 {
+    http_data_process_cb = cb;
+}
+#endif
+
+void http_data_process(char *buf, UINT32 len, UINT32 recived, UINT32 total)
+{
+#if CONFIG_UVC_OTA_DEMO
+	if(http_data_process_cb)
+		http_data_process_cb(buf, len, recived, total);
+	else
+#endif
+	{
 #if HTTP_WR_TO_FLASH
-	http_wr_to_flash(buf, len);
+		http_wr_to_flash(buf, len);
+		os_printf("cyg_recvlen_per:(%.2f)%%\r\n",(((float)(recived))/((float)(total)))*100);
 #else
 	os_printf("d");
 #endif
+	}
 }
 
 int httpclient_retrieve_content(httpclient_t *client, char *data, int len, uint32_t timeout_ms,
@@ -1236,7 +1252,9 @@ int httpclient_common(httpclient_t *client, const char *url, int port, const cha
 		iotx_time_init(&timer);
 		utils_time_countdown_ms(&timer, timeout_ms);
 #ifdef CONFIG_HTTP_OTA_WITH_BLE
+#if (CONFIG_BLE)
         bk_ble_register_sleep_state_callback(ble_sleep_cb);
+#endif
 #endif
 		if ((NULL != client_data->response_buf)
 			|| (0 != client_data->response_buf_len)) {

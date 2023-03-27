@@ -1,6 +1,8 @@
 Overview
 =====================
 
+:link_to_translation:`zh_CN:[中文]`
+
 BK7256 has a security module BK130, which supports the functions of safe startup, safe debugging, flash encryption and decryption, and is enabled by burning the eFUSE related bit.
 BK130 can prevent the key and other sensitive data from being used by unauthorized applications. The internal OTP and ROM allow secure storage of key materials and other secure data,
 Support hardware implementation of encryption algorithm.

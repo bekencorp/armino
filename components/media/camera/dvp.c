@@ -19,6 +19,7 @@
 #include "camera_act.h"
 #include "lcd_act.h"
 #include "storage_act.h"
+#include "media_evt.h"
 
 #include <driver/int.h>
 #include <os/mem.h>
@@ -43,6 +44,16 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
+void frame_drop_by_index(uint8_t index)
+{
+	media_msg_t media_msg;
+
+	media_msg.event = EVENT_CAM_DVP_DROP_FRAME_IND;
+	media_msg.param = index;
+
+	media_send_msg(&media_msg);
+}
+
 bk_err_t bk_dvp_camera_open(media_ppi_t ppi, media_camera_type_t type)
 {
 	dvp_camera_config_t config;
@@ -57,11 +68,7 @@ bk_err_t bk_dvp_camera_open(media_ppi_t ppi, media_camera_type_t type)
 	config.fb_display_malloc = frame_buffer_fb_display_malloc;
 	config.fb_jpeg_free = frame_buffer_fb_jpeg_free;
 	config.fb_display_free = frame_buffer_fb_display_free;
-	config.fb_h264_init = frame_buffer_fb_h264_init;
-	config.fb_h264_deinit = frame_buffer_fb_h264_deinit;
-	config.fb_h264_complete = frame_buffer_fb_h264_push;
-	config.fb_h264_malloc = frame_buffer_fb_h264_malloc_wait;
-	config.fb_h264_free = frame_buffer_fb_h264_free;
+	config.drop_frame = frame_drop_by_index;
 
 	config.ppi = ppi;
 	config.type = type;

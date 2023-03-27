@@ -1,4 +1,4 @@
-Samples and Demos (TBC)
+Samples and Demos
 ===============================
 
 :link_to_translation:`zh_CN:[中文]`

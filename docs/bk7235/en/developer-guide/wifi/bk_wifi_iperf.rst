@@ -1,21 +1,24 @@
-Wi-Fi iPerf示例说明
+Wi-Fi iPerf Application Example
 =============================================
-本工程展示了使用iPerf测试Wi-Fi吞吐率的使用示例：
 
-- Wi-Fi STA模式测试iPerf
-- Wi-Fi AP模式测试iPerf
-- iPerf上下行吞吐率测试及参数配置
+:link_to_translation:`zh_CN:[中文]`
 
-工程示例及配置说明
+This section describes the usage of iPerf based on BEKEN chip. It contains three chapters:
+
+- iPerf Test Example and Configuration
+- BEKEN iPerf Usage
+- FAQ
+
+Example and Configuration
 -----------------------------------------------
-iPerf的配置文件在 ``components/demos/net/iperf/iperf.c`` ,支持四种模式：
+The configuration file of iPerf located in ``components/demos/net/iperf/iperf.c``, it supports four modes:
 TCP_SERVER、TCP_CLIENT、UDP_SERVER、UDP_CLIENT
 
-- IPERF_REPORT_INTERVAL 吞吐测试上报间隔,一般设置为1
-- IPERF_MAX_TX_RETRY    最大重传次数,默认值为10
-- THREAD_PROIRITY       系统优先级,默认设置为4
+- IPERF_REPORT_INTERVAL-----------------Report interval, default 1s
+- IPERF_MAX_TX_RETRY--------------------Max retry times, default 10
+- THREAD_PROIRITY-----------------------Priority of system thread, default 4
 
-BEKEN iPerf使用介绍
+BEKEN iPerf Usage
 -----------------------------------------------
 iPerf Usage
 +++++++++++++++++++++++++++++++++++++++++++++++
@@ -38,40 +41,65 @@ iPerf Usage
     -h           print this message and quit
     --stop       stop iperf program
 
-iPerf Example
+iPerf Cmd Example
 +++++++++++++++++++++++++++++++++++++++++++++++++++++
 +---------------------------------------------------+
-| Client Mode(上行)                                 |
+| Client Mode(Upstream)                             |
 +------------------+--------------------------------+
 | TCP Client Mode  | iperf -c IP                    |
 +------------------+--------------------------------+
 | UDP Client Mode  | iperf -c IP -u                 |
 +------------------+--------------------------------+
-| Server Mode(下行)                                 |
+| Server Mode(Downstream)                           |
 +------------------+--------------------------------+
 | TCP Server Mode  | iperf -s                       |
 +------------------+--------------------------------+
 | UDP Server Mode  | iperf -s -u                    |
 +------------------+--------------------------------+
 
-常见问题
+iPerf Running Log
++++++++++++++++++++++++++++++++++++++++++++++++++++++
+::
+
+    iperf -c 192.168.40.69              //TCP Client TX
+    create iperf_tcp_c, tcb=30024cf0, stack=[30032170-30033170:4096], prio=5
+    iperf: connect to iperf server successful!
+    [0-1] sec bandwidth: 20021 Kbits/sec.
+    [1-2] sec bandwidth: 21757 Kbits/sec.
+
+    iperf -s -i1                        //TCP Server RX
+    create iperf_tcp_s, tcb=30024d20, stack=[30031ce0-30032ce0:4096], prio=5
+    iperf: new client connected from (192.168.40.69, 65070)
+    [0-1] sec bandwidth: 11567 Kbits/sec.
+    [1-2] sec bandwidth: 15658 Kbits/sec.
+
+    iperf -c 192.168.40.69 -u           //UDP Client TX
+    create iperf_udp_c, tcb=30024cf0, stack=[30031ce0-30032ce0:4096], prio=5
+    iperf udp mode run...
+    [0-1] sec bandwidth: 28141 Kbits/sec.
+    [1-2] sec bandwidth: 35268 Kbits/sec.
+
+    iperf -s -u -i1                     //UDP Server RX
+    create iperf_udp_s, tcb=30024cf0, stack=[30031ce0-30032ce0:4096], prio=5
+    [0-1] sec bandwidth: 17463 Kbits/sec.
+    [1-2] sec bandwidth: 18910 Kbits/sec.
+
+FAQ
 -------------------------------------------------
-iPerf工具介绍
+iPerf Tool Introduction
 +++++++++++++++++++++++++++++++++++++++++++++++++
-- iPerf测试工具下载: `点击下载 <https://iperf.fr/>`_ 进行下载,使用说明可以参考iPerf user docs.
+- iPerf Tool Download: `Download <https://iperf.fr/>`_ . ``iPerf user docs`` could find the presentation
 
 .. image:: ../../../_static/iperf.png
 
-- 推荐使用iPerf2.0版本.
+- It is recommended to use iPerf 2.0.x version
 
-影响iPerf测试吞吐率的因素
-++++++++++++++++++++++++++++++++
-- DUT Wi-Fi是否进行RF参数校准
-- DUT天线是否进行调试,OTA测试、EVM测试结果是否正常
-- 测试环境干扰,尽量选择屏蔽箱或者屏蔽房内进行验证
-- 测试环境确认:DUT、AP的距离,使用外置天线还是内置天线等
-- SDK运行过程中是否有足够的内存
-- 特殊AP的兼容性问题
+Factors about iPerf Throughput Performance
+++++++++++++++++++++++++++++++++++++++++++++++++
+- DUT Wi-Fi RF Performance, make sure OTA and EVM test pass
+- Test Environment interference: it is best to test under the RF shield room
+- Test environment: Reasonable distance between AP and DUT, an external antenna is better than embedded one
+- Make sure to remain enough memory for iPerf running
+- Compatibility with some particular routers
 
-:link_to_translation:`en:[English]`
 

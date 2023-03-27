@@ -16,6 +16,8 @@
 #include <driver/sdio_host.h>
 #include <driver/sd_card.h>
 #include "sd_card_driver.h"
+#include <driver/gpio.h>
+#include "gpio_driver.h"
 
 #if CONFIG_SDIO_V2P0
 #include "sys_driver.h"
@@ -25,6 +27,24 @@ extern void bk_sdio_host_reset_sd_state(void);
 extern void bk_sdio_clk_gate_config(uint32_t enable);
 extern void bk_sdio_tx_fifo_clk_gate_config(uint32_t enable);
 extern void bk_sdio_clock_en(uint32_t enable);
+
+/**/
+typedef enum
+{
+	SDCARD_OPS_READ,
+	SDCARD_OPS_WRITE,
+	SDCARD_OPS_SYNC_RW,	//sync read or write
+}sdcard_rw_ops_t;
+
+typedef enum
+{
+	SDCARD_RW_STATE_INITIALIZED,
+	SDCARD_RW_STATE_READING,
+	SDCARD_RW_STATE_WRITING,
+	SDCARD_RW_STATE_ENDED,
+}sdcard_rw_state_t;
+
+static sdcard_rw_state_t sd_card_check_continious_rw(sdcard_rw_ops_t ops, uint32_t addr, uint32_t blk_cnt);
 #endif
 
 #define SD_CARD_MAX_VOLT_TRIAL_COUNT    0xff
@@ -88,6 +108,21 @@ static volatile sd_card_sw_status_t s_sdcard_sw_status;
 #endif
 static bool s_sd_card_is_init = false;
 static sd_card_obj_t s_sd_card_obj = {0};
+
+#if CONFIG_SDCARD_CHECK_INSERTION_EN
+static bool sd_card_get_insert_status(void)
+{
+	gpio_id_t check_insert_gpio_id = CONFIG_SDCARD_CHECK_INSERTION_GPIO_ID;
+
+	gpio_dev_unmap(check_insert_gpio_id);
+	BK_LOG_ON_ERR(bk_gpio_disable_output(check_insert_gpio_id));
+	BK_LOG_ON_ERR(bk_gpio_enable_input(check_insert_gpio_id));
+	BK_LOG_ON_ERR(bk_gpio_enable_pull(check_insert_gpio_id));
+	BK_LOG_ON_ERR(bk_gpio_pull_up(check_insert_gpio_id));
+
+	return bk_gpio_get_input(check_insert_gpio_id);
+}
+#endif
 
 static uint32 sd_card_get_cmd_timeout_param(void)
 {
@@ -947,9 +982,9 @@ static bk_err_t sd_card_init_card(void)
 	rtos_delay_milliseconds(2);
 	/* improve sdio clock freq for sd card data transfer mode */
 #if CONFIG_SDIO_V2P0
-	s_sd_card_obj.clock_freq = SDIO_HOST_CLK_80M;
-	bk_sdio_host_set_clock_freq(SDIO_HOST_CLK_80M);
-	SD_CARD_LOGI("sdio clock freq:%d->%d\r\n", CONFIG_SDIO_HOST_DEFAULT_CLOCK_FREQ, SDIO_HOST_CLK_80M);
+	s_sd_card_obj.clock_freq = CONFIG_SDCARD_DEFAULT_CLOCK_FREQ;
+	bk_sdio_host_set_clock_freq(s_sd_card_obj.clock_freq);
+	SD_CARD_LOGI("sdio clock freq:%d->%d\r\n", CONFIG_SDIO_HOST_DEFAULT_CLOCK_FREQ, s_sd_card_obj.clock_freq);
 #else
 	s_sd_card_obj.clock_freq = SDIO_HOST_CLK_13M;
 	bk_sdio_host_set_clock_freq(SDIO_HOST_CLK_13M);
@@ -965,6 +1000,13 @@ bk_err_t bk_sd_card_init(void)
 {
 	bk_err_t error_state = BK_OK;
 	sdio_host_config_t sdio_cfg = {0};
+
+#if CONFIG_SDCARD_CHECK_INSERTION_EN
+	if(sd_card_get_insert_status()) {
+		SD_CARD_LOGE("NO SDcard! Please insert the SDcard!\r\n");
+		return BK_ERR_SDIO_HOST_NOT_INIT;
+	}
+#endif
 
 #if CONFIG_SDIO_V2P0
 	uint32_t int_level = 0;
@@ -1087,8 +1129,13 @@ bk_err_t bk_sd_card_deinit(void)
 #if CONFIG_SDIO_V2P0
 		rtos_unlock_mutex(&s_mutex_sdcard);
 #endif
-		return BK_OK;
+		return BK_FAIL;
 	}
+
+	//before deinit, sync history read/write data to sd-card
+#if CONFIG_SDIO_V2P0
+	sd_card_check_continious_rw(SDCARD_OPS_SYNC_RW, 0, 0);
+#endif
 
 	BK_RETURN_ON_ERR(bk_sdio_host_deinit());
 	os_memset(&s_sd_card_obj, 0, sizeof(s_sd_card_obj));
@@ -1213,6 +1260,163 @@ bk_err_t bk_sdcard_wait_busy_to_idle(uint32_t max_time)
 #endif
 
 #if CONFIG_SDIO_V2P0
+/**
+ * @brief - Some sd-cards stop command takes too much time(30ms or more), we'd better reduce stop command
+ *          after read/write sd-card.
+ *  -  Scheme:If APP requests read/write data from/to sd-card, driver doesn't send stop cmd to sd-card at once,
+ *            until APP needs to sync data to sd-card,or next operation read/write isn't continue with previous one.
+ *  - This function check the sd card read/write operation is whether continious with the previous operation.
+ *    If current ops isn't continious with previous ops, it sends stop cmd to sd-card this time, and then do next operations.
+ *
+ *  - How to check whether the operation is continue with previous one:
+ *    Bakeup last state and last ended addr.
+ *    If previous read, current read address is continious, we can set it continious operation.
+ *    If previous write, current write address is continious, we can set it continious operation.
+ *
+ * @return: Current reading/writing... state
+ */
+static sdcard_rw_state_t sd_card_check_continious_rw(sdcard_rw_ops_t ops, uint32_t addr, uint32_t blk_cnt)
+{
+	uint32_t int_level = 0;
+	sdcard_rw_state_t current_state = SDCARD_RW_STATE_INITIALIZED;
+	static sdcard_rw_state_t s_baked_state = SDCARD_RW_STATE_INITIALIZED;	//baked the state of "complete current operation"
+	static uint32_t s_baked_addr = 0xffffffff;	//invalid last address
+
+#if 0	//just debug
+	static uint32_t s_continious_cnt = 0;
+	static uint32_t s_total_cnt = 0;
+#endif
+
+	SD_CARD_LOGD("s_baked_state=%d,s_baked_addr=%d\r\n", s_baked_state, s_baked_addr);
+	SD_CARD_LOGD("cur_ops=%d,cur_addr=%d,cnt=%d\r\n", ops, addr, blk_cnt);
+
+	int_level = rtos_disable_int();
+
+#if 0	//just debug
+	s_total_cnt++;
+#endif
+
+	switch(s_baked_state)
+	{
+		case SDCARD_RW_STATE_INITIALIZED:
+		{
+			//
+			if(ops == SDCARD_OPS_READ)
+			{
+				current_state = SDCARD_RW_STATE_INITIALIZED;
+				s_baked_state = SDCARD_RW_STATE_READING;
+				s_baked_addr = addr + blk_cnt;
+			}
+			else if(ops == SDCARD_OPS_WRITE)
+			{
+				current_state = SDCARD_RW_STATE_INITIALIZED;
+				s_baked_state = SDCARD_RW_STATE_WRITING;
+				s_baked_addr = addr + blk_cnt;
+			}
+			else if(ops == SDCARD_OPS_SYNC_RW)
+			{
+				//do nothing
+				SD_CARD_LOGD("no need sync\r\n");
+			}
+
+			break;
+		}
+
+		case SDCARD_RW_STATE_READING:
+		{
+			if((ops == SDCARD_OPS_READ) && (s_baked_addr == addr))
+			{
+				//continious read
+				current_state = SDCARD_RW_STATE_READING;
+				s_baked_state = SDCARD_RW_STATE_READING;
+				s_baked_addr += blk_cnt;
+#if 0	//just debug
+				s_continious_cnt++;
+#endif
+			}
+			else if(ops == SDCARD_OPS_SYNC_RW)
+			{
+				current_state = SDCARD_RW_STATE_ENDED;
+				s_baked_state = SDCARD_RW_STATE_INITIALIZED;
+				s_baked_addr = 0xffffffff;
+			}
+			else 	//end current read, switch to next ops
+			{
+				current_state = SDCARD_RW_STATE_ENDED;
+				if(ops == SDCARD_OPS_READ)
+					s_baked_state = SDCARD_RW_STATE_READING;
+				else if(ops == SDCARD_OPS_WRITE)
+					s_baked_state = SDCARD_RW_STATE_WRITING;
+				
+				s_baked_addr = addr + blk_cnt;
+			}
+
+			break;
+		}
+
+		case SDCARD_RW_STATE_WRITING:
+		{
+			if((ops == SDCARD_OPS_WRITE) && (s_baked_addr == addr))
+			{
+				//continious write
+				current_state = SDCARD_RW_STATE_WRITING;
+				s_baked_state = SDCARD_RW_STATE_WRITING;
+				s_baked_addr += blk_cnt;
+#if 0	//just debug
+				s_continious_cnt++;
+#endif
+			}
+			else if(ops == SDCARD_OPS_SYNC_RW)
+			{
+				current_state = SDCARD_RW_STATE_ENDED;
+				s_baked_state = SDCARD_RW_STATE_INITIALIZED;
+				s_baked_addr = 0xffffffff;
+			}
+			else 	//end current write, switch to next ops
+			{
+				current_state = SDCARD_RW_STATE_ENDED;
+				if(ops == SDCARD_OPS_READ)
+					s_baked_state = SDCARD_RW_STATE_READING;
+				else if(ops == SDCARD_OPS_WRITE)
+					s_baked_state = SDCARD_RW_STATE_WRITING;
+				
+				s_baked_addr = addr + blk_cnt;
+			}
+
+			break;
+		}
+
+		//middle state, no need to bake, it just returns to caller that current state.
+		case SDCARD_RW_STATE_ENDED:
+		{
+			break;
+		}
+
+		default:
+		{
+			break;
+		}
+	}
+
+	rtos_enable_int(int_level);
+
+	SD_CARD_LOGD("[-]current_state = %d, s_baked_state=%d,s_baked_addr=%d\r\n", current_state, s_baked_state, s_baked_addr);
+#if 0	//just debug
+	SD_CARD_LOGD("s_continious_cnt=%d,s_total_cnt=%d\r\n", s_continious_cnt, s_total_cnt);
+#endif
+	//move out, avoid disable IRQ too much time
+	if(current_state == SDCARD_RW_STATE_ENDED)
+		sd_card_cmd_stop_transmission();
+
+	return current_state;
+}
+
+bk_err_t bk_sd_card_rw_sync(void)
+{
+	sd_card_check_continious_rw(SDCARD_OPS_SYNC_RW, 0, 0);
+	return BK_OK;
+}
+
 bk_err_t bk_sd_card_write_blocks(const uint8_t *data, uint32_t block_addr, uint32_t block_num)
 {
 	//BK_RETURN_ON_NULL(data);
@@ -1221,7 +1425,7 @@ bk_err_t bk_sd_card_write_blocks(const uint8_t *data, uint32_t block_addr, uint3
 	uint32_t addr = block_addr;
 	sdio_host_data_config_t data_config = {0};
 
-	SD_CARD_LOGD("tx data=0x%x,block_addr=0x%x,block_cnt=%d\r\n", data, block_addr, block_num);
+	SD_CARD_LOGD("write[+]:tx data=0x%x,block_addr=0x%x,block_cnt=%d\r\n", data, block_addr, block_num);
 
 #if (CONFIG_SDCARD_DEBUG_SUPPORT)
 	sdcard_dump_transfer_data((uint8_t *)data, block_addr, block_num);
@@ -1247,33 +1451,36 @@ bk_err_t bk_sd_card_write_blocks(const uint8_t *data, uint32_t block_addr, uint3
 	}
 
 	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_SDIO, true);
-	error_state = bk_sdcard_wait_busy_to_idle(1000);
-	if (error_state != BK_OK) {
-		SD_CARD_LOGW("****sdcard is busy\r\n");
-		rtos_unlock_mutex(&s_mutex_sdcard);
-		return error_state;
-	}
+	if(sd_card_check_continious_rw(SDCARD_OPS_WRITE, block_addr, block_num) != SDCARD_RW_STATE_WRITING)
+	{
+		error_state = bk_sdcard_wait_busy_to_idle(1000);
+		if (error_state != BK_OK) {
+			SD_CARD_LOGW("****sdcard is busy\r\n");
+			rtos_unlock_mutex(&s_mutex_sdcard);
+			return error_state;
+		}
 
-	if (s_sd_card_obj.sd_card.card_type != SD_CARD_TYPE_SDHC_SDXC) {
-		addr *= 512;
-	}
-
-#if CONFIG_SDCARD_OPS_TRACE_EN
-	s_sdcard_sw_status.write = 2;
-#endif
-	//before write data, reset it
-	bk_sdio_host_reset_sd_state();
-
-	//TODO:just use multi-block mode
-	error_state = sd_card_cmd_write_multiple_block(addr);
-	if (error_state != BK_OK) {
-		rtos_unlock_mutex(&s_mutex_sdcard);
-		return error_state;
-	}
+		if (s_sd_card_obj.sd_card.card_type != SD_CARD_TYPE_SDHC_SDXC) {
+			addr *= 512;
+		}
 
 #if CONFIG_SDCARD_OPS_TRACE_EN
-	s_sdcard_sw_status.write = 3;
+		s_sdcard_sw_status.write = 2;
 #endif
+		//before write data, reset it
+		bk_sdio_host_reset_sd_state();
+
+		//TODO:just use multi-block mode
+		error_state = sd_card_cmd_write_multiple_block(addr);
+		if (error_state != BK_OK) {
+			rtos_unlock_mutex(&s_mutex_sdcard);
+			return error_state;
+		}
+
+#if CONFIG_SDCARD_OPS_TRACE_EN
+		s_sdcard_sw_status.write = 3;
+#endif
+	}
 
 	/* config sdio data */
 	data_config.data_timeout = sd_card_get_data_timeout_param();
@@ -1289,7 +1496,7 @@ bk_err_t bk_sd_card_write_blocks(const uint8_t *data, uint32_t block_addr, uint3
 #endif
 
 	{
-		error_state = sd_card_cmd_stop_transmission();
+		//error_state = sd_card_cmd_stop_transmission();
 
 		//TODO:disable clock for low power
 		//sys_drv_dev_clk_pwr_up(CLK_PWR_ID_SDIO, false);
@@ -1301,6 +1508,8 @@ bk_err_t bk_sd_card_write_blocks(const uint8_t *data, uint32_t block_addr, uint3
 #endif
 
 	rtos_unlock_mutex(&s_mutex_sdcard);
+
+	SD_CARD_LOGD("write[-]error_state=%d\r\n", error_state);
 
 	return error_state;
 }
@@ -1332,46 +1541,52 @@ bk_err_t bk_sd_card_read_blocks(uint8_t *data, uint32_t block_addr, uint32_t blo
 		return BK_ERR_SDIO_HOST_NOT_INIT;
 	}
 
-	SD_CARD_LOGD("rx data=0x%x,block_addr=0x%x,block_cnt=%d\r\n", data, block_addr, block_num);
+	SD_CARD_LOGD("read[+]:rx data=0x%x,block_addr=0x%x,block_cnt=%d\r\n", data, block_addr, block_num);
 
 	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_SDIO, true);
-	error_state = bk_sdcard_wait_busy_to_idle(1000);
-	if (error_state != BK_OK) {
-		SD_CARD_LOGW("****sdcard is busy\r\n");
-		rtos_unlock_mutex(&s_mutex_sdcard);
-		return error_state;
-	}
 
-	//before read data, reset it
-	bk_sdio_host_reset_sd_state();
+	if(sd_card_check_continious_rw(SDCARD_OPS_READ, block_addr, block_num) != SDCARD_RW_STATE_READING)
+	{
+		error_state = bk_sdcard_wait_busy_to_idle(1000);
+		if (error_state != BK_OK) {
+			SD_CARD_LOGW("****sdcard is busy\r\n");
+			rtos_unlock_mutex(&s_mutex_sdcard);
+			return error_state;
+		}
 
-#if CONFIG_SDCARD_OPS_TRACE_EN
-	s_sdcard_sw_status.read = 2;
-#endif
-
-	data_config.data_timeout = sd_card_get_data_timeout_param();
-	data_config.data_len = SD_BLOCK_SIZE * block_num;
-	data_config.data_block_size = SD_BLOCK_SIZE;
-	data_config.data_dir = SDIO_HOST_DATA_DIR_RD;
-
-	bk_sdio_host_config_data(&data_config);
-	SD_CARD_LOGD("sdio host config data ok, data_len:%d\r\n", data_config.data_len);
-	if (s_sd_card_obj.sd_card.card_type != SD_CARD_TYPE_SDHC_SDXC) {
-		addr *= 512;
-	}
-
-	*((uint32_t volatile *)(0x448b0000 + 0x3 * 4 )) |= (0x200<<4);	//block_size
-
-	//TODO:just use multi-block mode
-	error_state = sd_card_cmd_read_multiple_block(addr);
-	if (error_state != BK_OK) {
-		rtos_unlock_mutex(&s_mutex_sdcard);
-		return error_state;
-	}
+		//before read data, reset it
+		bk_sdio_host_reset_sd_state();
 
 #if CONFIG_SDCARD_OPS_TRACE_EN
-	s_sdcard_sw_status.read = 3;
+		s_sdcard_sw_status.read = 2;
 #endif
+
+		data_config.data_timeout = sd_card_get_data_timeout_param();
+		data_config.data_len = SD_BLOCK_SIZE * block_num;
+		data_config.data_block_size = SD_BLOCK_SIZE;
+		data_config.data_dir = SDIO_HOST_DATA_DIR_RD;
+
+		bk_sdio_host_config_data(&data_config);
+		SD_CARD_LOGD("sdio host config data ok, data_len:%d\r\n", data_config.data_len);
+		if (s_sd_card_obj.sd_card.card_type != SD_CARD_TYPE_SDHC_SDXC) {
+			addr *= 512;
+		}
+
+		*((uint32_t volatile *)(0x448b0000 + 0x3 * 4 )) |= (0x200<<4);	//block_size
+
+		//TODO:just use multi-block mode
+		error_state = sd_card_cmd_read_multiple_block(addr);
+		if (error_state != BK_OK) {
+			rtos_unlock_mutex(&s_mutex_sdcard);
+			return error_state;
+		}
+
+#if CONFIG_SDCARD_OPS_TRACE_EN
+		s_sdcard_sw_status.read = 3;
+#endif
+	}
+	else
+		data_config.data_len = SD_BLOCK_SIZE * block_num;
 
 	while (bk_sdio_host_wait_receive_data() == BK_OK) {
 		do {
@@ -1405,7 +1620,7 @@ bk_err_t bk_sd_card_read_blocks(uint8_t *data, uint32_t block_addr, uint32_t blo
 	 * otherwise wait_for_cmd_rsp failed
 	 */
 	{
-		error_state += sd_card_cmd_stop_transmission();
+		//error_state += sd_card_cmd_stop_transmission();
 	}
 
 #if CONFIG_SDCARD_OPS_TRACE_EN
@@ -1418,10 +1633,19 @@ bk_err_t bk_sd_card_read_blocks(uint8_t *data, uint32_t block_addr, uint32_t blo
 #if (CONFIG_SDCARD_DEBUG_SUPPORT)
 	sdcard_dump_transfer_data(data, block_addr, block_num);
 #endif
+
+	SD_CARD_LOGD("read[-]\r\n");
+
 	return error_state;
 }
 
 #else
+bk_err_t bk_sd_card_rw_sync(void)
+{
+	SD_CARD_LOGD("TODO:no implement[-]\r\n");
+	return BK_OK;
+}
+
 bk_err_t bk_sd_card_write_blocks(const uint8_t *data, uint32_t block_addr, uint32_t block_num)
 {
 	BK_RETURN_ON_NULL(data);

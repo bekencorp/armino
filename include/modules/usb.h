@@ -17,23 +17,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "usb_types.h"
+
 /*******************************************************************************
 * Function Declarations
 *******************************************************************************/
-UINT32 usb_open (UINT32 op_flag);
-UINT32 usb_close (void);
-#if (CONFIG_SOC_BK7271) || (CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7236)
-UINT32 usb_read (UINT32 pos, const void *buffer, UINT32 size);
-UINT32 usb_write (UINT32 pos, const void *buffer, UINT32 size);
-#else
-UINT32 usb_read (char *user_buf, UINT32 count, UINT32 op_flag);
-UINT32 usb_write (char *user_buf, UINT32 count, UINT32 op_flag);
-#endif
-
-UINT32 usb_ctrl(UINT32 cmd, void *param);
-void usb_event_post(void);
-void usb_isr(void);
-void usb_check_int_handler(void);
 
 /**
  * @brief     open the USB
@@ -71,6 +60,24 @@ bk_err_t bk_usb_open (uint32_t usb_mode);
 bk_err_t bk_usb_close (void);
 
 /**
+ * @brief     check whether the USB device is supported
+ *
+ * This API detect whether the device is supported:
+ *   - Select the identity as E_USB_DEVICE_T
+ *  parameter: usb_dev
+ *           USB_UVC_DEVICE = 0,
+ *           USB_UAC_MIC_DEVICE = 1,
+ *           USB_UAC_SPEAKER_DEVICE = 2,
+ *
+ * This API should be called after any other USB APIs.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_usb_check_device_supported (E_USB_DEVICE_T usb_dev);
+
+/**
  * @brief     Start UVC stream transmission
  *
  * USB video camera data transfer starts:
@@ -100,35 +107,6 @@ bk_err_t bk_uvc_start(void);
  *    - others: other errors.
  */
 bk_err_t bk_uvc_stop(void);
-
-/**
- * @brief     Set required Parameters
- *
- *  This API sets resolution and frame rate:
- *   - The resolution parameters:
- *       UVC_FRAME_160_120
- *       UVC_FRAME_176_144
- *       UVC_FRAME_352_288
- *       UVC_FRAME_320_240
- *       UVC_FRAME_640_360
- *       UVC_FRAME_640_480
- *
- *   - These frame rate parameters:
- *      FPS_60
- *      FPS_30
- *      FPS_25
- *      FPS_20
- *      FPS_15
- *      FPS_10
- *      FPS_5
- *
- *  Set parameters based on camera parameters.
- *
- * @return
- *    - BK_OK: succeed
- *    - others: other errors.
- */
-bk_err_t bk_uvc_set_parameter(uint32_t resolution_id, uint32_t fps);
 
 /**
  * @brief     Configure the address of the data buffer
@@ -196,6 +174,22 @@ bk_err_t bk_uvc_receive_video_stream();
 bk_err_t bk_uvc_register_config_callback(void *param);
 
 /**
+ * @brief     UVC disconnect the callback function registration function registration
+ *
+ * This API disconnect the callback:
+ *   - parameter is the registered callback function.
+ *   - The callback function needs to be defined.
+ *
+ *
+ *  Notify the registered callback function when the device is disconnected.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_uvc_register_disconnect_callback(void *param);
+
+/**
  * @brief     A transaction transfer completes the callback function registration
  *
  * This API configure the callback:
@@ -247,30 +241,37 @@ bk_err_t bk_uvc_register_VSrxed_packet_callback(void *param);
 bk_err_t bk_uvc_register_link(uint32_t param);
 
 /**
+ * @brief     Check whether the attribute configuration is supported
+ *
+ * After connecting the UVC device, determine whether the attribute operation
+ * is supported by calling this API:
+ *   - The Parameters has enumeration variable A planning, please fill in the
+ *     attribute parameter correctly.
+ *   - attribute:
+ *         E_UVC_ATTRIBUTE_T;
+ *
+ *  Choose to call this API.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ *
+ */
+bk_err_t bk_usb_uvc_check_support_attribute(E_UVC_ATTRIBUTE_T attribute);
+
+/**
  * @brief     Set camera attributes values
  *
- * This API set camera attributes values:
- *   - Two parameters attributes and values.
+ * This API set/get camera attributes values:
+ *   - Three parameters ops/attributes/values.
+ *   - ops:
+ *        E_USB_ATTRIBUTE_OP
  *   - attributes:
- *        UVC_PU_CONTROL_UNDEFINED                                              0x00
- *        UVC_PU_BACKLIGHT_COMPENSATION_CONTROL                      0x01
- *        UVC_PU_BRIGHTNESS_CONTRO                                              0x02
- *        UVC_PU_CONTRAST_CONTROL                                               0x03
- *        UVC_PU_GAIN_CONTROL                                                       0x04
- *        UVC_PU_POWER_LINE_FREQUENCY_CONTROL                          0x05
- *        UVC_PU_HUE_CONTROL                                                         0x06
- *        UVC_PU_SATURATION_CONTROL                                             0x07
- *        UVC_PU_SHARPNESS_CONTROL                                              0x08
- *        UVC_PU_GAMMA_CONTROL                                                     0x09
- *        UVC_PU_WHITE_BALANCE_TEMPERATURE_CONTROL                  0x0a
- *        UVC_PU_WHITE_BALANCE_TEMPERATURE_AUTO_CONTROL         0x0b
- *        UVC_PU_WHITE_BALANCE_COMPONENT_CONTROL                    0x0c
- *        UVC_PU_WHITE_BALANCE_COMPONENT_AUTO_CONTROL           0x0d
- *        UVC_PU_DIGITAL_MULTIPLIER_CONTROL                                 0x0e
- *        UVC_PU_DIGITAL_MULTIPLIER_LIMIT_CONTROL                        0x0f
- *        UVC_PU_HUE_AUTO_CONTROL                                                0x10
- *        UVC_PU_ANALOG_VIDEO_STANDARD_CONTROL                        0x11
- *        UVC_PU_ANALOG_LOCK_STATUS_CONTROL                              0x12
+ *        E_UVC_ATTRIBUTE_T
+ *   - param:
+ *        Incoming parameter pointer
+ *
+ *    example: Reference cli_usb.c
  *
  *   - Valid values needs to be viewed in camera.
  *
@@ -281,145 +282,384 @@ bk_err_t bk_uvc_register_link(uint32_t param);
  *    - others: other errors.
  *
  */
-bk_err_t bk_uvc_set_cur(uint32_t attribute, uint32_t param);
+bk_err_t bk_usb_uvc_attribute_op(E_USB_ATTRIBUTE_OP ops, E_UVC_ATTRIBUTE_T attribute, uint32_t *param);
 
 /**
- * @brief     Get camera attributes values
+ * @brief     Select H264 video format for data transmission
  *
- * This API Get camera attributes values:
- *   - Two parameters attributes and values.
+ * Judge whether the device supports H264 video format according to the return value.
+ *
+ *  Choose to call this API.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ *
+ */
+bk_err_t bk_uvc_enable_H264();
+
+/**
+ * @brief     Select H265 video format for data transmission
+ *
+ * Judge whether the device supports H265 video format according to the return value.
+ *
+ *  Choose to call this API.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ *
+ */
+bk_err_t bk_uvc_enable_H265();
+
+/**
+ * @brief     Select MJPEG video format for data transmission
+ *
+ * Judge whether the device supports MJPEG video format according to the return value.
+ *
+ *  Choose to call this API.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ *
+ */
+bk_err_t bk_uvc_enable_mjpeg();
+
+/**
+ * @brief     Set camera attributes values
+ *
+ * This API get camera resolution and framerate:
+ *   - Two parameters param/count.
+ *   - param:
+ *        UVC_ResolutionFramerate
+ *   - count:
+ *        Get some camera parameters. If you want to get all, fill in 0xFFFF for the count.
+ *
+ *    example: Reference UVC demo
+ *
+ *   - Valid values needs to be viewed in camera.
+ *
+ *  Choose to call this API.
+ *
+ */
+void bk_uvc_get_resolution_framerate(void *param, uint16_t count);
+
+/**
+ * @brief     Set camera attributes values
+ *
+ * This API set camera resolution and framerate:
+ *   - One parameters param.
+ *   - param:
+ *        structure UVC_ResolutionFramerate
+ *
+ *    example: Reference UVC demo
+ *
+ *   - Valid values needs to be viewed in camera.
+ *
+ *  Choose to call this API.
+ *
+ */
+void bk_uvc_set_resolution_framerate(void *param);
+
+/**
+ * @brief     UAC disconnect the callback function registration function registration
+ *
+ * This API disconnect the callback:
+ *   - parameter is the registered callback function.
+ *   - The callback function needs to be defined.
+ *
+ *
+ *  Notify the registered callback function when the device is disconnected.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_usb_uac_register_disconnect_callback(void *param);
+
+/**
+ * @brief     UAC connect the callback function registration function registration
+ *
+ * This API disconnect the callback:
+ *   - parameter is the registered callback function.
+ *   - The callback function needs to be defined.
+ *
+ *
+ *  Notify the registered callback function when the device is connected.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_usb_uac_register_connect_callback(void *param);
+
+/**
+ * @brief     Configure the sampling rate of MIC and SPEAKER in UAC
+ *
+ * This API set sampling rate of mic/speaker:
+ *   - Two parameters dev/hz.
+ *   - dev:
+ *        E_USB_DEVICE_T
+ *   - hz:
+ *        The filled sampling rate device does not support returning error values.
+ *
+ *    example: Reference UAC demo
+ *
+ *  Choose to call this API.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_usb_uac_set_hz(E_USB_DEVICE_T dev, uint32 hz);
+
+/**
+ * @brief     Obtain the attribute descriptor supported by the UAC device
+ *
+ * This API get UAC device descriptor:
+ *   - Three parameters dev/interfacedesc/formatdesc.
+ *   - dev:
+ *        enumeration E_USB_DEVICE_T
+ *   - interfacedesc:
+ *        structure s_audio_as_general_descriptor.
+ *   - formatdesc:
+ *        structure s_audio_format_type_descriptor.
+ *
+ *    example: Reference UAC demo
+ *
+ *  Choose to call this API.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_usb_uac_get_format_descriptor(E_USB_DEVICE_T dev,
+                                                        s_audio_as_general_descriptor *interfacedesc,
+                                                        s_audio_format_type_descriptor *formatdesc);
+
+/**
+ * @brief     Set camera attributes values
+ *
+ * This API set/get camera attributes values:
+ *   - Three parameters ops/attributes/values.
+ *   - ops:
+ *        E_USB_ATTRIBUTE_OP
  *   - attributes:
- *        UVC_PU_CONTROL_UNDEFINED                                              0x00
- *        UVC_PU_BACKLIGHT_COMPENSATION_CONTROL                      0x01
- *        UVC_PU_BRIGHTNESS_CONTRO                                              0x02
- *        UVC_PU_CONTRAST_CONTROL                                               0x03
- *        UVC_PU_GAIN_CONTROL                                                       0x04
- *        UVC_PU_POWER_LINE_FREQUENCY_CONTROL                          0x05
- *        UVC_PU_HUE_CONTROL                                                         0x06
- *        UVC_PU_SATURATION_CONTROL                                             0x07
- *        UVC_PU_SHARPNESS_CONTROL                                              0x08
- *        UVC_PU_GAMMA_CONTROL                                                     0x09
- *        UVC_PU_WHITE_BALANCE_TEMPERATURE_CONTROL                  0x0a
- *        UVC_PU_WHITE_BALANCE_TEMPERATURE_AUTO_CONTROL         0x0b
- *        UVC_PU_WHITE_BALANCE_COMPONENT_CONTROL                    0x0c
- *        UVC_PU_WHITE_BALANCE_COMPONENT_AUTO_CONTROL           0x0d
- *        UVC_PU_DIGITAL_MULTIPLIER_CONTROL                                 0x0e
- *        UVC_PU_DIGITAL_MULTIPLIER_LIMIT_CONTROL                        0x0f
- *        UVC_PU_HUE_AUTO_CONTROL                                                0x10
- *        UVC_PU_ANALOG_VIDEO_STANDARD_CONTROL                        0x11
- *        UVC_PU_ANALOG_LOCK_STATUS_CONTROL                              0x12
+ *        E_UAC_ATTRIBUTE_T
+ *   - param:
+ *        Incoming parameter pointer
+ *
+ *    example: Reference cli_usb.c
  *
  *   - Valid values needs to be viewed in camera.
  *
  *  Choose to call this API.
  *
  * @return
- *    - Values
+ *    - BK_OK: succeed
+ *    - others: other errors.
  *
  */
-uint32_t bk_uvc_get_cur(uint32_t attribute);
+bk_err_t bk_usb_uac_attribute_op(E_USB_ATTRIBUTE_OP ops, E_UAC_ATTRIBUTE_T attribute, uint32_t *param);
 
 /**
- * @brief     Get camera attributes MIN values
+ * @brief     Check whether the attribute configuration is supported
  *
- * This API Get camera attributes MIN values:
- *   - Two parameters attributes and values.
- *   - attributes
- *
- *   - Valid values needs to be viewed in camera.
+ * After connecting the UAC device, determine whether the attribute operation
+ * is supported by calling this API:
+ *   - The Parameters has enumeration variable A planning, please fill in the
+ *     attribute parameter correctly.
+ *   - attribute:
+ *         E_UAC_ATTRIBUTE_T;
  *
  *  Choose to call this API.
  *
  * @return
- *    - values
+ *    - BK_OK: succeed
+ *    - others: other errors.
  *
  */
-uint32_t bk_uvc_get_min(uint32_t attribute);
+bk_err_t bk_usb_uac_check_support_attribute(E_UAC_ATTRIBUTE_T attribute);
 
 /**
- * @brief     Get camera attributes MAX values
+ * @brief     Start UAC mic stream transmission
  *
- * This API Get camera attributes MAX values:
- *   - Two parameters attributes and values.
- *   - attributes
+ * USB audio data transfer starts:
+ *   - configure the required configuration parameters
+ *   - Send audio stream data transfer instructions
  *
- *   - Valid values needs to be viewed in camera.
- *
- *  Choose to call this API.
+ * This API means that the data starts to transfer and needs to
+ * transfer and needs to be copied.
  *
  * @return
- *    - values
- *
+ *    - BK_OK: succeed
+ *    - others: other errors.
  */
-uint32_t bk_uvc_get_max(uint32_t attribute);
+bk_err_t bk_uac_start_mic(void);
 
 /**
- * @brief     Get camera attributes RES values
+ * @brief     Stop UAC mic stream transmission
  *
- * This API Get camera attributes RES values:
- *   - Two parameters attributes and values.
- *   - attributes
+ * USB audio data transfer stops:
+ *   - Send the video stream data stop transmission command
  *
- *   - Valid values needs to be viewed in camera.
  *
- *  Choose to call this API.
+ * There will be no more data flow after execution.
  *
  * @return
- *    - values
- *
+ *    - BK_OK: succeed
+ *    - others: other errors.
  */
-uint32_t bk_uvc_get_res(uint32_t attribute);
+bk_err_t bk_uac_stop_mic(void);
 
 /**
- * @brief     Get camera attributes LEN values
+ * @brief     A packet of data transfer completes the callback function registration
  *
- * This API Get camera attributes LEN values:
- *   - Two parameters attributes and values.
- *   - attributes
+ * This API configure the callback:
+ *   - parameter is the registered callback function.
+ *   - The callback function needs to be defined.
  *
- *   - Valid values needs to be viewed in camera.
  *
- *  Choose to call this API.
+ *  The callback function must be registered.
  *
  * @return
- *    - values
+ *    - BK_OK: succeed
+ *    - others: other errors.
  *
  */
-uint32_t bk_uvc_get_len(uint32_t attribute);
+bk_err_t bk_uac_register_micrxed_packet_callback(void *param);
 
 /**
- * @brief     Get camera attributes INFO values
+ * @brief     A packet of data transfer completes the callback function unregistration
  *
- * This API Get camera attributes INFO values:
- *   - Two parameters attributes and values.
- *   - attributes
- *
- *   - Valid values needs to be viewed in camera.
- *
- *  Choose to call this API.
+ *  The UAC Mic application must be logged off when it is not in use.
  *
  * @return
- *    - values
+ *    - BK_OK: succeed
+ *    - others: other errors.
  *
  */
-uint32_t bk_uvc_get_info(uint32_t attribute);
+bk_err_t bk_uac_unregister_micrxed_packet_callback(void);
 
 /**
- * @brief     Get camera attributes DEF values
+ * @brief     Start UAC speaker stream transmission
  *
- * This API Get camera attributes DEF values:
- *   - Two parameters attributes and values.
- *   - attributes
+ * USB audio data transfer starts:
+ *   - configure the required configuration parameters
+ *   - Send audio stream data transfer instructions
  *
- *   - Valid values needs to be viewed in camera.
- *
- *  Choose to call this API.
+ * This API means that the data starts to transfer and needs to
+ * transfer and needs to be copied.
  *
  * @return
- *    - values
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_uac_start_speaker(void);
+
+/**
+ * @brief     Stop UAC speaker stream transmission
+ *
+ * USB audio data transfer stops:
+ *   - Send the video stream data stop transmission command
+ *
+ *
+ * There will be no more data flow after execution.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_uac_stop_speaker(void);
+
+/**
+ * @brief     A packet of data transfer completes the callback function registration
+ *
+ * This API configure the callback:
+ *   - parameter is the registered callback function.
+ *   - The callback function needs to be defined.
+ *
+ *
+ *  The callback function must be registered.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
  *
  */
-uint32_t bk_uvc_get_def(uint32_t attribute);
+bk_err_t bk_uac_register_speakerstream_txed_callback(void *param);
+
+/**
+ * @brief     A packet of data transfer completes the callback function unregistration
+ *
+ *  The UAC Speaker application must be logged off when it is not in use.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ *
+ */
+bk_err_t bk_uac_unregister_speakerstream_txed_callback(void);
+
+/**
+ * @brief     Register the pointer space of transmitted data and the length of transmitted data
+ *
+ * This API Updata the data in the buffer after each transmission:
+ *   - Two parameters buffer_ptr/buffer_len.
+ *   - buffer_ptr:
+ *        Pointer address
+ *   - buffer_len:
+ *        Length of transmitted data.
+ *
+ *    example: Reference UAC demo
+ *
+ *  This API is required to use UAC Speaker.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_uac_register_tx_speakerstream_buffptr(void *buffer_ptr, uint32_t buffer_len);
+
+/**
+ * @brief     Initializes the control transfer request resource
+ *
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+*/
+bk_err_t bk_usb_control_transfer_init(void);
+
+/**
+ * @brief     Unmount control transfer to release resource
+ *
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+*/
+bk_err_t bk_usb_control_transfer_deinit(void);
+
+/**
+ * @brief     Control command and data interface fucntion to be passed
+ *
+ * This API is used to send commands and transfer data:
+ *   - Two parameters pSetup/buffer_info.
+ *   - s_usb_device_request:
+ *        The command format is specified by the USB protocol
+ *   - s_usb_transfer_buffer_info:
+ *        Buffer informataion for sending and receiving data.
+ *
+ *    example: Reference UVC_OTA demo
+ *
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_usb_control_transfer(s_usb_device_request *pSetup, s_usb_transfer_buffer_info *buffer_info);
 #ifdef __cplusplus
 }
 #endif

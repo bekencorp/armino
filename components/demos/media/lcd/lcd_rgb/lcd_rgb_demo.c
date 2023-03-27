@@ -173,7 +173,7 @@ static bk_err_t dvp_camera_init(jpeg_mode_t mode, media_ppi_t ppi)
 	current_sensor->set_ppi(current_sensor->def_ppi);
 	current_sensor->set_fps(current_sensor->def_fps);
 
-	bk_jpeg_enc_set_gpio(JPEG_ENABLE_DATA);
+	bk_jpeg_enc_set_gpio_enable(1, JPEG_GPIO_DATA);
 
 	return ret;
 }

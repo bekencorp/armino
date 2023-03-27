@@ -26,6 +26,48 @@ static void efuse_cmd_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 static void efuse_mac_cmd_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif //#if (CONFIG_EFUSE)
 
+
+static int hex2num(char c)
+{
+	if (c >= '0' && c <= '9')
+		return c - '0';
+	if (c >= 'a' && c <= 'f')
+		return c - 'a' + 10;
+	if (c >= 'A' && c <= 'F')
+		return c - 'A' + 10;
+	return -1;
+}
+
+
+static int hex2byte(const char *hex)
+{
+	int a, b;
+	a = hex2num(*hex++);
+	if (a < 0)
+		return -1;
+	b = hex2num(*hex++);
+	if (b < 0)
+		return -1;
+	return (a << 4) | b;
+}
+
+int hexstr2bin_cli(const char *hex, u8 *buf, size_t len)
+{
+	size_t i;
+	int a;
+	const char *ipos = hex;
+	u8 *opos = buf;
+
+	for (i = 0; i < len; i++) {
+		a = hex2byte(ipos);
+		if (a < 0)
+			return -1;
+		*opos++ = a;
+		ipos += 2;
+	}
+	return 0;
+}
+
 __maybe_unused static void cli_misc_help(void)
 {
 	CLI_LOGI("pwm_driver init {26M|DCO}\n");
@@ -91,15 +133,15 @@ static void efuse_cmd_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 
 	if (argc == 3) {
 		if (os_strncmp(argv[1], "-r", 2) == 0) {
-			hexstr2bin(argv[2], &addr, 1);
+			hexstr2bin_cli(argv[2], &addr, 1);
 			bk_efuse_read_byte(addr, &data);
 			CLI_LOGI("efuse read: addr-0x%02x, data-0x%02x\r\n",
 					  addr, data);
 		}
 	} else if (argc == 4) {
 		if (os_strncmp(argv[1], "-w", 2) == 0)  {
-			hexstr2bin(argv[2], &addr, 1);
-			hexstr2bin(argv[3], &data, 6);
+			hexstr2bin_cli(argv[2], &addr, 1);
+			hexstr2bin_cli(argv[3], &data, 6);
 			CLI_LOGI("efuse write: addr-0x%02x, data-0x%02x, ret:%d\r\n",
 					  addr, data, bk_efuse_write_byte(addr, data));
 		}
@@ -124,7 +166,7 @@ static void efuse_mac_cmd_test(char *pcWriteBuffer, int xWriteBufferLen, int arg
 		}
 	} else if (argc == 3) {
 		if (os_strncmp(argv[1], "-w", 2) == 0)  {
-			hexstr2bin(argv[2], mac, 6);
+			hexstr2bin_cli(argv[2], mac, 6);
 			CLI_LOGI("Set MAC address: %02x-%02x-%02x-%02x-%02x-%02x\r\n",
 					  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 		}
@@ -152,7 +194,7 @@ static void mac_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		CLI_LOGI("sta mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(sta_mac));
 		CLI_LOGI("ap mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(ap_mac));
 	} else if (argc == 2) {
-		hexstr2bin(argv[1], base_mac, BK_MAC_ADDR_LEN);
+		hexstr2bin_cli(argv[1], base_mac, BK_MAC_ADDR_LEN);
 		bk_set_base_mac(base_mac);
 		CLI_LOGI("set base mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(base_mac));
 	} else
@@ -269,8 +311,6 @@ static void set_jtag_mode(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	pm_core_bus_clock_ctrl(cksel_core, ckdiv_core, ckdiv_bus, ckdiv_cpu0, ckdiv_cpu1);
 
 	/*close watchdog*/
-	extern void wdt_debug_disable(void);
-	wdt_debug_disable();
 #if CONFIG_INT_WDT
 	bk_wdt_stop();
 #endif

@@ -1,7 +1,7 @@
 DOORBELL
 ==========================
 
-:link_to_translation:`zh_CN:[Chinese]`
+:link_to_translation:`zh_CN:[中文]`
 
 1 Overview
 ---------------------------------------
@@ -34,9 +34,17 @@ DOORBELL
 	+----------------------------------------+--------------------------------+---------------------------------------+
 	| media dvp close                        | NULL                           | close dvp sensor                      |
 	+----------------------------------------+--------------------------------+---------------------------------------+
-	| media lcd open [param]                 | param1:display size            | lcd display size, default:480X272     |
+	|                                        | param1:LCD PIXEL               | default:480X272                       |
+	| media lcd open [param1] [param2]       +--------------------------------+---------------------------------------+
+	|                                        | param2:rotate or null          | rotate open or not                    |
 	+----------------------------------------+--------------------------------+---------------------------------------+
 	| media lcd close                        | NULL                           | close lcd function, and jpeg decode   |
+	+----------------------------------------+--------------------------------+---------------------------------------+
+	|                                        | param1:clock,wifi,data,ver     | blend icon type                       |
+	| media lcd dma2d_blend [param1][param2] +--------------------------------+---------------------------------------+
+	|                                        | param2:12:30 , 0-4             | 0:wifi none, 4:wifi full              |
+	+----------------------------------------+--------------------------------+---------------------------------------+
+	| media lcd dma2d_blend close [param]    | NULL or wifi/clock             | close all blend or one blend          |
 	+----------------------------------------+--------------------------------+---------------------------------------+
 	| media capture param                    | param:xxx.jpg                  | capture save to sdcard, and set name  |
 	+----------------------------------------+--------------------------------+---------------------------------------+
@@ -64,7 +72,9 @@ DOORBELL
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 	|CONFIG_USB_UVC                        |support UVC camera      |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-
+	|CONFIG_LCD_FONT_BLEND                 |support font/image blend|``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
+	+--------------------------------------+------------------------+--------------------------------------------+---------+
+	
 4 Demo introduction
 -------------------------------------
 	The steps performed by the demo are as follows:
@@ -133,6 +143,7 @@ DOORBELL
 	Set the peer IP address in Figure 4. When the board is softap, the default is ``192.168.0.1``. When the board is used as a staion, the mobile phone and the board are connected to the same ap,
 	and the filled IP address can be passed through the command `` ip`` to get.
 	In addition, the app also supports the function of mobile phone image transfer, that is, the command ``video_transfer -a|s ssid key``, but step 1 in Figure 4 must be set to ``video_transfer`` mode.
+	The apk download address: http://dl.bekencorp.com/apk/RealtimeVideo.apk
 
 .. figure:: ../../../../common/_static/RealtimeVideo_app.jpg
     :align: center
@@ -141,28 +152,28 @@ DOORBELL
 
     Figure 1. doorbell apk
 
-.. figure:: ../../../../common/_static/app_set0.jpg
+.. figure:: ../../../../common/_static/RealtimeVideo_set0.jpg
     :align: center
     :alt: RealtimeVideo_app_screen
     :figclass: align-center
 
     Figure 2. RealtimeVideo_app Main screen
 
-.. figure:: ../../../../common/_static/app_set1.jpg
+.. figure:: ../../../../common/_static/RealtimeVideo_set1.jpg
     :align: center
     :alt: RealtimeVideo_app_set_menu
     :figclass: align-center
 
     Figure 3. RealtimeVideo_app Set menu
 
-.. figure:: ../../../../common/_static/app_set2.jpg
+.. figure:: ../../../../common/_static/RealtimeVideo_set2.jpg
     :align: center
     :alt: RealtimeVideo_app_set
     :figclass: align-center
 
     Figure 4. RealtimeVideo_app set
 
-.. figure:: ../../../../common/_static/app_set3.jpg
+.. figure:: ../../../../common/_static/RealtimeVideo_set3.jpg
     :align: center
     :alt: RealtimeVideo_function_set
     :figclass: align-center
@@ -419,7 +430,85 @@ Then you can use the new screen display!
 	lcd_open.device_name = "nt35512";
 	ret = media_app_lcd_open(&lcd_open);
 
-7 Add camera configuration
+7 png blend
+-----------------------------------------------------
+
+
+1) please refer to ``html/bk7256/zh_CN/latest/examples/video/dma2d.html`` It introduces in detail the supported types of the data format of the foreground icon. This document explains the common data of ARGB8888 and RGB565.
+
+2) Prepare png or jpg images (also known as foreground images) of small icons that need to be fused
+
+3) Convert png to rgba8888 data, this conversion can maintain the transparency of png, suitable for blending icons whose background is transparent
+
+ - Toolpath: ``components/media/tools/ffmpeg_bat/png2argb`` Access all png images under this path, double-click run.bat.
+
+ .. figure:: ../../../../common/_static/png2rgba.png
+    :align: center
+    :alt: RealtimeVideo_app
+    :figclass: align-center
+
+    Figure 7. png to rgba8888.rgb
+
+Or convert jpg to rgb565 (big endian) data. During the conversion process, all opaque jpg pixels will be converted to opaque by default, which is suitable for blending icons with similar backgrounds and icon backgrounds, or blending that does not require background frames.
+
+ - Toolpath: ``components/media/tools/ffmpeg_bat/jpeg2rgb565`` Access all png images under this path, double-click run.bat.
+
+ .. figure:: ../../../../common/_static/jpg2rgb565.png
+    :align: center
+    :alt: RealtimeVideo_app
+    :figclass: align-center
+
+    Figure 8. png to rgb565le.rgb
+
+
+4) Use "HxD" or other tools to convert rgb data into a const array and save it in flash.
+
+in “components/media/include/blend_logo.h” Define the foreground image, as well as the length and width of the foreground image:
+
+::
+
+	#define WIFI_LOGO_W 32
+	#define WIFI_LOGO_H 36
+
+	const unsigned char wifi_full_rgb565[2304] = {
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		....
+	};
+
+If you want to fuse the foreground icon at a fixed position on the LCD screen, you also need to set the coordinates of the foreground fusion
+For example: if you want to merge the foreground icon (16x36) of the version number from the 500th line of the screen (480x800), the center position can be set as follows:
+
+::
+
+	#define VERSION_POSTION_Y   500   //HIGH 800
+	#define VERSION_POSTION_X   144   //WIDTH 480 "BK7 V1.23.45"  (480-(12*16))/2    12个字节, 图标宽16
+
+4) DMA2D accomplish blend
+
+After preparing the picture data and the blending position, the next step is to configure the actual blending parameters, please refer to the API interface in lcd_act.c: lcd_blend_handler
+
+For example, the wifi icon to be blended starts to blend at the upper right corner of the screen, that is, the screen coordinates (lcd_width-logo_width, 0), and its lcd_blend.pbg_addr needs to set the address offset (frame->frame + (frame->width - WIFI_LOGO_W) * 2. 
+How to set the offset is described in detail in the DMA2D use case guide.
+
+::
+
+		if ((g_blend_data.lcd_blend_type & LCD_BLEND_WIFI) != 0)
+		{
+			LOGD("lcd wifi blend level =%d \n", g_blend_data.wifi_data);
+			lcd_blend.pfg_addr = (uint8_t *)wifi_logo[g_blend_data.wifi_data];
+			lcd_blend.pbg_addr = (uint8_t *)(frame->frame + (frame->width - WIFI_LOGO_W) * 2);
+			lcd_blend.fg_offline = 0;
+			lcd_blend.bg_offline = frame->width - WIFI_LOGO_W;
+			lcd_blend.xsize = WIFI_LOGO_W;
+			lcd_blend.ysize = WIFI_LOGO_H;
+			lcd_blend.fg_alpha_value = FG_ALPHA;
+			lcd_blend.fg_data_format = ARGB8888;
+			lcd_driver_blend(&lcd_blend);
+		}
+
+
+8 Add camera configuration
 -----------------------------
 	The cameras used in the application process are not only those currently supported, but also need to be adapted to other dvp cameras or uvc cameras.
 	The following is a separate description of how to adapt to the two different types of cameras.
@@ -523,66 +612,97 @@ it may be necessary to add the MCLK input configuration of the new camera;
 	Refer to the doorbell command line: ``components/media/cli/media_cli.c``, adapt the new command, add a new resolution in the function: ``get_string_to_ppi()``;
 
 
-8 LCD Rotate
------------------------------------------------------
-
-When the pixels of the screen and the picture are opposite, for example, the screen is 480X800 and the camera is 800X480, the image can be rotated and displayed.
-Rotated images are currently adapted as follows:
-
-Because the rotation is a block rotation, in order for each row/column to be rotated, the set rotation block unit must be divisible by the length and width of the image.
-
-	+---------------------------+-----------------------+----------------------------------------------------+
-	|LCD parameters (W X H)     |img param(W X H)       |Rotate param (W X H)                                |
-	+===========================+=======================+====================================================+
-	|320X480                    |480X320                |block_width=160,block_height=40                     |
-	+---------------------------+-----------------------+----------------------------------------------------+
-	|480X800                    |800X480                |block_width=160,block_height=40                     |
-	+---------------------------+-----------------------+----------------------------------------------------+
-	|480X854                    |864X480                |block_width=108,block_height=40                     |
-	+---------------------------+-----------------------+----------------------------------------------------+
-
-
 .. Attention::
 
 	 The width of the camera resolution must be divisible by 16 (864/16), and the height must be divisible by 8 (480/8). Otherwise hardware decoding will fail.
 
 
-If the newly added camera needs to be rotated and displayed on the screen, the user needs to make the following modifications in ``components/media/lcd_cal.c``
+9 LCD Rotate
+-----------------------------------------------------
 
-1. Add the length and width of each rotation to the rotation array
+When the pixels of the screen and the picture are opposite, for example, the screen is 480X800 and the camera is 800X480, the image can be rotated and displayed.
+Rotated images are currently adapted as follows:
 
+
+10 font blend
+-----------------------------------------------------
+
+The SDK supports anti-aliasing fusion of fonts. The fonts are provided to users as internal libraries. Currently supported fonts are:
 
 ::
 
-	const block_ppi_t block_ppi_aray[] = {
-		{108, 40},
-		{160, 40},
+	#define FONT_ANTI4BPP_ROBOTO_53           1
+	#define FONT_ANTI4BPP_BLACK24             1
+	#define FONT_ANTI4BPP_BLACK48             1
+	#define FONT_ANTI4BPP_SOURCE_HAN_SANS17   0
+	#define FONT_ANTI4BPP_SOURCE_HAN_SANS42   0
 
-		{MAX_BLOCK_WIDTH, MAX_BLOCK_HEIGHT}
-	};
-
+	#if FONT_ANTI4BPP_ROBOTO_53
+	extern const gui_font_digit_struct *const font_digit_Roboto53;
+	#endif
+	#if FONT_ANTI4BPP_SOURCE_HAN_SANS17
+	extern const gui_font_digit_struct *const font_digitSource_Han_Sans17;
+	#endif
+	#if FONT_ANTI4BPP_SOURCE_HAN_SANS42
+	extern const gui_font_digit_struct *const font_digitSource_Han_Sans42;
+	#endif
+	#if FONT_ANTI4BPP_BLACK24
+	extern const gui_font_digit_struct *const font_digit_black24;
+	#endif
+	#if FONT_ANTI4BPP_BLACK48
+	extern const gui_font_digit_struct *const font_digit_black48;
+	#endif
 
 
 .. Attention::
-	 The maximum size of the array cannot exceed  MAX_BLOCK_WIDTH(160) and  MAX_BLOCK_HEIGHT(80).
 
+	Currently, words are added according to different customer needs. If the customer needs are not met, please contact support.
 
-2. Then select or add the corresponding local block rotation according to the pixels of the incoming image
+Please refer to the code of font blend ``middleware/driver/lcd_driver.c`` API:lcd_driver_font_blend
+
 
 ::
 
-	switch ((src_width << 16) | src_height)
+	font_t font;
+	font.info = (ui_display_info_struct){rgb565_data,0,lcd_font->ysize,0,{0}}; 
+	font.width = lcd_font->xsize;
+	font.height = lcd_font->ysize;
+	font.font_fmt = lcd_font->font_format;
+	for(int i = 0; i < lcd_font->str_num; i++)
 	{
-		case PPI_864X480:
-			block_width = block_ppi_aray[0].width;
-			block_height = block_ppi_aray[0].height;
-			block_size = block_width * block_height * 2;
-			break;
+		font.digit_info = lcd_font->str[i].font_digit_type;
+		font.s = lcd_font->str[i].str;
+		font.font_color = lcd_font->str[i].font_color;
+		font.x_pos = lcd_font->str[i].x_pos;
+		font.y_pos = lcd_font->str[i].y_pos;
+		lcd_draw_font(&font);
+	}
 
-		default:
-			block_width = block_ppi_aray[1].width;
-			block_height = block_ppi_aray[1].height;
-			block_size = block_width * block_height * 2;
-			break;
-	};
+The values ​​for each parameter are entered as follows:
 
+::
+
+	//Configuration of blend Locations
+	frame_addr_offset = ((start_y + VERSION_POSTION_Y) * frame->width + start_x + VERSION_POSTION_X) * 2;
+	lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset); 	//address offset
+	lcd_font_config.bg_offline = frame->width - CLOCK_LOGO_W;
+	lcd_font_config.xsize = CLOCK_LOGO_W;       ///The width of the fusion/blend area is determined according to the width of Chinese characters
+	lcd_font_config.ysize = CLOCK_LOGO_H;       ///The height of the fusion area is determined by the height of the Chinese characters
+	lcd_font_config.str_num = 2;                ///Merge several strings at once
+	#if 1  ///font yuv data to bg yuv image
+	if (frame->fmt == PIXEL_FMT_VUYY)           ///Fusion Chinese characters into YUV data
+		lcd_font_config.font_format = FONT_VUYY;
+	else
+		lcd_font_config.font_format = FONT_YUYV;
+	#else  ///font rgb data to bg yuv image
+	lcd_font_config.font_format = FONT_RGB565;  ///Fusion Chinese characters into RGB565 data
+	#endif
+
+	///White font, font size, blending into the starting coordinates of the area
+	lcd_font_config.str[0] = (font_str_t){(const char *)("MU, 27℃"), FONT_WHITE, font_digit_black24, 0, 2};
+	lcd_font_config.str[1] = (font_str_t){(const char *)("2022-12-12 VL"), FONT_WHITE, font_digit_black24, 0, 26};
+
+	lcd_font_config.bg_data_format = frame->fmt;  ///background data format
+	lcd_font_config.bg_width = frame->width;      ///background image size
+	lcd_font_config.bg_height = frame->height;
+	lcd_driver_font_blend(&lcd_font_config);

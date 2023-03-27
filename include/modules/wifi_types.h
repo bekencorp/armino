@@ -218,7 +218,6 @@ typedef enum {
 	WIFI_LINKSTATE_STA_CONNECTING,    /**< sta mode is connecting */
 	WIFI_LINKSTATE_STA_DISCONNECTED,  /**< sta mode is disconnected */
 	WIFI_LINKSTATE_STA_CONNECTED,     /**< sta mode is connected */
-	WIFI_LINKSTATE_STA_CONNECT_FAILED,     /**< sta mode is connec fail */
 	WIFI_LINKSTATE_STA_GOT_IP,        /**< sta mode got ip */
 
 	/* for AP mode */
@@ -474,6 +473,25 @@ typedef struct {
 	uint8_t bandwidth;		/**< Average used bandwidth, 0 if unavailable */
 	uint8_t idle_time_per;		/**< Percent of idle time, 0 if unavailable */
 } wifi_statistics_info_t;
+
+
+/**
+ * @brief Wi-Fi RAW TX control.
+ */
+typedef struct {
+	uint32_t tx_rate;       /**< RAW Data TX rate information */
+	uint32_t tx_power;      /**< RAW Data TX power information */
+	uint32_t tx_retry_cnt;  /**< RAW Data TX retry count */
+} raw_tx_cntrl_t;
+
+/**
+ * @brief Wi-Fi RAW TX control.
+ */
+typedef struct {
+	uint8_t* pkt;                   /**< RAW data tx packet address */
+	int      len;                   /**< RAW data tx packet length */
+	raw_tx_cntrl_t tx_cntrl;        /**< RAW data tx control information */
+} wifi_raw_tx_info_t;
 
 /**
  * @}

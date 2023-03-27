@@ -254,7 +254,7 @@ static void ping_thread(void *thread_param)
 
 	ping(p_param.ip, p_param.time, 0);
 
-	LWIP_DEBUGF( PING_DEBUG, ("ping: reset\n"));
+	//LWIP_DEBUGF( PING_DEBUG, ("ping: end\n"));
 	if (p_param.ip)
 		os_free(p_param.ip);
 	p_param.ip = NULL;
@@ -310,7 +310,8 @@ int ping(char* target_name, uint32_t times, size_t size)
     struct sockaddr_in6 *h6 = NULL;
     struct netif *netif=NULL;
 #endif
-
+	int recv_cnt = 0;
+	int sent_cnt = 0;
     send_times = 0;
     ping_seq_num = 0;
 
@@ -374,9 +375,11 @@ int ping(char* target_name, uint32_t times, size_t size)
     {
         if (ping_mid_send(s, src_addr,&target_addr, size) == ERR_OK)
         {
+			sent_cnt++;
 			recv_start_tick = sys_now();
             if ((recv_len = ping_mid_recv(s, &ttl,af)) >= 0)
             {
+                recv_cnt++;
                 LWIP_DEBUGF( PING_DEBUG, ("%d bytes from %s icmp_seq=%d ttl=%d time=%d ticks\n", recv_len, ipaddr_ntoa(&target_addr), send_times,
                         ttl, sys_now() - recv_start_tick));
             }
@@ -393,6 +396,8 @@ int ping(char* target_name, uint32_t times, size_t size)
         send_times++;
         if (send_times >= times)
         {
+			LWIP_DEBUGF( PING_DEBUG, ("ping end, sent cnt: %d, recv cnt: %d, drop cnt: %d(%.1f%%)\n", 
+				sent_cnt, recv_cnt, (times-recv_cnt), (float)(((times-recv_cnt)*100)/times)));
             /* send ping times reached, stop */
             break;
         }

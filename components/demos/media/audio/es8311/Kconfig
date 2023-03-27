@@ -1,0 +1,7 @@
+menu "Demos::Media::Audio::ES8311"
+	config ES8311_TEST
+		depends on ES8311
+		depends on FATFS
+		bool "Enable es8311 Test"
+		default n
+endmenu

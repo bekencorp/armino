@@ -69,7 +69,7 @@ void bk_matter_data(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **a
         {
             buf_len = (strlen(argv[4]) - 7) / 2;
             unsigned char* buf = malloc(buf_len * sizeof(char));
-            hexstr2bin(argv[4] + 7, buf, buf_len);
+            hexstr2bin_cli(argv[4] + 7, buf, buf_len);
             err = bk_write_data(argv[2], argv[3], (char*)buf, buf_len);
             free(buf);
         } else { // str

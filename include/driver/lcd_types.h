@@ -47,6 +47,9 @@ typedef enum {
 	LCD_DEVICE_MD0430R, /**< 800X480 RGB  */
 	LCD_DEVICE_MD0700R, /**< 1024X600 RGB  */
 	LCD_DEVIDE_ST7710S, /**< 480X800 RGB  */
+	LCD_DEVICE_ST7701S, /**< 480X480 RGB  */
+	LCD_DEVICE_ST7701S_LY, /**< 480X480 RGB  */
+	LCD_DEVICE_SN5ST7701S, /**< 480X480 RGB  */
 } lcd_device_id_t;
 
 typedef enum {
@@ -71,6 +74,7 @@ typedef enum {
 	LCD_54M,  //5
 	LCD_40M,
 	LCD_32M,
+	LCD_30M,
 	LCD_26M,
 	LCD_20M,
 	LCD_12M,//10
@@ -166,8 +170,14 @@ typedef enum {
 	ARGB8888 = 0, /**< ARGB8888 DMA2D color mode */
 	RGB888,       /**< RGB888 DMA2D color mode   */
 	RGB565,       /**< RGB565 DMA2D color mode   */
+	YUYV,
 } data_format_t;
 
+typedef struct {
+	unsigned char y;
+	unsigned char u;
+	unsigned char v;
+} yuv_data_t;
 
 /** lcd blend config */
 typedef struct
@@ -184,14 +194,11 @@ typedef struct
 	uint8_t bg_alpha_value;        /**< background logo alpha value,depend on alpha_mode*/
 	data_format_t fg_data_format;  /**< foregound data format */
 	pixel_format_t bg_data_format; /**< background data format */
+	uint8_t flag; /**< background data format */
 }lcd_blend_t;
 
 
 
-typedef enum{
-	FONT_BG_RGB565 = 0,
-	FONT_BG_YUV,
-}font_format_t;
 
 typedef struct
 {

@@ -296,7 +296,7 @@ void at_mac_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **a
 		os_printf("ap mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(ap_mac));
 
 	} else if (argc == 2) {
-		hexstr2bin(argv[1], base_mac, BK_MAC_ADDR_LEN);
+		hexstr2bin_cli(argv[1], base_mac, BK_MAC_ADDR_LEN);
 		ret4 = bk_set_base_mac(base_mac);
 		os_printf("set base mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(base_mac));
 		if (ret4 != BK_OK)

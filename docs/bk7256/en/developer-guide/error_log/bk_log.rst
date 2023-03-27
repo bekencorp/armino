@@ -1,7 +1,7 @@
 log output
 ===================
 
-:link_to_translation:`en:[English]`
+:link_to_translation:`zh_CN:[中文]`
 
 Here introduces the log output method for Armino platform, it also works for dual cores SoC.
 

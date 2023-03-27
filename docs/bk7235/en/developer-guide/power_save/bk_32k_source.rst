@@ -1,6 +1,8 @@
 config 32k clock source description
 -----------------------------------------------
 
+:link_to_translation:`zh_CN:[中文]`
+
 32k clock source：
 
 - rosc
@@ -25,7 +27,7 @@ so you can select different 32k source clock based on owner using scenarios
 
 
 switch 32k source clock interface instructions
---------------------------------------------------------
+----------------------------------------------
 
 enum type：
 
@@ -52,5 +54,4 @@ bk_pm_lpo_src_set(pm_lpo_src_e lpo_src)
 
 pm_lpo_src_e bk_pm_lpo_src_get()
 
-:link_to_translation:`en:[English]`
 

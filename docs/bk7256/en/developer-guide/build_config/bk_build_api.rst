@@ -1,7 +1,7 @@
 Build APIs
 ==========
 
-:link_to_translation:`en:[English]`
+:link_to_translation:`zh_CN:[中文]`
 
 
 Build APIs
@@ -150,7 +150,7 @@ Commands for setting and operating variables can generally be called before ``ar
 The parameters of ``armino_component_register`` include:
 
   - SRCS - The component's source file, used to create a static library for the component; if not specified, the component will be treated as a configuration-only component, creating an interface library.
-  - SRC_DIRS, EXCLUDE_SRCS - Used to glob source files (.c, .cpp, .S) by specifying directories instead of manually specifying source files via SRCS. Note that this is subject to :ref:`wildcards in CMake.<cmake-file-globbing>`. Source files specified in EXCLUDE_SRCS are removed from the globbed files.
+  - SRC_DIRS, EXCLUDE_SRCS - Used to glob source files (.c, .cpp, .S) by specifying directories instead of manually specifying source files via SRCS. Note that this is subject to :ref:*wildcards in CMake.<cmake-file-globbing>*. Source files specified in EXCLUDE_SRCS are removed from the globbed files.
   - INCLUDE_DIRS - A path relative to the component directory that will be added to the include search paths of all other components that require the current component.
   - PRIV_INCLUDE_DIRS - Must be a directory path relative to the component directory, it is only added to the include search path for this component's source files.
   - REQUIRES - Common component dependencies of the component.
@@ -160,7 +160,7 @@ The parameters of ``armino_component_register`` include:
   - KCONFIG - Overrides the default Kconfig file.
   - KCONFIG_PROJBUILD - Overrides the default Kconfig.projbuild file.
 
-The following :ref:`are used to embed data into a component <cmake_embed_data>`，and are considered source files when determining whether a component is only used for configuration. This means that even if the component does not specify a source file, if the component specifies one of the following, a static library will still be created internally for the component.
+The following :ref:*are used to embed data into a component <cmake_embed_data>*，and are considered source files when determining whether a component is only used for configuration. This means that even if the component does not specify a source file, if the component specifies one of the following, a static library will still be created internally for the component.
 
   - EMBED_FILES - Binary files for embedded components
   - EMBED_TXTFILES - Text files for embedded components
@@ -179,7 +179,7 @@ Component property values can be obtained by using the build command ``armino_co
 
 - COMPONENT_ALIAS - Alias for COMPONENT_LIB, used to link components to external targets; set by ``armino_build_component``, the alias library itself is created by ``armino_component_register``.
 - COMPONENT_DIR -  Component directory; set by ``armino_build_component``.
-- COMPONENT_OVERRIDEN_DIR - If :ref:`If this component overwrites another component<cmake-components-same-name>`, the directory containing the original component.
+- COMPONENT_OVERRIDEN_DIR - If :ref:*If this component overwrites another component<cmake-components-same-name>*, the directory containing the original component.
 - COMPONENT_LIB - The name of the component static/interface library created; set by ``armino_build_component``, the library itself is created by ``armino_component_register``.
 - COMPONENT_NAME - The name of the component; set by ``armino_build_component`` based on the component's directory name.
 - COMPONENT_TYPE - The type of component (LIBRARY or CONFIG_ONLY). If a component specifies a source file or embeds a file, its type is LIBRARY.

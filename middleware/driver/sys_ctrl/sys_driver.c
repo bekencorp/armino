@@ -192,6 +192,17 @@ void sys_drv_set_ana_cb_cal_trig(uint32_t value)
     sys_hal_set_ana_cb_cal_trig(value);
     rtos_enable_int(int_level);
 }
+
+UINT32 sys_drv_get_ana_cb_cal_manu_val(void)
+{
+    uint32_t cal_manu_val;
+    uint32_t int_level = rtos_disable_int();
+
+    cal_manu_val = sys_hal_get_ana_cb_cal_manu_val();
+    rtos_enable_int(int_level);
+    return cal_manu_val;
+}
+
 void sys_drv_set_ana_cb_cal_manu_val(uint32_t value)
 {
     uint32_t int_level = rtos_disable_int();

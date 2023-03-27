@@ -8,7 +8,7 @@
 
 #include <os/os.h>
 #include <common/bk_kernel_err.h>
-
+#include <string.h>
 #include "wlan_ui_pub.h"
 
 #include <lwip/inet.h>
@@ -17,6 +17,7 @@
 #endif
 #include "video_transfer_tcp.h"
 #include "video_transfer_udp.h"
+#include "video_transfer_cs2_p2p.h"
 #include "video_demo_pub.h"
 #include "video_upd_spd.h"
 
@@ -56,6 +57,14 @@ typedef struct head_param
     u32 type;
     u32 len;
 } head_param_t;
+
+typedef struct
+{
+    beken_thread_t tid;
+    char **argv;
+    uint8_t argc;
+} middle_layer_task_arg_t;
+
 
 APP_DEMO_STA_PTR g_demo_sta = NULL;
 
@@ -159,6 +168,10 @@ static void app_demo_sta_rw_event_func(void *new_evt)
         //if(g_demo_sta->status != DS_WIFI_DISCONECTED)
         app_demo_sta_send_msg(DAP_WIFI_DISCONECTED, 0);
     }
+    else
+    {
+        APP_DEMO_STA_PRT("WIFI_LINKSTATE %d\r\n", info.state);
+    }
 }
 
 static int app_demo_sta_setup(void)
@@ -199,6 +212,7 @@ static void app_demo_sta_main(beken_thread_arg_t data)
 {
     bk_err_t err;
     u32 status;
+    middle_layer_task_arg_t *targ = (typeof(targ))data;
 
     g_demo_sta->status = APS_WIFI_DISCONECTED;
 
@@ -236,6 +250,11 @@ static void app_demo_sta_main(beken_thread_arg_t data)
                     #if APP_DEMO_CFG_USE_UDP_SDP
                     vudp_sdp_stop();
                     #endif
+
+                    #if CONFIG_CS2_P2P_SERVER
+                    app_demo_cs2_p2p_deinit();
+                    #endif
+
                     APP_DEMO_STA_PRT("wifi disconnected!\r\n");
                 }
                 break;
@@ -256,6 +275,18 @@ static void app_demo_sta_main(beken_thread_arg_t data)
                     #if APP_DEMO_CFG_USE_UDP_SDP
                     vudp_sdp_start();
                     #endif
+
+                    #if CONFIG_CS2_P2P_SERVER
+                    if(targ->argc >= 3)
+                    {
+                        app_demo_cs2_p2p_init(targ->argv[0], targ->argv[1], targ->argv[2]);
+                    }
+                    else
+                    {
+                        os_printf("cs2 p2p arg is not match %d, need 3\n", targ->argc);
+                    }
+                    #endif
+
                     APP_DEMO_STA_PRT("wifi connected!\r\n");
                 }
                 break;
@@ -283,6 +314,25 @@ static void app_demo_sta_main(beken_thread_arg_t data)
 
 app_demo_sta_exit:
 
+    if (targ)
+    {
+        if (targ->argv)
+        {
+            for (int i = 0; i < targ->argc; ++i)
+            {
+                if (targ->argv[i])
+                {
+                    os_free(targ->argv[i]);
+                }
+            }
+
+            os_free(targ->argv);
+        }
+
+        os_free(targ);
+    }
+
+
     rtos_deinit_queue(&g_demo_sta->msg_que);
 
     app_demo_sta_free_buffer();
@@ -290,11 +340,13 @@ app_demo_sta_exit:
     rtos_delete_thread(NULL);
 }
 
-void app_demo_sta_start(char *oob_ssid, char *connect_key)
+
+
+void app_demo_sta_start(char *oob_ssid, char *connect_key, int argc, char **argv)
 {
     int ret;
 
-    APP_DEMO_STA_PRT("app_demo_sta_init ssid:%s, key:%s\r\n");
+    APP_DEMO_STA_PRT("%s ssid:%s, key:%s argc %d\r\n", __func__, oob_ssid, connect_key, argc);
     #if 1
     if (!g_demo_sta)
     {
@@ -325,12 +377,37 @@ void app_demo_sta_start(char *oob_ssid, char *connect_key)
             return;
         }
 
+
+        middle_layer_task_arg_t *targ;
+
+
+        targ = os_malloc(sizeof(*targ));
+
+        memset(targ, 0, sizeof(*targ));
+
+        if(argc > 0)
+        {
+            targ->argc = argc;
+
+            targ->argv = os_malloc(sizeof(targ->argv[0]) * argc);
+
+            memset(targ->argv, 0, sizeof(targ->argv[0]) * argc);
+
+            for (int i = 0; i < argc; ++i)
+            {
+                targ->argv[i] = os_malloc(strlen(argv[i]) + 1);
+
+                memset(targ->argv[i], 0, strlen(argv[i]) + 1);
+                strcpy(targ->argv[i], argv[i]);
+            }
+        }
+
         ret = rtos_create_thread(&g_demo_sta->thread_hdl,
                                  BEKEN_DEFAULT_WORKER_PRIORITY,
                                  "app_demo_sta",
                                  (beken_thread_function_t)app_demo_sta_main,
                                  4096,
-                                 (beken_thread_arg_t)NULL);
+                                 (beken_thread_arg_t)targ);
         if (ret != kNoErr)
         {
             APP_DEMO_STA_FATAL("create thread: %d\r\n", ret);

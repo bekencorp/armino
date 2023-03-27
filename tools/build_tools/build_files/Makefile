@@ -1,6 +1,6 @@
 export PROPERTIES_PROJECT_DIR := projects/properties_libs
 ARMINO_DIR := $(shell pwd)
-ARMINO_BOOTLOADER := $(ARMINO_DIR)/properties/modules/bootloader/aboot/monitor_bootloader/
+ARMINO_BOOTLOADER := $(ARMINO_DIR)/properties/modules/bootloader/aboot/bootloader-v4
 ARMINO_TOOL := @$(ARMINO_DIR)/tools/build_tools/armino
 ARMINO_TOOL_WRAPPER := @$(ARMINO_DIR)/tools/build_tools/build.sh
 # 1. soc_targets contains all supported SoCs
@@ -101,9 +101,7 @@ build_dual_core := $(shell $(ARMINO_DIR)/tools/build_tools/detect_build_dual_cor
 
 $(info $$(PROJECT) is $(PROJECT))
 bootloader:
-
 ifeq ($(has_lib_src), 1)
-	make clean -C ${ARMINO_BOOTLOADER}
 	make -C ${ARMINO_BOOTLOADER}
 endif
 

@@ -16,6 +16,24 @@
 
 //TODO refactor BK netif module
 
+bk_err_t bk_netif_static_ip(netif_ip4_config_t static_ip4_config) {
+		int ret = 0;
+		netif_ip4_config_t config = {0};
+
+		sta_ip_mode_set(0);
+		os_strncpy(config.ip, static_ip4_config.ip, NETIF_IP4_STR_LEN);
+		os_strncpy(config.mask, static_ip4_config.mask, NETIF_IP4_STR_LEN);
+		os_strncpy(config.gateway, static_ip4_config.gateway, NETIF_IP4_STR_LEN);
+		os_strncpy(config.dns, static_ip4_config.dns, NETIF_IP4_STR_LEN);
+		ret = bk_netif_set_ip4_config(NETIF_IF_STA, &config);
+
+		if(!ret) {
+			return BK_OK;
+		} else {
+			return ret;
+		}
+}
+
 bk_err_t netif_wifi_event_cb(void *arg, event_module_t event_module,
                 int event_id, void *event_data)
 {

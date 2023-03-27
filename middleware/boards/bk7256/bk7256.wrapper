@@ -60,32 +60,31 @@ pack_out_path = "pack_tmp.json"
 pack_out_ab_path = "configurationab.json"
 
 project_bootloader_a_b = "properties/modules/bootloader/aboot/bootloader-a-b"
-project_bootloader = "properties/modules/bootloader/aboot/monitor_bootloader"
+project_bootloader = "properties/modules/bootloader/aboot/bootloader-v4"
 #copy bootloader bin-elf-asm to relating directory
 if os.getenv("PROJECT_DIR") != "projects/ate_mini_code":
     if os.path.exists(os.getenv("ARMINO_PATH")+"/projects/"+os.getenv("PROJECT")+"/pj_config.mk"):
         if os.path.exists(os.getenv("ARMINO_PATH")+"/projects/"+os.getenv("PROJECT")+"/config/configurationab.json"):
-            #if not os.path.exists("bootloader_out"):
-                #os.mkdir("bootloader_out")
             print("PROJECT_DIRab:",os.getenv("PROJECT_DIR"))
             #print("PROJECT_DIRab:","{}/{}/l_boot/out/l_bootloader.map".format(armino_path,project_bootloader_a_b))
             #copy bootloader bin to os.getenv("PROJECT_DIR")
             if (os.path.exists("{}/{}".format(armino_path,project_bootloader_a_b))):
-                shutil.copy("{}/{}/output/bootloader.bin".format(armino_path,project_bootloader_a_b), 
+                shutil.copy("{}/{}/PACK/generate_out/bootloader.bin".format(armino_path,project_bootloader_a_b), 
                             "{}/{}".format(armino_path, os.getenv("PROJECT_DIR")))
                 #copy bootloader elf-map-asm to build directory
-                #shutil.copytree("{}/{}/l_boot/out/".format(armino_path,project_bootloader_a_b), "./bootloader_out/l_boot",ignore=shutil.ignore_patterns("temp","*.bin","l_bootloader1.asm"))
-                shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader), './bootloader_out')
+                shutil.copytree("{}/{}/l_boot/out/".format(armino_path,project_bootloader_a_b), "./bootloader_out/l_boot",ignore=shutil.ignore_patterns("temp","*.bin","l_bootloader1.asm"))
+                shutil.copytree("{}/{}/up_boot/out/".format(armino_path,project_bootloader_a_b), "./bootloader_out/u_boot",ignore=shutil.ignore_patterns("temp","*.bin","u_bootloader1.asm"))
         else:
             if (os.path.exists("{}/{}".format(armino_path,project_bootloader))):
                 print("PROJECT_DIR:",os.getenv("PROJECT_DIR"))
-                #print("PROJECT_DIRab:","{}/{}/out/".format(armino_path,project_bootloader))
+                #print("PROJECT_DIRab:","{}/{}/l_boot/out/l_bootloader.map".format(armino_path,project_bootloader))
                 #copy bootloader bin to middleware boards
-                shutil.copy("{}/{}/output/bootloader.bin".format(armino_path,project_bootloader), 
+                shutil.copy("{}/{}/PACK/generate_out/bootloader.bin".format(armino_path,project_bootloader), 
                             "{}/middleware/boards/{}/bootloader.bin".format(armino_path,chip))
-                #copy bootloader and monitor elf-map-asm to build directory
-                shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader), './bootloader_out')
-
+                #copy bootloader elf-map-asm to build directory
+                shutil.copytree("{}/{}/l_boot/out/".format(armino_path,project_bootloader), "./bootloader_out/l_boot",ignore=shutil.ignore_patterns("temp","*.bin","l_bootloader1.asm"))
+                shutil.copytree("{}/{}/up_boot/out/".format(armino_path,project_bootloader), "./bootloader_out/u_boot",ignore=shutil.ignore_patterns("temp","*.bin","u_bootloader1.asm"))
+                
 def package_json_rebuild():
     if os.path.exists("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR"))):
         with open("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR")), 'r') as local_json:
@@ -123,7 +122,7 @@ def package_json_rebuild():
 
 def package_json_ab_rebuild():
     if os.path.exists("{}/{}/config/configurationab.json".format(armino_path, os.getenv("PROJECT_DIR"))):
-        print(">>>>>>config_json",os.getenv("ARMINO_PATH")+"/projects/"+os.getenv("PROJECT")+"/config/configurationab.json")
+        #print(">>>>>>config_json",os.getenv("ARMINO_PATH")+"/projects/"+os.getenv("PROJECT")+"/config/configurationab.json")
         shutil.copy(("{}/{}/config/configurationab.json".format(armino_path, os.getenv("PROJECT_DIR"))),"{}/middleware/boards/{}".format(armino_path, chip))
         with open("{}/middleware/boards/{}/configurationab.json".format(armino_path, chip), 'r') as local_json:
             config_json = json.load(local_json)
@@ -204,7 +203,6 @@ with open(str(out_path), "w") as f:
         f.write(package_json_rebuild())
         
 if os.path.exists(os.getenv("ARMINO_PATH")+"/projects/"+os.getenv("PROJECT")+"/config/configurationab.json"):
-    #print("123456")
     with open(str(pack_out_ab_path), "w") as f:
         f.write(package_json_ab_rebuild())
     

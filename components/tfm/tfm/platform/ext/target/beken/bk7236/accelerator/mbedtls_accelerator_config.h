@@ -3,7 +3,7 @@
 
 #define MBEDTLS_NO_UDBL_DIVISION
 #define MBEDTLS_PLATFORM_NO_STD_FUNCTIONS
-//#define MBEDTLS_PLATFORM_PRINTF_ALT
+#define MBEDTLS_PLATFORM_PRINTF_ALT
 #define MBEDTLS_PLATFORM_SNPRINTF_ALT
 #define MBEDTLS_AES_ALT
 #define MBEDTLS_SM4_ALT
@@ -16,22 +16,6 @@
 #define MBEDTLS_AES_ROM_TABLES
 #define MBEDTLS_ECJPAKE_C
 #define MBEDTLS_DES_C
-#define MBEDTLS_NIST_KW_C
-#define MBEDTLS_GCM_C
-#define MBEDTLS_CMAC_C
-#define MBEDTLS_RSA_C
-#define MBEDTLS_PKCS1_V15
-#define MBEDTLS_PKCS1_V21
-#define MBEDTLS_SHA1_C
-#define MBEDTLS_DHM_C
-#define MBEDTLS_PKCS5_C
-#define MBEDTLS_PKCS12_C
-#define MBEDTLS_SELF_TEST
-
-#if defined(MBEDTLS_AES_ALT)
-#define MBEDTLS_AES_SETKEY_DEC_ALT
-#define MBEDTLS_AES_SETKEY_ENC_ALT
-#endif
 
 #undef MBEDTLS_HAVE_TIME
 #undef MBEDTLS_HAVE_TIME_DATE
@@ -42,8 +26,8 @@
 /* enable PSK */
 #define MBEDTLS_KEY_EXCHANGE__SOME__PSK_ENABLED
 #define MBEDTLS_SSL_CIPHERSUITES MBEDTLS_TLS_PSK_WITH_AES_128_CBC_SHA256
-//#define memmove psa_memmove     //TODO wangzhilei
-//#define vsnprintf psa_vsnprintf //TODO wangzhilei
+#define memmove psa_memmove
+#define vsnprintf psa_vsnprintf
 
 #define MBEDTLS_SSL_MAX_CONTENT_LEN             4096 /**< Maxium fragment length in bytes, determines the size of each of the two internal I/O buffers */
 

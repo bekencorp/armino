@@ -6,4 +6,5 @@ camera
 .. toctree::
    :maxdepth: 1
 
-   DVP Video_transfer <bk_video_transfer>
+   Video_transfer <bk_video_transfer>
+   Capture <bk_capture>

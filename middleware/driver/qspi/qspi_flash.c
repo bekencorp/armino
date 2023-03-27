@@ -35,11 +35,7 @@
 #define FLASH_QUAD_RD_CMD          0xeb
 #define FLASH_ERASE_SECTOR_CMD     0x20
 
-#if CONFIG_QSPI_FLASH_GD
-#define FLASH_STATUS_REG_SIZE      0
-#else
 #define FLASH_STATUS_REG_SIZE      1
-#endif
 #define FLASH_READ_ID_SIZE         4
 #define QSPI_FIFO_LEN_MAX          256
 #define FLASH_QE_DATA              BIT(1)

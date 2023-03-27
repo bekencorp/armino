@@ -38,6 +38,7 @@
 #include <driver/dvp_camera_types.h>
 
 #include <modules/ble.h>
+#include <modules/dm_ble.h>
 
 #include <driver/timer.h>
 
@@ -54,8 +55,8 @@ typedef void (*camera_connect_state_t)(uint8_t state);
 
 extern void transfer_dump(uint32_t ms);
 
-media_debug_t *media_debug = NULL;
-media_debug_t *media_debug_cached = NULL;
+extern media_debug_t *media_debug;
+extern media_debug_t *media_debug_cached;
 
 camera_info_t camera_info;
 bool dvp_camera_reset_open_ind = false;
@@ -213,6 +214,21 @@ out:
 
 	MEDIA_EVT_RETURN(param, ret);
 }
+
+void camera_dvp_drop_frame(uint32_t param)
+{
+#ifdef CONFIG_CAMERA
+
+	if (param)
+	{
+		bk_jpeg_enc_set_gpio_enable(0, JPEG_GPIO_HSYNC_DATA);
+	}
+	else
+	{
+		bk_jpeg_enc_set_gpio_enable(1, JPEG_GPIO_HSYNC_DATA);
+	}
+#endif
+}
 //#endif
 
 void uvc_ble_notice_cb(ble_notice_t notice, void *param)
@@ -301,7 +317,17 @@ void camera_uvc_open_handle(param_pak_t *param, media_camera_type_t type)
 #if CONFIG_BTDM_5_2
 	if (bk_ble_get_env_state())
 	{
-		bk_ble_set_notice_cb(uvc_ble_notice_cb);
+	    if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+	    {
+		    bk_ble_set_notice_cb(uvc_ble_notice_cb);
+	    }
+	    else
+	    {
+	        bk_ble_set_event_callback(NULL);
+	        LOGE("%s not support !!!\n");
+	        ret = kGeneralErr;
+	        goto out;
+	    }
 		LOGI("bluetooth is enabled, shutdown bluetooth\n");
 		rtos_init_semaphore(&camera_act_sema, 1);
 		bk_ble_deinit();
@@ -312,7 +338,17 @@ void camera_uvc_open_handle(param_pak_t *param, media_camera_type_t type)
 
 		rtos_deinit_semaphore(&camera_act_sema);
 		camera_act_sema = NULL;
-		bk_ble_set_notice_cb(NULL);
+        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+        {
+		    bk_ble_set_notice_cb(NULL);
+        }
+        else
+        {
+            bk_ble_set_event_callback(NULL);
+            LOGE("%s not support !!!\n");
+            ret = kGeneralErr;
+            goto out;
+        }
 	}
 	else
 	{
@@ -432,7 +468,17 @@ void camera_net_open_handle(param_pak_t *param, media_camera_type_t type)
 #if CONFIG_BTDM_5_2
 	if (bk_ble_get_env_state())
 	{
-		bk_ble_set_notice_cb(uvc_ble_notice_cb);
+        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+        {
+		    bk_ble_set_notice_cb(uvc_ble_notice_cb);
+        }
+        else
+        {
+            bk_ble_set_event_callback(NULL);
+            LOGE("%s not support !!!\n");
+            ret = kGeneralErr;
+            goto out;
+        }
 		LOGI("bluetooth is enabled, shutdown bluetooth\n");
 		rtos_init_semaphore(&camera_act_sema, 1);
 		bk_ble_deinit();
@@ -443,7 +489,17 @@ void camera_net_open_handle(param_pak_t *param, media_camera_type_t type)
 
 		rtos_deinit_semaphore(&camera_act_sema);
 		camera_act_sema = NULL;
-		bk_ble_set_notice_cb(NULL);
+        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+        {
+		    bk_ble_set_notice_cb(NULL);
+        }
+        else
+        {
+            bk_ble_set_event_callback(NULL);
+            LOGE("%s not support !!!\n");
+            ret = kGeneralErr;
+            goto out;
+        }
 	}
 	else
 	{
@@ -511,9 +567,6 @@ void camera_event_handle(uint32_t event, uint32_t param)
 		case EVENT_CAM_DVP_MIX_OPEN_IND:
 			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_MIX);
 			break;
-		case EVENT_CAM_DVP_H264_OPEN_IND:
-			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_H264);
-			break;
 		case EVENT_CAM_DVP_CLOSE_IND:
 			camera_dvp_close_handle((param_pak_t *)param);
 			break;
@@ -541,6 +594,9 @@ void camera_event_handle(uint32_t event, uint32_t param)
 		case EVENT_CAM_NET_CLOSE_IND:
 			camera_net_close_handle((param_pak_t *)param);
 			break;
+		case EVENT_CAM_DVP_DROP_FRAME_IND:
+			camera_dvp_drop_frame(param);
+			break;
 
 		default:
 			break;
@@ -559,25 +615,6 @@ void set_camera_state(camera_state_t state)
 
 void camera_init(void)
 {
-	if (media_debug == NULL)
-	{
-		media_debug = (media_debug_t *)os_malloc(sizeof(media_debug_t));
-
-		if (media_debug == NULL)
-		{
-			LOGE("malloc media_debug fail\n");
-		}
-	}
-
-	if (media_debug_cached == NULL)
-	{
-		media_debug_cached = (media_debug_t *)os_malloc(sizeof(media_debug_t));
-		if (media_debug_cached == NULL)
-		{
-			LOGE("malloc media_debug_cached fail\n");
-		}
-	}
-
 	camera_info.state = CAMERA_STATE_DISABLED;
 	camera_info.debug = true;
 }

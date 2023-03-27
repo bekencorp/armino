@@ -455,12 +455,14 @@ uint32 sys_hal_get_device_id(void)
 int32 sys_hal_int_disable(uint32 param) //CMD_ICU_INT_DISABLE
 {
 	uint32 reg = 0;
+	uint32 value = 0;
 
 	reg = sys_ll_get_cpu1_int_0_31_en_value();
+	value = reg;
 	reg &= ~(param);
 	sys_ll_set_cpu1_int_0_31_en_value(reg);
 
-	return 0;
+	return value;
 }
 
 int32 sys_hal_int_enable(uint32 param) //CMD_ICU_INT_ENABLE
@@ -478,12 +480,14 @@ int32 sys_hal_int_enable(uint32 param) //CMD_ICU_INT_ENABLE
 int32 sys_hal_int_group2_disable(uint32 param)
 {
 	uint32 reg = 0;
+	uint32 value = 0;
 
 	reg = sys_ll_get_cpu1_int_32_63_en_value();
+	value = reg;
 	reg &= ~(param);
 	sys_ll_set_cpu1_int_32_63_en_value(reg);
 
-	return 0;
+	return value;
 }
 
 //NOTICE:Temp add for BK7256 product which has more then 32 Interrupt sources
@@ -500,23 +504,11 @@ int32 sys_hal_int_group2_enable(uint32 param)
 
 int32 sys_hal_fiq_disable(uint32 param)
 {
-	uint32 reg = 0;
-
-	reg = sys_ll_get_cpu1_int_32_63_en_value();
-	reg &= ~(param);
-	sys_ll_set_cpu1_int_32_63_en_value(reg);
-
 	return 0;
 }
 
 int32 sys_hal_fiq_enable(uint32 param)
 {
-	uint32 reg = 0;
-
-	reg = sys_ll_get_cpu1_int_32_63_en_value();
-	reg |= (param);
-	sys_ll_set_cpu1_int_32_63_en_value(reg);
-
 	return 0;
 }
 
@@ -929,6 +921,15 @@ uint32_t sys_hal_mclk_div_get(void)
 }
 
 
+uint32_t sys_hal_nmi_wdt_get_clk_div(void)
+{
+    return sys_ll_get_cpu_26m_wdt_clk_div_ckdiv_wdt();
+}
+
+void sys_hal_nmi_wdt_set_clk_div(uint32_t value)
+{
+    sys_ll_set_cpu_26m_wdt_clk_div_ckdiv_wdt(value);
+}
 /**  Platform End **/
 
 
@@ -1593,6 +1594,11 @@ void sys_hal_ana_reg10_sdm_val_set(uint32_t value)
 void sys_hal_ana_reg11_spi_trigger_set(uint32_t value)
 {
 	sys_ll_set_ana_reg11_spi_trigger(value);
+}
+
+void sys_hal_i2s0_ckdiv_set(uint32_t value)
+{
+	sys_ll_set_cpu_clk_div_mode2_ckdiv_i2s0(value);
 }
 
 /**  I2S End  **/

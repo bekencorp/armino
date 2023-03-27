@@ -28,6 +28,7 @@ typedef struct {
 
 bk_err_t aon_pmu_hal_init(void);
 uint32_t aon_pmu_hal_get_wakeup_source_reg(void);
+bool aon_pmu_hal_is_chipid_later_than_version_C(void);
 void aon_pmu_hal_set_wakeup_source_reg(uint32_t value);
 int aon_pmu_hal_set_sleep_parameters(uint32_t value);
 void aon_pmu_hal_clear_wakeup_source(wakeup_source_t value);
@@ -49,8 +50,6 @@ void aon_pmu_hal_lpo_src_set(uint32_t lpo_src);
 uint32_t aon_pmu_hal_lpo_src_get();
 uint32_t aon_pmu_hal_bias_cal_get();
 void aon_pmu_hal_psram_iodrv_set(uint32_t io_drv);
-
-void aon_pmu_struct_dump(uint32_t start, uint32_t end);
 
 #ifdef __cplusplus
 }

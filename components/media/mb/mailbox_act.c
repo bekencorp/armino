@@ -26,6 +26,9 @@
 #include <driver/gpio_types.h>
 
 #include <driver/dma.h>
+#if CONFIG_LVGL
+#include "lvgl.h"
+#endif
 
 #ifdef CONFIG_MASTER_CORE
 #define TAG "mb_major"
@@ -43,8 +46,14 @@
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
 #if CONFIG_SLAVE_CORE
+#include "mailbox/mailbox_channel.h"
 void mailbox_cmd_handle(uint32_t event, uint32_t param)
 {
+#ifdef CONFIG_LVGL_DRAW_ON_CPU1
+	mb_chnl_cmd_t mb_cmd;
+#endif
+
+	void lv_draw_sw_blend_basic_slave(uint32_t param);
 	switch (event)
 	{
 		case EVENT_LCD_DEFAULT_CMD:
@@ -59,6 +68,18 @@ void mailbox_cmd_handle(uint32_t event, uint32_t param)
 			//LOGI("EVENT_LCD_ROTATE_RIGHT_CMD \n");
 			lcd_act_rotate_degree90(param);
 			break;
+
+		case EVENT_LVGL_DRAW_CMD:
+#ifdef CONFIG_LVGL_DRAW_ON_CPU1
+			lv_draw_sw_blend_basic_slave(param);
+			mb_cmd.hdr.cmd = 0x19;
+			mb_cmd.param1 = 0;
+			mb_cmd.param2 = 0;
+			mb_cmd.param3 = 1;
+
+			mb_chnl_write(MB_CHNL_LVGL, &mb_cmd);
+#endif
+ 			break;
 	}
 }
 #endif

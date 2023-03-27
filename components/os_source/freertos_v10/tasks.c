@@ -5549,7 +5549,7 @@ void vTaskDumpAllThreadStack(void)
 
 #endif // configBK_FREERTOS
 
-#if CONFIG_CM_BACKTRACE
+#if 1 // CONFIG_CM_BACKTRACE
 /*-----------------------------------------------------------*/
 /*< Support For CmBacktrace >*/
 uint32_t * vTaskStackAddr()

@@ -885,6 +885,11 @@ bool rtos_is_scheduler_started(void)
 	return s_is_started_scheduler;
 }
 
+uint32_t rtos_get_cpsr(void)
+{
+	return platform_cpsr_content();
+}
+
 char* rtos_get_name(void)
 {
 #define RTOS_NAME                     "FreeRTOS"
@@ -939,12 +944,22 @@ void rtos_enable_int(uint32_t int_level)
 
 uint32_t rtos_before_sleep(void)
 {
-    return rtos_disable_int();
+    return port_disable_interrupts_flag();
 }
 
 void rtos_after_sleep(uint32_t int_level)
 {
-    rtos_enable_int(int_level);
+    port_enable_interrupts_flag(int_level);
+}
+
+uint32_t rtos_disable_mie_int(void)
+{
+    return port_disable_mie_flag();
+}
+
+void rtos_enable_mie_int(uint32_t int_level)
+{
+	port_enable_mie_flag(int_level);
 }
 
 void rtos_stop_int(void)

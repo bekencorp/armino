@@ -37,9 +37,7 @@ typedef struct {
 	pwm_group_info_t groups[PWM_GROUP_NUM];
 } pwm_driver_t;
 
-#if CONFIG_PWM
 extern pwm_driver_t s_pwm;
-#endif
 extern gpio_driver_t s_gpio;
 
 static void cli_icu_help(void)
@@ -50,7 +48,6 @@ static void cli_icu_help(void)
 		|gpio_isr_register   chan}\n");
 }
 
-#if CONFIG_PWM
 static void cli_int_service_pwm_isr(void)
 {
 	pwm_hal_t *hal = &s_pwm.hal;
@@ -65,7 +62,6 @@ static void cli_int_service_pwm_isr(void)
 		}
 	}
 }
-#endif
 
 static void cli_int_service_gpio_isr(void)
 {
@@ -77,7 +73,7 @@ static void cli_int_service_gpio_isr(void)
 
 	gpio_hal_clear_interrupt_status(hal, &gpio_status);
 
-	for (gpio_id = 0; gpio_id < GPIO_NUM; gpio_id++) {
+	for (gpio_id = 0; gpio_id < SOC_GPIO_NUM; gpio_id++) {
 		if (gpio_hal_is_interrupt_triggered(hal, gpio_id, &gpio_status)) {
 			CLI_LOGI("gpio change register  isr test :gpio[%d] isr\r\n", gpio_id);
 		}
@@ -87,6 +83,7 @@ static void cli_int_service_gpio_isr(void)
 
 static void cli_icu_int_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+
     if (argc < 2) {
         cli_icu_help();
         return;
@@ -108,13 +105,9 @@ static void cli_icu_int_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
     }
 #endif
     else if(os_strcmp(argv[1], "pwm_isr_register") == 0) {
-#if CONFIG_PWM
 		bk_int_isr_register(INT_SRC_PWM, cli_int_service_pwm_isr, NULL);
 		CLI_LOGI("pwm registert isr change test\n");
-#else
-		CLI_LOGI("pwm does not supported\n");
-#endif
-	} else if(os_strcmp(argv[1], "gpio_isr_register") == 0) {
+    } else if(os_strcmp(argv[1], "gpio_isr_register") == 0) {
 		bk_int_isr_register(INT_SRC_GPIO, cli_int_service_gpio_isr, NULL);
 		CLI_LOGI("gpio register isr changing test\n");
     } else if(os_strcmp(argv[1], "set_pwm_int_pri") == 0) {

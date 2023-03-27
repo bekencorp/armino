@@ -19,7 +19,6 @@
 #include "bk_uart.h"
 #include <components/log.h>
 #include <common/bk_assert.h>
-#include <os/mem.h>
 
 #define STACK_DUMP_MEMORY 0
 #define STACK_CALLBACK_BUF_SIZE 32
@@ -45,16 +44,14 @@ static int code_addr_is_valid(uint32_t addr)
 
 void stack_mem_dump(uint32_t stack_top, uint32_t stack_bottom)
 {
-	unsigned char *data = NULL;
-	volatile uint32_t value = 0;
+	unsigned char *data;
 	uint32_t cnt = 0;
 	uint32_t sp = stack_top;
 	uint32_t fp = stack_bottom;
 
 	BK_DUMP_OUT(">>>>stack mem dump begin, stack_top=%08x, stack end=%08x\r\n", stack_top, stack_bottom);
 	for (;  sp < fp; sp += sizeof(size_t)) {
-		value = os_get_word(sp);
-		data = ((unsigned char *)&value);
+		data = ((unsigned char *) sp);
 
 		if ((cnt++ & 0x7) == 0) {
 			BK_DUMP_OUT("\r\n");

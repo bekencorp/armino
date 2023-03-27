@@ -1,7 +1,7 @@
 MEDIA Cli
 ================
 
-:link_to_translation:`zh_CN:[Chinese]`
+:link_to_translation:`zh_CN:[中文]`
 
 1、Function overview
 --------------------------
@@ -18,7 +18,8 @@ MEDIA Cli
 ------------------------------------------
 The supported CMDs are as follows:
 
-	1.media dvp open
+	1. media dvp open
+
 	 - Function Description
 		open dvp camera 
 	 - CMD Format
@@ -37,7 +38,8 @@ The supported CMDs are as follows:
 	 - Test Case
 		| open dvp and ppi config 640X480:``media dvp open 640X480``
 
-	2.media dvp close
+	2. media dvp close
+
 	 - Function Description
 		close dvp camera test
 	 - CMD Format
@@ -51,7 +53,8 @@ The supported CMDs are as follows:
 	 - Test Case
 		``media dvp close``
 
-	3.media uvc open
+	3. media uvc open
+
 	 - Function Description
 		open uvc camera test
 	 - CMD Format
@@ -68,7 +71,8 @@ The supported CMDs are as follows:
 	 - Test Case
 		| open uvc and config 800X480 for test: ``media uvc open 800X480``
 
-	4.media uvc close
+	4. media uvc close
+
 	 - Function Description
 		close uvc camera test
 	 - CMD Format
@@ -78,7 +82,8 @@ The supported CMDs are as follows:
 	 - Test Case
 		``media uvc close``
 
-	5.media lcd open
+	5. media lcd open
+
 	 - Function Description
 		open lcd test
 	 - CMD Format
@@ -99,14 +104,14 @@ The supported CMDs are as follows:
 		| open lcd display and config ppi 480X800,if need rotate, the cmd:``media lcd open 480X800 nt35512 rotate``
 
 
-.. Attention::
+	.. Attention::
+
+		SDK Adapted to a variety of screens, if there are multiple screens with the same resolution, you must pass in the param name;
+		if the screen resolution in the SDK is unique, just pass in either the param resolution or the name.
 
 
-	SDK Adapted to a variety of screens, if there are multiple screens with the same resolution, you must pass in the param name;
-	if the screen resolution in the SDK is unique, just pass in either the param resolution or the name.
+	6. media lcd dma2d_blend
 
-
-	6.media lcd dma2d_blend
 	 - Function Description
 		open lcd icon test
 	 - CMD Format
@@ -120,10 +125,12 @@ The supported CMDs are as follows:
 		|           | param2 is wifi lever(0-4),if param1 is ver, the param2 is omit, display defult |
 		+-----------+--------------------------------------------------------------------------------+
 
-	 - Test Case
-		| after open lcd, send cmd start icon: ``media lcd open 480X800 nt35512 rotate``, ``media lcd dma2d_blend clock 15:19`` or ``media lcd dma2d_blend wifi 1``
 
-	7.media lcd dma2d_blend close
+	 - Test Case
+		| after open lcd, send cmd start icon: ``media lcd open 480X800 nt35512 rotate``, `` media lcd dma2d_blend clock 15:19`` or `` media lcd dma2d_blend wifi 1`` 
+
+	7. media lcd dma2d_blend close
+
 	 - Function Description
 		close lcd icon test
 	 - CMD Format
@@ -137,11 +144,13 @@ The supported CMDs are as follows:
 		|           |  Value: wifi, clock, ver.                                                      |
 		+-----------+--------------------------------------------------------------------------------+
 
-	 - Test Case
-		| close all icon blend: ``media lcd dma2d_blend close``
-		| close clock icon blend: ``media lcd dma2d_blend close clock``
 
-	8.media lcd close
+	 - Test Case
+		| close all icon blend: ``media lcd dma2d_blend close`` 
+		| close clock icon blend: ``media lcd dma2d_blend close clock`` 
+
+	8. media lcd close
+
 	 - Function Description
 		close lcd display test
 	 - CMD Format
@@ -151,7 +160,8 @@ The supported CMDs are as follows:
 	 - Test Case
 		``media lcd close``
 
-	9.media capture
+	9. media capture
+
 	 - Function Description
 		Photograph test, To save a frame of camera image to the SD card, the camera must be opened first to work properly
 	 - CMD Format
@@ -164,7 +174,8 @@ The supported CMDs are as follows:
 	 - Test Case
 		| Photograph test: ``media capture 1.jpg``
 
-	10.media save_start
+	10. media save_start
+
 	 - Function Description
 		Store the data in the camera to a file in the SD card continuously, and each picture is separated by a space.
 	 - CMD Format
@@ -177,7 +188,8 @@ The supported CMDs are as follows:
 	 - Test Case
 		| Photograph test:``media start_save frame.264``
 
-	11.media save_stop
+	11. media save_stop
+
 	 - Function Description
 		Stop saving camera data to SD card
 	 - CMD Format

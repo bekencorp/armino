@@ -1,6 +1,7 @@
 enter deepsleep or low voltage sleep mode,  using the TOUCH wakeup source description
 ==============================================================================================
 
+:link_to_translation:`zh_CN:[中文]`
 
 enter deepsleep, using the TOUCH wakeup source description
 ---------------------------------------------------------------
@@ -74,5 +75,4 @@ WIFI and BT call "bk_pm_module_vote_sleep_ctrl()"function to vote their ticket�
 
  - 2. when BT and WIFI power off，the system(pm module) will auto vote the WIFI and BT sleep tickets。
 
-:link_to_translation:`en:[English]`
 

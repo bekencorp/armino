@@ -29,6 +29,7 @@
 #endif
 #include "video_transfer_tcp.h"
 #include "video_transfer_udp.h"
+#include "video_transfer_cs2_p2p.h"
 #include "video_demo_pub.h"
 #include <driver/wdt.h>
 #include "video_upd_spd.h"
@@ -445,6 +446,11 @@ static void app_demo_softap_main(beken_thread_arg_t data)
                     #if APP_DEMO_CFG_USE_UDP_SDP
                     vudp_sdp_stop();
                     #endif
+
+                    #if CONFIG_CS2_P2P_SERVER
+//                    app_demo_cs2_p2p_deinit();
+                    #endif
+
                     APP_DEMO_SOFTAP_PRT("wifi disconnected!\r\n");
                 }
                 break;
@@ -464,6 +470,10 @@ static void app_demo_softap_main(beken_thread_arg_t data)
 
                     #if APP_DEMO_CFG_USE_UDP_SDP
                     vudp_sdp_start();
+                    #endif
+
+                    #if CONFIG_CS2_P2P_SERVER
+                    //app_demo_cs2_p2p_init();
                     #endif
 
                     APP_DEMO_SOFTAP_PRT("wifi connected!\r\n");

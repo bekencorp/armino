@@ -133,7 +133,7 @@ extern "C" {
 #endif
 
 #if(CONFIG_ICU && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_ICU         0
+#define CLI_CFG_ICU         1
 #else
 #define CLI_CFG_ICU         0
 #endif
@@ -270,7 +270,7 @@ extern "C" {
 #endif
 
 #if (CONFIG_LCD_QSPI_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_LCD_QSPI	0
+#define CLI_CFG_LCD_QSPI	1
 #else
 #define CLI_CFG_LCD_QSPI	0
 #endif
@@ -292,26 +292,12 @@ extern "C" {
 #endif
 #endif
 
-#if (CONFIG_SOC_BK7236)
-#if (CONFIG_AUDIO && CONFIG_AUDIO_TEST)
-#define CLI_CFG_AUD         1
-#endif
-#endif
-
 #if (CONFIG_AUDIO_AEC_TEST && (!CONFIG_SLAVE_CORE))
 #define CLI_CFG_AEC         0
 #endif
 
 #if (CONFIG_AUDIO_G711_TEST && (!CONFIG_SLAVE_CORE))
 #define CLI_CFG_G711         0
-#endif
-
-#if (CONFIG_AUDIO_OPUS_TEST && (!CONFIG_SLAVE_CORE) && CONFIG_FATFS)
-#define CLI_CFG_OPUS         0
-#endif
-
-#if (CONFIG_AUDIO_ADPCM_TEST && (!CONFIG_SLAVE_CORE) && CONFIG_FATFS)
-#define CLI_CFG_ADPCM         0
 #endif
 
 #if (CONFIG_AUDIO_MP3_TEST && (!CONFIG_SLAVE_CORE) && CONFIG_FATFS)
@@ -321,9 +307,9 @@ extern "C" {
 #endif
 
 #if (CONFIG_SECURITYIP && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_VAULT		1
+#define CLI_CFG_SECURITYIP		1
 #else
-#define CLI_CFG_vault		0
+#define CLI_CFG_SECURITYIP		0
 #endif
 
 #if (CONFIG_CAMERA && CONFIG_CAMERA_TEST &&(!CONFIG_SLAVE_CORE))
@@ -336,12 +322,21 @@ extern "C" {
 #define CLI_CFG_PSRAM        0
 #else
 #define CLI_CFG_PSRAM        0
+
 #endif
 
 #if (CONFIG_H264)
 #define CLI_CFG_H264         1
 #else
 #define CLI_CFG_H264         0
+#endif
+
+#if (CONFIG_AGORA_IOT_SDK_TEST && (!CONFIG_SLAVE_CORE))
+#define CLI_CFG_AGORA        1
+#endif
+
+#if (CONFIG_ES8311_TEST && (!CONFIG_SLAVE_CORE))
+#define CLI_CFG_ES8311        1
 #endif
 
 #endif

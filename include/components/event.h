@@ -187,7 +187,7 @@ bk_err_t bk_event_dump(void);
  * @}
  */
 
-typedef bk_err_t (event_callback_t)(void *arg, event_module_t event_module,
+typedef bk_err_t (*event_callback_t)(void *arg, event_module_t event_module,
 		int event_id, void *event_data);
 
 #ifdef __cplusplus

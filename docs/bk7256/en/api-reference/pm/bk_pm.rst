@@ -1,7 +1,7 @@
 PM APIs
 ================
 
-:link_to_translation:`en:[English]`
+:link_to_translation:`zh_CN:[中文]`
 
 .. important::
 

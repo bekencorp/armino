@@ -512,6 +512,16 @@ static void nt35510_lcd_backlight_close(void)
 {
 	bk_gpio_set_output_low(LCD_BACKLIGHT_CTRL_GPIO);
 }
+static bk_err_t nt35510_lcd_off(void)
+{
+	lcd_spi_write_hf_word_cmd(0x2800);
+	delay_ms(100);
+
+	lcd_spi_write_hf_word_cmd(0x1100);
+	delay_ms(100);
+
+	return BK_OK;
+}
 
 const lcd_device_t lcd_device_nt35510 =
 {
@@ -524,6 +534,6 @@ const lcd_device_t lcd_device_nt35510 =
 	.backlight_set = NULL,
 	.init = lcd_nt35510_init,
 	.backlight_close = nt35510_lcd_backlight_close,
-	.lcd_off = NULL,
+	.lcd_off = nt35510_lcd_off,
 };
 

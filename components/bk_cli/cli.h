@@ -109,8 +109,9 @@ int cli_exception_init(void);
 int cli_icu_init(void);
 int cli_at_init(void);
 #if CONFIG_SECURITYIP
-int cli_vault_init(void);
+int cli_securityip_init(void);
 #endif
+int cli_otp_init(void);
 int cli_aud_init(void);
 int cli_aud_intf_init(void);
 int cli_aud_rsp_init(void);
@@ -130,22 +131,22 @@ int cli_calendar_init(void);
 int cli_jpegdec_init(void);
 int cli_aec_init(void);
 int cli_g711_init(void);
-int cli_opus_init(void);
-int cli_adpcm_init(void);
 int cli_mp3_init(void);
 int cli_dvp_init(void);
 int cli_doorbell_init(void);
 int cli_sdio_host_init(void);
 int cli_psram_init(void);
 int cli_qrcodegen_init(void);
-int cli_spe_init(void);
+int cli_cm33_init(void);
 int cli_usb_init(void);
 int cli_mpc_init(void);
 int cli_prro_init(void);
-int cli_interrupt_init(void);
-int cli_h264_init(void);
+int cli_cs2_p2p_init(void);
+int cli_agora_init(void);
+int cli_es8311_init(void);
 
-extern int hexstr2bin(const char *hex, u8 *buf, size_t len);
+
+extern int hexstr2bin_cli(const char *hex, u8 *buf, size_t len);
 
 #ifdef __cplusplus
 }

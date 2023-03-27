@@ -97,16 +97,16 @@ static void cli_securityip_trng_cmd(char *pcWriteBuffer, int xWriteBufferLen, in
 	
 }
 
-#define VAULT_CMD_CNT (sizeof(s_vault_commands) / sizeof(struct cli_command))
-static const struct cli_command s_vault_commands[] = {
+#define SECURITYIP_CMD_CNT (sizeof(s_securityip_commands) / sizeof(struct cli_command))
+static const struct cli_command s_securityip_commands[] = {
 	{"securityip_driver", "securityip_driver {init|deinit}", cli_securityip_driver_cmd},
 	{"securityip_system", "securityip_system {version|state|reset}", cli_securityip_system_cmd},
 	{"securityip_trng", "securityip_trng {cfg|get}", cli_securityip_trng_cmd}
 };
 
-int cli_vault_init(void)
+int cli_securityip_init(void)
 {
-	return cli_register_commands(s_vault_commands, VAULT_CMD_CNT);
+	return cli_register_commands(s_securityip_commands, SECURITYIP_CMD_CNT);
 }
 
 

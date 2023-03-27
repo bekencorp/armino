@@ -1,5 +1,7 @@
-menu "DEMOS_CONFIG"
+menu "Demos::Net::Iperf"
 	config DEMOS_IPERF
-		bool "Enable iperf demos"
+		bool "Enable Demos Iperf"
 		default y
+		help
+			enable iperf demos
 endmenu

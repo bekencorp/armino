@@ -1,6 +1,8 @@
 build implementation
 ====================
 
+:link_to_translation:`zh_CN:[中文]`
+
 Design ideas
 ------------
 
@@ -59,7 +61,7 @@ initialization
         - Set global build parameters, i.e. compile options, compile definitions, include directories for all components.
         - Add :armino:`components` from components and :armino:`middleware` to the build.
     - The initial part of the custom ``project()`` command performs the following steps:
-        - Set ``ARMINO_TARGET`` in an environment variable or CMake cache and  set ``CMAKE_TOOLCHAIN_FILE``to use accordingly.
+        - Set ``ARMINO_TARGET`` in an environment variable or CMake cache and  set ``CMAKE_TOOLCHAIN_FILE`` to use accordingly.
         - Add components from ``EXTRA_COMPONENTS_DIRS`` to the build
         - Prepare parameters for calling command ``armino_build_process()`` from variables such as ``COMPONENTS``/``EXCLUDE_COMPONENTS``、``SDKCONFIG``、``SDKCONFIG_DEFAULTS`` etc. phase.
 

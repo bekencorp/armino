@@ -23,6 +23,14 @@
 //#include <modules/usb.h>
 #include "bk_misc.h"
 
+#define AUD_UAC_DRV_TAG "aud_uac_drv"
+
+#define LOGI(...) BK_LOGI(AUD_UAC_DRV_TAG, ##__VA_ARGS__)
+#define LOGW(...) BK_LOGW(AUD_UAC_DRV_TAG, ##__VA_ARGS__)
+#define LOGE(...) BK_LOGE(AUD_UAC_DRV_TAG, ##__VA_ARGS__)
+#define LOGD(...) BK_LOGD(AUD_UAC_DRV_TAG, ##__VA_ARGS__)
+
+
 bk_err_t bk_aud_uac_driver_init(void)
 {
 #if CONFIG_USB_UAC
@@ -152,5 +160,76 @@ bk_err_t bk_aud_uac_set_mic_samp_rate(uint32_t value)
 #else
 	return BK_OK;
 #endif
+}
+
+bk_err_t bk_aud_uac_set_spk_gain(uint32_t value)
+{
+#if CONFIG_USB_UAC
+	bk_err_t ret = BK_OK;
+	uint32_t vol_min = 0;
+	uint32_t vol_max = 0;
+	uint32_t vol_set = 0;
+
+	ret = bk_usb_uac_attribute_op(USB_ATTRIBUTE_GET_MIN, UAC_ATTRIBUTE_VOLUME, &vol_min);
+	if (ret != BK_OK) {
+		LOGE("get uac volume min value fail \n");
+		return ret;
+	}
+
+	ret = bk_usb_uac_attribute_op(USB_ATTRIBUTE_GET_MAX, UAC_ATTRIBUTE_VOLUME, &vol_max);
+	if (ret != BK_OK) {
+		LOGE("get uac volume max value fail \n");
+		return ret;
+	}
+
+	vol_set = (vol_max - vol_min) / 100 * value + vol_min;
+	LOGI("vol_max: %04x, vol_min: %04x, value: %04x, vol_set: %04x\n", vol_max, vol_min, value, vol_set);
+
+	return bk_usb_uac_attribute_op(USB_ATTRIBUTE_SET_CUR, UAC_ATTRIBUTE_VOLUME, &vol_set);
+#else
+	return BK_OK;
+#endif
+}
+
+bk_err_t bk_aud_uac_get_spk_gain(uint32_t *value)
+{
+#if CONFIG_USB_UAC
+	return bk_usb_uac_attribute_op(USB_ATTRIBUTE_GET_CUR, UAC_ATTRIBUTE_VOLUME, value);
+	//LOGW(" The uac speaker not support volume configuration \n");
+#else
+	return BK_OK;
+#endif
+}
+
+bk_err_t bk_aud_uac_register_disconnect_cb(void *callback)
+{
+#if CONFIG_USB_UAC
+	return bk_usb_uac_register_disconnect_callback(callback);
+#endif
+	return BK_OK;
+}
+
+bk_err_t bk_aud_uac_register_connect_cb(void *callback)
+{
+#if CONFIG_USB_UAC
+	return bk_usb_uac_register_connect_callback(callback);
+#endif
+	return BK_OK;
+}
+
+bk_err_t bk_aud_uac_check_spk_gain_cfg(void)
+{
+#if CONFIG_USB_UAC
+	return bk_usb_uac_check_support_attribute(UAC_ATTRIBUTE_VOLUME);
+#endif
+	return BK_OK;
+}
+
+bk_err_t bk_aud_uac_ctrl_spk_mute(uint32_t value)
+{
+#if CONFIG_USB_UAC
+	return bk_usb_uac_attribute_op(USB_ATTRIBUTE_SET_CUR, UAC_ATTRIBUTE_MUTE, &value);
+#endif
+	return BK_OK;
 }
 

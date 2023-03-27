@@ -27,6 +27,7 @@
 #include "diskio.h"
 #endif
 
+lcd_qspi_device_t *device_config = NULL;
 
 #define READ_SDCARD_PICTURE_SIZE	1024 * 64
 #define write_data(addr,val)                 *((volatile uint32_t *)(addr)) = val
@@ -59,31 +60,37 @@ void cli_lcd_qspi_display_pure_color_test_cmd(char *pcWriteBuffer, int xWriteBuf
 
 		lcd_qspi_config.src_clk = 5;
 		lcd_qspi_config.src_clk_div = 4;
-		lcd_qspi_config.clk_div = 10;
+		lcd_qspi_config.clk_div = 1;
 		BK_LOG_ON_ERR(bk_qspi_init(&lcd_qspi_config));
-		rtos_delay_milliseconds(5);
-
-		lcd_qspi_device_t *device_config = NULL;
+		rtos_delay_milliseconds(2);
 
 		device_config = bk_lcd_qspi_get_device_by_name(argv[2]);
 		if (device_config == NULL) {
-			os_printf("qspi oled device not found\r\n");
+			os_printf("lcd qspi device not found\r\n");
 		} else {
 			bk_lcd_qspi_init(device_config);
-			bk_lcd_qspi_send_data(device_config, &red, 1);
+			if (device_config->name == "st77903") {
+				while (1) {
+					bk_lcd_qspi_send_data(device_config, &red, 1);
+					rtos_delay_milliseconds(2);
+				}
+			} else {
+				bk_lcd_qspi_send_data(device_config, &red, 1);
+			}
 		}
 
 	} else if (os_strcmp(argv[1], "stop") == 0) {
-//		bk_qspi_sha8601a_deinit();
-
+			bk_lcd_qspi_deinit(device_config);
+			device_config = NULL;
 	} else {
-		CLI_LOGI("qspi_oled_display_pure_color_test {start|stop} \r\n");
+		CLI_LOGI("lcd_qspi_display_pure_color_test {start|stop} {device name}\r\n");
 	}
 }
 
 void cli_lcd_qspi_display_picture_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	qspi_config_t lcd_qspi_config = {0};
+	uint32_t total_size = 0;
 
 	if (argc != 4) {
 		CLI_LOGI("lcd_qspi_display_picture_test {start|stop} {file name} {device name}\r\n");
@@ -93,7 +100,7 @@ void cli_lcd_qspi_display_picture_test_cmd(char *pcWriteBuffer, int xWriteBuffer
 	if (os_strcmp(argv[1], "start") == 0) {	
 		lcd_qspi_config.src_clk = 5;
 		lcd_qspi_config.src_clk_div = 4;
-		lcd_qspi_config.clk_div = 10;
+		lcd_qspi_config.clk_div = 1;
 		BK_LOG_ON_ERR(bk_qspi_init(&lcd_qspi_config));
 		rtos_delay_milliseconds(5);
 
@@ -105,7 +112,6 @@ void cli_lcd_qspi_display_picture_test_cmd(char *pcWriteBuffer, int xWriteBuffer
 		FRESULT fr;
 		FSIZE_t size_64bit = 0;
 		uint32 uiTemp = 0;
-		uint32_t total_size = 0;
 		uint8_t *sram_addr = NULL;
 		uint32_t once_read_len = READ_SDCARD_PICTURE_SIZE;
 		uint32_t *paddr  = NULL;
@@ -164,21 +170,27 @@ void cli_lcd_qspi_display_picture_test_cmd(char *pcWriteBuffer, int xWriteBuffer
 		os_printf("Not support\r\n");
 #endif
 
-	lcd_qspi_device_t *device_config = NULL;
-	
 	device_config = bk_lcd_qspi_get_device_by_name(argv[3]);
 	if (device_config == NULL) {
-		os_printf("qspi oled device not found\r\n");
+		os_printf("lcd qspi device not found\r\n");
 	} else {
 		bk_lcd_qspi_init(device_config);
-		bk_lcd_qspi_send_data(device_config, (uint32_t *)psram_addr, total_size);
+		if (device_config->name == "st77903") {
+			while (1) {
+				bk_lcd_qspi_send_data(device_config, (uint32_t *)psram_addr, total_size);
+				rtos_delay_milliseconds(2);
+			}
+		} else {
+			bk_lcd_qspi_send_data(device_config, (uint32_t *)psram_addr, total_size);
+		}
 	}
 
 	} else if (os_strcmp(argv[1], "stop") == 0) {
-//		bk_qspi_sha8601a_deinit();
+		bk_lcd_qspi_deinit(device_config);
+		device_config = NULL;
 
 	} else {
-		CLI_LOGI("qspi_oled_display_picture_test {start|stop} {file_name} {psram_addr}\r\n");
+		CLI_LOGI("lcd_qspi_display_picture_test {start|stop} {file_name} {device name}\r\n");
 	}
 
 }

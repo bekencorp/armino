@@ -66,12 +66,7 @@ typedef enum
     BT_CMD_MAX,
 } bt_cmd_t;
 
-typedef enum{
-    BT_EVENT_INQUIRY_RESULT,
-    BT_EVENT_DISCONNECT,
-    BT_EVENT_COMPLETE,
-    BT_EVENT_CONNECTION_COMPLETE,
-}bt_event_t;
+
 /**
  * @defgroup bk_bt_api_v1_typedef struct
  * @brief bt struct type
@@ -85,7 +80,6 @@ typedef struct
     void *param;
 } bt_cmd_param_t;
 
-
 /**
  * @brief for sync bt api call return
  *
@@ -97,6 +91,6 @@ typedef struct
  *
 **/
 typedef void (*bt_cmd_cb_t)(bt_cmd_t cmd, bt_cmd_param_t *param);
-typedef void (*bt_event_cb_t)(bt_event_t event, void *param);
+
 
 #endif

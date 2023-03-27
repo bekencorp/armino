@@ -1,5 +1,7 @@
-menu "DEMOS_CONFIG"
+menu "Demos::Media::Audio::Sbc_decode"
 	config SBC_TEST
-		bool "Enable sbc decode demos"
+		bool "Enable Sbc Test"
 		default n
+		help
+			Enable sbc decode demos
 endmenu

@@ -76,6 +76,19 @@ def _prepare_source_files(env_dict):
             for content_line in content_lines:
                 f.write(content_line)
 
+    def _write_projects_source_file(config_file_in, config_file_out):
+        print(config_file_in)
+        print(config_file_out)
+        try:
+            with open(config_file_in, 'r', encoding='utf-8') as f:
+                content_lines = f.readlines()
+                content_lines = [content_line for content_line in content_lines if re.search(r'.*/projects/.*',content_line)]
+        except Exception:
+            content_lines = None
+        with open(config_file_out, 'w', encoding='utf-8') as f:
+            for content_line in content_lines:
+                f.write(content_line)
+
     def _write_properties_source_file(config_file_in, config_file_out):
         print(config_file_in)
         print(config_file_out)
@@ -94,6 +107,7 @@ def _prepare_source_files(env_dict):
         _write_source_file(env_dict['COMPONENT_KCONFIGS_PROJBUILD'], env_dict['COMPONENT_KCONFIGS_PROJBUILD_SOURCE_FILE'])
         _write_components_source_file(env_dict['COMPONENT_KCONFIGS_SOURCE_FILE'], env_dict['COMPONENTS_KCONFIGS_SOURCE_FILE'])
         _write_middleware_source_file(env_dict['COMPONENT_KCONFIGS_SOURCE_FILE'], env_dict['MIDDLEWARE_KCONFIGS_SOURCE_FILE'])
+        _write_projects_source_file(env_dict['COMPONENT_KCONFIGS_SOURCE_FILE'], env_dict['PROJECTS_KCONFIGS_SOURCE_FILE'])
         _write_properties_source_file(env_dict['COMPONENT_KCONFIGS_SOURCE_FILE'], env_dict['PROPERTIES_KCONFIGS_SOURCE_FILE'])
     except KeyError as e:
         print('Error:', e, 'is not defined!')

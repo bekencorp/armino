@@ -22,12 +22,12 @@ extern "C" {
 #include <driver/hal/hal_adc_types.h>
 #include <driver/hal/hal_gpio_types.h>
 
-#define INVALID	GPIO_NUM
+#define INVALID	SOC_GPIO_NUM
 
 #define ADC_DEV_MAP  \
 {\
 	{0, INVALID, INVALID},\
-	{ADC_1, GPIO_26, GPIO_DEV_ADC1},\
+	{ADC_1, GPIO_25, GPIO_DEV_ADC1},\
 	{ADC_2, GPIO_24, GPIO_DEV_ADC2},\
 	{ADC_3, GPIO_23, GPIO_DEV_ADC3},\
 	{ADC_4, GPIO_28, GPIO_DEV_ADC4},\

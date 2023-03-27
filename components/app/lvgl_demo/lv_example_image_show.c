@@ -3,7 +3,7 @@
 
 #include "driver/lcd.h"
 #include "lvgl.h"
-#include "lcd_task.h"
+#include "lv_vendor.h"
 #include "img_utility.h"
 #include <components/jpeg_decode.h>
 
@@ -56,7 +56,7 @@ static void _display_timer(void *param)
     else
         g_img_index = 0;
 
-    bk_gui_disp_lock();
+    lv_vendor_disp_lock();
     os_snprintf(buff, sizeof(buff), "%d.jpg", g_img_index+1);
     ret = img_jpg_load_from_sd(buff, &g_bg);
     
@@ -73,7 +73,7 @@ static void _display_timer(void *param)
         os_snprintf(show_buff, sizeof(show_buff), "can't find %d.jpg", g_img_index+1);
         lv_label_set_text(g_lab_image_name, show_buff);
     }
-    bk_gui_disp_unlock();
+    lv_vendor_disp_unlock();
 #else
     static int next_img_status = 1;   //0异常 1正常
     if(0 == g_timer_flag)
@@ -102,7 +102,7 @@ static void _display_timer(void *param)
     else
     {
         g_timer_flag = 0;
-        bk_gui_disp_lock();
+        lv_vendor_disp_lock();
         os_snprintf(show_buff, sizeof(show_buff), "%d.jpg", g_img_index+1);
         if(next_img_status)
         {
@@ -120,7 +120,7 @@ static void _display_timer(void *param)
             os_snprintf(show_buff, sizeof(show_buff), "can't find %d.jpg", g_img_index+1);
             lv_label_set_text(g_lab_image_name, show_buff);
         }
-        bk_gui_disp_unlock();
+        lv_vendor_disp_unlock();
     }
 #endif
 }
@@ -144,7 +144,7 @@ void lv_example_img_display_init(int switch_time_ms)
             return ;
         }
         
-        bk_gui_disp_lock();
+        lv_vendor_disp_lock();
         
         os_snprintf(buff, sizeof(buff), "%d.jpg", g_img_index+1);
         if(BK_OK == img_jpg_load_from_sd(buff, &g_bg))
@@ -203,13 +203,13 @@ void lv_example_img_display_init(int switch_time_ms)
             os_snprintf(show_buff, sizeof(show_buff), "can't find %s", buff);
             lv_label_set_text(background, show_buff);
         }
-        bk_gui_disp_unlock();
+        lv_vendor_disp_unlock();
     }
 }
 
 void lv_example_img_display_exit(void)
 {
-    bk_gui_disp_lock();
+    lv_vendor_disp_lock();
     if(rtos_is_timer_init(&g_disp_timer))
     {
         rtos_stop_timer(&g_disp_timer);
@@ -240,7 +240,7 @@ void lv_example_img_display_exit(void)
     g_img_index = 0;
 
     bk_jpeg_dec_sw_deinit();
-    bk_gui_disp_unlock();
+    lv_vendor_disp_unlock();
 }
 
 #endif

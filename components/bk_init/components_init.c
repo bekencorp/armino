@@ -185,7 +185,6 @@ static inline void show_sdk_lib_version(void)
 static void show_armino_version(void)
 {
 	show_sdk_version();
-	show_sdk_lib_version();
 	show_chip_id();
 }
 

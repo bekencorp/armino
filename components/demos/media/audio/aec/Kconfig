@@ -1,5 +1,5 @@
-menu "DEMOS_CONFIG"
+menu "Demos::Media::Audio::Aec"
 	config AUDIO_AEC_TEST
-		bool "Enable AUDIO AEC Test"
+		bool "Enable Audio Aec Test"
 		default n
 endmenu

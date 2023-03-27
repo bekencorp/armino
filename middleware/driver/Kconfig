@@ -18,6 +18,7 @@ menu "Driver"
 	source "${ARMINO_PATH}/middleware/driver/trng/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/sdio_host/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/sdcard/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/sd_card/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/fatfs/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/sdio/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/spi/Kconfig"
@@ -37,13 +38,16 @@ menu "Driver"
 	source "${ARMINO_PATH}/middleware/driver/phy/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/i2s/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/i2c/Kconfig"
-	source "${ARMINO_PATH}/middleware/driver/i2s/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/audio/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/pwm/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/icu/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/timer/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/saradc/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/flash/Kconfig"
-	source "${ARMINO_PATH}/middleware/driver/h264/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/pwr_clk/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/vault/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/otp/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/fft/Kconfig"
 
 	config LCD
 		bool "Enable LCD"
@@ -103,7 +107,19 @@ menu "Driver"
 		depends on LCD
 		bool "Enable LCD_ST7710S API"
 		default n
-
+		
+	config LCD_ST7701S
+		depends on LCD
+		bool "Enable LCD_ST7701S API"
+		default n
+	config LCD_ST7701S_LY
+		depends on LCD
+		bool "Enable LCD_ST7701S API"
+		default n
+	config LCD_SN5ST7701S
+		depends on LCD
+		bool "Enable LCD_SN5ST7701S API"
+		default n
 	config LCD_QSPI
 		bool "Enable LCD QSPI"
 		default n
@@ -121,7 +137,7 @@ menu "Driver"
 	config MAC_PHY_BYPASS
 		bool "Enable MAC/PHY by pass mode"
 		default y
-	
+
 	config SUPPORT_IRDA
 		bool "Enable IRDA"
 		default y
@@ -133,11 +149,11 @@ menu "Driver"
 	config TP
 		bool "Enable TP"
 		default n
-		
+
 	config DMA2D
 		bool "Enable DMA2D"
 		default n
-	
+
 	config YUV_BUF
 		bool "Enable yuv_buf"
 		default n
@@ -149,18 +165,6 @@ menu "Driver"
 	config EFUSE
 		bool "Enable efuse"
 		default y
-	
-	config FFT
-		bool "Enable fft"
-		default n
-
-	config AUDIO_RISCV_IP_V1_0
-		bool "Enable audio riscv driver"
-		default n
-
-	config AUDIO_DSP_IP_V1_0
-		bool "Enable audio dsp driver"
-		default n
 
 	config CHANGE_JTAG_GPIO
 		bool "Enable change jtag group"

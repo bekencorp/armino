@@ -8,3 +8,4 @@ Cli
 
    蓝牙 <bluetooth/index>
    触摸 <touch/index>
+   saradc <saradc/saradc>

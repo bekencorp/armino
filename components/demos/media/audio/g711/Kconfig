@@ -1,5 +1,5 @@
-menu "DEMOS_CONFIG"
+menu "Demos::Media::Audio::G711"
 	config AUDIO_G711_TEST
-		bool "Enable AUDIO G711 Test"
+		bool "Enable Audio G711 Test"
 		default n
 endmenu

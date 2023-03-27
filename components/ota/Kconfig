@@ -1,11 +1,17 @@
-menu "OTA_CONFIG"
+menu "Ota"
 	config HTTP_AB_PARTITION
-		bool "Disable http update ab partition"
+		bool "Enable Http AB Partition"
 		default n
+		help
+			enable http update ab partition
 	config OTA_UPDATE_DEFAULT_PARTITION
-		bool "Disable ota update default partition"
-		default n	
+		bool "Enable Ota Update Default Partition"
+		default n
+		help
+			enable ota update default partition
 	config OTA_UPDATE_B_PARTITION
-		bool "Disable ota update b partition"
-		default n	
+		bool "Enable Ota Update B Partition"
+		default n
+		help
+			enable ota update b partition
 endmenu

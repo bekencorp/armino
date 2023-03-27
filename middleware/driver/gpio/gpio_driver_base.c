@@ -64,7 +64,7 @@ uint32_t s_gpio_bak_int_type_regs[3];
 uint32_t s_gpio_bak_int_enable_regs[2];
 uint64_t s_gpio_is_setted_wake_status;
 uint64_t s_gpio_is_lowpower_keep_status;
-static gpio_id_t s_gpio_wakeup_gpio_id = GPIO_NUM;
+static gpio_id_t s_gpio_wakeup_gpio_id = SOC_GPIO_NUM;
 
 #if 0	//remove it:wakeup response should be controlled in the APP.
 static void gpio_wakeup_default_isr(gpio_id_t gpio_id);
@@ -79,7 +79,7 @@ static void gpio_wakeup_default_isr(gpio_id_t gpio_id);
 #define CONFIG_GPIO_DYNAMIC_KEEP_STATUS_MAX_CNT (4)
 #endif
 
-#define GPIO_WAKE_SOURCE_IDLE_ID (GPIO_NUM)	//
+#define GPIO_WAKE_SOURCE_IDLE_ID (SOC_GPIO_NUM)	//
 typedef struct
 {
 	gpio_id_t id;
@@ -87,7 +87,7 @@ typedef struct
 	//gpio_isr_t isr;
 }gpio_dynamic_wakeup_t;
 static gpio_dynamic_wakeup_t s_gpio_dynamic_wakeup_source_map[CONFIG_GPIO_DYNAMIC_WAKEUP_SOURCE_MAX_CNT];
-#define GPIO_LOWPOWER_KEEP_STATUS_IDLE_ID (GPIO_NUM)	//
+#define GPIO_LOWPOWER_KEEP_STATUS_IDLE_ID (SOC_GPIO_NUM)	//
 typedef struct
 {
 	gpio_id_t gpio_id;
@@ -331,7 +331,7 @@ static void gpio_isr(void)
 
 	gpio_hal_get_interrupt_status(hal, &gpio_status);
 
-	for (gpio_id = 0; gpio_id < GPIO_NUM; gpio_id++) {
+	for (gpio_id = 0; gpio_id < SOC_GPIO_NUM; gpio_id++) {
 		if (gpio_hal_is_interrupt_triggered(hal, gpio_id, &gpio_status)) {
 #if 0	//remove it:wakeup response should be controlled in the APP.
 			/* if many gpio wakeup at the same time, it will called many times */
@@ -365,7 +365,7 @@ static void gpio_dump_baked_regs(bool configs, bool int_type_status, bool int_en
 
 	if(configs)
 	{
-		for(gpio_id = 0; gpio_id < GPIO_NUM; gpio_id++)
+		for(gpio_id = 0; gpio_id < SOC_GPIO_NUM; gpio_id++)
 		{
 			GPIO_LOGD("s_gpio_bak_regs[%d]=0x%x\r\n", gpio_id, s_gpio_bak_regs[gpio_id]);
 		}
@@ -400,7 +400,7 @@ static void gpio_dump_regs(bool configs, bool int_status)
 
 	if(configs)
 	{
-		for(gpio_id = 0; gpio_id < GPIO_NUM; gpio_id++)
+		for(gpio_id = 0; gpio_id < SOC_GPIO_NUM; gpio_id++)
 		{
 			///gpio_struct_dump(gpio_id);
 			GPIO_LOGD("gpio[%d]=0x%x\r\n", gpio_id, *(volatile uint32_t*)(GPIO_LL_REG_BASE + 4*gpio_id));
@@ -586,7 +586,7 @@ gpio_id_t bk_gpio_get_wakeup_gpio_id()
 static void bk_gpio_set_wakeup_gpio_id(gpio_id_t gpio_id)
 {
 	/* Obatain the First wake source GPIO ID*/
-	if (s_gpio_wakeup_gpio_id == GPIO_NUM) {
+	if (s_gpio_wakeup_gpio_id == SOC_GPIO_NUM) {
 		s_gpio_wakeup_gpio_id = gpio_id;
 		bk_gpio_disable_interrupt(gpio_id);
 	}
@@ -601,7 +601,7 @@ static void gpio_record_wakeup_pin_id(void)
 
 	if(bk_gpio_get_aon_pmu_deepsleep_flag()) {
 		gpio_hal_get_interrupt_status(hal, &gpio_status);
-		for (gpio_id = GPIO_0; gpio_id < GPIO_NUM; gpio_id++) {
+		for (gpio_id = GPIO_0; gpio_id < SOC_GPIO_NUM; gpio_id++) {
 			if (gpio_hal_is_interrupt_triggered(hal, gpio_id, &gpio_status)) {
 				bk_gpio_set_wakeup_gpio_id(gpio_id);
 				return;

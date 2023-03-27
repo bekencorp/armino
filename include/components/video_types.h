@@ -65,6 +65,7 @@ typedef struct {
 	 *
 	**/
 	void (*data_end_handler)(void);
+	void (*frame_drop)(uint8_t index);
 
 	media_camera_device_t *device; /**< config of camera */
 	uint16_t rxbuf_len;  /**< The length  of receiving camera data buff */

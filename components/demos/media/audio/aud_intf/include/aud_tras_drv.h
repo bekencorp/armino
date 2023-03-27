@@ -5,6 +5,7 @@
 #include <driver/aud_types.h>
 #include <driver/dma.h>
 #include "aud_intf_private.h"
+#include <driver/uac.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,6 +68,12 @@ typedef enum {
 	AUD_TRAS_DRV_EXIT,
 
 	AUD_TRAS_DRV_CONTROL,
+
+	/* UAC op */
+	AUD_TRAS_DRV_UAC_REGIS_CONT_STATE_CB,		/**< register uac mic and speaker connect state callback */
+	AUD_TRAS_DRV_UAC_CONT,						/**< recover uac status after uac automatically connect */
+	AUD_TRAS_DRV_UAC_DISCONT,					/**< uac abnormal disconnect */
+	AUD_TRAS_DRV_UAC_AUTO_CONT_CTRL,			/**< uac automatically connect enable control*/
 
 	/* debug op */
 #if CONFIG_AUD_TRAS_DAC_DEBUG
@@ -199,6 +206,7 @@ typedef struct {
 	aud_tras_drv_decode_temp_t decoder_temp;
 	uint8_t *uac_spk_buff;			//uac speaker read data buffer
 	uint32_t uac_spk_buff_size; 	//uac speaker read data buffer size (byte)
+	aud_uac_config_t *uac_config;	//uac_config
 
 	/* audio debug callback */
 	aud_intf_dump_data_callback aud_tras_dump_tx_cb;		//dump audio tx data callback
@@ -232,6 +240,7 @@ typedef struct {
 	RingBufferContext mic_rb;
 	int32_t *mic_ring_buff;									//save mic data
 	int32_t *temp_mic_addr;									//save temporary one frame mic data readed from mic_ring_buff
+	aud_uac_config_t *uac_config;	//uac_config
 
 	void (*aud_tras_drv_mic_event_cb)(aud_tras_drv_mic_event_t event, bk_err_t result);
 } aud_tras_drv_mic_info_t;
@@ -269,6 +278,7 @@ typedef struct {
 	RingBufferContext *spk_rx_rb;			/**< speaker received ring buffer context */
 	uint8_t *uac_spk_buff;			//uac speaker read data buffer
 	uint32_t uac_spk_buff_size; 	//uac speaker read data buffer size (byte)
+	aud_uac_config_t *uac_config;	//uac_config
 
 	void (*aud_tras_drv_spk_event_cb)(aud_tras_drv_spk_event_t event, bk_err_t result);
 } aud_tras_drv_spk_info_t;
@@ -295,6 +305,11 @@ typedef struct {
 	int (*aud_tras_tx_mic_data)(unsigned char *data, unsigned int size);	/**< the api is called when collecting a frame mic packet data is complete */
 	bk_err_t (*aud_tras_rx_spk_data)(unsigned int size);					/**< the api is called when playing a frame speaker packet data is complete */
 	void (*aud_tras_drv_com_event_cb)(aud_tras_drv_com_event_t event, bk_err_t result);
+
+	/* uac connect state callback */
+	aud_intf_uac_sta_t uac_status;
+	bool uac_auto_connect;
+	void (*aud_tras_drv_uac_connect_state_cb)(uint8_t state);		/**< the api is called when uac abnormal disconnet and recover connect */
 } aud_tras_drv_info_t;
 
 #define DEFAULT_AUD_TRAS_DRV_INFO() {                                              \
@@ -318,6 +333,7 @@ typedef struct {
                                   },                                               \
                         .mic_ring_buff = NULL,                                     \
                         .temp_mic_addr = NULL,                                     \
+                        .uac_config = NULL,                                        \
                         .aud_tras_drv_mic_event_cb = NULL,                         \
                     },                                                             \
         .spk_info = {                                                              \
@@ -343,6 +359,7 @@ typedef struct {
                         .spk_rx_rb = NULL,                                         \
                         .uac_spk_buff = NULL,                                      \
                         .uac_spk_buff_size = 0,                                    \
+                        .uac_config = NULL,                                        \
                         .aud_tras_drv_spk_event_cb = NULL,                         \
                     },                                                             \
         .voc_info = {                                                              \
@@ -413,6 +430,7 @@ typedef struct {
                                         },                                         \
                         .uac_spk_buff = NULL,                                      \
                         .uac_spk_buff_size = 0,                                    \
+                        .uac_config = NULL,                                        \
                         .aud_tras_dump_tx_cb = NULL,                               \
                         .aud_tras_dump_rx_cb = NULL,                               \
                         .aud_tras_dump_aec_cb = NULL,                              \
@@ -420,6 +438,9 @@ typedef struct {
         .aud_tras_tx_mic_data = NULL,                                              \
         .aud_tras_rx_spk_data = NULL,                                              \
         .aud_tras_drv_com_event_cb = NULL,                                         \
+        .uac_status = AUD_INTF_UAC_NORMAL_DISCONNECTED,                            \
+        .uac_auto_connect = true,                                                  \
+        .aud_tras_drv_uac_connect_state_cb = NULL,                                 \
     }
 
 

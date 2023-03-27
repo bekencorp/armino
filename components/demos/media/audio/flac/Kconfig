@@ -1,3 +1,7 @@
-config AUDIO_FLAC_TEST
-	bool "Enable Audio FLAC Encoder and Decoder Test"
-	default n
+menu "Demos::Media::Audio::Flac"
+	config AUDIO_FLAC_TEST
+		bool "Enable Audio Flac Test"
+		default n
+		help
+			Enable Audio FLAC Encoder and Decoder Test
+endmenu

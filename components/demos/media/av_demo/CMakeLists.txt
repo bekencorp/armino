@@ -7,10 +7,10 @@ if (CONFIG_AV_DEMO)
 	)
 
 	list(APPEND srcs
-		"src/av_udp_server.c"
-		"src/av_udp_client.c"
-		"src/av_udp_common.c"
-		"src/av_udp_demo.c"
+		"src/av_audio_server.c"
+		"src/av_audio_client.c"
+		"src/av_audio_common.c"
+		"src/av_audio_demo.c"
 	)
 endif()
 

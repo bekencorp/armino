@@ -18,7 +18,6 @@
 #include "mpc_hw.h"
 #include "mpc_ll.h"
 #include <driver/hal/hal_mpc_types.h>
-#include "sdkconfig.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,13 +38,11 @@ typedef struct {
 #define mpc_hal_enable_auto_increase(hal) mpc_ll_enable_auto_increase((hal)->hw)
 #define mpc_hal_disable_auto_increase(hal) mpc_ll_disable_auto_increase((hal)->hw)
 #define mpc_hal_get_block_lut(hal) mpc_ll_get_block_lut((hal)->hw)
-#define mpc_hal_enable_sec_exception(hal) mpc_ll_enable_sec_response((hal)->hw)
-#define mpc_hal_disable_sec_exception(hal) mpc_ll_disable_sec_response((hal)->hw)
 
 bk_err_t mpc_hal_init(mpc_hal_t *hal);
 bk_err_t mpc_hal_config_block_lut(mpc_hal_t *hal, uint32_t block_offset, uint32_t block_num, mpc_block_secure_type_t secure_type);
 
-#if CONFIG_MPC_TEST
+#if CFG_HAL_DEBUG_MPC
 void mpc_struct_dump(mpc_dev_t mpc_dev);
 #else
 #define mpc_struct_dump(mpc_dev)

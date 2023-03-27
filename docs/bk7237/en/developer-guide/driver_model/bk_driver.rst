@@ -58,22 +58,32 @@ UART (Drive is divided into drive layer), HAL (Hardware abstraction layer), LL (
 |           | 5. Can rely on OS and other components of Beken SDK           |
 +-----------+---------------------------------------------------------------+
 | HAL       | 1. Abstraction of hardware, providing a set of stable and     |
+|           |                                                               |
 |           |  comprehensive API interfaces                                 |
+|           |                                                               |
 |           | 2. Generally, it has better performance and takes less        |
+|           |                                                               |
 |           |  resources. When transplanting Beken chip operation to other  |
 |           |  software platforms, you can consider only transplanting the  |
 |           |  HAL layer.                                                   |
+|           |                                                               |
 |           | 3. HAL interfaces on different boards are usually consistent  |
 |           | 4. The HAL layer interface does not promise stability, and    |
+|           |                                                               |
 |           |  the code based on HAL layer migration may face compatibility |
 |           |  problems after HAL upgrade                                   |
+|           |                                                               |
 |           | 5. Only rely on LL/SOC and print relevant codes               |
 |           | 6. No direct register operation is involved                   |
+|           |                                                               |
 +-----------+---------------------------------------------------------------+
 | LL        | 1. It is usually a simple wrapper for register access to make |
+|           |                                                               |
 |           |  the program more readable                                    |
+|           |                                                               |
 |           | 2. Usually implemented as inline function                     |
 |           | 3. The implementation is as simple as possible                |
+|           |                                                               |
 +-----------+---------------------------------------------------------------+
 | SoC       | Provide register definition                                   |
 +-----------+---------------------------------------------------------------+

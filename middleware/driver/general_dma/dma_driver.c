@@ -583,7 +583,7 @@ bk_err_t bk_dma_set_dest_data_width(dma_id_t id, dma_data_width_t data_width)
     return BK_OK;
 }
 
-#if (CONFIG_SPE)
+#if (CONFIG_GENERAL_DMA_SEC)
 bk_err_t bk_dma_set_dest_sec_attr(dma_id_t id, dma_sec_attr_t attr)
 {
     DMA_RETURN_ON_NOT_INIT();
@@ -653,11 +653,11 @@ bk_err_t dma_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_id_t cp
 
     bk_dma_init(cpy_chnl, &dma_config);
     dma_hal_set_transfer_len(&s_dma.hal, cpy_chnl, len);
-#if (CONFIG_SPE)
+    dma_hal_start_common(&s_dma.hal, cpy_chnl);
+#if (CONFIG_GENERAL_DMA_SEC)
     dma_hal_set_src_sec_attr(&s_dma.hal, cpy_chnl, DMA_ATTR_SEC);
     dma_hal_set_dest_sec_attr(&s_dma.hal, cpy_chnl, DMA_ATTR_SEC);
 #endif
-    dma_hal_start_common(&s_dma.hal, cpy_chnl);
     GLOBAL_INT_RESTORE();
 
 #if CONFIG_ARCH_RISCV

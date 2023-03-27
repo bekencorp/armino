@@ -66,6 +66,23 @@ bk_err_t bk_sd_card_deinit(void);
 bk_err_t bk_sd_card_erase(uint32_t start_block_addr, uint32_t end_block_addr);
 
 /**
+ * @brief sd card read or write sync
+ *        when read or write data to sd-card, sd card driver doesn't force do sync to sd-card.
+ *        some sd-card has cache, it takes long time(more then 30ms) if do sync data from sd-card
+ *        cache to sd-card flash memory.
+ *        So add an API to APP do sync by itself.I.E: FATFS completes read or write will call this API
+ *        to confirm data has flushed to sd-card's flash memory.
+ *
+ * @param 
+ * @param end_block_addr end block address
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_sd_card_rw_sync(void);
+
+/**
  * @brief     Write block(s) to a specified address in a card.
  *            The data transfer is managed by blocking mode.
  *

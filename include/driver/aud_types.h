@@ -482,7 +482,7 @@ typedef struct {
 typedef struct {
 	/* audio_config */
 	aud_dac_enable_t dac_enable;						/**< AUD dac enable */
-	aud_dac_samp_rate_t samp_rate;				/**< AUD dac sample rate */
+	aud_dac_samp_rate_t samp_rate;						/**< AUD dac sample rate */
 	aud_dac_chl_enable_t dac_chl;						/**< AUD dac channel */
 	aud_dac_work_mode_t work_mode;						/**< AUD dac work mode */
 

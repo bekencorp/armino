@@ -21,7 +21,6 @@
 #include "bk_wifi.h"
 #endif
 #include "bk_wifi_rw.h"
-#include "bk_private/bk_wifi_wpa_cmd.h"
 
 #if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
 #include "driver/flash.h"
@@ -635,7 +634,7 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 	uint8_t bssid[6] = {0};
 	if (os_strcmp(argv[1], "bssid") == 0) {
 		if(argc >= 3) {
-			hexstr2bin(argv[2], bssid, 6);
+			hexstr2bin_cli(argv[2], bssid, 6);
 		}
 		if(argc >= 4) {
 			password = argv[3];
@@ -1252,10 +1251,6 @@ int cli_netif_event_cb(void *arg, event_module_t event_module,
 		}
 		got_ip = (netif_event_got_ip4_t *)event_data;
 		CLI_LOGI("%s got ip\n", got_ip->netif_if == NETIF_IF_STA ? "BK STA" : "unknown netif");
-#if CONFIG_WIFI6_CODE_STACK
-		unsigned char vif_idx = wifi_netif_mac_to_vifid((uint8_t*)&g_sta_param_ptr->own_mac);
-              wlan_dhcp_done_ind(vif_idx);
-#endif
 		break;
 	default:
 		CLI_LOGI("rx event <%d %d>\n", event_module, event_id);
@@ -1329,7 +1324,7 @@ void cli_wifi_net_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 		ret = cmd_wlan_sta_exec(buf);
 	else if (os_strcmp(argv[1], "ap") == 0)
 		ret = cmd_wlan_ap_exec(buf);
-#if CONFIG_P2P
+#if CONFIG_COMPONENTS_P2P
 	else if (os_strcmp(argv[1], "p2p") == 0)
 		ret = cmd_wlan_p2p_exec(buf);
 #endif
@@ -1545,6 +1540,30 @@ error:
 }
 #endif
 
+void blacklist_Command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    int blacklist_ena = 0;
+
+    if (argc != 2)
+    {
+        os_printf("blacklist <0|1>\n");
+    }
+    else
+    {
+        blacklist_ena = strtoul(argv[1], NULL, 0);
+        if (blacklist_ena) {
+			os_printf("enable blacklist\n");
+            wlan_sta_enable_ssid_blacklist();
+        }
+        else {
+			os_printf("disable blacklist\n");
+            wlan_sta_disable_ssid_blacklist();
+        }
+        os_printf("blacklist %s\n", blacklist_ena ? "enabled" : "disabled");
+    }
+}
+
+
 #define WIFI_CMD_CNT (sizeof(s_wifi_commands) / sizeof(struct cli_command))
 static const struct cli_command s_wifi_commands[] = {
 	{"scan", "scan [ssid]", cli_wifi_scan_cmd},
@@ -1585,6 +1604,7 @@ static const struct cli_command s_wifi_commands[] = {
 #endif
 	{"rc", "wifi rate control config", cli_wifi_rc_cmd},
 	{"capa", "wifi capability config", cli_wifi_capa_cmd},
+	{"blacklist", "Set ssid blacklist", blacklist_Command},
 };
 
 int cli_wifi_init(void)

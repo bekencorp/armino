@@ -25,6 +25,11 @@ INPUT = \
     ## BLE
     ../../../include/modules/ble_types.h \
     ../../../include/modules/ble.h \
+    ## DM BT BLE
+    ../../../include/modules/dm_ble_types.h \
+    ../../../include/modules/dm_ble.h \
+    ../../../include/modules/dm_bt_types.h \
+    ../../../include/modules/dm_bt.h \
     ## Wi-Fi
     ../../../include/modules/wifi_types.h \
     ../../../include/modules/wifi.h \
@@ -126,7 +131,7 @@ INPUT = \
     ../../../include/components/aud_intf.h \
     ../../../include/components/aud_intf_types.h \
     ## PM
-    ../../../include/modules/pm.h 
+    ../../../include/modules/pm.h
 
 ## Get warnings for functions that have no documentation for their parameters or return value
 ##

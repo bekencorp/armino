@@ -10,52 +10,95 @@
 #define MTIMERCMP                  (0xE6000008)
 
 .global  arch_int_disable
-.global  arch_int_enable
-.global  arch_int_restore
+.global  arch_disable_irq
+.global  arch_int_lock
 
-.global  riscv_get_mtimercmp
+.global  arch_int_enable
+.global  arch_enable_irq
+.global  arch_int_unlock
+
+.global  arch_int_restore
+.global  arch_fence
+.global  arch_atomic_clear
+.global  arch_atomic_set
+
 .global  riscv_get_mtimer
 .global  riscv_set_mtimercmp
 .global  riscv_get_cycle
 .global  riscv_get_instruct_cnt
 .global  arch_get_int_status
-.global  riscv_sys_call1
-.global  riscv_sys_call2
-.global  riscv_sys_call3
-.global  riscv_sys_call4
 
 //.section .text
 .section .itcm_sec_code, "ax"
 
+
 /*
- * u32 arch_get_int_status(void);
+ * u32 arch_int_unlock(void);
  */
-arch_get_int_status:
-    csrr    a0, uip           // return value
-    csrr	t0, uie
-    and 	a0, a0, t0
+arch_int_unlock:
+    csrr    a0, mstatus           // return value
+	csrsi  mstatus, MSTATUS_MIE
     ret
 
 /*
  * u32 arch_int_disable(void);
  */
+arch_int_lock:
+arch_disable_irq:
 arch_int_disable:
-	csrrci	a0, ustatus, USTATUS_UIE
+	csrrci	a0, mstatus, MSTATUS_MIE
     ret
 
 /*
  * void arch_int_enable(void);
  */
+arch_enable_irq:
 arch_int_enable:
-    csrsi  ustatus, USTATUS_UIE
+    csrsi  mstatus, MSTATUS_MIE
     ret
 
 /*
  * void arch_int_restore(u32 int_flag);
  */
 arch_int_restore:
-    csrw ustatus, a0
+    csrw mstatus, a0
     ret
+
+/*
+ * u32 arch_get_int_status(void);
+ */
+arch_get_int_status:
+    csrr    a0, mip           // return value
+    ret
+
+
+/*
+ * void arch_fence(void);
+ */
+arch_fence:
+	fence iorw, iorw
+	ret
+
+#if 0
+/*
+ * void arch_atomic_clear(u32 * lock_addr);
+ */
+arch_atomic_clear:
+	amoswap.w.rl x0, x0, (a0)
+	ret
+
+/*
+ * u32 arch_atomic_set(u32 * lock_addr);
+ */
+arch_atomic_set:
+	addi t0, x0, 1
+//swap_again: 
+	amoswap.w.aq t0, t0, (a0)
+	c.mv  a0, t0
+//	bnez t0, swap_again
+	ret
+
+#endif
 
 /*
  * u64 riscv_get_mtimercmp(void);
@@ -94,41 +137,21 @@ riscv_set_mtimercmp:
  * u64 riscv_get_cycle(void);
  */
 riscv_get_cycle:
-read_cycle_again:
-	rdcycleh a1
-	rdcycle  a0
-	rdcycleh t0
-	bne a1, t0, read_cycle_again
+read_cycle: 
+	csrrs a1, mcycleh, x0
+	csrrs a0, mcycle, x0
+	csrrs t0, mcycleh, x0
+	bne a1, t0, read_cycle
 	ret
 
 /*
  * u64 riscv_get_instruct_cnt(void);
  */
 riscv_get_instruct_cnt:
-read_instr_again:
-	rdinstreth a1
-	rdinstret  a0
-	rdinstreth t0
-	bne a1, t0, read_instr_again
+read_instr_cnt: 
+	csrrs a1, minstreth, x0
+	csrrs a0, minstret, x0
+	csrrs t0, minstreth, x0
+	bne a1, t0, read_instr_cnt
 	ret
-
-/*
- * u32 riscv_sys_call(u32 id, ....);
- */
-riscv_sys_call1:
-	ecall
-	ret
-
-riscv_sys_call2:
-	ecall
-	ret
-
-riscv_sys_call3:
-	ecall
-	ret
-
-riscv_sys_call4:
-	ecall
-	ret
-
 

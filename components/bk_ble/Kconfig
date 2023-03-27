@@ -1,16 +1,16 @@
-menu "BLE"
+menu "Bk_ble"
+	depends on BLUETOOTH
+
 	config BT
-		depends on BLUETOOTH
-		bool "Enable Bluetooth Classic"
+		bool "Enable Bt"
 		default n
 
 	config BLE
-		depends on BLUETOOTH
-		bool "Enable Bluetooth Low Energy"
+		bool "Enable Ble"
 		default y
 
 	choice BLE_STACK
-		prompt "BLE Version"
+		prompt "Select Ble Version"
 		depends on BLE
 		default BLE_5_X
 
@@ -23,4 +23,5 @@ menu "BLE"
 		config BTDM_5_2_MINDTREE
 			bool "BTDM 5.2 Mindtree Host"
 	endchoice
+
 endmenu

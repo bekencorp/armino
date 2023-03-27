@@ -1,20 +1,25 @@
 #TODO optimize it
-menu "WiFi"
+menu "Bk_Wifi"
+
 	config WIFI_ENABLE
-		bool "Enable WiFi"
+		bool "Enable Wifi Enable"
 		default y
+		help
+			enable wifi
 
 	config WIFI6_CODE_STACK
-		bool "Use WiFi-6 Code Stack"
+		bool "Enable Wifi6 Code Stack"
 		default n
+		help
+			Use WiFi-6 Code Stack
 
 	config WIFI6
-		bool "Enable WiFi 6"
+		bool "Enable Wifi6"
 		depends on WIFI6_CODE_STACK
 		default n
 
 	config WIFI4
-		bool "Enable WiFi 4"
+		bool "Enable WiFi4"
 		default y
 		help
 			Don't disable it when WiFi-6 is enabled.
@@ -22,63 +27,73 @@ menu "WiFi"
 #TODO remove below kconfig
 
 	config MSDU_RESV_HEAD_LENGTH
-		int "MSDU reserved header length"
+		int "Set Msdu Resv Head Length"
 		range 1 1500
 		default 96
+		help
+			MSDU reserved header length
 
 	config MSDU_RESV_TAIL_LENGTH
-		int "MSDU reserved tail length"
+		int "Set Msdu Resv Tail Length"
 		range 1 1500
 		default 16
+		help
+			MSDU reserved tail length
 	
 	#TODO may need to remove it
 	config TASK_RECONNECT_PRIO
-		int "Priority of WiFi reconnect task"
+		int "Set Task Reconnect Prio"
 		range 1 10
 		default 4
+		help
+			Priority of WiFi reconnect task
 
 	config AP_MONITOR_COEXIST
-		bool "Enable AP and monitor coexist"
+		bool "Enable Ap Monitor Coexist"
 		default n
+		help
+			enable AP and monitor coexist
 
 	config WIFI_FAST_CONNECT
-		bool "Enable WiFi fast connect"
+		bool "Enable Wifi Fast Connect"
 		default n
 
 	config BSSID_CONNECT
-		bool "Enable WiFi BSSI connect"
+		bool "Enable Bssid Connect"
 		default n
+		help
+			enable WiFi BSSI connect
 
 	config WFA_CERT
-		bool "Enable WiFi WFA Certification"
+		bool "Enable Wfa Cert"
 		default n
+		help
+			enable WiFi WFA Certification
 
 	config LESS_MEMERY_IN_RWNX
-		bool "Less memory in RWNX"
+		bool "Enable Less Memory In Rwnx"
 		default n
 
 	config AP_PROBEREQ_CB
-		bool "Enable AP probe request callback"
+		bool "Enable Ap Probereq Cb"
 		default n
+		help
+			enable AP probe request callback
 
 	config WIFI6_IP_DEBUG
-		bool "Enable WiFi6 IP debug"
+		bool "Enable Wifi6 Ip Debug"
 		default n
 
 	config STA_PS
-		bool "Enable STA PS"
+		bool "Enable Sta Ps"
 		default y if !RF_OTA_TEST
 		default n if RF_OTA_TEST
 
 	config MAC_BSSID
-		bool "Enable Mac bssid"
-		default n
-
-	config BK_COMPONENTS_P2P_GO
-		bool "Enable BK WIFI P2P GO"
+		bool "Enable Mac Bssid"
 		default n
 
 	config COMPONENTS_STA_VSIE
-		bool "Enable STA VSIE"
+		bool "Enable Components Sta Vsie"
 		default n
 endmenu

@@ -30,6 +30,38 @@ const at_command_t wifi_at_cmd_table[] = {
     {5, "STATE", 0, "get wifi state", at_wifi_state_cmd},
     {6, "PING", 0, "wifi ping", at_wifi_ping_cmd}
 };
+	
+const char *wifi_type_string(wifi_security_t security)
+{
+	switch (security) {
+	case WIFI_SECURITY_NONE:
+		return "NONE";
+	case WIFI_SECURITY_WEP:
+		return "WEP";
+	case WIFI_SECURITY_WPA_TKIP:
+		return "WPA-TKIP";
+	case WIFI_SECURITY_WPA_AES:
+		return "WPA-AES";
+	case WIFI_SECURITY_WPA2_TKIP:
+		return "WPA2-TKIP";
+	case WIFI_SECURITY_WPA2_AES:
+		return "WPA2-AES";
+	case WIFI_SECURITY_WPA2_MIXED:
+		return "WPA2-MIX";
+	case WIFI_SECURITY_WPA3_SAE:
+		return "WPA3-SAE";
+	case WIFI_SECURITY_WPA3_WPA2_MIXED:
+		return "WPA3-WPA2-MIX";
+	case WIFI_SECURITY_EAP:
+		return "EAP";
+	case WIFI_SECURITY_OWE:
+		return "OWE";
+	case WIFI_SECURITY_AUTO:
+		return "AUTO";
+	default:
+		return "UNKNOWN";
+	}
+}
 
 int wifi_at_cmd_cnt(void)
 {
@@ -150,7 +182,7 @@ int at_wifi_staconn_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		{
 			if (wifi_at_cmd_status == 1)
 			{
-				msg = AT_EVT_GOT_IP;
+				msg = AT_CMD_RSP_SUCCEED;
 				os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 				rtos_deinit_semaphore(&wifi_at_cmd_sema);
 				wifi_at_cmd_status = 0;
@@ -294,64 +326,138 @@ int at_wifi_state_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 		}
 	}
 	else if (argc == 1) {
-		wifi_link_status_t link_status = {0};
-		//wifi_ap_config_t ap_info = {0};
-		char ssid[33] = {0};
-		if (sta_ip_is_start()) {
-			os_memset(&link_status, 0x0, sizeof(link_status));
-			err = bk_wifi_sta_get_link_status(&link_status);
-			if(err != kNoErr) {
-				os_printf("get link status fail!\n");
-				err = kGeneralErr;
-				goto error;
-			}
-			os_memcpy(ssid, link_status.ssid, 32);
-			if (os_strcmp(argv[0], "RSSI") == 0) {
-				os_printf("sta:rssi=%d\n", link_status.rssi);
-			}
-			else if (os_strcmp(argv[0], "CHANNEL") == 0) {
-				os_printf("sta:channel=%d\n", link_status.channel);
-			}
-			else if (os_strcmp(argv[0], "SNR") == 0) {
-				os_printf("pending\n");
-			}
-			else if (os_strcmp(argv[0], "BSSID") == 0) {
-				os_printf("sta:bssid=" MACSTR "\n", MAC2STR(link_status.bssid));
-			}
-			else if (os_strcmp(argv[0], "IP") == 0) {
-				netif_ip4_config_t ap_ip4_info = {0};
-				err = bk_netif_get_ip4_config(NETIF_IF_STA, &ap_ip4_info);
-				if(err != kNoErr) {
-					os_printf("get ip fail!\n");
-					err = kGeneralErr;
-					goto error;
-				}
-				os_printf("ip=%s,gate=%s,mask=%s,dns=%s\r\n",
-				   			ap_ip4_info.ip, ap_ip4_info.gateway, ap_ip4_info.mask, ap_ip4_info.dns);
-			}
-			else if (os_strcmp(argv[0], "SSID") == 0) {
-				os_printf("sta:ssid=%d\n", ssid);
+		if (os_strcmp(argv[0], "STA") == 0) {
+			if (sta_ip_is_start()){
+				sprintf(pcWriteBuffer, "%s:%s\r\n%s", AT_CMDRSP_HEAD, "STA_WIFI_CONNECT", AT_CMD_RSP_SUCCEED);
 			}
 			else {
-				os_printf("bad parameters\r\n");
-				err = kParamErr;
-				goto error;
+				sprintf(pcWriteBuffer, "%s:%s\r\n%s", AT_CMDRSP_HEAD, "STA_WIFI_DISCONNECT", AT_CMD_RSP_SUCCEED);
 			}
+			return err;
 		}
-		else {
-			os_printf("sta: 0\n");
-		}
-		if(err == kNoErr) {
-			msg = AT_CMD_RSP_SUCCEED;
-			os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+
+		else if (os_strcmp(argv[0], "AP") == 0) {
+			if (uap_ip_is_start()){
+				sprintf(pcWriteBuffer, "%s:%s\r\n%s", AT_CMDRSP_HEAD, "AP_WIFI_START", AT_CMD_RSP_SUCCEED);
+			}
+			else {
+				sprintf(pcWriteBuffer, "%s:%s\r\n%s", AT_CMDRSP_HEAD, "AP_WIFI_CLOSE", AT_CMD_RSP_SUCCEED);
+			}
 			return err;
 		}
 	}
+	else if (argc == 2) {
+		if (os_strcmp(argv[0], "STA") == 0) {
+
+			if (sta_ip_is_start()) {
+				wifi_link_status_t link_status = {0};
+				os_memset(&link_status, 0x0, sizeof(link_status));
+				err = bk_wifi_sta_get_link_status(&link_status);
+				if(err != kNoErr) {
+					os_printf("get sta link status fail!\n");
+					err = kGeneralErr;
+					goto error;
+				}
+				if (os_strcmp(argv[1], "RSSI") == 0) {
+					sprintf(pcWriteBuffer, "%s:%d\r\n%s", AT_CMDRSP_HEAD, link_status.rssi, AT_CMD_RSP_SUCCEED);
+				}
+
+				else if (os_strcmp(argv[1], "CHANNEL") == 0) {
+					sprintf(pcWriteBuffer, "%s:%d\r\n%s", AT_CMDRSP_HEAD, link_status.channel, AT_CMD_RSP_SUCCEED);
+				}
+
+				else if (os_strcmp(argv[1], "BSSID") == 0) {
+					sprintf(pcWriteBuffer, "%s:" MACSTR "\r\n%s", AT_CMDRSP_HEAD, MAC2STR(link_status.bssid), AT_CMD_RSP_SUCCEED);
+				}
+
+				else if (os_strcmp(argv[1], "SSID") == 0) {
+					sprintf(pcWriteBuffer, "%s:%s\r\n%s", AT_CMDRSP_HEAD, link_status.ssid, AT_CMD_RSP_SUCCEED);
+				}
+
+				else if (os_strcmp(argv[1], "IP") == 0) {
+					netif_ip4_config_t sta_ip4_info = {0};
+					err = bk_netif_get_ip4_config(NETIF_IF_STA, &sta_ip4_info);
+					if(err != kNoErr) {
+						os_printf("get ip fail!\n");
+						err = kGeneralErr;
+						goto error;
+					}
+					sprintf(pcWriteBuffer, "%s:IP=%s,GATE=%s,MASK=%s,DNS=%s\r\n%s", AT_CMDRSP_HEAD, sta_ip4_info.ip, sta_ip4_info.gateway, sta_ip4_info.mask, sta_ip4_info.dns, AT_CMD_RSP_SUCCEED);
+				}
+
+				else {
+					os_printf("bad parameters\r\n");
+					err = kParamErr;
+					goto error;
+				}
+			}
+			else {
+				sprintf(pcWriteBuffer, "%s:%s\r\n%s", AT_CMDRSP_HEAD, "STA_WIFI_DISCONNECT", AT_CMD_RSP_SUCCEED);
+				err = kGeneralErr;
+			}
+			return err;
+		}
+		else if (os_strcmp(argv[0], "AP") == 0) {
+			if (uap_ip_is_start()) {
+				wifi_ap_config_t ap_info = {0};
+				os_memset(&ap_info, 0x0, sizeof(ap_info));
+				err = bk_wifi_ap_get_config(&ap_info);
+				if(err != kNoErr) {
+					os_printf("get ap link status fail!\n");
+					err = kGeneralErr;
+					goto error;
+				}
+
+				if (os_strcmp(argv[1], "SSID") == 0) {
+					sprintf(pcWriteBuffer, "%s:%s\r\n%s", AT_CMDRSP_HEAD, ap_info.ssid, AT_CMD_RSP_SUCCEED);
+				}
+				else if (os_strcmp(argv[1], "CHANNEL") == 0) {
+					sprintf(pcWriteBuffer, "%s:%d\r\n%s", AT_CMDRSP_HEAD, ap_info.channel, AT_CMD_RSP_SUCCEED);
+				}
+				else if (os_strcmp(argv[1], "SECURITY") == 0) {
+					sprintf(pcWriteBuffer, "%s:%s\r\n%s", AT_CMDRSP_HEAD, wifi_type_string(ap_info.security), AT_CMD_RSP_SUCCEED);
+				}
+
+				else if (os_strcmp(argv[1], "IP") == 0) {
+					netif_ip4_config_t ap_ip4_info = {0};
+					err = bk_netif_get_ip4_config(NETIF_IF_AP, &ap_ip4_info);
+					if(err != kNoErr) {
+						os_printf("get ip fail!\n");
+						err = kGeneralErr;
+						goto error;
+					}
+					sprintf(pcWriteBuffer, "%s:IP=%s,GATE=%s,MASK=%s,DNS=%s\r\n%s", AT_CMDRSP_HEAD, ap_ip4_info.ip, ap_ip4_info.gateway, ap_ip4_info.mask, ap_ip4_info.dns, AT_CMD_RSP_SUCCEED);
+				}
+				else {
+					os_printf("bad parameters\r\n");
+					err = kParamErr;
+					goto error;
+				}
+			}
+			else {
+				sprintf(pcWriteBuffer, "%s:%s\r\n%s", AT_CMDRSP_HEAD, "AP_WIFI_CLOSED", AT_CMD_RSP_SUCCEED);
+				err = kGeneralErr;
+			}
+			return err;
+		}
+		else {
+			os_printf("bad parameters\r\n");
+			err = kParamErr;
+			goto error;
+		}
+	}
+	else {
+		os_printf("bad parameters\r\n");
+		err = kParamErr;
+		goto error;
+	}
+
 error:
 	msg = AT_CMD_RSP_ERROR;
 	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 	return err;
 }
+
 int at_wifi_ping_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	char *msg = NULL;

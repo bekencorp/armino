@@ -12,12 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/***********************************************************************************************************************************
-* This file is generated from BK7236_ADDR_Mapping_s.xlsm automatically
-* Modify it manually is not recommended
-* CHIP ID:BK7236,GENARATE TIME:2022-12-13 16:01:16
-************************************************************************************************************************************/
-
 #pragma once
 
 #ifdef __cplusplus
@@ -30,46 +24,157 @@ extern "C" {
 
 /* REG_0x00 */
 #define JPEG_DEC_REG0X0_ADDR  (JPEG_DEC_LL_REG_BASE  + 0x0*4) //REG ADDR :0x48040000
-#define JPEG_DEC_REG0X0_DEVICE_ID_POS (0)
-#define JPEG_DEC_REG0X0_DEVICE_ID_MASK (0xFFFFFFFF)
+#define JPEG_DEC_REG0X0_JPEG_DEC_EN_POS (0)
+#define JPEG_DEC_REG0X0_JPEG_DEC_EN_MASK (0x3)
+
+#define JPEG_DEC_REG0X0_RESERVED_POS (2)
+#define JPEG_DEC_REG0X0_RESERVED_MASK (0x7FFFFFF)
+
+#define JPEG_DEC_REG0X0_DRI_BPS_POS (29)
+#define JPEG_DEC_REG0X0_DRI_BPS_MASK (0x1)
+
+#define JPEG_DEC_REG0X0_YY_VLD_BPS_POS (30)
+#define JPEG_DEC_REG0X0_YY_VLD_BPS_MASK (0x1)
+
+#define JPEG_DEC_REG0X0_SHARMEM_BPS_POS (31)
+#define JPEG_DEC_REG0X0_SHARMEM_BPS_MASK (0x1)
 
 static inline uint32_t jpeg_dec_ll_get_reg0x0_value(void)
 {
     return REG_READ(JPEG_DEC_REG0X0_ADDR);
 }
 
-/* REG_0x00:reg0x0->device_id:0x0[31:0],Device ID:ASCII Code "jpgd",0x00415544,R*/
-static inline uint32_t jpeg_dec_ll_get_reg0x0_device_id(void)
+static inline void jpeg_dec_ll_set_reg0x0_value(uint32_t value)
 {
-    return REG_READ(JPEG_DEC_REG0X0_ADDR);
+    REG_WRITE(JPEG_DEC_REG0X0_ADDR,value);
+}
+
+/* REG_0x00:reg0x0->jpeg_dec_en:0x0[1:0],jpeg dec enable,0x0,R/W*/
+static inline uint32_t jpeg_dec_ll_get_reg0x0_jpeg_dec_en(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(JPEG_DEC_REG0X0_ADDR);
+    reg_value = ((reg_value >> JPEG_DEC_REG0X0_JPEG_DEC_EN_POS) & JPEG_DEC_REG0X0_JPEG_DEC_EN_MASK);
+    return reg_value;
+}
+
+static inline void jpeg_dec_ll_set_reg0x0_jpeg_dec_en(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(JPEG_DEC_REG0X0_ADDR);
+    reg_value &= ~(JPEG_DEC_REG0X0_JPEG_DEC_EN_MASK << JPEG_DEC_REG0X0_JPEG_DEC_EN_POS);
+    reg_value |= ((value & JPEG_DEC_REG0X0_JPEG_DEC_EN_MASK) << JPEG_DEC_REG0X0_JPEG_DEC_EN_POS);
+    REG_WRITE(JPEG_DEC_REG0X0_ADDR,reg_value);
+}
+
+/* REG_0x00:reg0x0->dri_bps:0x0[29],set 0,bypass dri support,0x0,R/W*/
+static inline uint32_t jpeg_dec_ll_get_reg0x0_dri_bps(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(JPEG_DEC_REG0X0_ADDR);
+    reg_value = ((reg_value >> JPEG_DEC_REG0X0_DRI_BPS_POS) & JPEG_DEC_REG0X0_DRI_BPS_MASK);
+    return reg_value;
+}
+
+static inline void jpeg_dec_ll_set_reg0x0_dri_bps(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(JPEG_DEC_REG0X0_ADDR);
+    reg_value &= ~(JPEG_DEC_REG0X0_DRI_BPS_MASK << JPEG_DEC_REG0X0_DRI_BPS_POS);
+    reg_value |= ((value & JPEG_DEC_REG0X0_DRI_BPS_MASK) << JPEG_DEC_REG0X0_DRI_BPS_POS);
+    REG_WRITE(JPEG_DEC_REG0X0_ADDR,reg_value);
+}
+
+/* REG_0x00:reg0x0->yy_vld_bps:0x0[30],set 0,used for debug,0x0,R/W*/
+static inline uint32_t jpeg_dec_ll_get_reg0x0_yy_vld_bps(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(JPEG_DEC_REG0X0_ADDR);
+    reg_value = ((reg_value >> JPEG_DEC_REG0X0_YY_VLD_BPS_POS) & JPEG_DEC_REG0X0_YY_VLD_BPS_MASK);
+    return reg_value;
+}
+
+static inline void jpeg_dec_ll_set_reg0x0_yy_vld_bps(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(JPEG_DEC_REG0X0_ADDR);
+    reg_value &= ~(JPEG_DEC_REG0X0_YY_VLD_BPS_MASK << JPEG_DEC_REG0X0_YY_VLD_BPS_POS);
+    reg_value |= ((value & JPEG_DEC_REG0X0_YY_VLD_BPS_MASK) << JPEG_DEC_REG0X0_YY_VLD_BPS_POS);
+    REG_WRITE(JPEG_DEC_REG0X0_ADDR,reg_value);
+}
+
+/* REG_0x00:reg0x0->sharmem_bps:0x0[31],set 0,used for debug,0x0,R/W*/
+static inline uint32_t jpeg_dec_ll_get_reg0x0_sharmem_bps(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(JPEG_DEC_REG0X0_ADDR);
+    reg_value = ((reg_value >> JPEG_DEC_REG0X0_SHARMEM_BPS_POS) & JPEG_DEC_REG0X0_SHARMEM_BPS_MASK);
+    return reg_value;
+}
+
+static inline void jpeg_dec_ll_set_reg0x0_sharmem_bps(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(JPEG_DEC_REG0X0_ADDR);
+    reg_value &= ~(JPEG_DEC_REG0X0_SHARMEM_BPS_MASK << JPEG_DEC_REG0X0_SHARMEM_BPS_POS);
+    reg_value |= ((value & JPEG_DEC_REG0X0_SHARMEM_BPS_MASK) << JPEG_DEC_REG0X0_SHARMEM_BPS_POS);
+    REG_WRITE(JPEG_DEC_REG0X0_ADDR,reg_value);
 }
 
 /* REG_0x01 */
 #define JPEG_DEC_REG0X1_ADDR  (JPEG_DEC_LL_REG_BASE  + 0x1*4) //REG ADDR :0x48040004
-#define JPEG_DEC_REG0X1_VERSION_ID_POS (0)
-#define JPEG_DEC_REG0X1_VERSION_ID_MASK (0xFFFFFFFF)
+#define JPEG_DEC_REG0X1_MCU_INDEX_POS (0)
+#define JPEG_DEC_REG0X1_MCU_INDEX_MASK (0xFFFF)
+
+#define JPEG_DEC_REG0X1_MCU_Y_NUM_POS (16)
+#define JPEG_DEC_REG0X1_MCU_Y_NUM_MASK (0x3FF)
+
+#define JPEG_DEC_REG0X1_RESERVED_POS (26)
+#define JPEG_DEC_REG0X1_RESERVED_MASK (0x3F)
 
 static inline uint32_t jpeg_dec_ll_get_reg0x1_value(void)
 {
     return REG_READ(JPEG_DEC_REG0X1_ADDR);
 }
 
-/* REG_0x01:reg0x1->version_id:0x1[31:0],Version ID: 版本号 V1.1,0x00010001,R*/
-static inline uint32_t jpeg_dec_ll_get_reg0x1_version_id(void)
+
+
+/* REG_0x01:reg0x1->mcu_index:0x1[15:0],mcu index,0x0,R/W*/
+static inline uint32_t jpeg_dec_ll_get_reg0x1_mcu_index(void)
 {
-    return REG_READ(JPEG_DEC_REG0X1_ADDR);
+    uint32_t reg_value;
+    reg_value = REG_READ(JPEG_DEC_REG0X1_ADDR);
+    reg_value = ((reg_value >> JPEG_DEC_REG0X1_MCU_INDEX_POS) & JPEG_DEC_REG0X1_MCU_INDEX_MASK);
+    return reg_value;
 }
+
+
+/* REG_0x01:reg0x1->mcu_y_num:0x1[25:16],line number,0x0,R/W*/
+static inline uint32_t jpeg_dec_ll_get_reg0x1_mcu_y_num(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(JPEG_DEC_REG0X1_ADDR);
+    reg_value = ((reg_value >> JPEG_DEC_REG0X1_MCU_Y_NUM_POS) & JPEG_DEC_REG0X1_MCU_Y_NUM_MASK);
+    return reg_value;
+}
+
 
 /* REG_0x02 */
 #define JPEG_DEC_REG0X2_ADDR  (JPEG_DEC_LL_REG_BASE  + 0x2*4) //REG ADDR :0x48040008
-#define JPEG_DEC_REG0X2_SOFT_RESET_POS (0)
-#define JPEG_DEC_REG0X2_SOFT_RESET_MASK (0x1)
+#define JPEG_DEC_REG0X2_JPEG_DEC_AUTO_POS (0)
+#define JPEG_DEC_REG0X2_JPEG_DEC_AUTO_MASK (0x1)
 
-#define JPEG_DEC_REG0X2_CLK_GATE_POS (1)
-#define JPEG_DEC_REG0X2_CLK_GATE_MASK (0x1)
+#define JPEG_DEC_REG0X2_JPEG_DEC_LINEN_POS (1)
+#define JPEG_DEC_REG0X2_JPEG_DEC_LINEN_MASK (0x1)
 
-#define JPEG_DEC_REG0X2_RESERVED0_POS (2)
-#define JPEG_DEC_REG0X2_RESERVED0_MASK (0x3FFFFFFF)
+#define JPEG_DEC_REG0X2_RESERVED2_POS (2)
+#define JPEG_DEC_REG0X2_RESERVED2_MASK (0x3F)
+
+#define JPEG_DEC_REG0X2_JPEG_LINE_NUM_POS (8)
+#define JPEG_DEC_REG0X2_JPEG_LINE_NUM_MASK (0x1FFF)
+
+#define JPEG_DEC_REG0X2_RESERVED_POS (21)
+#define JPEG_DEC_REG0X2_RESERVED_MASK (0x7FF)
 
 static inline uint32_t jpeg_dec_ll_get_reg0x2_value(void)
 {
@@ -81,40 +186,94 @@ static inline void jpeg_dec_ll_set_reg0x2_value(uint32_t value)
     REG_WRITE(JPEG_DEC_REG0X2_ADDR,value);
 }
 
-/* REG_0x02:reg0x2->soft_reset:0x2[0],软件写1复位SPI模块，需要软件清除,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x2_soft_reset(void)
+/* REG_0x02:reg0x2->jpeg_dec_auto:0x2[0],auto jpeg dec,total decode,0x0,R/W*/
+static inline uint32_t jpeg_dec_ll_get_reg0x2_jpeg_dec_auto(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(JPEG_DEC_REG0X2_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X2_SOFT_RESET_POS) & JPEG_DEC_REG0X2_SOFT_RESET_MASK);
+    reg_value = ((reg_value >> JPEG_DEC_REG0X2_JPEG_DEC_AUTO_POS) & JPEG_DEC_REG0X2_JPEG_DEC_AUTO_MASK);
     return reg_value;
 }
 
-static inline void jpeg_dec_ll_set_reg0x2_soft_reset(uint32_t value)
+static inline void jpeg_dec_ll_set_reg0x2_jpeg_dec_auto(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(JPEG_DEC_REG0X2_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X2_SOFT_RESET_MASK << JPEG_DEC_REG0X2_SOFT_RESET_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X2_SOFT_RESET_MASK) << JPEG_DEC_REG0X2_SOFT_RESET_POS);
+    reg_value &= ~(JPEG_DEC_REG0X2_JPEG_DEC_AUTO_MASK << JPEG_DEC_REG0X2_JPEG_DEC_AUTO_POS);
+    reg_value |= ((value & JPEG_DEC_REG0X2_JPEG_DEC_AUTO_MASK) << JPEG_DEC_REG0X2_JPEG_DEC_AUTO_POS);
     REG_WRITE(JPEG_DEC_REG0X2_ADDR,reg_value);
 }
 
-/* REG_0x02:reg0x2->clk_gate:0x2[1],0x0: 使能ahb clock gate; 0x1: 不使能ahb clock gate,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x2_clk_gate(void)
+/* REG_0x02:reg0x2->jpeg_dec_linen:0x2[1],auto jpeg dec,line decode,0x0,R/W*/
+static inline uint32_t jpeg_dec_ll_get_reg0x2_jpeg_dec_linen(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(JPEG_DEC_REG0X2_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X2_CLK_GATE_POS) & JPEG_DEC_REG0X2_CLK_GATE_MASK);
+    reg_value = ((reg_value >> JPEG_DEC_REG0X2_JPEG_DEC_LINEN_POS) & JPEG_DEC_REG0X2_JPEG_DEC_LINEN_MASK);
     return reg_value;
 }
 
-static inline void jpeg_dec_ll_set_reg0x2_clk_gate(uint32_t value)
+static inline void jpeg_dec_ll_set_reg0x2_jpeg_dec_linen(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(JPEG_DEC_REG0X2_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X2_CLK_GATE_MASK << JPEG_DEC_REG0X2_CLK_GATE_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X2_CLK_GATE_MASK) << JPEG_DEC_REG0X2_CLK_GATE_POS);
+    reg_value &= ~(JPEG_DEC_REG0X2_JPEG_DEC_LINEN_MASK << JPEG_DEC_REG0X2_JPEG_DEC_LINEN_POS);
+    reg_value |= ((value & JPEG_DEC_REG0X2_JPEG_DEC_LINEN_MASK) << JPEG_DEC_REG0X2_JPEG_DEC_LINEN_POS);
     REG_WRITE(JPEG_DEC_REG0X2_ADDR,reg_value);
+}
+
+/* REG_0x02:reg0x2->jpeg_line_num:0x2[20:8],when line decode, when(line==jpeg_line_num),generate interrupt,0x0,R/W*/
+static inline uint32_t jpeg_dec_ll_get_reg0x2_jpeg_line_num(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(JPEG_DEC_REG0X2_ADDR);
+    reg_value = ((reg_value >> JPEG_DEC_REG0X2_JPEG_LINE_NUM_POS) & JPEG_DEC_REG0X2_JPEG_LINE_NUM_MASK);
+    return reg_value;
+}
+
+static inline void jpeg_dec_ll_set_reg0x2_jpeg_line_num(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(JPEG_DEC_REG0X2_ADDR);
+    reg_value &= ~(JPEG_DEC_REG0X2_JPEG_LINE_NUM_MASK << JPEG_DEC_REG0X2_JPEG_LINE_NUM_POS);
+    reg_value |= ((value & JPEG_DEC_REG0X2_JPEG_LINE_NUM_MASK) << JPEG_DEC_REG0X2_JPEG_LINE_NUM_POS);
+    REG_WRITE(JPEG_DEC_REG0X2_ADDR,reg_value);
+}
+
+/* REG_0x03 */
+#define JPEG_DEC_REG0X3_ADDR  (JPEG_DEC_LL_REG_BASE  + 0x3*4) //REG ADDR :0x4804000c
+#define JPEG_DEC_REG0X3_UV_VLD_POS (0)
+#define JPEG_DEC_REG0X3_UV_VLD_MASK (0x1)
+
+#define JPEG_DEC_REG0X3_RESERVED_POS (1)
+#define JPEG_DEC_REG0X3_RESERVED_MASK (0x7FFFFFFF)
+
+static inline uint32_t jpeg_dec_ll_get_reg0x3_value(void)
+{
+    return REG_READ(JPEG_DEC_REG0X3_ADDR);
+}
+
+static inline void jpeg_dec_ll_set_reg0x3_value(uint32_t value)
+{
+    REG_WRITE(JPEG_DEC_REG0X3_ADDR,value);
+}
+
+/* REG_0x03:reg0x3->uv_vld:0x3[0],uv  valid,0x0,R/W*/
+static inline uint32_t jpeg_dec_ll_get_reg0x3_uv_vld(void)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(JPEG_DEC_REG0X3_ADDR);
+    reg_value = ((reg_value >> JPEG_DEC_REG0X3_UV_VLD_POS) & JPEG_DEC_REG0X3_UV_VLD_MASK);
+    return reg_value;
+}
+
+static inline void jpeg_dec_ll_set_reg0x3_uv_vld(uint32_t value)
+{
+    uint32_t reg_value;
+    reg_value = REG_READ(JPEG_DEC_REG0X3_ADDR);
+    reg_value &= ~(JPEG_DEC_REG0X3_UV_VLD_MASK << JPEG_DEC_REG0X3_UV_VLD_POS);
+    reg_value |= ((value & JPEG_DEC_REG0X3_UV_VLD_MASK) << JPEG_DEC_REG0X3_UV_VLD_POS);
+    REG_WRITE(JPEG_DEC_REG0X3_ADDR,reg_value);
 }
 
 /* REG_0x04 */
@@ -127,7 +286,7 @@ static inline uint32_t jpeg_dec_ll_get_reg0x4_value(void)
     return REG_READ(JPEG_DEC_REG0X4_ADDR);
 }
 
-/* REG_0x04:reg0x4->jd_mask_cur:0x4,current mask of one byte,0x0,R*/
+/* REG_0x04:reg0x4->jd_mask_cur:0x4[31:0],current mask of one byte,0x0,R*/
 static inline uint32_t jpeg_dec_ll_get_reg0x4_jd_mask_cur(void)
 {
     return REG_READ(JPEG_DEC_REG0X4_ADDR);
@@ -246,19 +405,18 @@ static inline void jpeg_dec_ll_set_reg0x7_v_vld_num(uint32_t value)
 #define JPEG_DEC_REG0X8_DEC_CMD_POS (0)
 #define JPEG_DEC_REG0X8_DEC_CMD_MASK (0xF)
 
-#define JPEG_DEC_REG0X8_RESERVED0_POS (4)
-#define JPEG_DEC_REG0X8_RESERVED0_MASK (0xFFFFFFF)
-
-/*write only reg:reg0x8:default value:0x0*/
+#define JPEG_DEC_REG0X8_RESERVED_POS (4)
+#define JPEG_DEC_REG0X8_RESERVED_MASK (0xFFFFFFF)
 
 static inline void jpeg_dec_ll_set_reg0x8_value(uint32_t value)
 {
     REG_WRITE(JPEG_DEC_REG0X8_ADDR,value);
 }
 
+/* REG_0x08:reg0x8->DEC_CMD:0x8[3:0],4'b0001:  dec_start; 4'b0100:  dc value clr,0x0,W*/
 static inline void jpeg_dec_ll_set_reg0x8_dec_cmd(uint32_t value)
 {
-	uint32_t reg_value;
+    uint32_t reg_value;
     reg_value = REG_READ(JPEG_DEC_REG0X8_ADDR);
     reg_value &= ~(JPEG_DEC_REG0X8_DEC_CMD_MASK << JPEG_DEC_REG0X8_DEC_CMD_POS);
     reg_value |= ((value & JPEG_DEC_REG0X8_DEC_CMD_MASK) << JPEG_DEC_REG0X8_DEC_CMD_POS);
@@ -275,7 +433,7 @@ static inline uint32_t jpeg_dec_ll_get_reg0x9_value(void)
     return REG_READ(JPEG_DEC_REG0X9_ADDR);
 }
 
-/* REG_0x09:reg0x9->cur_run:0x9,current run,0x0,R*/
+/* REG_0x09:reg0x9->cur_run:0x9[31:0],current run,0x0,R*/
 static inline uint32_t jpeg_dec_ll_get_reg0x9_cur_run(void)
 {
     return REG_READ(JPEG_DEC_REG0X9_ADDR);
@@ -327,7 +485,7 @@ static inline uint32_t jpeg_dec_ll_get_reg0xb_value(void)
     return REG_READ(JPEG_DEC_REG0XB_ADDR);
 }
 
-/* REG_0x0b:reg0xb->huf_data:0xb,huffman data,0x0,R*/
+/* REG_0x0b:reg0xb->huf_data:0xb[31:0],huffman data,0x0,R*/
 static inline uint32_t jpeg_dec_ll_get_reg0xb_huf_data(void)
 {
     return REG_READ(JPEG_DEC_REG0XB_ADDR);
@@ -343,7 +501,7 @@ static inline uint32_t jpeg_dec_ll_get_reg0xc_value(void)
     return REG_READ(JPEG_DEC_REG0XC_ADDR);
 }
 
-/* REG_0x0c:reg0xc->cur_nbit:0xc,current nbit,0x0,R*/
+/* REG_0x0c:reg0xc->cur_nbit:0xc[31:0],current nbit,0x0,R*/
 static inline uint32_t jpeg_dec_ll_get_reg0xc_cur_nbit(void)
 {
     return REG_READ(JPEG_DEC_REG0XC_ADDR);
@@ -381,20 +539,8 @@ static inline uint32_t jpeg_dec_ll_get_reg0xc_cur_nbit(void)
 #define JPEG_DEC_REG0XD_STATE_AHBMST_IDLE_POS (9)
 #define JPEG_DEC_REG0XD_STATE_AHBMST_IDLE_MASK (0x1)
 
-#define JPEG_DEC_REG0XD_JPEG_EOF_POS (10)
-#define JPEG_DEC_REG0XD_JPEG_EOF_MASK (0x1)
-
-#define JPEG_DEC_REG0XD_RUN2LONG_POS (11)
-#define JPEG_DEC_REG0XD_RUN2LONG_MASK (0x1)
-
-#define JPEG_DEC_REG0XD_HUF_FAIL_POS (12)
-#define JPEG_DEC_REG0XD_HUF_FAIL_MASK (0x1)
-
-#define JPEG_DEC_REG0XD_JPEG_FF_ERR_POS (13)
-#define JPEG_DEC_REG0XD_JPEG_FF_ERR_MASK (0x1)
-
-#define JPEG_DEC_REG0XD_RESERVED_POS (14)
-#define JPEG_DEC_REG0XD_RESERVED_MASK (0x3FFFF)
+#define JPEG_DEC_REG0XD_RESERVED_POS (10)
+#define JPEG_DEC_REG0XD_RESERVED_MASK (0x3FFFFF)
 
 static inline uint32_t jpeg_dec_ll_get_reg0xd_value(void)
 {
@@ -491,42 +637,6 @@ static inline uint32_t jpeg_dec_ll_get_reg0xd_state_ahbmst_idle(void)
     return reg_value;
 }
 
-/* REG_0x0d:reg0xd->jpeg_eof:0xd[10],jpeg dec end of frame,None,R*/
-static inline uint32_t jpeg_dec_ll_get_reg0xd_jpeg_eof(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0XD_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0XD_JPEG_EOF_POS)&JPEG_DEC_REG0XD_JPEG_EOF_MASK);
-    return reg_value;
-}
-
-/* REG_0x0d:reg0xd->run2long:0xd[11],jpeg dec run  too long,None,R*/
-static inline uint32_t jpeg_dec_ll_get_reg0xd_run2long(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0XD_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0XD_RUN2LONG_POS)&JPEG_DEC_REG0XD_RUN2LONG_MASK);
-    return reg_value;
-}
-
-/* REG_0x0d:reg0xd->huf_fail:0xd[12],jpeg dec hufman  search fail,None,R*/
-static inline uint32_t jpeg_dec_ll_get_reg0xd_huf_fail(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0XD_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0XD_HUF_FAIL_POS)&JPEG_DEC_REG0XD_HUF_FAIL_MASK);
-    return reg_value;
-}
-
-/* REG_0x0d:reg0xd->jpeg_ff_err:0xd[13],jpeg find ffd0~ffd8 error,None,R*/
-static inline uint32_t jpeg_dec_ll_get_reg0xd_jpeg_ff_err(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0XD_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0XD_JPEG_FF_ERR_POS)&JPEG_DEC_REG0XD_JPEG_FF_ERR_MASK);
-    return reg_value;
-}
-
 /* REG_0x0E */
 #define JPEG_DEC_REG0XE_ADDR  (JPEG_DEC_LL_REG_BASE  + 0xE*4) //REG ADDR :0x48040038
 #define JPEG_DEC_REG0XE_EXT_DATA_POS (0)
@@ -537,7 +647,7 @@ static inline uint32_t jpeg_dec_ll_get_reg0xe_value(void)
     return REG_READ(JPEG_DEC_REG0XE_ADDR);
 }
 
-/* REG_0x0e:reg0xe->ext_data:0xe,ext data,0x0,R*/
+/* REG_0x0e:reg0xe->ext_data:0xe[31:0],ext data,0x0,R*/
 static inline uint32_t jpeg_dec_ll_get_reg0xe_ext_data(void)
 {
     return REG_READ(JPEG_DEC_REG0XE_ADDR);
@@ -594,7 +704,7 @@ static inline void jpeg_dec_ll_set_reg0x10_value(uint32_t value)
     REG_WRITE(JPEG_DEC_REG0X10_ADDR,value);
 }
 
-/* REG_0x10:reg0x10->hufdc_len_y0:0x10,y huffman table dc0,0x0,R/W*/
+/* REG_0x10:reg0x10->hufdc_len_y0:0x10[31:0],y huffman table dc0,0x0,R/W*/
 static inline uint32_t jpeg_dec_ll_get_reg0x10_hufdc_len_y0(void)
 {
     return REG_READ(JPEG_DEC_REG0X10_ADDR);
@@ -2243,378 +2353,6 @@ static inline void jpeg_dec_ll_set_reg0x4f_hufac_len_uvf(uint32_t value)
     REG_WRITE(JPEG_DEC_REG0X4F_ADDR,value);
 }
 
-/* REG_0x50 */
-#define JPEG_DEC_REG0X50_ADDR  (JPEG_DEC_LL_REG_BASE  + 0x50*4) //REG ADDR :0x48040140
-#define JPEG_DEC_REG0X50_JPEG_DEC_EN_POS (0)
-#define JPEG_DEC_REG0X50_JPEG_DEC_EN_MASK (0x1)
-
-#define JPEG_DEC_REG0X50_RESERVED0_POS (1)
-#define JPEG_DEC_REG0X50_RESERVED0_MASK (0x1)
-
-#define JPEG_DEC_REG0X50_RESERVED_POS (2)
-#define JPEG_DEC_REG0X50_RESERVED_MASK (0x7FFFFFF)
-
-#define JPEG_DEC_REG0X50_DRI_BPS_POS (29)
-#define JPEG_DEC_REG0X50_DRI_BPS_MASK (0x1)
-
-#define JPEG_DEC_REG0X50_YY_VLD_BPS_POS (30)
-#define JPEG_DEC_REG0X50_YY_VLD_BPS_MASK (0x1)
-
-#define JPEG_DEC_REG0X50_SHARMEM_BPS_POS (31)
-#define JPEG_DEC_REG0X50_SHARMEM_BPS_MASK (0x1)
-
-static inline uint32_t jpeg_dec_ll_get_reg0x50_value(void)
-{
-    return REG_READ(JPEG_DEC_REG0X50_ADDR);
-}
-
-static inline void jpeg_dec_ll_set_reg0x50_value(uint32_t value)
-{
-    REG_WRITE(JPEG_DEC_REG0X50_ADDR,value);
-}
-
-/* REG_0x50:reg0x50->jpeg_dec_en:0x50[0],jpeg dec enable,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x50_jpeg_dec_en(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X50_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X50_JPEG_DEC_EN_POS) & JPEG_DEC_REG0X50_JPEG_DEC_EN_MASK);
-    return reg_value;
-}
-
-static inline void jpeg_dec_ll_set_reg0x50_jpeg_dec_en(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X50_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X50_JPEG_DEC_EN_MASK << JPEG_DEC_REG0X50_JPEG_DEC_EN_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X50_JPEG_DEC_EN_MASK) << JPEG_DEC_REG0X50_JPEG_DEC_EN_POS);
-    REG_WRITE(JPEG_DEC_REG0X50_ADDR,reg_value);
-}
-
-/* REG_0x50:reg0x50->dri_bps:0x50[29],set 0,bypass dri support,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x50_dri_bps(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X50_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X50_DRI_BPS_POS) & JPEG_DEC_REG0X50_DRI_BPS_MASK);
-    return reg_value;
-}
-
-static inline void jpeg_dec_ll_set_reg0x50_dri_bps(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X50_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X50_DRI_BPS_MASK << JPEG_DEC_REG0X50_DRI_BPS_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X50_DRI_BPS_MASK) << JPEG_DEC_REG0X50_DRI_BPS_POS);
-    REG_WRITE(JPEG_DEC_REG0X50_ADDR,reg_value);
-}
-
-/* REG_0x50:reg0x50->yy_vld_bps:0x50[30],set 0,used for debug,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x50_yy_vld_bps(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X50_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X50_YY_VLD_BPS_POS) & JPEG_DEC_REG0X50_YY_VLD_BPS_MASK);
-    return reg_value;
-}
-
-static inline void jpeg_dec_ll_set_reg0x50_yy_vld_bps(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X50_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X50_YY_VLD_BPS_MASK << JPEG_DEC_REG0X50_YY_VLD_BPS_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X50_YY_VLD_BPS_MASK) << JPEG_DEC_REG0X50_YY_VLD_BPS_POS);
-    REG_WRITE(JPEG_DEC_REG0X50_ADDR,reg_value);
-}
-
-/* REG_0x50:reg0x50->sharmem_bps:0x50[31],set 0,used for debug,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x50_sharmem_bps(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X50_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X50_SHARMEM_BPS_POS) & JPEG_DEC_REG0X50_SHARMEM_BPS_MASK);
-    return reg_value;
-}
-
-static inline void jpeg_dec_ll_set_reg0x50_sharmem_bps(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X50_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X50_SHARMEM_BPS_MASK << JPEG_DEC_REG0X50_SHARMEM_BPS_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X50_SHARMEM_BPS_MASK) << JPEG_DEC_REG0X50_SHARMEM_BPS_POS);
-    REG_WRITE(JPEG_DEC_REG0X50_ADDR,reg_value);
-}
-
-/* REG_0x51 */
-#define JPEG_DEC_REG0X51_ADDR  (JPEG_DEC_LL_REG_BASE  + 0x51*4) //REG ADDR :0x48040144
-#define JPEG_DEC_REG0X51_MCU_INDEX_POS (0)
-#define JPEG_DEC_REG0X51_MCU_INDEX_MASK (0xFFFF)
-
-#define JPEG_DEC_REG0X51_MCU_Y_NUM_POS (16)
-#define JPEG_DEC_REG0X51_MCU_Y_NUM_MASK (0x3FF)
-
-#define JPEG_DEC_REG0X51_RESERVED_POS (26)
-#define JPEG_DEC_REG0X51_RESERVED_MASK (0x3F)
-
-static inline uint32_t jpeg_dec_ll_get_reg0x51_value(void)
-{
-    return REG_READ(JPEG_DEC_REG0X51_ADDR);
-}
-
-static inline void jpeg_dec_ll_set_reg0x51_value(uint32_t value)
-{
-    REG_WRITE(JPEG_DEC_REG0X51_ADDR,value);
-}
-
-/* REG_0x51:reg0x51->mcu_index:0x51[15:0],mcu index,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x51_mcu_index(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X51_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X51_MCU_INDEX_POS) & JPEG_DEC_REG0X51_MCU_INDEX_MASK);
-    return reg_value;
-}
-
-static inline void jpeg_dec_ll_set_reg0x51_mcu_index(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X51_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X51_MCU_INDEX_MASK << JPEG_DEC_REG0X51_MCU_INDEX_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X51_MCU_INDEX_MASK) << JPEG_DEC_REG0X51_MCU_INDEX_POS);
-    REG_WRITE(JPEG_DEC_REG0X51_ADDR,reg_value);
-}
-
-/* REG_0x51:reg0x51->mcu_y_num:0x51[25:16],line number,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x51_mcu_y_num(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X51_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X51_MCU_Y_NUM_POS) & JPEG_DEC_REG0X51_MCU_Y_NUM_MASK);
-    return reg_value;
-}
-
-static inline void jpeg_dec_ll_set_reg0x51_mcu_y_num(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X51_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X51_MCU_Y_NUM_MASK << JPEG_DEC_REG0X51_MCU_Y_NUM_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X51_MCU_Y_NUM_MASK) << JPEG_DEC_REG0X51_MCU_Y_NUM_POS);
-    REG_WRITE(JPEG_DEC_REG0X51_ADDR,reg_value);
-}
-
-/* REG_0x52 */
-#define JPEG_DEC_REG0X52_ADDR  (JPEG_DEC_LL_REG_BASE  + 0x52*4) //REG ADDR :0x48040148
-#define JPEG_DEC_REG0X52_JPEG_DEC_AUTO_POS (0)
-#define JPEG_DEC_REG0X52_JPEG_DEC_AUTO_MASK (0x1)
-
-#define JPEG_DEC_REG0X52_JPEG_DEC_LINEN_POS (1)
-#define JPEG_DEC_REG0X52_JPEG_DEC_LINEN_MASK (0x1)
-
-#define JPEG_DEC_REG0X52_RESERVED0_POS (2)
-#define JPEG_DEC_REG0X52_RESERVED0_MASK (0x3F)
-
-#define JPEG_DEC_REG0X52_JPEG_LINE_NUM_POS (8)
-#define JPEG_DEC_REG0X52_JPEG_LINE_NUM_MASK (0x1FFF)
-
-#define JPEG_DEC_REG0X52_RESERVED1_POS (21)
-#define JPEG_DEC_REG0X52_RESERVED1_MASK (0x7FF)
-
-static inline uint32_t jpeg_dec_ll_get_reg0x52_value(void)
-{
-    return REG_READ(JPEG_DEC_REG0X52_ADDR);
-}
-
-static inline void jpeg_dec_ll_set_reg0x52_value(uint32_t value)
-{
-    REG_WRITE(JPEG_DEC_REG0X52_ADDR,value);
-}
-
-/* REG_0x52:reg0x52->jpeg_dec_auto:0x52[0],auto jpeg dec,total decode,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x52_jpeg_dec_auto(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X52_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X52_JPEG_DEC_AUTO_POS) & JPEG_DEC_REG0X52_JPEG_DEC_AUTO_MASK);
-    return reg_value;
-}
-
-static inline void jpeg_dec_ll_set_reg0x52_jpeg_dec_auto(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X52_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X52_JPEG_DEC_AUTO_MASK << JPEG_DEC_REG0X52_JPEG_DEC_AUTO_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X52_JPEG_DEC_AUTO_MASK) << JPEG_DEC_REG0X52_JPEG_DEC_AUTO_POS);
-    REG_WRITE(JPEG_DEC_REG0X52_ADDR,reg_value);
-}
-
-/* REG_0x52:reg0x52->jpeg_dec_linen:0x52[1],auto jpeg dec,line decode,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x52_jpeg_dec_linen(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X52_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X52_JPEG_DEC_LINEN_POS) & JPEG_DEC_REG0X52_JPEG_DEC_LINEN_MASK);
-    return reg_value;
-}
-
-static inline void jpeg_dec_ll_set_reg0x52_jpeg_dec_linen(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X52_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X52_JPEG_DEC_LINEN_MASK << JPEG_DEC_REG0X52_JPEG_DEC_LINEN_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X52_JPEG_DEC_LINEN_MASK) << JPEG_DEC_REG0X52_JPEG_DEC_LINEN_POS);
-    REG_WRITE(JPEG_DEC_REG0X52_ADDR,reg_value);
-}
-
-/* REG_0x52:reg0x52->jpeg_line_num:0x52[20:8],when line decode, when(line==jpeg_line_num),generate interrupt,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x52_jpeg_line_num(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X52_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X52_JPEG_LINE_NUM_POS) & JPEG_DEC_REG0X52_JPEG_LINE_NUM_MASK);
-    return reg_value;
-}
-
-static inline void jpeg_dec_ll_set_reg0x52_jpeg_line_num(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X52_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X52_JPEG_LINE_NUM_MASK << JPEG_DEC_REG0X52_JPEG_LINE_NUM_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X52_JPEG_LINE_NUM_MASK) << JPEG_DEC_REG0X52_JPEG_LINE_NUM_POS);
-    REG_WRITE(JPEG_DEC_REG0X52_ADDR,reg_value);
-}
-
-/* REG_0x53 */
-#define JPEG_DEC_REG0X53_ADDR  (JPEG_DEC_LL_REG_BASE  + 0x53*4) //REG ADDR :0x4804014c
-#define JPEG_DEC_REG0X53_UV_VLD_POS (0)
-#define JPEG_DEC_REG0X53_UV_VLD_MASK (0x1)
-
-#define JPEG_DEC_REG0X53_RESERVED_POS (1)
-#define JPEG_DEC_REG0X53_RESERVED_MASK (0x7FFFFFFF)
-
-static inline uint32_t jpeg_dec_ll_get_reg0x53_value(void)
-{
-    return REG_READ(JPEG_DEC_REG0X53_ADDR);
-}
-
-static inline void jpeg_dec_ll_set_reg0x53_value(uint32_t value)
-{
-    REG_WRITE(JPEG_DEC_REG0X53_ADDR,value);
-}
-
-/* REG_0x53:reg0x53->uv_vld:0x53[0],uv  valid,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x53_uv_vld(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X53_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X53_UV_VLD_POS) & JPEG_DEC_REG0X53_UV_VLD_MASK);
-    return reg_value;
-}
-
-static inline void jpeg_dec_ll_set_reg0x53_uv_vld(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X53_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X53_UV_VLD_MASK << JPEG_DEC_REG0X53_UV_VLD_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X53_UV_VLD_MASK) << JPEG_DEC_REG0X53_UV_VLD_POS);
-    REG_WRITE(JPEG_DEC_REG0X53_ADDR,reg_value);
-}
-
-/* REG_0x56 */
-#define JPEG_DEC_REG0X56_ADDR  (JPEG_DEC_LL_REG_BASE  + 0x56*4) //REG ADDR :0x48040158
-#define JPEG_DEC_REG0X56_LEN_HUF_DCY_POS (0)
-#define JPEG_DEC_REG0X56_LEN_HUF_DCY_MASK (0xFF)
-
-#define JPEG_DEC_REG0X56_LEN_HUF_DCUV_POS (8)
-#define JPEG_DEC_REG0X56_LEN_HUF_DCUV_MASK (0xFF)
-
-#define JPEG_DEC_REG0X56_LEN_HUF_ACY_POS (16)
-#define JPEG_DEC_REG0X56_LEN_HUF_ACY_MASK (0xFF)
-
-#define JPEG_DEC_REG0X56_LEN_HUF_ACUV_POS (24)
-#define JPEG_DEC_REG0X56_LEN_HUF_ACUV_MASK (0xFF)
-
-static inline uint32_t jpeg_dec_ll_get_reg0x56_value(void)
-{
-    return REG_READ(JPEG_DEC_REG0X56_ADDR);
-}
-
-static inline void jpeg_dec_ll_set_reg0x56_value(uint32_t value)
-{
-    REG_WRITE(JPEG_DEC_REG0X56_ADDR,value);
-}
-
-/* REG_0x56:reg0x56->len_huf_dcy:0x56[ 7: 0],dcy   hufman length,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x56_len_huf_dcy(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X56_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X56_LEN_HUF_DCY_POS) & JPEG_DEC_REG0X56_LEN_HUF_DCY_MASK);
-    return reg_value;
-}
-
-static inline void jpeg_dec_ll_set_reg0x56_len_huf_dcy(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X56_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X56_LEN_HUF_DCY_MASK << JPEG_DEC_REG0X56_LEN_HUF_DCY_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X56_LEN_HUF_DCY_MASK) << JPEG_DEC_REG0X56_LEN_HUF_DCY_POS);
-    REG_WRITE(JPEG_DEC_REG0X56_ADDR,reg_value);
-}
-
-/* REG_0x56:reg0x56->len_huf_dcuv:0x56[15: 8],dcuv  hufman length,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x56_len_huf_dcuv(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X56_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X56_LEN_HUF_DCUV_POS) & JPEG_DEC_REG0X56_LEN_HUF_DCUV_MASK);
-    return reg_value;
-}
-
-static inline void jpeg_dec_ll_set_reg0x56_len_huf_dcuv(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X56_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X56_LEN_HUF_DCUV_MASK << JPEG_DEC_REG0X56_LEN_HUF_DCUV_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X56_LEN_HUF_DCUV_MASK) << JPEG_DEC_REG0X56_LEN_HUF_DCUV_POS);
-    REG_WRITE(JPEG_DEC_REG0X56_ADDR,reg_value);
-}
-
-/* REG_0x56:reg0x56->len_huf_acy:0x56[23:16],acy   hufman length,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x56_len_huf_acy(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X56_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X56_LEN_HUF_ACY_POS) & JPEG_DEC_REG0X56_LEN_HUF_ACY_MASK);
-    return reg_value;
-}
-
-static inline void jpeg_dec_ll_set_reg0x56_len_huf_acy(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X56_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X56_LEN_HUF_ACY_MASK << JPEG_DEC_REG0X56_LEN_HUF_ACY_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X56_LEN_HUF_ACY_MASK) << JPEG_DEC_REG0X56_LEN_HUF_ACY_POS);
-    REG_WRITE(JPEG_DEC_REG0X56_ADDR,reg_value);
-}
-
-/* REG_0x56:reg0x56->len_huf_acuv:0x56[31:24],acuv  hufman length,0x0,R/W*/
-static inline uint32_t jpeg_dec_ll_get_reg0x56_len_huf_acuv(void)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X56_ADDR);
-    reg_value = ((reg_value >> JPEG_DEC_REG0X56_LEN_HUF_ACUV_POS) & JPEG_DEC_REG0X56_LEN_HUF_ACUV_MASK);
-    return reg_value;
-}
-
-static inline void jpeg_dec_ll_set_reg0x56_len_huf_acuv(uint32_t value)
-{
-    uint32_t reg_value;
-    reg_value = REG_READ(JPEG_DEC_REG0X56_ADDR);
-    reg_value &= ~(JPEG_DEC_REG0X56_LEN_HUF_ACUV_MASK << JPEG_DEC_REG0X56_LEN_HUF_ACUV_POS);
-    reg_value |= ((value & JPEG_DEC_REG0X56_LEN_HUF_ACUV_MASK) << JPEG_DEC_REG0X56_LEN_HUF_ACUV_POS);
-    REG_WRITE(JPEG_DEC_REG0X56_ADDR,reg_value);
-}
-
 /* REG_0x57 */
 #define JPEG_DEC_REG0X57_ADDR  (JPEG_DEC_LL_REG_BASE  + 0x57*4) //REG ADDR :0x4804015c
 #define JPEG_DEC_REG0X57_MASTER_WR_CNT_POS (0)
@@ -2771,7 +2509,7 @@ static inline uint32_t jpeg_dec_ll_get_reg0x5d_value(void)
     return REG_READ(JPEG_DEC_REG0X5D_ADDR);
 }
 
-/* REG_0x5d:reg0x5d->master_rd_cnt:0x5d,master read count,None,R*/
+/* REG_0x5d:reg0x5d->master_rd_cnt:0x5d,master read count,0x0,R*/
 static inline uint32_t jpeg_dec_ll_get_reg0x5d_master_rd_cnt(void)
 {
     return REG_READ(JPEG_DEC_REG0X5D_ADDR);
@@ -3365,6 +3103,32 @@ static inline uint32_t jpeg_dec_ll_get_reg0x380_dqt_table_dc(void)
 static inline void jpeg_dec_ll_set_reg0x380_dqt_table_dc(uint32_t value)
 {
     REG_WRITE(JPEG_DEC_REG0X380_ADDR,value);
+}
+
+/* REG_0x3C0 */
+#define JPEG_DEC_REG0X3C0_ADDR  (JPEG_DEC_LL_REG_BASE  + 0x3C0*4) //REG ADDR :0x48040f00
+#define JPEG_DEC_REG0X3C0_DQT_TABLE_AC_POS (0)
+#define JPEG_DEC_REG0X3C0_DQT_TABLE_AC_MASK (0xFFFFFFFF)
+
+static inline uint32_t jpeg_dec_ll_get_reg0x3c0_value(void)
+{
+    return REG_READ(JPEG_DEC_REG0X3C0_ADDR);
+}
+
+static inline void jpeg_dec_ll_set_reg0x3c0_value(uint32_t value)
+{
+    REG_WRITE(JPEG_DEC_REG0X3C0_ADDR,value);
+}
+
+/* REG_0x3c0:reg0x3c0->DQT_table_ac:0x3c0,DQT_table_ac,0x0,R/W*/
+static inline uint32_t jpeg_dec_ll_get_reg0x3c0_dqt_table_ac(void)
+{
+    return REG_READ(JPEG_DEC_REG0X3C0_ADDR);
+}
+
+static inline void jpeg_dec_ll_set_reg0x3c0_dqt_table_ac(uint32_t value)
+{
+    REG_WRITE(JPEG_DEC_REG0X3C0_ADDR,value);
 }
 
 #ifdef __cplusplus

@@ -714,8 +714,7 @@ bk_err_t bk_wifi_send_raw(uint8_t *buffer, int len);
 * @attention 4. The API doesn't check the correctness of the raw frame, the
 *               caller need to guarantee the correctness of the frame.
 *
-* @param buffer : raw 802.11 frame
-* @param len : the length of the 802.11 frame
+* @param raw_tx : raw tx information, refer to struct wifi_raw_tx_info_t
 * @param cb : send status call back
 * @param param : send status call back paramter
 *
@@ -723,7 +722,9 @@ bk_err_t bk_wifi_send_raw(uint8_t *buffer, int len);
 *    - kNoErr: succeed
 *    - otherwise: fail
 */
-bk_err_t bk_wifi_send_raw_ex(uint8_t *buffer, int len, void *cb, void *param);
+bk_err_t bk_wifi_send_raw_ex(wifi_raw_tx_info_t *raw_tx, void *cb, void *param);
+
+
 
 /**
  * @brief Update raw 802.11 frame TX rate and power

@@ -4,8 +4,8 @@ Armino Wi-Fi说明
 Armino Wi-Fi功能列表
 -------------------------------------------------------
 
-- 兼容IEEE802.11 b/g/n/ax 2.4GHz标准(BK7256支持802.11ax)
-- 支持HT20 and HT40(BK7256支持HT40)
+- 兼容IEEE802.11 b/g/n/ax 2.4GHz标准
+- 支持HT20 and HT40
 - 支持802.11N MCS0-7
 - 支持STA、AP and Direct Modes
 - 支持Concurrent AP+STA
@@ -98,18 +98,17 @@ Armino Wi-Fi失败代码原因
 
 Armino Wi-Fi MAC地址配置
 -------------------------------------------------------
-Wi-Fi MAC地址配置位于 ``bk_system\mac.c`` , 分为base_mac、sta_mac、ap_mac,配置
-STA MAC地址有以下几种方式:
+Wi-Fi MAC地址配置位于 ``bk_system\mac.c`` , 分为base_mac、sta_mac、ap_mac,配置STA MAC地址有以下几种方式:
 
 - 通过EFUSE写入
 - 随机数产生,需使能 ``bk72xx.defconfig`` 配置文件中 ``CONFIG_RANDOM_MAC_ADDR`` 宏定义
 - 使用[MAC地址配置工具]:bk_writer烧写MAC地址到FLASH
+-  ``bk_check_mac_address`` 用于检测设置MAC地址是否符合BEKEN规范C8:47:8C, 如客户不需要可去除此功能
 - 使用mac命令写入flash,使用方式如下：
 
 ::
 
     mac c8478caabbcc
-    txevm -e 2
 
 :link_to_translation:`en:[English]`
 

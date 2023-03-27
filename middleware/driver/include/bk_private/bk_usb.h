@@ -19,161 +19,11 @@ extern "C" {
 #endif
 
 #include <common/bk_include.h>
-
+#include <modules/usb_types.h>
 
 #define UVC_DEMO_SUPPORT102
-
 #define USB_FAILURE                (1)
 #define USB_SUCCESS                (0)
-
-#define USB_DEV_NAME                "usb"
-
-typedef void (*USB_FPTR)(void *, void *);
-
-#define USB_CMD_MAGIC              (0xe550000)
-enum
-{
-    UCMD_RESET = USB_CMD_MAGIC + 1,
-
-    UCMD_MSC_REGISTER_FIDDLE_CB,
-    UCMD_UVC_REGISTER_CONFIG_NOTIFY_CB,
-    UCMD_UVC_REGISTER_RX_VSTREAM_CB,
-    UCMD_UVC_REGISTER_RX_VSTREAM_BUF_PTR,
-    UCMD_UVC_REGISTER_RX_VSTREAM_BUF_LEN,
-
-    UCMD_UVC_SET_PARAM,
-    UCMD_UVC_START_STREAM,
-    UCMD_UVC_STOP_STREAM,
-    UCMD_UVC_GET_CONNECT_STATUS,
-    UCMD_UVC_RECEIVE_VSTREAM,
-    UCMD_UVC_ENABLE_MJPEG,
-    UCMD_UVC_ENABLE_H264,
-    UCMD_USB_CONNECTED_REGISTER_CB,
-    UCMD_UVC_REGISTER_LINK,
-
-    UCMD_UVC_REGISTER_RX_PACKET_CB,
-    UCMD_UVC_GET_CUR,
-    UCMD_UVC_GET_MIN,
-    UCMD_UVC_GET_MAX,
-    UCMD_UVC_GET_RES,
-    UCMD_UVC_GET_LEN,
-    UCMD_UVC_GET_INFO,
-    UCMD_UVC_GET_DEF,
-    UCMD_UVC_SET_CUR,
-};
-
-/*UCMD_UVC_SET_PARAM*/
-#define UVC_MUX_PARAM(resolution_id, fps)           (fps + (resolution_id << 16))
-#define UVC_DEMUX_FPS(param)                         (param & 0xffff)
-#define UVC_DEMUX_ID(param)                         ((param >> 16) & 0xffff)
-
-typedef enum
-{
-    USB_HOST_MODE   = 0,
-    USB_DEVICE_MODE = 1
-} USB_MODE;
-
-/*
- * The value is defined in field wWidth and wHeight in 'Video Streaming MJPEG
-Frame Type Descriptor'
- */
-#ifdef UVC_DEMO_SUPPORT100
-typedef enum
-{
-    U2_FRAME_640_480 = 1,
-    U2_FRAME_640_360 = 2,
-    U2_FRAME_320_240 = 3,
-    U2_FRAME_168_120 = 4,
-} E_FRAME_ID_USB20;
-
-typedef enum
-{
-    U1_FRAME_640_480 = 1,
-    U1_FRAME_160_120 = 2,
-} E_FRAME_ID_USB11;
-#elif defined(UVC_DEMO_SUPPORT102)
-typedef enum
-{
-    UVC_FRAME_160_120 = 0,
-    UVC_FRAME_176_144 = 1,
-    UVC_FRAME_352_288 = 2,
-    UVC_FRAME_320_240 = 3,
-    UVC_FRAME_480_320 = 4,
-    UVC_FRAME_480_800 = 5,
-    UVC_FRAME_640_320 = 6,
-    UVC_FRAME_640_360 = 7,
-    UVC_FRAME_640_480 = 8,
-    UVC_FRAME_800_400 = 9,
-    UVC_FRAME_800_480 = 10,
-    UVC_FRAME_800_600 = 11,
-    UVC_FRAME_960_540 = 12,
-    UVC_FRAME_1280_720 = 13,
-    UVC_FRAME_864_480 = 14,
-    UVC_FRAME_COUNT
-} E_FRAME_ID_USB20;
-#endif
-
-typedef enum
-{
-    FPS_60 = 60,
-    FPS_30 = 30,
-    FPS_25 = 25,
-    FPS_20 = 20,
-    FPS_15 = 15,
-    FPS_10 = 10,
-    FPS_5  = 5,
-} E_FRAME_RATE_ID;
-
-typedef struct
-{
-    uint16_t  fps;
-    uint16_t  width;
-    uint16_t  height;
-} UVC_ResolutionFramerate;
-
-typedef enum
-{
-    USB_UVC_DEVICE = 0,
-    USB_UAC_MIC_DEVICE = 1,
-    USB_UAC_SPEAKER_DEVICE = 2,
-    USB_MSD_DEVICE = 3,
-} USB_DEVICE_WORKING_STATUS;
-
-/*
-* Finish DRC interrupt processing
-*/
-enum
-{
-	BSR_NONE_EVENT = 0,
-	BSR_ERROR_EVENT,
-	BSR_CONNECT_EVENT,
-	BSR_CONNECTED_EVENT,
-	
-	BSR_DISCONNECT_EVENT,
-	BSR_READ_OK_EVENT,
-    BSR_WRITE_OK_EVENT
-};
-
-typedef struct {
-    uint8_t bLength;
-    uint8_t bDescriptorType;
-    uint8_t bDescriptorSubtype;
-    uint8_t bTerminalLink;
-    uint8_t bDelay;
-    uint16_t wFormatTag;
-} s_audio_as_general_descriptor;
-
-typedef struct {
-    uint8_t bLength;
-    uint8_t bDescriptorType;
-    uint8_t bDescriptorSubtype;
-    uint8_t bFormatType;
-    uint8_t bNrChannels;
-    uint8_t bSubframeSize;
-    uint8_t bBitResolution;
-    uint8_t bSamFreqType;
-    uint8_t tSamFreq[3];
-} s_audio_format_type_descriptor;
 
 /*******************************************************************************
 * Function Declarations
@@ -191,13 +41,16 @@ extern bk_err_t bk_usb_init(void);
 extern bk_err_t bk_usb_deinit(void);
 extern bk_err_t bk_usb_open (uint32_t usb_mode);
 extern bk_err_t bk_usb_close (void);
-extern void usb_device_set_using_status(bool use_or_no, USB_DEVICE_WORKING_STATUS dev);
-
+extern bk_err_t bk_usb_control_transfer_init(void);
+extern bk_err_t bk_usb_control_transfer_deinit(void);
+extern bk_err_t bk_usb_control_transfer(s_usb_device_request *pSetup, s_usb_transfer_buffer_info *buffer_info);
+extern void usb_device_set_using_status(bool use_or_no, E_USB_DEVICE_T dev);
+extern bk_err_t bk_usb_check_device_supported (E_USB_DEVICE_T usb_dev);
 extern bk_err_t bk_uvc_start(void);
 extern bk_err_t bk_uvc_stop(void);
 extern bk_err_t bk_uvc_enable_H264();
+extern bk_err_t bk_uvc_enable_H265();
 extern bk_err_t bk_uvc_enable_mjpeg();
-extern bk_err_t bk_uvc_set_parameter(uint32_t resolution_id, uint32_t fps);
 extern bk_err_t bk_uvc_register_rx_vstream_buffptr(void *param);
 extern bk_err_t bk_uvc_register_rx_vstream_bufflen(uint32_t param);
 extern bk_err_t bk_uvc_receive_video_stream();
@@ -207,30 +60,26 @@ extern bk_err_t bk_uvc_register_VSrxed_callback(void *param);
 extern bk_err_t bk_uvc_register_VSrxed_packet_callback(void *param);
 extern bk_err_t bk_uvc_unregister_VSrxed_packet_callback();
 extern bk_err_t bk_uvc_register_link(uint32_t param);
-extern bk_err_t bk_uvc_set_cur(uint32_t attribute, uint32_t param);
-extern uint32_t bk_uvc_get_cur(uint32_t attribute);
-extern uint32_t bk_uvc_get_min(uint32_t attribute);
-extern uint32_t bk_uvc_get_max(uint32_t attribute);
-extern uint32_t bk_uvc_get_res(uint32_t attribute);
-extern uint32_t bk_uvc_get_len(uint32_t attribute);
-extern uint32_t bk_uvc_get_info(uint32_t attribute);
-extern uint32_t bk_uvc_get_def(uint32_t attribute);
+extern bk_err_t bk_usb_uvc_check_support_attribute(E_UVC_ATTRIBUTE_T attribute);
+extern bk_err_t bk_usb_uvc_attribute_op(E_USB_ATTRIBUTE_OP ops, E_UVC_ATTRIBUTE_T attribute, uint32_t *param);
+extern void bk_uvc_get_resolution_number(uint16_t *count);
 extern void bk_uvc_get_resolution_framerate(void *param, uint16_t count);
 extern void bk_uvc_set_resolution_framerate(void *param);
 
 #ifdef CONFIG_USB_UAC
 extern bk_err_t bk_usb_uac_register_disconnect_callback(void *param);
 extern bk_err_t bk_usb_uac_register_connect_callback(void *param);
-extern bk_err_t bk_usb_uac_set_hz(uint32_t dev, uint32 hz);
-extern bk_err_t bk_usb_uac_get_format_descriptor(USB_DEVICE_WORKING_STATUS dev,
+extern bk_err_t bk_usb_uac_set_hz(E_USB_DEVICE_T dev, uint32 hz);
+extern bk_err_t bk_usb_uac_attribute_op(E_USB_ATTRIBUTE_OP ops, E_UAC_ATTRIBUTE_T attribute, uint32_t *param);
+extern bk_err_t bk_usb_uac_check_support_attribute(E_UAC_ATTRIBUTE_T attribute);
+extern bk_err_t bk_usb_uac_get_format_descriptor(E_USB_DEVICE_T dev,
 											s_audio_as_general_descriptor *interfacedesc,
 											s_audio_format_type_descriptor *formatdesc);
 #if CONFIG_USB_UAC_MIC
 extern bk_err_t bk_uac_start_mic(void);
 extern bk_err_t bk_uac_stop_mic(void);
 extern bk_err_t bk_uac_register_micrxed_packet_callback(void *param);
-extern bk_err_t bk_uac_unregister_micrxed_packet_callback();
-extern bk_err_t bk_uac_receive_mic_stream();
+extern bk_err_t bk_uac_unregister_micrxed_packet_callback(void);
 #endif
 #if CONFIG_USB_UAC_SPEAKER
 extern bk_err_t bk_uac_start_speaker(void);
@@ -239,6 +88,14 @@ extern bk_err_t bk_uac_register_speakerstream_txed_callback(void *param);
 extern bk_err_t bk_uac_unregister_speakerstream_txed_callback(void);
 extern bk_err_t bk_uac_register_tx_speakerstream_buffptr(void *buffer_ptr, uint32_t buffer_len);
 #endif
+#endif
+
+#if (CONFIG_SOC_BK7271) || (CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7236)
+UINT32 usb_read (UINT32 pos, const void *buffer, UINT32 size);
+UINT32 usb_write (UINT32 pos, const void *buffer, UINT32 size);
+#else
+UINT32 usb_read (char *user_buf, UINT32 count, UINT32 op_flag);
+UINT32 usb_write (char *user_buf, UINT32 count, UINT32 op_flag);
 #endif
 
 #if (CONFIG_SOC_BK7251) || (CONFIG_SOC_BK7271)

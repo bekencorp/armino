@@ -15,7 +15,6 @@
 #include "hal_config.h"
 #include "system_hw.h"
 
-#if 0
 #if CFG_HAL_DEBUG_SYS_CLOCK
 
 void sys_clock_struct_dump(void)
@@ -108,11 +107,7 @@ void sys_clock_struct_dump(void)
 	SOC_LOGI("\r\n");
 
 	SOC_LOGI("  reg_0xd addr=%x value=%x\n", &hw->reg0xd, hw->reg0xd.v);
-
-	SOC_LOGI("  reg_0x20 addr=%x value=%x\n", &hw->reg0x20, hw->reg0x20.v);
-	SOC_LOGI("  reg_0x21 addr=%x value=%x\n", &hw->reg0x21, hw->reg0x21.v);
 }
 
-#endif
 #endif
 

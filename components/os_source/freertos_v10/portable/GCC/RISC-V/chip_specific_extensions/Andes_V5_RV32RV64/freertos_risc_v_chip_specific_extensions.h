@@ -63,52 +63,33 @@
 	#define portFPWORD_SIZE 8
 	#define fpstore_x fsd
 	#define fpload_x fld
-	#define portasmFPU_CONTEXT_SIZE        ( 1 + ( 32 * portFPWORD_SIZE ) / portWORD_SIZE )
 #elif __riscv_flen == 32
 	#define portFPWORD_SIZE 4
 	#define fpstore_x fsw
 	#define fpload_x flw
-	#define portasmFPU_CONTEXT_SIZE        ( 1 + ( 32 * portFPWORD_SIZE ) / portWORD_SIZE )
 #else
 	#define portFPWORD_SIZE 0
-	#define portasmFPU_CONTEXT_SIZE        ( 0 )
 #endif
 
-#include "FreeRTOSConfig.h"
-
-#define portasmHAS_MTIME 1
-
-#define portasmHANDLE_INTERRUPT  mext_interrupt
-
-#ifdef configUSE_CLIC
-#define portasmHAS_CLIC  1
-#else
-#define portasmHAS_CLIC  0
-#endif
+#define HW_STACK_PROTECT
 
 /* Constants to define the additional registers. */
 #define mxstatus 	0x7c4
 #define ucode   	0x801
 
 /* Additional FPU registers to save and restore (fcsr + 32 FPUs) */
+#define portasmFPU_CONTEXT_SIZE        ( 2 + ( 32 * portFPWORD_SIZE ) / portWORD_SIZE )  /* Must be even number on 32-bit cores. */
 
-/* One additional registers to save and restore, as per the #defines above. */
-#define portasmADDITIONAL_CONTEXT_SIZE ( 2 + portasmFPU_CONTEXT_SIZE )  /* Must be even number on 32-bit cores. */
-
-/* When the kernel update, TCB structure may be changed. So the offset need to be modified */
-#if (configHSP_ENABLE==1)
-	/* Set the bytes of stack's offset in TCB. Unit:byte */
-	#define StackOffset_TCB			(12 * portWORD_SIZE) /* The offset of pxCurrentTCB->pxStack in TCB structure */
-
-	/* Set the offset of top address of stack in TCB. Unit:byte */
-	#define EndStackOffset_TCB		(13 * portWORD_SIZE + configMAX_TASK_NAME_LEN) /* The offset of pxCurrentTCB->pxEndOfStack in TCB structure */
-#endif
+/* two additional registers to save and restore, as per the #defines above. */
+#define portasmADDITIONAL_CONTEXT_SIZE ( 2 + portasmFPU_CONTEXT_SIZE )
 
 /* Save additional registers found on the V5 core. */
 .macro portasmSAVE_ADDITIONAL_REGISTERS
+
 	addi sp, sp, -(portasmADDITIONAL_CONTEXT_SIZE * portWORD_SIZE) /* Make room for the additional registers. */
-//	csrr t0, mxstatus							 /* Load additional registers into accessible temporary registers. */
-//	store_x t0, 0 * portWORD_SIZE( sp )
+
+	csrr t0, mxstatus							 /* Load additional registers into accessible temporary registers. */
+	store_x t0, 0 * portWORD_SIZE( sp )
 
 	#ifdef __riscv_dsp
 		csrr t0, ucode
@@ -152,41 +133,13 @@
 		fpstore_x f31, ( 3 * portWORD_SIZE + 31 * portFPWORD_SIZE )( sp )
 	#endif
 
-	/*
-	 * If HSP mechanism is on. At the begining of trap handler, the mhsp_ctl should be turn off.
-	 * Because the sp will be changed from task stack to interrupt stack.
-	 */
-	#if( configHSP_ENABLE == 1 )
-		csrci mhsp_ctl, 3
-	#endif
 	.endm
 
 /* Restore the additional registers found on the V5 core. */
 .macro portasmRESTORE_ADDITIONAL_REGISTERS
 
-	/*
-	 * Set the msp_bound & msp_base to task's stack state
-	 * and turn on the mhsp_ctl.
-	 */
-	#if( configHSP_ENABLE == 1 )
-		/* Load current hardware stack protection and recording CSR */
-		load_x t0, pxCurrentTCB
-
-		load_x t1, StackOffset_TCB(t0)
-		csrw msp_bound, t1
-
-		#if( configRECORD_STACK_HIGH_ADDRESS == 1 )
-			load_x t1, EndStackOffset_TCB(t0)
-			csrw msp_base, t1
-			li t0, 0x23
-		#else
-			li t0, 0x21
-		#endif
-		csrw mhsp_ctl, t0
-	#endif
-
-//	load_x t0, 0 * portWORD_SIZE( sp )			/* Load additional registers into accessible temporary registers. */
-//	csrw mxstatus, t0
+	load_x t0, 0 * portWORD_SIZE( sp )			/* Load additional registers into accessible temporary registers. */
+	csrw mxstatus, t0
 
 	#ifdef __riscv_dsp
 		load_x t0, 1 * portWORD_SIZE( sp )
@@ -231,26 +184,7 @@
 	#endif
 
 	addi sp, sp, (portasmADDITIONAL_CONTEXT_SIZE * portWORD_SIZE )/* Remove space added for additional registers. */
+
 	.endm
-
-.macro portasmSWITCH_TO_ISRSTACK_HSP
-	/*
-	 * The HSP is disabled and stack pointer is switched to interrupt stack already when
-	 * this macro is called. Now we can set the SP bound to _end and enable HSP mechanism before
-	 * entering the C ISR.
-	 */
-	la t0, _end
-	csrw msp_bound, t0			/* Set the SP bound to _end and enable HSP mechanism */
-
-	#if( configRECORD_STACK_HIGH_ADDRESS == 1 )
-		csrw msp_base, sp
-		li t0, 0x23
-	#else
-		li t0, 0x21
-	#endif
-
-	csrw mhsp_ctl, t0
-	.endm
-
 
 #endif /* __FREERTOS_RISC_V_EXTENSIONS_H__ */

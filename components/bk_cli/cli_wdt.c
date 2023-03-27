@@ -58,20 +58,17 @@ static void cli_wdt_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		CLI_LOGI("wdt start, timeout=%d\n", timeout);
 	} else if (os_strcmp(argv[1], "stop") == 0) {
 		BK_LOG_ON_ERR(bk_wdt_stop());
+		bk_task_wdt_stop();
 		CLI_LOGI("wdt stop\n");
 	}else if (os_strcmp(argv[1], "feed") == 0) {
 		BK_LOG_ON_ERR(bk_wdt_feed());
 		CLI_LOGI("wdt feed\n");
 	}else if (os_strcmp(argv[1], "disable") == 0) {
-		extern void wdt_debug_disable(void);
-		wdt_debug_disable();
 		bk_wdt_stop();
 		bk_task_wdt_stop();
 		CLI_LOGI("wdt debug disabled\n");
 	}else if (os_strcmp(argv[1], "enable") == 0) {
-		extern void wdt_debug_enable(void);
 		extern void wdt_init(void);
-		wdt_debug_enable();
 		wdt_init();
 		CLI_LOGI("wdt debug enabled\n");
 	}else if (os_strcmp(argv[1], "while") == 0) {

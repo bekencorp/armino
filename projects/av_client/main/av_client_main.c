@@ -6,7 +6,7 @@
 #include "bk_private/bk_wifi.h"
 #include "bk_private/bk_wifi_wrapper.h"
 
-#include "av_udp.h"
+#include "av_audio.h"
 #include "doorbell.h"
 
 extern void user_app_main(void);
@@ -17,8 +17,13 @@ void user_app_main(void){
 	os_printf("start av client \r\n");
 	demo_sta_app_init("av_demo", "");
 	os_printf("connect ap: av_demo \r\n");
-	av_udp_client_init();
+#if CONFIG_AV_DEMO_MODE_TCP
+	av_voice_tcp_client_init();
+	demo_doorbell_tcp_client_init(3, (char **)&camera_param);
+#else
+	av_voice_udp_client_init();
 	demo_doorbell_udp_client_init(3, (char **)&camera_param);
+#endif
 	bk_wifi_capa_config(WIFI_CAPA_ID_TX_AMPDU_EN, 0);
 	os_printf("av client run \r\n");
 }

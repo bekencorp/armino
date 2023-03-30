@@ -1,0 +1,57 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2022, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+#-------------------------------------------------------------------------------
+
+menu "Secure partitions"
+
+################################# Crypto #######################################
+
+comment "Crypto depends on ITS"
+    depends on !TFM_PARTITION_INTERNAL_TRUSTED_STORAGE
+
+config TFM_PARTITION_CRYPTO
+    bool "Crypto"
+    depends on TFM_PARTITION_INTERNAL_TRUSTED_STORAGE
+
+################################# Attestation ##################################
+
+comment "Initial attestation depends on Crypto"
+    depends on !TFM_PARTITION_CRYPTO
+
+config TFM_PARTITION_INITIAL_ATTESTATION
+    bool "Initial attestation"
+    depends on TFM_PARTITION_CRYPTO
+
+################################# ITS ##########################################
+
+config TFM_PARTITION_INTERNAL_TRUSTED_STORAGE
+    bool "Internal Trusted Storage"
+    default n
+
+################################# Platform #####################################
+
+config TFM_PARTITION_PLATFORM
+    bool "Platform"
+    default n
+
+################################# FWU ##########################################
+
+comment "Firmware update depends on Crypto and Platform, and FWU support"
+    depends on !(TFM_PARTITION_PLATFORM && TFM_PARTITION_CRYPTO && PLATFORM_HAS_FIRMWARE_UPDATE_SUPPORT)
+
+config TFM_PARTITION_FIRMWARE_UPDATE
+    bool "Firmware update"
+    depends on TFM_PARTITION_PLATFORM && TFM_PARTITION_CRYPTO && PLATFORM_HAS_FIRMWARE_UPDATE_SUPPORT
+
+################################# PS ###########################################
+
+comment "Protected Storage depends on Crypto, ITS and Platform"
+    depends on !(TFM_PARTITION_INTERNAL_TRUSTED_STORAGE && TFM_PARTITION_PLATFORM && TFM_PARTITION_CRYPTO)
+
+config TFM_PARTITION_PROTECTED_STORAGE
+    bool "Protected Storage"
+    depends on TFM_PARTITION_INTERNAL_TRUSTED_STORAGE && TFM_PARTITION_PLATFORM && TFM_PARTITION_CRYPTO
+endmenu

@@ -38,6 +38,7 @@
 #include "los_timer.h"
 #include "los_debug.h"
 #include <soc/soc.h>
+#include "securec.h"
 
 #if CONFIG_LITEOS_M_BK
 #include "portmacro.h"
@@ -97,6 +98,7 @@ LITE_OS_SEC_TEXT_INIT VOID *HalTskStackInit(UINT32 taskID, UINT32 stackSize, VOI
 {
     UINT32 index;
     TaskContext  *context = NULL;
+	UINT32  *bottom;
 
     /* initialize the task stack, write magic num to stack top */
     for (index = 1; index < (stackSize / sizeof(UINT32)); index++) {
@@ -106,10 +108,13 @@ LITE_OS_SEC_TEXT_INIT VOID *HalTskStackInit(UINT32 taskID, UINT32 stackSize, VOI
 
     context = (TaskContext *)(((UINTPTR)topStack + stackSize) - sizeof(TaskContext));
 
-    context->mstatus = RISCV_MSTATUS_MPP | RISCV_MSTATUS_MPIE;
+	bottom = (UINT32 *)context - (FPU_CONTEXT_SIZE);  // reserve the space for FPU regs. REGBYTES = sizeof(UINT32);
+	memset_s(bottom, (FPU_CONTEXT_SIZE * sizeof(UINT32)), 0, (FPU_CONTEXT_SIZE * sizeof(UINT32)));
+
+    context->mstatus = RISCV_MSTATUS_UPIE;
     context->mepc = (UINT32)(UINTPTR)OsTaskEntry;
-    context->tp = TP_INIT_VALUE;
-    context->sp = SP_INIT_VALUE;
+//    context->tp = TP_INIT_VALUE;
+//    context->sp = SP_INIT_VALUE;
     context->s11 = S11_INIT_VALUE;
     context->s10 = S10_INIT_VALUE;
     context->s9 = S9_INIT_VALUE;
@@ -138,18 +143,19 @@ LITE_OS_SEC_TEXT_INIT VOID *HalTskStackInit(UINT32 taskID, UINT32 stackSize, VOI
     context->t1 = T1_INIT_VALUE;
     context->t0 = T0_INIT_VALUE;
     context->ra = (UINT32)(UINTPTR)HalSysExit;
-    return (VOID *)context;
+    return (VOID *)bottom;
 }
 
 LITE_OS_SEC_TEXT_INIT UINT32 HalStartSchedule(VOID)
 {
     (VOID)LOS_IntLock();
-    OsSchedStart();
 
-#if CONFIG_LITEOS_M_BK
-    vPortSetupTimerInterrupt();
-    vPortSetupMEXTInterrupt();
-#endif
+	extern void arch_init_vector(uint32_t vect);
+	extern void HalTrapVector(void);
+
+	arch_init_vector((uint32_t)HalTrapVector);
+
+    OsSchedStart();
 
     HalStartToRun();
     return LOS_OK; /* never return */

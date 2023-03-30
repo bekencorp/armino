@@ -44,6 +44,68 @@ enum {
 #define DHCP_CLIENT   (1)   /**< Enable DHCP client which get IP address from DHCP server automatically */
 #define DHCP_SERVER   (2)   /**< Enable DHCP server, needs assign a static address as local address. */
 
+#if CONFIG_MINIMUM_SCAN_RESULTS
+/**
+ * struct wpa_scan_res - Scan result for an BSS/IBSS
+ * @flags: information flags about the BSS/IBSS (WPA_SCAN_*)
+ * @bssid: BSSID
+ * @freq: frequency of the channel in MHz (e.g., 2412 = channel 1)
+ * @beacon_int: beacon interval in TUs (host byte order)
+ * @caps: capability information field in host byte order
+ * @qual: signal quality
+ * @noise: noise level
+ * @level: signal level
+ * @tsf: Timestamp
+ * @age: Age of the information in milliseconds (i.e., how many milliseconds
+ * ago the last Beacon or Probe Response frame was received)
+ * @est_throughput: Estimated throughput in kbps (this is calculated during
+ * scan result processing if left zero by the driver wrapper)
+ * @snr: Signal-to-noise ratio in dB (calculated during scan result processing)
+ * @parent_tsf: Time when the Beacon/Probe Response frame was received in terms
+ * of TSF of the BSS specified by %tsf_bssid.
+ * @tsf_bssid: The BSS that %parent_tsf TSF time refers to.
+ * @ie_len: length of the following IE field in octets
+ * @beacon_ie_len: length of the following Beacon IE field in octets
+ *
+ * This structure is used as a generic format for scan results from the
+ * driver. Each driver interface implementation is responsible for converting
+ * the driver or OS specific scan results into this format.
+ *
+ * If the driver does not support reporting all IEs, the IE data structure is
+ * constructed of the IEs that are available. This field will also need to
+ * include SSID in IE format. All drivers are encouraged to be extended to
+ * report all IEs to make it easier to support future additions.
+ *
+ * This structure data is followed by ie_len octets of IEs from Probe Response
+ * frame (or if the driver does not indicate source of IEs, these may also be
+ * from Beacon frame). After the first set of IEs, another set of IEs may follow
+ * (with beacon_ie_len octets of data) if the driver provides both IE sets.
+ */
+typedef  struct wpa_scan_res {
+	unsigned int flags;
+	u8 bssid[6];
+	int freq;
+	u16 beacon_int;
+	u16 caps;
+	int qual;
+	int noise;
+	int level;
+	u64 tsf;
+	unsigned int age;
+	unsigned int est_throughput;
+	int snr;
+	u64 parent_tsf;
+	u8 tsf_bssid[6];
+	size_t ie_len;
+	size_t beacon_ie_len;
+	int security;
+	char ssid[32];
+	char on_channel;
+	char channel;
+	/* Followed by ie_len + beacon_ie_len octets of IE data */
+}SCAN_RST_ITEM_T, *SCAN_RST_ITEM_PTR;
+#endif
+
 typedef enum _wifi_dis_reason
 {
 	UNSUPPORT_ENCRYPT = 0, /**< Unsupport encrypt algorithmn */
@@ -156,7 +218,7 @@ typedef  struct  _ScanResult_adv
 		wlan_sec_type_t security;       /**< Security type, see wlan_sec_type_t */
 	} *ApList;  /**< AP list found by scan */
 } ScanResult_adv;
-
+#if !CONFIG_MINIMUM_SCAN_RESULTS
 /**
  * @brief  The info of the APs found by scan.
  *
@@ -177,7 +239,7 @@ typedef struct sta_scan_res
 	UINT32 ie_len;     /**< IE length of beacon or probe response */
 	/* Followed by ie_len of IE data */
 } SCAN_RST_ITEM_T, *SCAN_RST_ITEM_PTR;
-
+#endif
 /**
  *  @brief  Input network paras, used in bk_wlan_start function.
  */
@@ -195,6 +257,31 @@ typedef struct _network_InitTypeDef_st
 	char reserved[26];            /**< Reserved */
 	int  wifi_retry_interval;     /**< Retry interval if an error is occured when connecting an access point,
 						time unit is millisecond. */
+	bool hidden_ssid;			  /**< hidden ssid, only for softap */
+	bool ocv;                     /**< operating channel validation */
+#if CONFIG_WIFI_STA_VSIE || CONFIG_WIFI_AP_VSIE
+	uint8_t vsie[255];			  /**< vendor specific IE for probe req/assoc req. */
+	uint8_t vsie_len;			  /**< vendor specific IE len. */
+#endif
+#if CONFIG_WIFI_AP_CUSTOM_RATES
+	/* mark last basic_rates be zero */
+	int basic_rates[16];
+	/* mark last supported_rates be zero */
+	int supported_rates[16];
+	/* mark last mcs_set be zero, don't change mcs_set length */
+	uint8_t mcs_set[16];
+#endif
+#if CONFIG_WIFI_AP_HW_MODE
+	/* bk_wlan_hw_mode */
+	int hw_mode;
+#endif
+#if CONFIG_QUICK_TRACK
+	int key_mgmt;
+	int pairwise_cipher;
+	int group_cipher;
+	int proto;		// WPA, RSN
+	int ieee80211w;
+#endif
 } network_InitTypeDef_st;
 
 /**
@@ -276,6 +363,31 @@ struct wlan_fast_connect_info
 	uint8_t netmask[4];
 	uint8_t gw[4];
 	uint8_t dns1[4];
+
+#if CONFIG_WLAN_FAST_CONNECT_WITHOUT_SCAN
+	uint16_t freq;
+	u16 beacon_int;
+	uint16_t caps;
+	int level;
+	// u64 tsf;
+	uint16_t ie_len;
+	uint8_t ies[1024];	/* FIXME: use dynamic len */
+#endif
+#if CONFIG_WLAN_FAST_CONNECT_DEAUTH_FIRST
+	uint8_t pmf;
+	uint8_t tk[16];
+#endif
+#if CONFIG_WLAN_FAST_CONNECT_WPA3
+	uint8_t pmk_len;
+	uint8_t pmk[64]; // for WPA2 Personal, pmk = psk
+	uint8_t pmkid[16];
+	int akmp;
+#endif
+
+#if (CONFIG_FAST_CONNECT_INFO_ENC_METHOD == ENC_METHOD_AES)
+	/* aes attention: sizeof(RL_BSSID_INFO_T) = 16 * n */
+	uint8_t padding[0] __attribute__ ((aligned (16)));
+#endif
 };
 
 typedef struct vif_addcfg_st {

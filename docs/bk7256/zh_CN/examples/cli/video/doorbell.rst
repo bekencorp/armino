@@ -79,7 +79,7 @@ DOORBELL Cli
 
     5.doorbell cs2_p2p_server
      - 功能说明
-        将当前设备作为CS2(尚云P2P云服务)server端，接收client的摄像头、音频数据并播放和LCD显示，也会将本端的音频数据传给对端。
+        将当前设备作为CS2(深圳市尚云互联技术有限公司 www.cs2-network.cn)server端，接收client的摄像头、音频数据并播放和LCD显示，也会将本端的音频数据传给对端。
      - 命令格式
         doorbell cs2_p2p_server <camera resolution> <LCD resolution> <LCD name> <transfer type> <DID> <APILicense[:CRCKey]> <InitString>
 
@@ -114,7 +114,7 @@ DOORBELL Cli
 
     6.doorbell cs2_p2p_client
      - 功能说明
-        将当前设备作为CS2(尚云P2P云服务)client端，接收server的音频数据并播放，也会将本端的视音频数据传给对端。
+        将当前设备作为CS2(深圳市尚云互联技术有限公司 www.cs2-network.cn)client端，接收server的音频数据并播放，也会将本端的视音频数据传给对端。
      - 命令格式
         doorbell cs2_p2p_client <camera type> <camera resolution> <LCD resolution> <LCD name> <transfer type> <DID> <APILicense[:CRCKey]> <InitString>
 
@@ -149,3 +149,13 @@ DOORBELL Cli
 
      - 注意
         CS2 P2P server client目前不能同时开启。CS2 P2P api参见components/bk_thirdparty/P2P/CS2/include/PPCS_API.h
+
+     - 如何获得测试ID
+        需要向尚云互联申请
+
+     - 深圳市尚云互联技术有限公司
+        | 深圳市龙岗区坂田街道雪岗北路天安云谷3栋D座2002B
+        | +86 755 36600360
+        | +86 755 36600361
+        | charlie@cs2-network.com
+

@@ -1280,8 +1280,8 @@ const dvp_sensor_config_t dvp_sensor_ov2640 =
 	.name = "ov2640",
 	.clk = JPEG_96M_MCLK_16M,
 	.fmt = PIXEL_FMT_YUYV,
-	.vsync = JPEG_SYNC_HiGH_LEVEL,
-	.hsync = JPEG_SYNC_HiGH_LEVEL,
+	.vsync = JPEG_SYNC_HIGH_LEVEL,
+	.hsync = JPEG_SYNC_HIGH_LEVEL,
 	/* default config */
 	.def_ppi = PPI_1280X720,
 	.def_fps = FPS15,

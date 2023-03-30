@@ -1,5 +1,6 @@
 menu "Lvgl_source"
 	config LVGL
+		depends on LCD
 		bool "Enable Lvgl"
 		default n
 

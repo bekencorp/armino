@@ -66,12 +66,7 @@ typedef enum
     BT_CMD_MAX,
 } bt_cmd_t;
 
-typedef enum{
-    BT_EVENT_INQUIRY_RESULT,
-    BT_EVENT_DISCONNECT,
-    BT_EVENT_COMPLETE,
-    BT_EVENT_CONNECTION_COMPLETE,
-}bt_event_t;
+
 /**
  * @defgroup bk_bt_api_v1_typedef struct
  * @brief bt struct type
@@ -86,6 +81,37 @@ typedef struct
 } bt_cmd_param_t;
 
 
+
+///**
+// * @brief bt storage callback struct
+// */
+//typedef struct
+//{
+//    /// this struct size
+//    uint16_t size;
+//
+//    /**
+//     * @brief recv cb when pair success and get link key
+//     * @param[in] param: see bk_bt_linkkey_storage_t
+//     *
+//     */
+//    void (*linkkey_notify_cb)(bk_bt_linkkey_storage_t *param);
+//
+//
+//    /**
+//     * @brief recv cb when peer need user to input link key, you need to write link key to param and return 0
+//     * @param[in,out] param: see bk_bt_linkkey_storage_t
+//     *
+//     * @return
+//     *                  - BK_ERR_BT_SUCCESS : find linkkey and write to param success, host will use the linkkey to authentication
+//     *                  - others: user linkkey not found, host will trigger pair procedure.
+//     */
+//    uint8_t (*linkkey_req_cb)(bk_bt_linkkey_storage_t *param);
+//
+//}bk_bt_storage_cb_t;
+
+
+
 /**
  * @brief for sync bt api call return
  *
@@ -97,6 +123,8 @@ typedef struct
  *
 **/
 typedef void (*bt_cmd_cb_t)(bt_cmd_t cmd, bt_cmd_param_t *param);
-typedef void (*bt_event_cb_t)(bt_event_t event, void *param);
+
+
+
 
 #endif

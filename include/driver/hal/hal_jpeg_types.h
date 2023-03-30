@@ -48,16 +48,18 @@ typedef enum {
  */
 typedef enum
 {
-	JPEG_96M_MCLK_16M,   /**< jpeg module work in 96MHz and sensor work in 16MHz */
+	JPEG_96M_MCLK_16M = 0,   /**< jpeg module work in 96MHz and sensor work in 16MHz */
 	JPEG_96M_MCLK_24M,
 	JPEG_120M_MCLK_20M,
 	JPEG_120M_MCLK_30M,
+	JPEG_80M_MCLK_20M,
+	JPEG_160M_MCLK_40M,
 } jpeg_clk_t;
 
 typedef enum
 {
 	JPEG_SYNC_LOW_LEVEL,
-	JPEG_SYNC_HiGH_LEVEL,
+	JPEG_SYNC_HIGH_LEVEL,
 } jpeg_sync_level_t;
 
 /**

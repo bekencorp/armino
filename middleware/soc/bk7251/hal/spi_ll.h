@@ -259,6 +259,11 @@ static inline void spi_ll_disable_rx(spi_hw_t *hw)
 #define spi_ll_set_tx_trans_len(hw, len)
 #define spi_ll_set_rx_trans_len(hw, len)
 
+static inline void spi_ll_enable_tx_rx(spi_hw_t *hw)
+{
+
+}
+
 static inline void spi_ll_clear_int_status(spi_hw_t *hw)
 {
 	uint32_t int_status = REG_READ(SPI_R_STATUS(0));

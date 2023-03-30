@@ -68,6 +68,11 @@ bk_err_t bk_dvp_camera_open(media_ppi_t ppi, media_camera_type_t type)
 	config.fb_display_malloc = frame_buffer_fb_display_malloc;
 	config.fb_jpeg_free = frame_buffer_fb_jpeg_free;
 	config.fb_display_free = frame_buffer_fb_display_free;
+	config.fb_h264_init = frame_buffer_fb_h264_init;
+	config.fb_h264_deinit = frame_buffer_fb_h264_deinit;
+	config.fb_h264_complete = frame_buffer_fb_h264_push;
+	config.fb_h264_malloc = frame_buffer_fb_h264_malloc_wait;
+	config.fb_h264_free = frame_buffer_fb_h264_free;
 	config.drop_frame = frame_drop_by_index;
 
 	config.ppi = ppi;

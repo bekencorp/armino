@@ -14,7 +14,7 @@
 
 void bk_mem_dump_ex(const char *title, unsigned char *data, uint32_t data_len);
 
-#if CONFIG_SDCARD_HOST
+#if CONFIG_FATFS_SDCARD
 FATFS *pfs = NULL;
 
 FRESULT scan_files

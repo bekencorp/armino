@@ -1,0 +1,7 @@
+if (CONFIG_PM)
+	set(incs .)
+	set(srcs pm.c device.c dependency.c sys.c policy.c stats.c log.c)
+	armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}")
+else()
+	armino_component_register()
+endif()

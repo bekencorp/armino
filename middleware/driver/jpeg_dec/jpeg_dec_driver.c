@@ -33,6 +33,7 @@
 #include <driver/hal/hal_jpeg_dec_types.h>
 #include <modules/pm.h>
 #include "bk_general_dma.h"
+#include <soc/mapping.h>
 
 #define JPEGDEC_TAG "jpeg hw_decode"
 #define JPEGDEC_LOGI(...) BK_LOGI(JPEGDEC_TAG, ##__VA_ARGS__)
@@ -52,8 +53,6 @@ static void jpeg_decoder_isr(void);
 	}\
 } while(0)
 static bool s_jpegdec_driver_is_init = false;
-
-#define JPEG_SRAM_ADDRESS (0x30000000)
 
 uint32_t image_ppi = 0;
 uint8_t *jpeg_address = NULL;
@@ -195,12 +194,12 @@ bk_err_t bk_jpeg_dec_hw_start(uint32_t length, unsigned char *input_buf, unsigne
 
 bk_err_t bk_jpeg_dec_stop(void)
 {
-	jpeg_dec_ll_set_reg0x5_mcu_x(0);
-	jpeg_dec_ll_set_reg0x6_mcu_y(0);
-	jpeg_dec_ll_set_reg0x8_dec_cmd(JPEGDEC_DC_CLEAR);
-	jpeg_dec_ll_set_reg0x5f_value(0x1ff);
-	jpeg_dec_ll_set_reg0x3_value(0);
-	jpeg_dec_ll_set_reg0x0_jpeg_dec_en(0);
+	jpeg_dec_hal_set_mcu_x(0);
+	jpeg_dec_hal_set_mcu_y(0);
+	jpeg_dec_hal_set_dec_cmd(JPEGDEC_DC_CLEAR);
+	jpeg_dec_hal_set_int_status_value(0x1ff);
+	jpeg_dec_hal_set_uv_vld_value(0);
+	jpeg_dec_hal_set_jpeg_dec_en(0);
 	return BK_OK;
 }
 
@@ -287,14 +286,14 @@ static void jpeg_decoder_isr(void)
 		result.ok = result.size == (jpeg_size + JPEG_TAIL_SIZE);
 #endif
 
-		if (jpeg_dec_ll_get_reg0x2_jpeg_dec_linen())  //enable line num en
+		if (jpeg_dec_hal_get_jpeg_dec_linen())  //enable line num en
 		{
-			if (jpeg_dec_ll_get_reg0x1_mcu_index() == 0)
+			if (jpeg_dec_hal_get_mcu_index() == 0)
 			{
-				jpeg_dec_ll_set_reg0x0_jpeg_dec_en(0);
+				jpeg_dec_hal_set_jpeg_dec_en(0);
 
-				register uint32_t rd_cnt = jpeg_dec_ll_get_reg0x5d_master_rd_cnt();
-				register uint32_t base_raddr = jpeg_dec_ll_get_reg0x58_base_raddr();
+				register uint32_t rd_cnt = jpeg_dec_hal_get_master_rd_cnt();
+				register uint32_t base_raddr = jpeg_dec_hal_get_base_raddr();
 				register uint8_t dri = *((uint8_t *)(base_raddr + rd_cnt));
 				if (dri == 0xff)
 				{
@@ -316,8 +315,8 @@ static void jpeg_decoder_isr(void)
 			}
 			else
 			{
-				register uint32_t rd_cnt = jpeg_dec_ll_get_reg0x5d_master_rd_cnt();
-				register uint32_t base_raddr = jpeg_dec_ll_get_reg0x58_base_raddr();
+				register uint32_t rd_cnt = jpeg_dec_hal_get_master_rd_cnt();
+				register uint32_t base_raddr = jpeg_dec_hal_get_base_raddr();
 				register uint8_t dri = *(uint8_t *)(base_raddr + rd_cnt);
 				if (dri == 0xff)
 				{
@@ -332,28 +331,28 @@ static void jpeg_decoder_isr(void)
 						}
 					}
 				}
-				jpeg_dec_ll_set_reg0x8_dec_cmd(JPEGDEC_START);
+				jpeg_dec_hal_set_dec_cmd(JPEGDEC_START);
 			}
-			jpeg_dec_ll_set_reg0x5f_dec_frame_int_clr(1);
+			jpeg_dec_hal_set_dec_frame_int_clr(1);
 
 		}
 		else
 		{
 //			jpeg_dec_ll_set_reg0x0_jpeg_dec_en(3);
-			jpeg_dec_ll_set_reg0x5_mcu_x(0);
-			jpeg_dec_ll_set_reg0x6_mcu_y(0);
-			jpeg_dec_ll_set_reg0x8_dec_cmd(JPEGDEC_DC_CLEAR);
-			jpeg_dec_ll_set_reg0x5f_value(0x1ff);
-			jpeg_dec_ll_set_reg0x3_value(0);
+			jpeg_dec_hal_set_mcu_x(0);
+			jpeg_dec_hal_set_mcu_y(0);
+			jpeg_dec_hal_set_dec_cmd(JPEGDEC_DC_CLEAR);
+			jpeg_dec_hal_set_int_status_value(0x1ff);
+			jpeg_dec_hal_set_uv_vld_value(0);
 //			jpeg_dec_ll_set_reg0x5f_dec_frame_int_clr(1);
-			jpeg_dec_ll_set_reg0x0_jpeg_dec_en(0);
+			jpeg_dec_hal_set_jpeg_dec_en(0);
 
 			if (s_jpeg_dec_isr[DEC_END_OF_FRAME]) {
 				s_jpeg_dec_isr[DEC_END_OF_FRAME](&result);
 			}
 		}
 	} else {
-		JPEGDEC_LOGE("int status = %x not auto int and line int \r\n", jpeg_dec_ll_get_reg0x5f_value());
+		JPEGDEC_LOGE("int status = %x not auto int and line int \r\n", jpeg_dec_hal_get_int_status_value());
 	}
 }
 

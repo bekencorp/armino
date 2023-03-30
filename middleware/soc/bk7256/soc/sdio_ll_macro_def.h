@@ -37,7 +37,7 @@ static inline void sdio_ll_set_reg0x0_value(uint32_t value)
 }
 
 /* REG_0x00:reg0x0->SD_CMD_START:0x0[0],sd host(Slave) start send command; Host:If SW set it to 1, sdio auto clear this bit and then start send command.; Slave:SW set it to 1, sdio will receive and response command if host send command, then sdio clear this bit; 0:If this bit is 0, sdio will no reponse command to host and reject command from host side.,0x0,RW/AutoC*/
-static inline uint32_t sdio_ll_get_reg0x0_sd_cmd_start(void)
+static inline uint32_t sdio_ll_get_sd_cmd_start(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X0_ADDR);
@@ -45,7 +45,7 @@ static inline uint32_t sdio_ll_get_reg0x0_sd_cmd_start(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x0_sd_cmd_start(uint32_t value)
+static inline void sdio_ll_set_sd_cmd_start(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X0_ADDR);
@@ -55,7 +55,7 @@ static inline void sdio_ll_set_reg0x0_sd_cmd_start(uint32_t value)
 }
 
 /* REG_0x00:reg0x0->SD_CMD_RSP:0x0[1],Host Only; sd host need slave respond the command or not.; 1: need respond; 0: not need respond,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0x0_sd_cmd_rsp(void)
+static inline uint32_t sdio_ll_get_sd_cmd_rsp(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X0_ADDR);
@@ -63,7 +63,7 @@ static inline uint32_t sdio_ll_get_reg0x0_sd_cmd_rsp(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x0_sd_cmd_rsp(uint32_t value)
+static inline void sdio_ll_set_sd_cmd_rsp(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X0_ADDR);
@@ -73,7 +73,7 @@ static inline void sdio_ll_set_reg0x0_sd_cmd_rsp(uint32_t value)
 }
 
 /* REG_0x00:reg0x0->SD_CMD_LONG:0x0[2],Host Only; sd host need slave respond a long command or short 1: need long response ; 0: need short response,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0x0_sd_cmd_long(void)
+static inline uint32_t sdio_ll_get_sd_cmd_long(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X0_ADDR);
@@ -81,7 +81,7 @@ static inline uint32_t sdio_ll_get_reg0x0_sd_cmd_long(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x0_sd_cmd_long(uint32_t value)
+static inline void sdio_ll_set_sd_cmd_long(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X0_ADDR);
@@ -91,7 +91,7 @@ static inline void sdio_ll_set_reg0x0_sd_cmd_long(uint32_t value)
 }
 
 /* REG_0x00:reg0x0->SD_CMD_CRC_CHECK:0x0[3],sd host(Slave?) need to check the slave respond command crc or not ; 1: need check crc  ; 0: not check crc,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0x0_sd_cmd_crc_check(void)
+static inline uint32_t sdio_ll_get_sd_cmd_crc_check(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X0_ADDR);
@@ -99,7 +99,7 @@ static inline uint32_t sdio_ll_get_reg0x0_sd_cmd_crc_check(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x0_sd_cmd_crc_check(uint32_t value)
+static inline void sdio_ll_set_sd_cmd_crc_check(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X0_ADDR);
@@ -109,7 +109,7 @@ static inline void sdio_ll_set_reg0x0_sd_cmd_crc_check(uint32_t value)
 }
 
 /* REG_0x00:reg0x0->CMD_INDEX:0x0[9:4],Host Only; sd host send command index value,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0x0_cmd_index(void)
+static inline uint32_t sdio_ll_get_cmd_index(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X0_ADDR);
@@ -117,7 +117,7 @@ static inline uint32_t sdio_ll_get_reg0x0_cmd_index(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x0_cmd_index(uint32_t value)
+static inline void sdio_ll_set_cmd_index(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X0_ADDR);
@@ -137,12 +137,12 @@ static inline void sdio_ll_set_reg0x1_value(uint32_t value)
 }
 
 /* REG_0x01:reg0x1->CMD_ARGUMENT:0x1[31:0],Host Only; sd host send command argument value; Host:CMD index …,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0x1_cmd_argument(void)
+static inline uint32_t sdio_ll_get_cmd_argument(void)
 {
     return REG_READ(SDIO_REG0X1_ADDR);
 }
 
-static inline void sdio_ll_set_reg0x1_cmd_argument(uint32_t value)
+static inline void sdio_ll_set_cmd_argument(uint32_t value)
 {
     REG_WRITE(SDIO_REG0X1_ADDR,value);
 }
@@ -158,12 +158,12 @@ static inline void sdio_ll_set_reg0x2_value(uint32_t value)
 }
 
 /* REG_0x02:reg0x2->SD_CMD_TIMER:0x2[31:0],Host Only; sd host wait the slave respond timer; What's the unit?,0xffffffff,RW*/
-static inline uint32_t sdio_ll_get_reg0x2_sd_cmd_timer(void)
+static inline uint32_t sdio_ll_get_sd_cmd_timer(void)
 {
     return REG_READ(SDIO_REG0X2_ADDR);
 }
 
-static inline void sdio_ll_set_reg0x2_sd_cmd_timer(uint32_t value)
+static inline void sdio_ll_set_sd_cmd_timer(uint32_t value)
 {
     REG_WRITE(SDIO_REG0X2_ADDR,value);
 }
@@ -179,7 +179,7 @@ static inline void sdio_ll_set_reg0x3_value(uint32_t value)
 }
 
 /* REG_0x03:reg0x3->SD_DATA_EN:0x3[0],Host Only; sd host start receive slave data.; 1: start slave wr data to line set this bit; If host want to read more then 512bytes data, whether need to set it at every block?,0x0,RW/AutoC*/
-static inline uint32_t sdio_ll_get_reg0x3_sd_data_en(void)
+static inline uint32_t sdio_ll_get_sd_data_en(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X3_ADDR);
@@ -187,7 +187,7 @@ static inline uint32_t sdio_ll_get_reg0x3_sd_data_en(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x3_sd_data_en(uint32_t value)
+static inline void sdio_ll_set_sd_data_en(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X3_ADDR);
@@ -197,7 +197,7 @@ static inline void sdio_ll_set_reg0x3_sd_data_en(uint32_t value)
 }
 
 /* REG_0x03:reg0x3->SD_DATA_STOP_EN:0x3[1],Host Only; sd host stop selfside transmid data; 1: stop; 0: start; Host can send CMD52 with REG0,Bit[0]=1 to slave and then slave stop transmid data,0x0,RW/AutoC*/
-static inline uint32_t sdio_ll_get_reg0x3_sd_data_stop_en(void)
+static inline uint32_t sdio_ll_get_sd_data_stop_en(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X3_ADDR);
@@ -205,7 +205,7 @@ static inline uint32_t sdio_ll_get_reg0x3_sd_data_stop_en(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x3_sd_data_stop_en(uint32_t value)
+static inline void sdio_ll_set_sd_data_stop_en(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X3_ADDR);
@@ -215,7 +215,7 @@ static inline void sdio_ll_set_reg0x3_sd_data_stop_en(uint32_t value)
 }
 
 /* REG_0x03:reg0x3->SD_DATA_BUS:0x3[2],sd host(Slave) received data bus ; 1: 4 lines data  ; 0: 1 line data; When switch this bit, should check there is no data transmitting on the data line,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0x3_sd_data_bus(void)
+static inline uint32_t sdio_ll_get_sd_data_bus(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X3_ADDR);
@@ -223,7 +223,7 @@ static inline uint32_t sdio_ll_get_reg0x3_sd_data_bus(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x3_sd_data_bus(uint32_t value)
+static inline void sdio_ll_set_sd_data_bus(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X3_ADDR);
@@ -233,7 +233,7 @@ static inline void sdio_ll_set_reg0x3_sd_data_bus(uint32_t value)
 }
 
 /* REG_0x03:reg0x3->SD_DATA_MUL_BLK:0x3[3],Host Only; sd host received data multiple blocks ; 1: multiple blocks  ; 0: single block; If use bytes mode, should set this bit to single block mode.,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0x3_sd_data_mul_blk(void)
+static inline uint32_t sdio_ll_get_sd_data_mul_blk(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X3_ADDR);
@@ -241,7 +241,7 @@ static inline uint32_t sdio_ll_get_reg0x3_sd_data_mul_blk(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x3_sd_data_mul_blk(uint32_t value)
+static inline void sdio_ll_set_sd_data_mul_blk(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X3_ADDR);
@@ -251,7 +251,7 @@ static inline void sdio_ll_set_reg0x3_sd_data_mul_blk(uint32_t value)
 }
 
 /* REG_0x03:reg0x3->SD_DATA_BLK_SIZE:0x3[15:4],Host Only; sd host send data block size(Bytes) to slave, host controller uses this value to controll send how many bytes to slave with every block.; a.Host with SD-CARD mode:write valid, read invalid.; b.Host with SDIO-Device mode:write valid,read invalid(the length has been send to device by CMD53),0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0x3_sd_data_blk_size(void)
+static inline uint32_t sdio_ll_get_sd_data_blk_size(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X3_ADDR);
@@ -259,7 +259,7 @@ static inline uint32_t sdio_ll_get_reg0x3_sd_data_blk_size(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x3_sd_data_blk_size(uint32_t value)
+static inline void sdio_ll_set_sd_data_blk_size(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X3_ADDR);
@@ -269,7 +269,7 @@ static inline void sdio_ll_set_reg0x3_sd_data_blk_size(uint32_t value)
 }
 
 /* REG_0x03:reg0x3->SD_START_WR_EN:0x3[16],sd host(Slave) write data enable：start write data to data wires.,0x0,RW/AutoC*/
-static inline uint32_t sdio_ll_get_reg0x3_sd_start_wr_en(void)
+static inline uint32_t sdio_ll_get_sd_start_wr_en(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X3_ADDR);
@@ -277,7 +277,7 @@ static inline uint32_t sdio_ll_get_reg0x3_sd_start_wr_en(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x3_sd_start_wr_en(uint32_t value)
+static inline void sdio_ll_set_sd_start_wr_en(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X3_ADDR);
@@ -287,7 +287,7 @@ static inline void sdio_ll_set_reg0x3_sd_start_wr_en(uint32_t value)
 }
 
 /* REG_0x03:reg0x3->SD_BYTE_SEL:0x3[17],sd host(Slave) received data byte arrangement ; 1: sd_rd = {sd_data[7:0],sd_data[15:8],sd_data[23:16],sd_data[31:24]} ; 0: sd_rd = sd_data[31:0],0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0x3_sd_byte_sel(void)
+static inline uint32_t sdio_ll_get_sd_byte_sel(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X3_ADDR);
@@ -295,7 +295,7 @@ static inline uint32_t sdio_ll_get_reg0x3_sd_byte_sel(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x3_sd_byte_sel(uint32_t value)
+static inline void sdio_ll_set_sd_byte_sel(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X3_ADDR);
@@ -315,12 +315,12 @@ static inline void sdio_ll_set_reg0x4_value(uint32_t value)
 }
 
 /* REG_0x04:reg0x4->SD_DATA_TIMER:0x4[31:0],Host:; sd host read data from slave till timeout,; what's write timeout mean?; Slave:; slave wait host write data to line till timeout,it doesn't check host read data time.,0xffffffff,RW*/
-static inline uint32_t sdio_ll_get_reg0x4_sd_data_timer(void)
+static inline uint32_t sdio_ll_get_sd_data_timer(void)
 {
     return REG_READ(SDIO_REG0X4_ADDR);
 }
 
-static inline void sdio_ll_set_reg0x4_sd_data_timer(uint32_t value)
+static inline void sdio_ll_set_sd_data_timer(uint32_t value)
 {
     REG_WRITE(SDIO_REG0X4_ADDR,value);
 }
@@ -331,7 +331,7 @@ static inline uint32_t sdio_ll_get_reg0x5_value(void)
 }
 
 /* REG_0x05:reg0x5->SD_RSP_AGUMENT_0:0x5[31:0],Host:sd host received slave command argument value; ; Slave:sd slave received host command argument.; The argument maybe CMD52/CMD53 and other value(Though other CMD isn't error by ASIC).Every CMD Response INT should check this value.,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0x5_sd_rsp_agument_0(void)
+static inline uint32_t sdio_ll_get_sd_rsp_agument_0(void)
 {
     return REG_READ(SDIO_REG0X5_ADDR);
 }
@@ -342,7 +342,7 @@ static inline uint32_t sdio_ll_get_reg0x6_value(void)
 }
 
 /* REG_0x06:reg0x6->SD_RSP_AGUMENT_1:0x6[31:0],Host only; sd host received slave command argument value,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0x6_sd_rsp_agument_1(void)
+static inline uint32_t sdio_ll_get_sd_rsp_agument_1(void)
 {
     return REG_READ(SDIO_REG0X6_ADDR);
 }
@@ -353,7 +353,7 @@ static inline uint32_t sdio_ll_get_reg0x7_value(void)
 }
 
 /* REG_0x07:reg0x7->SD_RSP_AGUMENT_2:0x7[31:0],Host only; sd host received slave command argument value,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0x7_sd_rsp_agument_2(void)
+static inline uint32_t sdio_ll_get_sd_rsp_agument_2(void)
 {
     return REG_READ(SDIO_REG0X7_ADDR);
 }
@@ -364,12 +364,17 @@ static inline uint32_t sdio_ll_get_reg0x8_value(void)
 }
 
 /* REG_0x08:reg0x8->SD_RSP_AGUMENT_3:0x8[31:0],Host only; sd host received slave command argument value,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0x8_sd_rsp_agument_3(void)
+static inline uint32_t sdio_ll_get_sd_rsp_agument_3(void)
 {
     return REG_READ(SDIO_REG0X8_ADDR);
 }
 
 static inline uint32_t sdio_ll_get_reg0x9_value(void)
+{
+    return REG_READ(SDIO_REG0X9_ADDR);
+}
+
+static inline uint32_t sdio_ll_get_int_status(void)
 {
     return REG_READ(SDIO_REG0X9_ADDR);
 }
@@ -380,7 +385,7 @@ static inline void sdio_ll_set_reg0x9_value(uint32_t value)
 }
 
 /* REG_0x09:reg0x9->SD_CMD_SEND_NORSP_END_INT:0x9[0],Host only; sd host send no response command end int.; Some CMD no needs response,so CMD sends finish then the sdio produced the CMD send finish INT,0x0,R/W1C*/
-static inline uint32_t sdio_ll_get_reg0x9_sd_cmd_send_norsp_end_int(void)
+static inline uint32_t sdio_ll_get_sd_cmd_send_norsp_end_int(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -388,7 +393,7 @@ static inline uint32_t sdio_ll_get_reg0x9_sd_cmd_send_norsp_end_int(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x9_sd_cmd_send_norsp_end_int(uint32_t value)
+static inline void sdio_ll_set_sd_cmd_send_norsp_end_int(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -398,7 +403,7 @@ static inline void sdio_ll_set_reg0x9_sd_cmd_send_norsp_end_int(uint32_t value)
 }
 
 /* REG_0x09:reg0x9->SD_CMD_SEND_RSP_END_INT:0x9[1],Host only; sd host receive slave command end int,0x0,R/W1C*/
-static inline uint32_t sdio_ll_get_reg0x9_sd_cmd_send_rsp_end_int(void)
+static inline uint32_t sdio_ll_get_sd_cmd_send_rsp_end_int(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -406,7 +411,7 @@ static inline uint32_t sdio_ll_get_reg0x9_sd_cmd_send_rsp_end_int(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x9_sd_cmd_send_rsp_end_int(uint32_t value)
+static inline void sdio_ll_set_sd_cmd_send_rsp_end_int(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -416,7 +421,7 @@ static inline void sdio_ll_set_reg0x9_sd_cmd_send_rsp_end_int(uint32_t value)
 }
 
 /* REG_0x09:reg0x9->SD_CMD_SEND_RSP_TIMEOUT_INT:0x9[2],sd host wait slave command over time int(What's diffrence with "no response command end int"),0x0,R/W1C*/
-static inline uint32_t sdio_ll_get_reg0x9_sd_cmd_send_rsp_timeout_int(void)
+static inline uint32_t sdio_ll_get_sd_cmd_send_rsp_timeout_int(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -424,7 +429,7 @@ static inline uint32_t sdio_ll_get_reg0x9_sd_cmd_send_rsp_timeout_int(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x9_sd_cmd_send_rsp_timeout_int(uint32_t value)
+static inline void sdio_ll_set_sd_cmd_send_rsp_timeout_int(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -434,7 +439,7 @@ static inline void sdio_ll_set_reg0x9_sd_cmd_send_rsp_timeout_int(uint32_t value
 }
 
 /* REG_0x09:reg0x9->SD_DATA_REC_END_INT:0x9[3],sd host receive slave data end int,0x0,R/W1C*/
-static inline uint32_t sdio_ll_get_reg0x9_sd_data_rec_end_int(void)
+static inline uint32_t sdio_ll_get_sd_data_rec_end_int(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -442,7 +447,7 @@ static inline uint32_t sdio_ll_get_reg0x9_sd_data_rec_end_int(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x9_sd_data_rec_end_int(uint32_t value)
+static inline void sdio_ll_set_sd_data_rec_end_int(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -452,7 +457,7 @@ static inline void sdio_ll_set_reg0x9_sd_data_rec_end_int(uint32_t value)
 }
 
 /* REG_0x09:reg0x9->SD_DATA_WR_END_INT:0x9[4],sd host write data end int,it means slave has read data finish,notify host can send next block.(Slave has to write REG0x10 Bit[1] to 1(clear to 0 and then set to 1) to notify host send next block,or host can't send next block data),0x0,R/W1C*/
-static inline uint32_t sdio_ll_get_reg0x9_sd_data_wr_end_int(void)
+static inline uint32_t sdio_ll_get_sd_data_wr_end_int(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -460,13 +465,13 @@ static inline uint32_t sdio_ll_get_reg0x9_sd_data_wr_end_int(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x9_sd_data_wr_end_int(uint32_t value)
+static inline void sdio_ll_set_sd_data_wr_end_int(uint32_t value)
 {
     REG_WRITE(SDIO_REG0X9_ADDR, ((value & SDIO_REG0X9_SD_DATA_WR_END_INT_MASK) << SDIO_REG0X9_SD_DATA_WR_END_INT_POS));
 }
 
 /* REG_0x09:reg0x9->SD_DATA_TIME_OUT_INT:0x9[5],sd host wait slave data over time int,0x0,R/W1C*/
-static inline uint32_t sdio_ll_get_reg0x9_sd_data_time_out_int(void)
+static inline uint32_t sdio_ll_get_sd_data_time_out_int(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -474,7 +479,7 @@ static inline uint32_t sdio_ll_get_reg0x9_sd_data_time_out_int(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x9_sd_data_time_out_int(uint32_t value)
+static inline void sdio_ll_set_sd_data_time_out_int(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -484,7 +489,7 @@ static inline void sdio_ll_set_reg0x9_sd_data_time_out_int(uint32_t value)
 }
 
 /* REG_0x09:reg0x9->RX_FIFO_NEED_READ:0x9[6],sd host fifo memory need read int; Host:If FIFO has more then count of threshhold data,enable INT to CPU.; Slave:valid,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0x9_rx_fifo_need_read(void)
+static inline uint32_t sdio_ll_get_rx_fifo_need_read(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -493,7 +498,7 @@ static inline uint32_t sdio_ll_get_reg0x9_rx_fifo_need_read(void)
 }
 
 /* REG_0x09:reg0x9->TX_FIFO_NEED_WRITE:0x9[7],sd host fifo memory need write int; Host:If FIFO has less then count of threshhold data,enable INT to CPU.; Slave:valid,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0x9_tx_fifo_need_write(void)
+static inline uint32_t sdio_ll_get_tx_fifo_need_write(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -502,7 +507,7 @@ static inline uint32_t sdio_ll_get_reg0x9_tx_fifo_need_write(void)
 }
 
 /* REG_0x09:reg0x9->RX_OV:0x9[8],sd host fifo memory overflow int?; rx fifo full, host slave wr too many full, slave host wr too many data.; What's the overflow condition?,0x0,R/W1C*/
-static inline uint32_t sdio_ll_get_reg0x9_rx_ov(void)
+static inline uint32_t sdio_ll_get_rx_ov(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -510,7 +515,7 @@ static inline uint32_t sdio_ll_get_reg0x9_rx_ov(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x9_rx_ov(uint32_t value)
+static inline void sdio_ll_set_rx_ov(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -520,7 +525,7 @@ static inline void sdio_ll_set_reg0x9_rx_ov(uint32_t value)
 }
 
 /* REG_0x09:reg0x9->TX_FIFO_EMPT:0x9[9],sd host fifo memory empty int,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0x9_tx_fifo_empt(void)
+static inline uint32_t sdio_ll_get_tx_fifo_empt(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -528,13 +533,13 @@ static inline uint32_t sdio_ll_get_reg0x9_tx_fifo_empt(void)
     return reg_value;
 }
 
-static inline void sdio_ll_clear_reg0x9_tx_fifo_empt(void)
+static inline void sdio_ll_clear_tx_fifo_empt(void)
 {
     REG_WRITE(SDIO_REG0X9_ADDR, ((1 & SDIO_REG0X9_TX_FIFO_EMPT_MASK) << SDIO_REG0X9_TX_FIFO_EMPT_POS));
 }
 
 /* REG_0x09:reg0x9->SD_RSP_CMD_CRC_OK:0x9[10],sd host/slave received peer side slave/host command crc check indication signal 1: crc ok  ,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0x9_sd_rsp_cmd_crc_ok(void)
+static inline uint32_t sdio_ll_get_sd_rsp_cmd_crc_ok(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -543,7 +548,7 @@ static inline uint32_t sdio_ll_get_reg0x9_sd_rsp_cmd_crc_ok(void)
 }
 
 /* REG_0x09:reg0x9->SD_RSP_CMD_CRC_FAIL:0x9[11],sd host/slave received peer side slave/host command crc check indication signal 1: crc fail ,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0x9_sd_rsp_cmd_crc_fail(void)
+static inline uint32_t sdio_ll_get_sd_rsp_cmd_crc_fail(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -552,7 +557,7 @@ static inline uint32_t sdio_ll_get_reg0x9_sd_rsp_cmd_crc_fail(void)
 }
 
 /* REG_0x09:reg0x9->SD_DATA_CRC_OK:0x9[12],sd host/slave received peer side slave/host data crc check indication signal 1: crc ok,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0x9_sd_data_crc_ok(void)
+static inline uint32_t sdio_ll_get_sd_data_crc_ok(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -561,7 +566,7 @@ static inline uint32_t sdio_ll_get_reg0x9_sd_data_crc_ok(void)
 }
 
 /* REG_0x09:reg0x9->SD_DATA_CRC_FAIL:0x9[13],sd host/slave received peer side slave/host data crc check indication signal 1: crc fail,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0x9_sd_data_crc_fail(void)
+static inline uint32_t sdio_ll_get_sd_data_crc_fail(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -570,7 +575,7 @@ static inline uint32_t sdio_ll_get_reg0x9_sd_data_crc_fail(void)
 }
 
 /* REG_0x09:reg0x9->SD_RSP_INDEX:0x9[19:14],Host only; sd host received slave command index value,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0x9_sd_rsp_index(void)
+static inline uint32_t sdio_ll_get_sd_rsp_index(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -579,7 +584,7 @@ static inline uint32_t sdio_ll_get_reg0x9_sd_rsp_index(void)
 }
 
 /* REG_0x09:reg0x9->WR_STATUS:0x9[22:20],sd host write data result(response from slave device); 0:; 1:; 2:Is right, else is error.; (Workaround:BK7256 read this value is 0x5 though slave responsed is 0x2); 3:; 4:; 5:; 6:; 7:,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0x9_wr_status(void)
+static inline uint32_t sdio_ll_get_wr_status(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -588,7 +593,7 @@ static inline uint32_t sdio_ll_get_reg0x9_wr_status(void)
 }
 
 /* REG_0x09:reg0x9->DATA_BUSY:0x9[23],sd slave busy signal after sd host send special command and write data.Host check this bit to confirm slave is whether busy?,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0x9_data_busy(void)
+static inline uint32_t sdio_ll_get_data_busy(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -597,7 +602,7 @@ static inline uint32_t sdio_ll_get_reg0x9_data_busy(void)
 }
 
 /* REG_0x09:reg0x9->CMD_S_RES_END_INT:0x9[24],Slave only; Slave has finish reponsed the CMD to host side.,0x0,R/W1C*/
-static inline uint32_t sdio_ll_get_reg0x9_cmd_s_res_end_int(void)
+static inline uint32_t sdio_ll_get_cmd_s_res_end_int(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -605,7 +610,7 @@ static inline uint32_t sdio_ll_get_reg0x9_cmd_s_res_end_int(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x9_cmd_s_res_end_int(uint32_t value)
+static inline void sdio_ll_set_cmd_s_res_end_int(uint32_t value)
 {
     uint32_t reg_value;
     //reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -618,7 +623,7 @@ static inline void sdio_ll_set_reg0x9_cmd_s_res_end_int(uint32_t value)
 }
 
 /* REG_0x09:reg0x9->DAT_S_WR_WAI_INT:0x9[25],Slave:Host write and slave is reading,host should stop, INT notify CPU slave has received the data from host.; Slave write finish.; W1:Clear the finish status.; 1.If clear means slave can receive data again?; Read data-out first or clear INT first?; 2.The name of WR_WAT is hard to understand,0x0,R/W1C*/
-static inline uint32_t sdio_ll_get_reg0x9_dat_s_wr_wai_int(void)
+static inline uint32_t sdio_ll_get_dat_s_wr_wai_int(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -626,7 +631,7 @@ static inline uint32_t sdio_ll_get_reg0x9_dat_s_wr_wai_int(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x9_dat_s_wr_wai_int(uint32_t value)
+static inline void sdio_ll_set_dat_s_wr_wai_int(uint32_t value)
 {
     uint32_t reg_value;
     //reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -639,7 +644,7 @@ static inline void sdio_ll_set_reg0x9_dat_s_wr_wai_int(uint32_t value)
 }
 
 /* REG_0x09:reg0x9->dat_s_rd_bus_int:0x9[26],If RX FIFO full(only valid for FULL status) or read finish(once block finish or all blocks finish?), the value is 1 means slave can't receive data,then CPU deals the received data and clear it to receive data again.This bit mean is similar with REG0x15 Bit[14].,0x0,R/W1C*/
-static inline uint32_t sdio_ll_get_reg0x9_dat_s_rd_bus_int(void)
+static inline uint32_t sdio_ll_get_dat_s_rd_bus_int(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -647,7 +652,7 @@ static inline uint32_t sdio_ll_get_reg0x9_dat_s_rd_bus_int(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x9_dat_s_rd_bus_int(uint32_t value)
+static inline void sdio_ll_set_dat_s_rd_bus_int(uint32_t value)
 {
     uint32_t reg_value;
     //reg_value = REG_READ(SDIO_REG0X9_ADDR);
@@ -670,7 +675,7 @@ static inline void sdio_ll_set_reg0xa_value(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->SD_CMD_SEND_NORSP_END_MASK:0xa[0],sd host send no response command end mask; Slave Invalid,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_sd_cmd_send_norsp_end_mask(void)
+static inline uint32_t sdio_ll_get_sd_cmd_send_norsp_end_mask(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -678,7 +683,7 @@ static inline uint32_t sdio_ll_get_reg0xa_sd_cmd_send_norsp_end_mask(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_sd_cmd_send_norsp_end_mask(uint32_t value)
+static inline void sdio_ll_set_sd_cmd_send_norsp_end_mask(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -688,7 +693,7 @@ static inline void sdio_ll_set_reg0xa_sd_cmd_send_norsp_end_mask(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->SD_CMD_SEND_RSP_END_MASK:0xa[1],sd host receive slave command end mask; Slave Invalid,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_sd_cmd_send_rsp_end_mask(void)
+static inline uint32_t sdio_ll_get_sd_cmd_send_rsp_end_mask(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -696,7 +701,7 @@ static inline uint32_t sdio_ll_get_reg0xa_sd_cmd_send_rsp_end_mask(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_sd_cmd_send_rsp_end_mask(uint32_t value)
+static inline void sdio_ll_set_sd_cmd_send_rsp_end_mask(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -706,7 +711,7 @@ static inline void sdio_ll_set_reg0xa_sd_cmd_send_rsp_end_mask(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->SD_CMD_SEND_RSP_TIMEOUT_MASK:0xa[2],sd host wait slave command over time mask; Slave Invalid,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_sd_cmd_send_rsp_timeout_mask(void)
+static inline uint32_t sdio_ll_get_sd_cmd_send_rsp_timeout_mask(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -714,7 +719,7 @@ static inline uint32_t sdio_ll_get_reg0xa_sd_cmd_send_rsp_timeout_mask(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_sd_cmd_send_rsp_timeout_mask(uint32_t value)
+static inline void sdio_ll_set_sd_cmd_send_rsp_timeout_mask(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -724,7 +729,7 @@ static inline void sdio_ll_set_reg0xa_sd_cmd_send_rsp_timeout_mask(uint32_t valu
 }
 
 /* REG_0x0a:reg0xa->SD_DATA_REC_END_MASK:0xa[3],sd host receive slave data end mask; Slave Invalid,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_sd_data_rec_end_mask(void)
+static inline uint32_t sdio_ll_get_sd_data_rec_end_mask(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -732,7 +737,7 @@ static inline uint32_t sdio_ll_get_reg0xa_sd_data_rec_end_mask(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_sd_data_rec_end_mask(uint32_t value)
+static inline void sdio_ll_set_sd_data_rec_end_mask(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -742,7 +747,7 @@ static inline void sdio_ll_set_reg0xa_sd_data_rec_end_mask(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->SD_DATA_WR_END_MASK:0xa[4],sd host write data end mask; Slave Invalid,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_sd_data_wr_end_mask(void)
+static inline uint32_t sdio_ll_get_sd_data_wr_end_mask(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -750,7 +755,7 @@ static inline uint32_t sdio_ll_get_reg0xa_sd_data_wr_end_mask(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_sd_data_wr_end_mask(uint32_t value)
+static inline void sdio_ll_set_sd_data_wr_end_mask(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -760,7 +765,7 @@ static inline void sdio_ll_set_reg0xa_sd_data_wr_end_mask(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->SD_DATA_TIME_OUT_MASK:0xa[5],sd host wait slave data over time mask; Slave Invalid,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_sd_data_time_out_mask(void)
+static inline uint32_t sdio_ll_get_sd_data_time_out_mask(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -768,7 +773,7 @@ static inline uint32_t sdio_ll_get_reg0xa_sd_data_time_out_mask(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_sd_data_time_out_mask(uint32_t value)
+static inline void sdio_ll_set_sd_data_time_out_mask(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -778,7 +783,7 @@ static inline void sdio_ll_set_reg0xa_sd_data_time_out_mask(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->RX_FIFO_NEED_READ_MASK:0xa[6],sd host fifo memory need read mask; Slave Invalid,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_rx_fifo_need_read_mask(void)
+static inline uint32_t sdio_ll_get_rx_fifo_need_read_mask(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -786,7 +791,7 @@ static inline uint32_t sdio_ll_get_reg0xa_rx_fifo_need_read_mask(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_rx_fifo_need_read_mask(uint32_t value)
+static inline void sdio_ll_set_rx_fifo_need_read_mask(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -796,7 +801,7 @@ static inline void sdio_ll_set_reg0xa_rx_fifo_need_read_mask(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->TX_FIFO_NEED_WRITE_MASK:0xa[7],sd host fifo memory need write mask; Slave Invalid,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_tx_fifo_need_write_mask(void)
+static inline uint32_t sdio_ll_get_tx_fifo_need_write_mask(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -804,7 +809,7 @@ static inline uint32_t sdio_ll_get_reg0xa_tx_fifo_need_write_mask(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_tx_fifo_need_write_mask(uint32_t value)
+static inline void sdio_ll_set_tx_fifo_need_write_mask(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -814,7 +819,7 @@ static inline void sdio_ll_set_reg0xa_tx_fifo_need_write_mask(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->RX_OV_MASK:0xa[8],sd host fifo memory overflow mask; Slave Invalid,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_rx_ov_mask(void)
+static inline uint32_t sdio_ll_get_rx_ov_mask(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -822,7 +827,7 @@ static inline uint32_t sdio_ll_get_reg0xa_rx_ov_mask(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_rx_ov_mask(uint32_t value)
+static inline void sdio_ll_set_rx_ov_mask(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -832,7 +837,7 @@ static inline void sdio_ll_set_reg0xa_rx_ov_mask(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->TX_FIFO_EMPT_MASK:0xa[9],sd host fifo memory empty mask：; a.0:Mask INT,not report to CPU, 1：If empty,INT report to CPU(If FIFO is empty,SDIO module will be clock gate, FIFO not empty, clock restart); b.Must after CMD53; workaround:multi-block has to set 1,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_tx_fifo_empt_mask(void)
+static inline uint32_t sdio_ll_get_tx_fifo_empt_mask(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -840,7 +845,7 @@ static inline uint32_t sdio_ll_get_reg0xa_tx_fifo_empt_mask(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_tx_fifo_empt_mask(uint32_t value)
+static inline void sdio_ll_set_tx_fifo_empt_mask(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -850,7 +855,7 @@ static inline void sdio_ll_set_reg0xa_tx_fifo_empt_mask(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->CMD_S_RES_END_INT_MASK:0xa[10],0:Mask INT,not report to CPU, 1：INT report to CPU,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_cmd_s_res_end_int_mask(void)
+static inline uint32_t sdio_ll_get_cmd_s_res_end_int_mask(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -858,7 +863,7 @@ static inline uint32_t sdio_ll_get_reg0xa_cmd_s_res_end_int_mask(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_cmd_s_res_end_int_mask(uint32_t value)
+static inline void sdio_ll_set_cmd_s_res_end_int_mask(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -868,7 +873,7 @@ static inline void sdio_ll_set_reg0xa_cmd_s_res_end_int_mask(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->DAT_S_WR_WAI_INT_MASK:0xa[11],1.Enable slave write data finish INT report to CPU.,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_dat_s_wr_wai_int_mask(void)
+static inline uint32_t sdio_ll_get_dat_s_wr_wai_int_mask(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -876,7 +881,7 @@ static inline uint32_t sdio_ll_get_reg0xa_dat_s_wr_wai_int_mask(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_dat_s_wr_wai_int_mask(uint32_t value)
+static inline void sdio_ll_set_dat_s_wr_wai_int_mask(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -886,7 +891,7 @@ static inline void sdio_ll_set_reg0xa_dat_s_wr_wai_int_mask(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->DAT_S_RD_BUS_INT_MASK:0xa[12],1:Enable busy INT report to CPU.,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_dat_s_rd_bus_int_mask(void)
+static inline uint32_t sdio_ll_get_dat_s_rd_bus_int_mask(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -894,7 +899,7 @@ static inline uint32_t sdio_ll_get_reg0xa_dat_s_rd_bus_int_mask(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_dat_s_rd_bus_int_mask(uint32_t value)
+static inline void sdio_ll_set_dat_s_rd_bus_int_mask(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -904,7 +909,7 @@ static inline void sdio_ll_set_reg0xa_dat_s_rd_bus_int_mask(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->TX_FIFO_NEED_WRITE_MASK_CG:0xa[13],1:sd host fifo memory need write mask for clk gate writing use only,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_tx_fifo_need_write_mask_cg(void)
+static inline uint32_t sdio_ll_get_tx_fifo_need_write_mask_cg(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -912,7 +917,7 @@ static inline uint32_t sdio_ll_get_reg0xa_tx_fifo_need_write_mask_cg(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_tx_fifo_need_write_mask_cg(uint32_t value)
+static inline void sdio_ll_set_tx_fifo_need_write_mask_cg(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -922,7 +927,7 @@ static inline void sdio_ll_set_reg0xa_tx_fifo_need_write_mask_cg(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->WRITE_WAIT_JUMP_SEL:0xa[14],0:jump to write_busy 1:jump to idle,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_write_wait_jump_sel(void)
+static inline uint32_t sdio_ll_get_write_wait_jump_sel(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -930,7 +935,7 @@ static inline uint32_t sdio_ll_get_reg0xa_write_wait_jump_sel(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_write_wait_jump_sel(uint32_t value)
+static inline void sdio_ll_set_write_wait_jump_sel(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -940,7 +945,7 @@ static inline void sdio_ll_set_reg0xa_write_wait_jump_sel(uint32_t value)
 }
 
 /* REG_0x0a:reg0xa->IDLE_STOP_JUMP_SEL:0xa[15],0：rec stop not jump to busy 1:rec stop will jump to busy,RW*/
-static inline uint32_t sdio_ll_get_reg0xa_idle_stop_jump_sel(void)
+static inline uint32_t sdio_ll_get_idle_stop_jump_sel(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -948,7 +953,7 @@ static inline uint32_t sdio_ll_get_reg0xa_idle_stop_jump_sel(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xa_idle_stop_jump_sel(uint32_t value)
+static inline void sdio_ll_set_idle_stop_jump_sel(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XA_ADDR);
@@ -969,7 +974,7 @@ static inline uint32_t sdio_ll_get_reg0xc_value(void)
 }
 
 /* REG_0x0c:reg0xc->RX_FIFO_DOUT:0xc[31:0],sd host fifo read data,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0xc_rx_fifo_dout(void)
+static inline uint32_t sdio_ll_get_rx_fifo_dout(void)
 {
     return REG_READ(SDIO_REG0XC_ADDR);
 }
@@ -985,7 +990,7 @@ static inline void sdio_ll_set_reg0xd_value(uint32_t value)
 }
 
 /* REG_0x0d:reg0xd->RX_FIFO_THRESHOLD:0xd[7:0],sd host fifo threshold for read,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xd_rx_fifo_threshold(void)
+static inline uint32_t sdio_ll_get_rx_fifo_threshold(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -993,7 +998,7 @@ static inline uint32_t sdio_ll_get_reg0xd_rx_fifo_threshold(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xd_rx_fifo_threshold(uint32_t value)
+static inline void sdio_ll_set_rx_fifo_threshold(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1003,7 +1008,7 @@ static inline void sdio_ll_set_reg0xd_rx_fifo_threshold(uint32_t value)
 }
 
 /* REG_0x0d:reg0xd->TX_FIFO_THRESHOLD:0xd[15:8],sd host fifo threshold for write,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xd_tx_fifo_threshold(void)
+static inline uint32_t sdio_ll_get_tx_fifo_threshold(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1011,7 +1016,7 @@ static inline uint32_t sdio_ll_get_reg0xd_tx_fifo_threshold(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xd_tx_fifo_threshold(uint32_t value)
+static inline void sdio_ll_set_tx_fifo_threshold(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1021,7 +1026,7 @@ static inline void sdio_ll_set_reg0xd_tx_fifo_threshold(uint32_t value)
 }
 
 /* REG_0x0d:reg0xd->RX_FIFO_RST:0xd[16],read fifo reset, high active; Host/Slave:Reset self state,0x1,R/W1C*/
-static inline uint32_t sdio_ll_get_reg0xd_rx_fifo_rst(void)
+static inline uint32_t sdio_ll_get_rx_fifo_rst(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1030,7 +1035,7 @@ static inline uint32_t sdio_ll_get_reg0xd_rx_fifo_rst(void)
 }
 
 //low active:0 reset(read value is 1, write 0 to reset, asic auto set it to 1)
-static inline void sdio_ll_set_reg0xd_rx_fifo_rst(void)
+static inline void sdio_ll_set_rx_fifo_rst(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1039,7 +1044,7 @@ static inline void sdio_ll_set_reg0xd_rx_fifo_rst(void)
 }
 
 /* REG_0x0d:reg0xd->TX_FIFO_RST:0xd[17],write fifo reset, high active; Host/Slave:Reset self state,0x1,R/W1C*/
-static inline uint32_t sdio_ll_get_reg0xd_tx_fifo_rst(void)
+static inline uint32_t sdio_ll_get_tx_fifo_rst(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1048,7 +1053,7 @@ static inline uint32_t sdio_ll_get_reg0xd_tx_fifo_rst(void)
 }
 
 //low active:0 reset(read value is 1, write 0 to reset, asic auto set it to 1)
-static inline void sdio_ll_set_reg0xd_tx_fifo_rst(void)
+static inline void sdio_ll_set_tx_fifo_rst(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1057,7 +1062,7 @@ static inline void sdio_ll_set_reg0xd_tx_fifo_rst(void)
 }
 
 /* REG_0x0d:reg0xd->RXFIFO_RD_READY:0xd[18],host/slave rx fifo not empty,0x0,R*/
-static inline uint32_t sdio_ll_get_reg0xd_rxfifo_rd_ready(void)
+static inline uint32_t sdio_ll_get_rxfifo_rd_ready(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1066,7 +1071,7 @@ static inline uint32_t sdio_ll_get_reg0xd_rxfifo_rd_ready(void)
 }
 
 /* REG_0x0d:reg0xd->TXFIFO_WR_READY:0xd[19],host/slave tx fifo not full(data is valid, not used for CMD),0x1,R*/
-static inline uint32_t sdio_ll_get_reg0xd_txfifo_wr_ready(void)
+static inline uint32_t sdio_ll_get_txfifo_wr_ready(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1075,7 +1080,7 @@ static inline uint32_t sdio_ll_get_reg0xd_txfifo_wr_ready(void)
 }
 
 /* REG_0x0d:reg0xd->SD_STA_RST:0xd[20],sdcard command and data state reset, low active; Host/Slave:Reset self state; It's better to reset after one round transfer.,0x1,R/W1C*/
-static inline uint32_t sdio_ll_get_reg0xd_sd_sta_rst(void)
+static inline uint32_t sdio_ll_get_sd_sta_rst(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1084,7 +1089,7 @@ static inline uint32_t sdio_ll_get_reg0xd_sd_sta_rst(void)
 }
 
 //low active:0 reset(read value is 1, write 0 to reset, asic auto set it to 1)
-static inline void sdio_ll_set_reg0xd_sd_sta_rst(void)
+static inline void sdio_ll_set_sd_sta_rst(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1093,7 +1098,7 @@ static inline void sdio_ll_set_reg0xd_sd_sta_rst(void)
 }
 
 /* REG_0x0d:reg0xd->SD_CLK_SEL:0xd[22:21],sdcard clock div sel, used or not depend on project; Invalid.,0x3,RW*/
-static inline uint32_t sdio_ll_get_reg0xd_sd_clk_sel(void)
+static inline uint32_t sdio_ll_get_sd_clk_sel(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1101,7 +1106,7 @@ static inline uint32_t sdio_ll_get_reg0xd_sd_clk_sel(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xd_sd_clk_sel(uint32_t value)
+static inline void sdio_ll_set_sd_clk_sel(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1111,7 +1116,7 @@ static inline void sdio_ll_set_reg0xd_sd_clk_sel(uint32_t value)
 }
 
 /* REG_0x0d:reg0xd->SD_RD_WAIT_SEL:0xd[23],read data after command ?; Use default value.,0x1,RW*/
-static inline uint32_t sdio_ll_get_reg0xd_sd_rd_wait_sel(void)
+static inline uint32_t sdio_ll_get_sd_rd_wait_sel(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1119,7 +1124,7 @@ static inline uint32_t sdio_ll_get_reg0xd_sd_rd_wait_sel(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xd_sd_rd_wait_sel(uint32_t value)
+static inline void sdio_ll_set_sd_rd_wait_sel(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1129,7 +1134,7 @@ static inline void sdio_ll_set_reg0xd_sd_rd_wait_sel(uint32_t value)
 }
 
 /* REG_0x0d:reg0xd->SD_WR_WAIT_SEL:0xd[24],write data after command ?; Use default value.,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xd_sd_wr_wait_sel(void)
+static inline uint32_t sdio_ll_get_sd_wr_wait_sel(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1137,7 +1142,7 @@ static inline uint32_t sdio_ll_get_reg0xd_sd_wr_wait_sel(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xd_sd_wr_wait_sel(uint32_t value)
+static inline void sdio_ll_set_sd_wr_wait_sel(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1147,7 +1152,7 @@ static inline void sdio_ll_set_reg0xd_sd_wr_wait_sel(uint32_t value)
 }
 
 /* REG_0x0d:reg0xd->CLK_REC_SEL:0xd[25],write clock recovery selection; when write data, should be set to 1(always 1,SW not use it),0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0xd_clk_rec_sel(void)
+static inline uint32_t sdio_ll_get_clk_rec_sel(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1155,7 +1160,7 @@ static inline uint32_t sdio_ll_get_reg0xd_clk_rec_sel(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xd_clk_rec_sel(uint32_t value)
+static inline void sdio_ll_set_clk_rec_sel(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1165,7 +1170,7 @@ static inline void sdio_ll_set_reg0xd_clk_rec_sel(uint32_t value)
 }
 
 /* REG_0x0d:reg0xd->SAMP_SEL:0xd[26],sample egde of data 0：neg 1：pos,RW*/
-static inline uint32_t sdio_ll_get_reg0xd_samp_sel(void)
+static inline uint32_t sdio_ll_get_samp_sel(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1173,7 +1178,7 @@ static inline uint32_t sdio_ll_get_reg0xd_samp_sel(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xd_samp_sel(uint32_t value)
+static inline void sdio_ll_set_samp_sel(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1183,7 +1188,7 @@ static inline void sdio_ll_set_reg0xd_samp_sel(uint32_t value)
 }
 
 /* REG_0x0d:reg0xd->CLK_GATE_ON:0xd[27],module clockgate on control 1：always on,RW*/
-static inline uint32_t sdio_ll_get_reg0xd_clk_gate_on(void)
+static inline uint32_t sdio_ll_get_clk_gate_on(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1191,7 +1196,7 @@ static inline uint32_t sdio_ll_get_reg0xd_clk_gate_on(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xd_clk_gate_on(uint32_t value)
+static inline void sdio_ll_set_clk_gate_on(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1201,7 +1206,7 @@ static inline void sdio_ll_set_reg0xd_clk_gate_on(uint32_t value)
 }
 
 /* REG_0x0d:reg0xd->HOST_WR_BLK_EN:0xd[28],new multi-block write method enable,RW*/
-static inline uint32_t sdio_ll_get_reg0xd_host_wr_blk_en(void)
+static inline uint32_t sdio_ll_get_host_wr_blk_en(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1209,7 +1214,7 @@ static inline uint32_t sdio_ll_get_reg0xd_host_wr_blk_en(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xd_host_wr_blk_en(uint32_t value)
+static inline void sdio_ll_set_host_wr_blk_en(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1219,7 +1224,7 @@ static inline void sdio_ll_set_reg0xd_host_wr_blk_en(uint32_t value)
 }
 
 /* REG_0x0d:reg0xd->HOST_RD_BLK_EN:0xd[29],new multi-block read  method enable,RW*/
-static inline uint32_t sdio_ll_get_reg0xd_host_rd_blk_en(void)
+static inline uint32_t sdio_ll_get_host_rd_blk_en(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1227,7 +1232,7 @@ static inline uint32_t sdio_ll_get_reg0xd_host_rd_blk_en(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0xd_host_rd_blk_en(uint32_t value)
+static inline void sdio_ll_set_host_rd_blk_en(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0XD_ADDR);
@@ -1247,7 +1252,7 @@ static inline void sdio_ll_set_reg0x10_value(uint32_t value)
 }
 
 /* REG_0x10:reg0x10->SD_SLAVE:0x10[0],0:Host 1:Slave,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0x10_sd_slave(void)
+static inline uint32_t sdio_ll_get_sd_slave(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X10_ADDR);
@@ -1255,7 +1260,7 @@ static inline uint32_t sdio_ll_get_reg0x10_sd_slave(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x10_sd_slave(uint32_t value)
+static inline void sdio_ll_set_sd_slave(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X10_ADDR);
@@ -1265,7 +1270,7 @@ static inline void sdio_ll_set_reg0x10_sd_slave(uint32_t value)
 }
 
 /* REG_0x10:reg0x10->DAT_S_RD_MUL_BLK:0x10[1],Host write slave read; Slave:0:Read signle block 1:Read multi-blocks; If one block transfer finish, the sdio slave will stop the bus to transfer data again.Once set this bit to 1(set to 0 and then to 1), slave will release the sdio bus to notify host can transfer next block data.,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0x10_dat_s_rd_mul_blk(void)
+static inline uint32_t sdio_ll_get_dat_s_rd_mul_blk(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X10_ADDR);
@@ -1273,7 +1278,7 @@ static inline uint32_t sdio_ll_get_reg0x10_dat_s_rd_mul_blk(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x10_dat_s_rd_mul_blk(uint32_t value)
+static inline void sdio_ll_set_dat_s_rd_mul_blk(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X10_ADDR);
@@ -1283,7 +1288,7 @@ static inline void sdio_ll_set_reg0x10_dat_s_rd_mul_blk(uint32_t value)
 }
 
 /* REG_0x10:reg0x10->IO_CUR_STA_REG:0x10[3:2],io state register reponse to host,0x0,RW*/
-static inline uint32_t sdio_ll_get_reg0x10_io_cur_sta_reg(void)
+static inline uint32_t sdio_ll_get_io_cur_sta_reg(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X10_ADDR);
@@ -1291,7 +1296,7 @@ static inline uint32_t sdio_ll_get_reg0x10_io_cur_sta_reg(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x10_io_cur_sta_reg(uint32_t value)
+static inline void sdio_ll_set_io_cur_sta_reg(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X10_ADDR);
@@ -1301,7 +1306,7 @@ static inline void sdio_ll_set_reg0x10_io_cur_sta_reg(uint32_t value)
 }
 
 /* REG_0x10:reg0x10->CMD_52_STOP_CLR:0x10[4],cmd52 send stop command(cmd_s_rec_wr_dat_0[0]), write 1 clear cmd_s_rec_wr_dat_0; Host send CMD52 with Address-0,Bit[0] = 1 to notify slave stop,slave check this value to stop;clear this bit to start again,0x0,WO*/
-static inline void sdio_ll_set_reg0x10_cmd_52_stop_clr(uint32_t value)
+static inline void sdio_ll_set_cmd_52_stop_clr(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X10_ADDR);
@@ -1311,7 +1316,7 @@ static inline void sdio_ll_set_reg0x10_cmd_52_stop_clr(uint32_t value)
 }
 
 /* REG_0x10:reg0x10->CMD_KEEP_DET:0x10[5],1:keep detecting if last cmd fail 0:not keep detecting,RW*/
-static inline uint32_t sdio_ll_get_reg0x10_cmd_keep_det(void)
+static inline uint32_t sdio_ll_get_cmd_keep_det(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X10_ADDR);
@@ -1319,7 +1324,7 @@ static inline uint32_t sdio_ll_get_reg0x10_cmd_keep_det(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x10_cmd_keep_det(uint32_t value)
+static inline void sdio_ll_set_cmd_keep_det(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X10_ADDR);
@@ -1329,7 +1334,7 @@ static inline void sdio_ll_set_reg0x10_cmd_keep_det(uint32_t value)
 }
 
 /* REG_0x10:reg0x10->FIFO_SEND_CNT:0x10[15:8],when set HOST_WR_BLK_EN, tx_fifo cnt = this reg start sending,RW*/
-static inline uint32_t sdio_ll_get_reg0x10_fifo_send_cnt(void)
+static inline uint32_t sdio_ll_get_fifo_send_cnt(void)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X10_ADDR);
@@ -1337,7 +1342,7 @@ static inline uint32_t sdio_ll_get_reg0x10_fifo_send_cnt(void)
     return reg_value;
 }
 
-static inline void sdio_ll_set_reg0x10_fifo_send_cnt(uint32_t value)
+static inline void sdio_ll_set_fifo_send_cnt(uint32_t value)
 {
     uint32_t reg_value;
     reg_value = REG_READ(SDIO_REG0X10_ADDR);

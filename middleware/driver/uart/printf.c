@@ -43,6 +43,10 @@
 #ifdef ULLONG
 #undef ULLONG
 #endif	/* defined(ULLONG) */
+
+#define HAVE_UNSIGNED_LONG_LONG_INT   1
+#define HAVE_LONG_LONG_INT            1
+
 #if HAVE_UNSIGNED_LONG_LONG_INT
 #define ULLONG unsigned long long int
 #ifndef ULLONG_MAX
@@ -426,6 +430,7 @@ int __wrap_vsnprintf(char *str, size_t size, const char *format, va_list args)
 				if (base == 0)
 					base = 8;
 			/* FALLTHROUGH */
+			case 't':
 			case 'u':
 				if (base == 0)
 					base = 10;

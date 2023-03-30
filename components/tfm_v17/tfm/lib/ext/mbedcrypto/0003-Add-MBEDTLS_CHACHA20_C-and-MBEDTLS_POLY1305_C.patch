@@ -1,0 +1,29 @@
+From 208c9f963b9b35f2df5781436553a78a6c7d3a96 Mon Sep 17 00:00:00 2001
+From: Summer Qin <summer.qin@arm.com>
+Date: Thu, 30 Jun 2022 14:14:11 +0800
+Subject: [PATCH 3/9] Add MBEDTLS_CHACHA20_C and MBEDTLS_POLY1305_C
+
+MBEDTLS_CHACHA20_C and MBEDTLS_POLY1305_C are needed when
+PSA_WANT_ALG_CHACHA20_POLY1305 is defined.
+
+Signed-off-by: Summer Qin <summer.qin@arm.com>
+---
+ include/mbedtls/config_psa.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/include/mbedtls/config_psa.h b/include/mbedtls/config_psa.h
+index 2a6672e17..3cb89009b 100644
+--- a/include/mbedtls/config_psa.h
++++ b/include/mbedtls/config_psa.h
+@@ -450,6 +450,8 @@ extern "C" {
+ #if !defined(MBEDTLS_PSA_ACCEL_ALG_CHACHA20_POLY1305)
+ #if defined(PSA_WANT_KEY_TYPE_CHACHA20)
+ #define MBEDTLS_CHACHAPOLY_C
++#define MBEDTLS_CHACHA20_C
++#define MBEDTLS_POLY1305_C
+ #define MBEDTLS_PSA_BUILTIN_ALG_CHACHA20_POLY1305 1
+ #endif /* PSA_WANT_KEY_TYPE_CHACHA20 */
+ #endif /* !MBEDTLS_PSA_ACCEL_ALG_CHACHA20_POLY1305 */
+-- 
+2.25.1
+

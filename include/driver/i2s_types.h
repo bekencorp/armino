@@ -49,6 +49,7 @@ typedef void (*i2s_isr_t)(void *param);
 typedef enum {
 	I2S_GPIO_GROUP_0 = 0, /**< I2S gpio group 0: GPIO6, GPIO7, GPIO8, GPIO9 */
 	I2S_GPIO_GROUP_1,     /**< I2S gpio group 1: GPIO40, GPIO41, GPIO42, GPIO43 */
+	I2S_GPIO_GROUP_2,     /**< I2S gpio group 2: GPIO44, GPIO45, GPIO46, GPIO47 */
 	I2S_GPIO_GROUP_MAX
 } i2s_gpio_group_id_t;
 

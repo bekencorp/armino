@@ -36,7 +36,7 @@ extern "C" {
  * @brief     OTP read operation
  *
  * @param buffer point to the buffer that reads the data
- * @param addr read address, address range 0x0--0x7FF
+ * @param addr read address, address range 0x0--0x800
  * @param len read length
  *
  * @attention 1. addr+len should be less than 0x800

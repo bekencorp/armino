@@ -1,0 +1,38 @@
+/*
+ * Copyright (c) 2001-2022, Arm Limited and Contributors. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+#ifndef _MBEDTLS_CHACHAPOLY_ALT_H
+#define _MBEDTLS_CHACHAPOLY_ALT_H
+
+#include "mbedtls/build_info.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+/************************ Defines ******************************/
+
+#if defined(MBEDTLS_CHACHAPOLY_ALT)
+
+
+#define MBEDTLS_CHACHAPOLY_KEY_SIZE_BYTES 32
+
+
+typedef struct mbedtls_chachapoly_context
+{
+    unsigned char key[MBEDTLS_CHACHAPOLY_KEY_SIZE_BYTES];
+}
+mbedtls_chachapoly_context;
+
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+
+#endif /* chachapoly_alt.h */

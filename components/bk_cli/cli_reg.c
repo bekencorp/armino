@@ -15,6 +15,7 @@
 #include "cli.h"
 #include <components/system.h>
 #include <os/str.h>
+#include "sys_hal.h"
 #include "icu_hal.h"
 #include "pwm_hal.h"
 #include "timer_hal.h"
@@ -49,7 +50,15 @@
 #if CONFIG_PRRO
 #include "prro_hal.h"
 #endif
-
+#if CONFIG_MPC_TEST
+#include "mpc_hal.h"
+#endif
+#if CONFIG_AON_PMU_TEST
+#include "aon_pmu_hal.h"
+#endif
+#if CONFIG_SDMADC_TEST
+#include "sdmadc_hal.h"
+#endif
 
 static int hex2num(char c)
 {
@@ -185,6 +194,7 @@ static void cli_reg_dump_help(void)
 	CLI_LOGI("        trng\n");
 	CLI_LOGI("        efuse\n");
 	CLI_LOGI("        adc\n");
+	CLI_LOGI("        sdmadc\n");
 	CLI_LOGI("        spi\n");
 }
 
@@ -205,6 +215,15 @@ static void cli_reg_dump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 	if (os_strcmp(argv[1], "icu") == 0) {
 #if (CONFIG_ICU)
 		icu_struct_dump();
+#endif
+	} else if (os_strcmp(argv[1], "sys") == 0){
+#if (CONFIG_HAL_DEBUG_SYS)
+		CLI_RET_ON_INVALID_ARGC(argc, 4);
+		uint32_t start = 0;
+		uint32_t end = 0;
+		start = os_strtoul(argv[2], NULL, 10);
+		end = os_strtoul(argv[3], NULL, 10);
+		sys_struct_dump(start, end);
 #endif
 	} else if (os_strcmp(argv[1], "pwm") == 0) {
 		pwm_struct_dump();
@@ -228,7 +247,13 @@ static void cli_reg_dump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 #endif
 	} else if (os_strcmp(argv[1], "adc") == 0) {
 		adc_struct_dump();
-	} else if (os_strcmp(argv[1], "spi") == 0) {
+	}
+#if CONFIG_SDMADC_TEST 
+	else if (os_strcmp(argv[1], "sdmadc") == 0) {
+		sdmadc_struct_dump(0x2,0x8);
+	}
+#endif 
+	else if (os_strcmp(argv[1], "spi") == 0) {
 		spi_struct_dump(index);
 	} else if (os_strcmp(argv[1], "i2c") == 0) {
 		i2c_struct_dump(index);
@@ -270,13 +295,28 @@ static void cli_reg_dump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 #endif
 #if CONFIG_SYSTEM_CLOCK
 	else if (os_strcmp(argv[1], "sys_clock") == 0) {
-		extern void sys_clock_struct_dump(void);
-		sys_clock_struct_dump();
+		//extern void sys_clock_struct_dump(void);
+		//sys_clock_struct_dump();
 	}
 #endif
+
+#if CONFIG_SPE
 #if CONFIG_PRRO_TEST
 	else if (os_strcmp(argv[1], "prro") == 0) {
 		prro_struct_dump();
+	}
+#endif
+#if CONFIG_MPC_TEST
+	else if (os_strcmp(argv[1], "mpc") == 0) {
+		mpc_dev_t dev =  os_strtoul(argv[2], NULL, 10);
+		mpc_struct_dump(dev);
+	}
+#endif
+#endif
+
+#if CONFIG_AON_PMU_TEST
+	else if (os_strcmp(argv[1], "pmu") == 0) {
+		aon_pmu_struct_dump(0, -1);
 	}
 #endif
 	else {

@@ -42,7 +42,7 @@ CPU0_LOAD2 0x00098800  0x1F7800
 		* (+RO)
 	}
 
-	DTCM 0x20000000 0x7000
+	DTCM 0x20000400 0x6C00
 	{
 		LOADADDR NEXT _dtcm_lma_start
 		ADDR NEXT _dtcm_ema_start
@@ -107,7 +107,7 @@ CPU0_LOAD2 0x00098800  0x1F7800
 		*sdp_common.c.obj *app_ble.c.obj *prf.c.obj *gapm.c.obj(+ZI)
 		*ble_util_buf.c.obj *sch_prog.c.obj *sch_slice.c.obj *llm.c.obj(+ZI)
 
-		ADDR NEXT _bt_data_end
+		ADDR _bt_data_end
 	}
 
 	SRAM_DATA 0x30020000 0x60000

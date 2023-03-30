@@ -58,6 +58,13 @@ typedef struct {
 	h264_enc_mode_cfg_t h264_enc_mode_cfg;
 } yuv_buf_config_t;
 
+typedef struct {
+	uint32_t x_partial_offset_l;
+	uint32_t x_partial_offset_r;
+	uint32_t y_partial_offset_l;
+	uint32_t y_partial_offset_r;
+} yuv_buf_partial_offset_config_t;
+
 #ifdef __cplusplus
 }
 #endif

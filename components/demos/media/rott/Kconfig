@@ -1,0 +1,6 @@
+menu "Demos::Media::rott"
+	config HW_ROTT_TEST
+		bool "Enable ROTT Test"
+		default n
+
+endmenu

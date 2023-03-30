@@ -20,6 +20,7 @@
 #include <string.h>
 #include "boot.h"
 #include <modules/pm.h>
+#include "aon_pmu_driver.h"
 #if CONFIG_BLE
 #include "modules/ble.h"
 #include "ble_api_5_x.h"
@@ -49,9 +50,15 @@ extern void bk_ota_confirm_update_partition(ota_confirm_flag ota_confirm_val);
 #include "media_core.h"
 #endif
 
+#if (CONFIG_SOC_BK7236)
+#include "sys_ll.h"
+#include "bk_saradc.h"
+#include "temp_detect_pub.h"
+#endif
+
 #include "sdk_version.h"
 
-#if (CONFIG_SOC_BK7256XX && CONFIG_DEBUG_FIRMWARE)
+#if ((CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7236) && CONFIG_DEBUG_FIRMWARE)
 extern bk_err_t bk_dbg_init(void);
 #endif
 void rtos_user_app_launch_over(void);
@@ -65,7 +72,7 @@ static int app_wifi_init(void)
 	BK_LOG_ON_ERR(bk_event_init());
 	BK_LOG_ON_ERR(bk_netif_init());
 	BK_LOG_ON_ERR(bk_wifi_init(&wifi_config));
-#if (CONFIG_SOC_BK7256XX && CONFIG_DEBUG_FIRMWARE)
+#if ((CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7236) && CONFIG_DEBUG_FIRMWARE)
 	BK_LOG_ON_ERR(bk_dbg_init());
 #endif
 
@@ -114,15 +121,6 @@ static int app_mp3_player_init(void)
 
 int app_sdio_init(void)
 {
-#if (defined CONFIG_SDIO && defined CONFIG_SDIO_V1P0)
-	BK_LOGI(TAG, "sdio intf init\r\n");
-	sdio_intf_init();
-#endif
-
-#if CONFIG_SDIO_TRANS
-	BK_LOGI(TAG, "sdio trans init\r\n");
-	sdio_trans_init();
-#endif
 	return BK_OK;
 }
 
@@ -172,7 +170,9 @@ static int app_uart_debug_init_todo(void)
 int legacy_init1(void)
 {
 	BK_LOGI(TAG, "bk378 test init!!!!\r\n");
+#if CONFIG_SDIO
 	app_sdio_init();
+#endif
 	app_key_init();
 	app_usb_charge_init();
 	app_wifi_init();
@@ -202,6 +202,7 @@ int legacy_init(void)
 	BK_LOGI(TAG, "armino app init: %s\n", build_version);
     BK_LOGI(TAG, "ARMINO Version: %s\n", ARMINO_TAG_VERSION);
 
+#if CONFIG_LIB_HASH_CHECK
 #ifdef LIB_HASH
     #define HASH_VERSION(soc) soc##_HASH_VERSION
     #define HASH_VERSION_STR(soc) #soc"_HASH_VERSION"
@@ -214,6 +215,7 @@ int legacy_init(void)
         BK_LOGI(TAG, "The current version is not the release version\n");
 	}
 #endif
+#endif
 
 #ifdef APP_VERSION
 	BK_LOGI(TAG, "APP Version: %s\n", APP_VERSION);
@@ -225,21 +227,56 @@ int legacy_init(void)
 #ifdef CONFIG_VND_CAL
 	vnd_cal_overlay();
 #endif
+
+#if (CONFIG_SOC_BK7236 && !CONFIG_SLAVE_CORE)
+	/* enable ioldo bypass when VBAT <= 3.45V */
+	UINT32 volt_adc = 0;
+	if (!volt_single_get_current_voltage(&volt_adc))
+	{
+		float volt_value = saradc_calculate((UINT16)volt_adc) * 2;
+		BK_LOGI(TAG, "adc0=%d,volt=%.3fV\r\n", volt_adc, volt_value);
+		if (volt_value <= 3.45)
+		{
+			sys_ll_set_ana_reg10_iobyapssen(1);
+		}
+	}
+#endif
+
+#if (CONFIG_MEDIA)
+#if (CONFIG_SLAVE_CORE)
+	media_minor_init();
+#else
+	media_major_init();
+#endif
+#endif
+
 #if (CONFIG_SOC_BK7256XX && !CONFIG_SLAVE_CORE)
 
 	#if CONFIG_SAVE_BOOT_TIME_POINT
 	save_mtime_point(CPU_START_WIFI_INIT_TIME);
 	#endif
-	app_wifi_init();
+
+#if CONFIG_ATE_TEST
+	/*not init the wifi, in order to save the boot time in ATE test after deepsleep(note:at the wifi ate test not enter power save)*/
+	/*it need first finish test the wifi, at the end test deepsleep, wait wakeup(deepsleep), then test low voltage */
+	if(!(aon_pmu_drv_reg_get(PMU_REG2)&BIT(BIT_SLEEP_FLAG_DEEP_SLEEP)))
+	{
+		app_wifi_init();
+	}
+#else //!CONFIG_ATE_TEST
+#if CONFIG_WIFI_ENABLE
+    app_wifi_init();
+#else
+    extern int bk_cal_if_init(void);
+    bk_cal_if_init();
+#endif
+#endif //CONFIG_ATE_TEST
+
 	#if CONFIG_SAVE_BOOT_TIME_POINT
 	save_mtime_point(CPU_FINISH_WIFI_INIT_TIME);
 	#endif
 
 	rtos_user_app_launch_over();
-
-#if (CONFIG_MEDIA)
-	media_major_init();
-#endif
 
 #if (CONFIG_BLUETOOTH)
 	app_ble_init();
@@ -247,8 +284,10 @@ int legacy_init(void)
 
 #elif (CONFIG_SLAVE_CORE)
 
-#else
+#else //!(CONFIG_SOC_BK7256XX && !CONFIG_SLAVE_CORE)
+#if CONFIG_SDIO
 	app_sdio_init();
+#endif
 	app_key_init();
 	app_usb_charge_init();
 	app_wifi_init();
@@ -258,11 +297,7 @@ int legacy_init(void)
 #endif
 	app_mp3_player_init();
 	app_uart_debug_init_todo();
-#endif
-
-#if (CONFIG_MEDIA && CONFIG_SLAVE_CORE)
-	media_minor_init();
-#endif
+#endif //(CONFIG_SOC_BK7256XX && !CONFIG_SLAVE_CORE)
 
 	app_cli_init();
 

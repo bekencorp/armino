@@ -1,4 +1,4 @@
-if (CONFIG_LCD_QSPI_TEST AND CONFIG_LCD_QSPI)
+if (CONFIG_LCD_QSPI_TEST)
 set(incs . 
 	)
 

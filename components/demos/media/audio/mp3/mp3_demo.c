@@ -949,3 +949,376 @@ void cli_aud_intf_mp3_play_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, in
 }
 
 
+#if (CONFIG_WEBCLIENT)
+#define TAG   "http_mp3_play"
+
+#include "components/webclient.h"
+
+#define GET_HEADER_BUFSZ               1024
+#define GET_RESP_BUFSZ                 1024 * 10
+
+static char *uri = NULL;
+static uint8_t aud_spk_init_flag = 0;
+static uint32_t psram_buffer = 0x60000000;
+static unsigned char *psram_ptr = NULL;
+static unsigned char *mp3_end_addr = NULL;
+static beken_thread_t http_get_thread_hdl = NULL;
+static beken_thread_t http_mp3_play_thread_hdl = NULL;
+static beken_queue_t http_mp3_play_msg_que = NULL;
+static aud_intf_spk_setup_t aud_intf_spk_setup = DEFAULT_AUD_INTF_SPK_SETUP_CONFIG();
+
+static const uint16_t MP3_SAMPLE_RATES[] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000};
+
+static bk_err_t http_mp3_send_msg(audio_mp3_play_msg_t msg)
+{
+	bk_err_t ret = BK_OK;
+
+	if (http_mp3_play_msg_que) {
+		ret = rtos_push_to_queue(&http_mp3_play_msg_que, &msg, BEKEN_NO_WAIT);
+		if (ret != kNoErr) {
+			os_printf("http_mp3_send_msg failed\r\n");
+			return kGeneralErr;
+		}
+		return ret;
+	}
+	return kNoResourcesErr;
+}
+
+static bk_err_t http_mp3_decode_handler(unsigned int size)
+{
+	bk_err_t ret = BK_OK;
+	uint8_t idx = 0;
+
+	if (psram_ptr >= mp3_end_addr) {
+		audio_mp3_play_msg_t msg;
+		msg.op = AUDIO_MP3_PLAY_STOP;
+		ret = http_mp3_send_msg(msg);
+		if (ret != kNoErr) {
+			BK_LOGE(TAG, "http send msg: %d fails \r\n", msg.op);
+			return BK_FAIL;
+		}
+		return BK_OK;
+	}
+
+	if (bytesLeft < MAINBUF_SIZE) {
+		os_memmove(readBuf, g_readptr, bytesLeft);
+		os_memcpy((void *)(readBuf + bytesLeft), (const void *)psram_ptr, MAINBUF_SIZE - bytesLeft);
+
+		psram_ptr += MAINBUF_SIZE - bytesLeft;
+		bytesLeft = MAINBUF_SIZE;
+		g_readptr = readBuf;
+	}
+
+	offset = MP3FindSyncWord(g_readptr, bytesLeft);
+	if (offset < 0) {
+		BK_LOGI(TAG, "MP3FindSyncWord not find!\r\n");
+		bytesLeft = 0;
+	} else {
+		g_readptr += offset;
+		bytesLeft -= offset;
+
+		ret = MP3Decode(hMP3Decoder, &g_readptr, &bytesLeft, pcmBuf, 0);
+		if (ret != ERR_MP3_NONE) {
+			BK_LOGE(TAG, "MP3Decode failed, code is %d", ret);
+			return ret;
+		}
+
+		if (!aud_spk_init_flag) {
+			MP3GetLastFrameInfo(hMP3Decoder, &mp3FrameInfo);
+
+			for (idx = 0; idx < sizeof(MP3_SAMPLE_RATES) / sizeof(MP3_SAMPLE_RATES[0]); idx++) {
+				if (MP3_SAMPLE_RATES[idx] == mp3FrameInfo.samprate) {
+					aud_intf_spk_setup.samp_rate = idx;
+					break;
+				}
+			}
+			aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_DUAL;
+			aud_intf_spk_setup.frame_size = mp3FrameInfo.outputSamps * 2;
+			aud_intf_spk_setup.spk_gain = 0x2d;
+			aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
+			ret = bk_aud_intf_spk_init(&aud_intf_spk_setup);
+			if (ret != BK_ERR_AUD_INTF_OK) {
+				BK_LOGE(TAG, "bk_aud_intf_spk_init fail, ret:%d \r\n", ret);
+			} else {
+				BK_LOGI(TAG, "bk_aud_intf_spk_init complete \r\n");
+			}
+
+			ret = bk_aud_intf_spk_start();
+			if (ret != BK_ERR_AUD_INTF_OK) {
+				BK_LOGE(TAG, "bk_aud_intf_spk_start fail, ret:%d \r\n", ret);
+			} else {
+				BK_LOGI(TAG, "bk_aud_intf_spk_start complete \r\n");
+			}
+
+			aud_spk_init_flag = 1;
+		}
+
+		/* write a frame speaker data to speaker_ring_buff */
+		ret = bk_aud_intf_write_spk_data((uint8_t*)pcmBuf, mp3FrameInfo.outputSamps * 2);
+		if (ret != BK_OK) {
+			BK_LOGE(TAG, "write spk data fail \r\n");
+			return ret;
+		}
+	}
+
+	return ret;
+
+}
+
+static void http_mp3_find_id3(void)
+{
+	char tag_header[10];
+	int tag_size = 0;
+
+	os_memcpy((void *)tag_header, (const void *)psram_buffer, 10);
+
+	if (os_memcmp(tag_header, "ID3", 3) == 0) {
+		tag_size = ((tag_header[6] & 0x7F) << 21) | ((tag_header[7] & 0x7F) << 14) | ((tag_header[8] & 0x7F) << 7) | (tag_header[9] & 0x7F);
+		BK_LOGI(TAG, "tag_size = %d\r\n", tag_size);
+		psram_ptr += tag_size + 10;
+	} else {
+		BK_LOGI(TAG, "tag_header not found!\r\n");
+	}
+}
+
+static void http_mp3_play_main(void)
+{
+	bk_err_t ret = BK_OK;
+
+	bk_audio_mp3_play_decode_init();
+
+	g_readptr = readBuf;
+
+	aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
+	aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
+
+	aud_intf_drv_setup.aud_intf_rx_spk_data = http_mp3_decode_handler;
+	ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
+	if (ret != BK_ERR_AUD_INTF_OK) {
+		BK_LOGE(TAG, "bk_aud_intf_drv_init fail, ret:%d \r\n", ret);
+	} else {
+		BK_LOGI(TAG, "bk_aud_intf_drv_init complete \r\n");
+	}
+
+	aud_work_mode = AUD_INTF_WORK_MODE_GENERAL;
+	ret = bk_aud_intf_set_mode(aud_work_mode);
+	if (ret != BK_ERR_AUD_INTF_OK) {
+		BK_LOGE(TAG, "bk_aud_intf_set_mode fail, ret:%d \r\n", ret);
+	} else {
+		BK_LOGI(TAG, "bk_aud_intf_set_mode complete \r\n");
+	}
+
+	while(1) {
+		audio_mp3_play_msg_t msg;
+		ret = rtos_pop_from_queue(&http_mp3_play_msg_que, &msg, BEKEN_WAIT_FOREVER);
+		if (kNoErr == ret) {
+			switch (msg.op) {
+				case AUDIO_MP3_PLAY_START:
+					http_mp3_find_id3();
+					ret = http_mp3_decode_handler(1);
+					if (ret != BK_OK) {
+						BK_LOGE(TAG, "http_mp3_decode_handler error!\r\n");
+					}
+					break;
+
+				case AUDIO_MP3_PLAY_STOP:
+					aud_spk_init_flag = 0;
+
+					ret = bk_aud_intf_spk_stop();
+					if (ret != BK_ERR_AUD_INTF_OK) {
+						BK_LOGE(TAG, "bk_aud_intf_spk_stop fail, ret:%d \r\n", ret);
+					} else {
+						BK_LOGI(TAG, "bk_aud_intf_spk_stop complete \r\n");
+					}
+
+					ret = bk_aud_intf_spk_deinit();
+					if (ret != BK_ERR_AUD_INTF_OK) {
+						BK_LOGE(TAG, "bk_aud_intf_spk_deinit fail, ret:%d \r\n", ret);
+					} else {
+						BK_LOGI(TAG, "bk_aud_intf_spk_deinit complete \r\n");
+					}
+
+					ret = bk_aud_intf_drv_deinit();
+					if (ret != BK_ERR_AUD_INTF_OK) {
+						BK_LOGE(TAG, "bk_aud_intf_drv_deinit fail, ret:%d \r\n", ret);
+					} else {
+						BK_LOGI(TAG, "bk_aud_intf_drv_deinit complete \r\n");
+					}
+
+					MP3FreeDecoder(hMP3Decoder);
+					os_free(readBuf);
+					os_free(pcmBuf);
+					goto http_mp3_play_exit;
+
+					break;
+
+				default:
+					break;
+			}
+		}
+//		rtos_delay_milliseconds(2);
+	}
+
+http_mp3_play_exit:
+	/* delete msg queue */
+	rtos_deinit_queue(&http_mp3_play_msg_que);
+	http_mp3_play_msg_que = NULL;
+	BK_LOGI(TAG, "http_mp3_play queue deinit complete \r\n");
+
+	http_mp3_play_thread_hdl = NULL;
+	rtos_delete_thread(NULL);
+}
+
+static void http_get_main(void)
+{
+	struct webclient_session* session = NULL;
+	int ret = 0;
+	int bytes_read, resp_status;
+	int content_length = -1;
+	unsigned char *http_buffer = NULL;
+	uint32_t *paddr  = NULL;
+	paddr = (uint32_t*)psram_buffer;
+	audio_mp3_play_msg_t msg;
+
+	http_buffer = (unsigned char *) web_malloc(GET_RESP_BUFSZ);
+	if (http_buffer == NULL) {
+		BK_LOGE(TAG, "no memory for receive buffer.\n");
+		goto __exit;
+	}
+
+	/* create webclient session and set header response size */
+	session = webclient_session_create(GET_HEADER_BUFSZ);
+	if (session == NULL) {
+		goto __exit;
+	}
+
+	/* send GET request by default header */
+	if ((resp_status = webclient_get(session, uri)) != 200) {
+		BK_LOGE(TAG, "webclient GET request failed, response(%d) error.\n", resp_status);
+		goto __exit;
+	}
+
+	BK_LOGI(TAG, "webclient get response data: \n");
+
+	content_length = webclient_content_length_get(session);
+	mp3_end_addr =(unsigned char *)psram_buffer + content_length;
+
+	if (content_length < 0) {
+		BK_LOGI(TAG, "webclient GET request type is chunked.\n");
+		do
+		{
+			bytes_read = webclient_read(session, (void *)http_buffer, GET_RESP_BUFSZ);
+			if (bytes_read <= 0) {
+				break;
+			}
+
+		} while (1);
+	} else {
+		int content_pos = 0;
+
+		do
+		{
+			bytes_read = webclient_read(session, (void *)http_buffer,
+					content_length - content_pos > GET_RESP_BUFSZ ?
+							GET_RESP_BUFSZ : content_length - content_pos);
+
+			if (bytes_read <= 0) {
+				break;
+			}
+
+			if(bytes_read != GET_RESP_BUFSZ) {
+				if (bytes_read % 4) {
+					bytes_read = (bytes_read / 4 + 1) * 4;
+				}
+				os_memcpy_word((uint32_t *)paddr, (uint32_t *)http_buffer, bytes_read);
+			} else {
+				os_memcpy_word((uint32_t *)paddr, (uint32_t *)http_buffer, GET_RESP_BUFSZ);
+				paddr += (GET_RESP_BUFSZ / 4);
+			}
+
+			if (content_pos == GET_RESP_BUFSZ * 2) {
+				msg.op = AUDIO_MP3_PLAY_START;
+				ret = http_mp3_send_msg(msg);
+				if (ret != kNoErr) {
+					BK_LOGE(TAG, "http send msg: %d fails \r\n", msg.op);
+					return;
+				}
+			}
+
+			content_pos += bytes_read;
+		} while (content_pos < content_length);
+	}
+
+	BK_LOGI(TAG, "webclient get response data complete\n");
+
+__exit:
+	if (session) {
+		webclient_close(session);
+	}
+
+	if (http_buffer) {
+		web_free(http_buffer);
+	}
+
+	if (uri) {
+		web_free(uri);
+	}
+
+	http_get_thread_hdl = NULL;
+	rtos_delete_thread(NULL);
+}
+
+void cli_http_mp3_play_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	int ret = 0;
+
+	if (argc != 2) {
+		BK_LOGE(TAG, "http_mp3_play {uri}\r\n");
+		return;
+	}
+
+	psram_ptr = (unsigned char *)psram_buffer;
+
+	uri = web_strdup(argv[1]);
+	if(uri == NULL) {
+		BK_LOGE(TAG, "no memory for create get request uri buffer.\n");
+		return;
+	}
+
+	ret = rtos_init_queue(&http_mp3_play_msg_que,
+							"http_mp3_play_queue",
+							sizeof(audio_mp3_play_msg_t),
+							TU_QITEM_COUNT);
+	if (ret != kNoErr) {
+		BK_LOGE(TAG, "create http mp3 play message queue failed!\r\n");
+		return;
+	}
+
+	ret = rtos_create_thread(&http_get_thread_hdl,
+							 BEKEN_DEFAULT_WORKER_PRIORITY,
+							 "http_get",
+							 (beken_thread_function_t)http_get_main,
+							 2048,
+							 NULL);
+	if (ret != kNoErr) {
+		BK_LOGE(TAG, "http get task create fail\r\n");
+		return;
+	}
+
+	ret = rtos_create_thread(&http_mp3_play_thread_hdl,
+							 5,
+							 "http_mp3_play",
+							 (beken_thread_function_t)http_mp3_play_main,
+							 4096,
+							 NULL);
+	if (ret != kNoErr) {
+		BK_LOGE(TAG, "create http mp3 play task fail!\r\n");
+		rtos_deinit_queue(&http_mp3_play_msg_que);
+		http_mp3_play_msg_que = NULL;
+		http_mp3_play_thread_hdl = NULL;
+	}
+}
+
+#endif
+
+

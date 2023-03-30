@@ -1,0 +1,79 @@
+/*
+ * Copyright (c) 2022 Cypress Semiconductor Corporation (an Infineon company)
+ * or an affiliate of Cypress Semiconductor Corporation. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+/* This file defines default alignments for TFM secure linker script sections.
+ * If needed, platform may define some/all of them in its' region_defs.h
+ * file.*/
+
+#ifndef __TFM_S_LINKER_ALIGNMENTS__
+#define __TFM_S_LINKER_ALIGNMENTS__
+
+/* Default alignment for linker file sections is set to 32 because ARM TrustZone
+ * protection units (SAU and MPU) require regions to be 32 bytes aligned. */
+#ifndef TFM_LINKER_DEFAULT_ALIGNMENT
+#define TFM_LINKER_DEFAULT_ALIGNMENT    32
+#endif
+
+#ifndef TFM_LINKER_VENEERS_ALIGNMENT
+#define TFM_LINKER_VENEERS_ALIGNMENT            TFM_LINKER_DEFAULT_ALIGNMENT
+#endif
+
+#ifndef TFM_LINKER_PSA_ROT_LINKER_CODE_ALIGNMENT
+#define TFM_LINKER_PSA_ROT_LINKER_CODE_ALIGNMENT    TFM_LINKER_DEFAULT_ALIGNMENT
+#endif
+
+#ifndef TFM_LINKER_APP_ROT_LINKER_CODE_ALIGNMENT
+#define TFM_LINKER_APP_ROT_LINKER_CODE_ALIGNMENT    TFM_LINKER_DEFAULT_ALIGNMENT
+#endif
+
+#ifndef TFM_LINKER_SHARED_SYMBOLS_ALIGNMENT
+#define TFM_LINKER_SHARED_SYMBOLS_ALIGNMENT     TFM_LINKER_DEFAULT_ALIGNMENT
+#endif
+
+#ifndef TFM_LINKER_BL2_SHARED_DATA_ALIGNMENT
+#define TFM_LINKER_BL2_SHARED_DATA_ALIGNMENT    TFM_LINKER_DEFAULT_ALIGNMENT
+#endif
+
+#ifndef TFM_LINKER_MSP_STACK_ALIGNMENT
+#define TFM_LINKER_MSP_STACK_ALIGNMENT          TFM_LINKER_DEFAULT_ALIGNMENT
+#endif
+
+#ifndef TFM_LINKER_SP_META_PTR_ALIGNMENT
+#define TFM_LINKER_SP_META_PTR_ALIGNMENT        TFM_LINKER_DEFAULT_ALIGNMENT
+#endif
+
+#ifndef TFM_LINKER_APP_ROT_LINKER_DATA_ALIGNMENT
+#define TFM_LINKER_APP_ROT_LINKER_DATA_ALIGNMENT    TFM_LINKER_DEFAULT_ALIGNMENT
+#endif
+
+#ifndef TFM_LINKER_PSA_ROT_LINKER_DATA_ALIGNMENT
+#define TFM_LINKER_PSA_ROT_LINKER_DATA_ALIGNMENT    TFM_LINKER_DEFAULT_ALIGNMENT
+#endif
+
+#ifndef TFM_LINKER_UNPRIV_CODE_ALIGNMENT
+#define TFM_LINKER_UNPRIV_CODE_ALIGNMENT        TFM_LINKER_DEFAULT_ALIGNMENT
+#endif
+
+#ifndef TFM_LINKER_PT_RO_ALIGNMENT
+#define TFM_LINKER_PT_RO_ALIGNMENT              TFM_LINKER_DEFAULT_ALIGNMENT
+#endif
+
+#ifndef TFM_LINKER_PT_PRIV_RWZI_ALIGNMENT
+#define TFM_LINKER_PT_PRIV_RWZI_ALIGNMENT       TFM_LINKER_DEFAULT_ALIGNMENT
+#endif
+
+#ifndef TFM_LINKER_SECURE_DATA_ALIGNMENT
+#define TFM_LINKER_SECURE_DATA_ALIGNMENT        TFM_LINKER_DEFAULT_ALIGNMENT
+#endif
+
+/* Alignment of RAM vector table */
+#ifndef TFM_LINKER_RAM_VECTORS_ALIGNMENT
+#define TFM_LINKER_RAM_VECTORS_ALIGNMENT        256
+#endif
+
+#endif /* __TFM_S_LINKER_ALIGNMENTS__ */

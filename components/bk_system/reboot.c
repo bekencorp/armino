@@ -50,11 +50,16 @@ void bk_reboot_ex(uint32_t reset_reason)
 	set_reboot_tag(REBOOT_TAG_REQ);
 #endif
 #if (CONFIG_SYSTEM_CTRL)
-	uint32_t param =0;
-	param = aon_pmu_drv_reg_get(PMU_REG0x41);
-	param &= ~0x3; //select clk_DIVD as lpo_src
-	aon_pmu_drv_reg_set(PMU_REG0x41,param);
+	if((aon_pmu_drv_reg_get(PMU_REG0x7c)>>PM_CHIP_ID_HIGH_POS) <= PM_CHIP_ID_HIGH_VALUE)
+	{
+		uint32_t param =0;
+		param = aon_pmu_drv_reg_get(PMU_REG0x41);
+		param &= ~0x3; //select clk_DIVD as lpo_src
+		aon_pmu_drv_reg_set(PMU_REG0x41,param);
+	}
+
 	aon_pmu_drv_wdt_rst_dev_enable();
+
 #endif
 
 	if (reset_reason < RESET_SOURCE_UNKNOWN) {

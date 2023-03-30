@@ -1,7 +1,7 @@
 #include <common/bk_include.h>
 #include "bk_arm_arch.h"
 
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 
 #include "sdio_driver.h"
 #include "sdcard.h"
@@ -15,7 +15,6 @@
 
 #include "sdcard_test.h"
 
-#if (CONFIG_SDCARD_V2P0)
 #include "driver/sd_card.h"
 #define SDCARD_TEST_BUFFER_SIZE (512 * 2)
 static SDIO_Error sdcard_test_open(void)
@@ -132,7 +131,4 @@ void sdcard_intf_close(void)
 	sdcard_test_close();
 }
 
-#else
-
-#endif
 #endif

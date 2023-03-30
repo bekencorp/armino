@@ -6,7 +6,7 @@ set(srcs
 	)
 set(priv_req bk_common bk_netif bk_ble bk_ate driver easy_flash bk_libs riscv media)
 
-if (("${target}" STREQUAL "bk7237") OR ("${target}" STREQUAL "bk7256") )
+if (("${target}" STREQUAL "bk7237") OR ("${target}" STREQUAL "bk7256") OR ("${target}" STREQUAL "bk7236"))
 list(APPEND priv_req vnd_cal)
 endif()
 

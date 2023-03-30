@@ -3,17 +3,30 @@ menu "Arch::Cm33"
 		bool "Enable Cortex-M33"
 		default n
 	
-	config FPGA
-		bool "Enable FPGA"
-		default n
-	
-	config SPE
-		bool "Enable SPE"
-		default n
+	menu "Modify Arch Cm33 Config"
+		depends on ARCH_CM33
 
-	config CPU_FREQ_HZ
-		int "Set Cpu Freq Hz"
-		default 120000000
-		help
-			CPU frequency
+		config FPGA
+			bool "Enable FPGA"
+			default n
+	
+		config SPE
+			int "Enable SPE"
+			default 0
+
+		config CPU_FREQ_HZ
+			int "Set Cpu Freq Hz"
+			default 120000000
+			help
+				CPU frequency
+
+		config ARCH_INT_STATIS
+			bool "Enable Arch Int Statis"
+			default n
+			help
+				Enable interrupt statis
+		config SYSTICK_32K
+			bool "Systick use external 32K clock"
+			default n
+	endmenu
 endmenu

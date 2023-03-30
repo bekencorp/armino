@@ -1,0 +1,62 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2022, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+#-------------------------------------------------------------------------------
+
+menu "Platform options"
+
+config PLATFORM_DEFAULT_BL1
+    bool "Use default BL1"
+    default y
+
+config PLATFORM_DEFAULT_ATTEST_HAL
+    bool "Use default attest hal implementation"
+    default y
+
+config PLATFORM_DEFAULT_NV_COUNTERS
+    bool "Use default nv counter implementation"
+    default y
+    depends on PLATFORM_DEFAULT_OTP_WRITEABLE
+
+config PLATFORM_DEFAULT_CRYPTO_KEYS
+    bool "Use default crypto keys implementation"
+    default y
+
+config PLATFORM_DEFAULT_ROTPK
+    bool "Use default root of trust public key"
+    default y
+
+config PLATFORM_DEFAULT_IAK
+    bool "Use default initial attestation_key"
+    default y
+
+config PLATFORM_DEFAULT_UART_STDOUT
+    bool "Use default uart stdout implementation"
+    default y
+
+config PLATFORM_DEFAULT_NV_SEED
+    bool "Use default NV seed implementation"
+    default y
+
+config PLATFORM_DEFAULT_OTP
+    bool "Use trusted on-chip flash to implement OTP memory"
+    default y
+
+config PLATFORM_DEFAULT_OTP_WRITEABLE
+    bool "Use OTP memory with write support"
+    default y
+
+config PLATFORM_DEFAULT_PROVISIONING
+    bool "Use default provisioning implementation"
+    default y
+
+config PLATFORM_DEFAULT_SYSTEM_RESET_HALT
+    bool "Use default system reset/halt implementation"
+    default y
+
+config PLATFORM_HAS_FIRMWARE_UPDATE_SUPPORT
+    bool
+    default n
+endmenu

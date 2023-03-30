@@ -3,12 +3,18 @@ menu "Tfm"
 		bool "Enable TFM"
 		default n
 
-	menu "Modify TFM Config"
+	menu "Modify TFM Info"
 		depends on TFM
+
+		config TFM_PROFILE
+			string "Define Tfm Profile"
+			default "profile_medium"
+			help
+				psa level:0(profile_small) 1(profile_medium) 2(profile_large)
 
 		config TFM_BUILD_TYPE
 			string "Define Tfm Build Type"
-			default "release"
+			default "debug"
 			help
 				build type: debug, release or minsizerel
 
@@ -19,15 +25,14 @@ menu "Tfm"
 				Enable FPGA: ON/OFF
 
 		config TFM_TEST_S
-			depends on BUILD_TFM_S
 			string "Define Tfm Test S"
-			default "ON"
+			default "OFF"
 			help
 				Enable to TFM secure bin test: ON/OFF
 
 		config TFM_TEST_NS
 			string "Define Tfm Test NS"
-			default "ON"
+			default "OFF"
 			help
 				Enable to TFM non-secure bin test: ON/OFF
 
@@ -36,6 +41,12 @@ menu "Tfm"
 			default "DEBUG"
 			help
 				Set BL2 log level: OFF/ERROR/WARNING/INFO/DEBUG
+
+		config TFM_BL2
+			string "Define Tfm Bl2"
+			default "OFF"
+			help
+				Enable BL2: ON/OFF
 
 		config OTP_NV_COUNTERS_RAM_EMULATION
 			string "Define Otp Nv Counters Ram Emulation"

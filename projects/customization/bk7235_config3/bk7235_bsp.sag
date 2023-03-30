@@ -42,7 +42,7 @@ CPU0_LOAD2 0x00018800  0x217800
 		* (+RO)
 	}
 
-	DTCM 0x20000000 0x7000
+	DTCM 0x20000400 0x6C00
 	{
 		LOADADDR NEXT _dtcm_lma_start
 		ADDR NEXT _dtcm_ema_start
@@ -105,7 +105,7 @@ CPU0_LOAD2 0x00018800  0x217800
 		* KEEP (.ble_bss_data LMA_FORCE_ALIGN)
 		*rwip_driver.c.obj *uart_ble.c.obj *uart_controller_only.c.obj(+ZI)
 		*sdp_common.c.obj *app_ble.c.obj *prf.c.obj(+ZI)
-		ADDR NEXT _bt_data_end
+		ADDR _bt_data_end
 	}
 
 	SRAM_DATA 0x30020000 0x60000

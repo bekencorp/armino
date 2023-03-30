@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "bk_arch.h"
+#include "bk7236.h"
 
 void arch_init(void)
 {
@@ -22,4 +23,16 @@ void arch_init(void)
 void smem_reset_lastblock(void)
 {
 
+}
+
+__attribute__((section(".iram"))) void arch_deep_sleep(void)
+{
+	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+	__WFI();
+}
+
+__attribute__((section(".iram"))) void arch_sleep(void)
+{
+	SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
+	__WFI();
 }

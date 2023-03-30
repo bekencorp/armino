@@ -162,6 +162,7 @@ static void media_major_message_handle(void)
 	storage_init();
 #endif
 
+
 #ifdef CONFIG_WIFI_TRANSFER
 	transfer_init();
 #endif

@@ -6,8 +6,8 @@ Armino Wi-Fi说明
 Armino Wi-Fi功能列表
 -------------------------------------------------------
 
-- 兼容IEEE802.11 b/g/n/ax 2.4GHz标准(BK7256支持802.11ax)
-- 支持HT20 and HT40(BK7256支持HT40)
+- 兼容IEEE802.11 b/g/n/ax 2.4GHz标准
+- 支持HT20 and HT40
 - 支持802.11N MCS0-7
 - 支持STA、AP and Direct Modes
 - 支持Concurrent AP+STA

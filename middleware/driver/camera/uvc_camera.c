@@ -226,6 +226,10 @@ static bk_err_t uvc_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_
 
 	BK_LOG_ON_ERR(bk_dma_register_isr(cpy_chnls, NULL, uvc_camera_memcpy_finish_callback));
 	BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(cpy_chnls));
+#if (CONFIG_SPE)
+	BK_LOG_ON_ERR(bk_dma_set_dest_sec_attr(cpy_chnls, DMA_ATTR_SEC));
+	BK_LOG_ON_ERR(bk_dma_set_src_sec_attr(cpy_chnls, DMA_ATTR_SEC));
+#endif
 	BK_LOG_ON_ERR(bk_dma_start(cpy_chnls));
 
 	return BK_OK;
@@ -629,6 +633,10 @@ static bk_err_t uvc_dma_config(void)
 	BK_LOG_ON_ERR(bk_dma_set_transfer_len(uvc_camera_drv->uvc_dma, FRAME_BUFFER_UVC));
 	BK_LOG_ON_ERR(bk_dma_register_isr(uvc_camera_drv->uvc_dma, NULL, uvc_camera_dma_finish_callback));
 	BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(uvc_camera_drv->uvc_dma));
+#if (CONFIG_SPE)
+	BK_LOG_ON_ERR(bk_dma_set_dest_sec_attr(uvc_camera_drv->uvc_dma, DMA_ATTR_SEC));
+	BK_LOG_ON_ERR(bk_dma_set_src_sec_attr(uvc_camera_drv->uvc_dma, DMA_ATTR_SEC));
+#endif
 
 	return ret;
 }
@@ -819,8 +827,9 @@ bk_err_t bk_uvc_camera_driver_init(uvc_camera_config_t *config)
 	UVC_DIAG_DEBUG_INIT();
 
 #if (CONFIG_PSRAM)
+#if (!CONFIG_SOC_BK7236)
 	bk_pm_module_vote_cpu_freq(PM_DEV_ID_PSRAM, PM_CPU_FRQ_320M);
-
+#endif
 	bk_psram_init();
 #endif
 

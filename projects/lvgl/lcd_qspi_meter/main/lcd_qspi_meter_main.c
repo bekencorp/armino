@@ -79,7 +79,7 @@ void meter_init(void)
 	}
 
 #ifdef CONFIG_LVGL_USE_PSRAM
-#define PSRAM_DRAW_BUFFER ((0x64000000UL) + 5 * 1024 * 1024)
+#define PSRAM_DRAW_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)
 	lv_vnd_config.draw_pixel_size = ppi_to_pixel_x(s_device_config->ppi) * ppi_to_pixel_y(s_device_config->ppi);
 	lv_vnd_config.draw_buf_2_1 = (lv_color_t *)PSRAM_DRAW_BUFFER;
 	lv_vnd_config.draw_buf_2_2 = (lv_color_t *)(PSRAM_DRAW_BUFFER + lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));

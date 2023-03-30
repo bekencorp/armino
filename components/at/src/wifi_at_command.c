@@ -8,6 +8,7 @@
 #include <components/event.h>
 #include <components/netif.h>
 
+extern const char *wifi_sec_type_string(wifi_security_t security);
 beken_semaphore_t wifi_at_cmd_sema = NULL;
 int wifi_at_cmd_status = 0;
 
@@ -30,38 +31,6 @@ const at_command_t wifi_at_cmd_table[] = {
     {5, "STATE", 0, "get wifi state", at_wifi_state_cmd},
     {6, "PING", 0, "wifi ping", at_wifi_ping_cmd}
 };
-	
-const char *wifi_type_string(wifi_security_t security)
-{
-	switch (security) {
-	case WIFI_SECURITY_NONE:
-		return "NONE";
-	case WIFI_SECURITY_WEP:
-		return "WEP";
-	case WIFI_SECURITY_WPA_TKIP:
-		return "WPA-TKIP";
-	case WIFI_SECURITY_WPA_AES:
-		return "WPA-AES";
-	case WIFI_SECURITY_WPA2_TKIP:
-		return "WPA2-TKIP";
-	case WIFI_SECURITY_WPA2_AES:
-		return "WPA2-AES";
-	case WIFI_SECURITY_WPA2_MIXED:
-		return "WPA2-MIX";
-	case WIFI_SECURITY_WPA3_SAE:
-		return "WPA3-SAE";
-	case WIFI_SECURITY_WPA3_WPA2_MIXED:
-		return "WPA3-WPA2-MIX";
-	case WIFI_SECURITY_EAP:
-		return "EAP";
-	case WIFI_SECURITY_OWE:
-		return "OWE";
-	case WIFI_SECURITY_AUTO:
-		return "AUTO";
-	default:
-		return "UNKNOWN";
-	}
-}
 
 int wifi_at_cmd_cnt(void)
 {
@@ -415,7 +384,7 @@ int at_wifi_state_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 					sprintf(pcWriteBuffer, "%s:%d\r\n%s", AT_CMDRSP_HEAD, ap_info.channel, AT_CMD_RSP_SUCCEED);
 				}
 				else if (os_strcmp(argv[1], "SECURITY") == 0) {
-					sprintf(pcWriteBuffer, "%s:%s\r\n%s", AT_CMDRSP_HEAD, wifi_type_string(ap_info.security), AT_CMD_RSP_SUCCEED);
+					sprintf(pcWriteBuffer, "%s:%s\r\n%s", AT_CMDRSP_HEAD, wifi_sec_type_string(ap_info.security), AT_CMD_RSP_SUCCEED);
 				}
 
 				else if (os_strcmp(argv[1], "IP") == 0) {

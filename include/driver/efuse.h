@@ -59,6 +59,8 @@ bk_err_t bk_efuse_driver_deinit(void);
 
 /**
  * @brief     Efuse write operation
+ * @Notice:   Each efuse address area has specific usage, please apply the area from PM
+ *            before write data to the efuse address.
  *
  * @param addr efuse write address
  * @param data efuse write data

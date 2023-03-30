@@ -15,9 +15,10 @@ Armino 是**博通集成**推出的物联网开发框架，旨在支持**博通�
 
 |Chip                                                                                |          v1.4.0         |
 |:---------------------------------------------------------------------------------- |:--------------------:   |
-|[BK7235](http://docs.bekencorp.com/spec/BK7235/BK7235%C2%A0Datasheet_V0.1.pdf)      | ![alt text][支持]       |
-|[BK7237](http://docs.bekencorp.com/spec/BK7237/BK7237%C2%A0Datasheet_V0.3.pdf)      | ![alt text][支持]       |
-|[BK7256](http://docs.bekencorp.com/spec/BK7256/BK7256%C2%A0Datasheet_V0.1.pdf)      | ![alt text][支持]       |
+|[BK7235](http://docs.bekencorp.com/spec/BK7235/BK7235%C2%A0Datasheet_V0.1.pdf)      | ![alt text][支持]     |
+|[BK7236](http://docs.bekencorp.com/spec/BK7256/BK7236%C2%A0Datasheet_V0.1.pdf)      | ![alt text][支持]     |
+|[BK7237](http://docs.bekencorp.com/spec/BK7237/BK7237%C2%A0Datasheet_V0.3.pdf)      | ![alt text][支持]     |
+|[BK7256](http://docs.bekencorp.com/spec/BK7256/BK7256%C2%A0Datasheet_V0.1.pdf)      | ![alt text][支持]     |
 
 [支持]: https://img.shields.io/badge/-supported-green "支持"
 [开发中]: https://img.shields.io/badge/-developing-orange "开发中"
@@ -36,22 +37,18 @@ Armino 是**博通集成**推出的物联网开发框架，旨在支持**博通�
 [支持]: https://img.shields.io/badge/-supported-green "支持"
 [开发中]: https://img.shields.io/badge/-developing-orange "开发中"
 
-# 快速入门
-
-阅读[概述](TODO_link_to_armino_intro_doc）可让您对 Armino 有一个整体认识。 
-阅读[快速入门](TODO_link_to_armino_get_started_doc) 可教您快速上手使用 Armino 进行编译与调试。
 
 # 开发者社区
 
- - 报告问题 [Github Issue Forum](TODO_link_to_armino_github_forum)  
- - 寻求技术支持 [Cummunity-Forum](TODO_link_to_armino_forum)
+ - 报告版本问题 [Github Issue Forum](https://github.com/bekencorp/armino/issues)
+ - 技术探讨与支持 [Cummunity-Forum](https://armino.bekencorp.com/)
+ - 尊贵客户支持 [VIP-Support](https://support.bekencorp.com/login?back_url=http%3A%2F%2Fsupport.bekencorp.com%2F)
 
 # 更多资源
 
- - 文档: http://docs.bekencorp.com/armino/bk7256/zh_CN/latest/
+ - 文档: http://docs.bekencorp.com/
  - 代码: https://github.com/bekencorp/armino
- - 版本: TODO_link_to_release_page
- - 示例: TODO_link_to_doc_sample_and_demo_page
- - 下载中心: TODO_link_to_download_center_page
+ - 版本: https://github.com/bekencorp/armino/tags
+ - 下载中心: http://dl.bekencorp.com/
  - 博通集成产品: http://www.bekencorp.com/index/goods/product.html
  - 博通集成官网: http://www.bekencorp.com

@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+#include <sdkconfig.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <common/bk_include.h>
@@ -176,6 +176,8 @@ void rtos_thread_func_test()
 #endif
 
 #if (CONFIG_MASTER_CORE)
+extern void mon_reset_cpu1(u32 enable, u32 start_addr);
+
 void reset_slave_core(uint32 offset, uint32_t reset_value)
 {
 	if (0 != reset_value  && 1 != reset_value) {
@@ -183,8 +185,13 @@ void reset_slave_core(uint32 offset, uint32_t reset_value)
 		reset_value = CONFIG_SLAVE_CORE_RESET_VALUE;
 	}
 	os_printf("reset_slave_core at: %08x, reset value:%d\r\n", offset, reset_value);
+
+	#if CONFIG_SOC_BK7256XX //u-mode
+	mon_reset_cpu1(reset_value, offset);
+	#else
 	sys_drv_set_cpu1_boot_address_offset(offset >> 8);
 	sys_drv_set_cpu1_reset(reset_value);
+	#endif
 }
 
 void start_slave_core(void)
@@ -323,7 +330,7 @@ void entry_main(void)
 	start_user_app_thread();
 #endif
 
-#if (!CONFIG_SLAVE_CORE) && (CONFIG_ARCH_RISCV) && (CONFIG_FREERTOS_V10)
+#if (!CONFIG_SLAVE_CORE) && (CONFIG_FREERTOS_V10)
 	extern void rtos_init_base_time(void);
 	rtos_init_base_time();
 #endif

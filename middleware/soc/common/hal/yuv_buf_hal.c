@@ -25,9 +25,10 @@ static bk_err_t yuv_buf_hal_set_config_common(yuv_buf_hal_t *hal, const yuv_buf_
 	yuv_buf_ll_set_mclk_div(hal->hw, config->mclk_div);
 	yuv_buf_ll_set_x_pixel(hal->hw, config->x_pixel);
 	yuv_buf_ll_set_y_pixel(hal->hw, config->y_pixel);
+	yuv_buf_ll_set_frame_blk(hal->hw, config->x_pixel * config->y_pixel / 2);
 
+	yuv_buf_ll_enable_sync_edge_dect(hal->hw);
 	yuv_buf_ll_set_encode_begin_hsync_posedge(hal->hw);
-	yuv_buf_ll_enable_reverse_yuv_data(hal->hw);
 	yuv_buf_ll_enable_int(hal->hw);
 
 	return BK_OK;
@@ -54,7 +55,6 @@ bk_err_t yuv_buf_hal_set_yuv_mode_config(yuv_buf_hal_t *hal, const yuv_buf_confi
 bk_err_t yuv_buf_hal_set_jpeg_mode_config(yuv_buf_hal_t *hal, const yuv_buf_config_t *config)
 {
 	yuv_buf_hal_set_config_common(hal, config);
-
 	/* jpeg_mode set em_base_addr as share memory */
 	yuv_buf_ll_set_em_base_addr(hal->hw, jpeg_hal_get_jpeg_share_mem_addr());
 
@@ -63,7 +63,21 @@ bk_err_t yuv_buf_hal_set_jpeg_mode_config(yuv_buf_hal_t *hal, const yuv_buf_conf
 
 bk_err_t yuv_buf_hal_set_h264_mode_config(yuv_buf_hal_t *hal, const yuv_buf_config_t *config)
 {
-	yuv_buf_hal_set_config_common(hal, config);
+	yuv_buf_ll_set_mclk_div(hal->hw, config->mclk_div);
+	yuv_buf_ll_set_x_pixel(hal->hw, config->x_pixel);
+	yuv_buf_ll_set_y_pixel(hal->hw, config->y_pixel);
+	yuv_buf_ll_set_frame_blk(hal->hw, config->x_pixel*config->y_pixel/2);
+	yuv_buf_ll_set_yuv_format(hal->hw, config->yuv_mode_cfg.yuv_format);
+	yuv_buf_ll_enable_int(hal->hw);
+
+	return BK_OK;
+}
+
+bk_err_t yuv_buf_hal_enable_h264_nosensor_mode(yuv_buf_hal_t *hal)
+{
+	yuv_buf_ll_enable_reverse_yuv_data(hal->hw);
+	yuv_buf_ll_enable_bps_cis(hal->hw);
+	yuv_buf_ll_enable_memrev(hal->hw);
 
 	return BK_OK;
 }
@@ -104,6 +118,16 @@ bk_err_t yuv_buf_hal_start_h264_mode(yuv_buf_hal_t *hal)
 bk_err_t yuv_buf_hal_stop_h264_mode(yuv_buf_hal_t *hal)
 {
 	yuv_buf_ll_disable_h264_encode_mode(hal->hw);
+	return BK_OK;
+}
+
+bk_err_t yuv_buf_hal_set_partial_display_offset_config(yuv_buf_hal_t *hal, const yuv_buf_partial_offset_config_t *offset_config)
+{
+	yuv_buf_ll_set_x_partial_offset_l(hal->hw, offset_config->x_partial_offset_l);
+	yuv_buf_ll_set_x_partial_offset_r(hal->hw, offset_config->x_partial_offset_r);
+	yuv_buf_ll_set_y_partial_offset_l(hal->hw, offset_config->y_partial_offset_l);
+	yuv_buf_ll_set_y_partial_offset_r(hal->hw, offset_config->y_partial_offset_r);
+
 	return BK_OK;
 }
 

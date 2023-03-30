@@ -34,11 +34,11 @@
 #include "audio_pub.h"
 #endif
 
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 #include "sdcard_pub.h"
 #endif
 
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 #include "sdcard_pub.h"
 #endif
 
@@ -53,7 +53,7 @@ typedef struct _dd_init_s_ {
 	void (*exit)(void);
 } DD_INIT_S;
 
-#if (!CONFIG_SOC_BK7256XX)
+#if (!CONFIG_SOC_BK7256XX && !CONFIG_SOC_BK7236)
 static const DD_INIT_S dd_init_tbl[] = {
 	/* name*/              /* init function*/          /* exit function*/
 #if !CONFIG_SYSTEM_CTRL
@@ -82,10 +82,6 @@ static const DD_INIT_S dd_init_tbl[] = {
 	{DD_DEV_TYPE_AUD_DAC,      audio_init,                 audio_exit},
 #endif
 
-#if CONFIG_SDIO || CONFIG_SDIO_TRANS
-	{DD_DEV_TYPE_SDIO,         sdio_init,                  sdio_exit},
-#endif
-
 #if CONFIG_USB
 	{DD_DEV_TYPE_USB,          usb_init,                   usb_exit},
 #endif
@@ -106,7 +102,7 @@ static const DD_INIT_S dd_init_tbl[] = {
 	{DD_DEV_TYPE_MPB,          mpb_init,                   mpb_exit},
 #endif
 
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 	{DD_DEV_TYPE_SDCARD,       sdcard_init,                sdcard_exit},
 #endif
 

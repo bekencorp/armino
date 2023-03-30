@@ -140,6 +140,13 @@ beken_thread_t* rtos_get_current_thread( void )
     return (beken_thread_t *)xTaskGetCurrentTaskHandle();
 }
 
+bk_err_t rtos_thread_set_priority(beken_thread_t *thread, int priority)
+{
+	if (thread)
+		vTaskPrioritySet(*thread, BK_PRIORITY_TO_NATIVE_PRIORITY(priority));
+	return kNoErr;
+}
+
 bk_err_t rtos_check_stack( void )
 {
     //  TODO: Add stack checking here.

@@ -65,6 +65,8 @@ extern "C" {
 #define MCUBOOT_HAVE_LOGGING    1
 #define MCUBOOT_LOG_LEVEL       @LOG_LEVEL_ID@
 
+#define MCUBOOT_IMAGE_NUMBER 1 
+
 #endif /* !__BOOTSIM__ */
 
 /*

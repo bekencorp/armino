@@ -18,139 +18,127 @@
 #include "dma2d_struct.h"
 #include "dma2d_ll_macro_def.h"
 
-#if CFG_HAL_DEBUG_DMA2D
-
+//#if CFG_HAL_DEBUG_DMA2D
+//TODO modify it
+#if 1
 void dma2d_struct_dump()
 {
-	dma2d_hw_t *hw = (dma2d_hw_t *)DMA2D_LL_REG_BASE;
-	SOC_LOGI("    dma2d_reg_base=0x%x\r\n", (uint32_t)hw);
+	SOC_LOGI("    dma2d_reg_base=0x%x\r\n", DMA2D_LL_REG_BASE);
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    device_id addr=0x%x, value=0x%x\n", &hw->device_id, hw->device_id);
+	SOC_LOGI("    device_id value=0x%x\n", dma2d_ll_get_output_offset_out_line_offset());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    version_id addr=0x%x, value=0x%x\n", &hw->version_id, hw->version_id);
+	SOC_LOGI("    version_id value=0x%x\n", dma2d_ll_get_version_id());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    module_control addr=0x%x, value=0x%x\n", &hw->module_control, hw->module_control.v);
-	SOC_LOGI("    soft_reset:    %x\n", hw->module_control.soft_reset);
-	SOC_LOGI("    clk_gate:    %x\n", hw->module_control.clk_gate);
+	SOC_LOGI("    soft_reset:    %x\n", dma2d_ll_get_module_control_soft_reset());
+	SOC_LOGI("    clk_gate:    %x\n", dma2d_ll_get_module_control_clk_gate());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    global_status addr=0x%x, value=0x%x\n", &hw->global_status, hw->global_status);
+	SOC_LOGI("    global_status value=0x%x\n", dma2d_ll_get_global_status());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    dma2d_control_reg addr=0x%x, value=0x%x\n", &hw->dma2d_control_reg, hw->dma2d_control_reg.v);
-	SOC_LOGI("    tran_start:    %x\n", hw->dma2d_control_reg.tran_start);
-	SOC_LOGI("    tran_suspend:    %x\n", hw->dma2d_control_reg.tran_suspend);
-	SOC_LOGI("    tran_abort:    %x\n", hw->dma2d_control_reg.tran_abort);
-	SOC_LOGI("    line_offset_mode:    %x\n", hw->dma2d_control_reg.line_offset_mode);
-	SOC_LOGI("    error_int_en:    %x\n", hw->dma2d_control_reg.error_int_en);
-	SOC_LOGI("    complete_int_en:    %x\n", hw->dma2d_control_reg.complete_int_en);
-	SOC_LOGI("    waterm_int_en:    %x\n", hw->dma2d_control_reg.waterm_int_en);
-	SOC_LOGI("    clut_error_int_en:    %x\n", hw->dma2d_control_reg.clut_error_int_en);
-	SOC_LOGI("    clut_cmplt_int_en:    %x\n", hw->dma2d_control_reg.clut_cmplt_int_en);
-	SOC_LOGI("    config_error_int_en:    %x\n", hw->dma2d_control_reg.config_error_int_en);
-	SOC_LOGI("    mode:    %x\n", hw->dma2d_control_reg.mode);
-	SOC_LOGI("    master_tran_length:    %x\n", hw->dma2d_control_reg.master_tran_length);
-	SOC_LOGI("    out_byte_revese:    %x\n", hw->dma2d_control_reg.out_byte_revese);
+	SOC_LOGI("    dma2d_control_reg value=0x%x\n", dma2d_ll_get_dma2d_control_reg_value());
+	SOC_LOGI("    tran_start:    %x\n", dma2d_ll_get_dma2d_control_reg_tran_start());
+	SOC_LOGI("    tran_suspend:    %x\n", dma2d_ll_get_dma2d_control_reg_tran_suspend());
+	SOC_LOGI("    tran_abort:    %x\n", dma2d_ll_get_dma2d_control_reg_tran_abort());
+	SOC_LOGI("    line_offset_mode:    %x\n", dma2d_ll_get_dma2d_control_reg_line_offset_mode());
+	SOC_LOGI("    error_int_en:    %x\n", dma2d_ll_get_dma2d_control_reg_error_int_en());
+	SOC_LOGI("    complete_int_en:    %x\n", dma2d_ll_get_dma2d_control_reg_complete_int_en());
+	SOC_LOGI("    waterm_int_en:    %x\n", dma2d_ll_get_dma2d_control_reg_waterm_int_en());
+	SOC_LOGI("    clut_error_int_en:    %x\n", dma2d_ll_get_dma2d_control_reg_clut_error_int_en());
+	SOC_LOGI("    clut_cmplt_int_en:    %x\n", dma2d_ll_get_dma2d_control_reg_clut_cmplt_int_en());
+	SOC_LOGI("    config_error_int_en:    %x\n", dma2d_ll_get_dma2d_control_reg_config_error_int_en());
+	SOC_LOGI("    mode:    %x\n", dma2d_ll_get_dma2d_control_reg_mode());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    dma2d_int_status addr=0x%x, value=0x%x\n", &hw->dma2d_int_status, hw->dma2d_int_status.v);
-	SOC_LOGI("    error_int:    %x\n", hw->dma2d_int_status.error_int);
-	SOC_LOGI("    complete_int:    %x\n", hw->dma2d_int_status.complete_int);
-	SOC_LOGI("    waterm_int:    %x\n", hw->dma2d_int_status.waterm_int);
-	SOC_LOGI("    clut_error_int:    %x\n", hw->dma2d_int_status.clut_error_int);
-	SOC_LOGI("    clut_cmplt_int:    %x\n", hw->dma2d_int_status.clut_cmplt_int);
-	SOC_LOGI("    config_error_int:    %x\n", hw->dma2d_int_status.config_error_int);
+	SOC_LOGI("    dma2d_int_status value=0x%x\n", dma2d_ll_get_dma2d_int_status_value());
+	SOC_LOGI("    error_int:    %x\n", dma2d_ll_get_dma2d_int_status_error_int());
+	SOC_LOGI("    complete_int:    %x\n", dma2d_ll_get_dma2d_int_status_complete_int());
+	SOC_LOGI("    waterm_int:    %x\n", dma2d_ll_get_dma2d_int_status_waterm_int());
+	SOC_LOGI("    clut_error_int:    %x\n", dma2d_ll_get_dma2d_int_status_clut_error_int());
+	SOC_LOGI("    clut_cmplt_int:    %x\n", dma2d_ll_get_dma2d_int_status_clut_cmplt_int());
+	SOC_LOGI("    config_error_int:    %x\n", dma2d_ll_get_dma2d_int_status_config_error_int());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    dma2d_int_clear addr=0x%x, value=0x%x\n", &hw->dma2d_int_clear, hw->dma2d_int_clear.v);
-	SOC_LOGI("    clr_error_int:    %x\n", hw->dma2d_int_clear.clr_error_int);
-	SOC_LOGI("    clr_complete_int:    %x\n", hw->dma2d_int_clear.clr_complete_int);
-	SOC_LOGI("    clr_waterm_int:    %x\n", hw->dma2d_int_clear.clr_waterm_int);
-	SOC_LOGI("    clr_clut_error_int:    %x\n", hw->dma2d_int_clear.clr_clut_error_int);
-	SOC_LOGI("    clr_clut_cmplt_int:    %x\n", hw->dma2d_int_clear.clr_clut_cmplt_int);
-	SOC_LOGI("    clr_config_error_int:    %x\n", hw->dma2d_int_clear.clr_config_error_int);
+	SOC_LOGI("    dma2d_fg_address value=0x%x\n", dma2d_ll_get_dma2d_fg_address_value());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    dma2d_fg_address addr=0x%x, value=0x%x\n", &hw->dma2d_fg_address, hw->dma2d_fg_address.v);
+	SOC_LOGI("    dma2d_fg_offset value=0x%x\n", dma2d_ll_get_dma2d_fg_offset_value());
+	SOC_LOGI("    fg_line_offset:	%x\n", dma2d_ll_get_dma2d_fg_offset_fg_line_offset());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    dma2d_fg_offset addr=0x%x, value=0x%x\n", &hw->dma2d_fg_offset, hw->dma2d_fg_offset.v);
-	SOC_LOGI("    fg_line_offset:	%x\n", hw->dma2d_fg_offset.fg_line_offset);
+	SOC_LOGI("    dma2d_bg_address value=0x%x\n", dma2d_ll_get_dma2d_bg_address_value());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    dma2d_bg_address addr=0x%x, value=0x%x\n", &hw->dma2d_bg_address, hw->dma2d_bg_address.v);
+	SOC_LOGI("    dma2d_bg_offset value=0x%x\n", dma2d_ll_get_dma2d_bg_offset_value());
+	SOC_LOGI("    bg_line_offset:	%x\n", dma2d_ll_get_dma2d_bg_offset_bg_line_offset());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    dma2d_bg_offset addr=0x%x, value=0x%x\n", &hw->dma2d_bg_offset, hw->dma2d_bg_offset.v);
-	SOC_LOGI("    bg_line_offset:	%x\n", hw->dma2d_bg_offset.bg_line_offset);
+	SOC_LOGI("    dma2d_fg_pfc_ctrl value=0x%x\n", dma2d_ll_get_dma2d_fg_pfc_ctrl_value());
+	SOC_LOGI("    fg_color_mode:	%x\n", dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_color_mode());
+	SOC_LOGI("    fg_clut_color_mode:	%x\n", dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_clut_color_mode());
+	SOC_LOGI("    fg_start_clut:	%x\n", dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_start_clut());
+	SOC_LOGI("    fg_clut_size:	%x\n", dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_clut_size());
+	SOC_LOGI("    fg_alpha_mode:	%x\n", dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_alpha_mode());
+	SOC_LOGI("    alpha_invert:	%x\n", dma2d_ll_get_dma2d_fg_pfc_ctrl_alpha_invert());
+	SOC_LOGI("    fg_rb_swap:	%x\n", dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_rb_swap());
+	SOC_LOGI("    fg_alpha:	%x\n", dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_alpha());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    dma2d_fg_pfc_ctrl addr=0x%x, value=0x%x\n", &hw->dma2d_fg_pfc_ctrl, hw->dma2d_fg_pfc_ctrl.v);
-	SOC_LOGI("    fg_color_mode:	%x\n", hw->dma2d_fg_pfc_ctrl.fg_color_mode);
-	SOC_LOGI("    fg_clut_color_mode:	%x\n", hw->dma2d_fg_pfc_ctrl.fg_clut_color_mode);
-	SOC_LOGI("    fg_start_clut:	%x\n", hw->dma2d_fg_pfc_ctrl.fg_start_clut);
-	SOC_LOGI("    fg_clut_size:	%x\n", hw->dma2d_fg_pfc_ctrl.fg_clut_size);
-	SOC_LOGI("    fg_alpha_mode:	%x\n", hw->dma2d_fg_pfc_ctrl.fg_alpha_mode);
-	SOC_LOGI("    alpha_invert:	%x\n", hw->dma2d_fg_pfc_ctrl.alpha_invert);
-	SOC_LOGI("    fg_rb_swap:	%x\n", hw->dma2d_fg_pfc_ctrl.fg_rb_swap);
-	SOC_LOGI("    fg_alpha:	%x\n", hw->dma2d_fg_pfc_ctrl.fg_alpha);
+	SOC_LOGI("    dma2d_fg_color_reg value=0x%x\n", dma2d_ll_get_dma2d_fg_color_reg_value());
+	SOC_LOGI("    blue_value:	%x\n", dma2d_ll_get_dma2d_fg_color_reg_blue_value());
+	SOC_LOGI("    green_value:	%x\n", dma2d_ll_get_dma2d_fg_color_reg_green_value());
+	SOC_LOGI("    red_value:	%x\n", dma2d_ll_get_dma2d_fg_color_reg_red_value());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    dma2d_fg_color_reg addr=0x%x, value=0x%x\n", &hw->dma2d_fg_color_reg, hw->dma2d_fg_color_reg.v);
-	SOC_LOGI("    blue_value:	%x\n", hw->dma2d_fg_color_reg.blue_value);
-	SOC_LOGI("    green_value:	%x\n", hw->dma2d_fg_color_reg.green_value);
-	SOC_LOGI("    red_value:	%x\n", hw->dma2d_fg_color_reg.red_value);
+	SOC_LOGI("    dma2d_bg_pfc_ctrl value=0x%x\n", dma2d_ll_get_dma2d_bg_pfc_ctrl_value());
+	SOC_LOGI("    bg_color_mode:	%x\n", dma2d_ll_get_dma2d_bg_pfc_ctrl_bg_color_mode());
+	SOC_LOGI("    bg_clut_color_mode:	%x\n", dma2d_ll_get_dma2d_bg_pfc_ctrl_bg_clut_color_mode());
+	SOC_LOGI("    bg_start_clut:	%x\n", dma2d_ll_get_dma2d_bg_pfc_ctrl_bg_start_clut());
+	SOC_LOGI("    bg_clut_size:	%x\n", dma2d_ll_get_dma2d_bg_pfc_ctrl_bg_clut_size());
+	SOC_LOGI("    bg_alpha_mode:	%x\n", dma2d_ll_get_dma2d_bg_pfc_ctrl_bg_alpha_mode());
+	SOC_LOGI("    alpha_invert:	%x\n", dma2d_ll_get_dma2d_bg_pfc_ctrl_alpha_invert());
+	SOC_LOGI("    bg_rb_swap:	%x\n", dma2d_ll_get_dma2d_bg_pfc_ctrl_bg_rb_swap());
+	SOC_LOGI("    bg_alpha:	%x\n", dma2d_ll_get_dma2d_bg_pfc_ctrl_bg_alpha());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    dma2d_bg_pfc_ctrl addr=0x%x, value=0x%x\n", &hw->dma2d_bg_pfc_ctrl, hw->dma2d_bg_pfc_ctrl.v);
-	SOC_LOGI("    bg_color_mode:	%x\n", hw->dma2d_bg_pfc_ctrl.bg_color_mode);
-	SOC_LOGI("    bg_clut_color_mode:	%x\n", hw->dma2d_bg_pfc_ctrl.bg_clut_color_mode);
-	SOC_LOGI("    bg_start_clut:	%x\n", hw->dma2d_bg_pfc_ctrl.bg_start_clut);
-	SOC_LOGI("    bg_clut_size:	%x\n", hw->dma2d_bg_pfc_ctrl.bg_clut_size);
-	SOC_LOGI("    bg_alpha_mode:	%x\n", hw->dma2d_bg_pfc_ctrl.bg_alpha_mode);
-	SOC_LOGI("    alpha_invert:	%x\n", hw->dma2d_bg_pfc_ctrl.alpha_invert);
-	SOC_LOGI("    bg_rb_swap:	%x\n", hw->dma2d_bg_pfc_ctrl.bg_rb_swap);
-	SOC_LOGI("    bg_alpha:	%x\n", hw->dma2d_bg_pfc_ctrl.bg_alpha);
+	SOC_LOGI("    dma2d_bg_color_reg value=0x%x\n", dma2d_ll_get_dma2d_bg_color_reg_value());
+	SOC_LOGI("    blue_value:	%x\n", dma2d_ll_get_dma2d_bg_color_reg_blue_value());
+	SOC_LOGI("    green_value:	%x\n", dma2d_ll_get_dma2d_bg_color_reg_green_value());
+	SOC_LOGI("    red_value:	%x\n", dma2d_ll_get_dma2d_bg_color_reg_red_value());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    dma2d_bg_color_reg addr=0x%x, value=0x%x\n", &hw->dma2d_bg_color_reg, hw->dma2d_bg_color_reg.v);
-	SOC_LOGI("    blue_value:	%x\n", hw->dma2d_bg_color_reg.blue_value);
-	SOC_LOGI("    green_value:	%x\n", hw->dma2d_bg_color_reg.green_value);
-	SOC_LOGI("    red_value:	%x\n", hw->dma2d_bg_color_reg.red_value);
+	SOC_LOGI("    fg_clut_mem_address value=0x%x\n", dma2d_ll_get_fg_clut_mem_address_value());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    fg_clut_mem_address addr=0x%x, value=0x%x\n", &hw->fg_clut_mem_address, hw->fg_clut_mem_address.v);
+	SOC_LOGI("    bg_clut_mem_address value=0x%x\n", dma2d_ll_get_bg_clut_mem_address_value());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    bg_clut_mem_address addr=0x%x, value=0x%x\n", &hw->bg_clut_mem_address, hw->bg_clut_mem_address.v);
+	SOC_LOGI("    out_pfc_contrl value=0x%x\n", dma2d_ll_get_out_pfc_contrl_value());
+	SOC_LOGI("    out_color_mode:	%x\n", dma2d_ll_get_out_pfc_contrl_out_color_mode());
+	SOC_LOGI("    out_alpha_invert:	%x\n", dma2d_ll_get_out_pfc_contrl_out_alpha_invert());
+	SOC_LOGI("    out_rb_swap:	%x\n", dma2d_ll_get_out_pfc_contrl_out_rb_swap());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    out_pfc_contrl addr=0x%x, value=0x%x\n", &hw->out_pfc_contrl, hw->out_pfc_contrl.v);
-	SOC_LOGI("    out_color_mode:	%x\n", hw->out_pfc_contrl.out_color_mode);
-	SOC_LOGI("    out_alpha_invert:	%x\n", hw->out_pfc_contrl.out_alpha_invert);
-	SOC_LOGI("    out_rb_swap:	%x\n", hw->out_pfc_contrl.out_rb_swap);
+	SOC_LOGI("    out_color_reg value=0x%x\n", dma2d_ll_get_out_color_reg_value());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    out_color_reg addr=0x%x, value=0x%x\n", &hw->out_color_reg, hw->out_color_reg.v);
+	SOC_LOGI("    dma2d_out_mem_address value=0x%x\n", dma2d_ll_get_dma2d_out_mem_address_value());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    dma2d_out_mem_address addr=0x%x, value=0x%x\n", &hw->dma2d_out_mem_address, hw->dma2d_out_mem_address.v);
+	SOC_LOGI("    output_offset value=0x%x\n", dma2d_ll_get_output_offset_value());
+	SOC_LOGI("    out_line_offset:	%x\n", dma2d_ll_get_output_offset_out_line_offset());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    output_offset addr=0x%x, value=0x%x\n", &hw->output_offset, hw->output_offset.v);
-	SOC_LOGI("    out_line_offset:	%x\n", hw->output_offset.out_line_offset);
+	SOC_LOGI("    dma2d_number_of_line value=0x%x\n", dma2d_ll_get_dma2d_number_of_line_value());
+	SOC_LOGI("    number_line:	%x\n", dma2d_ll_get_dma2d_number_of_line_number_line());
+	SOC_LOGI("    pixel_line:	%x\n", dma2d_ll_get_dma2d_number_of_line_pexel_line());
 
 	SOC_LOGI("\n");
-	SOC_LOGI("    dma2d_number_of_line addr=0x%x, value=0x%x\n", &hw->dma2d_number_of_line, hw->dma2d_number_of_line.v);
-	SOC_LOGI("    number_line:	%x\n", hw->dma2d_number_of_line.number_line);
-	SOC_LOGI("    pixel_line:	%x\n", hw->dma2d_number_of_line.pixel_line);
-
-	SOC_LOGI("\n");
-	SOC_LOGI("    dma2d_line_watermark addr=0x%x, value=0x%x\n", &hw->dma2d_line_watermark, hw->dma2d_line_watermark.v);
-	SOC_LOGI("    line_watermark:	%x\n", hw->dma2d_line_watermark.line_watermark);
+	SOC_LOGI("    dma2d_line_watermark value=0x%x\n", dma2d_ll_get_dma2d_line_watermark_value());
+	SOC_LOGI("    line_watermark:	%x\n", dma2d_ll_get_dma2d_line_watermark_line_watermark());
 
 }
 

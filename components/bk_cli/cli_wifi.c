@@ -21,6 +21,7 @@
 #include "bk_wifi.h"
 #endif
 #include "bk_wifi_rw.h"
+#include "bk_private/bk_wifi_wpa_cmd.h"
 
 #if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
 #include "driver/flash.h"
@@ -235,6 +236,9 @@ void cli_wifi_ap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 			ap_ssid = argv[1];
 			ap_key = argv[2];
 			ap_channel = argv[3];
+		}else{
+			CLI_LOGI("Invalid parameters\n");
+			return;
 		}
 #if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
 	}
@@ -619,6 +623,7 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 	char *ssid = NULL;
 	char *password = "";
 	char *msg = NULL;
+	int ret;
 
 	if ((argc < 2) || (argc > 6)) {
 		CLI_LOGI("invalid argc number\n");
@@ -634,7 +639,7 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 	uint8_t bssid[6] = {0};
 	if (os_strcmp(argv[1], "bssid") == 0) {
 		if(argc >= 3) {
-			hexstr2bin(argv[2], bssid, 6);
+			hexstr2bin_cli(argv[2], bssid, 6);
 		}
 		if(argc >= 4) {
 			password = argv[3];
@@ -700,7 +705,10 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 #endif
 
 	if (oob_ssid_tp) {
-		demo_sta_app_init((char *)oob_ssid_tp, password);
+		ret = demo_sta_app_init((char *)oob_ssid_tp, password);
+
+	if (ret == -1)
+		goto error;
 
 #if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
 		if (wifi_cli_find_id(argc, argv, "-w") > 0) {
@@ -732,6 +740,8 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 #if CONFIG_USE_CONV_UTF8
 		os_free(oob_ssid_tp);
 #endif
+
+#if !CONFIG_SOC_BK7236
 		if (wifi_cmd_sema != NULL)
 		{
 			err = rtos_get_semaphore(&wifi_cmd_sema, 10000);
@@ -755,14 +765,18 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 				}
 			}
 		}
+#endif
 	} else {
 		CLI_LOGI("not buf for utf8\r\n");
 		goto error;
 	}
 
+	goto exit;
+
 error:
 	msg = WIFI_CMD_RSP_ERROR;
 	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+exit:
 	if (wifi_cmd_sema != NULL)
 		rtos_deinit_semaphore(&wifi_cmd_sema);
 	return;
@@ -1324,7 +1338,7 @@ void cli_wifi_net_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 		ret = cmd_wlan_sta_exec(buf);
 	else if (os_strcmp(argv[1], "ap") == 0)
 		ret = cmd_wlan_ap_exec(buf);
-#if CONFIG_COMPONENTS_P2P
+#if CONFIG_P2P
 	else if (os_strcmp(argv[1], "p2p") == 0)
 		ret = cmd_wlan_p2p_exec(buf);
 #endif
@@ -1349,7 +1363,8 @@ error:
 	return;
 }
 
-void cli_wifi_get_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv) {
+void cli_wifi_get_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
 	int ret = 0;
 	char *msg = NULL;
 	// get pm status
@@ -1397,8 +1412,9 @@ error:
 	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 	return;
 }
-void cli_wifi_rc_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv) {
 
+void cli_wifi_rc_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
 	uint8_t sta_idx = 0;
 	uint16_t rate_cfg = 0;
 	int ret = 0;
@@ -1429,7 +1445,9 @@ error:
 	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 	return;
 }
-void cli_wifi_capa_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv) {
+
+void cli_wifi_capa_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
 	uint32_t capa_id = 0;
 	uint32_t capa_val = 0;
 	int ret = 0;
@@ -1440,40 +1458,31 @@ void cli_wifi_capa_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		goto error;
 	}
 
-	if(os_strcmp(argv[1], "ht") == 0) {
+	if (os_strcmp(argv[1], "ht") == 0) {
 		capa_id = WIFI_CAPA_ID_HT_EN;
-	}
-	else if(os_strcmp(argv[1], "vht") == 0) {
+	} else if (os_strcmp(argv[1], "vht") == 0) {
 		capa_id = WIFI_CAPA_ID_VHT_EN;
-	}
-	else if(os_strcmp(argv[1], "he") == 0) {
+	} else if (os_strcmp(argv[1], "he") == 0) {
 		capa_id = WIFI_CAPA_ID_HE_EN;
-	}
-	else if(os_strcmp(argv[1], "tx_ampdu") == 0) {
+	} else if (os_strcmp(argv[1], "tx_ampdu") == 0) {
 		capa_id = WIFI_CAPA_ID_TX_AMPDU_EN;
-	}
-	else if(os_strcmp(argv[1], "rx_ampdu") == 0) {
+	} else if (os_strcmp(argv[1], "rx_ampdu") == 0) {
 		capa_id = WIFI_CAPA_ID_RX_AMPDU_EN;
-	}
-	else if(os_strcmp(argv[1], "tx_ampdu_num") == 0) {
+	} else if (os_strcmp(argv[1], "tx_ampdu_num") == 0) {
 		capa_id = WIFI_CAPA_ID_TX_AMPDU_NUM;
-	}
-	else if(os_strcmp(argv[1], "rx_ampdu_num") == 0) {
+	} else if (os_strcmp(argv[1], "rx_ampdu_num") == 0) {
 		capa_id = WIFI_CAPA_ID_RX_AMPDU_NUM;
-	}
-	else if(os_strcmp(argv[1], "vht_mcs") == 0) {
+	} else if (os_strcmp(argv[1], "vht_mcs") == 0) {
 		capa_id = WIFI_CAPA_ID_VHT_MCS;
-	}
-	else if(os_strcmp(argv[1], "he_mcs") == 0) {
+	} else if (os_strcmp(argv[1], "he_mcs") == 0) {
 		capa_id = WIFI_CAPA_ID_HE_MCS;
-	}
-	else if(os_strcmp(argv[1], "b40") == 0) {
+	} else if (os_strcmp(argv[1], "b40") == 0) {
 		capa_id = WIFI_CAPA_ID_B40;
-	}
-	else if(os_strcmp(argv[1], "sgi") == 0) {
+	} else if (os_strcmp(argv[1], "sgi") == 0) {
 		capa_id = WIFI_CAPA_ID_SGI;
-	}
-	else {
+	} else if (os_strcmp(argv[1], "ldpc") == 0) {
+		capa_id = WIFI_CAPA_ID_LDPC;
+	} else {
 		CLI_LOGI("invalid CAPA paramter\n");
 		goto error;
 	}
@@ -1552,17 +1561,14 @@ void blacklist_Command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
     {
         blacklist_ena = strtoul(argv[1], NULL, 0);
         if (blacklist_ena) {
-			os_printf("enable blacklist\n");
             wlan_sta_enable_ssid_blacklist();
         }
         else {
-			os_printf("disable blacklist\n");
             wlan_sta_disable_ssid_blacklist();
         }
         os_printf("blacklist %s\n", blacklist_ena ? "enabled" : "disabled");
     }
 }
-
 
 #define WIFI_CMD_CNT (sizeof(s_wifi_commands) / sizeof(struct cli_command))
 static const struct cli_command s_wifi_commands[] = {

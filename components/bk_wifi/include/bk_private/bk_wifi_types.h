@@ -105,6 +105,7 @@ typedef enum wlan_sta_field {
 	WLAN_STA_FIELD_FREQ,	/* only used in fast connect */
 	WLAN_STA_FIELD_SAE_GROUPS,
 	WLAN_STA_FIELD_MFP,
+	WLAN_STA_FIELD_OCV,
 	WLAN_STA_FIELD_EAP,
 	WLAN_STA_FIELD_IDENTITY,
 	WLAN_STA_FIELD_CA_CERT,
@@ -222,6 +223,8 @@ typedef struct wlan_sta_config {
 
 		int ieee80211w;
 
+		/* ocv capability */
+		int ocv;
 		int debug_level;
 		int debug_show_keys;
 
@@ -497,6 +500,7 @@ enum {
 	WIFI_CAPA_ID_B40,
 	WIFI_CAPA_ID_STBC,
 	WIFI_CAPA_ID_SGI,
+	WIFI_CAPA_ID_LDPC,
 	WIFI_CAPA_ID_MAX,
 };
 

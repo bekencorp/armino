@@ -34,20 +34,20 @@ menu "App"
 		bool "Enable Net Work Video Transser"
 		default n
 
-	config COMPONENTS_P2P
-		bool "Enable Components P2P"
-		default n
-		help
-                	Enable NET_WORK P2P
+	config P2P
+        bool "Enable P2P"
+        default n
 
 	config LVGL_DEMO
 		bool "Enable Lvgl Demo"
 		default n
-
+		
 	config NTP_SYNC_RTC
 		depends on AON_RTC
 		bool "Enable Ntp Sync Rtc"
 		default n
+		help
+			sync ano rtc using network time
 
 	config VIDEO_AVI
 		depends on NTP_SYNC_RTC
@@ -55,7 +55,10 @@ menu "App"
 		default n
 
 	config LITTLEFS
+		depends on FATFS
 		bool "Enable Littlefs"
 		default n
+		help
+			little file system
 
 endmenu

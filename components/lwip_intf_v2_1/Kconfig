@@ -47,6 +47,22 @@ menu "Lwip_intf_v2_1"
 			bool "Enable MIDEA"
 			default n
 
+		config LWIP_MEM_TRX_DYNAMIC_EN
+			bool "enable lwip mem trx dynamic"
+			default y
+
+		config LWIP_MEM_LIBC_MALLOC
+			bool "use system libc malloc"
+			default n
+
+		config LWIP_MEMP_STATS
+			bool "memp statistics"
+			default y
+
+		config LWIP_MEM_STATS
+			bool "mem statistics"
+			default y
+
 		#TODO optimize it
 		choice LWIP_MEM
 			prompt "Select Lwip Mem Policy"

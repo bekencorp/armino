@@ -37,6 +37,10 @@ list(APPEND srcs
 	"hal/spi_hal_debug.c"
 	"hal/spi_ll.c"
 	"hal/sys_hal.c"
+	"hal/sys_hal_debug.c"
+	"hal/sys_pm_hal.c"
+	"hal/sys_pm_hal_ctrl.c"
+	"hal/sys_pm_hal_debug.c"
 	"hal/i2c_hal_debug.c"
 	"hal/i2c_ll.c"
 	"hal/jpeg_hal_debug.c"
@@ -47,6 +51,7 @@ list(APPEND srcs
 	"hal/flash_ll.c"
 	"hal/aon_rtc_hal_debug.c"
 	"hal/aon_pmu_hal.c"
+	"hal/aon_pmu_hal_debug.c"
 	"hal/sdio_hal_debug.c"
 	"hal/dma2d_hal.c"
 	"hal/dma2d_hal_debug.c"
@@ -56,6 +61,9 @@ list(APPEND srcs
 	"hal/lcd_disp_hal_debug.c"
 	"hal/yuv_buf_hal_debug.c"
 	"hal/sys_clock_hal_debug.c"
+	"hal/qspi_hal_debug.c"
+	"hal/i2s_hal.c"
+	"hal/sdmadc_hal_debug.c"
 )
 
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" REQUIRES partitions)
@@ -67,9 +75,15 @@ armino_build_get_property(config_dir CONFIG_DIR)
 
 set(LD_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
+if($ENV{PROJECT} STREQUAL "cpu1")
+    set(LD_FILE ${CMAKE_CURRENT_SOURCE_DIR}/${target}_cpu1.ld)
+else()
+	set(LD_FILE ${CMAKE_CURRENT_SOURCE_DIR}/${target}_bsp.ld)
+endif()
+
 add_custom_command(
 	OUTPUT ${target}_out.ld
-	COMMAND "${CMAKE_C_COMPILER}" -P -x c -E - < ${LD_DIR}/${target}_bsp.ld -o ${target}_out.ld -I ${armino_path}/include/ -I ${config_dir} -I ${armino_path}/middleware/boards/bk7236/partitions -I ${CMAKE_CURRENT_BINARY_DIR}/../partitions/generated
+	COMMAND "${CMAKE_C_COMPILER}" -P -x c -E - < ${LD_FILE} -o ${target}_out.ld -I ${armino_path}/include/ -I ${config_dir} -I ${armino_path}/middleware/boards/bk7236/partitions -I ${CMAKE_CURRENT_BINARY_DIR}/../partitions/generated
 	MAIN_DEPENDENCY ${LD_DIR}/${target}.ld ${sdkconfig_header}
 	DEPENDS bk7236_generated_files
 	COMMENT "Generating linker script..."

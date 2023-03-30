@@ -127,7 +127,6 @@ uint8 ota_temp_execute_partition(int state_val)
 }
 
 #endif
-
 u8  ota_flag =0;
 #if CONFIG_OTA_HTTP
 int bk_http_ota_download(const char *uri)

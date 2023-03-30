@@ -295,6 +295,20 @@ bk_err_t bk_jpeg_enc_encode_config(uint8_t enable, uint16_t up_size, uint16_t lo
  */
 bk_err_t bk_jpeg_enc_mode_switch(jpeg_config_t *config);
 
+/**
+ * @brief     jpeg encode module softreset
+ *
+ * This API will use for resetting jpeg encode module
+ *
+ * @attenation 1. this api only used in bk7236xx
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_jpeg_enc_soft_reset(void);
+
+
 #ifdef __cplusplus
 }
 #endif

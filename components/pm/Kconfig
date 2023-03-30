@@ -1,0 +1,121 @@
+menu "Pm"
+	config PM
+		bool "Enable Pm"
+		default n
+		help
+			Enable Power Management
+
+	menu "Modify PM Config"
+		depends on PM
+
+		config PM_DEFAULT_POLICY
+			bool "Enable PM Default Policy"
+			default y
+
+		config PM_NS
+			depends on PM_DEFAULT_POLICY
+			bool "Enable PM Normal Sleep"
+			default y
+			help
+				Enable PM Normal Sleep
+
+		config PM_LV
+			depends on PM_DEFAULT_POLICY
+			bool "Enable PM Low Voltage Sleep"
+			default y
+			help
+				Enable PM Low Voltage Sleep
+
+		config PM_DS
+			depends on PM_DEFAULT_POLICY
+			bool "Enable PM Deep Sleep"
+			default y
+			help
+				Enable PM Deep Sleep
+
+		config PM_NS_LATENCY
+			depends on PM_DEFAULT_POLICY
+			int "config PM normal sleep latency"
+			default 0
+			help
+				Config PM normal sleep latency, in unit of us
+
+		config PM_NS_RESIDENCY
+			depends on PM_DEFAULT_POLICY
+			int "config PM normal sleep minimum residency"
+			default 2000
+			help
+				Config PM normal sleep minimum residency, in unit of us
+		config PM_LV_LATENCY
+			depends on PM_DEFAULT_POLICY
+			int "config PM low voltage sleep latency"
+			default 0
+			help
+				Config PM low voltage latency, in unit of us
+
+		config PM_LV_RESIDENCY
+			depends on PM_DEFAULT_POLICY
+			int "config PM low voltage sleep minimum residency"
+			default 4000
+			help
+				Config PM low voltage sleep minimum residency, in unit of us
+		config PM_DS_LATENCY
+			depends on PM_DEFAULT_POLICY
+			int "config PM deep sleep latency"
+			default 0
+			help
+				Config PM deep sleep latency, in unit of us
+
+		config PM_DS_RESIDENCY
+			depends on PM_DEFAULT_POLICY
+			int "config PM low voltage sleep minimum residency"
+			default 50000000
+			help
+				Config PM deep sleep minimum residency, in unit of us
+
+		config PM_DEPEND
+			bool "Enable PM Dependency"
+			default y
+			help
+				Enable PM Dependency
+
+		config PM_DEPEND_HANDLE_MAX
+			depends on PM_DEPEND
+			int "Set PM Depend Handle Max"
+			default 128
+			help
+				Set maximum dependency handle
+
+		config PM_DEBUG
+			bool "Enable PM Stats"
+			default n
+			help
+				Enable PM debug
+
+		config PM_STATS
+			depends on PM_DEBUG
+			bool "Enable PM Stats"
+			default y
+			help
+				Enable PM statistics
+
+		config PM_DEVICE_STATS
+			depends on PM_DEBUG
+			bool "Enable PM Device Stats"
+			default y
+			help
+				Enable PM device statistics
+
+		config PM_AUTO_RTC_WAKEUP
+			bool "Enable PM Auto Rtc Wakeup"
+			default y
+			help
+				Enable PM device statistics
+
+		config PM_DEVICE
+			bool "Enable PM Device"
+			default n
+			help
+				Enable device power management
+	endmenu
+endmenu

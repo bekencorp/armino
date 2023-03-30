@@ -16,9 +16,13 @@
 #ifndef INCLUDE_MODULES_BK_BT_API_H_
 #define INCLUDE_MODULES_BK_BT_API_H_
 
+#include <modules/bt_types.h>
+
 #ifdef __cplusplus
 extern"C" {
 #endif
+
+
 
 #ifdef __cplusplus
 }

@@ -498,8 +498,121 @@ static void cli_psram_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 }
 #endif
 
+
+static void cli_psram_cmd_handle_ext(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	uint32_t addr = 0x60000000;
+	uint32_t i = 0;
+	uint32_t length = 512;
+	char *msg = NULL;
+
+	if (argc < 2)
+	{
+		msg = CLI_CMD_RSP_ERROR;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+
+	if (os_strcmp(argv[1], "init") == 0)
+	{
+		/*init psram*/
+		bk_psram_init();
+		msg = CLI_CMD_RSP_SUCCEED;
+	}
+	else if (os_strcmp(argv[1], "byte") == 0)
+	{
+		uint8_t  value = 0;
+		for (i = 0; i < length; i++)
+		{
+			*((volatile uint8_t *)addr + i) = i;
+		}
+
+		for (i = 0; i < length; i++)
+		{
+			value = *((volatile uint8_t *)addr + i);
+			if ((i % 32) == 0)
+			{
+				os_printf("\r\n");
+			}
+			os_printf("%d ", value);
+
+			if (i > 255)
+			{
+				if (value != (i - 256))
+				{
+					break;
+				}
+			}
+			else
+			{
+				if (value != i)
+				{
+					break;
+				}
+			}
+		}
+		CLI_LOGI("\r\n%d\r\n", i);
+
+		if (i < length)
+		{
+			msg = CLI_CMD_RSP_ERROR;
+		}
+		else
+		{
+			msg = CLI_CMD_RSP_SUCCEED;
+		}
+	}
+	else if (os_strcmp(argv[1], "rewrite") == 0)
+	{
+		if (argc < 4)
+		{
+			msg = CLI_CMD_RSP_ERROR;
+			os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+			return;
+		}
+
+		length = 20;
+		if (os_strcmp(argv[2], "1") == 0)
+		{
+			for (i = 0; i < length; i++)
+			{
+				*((volatile uint32_t *)(addr + i * 4)) = i + 0x12345600;
+			}
+		}
+
+		for (i = 0; i < length * 100; i++)
+		{
+			*((volatile uint32_t *)(addr + 5 * 4)) = i;
+		}
+
+		if (os_strcmp(argv[3], "1") == 0)
+		{
+			uint32_t value = 0;
+			for (i = 0; i < length; i ++)
+			{
+				value = *((volatile uint32_t *)(addr + i * 4));
+				if ((i % 10) == 0)
+				{
+					os_printf("\r\n");
+				}
+				os_printf("%08x ", value);
+			}
+		}
+		msg = CLI_CMD_RSP_SUCCEED;
+	}
+	else if (os_strcmp(argv[1], "deinit") == 0)
+	{
+		/*init psram*/
+		bk_psram_deinit();
+		msg = CLI_CMD_RSP_SUCCEED;
+	}
+
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+}
+
 #define PSRAM_CNT (sizeof(s_psram_commands) / sizeof(struct cli_command))
 static const struct cli_command s_psram_commands[] = {
+	{"psram_test_ext", "init|byte|word|rewirte|deinit", cli_psram_cmd_handle_ext},
 #if (CONFIG_ARCH_RISCV)
 	{"psram_test", "start|stop", cli_psram_cmd_handle},
 #endif

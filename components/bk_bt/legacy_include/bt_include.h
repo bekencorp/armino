@@ -7,6 +7,15 @@
 extern"C" {
 #endif
 
+
+enum
+{
+    A2DP_CONNECTION_STATUS_IDLE = 0,
+    A2DP_CONNECTION_STATUS_CONNECTING,
+    A2DP_CONNECTION_STATUS_CONNECTED,
+    A2DP_CONNECTION_STATUS_DISCONNECTING,
+};
+
 union codec_info
 {
     uint8_t codec_type;
@@ -15,10 +24,14 @@ union codec_info
     {
         uint8_t codec_type;
         uint8_t channels;
+        uint8_t channel_mode;
         uint8_t block_len;
         uint8_t subbands;
         uint32_t sample_rate;
+        uint8_t bit_pool;
+        uint8_t alloc_mode;
     }sbc_codec;
+
 
     struct a2dp_aac_codec
     {
@@ -28,19 +41,16 @@ union codec_info
     }aac_codec;
 };
 
-typedef struct
-{
-    void (*a2dp_start_ind)(union codec_info *codec);
-    void (*a2dp_suspend_ind)(void);
-    void (*media_data_ind)(uint8_t *data, uint16_t data_len);
-} bt_a2dp_sink_cb_t;
 
 typedef struct
 {
     void (*a2dp_connection_change)(uint8_t status, uint8_t reason);
-    void (*a2dp_capabilities_report)(void *arg);
-    void (*a2dp_set_config_cnf)(uint8_t result, uint8_t reason);
-    void (*a2dp_start_cnf)(uint8_t result, uint8_t reason);
+    void (*a2dp_capabilities_report)(void *arg); //not used
+    void (*a2dp_set_config_cnf)(uint8_t result, uint8_t reason); //not used
+
+    void (*a2dp_final_cap_select)(union codec_info *info);
+
+    void (*a2dp_start_cnf)(uint8_t result, uint8_t reason, uint32_t mtu);
     void (*a2dp_suspend_cnf)(uint8_t result, uint8_t reason);
 } bt_a2dp_source_cb_t;
 
@@ -58,6 +68,8 @@ typedef struct
     void (*push_finished)(void);
     void (*push_data_ind)(uint8_t *data, uint16_t data_len);
 } bt_opp_server_cb_t;
+
+
 /*
  * @brief get controller stack type
  *
@@ -67,7 +79,6 @@ typedef struct
 
 BK_BT_CONTROLLER_STACK_TYPE bk_bt_get_controller_stack_type(void);
 
-
 /*
  * @brief get host stack type
  *
@@ -76,22 +87,44 @@ BK_BT_CONTROLLER_STACK_TYPE bk_bt_get_controller_stack_type(void);
  */
 BK_BT_HOST_STACK_TYPE bk_bt_get_host_stack_type(void);
 
+
+
+///**
+// * @brief           sets BT storage callback function that user need to store to or read from flash/sdcard etc.
+// *
+// * @param[in]       func : callback
+// *
+// * @return
+// *                  - BK_ERR_BT_SUCCESS : Succeed
+// *                  - BK_ERR_BT_FAIL: others
+// */
+//bt_err_t bk_bt_gap_set_storage_callback(bk_bt_storage_cb_t *func);
+
+
+
 uint16_t bk_bt_get_conn_handle(uint8_t *addr);
 bt_err_t bk_bt_connect(uint8_t *addr,
-                            uint16_t packet_type,
-                            uint8_t page_scan_repetition_mode,
-                            uint8_t page_scan_mode,
-                            uint16_t clock_offset,
-                            uint8_t allow_role_switch,
-                            bt_cmd_cb_t callback);
+                       uint16_t packet_type,
+                       uint8_t page_scan_repetition_mode,
+                       uint8_t page_scan_mode,
+                       uint16_t clock_offset,
+                       uint8_t allow_role_switch,
+                       bt_cmd_cb_t callback);
 
 bt_err_t bk_bt_inquiry(
-                uint32_t  lap,
-                uint16_t  len,
-                uint8_t num_response,
-                bt_cmd_cb_t callback);
+    uint32_t  lap,
+    uint16_t  len,
+    uint8_t num_response,
+    bt_cmd_cb_t callback);
 
 bt_err_t bk_bt_disconnect(uint8_t *addr, uint8_t reason, bt_cmd_cb_t callback);
+bt_err_t bk_bt_write_scan_enable(uint8_t scan_enable, bt_cmd_cb_t callback);
+bt_err_t bk_bt_read_scan_enable(bt_cmd_cb_t callback);
+
+
+
+
+
 
 bt_err_t bk_bt_spp_init(void* bt_spp_event_notify_cb);
 bt_err_t bk_bt_spp_connect(uint8_t *addr, uint8_t server_channel, uint32_t spp_handle, bt_cmd_cb_t callback);
@@ -99,12 +132,9 @@ bt_err_t bk_bt_spp_start(uint32_t* spp_handle, uint8_t *local_server_channel, ui
 bt_err_t bk_bt_spp_tx(uint32_t spp_handle, char *data, uint16_t len, bt_cmd_cb_t callback);
 bt_err_t bk_bt_sdp(uint16_t conn_handle, uint8_t *peer_addr, bt_cmd_cb_t callback);
 
-bt_err_t bk_bt_write_scan_enable(uint8_t scan_enable, bt_cmd_cb_t callback);
-bt_err_t bk_bt_read_scan_enable(bt_cmd_cb_t callback);
 
-void bk_bt_set_event_callback(void *cb);
 
-bt_err_t bk_bt_a2dp_sink_init(uint8_t aac_supported, void *cb);
+
 bt_err_t bk_bt_hfp_unit_init(uint8_t msbc_supported, void *cb);
 bt_err_t bk_bt_voice_out_write(uint8_t *data, uint16_t len);
 bt_err_t bk_bt_opp_server_init(void *cb);

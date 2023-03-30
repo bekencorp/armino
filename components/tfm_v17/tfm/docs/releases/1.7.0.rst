@@ -1,0 +1,145 @@
+*************
+Version 1.7.0
+*************
+
+New major features
+==================
+
+ - Unified API to PSA Service access implementing PSA FF-M [1]_ and FF-M v1.1 extension [2]_
+ - Improve and simplify TF-M :doc:`configurability </configuration/index>`
+
+  - Introduce the base configuration for TF-M essential
+  - Shift config options from CMake to C header files for PSA modules and platforms
+  - Employ Kconfig as a configuration tool and dependency tracker
+  - Configurable stack size for Secure Partitions
+
+ - Add :doc:`TF-M Medium-ARoT-less profile </configuration/profiles/tfm_profile_medium_arot-less>` [3]_
+ - MM-IOVEC deployed in PSA Secure Partitions
+ - PSA FWU API updated to v1.0
+ - Mbed TLS updated to v3.2.1
+ - Code size further optimised. Please check `Reference footprint`_ section for details
+ - The manifest tool is decoupled with the build system
+ - Improvements in the `Code size analysis tool <https://git.trustedfirmware.org/TF-M/tf-m-tools.git/tree/code-size-analyze-tool>`_
+ - Updated documentation
+
+New platforms supported
+=======================
+
+ - :doc:`/platform/arm/rss/readme`
+ - Platform `arm/mps3/Polaris` renamed to :doc:`Corstone-310 </platform/arm/mps3/corstone310/README>`
+
+Deprecated platforms and features
+=================================
+
+  - TF-M Library model. Replaced by fully featured SFN model
+
+Tested platforms
+================
+
+The following platforms are successfully tested in this release.
+
+ - AN519
+ - AN521
+ - AN547
+ - B-U585I-IOT02A
+ - Corstone-1000
+ - Corstone-310
+ - LPCXpresso55S69 [#lim]_
+ - Musca-B1
+ - Musca-S1
+ - nrf9160
+ - nrf5340
+ - NUCLEO-L552ZE-Q
+ - PSoC 64 [#lim]_
+ - RSS
+ - STM32L562E-DK
+
+.. [#lim] Please check the `Known issues`_ section for details.
+
+Reference footprint
+===================
+
+All measurements below are made for *an521* platform, built `TF-Mv1.7.0-RC3
+<https://git.trustedfirmware.org/TF-M/trusted-firmware-m.git/tag/?h=TF-Mv1.7.0-RC3>`_
+on Windows 10 using Armclang v6.18 and build type MinSizeRel.
+Profile `Medium-ARoT-less` built with disabled Firmware Update service.
+
++----------------------+-------------+-------------+-------------+-------------+-------------+
+| Module               |      Base   |     Small   |  ARoT-less  |   Medium    |   Large     |
+|                      +------+------+------+------+------+------+------+------+------+------+
+|                      | Flash|  RAM | Flash|  RAM | Flash|  RAM | Flash|  RAM | Flash| RAM  |
++======================+======+======+======+======+======+======+======+======+======+======+
+|Generated (stack, stc)|   80 | 3184 |  128 | 3184 |  128 | 3184 |  176 | 3184 |  224 | 3184 |
++----------------------+------+------+------+------+------+------+------+------+------+------+
+|Objects               |  896 | 1064 | 1180 | 5460 | 1269 | 6152 | 1391 | 1540 | 1463 | 1540 |
++----------------------+------+------+------+------+------+------+------+------+------+------+
+|c_w.l                 |  190 |    0 |  568 |    0 |  808 |    0 | 808  |    0 |  808 |    0 |
++----------------------+------+------+------+------+------+------+------+------+------+------+
+|platform (Secure)     | 5046 |  284 | 5490 |  284 | 5842 |  284 | 6212 |  288 | 6234 |  288 |
++----------------------+------+------+------+------+------+------+------+------+------+------+
+|SPM                   | 3718 | 1333 | 4622 | 625  | 4094 | 1333 | 5672 | 1353 | 5832 | 1358 |
++----------------------+------+------+------+------+------+------+------+------+------+------+
+|sprt                  |  254 |    0 | 1432 |    0 | 1270 |    0 | 2004 | 4    | 2004 |    4 |
++----------------------+------+------+------+------+------+------+------+------+------+------+
+|QCBOR                 |      |      |  858 |    0 |  858 |    0 |  858 |    0 |  858 |    0 |
++----------------------+------+------+------+------+------+------+------+------+------+------+
+|MbedCrypto            |      |      | 24606| 2292 | 45140| 2296 | 45140| 2296 |80827 | 2408 |
++----------------------+------+------+------+------+------+------+------+------+------+------+
+|PROT_attestation      |      |      | 2751 | 557  | 2981 | 1218 | 2981 | 3010 | 2981 | 3010 |
++----------------------+------+------+------+------+------+------+------+------+------+------+
+|PROT_crypto           |      |      | 3294 | 2692 | 3864 | 16648| 3864 | 23560| 3978 | 25608|
++----------------------+------+------+------+------+------+------+------+------+------+------+
+|PROT_ITS              |      |      | 4942 |   76 | 5042 |  108 | 5244 | 1984 | 5252 | 2464 |
++----------------------+------+------+------+------+------+------+------+------+------+------+
+|PROT_platform         |      |      |      |      |  480 |    0 | 522  | 1280 |  522 | 1280 |
++----------------------+------+------+------+------+------+------+------+------+------+------+
+|AROT_PS               |      |      |      |      |      |      | 3340 | 6444 | 3340 | 6444 |
++----------------------+------+------+------+------+------+------+------+------+------+------+
+|platform_crypto_keys  |      |      |  348 |    0 |  356 |    0 |  356 |    0 |  356 |    0 |
++----------------------+------+------+------+------+------+------+------+------+------+------+
+|Total incl. padding   | 10220|  5892| 50324| 15216| 72272| 31264| 78696| 44984|114852| 47608|
++----------------------+------+------+------+------+------+------+------+------+------+------+
+
+Known issues
+============
+
+Some open issues are not fixed in this release.
+
+.. list-table::
+  :header-rows: 1
+
+  * - Descriptions
+    - Issue links
+  * - PSoC 64 platform builds and works well with ArmClang v6.13 and later.
+    - Not tracked
+  * - LPCXpresso55S690 platform works well in profile small only.
+    - Not tracked
+  * - Latest CMake (3.25) has an issue with PSA Arch test
+    - https://github.com/ARM-software/psa-arch-tests/issues/335
+  * - PSA Arch framework test suite skip 2 test cases
+    - PSA Arch framework test failures [4]_
+
+
+Issues closed since v1.6.0
+==========================
+
+.. list-table::
+  :header-rows: 1
+
+  * - Descriptions
+    - Issue links
+  * - Psa Arch FF Test has no failures anymore but some tests are still skipped
+    - PSA Arch FF Test Result [5]_
+
+Reference
+=========
+
+.. [1] `Firmware Framework for M (FF-M) <https://www.arm.com/architecture/security-features/platform-security>`_
+.. [2] `Arm Firmware Framework for M 1.1 Extensions <https://developer.arm.com/documentation/aes0039/latest>`_
+.. [3] `SESIP Profile for PSA Certified ARoT-less Level 2 <https://www.psacertified.org/app/uploads/2022/10/JSADEN019-PSA_Certified_Level_2_PP_SESIP_ARoT-less_REL-01.pdf>`_
+.. [4] `PSA Arch framework test results <https://developer.trustedfirmware.org/w/tf_m/release/psa_arch_crypto_test_failure_analysis_in_tf-m_v1.7_release>`_
+.. [5] `PSA Arch FF Test Result <https://developer.trustedfirmware.org/w/tf_m/release/psa_arch_ff_test_result_in_tf-m_v1.7_release>`_
+
+--------------
+
+*Copyright (c) 2022, Arm Limited. All rights reserved.*

@@ -1,7 +1,7 @@
 #ifndef _SDCARD_H_
 #define _SDCARD_H_
 
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 #include "sdcard_pub.h"
 
 typedef void (*SD_DETECT_FUN)(void);
@@ -26,7 +26,7 @@ extern UINT32 sdcard_ctrl(UINT32 cmd, void *parm);
 extern void sdcard_register_ps_suspend_callback(sdcard_ps_callback_t ps_suspend_cb);
 extern void sdcard_register_ps_resume_callback(sdcard_ps_callback_t ps_resume_cb);
 
-#endif // CONFIG_SDCARD_HOST
+#endif // CONFIG_SDCARD
 #endif
 // eof
 

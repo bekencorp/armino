@@ -896,6 +896,7 @@ static void i2c1_isr_common(i2c_id_t id)
 			I2C_LOGW("SCL timeout triggered, restart i2c\r\n");
 			s_i2c[id].master_status = I2C_IDLE;
 			/* i2c must close->open when SCL low timeout triggered */
+			i2c_hal_disable_scl_timeout(hal);    //disable scl_timeout interrupt to aviod error log too much
 			i2c_hal_disable(hal);
 			i2c_hal_enable(hal);
 			s_i2c[id].err_code = BK_ERR_I2C_SCL_TIMEOUT;

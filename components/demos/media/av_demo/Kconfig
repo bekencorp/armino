@@ -1,5 +1,6 @@
 menu "Demos::Media::Av_demo"
 	config AV_DEMO
+		depends on DOORBELL
 		bool "Enable Av Demo"
 		default n
 

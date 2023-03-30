@@ -366,7 +366,7 @@ static int32_t recv_callback(uint8_t channel, uint8_t *buff, uint32_t len)
     {
         os_printf("%s len %d\n", __func__, len);
 
-#if 0
+#if 1
 #pragma message "for enable img debug !!!! remove it !!!!"
         static uint8_t first_flag = 1;
 
@@ -740,7 +740,6 @@ int app_demo_cs2_p2p_send_packet(uint8_t *data, uint32_t len)
     }
 
     g_pkt_send++;
-
 #if 0
 
     //    send_byte = sendto(app_demo_udp_img_fd, data, len, MSG_DONTWAIT | MSG_MORE,

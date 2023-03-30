@@ -73,6 +73,21 @@ typedef u16_t mem_size_t;
 #define MEM_TYPE_TX        1
 #define MEM_TYPE_RX        2
 #endif
+struct mem {
+  /** index (-> ram[next]) of the next struct */
+  mem_size_t next;
+  /** index (-> ram[prev]) of the previous struct */
+  mem_size_t prev;
+  /** 1: this area is used; 0: this area is unused */
+  u8_t used;
+#if MEM_TRX_DYNAMIC_EN
+  u8_t type;
+#endif
+#if MEM_OVERFLOW_CHECK
+  /** this keeps track of the user allocation size for guard checks */
+  mem_size_t user_size;
+#endif
+};
 
 void  mem_init(void);
 void *mem_trim(void *mem, mem_size_t size);
@@ -86,7 +101,7 @@ void *mem_malloc(mem_size_t size);
 void *mem_calloc(mem_size_t count, mem_size_t size);
 void  mem_free(void *mem);
 u32_t get_mem_size(void *rmem);
-
+uint32_t mem_sanity_check(void *mem);
 #ifdef __cplusplus
 }
 #endif

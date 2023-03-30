@@ -68,7 +68,7 @@ bk_err_t bk_prro_set_privilege(prro_dev_t dev, prro_privilege_type_t privilege_t
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
  */
-bk_err_t bk_prro_set_ahb_dev_privilege(uint64_t ahb_dev_privilege_bits);
+bk_err_t bk_prro_set_ahb_dev_privilege(uint32_t ahb_dev_privilege_bits);
 
 /**
  * @brief     Set privilege attribute of all APB peripherals
@@ -81,7 +81,7 @@ bk_err_t bk_prro_set_ahb_dev_privilege(uint64_t ahb_dev_privilege_bits);
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
  */
-bk_err_t bk_prro_set_apb_dev_privilege(uint64_t apb_dev_privilege_bits);
+bk_err_t bk_prro_set_apb_dev_privilege(uint32_t apb_dev_privilege_bits);
 
 /**
  * @brief     Set peripherals secure attribute
@@ -98,16 +98,18 @@ bk_err_t bk_prro_set_secure(prro_dev_t dev, prro_secure_type_t secure_type);
 /**
  * @brief     Set secure attribute of all GPIOs
  *
- * @param gpio_secure_bits the privilege bitmap of GPIO,
+ * @param gpio_0_31_secure_bits the secure bitmap of GPIO 0 to 31,
  *        each bit indicates a GPIO, 1 means PRRO_SECURE, and 0 means PRRO_NON_SECURE.
  *        refers to the PRRO manual for bits and peripheral map.
+ * @param gpio_31_63_secure_bits the privilege bitmap of GPIO 32 to 63,
+ *        if the related GPIO ID is not supported, the bit will be skipped.
  * @param secure_type the secure type, with each element must be PRRO_SECURE or PRRO_NON_SECURE
  *
  * @return
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
  */
-bk_err_t bk_prro_set_gpios_secure(uint64_t gpio_secure_bits);
+bk_err_t bk_prro_set_gpios_secure(uint32_t gpio_0_31_secure_bits, uint32_t gpio_32_63_secure_bits);
 
 /**
  * @brief     Set secure attribute of all AHB peripherals
@@ -120,7 +122,7 @@ bk_err_t bk_prro_set_gpios_secure(uint64_t gpio_secure_bits);
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
  */
-bk_err_t bk_prro_set_ahb_dev_secure(uint64_t ahb_dev_secure_bits);
+bk_err_t bk_prro_set_ahb_dev_secure(uint32_t ahb_dev_secure_bits);
 
 /**
  * @brief     Set secure attribute of all APB peripherals
@@ -133,7 +135,7 @@ bk_err_t bk_prro_set_ahb_dev_secure(uint64_t ahb_dev_secure_bits);
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
  */
-bk_err_t bk_prro_set_apb_dev_secure(uint64_t apb_dev_secure_bits);
+bk_err_t bk_prro_set_apb_dev_secure(uint32_t apb_dev_secure_bits);
 
 /**
  * @brief     Set secure attribute of all hnonsec peripherals
@@ -146,7 +148,7 @@ bk_err_t bk_prro_set_apb_dev_secure(uint64_t apb_dev_secure_bits);
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
  */
-bk_err_t bk_prro_set_hnonsec_dev_secure(uint64_t hnonsec_dev_bits);
+bk_err_t bk_prro_set_hnonsec_dev_secure(uint32_t hnonsec_dev_bits);
 
 /**
  * @brief     Set hardware comparison condition

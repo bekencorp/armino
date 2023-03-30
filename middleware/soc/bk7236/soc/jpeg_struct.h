@@ -119,7 +119,7 @@ typedef volatile struct {
 			uint32_t video_byte_reverse: 1; /**< bit[1] */
 			uint32_t yuv_fmt_sel:        2; /**< bit[2:3] */
 			uint32_t jpeg_enc_en:        1; /**< bit[4] */
-			uint32_t yuv_word_reverse:   1; /**< bit[5] */
+			uint32_t jpeg_word_reverse:   1; /**< bit[5] */
 			uint32_t only_y:             1; /**< bit[6] */
 			uint32_t yuvbuf_mode:        1; /**< bit[7] */
 			uint32_t x_pixel:            8; /**< bit[8:15] */

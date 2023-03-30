@@ -182,6 +182,15 @@ void rtos_dump_task_backtrace(beken_thread_t *task)
 #endif
 }
 
+void rtos_dump_isr_backtrace()
+{
+#if CONFIG_ARCH_RISCV
+//	uint32_t stack_top = port_get_isr_stack_top();
+//	uint32_t stack_bottom = port_get_isr_stack_bottom();
+//	uint32_t stack_size = port_get_isr_stack_size();
+//	arch_parse_stack_backtrace("ISR", stack_top, stack_bottom, stack_size, true);
+#endif
+}
 
 void rtos_dump_backtrace(void)
 {
@@ -191,6 +200,7 @@ void rtos_dump_backtrace(void)
 	BK_DUMP_OUT("%-16s   %-21s   %-8s   %-4s   %-8s   %-s\r\n",
 		"task", "stack_addr", "top", "size", "overflow", "backtrace");
 	vTaskDumpAllThreadStack();
+	rtos_dump_isr_backtrace();
 	BK_DUMP_OUT("<<<<dump task backtrace end.\r\n");
 	BK_DUMP_OUT("\r\n");
 	

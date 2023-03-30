@@ -1,0 +1,2445 @@
+From 99a390b1a71005db8b6c92956a2c86cc3182a6f3 Mon Sep 17 00:00:00 2001
+From: Raef Coles <raef.coles@arm.com>
+Date: Wed, 21 Jul 2021 12:42:15 +0100
+Subject: [PATCH 5/9] Add LMS implementation
+
+Also an LM-OTS implementation as one is required for LMS.
+
+Signed-off-by: Raef Coles <raef.coles@arm.com>
+---
+ ChangeLog.d/LMS.txt                    |  12 +
+ include/mbedtls/check_config.h         |  10 +
+ include/mbedtls/error.h                |   2 +
+ include/mbedtls/lmots.h                | 303 +++++++++++
+ include/mbedtls/lms.h                  | 271 ++++++++++
+ include/mbedtls/mbedtls_config.h       |  28 +
+ library/CMakeLists.txt                 |   2 +
+ library/Makefile                       |   2 +
+ library/lmots.c                        | 684 +++++++++++++++++++++++
+ library/lms.c                          | 718 +++++++++++++++++++++++++
+ scripts/generate_errors.pl             |   2 +-
+ tests/suites/test_suite_lmots.data     |  29 +
+ tests/suites/test_suite_lmots.function | 108 ++++
+ tests/suites/test_suite_lms.data       |  32 ++
+ tests/suites/test_suite_lms.function   |  84 +++
+ 15 files changed, 2286 insertions(+), 1 deletion(-)
+ create mode 100644 ChangeLog.d/LMS.txt
+ create mode 100644 include/mbedtls/lmots.h
+ create mode 100644 include/mbedtls/lms.h
+ create mode 100644 library/lmots.c
+ create mode 100644 library/lms.c
+ create mode 100644 tests/suites/test_suite_lmots.data
+ create mode 100644 tests/suites/test_suite_lmots.function
+ create mode 100644 tests/suites/test_suite_lms.data
+ create mode 100644 tests/suites/test_suite_lms.function
+
+diff --git a/ChangeLog.d/LMS.txt b/ChangeLog.d/LMS.txt
+new file mode 100644
+index 000000000..0f09f0186
+--- /dev/null
++++ b/ChangeLog.d/LMS.txt
+@@ -0,0 +1,12 @@
++Features
++    * Add the LMS post-quantum-safe stateful-hash asymmetric signature scheme
++      as defined in RFC8554 and NIST.SP.200-208. This currently only supports
++      one parameter set (LMS_SHA256_M32_H10), meaning that each private key can
++      be used to sign 1024 messages. As such, it is not intended for use in TLS,
++      but instead for verification of assets transmitted over an insecure
++      channel, particularly firmware images. This is one of the signature
++      schemes recommended by the IETF draft SUIT standard for IOT firmware
++      upgrades (RFC9019).
++    * Add the LM-OTS post-quantum-safe one-time signature scheme, which is
++      required for LMS. This can be used independently, but each key can only be
++      used to sign one message so is impractical for most circumstances.
+diff --git a/include/mbedtls/check_config.h b/include/mbedtls/check_config.h
+index 5fe984984..c3017aef3 100644
+--- a/include/mbedtls/check_config.h
++++ b/include/mbedtls/check_config.h
+@@ -333,6 +333,16 @@
+ #error "!MBEDTLS_SSL_KEEP_PEER_CERTIFICATE requires MBEDTLS_SHA512_C, MBEDTLS_SHA256_C or MBEDTLS_SHA1_C"
+ #endif
+ 
++#if defined(MBEDTLS_LMOTS_C) &&                                       \
++    ( !defined(MBEDTLS_MD_C) )
++#error "MBEDTLS_LMOTS_C requires MBEDTLS_MD_C"
++#endif
++
++#if defined(MBEDTLS_LMS_C) &&                                          \
++    ( !defined(MBEDTLS_LMOTS_C) || !defined(MBEDTLS_MD_C) )
++#error "MBEDTLS_LMS_C requires MBEDTLS_LMOTS_C and MBEDTLS_MD_C"
++#endif
++
+ #if defined(MBEDTLS_MEMORY_BUFFER_ALLOC_C) &&                          \
+     ( !defined(MBEDTLS_PLATFORM_C) || !defined(MBEDTLS_PLATFORM_MEMORY) )
+ #error "MBEDTLS_MEMORY_BUFFER_ALLOC_C defined, but not all prerequisites"
+diff --git a/include/mbedtls/error.h b/include/mbedtls/error.h
+index 8b2b9ea58..73d61dbc6 100644
+--- a/include/mbedtls/error.h
++++ b/include/mbedtls/error.h
+@@ -82,6 +82,8 @@
+  * POLY1305  3                  0x0057-0x005B
+  * CHACHAPOLY 2 0x0054-0x0056
+  * PLATFORM  2  0x0070-0x0072
++ * LMOTS     2  0x0076-0x0078
++ * LMS       2  0x0011-0x0017
+  *
+  * High-level module nr (3 bits - 0x0...-0x7...)
+  * Name      ID  Nr of Errors
+diff --git a/include/mbedtls/lmots.h b/include/mbedtls/lmots.h
+new file mode 100644
+index 000000000..c98f3bfd7
+--- /dev/null
++++ b/include/mbedtls/lmots.h
+@@ -0,0 +1,303 @@
++/**
++ * \file lmots.h
++ *
++ * \brief This file provides an API for the LM-OTS post-quantum-safe one-time
++ *        public-key signature scheme.
++ */
++/*
++ *  Copyright The Mbed TLS Contributors
++ *  SPDX-License-Identifier: Apache-2.0
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License"); you may
++ *  not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *  http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++ *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
++
++#ifndef MBEDTLS_LMOTS_H
++#define MBEDTLS_LMOTS_H
++
++#include "mbedtls/private_access.h"
++
++#include <stdint.h>
++#include <stddef.h>
++
++#define MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA -0x0076 /**< Bad data has been input to an LMOTS function */
++#define MBEDTLS_ERR_LMOTS_VERIFY_FAILED  -0x0078 /**< LMOTS signature verification failed */
++
++#define MBEDTLS_LMOTS_N_HASH_LEN            (32)
++#define MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN      (34)
++#define MBEDTLS_LMOTS_TYPE_LEN              (4)
++#define MBEDTLS_LMOTS_C_RANDOM_VALUE_LEN    (MBEDTLS_LMOTS_N_HASH_LEN)
++#define MBEDTLS_LMOTS_I_KEY_ID_LEN          (16)
++#define MBEDTLS_LMOTS_Q_LEAF_ID_LEN         (4)
++
++#define MBEDTLS_LMOTS_SIG_LEN (MBEDTLS_LMOTS_TYPE_LEN + MBEDTLS_LMOTS_C_RANDOM_VALUE_LEN + \
++                               (MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN * MBEDTLS_LMOTS_N_HASH_LEN))
++
++#define MBEDTLS_LMOTS_PUBKEY_LEN (MBEDTLS_LMOTS_TYPE_LEN + MBEDTLS_LMOTS_I_KEY_ID_LEN + \
++                                  MBEDTLS_LMOTS_Q_LEAF_ID_LEN + MBEDTLS_LMOTS_N_HASH_LEN)
++
++#define MBEDTLS_LMOTS_SIG_TYPE_OFFSET      (0)
++#define MBEDTLS_LMOTS_SIG_C_RANDOM_OFFSET  (MBEDTLS_LMOTS_SIG_TYPE_OFFSET     + MBEDTLS_LMOTS_TYPE_LEN)
++#define MBEDTLS_LMOTS_SIG_SIGNATURE_OFFSET (MBEDTLS_LMOTS_SIG_C_RANDOM_OFFSET + MBEDTLS_LMOTS_C_RANDOM_VALUE_LEN)
++
++#define MBEDTLS_LMOTS_PUBKEY_TYPE_OFFSET      (0)
++#define MBEDTLS_LMOTS_PUBKEY_I_KEY_ID_OFFSET  (MBEDTLS_LMOTS_PUBKEY_TYPE_OFFSET      + MBEDTLS_LMOTS_TYPE_LEN)
++#define MBEDTLS_LMOTS_PUBKEY_Q_LEAF_ID_OFFSET (MBEDTLS_LMOTS_PUBKEY_I_KEY_ID_OFFSET  + MBEDTLS_LMOTS_I_KEY_ID_LEN)
++#define MBEDTLS_LMOTS_PUBKEY_KEY_HASH_OFFSET  (MBEDTLS_LMOTS_PUBKEY_Q_LEAF_ID_OFFSET + MBEDTLS_LMOTS_Q_LEAF_ID_LEN)
++
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/* https://www.iana.org/assignments/leighton-micali-signatures/leighton-micali-signatures.xhtml
++ * We are only implementing a subset of the types, particularly n32_w8, for the sake of simplicty.
++ */
++typedef enum {
++    MBEDTLS_LMOTS_SHA256_N32_W8 = 4
++} mbedtls_lmots_algorithm_type_t;
++
++
++typedef struct {
++    unsigned char MBEDTLS_PRIVATE(have_privkey); /*!< Whether the context contains a private key.
++                                                     Boolean values only. */
++    unsigned char MBEDTLS_PRIVATE(have_pubkey); /*!< Whether the context contains a public key.
++                                                     Boolean values only. */
++    unsigned char MBEDTLS_PRIVATE(I_key_identifier[MBEDTLS_LMOTS_I_KEY_ID_LEN]); /*!< The key
++                                                     identifier. */
++    unsigned int MBEDTLS_PRIVATE(q_leaf_identifier); /*!< Which leaf of the LMS key this is.
++                                                     0 if the key is not part of an LMS key. */
++    unsigned char MBEDTLS_PRIVATE(q_leaf_identifier_bytes)[MBEDTLS_LMOTS_Q_LEAF_ID_LEN];/*!< The
++                                                     leaf identifier in network bytes form. */
++    mbedtls_lmots_algorithm_type_t MBEDTLS_PRIVATE(type); /*!< The LM-OTS key type identifier as
++                                                     per IANA. Only SHA256_N32_W8 is currently
++                                                     supported. */
++    unsigned char MBEDTLS_PRIVATE(priv_key[MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN][32]); /*!< The private
++                                                     key, one hash output per byte of the encoded
++                                                     symbol string P (32 bytes of hash output +
++                                                     2 bytes of checksum). */
++    unsigned char MBEDTLS_PRIVATE(pub_key[32]); /*!< The public key, in the form of a SHA256
++                                                     output. */
++} mbedtls_lmots_context;
++
++
++/**
++ * \brief                    This function initializes an LMOTS context
++ *
++ * \param ctx                The uninitialized LMOTS context that will then be
++ *                           initialized.
++ */
++void mbedtls_lmots_init( mbedtls_lmots_context *ctx );
++
++/**
++ * \brief                    This function uninitializes an LMOTS context
++ *
++ * \param ctx                The initialized LMOTS context that will then be
++ *                           uninitialized.
++ */
++void mbedtls_lmots_free( mbedtls_lmots_context *ctx );
++
++/**
++ * \brief                    This function sets the type of an LMOTS context
++ *
++ * \note                     The parameter set in the context will then be used
++ *                           for keygen operations etc.
++ *
++ * \param ctx                The initialized LMOTS context.
++ * \param type               The type that will be set in the context.
++ */
++int mbedtls_lmots_set_algorithm_type( mbedtls_lmots_context *ctx,
++                                      mbedtls_lmots_algorithm_type_t type );
++
++/**
++ * \brief                    This function creates a candidate public key from
++ *                           an LMOTS signature. This can then be compared to
++ *                           the real public key to determine the validity of
++ *                           the signature.
++ *
++ * \note                     This function is exposed publicly to be used in LMS
++ *                           signature verification, it is expected that
++ *                           mbedtls_lmots_verify will be used for LMOTS
++ *                           signature verification.
++ *
++ * \param I_key_identifier   The key identifier of the key, as a 16 byte
++ *                           bytestring.
++ * \param q_leaf_identifier  The leaf identifier of key. If this LMOTS key is
++ *                           not being used as part of an LMS key, this should
++ *                           be set to 0.
++ * \param msg                The buffer from which the message will be read.
++ * \param msg_len            The size of the message that will be read.
++ * \param sig                The buff from which the signature will be read.
++ *                           MBEDTLS_LMOTS_SIG_LEN bytes will be read from this.
++ * \param out                The buffer where the candidate public key will be
++ *                           stored. Must be at least #MBEDTLS_LMOTS_N_HASH_LEN
++ *                           bytes in size.
++ *
++ * \return         \c 0 on success.
++ * \return         A non-zero error code on failure.
++ */
++int mbedtls_lmots_generate_pub_key_candidate( const unsigned char I_key_identifier[MBEDTLS_LMOTS_I_KEY_ID_LEN],
++                                              const unsigned char q_leaf_identifier[MBEDTLS_LMOTS_Q_LEAF_ID_LEN],
++                                              const unsigned char  *msg,
++                                              size_t msg_len,
++                                              const unsigned char *sig,
++                                              unsigned char *out );
++
++/**
++ * \brief                    This function creates a LMOTS signature, using a
++ *                           LMOTS context that contains a private key.
++ *
++ * \note                     Before this function is called, the context must
++ *                           have been initialized and must contain a private
++ *                           key.
++ *
++ * \note                     LMOTS private keys can only be used once, otherwise
++ *                           attackers may be able to create forged signatures.
++ *                           If the signing operation is successful, the private
++ *                           key in the context will be erased, and no further
++ *                           signing will be possible until another private key
++ *                           is loaded
++ *
++ * \param ctx                The initialized LMOTS context from which the
++ *                           private key will be read.
++ * \param f_rng              The RNG function to be used for signature
++ *                           generation.
++ * \param p_rng              The RNG context to be passed to f_rng
++ * \param msg                The buffer from which the message will be read.
++ * \param msg_len            The size of the message that will be read.
++ * \param sig                The buf into which the signature will be stored.
++ *                           Must be at least #MBEDTLS_LMOTS_SIG_LEN in size.
++ *
++ * \return         \c 0 on success.
++ * \return         A non-zero error code on failure.
++ */
++int mbedtls_lmots_sign( mbedtls_lmots_context *ctx,
++                        int (*f_rng)(void *, unsigned char *, size_t),
++                        void *p_rng, const unsigned char *msg, size_t msg_len,
++                        unsigned char *sig );
++
++/**
++ * \brief                    This function verifies a LMOTS signature, using a
++ *                           LMOTS context that contains a public key.
++ *
++ * \note                     Before this function is called, the context must
++ *                           have been initialized and must contain a public key
++ *                           (either by import or generation).
++ *
++ * \param ctx                The initialized LMOTS context from which the public
++ *                           key will be read.
++ * \param msg                The buffer from which the message will be read.
++ * \param msg_len            The size of the message that will be read.
++ * \param sig                The buf from which the signature will be read.
++ *                           #MBEDTLS_LMOTS_SIG_LEN bytes will be read from
++ *                           this.
++ *
++ * \return         \c 0 on successful verification.
++ * \return         A non-zero error code on failure.
++ */
++int mbedtls_lmots_verify( mbedtls_lmots_context *ctx, const unsigned char *msg,
++                          size_t msg_len, const unsigned char *sig );
++
++/**
++ * \brief                    This function imports an LMOTS public key into a
++ *                           LMOTS context.
++ *
++ * \note                     Before this function is called, the context must
++ *                           have been initialized.
++ *
++ * \note                     See IETF RFC8554 for details of the encoding of
++ *                           this public key.
++ *
++ * \param ctx                The initialized LMOTS context store the key in.
++ * \param key                The buffer from which the key will be read.
++ *                           #MBEDTLS_LMOTS_PUBKEY_LEN bytes will be read from
++ *                           this.
++ *
++ * \return         \c 0 on success.
++ * \return         A non-zero error code on failure.
++ */
++int mbedtls_lmots_import_pubkey( mbedtls_lmots_context *ctx,
++                                 const unsigned char *key );
++
++/**
++ * \brief                    This function exports an LMOTS public key from a
++ *                           LMOTS context that already contains a public key.
++ *
++ * \note                     Before this function is called, the context must
++ *                           have been initialized and the context must contain
++ *                           a public key.
++ *
++ * \note                     See IETF RFC8554 for details of the encoding of
++ *                           this public key.
++ *
++ * \param ctx                The initialized LMOTS context that contains the
++ *                           publc key.
++ * \param key                The buffer into which the key will be output. Must
++ *                           be at least #MBEDTLS_LMOTS_PUBKEY_LEN in size.
++ *
++ * \return         \c 0 on success.
++ * \return         A non-zero error code on failure.
++ */
++int mbedtls_lmots_export_pubkey( mbedtls_lmots_context *ctx,
++                                 unsigned char *key );
++
++/**
++ * \brief                    This function generates an LMOTS public key from a
++ *                           LMOTS context that already contains a private key.
++ *
++ * \note                     Before this function is called, the context must
++ *                           have been initialized and the context must contain
++ *                           a private key.
++ *
++ * \param ctx                The initialized LMOTS context to generate the key
++ *                           from and store it into.
++ *
++ * \return         \c 0 on success.
++ * \return         A non-zero error code on failure.
++ */
++int mbedtls_lmots_gen_pubkey( mbedtls_lmots_context *ctx );
++
++/**
++ * \brief                    This function generates an LMOTS private key, and
++ *                           stores in into an LMOTS context.
++ *
++ * \note                     Before this function is called, the context must
++ *                           have been initialized and the type of the LMOTS
++ *                           context set using mbedtls_lmots_set_algorithm_type
++ *
++ * \note                     The seed must have at least 256 bits of entropy.
++ *
++ * \param ctx                The initialized LMOTS context to generate the key
++ *                           into.
++ * \param I_key_identifier   The key identifier of the key, as a 16 byte
++ *                           bytestring.
++ * \param q_leaf_identifier  The leaf identifier of key. If this LMOTS key is
++ *                           not being used as part of an LMS key, this should
++ *                           be set to 0.
++ * \param seed               The seed used to deterministically generate the
++ *                           key.
++ * \param seed_len           The length of the seed.
++ *
++ * \return         \c 0 on success.
++ * \return         A non-zero error code on failure.
++ */
++int mbedtls_lmots_gen_privkey( mbedtls_lmots_context *ctx,
++                               const unsigned char I_key_identifier[MBEDTLS_LMOTS_I_KEY_ID_LEN],
++                               unsigned int q_leaf_identifier,
++                               const unsigned char *seed,
++                               size_t seed_len );
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* MBEDTLS_LMOTS_H */
+diff --git a/include/mbedtls/lms.h b/include/mbedtls/lms.h
+new file mode 100644
+index 000000000..77559e24b
+--- /dev/null
++++ b/include/mbedtls/lms.h
+@@ -0,0 +1,271 @@
++/**
++ * \file lms.h
++ *
++ * \brief This file provides an API for the LMS post-quantum-safe stateful-hash
++ *        public-key signature scheme.
++ */
++/*
++ *  Copyright The Mbed TLS Contributors
++ *  SPDX-License-Identifier: Apache-2.0
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License"); you may
++ *  not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *  http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++ *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
++#ifndef MBEDTLS_LMS_H
++#define MBEDTLS_LMS_H
++
++#include <stdint.h>
++#include <stddef.h>
++
++#include "mbedtls/private_access.h"
++#include "mbedtls/lmots.h"
++
++#define MBEDTLS_ERR_LMS_BAD_INPUT_DATA   -0x0011 /**< Bad data has been input to an LMS function */
++#define MBEDTLS_ERR_LMS_OUT_OF_PRIV_KEYS -0x0013 /**< Specified LMS key has utilised all of its private keys */
++#define MBEDTLS_ERR_LMS_VERIFY_FAILED    -0x0015 /**< LMS signature verification failed */
++#define MBEDTLS_ERR_LMS_ALLOC_FAILED     -0x0017 /**< LMS failed to allocate space for a private key */
++
++#define MBEDTLS_LMS_TYPE_LEN            (4)
++#define MBEDTLS_LMS_H_TREE_HEIGHT       (10)
++#define MBEDTLS_LMS_M_NODE_BYTES        (32)
++
++#define MBEDTLS_LMS_SIG_LEN (MBEDTLS_LMOTS_Q_LEAF_ID_LEN + MBEDTLS_LMOTS_SIG_LEN + \
++                             MBEDTLS_LMS_TYPE_LEN + MBEDTLS_LMS_H_TREE_HEIGHT * MBEDTLS_LMS_M_NODE_BYTES)
++
++#define MBEDTLS_LMS_PUBKEY_LEN (MBEDTLS_LMS_TYPE_LEN + MBEDTLS_LMOTS_TYPE_LEN + \
++                                MBEDTLS_LMOTS_I_KEY_ID_LEN + MBEDTLS_LMS_M_NODE_BYTES)
++
++#define MBEDTLS_LMS_SIG_Q_LEAF_ID_OFFSET    (0)
++#define MBEDTLS_LMS_SIG_OTS_SIG_OFFSET      (MBEDTLS_LMS_SIG_Q_LEAF_ID_OFFSET + MBEDTLS_LMOTS_Q_LEAF_ID_LEN)
++#define MBEDTLS_LMS_SIG_TYPE_OFFSET         (MBEDTLS_LMS_SIG_OTS_SIG_OFFSET   + MBEDTLS_LMOTS_SIG_LEN)
++#define MBEDTLS_LMS_SIG_PATH_OFFSET         (MBEDTLS_LMS_SIG_TYPE_OFFSET      + MBEDTLS_LMS_TYPE_LEN)
++
++#define MBEDTLS_LMS_PUBKEY_TYPE_OFFSET      (0)
++#define MBEDTLS_LMS_PUBKEY_OTSTYPE_OFFSET   (MBEDTLS_LMS_PUBKEY_TYPE_OFFSET     + MBEDTLS_LMS_TYPE_LEN)
++#define MBEDTLS_LMS_PUBKEY_I_KEY_ID_OFFSET  (MBEDTLS_LMS_PUBKEY_OTSTYPE_OFFSET  + MBEDTLS_LMOTS_TYPE_LEN)
++#define MBEDTLS_LMS_PUBKEY_ROOT_NODE_OFFSET (MBEDTLS_LMS_PUBKEY_I_KEY_ID_OFFSET + MBEDTLS_LMOTS_I_KEY_ID_LEN)
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/* https://www.iana.org/assignments/leighton-micali-signatures/leighton-micali-signatures.xhtml
++ * We are only implementing a subset of the types, particularly H10, for the sake of simplicty.
++ */
++typedef enum {
++    MBEDTLS_LMS_SHA256_M32_H10 = 0x6,
++} mbedtls_lms_algorithm_type_t;
++
++
++typedef struct {
++    unsigned char MBEDTLS_PRIVATE(have_privkey); /*!< Whether the context contains a private key.
++                                                     Boolean values only. */
++    unsigned char MBEDTLS_PRIVATE(have_pubkey); /*!< Whether the context contains a public key.
++                                                     Boolean values only. */
++    unsigned char MBEDTLS_PRIVATE(I_key_identifier)[MBEDTLS_LMOTS_I_KEY_ID_LEN]; /*!< The key
++                                                     identifier. */
++    mbedtls_lms_algorithm_type_t MBEDTLS_PRIVATE(type); /*!< The LMS key type identifier as per
++                                                     IANA. Only SHA256_M32_H10 is currently
++                                                     supported. */
++    mbedtls_lmots_algorithm_type_t MBEDTLS_PRIVATE(otstype); /*!< The LM-OTS key type identifier as
++                                                     per IANA. Only SHA256_N32_W8 is currently
++                                                     supported. */
++    unsigned int MBEDTLS_PRIVATE(q_next_usable_key); /*!< The index of the next OTS key that has not
++                                                     been used. */
++    mbedtls_lmots_context *MBEDTLS_PRIVATE(priv_keys); /*!< The private key material. One OTS key
++                                                     for each leaf node in the merkle tree. */
++    unsigned char MBEDTLS_PRIVATE(T_1_pub_key)[MBEDTLS_LMS_M_NODE_BYTES]; /*!< The public key, in
++                                                     the form of the merkle tree root node. */
++} mbedtls_lms_context;
++
++
++/**
++ * \brief                    This function initializes an LMS context
++ *
++ * \param ctx                The uninitialized LMS context that will then be
++ *                           initialized.
++ */
++void mbedtls_lms_init( mbedtls_lms_context *ctx );
++
++/**
++ * \brief                    This function uninitializes an LMS context
++ *
++ * \param ctx                The initialized LMS context that will then be
++ *                           uninitialized.
++ */
++void mbedtls_lms_free( mbedtls_lms_context *ctx );
++
++/**
++ * \brief                    This function sets the type of an LMS context
++ *
++ * \note                     The parameter set in the context will then be used
++ *                           for keygen operations etc.
++ *
++ * \param ctx                The initialized LMS context.
++ * \param type               The type that will be set in the context.
++ * \param otstype            The type of the LMOTS implementation used by this
++ *                           context.
++ */
++int mbedtls_lms_set_algorithm_type( mbedtls_lms_context *ctx,
++                                    mbedtls_lms_algorithm_type_t type,
++                                    mbedtls_lmots_algorithm_type_t otstype);
++
++/**
++ * \brief                    This function creates a LMS signature, using a
++ *                           LMOTS context that contains a private key.
++ *
++ * \note                     This function is intended for _testing purposes
++ *                           only_, due to complexities around updating stateful
++ *                           keys.
++ *
++ * \note                     Before this function is called, the context must
++ *                           have been initialized and must contain a private
++ *                           key.
++ *
++ * \note                     Each of the LMOTS private keys inside a LMS private
++ *                           key can only be used once. If they are reused, then
++ *                           attackers may be able to forge signatures with that
++ *                           key. This is all handled transparently, but it is
++ *                           important to not perform copy operations on LMS
++ *                           contexts that contain private key material.
++ *
++ * \param ctx                The initialized LMS context from which the
++ *                           private key will be read.
++ * \param f_rng              The RNG function to be used for signature
++ *                           generation.
++ * \param p_rng              The RNG context to be passed to f_rng
++ * \param msg                The buffer from which the message will be read.
++ * \param msg_len            The size of the message that will be read.
++ * \param sig                The buf into which the signature will be stored.
++ *                           Must be at least #MBEDTLS_LMOTS_SIG_LEN in size.
++ *
++ * \return         \c 0 on success.
++ * \return         A non-zero error code on failure.
++ */
++int mbedtls_lms_sign( mbedtls_lms_context *ctx,
++                      int (*f_rng)(void *, unsigned char *, size_t),
++                      void* p_rng, unsigned char *msg, unsigned int msg_len,
++                      unsigned char *sig);
++
++/**
++ * \brief                    This function verifies a LMS signature, using a
++ *                           LMS context that contains a public key.
++ *
++ * \note                     Before this function is called, the context must
++ *                           have been initialized and must contain a public key
++ *                           (either by import or generation).
++ *
++ * \param ctx                The initialized LMS context from which the public
++ *                           key will be read.
++ * \param msg                The buffer from which the message will be read.
++ * \param msg_len            The size of the message that will be read.
++ * \param sig                The buf from which the signature will be read.
++ *                           #MBEDTLS_LMS_SIG_LEN bytes will be read from
++ *                           this.
++ *
++ * \return         \c 0 on successful verification.
++ * \return         A non-zero error code on failure.
++ */
++int mbedtls_lms_verify( const mbedtls_lms_context *ctx,
++                        const unsigned char *msg, unsigned int msg_len,
++                        const unsigned char *sig );
++
++/**
++ * \brief                    This function imports an LMOTS public key into a
++ *                           LMS context.
++ *
++ * \note                     Before this function is called, the context must
++ *                           have been initialized.
++ *
++ * \note                     See IETF RFC8554 for details of the encoding of
++ *                           this public key.
++ *
++ * \param ctx                The initialized LMS context store the key in.
++ * \param key                The buffer from which the key will be read.
++ *                           #MBEDTLS_LMS_PUBKEY_LEN bytes will be read from
++ *                           this.
++ *
++ * \return         \c 0 on success.
++ * \return         A non-zero error code on failure.
++ */
++int mbedtls_lms_import_pubkey( mbedtls_lms_context *ctx,
++                               const unsigned char *key );
++
++/**
++ * \brief                    This function exports an LMOTS public key from a
++ *                           LMS context that already contains a public key.
++ *
++ * \note                     Before this function is called, the context must
++ *                           have been initialized and the context must contain
++ *                           a public key.
++ *
++ * \note                     See IETF RFC8554 for details of the encoding of
++ *                           this public key.
++ *
++ * \param ctx                The initialized LMS context that contains the
++ *                           publc key.
++ * \param key                The buffer into which the key will be output. Must
++ *                           be at least #MBEDTLS_LMS_PUBKEY_LEN in size.
++ *
++ * \return         \c 0 on success.
++ * \return         A non-zero error code on failure.
++ */
++int mbedtls_lms_export_pubkey( mbedtls_lms_context *ctx,
++                               unsigned char *key );
++
++/**
++ * \brief                    This function generates an LMS public key from a
++ *                           LMS context that already contains a private key.
++ *
++ * \note                     Before this function is called, the context must
++ *                           have been initialized and the context must contain
++ *                           a private key.
++ *
++ * \param ctx                The initialized LMS context to generate the key
++ *                           from and store it into.
++ *
++ * \return         \c 0 on success.
++ * \return         A non-zero error code on failure.
++ */
++int mbedtls_lms_gen_pubkey( mbedtls_lms_context *ctx );
++
++/**
++ * \brief                    This function generates an LMS private key, and
++ *                           stores in into an LMS context.
++ *
++ * \note                     Before this function is called, the context must
++ *                           have been initialized and the type of the LMS
++ *                           context set using mbedtls_lmots_set_algorithm_type
++ *
++ * \note                     The seed must have at least 256 bits of entropy.
++ *
++ * \param ctx                The initialized LMOTS context to generate the key
++ *                           into.
++ * \param f_rng              The RNG function to be used to generate the key ID.
++ * \param p_rng              The RNG context to be passed to f_rng
++ * \param seed               The seed used to deterministically generate the
++ *                           key.
++ * \param seed_len           The length of the seed.
++ *
++ * \return         \c 0 on success.
++ * \return         A non-zero error code on failure.
++ */
++int mbedtls_lms_gen_privkey( mbedtls_lms_context *ctx,
++                             int (*f_rng)(void *, unsigned char *, size_t),
++                             void* p_rng, unsigned char *seed,
++                             size_t seed_len );
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* MBEDTLS_LMS_H */
+diff --git a/include/mbedtls/mbedtls_config.h b/include/mbedtls/mbedtls_config.h
+index 1c60ec8e4..dd2841459 100644
+--- a/include/mbedtls/mbedtls_config.h
++++ b/include/mbedtls/mbedtls_config.h
+@@ -2405,6 +2405,34 @@
+  */
+ #define MBEDTLS_HMAC_DRBG_C
+ 
++/**
++ * \def MBEDTLS_LMOTS_C
++ *
++ * Enable the LMOTS one-time asymmetric hash signature algorithm.
++ *
++ * Module:  library/lm_ots.c
++ * Caller:
++ *
++ * Requires: MBEDTLS_SHA256_C
++ *
++ * Uncomment to enable the LMOTS signature algorithm.
++ */
++#define MBEDTLS_LMOTS_C
++
++/**
++ * \def MBEDTLS_LMS_C
++ *
++ * Enable the LMS stateful-hash asymmetric signature algorithm.
++ *
++ * Module:  library/lms.c
++ * Caller:
++ *
++ * Requires: MBEDTLS_LMS_C
++ *
++ * Uncomment to enable the LMS signature algorithm.
++ */
++#define MBEDTLS_LMS_C
++
+ /**
+  * \def MBEDTLS_NIST_KW_C
+  *
+diff --git a/library/CMakeLists.txt b/library/CMakeLists.txt
+index 0884f57ae..f52195be3 100644
+--- a/library/CMakeLists.txt
++++ b/library/CMakeLists.txt
+@@ -40,6 +40,8 @@ set(src_crypto
+     gcm.c
+     hkdf.c
+     hmac_drbg.c
++    lmots.c
++    lms.c
+     md.c
+     md5.c
+     memory_buffer_alloc.c
+diff --git a/library/Makefile b/library/Makefile
+index f5ff474ec..dfe76c139 100644
+--- a/library/Makefile
++++ b/library/Makefile
+@@ -105,6 +105,8 @@ OBJS_CRYPTO= \
+ 	     gcm.o \
+ 	     hkdf.o \
+ 	     hmac_drbg.o \
++	     lmots.o \
++	     lms.o \
+ 	     md.o \
+ 	     md5.o \
+ 	     memory_buffer_alloc.o \
+diff --git a/library/lmots.c b/library/lmots.c
+new file mode 100644
+index 000000000..7319d29be
+--- /dev/null
++++ b/library/lmots.c
+@@ -0,0 +1,684 @@
++/*
++ * The LM-OTS one-time public-key signature scheme
++ *
++ * Copyright The Mbed TLS Contributors
++ *  SPDX-License-Identifier: Apache-2.0
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License"); you may
++ *  not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *  http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++ *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
++
++/*
++ *  The following sources were referenced in the design of this implementation
++ *  of the LM-OTS algorithm:
++ *
++ *  [1] IETF RFC8554
++ *      D. McGrew, M. Curcio, S.Fluhrer
++ *      https://datatracker.ietf.org/doc/html/rfc8554
++ *
++ *  [2] NIST Special Publication 800-208
++ *      David A. Cooper et. al.
++ *      https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-208.pdf
++ */
++
++#include "common.h"
++
++#ifdef MBEDTLS_LMOTS_C
++
++#include <string.h>
++
++#include "mbedtls/lmots.h"
++#include "mbedtls/md.h"
++#include "mbedtls/platform_util.h"
++#include "mbedtls/error.h"
++
++#define W_SYMBOL_BIT_LEN      (8)
++#define CHECKSUM_LEN          (2)
++#define I_SYMBOL_IDX_LEN      (2)
++#define J_HASH_IDX_LEN        (1)
++#define D_CONST_LEN           (2)
++
++#define SYMBOL_MAX_VAL        ((1 << W_SYMBOL_BIT_LEN) - 1)
++
++#define D_PBLC_CONSTANT       (0x8080)
++#define D_MESG_CONSTANT       (0x8181)
++
++static void val_to_network_bytes(unsigned int val, size_t len, unsigned char *bytes)
++{
++    size_t idx;
++
++    for (idx = 0; idx < len; idx++) {
++        bytes[idx] = (val >> ((len - 1 - idx) * 8)) & 0xFF;
++    }
++}
++
++static unsigned int network_bytes_to_val(size_t len, const unsigned char *bytes)
++{
++    size_t idx;
++    unsigned int val = 0;
++
++    for (idx = 0; idx < len; idx++) {
++        val |= ((unsigned int)bytes[idx]) << (8 * (len - 1 - idx));
++    }
++
++    return val;
++}
++
++static unsigned short lmots_checksum_generate( const unsigned char* digest )
++{
++    size_t idx;
++    unsigned short sum = 0;
++
++    for ( idx = 0; idx < MBEDTLS_LMOTS_N_HASH_LEN; idx++ )
++    {
++        sum += ( 1 << W_SYMBOL_BIT_LEN ) - 1 - digest[idx];
++    }
++
++    return sum;
++}
++
++static int create_symbol_array( const unsigned char I_key_identifier[MBEDTLS_LMOTS_I_KEY_ID_LEN],
++                                const unsigned char q_leaf_identifier[MBEDTLS_LMOTS_Q_LEAF_ID_LEN],
++                                const unsigned char *msg,
++                                size_t msg_len,
++                                const unsigned char C_random_value[MBEDTLS_LMOTS_C_RANDOM_VALUE_LEN],
++                                unsigned char out[MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN] )
++{
++    mbedtls_md_context_t hash_ctx;
++    unsigned char D_MESG_BYTES[D_CONST_LEN];
++    unsigned short checksum;
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    mbedtls_md_init( &hash_ctx );
++    ret = mbedtls_md_setup( &hash_ctx, mbedtls_md_info_from_type( MBEDTLS_MD_SHA256 ), 0 );
++    if( ret )
++    {
++        goto out;
++    }
++    ret = mbedtls_md_starts( &hash_ctx );
++    if ( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_update( &hash_ctx, I_key_identifier, MBEDTLS_LMOTS_I_KEY_ID_LEN );
++    if ( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_update( &hash_ctx, q_leaf_identifier, MBEDTLS_LMOTS_Q_LEAF_ID_LEN );
++    if ( ret )
++    {
++        goto out;
++    }
++
++    val_to_network_bytes( D_MESG_CONSTANT, D_CONST_LEN, D_MESG_BYTES );
++    ret = mbedtls_md_update( &hash_ctx, D_MESG_BYTES, sizeof( D_MESG_BYTES ) );
++    if ( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_update( &hash_ctx, C_random_value, MBEDTLS_LMOTS_C_RANDOM_VALUE_LEN );
++    if ( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_update( &hash_ctx, msg, msg_len );
++    if ( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_finish( &hash_ctx, out );
++    if ( ret )
++    {
++        goto out;
++    }
++
++    checksum = lmots_checksum_generate( out );
++    val_to_network_bytes( checksum, CHECKSUM_LEN, out + MBEDTLS_LMOTS_N_HASH_LEN );
++
++out:
++    mbedtls_md_free( &hash_ctx );
++
++    return( ret );
++}
++
++static int hash_symbol_array( const unsigned char I_key_identifier[MBEDTLS_LMOTS_I_KEY_ID_LEN],
++                              const unsigned char q_leaf_identifier[MBEDTLS_LMOTS_Q_LEAF_ID_LEN],
++                              const unsigned char x_symbol_array[MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN][32],
++                              const unsigned char hash_idx_min_values[MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN],
++                              const unsigned char hash_idx_max_values[MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN],
++                              unsigned char output[MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN][32] )
++{
++    unsigned char i_symbol_idx;
++    unsigned char j_hash_idx;
++    unsigned char i_symbol_idx_bytes[I_SYMBOL_IDX_LEN];
++    unsigned char j_hash_idx_bytes[1];
++    unsigned short j_hash_idx_min;
++    unsigned short j_hash_idx_max;
++    mbedtls_md_context_t hash_ctx;
++    unsigned char tmp_hash[32];
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    for ( i_symbol_idx = 0; i_symbol_idx < MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN; i_symbol_idx++ )
++    {
++
++        memcpy( tmp_hash, &x_symbol_array[i_symbol_idx], MBEDTLS_LMOTS_N_HASH_LEN );
++
++        j_hash_idx_min = hash_idx_min_values != NULL ? hash_idx_min_values[i_symbol_idx] : 0;
++        j_hash_idx_max = hash_idx_max_values != NULL ? hash_idx_max_values[i_symbol_idx] : SYMBOL_MAX_VAL;
++
++        for ( j_hash_idx = (unsigned char)j_hash_idx_min; j_hash_idx < j_hash_idx_max; j_hash_idx++ )
++        {
++            mbedtls_md_init( &hash_ctx );
++            ret = mbedtls_md_setup( &hash_ctx, mbedtls_md_info_from_type( MBEDTLS_MD_SHA256 ), 0 );
++            if( ret )
++            {
++                goto out;
++            }
++            ret = mbedtls_md_starts( &hash_ctx );
++            if ( ret )
++            {
++                goto out;
++            }
++
++            ret = mbedtls_md_update( &hash_ctx, I_key_identifier, MBEDTLS_LMOTS_I_KEY_ID_LEN );
++            if ( ret )
++            {
++                goto out;
++            }
++
++            ret = mbedtls_md_update( &hash_ctx, q_leaf_identifier, MBEDTLS_LMOTS_Q_LEAF_ID_LEN );
++            if ( ret )
++            {
++                goto out;
++            }
++
++            val_to_network_bytes( i_symbol_idx, I_SYMBOL_IDX_LEN, i_symbol_idx_bytes );
++            ret = mbedtls_md_update( &hash_ctx, i_symbol_idx_bytes, I_SYMBOL_IDX_LEN );
++            if ( ret )
++            {
++                goto out;
++            }
++
++            val_to_network_bytes( j_hash_idx, J_HASH_IDX_LEN, j_hash_idx_bytes );
++            ret = mbedtls_md_update( &hash_ctx, j_hash_idx_bytes, J_HASH_IDX_LEN );
++            if ( ret )
++            {
++                goto out;
++            }
++
++            ret = mbedtls_md_update( &hash_ctx, tmp_hash, MBEDTLS_LMOTS_N_HASH_LEN );
++            if ( ret )
++            {
++                goto out;
++            }
++
++            ret = mbedtls_md_finish( &hash_ctx, tmp_hash );
++            if ( ret )
++            {
++                goto out;
++            }
++
++            mbedtls_md_free( &hash_ctx );
++        }
++
++        memcpy( &output[i_symbol_idx], tmp_hash, MBEDTLS_LMOTS_N_HASH_LEN );
++    }
++
++out:
++    if( ret )
++    {
++        mbedtls_md_free( &hash_ctx );
++        return( ret );
++    }
++
++    return ret;
++}
++
++static int public_key_from_hashed_symbol_array( const unsigned char I_key_identifier[MBEDTLS_LMOTS_I_KEY_ID_LEN],
++                                                const unsigned char q_leaf_identifier[MBEDTLS_LMOTS_Q_LEAF_ID_LEN],
++                                                const unsigned char  y_hashed_symbols[MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN][32],
++                                                unsigned char *pub_key )
++{
++    unsigned char D_PBLC_bytes[D_CONST_LEN];
++    mbedtls_md_context_t hash_ctx;
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    mbedtls_md_init( &hash_ctx );
++    ret = mbedtls_md_setup( &hash_ctx, mbedtls_md_info_from_type( MBEDTLS_MD_SHA256 ), 0 );
++    if( ret )
++    {
++        goto out;
++    }
++    ret = mbedtls_md_starts( &hash_ctx );
++    if ( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_update( &hash_ctx, I_key_identifier,
++                             MBEDTLS_LMOTS_I_KEY_ID_LEN );
++    if ( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_update( &hash_ctx, q_leaf_identifier,
++                             MBEDTLS_LMOTS_Q_LEAF_ID_LEN );
++    if ( ret )
++    {
++        goto out;
++    }
++
++    val_to_network_bytes( D_PBLC_CONSTANT, D_CONST_LEN, D_PBLC_bytes );
++    ret = mbedtls_md_update( &hash_ctx, D_PBLC_bytes, D_CONST_LEN );
++    if ( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_update( &hash_ctx, ( unsigned char * )y_hashed_symbols,
++                             MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN * MBEDTLS_LMOTS_N_HASH_LEN );
++    if ( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_finish( &hash_ctx, pub_key );
++
++out:
++    mbedtls_md_free( &hash_ctx );
++    return( ret );
++}
++
++void mbedtls_lmots_init( mbedtls_lmots_context *ctx )
++{
++    if( ctx == NULL ) {
++        return;
++    }
++
++    mbedtls_platform_zeroize( ctx, sizeof( mbedtls_lmots_context  ) ) ;
++}
++
++void mbedtls_lmots_free( mbedtls_lmots_context *ctx )
++{
++    if( ctx == NULL )
++    {
++        return;
++    }
++
++    mbedtls_platform_zeroize( ctx, sizeof( mbedtls_lmots_context  ) ) ;
++}
++
++int mbedtls_lmots_set_algorithm_type( mbedtls_lmots_context *ctx,
++                                      mbedtls_lmots_algorithm_type_t type )
++{
++    if( ctx == NULL )
++    {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    ctx->MBEDTLS_PRIVATE(type) = type;
++
++    return( 0 );
++}
++
++int mbedtls_lmots_generate_pub_key_candidate( const unsigned char I_key_identifier[MBEDTLS_LMOTS_I_KEY_ID_LEN],
++                                              const unsigned char q_leaf_identifier[MBEDTLS_LMOTS_Q_LEAF_ID_LEN],
++                                              const unsigned char  *msg,
++                                              size_t msg_len,
++                                              const unsigned char *sig,
++                                              unsigned char *out )
++{
++    unsigned char tmp_symbol_array[MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN];
++    unsigned char y_hashed_symbols[MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN][32];
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    if (I_key_identifier == NULL || msg == NULL || sig == NULL || out == NULL)
++    {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    ret = create_symbol_array( I_key_identifier, q_leaf_identifier, msg, msg_len,
++                               sig + MBEDTLS_LMOTS_SIG_C_RANDOM_OFFSET, tmp_symbol_array );
++    if ( ret )
++    {
++        return ( ret );
++    }
++
++    ret = hash_symbol_array( I_key_identifier, q_leaf_identifier,
++                             ( const unsigned char( *)[32] )(sig + MBEDTLS_LMOTS_SIG_SIGNATURE_OFFSET),
++                             tmp_symbol_array, NULL, y_hashed_symbols );
++    if ( ret )
++    {
++        return ( ret );
++    }
++
++    ret = public_key_from_hashed_symbol_array( I_key_identifier, q_leaf_identifier,
++                                               ( const unsigned char( *)[32] )y_hashed_symbols,
++                                               out );
++    if ( ret )
++    {
++        return ( ret );
++    }
++
++    return( 0 );
++}
++
++int mbedtls_lmots_sign( mbedtls_lmots_context *ctx,
++                        int (*f_rng)(void *, unsigned char *, size_t),
++                        void *p_rng, const unsigned char *msg, size_t msg_len,
++                        unsigned char *sig )
++{
++    unsigned char tmp_symbol_array[MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN];
++    unsigned char tmp_sig[MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN][MBEDTLS_LMOTS_N_HASH_LEN];
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    if( ctx == NULL || f_rng == NULL || p_rng == NULL || msg == NULL || sig == NULL)
++    {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    /* Check that a private key is loaded */
++    if ( !ctx->MBEDTLS_PRIVATE(have_privkey) )
++    {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    ret = f_rng( p_rng, sig + MBEDTLS_LMOTS_SIG_C_RANDOM_OFFSET, MBEDTLS_LMOTS_N_HASH_LEN );
++    if ( ret )
++    {
++        return( ret );
++    }
++
++    ret = create_symbol_array( ctx->MBEDTLS_PRIVATE(I_key_identifier),
++                               ctx->MBEDTLS_PRIVATE(q_leaf_identifier_bytes),
++                               msg, msg_len, sig + MBEDTLS_LMOTS_SIG_C_RANDOM_OFFSET,
++                               tmp_symbol_array );
++    if ( ret )
++    {
++        return( ret );
++    }
++
++    ret = hash_symbol_array( ctx->MBEDTLS_PRIVATE(I_key_identifier),
++                             ctx->MBEDTLS_PRIVATE(q_leaf_identifier_bytes),
++                             ( const unsigned char( *)[32] )(ctx->MBEDTLS_PRIVATE(priv_key)),
++                             NULL, tmp_symbol_array, tmp_sig );
++    if ( ret )
++    {
++        return( ret );
++    }
++
++    val_to_network_bytes( ctx->MBEDTLS_PRIVATE(type), MBEDTLS_LMOTS_TYPE_LEN,
++                          sig + MBEDTLS_LMOTS_SIG_TYPE_OFFSET );
++
++    /* We've got a valid signature now, so it's time to make sure the private
++     * key can't be reused.
++     */
++    ctx->MBEDTLS_PRIVATE(have_privkey) = 0;
++    mbedtls_platform_zeroize(ctx->MBEDTLS_PRIVATE(priv_key),
++                             sizeof(ctx->MBEDTLS_PRIVATE(priv_key)));
++
++    memcpy(sig + MBEDTLS_LMOTS_SIG_SIGNATURE_OFFSET, tmp_sig,
++           MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN * MBEDTLS_LMOTS_N_HASH_LEN);
++
++    return( 0 );
++}
++
++int mbedtls_lmots_verify( mbedtls_lmots_context *ctx, const unsigned char *msg,
++                          size_t msg_len, const unsigned char *sig )
++{
++    unsigned char Kc_public_key_candidate[32];
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    if( ctx == NULL || msg == NULL || sig == NULL)
++    {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    if ( !ctx->MBEDTLS_PRIVATE(have_pubkey) )
++    {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    if( ctx->MBEDTLS_PRIVATE(type ) != MBEDTLS_LMOTS_SHA256_N32_W8 )
++    {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    if ( network_bytes_to_val( MBEDTLS_LMOTS_TYPE_LEN,
++                               sig + MBEDTLS_LMOTS_SIG_TYPE_OFFSET ) != MBEDTLS_LMOTS_SHA256_N32_W8 )
++    {
++        return( MBEDTLS_ERR_LMOTS_VERIFY_FAILED );
++    }
++
++    ret = mbedtls_lmots_generate_pub_key_candidate( ctx->MBEDTLS_PRIVATE(I_key_identifier),
++                                                    ctx->MBEDTLS_PRIVATE(q_leaf_identifier_bytes),
++                                                    msg, msg_len, sig,
++                                                    Kc_public_key_candidate );
++    if ( ret )
++    {
++        return( ret );
++    }
++
++    if ( memcmp( &Kc_public_key_candidate, ctx->MBEDTLS_PRIVATE(pub_key),
++                 sizeof( ctx->MBEDTLS_PRIVATE(pub_key) ) ) )
++    {
++        return( MBEDTLS_ERR_LMOTS_VERIFY_FAILED );
++    }
++
++    return( 0 );
++}
++
++int mbedtls_lmots_import_pubkey( mbedtls_lmots_context *ctx,
++                                 const unsigned char *key )
++{
++    if ( ctx == NULL || key == NULL)
++    {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    ctx->MBEDTLS_PRIVATE(type) = network_bytes_to_val( MBEDTLS_LMOTS_TYPE_LEN,
++                                                       key + MBEDTLS_LMOTS_SIG_TYPE_OFFSET );
++
++    memcpy( ctx->MBEDTLS_PRIVATE(I_key_identifier), key + MBEDTLS_LMOTS_PUBKEY_I_KEY_ID_OFFSET,
++            MBEDTLS_LMOTS_I_KEY_ID_LEN );
++
++    memcpy( ctx->MBEDTLS_PRIVATE(q_leaf_identifier_bytes), key + MBEDTLS_LMOTS_PUBKEY_Q_LEAF_ID_OFFSET,
++            MBEDTLS_LMOTS_Q_LEAF_ID_LEN );
++    ctx->MBEDTLS_PRIVATE(q_leaf_identifier) = network_bytes_to_val( MBEDTLS_LMOTS_Q_LEAF_ID_LEN,
++                                                                    ctx->MBEDTLS_PRIVATE(q_leaf_identifier_bytes) );
++
++    memcpy( ctx->MBEDTLS_PRIVATE(pub_key), key + MBEDTLS_LMOTS_PUBKEY_KEY_HASH_OFFSET, MBEDTLS_LMOTS_N_HASH_LEN );
++
++    ctx->MBEDTLS_PRIVATE(have_pubkey) = 1;
++
++    return( 0 );
++}
++
++int mbedtls_lmots_export_pubkey( mbedtls_lmots_context *ctx,
++                                 unsigned char *key )
++{
++    if ( ctx == NULL || key == NULL)
++    {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    if ( ! ctx->MBEDTLS_PRIVATE(have_pubkey) )
++    {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    val_to_network_bytes( ctx->MBEDTLS_PRIVATE(type), MBEDTLS_LMOTS_TYPE_LEN,
++                          key + MBEDTLS_LMOTS_SIG_TYPE_OFFSET );
++
++    memcpy( key + MBEDTLS_LMOTS_PUBKEY_I_KEY_ID_OFFSET, ctx->MBEDTLS_PRIVATE(I_key_identifier),
++            MBEDTLS_LMOTS_I_KEY_ID_LEN );
++
++    memcpy( key + MBEDTLS_LMOTS_PUBKEY_Q_LEAF_ID_OFFSET, ctx->MBEDTLS_PRIVATE(q_leaf_identifier_bytes),
++            MBEDTLS_LMOTS_Q_LEAF_ID_LEN );
++
++    memcpy( key + MBEDTLS_LMOTS_PUBKEY_KEY_HASH_OFFSET, ctx->MBEDTLS_PRIVATE(pub_key),
++            MBEDTLS_LMOTS_N_HASH_LEN );
++
++    return( 0 );
++}
++
++
++int mbedtls_lmots_gen_pubkey( mbedtls_lmots_context *ctx )
++{
++    unsigned char y_hashed_symbols[MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN][32];
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    if( ctx == NULL )
++    {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    /* Check that a private key is loaded */
++    if ( !ctx->MBEDTLS_PRIVATE(have_privkey) )
++    {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    ret = hash_symbol_array( ctx->MBEDTLS_PRIVATE(I_key_identifier),
++                             ctx->MBEDTLS_PRIVATE(q_leaf_identifier_bytes),
++                             ( const unsigned char( *)[32] )(ctx->MBEDTLS_PRIVATE(priv_key)),
++                             NULL, NULL, y_hashed_symbols );
++    if ( ret )
++    {
++        return( ret );
++    }
++
++    ret = public_key_from_hashed_symbol_array( ctx->MBEDTLS_PRIVATE(I_key_identifier),
++                                               ctx->MBEDTLS_PRIVATE(q_leaf_identifier_bytes),
++                                               ( const unsigned char( *)[32] )y_hashed_symbols,
++                                               ctx->MBEDTLS_PRIVATE(pub_key) );
++    if ( ret )
++    {
++        return( ret );
++    }
++
++    ctx->MBEDTLS_PRIVATE(have_pubkey = 1);
++
++    return( ret );
++}
++
++int mbedtls_lmots_gen_privkey( mbedtls_lmots_context *ctx,
++                               const unsigned char I_key_identifier[MBEDTLS_LMOTS_I_KEY_ID_LEN],
++                               unsigned int q_leaf_identifier,
++                               const unsigned char *seed,
++                               size_t seed_len )
++{
++    mbedtls_md_context_t hash_ctx;
++    unsigned int i_symbol_idx;
++    unsigned char i_symbol_idx_bytes[2];
++    unsigned char const_bytes[1];
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    if( ctx == NULL || I_key_identifier == NULL || seed == NULL)
++    {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    if ( ctx->MBEDTLS_PRIVATE(have_privkey) )
++    {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    if ( ctx->MBEDTLS_PRIVATE(type) != MBEDTLS_LMOTS_SHA256_N32_W8 ) {
++        return( MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA );
++    }
++
++    memcpy( ctx->MBEDTLS_PRIVATE(I_key_identifier), I_key_identifier,
++            sizeof( ctx->MBEDTLS_PRIVATE(I_key_identifier) ) );
++
++    ctx->MBEDTLS_PRIVATE(q_leaf_identifier) = q_leaf_identifier;
++
++    val_to_network_bytes( ctx->MBEDTLS_PRIVATE(q_leaf_identifier), MBEDTLS_LMOTS_Q_LEAF_ID_LEN,
++                          ctx->MBEDTLS_PRIVATE(q_leaf_identifier_bytes) );
++
++    val_to_network_bytes( 0xFF, sizeof( const_bytes ), const_bytes );
++
++    for ( i_symbol_idx = 0; i_symbol_idx < MBEDTLS_LMOTS_P_SIG_SYMBOL_LEN; i_symbol_idx++ )
++    {
++        mbedtls_md_init( &hash_ctx );
++        ret = mbedtls_md_setup( &hash_ctx, mbedtls_md_info_from_type( MBEDTLS_MD_SHA256 ), 0 );
++        if( ret )
++        {
++            goto out;
++        }
++        ret = mbedtls_md_starts( &hash_ctx );
++        if ( ret )
++        {
++            goto out;
++        }
++
++        ret = mbedtls_md_update( &hash_ctx, ctx->MBEDTLS_PRIVATE(I_key_identifier),
++                                 sizeof( ctx->MBEDTLS_PRIVATE(I_key_identifier) ) );
++        if ( ret ) {
++            goto out;
++        }
++
++        ret = mbedtls_md_update( &hash_ctx, ctx->MBEDTLS_PRIVATE(q_leaf_identifier_bytes),
++                                 sizeof( ctx->MBEDTLS_PRIVATE(q_leaf_identifier_bytes) ) );
++        if ( ret )
++        {
++            goto out;
++        }
++
++        val_to_network_bytes( i_symbol_idx, I_SYMBOL_IDX_LEN, i_symbol_idx_bytes );
++        ret = mbedtls_md_update( &hash_ctx, i_symbol_idx_bytes, I_SYMBOL_IDX_LEN );
++        if ( ret )
++        {
++            goto out;
++        }
++
++        ret = mbedtls_md_update( &hash_ctx, const_bytes, sizeof( const_bytes) );
++        if ( ret )
++        {
++            goto out;
++        }
++
++        ret = mbedtls_md_update( &hash_ctx, seed, seed_len );
++        if ( ret )
++        {
++            goto out;
++        }
++
++        ret = mbedtls_md_finish( &hash_ctx, ctx->MBEDTLS_PRIVATE(priv_key)[i_symbol_idx] );
++        if ( ret )
++        {
++            goto out;
++        }
++
++        mbedtls_md_free( &hash_ctx);
++    }
++
++    ctx->MBEDTLS_PRIVATE(have_privkey) = 1;
++
++out:
++    if( ret )
++    {
++        mbedtls_md_free( &hash_ctx );
++        return( ret );
++    }
++
++    return ret;
++}
++
++#endif /* MBEDTLS_LMOTS_C */
+diff --git a/library/lms.c b/library/lms.c
+new file mode 100644
+index 000000000..e1ac7b935
+--- /dev/null
++++ b/library/lms.c
+@@ -0,0 +1,718 @@
++/*
++ *  The LMS stateful-hash public-key signature scheme
++ *
++ *  Copyright The Mbed TLS Contributors
++ *  SPDX-License-Identifier: Apache-2.0
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License"); you may
++ *  not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *  http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++ *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
++
++/*
++ *  The following sources were referenced in the design of this implementation
++ *  of the LMS algorithm:
++ *
++ *  [1] IETF RFC8554
++ *      D. McGrew, M. Curcio, S.Fluhrer
++ *      https://datatracker.ietf.org/doc/html/rfc8554
++ *
++ *  [2] NIST Special Publication 800-208
++ *      David A. Cooper et. al.
++ *      https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-208.pdf
++ */
++
++#include "common.h"
++
++#ifdef MBEDTLS_LMS_C
++
++#include <string.h>
++
++#include "mbedtls/lms.h"
++#include "mbedtls/lmots.h"
++#include "mbedtls/md.h"
++#include "mbedtls/error.h"
++#include "mbedtls/platform_util.h"
++
++#if defined(MBEDTLS_PLATFORM_C)
++#include "mbedtls/platform.h"
++#else
++#include <stdlib.h>
++#include <stdio.h>
++#define mbedtls_printf printf
++#define mbedtls_calloc calloc
++#define mbedtls_free   free
++#endif
++
++#define MERKLE_TREE_NODE_AM (1 << (MBEDTLS_LMS_H_TREE_HEIGHT + 1))
++#define MERKLE_TREE_LEAF_AM (1 << MBEDTLS_LMS_H_TREE_HEIGHT)
++#define MERKLE_TREE_INTR_AM (1 << MBEDTLS_LMS_H_TREE_HEIGHT)
++
++#define D_CONST_LEN           (2)
++
++#define D_LEAF_CONSTANT     (0x8282)
++#define D_INTR_CONSTANT     (0x8383)
++
++static void val_to_network_bytes(unsigned int val, size_t len, unsigned char *bytes)
++{
++    size_t idx;
++
++    for (idx = 0; idx < len; idx++) {
++        bytes[idx] = (val >> ((len - 1 - idx) * 8)) & 0xFF;
++    }
++}
++
++static unsigned int network_bytes_to_val(size_t len, const unsigned char *bytes)
++{
++    size_t idx;
++    unsigned int val = 0;
++
++    for (idx = 0; idx < len; idx++) {
++        val |= ((unsigned int)bytes[idx]) << (8 * (len - 1 - idx));
++    }
++
++    return val;
++}
++
++static int create_merkle_leaf_node( const mbedtls_lms_context *ctx,
++                                    unsigned char pub_key[MBEDTLS_LMOTS_N_HASH_LEN],
++                                    unsigned int r_node_idx,
++                                    unsigned char out[32] )
++{
++    mbedtls_md_context_t hash_ctx;
++    unsigned char D_LEAF_bytes[D_CONST_LEN];
++    unsigned char r_node_idx_bytes[4];
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    mbedtls_md_init( &hash_ctx );
++    ret = mbedtls_md_setup( &hash_ctx, mbedtls_md_info_from_type( MBEDTLS_MD_SHA256 ), 0 );
++    if( ret )
++    {
++        goto out;
++    }
++    ret = mbedtls_md_starts( &hash_ctx );
++    if( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_update( &hash_ctx,
++                             ctx->MBEDTLS_PRIVATE(I_key_identifier),
++                             MBEDTLS_LMOTS_I_KEY_ID_LEN );
++    if( ret )
++    {
++        goto out;
++    }
++
++    val_to_network_bytes( r_node_idx, 4, r_node_idx_bytes );
++    ret = mbedtls_md_update( &hash_ctx, r_node_idx_bytes, 4 );
++    if( ret )
++    {
++        goto out;
++    }
++
++    val_to_network_bytes( D_LEAF_CONSTANT, D_CONST_LEN, D_LEAF_bytes );
++    ret = mbedtls_md_update( &hash_ctx, D_LEAF_bytes, D_CONST_LEN );
++    if( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_update( &hash_ctx, pub_key, MBEDTLS_LMOTS_N_HASH_LEN );
++    if( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_finish( &hash_ctx, out );
++    if( ret )
++    {
++        goto out;
++    }
++
++out:
++    mbedtls_md_free( &hash_ctx );
++
++    return( ret );
++}
++
++static int create_merkle_intr_node( const mbedtls_lms_context *ctx,
++                                    const unsigned char left_node[32],
++                                    const unsigned char rght_node[32],
++                                    unsigned int r_node_idx,
++                                    unsigned char out[32] )
++{
++    mbedtls_md_context_t hash_ctx;
++    unsigned char D_INTR_bytes[D_CONST_LEN];
++    unsigned char r_node_idx_bytes[4];
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    mbedtls_md_init( &hash_ctx );
++    ret = mbedtls_md_setup( &hash_ctx, mbedtls_md_info_from_type( MBEDTLS_MD_SHA256 ), 0 );
++    if( ret )
++    {
++        goto out;
++    }
++    ret = mbedtls_md_starts( &hash_ctx );
++    if( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_update( &hash_ctx, ctx->MBEDTLS_PRIVATE(I_key_identifier),
++                             MBEDTLS_LMOTS_I_KEY_ID_LEN );
++    if( ret )
++    {
++        goto out;
++    }
++
++    val_to_network_bytes( r_node_idx, 4, r_node_idx_bytes );
++    ret = mbedtls_md_update( &hash_ctx, r_node_idx_bytes, 4 );
++    if( ret )
++    {
++        goto out;
++    }
++
++    val_to_network_bytes( D_INTR_CONSTANT, D_CONST_LEN, D_INTR_bytes );
++    ret = mbedtls_md_update( &hash_ctx, D_INTR_bytes, D_CONST_LEN );
++    if( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_update( &hash_ctx, left_node, MBEDTLS_LMOTS_N_HASH_LEN );
++    if( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_update( &hash_ctx, rght_node, MBEDTLS_LMOTS_N_HASH_LEN );
++    if( ret )
++    {
++        goto out;
++    }
++
++    ret = mbedtls_md_finish( &hash_ctx, out );
++    if( ret )
++    {
++        goto out;
++    }
++
++out:
++    mbedtls_md_free( &hash_ctx );
++
++    return ret;
++}
++
++static int generate_merkle_tree( mbedtls_lms_context *ctx,
++                                 unsigned char tree[MERKLE_TREE_NODE_AM][32] )
++{
++    unsigned int priv_key_idx;
++    unsigned int r_node_idx;
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    /* First create the leaf nodes, in ascending order */
++    for( priv_key_idx = 0; priv_key_idx < MERKLE_TREE_INTR_AM; priv_key_idx++ )
++    {
++        r_node_idx = MERKLE_TREE_INTR_AM + priv_key_idx;
++
++        ret = create_merkle_leaf_node( ctx, ctx->MBEDTLS_PRIVATE(priv_keys)[priv_key_idx].pub_key,
++                                       r_node_idx, tree[r_node_idx] );
++        if( ret )
++        {
++            return( ret );
++        }
++    }
++
++    /* Then the internal nodes, in reverse order so that we can guarantee the
++     * parent has been created */
++    for( r_node_idx = MERKLE_TREE_INTR_AM - 1; r_node_idx > 0; r_node_idx-- )
++    {
++        ret = create_merkle_intr_node( ctx, tree[(r_node_idx * 2)],
++                                       tree[(r_node_idx * 2 + 1)],
++                                       r_node_idx, tree[r_node_idx] );
++        if( ret )
++        {
++            return( ret );
++        }
++    }
++
++    return( 0 );
++}
++
++static int get_merkle_path( mbedtls_lms_context *ctx,
++                            unsigned int leaf_node_id, unsigned char path[MBEDTLS_LMS_H_TREE_HEIGHT][32] )
++{
++    unsigned char tree[MERKLE_TREE_NODE_AM][32];
++    unsigned int curr_node_id = leaf_node_id;
++    unsigned int parent_node_id;
++    unsigned char sibling_relative_id;
++    unsigned int adjacent_node_id;
++    unsigned int height;
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    ret = generate_merkle_tree( ctx, tree);
++    if( ret )
++    {
++        return( ret );
++    }
++
++    for( height = 0; height < MBEDTLS_LMS_H_TREE_HEIGHT; height++ )
++    {
++        parent_node_id = ( curr_node_id / 2 );
++
++        /* 0 if the node is a left child, 1 if the node is a right child */
++        sibling_relative_id = curr_node_id & 1;
++
++        adjacent_node_id = ( parent_node_id * 2 ) + ( 1 - sibling_relative_id );
++
++        memcpy( &path[height], &tree[adjacent_node_id], MBEDTLS_LMOTS_N_HASH_LEN );
++
++        curr_node_id = parent_node_id;
++    }
++
++    return( 0 );
++}
++
++void mbedtls_lms_init( mbedtls_lms_context *ctx )
++{
++    if( ctx == NULL )
++    {
++        return;
++    }
++
++    mbedtls_platform_zeroize( ctx, sizeof( mbedtls_lms_context ) ) ;
++}
++
++void mbedtls_lms_free( mbedtls_lms_context *ctx )
++{
++    unsigned int idx;
++
++    if( ctx == NULL )
++    {
++        return;
++    }
++
++    if( ctx->MBEDTLS_PRIVATE(have_privkey) )
++    {
++        for( idx = 0; idx < MERKLE_TREE_LEAF_AM; idx++ )
++        {
++            mbedtls_lmots_free( &ctx->MBEDTLS_PRIVATE(priv_keys)[idx] );
++        }
++
++        mbedtls_free( ctx->MBEDTLS_PRIVATE(priv_keys) );
++    }
++
++    mbedtls_platform_zeroize( ctx, sizeof( mbedtls_lms_context ) );
++}
++
++int mbedtls_lms_set_algorithm_type( mbedtls_lms_context *ctx,
++                                    mbedtls_lms_algorithm_type_t type,
++                                    mbedtls_lmots_algorithm_type_t otstype )
++{
++    if( ctx == NULL )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    ctx->MBEDTLS_PRIVATE(type) = type;
++    ctx->MBEDTLS_PRIVATE(otstype) = otstype;
++
++    return( 0 );
++}
++
++int mbedtls_lms_sign( mbedtls_lms_context *ctx,
++                      int ( *f_rng)(void *, unsigned char *, size_t),
++                      void* p_rng, unsigned char *msg, unsigned int msg_len,
++                      unsigned char *sig )
++{
++    unsigned int q_leaf_identifier;
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    if( ctx == NULL )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( ! ctx->MBEDTLS_PRIVATE(have_privkey) )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( msg == NULL )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( sig == NULL )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++
++    if( ctx->MBEDTLS_PRIVATE(type) != MBEDTLS_LMS_SHA256_M32_H10 )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( ctx->MBEDTLS_PRIVATE(otstype) != MBEDTLS_LMOTS_SHA256_N32_W8 )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++
++    if( ctx->MBEDTLS_PRIVATE(q_next_usable_key) >= MERKLE_TREE_LEAF_AM )
++    {
++        return( MBEDTLS_ERR_LMS_OUT_OF_PRIV_KEYS );
++    }
++
++
++    q_leaf_identifier = ctx->MBEDTLS_PRIVATE(q_next_usable_key);
++    /* This new value must _always_ be written back to the disk before the
++     * signature is returned.
++     */
++    ctx->MBEDTLS_PRIVATE(q_next_usable_key) += 1;
++
++    ret = mbedtls_lmots_sign( &ctx->MBEDTLS_PRIVATE(priv_keys)[q_leaf_identifier],
++                              f_rng, p_rng, msg, msg_len,
++                              sig + MBEDTLS_LMS_SIG_OTS_SIG_OFFSET );
++    if( ret )
++    {
++        return( ret );
++    }
++
++    val_to_network_bytes( ctx->MBEDTLS_PRIVATE(type), MBEDTLS_LMS_TYPE_LEN,
++                          sig + MBEDTLS_LMS_SIG_TYPE_OFFSET );
++    val_to_network_bytes( q_leaf_identifier, MBEDTLS_LMOTS_Q_LEAF_ID_LEN,
++                          sig + MBEDTLS_LMS_SIG_Q_LEAF_ID_OFFSET);
++
++    ret = get_merkle_path( ctx, MERKLE_TREE_INTR_AM + q_leaf_identifier,
++                           ( unsigned char( * )[32] )( sig + MBEDTLS_LMS_SIG_PATH_OFFSET ) );
++    if( ret )
++    {
++        return( ret );
++    }
++
++    return( 0 );
++}
++
++int mbedtls_lms_verify( const mbedtls_lms_context *ctx,
++                        const unsigned char *msg, unsigned int msg_len,
++                        const unsigned char *sig )
++{
++    unsigned int q_leaf_identifier;
++    unsigned char Kc_candidate_ots_pub_key[MBEDTLS_LMOTS_N_HASH_LEN];
++    unsigned char Tc_candidate_root_node[32];
++    unsigned int height;
++    unsigned int curr_node_id;
++    unsigned int parent_node_id;
++    const unsigned char* left_node;
++    const unsigned char* rght_node;
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    if( ctx == NULL )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( ! ctx->MBEDTLS_PRIVATE(have_pubkey) )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( msg == NULL)
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( sig == NULL)
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( ctx->MBEDTLS_PRIVATE(type) != MBEDTLS_LMS_SHA256_M32_H10 )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( ctx->MBEDTLS_PRIVATE(otstype) != MBEDTLS_LMOTS_SHA256_N32_W8 )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++
++    if( network_bytes_to_val( MBEDTLS_LMS_TYPE_LEN,
++                              sig + MBEDTLS_LMS_SIG_TYPE_OFFSET) != MBEDTLS_LMS_SHA256_M32_H10 )
++    {
++        return( MBEDTLS_ERR_LMS_VERIFY_FAILED );
++    }
++
++    if( network_bytes_to_val( MBEDTLS_LMOTS_TYPE_LEN,
++                              sig + MBEDTLS_LMS_SIG_OTS_SIG_OFFSET + MBEDTLS_LMOTS_SIG_TYPE_OFFSET)
++        != MBEDTLS_LMOTS_SHA256_N32_W8 )
++    {
++        return( MBEDTLS_ERR_LMS_VERIFY_FAILED );
++    }
++
++
++    q_leaf_identifier = network_bytes_to_val( MBEDTLS_LMOTS_Q_LEAF_ID_LEN,
++                                              sig + MBEDTLS_LMS_SIG_Q_LEAF_ID_OFFSET );
++
++    if( q_leaf_identifier >= MERKLE_TREE_LEAF_AM )
++    {
++        return( MBEDTLS_ERR_LMS_VERIFY_FAILED );
++    }
++
++    ret = mbedtls_lmots_generate_pub_key_candidate( ctx->MBEDTLS_PRIVATE(I_key_identifier),
++                                                    sig + MBEDTLS_LMS_SIG_Q_LEAF_ID_OFFSET,
++                                                    msg, msg_len,
++                                                    sig + MBEDTLS_LMS_SIG_OTS_SIG_OFFSET,
++                                                    Kc_candidate_ots_pub_key );
++    if( ret )
++    {
++        return( ret );
++    }
++
++    create_merkle_leaf_node( ctx, Kc_candidate_ots_pub_key,
++                             MERKLE_TREE_INTR_AM + q_leaf_identifier,
++                             Tc_candidate_root_node );
++
++    curr_node_id = MERKLE_TREE_INTR_AM + q_leaf_identifier;
++
++    for( height = 0; height < MBEDTLS_LMS_H_TREE_HEIGHT; height++ )
++    {
++        parent_node_id = curr_node_id / 2;
++
++        /* Left/right node ordering matters for the hash */
++        if( curr_node_id & 1 )
++        {
++            left_node = ( ( const unsigned char( * )[32] )( sig + MBEDTLS_LMS_SIG_PATH_OFFSET ) )[height];
++            rght_node = Tc_candidate_root_node;
++        }
++        else
++        {
++            left_node = Tc_candidate_root_node;
++            rght_node = ( ( const unsigned char( * )[32] )( sig + MBEDTLS_LMS_SIG_PATH_OFFSET ) )[height];
++        }
++
++        create_merkle_intr_node( ctx, left_node, rght_node, parent_node_id,
++                                 Tc_candidate_root_node);
++
++        curr_node_id /= 2;
++    }
++
++    if( memcmp( Tc_candidate_root_node, ctx->MBEDTLS_PRIVATE(T_1_pub_key),
++                MBEDTLS_LMOTS_N_HASH_LEN) )
++    {
++        return( MBEDTLS_ERR_LMS_VERIFY_FAILED );
++    }
++
++    return( 0 );
++}
++
++int mbedtls_lms_import_pubkey( mbedtls_lms_context *ctx,
++                               const unsigned char *key )
++{
++    mbedtls_lms_algorithm_type_t type;
++    mbedtls_lmots_algorithm_type_t otstype;
++
++    if( ctx == NULL )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( key == NULL )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    type = network_bytes_to_val( MBEDTLS_LMS_TYPE_LEN, key + MBEDTLS_LMS_PUBKEY_TYPE_OFFSET );
++    if( type != MBEDTLS_LMS_SHA256_M32_H10 )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++    ctx->MBEDTLS_PRIVATE(type) = type;
++
++    otstype = network_bytes_to_val( MBEDTLS_LMOTS_TYPE_LEN,
++                                    key + MBEDTLS_LMS_PUBKEY_OTSTYPE_OFFSET );
++    if( otstype != MBEDTLS_LMOTS_SHA256_N32_W8 )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++    ctx->MBEDTLS_PRIVATE(otstype) = otstype;
++
++    memcpy( ctx->MBEDTLS_PRIVATE(I_key_identifier), key + MBEDTLS_LMS_PUBKEY_I_KEY_ID_OFFSET,
++            MBEDTLS_LMOTS_I_KEY_ID_LEN );
++    memcpy( ctx->MBEDTLS_PRIVATE(T_1_pub_key), key + MBEDTLS_LMS_PUBKEY_ROOT_NODE_OFFSET,
++            MBEDTLS_LMOTS_N_HASH_LEN );
++
++    ctx->MBEDTLS_PRIVATE(have_pubkey) = 1;
++
++    return( 0 );
++}
++
++int mbedtls_lms_export_pubkey( mbedtls_lms_context *ctx,
++                               unsigned char *key )
++{
++    if( ctx == NULL )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( key == NULL )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( ! ctx->MBEDTLS_PRIVATE(have_pubkey) )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    val_to_network_bytes( ctx->MBEDTLS_PRIVATE(type),
++                          MBEDTLS_LMS_TYPE_LEN, key + MBEDTLS_LMS_PUBKEY_TYPE_OFFSET );
++    val_to_network_bytes( ctx->MBEDTLS_PRIVATE(otstype),
++                          MBEDTLS_LMOTS_TYPE_LEN, key + MBEDTLS_LMS_PUBKEY_OTSTYPE_OFFSET );
++    memcpy( key + MBEDTLS_LMS_PUBKEY_I_KEY_ID_OFFSET,
++            ctx->MBEDTLS_PRIVATE(I_key_identifier),
++            MBEDTLS_LMOTS_I_KEY_ID_LEN );
++    memcpy( key + MBEDTLS_LMS_PUBKEY_ROOT_NODE_OFFSET,
++            ctx->MBEDTLS_PRIVATE(T_1_pub_key),
++            MBEDTLS_LMOTS_N_HASH_LEN );
++
++    return( 0 );
++}
++
++int mbedtls_lms_gen_pubkey( mbedtls_lms_context *ctx )
++{
++    unsigned char tree[MERKLE_TREE_NODE_AM][32];
++    unsigned int idx;
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    if( ctx == NULL )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( ! ctx->MBEDTLS_PRIVATE( have_privkey ) )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( ctx->MBEDTLS_PRIVATE(type) != MBEDTLS_LMS_SHA256_M32_H10 )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( ctx->MBEDTLS_PRIVATE(otstype) != MBEDTLS_LMOTS_SHA256_N32_W8 )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    for( idx = 0; idx < MERKLE_TREE_LEAF_AM; idx++ )
++    {
++        ret = mbedtls_lmots_gen_pubkey( &ctx->MBEDTLS_PRIVATE(priv_keys)[idx] );
++        if( ret )
++        {
++            return( ret );
++        }
++    }
++
++    ret = generate_merkle_tree( ctx, tree);
++    if( ret )
++    {
++        return( ret );
++    }
++
++    /* Root node is always at position 1, due to 1-based indexing */
++    memcpy( ctx->MBEDTLS_PRIVATE(T_1_pub_key), &tree[1], MBEDTLS_LMOTS_N_HASH_LEN );
++
++    ctx->MBEDTLS_PRIVATE(have_pubkey) = 1;
++
++    return( 0 );
++}
++
++int mbedtls_lms_gen_privkey( mbedtls_lms_context *ctx,
++                             int ( *f_rng)(void *, unsigned char *, size_t),
++                             void* p_rng, unsigned char *seed,
++                             size_t seed_len )
++{
++    unsigned int idx;
++    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
++
++    if( ctx == NULL )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( ctx->MBEDTLS_PRIVATE(type) != MBEDTLS_LMS_SHA256_M32_H10 )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( ctx->MBEDTLS_PRIVATE(otstype) != MBEDTLS_LMOTS_SHA256_N32_W8 )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    if( ctx->MBEDTLS_PRIVATE(have_privkey) )
++    {
++        return( MBEDTLS_ERR_LMS_BAD_INPUT_DATA );
++    }
++
++    f_rng( p_rng, ctx->MBEDTLS_PRIVATE(I_key_identifier),
++           sizeof( ctx->MBEDTLS_PRIVATE(I_key_identifier) ) );
++
++    ctx->MBEDTLS_PRIVATE(priv_keys) = mbedtls_calloc( MERKLE_TREE_LEAF_AM,
++                                                      sizeof( mbedtls_lmots_context));
++    if( ctx->MBEDTLS_PRIVATE(priv_keys) == NULL )
++    {
++        ret = MBEDTLS_ERR_LMS_ALLOC_FAILED;
++        goto out;
++    }
++
++    for( idx = 0; idx < MERKLE_TREE_LEAF_AM; idx++ )
++    {
++        mbedtls_lmots_init( &ctx->MBEDTLS_PRIVATE(priv_keys)[idx] );
++        ret = mbedtls_lmots_set_algorithm_type( &ctx->MBEDTLS_PRIVATE(priv_keys)[idx],
++                                                ctx->MBEDTLS_PRIVATE(otstype) );
++        if( ret)
++        {
++            goto out;
++        }
++    }
++
++
++    for( idx = 0; idx < MERKLE_TREE_LEAF_AM; idx++ )
++    {
++        ret = mbedtls_lmots_gen_privkey( &ctx->MBEDTLS_PRIVATE(priv_keys)[idx],
++                                         ctx->MBEDTLS_PRIVATE(I_key_identifier),
++                                         idx, seed, seed_len );
++        if( ret)
++        {
++            goto out;
++        }
++    }
++
++    ctx->MBEDTLS_PRIVATE(q_next_usable_key) = 0;
++    ctx->MBEDTLS_PRIVATE(have_privkey) = 1;
++
++out:
++    if( ret )
++    {
++        mbedtls_free( ctx->MBEDTLS_PRIVATE(priv_keys) );
++        return( ret );
++    }
++
++    return( 0 );
++}
++
++#endif /* MBEDTLS_LMS_C */
+diff --git a/scripts/generate_errors.pl b/scripts/generate_errors.pl
+index 0a03f02e9..d333f6590 100755
+--- a/scripts/generate_errors.pl
++++ b/scripts/generate_errors.pl
+@@ -47,7 +47,7 @@ my $error_format_file = $data_dir.'/error.fmt';
+ 
+ my @low_level_modules = qw( AES ARIA ASN1 BASE64 BIGNUM
+                             CAMELLIA CCM CHACHA20 CHACHAPOLY CMAC CTR_DRBG DES
+-                            ENTROPY ERROR GCM HKDF HMAC_DRBG MD5
++                            ENTROPY ERROR GCM HKDF HMAC_DRBG LMS LMOTS MD5
+                             NET OID PADLOCK PBKDF2 PLATFORM POLY1305 RIPEMD160
+                             SHA1 SHA256 SHA512 THREADING );
+ my @high_level_modules = qw( CIPHER DHM ECP MD
+diff --git a/tests/suites/test_suite_lmots.data b/tests/suites/test_suite_lmots.data
+new file mode 100644
+index 000000000..ed192bf7d
+--- /dev/null
++++ b/tests/suites/test_suite_lmots.data
+@@ -0,0 +1,29 @@
++LMOTS sign-verify test #1
++lmots_sign_verify_test:"c41ba177a0ca1ec31dfb2e145237e65b"
++
++LMOTS sign-verify test #2
++lmots_sign_verify_test:"55a6647a581004306792b653a561d9f3"
++
++LMOTS hash-sigs interop test #1
++lmots_verify_test:"C80B24A82D52963AB241C84DCF0EEE55BB24F9F0":"00000004DB3B6B24FD191CE8894AE3C4E2CE2DE0C3F5D508691A9162F37704E07838488466CCD746E55BC8E3055C7A4D4DA2E10775DAFA2E8E5FEFB1CEB25973BC3323B61DE5E2EA7DCFF15DA482320F958023CA2E718C69B977019E8F2FCD47151388E2E5E11170AFE93BDEB508362B3A317835A9DDEB18F0CDCCC0731902DB3D37F441C93A490DE53962A915AB5060A1C157D61DDF061F272362AB7FD9EE95AE48D3448F204C81A3F260792784E1BFB49871A27C09CC549A406520F0B40BC74CAAD082EAAB12C994B8495B8C80E96384FF2222255BE6C4EE5AF439534E616F9C0B53E951F69D59BD0506C0C0366A679A8329ACF6E2D1D4E4EF49D35375A8EA46FCF3C9B2F8E033C242EC61B796E43B901407077A2AF3F0AABD2D0CB9004F10D91B57C2D5E8BA7BA9268FF94962CC102F55B5120D7D2F7A3BE281BA01D78895ADA2F05B77967EDA0E1EDEAFBB9BBC3D68DCBF682FBC70467FA2BEE5DE65F54247C4BE5BEF41F5108B6CD09E7698E3AAEA04B60746EDD0E2623B66B092DDA21EFA5A0D36805D101D805CC06F0E818B46059B3984C8B8A526C4239F66ED34B8CA57E178DC5E7B8D2BE029114B4CE466E2B5A081729B3F3A3F3845DDE177062F201C09125ED3CC381AF35EAD795440C421A136F941F09F3E4BA9E0203CBA875AF477AB0246342700F323E65DC327D27966377D871FD9C58BEC8797DEF35E1D0751A554719828B87332F601884EBFECB63A8D4F390785B3826BFA384BE502D2322C919ABD12A486C2AB124DCB7B74DE91241A30EF0388411E52145A88971C6C0A4E7C4F23EDD8D6008065A3D108C6B1EC5219BB0DFDBD37EE3A7A8DD37E3563A5777838FCA61E9E744813F39CF70B5A0F50E1BD4FF8733A3BDA76D2135969809D91A9786F22DC2ACBA4E0164C411019EC77A0BD253A42AC7528FC7C0DA1711FBD6C23825207060463080F9E04B7D819C8B150C22B8BA87C6277696EC409369C48AC0E3233DE52D31EF6D2207D2B57DFC2D0C43BE8212EAE6CB1BACBC2D3568E5527A14065D5F1F56AAE2AFB5FB1CEFFC228A30692BD030C71F4872DB54F2632CD919DA61576CF58D1EBE3D7988183A9C789EB74A3D7F6BBEBAC035A43397BF684C9E1130B252940DBA4454311A6A3D54D9386D48E1D5A3E70944EDF725AEDC5440CD610F79AB05A43C917FFC15213295EB8CB8432B6554A47C2AD419ADD52E0F5E0BD7A1E0F873257E69F8647F3A07093387B7A64C4812CDBEE536E45D531F89653AC5F14A4715CFF40692346FE6CBF2F9B92D9F1101C379AFD5E6154605059C1DA463B407E79C139396623DC7F15EEFCE424C8E214C6A645EF002F90A230D8F62177CBCF2A688D4F822B119835AD3D3A619F46230257A5AD59CB0924B2584DBA96AADE0A2487E7409EE5993A4F0E3DC46C10B96595CDD17D72C35EF4A52C5906655B0AE649B5DE03B7D46F3839E808761EE05E9300050647593C048669A952324B0188ED225AD11BED3FD94E44E134FB9D6DAD53CC34ECF62695E30637C4528C450D62174E2F8ABA2C09F134412EF889C24B36224BE4259B363A9D8EB89BAEE16BE1898D46":"000000048440BBD3F47A167DD2D0E446DBCEA774000000138686E25BC07C69B43A2D3B7165DFF85C134177C876EA47D96FEF069BC96A981A":0
++
++LMOTS hash-sigs interop test #2
++lmots_verify_test:"85A77D026E8C704B14EF665DEB0A648350FA8859":"00000004BEEF900CA9A14982E011A5A94503D566288932AD4B9CB85D1551C766A56F788B0D223FBA0E1AD722BE48365B4CE5DA21051B3A79EAD8C1046944192EE51E162DE1E9AE9B13DD8FA90867A17666CB8967F7CD7F4F5383703CCFF555EEBDC8123AF3C4E39D0A5D61725B6A7F23CE587D256C08D31510BCD895106CD524B432A9211CDCBDF5ADDAD5F1D76D428A76DF2556FFA8AB546CFAAA7F2FE86164B976FDA2940498DB0D1A2DE29972FFD55D83E7CA3318DBAC31670565A1E5F59E36342F887E0EF7855AD93CA5F1951307D79EEA375168BC35A3A0B053AEBDB4D7157AD929B0D7DE9FC1E8C32C9A2D679843CBC77560EEDA5959D0AC8407648344C6952649A303E7B6FCC2EE979E1B2786B898A01E2918894DB4E37A0ED79A30260A45959B4BB3016F081181190CB740376389827B2D56DF7EC00871DC9A198B74C7C6086C940A845D54198F2D5DD7A47F97A192F33A85AAA1304A3251B82AC33C5E7B3BA20D2A9BD49BBEE0B2DA2338E578E6F139BB7596DC3BD89E86CB393C42765B9FE85457116906C3F9A8499CF5E539A5CCB3F6D1F36CA209DE6942F807E579AF0EBF072EA110A812C9E420647CE7C8B2BDBB5F56C5B3B7EA80A53C3574F4ED32E4708DFEED60280ABBE2021B3791B0CB09C1F0731353234A6A327CDDFD4E3E2D9DD5A16FCDE3EEF09C67065BD702C07B53A005D3FE7D23FFD77D40E49C82165EB104343A166E808A3CAEDE1A43AE3A82E1788B49C565CF88A2AB8E2FD37657D53E3679D7A818D864F55144011AB498A4A985C46342F3562FD80ECB86497C3DBB759006E5FFFDC01CAA15C69B716174EDCB6E9870CF391003D3826451D1BEFDCC84C093428EE01DAF883190F5D2542B36A7DE44A453AECD5E93B768ACEE75076BE3D73A66F17CFD8E4A49B1F61CE9446815A86FF5FB0EA070A751893C85360C038A161D3DD4D2C66F440E7265153AB346EF620156605C028DD9636FAE0C9A20DF09303ECC5E57A6424505530F70D25F1C95FE51CBD82C2AD0015EB9AD5379CEC463FA0331A14DD971B7C2311FC45979C531653E7252884BAB7C49F8CD652BDF6FDFA76984445C63B54ED22B4A8A267D091381BE7B9B7608133968BA46106BF42B9091F78C085E674D1F70FB91C68D07733F6412B1583DD2F37C6ECAD6BCCE1A1C7D0A7CA80677F679A5AFE08D15427E5C78CE6EB9AA90F51F40343DC9FD1316DCEB2C1EF8EA217B714B0DE1AEECE04D19D0D7757481EDA6E8C51BE85B7B24720E8D62B8AEC56C1A1B9D278B874AACC0B492CF44ED4E7B1200C82323C1AFA0FC776E92B227E8979E3A92EAB05FCF18A43AE648397088F4991F73ECE22C03B3F42F51C0C0FE0DF37919D048FB473F7AB0E33310B9782DE56384BD888CE5E2A644E20A52DD47F710DB0D3169991E29E716ABFD84CA4850080B6C252CB96CD8979189819E532DF56ECB172F773919733BF4D442901EBFB656EBFED4C6D83FAFF288279779499091C94432ECDF83188048AB596D65BC48FA708D485F9CDC50C8B470DFE22157E8F5EE366722A04E8CE7B861573E5FC97D34055BB50B562738F803B202F7F8":"00000004DE9CE10EA7125AC6399B6B3C7EE24224000000161D61E675F3EA19C5B95DA4EE2E35BA061B39E7639F3989F8AE4B0696B3F87E4E":0
++
++LMOTS hash-sigs interop test #3
++lmots_verify_test:"C32F83EFBFD87F386A6C0850CBB93A75F2506A35":"00000004BD2D174BEBEEF1CAF06E4BF1088DE2AAB17C0528579BD4E1C4A1ED583C36BDACA49798373961B605EAEFAEFC0B4BC39C7AD30572CD29BEBE9AEE503CA2D8BF8C31C8A1B71CF67A18EE01A8A878699F22A1AEE32731E51E3EAD3775EFD8339E263C5A4544559506BA5502B9AEF59217ABC24923EC5E28D18BA18B0D964DB277007A76B8075B39F48CDA92148C9BAE1C7E5421CA753FA2D6BEAE8F49977E4E5B6F38D35BA28A526A53061E57BB92DA0EBBD4AE01AE9FADBED74F503DC39FA2E10C20B47DFB3DFBE25EC35618D2307D21716B10F8FB5095B42C289D1847E5D6F9988C6763D288667D3B658A4F3613E084DAE8B78E0B295A6ED28E88C676995AA5EB1533CDF8EB6F95A5E5117F06B1759495A9CB6E40FBF1F97FF73FDCBFD315C48DA631AB0425CA0633817C46F25E84AEEA37DD77310EE56815E83F862EF14E15FC1246243AA02F40EA32567237D5ADC2944BD63CF55FA4F0DE251B3F5C067D9EC396D5E20F9CEF2C555D89DA721D91D6D607653B97636AB10B74F39FA984D23A3D276EFF5F49C336274A66AC491EDE34686C6CFC17F5312FD3E3E5749A2E472011FA391A5ACF09D918B01704B447FD5E3EA6BB726A3475775DFE6A98CE5473CDEDB630EA4D604BAF36A8B8A8E567F05929E8A74970AA742FBC945021017E464E753D5AC497925AA4AECA0CBF562B2E39F891E177FD8E4E61A698B099D21F13EFD0DE5357A1970314D8E3AA1D2A84D3BCF75A7876C16F585322CC4C613FE3AC8FEA5F258FC9C7200765E9209378C362AFC1A478A117D913CE2BEFEB51103E48D0802618C50918005F1AA4228B67BA1A1B001A91A032019A135B8AEEE3D0158A602C8DCCE5A6580DECC16204E410CBB15FCF36704BB2ECB826A229E45C454B4A5DFC12796E636B300C624DB4E6EAB424B17A18A5A5F52399F247A1507A5985D06F90889FE381129148AF8447B392D4EC0775D91502B48D9F212FCE3F81639901C462F752E27FBEEC9E2B7F8CCD16053FB839E8ADF8CD3E8FF8AF3B3E884F4F524C2026BD3B337B7058B53CFC7596F9C813FFD746B8AC0012C60E96140934B4EED1D8602E57A1A6EBC01FCFD66053AF9614FAF0D0F7320D50D440F2A3148A0DAEF5E2FA31F854D56045065AFAA52A60DC3321E2D7C104FF505057D55CD94C53C31C14DB0DAA4D55C4065CD9BCD78E1B8532A680F7DC3544021346CC59ADEC061DDA1B7606BAF28AD87C39AB8AF3D03E981EFFE50B4D5347175517EF212E61F02B594A96492091AC82625D334504EF19BEEE52E01B111D43313F35EC69C88EF38926071506AB3A5B372DD6F2B901AC1E12E61CCB3ACD3D0777A7A10F137126DAD0D1970D369A067C3A1F19D9CB8756D7130B7EB0C08CF725EB2ADFAD61204195CE14F3C99A88A9B8FA2FDCBD612DF9266614DEA073C9EDABE07B3793048167D4DA49B305AE27974D48A296871350DE036CAA348D2F9A9CB19DC094E5904E25DDCF5657227DCD2A4E620121FBDA032A58836EDC14F3A7C4E51319A60F91F941CC61757498B769799394574C9D198426AC3499F0D0BA1770AD6BAA0D3716333F785A9D7D":"00000004DA66203A7E7BCA2362DB3C8E897A84B10000000D1BD4EE08FAA341C2CE018BD12776E1B8E6B8B2C1EEDAE6BD0998E52F089936FE":0
++
++LMOTS hash-sigs interop negative test (altered random value)
++lmots_verify_test:"C80B24A82D52963AB241C84DCF0EEE55BB24F9F0":"00000004CB3B6B24FD191CE8894AE3C4E2CE2DE0C3F5D508691A9162F37704E07838488466CCD746E55BC8E3055C7A4D4DA2E10775DAFA2E8E5FEFB1CEB25973BC3323B61DE5E2EA7DCFF15DA482320F958023CA2E718C69B977019E8F2FCD47151388E2E5E11170AFE93BDEB508362B3A317835A9DDEB18F0CDCCC0731902DB3D37F441C93A490DE53962A915AB5060A1C157D61DDF061F272362AB7FD9EE95AE48D3448F204C81A3F260792784E1BFB49871A27C09CC549A406520F0B40BC74CAAD082EAAB12C994B8495B8C80E96384FF2222255BE6C4EE5AF439534E616F9C0B53E951F69D59BD0506C0C0366A679A8329ACF6E2D1D4E4EF49D35375A8EA46FCF3C9B2F8E033C242EC61B796E43B901407077A2AF3F0AABD2D0CB9004F10D91B57C2D5E8BA7BA9268FF94962CC102F55B5120D7D2F7A3BE281BA01D78895ADA2F05B77967EDA0E1EDEAFBB9BBC3D68DCBF682FBC70467FA2BEE5DE65F54247C4BE5BEF41F5108B6CD09E7698E3AAEA04B60746EDD0E2623B66B092DDA21EFA5A0D36805D101D805CC06F0E818B46059B3984C8B8A526C4239F66ED34B8CA57E178DC5E7B8D2BE029114B4CE466E2B5A081729B3F3A3F3845DDE177062F201C09125ED3CC381AF35EAD795440C421A136F941F09F3E4BA9E0203CBA875AF477AB0246342700F323E65DC327D27966377D871FD9C58BEC8797DEF35E1D0751A554719828B87332F601884EBFECB63A8D4F390785B3826BFA384BE502D2322C919ABD12A486C2AB124DCB7B74DE91241A30EF0388411E52145A88971C6C0A4E7C4F23EDD8D6008065A3D108C6B1EC5219BB0DFDBD37EE3A7A8DD37E3563A5777838FCA61E9E744813F39CF70B5A0F50E1BD4FF8733A3BDA76D2135969809D91A9786F22DC2ACBA4E0164C411019EC77A0BD253A42AC7528FC7C0DA1711FBD6C23825207060463080F9E04B7D819C8B150C22B8BA87C6277696EC409369C48AC0E3233DE52D31EF6D2207D2B57DFC2D0C43BE8212EAE6CB1BACBC2D3568E5527A14065D5F1F56AAE2AFB5FB1CEFFC228A30692BD030C71F4872DB54F2632CD919DA61576CF58D1EBE3D7988183A9C789EB74A3D7F6BBEBAC035A43397BF684C9E1130B252940DBA4454311A6A3D54D9386D48E1D5A3E70944EDF725AEDC5440CD610F79AB05A43C917FFC15213295EB8CB8432B6554A47C2AD419ADD52E0F5E0BD7A1E0F873257E69F8647F3A07093387B7A64C4812CDBEE536E45D531F89653AC5F14A4715CFF40692346FE6CBF2F9B92D9F1101C379AFD5E6154605059C1DA463B407E79C139396623DC7F15EEFCE424C8E214C6A645EF002F90A230D8F62177CBCF2A688D4F822B119835AD3D3A619F46230257A5AD59CB0924B2584DBA96AADE0A2487E7409EE5993A4F0E3DC46C10B96595CDD17D72C35EF4A52C5906655B0AE649B5DE03B7D46F3839E808761EE05E9300050647593C048669A952324B0188ED225AD11BED3FD94E44E134FB9D6DAD53CC34ECF62695E30637C4528C450D62174E2F8ABA2C09F134412EF889C24B36224BE4259B363A9D8EB89BAEE16BE1898D46":"000000048440BBD3F47A167DD2D0E446DBCEA774000000138686E25BC07C69B43A2D3B7165DFF85C134177C876EA47D96FEF069BC96A981A":MBEDTLS_ERR_LMOTS_VERIFY_FAILED
++
++LMOTS negative test (invalid type) #1
++lmots_verify_test:"0000000000000000000000000000000000000000":"0000000500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":"0000000500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA
++
++LMOTS negative test (invalid type) #2
++lmots_verify_test:"0000000000000000000000000000000000000000":"0000000300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":"0000000300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":MBEDTLS_ERR_LMOTS_BAD_INPUT_DATA
++
++LMOTS key import / export test
++lmots_import_export_test:"000000048440BBD3F47A167DD2D0E446DBCEA774000000138686E25BC07C69B43A2D3B7165DFF85C134177C876EA47D96FEF069BC96A981A"
++
++LMOTS key reuse test
++lmots_reuse_test:"cfcd1e81193e310c9d931d1b00818d14"
+diff --git a/tests/suites/test_suite_lmots.function b/tests/suites/test_suite_lmots.function
+new file mode 100644
+index 000000000..6de94d124
+--- /dev/null
++++ b/tests/suites/test_suite_lmots.function
+@@ -0,0 +1,108 @@
++/* BEGIN_HEADER */
++#include "mbedtls/lmots.h"
++#include "mbedtls/entropy.h"
++#include "mbedtls/ctr_drbg.h"
++
++/* END_HEADER */
++
++/* BEGIN_DEPENDENCIES
++ * depends_on:MBEDTLS_LMOTS_C:MBEDTLS_SHA256_C:MBEDTLS_CTR_DRBG_C
++ * END_DEPENDENCIES
++ */
++
++/* BEGIN_CASE */
++void lmots_sign_verify_test ( data_t * msg )
++{
++    mbedtls_lmots_context ctx;
++    unsigned char sig[MBEDTLS_LMOTS_SIG_LEN];
++    mbedtls_entropy_context entropy_ctx;
++    mbedtls_ctr_drbg_context drbg_ctx;
++    uint8_t seed[16];
++
++    mbedtls_entropy_init( &entropy_ctx );
++    mbedtls_ctr_drbg_init( &drbg_ctx );
++    mbedtls_lmots_init( &ctx );
++
++    TEST_ASSERT( mbedtls_ctr_drbg_seed( &drbg_ctx, mbedtls_entropy_func,
++                 &entropy_ctx, (uint8_t*)"", 0 ) == 0 );
++    TEST_ASSERT( mbedtls_ctr_drbg_random( &drbg_ctx, seed, sizeof( seed ) ) == 0 );
++
++    TEST_ASSERT( mbedtls_lmots_set_algorithm_type(&ctx, MBEDTLS_LMOTS_SHA256_N32_W8) == 0 );
++    TEST_ASSERT( mbedtls_lmots_gen_privkey(&ctx, (uint8_t[16]){0}, 0x12, seed, sizeof( seed ) ) == 0 );
++    TEST_ASSERT( mbedtls_lmots_gen_pubkey(&ctx) == 0 );
++    TEST_ASSERT( mbedtls_lmots_sign(&ctx, mbedtls_ctr_drbg_random, &drbg_ctx, msg->x, msg->len, sig ) == 0 );
++    TEST_ASSERT( mbedtls_lmots_verify(&ctx, msg->x, msg->len, sig) == 0 );
++
++exit:
++    mbedtls_entropy_free( &entropy_ctx );
++    mbedtls_ctr_drbg_free( &drbg_ctx );
++    mbedtls_lmots_free( &ctx );
++}
++/* END_CASE */
++
++/* BEGIN_CASE */
++void lmots_verify_test ( data_t * msg, data_t * sig, data_t * pub_key,
++                          int expected_rc )
++{
++    mbedtls_lmots_context ctx;
++
++    mbedtls_lmots_init( &ctx );
++
++    mbedtls_lmots_import_pubkey( &ctx, pub_key->x );
++
++    TEST_ASSERT(mbedtls_lmots_verify( &ctx, msg->x, msg->len, sig->x ) == expected_rc );
++
++exit:
++    mbedtls_lmots_free( &ctx );
++}
++/* END_CASE */
++
++/* BEGIN_CASE */
++void lmots_import_export_test (  data_t * pub_key )
++{
++    mbedtls_lmots_context ctx;
++    uint8_t exported_pub_key[MBEDTLS_LMOTS_PUBKEY_LEN];
++
++    mbedtls_lmots_init( &ctx );
++    TEST_ASSERT( mbedtls_lmots_import_pubkey( &ctx, pub_key->x ) == 0 );
++    TEST_ASSERT( mbedtls_lmots_export_pubkey( &ctx, exported_pub_key ) == 0 );
++
++    TEST_ASSERT( memcmp( pub_key->x, exported_pub_key, MBEDTLS_LMOTS_PUBKEY_LEN ) == 0 );
++
++exit:
++    mbedtls_lmots_free( &ctx );
++}
++/* END_CASE */
++
++/* BEGIN_CASE */
++void lmots_reuse_test ( data_t * msg )
++{
++    mbedtls_lmots_context ctx;
++    unsigned char sig[MBEDTLS_LMOTS_SIG_LEN];
++    mbedtls_entropy_context entropy_ctx;
++    mbedtls_ctr_drbg_context drbg_ctx;
++    uint8_t seed[16];
++
++    mbedtls_entropy_init( &entropy_ctx );
++    mbedtls_ctr_drbg_init( &drbg_ctx );
++    TEST_ASSERT( mbedtls_ctr_drbg_seed(&drbg_ctx, mbedtls_entropy_func,
++                 &entropy_ctx, (uint8_t*)"", 0 ) == 0 );
++
++    mbedtls_ctr_drbg_random( &drbg_ctx, seed, sizeof( seed ) );
++
++    mbedtls_lmots_init( &ctx );
++    TEST_ASSERT( mbedtls_lmots_set_algorithm_type( &ctx, MBEDTLS_LMOTS_SHA256_N32_W8 ) == 0 );
++    TEST_ASSERT( mbedtls_lmots_gen_privkey(&ctx, (uint8_t[16]){0}, 0x12, seed, sizeof( seed ) ) == 0 );
++    TEST_ASSERT( mbedtls_lmots_sign(&ctx, mbedtls_ctr_drbg_random, &drbg_ctx, msg->x, msg->len, sig ) == 0 );
++
++    /* Running another sign operation should fail, since the key should now have
++     * been erased.
++     */
++    TEST_ASSERT( mbedtls_lmots_sign(&ctx, mbedtls_ctr_drbg_random, &drbg_ctx, msg->x, msg->len, sig ) != 0 );
++
++exit:
++    mbedtls_entropy_free( &entropy_ctx );
++    mbedtls_ctr_drbg_free( &drbg_ctx );
++    mbedtls_lmots_free( &ctx );
++}
++/* END_CASE */
+diff --git a/tests/suites/test_suite_lms.data b/tests/suites/test_suite_lms.data
+new file mode 100644
+index 000000000..b17fddc15
+--- /dev/null
++++ b/tests/suites/test_suite_lms.data
+@@ -0,0 +1,32 @@
++LMS sign-verify test
++lms_sign_verify_test:"c41ba177a0ca1ec31dfb2e145237e65b"
++
++LMS hash-sigs interop test #1
++lms_verify_test:"D5557C719EBB0DBECF563E5CDB16568BB11CD779":"0000000000000004C167A9AC495BD4EA34CD8EE5AAA2A656D518C33612FD87171421BFC3977CFA99765C6D496499C72A1DE21360DA57EB96BC83DB8AA92E560054C7805B04E336162FB4C411B509F76959F2458B0E53CF830E0145CCD439D494259EA4818CA68924A7E8B9DD36D6A9C7849B72F9338ED6C80A3E70B717E8E65B991B2FF9D8B49820E8ABC9E2ECC17DB38E855DA75D84DF9885C7F9DFB4ABC209CFF1D37D66595371D688A203CB89168945200C39169F784B19665CE1FB47D58BFA734C3E0E7E31D1206A033C6D8E25B7E45CA779A5FDE00C6B1CAC44884F2B52A380E1F6D8753549F7F4948A95AEA83703CF3AA108FA4F735AFC0DA1A03C378033D8B5959E7BE05D3C5070E709181AC09EFEC04128ABD7E8F37304FAD4B66373D4A83CFC1EF632DF6DB95577C2C6101CBDC807109ED8AE831FFB73DBC80942C58F334663B980F982C74B943BF7C57147250AADE595310387E3BB1A2705E9EC73DE7FABDA5EC0B1141A18798215B9A70F8D688357C833ED869059A2AA3360155EF84426288198D0FBB78223816B17093684C48942ED18FCD351C34E108E5B71D1CE39E318B5D991B650C46A91112E013E1180F2054C7A22429CAB31512BA34EA3AD9B68C5001EB70C993297CCF11914ECAF059922DAEE7D90ACE2567495ADA066E7DA1679CA45DAC1990B17184E7BE2E6A0F26AD77F19855D074F5B37372277484CE30B80A0540173C1B310C3E7B683A487B5D0676218EA1F65FEA444C493FC535E948EAB62252DCC90516BB45B60D4253DB6979FE342DC5CA1B86B01B2D8EBA79B0BC7B6984535616B792BB45F3C0E20B506E0694E1D5BA28FE96D34FE2BE354777D090404DD3508E9F7918FF5593ADB468478CA8A1F6AF752CC76F401E373B71471D9D70F455C8A73E4E7B6714394B1DD0E2A816AF3D5149835DAE477A70DEE0BDAC22F99A04BFB7C2D4AD53079C326F620DFD3F7CED4AB7F2E291507AA046331050F9E2205C52B36CBAEE817C5C3B1FBCDE61C54C8CB7B67E0570FA44728EC8FD091D5CEDC19C6B99840F7A0E49086F707E959D34B30E255B67BBAA24FADE532BF3D21825626E114BD8213170B0C2F01733D4ED420D01EE3ACD5F84DACE674AE7127DB0A80ACE252CAD9ADADDAFAB27281AFD6DDD72DB5AF878326C45D7DB1EFF8BC40895A3473A52461D076881310AD9937307217B5C0448B509EF9BA075936CC09E11B8838D3A6BC5EF9FAEA85A3EC87EEFDF2E38CD9732730085375A4FFC4E0A213B0E1FC3DE2D37F1EDACC3030F617F3459A03BFCF776A05FD3B7FD135782F6D6E7C5E92B56A1316525B26D3AE1CEA3C0C7CF3AA7B1E72B7599A31B50837D79A7AB61B9A9E2B7AABD2D605C97E302EB4B66C0588C24147955EA0892A54D42843568FE0863E7EFEAE336D302E672EA62689B4DAA02DD5BC99D93886EC7F411C53CE1CAEAB59FBC0B06E0E294F1900F8C626C6FF520AE2323DA797CDC120DBC19F7FEBA0E13429508C5B838A0F8B9B28A069C5DD40E2F6CC2C95FC6ACE7E1351516817BD2DC1AE08D498AD2B0BD1D8374942FF31FC6A4689C592244C919C3561E73DD4986FA500000006BBF34F6EE152B64FCDD1CB6848D2DA761798707060431761006E2EBD9312851F4F3DF3C46E10F643DDD58CB3D9F4D371F655EE26271F2DDE84A14CAA6A077DD96AF83849DE6CA8F2F3248902CBF49630C18C3EE3123D951CE9162D0E742B899AF9E5DA8D28A41C7CADF0194CDB09418BF48BF322F8C5E9563524196FA8AB785B43C4EA41A36148028D2F4C7356CDEEB09532CD7F2C80FC36589FF7A9954100C8697AEB014997C3088C242B4F70D26CE7F7E77384A9CF536EC5C5329E08BD6C1D65EFEFC1389A42D16FFB43A0E1D7661220E92A4A59703FB28410E73A677E803D4441929DFD7269E6F77AE8CA8C70B67B250A8728291EA5D4E3F03D505639408C88156DCBECC137142FA3585C09D99B84D8C380A5D29CE2ADA10A25F7CF939FE23288551F37FE2B7233BF97C0F5726B972E087BCBA095957CCD794794A4F50027":"00000006000000046B0927585C8547228D495361D73B970C287A2254BF8F1B170E55ACC9520A56CE5D2C711B6617718B49247D28CCC6D11D":0
++
++LMS hash-sigs interop test #2
++lms_verify_test:"DA16BE0B8FB691248486ACAFD531BE6EE4C362E0":"000000000000000484FCD0D791D175A0F86D64B2E8949F793CA9FFDC0347DE125DDB2F895BB9D2B43740B9B326B24F934D67586812BE6F3FB57E76FB12FBAD60A685F22A82C95C84AFAE63F47BB3CD951D483F61F5626B2B5FB6FDCA0CF02293EFDE1EB0AF6712D635678E825099E95435B43EF83C49C6589054D0905D82D597FB11A721D2232AD168FD179724539699C21163D5ADEB52290CB711C368572FF8BB95AA61DF2AD128307E768E73D3CF2BAFEAC8B6CD165BDD0316D2663D1ED61A15FB974082FC66A55E13ABA4FD084970EF6A59B0DFA1E934BF0E056C86E9B4C5B94CF863AB9F23BE2DB6A140A9CAA8DB31C83B21BDBDCD07304A52EB8501869D86BFDB68A376D94F847EED7E4CAB6A6EEC063945AE4DAF657D5509249E7FE430F5A13B188C4DD311F01746CE28F4F6540041EF6ADB299F712F591C83B0C12C1FB3E4A878C63217E25E08C004571FFC69E9C684E46F4D36C36409EBF3EB15F32A187176F4D177E0FE0E71ADFD4DA4AD2D57A0256B29AD5DAA6867AED20CC862AF5729D030514D41BB8D74551D8E925322C81A357A586227BBC885AB683BF835E9333A056AFEE96F2AD0FF6D6E235A9E2BC342ACBCF0B8EACC95E7B74215F6C65F12829433301F004EE1D9CFD16A4A1D092F48E99AEAE9E1FA4619ECE5E05F5C19F33C4C94A774EB8955409E3CFA73D8807CAA7C55FE45E980C7E7626AAA193F18A3AA7E525FFA6466D728FA25563DD383D855A0B6F8C011AC8C79C853CBED3A016DC26EF6E90B3E78119E465B9962A42B6AC168C1CDC9DB860D740B0C797303E2A62445FA618B5EB417BD4385C15BC548FEDF4D4842CA43F95188FFF63EB5D4AC85DAE618FDFB6CF5969EA0A3A52F73A4AC4957BC4EBCFEF593923EC79196021B25ED8D7558E4AF41ED74941585AC575CF1971D4F4C7C9E9516276734FF9FAFC7DE661F3090F71C98962789B31EA0FE406E2EF02F6F16B1708258C7559B8E05E27D647AD472805C865299FE30A5FE451DA7F2C493A37AA1655D492EC891B9AF559E12104CDD2EEB2E54138A1FB5A403AA32CEEB3946471A299604FA2DD3CA3E9567D01A3CEE5D09A1C2768B521C0C6142AF297CA5BFB3878B32D37D415542C15F655CB051240F3BA8FCE0E38449A0D7010A9B56BA2283E3A2047215813ED2090F7BDF16A40ADE32AB4E669684E6DEB6A94633E6643F29D10914F5A361C964CA9145514D4B80B45F3276EB0C649622034E71925FA038EB35E64C71CBDB11E91D779339516A351BD2A722CB60C2CBF145689B2E3F6FAEB74C3B58283929F70023503A96FED6A5D7D8A9E495FE1D85E0FCEC555F86747347D2FB5219FF65EFD144A5E1E88C63BE4259C42F6899C103536D75E0526508649E2836CACB94E88BD954B88EAC26F17B27BF62546C5C7573E2BC9EF4B65B8AE4951AF532F968FF050E504CC236DC48379E4390079DE451DCE710F9674D753C85B9FF7E7B09ED051EDD14C33AAFC8A188AE06234DFB61FE5A75C7A760B5286E1D6993BCEA0AB8A2C1D632145BD6A9F109ABB04E0B102D50DCB8C607AD6BA8C5FA5B21663E5A40194CA5DC2294BE10044E8D96AA0000000694ABC63BC5B27730C5223943C8341461474033BE3A221AFFDE66242AF14510CC656480CBDFC0B35205C89258A18BF6C29C4708CB2572DE15EE5DD481BC47060254954B5C5DD881AE6B358F7CDAB6F117235AAAC625B2750DB72BA4A96D7DFAA889BE780416E1CB264A413C6713710102D1D433BC6D0A47BF08AA74FD613D292A867261181BBD73557EE3AEB0F63579B71E58E97BAC1AACA3F34646350A13BB7ACE0AB3B062C41518768ABF3D32FB2F6A5E5C7F6B8B04C943D25A82F03F977755D74FD717A4B7E7674B03B577405210E23A2FE050E036DB0730359366A9436AD2CBCCE3E649F9E40023B2C12D9F5AA824319EAF571FD4842E573BB100BE9715D7B71F75521640D9B69B889349A283D62350D3A37264C89930F40603A5458B124EA850BA59024A46A8F325C9A9776817D739692FFAEA2758249888BF79D66FD496":"00000006000000043FC8322D04908C7C06C0D8B7A0CE24FA3AC253393CF9A56CF760294A06E75223E38C9E5329DDC493D8B51B1A4BBE41F8":0
++
++LMS hash-sigs interop test #3
++lms_verify_test:"331D543362A163390508127AFB9894B8C18C6E0A":"0000000000000004F5378439E9C229550D40B725FD56BE48DB785093E62BD29B723C61FABEDCFD486EFA120445339DE2A21A8C7465073ACBFD6DE3E50F395AAC20E0BCB23B088C416199F80B540AA81B2C0B12B7785152263522E8F79AEBE3B28315CC834AEB68475CADBC724DB6B7B7F594A7F9DA2505F5F44DAA7EEF70B72665A250C1F61A19F3FA4CBF389BEB9B31DC327882D7983EEED46DA8E00AEBEF85AE179EBF6D8CC7F720E9F963C4D30DD4015DAA27993D0780AFD7A45688422B1444AD866FEFE12EBD94B4D313517708A6E652D6206A8B263E234685D8133C2258EF6CA9E9C6FFD6D153598B13B59576897DC4F77C71609427866A347AE62B5C3BACB0A2E44B60F2CCB4989B0C57F3E785CDCF22B1FC8C3460A163FF2BE7A578E82429BA823F392A13C11A5639A42453972D2185E81809EF0666F8F01F575FBD9A46135F45651AA814D9BA84F774A9E9303FD55038CA41A21484BA9C38E69BCE4E37052971690ED3EEC4ED9AD41B0AEAE4DCC913443B9FA5418FB75DC1725FA989BA8DB5D9E221804FC7F36F3135C8B93AFF66DF89408CFD50993D308E51DF00540F380C0AD06266B80F646B917BA58384B55658EAD2D453766C4843FCDD934E8352A6DF6A081A15BDE07BF67E977E72BFE1AC37F411111A0A4D101A2CCF95EBEC7FCFC82B45DBA88939B0831987AE4D15C05A2E08F713BB0B6BB0E2436B7F9C83D2D869432465DEB9185913DE215937EFB4A52DA50BEF88688F5AB4397A04B14CDBFA5BFD948CD6EA1122D9D3C2927DE9D066297AA2C6FE8E478EC0F41459287EF9B8A1A56164C72AE3DCE5E914E8BC3C3821E0ADD6D1C9048D71BD71F71F3A6E04E63687298DE5A3704ADA82AA369CCD7F342F79E988A7BE066CA55944E0E3712F472891761E5617DC048C69AA4C250AA1560D6591FC0E7492027BEED67310E3482B1487E41DEA5E070894A5FB93FF4462D1F60C4B1CA7C15275EEA2B3790ED12EA930FD7F7F07D60807E4AAB73D1F889DABF2E687A487F331AC17D8DE24E8448E672F87424F0D1A73721A1A987519D0E3BB91D15D012B1FCDB6E23EEA17E93869C5199984CE8A068CA96C3096273F8B23160A79EE0C208D9B70ED5E23CB3586DFD33E02D06F1C646250BD664C27D2BB9614FF5F043A6FEE1A235DA10DCAADB19205CB839BD616BB36B738AA28E1D4F767BD8BAB6C2F84887C7B2E16CF6E07AF90C1FCB6E6E5A4CC894072AF4393C63F7119FF694BF0A043AF5F0825557A99C40BABBDA97D5648687D493367812743335A8AD7696562538C8BA5DED182C4DC818E7E9F630B29A9534E2583E0F4B5862D4E4DB250A350BAF360EF133838FE55AA683E253746A704654EF692F4F818F5A172AB0B84673D0AF77CC1DF189AA5BB013E833D1B0943918768AC6A83E6BFB306D3C3786BD2C87129BFEA1C380A84C4983D262184427284BF3DEB9B4C58FB1899B07B9F60B4402618168B1445653E8E48CD92C048684302A6F5C217F110D6699707BA42316CB31FE8F4DA6B82243CF1264751225594AF1BB670339A9189163DB9E985A99BCF83A3039AF3E65BBCD8364745356B29D761853E00000006CDE5B63B9763DA3EABCFFDA517688BDEC2AE9213E6B0FD7003D95458798AE9449DE4F1135E093B39F597A34B14AAB7F596E25BA469533442F54C14921ABCC5D04A05486CD16C8564E6A19C11BEDA574A9800107DCEAD013A7E6A32966B5BBE9FDFDB0184FE0707209B6D9EC43066899717E487E5FDEE02061EA5069B2D6C9C87D6BEB1310F1B9E723AE372DB7BE9EF6657F51FD0DE62464D3B37755095829F625EA76F5FD7FCD5829863F963FCD7F9FFFF3729688D025DF7952B067C62198E4C6CE06E960B0BAC6ADBC9459D9AC0BE1BAD46F95A121BBBE6953BAA10252419E2AB6BCA1B0AA1FA64DF728160B4FB7A62499C24D269FF59977649064C5986D615E6952EA0DA5B1C04C443BC27A63D391D5BFAE824F0161791E65896DC100EAF80037FD800A5079337554BD990E0D0A1A4C4C45741E72FB3E840665F2881D2CCC5":"000000060000000461F2DF219685CF313043780A57C18071725490AB8D53B676D484238BA8C373572407938CC578045649964958C0A872FA":0
++
++LMS hash-sigs interop negative test (altered random value)
++lms_verify_test:"D5557C719EBB0DBECF563E5CDB16568BB11CD779":"0000000000000004B167A9AC495BD4EA34CD8EE5AAA2A656D518C33612FD87171421BFC3977CFA99765C6D496499C72A1DE21360DA57EB96BC83DB8AA92E560054C7805B04E336162FB4C411B509F76959F2458B0E53CF830E0145CCD439D494259EA4818CA68924A7E8B9DD36D6A9C7849B72F9338ED6C80A3E70B717E8E65B991B2FF9D8B49820E8ABC9E2ECC17DB38E855DA75D84DF9885C7F9DFB4ABC209CFF1D37D66595371D688A203CB89168945200C39169F784B19665CE1FB47D58BFA734C3E0E7E31D1206A033C6D8E25B7E45CA779A5FDE00C6B1CAC44884F2B52A380E1F6D8753549F7F4948A95AEA83703CF3AA108FA4F735AFC0DA1A03C378033D8B5959E7BE05D3C5070E709181AC09EFEC04128ABD7E8F37304FAD4B66373D4A83CFC1EF632DF6DB95577C2C6101CBDC807109ED8AE831FFB73DBC80942C58F334663B980F982C74B943BF7C57147250AADE595310387E3BB1A2705E9EC73DE7FABDA5EC0B1141A18798215B9A70F8D688357C833ED869059A2AA3360155EF84426288198D0FBB78223816B17093684C48942ED18FCD351C34E108E5B71D1CE39E318B5D991B650C46A91112E013E1180F2054C7A22429CAB31512BA34EA3AD9B68C5001EB70C993297CCF11914ECAF059922DAEE7D90ACE2567495ADA066E7DA1679CA45DAC1990B17184E7BE2E6A0F26AD77F19855D074F5B37372277484CE30B80A0540173C1B310C3E7B683A487B5D0676218EA1F65FEA444C493FC535E948EAB62252DCC90516BB45B60D4253DB6979FE342DC5CA1B86B01B2D8EBA79B0BC7B6984535616B792BB45F3C0E20B506E0694E1D5BA28FE96D34FE2BE354777D090404DD3508E9F7918FF5593ADB468478CA8A1F6AF752CC76F401E373B71471D9D70F455C8A73E4E7B6714394B1DD0E2A816AF3D5149835DAE477A70DEE0BDAC22F99A04BFB7C2D4AD53079C326F620DFD3F7CED4AB7F2E291507AA046331050F9E2205C52B36CBAEE817C5C3B1FBCDE61C54C8CB7B67E0570FA44728EC8FD091D5CEDC19C6B99840F7A0E49086F707E959D34B30E255B67BBAA24FADE532BF3D21825626E114BD8213170B0C2F01733D4ED420D01EE3ACD5F84DACE674AE7127DB0A80ACE252CAD9ADADDAFAB27281AFD6DDD72DB5AF878326C45D7DB1EFF8BC40895A3473A52461D076881310AD9937307217B5C0448B509EF9BA075936CC09E11B8838D3A6BC5EF9FAEA85A3EC87EEFDF2E38CD9732730085375A4FFC4E0A213B0E1FC3DE2D37F1EDACC3030F617F3459A03BFCF776A05FD3B7FD135782F6D6E7C5E92B56A1316525B26D3AE1CEA3C0C7CF3AA7B1E72B7599A31B50837D79A7AB61B9A9E2B7AABD2D605C97E302EB4B66C0588C24147955EA0892A54D42843568FE0863E7EFEAE336D302E672EA62689B4DAA02DD5BC99D93886EC7F411C53CE1CAEAB59FBC0B06E0E294F1900F8C626C6FF520AE2323DA797CDC120DBC19F7FEBA0E13429508C5B838A0F8B9B28A069C5DD40E2F6CC2C95FC6ACE7E1351516817BD2DC1AE08D498AD2B0BD1D8374942FF31FC6A4689C592244C919C3561E73DD4986FA500000006BBF34F6EE152B64FCDD1CB6848D2DA761798707060431761006E2EBD9312851F4F3DF3C46E10F643DDD58CB3D9F4D371F655EE26271F2DDE84A14CAA6A077DD96AF83849DE6CA8F2F3248902CBF49630C18C3EE3123D951CE9162D0E742B899AF9E5DA8D28A41C7CADF0194CDB09418BF48BF322F8C5E9563524196FA8AB785B43C4EA41A36148028D2F4C7356CDEEB09532CD7F2C80FC36589FF7A9954100C8697AEB014997C3088C242B4F70D26CE7F7E77384A9CF536EC5C5329E08BD6C1D65EFEFC1389A42D16FFB43A0E1D7661220E92A4A59703FB28410E73A677E803D4441929DFD7269E6F77AE8CA8C70B67B250A8728291EA5D4E3F03D505639408C88156DCBECC137142FA3585C09D99B84D8C380A5D29CE2ADA10A25F7CF939FE23288551F37FE2B7233BF97C0F5726B972E087BCBA095957CCD794794A4F50027":"00000006000000046B0927585C8547228D495361D73B970C287A2254BF8F1B170E55ACC9520A56CE5D2C711B6617718B49247D28CCC6D11D":MBEDTLS_ERR_LMS_VERIFY_FAILED
++
++LMS negative test (invalid lms type) #1
++lms_verify_test:"0000000000000000000000000000000000000000":"000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000070000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":"0000000700000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":MBEDTLS_ERR_LMS_BAD_INPUT_DATA
++
++LMS negative test (invalid lms type) #2
++lms_verify_test:"0000000000000000000000000000000000000000":"000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":"0000000500000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":MBEDTLS_ERR_LMS_BAD_INPUT_DATA
++
++LMS negative test (invalid lm_ots type) #1
++lms_verify_test:"0000000000000000000000000000000000000000":"000000000000000300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":"0000000600000003000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":MBEDTLS_ERR_LMS_BAD_INPUT_DATA
++
++LMS negative test (invalid lm_ots type) #2
++lms_verify_test:"0000000000000000000000000000000000000000":"000000000000000500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":"0000000600000005000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":MBEDTLS_ERR_LMS_BAD_INPUT_DATA
++
++LMS negative test (invalid leaf ID)
++lms_verify_test:"0000000000000000000000000000000000000000":"000004000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":"0000000600000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":MBEDTLS_ERR_LMS_VERIFY_FAILED
++
++LMS import/export test
++lms_import_export_test:"00000006000000046B0927585C8547228D495361D73B970C287A2254BF8F1B170E55ACC9520A56CE5D2C711B6617718B49247D28CCC6D11D"
+diff --git a/tests/suites/test_suite_lms.function b/tests/suites/test_suite_lms.function
+new file mode 100644
+index 000000000..c3ebb9214
+--- /dev/null
++++ b/tests/suites/test_suite_lms.function
+@@ -0,0 +1,84 @@
++/* BEGIN_HEADER */
++#include "mbedtls/lms.h"
++#include "mbedtls/entropy.h"
++#include "mbedtls/ctr_drbg.h"
++
++/* END_HEADER */
++
++/* BEGIN_DEPENDENCIES
++ * depends_on:MBEDTLS_LMS_C:MBEDTLS_SHA256_C:MBEDTLS_CTR_DRBG_C
++ * END_DEPENDENCIES
++ */
++
++/* BEGIN_CASE */
++void lms_sign_verify_test ( data_t * msg )
++{
++    mbedtls_lms_context ctx;
++    unsigned char sig[MBEDTLS_LMS_SIG_LEN];
++    mbedtls_entropy_context entropy_ctx;
++    mbedtls_ctr_drbg_context drbg_ctx;
++    uint8_t seed[16];
++    int rc;
++
++    mbedtls_entropy_init( &entropy_ctx );
++    mbedtls_ctr_drbg_init( &drbg_ctx );
++    mbedtls_lms_init( &ctx );
++
++    TEST_ASSERT( mbedtls_ctr_drbg_seed( &drbg_ctx, mbedtls_entropy_func,
++                 &entropy_ctx, ( uint8_t* )"", 0 ) == 0 );
++    TEST_ASSERT( mbedtls_ctr_drbg_random( &drbg_ctx, seed, sizeof( seed ) ) == 0 );
++
++    TEST_ASSERT( mbedtls_lms_set_algorithm_type( &ctx, MBEDTLS_LMS_SHA256_M32_H10, MBEDTLS_LMOTS_SHA256_N32_W8 ) == 0 );
++
++    /* Allocation failure isn't a test failure, since it likely just means there's not enough memory to run the test */
++    rc = mbedtls_lms_gen_privkey( &ctx, mbedtls_ctr_drbg_random, &drbg_ctx, seed, sizeof( seed ) );
++    TEST_ASSUME( rc != MBEDTLS_ERR_LMS_ALLOC_FAILED );
++    TEST_ASSERT( rc == 0 );
++
++    TEST_ASSERT( mbedtls_lms_gen_pubkey( &ctx) == 0 );
++
++    TEST_ASSERT( mbedtls_lms_sign( &ctx, mbedtls_ctr_drbg_random, &drbg_ctx, msg->x, msg->len, sig ) == 0 );
++
++    TEST_ASSERT( mbedtls_lms_verify( &ctx, msg->x, msg->len, sig) == 0 );
++
++exit:
++    mbedtls_entropy_free( &entropy_ctx );
++    mbedtls_ctr_drbg_free( &drbg_ctx );
++    mbedtls_lms_free( &ctx );
++}
++/* END_CASE */
++
++/* BEGIN_CASE */
++void lms_verify_test ( data_t * msg, data_t * sig, data_t * pub_key,
++                          int expected_rc )
++{
++    mbedtls_lms_context ctx;
++
++    mbedtls_lms_init( &ctx);
++
++    mbedtls_lms_import_pubkey( &ctx, pub_key->x );
++
++    TEST_ASSERT( mbedtls_lms_verify( &ctx, msg->x, msg->len, sig->x ) == expected_rc );
++
++exit:
++    mbedtls_lms_free( &ctx );
++}
++/* END_CASE */
++
++/* BEGIN_CASE */
++void lms_import_export_test (  data_t * pub_key )
++{
++    mbedtls_lms_context ctx;
++    uint8_t exported_pub_key[MBEDTLS_LMS_PUBKEY_LEN];
++
++    mbedtls_lms_init(&ctx);
++    TEST_ASSERT( mbedtls_lms_import_pubkey( &ctx, pub_key->x ) == 0 );
++    TEST_ASSERT( mbedtls_lms_export_pubkey( &ctx, exported_pub_key) == 0 );
++
++    ASSERT_COMPARE( pub_key->x, MBEDTLS_LMS_PUBKEY_LEN,
++                    exported_pub_key, MBEDTLS_LMS_PUBKEY_LEN );
++
++exit:
++    mbedtls_lms_free( &ctx );
++}
++/* END_CASE */
+-- 
+2.25.1
+

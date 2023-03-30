@@ -50,6 +50,13 @@ extern "C" {
  */
 typedef void (*gpio_isr_t)(gpio_id_t gpio_id);
 
+typedef struct {
+	uint32_t id;
+	gpio_int_type_t int_type;
+	gpio_isr_t isr;
+	uint32_t valid;
+} gpio_wakeup_config_t;
+
 /**
  * @}
  */

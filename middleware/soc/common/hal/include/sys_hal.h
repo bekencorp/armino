@@ -7,6 +7,7 @@
 #include <driver/hal/hal_pwm_types.h>
 #include <driver/hal/hal_timer_types.h>
 #include <driver/hal/hal_spi_types.h>
+#include <driver/sys_pm_types.h>
 
 
 #ifdef __cplusplus
@@ -31,6 +32,7 @@ void sys_hal_usb_enable_clk(bool en);
 void sys_hal_usb_analog_phy_en(bool en);
 void sys_hal_usb_analog_speed_en(bool en);
 void sys_hal_usb_analog_ckmcu_en(bool en);
+void sys_hal_usb_analog_deepsleep_en(bool en);
 void sys_hal_set_usb_analog_dp_capability(uint8_t capability);
 void sys_hal_set_usb_analog_dn_capability(uint8_t capability);
 void sys_hal_usb_enable_charge(bool en);
@@ -113,6 +115,7 @@ int32 sys_hal_lp_vol_set(uint32_t value);
 uint32_t sys_hal_lp_vol_get();
 int32 sys_hal_module_power_state_get(power_module_name_t module);
 int32 sys_hal_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval);
+int sys_hal_rosc_test_mode(bool enabled);
 int32 sys_hal_bandgap_cali_set(uint32_t value);//increase or decrease the dvdddig voltage
 uint32_t sys_hal_bandgap_cali_get();
 /*low power feature end*/
@@ -260,6 +263,10 @@ void sys_hal_set_ana_reg14_value(uint32_t value);
 void sys_hal_set_ana_reg15_value(uint32_t value);
 void sys_hal_set_ana_reg16_value(uint32_t value);
 void sys_hal_set_ana_reg17_value(uint32_t value);
+void sys_hal_set_ana_reg18_value(uint32_t value);
+void sys_hal_set_ana_reg19_value(uint32_t value);
+void sys_hal_set_ana_reg20_value(uint32_t value);
+void sys_hal_set_ana_reg21_value(uint32_t value);
 void sys_hal_analog_reg4_bits_or(uint32_t value);
 void sys_hal_set_ana_reg6_value(uint32_t value);
 void sys_hal_set_ana_reg7_value(uint32_t value);
@@ -297,6 +304,7 @@ void sys_hal_enable_mac_txrx_misc_int(void);
 void sys_hal_enable_mac_txrx_timer_int(void);
 void sys_hal_enable_modem_int(void);
 void sys_hal_enable_modem_rc_int(void);
+void sys_hal_enable_hsu_int(void);
 //Yantao Add End
 
 void sys_hal_set_ana_vtempsel(uint32_t value);
@@ -324,6 +332,12 @@ void sys_hal_aud_micbias_trim_set(uint32_t value);
 void sys_hal_aud_mic_rst_set(uint32_t value);
 void sys_hal_aud_mic1_gain_set(uint32_t value);
 void sys_hal_aud_mic2_gain_set(uint32_t value);
+void sys_hal_aud_dcoc_en(uint32_t value);
+void sys_hal_aud_lmdcin_set(uint32_t value);
+void sys_hal_aud_audbias_en(uint32_t value);
+void sys_hal_aud_adcbias_en(uint32_t value);
+void sys_hal_aud_micbias_en(uint32_t value);
+void sys_hal_aud_idac_en(uint32_t value);
 void sys_hal_aud_int_en(uint32_t value);
 void sys_hal_sbc_int_en(uint32_t value);
 void sys_hal_aud_power_en(uint32_t value);
@@ -341,14 +355,19 @@ void sys_hal_cpu_fft_int_en(uint32_t value);
 /**  I2S Start  **/
 void sys_hal_i2s_select_clock(uint32_t value);
 void sys_hal_i2s_clock_en(uint32_t value);
+void sys_hal_i2s1_clock_en(uint32_t value);
+void sys_hal_i2s2_clock_en(uint32_t value);
 
 void sys_hal_i2s_disckg_set(uint32_t value);
 void sys_hal_i2s_int_en(uint32_t value);
+void sys_hal_i2s1_int_en(uint32_t value);
+void sys_hal_i2s2_int_en(uint32_t value);
 void sys_hal_apll_en(uint32_t value);
 void sys_hal_cb_manu_val_set(uint32_t value);
 void sys_hal_ana_reg11_vsel_set(uint32_t value);
 void sys_hal_ana_reg10_sdm_val_set(uint32_t value);
 void sys_hal_ana_reg11_spi_trigger_set(uint32_t value);
+void sys_hal_i2s0_ckdiv_set(uint32_t value);
 /**  I2S End  **/
 
 
@@ -378,8 +397,14 @@ void sys_hal_set_cpu_clk_div_mode1_clkdiv_bus(uint32_t value);
 void sys_hal_video_power_en(uint32_t value);
 void sys_hal_set_auxs_clk_sel(uint32_t value);
 void sys_hal_set_auxs_clk_div(uint32_t value);
+void sys_hal_set_jpeg_clk_en(uint32_t value);
 
 /** jpeg end **/
+
+/** h264 Start **/
+void sys_hal_set_h264_clk_en(uint32_t value);
+
+/** h264 End **/
 
 /**  psram Start **/
 void sys_hal_psram_volstage_sel(uint32_t enable);
@@ -3175,6 +3200,7 @@ void sys_hal_set_ana_pwd_gadc_buf(uint32_t value);
 void sys_hal_set_ana_vref_sel(uint32_t value);
 void sys_hal_set_ana_cb_cal_manu(uint32_t value);
 void sys_hal_set_ana_cb_cal_trig(uint32_t value);
+UINT32 sys_hal_get_ana_cb_cal_manu_val(void);
 void sys_hal_set_ana_cb_cal_manu_val(uint32_t value);
 void sys_hal_set_ana_vlsel_ldodig(uint32_t value);
 void sys_hal_set_ana_vhsel_ldodig(uint32_t value);
@@ -3182,6 +3208,35 @@ void sys_hal_set_ana_vctrl_sysldo(uint32_t value);
 
 void sys_hal_set_yuv_buf_clock_en(uint32_t value);
 void sys_hal_set_h264_clock_en(uint32_t value);
+
+#if CONFIG_HAL_DEBUG_SYS
+void sys_struct_dump(uint32_t start, uint32_t end);
+#else
+static inline void __sys_struct_dump(uint32_t start, uint32_t end)
+{
+	os_printf("start=%x, end-%x, please generate the hal_debug.c file!\r\n", start, end);
+}
+#define sys_struct_dump(start, end) __sys_struct_dump(start, end)
+#endif
+
+int sys_hal_set_buck(sys_buck_type_t buck, bool ena);
+int sys_hal_set_buck_pfm(sys_buck_type_t buck, bool ena);
+int sys_hal_set_buck_burst(sys_buck_type_t buck, bool ena);
+int sys_hal_set_buck_mpo(sys_buck_type_t buck, bool ena);
+
+int sys_hal_set_ldo_self_lp(sys_ldo_type_t ldo, bool ena);
+int sys_hal_set_ldo_current_limit(sys_ldo_type_t ldo, bool ena);
+int sys_hal_set_aon_power(sys_aon_power_t power);
+int sys_hal_set_aon_ldo_volt(uint32_t volt);
+int sys_hal_set_io_ldo_volt(uint32_t volt);
+int sys_hal_set_ana_ldo_volt(bool trsw_ena, uint32_t rx_volt, uint32_t tx_volt);
+int sys_hal_set_digital_ldo_volt(bool lp_ena, uint32_t low_volt, uint32_t high_volt);
+int sys_hal_set_core_ldo_volt(bool lp_ena, uint32_t low_volt, uint32_t high_volt);
+int sys_hal_set_lv_ctrl_pd(bool lp_ena);
+int sys_hal_set_lv_ctrl_hf(bool lp_ena);
+int sys_hal_set_lv_ctrl_flash(bool lp_ena);
+int sys_hal_set_lv_ctrl_core(bool lp_ena);
+void sys_hal_dump_ctrl(void);
 
 #ifdef __cplusplus
 }

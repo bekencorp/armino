@@ -211,6 +211,13 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_deep_sleep(void * 
 	pmu_val2 |= BIT(BIT_SLEEP_FLAG_DEEP_SLEEP);
 	aon_pmu_hal_reg_set(PMU_REG2,pmu_val2);
 
+	/*attention: for save 125us delay, enable gpio interrupt here*/
+	/*7.enable gpio interrupt*/
+#if CONFIG_GPIO_WAKEUP_SUPPORT
+	extern bk_err_t gpio_enable_interrupt_mult_for_wake(void);
+	gpio_enable_interrupt_mult_for_wake();
+#endif
+
 	sys_ll_set_ana_reg8_en_lpmode(0x1);// touch enter low power mode
 	sys_ll_set_ana_reg6_vaon_sel(0);//0:vddaon drop enable
 
@@ -258,7 +265,9 @@ uint64_t g_low_voltage_tick = 0;
 extern u64 riscv_get_mtimer(void);
 #endif
 #endif
+#if CONFIG_WIFI_ENABLE
 extern uint64_t ps_mac_wakeup_from_lowvol;
+#endif
 __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 {
 	uint32_t  modules_power_state = 0;
@@ -266,8 +275,8 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	uint32_t  clk_div_val0= 0, clk_div_val1 = 0, clk_div_val2 = 0;
 	uint32_t  pmu_val2 = 0;
 	//uint32_t  pmu_state = 0;
-	uint32_t  previous_tick = 0;
-	uint32_t  current_tick = 0;
+	uint64_t  previous_tick = 0;
+	uint64_t  current_tick = 0;
 	uint32_t  clk_div_temp = 0;
 	uint32_t  int_state1 = 0;
 	uint32_t  int_state2 = 0;
@@ -277,13 +286,13 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	uint32_t  center_bias = 0;
 	uint32_t  en_bias_5u = 0;
 	//uint32_t  count = 0;
-	uint64_t wakeup_time = 0;
+	uint64_t wakeup_time = 0; __maybe_unused_var(wakeup_time);
 
 #if CONFIG_LOW_VOLTAGE_DEBUG
 	uint64_t start_tick = riscv_get_mtimer();
 #endif
 
-	clear_csr(NDS_MIE, MIP_MTIP);
+	HAL_TI_DISABLE();
 
 	int_state1 = sys_ll_get_cpu0_int_0_31_en_value();
 	int_state2 = sys_ll_get_cpu0_int_32_63_en_value();
@@ -306,7 +315,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	{
 		sys_ll_set_cpu0_int_0_31_en_value(int_state1);
 		sys_ll_set_cpu0_int_32_63_en_value(int_state2);
-		set_csr(NDS_MIE, MIP_MTIP);
+		HAL_TI_ENABLE();
 		return;
 	}
 
@@ -402,6 +411,13 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 
 	sys_ll_set_ana_reg8_en_lpmode(0x1);// touch enter low power mode
 
+	/*attention: for save 125us delay, enable gpio interrupt here*/
+	/*6.enable gpio interrupt*/
+#if CONFIG_GPIO_WAKEUP_SUPPORT
+	extern bk_err_t gpio_enable_interrupt_mult_for_wake(void);
+	gpio_enable_interrupt_mult_for_wake();
+#endif
+
 	sys_ll_set_ana_reg2_iovoc(0);//set the io voltage to 2.9v 
 	sys_ll_set_ana_reg6_vaon_sel(0);//0:vddaon drop enable ,aon voltage to 0.9v
 //just debug:maybe some guys changed the CPU clock or Flash clock caused the time of
@@ -493,7 +509,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	previous_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 
 	current_tick = previous_tick;
-	while(((uint32_t)(current_tick - previous_tick)) < (uint32_t)(LOW_POWER_DPLL_STABILITY_DELAY_TIME*RTC_TICKS_PER_1MS))/*32*1*/
+	while(((current_tick - previous_tick)) < (LOW_POWER_DPLL_STABILITY_DELAY_TIME*RTC_TICKS_PER_1MS))
 	{
 		current_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 	}
@@ -515,9 +531,11 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 
 	if(pm_wake_int_flag2&(WIFI_MAC_GEN_INT_BIT))
 	{
+		#if CONFIG_WIFI_ENABLE
 		ps_mac_wakeup_from_lowvol = wakeup_time;
-		ps_switch(PS_UNALLOW, PS_EVENT_STA, PM_RF_BIT);
-		bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_PHY_WIFI,PM_POWER_MODULE_STATE_ON);
+		#endif
+		//ps_switch(PS_UNALLOW, PS_EVENT_STA, PM_RF_BIT);
+		//bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_PHY_WIFI,PM_POWER_MODULE_STATE_ON);
 	}
 #if CONFIG_PSRAM
 	psram_hal_config();//psram config3
@@ -535,9 +553,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 		clock_value &= ~(0x1 << SYS_ANA_REG4_ROSC_MANU_EN_POS);//0:close Rosc Calibration Manual Mode
 		sys_ll_set_ana_reg4_value(clock_value);
 	}
-
-	set_csr(NDS_MIE, MIP_MTIP);
-
+	HAL_TI_ENABLE();
 	//gpio_restore();
 
 }
@@ -933,6 +949,15 @@ void sys_hal_low_power_hardware_init()
 	pmu_state |= BIT_AON_PMU_WAKEUP_ENA;
 	aon_pmu_hal_reg_set(PMU_REG0x41,pmu_state);
 
+	/*select lowpower lpo clk source*/
+#if CONFIG_EXTERN_32K
+	sys_ll_set_ana_reg6_itune_xtall(0x0);//0x0 provide highest current for external 32k,because the signal path long
+	sys_ll_set_ana_reg6_en_xtall(0x1);
+	aon_pmu_hal_lpo_src_set(PM_LPO_SRC_X32K);
+#else
+	aon_pmu_hal_lpo_src_set(PM_LPO_SRC_ROSC);
+#endif
+
 }
 int32 sys_hal_lp_vol_set(uint32_t value)
 {
@@ -978,7 +1003,6 @@ int32 sys_hal_int_disable(uint32 param) //CMD_ICU_INT_DISABLE
 	sys_ll_set_cpu0_int_0_31_en_value(reg);
 
 	return value;
-
 }
 
 int32 sys_hal_int_enable(uint32 param) //CMD_ICU_INT_ENABLE
@@ -2121,6 +2145,11 @@ void sys_hal_ana_reg10_sdm_val_set(uint32_t value)
 void sys_hal_ana_reg11_spi_trigger_set(uint32_t value)
 {
 	sys_ll_set_ana_reg11_spi_trigger(value);
+}
+
+void sys_hal_i2s0_ckdiv_set(uint32_t value)
+{
+	sys_ll_set_cpu_clk_div_mode2_ckdiv_i2s0(value);
 }
 
 /**  I2S End  **/
@@ -8134,6 +8163,11 @@ void sys_hal_set_ana_cb_cal_manu(uint32_t value)
 void sys_hal_set_ana_cb_cal_trig(uint32_t value)
 {
     sys_ll_set_ana_reg4_cb_cal_trig(value);
+}
+
+UINT32 sys_hal_get_ana_cb_cal_manu_val(void)
+{
+    return sys_ll_get_ana_reg4_cb_manu_val();
 }
 
 void sys_hal_set_ana_cb_cal_manu_val(uint32_t value)

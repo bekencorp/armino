@@ -1,0 +1,5 @@
+menu "SDMADC"
+	config SDMADC
+		bool "Enable sdmadc"
+		default n
+endmenu

@@ -140,10 +140,15 @@ __component_set_property(${__component_target} __COMPONENT_REGISTERED ${__compon
     )
 
     if(__component_kconfig)
-        get_filename_component(__component_kconfig "${__component_kconfig}" ABSOLUTE)
-        set(__contents
-"${__contents}\n__component_set_property(${__component_target} KCONFIG \"${__component_kconfig}\")"
-            )
+		if(__component_kconfig STREQUAL "-")
+			set(__contents "${__contents}\n__component_set_property(${__component_target} KCONFIG \"\")")
+		else()
+			get_filename_component(__component_kconfig "${__component_kconfig}" ABSOLUTE)
+			file(GLOB __component_kconfig "${__component_kconfig}")
+			if(__component_kconfig)
+				set(__contents "${__contents}\n__component_set_property(${__component_target} KCONFIG \"${__component_kconfig}\")")
+			endif()
+		endif()
     endif()
 
     if(__component_kconfig_projbuild)

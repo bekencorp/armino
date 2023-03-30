@@ -303,7 +303,6 @@ CONFIG_INT_WDT=y
 CONFIG_INT_WDT_PERIOD_MS=20000
 CONFIG_TASK_WDT=y
 CONFIG_TASK_WDT_PERIOD_MS=60000
-CONFIG_NMI_WDT_EN=y
 # end of Watchdog
 
 #
@@ -343,7 +342,7 @@ CONFIG_MAC_PHY_BYPASS=y
 #
 # SDCARD
 #
-CONFIG_SDCARD_HOST=n
+CONFIG_SDCARD=n
 CONFIG_SDCARD_BUSWIDTH_4LINE=n
 # end of SDCARD
 
@@ -573,15 +572,20 @@ CONFIG_PAHO_MQTT=n
 #
 CONFIG_MIDEA=n
 
-# chip support id
 #
+# chip support id
 #
 CONFIG_CHIP_SUPPORT=y
 
+#
 # jtag change group gpio
 #
-#
 CONFIG_CHANGE_JTAG_GPIO=y
+
+#
+# clock support external 32k
+#
+CONFIG_EXTERN_32K=n
 
 #
 # vault support
@@ -592,3 +596,6 @@ CONFIG_VAULT_SUPPORT=y
 # OTP support
 #
 CONFIG_OTP=y
+CONFIG_HTTPS=n
+CONFIG_MBEDTLS=n
+CONFIG_OTA_HTTPS=n

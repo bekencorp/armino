@@ -63,6 +63,8 @@ static uint32_t s_pkt_delta = 0;
 static uint32_t iperf_priority = THREAD_PROIRITY;
 //data size of iperf
 static uint32_t iperf_size = IPERF_BUFSZ;
+// TOS
+static uint32_t iperf_tos = 0; // TOS_BE: 0, BK: 0x20, VI: 0xA0, VO: 0xD0
 
 #if (CONFIG_TASK_WDT)
 extern void bk_task_wdt_feed(void);
@@ -81,6 +83,7 @@ static void iperf_set_sock_opt(int sock)
 {
 	struct timeval tv;
 	int flag = 1;
+	int tosval;
 
 	setsockopt(sock, IPPROTO_TCP,   /* set option at TCP level */
 			   TCP_NODELAY, /* name of option */
@@ -94,6 +97,9 @@ static void iperf_set_sock_opt(int sock)
 	tv.tv_sec = IPERF_RX_TIMEOUT_SEC;
 	tv.tv_usec = 0;
 	setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+	tosval = iperf_tos;
+	setsockopt(sock, IPPROTO_IP, IP_TOS, &tosval, sizeof(tosval));
 }
 
 static void iperf_report_init(void)
@@ -613,6 +619,11 @@ void iperf_config(int argc, char **argv)
     {
         iperf_size = os_strtoul(argv[3], NULL, 10);
         os_printf("iperf config iperf_size to %d !\n", iperf_size);
+    }
+    else if(os_strcmp(argv[2], "-tos") == 0)
+    {
+        iperf_tos = os_strtoul(argv[3], NULL, 10);
+        os_printf("iperf config iperf_tos to %d !\n", iperf_tos);
     }
     else
     {

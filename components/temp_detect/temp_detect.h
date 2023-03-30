@@ -36,6 +36,8 @@
 
 #if (CONFIG_SOC_BK7231N || CONFIG_SOC_BK7236A)
 #define ADC_TEMP_SATURATE_MODE                      ADC_SATURATE_MODE_1
+#elif(CONFIG_SOC_BK7236)
+#define ADC_TEMP_SATURATE_MODE                      ADC_SATURATE_MODE_2
 #elif(CONFIG_SOC_BK7256XX)
 #define ADC_TEMP_SATURATE_MODE                      ADC_SATURATE_MODE_3
 #else
@@ -45,6 +47,14 @@
 #if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 #define ADC_TEMP_BUFFER_SIZE                        (5+5)//(+5 for skip)
 #define ADC_TMEP_LSB_PER_10DEGREE                   (20)
+#elif(CONFIG_SOC_BK7236)
+#if CONFIG_SDMADC_TEMP
+#define ADC_TEMP_BUFFER_SIZE                        (5+20)//(+5 for skip)
+#define ADC_TMEP_LSB_PER_10DEGREE                   (180)
+#else
+#define ADC_TEMP_BUFFER_SIZE                        (5+5)//(+5 for skip)
+#define ADC_TMEP_LSB_PER_10DEGREE                   (30)
+#endif
 #else
 #define ADC_TEMP_BUFFER_SIZE                        5
 #define ADC_TMEP_LSB_PER_10DEGREE                   (12)// 7231:24,7231U:22,
@@ -62,11 +72,23 @@
 #define ADC_TMEP_DIST_INTIAL_VAL                    (0)
 
 #define ADC_TMEP_10DEGREE_PER_DBPWR                 (1) // 7231:1,7231U:1,
+#if(CONFIG_SOC_BK7236)
+#if CONFIG_SDMADC_TEMP
+#define ADC_TEMP_VAL_MIN                            (3192) //(32768-20000)/4
+#else
+#define ADC_TEMP_VAL_MIN                            (10)
+#endif
+#else
 #define ADC_TEMP_VAL_MIN                            (50)
+#endif
+#if CONFIG_SDMADC_TEMP
+#define ADC_TEMP_VAL_MAX                            (8192) //32768/4
+#else
 #define ADC_TEMP_VAL_MAX                            (700)
+#endif
 #define ADC_XTAL_DIST_INTIAL_VAL                    (70)
 
-#if (CONFIG_SOC_BK7256XX)
+#if (CONFIG_SOC_BK7256XX) || (CONFIG_SOC_BK7236)
 #define TEMP_DETEC_ADC_CLK	                    203125
 #define TEMP_DETEC_ADC_SAMPLE_RATE	            0
 #else
@@ -105,11 +127,14 @@ enum {
 	TMPD_RESTART_TIMER,
 	TMPD_CHANGE_PARAM,
 	TMPD_TIMER_EXPIRED,
-	VOLT_TIMER_POLL,
-	VOLT_INT_POLL,
+	VOLT_PAUSE_TIMER,
+	VOLT_RESTART_TIMER,
+	VOLT_TIMER_EXPIRED,
 	TMPD_DEINIT,
 };
 
 typedef struct temp_message {
 	uint32_t temp_msg;
 } tempd_msg_t;
+
+int temp_detect_send_msg(uint32_t msg_type);

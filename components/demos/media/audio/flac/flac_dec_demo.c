@@ -22,7 +22,7 @@
 #include "diskio.h"
 #include <modules/flac_dec.h>
 #include <modules/flac_dec_types.h>
-//#include "BK7256_RegList.h"
+#include "bk_misc.h"
 
 #define FLAC_DEMO_TAG "flac_demo"
 
@@ -43,8 +43,6 @@ flac_dec_setup_t *dec_setup;
 static bool file_empty_flag = false;
 static char in_file_name[50];
 static char out_file_name[50];
-
-extern int delay_ms(UINT32 ms_count);
 
 static void cli_aud_flac_help(void)
 {

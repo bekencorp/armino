@@ -104,7 +104,9 @@ static void jpeg_power_config_set(const jpeg_config_t *config)
 static void jpeg_init_common(const jpeg_config_t *config)
 {
 #if (CONFIG_SYSTEM_CTRL)
+#if (!CONFIG_YUV_BUF)
 	jpeg_power_config_set(config);
+#endif
 	sys_drv_int_enable(JPEGENC_INTERRUPT_CTRL_BIT);
 	bk_jpeg_enc_set_gpio_enable(1, JPEG_GPIO_CLK);
 #else
@@ -140,9 +142,11 @@ bk_err_t bk_jpeg_enc_driver_init(void)
 	bk_jpeg_enc_set_gpio_enable(0, JPEG_GPIO_ALL);
 
 #if CONFIG_SYSTEM_CTRL
+#if (!CONFIG_SOC_BK7236)
 	bk_pm_module_vote_cpu_freq(PM_DEV_ID_JPEG, PM_CPU_FRQ_320M);
 	//power on
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_EN, PM_POWER_MODULE_STATE_ON);
+#endif
 #endif
 
 	os_memset(&s_jpeg, 0, sizeof(s_jpeg));
@@ -387,6 +391,7 @@ bk_err_t bk_jpeg_enc_set_gpio_enable(uint8_t enable, jpeg_gpio_mode_t mode)
 	return BK_OK;
 }
 
+
 bk_err_t bk_jpeg_enc_get_fifo_addr(uint32_t *fifo_addr)
 {
 	*fifo_addr = JPEG_R_RX_FIFO;
@@ -437,6 +442,19 @@ bk_err_t bk_jpeg_enc_encode_config(uint8_t enable, uint16_t up_size, uint16_t lo
 		jpeg_encode_size.up_size = up_size;
 		jpeg_encode_size.low_size = low_size;
 	}
+
+	rtos_enable_int(int_level);
+
+	return BK_OK;
+}
+
+bk_err_t bk_jpeg_enc_soft_reset(void)
+{
+	JPEG_RETURN_ON_NOT_INIT();
+
+	uint32_t int_level = rtos_disable_int();
+
+	jpeg_hal_soft_reset(&s_jpeg.hal);
 
 	rtos_enable_int(int_level);
 

@@ -137,6 +137,13 @@ beken_thread_t* rtos_get_current_thread( void )
     return (beken_thread_t *)xTaskGetCurrentTaskHandle();
 }
 
+bk_err_t rtos_thread_set_priority(beken_thread_t *thread, int priority)
+{
+	if (thread)
+		vTaskPrioritySet(*thread, BK_PRIORITY_TO_NATIVE_PRIORITY(priority));
+	return kNoErr;
+}
+
 bk_err_t rtos_check_stack( void )
 {
     //  TODO: Add stack checking here.
@@ -885,11 +892,6 @@ bool rtos_is_scheduler_started(void)
 	return s_is_started_scheduler;
 }
 
-uint32_t rtos_get_cpsr(void)
-{
-	return platform_cpsr_content();
-}
-
 char* rtos_get_name(void)
 {
 #define RTOS_NAME                     "FreeRTOS"
@@ -944,22 +946,12 @@ void rtos_enable_int(uint32_t int_level)
 
 uint32_t rtos_before_sleep(void)
 {
-    return port_disable_interrupts_flag();
+    return rtos_disable_int();
 }
 
 void rtos_after_sleep(uint32_t int_level)
 {
-    port_enable_interrupts_flag(int_level);
-}
-
-uint32_t rtos_disable_mie_int(void)
-{
-    return port_disable_mie_flag();
-}
-
-void rtos_enable_mie_int(uint32_t int_level)
-{
-	port_enable_mie_flag(int_level);
+    rtos_enable_int(int_level);
 }
 
 void rtos_stop_int(void)

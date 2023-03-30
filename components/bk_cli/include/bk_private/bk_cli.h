@@ -79,9 +79,9 @@ struct cli_st
     int echo_disabled;
 
     unsigned int bp;	/* buffer pointer */
-    char inbuf[INBUF_SIZE];
+    unsigned char inbuf[INBUF_SIZE];
 
-    char outbuf[OUTBUF_SIZE];
+    unsigned char outbuf[OUTBUF_SIZE];
 #endif
 } ;
 

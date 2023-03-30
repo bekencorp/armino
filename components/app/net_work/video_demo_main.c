@@ -245,7 +245,7 @@ void cmd_video_transfer(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				connect_key = argv[3];
 			}
 
-#if CONFIG_COMPONENTS_P2P
+#if CONFIG_P2P
 			app_demo_p2p_start(oob_ssid, connect_key);
 			video_transfer_mode |= VIDE_MODE_P2P;
 #endif

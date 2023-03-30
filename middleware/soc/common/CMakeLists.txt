@@ -49,9 +49,11 @@ if (CONFIG_FFT)
 endif()
 
 if (CONFIG_I2S)
+if (NOT CONFIG_SOC_BK7236)
 	list(APPEND srcs
 		hal/i2s_hal.c
 		)
+endif()
 endif()
 
 if(CONFIG_EFUSE)
@@ -90,6 +92,12 @@ if(CONFIG_YUV_BUF)
 	)
 endif()
 
+if(CONFIG_H264)
+	list(APPEND srcs
+		"hal/h264_hal.c"
+	)
+endif()
+
 if(CONFIG_PSRAM)
 	list(APPEND srcs
 		"hal/psram_hal.c"
@@ -120,6 +128,11 @@ if(CONFIG_SOC_BK7256XX)
 		"hal/aud_hal.c"
 	)
 endif()
+if(CONFIG_SOC_BK7236)
+	list(APPEND srcs
+		"hal/aud_hal.c"
+	)
+endif()
 endif()
 
 if(CONFIG_SBC)
@@ -137,6 +150,12 @@ endif()
 if(CONFIG_SDIO_HOST)
 	list(APPEND srcs
 		"hal/sdio_host_hal.c"
+	)
+endif()
+
+if(CONFIG_SDMADC)
+	list(APPEND srcs
+		"hal/sdmadc_hal.c"
 	)
 endif()
 

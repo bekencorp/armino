@@ -1,8 +1,5 @@
 Wi-Fi Quick Get-Started
 ====================================================
-
-:link_to_translation:`zh_CN:[中文]`
-
 The example demo of three common BEKEN Wi-Fi usage scenarios is provided in the directory ``projects/examples/wifi``. User can quickly learn about Wi-Fi usage based on the demo.
 
 - ap

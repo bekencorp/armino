@@ -218,7 +218,10 @@ bk_err_t bk_timer_start_without_callback(timer_id_t timer_id, uint32_t time_ms)
     TIMER_RETURN_ON_INVALID_ID(timer_id);
 
     timer_chan_init_common(timer_id);
+
+#if !CONFIG_RTC_TIMER_PRECISION_TEST
     timer_chan_enable_interrupt_common(timer_id);
+#endif
 
     en_status = timer_hal_get_enable_status(&s_timer.hal);
     if (en_status & BIT(timer_id)) {
@@ -330,13 +333,24 @@ bool bk_timer_is_interrupt_triggered(timer_id_t timer_id)
     return timer_hal_is_interrupt_triggered(&s_timer.hal, timer_id, int_status);
 }
 
-static void timer_isr(void)
+uint32_t timer_clear_isr_status(void)
 {
+	uint32_t int_status;
     timer_hal_t *hal = &s_timer.hal;
-    uint32_t int_status = 0;
 
     int_status = timer_hal_get_interrupt_status(hal);
     timer_hal_clear_interrupt_status(hal, int_status);
+
+	return int_status;
+}
+
+static void timer_isr(void)
+{
+    uint32_t int_status;
+    timer_hal_t *hal = &s_timer.hal;
+
+    int_status = timer_clear_isr_status();
+
 #if (SOC_TIMER_INTERRUPT_NUM > 1)
      for(int chan = 0; chan < SOC_TIMER_CHAN_NUM_PER_GROUP; chan++) {
 #else
@@ -353,11 +367,11 @@ static void timer_isr(void)
 #if (SOC_TIMER_INTERRUPT_NUM > 1)
 static void timer1_isr(void)
 {
+    uint32_t int_status;
     timer_hal_t *hal = &s_timer.hal;
-    uint32_t int_status = 0;
 
-    int_status = timer_hal_get_interrupt_status(hal);
-    timer_hal_clear_interrupt_status(hal, int_status);
+    int_status = timer_clear_isr_status();
+
     for(int chan = SOC_TIMER_CHAN_NUM_PER_GROUP; chan < SOC_TIMER_CHAN_NUM_PER_UNIT; chan++) {
         if(timer_hal_is_interrupt_triggered(hal, chan, int_status)) {
             if(s_timer_isr[chan]) {

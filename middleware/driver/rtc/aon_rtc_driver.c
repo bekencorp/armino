@@ -26,6 +26,10 @@
 #include "aon_rtc_hal.h"
 #include "aon_rtc_driver.h"
 
+#if CONFIG_PM
+#include <pm/device.h>
+#endif
+
 /* 
  * NOTES: System entery deepsleep or reboot, the aon rtc time should reserved.
  * 1.When enter deep sleep, the DTCM power is lost,so have to save time to flash.
@@ -1469,3 +1473,20 @@ void bk_64bits_test(void)
 }
 #endif
 
+#ifdef CONFIG_PM
+static int rtc_pm_action_cb(const device_t *device, pm_device_action_t action)
+{
+	AON_RTC_LOGI("rtc pm action: %u\r\n", action);
+
+	if (action == PM_DEVICE_ACTION_WAKEUP_ENABLE) {
+		aon_pmu_drv_set_wakeup_source(WAKEUP_SOURCE_INT_RTC);
+	} else if (action == PM_DEVICE_ACTION_WAKEUP_ENABLE) {
+		aon_pmu_drv_clear_wakeup_source(WAKEUP_SOURCE_INT_RTC);
+	} else {
+		//ignore
+	}
+	return BK_OK;
+}
+
+PM_DEVICE_DEFINE(rtc,  null,  0, 0, rtc_pm_action_cb);
+#endif

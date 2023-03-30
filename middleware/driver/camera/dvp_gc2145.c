@@ -450,7 +450,7 @@ const uint8_t sensor_gc2145_init_talbe[][2] =
 	{0x4c , 0x01},//D50
 	{0x4d , 0x6e},
 	{0x4e , 0x03},
-	{0x4c , 0x01}, 
+	{0x4c , 0x01},
 	{0x4d , 0x8e},
 	{0x4e , 0x03},
 	{0x4c , 0x01},
@@ -1053,7 +1053,7 @@ int gc2145_set_fps(sensor_fps_t fps)
 	{
 		switch (fps)
 		{
-			/*case FPS15:
+			case FPS15:
 			{
 				SENSOR_I2C_WRITE(0xf8, 0x81);
 
@@ -1081,7 +1081,7 @@ int gc2145_set_fps(sensor_fps_t fps)
 
 				ret = 0;
 			}
-			break;*/
+			break;
 
 			default:
 				SENSOR_I2C_WRITE(0xf8, 0x81);
@@ -1191,14 +1191,14 @@ const dvp_sensor_config_t dvp_sensor_gc2145 =
 	.name = "gc2145",
 	.clk = JPEG_96M_MCLK_24M,
 	.fmt = PIXEL_FMT_YUYV,
-	.vsync = JPEG_SYNC_HiGH_LEVEL,
-	.hsync = JPEG_SYNC_HiGH_LEVEL,
+	.vsync = JPEG_SYNC_HIGH_LEVEL,
+	.hsync = JPEG_SYNC_HIGH_LEVEL,
 	/* default config */
 	.def_ppi = PPI_640X480,
 	.def_fps = FPS20,
 	/* capability config */
-	.fps_cap = FPS10 | FPS15 | FPS20 | FPS25,
-	.ppi_cap = PPI_CAP_640X480 | PPI_CAP_800X600 | PPI_CAP_1024X600 | PPI_CAP_1280X720,
+	.fps_cap = FPS10 | FPS15 | FPS20 | FPS25 | FPS30,
+	.ppi_cap = PPI_CAP_640X480 | PPI_CAP_800X600 | PPI_CAP_1024X600 | PPI_CAP_1280X720 | PPI_CAP_1600X1200,
 	.id = ID_GC2145,
 	.address = (GC2145_WRITE_ADDRESS >> 1),
 	.init = gc2145_init,

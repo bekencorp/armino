@@ -106,12 +106,9 @@ typedef enum _dd_device_type_
 #endif
 #endif
     DD_DEV_TYPE_AUD_DAC,
-#if CONFIG_SDIO || CONFIG_SDIO_TRANS
-    DD_DEV_TYPE_SDIO,
-#endif
     DD_DEV_TYPE_USB,
     DD_DEV_TYPE_USB_PLUG,
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
     DD_DEV_TYPE_SDCARD,
 #endif
     DD_DEV_TYPE_SARADC,

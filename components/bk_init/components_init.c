@@ -141,6 +141,10 @@ __attribute__((unused)) static int pm_init_todo(void)
 #endif
 #endif
 
+#if CONFIG_SOC_BK7236 && !CONFIG_SLAVE_CORE
+	extern void rf_ps_pm_init(void);
+	rf_ps_pm_init();
+#else
 #if CONFIG_POWER_CLOCK_RF
 	extern void rf_ps_pm_init(void);
 	rf_ps_pm_init();
@@ -149,6 +153,7 @@ __attribute__((unused)) static int pm_init_todo(void)
 
 #else
 	dev_pm_init();
+#endif
 #endif
 #endif
 
@@ -185,7 +190,6 @@ static inline void show_sdk_lib_version(void)
 static void show_armino_version(void)
 {
 	show_sdk_version();
-	show_sdk_lib_version();
 	show_chip_id();
 }
 
@@ -280,11 +284,14 @@ int components_init(void)
 #endif
 	ipc_init();
 
+	extern void bk_stack_guard_setup(void);
+	bk_stack_guard_setup();
+
 #else
 	driver_init();
-#if CONFIG_POWER_SAVE
+
 	pm_init_todo();
-#endif
+
 #if CONFIG_RESET_REASON
 	reset_reason_init();
 #endif

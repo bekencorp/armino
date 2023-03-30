@@ -463,7 +463,6 @@ int32 sys_hal_int_disable(uint32 param) //CMD_ICU_INT_DISABLE
 	sys_ll_set_cpu1_int_0_31_en_value(reg);
 
 	return value;
-
 }
 
 int32 sys_hal_int_enable(uint32 param) //CMD_ICU_INT_ENABLE
@@ -922,6 +921,15 @@ uint32_t sys_hal_mclk_div_get(void)
 }
 
 
+uint32_t sys_hal_nmi_wdt_get_clk_div(void)
+{
+    return sys_ll_get_cpu_26m_wdt_clk_div_ckdiv_wdt();
+}
+
+void sys_hal_nmi_wdt_set_clk_div(uint32_t value)
+{
+    sys_ll_set_cpu_26m_wdt_clk_div_ckdiv_wdt(value);
+}
 /**  Platform End **/
 
 
@@ -1576,6 +1584,11 @@ void sys_hal_ana_reg10_sdm_val_set(uint32_t value)
 void sys_hal_ana_reg11_spi_trigger_set(uint32_t value)
 {
 	sys_ll_set_ana_reg11_spi_trigger(value);
+}
+
+void sys_hal_i2s0_ckdiv_set(uint32_t value)
+{
+	sys_ll_set_cpu_clk_div_mode2_ckdiv_i2s0(value);
 }
 
 /**  I2S End  **/

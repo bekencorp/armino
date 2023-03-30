@@ -30,6 +30,7 @@ typedef enum
 	APP_CAMERA_UVC_H264,
 	APP_CAMERA_NET_MJPEG,
 	APP_CAMERA_NET_H264,
+	APP_CAMERA_DVP_H264,
 	APP_CAMERA_INVALIED,
 } app_camera_type_t;
 
@@ -50,6 +51,8 @@ typedef enum
 
 bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi);
 bk_err_t media_app_camera_close(app_camera_type_t type);
+bk_err_t media_app_h264_open(void *setup_cfg);
+bk_err_t media_app_h264_close(void);
 bk_err_t media_app_transfer_open(void *setup_cfg);
 bk_err_t media_app_transfer_close(void);
 bk_err_t media_app_lcd_open(void *lcd_open);

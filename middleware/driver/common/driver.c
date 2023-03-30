@@ -54,16 +54,19 @@
 #include "bk_ef.h"
 #endif
 
-#if ((CONFIG_SDIO_HOST) || (CONFIG_SDCARD_HOST))
+#if ((CONFIG_SDIO_HOST) || (CONFIG_SDCARD))
 #include "driver/sdio_host.h"
 #endif
 
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 #include "sdcard.h"
 #endif
 
 #if (CONFIG_SDIO_V2P0 && CONFIG_SDIO_SLAVE)
 #include "sdio_slave_driver.h"
+#if CONFIG_SDIO_TEST_EN
+#include "sdio_test.h"
+#endif
 #endif
 
 #if CONFIG_QSPI
@@ -97,6 +100,10 @@
 
 #if CONFIG_YUV_BUF
 #include <driver/yuv_buf.h>
+#endif
+
+#if CONFIG_SDMADC
+#include <driver/sdmadc.h>
 #endif
 
 //TODO only init driver model and necessary drivers
@@ -148,6 +155,9 @@ void power_clk_rf_init()
 	//sys_drv_core_bus_clock_ctrl(HIGH_FREQUECY_CLOCK_MODULE_CPU0, 0,0, HIGH_FREQUECY_CLOCK_MODULE_CPU0_MATRIX,0,0);
 	#if !CONFIG_SLAVE_CORE
 	//bk_pm_module_vote_cpu_freq(PM_DEV_ID_DEFAULT,PM_CPU_FRQ_120M);
+	#if CONFIG_ATE_TEST
+		//bk_pm_module_vote_cpu_freq(PM_DEV_ID_DEFAULT,PM_CPU_FRQ_320M);//improve the cpu frequency for save boot time at ate test
+	#endif
 	#endif
    /*5.config the analog*/
    //sys_drv_analog_set(ANALOG_REG0, param);
@@ -250,12 +260,14 @@ int driver_init(void)
 {
 	sys_drv_init();
 
+#if CONFIG_SPE
 #if CONFIG_MPC
 	bk_mpc_driver_init();
 #endif
 
 #if CONFIG_PRRO
 	bk_prro_driver_init();
+#endif
 #endif
 
 #if CONFIG_AON_PMU
@@ -363,16 +375,15 @@ int driver_init(void)
 	bk_aon_rtc_driver_init();
 #endif
 
-#if ((CONFIG_SDIO_HOST) || (CONFIG_SDCARD_HOST))
+#if ((CONFIG_SDIO_HOST) || (CONFIG_SDCARD))
 	bk_sdio_host_driver_init();
-#endif
-
-#if (CONFIG_SDCARD_HOST && CONFIG_SDCARD_V1P0)
-	sdcard_init();
 #endif
 
 #if (CONFIG_SDIO_V2P0 && CONFIG_SDIO_SLAVE)
 	bk_sdio_slave_driver_init();
+#if CONFIG_SDIO_TEST_EN
+	bk_sdio_test_init();
+#endif
 #endif
 
 #if CONFIG_CALENDAR
@@ -390,6 +401,10 @@ int driver_init(void)
 
 #if CONFIG_TOUCH_PM_SUPPORT
 	bk_touch_pm_init();
+#endif
+
+#if CONFIG_SDMADC
+	//bk_sdmadc_driver_init();
 #endif
 
 	os_printf("driver_init end\r\n");

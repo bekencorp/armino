@@ -61,7 +61,6 @@ int wlan_ap_reload(void);
 int wlan_ap_sta_num(int *num);
 int wlan_ap_sta_info(wlan_ap_stas_t *stas);
 int wlan_ap_set_beacon_vsie(wlan_ap_vsie_t *vsie);
-
 /* If SSID blacklist is enabled, the SSID is added into the
   * blacklist if the STA fails to connect it; the blacklist will be
   * cleared once the STA successfully connects one SSID or when
@@ -88,7 +87,6 @@ int wlan_ap_set_beacon_vsie(wlan_ap_vsie_t *vsie);
   */
 int wlan_sta_enable_ssid_blacklist(void);
 int wlan_sta_disable_ssid_blacklist(void);
-
 int wlan_p2p_listen(void);
 int wlan_p2p_find(void);
 int wlan_p2p_stop_find(void);
@@ -117,7 +115,7 @@ void bk_wifi_dump_ps_regs(void);
 void bk_wifi_udelay(uint32_t us);
 void wlan_hw_reinit(void);
 void wlan_set_multicast_flag(void);
-#ifdef CONFIG_COMPONENTS_P2P_GO
+#ifdef CONFIG_P2P_GO
 uint8_t bk_wlan_ap_get_default_channel(void);
 void app_p2p_rw_event_func(void *new_evt);
 void app_p2p_restart_thread(void);

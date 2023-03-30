@@ -399,7 +399,29 @@ uint32_t bk_dma_get_remain_len(dma_id_t id);
  */
 uint32_t bk_dma_get_enable_status(dma_id_t id);
 
-#if (CONFIG_GENERAL_DMA_SEC)
+#ifdef CONFIG_SPE
+/**
+ * @brief     Enable the current DMA channel bus err interrupt
+ *
+ * @param id DMA channel
+ *
+ * @return
+ *    - 0: enable success state
+ *    - others: Channel busy state.
+ */
+bk_err_t bk_dma_bus_err_int_enable(dma_id_t id);
+
+/**
+ * @brief     Disable the current DMA channel bus err interrupt
+ *
+ * @param id DMA channel
+ *
+ * @return
+ *    - 0: disable success state
+ *    - others: Channel busy state.
+ */
+bk_err_t bk_dma_bus_err_int_disable(dma_id_t id);
+
 /**
  * @brief     Set the current DMA channel dest secure attr
  *
@@ -423,7 +445,9 @@ bk_err_t bk_dma_set_dest_sec_attr(dma_id_t id, dma_sec_attr_t attr);
  *    - others: Channel busy state.
  */
 bk_err_t bk_dma_set_src_sec_attr(dma_id_t id, dma_sec_attr_t attr);
+#endif
 
+#if (CONFIG_SPE)
 /**
  * @brief     Set the all DMA channel secure attr
  *

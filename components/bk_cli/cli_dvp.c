@@ -50,8 +50,7 @@ static void cli_dvp_camera_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 	} else if (os_strcmp(argv[1], "clock") == 0) { /* enable mclk */
 		BK_LOG_ON_ERR(bk_jpeg_enc_set_gpio_enable(1, JPEG_GPIO_CLK));
 #if (CONFIG_YUV_BUF)
-		BK_LOG_ON_ERR(bk_yuv_buf_enable_mclk());
-		BK_LOG_ON_ERR(bk_yuv_buf_start(YUV_BUF_MODE_YUV));
+		BK_LOG_ON_ERR(bk_yuv_buf_enable_mclk(YUV_BUF_MODE_YUV));
 #endif
 	} else if (os_strcmp(argv[1], "i2c_init") == 0) { /* camera i2c init */
 		i2c_config_t i2c_config = {0};

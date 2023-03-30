@@ -57,6 +57,7 @@ void cli_lwip_pbuf_info(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 void cli_lwip_mem_info(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
+#if LWIP_STATS
 	int i;
 	struct memp_desc *tmp;
 
@@ -123,7 +124,11 @@ void cli_lwip_mem_info(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 #endif
 
 	SYS_ARCH_UNPROTECT(old_level);
+#else // !LWIP_STATS
+	os_printf("LWIP_STATS is not enabled\n");
+#endif // LWIP_STATS
 }
+
 void cli_lwip_stats(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 #if LWIP_STATS_DISPLAY

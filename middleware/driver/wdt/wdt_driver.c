@@ -222,7 +222,7 @@ void bk_task_wdt_timeout_check(void)
 		uint64_t current_tick = bk_get_tick();
 		if ((current_tick - s_last_task_wdt_feed_tick) > TASK_WDG_PERIOD_TICK) {
 			if ((current_tick - s_last_task_wdt_log_tick) > TASK_WDG_PERIOD_TICK) {
-				WDT_LOGW("task watchdog tiggered\n");
+				WDT_LOGW("task watchdog triggered\r\n");
 				s_last_task_wdt_log_tick = current_tick;
 				BK_ASSERT(0);
 			}

@@ -622,6 +622,44 @@ bk_err_t bk_uac_unregister_speakerstream_txed_callback(void);
  */
 bk_err_t bk_uac_register_tx_speakerstream_buffptr(void *buffer_ptr, uint32_t buffer_len);
 
+/**
+ * @brief     Initializes the control transfer request resource
+ *
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+*/
+bk_err_t bk_usb_control_transfer_init(void);
+
+/**
+ * @brief     Unmount control transfer to release resource
+ *
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+*/
+bk_err_t bk_usb_control_transfer_deinit(void);
+
+/**
+ * @brief     Control command and data interface fucntion to be passed
+ *
+ * This API is used to send commands and transfer data:
+ *   - Two parameters pSetup/buffer_info.
+ *   - s_usb_device_request:
+ *        The command format is specified by the USB protocol
+ *   - s_usb_transfer_buffer_info:
+ *        Buffer informataion for sending and receiving data.
+ *
+ *    example: Reference UVC_OTA demo
+ *
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_usb_control_transfer(s_usb_device_request *pSetup, s_usb_transfer_buffer_info *buffer_info);
 #ifdef __cplusplus
 }
 #endif

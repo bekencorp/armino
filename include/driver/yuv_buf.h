@@ -16,6 +16,7 @@
 
 #include <common/bk_include.h>
 #include <driver/yuv_buf_types.h>
+#include <driver/jpeg_enc_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,13 +34,26 @@ bk_err_t bk_yuv_buf_start(yuv_buf_work_mode_t work_mode);
 
 bk_err_t bk_yuv_buf_stop(yuv_buf_work_mode_t work_mode);
 
-bk_err_t bk_yuv_buf_enable_mclk(void);
+bk_err_t bk_yuv_buf_send_data_to_h264(void);
+
+bk_err_t bk_yuv_buf_enable_h264_nosensor_mode(void);
+
+bk_err_t bk_yuv_buf_enable_mclk(yuv_buf_work_mode_t work_mode);
 
 bk_err_t bk_yuv_buf_set_em_base_addr(uint32_t em_base_addr);
 
 bk_err_t bk_yuv_buf_register_isr(yuv_buf_isr_type_t type_id, yuv_buf_isr_t isr, void *param);
 
 bk_err_t bk_yuv_buf_unregister_isr(yuv_buf_isr_type_t type_id);
+
+bk_err_t bk_yuv_buf_init_partial_display(const yuv_buf_partial_offset_config_t *offset_config);
+
+bk_err_t bk_yuv_buf_deinit_partial_display(void);
+
+bk_err_t bk_yuv_buf_set_video_module_clk(jpeg_clk_t clk);
+
+bk_err_t bk_yuv_buf_soft_reset(void);
+
 
 #ifdef __cplusplus
 }

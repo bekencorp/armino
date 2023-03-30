@@ -1,0 +1,6 @@
+if (CONFIG_PRRO)
+	list(APPEND incs prro)
+	list(APPEND srcs prro/prro_driver.c)
+	set(incs ${incs} PARENT_SCOPE)
+	set(srcs ${srcs} PARENT_SCOPE)
+endif()

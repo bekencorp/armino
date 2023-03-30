@@ -346,21 +346,8 @@ mem_free(void *rmem)
  * This does not have to be aligned since for getting its size,
  * we only use the macro SIZEOF_STRUCT_MEM, which automatically aligns.
  */
-struct mem {
-  /** index (-> ram[next]) of the next struct */
-  mem_size_t next;
-  /** index (-> ram[prev]) of the previous struct */
-  mem_size_t prev;
-  /** 1: this area is used; 0: this area is unused */
-  u8_t used;
-#if MEM_TRX_DYNAMIC_EN
-  u8_t type;
-#endif
-#if MEM_OVERFLOW_CHECK
-  /** this keeps track of the user allocation size for guard checks */
-  mem_size_t user_size;
-#endif
-};
+
+
 
 /** All allocated blocks will be MIN_SIZE bytes big, at least!
  * MIN_SIZE can be overridden to suit your needs. Smaller values save space,
@@ -650,6 +637,25 @@ get_mem_size(void *rmem)
 
 }
 
+/**
+ * Security Check Interface : To check the contents of hostids
+ **/
+uint32_t
+mem_sanity_check(void *mem)
+{
+  if (mem) 
+  {
+    if (((u8_t *)mem > ram) && ((struct mem *)mem < ram_end)){
+      return true;
+    } else {
+      return false;
+    }
+  }
+  else {
+      return false;
+  }
+
+}
 
 /**
  * Put a struct mem back on the heap

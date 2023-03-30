@@ -21,7 +21,7 @@
 #include "sys_types.h"
 #include <driver/aon_rtc.h>
 #include <driver/hal/hal_spi_types.h>
-//#include "platform.h"
+#include "gpio_hal.h"
 
 static sys_hal_t s_sys_hal;
 uint32 sys_hal_get_int_group2_status(void);
@@ -38,28 +38,29 @@ bk_err_t sys_hal_init()
 /** Platform Misc End **/
 
 
-//sys_hal_主语(模块名)_谓语(动作:set/get/enable等)_宾语(status/value)
-//该函数在每个芯片目录中都有一份
 void sys_hal_usb_enable_clk(bool en)
 {
-	//ll层命名规范跟随ASIC的Address Mapping走，可以修改Address Mapping的注释
-	//这个注释ASIC的verilog也在使用
 	sys_ll_set_cpu_device_clk_enable_usb_cken(en);
 }
 
 void sys_hal_usb_analog_phy_en(bool en)
 {
-	//sys_ll_set_ana_reg6_en_usb(en);
+	sys_ll_set_ana_reg5_en_usb(en);
 }
 
 void sys_hal_usb_analog_speed_en(bool en)
 {
-	//sys_ll_set_ana_reg9_usb_speed(en);
+	sys_ll_set_ana_reg5_usb_speed(en);
 }
 
 void sys_hal_usb_analog_ckmcu_en(bool en)
 {
-	//sys_ll_set_ana_reg11_ck2mcu(en);
+	//sys_ll_set_ana_reg5_en_dpll(en);
+}
+
+void sys_hal_usb_analog_deepsleep_en(bool en)
+{
+	sys_ll_set_ana_reg5_spideepsleep(en);
 }
 
 void sys_hal_set_usb_analog_dp_capability(uint8_t capability)
@@ -126,339 +127,6 @@ uint32_t sys_hal_flash_get_clk_div(void)
 
 /** Flash end **/
 
-/*sleep feature start*/
-void sys_hal_enter_deep_sleep(void * param)
-{
-    uint32_t modules_power_state=0;
-	uint32_t  clock_value = 0;
-	uint32_t  pmu_val2 = 0;
-
-	/*mask all interner interrupt*/
-	sys_ll_set_cpu0_int_halt_clk_op_cpu0_halt(1);
-	/*1.switch cpu clock to xtal26m*/
-	clock_value = sys_ll_get_cpu_clk_div_mode1_value();
-	clock_value &= ~(SYS_CPU_CLK_DIV_MODE1_CLKDIV_CORE_MASK << SYS_CPU_CLK_DIV_MODE1_CLKDIV_CORE_POS);
-	clock_value &= ~(SYS_CPU_CLK_DIV_MODE1_CKSEL_CORE_MASK << SYS_CPU_CLK_DIV_MODE1_CKSEL_CORE_POS);
-	sys_ll_set_cpu_clk_div_mode1_value(clock_value);
-
-	/*2.switch flash clock to xtal26m*/
-	clock_value = 0;
-	clock_value = sys_ll_get_cpu_clk_div_mode2_value();
-	clock_value &= ~(SYS_CPU_CLK_DIV_MODE2_CKSEL_FLASH_MASK << SYS_CPU_CLK_DIV_MODE2_CKSEL_FLASH_POS);
-	clock_value &= ~(SYS_CPU_CLK_DIV_MODE2_CKDIV_FLASH_MASK << SYS_CPU_CLK_DIV_MODE2_CKDIV_FLASH_POS);
-	sys_ll_set_cpu_clk_div_mode2_value(clock_value);
-
-	/*3.close high frequncy clock*/
-	clock_value = 0;
-    clock_value = sys_ll_get_ana_reg6_value();
-	//clock_value |= (1 << SYS_ANA_REG6_EN_SLEEP_POS);
-	//clock_value &= ~((1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_AUDPLL_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS)|(1 << SYS_ANA_REG6_EN_DCO_POS)|(1 << SYS_ANA_REG6_EN_USB_POS));
-    sys_ll_set_ana_reg6_value(clock_value);
-
-	clock_value = 0;
-    clock_value = sys_ll_get_ana_reg5_value();
-	//clock_value &= ~(1 << SYS_ANA_REG5_ENCB_POS);//global central bias enable
-    sys_ll_set_ana_reg5_value(clock_value);
-
-	clock_value = 0;
-    sys_ll_set_ana_reg19_value(clock_value);
-
-	/*4.set PMU parameters*/
-    aon_pmu_hal_set_sleep_parameters(0x4e111111);
-
-    /*5.set power flag*/
-	modules_power_state = sys_ll_get_cpu_power_sleep_wakeup_value();
-	modules_power_state |= 0xa0000;
-	sys_ll_set_cpu_power_sleep_wakeup_value(modules_power_state);
-
-	/*6.set sleep flag*/
-	pmu_val2 =  aon_pmu_hal_reg_get(PMU_REG2);
-	pmu_val2 |= BIT(BIT_SLEEP_FLAG_DEEP_SLEEP);
-	aon_pmu_hal_reg_set(PMU_REG2,pmu_val2);
-
-	/*7.mask all interner interrupt*/
-	//sys_ll_set_cpu0_int_halt_clk_op_cpu0_halt(1);
-
-	/*8.WFI*/
-	//__asm volatile( "wfi" );
-
-}
-void sys_hal_exit_low_voltage()
-{
-	uint32_t modules_power_state=0;
-	uint32_t wakeup_souce = 0x1F0;
-	uint32_t reg_val = 0;
-	uint32_t clock_value = 0;
-
-	/*1.exit sleep*/
-	modules_power_state = sys_ll_get_cpu_power_sleep_wakeup_value();
-	modules_power_state &= ~0xf0000;
-	sys_ll_set_cpu_power_sleep_wakeup_value(modules_power_state);
-
-	/*2.disable wakeup source*/
-	reg_val = aon_pmu_hal_get_wakeup_source_reg();
-	reg_val &= ~wakeup_souce;
-	aon_pmu_hal_set_wakeup_source_reg(reg_val);
-
-	/*3.open high frequncy clock*/
-	clock_value = 0;
-    clock_value = sys_ll_get_ana_reg6_value();
-	clock_value |= (1 << 12);//en_dpll
-	clock_value |= (1 << 8);//en_dco
-    sys_ll_set_ana_reg6_value(clock_value);
-
-}
-//uint32_t  g_previous_tick = 0;
-//uint32_t  g_wifi_previous_tick = 0;
-#define BIT_AON_PMU_WAKEUP_ENA      (0x1F0U)
-void sys_hal_enter_low_voltage(void)
-{
-	uint32_t  modules_power_state = 0;
-	uint32_t  clock_value = 0;
-	uint32_t  clk_div_val0= 0, clk_div_val1 = 0, clk_div_val2 = 0;
-	uint32_t  pmu_val2 = 0;
-	//uint32_t  pmu_state = 0;
-	uint32_t  previous_tick = 0;
-	uint32_t  current_tick = 0;
-	uint32_t  clk_div_temp = 0;
-	uint32_t  int_state1 = 0;
-	uint32_t  int_state2 = 0;
-
-	int_state1 = sys_ll_get_cpu0_int_0_31_en_value();
-	int_state2 = sys_ll_get_cpu0_int_32_63_en_value();
-	sys_ll_set_cpu0_int_0_31_en_value(0x0);
-	sys_ll_set_cpu0_int_32_63_en_value(0x0);
-	__asm volatile( "nop" );
-	__asm volatile( "nop" );
-	__asm volatile( "nop" );
-	__asm volatile( "nop" );
-	__asm volatile( "nop" );
-	__asm volatile( "nop" );
-	__asm volatile( "nop" );
-	__asm volatile( "nop" );
-	__asm volatile( "nop" );
-	__asm volatile( "nop" );
-
-      /*mask all interner interrupt*/
-	sys_ll_set_cpu0_int_halt_clk_op_cpu0_int_mask(1);
-
-	//gpio_disable_output();
-	clk_div_val0 =  sys_hal_all_modules_clk_div_get(CLK_DIV_REG0);
-	clk_div_val1 =  sys_hal_all_modules_clk_div_get(CLK_DIV_REG1);
-	clk_div_val2 =  sys_hal_all_modules_clk_div_get(CLK_DIV_REG2);
-
-	/*1.switch cpu clock to xtal26m*/
-	sys_ll_set_cpu_clk_div_mode1_cksel_core(0);
-	sys_ll_set_cpu_clk_div_mode1_clkdiv_core(0);
-	sys_ll_set_cpu_clk_div_mode1_clkdiv_bus(0);
-
-    //__asm volatile( "j ." );
-
-	/*2.switch flash clock to xtal26m*/
-	clock_value = 0;
-	clock_value = sys_ll_get_cpu_clk_div_mode2_value();
-	clock_value &= ~(SYS_CPU_CLK_DIV_MODE2_CKSEL_FLASH_MASK << SYS_CPU_CLK_DIV_MODE2_CKSEL_FLASH_POS);
-	clock_value &= ~(SYS_CPU_CLK_DIV_MODE2_CKDIV_FLASH_MASK << SYS_CPU_CLK_DIV_MODE2_CKDIV_FLASH_POS);
-	sys_ll_set_cpu_clk_div_mode2_value(clock_value);
-
-	/*3.close analog clk */
-	clock_value = 0;
-	clock_value = sys_ll_get_ana_reg6_value();
-	/*temp close analog clk solution, we will record the opened clk,then it will close them ,when wakeup will open them*/
-	//clock_value |= (1 << SYS_ANA_REG6_EN_SLEEP_POS);//enable xtal26m sleep
-	//clock_value &= ~((1 << SYS_ANA_REG6_XTAL_LPMODE_CTRL_POS)|(1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_AUDPLL_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS)|(1 << SYS_ANA_REG6_EN_DCO_POS)|(1 << SYS_ANA_REG6_EN_XTALL_POS)|(1 << SYS_ANA_REG6_EN_USB_POS));
-	//clock_value &= ~((1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_USB_POS)|(1 << SYS_ANA_REG6_EN_AUDPLL_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS));
-	sys_ll_set_ana_reg6_value(clock_value);
-
-
-	/*4.set sleep parameters*/
-	aon_pmu_hal_set_sleep_parameters(0x2B111FFF);//a)close isolat temp for bt/wifi wakeup in low voltage;b)let 1.5ms time for xtal 26m stability
-
-	/*5.set power flag*/
-	modules_power_state = 0;
-	modules_power_state = sys_ll_get_cpu_power_sleep_wakeup_value();
-	modules_power_state |= 0xa0000;
-	sys_ll_set_cpu_power_sleep_wakeup_value(modules_power_state);
-
-	pmu_val2 =  aon_pmu_hal_reg_get(PMU_REG2);
-	pmu_val2 |= BIT(BIT_SLEEP_FLAG_LOW_VOLTAGE);
-	aon_pmu_hal_reg_set(PMU_REG2,pmu_val2);
-
-
-	sys_ll_set_cpu0_int_32_63_en_cpu0_wifi_mac_int_gen_en(0x1);
-	sys_ll_set_cpu0_int_32_63_en_cpu0_gpio_int_en(0x1);
-	sys_ll_set_cpu0_int_32_63_en_cpu0_rtc_int_en(0x1);
-	sys_ll_set_cpu0_int_32_63_en_cpu0_touched_int_en(0x1);
-	sys_ll_set_cpu0_int_32_63_en_cpu0_dm_irq_en(0x1);
-//	set_csr(NDS_MIE, MIP_MTIP);
-	/*6.mask all interner interrupt*/
-	//sys_ll_set_cpu0_int_halt_clk_op_cpu0_int_mask(1);
-	//__asm volatile( "wfi" );
-       /*get interrupt */
-	while(1)
-	{
-		/*6.WFI*/
-		//__asm volatile( "wfi" );
-		extern u32 arch_get_int_status(void);
-
-		if(arch_get_int_status() != 0)
-		{
-			break;
-		}
-	}
-
-	extern uint32_t pm_wake_int_flag1, pm_wake_int_flag2;
-	extern uint32_t pm_wake_gpio_flag1, pm_wake_gpio_flag2;
-	extern gpio_driver_t s_gpio;
-	{
-		pm_wake_int_flag1 = sys_hal_get_int_status();
-		pm_wake_int_flag2 = sys_hal_get_int_group2_status();
-
-		gpio_hal_t *hal = &s_gpio.hal;
-		gpio_interrupt_status_t gpio_status;
-
-		gpio_hal_get_interrupt_status(hal, &gpio_status);
-		pm_wake_gpio_flag1 = gpio_status.gpio_0_31_int_status;
-		pm_wake_gpio_flag2 = gpio_status.gpio_32_64_int_status;
-	}
-
-	/*add delay for xtal 26m, analog suggest 1.5ms,we add protect time to 2ms(1.5ms(hardware delay,0.5ms software delay))*/
-	previous_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
-	current_tick = previous_tick;
-	while(((uint32_t)(current_tick - previous_tick)) < (uint32_t)(LOW_POWER_XTAL_26M_STABILITY_DELAY_TIME*RTC_TICKS_PER_1MS))/*32*0.5*/
-	{
-		current_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
-	}
-
-	/*7.restore state before low voltage*/
-	modules_power_state = 0;
-	modules_power_state = sys_ll_get_cpu_power_sleep_wakeup_value();
-	modules_power_state &= ~0xf0000;
-	sys_ll_set_cpu_power_sleep_wakeup_value(modules_power_state);
-
-	/*8.restore the analog clk*/
-	clock_value = 0;
-	clock_value = sys_ll_get_ana_reg6_value();
-	//clock_value |= ((1 << SYS_ANA_REG6_EN_DPLL_POS)|(1 << SYS_ANA_REG6_EN_USB_POS)|(1 << SYS_ANA_REG6_EN_PSRAM_LDO_POS));//en_dpll, en_usb,en_PSRAM_LDO
-	//clock_value &= ~(1 << SYS_ANA_REG6_EN_SLEEP_POS);//disable xtal26m sleep
-	sys_ll_set_ana_reg6_value(clock_value);
-	//os_printf("low voltage wake up 123456\r\n");
-	/*add delay for xtal 26m, analog suggest 800us,we add protect time to 1ms*/
-
-	previous_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
-	//g_previous_tick = previous_tick;
-	//g_wifi_previous_tick = previous_tick;
-	current_tick = previous_tick;
-	while(((uint32_t)(current_tick - previous_tick)) < (uint32_t)(LOW_POWER_DPLL_STABILITY_DELAY_TIME*RTC_TICKS_PER_1MS))/*32*1*/
-	{
-		current_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
-	}
-
-	/*9.restore clk div*/
-    clk_div_temp = clk_div_val0;
-	clk_div_temp &= SYS_CPU_CLK_DIV_MODE1_CLKDIV_CORE_MASK << SYS_CPU_CLK_DIV_MODE1_CLKDIV_CORE_POS;
-	sys_ll_set_cpu_clk_div_mode1_clkdiv_core(clk_div_temp);
-	clk_div_temp = clk_div_val0;
-	clk_div_temp &= SYS_CPU_CLK_DIV_MODE1_CLKDIV_BUS_MASK << SYS_CPU_CLK_DIV_MODE1_CLKDIV_BUS_POS;
-	sys_ll_set_cpu_clk_div_mode1_clkdiv_bus(clk_div_temp);
-	clk_div_temp = clk_div_val0;
-	clk_div_temp &= SYS_CPU_CLK_DIV_MODE1_CKSEL_CORE_MASK << SYS_CPU_CLK_DIV_MODE1_CKSEL_CORE_POS;
-	sys_ll_set_cpu_clk_div_mode1_cksel_core(clk_div_temp);
-
-	sys_hal_all_modules_clk_div_set(CLK_DIV_REG0, clk_div_val0);
-	sys_hal_all_modules_clk_div_set(CLK_DIV_REG1, clk_div_val1);
-	sys_hal_all_modules_clk_div_set(CLK_DIV_REG2, clk_div_val2);
-
-    /*10. not disable wakeup source*/
-#if 0
-	pmu_state =  aon_pmu_hal_reg_get(PMU_REG0x41);
-	pmu_state &= ~ BIT_AON_PMU_WAKEUP_ENA;
-	aon_pmu_hal_reg_set(PMU_REG0x41,pmu_state);
-#endif
-	sys_ll_set_cpu0_int_0_31_en_value(int_state1);
-	sys_ll_set_cpu0_int_32_63_en_value(int_state2);
-	//set_csr(NDS_MIE, MIP_MTIP);
-	//gpio_restore();
-
-}
-
-void sys_hal_touch_wakeup_enable(uint8_t index)
-{
-	uint32_t  pmu_state = 0;
-	wakeup_source_t wakeup_source = WAKEUP_SOURCE_INT_TOUCHED;
-    pmu_state =  aon_pmu_hal_reg_get(PMU_REG1);
-	pmu_state |= BIT(index) << 4;
-	pmu_state |= index << 0;
-	aon_pmu_hal_reg_set(PMU_REG1,pmu_state);
-    sys_hal_touch_power_down(0);
-
-	aon_pmu_hal_set_wakeup_source(wakeup_source);
-
-	sys_hal_touch_int_enable(1);
-}
-
-void sys_hal_usb_wakeup_enable(uint8_t index)
-{
-	uint32_t wakeup_usb_int_en = 0x1;
-	uint32_t system_usb_int_en = 0x1 << 21;
-	wakeup_source_t wakeup_source = WAKEUP_SOURCE_INT_USBPLUG;
-	aon_pmu_hal_usbplug_int_en(wakeup_usb_int_en);
-	aon_pmu_hal_set_wakeup_source(wakeup_source);
-
-	sys_hal_int_group2_enable(system_usb_int_en);
-}
-
-void sys_hal_rtc_wakeup_enable(uint32_t value)
-{
-    uint32_t system_rtc_int_en = 0x1 << 21;
-	wakeup_source_t wakeup_source = WAKEUP_SOURCE_INT_RTC;
-	aon_pmu_hal_set_wakeup_source(wakeup_source);
-
-	sys_hal_int_group2_enable(system_rtc_int_en);
-}
-
-void sys_hal_wifiorbt_wakeup_enable(uint32_t type)
-{
-	//wakeup_source_t wakeup_source = WAKEUP_SOURCE_INT_SYSTEM_WAKE;
-	//wifi: type=0,  BT: type=1
-	if(type == 0){
-		sys_ll_set_cpu_power_sleep_wakeup_wifi_wakeup_platform_en(1);
-	}else{
-		sys_ll_set_cpu_power_sleep_wakeup_bts_wakeup_platform_en(1);
-	}
-
-	//aon_pmu_hal_set_wakeup_source(wakeup_source);
-}
-
-gpio_driver_t s_gpio_base = {0};
-void sys_hal_gpio_wakeup_enable(uint32_t index, gpio_int_type_t type)
-{
-	gpio_hal_init(&s_gpio_base.hal);
-	gpio_hal_t *hal = &s_gpio_base.hal;
-	wakeup_source_t wakeup_source = WAKEUP_SOURCE_INT_GPIO;
-	/*1.clear gpio int enable  */
-	gpio_hal_disable_interrupt(hal, index);
-	/*2. gpio setting */
-	gpio_hal_input_enable(hal, index, 1);
-	gpio_hal_set_int_type(hal, index, type);
-	/*3. clear gpio int firstly */
-	gpio_hal_clear_chan_interrupt_status(hal, index);
-	/*4. open gpio int enable */
-	gpio_hal_enable_interrupt(hal, index);
-	/*5. set gpio wakeup source */
-	aon_pmu_hal_set_wakeup_source(wakeup_source);
-
-}
-void sys_hal_enter_normal_sleep(uint32_t peri_clk)
-{
-    sys_ll_set_cpu0_int_halt_clk_op_cpu0_halt(1);
-    //__asm volatile( "wfi" );
-}
-
-void sys_hal_enter_normal_wakeup()
-{
-
-}
 /*for low power function start*/
 void sys_hal_module_power_ctrl(power_module_name_t module,power_module_state_t power_state)
 {
@@ -504,14 +172,53 @@ void sys_hal_module_power_ctrl(power_module_name_t module,power_module_state_t p
 	}
 
 }
+
 int32 sys_hal_module_power_state_get(power_module_name_t module)
 {
 	return 0;
 }
-int32 sys_hal_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval)
+
+int sys_hal_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval)
 {
-	return 0;
+	if (rosc_cali_mode == 0) { //Auto
+		sys_ll_set_ana_reg6_spi_trig(1);
+		sys_ll_set_ana_reg6_calib_interval(cali_interval);
+		sys_ll_set_ana_reg6_modifi_auto(0);
+		sys_ll_set_ana_reg6_modify_interval(0x20);
+		sys_ll_set_ana_reg6_xtal_wakeup_time(8);
+		sys_ll_set_ana_reg6_cal_mode(1); //1: 32K, 0: 31.25K
+		sys_ll_set_ana_reg6_calib_auto(1);
+	} else if (rosc_cali_mode == 1) { //Manual
+		sys_ll_set_ana_reg6_manu_ena(0);
+		sys_ll_set_ana_reg6_spi_trig(0);
+		sys_ll_set_ana_reg6_spi_trig(1);
+	} else if (rosc_cali_mode == 2) { //Disable
+	} else {
+	}
+
+	return BK_OK;
 }
+
+int sys_hal_rosc_test_mode(bool enabled)
+{
+	if (enabled) {
+		sys_ll_set_ana_reg4_ck_tst_enbale(1);
+		sys_ll_set_ana_reg4_cktst_sel(0);
+		sys_ll_set_ana_reg5_rosc_tsten(1);
+		sys_ll_set_ana_reg6_cal_mode(1);
+		//sys_ll_set_ana_reg6_calib_auto(0);
+		//sys_ll_set_ana_reg6_calib_auto(1);
+		REG_WRITE((SOC_AON_GPIO_REG_BASE + (24 << 2)), 0x40);
+	} else {
+		sys_ll_set_ana_reg4_ck_tst_enbale(0);
+		sys_ll_set_ana_reg4_cktst_sel(0);
+		sys_ll_set_ana_reg5_rosc_tsten(0);
+		sys_ll_set_ana_reg6_cal_mode(0);
+		sys_ll_set_ana_reg6_calib_auto(0);
+	}
+	return BK_OK;
+}
+
 void sys_hal_module_RF_power_ctrl (module_name_t module,power_module_state_t power_state)
 {
     uint32_t value = 0;
@@ -590,20 +297,6 @@ void sys_hal_set_cpu1_reset(uint32_t reset_value)
     /*1:reset ; 0:not reset*/
     sys_ll_set_cpu1_int_halt_clk_op_cpu1_sw_rst(reset_value);
 }
-void sys_hal_enable_mac_wakeup_source()
-{
-   module_name_t module_name = MODULE_NAME_WIFI;
-   //wakeup_source_t wakeup_source = WAKEUP_SOURCE_INT_SYSTEM_WAKE;
-   sys_hal_wifiorbt_wakeup_enable(module_name);
-   //aon_pmu_hal_set_wakeup_source(wakeup_source);
-}
-void sys_hal_enable_bt_wakeup_source()
-{
-   module_name_t module_name = MODULE_NAME_BT;
-   //wakeup_source_t wakeup_source = WAKEUP_SOURCE_INT_SYSTEM_WAKE;
-   sys_hal_wifiorbt_wakeup_enable(module_name);
-   //aon_pmu_hal_set_wakeup_source(wakeup_source);
-}
 void sys_hal_all_modules_clk_div_set(clk_div_reg_e reg, uint32_t value)
 {
     clk_div_address_map_t clk_div_address_map_table[] = CLK_DIV_ADDRESS_MAP;
@@ -622,61 +315,35 @@ uint32_t sys_hal_all_modules_clk_div_get(clk_div_reg_e reg)
 
 	return REG_READ(clk_div_reg_address);
 }
-void sys_hal_wakeup_interrupt_clear(wakeup_source_t interrupt_source)
-{
-
-}
 void sys_hal_cpu_clk_div_set(uint32_t core_index, uint32_t value)
 {
 	if(core_index == 0)
 	{
-		sys_ll_set_cpu0_int_halt_clk_op_cpu0_clk_div(value);
+		//sys_ll_set_cpu0_int_halt_clk_op_cpu0_clk_div(value);
 	}
 	else
 	{
-		sys_ll_set_cpu1_int_halt_clk_op_cpu1_clk_div(value);
+		sys_ll_set_cpu1_int_halt_clk_op_cpu0_bus_clk_2div(value);
 	}
 }
 uint32_t sys_hal_cpu_clk_div_get(uint32_t core_index)
 {
 	if(core_index == 0)
 	{
-		return sys_ll_get_cpu0_int_halt_clk_op_cpu0_clk_div();
+		//return sys_ll_get_cpu0_int_halt_clk_op_cpu0_clk_div();
+		uint32_t reg_value;
+    	reg_value = REG_READ(0x44010000+0x4*4);
+    	reg_value = ((reg_value >> 4) & 0xf);
+    	return reg_value;
 	}
 	else
 	{
-		return sys_ll_get_cpu1_int_halt_clk_op_cpu1_clk_div();
+		//return sys_ll_get_cpu1_int_halt_clk_op_cpu0_bus_clk_2div();
+		uint32_t reg_value;
+    	reg_value = REG_READ(0x44010000+0x5*4);
+    	reg_value = ((reg_value >> 4) & 0xf);
+    	return reg_value;
 	}
-}
-void sys_hal_low_power_hardware_init()
-{
-	uint32_t param = 0;
-	uint32_t  pmu_state = 0;
-
-	param = aon_pmu_hal_reg_get(PMU_REG0);
-	param = 0x1; //memcheck bypass
-	aon_pmu_hal_reg_set(PMU_REG0,param);
-
-	param = 0;
-	param = sys_ll_get_ana_reg5_value();
-	//param |= (1 << SYS_ANA_REG5_ENCB_POS);//global central bias enable
-    sys_ll_set_ana_reg5_value(param);
-
-	param = 0;
-	param = sys_ll_get_ana_reg6_value();
-	//param &= ~((0x1 << SYS_ANA_REG6_EN_SLEEP_POS)|(1 << SYS_ANA_REG6_XTAL_LPMODE_CTRL_POS));
-	sys_ll_set_ana_reg6_value(param);
-
-	param = 0;
-	param = sys_ll_get_ana_reg6_value();
-	//param |= ((0x7 << SYS_ANA_REG6_RXTAL_LP_POS)|(0x7 << SYS_ANA_REG6_RXTAL_HP_POS));
-	sys_ll_set_ana_reg6_value(param);
-
-	/*set wakeup source*/
-	pmu_state =  aon_pmu_hal_reg_get(PMU_REG0x41);
-	pmu_state |= BIT_AON_PMU_WAKEUP_ENA;
-	aon_pmu_hal_reg_set(PMU_REG0x41,pmu_state);
-
 }
 int32 sys_hal_lp_vol_set(uint32_t value)
 {
@@ -712,9 +379,15 @@ int32 sys_hal_int_disable(uint32 param) //CMD_ICU_INT_DISABLE
 {
 	uint32 reg = 0;
 
+#if !CONFIG_SLAVE_CORE
 	reg = sys_ll_get_cpu0_int_0_31_en_value();
 	reg &= ~(param);
 	sys_ll_set_cpu0_int_0_31_en_value(reg);
+#else
+	reg = sys_ll_get_cpu1_int_0_31_en_value();
+	reg &= ~(param);
+	sys_ll_set_cpu1_int_0_31_en_value(reg);
+#endif
 
 	return 0;
 }
@@ -723,9 +396,15 @@ int32 sys_hal_int_enable(uint32 param) //CMD_ICU_INT_ENABLE
 {
 	uint32 reg = 0;
 
+#if !CONFIG_SLAVE_CORE
 	reg = sys_ll_get_cpu0_int_0_31_en_value();
 	reg |= (param);
 	sys_ll_set_cpu0_int_0_31_en_value(reg);
+#else
+	reg = sys_ll_get_cpu1_int_0_31_en_value();
+	reg |= (param);
+	sys_ll_set_cpu1_int_0_31_en_value(reg);
+#endif
 
 	return 0;
 }
@@ -735,9 +414,15 @@ int32 sys_hal_int_group2_disable(uint32 param)
 {
 	uint32 reg = 0;
 
+#if !CONFIG_SLAVE_CORE
 	reg = sys_ll_get_cpu0_int_32_63_en_value();
 	reg &= ~(param);
 	sys_ll_set_cpu0_int_32_63_en_value(reg);
+#else
+	reg = sys_ll_get_cpu1_int_32_63_en_value();
+	reg &= ~(param);
+	sys_ll_set_cpu1_int_32_63_en_value(reg);
+#endif
 
 	return 0;
 }
@@ -747,9 +432,15 @@ int32 sys_hal_int_group2_enable(uint32 param)
 {
 	uint32 reg = 0;
 
+#if !CONFIG_SLAVE_CORE
 	reg = sys_ll_get_cpu0_int_32_63_en_value();
 	reg |= (param);
 	sys_ll_set_cpu0_int_32_63_en_value(reg);
+#else
+	reg = sys_ll_get_cpu1_int_32_63_en_value();
+	reg |= (param);
+	sys_ll_set_cpu1_int_32_63_en_value(reg);
+#endif
 
 	return 0;
 }
@@ -758,9 +449,15 @@ int32 sys_hal_fiq_disable(uint32 param)
 {
 	uint32 reg = 0;
 
+#if !CONFIG_SLAVE_CORE
 	reg = sys_ll_get_cpu0_int_32_63_en_value();
 	reg &= ~(param);
 	sys_ll_set_cpu0_int_32_63_en_value(reg);
+#else
+	reg = sys_ll_get_cpu1_int_32_63_en_value();
+	reg &= ~(param);
+	sys_ll_set_cpu1_int_32_63_en_value(reg);
+#endif
 
 	return 0;
 }
@@ -769,9 +466,15 @@ int32 sys_hal_fiq_enable(uint32 param)
 {
 	uint32 reg = 0;
 
+#if !CONFIG_SLAVE_CORE
 	reg = sys_ll_get_cpu0_int_32_63_en_value();
 	reg |= (param);
 	sys_ll_set_cpu0_int_32_63_en_value(reg);
+#else
+	reg = sys_ll_get_cpu1_int_32_63_en_value();
+	reg |= (param);
+	sys_ll_set_cpu1_int_32_63_en_value(reg);
+#endif
 
 	return 0;
 }
@@ -794,12 +497,20 @@ int32 sys_hal_global_int_enable(uint32 param)
 
 uint32 sys_hal_get_int_status(void)
 {
+#if !CONFIG_SLAVE_CORE
 	return sys_ll_get_cpu0_int_0_31_status_value();
+#else
+	return sys_ll_get_cpu1_int_0_31_status_value();
+#endif
 }
 
 uint32 sys_hal_get_int_group2_status(void)
 {
+#if !CONFIG_SLAVE_CORE
 	return sys_ll_get_cpu0_int_32_63_status_value();
+#else
+	return sys_ll_get_cpu1_int_32_63_status_value();
+#endif
 }
 
 /* REG_0x29:cpu0_int_32_63_status->cpu0_gpio_int_st: ,R,0x29[22]*/
@@ -818,7 +529,12 @@ uint32 sys_hal_get_fiq_reg_status(void)
 {
 	uint32 reg = 0;
 
+#if !CONFIG_SLAVE_CORE
 	reg = sys_ll_get_cpu0_int_32_63_status_value();
+#else
+	reg = sys_ll_get_cpu1_int_32_63_status_value();
+#endif
+
 	return reg;
 }
 
@@ -853,14 +569,14 @@ uint32 sys_hal_set_intr_raw_status(uint32 param)
 int32 sys_hal_set_jtag_mode(uint32 param)
 {
 	int32 ret = 0;
-	sys_ll_set_cpu_storage_connect_op_select_jtag_core_sel(param);
+	//sys_ll_set_cpu_storage_connect_op_select_jtag_core_sel(param);
 	return ret;
 }
 
 uint32 sys_hal_get_jtag_mode(void)
 {
 	uint32 reg = 0;
-	reg = sys_ll_get_cpu_storage_connect_op_select_jtag_core_sel();
+	//reg = sys_ll_get_cpu_storage_connect_op_select_jtag_core_sel();
 	return reg;
 }
 
@@ -955,15 +671,15 @@ void sys_hal_timer_select_clock(sys_sel_timer_t num, timer_src_clk_t mode)
 	{
 		case SYS_SEL_TIMER0:
 			if(mode == TIMER_SCLK_XTAL)
-				sys_ll_set_cpu_clk_div_mode1_cksel_timer0(sel_xtal);
+				sys_ll_set_cpu_clk_div_mode1_cksel_tim0(sel_xtal);
 			else
-				sys_ll_set_cpu_clk_div_mode1_cksel_timer0(sel_clk32);
+				sys_ll_set_cpu_clk_div_mode1_cksel_tim0(sel_clk32);
 			break;
 		case SYS_SEL_TIMER1:
 			if(mode == TIMER_SCLK_XTAL)
-				sys_ll_set_cpu_clk_div_mode1_cksel_timer1(sel_xtal);
+				sys_ll_set_cpu_clk_div_mode1_cksel_tim1(sel_xtal);
 			else
-				sys_ll_set_cpu_clk_div_mode1_cksel_timer1(sel_clk32);
+				sys_ll_set_cpu_clk_div_mode1_cksel_tim1(sel_clk32);
 			break;
 
 		default:
@@ -979,12 +695,12 @@ uint32_t sys_hal_timer_select_clock_get(sys_sel_timer_t id)
     {
         case SYS_SEL_TIMER0:
         {
-            ret = sys_ll_get_cpu_clk_div_mode1_cksel_timer0();
+            ret = sys_ll_get_cpu_clk_div_mode1_cksel_tim0();
             break;
         }
         case SYS_SEL_TIMER1:
         {
-            ret = sys_ll_get_cpu_clk_div_mode1_cksel_timer1();
+            ret = sys_ll_get_cpu_clk_div_mode1_cksel_tim1();
             break;
         }
         default:
@@ -1022,6 +738,16 @@ void sys_hal_spi_select_clock(spi_id_t num, spi_src_clk_t mode)
 	}
 }
 
+void sys_hal_qspi_clk_sel(uint32_t param)
+{
+
+}
+
+void sys_hal_qspi_set_src_clk_div(uint32_t value)
+{
+	sys_ll_set_cpu_clk_div_mode2_ckdiv_qspi0(value);
+}
+
 #if 1	//tmp build
 void sys_hal_set_clk_select(dev_clk_select_id_t dev, dev_clk_select_t clk_sel)
 {
@@ -1049,36 +775,6 @@ dev_clk_dco_div_t sys_hal_get_dco_div(void)
 #endif	//temp build
 
 /*clock power control end*/
-
-/*wake up control start*/
-void sys_hal_arm_wakeup_enable(uint32_t param)
-{
-	/*
-	uint32_t reg = 0;
-
-	reg = aon_pmu_hal_get_wakeup_source_reg();
-	reg |= param;
-	aon_pmu_hal_set_wakeup_source_reg(reg);
-	*/
-}
-
-void sys_hal_arm_wakeup_disable(uint32_t param)
-{
-	/*
-	uint32_t reg = 0;
-
-	reg = aon_pmu_hal_get_wakeup_source_reg();
-	reg &= ~(param);
-	aon_pmu_hal_set_wakeup_source_reg(reg);
-	*/
-}
-
-uint32_t sys_hal_get_arm_wakeup(void)
-{
-	return 0;
-	//return aon_pmu_hal_get_wakeup_source_reg();
-}
-/*wake up control end*/
 
 void sys_hal_set_cksel_sadc(uint32_t value)
 {
@@ -1177,7 +873,7 @@ void sys_hal_set_clksel_spi(uint32_t value)
 
 void sys_hal_en_tempdet(uint32_t value)
 {
-    //sys_ll_set_ana_reg6_en_tempdet(value);
+    sys_ll_set_ana_reg5_en_temp(value);
 }
 
 uint32_t sys_hal_mclk_mux_get(void)
@@ -1315,11 +1011,13 @@ void sys_hal_bt_sleep_exit_ctrl(bool en)
 {
     if (en)
     {
-        sys_ll_set_cpu_power_sleep_wakeup_bts_sleep_exit_req(1);
+        //sys_ll_set_cpu_power_sleep_wakeup_bts_sleep_exit_req(1);
+        os_printf("todo\r\n");
     }
     else
     {
-        sys_ll_set_cpu_power_sleep_wakeup_bts_sleep_exit_req(0);
+        //sys_ll_set_cpu_power_sleep_wakeup_bts_sleep_exit_req(0);
+        os_printf("todo\r\n");
     }
 }
 
@@ -1361,10 +1059,10 @@ void sys_hal_lcd_disp_clk_en(uint8_t clk_src_sel, uint8_t clk_div_l, uint8_t clk
 	sys_ll_set_cpu_clk_div_mode1_clkdiv_disp_l(clk_div_l);
 	sys_ll_set_cpu_clk_div_mode2_clkdiv_disp_h(clk_div_h);
 	sys_ll_set_cpu_clk_div_mode2_cksel_disp( clk_src_sel);
-	//sys_ll_set_cpu1_int_0_31_en_cpu1_lcd_int_en( 1);
-	sys_ll_set_cpu0_int_0_31_en_cpu0_lcd_int_en( int_en);
+	sys_ll_set_cpu1_int_0_31_en_cpu1_lcd_display_int_en( 1);
+	sys_ll_set_cpu0_int_0_31_en_cpu0_lcd_display_int_en( int_en);
 	sys_ll_set_cpu_device_clk_enable_disp_cken(1);
-	sys_ll_set_cpu_mode_disckg2_disp_disckg(clk_always_on);
+	//sys_ll_set_cpu_mode_disckg2_disp_disckg(clk_always_on);
 }
 
 /**
@@ -1377,9 +1075,9 @@ void sys_hal_lcd_disp_close(void)
 	sys_ll_set_cpu_clk_div_mode2_clkdiv_disp_h(0);
 	sys_ll_set_cpu_clk_div_mode2_cksel_disp(0);
 	//sys_ll_set_cpu1_int_0_31_en_cpu1_lcd_int_en(&s_sys_hal, 1);
-	sys_ll_set_cpu0_int_0_31_en_cpu0_lcd_int_en(0);
+	//sys_ll_set_cpu0_int_0_31_en_cpu0_lcd_int_en(0);
 	sys_ll_set_cpu_device_clk_enable_disp_cken(0);
-	sys_ll_set_cpu_mode_disckg2_disp_disckg(0);
+	//sys_ll_set_cpu_mode_disckg2_disp_disckg(0);
 }
 
 /**
@@ -1391,13 +1089,13 @@ void sys_hal_lcd_disp_close(void)
   */
 void sys_hal_dma2d_clk_en(uint8_t clk_always_on, uint8_t sys_int_en)
 {
-	sys_ll_set_cpu_mode_disckg2_dma2d_disckg(clk_always_on);
+	//sys_ll_set_cpu_mode_disckg2_dma2d_disckg(clk_always_on);
 	sys_ll_set_cpu0_int_0_31_en_cpu0_dma2d_int_en(sys_int_en);
 }
 
 void sys_hal_jpeg_dec_ctrl(bool clk_always_on, bool int_en)
 {
-	sys_ll_set_cpu_mode_disckg1_jpeg_dec_disckg(clk_always_on);
+	//sys_ll_set_cpu_mode_disckg1_jpeg_dec_disckg(clk_always_on);
 	sys_ll_set_cpu0_int_0_31_en_cpu0_jpegdec_int_en(int_en);
 }
 
@@ -1525,7 +1223,16 @@ void sys_hal_enable_modem_rc_int(void)
 	sys_ll_set_cpu0_int_0_31_en_cpu0_wifi_int_phy_riu_en(1);
 }
 
+void sys_hal_enable_hsu_int(void)
+{
+	sys_ll_set_cpu0_int_32_63_en_cpu0_wifi_hsu_irq_en(1);
+}
 
+
+void sys_hal_disable_hsu_int(void)
+{
+	sys_ll_set_cpu0_int_32_63_en_cpu0_wifi_hsu_irq_en(0);
+}
 
 //Yantao Add End
 
@@ -1551,24 +1258,30 @@ void sys_hal_cali_dpll_spi_detect_enable(void)
 
 void sys_hal_set_xtalh_ctune(uint32_t value)
 {
-    //sys_ll_set_ana_reg5_xtalh_ctune(value);
+    sys_ll_set_ana_reg2_xtalh_ctune(value);
 }
 
 void sys_hal_analog_set(analog_reg_t reg, uint32_t value)
 {
-    analog_address_map_t analog_address_map_table[] = ANALOG_ADDRESS_MAP;
-    analog_address_map_t *analog_addr_map = &analog_address_map_table[reg];
+    uint32_t analog_reg_address;
 
-    uint32_t analog_reg_address = analog_addr_map->analog_reg_address;
+    if ((reg < ANALOG_REG0) || (reg >= ANALOG_MAX)) {
+        return;
+    }
+
+    analog_reg_address = SYS_ANA_REG0_ADDR + (reg - ANALOG_REG0) * 4;
 
 	sys_ll_set_analog_reg_value(analog_reg_address, value);
 }
 uint32_t sys_hal_analog_get(analog_reg_t reg)
 {
-	analog_address_map_t analog_address_map_table[] = ANALOG_ADDRESS_MAP;
-	analog_address_map_t *analog_addr_map = &analog_address_map_table[reg];
+    uint32_t analog_reg_address;
 
-	uint32_t analog_reg_address = analog_addr_map->analog_reg_address;
+    if ((reg < ANALOG_REG0) || (reg >= ANALOG_MAX)) {
+        return 0;
+    }
+
+    analog_reg_address = SYS_ANA_REG0_ADDR + (reg - ANALOG_REG0) * 4;
 
 	return sys_ll_get_analog_reg_value(analog_reg_address);
 }
@@ -1622,6 +1335,26 @@ void sys_hal_set_ana_reg17_value(uint32_t value)
     sys_ll_set_ana_reg17_value(value);
 }
 
+void sys_hal_set_ana_reg18_value(uint32_t value)
+{
+    sys_ll_set_ana_reg18_value(value);
+}
+
+void sys_hal_set_ana_reg19_value(uint32_t value)
+{
+    sys_ll_set_ana_reg19_value(value);
+}
+
+void sys_hal_set_ana_reg20_value(uint32_t value)
+{
+    sys_ll_set_ana_reg20_value(value);
+}
+
+void sys_hal_set_ana_reg21_value(uint32_t value)
+{
+    sys_ll_set_ana_reg21_value(value);
+}
+
 uint32_t sys_hal_bias_reg_read(void)
 {
 	///TODO
@@ -1659,9 +1392,7 @@ uint32_t sys_hal_bias_reg_clean(uint32_t param)
 
 uint32_t sys_hal_get_xtalh_ctune(void)
 {
-    //	TODO
-    //return sys_ll_get_ana_reg5_xtalh_ctune();
-    return 0;
+    return sys_ll_get_ana_reg2_xtalh_ctune();
 }
 
 uint32_t sys_hal_get_bgcalm(void)
@@ -1709,84 +1440,69 @@ void sys_hal_aud_clock_en(uint32_t value)
 	sys_ll_set_cpu_device_clk_enable_aud_cken(value);
 }
 
-void sys_hal_aud_vdd1v_en(uint32_t value)
-{
-	//sys_ll_set_ana_reg12_enaudvdd1v(value);
-}
-
-void sys_hal_aud_vdd1v5_en(uint32_t value)
-{
-	//sys_ll_set_ana_reg12_enaudvdd1v5(value);
-}
-
 void sys_hal_aud_mic1_en(uint32_t value)
 {
-	//sys_ll_set_ana_reg14_micen(value);
-}
-
-void sys_hal_aud_mic2_en(uint32_t value)
-{
-	//sys_ll_set_ana_reg15_micen(value);
-}
-
-void sys_hal_aud_audpll_en(uint32_t value)
-{
-	//sys_ll_set_ana_reg6_en_audpll(value);
-}
-
-void sys_hal_aud_dacdrv_en(uint32_t value)
-{
-	//sys_ll_set_ana_reg16_dacdrven(value);
-}
-
-void sys_hal_aud_bias_en(uint32_t value)
-{
-	//sys_ll_set_ana_reg17_enbias(value);
-}
-
-void sys_hal_aud_dacr_en(uint32_t value)
-{
-	//sys_ll_set_ana_reg16_dacren(value);
+	sys_ll_set_ana_reg19_micen(value);
 }
 
 void sys_hal_aud_dacl_en(uint32_t value)
 {
-	//sys_ll_set_ana_reg16_daclen(value);
+	sys_ll_set_ana_reg20_daclen(value);
 }
 
-void sys_hal_aud_rvcmd_en(uint32_t value)
+void sys_hal_aud_diffen_en(uint32_t value)
 {
-	//sys_ll_set_ana_reg16_renvcmd(value);
-}
-
-void sys_hal_aud_lvcmd_en(uint32_t value)
-{
-	//sys_ll_set_ana_reg16_lenvcmd(value);
-}
-
-void sys_hal_aud_micbias1v_en(uint32_t value)
-{
-	//sys_ll_set_ana_reg12_enmicbias1v(value);
-}
-
-void sys_hal_aud_micbias_trim_set(uint32_t value)
-{
-	//sys_ll_set_ana_reg12_micbias_trim(value);
+	sys_ll_set_ana_reg20_diffen(value);
 }
 
 void sys_hal_aud_mic_rst_set(uint32_t value)
 {
-	//sys_ll_set_ana_reg13_rst(value);
+	sys_ll_set_ana_reg19_rst(value);
 }
 
 void sys_hal_aud_mic1_gain_set(uint32_t value)
 {
-	//sys_ll_set_ana_reg14_micgain(value);
+	sys_ll_set_ana_reg19_micgain(value);
 }
 
-void sys_hal_aud_mic2_gain_set(uint32_t value)
+void sys_hal_aud_dcoc_en(uint32_t value)
 {
-	//sys_ll_set_ana_reg15_micgain(value);
+	sys_ll_set_ana_reg20_lendcoc(value);
+}
+
+void sys_hal_aud_lmdcin_set(uint32_t value)
+{
+	sys_ll_set_ana_reg21_lmdcin(value);
+}
+
+void sys_hal_aud_audbias_en(uint32_t value)
+{
+	sys_ll_set_ana_reg18_enaudbias(value);
+}
+
+void sys_hal_aud_adcbias_en(uint32_t value)
+{
+	sys_ll_set_ana_reg18_enadcbias(value);
+}
+
+void sys_hal_aud_micbias_en(uint32_t value)
+{
+	sys_ll_set_ana_reg18_enmicbias(value);
+}
+
+void sys_hal_aud_bias_en(uint32_t value)
+{
+	sys_ll_set_ana_reg21_enbs(value);
+}
+
+void sys_hal_aud_idac_en(uint32_t value)
+{
+	sys_ll_set_ana_reg21_enidacl(value);
+}
+
+void sys_hal_aud_dacdrv_en(uint32_t value)
+{
+	sys_ll_set_ana_reg20_dacdrven(value);
 }
 
 void sys_hal_aud_int_en(uint32_t value)
@@ -1799,13 +1515,60 @@ void sys_hal_aud_power_en(uint32_t value)
 	sys_ll_set_cpu_power_sleep_wakeup_pwd_audp(value);
 }
 
+void sys_hal_aud_lvcmd_en(uint32_t value)
+{
+	sys_ll_set_ana_reg20_lenvcmd(value);
+}
+
+void sys_hal_aud_micbias1v_en(uint32_t value)
+{
+	sys_ll_set_ana_reg18_micbias_voc(value);
+}
+
+void sys_hal_aud_micbias_trim_set(uint32_t value)
+{
+	sys_ll_set_ana_reg18_micbias_trm(value);
+}
+
+void sys_hal_aud_audpll_en(uint32_t value)
+{
+}
+
+void sys_hal_aud_dacr_en(uint32_t value)
+{
+}
+
+void sys_hal_aud_vdd1v_en(uint32_t value)
+{
+}
+
+void sys_hal_aud_vdd1v5_en(uint32_t value)
+{
+}
+
+void sys_hal_aud_mic2_en(uint32_t value)
+{
+}
+
+void sys_hal_aud_mic2_gain_set(uint32_t value)
+{
+}
+
+void sys_hal_aud_aud_en(uint32_t value)
+{
+}
+
+void sys_hal_aud_rvcmd_en(uint32_t value)
+{
+}
+
 /**  Audio End  **/
 
 /**  FFT Start  **/
 
 void sys_hal_fft_disckg_set(uint32_t value)
 {
-	sys_ll_set_cpu_mode_disckg1_fft_disckg(value);
+	//sys_ll_set_cpu_mode_disckg1_fft_disckg(value);
 }
 
 void sys_hal_cpu_fft_int_en(uint32_t value)
@@ -1826,39 +1589,64 @@ void sys_hal_i2s_clock_en(uint32_t value)
 	sys_ll_set_cpu_device_clk_enable_i2s_cken(value);
 }
 
-void sys_hal_i2s_disckg_set(uint32_t value)
+void sys_hal_i2s1_clock_en(uint32_t value)
 {
-	sys_ll_set_cpu_mode_disckg1_i2s_disckg(value);
+	sys_ll_set_reserver_reg0xd_i2s1_cken(value);
+}
+
+void sys_hal_i2s2_clock_en(uint32_t value)
+{
+	sys_ll_set_reserver_reg0xd_i2s2_cken(value);
 }
 
 void sys_hal_i2s_int_en(uint32_t value)
 {
-	sys_ll_set_cpu0_int_0_31_en_cpu0_i2s_int_en(value);
+	sys_ll_set_cpu0_int_0_31_en_cpu0_i2s0_int_en(value);
+}
+
+void sys_hal_i2s1_int_en(uint32_t value)
+{
+	sys_ll_set_cpu0_int_32_63_en_cpu0_i2s1_int_en(value);
+}
+
+void sys_hal_i2s2_int_en(uint32_t value)
+{
+	sys_ll_set_cpu0_int_32_63_en_cpu0_i2s2_int_en(value);
+}
+
+void sys_hal_i2s_disckg_set(uint32_t value)
+{
+	//NOT SUPPORT
 }
 
 void sys_hal_apll_en(uint32_t value)
 {
-	//sys_ll_set_ana_reg6_en_audpll(value);
+	//NOT SUPPORT
 }
 
 void sys_hal_cb_manu_val_set(uint32_t value)
 {
-	//sys_ll_set_ana_reg4_cb_manu_val(value);
+	//NOT SUPPORT
 }
 
 void sys_hal_ana_reg11_vsel_set(uint32_t value)
 {
-	//sys_ll_set_ana_reg11_vsel(value);
+	//NOT SUPPORT
 }
 
 void sys_hal_ana_reg10_sdm_val_set(uint32_t value)
 {
-	//sys_ll_set_ana_reg10_sdm_val(value);
+	//NOT SUPPORT
 }
 
 void sys_hal_ana_reg11_spi_trigger_set(uint32_t value)
 {
-	//sys_ll_set_ana_reg11_spi_trigger(value);
+	//NOT SUPPORT
+}
+
+void sys_hal_i2s0_ckdiv_set(uint32_t value)
+{
+	//NOT SUPPORT
 }
 
 /**  I2S End  **/
@@ -1930,7 +1718,7 @@ void sys_hal_set_clk_div_mode1_clkdiv_jpeg(uint32_t value)
 
 void sys_hal_set_jpeg_disckg(uint32_t value)
 {
-	sys_ll_set_cpu_mode_disckg1_jpeg_disckg(value);
+	//sys_ll_set_cpu_mode_disckg1_jpeg_disckg(value);
 }
 
 void sys_hal_set_cpu_clk_div_mode1_clkdiv_bus(uint32_t value)
@@ -1953,7 +1741,20 @@ void sys_hal_set_auxs_clk_div(uint32_t value)
 	sys_ll_set_cpu_clk_div_mode2_ckdiv_auxs(value);
 }
 
+void sys_hal_set_jpeg_clk_en(uint32_t value)
+{
+	sys_ll_set_cpu_device_clk_enable_jpeg_cken(value);
+}
+
 /** jpeg end **/
+
+/** h264 Start **/
+void sys_hal_set_h264_clk_en(uint32_t value)
+{
+	sys_ll_set_reserver_reg0xd_h264_cken(value);
+}
+
+/** h264 End **/
 
 /**  psram Start **/
 void sys_hal_psram_volstage_sel(uint32_t enable)
@@ -2076,12 +1877,12 @@ void sys_hal_set_ana_vref_sel(uint32_t value)
 }
 void sys_hal_set_ana_cb_cal_manu(uint32_t value)
 {
-    //sys_ll_set_ana_reg4_cb_cal_manu(value);
+    sys_ll_set_ana_reg5_bcal_en(value);
 }
 
 void sys_hal_set_ana_cb_cal_trig(uint32_t value)
 {
-    //sys_ll_set_ana_reg4_cb_cal_trig(value);
+    sys_ll_set_ana_reg5_bcal_start(value);
 }
 void sys_hal_set_ana_vlsel_ldodig(uint32_t value)
 {
@@ -2135,12 +1936,12 @@ void sys_hal_set_ana_vctrl_sysldo(uint32_t value)
 
 void sys_hal_set_yuv_buf_clock_en(uint32_t value)
 {
-	sys_ll_set_yuv_buf_clock_en(value);
+	sys_ll_set_reserver_reg0xd_yuv_cken(value);
 }
 
 void sys_hal_set_h264_clock_en(uint32_t value)
 {
-	sys_ll_set_h264_clock_en(value);
+	sys_ll_set_reserver_reg0xd_h264_cken(value);
 }
 
 void sys_hal_nmi_wdt_set_clk_div(uint32_t value)
@@ -2153,3 +1954,8 @@ uint32_t sys_hal_nmi_wdt_get_clk_div(void)
 	return sys_ll_get_cpu_26m_wdt_clk_div_ckdiv_wdt();
 }
 
+
+void sys_hal_set_ana_cb_cal_manu_val(uint32_t value)
+{
+    sys_ll_set_ana_reg5_vbias(value);
+}

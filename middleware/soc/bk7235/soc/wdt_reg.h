@@ -18,14 +18,6 @@
 extern "C" {
 #endif
 
-#if CONFIG_NMI_WDT_EN
-#define WDT_R_BASE                  (SOC_WDT_REG_BASE) //NMI_WDT
-#else
-#define WDT_R_BASE                  (SOC_AON_WDT_REG_BASE) //AON_WDT
-#endif
-
-#define WDT_R_CTRL                  (WDT_R_BASE)
-
 #define WDT_F_PERIOD                (BIT(0))
 #define WDT_F_PERIOD_M              (0xffff)
 #define WDT_F_PERIOD_V              (0xffff)

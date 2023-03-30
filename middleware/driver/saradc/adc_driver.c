@@ -72,6 +72,8 @@ static adc_statis_t* s_adc_statis = NULL;
 saradc_calibrate_val saradc_val = {
 #if (CONFIG_SOC_BK7256XX)
     0xD40, 0x1A72 /* 1Volt, 2Volt*/
+#elif (CFG_SOC_NAME == SOC_BK7236)
+    0x604, 0xC0C /* 1Volt, 2Volt*/
 #else
     0x55, 0x354
 #endif
@@ -736,7 +738,7 @@ void saradc_config_param_init_for_temp(saradc_desc_t* adc_config)
 float saradc_calculate(UINT16 adc_val)
 {
     float practic_voltage;
-#if (CFG_SOC_NAME == SOC_BK7256)
+#if (CFG_SOC_NAME == SOC_BK7256) || (CFG_SOC_NAME == SOC_BK7236)
     /* (adc_val - low) / (practic_voltage - 1Volt) = (high - low) / 1Volt */
     /* practic_voltage = (adc_val - low) / (high - low) + 1Volt */
     practic_voltage = (float)(adc_val - saradc_val.low);

@@ -3,6 +3,7 @@
 #include <os/os.h>
 #include <components/system.h>
 #include "cache.h"
+#include "mon_call.h"
 
 /* CSR NDS_ICM_CFG */
 #define ISET_MSK                                ((1ULL << 2) | (1ULL << 1) | (1ULL << 0))
@@ -132,16 +133,16 @@
 #if !CONFIG_CACHE_CUSTOM_SRAM_MAPPING
 #if !CONFIG_CACHE_ENABLE
 const unsigned int g_sram_addr_map[SRAM_BLOCK_COUNT] = {
+    0x30060000,
     0x30020000,
     0x30040000,
-    0x30060000,
     0x30000000
 };
 #else //#if CONFIG_CACHE_ENABLE
 const unsigned int g_sram_addr_map[SRAM_BLOCK_COUNT] = {
     0x38000000,
-    0x38020000,
     0x30020000,
+    0x38020000,
     0x30000000
 };
 #endif //#if CONFIG_CACHE_ENABLE
@@ -156,12 +157,13 @@ void sram_dcache_map(void)
 
    for(i = 0; i < SRAM_BLOCK_COUNT; i++)
    {
-        addr = SRAM_CACHE_CONFIG_BASE + (i * SRAM_BLOCK_COUNT);
+        addr = SRAM_CACHE_CONFIG_BASE + (i * sizeof(data));
         data = *((volatile unsigned int *) (addr));
         *((volatile unsigned int *) (addr)) = (g_sram_addr_map[i]) + (data & 0x03ff);
    }
 }
 
+#if 0
 int show_cache_config_info(void)
 {
     unsigned int iset, iway, isize, dset, dway, dsize;
@@ -303,15 +305,35 @@ void flush_dcache(void *va, long size)
         __nds__fencei();
     }
 }
+#else
+int show_cache_config_info(void)
+{
+	return 1;
+}
+
+void flush_dcache(void *va, long size)
+{
+	unsigned int  tmp = 0, line_size = 32;
+
+	line_size = mon_get_dcache_linesize();
+
+    /* L1C DCache write back and invalidate */
+    while (tmp < size)
+	{
+        /* Write back and invalid one cache line each time */
+        write_csr(NDS_UCCTLBEGINADDR, (unsigned long)(va + tmp));
+        tmp += line_size;
+        write_csr(NDS_UCCTLCOMMAND, CCTL_L1D_VA_WBINVAL);
+    }
+}
+#endif
 
 void flush_all_dcache(void) {
     int i = 0;
     for(i = 0; i < SRAM_BLOCK_COUNT; i++)
     {
         if(g_sram_addr_map[i] & 0x08000000) {
-            // flush_dcache((void *)g_sram_addr_map[i], SRAM_BLOCK_SIZE);
-	        write_csr(NDS_MCCTLBEGINADDR, g_sram_addr_map[i]);
-	        write_csr(NDS_MCCTLCOMMAND, CCTL_L1D_WBINVAL_ALL);
+			mon_flush_dcache(g_sram_addr_map[i]);
 			return;
         }
     }

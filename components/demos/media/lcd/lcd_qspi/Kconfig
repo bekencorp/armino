@@ -1,5 +1,6 @@
 menu "Demos::Media::Lcd::Lcd_qspi"
 	config LCD_QSPI_TEST
+		depends on LCD_QSPI
 		bool "Enable Lcd Qspi Test"
 		default n
 endmenu

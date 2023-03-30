@@ -309,7 +309,7 @@ bk_err_t bk_dma2d_blend(dma2d_blend_t *dma2d_blend);
   *     - BK_OK: succeed
   *     - others: other errors.
   */
-void bk_dma2d_pixel_convert(dma2d_pixel_convert_t *pixel_convert);
+void bk_dma2d_memcpy_or_pixel_convert(dma2d_memcpy_pfc_t *pixel_convert);
 
 /**
   * @brief  config dma2d fill color

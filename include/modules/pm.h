@@ -247,9 +247,11 @@ typedef enum
 typedef enum
 {
 	PM_CPU_FRQ_26M = 0,  // 0:CPU:26M,BUS:26M
-	PM_CPU_FRQ_120M,     // 1:CPU:120M,BUS:120M
-	PM_CPU_FRQ_240M,     // 2:CPU:240M,BUS:120M
-	PM_CPU_FRQ_320M,     // 3:CPU:320M,BUS:160M
+	PM_CPU_FRQ_60M,      // 1:CPU:60M,BUS:60M
+	PM_CPU_FRQ_80M,      // 2:CPU:80M,BUS:80M
+	PM_CPU_FRQ_120M,     // 3:CPU:120M,BUS:120M
+	PM_CPU_FRQ_240M,     // 4:CPU:240M,BUS:120M
+	PM_CPU_FRQ_320M,     // 5:CPU:320M,BUS:160M
 	PM_CPU_FRQ_DEFAULT   // default cpu frequency which control by pm module
 }pm_cpu_freq_e;
 typedef enum

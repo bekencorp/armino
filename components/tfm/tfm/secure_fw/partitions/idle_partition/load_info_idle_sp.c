@@ -12,7 +12,7 @@
 #include "load/service_defs.h"
 #include "load/asset_defs.h"
 
-#define IDLE_SP_STACK_SIZE      (0x100)
+#define IDLE_SP_STACK_SIZE      (0x200)
 
 struct partition_tfm_sp_idle_load_info_t {
     /* common length load data */

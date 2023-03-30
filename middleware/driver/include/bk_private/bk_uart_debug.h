@@ -26,7 +26,7 @@ extern "C" {
 UINT32 udebug_has_ctrlc(void);
 UINT32 udebug_wait_ctrlc_exit(void);
 UINT32 uart_debug_init(void);
-extern int bkreg_run_command1(const char *content, int cnt);
+extern int bkreg_run_command1(const unsigned char *content, int cnt);
 extern void send_device_id(void);
 extern void ate_test_multiple_cpus_init(void);
 

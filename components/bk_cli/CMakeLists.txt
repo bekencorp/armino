@@ -45,6 +45,10 @@ if (CONFIG_STA_PS)
 	)
 endif()
 
+if (CONFIG_PM_TEST)
+	list(APPEND srcs cli_pm.c)
+endif()
+
 if (CONFIG_OTA_TFTP OR CONFIG_OTA_HTTP)
 	list(APPEND srcs 
 		cli_ota.c
@@ -76,9 +80,15 @@ if (CONFIG_GENERAL_DMA)
 	)
 endif()
 
-if (CONFIG_SDCARD_HOST)
+if (CONFIG_SDCARD)
 	list(APPEND srcs
 		cli_sd.c
+	)
+endif()
+
+if (CONFIG_SDIO_SLAVE) 
+	list(APPEND srcs
+		cli_sdio_slave.c
 	)
 endif()
 
@@ -120,6 +130,12 @@ endif()
 
 if (CONFIG_FATFS)
 	list(APPEND srcs "cli_fatfs.c")
+endif()
+
+if (CONFIG_VFS)
+	list(APPEND srcs
+		cli_vfs.c
+	)
 endif()
 
 if (CONFIG_EFUSE)
@@ -220,6 +236,12 @@ if (CONFIG_DMA2D_TEST)
 	)
 endif() #CONFIG_DMA2D_TEST
 
+if (CONFIG_HW_ROTT_TEST)
+	list(APPEND srcs
+		"cli_rott.c"
+	)
+endif() #CONFIG_ROTT_TEST
+
 if (CONFIG_LCD_QSPI_TEST)
 	list(APPEND srcs
 		"cli_lcd_qspi.c"
@@ -230,6 +252,10 @@ if (CONFIG_EASY_FLASH)
 	list(APPEND srcs
 		"cli_easyflash.c"
 	)
+endif()
+
+if (CONFIG_AUDIO_TEST AND CONFIG_ARCH_CM33)
+	list(APPEND srcs "cli_aud_v1_1.c")
 endif()
 
 if (CONFIG_AUDIO_TEST AND CONFIG_AUDIO_RISCV_IP_V1_0)
@@ -250,6 +276,14 @@ endif()
 
 if (CONFIG_AUDIO_G711_TEST)
 	list(APPEND srcs "cli_g711.c")
+endif()
+
+if (CONFIG_AUDIO_OPUS_TEST)
+	list(APPEND srcs "cli_opus.c")
+endif()
+
+if (CONFIG_AUDIO_ADPCM_TEST)
+	list(APPEND srcs "cli_adpcm.c")
 endif()
 
 if (CONFIG_AUDIO_MP3_TEST)
@@ -322,8 +356,8 @@ if (CONFIG_QRCODEGEN_TEST)
 	list(APPEND srcs cli_qrcodegen.c)
 endif()
 
-if (CONFIG_CM33_TEST)
-	list(APPEND srcs cli_cm33.c)
+if (CONFIG_SPE_TEST)
+	list(APPEND srcs cli_spe.c)
 endif()
 
 if (CONFIG_MPC_TEST)
@@ -350,13 +384,14 @@ if (CONFIG_AGORA_IOT_SDK_TEST)
 	list(APPEND srcs cli_agora.c)
 endif()
 
+if (CONFIG_ES8311_TEST)
+	list(APPEND srcs cli_es8311.c)
+endif()
+
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
 	REQUIRES utf8 temp_detect app driver user_driver bk_system iperf fatfs user_driver http adc_key
 	#PRIV_REQUIRES airkiss bk_common bk_netif bk_ble bk_ps
-	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_init at bk_wifi compal media_common media bk_bt ota cmsis
+	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_vfs bk_init at bk_wifi compal media_common media bk_bt ota cmsis
 	)
 
-if(CONFIG_ARCH_RISCV)
-target_compile_options(${COMPONENT_LIB} PRIVATE -mno-relax)
-endif()

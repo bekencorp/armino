@@ -91,12 +91,14 @@ int cli_matter_init(void);
 
 int cli_uart_init(void);
 int cli_adc_init(void);
+int cli_sdmadc_init(void);
 int cli_spi_init(void);
 int cli_qspi_init(void);
 int cli_i2c_init(void);
 int cli_aon_rtc_init(void);
 int cli_sd_init(void);
 int cli_fatfs_init(void);
+int cli_vfs_init(void);
 int cli_temp_detect_init(void);
 int cli_security_init(void);
 int cli_mico_init(void);
@@ -123,6 +125,7 @@ int cli_sbc_init(void);
 int cli_touch_init(void);
 int cli_jpeg_init(void);
 int cli_lcd_init(void);
+int cli_rott_init(void);
 int cli_lcd_qspi_init(void);
 int cli_dma2d_init(void);
 int cli_i2s_init(void);
@@ -131,20 +134,28 @@ int cli_calendar_init(void);
 int cli_jpegdec_init(void);
 int cli_aec_init(void);
 int cli_g711_init(void);
+int cli_opus_init(void);
+int cli_adpcm_init(void);
 int cli_mp3_init(void);
 int cli_dvp_init(void);
 int cli_doorbell_init(void);
 int cli_sdio_host_init(void);
+int cli_sdio_slave_init(void);
 int cli_psram_init(void);
 int cli_qrcodegen_init(void);
-int cli_cm33_init(void);
+int cli_spe_init(void);
 int cli_usb_init(void);
 int cli_mpc_init(void);
 int cli_prro_init(void);
+int cli_interrupt_init(void);
+int cli_h264_init(void);
+int cli_pm_init(void);
 int cli_cs2_p2p_init(void);
 int cli_agora_init(void);
+int cli_es8311_init(void);
 
-extern int hexstr2bin(const char *hex, u8 *buf, size_t len);
+
+extern int hexstr2bin_cli(const char *hex, u8 *buf, size_t len);
 
 #ifdef __cplusplus
 }

@@ -67,6 +67,7 @@ set(srcs
 	security/hal_aes.c
 	security/hal_sha.c
 	spinlock/amp_res_lock.c
+	pwr_clk/pwr_clk.c
 	)
 if (CONFIG_AON_WDT)
 	list(APPEND incs
@@ -94,14 +95,10 @@ if (CONFIG_FLASH_ORIGIN_API)
 	)
 endif()
 
-if (CONFIG_PRRO)
-	list(APPEND incs
-		prro
-	)
-
-	list(APPEND srcs
-		prro/prro_driver.c
-	)
+if (NOT CMAKE_BUILD_EARLY_EXPANSION)
+	add_subdirectory(prro)
+	add_subdirectory(h264)
+	add_subdirectory(device)
 endif()
 
 if (CONFIG_CHIP_SUPPORT)
@@ -155,11 +152,13 @@ if (CONFIG_PWM)
 endif()  #if (CONFIG_PWM)
 
 if (NOT CONFIG_SOC_BK7256XX)
+if (NOT CONFIG_SOC_BK7236)
 if (CONFIG_I2S)
 	list(APPEND srcs
 		i2s/i2s.c
 		)
 endif()  #if (CONFIG_I2S)
+endif()
 endif()
 
 if (NOT CONFIG_SOC_BK7256XX)
@@ -199,7 +198,25 @@ if (CONFIG_I2S)
 	)
 endif()
 endif()
-	
+
+if (CONFIG_SOC_BK7236)
+if (CONFIG_I2S)
+	list(APPEND incs
+		"i2s"
+	)
+
+	list(APPEND srcs
+		i2s/i2s_driver_v1_1.c
+	)
+endif()
+
+if (CONFIG_HW_ROTATE_PFC)
+	list(APPEND srcs
+		hw_rotate/rott_driver.c
+	)
+endif()
+endif()
+
 if (CONFIG_LCD)
 	list(APPEND srcs
 		"lcd/lcd_driver.c"
@@ -266,6 +283,12 @@ endif()
 if (CONFIG_LCD_ST7701S)
 	list(APPEND srcs
 		"lcd/lcd_st7701s.c"
+		)
+endif()
+
+if (CONFIG_LCD_ST7701S_LY)
+	list(APPEND srcs
+		"lcd/lcd_st7701s_ly.c"
 		)
 endif()
 
@@ -377,14 +400,6 @@ if (CONFIG_SDIO_HOST)
 		)
 endif() #if (CONFIG_SDIO_HOST)
 
-if (CONFIG_SDCARD_V1P0)
-	list(APPEND srcs
-		"sdcard/sdio_driver.c"
-		"sdcard/sdcard.c"
-		"sdcard/sdcard_test.c"
-		)
-endif() #if (CONFIG_SDCARD_HOST)
-
 if (CONFIG_SDIO_V1P0)
 	list(APPEND incs
 		"sdio/v1p0"
@@ -439,6 +454,12 @@ if (CONFIG_SOC_BK7256XX)
 endif()
 endif()
 
+if (CONFIG_ES8311)
+	list(APPEND srcs
+		"audio/codec/es8311.c"
+		)
+endif()
+
 if (CONFIG_SOC_BK7251)
 	list(APPEND srcs
 		"audio/audio_adc.c"
@@ -447,6 +468,16 @@ if (CONFIG_SOC_BK7251)
 		"audio/ring_buffer_dma_write.c"
 		)
 endif()
+
+if (CONFIG_SOC_BK7236)
+	list(APPEND incs
+		"audio"
+		)
+	list(APPEND srcs
+		"audio/aud_driver_v1_1.c"
+		)
+endif()
+
 endif() #if (CONFIG_AUDIO)
 
 if (CONFIG_TOUCH)
@@ -479,6 +510,13 @@ endif() #if (NOT CONFIG_FULLY_HOSTED)
 if (CONFIG_SOC_BK7256XX)
 	list(APPEND srcs
 		"bk7256/mailbox_driver.c"
+		)
+
+endif()
+
+if (CONFIG_SOC_BK7236)
+	list(APPEND srcs
+		"bk7236/mailbox_driver.c"
 		)
 
 endif()
@@ -545,6 +583,12 @@ if (CONFIG_USB_UVC)
 	list(APPEND srcs
 		"camera/uvc_camera.c"
 		"camera/uvc_sensor_devices.c"
+		)
+endif()
+
+if (CONFIG_SDMADC)
+	list(APPEND srcs
+		"sdmadc/sdmadc_driver.c"
 		)
 endif()
 

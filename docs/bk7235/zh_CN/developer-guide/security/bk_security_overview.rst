@@ -37,7 +37,7 @@ BK130安全模块具有以下功能：
  - Byte 31     ： used for system control
 
 .. important::
-    eFuse大部分被固件和系统控制分配使用，未使用部分不提供给客户使用；非易失存储建议使用OTP。
+    eFuse大部分被固件和系统控制分配使用，未使用部分不提供给客户使用；非易失存储建议使用OTP bank0 。
 
 控制字节Byte31的位定义：
 -------------------------
@@ -53,7 +53,7 @@ BK130安全模块具有以下功能：
 
 控制字节Byte30的位定义：
 -------------------------
- - Bit[0]  : Security Boot enable. 1: enable. 0: disable.
+ - Bit[0]  : Security Boot enable. 0: disable, 1: enable.
  - Bit[1]  : Security Boot printout control.  0: enable.  1: disable
  - Bit[2]  : Fast boot.     0: deepsleep fast boot   1: deepsleep sb boot
  - Bit[6:3]: Analog control

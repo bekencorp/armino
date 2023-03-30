@@ -204,3 +204,21 @@ uint32_t sys_drv_i2s_int_en(uint32_t value)
 	return SYS_DRV_SUCCESS;
 }
 
+uint32_t sys_drv_i2s1_int_en(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_i2s1_int_en(value);
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
+uint32_t sys_drv_i2s2_int_en(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_i2s2_int_en(value);
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+

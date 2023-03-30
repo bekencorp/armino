@@ -309,12 +309,16 @@ static void spi_dma_tx_init(spi_id_t id, dma_id_t spi_tx_dma_chan)
 	BK_LOG_ON_ERR(bk_dma_init(spi_tx_dma_chan, &dma_config));
 	BK_LOG_ON_ERR(bk_dma_register_isr(spi_tx_dma_chan, NULL, spi_dma_tx_finish_handler));
 	BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(spi_tx_dma_chan));
+#if CONFIG_SPE
+	BK_LOG_ON_ERR(bk_dma_set_dest_sec_attr(spi_tx_dma_chan, DMA_ATTR_SEC));
+	BK_LOG_ON_ERR(bk_dma_set_src_sec_attr(spi_tx_dma_chan, DMA_ATTR_SEC));
+#endif
 }
 
 static void spi_dma_rx_init(spi_id_t id, dma_id_t spi_rx_dma_chan)
 {
 	dma_config_t dma_config = {0};
-	spi_int_config_t int_cfg_table[] = SPI_INT_CONFIG_TABLE;
+	spi_int_config_t int_cfg_table[] = SPI_RX_INT_CONFIG_TABLE;
 
 	s_spi[id].spi_rx_dma_chan = spi_rx_dma_chan;
 
@@ -331,6 +335,10 @@ static void spi_dma_rx_init(spi_id_t id, dma_id_t spi_rx_dma_chan)
 	BK_LOG_ON_ERR(bk_dma_init(spi_rx_dma_chan, &dma_config));
 	BK_LOG_ON_ERR(bk_dma_register_isr(spi_rx_dma_chan, NULL, spi_dma_rx_finish_handler));
 	BK_LOG_ON_ERR(bk_dma_enable_finish_interrupt(spi_rx_dma_chan));
+#if CONFIG_SPE
+	BK_LOG_ON_ERR(bk_dma_set_dest_sec_attr(spi_rx_dma_chan, DMA_ATTR_SEC));
+	BK_LOG_ON_ERR(bk_dma_set_src_sec_attr(spi_rx_dma_chan, DMA_ATTR_SEC));
+#endif
 }
 
 #endif /* CONFIG_SPI_DMA */
@@ -700,6 +708,73 @@ bk_err_t bk_spi_read_bytes_async(spi_id_t id, void *data, uint32_t size)
 
 
 #if CONFIG_SPI_DMA
+
+static bk_err_t spi_duplex_tx_rx_enable(spi_id_t id)
+{
+	bk_dma_start(s_spi[id].spi_tx_dma_chan);
+	bk_dma_start(s_spi[id].spi_rx_dma_chan);
+	spi_hal_enable_tx_rx(&s_spi[id].hal);
+	return BK_OK;
+}
+
+bk_err_t bk_spi_dma_duplex_init(spi_id_t id)
+{
+	spi_hal_duplex_config(&s_spi[id].hal);
+	bk_dma_disable_src_addr_loop(s_spi[id].spi_tx_dma_chan);
+	bk_dma_disable_dest_addr_loop(s_spi[id].spi_rx_dma_chan);
+	return BK_OK;
+}
+
+bk_err_t bk_spi_dma_duplex_deinit(spi_id_t id)
+{
+	spi_hal_duplex_release(&s_spi[id].hal);
+	bk_dma_enable_src_addr_loop(s_spi[id].spi_tx_dma_chan);
+	bk_dma_enable_dest_addr_loop(s_spi[id].spi_rx_dma_chan);
+	return BK_OK;
+}
+
+bk_err_t bk_spi_dma_duplex_xfer(spi_id_t id, const void *tx_data, uint32_t tx_size, void *rx_data, uint32_t rx_size)
+{
+	SPI_RETURN_ON_NOT_INIT();
+	SPI_RETURN_ON_ID_NOT_INIT(id);
+	SPI_RETURN_ON_INVALID_ID(id);
+
+	if (tx_size != rx_size) {
+		SPI_LOGW("tx and rx size must equal.\r\n");
+		return BK_ERR_SPI_DUPLEX_SIZE_NOT_EQUAL;
+	}
+
+	uint32_t len = rx_size > 0 ? rx_size : tx_size;
+	uint32_t offset = 0;
+	s_current_spi_dma_wr_id = id;
+	s_current_spi_dma_rd_id = id;
+
+	while(len > 0) {
+		if(rx_data) {
+			s_spi[id].is_rx_blocked = true;
+			spi_hal_clear_rx_fifo(&s_spi[id].hal);
+			spi_hal_set_rx_trans_len(&s_spi[id].hal, rx_size);
+			bk_dma_set_dest_start_addr(s_spi[id].spi_rx_dma_chan,((uint32_t)rx_data + offset));
+			bk_dma_set_transfer_len(s_spi[id].spi_rx_dma_chan,rx_size);
+		}
+
+		if(tx_data) {
+			s_spi[id].is_tx_blocked = true;
+			spi_hal_clear_tx_fifo(&s_spi[id].hal);
+			spi_hal_set_tx_trans_len(&s_spi[id].hal, tx_size);
+			bk_dma_set_src_start_addr(s_spi[id].spi_tx_dma_chan,((uint32_t)tx_data + offset));
+			bk_dma_set_transfer_len(s_spi[id].spi_tx_dma_chan,tx_size);
+		}
+
+		spi_duplex_tx_rx_enable(id);
+		rtos_get_semaphore(&s_spi[id].tx_sema, BEKEN_NEVER_TIMEOUT);
+		rtos_get_semaphore(&s_spi[id].rx_sema, BEKEN_NEVER_TIMEOUT);
+		len = rx_size > 0 ? (len-rx_size) : (len-tx_size);
+		offset += rx_size > 0 ? (rx_size) : (tx_size);
+	}
+
+	return BK_OK;
+}
 
 bk_err_t bk_spi_dma_write_bytes(spi_id_t id, const void *data, uint32_t size)
 {

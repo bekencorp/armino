@@ -1,0 +1,42 @@
+{
+    "description": "BL1 -> BL1 -> BL1",
+    "pack_ota": [ "default" ],
+    "pack_app": [ "default" ],
+    "partitions": [
+        { "partition": "bl1",               "offset": "0x00000000", "size": "128k", "bin": "bl1.bin",                "bin_type": "code" },
+        { "partition": "bl1_control",       "offset": "0x00020000", "size": "12k",  "bin": "bl1_control.bin",        "bin_type": "data" },
+        {
+           "partition": "primary_manifest",
+           "offset": "0x00023000",
+           "size": "4k",
+           "bin": "primary_manifest.bin",
+           "bin_type": "data",
+           "boot_partition": "primary_bl1"
+        },
+        {
+           "partition": "secondary_manifest",
+           "offset": "0x00024000",
+           "size": "4k",
+           "bin": "secondary_manifest.bin",
+           "bin_type": "data",
+           "boot_partition": "secondary_bl1"
+        },
+        {
+          "partition"          : "primary_bl1",
+          "offset"             : "0x00025000",
+          "size"               : "96k",
+          "bin"                : "primary_bl1.bin",
+          "bin_type"           : "code",
+          "version"            : "0x00010001",
+          "load_addr"          : "0x28040000"
+        },
+        {
+          "partition"          : "secondary_bl1",
+          "offset"             : "0x0003d000",
+          "size"               : "96k",
+          "bin"                : "secondary_bl1.bin",
+          "bin_type"           : "code",
+          "load_addr"          : "0x28040000"
+        }
+   ]
+}

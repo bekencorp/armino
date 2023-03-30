@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <driver/sys_pm_types.h>
 #include "sys_hal.h"
 #include "sys_driver.h"
 #include "sys_driver_common.h"
@@ -220,5 +221,98 @@ int32 sys_drv_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval)
 {
 	return sys_hal_rosc_calibration(rosc_cali_mode,cali_interval);
 }
+
+int sys_drv_rosc_test_mode(bool enabled)
+{
+#if CONFIG_ROSC_TEST_MODE
+	return sys_hal_rosc_test_mode(enabled);
+#else
+	return BK_FAIL;
+#endif
+}
 /*wake up control end*/
 
+int sys_pm_set_buck(sys_buck_type_t buck, bool ena)
+{
+	return sys_hal_set_buck(buck, ena);
+}
+
+int sys_pm_set_buck_pfm(sys_buck_type_t buck, bool ena)
+{
+	return sys_hal_set_buck_pfm(buck, ena);
+}
+
+int sys_pm_set_buck_burst(sys_buck_type_t buck, bool ena)
+{
+	return sys_hal_set_buck_burst(buck, ena);
+}
+
+int sys_pm_set_buck_mpo(sys_buck_type_t buck, bool ena)
+{
+	return sys_hal_set_buck_mpo(buck, ena);
+}
+
+int sys_pm_set_ldo_self_lp(sys_ldo_type_t ldo, bool ena)
+{
+	return sys_hal_set_ldo_self_lp(ldo, ena);
+}
+
+int sys_pm_set_ldo_current_limit(sys_ldo_type_t ldo, bool ena)
+{
+	return sys_hal_set_ldo_current_limit(ldo, ena);
+}
+
+int sys_pm_set_aon_power(sys_aon_power_t power)
+{
+	return sys_hal_set_aon_power(power);
+}
+
+int sys_pm_set_aon_ldo_volt(uint32_t volt)
+{
+	return sys_hal_set_aon_ldo_volt(volt);
+}
+
+int sys_pm_set_io_ldo_volt(uint32_t volt)
+{
+	return sys_hal_set_io_ldo_volt(volt);
+}
+
+int sys_pm_set_ana_ldo_volt(bool trsw_ena, uint32_t rx_volt, uint32_t tx_volt)
+{
+	return sys_hal_set_ana_ldo_volt(trsw_ena, rx_volt, tx_volt);
+}
+
+int sys_pm_set_digital_ldo_volt(bool lp_ena, uint32_t low_volt, uint32_t high_volt)
+{
+	return sys_hal_set_digital_ldo_volt(lp_ena, low_volt, high_volt);
+}
+
+int sys_pm_set_core_ldo_volt(bool lp_ena, uint32_t low_volt, uint32_t high_volt)
+{
+	return sys_hal_set_core_ldo_volt(lp_ena, low_volt, high_volt);
+}
+
+int sys_pm_set_lv_ctrl_pd(bool ena)
+{
+	return sys_hal_set_lv_ctrl_pd(ena);
+}
+
+int sys_pm_set_lv_ctrl_hf(bool ena)
+{
+	return sys_hal_set_lv_ctrl_hf(ena);
+}
+
+int sys_pm_set_lv_ctrl_flash(bool ena)
+{
+	return sys_hal_set_lv_ctrl_flash(ena);
+}
+
+int sys_pm_set_lv_ctrl_core(bool ena)
+{
+	return sys_hal_set_lv_ctrl_core(ena);
+}
+
+void sys_pm_dump_ctrl(void)
+{
+	sys_hal_dump_ctrl();
+}

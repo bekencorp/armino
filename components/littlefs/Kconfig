@@ -1,5 +1,6 @@
 menu "Littlefs"
 	config LITTLEFS
+		depends on FATFS
 		bool "Enable Littlefs"
 		default n
 endmenu

@@ -22,7 +22,9 @@
 #include "gpio_driver_base.h"
 #include "icu_driver.h"
 #include "amp_lock_api.h"
-#include <driver/gpio_types.h>
+#include <driver/gpio.h>
+#include <pm/pm.h>
+#include <pm/device.h>
 
 extern gpio_driver_t s_gpio;
 
@@ -132,3 +134,36 @@ bk_err_t gpio_sdio_one_line_sel(gpio_sdio_map_mode_t mode)
 	return BK_OK;
 }
 
+#if CONFIG_PM
+#if CONFIG_AON_PMU
+#include "aon_pmu_driver.h"
+#endif
+
+int default_gpio_pm_action_cb(const device_t *device, pm_device_action_t action)
+{
+	const pm_device_t *pm = device->pm;
+
+	if (!pm) {
+		return BK_FAIL;
+	}
+
+	if (action == PM_DEVICE_ACTION_WAKEUP_ENABLE) {
+		const gpio_wakeup_config_t *config = (gpio_wakeup_config_t*)pm->data;
+		if (!config) {
+			GPIO_LOGE("null gpio wakeup config\r\n");
+			return BK_FAIL;
+		}
+
+		gpio_hal_func_unmap(&s_gpio.hal, config->id);
+		bk_gpio_enable_input(config->id);
+		bk_gpio_pull_down(config->id);
+		bk_gpio_set_interrupt_type(config->id, config->int_type);
+		bk_gpio_register_isr(config->id, config->isr);
+		bk_gpio_enable_interrupt(config->id);
+		aon_pmu_drv_set_wakeup_source(WAKEUP_SOURCE_INT_GPIO);
+		GPIO_LOGI("gpio%d wakesource enabled\r\n", config->id);
+	}
+
+	return BK_OK;
+}
+#endif

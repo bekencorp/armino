@@ -71,66 +71,67 @@
 	#define portFPWORD_SIZE 0
 #endif
 
+#define portasmFPU_CONTEXT_SIZE        ( ( 32 * portFPWORD_SIZE ) / portWORD_SIZE )
+
+#include "FreeRTOSConfig.h"
+
+#define portasmHANDLE_INTERRUPT  mext_interrupt
+
 #define HW_STACK_PROTECT
 
 /* Constants to define the additional registers. */
-#define mxstatus 	0x7c4
 #define ucode   	0x801
 
 /* Additional FPU registers to save and restore (fcsr + 32 FPUs) */
-#define portasmFPU_CONTEXT_SIZE        ( 2 + ( 32 * portFPWORD_SIZE ) / portWORD_SIZE )  /* Must be even number on 32-bit cores. */
+/* One additional registers to save and restore, as per the #defines above. */
+#define portasmADDITIONAL_CONTEXT_SIZE ( 2 + portasmFPU_CONTEXT_SIZE )  /* Must be even number on 32-bit cores. */
 
-/* two additional registers to save and restore, as per the #defines above. */
-#define portasmADDITIONAL_CONTEXT_SIZE ( 2 + portasmFPU_CONTEXT_SIZE )
 
 /* Save additional registers found on the V5 core. */
 .macro portasmSAVE_ADDITIONAL_REGISTERS
 
 	addi sp, sp, -(portasmADDITIONAL_CONTEXT_SIZE * portWORD_SIZE) /* Make room for the additional registers. */
 
-	csrr t0, mxstatus							 /* Load additional registers into accessible temporary registers. */
-	store_x t0, 0 * portWORD_SIZE( sp )
-
 	#ifdef __riscv_dsp
 		csrr t0, ucode
-		store_x t0, 1 * portWORD_SIZE( sp )
+		store_x t0, 0 * portWORD_SIZE( sp )
 	#endif
 
 	#ifdef __riscv_flen
 		frcsr t0
-		sw t0, 2 * portWORD_SIZE( sp )
-		fpstore_x f0, ( 3 * portWORD_SIZE + 0 * portFPWORD_SIZE )( sp )
-		fpstore_x f1, ( 3 * portWORD_SIZE + 1 * portFPWORD_SIZE )( sp )
-		fpstore_x f2, ( 3 * portWORD_SIZE + 2 * portFPWORD_SIZE )( sp )
-		fpstore_x f3, ( 3 * portWORD_SIZE + 3 * portFPWORD_SIZE )( sp )
-		fpstore_x f4, ( 3 * portWORD_SIZE + 4 * portFPWORD_SIZE )( sp )
-		fpstore_x f5, ( 3 * portWORD_SIZE + 5 * portFPWORD_SIZE )( sp )
-		fpstore_x f6, ( 3 * portWORD_SIZE + 6 * portFPWORD_SIZE )( sp )
-		fpstore_x f7, ( 3 * portWORD_SIZE + 7 * portFPWORD_SIZE )( sp )
-		fpstore_x f8, ( 3 * portWORD_SIZE + 8 * portFPWORD_SIZE )( sp )
-		fpstore_x f9, ( 3 * portWORD_SIZE + 9 * portFPWORD_SIZE )( sp )
-		fpstore_x f10, ( 3 * portWORD_SIZE + 10 * portFPWORD_SIZE )( sp )
-		fpstore_x f11, ( 3 * portWORD_SIZE + 11 * portFPWORD_SIZE )( sp )
-		fpstore_x f12, ( 3 * portWORD_SIZE + 12 * portFPWORD_SIZE )( sp )
-		fpstore_x f13, ( 3 * portWORD_SIZE + 13 * portFPWORD_SIZE )( sp )
-		fpstore_x f14, ( 3 * portWORD_SIZE + 14 * portFPWORD_SIZE )( sp )
-		fpstore_x f15, ( 3 * portWORD_SIZE + 15 * portFPWORD_SIZE )( sp )
-		fpstore_x f16, ( 3 * portWORD_SIZE + 16 * portFPWORD_SIZE )( sp )
-		fpstore_x f17, ( 3 * portWORD_SIZE + 17 * portFPWORD_SIZE )( sp )
-		fpstore_x f18, ( 3 * portWORD_SIZE + 18 * portFPWORD_SIZE )( sp )
-		fpstore_x f19, ( 3 * portWORD_SIZE + 19 * portFPWORD_SIZE )( sp )
-		fpstore_x f20, ( 3 * portWORD_SIZE + 20 * portFPWORD_SIZE )( sp )
-		fpstore_x f21, ( 3 * portWORD_SIZE + 21 * portFPWORD_SIZE )( sp )
-		fpstore_x f22, ( 3 * portWORD_SIZE + 22 * portFPWORD_SIZE )( sp )
-		fpstore_x f23, ( 3 * portWORD_SIZE + 23 * portFPWORD_SIZE )( sp )
-		fpstore_x f24, ( 3 * portWORD_SIZE + 24 * portFPWORD_SIZE )( sp )
-		fpstore_x f25, ( 3 * portWORD_SIZE + 25 * portFPWORD_SIZE )( sp )
-		fpstore_x f26, ( 3 * portWORD_SIZE + 26 * portFPWORD_SIZE )( sp )
-		fpstore_x f27, ( 3 * portWORD_SIZE + 27 * portFPWORD_SIZE )( sp )
-		fpstore_x f28, ( 3 * portWORD_SIZE + 28 * portFPWORD_SIZE )( sp )
-		fpstore_x f29, ( 3 * portWORD_SIZE + 29 * portFPWORD_SIZE )( sp )
-		fpstore_x f30, ( 3 * portWORD_SIZE + 30 * portFPWORD_SIZE )( sp )
-		fpstore_x f31, ( 3 * portWORD_SIZE + 31 * portFPWORD_SIZE )( sp )
+		sw t0, 1 * portWORD_SIZE( sp )
+		fpstore_x f0, ( 2 * portWORD_SIZE + 0 * portFPWORD_SIZE )( sp )
+		fpstore_x f1, ( 2 * portWORD_SIZE + 1 * portFPWORD_SIZE )( sp )
+		fpstore_x f2, ( 2 * portWORD_SIZE + 2 * portFPWORD_SIZE )( sp )
+		fpstore_x f3, ( 2 * portWORD_SIZE + 3 * portFPWORD_SIZE )( sp )
+		fpstore_x f4, ( 2 * portWORD_SIZE + 4 * portFPWORD_SIZE )( sp )
+		fpstore_x f5, ( 2 * portWORD_SIZE + 5 * portFPWORD_SIZE )( sp )
+		fpstore_x f6, ( 2 * portWORD_SIZE + 6 * portFPWORD_SIZE )( sp )
+		fpstore_x f7, ( 2 * portWORD_SIZE + 7 * portFPWORD_SIZE )( sp )
+		fpstore_x f8, ( 2 * portWORD_SIZE + 8 * portFPWORD_SIZE )( sp )
+		fpstore_x f9, ( 2 * portWORD_SIZE + 9 * portFPWORD_SIZE )( sp )
+		fpstore_x f10, ( 2 * portWORD_SIZE + 10 * portFPWORD_SIZE )( sp )
+		fpstore_x f11, ( 2 * portWORD_SIZE + 11 * portFPWORD_SIZE )( sp )
+		fpstore_x f12, ( 2 * portWORD_SIZE + 12 * portFPWORD_SIZE )( sp )
+		fpstore_x f13, ( 2 * portWORD_SIZE + 13 * portFPWORD_SIZE )( sp )
+		fpstore_x f14, ( 2 * portWORD_SIZE + 14 * portFPWORD_SIZE )( sp )
+		fpstore_x f15, ( 2 * portWORD_SIZE + 15 * portFPWORD_SIZE )( sp )
+		fpstore_x f16, ( 2 * portWORD_SIZE + 16 * portFPWORD_SIZE )( sp )
+		fpstore_x f17, ( 2 * portWORD_SIZE + 17 * portFPWORD_SIZE )( sp )
+		fpstore_x f18, ( 2 * portWORD_SIZE + 18 * portFPWORD_SIZE )( sp )
+		fpstore_x f19, ( 2 * portWORD_SIZE + 19 * portFPWORD_SIZE )( sp )
+		fpstore_x f20, ( 2 * portWORD_SIZE + 20 * portFPWORD_SIZE )( sp )
+		fpstore_x f21, ( 2 * portWORD_SIZE + 21 * portFPWORD_SIZE )( sp )
+		fpstore_x f22, ( 2 * portWORD_SIZE + 22 * portFPWORD_SIZE )( sp )
+		fpstore_x f23, ( 2 * portWORD_SIZE + 23 * portFPWORD_SIZE )( sp )
+		fpstore_x f24, ( 2 * portWORD_SIZE + 24 * portFPWORD_SIZE )( sp )
+		fpstore_x f25, ( 2 * portWORD_SIZE + 25 * portFPWORD_SIZE )( sp )
+		fpstore_x f26, ( 2 * portWORD_SIZE + 26 * portFPWORD_SIZE )( sp )
+		fpstore_x f27, ( 2 * portWORD_SIZE + 27 * portFPWORD_SIZE )( sp )
+		fpstore_x f28, ( 2 * portWORD_SIZE + 28 * portFPWORD_SIZE )( sp )
+		fpstore_x f29, ( 2 * portWORD_SIZE + 29 * portFPWORD_SIZE )( sp )
+		fpstore_x f30, ( 2 * portWORD_SIZE + 30 * portFPWORD_SIZE )( sp )
+		fpstore_x f31, ( 2 * portWORD_SIZE + 31 * portFPWORD_SIZE )( sp )
 	#endif
 
 	.endm
@@ -138,53 +139,51 @@
 /* Restore the additional registers found on the V5 core. */
 .macro portasmRESTORE_ADDITIONAL_REGISTERS
 
-	load_x t0, 0 * portWORD_SIZE( sp )			/* Load additional registers into accessible temporary registers. */
-	csrw mxstatus, t0
-
 	#ifdef __riscv_dsp
-		load_x t0, 1 * portWORD_SIZE( sp )
+		load_x t0, 0 * portWORD_SIZE( sp )
 		csrw ucode, t0
 	#endif
 
 	#ifdef __riscv_flen
-		fpload_x f0, ( 3 * portWORD_SIZE + 0 * portFPWORD_SIZE )( sp )
-		fpload_x f1, ( 3 * portWORD_SIZE + 1 * portFPWORD_SIZE )( sp )
-		fpload_x f2, ( 3 * portWORD_SIZE + 2 * portFPWORD_SIZE )( sp )
-		fpload_x f3, ( 3 * portWORD_SIZE + 3 * portFPWORD_SIZE )( sp )
-		fpload_x f4, ( 3 * portWORD_SIZE + 4 * portFPWORD_SIZE )( sp )
-		fpload_x f5, ( 3 * portWORD_SIZE + 5 * portFPWORD_SIZE )( sp )
-		fpload_x f6, ( 3 * portWORD_SIZE + 6 * portFPWORD_SIZE )( sp )
-		fpload_x f7, ( 3 * portWORD_SIZE + 7 * portFPWORD_SIZE )( sp )
-		fpload_x f8, ( 3 * portWORD_SIZE + 8 * portFPWORD_SIZE )( sp )
-		fpload_x f9, ( 3 * portWORD_SIZE + 9 * portFPWORD_SIZE )( sp )
-		fpload_x f10, ( 3 * portWORD_SIZE + 10 * portFPWORD_SIZE )( sp )
-		fpload_x f11, ( 3 * portWORD_SIZE + 11 * portFPWORD_SIZE )( sp )
-		fpload_x f12, ( 3 * portWORD_SIZE + 12 * portFPWORD_SIZE )( sp )
-		fpload_x f13, ( 3 * portWORD_SIZE + 13 * portFPWORD_SIZE )( sp )
-		fpload_x f14, ( 3 * portWORD_SIZE + 14 * portFPWORD_SIZE )( sp )
-		fpload_x f15, ( 3 * portWORD_SIZE + 15 * portFPWORD_SIZE )( sp )
-		fpload_x f16, ( 3 * portWORD_SIZE + 16 * portFPWORD_SIZE )( sp )
-		fpload_x f17, ( 3 * portWORD_SIZE + 17 * portFPWORD_SIZE )( sp )
-		fpload_x f18, ( 3 * portWORD_SIZE + 18 * portFPWORD_SIZE )( sp )
-		fpload_x f19, ( 3 * portWORD_SIZE + 19 * portFPWORD_SIZE )( sp )
-		fpload_x f20, ( 3 * portWORD_SIZE + 20 * portFPWORD_SIZE )( sp )
-		fpload_x f21, ( 3 * portWORD_SIZE + 21 * portFPWORD_SIZE )( sp )
-		fpload_x f22, ( 3 * portWORD_SIZE + 22 * portFPWORD_SIZE )( sp )
-		fpload_x f23, ( 3 * portWORD_SIZE + 23 * portFPWORD_SIZE )( sp )
-		fpload_x f24, ( 3 * portWORD_SIZE + 24 * portFPWORD_SIZE )( sp )
-		fpload_x f25, ( 3 * portWORD_SIZE + 25 * portFPWORD_SIZE )( sp )
-		fpload_x f26, ( 3 * portWORD_SIZE + 26 * portFPWORD_SIZE )( sp )
-		fpload_x f27, ( 3 * portWORD_SIZE + 27 * portFPWORD_SIZE )( sp )
-		fpload_x f28, ( 3 * portWORD_SIZE + 28 * portFPWORD_SIZE )( sp )
-		fpload_x f29, ( 3 * portWORD_SIZE + 29 * portFPWORD_SIZE )( sp )
-		fpload_x f30, ( 3 * portWORD_SIZE + 30 * portFPWORD_SIZE )( sp )
-		fpload_x f31, ( 3 * portWORD_SIZE + 31 * portFPWORD_SIZE )( sp )
-		lw t0,  2 * portWORD_SIZE( sp )
+		fpload_x f0, ( 2 * portWORD_SIZE + 0 * portFPWORD_SIZE )( sp )
+		fpload_x f1, ( 2 * portWORD_SIZE + 1 * portFPWORD_SIZE )( sp )
+		fpload_x f2, ( 2 * portWORD_SIZE + 2 * portFPWORD_SIZE )( sp )
+		fpload_x f3, ( 2 * portWORD_SIZE + 3 * portFPWORD_SIZE )( sp )
+		fpload_x f4, ( 2 * portWORD_SIZE + 4 * portFPWORD_SIZE )( sp )
+		fpload_x f5, ( 2 * portWORD_SIZE + 5 * portFPWORD_SIZE )( sp )
+		fpload_x f6, ( 2 * portWORD_SIZE + 6 * portFPWORD_SIZE )( sp )
+		fpload_x f7, ( 2 * portWORD_SIZE + 7 * portFPWORD_SIZE )( sp )
+		fpload_x f8, ( 2 * portWORD_SIZE + 8 * portFPWORD_SIZE )( sp )
+		fpload_x f9, ( 2 * portWORD_SIZE + 9 * portFPWORD_SIZE )( sp )
+		fpload_x f10, ( 2 * portWORD_SIZE + 10 * portFPWORD_SIZE )( sp )
+		fpload_x f11, ( 2 * portWORD_SIZE + 11 * portFPWORD_SIZE )( sp )
+		fpload_x f12, ( 2 * portWORD_SIZE + 12 * portFPWORD_SIZE )( sp )
+		fpload_x f13, ( 2 * portWORD_SIZE + 13 * portFPWORD_SIZE )( sp )
+		fpload_x f14, ( 2 * portWORD_SIZE + 14 * portFPWORD_SIZE )( sp )
+		fpload_x f15, ( 2 * portWORD_SIZE + 15 * portFPWORD_SIZE )( sp )
+		fpload_x f16, ( 2 * portWORD_SIZE + 16 * portFPWORD_SIZE )( sp )
+		fpload_x f17, ( 2 * portWORD_SIZE + 17 * portFPWORD_SIZE )( sp )
+		fpload_x f18, ( 2 * portWORD_SIZE + 18 * portFPWORD_SIZE )( sp )
+		fpload_x f19, ( 2 * portWORD_SIZE + 19 * portFPWORD_SIZE )( sp )
+		fpload_x f20, ( 2 * portWORD_SIZE + 20 * portFPWORD_SIZE )( sp )
+		fpload_x f21, ( 2 * portWORD_SIZE + 21 * portFPWORD_SIZE )( sp )
+		fpload_x f22, ( 2 * portWORD_SIZE + 22 * portFPWORD_SIZE )( sp )
+		fpload_x f23, ( 2 * portWORD_SIZE + 23 * portFPWORD_SIZE )( sp )
+		fpload_x f24, ( 2 * portWORD_SIZE + 24 * portFPWORD_SIZE )( sp )
+		fpload_x f25, ( 2 * portWORD_SIZE + 25 * portFPWORD_SIZE )( sp )
+		fpload_x f26, ( 2 * portWORD_SIZE + 26 * portFPWORD_SIZE )( sp )
+		fpload_x f27, ( 2 * portWORD_SIZE + 27 * portFPWORD_SIZE )( sp )
+		fpload_x f28, ( 2 * portWORD_SIZE + 28 * portFPWORD_SIZE )( sp )
+		fpload_x f29, ( 2 * portWORD_SIZE + 29 * portFPWORD_SIZE )( sp )
+		fpload_x f30, ( 2 * portWORD_SIZE + 30 * portFPWORD_SIZE )( sp )
+		fpload_x f31, ( 2 * portWORD_SIZE + 31 * portFPWORD_SIZE )( sp )
+		lw t0,  1 * portWORD_SIZE( sp )
 		fscsr t0
 	#endif
 
 	addi sp, sp, (portasmADDITIONAL_CONTEXT_SIZE * portWORD_SIZE )/* Remove space added for additional registers. */
 
 	.endm
+
 
 #endif /* __FREERTOS_RISC_V_EXTENSIONS_H__ */

@@ -32,7 +32,7 @@
 #define PSRAM_BASEADDR                    0x60000000
 
 
-__attribute__((section(".video_spec_data"))) uint8_t video_sram[40*1024];
+__attribute__((section(".video_spec_data"), aligned(8))) uint8_t video_sram[40*1024];
 #define JPEG_SHARE_MEM                    (&video_sram[0])
 
 bk_err_t jpeg_hal_init(jpeg_hal_t *hal)
@@ -93,6 +93,7 @@ bk_err_t jpeg_hal_switch_mode(jpeg_hal_t *hal, const jpeg_config_t *config)
 
 	if (config->mode == JPEG_ENC_MODE)
 	{
+		jpeg_ll_enable_start_frame_int(hal->hw);
 		jpeg_ll_enable_end_frame_int(hal->hw);
 
 		jpeg_ll_set_x_pixel(hal->hw, config->x_pixel);

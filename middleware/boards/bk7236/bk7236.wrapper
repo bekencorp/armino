@@ -11,6 +11,13 @@ from genericpath import exists
 import click
 from click_option_group import optgroup,RequiredMutuallyExclusiveOptionGroup
 
+armino_path = os.getenv("ARMINO_PATH")
+project_dir = os.getenv("PROJECT_DIR")
+project_name = os.getenv("PROJECT")
+armino_soc = os.getenv("ARMINO_SOC")
+
+cpu1_bin  = f'{armino_path}/projects/cpu1/{armino_soc}_cpu1.bin'
+
 def run_cmd(cmd):
 	p = subprocess.Popen(cmd, shell=True)
 	ret = p.wait()
@@ -73,9 +80,10 @@ def pack(tools_dir, bin_dir, base_cfg_dir, prefered_cfg_dir, soc, gencodeonly, g
 		logging.debug(f'Copy TFM bin to {_BUILD_DIR}')
 		run_cmd(f'cp -r {TFM_BIN_DIR}/*.bin {_BUILD_DIR}')
 
-	run_cmd(f'cp -r {CMAKE_BIN_DIR}/app.bin {_BUILD_DIR}')
-	logging.debug(f'Generate BL1 public key')
-	run_cmd(f'{_BUILD_DIR}/gen_key.sh')
+	if (os.path.exists(cpu1_bin) == True):
+		run_cmd(f'cp -r {cpu1_bin} {_BUILD_DIR}/cpu1.bin')
+	else:
+		logging.info(f'{cpu1_bin} not exist, could compile: make {soc} PROJECT=cpu1')
 
 	debug_option = ''
 	if (debug):
@@ -121,6 +129,14 @@ def pack(tools_dir, bin_dir, base_cfg_dir, prefered_cfg_dir, soc, gencodeonly, g
 	os.chdir(saved_cur_dir)
 	logging.debug(f'cd {saved_cur_dir}')
 
+
+def cpu1_wrapper():
+	if(os.path.exists("app.bin")):
+		os.system(f'cp app.bin {cpu1_bin}')
+
+
+
+
 @click.group()
 @click.version_option(version='1.0.0.0')
 def wrapper():
@@ -132,7 +148,7 @@ def wrapper():
 @click.option("-b", "--bin_dir", type=click.Path(exists=True, dir_okay=True),required=True, help="binary directory.")
 @click.option("-c", "--base_cfg_dir", type=click.Path(exists=True, dir_okay=True),required=True, help="base configuration directory.")
 @click.option("-p", "--prefered_cfg_dir", type=click.Path(exists=False, dir_okay=True),required=True, help="prefered configuration directory.")
-@click.option("-s", "--soc", type=str, default = "7236", show_default = True, help="chip name.")
+@click.option("-s", "--soc", type=str, default = "bk7236", show_default = True, help="chip name.")
 @click.option("--gencodeonly/--no-gencodeonly", default=False, help="Only generate the partition.h.")
 @click.option("-g", "--gen_dir", type=click.Path(exists=False, dir_okay=True),required=False, help="Code generated dir.")
 @click.option("--debug/--no-debug", default=False, help="Enable debug.")
@@ -147,4 +163,7 @@ def pack_bin(tools_dir, bin_dir, base_cfg_dir, prefered_cfg_dir, soc, gencodeonl
 if __name__ == '__main__':
 	logging.basicConfig()
 	logging.getLogger().setLevel(logging.INFO)
-	wrapper()
+	if(project_name != "cpu1"):
+		wrapper()
+	else:
+		cpu1_wrapper()

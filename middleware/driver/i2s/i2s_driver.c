@@ -594,6 +594,7 @@ bk_err_t bk_i2s_set_samp_rate(i2s_samp_rate_t samp_rate)
 		sys_drv_ana_reg10_sdm_val_set(0xDE517A9);
 	else
 		sys_drv_ana_reg10_sdm_val_set(0xF1FAA45);
+	sys_drv_i2s0_ckdiv_set(3);
 	sys_drv_ana_reg11_spi_trigger_set(1);
 	delay(10);
 	sys_drv_ana_reg11_spi_trigger_set(0);

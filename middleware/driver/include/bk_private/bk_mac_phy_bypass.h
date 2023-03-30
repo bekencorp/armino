@@ -31,6 +31,8 @@ enum
     MCMD_START_BYPASS_MAC,
     MCMD_SET_BANDWIDTH, 
     MCMD_SET_GI,
+    MCMD_SET_DCM,
+    MCMD_SET_FEC_CODING,
     MCMD_BYPASS_TX_SET_RATE_MFORMAT,
     MCMD_SET_TXDELAY,
     MCMD_INIT_BYPASS_MAC,
@@ -39,6 +41,25 @@ enum
     MCMD_TX_HE_SET_LEN,
     MCMD_ONLY_VHT_SET_LEN,
 };
+
+/*
+b0000: NON-HT,  b0001: NON-HT-DUP-OFDM,  b0010: HT-MM
+b0011: HT-GF,   b0100: VHT,              b0101: HE-SU
+b0110: HE-MU,   b0111: HE-EXT-SU,        b1000: HE-TB
+*/
+typedef enum
+{
+	MOD_FMT_NON_HT          = 0x0,
+	MOD_FMT_NON_HT_DUP_OFDM = 0x1,
+	MOD_FMT_HT_MM           = 0x2,
+	MOD_FMT_HT_GF           = 0x3,
+	MOD_FMT_VHT             = 0x4,
+	MOD_FMT_HE_SU           = 0x5,
+	MOD_FMT_HE_MU           = 0x6,
+	MOD_FMT_HE_EXT_SU       = 0x7,
+	MOD_FMT_HE_TB           = 0x8,
+	MOD_FMT_MASK            = 0xF,
+} ModulationFormat;
 
 #define TX_LEGACY_DATA_LEN_MASK              (0xFFF)
 #define TX_HT_VHT_DATA_LEN_MASK              (0xFFFFF)

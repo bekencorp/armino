@@ -7,7 +7,17 @@ menu "Bk_usb"
 	menu "Modify Usb Config"
 		depends on USB
 
-		#TODO HOST/DEVICE mode mutual exclusive???
+		choice USB_PROTOCOL_STACK
+			prompt "Select Usb Protocol Stack"
+			default MENTOR_USB
+
+			config MENTOR_USB
+				bool "MENTOR_USB"
+			config CHERRY_USB
+				bool "CHERRY_USB"
+		endchoice
+
+	#TODO HOST/DEVICE mode mutual exclusive???
 		choice USB_MODE
 			prompt "Select Usb Host Mode"
 			default USB_HOST
@@ -56,10 +66,12 @@ menu "Bk_usb"
 			default n
 
 		config USB_UVC_DEBUG
+			depends on USB_UVC
 			bool "Enable Usb Uvc Debug"
 			default n
 
 		config USB_UAC
+			depends on USB_UVC
 			bool "Enable Usb Uac"
 			default n
 

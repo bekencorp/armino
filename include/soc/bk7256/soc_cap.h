@@ -32,3 +32,4 @@
 #include "aon_rtc_cap.h"
 #include "i2s_cap.h"
 #include "aud_cap.h"
+#include "qspi_cap.h"

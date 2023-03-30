@@ -19,7 +19,7 @@ SPHINXOPTS    =
 # (which will be the most recently installed version of sphinx and may not match)
 #SPHINXBUILD   = python -m sphinx
 SPHINXBUILD   = sphinx-build
-PROCESSES     = -jauto
+PROCESSES     = -j32
 #PROCESSES     =
 PAPER         =
 BUILDDIR      = _build

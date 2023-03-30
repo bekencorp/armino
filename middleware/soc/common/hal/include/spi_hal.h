@@ -91,6 +91,9 @@ bk_err_t spi_hal_start_common(spi_hal_t *hal);
 bk_err_t spi_hal_stop_common(spi_hal_t *hal);
 bk_err_t spi_hal_set_baud_rate(spi_hal_t *hal, uint32_t baud_rate);
 bk_err_t spi_hal_read_byte(spi_hal_t *hal, uint8_t *data);
+bk_err_t spi_hal_duplex_config(spi_hal_t *hal);
+bk_err_t spi_hal_duplex_release(spi_hal_t *hal);
+bk_err_t spi_hal_enable_tx_rx(spi_hal_t *hal);
 
 #if CFG_HAL_DEBUG_SPI
 void spi_struct_dump(spi_id_t id);

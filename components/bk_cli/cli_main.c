@@ -158,7 +158,7 @@ int handle_shell_input(char *inbuf, int in_buf_size, char * outbuf, int out_buf_
 		unsigned limQ : 1;
 		unsigned isD : 2;
 	} stat;
-	static char *argv[16];
+	char *argv[16];
 	int argc = 0;
 	int i = 0;
 	const struct cli_command *command = NULL;
@@ -368,7 +368,7 @@ static void cli_ate_main(uint32_t data)
 				if (ret == -1)
 					break;
 
-				pCli->inbuf[cnt] = (char)rx_data;
+				pCli->inbuf[cnt] = rx_data;
 				cnt++;
 
 				if(cnt >= INBUF_SIZE)
@@ -384,7 +384,7 @@ static void cli_ate_main(uint32_t data)
 			}
 		}
 
-		msg = pCli->inbuf;
+		msg = (char *)pCli->inbuf;
 		if (os_strcmp(msg, EXIT_MSG) == 0)
 				break;
 	}
@@ -417,7 +417,7 @@ static int handle_input(char *inbuf)
 		unsigned limQ : 1;
 		unsigned isD : 2;
 	} stat;
-	static char *argv[16];
+	char *argv[16];
 	int argc = 0;
 	int i = 0;
 	const struct cli_command *command = NULL;
@@ -543,12 +543,12 @@ static int handle_input(char *inbuf)
 
 #if CFG_CLI_DEBUG
 	s_running_status |= CLI_COMMAND_IS_RUNNING;
-	command->function(pCli->outbuf, OUTBUF_SIZE, argc, argv);
+	command->function((char *)pCli->outbuf, OUTBUF_SIZE, argc, argv);
 	s_running_status &= ~CLI_COMMAND_IS_RUNNING;
 #else
 	command->function(pCli->outbuf, OUTBUF_SIZE, argc, argv);
 #endif
-	cli_putstr(pCli->outbuf);
+	cli_putstr((char *)pCli->outbuf);
 	return 0;
 }
 
@@ -741,8 +741,8 @@ static void cli_main(uint32_t data)
 
 	while (1) {
 
-		if (get_input(pCli->inbuf, &pCli->bp)) {
-			msg = pCli->inbuf;
+		if (get_input((char *)pCli->inbuf, &pCli->bp)) {
+			msg = (char *)pCli->inbuf;
 
 			if (os_strcmp(msg, EXIT_MSG) == 0)
 				break;
@@ -1295,7 +1295,9 @@ int bk_cli_init(void)
 #endif
 
 #if (CLI_CFG_IPERF == 1)
+#if (CONFIG_WIFI_ENABLE | CONFIG_BLE)
 	cli_phy_init();
+#endif
 #endif
 
 #if (CLI_CFG_IPERF == 1)
@@ -1374,6 +1376,10 @@ int bk_cli_init(void)
 	cli_lcd_init();
 #endif
 
+#if (CLI_CFG_ROTT == 1)
+	cli_rott_init();
+#endif
+
 #if (CLI_CFG_DMA2D == 1)
 	cli_dma2d_init();
 #endif
@@ -1398,6 +1404,14 @@ int bk_cli_init(void)
 	cli_g711_init();
 #endif
 
+#if (CLI_CFG_OPUS == 1)
+	cli_opus_init();
+#endif
+
+#if (CLI_CFG_ADPCM == 1)
+	cli_adpcm_init();
+#endif
+
 #if (CLI_CFG_MP3 == 1)
 	cli_mp3_init();
 #endif
@@ -1416,6 +1430,10 @@ int bk_cli_init(void)
 	cli_agora_init();
 #endif
 
+#if (CLI_CFG_ES8311 == 1)
+	cli_es8311_init();
+#endif
+
 #if (CONFIG_MEDIA == 1)
 	media_cli_init();
 #endif
@@ -1423,7 +1441,6 @@ int bk_cli_init(void)
 #if CONFIG_CS2_P2P_SERVER || CONFIG_CS2_P2P_CLIENT
 	cli_cs2_p2p_init();
 #endif
-
 
 #if (CLI_CFG_PSRAM)
 	cli_psram_init();
@@ -1496,6 +1513,10 @@ int bk_cli_init(void)
 	cli_sdio_host_init();
 #endif
 
+#if (CLI_CFG_SDIO_SLAVE == 1)
+	cli_sdio_slave_init();
+#endif
+
 #if (CLI_CFG_KEYVALUE == 1)
     cli_keyVaule_init();
 #endif
@@ -1536,6 +1557,10 @@ int bk_cli_init(void)
 	cli_fatfs_init();
 #endif
 
+#if (CLI_CFG_VFS == 1)
+	cli_vfs_init();
+#endif
+
 #if (CLI_CFG_SECURITY == 1)
 	cli_security_init();
 #endif
@@ -1569,9 +1594,9 @@ int bk_cli_init(void)
 #endif
 
 #if CONFIG_VAULT_SUPPORT
-#if (CLI_CFG_SECURITYIP == 1)
-	cli_securityip_init();
-#endif
+	#if (CLI_CFG_SECURITYIP == 1)
+		cli_securityip_init();
+	#endif
 #endif
 
 #if (CLI_CFG_CALENDAR == 1)
@@ -1590,9 +1615,9 @@ int bk_cli_init(void)
 #endif
 
 #if CONFIG_VAULT_SUPPORT
-#if CONFIG_OTP
-	cli_otp_init();
-#endif
+	#if CONFIG_OTP
+		cli_otp_init();
+	#endif
 #endif
 
 #endif //CONFIG_DEBUG_FIRMWARE
@@ -1602,8 +1627,12 @@ int bk_cli_init(void)
 	cli_pwr_init();
 #endif
 
-#if CONFIG_CM33_TEST
-	cli_cm33_init();
+#if CONFIG_PM_TEST
+	cli_pm_init();
+#endif
+
+#if CONFIG_SPE_TEST
+	cli_spe_init();
 #endif
 
 #if (CONFIG_LITTLEFS == 1)
@@ -1617,6 +1646,18 @@ int bk_cli_init(void)
 
 #if CONFIG_PRRO_TEST
 	cli_prro_init();
+#endif
+
+#if CONFIG_INTERRUPT_TEST
+	cli_interrupt_init();
+#endif
+
+#if (CLI_CFG_H264 == 1)
+	cli_h264_init();
+#endif
+
+#if CONFIG_SDMADC_TEST
+	cli_sdmadc_init();
 #endif
 
 /*-----open the cli comand both at release and debug vertion end ------*/

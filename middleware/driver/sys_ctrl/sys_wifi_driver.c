@@ -632,6 +632,7 @@ uint32_t  sys_drv_enable_modem_int(void)
 	rtos_enable_int(int_level);
 	return SYS_DRV_SUCCESS;
 }
+
 uint32_t  sys_drv_enable_modem_rc_int(void)
 {
 	uint32_t int_level = rtos_disable_int();
@@ -642,6 +643,15 @@ uint32_t  sys_drv_enable_modem_rc_int(void)
 	return SYS_DRV_SUCCESS;
 }
 
+uint32_t  sys_drv_enable_hsu_int(void)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_enable_hsu_int();
+
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
 
 //Yantao Add End
 /**  WIFI End **/

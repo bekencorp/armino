@@ -93,8 +93,8 @@ static void cli_spi_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		}
 #if CONFIG_SPI_DMA
 		config.dma_mode = os_strtoul(argv[10], NULL, 10);
-		config.spi_tx_dma_chan = os_strtoul(argv[11], NULL, 10);
-		config.spi_rx_dma_chan = os_strtoul(argv[12], NULL, 10);
+		config.spi_tx_dma_chan = bk_dma_alloc(DMA_DEV_GSPI0);
+		config.spi_rx_dma_chan = bk_dma_alloc(DMA_DEV_GSPI0_RX);
 #endif
 		BK_LOG_ON_ERR(bk_spi_init(spi_id, &config));
 		CLI_LOGI("spi init, spi_id=%d\n", spi_id);
@@ -205,6 +205,20 @@ transmit_exit:
 			os_free(recv_data);
 		}
 		recv_data = NULL;
+	} else if (os_strcmp(argv[2], "dma_duplex") == 0) {
+		uint32_t buf_len = os_strtoul(argv[3], NULL, 10);
+		uint8_t *recv_data = (uint8_t *)os_malloc(buf_len);
+		uint8_t *send_data = (uint8_t *)os_malloc(buf_len);
+		os_memset(recv_data, 0xff, buf_len);
+		for (int i = 0; i < buf_len; i++) {
+			send_data[i] = i & 0xff;
+		}
+		bk_spi_dma_duplex_init(spi_id);
+		BK_LOG_ON_ERR(bk_spi_dma_duplex_xfer(spi_id, send_data, buf_len, recv_data, buf_len));
+		for (int i = 0; i < buf_len; i++) {
+			CLI_LOGI("recv_buffer[%d]=0x%x\n", i, recv_data[i]);
+		}
+		bk_spi_dma_duplex_deinit(spi_id);
 	}
 #endif
 	else {

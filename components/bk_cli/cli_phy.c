@@ -37,6 +37,9 @@ extern void cmd_sigtest(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 extern void cmd_inter_freq_config(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void nv_ate_param_select(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
+#if (CONFIG_SOC_BK7236)
+extern void rfconfig_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
 #define PHY_CMD_CNT (sizeof(s_phy_commands) / sizeof(struct cli_command))
 static const struct cli_command s_phy_commands[] = {
 	{"cca", "cca open\\close\\show", phy_cca_test},
@@ -70,6 +73,7 @@ static const struct cli_command s_phy_commands[] = {
 #if (CONFIG_SOC_BK7256XX)
     {"la", "la rf_adc/fe_adc/rf_dac/fe_dac", cmd_la_sample_test},
 #elif (CONFIG_SOC_BK7236)
+    {"rfconfig", "rfconfig bt_polar|bt_btpll|bt_wifipll|wifi_btpll|wifi_wifipll",rfconfig_command},
     {"la", "la rf_adc_40M/rf_adc[_80M]/fe_adc/rf_dac/fe_dac", cmd_la_sample_test},
 #elif (CONFIG_SOC_BK7236A)
     {"la", "la rx_adc/rx_dac/tx_dac", cmd_la_sample_test},

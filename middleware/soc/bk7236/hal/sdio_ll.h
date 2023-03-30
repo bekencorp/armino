@@ -38,9 +38,7 @@ static inline void sdio_host_ll_reset_sd_state(sdio_hw_t *hw)
 static inline void sdio_host_ll_reset_config_to_default(sdio_hw_t *hw)
 {
 	/* reset tx/rx fifo:low active */
-	hw->sd_fifo_threshold.rx_fifo_reset = 0;
-	hw->sd_fifo_threshold.tx_fifo_reset = 0;
-	hw->sd_fifo_threshold.sd_state_reset = 0;
+	sdio_host_ll_reset_sd_state(hw);
 
 	/* config tx/rx fifo threshold */
 	hw->sd_fifo_threshold.rx_fifo_threshold = SDIO_HOST_DEFAULT_RX_FIFO_THRD;

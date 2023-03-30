@@ -22,6 +22,13 @@
 void wdt_struct_dump(void)
 {
 	wdt_hw_t *hw = (wdt_hw_t *)WDT_LL_REG_BASE(0);
+	SOC_LOGI("aon_wdt_base=%x\r\n", (uint32_t)hw);
+
+	SOC_LOGI("  aon_wdt_ctrl=0x%x value=0x%x\n", &hw->ctrl, hw->ctrl.v);
+	SOC_LOGI("    aon_wdt_period: 0x%x\n", hw->ctrl.period);
+	SOC_LOGI("    aon_wdt_key: 0x%x\n", hw->ctrl.key);
+
+	hw = (wdt_hw_t *)WDT_LL_REG_BASE(1);
 	SOC_LOGI("base=%x\r\n", (uint32_t)hw);
 
 	SOC_LOGI("  ctrl=0x%x value=0x%x\n", &hw->ctrl, hw->ctrl.v);

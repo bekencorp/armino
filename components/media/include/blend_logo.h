@@ -20,7 +20,7 @@ extern "C" {
 #define DATA_POSTION_X   220
 #define DATA_POSTION_Y   0
 
-#define DATA_LOGO_W   240
+#define DATA_LOGO_W   232
 #define DATA_LOGO_H   52
 
 #define FG_ALPHA  0xFF   /**< 0：complete transparent,   255:fully opaque*/

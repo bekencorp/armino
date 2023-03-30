@@ -194,6 +194,17 @@ void bk_misc_set_reset_reason(uint32_t type)
 #endif
 }
 
+#elif CONFIG_SOC_BK7236
+uint32_t reset_reason_init(void) {
+	//wangzhilei TODO
+	return s_start_type;
+}
+
+void bk_misc_set_reset_reason(uint32_t type)
+{
+	//wangzhilei TODO
+}
+
 #else
 //only can be do once
 uint32_t reset_reason_init(void)

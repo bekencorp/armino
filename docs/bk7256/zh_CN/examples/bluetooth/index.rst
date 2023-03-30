@@ -7,4 +7,5 @@
    :maxdepth: 1
 
    蓝牙配网 <ble_boarding_demo>
+   SPP <spp_demo>
    DUT <dut>

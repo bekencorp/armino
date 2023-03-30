@@ -129,6 +129,8 @@ void YUV_BUF_Handler                 (void) __attribute__ ((weak));
 #pragma GCC diagnostic ignored "-Wpedantic"
 #endif
 
+#if CONFIG_CPU_WITHOUT_BOOTLOADER
+
 const VECTOR_TABLE_Type __VECTOR_TABLE[] __VECTOR_TABLE_ATTRIBUTE = {
   (VECTOR_TABLE_Type)(&__INITIAL_SP),       /*     Initial Stack Pointer */
   Reset_Handler,                            /*     Reset Handler */
@@ -196,14 +198,9 @@ const VECTOR_TABLE_Type __VECTOR_TABLE[] __VECTOR_TABLE_ATTRIBUTE = {
   I2S2_Handler,
   H264_Handler,
   SDMADC_Handler,
-#if CONFIG_UART_DOWNLOAD
   /* BK7236 legacy download mode requires that the flash offset 0x100 is 'BK7236'.*/
   (void (*)(void))0x32374B42,
   (void (*)(void))0x00003633,
-#else
-  MBOX0_Handler,
-  MBOX1_Handler,
-#endif
   BMC64_Handler,
   DPLL_UNLOCK_Handler,
   TOUCH_Handler,
@@ -215,6 +212,174 @@ const VECTOR_TABLE_Type __VECTOR_TABLE[] __VECTOR_TABLE_ATTRIBUTE = {
   YUV_BUF_Handler,
                                             /* Interrupts 64 .. 480 are left out */
 };
+
+
+__attribute__((used, section(".vectors_cpu0"))) \
+const VECTOR_TABLE_Type __VECTOR_TABLE_CPU0[] = {
+  (VECTOR_TABLE_Type)(&__INITIAL_SP),       /*     Initial Stack Pointer */
+  Reset_Handler,                            /*     Reset Handler */
+  NMI_Handler,                              /* -14 NMI Handler */
+  HardFault_Handler,                        /* -13 Hard Fault Handler */
+  MemManage_Handler,                        /* -12 MPU Fault Handler */
+  BusFault_Handler,                         /* -11 Bus Fault Handler */
+  UsageFault_Handler,                       /* -10 Usage Fault Handler */
+  SecureFault_Handler,                      /*  -9 Secure Fault Handler */
+  0,                                        /*     Reserved */
+  0,                                        /*     Reserved */
+  0,                                        /*     Reserved */
+  SVC_Handler,                              /*  -5 SVCall Handler */
+  DebugMon_Handler,                         /*  -4 Debug Monitor Handler */
+  0,                                        /*     Reserved */
+  PendSV_Handler,                           /*  -2 PendSV Handler */
+  SysTick_Handler,                          /*  -1 SysTick Handler */
+
+  /* Interrupts */
+  DMA0_NSEC_Handler,
+  ENCP_SEC_Handler,
+  ENCP_NSEC_Handler,
+  TIMER0_Handler,
+  UART0_Handler,
+  PWM0_Handler,
+  I2C0_Handler,
+  SPI0_Handler,
+  SARADC_Handler,
+  IRDA_Handler,
+  SDIO_Handler,
+  GDMA_Handler,
+  LA_Handler,
+  TIMER1_Handler,
+  I2C1_Handler,
+  UART1_Handler,
+  UART2_Handler,
+  SPI1_Handler,
+  CAN_Handler,
+  USB_Handler,
+  QSPI0_Handler,
+  FFT_Handler,
+  SBC_Handler,
+  AUDIO_Handler,
+  I2S0_Handler,
+  JPEG_ENC_Handler,
+  JPEG_DEC_Handler,
+  DISPLAY_Handler,
+  DMA2D_Handler,
+  PHY_MBP_Handler,
+  PHY_RIU_Handler,
+  MAC_INT_TX_RX_TIMER_Handler,
+  MAC_INT_TX_RX_MISC_Handler,
+  MAC_INT_RX_TRIGGER_Handler,
+  MAC_INT_TX_TRIGGER_Handler,
+  MAC_INT_PORT_TRIGGER_Handler,
+  MAC_INT_GEN_Handler,
+  HSU_Handler,
+  INT_MAC_WAKEUP_Handler,
+  DM_Handler,
+  BLE_Handler,
+  BT_Handler,
+  QSPI1_Handler,
+  PWM1_Handler,
+  I2S1_Handler,
+  I2S2_Handler,
+  H264_Handler,
+  SDMADC_Handler,
+  MBOX0_Handler,
+  MBOX1_Handler,
+  BMC64_Handler,
+  DPLL_UNLOCK_Handler,
+  TOUCH_Handler,
+  USB_PLUG_Handler,
+  RTC_Handler,
+  GPIO_Handler,
+  DMA1_SEC_Handler,
+  DMA1_NSEC_Handler,
+  YUV_BUF_Handler,
+                                            /* Interrupts 64 .. 480 are left out */
+};
+
+#else //#if CONFIG_CPU_WITHOUT_BOOTLOADER
+
+const VECTOR_TABLE_Type __VECTOR_TABLE[] __VECTOR_TABLE_ATTRIBUTE = {
+  (VECTOR_TABLE_Type)(&__INITIAL_SP),       /*     Initial Stack Pointer */
+  Reset_Handler,                            /*     Reset Handler */
+  NMI_Handler,                              /* -14 NMI Handler */
+  HardFault_Handler,                        /* -13 Hard Fault Handler */
+  MemManage_Handler,                        /* -12 MPU Fault Handler */
+  BusFault_Handler,                         /* -11 Bus Fault Handler */
+  UsageFault_Handler,                       /* -10 Usage Fault Handler */
+  SecureFault_Handler,                      /*  -9 Secure Fault Handler */
+  0,                                        /*     Reserved */
+  0,                                        /*     Reserved */
+  0,                                        /*     Reserved */
+  SVC_Handler,                              /*  -5 SVCall Handler */
+  DebugMon_Handler,                         /*  -4 Debug Monitor Handler */
+  0,                                        /*     Reserved */
+  PendSV_Handler,                           /*  -2 PendSV Handler */
+  SysTick_Handler,                          /*  -1 SysTick Handler */
+
+  /* Interrupts */
+  DMA0_NSEC_Handler,
+  ENCP_SEC_Handler,
+  ENCP_NSEC_Handler,
+  TIMER0_Handler,
+  UART0_Handler,
+  PWM0_Handler,
+  I2C0_Handler,
+  SPI0_Handler,
+  SARADC_Handler,
+  IRDA_Handler,
+  SDIO_Handler,
+  GDMA_Handler,
+  LA_Handler,
+  TIMER1_Handler,
+  I2C1_Handler,
+  UART1_Handler,
+  UART2_Handler,
+  SPI1_Handler,
+  CAN_Handler,
+  USB_Handler,
+  QSPI0_Handler,
+  FFT_Handler,
+  SBC_Handler,
+  AUDIO_Handler,
+  I2S0_Handler,
+  JPEG_ENC_Handler,
+  JPEG_DEC_Handler,
+  DISPLAY_Handler,
+  DMA2D_Handler,
+  PHY_MBP_Handler,
+  PHY_RIU_Handler,
+  MAC_INT_TX_RX_TIMER_Handler,
+  MAC_INT_TX_RX_MISC_Handler,
+  MAC_INT_RX_TRIGGER_Handler,
+  MAC_INT_TX_TRIGGER_Handler,
+  MAC_INT_PORT_TRIGGER_Handler,
+  MAC_INT_GEN_Handler,
+  HSU_Handler,
+  INT_MAC_WAKEUP_Handler,
+  DM_Handler,
+  BLE_Handler,
+  BT_Handler,
+  QSPI1_Handler,
+  PWM1_Handler,
+  I2S1_Handler,
+  I2S2_Handler,
+  H264_Handler,
+  SDMADC_Handler,
+  MBOX0_Handler,
+  MBOX1_Handler,
+  BMC64_Handler,
+  DPLL_UNLOCK_Handler,
+  TOUCH_Handler,
+  USB_PLUG_Handler,
+  RTC_Handler,
+  GPIO_Handler,
+  DMA1_SEC_Handler,
+  DMA1_NSEC_Handler,
+  YUV_BUF_Handler,
+                                            /* Interrupts 64 .. 480 are left out */
+};
+
+#endif //#if CONFIG_CPU_WITHOUT_BOOTLOADER
 
 #if defined ( __GNUC__ )
 #pragma GCC diagnostic pop

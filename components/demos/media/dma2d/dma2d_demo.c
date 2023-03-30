@@ -10,18 +10,49 @@
 #include <driver/dma.h>
 #include "bk_general_dma.h"
 #include "dma2d_demo.h"
+#include <driver/dma2d_types.h>
+#include <stdio.h>
 
-static volatile uint32_t     transferErrorDetected = 0;    /**< Set to 1 if an error transfer is detected */
-static volatile uint32_t     transferCompleteDetected = 0; /**< Set to 1 if the DMA2D transfer complete is detected */
-static uint32_t              offset_address_area_blended_image_in_lcd_buffer =  0;
-extern const uint16_t        rgb_565_green[640];
-
-#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
-static void mda2d_r2m_transfer_error(dma2d_config_t *dma2d);
-static void mda2d_r2m_transfer_complete(dma2d_config_t *dma2d);
+#if CONFIG_FATFS
+#include "ff.h"
+#include "diskio.h"
 #endif
 
 
+static volatile uint32_t     transferErrorDetected = 0;    /**< Set to 1 if an error transfer is detected */
+static volatile uint32_t     transferCompleteDetected = 0; /**< Set to 1 if the DMA2D transfer complete is detected */
+
+#define TAG "DMA2D_DEMO"
+#define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
+#define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
+#define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
+#define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
+
+#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
+static void dma2d_transfer_error(void);
+static void dma2d_transfer_complete(void);
+static void  dma2d_config_error(void);
+
+static void  dma2d_transfer_error(void)
+{
+	transferErrorDetected = 1;
+	LOGI("dma2d_transfer_error \n");
+	bk_dma2d_int_status_clear(DMA2D_TRANS_ERROR_STATUS);
+	bk_dma2d_int_enable(DMA2D_TRANS_ERROR, 0);
+}
+static void  dma2d_transfer_complete(void)
+{
+	transferCompleteDetected = 1;
+	LOGI("dma2d_transfer_complete \n");
+	bk_dma2d_int_status_clear(DMA2D_TRANS_COMPLETE_STATUS);
+	bk_dma2d_int_enable(DMA2D_TRANS_COMPLETE, 0);
+}
+static void  dma2d_config_error(void)
+{
+	LOGI("dma2d_config_error \n");
+	bk_dma2d_int_status_clear(DMA2D_CFG_ERROR_STATUS);
+}
+#else
 void dma2d_isr()
 {
 	uint32_t int_status;
@@ -30,7 +61,7 @@ void dma2d_isr()
 	if (int_status & DMA2D_CFG_ERROR) {
 		bk_dma2d_int_status_clear(DMA2D_CFG_ERROR_STATUS);
 		bk_dma2d_int_enable(DMA2D_CFG_ERROR, 0);
-		os_printf("transferErrorDetected \r\n");
+		LOGI("transferErrorDetected \r\n");
 	}
 
 	/**< Transfer Error Interrupt management ***************************************/
@@ -38,7 +69,7 @@ void dma2d_isr()
 		transferErrorDetected = 1;
 		bk_dma2d_int_status_clear(DMA2D_TRANS_ERROR_STATUS);
 		bk_dma2d_int_enable(DMA2D_TRANS_ERROR, 0);
-		os_printf("transferErrorDetected \r\n");
+		LOGI("transferErrorDetected \r\n");
 	}
 
 	if (int_status & DMA2D_TRANS_COMPLETE_STATUS) {
@@ -46,18 +77,6 @@ void dma2d_isr()
 		bk_dma2d_int_status_clear(DMA2D_TRANS_COMPLETE_STATUS);
 		bk_dma2d_int_enable(DMA2D_TRANS_COMPLETE, 0);
 	}
-}
-
-#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
-static void mda2d_r2m_transfer_error(dma2d_config_t *dma2d)
-{
-	bk_dma2d_int_status_clear(DMA2D_TRANS_ERROR_STATUS);
-	bk_dma2d_int_enable(DMA2D_TRANS_ERROR, DISABLE);
-}
-static void mda2d_r2m_transfer_complete(dma2d_config_t *dma2d)
-{
-	bk_dma2d_int_status_clear(DMA2D_TRANS_COMPLETE_STATUS);
-	bk_dma2d_int_enable(DMA2D_TRANS_COMPLETE, DISABLE);
 }
 #endif
 
@@ -73,6 +92,577 @@ static void mda2d_r2m_transfer_complete(dma2d_config_t *dma2d)
   * @param6  color the fill color
   * @return none
   */
+
+#if 1
+extern void bk_mem_dump_ex(const char * title, unsigned char * data, uint32_t data_len);
+
+///dma2d_fill_test=0x60000000,RGB565,0xf800,320,480,320,480,0,0
+///sdcard_write=rgb565_red_320_480.rgb,320,480,2,0x60000000
+void dma2d_fill_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	LOGI("cmd params(9): dma2d_fill_test = addr,color_format,color,fill_w,fill_l ,lcd_w,lcd_h ,xpos,ypos\n");
+	LOGI("color_format support ARGB8888|RGB888|RGB565 \n");
+	bk_psram_init();
+	bk_dma2d_driver_init();
+	uint32_t addr = os_strtoul(argv[1], NULL, 16) & 0xFFFFFFFF;
+	out_color_mode_t color_format;
+	uint32_t color;
+	uint16_t fill_w, fill_h;
+	uint8_t pixel_bit; 
+	if (os_strcmp(argv[2], "ARGB8888") == 0)
+	{
+		color_format = DMA2D_OUTPUT_ARGB8888;
+		pixel_bit = 4;
+	}
+	else if (os_strcmp(argv[2], "RGB888") == 0)
+	{
+		color_format = DMA2D_OUTPUT_RGB888;
+		pixel_bit = 3;
+	}
+	else //(os_strcmp(argv[2], "RGB565") == 0)
+	{
+		color_format = DMA2D_OUTPUT_RGB565;
+		pixel_bit = 2;
+	}
+	color = os_strtoul(argv[3], NULL, 16) & 0xFFFFFFFF;
+	fill_w = os_strtoul(argv[4], NULL, 10) & 0xFFFF;
+	fill_h = os_strtoul(argv[5], NULL, 10) & 0xFFFF;
+	uint16_t lcd_w = os_strtoul(argv[6], NULL, 10) & 0xFFFF;
+	uint16_t lcd_h = os_strtoul(argv[7], NULL, 10) & 0xFFFF;
+	uint16_t xpos = os_strtoul(argv[8], NULL, 10) & 0xFFFF;
+	uint16_t ypos = os_strtoul(argv[9], NULL, 10) & 0xFFFF;
+	LOGI("addr,color_format,color,fill_w,fill_l ,lcd_w,lcd_h ,xpos,ypos %x, %d, %x, %d, %d,%d, %d, %d, %d\n", addr,color_format,color,fill_w, fill_h ,lcd_w,lcd_h ,xpos,ypos);
+	//os_memset((char *)addr, 0, lcd_w*lcd_h*pixel_bit);
+	dma2d_fill_t fill;
+	fill.frameaddr = (void *)addr;
+	fill.color = color;
+	fill.color_format = color_format;
+	fill.pixel_bit = pixel_bit;
+	fill.width = fill_w;
+	fill.high = fill_h;
+	fill.frame_xsize = lcd_w;
+	fill.frame_ysize = lcd_h;
+	fill.xpos = xpos;
+	fill.ypos = ypos;
+	dma2d_fill(&fill);
+
+	bk_dma2d_int_enable(DMA2D_CFG_ERROR | DMA2D_TRANS_ERROR | DMA2D_TRANS_COMPLETE ,1);
+
+#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
+	bk_dma2d_register_int_callback_isr(DMA2D_TRANS_ERROR_ISR, dma2d_transfer_error);
+	bk_dma2d_register_int_callback_isr(DMA2D_TRANS_COMPLETE_ISR, dma2d_transfer_complete);
+	bk_dma2d_register_int_callback_isr(DMA2D_CFG_ERROR_ISR, dma2d_config_error);
+#else
+	bk_dma2d_isr_register(dma2d_isr);
+#endif 
+	dma2d_start_transfer();
+#if 1
+	while (transferCompleteDetected == 0) {
+	}
+	transferCompleteDetected = 0;
+#else
+
+	while (bk_dma2d_is_transfer_busy()) {
+	}
+#endif
+//	bk_mem_dump_ex("dma2d_fill", (unsigned char *)addr, fill.frame_xsize*fill.frame_ysize*pixel_bit);
+//	LOGI(" dmmp complete \n");
+}
+
+//dma2d_memcpy_test=0x60000000,0x60020000,RGB888,4,4,4,4
+void dma2d_memcpy_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	bk_psram_init();
+	bk_dma2d_driver_init();
+	uint32_t input_addr = os_strtoul(argv[1], NULL, 16) & 0xFFFFFFFF;
+	uint32_t output_addr = os_strtoul(argv[2], NULL, 16) & 0xFFFFFFFF;
+
+	input_color_mode_t input_color_mode;
+	uint8_t pixel_bit; 
+	if (os_strcmp(argv[3], "ARGB8888") == 0)
+	{
+		input_color_mode = DMA2D_OUTPUT_ARGB8888;
+		pixel_bit = 4;
+	}
+	else if (os_strcmp(argv[3], "RGB888") == 0)
+	{
+		input_color_mode = DMA2D_OUTPUT_RGB888;
+		pixel_bit = 3;
+	}
+	else //(os_strcmp(argv[2], "RGB565") == 0)
+	{
+		input_color_mode = DMA2D_OUTPUT_RGB565;
+		pixel_bit = 2;
+	}
+	uint16_t xsize= os_strtoul(argv[4], NULL, 10) & 0xFFFF;
+	uint16_t ysize = os_strtoul(argv[5], NULL, 10) & 0xFFFF;
+	uint16_t src_width = os_strtoul(argv[6], NULL, 10) & 0xFFFF;
+	uint16_t src_height = os_strtoul(argv[7], NULL, 10) & 0xFFFF;
+	uint16_t src_frame_xpos = os_strtoul(argv[8], NULL, 10) & 0xFFFF;
+	uint16_t src_frame_ypos = os_strtoul(argv[9], NULL, 10) & 0xFFFF;
+	uint16_t dst_frame_xpos = os_strtoul(argv[10], NULL, 10) & 0xFFFF;
+	uint16_t dst_frame_ypos = os_strtoul(argv[11], NULL, 10) & 0xFFFF;
+	uint16_t dst_width = src_width;
+	uint16_t dst_height = src_height;
+	bk_mem_dump_ex("src", (unsigned char *)input_addr, src_width*src_height*pixel_bit);
+	bk_mem_dump_ex("dst", (unsigned char *)output_addr, src_width*src_height*pixel_bit);
+
+	dma2d_memcpy_pfc_t dma2d_memcpy_pfc = {0};
+	dma2d_memcpy_pfc.mode = DMA2D_M2M;
+	dma2d_memcpy_pfc.input_addr = (char *)input_addr;
+	dma2d_memcpy_pfc.output_addr = (char *)output_addr;
+	dma2d_memcpy_pfc.input_color_mode = input_color_mode;
+	dma2d_memcpy_pfc.output_color_mode = input_color_mode;
+	dma2d_memcpy_pfc.src_pixel_bit = pixel_bit;
+	dma2d_memcpy_pfc.dst_pixel_bit = pixel_bit;
+	dma2d_memcpy_pfc.dma2d_height = xsize;
+	dma2d_memcpy_pfc.dma2d_width = ysize;
+	dma2d_memcpy_pfc.src_frame_width = src_width;
+	dma2d_memcpy_pfc.src_frame_height = src_height;
+	dma2d_memcpy_pfc.dst_frame_width = dst_width;
+	dma2d_memcpy_pfc.dst_frame_height = dst_height;
+	dma2d_memcpy_pfc.src_frame_xpos = src_frame_xpos;
+	dma2d_memcpy_pfc.src_frame_ypos = src_frame_ypos;
+	dma2d_memcpy_pfc.dst_frame_xpos = dst_frame_xpos;
+	dma2d_memcpy_pfc.dst_frame_ypos = dst_frame_ypos;
+	dma2d_memcpy_pfc.input_red_blue_swap = 0;
+	dma2d_memcpy_pfc.output_red_blue_swap = 0;
+
+	bk_dma2d_memcpy_or_pixel_convert(&dma2d_memcpy_pfc);
+	bk_dma2d_int_enable(DMA2D_CFG_ERROR | DMA2D_TRANS_ERROR | DMA2D_TRANS_COMPLETE ,1);	
+#if 1
+#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
+		bk_dma2d_register_int_callback_isr(DMA2D_TRANS_ERROR_ISR, dma2d_transfer_error);
+		bk_dma2d_register_int_callback_isr(DMA2D_TRANS_COMPLETE_ISR, dma2d_transfer_complete);
+		bk_dma2d_register_int_callback_isr(DMA2D_CFG_ERROR_ISR, dma2d_config_error);
+#else
+		bk_dma2d_isr_register(dma2d_isr);
+#endif 
+#endif
+	dma2d_start_transfer();
+#if 0
+	while (transferCompleteDetected == 0) {
+	}
+	transferCompleteDetected = 0;
+#else
+	while (bk_dma2d_is_transfer_busy()) {
+	}
+#endif
+	bk_mem_dump_ex("2 dst", (unsigned char *)output_addr, src_width*src_height*pixel_bit);
+
+	for(int i = 0; i < ysize; i++)
+	{
+		int ret = os_memcmp((unsigned char *)(input_addr + ((src_frame_ypos + i) * src_width + src_frame_xpos)*pixel_bit), (unsigned char *)(output_addr + ((dst_frame_ypos + i) * dst_width + dst_frame_xpos)*pixel_bit), xsize*pixel_bit);
+
+		if(ret == 0)
+		{
+			LOGI(" test pass \n");
+		}
+		else
+		{
+			LOGI(" test fail \n");
+		}
+	}
+
+	//bk_mem_dump_ex("dma2d_fill", (unsigned char *)addr, fill.frame_xsize*fill.frame_ysize*pixel_bit);
+
+}
+
+/*
+	sdcard_read=yuyv422_320_480.rgb,0x60000000
+	dma2d_pfc_test=0x60000000,0x60200000,RGB565,320,480,320,480,0,0,0,0,ARGB8888
+	sdcard_write=yuyv422_320_480_argb88882.rgb,320,480,4,0x60200000
+*/
+void dma2d_pfc_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	bk_psram_init();
+	bk_dma2d_driver_init();
+	uint32_t input_addr = os_strtoul(argv[1], NULL, 16) & 0xFFFFFFFF;
+	uint32_t output_addr = os_strtoul(argv[2], NULL, 16) & 0xFFFFFFFF;
+
+	input_color_mode_t input_color_mode;
+	out_color_mode_t output_color_mode;
+	uint8_t src_pixel_bit, dst_pixel_bit;
+	
+	if (os_strcmp(argv[3], "ARGB8888") == 0)
+	{
+		input_color_mode = DMA2D_INPUT_ARGB8888;
+		src_pixel_bit = 4;
+	}
+	else if (os_strcmp(argv[3], "RGB888") == 0)
+	{
+		input_color_mode = DMA2D_INPUT_RGB888;
+		src_pixel_bit = 3;
+	}
+	else //(os_strcmp(argv[2], "RGB565") == 0)
+	{
+		input_color_mode = DMA2D_INPUT_RGB565;
+		src_pixel_bit = 2;
+	}
+
+	uint16_t xsize= os_strtoul(argv[4], NULL, 10) & 0xFFFF;
+	uint16_t ysize = os_strtoul(argv[5], NULL, 10) & 0xFFFF;
+	uint16_t src_width = os_strtoul(argv[6], NULL, 10) & 0xFFFF;
+	uint16_t src_height = os_strtoul(argv[7], NULL, 10) & 0xFFFF;
+	uint16_t src_frame_xpos = os_strtoul(argv[8], NULL, 10) & 0xFFFF;
+	uint16_t src_frame_ypos = os_strtoul(argv[9], NULL, 10) & 0xFFFF;
+	uint16_t dst_frame_xpos = os_strtoul(argv[10], NULL, 10) & 0xFFFF;
+	uint16_t dst_frame_ypos = os_strtoul(argv[11], NULL, 10) & 0xFFFF;
+	uint16_t dst_width = src_width;
+	uint16_t dst_height = src_height;
+	if (os_strcmp(argv[12], "ARGB8888") == 0)
+	{
+		output_color_mode = DMA2D_OUTPUT_ARGB8888;
+		dst_pixel_bit = 4;
+	}
+	else if (os_strcmp(argv[12], "RGB888") == 0)
+	{
+		output_color_mode = DMA2D_OUTPUT_RGB888;
+		dst_pixel_bit = 3;
+	}
+	else //(os_strcmp(argv[2], "RGB565") == 0)
+	{
+		output_color_mode = DMA2D_OUTPUT_RGB565;
+		dst_pixel_bit = 2;
+	}
+	LOGI(" %x %x, %d, %d, %d, %d,%d, %d, %d, %d, %d\n", input_addr,output_addr,input_color_mode,xsize, ysize ,src_width,src_height ,src_frame_xpos,src_frame_ypos, dst_frame_xpos,dst_frame_ypos,output_color_mode);
+	LOGI("dst_width dst_height %d %d\n",dst_width, dst_height);
+
+	if(xsize < 16)
+	{
+		bk_mem_dump_ex("src", (unsigned char *)input_addr, src_width*src_height*src_pixel_bit);
+		bk_mem_dump_ex("dst", (unsigned char *)output_addr, src_width*src_height*dst_pixel_bit);
+	}
+	dma2d_memcpy_pfc_t dma2d_memcpy_pfc = {0};
+	dma2d_memcpy_pfc.mode = DMA2D_M2M_PFC;
+	dma2d_memcpy_pfc.input_addr = (char *)input_addr;
+	dma2d_memcpy_pfc.output_addr = (char *)output_addr;
+	dma2d_memcpy_pfc.input_color_mode = input_color_mode;
+	dma2d_memcpy_pfc.output_color_mode = output_color_mode;
+	dma2d_memcpy_pfc.src_pixel_bit = src_pixel_bit;
+	dma2d_memcpy_pfc.dst_pixel_bit = dst_pixel_bit;
+	dma2d_memcpy_pfc.dma2d_width = xsize;
+	dma2d_memcpy_pfc.dma2d_height = ysize;
+	dma2d_memcpy_pfc.src_frame_width = src_width;
+	dma2d_memcpy_pfc.src_frame_height = src_height;
+	dma2d_memcpy_pfc.dst_frame_width = dst_width;
+	dma2d_memcpy_pfc.dst_frame_height = dst_height;
+	dma2d_memcpy_pfc.src_frame_xpos = src_frame_xpos;
+	dma2d_memcpy_pfc.src_frame_ypos = src_frame_ypos;
+	dma2d_memcpy_pfc.dst_frame_xpos = dst_frame_xpos;
+	dma2d_memcpy_pfc.dst_frame_ypos = dst_frame_ypos;
+	dma2d_memcpy_pfc.input_red_blue_swap = 0;
+	dma2d_memcpy_pfc.output_red_blue_swap = 0;
+
+	bk_dma2d_memcpy_or_pixel_convert(&dma2d_memcpy_pfc);
+	bk_dma2d_int_enable(DMA2D_CFG_ERROR | DMA2D_TRANS_ERROR | DMA2D_TRANS_COMPLETE ,1); 
+#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
+//		bk_dma2d_register_int_callback_isr(DMA2D_TRANS_ERROR_ISR, dma2d_transfer_error);
+		bk_dma2d_register_int_callback_isr(DMA2D_TRANS_COMPLETE_ISR, dma2d_transfer_complete);
+//		bk_dma2d_register_int_callback_isr(DMA2D_CFG_ERROR_ISR, dma2d_config_error);
+#else
+		bk_dma2d_isr_register(dma2d_isr);
+#endif 
+
+	dma2d_start_transfer();
+#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
+	while (transferCompleteDetected == 0) {
+	}
+	transferCompleteDetected = 0;
+#else
+	while (bk_dma2d_is_transfer_busy()) {
+	}
+#endif
+	if(xsize < 16)
+	{
+		bk_mem_dump_ex("2 dst", (unsigned char *)output_addr, src_width*src_height*dst_pixel_bit);
+	}
+	else
+	{
+		bk_mem_dump_ex("3 dst", (unsigned char *)output_addr, 16*16*dst_pixel_bit);
+		bk_mem_dump_ex("4 dst", (unsigned char *)(output_addr + (src_width*src_height-16)*dst_pixel_bit ), 16*dst_pixel_bit);
+	}
+}
+
+
+
+/*
+sdcard_read=rgb565_blue_320_480.rgb,0x60000000  //RGB565 FG
+sdcard_read=yuyv422_320_480.rgb,0x60050000     // RGB565 BG
+dma2d_blend_test=0x60000000,0x60050000,0x60200000,RGB565,RGB565,RGB565,320,480, 1,1,0x80,0x80
+sdcard_write=BLEND_565_320_480.rgb,320,480,2,0x60200000     --pass
+
+sdcard_read=wifi_none_png_rgba.rgb,0x60050000   //ARGB
+sdcard_read=wififull_pngrgba.rgb,0x60000000     //ARGB
+dma2d_blend_test=0x60050000,0x60000000,0x60200000,ARGB8888,ARGB8888,ARGB8888,32,36,1,1,0x80,0x80
+sdcard_write=BLEND_WIWI_ARGB.rgb,32,36,4,0x60200000  --pass
+
+sdcard_read=wifi_none_png_rgba.rgb,0x60050000   //ARGB
+sdcard_read=wififull_pngrgb565le.rgb,0x60000000 //RGB565
+dma2d_blend_test=0x60050000,0x60000000,0x60200000,ARGB8888,RGB565,ARGB8888,32,36,1,1,0x80,0x80
+sdcard_write=BLEND_RGB_ARGB.rgb,32,36,4,0x60200000  --passs
+
+sdcard_read=wififull_pngrgb565le.rgb,0x60000000 //RGB565
+sdcard_read=yuv_to_rgb888.rgb,0x60050000        //RGB888
+dma2d_blend_test=0x60050000,0x60000000,0x60200000,RGB888,RGB565,ARGB8888,32,36,1,1,0x80,0x80
+sdcard_write=BLEND_565_888_ARGB.rgb,32,36,4,0x60200000  --pass
+
+sdcard_read=yuv_to_rgb888.rgb,0x60000000        //RGB888
+sdcard_read=wifi_none_png_rgba.rgb,0x60050000   //ARGB
+dma2d_blend_test=0x60050000,0x60000000,0x60200000,ARGB8888,RGB888, RGB565,32,36,1,1,0x80,0x80
+sdcard_write=BLEND_ARGB_888_565.rgb,32,36,4,0x60200000
+
+sdcard_read=yuv_to_rgb888.rgb,0x60000000        //RGB888
+sdcard_read=wifi_none_png_rgba.rgb,0x60050000   //ARGB
+dma2d_blend_test=0x60050000,0x60000000,0x60200000,ARGB8888,RGB888, RGB888,32,36,1,1,0x80,0x80
+sdcard_write=BLEND_ARGB_888_888.rgb,32,36,3,0x60200000
+
+
+大图片测试：
+dma2d_fill_test=0x60200000,RGB565,0xf800,1280,720,1280,720,0,0
+sdcard_write=1280_720_red.rgb,1280,720,2,0x60200000
+dma2d_fill_test=0x60000000,RGB565,0x001f,1280,720,1280,720,0,0
+sdcard_write=1280_720_blue.rgb,1280,720,2,0x60000000
+
+//565+565=argb(ok)  rgb565(ok) rgb888(ok)
+sdcard_read=1280_720_red.rgb,0x60200000
+sdcard_read=1280_720_blue.rgb,0x60000000
+dma2d_blend_test=0x60200000,0x60000000,0x60000000,RGB565,RGB565, RGB888,1280,720,1,1,0x80,0x80
+sdcard_write=1280_720_blend.rgb,1280,720,2,0x60000000
+sdcard_write=1280_720_blend_rgb888.rgb,1280,720,3,0x60000000
+
+//argb+argb  == argb(ok) rgb565(ok)  rgb888(fail)
+sdcard_read=1280_720_argb8888_red.rgb,0x60000000
+sdcard_read=1280_720_argb8888_zi.rgb,0x60400000
+dma2d_blend_test=0x60000000,0x60400000,0x60800000,ARGB8888,ARGB8888, ARGB8888,1280,720,1,1,0x80,0x80 
+sdcard_write=1280_720_blend_argb888.rgb,1280,720,4,0x60800000
+
+//argb+rgb565 ==argb8888(ok) rgb565(ok) rgb888(FAIL)
+sdcard_read=1280_720_argb8888_red.rgb,0x60000000
+sdcard_read=1280_720_blue.rgb,0x60400000
+dma2d_blend_test=0x60000000,0x60400000,0x60800000,ARGB8888,RGB565, ARGB8888,1280,720,1,1,0x80,0x80 
+sdcard_write=1280_720_blend_argb888.rgb,1280,720,4,0x60800000
+*/
+
+void dma2d_blend_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	uint32_t input_fg_addr = os_strtoul(argv[1], NULL, 16) & 0xFFFFFFFF;
+	uint32_t input_bg_addr = os_strtoul(argv[2], NULL, 16) & 0xFFFFFFFF;
+	uint32_t output_blend_addr = os_strtoul(argv[3], NULL, 16) & 0xFFFFFFFF;
+	blend_alpha_mode_t fg_alpha_mode, bg_alpha_mode;
+	input_color_mode_t input_fg_mode, input_bg_mode;
+	out_color_mode_t output_mode;
+	uint8_t fg_pixel_bit, bg_pixel_bit, out_pixel_bit;
+	
+	if (os_strcmp(argv[4], "ARGB8888") == 0) {
+		input_fg_mode = DMA2D_INPUT_ARGB8888;
+		fg_pixel_bit = 4;
+	} else if (os_strcmp(argv[4], "RGB888") == 0) {
+		input_fg_mode = DMA2D_INPUT_RGB888;
+		fg_pixel_bit = 3;
+	} else { /*(os_strcmp(argv[2], "RGB565") == 0)*/
+		input_fg_mode = DMA2D_INPUT_RGB565;
+		fg_pixel_bit = 2;
+	}
+	if (os_strcmp(argv[5], "ARGB8888") == 0) {
+		input_bg_mode = DMA2D_INPUT_ARGB8888;
+		bg_pixel_bit = 4;
+	} else if (os_strcmp(argv[5], "RGB888") == 0) {
+		input_bg_mode = DMA2D_INPUT_RGB888;
+		bg_pixel_bit = 3;
+	} else /*(os_strcmp(argv[2], "RGB565") == 0)*/{
+		input_bg_mode = DMA2D_INPUT_RGB565;
+		bg_pixel_bit = 2;
+	}
+	if (os_strcmp(argv[6], "ARGB8888") == 0) {
+		output_mode = DMA2D_OUTPUT_ARGB8888;
+		out_pixel_bit = 4;
+	} else if (os_strcmp(argv[6], "RGB888") == 0) {
+		output_mode = DMA2D_OUTPUT_RGB888;
+		out_pixel_bit = 3;
+	} else /*(os_strcmp(argv[2], "RGB565") == 0)*/{
+		output_mode = DMA2D_OUTPUT_RGB565;
+		out_pixel_bit = 2;
+	}
+	uint16_t xsize= os_strtoul(argv[7], NULL, 10) & 0xFFFF;
+	uint16_t ysize = os_strtoul(argv[8], NULL, 10) & 0xFFFF;
+	fg_alpha_mode= os_strtoul(argv[9], NULL, 10) & 0xFF;
+	bg_alpha_mode = os_strtoul(argv[10], NULL, 10) & 0xFF;
+	uint8_t fg_alpha_value= os_strtoul(argv[11], NULL, 16) & 0xFF;
+	uint8_t bg_alpha_value = os_strtoul(argv[12], NULL, 16) & 0xFF;
+
+
+	LOGI(" %x %x, %x, %d, %d\n", input_fg_addr,input_bg_addr,output_blend_addr,xsize, ysize);
+	
+	bk_mem_dump_ex("input_fg_addr start ", (unsigned char *)input_fg_addr, 16*fg_pixel_bit);
+	bk_mem_dump_ex("input_fg_addr end", (unsigned char *)(input_fg_addr + (xsize*ysize-16)*fg_pixel_bit), 16*fg_pixel_bit);
+	bk_mem_dump_ex("input_bg_addr start", (unsigned char *)input_bg_addr, 16*bg_pixel_bit);
+	bk_mem_dump_ex("input_bg_addr end", (unsigned char *)(input_bg_addr + (xsize*ysize-16)*bg_pixel_bit ), 16*bg_pixel_bit);
+
+	bk_dma2d_driver_init();
+
+	dma2d_blend_t dma2d_config;
+	
+	dma2d_config.pfg_addr = (char *)input_fg_addr;
+	dma2d_config.pbg_addr = (char *)input_bg_addr;
+	dma2d_config.pdst_addr = (char *)output_blend_addr;
+	dma2d_config.fg_color_mode = input_fg_mode;
+	dma2d_config.red_bule_swap = DMA2D_RB_REGULAR;
+	dma2d_config.bg_color_mode = input_bg_mode;
+	dma2d_config.dst_color_mode = output_mode;
+	dma2d_config.fg_offline = 0;
+	dma2d_config.bg_offline = 0;
+	dma2d_config.dest_offline = 0;
+	dma2d_config.xsize = xsize;
+	dma2d_config.ysize = ysize;
+	dma2d_config.fg_alpha_mode = fg_alpha_mode;
+	dma2d_config.bg_alpha_mode = bg_alpha_mode;
+	dma2d_config.fg_alpha_value = fg_alpha_value;
+	dma2d_config.bg_alpha_value = bg_alpha_value;
+	bk_dma2d_blend(&dma2d_config);
+
+	bk_dma2d_int_enable(DMA2D_TRANS_COMPLETE, 1); 
+	bk_dma2d_register_int_callback_isr(DMA2D_TRANS_COMPLETE_ISR, dma2d_transfer_complete);
+
+	LOGI("dma2d_start_transfer\n");
+	dma2d_start_transfer();
+
+	while (transferCompleteDetected == 0) {
+	}
+	transferCompleteDetected = 0;
+
+	bk_mem_dump_ex("output_blend_addr start", (unsigned char *)output_blend_addr, 16*out_pixel_bit);
+	bk_mem_dump_ex("output_blend_addr end", (unsigned char *)(output_blend_addr + (xsize*ysize-16)*out_pixel_bit ), 16*out_pixel_bit);
+
+//	LOGI("=====================check fg addr data changed why ?? =====================\n");
+//	bk_mem_dump_ex("input_fg_addr start ", (unsigned char *)input_fg_addr, 16*fg_pixel_bit);
+//	bk_mem_dump_ex("input_fg_addr end", (unsigned char *)(input_fg_addr + (xsize*ysize-16)*fg_pixel_bit), 16*fg_pixel_bit);
+//	bk_mem_dump_ex("input_bg_addr start", (unsigned char *)input_bg_addr, 16*bg_pixel_bit);
+//	bk_mem_dump_ex("input_bg_addr end", (unsigned char *)(input_bg_addr + (xsize*ysize-16)*bg_pixel_bit ), 16*bg_pixel_bit);
+}
+
+
+
+
+
+void sdcard_write_from_mem_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+#if CONFIG_FATFS
+		char *filename = NULL;
+		char cFileName[FF_MAX_LFN];
+		FIL file;
+		FRESULT fr;
+		unsigned int uiTemp = 0;
+
+		filename = argv[1]; //saved file name
+		os_printf("filename  = %s \r\n", filename);
+
+		uint32_t width = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
+		os_printf("image width	= %d \r\n", width);
+
+		uint32_t height = os_strtoul(argv[3], NULL, 10) & 0xFFFF;
+		os_printf("image height  = %d \r\n", height);
+		
+		uint32_t pixel_bit = os_strtoul(argv[4], NULL, 10) & 0xFFFF;
+		os_printf(" pixel_bit  = %d \r\n", pixel_bit);
+
+		uint32_t paddr = os_strtoul(argv[5], NULL, 16) & 0xFFFFFFFF;
+		char *ucRdTemp = (char *)paddr;
+		os_printf("read from psram addr = %x \r\n", ucRdTemp);
+
+		//	save data to sdcard
+		sprintf(cFileName, "%d:/%s", DISK_NUMBER_SDIO_SD, filename);
+
+		fr = f_open(&file, cFileName, FA_CREATE_ALWAYS | FA_WRITE);
+		if (fr != FR_OK) {
+			os_printf("open %s fail.\r\n", filename);
+			return;
+		}
+		fr = f_write(&file, (char *)ucRdTemp, width * height * pixel_bit , &uiTemp);
+		if (fr != FR_OK) {
+			os_printf("write %s fail.\r\n", filename);
+			return;
+		}
+		os_printf("\n");
+		fr = f_close(&file);
+		if (fr != FR_OK) {
+			os_printf("close %s fail!\r\n", filename);
+			return;
+		}
+		os_printf("sd card write data to file successful\r\n");
+#endif
+} 
+void sdcard_read_to_mem_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+#if CONFIG_FATFS
+	char cFileName[FF_MAX_LFN];
+	FIL file;
+	FRESULT fr;
+	FSIZE_t size_64bit = 0;
+	unsigned int uiTemp = 0;
+	uint8_t *sram_addr = NULL;
+	uint32_t once_read_len = 1024*2;
+	char *filename = NULL;
+	uint32_t *paddr  = NULL;
+
+	filename = argv[1];
+	os_printf("filename  = %s \r\n", filename);
+	
+	uint32_t psram_addr = os_strtoul(argv[2], NULL, 16) & 0xFFFFFFFF;
+	paddr = (uint32_t*)psram_addr;
+
+	// step 1: read picture from sd to psram
+	sprintf(cFileName, "%d:/%s", DISK_NUMBER_SDIO_SD, filename);
+	sram_addr = os_malloc(once_read_len);
+	char *ucRdTemp = (char *)sram_addr;
+
+	/*open pcm file*/
+	fr = f_open(&file, cFileName, FA_OPEN_EXISTING | FA_READ);
+	if (fr != FR_OK) {
+		os_printf("open %s fail.\r\n", filename);
+		return;
+	}
+	size_64bit = f_size(&file);
+	uint32_t total_size = (uint32_t)size_64bit;// total byte
+	os_printf("read file total_size = %d.\r\n", total_size);
+
+	while(1)
+	{
+		fr = f_read(&file, ucRdTemp, once_read_len, &uiTemp);
+		if (fr != FR_OK) {
+			os_printf("read file fail.\r\n");
+			return;
+		}
+		if (uiTemp == 0)
+		{
+			os_printf("read file complete.\r\n");
+			break;
+		}
+		if(once_read_len != uiTemp)
+		{
+			if (uiTemp % 4)
+			{
+				uiTemp = (uiTemp / 4 + 1) * 4;
+			}
+			os_memcpy_word(paddr, (uint32_t *)sram_addr, uiTemp);
+		} 
+		else
+		{
+			os_memcpy_word(paddr, (uint32_t *)sram_addr, once_read_len);
+			paddr += (once_read_len/4);
+		}
+	}
+	os_printf("\r\n");
+	os_free(sram_addr);
+	fr = f_close(&file);
+	if (fr != FR_OK) {
+		os_printf("close %s fail!\r\n", filename);
+		return;
+	}
+#endif
+}
+
+#else
 void dma2d_fill(uint32_t frameaddr, uint16_t x, uint16_t y, uint16_t width, uint16_t high, uint16_t color)
 {
 	void *pDiSt=&(((uint16_t *)frameaddr)[y*320+x]);
@@ -405,6 +995,6 @@ void bk_example_dma2d_deinit(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 		return;
 	}
 }
-
+#endif
 
 

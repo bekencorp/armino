@@ -325,7 +325,29 @@ uint32_t sys_drv_i2s_clock_en(uint32_t value)
 {
 	uint32_t int_level = rtos_disable_int();
 
+#if (CONFIG_SOC_BK7256)
 	sys_hal_aud_clock_en(value);
+#else
+	sys_hal_i2s_clock_en(value);
+#endif
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
+uint32_t sys_drv_i2s1_clock_en(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_i2s1_clock_en(value);
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
+uint32_t sys_drv_i2s2_clock_en(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_i2s2_clock_en(value);
 	rtos_enable_int(int_level);
 	return SYS_DRV_SUCCESS;
 }

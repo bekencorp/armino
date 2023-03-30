@@ -216,7 +216,7 @@ SECTIONS
 	. = ALIGN(ALIGNOF(.eh_frame_hdr));
 	.eh_frame_hdr 	: AT(ALIGN(LOADADDR (.sbss2) + SIZEOF (.sbss2), ALIGNOF(.eh_frame_hdr)))
 		{ *(.eh_frame_hdr ) }
-	. = 0x20000000;
+	. = 0x20000400;
 	DTCM_BEGIN = .;
 	. = ALIGN(8);
 	.dtcm_sec_data 	: AT(ALIGN(ALIGN(LOADADDR (.eh_frame_hdr) + SIZEOF (.eh_frame_hdr), ALIGNOF(.dtcm_sec_data)), 8))
@@ -348,6 +348,7 @@ SECTIONS
 	".sbss_w_*ble_util_buf.c.obj" 	(NOLOAD)	: { *ble_util_buf.c.obj(.sbss_w .sbss_w.* ) *sch_prog.c.obj(.sbss_w .sbss_w.* ) *sch_slice.c.obj(.sbss_w .sbss_w.* ) *llm.c.obj(.sbss_w .sbss_w.* ) *ble_util_buf.c.obj(.scommon_w .scommon_w.* ) *sch_prog.c.obj(.scommon_w .scommon_w.* ) *sch_slice.c.obj(.scommon_w .scommon_w.* ) *llm.c.obj(.scommon_w .scommon_w.* ) *ble_util_buf.c.obj(.dynsbss ) *sch_prog.c.obj(.dynsbss ) *sch_slice.c.obj(.dynsbss ) *llm.c.obj(.dynsbss ) *ble_util_buf.c.obj(.scommon ) *sch_prog.c.obj(.scommon ) *sch_slice.c.obj(.scommon ) *llm.c.obj(.scommon ) . = ALIGN(8); }
 	".sbss_d_*ble_util_buf.c.obj" 	(NOLOAD)	: { *ble_util_buf.c.obj(.sbss_d .sbss_d.* ) *sch_prog.c.obj(.sbss_d .sbss_d.* ) *sch_slice.c.obj(.sbss_d .sbss_d.* ) *llm.c.obj(.sbss_d .sbss_d.* ) *ble_util_buf.c.obj(.scommon_d .scommon_d.* ) *sch_prog.c.obj(.scommon_d .scommon_d.* ) *sch_slice.c.obj(.scommon_d .scommon_d.* ) *llm.c.obj(.scommon_d .scommon_d.* ) }
 	".bss_*ble_util_buf.c.obj" 	(NOLOAD)	: { *ble_util_buf.c.obj(.dynbss ) *sch_prog.c.obj(.dynbss ) *sch_slice.c.obj(.dynbss ) *llm.c.obj(.dynbss ) *ble_util_buf.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *sch_prog.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *sch_slice.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *llm.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *ble_util_buf.c.obj(COMMON ) *sch_prog.c.obj(COMMON ) *sch_slice.c.obj(COMMON ) *llm.c.obj(COMMON ) . = ALIGN(8); }
+	_bt_data_end = .;
 	SRAM_BT_SIZE = . - SRAM_BT_BEGIN;
 	. = 0x30020000;
 	SRAM_DATA_BEGIN = .;
@@ -356,7 +357,6 @@ SECTIONS
 	. = ALIGN(ALIGNOF(.eh_frame));
 	.eh_frame 	: AT(ALIGN(LOADADDR (.ble_bss_data) + SIZEOF (.ble_bss_data), 32))
 		{ KEEP(*(.eh_frame )) }
-	_bt_data_end = ADDR(.eh_frame);
 	_data_lmastart =  LOADADDR (.eh_frame);
 	_data_start = ADDR(.eh_frame);
 	. = ALIGN(ALIGNOF(.gcc_except_table));
@@ -470,7 +470,7 @@ SECTIONS
 ASSERT((DEFINED (_RELAX_END_) ? FLASH1_SIZE : 0x0)<= 0x800, "FLASH1 OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? ITCM_SIZE : 0x0)<= 0x8000, "ITCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD1_SIZE : 0x0)<= 0x8800, "CPU0_LOAD1 OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x7000, "DTCM OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x6C00, "DTCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM_VIDEO_SIZE : 0x0)<= 0xA000, "SRAM_VIDEO OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM_BT_SIZE : 0x0)<= 0x16000, "SRAM_BT OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM_DATA_SIZE : 0x0)<= 0x60000, "SRAM_DATA OVERFLOW");

@@ -19,7 +19,11 @@
 typedef struct rxu_mgt_ind SCAN_IND_T, *SCAN_IND_PTR;
 
 typedef struct probe_rsp {
+    #ifdef CONFIG_MINIMUM_SCAN_RESULTS
+    UINT64 timestamp;
+    #else
     UINT8 timestamp[8];
+    #endif
     UINT16 beacon_int;
     UINT16 capab_info;
 

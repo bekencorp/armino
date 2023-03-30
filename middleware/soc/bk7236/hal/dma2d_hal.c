@@ -22,7 +22,7 @@
 
 bk_err_t dma2d_hal_init(dma2d_config_t *dma2d)
 {
-	dma2d_ll_set_module_control_soft_reset(1);
+	dma2d_ll_set_module_control_clk_gate(1);
 	// 000:m2m; 001:m2m pixel convert with fg; 010:m2m blend; 011:r2m.only with output; 100: m2m blend fix fg; 101:m2m blend fix bg;
 	dma2d_ll_set_dma2d_control_reg_mode(dma2d->init.mode);
 	dma2d_ll_set_dma2d_control_reg_line_offset_mode(dma2d->init.line_offset_mode);
@@ -168,7 +168,7 @@ bk_err_t dma2d_hal_blending_start(dma2d_config_t *dma2d, uint32_t src_addr1, uin
 		/* Configure the source, destination address and the data size */
 		dma2d_hal_config(dma2d, src_addr1, dst_addr, Width, Height);
 	}
-	dma2d_ll_set_dma2d_control_reg_tran_start(1);
+//	dma2d_ll_set_dma2d_control_reg_tran_start(1);
 	return BK_OK;
 }
 
@@ -240,13 +240,7 @@ bk_err_t dma2d_hal_layer_config(dma2d_config_t *dma2d, uint32_t LayerIdx)
 		dma2d_ll_set_dma2d_bg_pfc_ctrl_alpha_invert(pLayerCfg->alpha_inverted);
 		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_rb_swap(pLayerCfg->red_blue_swap);
 
-		if (pLayerCfg->alpha_mode == DMA2D_REPLACE_ALPHA) {
-			dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_alpha(pLayerCfg->input_alpha);
-		}
-		if (pLayerCfg->alpha_mode == DMA2D_COMBINE_ALPHA) {
-			dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_alpha((pLayerCfg->input_alpha & dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_alpha()));
-		}
-
+		dma2d_ll_set_dma2d_bg_pfc_ctrl_bg_alpha(pLayerCfg->input_alpha);
 		/* DMA2D BGOR register configuration -------------------------------------*/
 		dma2d_ll_set_dma2d_bg_offset_bg_line_offset(pLayerCfg->input_offset);
 
@@ -263,13 +257,8 @@ bk_err_t dma2d_hal_layer_config(dma2d_config_t *dma2d, uint32_t LayerIdx)
 		dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_alpha_mode(pLayerCfg->alpha_mode);
 		dma2d_ll_set_dma2d_fg_pfc_ctrl_alpha_invert(pLayerCfg->alpha_inverted);
 		dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_rb_swap(pLayerCfg->red_blue_swap);
+		dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_alpha(pLayerCfg->input_alpha);
 
-		if (pLayerCfg->alpha_mode == DMA2D_REPLACE_ALPHA) {
-			dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_alpha(pLayerCfg->input_alpha);
-		}
-		if (pLayerCfg->alpha_mode == DMA2D_COMBINE_ALPHA) {
-			dma2d_ll_set_dma2d_fg_pfc_ctrl_fg_alpha((pLayerCfg->input_alpha & dma2d_ll_get_dma2d_fg_pfc_ctrl_fg_alpha()));
-		}
 
 		/* DMA2D FGOR register configuration -------------------------------------*/
 		dma2d_ll_set_dma2d_fg_offset_fg_line_offset(pLayerCfg->input_offset);

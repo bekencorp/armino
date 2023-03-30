@@ -27,7 +27,7 @@ typedef volatile struct {
 } gpio_interrupt_status_t;
 
 #define GPIO_LL_REG_BASE            (SOC_AON_GPIO_REG_BASE)
-#define GPIO_LL_SYSTEM_REG_BASE     (SOC_SYSTEM_REG_BASE + 0x30 * 4)
+#define GPIO_LL_SYSTEM_REG_BASE     (SOC_SYS_REG_BASE + 0x30 * 4)
 #define GPIO_NUM_MAX                (SOC_GPIO_NUM)
 #define GPIO_EXIST                  (0xffffffffffff)
 

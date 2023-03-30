@@ -149,10 +149,12 @@ static void bk_printf_sync(const char *fmt, va_list args)
 
 void bk_printf_port(int level, char *tag, const char *fmt, va_list args)
 {
+#if (!CONFIG_SLAVE_CORE)
 	if (!rtos_is_scheduler_started()) {
 		exception_mode_printf(fmt, args);
 		return;
 	}
+#endif
 
 #if CONFIG_SHELL_ASYNCLOG
 

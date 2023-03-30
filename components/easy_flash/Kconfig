@@ -1,5 +1,6 @@
 menu "Easy_flash"
 	config EASY_FLASH
+		depends on FLASH
 		bool "Enable Easy Flash"
 		default n
 

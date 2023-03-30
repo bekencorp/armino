@@ -126,7 +126,10 @@
    ------------------------------------
 */
 
+#ifdef CONFIG_LWIP_MEM_TRX_DYNAMIC_EN
 #define MEM_TRX_DYNAMIC_EN          1
+#endif
+
 /**
  * MEM_ALIGNMENT: should be set to the alignment of the CPU
  *    4 byte alignment -> #define MEM_ALIGNMENT 4
@@ -505,7 +508,11 @@ The STM32F107 allows computing and verifying the IP, UDP, TCP and ICMP checksums
 #define TCP_MAX_ACCEPT_CONN 5
 #define MEMP_NUM_TCP_SEG               (TCP_SND_QUEUELEN*2)
 
+#ifdef CONFIG_LWIP_MEM_LIBC_MALLOC
+#define MEM_LIBC_MALLOC                (1)
+#else
 #define MEM_LIBC_MALLOC                (0)
+#endif
 
 #if (CONFIG_LWIP_MEM_REDUCE)
 #define DEFAULT_UDP_RECVMBOX_SIZE       24 //each udp socket max buffer 24 packets.
@@ -518,8 +525,12 @@ The STM32F107 allows computing and verifying the IP, UDP, TCP and ICMP checksums
 
 #define LWIP_COMPAT_MUTEX_ALLOWED       (1)
 
+#ifdef CONFIG_LWIP_MEMP_STATS
 #define MEMP_STATS                       1
+#endif
+#ifdef CONFIG_LWIP_MEM_STATS
 #define MEM_STATS                        1
+#endif
 
 #define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS
 

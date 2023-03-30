@@ -1,7 +1,7 @@
 #include <common/bk_include.h>
 #include "bk_arm_arch.h"
 
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 #include "sdio_driver.h"
 #include "bk_drv_model.h"
 #include "bk_sys_ctrl.h"
@@ -523,6 +523,6 @@ int wait_Receive_Data(void)
 	return ret;
 }
 
-#endif // CONFIG_SDCARD_HOST
+#endif // CONFIG_SDCARD
 // EOF
 

@@ -953,11 +953,13 @@ typedef struct
 #define SCB_ITCMCR_SZ_Msk                  (0xFUL << SCB_ITCMCR_SZ_Pos)                   /*!< SCB ITCMCR: SZ Mask */
 #define SCB_ITCMCR_EN_Pos                   0U                                            /*!< SCB ITCMCR: EN Position */
 #define SCB_ITCMCR_EN_Msk                  (1UL /*<< SCB_ITCMCR_EN_Pos*/)                 /*!< SCB ITCMCR: EN Mask */
+
 /* Data Tightly-Coupled Memory Control Register Definitions */
 #define SCB_DTCMCR_SZ_Pos                   3U                                            /*!< SCB DTCMCR: SZ Position */
 #define SCB_DTCMCR_SZ_Msk                  (0xFUL << SCB_DTCMCR_SZ_Pos)                   /*!< SCB DTCMCR: SZ Mask */
 #define SCB_DTCMCR_EN_Pos                   0U                                            /*!< SCB DTCMCR: EN Position */
 #define SCB_DTCMCR_EN_Msk                  (1UL /*<< SCB_DTCMCR_EN_Pos*/)                 /*!< SCB DTCMCR: EN Mask */
+
 /* L1 Cache Control Register Definitions */
 #define SCB_CACR_DCCLEAN_Pos                16U                                            /*!< SCB CACR: DCCLEAN Position */
 #define SCB_CACR_DCCLEAN_Msk               (1UL << SCB_CACR_FORCEWT_Pos)                  /*!< SCB CACR: DCCLEAN Mask */
@@ -1046,6 +1048,43 @@ typedef struct
 #define SysTick_CALIB_TENMS_Msk            (0xFFFFFFUL /*<< SysTick_CALIB_TENMS_Pos*/)    /*!< SysTick CALIB: TENMS Mask */
 
 /*@} end of group CMSIS_SysTick */
+
+/**
+  \ingroup  CMSIS_core_register
+  \defgroup CMSIS_TCM
+  \brief    Type definitions for TCM
+  @{
+ */
+
+/**
+  \brief  Structure type to access the Instrumentation Trace Macrocell Register (ITM).
+ */
+typedef struct
+{
+	__IOM uint32_t ITCMCR;
+	__IOM uint32_t DTCMCR;
+	__IOM uint32_t MMFR0;
+}TCM_Type;
+
+/**
+  \ingroup  CMSIS_core_register
+  \defgroup CMSIS_TGU
+  \brief    Type definitions for TGU
+  @{
+ */
+
+/**
+  \brief  Structure type to access the Instrumentation Trace Macrocell Register (ITM).
+ */
+typedef struct
+{
+	__IOM uint32_t ITGU_CTRL;
+	__IOM uint32_t ITGU_CFG;
+	__IOM uint32_t ITGU_LUT;
+	__IOM uint32_t DTGU_CTRL;
+	__IOM uint32_t DTGU_CFG;
+	__IOM uint32_t DTGU_LUT;
+}TGU_Type;
 
 
 /**
@@ -2129,28 +2168,32 @@ typedef struct
  */
 
 /* Memory mapping of Core Hardware */
-  #define SCS_BASE            (0xE000E000UL)                             /*!< System Control Space Base Address */
-  #define ITM_BASE            (0xE0000000UL)                             /*!< ITM Base Address */
-  #define DWT_BASE            (0xE0001000UL)                             /*!< DWT Base Address */
-  #define TPI_BASE            (0xE0040000UL)                             /*!< TPI Base Address */
-  #define DCB_BASE            (0xE000EDF0UL)                             /*!< DCB Base Address */
-  #define DIB_BASE            (0xE000EFB0UL)                             /*!< DIB Base Address */
-  #define EMSS_BASE           (0xE001E000UL)                             /*!<Enhanced Memory SubSystem Base Address */
-  
-  #define SysTick_BASE        (SCS_BASE +  0x0010UL)                     /*!< SysTick Base Address */
-  #define NVIC_BASE           (SCS_BASE +  0x0100UL)                     /*!< NVIC Base Address */
-  #define SCB_BASE            (SCS_BASE +  0x0D00UL)                     /*!< System Control Block Base Address */
+#define SCS_BASE            (0xE000E000UL)                             /*!< System Control Space Base Address */
+#define ITM_BASE            (0xE0000000UL)                             /*!< ITM Base Address */
+#define DWT_BASE            (0xE0001000UL)                             /*!< DWT Base Address */
+#define TPI_BASE            (0xE0040000UL)                             /*!< TPI Base Address */
+#define DCB_BASE            (0xE000EDF0UL)                             /*!< DCB Base Address */
+#define DIB_BASE            (0xE000EFB0UL)                             /*!< DIB Base Address */
+#define EMSS_BASE           (0xE001E000UL)                             /*!< Enhanced Memory SubSystem Base Address */
+#define TCM_BASE			(0xE001E010UL)							   /*!< TCM Base Address */
+#define TGU_BASE			(0xE001E500UL)							   /*!< TGU Base Address */
 
-  #define SCnSCB              ((SCnSCB_Type    *)     SCS_BASE         ) /*!< System control Register not in SCB */
-  #define SCB                 ((SCB_Type       *)     SCB_BASE         ) /*!< SCB configuration struct */
-  #define SysTick             ((SysTick_Type   *)     SysTick_BASE     ) /*!< SysTick configuration struct */
-  #define NVIC                ((NVIC_Type      *)     NVIC_BASE        ) /*!< NVIC configuration struct */
-  #define ITM                 ((ITM_Type       *)     ITM_BASE         ) /*!< ITM configuration struct */
-  #define DWT                 ((DWT_Type       *)     DWT_BASE         ) /*!< DWT configuration struct */
-  #define TPI                 ((TPI_Type       *)     TPI_BASE         ) /*!< TPI configuration struct */
-  #define DCB                 ((DCB_Type       *)     DCB_BASE         ) /*!< DCB configuration struct */
-  #define DIB                 ((DIB_Type       *)     DIB_BASE         ) /*!< DIB configuration struct */
-  #define EMSS                ((EMSS_Type      *)     EMSS_BASE        ) /*!<Ehanced MSS Registers struct */
+#define SysTick_BASE        (SCS_BASE +  0x0010UL)                     /*!< SysTick Base Address */
+#define NVIC_BASE           (SCS_BASE +  0x0100UL)                     /*!< NVIC Base Address */
+#define SCB_BASE            (SCS_BASE +  0x0D00UL)                     /*!< System Control Block Base Address */
+
+#define SCnSCB              ((SCnSCB_Type    *)     SCS_BASE         ) /*!< System control Register not in SCB */
+#define SCB                 ((SCB_Type       *)     SCB_BASE         ) /*!< SCB configuration struct */
+#define SysTick             ((SysTick_Type   *)     SysTick_BASE     ) /*!< SysTick configuration struct */
+#define NVIC                ((NVIC_Type      *)     NVIC_BASE        ) /*!< NVIC configuration struct */
+#define ITM                 ((ITM_Type       *)     ITM_BASE         ) /*!< ITM configuration struct */
+#define DWT                 ((DWT_Type       *)     DWT_BASE         ) /*!< DWT configuration struct */
+#define TPI                 ((TPI_Type       *)     TPI_BASE         ) /*!< TPI configuration struct */
+#define DCB                 ((DCB_Type       *)     DCB_BASE         ) /*!< DCB configuration struct */
+#define DIB                 ((DIB_Type       *)     DIB_BASE         ) /*!< DIB configuration struct */
+#define EMSS                ((EMSS_Type      *)     EMSS_BASE        ) /*!<Ehanced MSS Registers struct */
+#define TCM                 ((TCM_Type       *)     TCM_BASE         ) /*!< ITM configuration struct */
+#define TGU                 ((TGU_Type       *)     TGU_BASE         ) /*!< ITM configuration struct */
 
   #if defined (__MPU_PRESENT) && (__MPU_PRESENT == 1U)
     #define MPU_BASE          (SCS_BASE +  0x0D90UL)                     /*!< Memory Protection Unit */

@@ -301,7 +301,7 @@ enum
 
 #if (CONFIG_SOC_BK7231U)
 #define DEFAULT_TXID_XTAL                        (0x19)
-#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7236)
+#elif (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A)
 #if (CONFIG_XTAL_FREQ_40M)
 #define DEFAULT_TXID_XTAL                        (0x70)
 #else
@@ -313,6 +313,10 @@ enum
 
 #if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 #define PARAM_XTALH_CTUNE_MASK                   (0x7F)
+
+#define PARAM_AUD_DAC_GAIN_MASK                  (0x1F)
+#elif (CONFIG_SOC_BK7236)
+#define PARAM_XTALH_CTUNE_MASK                   (0xFF)
 
 #define PARAM_AUD_DAC_GAIN_MASK                  (0x1F)
 #elif (!CONFIG_SOC_BK7231)

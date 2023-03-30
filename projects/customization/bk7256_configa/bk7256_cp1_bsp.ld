@@ -105,7 +105,7 @@ SECTIONS
 		{ KEEP(*(.itcm_sec_bss )) }
 	_itcm_bss_end = .;
 	ITCM_SIZE = . - ITCM_BEGIN;
-	. = 0x20000000;
+	. = 0x20000400;
 	DTCM_BEGIN = .;
 	.dtcm_sec_data 	: AT(LOADADDR (.itcm_sec_bss) + SIZEOF (.itcm_sec_bss))
 		{ KEEP(*(.dtcm_sec_data )) }
@@ -251,7 +251,7 @@ SECTIONS
 	.debug_varnames	0 : { *(.debug_varnames) }
 }
 ASSERT((DEFINED (_RELAX_END_) ? ITCM_SIZE : 0x0)<= 0x8000, "ITCM OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x7000, "DTCM OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x6C00, "DTCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM1_SIZE : 0x0)<= 0xA000, "SRAM1 OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM2_SIZE : 0x0)<= 0x7000, "SRAM2 OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SWAP_SIZE : 0x0)<= 0x400, "SWAP OVERFLOW");

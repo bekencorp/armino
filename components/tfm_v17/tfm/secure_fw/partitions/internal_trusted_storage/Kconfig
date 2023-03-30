@@ -1,0 +1,56 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2022, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+#-------------------------------------------------------------------------------
+
+menu "ITS component configs"
+    depends on TFM_PARTITION_INTERNAL_TRUSTED_STORAGE
+
+config ITS_CREATE_FLASH_LAYOUT
+    bool "Create flash FS"
+    default y
+    help
+      Create flash FS if it doesn't exist for Internal Trusted Storage
+      partition
+
+config ITS_RAM_FS
+    bool "Enable emulated RAM FS"
+    default n
+    help
+      Enable emulated RAM FS for platforms that don't have flash for
+      Internal Trusted Storage partition
+
+config ITS_VALIDATE_METADATA_FROM_FLASH
+    bool "Validate filesystem metadata"
+    default y
+    help
+      Validate filesystem metadata every time it is read from flash
+
+config ITS_MAX_ASSET_SIZE
+    int "Maximum stored asset size"
+    default 512
+    help
+      The maximum asset size to be stored in the Internal Trusted Storage
+      area
+
+config ITS_NUM_ASSETS
+    int "Maximum stored assets number"
+    default 10
+    help
+      The maximum number of assets to be stored in the Internal Trusted
+      Storage area
+
+config ITS_BUF_SIZE
+    int "Size of the ITS internal data transfer buffer"
+    default ITS_MAX_ASSET_SIZE
+    help
+      Size of the ITS internal data transfer buffer (defaults to
+      ITS_MAX_ASSET_SIZE if not set)
+
+config ITS_STACK_SIZE
+    hex "Stack size"
+    default 0x720
+
+endmenu

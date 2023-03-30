@@ -62,6 +62,7 @@ bk_err_t gpio_jtag_sel(gpio_jtag_map_mode_t gpio_jtag_sel_mode);
 bk_err_t gpio_enter_low_power(void *param);
 bk_err_t gpio_exit_low_power(void *param);
 void gpio_get_interrupt_status(uint32_t *h_status, uint32_t *l_status);
+bk_err_t gpio_enable_interrupt_mult_for_wake(void);
 #endif
 
 #if CONFIG_GPIO_SIMULATE_UART_WRITE

@@ -143,10 +143,35 @@ BK7256工具链下载路径如下：
 配置工程
 ------------------------------------
 
-- 您可以通过 menuconfig 来更改 Armino 默认配置项::
+- 您可以通过 menuconfig 来更改 Armino 默认配置项，以bk7235为例进行操作说明
 
-    cd ~/armino
-    make menuconfig
+    + 终端键入命令,其中ARMINO_SOC用于指定芯片::
+
+        cd ~/armino
+        make menuconfig ARMINO_SOC=bk7235
+
+    + menuconfig配置界面呈现如下图:
+        .. figure:: ../../_static/menuconfig.png
+            :align: center
+            :alt: menuconfig gui
+            :figclass: align-center
+
+            Menuconfig
+
+    + 通过上下键选择，并按回车键进入组件配置项的目录：
+      (Top)-->ARMINO Configuration-->Components Configuration
+
+    + 配置当前目录所罗列的组件配置项，并按"S"键保存
+
+    + 保存后，从menuconfig配置界面配置的差异配置项将更新到工程配置文件projects/app/config/bk7235.config中
+
+    + 终端输入命令，编译工程bk7235::
+
+        cd ~/armino
+        make bk7235
+
+    + 编译时将以工程配置文件 Override 芯片配置文件 Override 默认配置的优先级进行差异化配置
+      如： bk7235.config >> bk7235.defconfig >> KConfig
 
 - 您也可以直接通过工程配置文件来进行差异化配置::
 
@@ -272,3 +297,10 @@ bk_writer.exe 界面及相关配置如下图所示：
     cpu1 help //输出cpu1的命令列表
     cpu1 time //输出cpu1的当前运行时间
 
+
+编译选项及链接选项
+------------------------------------
+
+ - BK7235平台，默认编译选项"-mstrict-align"，链接选项"-Wl,--defsym,memcpy=memcpy_ss"
+ - 若单独编译lib库，需要增加编译选项"-mstrict-align"
+ - 若不使用平台的链接命令，如编译鸿蒙系统，对于Andes v5.1.1工具链，需要增加链接选项"-Wl,--defsym,memcpy=memcpy_ss"

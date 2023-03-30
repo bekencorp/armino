@@ -47,6 +47,11 @@ target_compile_options(tfm_s
         ${COMPILER_CP_FLAG}
 )
 
+target_compile_definitions(tfm_s
+	PUBLIC
+	CONFIG_TFM_S
+)
+
 target_link_options(tfm_s
     PRIVATE
         --entry=Reset_Handler

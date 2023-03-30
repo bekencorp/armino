@@ -14,3 +14,4 @@
    外设 <peripheral/index>
    平台 <platform/index>
    LVGL <lvgl/lvgl>
+   声网 <agora/agora>

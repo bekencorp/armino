@@ -772,8 +772,15 @@ static void sdio_host_isr(void)
 			SDIO_HOST_LOGD("write blk end\r\n");
 			rtos_set_semaphore(&s_sdio_host.tx_sema);
 		}
-
+#if (CONFIG_SDIO_HOST_CLR_WRITE_INT)
+		bk_sdio_tx_fifo_clk_gate_config(1);
 		sdio_host_hal_clear_write_data_interrupt_status(hal, int_status);
+		sdio_host_hal_clear_write_data_interrupt_status(hal, int_status);
+		sdio_host_hal_clear_write_data_interrupt_status(hal, int_status);
+		bk_sdio_tx_fifo_clk_gate_config(0);//clr 3 times to wait sd_card a cycle;
+#else
+		sdio_host_hal_clear_write_data_interrupt_status(hal, int_status);
+#endif
 	}
 	//RX(host read) DATA
 	else if(sdio_host_hal_is_data_recv_end_int_triggered(hal, int_status) ||

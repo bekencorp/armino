@@ -46,6 +46,6 @@ int utils_net_write(utils_network_pt pNetwork, const char *buffer, uint32_t len,
 int iotx_net_disconnect(utils_network_pt pNetwork);
 int iotx_net_connect(utils_network_pt pNetwork);
 int iotx_net_init(utils_network_pt pNetwork, const char *host, uint16_t port, const char *ca_crt);
-extern void http_data_process(char *buf, UINT32 len);
+extern void http_data_process(char *buf, UINT32 len, UINT32 recived, UINT32 total);
 
 #endif /* IOTX_COMMON_NET_H */

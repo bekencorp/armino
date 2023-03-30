@@ -141,6 +141,11 @@ typedef void (*ble_sleep_state_cb)(uint8_t is_sleeping, uint32_t slp_period);
 extern void bk_ble_register_sleep_state_callback(ble_sleep_state_cb cb);
 #endif
 
+#if CONFIG_UVC_OTA_DEMO
+typedef void (*http_data_process_callback_func)(char *buf, UINT32 len, uint32_t recived, uint32_t total);
+extern void http_data_process_register_callback(http_data_process_callback_func cb);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

@@ -48,6 +48,7 @@ typedef enum {
 	LCD_DEVICE_MD0700R, /**< 1024X600 RGB  */
 	LCD_DEVIDE_ST7710S, /**< 480X800 RGB  */
 	LCD_DEVICE_ST7701S, /**< 480X480 RGB  */
+	LCD_DEVICE_ST7701S_LY, /**< 480X480 RGB  */
 } lcd_device_id_t;
 
 typedef enum {

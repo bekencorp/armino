@@ -1,8 +1,5 @@
-<<<<<<< HEAD   (3074f2 [Jira BK7256-4606]: <perf>remove unused Kconfig)
-=======
 menu "Demos::Media::Audio::Opus"
 	config AUDIO_OPUS_TEST
 		bool "Enable Audio Opus Test"
 		default n
 endmenu
->>>>>>> CHANGE (50842f [Jira BK7256-4567]: <fix>menuconfig目录优化:demos Konfig文件修改)

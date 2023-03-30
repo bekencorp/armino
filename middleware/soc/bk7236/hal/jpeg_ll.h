@@ -54,6 +54,12 @@ static inline void jpeg_ll_reset_config_to_default(jpeg_hw_t *hw)
 	REG_WRITE(JPEG_R_INT_STATUS, REG_READ(JPEG_R_INT_STATUS));
 }
 
+static inline void jpeg_ll_soft_reset(jpeg_hw_t *hw)
+{
+	hw->global_ctrl.soft_reset = 0;
+	hw->global_ctrl.soft_reset = 1;
+}
+
 static inline void jpeg_ll_init(jpeg_hw_t *hw)
 {
 	hw->global_ctrl.soft_reset = 1;
@@ -120,6 +126,8 @@ static inline void jpeg_ll_disable_head_output_int(jpeg_hw_t *hw)
 static inline void jpeg_ll_enable_start_frame_int(jpeg_hw_t *hw)
 {
 	hw->int_en.sof_int_en = 1;
+	/* regard eoy as frame err int */
+	hw->int_en.eoy_int_en = 1;
 }
 
 static inline void jpeg_ll_disable_start_frame_int(jpeg_hw_t *hw)
@@ -149,12 +157,7 @@ static inline void jpeg_ll_disable_vsync_negedge_int(jpeg_hw_t *hw)
 
 static inline void jpeg_ll_set_mclk_div(jpeg_hw_t *hw, uint32_t value)
 {
-	/* set yuv_buf reg4 bit[15] to output MCLK */
-	uint32_t val = REG_READ(SOC_YUV_BUF_REG_BASE + 0x4 * 4);
-	val |= (1 << 15);
-	REG_WRITE(SOC_YUV_BUF_REG_BASE + 0x4 * 4, val);
-
-	hw->int_en.mclk_div = 2;
+	hw->int_en.mclk_div = value;
 }
 
 static inline void jpeg_ll_enable_enc_size(jpeg_hw_t *hw)
@@ -170,9 +173,9 @@ static inline void jpeg_ll_disable_enc_size(jpeg_hw_t *hw)
 static inline void jpeg_ll_enable_yuv_word_reverse(jpeg_hw_t *hw, uint8_t enable)
 {
 	if (enable)
-		hw->cfg.yuv_word_reverse = 1;
+		hw->cfg.jpeg_word_reverse = 1;
 	else
-		hw->cfg.yuv_word_reverse = 0;
+		hw->cfg.jpeg_word_reverse = 0;
 }
 
 static inline void jpeg_ll_yuv_fml_sel(jpeg_hw_t *hw, uint32_t value)
@@ -273,19 +276,20 @@ static inline void jpeg_ll_clear_interrupt_status(jpeg_hw_t *hw, uint32_t int_st
 
 static inline bool jpeg_ll_is_frame_start_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return int_status & BIT(0);
+	return !!(int_status & BIT(0));
 }
 
 static inline bool jpeg_ll_is_frame_end_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return int_status & BIT(1);
+	return !!(int_status & BIT(1));
 }
 
 static inline bool jpeg_ll_is_head_output_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return int_status & BIT(2);
+	return !!(int_status & BIT(2));
 }
 
+/* bk7236 not support */
 static inline bool jpeg_ll_is_yuv_end_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
 	return false;
@@ -293,19 +297,19 @@ static inline bool jpeg_ll_is_yuv_end_int_triggered(jpeg_hw_t *hw, uint32_t int_
 
 static inline bool jpeg_ll_is_frame_err_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return (int_status & BIT(3));
+	return !!(int_status & BIT(3));
 }
 
 //use in no sensor case
 static inline bool jpeg_ll_is_l_clear_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return (int_status & BIT(5));
+	return !!(int_status & BIT(5));
 }
 
 //move to yuv_buf module
 static inline bool jpeg_ll_is_vsync_negedge_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return false;
+	return !!(int_status & BIT(4));
 }
 
 static inline void jpeg_ll_set_em_base_addr(jpeg_hw_t *hw, uint32_t value)

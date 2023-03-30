@@ -1,0 +1,83 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2022, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+#-------------------------------------------------------------------------------
+
+menu "Crypto component configs"
+    depends on TFM_PARTITION_CRYPTO
+
+config CRYPTO_ENGINE_BUF_SIZE
+    hex "Heap size for the crypto backend"
+    default 0x2080
+    help
+      CRYPTO_ENGINE_BUF_SIZE needs to be >8KB for EC signing by attest
+      module.
+
+config CRYPTO_CONC_OPER_NUM
+    int "Max number of concurrent operations"
+    default 8
+    help
+      The max number of concurrent operations that can be active (allocated)
+      at any time in Crypto
+
+config CRYPTO_RNG_MODULE_ENABLED
+    bool "Enable PSA Crypto random number generator module"
+    default y
+
+config CRYPTO_KEY_MODULE_ENABLED
+    bool "Enable PSA Crypto Key module"
+    default y
+
+config CRYPTO_AEAD_MODULE_ENABLED
+    bool "Enable PSA Crypto AEAD module"
+    default y
+
+config CRYPTO_MAC_MODULE_ENABLED
+    bool "Enable PSA Crypto MAC module"
+    default y
+
+config CRYPTO_HASH_MODULE_ENABLED
+    bool "Enable PSA Crypto Hash module"
+    default y
+
+config CRYPTO_CIPHER_MODULE_ENABLED
+    bool "Enable PSA Crypto Cipher module"
+    default y
+
+config CRYPTO_ASYM_SIGN_MODULE_ENABLED
+    bool "Enable PSA Crypto asymmetric key signature module"
+    default y
+
+config CRYPTO_ASYM_ENCRYPT_MODULE_ENABLED
+    bool "Enable PSA Crypto asymmetric key encryption module"
+    default y
+
+config CRYPTO_KEY_DERIVATION_MODULE_ENABLED
+    bool "Enable PSA Crypto key derivation module"
+    default y
+
+config CRYPTO_IOVEC_BUFFER_SIZE
+    int "Default size of the internal scratch buffer"
+    default 5120
+    help
+      Default size of the internal scratch buffer used for PSA FF IOVec
+      allocations
+
+config CRYPTO_NV_SEED
+    bool "Use stored NV seed to provide entropy"
+    default y
+
+config CRYPTO_SINGLE_PART_FUNCS_DISABLED
+    bool "Only enable multi-part operations"
+    default n
+    help
+      Only enable multi-part operations in Hash, MAC, AEAD and symmetric
+      ciphers, to optimize memory footprint in resource-constrained devices
+
+config CRYPTO_STACK_SIZE
+    hex "Stack size"
+    default 0x1B00
+
+endmenu

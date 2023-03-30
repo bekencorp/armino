@@ -25,7 +25,7 @@ extern "C" {
  * @defgroup bk_ate API group
  * @{
  */
-
+#if CONFIG_ATE
 /**
  * @brief     Init the ATE driver
  *
@@ -75,6 +75,9 @@ bool ate_is_enabled(void);
  *
  */
 int bk_ate_ctrl(bool enable);
+#else
+bool ate_is_enabled(void);
+#endif
 /**
  * @}
  */

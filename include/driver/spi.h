@@ -353,8 +353,49 @@ bk_err_t bk_spi_dma_read_bytes(spi_id_t id, void *data, uint32_t size);
  */
 bk_err_t bk_spi_dma_transmit(spi_id_t id, const void *tx_data, uint32_t tx_size, void *rx_data, uint32_t rx_size);
 
-#endif
+/**
+ * @brief     SPI init duplex transmit
+ *
+ * @param id SPI id
+ *
+ *
+ * @return
+ *    - BK_OK: success
+ *    - others: other errors.
+ */
+bk_err_t bk_spi_dma_duplex_init(spi_id_t id);
 
+/**
+ * @brief     SPI deinit duplex transmit
+ *
+ * @param id SPI id
+ *
+ *
+ * @return
+ *    - BK_OK: success
+ *    - others: other errors.
+ */
+bk_err_t bk_spi_dma_duplex_deinit(spi_id_t id);
+
+/**
+ * @brief     SPI write and read bytes byte dma
+ *
+ * @param id SPI id
+ * @param tx_data write data buffer address
+ * @param tx_size data length to read
+ * @param rx_data pointer to the receive buffer
+ * @param rx_size data length to read
+ *
+ * @return
+ *    - BK_ERR_SPI_NOT_INIT: SPI driver not init
+ *    - BK_ERR_SPI_INVALID_ID: SPI id number is invalid
+ *    - BK_ERR_SPI_ID_NOT_INIT: SPI id not init
+ *    - BK_ERR_SPI_DUPLEX_SIZE_NOT_EQUAL: tx rx data size not equal
+ *    - others: other errors.
+ */
+bk_err_t bk_spi_dma_duplex_xfer(spi_id_t id, const void *tx_data, uint32_t tx_size, void *rx_data, uint32_t rx_size);
+
+#endif
 #ifdef __cplusplus
 }
 #endif

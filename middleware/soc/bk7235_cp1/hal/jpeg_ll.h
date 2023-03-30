@@ -54,6 +54,11 @@ static inline void jpeg_ll_reset_config_to_default(jpeg_hw_t *hw)
 	REG_WRITE(JPEG_R_INT_STATUS, REG_READ(JPEG_R_INT_STATUS));
 }
 
+static inline void jpeg_ll_soft_reset(jpeg_hw_t *hw)
+{
+	// not support
+}
+
 static inline void jpeg_ll_init(jpeg_hw_t *hw)
 {
 	jpeg_ll_reset_config_to_default(hw);

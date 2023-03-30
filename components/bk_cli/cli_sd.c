@@ -1,6 +1,6 @@
 #include "cli.h"
 
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 /*
 sdtest I 0 --
 sdtest R secnum
@@ -59,7 +59,7 @@ static void sd_operate(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 
 #define SD_CMD_CNT (sizeof(s_sd_commands) / sizeof(struct cli_command))
 static const struct cli_command s_sd_commands[] = {
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 	{"sdtest", "sdtest <cmd>", sd_operate},
 #endif
 };

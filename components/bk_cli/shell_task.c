@@ -188,8 +188,8 @@ static cmd_line_t  cmd_line_buf;
 static shell_dev_t * log_dev = &shell_dev_mb;
 static shell_dev_t * cmd_dev = &shell_dev_mb;
 #else
-static shell_dev_t * log_dev = &shell_uart3;
-static shell_dev_t * cmd_dev = &shell_uart3;
+static shell_dev_t * log_dev = &shell_uart;
+static shell_dev_t * cmd_dev = &shell_uart;
 #endif
 static const char	 shell_fault_str[] = "\r\n!!CPU1:some LOGs discarded!!\r\n";
 static const u16     shell_fault_str_len = sizeof(shell_fault_str) - 1;
@@ -393,7 +393,7 @@ static void pull_pending_queue(u16 *blk_tag, u16 *data_len)
 }
 
 int shell_assert_out(bool bContinue, char * format, ...);
-
+#if 0
 /* call from TX ISR. */
 static void shell_tx_complete(u8 *pbuf, u16 buf_tag)
 {
@@ -508,6 +508,185 @@ static void shell_tx_complete(u8 *pbuf, u16 buf_tag)
 
 	return;
 }
+#else
+/* call from cmd TX ISR. */
+static int cmd_tx_complete(u8 *pbuf, u16 buf_tag)
+{
+	u8      queue_id = GET_QUEUE_ID(buf_tag);
+	u16     blk_id = GET_BLOCK_ID(buf_tag);
+
+	/* rsp ok ?? */
+	if( queue_id == SHELL_RSP_QUEUE_ID )    /* rsp. */
+	{
+		/* it is called from cmd_dev tx ISR. */
+
+		if ( (pbuf != cmd_line_buf.rsp_buff) || (blk_id != 0) ||
+			( !cmd_line_buf.rsp_ongoing ) )
+		{
+			/* something wrong!!! */
+			shell_assert_out(bTRUE, "FAULT: in rsp.\r\n");
+		}
+
+		cmd_line_buf.rsp_ongoing = bFALSE;   /* rsp compelete, rsp_buff can be used for next cmd/response. */
+
+		return 1;
+	}
+
+	if( queue_id == SHELL_IND_QUEUE_ID )    /* cmd_ind. */
+	{
+		/* it is called from cmd_dev tx ISR. */
+
+		if ( (pbuf != cmd_line_buf.cmd_ind_buff) || (blk_id != 0) )
+		{
+			/* something wrong!!! */
+			shell_assert_out(bTRUE, "FAULT: indication.\r\n");
+		}
+
+		/* indication tx compelete, cmd_ind_buff can be used for next cmd_indication. */
+		rtos_set_semaphore(&cmd_line_buf.ind_buf_semaphore);
+
+		return 1;
+	}
+
+	if( queue_id == SHELL_ROM_QUEUE_ID )    /* fault hints buffer, point to flash. */
+	{
+		/* it is called from cmd_dev tx ISR. */
+
+		if (blk_id == 1)
+		{
+			if(pbuf != (u8 *)shell_cmd_ovf_str)
+			{
+				/* something wrong!!! */
+				shell_assert_out(bTRUE, "FATAL:t-%x,p-%x\r\n", buf_tag, pbuf);
+			}
+
+			return 1;
+		}
+	}
+
+	return 0;
+}
+/* call from TX ISR. */
+static void shell_cmd_tx_complete(u8 *pbuf, u16 buf_tag)
+{
+	u32  int_mask = rtos_disable_int();
+	int  tx_handled = cmd_tx_complete(pbuf, buf_tag);
+
+	if(tx_handled == 0)  /* not handled. */
+	{
+		/*        FAULT !!!!      */
+		shell_assert_out(bTRUE, "FATAL:%x,\r\n", buf_tag);
+	}
+
+	rtos_enable_int(int_mask);
+}
+
+/* call from log TX ISR. */
+static int log_tx_complete(u8 *pbuf, u16 buf_tag)
+{
+	u16     block_tag;
+	u8      queue_id = GET_QUEUE_ID(buf_tag);
+	u16     blk_id = GET_BLOCK_ID(buf_tag);
+	free_queue_t *free_q;
+
+	if( queue_id == SHELL_ROM_QUEUE_ID )    /* fault hints buffer, point to flash. */
+	{
+		/* it is called from log_dev tx ISR. */
+
+		if (blk_id == 0)
+		{
+			if(pbuf != (u8 *)shell_fault_str)
+			{
+				/* something wrong!!! */
+				shell_assert_out(bTRUE, "FATAL:t-%x,p-%x\r\n", buf_tag, pbuf);
+			}
+
+			return 1;
+		}
+	}
+
+	if (queue_id < TBL_SIZE(free_queue))   /* from log busy queue. */
+	{
+		/* it is called from log_dev tx ISR. */
+
+		free_q = &free_queue[queue_id];
+
+		block_tag = log_busy_queue.blk_list[log_busy_queue.list_out_idx];
+
+		if( ( buf_tag != block_tag ) || (blk_id >= free_q->blk_num) ||
+			( (&free_q->log_buf[blk_id * free_q->blk_len]) != pbuf) )
+		{
+			/* something wrong!!! */
+			/*        FAULT !!!!      */
+			shell_assert_out(bTRUE, "FATAL:%x,%x\r\n", buf_tag, block_tag);
+
+			return -1;
+		}
+
+		/* de-queue from busy queue. */
+		//log_busy_queue.list_out_idx = (log_busy_queue.list_out_idx + 1) % SHELL_LOG_BUSY_NUM;
+		if((log_busy_queue.list_out_idx + 1) < SHELL_LOG_BUSY_NUM)
+			log_busy_queue.list_out_idx++;
+		else
+			log_busy_queue.list_out_idx = 0;
+
+		/* free buffer to queue. */
+		free_log_blk(block_tag);
+
+		return 1;
+	}
+
+	return 0;
+}
+/* call from TX ISR. */
+static void shell_log_tx_complete(u8 *pbuf, u16 buf_tag)
+{
+	u32  int_mask = rtos_disable_int();
+
+	int log_tx_req = log_tx_complete(pbuf, buf_tag);
+
+	if(log_tx_req == 1)
+	{
+		//set_shell_event(SHELL_EVENT_TX_REQ);  // notify shell task to process the log tx.
+		tx_req_process();
+	}
+	else if(log_tx_req == 0)  /* not handled. */
+	{
+		/*        FAULT !!!!      */
+		shell_assert_out(bTRUE, "FATAL:%x,\r\n", buf_tag);
+	}
+
+	rtos_enable_int(int_mask);
+}
+
+/* call from TX ISR. */
+static void shell_tx_complete(u8 *pbuf, u16 buf_tag)
+{
+	u32  int_mask = rtos_disable_int();
+
+	int tx_req = 0;
+
+	tx_req = cmd_tx_complete(pbuf, buf_tag);
+
+	if(tx_req == 0) /* not a cmd tx event, maybe it is a log tx event. */
+	{
+		tx_req = log_tx_complete(pbuf, buf_tag);
+	}
+
+	if(tx_req == 1)
+	{
+		//set_shell_event(SHELL_EVENT_TX_REQ);  // notify shell task to process the log tx.
+		tx_req_process();
+	}
+	else if(tx_req == 0)  /* not handled. */
+	{
+		/*        FAULT !!!!      */
+		shell_assert_out(bTRUE, "FATAL:%x,\r\n", buf_tag);
+	}
+
+	rtos_enable_int(int_mask);
+}
+#endif
 
 /* call from RX ISR. */
 static void shell_rx_indicate(void)
@@ -1187,13 +1366,18 @@ static void shell_task_init(void)
 
 	create_shell_event();
 
-	cmd_dev->dev_drv->init(cmd_dev);
-	cmd_dev->dev_drv->open(cmd_dev, shell_tx_complete, shell_rx_indicate); // rx cmd, tx rsp.
-
 	if(log_dev != cmd_dev)
 	{
+		cmd_dev->dev_drv->init(cmd_dev);
+		cmd_dev->dev_drv->open(cmd_dev, shell_cmd_tx_complete, shell_rx_indicate); // rx cmd, tx rsp.
+
 		log_dev->dev_drv->init(log_dev);
-		log_dev->dev_drv->open(log_dev, shell_tx_complete, NULL);
+		log_dev->dev_drv->open(log_dev, shell_log_tx_complete, NULL);  // tx log.
+	}
+	else
+	{
+		cmd_dev->dev_drv->init(cmd_dev);
+		cmd_dev->dev_drv->open(cmd_dev, shell_tx_complete, shell_rx_indicate); // rx cmd, tx (rsp & log).
 	}
 
 	#ifdef CONFIG_MASTER_CORE

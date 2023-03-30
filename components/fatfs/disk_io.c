@@ -21,9 +21,7 @@
 
 #include "bk_uart.h"
 #include "driver_udisk.h"
-#if CONFIG_SDCARD_V2P0
 #include "driver/sd_card.h"
-#endif
 
 #include <driver/flash.h>
 #include <driver/flash_partition.h>
@@ -38,6 +36,7 @@ static bool s_disk_io_sdcard_init_flag = 0;
 static bool s_disk_io_sdcard_ldo_power_flag = 0;
 #endif
 
+#if (CONFIG_SDCARD)
 static bk_err_t sdcard_ldo_power_enable(uint8_t enable)
 {
 #if (CONFIG_SDCARD_POWER_GPIO_CTRL)
@@ -113,6 +112,7 @@ static void sdcard_operation_err_reset()
 	bk_sd_card_deinit();
 	bk_sd_card_init();
 }
+#endif
 
 #define FLASH_SECTOR_SIZE  512
 
@@ -122,7 +122,7 @@ static void sdcard_operation_err_reset()
 #define DEV_USB		DISK_NUMBER_UDISK	/* Example: Map USB MSD to physical drive 2 */
 #define DEV_FLASH	DISK_NUMBER_FLASH	/* Example: Map USB MSD to physical drive 3 */
 
-DD_HANDLE sdcard_hdl = DD_HANDLE_UNVALID;
+
 
 //static DD_HANDLE usb_hdl =DD_HANDLE_UNVALID;
 /*-----------------------------------------------------------------------*/
@@ -164,33 +164,15 @@ DSTATUS disk_initialize (
 )
 {
 	DSTATUS stat = STA_NOINIT;
-#if (CONFIG_SDCARD_V1P0)
-	UINT status = RES_NOTRDY;
-#endif
 	switch (pdrv) {
 	case DEV_RAM:
 		return stat;
+
 	case DEV_SD :
-#if (CONFIG_SDCARD_V2P0)
+#if (CONFIG_SDCARD)
 		sdcard_ldo_power_enable(1);
 		stat = bk_sd_card_init();
 		sdcard_operation_timing_initialize_start();
-#elif (CONFIG_SDCARD_V1P0)
-		sdcard_hdl = ddev_open(DD_DEV_TYPE_SDCARD, &status, 0);
-		FATFS_LOGI("sdcard_hdl = 0x%x, status=%d\r\n", sdcard_hdl, status);
-		stat = (DSTATUS)status;
-		if(stat != FR_OK) {
-			if(sdcard_hdl != DD_HANDLE_UNVALID) {
-				stat = RES_OK;
-				FATFS_LOGI("sdcard has initialized\r\n");
-			} else {
-				FATFS_LOGI("disk_initialize error\r\n");
-				stat = RES_NOTRDY;
-			}
-		} else {
-			FATFS_LOGI("disk_initialize suc\r\n");
-			stat = RES_OK;
-		}
 #endif
 		return stat;
 
@@ -214,9 +196,6 @@ DSTATUS disk_initialize (
 DSTATUS disk_close(void)
 {
     FATFS_LOGI("disk_close\r\n");
-    ddev_close(sdcard_hdl);
-
-    sdcard_hdl = DD_HANDLE_UNVALID;
     return RES_OK;
 }
 
@@ -240,22 +219,14 @@ DRESULT disk_read (
 		return res;
 		
 	case DEV_SD :
-#if (CONFIG_SDCARD_V2P0)
+#if (CONFIG_SDCARD)
 		sdcard_operation_timing_reload();
 		res = bk_sd_card_read_blocks((uint8_t *)buff, sector, count);
-#elif (CONFIG_SDCARD_V1P0)
-		// translate the arguments here
-		if(sdcard_hdl!=DD_HANDLE_UNVALID) {
-			result =  ddev_read(sdcard_hdl, (char *)buff, count, sector);
-			if(result == RES_OK)
-				res = RES_OK;
-		}
-#endif
 		if(res != RES_OK) {
 			FATFS_LOGI("%s ERROR res:%d\r\n", __func__, res);
 			sdcard_operation_err_reset();
 		}
-
+#endif
 		return res;
 
 	case DEV_USB :
@@ -319,15 +290,12 @@ DRESULT disk_write (
 {
 	DRESULT res = RES_ERROR;
 
-#if (CONFIG_SDCARD_V1P0)
-	int result;
-#endif
 	switch (pdrv) {
 	case DEV_RAM:
 		return res;
 
 	case DEV_SD :
-#if (CONFIG_SDCARD_V2P0)
+#if (CONFIG_SDCARD)
 		sdcard_operation_timing_reload();
 		res = bk_sd_card_write_blocks((uint8_t *)buff, sector, count);
 		if(res != RES_OK) {
@@ -335,15 +303,7 @@ DRESULT disk_write (
 			FATFS_LOGI("Get the value of the remaining space. res: %d\r\n", sd_disk_check_space_size());
 			sdcard_operation_err_reset();
 		}
-#elif (CONFIG_SDCARD_V1P0)
-		// translate the arguments here
-		if(sdcard_hdl!=DD_HANDLE_UNVALID) {
-			result =  ddev_write(sdcard_hdl, (char *)buff, count, sector);
-			if(result == RES_OK)
-				res = RES_OK;
-		}
 #endif
-
 		return res;
 
 	case DEV_USB :
@@ -380,17 +340,14 @@ DRESULT disk_ioctl (
 {
 	bk_logic_partition_t *partition_info;
 	DRESULT res = FR_OK;
-#if (CONFIG_SDCARD_V1P0)
-	int result;
-#endif
 	switch (pdrv) {
 	case DEV_SD :
+#if (CONFIG_SDCARD)
 		sdcard_operation_timing_reload();
 		// Process of the command for the MMC/SD card
 		switch(cmd)
 		{
 		case CTRL_SYNC:
-#if (CONFIG_SDCARD_V2P0)
 			{
 				res = bk_sd_card_rw_sync();
 				if(res != BK_OK)
@@ -398,16 +355,6 @@ DRESULT disk_ioctl (
 					os_printf("err:sd sync=%d\r\n", res);
 				}
 			}
-#elif (CONFIG_SDCARD_V1P0)
-			//os_printf("not support CTRL_SYNC \r\n");
-			if(sdcard_hdl!=DD_HANDLE_UNVALID)
-			{
-				result =  ddev_control(sdcard_hdl, 0, 0);
-				if(result != RES_OK)
-					res = result;
-			}
-			res = RES_OK;
-#endif
 			break;
 		case GET_SECTOR_SIZE:
 			*(WORD *)buff = 512;
@@ -418,21 +365,15 @@ DRESULT disk_ioctl (
 			res = RES_OK;
 			break;
 		case GET_SECTOR_COUNT:
-#if (CONFIG_SDCARD_V2P0)
 			*(DWORD *)buff = (uint32_t)bk_sd_card_get_card_size();	
 			res = RES_OK;
 			os_printf("sdcard sector cnt=%d\r\n", *(DWORD *)buff);
-#elif (CONFIG_SDCARD_V1P0)
-			*(DWORD *)buff = sdcard_get_size();
-			os_printf("sdcard sector cnt=%d\r\n", *(DWORD *)buff);
-			res = RES_OK;
-#endif
 			break;
 		default:
 			res = RES_PARERR;
 			break;
 		}
-
+#endif
 		return res;
 
 	case DEV_USB :
@@ -512,15 +453,12 @@ DSTATUS disk_uninitialize ( BYTE pdrv/* Physical drive nmuber to identify the dr
 		return result;
 
 	case DEV_SD :
-#if (CONFIG_SDCARD_V2P0)
+#if (CONFIG_SDCARD)
 	result = bk_sd_card_deinit();
 	if(!result)
 		sdcard_operation_timing_uninitialize_stop();
 	sdcard_ldo_power_enable(0);
 	stat = RES_OK;
-#elif (CONFIG_SDCARD_V1P0)
-	result = ddev_close(sdcard_hdl);
-	sdcard_hdl = DD_HANDLE_UNVALID;
 #endif
 		break;
 

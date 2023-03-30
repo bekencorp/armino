@@ -18,7 +18,7 @@ extern void cli_agora_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 
 #define AGORA_CMD_CNT (sizeof(s_agora_commands) / sizeof(struct cli_command))
 static const struct cli_command s_agora_commands[] = {
-	{"agora_test", "agora_test {audio|video start|stop appid}", cli_agora_test_cmd},
+	{"agora_test", "agora_test {audio|video|both start|stop appid ppi}", cli_agora_test_cmd},
 };
 
 int cli_agora_init(void)

@@ -31,17 +31,12 @@ typedef enum {
 	YUV_BUF_SM0_WR,
 	YUV_BUF_SM1_WR,
 	YUV_BUF_ENC_LINE,
+	YUV_BUF_H264_ERR,
+	YUV_BUF_SEN_RESL_ERR,
 	YUV_BUF_ISR_MAX,
 } yuv_buf_isr_type_t;
 
 typedef void (*yuv_buf_isr_t)(yuv_buf_unit_t id, void *param);
-
-typedef struct {
-	uint32_t x_partial_offset_l;
-	uint32_t x_partial_offset_r;
-	uint32_t y_partial_offset_l;
-	uint32_t y_partial_offset_r;
-} yuv_buf_partial_offset_config_t;
 
 #ifdef __cplusplus
 }

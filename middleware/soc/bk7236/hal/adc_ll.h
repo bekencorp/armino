@@ -16,6 +16,7 @@
 
 #include <soc/soc.h>
 #include "adc_hw.h"
+#include "system_hw.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,11 +43,14 @@ static inline uint32_t adc_ll_get_dev_status(adc_hw_t *hw)
 {
 	return hw->dev_status;
 }
-
 static inline void adc_ll_init(adc_hw_t *hw)
 {
 	adc_ll_soft_reset(hw);
 	hw->ctrl.v = 0;
+	//update gadc configure for saradc when clock on, remove it if use sdmadc
+	//keep it without recovery since there would be only one gadc finally
+	sys_ll_set_ana_reg2_sp_nt_ctrl(0x3);
+	sys_ll_set_ana_reg2_gadc_refbuf_ictrl(0x2);
 }
 
 static inline void adc_ll_deinit(adc_hw_t *hw)
@@ -217,7 +221,25 @@ static inline void adc_ll_disable_bypass_calib(adc_hw_t *hw)
 
 static inline bool adc_ll_is_analog_channel(adc_hw_t *hw, int id)
 {
-	return ((id == 7) || (id == 8) || (id == 9));
+	//channel	function
+	//ADC0	Vbat
+	//ADC1	GPIO25
+	//ADC2	GPIO24
+	//ADC3	GPIO23
+	//ADC4	GPIO28
+	//ADC5	GPIO22
+	//ADC6	GPIO21
+	//ADC7	vtemp
+	//ADC8	tssio
+	//ADC9	vout_td
+	//ADC10	NA
+	//ADC11	vpeak_lo
+	//ADC12	NA
+	//ADC13	NA
+	//ADC14	gnd
+	//ADC15	vrefp
+	//analog channel map: B11001011 10000001 = 0xCB81
+	return (0xCB81 & (1 << id));
 }
 
 static inline bool adc_ll_is_digital_channel(adc_hw_t *hw, int id)

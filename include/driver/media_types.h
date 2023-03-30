@@ -106,7 +106,8 @@ typedef enum {
 	PIXEL_FMT_VUYY,            /**< input data is vuyy format */
 	PIXEL_FMT_YVYU,
 	PIXEL_FMT_VYUY,
-	PIXEL_FMT_YYVU
+	PIXEL_FMT_YYVU,
+	PIXEL_FMT_RGB565_HF_FLIP,  /**< input data format is rgb565, halfword flip*/
 } pixel_format_t;
 
 typedef enum {

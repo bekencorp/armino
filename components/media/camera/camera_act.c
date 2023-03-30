@@ -38,6 +38,7 @@
 #include <driver/dvp_camera_types.h>
 
 #include <modules/ble.h>
+#include <modules/dm_ble.h>
 
 #include <driver/timer.h>
 
@@ -316,7 +317,19 @@ void camera_uvc_open_handle(param_pak_t *param, media_camera_type_t type)
 #if CONFIG_BTDM_5_2
 	if (bk_ble_get_env_state())
 	{
-		bk_ble_set_notice_cb(uvc_ble_notice_cb);
+	    if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+	    {
+	        bk_ble_set_notice_cb(uvc_ble_notice_cb);
+	    }
+	    else
+	    {
+	        bk_ble_set_event_callback(NULL);
+
+	        LOGE("%s not support !!!\n");
+	        ret = kGeneralErr;
+	        goto out;
+	    }
+
 		LOGI("bluetooth is enabled, shutdown bluetooth\n");
 		rtos_init_semaphore(&camera_act_sema, 1);
 		bk_ble_deinit();
@@ -327,7 +340,20 @@ void camera_uvc_open_handle(param_pak_t *param, media_camera_type_t type)
 
 		rtos_deinit_semaphore(&camera_act_sema);
 		camera_act_sema = NULL;
-		bk_ble_set_notice_cb(NULL);
+
+        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+        {
+            bk_ble_set_notice_cb(NULL);
+        }
+        else
+        {
+            bk_ble_set_event_callback(NULL);
+
+            LOGE("%s not support !!!\n");
+            ret = kGeneralErr;
+            goto out;
+
+        }
 	}
 	else
 	{
@@ -447,7 +473,19 @@ void camera_net_open_handle(param_pak_t *param, media_camera_type_t type)
 #if CONFIG_BTDM_5_2
 	if (bk_ble_get_env_state())
 	{
-		bk_ble_set_notice_cb(uvc_ble_notice_cb);
+        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+        {
+            bk_ble_set_notice_cb(uvc_ble_notice_cb);
+        }
+        else
+        {
+            bk_ble_set_event_callback(NULL);
+
+            LOGE("%s not support !!!\n");
+            ret = kGeneralErr;
+            goto out;
+        }
+
 		LOGI("bluetooth is enabled, shutdown bluetooth\n");
 		rtos_init_semaphore(&camera_act_sema, 1);
 		bk_ble_deinit();
@@ -458,7 +496,19 @@ void camera_net_open_handle(param_pak_t *param, media_camera_type_t type)
 
 		rtos_deinit_semaphore(&camera_act_sema);
 		camera_act_sema = NULL;
-		bk_ble_set_notice_cb(NULL);
+
+        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+        {
+            bk_ble_set_notice_cb(NULL);
+        }
+        else
+        {
+            bk_ble_set_event_callback(NULL);
+
+            LOGE("%s not support !!!\n");
+            ret = kGeneralErr;
+            goto out;
+        }
 	}
 	else
 	{
@@ -525,6 +575,9 @@ void camera_event_handle(uint32_t event, uint32_t param)
 			break;
 		case EVENT_CAM_DVP_MIX_OPEN_IND:
 			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_MIX);
+			break;
+		case EVENT_CAM_DVP_H264_OPEN_IND:
+			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_H264);
 			break;
 		case EVENT_CAM_DVP_CLOSE_IND:
 			camera_dvp_close_handle((param_pak_t *)param);

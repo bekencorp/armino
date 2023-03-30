@@ -684,6 +684,7 @@ static void cli_pm_cp1_ctrl(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 #endif//CONFIG_SYSTEM_CTRL
 
 #endif//!CONFIG_SLAVE_CORE
+#if CONFIG_WIFI_ENABLE
 static void cli_ps_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 #if PS_SUPPORT_MANUAL_SLEEP
@@ -741,6 +742,7 @@ static void cli_ps_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 _invalid_ps_arg:
 	os_printf("Usage:ps {rfdtim|mcudtim|rf_timer} {1/0}\r\n");
 }
+#endif
 #if !CONFIG_SYSTEM_CTRL
 #if CONFIG_MCU_PS
 
@@ -896,7 +898,9 @@ void cli_pwr_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv
 #endif //!CONFIG_SYSTEM_CTRL
 #define PWR_CMD_CNT (sizeof(s_pwr_commands) / sizeof(struct cli_command))
 static const struct cli_command s_pwr_commands[] = {
+#if CONFIG_WIFI_ENABLE
 	{"ps", "ps {rfdtim|mcudtim|rf_timer} {1|0}", cli_ps_cmd},
+#endif
 #if !CONFIG_SYSTEM_CTRL
 #if CONFIG_MCU_PS
 	{"mac_ps", "mac_ps {func} [param1] [param2]", cli_mac_ps_cmd},

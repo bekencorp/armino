@@ -49,11 +49,13 @@
 #include <driver/pwm.h>
 #include "modules/image_scale.h"
 
+#if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
 #include "cache.h"
+#endif
 
 
 #define TAG "rotate"
-#include "cache.h"
+
 
 #if CONFIG_SLAVE_CORE
 #define MINOOR_DTCM __attribute__((section(".dtcm_sec_data ")))
@@ -258,8 +260,10 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 			break;
 	}
 
+#if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
 	flush_dcache(src_frame_temp, JPEG_DEC_FRAME_SIZE);
 	flush_dcache(dst_frame_temp, JPEG_DEC_FRAME_SIZE);
+#endif
 
 	//LOGI("width:-%d-%d, height:%d-%d\r\n", src_width, rotate_frame->height, src_height, rotate_frame->width);
 
@@ -366,4 +370,5 @@ void lcd_calc_init(void)
 	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_RX_ISR, lcd_calc_mailbox_rx_isr);
 	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_TX_ISR, lcd_calc_mailbox_tx_isr);
 	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_TX_CMPL_ISR, lcd_calc_mailbox_tx_cmpl_isr);
+	//image_scale_init();
 }

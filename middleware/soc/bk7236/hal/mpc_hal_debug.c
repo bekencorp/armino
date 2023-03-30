@@ -16,8 +16,9 @@
 #include "mpc_hw.h"
 #include "mpc_hal.h"
 #include "mpc_ll.h"
+#include "driver/mpc.h"
 
-#if CFG_HAL_DEBUG_MPC
+#if CONFIG_MPC_TEST
 
 void mpc_struct_dump(mpc_dev_t mpc_dev)
 {

@@ -1,5 +1,6 @@
 menu "Demos::Media::Audio::I2s"
 	config I2S_TEST
 		bool "Enable I2S Test"
+		depends on I2S
 		default n
 endmenu

@@ -101,7 +101,10 @@ char * get_string_to_name(char *string, char * pre)
 	{
 		value = "st7710s";
 	}
-
+	if (os_strcmp(string, "st7701s_ly") == 0)
+	{
+		value = "st7701s_ly";
+	}
 	if (os_strcmp(string, "st7701s") == 0)
 	{
 		value = "st7701s";

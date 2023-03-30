@@ -218,6 +218,7 @@ typedef enum {
 	WIFI_LINKSTATE_STA_CONNECTING,    /**< sta mode is connecting */
 	WIFI_LINKSTATE_STA_DISCONNECTED,  /**< sta mode is disconnected */
 	WIFI_LINKSTATE_STA_CONNECTED,     /**< sta mode is connected */
+	WIFI_LINKSTATE_STA_CONNECT_FAILED,     /**< sta mode is connec fail */
 	WIFI_LINKSTATE_STA_GOT_IP,        /**< sta mode got ip */
 
 	/* for AP mode */

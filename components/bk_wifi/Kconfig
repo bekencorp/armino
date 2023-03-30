@@ -13,16 +13,32 @@ menu "Bk_Wifi"
 		help
 			Use WiFi-6 Code Stack
 
+	config WIFI4
+		bool "Enable Wifi4"
+		default y
+		help
+			Don't disable it when WiFi-6 is enabled.
+
+	config WIFI5
+		bool "Enable Wifi5"
+		default n
+		help
+			Don't disable it when WiFi-6 is enabled.
+
 	config WIFI6
 		bool "Enable Wifi6"
 		depends on WIFI6_CODE_STACK
 		default n
 
-	config WIFI4
-		bool "Enable WiFi4"
-		default y
-		help
-			Don't disable it when WiFi-6 is enabled.
+	config WIFI6E
+		bool "Enable Wifi6e"
+		depends on WIFI6_CODE_STACK
+		default n
+
+	config WIFI6_IP_DEBUG
+		depends on WIFI6_CODE_STACK
+		bool "Enable Wifi6 Ip Debug"
+		default n
 
 #TODO remove below kconfig
 
@@ -58,6 +74,10 @@ menu "Bk_Wifi"
 		bool "Enable Wifi Fast Connect"
 		default n
 
+	config MINIMUM_SCAN_RESULTS
+		bool "Enable minimum scan results"
+		default n
+
 	config BSSID_CONNECT
 		bool "Enable Bssid Connect"
 		default n
@@ -80,10 +100,6 @@ menu "Bk_Wifi"
 		help
 			enable AP probe request callback
 
-	config WIFI6_IP_DEBUG
-		bool "Enable Wifi6 Ip Debug"
-		default n
-
 	config STA_PS
 		bool "Enable Sta Ps"
 		default y if !RF_OTA_TEST
@@ -91,10 +107,6 @@ menu "Bk_Wifi"
 
 	config MAC_BSSID
 		bool "Enable Mac Bssid"
-		default n
-
-	config BK_COMPONENTS_P2P_GO
-		bool "Enable Bk Components P2P Go"
 		default n
 
 	config COMPONENTS_STA_VSIE

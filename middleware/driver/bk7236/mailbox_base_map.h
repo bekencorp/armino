@@ -16,10 +16,22 @@
 
 #include "mailbox_driver_base.h"
 
+#if !CONFIG_SLAVE_CORE
 //struct mailbox_direction_t:
 #define MAILBAOX_CONFIG_INFO_TABLE \
 {	\
 	{MAILBOX0, INT_SRC_NONE, MAILBOX_CPU0, MAILBOX_CPU1},\
 	{MAILBOX1, INT_SRC_MAILBOX1, MAILBOX_CPU1, MAILBOX_CPU0},\
 }
+
+#else //#if !CONFIG_SLAVE_CORE
+
+//struct mailbox_direction_t:
+#define MAILBAOX_CONFIG_INFO_TABLE \
+{	\
+	{MAILBOX0, INT_SRC_MAILBOX0, MAILBOX_CPU0, MAILBOX_CPU1},\
+	{MAILBOX1, INT_SRC_NONE, MAILBOX_CPU1, MAILBOX_CPU0},\
+}
+
+#endif //#if !CONFIG_SLAVE_CORE
 

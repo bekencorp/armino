@@ -35,183 +35,272 @@
 
 
 .macro PUSH_CALLER_REG
-    addi sp, sp, -(32 * REGBYTES)
-    SREG  t6, 2 * REGBYTES(sp)
-    SREG  t5, 3 * REGBYTES(sp)
-    SREG  t4, 4 * REGBYTES(sp)
-    SREG  t3, 5 * REGBYTES(sp)
-    SREG  t2, 6 * REGBYTES(sp)
-    SREG  t1, 7 * REGBYTES(sp)
-    SREG  t0, 8 * REGBYTES(sp)
-    SREG  a7, 18 * REGBYTES(sp)
-    SREG  a6, 19 * REGBYTES(sp)
-    SREG  a5, 20 * REGBYTES(sp)
-    SREG  a4, 21 * REGBYTES(sp)
-    SREG  a3, 22 * REGBYTES(sp)
-    SREG  a2, 23 * REGBYTES(sp)
-    SREG  a1, 24 * REGBYTES(sp)
-    SREG  a0, 25 * REGBYTES(sp)
-    SREG  ra, 31 * REGBYTES(sp)
-    csrr  t0, mstatus
-    SREG  t0, 16 * REGBYTES(sp)
-    csrr  t0, mepc
+    addi sp, sp, -(30 * REGBYTES)
+    SREG  ra, 0 * REGBYTES(sp)
+    SREG  t0, 1 * REGBYTES(sp)
+    SREG  t1, 2 * REGBYTES(sp)
+    SREG  t2, 3 * REGBYTES(sp)
+    SREG  a0, 4 * REGBYTES(sp)
+    SREG  a1, 5 * REGBYTES(sp)
+    SREG  a2, 6 * REGBYTES(sp)
+    SREG  a3, 7 * REGBYTES(sp)
+    SREG  a4, 8 * REGBYTES(sp)
+    SREG  a5, 9 * REGBYTES(sp)
+    SREG  a6, 10 * REGBYTES(sp)
+    SREG  a7, 11 * REGBYTES(sp)
+    SREG  t3, 12 * REGBYTES(sp)
+    SREG  t4, 13 * REGBYTES(sp)
+    SREG  t5, 14 * REGBYTES(sp)
+    SREG  t6, 15 * REGBYTES(sp)
+    csrr  t0, ustatus
     SREG  t0, 17 * REGBYTES(sp)
+    csrr  t0, uepc
+    SREG  t0, 16 * REGBYTES(sp)
 .endm
 
 .macro POP_CALLER_REG
-    LREG  t0, 16 * REGBYTES(sp)
-    csrw  mstatus, t0
     LREG  t0, 17 * REGBYTES(sp)
-    csrw  mepc, t0
-    LREG  t6, 2 * REGBYTES(sp)
-    LREG  t5, 3 * REGBYTES(sp)
-    LREG  t4, 4 * REGBYTES(sp)
-    LREG  t3, 5 * REGBYTES(sp)
-    LREG  t2, 6 * REGBYTES(sp)
-    LREG  t1, 7 * REGBYTES(sp)
-    LREG  t0, 8 * REGBYTES(sp)
-    LREG  a7, 18 * REGBYTES(sp)
-    LREG  a6, 19 * REGBYTES(sp)
-    LREG  a5, 20 * REGBYTES(sp)
-    LREG  a4, 21 * REGBYTES(sp)
-    LREG  a3, 22 * REGBYTES(sp)
-    LREG  a2, 23 * REGBYTES(sp)
-    LREG  a1, 24 * REGBYTES(sp)
-    LREG  a0, 25 * REGBYTES(sp)
-    LREG  ra, 31 * REGBYTES(sp)
-    addi sp, sp, 32 * REGBYTES
+    csrw  ustatus, t0
+    LREG  t0, 16 * REGBYTES(sp)
+    csrw  uepc, t0
+    LREG  ra, 0 * REGBYTES(sp)
+    LREG  t0, 1 * REGBYTES(sp)
+    LREG  t1, 2 * REGBYTES(sp)
+    LREG  t2, 3 * REGBYTES(sp)
+    LREG  a0, 4 * REGBYTES(sp)
+    LREG  a1, 5 * REGBYTES(sp)
+    LREG  a2, 6 * REGBYTES(sp)
+    LREG  a3, 7 * REGBYTES(sp)
+    LREG  a4, 8 * REGBYTES(sp)
+    LREG  a5, 9 * REGBYTES(sp)
+    LREG  a6, 10 * REGBYTES(sp)
+    LREG  a7, 11 * REGBYTES(sp)
+    LREG  t3, 12 * REGBYTES(sp)
+    LREG  t4, 13 * REGBYTES(sp)
+    LREG  t5, 14 * REGBYTES(sp)
+    LREG  t6, 15 * REGBYTES(sp)
+    addi sp, sp, 30 * REGBYTES
 .endm
 
 .macro PUSH_CALLEE_REG
-   SREG  s11, 9 * REGBYTES(sp)
-   SREG  s10, 10 * REGBYTES(sp)
-   SREG  s9, 11 * REGBYTES(sp)
-   SREG  s8, 12 * REGBYTES(sp)
-   SREG  s7, 13 * REGBYTES(sp)
-   SREG  s6, 14 * REGBYTES(sp)
-   SREG  s5, 15 * REGBYTES(sp)
-   SREG  s4, 26 * REGBYTES(sp)
-   SREG  s3, 27 * REGBYTES(sp)
-   SREG  s2, 28 * REGBYTES(sp)
-   SREG  s1, 29 * REGBYTES(sp)
-   SREG  s0, 30 * REGBYTES(sp)
+    SREG  s0, 18 * REGBYTES(sp)
+    SREG  s1, 19 * REGBYTES(sp)
+    SREG  s2, 20 * REGBYTES(sp)
+    SREG  s3, 21 * REGBYTES(sp)
+    SREG  s4, 22 * REGBYTES(sp)
+    SREG  s5, 23 * REGBYTES(sp)
+    SREG  s6, 24 * REGBYTES(sp)
+    SREG  s7, 25 * REGBYTES(sp)
+    SREG  s8, 26 * REGBYTES(sp)
+    SREG  s9, 27 * REGBYTES(sp)
+    SREG  s10, 28 * REGBYTES(sp)
+    SREG  s11, 29 * REGBYTES(sp)
 .endm
 
 .macro POP_ALL_REG
-    LREG  t6, 2 * REGBYTES(sp)
-    LREG  t5, 3 * REGBYTES(sp)
-    LREG  t4, 4 * REGBYTES(sp)
-    LREG  t3, 5 * REGBYTES(sp)
-    LREG  t2, 6 * REGBYTES(sp)
-    LREG  t1, 7 * REGBYTES(sp)
-    LREG  t0, 8 * REGBYTES(sp)
-    LREG  s11, 9 * REGBYTES(sp)
-    LREG  s10, 10 * REGBYTES(sp)
-    LREG  s9, 11 * REGBYTES(sp)
-    LREG  s8, 12 * REGBYTES(sp)
-    LREG  s7, 13 * REGBYTES(sp)
-    LREG  s6, 14 * REGBYTES(sp)
-    LREG  s5, 15 * REGBYTES(sp)
-    LREG  a7, 18 * REGBYTES(sp)
-    LREG  a6, 19 * REGBYTES(sp)
-    LREG  a5, 20 * REGBYTES(sp)
-    LREG  a4, 21 * REGBYTES(sp)
-    LREG  a3, 22 * REGBYTES(sp)
-    LREG  a2, 23 * REGBYTES(sp)
-    LREG  a1, 24 * REGBYTES(sp)
-    LREG  a0, 25 * REGBYTES(sp)
-    LREG  s4, 26 * REGBYTES(sp)
-    LREG  s3, 27 * REGBYTES(sp)
-    LREG  s2, 28 * REGBYTES(sp)
-    LREG  s1, 29 * REGBYTES(sp)
-    LREG  s0, 30 * REGBYTES(sp)
-    LREG  ra, 31 * REGBYTES(sp)
-    addi  sp, sp, 32 * REGBYTES
+    LREG  t0, 17 * REGBYTES(sp)
+    csrw  ustatus, t0
+    LREG  t0, 16 * REGBYTES(sp)
+    csrw  uepc, t0
+    LREG  ra, 0 * REGBYTES(sp)
+    LREG  t0, 1 * REGBYTES(sp)
+    LREG  t1, 2 * REGBYTES(sp)
+    LREG  t2, 3 * REGBYTES(sp)
+    LREG  a0, 4 * REGBYTES(sp)
+    LREG  a1, 5 * REGBYTES(sp)
+    LREG  a2, 6 * REGBYTES(sp)
+    LREG  a3, 7 * REGBYTES(sp)
+    LREG  a4, 8 * REGBYTES(sp)
+    LREG  a5, 9 * REGBYTES(sp)
+    LREG  a6, 10 * REGBYTES(sp)
+    LREG  a7, 11 * REGBYTES(sp)
+    LREG  t3, 12 * REGBYTES(sp)
+    LREG  t4, 13 * REGBYTES(sp)
+    LREG  t5, 14 * REGBYTES(sp)
+    LREG  t6, 15 * REGBYTES(sp)
+
+    LREG  s0, 18 * REGBYTES(sp)
+    LREG  s1, 19 * REGBYTES(sp)
+    LREG  s2, 20 * REGBYTES(sp)
+    LREG  s3, 21 * REGBYTES(sp)
+    LREG  s4, 22 * REGBYTES(sp)
+    LREG  s5, 23 * REGBYTES(sp)
+    LREG  s6, 24 * REGBYTES(sp)
+    LREG  s7, 25 * REGBYTES(sp)
+    LREG  s8, 26 * REGBYTES(sp)
+    LREG  s9, 27 * REGBYTES(sp)
+    LREG  s10, 28 * REGBYTES(sp)
+    LREG  s11, 29 * REGBYTES(sp)
+    addi  sp, sp, 30 * REGBYTES
 .endm
+
+.macro PUSH_ALL_F_REG
+	addi sp, sp, -(FPU_CONTEXT_SIZE * REGBYTES) /* Make room for the FPU registers. */
+
+	#ifdef __riscv_dsp
+	csrr t0, ucode
+	SREG t0, 0 * REGBYTES( sp )
+	#endif
+
+	#ifdef __riscv_flen
+	frcsr t0
+	SREG t0, 1 * REGBYTES( sp )
+	F_SREG f0, ( 2 * REGBYTES + 0 * FREGBYTES )( sp )
+	F_SREG f1, ( 2 * REGBYTES + 1 * FREGBYTES )( sp )
+	F_SREG f2, ( 2 * REGBYTES + 2 * FREGBYTES )( sp )
+	F_SREG f3, ( 2 * REGBYTES + 3 * FREGBYTES )( sp )
+	F_SREG f4, ( 2 * REGBYTES + 4 * FREGBYTES )( sp )
+	F_SREG f5, ( 2 * REGBYTES + 5 * FREGBYTES )( sp )
+	F_SREG f6, ( 2 * REGBYTES + 6 * FREGBYTES )( sp )
+	F_SREG f7, ( 2 * REGBYTES + 7 * FREGBYTES )( sp )
+	F_SREG f8, ( 2 * REGBYTES + 8 * FREGBYTES )( sp )
+	F_SREG f9, ( 2 * REGBYTES + 9 * FREGBYTES )( sp )
+	F_SREG f10, ( 2 * REGBYTES + 10 * FREGBYTES )( sp )
+	F_SREG f11, ( 2 * REGBYTES + 11 * FREGBYTES )( sp )
+	F_SREG f12, ( 2 * REGBYTES + 12 * FREGBYTES )( sp )
+	F_SREG f13, ( 2 * REGBYTES + 13 * FREGBYTES )( sp )
+	F_SREG f14, ( 2 * REGBYTES + 14 * FREGBYTES )( sp )
+	F_SREG f15, ( 2 * REGBYTES + 15 * FREGBYTES )( sp )
+	F_SREG f16, ( 2 * REGBYTES + 16 * FREGBYTES )( sp )
+	F_SREG f17, ( 2 * REGBYTES + 17 * FREGBYTES )( sp )
+	F_SREG f18, ( 2 * REGBYTES + 18 * FREGBYTES )( sp )
+	F_SREG f19, ( 2 * REGBYTES + 19 * FREGBYTES )( sp )
+	F_SREG f20, ( 2 * REGBYTES + 20 * FREGBYTES )( sp )
+	F_SREG f21, ( 2 * REGBYTES + 21 * FREGBYTES )( sp )
+	F_SREG f22, ( 2 * REGBYTES + 22 * FREGBYTES )( sp )
+	F_SREG f23, ( 2 * REGBYTES + 23 * FREGBYTES )( sp )
+	F_SREG f24, ( 2 * REGBYTES + 24 * FREGBYTES )( sp )
+	F_SREG f25, ( 2 * REGBYTES + 25 * FREGBYTES )( sp )
+	F_SREG f26, ( 2 * REGBYTES + 26 * FREGBYTES )( sp )
+	F_SREG f27, ( 2 * REGBYTES + 27 * FREGBYTES )( sp )
+	F_SREG f28, ( 2 * REGBYTES + 28 * FREGBYTES )( sp )
+	F_SREG f29, ( 2 * REGBYTES + 29 * FREGBYTES )( sp )
+	F_SREG f30, ( 2 * REGBYTES + 30 * FREGBYTES )( sp )
+	F_SREG f31, ( 2 * REGBYTES + 31 * FREGBYTES )( sp )
+	#endif
+.endm
+
+.macro POP_ALL_F_REG
+	#ifdef __riscv_dsp
+	LREG t0, 0 * REGBYTES( sp )
+	csrw ucode, t0
+	#endif
+
+	#ifdef __riscv_flen
+	LREG t0,  1 * REGBYTES( sp )
+	fscsr t0
+	F_LREG f0, ( 2 * REGBYTES + 0 * FREGBYTES )( sp )
+	F_LREG f1, ( 2 * REGBYTES + 1 * FREGBYTES )( sp )
+	F_LREG f2, ( 2 * REGBYTES + 2 * FREGBYTES )( sp )
+	F_LREG f3, ( 2 * REGBYTES + 3 * FREGBYTES )( sp )
+	F_LREG f4, ( 2 * REGBYTES + 4 * FREGBYTES )( sp )
+	F_LREG f5, ( 2 * REGBYTES + 5 * FREGBYTES )( sp )
+	F_LREG f6, ( 2 * REGBYTES + 6 * FREGBYTES )( sp )
+	F_LREG f7, ( 2 * REGBYTES + 7 * FREGBYTES )( sp )
+	F_LREG f8, ( 2 * REGBYTES + 8 * FREGBYTES )( sp )
+	F_LREG f9, ( 2 * REGBYTES + 9 * FREGBYTES )( sp )
+	F_LREG f10, ( 2 * REGBYTES + 10 * FREGBYTES )( sp )
+	F_LREG f11, ( 2 * REGBYTES + 11 * FREGBYTES )( sp )
+	F_LREG f12, ( 2 * REGBYTES + 12 * FREGBYTES )( sp )
+	F_LREG f13, ( 2 * REGBYTES + 13 * FREGBYTES )( sp )
+	F_LREG f14, ( 2 * REGBYTES + 14 * FREGBYTES )( sp )
+	F_LREG f15, ( 2 * REGBYTES + 15 * FREGBYTES )( sp )
+	F_LREG f16, ( 2 * REGBYTES + 16 * FREGBYTES )( sp )
+	F_LREG f17, ( 2 * REGBYTES + 17 * FREGBYTES )( sp )
+	F_LREG f18, ( 2 * REGBYTES + 18 * FREGBYTES )( sp )
+	F_LREG f19, ( 2 * REGBYTES + 19 * FREGBYTES )( sp )
+	F_LREG f20, ( 2 * REGBYTES + 20 * FREGBYTES )( sp )
+	F_LREG f21, ( 2 * REGBYTES + 21 * FREGBYTES )( sp )
+	F_LREG f22, ( 2 * REGBYTES + 22 * FREGBYTES )( sp )
+	F_LREG f23, ( 2 * REGBYTES + 23 * FREGBYTES )( sp )
+	F_LREG f24, ( 2 * REGBYTES + 24 * FREGBYTES )( sp )
+	F_LREG f25, ( 2 * REGBYTES + 25 * FREGBYTES )( sp )
+	F_LREG f26, ( 2 * REGBYTES + 26 * FREGBYTES )( sp )
+	F_LREG f27, ( 2 * REGBYTES + 27 * FREGBYTES )( sp )
+	F_LREG f28, ( 2 * REGBYTES + 28 * FREGBYTES )( sp )
+	F_LREG f29, ( 2 * REGBYTES + 29 * FREGBYTES )( sp )
+	F_LREG f30, ( 2 * REGBYTES + 30 * FREGBYTES )( sp )
+	F_LREG f31, ( 2 * REGBYTES + 31 * FREGBYTES )( sp )
+	#endif
+
+	addi sp, sp, (FPU_CONTEXT_SIZE * REGBYTES) /* Remove space added for FPU registers. */
+.endm
+
+	.data
+	.align 2
+	.global g_trap_nest_cnt
+g_trap_nest_cnt:
+	.word 0
+
 
 .section .interrupt.text
 .extern HalExcEntry
 .extern g_excInfo
 .extern trap_handler
-.global HalTrapEntry
 .align 4
-#if 0
-HalTrapEntry:
-    PUSH_CALLEE_REG
-    addi  sp, sp, -(4 * REGBYTES)
-    sw    a0, 0 * REGBYTES(sp)
-    csrr  t0, mtval
-    sw    t0, 1 * REGBYTES(sp)
-    csrr  t0, medeleg
-    sw    t0, 2 * REGBYTES(sp)
-    sw    gp, 3 * REGBYTES(sp)
-    mv    a0, sp
-    csrw  mscratch, sp
-    la    t0, g_excInfo
-    lh    t1, 0(t0)
-    bnez  t1, 1f
-    la    t2, __except_stack_top
-    mv    t2, sp
-1:
-    addi  t1, t1, 0x1
-    sh    t1, 0(t0)
-    call  HalExcEntry
-    la    t0, g_excInfo
-    sh    zero, 0(t0)
-    csrr  sp, mscratch
-    addi  sp, sp, 4 * REGBYTES
-    lw    t0, 16 * REGBYTES(sp)
-    csrw  mstatus, t0
-    lw    t0, 17 * REGBYTES(sp)
-    csrw  mepc, t0
-    POP_ALL_REG
-    mret
-#else
-HalTrapEntry:
-    PUSH_CALLEE_REG
-    csrw  mscratch, sp
-    la    t2, __except_stack_top
-    mv    sp, t2
+
+_trap_exception_entry:
 
     /* Call trap handler */
-    csrr a0, mcause
-    csrr a1, mscratch
+	csrr a1, uscratch
+    mv  a0, t0
 
     call trap_handler
 
-    csrr  sp, mscratch
-    lw    t0, 16 * REGBYTES(sp)
-    csrw  mstatus, t0
-    lw    t0, 17 * REGBYTES(sp)
-    csrw  mepc, t0
+	j _trap_process_done
 
-    POP_ALL_REG
-    mret
-#endif
-
-/*.section .interrupt.HalTrapVector.text*/
-
-.extern HalTrapEntry
 .extern HalIrqEndCheckNeedSched
 .global HalTrapVector
 .equ TRAP_INTERRUPT_MODE_MASK, 0x80000000
+
 .align 4
 HalTrapVector:
     PUSH_CALLER_REG
-    csrr  a0, mcause
-    li    a1, TRAP_INTERRUPT_MODE_MASK
-    li    a2, MCAUSE_INT_ID_MASK
-    and   a1, a0, a1
-    and   a0, a2, a0
-    beqz  a1, HalTrapEntry
-    csrw  mscratch, sp
-    la    t0, __start_and_irq_stack_top
+	PUSH_CALLEE_REG
+
+	csrw uscratch, sp
+
+	PUSH_ALL_F_REG
+
+	la   t0, g_trap_nest_cnt
+	lw   t2, 0(t0)
+	addi t1, t2, 1
+	sw   t1, 0(t0)
+	bgtz t2, _trap_process			/* Nested trap, need not change sp, it has pointed to the trap stack. */
+
+	mv    a1, sp
+//    lw    t0, xISRStackTop			/* switch to trap stack. */
+	la t0, _stack
     mv    sp, t0
 
+    addi  sp, sp ,-4
+    sw 	  a1, 0(sp)					/* link to task stack sp. */
+
+_trap_process:
+	csrrw t0, ucause, x0
+
+    li    t1, TRAP_INTERRUPT_MODE_MASK
+    li    t2, MCAUSE_INT_ID_MASK
+    and   t1, t0, t1
+    and   a0, t2, t0
+    beqz  t1, _trap_exception_entry
+
     jal   HalHwiInterruptDone
-    csrr  sp, mscratch
+
+_trap_process_done:
+	la   t0, g_trap_nest_cnt
+	lw   t2, 0(t0)
+	addi t2, t2, -1
+	sw   t2, 0(t0)
+	bgtz t2, _nested_trap_exit			/* nested trap. */
+
+	lw    sp, 0(sp)
+
     call  HalIrqEndCheckNeedSched
 
-    POP_CALLER_REG
-    mret
+_nested_trap_exit:
+	POP_ALL_F_REG
+    POP_ALL_REG
+    uret
 #endif /* _LOS_TRAP_S */
+

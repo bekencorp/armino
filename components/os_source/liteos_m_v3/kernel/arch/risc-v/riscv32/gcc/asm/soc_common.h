@@ -39,9 +39,19 @@
 
 #define LREG lw
 #define SREG sw
+#define F_LREG flw
+#define F_SREG fsw
 
 #ifndef REGBYTES
 #define REGBYTES 4
+#endif
+
+#define FREGBYTES 4
+
+#ifdef __riscv_flen
+#define FPU_CONTEXT_SIZE			( 2 + 32 * (FREGBYTES / REGBYTES) )  /* (ucode, fcsr, f0 ~ f31) */
+#else
+#define FPU_CONTEXT_SIZE			( 2 )
 #endif
 
 #define MCAUSE_INT_ID_MASK       (0xF)

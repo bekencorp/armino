@@ -14,6 +14,7 @@
 
 #include "sys_driver.h"
 #include "psram_hal.h"
+#include "aon_pmu_ll.h"
 
 static void psram_delay(volatile uint32_t times)
 {
@@ -22,47 +23,50 @@ static void psram_delay(volatile uint32_t times)
 
 void psram_hal_config_init(void)
 {
-	int value;
+	uint32_t value = 0;
 
-	/*choose clk 160M*/
-	sys_drv_psram_clk_sel(0);
-	sys_drv_psram_set_clkdiv(1);
-
-	/*psram clk enable*/
-	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_PSRAM, CLK_PWR_CTRL_PWR_UP);
-
-	/*psram controller reset*/
+	/* psram controller reset */
 	psram_hal_set_sf_reset(1);
 
-	/*config psram mode*/
+	/* set psram bypass */
+	value = psram_hal_get_reg2_value();
+	value |= (0x1 << 1);
+	psram_hal_set_reg2_value(value);
+
+	/* choose clk 80M */
+	sys_drv_psram_clk_sel(0); //320M
+	sys_drv_psram_set_clkdiv(1); //160M/(1+1)=80M
+
+	/* psram clk enable */
+	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_PSRAM, CLK_PWR_CTRL_PWR_UP);
+	psram_delay(100);
+
+	/* config psram mode */
 	value = 0xd8054043;
 	psram_hal_set_mode_value(value);
 
-	/*psram reset*/
+	/* psram reset */
 	psram_hal_set_cmd_reset();
 	psram_delay(5000);
 
-	/*config cmd 0x00000000*/
+	/* config cmd 0x00000000 */
 	psram_hal_cmd_read(0x00000000);
 	value = psram_hal_get_regb_value();
-	value = (value & ~(0x7 << 10)) | (0x4 << 10);
+	value = (value & ~(0x7 << 8)) | (0x4 << 10) | ((0x3) << 8);
 	psram_hal_cmd_write(0x00000000, value);
 
-	/*config cmd 0x00000004*/
+	/* config cmd 0x00000004 */
 	psram_hal_cmd_read(0x00000004);
 	value = psram_hal_get_regb_value();
 	value = (value & ~(0x7 << 13)) | (0x6 << 13);
 	psram_hal_cmd_write(0x00000004, value);
-
 	psram_delay(100);
 
-	/*reset clk 320M*/
+	/* set clk 160M */
 	sys_drv_psram_set_clkdiv(0);
 
-	/*set psram bypass*/
-	value = psram_hal_get_reg2_value();
-	value |= (0x1 << 1);
-	psram_hal_set_reg2_value(value);
+	/* psram clk driver selection=2 */
+	aon_pmu_ll_set_r41_io_drv(2);
 }
 
 void psram_hal_power_clk_enable(uint8_t enable)
@@ -137,7 +141,7 @@ void psram_hal_set_clk(psram_clk_t clk)
 			break;
 		case PSRAM_160M:
 			sys_drv_psram_clk_sel(0);	 // clk sel: 0-320 1-480
-			sys_drv_psram_set_clkdiv(1); //frq:  F/(2 + (1+div))
+			sys_drv_psram_set_clkdiv(0); //frq:  F/(2 + (1+div))
 			break;
 		case PSRAM_120M:
 			sys_drv_psram_clk_sel(1);	 // clk sel: 0-320 1-480

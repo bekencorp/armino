@@ -27,10 +27,15 @@ typedef struct {
 	yuv_buf_hw_t *hw;
 } yuv_buf_hal_t;
 
-#define yuv_buf_hal_enable_mclk_hold_on(hal) yuv_buf_ll_enable_mclk_hold_on((hal)->hw)
+#define yuv_buf_hal_soft_reset(hal) yuv_buf_ll_soft_reset((hal)->hw)
 #define yuv_buf_hal_set_em_base_addr(hal, address) yuv_buf_ll_set_em_base_addr((hal)->hw, address)
 #define yuv_buf_hal_reset_config_to_default(hal) yuv_buf_ll_reset_config_to_default((hal)->hw)
 #define yuv_buf_hal_set_mclk_div(hal, mclk_div) yuv_buf_ll_set_mclk_div((hal)->hw, mclk_div)
+#define yuv_buf_hal_send_data_to_h264(hal)		yuv_buf_ll_send_data_to_h264((hal)->hw)
+#define yuv_buf_hal_enable_yuv_buf_mode(hal) yuv_buf_ll_enable_yuv_buf_mode((hal)->hw)
+#define yuv_buf_hal_disable_yuv_buf_mode(hal) yuv_buf_ll_disable_yuv_buf_mode((hal)->hw)
+#define yuv_buf_hal_enable_partial_display(hal) yuv_buf_ll_enable_partial_display((hal)->hw)
+#define yuv_buf_hal_disable_partial_display(hal) yuv_buf_ll_disable_partial_display((hal)->hw)
 
 #define yuv_buf_hal_get_interrupt_status(hal) yuv_buf_ll_get_interrupt_status((hal)->hw)
 #define yuv_buf_hal_clear_interrupt_status(hal, int_status) yuv_buf_ll_clear_interrupt_status((hal)->hw, int_status)
@@ -54,6 +59,8 @@ bk_err_t yuv_buf_hal_start_jpeg_mode(yuv_buf_hal_t *hal);
 bk_err_t yuv_buf_hal_stop_jpeg_mode(yuv_buf_hal_t *hal);
 bk_err_t yuv_buf_hal_start_h264_mode(yuv_buf_hal_t *hal);
 bk_err_t yuv_buf_hal_stop_h264_mode(yuv_buf_hal_t *hal);
+bk_err_t yuv_buf_hal_enable_h264_nosensor_mode(yuv_buf_hal_t *hal);
+bk_err_t yuv_buf_hal_set_partial_display_offset_config(yuv_buf_hal_t *hal, const yuv_buf_partial_offset_config_t *offset_config);
 
 #if CFG_HAL_DEBUG_YUV_BUF
 void yuv_buf_struct_dump(void);

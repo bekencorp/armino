@@ -1,0 +1,9 @@
+menu "Bk_init"
+
+	config LIB_HASH_CHECK
+		bool "Enable Lib Hash check"
+		default y
+
+endmenu
+
+

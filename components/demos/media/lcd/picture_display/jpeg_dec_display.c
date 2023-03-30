@@ -348,7 +348,7 @@ void sdcard_write_from_mem(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 		os_printf("Not support\r\n");
 #endif
 } 
-
+#if 0
 void lcd_storage_capture_save(char * capture_name, uint8_t *addr, uint32_t len)
 {
 #if (CONFIG_FATFS)
@@ -375,7 +375,7 @@ void lcd_storage_capture_save(char * capture_name, uint8_t *addr, uint32_t len)
 	f_close(&fp1);
 #endif
 }
-
+#endif
 
 void sdcard_read_to_psram(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {

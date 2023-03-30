@@ -14,6 +14,7 @@ if("${CONFIG_SOC_ARCH}" STREQUAL ${COMPONENT_NAME})
 		arm.c
 		arch_interrupt.c
 		jump.c
+		sys_misc.c
 	)
 
 if(CONFIG_FREERTOS)
@@ -28,5 +29,5 @@ elseif(CONFIG_NON_OS)
 endif()
 endif()
 
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES cmsis)
+armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES cmsis coredump os_source)
 

@@ -44,6 +44,7 @@
 #include "cmsis_gcc.h"
 #include "bk_wdt.h"
 #include "bk_aon_wdt.h"
+#include "sys_ll.h"
 
 #if ( configENABLE_TRUSTZONE == 1 )
     /* Secure components includes. */
@@ -86,6 +87,11 @@
 #define portMIN_INTERRUPT_PRIORITY            ( 255UL )
 #define portNVIC_PENDSV_PRI                   ( portMIN_INTERRUPT_PRIORITY << 16UL )
 #define portNVIC_SYSTICK_PRI                  ( portMIN_INTERRUPT_PRIORITY << 24UL )
+
+#if CONFIG_SYSTICK_32K
+#define configSYSTICK_CLOCK_HZ                32000
+#endif
+
 #ifndef configSYSTICK_CLOCK_HZ
     #define configSYSTICK_CLOCK_HZ            configCPU_CLOCK_HZ
     /* Ensure the SysTick is clocked at the same frequency as the core. */
@@ -366,7 +372,7 @@ PRIVILEGED_DATA static volatile uint32_t ulCriticalNesting = 0xaaaaaaaaUL;
     PRIVILEGED_DATA portDONT_DISCARD volatile SecureContextHandle_t xSecureContext = portNO_SECURE_CONTEXT;
 #endif /* configENABLE_TRUSTZONE */
 
-#if ( configUSE_TICKLESS_IDLE == 1 )
+#if ( configUSE_TICKLESS_IDLE >= 1 )
 
 /**
  * @brief The number of SysTick increments that make up one tick period.
@@ -558,8 +564,12 @@ PRIVILEGED_DATA static volatile uint32_t ulCriticalNesting = 0xaaaaaaaaUL;
 
 __attribute__( ( weak ) ) void vPortSetupTimerInterrupt( void ) /* PRIVILEGED_FUNCTION */
 {
+#if CONFIG_SYSTICK_32K
+    sys_ll_set_cpu_power_sleep_wakeup_cpu0_ticktimer_32k_enable(1);
+#endif
+
     /* Calculate the constants required to configure the tick interrupt. */
-    #if ( configUSE_TICKLESS_IDLE == 1 )
+    #if ( configUSE_TICKLESS_IDLE >= 1 )
         {
             ulTimerCountsForOneTick = ( configSYSTICK_CLOCK_HZ / configTICK_RATE_HZ );
             xMaximumPossibleSuppressedTicks = portMAX_24_BIT_NUMBER / ulTimerCountsForOneTick;
@@ -760,7 +770,7 @@ void SysTick_Handler( void ) /* PRIVILEGED_FUNCTION */
 #endif
 
 #if (CONFIG_INT_AON_WDT)
-		bk_int_aon_wdt_feed();
+	bk_int_aon_wdt_feed();
 #endif
 
 #if (CONFIG_TASK_WDT)
@@ -1264,3 +1274,4 @@ void port_check_isr_stack(void)
     //TODO
 }
 
+#include "port_tick_impl.h"

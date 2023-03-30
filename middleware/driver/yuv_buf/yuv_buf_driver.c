@@ -22,6 +22,7 @@
 #include "sys_driver.h"
 #include "yuv_buf_driver.h"
 #include "yuv_buf_hal.h"
+#include <driver/jpeg_enc.h>
 
 typedef struct {
 	yuv_buf_isr_t isr_handler;
@@ -31,6 +32,7 @@ typedef struct {
 typedef struct {
 	yuv_buf_hal_t hal;
 	yuv_buf_isr_handler_t yuv_buf_isr_handler[YUV_BUF_ISR_MAX];
+	yuv_buf_work_mode_t cur_work_mode;
 } yuv_buf_driver_t;
 
 #define YUV_BUF_RETURN_ON_DRIVER_NOT_INIT() do {\
@@ -82,9 +84,9 @@ bk_err_t bk_yuv_buf_driver_deinit(void)
 	if (!s_yuv_buf_driver_is_init) {
 		return BK_OK;
 	}
-	os_memset(&s_yuv_buf, 0, sizeof(s_yuv_buf));
 	bk_int_isr_unregister(INT_SRC_YUVB);
 	yuv_buf_deinit_common();
+	os_memset(&s_yuv_buf, 0, sizeof(s_yuv_buf));
 	s_yuv_buf_driver_is_init = false;
 
 	return BK_OK;
@@ -105,7 +107,6 @@ bk_err_t bk_yuv_buf_init(const yuv_buf_config_t *config)
 		yuv_buf_hal_set_yuv_mode_config(&s_yuv_buf.hal, config);
 		break;
 	case YUV_BUF_MODE_H264:
-		//TODO
 		yuv_buf_hal_set_h264_mode_config(&s_yuv_buf.hal, config);
 		break;
 	default:
@@ -126,6 +127,7 @@ bk_err_t bk_yuv_buf_deinit(void)
 
 bk_err_t bk_yuv_buf_start(yuv_buf_work_mode_t work_mode)
 {
+	s_yuv_buf.cur_work_mode = work_mode;
 	switch (work_mode) {
 	case YUV_BUF_MODE_YUV:
 		yuv_buf_hal_start_yuv_mode(&s_yuv_buf.hal);
@@ -162,17 +164,68 @@ bk_err_t bk_yuv_buf_stop(yuv_buf_work_mode_t work_mode)
 	return BK_OK;
 }
 
-bk_err_t bk_yuv_buf_enable_mclk(void)
+bk_err_t bk_yuv_buf_send_data_to_h264(void)
+{
+	yuv_buf_hal_send_data_to_h264(&s_yuv_buf.hal);
+
+	return BK_OK;
+}
+
+bk_err_t bk_yuv_buf_enable_h264_nosensor_mode(void)
+{
+	yuv_buf_hal_enable_h264_nosensor_mode(&s_yuv_buf.hal);
+
+	return BK_OK;
+}
+
+bk_err_t bk_yuv_buf_enable_mclk(yuv_buf_work_mode_t work_mode)
 {
 	sys_drv_yuv_buf_pwr_up();
 	bk_pm_clock_ctrl(PM_CLK_ID_JPEG, CLK_PWR_CTRL_PWR_UP);
 	sys_drv_h264_pwr_up();
 
-	sys_drv_set_jpeg_clk_sel(1); //480M
-	sys_drv_set_clk_div_mode1_clkdiv_jpeg(3); // freq_div=4
-	yuv_buf_hal_set_mclk_div(&s_yuv_buf.hal, YUV_MCLK_DIV_3); //480M/4/2/3=20M
-	yuv_buf_hal_start_yuv_mode(&s_yuv_buf.hal);
+	// clk_src=480M
+	sys_drv_set_jpeg_clk_sel(1);
+	// freq_div=3, H264=160M, JPEG/YUV=80M
+	sys_drv_set_clk_div_mode1_clkdiv_jpeg(2);
+	// MLCK=80M/4=20M
+	yuv_buf_hal_set_mclk_div(&s_yuv_buf.hal, YUV_MCLK_DIV_4);
+	bk_yuv_buf_start(work_mode);
 
+	return BK_OK;
+}
+
+bk_err_t bk_yuv_buf_set_video_module_clk(jpeg_clk_t clk)
+{
+	switch (clk) {
+	case JPEG_96M_MCLK_16M:
+	case JPEG_96M_MCLK_24M:
+	case JPEG_80M_MCLK_20M:
+		sys_drv_set_jpeg_clk_sel(1); //480M
+		sys_drv_set_clk_div_mode1_clkdiv_jpeg(2); //80M
+		yuv_buf_hal_set_mclk_div(&s_yuv_buf.hal, YUV_MCLK_DIV_4);
+		break;
+	case JPEG_120M_MCLK_20M:
+		sys_drv_set_jpeg_clk_sel(1); //480M
+		sys_drv_set_clk_div_mode1_clkdiv_jpeg(1); //120M
+		yuv_buf_hal_set_mclk_div(&s_yuv_buf.hal, YUV_MCLK_DIV_6);
+		break;
+	case JPEG_120M_MCLK_30M:
+		sys_drv_set_jpeg_clk_sel(1); //480M
+		sys_drv_set_clk_div_mode1_clkdiv_jpeg(1); //120M
+		yuv_buf_hal_set_mclk_div(&s_yuv_buf.hal, YUV_MCLK_DIV_4);
+		break;
+	case JPEG_160M_MCLK_40M:
+		sys_drv_set_jpeg_clk_sel(0); //320M
+		sys_drv_set_clk_div_mode1_clkdiv_jpeg(0); //160M
+		yuv_buf_hal_set_mclk_div(&s_yuv_buf.hal, YUV_MCLK_DIV_4);
+		break;
+	default:
+		sys_drv_set_jpeg_clk_sel(1);
+		sys_drv_set_clk_div_mode1_clkdiv_jpeg(2);
+		yuv_buf_hal_set_mclk_div(&s_yuv_buf.hal, YUV_MCLK_DIV_4);
+		break;
+	}
 	return BK_OK;
 }
 
@@ -203,6 +256,35 @@ bk_err_t bk_yuv_buf_unregister_isr(yuv_buf_isr_type_t type_id)
 	return BK_OK;
 }
 
+bk_err_t bk_yuv_buf_init_partial_display(const yuv_buf_partial_offset_config_t *offset_config)
+{
+	YUV_BUF_RETURN_ON_DRIVER_NOT_INIT();
+	yuv_buf_hal_set_partial_display_offset_config(&s_yuv_buf.hal, offset_config);
+	yuv_buf_hal_enable_partial_display(&s_yuv_buf.hal);
+
+	return BK_OK;
+}
+
+bk_err_t bk_yuv_buf_deinit_partial_display(void)
+{
+	YUV_BUF_RETURN_ON_DRIVER_NOT_INIT();
+	yuv_buf_hal_disable_partial_display(&s_yuv_buf.hal);
+	return BK_OK;
+}
+
+bk_err_t bk_yuv_buf_soft_reset(void)
+{
+	YUV_BUF_RETURN_ON_DRIVER_NOT_INIT();
+
+	uint32_t int_level = rtos_disable_int();
+
+	yuv_buf_hal_soft_reset(&s_yuv_buf.hal);
+
+	rtos_enable_int(int_level);
+
+	return BK_OK;
+}
+
 static void yuv_buf_isr(void)
 {
 	yuv_buf_hal_t *hal = &s_yuv_buf.hal;
@@ -212,6 +294,13 @@ static void yuv_buf_isr(void)
 	yuv_buf_hal_clear_interrupt_status(hal, int_status);
 
 	if (yuv_buf_hal_is_vsync_negedge_int_triggered(hal, int_status)) {
+		/* MPW2 yuv_arv_int cannot work, regard the VSYNC_NEGEDGE_INT as the YUV_ARV_INT.
+		 * need to reopen yuv_mode
+		 */
+		if (s_yuv_buf.cur_work_mode == YUV_BUF_MODE_YUV) {
+			yuv_buf_hal_disable_yuv_buf_mode(hal);
+			yuv_buf_hal_enable_yuv_buf_mode(hal);
+		}
 		if (s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_VSYNC_NEGEDGE].isr_handler) {
 			s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_VSYNC_NEGEDGE].isr_handler(0, s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_VSYNC_NEGEDGE].param);
 		}
@@ -236,7 +325,7 @@ static void yuv_buf_isr(void)
 	}
 
 	if (yuv_buf_hal_is_fifo_full_int_triggered(hal, int_status)) {
-		YUV_BUF_LOGE("yuv internal fifo is full\r\n");
+		YUV_BUF_LOGE("sensor fifo is full\r\n");
 	}
 
 	if (yuv_buf_hal_is_enc_line_done_int_triggered(hal, int_status)) {
@@ -246,11 +335,16 @@ static void yuv_buf_isr(void)
 	}
 
 	if (yuv_buf_hal_is_sensor_resolution_err_int_triggered(hal, int_status)) {
-		YUV_BUF_LOGE("sensor's yuyv data resoltion is not right\r\n");
+		YUV_BUF_LOGD("sensor's yuyv data resoltion is not right\r\n");
+		if (s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_SEN_RESL_ERR].isr_handler) {
+			s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_SEN_RESL_ERR].isr_handler(0, s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_SEN_RESL_ERR].param);
+		}
 	}
 
 	if (yuv_buf_hal_is_h264_err_int_triggered(hal, int_status)) {
-		YUV_BUF_LOGE("h264 error\r\n");
+		if (s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_H264_ERR].isr_handler) {
+			s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_H264_ERR].isr_handler(0, s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_H264_ERR].param);
+		}
 	}
 
 	if (yuv_buf_hal_is_enc_slow_int_triggered(hal, int_status)) {

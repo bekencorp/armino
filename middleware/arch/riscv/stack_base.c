@@ -19,6 +19,12 @@
 #include "bk_uart.h"
 #include <components/log.h>
 #include <common/bk_assert.h>
+#include <os/mem.h>
+#if CONFIG_TRNG_SUPPORT
+#include <driver/trng.h>
+#endif
+
+#define TAG "Stack"
 
 #define STACK_DUMP_MEMORY 0
 #define STACK_CALLBACK_BUF_SIZE 32
@@ -44,14 +50,16 @@ static int code_addr_is_valid(uint32_t addr)
 
 void stack_mem_dump(uint32_t stack_top, uint32_t stack_bottom)
 {
-	unsigned char *data;
+	unsigned char *data = NULL;
+	volatile uint32_t value = 0;
 	uint32_t cnt = 0;
 	uint32_t sp = stack_top;
 	uint32_t fp = stack_bottom;
 
 	BK_DUMP_OUT(">>>>stack mem dump begin, stack_top=%08x, stack end=%08x\r\n", stack_top, stack_bottom);
 	for (;  sp < fp; sp += sizeof(size_t)) {
-		data = ((unsigned char *) sp);
+		value = os_get_word(sp);
+		data = ((unsigned char *)&value);
 
 		if ((cnt++ & 0x7) == 0) {
 			BK_DUMP_OUT("\r\n");
@@ -115,4 +123,21 @@ void arch_parse_stack_backtrace(const char *str_type, uint32_t stack_top, uint32
 	}
 }
 
+
+void *__stack_chk_guard = NULL;
+
+// Intialize random stack guard, must after trng start.
+void bk_stack_guard_setup(void)
+{
+    BK_LOGI(TAG, "Intialize random stack guard.\r\n");
+#if CONFIG_TRNG_SUPPORT
+    __stack_chk_guard = (void *)bk_rand();
+#endif
+}
+
+void __stack_chk_fail (void)
+{
+    BK_DUMP_OUT("Stack guard warning, local buffer overflow!!!\r\n");
+    BK_ASSERT(0);
+}
 

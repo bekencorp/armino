@@ -172,3 +172,33 @@ bk_err_t spi_hal_read_byte(spi_hal_t *hal, uint8_t *data)
 	return BK_ERR_SPI_FIFO_RD_NOT_READY;
 }
 
+bk_err_t spi_hal_enable_tx_rx(spi_hal_t *hal)
+{
+	spi_ll_enable_tx_rx(hal->hw);
+	return BK_OK;
+}
+
+bk_err_t spi_hal_duplex_config(spi_hal_t *hal)
+{
+	spi_ll_disable_tx_underflow_int(hal->hw);
+	spi_ll_disable_rx_overflow_int(hal->hw);
+	spi_ll_disable_tx_fifo_int(hal->hw);
+	spi_ll_disable_rx_fifo_int(hal->hw);
+	spi_ll_enable_slave_release_int(hal->hw);
+	spi_ll_disable_tx(hal->hw);
+	spi_ll_disable_rx(hal->hw);
+	spi_ll_enable_tx_finish_int(hal->hw);
+	spi_ll_enable_rx_finish_int(hal->hw);
+	spi_ll_clear_int_status(hal->hw);
+	return BK_OK;
+}
+
+bk_err_t spi_hal_duplex_release(spi_hal_t *hal)
+{
+	spi_ll_enable_tx_underflow_int(hal->hw);
+	spi_ll_enable_rx_overflow_int(hal->hw);
+	spi_ll_disable_tx_fifo_int(hal->hw);
+	spi_ll_enable_rx_fifo_int(hal->hw);
+	spi_ll_disable_tx(hal->hw);
+	return BK_OK;
+}

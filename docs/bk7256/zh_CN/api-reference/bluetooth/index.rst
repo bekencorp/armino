@@ -8,3 +8,6 @@
 
     BLE <ble>
     BT <bt>
+    DM_BLE <dm_ble>
+    DM_BT <dm_bt>
+

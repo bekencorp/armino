@@ -33,6 +33,9 @@
 gpio_driver_t s_gpio = {0};
 static gpio_isr_t s_gpio_isr[SOC_GPIO_NUM] = {NULL};
 static bool s_gpio_is_init = false;
+#if CONFIG_GPIO_WAKEUP_SUPPORT
+static uint64_t s_wakeup_id = 0;
+#endif
 
 #define GPIO_RETURN_ON_INVALID_ID(id) do {\
 		if ((id) >= SOC_GPIO_NUM) {\
@@ -444,7 +447,6 @@ static void gpio_wakeup_default_isr(gpio_id_t gpio_id)
 	GPIO_LOGD("gpio int: index:%d \r\n", gpio_id);
 }
 #endif
-
 /* Added fault tolerance for GPIO wakeup.
  * The act of increasing the pull-down voltage to prevent jitter interference.
  */
@@ -527,6 +529,7 @@ static void gpio_config_wakeup_function(void)
 	}
 #endif
 
+	s_wakeup_id = wakeup_id;
 	/*
 	 * !!! NOTES NOTES !!!
 	 * ASIC switch PIN function to GPIO Input mode(gpio_hal_func_unmap switch from SECOND function to GPIO),
@@ -534,6 +537,7 @@ static void gpio_config_wakeup_function(void)
 	 * If in the 3 cycles enable INPUT level/edge check, it will report an error status.
 	 * so enable gpio input irq, should wait enough time.
 	 */
+#if 0
 	delay_us(125);	//125 == ((3+1)/32) * 1000 us
 
 	//Move the enable interrupt after dealy 125 us.
@@ -542,8 +546,24 @@ static void gpio_config_wakeup_function(void)
 		if(wakeup_id & (0x1<<i))
 			bk_gpio_enable_interrupt(i);
 	}
-
+#endif
 	GPIO_LOGD("%s[-]set wake src h=0x%0x, l=0x%0x\r\n", __func__, (uint32_t)(s_gpio_is_setted_wake_status>>32), (uint32_t)s_gpio_is_setted_wake_status) ;
+}
+/*
+To save the 125us delay  in the gpio driver, interrupt enable call before wifi
+This api is an internal interface and is not used externally
+*/
+bk_err_t gpio_enable_interrupt_mult_for_wake(void)
+{
+	uint32_t i = 0;
+
+	for(i; i < GPIO_NUM_MAX; i++)
+	{
+		if(s_wakeup_id & (0x1ULL<<i))
+			bk_gpio_enable_interrupt(i);
+	}
+
+	return BK_OK;
 }
 
 static void gpio_config_low_power_wakeup_pin(void)

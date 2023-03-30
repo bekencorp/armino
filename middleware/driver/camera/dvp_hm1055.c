@@ -913,8 +913,8 @@ const dvp_sensor_config_t dvp_sensor_hm1055 =
 	.name = "hm1055",
 	.clk = JPEG_120M_MCLK_30M,
 	.fmt = PIXEL_FMT_YUYV,
-	.vsync = JPEG_SYNC_HiGH_LEVEL,
-	.hsync = JPEG_SYNC_HiGH_LEVEL,
+	.vsync = JPEG_SYNC_HIGH_LEVEL,
+	.hsync = JPEG_SYNC_HIGH_LEVEL,
 	/* default config */
 	.def_ppi = PPI_1280X720,
 	.def_fps = FPS15,

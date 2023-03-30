@@ -87,7 +87,9 @@ typedef struct {
 } i2s_cfg_t;
 
 
-
+bk_err_t i2s_hal_set_cfg_index(uint8_t idx);
+uint8_t i2s_hal_get_cfg_index(void);
+bk_err_t i2s_hal_soft_reset(void);
 bk_err_t i2s_hal_config(const i2s_cfg_t *config);
 bk_err_t i2s_hal_deconfig(void);
 bk_err_t i2s_hal_int_status_get(i2s_int_status_t *int_status);

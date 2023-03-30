@@ -30,4 +30,7 @@
 #include "uart_cap.h"
 #include "wdt_cap.h"
 #include "aon_rtc_cap.h"
-
+#include "aud_cap.h"
+#include "qspi_cap.h"
+#include "i2s_cap.h"
+#include "mailbox_cap.h"

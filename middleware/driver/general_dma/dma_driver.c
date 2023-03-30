@@ -99,7 +99,13 @@ static void dma_id_deinit_common(dma_id_t id)
 static void dma_id_enable_interrupt_common(dma_id_t id)
 {
 #if (CONFIG_SYSTEM_CTRL)
+	#ifndef CONFIG_SPE
 	sys_drv_int_enable(GDMA_INTERRUPT_CTRL_BIT);
+	#elif CONFIG_SPE
+	sys_drv_int_enable(GDMA_INTERRUPT_CTRL_BIT);
+	#else
+	sys_drv_int_enable(DMA0_NSEC_INTERRUPT_CTRL_BIT);
+	#endif
 #else
     icu_enable_dma_interrupt();
 #endif
@@ -167,7 +173,15 @@ bk_err_t bk_dma_driver_init(void)
     os_memset(&s_dma, 0, sizeof(s_dma));
     os_memset(&s_dma_finish_isr, 0, sizeof(s_dma_finish_isr));
     os_memset(&s_dma_half_finish_isr, 0, sizeof(s_dma_half_finish_isr));
+
+    #ifndef CONFIG_SPE
     bk_int_isr_register(INT_SRC_GDMA, dma_isr, NULL);
+    #elif CONFIG_SPE
+    bk_int_isr_register(INT_SRC_GDMA, dma_isr, NULL);
+    #else
+    bk_int_isr_register(INT_SRC_DMA0_NSEC, dma_isr, NULL);
+    #endif
+
     dma_hal_init(&s_dma.hal);
 
 #if CONFIG_ARCH_RISCV
@@ -583,7 +597,25 @@ bk_err_t bk_dma_set_dest_data_width(dma_id_t id, dma_data_width_t data_width)
     return BK_OK;
 }
 
-#if (CONFIG_GENERAL_DMA_SEC)
+#ifdef CONFIG_SPE
+bk_err_t bk_dma_bus_err_int_enable(dma_id_t id)
+{
+    DMA_RETURN_ON_NOT_INIT();
+    DMA_RETURN_ON_INVALID_ID(id);
+
+    dma_hal_bus_err_int_enable(&s_dma.hal, id);
+    return BK_OK;
+}
+
+bk_err_t bk_dma_bus_err_int_diable(dma_id_t id)
+{
+    DMA_RETURN_ON_NOT_INIT();
+    DMA_RETURN_ON_INVALID_ID(id);
+
+    dma_hal_bus_err_int_disable(&s_dma.hal, id);
+    return BK_OK;
+}
+
 bk_err_t bk_dma_set_dest_sec_attr(dma_id_t id, dma_sec_attr_t attr)
 {
     DMA_RETURN_ON_NOT_INIT();
@@ -601,7 +633,9 @@ bk_err_t bk_dma_set_src_sec_attr(dma_id_t id, dma_sec_attr_t attr)
     dma_hal_set_src_sec_attr(&s_dma.hal, id, attr);
     return BK_OK;
 }
+#endif
 
+#if (CONFIG_SPE)
 bk_err_t bk_dma_set_sec_attr(dma_id_t id, dma_sec_attr_t attr)
 {
     DMA_RETURN_ON_NOT_INIT();
@@ -653,11 +687,11 @@ bk_err_t dma_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_id_t cp
 
     bk_dma_init(cpy_chnl, &dma_config);
     dma_hal_set_transfer_len(&s_dma.hal, cpy_chnl, len);
-    dma_hal_start_common(&s_dma.hal, cpy_chnl);
-#if (CONFIG_GENERAL_DMA_SEC)
+#if (CONFIG_SPE)
     dma_hal_set_src_sec_attr(&s_dma.hal, cpy_chnl, DMA_ATTR_SEC);
     dma_hal_set_dest_sec_attr(&s_dma.hal, cpy_chnl, DMA_ATTR_SEC);
 #endif
+    dma_hal_start_common(&s_dma.hal, cpy_chnl);
     GLOBAL_INT_RESTORE();
 
 #if CONFIG_ARCH_RISCV

@@ -283,7 +283,7 @@ static void cli_uart_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 	if (os_strcmp(argv[1], "idle_start") == 0) {
 		if (!idle_uart_out_test_handle) {
 			if (os_strcmp(argv[2], "uart1") == 0) {
-#if !CONFIG_PRINT_PORT_UART1
+#if (CONFIG_UART_PRINT_PORT != 0)
 				idle_uart_out_test_id = UART_ID_0;
 				CLI_LOGI("idle_uart_out task start: uart_id = UART1\n" );
 
@@ -292,7 +292,7 @@ static void cli_uart_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 				return;
 #endif
 			} else if (os_strcmp(argv[2], "uart2")== 0) {
-#if !CONFIG_PRINT_PORT_UART2
+#if (CONFIG_UART_PRINT_PORT != 1)
 				idle_uart_out_test_id = UART_ID_1;
 				CLI_LOGI("idle_uart_out task start: uart_id = UART2\n" );
 
@@ -301,7 +301,7 @@ static void cli_uart_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc
 				return;
 #endif
 			} else if (os_strcmp(argv[2], "uart3")== 0) {
-#if !CONFIG_PRINT_PORT_UART3
+#if (CONFIG_UART_PRINT_PORT != 2)
 				idle_uart_out_test_id = UART_ID_2;
 				CLI_LOGI("idle_uart_out task start: uart_id = UART3\n" );
 

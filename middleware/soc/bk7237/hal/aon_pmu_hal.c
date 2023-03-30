@@ -98,6 +98,18 @@ uint32_t aon_pmu_hal_get_wakeup_source_reg(void)
 	return aon_pmu_ll_get_reg41_value();
 }
 
+#define CHIP_ID_VERSION_MASK       0xffff
+#define CHIP_ID_VERSION_C_VLAUE    0x1022
+bool aon_pmu_hal_is_chipid_later_than_version_C(void)
+{
+	uint32_t chip_id = aon_pmu_ll_get_reg7c_value();
+	if((chip_id & CHIP_ID_VERSION_MASK) >= CHIP_ID_VERSION_C_VLAUE) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 void aon_pmu_hal_clear_wakeup_source(wakeup_source_t value)
 {
     uint32_t wakeup_source = 0;
@@ -198,6 +210,7 @@ void aon_pmu_hal_wdt_rst_dev_enable()
 #define PM_LP_SRC_X32K   (0x1)  //external32k
 void aon_pmu_hal_lpo_src_set(uint32_t lpo_src)
 {
+#if 0
 	if(lpo_src == PM_LP_SRC_X32K)
 	{
 		sys_ll_set_ana_reg6_itune_xtall(0x0);//0x0 provide highest current for external 32k,because the signal path long
@@ -211,7 +224,7 @@ void aon_pmu_hal_lpo_src_set(uint32_t lpo_src)
 			sys_ll_set_ana_reg6_en_xtall(0x0);
 		}
 	}
-
+#endif
     aon_pmu_ll_set_reg41_lpo_config(lpo_src);
 }
 

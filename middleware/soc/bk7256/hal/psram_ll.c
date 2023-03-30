@@ -17,6 +17,7 @@
 #include "bk_misc.h"
 #include <modules/chip_support.h>
 
+
 // config 1: psram power and clk config, need wait clk stable
 void psram_hal_power_clk_enable(uint8_t enable)
 {
@@ -101,7 +102,7 @@ void psram_hal_config_init(void)
 	if (chip_id == CHIP_VERSION_C)
 		psram_hal_set_mode_value(0xE8054043);
 	else
-		psram_hal_set_mode_value(0x98054043);//
+		psram_hal_set_mode_value(0xa8054043);
 
 	psram_hal_set_cmd_reset();
 	delay_us(100);//40

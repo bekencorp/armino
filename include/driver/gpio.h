@@ -410,6 +410,11 @@ bk_err_t bk_gpio_wakeup_interrupt_clear();
 
 #endif
 
+#if CONFIG_PM
+#include <pm/pm.h>
+int default_gpio_pm_action_cb(const device_t *device, pm_device_action_t action);
+#endif
+
 /**
  * @}
  */

@@ -18,7 +18,7 @@ Hardware：
  - Serial port buring tool
  - PC（Windows & Ubuntu）
 
-!Note:
+.. note::
 
   Armino only supports compiling on Linux platform and firmware burning on Windows platform.
   Therefore, we need two computers, one Linux platform and one Windows platform.
@@ -237,7 +237,7 @@ On the Windows platform, Armino currently supports UART burning.
 Burn through serial port
 ****************************************
 
-!note:
+.. note::
 
     Armino supports UART burning. It is recommended to use the CH340 serial port tool board to download.
 
@@ -278,4 +278,12 @@ Serial port Log and Command Line
     Cpu1 help//Output the command list of cpu1
 
     Cpu1 time//Output the current running time of cpu1
+
+
+Compile options and link options
+------------------------------------------------------
+
+- BK7235, with default compile option "-mstrict-align", link option "-wl,--defsym,memcpy=memcpy_ss"
+- To compile the lib library separately, you need to add the compile option "-mstrict-align".
+- If you do not use platform linking commands, such as compiling HarmonyOS, for Andes v5.1.1 tool chain, you need to add the link option "-wl,--defsym,memcpy=memcpy_ss".
 

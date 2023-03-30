@@ -31,6 +31,8 @@
 #include "uart_stdout.h"
 #include "tfm_plat_otp.h"
 #include "tfm_plat_provisioning.h"
+#include "sdkconfig.h"
+#include "partitions_gen.h"
 #ifdef TEST_BL2
 #include "mcuboot_suites.h"
 #endif /* TEST_BL2 */
@@ -71,9 +73,15 @@ static void do_boot(struct boot_rsp *rsp)
                                          rsp->br_hdr->ih_hdr_size);
     } else {
         /* Using the flash address as not executing in SRAM */
-        vt = (struct boot_arm_vector_table *)(flash_base +
-                                         rsp->br_image_off +
+#if CONFIG_TFM_BL2_CRC
+	vt = (struct boot_arm_vector_table *)(flash_base + 
+					FLASH_PHY2VIRTUAL_CODE_START(rsp->br_image_off +
+                                         rsp->br_hdr->ih_hdr_size));
+#else 
+	vt = (struct boot_arm_vector_table *)(flash_base + 
+					rsp->br_image_off +
                                          rsp->br_hdr->ih_hdr_size);
+#endif
     }
 
 #if MCUBOOT_LOG_LEVEL > MCUBOOT_LOG_LEVEL_OFF || TEST_BL2

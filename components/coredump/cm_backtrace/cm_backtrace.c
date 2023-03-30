@@ -200,11 +200,11 @@ static void get_cur_thread_stack_info(uint32_t sp, uint32_t *start_addr, size_t 
     *start_addr = (uint32_t) OSTCBCur->OSTCBStkBottom;
     *size = OSTCBCur->OSTCBStkSize * sizeof(OS_STK);
 #elif (CMB_OS_PLATFORM_TYPE == CMB_OS_PLATFORM_UCOSIII)
-    extern OS_TCB *OSTCBCurPtr; 
-    
+    extern OS_TCB *OSTCBCurPtr;
+
     *start_addr = (uint32_t) OSTCBCurPtr->StkBasePtr;
     *size = OSTCBCurPtr->StkSize * sizeof(CPU_STK_SIZE);
-#elif (CMB_OS_PLATFORM_TYPE == CMB_OS_PLATFORM_FREERTOS)   
+#elif (CMB_OS_PLATFORM_TYPE == CMB_OS_PLATFORM_FREERTOS)
     *start_addr = (uint32_t)vTaskStackAddr();
     *size = vTaskStackSize() * sizeof( StackType_t );
 #endif
@@ -226,8 +226,8 @@ static const char *get_cur_thread_name(void) {
 #endif /* OS_TASK_NAME_SIZE > 0 || OS_TASK_NAME_EN > 0 */
 
 #elif (CMB_OS_PLATFORM_TYPE == CMB_OS_PLATFORM_UCOSIII)
-    extern OS_TCB *OSTCBCurPtr; 
-    
+    extern OS_TCB *OSTCBCurPtr;
+
     return (const char *)OSTCBCurPtr->NamePtr;
 #elif (CMB_OS_PLATFORM_TYPE == CMB_OS_PLATFORM_FREERTOS)
     return vTaskName();
@@ -556,6 +556,22 @@ static uint32_t statck_del_fpu_regs(uint32_t fault_handler_lr, uint32_t sp) {
 #endif
 
 /**
+ * wifi exception handlers
+ */
+__attribute__((weak))
+void wifi_except_handler(void)
+{
+}
+
+/**
+ * user exception handlers
+ */
+void user_except_handler()
+{
+    wifi_except_handler();
+}
+
+/**
  * backtrace for fault
  * @note only call once
  *
@@ -657,4 +673,6 @@ void cm_backtrace_fault(uint32_t fault_handler_lr, uint32_t fault_handler_sp) {
 #endif
 
     print_call_stack(stack_pointer);
+
+    user_except_handler();
 }

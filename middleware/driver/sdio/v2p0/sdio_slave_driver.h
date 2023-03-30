@@ -264,7 +264,7 @@ void register_wake_host_fail_func(wk_slp_fail_callback cb);
  *	  - BK_OK: succeed
  *	  - others: other errors.
  */
-bk_err_t sdio_slave_notify_host(void);
+bk_err_t sdio_slave_notify_host(uint32_t timeout);
 
 /**
  * @brief	Get host whether allow slave goto sleep

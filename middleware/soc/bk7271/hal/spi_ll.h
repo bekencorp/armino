@@ -262,6 +262,11 @@ static inline void spi_ll_set_rx_trans_len(spi_hw_t *hw, uint32_t len)
 	hw->cfg.rx_trans_len = len & SPI_F_RX_TRANS_LEN_M;
 }
 
+static inline void spi_ll_enable_tx_rx(spi_hw_t *hw)
+{
+	hw->cfg.v |= 0b11;
+}
+
 static inline void spi_ll_clear_int_status(spi_hw_t *hw)
 {
 	hw->int_status.tx_fifo_int = 1;

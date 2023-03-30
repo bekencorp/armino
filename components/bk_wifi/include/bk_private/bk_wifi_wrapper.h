@@ -10,7 +10,7 @@
 void demo_scan_app_init(void);
 void demo_scan_adv_app_init(uint8_t *oob_ssid);
 int demo_softap_app_init(char *ap_ssid, char *ap_key, char *ap_channel);
-void demo_sta_app_init(char *oob_ssid,char *connect_key);
+int demo_sta_app_init(char *oob_ssid,char *connect_key);
 void demo_sta_bssid_app_init(uint8_t *bssid, char *connect_key);
 void demo_sta_adv_app_init(char *oob_ssid,char *connect_key);
 void demo_wlan_app_init(VIF_ADDCFG_PTR cfg);

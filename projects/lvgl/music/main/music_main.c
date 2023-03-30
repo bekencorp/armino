@@ -57,7 +57,7 @@ void music_init(void)
 	cli_music_init();
 
 #ifdef CONFIG_LVGL_USE_PSRAM
-#define PSRAM_DRAW_BUFFER ((0x64000000UL) + 5 * 1024 * 1024)
+#define PSRAM_DRAW_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)
 
 	lv_vnd_config.draw_pixel_size = ppi_to_pixel_x(lcd_open.device_ppi) * ppi_to_pixel_y(lcd_open.device_ppi);
 	lv_vnd_config.draw_buf_2_1 = (lv_color_t *)PSRAM_DRAW_BUFFER;

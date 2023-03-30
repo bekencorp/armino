@@ -24,7 +24,12 @@ extern "C" {
 	{SPI_ID_1, INT_SRC_SPI2, spi2_isr, DMA_DEV_GSPI1},\
 	{SPI_ID_2, INT_SRC_SPI3, spi3_isr, DMA_DEV_GSPI2},\
 }
-
+#define SPI_RX_INT_CONFIG_TABLE \
+{\
+	{SPI_ID_0, INT_SRC_SPI,  spi_isr, DMA_DEV_GSPI0_RX},\
+	{SPI_ID_1, INT_SRC_SPI2, spi2_isr, DMA_DEV_GSPI1_RX},\
+	{SPI_ID_2, INT_SRC_SPI3, spi3_isr, DMA_DEV_GSPI2},\
+}
 #ifdef __cplusplus
 }
 #endif

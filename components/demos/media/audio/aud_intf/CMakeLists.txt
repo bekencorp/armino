@@ -7,12 +7,12 @@ set(incs include)
 set(srcs
 	mb/aud_mb.c
 	aud/aud_tras_drv.c
-	debug/aud_debug_tcp.c
 	)
 
 if (NOT CONFIG_SLAVE_CORE)
 	list(APPEND srcs
 		core/aud_intf.c
+		core/aud_tras.c
 	)
 
 if (CONFIG_AUD_INTF_TEST)
@@ -24,6 +24,12 @@ endif()
 if (CONFIG_AUD_TRAS_AEC_DUMP_MODE_UDP)
 	list(APPEND srcs
 		debug/aud_debug_udp.c
+	)
+endif()
+
+if (CONFIG_LWIP_V2_1)
+	list(APPEND srcs
+		debug/aud_debug_tcp.c
 	)
 endif()
 

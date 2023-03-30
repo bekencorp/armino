@@ -180,6 +180,16 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 			ret = media_send_msg_sync(EVENT_CAM_NET_H264_OPEN_IND, ppi);
 			break;
 
+		case APP_CAMERA_DVP_H264:
+			if (CAMERA_STATE_DISABLED != get_camera_state())
+			{
+				LOGI("%s already opened\n", __func__);
+				return kNoErr;
+			}
+
+			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_OPEN_IND, ppi);
+			break;
+
 		default:
 			ret = kNoErr;
 	}
@@ -245,6 +255,16 @@ bk_err_t media_app_camera_close(app_camera_type_t type)
 			ret = media_send_msg_sync(EVENT_CAM_NET_CLOSE_IND, 0);
 			break;
 
+		case APP_CAMERA_DVP_H264:
+			if (CAMERA_STATE_ENABLED != get_camera_state())
+			{
+				LOGI("%s already closed\n", __func__);
+				return kNoErr;
+			}
+
+			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, MEDIA_DVP_H264);
+			break;
+
 		default:
 			ret = kNoErr;
 	}
@@ -267,6 +287,49 @@ bk_err_t media_app_mailbox_test(void)
 	ret = media_send_msg_sync(EVENT_LCD_DEFAULT_CMD, param);
 
 	LOGI("%s ---\n", __func__);
+
+	return ret;
+}
+
+bk_err_t media_app_h264_open(void *setup_cfg)
+{
+	int ret = kNoErr;
+	video_setup_t *ptr = NULL;
+
+	rwnxl_set_video_transfer_flag(true);
+
+	if (TRS_STATE_DISABLED != get_transfer_state()) {
+		LOGI("%s already opened\n", __func__);
+		return ret;
+	}
+
+	ptr = (video_setup_t *)os_malloc(sizeof(video_setup_t));
+	os_memcpy(ptr, (video_setup_t *)setup_cfg, sizeof(video_setup_t));
+
+	ret = media_send_msg_sync(EVENT_H264_OPEN_IND, (uint32_t)ptr);
+
+	os_free(ptr);
+
+	LOGI("%s complete\n", __func__);
+
+	return ret;
+}
+
+bk_err_t media_app_h264_close(void)
+{
+	bk_err_t ret;
+
+	LOGI("%s\n", __func__);
+
+	if (TRS_STATE_ENABLED != get_transfer_state())
+	{
+		LOGI("%s already closed\n", __func__);
+		return kNoErr;
+	}
+
+	ret = media_send_msg_sync(EVENT_H264_CLOSE_IND, 0);
+
+	LOGI("%s complete\n", __func__);
 
 	return ret;
 }

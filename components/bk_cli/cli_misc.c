@@ -26,6 +26,48 @@ static void efuse_cmd_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 static void efuse_mac_cmd_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif //#if (CONFIG_EFUSE)
 
+
+static int hex2num(char c)
+{
+	if (c >= '0' && c <= '9')
+		return c - '0';
+	if (c >= 'a' && c <= 'f')
+		return c - 'a' + 10;
+	if (c >= 'A' && c <= 'F')
+		return c - 'A' + 10;
+	return -1;
+}
+
+
+static int hex2byte(const char *hex)
+{
+	int a, b;
+	a = hex2num(*hex++);
+	if (a < 0)
+		return -1;
+	b = hex2num(*hex++);
+	if (b < 0)
+		return -1;
+	return (a << 4) | b;
+}
+
+int hexstr2bin_cli(const char *hex, u8 *buf, size_t len)
+{
+	size_t i;
+	int a;
+	const char *ipos = hex;
+	u8 *opos = buf;
+
+	for (i = 0; i < len; i++) {
+		a = hex2byte(ipos);
+		if (a < 0)
+			return -1;
+		*opos++ = a;
+		ipos += 2;
+	}
+	return 0;
+}
+
 __maybe_unused static void cli_misc_help(void)
 {
 	CLI_LOGI("pwm_driver init {26M|DCO}\n");
@@ -44,7 +86,7 @@ __maybe_unused static void cli_misc_help(void)
 #endif
 	CLI_LOGI("jtagmode get jtag mode\r\n");
 	CLI_LOGI("setjtagmode set jtag mode [cpu0|cpu1] [group1|group2]\r\n");
-	CLI_LOGI("[cksel] [ckdiv_core] [ckdiv_bus] [ckdiv_cpu]\r\n");
+	CLI_LOGI("setcpufreq [cksel] [ckdiv_core] [ckdiv_bus] [ckdiv_cpu]\r\n");
 #if CONFIG_COMMON_IO
 	CLI_LOGI("testcommonio test common io\r\n");
 #endif
@@ -91,15 +133,15 @@ static void efuse_cmd_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 
 	if (argc == 3) {
 		if (os_strncmp(argv[1], "-r", 2) == 0) {
-			hexstr2bin(argv[2], &addr, 1);
+			hexstr2bin_cli(argv[2], &addr, 1);
 			bk_efuse_read_byte(addr, &data);
 			CLI_LOGI("efuse read: addr-0x%02x, data-0x%02x\r\n",
 					  addr, data);
 		}
 	} else if (argc == 4) {
 		if (os_strncmp(argv[1], "-w", 2) == 0)  {
-			hexstr2bin(argv[2], &addr, 1);
-			hexstr2bin(argv[3], &data, 6);
+			hexstr2bin_cli(argv[2], &addr, 1);
+			hexstr2bin_cli(argv[3], &data, 6);
 			CLI_LOGI("efuse write: addr-0x%02x, data-0x%02x, ret:%d\r\n",
 					  addr, data, bk_efuse_write_byte(addr, data));
 		}
@@ -124,7 +166,7 @@ static void efuse_mac_cmd_test(char *pcWriteBuffer, int xWriteBufferLen, int arg
 		}
 	} else if (argc == 3) {
 		if (os_strncmp(argv[1], "-w", 2) == 0)  {
-			hexstr2bin(argv[2], mac, 6);
+			hexstr2bin_cli(argv[2], mac, 6);
 			CLI_LOGI("Set MAC address: %02x-%02x-%02x-%02x-%02x-%02x\r\n",
 					  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 		}
@@ -152,7 +194,7 @@ static void mac_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		CLI_LOGI("sta mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(sta_mac));
 		CLI_LOGI("ap mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(ap_mac));
 	} else if (argc == 2) {
-		hexstr2bin(argv[1], base_mac, BK_MAC_ADDR_LEN);
+		hexstr2bin_cli(argv[1], base_mac, BK_MAC_ADDR_LEN);
 		bk_set_base_mac(base_mac);
 		CLI_LOGI("set base mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(base_mac));
 	} else
@@ -290,6 +332,57 @@ static void set_jtag_mode(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 
 	CLI_LOGI("set_jtag_mode end.\r\n");
 }
+
+
+/*
+	//For BK7256 ckdiv_bus is 0x8[6]
+	//For BK7236 ckdiv_bus is the same as ckdiv_cpu1 0x5[4]
+
+	//============ BK7236 Sample begin============
+
+		//cpu0:160m;cpu1:160m;bus:160m
+		setcpufreq 3 2 0 0 0
+
+		//cpu0:160m;cpu1:320m;bus:160m
+		setcpufreq 2 0 0 0 1
+
+		//cpu0:120m;cpu1:120m;bus:120m
+		setcpufreq 3 3 0 0 0
+
+		//cpu0:120m;cpu1:240m;bus:120m
+		setcpufreq 3 1 0 0 1
+
+	//============ BK7236 Sample end============
+*/
+static void set_cpu_clock_freq(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 6) {
+		cli_misc_help();
+		return;
+	}
+
+	uint32_t cksel_core = 3;
+	uint32_t ckdiv_core = 3;
+	uint32_t ckdiv_bus  = 0;
+	uint32_t ckdiv_cpu0 = 0;
+	uint32_t ckdiv_cpu1 = 0;
+
+
+	cksel_core = os_strtoul(argv[1], NULL, 10);
+	ckdiv_core = os_strtoul(argv[2], NULL, 10);
+#if CONFIG_SOC_BK7256XX
+	ckdiv_bus  = os_strtoul(argv[3], NULL, 10);
+	ckdiv_cpu0  = os_strtoul(argv[4], NULL, 10);
+#endif
+	ckdiv_cpu1  = os_strtoul(argv[5], NULL, 10);
+
+	CLI_LOGI("set_cpu_clock_freq: [cksel_core:%d] [ckdiv_core:%d] [ckdiv_bus:%d] [ckdiv_cpu0:%d] [ckdiv_cpu1:%d]\r\n",
+			cksel_core, ckdiv_core, ckdiv_bus, ckdiv_cpu0, ckdiv_cpu1);
+	pm_core_bus_clock_ctrl(cksel_core, ckdiv_core, ckdiv_bus, ckdiv_cpu0, ckdiv_cpu1);
+
+
+	CLI_LOGI("set_cpu_clock_freq end.\r\n");
+}
 #endif
 
 #if CONFIG_COMMON_IO
@@ -415,6 +508,41 @@ static void cli_adc_key_op(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 }
 #endif
 
+
+__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) \
+int32_t cpu_test(uint32_t count) {
+#if CONFIG_SOC_BK7236
+	#define portNVIC_SYSTICK_CURRENT_VALUE_REG    ( *( ( volatile uint32_t * ) 0xe000e018 ) )
+
+    uint32_t i;
+    volatile uint32_t time_begin = 0;
+    volatile uint32_t time_end = 0;
+
+    time_begin = portNVIC_SYSTICK_CURRENT_VALUE_REG;
+    for(i = 0; i < count; i++)
+    {
+		__asm volatile("nop \n");
+    }
+
+    time_end = portNVIC_SYSTICK_CURRENT_VALUE_REG;
+    CLI_LOGI("cpu_test: count[%d], begin[%d], end[%d], duration[%d].\r\n", count, time_begin, time_end, time_end - time_begin);
+#endif
+
+    return 0;
+}
+
+static void cli_cpu_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	uint32_t count = 0;
+	if (argc < 2) {
+		CLI_LOGI("cputest [count]\r\n");
+		return;
+	}
+	count = os_strtoul(argv[1], NULL, 10);
+	cpu_test(count);
+	CLI_LOGI("cputest end.\r\n");
+}
+
 #define MISC_CMD_CNT (sizeof(s_misc_commands) / sizeof(struct cli_command))
 static const struct cli_command s_misc_commands[] = {
 	{"version", NULL, get_version},
@@ -453,8 +581,9 @@ static const struct cli_command s_misc_commands[] = {
 #if CONFIG_ADC_KEY
 	{"adc_key", "adc_key {init|deinit}", cli_adc_key_op},
 #endif
-
+	{"setcpufreq", "setcpufreq [ckdiv_core] [ckdiv_bus] [ckdiv_cpu0] [ckdiv_cpu1]", set_cpu_clock_freq},
 #endif //#if (!CONFIG_SLAVE_CORE)
+	{"cputest", "cputest [count]", cli_cpu_test},
 };
 
 int cli_misc_init(void)

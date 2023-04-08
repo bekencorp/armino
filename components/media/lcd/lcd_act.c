@@ -126,7 +126,7 @@ lcd_blend_t g_lcd_blend_data;
 static void jpeg_display_task_entry(beken_thread_arg_t data)
 {
 	frame_buffer_t *frame = NULL;
-	bool rotate = (bool)data;
+	media_rotate_t rotate = (media_rotate_t)data;
 
 	LOGI("%s, rotate: %d\n", __func__, rotate);
 
@@ -142,16 +142,9 @@ static void jpeg_display_task_entry(beken_thread_arg_t data)
 			continue;
 		}
 
-		if (rotate == true)
+		if (rotate != ROTATE_NONE)
 		{
-			if (lcd_transfer_info.device_ppi == PPI_320X480)
-			{
-				frame = lcd_driver_rotate_frame_ppi(frame, PPI_320X480);
-			}
-			else
-			{
-				frame = lcd_driver_rotate_frame(frame);
-			}
+			frame = lcd_driver_rodegree_frame(frame, rotate);
 
 			if (frame == NULL)
 			{
@@ -173,7 +166,7 @@ static void jpeg_display_task_entry(beken_thread_arg_t data)
 }
 
 
-void jpeg_display_task_start(bool rotate)
+void jpeg_display_task_start(media_rotate_t rotate)
 {
 	bk_err_t ret;
 
@@ -253,7 +246,7 @@ static void camera_display_task_entry(beken_thread_arg_t data)
 {
 	frame_buffer_t *jpeg_frame = NULL;
 	frame_buffer_t *dec_frame = NULL;
-	bool rotate = (bool)data;
+	media_rotate_t rotate = (media_rotate_t)data;
 
 	rtos_set_semaphore(&camera_display_sem);
 
@@ -285,9 +278,9 @@ static void camera_display_task_entry(beken_thread_arg_t data)
 			frame_buffer_fb_display_push(dec_frame);
 #else
 
-			if (rotate == true)
+			if (rotate != ROTATE_NONE)
 			{
-				dec_frame = lcd_driver_rotate_frame(dec_frame);
+				dec_frame = lcd_driver_rodegree_frame(dec_frame, rotate);
 
 				if (dec_frame == NULL)
 				{
@@ -364,7 +357,7 @@ static void camera_display_task_entry(beken_thread_arg_t data)
 	rtos_delete_thread(NULL);
 }
 
-void camera_display_task_start(bool rotate)
+void camera_display_task_start(media_rotate_t rotate)
 {
 	bk_err_t ret;
 
@@ -1447,7 +1440,7 @@ void lcd_close_handle(param_pak_t *param)
 
 #endif
 
-	lcd_info.rotate = false;
+	lcd_info.rotate = ROTATE_NONE;
 
 	set_lcd_state(LCD_STATE_DISABLED);
 
@@ -1744,7 +1737,7 @@ void lcd_init(void)
 	os_memset(&lcd_info, 0, sizeof(lcd_info_t));
 	lcd_info.state = LCD_STATE_DISABLED;
 	lcd_info.debug = false;
-	lcd_info.rotate = false;
+	lcd_info.rotate = ROTATE_NONE;
 }
 void lcd_set_logo_on(int status)
 {

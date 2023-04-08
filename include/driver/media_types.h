@@ -50,6 +50,12 @@ typedef enum {
 	MSTATE_TURN_ON,
 } media_state_t;
 
+typedef enum {
+    ROTATE_NONE = 0,
+    ROTATE_90, /**< Image rotaged 90 degress*/
+    ROTATE_180, /**< No support yet, reserved for the future*/
+    ROTATE_270, /**< Image rotaged 270 degress*/
+} media_rotate_t;
 
 typedef enum
 {

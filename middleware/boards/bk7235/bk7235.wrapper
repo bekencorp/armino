@@ -105,15 +105,6 @@ def package_json_rebuild():
         firmware_file["start_addr"] = str(hex(int(int(firmware_file["start_addr"], 16)/34*32)))
         firmware_file["size"] = "{}K".format(int(int(re.findall("^\d+", firmware_file["size"])[0])/34*32))
         
-        if firmware_file["partition"] == "bootloader":
-            bootloader_security_name = firmware_file["partition"]+".bin"
-            packfile = "{}/middleware/boards/{}/{}".format(armino_path, chip, bootloader_security_name)
-            if os.path.exists(packfile):
-                shutil.copy(packfile, "{}/{}".format(build_path, bootloader_security_name));
-                tmp_config["bootloader_security_path"] = bootloader_security_name;
-            else:
-                print("ERR: need bin {}".format(bootloader_security_name))
-        
     return json.dumps(config_json, sort_keys=True, indent=4)
 
 def package_json_enc_rebuild():
@@ -211,7 +202,7 @@ else:
     # shutil.copy(tmp_config["boot_loader_path"], tmp_config["sign_boot_loader_name"])
     # print("$$$$$$$$$$$${}".format(tmp_config["boot_loader_size"]))
     if tmp_config["with_boot_loader"]:
-        os.system("{}/tools/env_tools/beken_packager/SignTool_P384 sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, tmp_config["bootloader_security_path"], prikey, tmp_config["sign_boot_loader_name"], tmp_config["boot_loader_size"]))
+        os.system("{}/tools/env_tools/beken_packager/SignTool_P384 sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, tmp_config["boot_loader_path"], prikey, tmp_config["sign_boot_loader_name"], tmp_config["boot_loader_size"]))
     #2.pack app & cup*
     if(tmp_config["count"] > 2):
         infile = ""

@@ -76,6 +76,11 @@ MINOOR_ITCM int yuyv_rotate_degree90(unsigned char *yuyv, unsigned char *rotated
 MINOOR_ITCM int vuyy_rotate_degree90(unsigned char *vuyy, unsigned char *rotatedVuyy, int width, int height);
 
 /**
+ * @brief yuyv data clockwise rotate270
+ */
+MINOOR_ITCM int vuyy_rotate_degree270(unsigned char *vuyy, unsigned char *rotatedVuyy, int width, int height);
+
+/**
  * @brief yuyv to rgb data clockwise rotate90
  */
 MINOOR_ITCM int yuyv2rgb_rotate_degree90(unsigned char *yuyv, unsigned char *rotatedYuyv, int width, int height);

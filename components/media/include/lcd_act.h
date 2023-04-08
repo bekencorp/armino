@@ -41,10 +41,10 @@ typedef enum
 typedef struct
 {
 	uint8_t debug : 1;
-	uint8_t rotate : 1;
 	uint8_t step_mode : 1;
 	uint8_t step_trigger : 1;
 	uint8_t dma2d_blend : 1;
+	media_rotate_t rotate;
 	lcd_state_t state;
 } lcd_info_t;
 
@@ -109,7 +109,7 @@ void lcd_calc_init(void);
 
 void lcd_decoder_task_stop(void);
 void camera_display_task_stop(void);
-void camera_display_task_start(bool rotate);
+void camera_display_task_start(media_rotate_t rotate);
 void jpeg_display_task_stop(void);
 bk_err_t lcd_blend_handle(frame_buffer_t *frame);
 

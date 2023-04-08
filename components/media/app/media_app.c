@@ -322,13 +322,13 @@ bk_err_t media_app_transfer_close(void)
 	return ret;
 }
 
-bk_err_t media_app_lcd_rotate(bool enable)
+bk_err_t media_app_lcd_rotate(media_rotate_t rotate)
 {
 	bk_err_t ret;
 
 	LOGI("%s\n", __func__);
 
-	ret = media_send_msg_sync(EVENT_LCD_ROTATE_ENABLE_IND, enable);
+	ret = media_send_msg_sync(EVENT_LCD_ROTATE_ENABLE_IND, rotate);
 
 	LOGI("%s complete\n", __func__);
 

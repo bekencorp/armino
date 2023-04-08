@@ -322,8 +322,19 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 			if (CMD_CONTAIN("rotate"))
 			{
-				media_app_lcd_rotate(true);
+				media_app_lcd_rotate(ROTATE_90);
 			}
+
+			if (CMD_CONTAIN("90"))
+			{
+				media_app_lcd_rotate(ROTATE_90);
+			}
+
+			if (CMD_CONTAIN("270"))
+			{
+				media_app_lcd_rotate(ROTATE_270);
+			}
+
 
 			if (os_strcmp(argv[2], "open") == 0)
 			{

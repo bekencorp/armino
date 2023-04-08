@@ -516,8 +516,6 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	if(pm_wake_int_flag2&(WIFI_MAC_GEN_INT_BIT))
 	{
 		ps_mac_wakeup_from_lowvol = wakeup_time;
-		ps_switch(PS_UNALLOW, PS_EVENT_STA, PM_RF_BIT);
-		bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_PHY_WIFI,PM_POWER_MODULE_STATE_ON);
 	}
 #if CONFIG_PSRAM
 	psram_hal_config();//psram config3

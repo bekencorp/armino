@@ -280,6 +280,9 @@ int components_init(void)
 #endif
 	ipc_init();
 
+	extern void bk_stack_guard_setup(void);
+	bk_stack_guard_setup();
+
 #else
 	driver_init();
 #if CONFIG_POWER_SAVE

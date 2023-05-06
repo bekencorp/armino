@@ -13,16 +13,21 @@ denote developing status and support, respectively. In developing status the bui
 crucial parts could be missing(like documentation, datasheet). Please use an Armino release where the desired
 SoC is already supported.
 
-==Tag version is the officaial release version, please use the official release version for development.==
 
-|Chip                                                                                |          v1.4.0             |
-|:---------------------------------------------------------------------------------- | :-------------------------: |
-|[BK7235](http://docs.bekencorp.com/spec/BK7235/BK7235%C2%A0Datasheet_V0.1.pdf)      | ![alt text][supported]     |
-|[BK7237](http://docs.bekencorp.com/spec/BK7237/BK7237%C2%A0Datasheet_V0.3.pdf)      | ![alt text][supported]     |
-|[BK7256](http://docs.bekencorp.com/spec/BK7256/BK7256%C2%A0Datasheet_V0.1.pdf)      | ![alt text][supported]     |
+|Branch\Chip   |    [BK7235]           |       [BK7256]        |        [BK7236]        |      [BK7258]          |      Comment            |
+|:------------ |:--------------------: |:--------------------: |:---------------------: |:---------------------: |:----------------------: |
+|main          |![alt text][supported] |![alt text][supported] |![alt text][developing] |![alt text][developing] |Develop Branch           |
+|release/v1.5  |![alt text][supported] |![alt text][supported] |                        |                        |MP branch                |
+|release/v1.5.1|![alt text][supported] |![alt text][supported] |                        |                        |MP branch for smart lock |
+
 
 [supported]: https://img.shields.io/badge/-supported-green "supported"
 [developing]: https://img.shields.io/badge/-developing-orange "developing"
+
+==Tag version , please use the official release version for development.==
+
+main branch Tag is not official release, the format is DevXX.XX.XX.XX , for example: Dev2.0.0 
+release/xxxx Branch Tag is official release, the format is vXX.XX.XX.XX，for example: v1.5.3 ，v1.5.1.1
 
 Beken SoCs released before 2022, such as BK7231N, BK7231U, BK7251 etc, are not supported by ARMINO.
 
@@ -31,7 +36,7 @@ Beken SoCs released before 2022, such as BK7231N, BK7231U, BK7251 etc, are not s
 The following table shows Armino support of Popular IoT OS where ![alt text][developing] and ![alt text][supported]
 denote developing status and support, respectively.
 
-|OS           |         v1.0           |
+|OS           |         main           |
 |:----------- |:---------------------: |
 |FreeRTOS     | ![alt text][supported] |
 |LiteOS       | ![alt text][supported]|
@@ -55,7 +60,8 @@ and the documentation's [Introduction](TODO_link_to_armino_get_started_doc) to s
 
 Here's a quick summary of resources to help you find your way around:
 
- - Documentation: http://docs.bekencorp.com/armino/bk7256/en/latest/
+ - Documentation: http://docs.bekencorp.com
+
  - Source Code: https://github.com/bekencorp/armino is the main repository
  - Releases: TODO_link_to_release_page
  - Samples and example code: TODO_link_to_doc_sample_and_demo_page

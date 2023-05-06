@@ -91,7 +91,6 @@ static void wdt_deinit_common(void)
 	s_wdt_period = CONFIG_INT_WDT_PERIOD_MS;
 	wdt_hal_reset_config_to_default(&s_wdt.hal);
 #if (CONFIG_SYSTEM_CTRL)
-	extern void close_wdt(void);
 	close_wdt();
 	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_WDG_CPU, CLK_PWR_CTRL_PWR_DOWN);
 #else
@@ -222,7 +221,7 @@ void bk_task_wdt_timeout_check(void)
 		uint64_t current_tick = bk_get_tick();
 		if ((current_tick - s_last_task_wdt_feed_tick) > TASK_WDG_PERIOD_TICK) {
 			if ((current_tick - s_last_task_wdt_log_tick) > TASK_WDG_PERIOD_TICK) {
-				WDT_LOGW("task watchdog tiggered\n");
+				WDT_LOGW("task watchdog triggered\r\n");
 				s_last_task_wdt_log_tick = current_tick;
 				BK_ASSERT(0);
 			}
@@ -252,3 +251,21 @@ void bk_wdt_feed_handle(void)
 	GLOBAL_INT_RESTORE();
 }
 
+void close_wdt(void)
+{
+	wdt_hal_close();
+}
+
+void bk_wdt_force_feed(void)
+{
+	wdt_hal_force_feed();
+}
+
+void bk_wdt_force_reboot(void)
+{
+	GLOBAL_INT_DECLARATION();
+	GLOBAL_INT_DISABLE();
+	wdt_hal_force_reboot();
+	while(1);
+	GLOBAL_INT_RESTORE();
+}

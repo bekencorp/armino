@@ -17,4 +17,12 @@ menu "BK_system"
         bool "Enable Random Mac Addr"
         default n
 
+	config NEW_MAC_POLICY
+	bool "Enable Mac Addr"
+	default n
+
+	config BK_MAC_ADDR_CHECK
+	bool "Enable Beken Mac Addr Check"
+	default n
+
 endmenu

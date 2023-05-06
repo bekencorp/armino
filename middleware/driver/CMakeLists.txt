@@ -31,6 +31,7 @@ set(incs
 	fft
 	chip_support
 	../compal/common_io/include
+	wdt
 	)
 
 set(srcs

@@ -13,6 +13,7 @@
 
 reset_vector:
 	/* Decide whether this is an NMI or cold reset */
+	csrw mscratch, t0
 	csrr t0, mcause
 	bnez t0, nmi_handler
 	.global _start
@@ -88,16 +89,56 @@ _start:
 __platform_init:
 	ret
 
-
 	.weak nmi_handler
 nmi_handler:
-	csrr a0, mcause
+	csrrw t0, mscratch, x0
+	addi sp, sp, -64
+//	sw ra, 0(sp)
+	
+	sw x5, 4(sp)			
+	sw x6, 8(sp)
+	sw x7, 12(sp)
+
+	sw x10, 16(sp)
+	sw x11, 20(sp)
+	sw x12, 24(sp)
+	sw x13, 28(sp)
+	sw x14, 32(sp)
+	sw x15, 36(sp)
+	sw x16, 40(sp)
+	sw x17, 44(sp)
+	sw x28, 48(sp)
+	sw x29, 52(sp)
+	sw x30, 56(sp)
+	sw x31, 60(sp)
+
+	csrrw a0, mcause, x0
 	mv  a1, ra
 	call user_nmi_handler
-	li t0, TRAP_M_USER_NP_WDT
-	csrw mcause, t0
+	li a0, TRAP_M_USER_NP_WDT
+	csrw mcause, a0
+
+//	lw ra, 0(sp)
+	lw x5, 4(sp)			
+	lw x6, 8(sp)
+	lw x7, 12(sp)
+
+	lw x10, 16(sp)
+	lw x11, 20(sp)
+	lw x12, 24(sp)
+	lw x13, 28(sp)
+	lw x14, 32(sp)
+	lw x15, 36(sp)
+	lw x16, 40(sp)
+	lw x17, 44(sp)
+	lw x28, 48(sp)
+	lw x29, 52(sp)
+	lw x30, 56(sp)
+	lw x31, 60(sp)
+
+	addi sp, sp, 64
+
 	j freertos_risc_v_trap_handler
-	ret
 
 .org  0x100
 .word 0x32374B42
@@ -126,42 +167,3 @@ trap_entry:
 	j freertos_risc_v_trap_handler
 	ret
 
-#ifdef INT_VECTOR_EN
-	.text
-
-	.global default_irq_entry
-	.align 2
-
-default_irq_entry:
-1:	j 1b
-
-.macro INTERRUPT num
-	.weak entry_irq\num
-	.set entry_irq\num, default_irq_entry
-	.long entry_irq\num
-	.endm
-
-	/* Vector table
-	 * NOTE:
-	 * The Vector Table base alignment requirement has to be :
-	 * " 2^ceiling(log2(N)) x 4 " bytes,
-	 * if the PLIC device supports N interrupt sources.
-	 */
-#define VECTOR_NUMINTRS         63
-	.section .vector_table, "a"
-
-	.global __vectors
-//	.balign 4096
-    .balign 128
-__vectors:
-	/* Trap vector */
-	.long trap_entry
-
-	/* PLIC interrupt vector */
-	.altmacro
-	.set irqno, 1
-	.rept VECTOR_NUMINTRS
-	INTERRUPT %irqno
-	.set irqno, irqno+1
-	.endr
-#endif

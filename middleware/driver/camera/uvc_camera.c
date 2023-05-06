@@ -164,6 +164,7 @@ typedef struct
 	uint8_t  frame_flag : 1;
 	uint8_t  sof : 1;
 	uint8_t  eof: 1;
+	uint8_t  first_empty_packet : 1;
 	uint8_t  psram_dma_busy : 1;
 	uint8_t  uvc_dma;
 	uint8_t  psram_dma;
@@ -295,7 +296,7 @@ static void uvc_process_data_packet(void *curptr, uint32_t newlen, uint8_t is_eo
 	if (curr_frame_buffer == NULL
 	    || curr_frame_buffer->frame == NULL)
 	{
-		UVC_LOGE("%s curr_frame_buffer NULL\n");
+		UVC_LOGE("curr_frame_buffer NULL\n");
 		return;
 	}
 
@@ -332,6 +333,10 @@ static void uvc_process_data_packet(void *curptr, uint32_t newlen, uint8_t is_eo
 			uvc_camera_drv->eof = true;
 			uvc_camera_drv->frame = curr_frame_buffer;
 			curr_frame_buffer->sequence = ++uvc_frame_id;
+			if (frame_len == 0) // first_empty_packet
+			{
+				uvc_camera_memcpy_finish_callback(uvc_camera_drv->psram_dma);
+			}
 			UVC_EOF_BIT_REVERSE_OUT();
 		}
 		else
@@ -350,7 +355,8 @@ static void uvc_process_data_packet(void *curptr, uint32_t newlen, uint8_t is_eo
 			{
 				media_debug->psram_busy++;
 			}
-			//else
+
+			if (frame_len != 0)
 			{
 				need_add_length = 4 - (curr_frame_buffer->length & 0x3);
 				if (need_add_length < 4)
@@ -418,6 +424,10 @@ static void uvc_process_data_packet(void *curptr, uint32_t newlen, uint8_t is_eo
 			uvc_camera_drv->eof = true;
 			uvc_camera_drv->frame = curr_frame_buffer;
 			curr_frame_buffer->sequence = ++uvc_frame_id;
+			if (frame_len == 0) // first_empty_packet
+			{
+				uvc_camera_memcpy_finish_callback(uvc_camera_drv->psram_dma);
+			}
 		}
 		else
 		{
@@ -435,6 +445,7 @@ static void uvc_process_data_packet(void *curptr, uint32_t newlen, uint8_t is_eo
 			media_debug->psram_busy++;
 		}
 		//else
+		if (frame_len != 0)
 		{
 			need_add_length = 4 - (curr_frame_buffer->length & 0x3);
 			if (need_add_length < 4)
@@ -562,8 +573,18 @@ static void uvc_camera_dma_finish_callback(dma_id_t id)
 	};
 
 	uint32_t frame_len = copy_len - USB_UVC_HEAD_LEN;
-	if (uvc_camera_drv->node_full_handler != NULL && copy_len > 12)
+	if ((uvc_camera_drv->node_full_handler != NULL && copy_len > 12) || uvc_camera_drv->first_empty_packet == true)
 	{
+		if (uvc_camera_drv->node_full_handler != NULL && copy_len > 12)
+		{
+			uvc_camera_drv->first_empty_packet = true;
+		}
+		else
+		{
+			uvc_camera_drv->first_empty_packet = false;
+			UVC_LESS_12_ENTRY();
+			UVC_LESS_12_OUT();
+		}
 		uvc_camera_drv->node_full_handler(uvc_camera_drv->buffer + already_len, copy_len, 0, frame_len);
 	}
 	else
@@ -639,7 +660,6 @@ static void uvc_get_packet_rx_vs_callback(uint8_t *arg, uint32_t count)
 
 	uint32_t left_len = 0;
 
-	//bk_dma_set_src_start_addr(uvc_camera_drv->uvc_dma, (uint32_t)arg);
 	uvc_camera_drv->left_len = (count & 0x3);
 
 	uvc_camera_drv->uvc_transfer_len = count - uvc_camera_drv->left_len;

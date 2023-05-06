@@ -23,9 +23,6 @@ CPU0_LOAD1 0x00010000 0x8800
 		LOADADDR NEXT _itcm_lma_start
 		ADDR NEXT _itcm_ema_start
 		* KEEP (.itcm_sec_code LMA_FORCE_ALIGN)
-		*txl_he.c.obj   (+RO-CODE LMA_FORCE_ALIGN)
-		*txl_agg.c.obj  (+RO-CODE LMA_FORCE_ALIGN)
-		*txl_cntrl.c.obj *rxl_hwdesc.c.obj *rxu_cntrl.c.obj (+RO-CODE LMA_FORCE_ALIGN)
 		LOADADDR _itcm_lma_end
 		ADDR _itcm_ema_end
 	}

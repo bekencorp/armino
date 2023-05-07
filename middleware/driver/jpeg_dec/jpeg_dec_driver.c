@@ -161,7 +161,8 @@ bk_err_t bk_jpeg_dec_dma_start(uint32_t length, unsigned char *input_buf, unsign
 		JPEGDEC_LOGE("JpegdecInit error %x \r\n", ret);
 		return ret;
 	}
-	ret = jd_decomp_start();
+
+	ret = jd_decomp_hw();
 	if(ret != JDR_OK)
 	{
 		JPEGDEC_LOGE("jd_decomp error %x \r\n", ret);
@@ -184,7 +185,7 @@ bk_err_t bk_jpeg_dec_hw_start(uint32_t length, unsigned char *input_buf, unsigne
 		JPEGDEC_LOGE("JpegdecInit error %x \r\n", ret);
 		return ret;
 	}
-	ret = jd_decomp_start();
+	ret = jd_decomp_hw();
 	if(ret != JDR_OK)
 	{
 		JPEGDEC_LOGE("jd_decomp error %x \r\n", ret);

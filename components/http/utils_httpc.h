@@ -146,6 +146,10 @@ typedef void (*http_data_process_callback_func)(char *buf, UINT32 len, uint32_t 
 extern void http_data_process_register_callback(http_data_process_callback_func cb);
 #endif
 
+void http_flash_init(void);
+void http_flash_deinit(void);
+void http_flash_wr(UINT8 *src, unsigned len);
+void http_wr_to_flash(char *page, UINT32 len);
 #ifdef __cplusplus
 }
 #endif

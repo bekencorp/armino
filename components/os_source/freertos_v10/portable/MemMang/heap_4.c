@@ -221,13 +221,13 @@ static size_t psram_xMinimumEverFreeBytesRemaining = 0U;
 
 #if (CONFIG_SOC_BK7251)
 #define PSRAM_START_ADDRESS    (void*)(0x00900000)
-#define PSRAM_END_ADDRESS      (void*)(0x00900000 + 256 * 1024)
+#define PSRAM_HEAP_SIZE        256 * 1024
 #endif
 
 #if (CONFIG_SOC_BK7256)
 #if (!CONFIG_SLAVE_CORE)
-#define PSRAM_START_ADDRESS    (void*)(0x60700000)
-#define PSRAM_END_ADDRESS      (void*)(0x60800000)   //1MB
+#define PSRAM_START_ADDRESS    (void*)CONFIG_PSRAM_HEAP_BASE
+#define PSRAM_HEAP_SIZE        CONFIG_PSRAM_HEAP_SIZE   //1MB
 #endif
 #endif
 
@@ -246,7 +246,7 @@ __attribute__((section(".itcm_sec_code"))) void bk_psram_heap_init(void) {
 	#if !CONFIG_SLAVE_CORE
 	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DEFAULT,PM_CPU_FRQ_320M);
 	#endif
-	xTotalHeapSize = PSRAM_END_ADDRESS - PSRAM_START_ADDRESS;
+	xTotalHeapSize = PSRAM_HEAP_SIZE;
 	psram_ucHeap = PSRAM_START_ADDRESS;
 
 	BK_LOGI(TAG, "prvHeapInit-psram start addr:0x%x, size:%d\r\n", psram_ucHeap, xTotalHeapSize);
@@ -1071,7 +1071,7 @@ size_t xPortGetMinimumEverFreeHeapSize( void )
 size_t xPortGetPsramTotalHeapSize( void )
 {
 #if (CONFIG_PSRAM_AS_SYS_MEMORY)
-    return (PSRAM_END_ADDRESS - PSRAM_START_ADDRESS);
+    return PSRAM_HEAP_SIZE;
 #else
     return 0x0;
 #endif
@@ -1429,7 +1429,7 @@ void pvShowMemoryConfigInfo(void)
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "bss", BSS_START_ADDRESS, BSS_END_ADDRESS, (BSS_END_ADDRESS - BSS_START_ADDRESS));
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "heap", HEAP_START_ADDRESS, HEAP_END_ADDRESS, (HEAP_END_ADDRESS - HEAP_START_ADDRESS));
 #if (CONFIG_PSRAM_AS_SYS_MEMORY)
-	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "psram", PSRAM_START_ADDRESS, PSRAM_END_ADDRESS, (PSRAM_END_ADDRESS - PSRAM_END_ADDRESS));
+	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "psram", PSRAM_START_ADDRESS, (PSRAM_START_ADDRESS + PSRAM_HEAP_SIZE), PSRAM_HEAP_SIZE);
 #endif
 #endif
 #endif

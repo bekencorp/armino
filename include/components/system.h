@@ -46,7 +46,7 @@ typedef enum {
 	MAC_TYPE_BASE = 0,
 	MAC_TYPE_STA,
 	MAC_TYPE_AP,
-	MAC_TYPE_BLE,
+	MAC_TYPE_BLUETOOTH,
 	MAC_MAX,
 } mac_type_t;
 

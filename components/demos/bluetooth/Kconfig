@@ -1,0 +1,13 @@
+menu "Demos::Bluetooth"
+	config A2DP_SINK_DEMO
+		bool "Enable A2DP SINK DEMO"
+		depends on BT
+		depends on AUDIO
+		default n
+
+	config HFP_HF_DEMO
+		bool "Enable HFP HF DEMO"
+		depends on BT
+		depends on AUDIO
+		default n
+endmenu

@@ -817,7 +817,7 @@ int frame_buffer_fb_init(media_ppi_t max_ppi, fb_type_t type)
 	{
 		mem_list->mode = FB_MEM_SHARED;
 		mem_list->count = fb_mem_set->count;
-		LOGI("jpeg mem init size: %X, count: %d\n", fb_mem_set->size, fb_mem_set->count);
+		LOGD("jpeg mem init size: %X, count: %d\n", fb_mem_set->size, fb_mem_set->count);
 	}
 	else
 	{
@@ -842,11 +842,11 @@ int frame_buffer_fb_init(media_ppi_t max_ppi, fb_type_t type)
 		node->frame.length = 0;
 		node->frame.sequence = 0;
 
-		LOGI("free list add: %p\n", node);
+		LOGD("free list add: %p\n", node);
 
 		list_add_tail(&node->list, &mem_list->free);
 
-		LOGI("init: %p\n", node->frame.frame);
+		LOGD("init: %p\n", node->frame.frame);
 	}
 
 	mem_list->enable = true;

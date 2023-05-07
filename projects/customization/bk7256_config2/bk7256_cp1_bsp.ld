@@ -9,8 +9,6 @@ SECTIONS
 	. = ALIGN(ALIGNOF(.nds_vector));
 	.nds_vector 	: { KEEP(*(.nds_vector )) KEEP(*(SORT(.nds_vector.* ))) }
 	. = ALIGN(8);
-	. = ALIGN(ALIGNOF(.nds_init));
-	.nds_init 	: { KEEP(*(.nds_init )) } = 0x0100
 	. = ALIGN(ALIGNOF(.interp));
 	.interp 	: { *(.interp ) }
 	. = ALIGN(ALIGNOF(.note.gnu.build-id));
@@ -69,8 +67,6 @@ SECTIONS
 	.rela.plt 	: { *(.rela.plt ) }
 	. = ALIGN(ALIGNOF(.init));
 	.init 	: { KEEP(*(.init )) }
-	. = ALIGN(ALIGNOF(.plt));
-	.plt 	: { *(.plt ) }
 	. = ALIGN(ALIGNOF(.text));
 	.text 	: { *(.text .stub .text.* .gnu.linkonce.t.* ) KEEP(*(.text.*personality* )) *(.gnu.warning ) . = ALIGN(4); } = 0x0100
 	. = ALIGN(ALIGNOF(.fini));

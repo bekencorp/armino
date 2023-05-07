@@ -6,6 +6,7 @@ if(CONFIG_LITTLEFS)
 	list(APPEND srcs
 		"lfs.c"
 		"lfs_util.c"
+		"lfs_flashbd.c"
 		)
 endif()
 

@@ -44,6 +44,14 @@ Rename this file to lodepng.cpp to use it for C++, or to lodepng.c to use it for
 #pragma warning( disable : 4996 ) /*VS does not like fopen, but fopen_s is not standard C so unusable here*/
 #endif /*_MSC_VER */
 
+#ifdef LV_PNG_USE_PSRAM
+#include <driver/psram.h>
+#endif
+
+#if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
+#include "cache.h"
+#endif
+
 const char* LODEPNG_VERSION_STRING = "20201017";
 
 /*
@@ -86,6 +94,22 @@ static void* lodepng_realloc(void* ptr, size_t new_size) {
   return lv_mem_realloc(ptr, new_size);
 }
 
+#if LV_PNG_USE_PSRAM
+static void* lodepng_psram_malloc(size_t size) {
+#ifdef LODEPNG_PSRAM_MAX_ALLOC
+  if(size > LODEPNG_PSRAM_MAX_ALLOC) return 0;
+#endif
+  return lv_psram_mem_alloc(size);
+}
+
+static void* lodepng_psram_realloc(void* ptr, size_t new_size) {
+#ifdef LODEPNG_PSRAM_MAX_ALLOC
+  if(new_size > LODEPNG_PSRAM_MAX_ALLOC) return 0;
+#endif
+  return lv_psram_mem_realloc(ptr, new_size);
+}
+#endif
+
 static void lodepng_free(void* ptr) {
   lv_mem_free(ptr);
 }
@@ -93,6 +117,10 @@ static void lodepng_free(void* ptr) {
 /* TODO: support giving additional void* payload to the custom allocators */
 void* lodepng_malloc(size_t size);
 void* lodepng_realloc(void* ptr, size_t new_size);
+#if LV_PNG_USE_PSRAM
+void* lodepng_psram_malloc(size_t size);
+void* lodepng_psram_realloc(void* ptr, size_t new_size);
+#endif
 void lodepng_free(void* ptr);
 #endif /*LODEPNG_COMPILE_ALLOCATORS*/
 
@@ -241,6 +269,23 @@ static unsigned uivector_resize(uivector* p, size_t size) {
   return 1; /*success*/
 }
 
+#if LV_PNG_USE_PSRAM
+static unsigned uivector_psram_resize(uivector* p, size_t size) {
+  size_t allocsize = size * sizeof(unsigned);
+  if(allocsize > p->allocsize) {
+    size_t newsize = allocsize + (p->allocsize >> 1u);
+    void* data = lodepng_psram_realloc(p->data, newsize);
+    if(data) {
+      p->allocsize = newsize;
+      p->data = (unsigned*)data;
+    }
+    else return 0; /*error: not enough memory*/
+  }
+  p->size = size;
+  return 1; /*success*/
+}
+#endif
+
 static void uivector_init(uivector* p) {
   p->data = NULL;
   p->size = p->allocsize = 0;
@@ -278,6 +323,22 @@ static unsigned ucvector_resize(ucvector* p, size_t size) {
   p->size = size;
   return 1; /*success*/
 }
+
+#if LV_PNG_USE_PSRAM
+static unsigned ucvector_psram_resize(ucvector* p, size_t size) {
+  if(size > p->allocsize) {
+    size_t newsize = size + (p->allocsize >> 1u);
+    void* data = lodepng_psram_realloc(p->data, newsize);
+    if(data) {
+      p->allocsize = newsize;
+      p->data = (unsigned char*)data;
+    }
+    else return 0; /*error: not enough memory*/
+  }
+  p->size = size;
+  return 1; /*success*/
+}
+#endif
 
 static ucvector ucvector_init(unsigned char* buffer, size_t size) {
   ucvector v;
@@ -369,15 +430,85 @@ static unsigned lodepng_buffer_file(unsigned char* out, size_t size, const char*
     return 0;
 }
 
+#if LV_PNG_USE_PSRAM
+static unsigned lodepng_psram_buffer_file(unsigned char* out, size_t size, const char* filename)
+{
+    lv_fs_file_t f;
+    uint32_t br;
+    size_t once_size = 1024 * 10;
+    size_t rdtotal_size = 0;
+    size_t remain_size = 0;
+    uint32_t *paddr = NULL;
+    paddr = (uint32_t *)out;
+
+    unsigned char *sram_buffer = (unsigned char*)lodepng_malloc(once_size);
+    if(!sram_buffer) return 83;
+
+    remain_size = size % once_size;
+
+    lv_fs_res_t res = lv_fs_open(&f, filename, LV_FS_MODE_RD);
+    if(res != LV_FS_RES_OK) {
+		lodepng_free(sram_buffer);
+		return 78;
+    }
+
+	while(1) {
+		if (remain_size == (size - rdtotal_size)) {
+			once_size = remain_size;
+		}
+
+		res = lv_fs_read(&f, sram_buffer, once_size, &br);
+		if((res != LV_FS_RES_OK) || (br != once_size)) {
+			lodepng_free(sram_buffer);
+			lv_fs_close(&f);
+			return 78;
+		}
+
+		if (once_size == remain_size) {
+			if (br & 0x3) {
+				br = ((br >> 2) + 1) << 2;
+			}
+			os_memcpy_word(paddr, (uint32_t *)sram_buffer, br);
+		} else {
+			os_memcpy_word(paddr, (uint32_t *)sram_buffer, once_size);
+			paddr += (once_size >> 2);
+		}
+
+		rdtotal_size += once_size;
+		if (rdtotal_size == size) {
+			break;
+		}
+	}
+	lodepng_free(sram_buffer);
+	lv_fs_close(&f);
+
+    return 0;
+}
+#endif
+
 unsigned lodepng_load_file(unsigned char** out, size_t* outsize, const char* filename) {
   long size = lodepng_filesize(filename);
   if(size < 0) return 78;
   *outsize = (size_t)size;
 
+#if LV_PNG_USE_PSRAM
+  *out = (unsigned char*)lodepng_psram_malloc((size_t)size);
+#else
   *out = (unsigned char*)lodepng_malloc((size_t)size);
+#endif
+
   if(!(*out) && size > 0) return 83; /*the above malloc failed*/
 
+#if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
+  *out = *out + 0x4000000;
+  flush_dcache(*out, size);
+#endif
+
+#if LV_PNG_USE_PSRAM
+  return lodepng_psram_buffer_file(*out, (size_t)size, filename);
+#else
   return lodepng_buffer_file(*out, (size_t)size, filename);
+#endif
 }
 
 /*write given buffer to the file, overwriting the file, it doesn't append to it.*/
@@ -1265,6 +1396,14 @@ static unsigned inflateHuffmanBlock(ucvector* out, LodePNGBitReader* reader,
   HuffmanTree tree_ll; /*the huffman tree for literal and length codes*/
   HuffmanTree tree_d; /*the huffman tree for distance codes*/
 
+  unsigned char *sram_buffer = lodepng_malloc(LAST_LENGTH_CODE_INDEX);
+  if (sram_buffer == NULL) {
+    os_printf("inflateHuffmanBlock sram buffer malloc fail\n");
+    return 83;
+  }
+  unsigned char *tmp1 = NULL;
+  unsigned char *tmp2 = NULL;
+
   HuffmanTree_init(&tree_ll);
   HuffmanTree_init(&tree_d);
 
@@ -1277,8 +1416,13 @@ static unsigned inflateHuffmanBlock(ucvector* out, LodePNGBitReader* reader,
     ensureBits25(reader, 20); /* up to 15 for the huffman symbol, up to 5 for the length extra bits */
     code_ll = huffmanDecodeSymbol(reader, &tree_ll);
     if(code_ll <= 255) /*literal symbol*/ {
+#if LV_PNG_USE_PSRAM
+      if(!ucvector_psram_resize(out, out->size + 1)) ERROR_BREAK(83 /*alloc fail*/);
+	  bk_psram_byte_write(&(out->data[out->size - 1]), (unsigned char)code_ll);
+#else
       if(!ucvector_resize(out, out->size + 1)) ERROR_BREAK(83 /*alloc fail*/);
       out->data[out->size - 1] = (unsigned char)code_ll;
+#endif
     } else if(code_ll >= FIRST_LENGTH_CODE_INDEX && code_ll <= LAST_LENGTH_CODE_INDEX) /*length code*/ {
       unsigned code_d, distance;
       unsigned numextrabits_l, numextrabits_d; /*extra bits for length and distance*/
@@ -1318,16 +1462,38 @@ static unsigned inflateHuffmanBlock(ucvector* out, LodePNGBitReader* reader,
       if(distance > start) ERROR_BREAK(52); /*too long backward distance*/
       backward = start - distance;
 
+#if LV_PNG_USE_PSRAM
+      if(!ucvector_psram_resize(out, out->size + length)) ERROR_BREAK(83 /*alloc fail*/);
+#else
       if(!ucvector_resize(out, out->size + length)) ERROR_BREAK(83 /*alloc fail*/);
+#endif
+
       if(distance < length) {
         size_t forward;
+#if LV_PNG_USE_PSRAM
+        bk_psram_word_memcpy(sram_buffer, out->data + backward, length + distance);
+        lodepng_memcpy(sram_buffer + distance, sram_buffer, distance);
+        start += distance;
+        tmp1 = sram_buffer;
+        tmp2 = sram_buffer + start - backward;
+        for(forward = distance; forward < length; ++forward) {
+          *tmp2++ = *tmp1++;
+        }
+        bk_psram_word_memcpy(&out->data[backward], sram_buffer, length + distance);
+
+#else
         lodepng_memcpy(out->data + start, out->data + backward, distance);
         start += distance;
         for(forward = distance; forward < length; ++forward) {
           out->data[start++] = out->data[backward++];
         }
+#endif
       } else {
-        lodepng_memcpy(out->data + start, out->data + backward, length);
+#if LV_PNG_USE_PSRAM
+          bk_psram_word_memcpy(out->data + start, out->data + backward, length);
+#else
+          lodepng_memcpy(out->data + start, out->data + backward, length);
+#endif
       }
     } else if(code_ll == 256) {
       break; /*end code, break the loop*/
@@ -1348,6 +1514,8 @@ static unsigned inflateHuffmanBlock(ucvector* out, LodePNGBitReader* reader,
 
   HuffmanTree_cleanup(&tree_ll);
   HuffmanTree_cleanup(&tree_d);
+
+  lodepng_free(sram_buffer);
 
   return error;
 }
@@ -1371,12 +1539,20 @@ static unsigned inflateNoCompression(ucvector* out, LodePNGBitReader* reader,
     return 21; /*error: NLEN is not one's complement of LEN*/
   }
 
+#if LV_PNG_USE_PSRAM
+  if(!ucvector_psram_resize(out, out->size + LEN)) return 83; /*alloc fail*/
+#else
   if(!ucvector_resize(out, out->size + LEN)) return 83; /*alloc fail*/
+#endif
 
   /*read the literal data: LEN bytes are now stored in the out buffer*/
   if(bytepos + LEN > size) return 23; /*error: reading outside of in buffer*/
-
+#if LV_PNG_USE_PSRAM
+  bk_psram_word_memcpy(out->data + out->size - LEN, (void *)(reader->data + bytepos), LEN);
+#else
   lodepng_memcpy(out->data + out->size - LEN, reader->data + bytepos, LEN);
+#endif
+
   bytepos += LEN;
 
   reader->bp = bytepos << 3u;
@@ -2224,7 +2400,7 @@ unsigned lodepng_zlib_decompress(unsigned char** out, size_t* outsize, const uns
 /*expected_size is expected output size, to avoid intermediate allocations. Set to 0 if not known. */
 static unsigned zlib_decompress(unsigned char** out, size_t* outsize, size_t expected_size,
                                 const unsigned char* in, size_t insize, const LodePNGDecompressSettings* settings) {
-  unsigned error;
+  unsigned error = 0;
   if(settings->custom_zlib) {
     error = settings->custom_zlib(out, outsize, in, insize, settings);
     if(error) {
@@ -2237,7 +2413,11 @@ static unsigned zlib_decompress(unsigned char** out, size_t* outsize, size_t exp
     ucvector v = ucvector_init(*out, *outsize);
     if(expected_size) {
       /*reserve the memory to avoid intermediate reallocations*/
+#if LV_PNG_USE_PSRAM
+      ucvector_psram_resize(&v, *outsize + expected_size);
+#else
       ucvector_resize(&v, *outsize + expected_size);
+#endif
       v.size = *outsize;
     }
     error = lodepng_zlib_decompressv(&v, in, insize, settings);
@@ -2453,8 +2633,20 @@ static unsigned readBitsFromReversedStream(size_t* bitpointer, const unsigned ch
 
 static void setBitOfReversedStream(size_t* bitpointer, unsigned char* bitstream, unsigned char bit) {
   /*the current bit in bitstream may be 0 or 1 for this to work*/
+#if LV_PNG_USE_PSRAM
+  unsigned char temp_value = 0;
+  unsigned char *addr = &bitstream[(*bitpointer) >> 3u];
+  if (bit == 0) {
+    temp_value = bitstream[(*bitpointer) >> 3u] & (unsigned char)(~(1u << (7u - ((*bitpointer) & 7u))));
+  } else {
+    temp_value = bitstream[(*bitpointer) >> 3u] | (1u << (7u - ((*bitpointer) & 7u)));
+}
+
+  bk_psram_byte_write(addr, temp_value);
+#else
   if(bit == 0) bitstream[(*bitpointer) >> 3u] &=  (unsigned char)(~(1u << (7u - ((*bitpointer) & 7u))));
   else         bitstream[(*bitpointer) >> 3u] |=  (1u << (7u - ((*bitpointer) & 7u)));
+#endif
   ++(*bitpointer);
 }
 
@@ -3098,8 +3290,8 @@ static void addColorBits(unsigned char* out, size_t index, unsigned bits, unsign
   unsigned p = index & m;
   in &= (1u << bits) - 1u; /*filter out any other bits of the input value*/
   in = in << (bits * (m - p));
-  if(p == 0) out[index * bits / 8u] = in;
-  else out[index * bits / 8u] |= in;
+  if(p == 0) bk_psram_byte_write(&out[index * bits / 8u], in);
+  else bk_psram_byte_write(&out[index * bits / 8u], out[index * bits / 8u] | in);
 }
 
 typedef struct ColorTree ColorTree;
@@ -3154,7 +3346,8 @@ static unsigned color_tree_add(ColorTree* tree,
                                unsigned char r, unsigned char g, unsigned char b, unsigned char a, unsigned index) {
   int bit;
   for(bit = 0; bit < 8; ++bit) {
-    int i = 8 * ((r >> bit) & 1) + 4 * ((g >> bit) & 1) + 2 * ((b >> bit) & 1) + 1 * ((a >> bit) & 1);
+    int i = (((r >> bit) & 1) << 3) + (((g >> bit) & 1) << 2) + (((b >> bit) & 1) << 1) + ((a >> bit) & 1);
+//    int i = 8 * ((r >> bit) & 1) + 4 * ((g >> bit) & 1) + 2 * ((b >> bit) & 1) + 1 * ((a >> bit) & 1);
     if(!tree->children[i]) {
       tree->children[i] = (ColorTree*)lodepng_malloc(sizeof(ColorTree));
       if(!tree->children[i]) return 83; /*alloc fail*/
@@ -3170,6 +3363,67 @@ static unsigned color_tree_add(ColorTree* tree,
 static unsigned rgba8ToPixel(unsigned char* out, size_t i,
                              const LodePNGColorMode* mode, ColorTree* tree /*for palette*/,
                              unsigned char r, unsigned char g, unsigned char b, unsigned char a) {
+#if LV_PNG_USE_PSRAM
+  if(mode->colortype == LCT_GREY) {
+    unsigned char gray = r; /*((unsigned short)r + g + b) / 3u;*/
+    if(mode->bitdepth == 8) bk_psram_byte_write(&out[i], gray);
+    else if(mode->bitdepth == 16) {
+      bk_psram_byte_write(&out[i << 1], gray);
+      bk_psram_byte_write(&out[(i << 1) + 1], gray);
+    } else {
+      /*take the most significant bits of gray*/
+      gray = ((unsigned)gray >> (8u - mode->bitdepth)) & ((1u << mode->bitdepth) - 1u);
+      addColorBits(out, i, mode->bitdepth, gray);
+    }
+  } else if(mode->colortype == LCT_RGB) {
+    if(mode->bitdepth == 8) {
+      bk_psram_byte_write(&out[i * 3], r);
+      bk_psram_byte_write(&out[i * 3 + 1], g);
+      bk_psram_byte_write(&out[i * 3 + 2], b);
+    } else {
+      bk_psram_byte_write(&out[i * 6], r);
+      bk_psram_byte_write(&out[i * 6 + 1], r);
+      bk_psram_byte_write(&out[i * 6 + 2], g);
+      bk_psram_byte_write(&out[i * 6 + 3], g);
+      bk_psram_byte_write(&out[i * 6 + 4], b);
+      bk_psram_byte_write(&out[i * 6 + 5], b);
+    }
+  } else if(mode->colortype == LCT_PALETTE) {
+    int index = color_tree_get(tree, r, g, b, a);
+    if(index < 0) return 82; /*color not in palette*/
+    if(mode->bitdepth == 8) bk_psram_byte_write(&out[i], index);
+    else addColorBits(out, i, mode->bitdepth, (unsigned)index);
+  } else if(mode->colortype == LCT_GREY_ALPHA) {
+    unsigned char gray = r; /*((unsigned short)r + g + b) / 3u;*/
+    if(mode->bitdepth == 8) {
+      bk_psram_byte_write(&out[i << 1], gray);
+      bk_psram_byte_write(&out[(i << 1) + 1], a);
+    } else if(mode->bitdepth == 16) {
+      bk_psram_byte_write(&out[i << 2], gray);
+      bk_psram_byte_write(&out[(i << 2) + 1], gray);
+      bk_psram_byte_write(&out[(i << 2) + 2], a);
+      bk_psram_byte_write(&out[(i << 2) + 3], a);
+    }
+  } else if(mode->colortype == LCT_RGBA) {
+    if(mode->bitdepth == 8) {
+      bk_psram_byte_write(&out[i << 2], r);
+      bk_psram_byte_write(&out[(i << 2) + 1], g);
+      bk_psram_byte_write(&out[(i << 2) + 2], b);
+      bk_psram_byte_write(&out[(i << 2) + 3], a);
+    } else {
+      bk_psram_byte_write(&out[i << 3], r);
+      bk_psram_byte_write(&out[(i << 3) + 1], r);
+      bk_psram_byte_write(&out[(i << 3) + 2], g);
+      bk_psram_byte_write(&out[(i << 3) + 3], g);
+      bk_psram_byte_write(&out[(i << 3) + 4], b);
+      bk_psram_byte_write(&out[(i << 3) + 5], b);
+      bk_psram_byte_write(&out[(i << 3) + 6], a);
+      bk_psram_byte_write(&out[(i << 3) + 7], a);
+    }
+  }
+
+#else
+
   if(mode->colortype == LCT_GREY) {
     unsigned char gray = r; /*((unsigned short)r + g + b) / 3u;*/
     if(mode->bitdepth == 8) out[i] = gray;
@@ -3216,6 +3470,7 @@ static unsigned rgba8ToPixel(unsigned char* out, size_t i,
       out[i * 8 + 6] = out[i * 8 + 7] = a;
     }
   }
+#endif
 
   return 0; /*no error*/
 }
@@ -3224,6 +3479,35 @@ static unsigned rgba8ToPixel(unsigned char* out, size_t i,
 static void rgba16ToPixel(unsigned char* out, size_t i,
                          const LodePNGColorMode* mode,
                          unsigned short r, unsigned short g, unsigned short b, unsigned short a) {
+#if LV_PNG_USE_PSRAM
+  if(mode->colortype == LCT_GREY) {
+    unsigned short gray = r; /*((unsigned)r + g + b) / 3u;*/
+    bk_psram_byte_write(&out[i << 1], (gray >> 8) & 255);
+    bk_psram_byte_write(&out[(i << 1) + 1], gray & 255);
+  } else if(mode->colortype == LCT_RGB) {
+    bk_psram_byte_write(&out[i * 6 + 0], (r >> 8) & 255);
+    bk_psram_byte_write(&out[i * 6 + 1], r & 255);
+    bk_psram_byte_write(&out[i * 6 + 2], (g >> 8) & 255);
+    bk_psram_byte_write(&out[i * 6 + 3], g & 255);
+    bk_psram_byte_write(&out[i * 6 + 4], (b >> 8) & 255);
+    bk_psram_byte_write(&out[i * 6 + 5], b & 255);
+  } else if (mode->colortype == LCT_GREY_ALPHA) {
+    unsigned short gray = r; /*((unsigned)r + g + b) / 3u;*/
+    bk_psram_byte_write(&out[i << 2], (gray >> 8) & 255);
+    bk_psram_byte_write(&out[(i << 2) + 1], gray & 255);
+    bk_psram_byte_write(&out[(i << 2) + 2], (a >> 8) & 255);
+    bk_psram_byte_write(&out[(i << 2) + 3], a & 255);
+  } else if(mode->colortype == LCT_RGBA) {
+    bk_psram_byte_write(&out[(i << 3) + 0], (r >> 8) & 255);
+    bk_psram_byte_write(&out[(i << 3) + 1], r & 255);
+    bk_psram_byte_write(&out[(i << 3) + 2], (g >> 8) & 255);
+    bk_psram_byte_write(&out[(i << 3) + 3], g & 255);
+    bk_psram_byte_write(&out[(i << 3) + 4], (b >> 8) & 255);
+    bk_psram_byte_write(&out[(i << 3) + 5], b & 255);
+    bk_psram_byte_write(&out[(i << 3) + 6], (a >> 8) & 255);
+    bk_psram_byte_write(&out[(i << 3) + 7], a & 255);
+  }
+#else
   if(mode->colortype == LCT_GREY) {
     unsigned short gray = r; /*((unsigned)r + g + b) / 3u;*/
     out[i * 2 + 0] = (gray >> 8) & 255;
@@ -3251,6 +3535,7 @@ static void rgba16ToPixel(unsigned char* out, size_t i,
     out[i * 8 + 6] = (a >> 8) & 255;
     out[i * 8 + 7] = a & 255;
   }
+#endif
 }
 
 /*Get RGBA8 color of pixel with index i (y * width + x) from the raw image with given color type.*/
@@ -3333,6 +3618,91 @@ static void getPixelColorsRGBA8(unsigned char* LODEPNG_RESTRICT buffer, size_t n
                                 const LodePNGColorMode* mode) {
   unsigned num_channels = 4;
   size_t i;
+
+#if LV_PNG_USE_PSRAM
+  unsigned char temp_value = 0;
+
+  if(mode->colortype == LCT_GREY) {
+    if(mode->bitdepth == 8) {
+      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+        *(uint32_t *)buffer = in[i] | in[i] << 8 | in[i] << 16 | 255 << 24;
+      }
+      if(mode->key_defined) {
+        buffer -= numpixels * num_channels;
+        for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+          if(buffer[0] == mode->key_r) bk_psram_byte_write(&buffer[3], 0);
+        }
+      }
+    } else if(mode->bitdepth == 16) {
+      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+        temp_value = mode->key_defined && 256U * in[i << 1] + in[(i << 1) + 1] == mode->key_r ? 0 : 255;
+        *(uint32_t *)buffer = in[i << 1] | in[i << 2] << 8 | in[i << 1] << 16 | temp_value << 24;
+      }
+    } else {
+      unsigned highest = ((1U << mode->bitdepth) - 1U); /*highest possible value for this bit depth*/
+      size_t j = 0;
+      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+        unsigned value = readBitsFromReversedStream(&j, in, mode->bitdepth);
+        temp_value = mode->key_defined && value == mode->key_r ? 0 : 255;
+        *(uint32_t *)buffer = (value * 255) / highest | ((value * 255) / highest) << 8 | ((value * 255) / highest) << 16 | temp_value << 24;
+      }
+    }
+  } else if(mode->colortype == LCT_RGB) {
+    if(mode->bitdepth == 8) {
+      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+        bk_psram_word_memcpy(buffer, (void *)&in[i * 3], 3);
+        bk_psram_byte_write(&buffer[3], 255);
+      }
+      if(mode->key_defined) {
+        buffer -= numpixels * num_channels;
+        for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+          if(buffer[0] == mode->key_r && buffer[1]== mode->key_g && buffer[2] == mode->key_b) bk_psram_byte_write(&buffer[3], 0);
+        }
+      }
+     } else {
+        for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+          temp_value = mode->key_defined
+             && 256U * in[i * 6 + 0] + in[i * 6 + 1] == mode->key_r
+             && 256U * in[i * 6 + 2] + in[i * 6 + 3] == mode->key_g
+             && 256U * in[i * 6 + 4] + in[i * 6 + 5] == mode->key_b ? 0 : 255;
+          *(uint32_t *)buffer = in[i * 6 + 0] | (in[i * 6 + 2]) << 8 | (in[i * 6 + 4]) << 16 | temp_value << 24;
+       }
+      }
+    } else if(mode->colortype == LCT_PALETTE) {
+      if(mode->bitdepth == 8) {
+        for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+          unsigned index = in[i];
+          /*out of bounds of palette not checked: see lodepng_color_mode_alloc_palette.*/
+          bk_psram_word_memcpy(buffer, &mode->palette[index << 2], 4);
+        }
+      } else {
+        size_t j = 0;
+        for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+          unsigned index = readBitsFromReversedStream(&j, in, mode->bitdepth);
+          /*out of bounds of palette not checked: see lodepng_color_mode_alloc_palette.*/
+          bk_psram_word_memcpy(buffer, &mode->palette[index << 2], 4);
+        }
+      }
+  } else if(mode->colortype == LCT_GREY_ALPHA) {
+      if(mode->bitdepth == 8) {
+        for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+          *(uint32_t *)buffer = in[i << 1] | in[i << 1] << 8 | in[i << 1] << 16 | in[(i << 1) + 1] << 24;
+        }
+      } else {
+        for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+          *(uint32_t *)buffer = in[i << 2] | in[i << 2] << 8 | in[i << 2] << 16 | in[(i << 2) + 2] << 24;
+        }
+      }
+  } else if(mode->colortype == LCT_RGBA) {
+      if(mode->bitdepth == 8) {
+        bk_psram_word_memcpy(buffer, (void *)in, numpixels << 2);
+      } else {
+        for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+          *(uint32_t *)buffer = in[i << 3] | in[(i << 3) + 2] << 8 | in[(i << 3) + 4] << 16 | in[(i << 3) + 6] << 24;
+        }
+      }
+  }
+#else
   if(mode->colortype == LCT_GREY) {
     if(mode->bitdepth == 8) {
       for(i = 0; i != numpixels; ++i, buffer += num_channels) {
@@ -3421,6 +3791,7 @@ static void getPixelColorsRGBA8(unsigned char* LODEPNG_RESTRICT buffer, size_t n
       }
     }
   }
+#endif
 }
 
 /*Similar to getPixelColorsRGBA8, but with 3-channel RGB output.*/
@@ -3429,6 +3800,84 @@ static void getPixelColorsRGB8(unsigned char* LODEPNG_RESTRICT buffer, size_t nu
                                const LodePNGColorMode* mode) {
   const unsigned num_channels = 3;
   size_t i;
+
+#if LV_PNG_USE_PSRAM
+  if(mode->colortype == LCT_GREY) {
+    if(mode->bitdepth == 8) {
+      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+        bk_psram_byte_write(&buffer[0], in[i]);
+        bk_psram_byte_write(&buffer[1], in[i]);
+        bk_psram_byte_write(&buffer[2], in[i]);
+      }
+    } else if(mode->bitdepth == 16) {
+      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+         bk_psram_byte_write(&buffer[0], in[i << 1]);
+         bk_psram_byte_write(&buffer[1], in[i << 1]);
+         bk_psram_byte_write(&buffer[2], in[i << 1]);
+      }
+    } else {
+      unsigned highest = ((1U << mode->bitdepth) - 1U); /*highest possible value for this bit depth*/
+      size_t j = 0;
+      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+        unsigned value = readBitsFromReversedStream(&j, in, mode->bitdepth);
+        bk_psram_byte_write(&buffer[0], (value * 255) / highest);
+        bk_psram_byte_write(&buffer[1], (value * 255) / highest);
+        bk_psram_byte_write(&buffer[2], (value * 255) / highest);
+      }
+    }
+  } else if(mode->colortype == LCT_RGB) {
+    if(mode->bitdepth == 8) {
+      lodepng_memcpy(buffer, in, numpixels * 3);
+    } else {
+      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+        bk_psram_byte_write(&buffer[0], in[i * 6 + 0]);
+        bk_psram_byte_write(&buffer[1], in[i * 6 + 2]);
+        bk_psram_byte_write(&buffer[2], in[i * 6 + 4]);
+      }
+    }
+  } else if(mode->colortype == LCT_PALETTE) {
+    if(mode->bitdepth == 8) {
+      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+        unsigned index = in[i];
+        /*out of bounds of palette not checked: see lodepng_color_mode_alloc_palette.*/
+        bk_psram_word_memcpy(buffer, &mode->palette[index << 2], 3);
+      }
+    } else {
+      size_t j = 0;
+      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+        unsigned index = readBitsFromReversedStream(&j, in, mode->bitdepth);
+        /*out of bounds of palette not checked: see lodepng_color_mode_alloc_palette.*/
+        bk_psram_word_memcpy(buffer, &mode->palette[index << 2], 3);
+      }
+    }
+  } else if(mode->colortype == LCT_GREY_ALPHA) {
+    if(mode->bitdepth == 8) {
+      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+        bk_psram_byte_write(&buffer[0], in[i << 1]);
+        bk_psram_byte_write(&buffer[1], in[i << 1]);
+        bk_psram_byte_write(&buffer[2], in[i << 1]);
+      }
+    } else {
+      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+        bk_psram_byte_write(&buffer[0], in[i << 2]);
+        bk_psram_byte_write(&buffer[1], in[i << 2]);
+        bk_psram_byte_write(&buffer[2], in[i << 2]);
+      }
+    }
+  } else if(mode->colortype == LCT_RGBA) {
+    if(mode->bitdepth == 8) {
+      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+        bk_psram_word_memcpy(buffer, (void *)&in[i << 2], 3);
+      }
+    } else {
+      for(i = 0; i != numpixels; ++i, buffer += num_channels) {
+        bk_psram_byte_write(&buffer[0], in[i << 3]);
+        bk_psram_byte_write(&buffer[1], in[(i << 3) + 2]);
+        bk_psram_byte_write(&buffer[2], in[(i << 3) + 4]);
+      }
+    }
+  }
+#else
   if(mode->colortype == LCT_GREY) {
     if(mode->bitdepth == 8) {
       for(i = 0; i != numpixels; ++i, buffer += num_channels) {
@@ -3494,6 +3943,7 @@ static void getPixelColorsRGB8(unsigned char* LODEPNG_RESTRICT buffer, size_t nu
       }
     }
   }
+#endif
 }
 
 /*Get RGBA16 color of pixel with index i (y * width + x) from the raw image with
@@ -3538,7 +3988,11 @@ unsigned lodepng_convert(unsigned char* out, const unsigned char* in,
 
   if(lodepng_color_mode_equal(mode_out, mode_in)) {
     size_t numbytes = lodepng_get_raw_size(w, h, mode_in);
+#if LV_PNG_USE_PSRAM
+    bk_psram_word_memcpy(out, (void *)in, numbytes);
+#else
     lodepng_memcpy(out, in, numbytes);
+#endif
     return 0;
   }
 
@@ -3557,14 +4011,18 @@ unsigned lodepng_convert(unsigned char* out, const unsigned char* in,
       even in case there are duplicate colors in the palette.*/
       if(mode_in->colortype == LCT_PALETTE && mode_in->bitdepth == mode_out->bitdepth) {
         size_t numbytes = lodepng_get_raw_size(w, h, mode_in);
+#if LV_PNG_USE_PSRAM
+        bk_psram_word_memcpy(out, (void *)in, numbytes);
+#else
         lodepng_memcpy(out, in, numbytes);
+#endif
         return 0;
       }
     }
     if(palettesize < palsize) palsize = palettesize;
     color_tree_init(&tree);
     for(i = 0; i != palsize; ++i) {
-      const unsigned char* p = &palette[i * 4];
+      const unsigned char* p = &palette[i << 2];
       error = color_tree_add(&tree, p[0], p[1], p[2], p[3], (unsigned)i);
       if(error) break;
     }
@@ -4113,6 +4571,145 @@ static unsigned unfilterScanline(unsigned char* recon, const unsigned char* scan
   */
 
   size_t i;
+
+#if 0
+  unsigned char temp_value = 0;
+  switch(filterType) {
+	case 0:
+	  for (i = 0; i != length; ++i) {
+		bk_psram_byte_write(&recon[i], scanline[i]);
+	  }
+	  break;
+
+	case 1:
+	  for(i = 0; i != bytewidth; ++i) {
+		bk_psram_byte_write(&recon[i], scanline[i]);
+	  }
+
+	  for(i = bytewidth; i < length; ++i) {
+	    temp_value = scanline[i] + recon[i - bytewidth];
+		bk_psram_byte_write(&recon[i], temp_value);
+	  }
+	  break;
+
+	case 2:
+	  if(precon) {
+		for(i = 0; i != length; ++i) {
+		  temp_value = scanline[i] + precon[i];
+		  bk_psram_byte_write(&recon[i], temp_value);
+		}
+	  } else {
+		for (i = 0; i != length; ++i) {
+		  bk_psram_byte_write(&recon[i], scanline[i]);
+		}
+	  }
+	  break;
+
+	case 3:
+	  if(precon) {
+		for(i = 0; i != bytewidth; ++i) {
+		  temp_value = scanline[i] + (precon[i] >> 1u);
+		  bk_psram_byte_write(&recon[i], temp_value);
+		}
+
+		for(i = bytewidth; i < length; ++i) {
+		  temp_value = scanline[i] + ((recon[i - bytewidth] + precon[i]) >> 1u);
+		  bk_psram_byte_write(&recon[i], temp_value);
+		}
+	  } else {
+		for(i = 0; i != bytewidth; ++i) {
+		  bk_psram_byte_write(&recon[i], scanline[i]);
+		}
+
+		for(i = bytewidth; i < length; ++i) {
+		  temp_value = scanline[i] + (recon[i - bytewidth] >> 1u);
+		  bk_psram_byte_write(&recon[i], temp_value);
+		}
+	  }
+	  break;
+
+	  case 4:
+	    if(precon) {
+	      for(i = 0; i != bytewidth; ++i) {
+		    /*paethPredictor(0, precon[i], 0) is always precon[i]*/
+			temp_value = scanline[i] + precon[i];
+			bk_psram_byte_write(&recon[i], temp_value);
+		  }
+
+		  /* Unroll independent paths of the paeth predictor. A 6x and 8x version would also be possible but that
+		  adds too much code. Whether this actually speeds anything up at all depends on compiler and settings. */
+		if(bytewidth >= 4) {
+		  for(; i + 3 < length; i += 4) {
+		    size_t j = i - bytewidth;
+			unsigned char s0 = scanline[i + 0], s1 = scanline[i + 1], s2 = scanline[i + 2], s3 = scanline[i + 3];
+			unsigned char r0 = recon[j + 0], r1 = recon[j + 1], r2 = recon[j + 2], r3 = recon[j + 3];
+			unsigned char p0 = precon[i + 0], p1 = precon[i + 1], p2 = precon[i + 2], p3 = precon[i + 3];
+			unsigned char q0 = precon[j + 0], q1 = precon[j + 1], q2 = precon[j + 2], q3 = precon[j + 3];
+
+			temp_value = s0 + paethPredictor(r0, p0, q0);
+			bk_psram_byte_write(&recon[i], temp_value);
+
+			temp_value = s1 + paethPredictor(r1, p1, q1);
+			bk_psram_byte_write(&recon[i + 1], temp_value);
+
+			temp_value = s2 + paethPredictor(r2, p2, q2);
+			bk_psram_byte_write(&recon[i + 2], temp_value);
+
+			temp_value = s3 + paethPredictor(r3, p3, q3);
+			bk_psram_byte_write(&recon[i + 3], temp_value);
+		  }
+		} else if(bytewidth >= 3) {
+		  for(; i + 2 < length; i += 3) {
+			size_t j = i - bytewidth;
+			unsigned char s0 = scanline[i + 0], s1 = scanline[i + 1], s2 = scanline[i + 2];
+			unsigned char r0 = recon[j + 0], r1 = recon[j + 1], r2 = recon[j + 2];
+			unsigned char p0 = precon[i + 0], p1 = precon[i + 1], p2 = precon[i + 2];
+			unsigned char q0 = precon[j + 0], q1 = precon[j + 1], q2 = precon[j + 2];
+			temp_value = s0 + paethPredictor(r0, p0, q0);
+			bk_psram_byte_write(&recon[i], temp_value);
+
+			temp_value = s1 + paethPredictor(r1, p1, q1);
+			bk_psram_byte_write(&recon[i + 1], temp_value);
+
+			temp_value = s2 + paethPredictor(r2, p2, q2);
+			bk_psram_byte_write(&recon[i + 2], temp_value);
+		  }
+		} else if(bytewidth >= 2) {
+		  for(; i + 1 < length; i += 2) {
+		    size_t j = i - bytewidth;
+			unsigned char s0 = scanline[i + 0], s1 = scanline[i + 1];
+			unsigned char r0 = recon[j + 0], r1 = recon[j + 1];
+			unsigned char p0 = precon[i + 0], p1 = precon[i + 1];
+			unsigned char q0 = precon[j + 0], q1 = precon[j + 1];
+			temp_value = s0 + paethPredictor(r0, p0, q0);
+			bk_psram_byte_write(&recon[i], temp_value);
+
+			temp_value = s1 + paethPredictor(r1, p1, q1);
+			bk_psram_byte_write(&recon[i + 1], temp_value);
+		  }
+		}
+
+		for(; i != length; ++i) {
+		  temp_value = (scanline[i] + paethPredictor(recon[i - bytewidth], precon[i], precon[i - bytewidth]));
+		  bk_psram_byte_write(&recon[i], temp_value);
+		}
+	  } else {
+	    for(i = 0; i != bytewidth; ++i) {
+		  bk_psram_byte_write(&recon[i], scanline[i]);
+		}
+
+		for(i = bytewidth; i < length; ++i) {
+		  /*paethPredictor(recon[i - bytewidth], 0, 0) is always recon[i - bytewidth]*/
+		  temp_value = (scanline[i] + recon[i - bytewidth]);
+		  bk_psram_byte_write(&recon[i], temp_value);
+		}
+	  }
+	    break;
+
+	  default:
+		return 36; /*error: invalid filter type given*/
+  }
+#else
   switch(filterType) {
     case 0:
       for(i = 0; i != length; ++i) recon[i] = scanline[i];
@@ -4195,6 +4792,7 @@ static unsigned unfilterScanline(unsigned char* recon, const unsigned char* scan
       break;
     default: return 36; /*error: invalid filter type given*/
   }
+#endif
   return 0;
 }
 
@@ -4208,12 +4806,46 @@ static unsigned unfilter(unsigned char* out, const unsigned char* in, unsigned w
   */
 
   unsigned y;
-  unsigned char* prevline = 0;
 
   /*bytewidth is used for filtering, is 1 when bpp < 8, number of bytes per pixel otherwise*/
   size_t bytewidth = (bpp + 7u) / 8u;
   /*the width of a scanline in bytes, not including the filter type*/
   size_t linebytes = lodepng_get_raw_size_idat(w, 1, bpp) - 1u;
+
+#if LV_PNG_USE_PSRAM
+  unsigned char *in_tmp = (unsigned char *)lodepng_malloc(linebytes);
+  if (in_tmp == NULL) {
+    os_printf("unfilter in_tmp malloc fail\n");
+    return 83;
+  }
+  unsigned char *out_tmp = (unsigned char *)lodepng_malloc(linebytes);
+  if (out_tmp == NULL) {
+    os_printf("unfilter out_tmp malloc fail\n");
+    return 83;
+  }
+  unsigned char *prevline = (unsigned char *)lodepng_malloc(linebytes);
+  if (prevline == NULL) {
+    os_printf("unfilter prevline malloc fail\n");
+    return 83;
+  }
+
+  for(y = 0; y < h; ++y) {
+    size_t outindex = linebytes * y;
+    size_t inindex = (1 + linebytes) * y; /*the extra filterbyte added to each row*/
+    unsigned char filterType = in[inindex];
+
+    lv_memcpy(in_tmp, &in[inindex + 1], linebytes);
+    CERROR_TRY_RETURN(unfilterScanline(out_tmp, in_tmp, prevline, bytewidth, filterType, linebytes));
+    bk_psram_word_memcpy(&out[outindex], out_tmp, linebytes);
+    lv_memcpy(prevline, out_tmp, linebytes);
+  }
+
+  lodepng_free(in_tmp);
+  lodepng_free(out_tmp);
+  lodepng_free(prevline);
+
+#else
+  unsigned char* prevline = 0;
 
   for(y = 0; y < h; ++y) {
     size_t outindex = linebytes * y;
@@ -4224,6 +4856,7 @@ static unsigned unfilter(unsigned char* out, const unsigned char* in, unsigned w
 
     prevline = &out[outindex];
   }
+#endif
 
   return 0;
 }
@@ -4256,7 +4889,11 @@ static void Adam7_deinterlace(unsigned char* out, const unsigned char* in, unsig
         size_t pixeloutstart = ((ADAM7_IY[i] + (size_t)y * ADAM7_DY[i]) * (size_t)w
                              + ADAM7_IX[i] + (size_t)x * ADAM7_DX[i]) * bytewidth;
         for(b = 0; b < bytewidth; ++b) {
+#if !LV_PNG_USE_PSRAM
           out[pixeloutstart + b] = in[pixelinstart + b];
+#else
+          bk_psram_byte_write(&out[pixeloutstart + b], in[pixelinstart + b]);
+#endif
         }
       }
     }
@@ -4787,8 +5424,18 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
   }
 
   /*the input filesize is a safe upper bound for the sum of idat chunks size*/
+#if LV_PNG_USE_PSRAM
+  idat = (unsigned char*)lodepng_psram_malloc(insize);
+#else
   idat = (unsigned char*)lodepng_malloc(insize);
+#endif
+
   if(!idat) CERROR_RETURN(state->error, 83); /*alloc fail*/
+
+#if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
+  idat = idat + 0x4000000;
+  flush_dcache(idat, insize);
+#endif
 
   chunk = &in[33]; /*first byte of the first chunk after the header*/
 
@@ -4825,7 +5472,12 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
       size_t newsize;
       if(lodepng_addofl(idatsize, chunkLength, &newsize)) CERROR_BREAK(state->error, 95);
       if(newsize > insize) CERROR_BREAK(state->error, 95);
+#if LV_PNG_USE_PSRAM
+      bk_psram_word_memcpy(idat + idatsize, (void *)data, chunkLength);
+#else
       lodepng_memcpy(idat + idatsize, data, chunkLength);
+#endif
+
       idatsize += chunkLength;
 #ifdef LODEPNG_COMPILE_ANCILLARY_CHUNKS
       critical_pos = 3;
@@ -4937,15 +5589,30 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
     state->error = zlib_decompress(&scanlines, &scanlines_size, expected_size, idat, idatsize, &state->decoder.zlibsettings);
   }
   if(!state->error && scanlines_size != expected_size) state->error = 91; /*decompressed size doesn't match prediction*/
+
+#if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
+  lodepng_free(idat - 0x4000000);
+#else
   lodepng_free(idat);
+#endif
 
   if(!state->error) {
     outsize = lodepng_get_raw_size(*w, *h, &state->info_png.color);
+#if LV_PNG_USE_PSRAM
+    *out = (unsigned char*)lodepng_psram_malloc(outsize);
+#else
     *out = (unsigned char*)lodepng_malloc(outsize);
+#endif
+
     if(!*out) state->error = 83; /*alloc fail*/
   }
   if(!state->error) {
+#if LV_PNG_USE_PSRAM
+    os_memset_word((uint32_t *)*out, 0, outsize);
+#else
     lodepng_memset(*out, 0, outsize);
+#endif
+
     state->error = postProcessScanlines(*out, scanlines, *w, *h, &state->info_png);
   }
   lodepng_free(scanlines);
@@ -4977,7 +5644,12 @@ unsigned lodepng_decode(unsigned char** out, unsigned* w, unsigned* h,
     }
 
     outsize = lodepng_get_raw_size(*w, *h, &state->info_raw);
+#if LV_PNG_USE_PSRAM
+    *out = (unsigned char*)lodepng_psram_malloc(outsize);
+#else
     *out = (unsigned char*)lodepng_malloc(outsize);
+#endif
+
     if(!(*out)) {
       state->error = 83; /*alloc fail*/
     }

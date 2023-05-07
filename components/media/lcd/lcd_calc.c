@@ -49,11 +49,13 @@
 #include <driver/pwm.h>
 #include "modules/image_scale.h"
 
+#if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
 #include "cache.h"
+#endif
 
 
 #define TAG "rotate"
-#include "cache.h"
+
 
 #if CONFIG_SLAVE_CORE
 #define MINOOR_DTCM __attribute__((section(".dtcm_sec_data ")))
@@ -119,8 +121,6 @@ MINOOR_DTCM uint16_t block_size;
 MINOOR_DTCM uint8_t rx_block[BLOCK_SIZE];
 MINOOR_ITCM_BSS uint8_t tx_block[BLOCK_SIZE];
 
-
-
 void rotate_complete(frame_buffer_t *frame)
 {
 	media_msg_t msg;
@@ -140,76 +140,7 @@ MINOOR_ITCM void memcpy_word(uint32_t *dst, uint32_t *src, uint32_t size)
 	}
 }
 
-#if 0
-MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
-{
 
-	lcd_info_ptr = (lcd_info_t *)param;
-	uint32_t i, j, k;
-	uint8_t *cp_ptr = NULL;
-	uint16_t src_width, src_height;
-
-	decoder_frame = lcd_info_ptr->decoder_frame;
-	rotate_frame = lcd_info_ptr->rotate_frame;
-
-	src_width = lcd_info_ptr->src_pixel_x;
-	src_height = lcd_info_ptr->src_pixel_y;
-
-	lcd_width = lcd_info_ptr->lcd_pixel_x;
-	lcd_height = lcd_info_ptr->lcd_pixel_y;
-
-#if(1) // cpu1 cache enable 
-	uint8_t *dst_frame_temp = rotate_frame->frame + 0x4000000;
-	uint8_t *src_frame_temp = decoder_frame->frame + 0x4000000;
-
-	flush_dcache(src_frame_temp, JPEG_DEC_FRAME_SIZE);
-	flush_dcache(dst_frame_temp, JPEG_DEC_FRAME_SIZE);
-#endif
-	LOGD("camera %d:%d, lcd %d:%d\n", src_width, src_height, lcd_width, lcd_height);
-
-	if (lcd_width == src_width
-	    && lcd_width == src_width)
-	{
-		LOGD("do not rotate\n");
-		memcpy_word((uint32_t *)(rotate_frame->frame), (uint32_t *)decoder_frame->frame, decoder_frame->length / 4);
-		rotate_complete(rotate_frame);
-		return;
-	}
-
-	for (j = 0; j < (src_height / block_height); j++)
-	{
-
-		for (i = 0; i < (src_width / block_width); i++)
-		{
-			for (k = 0; k < block_height; k++)
-			{
-#if(1) // cpu1 cache enable 
-				cp_ptr = src_frame_temp + i * block_width * 2 + j * block_height * src_width * 2 + k * src_width * 2;
-#else
-				cp_ptr =  decoder_frame->frame  + i * block_width * 2 + j * block_height * src_width * 2 + k * src_width * 2;
-#endif
-				memcpy_word((uint32_t *)(rx_block + block_width * 2 * k), (uint32_t *)cp_ptr, block_width * 2 / 4);
-			}
-
-			vuyy_rotate_degree90(rx_block, tx_block, block_width, block_height);
-
-			for (k = 0; k < block_width; k++)
-			{
-#if(1) // cpu1 cache enable 
-				cp_ptr = dst_frame_temp + (src_height / block_height - j - 1) * block_height * 2 + (i) * block_width * src_height * 2 + k * src_height * 2;
-#else
-				cp_ptr = rotate_frame->frame + (src_height / block_height - j - 1) * block_height * 2 + (i) * block_width * src_height * 2 + k * src_height * 2;
-#endif
-				memcpy_word((uint32_t *)cp_ptr, (uint32_t *)(tx_block + block_height * 2 * k), block_height * 2 / 4);
-			}
-		}
-	}
-
-#if CONFIG_SLAVE_CORE
-	rotate_complete(rotate_frame);
-#endif
-}
-#else
 MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 {
 	register uint32_t i, j, k;
@@ -242,24 +173,29 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 	switch (rotate_frame->fmt)
 	{
 		case PIXEL_FMT_VUYY:
-			func = vuyy_rotate_degree90;
-			rotate_frame->fmt = PIXEL_FMT_YUYV;
 
-//			func = vuyy2rgb_rotate_degree90;
-//			rotate_frame->fmt = PIXEL_FMT_RGB565;
+			if (param == ROTATE_90)
+			{
+				func = vuyy_rotate_degree90;
+			}
+			else
+			{
+				func = vuyy_rotate_degree270;
+			}
+
+			rotate_frame->fmt = PIXEL_FMT_YUYV;
 			break;
 		case PIXEL_FMT_YUYV:
 		default:
 			func = yuyv_rotate_degree90;
 			rotate_frame->fmt = PIXEL_FMT_YUYV;
-
-//			func = yuyv2rgb_rotate_degree90;
-//			rotate_frame->fmt = PIXEL_FMT_RGB565;
 			break;
 	}
 
+#if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
 	flush_dcache(src_frame_temp, JPEG_DEC_FRAME_SIZE);
 	flush_dcache(dst_frame_temp, JPEG_DEC_FRAME_SIZE);
+#endif
 
 	//LOGI("width:-%d-%d, height:%d-%d\r\n", src_width, rotate_frame->height, src_height, rotate_frame->width);
 
@@ -281,9 +217,19 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 
 				for (k = 0; k < block_width; k++)
 				{
-					cp_ptr = dst_frame_temp + (src_height / block_height - j - 1) * block_height * 2 + (i) * block_width * src_height * 2 + k * src_height * 2;
-					memcpy_word((uint32_t *)cp_ptr, (uint32_t *)(tx_block + block_height * 2 * k), block_height * 2 / 4);
+					if (param == ROTATE_90)
+					{
+						cp_ptr = dst_frame_temp + (src_height / block_height - j - 1) * block_height * 2 + (i) * block_width * src_height * 2 + k * src_height * 2;
+						memcpy_word((uint32_t *)cp_ptr, (uint32_t *)(tx_block + block_height * 2 * k), block_height * 2 / 4);
+					}
+					else //270
+					{
+						cp_ptr = dst_frame_temp + (src_width / block_width - 1 - i) * block_width * src_height * 2 + block_height * j * 2 + k * src_height * 2;
+						memcpy_word((uint32_t *)cp_ptr, (uint32_t *)(tx_block + block_height * 2 * k), block_height * 2 / 4);
+					}
 				}
+
+
 			}
 		}
 	}
@@ -318,7 +264,7 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 		}
 	}
 
-	mb_cmd.hdr.cmd = 0x19;
+	mb_cmd.hdr.cmd = EVENT_LCD_ROTATE_MBRSP;
 	mb_cmd.param1 = (uint32_t)decoder_frame;
 	mb_cmd.param2 = (uint32_t)rotate_frame;
 	mb_cmd.param3 = 1;
@@ -328,21 +274,18 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 
 }
 
-#endif
-
-
-
 static void lcd_calc_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 {
 	//LOGI("%s, %08X\n", __func__, cmd_buf->hdr.cmd);
 
-	if (cmd_buf->hdr.cmd == 0x18)
+	if (cmd_buf->hdr.cmd == EVENT_LCD_ROTATE_MBCMD)
 	{
 		decoder_frame = (frame_buffer_t *)cmd_buf->param1;
 		rotate_frame = (frame_buffer_t *)cmd_buf->param2;
 
 		media_msg_t msg;
 		msg.event = EVENT_LCD_ROTATE_RIGHT_CMD;
+		msg.param = cmd_buf->param3;
 		media_send_msg(&msg);
 	}
 }
@@ -366,4 +309,5 @@ void lcd_calc_init(void)
 	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_RX_ISR, lcd_calc_mailbox_rx_isr);
 	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_TX_ISR, lcd_calc_mailbox_tx_isr);
 	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_TX_CMPL_ISR, lcd_calc_mailbox_tx_cmpl_isr);
+	//image_scale_init();
 }

@@ -102,6 +102,8 @@ static int bt_spp_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 static int bt_spp_tx_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static int bt_write_scan_enable_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static int bt_read_scan_enable_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static int bt_a2dp_sink_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static int bt_a2dp_sink_disconnect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #ifdef CONFIG_AUDIO
 static int bt_enable_a2dp_sink_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static int bt_enable_hfp_unit_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -156,14 +158,13 @@ static uint32_t bt_at_event_cb(bt_event_enum_t event, void *param)
             }
             break;
         case BK_DM_BT_EVENT_DISCONNECT:
-            os_printf("BT Disconnected, conn_handle:0x%02x \r\n", (*(uint16_t *)param));
-            if(conn_handle == (*(uint16_t *)param))
             {
-                conn_handle = 0xFF;
-            }
-            if(spp_env.conn_handle == (*(uint16_t *)param))
-            {
-                bt_spp_clear();
+                uint8_t *addr = (uint8_t *)param;
+                os_printf("Disconnected from %x %x %x %x %x %x \r\n",addr[5],addr[4],addr[3],addr[2],addr[1],addr[0]);
+                if (!os_memcmp(addr, spp_env.peer_addr.addr, 6))
+                {
+                    bt_spp_clear();
+                }
             }
             break;
 #if 0
@@ -175,7 +176,8 @@ static uint32_t bt_at_event_cb(bt_event_enum_t event, void *param)
 #endif
         case BK_DM_BT_EVENT_CONNECTION_COMPLETE:
             {
-                os_printf("BT Event CONNECTION Complete, conn_handle:0x%02x \r\n", (*(uint16_t *)param));
+                uint8_t *addr = (uint8_t *)param;
+                os_printf("Connected to %02x:%02x:%02x:%02x:%02x:%02x\n",addr[5],addr[4],addr[3],addr[2],addr[1],addr[0]);
             }
             break;
         case BK_DM_BT_EVENT_LINKKEY_NOTIFY:
@@ -289,6 +291,8 @@ const at_command_t bt_at_cmd_table[] = {
     {9, "SPP_TX", 1, "spp_tx", bt_spp_tx_handle},
     {10, "SPP_INIT", 0, "spp_init", bt_spp_init_handle},
     {11, "SPP_THROUGH_TEST", 1, "spp_through_test", bt_spp_through_test_handle},
+    {12, "A2DP_SINK_CONNECT", 1, "a2dp sink connect", bt_a2dp_sink_connect_handle},
+    {13, "A2DP_SINK_DISCONNECT", 1, "a2dp sink disconnect", bt_a2dp_sink_disconnect_handle},
 };
 
 static void bt_spp_clear()
@@ -1009,608 +1013,13 @@ error:
 }
 
 #ifdef CONFIG_AUDIO
-
-#include <driver/sbc_types.h>
-#include <driver/aud_types.h>
-#include <driver/aud.h>
-#include <components/aud_intf.h>
-#include <driver/sbc.h>
-#include "modules/aac_decoder.h"
-
-
-typedef struct
-{
-    uint8_t type;
-    uint16_t len;
-    char *data;
-} bt_audio_demo_msg_t;
-
-enum
-{
-    BT_AUDIO_MSG_NULL = 0,
-    BT_AUDIO_D2DP_START_MSG = 1,
-    BT_AUDIO_D2DP_STOP_MSG = 2,
-    BT_AUDIO_D2DP_DATA_IND_MSG = 3,
-    BT_AUDIO_VOICE_START_MSG = 4,
-    BT_AUDIO_VOICE_STOP_MSG = 5,
-    BT_AUDIO_VOICE_IND_MSG = 6,
-};
-
-#define CODEC_AUDIO_SBC                      0x00U
-#define CODEC_AUDIO_AAC                      0x02U
-
-#define CODEC_VOICE_CVSD                     0x00U
-#define CODEC_VOICE_MSBC                     0x01U
-
-bt_a2dp_sink_cb_t bt_audio_a2dp_sink_cb;
-bk_a2dp_mcc_t bt_audio_a2dp_codec = {0};
-bt_hfp_unit_cb_t bt_audio_hfp_unit_cb;
-uint8_t bt_audio_hfp_codec = CODEC_VOICE_CVSD;
-
-sbcdecodercontext_t bt_audio_sbc_decoder;
-SbcEncoderContext bt_audio_sbc_encoder;
-beken_queue_t bt_audio_demo_msg_que = NULL;
-beken_thread_t bt_audio_demo_thread_handle = NULL;
-#define BT_AUDIO_DEMO_MSG_COUNT          (30)
-#define SCO_MSBC_SAMPLES_PER_FRAME      120
-#define SCO_CVSD_SAMPLES_PER_FRAME      60
-//#define MSBC_FRAME_BUFFER_MAX_SIZE      60
-static void *aac_decoder = NULL;
-
-uint8_t mic_sco_data[1000]={0};
-uint16_t mic_data_count = 0;
-
-static int bt_audio_mic_data_handler(uint8_t *data, unsigned int len)
-{
-    uint8_t sent_threshold = ((CODEC_VOICE_MSBC == bt_audio_hfp_codec) ? SCO_MSBC_SAMPLES_PER_FRAME*2 : SCO_CVSD_SAMPLES_PER_FRAME*2);
-
-    //os_printf("[send_mic_data_to_air]  %d \r\n",len);
-    os_memcpy(&mic_sco_data[mic_data_count], data, len);
-    mic_data_count += len;
-
-    while (mic_data_count >= sent_threshold)
-    {
-        if (CODEC_VOICE_MSBC == bt_audio_hfp_codec)
-        {
-            int32_t produced = sbc_encoder_encode(&bt_audio_sbc_encoder, (int16_t*)(&mic_sco_data));
-            //os_printf("[send_mic_data_to_air_msbc]  %d \r\n",produced);
-            bk_bt_voice_out_write((uint8_t*)&bt_audio_sbc_encoder.stream[-2], produced+2);
-            //bk_bt_voice_out_write(mic_sco_data, MSBC_FRAME_BUFFER_MAX_SIZE);
-        }
-        else
-        {
-            bk_bt_voice_out_write(mic_sco_data, sent_threshold);
-        }
-
-        mic_data_count -= sent_threshold;
-        os_memmove(mic_sco_data, &mic_sco_data[sent_threshold], mic_data_count);
-    }
-
-    return len;
-}
-
-uint8_t bt_audio_a2dp_convert_to_dac_sample_rate(uint8_t codec_type, uint32_t sample_rate)
-{
-    uint8_t dac_sample_rate = AUD_DAC_SAMP_RATE_44_1K;
-
-    if (CODEC_AUDIO_SBC == codec_type)
-    {
-        switch(sample_rate)
-        {
-            case 16000:
-                dac_sample_rate = AUD_DAC_SAMP_RATE_16K;
-                break;
-
-            case 32000:
-                dac_sample_rate = AUD_DAC_SAMP_RATE_32K;
-                break;
-
-            case 44100:
-                dac_sample_rate = AUD_DAC_SAMP_RATE_44_1K;
-                break;
-
-            case 48000:
-                dac_sample_rate = AUD_DAC_SAMP_RATE_48K;
-                break;
-
-            default:
-                os_printf("Unsupported sbc sample rate %d \r\n", sample_rate);
-                break;
-        }
-    }
-    else if (CODEC_AUDIO_AAC == codec_type)
-    {
-        switch(sample_rate)
-        {
-            case 44100:
-                dac_sample_rate = AUD_DAC_SAMP_RATE_44_1K;
-                break;
-
-            case 48000:
-                dac_sample_rate = AUD_DAC_SAMP_RATE_48K;
-                break;
-
-            default:
-                os_printf("Unsupported aac sample rate %d \r\n", sample_rate);
-                break;
-        }
-    }
-    else
-    {
-        os_printf("%s, Unsupported codec %d \r\n", __func__, codec_type);
-    }
-
-    return dac_sample_rate;
-}
-
-void bt_audio_demo_main(void *arg)
-{
-    while (1) {
-        bk_err_t err;
-        bt_audio_demo_msg_t msg;
-
-        err = rtos_pop_from_queue(&bt_audio_demo_msg_que, &msg, BEKEN_WAIT_FOREVER);
-        if (kNoErr == err)
-        {
-            switch (msg.type) {
-                case BT_AUDIO_D2DP_START_MSG:
-                    {
-                        bk_err_t ret = BK_OK;
-                        bk_a2dp_mcc_t *p_codec_info = (bk_a2dp_mcc_t *)msg.data;
-                        uint8_t dac_sample_rate = 0;
-                        uint16_t frame_size = 0;
-
-                        os_printf("BT_AUDIO_D2DP_START_MSG \r\n");
-
-                        if (CODEC_AUDIO_SBC == p_codec_info->type)
-                        {
-                            dac_sample_rate = bt_audio_a2dp_convert_to_dac_sample_rate(p_codec_info->type, p_codec_info->cie.sbc_codec.sample_rate);
-                            frame_size = p_codec_info->cie.sbc_codec.sample_rate * 20 / 1000 *2 *2;
-                            bk_sbc_decoder_init(&bt_audio_sbc_decoder);
-                        }
-                        else if (CODEC_AUDIO_AAC == p_codec_info->type)
-                        {
-                            dac_sample_rate = bt_audio_a2dp_convert_to_dac_sample_rate(p_codec_info->type, p_codec_info->cie.aac_codec.sample_rate);
-                            frame_size = 4096;
-                            aac_decoder = (void*)(os_malloc(aac_decoder_get_ram_size_without_in_buffer()));
-                            if (!aac_decoder)
-                            {
-                                os_printf("%s, malloc aac_decoder failed!!!\r\n", __func__);
-                            }
-                            else
-                            {
-                                bt_a2dp_aac_decoder_init(aac_decoder, p_codec_info->cie.aac_codec.sample_rate, p_codec_info->cie.aac_codec.channels);
-                            }
-                        }
-                        else
-                        {
-                            os_printf("%s, Unsupported codec %d \r\n", __func__, p_codec_info->type);
-                        }
-
-                        os_printf("dac_sample_rate %d \r\n", dac_sample_rate);
-
-                        aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
-                        aud_intf_spk_setup_t aud_intf_spk_setup = DEFAULT_AUD_INTF_SPK_SETUP_CONFIG();
-                        aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
-
-                        aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
-                        aud_intf_drv_setup.task_config.priority = 3;
-                        aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
-                        aud_intf_drv_setup.aud_intf_tx_mic_data = NULL;
-                        ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
-                        if (ret != BK_ERR_AUD_INTF_OK)
-                        {
-                            os_printf("bk_aud_intf_drv_init fail, ret:%d \r\n", ret);
-                        }
-                        else
-                        {
-                            os_printf("bk_aud_intf_drv_init complete \r\n");
-                        }
-
-                        aud_work_mode = AUD_INTF_WORK_MODE_GENERAL;
-                        ret = bk_aud_intf_set_mode(aud_work_mode);
-                        if (ret != BK_ERR_AUD_INTF_OK)
-                        {
-                            os_printf("bk_aud_intf_set_mode fail, ret:%d \r\n", ret);
-                        }
-                        else
-                        {
-                            os_printf("bk_aud_intf_set_mode complete \r\n");
-                        }
-
-                        aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_DUAL;
-                        aud_intf_spk_setup.samp_rate = dac_sample_rate;
-                        aud_intf_spk_setup.frame_size = frame_size;
-                        aud_intf_spk_setup.spk_gain = 0x2d;
-                        aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
-                        ret = bk_aud_intf_spk_init(&aud_intf_spk_setup);
-                        if (ret != BK_ERR_AUD_INTF_OK)
-                        {
-                            os_printf("bk_aud_intf_spk_init fail, ret:%d \r\n", ret);
-                        }
-                        else
-                        {
-                            os_printf("bk_aud_intf_spk_init complete \r\n");
-                        }
-
-                        ret = bk_aud_intf_spk_start();
-                        if (ret != BK_ERR_AUD_INTF_OK)
-                        {
-                            os_printf("bk_aud_intf_spk_start fail, ret:%d \r\n", ret);
-                        }
-                        else
-                        {
-                            os_printf("bk_aud_intf_spk_start complete \r\n");
-                        }
-
-                        os_free(msg.data);
-                    }
-                    break;
-
-                case BT_AUDIO_D2DP_DATA_IND_MSG:
-                    {
-                        bk_err_t ret = BK_OK;
-                        uint8 *fb = (uint8_t*)msg.data;;
-
-                        if (CODEC_AUDIO_SBC == bt_audio_a2dp_codec.type)
-                        {
-                            fb++;  //skip Number of Frames
-                            uint16_t inlen = msg.len - 1;
-                            uint32 fp = 0;
-
-                            while(fp < inlen)
-                            {
-                                int32_t res = bk_sbc_decoder_frame_decode(&bt_audio_sbc_decoder, fb, inlen);
-                                if (res >= 0) {
-                                    fb += res;
-                                    fp += res;
-                                }
-
-                                ret = bk_aud_intf_write_spk_data((uint8_t*)bt_audio_sbc_decoder.pcm_sample, bt_audio_sbc_decoder.pcm_length*4);
-                                if (ret != BK_OK)
-                                {
-                                    os_printf("write spk data fail \r\n");
-                                }
-                            }
-                        }
-                        else if (CODEC_AUDIO_AAC == bt_audio_a2dp_codec.type)
-                        {
-                            uint8_t *outbuf = NULL;
-                            uint32_t outlen;
-                            uint8_t* inbuf = &fb[9];
-                            uint32_t inlen = 0;
-                            uint8_t  len   = 255;
-
-                            do
-                            {
-                                inlen += len = *inbuf++;
-                            }
-                            while(len == 255);
-
-                            if (aac_decoder && (0 == bt_a2dp_aac_decoder_decode(aac_decoder, inbuf, inlen, &outbuf, &outlen)))
-                            {
-                                ret = bk_aud_intf_write_spk_data(outbuf, outlen);
-                                if (ret != BK_OK)
-                                {
-                                    os_printf("write spk data fail \r\n");
-                                }
-                            }
-                            else
-                            {
-                                os_printf("bt_a2dp_aac_decoder_decode failed!\r\n");
-                            }
-                        }
-                        else
-                        {
-                            os_printf("%s, cannot decode data due to unsupported a2dp codec %d \r\n", __func__, bt_audio_a2dp_codec);
-                        }
-
-                        os_free(msg.data);
-                    }
-                    break;
-
-                case BT_AUDIO_D2DP_STOP_MSG:
-                    {
-                        os_printf("BT_AUDIO_D2DP_STOP_MSG \r\n");
-                        bk_aud_intf_spk_deinit();
-                        bk_aud_intf_drv_deinit();
-                        if (aac_decoder)
-                        {
-                            os_free(aac_decoder);
-                            aac_decoder = NULL;
-                        }
-                    }
-                    break;
-
-                case BT_AUDIO_VOICE_START_MSG:
-                    {
-                        bk_err_t ret = BK_OK;
-
-                        os_printf("BT_AUDIO_VOICE_START_MSG \r\n");
-
-                        aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
-                        aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
-                        aud_intf_voc_setup_t aud_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
-
-                        if (CODEC_VOICE_MSBC == bt_audio_hfp_codec)
-                        {
-                            bk_sbc_decoder_init(&bt_audio_sbc_decoder);
-                            sbc_encoder_init(&bt_audio_sbc_encoder, 16000, 1);
-                            sbc_encoder_ctrl(&bt_audio_sbc_encoder, SBC_ENCODER_CTRL_CMD_SET_MSBC_ENCODE_MODE, (uint32_t)NULL);
-                        }
-
-                        aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
-                        aud_intf_drv_setup.task_config.priority = 3;
-                        aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
-                        aud_intf_drv_setup.aud_intf_tx_mic_data = bt_audio_mic_data_handler;
-                        ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
-                        if (ret != BK_ERR_AUD_INTF_OK) {
-                            os_printf("bk_aud_intf_drv_init fail, ret:%d \r\n", ret);
-                        } else {
-                            os_printf("bk_aud_intf_drv_init complete \r\n");
-                        }
-
-                        aud_work_mode = AUD_INTF_WORK_MODE_VOICE;
-                        ret = bk_aud_intf_set_mode(aud_work_mode);
-                        if (ret != BK_ERR_AUD_INTF_OK) {
-                            os_printf("bk_aud_intf_set_mode fail, ret:%d \r\n", ret);
-                        } else {
-                            os_printf("bk_aud_intf_set_mode complete \r\n");
-                        }
-
-                        aud_voc_setup.aec_enable = true;
-                        aud_voc_setup.samp_rate = ((CODEC_VOICE_MSBC == bt_audio_hfp_codec) ? AUD_INTF_VOC_SAMP_RATE_16K : AUD_INTF_VOC_SAMP_RATE_8K);
-                        aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_PCM;
-                        aud_voc_setup.spk_mode = AUD_DAC_WORK_MODE_SIGNAL_END;//AUD_DAC_WORK_MODE_DIFFEN;
-
-                        aud_voc_setup.mic_gain = 0x2d;
-                        aud_voc_setup.spk_gain = 0x2d;
-                        aud_voc_setup.aec_cfg.ec_depth = 20;
-                        aud_voc_setup.aec_cfg.TxRxThr = 30;
-                        aud_voc_setup.aec_cfg.TxRxFlr = 6;
-                        aud_voc_setup.aec_cfg.ns_level = 2;
-                        aud_voc_setup.aec_cfg.ns_para = 1;
-
-                        ret = bk_aud_intf_voc_init(aud_voc_setup);
-                        if (ret != BK_ERR_AUD_INTF_OK)
-                        {
-                            os_printf("bk_aud_intf_voc_init fail, ret:%d\n", ret);
-                            break;
-                        }
-
-                        ret = bk_aud_intf_voc_start();
-                        if (ret != BK_ERR_AUD_INTF_OK)
-                        {
-                            os_printf("bk_aud_intf_voc_start fail, ret:%d\n", ret);
-                            break;
-                        }
-
-                        os_printf("hfp audio init ok\r\n");
-                    }
-                    break;
-
-                case BT_AUDIO_VOICE_STOP_MSG:
-                    {
-                        os_printf("BT_AUDIO_VOICE_STOP_MSG \r\n");
-                        bk_aud_intf_voc_deinit();
-                        bk_aud_intf_drv_deinit();
-                    }
-                    break;
-
-                case BT_AUDIO_VOICE_IND_MSG:
-                    {
-                        bk_err_t ret = BK_OK;
-                        uint8 *fb = (uint8_t*)msg.data;
-
-                        //os_printf("len %d, %x %x %x\r\n",msg.len,fb[0], fb[1], fb[2]);
-
-                        if (CODEC_VOICE_MSBC == bt_audio_hfp_codec)
-                        {
-                            fb += 2; //Skip Synchronization Header
-                            ret = bk_sbc_decoder_frame_decode(&bt_audio_sbc_decoder, fb, msg.len -2);
-                            if (ret < 0)
-                            {
-                                os_printf("msbc decode fail, ret:%d\n", ret);
-                            }
-                            else
-                            {
-                                ret = bk_aud_intf_write_spk_data((uint8_t*)bt_audio_sbc_decoder.pcm_sample, SCO_MSBC_SAMPLES_PER_FRAME*2);
-                                if (ret != BK_OK) {
-                                    os_printf("write spk data fail \r\n");
-                                }
-                            }
-                        }
-                        else
-                        {
-                            ret = bk_aud_intf_write_spk_data((uint8_t*)fb, SCO_CVSD_SAMPLES_PER_FRAME*2);
-                            if (ret != BK_OK) {
-                                os_printf("write spk data fail \r\n");
-                            }
-                        }
-
-                        os_free(msg.data);
-                    }
-                    break;
-
-                default:
-                    break;
-            }
-        }
-    }
-
-    rtos_deinit_queue(&bt_audio_demo_msg_que);
-    bt_audio_demo_msg_que = NULL;
-    bt_audio_demo_thread_handle = NULL;
-    rtos_delete_thread(NULL);
-}
-
-int bt_audio_demo_task_init(void)
-{
-    bk_err_t ret = BK_OK;
-    if ((!bt_audio_demo_thread_handle) && (!bt_audio_demo_msg_que))
-    {
-        ret = rtos_init_queue(&bt_audio_demo_msg_que,
-                              "bt_audio_demo_msg_que",
-                              sizeof(bt_audio_demo_msg_t),
-                              BT_AUDIO_DEMO_MSG_COUNT);
-        if (ret != kNoErr) {
-            os_printf("bt_audio demo msg queue failed \r\n");
-            return BK_FAIL;
-        }
-
-        ret = rtos_create_thread(&bt_audio_demo_thread_handle,
-                             BEKEN_DEFAULT_WORKER_PRIORITY,
-                             "bt_audio_demo",
-                             (beken_thread_function_t)bt_audio_demo_main,
-                             4096,
-                             (beken_thread_arg_t)0);
-        if (ret != kNoErr) {
-            os_printf("bt_audio demo task fail \r\n");
-            rtos_deinit_queue(&bt_audio_demo_msg_que);
-            bt_audio_demo_msg_que = NULL;
-            bt_audio_demo_thread_handle = NULL;
-        }
-
-        return kNoErr;
-    }
-    else
-    {
-        return kInProgressErr;
-    }
-}
-
-void bt_audio_media_data_ind(const uint8_t *data, uint16_t data_len)
-{
-    bt_audio_demo_msg_t demo_msg;
-    int rc = -1;
-
-    os_memset(&demo_msg, 0x0, sizeof(bt_audio_demo_msg_t));
-    if (bt_audio_demo_msg_que == NULL)
-        return;
-
-    demo_msg.data = (char *) os_malloc(data_len);
-    if (demo_msg.data == NULL)
-    {
-        os_printf("%s, malloc failed\r\n", __func__);
-        return;
-    }
-
-    os_memcpy(demo_msg.data, data, data_len);
-    demo_msg.type = BT_AUDIO_D2DP_DATA_IND_MSG;
-    demo_msg.len = data_len;
-
-    rc = rtos_push_to_queue(&bt_audio_demo_msg_que, &demo_msg, BEKEN_NO_WAIT);
-    if (kNoErr != rc)
-    {
-        os_printf("%s, send queue failed\r\n",__func__);
-        if (demo_msg.data)
-        {
-            os_free(demo_msg.data);
-        }
-    }
-}
-
-void bt_audio_a2dp_suspend_ind(void)
-{
-    bt_audio_demo_msg_t demo_msg;
-    int rc = -1;
-
-    os_memset(&demo_msg, 0x0, sizeof(bt_audio_demo_msg_t));
-    if (bt_audio_demo_msg_que == NULL)
-        return;
-
-    demo_msg.type = BT_AUDIO_D2DP_STOP_MSG;
-    demo_msg.len = 0;
-
-    rc = rtos_push_to_queue(&bt_audio_demo_msg_que, &demo_msg, BEKEN_NO_WAIT);
-    if (kNoErr != rc)
-    {
-        os_printf("%s, send queue failed\r\n",__func__);
-    }
-}
-
-
-void bt_audio_a2dp_start_ind(bk_a2dp_mcc_t *codec)
-{
-    bt_audio_demo_msg_t demo_msg;
-    int rc = -1;
-
-    os_memset(&demo_msg, 0x0, sizeof(bt_audio_demo_msg_t));
-    if (bt_audio_demo_msg_que == NULL)
-        return;
-
-    demo_msg.data = (char *) os_malloc(sizeof(bk_a2dp_mcc_t));
-    if (demo_msg.data == NULL)
-    {
-        os_printf("%s, malloc failed\r\n", __func__);
-        return;
-    }
-
-    os_memcpy(demo_msg.data, codec, sizeof(bk_a2dp_mcc_t));
-    demo_msg.type = BT_AUDIO_D2DP_START_MSG;
-    demo_msg.len = sizeof(bk_a2dp_mcc_t);
-
-    rc = rtos_push_to_queue(&bt_audio_demo_msg_que, &demo_msg, BEKEN_NO_WAIT);
-    if (kNoErr != rc)
-    {
-        os_printf("%s, send queue failed\r\n",__func__);
-    }
-}
-
-static bk_a2dp_audio_state_t s_audio_state = BK_A2DP_AUDIO_STATE_SUSPEND;
-
-void bk_bt_app_a2dp_cb(bk_a2dp_cb_event_t event, bk_a2dp_cb_param_t *p_param)
-{
-    os_printf("%s event: %d\r\n", __func__, event);
-
-    bk_a2dp_cb_param_t *a2dp = (bk_a2dp_cb_param_t *)(p_param);
-
-    switch (event) {
-    case BK_A2DP_CONNECTION_STATE_EVT:
-        {
-            uint8_t *bda = a2dp->conn_state.remote_bda;
-            os_printf("A2DP connection state: %d, [%02x:%02x:%02x:%02x:%02x:%02x]\r\n",
-                a2dp->conn_state.state, bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
-            if ((BK_A2DP_CONNECTION_STATE_DISCONNECTED == a2dp->conn_state.state) && (BK_A2DP_AUDIO_STATE_STARTED == s_audio_state))
-            {
-                s_audio_state = BK_A2DP_AUDIO_STATE_SUSPEND;
-                bt_audio_a2dp_suspend_ind();
-            }
-        }
-        break;
-    case BK_A2DP_AUDIO_STATE_EVT:
-        {
-            os_printf("A2DP audio state: %d\r\n", a2dp->audio_state.state);
-            if (BK_A2DP_AUDIO_STATE_STARTED == a2dp->audio_state.state)
-            {
-                s_audio_state = a2dp->audio_state.state;
-                bt_audio_a2dp_start_ind(&bt_audio_a2dp_codec);
-            }
-            else if ((BK_A2DP_AUDIO_STATE_SUSPEND == a2dp->audio_state.state) && (BK_A2DP_AUDIO_STATE_STARTED == s_audio_state))
-            {
-                s_audio_state = a2dp->audio_state.state;
-                bt_audio_a2dp_suspend_ind();
-            }
-        }
-        break;
-    case BK_A2DP_AUDIO_CFG_EVT:
-        {
-            bt_audio_a2dp_codec = a2dp->audio_cfg.mcc;
-            os_printf("%s, codec_id %d \r\n", __func__, bt_audio_a2dp_codec.type);
-        }
-        break;
-    default:
-        os_printf("Invalid A2DP event: %d\r\n", event);
-        break;
-    }
-}
-
 static int bt_enable_a2dp_sink_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     PRINT_FUNC;
     char *msg;
     int err = kNoErr;
 
+#if CONFIG_A2DP_SINK_DEMO
     uint8_t aac_supported = 0;
 
     if (argc < 1)
@@ -1635,30 +1044,17 @@ static int bt_enable_a2dp_sink_test_handle(char *pcWriteBuffer, int xWriteBuffer
         goto error;
     }
 
-    bk_bt_gap_set_event_callback(bt_at_event_cb);
-    bk_bt_gap_set_device_class(COD_SOUNDBAR);
-    bk_bt_gap_set_local_name((uint8_t *)LOCAL_NAME, os_strlen(LOCAL_NAME));
-
-    err = bk_bt_gap_set_visibility(BK_BT_CONNECTABLE, BK_BT_DISCOVERABLE);
+    extern int a2dp_sink_demo_init(uint8_t aac_supported);
+    err = a2dp_sink_demo_init(aac_supported);
+#else
+    err = BK_ERR_NOT_SUPPORT;
+#endif
 
     if (!err)
     {
-        bt_audio_demo_task_init();
-
-        err = bk_bt_a2dp_sink_init(aac_supported);
-        bk_bt_a2dp_register_callback(bk_bt_app_a2dp_cb);
-        bk_bt_a2dp_sink_register_data_callback(&bt_audio_media_data_ind);
-
-        if (!err)
-        {
-            msg = AT_CMD_RSP_SUCCEED;
-            os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-            return err;
-        }
-        else
-        {
-            goto error;
-        }
+        msg = AT_CMD_RSP_SUCCEED;
+        os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+        return err;
     }
     else
     {
@@ -1671,87 +1067,13 @@ error:
     return err;
 }
 
-void bt_audio_hfp_unit_voice_data_ind(uint8_t *data, uint16_t data_len)
-{
-    bt_audio_demo_msg_t demo_msg;
-    int rc = -1;
-
-    os_memset(&demo_msg, 0x0, sizeof(bt_audio_demo_msg_t));
-    if (bt_audio_demo_msg_que == NULL)
-        return;
-
-    demo_msg.data = (char *) os_malloc(data_len);
-    if (demo_msg.data == NULL)
-    {
-        os_printf("%s, malloc failed\r\n", __func__);
-        return;
-    }
-
-    os_memcpy(demo_msg.data, data, data_len);
-    demo_msg.type = BT_AUDIO_VOICE_IND_MSG;
-    demo_msg.len = data_len;
-
-    rc = rtos_push_to_queue(&bt_audio_demo_msg_que, &demo_msg, BEKEN_NO_WAIT);
-    if (kNoErr != rc)
-    {
-        os_printf("%s, send queue failed\r\n",__func__);
-        if (demo_msg.data)
-        {
-            os_free(demo_msg.data);
-        }
-    }
-}
-
-void bt_audio_sco_connected(void)
-{
-    bt_audio_demo_msg_t demo_msg;
-    int rc = -1;
-
-    os_memset(&demo_msg, 0x0, sizeof(bt_audio_demo_msg_t));
-    if (bt_audio_demo_msg_que == NULL)
-        return;
-
-    demo_msg.type = BT_AUDIO_VOICE_START_MSG;
-    demo_msg.len = 0;
-
-    rc = rtos_push_to_queue(&bt_audio_demo_msg_que, &demo_msg, BEKEN_NO_WAIT);
-    if (kNoErr != rc)
-    {
-        os_printf("%s, send queue failed\r\n",__func__);
-    }
-}
-
-void bt_audio_sco_disconnected(void)
-{
-    bt_audio_demo_msg_t demo_msg;
-    int rc = -1;
-
-    os_memset(&demo_msg, 0x0, sizeof(bt_audio_demo_msg_t));
-    if (bt_audio_demo_msg_que == NULL)
-        return;
-
-    demo_msg.type = BT_AUDIO_VOICE_STOP_MSG;
-    demo_msg.len = 0;
-
-    rc = rtos_push_to_queue(&bt_audio_demo_msg_que, &demo_msg, BEKEN_NO_WAIT);
-    if (kNoErr != rc)
-    {
-        os_printf("%s, send queue failed\r\n",__func__);
-    }
-}
-
-void bt_audio_hfp_unit_codec_ind(uint8_t codec_id)
-{
-    os_printf("%s, codec_id %d \r\n", __func__, codec_id);
-    bt_audio_hfp_codec = codec_id;
-}
-
 static int bt_enable_hfp_unit_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     PRINT_FUNC;
     char *msg;
     int err = kNoErr;
 
+#if CONFIG_HFP_HF_DEMO
     uint8_t msbc_supported = 0;
 
     if (argc < 1)
@@ -1776,45 +1098,23 @@ static int bt_enable_hfp_unit_test_handle(char *pcWriteBuffer, int xWriteBufferL
         goto error;
     }
 
-    err = rtos_init_semaphore(&bt_at_cmd_sema, 1);
-    if (err != kNoErr){
+    extern int hfp_hf_demo_init(uint8_t msbc_supported);
+    err = hfp_hf_demo_init(msbc_supported);
+#else
+    err = BK_ERR_NOT_SUPPORT;
+#endif
+
+    if (!err)
+    {
+        msg = AT_CMD_RSP_SUCCEED;
+        os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+        return err;
+    }
+    else
+    {
         goto error;
     }
 
-    if (bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
-    {
-        bk_bt_gap_set_device_class(COD_SOUNDBAR);
-
-        err = bk_bt_gap_set_visibility(BK_BT_CONNECTABLE, BK_BT_DISCOVERABLE);
-
-        if (!err)
-        {
-            bt_audio_demo_task_init();
-
-            bt_audio_hfp_unit_cb.sco_connected = bt_audio_sco_connected;
-            bt_audio_hfp_unit_cb.sco_disconnected = bt_audio_sco_disconnected;
-            bt_audio_hfp_unit_cb.codec_ind = bt_audio_hfp_unit_codec_ind;
-            bt_audio_hfp_unit_cb.voice_data_ind = bt_audio_hfp_unit_voice_data_ind;
-            err = bk_bt_hfp_unit_init(msbc_supported, &bt_audio_hfp_unit_cb);
-            if (!err)
-            {
-                msg = AT_CMD_RSP_SUCCEED;
-                os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-                if (bt_at_cmd_sema != NULL)
-                    rtos_deinit_semaphore(&bt_at_cmd_sema);
-                return err;
-            }
-            else
-            {
-                goto error;
-            }
-        }
-        else
-        {
-            goto error;
-        }
-
-    }
 error:
     msg = AT_CMD_RSP_ERROR;
     os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
@@ -1822,9 +1122,68 @@ error:
         rtos_deinit_semaphore(&bt_at_cmd_sema);
     return err;
 }
-
-
 #endif
+
+static int bt_a2dp_sink_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    PRINT_FUNC;
+    char *msg;
+    int err = kNoErr;
+    bd_addr_t remote_bdaddr;
+
+    err = get_addr_from_param(&remote_bdaddr, argv[0]);
+    if (err) goto error;
+
+    err = bk_bt_a2dp_sink_connect(remote_bdaddr.addr);
+
+    if (err)
+    {
+        bk_printf("%s a2dp sink connect err %d\n", __func__, err);
+        goto error;
+    }
+    else
+    {
+        msg = AT_CMD_RSP_SUCCEED;
+        os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+        return err;
+    }
+
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    return err;
+}
+
+static int bt_a2dp_sink_disconnect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    PRINT_FUNC;
+    char *msg;
+    int err = kNoErr;
+    bd_addr_t remote_bdaddr;
+
+    err = get_addr_from_param(&remote_bdaddr, argv[0]);
+
+    if (err) goto error;
+
+    err = bk_bt_a2dp_sink_disconnect(remote_bdaddr.addr);
+
+    if(err)
+    {
+        bk_printf("%s a2dp sink disconnect err %d\n", __func__, err);
+        goto error;
+    }
+    else
+    {
+        msg = AT_CMD_RSP_SUCCEED;
+        os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+        return err;
+    }
+
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    return err;
+}
 
 #if CONFIG_FATFS
 #include "ff.h"

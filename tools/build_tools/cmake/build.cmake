@@ -108,7 +108,6 @@ function(__build_set_default_build_specifications)
     list(APPEND compile_definitions "-D_GNU_SOURCE")
     list(APPEND compile_options     "-g"
                                     "-Os"
-                                    "-std=c99"
                                     "-nostdlib"
 
                                     "-Wall"

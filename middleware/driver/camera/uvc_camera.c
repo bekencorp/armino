@@ -739,6 +739,8 @@ static bk_err_t uvc_camera_deinit(void)
 		curr_frame_buffer = NULL;
 	}
 
+	uvc_camera_config_ptr->fb_deinit();
+
 	if (uvc_camera_drv)
 	{
 		if (uvc_camera_drv->buffer)

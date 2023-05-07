@@ -14,7 +14,6 @@ list(APPEND srcs
 	lv_demo_music.c
 	lv_demo_music_list.c
 	lv_demo_music_main.c
-	a2dp_sink_demo.c
 	assets/img_lv_demo_music_btn_corner_large.c
 	assets/img_lv_demo_music_btn_list_pause.c
 	assets/img_lv_demo_music_btn_list_pause_large.c

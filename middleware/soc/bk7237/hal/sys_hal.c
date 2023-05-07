@@ -211,6 +211,13 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_deep_sleep(void * 
 	pmu_val2 |= BIT(BIT_SLEEP_FLAG_DEEP_SLEEP);
 	aon_pmu_hal_reg_set(PMU_REG2,pmu_val2);
 
+	/*attention: for save 125us delay, enable gpio interrupt here*/
+	/*7.enable gpio interrupt*/
+#if CONFIG_GPIO_WAKEUP_SUPPORT
+	extern bk_err_t gpio_enable_interrupt_mult_for_wake(void);
+	gpio_enable_interrupt_mult_for_wake();
+#endif
+
 	sys_ll_set_ana_reg8_en_lpmode(0x1);// touch enter low power mode
 	sys_ll_set_ana_reg6_vaon_sel(0);//0:vddaon drop enable
 
@@ -268,8 +275,8 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	uint32_t  clk_div_val0= 0, clk_div_val1 = 0, clk_div_val2 = 0;
 	uint32_t  pmu_val2 = 0;
 	//uint32_t  pmu_state = 0;
-	uint32_t  previous_tick = 0;
-	uint32_t  current_tick = 0;
+	uint64_t  previous_tick = 0;
+	uint64_t  current_tick = 0;
 	uint32_t  clk_div_temp = 0;
 	uint32_t  int_state1 = 0;
 	uint32_t  int_state2 = 0;
@@ -404,6 +411,13 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 
 	sys_ll_set_ana_reg8_en_lpmode(0x1);// touch enter low power mode
 
+	/*attention: for save 125us delay, enable gpio interrupt here*/
+	/*6.enable gpio interrupt*/
+#if CONFIG_GPIO_WAKEUP_SUPPORT
+	extern bk_err_t gpio_enable_interrupt_mult_for_wake(void);
+	gpio_enable_interrupt_mult_for_wake();
+#endif
+
 	sys_ll_set_ana_reg2_iovoc(0);//set the io voltage to 2.9v 
 	sys_ll_set_ana_reg6_vaon_sel(0);//0:vddaon drop enable ,aon voltage to 0.9v
 //just debug:maybe some guys changed the CPU clock or Flash clock caused the time of
@@ -495,7 +509,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	previous_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 
 	current_tick = previous_tick;
-	while(((uint32_t)(current_tick - previous_tick)) < (uint32_t)(LOW_POWER_DPLL_STABILITY_DELAY_TIME*RTC_TICKS_PER_1MS))/*32*1*/
+	while(((current_tick - previous_tick)) < (LOW_POWER_DPLL_STABILITY_DELAY_TIME*RTC_TICKS_PER_1MS))
 	{
 		current_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 	}
@@ -520,8 +534,6 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 		#if CONFIG_WIFI_ENABLE
 		ps_mac_wakeup_from_lowvol = wakeup_time;
 		#endif
-		ps_switch(PS_UNALLOW, PS_EVENT_STA, PM_RF_BIT);
-		bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_PHY_WIFI,PM_POWER_MODULE_STATE_ON);
 	}
 #if CONFIG_PSRAM
 	psram_hal_config();//psram config3

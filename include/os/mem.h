@@ -58,6 +58,8 @@ void *os_memcpy(void *out, const void *in, UINT32 n);
 void *os_memset(void *b, int c, UINT32 len);
 void os_mem_init(void);
 void *os_realloc(void *ptr, size_t size);
+void *bk_psram_realloc(void *ptr, size_t size);
+
 int os_memcmp_const(const void *a, const void *b, size_t len);
 
 #if (CONFIG_MALLOC_STATIS || CONFIG_MEM_DEBUG)

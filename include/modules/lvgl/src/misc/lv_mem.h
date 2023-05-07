@@ -88,6 +88,10 @@ void lv_mem_free(void * data);
  */
 void * lv_mem_realloc(void * data_p, size_t new_size);
 
+void * lv_psram_mem_alloc(size_t size);
+
+void * lv_psram_mem_realloc(void * data_p, size_t new_size);
+
 /**
  *
  * @return

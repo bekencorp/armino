@@ -44,6 +44,11 @@ menu "Cli"
 		bool "Enable WiFi Raw TX"
 		default n
 
+	config VFS_TEST
+		depends on CLI
+		bool "Enable VFS Test"
+		default n
+
 	#TODO Exculsive??
 	config I2C1_TEST
 		depends on CLI

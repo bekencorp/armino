@@ -17,4 +17,8 @@ menu "BK_system"
         bool "Enable Random Mac Addr"
         default n
 
+	config NEW_MAC_POLICY
+	bool "Enable Mac Addr"
+	default n
+
 endmenu

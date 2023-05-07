@@ -124,6 +124,33 @@ bt_err_t bk_bt_a2dp_register_callback(bk_bt_a2dp_cb_t callback);
  */
 bt_err_t bk_bt_a2dp_sink_register_data_callback(bk_bt_sink_data_cb_t callback);
 
+/**
+ *
+ * @brief           Connect to remote bluetooth A2DP source device. This API must be called after
+ *                  bk_bt_a2dp_sink_init().
+ *
+ * @param[in]       remote_bda: remote bluetooth device address
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS: success
+ *                  -  others: fail
+ *
+ */
+bt_err_t bk_bt_a2dp_sink_connect(uint8_t *remote_bda);
+
+/**
+ *
+ * @brief           Disconnect from the remote A2DP source device. This API must be called after
+ *                  bk_bt_a2dp_sink_init().
+ *
+ * @param[in]       remote_bda: remote bluetooth device address
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS: success
+ *                  -  others: fail
+ *
+ */
+bt_err_t bk_bt_a2dp_sink_disconnect(uint8_t *remote_bda);
 
 
 #ifdef __cplusplus

@@ -504,6 +504,9 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame);
  */
 frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame);
 
+frame_buffer_t *lcd_driver_rodegree_frame(frame_buffer_t *frame, media_rotate_t rotate);
+
+
 /**
  * @brief for rotate local area, like decode image is 640X480, can only rotate centre 320X480 area
  *

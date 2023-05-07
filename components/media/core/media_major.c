@@ -159,6 +159,9 @@ static void media_major_message_handle(void)
 
 #if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
 	camera_init();
+#endif
+
+#ifdef CONFIG_IMAGE_STORAGE
 	storage_init();
 #endif
 
@@ -207,7 +210,7 @@ static void media_major_message_handle(void)
 					break;
 #endif
 
-#if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
+#ifdef CONFIG_IMAGE_STORAGE
 				case STORAGE_EVENT:
 					storage_event_handle(msg.event, msg.param);
 					break;

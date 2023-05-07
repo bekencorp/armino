@@ -52,6 +52,11 @@
 #include "lv_sjpg.h"
 #include "../../../misc/lv_fs.h"
 
+
+#ifdef LV_SJPG_USE_PSRAM
+#include <driver/psram.h>
+#endif
+
 /*********************
  *      DEFINES
  *********************/
@@ -292,7 +297,11 @@ static int img_data_cb(JDEC * jd, void * data, JRECT * rect)
 
     for(int y = rect->top; y <= rect->bottom; y++) {
         int row_offset = y * xres * INPUT_PIXEL_SIZE + rect->left * INPUT_PIXEL_SIZE;
+#if LV_SJPG_USE_PSRAM
+        bk_psram_word_memcpy((cache + row_offset), buf, row_size);
+#else
         memcpy(cache + row_offset, buf, row_size);
+#endif
         buf += row_size;
     }
 
@@ -396,7 +405,11 @@ static lv_res_t decoder_open(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * 
                 sjpeg->frame_base_array[i] = sjpeg->frame_base_array[i - 1] + offset;
             }
             sjpeg->sjpeg_cache_frame_index = -1;
+#if LV_SJPG_USE_PSRAM
+            sjpeg->frame_cache = (void *)lv_psram_mem_alloc(sjpeg->sjpeg_x_res * sjpeg->sjpeg_single_frame_height * 3/*2*/);
+#else
             sjpeg->frame_cache = (void *)lv_mem_alloc(sjpeg->sjpeg_x_res * sjpeg->sjpeg_single_frame_height * 3/*2*/);
+#endif
             if(! sjpeg->frame_cache) {
                 lv_sjpg_cleanup(sjpeg);
                 sjpeg = NULL;
@@ -459,7 +472,11 @@ static lv_res_t decoder_open(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * 
                 sjpeg->frame_base_array[0] = img_frame_base;
 
                 sjpeg->sjpeg_cache_frame_index = -1;
-                sjpeg->frame_cache = (void *)lv_mem_alloc(sjpeg->sjpeg_x_res * sjpeg->sjpeg_single_frame_height * 3);
+#if LV_SJPG_USE_PSRAM
+                sjpeg->frame_cache = (void *)lv_psram_mem_alloc(sjpeg->sjpeg_x_res * sjpeg->sjpeg_single_frame_height * 3/*2*/);
+#else
+                sjpeg->frame_cache = (void *)lv_mem_alloc(sjpeg->sjpeg_x_res * sjpeg->sjpeg_single_frame_height * 3/*2*/);
+#endif
                 if(! sjpeg->frame_cache) {
                     lv_sjpg_cleanup(sjpeg);
                     sjpeg = NULL;
@@ -578,7 +595,11 @@ end:
                 }
 
                 sjpeg->sjpeg_cache_frame_index = -1; //INVALID AT BEGINNING for a forced compare mismatch at first time.
-                sjpeg->frame_cache = (void *)lv_mem_alloc(sjpeg->sjpeg_x_res * sjpeg->sjpeg_single_frame_height * 3);
+#if LV_SJPG_USE_PSRAM
+                sjpeg->frame_cache = (void *)lv_psram_mem_alloc(sjpeg->sjpeg_x_res * sjpeg->sjpeg_single_frame_height * 3/*2*/);
+#else
+                sjpeg->frame_cache = (void *)lv_mem_alloc(sjpeg->sjpeg_x_res * sjpeg->sjpeg_single_frame_height * 3/*2*/);
+#endif
                 if(! sjpeg->frame_cache) {
                     lv_fs_close(&lv_file);
                     lv_sjpg_cleanup(sjpeg);
@@ -666,7 +687,11 @@ end:
                 sjpeg->frame_base_offset[0] = img_frame_start_offset;
 
                 sjpeg->sjpeg_cache_frame_index = -1;
-                sjpeg->frame_cache = (void *)lv_mem_alloc(sjpeg->sjpeg_x_res * sjpeg->sjpeg_single_frame_height * 3);
+#if LV_SJPG_USE_PSRAM
+                sjpeg->frame_cache = (void *)lv_psram_mem_alloc(sjpeg->sjpeg_x_res * sjpeg->sjpeg_single_frame_height * 3/*2*/);
+#else
+                sjpeg->frame_cache = (void *)lv_mem_alloc(sjpeg->sjpeg_x_res * sjpeg->sjpeg_single_frame_height * 3/*2*/);
+#endif
                 if(! sjpeg->frame_cache) {
                     lv_fs_close(&lv_file);
                     lv_sjpg_cleanup(sjpeg);

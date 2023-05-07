@@ -14,4 +14,8 @@ menu "Ota"
 		default n
 		help
 			enable ota update b partition
+	config OTA_HTTPS
+		bool "Enable Https ota"
+		default n
+		help
 endmenu

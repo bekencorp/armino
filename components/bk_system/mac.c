@@ -181,7 +181,7 @@ static int mac_init(void)
 #if (CONFIG_BASE_MAC_FROM_EFUSE)
         ret = read_base_mac_from_efuse(s_base_mac);
 #elif (CONFIG_BASE_MAC_FROM_RF_OTP_FLASH)
-#if CONFIG_WIFI6_CODE_STACK
+#if CONFIG_NEW_MAC_POLICY
         ret = get_net_info(WIFI_MAC_ITEM, s_base_mac, NULL, NULL);
 #else
         ret = read_base_mac_from_rf_otp_flash(s_base_mac);
@@ -192,7 +192,7 @@ static int mac_init(void)
 
 #if (CONFIG_RANDOM_MAC_ADDR)
 	if ((BK_OK != ret) ||BK_IS_GROUP_MAC(s_base_mac)
-#if CONFIG_WIFI6_CODE_STACK
+#if CONFIG_NEW_MAC_POLICY
 		|| bk_check_mac_address(s_base_mac)
 #endif
 		) {
@@ -201,7 +201,7 @@ static int mac_init(void)
 #if (CONFIG_BASE_MAC_FROM_EFUSE)
 		ret = write_base_mac_to_efuse(s_base_mac);
 #elif (CONFIG_BASE_MAC_FROM_RF_OTP_FLASH)
-#if CONFIG_WIFI6_CODE_STACK
+#if CONFIG_NEW_MAC_POLICY
 		save_net_info(WIFI_MAC_ITEM, s_base_mac, NULL, NULL);
 #else
 		ret = write_base_mac_to_rf_otp_flash(s_base_mac);
@@ -219,7 +219,7 @@ static int mac_init(void)
 			return BK_ERR_GROUP_MAC;
 		} else {
 			BK_LOGI(TAG, "use default mac "BK_MAC_FORMAT" as base mac\n", BK_MAC_STR(s_base_mac));
-		}
+}
         } else {
 		BK_LOGI(TAG, "base mac "BK_MAC_FORMAT"\n", BK_MAC_STR(s_base_mac));
 	}
@@ -263,6 +263,11 @@ bk_err_t bk_get_mac(uint8_t *mac, mac_type_t type)
 		os_memcpy(mac, s_base_mac, BK_MAC_ADDR_LEN);
 		break;
 
+	case MAC_TYPE_BLUETOOTH:
+		os_memcpy(mac, s_base_mac, BK_MAC_ADDR_LEN);
+		mac[5] += 1; // add 1, diff from wifi's mac
+		break;
+
 	default:
 		return BK_ERR_INVALID_MAC_TYPE;
 	}
@@ -287,7 +292,7 @@ bk_err_t bk_set_base_mac(const uint8_t *mac)
 #if (CONFIG_BASE_MAC_FROM_EFUSE)
 	ret = write_base_mac_to_efuse(mac);
 #elif (CONFIG_BASE_MAC_FROM_RF_OTP_FLASH)
-#if CONFIG_WIFI6_CODE_STACK
+#if CONFIG_NEW_MAC_POLICY
 		ret = save_net_info(WIFI_MAC_ITEM, s_base_mac, NULL, NULL);
 #else
 		ret = write_base_mac_to_rf_otp_flash(s_base_mac);

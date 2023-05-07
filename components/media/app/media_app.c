@@ -274,6 +274,7 @@ bk_err_t media_app_mailbox_test(void)
 bk_err_t media_app_transfer_open(void *setup_cfg)
 {
 	int ret = kNoErr;
+#if (CONFIG_WIFI_TRANSFER)
 	video_setup_t *ptr = NULL;
 
 	LOGI("%s, %p\n", __func__, ((video_setup_t *)setup_cfg)->send_func);
@@ -292,7 +293,7 @@ bk_err_t media_app_transfer_open(void *setup_cfg)
 	ret = media_send_msg_sync(EVENT_TRANSFER_OPEN_IND, (uint32_t)ptr);
 
 	os_free(ptr);
-
+#endif
 	LOGI("%s complete\n", __func__);
 
 	return ret;
@@ -300,14 +301,21 @@ bk_err_t media_app_transfer_open(void *setup_cfg)
 
 bk_err_t media_app_transfer_pause(bool pause)
 {
-	return media_send_msg_sync(EVENT_TRANSFER_PAUSE_IND, pause);
+	int ret = kNoErr;
+
+#if (CONFIG_WIFI_TRANSFER)
+	ret = media_send_msg_sync(EVENT_TRANSFER_PAUSE_IND, pause);
+#endif
+	return ret;
 }
 
 bk_err_t media_app_transfer_close(void)
 {
-	bk_err_t ret;
+	bk_err_t ret = BK_OK;
 
 	LOGI("%s\n", __func__);
+
+#if (CONFIG_WIFI_TRANSFER)
 
 	if (TRS_STATE_ENABLED != get_transfer_state())
 	{
@@ -317,18 +325,19 @@ bk_err_t media_app_transfer_close(void)
 
 	ret = media_send_msg_sync(EVENT_TRANSFER_CLOSE_IND, 0);
 
+#endif
 	LOGI("%s complete\n", __func__);
 
 	return ret;
 }
 
-bk_err_t media_app_lcd_rotate(bool enable)
+bk_err_t media_app_lcd_rotate(media_rotate_t rotate)
 {
 	bk_err_t ret;
 
 	LOGI("%s\n", __func__);
 
-	ret = media_send_msg_sync(EVENT_LCD_ROTATE_ENABLE_IND, enable);
+	ret = media_send_msg_sync(EVENT_LCD_ROTATE_ENABLE_IND, rotate);
 
 	LOGI("%s complete\n", __func__);
 

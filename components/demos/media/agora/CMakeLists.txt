@@ -12,6 +12,7 @@ set(srcs)
 		"agora_demo.c"
 		"amf_ringbuf.c"
 		"audio/audio_control.c"
+		"amf_list.c"
 	)
 endif()
 

@@ -394,7 +394,7 @@ static void lcd_driver_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 
 	//LOGI("%s, %08X\n", __func__, cmd_buf->param1);
 
-	if (cmd_buf->hdr.cmd == 0x19)
+	if (cmd_buf->hdr.cmd == EVENT_LCD_ROTATE_MBRSP)
 	{
 		ret = rtos_set_semaphore(&s_lcd.rot_sem);
 
@@ -1101,7 +1101,7 @@ void lcd_driver_ppi_set(uint16_t width, uint16_t height)
 		}										\
 	} while (0)
 
-__attribute__((section(".itcm_sec_code"))) static void lcd_driver_display_isr(void)
+__attribute__((section(".itcm_sec_code"))) static void lcd_driver_display_rgb_isr(void)
 {
 	LCD_DISPLAY_ISR_ENTRY();
 
@@ -1117,11 +1117,8 @@ __attribute__((section(".itcm_sec_code"))) static void lcd_driver_display_isr(vo
 
 	if (s_lcd.pingpong_frame != NULL)
 	{
-//		if (bk_lcd_get_yuv_mode() != s_lcd.pingpong_frame->fmt)
-//		{
-			lcd_driver_ppi_set(s_lcd.pingpong_frame->width, s_lcd.pingpong_frame->height);
-			bk_lcd_set_yuv_mode(s_lcd.pingpong_frame->fmt);
-//		}
+		lcd_driver_ppi_set(s_lcd.pingpong_frame->width, s_lcd.pingpong_frame->height);
+		bk_lcd_set_yuv_mode(s_lcd.pingpong_frame->fmt);
 
 		if (s_lcd.display_frame != NULL)
 		{
@@ -1148,6 +1145,33 @@ __attribute__((section(".itcm_sec_code"))) static void lcd_driver_display_isr(vo
 	LCD_DISPLAY_ISR_OUT();
 
 }
+
+static void lcd_driver_display_mcu_isr(void)
+{
+	LCD_DISPLAY_ISR_ENTRY();
+
+	media_debug->isr_lcd++;
+
+	if (s_lcd.enable == false)
+	{
+		return;
+	}
+
+	if (s_lcd.pingpong_frame != NULL)
+	{
+		media_debug->fps_lcd++;
+		LCD_DRIVER_FRAME_FREE(s_lcd.display_frame);
+
+		s_lcd.display_frame = s_lcd.pingpong_frame;
+		s_lcd.pingpong_frame = NULL;
+		bk_lcd_8080_start_transfer(0);
+
+		rtos_set_semaphore(&s_lcd.disp_sem);
+	}
+
+	LCD_DISPLAY_ISR_OUT();
+}
+
 
 static void jpeg_dec_eof_cb(jpeg_dec_res_t *result)
 {
@@ -1357,7 +1381,7 @@ out:
 }
 
 
-frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame)
+frame_buffer_t *lcd_driver_rodegree_frame(frame_buffer_t *frame, media_rotate_t rotate)
 {
 	frame_buffer_t *rot_frame = NULL;
 	uint64_t before, after;
@@ -1366,6 +1390,13 @@ frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame)
 	bk_err_t ret = BK_FAIL;
 	mb_chnl_cmd_t mb_cmd;
 #endif
+
+	if (rotate == ROTATE_NONE
+		|| rotate == ROTATE_180)
+	{
+		LOGE("%s no supported paramters\n", __func__);
+		return frame;
+	}
 
 	LCD_ROTATE_START();
 
@@ -1402,10 +1433,10 @@ frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame)
 
 #ifdef CONFIG_MASTER_CORE
 
-	mb_cmd.hdr.cmd = 0x18;
+	mb_cmd.hdr.cmd = EVENT_LCD_ROTATE_MBCMD;
 	mb_cmd.param1 = (uint32_t)frame;
 	mb_cmd.param2 = (uint32_t)s_lcd.rotate_frame;
-	mb_cmd.param3 = 0;
+	mb_cmd.param3 = rotate;
 
 	//LOGI("%s start rotate\n", __func__);
 	ret = mb_chnl_write(MB_CHNL_VID, &mb_cmd);
@@ -1458,6 +1489,12 @@ error:
 
 	return NULL;
 }
+
+frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame)
+{
+	return lcd_driver_rodegree_frame(frame, ROTATE_90);
+}
+
 
 frame_buffer_t *lcd_driver_rotate_frame_ppi(frame_buffer_t *frame, media_ppi_t ppi)
 {
@@ -1981,6 +2018,8 @@ bk_err_t lcd_driver_display_frame_sync(frame_buffer_t *frame, bool wait)
 	bk_err_t ret = BK_FAIL;
 	uint64_t before, after;
 
+	LOGD("lcd_driver_display_frame_sync\n");
+
 #if timer_control_pfs
 	bk_timer_stop(TIMER_ID4);
 #endif
@@ -2031,9 +2070,18 @@ bk_err_t lcd_driver_display_frame_sync(frame_buffer_t *frame, bool wait)
 #if timer_control_pfs
 		lcd_driver_set_display_base_addr((uint32_t)frame->frame);
 		lcd_driver_display_enable();
-		LOGD("display start\n");
 #endif
-		lcd_driver_display_continue();
+
+		LOGD("display start continue\n");
+
+		if (s_lcd.config.device->type == LCD_TYPE_MCU8080)
+		{
+			lcd_driver_ppi_set(frame->width, frame->height);
+			bk_lcd_set_yuv_mode(frame->fmt);
+			lcd_driver_set_display_base_addr((uint32_t)frame->frame);
+			bk_lcd_8080_start_transfer(1);
+			lcd_driver_display_continue();
+		}
 	}
 
 	GLOBAL_INT_RESTORE();
@@ -2086,8 +2134,17 @@ void lcd_driver_display_frame_with_gui(void *buffer, int width, int height)
         s_lcd.lvgl_frame->frame = buffer;
         s_lcd.lvgl_frame->width = width;
         s_lcd.lvgl_frame->height = height;
-        lcd_driver_display_frame_sync(s_lcd.lvgl_frame, BK_FALSE);
-        g_gui_need_to_wait = BK_TRUE;
+
+        if (s_lcd.config.device->type == LCD_TYPE_RGB565)
+        {
+            lcd_driver_display_frame_sync(s_lcd.lvgl_frame, BK_FALSE);
+            g_gui_need_to_wait = BK_TRUE;
+        }
+        else
+        {
+            lcd_driver_display_frame_sync(s_lcd.lvgl_frame, BK_TRUE);
+            g_gui_need_to_wait = BK_FALSE;
+        }
     }
     else{
         LOGI("[%s][%d] fb malloc fail\r\n", __FUNCTION__, __LINE__);
@@ -2274,7 +2331,7 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 	if (device->type == LCD_TYPE_RGB565)
 	{
 		LOGD("%s, rgb eof register\n", __func__);
-		s_lcd.lcd_rgb_frame_end_handler = lcd_driver_display_isr;
+		s_lcd.lcd_rgb_frame_end_handler = lcd_driver_display_rgb_isr;
 #if CONFIG_GPIO_DEFAULT_SET_SUPPORT
 		/*
 		 * GPIO info is setted in GPIO_DEFAULT_DEV_CONFIG and
@@ -2289,7 +2346,7 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 	else if (device->type == LCD_TYPE_MCU8080)
 	{
 		LOGD("%s, mcu eof register\n", __func__);
-		s_lcd.lcd_8080_frame_end_handler = lcd_driver_display_isr;
+		s_lcd.lcd_8080_frame_end_handler = lcd_driver_display_mcu_isr;
 #if CONFIG_GPIO_DEFAULT_SET_SUPPORT
 		/*
 		 * GPIO info is setted in GPIO_DEFAULT_DEV_CONFIG and

@@ -52,6 +52,26 @@ void *os_realloc(void *ptr, size_t size)
 #endif
 }
 
+void *bk_psram_realloc(void *ptr, size_t size)
+{
+	void *tmp;
+
+	if (platform_is_in_interrupt_context())
+		os_printf("psram_realloc_risk\r\n");
+
+	tmp = psram_malloc(size);
+	if (tmp && ptr) {
+		if (size & 0x3) {
+			os_memcpy_word((uint32_t *)tmp, (uint32_t *)ptr, ((size >> 2) + 1) << 2);
+		} else {
+			os_memcpy_word((uint32_t *)tmp, (uint32_t *)ptr, size);
+		}
+		os_free((void *)ptr);
+	}
+
+	return tmp;
+}
+
 int os_memcmp_const(const void *a, const void *b, size_t len)
 {
 	return memcmp(a, b, len);

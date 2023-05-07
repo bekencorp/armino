@@ -139,7 +139,6 @@ typedef enum
 	EVENT_APP_EXIT,
 } media_app_event_t;
 
-
 typedef struct
 {
 	uint32_t event;
@@ -153,7 +152,6 @@ typedef struct
 	uint32_t param;
 	int ret;
 } param_pak_t;
-
 
 bk_err_t media_send_msg(media_msg_t *msg);
 bk_err_t media_app_send_msg(media_msg_t *msg);

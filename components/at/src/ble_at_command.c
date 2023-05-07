@@ -6367,13 +6367,11 @@ int ble_mqtt_loop_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 			mqtt_loop_timer = (beken_timer_t*)os_malloc(sizeof(beken_timer_t));
 		}
 
-		uint8_t sta_mac[6];
-		//bk_wifi_sta_get_mac((uint8_t *)sta_mac);
-        bk_get_mac((uint8_t *)sta_mac, MAC_TYPE_STA);
-        sta_mac[5] += 1;
+		uint8_t bt_mac[6];
+		bk_get_mac((uint8_t *)bt_mac, MAC_TYPE_BLUETOOTH);
 
-		snprintf(loop_topic_sr, 25, "/ble/lpsr/%02x%02x%02x", sta_mac[3], sta_mac[4], sta_mac[5]);
-		snprintf(loop_topic_ci, 25, "/ble/lpci/%02x%02x%02x", sta_mac[3], sta_mac[4], sta_mac[5]);
+		snprintf(loop_topic_sr, 25, "/ble/lpsr/%02x%02x%02x", bt_mac[3], bt_mac[4], bt_mac[5]);
+		snprintf(loop_topic_ci, 25, "/ble/lpci/%02x%02x%02x", bt_mac[3], bt_mac[4], bt_mac[5]);
 
 		loop_interval = os_strtoul(argv[1], NULL, 10) & 0xFFFF;
 		loop_count = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
@@ -6425,13 +6423,11 @@ int ble_mqtt_loop_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 
 		loop_type = LT_COEX;
 
-		uint8_t sta_mac[6];
-		//bk_wifi_sta_get_mac((uint8_t *)sta_mac);
-        bk_get_mac((uint8_t *)sta_mac, MAC_TYPE_STA);
-        sta_mac[5] += 1;
+		uint8_t bt_mac[6];
+		bk_get_mac((uint8_t *)bt_mac, MAC_TYPE_BLUETOOTH);
 
-		snprintf(loop_topic_sr, 25, "/ble/lpsr/%02x%02x%02x", sta_mac[3], sta_mac[4], sta_mac[5]);
-		snprintf(loop_topic_ci, 25, "/ble/lpci/%02x%02x%02x", sta_mac[3], sta_mac[4], sta_mac[5]);
+		snprintf(loop_topic_sr, 25, "/ble/lpsr/%02x%02x%02x", bt_mac[3], bt_mac[4], bt_mac[5]);
+		snprintf(loop_topic_ci, 25, "/ble/lpci/%02x%02x%02x", bt_mac[3], bt_mac[4], bt_mac[5]);
 
 		loop_sr_index = 0;
 		loop_ci_index = 0;

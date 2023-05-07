@@ -53,7 +53,9 @@
 
 typedef void (*camera_connect_state_t)(uint8_t state);
 
+#if (CONFIG_WIFI_TRANSFER)
 extern void transfer_dump(uint32_t ms);
+#endif
 
 extern media_debug_t *media_debug;
 extern media_debug_t *media_debug_cached;
@@ -68,7 +70,9 @@ camera_connect_state_t camera_connect_state_change_cb = NULL;
 
 static void camera_debug_dump(timer_id_t timer_id)
 {
+#if (CONFIG_WIFI_TRANSFER)
 	transfer_dump(DEBUG_INTERVAL);
+#endif
 
 	uint16_t jpg = (media_debug->isr_jpeg - media_debug_cached->isr_jpeg) / 2;
 	uint16_t dec = (media_debug->isr_decoder - media_debug_cached->isr_decoder) / 2;
@@ -317,20 +321,22 @@ void camera_uvc_open_handle(param_pak_t *param, media_camera_type_t type)
 #if CONFIG_BTDM_5_2
 	if (bk_ble_get_env_state())
 	{
-	    if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
-	    {
-		    bk_ble_set_notice_cb(uvc_ble_notice_cb);
-	    }
-	    else
-	    {
-	        bk_ble_set_event_callback(NULL);
-	        LOGE("%s not support !!!\n");
-	        ret = kGeneralErr;
-	        goto out;
-	    }
+		if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+		{
+			bk_ble_set_notice_cb(uvc_ble_notice_cb);
+		}
+		else
+		{
+			bk_ble_set_event_callback(NULL);
+			LOGE("%s not support !!!\n");
+			ret = kGeneralErr;
+			goto out;
+		}
+
 		LOGI("bluetooth is enabled, shutdown bluetooth\n");
 		rtos_init_semaphore(&camera_act_sema, 1);
 		bk_ble_deinit();
+
 		if (rtos_get_semaphore(&camera_act_sema, 1000) != BK_OK)
 		{
 			LOGI("%s TIMEOUT\n", __func__);
@@ -338,17 +344,18 @@ void camera_uvc_open_handle(param_pak_t *param, media_camera_type_t type)
 
 		rtos_deinit_semaphore(&camera_act_sema);
 		camera_act_sema = NULL;
-        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
-        {
-		    bk_ble_set_notice_cb(NULL);
-        }
-        else
-        {
-            bk_ble_set_event_callback(NULL);
-            LOGE("%s not support !!!\n");
-            ret = kGeneralErr;
-            goto out;
-        }
+
+		if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+		{
+			bk_ble_set_notice_cb(NULL);
+		}
+		else
+		{
+			bk_ble_set_event_callback(NULL);
+			LOGE("%s not support !!!\n");
+			ret = kGeneralErr;
+			goto out;
+		}
 	}
 	else
 	{
@@ -468,20 +475,22 @@ void camera_net_open_handle(param_pak_t *param, media_camera_type_t type)
 #if CONFIG_BTDM_5_2
 	if (bk_ble_get_env_state())
 	{
-        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
-        {
-		    bk_ble_set_notice_cb(uvc_ble_notice_cb);
-        }
-        else
-        {
-            bk_ble_set_event_callback(NULL);
-            LOGE("%s not support !!!\n");
-            ret = kGeneralErr;
-            goto out;
-        }
+		if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+		{
+			bk_ble_set_notice_cb(uvc_ble_notice_cb);
+		}
+		else
+		{
+			bk_ble_set_event_callback(NULL);
+			LOGE("%s not support !!!\n");
+			ret = kGeneralErr;
+			goto out;
+		}
+
 		LOGI("bluetooth is enabled, shutdown bluetooth\n");
 		rtos_init_semaphore(&camera_act_sema, 1);
 		bk_ble_deinit();
+
 		if (rtos_get_semaphore(&camera_act_sema, 1000) != BK_OK)
 		{
 			LOGI("%s TIMEOUT\n", __func__);
@@ -489,17 +498,18 @@ void camera_net_open_handle(param_pak_t *param, media_camera_type_t type)
 
 		rtos_deinit_semaphore(&camera_act_sema);
 		camera_act_sema = NULL;
-        if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
-        {
-		    bk_ble_set_notice_cb(NULL);
-        }
-        else
-        {
-            bk_ble_set_event_callback(NULL);
-            LOGE("%s not support !!!\n");
-            ret = kGeneralErr;
-            goto out;
-        }
+
+		if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+		{
+			bk_ble_set_notice_cb(NULL);
+		}
+		else
+		{
+			bk_ble_set_event_callback(NULL);
+			LOGE("%s not support !!!\n");
+			ret = kGeneralErr;
+			goto out;
+		}
 	}
 	else
 	{

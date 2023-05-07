@@ -795,7 +795,7 @@ JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * ou
  *	   - BK_OK: succeed
  *	   - others: other errors.
  */
-JRESULT jd_decomp_start(void)
+JRESULT jd_decomp_hw(void)
 {
 	//uint16_t	mx, my;
 	JRESULT rc;

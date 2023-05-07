@@ -74,8 +74,12 @@ extern "C" {
 #define RTC_INTERRUPT_CTRL_BIT         (1 << SYS_CPU0_INT_32_63_EN_CPU0_RTC_INT_EN_POS)
 #define GPIO_INTERRUPT_CTRL_BIT        (1 << SYS_CPU0_INT_32_63_EN_CPU0_GPIO_INT_EN_POS)
 
+#ifdef CONFIG_EXTERN_32K
+#define RTC_TICKS_PER_1MS                                (32.768)
+#else
 #define RTC_TICKS_PER_1MS                                (32)
-#define LOW_POWER_DPLL_STABILITY_DELAY_TIME              (0.5) // 0.5ms
+#endif
+#define LOW_POWER_DPLL_STABILITY_DELAY_TIME              (0.19) // 0.19ms(hardware need at least 180us,because making the precise it use 190us,it will additional add 6us or 2us(external) )
 #define LOW_POWER_RESTORE_DELAY_TIME_HARDWARE            (0.5) //0.5ms
 #define LOW_POWER_XTAL_DPLL_STABILITY_DELAY_TIME  ((LOW_POWER_DPLL_STABILITY_DELAY_TIME+LOW_POWER_RESTORE_DELAY_TIME_HARDWARE)*1000)
 

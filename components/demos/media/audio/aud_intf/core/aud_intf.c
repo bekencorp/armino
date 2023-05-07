@@ -183,22 +183,27 @@ static void aud_tras_drv_com_event_cb_handle(aud_tras_drv_com_event_t event, bk_
 	switch (event) {
 		case EVENT_AUD_TRAS_COM_INIT:
 			LOGD("init aud_intf driver complete \r\n");
-			aud_intf_info.drv_status = AUD_INTF_DRV_STA_IDLE;
+			if (result == BK_ERR_AUD_INTF_OK) {
+				aud_intf_info.drv_status = AUD_INTF_DRV_STA_IDLE;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
 
 		case EVENT_AUD_TRAS_COM_DEINIT:
 			LOGD("deinit aud_intf driver complete \r\n");
-			aud_intf_info.drv_status = AUD_INTF_DRV_STA_NULL;
+			if (result == BK_ERR_AUD_INTF_OK) {
+				aud_intf_info.drv_status = AUD_INTF_DRV_STA_NULL;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
 
 		case EVENT_AUD_TRAS_COM_SET_MODE:
 			LOGD("set aud_intf mode complete \r\n");
-			if (result == BK_ERR_AUD_INTF_OK)
+			if (result == BK_ERR_AUD_INTF_OK) {
 				aud_intf_info.drv_status = AUD_INTF_DRV_STA_WORK;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
@@ -239,7 +244,7 @@ bk_err_t bk_aud_intf_set_mode(aud_intf_work_mode_t work_mode)
 
 	CHECK_AUD_INTF_BUSY_STA();
 	aud_intf_info.drv_info.setup.work_mode = work_mode;
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SET_MODE, &aud_intf_info.drv_info.setup.work_mode, 2000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SET_MODE, &aud_intf_info.drv_info.setup.work_mode, BEKEN_WAIT_FOREVER);
 }
 
 bk_err_t bk_aud_intf_set_mic_gain(uint8_t value)
@@ -254,12 +259,12 @@ bk_err_t bk_aud_intf_set_mic_gain(uint8_t value)
 	if (aud_intf_info.mic_status != AUD_INTF_MIC_STA_NULL || aud_intf_info.voc_status != AUD_INTF_VOC_STA_NULL) {
 		if (aud_intf_info.mic_status != AUD_INTF_MIC_STA_NULL) {
 			aud_intf_info.mic_info.mic_gain = value;
-			return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_SET_GAIN, &aud_intf_info.mic_info.mic_gain, 1000);
+			return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_SET_GAIN, &aud_intf_info.mic_info.mic_gain, BEKEN_WAIT_FOREVER);
 		}
 
 		if (aud_intf_info.voc_status != AUD_INTF_VOC_STA_NULL) {
 			aud_intf_info.voc_info.aud_setup.adc_gain = value;
-			return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_SET_MIC_GAIN, &aud_intf_info.voc_info.aud_setup.adc_gain, 1000);
+			return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_SET_MIC_GAIN, &aud_intf_info.voc_info.aud_setup.adc_gain, BEKEN_WAIT_FOREVER);
 		}
 	}
 
@@ -274,7 +279,7 @@ bk_err_t bk_aud_intf_set_mic_samp_rate(aud_adc_samp_rate_t samp_rate)
 	/*check mic status */
 	if (aud_intf_info.mic_status != AUD_INTF_MIC_STA_NULL) {
 		aud_intf_info.mic_info.samp_rate = samp_rate;
-		return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_SET_SAMP_RATE, &aud_intf_info.mic_info.samp_rate, 1000);
+		return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_SET_SAMP_RATE, &aud_intf_info.mic_info.samp_rate, BEKEN_WAIT_FOREVER);
 	}
 
 	aud_intf_info.api_info.busy_status = false;
@@ -288,7 +293,7 @@ bk_err_t bk_aud_intf_set_mic_chl(aud_intf_mic_chl_t mic_chl)
 	/*check mic status */
 	if (aud_intf_info.mic_status != AUD_INTF_MIC_STA_NULL) {
 		aud_intf_info.mic_info.mic_chl = mic_chl;
-		return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_SET_CHL, &aud_intf_info.mic_info.mic_chl, 1000);
+		return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_SET_CHL, &aud_intf_info.mic_info.mic_chl, BEKEN_WAIT_FOREVER);
 	}
 
 	aud_intf_info.api_info.busy_status = false;
@@ -310,15 +315,15 @@ bk_err_t bk_aud_intf_set_spk_gain(uint32_t value)
 					return BK_ERR_AUD_INTF_PARAM;
 				}
 			} else {
-				if (value > 0xFFFF) {
-					LOGE("the spk_gain out of range:0x00-0xFFFF \n");
+				if (value > 100) {
+					LOGE("the spk_gain out of range:0-100 \n");
 					aud_intf_info.api_info.busy_status = false;
 					return BK_ERR_AUD_INTF_PARAM;
 				}
 			}
 			aud_intf_info.spk_info.spk_gain = value;
 			//return aud_tras_drv_send_msg(AUD_TRAS_DRV_SPK_SET_GAIN, &aud_intf_info.spk_info.spk_gain);
-			return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_SET_GAIN, &aud_intf_info.spk_info.spk_gain, 1000);
+			return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_SET_GAIN, &aud_intf_info.spk_info.spk_gain, BEKEN_WAIT_FOREVER);
 		}
 
 		if (aud_intf_info.voc_status != AUD_INTF_VOC_STA_NULL) {
@@ -330,8 +335,8 @@ bk_err_t bk_aud_intf_set_spk_gain(uint32_t value)
 					return BK_ERR_AUD_INTF_PARAM;
 				}
 			} else {
-					if (value > 0xFFFF) {
-						LOGE("the spk_gain out of range:0x00-0xFFFF \n");
+					if (value > 100) {
+						LOGE("the spk_gain out of range:0-100 \n");
 						aud_intf_info.api_info.busy_status = false;
 						return BK_ERR_AUD_INTF_PARAM;
 					}
@@ -339,7 +344,7 @@ bk_err_t bk_aud_intf_set_spk_gain(uint32_t value)
 			aud_intf_info.voc_info.aud_setup.dac_gain = (uint16_t)(value & 0x0000FFFF);
 			LOGI("set spk_gain: %d \n", aud_intf_info.voc_info.aud_setup.dac_gain);
 			//return aud_tras_drv_send_msg(AUD_TRAS_DRV_VOC_SET_SPK_GAIN, &aud_intf_info.voc_info.aud_setup.dac_gain);
-			return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_SET_SPK_GAIN, &aud_intf_info.voc_info.aud_setup.dac_gain, 1000);
+			return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_SET_SPK_GAIN, &aud_intf_info.voc_info.aud_setup.dac_gain, BEKEN_WAIT_FOREVER);
 		}
 	}
 
@@ -354,7 +359,7 @@ bk_err_t bk_aud_intf_set_spk_samp_rate(aud_dac_samp_rate_t samp_rate)
 	/*check spk status */
 	if (aud_intf_info.spk_status != AUD_INTF_SPK_STA_NULL) {
 		aud_intf_info.spk_info.samp_rate = samp_rate;
-		return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_SET_SAMP_RATE, &aud_intf_info.spk_info.samp_rate, 1000);
+		return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_SET_SAMP_RATE, &aud_intf_info.spk_info.samp_rate, BEKEN_WAIT_FOREVER);
 	}
 
 	aud_intf_info.api_info.busy_status = false;
@@ -368,7 +373,7 @@ bk_err_t bk_aud_intf_set_spk_chl(aud_intf_spk_chl_t spk_chl)
 	/*check mic status */
 	if (aud_intf_info.spk_status != AUD_INTF_SPK_STA_NULL) {
 		aud_intf_info.spk_info.spk_chl = spk_chl;
-		return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_SET_CHL, &aud_intf_info.spk_info.spk_chl, 1000);
+		return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_SET_CHL, &aud_intf_info.spk_info.spk_chl, BEKEN_WAIT_FOREVER);
 	}
 
 	aud_intf_info.api_info.busy_status = false;
@@ -389,7 +394,7 @@ bk_err_t bk_aud_intf_register_uac_connect_state_cb(void *cb)
 			|| ((aud_intf_info.spk_status != AUD_INTF_SPK_STA_NULL) && (aud_intf_info.spk_info.spk_type == AUD_INTF_SPK_TYPE_UAC))
 			|| ((aud_intf_info.voc_status != AUD_INTF_VOC_STA_NULL) && ((aud_intf_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_UAC) || (aud_intf_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_UAC)))) {
 		bk_err_t ret = BK_OK;
-		ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_UAC_REGIS_CONT_STATE_CB, cb, 1000);
+		ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_UAC_REGIS_CONT_STATE_CB, cb, BEKEN_WAIT_FOREVER);
 		if (ret == BK_OK) {
 			aud_intf_info.aud_intf_uac_connect_state_cb = cb;
 		}
@@ -415,7 +420,7 @@ bk_err_t bk_aud_intf_uac_auto_connect_ctrl(bool enable)
 
 	aud_intf_info.uac_auto_connect = enable;
 	bk_err_t ret = BK_OK;
-	ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_UAC_AUTO_CONT_CTRL, &aud_intf_info.uac_auto_connect, 1000);
+	ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_UAC_AUTO_CONT_CTRL, &aud_intf_info.uac_auto_connect, BEKEN_WAIT_FOREVER);
 	if (ret != BK_OK) {
 		aud_intf_info.uac_auto_connect = !enable;
 	}
@@ -488,7 +493,7 @@ bk_err_t bk_aud_intf_set_aec_para(aud_intf_voc_aec_para_t aec_para, uint32_t val
 			break;
 	}
 
-	ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_SET_AEC_PARA, aec_ctl, 20000);
+	ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_SET_AEC_PARA, aec_ctl, BEKEN_WAIT_FOREVER);
 	if (ret != BK_ERR_AUD_INTF_OK)
 		os_free(aec_ctl);
 
@@ -502,7 +507,7 @@ bk_err_t bk_aud_intf_get_aec_para(void)
 		return BK_ERR_AUD_INTF_STA;
 
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_GET_AEC_PARA, NULL, 20000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_GET_AEC_PARA, NULL, BEKEN_WAIT_FOREVER);
 }
 
 static void aud_tras_drv_mic_event_cb_handle(aud_tras_drv_mic_event_t event, bk_err_t result)
@@ -510,14 +515,18 @@ static void aud_tras_drv_mic_event_cb_handle(aud_tras_drv_mic_event_t event, bk_
 	switch (event) {
 		case EVENT_AUD_TRAS_MIC_INIT:
 			LOGD("init aud mic complete \r\n");
-			aud_intf_info.mic_status = AUD_INTF_MIC_STA_IDLE;
+			if (result == BK_ERR_AUD_INTF_OK) {
+				aud_intf_info.mic_status = AUD_INTF_MIC_STA_IDLE;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
 
 		case EVENT_AUD_TRAS_MIC_START:
 			LOGD("start aud mic complete \r\n");
-			aud_intf_info.mic_status = AUD_INTF_MIC_STA_START;
+			if (result == BK_ERR_AUD_INTF_OK) {
+				aud_intf_info.mic_status = AUD_INTF_MIC_STA_START;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
@@ -530,14 +539,18 @@ static void aud_tras_drv_mic_event_cb_handle(aud_tras_drv_mic_event_t event, bk_
 
 		case EVENT_AUD_TRAS_MIC_STOP:
 			LOGD("stop aud mic complete \r\n");
-			aud_intf_info.mic_status = AUD_INTF_MIC_STA_IDLE;
+			if (result == BK_ERR_AUD_INTF_OK) {
+				aud_intf_info.mic_status = AUD_INTF_MIC_STA_IDLE;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
 
 		case EVENT_AUD_TRAS_MIC_DEINIT:
 			LOGD("deinit aud mic complete \r\n");
-			aud_intf_info.mic_status = AUD_INTF_MIC_STA_NULL;
+			if (result == BK_ERR_AUD_INTF_OK) {
+				aud_intf_info.mic_status = AUD_INTF_MIC_STA_NULL;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
@@ -570,31 +583,31 @@ bk_err_t bk_aud_intf_mic_init(aud_intf_mic_setup_t *setup)
 	aud_intf_info.mic_info.mic_type = setup->mic_type;
 	aud_intf_info.mic_info.aud_tras_drv_mic_event_cb = aud_tras_drv_mic_event_cb_handle;
 
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_INIT, &aud_intf_info.mic_info, 6000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_INIT, &aud_intf_info.mic_info, BEKEN_WAIT_FOREVER);
 }
 
 bk_err_t bk_aud_intf_mic_deinit(void)
 {
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_DEINIT, NULL, 1000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_DEINIT, NULL, BEKEN_WAIT_FOREVER);
 }
 
 bk_err_t bk_aud_intf_mic_start(void)
 {
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_START, NULL, 1000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_START, NULL, BEKEN_WAIT_FOREVER);
 }
 
 bk_err_t bk_aud_intf_mic_pause(void)
 {
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_PAUSE, NULL, 1000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_PAUSE, NULL, BEKEN_WAIT_FOREVER);
 }
 
 bk_err_t bk_aud_intf_mic_stop(void)
 {
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_STOP, NULL, 1000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_STOP, NULL, BEKEN_WAIT_FOREVER);
 }
 
 static void aud_intf_spk_deconfig(void)
@@ -604,10 +617,15 @@ static void aud_intf_spk_deconfig(void)
 	aud_intf_info.spk_info.frame_size = 0;
 	aud_intf_info.spk_info.spk_gain = 0;
 	ring_buffer_clear(aud_intf_info.spk_info.spk_rx_rb);
-	os_free(aud_intf_info.spk_info.spk_rx_ring_buff);
-	aud_intf_info.spk_info.spk_rx_ring_buff = NULL;
-	os_free(aud_intf_info.spk_info.spk_rx_rb);
-	aud_intf_info.spk_info.spk_rx_rb = NULL;
+	if (aud_intf_info.spk_info.spk_rx_ring_buff) {
+		os_free(aud_intf_info.spk_info.spk_rx_ring_buff);
+		aud_intf_info.spk_info.spk_rx_ring_buff = NULL;
+	}
+
+	if (aud_intf_info.spk_info.spk_rx_rb) {
+		os_free(aud_intf_info.spk_info.spk_rx_rb);
+		aud_intf_info.spk_info.spk_rx_rb = NULL;
+	}
 }
 
 static void aud_tras_drv_spk_event_cb_handle(aud_tras_drv_spk_event_t event, bk_err_t result)
@@ -615,14 +633,18 @@ static void aud_tras_drv_spk_event_cb_handle(aud_tras_drv_spk_event_t event, bk_
 	switch (event) {
 		case EVENT_AUD_TRAS_SPK_INIT:
 			LOGD("init aud spk complete \r\n");
-			aud_intf_info.spk_status = AUD_INTF_SPK_STA_IDLE;
+			if (result == BK_ERR_AUD_INTF_OK) {
+				aud_intf_info.spk_status = AUD_INTF_SPK_STA_IDLE;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
 
 		case EVENT_AUD_TRAS_SPK_START:
 			LOGD("start aud spk complete \r\n");
-			aud_intf_info.spk_status = AUD_INTF_SPK_STA_START;
+			if (result == BK_ERR_AUD_INTF_OK) {
+				aud_intf_info.spk_status = AUD_INTF_SPK_STA_START;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
@@ -635,7 +657,9 @@ static void aud_tras_drv_spk_event_cb_handle(aud_tras_drv_spk_event_t event, bk_
 
 		case EVENT_AUD_TRAS_SPK_STOP:
 			LOGD("stop aud spk complete \r\n");
-			aud_intf_info.spk_status = AUD_INTF_SPK_STA_IDLE;
+			if (result == BK_ERR_AUD_INTF_OK) {
+				aud_intf_info.spk_status = AUD_INTF_SPK_STA_IDLE;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
@@ -643,7 +667,9 @@ static void aud_tras_drv_spk_event_cb_handle(aud_tras_drv_spk_event_t event, bk_
 		case EVENT_AUD_TRAS_SPK_DEINIT:
 			LOGD("deinit aud spk complete \r\n");
 			aud_intf_spk_deconfig();
-			aud_intf_info.spk_status = AUD_INTF_SPK_STA_NULL;
+			if (result == BK_ERR_AUD_INTF_OK) {
+				aud_intf_info.spk_status = AUD_INTF_SPK_STA_NULL;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
@@ -696,7 +722,7 @@ bk_err_t bk_aud_intf_spk_init(aud_intf_spk_setup_t *setup)
 	}
 
 	ring_buffer_init(aud_intf_info.spk_info.spk_rx_rb, (uint8_t *)aud_intf_info.spk_info.spk_rx_ring_buff, aud_intf_info.spk_info.frame_size * aud_intf_info.spk_info.fifo_frame_num + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, DMA_ID_MAX, RB_DMA_TYPE_NULL);
-	ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_INIT, &aud_intf_info.spk_info, 6000);
+	ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_INIT, &aud_intf_info.spk_info, BEKEN_WAIT_FOREVER);
 	if (ret != BK_ERR_AUD_INTF_OK) {
 		err = ret;
 		goto aud_intf_spk_init_exit;
@@ -716,25 +742,25 @@ aud_intf_spk_init_exit:
 bk_err_t bk_aud_intf_spk_deinit(void)
 {
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_DEINIT, NULL, 1000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_DEINIT, NULL, BEKEN_WAIT_FOREVER);
 }
 
 bk_err_t bk_aud_intf_spk_start(void)
 {
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_START, NULL, 1000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_START, NULL, BEKEN_WAIT_FOREVER);
 }
 
 bk_err_t bk_aud_intf_spk_pause(void)
 {
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_PAUSE, NULL, 1000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_PAUSE, NULL, BEKEN_WAIT_FOREVER);
 }
 
 bk_err_t bk_aud_intf_spk_stop(void)
 {
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_STOP, NULL, 1000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_SPK_STOP, NULL, BEKEN_WAIT_FOREVER);
 }
 
 static void aud_intf_voc_deconfig(void)
@@ -749,7 +775,7 @@ static void aud_intf_voc_deconfig(void)
 	aud_intf_info.voc_info.aud_setup.speaker_samp_rate_points = 0;
 
 	/* aec deconfig */
-	if (aud_intf_info.voc_info.aec_enable) {
+	if (aud_intf_info.voc_info.aec_enable && aud_intf_info.voc_info.aec_setup) {
 		os_free(aud_intf_info.voc_info.aec_setup);
 	}
 	aud_intf_info.voc_info.aec_setup = NULL;
@@ -759,18 +785,29 @@ static void aud_intf_voc_deconfig(void)
 	aud_intf_info.voc_info.tx_info.buff_length = 0;
 	aud_intf_info.voc_info.tx_info.tx_buff_status = false;
 	aud_intf_info.voc_info.tx_info.ping.busy_status = false;
-	os_free(aud_intf_info.voc_info.tx_info.ping.buff_addr);
-	aud_intf_info.voc_info.tx_info.ping.buff_addr = NULL;
+	if (aud_intf_info.voc_info.tx_info.ping.buff_addr) {
+		os_free(aud_intf_info.voc_info.tx_info.ping.buff_addr);
+		aud_intf_info.voc_info.tx_info.ping.buff_addr = NULL;
+	}
+
 	aud_intf_info.voc_info.tx_info.pang.busy_status = false;
-	os_free(aud_intf_info.voc_info.tx_info.pang.buff_addr);
-	aud_intf_info.voc_info.tx_info.pang.buff_addr = NULL;
+	if (aud_intf_info.voc_info.tx_info.pang.buff_addr) {
+		os_free(aud_intf_info.voc_info.tx_info.pang.buff_addr);
+		aud_intf_info.voc_info.tx_info.pang.buff_addr = NULL;
+	}
 
 	/* rx deconfig */
 	aud_intf_info.voc_info.rx_info.rx_buff_status = false;
-	os_free(aud_intf_info.voc_info.rx_info.decoder_ring_buff);
-	aud_intf_info.voc_info.rx_info.decoder_ring_buff = NULL;
-	os_free(aud_intf_info.voc_info.rx_info.decoder_rb);
-	aud_intf_info.voc_info.rx_info.decoder_rb = NULL;
+	if (aud_intf_info.voc_info.rx_info.decoder_ring_buff) {
+		os_free(aud_intf_info.voc_info.rx_info.decoder_ring_buff);
+		aud_intf_info.voc_info.rx_info.decoder_ring_buff = NULL;
+	}
+
+	if (aud_intf_info.voc_info.rx_info.decoder_rb) {
+		os_free(aud_intf_info.voc_info.rx_info.decoder_rb);
+		aud_intf_info.voc_info.rx_info.decoder_rb = NULL;
+	}
+
 	aud_intf_info.voc_info.rx_info.frame_num = 0;
 	aud_intf_info.voc_info.rx_info.frame_size = 0;
 	aud_intf_info.voc_info.rx_info.fifo_frame_num = 0;
@@ -783,12 +820,20 @@ static void aud_intf_voc_deconfig(void)
 	/* delate audio transfer task */
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 #if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
-	os_free(aud_intf_info.voc_info.aec_dump.mic_dump_addr);
-	aud_intf_info.voc_info.aec_dump.mic_dump_addr = NULL;
-	os_free(aud_intf_info.voc_info.aec_dump.ref_dump_addr);
-	aud_intf_info.voc_info.aec_dump.ref_dump_addr = NULL;
-	os_free(aud_intf_info.voc_info.aec_dump.out_dump_addr);
-	aud_intf_info.voc_info.aec_dump.out_dump_addr = NULL;
+	if (aud_intf_info.voc_info.aec_dump.mic_dump_addr) {
+		os_free(aud_intf_info.voc_info.aec_dump.mic_dump_addr);
+		aud_intf_info.voc_info.aec_dump.mic_dump_addr = NULL;
+	}
+
+	if (aud_intf_info.voc_info.aec_dump.ref_dump_addr) {
+		os_free(aud_intf_info.voc_info.aec_dump.ref_dump_addr);
+		aud_intf_info.voc_info.aec_dump.ref_dump_addr = NULL;
+	}
+
+	if (aud_intf_info.voc_info.aec_dump.out_dump_addr) {
+		os_free(aud_intf_info.voc_info.aec_dump.out_dump_addr);
+		aud_intf_info.voc_info.aec_dump.out_dump_addr = NULL;
+	}
 	aud_intf_info.voc_info.aec_dump.len = 0;
 
 	bk_err_t ret = BK_OK;
@@ -805,21 +850,27 @@ static void aud_tras_drv_voc_event_cb_handle(aud_tras_drv_voc_event_t event, bk_
 	switch (event) {
 		case EVENT_AUD_TRAS_VOC_INIT:
 			LOGD("init voc complete \r\n");
-			aud_intf_info.voc_status = AUD_INTF_VOC_STA_IDLE;
+			if (result == BK_ERR_AUD_INTF_OK) {
+				aud_intf_info.voc_status = AUD_INTF_VOC_STA_IDLE;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
 
 		case EVENT_AUD_TRAS_VOC_START:
 			LOGD("start voc transfer complete \r\n");
-			aud_intf_info.voc_status = AUD_INTF_VOC_STA_START;
+			if (result == BK_ERR_AUD_INTF_OK) {
+				aud_intf_info.voc_status = AUD_INTF_VOC_STA_START;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
 
 		case EVENT_AUD_TRAS_VOC_STOP:
 			LOGD("stop voc transfer complete \r\n");
-			aud_intf_info.voc_status = AUD_INTF_VOC_STA_STOP;
+			if (result == BK_ERR_AUD_INTF_OK) {
+				aud_intf_info.voc_status = AUD_INTF_VOC_STA_STOP;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
@@ -845,7 +896,9 @@ static void aud_tras_drv_voc_event_cb_handle(aud_tras_drv_voc_event_t event, bk_
 		case EVENT_AUD_TRAS_VOC_DEINIT:
 			LOGD("deinit voc transfer complete \r\n");
 			aud_intf_voc_deconfig();
-			aud_intf_info.voc_status = AUD_INTF_VOC_STA_NULL;
+			if (result == BK_ERR_AUD_INTF_OK) {
+				aud_intf_info.voc_status = AUD_INTF_VOC_STA_NULL;
+			}
 			aud_intf_info.api_info.result = result;
 			rtos_set_semaphore(&aud_intf_info.api_info.sem);
 			break;
@@ -1063,7 +1116,7 @@ bk_err_t bk_aud_intf_voc_init(aud_intf_voc_setup_t setup)
 		goto aud_intf_voc_init_exit;
 	}
 
-	if (rtos_get_semaphore(&aud_intf_info.api_info.sem, 6000) != BK_OK) {
+	if (rtos_get_semaphore(&aud_intf_info.api_info.sem, BEKEN_WAIT_FOREVER) != BK_OK) {
 		LOGE("%s wait semaphore failed\n", __func__);
 		err = BK_ERR_AUD_INTF_TIMEOUT;
 		goto aud_intf_voc_init_exit;
@@ -1079,26 +1132,49 @@ bk_err_t bk_aud_intf_voc_init(aud_intf_voc_setup_t setup)
 	}
 
 aud_intf_voc_init_exit:
-	if (aud_intf_info.voc_info.aec_setup != NULL)
+	if (aud_intf_info.voc_info.aec_setup != NULL) {
 		os_free(aud_intf_info.voc_info.aec_setup);
-	if (aud_intf_info.voc_info.tx_info.ping.buff_addr != NULL)
+		aud_intf_info.voc_info.aec_setup = NULL;
+	}
+
+	if (aud_intf_info.voc_info.tx_info.ping.buff_addr != NULL) {
 		os_free(aud_intf_info.voc_info.tx_info.ping.buff_addr);
-	if (aud_intf_info.voc_info.tx_info.pang.buff_addr != NULL)
+		aud_intf_info.voc_info.tx_info.ping.buff_addr = NULL;
+	}
+
+	if (aud_intf_info.voc_info.tx_info.pang.buff_addr != NULL) {
 		os_free(aud_intf_info.voc_info.tx_info.pang.buff_addr);
-	if (aud_intf_info.voc_info.rx_info.decoder_ring_buff != NULL)
+		aud_intf_info.voc_info.tx_info.pang.buff_addr = NULL;
+	}
+
+	if (aud_intf_info.voc_info.rx_info.decoder_ring_buff != NULL) {
 		os_free(aud_intf_info.voc_info.rx_info.decoder_ring_buff);
-	if (aud_intf_info.voc_info.rx_info.decoder_rb != NULL)
+		aud_intf_info.voc_info.rx_info.decoder_ring_buff = NULL;
+	}
+
+	if (aud_intf_info.voc_info.rx_info.decoder_rb != NULL) {
 		os_free(aud_intf_info.voc_info.rx_info.decoder_rb);
+		aud_intf_info.voc_info.rx_info.decoder_rb = NULL;
+	}
+
 	aud_intf_info.voc_info.aud_tras_drv_voc_event_cb = NULL;
 
 #if CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 #if CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
-	if (aud_intf_info.voc_info.aec_dump.mic_dump_addr != NULL)
+	if (aud_intf_info.voc_info.aec_dump.mic_dump_addr != NULL) {
 		os_free(aud_intf_info.voc_info.aec_dump.mic_dump_addr);
-	if (aud_intf_info.voc_info.aec_dump.ref_dump_addr != NULL)
+		aud_intf_info.voc_info.aec_dump.mic_dump_addr = NULL;
+	}
+
+	if (aud_intf_info.voc_info.aec_dump.ref_dump_addr != NULL) {
 		os_free(aud_intf_info.voc_info.aec_dump.ref_dump_addr);
-	if (aud_intf_info.voc_info.aec_dump.out_dump_addr != NULL)
+		aud_intf_info.voc_info.aec_dump.ref_dump_addr = NULL;
+	}
+
+	if (aud_intf_info.voc_info.aec_dump.out_dump_addr != NULL) {
 		os_free(aud_intf_info.voc_info.aec_dump.out_dump_addr);
+		aud_intf_info.voc_info.aec_dump.out_dump_addr = NULL;
+	}
 #endif //CONFIG_AUD_TRAS_AEC_DUMP_MODE_TF
 #endif //CONFIG_AUD_TRAS_AEC_DUMP_DEBUG
 	aud_intf_info.api_info.busy_status = false;
@@ -1111,10 +1187,10 @@ bk_err_t bk_aud_intf_voc_deinit(void)
 	if (aud_intf_info.voc_status == AUD_INTF_VOC_STA_NULL) {
 		LOGI("voice is alreay deinit \r\n");
 		return BK_ERR_AUD_INTF_OK;
-	}
+	}
 
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_DEINIT, NULL, 1000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_DEINIT, NULL, BEKEN_WAIT_FOREVER);
 }
 
 bk_err_t bk_aud_intf_voc_start(void)
@@ -1122,7 +1198,7 @@ bk_err_t bk_aud_intf_voc_start(void)
 	switch (aud_intf_info.voc_status) {
 		case AUD_INTF_VOC_STA_NULL:
 		case AUD_INTF_VOC_STA_START:
-			return BK_ERR_AUD_INTF_STA;
+			return BK_ERR_AUD_INTF_OK;
 
 		case AUD_INTF_VOC_STA_IDLE:
 		case AUD_INTF_VOC_STA_STOP:
@@ -1133,7 +1209,23 @@ bk_err_t bk_aud_intf_voc_start(void)
 				if (temp_buff == NULL) {
 					return BK_ERR_AUD_INTF_MEMY;
 				} else {
-					os_memset(temp_buff, 0xD5, temp_size);
+					switch (aud_intf_info.voc_info.data_type) {
+						case AUD_INTF_VOC_DATA_TYPE_G711A:
+							os_memset(temp_buff, 0xD5, temp_size);
+							break;
+
+						case AUD_INTF_VOC_DATA_TYPE_PCM:
+							os_memset(temp_buff, 0x00, temp_size);
+							break;
+
+						case AUD_INTF_VOC_DATA_TYPE_G711U:
+							os_memset(temp_buff, 0xFF, temp_size);
+							break;
+
+						default:
+							break;
+					}
+
 					aud_intf_voc_write_spk_data(temp_buff, temp_size);
 					os_free(temp_buff);
 				}
@@ -1145,7 +1237,7 @@ bk_err_t bk_aud_intf_voc_start(void)
 	}
 
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_START, NULL, 7000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_START, NULL, BEKEN_WAIT_FOREVER);
 }
 
 bk_err_t bk_aud_intf_voc_stop(void)
@@ -1165,7 +1257,7 @@ bk_err_t bk_aud_intf_voc_stop(void)
 	}
 
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_STOP, NULL, 1000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_STOP, NULL, BEKEN_WAIT_FOREVER);
 }
 
 bk_err_t bk_aud_intf_voc_mic_ctrl(aud_intf_voc_mic_ctrl_t mic_en)
@@ -1179,7 +1271,7 @@ bk_err_t bk_aud_intf_voc_mic_ctrl(aud_intf_voc_mic_ctrl_t mic_en)
 	aud_intf_info.voc_info.mic_en = mic_en;
 
 	CHECK_AUD_INTF_BUSY_STA();
-	ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_CTRL_MIC, &aud_intf_info.voc_info.mic_en, 1000);
+	ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_CTRL_MIC, &aud_intf_info.voc_info.mic_en, BEKEN_WAIT_FOREVER);
 	if (ret != BK_OK)
 		aud_intf_info.voc_info.mic_en = temp;
 
@@ -1197,7 +1289,7 @@ bk_err_t bk_aud_intf_voc_spk_ctrl(aud_intf_voc_spk_ctrl_t spk_en)
 	aud_intf_info.voc_info.spk_en = spk_en;
 
 	CHECK_AUD_INTF_BUSY_STA();
-	ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_CTRL_SPK, &aud_intf_info.voc_info.spk_en, 1000);
+	ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_CTRL_SPK, &aud_intf_info.voc_info.spk_en, BEKEN_WAIT_FOREVER);
 	if (ret != BK_OK)
 		aud_intf_info.voc_info.spk_en = temp;
 
@@ -1215,7 +1307,7 @@ bk_err_t bk_aud_intf_voc_aec_ctrl(bool aec_en)
 	aud_intf_info.voc_info.aec_enable = aec_en;
 
 	CHECK_AUD_INTF_BUSY_STA();
-	ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_CTRL_AEC, &aud_intf_info.voc_info.aec_enable, 1000);
+	ret = aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_CTRL_AEC, &aud_intf_info.voc_info.aec_enable, BEKEN_WAIT_FOREVER);
 	if (ret != BK_OK)
 		aud_intf_info.voc_info.aec_enable = temp;
 
@@ -1257,7 +1349,7 @@ bk_err_t bk_aud_intf_drv_init(aud_intf_drv_setup_t *setup)
 		goto aud_intf_drv_init_exit;
 	}
 
-	if (rtos_get_semaphore(&aud_intf_info.api_info.sem, 3000) != BK_OK) {
+	if (rtos_get_semaphore(&aud_intf_info.api_info.sem, BEKEN_WAIT_FOREVER) != BK_OK) {
 		LOGE("%s wait semaphore failed\n", __func__);
 		err = BK_ERR_AUD_INTF_TIMEOUT;
 		goto aud_intf_drv_init_exit;
@@ -1265,7 +1357,7 @@ bk_err_t bk_aud_intf_drv_init(aud_intf_drv_setup_t *setup)
 
 	if (aud_intf_info.api_info.result != BK_ERR_AUD_INTF_OK) {
 		err = aud_intf_info.api_info.result;
-		os_printf("err:%d \r\n", err);
+		LOGE("err:%d \r\n", err);
 		goto aud_intf_drv_init_exit;
 	} else {
 		aud_intf_info.api_info.busy_status = false;
@@ -1288,6 +1380,9 @@ bk_err_t bk_aud_intf_drv_deinit(void)
 
 	CHECK_AUD_INTF_BUSY_STA();
 
+	if (aud_intf_info.drv_status == AUD_INTF_DRV_STA_NULL) {
+		return BK_OK;
+	}
 
 /*
 	if (aud_intf_info.status != AUD_INTF_STA_WORKING) {
@@ -1308,7 +1403,7 @@ bk_err_t bk_aud_intf_drv_deinit(void)
 		goto aud_intf_drv_deinit_exit;
 	}
 
-	if (rtos_get_semaphore(&aud_intf_info.api_info.sem, 3000) != BK_OK) {
+	if (rtos_get_semaphore(&aud_intf_info.api_info.sem, BEKEN_WAIT_FOREVER) != BK_OK) {
 		LOGE("%s wait semaphore failed\n", __func__);
 		err = BK_ERR_AUD_INTF_TIMEOUT;
 		goto aud_intf_drv_deinit_exit;
@@ -1403,7 +1498,7 @@ bk_err_t bk_aud_intf_voc_tx_debug(aud_intf_dump_data_callback dump_callback)
 		return BK_ERR_AUD_INTF_STA;
 
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_TX_DEBUG, dump_callback, 2000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_TX_DEBUG, dump_callback, BEKEN_WAIT_FOREVER);
 }
 
 bk_err_t bk_aud_intf_voc_rx_debug(aud_intf_dump_data_callback dump_callback)
@@ -1412,7 +1507,7 @@ bk_err_t bk_aud_intf_voc_rx_debug(aud_intf_dump_data_callback dump_callback)
 		return BK_ERR_AUD_INTF_STA;
 
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_TX_DEBUG, dump_callback, 2000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_TX_DEBUG, dump_callback, BEKEN_WAIT_FOREVER);
 }
 
 bk_err_t bk_aud_intf_voc_aec_debug(aud_intf_dump_data_callback dump_callback)
@@ -1421,7 +1516,7 @@ bk_err_t bk_aud_intf_voc_aec_debug(aud_intf_dump_data_callback dump_callback)
 		return BK_ERR_AUD_INTF_STA;
 
 	CHECK_AUD_INTF_BUSY_STA();
-	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_AEC_DEBUG, dump_callback, 2000);
+	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_VOC_AEC_DEBUG, dump_callback, BEKEN_WAIT_FOREVER);
 }
 
 #if CONFIG_VIDEO_AVI

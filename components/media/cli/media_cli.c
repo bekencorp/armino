@@ -175,7 +175,7 @@ bool cmd_contain(int argc, char **argv, char *string)
 	return ret;
 }
 
-#if (CONFIG_CAMERA || CONFIG_USB_UVC)
+#if (CONFIG_IMAGE_STORAGE)
 extern storage_flash_t storge_flash;
 #endif
 
@@ -274,7 +274,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		}
 #endif
 
-#if ((defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC)) && !defined(CONFIG_SLAVE_CORE))
+#if (CONFIG_IMAGE_STORAGE && !defined(CONFIG_SLAVE_CORE))
 		if (os_strcmp(argv[1], "capture") == 0)
 		{
 			LOGI("capture\n");
@@ -330,8 +330,19 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 			if (CMD_CONTAIN("rotate"))
 			{
-				media_app_lcd_rotate(true);
+				media_app_lcd_rotate(ROTATE_90);
 			}
+
+			if (CMD_CONTAIN("90"))
+			{
+				media_app_lcd_rotate(ROTATE_90);
+			}
+
+			if (CMD_CONTAIN("270"))
+			{
+				media_app_lcd_rotate(ROTATE_270);
+			}
+
 
 			if (os_strcmp(argv[2], "open") == 0)
 			{
@@ -425,9 +436,8 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			}
 			if (os_strcmp(argv[2], "flash_display") == 0)
 			{
-#if (CONFIG_CAMERA || CONFIG_USB_UVC)
+#if (CONFIG_IMAGE_STORAGE)
 				lcd_display_t lcd_display;
-				extern storage_flash_t storge_flash;
 				lcd_display.image_addr = storge_flash.flash_image_addr;
 				lcd_display.img_length = storge_flash.flasg_img_length;
 				ret = media_app_lcd_display(&lcd_display);
@@ -625,20 +635,20 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		}
 #endif
 
-        if (os_strcmp(argv[1], "avi") == 0)
-        {
+		if (os_strcmp(argv[1], "avi") == 0)
+		{
 #if defined(CONFIG_CAMERA) && !defined(CONFIG_SLAVE_CORE) && defined(CONFIG_VIDEO_AVI)
-            if (0 == os_strcmp(argv[2], "v_open"))
-            {
-                ret = media_app_avi_open();
-                LOGI("media_app_avi_open\r\n");
-            }
+		if (0 == os_strcmp(argv[2], "v_open"))
+		{
+			ret = media_app_avi_open();
+			LOGI("media_app_avi_open\r\n");
+		}
 
-            if (0 == os_strcmp(argv[2], "v_close"))
-            {
-                ret = media_app_avi_close();
-                LOGI("media_app_avi_close\r\n");
-            }
+		if (0 == os_strcmp(argv[2], "v_close"))
+		{
+			ret = media_app_avi_close();
+			LOGI("media_app_avi_close\r\n");
+		}
 #endif
 
 #if (CONFIG_AUD_INTF && CONFIG_VIDEO_AVI)
@@ -654,7 +664,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				LOGI("bk_aud_intf_mic_save_stop\r\n");
 			}
 #endif
-        }
+		}
 	}
 
 output:

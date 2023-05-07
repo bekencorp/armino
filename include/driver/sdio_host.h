@@ -182,11 +182,14 @@ bk_err_t bk_sdio_host_write_fifo(const uint8_t *write_data, uint32_t data_size);
 bk_err_t bk_sdio_host_wait_receive_data(void);
 
 /**
- * @brief     Read data from rx fifo in blocking mode
+ * @brief     Read data from rx fifo with timeout mode
  *
- * @return the fifo register value
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_SDIO_HOST_READ_DATA_FAIL: sdio host read data from FIFO timeout
+ *    - *save_v_p:if success, will save read value to this pointer.
  */
-uint32_t bk_sdio_host_read_fifo(void);
+bk_err_t bk_sdio_host_read_fifo(uint32_t *save_v_p);
 
 #ifdef __cplusplus
 }

@@ -22,6 +22,7 @@
 #include "drv_model_pub.h"
 #include "param_config.h"
 #include "aon_pmu_driver.h"
+#include "wdt_driver.h"
 
 #define TAG "sys"
 
@@ -40,31 +41,17 @@ static uint32_t bk_get_return_address_value()
 
 void bk_reboot_ex(uint32_t reset_reason)
 {
-	UINT32 wdt_val = 5;
-	GLOBAL_INT_DECLARATION();
-
+#if !CONFIG_SLAVE_CORE
 	BK_LOGI(TAG, "bk_reboot\r\n");
-
-#if (CONFIG_SOC_BK7256XX)
-	BK_DUMP_OUT("sys: Return address value:%x\r\n", bk_get_return_address_value());
-	set_reboot_tag(REBOOT_TAG_REQ);
-#endif
-#if (CONFIG_SYSTEM_CTRL)
-	uint32_t param =0;
-	param = aon_pmu_drv_reg_get(PMU_REG0x41);
-	param &= ~0x3; //select clk_DIVD as lpo_src
-	aon_pmu_drv_reg_set(PMU_REG0x41,param);
-	aon_pmu_drv_wdt_rst_dev_enable();
-#endif
 
 	if (reset_reason < RESET_SOURCE_UNKNOWN) {
 		bk_misc_set_reset_reason(reset_reason);
 	}
 
-	BK_LOGI(TAG, "wdt reboot\r\n");
 #if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7256XX)
 	delay_ms(100); //add delay for bk_writer BEKEN_DO_REBOOT cmd
 #endif
+
 #if CONFIG_AON_RTC_KEEP_TIME_SUPPORT
 {
 	/* 
@@ -77,10 +64,10 @@ void bk_reboot_ex(uint32_t reset_reason)
 	aon_rtc_enter_reboot();
 }
 #endif
-	GLOBAL_INT_DISABLE();
-	bk_wdt_start(wdt_val);
-	while (1);
-	GLOBAL_INT_RESTORE();
+
+	BK_LOGI(TAG, "wdt reboot\r\n");
+	bk_wdt_force_reboot();
+#endif //#if !CONFIG_SLAVE_CORE
 }
 
 void bk_reboot(void)

@@ -192,7 +192,7 @@ static int mac_init(void)
 
 #if (CONFIG_RANDOM_MAC_ADDR)
 	if ((BK_OK != ret) ||BK_IS_GROUP_MAC(s_base_mac)
-#if CONFIG_NEW_MAC_POLICY
+#if CONFIG_BK_MAC_ADDR_CHECK
 		|| bk_check_mac_address(s_base_mac)
 #endif
 		) {

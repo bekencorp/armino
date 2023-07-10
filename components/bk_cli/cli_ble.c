@@ -1,5 +1,6 @@
 #include "bk_cli.h"
 #include <common/sys_config.h>
+#include "bk_phy.h"
 
 extern void ble_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);//TODO
 
@@ -8,6 +9,10 @@ extern void ble_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 static const struct cli_command s_ble_commands[] = {
 #if (CONFIG_BLE == 1)
 	{"ble", "ble arg1 arg2",  ble_command},
+#endif
+
+#if (!CONFIG_WIFI_ENABLE)
+	{"rfcali_show_data",     "",                      cmd_rfcali_show_data},
 #endif
 };
 

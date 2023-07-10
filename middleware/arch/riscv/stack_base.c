@@ -24,6 +24,7 @@
 #if CONFIG_TRNG_SUPPORT
 #include <driver/trng.h>
 #endif
+#include <driver/wdt.h>
 
 #define TAG "Stack"
 
@@ -52,19 +53,25 @@ static int code_addr_is_valid(uint32_t addr)
 
 void stack_mem_dump(uint32_t stack_top, uint32_t stack_bottom)
 {
-	unsigned char *data;
+	unsigned char *data = NULL;
+	volatile uint32_t value = 0;
 	uint32_t cnt = 0;
 	uint32_t sp = stack_top;
 	uint32_t fp = stack_bottom;
 
 	BK_DUMP_OUT(">>>>stack mem dump begin, stack_top=%08x, stack end=%08x\r\n", stack_top, stack_bottom);
 	for (;  sp < fp; sp += sizeof(size_t)) {
-		data = ((unsigned char *) sp);
+		value = os_get_word(sp);
+		data = ((unsigned char *)&value);
 
 		if ((cnt++ & 0x7) == 0) {
 			BK_DUMP_OUT("\r\n");
 		}
-
+#if CONFIG_DEBUG_FIRMWARE && CONFIG_INT_WDT
+		if((cnt & 0xfff) == 0) {
+			bk_wdt_feed();
+		}
+#endif
 		BK_DUMP_OUT("%02x %02x %02x %02x ", data[0], data[1], data[2], data[3]);
 	}
 	BK_DUMP_OUT("\r\n");

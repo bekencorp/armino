@@ -1,6 +1,8 @@
 #pragma once
-#define ARMINO_TAG_VERSION "v1.5.4"
-#define bk7256_cp1_HASH_VERSION "bdb8e9d36db564d506ac8c1d3cb99bec"
-#define bk7256_HASH_VERSION "d7d35f57fff66a8d4bb77499d96fddf3"
-#define bk7235_cp1_HASH_VERSION "d8c039acf7e161eb35b71b45d3addda8"
-#define bk7235_HASH_VERSION "c1824138bac1353e2238bd4fbf0ac639"
+#define ARMINO_TAG_VERSION "v1.5.5"
+#define bk7256_cp1_HASH_VERSION "fa7403efc6cd34523c0efd70a6770c5d"
+#define bk7256_HASH_VERSION "48fdf6fc7d865bace6a8c38283a5f3e3"
+#define bk7235_cp1_HASH_VERSION "5861eef0be4d12e69d4cd6994fa4d482"
+#define bk7235_HASH_VERSION "663ab049a888b810271fafb89400b5f5"
+#define bk7237_cp1_HASH_VERSION "fffcd030ef2f68f4677f7c49fe1ed5c5"
+#define bk7237_HASH_VERSION "dfbc0644791d4ce6225a82bbe70e17cc"

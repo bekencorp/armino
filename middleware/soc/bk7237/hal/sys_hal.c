@@ -951,8 +951,8 @@ void sys_hal_low_power_hardware_init()
 
 	/*select lowpower lpo clk source*/
 #if CONFIG_EXTERN_32K
-	sys_ll_set_ana_reg6_itune_xtall(0x0);//0x0 provide highest current for external 32k,because the signal path long
-	sys_ll_set_ana_reg6_en_xtall(0x1);
+	//sys_ll_set_ana_reg6_itune_xtall(0x0);//0x0 provide highest current for external 32k,because the signal path long
+	//sys_ll_set_ana_reg6_en_xtall(0x1);
 	aon_pmu_hal_lpo_src_set(PM_LPO_SRC_X32K);
 #else
 	aon_pmu_hal_lpo_src_set(PM_LPO_SRC_ROSC);

@@ -811,6 +811,7 @@ CONFIG_LV_COLOR_DEPTH=16
 # CONFIG_LV_USE_PERF_MONITOR is not set
 # CONFIG_LVGL_USE_PSRAM is not set
 # CONFIG_LVGL_USE_DMA2D is not set
+# CONFIG_LV_ATTRIBUTE_FAST_MEM is not set
 # end of modules::lvgl
 
 #

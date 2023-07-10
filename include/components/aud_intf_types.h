@@ -219,6 +219,8 @@ typedef struct {
 	aud_intf_voc_spk_ctrl_t spk_en;			/**< spk default status */
 	aud_intf_mic_type_t mic_type;			/**< audio mic type: uac or microphone */
 	aud_intf_spk_type_t spk_type;			/**< audio speaker type: uac or speaker */
+	uint8_t frame_num;						/**< the max number of frames in rx buffer to save rx data, the time of one frame is 20ms */
+	uint8_t fifo_frame_num;					/**< the number of frames in rx buffer before start voice transfer, the time of one frame is 20ms */
 } aud_intf_voc_setup_t;
 
 #define DEFAULT_AUD_INTF_VOC_SETUP_CONFIG() {          \
@@ -240,6 +242,8 @@ typedef struct {
         .spk_en = AUD_INTF_VOC_SPK_OPEN,               \
         .mic_type = AUD_INTF_MIC_TYPE_BOARD,           \
         .spk_type = AUD_INTF_SPK_TYPE_BOARD,           \
+        .frame_num = 15,                               \
+        .fifo_frame_num = 10,                          \
     }
 
 #ifdef __cplusplus

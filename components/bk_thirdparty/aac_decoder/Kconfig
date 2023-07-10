@@ -1,0 +1,9 @@
+menu "Bk_thirdparty::aac_decoder"
+
+	config AAC_DECODER
+		bool "Enable AAC decoder"
+		default n
+		help
+			Enable AAC decoder lib
+
+endmenu

@@ -1420,6 +1420,10 @@ int bk_cli_init(void)
 	cli_es8311_init();
 #endif
 
+#if (CLI_CFG_ASR == 1)
+	cli_asr_init();
+#endif
+
 #if (CONFIG_MEDIA == 1)
 	media_cli_init();
 #endif

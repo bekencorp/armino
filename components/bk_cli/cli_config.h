@@ -345,6 +345,10 @@ extern "C" {
 #define CLI_CFG_ES8311        1
 #endif
 
+#if (CONFIG_ASR_TEST && (!CONFIG_SLAVE_CORE))
+#define CLI_CFG_ASR         1
+#endif
+
 #endif
 
 #ifdef __cplusplus

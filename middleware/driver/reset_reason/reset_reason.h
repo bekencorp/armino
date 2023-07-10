@@ -28,12 +28,34 @@ extern "C" {
 	 * */
 	#define PERSIST_MEMORY_ADDR (0x0040001c)
 #elif (CONFIG_SOC_BK7256XX)
-	#define START_TYPE_ADDR        (0x44000000 + 0x3 * 4)    //aon_pmu reg03
-	#define PERSIST_MEMORY_ADDR    (0x20007FF0)
-	#define REBOOT_TAG_ADDR        (0x20007FF4)
-	#define RTC_TIME_SEC_ADDR      (0x20007FF8)
-	#define RTC_TIME_USEC_ADDR     (0x20007FFC)
-	#define REBOOT_TAG_REQ         (0xAA55AA55)   //4 byte
+	/* **************NOTE*******************************************
+	* Use last 32 Bytes of DTCM to save sysinfo while system reset
+	* Only the BSP memeber can  change this area!!!
+	***************************************************************/
+	/*1. SAVE_JUMPAPP_ADDR For bootloader jump to app when occur nmi interrupt*/
+	#define SAVE_JUMPAPP_ADDR      (0x20007FE0)
+
+	/*2. START_TYPE_ADDR For CPU0-APP save reset reson*/
+	// #define START_TYPE_ADDR        (0x44000000 + 0x3 * 4)    //aon_pmu reg03
+	#define START_TYPE_ADDR        (0x20007FE4)
+
+	/*3. 0x20007FE8 Reserved now*/
+
+	/*4. 0x20007FEC Reserved now*/
+
+	/*5. RTC_TIME_SEC_ADDR For CPU0-APP save rtc seconds while system reset*/
+	#define RTC_TIME_SEC_ADDR      (0x20007FF0)
+
+	/*6. RTC_TIME_USEC_ADDR For CPU0-APP save rtc u seconds while system reset*/
+	#define RTC_TIME_USEC_ADDR     (0x20007FF4)
+
+	/*7. REBOOT_TAG_ADDR For CPU0-APP set reset tag in soft reboot*/
+	#define REBOOT_TAG_ADDR        (0x20007FF8)
+
+	/*8. PERSIST_MEMORY_ADDR For CPU0-APP save sysinfo while system reset*/
+	#define PERSIST_MEMORY_ADDR    (0x20007FFC)
+
+	#define REBOOT_TAG_REQ         (0xAA55AA55)   //4 bytes
 	#define MCAUSE_CAUSE_WATCHDOG  (0x1)
 #else
 	#define     START_TYPE_ADDR        (0x0080a080)
@@ -57,6 +79,7 @@ uint32_t reset_reason_init(void);
 
 void set_reboot_tag(uint32_t tag);
 uint32_t get_reboot_tag(void);
+void set_nmi_vector(void);
 
 #ifdef __cplusplus
 }

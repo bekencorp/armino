@@ -830,6 +830,10 @@ bk_err_t bk_dvp_camera_driver_init(dvp_camera_config_t *config)
 
 	os_memcpy(&dvp_camera_config, config, sizeof(dvp_camera_config_t));
 
+#if CONFIG_EXTERN_32K
+	pm_clk_32k_source_switch(PM_LPO_SRC_DIVD);
+#endif
+
 	bk_dvp_camera_power_enable(1);
 
 	ret = bk_jpeg_enc_driver_init();
@@ -1169,6 +1173,12 @@ error:
 
 	bk_jpeg_enc_driver_deinit();
 
+	bk_dvp_camera_power_enable(0);
+
+#if CONFIG_EXTERN_32K
+	pm_clk_32k_source_switch(PM_LPO_SRC_X32K);
+#endif
+
 	LOGI("dvp camera init failed\n");
 
 	dvp_state = MSTATE_TURNING_OFF;
@@ -1237,6 +1247,10 @@ bk_err_t bk_dvp_camera_driver_deinit(void)
 #endif
 
 	bk_dvp_camera_power_enable(0);
+
+#if CONFIG_EXTERN_32K
+	pm_clk_32k_source_switch(PM_LPO_SRC_X32K);
+#endif
 
 	if (dvp_camera_device)
 	{

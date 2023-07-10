@@ -1,0 +1,9 @@
+menu "Bk_thirdparty::asr"
+
+	config ASR
+		bool "Enable huazhen ASR"
+		default n
+		help
+			Enable huazhen Automatic Speech Recognition
+
+endmenu

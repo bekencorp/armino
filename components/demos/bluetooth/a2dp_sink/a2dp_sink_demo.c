@@ -15,7 +15,7 @@
 #include <driver/aud.h>
 #include <components/aud_intf.h>
 #include <driver/sbc.h>
-#include "modules/aac_decoder.h"
+#include "aac_decoder.h"
 
 
 #define CODEC_AUDIO_SBC                      0x00U

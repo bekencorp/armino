@@ -39,7 +39,7 @@ void video_fram_list_destory(video_frame_node_t *list_head);
 uint8_t video_fram_list_get_node_count(video_frame_node_t *list_head);
 
 /* get all node frame length */
-uint32_t video_fram_list_get_all_length(video_frame_node_t *list_head);
+uint32_t video_fram_list_get_all_length(video_frame_node_t *list_head, uint8_t num);
 
 
 #ifdef __cplusplus

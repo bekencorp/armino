@@ -48,7 +48,7 @@ Rename this file to lodepng.cpp to use it for C++, or to lodepng.c to use it for
 #include <driver/psram.h>
 #endif
 
-#if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
+#if LV_PNG_USE_PSRAM
 #include "cache.h"
 #endif
 
@@ -499,7 +499,7 @@ unsigned lodepng_load_file(unsigned char** out, size_t* outsize, const char* fil
 
   if(!(*out) && size > 0) return 83; /*the above malloc failed*/
 
-#if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
+#if LV_PNG_USE_PSRAM
   *out = *out + 0x4000000;
   flush_dcache(*out, size);
 #endif
@@ -1401,8 +1401,11 @@ static unsigned inflateHuffmanBlock(ucvector* out, LodePNGBitReader* reader,
     os_printf("inflateHuffmanBlock sram buffer malloc fail\n");
     return 83;
   }
+
+#if LV_PNG_USE_PSRAM
   unsigned char *tmp1 = NULL;
   unsigned char *tmp2 = NULL;
+#endif
 
   HuffmanTree_init(&tree_ll);
   HuffmanTree_init(&tree_d);
@@ -3290,8 +3293,13 @@ static void addColorBits(unsigned char* out, size_t index, unsigned bits, unsign
   unsigned p = index & m;
   in &= (1u << bits) - 1u; /*filter out any other bits of the input value*/
   in = in << (bits * (m - p));
+#if LV_PNG_USE_PSRAM
   if(p == 0) bk_psram_byte_write(&out[index * bits / 8u], in);
   else bk_psram_byte_write(&out[index * bits / 8u], out[index * bits / 8u] | in);
+#else
+  if(p == 0) out[index * bits / 8u] = in;
+  else out[index * bits / 8u] |= in;
+#endif
 }
 
 typedef struct ColorTree ColorTree;
@@ -5432,7 +5440,7 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
 
   if(!idat) CERROR_RETURN(state->error, 83); /*alloc fail*/
 
-#if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
+#if LV_PNG_USE_PSRAM
   idat = idat + 0x4000000;
   flush_dcache(idat, insize);
 #endif
@@ -5590,7 +5598,7 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
   }
   if(!state->error && scanlines_size != expected_size) state->error = 91; /*decompressed size doesn't match prediction*/
 
-#if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
+#if LV_PNG_USE_PSRAM
   lodepng_free(idat - 0x4000000);
 #else
   lodepng_free(idat);

@@ -21,4 +21,8 @@ menu "BK_system"
 	bool "Enable Mac Addr"
 	default n
 
+	config BK_MAC_ADDR_CHECK
+	bool "Enable Beken Mac Addr Check"
+	default n
+
 endmenu

@@ -3,6 +3,7 @@ menu "Demos::Bluetooth"
 		bool "Enable A2DP SINK DEMO"
 		depends on BT
 		depends on AUDIO
+		depends on AAC_DECODER
 		default n
 
 	config HFP_HF_DEMO

@@ -22,8 +22,20 @@ Demo execution
 	
 Demo development steps
 --------------------------
- - Set the value of the macro CONFIG_LV_COLOR_DEPTH according to the data type of the LCD screen, and open the corresponding macro configuration of the functions provided by LVGL according to the requirements.
+ - Set the value of the macro ``CONFIG_LV_COLOR_DEPTH`` according to the data type of the LCD screen, and open the corresponding macro configuration of the functions provided by LVGL according to the requirements.
  - Initialize the display of the lcd screen.
- - Call the interface of ``bk_gui_disp_task_init(int hor_size, int ver_size, int is_use_camera_blend)`` to initialize the display task of lvgl.
- - Call the interface of ``drv_tp_open(int hor_size, int ver_size)`` to initialize the function of TP.
+ - Initialize the memory buffer for the LVGL drawing.
+ - Call the interface of ``lv_vendor_init(lv_vnd_config_t *config, uint16_t width, uint16_t height)`` to initialize the configuration of lvgl.
+ - If the touch function exists, call the interface of ``drv_tp_open(int hor_size, int ver_size)`` to initialize the function of TP.
+ - If the fatfs file system function exists, call the interface of ``lv_fatfs_init(void)`` to initialize the fatfs file system of lvgl.
+ - Call the interface of ``lv_vendor_start()`` to create the lvgl task to start scheduing.
  - Call the widget interface provided by lvgl to draw the corresponding UI.
+
+
+LVGL development description
+-------------------------------
+ - ``lv_vendor_disp_lock()`` and ``lv_vendor_disp_unlock()`` are required for code protection when calling the widget interfaces provided by LVGL to draw the corresponding UI.
+ - LVGL source code itself provides a number of additional third-part libraries, including file system interface, JPG decoder, BMP decoder, PNG decoder and GIF decoder etc. Due to the limitations of the system SRAM memory, these decoders can only decode small resolution pictures for display. For large resolution pictures, the SDK currently provides option for PNG, JPG and GIF decoders to decode using PSRAM memory.
+ - For the PNG, JPG and GIF decoders to select PSRAM memory for decoding, first you need to open the corresponding macros in the ``lv_conf.h`` file, which respectively are ``LV_USE_PNG`` , ``LV_USE_SJPG`` and ``LV_USE_GIF`` . Then you need to open its internal corresponding macro ``LV_XXX_USE_PSRAM`` . It represents using psram memory when the macro value is 1 and represents using default sram memory when the value is 0. Finally, you need to set the heap values of ``CONFIG_PSRAM_HEAP_BASE`` and ``CONFIG_PSRAM_HEAP_SIZE`` in the project config file, which need to be set in decimal. The current heap address space ranges from 0x60700000 to 0x60800000, and the size is 1M. Since large-resolution image decoding requires more memory space, these two macros need to be set for heap space expansion.
+ - To use the LVGL FATFS file system, first open the ``LV_USE_FS_FATFS`` macro in the ``lv_conf.h`` file and select the corresponding disk number by setting the macro ``LV_FS_FATFS_DISK_NUM`` . The default value is 3 and represents the flash disk number. Finally, the fatfs file system can be initialized by calling the interface of ``lv_fatfs_init()`` in main function.
+ - There is no need to open the ``CONFIG_LVGL_USE_PSRAM`` macro when selecting PSRAM memory for decoding using PNG, JPG and GIF decoders.

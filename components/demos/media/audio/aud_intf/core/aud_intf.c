@@ -1046,9 +1046,9 @@ bk_err_t bk_aud_intf_voc_init(aud_intf_voc_setup_t setup)
 		default:
 			break;
 	}
-	aud_intf_info.voc_info.rx_info.frame_num = 15;
+	aud_intf_info.voc_info.rx_info.frame_num = setup.frame_num;
 	aud_intf_info.voc_info.rx_info.rx_buff_seq_tail = 0;
-	aud_intf_info.voc_info.rx_info.fifo_frame_num = 10;
+	aud_intf_info.voc_info.rx_info.fifo_frame_num = setup.fifo_frame_num;
 	aud_intf_info.voc_info.rx_info.decoder_ring_buff = os_malloc(aud_intf_info.voc_info.rx_info.frame_size * aud_intf_info.voc_info.rx_info.frame_num + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL);
 	if (aud_intf_info.voc_info.rx_info.decoder_ring_buff == NULL) {
 		LOGE("malloc decoder ring buffer of rx fail \r\n");

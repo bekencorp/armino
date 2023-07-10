@@ -12,7 +12,7 @@ menu "Watchdog"
 		default y
 
 	config TASK_WDT_PERIOD_MS
-		int "Interrupt Watchdog Period(ms)"
+		int "Task Watchdog Period(ms)"
 		default 60000
 
 	config NMI_WDT_EN

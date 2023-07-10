@@ -156,7 +156,7 @@ static lv_res_t decoder_open(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * 
 
             /*Decode the loaded image in ARGB8888 */
             error = lodepng_decode32(&img_data, (unsigned *)&png_width, (unsigned *)&png_height, png_data, png_data_size);
-#if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
+#if LV_PNG_USE_PSRAM
             lv_mem_free(png_data - 0x4000000); /*Free the loaded file*/
 #else
             lv_mem_free(png_data); /*Free the loaded file*/

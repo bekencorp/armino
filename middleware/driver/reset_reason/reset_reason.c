@@ -95,7 +95,9 @@ static char *misc_get_start_type_str(uint32_t start_type)
 
 	case RESET_SOURCE_UNKNOWN:
 	default:
-		return "unknown";
+		// Chip power on the value of start address may not always be 0
+		// return "unknown";
+		return "power on";
 	}
 #else
 	return "";

@@ -116,4 +116,7 @@ menu "Lvgl_source"
 		help
 			Enable DMA2D Hardware blend
 
+	config LV_ATTRIBUTE_FAST_MEM
+		bool "Enable Lv Attribute Fast Mem"
+		default n
 endmenu

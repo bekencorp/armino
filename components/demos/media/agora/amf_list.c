@@ -1,7 +1,7 @@
 
 #include "amf_list.h"
 
-#define VIDEO_FRAME_NUM  25
+//#define VIDEO_FRAME_NUM  25
 
 /* create new node */
 video_frame_node_t *video_fram_list_node_malloc(video_frame_data_t data)
@@ -38,13 +38,14 @@ uint8_t video_fram_list_get_node_count(video_frame_node_t *list_head)
 /* insert tail */
 void video_fram_list_push_back(video_frame_node_t **list_head, video_frame_node_t *new)
 {
+/*
 	if (video_fram_list_get_node_count(*list_head) >= VIDEO_FRAME_NUM) {
 		os_printf("list is full, count: %d \n", VIDEO_FRAME_NUM);
 		os_free(new);
 		new = NULL;
 		return;
 	}
-
+*/
 	if (*list_head == NULL)
 	{
 		*list_head = new;
@@ -136,16 +137,18 @@ void video_fram_list_destory(video_frame_node_t *list_head)
 
 
 /* get all node frame length */
-uint32_t video_fram_list_get_all_length(video_frame_node_t *list_head)
+uint32_t video_fram_list_get_all_length(video_frame_node_t *list_head, uint8_t num)
 {
 	video_frame_node_t *cur = list_head;
 	uint32_t total = 0;
+	uint8_t i = 0;
 
-	while (cur)
+	while (cur && (i < num))
 	{
 		//os_printf("length: %d, total: %d \n", cur->data.frame_length, total);
 		total += cur->data.frame_length;
 		cur = cur->next;
+		i++;
 	}
 
 	return total;

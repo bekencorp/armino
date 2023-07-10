@@ -37,6 +37,13 @@ typedef enum
 	DISPLAY_EXIT_EVENT,
 } display_event_t;
 
+typedef enum
+{
+	SOFTWARE_DECODING_CPU0,
+	SOFTWARE_DECODING_CPU1,
+	HARDWARE_DECODING,
+} decode_mode_t;
+
 
 typedef struct
 {
@@ -44,6 +51,7 @@ typedef struct
 	uint8_t step_mode : 1;
 	uint8_t step_trigger : 1;
 	uint8_t dma2d_blend : 1;
+	uint8_t decode_mode;
 	media_rotate_t rotate;
 	lcd_state_t state;
 } lcd_info_t;
@@ -100,10 +108,14 @@ typedef struct {
 void lcd_event_handle(uint32_t event, uint32_t param);
 lcd_state_t get_lcd_state(void);
 void set_lcd_state(lcd_state_t state);
+uint8_t get_decode_mode(void);
+void set_decode_mode(uint8_t mode);
+
 void lcd_init(void);
 void lcd_frame_complete_notify(frame_buffer_t *buffer);
 
 void lcd_act_rotate_degree90(uint32_t param);
+void lcd_jpeg_dec_sw(uint32_t param);
 
 void lcd_calc_init(void);
 

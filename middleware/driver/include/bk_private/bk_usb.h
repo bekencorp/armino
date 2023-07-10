@@ -43,6 +43,7 @@ extern bk_err_t bk_usb_open (uint32_t usb_mode);
 extern bk_err_t bk_usb_close (void);
 extern void usb_device_set_using_status(bool use_or_no, E_USB_DEVICE_T dev);
 extern bk_err_t bk_usb_check_device_supported (E_USB_DEVICE_T usb_dev);
+extern bk_err_t bk_uvc_get_stream_transfer_mode(uint8_t *transfermode);
 extern bk_err_t bk_uvc_start(void);
 extern bk_err_t bk_uvc_stop(void);
 extern bk_err_t bk_uvc_enable_H264();

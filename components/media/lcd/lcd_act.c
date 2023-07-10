@@ -115,8 +115,8 @@ static short g_lcd_height = 0;
 static short g_cammer_width = 0;
 static short g_blend_x_size = 0;
 static short g_blend_y_size = 0;
-static short g_blend_hor_align = 0;   //0：水平左对齐  1：水平居中   2：水平右对齐
-static short g_blend_ver_offset = 0;  //垂直偏移
+static short g_blend_hor_align = 0;   //0拢潞脣庐脝陆脳贸露脭脝毛  1拢潞脣庐脝陆戮脫脰脨   2拢潞脣庐脝陆脫脪露脭脝毛
+static short g_blend_ver_offset = 0;  //麓鹿脰卤脝芦脪脝
 static beken_mutex_t g_disp_mutex_blend;
 static int g_gui_blend_switch = BK_FALSE;
 lcd_blend_t g_lcd_blend_data;
@@ -1738,7 +1738,19 @@ void lcd_init(void)
 	lcd_info.state = LCD_STATE_DISABLED;
 	lcd_info.debug = false;
 	lcd_info.rotate = ROTATE_NONE;
+	lcd_info.decode_mode = HARDWARE_DECODING;
 }
+
+uint8_t get_decode_mode(void)
+{
+	return lcd_info.decode_mode;
+}
+
+void set_decode_mode(uint8_t mode)
+{
+	lcd_info.decode_mode = mode;
+}
+
 void lcd_set_logo_on(int status)
 {
 	g_lcd_display_logo_first = status;

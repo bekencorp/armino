@@ -49,6 +49,9 @@
 #include <driver/pwm.h>
 #include "modules/image_scale.h"
 
+
+#include <components/jpeg_decode.h>
+
 #include "cache.h"
 
 
@@ -98,12 +101,12 @@ typedef struct {
 	uint16_t height;
 }block_ppi_t;
 
-#define MAX_BLOCK_WIDTH     (160)
+#define MAX_BLOCK_WIDTH     (80)
 #define MAX_BLOCK_HEIGHT    (40)
 
 const block_ppi_t block_ppi_aray[] = {
-	{108, 40},
-	{160, 40},
+	{54, 40},
+	{80, 40},
 
 	{MAX_BLOCK_WIDTH, MAX_BLOCK_HEIGHT}
 	
@@ -138,6 +141,34 @@ MINOOR_ITCM void memcpy_word(uint32_t *dst, uint32_t *src, uint32_t size)
 	{
 		dst[i] = src[i];
 	}
+}
+
+MINOOR_ITCM void lcd_jpeg_dec_sw(uint32_t param)
+{
+#if CONFIG_JPEGDEC_SW
+	bk_err_t ret = BK_FAIL;
+	mb_chnl_cmd_t mb_cmd;
+	sw_jpeg_dec_res_t result;
+
+	ret = bk_jpeg_dec_sw_start(decoder_frame->length, decoder_frame->frame, rotate_frame->frame, &result);
+
+	if (ret != BK_OK)
+	{
+		LOGE("%s sw decoder error\n", __func__);
+	}
+	else
+	{
+		rotate_frame->height = result.pixel_y;
+		rotate_frame->width = result.pixel_x;
+	}
+
+	mb_cmd.hdr.cmd = EVENT_LCD_DEC_SW_MBRSP;
+	mb_cmd.param1 = (uint32_t)decoder_frame;
+	mb_cmd.param2 = (uint32_t)rotate_frame;
+	mb_cmd.param3 = ret;
+
+	mb_chnl_write(MB_CHNL_VID, &mb_cmd);
+#endif
 }
 
 
@@ -286,6 +317,16 @@ static void lcd_calc_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 		msg.param = cmd_buf->param3;
 		media_send_msg(&msg);
 	}
+	if (cmd_buf->hdr.cmd == EVENT_LCD_DEC_SW_MBCMD)
+	{
+		decoder_frame = (frame_buffer_t *)cmd_buf->param1;
+		rotate_frame = (frame_buffer_t *)cmd_buf->param2;
+
+		media_msg_t msg;
+		msg.event = EVENT_LCD_DEC_SW_CMD;
+		media_send_msg(&msg);
+	}
+
 }
 
 
@@ -307,4 +348,7 @@ void lcd_calc_init(void)
 	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_RX_ISR, lcd_calc_mailbox_rx_isr);
 	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_TX_ISR, lcd_calc_mailbox_tx_isr);
 	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_TX_CMPL_ISR, lcd_calc_mailbox_tx_cmpl_isr);
+#if CONFIG_JPEGDEC_SW
+	bk_jpeg_dec_sw_init();
+#endif
 }

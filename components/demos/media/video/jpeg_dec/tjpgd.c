@@ -891,11 +891,11 @@ JPEG_ITCM static JRESULT mcu_output (
 					if (JD_FORMAT == 3)
 					{
 						if ((ix & 0x1) == 1) {
-							*pix++ = ((219 * cb) >> 8) + 128;
+							*pix++ = BYTECLIP(((219 * cb) >> 8) + 128);
 						} else {
-							*pix++ = ((219 * cr) >> 8) + 128;
+							*pix++ = BYTECLIP(((219 * cr) >> 8) + 128);
 						}
-						*pix++ = ((219 * yy) >> 8) + 16;
+						*pix++ = BYTECLIP(((219 * yy) >> 8) + 16);
 
 						if (ix & 0x01)
 						{
@@ -907,11 +907,11 @@ JPEG_ITCM static JRESULT mcu_output (
 					}
 					else if (JD_FORMAT == 4)
 					{
-						*pix++ = ((219 * yy) >> 8) + 16;
+						*pix++ = BYTECLIP(((219 * yy) >> 8) + 16);
 						if ((ix & 0x1) == 0) {
-							*pix++ = ((219 * cb) >> 8) + 128;
+							*pix++ = BYTECLIP(((219 * cb) >> 8) + 128);
 						} else {
-							*pix++ = ((219 * cr) >> 8) + 128;
+							*pix++ = BYTECLIP(((219 * cr) >> 8) + 128);
 						}
 					}
 					else if (JD_FORMAT == 0)
@@ -1090,6 +1090,31 @@ JPEG_ITCM JRESULT jd_prepare_sw (
 		if (jd->infunc(jd, seg, 4) != 4) return JDR_INP;
 		marker = LDB_WORD(seg);		/* Marker */
 		len = LDB_WORD(seg + 2);	/* Length field */
+
+		while (marker == 0xFFFF)
+		{
+			if ((len & 0xFF00) != 0xFF00) //len  xx xx
+			{
+				if (jd->infunc(jd, seg, 1) != 1) return JDR_INP;
+				marker = 0xFF00 | ((len & 0xFF00) >> 8);
+				len = (len & 0xFF) | seg[0];	 /* Marker */
+				break;
+			}
+			else if ((len & 0xFFFF) != 0xFFFF) //len  ff xx
+			{
+				marker = len;
+				if (jd->infunc(jd, seg, 2) != 2) return JDR_INP;
+				len = LDB_WORD(seg);	 /* Marker */
+				break;
+			}
+			else	//len ff ff
+			{
+				if (jd->infunc(jd, seg, 3) != 3) return JDR_INP;
+				marker = 0xFF00 | seg[0];
+				len = LDB_WORD(seg + 1);	 /* Marker */
+			}
+		}
+
 		if (len <= 2 || (marker >> 8) != 0xFF) return JDR_FMT1;
 		len -= 2;			/* Segent content size */
 		ofs += 4 + len;		/* Number of bytes loaded */
@@ -1239,6 +1264,7 @@ JPEG_ITCM JRESULT jd_decomp_sw (
 			}
 			rc = mcu_load(jd);					/* Load an MCU (decompress huffman coded stream, dequantize and apply IDCT) */
 			if (rc != JDR_OK) return rc;
+
 			rc = mcu_output(jd, outfunc, x, y);	/* Output the MCU (YCbCr to RGB, scaling and output) */
 			if (rc != JDR_OK) return rc;
 		}

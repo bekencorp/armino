@@ -169,6 +169,7 @@ typedef struct
 	uint8_t  uvc_dma;
 	uint8_t  psram_dma;
 	uint8_t  left_len;
+	uint8_t  transfer_mode;
 	uint32_t rxbuf_len;
 	uint32_t rx_read_len;
 	uint32_t uvc_transfer_len;
@@ -280,6 +281,120 @@ static void uvc_camera_connect_state_change_callback(uvc_state_t state)
 			uvc_camera_config_ptr->uvc_connect_state_change_cb(state);
 		}
 	}
+}
+
+void uvc_bulk_packet_process(void *curptr, uint32_t newlen, uint8_t is_eof, uint32_t frame_len)
+{
+	uint8_t length = newlen;
+	uint8_t fack_len = frame_len;
+	uint8_t *data = curptr;
+
+	UVC_PSRAM_DMA_ENTRY();
+	if (curr_frame_buffer == NULL ||
+		curr_frame_buffer->frame == NULL)
+	{
+		UVC_LOGE("curr_frame_buffer NULL\n");
+		return;
+	}
+
+	if (uvc_camera_drv->sof == false)
+	{
+		if (length > USB_UVC_HEAD_LEN)
+		{
+			if (data[0] == 0x0C && data[12] == 0xFF && data[13] == 0xD8)
+			{
+				UVC_JPEG_SOF_ENTRY();
+				uvc_camera_drv->frame_flag = data[1] & 0x1;
+				data = &data[12];
+				length -= USB_UVC_HEAD_LEN;
+				fack_len = length;
+				uvc_camera_drv->sof = true;
+
+				UVC_JPEG_SOF_OUT();
+			}
+			else
+			{
+				if (data[0] == 0xFF && data[1] == 0xD8)
+				{
+					UVC_JPEG_SOF_ENTRY();
+					uvc_camera_drv->sof = true;
+					UVC_JPEG_SOF_OUT();
+				}
+			}
+		}
+	}
+	else
+	{
+		if (length > USB_UVC_HEAD_LEN)
+		{
+			if (data[0] == 0x0C && data[12] == 0xFF && data[13] == 0xD8)
+			{
+				UVC_JPEG_EOF_ENTRY();
+				data = &data[12];
+				length -= USB_UVC_HEAD_LEN;
+				fack_len = length;
+				uvc_camera_drv->eof = true;
+				UVC_JPEG_EOF_OUT();
+			}
+			else
+			{
+				if (data[0] == 0xFF && data[1] == 0xD8)
+				{
+					UVC_JPEG_EOF_ENTRY();
+					uvc_camera_drv->eof = true;
+					UVC_JPEG_EOF_OUT();
+				}
+			}
+		}
+	}
+
+	if (uvc_camera_drv->eof)
+	{
+		if (uvc_camera_drv->sof)
+		{
+			media_debug->isr_jpeg++;
+			UVC_JPEG_EOF_ENTRY();
+
+			uvc_camera_config_ptr->fb_complete(curr_frame_buffer);
+			uvc_camera_drv->frame = NULL;
+			uvc_camera_drv->eof = false;
+			uvc_camera_drv->sof = true;
+
+			UVC_JPEG_EOF_OUT();
+
+			curr_frame_buffer = uvc_camera_config_ptr->fb_malloc();
+
+			if (curr_frame_buffer == NULL
+				|| curr_frame_buffer->frame == NULL)
+			{
+				UVC_PSRAM_DMA_OUT();
+				UVC_LOGE("alloc frame error\n");
+				return;
+			}
+			curr_frame_buffer->length = 0;
+			curr_frame_buffer->width = uvc_camera_config_ptr->uvc_config->device.width;
+			curr_frame_buffer->height = uvc_camera_config_ptr->uvc_config->device.height;
+			curr_frame_buffer->fmt = PIXEL_FMT_UVC_JPEG;
+		}
+		else
+		{
+			uvc_camera_drv->eof = false;
+			curr_frame_buffer->length = 0;
+		}
+	}
+
+	if (length & 0x3)
+	{
+		fack_len = ((length >> 2) + 1) << 2;
+	}
+
+	UVC_LOGD("curr_frame_buffer->frame:%x curr_frame_buffer->length:%d fack_len:%d====== \r\n",curr_frame_buffer->frame, curr_frame_buffer->length, fack_len);
+
+	os_memcpy_word((uint32_t *)(curr_frame_buffer->frame + curr_frame_buffer->length), (const uint32_t *)data,
+					fack_len);
+	curr_frame_buffer->length += length;
+
+	UVC_PSRAM_DMA_OUT();
 }
 
 static void uvc_process_data_packet(void *curptr, uint32_t newlen, uint8_t is_eof, uint32_t frame_len)
@@ -556,6 +671,29 @@ void uvc_camera_memcpy_finish_callback(dma_id_t id)
 	UVC_PSRAM_ISR_OUT();
 }
 
+static void uvc_bulk_packet_handle(void)
+{
+	UVC_SRAM_DMA_ENTRY();
+
+	GLOBAL_INT_DECLARATION();
+	uint32_t already_len = uvc_camera_drv->rx_read_len;
+	uint32_t copy_len = uvc_camera_drv->uvc_transfer_len;
+
+	uvc_bulk_packet_process(uvc_camera_drv->buffer + already_len, copy_len, 0, copy_len);
+
+	already_len += copy_len;
+
+	if (already_len >= uvc_camera_drv->rxbuf_len)
+	{
+		already_len = 0;
+	}
+
+	GLOBAL_INT_DISABLE();
+	uvc_camera_drv->rx_read_len = already_len;
+	GLOBAL_INT_RESTORE();
+	UVC_SRAM_DMA_OUT();
+}
+
 static void uvc_camera_dma_finish_callback(dma_id_t id)
 {
 	UVC_SRAM_DMA_ENTRY();
@@ -654,10 +792,40 @@ static bk_err_t uvc_dma_config(void)
 	return ret;
 }
 
-static void uvc_get_packet_rx_vs_callback(uint8_t *arg, uint32_t count)
+static void uvc_bulk_transfer_mode_handle(uint8_t *arg, uint32_t count)
 {
-	UVC_USB_ISR_ENTRY();
+	uint32_t left_len = 0;
+	uint32_t dwIndex, dwIndex32;
+	uint32_t dwCount32 = (count / 4);
 
+	uvc_camera_drv->uvc_transfer_len = count;
+
+	if (uvc_camera_drv->rx_read_len & 0x3)
+	{
+		uvc_camera_drv->rx_read_len = ((uvc_camera_drv->rx_read_len >> 2) + 1 ) << 2;
+	}
+
+	left_len = uvc_camera_drv->rxbuf_len - uvc_camera_drv->rx_read_len;
+	if (left_len < uvc_camera_drv->uvc_transfer_len)
+	{
+		uvc_camera_drv->rx_read_len = 0;
+	}
+
+	uint8_t *dest_start_addr = (uvc_camera_drv->buffer + uvc_camera_drv->rx_read_len);
+
+	for (dwIndex = dwIndex32 = 0; dwIndex32 < dwCount32; dwIndex32++, dwIndex += 4)
+		*((uint32_t *) & (dest_start_addr[dwIndex])) = *((volatile uint32_t *)(arg));
+
+	while (dwIndex < count)
+	{
+		*((uint8_t *) & (dest_start_addr[dwIndex++])) = *((volatile uint8_t *)(arg));
+	}
+
+	uvc_bulk_packet_handle();
+}
+
+static void uvc_iso_transfer_mode_handle(uint8_t *arg, uint32_t count)
+{
 	uint32_t left_len = 0;
 
 	uvc_camera_drv->left_len = (count & 0x3);
@@ -679,6 +847,34 @@ static void uvc_get_packet_rx_vs_callback(uint8_t *arg, uint32_t count)
 	bk_dma_set_dest_start_addr(uvc_camera_drv->uvc_dma, dest_start_addr);
 	bk_dma_set_transfer_len(uvc_camera_drv->uvc_dma, uvc_camera_drv->uvc_transfer_len);
 	bk_dma_start(uvc_camera_drv->uvc_dma);
+}
+
+static void uvc_get_packet_rx_vs_callback(uint8_t *arg, uint32_t count)
+{
+	UVC_USB_ISR_ENTRY();
+
+	switch (uvc_camera_drv->transfer_mode)
+	{
+		case USB_ENDPOINT_CONTROL_TRANSFER:
+			UVC_LOGD("UVC Transfer Mode: USB_ENDPOINT_CONTROL_TRANSFER\r\n");
+			break;
+
+		case USB_ENDPOINT_ISOCH_TRANSFER:
+			UVC_LOGD("UVC Transfer Mode: USB_ENDPOINT_ISOCH_TRANSFER\r\n");
+			uvc_iso_transfer_mode_handle(arg, count);
+			break;
+
+		case USB_ENDPOINT_BULK_TRANSFER:
+			UVC_LOGD("UVC Transfer Mode: USB_ENDPOINT_BULK_TRANSFER\r\n");
+			uvc_bulk_transfer_mode_handle(arg, count);
+			break;
+
+		case USB_ENDPOINT_INT_TRANSFER:
+			UVC_LOGD("UVC Transfer Mode: USB_ENDPOINT_INT_TRANSFER\r\n");
+			break;
+		default:
+			break;
+	}
 
 	UVC_USB_ISR_OUT();
 }
@@ -715,6 +911,8 @@ static bk_err_t uvc_camera_init(void)
 	{
 		goto init_error;
 	}
+
+	bk_uvc_get_stream_transfer_mode(&uvc_camera_drv->transfer_mode);
 
 	return err;
 
@@ -875,7 +1073,10 @@ bk_err_t bk_uvc_camera_driver_init(uvc_camera_config_t *config)
 
 	uvc_camera_drv->rxbuf_len = FRAME_BUFFER_UVC * 2;
 	uvc_camera_drv->node_full_handler = uvc_process_data_packet;
-
+	uvc_camera_drv->sof = false;
+	uvc_camera_drv->eof = false;
+	uvc_camera_drv->frame_flag = false;
+	uvc_camera_drv->transfer_mode = USB_ENDPOINT_INVALID_TRANSFER;
 	uvc_camera_config_ptr = config;
 	uvc_camera_config_ptr->uvc_config->uvc_packet_rx_cb = uvc_get_packet_rx_vs_callback;
 	uvc_camera_config_ptr->uvc_config->connect_state_change_cb = uvc_camera_connect_state_change_callback;
@@ -900,7 +1101,7 @@ bk_err_t bk_uvc_camera_driver_init(uvc_camera_config_t *config)
 		}
 
 		ret = rtos_create_thread(&uvc_thread_drv_handle,
-		                         3,
+		                         6,
 		                         "uvc_init",
 		                         (beken_thread_function_t)uvc_process_main,
 		                         4 * 1024,

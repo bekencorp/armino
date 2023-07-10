@@ -22,6 +22,7 @@
 #define MAX_WIFI_AT_CMD_LEN             30
 #define MAX_VIDEO_AT_CMD_LEN            10
 #define AT_SYNC_CMD_TIMEOUT_MS          4000
+#define AT_DISCON_CMD_TIMEOUT_MS        6000
 
 extern uint8_t atcmd_updated;
 

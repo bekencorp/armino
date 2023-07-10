@@ -137,6 +137,18 @@ typedef enum
 	FPS30   = (1 << 5), /**< 30fps */
 } sensor_fps_t;
 
+typedef enum
+{
+	EVENT_LCD_ROTATE_MBCMD = 0x18,
+	EVENT_LCD_ROTATE_MBRSP = 0x19,
+
+	EVENT_LCD_RESIZE_MBCMD = 0x1a,
+	EVENT_LCD_RESIZE_MBRSP = 0x1b,
+
+	EVENT_LCD_DEC_SW_MBCMD = 0x1c,
+	EVENT_LCD_DEC_SW_MBRSP = 0x1d,
+} media_mailbox_event_t;
+
 typedef struct {
 	media_camera_type_t camera_type;
 	media_ppi_t ppi;

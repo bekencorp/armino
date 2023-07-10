@@ -80,6 +80,9 @@ void mailbox_cmd_handle(uint32_t event, uint32_t param)
 			mb_chnl_write(MB_CHNL_LVGL, &mb_cmd);
 #endif
  			break;
+        case EVENT_LCD_DEC_SW_CMD:
+            lcd_jpeg_dec_sw(param);
+            break;
 	}
 }
 #endif

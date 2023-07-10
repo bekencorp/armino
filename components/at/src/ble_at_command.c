@@ -2653,7 +2653,7 @@ int ble_disconnect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
     if (err != BK_ERR_BLE_SUCCESS)
         goto error;
     if(ble_at_cmd_sema != NULL) {
-        err = rtos_get_semaphore(&ble_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
+        err = rtos_get_semaphore(&ble_at_cmd_sema, AT_DISCON_CMD_TIMEOUT_MS);
         if(err != kNoErr) {
             goto error;
         } else {

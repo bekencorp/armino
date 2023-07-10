@@ -338,6 +338,21 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 			if (os_strcmp(argv[2], "open") == 0)
 			{
+				if (argc >= 4)
+				{
+					if(os_strcmp(argv[3], "cp0") == 0)
+					{
+						set_decode_mode(SOFTWARE_DECODING_CPU0);
+					}
+					else if(os_strcmp(argv[3], "cp1") == 0)
+					{
+						set_decode_mode(SOFTWARE_DECODING_CPU1);
+					}
+					else
+					{
+						set_decode_mode(HARDWARE_DECODING);
+					}
+				}
 				lcd_open_t lcd_open;
 				lcd_open.device_ppi = ppi;
 				lcd_open.device_name = name;

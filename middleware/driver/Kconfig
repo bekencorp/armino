@@ -1,17 +1,4 @@
 menu "Driver"
-
-	menu "SOFTWARE_SUPPORT_CHIP"
-		config CHIP_SUPPORT
-			bool "Enable chip support"
-			default n
-	endmenu
-	
-	menu "Interrupt"
-		config ISR_REG_DISABLE
-			bool "Disable irq"
-			default n
-	endmenu
-
 	source "${ARMINO_PATH}/middleware/driver/device/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/wdt/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/aon_wdt/Kconfig"
@@ -30,6 +17,7 @@ menu "Driver"
 	source "${ARMINO_PATH}/middleware/driver/touch/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/sbc/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/jpeg_enc/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/jpeg_dec/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/psram/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/calendar/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/mpc/Kconfig"
@@ -50,141 +38,15 @@ menu "Driver"
 	source "${ARMINO_PATH}/middleware/driver/vault/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/otp/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/fft/Kconfig"
-
-	config LCD
-		bool "Enable LCD"
-		default n
-
-	config LCD_GC9503V
-		depends on LCD
-		bool "Enable LCD_GC9503V API"
-		default n
-
-	config LCD_H050IWV
-		depends on LCD
-		bool "Enable LCD_H050IWV API"
-		default n
-
-	config LCD_HX8282
-		depends on LCD
-		bool "Enable LCD_HX8282 API"
-		default n
-
-	config LCD_MD0430R
-		depends on LCD
-		bool "Enable LCD_MD0430R API"
-		default n
-
-	config LCD_MD0700R
-		depends on LCD
-		bool "Enable LCD_MD0700R API"
-		default n
-
-	config LCD_NT35512
-		depends on LCD
-		bool "Enable LCD_NT35512 API"
-		default n
-
-	config LCD_NT35510
-		depends on LCD
-		bool "Enable LCD_NT35510 API"
-		default n
-
-	config LCD_NT35510_MCU
-		depends on LCD
-		bool "Enable LCD_NT35510_MCU API"
-		default n
-
-	config LCD_ST7282
-		depends on LCD
-		bool "Enable LCD_ST7282 API"
-		default n
-
-	config LCD_ST7796S
-		depends on LCD
-		bool "Enable LCD_ST7796S API"
-		default n
-
-	config LCD_ST7710S
-		depends on LCD
-		bool "Enable LCD_ST7710S API"
-		default n
-		
-	config LCD_ST7701S
-		depends on LCD
-		bool "Enable LCD_ST7701S API"
-		default n
-	config LCD_ST7701S_LY
-		depends on LCD
-		bool "Enable LCD_ST7701S API"
-		default n
-	config LCD_QSPI
-		bool "Enable LCD QSPI"
-		default n
-
-	config LCD_QSPI_SH8601A
-		depends on LCD_QSPI
-		bool "Enable LCD_QSPI_SH8601A API"
-		default n
-
-	config LCD_QSPI_ST77903
-		depends on LCD_QSPI
-		bool "Enable LCD_QSPI_ST77903 API"
-		default n
-
-	config MAC_PHY_BYPASS
-		bool "Enable MAC/PHY by pass mode"
-		default y
-	
-	config SUPPORT_IRDA
-		bool "Enable IRDA"
-		default y
-
-	config MAILBOX
-		bool "Enable mail_box"
-		default n
-
-	config TP
-		bool "Enable TP"
-		default n
-		
-	config DMA2D
-		bool "Enable DMA2D"
-		default n
-	
-	config YUV_BUF
-		bool "Enable yuv_buf"
-		default n
-
-	config JPEG_DEC
-		bool "Enable JPEGDEC Display"
-		default n
-
-	config EFUSE
-		bool "Enable efuse"
-		default y
-
-	config CHANGE_JTAG_GPIO
-		bool "Enable change jtag group"
-		default n
-
-	config RESET_REASON
-		bool "Enable reset reason"
-		default y
-
-	config LCD_POWER_GPIO_CTRL
-		bool "Enable lcd power gpio ctrl"
-		default n
-
-	config LCD_BACKLIGHT_GPIO_CTRL
-		bool "Enable lcd backlight gpio ctrl"
-		default n
-
-	config CAMERA_POWER_GPIO_CTRL
-		bool "Enable camera power gpio ctrl"
-		default n
-		
-	config  HW_ROTATE_PFC
-		bool "Enable hw rotate and pixel convert module"
-		default n
+	source "${ARMINO_PATH}/middleware/driver/hw_rotate/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/yuv_buf/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/lcd/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/irda/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/camera/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/reset_reason/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/efuse/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/mailbox/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/tp/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/dma2d/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/chip_support/Kconfig"
 endmenu

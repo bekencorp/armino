@@ -5,6 +5,14 @@
 #include "bk_arm_arch.h"
 #include "bk_misc.h"
 
+#define PWRI(gain, rb_28_31, pactrl, padctrl, rc_0_2, ra_8_13, ra_4_7, ra_0_1)      \
+{                                     \
+     .unuse      = 0,            \
+     .pregain    = gain,         \
+     .regc_8_10  = pactrl,      \
+     .regc_4_6   = padctrl,       \
+}
+
 typedef struct tmp_pwr_st {//do
     unsigned trx0x0c_12_15 : 4; //not used on BK7231N actually
     signed p_index_delta : 6;
@@ -28,6 +36,15 @@ typedef struct
     INT32 gtx_tssi_thred_chan13_g;
 
 } AUTO_PWR_CALI_CONTEXT;
+
+/// POWER
+typedef struct
+{
+    unsigned int regc_4_6   : 4;
+    unsigned int regc_8_10  : 4;
+    unsigned int pregain    : 10;
+    unsigned int unuse      : 14;
+} PWR_REGS;
 
 void vnd_cal_overlay(void);
 

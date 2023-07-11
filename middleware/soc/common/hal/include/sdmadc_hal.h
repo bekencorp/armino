@@ -55,7 +55,7 @@ bool smdadc_hal_is_fifo_empty_int_triggered();
 #if CFG_HAL_DEBUG_SDMADC
 void sdmadc_struct_dump(uint32_t, uint32_t);
 #else
-#define sdmadc_struct_dump()
+#define sdmadc_struct_dump(start, end)
 #endif
 
 #ifdef __cplusplus

@@ -38,7 +38,9 @@ typedef enum
 	ID_GC0308C,
 	ID_HM1055,
 	ID_GC2145,
-	ID_OV2640
+	ID_OV2640,
+	ID_GC0308,
+	ID_TVP5150
 } sensor_id_t;
 
 /**

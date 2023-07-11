@@ -16,7 +16,6 @@
 #include "stdio.h"
 #include <driver/dma2d.h>
 #include <lcd_rgb_demo.h>
-#include <lcd_dma2d_config.h>
 #if (CONFIG_FATFS)
 #include "ff.h"
 #include "diskio.h"
@@ -242,7 +241,7 @@ void lcd_rgb_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 		os_printf("lcd rgb reg init.\r\n");
 
 		bk_lcd_isr_register(RGB_OUTPUT_EOF, lcd_rgb_isr_test);
-		bk_lcd_rgb_init(LCD_DEVICE_ST7282, PIXEL_480, PIXEL_272, PIXEL_FMT_RGB565);
+		bk_lcd_rgb_init(LCD_DEVICE_ST7282, PIXEL_480, PIXEL_272, PIXEL_FMT_RGB565_LE);
 		lcd_driver_set_display_base_addr(LCD_FRAMEADDR);
 		bk_lcd_rgb_display_en(1);
 	} else if (os_strcmp(argv[1], "display_pause") == 0) {
@@ -255,7 +254,7 @@ void lcd_rgb_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 		os_printf("lcd driver init. \r\n");
 		bk_lcd_driver_init(LCD_12M);
 		os_printf("lcd rgb reg init.\r\n");
-		bk_lcd_rgb_init(LCD_DEVICE_ST7282, PIXEL_640, PIXEL_480, PIXEL_FMT_RGB565 );
+		bk_lcd_rgb_init(LCD_DEVICE_ST7282, PIXEL_640, PIXEL_480, PIXEL_FMT_RGB565_LE);
 		bk_lcd_set_partical_display(1, PARTICAL_XS, PARTICAL_XE, PARTICAL_YS, PARTICAL_YE);
 		lcd_driver_set_display_base_addr(LCD_FRAMEADDR);
 		bk_lcd_rgb_display_en(1);

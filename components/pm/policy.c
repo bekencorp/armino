@@ -17,6 +17,9 @@
 #include <pm/pm.h>
 #include "pm.h"
 
+#define PM_POLICY_LOCK()     pm_lock(PM_MODULE_POLICY)
+#define PM_POLICY_UNLOCK()   pm_unlock(PM_MODULE_POLICY)
+
 static int8_t s_pm_policy_lock_cnt[PM_STATE_COUNT] = {0};
 static uint64_t s_pm_policy_device_lock_bitmap[PM_STATE_COUNT] = {0};
 

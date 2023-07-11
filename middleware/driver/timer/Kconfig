@@ -13,5 +13,9 @@ menu "TIMER"
 		default 0
 		help
 		0 indicates that all IDs are supported by default, no configuration required
+
+	config TIMER_US
+		bool "Enable timer0 as microsecond timer "
+		default n
 endmenu	
 

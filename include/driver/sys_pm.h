@@ -15,6 +15,7 @@
 #pragma once
 
 #include <driver/sys_pm_types.h>
+#include <sys_types.h>
 
 //Buck
 int sys_pm_set_buck(sys_buck_type_t buck, bool ena);
@@ -37,6 +38,12 @@ int sys_pm_set_lv_ctrl_hf(bool ena);
 int sys_pm_set_lv_ctrl_flash(bool ena);
 int sys_pm_set_lv_ctrl_core(bool ena);
 
+int sys_pm_set_lpo_src(sys_lpo_src_t src);
+
 void sys_pm_dump_ctrl(void);
+
+void sys_pm_set_power(power_module_name_t module, power_module_state_t state);
+uint32_t sys_pm_get_power(power_module_name_t module);
+
 
 //ROSC

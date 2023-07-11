@@ -149,9 +149,29 @@ static inline void jpeg_ll_disable_vsync_negedge_int(jpeg_hw_t *hw)
 	hw->int_en.vsync_int_en = 0;
 }
 
+static inline void jpeg_ll_enable_line_clear_int(jpeg_hw_t *hw)
+{
+	// not support
+}
+
+static inline void jpeg_ll_disable_line_clear_int(jpeg_hw_t *hw)
+{
+	// not support
+}
+
+static inline void jpeg_ll_enable_frame_error_int(jpeg_hw_t *hw)
+{
+	// not support
+}
+
+static inline void jpeg_ll_disable_frame_error_int(jpeg_hw_t *hw)
+{
+	// not support
+}
+
 static inline void jpeg_ll_set_mclk_div(jpeg_hw_t *hw, uint32_t value)
 {
-    hw->int_en.mclk_div = value;
+	hw->int_en.mclk_div = value;
 }
 
 static inline void jpeg_ll_enable_enc_size(jpeg_hw_t *hw)
@@ -286,6 +306,18 @@ static inline bool jpeg_ll_is_head_output_int_triggered(jpeg_hw_t *hw, uint32_t 
 static inline bool jpeg_ll_is_yuv_end_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
 	return int_status & BIT(3);
+}
+
+static inline bool jpeg_ll_is_frame_err_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
+{
+	/* bk7237 not support */
+	return false;
+}
+
+static inline bool jpeg_ll_is_l_clear_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
+{
+	/* bk7237 not support */
+	return false;
 }
 
 static inline bool jpeg_ll_is_vsync_negedge_int_triggered(jpeg_hw_t *hw, uint32_t int_status)

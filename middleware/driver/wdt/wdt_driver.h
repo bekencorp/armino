@@ -22,3 +22,6 @@
 #define WDT_LOGE(...) BK_LOGE(WDT_TAG, ##__VA_ARGS__)
 #define WDT_LOGD(...) BK_LOGD(WDT_TAG, ##__VA_ARGS__)
 
+void close_wdt(void);
+void bk_wdt_force_feed(void);
+void bk_wdt_force_reboot(void);

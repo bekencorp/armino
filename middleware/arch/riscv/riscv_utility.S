@@ -13,6 +13,10 @@
 .global  arch_int_enable
 .global  arch_int_restore
 
+.global  arch_fence
+.global  arch_atomic_clear
+.global  arch_atomic_set
+
 .global  riscv_get_mtimercmp
 .global  riscv_get_mtimer
 .global  riscv_set_mtimercmp
@@ -56,6 +60,33 @@ arch_int_enable:
 arch_int_restore:
     csrw ustatus, a0
     ret
+
+#if 1
+/*
+ * void arch_fence(void);
+ */
+arch_fence:
+//	fence iorw, iorw
+	ret
+
+/*
+ * void arch_atomic_clear(u32 * lock_addr);
+ */
+arch_atomic_clear:
+	amoswap.w.rl x0, x0, (a0)
+	ret
+
+/*
+ * void arch_atomic_set(u32 * lock_addr);
+ */
+arch_atomic_set:
+	addi t0, x0, 1
+swap_again: 
+	amoswap.w.aq t0, t0, (a0)
+	bnez t0, swap_again
+	ret
+
+#endif
 
 /*
  * u64 riscv_get_mtimercmp(void);

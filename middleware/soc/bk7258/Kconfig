@@ -1,0 +1,41 @@
+menu "bk7258"
+	config CPU_WITHOUT_BOOTLOADER
+		bool "Build binary for legacy uart download"
+		default n
+
+	config ITCM_SIZE
+		hex "Total ITCM size"
+		default 0x4000
+
+	config DTCM_SIZE
+		hex "Total DTCM size"
+		default 0x4000
+
+	config SPE_TOTAL_RAM_SIZE
+		hex "Total RAM size for SPE"
+		default 0x46000
+
+	config NSPE_TOTAL_RAM_SIZE
+		hex "Total RAM size for NSPE"
+		default 0x40000
+
+	config PRIMARY_APP_IRAM_SIZE
+		hex "Second app RAM size"
+		default 0x8000
+
+	config SECOND_APP_RAM_SIZE
+		hex "Second app RAM size"
+		default 0x2A000
+
+	config ANA_REG_WRITE_POLL_REG_B
+		bool "Write analog register polls sys reg0xb"
+		default y
+
+	config PM_HAL_DEBUG
+		bool "Enable PM hal debug"
+		default n
+
+	config PM_HAL_CTRL
+		bool "Enable PM hal debug"
+		default n
+endmenu

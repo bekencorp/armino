@@ -26,6 +26,7 @@ static bk_err_t yuv_buf_hal_set_config_common(yuv_buf_hal_t *hal, const yuv_buf_
 	yuv_buf_ll_set_x_pixel(hal->hw, config->x_pixel);
 	yuv_buf_ll_set_y_pixel(hal->hw, config->y_pixel);
 	yuv_buf_ll_set_frame_blk(hal->hw, config->x_pixel * config->y_pixel / 2);
+	yuv_buf_ll_set_yuv_format(hal->hw, config->yuv_mode_cfg.yuv_format);
 
 	yuv_buf_ll_enable_sync_edge_dect(hal->hw);
 	yuv_buf_ll_set_encode_begin_hsync_posedge(hal->hw);
@@ -45,7 +46,6 @@ bk_err_t yuv_buf_hal_set_yuv_mode_config(yuv_buf_hal_t *hal, const yuv_buf_confi
 {
 	yuv_buf_hal_set_config_common(hal, config);
 
-	yuv_buf_ll_set_yuv_format(hal->hw, config->yuv_mode_cfg.yuv_format);
 	/* yuv_mode set em_base_addr as psram */
 	yuv_buf_ll_set_em_base_addr(hal->hw, SOC_PSRAM_DATA_BASE);
 
@@ -55,7 +55,10 @@ bk_err_t yuv_buf_hal_set_yuv_mode_config(yuv_buf_hal_t *hal, const yuv_buf_confi
 bk_err_t yuv_buf_hal_set_jpeg_mode_config(yuv_buf_hal_t *hal, const yuv_buf_config_t *config)
 {
 	yuv_buf_hal_set_config_common(hal, config);
-	/* jpeg_mode set em_base_addr as share memory */
+
+	/* jpeg_mode set em_base_addr as psram/share memory
+	 * current use share mem, must 40K size
+	*/
 	yuv_buf_ll_set_em_base_addr(hal->hw, jpeg_hal_get_jpeg_share_mem_addr());
 
 	return BK_OK;
@@ -63,12 +66,12 @@ bk_err_t yuv_buf_hal_set_jpeg_mode_config(yuv_buf_hal_t *hal, const yuv_buf_conf
 
 bk_err_t yuv_buf_hal_set_h264_mode_config(yuv_buf_hal_t *hal, const yuv_buf_config_t *config)
 {
-	yuv_buf_ll_set_mclk_div(hal->hw, config->mclk_div);
-	yuv_buf_ll_set_x_pixel(hal->hw, config->x_pixel);
-	yuv_buf_ll_set_y_pixel(hal->hw, config->y_pixel);
-	yuv_buf_ll_set_frame_blk(hal->hw, config->x_pixel*config->y_pixel/2);
-	yuv_buf_ll_set_yuv_format(hal->hw, config->yuv_mode_cfg.yuv_format);
-	yuv_buf_ll_enable_int(hal->hw);
+	yuv_buf_hal_set_config_common(hal, config);
+
+	/* h264 mode set em_base_addr as share memory
+	 * current use share mem, must 80K size, see jpeg_hal.c [video_sram]
+	*/
+	yuv_buf_ll_set_em_base_addr(hal->hw, jpeg_hal_get_jpeg_share_mem_addr());
 
 	return BK_OK;
 }

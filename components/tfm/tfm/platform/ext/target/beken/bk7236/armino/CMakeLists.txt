@@ -81,9 +81,18 @@ set(s_incs
 
 target_include_directories(platform_s PUBLIC ${incs} ${s_incs})
 target_sources(platform_s PRIVATE ${srcs} ${s_srcs})
+target_compile_options(platform_s
+    PUBLIC
+        ${COMPILER_CP_FLAG}
+)
+
 
 target_include_directories(platform_ns PUBLIC ${incs})
 target_sources(platform_ns PRIVATE ${srcs})
+target_compile_options(platform_ns
+    PUBLIC
+        ${COMPILER_CP_FLAG}
+)
 
 if(BL2)
 	set(bl2_srcs driver/bk_tfm_flash.c)

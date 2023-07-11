@@ -55,7 +55,6 @@
 
 #include "wlan_ui_pub.h"
 
-#include "bk_misc.h"
 
 #if CONFIG_ARCH_RISCV
 #include "cache.h"
@@ -177,7 +176,7 @@ void check_frame_header_handle(uint8_t * data)
 }
 #endif
 
-int dvp_frame_send(uint8_t *data, uint32_t size, uint32_t retry_max, uint32_t ms_time, uint32_t us_delay_time)
+int dvp_frame_send(uint8_t *data, uint32_t size, uint32_t retry_max, uint32_t ms_time)
 {
 	int ret = BK_FAIL;
 
@@ -194,7 +193,7 @@ int dvp_frame_send(uint8_t *data, uint32_t size, uint32_t retry_max, uint32_t ms
 		{
 			//LOGI("size: %d\n", size);
 			complete_size += size;
-			delay_us(us_delay_time);
+			rtos_delay_milliseconds(1);
 			break;
 		}
 
@@ -234,12 +233,11 @@ void transfer_memcpy_word_htonl(uint32_t *dst, uint32_t *src, uint32_t size)
 static void dvp_frame_handle(frame_buffer_t *buffer)
 {
 	uint32_t i;
-	uint32_t delay_time_us = 0;
 	uint32_t count = buffer->length / packet_size;//MAX_COPY_SIZE
 	uint32_t tail = buffer->length % packet_size;//MAX_COPY_SIZE
 	uint8_t id = frame_id++;
 	int ret;
-	#if (CONFIG_SOC_BK7236)
+	#if (CONFIG_SOC_BK7236XX)
 	uint8_t *src_address = buffer->frame;
 	#else
 	uint8_t *src_address = buffer->frame + 0x4000000;
@@ -255,12 +253,6 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 	transfer_data->eof = 0;
 	transfer_data->cnt = 0;//package seq num
 	transfer_data->size = count + (tail ? 1 : 0);//one frame package counts
-
-#if 0
-	delay_time_us = media_debug->transfer_timer_us / transfer_data->size;
-#else
-	delay_time_us = 1000;
-#endif
 
 #if CONFIG_ARCH_RISCV
 	flush_dcache(src_address, buffer->size);
@@ -282,7 +274,7 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 		}
 		WIFI_DMA_END();
 
-		ret = dvp_frame_send((uint8_t *)transfer_data, packet_size + sizeof(transfer_data_t), MAX_RETRY, RETRANSMITS_TIME, delay_time_us);//MAX_TX_SIZE
+		ret = dvp_frame_send((uint8_t *)transfer_data, packet_size + sizeof(transfer_data_t), MAX_RETRY, RETRANSMITS_TIME);//MAX_TX_SIZE
 
 		if (ret != BK_OK)
 		{
@@ -306,9 +298,9 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 		WIFI_DMA_END();
 
 		if (vido_transfer_info.send_type ==  TVIDEO_SND_UDP)
-			ret = dvp_frame_send((uint8_t *)transfer_data, tail + sizeof(transfer_data_t), MAX_RETRY, RETRANSMITS_TIME, delay_time_us);
+			ret = dvp_frame_send((uint8_t *)transfer_data, tail + sizeof(transfer_data_t), MAX_RETRY, RETRANSMITS_TIME);
 		else
-			ret = dvp_frame_send((uint8_t *)transfer_data, TCP_MAX_TX_SIZE, MAX_RETRY, RETRANSMITS_TIME, delay_time_us);
+			ret = dvp_frame_send((uint8_t *)transfer_data, TCP_MAX_TX_SIZE, MAX_RETRY, RETRANSMITS_TIME);
 
 		if (ret != BK_OK)
 		{

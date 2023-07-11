@@ -5,8 +5,10 @@
 #include "tfm_plat_crypto_keys.h"
 #include "tfm_plat_otp.h"
 #include "mbedtls/hkdf.h"
+#include "reg_base.h"
 
-#define DUBHE_BASE_S   (0x4b110000)
+/* TE200 can use at SPE and NSPE, and the base address may be modified*/
+#define DUBHE_BASE_S         SOC_SHANHAI_BASE
 
 extern int dubhe_driver_init( unsigned long dbh_base_addr );
 extern void dubhe_driver_cleanup( void );

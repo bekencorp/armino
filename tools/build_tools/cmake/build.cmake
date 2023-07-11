@@ -108,7 +108,6 @@ function(__build_set_default_build_specifications)
     list(APPEND compile_definitions "-D_GNU_SOURCE")
     list(APPEND compile_options     "-g"
                                     "-Os"
-                                    "-std=c99"
                                     "-nostdlib"
 
                                     "-Wall"
@@ -625,7 +624,7 @@ function(armino_build_executable bin)
     set(PREFERED_CFG_DIR ${PROJECT_DIR}/config)
     set(BIN_DIR ${CMAKE_BINARY_DIR}/)
 
-    if ("${target}" STREQUAL "bk7236")
+    if (("${target}" STREQUAL "bk7236") OR ("${target}" STREQUAL "bk7258"))
         add_custom_command(OUTPUT "${bin_dir}/bin_tmp"
             COMMAND "${armino_objcopy}" -O binary "${bin_dir}/${bin}" "${bin_dir}/${bin_name}.bin"
             COMMAND "${armino_readelf}" -a -h -l -S -g -s "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.txt"

@@ -1025,7 +1025,7 @@ extern unsigned char _empty_ram;
 
 #if (CONFIG_SOC_BK7231N)
 #define HEAP_END_ADDRESS      (void*)(0x00400000 + 192 * 1024)
-#elif (CONFIG_SOC_BK7236)
+#elif (CONFIG_SOC_BK7236XX)
 // TBD: mem size for bk7236
 #define HEAP_END_ADDRESS      (void*)(0x00400000 + 192 * 1024)
 #elif (CONFIG_SOC_BK7271)

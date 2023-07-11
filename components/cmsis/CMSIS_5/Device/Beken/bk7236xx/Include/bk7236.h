@@ -101,6 +101,7 @@ typedef enum IRQn
   DMA1_SEC_IRQn                 =   56,
   DMA1_NSEC_IRQn                =   57,
   YUV_BUF_IRQn                  =   58,
+  ROTT_IRQn                     =   59,
 
   InterruptMAX_IRQn
   /* Interrupts 64 .. 480 are left out */

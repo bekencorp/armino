@@ -494,6 +494,7 @@ const uint8_t sensor_gc0328c_20pfs_talbe[][2] =
 
 const uint8_t sensor_gc0328c_25pfs_talbe[][2] =
 {
+	{0xFE, 0x10},
 	{0x05, 0x01},
 	{0x06, 0x0a},
 	{0x07, 0x00},
@@ -513,6 +514,7 @@ const uint8_t sensor_gc0328c_25pfs_talbe[][2] =
 
 const uint8_t sensor_gc0328c_30pfs_talbe[][2] =
 {
+	{0xFE, 0x10},
 	{0x05, 0x00},
 	{0x06, 0x6a},
 	{0x07, 0x00},

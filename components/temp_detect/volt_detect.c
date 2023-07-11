@@ -151,7 +151,7 @@ _release_adc:
 
 static uint16_t _volt_detect_calculate_voltage(uint16_t *raw_voltage_data)
 {
-#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7236)
+#if (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7236XX)
 	uint32_t sum = 0, index, count = 0;
 
 	for (index = 5; index < ADC_TEMP_BUFFER_SIZE; index++) {
@@ -352,7 +352,7 @@ int volt_detect_stop(void)
 
 #endif
 
-#if (CONFIG_SOC_BK7256XX) ||(CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236)
+#if (CONFIG_SOC_BK7256XX) ||(CONFIG_SOC_BK7236A) || (CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7236XX)
 int volt_single_get_current_voltage(UINT32 *volt_value)
 {
     int result;

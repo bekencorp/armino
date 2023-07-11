@@ -18,6 +18,13 @@ set(CRYPTO_NV_SEED                      OFF         CACHE BOOL      "Use stored 
 set(BL2                                 ON         CACHE BOOL      "Whether to build BL2")
 set(DEFAULT_MCUBOOT_FLASH_MAP           OFF          CACHE BOOL      "Whether to use the default flash map defined by TF-M project")
 set(FPGA                         OFF         CACHE BOOL      "Build for FPGA")
+set(TFM_PARTITION_FIRMWARE_UPDATE       ON          CACHE BOOL      "Enable firmware update partition")
+set(MCUBOOT_DATA_SHARING                ON          CACHE BOOL      "Enable Data Sharing")
+set(MCUBOOT_IMAGE_NUMBER                1           CACHE STRING    "Whether to combine S and NS into either 1 image, or sign each seperately")
+set(CONFIG_TFM_FP  hard CACHE STRING "Whether to support float, and set the type")
+set(CONFIG_TFM_FP_ARCH  fpv5-sp-d16 CACHE STRING "float processing unit arch version")
+set(PSA_FWU_MAX_BLOCK_SIZE              2048        CACHE STRING    "The maximum permitted size for block in psa_fwu_write, in bytes.")
+set(NS                                  OFF          CACHE BOOL      "Whether to build NS app")
 if(BL2)
     #At least 1 flash sector for header/trailer
     set(BL2_HEADER_SIZE  0x1000 CACHE STRING "Header size")

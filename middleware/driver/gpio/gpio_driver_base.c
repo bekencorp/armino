@@ -30,6 +30,11 @@
 #if CONFIG_GPIO_SIMULATE_UART_WRITE
 #include "bk_misc.h"
 #endif
+#if CONFIG_PM
+#include <pm/pm.h>
+#include <pm/device.h>
+#endif
+
 gpio_driver_t s_gpio = {0};
 static gpio_isr_t s_gpio_isr[SOC_GPIO_NUM] = {NULL};
 static bool s_gpio_is_init = false;
@@ -60,6 +65,25 @@ static uint64_t s_wakeup_id = 0;
 					return BK_ERR_GPIO_INVALID_MODE;\
 				}\
 			} while(0)
+
+#if CONFIG_PM
+#ifndef CONFIG_GPIO_WAKEUP_ID
+#define CONFIG_GPIO_WAKEUP_ID (22)
+#endif
+#ifndef CONFIG_GPIO_WAKEUP_INT_TYPE
+#define CONFIG_GPIO_WAKEUP_INT_TYPE (GPIO_INT_TYPE_RISING_EDGE)
+#endif
+
+static void gpio_wakeup_isr(gpio_id_t id);
+
+static bool gpio_bkuped = false;
+static gpio_wakeup_config_t s_gpio_wakeup_config = {
+	.id = CONFIG_GPIO_WAKEUP_ID,
+	.int_type = CONFIG_GPIO_WAKEUP_INT_TYPE,
+	.isr = gpio_wakeup_isr,
+	.valid = 0,
+};
+#endif
 
 #if CONFIG_GPIO_WAKEUP_SUPPORT
 static uint16_t s_gpio_bak_regs[GPIO_NUM_MAX];
@@ -309,9 +333,6 @@ bk_err_t bk_gpio_disable_interrupt(gpio_id_t gpio_id)
 bk_err_t bk_gpio_clear_interrupt(gpio_id_t gpio_id)
 {
 	GPIO_RETURN_ON_INVALID_ID(gpio_id);
-
-	//WARNING:We can't call icu_enable_gpio_interrupt/sys_drv_int_group2_disable in this function
-	//If more then one GPIO_ID enable interrupt, here disable the IRQ to CPU, it caused other GPIO ID can't work
 
 	gpio_hal_clear_chan_interrupt_status(&s_gpio.hal, gpio_id);
 
@@ -1132,3 +1153,192 @@ void gpio_simulate_uart_write(unsigned char *buff, uint32_t len, gpio_id_t gpio_
 }
 #endif
 
+#if CONFIG_PM
+bk_err_t bk_gpio_wakeup_config_set(gpio_id_t id, gpio_int_type_t type)
+{
+	GPIO_RETURN_ON_INVALID_ID(id);
+	GPIO_RETURN_ON_INVALID_INT_TYPE_MODE(type);
+
+	s_gpio_wakeup_config.id = id;
+	s_gpio_wakeup_config.int_type = type;
+
+	return BK_OK;
+}
+
+static void gpio_dump_regs(bool configs, bool int_status)
+{
+	gpio_id_t gpio_id = 0;
+
+	GPIO_LOGI("%s[+]\r\n", __func__);
+
+	if(configs)
+	{
+		for(gpio_id = 0; gpio_id < SOC_GPIO_NUM; gpio_id++)
+		{
+			///gpio_struct_dump(gpio_id);
+			GPIO_LOGI("gpio[%d]=0x%x\r\n", gpio_id, *(volatile uint32_t*)(GPIO_LL_REG_BASE + 4*gpio_id));
+		}
+	}
+
+	//WARNING:BK7236 has this 2 regs, maybe other project doesn't has this 2 REGs
+	if(int_status)
+	{
+		for(gpio_id = 0; gpio_id < 2; gpio_id++)
+		{
+			///gpio_struct_dump(gpio_id);
+			GPIO_LOGI("REG0x%x=0x%x\r\n", (GPIO_LL_REG_BASE + 4*(0x40+gpio_id)), *(volatile uint32_t*)(GPIO_LL_REG_BASE + 4*(0x40+gpio_id)));
+		}
+	}
+
+	GPIO_LOGI("%s[-]\r\n", __func__);
+}
+
+static bk_err_t gpio_save_status()
+{
+	gpio_dump_regs(true, true);
+
+	if (!gpio_bkuped) {
+		//TODO: backup
+		gpio_bkuped = true;
+	} else {
+		GPIO_LOGI("gpio config already back-uped\r\n");
+	}
+
+	return BK_OK;
+}
+
+static bk_err_t gpio_restore_status()
+{
+	if (gpio_bkuped) {
+		//TODO: resotre
+		gpio_bkuped = false;
+	} else {
+		GPIO_LOGI("gpio config not back-uped\r\n");
+	}
+
+	gpio_dump_regs(true, true);
+
+	return BK_OK;
+}
+
+static void gpio_wakeup_set_pin(gpio_id_t gpio_id, gpio_int_type_t type)
+{
+	switch(type)
+	{
+		case GPIO_INT_TYPE_LOW_LEVEL:
+			bk_gpio_pull_up(gpio_id);
+			break;
+		case GPIO_INT_TYPE_HIGH_LEVEL:
+			bk_gpio_pull_down(gpio_id);
+			break;
+		case GPIO_INT_TYPE_RISING_EDGE:
+			bk_gpio_pull_down(gpio_id);
+			break;
+		case GPIO_INT_TYPE_FALLING_EDGE:
+			bk_gpio_pull_up(gpio_id);
+			break;
+		default:
+			GPIO_LOGI("%s Please set fill in the mode correctly!\r\n", __func__);
+			break;
+	}
+}
+
+static bk_err_t gpio_wakeup_enable(const gpio_wakeup_config_t *config)
+{
+	gpio_id_t index = config->id;
+	gpio_int_type_t type = config->int_type;
+	gpio_isr_t isr = config->isr;
+	wakeup_source_t wakeup_source = WAKEUP_SOURCE_INT_GPIO;
+
+	/// back-up
+	gpio_save_status();
+
+	/// regist wakeup isr
+	bk_gpio_register_isr(index, isr);
+
+	/// set gpio_reg[id] [0~16] to 0x182c for GPIO wakeup
+	GPIO_LOGI("A  gpio[%d]=0x%x\r\n", index, *(volatile uint32_t*)(GPIO_LL_REG_BASE + 4*index));
+	gpio_hal_func_unmap(&s_gpio.hal, index);
+	bk_gpio_set_capacity(index, 0);
+	GPIO_LOGI("B  gpio[%d]=0x%x\r\n", index, *(volatile uint32_t*)(GPIO_LL_REG_BASE + 4*index));
+	bk_gpio_enable_input(index);
+	GPIO_LOGI("C  gpio[%d]=0x%x\r\n", index, *(volatile uint32_t*)(GPIO_LL_REG_BASE + 4*index));
+	bk_gpio_disable_output(index);
+	GPIO_LOGI("D  gpio[%d]=0x%x\r\n", index, *(volatile uint32_t*)(GPIO_LL_REG_BASE + 4*index));
+	gpio_wakeup_set_pin(index, type);
+	GPIO_LOGI("E  gpio[%d]=0x%x\r\n", index, *(volatile uint32_t*)(GPIO_LL_REG_BASE + 4*index));
+	bk_gpio_set_interrupt_type(index, type);
+	GPIO_LOGI("F  gpio[%d]=0x%x\r\n", index, *(volatile uint32_t*)(GPIO_LL_REG_BASE + 4*index));
+	bk_gpio_clear_interrupt(index);
+	GPIO_LOGI("G  gpio[%d]=0x%x\r\n", index, *(volatile uint32_t*)(GPIO_LL_REG_BASE + 4*index));
+	bk_gpio_enable_interrupt(index);
+	GPIO_LOGI("H  gpio[%d]=0x%x\r\n", index, *(volatile uint32_t*)(GPIO_LL_REG_BASE + 4*index));
+
+	/// add wakeup source
+	aon_pmu_drv_set_wakeup_source(wakeup_source);
+
+	GPIO_LOGD("gpio[%d]=0x%x\r\n", index, *(volatile uint32_t*)(GPIO_LL_REG_BASE + 4*index));
+	gpio_dump_regs(false, true);
+
+	return BK_OK;
+}
+
+static bk_err_t gpio_wakeup_disable(const gpio_wakeup_config_t *config)
+{
+	/// disable interrupt
+	bk_gpio_disable_interrupt(config->id);
+
+	/// unregiest wakeup isr
+	bk_gpio_register_isr(config->id, NULL);
+
+	/// restore
+	gpio_restore_status();
+
+	return BK_OK;
+}
+
+static void gpio_wakeup_isr(gpio_id_t id)
+{
+	gpio_int_type_t type = s_gpio_wakeup_config.int_type;
+	gpio_interrupt_status_t gpio_status;
+
+	gpio_hal_get_interrupt_status(&s_gpio.hal, &gpio_status);
+
+	GPIO_LOGI("gpio%d isr type:%d low:%x high:%x \r\n", id, type, gpio_status.gpio_0_31_int_status, gpio_status.gpio_32_64_int_status);
+
+	/// clear interrupt
+	bk_gpio_clear_interrupt(id);
+
+	/// disable interrupt
+	bk_gpio_disable_interrupt(id);
+
+	/// unregiest wakeup isr
+	bk_gpio_register_isr(id, NULL);
+
+	/// restore
+	gpio_restore_status();
+}
+
+static bk_err_t gpio_pm_action_cb(const device_t *device, pm_device_action_t action)
+{
+	const pm_device_t *pm = device->pm;
+	const gpio_wakeup_config_t *config = (gpio_wakeup_config_t*)pm->data;
+
+	if (!pm || !config) {
+		GPIO_LOGE("gpio device or wakeup config missing \r\n");
+		return BK_FAIL;
+	}
+
+	if (action == PM_DEVICE_ACTION_WAKEUP_ENABLE) {
+		gpio_wakeup_enable(config);
+		GPIO_LOGI("gpio%d wakesource enabled\r\n", config->id);
+	} else if (action == PM_DEVICE_ACTION_WAKEUP_DISABLE) {
+		gpio_wakeup_disable(config);
+		GPIO_LOGI("gpio%d wakesource disabled\r\n", config->id);
+	}
+
+	return BK_OK;
+}
+
+PM_DEVICE_DEFINE(gpio, null, 0, &s_gpio_wakeup_config, gpio_pm_action_cb);
+#endif

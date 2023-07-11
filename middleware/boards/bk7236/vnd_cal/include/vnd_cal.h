@@ -5,6 +5,12 @@
 #include "bk_arm_arch.h"
 #include "bk_misc.h"
 
+#define PWRI(gain)			\
+{							\
+	 .unuse	  = 0,			\
+	 .pregain	= gain,		\
+}
+
 typedef struct tmp_pwr_st {
     unsigned trx0x0c_12_15 : 4; //not used on BK7236 actually
     signed p_index_delta : 6;
@@ -28,6 +34,13 @@ typedef struct
     INT32 gtx_tssi_thred_chan13_g;
 
 } AUTO_PWR_CALI_CONTEXT;
+
+/// POWER
+typedef struct
+{
+    unsigned short pregain   : 12;
+    unsigned short unuse     : 4;
+} PWR_REGS;
 
 void vnd_cal_overlay(void);
 

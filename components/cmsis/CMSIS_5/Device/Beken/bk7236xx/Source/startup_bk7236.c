@@ -22,8 +22,10 @@
 #include "components/system.h"
 #include "bk7236xx.h"
 #include "aon_pmu_driver.h"
+#include "sys_driver.h"
 #include "driver/uart.h"
-
+#include "wdt_driver.h"
+#include "bk_pm_internal_api.h"
 #if CONFIG_CM_BACKTRACE
 #include "cm_backtrace.h"
 #endif
@@ -37,6 +39,7 @@ extern uint32_t __INITIAL_SP;
 extern uint32_t __STACK_LIMIT;
 
 extern __NO_RETURN void __PROGRAM_START(void);
+extern void entry_main(void);
 
 /*----------------------------------------------------------------------------
   Internal References
@@ -119,6 +122,7 @@ void GPIO_Handler                    (void) __attribute__ ((weak));
 void DMA1_SEC_Handler                (void) __attribute__ ((weak));
 void DMA1_NSEC_Handler               (void) __attribute__ ((weak));
 void YUV_BUF_Handler                 (void) __attribute__ ((weak));
+void ROTT_Handler                    (void) __attribute__ ((weak));
 
 /*----------------------------------------------------------------------------
   Exception / Interrupt Vector table
@@ -210,6 +214,7 @@ const VECTOR_TABLE_Type __VECTOR_TABLE[] __VECTOR_TABLE_ATTRIBUTE = {
   DMA1_SEC_Handler,
   DMA1_NSEC_Handler,
   YUV_BUF_Handler,
+  ROTT_Handler
                                             /* Interrupts 64 .. 480 are left out */
 };
 
@@ -293,6 +298,7 @@ const VECTOR_TABLE_Type __VECTOR_TABLE_CPU0[] = {
   DMA1_SEC_Handler,
   DMA1_NSEC_Handler,
   YUV_BUF_Handler,
+  ROTT_Handler
                                             /* Interrupts 64 .. 480 are left out */
 };
 
@@ -376,6 +382,7 @@ const VECTOR_TABLE_Type __VECTOR_TABLE[] __VECTOR_TABLE_ATTRIBUTE = {
   DMA1_SEC_Handler,
   DMA1_NSEC_Handler,
   YUV_BUF_Handler,
+  ROTT_Handler
                                             /* Interrupts 64 .. 480 are left out */
 };
 
@@ -385,16 +392,33 @@ const VECTOR_TABLE_Type __VECTOR_TABLE[] __VECTOR_TABLE_ATTRIBUTE = {
 #pragma GCC diagnostic pop
 #endif
 
+#define FIREWARE_NAME    "app"
+#define HARDWARE_VERSION "V1.0.0"
+#define SOFTWARE_VERSION "V1.0.0"
+
 /*----------------------------------------------------------------------------
   Reset Handler called on controller reset
  *----------------------------------------------------------------------------*/
 __NO_RETURN void Reset_Handler(void)
 {
+  close_wdt();
   __set_MSPLIM((uint32_t)(&__STACK_LIMIT));
-
   SystemInit();                             /* CMSIS System Initialization */
+  sys_drv_early_init();
   __PROGRAM_START();                        /* Enter PreMain (C library entry point) */
 }
+
+void _start(void)
+{
+  cm_backtrace_init(FIREWARE_NAME, HARDWARE_VERSION, SOFTWARE_VERSION);
+  #if !CONFIG_PM
+  /*power manager init*/
+  pm_hardware_init();
+  #endif
+  entry_main();
+  while(1) {BK_LOGW(TAG, "@\r\n");};
+}
+
 
 
 #if defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050)

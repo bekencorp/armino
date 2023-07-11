@@ -6,8 +6,6 @@
  */
 
 #include "cmsis.h"
-#include "tfm_spm_hal.h"
-#include "tfm_platform_core_api.h"
 #include "target_cfg.h"
 #include "Driver_MPC.h"
 #include "utilities.h"
@@ -22,14 +20,12 @@ void MPC_Handler(void)
 {
     //TODO
     /* Inform TF-M core that isolation boundary has been violated */
-    tfm_access_violation_handler();
 }
 
 void PPC_Handler(void)
 {
     //TODO
     /* Inform TF-M core that isolation boundary has been violated */
-    tfm_access_violation_handler();
 }
 
 uint32_t tfm_spm_hal_get_ns_VTOR(void)
@@ -68,27 +64,7 @@ void tfm_spm_hal_disable_irq(IRQn_Type irq_line)
     NVIC_DisableIRQ(irq_line);
 }
 
-enum irq_target_state_t tfm_spm_hal_set_irq_target_state(
-                                           IRQn_Type irq_line,
-                                           enum irq_target_state_t target_state)
-{
-    uint32_t result;
-
-    if (target_state == TFM_IRQ_TARGET_STATE_SECURE) {
-        result = NVIC_ClearTargetState(irq_line);
-    } else {
-        result = NVIC_SetTargetState(irq_line);
-    }
-
-    if (result) {
-        return TFM_IRQ_TARGET_STATE_NON_SECURE;
-    } else {
-        return TFM_IRQ_TARGET_STATE_SECURE;
-    }
-}
-
 #ifndef TFM_PSA_API
-
 #include "mpu_armv8m_drv.h"
 #include "region_defs.h"
 
@@ -109,18 +85,8 @@ enum tfm_plat_err_t tfm_spm_hal_configure_default_isolation(
         return TFM_PLAT_ERR_INVALID_INPUT;
     }
 
-    if (platform_data->periph_ppc_bank != PPC_SP_DO_NOT_CONFIGURE) {
-        ppc_configure_to_secure(platform_data->periph_ppc_bank,
-                                platform_data->periph_ppc_loc);
-        if (privileged) {
-            ppc_clr_secure_unpriv(platform_data->periph_ppc_bank,
-                                  platform_data->periph_ppc_loc);
-        } else {
-            ppc_en_secure_unpriv(platform_data->periph_ppc_bank,
-                                 platform_data->periph_ppc_loc);
-        }
-    }
-
     return TFM_PLAT_ERR_SUCCESS;
 }
 #endif
+// eof
+

@@ -145,7 +145,7 @@ bk_err_t bk_dma2d_layer_config(dma2d_config_t *dma2d, uint32_t layer_idx);
   *     - BK_OK: succeed
   *     - others: other errors.
   */
-bk_err_t bk_dma2d_start_transfer(dma2d_config_t *dma2d, uint32_t pdata, uint32_t dst_addr, uint32_t width, uint32_t height);
+bk_err_t bk_dma2d_transfer_config(dma2d_config_t *dma2d, uint32_t pdata, uint32_t dst_addr, uint32_t width, uint32_t height);
 
 /**
   * @brief  Start the multi-source DMA2D Transfer.
@@ -171,7 +171,7 @@ bk_err_t bk_dma2d_start_transfer(dma2d_config_t *dma2d, uint32_t pdata, uint32_t
   *     - BK_OK: succeed
   *     - others: other errors.
   */
-bk_err_t bk_dma2d_start_blending(dma2d_config_t *dma2d, uint32_t fg_addr, uint32_t bg_addr, uint32_t dst_addr, uint32_t width, uint32_t height);
+bk_err_t bk_dma2d_blending_config(dma2d_config_t *dma2d, uint32_t fg_addr, uint32_t bg_addr, uint32_t dst_addr, uint32_t width, uint32_t height);
 
 /**
   * @brief  this  API is check dma2d is transfer busy or not
@@ -291,6 +291,18 @@ bk_err_t bk_dma2d_register_int_callback_isr(dm2d_isr_id_t isr_id, dma2d_isr_t cb
 /**
   * @brief  config dma2d blend
   *
+  * @param    - dma2d_offset_blend_t struct to config blend params
+  * 
+  * @return
+  *     - BK_OK: succeed
+  *     - others: other errors.
+  */
+bk_err_t bk_dma2d_offset_blend(dma2d_offset_blend_t *dma2d_blend);
+
+
+/**
+  * @brief  config dma2d blend
+  *
   * @param    - dma2d_blend struct to config blend params
   * 
   * @return
@@ -298,7 +310,6 @@ bk_err_t bk_dma2d_register_int_callback_isr(dm2d_isr_id_t isr_id, dma2d_isr_t cb
   *     - others: other errors.
   */
 bk_err_t bk_dma2d_blend(dma2d_blend_t *dma2d_blend);
-
 
 /**
   * @brief  config dma2d pixel revert
@@ -329,7 +340,8 @@ bk_err_t dma2d_fill(dma2d_fill_t *fill);
   *     - BK_OK: succeed
   *     - others: other errors.
   */
-bk_err_t dma2d_start_transfer(void);
+bk_err_t bk_dma2d_start_transfer(void);
+
 
 /**
   * @brief  DMA2D API END

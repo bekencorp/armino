@@ -129,16 +129,32 @@ typedef enum {
 	PM_DEVICE_FREQ_26M = 0,
 	PM_DEVICE_FREQ_120M,
 	PM_DEVICE_FREQ_240M,
-	PM_DEVICE_FREQ_320M
+	PM_DEVICE_FREQ_320M,
+	PM_DEVICE_FREQ_COUNT
 } pm_device_freq_t;
 
-int pm_device_update_freq(const device_t *device);
+typedef uint64_t device_bits_t;
+
+#define PM_DEVICE_BITS_SET(dev, bits) pm_device_bits_set(dev, bits)
+#define PM_DEVICE_BITS_CLR(dev, bits) pm_device_bits_clr(dev, bits)
+
+static inline void pm_device_bits_set(const device_t *dev, device_bits_t *bits)
+{
+	*bits |= BIT64(DEVICE_PTR2HANDLE(dev));
+}
+
+static inline void pm_device_bits_clr(const device_t *dev, device_bits_t *bits)
+{
+	*bits &= ~BIT64(DEVICE_PTR2HANDLE(dev));
+}
+
 bool pm_device_is_suspend_allowed(const device_t *device, enum pm_state_t state);
 int pm_device_poweron(const device_t *device);
 int pm_device_poweroff(const device_t *device);
 int pm_device_resume(const device_t *device);
 int pm_device_suspend(const device_t *device);
 int pm_device_vote_freq(const device_t *d1, const device_t *d2, pm_device_freq_t freq);
+int pm_device_vote_cpu_freq(const device_t *dev, pm_device_freq_t freq);
 int pm_device_vote_poweron(const device_t *d1, const device_t *d2);
 int pm_device_vote_poweroff(const device_t *d1, const device_t *d2);
 int pm_device_vote_resume(const device_t *d1, const device_t *d2);

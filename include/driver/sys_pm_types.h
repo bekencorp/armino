@@ -35,7 +35,7 @@ typedef enum {
 
 typedef enum {
 	SYS_LPO_SRC_26M32K = 0,
-	SYS_LPO_SRC_EXT_32K,
+	SYS_LPO_SRC_EXTERNAL_32K,
 	SYS_LPO_SRC_ROSC,
 } sys_lpo_src_t;
 

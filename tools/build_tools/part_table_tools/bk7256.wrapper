@@ -1,0 +1,445 @@
+#!/usr/bin/env python3
+
+#TODO - optimize it, should finally remove this packer
+
+import os
+import sys
+import json
+import shutil
+import argparse
+import copy
+import errno
+import re
+
+armino_path = os.getenv("ARMINO_PATH")
+project_dir = os.getenv("PROJECT_DIR")
+build_path = os.path.realpath('.')
+chip = 'bk7256'
+firmware = 'app.bin'
+image_name = 'all-app.bin'
+file_op_list = list()
+gen_file_list = set()
+
+def parse_args():
+    description = '''Beken HID Downloader.'''
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('-c', '--chip',
+                        default='bk7256',
+                        help="chip type")
+    parser.add_argument('-i', '--index', type=int,
+                        default=0,
+                        help="chip index")
+    parser.add_argument('-b', '--boot',
+                        help='specify boot file')
+    parser.add_argument('-f', '--firmware',
+                        help='specify firmware file')
+    parser.add_argument('-d', '--dsp',
+                        help='specify dsp file')
+    parser.add_argument('-t', '--bt',
+                        help='specify bt file')
+    parser.add_argument('-n', '--image_name',
+                        help='generated image name')
+    parser.add_argument('-u', '--cpu1',
+                        help='specify cup1 file')
+    args = parser.parse_args()
+
+    return args
+
+def parse_int(v):
+    for letter, multiplier in [("k", 1024), ("m", 1024 * 1024)]:
+        if v.lower().endswith(letter):
+            return parse_int(v[:-1]) * multiplier
+        return int(v, 0)
+
+def size_format(size, include_size):
+    if include_size:
+        for (val, suffix) in [(0x100000, "M"), (0x400, "K")]:
+            if size % val == 0:
+                return "%d%s" % (size // val, suffix)
+    return "0x%x" % size
+
+def ensure_directory(dir):
+    if not os.path.exists(dir):
+        try:
+            os.makedirs(dir)
+        except OSError as exc:
+            if exc.errno != errno.EEXIST:
+                raise
+
+def shrink_val(val, need_shrink):
+    return int(val*32/34) if need_shrink else val
+
+def show_gen_file_list():
+    for file in gen_file_list:
+        print(file)
+
+def move_gen_files(sub_dir):
+    global gen_file_list
+    for file in gen_file_list:
+        if os.path.exists(file.strip()):
+            file_name = os.path.basename(file)
+            file_dir = os.path.dirname(file)
+            new_file = '%s/%s/%s'%(file_dir, sub_dir, file_name)
+            nem_file_dir = os.path.dirname(new_file)
+            ensure_directory(nem_file_dir)
+            shutil.move(file, new_file)
+            update_file_operation(file, new_file)
+    gen_file_list = set()
+
+def update_file_operation(src, new_src):
+    for file_op_entry in file_op_list:
+        if os.path.abspath(file_op_entry[0]) == os.path.abspath(src):
+            file_op_entry[0] = new_src
+
+def register_file_operation(src, dest, op):
+    global file_op_list
+    need_register = True
+    if len(file_op_list) > 0:
+        for s,d,o in file_op_list:
+            if os.path.abspath(s) == os.path.abspath(src) and os.path.abspath(d) == os.path.abspath(dest) and o == op:
+                need_register = False
+                break
+    if need_register:
+        file_op_entry = [src, dest, op]
+        file_op_list.append(file_op_entry)
+
+def deal_file_operation():
+    global file_op_list
+    for src,dest,op in file_op_list:
+        if os.path.isfile(src):
+            ensure_directory(os.path.dirname(dest))
+            if op == 'move':
+                shutil.move(src, dest)
+            elif op == 'copy':
+                shutil.copy(src, dest)
+            else:
+                pass
+    file_op_list = list()
+
+def get_config_json_path():
+    json_path = None
+    if os.path.exists('%s/configuration.json'%(build_path)):
+        json_path = '%s/configuration.json'%(build_path)
+    elif os.path.exists('%s/%s/configuration.json'%(armino_path, project_dir)):
+        json_path = '%s/%s/configuration.json'%(armino_path, project_dir)
+    else:
+        json_path = '%s/middleware/boards/%s/configuration.json'%(armino_path, chip)
+    if json_path is None:
+        raise 'config_json get failed!!!'
+    return json_path
+
+def get_firmware_path(firmware):
+    firmware_path = None
+    if os.path.exists('%s/firmware/%s'%(build_path, firmware)):
+        firmware_path = '%s/firmware/%s'%(build_path, firmware)
+    elif os.path.exists('%s/%s/%s/%s'%(armino_path, project_dir, chip, firmware)):
+        firmware_path = '%s/%s/%s/%s'%(armino_path, project_dir, chip, firmware)
+    elif os.path.exists('%s/%s/%s'%(armino_path, project_dir, firmware)):
+        firmware_path = '%s/%s/%s'%(armino_path, project_dir, firmware)
+    else:
+        firmware_path = '%s/middleware/boards/%s/%s'%(armino_path, chip, firmware)
+    if firmware_path is None:
+        raise 'firmware: %s get failed!!!'%(firmware)
+    if os.path.isfile(firmware_path):
+        try:
+            shutil.copy(firmware_path, "%s/%s"%(build_path, firmware))
+            register_file_operation("%s/%s"%(build_path, firmware), "%s/firmware/%s"%(build_path, firmware), 'move')
+        except shutil.SameFileError:
+            register_file_operation("%s/%s"%(build_path, firmware), "%s/firmware/%s"%(build_path, firmware), 'move')
+    return firmware_path
+
+def pack_from_config_json(cfg_json, nm):
+    pack_tool = '%s/tools/env_tools/beken_packager/cmake_Gen_image'%(armino_path)
+    json_file = './cfg_temp.json'
+    infiles = ''
+    nm_suffix = 'pack'
+    outfile = os.path.join(build_path, '%s_%s'%(nm, nm_suffix))
+    start_addr = cfg_json['section'][0]['start_addr']
+    for sec in cfg_json['section']:
+        infiles += '%s '%(sec['firmware'])
+        start_addr = start_addr if parse_int(start_addr) <= parse_int(sec['start_addr']) else sec['start_addr']
+    cfg_json_temp = copy.deepcopy(cfg_json)
+    for sec in cfg_json_temp['section']:
+        sec['start_addr'] = size_format(parse_int(sec['start_addr']) - parse_int(start_addr), False)
+    cfg_json_temp = json.dumps(cfg_json_temp, sort_keys=False, indent=4)
+    with open(json_file, 'w') as f:
+        f.write(cfg_json_temp)
+    if os.path.exists(pack_tool.strip()) and os.path.isfile(pack_tool.strip()):
+        os.system('%s genfile -injsonfile %s -infile %s -outfile %s.bin'%(pack_tool, json_file, infiles, outfile))
+    else:
+        raise 'pack_tool path error!'
+    os.remove(json_file)
+    gen_file_list.add('%s.bin'%(outfile))
+    return outfile
+
+def crc_from_config_json(cfg_json, nm):
+    crc_tool = '%s/tools/env_tools/beken_packager/cmake_encrypt_crc'%(armino_path)
+    nm_suffix = 'crc'
+    outfile = os.path.join(build_path, '%s_%s'%(nm, nm_suffix))
+    if os.path.exists(crc_tool.strip()) and os.path.isfile(crc_tool.strip()):
+        os.system("%s -crc %s.bin"%(crc_tool, nm))
+    else:
+        raise 'crc_tool path error!'
+    gen_file_list.add('%s.bin'%(outfile))
+    return outfile
+
+def sign_from_config_json(cfg_json, nm):
+    sign_tool = '%s/tools/env_tools/beken_packager/SignTool_P384'%(armino_path)
+    prikey = "%s/tools/env_tools/beken_packager/ecdsa384.der"%(armino_path)
+    nm_suffix = 'sign'
+    outfile = os.path.join(build_path, '%s_%s'%(nm, nm_suffix))
+    size = 0
+    for sec in cfg_json['section']:
+        size += parse_int(sec['size'])
+    if os.path.exists(sign_tool.strip()) and os.path.isfile(sign_tool.strip()):
+        os.system("%s sign -infile %s.bin -prikey %s -outfile %s.bin -len %x"%(sign_tool, nm, prikey, outfile, size))
+    else:
+        raise 'sign_tool path error!'
+    gen_file_list.add('%s.bin'%(outfile))
+    gen_file_list.add('%s/ImageHash.bin'%(build_path))
+    gen_file_list.add('%s/WriteData.bin'%(build_path))
+    return outfile
+
+def enc_from_config_json(cfg_json, nm):
+    enc_tool = '%s/tools/env_tools/beken_packager/cmake_xts_aes'%(armino_path)
+    nm_suffix = 'enc'
+    start_addr = cfg_json['section'][0]['start_addr']
+    for sec in cfg_json['section']:
+        start_addr = start_addr if parse_int(start_addr) <= parse_int(sec['start_addr']) else sec['start_addr']
+    key_file = "%s/tools/env_tools/beken_packager/key.txt"%(armino_path)
+    outfile = os.path.join(build_path, '%s_%s'%(nm, nm_suffix))
+    if os.path.exists(enc_tool.strip()) and os.path.isfile(enc_tool.strip()):
+        os.system("%s encrypt -infile %s.bin -startaddress %s -keyfile %s -outfile %s.bin"%(enc_tool, nm, start_addr, key_file, outfile))
+    else:
+        raise 'enc_tool path error!'
+    gen_file_list.add('%s.bin'%(outfile))
+    gen_file_list.add('%s_crc.bin'%(outfile))
+    return outfile
+
+def ab_from_config_json(cfg_json, nm):
+    ab_tool = '%s/tools/env_tools/rtt_ota/ota-rbl/ota_packager_python.py'%(armino_path)
+    json_file = './cfg_temp.json'
+    nm_suffix = 'ab'
+    outfile = os.path.join(build_path, '%s_%s'%(nm, nm_suffix))
+    header_path = '%s/tools/env_tools/rtt_ota/ota-rbl/'%(armino_path)
+    start_addr = cfg_json['section'][0]['start_addr']
+    size = 0
+    for sec in cfg_json['section']:
+        start_addr if parse_int(start_addr) <= parse_int(sec['start_addr']) else sec['start_addr']
+        size += parse_int(sec['size'])
+
+    cfg_json_temp_sec = dict()
+    cfg_json_temp_sec.update(cfg_json['section'][0])
+    cfg_json_temp_sec['firmware'] = os.path.join(build_path, '%s.bin'%(nm))
+    cfg_json_temp_sec['start_addr'] = start_addr
+    cfg_json_temp_sec['partition'] = nm
+    cfg_json_temp_sec['size'] = size_format(size, True)
+
+    cfg_json_temp_secs = list()
+    cfg_json_temp_secs.append(cfg_json_temp_sec)
+    cfg_json_temp_secs.append(cfg_json_temp_sec)
+    cfg_json_temp = copy.deepcopy(cfg_json)
+    cfg_json_temp['count'] = 2
+    cfg_json_temp['section'] = cfg_json_temp_secs
+    cfg_json_temp = json.dumps(cfg_json_temp, sort_keys=False, indent=4)
+    with open(json_file, 'w') as f:
+        f.write(cfg_json_temp)
+    if os.path.exists(ab_tool.strip()) and os.path.isfile(ab_tool.strip()):
+        os.system('python3 %s -i %s.bin -o %s.bin -g %s -ap %s -pjd %s -ijsf %s packager'%(ab_tool, nm, outfile, header_path, armino_path, project_dir, json_file))
+    else:
+        raise 'ab_tool path error!'
+    os.remove(json_file)
+    gen_file_list.add('%s.bin'%(outfile))
+    return outfile
+
+def package_json_rebuild():
+    global image_name
+    json_file = get_config_json_path()
+    with open(json_file, 'r') as local_json:
+        config_json = json.load(local_json)
+    for sec in config_json['section']:
+        sec['firmware'] = get_firmware_path(sec['firmware'])
+        sec['start_addr'] = size_format(shrink_val(parse_int(sec["start_addr"]), True), False)
+        sec['size'] = size_format(shrink_val(parse_int(sec["size"]), True), True)
+
+    app_pack_name = pack_from_config_json(config_json, 'all_app')
+    app_crc_name = crc_from_config_json(config_json, app_pack_name)
+
+    src = '%s.bin'%(app_crc_name)
+    dest = '%s/%s'%(build_path, image_name)
+    op = 'copy'
+    register_file_operation(src, dest, op)
+
+def package_json_ab_rebuild():
+    bld_sign_name = None
+    app_ab_name = None
+    bootloader_secs = list()
+    app_pack_secs = list()
+    json_file = get_config_json_path()
+    with open(json_file, 'r') as local_json:
+        config_json = json.load(local_json)
+    for sec in config_json['section']:
+        sec['firmware'] = get_firmware_path(sec['firmware'])
+        sec['start_addr'] = size_format(shrink_val(parse_int(sec["start_addr"]), True), False)
+        sec['size'] = size_format(shrink_val(parse_int(sec["size"]), True), True)
+        if sec['partition'] == 'bootloader':
+            bootloader_secs.append(sec)
+        else:
+            app_pack_secs.append(sec)
+
+    if len(bootloader_secs) > 0:
+        #bld_name = bootloader_secs[0]['partition']
+        config_json['count'] = len(bootloader_secs)
+        config_json['section'] = bootloader_secs
+        bld_sign_name = sign_from_config_json(config_json, 'bootloader')
+
+    if len(app_pack_secs) > 0:
+        config_json['count'] = len(app_pack_secs)
+        config_json['section']=app_pack_secs
+        app_pack_name = pack_from_config_json(config_json, 'app')
+        app_sign_name = sign_from_config_json(config_json, app_pack_name)
+        app_ab_name = ab_from_config_json(config_json, app_sign_name)
+
+    if os.path.isfile('%s.bin'%(bld_sign_name)) and os.path.isfile('%s.bin'%(app_ab_name)):
+        bld_sec = dict()
+        bld_sec.update(bootloader_secs[0])
+        start_addr = bootloader_secs[0]['start_addr']
+        size = 0
+        for sec in bootloader_secs:
+            start_addr if parse_int(start_addr) <= parse_int(sec['start_addr']) else sec['start_addr']
+            size += parse_int(sec['size'])
+        bld_sec['firmware'] = os.path.join(build_path, '%s.bin'%(bld_sign_name))
+        bld_sec['partition'] = bld_sign_name
+        bld_sec['start_addr'] = start_addr
+        bld_sec['size'] = size_format(size, True)
+
+        app_ab_sec = dict()
+        app_ab_sec.update(app_pack_secs[0])
+        start_addr = app_pack_secs[0]['start_addr']
+        size = 0
+        for sec in app_pack_secs:
+            start_addr if parse_int(start_addr) <= parse_int(sec['start_addr']) else sec['start_addr']
+            size += parse_int(sec['size'])
+        app_ab_sec['firmware'] = os.path.join(build_path, '%s.bin'%(app_ab_name))
+        app_ab_sec['partition'] = app_ab_name
+        app_ab_sec['start_addr'] = start_addr
+        app_ab_sec['size'] = size_format(size, True)
+
+        bld_app_ab_sec = list()
+        bld_app_ab_sec.append(bld_sec)
+        bld_app_ab_sec.append(app_ab_sec)
+        config_json['count'] = 2
+        config_json['section'] = bld_app_ab_sec
+        bld_app_pack_name = pack_from_config_json(config_json, 'bld_app_ab')
+        bld_app_crc_name = crc_from_config_json(config_json, bld_app_pack_name)
+
+def package_json_enc_rebuild():
+    bootloader_secs = list()
+    app_pack_secs = list()
+    bld_sign_name = None
+    app_sign_name = None
+
+    json_file = get_config_json_path()
+    print(json_file)
+    with open(json_file, 'r') as local_json:
+        config_json = json.load(local_json)
+    for sec in config_json['section']:
+        sec['firmware'] = get_firmware_path(sec['firmware'])
+        sec['start_addr'] = size_format(shrink_val(parse_int(sec["start_addr"]), True), False)
+        sec['size'] = size_format(shrink_val(parse_int(sec["size"]), True), True)
+        if sec['partition'] == 'bootloader':
+            bootloader_secs.append(sec)
+        else:
+            app_pack_secs.append(sec)
+
+    # sign bootloader.bin, output bootloader_sign.bin
+    if len(bootloader_secs) > 0:
+        config_json['count'] = len(bootloader_secs)
+        config_json['section'] = bootloader_secs
+        bld_sign_name = sign_from_config_json(config_json, 'bootloader')
+
+    # 1: pack all firmwares defined in config_json, output app_pack.bin
+    # 2: crc app_pack.bin, output app_pack_crc.bin
+    # 3: sign app_pack.bin, output app_pack_sign.bin
+    # 4: enc app_pack_sign.bin, output app_pack_sign_enc.bin
+    if len(app_pack_secs) > 0:
+        config_json['count'] = len(app_pack_secs)
+        config_json['section']=app_pack_secs
+        app_pack_name = pack_from_config_json(config_json, 'app')
+        app_ab_name = ab_from_config_json(config_json, app_pack_name)
+        app_crc_name = crc_from_config_json(config_json, app_pack_name)
+        app_sign_name = sign_from_config_json(config_json, app_pack_name)
+        app_ab_name = ab_from_config_json(config_json, app_sign_name)
+        app_enc_name = enc_from_config_json(config_json, app_sign_name)
+
+    # 1: build the config_json (update 'section' and 'count')
+    # 2: pack app_pack_sign.bin and bootloader_sign.bin, output bld_app_sign_pack.bin
+    # 3: crc bld_app_sign_pack.bin, output app_pack_sign_enc_crc.bin
+    # 4: enc bld_app_sign_pack.bin, output bld_app_sign_pack_enc.bin
+    if os.path.isfile('%s.bin'%(bld_sign_name)) and os.path.isfile('%s.bin'%(app_sign_name)):
+        bld_sign_sec = dict()
+        bld_sign_sec.update(bootloader_secs[0])
+        start_addr = bootloader_secs[0]['start_addr']
+        size = 0
+        for sec in bootloader_secs:
+            start_addr if parse_int(start_addr) <= parse_int(sec['start_addr']) else sec['start_addr']
+            size += parse_int(sec['size'])
+        bld_sign_sec['firmware'] = os.path.join(build_path, '%s.bin'%(bld_sign_name))
+        bld_sign_sec['partition'] = bld_sign_name
+        bld_sign_sec['start_addr'] = start_addr
+        bld_sign_sec['size'] = size_format(size, True)
+
+        app_sign_sec = dict()
+        app_sign_sec.update(app_pack_secs[0])
+        start_addr = app_pack_secs[0]['start_addr']
+        size = 0
+        for sec in app_pack_secs:
+            start_addr if parse_int(start_addr) <= parse_int(sec['start_addr']) else sec['start_addr']
+            size += parse_int(sec['size'])
+        app_sign_sec['firmware'] = os.path.join(build_path, '%s.bin'%(app_sign_name))
+        app_sign_sec['partition'] = app_sign_name
+        app_sign_sec['start_addr'] = start_addr
+        app_sign_sec['size'] = size_format(size, True)
+
+        bld_app_sign_sec = list()
+        bld_app_sign_sec.append(bld_sign_sec)
+        bld_app_sign_sec.append(app_sign_sec)
+        config_json['count'] = 2
+        config_json['section']=bld_app_sign_sec
+        bld_app_pack_name = pack_from_config_json(config_json, 'bld_app_sign')
+        bld_app_crc_name = crc_from_config_json(config_json, bld_app_pack_name)
+        bld_app_enc_name = enc_from_config_json(config_json, bld_app_pack_name)
+
+def main():
+    global chip
+    global firmware
+    global image_name
+    args = parse_args()
+
+    if args.chip is not None:
+        chip = args.chip
+    if args.firmware is not None:
+        firmware = args.firmware
+    if args.image_name is not None:
+        image_name = args.image_name
+
+    package_json_rebuild()
+    #show_gen_file_list()
+    move_gen_files('package/default')
+
+    package_json_enc_rebuild()
+    #show_gen_file_list()
+    move_gen_files('package/encrypt')
+
+    package_json_ab_rebuild()
+    #show_gen_file_list()
+    move_gen_files('package/ab')
+
+    deal_file_operation()
+
+if __name__ == '__main__':
+    try:
+        main()
+    except InputError as e:
+        print(e, file=sys.stderr)
+        sys.exit(2)

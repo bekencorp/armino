@@ -256,6 +256,17 @@ bk_err_t bk_gpio_enable_interrupt(gpio_id_t id);
 bk_err_t bk_gpio_disable_interrupt(gpio_id_t id);
 
 /**
+ * @brief     Clear GPIO intterrupt.
+ *
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_GPIO_CHAN_ID: invalid gpio channel
+ *    - others: other errors.
+ */
+bk_err_t bk_gpio_clear_interrupt(gpio_id_t gpio_id);
+
+/**
  * @brief     Register the interrupt service routine for GPIO channel
  *
  * This API regist gpio isr callback function.
@@ -266,6 +277,18 @@ bk_err_t bk_gpio_disable_interrupt(gpio_id_t id);
  *    - others: other errors.
  */
 bk_err_t bk_gpio_register_isr(gpio_id_t id, gpio_isr_t isr);
+
+/**
+ * @brief     Unregister the interrupt service routine for GPIO channel
+ *
+ * This API deregist gpio isr callback function.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_GPIO_CHAN_ID: invalid gpio channel
+ *    - others: other errors.
+ */
+bk_err_t bk_gpio_unregister_isr(gpio_id_t id);
 
 #if CONFIG_GPIO_DYNAMIC_WAKEUP_SUPPORT
 /**
@@ -369,9 +392,9 @@ bk_err_t bk_gpio_ctrl_external_ldo(gpio_ctrl_ldo_module_e module,gpio_id_t gpio_
  *
  * @return
  *    - BK_OK: succeed
- *    
  *    - others: other errors.
  */
+
 bk_err_t bk_gpio_reg_save(uint32_t*  gpio_cfg);
 /**
  * @brief     Register restore all gpio reg value
@@ -380,9 +403,9 @@ bk_err_t bk_gpio_reg_save(uint32_t*  gpio_cfg);
  *
  * @return
  *    - BK_OK: succeed
- *    - 
  *    - others: other errors.
  */
+
 bk_err_t bk_gpio_reg_restore(uint32_t*  gpio_cfg);
 /**
  * @brief     Register configue the gpio wakeup value
@@ -391,9 +414,9 @@ bk_err_t bk_gpio_reg_restore(uint32_t*  gpio_cfg);
  *
  * @return
  *    - BK_OK: succeed
- *    - B
  *    - others: other errors.
  */
+
 bk_err_t bk_gpio_wakeup_enable(int64_t index, uint64_t type_l, uint64_t type_h);
 
 /**
@@ -403,7 +426,6 @@ bk_err_t bk_gpio_wakeup_enable(int64_t index, uint64_t type_l, uint64_t type_h);
  *
  * @return
  *    - BK_OK: succeed
- *    - B
  *    - others: other errors.
  */
 bk_err_t bk_gpio_wakeup_interrupt_clear();
@@ -411,13 +433,19 @@ bk_err_t bk_gpio_wakeup_interrupt_clear();
 #endif
 
 #if CONFIG_PM
-#include <pm/pm.h>
-int default_gpio_pm_action_cb(const device_t *device, pm_device_action_t action);
-#endif
-
 /**
- * @}
+ * @brief Set GPIO wakeup config
+ *
+ * This API set GPIO wakeup index and int_type.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_GPIO_CHAN_ID: invalid gpio channel number
+ *    - BK_ERR_GPIO_INVALID_INT_TYPE: invalid gpio int type
+ *    - others: other errors.
  */
+bk_err_t bk_gpio_wakeup_config_set(gpio_id_t id, gpio_int_type_t type);
+#endif
 
 #ifdef __cplusplus
 }

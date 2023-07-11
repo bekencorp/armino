@@ -43,8 +43,4 @@ bk_err_t bk_h264_pingpong_in_psram_clk_set(void);
 
 bk_err_t bk_h264_deblocking_filter_config_init(const h264_config_t *config, uint32_t alpha_off, uint32_t beta_off);
 
-uint32_t bk_h264_get_encode_count(void);
-
 bk_err_t bk_h264_int_count_show(void);
-
-bk_err_t bk_h264_clk_check(void);

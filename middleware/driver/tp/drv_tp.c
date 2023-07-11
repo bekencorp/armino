@@ -118,6 +118,12 @@ int drv_tp_read(tp_point_infor_t *point)
             break;
         }
 
+        if(!g_tp_dev.m_mutex)
+        {
+            ret = kGeneralErr;
+            break;
+        }
+        
         rtos_lock_mutex(&g_tp_dev.m_mutex);
         if(bk_queue_is_empty(g_tp_dev.m_point_queue))
         {

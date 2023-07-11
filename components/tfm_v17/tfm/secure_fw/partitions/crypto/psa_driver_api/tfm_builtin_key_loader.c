@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
-
+#include "common.h"//TODO wzl-issue9, why?
 #include "tfm_builtin_key_loader.h"
 
 #include "psa/error.h"

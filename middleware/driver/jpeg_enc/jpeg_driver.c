@@ -36,8 +36,9 @@ typedef struct {
 } jpeg_driver_t;
 
 typedef struct {
-	uint8_t set_enable; // 0:1/enable:disable config jpeg_encode
-	uint8_t auto_enable;// enable/disable set encode size
+	uint8_t  set_enable  : 1; // 0:1/enable:disable config jpeg_encode
+	uint8_t  auto_enable : 1; // enable/disable set encode size
+	uint8_t  jpeg_err   : 1; // jpeg error:true/false
 	uint16_t up_size;
 	uint16_t low_size;
 } jpeg_encode_size_t;
@@ -52,8 +53,9 @@ static jpeg_driver_t s_jpeg = {0};
 static bool s_jpeg_driver_is_init = false;
 static jpeg_encode_size_t jpeg_encode_size =
 {
-	.set_enable = 0,
-	.auto_enable = 0,
+	.set_enable = false,
+	.auto_enable = false,
+	.jpeg_err = false,
 	.up_size = 40 * 1024,
 	.low_size = 10 * 1024,
 };
@@ -123,7 +125,8 @@ static void jpeg_deinit_common(void)
 	jpeg_hal_reset_config_to_default(&s_jpeg.hal);
 #if (CONFIG_SYSTEM_CTRL)
 	bk_pm_clock_ctrl(PM_CLK_ID_JPEG, CLK_PWR_CTRL_PWR_DOWN);
-	sys_hal_set_jpeg_disckg(0);
+	bk_pm_clock_ctrl(PM_CLK_ID_AUXS, CLK_PWR_CTRL_PWR_DOWN);
+	sys_drv_set_jpeg_disckg(0);
 	sys_drv_int_disable(JPEGENC_INTERRUPT_CTRL_BIT);
 #else
 	icu_disable_jpeg_interrupt();
@@ -142,11 +145,9 @@ bk_err_t bk_jpeg_enc_driver_init(void)
 	bk_jpeg_enc_set_gpio_enable(0, JPEG_GPIO_ALL);
 
 #if CONFIG_SYSTEM_CTRL
-#if (!CONFIG_SOC_BK7236)
 	bk_pm_module_vote_cpu_freq(PM_DEV_ID_JPEG, PM_CPU_FRQ_320M);
 	//power on
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_EN, PM_POWER_MODULE_STATE_ON);
-#endif
 #endif
 
 	os_memset(&s_jpeg, 0, sizeof(s_jpeg));
@@ -241,6 +242,11 @@ bk_err_t bk_jpeg_set_em_base_addr(uint8_t *address)
 	return BK_OK;
 }
 
+uint32_t bk_jpeg_get_em_base_addr(void)
+{
+	return jpeg_hal_get_jpeg_share_mem_addr();
+}
+
 bk_err_t bk_jpeg_enc_yuv_fmt_sel(uint32_t value)
 {
 	JPEG_RETURN_ON_NOT_INIT();
@@ -281,6 +287,12 @@ bk_err_t bk_jpeg_enc_register_isr(jpeg_isr_type_t type_id, jpeg_isr_t isr, void 
 		case JPEG_VSYNC_NEGEDGE:
 			jpeg_hal_enable_vsync_negedge_int(&s_jpeg.hal);
 			break;
+		case JPEG_LINE_CLEAR:
+			jpeg_hal_enable_line_clear_int(&s_jpeg.hal);
+			break;
+		case JPEG_FRAME_ERR:
+			jpeg_hal_enable_frame_error_int(&s_jpeg.hal);
+			break;
 		default:
 			break;
 	}
@@ -313,6 +325,12 @@ bk_err_t bk_jpeg_enc_unregister_isr(jpeg_isr_type_t type_id)
 			break;
 		case JPEG_VSYNC_NEGEDGE:
 			jpeg_hal_disable_vsync_negedge_int(&s_jpeg.hal);
+			break;
+		case JPEG_LINE_CLEAR:
+			jpeg_hal_disable_line_clear_int(&s_jpeg.hal);
+			break;
+		case JPEG_FRAME_ERR:
+			jpeg_hal_disable_frame_error_int(&s_jpeg.hal);
 			break;
 		default:
 			break;
@@ -400,15 +418,13 @@ bk_err_t bk_jpeg_enc_get_fifo_addr(uint32_t *fifo_addr)
 
 bk_err_t bk_jpeg_enc_set_auxs(uint32_t cksel, uint32_t ckdiv)
 {
-#if CONFIG_SYSTEM_CTRL
 	gpio_dev_unmap(JPEG_GPIO_AUXS);
 	gpio_dev_map(JPEG_GPIO_AUXS, GPIO_DEV_CLK_AUXS);
 	sys_hal_set_auxs_clk_sel(cksel);
 	sys_hal_set_auxs_clk_div(ckdiv);
+	bk_pm_clock_ctrl(PM_CLK_ID_AUXS, CLK_PWR_CTRL_PWR_UP);
+
 	return BK_OK;
-#else
-	return BK_FAIL;
-#endif
 }
 
 bk_err_t bk_jpeg_enc_mclk_enable(void)
@@ -433,15 +449,15 @@ bk_err_t bk_jpeg_enc_encode_config(uint8_t enable, uint16_t up_size, uint16_t lo
 
 	uint32_t int_level = rtos_disable_int();
 
-	jpeg_encode_size.set_enable = true;
-
-	jpeg_encode_size.auto_enable = enable;
-
 	if (enable && low_size > 0 && up_size > low_size)
 	{
 		jpeg_encode_size.up_size = up_size;
 		jpeg_encode_size.low_size = low_size;
 	}
+
+	jpeg_encode_size.set_enable = true;
+
+	jpeg_encode_size.auto_enable = enable;
 
 	rtos_enable_int(int_level);
 
@@ -480,7 +496,7 @@ static void jpeg_isr(void)
 			s_jpeg.jpeg_isr_handler[JPEG_EOF].isr_handler(0, s_jpeg.jpeg_isr_handler[JPEG_EOF].param);
 		}
 
-		if (jpeg_encode_size.set_enable)
+		if (jpeg_encode_size.set_enable && !jpeg_encode_size.jpeg_err)
 		{
 			if (jpeg_encode_size.auto_enable)
 			{
@@ -494,6 +510,12 @@ static void jpeg_isr(void)
 			}
 
 			jpeg_encode_size.set_enable = false;
+		}
+
+		if (jpeg_encode_size.jpeg_err)
+		{
+			jpeg_hal_soft_reset(&s_jpeg.hal);
+			jpeg_encode_size.jpeg_err = false;
 		}
 	}
 
@@ -512,6 +534,23 @@ static void jpeg_isr(void)
 	if (jpeg_hal_is_sync_negedge_int_triggered(hal, int_status)) {
 		if (s_jpeg.jpeg_isr_handler[JPEG_VSYNC_NEGEDGE].isr_handler) {
 			s_jpeg.jpeg_isr_handler[JPEG_VSYNC_NEGEDGE].isr_handler(0, s_jpeg.jpeg_isr_handler[JPEG_VSYNC_NEGEDGE].param);
+		}
+	}
+
+	if (jpeg_hal_is_line_clear_int_triggered(hal, int_status)) {
+		if (s_jpeg.jpeg_isr_handler[JPEG_LINE_CLEAR].isr_handler) {
+			s_jpeg.jpeg_isr_handler[JPEG_LINE_CLEAR].isr_handler(0, s_jpeg.jpeg_isr_handler[JPEG_LINE_CLEAR].param);
+		}
+	}
+
+	if (jpeg_hal_is_frame_error_int_triggered(hal, int_status)) {
+		JPEG_LOGE("jpeg decode error!\r\n");
+		if (!jpeg_encode_size.jpeg_err) {
+			jpeg_encode_size.jpeg_err = true;
+		}
+
+		if (s_jpeg.jpeg_isr_handler[JPEG_FRAME_ERR].isr_handler) {
+			s_jpeg.jpeg_isr_handler[JPEG_FRAME_ERR].isr_handler(0, s_jpeg.jpeg_isr_handler[JPEG_FRAME_ERR].param);
 		}
 	}
 }

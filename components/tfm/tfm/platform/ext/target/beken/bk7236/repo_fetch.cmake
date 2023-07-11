@@ -4,7 +4,8 @@
 include(FetchContent)
 set(FETCHCONTENT_QUIET FALSE)
 
-set(MBEDCRYPTO_VERSION                  "91fbed6" CACHE STRING "The version of Mbed Crypto to use")
+#TODO wzl-issue, if mbedcrypto repo updates, the git version will be modified
+set(MBEDCRYPTO_VERSION                  "12d45fb" CACHE STRING "The version of Mbed Crypto to use")
 set(MBEDCRYPTO_GIT_REMOTE               "ssh://${USER}@192.168.0.46:29418/iot/wcn/components/tfm_mbedtls" CACHE STRING "The URL (or path) to retrieve MbedTLS from.")
 
 if ("${MBEDCRYPTO_PATH}" STREQUAL "")

@@ -161,8 +161,7 @@ void h264_hal_local_info(h264_hal_t *hal)
 	HAL_LOGI("device id is: %d , version id is: %d \r\n",device_id,version_id);
 }
 
-void h264_hal_int_config(h264_hal_t *hal,uint32_t int_mode,uint32_t cpu0_int_mode)
+void h264_hal_int_config(h264_hal_t *hal,uint32_t int_mode)
 {
 	h264_ll_set_int_mode(hal->hw,int_mode);
-	sys_ll_set_cpu0_int_32_63_en_cpu0_h264_int_en(cpu0_int_mode);
 }

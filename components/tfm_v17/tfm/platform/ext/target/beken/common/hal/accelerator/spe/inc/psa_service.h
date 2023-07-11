@@ -16,7 +16,6 @@
 #ifndef __ASSEMBLY__
 
 #include "psa_common.h"
-#include "psa_interface_redirect.h"
 
 #ifdef __cplusplus
 extern "C" {

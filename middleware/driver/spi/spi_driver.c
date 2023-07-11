@@ -275,6 +275,14 @@ static uint32_t spi_id_read_bytes_common(spi_id_t id)
 static void spi_dma_tx_finish_handler(dma_id_t id)
 {
 	SPI_LOGI("[%s] spi_id:%d\r\n", __func__, s_current_spi_dma_wr_id);
+
+	if (s_spi_tx_finish_isr[s_current_spi_dma_wr_id].callback){
+		s_spi_tx_finish_isr[s_current_spi_dma_wr_id].callback(s_current_spi_dma_wr_id,s_spi_tx_finish_isr[s_current_spi_dma_wr_id].param);
+	}
+	if (s_spi[s_current_spi_dma_wr_id].is_tx_blocked) {
+		rtos_set_semaphore(&s_spi[s_current_spi_dma_wr_id].tx_sema);
+		s_spi[s_current_spi_dma_wr_id].is_tx_blocked = false;
+	}
 }
 
 static void spi_dma_rx_finish_handler(dma_id_t id)
@@ -785,7 +793,9 @@ bk_err_t bk_spi_dma_write_bytes(spi_id_t id, const void *data, uint32_t size)
 	uint32_t int_level = rtos_disable_int();
 	s_spi[id].is_tx_blocked = true;
 	s_current_spi_dma_wr_id = id;
-	spi_hal_set_tx_trans_len(&s_spi[id].hal, size);
+	//set spi trans_len as 0, to increase max trans_len from 4096(spi max length) to 65536(dma max length).
+	spi_hal_set_tx_trans_len(&s_spi[id].hal, 0);
+
 	spi_hal_enable_tx(&s_spi[id].hal);
 	rtos_enable_int(int_level);
 	bk_dma_write(s_spi[id].spi_tx_dma_chan, (uint8_t *)data, size);
@@ -793,6 +803,15 @@ bk_err_t bk_spi_dma_write_bytes(spi_id_t id, const void *data, uint32_t size)
 	rtos_get_semaphore(&s_spi[id].tx_sema, BEKEN_NEVER_TIMEOUT);
 
 	int_level = rtos_disable_int();
+	//wait spi last fifo data transfer finish
+	spi_hal_enable_tx_fifo_int(&s_spi[id].hal);
+	for (int i = 0; i < 20; i++) {
+		SPI_LOGD("index = %d, id=%d, tx_fifo_int_status = %d\n", i, id, spi_hal_is_tx_fifo_int_triggered(&s_spi[id].hal));
+		if(spi_hal_is_tx_fifo_int_triggered(&s_spi[id].hal))
+			break;
+	}
+	spi_hal_disable_tx_fifo_int(&s_spi[id].hal);
+	spi_hal_clear_tx_fifo_int_status(&s_spi[id].hal);
 	spi_hal_disable_tx(&s_spi[id].hal);
 	bk_dma_stop(s_spi[id].spi_tx_dma_chan);
 	rtos_enable_int(int_level);
@@ -808,7 +827,8 @@ bk_err_t bk_spi_dma_read_bytes(spi_id_t id, void *data, uint32_t size)
 	uint32_t int_level = rtos_disable_int();
 	s_current_spi_dma_rd_id = id;
 	s_spi[id].is_rx_blocked = true;
-	spi_hal_set_rx_trans_len(&s_spi[id].hal, size);
+	//set spi trans_len as 0, to increase max trans_len from 4096(spi max length) to 65536(dma max length).
+	spi_hal_set_rx_trans_len(&s_spi[id].hal, 0);
 	spi_hal_clear_rx_fifo(&s_spi[id].hal);
 	spi_hal_disable_rx_fifo_int(&s_spi[id].hal);
 	spi_hal_enable_rx(&s_spi[id].hal);

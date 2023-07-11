@@ -213,10 +213,7 @@ static inline void gpio_ll_clear_interrupt_status(gpio_hw_t *hw, gpio_interrupt_
 
 static inline void gpio_ll_clear_chan_interrupt_status(gpio_hw_t *hw, uint32 index)
 {
-	if (index < GPIO_32)
-		REG_MCHAN_SET_FIELD(index, &hw->gpio_0_31_int_st, GPIO_F_INT_EN, 1);
-	else
-		REG_MCHAN_SET_FIELD(index - GPIO_32, &hw->gpio_32_47_int_st, GPIO_F_INT_EN, 1);
+	hw->gpio_num[index].cfg.gpio_int_clear = 1;
 }
 
 static inline bool gpio_ll_is_interrupt_triggered(gpio_hw_t *hw, uint32 index, gpio_interrupt_status_t *gpio_status)

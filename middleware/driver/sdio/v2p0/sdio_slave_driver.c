@@ -110,7 +110,7 @@ static bk_err_t sdio_dma_tx_init(void)
 #if CONFIG_SOC_BK7256XX
 	dma_config.dst.start_addr = (uint32_t) SDIO_REG0XB_ADDR;
 	dma_config.dst.end_addr = (uint32_t) SDIO_REG0XB_ADDR;
-#elif CONFIG_SOC_BK7236
+#elif CONFIG_SOC_BK7236XX
 	dma_config.dst.start_addr = (uint32_t) SDIO_REG0XD_ADDR;
 	dma_config.dst.end_addr = (uint32_t) SDIO_REG0XD_ADDR;
 #endif
@@ -152,7 +152,7 @@ static bk_err_t sdio_dma_rx_init()
 #if CONFIG_SOC_BK7256XX
 	dma_config.src.start_addr = (uint32) SDIO_REG0XC_ADDR;
 	dma_config.src.end_addr =  (uint32) SDIO_REG0XC_ADDR;
-#elif CONFIG_SOC_BK7236
+#elif CONFIG_SOC_BK7236XX
 	dma_config.src.start_addr = (uint32) SDIO_REG0X10_ADDR;
 	dma_config.src.end_addr =  (uint32) SDIO_REG0X10_ADDR;
 #endif
@@ -608,7 +608,7 @@ void bk_sdio_driver_dump_sdio_regs(void)
 	{
 #if CONFIG_SOC_BK7256XX
 		if(reg_addr != SDIO_REG0XC_ADDR)	//skip read data out.
-#elif CONFIG_SOC_BK7236
+#elif CONFIG_SOC_BK7236XX
 		if(reg_addr != SDIO_REG0X10_ADDR)	//skip read data out.
 #endif
 		{

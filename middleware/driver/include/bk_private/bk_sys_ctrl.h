@@ -315,7 +315,7 @@ enum
 #define PARAM_XTALH_CTUNE_MASK                   (0x7F)
 
 #define PARAM_AUD_DAC_GAIN_MASK                  (0x1F)
-#elif (CONFIG_SOC_BK7236)
+#elif (CONFIG_SOC_BK7236XX)
 #define PARAM_XTALH_CTUNE_MASK                   (0xFF)
 
 #define PARAM_AUD_DAC_GAIN_MASK                  (0x1F)

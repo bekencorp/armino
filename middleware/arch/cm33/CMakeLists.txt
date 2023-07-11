@@ -14,7 +14,7 @@ if("${CONFIG_SOC_ARCH}" STREQUAL ${COMPONENT_NAME})
 		arm.c
 		arch_interrupt.c
 		jump.c
-		sys_misc.c
+		arch_delay.c
 	)
 
 if(CONFIG_FREERTOS)

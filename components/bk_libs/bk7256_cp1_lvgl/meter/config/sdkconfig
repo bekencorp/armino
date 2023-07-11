@@ -7,11 +7,8 @@
 # SOC_CONFIG
 #
 # CONFIG_SOC_BK7231N is not set
-# CONFIG_SOC_BK7231U is not set
-# CONFIG_SOC_BK7251 is not set
-# CONFIG_SOC_BK7271 is not set
 # CONFIG_SOC_BK7236 is not set
-# CONFIG_SOC_BK7236A is not set
+# CONFIG_SOC_BK7258 is not set
 CONFIG_SOC_BK7256=y
 # CONFIG_SOC_BK7256_CP1 is not set
 # CONFIG_SOC_BK7235 is not set
@@ -19,6 +16,7 @@ CONFIG_SOC_BK7256=y
 CONFIG_SOC_STR="bk7256_cp1"
 CONFIG_SOC_ARCH="riscv"
 CONFIG_SOC_BK7256XX=y
+# CONFIG_SOC_BK7236XX is not set
 # end of SOC_CONFIG
 
 #
@@ -191,18 +189,6 @@ CONFIG_AUDIO_G711=y
 #
 
 #
-# SOFTWARE_SUPPORT_CHIP
-#
-# CONFIG_CHIP_SUPPORT is not set
-# end of SOFTWARE_SUPPORT_CHIP
-
-#
-# Interrupt
-#
-# CONFIG_ISR_REG_DISABLE is not set
-# end of Interrupt
-
-#
 # device
 #
 CONFIG_DEVICE_MAX_NAME_LEN=32
@@ -318,8 +304,11 @@ CONFIG_QSPI_STATIS=y
 #
 # CONFIG_GPIO_WAKEUP_SUPPORT is not set
 CONFIG_GPIO_DYNAMIC_WAKEUP_SOURCE_MAX_CNT=4
+CONFIG_CONFIG_GPIO_WAKEUP_ID=22
+CONFIG_CONFIG_GPIO_WAKEUP_INT_TYPE=0
 # CONFIG_GPIO_SIMULATE_UART_WRITE is not set
 # CONFIG_GPIO_DEFAULT_SET_SUPPORT is not set
+CONFIG_CHANGE_JTAG_GPIO=y
 # end of GPIO
 
 #
@@ -351,8 +340,14 @@ CONFIG_SBC=y
 #
 # JPEG_ENC
 #
-CONFIG_JPEG_ENCODE=y
+CONFIG_JPEGENC_HW=y
 # end of JPEG_ENC
+
+#
+# JPEG_DEC
+#
+# CONFIG_JPEGDEC_HW is not set
+# end of JPEG_DEC
 
 #
 # PSRAM
@@ -392,6 +387,9 @@ CONFIG_SYSTEM_CTRL=y
 # CONFIG_POWER_CLOCK_RF is not set
 # CONFIG_SYSTEM_CLOCK is not set
 # CONFIG_ROSC_TEST_MODE is not set
+CONFIG_DEFAULT_LPO_SRC=2
+# CONFIG_CPU0_SUB_POWER_DOMAIN_ENA is not set
+# CONFIG_LDO_SELF_LOW_POWER_MODE_ENA is not set
 # end of SYS_CTRL
 
 #
@@ -399,6 +397,7 @@ CONFIG_SYSTEM_CTRL=y
 #
 # CONFIG_PTA is not set
 # CONFIG_ATE_TEST is not set
+# CONFIG_MAC_PHY_BYPASS is not set
 # end of PHY
 
 #
@@ -438,11 +437,18 @@ CONFIG_AUDIO_RISCV_IP_V1_0=y
 # end of ICU
 
 #
+# Interrupt
+#
+# CONFIG_ISR_REG_DISABLE is not set
+# end of Interrupt
+
+#
 # TIMER
 #
 CONFIG_TIMER=y
 # CONFIG_TIMER_COUNTER is not set
 CONFIG_TIMER_SUPPORT_ID_BITS=0
+# CONFIG_TIMER_US is not set
 # end of TIMER
 
 #
@@ -498,22 +504,74 @@ CONFIG_TIMER_SUPPORT_ID_BITS=0
 # CONFIG_FFT is not set
 # end of FFT
 
+#
+# HW_ROTATE
+#
+# CONFIG_HW_ROTATE_PFC is not set
+# end of HW_ROTATE
+
+#
+# YUV_BUF
+#
+# CONFIG_YUV_BUF is not set
+# end of YUV_BUF
+
+#
+# LCD
+#
 # CONFIG_LCD is not set
 # CONFIG_LCD_QSPI is not set
-# CONFIG_MAC_PHY_BYPASS is not set
-# CONFIG_SUPPORT_IRDA is not set
-CONFIG_MAILBOX=y
-# CONFIG_TP is not set
-# CONFIG_DMA2D is not set
-# CONFIG_YUV_BUF is not set
-# CONFIG_JPEG_DEC is not set
-# CONFIG_EFUSE is not set
-CONFIG_CHANGE_JTAG_GPIO=y
-CONFIG_RESET_REASON=y
 # CONFIG_LCD_POWER_GPIO_CTRL is not set
 # CONFIG_LCD_BACKLIGHT_GPIO_CTRL is not set
+# end of LCD
+
+#
+# IRDA
+#
+# CONFIG_SUPPORT_IRDA is not set
+# end of IRDA
+
+#
+# CAMERA
+#
 # CONFIG_CAMERA_POWER_GPIO_CTRL is not set
-# CONFIG_HW_ROTATE_PFC is not set
+# end of CAMERA
+
+#
+# RESET_REASON
+#
+CONFIG_RESET_REASON=y
+# end of RESET_REASON
+
+#
+# EFUSE
+#
+# CONFIG_EFUSE is not set
+# end of EFUSE
+
+#
+# MAILBOX
+#
+CONFIG_MAILBOX=y
+# end of MAILBOX
+
+#
+# TP
+#
+# CONFIG_TP is not set
+# end of TP
+
+#
+# DMA2D
+#
+# CONFIG_DMA2D is not set
+# end of DMA2D
+
+#
+# SOFTWARE_SUPPORT_CHIP
+#
+# CONFIG_CHIP_SUPPORT is not set
+# end of SOFTWARE_SUPPORT_CHIP
 # end of Driver
 
 #
@@ -552,6 +610,7 @@ CONFIG_MSDU_RESV_HEAD_LENGTH=96
 CONFIG_MSDU_RESV_TAIL_LENGTH=16
 CONFIG_TASK_RECONNECT_PRIO=4
 # CONFIG_AP_MONITOR_COEXIST is not set
+# CONFIG_CONNECT_THROUGH_PSK_OR_SAE_PASSWORD is not set
 # CONFIG_WIFI_FAST_CONNECT is not set
 # CONFIG_BSSID_CONNECT is not set
 # CONFIG_WFA_CERT is not set
@@ -715,13 +774,6 @@ CONFIG_HOMEKIT=y
 # end of modules::homekit
 
 #
-# modules::ip
-#
-# CONFIG_WIFI_IP is not set
-# CONFIG_GDMA2TCM_WAR is not set
-# end of modules::ip
-
-#
 # modules::ip_ax
 #
 CONFIG_WIFI_IP_AX=y
@@ -767,6 +819,7 @@ CONFIG_SM_FAST_CONNECT=y
 # CONFIG_WIFI_IP_AX_NEXT is not set
 # CONFIG_BK_NO_CHECK_RX_PN is not set
 # CONFIG_BK_INTEROPER is not set
+# CONFIG_RX_DMA_ASYNC is not set
 
 #
 # ate_test
@@ -804,6 +857,7 @@ CONFIG_LV_FONT_MONTSERRAT_14=y
 # CONFIG_LV_USE_PERF_MONITOR is not set
 # CONFIG_LVGL_USE_PSRAM is not set
 # CONFIG_LVGL_USE_DMA2D is not set
+# CONFIG_LV_ATTRIBUTE_FAST_MEM is not set
 # end of modules::lvgl
 
 #

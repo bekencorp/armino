@@ -21,6 +21,169 @@
 extern "C" {
 #endif
 
+static inline void bk_psram_byte_write(unsigned char *addr, unsigned char value)
+{
+	uint32_t addr_align = (uint32_t)addr;
+	uint32_t temp = 0;
+	uint8_t index = 0;
+
+	index = (addr_align & 0x3);
+	addr_align &= 0xFFFFFFFC;
+	temp = *((volatile uint32_t *)addr_align);
+	switch (index)
+	{
+		case 0:
+			temp &= ~(0xFF);
+			temp |= value;
+			break;
+		case 1:
+			temp &= ~(0xFF << 8);
+			temp |= (value << 8);
+			break;
+		case 2:
+			temp &= ~(0xFF << 16);
+			temp |= (value << 16);
+			break;
+		case 3:
+			temp &= ~(0xFF << 24);
+			temp |= (value << 24);
+		default:
+			break;
+	}
+
+	*((volatile uint32_t *)addr_align) = temp;
+}
+
+static inline void bk_psram_half_word_write(unsigned short *dst, unsigned short value)
+{
+	int index = (unsigned int)dst & 0x03;
+	unsigned int *dst_t = (unsigned int*)((unsigned int)dst & 0xFFFFFFFC);
+	unsigned int load[2] = {0};
+	unsigned short *p;
+
+	if (index < 3)
+	{
+		load[0] = *dst_t;
+
+		p = (unsigned short*)((unsigned char *)&load[0] + index);
+		*p = value;
+		*dst_t = load[0];
+	}
+	else
+	{
+		load[0] = *dst_t;
+		load[1] = *(dst_t + 1);
+
+		p = (unsigned short*)((unsigned char *)&load[0] + index);
+		*p = value;
+
+		*dst_t = load[0];
+		*(dst_t  + 1) = load[1];
+	}
+
+}
+
+static inline void bk_psram_word_write(unsigned int *src, unsigned int value)
+{
+	int index = (unsigned int)src & 0x03;
+	unsigned int *dst = (unsigned int*)((unsigned int)src & 0xFFFFFFFC);
+
+	if (!index)
+	{
+		*dst = value;
+	}
+	else
+	{
+		unsigned int load[2] = {0};
+		unsigned int *p_dst = (unsigned int*)(((unsigned char*)&load[0]) + index);
+
+		load[0] = *dst;
+		load[1] = *(dst + 1);
+		*p_dst = value;
+
+		*dst = load[0];
+		*(dst + 1) = load[1];
+
+	}
+}
+
+static inline void bk_psram_word_memcpy(void *dst_t, void *src_t, unsigned int length)
+{
+	unsigned int *dst = (unsigned int*)dst_t, *src = (unsigned int*)src_t;
+	int index = (unsigned int)dst & 0x03;
+	int count = length >> 2, tail = length & 0x3;
+	unsigned int tmp = 0;
+	unsigned char *p, *pp = (unsigned char *)src;
+
+	if (!index)
+	{
+		while (count--)
+		{
+			*dst++ = pp[0] | pp[1] << 8 | pp[2] << 16 | pp[3] << 24;
+			pp += 4;
+		}
+
+		if (tail)
+		{
+			tmp = *dst;
+			p = (unsigned char *)&tmp;
+
+			while(tail--)
+			{
+				*p++ = *pp++;
+			}
+			*dst = tmp;
+		}
+	}
+	else
+	{
+		unsigned int *pre_dst = (unsigned int*)((unsigned int)dst & 0xFFFFFFFC);
+		unsigned int pre_count = 4 - index;
+		tmp = *pre_dst;
+		p = (unsigned char *)&tmp + index;
+
+		if (pre_count > length) {
+			pre_count = length;
+		}
+
+		while (pre_count--)
+		{
+			*p++ = *pp++;
+			length--;
+		}
+
+		*pre_dst = tmp;
+
+		if (length <= 0)
+		{
+			return;
+		}
+
+		dst = pre_dst + 1;
+		count = length >> 2;
+		tail = length & 0x3;
+
+		while (count--)
+		{
+			*dst++ = pp[0] | pp[1] << 8 | pp[2] << 16 | pp[3] << 24;
+			pp += 4;
+		}
+
+		if (tail)
+		{
+			tmp = *dst;
+			p = (unsigned char *)&tmp;
+
+			while(tail--)
+			{
+				*p++ = *pp++;
+			}
+			*dst = tmp;
+		}
+	}
+}
+
+
 /* @brief Overview about this API header
  *
  */

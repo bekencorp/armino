@@ -1,0 +1,5 @@
+menu "RTP"
+        config RTP
+                bool "Enable BK RTP"
+                default n
+endmenu

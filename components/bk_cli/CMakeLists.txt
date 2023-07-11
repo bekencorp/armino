@@ -215,7 +215,7 @@ if (CONFIG_AON_RTC_TEST)
 	)
 endif()
 
-if (CONFIG_JPEG_ENCODE)
+if (CONFIG_JPEGENC_HW)
 	list(APPEND srcs
 		"cli_jpegenc.c"
 	)
@@ -312,11 +312,7 @@ endif()
 
 endif() #if(CONFIG_CLI)
 
-if (CONFIG_JPEG_DECODE)
-	list(APPEND srcs cli_jpegdec.c)
-endif()
-
-if (CONFIG_JPEG_DECODE)
+if (CONFIG_JPEGDEC_SW)
 	list(APPEND srcs cli_jpegdec.c)
 endif()
 
@@ -388,10 +384,14 @@ if (CONFIG_ES8311_TEST)
 	list(APPEND srcs cli_es8311.c)
 endif()
 
+if (CONFIG_ASR_TEST)
+	list(APPEND srcs cli_asr.c)
+endif()
+
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
 	REQUIRES utf8 temp_detect app driver user_driver bk_system iperf fatfs user_driver http adc_key
 	#PRIV_REQUIRES airkiss bk_common bk_netif bk_ble bk_ps
-	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_vfs bk_init at bk_wifi compal media_common media bk_bt ota cmsis
+	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_vfs bk_init at bk_wifi compal media_common media bk_bt ota cmsis jrtplib
 	)
 

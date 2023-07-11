@@ -1005,3 +1005,18 @@ void __attribute__ ((interrupt)) YUV_BUF_Handler(void)
 	NESTED_IRQ_EXIT();
 }
 
+void __attribute__ ((interrupt)) ROTT_Handler(void)
+{
+	NESTED_IRQ_ENTER();
+
+	INT_INC_STATIS(59);
+	if (s_irq_handler[59] != NULL) {
+		(*(s_irq_handler[59]))();
+	}
+
+	NESTED_VPLIC_COMPLETE_INTERRUPT(59);
+
+	NESTED_IRQ_EXIT();
+}
+
+

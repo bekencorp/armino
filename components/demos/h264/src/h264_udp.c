@@ -362,7 +362,7 @@ static void demo_H264_udp_receiver(uint8_t *data, uint32_t len, struct sockaddr_
 				setup.add_pkt_header = demo_H264_add_pkt_header;
 
 				//media_app_camera_open(APP_CAMERA_DVP_JPEG, ppi);
-				media_app_camera_open(APP_CAMERA_DVP_H264, ppi);
+				media_app_camera_open(APP_CAMERA_DVP_H264_WIFI_TRANSFER, ppi);
 
 				media_app_transfer_open(&setup);
 			}
@@ -376,7 +376,7 @@ static void demo_H264_udp_receiver(uint8_t *data, uint32_t len, struct sockaddr_
 
 				media_app_transfer_close();
 
-				media_app_camera_close(APP_CAMERA_DVP_H264);
+				media_app_camera_close(APP_CAMERA_DVP_H264_WIFI_TRANSFER);
 			}
 			break;
 

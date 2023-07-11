@@ -98,10 +98,14 @@ Reset_Handler:
     ldr    r3, [r4, #8]
 
 .L_loop0_0:
-    subs    r3, #4
+/* it depends on the format of copy_table at the tfm_common_s.ld
+ * the different tfm version maybe has different format
+ */
+    subs    r3, #1
     ittt    ge
-    ldrge    r0, [r1, r3]
-    strge    r0, [r2, r3]
+    lslge   r6, r3, #2 
+    ldrge   r0, [r1, r6]
+    strge   r0, [r2, r6]
     bge    .L_loop0_0
 
     adds    r4, #12

@@ -34,7 +34,7 @@ extern "C" {
 #define CLI_CFG_EFUSE       0
 #define CLI_CFG_GPIO        1
 #define CLI_CFG_OS          0
-#define CLI_CFG_OTA         0
+#define CLI_CFG_OTA         1
 #define CLI_CFG_KEYVALUE    0
 #define CLI_CFG_MATTER      0
 #define CLI_CFG_UART        1

@@ -1,0 +1,5 @@
+# Name,Offset,Size,Execute,Read,Write
+bootloader,0x00,64K,TRUE,,
+app,0x00,1728K,TRUE,,
+app1,0x00,448K,TRUE,,
+download,0x00,1472K,,,

@@ -165,6 +165,7 @@ static void cli_aud_pcm_dma_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, i
 		//disable dac
 		bk_aud_stop_dac();
 		bk_aud_dac_deinit();
+		bk_aud_driver_deinit();
 
 		//stop dma
 		bk_dma_stop(dma_id);
@@ -230,7 +231,6 @@ static void cli_aud_dac_init_cmd(char *pcWriteBuffer, int xWriteBufferLen, int a
 {
 	aud_dac_config_t dac_config;
 	bk_err_t ret = BK_OK;
-
 	dac_config.dac_enable = AUD_DAC_DISABLE;
 	dac_config.dac_hpf2_coef_B2 = 0x3A22;
 	dac_config.dac_chl = AUD_DAC_CHL_L_ENABLE;

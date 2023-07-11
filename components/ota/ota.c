@@ -8,6 +8,16 @@
 #include "utils_httpc.h"
 #include "modules/wifi.h"
 #endif
+#if (CONFIG_TFM)
+#include "psa/update.h"
+#endif
+
+#if (CONFIG_TFM)
+psa_image_id_t ota_image = \
+                (psa_image_id_t)FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_STAGE,
+                                                       FWU_IMAGE_TYPE_FULL,
+                                                       0);
+#endif
 
 #ifdef CONFIG_HTTP_AB_PARTITION
 part_flag update_part_flag;
@@ -135,7 +145,19 @@ int bk_http_ota_download(const char *uri)
 	httpclient_t httpclient;
 	httpclient_data_t httpclient_data;
 	char http_content[HTTP_RESP_CONTENT_LEN];
-    
+#if (CONFIG_TFM)
+	psa_status_t status;
+	psa_image_id_t dependency_uuid;
+	psa_image_version_t dependency_version;
+	psa_image_info_t info;
+#endif
+	if(!uri)
+	{
+		ret = BK_FAIL;
+		CLI_LOGI( "uri is NULL\r\n");
+        
+		return ret;
+	}
     CLI_LOGI("http_ota_download :0x%x",bk_http_ota_download);
 
     //__asm volatile ("j .");
@@ -235,7 +257,40 @@ int bk_http_ota_download(const char *uri)
         ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, exec_temp_part, 4); //
 		bk_reboot();
 #else
+#if (CONFIG_TFM)
+		status = psa_fwu_query(ota_image, &info);
+		if (status != PSA_SUCCESS) {
+			bk_printf("query status %d\r\n", status);
+			return -1;
+		}
+		if (info.state != PSA_IMAGE_CANDIDATE) {
+			bk_printf("info state %d\r\n", info.state);
+			return -1;
+		}
+
+		status = psa_fwu_install(ota_image, &dependency_uuid, &dependency_version);
+		if (status != PSA_SUCCESS_REBOOT) {
+			bk_printf("install fail %d\r\n", status);
+			return -1;
+		} else {
+			bk_printf("install success\r\n");
+		}
+
+		status = psa_fwu_query(ota_image, &info);
+		if (status != PSA_SUCCESS) {
+			bk_printf("query fail %d\r\n", status);
+			return -1;
+		}
+		if (info.state != PSA_IMAGE_REBOOT_NEEDED) {
+			bk_printf("info fail %d\r\n", info.state);
+			return -1;
+		}
+
+		bk_printf("reboot\r\n");
+		psa_fwu_request_reboot();
+#else
         bk_reboot();
+#endif
 #endif
 
 	}

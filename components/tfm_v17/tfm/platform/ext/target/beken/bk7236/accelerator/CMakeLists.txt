@@ -1,6 +1,5 @@
 ################################ BL2 ###########################################
 if(BL2)
-
     target_sources(bl2_crypto_hw
         PRIVATE
             ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_driver/src/common/dubhe_driver.c
@@ -99,6 +98,7 @@ if(BL2)
             ${CMAKE_SOURCE_DIR}/interface/include
             ${CMAKE_BINARY_DIR}/generated/interface/include
             ${PLATFORM_DIR}/ext/cmsis
+            ${CMAKE_SOURCE_DIR}/../../../include/soc/bk7236
     )
 
     target_compile_definitions(bl2_crypto_hw
@@ -124,10 +124,9 @@ if(BL2)
             ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_driver/inc/crypto
             ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_alt/inc
     )
-
 endif()
-############################ Crypto Service ####################################
 
+############################ Crypto Service ####################################
 target_sources(crypto_service_crypto_hw
     PRIVATE
         ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_driver/src/common/dubhe_driver.c
@@ -179,14 +178,6 @@ target_sources(crypto_service_crypto_hw
         ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_alt/src/sm4.c
 )
 
-target_include_directories(crypto_service_crypto_hw
-    PRIVATE
-        ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_alt/inc
-        ${PLATFORM_DIR}/ext/target/beken/bk7236/armino/config
-        ${CMAKE_SOURCE_DIR}/interface/include
-        ${CMAKE_BINARY_DIR}/generated/interface/include
-)
-
 target_sources(crypto_service_crypto_hw
     PRIVATE
         ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_lib/bignum.c
@@ -214,6 +205,9 @@ target_sources(crypto_service_crypto_hw
 
 target_include_directories(crypto_service_crypto_hw
     PRIVATE
+        ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_alt/inc
+        ${PLATFORM_DIR}/ext/target/beken/bk7236/armino/config
+        ${CMAKE_BINARY_DIR}/generated/interface/include
         ${PLATFORM_DIR}/ext/target/beken/bk7236
         ${PLATFORM_DIR}/ext/target/beken/bk7236/cmsis_core
         ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/spe/inc
@@ -228,6 +222,7 @@ target_include_directories(crypto_service_crypto_hw
         ${MBEDCRYPTO_PATH}/library
         ${MBEDCRYPTO_PATH}/include
         ${CMAKE_SOURCE_DIR}/../../cmsis/CMSIS_5/Device/ArmChina/STAR/Include
+        ${CMAKE_SOURCE_DIR}/../../../include/soc/bk7236
 )
 
 target_link_libraries(crypto_service_crypto_hw

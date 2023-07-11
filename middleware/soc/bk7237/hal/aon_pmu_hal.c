@@ -210,21 +210,30 @@ void aon_pmu_hal_wdt_rst_dev_enable()
 #define PM_LP_SRC_X32K   (0x1)  //external32k
 void aon_pmu_hal_lpo_src_set(uint32_t lpo_src)
 {
-#if 0
+	uint32_t ret;
 	if(lpo_src == PM_LP_SRC_X32K)
 	{
-		sys_ll_set_ana_reg6_itune_xtall(0x0);//0x0 provide highest current for external 32k,because the signal path long
-		sys_ll_set_ana_reg6_en_xtall(0x1);
+		ret = sys_ll_get_ana_reg6_itune_xtall();
+		if(ret != 0x0)
+		{
+			sys_ll_set_ana_reg6_itune_xtall(0x0);//0x0 provide highest current for external 32k,because the signal path long
+		}
+
+		ret = sys_ll_get_ana_reg6_en_xtall();
+		if(ret != 0x1)
+		{
+			sys_ll_set_ana_reg6_en_xtall(0x1);
+		}
 	}
 	else
 	{
 		if(sys_ll_get_ana_reg6_en_xtall() == 0x1)
 		{
-			sys_ll_set_ana_reg6_itune_xtall(0x7);//restore default value
-			sys_ll_set_ana_reg6_en_xtall(0x0);
+			//sys_ll_set_ana_reg6_itune_xtall(0x7);//restore default value
+			//sys_ll_set_ana_reg6_en_xtall(0x0);
 		}
 	}
-#endif
+
     aon_pmu_ll_set_reg41_lpo_config(lpo_src);
 }
 

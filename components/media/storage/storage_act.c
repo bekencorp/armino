@@ -22,7 +22,7 @@
 #include <os/mem.h>
 #include <driver/gpio.h>
 #include <driver/gpio_types.h>
-
+#include <driver/psram.h>
 #include <driver/dma.h>
 #include "lcd_act.h"
 
@@ -49,7 +49,6 @@
 #define TAG "storage"
 
 extern u64 riscv_get_mtimer(void);
-extern void transfer_memcpy_word(uint32_t *dst, uint32_t *src, uint32_t size);
 
 #define SECTOR                  0x1000
 
@@ -79,6 +78,7 @@ typedef void (*frame_cb_t)(frame_buffer_t *frame);
 
 storage_info_t storage_info;
 char *capture_name = NULL;
+
 storage_flash_t storge_flash;
 bool storage_task_running = false;
 beken_semaphore_t storage_save_sem = NULL;
@@ -118,28 +118,7 @@ void storage_frame_buffer_dump(frame_buffer_t *frame, char *name)
 	LOGI("%s dump frame: %p, %u, size: %d\n", __func__, frame->frame, frame->sequence, frame->length);
 
 #if (CONFIG_FATFS)
-	FIL fp1;
-	unsigned int uiTemp = 0;
-	char file_name[50] = {0};
-
-	sprintf(file_name, "%d:/No.%d_%s", DISK_NUMBER_SDIO_SD, frame->sequence, name);
-
-	FRESULT fr = f_open(&fp1, file_name, FA_CREATE_ALWAYS | FA_WRITE);
-	if (fr != FR_OK)
-	{
-		LOGE("can not open file: %s, error: %d\n", file_name, fr);
-		return;
-	}
-
-	LOGI("open file:%s!\n", file_name);
-
-	fr = f_write(&fp1, (char *)frame->frame, frame->length, &uiTemp);
-	if (fr != FR_OK)
-	{
-		LOGE("f_write failed 1 fr = %d\r\n", fr);
-	}
-
-	f_close(&fp1);
+	storage_mem_to_sdcard(name, frame->frame, frame->length);
 
 	LOGI("%s, complete\n", __func__);
 #endif
@@ -150,33 +129,14 @@ static void storage_capture_save(frame_buffer_t *frame)
 {
 	LOGI("%s save frame: %d, size: %d\n", __func__, frame->sequence ,frame->length);
 	uint64_t before, after;
+	
 #if (CONFIG_ARCH_RISCV)
 	before = riscv_get_mtimer();
 #else
 	before = 0;
 #endif
 #if (CONFIG_FATFS)
-	FIL fp1;
-	unsigned int uiTemp = 0;
-	char file_name[50] = {0};
-
-	sprintf(file_name, "%d:/%s", DISK_NUMBER_SDIO_SD, capture_name);
-
-	FRESULT fr = f_open(&fp1, file_name, FA_CREATE_ALWAYS | FA_WRITE);
-	if (fr != FR_OK)
-	{
-		LOGE("can not open file: %s, error: %d\n", file_name, fr);
-		return;
-	}
-
-	LOGI("open file:%s!\n", file_name);
-
-	fr = f_write(&fp1, (char *)frame->frame, frame->length, &uiTemp);
-	if (fr != FR_OK)
-	{
-		LOGE("f_write failed 1 fr = %d\r\n", fr);
-	}
-	f_close(&fp1);
+	storage_mem_to_sdcard(capture_name, frame->frame, frame->length);
 #else  //save in flash
 	bk_err_t ret;
 	if (frame == NULL)
@@ -301,11 +261,11 @@ bk_err_t sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *total_len
 			{
 				uiTemp = (uiTemp / 4 + 1) * 4;
 			}
-			transfer_memcpy_word(paddr, (uint32_t *)sram_addr, uiTemp);
+			bk_psram_word_memcpy(paddr, sram_addr, uiTemp);
 		}
 		else
 		{
-			transfer_memcpy_word(paddr, (uint32_t *)sram_addr, once_read_len);
+			bk_psram_word_memcpy(paddr, sram_addr, once_read_len);
 			paddr += (once_read_len/4);
 		}
 	}
@@ -324,6 +284,35 @@ bk_err_t sdcard_read_to_mem(char *filename, uint32_t* paddr, uint32_t *total_len
 	return BK_OK;
 }
 
+bk_err_t storage_mem_to_sdcard(char *filename, uint8_t *paddr, uint32_t total_len)
+{
+#if (CONFIG_FATFS)
+	FIL fp1;
+	unsigned int uiTemp = 0;
+	char file_name[50] = {0};
+
+	sprintf(file_name, "%d:/%s", DISK_NUMBER_SDIO_SD, filename);
+
+	FRESULT fr = f_open(&fp1, file_name, FA_CREATE_ALWAYS | FA_WRITE);
+	if (fr != FR_OK)
+	{
+		LOGE("can not open file: %s, error: %d\n", file_name, fr);
+		return BK_FAIL;
+	}
+
+	LOGI("open file:%s!\n", file_name);
+
+	fr = f_write(&fp1, (char *)paddr, total_len, &uiTemp);
+	if (fr != FR_OK)
+	{
+		LOGE("f_write failed 1 fr = %d\r\n", fr);
+	}
+	f_close(&fp1);
+
+#endif
+
+	return BK_OK;
+}
 
 static void  storage_save_frame(frame_buffer_t *frame)
 {
@@ -658,31 +647,10 @@ void storage_init(void)
 	storage_task_start();
 }
 
-
 void lcd_storage_capture_save(char * capture_name, uint8_t *addr, uint32_t len)
 {
 #if (CONFIG_FATFS)
-	FIL fp1;
-	unsigned int uiTemp = 0;
-	char file_name[50] = {0};
-
-	sprintf(file_name, "%d:/%s", DISK_NUMBER_SDIO_SD, capture_name);
-
-	FRESULT fr = f_open(&fp1, file_name, FA_CREATE_ALWAYS | FA_WRITE);
-	if (fr != FR_OK)
-	{
-		os_printf("can not open file: %s, error: %d\n", file_name, fr);
-		return;
-	}
-
-	os_printf("open file:%s!\n", file_name);
-
-	fr = f_write(&fp1, addr, len, &uiTemp);
-	if (fr != FR_OK)
-	{
-		os_printf("f_write failed 1 fr = %d\r\n", fr);
-	}
-	f_close(&fp1);
+	storage_mem_to_sdcard(capture_name, addr, len);
 #endif
 }
 

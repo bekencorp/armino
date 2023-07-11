@@ -17,11 +17,10 @@ endif()
 set(srcs
 	tick_base.c
 	printf_base.c
-	# os/freertos/tick.c
 	printf.c
 	mac.c
 	reboot.c
-	target_util.c
+	delay.c
 )
 
 if(CONFIG_FREERTOS)

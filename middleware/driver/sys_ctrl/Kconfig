@@ -43,5 +43,18 @@ menu "SYS_CTRL"
 	config ROSC_TEST_MODE
 		bool "Enable ROSC test mode"
 		default n
+
+	config DEFAULT_LPO_SRC
+		int "Default low power clock source"
+		range 0 2
+		default 2
+
+	config CPU0_SUB_POWER_DOMAIN_ENA
+		bool "Enable CPU0 sub-power dowmain"
+		default n
+
+	config LDO_SELF_LOW_POWER_MODE_ENA
+		bool "Enable LDO self low power mode"
+		default n
 endmenu
 

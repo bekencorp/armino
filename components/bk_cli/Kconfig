@@ -55,6 +55,11 @@ menu "Bk_cli"
 			bool "Enable Wifi Raw Tx Test"
 			default n
 
+		config CONNECT_THROUGH_PSK_OR_SAE_PASSWORD
+			depends on CLI
+			bool "Enable connect through psk or sae password"
+			default n
+
 		config VFS_TEST
 			depends on CLI
 			bool "Enable Vfs Test"

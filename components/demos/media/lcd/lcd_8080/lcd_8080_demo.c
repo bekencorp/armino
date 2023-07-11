@@ -10,7 +10,6 @@
 #include <driver/psram.h>
 #include "bk_cli.h"
 #include "stdio.h"
-#include <lcd_dma2d_config.h>
 #include <st7796s.h>
 #include "modules/image_scale.h"
 #include <driver/dma2d.h>
@@ -131,7 +130,8 @@ static void dma2d_lcd_fill_test(uint32_t frameaddr, uint16_t width, uint16_t hei
 	{
 		width = width/2;
 	}
-	bk_dma2d_start_transfer(&dma2d_config, color_temp, (uint32_t)frameaddr, width, height);
+	bk_dma2d_transfer_config(&dma2d_config, color_temp, (uint32_t)frameaddr, width, height);
+	bk_dma2d_start_transfer();
 	while (bk_dma2d_is_transfer_busy()) {
 	}
 }

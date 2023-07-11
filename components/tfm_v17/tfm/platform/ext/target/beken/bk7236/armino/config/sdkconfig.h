@@ -4,11 +4,13 @@
  */
 #pragma once
 
+#define CONFIG_SOC_BK7236XX 1
 #define CONFIG_SOC_BK7236 1
 #define CONFIG_SOC_STR "bk7236"
 #define CONFIG_SOC_ARCH "cm33"
 #define CONFIG_TOOLCHAIN_PATH "/opt/gcc-arm-none-eabi-9-2020-q2-update/bin"
 #define CONFIG_TOOLCHAIN_PREFIX "arm-none-eabi-"
+#define CONFIG_CPU_FREQ_HZ 120000000
 #define CONFIG_ASSERT_IGNORE 1
 #define CONFIG_LWIP 1
 #define CONFIG_LWIP_V2_1 1
@@ -77,7 +79,7 @@
 #define CONFIG_AON_RTC 1
 #define CONFIG_GPIO_DYNAMIC_WAKEUP_SOURCE_MAX_CNT 4
 #define CONFIG_GENERAL_DMA 1
-#define CONFIG_JPEG_ENCODE 1
+#define CONFIG_JPEGENC_HW 1
 #define CONFIG_CALENDAR 1
 #define CONFIG_MPC 1
 #define CONFIG_PRRO 1
@@ -102,7 +104,7 @@
 #define CONFIG_SPE 1
 #endif
 
-#define CONFIG_BOOTROM 1
+#define CONFIG_TFM_NON_BOOTLOADER 1
 #define CONFIG_BEKEN_SUPPORT_MPU 0
 #define CONFIG_ENABLE_DEBUG 1
 #define CONFIG_FPGA 1

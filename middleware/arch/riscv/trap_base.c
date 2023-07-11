@@ -22,6 +22,8 @@
 #include <common/bk_assert.h>
 #include <driver/wdt.h>
 #include <bk_wdt.h>
+#include "wdt_driver.h"
+#include "aon_pmu_driver.h"
 
 #if (CONFIG_CACHE_ENABLE)
 	#define SRAM_BLOCK_COUNT 4
@@ -79,17 +81,18 @@ typedef void (*hook_func)(void);
 extern char _dtcm_ema_start, _dtcm_bss_end;
 extern char _data_start, _end;  //BSS end in SRAM2
 
+extern void reset_vector(void);
 extern void mtime_handler(void);
 extern void mswi_handler(void);
 extern void mext_interrupt(void);
 extern void stack_mem_dump(uint32_t stack_top, uint32_t stack_bottom);
 extern void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context);
-extern void close_wdt(void);
 
 static hook_func s_wifi_dump_func = NULL;
 static hook_func s_ble_dump_func = NULL;
 
 volatile unsigned int g_enter_exception = 0;
+volatile unsigned int g_enter_nmi_vector = 0;
 
 typedef struct sys_mem_info
 {
@@ -168,14 +171,8 @@ void trap_handler(unsigned long mcause, SAVED_CONTEXT *context)
 		uint32_t mie_status = read_csr(NDS_UIE);
 		clear_csr(NDS_UIE, mie_status);
 
-#if CONFIG_INT_WDT
-		close_wdt();
-		bk_task_wdt_stop();
-#endif
 		/* Handled Trap */
 		g_enter_exception = 1;
-		BK_LOG_FLUSH();
-		bk_set_printf_sync(true);
 		
 		user_except_handler(mcause, context);
 #if !CONFIG_SLAVE_CORE
@@ -187,7 +184,7 @@ void trap_handler(unsigned long mcause, SAVED_CONTEXT *context)
 		rtos_enable_int(int_level);
 	} else {
 #if !CONFIG_SLAVE_CORE
-		bk_reboot_ex(reset_reason);
+		bk_wdt_force_reboot();
 #endif
 	}
 
@@ -267,6 +264,9 @@ void sys_delay_sync(uint32_t time_count )
 extern void smem_dump_lastblock(void);
 void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context)
 {
+#if CONFIG_DEBUG_FIRMWARE
+	BK_LOG_FLUSH();
+	bk_set_printf_sync(true);
 
 	BK_DUMP_OUT("***********************************************************************************************\r\n");
 	BK_DUMP_OUT("***********************************user except handler begin***********************************\r\n");
@@ -274,7 +274,10 @@ void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context)
 
 	arch_dump_cpu_registers(mcause, context);
 
-#if CONFIG_DEBUG_FIRMWARE
+#if CONFIG_INT_WDT
+	bk_wdt_feed();
+#endif
+
 	if(NULL != s_wifi_dump_func) {
 		s_wifi_dump_func();
 	}
@@ -284,10 +287,6 @@ void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context)
 	}
 	
 	rtos_dump_plat_sys_regs();
-	
-	BK_DUMP_OUT("System will dump memory in 5s, please ready to save whole log.........\r\n");
-
-	sys_delay_sync(SYS_DELAY_TIME_5S);
 
 #if CONFIG_MEMDUMP_ALL
 	stack_mem_dump((uint32_t)&_dtcm_ema_start, (uint32_t)&_dtcm_bss_end);
@@ -312,40 +311,53 @@ void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context)
 #endif
 
 	arch_dump_cpu_registers(mcause, context);
-#endif //CONFIG_DEBUG_FIRMWARE
 
 	BK_DUMP_OUT("***********************************************************************************************\r\n");
 	BK_DUMP_OUT("************************************user except handler end************************************\r\n");
 	BK_DUMP_OUT("***********************************************************************************************\r\n");
-
+#endif //CONFIG_DEBUG_FIRMWARE
 }
 
 void set_reboot_tag(uint32_t tag) {
-	uint32_t p_tag = REBOOT_TAG_ADDR;
-	*((uint32_t *)p_tag) = tag;
+	REG_WRITE(REBOOT_TAG_ADDR, tag);
 }
 
 inline uint32_t get_reboot_tag(void) {
-	return *((uint32_t *)REBOOT_TAG_ADDR);
+	return REG_READ(REBOOT_TAG_ADDR);
 }
 
+void set_nmi_vector(void) {
+	uint32_t nmi_vector = (uint32_t)reset_vector;
+	REG_WRITE(SAVE_JUMPAPP_ADDR, nmi_vector);
+}
 
 void user_nmi_handler(unsigned long mcause, unsigned long ra) {
+#if CONFIG_DEBUG_FIRMWARE
+	if(g_enter_nmi_vector == 1)
+#endif
+	{
+		//For nmi wdt reset
+		aon_pmu_drv_wdt_change_not_rosc_clk();
+		aon_pmu_drv_wdt_rst_dev_enable();
+		while(1);
+	}
+
+#if CONFIG_DEBUG_FIRMWARE
+	g_enter_nmi_vector = 1;
+
 	if(mcause == MCAUSE_CAUSE_WATCHDOG) {
 		if( REBOOT_TAG_REQ == get_reboot_tag() ) {
-			BK_DUMP_OUT("Wait reboot.\r\n");
 			while(1);
 		}
 	}
 
-#if CONFIG_INT_WDT
-	close_wdt();
-	bk_task_wdt_stop();
-#endif
-
-	BK_DUMP_OUT("========Call NULL func pointer/WDT, please check the code near ra reg.========\r\n");
+	#if CONFIG_INT_WDT
+		bk_wdt_feed();
+	#endif
+	BK_DUMP_OUT("======== WDT reset.========\r\n");
 	BK_DUMP_OUT("1 ra x 0x%lx\r\n", ra);
-	BK_DUMP_OUT("========Call NULL func pointer/WDT, please check the code near ra reg.========\r\n");
+	BK_DUMP_OUT("======== WDT reset.========\r\n");
+#endif
 }
 
 #if CONFIG_SAVE_BOOT_TIME_POINT

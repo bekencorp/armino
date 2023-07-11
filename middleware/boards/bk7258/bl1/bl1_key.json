@@ -1,0 +1,6 @@
+{
+    "sec_boot": false,
+    "sig_sch": "ec256",
+    "prvkey": "ec256_privkey.pem",
+    "pubkey": "ec256_pubkey.pem"
+}

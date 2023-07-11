@@ -94,11 +94,13 @@ target_include_directories(platform_s
         retarget
         cmsis_core
         native_drivers/timer_cmsdk
+        ${PLATFORM_DIR}/../bl2/ext/mcuboot/include
         ${PLATFORM_DIR}/..
 )
 
 target_sources(platform_s
     PRIVATE
+		bl2/flash_map.c
         cmsis_drivers/Driver_Flash.c
         cmsis_drivers/Driver_USART.c
         cmsis_core/system_cmsdk_bk7236.c

@@ -170,7 +170,7 @@ bool cmd_contain(int argc, char **argv, char *string)
 	return ret;
 }
 
-#if CONFIG_FATFS
+#if (CONFIG_IMAGE_STORAGE)
 extern storage_flash_t storge_flash;
 #endif
 
@@ -202,6 +202,25 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			if (CMD_CONTAIN("mix"))
 			{
 				camera_type = APP_CAMERA_DVP_MIX;
+			}
+
+			if (CMD_CONTAIN("h264"))
+			{
+				if (CMD_CONTAIN("encode"))
+				{
+					ret = media_app_camera_open(APP_CAMERA_DVP_H264_LOCAL, ppi);
+				}
+				
+				if (CMD_CONTAIN("enc_lcd"))
+				{
+					ret = media_app_camera_open(APP_CAMERA_DVP_H264_ENC_LCD, ppi);
+				}
+
+				if (CMD_CONTAIN("usb_transfer"))
+				{
+					ret = media_app_camera_open(APP_CAMERA_DVP_H264_USB_TRANSFER, ppi);
+				}
+				
 			}
 
 			if (os_strcmp(argv[2], "open") == 0)
@@ -269,7 +288,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		}
 #endif
 
-#if ((defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC)) && !defined(CONFIG_SLAVE_CORE) && defined(CONFIG_FATFS))
+#if (CONFIG_IMAGE_STORAGE && !defined(CONFIG_SLAVE_CORE))
 		if (os_strcmp(argv[1], "capture") == 0)
 		{
 			LOGI("capture\n");
@@ -325,15 +344,65 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 			if (CMD_CONTAIN("rotate"))
 			{
-				media_app_lcd_rotate(true);
+				media_app_lcd_rotate(ROTATE_90);
+			}
+
+			if (CMD_CONTAIN("90"))
+			{
+				media_app_lcd_rotate(ROTATE_90);
+			}
+
+			if (CMD_CONTAIN("270"))
+			{
+				media_app_lcd_rotate(ROTATE_270);
+			}
+
+			if (CMD_CONTAIN("yuv2rgb"))
+			{
+				media_app_lcd_rotate(ROTATE_YUV2RGB565);
 			}
 
 			if (os_strcmp(argv[2], "open") == 0)
 			{
+				if (argc >= 4)
+				{
+					if(os_strcmp(argv[3], "cp0") == 0)
+					{
+						set_decode_mode(SOFTWARE_DECODING_CPU0);
+					}
+					else if(os_strcmp(argv[3], "cp1") == 0)
+					{
+						set_decode_mode(SOFTWARE_DECODING_CPU1);
+					}
+					else
+					{
+						set_decode_mode(HARDWARE_DECODING);
+					}
+				}
 				lcd_open_t lcd_open;
 				lcd_open.device_ppi = ppi;
 				lcd_open.device_name = name;
 				ret = media_app_lcd_open(&lcd_open);
+			}
+
+			if (os_strcmp(argv[2], "resize") == 0)
+			{
+				if (argc >= 4)
+				{
+					ppi = get_string_to_ppi(argv[3]);
+					if (ppi == PPI_DEFAULT)
+					{
+						LOGE("param ppi error!\r\n");
+					}
+					else
+					{
+						ret = media_app_lcd_resize(ppi);
+					}
+				}
+				else
+				{
+					LOGE("param error!\r\n");
+				}
 			}
 #if (CONFIG_LVGL) && (CONFIG_LVGL_DEMO)
 			#if CONFIG_BLEND_USE_GUI
@@ -420,7 +489,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			}
 			if (os_strcmp(argv[2], "flash_display") == 0)
 			{
-#if CONFIG_FATFS
+#if (CONFIG_IMAGE_STORAGE)
 				lcd_display_t lcd_display;
 				lcd_display.image_addr = storge_flash.flash_image_addr;
 				lcd_display.img_length = storge_flash.flasg_img_length;
@@ -619,20 +688,20 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		}
 #endif
 
-        if (os_strcmp(argv[1], "avi") == 0)
-        {
+		if (os_strcmp(argv[1], "avi") == 0)
+		{
 #if defined(CONFIG_CAMERA) && !defined(CONFIG_SLAVE_CORE) && defined(CONFIG_VIDEO_AVI)
-            if (0 == os_strcmp(argv[2], "v_open"))
-            {
-                ret = media_app_avi_open();
-                LOGI("media_app_avi_open\r\n");
-            }
+		if (0 == os_strcmp(argv[2], "v_open"))
+		{
+			ret = media_app_avi_open();
+			LOGI("media_app_avi_open\r\n");
+		}
 
-            if (0 == os_strcmp(argv[2], "v_close"))
-            {
-                ret = media_app_avi_close();
-                LOGI("media_app_avi_close\r\n");
-            }
+		if (0 == os_strcmp(argv[2], "v_close"))
+		{
+			ret = media_app_avi_close();
+			LOGI("media_app_avi_close\r\n");
+		}
 #endif
 
 #if (CONFIG_AUD_INTF && CONFIG_VIDEO_AVI)
@@ -648,7 +717,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				LOGI("bk_aud_intf_mic_save_stop\r\n");
 			}
 #endif
-        }
+		}
 	}
 
 output:

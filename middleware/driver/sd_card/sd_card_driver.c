@@ -1591,12 +1591,20 @@ bk_err_t bk_sd_card_read_blocks(uint8_t *data, uint32_t block_addr, uint32_t blo
 	while (bk_sdio_host_wait_receive_data() == BK_OK) {
 		do {
 			/* Read data from SDIO Rx fifo */
-			read_data = bk_sdio_host_read_fifo();
-			data[index++] = read_data & 0xff;
-			data[index++] = (read_data >> 8) & 0xff;
-			data[index++] = (read_data >> 16) & 0xff;
-			data[index++] = (read_data >> 24) & 0xff;
-			//SD_CARD_LOGD("read_data:%x, index:%d\r\n", read_data, index);
+			error_state = bk_sdio_host_read_fifo(&read_data);
+			if(error_state == BK_OK)
+			{
+				data[index++] = read_data & 0xff;
+				data[index++] = (read_data >> 8) & 0xff;
+				data[index++] = (read_data >> 16) & 0xff;
+				data[index++] = (read_data >> 24) & 0xff;
+				//SD_CARD_LOGD("read_data:%x, index:%d\r\n", read_data, index);
+			}
+			else
+			{
+				SD_CARD_LOGW("Read FIFO fail,index=%d\r\n", index);
+				break;
+			}
 		} while ((index % SD_BLOCK_SIZE) != 0);
 
 		if (index >= data_config.data_len) {
@@ -1722,12 +1730,20 @@ bk_err_t bk_sd_card_read_blocks(uint8_t *data, uint32_t block_addr, uint32_t blo
 	while (bk_sdio_host_wait_receive_data() == BK_OK) {
 		do {
 			/* Read data from SDIO Rx fifo */
-			read_data = bk_sdio_host_read_fifo();
-			data[index++] = read_data & 0xff;
-			data[index++] = (read_data >> 8) & 0xff;
-			data[index++] = (read_data >> 16) & 0xff;
-			data[index++] = (read_data >> 24) & 0xff;
-			SD_CARD_LOGD("read_data:%x, index:%d\r\n", read_data, index);
+			error_state = bk_sdio_host_read_fifo(&read_data);
+			if(error_state == BK_OK)
+			{
+				data[index++] = read_data & 0xff;
+				data[index++] = (read_data >> 8) & 0xff;
+				data[index++] = (read_data >> 16) & 0xff;
+				data[index++] = (read_data >> 24) & 0xff;
+				//SD_CARD_LOGD("read_data:%x, index:%d\r\n", read_data, index);
+			}
+			else
+			{
+				SD_CARD_LOGW("read data fail from FIFO\r\n");
+				break;
+			}
 		} while ((index % SD_BLOCK_SIZE) != 0);
 		if (index >= data_config.data_len) {
 			break;

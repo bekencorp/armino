@@ -64,7 +64,7 @@
 #define CRYPTO_IOVEC_BUFFER_SIZE               5120
 
 /* Use stored NV seed to provide entropy */
-#define CRYPTO_NV_SEED                         1
+#define CRYPTO_NV_SEED                         0
 
 /*
  * Only enable multi-part operations in Hash, MAC, AEAD and symmetric ciphers,

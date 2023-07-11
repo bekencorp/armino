@@ -56,7 +56,7 @@
 #if CONFIG_AON_PMU_TEST
 #include "aon_pmu_hal.h"
 #endif
-#if CONFIG_SDMADC_TEST
+#if CONFIG_SDMADC
 #include "sdmadc_hal.h"
 #endif
 
@@ -108,7 +108,7 @@ static int cli_hexstr2bin(const char *hex, u8 *buf, size_t len)
 	return 0;
 }
 
-#if CONFIG_JPEG_ENCODE
+#if CONFIG_JPEGENC_HW
 #include "jpeg_hal.h"
 #endif
 
@@ -248,7 +248,7 @@ static void cli_reg_dump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 	} else if (os_strcmp(argv[1], "adc") == 0) {
 		adc_struct_dump();
 	}
-#if CONFIG_SDMADC_TEST 
+#if (CONFIG_SDMADC)
 	else if (os_strcmp(argv[1], "sdmadc") == 0) {
 		sdmadc_struct_dump(0x2,0x8);
 	}
@@ -268,7 +268,7 @@ static void cli_reg_dump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 		aon_rtc_struct_dump();
 	}
 #endif
-#if CONFIG_JPEG_ENCODE
+#if CONFIG_JPEGENC_HW
 	else if (os_strcmp(argv[1], "jpeg") == 0) {
 		jpeg_struct_dump();
 	}

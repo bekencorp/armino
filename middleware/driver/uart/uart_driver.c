@@ -686,7 +686,7 @@ bk_err_t bk_uart_driver_init(void)
 	os_memset(&s_uart_tx_isr, 0, sizeof(s_uart_tx_isr));
 	for(uart_id_t id = UART_ID_0; id < SOC_UART_ID_NUM_PER_UNIT; id++)
 	{
-#if (0 == CONFIG_SOC_BK7236)
+#if (0 == CONFIG_SOC_BK7236XX)
 		uart_isr_register_functions(id);
 		s_uart[id].hal.id = id;
 		uart_hal_init(&s_uart[id].hal);
@@ -737,7 +737,7 @@ bk_err_t bk_uart_init(uart_id_t id, const uart_config_t *config)
 	UART_RETURN_ON_INVALID_ID(id);
 	UART_RETURN_ON_BAUD_RATE_NOT_SUPPORT(config->baud_rate);
 
-#if CONFIG_SOC_BK7236
+#if CONFIG_SOC_BK7236XX
 	uart_isr_register_functions(id);
 	s_uart[id].hal.id = id;
 	uart_hal_init(&s_uart[id].hal);

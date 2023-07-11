@@ -180,14 +180,44 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 			ret = media_send_msg_sync(EVENT_CAM_NET_H264_OPEN_IND, ppi);
 			break;
 
-		case APP_CAMERA_DVP_H264:
+		case APP_CAMERA_DVP_H264_WIFI_TRANSFER:
 			if (CAMERA_STATE_DISABLED != get_camera_state())
 			{
 				LOGI("%s already opened\n", __func__);
 				return kNoErr;
 			}
 
-			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_OPEN_IND, ppi);
+			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_WIFI_TRANSFER_OPEN_IND, ppi);
+			break;
+		
+		case APP_CAMERA_DVP_H264_LOCAL:
+			if (CAMERA_STATE_DISABLED != get_camera_state())
+			{
+				LOGI("%s already opened\n", __func__);
+				return kNoErr;
+			}
+
+			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_LOCAL_OPEN_IND, ppi);
+			break;
+		
+		case APP_CAMERA_DVP_H264_ENC_LCD:
+			if (CAMERA_STATE_DISABLED != get_camera_state())
+			{
+				LOGI("%s already opened\n", __func__);
+				return kNoErr;
+			}
+
+			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_ENC_LCD_OPEN_IND, ppi);
+			break;
+		
+		case APP_CAMERA_DVP_H264_USB_TRANSFER:
+			if (CAMERA_STATE_DISABLED != get_camera_state())
+			{
+				LOGI("%s already opened\n", __func__);
+				return kNoErr;
+			}
+
+			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_USB_TRANSFER_OPEN_IND, ppi);
 			break;
 
 		default:
@@ -255,14 +285,14 @@ bk_err_t media_app_camera_close(app_camera_type_t type)
 			ret = media_send_msg_sync(EVENT_CAM_NET_CLOSE_IND, 0);
 			break;
 
-		case APP_CAMERA_DVP_H264:
+		case APP_CAMERA_DVP_H264_WIFI_TRANSFER:
 			if (CAMERA_STATE_ENABLED != get_camera_state())
 			{
 				LOGI("%s already closed\n", __func__);
 				return kNoErr;
 			}
 
-			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, MEDIA_DVP_H264);
+			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, MEDIA_DVP_H264_WIFI_TRANSFER);
 			break;
 
 		default:
@@ -337,6 +367,7 @@ bk_err_t media_app_h264_close(void)
 bk_err_t media_app_transfer_open(void *setup_cfg)
 {
 	int ret = kNoErr;
+#if (CONFIG_WIFI_TRANSFER)
 	video_setup_t *ptr = NULL;
 
 	LOGI("%s, %p\n", __func__, ((video_setup_t *)setup_cfg)->send_func);
@@ -355,7 +386,7 @@ bk_err_t media_app_transfer_open(void *setup_cfg)
 	ret = media_send_msg_sync(EVENT_TRANSFER_OPEN_IND, (uint32_t)ptr);
 
 	os_free(ptr);
-
+#endif
 	LOGI("%s complete\n", __func__);
 
 	return ret;
@@ -363,14 +394,21 @@ bk_err_t media_app_transfer_open(void *setup_cfg)
 
 bk_err_t media_app_transfer_pause(bool pause)
 {
-	return media_send_msg_sync(EVENT_TRANSFER_PAUSE_IND, pause);
+	int ret = kNoErr;
+
+#if (CONFIG_WIFI_TRANSFER)
+	ret = media_send_msg_sync(EVENT_TRANSFER_PAUSE_IND, pause);
+#endif
+	return ret;
 }
 
 bk_err_t media_app_transfer_close(void)
 {
-	bk_err_t ret;
+	bk_err_t ret = BK_OK;
 
 	LOGI("%s\n", __func__);
+
+#if (CONFIG_WIFI_TRANSFER)
 
 	if (TRS_STATE_ENABLED != get_transfer_state())
 	{
@@ -380,18 +418,32 @@ bk_err_t media_app_transfer_close(void)
 
 	ret = media_send_msg_sync(EVENT_TRANSFER_CLOSE_IND, 0);
 
+#endif
 	LOGI("%s complete\n", __func__);
 
 	return ret;
 }
 
-bk_err_t media_app_lcd_rotate(bool enable)
+bk_err_t media_app_lcd_rotate(media_rotate_t rotate)
 {
 	bk_err_t ret;
 
 	LOGI("%s\n", __func__);
 
-	ret = media_send_msg_sync(EVENT_LCD_ROTATE_ENABLE_IND, enable);
+	ret = media_send_msg_sync(EVENT_LCD_ROTATE_ENABLE_IND, rotate);
+
+	LOGI("%s complete\n", __func__);
+
+	return ret;
+}
+
+bk_err_t media_app_lcd_resize(media_ppi_t ppi)
+{
+	bk_err_t ret;
+
+	LOGI("%s\n", __func__);
+
+	ret = media_send_msg_sync(EVENT_LCD_RESIZE_IND, ppi);
 
 	LOGI("%s complete\n", __func__);
 

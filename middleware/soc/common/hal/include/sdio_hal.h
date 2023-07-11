@@ -67,7 +67,7 @@ uint32_t sdio_hal_slave_get_rx_count(void);
 	void sdio_hal_slave_tx_transaction_en(void);
 	void sdio_hal_slave_rx_clear_host_wait_write_data(void);
 
-#if CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7236
+#if CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7236XX
 	/* REG_0x0d:reg0xd->SAMP_SEL:0xd[26],sample egde of data 0：neg 1：pos,RW*/
 	uint32_t sdio_hal_slave_get_samp_sel(void);
 

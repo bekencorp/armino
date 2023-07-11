@@ -45,6 +45,68 @@ void cli_memory_set_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 #endif
 }
 
+#if CONFIG_DEBUG_FIRMWARE
+const static uint32_t s_test_data[20] = {
+    0x00000000, 0x800102a0, 0x30021e44, 0x30034088,
+    0x5f696c63, 0x61727370, 0x616d5f6d, 0x636f6c6c,
+    0x646d635f, 0x00000000, 0x736d656d, 0x6b636174,
+    0x00696c63, 0x00000000, 0x00001ed9, 0x0000005c,
+    0x00010240, 0x12345678, 0x99887766, 0xaabbccdd
+};
+
+__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) \
+int32_t memtest_write_one_word(uint32_t addr, uint32_t count) {
+    uint32_t i;
+    uint32_t src_data = 0x30023456;
+    uint32_t *p_uint32_dst = (uint32_t *)addr;
+    for(i = 0; i < count; i++)
+    {
+        os_write_word(p_uint32_dst, src_data);
+        src_data++;
+    }
+    return 0;
+}
+
+
+__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) \
+int32_t memtest_wr(uint32_t addr, uint32_t count)
+{
+#if CONFIG_DEBUG_FIRMWARE
+    int int_status = rtos_disable_int();
+    os_printf("memtest_wr begin!!\r\n");
+    os_memcpy_word((uint32_t *)addr, &s_test_data[2], sizeof(s_test_data) - 8);
+
+    bk_mem_dump("before test", addr - 8, sizeof(s_test_data));
+
+    memtest_write_one_word(addr, count);
+
+    bk_mem_dump("after test", addr - 8, sizeof(s_test_data));
+
+    os_printf("memtest_wr done!!\r\n");
+    rtos_enable_int(int_status);
+#endif //#if CONFIG_DEBUG_FIRMWARE
+
+    return 0;
+}
+
+
+static void cli_memtest_wr_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    uint32_t address, count;
+
+    if (argc >= 3) {
+        address = strtoll(argv[1], NULL, 16);
+        count = strtoll(argv[2], NULL, 16);
+        os_printf("memtest_wr,address: 0x%08X count: 0x%08X\r\n", address, count);
+
+        (void)memtest_wr(address, count);
+    }  else {
+        os_printf("memtest_wr <addr> <count> \r\n");
+    }
+}
+
+#endif //#if CONFIG_DEBUG_FIRMWARE
+
 void cli_memory_stack_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 #if CONFIG_FREERTOS
@@ -111,66 +173,6 @@ void cli_psram_free_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 	cmd_printf("psram_free addr(%p).\r\n", pstart);
 	os_free(pstart);
 
-}
-
-#if CONFIG_DEBUG_FIRMWARE
-const static uint32_t s_test_data[20] = {
-    0x00000000, 0x800102a0, 0x30021e44, 0x30034088,
-    0x5f696c63, 0x61727370, 0x616d5f6d, 0x636f6c6c,
-    0x646d635f, 0x00000000, 0x736d656d, 0x6b636174,
-    0x00696c63, 0x00000000, 0x00001ed9, 0x0000005c,
-    0x00010240, 0x12345678, 0x99887766, 0xaabbccdd
-};
-
-__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) \
-int32_t psram_word_test(uint32_t addr, uint32_t count) {
-    uint32_t i;
-    uint32_t src_data = 0x30023456;
-    uint32_t *p_uint32_dst = (uint32_t *)addr;
-    for(i = 0; i < count; i++)
-    {
-        os_write_word(p_uint32_dst, src_data);
-        src_data++;
-    }
-    return 0;
-}
-#endif //#if CONFIG_DEBUG_FIRMWARE
-
-__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) \
-int32_t psram_wr_test(uint32_t addr, uint32_t count)
-{
-#if CONFIG_DEBUG_FIRMWARE
-    int int_status = rtos_disable_int();
-    os_printf("psram_wr_test begin!!\r\n");
-    os_memcpy_word((uint32_t *)addr, &s_test_data[2], sizeof(s_test_data) - 8);
-
-    bk_mem_dump("before test", addr - 8, sizeof(s_test_data));
-
-    psram_word_test(addr, count);
-
-    bk_mem_dump("after test", addr - 8, sizeof(s_test_data));
-
-    os_printf("psram_wr_test done!!\r\n");
-    rtos_enable_int(int_status);
-#endif //#if CONFIG_DEBUG_FIRMWARE
-
-    return 0;
-}
-
-
-static void cli_psram_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-    uint32_t address, count;
-
-    if (argc >= 3) {
-        address = strtoll(argv[1], NULL, 16);
-        count = strtoll(argv[2], NULL, 16);
-        os_printf("psramtest,address: 0x%08X count: 0x%08X\r\n", address, count);
-
-        (void)psram_wr_test(address, count);
-    }  else {
-        os_printf("psram_test <addr> <count> \r\n");
-    }
 }
 
 
@@ -483,17 +485,19 @@ static void cli_memory_dump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int ar
 static const struct cli_command s_mem_commands[] = {
     {"memstack", "show stack memory usage", cli_memory_stack_cmd},
     {"memshow", "show free heap", cli_memory_free_cmd},
+#if CONFIG_MEM_DEBUG && CONFIG_FREERTOS
+    {"memleak", "[show memleak", cli_memory_leak_cmd},
+#endif
+#if CONFIG_DEBUG_FIRMWARE
     {"memdump", "<addr> <length>", cli_memory_dump_cmd},
     {"memset", "<addr> <value 1> [<value 2> ... <value n>]", cli_memory_set_cmd},
-    #if CONFIG_MEM_DEBUG && CONFIG_FREERTOS
-    {"memleak", "[show memleak", cli_memory_leak_cmd},
-    #endif
     {"memtest", "<addr> <length>", cli_mem_test},
-    {"memread", "<src> <dest> <size>", cli_memread_test},
-    #if CONFIG_PSRAM_AS_SYS_MEMORY && CONFIG_FREERTOS
+    {"memtest_r", "<src> <dest> <size>", cli_memread_test},
+    {"memtest_wr", "<addr> <count>", cli_memtest_wr_cmd},
+#endif
+#if CONFIG_PSRAM_AS_SYS_MEMORY && CONFIG_FREERTOS
     {"psram_malloc", "psram_malloc <length>", cli_psram_malloc_cmd},
     {"psram_free", "psram_free <addr>", cli_psram_free_cmd},
-    {"psram_test", "psram_test <addr> <count>", cli_psram_test_cmd},
 #endif
 };
 

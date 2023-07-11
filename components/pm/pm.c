@@ -23,10 +23,14 @@
 #include "aon_pmu_driver.h"
 #include "sys.h"
 
+#define PM_LOCK()     pm_lock(PM_MODULE_PM)
+#define PM_UNLOCK()   pm_unlock(PM_MODULE_PM)
+
 static pm_state_t s_pm_state;
 static pm_state_t s_pm_force_state = PM_STATE_ACTIVE;
 static uint32_t s_pm_force_sleep_ms = 0;
 static bool s_pm_init = false;
+static beken_mutex_t s_pm_mutex = NULL;
 
 const char* pm_get_state_str(pm_state_t state)
 {
@@ -130,12 +134,58 @@ int pm_suspend(uint32_t ticks)
 	return BK_OK;
 }
 
+const char* pm_get_module_str(pm_module_t module)
+{
+	switch (module) {
+	case PM_MODULE_PM:
+		return "PM";
+	case PM_MODULE_DEVICE:
+		return "DEVICE";
+	case PM_MODULE_DEVICE_VOTE:
+		return "DEVICE_VOTE";
+	case PM_MODULE_DEPEND:
+		return "DEPEND";
+	case PM_MODULE_POLICY:
+		return "POLICY";
+	default:
+		return "UNKNOWN";
+	}
+}
+
+int pm_lock_init(void)
+{
+	int ret = rtos_init_mutex(&s_pm_mutex);
+	if (kNoErr != ret) {
+		PM_LOGE("pm mutex init faild\r\n");
+		return BK_ERR_PM_MUTEX_INIT_FAIL;
+	}
+
+	return BK_OK;
+}
+
+int pm_lock(pm_module_t module)
+{
+	PM_LOGV("%s request lock\r\n", pm_get_module_str(module));
+	BK_LOG_ON_ERR(rtos_lock_mutex(&s_pm_mutex));
+
+	return BK_OK;
+}
+
+int pm_unlock(pm_module_t module)
+{
+	PM_LOGV("%s release lock\r\n", pm_get_module_str(module));
+	rtos_unlock_mutex(&s_pm_mutex);
+
+	return BK_OK;
+}
+
 int pm_init(void)
 {
 	if (s_pm_init == true) {
 		return BK_OK;
 	}
 
+	pm_lock_init();
 	pm_device_init();
 	pm_policy_lock_state(PM_STATE_NORMAL_SLEEP);
 	pm_policy_lock_state(PM_STATE_LOW_VOLTAGE);

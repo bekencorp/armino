@@ -1,0 +1,5 @@
+menu "DMA2D"
+	config DMA2D
+		bool "Enable DMA2D"
+		default n
+endmenu

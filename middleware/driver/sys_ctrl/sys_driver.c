@@ -238,4 +238,7 @@ void sys_drv_set_ana_vtempsel(uint32_t value)
     rtos_enable_int(int_level);
 }
 
-
+void sys_drv_early_init(void)
+{
+	sys_hal_early_init();
+}

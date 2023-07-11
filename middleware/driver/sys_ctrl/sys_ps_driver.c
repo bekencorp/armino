@@ -312,7 +312,21 @@ int sys_pm_set_lv_ctrl_core(bool ena)
 	return sys_hal_set_lv_ctrl_core(ena);
 }
 
+int sys_pm_set_lpo_src(sys_lpo_src_t src)
+{
+	return sys_hal_set_lpo_src(src);
+}
+
 void sys_pm_dump_ctrl(void)
 {
 	sys_hal_dump_ctrl();
+}
+
+void sys_pm_set_power(power_module_name_t module, power_module_state_t state)
+{
+	sys_drv_module_power_ctrl(module, state);
+}
+uint32_t sys_pm_get_power(power_module_name_t module)
+{
+	return sys_drv_module_power_state_get(module);
 }

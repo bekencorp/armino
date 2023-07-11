@@ -864,24 +864,6 @@ static void aon_rtc_interrupt_disable(aon_rtc_id_t id)
 }
 #endif
 
-//run from 0
-#if 0
-static void aon_rtc_start_run(aon_rtc_id_t id)
-{
-	extern void delay_10us(UINT32 count);
-
-	AON_RTC_LOGD("%s[+]\r\n", __func__);
-
-	//start to run
-	aon_rtc_hal_start_counter(&s_aon_rtc[id].hal);
-	aon_rtc_hal_reset_counter(&s_aon_rtc[id].hal);	//maybe the start value isn't 0
-	delay_10us(4);	//one cycle of 32k
-	aon_rtc_hal_clear_reset_counter(&s_aon_rtc[id].hal);
-
-	AON_RTC_LOGD("%s[-]\r\n", __func__);
-}
-#endif
-
 static bk_err_t aon_rtc_sw_init(aon_rtc_id_t id)
 {
 	os_memset(&s_aon_rtc[id], 0, sizeof(s_aon_rtc[id]));

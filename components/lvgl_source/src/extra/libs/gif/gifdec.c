@@ -7,9 +7,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include "common/bk_generic.h"
 
-#define MIN(A, B) ((A) < (B) ? (A) : (B))
-#define MAX(A, B) ((A) > (B) ? (A) : (B))
+// #if LV_GIF_USE_PSRAM
+// #include <driver/psram.h>
+// #endif
+
+// #define MIN(A, B) ((A) < (B) ? (A) : (B))
+// #define MAX(A, B) ((A) > (B) ? (A) : (B))
 
 typedef struct Entry {
     uint16_t length;
@@ -75,6 +80,10 @@ static gd_GIF * gif_open(gd_GIF * gif_base)
     int gct_sz;
     gd_GIF *gif = NULL;
 
+#if LV_GIF_USE_PSRAM
+    uint8_t *psram_addr = NULL;
+#endif
+
     /* Header */
     f_gif_read(gif_base, sigver, 3);
     if (memcmp(sigver, "GIF", 3) != 0) {
@@ -107,12 +116,29 @@ static gd_GIF * gif_open(gd_GIF * gif_base)
     /* Aspect Ratio */
     f_gif_read(gif_base, &aspect, 1);
     /* Create gd_GIF Structure. */
+
+#if LV_GIF_USE_PSRAM
+    gif = lv_mem_alloc(sizeof(gd_GIF);
+#if LV_COLOR_DEPTH == 32
+    psram_addr = lv_psram_mem_alloc(5 * width * height);
+#elif LV_COLOR_DEPTH == 16
+    psram_addr = lv_psram_mem_alloc(4 * width * height);
+#elif LV_COLOR_DEPTH == 8 || LV_COLOR_DEPTH == 1
+    psram_addr = lv_psram_mem_alloc(3 * width * height);
+#endif
+    if (psram_addr == NULL) {
+		os_printf("psram mem alloc fail\n");
+        lv_mem_free(gif);
+		goto fail;
+	}
+#else
 #if LV_COLOR_DEPTH == 32
     gif = lv_mem_alloc(sizeof(gd_GIF) + 5 * width * height);
 #elif LV_COLOR_DEPTH == 16
     gif = lv_mem_alloc(sizeof(gd_GIF) + 4 * width * height);
 #elif LV_COLOR_DEPTH == 8 || LV_COLOR_DEPTH == 1
     gif = lv_mem_alloc(sizeof(gd_GIF) + 3 * width * height);
+#endif
 #endif
 
     if (!gif) goto fail;
@@ -125,7 +151,13 @@ static gd_GIF * gif_open(gd_GIF * gif_base)
     f_gif_read(gif, gif->gct.colors, 3 * gif->gct.size);
     gif->palette = &gif->gct;
     gif->bgindex = bgidx;
+
+#if LV_GIF_USE_PSRAM
+    gif->canvas = psram_addr;
+#else
     gif->canvas = (uint8_t *) &gif[1];
+#endif
+
 #if LV_COLOR_DEPTH == 32
     gif->frame = &gif->canvas[4 * width * height];
 #elif LV_COLOR_DEPTH == 16
@@ -134,11 +166,32 @@ static gd_GIF * gif_open(gd_GIF * gif_base)
     gif->frame = &gif->canvas[2 * width * height];
 #endif
     if (gif->bgindex) {
-        memset(gif->frame, gif->bgindex, gif->width * gif->height);
+        lv_memset(gif->frame, gif->bgindex, gif->width * gif->height);
     }
     bgcolor = &gif->palette->colors[gif->bgindex*3];
 
     for (i = 0; i < gif->width * gif->height; i++) {
+#if LV_GIF_USE_PSRAM
+#if LV_COLOR_DEPTH == 32
+        bk_psram_byte_write(gif->canvas[i*4 + 0], *(bgcolor + 2));
+        bk_psram_byte_write(gif->canvas[i*4 + 1], *(bgcolor + 1));
+        bk_psram_byte_write(gif->canvas[i*4 + 2], *(bgcolor + 0));
+        bk_psram_byte_write(gif->canvas[i*4 + 3], 0xff);
+#elif LV_COLOR_DEPTH == 16
+        lv_color_t c = lv_color_make(*(bgcolor + 0), *(bgcolor + 1), *(bgcolor + 2));
+        bk_psram_byte_write(&gif->canvas[i*3 + 0], c.full & 0xff);
+        bk_psram_byte_write(&gif->canvas[i*3 + 1], (c.full >> 8) & 0xff);
+        bk_psram_byte_write(&gif->canvas[i*3 + 2], 0xff);
+#elif LV_COLOR_DEPTH == 8
+        lv_color_t c = lv_color_make(*(bgcolor + 0), *(bgcolor + 1), *(bgcolor + 2));
+        bk_psram_byte_write(gif->canvas[i*2 + 0], c.full);
+        bk_psram_byte_write(gif->canvas[i*2 + 1], 0xff);
+#elif LV_COLOR_DEPTH == 1
+        lv_color_t c = lv_color_make(*(bgcolor + 0), *(bgcolor + 1), *(bgcolor + 2));
+        bk_psram_byte_write(gif->canvas[i*2 + 0], c.ch.red > 128 ? 1 : 0);
+        bk_psram_byte_write(gif->canvas[i*2 + 1], 0xff);
+#endif
+#else
 #if LV_COLOR_DEPTH == 32
         gif->canvas[i*4 + 0] = *(bgcolor + 2);
         gif->canvas[i*4 + 1] = *(bgcolor + 1);
@@ -157,6 +210,7 @@ static gd_GIF * gif_open(gd_GIF * gif_base)
         lv_color_t c = lv_color_make(*(bgcolor + 0), *(bgcolor + 1), *(bgcolor + 2));
         gif->canvas[i*2 + 0] = c.ch.red > 128 ? 1 : 0;
         gif->canvas[i*2 + 1] = 0xff;
+#endif
 #endif
     }
     gif->anim_start = f_gif_seek(gif, 0, LV_FS_SEEK_CUR);
@@ -433,7 +487,11 @@ read_image_data(gd_GIF *gif, int interlace)
             y = p / gif->fw;
             if (interlace)
                 y = interlaced_line_index((int) gif->fh, y);
+#if LV_GIF_USE_PSRAM
+            bk_psram_byte_write(&gif->frame[(gif->fy + y) * gif->width + gif->fx + x], entry.suffix);
+#else
             gif->frame[(gif->fy + y) * gif->width + gif->fx + x] = entry.suffix;
+#endif
             if (entry.prefix == 0xFFF)
                 break;
             else
@@ -482,12 +540,49 @@ render_frame_rect(gd_GIF *gif, uint8_t *buffer)
 {
     int i, j, k;
     uint8_t index, *color;
+
+#if LV_GIF_USE_PSRAM
+	uint8_t *sram_buffer = lv_mem_alloc(gif->fx + gif->width);
+    if (sram_buffer == NULL) {
+        os_printf("render_frame_rect buffer malloc fail\n");
+		return;
+    }
+#endif
+
     i = gif->fy * gif->width + gif->fx;
     for (j = 0; j < gif->fh; j++) {
+#if LV_GIF_USE_PSRAM
+        lv_memcpy(sram_buffer, gif->frame + (gif->fy + j) * gif->width, gif->fx + gif->width);
+#endif
         for (k = 0; k < gif->fw; k++) {
+#if LV_GIF_USE_PSRAM
+            index = sram_buffer[gif->fx + k];
+#else
             index = gif->frame[(gif->fy + j) * gif->width + gif->fx + k];
+#endif
             color = &gif->palette->colors[index*3];
             if (!gif->gce.transparency || index != gif->gce.tindex) {
+#if LV_GIF_USE_PSRAM
+#if LV_COLOR_DEPTH == 32
+                bk_psram_byte_write(&buffer[(i+k)*4 + 0], *(color + 2));
+                bk_psram_byte_write(&buffer[(i+k)*4 + 1], *(color + 1));
+                bk_psram_byte_write(&buffer[(i+k)*4 + 2], *(color + 0));
+                bk_psram_byte_write(&buffer[(i+k)*4 + 3], 0xFF);
+#elif LV_COLOR_DEPTH == 16
+                lv_color_t c = lv_color_make(*(color + 0), *(color + 1), *(color + 2));
+                bk_psram_byte_write(&buffer[(i+k)*3 + 0], c.full & 0xff);
+                bk_psram_byte_write(&buffer[(i+k)*3 + 1], (c.full >> 8) & 0xff);
+                bk_psram_byte_write(&buffer[(i+k)*3 + 2], 0xff);
+#elif LV_COLOR_DEPTH == 8
+                lv_color_t c = lv_color_make(*(color + 0), *(color + 1), *(color + 2));
+                bk_psram_byte_write(&buffer[(i+k)*2 + 0], c.full);
+                bk_psram_byte_write(&buffer[(i+k)*2 + 1], 0xff);
+#elif LV_COLOR_DEPTH == 1
+                uint8_t b = (*(color + 0)) | (*(color + 1)) | (*(color + 2));
+                bk_psram_byte_write(&buffer[(i+k)*2 + 0], b > 128 ? 1 : 0);
+                bk_psram_byte_write(&buffer[(i+k)*2 + 1], 0xff);
+#endif
+#else
 #if LV_COLOR_DEPTH == 32
                 buffer[(i+k)*4 + 0] = *(color + 2);
                 buffer[(i+k)*4 + 1] = *(color + 1);
@@ -507,10 +602,14 @@ render_frame_rect(gd_GIF *gif, uint8_t *buffer)
                 buffer[(i+k)*2 + 0] = b > 128 ? 1 : 0;
                 buffer[(i+k)*2 + 1] = 0xff;
 #endif
+#endif
             }
         }
         i += gif->width;
     }
+#if LV_GIF_USE_PSRAM
+	lv_mem_free(sram_buffer);
+#endif
 }
 
 static void
@@ -528,6 +627,27 @@ dispose(gd_GIF *gif)
         i = gif->fy * gif->width + gif->fx;
         for (j = 0; j < gif->fh; j++) {
             for (k = 0; k < gif->fw; k++) {
+#if LV_GIF_USE_PSRAM
+#if LV_COLOR_DEPTH == 32
+                bk_psram_byte_write(&gif->canvas[(i+k)*4 + 0], *(bgcolor + 2));
+                bk_psram_byte_write(&gif->canvas[(i+k)*4 + 1], *(bgcolor + 1));
+                bk_psram_byte_write(&gif->canvas[(i+k)*4 + 2], *(bgcolor + 0));
+                bk_psram_byte_write(&gif->canvas[(i+k)*4 + 3], opa);
+#elif LV_COLOR_DEPTH == 16
+                lv_color_t c = lv_color_make(*(color + 0), *(color + 1), *(color + 2));
+                bk_psram_byte_write(&gif->canvas[(i+k)*3 + 0], c.full & 0xff);
+                bk_psram_byte_write(&gif->canvas[(i+k)*3 + 1], (c.full >> 8) & 0xff);
+                bk_psram_byte_write(&gif->canvas[(i+k)*3 + 2], opa);
+#elif LV_COLOR_DEPTH == 8
+                lv_color_t c = lv_color_make(*(color + 0), *(color + 1), *(color + 2));
+                bk_psram_byte_write(&gif->canvas[(i+k)*2 + 0], c.full);
+                bk_psram_byte_write(&gif->canvas[(i+k)*2 + 1], opa);
+#elif LV_COLOR_DEPTH == 1
+                uint8_t b = (*(color + 0)) | (*(color + 1)) | (*(color + 2));
+                bk_psram_byte_write(&gif->canvas[(i+k)*2 + 0], b > 128 ? 1 : 0);
+                bk_psram_byte_write(&gif->canvas[(i+k)*2 + 1], opa);
+#endif
+#else
 #if LV_COLOR_DEPTH == 32
                 gif->canvas[(i+k)*4 + 0] = *(bgcolor + 2);
                 gif->canvas[(i+k)*4 + 1] = *(bgcolor + 1);
@@ -546,6 +666,7 @@ dispose(gd_GIF *gif)
                 uint8_t b = (*(bgcolor + 0)) | (*(bgcolor + 1)) | (*(bgcolor + 2));
                 gif->canvas[(i+k)*2 + 0] = b > 128 ? 1 : 0;
                 gif->canvas[(i+k)*2 + 1] = opa;
+#endif
 #endif
             }
             i += gif->width;

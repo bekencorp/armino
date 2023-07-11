@@ -4,7 +4,8 @@
 include(FetchContent)
 set(FETCHCONTENT_QUIET FALSE)
 
-set(MBEDCRYPTO_VERSION                  "91fbed6" CACHE STRING "The version of Mbed Crypto to use")
+#TODO wzl-issue, if mbedcrypto repo updates, the git version will be modified
+set(MBEDCRYPTO_VERSION                  "12d45fb" CACHE STRING "The version of Mbed Crypto to use")
 set(MBEDCRYPTO_GIT_REMOTE               "ssh://${USER}@192.168.0.46:29418/iot/wcn/components/tfm_mbedtls" CACHE STRING "The URL (or path) to retrieve MbedTLS from.")
 
 if ("${MBEDCRYPTO_PATH}" STREQUAL "")
@@ -63,9 +64,10 @@ if (NOT MCUBOOT_PATH)
     endif()
 endif()
 
-set(TFM_TEST_REPO_VERSION               "66103cc"   CACHE STRING    "The version of tf-m-tests to use")
+#test repo matches the tf-m repo
+set(TFM_TEST_REPO_VERSION               "65625f0"   CACHE STRING    "The version of tf-m-tests to use")
 FetchContent_Declare(tfm_test_repo
-    GIT_REPOSITORY ssh://${USER}@192.168.0.46:29418/iot/wcn/components/tfm_tests
+    GIT_REPOSITORY ssh://${USER}@192.168.0.46:29418/iot/wcn/components/tfm_v17_tests
     GIT_TAG ${TFM_TEST_REPO_VERSION}
     GIT_PROGRESS TRUE
 )

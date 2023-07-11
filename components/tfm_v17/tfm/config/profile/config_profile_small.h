@@ -60,8 +60,8 @@
 /* Default size of the internal scratch buffer used for PSA FF IOVec allocations */
 #define CRYPTO_IOVEC_BUFFER_SIZE               5120
 
-/* Use stored NV seed to provide entropy */
-#define CRYPTO_NV_SEED                         1
+/* Use stored NV seed to provide entropy. Default accelerator:TE200 TrustEngine200*/
+#define CRYPTO_NV_SEED                         0
 
 /*
  * Only enable multi-part operations in Hash, MAC, AEAD and symmetric ciphers,

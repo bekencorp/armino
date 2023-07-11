@@ -20,13 +20,33 @@ menu "GPIO"
 		help
 		The value should be changed if need more then 4 gpio
 
+	config CONFIG_GPIO_WAKEUP_ID
+		int "specific port for GPIO wakeup"
+		range 0 48
+		default 22
+		help
+		Only one port is supported for now
+
+	config CONFIG_GPIO_WAKEUP_INT_TYPE
+		int "which intterupt type for GPIO wakeup"
+		range 0 3
+		default 0
+		help
+		0: set gpio as low level intterrupt type
+		1: set gpio as high level intterrupt type
+		2: set gpio as rising edge intterrupt type
+		3: set gpio as falling edge intterrupt type
+
 	config GPIO_SIMULATE_UART_WRITE
 		bool "Enable GPIO simulate uart write data"
 		default n
-							
+
 	config GPIO_DEFAULT_SET_SUPPORT
 		bool "Enable GPIO default set devs"
 		default n
 
+	config CHANGE_JTAG_GPIO
+		bool "Enable change jtag group"
+		default n
 endmenu
 

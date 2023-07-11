@@ -7,5 +7,23 @@ menu "PSRAM"
 		depends on PSRAM
 		bool "Enable psram_malloc API"
 		default n
+
+	config PSRAM_HEAP_BASE
+		depends on PSRAM_AS_SYS_MEMORY
+		int "Set psram_malloc base address"
+		default 1617952768
+		help
+			1617952768 - 0x60700000
+			The psram address is from 0x60100000 to 0x60800000 in BK7256
+			The suggested option is 0x60600000 or 0x60700000
+
+	config PSRAM_HEAP_SIZE
+		depends on PSRAM_AS_SYS_MEMORY
+		int "Set psram heap size"
+		default 1048576
+		help
+			1048576 - 1M
+			The max size is 8388608 in BK7256
+			The suggested option is 1048576 or 2097152
 endmenu
-	
+

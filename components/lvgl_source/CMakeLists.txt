@@ -1,6 +1,7 @@
 if (CONFIG_LVGL)
 set(incs)
-set(srcs)
+set(srcs
+	)
 
 set(incs
 	./
@@ -167,12 +168,18 @@ set(srcs
 	src/widgets/lv_textarea.c
 	)
 
+if (CONFIG_FATFS)
+	list(APPEND srcs
+		hal/lv_fatfs.c
+	)
+endif()
+
 endif()
 endif()
 
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
-	PRIV_REQUIRES include
+	PRIV_REQUIRES include fatfs
 	)
 
 if (CONFIG_LVGL)

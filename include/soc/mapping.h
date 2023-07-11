@@ -18,16 +18,10 @@
 
 #if CONFIG_SOC_BK7231N
 #include "soc/bk7231n/mapping.h"
-#elif CONFIG_SOC_BK7231U
-#include "soc/bk7231u/mapping.h"
 #elif CONFIG_SOC_BK7236
 #include "soc/bk7236/mapping.h"
-#elif CONFIG_SOC_BK7236A
-#include "soc/bk7236a/mapping.h"
-#elif CONFIG_SOC_BK7251
-#include "soc/bk7251/mapping.h"
-#elif CONFIG_SOC_BK7271
-#include "soc/bk7271/mapping.h"
+#elif CONFIG_SOC_BK7258
+#include "soc/bk7258/mapping.h"
 
 #elif CONFIG_SOC_BK7256 && !CONFIG_DUAL_CORE
 #include "soc/bk7256/mapping.h"

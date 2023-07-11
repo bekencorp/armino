@@ -70,6 +70,10 @@ menu "Bk_Wifi"
 		help
 			enable AP and monitor coexist
 
+	config CONNECT_THROUGH_PSK_OR_SAE_PASSWORD
+		bool"Enable connect through psk or sae password"
+		default n
+
 	config WIFI_FAST_CONNECT
 		bool "Enable Wifi Fast Connect"
 		default n

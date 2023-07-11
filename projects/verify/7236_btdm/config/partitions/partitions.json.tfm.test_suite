@@ -1,7 +1,0 @@
-{
-    "description": "NS BL1 -> TFM S -> TFM NS",
-    "partitions": [
-        { "partition": "primary_s", "offset": "0x00000000", "size": "476k", "bin": "tfm_s.bin", "bin_type": "code"},
-        { "partition": "primary_ns", "offset": "0x00077000", "size": "256k", "bin": "tfm_ns.bin", "bin_type": "code"}
-   ]
-}

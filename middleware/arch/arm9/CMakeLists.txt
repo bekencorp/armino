@@ -12,10 +12,9 @@ set(srcs
 	boot_vectors_base.S
 	stack_base.c
 	trap_base.c
-	# os/freertos/boot_handlers.S
-	# os/freertos/cpu.c
 	arm.c
 	arch_interrupt.c
+	arch_delay.c
 	)
 
 if(CONFIG_FREERTOS)

@@ -26,7 +26,7 @@ if (CONFIG_SPIDMA)
 		)
 endif()
 
-if (CONFIG_JPEG_DECODE)
+if (CONFIG_JPEGDEC_SW)
 	list(APPEND srcs
 		"jpeg_dec/tjpgd.c"
 		"jpeg_dec/jdev.c"

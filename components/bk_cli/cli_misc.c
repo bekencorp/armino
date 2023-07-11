@@ -19,6 +19,7 @@
 #if CONFIG_ARCH_RISCV
 #include "cache.h"
 #endif
+#include <components/ate.h>
 
 
 #if (CONFIG_EFUSE)
@@ -190,13 +191,22 @@ static void mac_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		BK_LOG_ON_ERR(bk_get_mac(base_mac, MAC_TYPE_BASE));
 		BK_LOG_ON_ERR(bk_wifi_sta_get_mac(sta_mac));
 		BK_LOG_ON_ERR(bk_wifi_ap_get_mac(ap_mac));
-		CLI_LOGI("base mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(base_mac));
-		CLI_LOGI("sta mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(sta_mac));
-		CLI_LOGI("ap mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(ap_mac));
+		if (ate_is_enabled())
+			os_printf("MAC address: %02x-%02x-%02x-%02x-%02x-%02x\r\n",
+						base_mac[0],base_mac[1],base_mac[2],base_mac[3],base_mac[4],base_mac[5]);
+		else {
+			CLI_LOGI("base mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(base_mac));
+			CLI_LOGI("sta mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(sta_mac));
+			CLI_LOGI("ap mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(ap_mac));
+		}
 	} else if (argc == 2) {
 		hexstr2bin_cli(argv[1], base_mac, BK_MAC_ADDR_LEN);
 		bk_set_base_mac(base_mac);
-		CLI_LOGI("set base mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(base_mac));
+		if (ate_is_enabled())
+			os_printf("Set MAC address: %02x-%02x-%02x-%02x-%02x-%02x\r\n",
+						base_mac[0],base_mac[1],base_mac[2],base_mac[3],base_mac[4],base_mac[5]);
+		else
+			CLI_LOGI("set base mac: "BK_MAC_FORMAT"\n", BK_MAC_STR(base_mac));
 	} else
 		cli_misc_help();
 
@@ -511,7 +521,7 @@ static void cli_adc_key_op(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 
 __attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) \
 int32_t cpu_test(uint32_t count) {
-#if CONFIG_SOC_BK7236
+#if CONFIG_SOC_BK7236XX
 	#define portNVIC_SYSTICK_CURRENT_VALUE_REG    ( *( ( volatile uint32_t * ) 0xe000e018 ) )
 
     uint32_t i;

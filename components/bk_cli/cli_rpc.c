@@ -31,19 +31,27 @@
 
 static void debug_help_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
-#if 0
+#ifdef CONFIG_DUAL_CORE
 #include "mb_ipc_cmd.h"
 #include <driver/gpio.h>
 
 #include "amp_lock_api.h"
 
+#include "spinlock.h"
+
 static void debug_ipc_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void debug_rpc_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void debug_rpc_gpio_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static void debug_cpulock_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static void debug_spinlock_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 static u8     ipc_inited = 0;
 static u8     rpc_inited = 0;
+
+static u8     ipc_client = 0;
+
+spinlock_t		gpio_spinlock;
+spinlock_t  *	gpio_spinlock_ptr;
 
 #endif
 
@@ -54,11 +62,12 @@ static void debug_show_boot_time(char *pcWriteBuffer, int xWriteBufferLen, int a
 
 const struct cli_command debug_cmds[] = {
 	{"help", "list debug cmds", debug_help_command},
-#if 0
+#ifdef CONFIG_DUAL_CORE
 	{"ipc", "ipc", debug_ipc_command},
 	{"rpc", "rpc", debug_rpc_command},
 	{"gpio_out", "gpio_out gpio_id {0|1}", debug_rpc_gpio_command},
 	{"cpu_lock", "cpu_lock [timeout 1~20]", debug_cpulock_command},
+	{"spin_lock", "spin_lock [timeout 1~20]", debug_spinlock_command},
 #endif
 
 #if CONFIG_ARCH_RISCV
@@ -108,7 +117,7 @@ static void debug_help_command(char *pcWriteBuffer, int xWriteBufferLen, int arg
 	print_cmd_table(debug_cmds, ARRAY_SIZE(debug_cmds));
 }
 
-#if 0
+#ifdef CONFIG_DUAL_CORE
 static void print_debug_cmd_help(void *func)
 {
 	print_cmd_help(debug_cmds, ARRAY_SIZE(debug_cmds), func);
@@ -161,20 +170,79 @@ static void debug_ipc_command(char *pcWriteBuffer, int xWriteBufferLen, int argc
 
 	ret_val = ipc_init();
 	os_printf("ipc init: %d\r\n", ret_val);
+
 	ipc_inited = 1;
 
 #if CONFIG_SLAVE_CORE
 
-	ret_val = ipc_send_power_up();
-	os_printf("ipc client power: %d\r\n", ret_val);
+//	ret_val = ipc_send_power_up();
+//	os_printf("ipc client power: %d\r\n", ret_val);
 
-	ret_val = ipc_send_heart_beat(0x34);
-	os_printf("ipc client heartbeat: %d\r\n", ret_val);
+//	ret_val = ipc_send_heart_beat(0x34);
+//	os_printf("ipc client heartbeat: %d\r\n", ret_val);
+
+//	ret_val = ipc_send_test_cmd(0x12);
+//	os_printf("ipc client test: 0x%x\r\n", ret_val);
 
 	ret_val = ipc_send_test_cmd(0x12);
-	os_printf("ipc client test: %d\r\n", ret_val);
+	os_printf("gpio_spinlock_ptr: 0x%x\r\n", ret_val);
+	gpio_spinlock_ptr = (spinlock_t *)ret_val;
+
+	ipc_client = 1;
+#else
+
+	spinlock_init(&gpio_spinlock);
+	os_printf("gpio_spinlock: 0x%x\r\n", &gpio_spinlock);
 
 #endif
+}
+
+static void debug_spinlock_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	u32 timeout_second = 10;  // 10s
+
+	if(ipc_inited == 0)
+	{
+		os_printf("Failed: no rpc client/server in CPU0/CPU1.\r\n");
+		return;
+	}
+
+	if (argc > 1)
+	{
+		timeout_second = strtoul(argv[1], NULL, 0);
+
+		if(timeout_second > 20)
+			timeout_second = 20;
+		if(timeout_second == 0)
+			timeout_second = 10;
+	}
+
+	int i;
+
+	extern void arch_atomic_set(u32 *lk);
+	extern void arch_atomic_clear( u32 *lk);
+
+	for(i = 0; i < 20; i++)
+	{
+		os_printf("times: %d\r\n", i);
+
+		if(ipc_client == 0)
+		{
+			spinlock_acquire(&gpio_spinlock);
+			os_printf("svr spinlock acquired %d\r\n", gpio_spinlock.locked);
+			rtos_delay_milliseconds(timeout_second * 1000);
+			spinlock_release(&gpio_spinlock);
+			os_printf("svr spinlock released %d\r\n", gpio_spinlock.locked);
+		}
+		else
+		{
+			spinlock_acquire(gpio_spinlock_ptr);
+			os_printf("client spinlock acquired %d\r\n", gpio_spinlock_ptr->locked);
+			rtos_delay_milliseconds(timeout_second * 1000);
+			spinlock_release(gpio_spinlock_ptr);
+			os_printf("client spinlock released %d\r\n", gpio_spinlock_ptr->locked);
+		}
+	}
 }
 
 extern bk_err_t bk_gpio_enable_output_rpc(gpio_id_t gpio_id);

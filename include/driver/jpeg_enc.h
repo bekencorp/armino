@@ -265,6 +265,16 @@ bk_err_t bk_jpeg_enc_partial_display_deinit(void);
 bk_err_t bk_jpeg_set_em_base_addr(uint8_t *address);
 
 /**
+ * @brief     jpeg em base get
+ *
+ * This API will use for get jpeg em base address.
+ *
+ * @return
+ *    - jpeg em base
+ */
+uint32_t bk_jpeg_get_em_base_addr(void);
+
+/**
  * @brief     jpeg encode enable encode auto contrl
  *
  * This API will use for enable/disable for auto encode size. only valid in jpeh encode mode

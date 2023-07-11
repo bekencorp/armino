@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
-#ifndef PLATFORM_DEFAULT_NV_SEED
+#if defined(TFM_PSA_API) || !defined(PLATFORM_DEFAULT_NV_SEED)
 
 #include "tfm_plat_crypto_nv_seed.h"
 
@@ -25,4 +25,4 @@
 #define MBEDTLS_PLATFORM_NV_SEED_WRITE_MACRO  tfm_plat_crypto_nv_seed_write /**< Default nv_seed_write function to use, can be undefined */
 #endif /* !MBEDTLS_PLATFORM_NV_SEED_WRITE_MACRO */
 
-#endif /* !defined(PLATFORM_DEFAULT_NV_SEED) */
+#endif /* defined(TFM_PSA_API) || !defined(PLATFORM_DEFAULT_NV_SEED) */

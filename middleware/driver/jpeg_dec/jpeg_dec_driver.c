@@ -78,10 +78,10 @@ bk_err_t bk_jpeg_dec_driver_init(void)
 	}
 
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_DE, PM_POWER_MODULE_STATE_ON);
-	if(sys_drv_jpeg_dec_set(1, 1) != 0) {
-		JPEGDEC_LOGE("jpeg dec sys clk config error \r\n");
-		return BK_FAIL;
-	}
+
+	sys_drv_int_enable(JPEGDEC_INTERRUPT_CTRL_BIT);
+	sys_drv_set_jpeg_dec_disckg(1);
+
 #if (USE_JPEG_DEC_COMPLETE_CALLBACKS == 1)
 	bk_int_isr_register(INT_SRC_JPEG_DEC, jpeg_decoder_isr, NULL);
 #endif
@@ -98,12 +98,12 @@ bk_err_t bk_jpeg_dec_driver_deinit(void)
 		return BK_OK;
 	}
 
-	if(sys_drv_jpeg_dec_set(0, 0) != 0) {
-		JPEGDEC_LOGE("jpeg dec sys clk config error \r\n");
-		return BK_FAIL;
-	}
+	sys_drv_set_jpeg_dec_disckg(0);
+	sys_drv_int_disable(JPEGDEC_INTERRUPT_CTRL_BIT);
+
 	bk_int_isr_unregister(INT_SRC_JPEG_DEC);
 	jpg_decoder_deinit();
+
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_DE, PM_POWER_MODULE_STATE_OFF);
 
 	bk_dma_stop(jpeg_dec_dma);
@@ -160,7 +160,7 @@ bk_err_t bk_jpeg_dec_dma_start(uint32_t length, unsigned char *input_buf, unsign
 		JPEGDEC_LOGE("JpegdecInit error %x \r\n", ret);
 		return ret;
 	}
-	ret = jd_decomp();
+	ret = jd_decomp_hw();
 	if(ret != JDR_OK)
 	{
 		JPEGDEC_LOGE("jd_decomp error %x \r\n", ret);
@@ -183,7 +183,7 @@ bk_err_t bk_jpeg_dec_hw_start(uint32_t length, unsigned char *input_buf, unsigne
 		JPEGDEC_LOGE("JpegdecInit error %x \r\n", ret);
 		return ret;
 	}
-	ret = jd_decomp();
+	ret = jd_decomp_hw();
 	if(ret != JDR_OK)
 	{
 		JPEGDEC_LOGE("jd_decomp error %x \r\n", ret);

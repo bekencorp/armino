@@ -15,7 +15,6 @@ if (CONFIG_CAMERA OR CONFIG_USB_UVC)
 	list(APPEND incs camera)
 	list(APPEND srcs
 		camera/camera_act.c
-		storage/storage_act.c
 	)
 
 if (CONFIG_CAMERA)
@@ -41,6 +40,12 @@ endif()#(CONFIG_CAMERA OR CONFIG_USB_UVC)
 if (CONFIG_WIFI_TRANSFER)
 	list(APPEND srcs
 		transfer/transfer_act.c
+	)
+endif()
+
+if (CONFIG_IMAGE_STORAGE)
+	list(APPEND srcs
+		storage/storage_act.c
 	)
 endif()
 
@@ -86,7 +91,6 @@ if (CONFIG_CAMERA OR CONFIG_USB_UVC)
 	list(APPEND incs camera)
 	list(APPEND srcs
 		camera/camera_act.c
-		storage/storage_act.c
 	)
 
 if (CONFIG_CAMERA)
@@ -109,6 +113,11 @@ endif()
 
 endif()#(CONFIG_CAMERA OR CONFIG_USB_UVC)
 
+if (CONFIG_IMAGE_STORAGE)
+	list(APPEND srcs
+		storage/storage_act.c
+	)
+endif()
 
 if (CONFIG_WIFI_TRANSFER)
 	list(APPEND srcs

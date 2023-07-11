@@ -1,0 +1,5 @@
+menu "CAMERA"
+	config CAMERA_POWER_GPIO_CTRL
+		bool "Enable camera power gpio ctrl"
+		default n
+endmenu

@@ -5,14 +5,12 @@ DMA2D
 
 1、功能概述
 --------------------
-	本文档主要介绍了DMA2D的API使用，例程主要基于DOORBEEL工程以及lcd 808 demo.
+	本文档主要介绍了DMA2D的API使用，例程主要基于DOORBEEL工程以及dma2d_demo.c.
 
 2、代码路径
 --------------------------
 	 - DOORBEEL 主要涉及dma2d 融合和memory copy功能，参考代码: ``/components/media/lcd/lcd_act.c`` 和 ``/middleware/driver/lcd/lcd_driver.c``
-	
-	 - lcd_8080_demo.c 主要涉及dma2d的填充，具体的示例代码详见: ``\components\demos\media\lcd\lcd_8080``
-	 
+	 - dma2d_demo.c 参考代码: ``/components/media/dma2d/dma2d_demo.c``
 	 - dma2d的驱动接口介绍参考: ``/api-reference/multi_media/bk_dma2d.html``
 
 
@@ -89,8 +87,8 @@ dma2d memcpy例程如下
 
 		bk_dma2d_init(&dma2d_config);
 		bk_dma2d_layer_config(&dma2d_config, DMA2D_FOREGROUND_LAYER);
-
-		bk_dma2d_start_transfer(&dma2d_config, (uint32_t)Psrc, (uint32_t)Pdst, xsize/2, ysize); 
+		bk_dma2d_start_transfer();
+		bk_dma2d_transfer_config(&dma2d_config, (uint32_t)Psrc, (uint32_t)Pdst, xsize/2, ysize); 
 		while (bk_dma2d_is_transfer_busy()) {}
 	}
 
@@ -227,8 +225,8 @@ DMA2D的填充。
 	#endif 
 	*/
 
-		bk_dma2d_start_transfer(&dma2d_config, color, (uint32_t)pDiSt, width, high); 
-
+		bk_dma2d_transfer_config(&dma2d_config, color, (uint32_t)pDiSt, width, high); 
+		bk_dma2d_start_transfer();
 	/*	while (transferCompleteDetected == 0) {;}
 		transferCompleteDetected = 0;
 	*/
@@ -309,3 +307,135 @@ DMA2D的填充。
 	pixel_convert.output_red_blue_swap = DMA2D_RB_REGULAR;
 	bk_dma2d_pixel_convert(&pixel_convert);
 
+
+
+6、DMA2D 按坐标配置进行像素转化(dma2d_demo.c)
+------------------------------------------------------
+
+配置示意图如下：
+
+.. figure:: ../../../_static/dma2d_memcpy.jpg
+	:align: center
+	:figclass: align-center
+
+	Figure 4. dma2d memcpy config by pos
+
+
+DMA2D驱动中封装了一套设置坐标拷贝,或像素转,或融合的API接口,使用例程如下:
+
+::
+
+	uint16_t xsize= 800;
+	uint16_t ysize = 480;
+	uint16_t src_width = 800;
+	uint16_t src_height = 480 ;
+	uint16_t dst_width = 800;
+	uint16_t dst_height = 480;
+	uint16_t src_frame_xpos = 120;
+	uint16_t src_frame_ypos = 200;
+	uint16_t dst_frame_xpos = 250;
+	uint16_t dst_frame_ypos = 120;
+	uint16_t xsize= 400;
+	uint16_t ysize = 200;
+	input_color_mode = DMA2D_INPUT_RGB888;
+	src_pixel_byte = 3;
+	output_color_mode = DMA2D_OUTPUT_RGB565;
+	dst_pixel_byte = 2;
+
+	dma2d_memcpy_pfc_t dma2d_memcpy_pfc = {0};
+	dma2d_memcpy_pfc.mode = DMA2D_M2M_PFC;               //选择像素转换模式
+	dma2d_memcpy_pfc.input_addr = (char *)input_addr;    //源数据地址
+	dma2d_memcpy_pfc.output_addr = (char *)output_addr;  //目标数据地址
+	dma2d_memcpy_pfc.input_color_mode = input_color_mode; //源数据像素格式
+	dma2d_memcpy_pfc.output_color_mode = output_color_mode;//目标数据像素格式
+	dma2d_memcpy_pfc.src_pixel_byte = src_pixel_byte;        //源数据每个像素的bytes
+	dma2d_memcpy_pfc.dst_pixel_byte = dst_pixel_byte;        //目标数据每个像素的bytes
+	dma2d_memcpy_pfc.dma2d_width = xsize;                  //使用DMA2D转换的图像宽度
+	dma2d_memcpy_pfc.dma2d_height = ysize;                 //使用DMA2D转换的图像高度
+	dma2d_memcpy_pfc.src_frame_width = src_width;            //源图像宽度
+	dma2d_memcpy_pfc.src_frame_height = src_height;          //源图像高度
+	dma2d_memcpy_pfc.dst_frame_width = dst_width;            //目标图像宽度
+	dma2d_memcpy_pfc.dst_frame_height = dst_height;          //目标图像高度
+	dma2d_memcpy_pfc.src_frame_xpos = src_frame_xpos;          //源图像起始拷贝或像素转换的x坐标
+	dma2d_memcpy_pfc.src_frame_ypos = src_frame_ypos;          //源图像起始拷贝或像素转换的y坐标
+	dma2d_memcpy_pfc.dst_frame_xpos = dst_frame_xpos;           //目标图像起始拷贝或像素转换的x坐标
+	dma2d_memcpy_pfc.dst_frame_ypos = dst_frame_ypos;           //目标图像起始拷贝或像素转换的y坐标
+	dma2d_memcpy_pfc.input_red_blue_swap = 0;                  //源图像数据输入是否调换R/B
+	dma2d_memcpy_pfc.output_red_blue_swap = 0;                  //目标图像数据输入是否调换R/B
+
+	bk_dma2d_memcpy_or_pixel_convert(&dma2d_memcpy_pfc);
+	bk_dma2d_start_transfer();
+
+
+6、DMA2D 按坐标配置进行融合(dma2d_demo.c)
+------------------------------------------------------
+
+配置示意图如下：
+
+.. figure:: ../../../_static/dma2d_blend.jpg
+	:align: center
+	:figclass: align-center
+
+	Figure 5. dma2d blend config by pos
+
+如果输出的图像所占用的内存大小不超过前景或背景的内存大小, 输出的地址可以和前景背景共用，比如:
+前景DMA2D_INPUT_RGB888, 背景DMA2D_INPUT_ARGB8888,输出DMA2D_OUTPUT_ARGB8888,那么输出的地址可以设置为背景地址.
+反之, 如果前景DMA2D_INPUT_RGB888, 背景DMA2D_INPUT_RGB565,输出DMA2D_OUTPUT_RGB888, 则输出地址不能与背景复用.
+
+使用例程如下:
+
+::
+
+	input_fg_mode = DMA2D_INPUT_ARGB8888;
+	fg_pixel_byte = 4;
+	input_bg_mode  = DMA2D_INPUT_RGB888;
+	bg_pixel_byte = 3;
+	output_mode = DMA2D_OUTPUT_ARGB8888;
+	out_pixel_byte = 4;
+
+	uint16_t xsize= DMA2D_XPIXE;
+	uint16_t ysize = DMA2D_YPIXE;
+
+	fg_alpha_mode= 1;
+	bg_alpha_mode = 1;
+	uint8_t fg_alpha_value= fg_alpha;
+	uint8_t bg_alpha_value = 0x80;
+
+	dma2d_offset_blend_t dma2d_config;
+
+	dma2d_config.pfg_addr = (char *)input_fg_addr;
+	dma2d_config.pbg_addr = (char *)input_bg_addr;
+	dma2d_config.pdst_addr = (char *)output_blend_addr;
+	dma2d_config.fg_color_mode = input_fg_mode;	
+	dma2d_config.bg_color_mode = input_bg_mode;
+	dma2d_config.dst_color_mode = output_mode;
+	dma2d_config.fg_red_blue_swap = DMA2D_RB_REGULAR;
+	dma2d_config.bg_red_blue_swap = DMA2D_RB_REGULAR;
+	dma2d_config.dst_red_blue_swap = DMA2D_RB_REGULAR;
+	
+	dma2d_config.fg_frame_width = fg_frame_width;
+	dma2d_config.fg_frame_height = fg_frame_height;
+	dma2d_config.bg_frame_width = bg_frame_width;
+	dma2d_config.bg_frame_height = bg_frame_height;
+	dma2d_config.dst_frame_width = dst_frame_width;
+	dma2d_config.dst_frame_height = dst_frame_height;
+
+	dma2d_config.fg_frame_xpos = fg_frame_xpos;
+	dma2d_config.fg_frame_ypos = fg_frame_ypos;
+	dma2d_config.bg_frame_xpos = bg_frame_xpos;
+	dma2d_config.bg_frame_ypos = bg_frame_ypos;
+	dma2d_config.dst_frame_xpos = dst_frame_xpos;
+	dma2d_config.dst_frame_ypos = dst_frame_ypos;
+	
+	dma2d_config.fg_pixel_byte = fg_pixel_byte;
+	dma2d_config.bg_pixel_byte = bg_pixel_byte;
+	dma2d_config.dst_pixel_byte = out_pixel_byte;
+	
+	dma2d_config.dma2d_width = xsize;
+	dma2d_config.dma2d_height = ysize;
+	dma2d_config.fg_alpha_mode = fg_alpha_mode;
+	dma2d_config.bg_alpha_mode = bg_alpha_mode;
+	dma2d_config.fg_alpha_value = fg_alpha_value;
+	dma2d_config.bg_alpha_value = bg_alpha_value;
+	bk_dma2d_offset_blend(&dma2d_config);
+	bk_dma2d_start_transfer();

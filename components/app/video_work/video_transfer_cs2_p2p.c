@@ -366,7 +366,7 @@ static int32_t recv_callback(uint8_t channel, uint8_t *buff, uint32_t len)
     {
         os_printf("%s len %d\n", __func__, len);
 
-#if 1
+#if 0
 #pragma message "for enable img debug !!!! remove it !!!!"
         static uint8_t first_flag = 1;
 

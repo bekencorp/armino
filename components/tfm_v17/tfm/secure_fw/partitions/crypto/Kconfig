@@ -67,7 +67,7 @@ config CRYPTO_IOVEC_BUFFER_SIZE
 
 config CRYPTO_NV_SEED
     bool "Use stored NV seed to provide entropy"
-    default y
+    default n
 
 config CRYPTO_SINGLE_PART_FUNCS_DISABLED
     bool "Only enable multi-part operations"

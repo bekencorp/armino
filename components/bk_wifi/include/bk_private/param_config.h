@@ -90,6 +90,11 @@ typedef struct sta_param {
 	uint8_t fast_connect_set;
 	uint8_t ocv;
 	fast_connect_param_t fast_connect;
+#ifdef CONFIG_CONNECT_THROUGH_PSK_OR_SAE_PASSWORD
+	bool psk_calculated;
+	uint8_t psk[65];
+	uint8_t psk_len;
+#endif
 
 #if CONFIG_COMPONENTS_STA_VSIE
 	struct {

@@ -12,6 +12,8 @@
 #include "Driver_Flash.h"
 #include "flash_layout.h"
 #include "soc/soc.h"
+#include "reg_base.h"
+
 #ifdef CRYPTO_HW_ACCELERATOR
 #include "crypto_hw.h"
 #include "bootutil/fault_injection_hardening.h"
@@ -186,7 +188,7 @@ int32_t boot_platform_post_init(void)
 
     (void)fih_delay_init();
 #else
-    dubhe_driver_init(0x4b110000);
+    dubhe_driver_init(SOC_SHANHAI_BASE);
 #endif /* CRYPTO_HW_ACCELERATOR */
 
     return 0;

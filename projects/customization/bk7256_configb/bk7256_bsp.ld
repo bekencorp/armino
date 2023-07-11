@@ -17,76 +17,10 @@ SECTIONS
 		{ KEEP(*(.itcm_sec_code )) }
 	_itcm_lma_start =  LOADADDR (.itcm_sec_code);
 	_itcm_ema_start = ADDR(.itcm_sec_code);
-	. = ALIGN(8);
-	. = ALIGN(ALIGNOF(".nds_init_*txl_he.c.obj"));
-	".nds_init_*txl_he.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR (.itcm_sec_code) + SIZEOF (.itcm_sec_code), ALIGNOF(".nds_init_*txl_he.c.obj")), 8))
-		{ KEEP(*txl_he.c.obj(.nds_init )) } = 0x0100
-	. = ALIGN(ALIGNOF(".init_*txl_he.c.obj"));
-	".init_*txl_he.c.obj" 	: AT(ALIGN(LOADADDR (".nds_init_*txl_he.c.obj") + SIZEOF (".nds_init_*txl_he.c.obj"), ALIGNOF(".init_*txl_he.c.obj")))
-		{ KEEP(*txl_he.c.obj(.init )) }
-	. = ALIGN(ALIGNOF(".plt_*txl_he.c.obj"));
-	".plt_*txl_he.c.obj" 	: AT(ALIGN(LOADADDR (".init_*txl_he.c.obj") + SIZEOF (".init_*txl_he.c.obj"), ALIGNOF(".plt_*txl_he.c.obj")))
-		{ *txl_he.c.obj(.plt ) }
-	. = ALIGN(ALIGNOF(".text_*txl_he.c.obj"));
-	".text_*txl_he.c.obj" 	: AT(ALIGN(LOADADDR (".plt_*txl_he.c.obj") + SIZEOF (".plt_*txl_he.c.obj"), ALIGNOF(".text_*txl_he.c.obj")))
-		{ *txl_he.c.obj(.text .stub .text.* .gnu.linkonce.t.* ) KEEP(*txl_he.c.obj(.text.*personality* )) *txl_he.c.obj(.gnu.warning ) . = ALIGN(4); } = 0x0100
-	. = ALIGN(ALIGNOF(".fini_*txl_he.c.obj"));
-	".fini_*txl_he.c.obj" 	: AT(ALIGN(LOADADDR (".text_*txl_he.c.obj") + SIZEOF (".text_*txl_he.c.obj"), ALIGNOF(".fini_*txl_he.c.obj")))
-		{ KEEP(*txl_he.c.obj(.fini )) }
-	. = ALIGN(ALIGNOF(".exec.itable_*txl_he.c.obj"));
-	".exec.itable_*txl_he.c.obj" 	: AT(ALIGN(LOADADDR (".fini_*txl_he.c.obj") + SIZEOF (".fini_*txl_he.c.obj"), ALIGNOF(".exec.itable_*txl_he.c.obj")))
-		{ *txl_he.c.obj(.exec.itable ) }
-	PROVIDE (__etext = .);
-	PROVIDE (_etext = .);
-	PROVIDE (etext = .);
-	. = ALIGN(8);
-	. = ALIGN(ALIGNOF(".nds_init_*txl_agg.c.obj"));
-	".nds_init_*txl_agg.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR (".exec.itable_*txl_he.c.obj") + SIZEOF (".exec.itable_*txl_he.c.obj"), ALIGNOF(".nds_init_*txl_agg.c.obj")), 8))
-		{ KEEP(*txl_agg.c.obj(.nds_init )) } = 0x0100
-	. = ALIGN(ALIGNOF(".init_*txl_agg.c.obj"));
-	".init_*txl_agg.c.obj" 	: AT(ALIGN(LOADADDR (".nds_init_*txl_agg.c.obj") + SIZEOF (".nds_init_*txl_agg.c.obj"), ALIGNOF(".init_*txl_agg.c.obj")))
-		{ KEEP(*txl_agg.c.obj(.init )) }
-	. = ALIGN(ALIGNOF(".plt_*txl_agg.c.obj"));
-	".plt_*txl_agg.c.obj" 	: AT(ALIGN(LOADADDR (".init_*txl_agg.c.obj") + SIZEOF (".init_*txl_agg.c.obj"), ALIGNOF(".plt_*txl_agg.c.obj")))
-		{ *txl_agg.c.obj(.plt ) }
-	. = ALIGN(ALIGNOF(".text_*txl_agg.c.obj"));
-	".text_*txl_agg.c.obj" 	: AT(ALIGN(LOADADDR (".plt_*txl_agg.c.obj") + SIZEOF (".plt_*txl_agg.c.obj"), ALIGNOF(".text_*txl_agg.c.obj")))
-		{ *txl_agg.c.obj(.text .stub .text.* .gnu.linkonce.t.* ) KEEP(*txl_agg.c.obj(.text.*personality* )) *txl_agg.c.obj(.gnu.warning ) . = ALIGN(4); } = 0x0100
-	. = ALIGN(ALIGNOF(".fini_*txl_agg.c.obj"));
-	".fini_*txl_agg.c.obj" 	: AT(ALIGN(LOADADDR (".text_*txl_agg.c.obj") + SIZEOF (".text_*txl_agg.c.obj"), ALIGNOF(".fini_*txl_agg.c.obj")))
-		{ KEEP(*txl_agg.c.obj(.fini )) }
-	. = ALIGN(ALIGNOF(".exec.itable_*txl_agg.c.obj"));
-	".exec.itable_*txl_agg.c.obj" 	: AT(ALIGN(LOADADDR (".fini_*txl_agg.c.obj") + SIZEOF (".fini_*txl_agg.c.obj"), ALIGNOF(".exec.itable_*txl_agg.c.obj")))
-		{ *txl_agg.c.obj(.exec.itable ) }
-	PROVIDE (__etext = .);
-	PROVIDE (_etext = .);
-	PROVIDE (etext = .);
-	. = ALIGN(8);
-	. = ALIGN(ALIGNOF(".nds_init_*txl_cntrl.c.obj"));
-	".nds_init_*txl_cntrl.c.obj" 	: AT(ALIGN(ALIGN(LOADADDR (".exec.itable_*txl_agg.c.obj") + SIZEOF (".exec.itable_*txl_agg.c.obj"), ALIGNOF(".nds_init_*txl_cntrl.c.obj")), 8))
-		{ KEEP(*txl_cntrl.c.obj(.nds_init )) KEEP(*rxl_hwdesc.c.obj(.nds_init )) KEEP(*rxu_cntrl.c.obj(.nds_init )) } = 0x0100
-	. = ALIGN(ALIGNOF(".init_*txl_cntrl.c.obj"));
-	".init_*txl_cntrl.c.obj" 	: AT(ALIGN(LOADADDR (".nds_init_*txl_cntrl.c.obj") + SIZEOF (".nds_init_*txl_cntrl.c.obj"), ALIGNOF(".init_*txl_cntrl.c.obj")))
-		{ KEEP(*txl_cntrl.c.obj(.init )) KEEP(*rxl_hwdesc.c.obj(.init )) KEEP(*rxu_cntrl.c.obj(.init )) }
-	. = ALIGN(ALIGNOF(".plt_*txl_cntrl.c.obj"));
-	".plt_*txl_cntrl.c.obj" 	: AT(ALIGN(LOADADDR (".init_*txl_cntrl.c.obj") + SIZEOF (".init_*txl_cntrl.c.obj"), ALIGNOF(".plt_*txl_cntrl.c.obj")))
-		{ *txl_cntrl.c.obj(.plt ) *rxl_hwdesc.c.obj(.plt ) *rxu_cntrl.c.obj(.plt ) }
-	. = ALIGN(ALIGNOF(".text_*txl_cntrl.c.obj"));
-	".text_*txl_cntrl.c.obj" 	: AT(ALIGN(LOADADDR (".plt_*txl_cntrl.c.obj") + SIZEOF (".plt_*txl_cntrl.c.obj"), ALIGNOF(".text_*txl_cntrl.c.obj")))
-		{ *txl_cntrl.c.obj(.text .stub .text.* .gnu.linkonce.t.* ) *rxl_hwdesc.c.obj(.text .stub .text.* .gnu.linkonce.t.* ) *rxu_cntrl.c.obj(.text .stub .text.* .gnu.linkonce.t.* ) KEEP(*txl_cntrl.c.obj(.text.*personality* )) KEEP(*rxl_hwdesc.c.obj(.text.*personality* )) KEEP(*rxu_cntrl.c.obj(.text.*personality* )) *txl_cntrl.c.obj(.gnu.warning ) *rxl_hwdesc.c.obj(.gnu.warning ) *rxu_cntrl.c.obj(.gnu.warning ) . = ALIGN(4); } = 0x0100
-	. = ALIGN(ALIGNOF(".fini_*txl_cntrl.c.obj"));
-	".fini_*txl_cntrl.c.obj" 	: AT(ALIGN(LOADADDR (".text_*txl_cntrl.c.obj") + SIZEOF (".text_*txl_cntrl.c.obj"), ALIGNOF(".fini_*txl_cntrl.c.obj")))
-		{ KEEP(*txl_cntrl.c.obj(.fini )) KEEP(*rxl_hwdesc.c.obj(.fini )) KEEP(*rxu_cntrl.c.obj(.fini )) }
-	. = ALIGN(ALIGNOF(".exec.itable_*txl_cntrl.c.obj"));
-	".exec.itable_*txl_cntrl.c.obj" 	: AT(ALIGN(LOADADDR (".fini_*txl_cntrl.c.obj") + SIZEOF (".fini_*txl_cntrl.c.obj"), ALIGNOF(".exec.itable_*txl_cntrl.c.obj")))
-		{ *txl_cntrl.c.obj(.exec.itable ) *rxl_hwdesc.c.obj(.exec.itable ) *rxu_cntrl.c.obj(.exec.itable ) }
-	PROVIDE (__etext = .);
-	PROVIDE (_etext = .);
-	PROVIDE (etext = .);
-	_itcm_lma_end =  LOADADDR (".exec.itable_*txl_cntrl.c.obj") + SIZEOF (".exec.itable_*txl_cntrl.c.obj");
+	_itcm_lma_end =  LOADADDR (.itcm_sec_code) + SIZEOF (.itcm_sec_code);
 	_itcm_ema_end = .;
 	ITCM_SIZE = . - ITCM_BEGIN;
-	CPU0_LOAD1_SIZE = LOADADDR(".exec.itable_*txl_cntrl.c.obj") + SIZEOF(".exec.itable_*txl_cntrl.c.obj") - CPU0_LOAD1_BEGIN;
+	CPU0_LOAD1_SIZE = LOADADDR(.itcm_sec_code) + SIZEOF(.itcm_sec_code) - CPU0_LOAD1_BEGIN;
 	NDS_SAG_LMA_CPU0_LOAD2 = 0x001D8800 ;
 	CPU0_LOAD2_BEGIN = NDS_SAG_LMA_CPU0_LOAD2;
 	. = 0 + NDS_SAG_LMA_CPU0_LOAD2;

@@ -93,43 +93,43 @@ static void i2s_init_gpio(i2s_gpio_group_id_t id)
 			gpio_dev_map(GPIO_9, GPIO_DEV_I2S1_DOUT);
 			gpio_dev_unmap(GPIO_28);
 			gpio_dev_map(GPIO_28, GPIO_DEV_I2S1_MCLK);
-			bk_gpio_disable_output(GPIO_28);
+			//bk_gpio_disable_output(GPIO_28);
 			break;
 
 		case I2S_GPIO_GROUP_1:
 			gpio_dev_unmap(GPIO_40);
 			gpio_dev_map(GPIO_40, GPIO_DEV_I2S2_CLK);
-			bk_gpio_disable_output(GPIO_40);
+			//bk_gpio_disable_output(GPIO_40);
 			gpio_dev_unmap(GPIO_41);
 			gpio_dev_map(GPIO_41, GPIO_DEV_I2S2_SYNC);
-			bk_gpio_disable_output(GPIO_41);
+			//bk_gpio_disable_output(GPIO_41);
 			gpio_dev_unmap(GPIO_42);
 			gpio_dev_map(GPIO_42, GPIO_DEV_I2S2_DIN);
-			bk_gpio_disable_output(GPIO_42);
+			//bk_gpio_disable_output(GPIO_42);
 			gpio_dev_unmap(GPIO_43);
 			gpio_dev_map(GPIO_43, GPIO_DEV_I2S2_DOUT);
-			bk_gpio_disable_output(GPIO_43);
+			//bk_gpio_disable_output(GPIO_43);
 			gpio_dev_unmap(GPIO_28);
 			gpio_dev_map(GPIO_28, GPIO_DEV_I2S1_MCLK);
-			bk_gpio_disable_output(GPIO_28);
+			//bk_gpio_disable_output(GPIO_28);
 			break;
 
 		case I2S_GPIO_GROUP_2:
 			gpio_dev_unmap(GPIO_44);
 			gpio_dev_map(GPIO_44, GPIO_DEV_I2S3_CLK);
-			bk_gpio_disable_output(GPIO_44);
+			//bk_gpio_disable_output(GPIO_44);
 			gpio_dev_unmap(GPIO_45);
 			gpio_dev_map(GPIO_45, GPIO_DEV_I2S3_SYNC);
-			bk_gpio_disable_output(GPIO_45);
+			//bk_gpio_disable_output(GPIO_45);
 			gpio_dev_unmap(GPIO_46);
 			gpio_dev_map(GPIO_46, GPIO_DEV_I2S3_DIN);
-			bk_gpio_disable_output(GPIO_46);
+			//bk_gpio_disable_output(GPIO_46);
 			gpio_dev_unmap(GPIO_47);
 			gpio_dev_map(GPIO_47, GPIO_DEV_I2S3_DOUT);
-			bk_gpio_disable_output(GPIO_47);
+			//bk_gpio_disable_output(GPIO_47);
 			gpio_dev_unmap(GPIO_28);
 			gpio_dev_map(GPIO_28, GPIO_DEV_I2S1_MCLK);
-			bk_gpio_disable_output(GPIO_28);
+			//bk_gpio_disable_output(GPIO_28);
 			break;
 
 		default:
@@ -139,7 +139,9 @@ static void i2s_init_gpio(i2s_gpio_group_id_t id)
 
 bk_err_t bk_i2s_driver_init(void)
 {
+	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_AUDP_I2S, PM_POWER_MODULE_STATE_ON);
 	sys_drv_i2s_select_clock(1); //APLL
+	bk_pm_clock_ctrl(PM_CLK_ID_I2S_1, CLK_PWR_CTRL_PWR_UP);
 
 	return BK_OK;
 }
@@ -148,6 +150,10 @@ bk_err_t bk_i2s_driver_deinit(void)
 {
 	i2s_int_config_t int_config_table;
 	uint8_t i2s_index = i2s_hal_get_cfg_index();
+
+	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_AUDP_I2S, PM_POWER_MODULE_STATE_OFF);
+	bk_pm_clock_ctrl(PM_CLK_ID_I2S_1, CLK_PWR_CTRL_PWR_DOWN);
+	sys_drv_i2s_disckg_set(0);
 
 	if (i2s_index == 0) {
 		I2S_RETURN_ON_NOT_INIT();

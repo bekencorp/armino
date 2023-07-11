@@ -15,10 +15,27 @@
 #include <os/os.h>
 #include "cli.h"
 #include <driver/timer.h>
+#include "bk_misc.h"
 
 static void cli_timer_isr(timer_id_t chan)
 {
     CLI_LOGI("[TIMER][ISR] chan:%d\r\n", chan);
+}
+
+static void cli_delay_us(int argc, char **argv)
+{
+	uint32_t us = 0;
+
+	if (argc < 3) {
+		CLI_LOGI("timer delay [count]\r\n");
+		return;
+	}
+
+	us = os_strtoul(argv[2], NULL, 10);
+	uint32_t level = rtos_disable_int();
+	delay_us(us);
+	rtos_enable_int(level);
+	CLI_LOGI("delayed %u us\r\n", us);
 }
 
 static void cli_timer_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -27,7 +44,11 @@ static void cli_timer_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
     uint8_t channel = 0;
     uint32_t time_ms = 0, read_cnt = 0;
 
-    channel = os_strtoul(argv[1], NULL, 10);
+    if (os_strcmp(argv[1], "delay") == 0) {
+        cli_delay_us(argc, argv);
+    } else {
+        channel = os_strtoul(argv[1], NULL, 10);
+    }
 
     if (os_strcmp(argv[2], "start") == 0) {
         time_ms = os_strtoul(argv[3], NULL, 10);

@@ -69,6 +69,10 @@ static void cli_flash_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	} else if (os_strcmp(argv[1], "get_id") == 0) {
 		uint32_t flash_id = bk_flash_get_id();
 		CLI_LOGI("flash_id:%x\r\n", flash_id);
+	} else if (os_strcmp(argv[1], "set_line") == 0) {
+		/*enable FLASH_QUAD_ENABLE first*/
+		uint16_t line_mode = os_strtoul(argv[2], NULL, 16);
+		bk_flash_set_line_mode(line_mode);
 	} else {
 		cli_flash_help();
 	}

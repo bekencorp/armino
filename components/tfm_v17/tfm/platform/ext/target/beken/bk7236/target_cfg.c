@@ -15,11 +15,13 @@
  */
 
 #include "cmsis.h"
+#include "fih.h"
 #include "target_cfg.h"
 #include "region_defs.h"
 #include "tfm_plat_defs.h"
 #include "region.h"
 #include "bk_tfm_mpc.h"
+#include "Driver_Common.h"
 
 #ifdef PSA_API_TEST_IPC
 #define PSA_FF_TEST_SECURE_UART2
@@ -187,10 +189,11 @@ enum tfm_plat_err_t system_reset_cfg(void)
 	return TFM_PLAT_ERR_SUCCESS;
 }
 
-enum tfm_plat_err_t init_debug(void)
+FIH_RET_TYPE(enum tfm_plat_err_t) init_debug(void)
 {
     //TODO peter
-    return TFM_PLAT_ERR_SUCCESS;
+
+    FIH_RET(fih_int_encode(TFM_PLAT_ERR_SUCCESS));
 }
 
 /*----------------- NVIC interrupt target state to NS configuration ----------*/
@@ -316,7 +319,7 @@ const struct sau_cfg_t sau_cfg[] = {
 
 #define NR_SAU_INIT_STEP                 3
 
-void sau_and_idau_cfg(void)
+FIH_RET_TYPE(int32_t) sau_and_idau_cfg(void)
 {
     uint32_t i;
 
@@ -330,25 +333,27 @@ void sau_and_idau_cfg(void)
                     (sau_cfg[i].nsc ? SAU_RLAR_NSC_Msk : 0U) |
                     SAU_RLAR_ENABLE_Msk;
     }
+    FIH_RET(fih_int_encode(ARM_DRIVER_OK));
 }
 
 /*------------------- Memory configuration functions -------------------------*/
 
-int32_t mpc_init_cfg(void)
+FIH_RET_TYPE(int32_t) mpc_init_cfg(void)
 {
     if (BK_OK != bk_mpc_cfg())
-        return TFM_PLAT_ERR_SYSTEM_ERR;
+		FIH_RET(fih_int_encode(TFM_PLAT_ERR_SYSTEM_ERR));
 
-    return TFM_PLAT_ERR_SUCCESS;
+    FIH_RET(fih_int_encode(ARM_DRIVER_OK));
 }
 
 /*---------------------- PPC configuration functions -------------------------*/
-void ppc_init_cfg(void)
+FIH_RET_TYPE(int32_t) ppc_init_cfg(void)
 {
 	*((volatile uint32_t *)(0x41040000 + 2 * 4)) = 1;/*soft reset ppro module*/
 	*((volatile uint32_t *)(0x41040000 + 8 * 4)) = 0;
 	*((volatile uint32_t *)(0x41040000 + 5 * 4)) = 0;
 	*((volatile uint32_t *)(0x41040000 + 11 * 4)) = 0;
+    FIH_RET(fih_int_encode(ARM_DRIVER_OK));
 }
 
 void ppc_clear_irq(void)

@@ -1137,7 +1137,7 @@ struct video_autoexposure_mode {
     0x00, /* bStillCaptureMethod : Device supports still image capture method 0. */                     \
     0x00, /* bTriggerSupport : Hardware trigger supported for still image capture */                    \
     0x00, /* bTriggerUsage : Hardware trigger should initiate a still image capture. */                 \
-    PP_NARG(__VA_ARGS__), /* bControlSize : Size of the bmaControls field */                            \
+    0x01, /* bControlSize : Size of the bmaControls field */                                            \
     __VA_ARGS__  /* bmaControls : No VideoStreaming specific controls are supported.*/
 
 #define VIDEO_VS_FORMAT_UNCOMPRESSED_DESCRIPTOR_INIT(bFormatIndex, bNumFrameDescriptors, GUIDFormat)                                                              \
@@ -1245,6 +1245,40 @@ struct video_autoexposure_mode {
     0x01,                                    /* bColorPrimaries */                                                    \
     0x01,                                    /* bTransferCharacteristics */                                           \
     0x04                                     /* bMatrixCoefficients */
+
+#define VIDEO_VS_FORMAT_YUY2_DESCRIPTOR_INIT(bFormatIndex, bNumFrameDescriptors)                     \
+    0x1b,                 /* bLength */                                                              \
+    0x24,                 /* bDescriptorType : CS_INTERFACE */                                       \
+    0x04,                 /* bDescriptorSubType : VS_FORMAT_MJPEG subtype */                         \
+    bFormatIndex,         /* bFormatIndex : First (and only) format descriptor */                    \
+    bNumFrameDescriptors, /* bNumFrameDescriptors : One frame descriptor for this format follows. */ \
+    0x59, 0x55, 0x59, 0x32, \
+    0x00, 0x00, \
+    0x10, 0x00, \
+    0x80, 0x00, \
+    0x00, 0xaa, 0x00, 0x38, 0x9B, 0x71, \
+    0x10,                 /* bBitsPerPixel.. */                                                      \
+    0x01,                 /* bDefaultFrameIndex : Default frame index is 1. */                       \
+    0x00,                 /* bAspectRatioX : Non-interlaced stream – not required. */                \
+    0x00,                 /* bAspectRatioY : Non-interlaced stream – not required. */                \
+    0x00,                 /* bmInterlaceFlags : Non-interlaced stream */                             \
+    0x00                  /* bCopyProtect : No restrictions imposed on the duplication of this video stream. */
+
+#define VIDEO_VS_FRAME_YUY2_DESCRIPTOR_INIT(bFrameIndex, wWidth, wHeight, dwMinBitRate, dwMaxBitRate, \
+                                            dwMaxVideoFrameBufferSize)                                \
+    0x1E,                                                      \
+    0x24,                                                      \
+    0x05,                                                      \
+    bFrameIndex,                                               \
+    0x00,                                                      \
+    WBVAL(wWidth),                                             \
+    WBVAL(wHeight),                                            \
+    DBVAL(dwMinBitRate),                                       \
+    DBVAL(dwMaxBitRate),                                       \
+    DBVAL(dwMaxVideoFrameBufferSize),                          \
+    0x40, 0x42, 0x0F, 0x00,   /* 100.0000 ms -> 10.0000 fps */ \
+    0x01,                     /* bFrameIntervalType */         \
+    0x40, 0x42, 0x0F, 0x00    /* 100.0000 ms -> 10.0000 fps */
 
 // clang-format on
 #endif /*USB_VIDEO_H */

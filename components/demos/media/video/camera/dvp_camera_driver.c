@@ -26,6 +26,7 @@
 #include <gpio_map.h>
 #include <driver/gpio.h>
 #include "gpio_driver.h"
+#include <modules/pm.h>
 
 
 #define EJPEG_DROP_COUNT              (0)
@@ -217,6 +218,11 @@ bk_err_t bk_dvp_camera_init(void *data)
 	}
 
 #if CONFIG_SOC_BK7256XX
+
+#if CONFIG_EXTERN_32K
+		pm_clk_32k_source_switch(PM_LPO_SRC_DIVD);
+#endif
+
 	// step 1: enbale dvp power
 	bk_dvp_camera_power_enable(1);
 
@@ -349,6 +355,11 @@ bk_err_t bk_dvp_camera_deinit(void)
 	bk_jpeg_enc_driver_deinit();
 
 	bk_dvp_camera_power_enable(0);
+
+#if CONFIG_EXTERN_32K
+		pm_clk_32k_source_switch(PM_LPO_SRC_X32K);
+#endif
+
 #endif
 
 	jpeg_eof_flag = 0;

@@ -9,3 +9,4 @@
    LCD Display <lcd/index>
    Camera <camera/index>
    DMA2D <dma2d>
+   Rotate <hw_rotate>

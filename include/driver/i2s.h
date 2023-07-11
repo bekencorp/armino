@@ -521,7 +521,7 @@ bk_err_t bk_i2s_read_data(uint32_t *data_buf, uint32_t data_len);
  *    - BK_ERR_AUD_NOT_INIT: i2s driver is not init
  *    - others: other errors.
  */
-bk_err_t bk_i2s_get_data_addr(uint32_t *i2s_data_addr);
+bk_err_t bk_i2s_get_data_addr(i2s_channel_id_t chl_id, uint32_t *i2s_data_addr);
 
 /**
  * @brief     config i2s sample rate

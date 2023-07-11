@@ -7,6 +7,9 @@
 
 set(TFM_EXTRA_GENERATED_FILE_LIST_PATH  ${CMAKE_CURRENT_SOURCE_DIR}/platform/ext/target/beken/bk7236/generated_file_list.yaml  CACHE PATH "Path to extra generated file list. Appended to stardard TFM generated file list." FORCE)
 
+set(CONFIG_TFM_USE_TRUSTZONE          ON    CACHE BOOL    "Enable use of TrustZone to transition between NSPE and SPE")
+set(TFM_MULTI_CORE_TOPOLOGY           OFF   CACHE BOOL    "Whether to build for a dual-cpu architecture")
+
 set(PLATFORM_SLIH_IRQ_TEST_SUPPORT    ON    CACHE BOOL    "Platform supports SLIH IRQ tests")
 set(PLATFORM_FLIH_IRQ_TEST_SUPPORT    ON    CACHE BOOL    "Platform supports FLIH IRQ tests")
 
@@ -14,7 +17,6 @@ set(PLATFORM_FLIH_IRQ_TEST_SUPPORT    ON    CACHE BOOL    "Platform supports FLI
 set(TEST_NS_SLIH_IRQ                  OFF   CACHE BOOL    "Whether to build NS regression Second-Level Interrupt Handling tests")
 
 set(CRYPTO_HW_ACCELERATOR               ON          CACHE BOOL      "Whether to enable the crypto hardware accelerator on supported platforms")
-set(CRYPTO_NV_SEED                      OFF         CACHE BOOL      "Use stored NV seed to provide entropy")
 set(BL2                                 ON         CACHE BOOL      "Whether to build BL2")
 set(DEFAULT_MCUBOOT_FLASH_MAP           OFF          CACHE BOOL      "Whether to use the default flash map defined by TF-M project")
 set(FPGA                         OFF         CACHE BOOL      "Build for FPGA")

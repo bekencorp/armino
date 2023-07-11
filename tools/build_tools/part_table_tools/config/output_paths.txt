@@ -1,0 +1,4 @@
+to_json = ./bk7256_partition_temp.json
+to_sag = ./bk7256_partition_temp.sag
+to_src = ./vnd_flash.c
+to_inc = ./flash_partition.h

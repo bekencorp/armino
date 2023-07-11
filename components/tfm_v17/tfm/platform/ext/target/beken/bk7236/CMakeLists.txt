@@ -22,9 +22,7 @@ target_include_directories(platform_region_defs
 # Specify the location of platform specific build dependencies.
 target_sources(tfm_s
     PRIVATE
-    $<$<C_COMPILER_ID:ARMClang>:${CMAKE_CURRENT_SOURCE_DIR}/armclang/startup_cmsdk_bk7236_s.s>
-    $<$<C_COMPILER_ID:GNU>:${CMAKE_CURRENT_SOURCE_DIR}/gcc/startup_cmsdk_bk7236_s.S>
-    $<$<C_COMPILER_ID:IAR>:${CMAKE_CURRENT_SOURCE_DIR}/iar/startup_cmsdk_bk7236_s.s>
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmsis_core/startup_bk7236xx.c
 )
 
 # Use a common scatter file for Isolation L1 and L2, a dedicated one for Isolation L3
@@ -81,7 +79,6 @@ if(BL2)
 endif()
 
 #========================= Platform Secure ====================================#
-
 target_include_directories(platform_s
     PUBLIC
         .
@@ -97,24 +94,27 @@ target_include_directories(platform_s
         ${PLATFORM_DIR}/..
 )
 
+target_compile_definitions(platform_s
+	PUBLIC
+	#/*CC312_LEGACY_DRIVER_API_ENABLED is beken te200 alias, for tfm_crypto_engine_init function*/
+	-DCC312_LEGACY_DRIVER_API_ENABLED
+)
+
 target_sources(platform_s
     PRIVATE
         cmsis_drivers/Driver_Flash.c
         cmsis_drivers/Driver_USART.c
         cmsis_core/system_cmsdk_bk7236.c
-        native_drivers/mpc_sie200_drv.c
         native_drivers/mpu_armv8m_drv.c
-        native_drivers/ppc_sse200_drv.c
         spm_hal.c
-        $<$<BOOL:${TFM_PSA_API}>:${CMAKE_CURRENT_SOURCE_DIR}/tfm_interrupts.c>
+        $<$<OR:$<BOOL:${CONFIG_TFM_FLIH_API}>,$<BOOL:${CONFIG_TFM_SLIH_API}>>:${CMAKE_CURRENT_SOURCE_DIR}/tfm_interrupts.c>
         tfm_hal_isolation.c
         tfm_hal_platform.c
         target_cfg.c
-        native_drivers/ppc_sse200_drv.c
         native_drivers/arm_uart_drv.c
         $<$<AND:$<NOT:$<BOOL:${TEST_NS_SLIH_IRQ}>>,$<NOT:$<BOOL:${TEST_NS_FLIH_IRQ}>>>:${CMAKE_CURRENT_SOURCE_DIR}/native_drivers/timer_cmsdk/timer_cmsdk.c>
         ${CMAKE_SOURCE_DIR}/platform/ext/common/tfm_hal_nvic.c
-        ${CMAKE_SOURCE_DIR}/platform/ext/common/tfm_hal_isolation_mpu_v8m.c
+        #not tfmv17 todo wangzhilei ${CMAKE_SOURCE_DIR}/platform/ext/common/tfm_hal_isolation_mpu_v8m.c
         $<$<OR:$<BOOL:${TFM_S_REG_TEST}>,$<BOOL:${TFM_NS_REG_TEST}>>:${CMAKE_CURRENT_SOURCE_DIR}/plat_test.c>
         $<$<BOOL:${TFM_PARTITION_PLATFORM}>:${CMAKE_CURRENT_SOURCE_DIR}/services/src/tfm_platform_system.c>
 )
@@ -132,7 +132,6 @@ target_compile_options(platform_s
 )
 
 #========================= Platform Non-Secure ================================#
-
 target_sources(platform_ns
     PRIVATE
         native_drivers/arm_uart_drv.c
@@ -168,11 +167,9 @@ if(BL2)
             bl2/flash_map.c
     )
 
-
 	target_compile_definitions(platform_bl2
 	    PUBLIC
 		-DMCUBOOT_IMAGE_ACCESS_HOOKS=1
-		#-DCRYPTO_HW_ACCELERATOR  TODO peter, need to enable it finally
 	)
 
     target_include_directories(platform_bl2

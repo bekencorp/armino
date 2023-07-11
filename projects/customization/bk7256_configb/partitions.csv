@@ -1,0 +1,8 @@
+# Name,Offset,Size,Execute,Read,Write
+bootloader,0x00,64K,TRUE,TRUE,FALSE
+app,0x00,1792K,TRUE,TRUE,FALSE
+app1,0x00,1792K,TRUE,TRUE,FALSE
+usr_config,0x00,208K,,TRUE,
+ota_fina_executive,0x3FD000,4K,,TRUE,
+rf_firmware,0x3FE000,4K,,TRUE,
+net_param,0x3FF000,4K,,TRUE,

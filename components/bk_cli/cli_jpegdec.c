@@ -9,7 +9,7 @@
 #include "diskio.h"
 #endif
 
-#if (CONFIG_JPEG_DECODE)
+#if (CONFIG_JPEGDEC_SW)
 #include <components/jpeg_decode.h>
 #endif
 
@@ -497,7 +497,7 @@ void jpeg_dec_read_sdcard_to_psram(char *pcWriteBuffer, int xWriteBufferLen, int
 
 void jpeg_sw_dec_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-#if CONFIG_JPEG_DECODE
+#if CONFIG_JPEGDEC_SW
 	int err = 0;
 	uint32_t srcaddr;
 	uint32_t dstaddr;
@@ -630,7 +630,7 @@ static const struct cli_command s_jpegdec_commands[] = {
 	{"jpegread", "<filename> <src_addr> Read data from sdcard to psram", jpeg_dec_read_sdcard_to_psram},
 	{"jpegwrite", "<filename> <size> <dest_addr> Write data from psram to sdcard", jpeg_dec_write_psram_to_sdcard},
 #endif
-#if CONFIG_JPEG_DECODE
+#if CONFIG_JPEGDEC_SW
 	{"jpegdec", "<filename> <src_addr> <dest_addr> Test yuv rotate", jpeg_sw_dec_test},
 #endif
 };

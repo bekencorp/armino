@@ -53,7 +53,7 @@ static inline void wdt_ll_set_2nd_key(wdt_hw_t *hw)
 
 static inline void wdt_ll_set_period(wdt_hw_t *hw, uint32_t period)
 {
-#if !CONFIG_DEBUG_FIRMWARE
+#if !CONFIG_DEBUG_FIRMWARE && !CONFIG_NMI_WDT_EN
 	if (!aon_pmu_hal_is_chipid_later_than_version_C())
 #endif
 	{

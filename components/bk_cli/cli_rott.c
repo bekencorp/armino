@@ -1,13 +1,11 @@
 #include "cli.h"
-extern void rott_only_yuv2rgb565_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-extern void rott_rotate_yuv2rgb565_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+extern void rott_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 
 #define ROTT_CNT (sizeof(s_rott_commands) / sizeof(struct cli_command))
 
 static const struct cli_command s_rott_commands[] = {
-	{"rott_bypass", "intput_fmt", rott_only_yuv2rgb565_test},
-	{"rott_rotate", "intput_fmt ", rott_rotate_yuv2rgb565_test},
+	{"rott", "{init} {bypass,yuyv|vuyy} {rotate r90|270 yuyv|vuyy} ", rott_test},
 };
 
 int cli_rott_init(void)

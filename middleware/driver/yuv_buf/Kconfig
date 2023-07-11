@@ -1,0 +1,5 @@
+menu "YUV_BUF"
+	config YUV_BUF
+		bool "Enable yuv_buf"
+		default n
+endmenu

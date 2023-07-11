@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-#if CONFIG_SOC_BK7236
+#if CONFIG_SOC_BK7236XX
 	#include "bk7236.h"
 #else
 	#error "Not supported soc"

@@ -1,0 +1,5 @@
+menu "JPEG_DEC"
+	config JPEGDEC_HW
+		bool "Enable JPEGDEC Display"
+		default n
+endmenu

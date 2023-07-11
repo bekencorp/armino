@@ -94,6 +94,15 @@ void aon_pmu_drv_wdt_rst_dev_enable(void)
 {
 	aon_pmu_hal_wdt_rst_dev_enable();
 }
+
+void aon_pmu_drv_wdt_change_not_rosc_clk(void)
+{
+	uint32_t param =0;
+	param = aon_pmu_drv_reg_get(PMU_REG0x41);
+	param &= ~0x3; //select clk_DIVD as lpo_src
+	aon_pmu_drv_reg_set(PMU_REG0x41,param);
+}
+
 #endif
 
 uint32_t aon_pmu_drv_bias_cal_get()

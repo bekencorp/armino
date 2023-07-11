@@ -335,7 +335,7 @@ static void h264_test_func(int frame,int ppi_second)
 	//bk_h264_camera_gpio_set();
 	//frame_buffer_init();
 #if (CONFIG_USB_DEVICE && CONFIG_USB_UVC)
-	bk_dvp_camera_open(PPI_640X480, MEDIA_DVP_H264);
+	bk_dvp_camera_open(PPI_640X480, MEDIA_DVP_H264_USB_TRANSFER);
 #else
 	bk_dvp_camera_open(media_ppi, MEDIA_DVP_H264_LOCAL);
 #endif
@@ -441,17 +441,18 @@ static void h264_demo_wifi(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 	int ret = 0;
 	char *msg = NULL;
 
-	bk_h264_clk_check();
-	bk_h264_driver_init();
-	bk_h264_init(PPI_640X480);
-	bk_yuv_buf_driver_init();
-	bk_yuv_buf_init(&yuv_buf_config);
-	bk_yuv_buf_set_em_base_addr((uint32_t)sensor_data);
-	bk_yuv_buf_start(YUV_BUF_MODE_H264);
 	if (os_strcmp(argv[1], "udp") == 0) {
 		demo_H264_udp_init();
 	} else if (os_strcmp(argv[1], "tcp") == 0) {
 		demo_H264_tcp_init();
+	} else if (os_strcmp(argv[1], "buffer") == 0) {
+		media_ppi_t ppi = PPI_DEFAULT;
+		if (argc >= 3)
+			ppi = get_string_to_ppi(argv[2]);
+		if (ppi == PPI_DEFAULT)
+			ppi = PPI_640X480;
+
+		media_app_camera_open(APP_CAMERA_DVP_H264_LOCAL, ppi);
 	}
 
 	if (ret != BK_OK) {

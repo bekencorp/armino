@@ -10,6 +10,9 @@
 #include "mbedtls/platform.h"
 #else
 #include <stdio.h>
+
+int printf(const char *fmt, ...);
+
 #define mbedtls_printf printf
 #define mbedtls_calloc calloc
 #define mbedtls_free   free

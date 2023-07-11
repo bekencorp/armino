@@ -193,9 +193,10 @@ typedef struct
 	uint8_t bg_alpha_value;        /**< background logo alpha value,depend on alpha_mode*/
 	data_format_t fg_data_format;  /**< foregound data format */
 	pixel_format_t bg_data_format; /**< background data format */
+	uint16_t xpos;               /**< blend to bg  x pos based on bg_width */
+	uint16_t ypos;               /**< blend to bg  y pos based on bg_height */
 	uint8_t flag; /**< background data format */
 }lcd_blend_t;
-
 
 
 

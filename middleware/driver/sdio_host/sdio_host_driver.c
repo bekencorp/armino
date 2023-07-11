@@ -31,6 +31,8 @@
 #include "bk_sys_ctrl.h"
 #endif
 
+#include "bk_misc.h"
+
 #if (CONFIG_SDIO_V2P0)
 /*
  * TODO: until now(2022-08-20),we use specific value for timeout.
@@ -663,24 +665,24 @@ void bk_sdio_host_start_read(void)
 	sdio_host_hal_start_receive_data(&s_sdio_host.hal);
 }
 
-uint32_t bk_sdio_host_read_fifo(void)
+bk_err_t bk_sdio_host_read_fifo(uint32_t *save_v_p)
 {
+#define SDIO_READ_FIFO_TIMEOUT (400)	//us, one word transfer in 13M clock nearly 10us with single wire
 	uint32_t i = 0;
 
 	while (!sdio_host_hal_is_rx_fifo_read_ready(&s_sdio_host.hal))
 	{
 		i++;
-		if(i % 0x1000000 == 0)
-			SDIO_HOST_LOGE("FIFO can't read i=0x%08x", i);
-
-		//avoid dead in while
-		if(i == 0x1000000 * 16) {
-			SDIO_HOST_LOGE("FIFO read fail,the return data is invalid");
-			break;
+		delay_us(1);
+		if(i == SDIO_READ_FIFO_TIMEOUT) {
+			SDIO_HOST_LOGE("FIFO read fail,the return data is invalid\r\n");
+			return BK_ERR_SDIO_HOST_READ_DATA_FAIL;
 		}
 	}
 
-	return sdio_host_hal_read_fifo(&s_sdio_host.hal);
+	*save_v_p = sdio_host_hal_read_fifo(&s_sdio_host.hal);
+
+	return BK_OK;
 }
 
 #if (CONFIG_SDIO_V2P0)

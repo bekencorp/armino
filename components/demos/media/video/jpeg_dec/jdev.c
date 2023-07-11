@@ -43,7 +43,7 @@ JPEG_DTCM static jpeg_dec_t jpeg_dec_st = {0};
 JPEG_DTCM static uint8_t jpeg_dec_out_fomat = JDF_VYUY;
 JPEG_DTCM static bool s_jpegdec_is_init = false;
 
-#if 0
+#if CONFIG_SLAVE_CORE
 JPEG_DTCM static uint8_t jpeg_dec_work_buff[WORK_AREA_SIZE] = {0};
 #endif
 
@@ -96,23 +96,24 @@ JPEG_ITCM int output_func (	/* 1:Ok, 0:Aborted */
 {
 	uint32_t nx, ny, xc, wd;
 	uint8_t unit = 0;
+	uint16_t tmp_data;
 
 	uint32_t *src_w = NULL, *dst_w = NULL;
 	uint8_t *src = NULL, *dst = NULL;
 
-if (JD_FORMAT == 0)
+	if (JD_FORMAT == 0)
 	{
 		unit = 3;		/* Byte width of a pixel */
 	}
-else if ((JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4))
+	else if ((JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4))
 	{
 		unit = 2;		/* Byte width of a pixel */
 	}
-else if  (JD_FORMAT == 2)
+	else if  (JD_FORMAT == 2)
 	{
 		unit = 1;
 	}
-else
+	else
 	{
 		os_printf("JD_FORMAT error!\r\n");
 		return JDR_FMT1;
@@ -121,55 +122,72 @@ else
 	nx = rect->right - rect->left + 1;
 	ny = rect->bottom - rect->top + 1;	/* Number of lines of the rectangular */
 
-if ((JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4))
-{
-	src_w = (uint32_t*)bitmap;
-}
-else
-{
-	src = (uint8_t*)bitmap;				/* RGB bitmap to be output */
-}
-
 	wd = jpeg_dec_st.line_wbyte;							/* Number of bytes a line of the frame buffer */
+	if (unit == 2)
+	{
+		src_w = (uint32_t*)bitmap;
+		tmp_data = (wd - nx * unit) >> 2;
+	}
+	else
+	{
+		src = (uint8_t*)bitmap;				/* RGB bitmap to be output */
+		tmp_data = (wd - nx * unit);
+	}
 
-if ((JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4))
-{
-	dst_w = (uint32_t*)(jpeg_dec_st.outputbuf + rect->top * wd + rect->left * unit);
-}
-else
-{
-	dst = jpeg_dec_st.outputbuf + rect->top * wd + rect->left * unit;	/* Left-top of the destination rectangular in the frame buffer */
-}
+
+	if (unit == 2)
+	{
+		dst_w = (uint32_t*)(jpeg_dec_st.outputbuf + rect->top * wd + rect->left * unit);
+	}
+	else
+	{
+		dst = jpeg_dec_st.outputbuf + rect->top * wd + rect->left * unit;	/* Left-top of the destination rectangular in the frame buffer */
+	}
 
 	// os_printf("output_func[%d %d %d %d]: dst: %p.\r\n",
 	// 			 rect->top, rect->left, rect->bottom, rect->right,dst);
 	// os_printf("output_func[nx:%d, ny:%d, wd: %d]: dst: %p.\r\n", nx, ny, wd, dst);
 
-	do {	/* Copy the rectangular to the frame buffer */
-		xc = nx;
-		do {
-if (JD_FORMAT == 0)
-{
-				*dst++ = *src++;
-				*dst++ = *src++;
-				*dst++ = *src++;
-}
-else if (JD_FORMAT == 2)
-{
-				*dst++ = *src++;
-}
-else if ((JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4))
-{
-				*dst_w++ = *src_w++;
-				--xc;
-}
-		} while (--xc);
+	if (unit == 3)
+	{
+		do {	/* Copy the rectangular to the frame buffer */
+			xc = nx;
+			do {
+				{
+					*dst++ = *src++;
+					*dst++ = *src++;
+					*dst++ = *src++;
+				}
+			} while (--xc);
+			dst += tmp_data;
+		} while (--ny);
+	}
+	else if (unit == 2)
+	{
+		do {	/* Copy the rectangular to the frame buffer */
+			xc = nx;
+			do {
+				{
+					*dst_w++ = *src_w++;
+					xc -= 2;
+				}
+			} while (xc);
+			dst_w += tmp_data;
+		} while (--ny);
+	}
+	else if (unit == 1)
+	{
+		do {	/* Copy the rectangular to the frame buffer */
+			xc = nx;
+			do {
+				{
+					*dst++ = *src++;
+				}
+			} while (--xc);
+			dst += tmp_data;
+		} while (--ny);
+	}
 
-if ((JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4))
-		dst_w += (wd - nx * unit) >> 2;
-else
-		dst += wd - nx * unit;
-	} while (--ny);
 
 	return 1;	/* Continue to decompress */
 }
@@ -189,7 +207,7 @@ bk_err_t bk_jpeg_dec_sw_init(void)
 	jpeg_dec_st.scale_ratio = SCALE;
 	jpeg_dec_st.rd_ptr = 0;
 	jpeg_dec_st.jpg_file_size = 1024;
-#if 0
+#if CONFIG_SLAVE_CORE
 	jpeg_dec_st.workbuf = &jpeg_dec_work_buff[0];
 #else
 	if (NULL != jpeg_dec_st.workbuf)
@@ -256,19 +274,19 @@ JPEG_ITCM bk_err_t bk_jpeg_dec_sw_start(uint32_t frame_size, uint8_t *src_buf, u
 		jpeg_dec_st.width = xs;
 		jpeg_dec_st.height = ys;
 
-if (JD_FORMAT == 0)
+		if (JD_FORMAT == 0)
 		{
 			xb = (xs * 3 + 3) & ~3;		/* Byte width of the frame buffer */
 		}
-else if ((JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4))
+		else if ((JD_FORMAT == 1) || (JD_FORMAT == 3) || (JD_FORMAT == 4))
 		{
 			xb = xs * 2;		/* Byte width of the frame buffer */
 		}
-else if (JD_FORMAT == 2)
+		else if (JD_FORMAT == 2)
 		{
 			xb = xs;
 		}
-else
+		else
 		{
 			os_printf("JD_FORMAT error!\r\n");
 			ret = JDR_FMT1;

@@ -10,6 +10,7 @@
 #include "bk_pm_internal_api.h"
 #include "boot.h"
 #include "mon_call.h"
+#include "wdt_driver.h"
 
 #if CONFIG_ATE_TEST
 extern void c_startup_ate(void);
@@ -20,19 +21,12 @@ extern void __libc_init_array(void);
 extern void init_pmp_config();
 extern void entry_main(void);
 
-void close_wdt(void)
-{
-	/*close the wdt*/
-	*((volatile unsigned long *) (0x44000600)) = 0x5A0000;
-	*((volatile unsigned long *) (0x44000600)) = 0xA50000;
-	*((volatile unsigned long *) (0x44800000)) = 0x5A0000;
-	*((volatile unsigned long *) (0x44800000)) = 0xA50000;
-}
 //volatile int g_debug_mode=1;
 void reset_handler(void)
 {
-    /// TODO: DEBUG VERSION close the wdt
-	close_wdt();
+#if (!CONFIG_SLAVE_CORE) 
+	bk_wdt_force_feed();
+#endif
 
 #if (!CONFIG_SLAVE_CORE)
 	sram_dcache_map();

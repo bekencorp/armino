@@ -1,6 +1,6 @@
 menu "JPEG_ENC"
-	config JPEG_ENCODE
-		bool "Enable JPEG_ENCODE"
+	config JPEGENC_HW
+		bool "Enable HardWare JPEG ENCODE"
 		default n
 endmenu
 	

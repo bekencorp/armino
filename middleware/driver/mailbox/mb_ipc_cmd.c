@@ -633,6 +633,7 @@ bk_err_t ipc_send_available_ind(u16 resource_id)
 #if CONFIG_MASTER_CORE
 
 /**    ============================      IPC server    ============================   **/
+#include "spinlock.h"
 
 static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf)
 {
@@ -652,10 +653,12 @@ static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf
 			{
 				ipc_rsp->rsp_data_len = sizeof(u32);
 
-				u32 * p_src = (u32 *)chnl_cb->cmd_buf;
+			//	u32 * p_src = (u32 *)chnl_cb->cmd_buf;
 				u32 * p_dst = (u32 *)ipc_rsp->rsp_buff;
 
-				*p_dst = (*p_src) + 1;
+				extern spinlock_t		gpio_spinlock;
+
+				*p_dst = (u32)&gpio_spinlock;
 				
 				result = ACK_STATE_COMPLETE;
 			}

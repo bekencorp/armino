@@ -18,6 +18,14 @@
 #include "pm.h"
 
 #if CONFIG_PM_DEPEND
+#if 0
+#define PM_DEPEND_LOCK()     pm_lock(PM_MODULE_DEPEND)
+#define PM_DEPEND_UNLOCK()   pm_unlock(PM_MODULE_DEPEND)
+#else
+#define PM_DEPEND_LOCK()
+#define PM_DEPEND_UNLOCK()
+#endif
+
 static pm_depend_entry_t s_depend_entry[CONFIG_PM_DEPEND_HANDLE_MAX] = {0};
 static pm_depend_handle_t s_free_entry_list = 0;
 
@@ -145,22 +153,28 @@ int pm_depend_add(const device_t *d1, const device_t *d2, pm_depend_type_t type,
 		return BK_ERR_PM_DEVICE_NULL_DEV;
 	}
 
+	PM_DEPEND_LOCK();
 	PM_LOGV("depend add+: %s depends on %s, type=%s, value=%d\r\n", device_get_name(d1), device_get_name(d2), pm_depend_get_entry_type_str(type), value);
+
 	pm_device_t *d1_pm = d1->pm;
 	pm_device_t *d2_pm = d2->pm;
 	device_handle_t d1_handle = DEVICE_PTR2HANDLE(d1);
 
 	if (pm_depend_is_in_list(d1_pm->children, d1_handle, type)) {
 		PM_LOGD("depend entry already exists, remove it first!\r\n");
+		PM_DEPEND_UNLOCK();
 		return BK_ERR_PM_DEPEND_EXIST;
 	}
 
 	int ret = pm_depend_add_entry_to_list(&d2_pm->children, d1_handle, type, value);
 	if (ret != BK_OK) {
 		//TODO rollback
+		PM_DEPEND_UNLOCK();
 		return ret;
 	}
+
 	PM_LOGV("depend add-\r\n");
+	PM_DEPEND_UNLOCK();
 
 	return BK_OK;
 }
@@ -171,6 +185,7 @@ int pm_depend_remove(const device_t *d1, const device_t *d2, pm_depend_type_t ty
 		return BK_ERR_PM_DEVICE_NULL_DEV;
 	}
 
+	PM_DEPEND_LOCK();
 	PM_LOGV("depend remove+: %s depends on %s, type=%s\r\n", device_get_name(d1), device_get_name(d2), pm_depend_get_entry_type_str(type));
 
 	pm_device_t *d2_pm = d2->pm;
@@ -179,18 +194,23 @@ int pm_depend_remove(const device_t *d1, const device_t *d2, pm_depend_type_t ty
 
 	if (pm_depend_is_in_list(d2_pm->children, d1_handle, type) == false) {
 		PM_LOGD("depend entry already removed\r\n");
+		PM_DEPEND_UNLOCK();
 		return BK_OK;
 	}
 
 	int ret = pm_depend_remove_entry_from_list(&d2_pm->children, d1_handle, type, &depend_handle);
 	if (ret != BK_OK) {
 		//TODO rollback
+		PM_DEPEND_UNLOCK();
 		return ret;
 	}
 
 	if (depend_handle != PM_DEPEND_ENTRY_END) {
 		pm_depend_free_entry(depend_handle);
 	}
+
+	PM_LOGV("depend add-\r\n");
+	PM_DEPEND_UNLOCK();
 
 	return BK_OK;
 }

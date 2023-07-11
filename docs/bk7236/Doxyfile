@@ -125,6 +125,8 @@ INPUT = \
     ../../../include/modules/mp3dec.h \
     ../../../include/components/aud_intf.h \
     ../../../include/components/aud_intf_types.h \
+    ../../../include/driver/rott_driver.h \
+    ../../../include/driver/rott_types.h \
     ## PM
     ../../../include/modules/pm.h 
 

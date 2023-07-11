@@ -24,3 +24,4 @@ void arch_parse_stack_backtrace(const char *str_type, uint32_t stack_top,
         uint32_t stack_bottom, uint32_t stack_size, bool thumb_mode);
 void arch_sleep(void);
 void arch_deep_sleep(void);
+uint64_t check_IRQ_pending(void);

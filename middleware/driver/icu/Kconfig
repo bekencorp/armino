@@ -4,3 +4,9 @@ menu "ICU"
 		default n
 endmenu
 
+menu "Interrupt"
+	config ISR_REG_DISABLE
+		bool "Disable irq"
+		default n
+endmenu
+

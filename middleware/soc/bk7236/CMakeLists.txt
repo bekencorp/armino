@@ -18,6 +18,7 @@ list(APPEND srcs
 	"hal/pwm_ll.c"
 	"hal/timer_hal_debug.c"
 	"hal/timer_ll.c"
+	"hal/timer_hal.c"
 	"hal/gpio_hal_debug.c"
 	"hal/gpio_ll.c"
 	"hal/dma_hal_debug.c"

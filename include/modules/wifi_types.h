@@ -274,6 +274,11 @@ typedef struct {
 	uint8_t channel;                   /**< Primary channel of AP to be connected, fast connect only */
 	wifi_security_t security;          /**< Security of AP to be connected */
 	char  password[WIFI_PASSWORD_LEN]; /**< Security key or PMK of the wlan. */
+#ifdef CONFIG_CONNECT_THROUGH_PSK_OR_SAE_PASSWORD
+	uint8_t psk[65];
+	uint8_t psk_len;
+	bool psk_calculated;
+#endif
 #if CONFIG_INCLUDE_STA_VSIE
 	struct {
 		uint8_t len;

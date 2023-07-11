@@ -42,28 +42,44 @@
 	for (pos = (head)->next, n = pos->next; (pos != (head)) && (pos->next != pos); \
 	     pos = n, n = pos->next)
 
-#define PSRAM_ADDRESS (0x60000000UL)
-#define ALINE_SIZE (1024 * 64)
+#define PSRAM_USE_IN_VIDEO     0
+#define PSRAM_JPEG_SHARE_MEM   (1024 * 40)
+#define PSRAM_H264_SHARE_MEM   (1024 * 80)
 
-#define DIS_800X600_SIZE (((800 * 600 * 2) / ALINE_SIZE + 1) * ALINE_SIZE)
-#define DIS_800X600_COUNT (4)
-#define DIS_800X600_ADDRESS (PSRAM_ADDRESS)
-#define JPG_800X600_SIZE (1024 * 200)
-#define JPG_800X600_COUNT (4)
-#define JPG_800X600_ADDRESS (PSRAM_ADDRESS + (DIS_800X600_SIZE * DIS_800X600_COUNT))
-#define H264_800X600_SIZE (1024 * 200)
-#define H264_800X600_COUNT (200)
-#define H264_800X600_ADDRESS (JPG_800X600_ADDRESS + (JPG_800X600_SIZE * JPG_800X600_COUNT))
+#if (PSRAM_USE_IN_VIDEO)
+#define PSRAM_ADDRESS          (0x60000000UL + PSRAM_H264_SHARE_MEM)//PSRAM_JPEG_SHARE_MEM
+#else
+#define PSRAM_ADDRESS          (0x60000000UL)
+#endif
+#define ALINE_SIZE             (1024 * 64)
 
-#define DIS_1280X720_SIZE (((1280 * 720 * 2) / ALINE_SIZE + 1) * ALINE_SIZE)
-#define DIS_1280X720_COUNT (3)
-#define DIS_1280X720_ADDRESS (PSRAM_ADDRESS)
-#define JPG_1280X720_SIZE (1024 * 250)
-#define JPG_1280X720_COUNT (4)
-#define JPG_1280X720_ADDRESS (PSRAM_ADDRESS + (DIS_1280X720_SIZE * DIS_1280X720_COUNT))
-#define H264_1280X720_SIZE (1024 * 200)
-#define H264_1280X720_COUNT (200)
-#define H264_1280X720_ADDRESS (JPG_1280X720_ADDRESS + (JPG_1280X720_SIZE * JPG_1280X720_COUNT))
+#if (CONFIG_SOC_BK7256XX)
+#define DIS_800X600_SIZE       (((800 * 600 * 2) / ALINE_SIZE + 1) * ALINE_SIZE)
+#else
+#define DIS_800X600_SIZE       (800 * 600 * 2)
+#endif
+#define DIS_800X600_COUNT      (4)
+#define DIS_800X600_ADDRESS    (PSRAM_ADDRESS)
+#define JPG_800X600_SIZE       (1024 * 200)
+#define JPG_800X600_COUNT      (4)
+#define JPG_800X600_ADDRESS    (PSRAM_ADDRESS + (DIS_800X600_SIZE * DIS_800X600_COUNT))
+#define H264_800X600_SIZE      (1024 * 40)
+#define H264_800X600_COUNT     (60)
+#define H264_800X600_ADDRESS   (JPG_800X600_ADDRESS)
+
+#if (CONFIG_SOC_BK7256XX)
+#define DIS_1280X720_SIZE      (((1280 * 720 * 2) / ALINE_SIZE + 1) * ALINE_SIZE)
+#else
+#define DIS_1280X720_SIZE      (1280 * 720 * 2)
+#endif
+#define DIS_1280X720_COUNT     (3)
+#define DIS_1280X720_ADDRESS   (PSRAM_ADDRESS)
+#define JPG_1280X720_SIZE      (1024 * 200)
+#define JPG_1280X720_COUNT     (4)
+#define JPG_1280X720_ADDRESS   (PSRAM_ADDRESS + (DIS_1280X720_SIZE * DIS_1280X720_COUNT))
+#define H264_1280X720_SIZE     (1024 * 40)
+#define H264_1280X720_COUNT    (40)
+#define H264_1280X720_ADDRESS  (JPG_1280X720_ADDRESS)
 
 extern uint32_t platform_is_in_interrupt_context(void);
 
@@ -129,14 +145,12 @@ fb_mem_list_t *frame_buffer_list_get(pixel_format_t fmt)
 			ret = &fb_mem_list[FB_INDEX_JPEG];
 			break;
 		case PIXEL_FMT_RGB565:
+		case PIXEL_FMT_RGB565_LE:
 		case PIXEL_FMT_YUYV:
 		case PIXEL_FMT_UYVY:
 		case PIXEL_FMT_YYUV:
 		case PIXEL_FMT_UVYY:
 		case PIXEL_FMT_VUYY:
-		case PIXEL_FMT_YVYU:
-		case PIXEL_FMT_VYUY:
-		case PIXEL_FMT_YYVU:
 			ret = &fb_mem_list[FB_INDEX_DISPLAY];
 			break;
 		case PIXEL_FMT_DVP_H264:
@@ -161,15 +175,13 @@ fb_type_t frame_buffer_type_get(pixel_format_t fmt)
 		case PIXEL_FMT_UVC_H264:
 			ret = FB_INDEX_JPEG;
 			break;
+		case PIXEL_FMT_RGB565_LE:
 		case PIXEL_FMT_RGB565:
 		case PIXEL_FMT_YUYV:
 		case PIXEL_FMT_UYVY:
 		case PIXEL_FMT_YYUV:
 		case PIXEL_FMT_UVYY:
 		case PIXEL_FMT_VUYY:
-		case PIXEL_FMT_YVYU:
-		case PIXEL_FMT_VYUY:
-		case PIXEL_FMT_YYVU:
 			ret = FB_INDEX_DISPLAY;
 			break;
 		case PIXEL_FMT_DVP_H264:
@@ -208,6 +220,12 @@ bk_err_t frame_buffer_list_remove(frame_buffer_t *frame, LIST_HEADER_T *list)
 
 void frame_buffer_fb_free(frame_buffer_t *frame, frame_module_t index)
 {
+	if (frame == NULL)
+	{
+		LOGE("%s, frame is null\r\n");
+		return;
+	}
+
 	fb_mem_list_t *mem_list = frame_buffer_list_get(frame->fmt);
 	frame_buffer_node_t *node = list_entry(frame, frame_buffer_node_t, frame);
 	uint32_t isr_context = platform_is_in_interrupt_context();
@@ -839,7 +857,7 @@ int frame_buffer_fb_init(media_ppi_t max_ppi, fb_type_t type)
 	{
 		mem_list->mode = FB_MEM_SHARED;
 		mem_list->count = fb_mem_set->count;
-		LOGI("jpeg mem init size: %X, count: %d\n", fb_mem_set->size, fb_mem_set->count);
+		LOGD("jpeg mem init size: %X, count: %d\n", fb_mem_set->size, fb_mem_set->count);
 	}
 	else
 	{
@@ -864,11 +882,11 @@ int frame_buffer_fb_init(media_ppi_t max_ppi, fb_type_t type)
 		node->frame.length = 0;
 		node->frame.sequence = 0;
 
-		LOGI("free list add: %p\n", node);
+		LOGD("free list add: %p\n", node);
 
 		list_add_tail(&node->list, &mem_list->free);
 
-		LOGI("init: %p\n", node->frame.frame);
+		LOGD("init: %p\n", node->frame.frame);
 	}
 
 	mem_list->enable = true;
@@ -905,6 +923,12 @@ frame_buffer_t *frame_buffer_fb_jpeg_malloc(void)
 
 void frame_buffer_fb_jpeg_free(frame_buffer_t *frame)
 {
+	if (frame == NULL)
+	{
+		LOGE("%s, frame is null\r\n");
+		return;
+	}
+
 	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_JPEG];
 	frame_buffer_node_t *node = list_entry(frame, frame_buffer_node_t, frame);
 	uint32_t isr_context = platform_is_in_interrupt_context();
@@ -986,6 +1010,12 @@ frame_buffer_t *frame_buffer_fb_display_malloc_wait(void)
 
 void frame_buffer_fb_display_free(frame_buffer_t *frame)
 {
+	if (frame == NULL)
+	{
+		LOGE("%s, frame is null\r\n");
+		return;
+	}
+
 	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_DISPLAY];
 	frame_buffer_node_t *tmp = NULL, *node = list_entry(frame, frame_buffer_node_t, frame);
 	uint32_t length = 0, isr_context = platform_is_in_interrupt_context();
@@ -1206,6 +1236,12 @@ frame_buffer_t *frame_buffer_fb_h264_malloc_wait(void)
 
 void frame_buffer_fb_h264_free(frame_buffer_t *frame)
 {
+	if (frame == NULL)
+	{
+		LOGE("%s, frame is null\r\n");
+		return;
+	}
+
 	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_H264];
 	frame_buffer_node_t *tmp = NULL, *node = list_entry(frame, frame_buffer_node_t, frame);
 	uint32_t length = 0, isr_context = platform_is_in_interrupt_context();

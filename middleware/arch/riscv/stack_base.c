@@ -23,6 +23,7 @@
 #if CONFIG_TRNG_SUPPORT
 #include <driver/trng.h>
 #endif
+#include <driver/wdt.h>
 
 #define TAG "Stack"
 
@@ -64,7 +65,11 @@ void stack_mem_dump(uint32_t stack_top, uint32_t stack_bottom)
 		if ((cnt++ & 0x7) == 0) {
 			BK_DUMP_OUT("\r\n");
 		}
-
+#if CONFIG_DEBUG_FIRMWARE && CONFIG_INT_WDT
+		if((cnt & 0xfff) == 0) {
+			bk_wdt_feed();
+		}
+#endif
 		BK_DUMP_OUT("%02x %02x %02x %02x ", data[0], data[1], data[2], data[3]);
 	}
 	BK_DUMP_OUT("\r\n");

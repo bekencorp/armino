@@ -22,6 +22,7 @@
 #include <driver/aon_rtc.h>
 #include <driver/hal/hal_spi_types.h>
 #include "gpio_hal.h"
+#include "timer_hal.h"
 
 static sys_hal_t s_sys_hal;
 uint32 sys_hal_get_int_group2_status(void);
@@ -130,34 +131,27 @@ uint32_t sys_hal_flash_get_clk_div(void)
 /*for low power function start*/
 void sys_hal_module_power_ctrl(power_module_name_t module,power_module_state_t power_state)
 {
-    uint32_t value = 0;
-	if((module >= POWER_MODULE_NAME_MEM1) && (module <= POWER_MODULE_NAME_WIFI_PHY))
-	{
-	    value = 0;
-    	value = sys_ll_get_cpu_power_sleep_wakeup_value();
-        if(power_state == POWER_MODULE_STATE_ON)//power on
-        {
-            value &= ~(1 << module);
-        }
-    	else //power down
-    	{
-    	    value |= (1 << module);
-    	}
+	uint32_t value = 0;
+
+	if((module >= POWER_MODULE_NAME_MEM1) && (module <= POWER_MODULE_NAME_ROM_PGEN)) {
+		value = 0;
+		value = sys_ll_get_cpu_power_sleep_wakeup_value();
+		if(power_state == POWER_MODULE_STATE_ON) {
+			value &= ~(1 << module);
+        	} else {
+			value |= (1 << module);
+		}
 		sys_ll_set_cpu_power_sleep_wakeup_value(value);
-	}
-    else if(module == POWER_MODULE_NAME_CPU1)
-    {
-		if(power_state == POWER_MODULE_STATE_ON)
-		{
+	} else if(module == POWER_MODULE_NAME_CPU1) {
+
+		if(power_state == POWER_MODULE_STATE_ON) {
 			//power on and then support clock
 			sys_ll_set_cpu1_int_halt_clk_op_cpu1_pwr_dw(POWER_MODULE_STATE_ON);
 			sys_ll_set_cpu1_int_halt_clk_op_cpu1_halt(0);
 
 			//wait halt really cleared,clock support finish
 			for(int i = 0; i < 1000; i++);
-		}
-		else
-		{
+		} else {
 			//un-support clock and then power down
 			sys_ll_set_cpu1_int_halt_clk_op_cpu1_halt(1);
 			//here should wait halt really finish and then power down
@@ -165,16 +159,31 @@ void sys_hal_module_power_ctrl(power_module_name_t module,power_module_state_t p
 
 			sys_ll_set_cpu1_int_halt_clk_op_cpu1_pwr_dw(POWER_MODULE_STATE_OFF);
 		}
-    }
-	else
-	{
-	   ;//do something
+	} else if(module == POWER_MODULE_NAME_TCM1_PGEN) {
+		if(power_state == POWER_MODULE_STATE_ON) {
+			sys_ll_set_cpu_power_sleep_wakeup_tcm1_pgen(0);
+		} else {
+			sys_ll_set_cpu_power_sleep_wakeup_tcm1_pgen(1);
+		}
+	} else {
+		;//do something
 	}
-
 }
 
 int32 sys_hal_module_power_state_get(power_module_name_t module)
 {
+	uint32_t value = 0;
+
+	if((module >= POWER_MODULE_NAME_MEM1) && (module <= POWER_MODULE_NAME_ROM_PGEN)) {
+		value = sys_ll_get_cpu_power_sleep_wakeup_value();
+		value = ((value >> module) & 0x1);
+		return value;
+	} else if(module == POWER_MODULE_NAME_CPU1) {
+		return sys_ll_get_cpu_current_run_status_cpu1_pwr_dw_state();
+	} else if (module == POWER_MODULE_NAME_TCM1_PGEN) {
+		return sys_ll_get_cpu_power_sleep_wakeup_tcm1_pgen();
+	}
+
 	return 0;
 }
 
@@ -1011,13 +1020,11 @@ void sys_hal_bt_sleep_exit_ctrl(bool en)
 {
     if (en)
     {
-        //sys_ll_set_cpu_power_sleep_wakeup_bts_sleep_exit_req(1);
-        os_printf("todo\r\n");
+        sys_ll_set_cpu_power_sleep_wakeup_bts_soft_wakeup_req(1);
     }
     else
     {
-        //sys_ll_set_cpu_power_sleep_wakeup_bts_sleep_exit_req(0);
-        os_printf("todo\r\n");
+        sys_ll_set_cpu_power_sleep_wakeup_bts_soft_wakeup_req(0);
     }
 }
 
@@ -1054,15 +1061,14 @@ uint32 sys_hal_get_bts_wakeup_platform_en()
   * param2: clk_always_on, BUS_CLK ENABLE,0: bus clock open when module is select,1:bus clock always open,  0 by defult
   * return none
   */
-void sys_hal_lcd_disp_clk_en(uint8_t clk_src_sel, uint8_t clk_div_l, uint8_t clk_div_h, uint8_t int_en,uint8_t clk_always_on)
+void sys_hal_lcd_disp_clk_en(uint8_t clk_src_sel, uint8_t clk_div_l, uint8_t clk_div_h, uint8_t clk_always_on)
 {
 	sys_ll_set_cpu_clk_div_mode1_clkdiv_disp_l(clk_div_l);
 	sys_ll_set_cpu_clk_div_mode2_clkdiv_disp_h(clk_div_h);
 	sys_ll_set_cpu_clk_div_mode2_cksel_disp( clk_src_sel);
-	sys_ll_set_cpu1_int_0_31_en_cpu1_lcd_display_int_en( 1);
-	sys_ll_set_cpu0_int_0_31_en_cpu0_lcd_display_int_en( int_en);
+//	sys_ll_set_cpu1_int_0_31_en_cpu1_lcd_display_int_en( 1);
+//	sys_ll_set_cpu0_int_0_31_en_cpu0_lcd_display_int_en(int_en);
 	sys_ll_set_cpu_device_clk_enable_disp_cken(1);
-	//sys_ll_set_cpu_mode_disckg2_disp_disckg(clk_always_on);
 }
 
 /**
@@ -1087,17 +1093,17 @@ void sys_hal_lcd_disp_close(void)
   * param1: int_en eanble lcd cpu int
   * return none
   */
-void sys_hal_dma2d_clk_en(uint8_t clk_always_on, uint8_t sys_int_en)
+void sys_hal_dma2d_clk_en(uint8_t clk_always_on)
 {
 	//sys_ll_set_cpu_mode_disckg2_dma2d_disckg(clk_always_on);
-	sys_ll_set_cpu0_int_0_31_en_cpu0_dma2d_int_en(sys_int_en);
+//	sys_ll_set_cpu0_int_0_31_en_cpu0_dma2d_int_en(sys_int_en);
 }
 
-void sys_hal_jpeg_dec_ctrl(bool clk_always_on, bool int_en)
+void sys_hal_set_jpeg_dec_disckg(uint32_t value)
 {
-	//sys_ll_set_cpu_mode_disckg1_jpeg_dec_disckg(clk_always_on);
-	sys_ll_set_cpu0_int_0_31_en_cpu0_jpegdec_int_en(int_en);
+	//sys_ll_set_cpu_mode_disckg1_jpeg_dec_disckg(value);
 }
+
 
 /**  Video End **/
 
@@ -1503,6 +1509,16 @@ void sys_hal_aud_idac_en(uint32_t value)
 void sys_hal_aud_dacdrv_en(uint32_t value)
 {
 	sys_ll_set_ana_reg20_dacdrven(value);
+}
+
+void sys_hal_aud_mic1_single_en(uint32_t value)
+{
+	//sys_ll_set_ana_reg14_micsingleen(value);
+}
+
+void sys_hal_aud_mic2_single_en(uint32_t value)
+{
+	//sys_ll_set_ana_reg15_micsingleen(value);
 }
 
 void sys_hal_aud_int_en(uint32_t value)
@@ -1958,4 +1974,62 @@ uint32_t sys_hal_nmi_wdt_get_clk_div(void)
 void sys_hal_set_ana_cb_cal_manu_val(uint32_t value)
 {
     sys_ll_set_ana_reg5_vbias(value);
+}
+
+
+static void sys_hal_delay(volatile uint32_t times)
+{
+        while(times--);
+}
+
+//TODO the module owner can put the sys init to better place
+void sys_hal_early_init(void)
+{
+	uint32_t chip_id = aon_pmu_hal_get_chipid();
+
+        uint32_t val = sys_hal_analog_get(0x5);//ffe7 31a7
+        val |=  (0x1 << 14) | (0x1 << 5) | (0x1 << 3) | (0x1 << 2) | (0x1 << 1);
+        sys_hal_analog_set(0x5,val);
+
+        val = sys_hal_analog_get(ANALOG_REG0);//ffe7 31a7
+        val |= (0x13 << 20) ;
+        sys_hal_analog_set(ANALOG_REG0,val);
+
+        sys_hal_analog_set(ANALOG_REG0, 0xF1305B57);  // triger dpll
+        sys_ll_set_ana_reg0_dsptrig(1);
+        sys_ll_set_ana_reg0_dsptrig(0);
+
+        sys_hal_analog_set(ANALOG_REG2, 0x7E003450); //wangjian20221110 xtal=0x50
+        //sys_ll_set_cpu_device_clk_enable_value(0x0c008084);
+        sys_hal_analog_set(ANALOG_REG3, 0xC5F00B88);
+	if ((chip_id & PM_CHIP_ID_MASK) == (PM_CHIP_ID_MPW_V2_3 & PM_CHIP_ID_MASK)) {
+		sys_hal_analog_set(ANALOG_REG8, 0x57E62FFE);
+	} else {
+		sys_hal_analog_set(ANALOG_REG8, 0x57E62F26);//shuguang20230414[8:3]7->4: for evm
+	}
+        sys_hal_analog_set(ANALOG_REG9, 0x787BC2A4);
+        sys_hal_analog_set(ANALOG_REG10, 0xC355C3A7);//tenglong20230417:rosc config for buck in lowpower
+	if ((chip_id & PM_CHIP_ID_MASK) == (PM_CHIP_ID_MPW_V2_3 & PM_CHIP_ID_MASK)) {
+		sys_hal_analog_set(ANALOG_REG11, 0x9FEF31F7);
+		sys_hal_analog_set(ANALOG_REG12, 0x9F03EF6F);
+		sys_hal_analog_set(ANALOG_REG13, 0x1F6FB3FF);
+	} else {
+		sys_hal_analog_set(ANALOG_REG11, 0xD47AB8FA);
+		sys_hal_analog_set(ANALOG_REG12, 0xD47AC36A);
+		sys_hal_analog_set(ANALOG_REG13, 0x547AB0EF);
+	}
+
+        sys_hal_flash_set_clk(0x2);
+
+        /* clk_divd 120MHz,
+         * 1, the core clock is depended on CONFIG_CPU_FREQ_HZ and configSYSTICK_CLOCK_HZ.
+         *    Pay attention to bk_pm_module_vote_cpu_freq,and the routine will switch core
+         *    clock;
+         * 2, sysTick module's clock source is processor clock now;
+         */
+        sys_hal_mclk_div_set(480000000/CONFIG_CPU_FREQ_HZ - 1);
+        sys_hal_delay(10000);
+        sys_hal_mclk_mux_set(0x3);/*clock source: DPLL, 480M*/
+
+	timer_hal_us_init();
 }

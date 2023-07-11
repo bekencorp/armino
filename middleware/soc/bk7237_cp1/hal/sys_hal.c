@@ -1078,12 +1078,12 @@ uint32 sys_hal_get_bts_wakeup_platform_en()
   * param2: clk_always_on, BUS_CLK ENABLE,0: bus clock open when module is select,1:bus clock always open,  0 by defult
   * return none
   */
-void sys_hal_lcd_disp_clk_en(uint8_t clk_src_sel, uint8_t clk_div_l, uint8_t clk_div_h, uint8_t int_en,uint8_t clk_always_on)
+void sys_hal_lcd_disp_clk_en(uint8_t clk_src_sel, uint8_t clk_div_l, uint8_t clk_div_h,uint8_t clk_always_on)
 {
 	sys_ll_set_cpu_clk_div_mode1_clkdiv_disp_l(clk_div_l);
 	sys_ll_set_cpu_clk_div_mode2_clkdiv_disp_h(clk_div_h);
 	sys_ll_set_cpu_clk_div_mode2_cksel_disp( clk_src_sel);
-	sys_ll_set_cpu1_int_0_31_en_cpu1_lcd_int_en( int_en);
+//	sys_ll_set_cpu1_int_0_31_en_cpu1_lcd_int_en( int_en);
 	//sys_ll_set_cpu_device_clk_enable_disp_cken(1);
 	sys_ll_set_cpu_mode_disckg2_disp_disckg(clk_always_on);
 }
@@ -1110,18 +1110,16 @@ void sys_hal_lcd_disp_close(void)
   * param1: int_en eanble lcd cpu int
   * return none
   */
-void sys_hal_dma2d_clk_en(uint8_t clk_always_on, uint8_t sys_int_en)
+void sys_hal_dma2d_clk_en(uint8_t clk_always_on)
 {
 	sys_ll_set_cpu_mode_disckg2_dma2d_disckg(clk_always_on);
 	///sys_ll_set_cpu0_int_0_31_en_cpu0_dma2d_int_en(sys_int_en);
-	sys_ll_set_cpu1_int_0_31_en_cpu1_dma2d_int_en(sys_int_en);
+//	sys_ll_set_cpu1_int_0_31_en_cpu1_dma2d_int_en(sys_int_en);
 }
 
-
-void sys_hal_jpeg_dec_ctrl(bool clk_always_on, bool int_en)
+void sys_hal_set_jpeg_dec_disckg(uint32_t value)
 {
-	sys_ll_set_cpu_mode_disckg1_jpeg_dec_disckg(clk_always_on);
-	sys_ll_set_cpu1_int_0_31_en_cpu1_jpegdec_int_en(int_en);
+	sys_ll_set_cpu_mode_disckg1_jpeg_dec_disckg(value);
 }
 
 /**  Video End **/
@@ -1517,6 +1515,16 @@ void sys_hal_aud_mic1_gain_set(uint32_t value)
 void sys_hal_aud_mic2_gain_set(uint32_t value)
 {
 	sys_ll_set_ana_reg15_micgain(value);
+}
+
+void sys_hal_aud_mic1_single_en(uint32_t value)
+{
+	sys_ll_set_ana_reg14_micsingleen(value);
+}
+
+void sys_hal_aud_mic2_single_en(uint32_t value)
+{
+	sys_ll_set_ana_reg15_micsingleen(value);
 }
 
 void sys_hal_aud_int_en(uint32_t value)

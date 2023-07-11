@@ -17,6 +17,25 @@
 #include <pm/pm.h>
 #include <pm/policy.h>
 #include "pm.h"
+#include "sys.h"
+
+#if 0
+#define PM_DEVICE_LOCK()          pm_lock(PM_MODULE_DEVICE)
+#define PM_DEVICE_UNLOCK()        pm_unlock(PM_MODULE_DEVICE)
+#define PM_DEVICE_VOTE_LOCK()     pm_lock(PM_MODULE_DEVICE_VOTE)
+#define PM_DEVICE_VOTE_UNLOCK()   pm_unlock(PM_MODULE_DEVICE_VOTE)
+#define PM_VOTE_LOCK()
+#define PM_VOTE_UNLOCK()
+#else
+#define PM_DEVICE_LOCK()          GLOBAL_INT_DECLARATION();\
+                                  GLOBAL_INT_DISABLE()
+#define PM_DEVICE_UNLOCK()        GLOBAL_INT_RESTORE()
+#define PM_DEVICE_VOTE_LOCK()
+#define PM_DEVICE_VOTE_UNLOCK()
+#define PM_VOTE_LOCK()            GLOBAL_INT_DECLARATION();\
+                                  GLOBAL_INT_DISABLE()
+#define PM_VOTE_UNLOCK()          GLOBAL_INT_RESTORE()
+#endif
 
 //TODO put it into a special section
 const device_t __deviceobj_null;
@@ -26,17 +45,17 @@ static bool pm_device_is_null(const device_t *device)
 	return (device == DEVICE_ID2PTR(null));
 }
 
-int pm_device_wakesource_enable(const device_t *device)
+static int pm_device_wakeup_enable(const device_t *device)
 {
 	const pm_device_t *pm = device->pm;
-	PM_LOGD("enable wakesource %s\r\n", device_get_name(device));
+	PM_LOGD("enable wakeup source %s\r\n", device_get_name(device));
 	if (pm && pm->action_cb) {
 		return pm->action_cb(device, PM_DEVICE_ACTION_WAKEUP_ENABLE);
 	}
 	return BK_OK;
 }
 
-int pm_device_wakesource_disable(const device_t *device)
+static int pm_device_wakeup_disable(const device_t *device)
 {
 	const pm_device_t *pm = device->pm;
 	PM_LOGD("disable wakeup source %s\r\n", device_get_name(device));
@@ -47,7 +66,7 @@ int pm_device_wakesource_disable(const device_t *device)
 }
 
 
-int pm_device_update_freq(const device_t *device)
+static int pm_device_update_freq(const device_t *device)
 {
 	const pm_device_t *pm = device->pm;
 	PM_LOGD("%s update freq\r\n", device_get_name(device));
@@ -82,8 +101,26 @@ static inline int pm_device_do_suspend(const device_t *device)
 	return BK_OK;
 }
 
+int pm_device_wakesource_enable(const device_t *device)
+{
+	PM_DEVICE_LOCK();
+	int ret = pm_device_wakeup_enable(device);
+	PM_DEVICE_UNLOCK();
+
+	return ret;
+}
+
+int pm_device_wakesource_disable(const device_t *device)
+{
+	PM_DEVICE_LOCK();
+	int ret = pm_device_wakeup_disable(device);
+	PM_DEVICE_UNLOCK();
+
+	return ret;
+}
+
 //resume always from leaf device to root device
-int pm_device_resume(const device_t *device)
+int pm_device_resume_recursive(const device_t *device)
 {
 	pm_device_t *pm = device->pm;
 	int ret;
@@ -112,14 +149,14 @@ int pm_device_resume(const device_t *device)
 	const device_t *pd = pm_device_get_pd(device);
 	if (pd && pd->pm) {
 		pd->pm->resume_children_num ++;
-		pm_device_resume(pd);
+		pm_device_resume_recursive(pd);
 	}
 
 	return ret;
 }
 
 //suspend always from leaf device to root device
-int pm_device_suspend(const device_t *device)
+int pm_device_suspend_recursive(const device_t *device)
 {
 	pm_device_t *pm = device->pm;
 
@@ -144,11 +181,29 @@ int pm_device_suspend(const device_t *device)
 	if (pd && pd->pm) {
 		pd->pm->resume_children_num --;
 		if (PM_DEVICE_IS_ALL_CHILDREN_SUSPEND(pd)) {
-			pm_device_suspend(pd);
+			pm_device_suspend_recursive(pd);
 		}
 	}
 
 	return BK_OK;
+}
+
+int pm_device_resume(const device_t *device)
+{
+	PM_DEVICE_LOCK();
+	int ret = pm_device_resume_recursive(device);
+	PM_DEVICE_UNLOCK();
+
+	return ret;
+}
+
+int pm_device_suspend(const device_t *device)
+{
+	PM_DEVICE_LOCK();
+	int ret = pm_device_suspend_recursive(device);
+	PM_DEVICE_UNLOCK();
+
+	return ret;
 }
 
 bool pm_device_is_suspend_allowed(const device_t *device, pm_state_t state)
@@ -165,7 +220,7 @@ bool pm_device_is_suspend_allowed(const device_t *device, pm_state_t state)
 	}
 }
 
-int pm_device_poweron(const device_t *device)
+int pm_device_poweron_recursive(const device_t *device)
 {
 	if (!device || !device->pm) {
 		return BK_ERR_PM_DEVICE_NULL_DEV;
@@ -186,13 +241,13 @@ int pm_device_poweron(const device_t *device)
 	const device_t *pd = pm_device_get_pd(device);
 	if (pd && pd->pm) {
 		pd->pm->on_children_num ++;
-		pm_device_poweron(pd);
+		pm_device_poweron_recursive(pd);
 	}
 
 	return BK_OK;
 }
 
-int pm_device_poweroff(const device_t *device)
+int pm_device_poweroff_recursive(const device_t *device)
 {
 	if (!device || !device->pm) {
 		return BK_ERR_PM_DEVICE_NULL_DEV;
@@ -205,7 +260,7 @@ int pm_device_poweroff(const device_t *device)
 		return BK_OK;
 	}
 
- 	if (pm->action_cb)
+	if (pm->action_cb)
 		pm->action_cb(device, PM_DEVICE_ACTION_POWER_OFF);
 	PM_DEVICE_CLR_FLAG(pm, PM_DEVICE_FLAG_POWER_ON);
 	PM_LOGV("power off %s, flags=%x\r\n", device_get_name(device), pm->flags);
@@ -214,12 +269,29 @@ int pm_device_poweroff(const device_t *device)
 	if (pd && pd->pm) {
 		pd->pm->on_children_num --;
 		if (PM_DEVICE_IS_ALL_CHILDREN_OFF(pd)) {
-			pm_device_poweroff(pd);
+			pm_device_poweroff_recursive(pd);
 		}
-
 	}
 
 	return BK_OK;
+}
+
+int pm_device_poweron(const device_t *device)
+{
+	PM_DEVICE_LOCK();
+	int ret = pm_device_poweron_recursive(device);
+	PM_DEVICE_UNLOCK();
+
+	return ret;
+}
+
+int pm_device_poweroff(const device_t *device)
+{
+	PM_DEVICE_LOCK();
+	int ret = pm_device_poweroff_recursive(device);
+	PM_DEVICE_UNLOCK();
+
+	return ret;
 }
 
 static int pm_device_add_depend(const device_t *d1, const device_t *d2, pm_depend_type_t type, uint8_t value)
@@ -236,74 +308,107 @@ static int pm_device_add_depend(const device_t *d1, const device_t *d2, pm_depen
 
 static int pm_device_remove_depend(const device_t *d1, const device_t *d2, pm_depend_type_t type)
 {
+#if CONFIG_PM_DEPEND
 	if (!d1 || !d2 || !d1->pm || !d2->pm) {
 		return BK_ERR_PM_DEVICE_NULL_DEV;
 	}
 	BK_LOG_ON_ERR(pm_depend_remove(d1, d2, type));
+#endif
 
 	return BK_OK;
 }
 
 int pm_device_vote_freq(const device_t *d1, const device_t *d2, pm_device_freq_t freq)
 {
+	PM_VOTE_LOCK();
 	int ret = pm_device_add_depend(d1, d2, PM_DEPEND_TYPE_VOTE_FREQ, freq);
 
 	if (ret == BK_OK) {
+		PM_DEVICE_VOTE_LOCK();
 		ret = pm_device_update_freq(d2);
+		PM_DEVICE_VOTE_UNLOCK();
 	}
-	return BK_OK;
+	PM_VOTE_UNLOCK();
+	return ret;
+}
+
+int pm_device_vote_cpu_freq(const device_t *dev, pm_device_freq_t freq)
+{
+	PM_VOTE_LOCK();
+	const device_t *cpu = device_get_ptr_by_name("sys");
+	int ret = pm_device_add_depend(dev, cpu, PM_DEPEND_TYPE_VOTE_FREQ, freq);
+
+	if (ret == BK_OK) {
+		PM_DEVICE_VOTE_LOCK();
+		pm_sys_vote_cpu_freq(dev, freq);
+		ret = pm_device_update_freq(cpu);
+		PM_DEVICE_VOTE_UNLOCK();
+	}
+	PM_VOTE_UNLOCK();
+	return ret;
 }
 
 int pm_device_vote_poweron(const device_t *d1, const device_t *d2)
 {
+	PM_VOTE_LOCK();
 	int ret = pm_device_add_depend(d1, d2, PM_DEPEND_TYPE_VOTE_ON, 0);
 
 	if (ret == BK_OK) {
+		PM_DEVICE_VOTE_LOCK();
 		d2->pm->on_children_num ++;
-		ret = pm_device_poweron(d2);
+		ret = pm_device_poweron_recursive(d2);
+		PM_DEVICE_VOTE_UNLOCK();
 	}
-
+	PM_VOTE_UNLOCK();
 	return ret;
 }
 
 int pm_device_vote_poweroff(const device_t *d1, const device_t *d2)
 {
+	PM_VOTE_LOCK();
 	int ret = pm_device_remove_depend(d1, d2, PM_DEPEND_TYPE_VOTE_ON);
 
 	if (ret == BK_OK) {
+		PM_DEVICE_VOTE_LOCK();
 		d2->pm->on_children_num --;
-
 		if (PM_DEVICE_IS_ALL_CHILDREN_OFF(d2)) {
-			ret = pm_device_poweroff(d2);
+			ret = pm_device_poweroff_recursive(d2);
 		}
+		PM_DEVICE_VOTE_UNLOCK();
 	}
-
+	PM_VOTE_UNLOCK();
 	return ret;
 }
 
 int pm_device_vote_resume(const device_t *d1, const device_t *d2)
 {
+	PM_VOTE_LOCK();
 	int ret = pm_device_add_depend(d1, d2, PM_DEPEND_TYPE_VOTE_RESUME, 0);
 
 	if (ret == BK_OK) {
+		PM_DEVICE_VOTE_LOCK();
 		d2->pm->resume_children_num ++;
-		ret = pm_device_resume(d2);
+		ret = pm_device_resume_recursive(d2);
+		PM_DEVICE_VOTE_UNLOCK();
 	}
-
+	PM_VOTE_UNLOCK();
 	return ret;
 }
 
 int pm_device_vote_suspend(const device_t *d1, const device_t *d2)
 {
+	PM_VOTE_LOCK();
 	int ret = pm_device_remove_depend(d1, d2, PM_DEPEND_TYPE_VOTE_RESUME);
 
 	if (ret == BK_OK) {
+		PM_DEVICE_VOTE_LOCK();
 		d2->pm->resume_children_num --;
- 		if (PM_DEVICE_IS_ALL_CHILDREN_SUSPEND(d2)) {
-			ret = pm_device_suspend(d2);
+		if (PM_DEVICE_IS_ALL_CHILDREN_SUSPEND(d2)) {
+			ret = pm_device_suspend_recursive(d2);
 		}
+		PM_DEVICE_VOTE_UNLOCK();
 	}
-
+	PM_VOTE_UNLOCK();
 	return ret;
 }
 
@@ -322,11 +427,13 @@ int pm_device_init(void)
 		//TODO assert it
 	}
 
+#if CONFIG_PM_DEPEND
 	pm_depend_init();
+#endif
+
 	for (init_entry = __a_init_start; init_entry != __a_init_end; init_entry++) {
 		device = init_entry->device;
 		pd = init_entry->pd;
-
 #if CONFIG_PM_DEPEND
 		if (device->pm && pd && pd->pm) {
 			device->pm->pd = DEVICE_PTR2HANDLE(pd);

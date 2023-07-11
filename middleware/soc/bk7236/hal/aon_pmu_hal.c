@@ -39,6 +39,11 @@ uint32_t aon_pmu_hal_get_wakeup_source_reg(void)
 	return aon_pmu_ll_get_r41();
 }
 
+uint32_t aon_pmu_hal_get_chipid(void)
+{
+	return aon_pmu_ll_get_r7c_id();
+}
+
 void aon_pmu_hal_clear_wakeup_source(wakeup_source_t value)
 {
 	uint32_t wakeup_source = 0;
@@ -78,12 +83,23 @@ uint32_t aon_pmu_hal_get_adc_cal()
 
 void aon_pmu_hal_reg_set(pmu_reg_e reg, uint32_t value)
 {
+return;
+    pmu_address_map_t pmu_addr_map[] = PMU_ADDRESS_MAP;
+    pmu_address_map_t *pmu_addr = &pmu_addr_map[reg];
 
+    uint32_t pmu_reg_addr = pmu_addr->reg_address;
+
+	REG_WRITE(pmu_reg_addr, value);
 }
-
 uint32_t aon_pmu_hal_reg_get(pmu_reg_e reg)
 {
-	return 0;
+return 0;
+    pmu_address_map_t pmu_addr_map[] = PMU_ADDRESS_MAP;
+    pmu_address_map_t *pmu_addr = &pmu_addr_map[reg];
+
+    uint32_t pmu_reg_addr = pmu_addr->reg_address;
+
+	return REG_READ(pmu_reg_addr);
 }
 
 

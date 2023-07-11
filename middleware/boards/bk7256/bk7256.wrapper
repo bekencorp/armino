@@ -75,7 +75,7 @@ if os.getenv("PROJECT_DIR") != "projects/ate_mini_code":
                             "{}/{}".format(armino_path, os.getenv("PROJECT_DIR")))
                 #copy bootloader elf-map-asm to build directory
                 #shutil.copytree("{}/{}/l_boot/out/".format(armino_path,project_bootloader_a_b), "./bootloader_out/l_boot",ignore=shutil.ignore_patterns("temp","*.bin","l_bootloader1.asm"))
-                shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader), './bootloader_out')
+                shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader_a_b), './bootloader_out')
         else:
             if (os.path.exists("{}/{}".format(armino_path,project_bootloader))):
                 print("PROJECT_DIR:",os.getenv("PROJECT_DIR"))
@@ -102,7 +102,7 @@ def package_json_rebuild():
                 packfile = "{}/{}/{}".format(armino_path, os.getenv("PROJECT_DIR"),firmware_file["firmware"])
             else:
                 packfile = "{}/middleware/boards/{}/{}".format(armino_path, chip, firmware_file["firmware"])
-                
+
         if (os.path.isfile(packfile)):
             shutil.copy(packfile, "{}/{}".format(build_path, firmware_file["firmware"]))
 
@@ -288,13 +288,13 @@ for file in os.listdir("./"):
 header_path = "{}/tools/env_tools/rtt_ota/ota-rbl/".format(armino_path)
 #print(">>>>>>>>>>>>header_path",header_path)
 if os.path.exists(os.getenv("ARMINO_PATH")+"/projects/"+os.getenv("PROJECT")+"/config/ota_rbl.config"):
-    os.system("python3 {}/tools/env_tools/rtt_ota/ota-rbl/ota_packager_python.py -i {} -o {} -g {} packager".format(armino_path, "encrypt/app_pack_sign.bin", "encrypt/app_packab.rbl", header_path))
+    os.system("python3 {}/tools/env_tools/rtt_ota/ota-rbl/ota_packager_python.py -i {} -o {} -g {} -ap {} -pjd {} packager".format(armino_path, "encrypt/app_pack_sign.bin", "encrypt/app_packab.rbl", header_path, armino_path, os.getenv("PROJECT_DIR")))
     shutil.copy("encrypt/app_packab.rbl", "app_ab.bin")
     os.system("{}/tools/env_tools/beken_packager/cmake_encrypt_crc -crc {}".format(armino_path, "app_ab.bin"))
     os.remove("encrypt/app_packab.rbl");
 else :
-    os.system("python3 {}/tools/env_tools/rtt_ota/ota-rbl/ota_packager_python.py -i {} -o {} -g {} packager".format(armino_path, "encrypt/app_pack.bin", "encrypt/app_pack.rbl", header_path))
-    os.system("python3 {}/tools/env_tools/rtt_ota/ota-rbl/ota_packager_python.py -i {} -o {} -g {} packager".format(armino_path, "encrypt/app_pack_sign.bin", "encrypt/app_pack_sign.rbl", header_path))
+    os.system("python3 {}/tools/env_tools/rtt_ota/ota-rbl/ota_packager_python.py -i {} -o {} -g {} -ap {} -pjd {} packager".format(armino_path, "encrypt/app_pack.bin", "encrypt/app_pack.rbl", header_path, armino_path, os.getenv("PROJECT_DIR")))
+    os.system("python3 {}/tools/env_tools/rtt_ota/ota-rbl/ota_packager_python.py -i {} -o {} -g {} -ap {} -pjd {} packager".format(armino_path, "encrypt/app_pack_sign.bin", "encrypt/app_pack_sign.rbl", header_path, armino_path, os.getenv("PROJECT_DIR")))
     
 #6.pack bootloader app_packab.bin
 #if tmp_config["with_boot_loader"]:

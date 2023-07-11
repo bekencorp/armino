@@ -179,7 +179,7 @@ static inline void yuv_buf_ll_set_y_partial_offset_r(yuv_buf_hw_t *hw, uint32_t 
 
 static inline void yuv_buf_ll_enable_int(yuv_buf_hw_t *hw)
 {
-	hw->int_en.v = 0x1F3;
+	hw->int_en.v = 0x1FF;
 }
 
 static inline void yuv_buf_ll_disable_int(yuv_buf_hw_t *hw)

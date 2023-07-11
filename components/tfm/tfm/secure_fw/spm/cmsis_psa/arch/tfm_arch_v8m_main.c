@@ -185,6 +185,7 @@ void tfm_arch_set_secure_exception_priorities(void)
     NVIC_SetPriority(SecureFault_IRQn, 0);
 
     NVIC_SetPriority(SVCall_IRQn, 0);
+    NVIC_SetPriorityGrouping(4);
 #ifdef TFM_MULTI_CORE_TOPOLOGY
     NVIC_SetPriority(PendSV_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
 #else

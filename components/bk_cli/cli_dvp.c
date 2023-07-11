@@ -24,7 +24,7 @@
 #include "driver/yuv_buf.h"
 #endif
 
-#if (CONFIG_JPEG_ENCODE)
+#if (CONFIG_JPEGENC_HW)
 #include "driver/jpeg_enc.h"
 #endif
 

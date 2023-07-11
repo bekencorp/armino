@@ -54,7 +54,8 @@ static void h264_isr(void);
 bk_err_t h264_int_enable(void)
 {
 	uint32_t int_level = rtos_disable_int();
-	h264_hal_int_config(&s_h264.hal, H264_INT_ENABLE, H264_CPU_INT_ENABLE);
+	sys_drv_int_group2_enable(H264_INTERRUPT_CTRL_BIT);
+	h264_hal_int_config(&s_h264.hal, H264_INT_ENABLE);
 	rtos_enable_int(int_level);
 	return BK_OK;
 }
@@ -73,7 +74,7 @@ static void h264_init_common(void)
 
 	/* h264 global ctrl set */
 	h264_hal_set_global_ctrl(&s_h264.hal);
-	h264_hal_set_internal_clk_en(&s_h264.hal, 0);
+	h264_hal_set_internal_clk_en(&s_h264.hal, 2);
 }
 
 bk_err_t bk_h264_pingpong_in_psram_clk_set(void)
@@ -115,6 +116,39 @@ bk_err_t bk_h264_dma_rx_init(h264_dma_config_t *config)
 	return BK_OK;
 }
 
+bk_err_t bk_h264_enc_lcd_dma_cpy(void *out, const void *in, uint32_t len, dma_id_t cpy_chnl)
+{
+	dma_config_t dma_config = {0};
+	os_memset(&dma_config, 0, sizeof(dma_config_t));
+
+	dma_config.mode = DMA_WORK_MODE_SINGLE;
+	dma_config.chan_prio = 1;
+
+	dma_config.src.dev = DMA_DEV_DTCM;
+	dma_config.src.width = DMA_DATA_WIDTH_32BITS;
+    dma_config.src.addr_inc_en = DMA_ADDR_INC_ENABLE;
+	dma_config.src.start_addr = (uint32_t)in;
+	dma_config.src.end_addr = (uint32_t)(in + len);
+
+	dma_config.dst.dev = DMA_DEV_DTCM;
+	dma_config.dst.width = DMA_DATA_WIDTH_32BITS;
+    dma_config.dst.addr_inc_en = DMA_ADDR_INC_ENABLE;
+	dma_config.dst.start_addr = (uint32_t)out;
+	dma_config.dst.end_addr = (uint32_t)(out + len);
+
+	BK_LOG_ON_ERR(bk_dma_init(cpy_chnl, &dma_config));
+	BK_LOG_ON_ERR(bk_dma_set_transfer_len(cpy_chnl, len));
+	BK_LOG_ON_ERR(bk_dma_set_src_burst_len(cpy_chnl, 3));
+	BK_LOG_ON_ERR(bk_dma_set_src_burst_len(cpy_chnl, 3));
+#if (CONFIG_SPE)
+	BK_LOG_ON_ERR(bk_dma_set_dest_sec_attr(cpy_chnl, DMA_ATTR_SEC));
+	BK_LOG_ON_ERR(bk_dma_set_src_sec_attr(cpy_chnl, DMA_ATTR_SEC));
+#endif
+	BK_LOG_ON_ERR(bk_dma_start(cpy_chnl));
+
+	return BK_OK;
+}
+
 bk_err_t bk_h264_dma_rx_deinit(void)
 {
 	BK_LOG_ON_ERR(bk_dma_stop(h264_dma_rx_id));
@@ -126,7 +160,8 @@ bk_err_t bk_h264_dma_rx_deinit(void)
 bk_err_t h264_int_disable(void)
 {
 	uint32_t int_level = rtos_disable_int();
-	h264_hal_int_config(&s_h264.hal, H264_CPU_INT_DISABLE, H264_CPU_INT_DISABLE);
+	h264_hal_int_config(&s_h264.hal, H264_CPU_INT_DISABLE);
+	sys_drv_int_group2_disable(H264_INTERRUPT_CTRL_BIT);
 	rtos_enable_int(int_level);
 	return BK_OK;
 }
@@ -424,7 +459,6 @@ bk_err_t bk_h264_clk_check(void)
 	sys_hal_analog_set_t(0x3, 0xC5F00B88);
 	sys_hal_analog_set_t(0x8, 0x57E627FA);
 	sys_hal_analog_set_t(0x9, 0x787FC6A4);
-	
 
 	delay(10);
 	val = sys_hal_analog_get(0x0);

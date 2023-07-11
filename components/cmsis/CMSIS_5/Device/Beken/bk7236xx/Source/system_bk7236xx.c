@@ -39,20 +39,6 @@ extern const VECTOR_TABLE_Type __VECTOR_TABLE_CPU0[];
 
 
 /*----------------------------------------------------------------------------
-  System Core Clock Variable
- *----------------------------------------------------------------------------*/
-uint32_t SystemCoreClock = SYSTEM_CLOCK;  /* System Core Clock Frequency */
-
-
-/*----------------------------------------------------------------------------
-  System Core Clock update function
- *----------------------------------------------------------------------------*/
-void SystemCoreClockUpdate (void)
-{
-  SystemCoreClock = SYSTEM_CLOCK;
-}
-
-/*----------------------------------------------------------------------------
   System initialization function
  *----------------------------------------------------------------------------*/
 void SystemInit (void)
@@ -62,7 +48,7 @@ void SystemInit (void)
 #endif
 
 #if CONFIG_CPU_WITHOUT_BOOTLOADER
-  SCB->VTOR = (uint32_t) &(__VECTOR_TABLE_CPU0[0]);
+	SCB->VTOR = (uint32_t) &(__VECTOR_TABLE_CPU0[0]);
 #endif
 
 #if defined (__FPU_USED) && (__FPU_USED == 1U)
@@ -80,8 +66,7 @@ void SystemInit (void)
 #endif
 #endif
 
-	SystemCoreClock = SYSTEM_CLOCK;
-
+#if CONFIG_SPE
 #if defined (__ITCM_PRESENT) && (__ITCM_PRESENT == 1U)
 	TCM->ITCMCR |= SCB_ITCMCR_EN_Msk;
 #endif
@@ -89,15 +74,16 @@ void SystemInit (void)
 #if defined (__DTCM_PRESENT) && (__DTCM_PRESENT == 1U)
 	TCM->DTCMCR |= SCB_DTCMCR_EN_Msk;
 #endif
+#endif
 
 #if (CONFIG_ICACHE)
-  if (SCB->CLIDR & SCB_CLIDR_IC_Msk)
-    SCB_EnableICache();
+	if (SCB->CLIDR & SCB_CLIDR_IC_Msk)
+		SCB_EnableICache();
 #endif
 
 #if (CONFIG_DCACHE)
-  if (SCB->CLIDR & SCB_CLIDR_IC_Msk)
-    SCB_EnableDCache();
+	if (SCB->CLIDR & SCB_CLIDR_IC_Msk)
+		SCB_EnableDCache();
 #endif
 }
 // eof

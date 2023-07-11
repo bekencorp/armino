@@ -129,6 +129,19 @@ bk_err_t bk_aud_set_adc_gain(uint32_t value);
 bk_err_t bk_aud_set_mic_chl(aud_mic_enable_t mic_chl);
 
 /**
+ * @brief     Set the mic external interface mode in adc work mode
+ *
+ * @param mic_id the mic id
+ * @param intf_mode signal end or difference
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_AUD_NOT_INIT: audio driver is not init
+ *    - others: other errors.
+ */
+bk_err_t bk_aud_set_mic_intf_mode(aud_mic_id_t mic_id, aud_adc_intf_mode_t intf_mode);
+
+/**
  * @brief     Get the adc fifo address in adc work mode
  *
  * @param adc_fifo_addr adc fifo address of adc work mode

@@ -26,8 +26,8 @@ extern "C" {
 
 #define SPI_RX_INT_CONFIG_TABLE \
 {\
-	{SPI_ID_0, INT_SRC_SPI, spi_isr, DMA_DEV_GSPI0_RX},\
-	{SPI_ID_1, INT_SRC_SPI2, spi2_isr, DMA_DEV_GSPI1_RX},\
+	{SPI_ID_0, INT_SRC_SPI, spi_isr, DMA_DEV_GSPI0},\
+	{SPI_ID_1, INT_SRC_SPI2, spi2_isr, DMA_DEV_GSPI1},\
 }
 #ifdef __cplusplus
 }

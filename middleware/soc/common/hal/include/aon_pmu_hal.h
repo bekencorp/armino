@@ -28,6 +28,7 @@ typedef struct {
 
 bk_err_t aon_pmu_hal_init(void);
 uint32_t aon_pmu_hal_get_wakeup_source_reg(void);
+uint32_t aon_pmu_hal_get_chipid(void);
 bool aon_pmu_hal_is_chipid_later_than_version_C(void);
 void aon_pmu_hal_set_wakeup_source_reg(uint32_t value);
 int aon_pmu_hal_set_sleep_parameters(uint32_t value);

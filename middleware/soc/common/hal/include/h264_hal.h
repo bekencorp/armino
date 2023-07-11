@@ -80,7 +80,7 @@ void h264_hal_soft_reset_deactive(h264_hal_t *hal);
 
 void h264_hal_local_info(h264_hal_t *hal);
 
-void h264_hal_int_config(h264_hal_t *hal,uint32_t int_mode,uint32_t cpu0_int_mode);
+void h264_hal_int_config(h264_hal_t *hal,uint32_t int_mode);
 
 #ifdef __cplusplus
 }

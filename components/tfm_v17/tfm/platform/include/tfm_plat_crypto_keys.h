@@ -11,8 +11,10 @@
  * \note The interfaces defined in this file must be implemented for each
  *       SoC.
  */
-
-#define MBEDTLS_PSA_CRYPTO_KEY_ID_ENCODES_OWNER
+//TODO wzl-issue7, double check this macro meaning 
+#ifndef MBEDTLS_PSA_CRYPTO_KEY_ID_ENCODES_OWNER
+#define MBEDTLS_PSA_CRYPTO_KEY_ID_ENCODES_OWNER 4
+#endif
 
 #include "tfm_mbedcrypto_include.h"
 

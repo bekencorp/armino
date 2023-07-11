@@ -20,6 +20,7 @@
 
 DEVICE_EXPORT(sys);
 pm_device_freq_t s_cpu_freq = PM_DEVICE_FREQ_120M;
+static device_bits_t s_cpu_freqs[PM_DEVICE_FREQ_COUNT] = { 0 };
 
 static int pm_sys_enter_normal_sleep(const device_t *dev)
 {
@@ -81,6 +82,19 @@ static uint32_t sys_get_clock_rate(pm_device_freq_t freq)
 	}
 }
 
+int pm_sys_vote_cpu_freq(const device_t *dev, pm_device_freq_t freq)
+{
+	u8 i;
+
+	for ( i = 0; i < PM_DEVICE_FREQ_COUNT; i++ ) {
+		PM_DEVICE_BITS_CLR(dev, &s_cpu_freqs[i]);
+	}
+
+	PM_DEVICE_BITS_SET(dev, &s_cpu_freqs[freq]);
+
+	return BK_OK;
+}
+
 //TODO move it to sys driver
 typedef struct {
 	pm_device_freq_t freq;
@@ -111,17 +125,24 @@ static void sys_hal_set_cpu_clock_div(pm_device_freq_t freq)
 	sys_ll_set_cpu_clk_div_mode1_clkdiv_bus(map[freq].clkdiv_bus);
 }
 
-
 static int pm_sys_action_update_freq(void)
 {
-	const device_t *sys = DEVICE_ID2PTR(sys);
 	pm_device_freq_t max_freq = PM_DEVICE_FREQ_26M;
 
+#if CONFIG_PM_DEPEND
+	const device_t *sys = DEVICE_ID2PTR(sys);
 	PM_DEPEND_FOREACH(sys->pm->children, entry_ptr) {
 		if ((entry_ptr->type == PM_DEPEND_TYPE_VOTE_FREQ) && (entry_ptr->value > max_freq) ) {
 			max_freq = entry_ptr->value;
 		}
 	}
+#else
+	for (u8 i = 0; i < PM_DEVICE_FREQ_COUNT; i++) {
+		if (s_cpu_freqs[i] != 0) {
+			max_freq = i;
+		}
+	}
+#endif
 
 	PM_LOGD("cpu freq %s -> %s\r\n", sys_get_freq_str(s_cpu_freq), sys_get_freq_str(max_freq));
 	if (max_freq > s_cpu_freq) {

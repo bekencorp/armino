@@ -140,7 +140,7 @@ BK7256工具链下载路径如下：
 - 当然您也可以编译任何其他 armino/projects 下的工程，命令如下::
 
     cd ~/armino
-    make BK7256 PROJECT=examples/get-started/hello_world
+    make bk7256 PROJECT=examples/get-started/hello_world
 
 
 配置工程

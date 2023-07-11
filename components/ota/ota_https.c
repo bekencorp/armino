@@ -94,6 +94,11 @@ bk_err_t bk_https_client_flash_deinit(bk_http_client_handle_t client)
 
 bk_err_t https_ota_event_cb(bk_http_client_event_t *evt)
 {
+    if(!evt)
+    {
+        return BK_FAIL;
+    }
+    
     switch (evt->event_id) {
     case HTTP_EVENT_ERROR:
 	BK_LOGE(TAG, "HTTPS_EVENT_ERROR\r\n");
@@ -134,7 +139,14 @@ bk_err_t https_ota_event_cb(bk_http_client_event_t *evt)
 int bk_https_ota_download(const char *url)
 {
 	int err;
-
+    
+      if(!url)
+      {
+          err = BK_FAIL;
+          BK_LOGI(TAG, "url is NULL\r\n");
+          
+          return err;
+      }
 	bk_http_input_t config = {
 	    .url = url,
 	    .cert_pem = ca_crt_rsa,

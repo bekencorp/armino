@@ -47,7 +47,7 @@
 #include "mailbox_channel.h"
 #endif
 
-#if (CONFIG_JPEG_DECODE)
+#if (CONFIG_JPEGDEC_SW)
 #include <components/jpeg_decode.h>
 #endif
 #include <driver/dma2d.h>
@@ -61,6 +61,10 @@
 #if CONFIG_LCD_QSPI
 #include <driver/lcd_qspi.h>
 #include <driver/lcd_qspi_types.h>
+#endif
+
+#if CONFIG_HW_ROTATE_PFC
+#include <driver/rott_driver.h>
 #endif
 
 #define TAG "lcd_drv"
@@ -154,6 +158,13 @@ extern lcd_qspi_device_t *s_device_config;
 
 extern media_debug_t *media_debug;
 extern u64 riscv_get_mtimer(void);
+extern uint8_t get_decode_mode(void);
+typedef enum
+{
+	SOFTWARE_DECODING_CPU0,
+	SOFTWARE_DECODING_CPU1,
+	HARDWARE_DECODING,
+} decode_mode_t;
 
 typedef struct
 {
@@ -172,11 +183,15 @@ typedef struct
 	uint8_t enable : 1;
 	uint8_t decoder_en : 1;
 	uint8_t rotate_en : 1;
+	uint8_t resize_en : 1;
 	uint8_t display_en : 1;
+	uint8_t font_draw  : 1;
 	uint8_t dma2d_blend : 1;
+    uint8_t result;
 
 	frame_buffer_t *decoder_frame;
 	frame_buffer_t *rotate_frame;
+	frame_buffer_t *resize_frame;
 	frame_buffer_t *display_frame;
 	frame_buffer_t *lvgl_frame;
 	frame_buffer_t *pingpong_frame;
@@ -184,12 +199,14 @@ typedef struct
 	beken_semaphore_t dec_sem;
 	beken_semaphore_t rot_sem;
 	beken_semaphore_t disp_sem;
+	beken_semaphore_t resize_sem;
 #if (USE_DMA2D_BLEND_ISR_CALLBACKS == 1)
 	beken_semaphore_t dma2d_complete_sem;
 	beken_semaphore_t dma2d_err_sem;
 #endif
 	beken_mutex_t dec_lock;
 	beken_mutex_t rot_lock;
+	beken_mutex_t resize_lock;
 	beken_mutex_t disp_lock;
 
 } lcd_driver_t;
@@ -245,7 +262,6 @@ const lcd_device_t *lcd_devices[] =
 };
 
 static lcd_driver_t s_lcd = {0};
-static uint8_t sw_decode_en = 0;
 
 const lcd_device_t * get_lcd_device_by_name(char * name)
 {
@@ -390,7 +406,7 @@ static void lcd_driver_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 
 	//LOGI("%s, %08X\n", __func__, cmd_buf->param1);
 
-	if (cmd_buf->hdr.cmd == 0x19)
+	if (cmd_buf->hdr.cmd == EVENT_LCD_ROTATE_MBRSP)
 	{
 		ret = rtos_set_semaphore(&s_lcd.rot_sem);
 
@@ -400,6 +416,26 @@ static void lcd_driver_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 		}
 	}
 
+	if (cmd_buf->hdr.cmd == EVENT_LCD_RESIZE_MBRSP)
+	{
+		ret = rtos_set_semaphore(&s_lcd.resize_sem);
+
+		if (ret != BK_OK)
+		{
+			LOGE("%s semaphore get failed: %d\n", __func__, ret);
+		}
+	}
+
+	if (cmd_buf->hdr.cmd == EVENT_LCD_DEC_SW_MBRSP)
+	{
+		ret = rtos_set_semaphore(&s_lcd.dec_sem);
+
+		if (ret != BK_OK)
+		{
+			LOGE("%s semaphore get failed: %d\n", __func__, ret);
+		}
+        s_lcd.result = (uint8_t)cmd_buf->param3;
+	}
 
 }
 
@@ -537,53 +573,56 @@ bk_err_t bk_lcd_driver_init(lcd_clk_t clk)
 		LOGE("%s already init. \n", __func__);
 		return BK_OK;
 	}
+
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_LCD, PM_POWER_MODULE_STATE_ON);
+
 	bk_pm_clock_ctrl(PM_CLK_ID_DISP, CLK_PWR_CTRL_PWR_UP);
+	sys_drv_int_enable(LCD_INTERRUPT_CTRL_BIT);
 	switch (clk)
 	{
 		case LCD_320M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_0, DISP_DIV_H_0, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_0, DISP_DIV_H_0, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_160M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_0, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_0, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_120M:
-			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_0, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
+			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_0, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_40M:
-			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_1, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
-			//ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_3, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
+			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_1, DSIP_DISCLK_ALWAYS_ON);
+			//ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_3, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_30M:
-			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_1, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
+			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_1, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_20M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_7, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
-			//ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_2, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_7, DSIP_DISCLK_ALWAYS_ON);
+			//ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_2, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_60M:
-			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_0, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
+			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_0, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_80M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_1, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_1, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_54M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_2, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_2, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_32M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_4, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_4, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_12M:
-			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_4, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
+			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_4, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_10M:
-			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_5, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
+			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_5, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_26M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_5, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_5, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_8M:
-			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_7, DISP_INT_EN, DSIP_DISCLK_ALWAYS_ON);
+			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_7, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		default:
 			break;
@@ -635,15 +674,22 @@ bk_err_t bk_lcd_8080_ram_write(uint32_t command)
 	return BK_OK;
 }
 
+bk_err_t bk_lcd_input_pixel_hf_reverse(bool hf_reverse)
+{
+	lcd_hal_set_pixel_reverse(hf_reverse);
+	return BK_OK;
+}
+
+
 bk_err_t bk_lcd_set_yuv_mode(pixel_format_t input_data_format)
 {
 	switch (input_data_format)
 	{
-		case PIXEL_FMT_RGB565:
+		case PIXEL_FMT_RGB565_LE:
 			lcd_hal_display_yuv_sel(0);
 			lcd_hal_set_pixel_reverse(0);
 			break;
-		case PIXEL_FMT_BGR565:
+		case PIXEL_FMT_RGB565:
 			lcd_hal_display_yuv_sel(0);
 			lcd_hal_set_pixel_reverse(1);
 			break;
@@ -667,18 +713,6 @@ bk_err_t bk_lcd_set_yuv_mode(pixel_format_t input_data_format)
 			lcd_hal_display_yuv_sel(5);
 			lcd_hal_set_pixel_reverse(0);
 			break;
-		case PIXEL_FMT_YVYU:
-			lcd_hal_display_yuv_sel(1);
-			lcd_hal_set_pixel_reverse(1);
-			break;
-		case PIXEL_FMT_VYUY:
-			lcd_hal_display_yuv_sel(2);
-			lcd_hal_set_pixel_reverse(1);
-			break;
-		case PIXEL_FMT_YYVU:
-			lcd_hal_display_yuv_sel(5);
-			lcd_hal_set_pixel_reverse(1);
-			break;
 		default:
 			break;
 	}
@@ -695,7 +729,7 @@ pixel_format_t bk_lcd_get_yuv_mode()
 	{
 		if (yuv_mode == 0)
 		{
-			output_data_format = PIXEL_FMT_RGB565;
+			output_data_format = PIXEL_FMT_RGB565_LE;
 		}
 		else if (yuv_mode == 1)
 		{
@@ -720,17 +754,9 @@ pixel_format_t bk_lcd_get_yuv_mode()
 	}
 	else if (reverse == 1)
 	{
-		if (yuv_mode == 1)
+		if (yuv_mode == 0)
 		{
-			output_data_format = PIXEL_FMT_YVYU;
-		}
-		else if (yuv_mode == 2)
-		{
-			output_data_format = PIXEL_FMT_VYUY;
-		}
-		else if (yuv_mode == 5)
-		{
-			output_data_format = PIXEL_FMT_YYVU;
+			output_data_format = PIXEL_FMT_RGB565;
 		}
 	}
 
@@ -823,7 +849,9 @@ static bk_err_t bk_lcd_driver_deinit(void)
 
 	bk_int_isr_unregister(INT_SRC_LCD);
 	bk_pm_clock_ctrl(PM_CLK_ID_DISP, CLK_PWR_CTRL_PWR_DOWN);
+
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_LCD, PM_POWER_MODULE_STATE_OFF);
+
 	if (sys_drv_lcd_close() != 0)
 	{
 		LOGE("lcd system deinit reg config error \r\n");
@@ -1082,7 +1110,7 @@ void lcd_driver_ppi_set(uint16_t width, uint16_t height)
 
 		LOGD("%s, offset %d, %d, %d, %d\n", __func__, start_x, end_x, start_y, end_y);
 	}
-	
+
 	bk_lcd_set_partical_display(1, start_x, end_x, start_y, end_y);
 }
 
@@ -1097,7 +1125,7 @@ void lcd_driver_ppi_set(uint16_t width, uint16_t height)
 		}										\
 	} while (0)
 
-__attribute__((section(".itcm_sec_code"))) static void lcd_driver_display_isr(void)
+__attribute__((section(".itcm_sec_code"))) static void lcd_driver_display_rgb_isr(void)
 {
 	LCD_DISPLAY_ISR_ENTRY();
 
@@ -1113,11 +1141,8 @@ __attribute__((section(".itcm_sec_code"))) static void lcd_driver_display_isr(vo
 
 	if (s_lcd.pingpong_frame != NULL)
 	{
-//		if (bk_lcd_get_yuv_mode() != s_lcd.pingpong_frame->fmt)
-//		{
-			lcd_driver_ppi_set(s_lcd.pingpong_frame->width, s_lcd.pingpong_frame->height);
-			bk_lcd_set_yuv_mode(s_lcd.pingpong_frame->fmt);
-//		}
+		lcd_driver_ppi_set(s_lcd.pingpong_frame->width, s_lcd.pingpong_frame->height);
+		bk_lcd_set_yuv_mode(s_lcd.pingpong_frame->fmt);
 
 		if (s_lcd.display_frame != NULL)
 		{
@@ -1144,6 +1169,33 @@ __attribute__((section(".itcm_sec_code"))) static void lcd_driver_display_isr(vo
 	LCD_DISPLAY_ISR_OUT();
 
 }
+
+static void lcd_driver_display_mcu_isr(void)
+{
+	LCD_DISPLAY_ISR_ENTRY();
+
+	media_debug->isr_lcd++;
+
+	if (s_lcd.enable == false)
+	{
+		return;
+	}
+
+	if (s_lcd.pingpong_frame != NULL)
+	{
+		media_debug->fps_lcd++;
+		LCD_DRIVER_FRAME_FREE(s_lcd.display_frame);
+
+		s_lcd.display_frame = s_lcd.pingpong_frame;
+		s_lcd.pingpong_frame = NULL;
+		bk_lcd_8080_start_transfer(0);
+
+		rtos_set_semaphore(&s_lcd.disp_sem);
+	}
+
+	LCD_DISPLAY_ISR_OUT();
+}
+
 
 static void jpeg_dec_eof_cb(jpeg_dec_res_t *result)
 {
@@ -1240,6 +1292,9 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 	frame_buffer_t *dec_frame = NULL;
 	uint64_t before, after;
 
+#ifdef CONFIG_MASTER_CORE
+	 mb_chnl_cmd_t mb_cmd;
+#endif
 	if (s_lcd.enable == false)
 	{
 		return dec_frame;
@@ -1269,7 +1324,7 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 
 	s_lcd.decoder_frame->sequence = frame->sequence;
 
-	if (!sw_decode_en)
+	if (get_decode_mode() == HARDWARE_DECODING)
 	{
 		s_lcd.decoder_frame->fmt = PIXEL_FMT_VUYY;
 
@@ -1310,21 +1365,63 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 	else
 	{
 		s_lcd.decoder_frame->fmt = PIXEL_FMT_YUYV;
-#if CONFIG_JPEG_DECODE
-		sw_jpeg_dec_res_t result;
-		ret = bk_jpeg_dec_sw_start(frame->length, frame->frame, s_lcd.decoder_frame->frame, &result);
+#if CONFIG_JPEGDEC_SW
+#ifdef CONFIG_MASTER_CORE
+		if (get_decode_mode() == SOFTWARE_DECODING_CPU1)
+		{
+			mb_cmd.hdr.cmd = EVENT_LCD_DEC_SW_MBCMD;
+			mb_cmd.param1 = (uint32_t)frame;
+			mb_cmd.param2 = (uint32_t)s_lcd.decoder_frame;
+			mb_cmd.param3 = 0;
+			s_lcd.result = BK_FAIL;
 
-		if (ret != BK_OK)
-		{
-			LOGE("%s sw decoder error\n", __func__);
-			LCD_DRIVER_FRAME_FREE(s_lcd.decoder_frame);
-			goto out;
+			ret = mb_chnl_write(MB_CHNL_VID, &mb_cmd);
+
+			if (ret != BK_OK)
+			{
+				LOGE("%s mb_chnl_write failed: %d\n", __func__, ret);
+				LCD_DRIVER_FRAME_FREE(s_lcd.decoder_frame);
+				goto out;
+			}
+
+			//LOGI("%s wait rotate\n", __func__);
+			ret = rtos_get_semaphore(&s_lcd.dec_sem, BEKEN_NEVER_TIMEOUT);
+
+			if (ret != BK_OK)
+			{
+				LOGE("%s semaphore get failed: %d\n", __func__, ret);
+				LCD_DRIVER_FRAME_FREE(s_lcd.decoder_frame);
+				goto out;
+			}
+
+			if (s_lcd.result != BK_OK)
+			{
+				LOGE("%s sw decoder error\n", __func__);
+				LCD_DRIVER_FRAME_FREE(s_lcd.decoder_frame);
+				goto out;
+			}
 		}
-		else
+		else if (get_decode_mode() == SOFTWARE_DECODING_CPU0)
 		{
-			s_lcd.decoder_frame->height = result.pixel_y;
-			s_lcd.decoder_frame->width = result.pixel_x ;
+			sw_jpeg_dec_res_t result;
+			ret = bk_jpeg_dec_sw_start(frame->length, frame->frame, s_lcd.decoder_frame->frame, &result);
+#if (CONFIG_TASK_WDT)
+			extern void bk_task_wdt_feed(void);
+			bk_task_wdt_feed();
+#endif
+			if (ret != BK_OK)
+			{
+				LOGE("%s sw decoder error\n", __func__);
+				LCD_DRIVER_FRAME_FREE(s_lcd.decoder_frame);
+				goto out;
+			}
+			else
+			{
+				s_lcd.decoder_frame->height = result.pixel_y;
+				s_lcd.decoder_frame->width = result.pixel_x ;
+			}
 		}
+#endif
 #endif
 	}
 	if (s_lcd.decoder_frame == NULL)
@@ -1352,10 +1449,9 @@ out:
 	return dec_frame;
 }
 
-
-frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame)
+frame_buffer_t *lcd_driver_resize_frame(frame_buffer_t *frame, media_ppi_t ppi)
 {
-	frame_buffer_t *rot_frame = NULL;
+	frame_buffer_t *resize_frame = NULL;
 	uint64_t before, after;
 
 #ifdef CONFIG_MASTER_CORE
@@ -1367,6 +1463,135 @@ frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame)
 
 	if (s_lcd.enable == false)
 	{
+		LCD_DRIVER_FRAME_FREE(frame);
+		return resize_frame;
+	}
+
+	rtos_lock_mutex(&s_lcd.resize_lock);
+
+	if (s_lcd.resize_en == false)
+	{
+		rtos_unlock_mutex(&s_lcd.resize_lock);
+		LCD_DRIVER_FRAME_FREE(frame);
+		return resize_frame;
+	}
+#if CONFIG_ARCH_RISCV
+	before = riscv_get_mtimer();
+#else
+	before = 0;
+#endif
+	if (s_lcd.resize_frame == NULL && s_lcd.rotate_frame == NULL)
+	{
+		s_lcd.resize_frame = s_lcd.config.fb_malloc();
+		s_lcd.rotate_frame = s_lcd.resize_frame;
+	}
+	else if (s_lcd.resize_frame == NULL && s_lcd.rotate_frame)
+	{
+		s_lcd.resize_frame = s_lcd.rotate_frame;
+	}
+	else if (s_lcd.resize_frame && s_lcd.rotate_frame == NULL)
+	{
+		s_lcd.rotate_frame = s_lcd.resize_frame;
+	}
+	else
+	{
+		s_lcd.resize_frame = s_lcd.rotate_frame;
+	}
+
+	s_lcd.resize_frame->height = ppi_to_pixel_y(ppi);
+	s_lcd.resize_frame->width = ppi_to_pixel_x(ppi);
+	s_lcd.resize_frame->sequence = frame->sequence;
+	s_lcd.resize_frame->length = s_lcd.resize_frame->height * s_lcd.resize_frame->width * 2;
+	s_lcd.resize_frame->fmt = frame->fmt;
+
+#ifdef CONFIG_MASTER_CORE
+
+	mb_cmd.hdr.cmd = EVENT_LCD_RESIZE_MBCMD;
+	mb_cmd.param1 = (uint32_t)frame;
+	mb_cmd.param2 = (uint32_t)s_lcd.resize_frame;
+	mb_cmd.param3 = 0;
+
+	//LOGI("%s start rotate\n", __func__);
+	ret = mb_chnl_write(MB_CHNL_VID, &mb_cmd);
+
+	if (ret != BK_OK)
+	{
+		LOGE("%s mb_chnl_write failed: %d\n", __func__, ret);
+		goto error;
+	}
+
+	//LOGI("%s wait rotate\n", __func__);
+	ret = rtos_get_semaphore(&s_lcd.resize_sem, BEKEN_NEVER_TIMEOUT);
+
+	if (ret != BK_OK)
+	{
+		LOGE("%s semaphore get failed: %d\n", __func__, ret);
+		goto error;
+	}
+
+#else
+	//TODO
+#endif
+
+	resize_frame = s_lcd.resize_frame;
+	s_lcd.resize_frame = frame;
+	s_lcd.rotate_frame = frame;
+
+	rtos_unlock_mutex(&s_lcd.resize_lock);
+#if CONFIG_ARCH_RISCV
+	after = riscv_get_mtimer();
+#else
+	after = 0;
+#endif
+	LOGD("resize time: %lu\n", (after - before) / 26000);
+
+	LCD_ROTATE_END();
+
+	return resize_frame;
+
+#ifdef CONFIG_MASTER_CORE
+error:
+
+	LCD_DRIVER_FRAME_FREE(frame);
+
+	if (s_lcd.resize_frame)
+	{
+		LCD_DRIVER_FRAME_FREE(s_lcd.resize_frame);
+	}
+#endif
+
+	rtos_unlock_mutex(&s_lcd.resize_lock);
+
+	return NULL;
+}
+
+static void rott_complete_cb(void)
+{
+	LOGD("rott_complete_cb\r\n");
+	rtos_set_semaphore(&s_lcd.rot_sem);
+}
+
+frame_buffer_t *lcd_driver_rodegree_frame(frame_buffer_t *frame, media_rotate_t rotate)
+{
+	frame_buffer_t *rot_frame = NULL;
+	uint64_t before, after;
+
+#ifdef CONFIG_MASTER_CORE
+	bk_err_t ret = BK_FAIL;
+#endif
+
+	if (rotate == ROTATE_NONE
+		|| rotate == ROTATE_180)
+	{
+		LOGE("%s no supported paramters\n", __func__);
+		return frame;
+	}
+
+	LCD_ROTATE_START();
+
+	if (s_lcd.enable == false)
+	{
+		LOGE("%s s_lcd.enable == false\r\n", __func__);
 		LCD_DRIVER_FRAME_FREE(frame);
 		return rot_frame;
 	}
@@ -1384,24 +1609,73 @@ frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame)
 #else
 	before = 0;
 #endif
-	if (s_lcd.rotate_frame == NULL)
+	if (s_lcd.rotate_frame == NULL && s_lcd.resize_frame == NULL)
 	{
 		s_lcd.rotate_frame = s_lcd.config.fb_malloc();
+		s_lcd.resize_frame = s_lcd.rotate_frame;
+	}
+	else if (s_lcd.rotate_frame == NULL && s_lcd.resize_frame)
+	{
+		s_lcd.rotate_frame = s_lcd.resize_frame;
+	}
+	else if (s_lcd.rotate_frame && s_lcd.resize_frame == NULL)
+	{
+		s_lcd.resize_frame = s_lcd.rotate_frame;
+	}
+	else
+	{
+		s_lcd.rotate_frame = s_lcd.resize_frame;
 	}
 
-	s_lcd.rotate_frame->height = frame->width;
-	s_lcd.rotate_frame->width = frame->height;
+	if (rotate == ROTATE_YUV2RGB565) {
+		s_lcd.rotate_frame->height = frame->height;
+		s_lcd.rotate_frame->width = frame->width;
+	} else {
+		s_lcd.rotate_frame->height = frame->width;
+		s_lcd.rotate_frame->width = frame->height;
+	}
+
 	s_lcd.rotate_frame->sequence = frame->sequence;
 	s_lcd.rotate_frame->length = frame->width * frame->height * 2;
+#if CONFIG_HW_ROTATE_PFC
+	s_lcd.rotate_frame->fmt = PIXEL_FMT_RGB565;
+#else
 	s_lcd.rotate_frame->fmt = frame->fmt;
-
+#endif
 
 #ifdef CONFIG_MASTER_CORE
 
-	mb_cmd.hdr.cmd = 0x18;
+#if CONFIG_HW_ROTATE_PFC
+	rott_config_t rott_cfg = {0};
+
+	rott_cfg.input_addr = frame->frame;
+	rott_cfg.output_addr = s_lcd.rotate_frame->frame;
+	rott_cfg.input_fmt = frame->fmt;
+	rott_cfg.picture_xpixel = frame->width;
+	rott_cfg.picture_ypixel = frame->height;
+	switch (rotate) {
+	case ROTATE_90:
+		rott_cfg.rot_mode = ROTT_ROTATE90;
+		break;
+	case ROTATE_270:
+		rott_cfg.rot_mode = ROTT_ROTATE270;
+		break;
+	default:
+		rott_cfg.rot_mode = ROTT_ONLY_YUV2RGB565;
+		break;
+	}
+
+	bk_rott_int_enable(ROTATE_COMPLETE_INT | ROTATE_CFG_ERR_INT | ROTATE_WARTERMARK_INT, 1);
+	bk_rott_isr_register(ROTATE_COMPLETE_INT, rott_complete_cb);
+	rott_config(&rott_cfg);
+	bk_rott_enable();
+#else
+	mb_chnl_cmd_t mb_cmd;
+
+	mb_cmd.hdr.cmd = EVENT_LCD_ROTATE_MBCMD;
 	mb_cmd.param1 = (uint32_t)frame;
 	mb_cmd.param2 = (uint32_t)s_lcd.rotate_frame;
-	mb_cmd.param3 = 0;
+	mb_cmd.param3 = rotate;
 
 	//LOGI("%s start rotate\n", __func__);
 	ret = mb_chnl_write(MB_CHNL_VID, &mb_cmd);
@@ -1411,6 +1685,7 @@ frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame)
 		LOGE("%s mb_chnl_write failed: %d\n", __func__, ret);
 		goto error;
 	}
+#endif // CONFIG_HW_ROTATE_PFC
 
 	//LOGI("%s wait rotate\n", __func__);
 	ret = rtos_get_semaphore(&s_lcd.rot_sem, BEKEN_NEVER_TIMEOUT);
@@ -1423,9 +1698,10 @@ frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame)
 
 #else
 	//TODO
-#endif
+#endif // CONFIG_MASTER_CORE
 	rot_frame = s_lcd.rotate_frame;
 	s_lcd.rotate_frame = frame;
+	s_lcd.resize_frame = frame;
 
 	rtos_unlock_mutex(&s_lcd.rot_lock);
 #if CONFIG_ARCH_RISCV
@@ -1454,6 +1730,12 @@ error:
 
 	return NULL;
 }
+
+frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame)
+{
+	return lcd_driver_rodegree_frame(frame, ROTATE_90);
+}
+
 
 frame_buffer_t *lcd_driver_rotate_frame_ppi(frame_buffer_t *frame, media_ppi_t ppi)
 {
@@ -1600,7 +1882,8 @@ void dma2d_memcpy_psram(void *Psrc, void *Pdst, uint32_t xsize, uint32_t ysize, 
 	bk_dma2d_init(&dma2d_config);
 	bk_dma2d_layer_config(&dma2d_config, DMA2D_FOREGROUND_LAYER);
 
-	bk_dma2d_start_transfer(&dma2d_config, (uint32_t)Psrc, (uint32_t)Pdst, xsize/2, ysize);
+	bk_dma2d_transfer_config(&dma2d_config, (uint32_t)Psrc, (uint32_t)Pdst, xsize/2, ysize);
+	bk_dma2d_start_transfer();
 	while (bk_dma2d_is_transfer_busy()) {}
 }
 
@@ -1632,7 +1915,8 @@ void dma2d_memcpy_psram_wait_last_transform(void *Psrc, void *Pdst, uint32_t xsi
 	bk_dma2d_init(&dma2d_config);
 	bk_dma2d_layer_config(&dma2d_config, DMA2D_FOREGROUND_LAYER);
 
-	bk_dma2d_start_transfer(&dma2d_config, (uint32_t)Psrc, (uint32_t)Pdst, xsize/2, ysize);
+	bk_dma2d_transfer_config(&dma2d_config, (uint32_t)Psrc, (uint32_t)Pdst, xsize/2, ysize);
+	bk_dma2d_start_transfer();
 	flag = 1;
 }
 
@@ -1712,6 +1996,7 @@ bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend)
         dma2d_config.fg_alpha_value = lcd_blend->fg_alpha_value;
         dma2d_config.bg_alpha_value = lcd_blend->bg_alpha_value;
         bk_dma2d_blend(&dma2d_config);
+		bk_dma2d_start_transfer();
 		while (bk_dma2d_is_transfer_busy()) {}
 
         dma2d_memcpy_psram(tmp_blend_data, tmp_yuv_data + addr_offset, lcd_blend->xsize, blend_y_size, 0, 0);
@@ -1731,10 +2016,17 @@ bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend)
         rgb565_to_yuyv_convert((uint16_t *)tmp_yuv_data, (uint16_t *)tmp_rgb565_data, lcd_blend->xsize, lcd_blend->ysize);
     }
     dma2d_memcpy_psram(tmp_rgb565_data, lcd_blend->pbg_addr, lcd_blend->xsize, lcd_blend->ysize, 0, lcd_blend->bg_offline);
-#elif CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
-	if (s_lcd.dma2d_blend == true)
-	{
-#if 0 //blend yuyv not use pixel convert and dma2d
+
+#endif  //CONFIG_BLEND_USE_GUI
+
+
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
+		if (s_lcd.dma2d_blend != true)
+		{
+			LOGE("%s, s_lcd.dma2d_blend = false \n", __func__);
+			return BK_FAIL;
+		}
+		//blend yuyv not use pixel convert and dma2d
 		pixel_format_t format = lcd_blend->bg_data_format;
 
 		//STEP 1 : bg img yuyv copy to sram and pixel convert to rgb565
@@ -1788,8 +2080,9 @@ bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend)
 		dma2d_config.fg_alpha_value = lcd_blend->fg_alpha_value;
 		dma2d_config.bg_alpha_value = lcd_blend->bg_alpha_value;
 		bk_dma2d_blend(&dma2d_config);
+		bk_dma2d_start_transfer();
 	//	lcd_storage_capture_save("blend.rgb", rgb565_data, len);
-	
+
 #if (USE_DMA2D_BLEND_ISR_CALLBACKS == 1)
 		if (rtos_get_semaphore(&s_lcd.dma2d_complete_sem, BEKEN_NEVER_TIMEOUT) != BK_OK)
 		{
@@ -1819,8 +2112,15 @@ bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend)
 				p_yuv_dst += (lcd_blend->bg_width/2);
 			}
 #endif
-	//	lcd_storage_capture_save("pbg_addr.yuv", (uint8_t *)0x60000000, (640*480*2));
-#else
+		//	lcd_storage_capture_save("pbg_addr.yuv", (uint8_t *)0x60000000, (640*480*2));
+#endif  //CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
+
+#if CONFIG_LCD_FONT_BLEND
+	if (s_lcd.font_draw != true)
+	{
+		LOGE("%s, s_lcd.font_draw=false \n", __func__);
+		return BK_FAIL;
+	}
 	int	i = 0;
 	uint8_t * p_fg_yuv = (uint8_t *)lcd_blend->pfg_addr;
 	uint8_t * p_yuv_src = (uint8_t *)lcd_blend->pbg_addr;
@@ -1854,15 +2154,9 @@ bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend)
 	{
 		os_memcpy_word((uint32_t *)p_yuv_src, (uint32_t *)p_yuv_dst, lcd_blend->xsize*2);
 		p_yuv_dst += (lcd_blend->xsize*2);
-		p_yuv_src += (lcd_blend->bg_width*2);
+		p_yuv_src += (lcd_blend->bg_width*2);
 	}
-#endif
-	}
-	else
-	{
-		LOGE("%s s_lcd.dma2d_blend == false \n", __func__);
-	}
-#endif
+#endif //CONFIG_LCD_FONT_BLEND
 	return BK_OK;
 }
 
@@ -1870,92 +2164,90 @@ bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend)
 bk_err_t lcd_driver_font_blend(lcd_font_config_t *lcd_font)
 {
 	int ret = BK_OK;
-	if (s_lcd.dma2d_blend == true)
+	if (s_lcd.font_draw != true)
 	{
-		#if 0
-		dma2d_memcpy_psram(lcd_font->pbg_addr, yuv_data, lcd_font->xsize, lcd_font->ysize, lcd_font->bg_offline, 0);
-		#else
-		register uint32_t i =0;
-		uint32_t * p_yuv_src = (uint32_t *)lcd_font->pbg_addr;
-		uint32_t * p_yuv_dst = (uint32_t *)yuv_data;
-		for(i = 0; i < lcd_font->ysize; i++)
+		LOGE("%s, s_lcd.font_draw=false \n", __func__);
+		return BK_FAIL;
+	}
+	#if 0
+	dma2d_memcpy_psram(lcd_font->pbg_addr, yuv_data, lcd_font->xsize, lcd_font->ysize, lcd_font->bg_offline, 0);
+	#else
+	register uint32_t i =0;
+	uint32_t * p_yuv_src = (uint32_t *)lcd_font->pbg_addr;
+	uint32_t * p_yuv_dst = (uint32_t *)yuv_data;
+	for(i = 0; i < lcd_font->ysize; i++)
+	{
+		os_memcpy_word(p_yuv_dst, p_yuv_src, lcd_font->xsize*2);
+		p_yuv_dst += (lcd_font->xsize/2);
+		p_yuv_src += (lcd_font->bg_width/2);
+	}
+	#endif
+	//	lcd_storage_capture_save("yuv_data.yuv", yuv_data, len);
+	if(lcd_font->font_format == FONT_RGB565)  //font rgb565 data to yuv bg image
+	{
+		if (PIXEL_FMT_VUYY == lcd_font->bg_data_format)
 		{
-			os_memcpy_word(p_yuv_dst, p_yuv_src, lcd_font->xsize*2);
-			p_yuv_dst += (lcd_font->xsize/2);
-			p_yuv_src += (lcd_font->bg_width/2);
+			vuyy_to_rgb565_convert((unsigned char *)yuv_data, (unsigned char *)rgb565_data, lcd_font->xsize, lcd_font->ysize);
 		}
-		#endif
-		//	lcd_storage_capture_save("yuv_data.yuv", yuv_data, len);
-		if(lcd_font->font_format == FONT_RGB565)  //font rgb565 data to yuv bg image
+		else
 		{
-			if (PIXEL_FMT_VUYY == lcd_font->bg_data_format)
-			{
-				vuyy_to_rgb565_convert((unsigned char *)yuv_data, (unsigned char *)rgb565_data, lcd_font->xsize, lcd_font->ysize);
-			}
-			else
-			{
-				yuyv_to_rgb565_convert((unsigned char *)yuv_data, (unsigned char *)rgb565_data, lcd_font->xsize, lcd_font->ysize);
-			}
-			//	lcd_storage_capture_save("yuv_to_rgb565.rgb", rgb565_data, len);
+			yuyv_to_rgb565_convert((unsigned char *)yuv_data, (unsigned char *)rgb565_data, lcd_font->xsize, lcd_font->ysize);
+		}
+		//	lcd_storage_capture_save("yuv_to_rgb565.rgb", rgb565_data, len);
 
-			font_t font;
-			font.info = (ui_display_info_struct){rgb565_data,0,lcd_font->ysize,0,{0}};
-			font.width = lcd_font->xsize;
-			font.height = lcd_font->ysize;
-			font.font_fmt = lcd_font->font_format;
-			for(int i = 0; i < lcd_font->str_num; i++)
-			{
-				font.digit_info = lcd_font->str[i].font_digit_type;
-				font.s = lcd_font->str[i].str;
-				font.font_color = lcd_font->str[i].font_color;
-				font.x_pos = lcd_font->str[i].x_pos;
-				font.y_pos = lcd_font->str[i].y_pos;
-				lcd_draw_font(&font);
-			}
-			if (PIXEL_FMT_VUYY == lcd_font->bg_data_format)
-			{
-				rgb565_to_vuyy_convert((uint16_t *)rgb565_data, (uint16_t *)yuv_data, lcd_font->xsize, lcd_font->ysize);
-			}
-			else
-			{
-				rgb565_to_yuyv_convert((uint16_t *)rgb565_data, (uint16_t *)yuv_data, lcd_font->xsize, lcd_font->ysize);
-			}
-		}
-		else  //font yuv data to yuv bg image
+		font_t font;
+		font.info = (ui_display_info_struct){rgb565_data,0,lcd_font->ysize,0,{0}};
+		font.width = lcd_font->xsize;
+		font.height = lcd_font->ysize;
+		font.font_fmt = lcd_font->font_format;
+		for(int i = 0; i < lcd_font->str_num; i++)
 		{
-			font_t font;
-			font.info = (ui_display_info_struct){yuv_data,0,lcd_font->ysize,0,{0}};
-			font.width = lcd_font->xsize;
-			font.height = lcd_font->ysize;
-			font.font_fmt = lcd_font->font_format;
-			for(int i = 0; i < lcd_font->str_num; i++)
-			{
-				font.digit_info = lcd_font->str[i].font_digit_type;
-				font.s = lcd_font->str[i].str;
-				font.font_color = lcd_font->str[i].font_color;
-				font.x_pos = lcd_font->str[i].x_pos;
-				font.y_pos = lcd_font->str[i].y_pos;
-				lcd_draw_font(&font);
-			}
+			font.digit_info = lcd_font->str[i].font_digit_type;
+			font.s = lcd_font->str[i].str;
+			font.font_color = lcd_font->str[i].font_color;
+			font.x_pos = lcd_font->str[i].x_pos;
+			font.y_pos = lcd_font->str[i].y_pos;
+			lcd_draw_font(&font);
 		}
-			//	lcd_storage_capture_save("blend_to_yuv.yuv", yuv_data, len);
-		#if 0
-			dma2d_memcpy_psram(yuv_data, lcd_font->pbg_addr, lcd_font->xsize, lcd_font->ysize, 0, lcd_font->bg_offline);
-		#else
-				p_yuv_src = (uint32_t *)yuv_data;
-				p_yuv_dst = lcd_font->pbg_addr;
-				for(i = 0; i < lcd_font->ysize; i++)
-				{
-					os_memcpy_word(p_yuv_dst, p_yuv_src, lcd_font->xsize*2);
-					p_yuv_src += (lcd_font->xsize/2);
-					p_yuv_dst += (lcd_font->bg_width/2);
-				}
-		#endif
+		if (PIXEL_FMT_VUYY == lcd_font->bg_data_format)
+		{
+			rgb565_to_vuyy_convert((uint16_t *)rgb565_data, (uint16_t *)yuv_data, lcd_font->xsize, lcd_font->ysize);
+		}
+		else
+		{
+			rgb565_to_yuyv_convert((uint16_t *)rgb565_data, (uint16_t *)yuv_data, lcd_font->xsize, lcd_font->ysize);
+		}
 	}
-	else
+	else  //font yuv data to yuv bg image
 	{
-		LOGE("%s s_lcd.dma2d_blend == false \n", __func__);
+		font_t font;
+		font.info = (ui_display_info_struct){yuv_data,0,lcd_font->ysize,0,{0}};
+		font.width = lcd_font->xsize;
+		font.height = lcd_font->ysize;
+		font.font_fmt = lcd_font->font_format;
+		for(int i = 0; i < lcd_font->str_num; i++)
+		{
+			font.digit_info = lcd_font->str[i].font_digit_type;
+			font.s = lcd_font->str[i].str;
+			font.font_color = lcd_font->str[i].font_color;
+			font.x_pos = lcd_font->str[i].x_pos;
+			font.y_pos = lcd_font->str[i].y_pos;
+			lcd_draw_font(&font);
+		}
 	}
+		//	lcd_storage_capture_save("blend_to_yuv.yuv", yuv_data, len);
+	#if 0
+		dma2d_memcpy_psram(yuv_data, lcd_font->pbg_addr, lcd_font->xsize, lcd_font->ysize, 0, lcd_font->bg_offline);
+	#else
+			p_yuv_src = (uint32_t *)yuv_data;
+			p_yuv_dst = lcd_font->pbg_addr;
+			for(i = 0; i < lcd_font->ysize; i++)
+			{
+				os_memcpy_word(p_yuv_dst, p_yuv_src, lcd_font->xsize*2);
+				p_yuv_src += (lcd_font->xsize/2);
+				p_yuv_dst += (lcd_font->bg_width/2);
+			}
+	#endif
 	return ret;
 }
 #endif
@@ -1963,7 +2255,7 @@ bk_err_t lcd_driver_font_blend(lcd_font_config_t *lcd_font)
 bk_err_t lcd_driver_display_frame_wait(uint32_t timeout_ms)
 {
 	bk_err_t ret = rtos_get_semaphore(&s_lcd.disp_sem, timeout_ms);
-	
+
 	if (ret != BK_OK)
 	{
 		LOGE("%s semaphore get failed: %d\n", __func__, ret);
@@ -1976,6 +2268,8 @@ bk_err_t lcd_driver_display_frame_sync(frame_buffer_t *frame, bool wait)
 {
 	bk_err_t ret = BK_FAIL;
 	uint64_t before, after;
+
+	LOGD("lcd_driver_display_frame_sync\n");
 
 #if timer_control_pfs
 	bk_timer_stop(TIMER_ID4);
@@ -2027,9 +2321,18 @@ bk_err_t lcd_driver_display_frame_sync(frame_buffer_t *frame, bool wait)
 #if timer_control_pfs
 		lcd_driver_set_display_base_addr((uint32_t)frame->frame);
 		lcd_driver_display_enable();
-		LOGD("display start\n");
 #endif
-		lcd_driver_display_continue();
+
+		LOGD("display start continue\n");
+
+		if (s_lcd.config.device->type == LCD_TYPE_MCU8080)
+		{
+			lcd_driver_ppi_set(frame->width, frame->height);
+			bk_lcd_set_yuv_mode(frame->fmt);
+			lcd_driver_set_display_base_addr((uint32_t)frame->frame);
+			bk_lcd_8080_start_transfer(1);
+			lcd_driver_display_continue();
+		}
 	}
 
 	GLOBAL_INT_RESTORE();
@@ -2078,12 +2381,21 @@ void lcd_driver_display_frame_with_gui(void *buffer, int width, int height)
 	}
 
     if(s_lcd.lvgl_frame){
-        s_lcd.lvgl_frame->fmt = PIXEL_FMT_BGR565;
+        s_lcd.lvgl_frame->fmt = PIXEL_FMT_RGB565;
         s_lcd.lvgl_frame->frame = buffer;
         s_lcd.lvgl_frame->width = width;
         s_lcd.lvgl_frame->height = height;
-        lcd_driver_display_frame_sync(s_lcd.lvgl_frame, BK_FALSE);
-        g_gui_need_to_wait = BK_TRUE;
+
+        if (s_lcd.config.device->type == LCD_TYPE_RGB565)
+        {
+            lcd_driver_display_frame_sync(s_lcd.lvgl_frame, BK_FALSE);
+            g_gui_need_to_wait = BK_TRUE;
+        }
+        else
+        {
+            lcd_driver_display_frame_sync(s_lcd.lvgl_frame, BK_TRUE);
+            g_gui_need_to_wait = BK_FALSE;
+        }
     }
     else{
         LOGI("[%s][%d] fb malloc fail\r\n", __FUNCTION__, __LINE__);
@@ -2160,17 +2472,17 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 	lcd_clk_t clk = 0;
 	const lcd_device_t *device = config->device;
 
-	LCD_DIAG_DEBUG_INIT();
-
-	lcd_ldo_power_enable(1);
-#if !CONFIG_SOC_BK7236
-	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DISP, PM_CPU_FRQ_320M);
-#endif
 	if (device == NULL)
 	{
 		LOGE("%s, device need to be set\n", __func__);
 		goto error;
 	}
+
+	LCD_DIAG_DEBUG_INIT();
+
+	lcd_ldo_power_enable(1);
+
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DISP, PM_CPU_FRQ_320M);
 
 	media_debug->err_dec = 0;
 	media_debug->fps_lcd = 0;
@@ -2194,10 +2506,12 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 
 	rtos_init_mutex(&s_lcd.dec_lock);
 	rtos_init_mutex(&s_lcd.rot_lock);
+	rtos_init_mutex(&s_lcd.resize_lock);
 	rtos_init_mutex(&s_lcd.disp_lock);
 
 	s_lcd.decoder_en = true;
 	s_lcd.rotate_en = true;
+	s_lcd.resize_en = true;
 	s_lcd.display_en = true;
 
 	s_lcd.lvgl_frame = os_malloc(sizeof(frame_buffer_t));
@@ -2219,6 +2533,14 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 		return ret;
 	}
 
+	ret = rtos_init_semaphore_ex(&s_lcd.resize_sem, 1, 0);
+
+	if (ret != BK_OK)
+	{
+		LOGE("%s resize_sem init failed: %d\n", __func__, ret);
+		return ret;
+	}
+
 	ret = rtos_init_semaphore_ex(&s_lcd.disp_sem, 1, 0);
 
 	if (ret != BK_OK)
@@ -2226,7 +2548,8 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 		LOGE("%s disp_sem init failed: %d\n", __func__, ret);
 		return ret;
 	}
-	if (!sw_decode_en)
+
+	if (get_decode_mode() == HARDWARE_DECODING)
 	{
 		ret = bk_jpeg_dec_driver_init();
 #if(1)  //enable jpeg complete int isr
@@ -2237,7 +2560,7 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 	}
 	else
 	{
-#if CONFIG_JPEG_DECODE
+#if CONFIG_JPEGDEC_SW
 		ret = bk_jpeg_dec_sw_init();
 #endif
 	}
@@ -2270,7 +2593,7 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 	if (device->type == LCD_TYPE_RGB565)
 	{
 		LOGD("%s, rgb eof register\n", __func__);
-		s_lcd.lcd_rgb_frame_end_handler = lcd_driver_display_isr;
+		s_lcd.lcd_rgb_frame_end_handler = lcd_driver_display_rgb_isr;
 #if CONFIG_GPIO_DEFAULT_SET_SUPPORT
 		/*
 		 * GPIO info is setted in GPIO_DEFAULT_DEV_CONFIG and
@@ -2285,7 +2608,7 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 	else if (device->type == LCD_TYPE_MCU8080)
 	{
 		LOGD("%s, mcu eof register\n", __func__);
-		s_lcd.lcd_8080_frame_end_handler = lcd_driver_display_isr;
+		s_lcd.lcd_8080_frame_end_handler = lcd_driver_display_mcu_isr;
 #if CONFIG_GPIO_DEFAULT_SET_SUPPORT
 		/*
 		 * GPIO info is setted in GPIO_DEFAULT_DEV_CONFIG and
@@ -2321,7 +2644,13 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 		device->backlight_open();
 	}
 
-#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
+#if	CONFIG_LCD_FONT_BLEND
+	yuv_data = config->yuv_addr;
+	rgb565_data = config->rgb565_addr;
+	s_lcd.font_draw = true;
+#endif
+
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
 	bk_dma2d_driver_init();
 	yuv_data = config->yuv_addr;
 	rgb565_data = config->rgb565_addr;
@@ -2349,8 +2678,8 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 	bk_dma2d_register_int_callback_isr(DMA2D_TRANS_ERROR_ISR, dma2d_transfer_error);
 	bk_dma2d_register_int_callback_isr(DMA2D_TRANS_COMPLETE_ISR, dma2d_transfer_complete);
 #endif 
-
 #endif
+
 	s_lcd.enable = true;
 
 	return ret;
@@ -2389,6 +2718,10 @@ bk_err_t lcd_driver_deinit(void)
 	s_lcd.rotate_en = false;
 	rtos_unlock_mutex(&s_lcd.rot_lock);
 
+	rtos_lock_mutex(&s_lcd.resize_lock);
+	s_lcd.resize_en = false;
+	rtos_unlock_mutex(&s_lcd.resize_lock);
+
 	rtos_lock_mutex(&s_lcd.disp_lock);
 	s_lcd.display_en = false;
 	rtos_unlock_mutex(&s_lcd.disp_lock);
@@ -2396,13 +2729,13 @@ bk_err_t lcd_driver_deinit(void)
 	type = s_lcd.config.device->type;
 
 	bk_timer_stop(TIMER_ID3);
-	if (!sw_decode_en)
+	if (get_decode_mode() == HARDWARE_DECODING)
 	{
 		bk_jpeg_dec_driver_deinit();
 	}
 	else
 	{
-#if (CONFIG_JPEG_DECODE)
+#if (CONFIG_JPEGDEC_SW)
 		bk_jpeg_dec_sw_deinit();
 #endif
 	}
@@ -2432,14 +2765,24 @@ bk_err_t lcd_driver_deinit(void)
 			goto out;
 		}
 	}
-#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG  || CONFIG_LCD_FONT_BLEND
+#if CONFIG_LCD_FONT_BLEND
+	if (s_lcd.font_draw == true)
+	{
+		if (yuv_data != NULL)
+			yuv_data = NULL;
+		if (rgb565_data != NULL)
+			rgb565_data = NULL;
+	}
+#endif
+
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
 	if (s_lcd.dma2d_blend == true)
 	{
 		bk_dma2d_driver_deinit();
-		yuv_data = NULL;
-		rgb565_data = NULL;
-
-
+		if (yuv_data != NULL)
+			yuv_data = NULL;
+		if (rgb565_data != NULL)
+			rgb565_data = NULL;
 #if USE_DMA2D_BLEND_ISR_CALLBACKS
 		ret = rtos_deinit_semaphore(&s_lcd.dma2d_complete_sem);
 		if (ret != BK_OK)
@@ -2457,10 +2800,28 @@ bk_err_t lcd_driver_deinit(void)
 	}
 #endif
 
-	if (s_lcd.rotate_frame)
+	if (s_lcd.rotate_frame == s_lcd.resize_frame)
 	{
-		s_lcd.config.fb_free(s_lcd.rotate_frame);
-		s_lcd.rotate_frame = NULL;
+		if (s_lcd.rotate_frame)
+		{
+			s_lcd.config.fb_free(s_lcd.rotate_frame);
+			s_lcd.rotate_frame = NULL;
+			s_lcd.resize_frame = NULL;
+		}
+	}
+	else
+	{
+		if (s_lcd.rotate_frame)
+		{
+			s_lcd.config.fb_free(s_lcd.rotate_frame);
+			s_lcd.rotate_frame = NULL;
+		}
+
+		if (s_lcd.resize_frame)
+		{
+			s_lcd.config.fb_free(s_lcd.resize_frame);
+			s_lcd.resize_frame = NULL;
+		}
 	}
 
 	if (s_lcd.decoder_frame)
@@ -2512,6 +2873,14 @@ bk_err_t lcd_driver_deinit(void)
 		return ret;
 	}
 
+	ret = rtos_deinit_semaphore(&s_lcd.resize_sem);
+
+	if (ret != BK_OK)
+	{
+		LOGE("%s resize_sem deinit failed: %d\n", __func__, ret);
+		return ret;
+	}
+
 	ret = rtos_deinit_semaphore(&s_lcd.disp_sem);
 
 	if (ret != BK_OK)
@@ -2522,9 +2891,10 @@ bk_err_t lcd_driver_deinit(void)
 
 	rtos_deinit_mutex(&s_lcd.dec_lock);
 	rtos_deinit_mutex(&s_lcd.rot_lock);
+	rtos_deinit_mutex(&s_lcd.resize_lock);
 	rtos_deinit_mutex(&s_lcd.disp_lock);
 
-//	s_lcd.config.fb_display_deinit();
+	//s_lcd.config.fb_display_deinit();
 
 out:
 
@@ -2563,7 +2933,8 @@ static void dma2d_lcd_fill(uint32_t frameaddr, uint16_t width, uint16_t height, 
 	{
 		width = width / 2;
 	}
-	bk_dma2d_start_transfer(&dma2d_config, color, (uint32_t)frameaddr, width, height);
+	bk_dma2d_transfer_config(&dma2d_config, color, (uint32_t)frameaddr, width, height);
+	bk_dma2d_start_transfer();
 	while (bk_dma2d_is_transfer_busy())
 	{
 	}

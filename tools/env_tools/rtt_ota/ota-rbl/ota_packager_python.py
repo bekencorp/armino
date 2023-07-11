@@ -643,9 +643,10 @@ def packager(args):
     aes = args.encrypt
 
     config = args.gHeader + "/ota_rbl.config"
-    if os.path.exists(os.getenv("ARMINO_PATH")+"/projects/"+os.getenv("PROJECT")+"/config/ota_rbl.config") and os.path.exists(os.getenv("ARMINO_PATH")+"/projects/"+os.getenv("PROJECT")+"/config/configurationab.json"):
+    if os.path.exists('%s/%s/config/ota_rbl.config'%(armino_path, project_dir)) and os.path.exists('%s/%s/config/configurationab.json'%(armino_path, project_dir)):
         b_new_chip = 1
-        config = os.getenv("ARMINO_PATH")+"/projects/"+os.getenv("PROJECT")+"/config/ota_rbl.config"
+        config = '%s/%s/config/ota_rbl.config'%(armino_path, project_dir)
+        print('=========================>>>> b_new_chip = 1')
     #print("============>>>>",config)
     if os.path.exists(config):
         with open(config,"rb") as fr:
@@ -700,7 +701,7 @@ def packager(args):
         if b_new_chip == 1:
             f.write(dest_obj)
 
-            config = "configurationab.json"
+            config = '%s/%s/config/configurationab.json'%(armino_path, project_dir)
             with open(config,"rb") as fj:
                 json_dict = json.load(fj)
                 if "section" in json_dict:
@@ -721,8 +722,12 @@ def packager(args):
             f.write(my_head)
             f.write(dest_obj)
         
+armino_path = None
+project_dir = None
 
 def parse_args():
+    global armino_path
+    global project_dir
     parser = argparse.ArgumentParser("Beken image tool.")
     parser.add_argument("cmd",
             type=str, choices=['create', 'crc16', 'merge', 'revert', 'replace', 'encrypt', 'asii', 'dump', 
@@ -743,6 +748,8 @@ def parse_args():
     parser.add_argument("-fn", "--firmware",default = "app", help="firmware name")
     parser.add_argument("-fv", "--firmwareversion", default = "2", help="firmware version")
     parser.add_argument('-g', '--gHeader', type=str, help='', default="gzipHeader.bin")
+    parser.add_argument('-ap', '--armino_path', default=None, help="sdk root path")
+    parser.add_argument('-pjd', '--project_dir', default=None, help="sdk project dir")
 
     try:
         args = parser.parse_args()
@@ -750,6 +757,9 @@ def parse_args():
     except:
         print(f'unknown command')
         sys.exit(0)
+
+    armino_path = args.armino_path
+    project_dir = args.project_dir
 
     if args.cmd == 'create':
         create(args)

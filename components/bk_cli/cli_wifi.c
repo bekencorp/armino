@@ -37,18 +37,6 @@ beken_semaphore_t wifi_cmd_sema = NULL;
 int wifi_cmd_status = 0;
 
 #if (CLI_CFG_WIFI == 1)
-#if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
-typedef struct bk_fast_connect_t
-{
-	uint8_t flag;		//to check if ssid/pwd saved in easy flash is valid, default 0x70
-					//bit[0]:write sta deault info;bit[1]:write ap deault info
-	uint8_t sta_ssid[33];
-	uint8_t sta_pwd[65];
-	uint8_t ap_ssid[33];
-	uint8_t ap_pwd[65];
-	uint8_t ap_channel;
-}BK_FAST_CONNECT_T;
-
 int wifi_cli_find_id(int argc, char **argv, char *param)
 {
 	int i;
@@ -68,6 +56,18 @@ int wifi_cli_find_id(int argc, char **argv, char *param)
 find_over:
 	return index;
 }
+
+#if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
+typedef struct bk_fast_connect_t
+{
+	uint8_t flag;		//to check if ssid/pwd saved in easy flash is valid, default 0x70
+					//bit[0]:write sta deault info;bit[1]:write ap deault info
+	uint8_t sta_ssid[33];
+	uint8_t sta_pwd[65];
+	uint8_t ap_ssid[33];
+	uint8_t ap_pwd[65];
+	uint8_t ap_channel;
+}BK_FAST_CONNECT_T;
 
 static BK_FAST_CONNECT_T info_t;
 static int fast_connect_cb(void *arg, event_module_t event_module,
@@ -368,7 +368,7 @@ void cli_wifi_ipdbg_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 	if (argc == 3)
 	{
-		func = (uint32_t)os_strtoul(argv[1], NULL, 10);
+		func = (uint32_t)os_strtoul(argv[1], NULL, 16);
 		value =  (uint16_t)os_strtoul(argv[2], NULL, 10);
 		demo_wifi_ipdbg_init(func, value);
 	}
@@ -622,6 +622,9 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 {
 	char *ssid = NULL;
 	char *password = "";
+#ifdef CONFIG_CONNECT_THROUGH_PSK_OR_SAE_PASSWORD
+	u8 *psk = 0;
+#endif
 	char *msg = NULL;
 	int ret;
 
@@ -687,6 +690,13 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 
 		if (argc >= 3)
 			password = argv[2];
+
+#ifdef CONFIG_CONNECT_THROUGH_PSK_OR_SAE_PASSWORD
+		if (argc >= 4) {
+			psk = (u8 *)argv[2];
+			password = argv[3];
+		}
+#endif
 #if CONFIG_ENABLE_WIFI_DEFAULT_CONNECT
 	}
 #endif
@@ -705,8 +715,11 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 #endif
 
 	if (oob_ssid_tp) {
-		ret = demo_sta_app_init((char *)oob_ssid_tp, password);
-
+#ifdef CONFIG_CONNECT_THROUGH_PSK_OR_SAE_PASSWORD
+	ret = demo_sta_app_init((char *)oob_ssid_tp, psk, password);
+#else
+	ret = demo_sta_app_init((char *)oob_ssid_tp, password);
+#endif
 	if (ret == -1)
 		goto error;
 
@@ -741,7 +754,7 @@ void cli_wifi_sta_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 		os_free(oob_ssid_tp);
 #endif
 
-#if !CONFIG_SOC_BK7236
+#if !CONFIG_SOC_BK7236XX
 		if (wifi_cmd_sema != NULL)
 		{
 			err = rtos_get_semaphore(&wifi_cmd_sema, 10000);
@@ -1570,6 +1583,36 @@ void blacklist_Command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
     }
 }
 
+#if CONFIG_RTP
+#include "RTP.h"
+static void rtp_send(void *thread_param)
+{
+	u8 ip[4] = {192, 168, 0, 192};
+	test_rtp_send(ip, 7180, 7180);
+	rtos_delete_thread(NULL);
+}
+
+static void rtp_recv(void *thread_param)
+{
+	u8 ip[4] = {192, 168, 0, 154};
+	test_rtp_recv(ip, 7180);
+	rtos_delete_thread(NULL);
+}
+
+void cli_wifi_rtp_cmd(char * pcWriteBuffer, int xWriteBufferLen, int argc, char * * argv)
+{
+	if (wifi_cli_find_id(argc, argv, "-s") > 0) {
+		rtos_create_thread(NULL, 4, "rtp_send",
+							   rtp_send, 10*1024,
+							   (beken_thread_arg_t) 0);
+	} else if (wifi_cli_find_id(argc, argv, "-r") > 0) {
+		rtos_create_thread(NULL, 4, "rtp_recv",
+							   rtp_recv, 10*1024,
+							   (beken_thread_arg_t) 0);
+	}
+}
+#endif
+
 #define WIFI_CMD_CNT (sizeof(s_wifi_commands) / sizeof(struct cli_command))
 static const struct cli_command s_wifi_commands[] = {
 	{"scan", "scan [ssid]", cli_wifi_scan_cmd},
@@ -1611,6 +1654,9 @@ static const struct cli_command s_wifi_commands[] = {
 	{"rc", "wifi rate control config", cli_wifi_rc_cmd},
 	{"capa", "wifi capability config", cli_wifi_capa_cmd},
 	{"blacklist", "Set ssid blacklist", blacklist_Command},
+#if CONFIG_RTP
+	{"rtp", "rtp -s/c ip", cli_wifi_rtp_cmd},
+#endif
 };
 
 int cli_wifi_init(void)

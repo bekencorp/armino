@@ -1,0 +1,8 @@
+menu "Demos::Media::Audio::Audio_asr"
+	config ASR_TEST
+		depends on AUDIO
+		depends on AUD_INTF
+		depends on FATFS
+		bool "Enable Audio Asr Test"
+		default n
+endmenu

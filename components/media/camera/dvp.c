@@ -78,7 +78,7 @@ bk_err_t bk_dvp_camera_open(media_ppi_t ppi, media_camera_type_t type)
 	config.ppi = ppi;
 	config.type = type;
 
-#if (!CONFIG_YUV_BUF)
+#if (CONFIG_JPEG_YUV_MIX)
 	if (type == MEDIA_DVP_MJPEG)
 	{
 		config.type = MEDIA_DVP_MIX;

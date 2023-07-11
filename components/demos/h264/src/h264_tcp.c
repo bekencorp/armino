@@ -68,6 +68,8 @@ static aud_intf_voc_setup_t aud_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
 
 beken_mutex_t send_lock;
 
+extern void delay(int num);
+
 static void demo_h264_tcp_set_keepalive(int fd)
 {
 	int opt = 1, ret;
@@ -215,8 +217,17 @@ static void demo_h264_tcp_camera_data_handle(uint8_t *data, uint16_t length)
 				setup.open_type = TVIDEO_OPEN_SCCB;
 				setup.send_type = TVIDEO_SND_TCP;
 				setup.send_func = demo_h264_tcp_video_send_packet;
-
-				media_app_camera_open(APP_CAMERA_DVP_H264, ppi);
+				lcd_open_t lcd_open;
+				if (ppi > PPI_1024X600)
+				{
+					lcd_open.device_ppi = PPI_1024X600;
+				} else {
+					lcd_open.device_ppi = PPI_480X272;
+				}
+				lcd_open.device_name = NULL;
+				media_app_lcd_open(&lcd_open);
+				delay(30000);
+				media_app_camera_open(APP_CAMERA_DVP_H264_ENC_LCD, ppi);
 				media_app_h264_open(&setup);
 			}
 			break;
@@ -226,7 +237,9 @@ static void demo_h264_tcp_camera_data_handle(uint8_t *data, uint16_t length)
 				LOGI("DVP STOP\n");
 
 				media_app_h264_close();
-				media_app_camera_close(APP_CAMERA_DVP_H264);
+				media_app_lcd_close();
+				delay(30000);
+				media_app_camera_close(APP_CAMERA_DVP_H264_ENC_LCD);
 
 			}
 			break;

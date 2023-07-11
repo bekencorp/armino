@@ -400,6 +400,11 @@ uint32_t bk_dma_get_remain_len(dma_id_t id);
 uint32_t bk_dma_get_enable_status(dma_id_t id);
 
 #ifdef CONFIG_SPE
+bk_err_t bk_dma_set_dest_burst_len(dma_id_t id, dma_burst_len_e len);
+uint32_t bk_dma_get_dest_burst_len(dma_id_t id);
+bk_err_t bk_dma_set_src_burst_len(dma_id_t id, dma_burst_len_e len);
+uint32_t bk_dma_get_src_burst_len(dma_id_t id);
+
 /**
  * @brief     Enable the current DMA channel bus err interrupt
  *

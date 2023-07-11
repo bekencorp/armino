@@ -18,4 +18,17 @@
 #include "log.h"
 #include "stats.h"
 
+enum pm_module_t {
+	PM_MODULE_PM = 0,
+	PM_MODULE_DEVICE,
+	PM_MODULE_DEVICE_VOTE,
+	PM_MODULE_DEPEND,
+	PM_MODULE_POLICY,
+};
+typedef enum pm_module_t pm_module_t;
+
+int pm_lock(pm_module_t module);
+int pm_unlock(pm_module_t module);
+
 const char* pm_get_state_str(pm_state_t state);
+const char* pm_get_module_str(pm_module_t module);

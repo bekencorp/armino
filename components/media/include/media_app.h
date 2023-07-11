@@ -30,7 +30,10 @@ typedef enum
 	APP_CAMERA_UVC_H264,
 	APP_CAMERA_NET_MJPEG,
 	APP_CAMERA_NET_H264,
-	APP_CAMERA_DVP_H264,
+	APP_CAMERA_DVP_H264_WIFI_TRANSFER,
+	APP_CAMERA_DVP_H264_LOCAL,
+	APP_CAMERA_DVP_H264_ENC_LCD,
+	APP_CAMERA_DVP_H264_USB_TRANSFER,
 	APP_CAMERA_INVALIED,
 } app_camera_type_t;
 
@@ -62,7 +65,8 @@ bk_err_t media_app_save_start(char *name);
 bk_err_t media_app_save_stop(void);
 bk_err_t media_app_lcd_set_backlight(uint8_t level);
 bk_err_t media_app_mailbox_test(void);
-bk_err_t media_app_lcd_rotate(bool enable);
+bk_err_t media_app_lcd_rotate(media_rotate_t rotate);
+bk_err_t media_app_lcd_resize(media_ppi_t ppi);
 bk_err_t media_app_dump_display_frame(void);
 bk_err_t media_app_dump_decoder_frame(void);
 bk_err_t media_app_dump_jpeg_frame(void);

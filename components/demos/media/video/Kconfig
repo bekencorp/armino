@@ -28,8 +28,8 @@ menu "Demos::Media::Video"
 			default 2 if CAMERA_USE_I2C2
 	endmenu
 
-	config JPEG_DECODE
-		bool "Enable Jpeg Decode"
+	config JPEGDEC_SW
+		bool "Enable SoftWare Jpeg Decode"
 		default n
 		help
 			Enable jpeg_dec interface

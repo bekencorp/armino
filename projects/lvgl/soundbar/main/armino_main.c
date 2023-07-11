@@ -10,7 +10,6 @@
 #include "media_app.h"
 #include "lv_vendor.h"
 #include "driver/drv_tp.h"
-#include "a2dp_sink_demo.h"
 #include "dm_ble_demo.h"
 
 extern void user_app_main(void);
@@ -105,7 +104,11 @@ int main(void)
 
 	music_init();
 
-    a2dp_sink_demo_init();
+    rtos_delay_milliseconds(500);
+#if CONFIG_A2DP_SINK_DEMO
+    extern int a2dp_sink_demo_init(uint8_t aac_supported);
+    a2dp_sink_demo_init(0);
+#endif
 
 #if CONFIG_BLE
     if(0)

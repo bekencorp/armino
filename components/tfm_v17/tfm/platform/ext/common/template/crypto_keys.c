@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-#include "tfm_plat_crypto_keys.h"
+#include "common.h" //TODO wzl-issue4
 
+#include "tfm_plat_crypto_keys.h"
 #include "tfm_builtin_key_ids.h"
 
 #include <stddef.h>

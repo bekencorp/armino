@@ -18,23 +18,25 @@ OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
 
 __MSP_STACK_SIZE = (4 << 10);
 __MIN_HEAP_SIZE  = (64 << 10);
+__SHARED_MEMORY_BOUNDARY = 0x28080000 + SOC_ADDR_OFFSET;
+__SWAP_SIZE = (32);
 
 MEMORY
 {
 #if CONFIG_SPE
-  FLASH (rx)            : ORIGIN = (SOC_FLASH_DATA_BASE + CONFIG_PRIMARY_APP_VIRTUAL_CODE_START), LENGTH = CONFIG_PRIMARY_APP_VIRTUAL_CODE_SIZE
-  IRAM (rwx)            : ORIGIN = SOC_SRAM0_DATA_BASE, LENGTH = CONFIG_PRIMARY_APP_IRAM_SIZE
-  RAM (rwx)             : ORIGIN = SOC_SRAM0_DATA_BASE + CONFIG_PRIMARY_APP_IRAM_SIZE, LENGTH = CONFIG_SPE_TOTAL_RAM_SIZE - CONFIG_PRIMARY_APP_IRAM_SIZE
+	FLASH (rx)     : ORIGIN = (SOC_FLASH_DATA_BASE + CONFIG_PRIMARY_APP_VIRTUAL_CODE_START), LENGTH = CONFIG_PRIMARY_APP_VIRTUAL_CODE_SIZE
+	RAM (rwx)      : ORIGIN = SOC_SRAM0_DATA_BASE + CONFIG_PRIMARY_APP_IRAM_SIZE, LENGTH = CONFIG_SPE_TOTAL_RAM_SIZE - CONFIG_PRIMARY_APP_IRAM_SIZE
+	IRAM (rwx)     : ORIGIN = SOC_SRAM0_DATA_BASE, LENGTH = CONFIG_PRIMARY_APP_IRAM_SIZE
 #else
-  FLASH (rx)            : ORIGIN = (SOC_FLASH_DATA_BASE + CONFIG_PRIMARY_NS_VIRTUAL_CODE_START), LENGTH = CONFIG_PRIMARY_NS_VIRTUAL_CODE_SIZE
-  RAM (rwx)             : ORIGIN = SOC_SRAM1_DATA_BASE, LENGTH = CONFIG_NSPE_TOTAL_RAM_SIZE
+	FLASH (rx)     : ORIGIN = (SOC_FLASH_DATA_BASE + CONFIG_PRIMARY_NS_VIRTUAL_CODE_START), LENGTH = CONFIG_PRIMARY_NS_VIRTUAL_CODE_SIZE
+	RAM (rwx)      : ORIGIN = SOC_SRAM1_DATA_BASE + CONFIG_PRIMARY_APP_IRAM_SIZE, LENGTH = CONFIG_NSPE_TOTAL_RAM_SIZE - CONFIG_PRIMARY_APP_IRAM_SIZE
+	IRAM (rwx)     : ORIGIN = SOC_SRAM1_DATA_BASE, LENGTH = CONFIG_PRIMARY_APP_IRAM_SIZE
 #endif
 
-
-  ITCM (rwx)            : ORIGIN = SOC_ITCM_DATA_BASE + 4, LENGTH = CONFIG_ITCM_SIZE - 4
-  DTCM (rwx)            : ORIGIN = SOC_DTCM_DATA_BASE + 0, LENGTH = CONFIG_DTCM_SIZE
-
-  PSRAM (rwx)           : ORIGIN = SOC_PSRAM_DATA_BASE, LENGTH = 0x4000000
+	ITCM (rwx)     : ORIGIN = SOC_ITCM_DATA_BASE + 4, LENGTH = CONFIG_ITCM_SIZE - 4
+	DTCM (rwx)     : ORIGIN = SOC_DTCM_DATA_BASE + 0, LENGTH = CONFIG_DTCM_SIZE
+	SWAP (rwx)     : ORIGIN = __SHARED_MEMORY_BOUNDARY - __SWAP_SIZE, LENGTH = __SWAP_SIZE
+	PSRAM (rwx)    : ORIGIN = SOC_PSRAM_DATA_BASE, LENGTH = 0x4000000
 }
 
 ENTRY(Reset_Handler)
@@ -131,10 +133,9 @@ SECTIONS
         LONG (__data_start__)
         LONG ((__data_end__ - __data_start__) / 4)
 
-        /* Add each additional data section here */
-        LONG (__etext2)
-        LONG (__data2_start__)
-        LONG ((__data2_end__ - __data2_start__) / 4)
+        LONG (__video_cache_text)
+        LONG (__video_cache_data_start__)
+        LONG ((__video_cache_data_end__ - __video_cache_data_start__) / 4)
 
         LONG (__iram_flash_begin)
         LONG (__iram_start__)
@@ -158,8 +159,8 @@ SECTIONS
         LONG (_bss_start)
         LONG ((_bss_end - _bss_start) / 4)
         /* Add each additional bss section here */
-        LONG (__bss2_start__)
-        LONG ((__bss2_end__ - __bss2_start__) / 4)
+        LONG (__video_cache_bss_start__)
+        LONG ((__video_cache_bss_end__ - __video_cache_bss_start__) / 4)
         __zero_table_end__ = .;
     } > FLASH
 
@@ -273,27 +274,37 @@ SECTIONS
         _estack = .;
     } > RAM
 
+    .swap ORIGIN(SWAP):
+    {
+        . = ALIGN(8);
+        _swap_start = .;
+
+        * (.swap_data)
+        * (.swap_data*)
+        _swap_end = .;
+    } > IRAM AT > RAM
+
     .video.cache.data :
     {
         . = ALIGN(4);
-        PROVIDE(__etext2 = LOADADDR(.video.cache.data));
-        __data2_start__ = .;
+        PROVIDE(__video_cache_text = LOADADDR(.video.cache.data));
+        __video_cache_data_start__ = .;
 
         *(.video_cache_data)
         *(.video_cache_data*)
 
         . = ALIGN(4);
-        __data2_end__ = .;
+        __video_cache_data_end__ = .;
     } > PSRAM AT > FLASH
 
     .video_cache_bss (NOLOAD):
     {
         . = ALIGN(4);
-        __bss2_start__ = .;
+        __video_cache_bss_start__ = .;
         *(.video_cache_bss)
         *(.video_cache_bss*)
         . = ALIGN(4);
-        __bss2_end__ = .;
+        __video_cache_bss_end__ = .;
     } > PSRAM
 
     /* Set stack top to end of RAM, and stack limit move down by

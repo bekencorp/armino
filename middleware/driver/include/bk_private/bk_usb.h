@@ -90,7 +90,7 @@ extern bk_err_t bk_uac_register_tx_speakerstream_buffptr(void *buffer_ptr, uint3
 #endif
 #endif
 
-#if (CONFIG_SOC_BK7271) || (CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7236)
+#if (CONFIG_SOC_BK7271) || (CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7236XX)
 UINT32 usb_read (UINT32 pos, const void *buffer, UINT32 size);
 UINT32 usb_write (UINT32 pos, const void *buffer, UINT32 size);
 #else

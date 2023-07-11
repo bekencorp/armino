@@ -1,0 +1,5 @@
+menu "EFUSE"
+	config EFUSE
+		bool "Enable efuse"
+		default y
+endmenu

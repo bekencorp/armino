@@ -11,6 +11,7 @@
 #include "tfm_plat_defs.h"
 #include "uart_stdout.h"
 #include "core_star.h"
+#include "tfm_sp_log.h"
 
 extern const struct memory_region_limits memory_regions;
 
@@ -86,6 +87,18 @@ uint32_t tfm_hal_get_ns_VTOR(void)
 uint32_t tfm_hal_get_ns_MSP(void)
 {
     return *((uint32_t *)memory_regions.non_secure_code_start);
+}
+
+/*todo for debugging*/
+void bfhfnmi_handler(void)
+{
+	uint32_t *psp_ns_pointer = (uint32_t  *)__TZ_get_PSP_NS();
+	printf("\r\n[SPE]SFSR-0xe000ede4:0x%x\r\n", (*(volatile uint32_t *)(0xe000ede4)));
+	printf("\r\n[SPE]SFAR-0xe000ede8:0x%x\r\n", (*(volatile uint32_t *)(0xe000ede8)));
+	printf("\r\n[SPE]psp_ns_pointer:0x%x\r\n", psp_ns_pointer);
+
+	printf_word_buf_hex(psp_ns_pointer, 128);
+	while(1);
 }
 
 void tfm_s_2_ns_hook(void)

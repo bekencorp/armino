@@ -105,12 +105,12 @@ static inline void jpeg_ll_set_yuv_mode(jpeg_hw_t *hw, uint32_t mode)
 
 static inline void jpeg_ll_enable_end_yuv_int(jpeg_hw_t *hw)
 {
-	hw->int_en.eoy_int_en = 1;
+	// not support
 }
 
 static inline void jpeg_ll_disable_end_yuv_int(jpeg_hw_t *hw)
 {
-	hw->int_en.eoy_int_en = 0;
+	// not support
 }
 
 static inline void jpeg_ll_enable_head_output_int(jpeg_hw_t *hw)
@@ -126,8 +126,6 @@ static inline void jpeg_ll_disable_head_output_int(jpeg_hw_t *hw)
 static inline void jpeg_ll_enable_start_frame_int(jpeg_hw_t *hw)
 {
 	hw->int_en.sof_int_en = 1;
-	/* regard eoy as frame err int */
-	hw->int_en.eoy_int_en = 1;
 }
 
 static inline void jpeg_ll_disable_start_frame_int(jpeg_hw_t *hw)
@@ -147,12 +145,32 @@ static inline void jpeg_ll_disable_end_frame_int(jpeg_hw_t *hw)
 
 static inline void jpeg_ll_enable_vsync_negedge_int(jpeg_hw_t *hw)
 {
-	hw->int_en.vsync_int_en = 1;
+	// not support
 }
 
 static inline void jpeg_ll_disable_vsync_negedge_int(jpeg_hw_t *hw)
 {
-	hw->int_en.vsync_int_en = 0;
+	// not support
+}
+
+static inline void jpeg_ll_enable_line_clear_int(jpeg_hw_t *hw)
+{
+	hw->int_en.line_clear_int_en = 1;
+}
+
+static inline void jpeg_ll_disable_line_clear_int(jpeg_hw_t *hw)
+{
+	hw->int_en.line_clear_int_en = 0;
+}
+
+static inline void jpeg_ll_enable_frame_error_int(jpeg_hw_t *hw)
+{
+	hw->int_en.frame_err_int_en = 1;
+}
+
+static inline void jpeg_ll_disable_frame_error_int(jpeg_hw_t *hw)
+{
+	hw->int_en.frame_err_int_en = 0;
 }
 
 static inline void jpeg_ll_set_mclk_div(jpeg_hw_t *hw, uint32_t value)
@@ -289,9 +307,9 @@ static inline bool jpeg_ll_is_head_output_int_triggered(jpeg_hw_t *hw, uint32_t 
 	return !!(int_status & BIT(2));
 }
 
-/* bk7236 not support */
 static inline bool jpeg_ll_is_yuv_end_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
+	/* bk7236 not support */
 	return false;
 }
 
@@ -300,16 +318,15 @@ static inline bool jpeg_ll_is_frame_err_int_triggered(jpeg_hw_t *hw, uint32_t in
 	return !!(int_status & BIT(3));
 }
 
-//use in no sensor case
 static inline bool jpeg_ll_is_l_clear_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
 	return !!(int_status & BIT(5));
 }
 
-//move to yuv_buf module
 static inline bool jpeg_ll_is_vsync_negedge_int_triggered(jpeg_hw_t *hw, uint32_t int_status)
 {
-	return !!(int_status & BIT(4));
+	/* bk7236 not support */
+	return false;
 }
 
 static inline void jpeg_ll_set_em_base_addr(jpeg_hw_t *hw, uint32_t value)

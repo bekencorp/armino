@@ -230,7 +230,8 @@ static void bk_lcd_qspi_dma2d_fill(uint32_t width, uint32_t height, uint32_t col
 	dma2d_config.init.data_reverse   = data_reverse;
 	bk_dma2d_init(&dma2d_config);
 
-	bk_dma2d_start_transfer(&dma2d_config, color, LCD_QSPI_DISPLAY_PSRAM_ADDR, width, height);
+	bk_dma2d_transfer_config(&dma2d_config, color, LCD_QSPI_DISPLAY_PSRAM_ADDR, width, height);
+	bk_dma2d_start_transfer();
 }
 
 static void bk_lcd_qspi_dma2d_memcpy(uint32_t *Psrc, uint32_t xsize, uint32_t ysize, bool data_reverse)
@@ -260,7 +261,8 @@ static void bk_lcd_qspi_dma2d_memcpy(uint32_t *Psrc, uint32_t xsize, uint32_t ys
 	bk_dma2d_init(&dma2d_config);
 	bk_dma2d_layer_config(&dma2d_config, DMA2D_FOREGROUND_LAYER);
 
-	bk_dma2d_start_transfer(&dma2d_config, (uint32_t)Psrc, LCD_QSPI_DISPLAY_PSRAM_ADDR, xsize, ysize);
+	bk_dma2d_transfer_config(&dma2d_config, (uint32_t)Psrc, LCD_QSPI_DISPLAY_PSRAM_ADDR, xsize, ysize);
+	bk_dma2d_start_transfer();
 }
 
 lcd_qspi_device_t *lcd_qspi_devices[] = {

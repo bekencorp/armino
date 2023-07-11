@@ -95,7 +95,9 @@ static char *misc_get_start_type_str(uint32_t start_type)
 
 	case RESET_SOURCE_UNKNOWN:
 	default:
-		return "unknown";
+		// Chip power on the value of start address may not always be 0
+		// return "unknown";
+		return "power on";
 	}
 #else
 	return "";
@@ -194,7 +196,7 @@ void bk_misc_set_reset_reason(uint32_t type)
 #endif
 }
 
-#elif CONFIG_SOC_BK7236
+#elif CONFIG_SOC_BK7236XX
 uint32_t reset_reason_init(void) {
 	//wangzhilei TODO
 	return s_start_type;

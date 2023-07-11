@@ -1,0 +1,5 @@
+menu "IRDA"
+	config SUPPORT_IRDA
+		bool "Enable IRDA"
+		default y
+endmenu

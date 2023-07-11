@@ -63,4 +63,17 @@ void SystemInit (void)
 
   SystemCoreClock = SYSTEM_CLOCK;
   PeripheralClock = PERIPHERAL_CLOCK;
+
+#if defined (__ITCM_PRESENT) && (__ITCM_PRESENT == 1U)
+	TCM->ITCMCR |= SCB_ITCMCR_EN_Msk;
+	ITGU->TGU_CTRL |= TGU_DBFEN_Msk | TGU_DEREN_Msk;
+	ITGU->TGU_LUT = 0xFFFF;
+#endif
+
+#if defined (__DTCM_PRESENT) && (__DTCM_PRESENT == 1U)
+	TCM->DTCMCR |= SCB_DTCMCR_EN_Msk;
+	DTGU->TGU_LUT = 0xFFFF;
+#endif
 }
+// eof
+

@@ -44,6 +44,11 @@ typedef struct {
 #define jpeg_hal_disable_end_frame_int(hal) jpeg_ll_disable_end_frame_int((hal)->hw)
 #define jpeg_hal_enable_vsync_negedge_int(hal) jpeg_ll_enable_vsync_negedge_int((hal)->hw)
 #define jpeg_hal_disable_vsync_negedge_int(hal) jpeg_ll_disable_vsync_negedge_int((hal)->hw)
+#define jpeg_hal_enable_line_clear_int(hal) jpeg_ll_enable_line_clear_int((hal)->hw)
+#define jpeg_hal_disable_line_clear_int(hal) jpeg_ll_disable_line_clear_int((hal)->hw)
+#define jpeg_hal_enable_frame_error_int(hal) jpeg_ll_enable_frame_error_int((hal)->hw)
+#define jpeg_hal_disable_frame_error_int(hal) jpeg_ll_disable_frame_error_int((hal)->hw)
+
 #define jpeg_hal_reset_config_to_default(hal) jpeg_ll_reset_config_to_default((hal)->hw)
 #define jpeg_hal_set_x_pixel(hal, x_pixel) jpeg_ll_set_x_pixel((hal)->hw, x_pixel)
 #define jpeg_hal_set_y_pixel(hal, x_pixel) jpeg_ll_set_y_pixel((hal)->hw, x_pixel)
@@ -60,6 +65,9 @@ typedef struct {
 #define jpeg_hal_is_yuv_end_int_triggered(hal, int_status) jpeg_ll_is_yuv_end_int_triggered((hal)->hw, int_status)
 #define jpeg_hal_is_head_output_int_triggered(hal, int_status) jpeg_ll_is_head_output_int_triggered((hal)->hw, int_status)
 #define jpeg_hal_is_sync_negedge_int_triggered(hal, int_status) jpeg_ll_is_vsync_negedge_int_triggered((hal)->hw, int_status)
+#define jpeg_hal_is_line_clear_int_triggered(hal, int_status) jpeg_ll_is_l_clear_int_triggered((hal)->hw, int_status)
+#define jpeg_hal_is_frame_error_int_triggered(hal, int_status) jpeg_ll_is_frame_err_int_triggered((hal)->hw, int_status)
+
 #define jpeg_hal_set_mclk_div(hal, value) jpeg_ll_set_mclk_div((hal)->hw, value)
 
 bk_err_t jpeg_hal_init(jpeg_hal_t *hal);

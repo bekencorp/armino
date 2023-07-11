@@ -124,7 +124,11 @@ extern "C" {
 #define ICU_PRI_FIQ_RC                           (12)
 #define ICU_PRI_JPEG_ENCODER                     (20)
 
+#if (CONFIG_SOC_BK7236XX)
+#define IQR_PRI_DEFAULT                          (6) //Temp for BK7236
+#else
 #define IQR_PRI_DEFAULT                          (1) //Temp for BK7256 RISC-V
+#endif
 
 #ifdef __cplusplus
 }

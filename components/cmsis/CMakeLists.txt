@@ -2,15 +2,11 @@ set(incs)
 set(srcs)
 
 if (CONFIG_CMSIS)
-	list(APPEND srcs
-		port/start.c
-	)
-
 	list(APPEND incs
 		CMSIS_5/CMSIS/Core/Include
 	)
 
-if (CONFIG_SOC_BK7236)
+if (CONFIG_SOC_BK7236XX)
 	list(APPEND srcs
 		CMSIS_5/Device/Beken/bk7236xx/Source/startup_bk7236.c
 		CMSIS_5/Device/Beken/bk7236xx/Source/system_bk7236xx.c

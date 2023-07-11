@@ -45,7 +45,7 @@ bk_err_t i2s_hal_config(const i2s_cfg_t *config)
 	i2s_ll_set_pcm_cfg_sclkinv(config->sck_invert, i2s_cfg_index);
 	i2s_ll_set_pcm_cfg_lsbfirst(config->lsb_first_en, i2s_cfg_index);
 	i2s_ll_set_pcm_cfg_synclen(config->sync_length, i2s_cfg_index);
-	i2s_ll_set_pcm_cfg_datalen(config->data_length, i2s_cfg_index);
+	i2s_ll_set_pcm_cfg_datalen(config->data_length - 1, i2s_cfg_index);
 
 	i2s_ll_set_pcm_cfg_pcm_dlen(config->pcm_dlength, i2s_cfg_index);
 	i2s_ll_set_pcm_cfg_smpratio(config->sample_ratio, i2s_cfg_index);

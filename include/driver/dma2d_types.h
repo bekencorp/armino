@@ -66,8 +66,8 @@ typedef void (*dma2d_isr_t)(void);
 #define DMA2D_REGULAR_ALPHA         0x00000000U  /**< No modification of the alpha channel value */
 #define DMA2D_INVERTED_ALPHA        0x00000001U  /**< Invert the alpha channel value */
 
-#define DMA2D_RB_REGULAR            0x00000000U  /**< Select regular mode (RGB or ARGB) */
-#define DMA2D_RB_SWAP               0x00000001U  /**< Select swap mode (BGR or ABGR) */
+//#define DMA2D_RB_REGULAR            0x00000000U  /**< Select regular mode (RGB or ARGB) */
+//#define DMA2D_RB_SWAP               0x00000001U  /**< Select swap mode (BGR or ABGR) */
 
 /**
  * @}
@@ -190,6 +190,11 @@ typedef enum {
 	DMA2D_COMBINE_ALPHA,
 
 }blend_alpha_mode_t;
+	
+typedef enum {
+	DMA2D_RB_REGULAR = 0x0,    /**< Select regular mode (RGB or ARGB) */
+	DMA2D_RB_SWAP,             /**< Select swap mode (BGR or ABGR) * = 0*/
+}red_blue_swap_t;
 
 /**
   * @}
@@ -264,8 +269,46 @@ typedef struct
 	blend_alpha_mode_t bg_alpha_mode;
 	uint8_t fg_alpha_value;             /**< config fg alpha.. */
 	uint8_t bg_alpha_value;             /**< config bg alpha. */
-	uint8_t red_bule_swap;              /**<DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
+	red_blue_swap_t red_bule_swap;              /**<DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
 }dma2d_blend_t;
+
+typedef struct
+{
+	void *pfg_addr;                     /**< The source memory Buffer address for the foreground layer.. */
+	void *pbg_addr;                     /**< he source memory Buffer address for the background layer... */
+	void *pdst_addr;                    /**< The output memory Buffer address                         .. */
+	input_color_mode_t fg_color_mode;   /**< fg color mode.. */
+	input_color_mode_t bg_color_mode;   /**< bg color mode.. */
+	out_color_mode_t   dst_color_mode;  /**< out color mode..*/
+
+	uint16_t fg_frame_xpos;         /**< src img start copy/pfc x pos*/
+	uint16_t fg_frame_ypos;         /**< src img start copy/pfc y pos*/
+	uint16_t bg_frame_xpos;          /**< dma2d fill x pos based on frame_xsize */
+	uint16_t bg_frame_ypos;          /**< dma2d fill y pos based on frame_ysize */
+	uint16_t dst_frame_xpos;          /**< dma2d fill x pos based on frame_xsize */
+	uint16_t dst_frame_ypos;          /**< dma2d fill y pos based on frame_ysize */
+	
+	uint16_t fg_frame_width;        /**< src image width */
+	uint16_t fg_frame_height;       /**< src image height  */
+	uint16_t bg_frame_width;        /**< src image width */
+	uint16_t bg_frame_height;       /**< src image height  */
+	uint16_t dst_frame_width;        /**< src image width */
+	uint16_t dst_frame_height;       /**< src image height  */
+	
+	uint32 dma2d_width;                       /**< dma2d blend x size.. */
+	uint32 dma2d_height;                      /**< dma2d blend y size.. */
+	blend_alpha_mode_t fg_alpha_mode;
+	blend_alpha_mode_t bg_alpha_mode;
+	uint8_t fg_alpha_value;             /**< config fg alpha.. */
+	uint8_t bg_alpha_value;             /**< config bg alpha. */
+	red_blue_swap_t fg_red_blue_swap;        /**< fg img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
+	red_blue_swap_t bg_red_blue_swap;        /**< bg img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
+	red_blue_swap_t dst_red_blue_swap;        /**< dst img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
+	
+	uint8_t fg_pixel_byte;
+	uint8_t bg_pixel_byte;
+	uint8_t dst_pixel_byte;
+}dma2d_offset_blend_t;
 
 
 typedef struct
@@ -287,12 +330,12 @@ typedef struct
 
 	input_color_mode_t input_color_mode;  /**< The pixel convert src color mode */
 	out_color_mode_t output_color_mode;   /**< The pixel convert dst color mode */
-	uint8_t src_pixel_bit;
-	uint8_t dst_pixel_bit;
+	uint8_t src_pixel_byte;
+	uint8_t dst_pixel_byte;
 	uint8_t input_alpha;                /**< src data alpha, depend on alpha_mode */
 	uint8_t output_alpha;                /**< dst data alpha,depend on alpha_mode */
-	uint8_t input_red_blue_swap;        /**< src img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
-	uint8_t output_red_blue_swap;        /**< src img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
+	red_blue_swap_t input_red_blue_swap;        /**< src img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
+	red_blue_swap_t output_red_blue_swap;        /**< src img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
 }dma2d_memcpy_pfc_t;
 
 typedef struct {
@@ -304,7 +347,7 @@ typedef struct {
 	uint16_t width;              /**< dma2d fill width */
 	uint16_t high;               /**< dma2d fill height */
 	out_color_mode_t color_format;
-	uint8_t pixel_bit;
+	uint8_t pixel_byte;
 	uint32_t color;              /**< dma2d fill color */
 }dma2d_fill_t;
 

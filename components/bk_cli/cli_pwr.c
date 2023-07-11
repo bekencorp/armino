@@ -399,7 +399,7 @@ static void cli_pm_freq(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 	pm_module_id = os_strtoul(argv[1], NULL, 10);
 	pm_freq = os_strtoul(argv[2], NULL, 10);
-	if ((pm_freq < 0) || (pm_freq > 3) || (pm_module_id < 0) || (pm_module_id > PM_DEV_ID_MAX))
+	if ((pm_freq > PM_CPU_FRQ_DEFAULT) || (pm_module_id > PM_DEV_ID_MAX))
 	{
 		os_printf("set pm freq value invalid %d %d \r\n",pm_freq,pm_module_id);
 		return;
@@ -696,6 +696,7 @@ static void cli_ps_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		goto _invalid_ps_arg;
 
 #if CONFIG_MCU_PS
+#if !CONFIG_SOC_BK7236XX //temp mofify for bk7236
 	if (0 == os_strcmp(argv[1], "mcudtim")) {
 		UINT32 dtim = os_strtoul(argv[2], NULL, 10);
 		if (dtim == 1)
@@ -705,6 +706,7 @@ static void cli_ps_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		else
 			goto _invalid_ps_arg;
 	}
+#endif
 #endif
 #if CONFIG_STA_PS
 	else if (0 == os_strcmp(argv[1], "rfdtim")) {

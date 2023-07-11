@@ -5,7 +5,9 @@
 #
 #-------------------------------------------------------------------------------
 
-set(CONFIG_TFM_ENABLE_FP                OFF         CACHE BOOL      "Enable/disable FP usage")
+set(CONFIG_TFM_ENABLE_FP                OFF          CACHE BOOL      "Enable/disable FP usage")
+#set(CONFIG_TFM_ENABLE_FP               ON           CACHE BOOL      "Enable/disable FP usage")
+#set(CONFIG_TFM_FP_ARCH                 "fpv5-sp-d16")
 set(CONFIG_TFM_ENABLE_MVE               OFF         CACHE BOOL      "Enable/disable integer MVE usage")
 set(CONFIG_TFM_ENABLE_MVE_FP            OFF         CACHE BOOL      "Enable/disable floating-point MVE usage")
 

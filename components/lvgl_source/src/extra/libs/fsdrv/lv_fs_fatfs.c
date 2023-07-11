@@ -9,7 +9,7 @@
 #include "../../../lvgl.h"
 
 #if LV_USE_FS_FATFS
-#include "ff.h"
+#include "../../../../../fatfs/ff.h"
 
 /*********************
  *      DEFINES
@@ -86,7 +86,6 @@ void lv_fs_fatfs_init(void)
 /**********************
  *   STATIC FUNCTIONS
  **********************/
-
 /*Initialize your Storage device and File system.*/
 static void fs_init(void)
 {

@@ -225,10 +225,11 @@ void sys_hal_bt_sleep_exit_ctrl(bool en);
 
 
 /**  Video Start **/
-void sys_hal_lcd_disp_clk_en(uint8_t clk_src_sel, uint8_t clk_div_l, uint8_t clk_div_h, uint8_t int_en,uint8_t clk_always_on);
+void sys_hal_lcd_disp_clk_en(uint8_t clk_src_sel, uint8_t clk_div_l, uint8_t clk_div_h,uint8_t clk_always_on);
 void sys_hal_lcd_disp_close(void);
-void sys_hal_dma2d_clk_en(uint8_t clk_always_on,  uint8_t sys_int_en);
-void sys_hal_jpeg_dec_ctrl(bool clk_always_on, bool int_en);
+
+void sys_hal_set_jpeg_dec_disckg(uint32_t value);
+void sys_hal_dma2d_clk_en(uint8_t clk_always_on);
 
 /**  Video End **/
 
@@ -332,6 +333,8 @@ void sys_hal_aud_micbias_trim_set(uint32_t value);
 void sys_hal_aud_mic_rst_set(uint32_t value);
 void sys_hal_aud_mic1_gain_set(uint32_t value);
 void sys_hal_aud_mic2_gain_set(uint32_t value);
+void sys_hal_aud_mic1_single_en(uint32_t value);
+void sys_hal_aud_mic2_single_en(uint32_t value);
 void sys_hal_aud_dcoc_en(uint32_t value);
 void sys_hal_aud_lmdcin_set(uint32_t value);
 void sys_hal_aud_audbias_en(uint32_t value);
@@ -3236,7 +3239,10 @@ int sys_hal_set_lv_ctrl_pd(bool lp_ena);
 int sys_hal_set_lv_ctrl_hf(bool lp_ena);
 int sys_hal_set_lv_ctrl_flash(bool lp_ena);
 int sys_hal_set_lv_ctrl_core(bool lp_ena);
+int sys_hal_set_lpo_src(sys_lpo_src_t src);
 void sys_hal_dump_ctrl(void);
+void sys_hal_early_init(void);
+void sys_hal_set_rott_int_en(uint32_t value);
 
 #ifdef __cplusplus
 }

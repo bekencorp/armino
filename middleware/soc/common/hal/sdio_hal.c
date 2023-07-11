@@ -70,7 +70,7 @@ void sdio_hal_slave_write_data(uint32_t value)
 {
 #if CONFIG_SOC_BK7256XX
 	sdio_ll_set_reg0xb_value(value);
-#elif CONFIG_SOC_BK7236
+#elif CONFIG_SOC_BK7236XX
 	sdio_ll_set_reg0xf_value(value);
 #endif
 }
@@ -115,7 +115,7 @@ void sdio_hal_slave_set_tx_length(uint32_t len)
 {
 #if CONFIG_SOC_BK7256XX
 	sdio_ll_set_reg0x11_value(len);
-#elif CONFIG_SOC_BK7236
+#elif CONFIG_SOC_BK7236XX
 	sdio_ll_set_reg0x13_value(len);
 #endif
 }

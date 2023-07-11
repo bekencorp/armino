@@ -52,3 +52,14 @@ int bk_feature_fast_connect_enable(void);
  */
 int bk_feature_fast_dhcp_enable(void);
 
+/**
+ * @brief     Interface for customer to Enable/Disable temp detect functionality
+ *
+ * @attention 1 Controled by middleware/soc/bk72xx.defconfig
+ *
+ * @return
+ *    - 1: enable
+ *    - 0: disable
+ */
+int bk_feature_temp_detect_enable(void);
+

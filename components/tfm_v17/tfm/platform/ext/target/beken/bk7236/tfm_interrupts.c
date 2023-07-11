@@ -11,19 +11,10 @@
 #include "spm_ipc.h"
 #include "tfm_hal_interrupt.h"
 #include "tfm_peripherals_def.h"
-#include "ffm/interrupt.h"
 #include "load/interrupt_defs.h"
 
 static struct irq_t timer0_irq = {0};
-
-void bfhfnmi_handler(void)
-{
-	uint32_t *psp_ns_pointer = (uint32_t  *)__TZ_get_PSP_NS();
-	printf("\r\n[SPE]psp_ns_pointer:0x%x\r\n", psp_ns_pointer);
-
-	printf_word_buf_hex(psp_ns_pointer, 128);
-	while(1);
-}
+extern int printf(const char *fmt, ...);
 
 void TFM_TIMER0_Handler(void)
 {

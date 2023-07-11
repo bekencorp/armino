@@ -16,8 +16,10 @@ set(QCBOR_VERSION   "b0e70332"  CACHE STRING    "The version of qcbor to use")
 
 if ("${QCBOR_PATH}" STREQUAL "DOWNLOAD")
     FetchContent_Declare(qcbor
-        GIT_REPOSITORY https://github.com/laurencelundblade/QCBOR.git
-        GIT_TAG ${QCBOR_VERSION}
+        #GIT_REPOSITORY https://github.com/laurencelundblade/QCBOR.git
+        #GIT_TAG ${QCBOR_VERSION}
+	GIT_REPOSITORY ssh://${USER}@192.168.0.46:29418/iot/wcn/components/qcbor
+        GIT_TAG 6a6a33b7
         GIT_PROGRESS TRUE
     )
 

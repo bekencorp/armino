@@ -12,7 +12,7 @@
 static s32 _dec_img(frame_buffer_t *jpeg_frame, lv_img_dsc_t *img_dst)
 {
     s32 ret = BK_FAIL;
-#if CONFIG_JPEG_DECODE
+#if CONFIG_JPEGDEC_SW
     sw_jpeg_dec_res_t result;
     int flag = 0;
 
@@ -58,7 +58,7 @@ static s32 _dec_img(frame_buffer_t *jpeg_frame, lv_img_dsc_t *img_dst)
     }while(0);
 #else
     ret = BK_ERR_NOT_SUPPORT;
-    bk_printf("[%s][%d] don't support sw dec, CONFIG_JPEG_DECODE should open\r\n", __FUNCTION__, __LINE__);
+    bk_printf("[%s][%d] don't support sw dec, CONFIG_JPEGDEC_SW should open\r\n", __FUNCTION__, __LINE__);
 #endif
 
     return ret;

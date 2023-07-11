@@ -32,6 +32,7 @@ const dvp_sensor_config_t *dvp_sensor_configs[] =
 	&dvp_sensor_hm1055,
 	&dvp_sensor_gc2145,
 	&dvp_sensor_ov2640,
+	&dvp_sensor_gc0308,
 };
 
 const dvp_sensor_config_t *get_sensor_config_interface_by_id(sensor_id_t id)

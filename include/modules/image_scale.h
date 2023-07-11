@@ -78,6 +78,12 @@ MINOOR_ITCM int yuyv_rotate_degree90(unsigned char *yuyv, unsigned char *rotated
 MINOOR_ITCM int vuyy_rotate_degree90(unsigned char *vuyy, unsigned char *rotatedVuyy, int width, int height);
 
 /**
+ * @brief yuyv data clockwise rotate270
+ */
+MINOOR_ITCM int vuyy_rotate_degree270(unsigned char *vuyy, unsigned char *rotatedVuyy, int width, int height);
+
+
+/**
  * @brief yuyv to rgb data clockwise rotate90
  */
 MINOOR_ITCM int yuyv2rgb_rotate_degree90(unsigned char *yuyv, unsigned char *rotatedYuyv, int width, int height);
@@ -142,6 +148,10 @@ MINOOR_ITCM void argb8888_to_vuyy_blend(uint8_t *src, uint8_t *dst, uint32_t wid
 MINOOR_ITCM void argb8888_to_yuyv_blend(uint8_t *src, uint8_t *dst, uint32_t width, uint32_t height);
 
 MINOOR_ITCM int vuyy_image_resize(uint8_t *src_img, uint8_t *dst_img, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height);
+
+MINOOR_ITCM int vuyy_image_vga_to_lvga(uint8_t * src_buf, uint8_t *dst_buf, uint8_t row_count);
+
+MINOOR_ITCM int vuyy_image_vga_to_rsvga(uint8_t * src_buf, uint8_t *dst_buf, uint8_t row_count);
 
 /*
  * @}

@@ -235,6 +235,12 @@ target_link_libraries(crypto_service_crypto_hw
         crypto_service_mbedcrypto
 )
 
+
+target_compile_options(crypto_service_crypto_hw
+    PUBLIC
+        ${COMPILER_CP_FLAG}
+)
+
 target_compile_definitions(crypto_service_crypto_hw
     PRIVATE
         TEE_M

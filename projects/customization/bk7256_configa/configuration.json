@@ -18,9 +18,9 @@
             "size": "1768K"
         },
         {
-            "firmware": "bk7256_cpu1.bin",
+            "firmware": "app1.bin",
             "version": "2M.1220",
-            "partition": "cpu1",
+            "partition": "app1",
             "start_addr": "0x001CB000",
             "size": "136K"
         }

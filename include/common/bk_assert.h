@@ -100,8 +100,15 @@ do {                                                         \
 } while (0)
 #else  //(CONFIG_ASSERT_IGNORE)
 
-#define BK_ASSERT(exp)
-#define BK_ASSERT_EX(exp, format, ... )
+#define BK_ASSERT(exp) do{                                   \
+	if( !(exp) ){                                            \
+		}                                                    \
+}while(0)
+
+#define BK_ASSERT_EX(exp, format, ... )do{                   \
+	if( !(exp) ){                                            \
+		}                                                    \
+}while(0)
 
 
 #endif // #if (CONFIG_DEBUG_FIRMWARE)

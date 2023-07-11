@@ -82,7 +82,10 @@ typedef enum
 	EVENT_CAM_DVP_JPEG_OPEN_IND = (CAM_EVENT << MEDIA_EVT_BIT),
 	EVENT_CAM_DVP_YUV_OPEN_IND,
 	EVENT_CAM_DVP_MIX_OPEN_IND,
-	EVENT_CAM_DVP_H264_OPEN_IND,
+	EVENT_CAM_DVP_H264_LOCAL_OPEN_IND,
+	EVENT_CAM_DVP_H264_WIFI_TRANSFER_OPEN_IND,
+	EVENT_CAM_DVP_H264_ENC_LCD_OPEN_IND,
+	EVENT_CAM_DVP_H264_USB_TRANSFER_OPEN_IND,
 	EVENT_CAM_DVP_CLOSE_IND,
 	EVENT_CAM_DVP_RESET_OPEN_IND,
 	EVENT_CAM_UVC_MJPEG_OPEN_IND,
@@ -129,6 +132,9 @@ typedef enum
 
 	EVENT_LCD_DEFAULT_CMD = (MAILBOX_CMD << MEDIA_EVT_BIT),
 	EVENT_LCD_ROTATE_RIGHT_CMD,
+	EVENT_LCD_RESIZE_CMD,
+    EVENT_LCD_DEC_SW_CMD,
+
 
 	EVENT_LVGL_DRAW_CMD,
 
@@ -143,7 +149,6 @@ typedef enum
 	EVENT_APP_EXIT,
 } media_app_event_t;
 
-
 typedef struct
 {
 	uint32_t event;
@@ -157,7 +162,6 @@ typedef struct
 	uint32_t param;
 	int ret;
 } param_pak_t;
-
 
 bk_err_t media_send_msg(media_msg_t *msg);
 bk_err_t media_app_send_msg(media_msg_t *msg);

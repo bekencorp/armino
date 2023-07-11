@@ -241,7 +241,7 @@ void sys_drv_bt_sleep_exit_ctrl(bool en);
   * param4: clk_always_on, BUS_CLK ENABLE,0: bus clock open when module is select,1:bus clock always open,  0 by defult
   * return none
   */
-uint32_t sys_drv_lcd_set(uint8_t clk_src_sel, uint8_t clk_div_l, uint8_t clk_div_h, uint8_t int_en,uint8_t clk_always_on);
+uint32_t sys_drv_lcd_set(uint8_t clk_src_sel, uint8_t clk_div_l, uint8_t clk_div_h,uint8_t clk_always_on);
 
 /**
   * @brief	lcd clk close and int disable, reg value recover default.
@@ -253,18 +253,16 @@ uint32_t  sys_drv_lcd_close(void);
   * @brief	dma2d system config
   * param1: clk source sel 0:clk_320M	   1:clk_480M,
   * param2: clk_always_on  ENABLE,0: bus clock open when module is select,1:bus clock always open
-  * param3: int_en eanble lcd cpu int
   * return none
   */
-uint32_t sys_drv_dma2d_set(uint8_t clk_always_on, uint8_t sys_int_en);
+uint32_t sys_drv_dma2d_set(uint8_t clk_always_on);
 
 /**
   * @brief	jpeg dec system config
   * param1: clk_always_on  ENABLE,0: bus clock open when module is select,1:bus clock always open
-  * param2: int_en eanble lcd cpu int
   * return none
   */
-uint32_t sys_drv_jpeg_dec_set(uint8_t clk_always_on, uint8_t int_en);
+uint32_t sys_drv_set_jpeg_dec_disckg(uint32_t value);
 
 /**  Video End **/
 
@@ -344,6 +342,8 @@ uint32_t sys_drv_aud_micbias_trim_set(uint32_t value);
 uint32_t sys_drv_aud_mic_rst_set(uint32_t value);
 uint32_t sys_drv_aud_mic1_gain_set(uint32_t value);
 uint32_t sys_drv_aud_mic2_gain_set(uint32_t value);
+uint32_t sys_drv_aud_mic1_single_en(uint32_t value);
+uint32_t sys_drv_aud_mic2_single_en(uint32_t value);
 uint32_t sys_drv_aud_int_en(uint32_t value);
 uint32_t sys_drv_sbc_int_en(uint32_t value);
 uint32_t sys_drv_aud_power_en(uint32_t value);
@@ -482,6 +482,8 @@ void sys_drv_yuv_buf_pwr_up(void);
 void sys_drv_yuv_buf_pwr_down(void);
 void sys_drv_h264_pwr_up(void);
 void sys_drv_h264_pwr_down(void);
+
+void sys_drv_early_init(void);
 
 #endif //_SYS_DRV_H_
 // eof

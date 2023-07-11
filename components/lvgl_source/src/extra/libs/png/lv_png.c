@@ -13,6 +13,10 @@
 #include "lodepng.h"
 #include <stdlib.h>
 
+#ifdef LV_PNG_USE_PSRAM
+#include <driver/psram.h>
+#endif
+
 /*********************
  *      DEFINES
  *********************/
@@ -151,8 +155,12 @@ static lv_res_t decoder_open(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * 
             uint32_t png_height;            /*Will be the width of the decoded image*/
 
             /*Decode the loaded image in ARGB8888 */
-            error = lodepng_decode32(&img_data, &png_width, &png_height, png_data, png_data_size);
+            error = lodepng_decode32(&img_data, (unsigned *)&png_width, (unsigned *)&png_height, png_data, png_data_size);
+#if LV_PNG_USE_PSRAM
+            lv_mem_free(png_data - 0x4000000); /*Free the loaded file*/
+#else
             lv_mem_free(png_data); /*Free the loaded file*/
+#endif
             if(error) {
                 if(img_data != NULL) {
                     lv_mem_free(img_data);
@@ -174,7 +182,7 @@ static lv_res_t decoder_open(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * 
         uint32_t png_height;            /*No used, just required by he decoder*/
 
         /*Decode the image in ARGB8888 */
-        error = lodepng_decode32(&img_data, &png_width, &png_height, img_dsc->data, img_dsc->data_size);
+        error = lodepng_decode32(&img_data, (unsigned *)&png_width, (unsigned *)&png_height, img_dsc->data, img_dsc->data_size);
 
         if(error) {
             if(img_data != NULL) {
@@ -219,8 +227,13 @@ static void convert_color_depth(uint8_t * img, uint32_t px_cnt)
     uint32_t i;
     for(i = 0; i < px_cnt; i++) {
         c = lv_color_make(img_argb[i].ch.red, img_argb[i].ch.green, img_argb[i].ch.blue);
+#if LV_PNG_USE_PSRAM
+        bk_psram_byte_write(&img_c[i].ch.red, c.ch.blue);
+        bk_psram_byte_write(&img_c[i].ch.blue, c.ch.red);
+#else
         img_c[i].ch.red = c.ch.blue;
         img_c[i].ch.blue = c.ch.red;
+#endif
     }
 #elif LV_COLOR_DEPTH == 16
     lv_color32_t * img_argb = (lv_color32_t *)img;
@@ -228,9 +241,15 @@ static void convert_color_depth(uint8_t * img, uint32_t px_cnt)
     uint32_t i;
     for(i = 0; i < px_cnt; i++) {
         c = lv_color_make(img_argb[i].ch.blue, img_argb[i].ch.green, img_argb[i].ch.red);
+#if LV_PNG_USE_PSRAM
+        bk_psram_byte_write(&img[i * 3 + 2], img_argb[i].ch.alpha);
+        bk_psram_byte_write(&img[i * 3 + 1], c.full >> 8);
+        bk_psram_byte_write(&img[i * 3 + 0], c.full & 0xFF);
+#else
         img[i * 3 + 2] = img_argb[i].ch.alpha;
         img[i * 3 + 1] = c.full >> 8;
         img[i * 3 + 0] = c.full & 0xFF;
+#endif
     }
 #elif LV_COLOR_DEPTH == 8
     lv_color32_t * img_argb = (lv_color32_t *)img;
@@ -238,8 +257,13 @@ static void convert_color_depth(uint8_t * img, uint32_t px_cnt)
     uint32_t i;
     for(i = 0; i < px_cnt; i++) {
         c = lv_color_make(img_argb[i].ch.red, img_argb[i].ch.green, img_argb[i].ch.blue);
+#if LV_PNG_USE_PSRAM
+        bk_psram_byte_write(&img[i * 2 + 1], img_argb[i].ch.alpha);
+        bk_psram_byte_write(&img[i * 2 + 0], c.full);
+#else
         img[i * 2 + 1] = img_argb[i].ch.alpha;
         img[i * 2 + 0] = c.full;
+#endif
     }
 #elif LV_COLOR_DEPTH == 1
     lv_color32_t * img_argb = (lv_color32_t *)img;
@@ -247,8 +271,13 @@ static void convert_color_depth(uint8_t * img, uint32_t px_cnt)
     uint32_t i;
     for(i = 0; i < px_cnt; i++) {
         b = img_argb[i].ch.red | img_argb[i].ch.green | img_argb[i].ch.blue;
+#if LV_PNG_USE_PSRAM
+        bk_psram_byte_write(&img[i * 2 + 1], img_argb[i].ch.alpha);
+        bk_psram_byte_write(&img[i * 2 + 0], b > 128 ? 1 : 0);
+#else
         img[i * 2 + 1] = img_argb[i].ch.alpha;
         img[i * 2 + 0] = b > 128 ? 1 : 0;
+#endif
     }
 #endif
 }

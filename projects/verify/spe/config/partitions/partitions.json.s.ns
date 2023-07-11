@@ -1,7 +1,0 @@
-{
-    "description": "BL1 -> Armino S -> Armino NS",
-    "partitions": [
-        { "partition": "primary_app", "offset": "0x00000000", "size": "272k", "bin": "app.bin", "bin_type": "code"},
-        { "partition": "primary_ns",  "offset": "0x00044000", "size": "272k", "bin": "app_ns.bin", "bin_type": "code", "location": "auto"}
-   ]
-}

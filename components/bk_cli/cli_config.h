@@ -162,13 +162,13 @@ extern "C" {
 #define CLI_CFG_AON_RTC     0
 #endif
 
-#if (CONFIG_JPEG_ENCODE && (!CONFIG_SLAVE_CORE))
+#if (CONFIG_JPEGENC_HW && (!CONFIG_SLAVE_CORE))
 #define CLI_CFG_JPEGENC        1
 #else
 #define CLI_CFG_JPEGENC        0
 #endif
 
-#if (CONFIG_JPEG_DECODE && (!CONFIG_SLAVE_CORE))
+#if (CONFIG_JPEGDEC_SW && (!CONFIG_SLAVE_CORE))
 #define CLI_CFG_JPEGDEC     0
 #else
 #define CLI_CFG_JPEGDEC     0
@@ -313,7 +313,7 @@ extern "C" {
 #endif
 
 
-#if (CONFIG_SOC_BK7236)
+#if (CONFIG_SOC_BK7236XX)
 #if (CONFIG_AUDIO && CONFIG_AUDIO_TEST)
 #define CLI_CFG_AUD         1
 #endif
@@ -371,6 +371,10 @@ extern "C" {
 
 #if (CONFIG_ES8311_TEST && (!CONFIG_SLAVE_CORE))
 #define CLI_CFG_ES8311        1
+#endif
+
+#if (CONFIG_ASR_TEST && (!CONFIG_SLAVE_CORE))
+#define CLI_CFG_ASR         1
 #endif
 
 #endif

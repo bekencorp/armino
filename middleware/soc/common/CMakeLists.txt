@@ -49,7 +49,7 @@ if (CONFIG_FFT)
 endif()
 
 if (CONFIG_I2S)
-if (NOT CONFIG_SOC_BK7236)
+if (NOT CONFIG_SOC_BK7236XX)
 	list(APPEND srcs
 		hal/i2s_hal.c
 		)
@@ -80,7 +80,7 @@ if(CONFIG_QSPI)
 	)
 endif()
 
-if(CONFIG_JPEG_ENCODE)
+if(CONFIG_JPEGENC_HW)
 	list(APPEND srcs
 		"hal/jpeg_hal.c"
 	)
@@ -128,7 +128,7 @@ if(CONFIG_SOC_BK7256XX)
 		"hal/aud_hal.c"
 	)
 endif()
-if(CONFIG_SOC_BK7236)
+if(CONFIG_SOC_BK7236XX)
 	list(APPEND srcs
 		"hal/aud_hal.c"
 	)

@@ -1434,6 +1434,10 @@ int bk_cli_init(void)
 	cli_es8311_init();
 #endif
 
+#if (CLI_CFG_ASR == 1)
+	cli_asr_init();
+#endif
+
 #if (CONFIG_MEDIA == 1)
 	media_cli_init();
 #endif
@@ -1656,8 +1660,13 @@ int bk_cli_init(void)
 	cli_h264_init();
 #endif
 
-#if CONFIG_SDMADC_TEST
+#if CONFIG_SDMADC
 	cli_sdmadc_init();
+#endif
+
+#if CONFIG_MICROPYTHON
+	extern int cli_mp_init(void);
+	cli_mp_init();
 #endif
 
 /*-----open the cli comand both at release and debug vertion end ------*/

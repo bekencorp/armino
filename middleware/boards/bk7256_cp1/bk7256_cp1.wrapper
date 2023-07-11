@@ -13,13 +13,13 @@ project_dir = os.getenv("PROJECT_DIR")
 
 if(os.path.exists("app.bin")):
     if(os.path.exists(armino_path+"/middleware/boards/bk7256")):
-        os.system("cp app.bin "+armino_path+"/middleware/boards/bk7256/bk7256_cpu1.bin")
+        os.system("cp app.bin "+armino_path+"/middleware/boards/bk7256/app1.bin")
     else:
         print("path middleware/boards/bk7256 is not exist")
 
     if (os.getenv("PROJECT") != "app"):
         if(os.path.exists(armino_path+"/"+project_dir)):
-            os.system("cp app.bin "+armino_path+"/"+project_dir+"/bk7256_cpu1.bin")
+            os.system("cp app.bin "+armino_path+"/"+project_dir+"/app1.bin")
         else:
             print("path "+project_dir+" is not exist")
 

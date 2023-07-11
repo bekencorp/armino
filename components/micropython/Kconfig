@@ -1,0 +1,6 @@
+#TODO add depens for CONFIG_MBEDTLS
+menu "MICROPYTHON CONFIG"
+	config MICROPYTHON
+		bool "Enable MICROPYTHON"
+		default n
+endmenu

@@ -78,7 +78,7 @@ void jpeg_dec_auto_frame_end_int_en(bool auto_int_en);
 void jpeg_dec_auto_line_num_int_en(bool line_int_en);
 
 JRESULT JpegdecInit(uint32_t length,unsigned char *input_buf, unsigned char * output_buf, uint32_t *ppi);
-JRESULT jd_decomp(void);
+JRESULT jd_decomp_hw(void);
 
 int jpg_decoder_init(void);
 

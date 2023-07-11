@@ -11,7 +11,7 @@
   "type": "PSA-ROT",
   "priority": "NORMAL",
   "entry_point": "tfm_fwu_init",
-  "stack_size": "0x600",
+  "stack_size": "0x800",
   "secure_functions": [
     {
       "name": "TFM_FWU_WRITE",

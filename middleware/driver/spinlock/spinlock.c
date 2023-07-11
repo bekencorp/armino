@@ -25,11 +25,13 @@
 #endif
 
 extern void		arch_fence(void);
-extern u32		arch_atomic_set(u32 * lock_addr);
-extern void		arch_atomic_clear(u32 * lock_addr);
+extern void		arch_atomic_set(volatile u32 * lock_addr);
+extern void		arch_atomic_clear(volatile u32 * lock_addr);
 
-extern u32		arch_int_lock(void);
-extern void		arch_int_restore(u32 int_flag);
+//extern u32		arch_int_disable(void);
+//extern void		arch_int_restore(u32 int_flag);
+#define arch_int_disable	rtos_disable_int
+#define arch_int_restore	rtos_enable_int
 
 typedef struct
 {
@@ -74,7 +76,7 @@ static cpu_info_t * get_cur_cpu(void)
 static void push_disable_int_flag(void)
 {
 	cpu_info_t *cur_cpu = get_cur_cpu();
-	u32			int_flag = arch_int_lock();
+	u32			int_flag = arch_int_disable();
 	
 	if(cur_cpu->nest_cnt == 0)
 		cur_cpu->int_flag = int_flag;
@@ -136,7 +138,7 @@ void spinlock_acquire(spinlock_t *slock)
 
 	}
 
-	while( arch_atomic_set(&slock->locked) ) ;
+	arch_atomic_set(( volatile u32 *)&slock->locked);
 
 	arch_fence();
 
@@ -161,7 +163,7 @@ void spinlock_release(spinlock_t *slock)
 
 	arch_fence();
 
-	arch_atomic_clear(&slock->locked);
+	arch_atomic_clear(( volatile u32 *)&slock->locked);
 #endif
 
 	pop_int_flag();

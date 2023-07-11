@@ -4,7 +4,21 @@ if(NOT "${target}" STREQUAL "bk7236")
     return()
 endif()
 
-armino_component_register(REQUIRES partitions)
+if (CONFIG_TFM)
+set(incs
+	tfm/interface/include
+	tfm/secure_fw/include
+	${CMAKE_BINARY_DIR}/armino/tfm/generated/interface/include
+)
+
+set(srcs
+	tfm/interface/src/tfm_firmware_update_ipc_api.c
+	tfm/interface/src/tfm_psa_ns_api.c
+	tfm_ns_interface.c
+)
+endif()
+
+armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" REQUIRES partitions)
 
 if (CONFIG_TFM)
 armino_build_get_property(partition_hdr_dir PARTITIONS_HDR_DIR)
@@ -43,9 +57,21 @@ ExternalProject_Add(tfm_project
 		-DPARTITION_HDR_DIR=${partition_hdr_dir}
 		&& cd ${tfm_build_dir}
 		&& ninja -- install
+	BUILD_BYPRODUCTS ${tfm_build_dir}/secure_fw/libtfm_s_veneers.a
 	BUILD_ALWAYS 1
 	INSTALL_COMMAND ""
 	)
 
 add_dependencies(${COMPONENT_LIB} tfm_project)
+
+add_library(lib_tfm STATIC IMPORTED GLOBAL)
+add_dependencies(lib_tfm tfm_project)
+set_target_properties(lib_tfm PROPERTIES IMPORTED_LOCATION ${tfm_build_dir}/secure_fw/libtfm_s_veneers.a)
+target_link_libraries(${COMPONENT_LIB} PUBLIC lib_tfm)
+
+target_compile_definitions(${COMPONENT_LIB}
+	PRIVATE
+		TFM_PSA_API
+)
+
 endif()

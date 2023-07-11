@@ -28,6 +28,19 @@ static void tftp_ota_get_Command(char *pcWriteBuffer, int xWriteBufferLen, int a
 }
 #endif
 
+#if CONFIG_HTTP_AB_PARTITION
+void get_http_ab_version(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	exec_flag ret_partition = 0;
+
+	ret_partition = bk_ota_get_current_partition();
+	if((ret_partition == 0xFF) ||(ret_partition == EXEX_A_PART))
+    		os_printf("partition A\r\n");
+	else
+    		os_printf("partition B\r\n");
+}
+#endif
+
 
 #if CONFIG_OTA_HTTP
 void http_ota_Command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -83,9 +96,19 @@ static const struct cli_command s_ota_commands[] = {
 	{"https_ota", "ip [sta|ap][{ip}{mask}{gate}{dns}]", https_ota_Command},
 	
 #endif
+
+#if CONFIG_HTTP_AB_PARTITION
+	{"ab_version", NULL, get_http_ab_version},
+#endif
 };
 
+#if (CONFIG_TFM)
+extern int32_t ns_interface_lock_init(void);
+#endif
 int cli_ota_init(void)
 {
+#if (CONFIG_TFM)
+	ns_interface_lock_init();
+#endif
 	return cli_register_commands(s_ota_commands, OTA_CMD_CNT);
 }

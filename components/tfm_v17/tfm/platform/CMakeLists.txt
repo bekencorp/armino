@@ -138,8 +138,6 @@ target_compile_options(platform_s
 )
 
 #========================= Platform Crypto Keys ===============================#
-
-
 if(TFM_PARTITION_CRYPTO)
     target_sources(platform_crypto_keys
         PRIVATE
@@ -157,7 +155,6 @@ if(TFM_PARTITION_CRYPTO)
     target_include_directories(platform_crypto_keys
         PRIVATE
             $<$<BOOL:${PLATFORM_DEFAULT_CRYPTO_KEYS}>:${CMAKE_SOURCE_DIR}/interface/include/crypto_keys>
-            ${CMAKE_BINARY_DIR}/generated/interface/include
     )
 
     target_compile_definitions(platform_crypto_keys

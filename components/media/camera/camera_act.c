@@ -53,7 +53,9 @@
 
 typedef void (*camera_connect_state_t)(uint8_t state);
 
+#if (CONFIG_WIFI_TRANSFER)
 extern void transfer_dump(uint32_t ms);
+#endif
 
 extern media_debug_t *media_debug;
 extern media_debug_t *media_debug_cached;
@@ -68,7 +70,9 @@ camera_connect_state_t camera_connect_state_change_cb = NULL;
 
 static void camera_debug_dump(timer_id_t timer_id)
 {
+#if (CONFIG_WIFI_TRANSFER)
 	transfer_dump(DEBUG_INTERVAL);
+#endif
 
 	uint16_t jpg = (media_debug->isr_jpeg - media_debug_cached->isr_jpeg) / 2;
 	uint16_t dec = (media_debug->isr_decoder - media_debug_cached->isr_decoder) / 2;
@@ -100,7 +104,7 @@ static void camera_debug_dump(timer_id_t timer_id)
 	     fps, media_debug->fps_lcd,
 	     wifi, media_debug->fps_wifi, media_debug->wifi_read);
 
-	if ((jpg == 0) && (camera_info.type == MEDIA_DVP_MJPEG || camera_info.type == MEDIA_DVP_MIX))
+	/*if ((jpg == 0) && (camera_info.type == MEDIA_DVP_MJPEG || camera_info.type == MEDIA_DVP_MIX))
 	{
 		if (CAMERA_STATE_DISABLED == get_camera_state())
 		{
@@ -115,7 +119,7 @@ static void camera_debug_dump(timer_id_t timer_id)
 
 		media_send_msg(&msg);
 
-	}
+	}*/
 }
 
 void camera_dvp_reset_open_handle(uint32_t param)
@@ -576,8 +580,17 @@ void camera_event_handle(uint32_t event, uint32_t param)
 		case EVENT_CAM_DVP_MIX_OPEN_IND:
 			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_MIX);
 			break;
-		case EVENT_CAM_DVP_H264_OPEN_IND:
-			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_H264);
+		case EVENT_CAM_DVP_H264_WIFI_TRANSFER_OPEN_IND:
+			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_H264_WIFI_TRANSFER);
+			break;
+		case EVENT_CAM_DVP_H264_USB_TRANSFER_OPEN_IND:
+			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_H264_USB_TRANSFER);
+			break;
+		case EVENT_CAM_DVP_H264_LOCAL_OPEN_IND:
+			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_H264_LOCAL);
+			break;
+		case EVENT_CAM_DVP_H264_ENC_LCD_OPEN_IND:
+			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_H264_ENC_LCD);
 			break;
 		case EVENT_CAM_DVP_CLOSE_IND:
 			camera_dvp_close_handle((param_pak_t *)param);

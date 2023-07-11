@@ -697,8 +697,8 @@ cleanup:
 static void mbedtls_dubhe_init( )
 {
     pal_list_init_head( &head_list );
+
 #if defined( MBEDTLS_THREADING_C )
-//    mbedtls_mutex_init( &mutex );
     mbedtls_mutex_init( &hw_ops_mutex );
 #endif
 }

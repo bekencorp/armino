@@ -73,7 +73,7 @@
 #include <driver/qspi.h>
 #endif
 
-#if CONFIG_JPEG_ENCODE
+#if CONFIG_JPEGENC_HW
 #include <driver/jpeg_enc.h>
 #endif
 
@@ -104,6 +104,10 @@
 
 #if CONFIG_SDMADC
 #include <driver/sdmadc.h>
+#endif
+
+#if CONFIG_HW_ROTATE_PFC
+#include <driver/rott_driver.h>
 #endif
 
 //TODO only init driver model and necessary drivers
@@ -366,7 +370,7 @@ int driver_init(void)
 #endif
 
 #if !CONFIG_SYSTEM_CTRL
-#if CONFIG_JPEG_ENCODE
+#if CONFIG_JPEGENC_HW
 	bk_jpeg_enc_driver_init();
 #endif
 #endif
@@ -405,6 +409,10 @@ int driver_init(void)
 
 #if CONFIG_SDMADC
 	//bk_sdmadc_driver_init();
+#endif
+
+#if CONFIG_HW_ROTATE_PFC
+	bk_rott_driver_init();
 #endif
 
 	os_printf("driver_init end\r\n");

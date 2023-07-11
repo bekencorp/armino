@@ -23,3 +23,4 @@ typedef struct {
 
 int pm_sys_suspend(void);
 int pm_sys_resume(void);
+int pm_sys_vote_cpu_freq(const device_t *dev, pm_device_freq_t freq);

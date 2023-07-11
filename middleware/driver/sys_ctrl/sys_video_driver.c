@@ -17,13 +17,13 @@
 #include "sys_driver_common.h"
 
 /**  Video Start **/
-uint32_t sys_drv_lcd_set(uint8_t clk_src_sel, uint8_t clk_div_l, uint8_t clk_div_h, uint8_t int_en,uint8_t clk_always_on)
+uint32_t sys_drv_lcd_set(uint8_t clk_src_sel, uint8_t clk_div_l, uint8_t clk_div_h,uint8_t clk_always_on)
 {
 	uint32_t int_level = rtos_disable_int();
 	uint32_t ret = SYS_DRV_FAILURE;
 	ret = sys_amp_res_acquire();
 
-	sys_hal_lcd_disp_clk_en(clk_src_sel, clk_div_l,clk_div_h, int_en, clk_always_on);
+	sys_hal_lcd_disp_clk_en(clk_src_sel, clk_div_l,clk_div_h, clk_always_on);
 
 	if(!ret)
 		ret = sys_amp_res_release();
@@ -49,13 +49,13 @@ uint32_t sys_drv_lcd_close(void)
 	return ret;
 }
 
-uint32_t sys_drv_dma2d_set(uint8_t clk_always_on, uint8_t sys_int_en)
+uint32_t sys_drv_dma2d_set(uint8_t clk_always_on)
 {
 	uint32_t int_level = rtos_disable_int();
 	uint32_t ret = SYS_DRV_FAILURE;
 	ret = sys_amp_res_acquire();
 
-	sys_hal_dma2d_clk_en(clk_always_on, sys_int_en);
+	sys_hal_dma2d_clk_en(clk_always_on);
 	if(!ret)
 		ret = sys_amp_res_release();
 
@@ -64,19 +64,19 @@ uint32_t sys_drv_dma2d_set(uint8_t clk_always_on, uint8_t sys_int_en)
 	return ret;
 }
 
-uint32_t sys_drv_jpeg_dec_set(uint8_t clk_always_on, uint8_t int_en)
+uint32_t sys_drv_set_jpeg_dec_disckg(uint32_t value)
 {
 	uint32_t int_level = rtos_disable_int();
 	uint32_t ret = SYS_DRV_FAILURE;
 	ret = sys_amp_res_acquire();
+	sys_hal_set_jpeg_dec_disckg(value);
 
-	sys_hal_jpeg_dec_ctrl(clk_always_on, int_en);
 	if(!ret)
 		ret = sys_amp_res_release();
 	rtos_enable_int(int_level);
-
 	return ret;
 }
+
 
 /**  Video End **/
 

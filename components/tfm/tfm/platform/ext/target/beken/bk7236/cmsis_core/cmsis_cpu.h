@@ -21,7 +21,7 @@
 #define __VTOR_PRESENT            1U        /* VTOR present */
 #define __NVIC_PRIO_BITS          3U        /* Number of Bits used for Priority Levels */
 #define __Vendor_SysTickConfig    0U        /* Set to 1 if different SysTick Config is used */
-#define __FPU_PRESENT             0U        /* no FPU present */
+#define __FPU_PRESENT             1U        /* no FPU present */
 #define __DSP_PRESENT             0U        /* no DSP extension present */
 
 #include "core_star.h"

@@ -79,8 +79,10 @@ static const uint16_t Jpeg_Ipsf[64] = {	/* See also aa_idct.png */
 #if JD_TBLCLIP
 
 //#if (JD_FORMAT == 0) || (JD_FORMAT == 1) || (JD_FORMAT == 2)
-#define BYTECLIP(v) Jpeg_Clip8[(unsigned int)(v) & 0x3FF]
+//#define BYTECLIP(v) Jpeg_Clip8[(unsigned int)(v) & 0x3FF]
+#define BYTECLIP(X) ((X) < 0 ? 0 : (X) > 255 ? 255 : X)
 
+#if 0
 #if 0
 JPEG_DTCM static uint8_t Jpeg_Clip8[1024] = {
 #else
@@ -123,6 +125,7 @@ static const uint8_t Jpeg_Clip8[1024] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
+#endif
 //#endif
 
 #else	/* JD_TBLCLIP */
@@ -727,7 +730,6 @@ JPEG_ITCM static JRESULT mcu_load (
 	jd_yuv_t *bp;
 	const int32_t *dqf;
 
-
 	nby = jd->msx * jd->msy;	/* Number of Y blocks (1, 2 or 4) */
 	bp = jd->mcubuf;			/* Pointer to the first block of MCU */
 
@@ -768,7 +770,7 @@ JPEG_ITCM static JRESULT mcu_load (
 				if (z >= 64) return JDR_FMT1;		/* Too long zero run */
 				if (bc &= 0x0F) {					/* Bit length? */
 					d = bitext(jd, bc);				/* Extract data bits */
-					if (d < 0) return (JRESULT)(0 - d);	/* Err: input device */
+                    if (d < 0) return (JRESULT)(0 - d);	/* Err: input device */
 					bc = 1 << (bc - 1);				/* MSB position */
 					if (!(d & bc)) d -= (bc << 1) - 1;	/* Restore negative value if needed */
 					i = Jpeg_Zig[z];						/* Get raster-order index */
@@ -813,16 +815,17 @@ JPEG_ITCM static JRESULT mcu_output (
 	#define CVACC  (1024)
 	// const int CVACC = (sizeof (int) > 2) ? 1024 : 128;	/* Adaptive accuracy for both 16-/32-bit systems */
 
-	unsigned int ix, iy, mx, my, rx, ry;
+	unsigned int ix, iy, rx, ry;
 	int yy, cb, cr;
 	// uint8_t rr, gg, bb;
 	uint8_t gg;
-	jd_yuv_t *py, *pc;
 	uint8_t *pix;
 	JRECT rect;
 	uint8_t y1,y2;
+	const uint8_t jd_f = JD_FORMAT;
 
-	mx = jd->msx << 3; my = jd->msy << 3;					/* MCU size (pixel) */
+	const unsigned int mx = jd->msx << 3;
+	const unsigned int my = jd->msy << 3;
 	rx = (x + mx <= jd->width) ? mx : jd->width - x;	/* Output rectangular size (it may be clipped at right/bottom end of image) */
 	ry = (y + my <= jd->height) ? my : jd->height - y;
 
@@ -839,6 +842,7 @@ JPEG_ITCM static JRESULT mcu_output (
 #if JD_USE_SCALE
 	if(jd->scale == 3)
 	{	/* For only 1/8 scaling (left-top pixel in each block are the DC value of the block) */
+		jd_yuv_t *py, *pc;
 
 		/* Build a 1/8 descaled RGB MCU from discrete comopnents */
 		pix = (uint8_t*)jd->workbuf;
@@ -852,9 +856,9 @@ JPEG_ITCM static JRESULT mcu_output (
 				yy = *py;	/* Get Y component */
 				py += 64;
 				if (JD_FORMAT != 2) {
-					*pix++ = /*R*/ BYTECLIP(yy + ((int)(1.402 * CVACC) * cr / CVACC));
-					*pix++ = /*G*/ BYTECLIP(yy - ((int)(0.344 * CVACC) * cb + (int)(0.714 * CVACC) * cr) / CVACC);
-					*pix++ = /*B*/ BYTECLIP(yy + ((int)(1.772 * CVACC) * cb / CVACC));
+					*pix++ = /*R*/ BYTECLIP(yy + (((int)(1435 /*1.402 * CVACC*/) * cr) >> 10 /*/ CVACC*/));
+					*pix++ = /*G*/ BYTECLIP(yy - (((int)(352 /*0.344 * CVACC*/) * cb + (int)(731 /*0.714 * CVACC*/) * cr) >> 10 /*/ CVACC*/));
+					*pix++ = /*B*/ BYTECLIP(yy + (((int)(1814 /*1.772 * CVACC*/) * cb) >> 10 /*/ CVACC*/));
 				} else {
 					*pix++ = yy;
 				}
@@ -863,12 +867,13 @@ JPEG_ITCM static JRESULT mcu_output (
 	}
 #endif
 
-	if (!JD_USE_SCALE || jd->scale != 3) {	/* Not for 1/8 scaling */
+#if (!JD_USE_SCALE)
+	if (jd->scale != 3) {	/* Not for 1/8 scaling */
 		pix = (uint8_t*)jd->workbuf;
-
-		if (JD_FORMAT != 2)
+		if (jd_f != 2)
 		{	/* RGB output (build an RGB MCU from Y/C component) */
 			for (iy = 0; iy < my; iy++) {
+				jd_yuv_t *py, *pc;
 				pc = py = jd->mcubuf;
 				if (my == 16) {		/* Double block height? */
 					pc += 64 * 4 + ((iy >> 1) << 3);
@@ -888,14 +893,14 @@ JPEG_ITCM static JRESULT mcu_output (
 					}
 					yy = *py++;			/* Get Y component */
 
-					if (JD_FORMAT == 3)
+					if (jd_f == 3)
 					{
 						if ((ix & 0x1) == 1) {
-							*pix++ = ((219 * cb) >> 8) + 128;
+							*pix++ = BYTECLIP(((219 * cb) >> 8) + 128);
 						} else {
-							*pix++ = ((219 * cr) >> 8) + 128;
+							*pix++ = BYTECLIP(((219 * cr) >> 8) + 128);
 						}
-						*pix++ = ((219 * yy) >> 8) + 16;
+						*pix++ = BYTECLIP(((219 * yy) >> 8) + 16);
 
 						if (ix & 0x01)
 						{
@@ -905,31 +910,31 @@ JPEG_ITCM static JRESULT mcu_output (
 							*(pix - 3) = y1;
 						}
 					}
-					else if (JD_FORMAT == 4)
+					else if (jd_f == 4)
 					{
-						*pix++ = ((219 * yy) >> 8) + 16;
+						*pix++ = BYTECLIP(((219 * yy) >> 8) + 16);
 						if ((ix & 0x1) == 0) {
-							*pix++ = ((219 * cb) >> 8) + 128;
+							*pix++ = BYTECLIP(((219 * cb) >> 8) + 128);
 						} else {
-							*pix++ = ((219 * cr) >> 8) + 128;
+							*pix++ = BYTECLIP(((219 * cr) >> 8) + 128);
 						}
 					}
-					else if (JD_FORMAT == 0)
+					else if (jd_f == 0)
 					{
-                       *pix++ = /*R*/ BYTECLIP(yy + ((int)(1.402 * CVACC) * cr) / CVACC);
-                       *pix++ = /*G*/ BYTECLIP(yy - ((int)(0.344 * CVACC) * cb + (int)(0.714 * CVACC) * cr) / CVACC);
-                       *pix++ = /*B*/ BYTECLIP(yy + ((int)(1.772 * CVACC) * cb) / CVACC);
+					   *pix++ = /*R*/ BYTECLIP(yy + (((int)(1435 /*1.402 * CVACC*/) * cr) >> 10 /*/ CVACC*/));
+					   *pix++ = /*G*/ BYTECLIP(yy - (((int)(352 /*0.344 * CVACC*/) * cb + (int)(731 /*0.714 * CVACC*/) * cr) >> 10 /*/ CVACC*/));
+					   *pix++ = /*B*/ BYTECLIP(yy + (((int)(1814 /*1.772 * CVACC*/) * cb) >> 10 /*/ CVACC*/));
 					}
-					else if (JD_FORMAT == 1)
+					else if (jd_f == 1)
 					{
 						#if 0
-                        rr = /*R*/ BYTECLIP(yy + ((int)(1.402 * CVACC) * cr) / CVACC);
-                        gg = /*G*/ BYTECLIP(yy - ((int)(0.344 * CVACC) * cb + (int)(0.714 * CVACC) * cr) / CVACC);
-                        bb = /*B*/ BYTECLIP(yy + ((int)(1.772 * CVACC) * cb) / CVACC);
+						rr = /*R*/ BYTECLIP(yy + ((int)(1.402 * CVACC) * cr) / CVACC);
+						gg = /*G*/ BYTECLIP(yy - ((int)(0.344 * CVACC) * cb + (int)(0.714 * CVACC) * cr) / CVACC);
+						bb = /*B*/ BYTECLIP(yy + ((int)(1.772 * CVACC) * cb) / CVACC);
 
 						*pix++ = ((gg & 0x1C) << 3) | ((bb & 0xF8) >> 3);
 						*pix++ = (rr & 0xF8) | ((gg & 0xE0) >> 5);
-                        #else
+						#else
 						// rr = /*R*/ BYTECLIP(yy + ((2871 * cr) >> 11));
 						gg = /*G*/ BYTECLIP(yy - ((1409 * cb + 2925 * cr) >> 12));
 						// bb = /*B*/ BYTECLIP(yy + ((3629 * cb) >> 11));
@@ -943,6 +948,7 @@ JPEG_ITCM static JRESULT mcu_output (
 		}
 		else
 		{	/* Monochrome output (build a grayscale MCU from Y comopnent) */
+			jd_yuv_t *py;
 			for (iy = 0; iy < my; iy++) {
 				py = jd->mcubuf + iy * 8;
 				if (my == 16) {		/* Double block height? */
@@ -993,6 +999,7 @@ JPEG_ITCM static JRESULT mcu_output (
 #endif
 
 	}
+#endif
 
 #if JD_USE_SCALE
 	/* Squeeze up pixel table if a part of MCU is to be truncated */
@@ -1007,12 +1014,12 @@ JPEG_ITCM static JRESULT mcu_output (
 		for (y = 0; y < ry; y++) {
 			for (x = 0; x < rx; x++) {	/* Copy effective pixels */
 				*d++ = *s++;
-				if (JD_FORMAT != 2) {
+				if (jd_f != 2) {
 					*d++ = *s++;
 					*d++ = *s++;
 				}
 			}
-			s += (mx - rx) * (JD_FORMAT != 2 ? 3 : 1);	/* Skip truncated pixels */
+			s += (mx - rx) * (jd_f != 2 ? 3 : 1);	/* Skip truncated pixels */
 		}
 	}
 
@@ -1090,6 +1097,31 @@ JPEG_ITCM JRESULT jd_prepare_sw (
 		if (jd->infunc(jd, seg, 4) != 4) return JDR_INP;
 		marker = LDB_WORD(seg);		/* Marker */
 		len = LDB_WORD(seg + 2);	/* Length field */
+
+		while (marker == 0xFFFF)
+		{
+			if ((len & 0xFF00) != 0xFF00) //len  xx xx
+			{
+				if (jd->infunc(jd, seg, 1) != 1) return JDR_INP;
+				marker = 0xFF00 | ((len & 0xFF00) >> 8);
+				len = (len & 0xFF) | seg[0];	 /* Marker */
+				break;
+			}
+			else if ((len & 0xFFFF) != 0xFFFF) //len  ff xx
+			{
+				marker = len;
+				if (jd->infunc(jd, seg, 2) != 2) return JDR_INP;
+				len = LDB_WORD(seg);	 /* Marker */
+				break;
+			}
+			else	//len ff ff
+			{
+				if (jd->infunc(jd, seg, 3) != 3) return JDR_INP;
+				marker = 0xFF00 | seg[0];
+				len = LDB_WORD(seg + 1);	 /* Marker */
+			}
+		}
+
 		if (len <= 2 || (marker >> 8) != 0xFF) return JDR_FMT1;
 		len -= 2;			/* Segent content size */
 		ofs += 4 + len;		/* Number of bytes loaded */
@@ -1239,6 +1271,7 @@ JPEG_ITCM JRESULT jd_decomp_sw (
 			}
 			rc = mcu_load(jd);					/* Load an MCU (decompress huffman coded stream, dequantize and apply IDCT) */
 			if (rc != JDR_OK) return rc;
+
 			rc = mcu_output(jd, outfunc, x, y);	/* Output the MCU (YCbCr to RGB, scaling and output) */
 			if (rc != JDR_OK) return rc;
 		}

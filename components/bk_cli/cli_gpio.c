@@ -14,6 +14,9 @@ static void cli_gpio_help(void)
 	CLI_LOGI("gpio    [output_high/output_low/input_get]    [gpio_pin] \r\n");
 	CLI_LOGI("gpio_map    [sdio_map/spi_map]     [mode]\r\n");
 	CLI_LOGI("gpio_int    [index]    [inttype/start/stop]    [low/high_level/rising/falling edge]\r\n");
+#if CONFIG_PM
+	CLI_LOGI("gpio_wkup_cfg    [index]    [low/high_level/rising/falling_edge]\r\n");
+#endif
 #if CONFIG_GPIO_DYNAMIC_WAKEUP_SUPPORT
 	CLI_LOGI("gpio_wake    [index][low/high_level/rising/falling edge][enable/disable wakeup]\r\n");
 	CLI_LOGI("gpio_low_power    [simulate][param]\r\n");
@@ -206,6 +209,37 @@ static void cli_gpio_map_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 	}
 }
 
+#if CONFIG_PM
+static void cli_gpio_wakeup_config(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 3) {
+		cli_gpio_help();
+		return;
+	}
+
+	gpio_id_t id;
+	gpio_int_type_t int_type;
+
+	id = os_strtoul(argv[1], NULL, 10);
+	int_type = os_strtoul(argv[2], NULL, 10);
+
+	if (os_strcmp(argv[2], "low_level") == 0) {
+		int_type = GPIO_INT_TYPE_LOW_LEVEL;
+	} else if (os_strcmp(argv[2], "high_level") == 0) {
+		int_type = GPIO_INT_TYPE_HIGH_LEVEL;
+	}else if (os_strcmp(argv[2], "rising_edge") == 0) {
+		int_type = GPIO_INT_TYPE_RISING_EDGE;
+	} else if (os_strcmp(argv[2], "falling_edge") == 0) {
+		int_type = GPIO_INT_TYPE_FALLING_EDGE;
+	} else {
+		cli_gpio_help();
+		return;
+	}
+
+	bk_gpio_wakeup_config_set(id, int_type);
+}
+#endif
+
 #if CONFIG_GPIO_DYNAMIC_WAKEUP_SUPPORT
 static void cli_gpio_set_wake_source_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
@@ -325,10 +359,10 @@ static void cli_gpio_simulate_uart_write_cmd(char *pcWriteBuffer, int xWriteBuff
 }
 #endif
 
-
 static void cli_gpio_int_isr(gpio_id_t id)
 {
 	CLI_LOGI("gpio isr index:%d\n",id);
+	bk_gpio_clear_interrupt(id);
 }
 
 static void cli_gpio_int_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -390,6 +424,9 @@ static const struct cli_command s_gpio_commands[] = {
 	{"gpio", "gpio     [set_mode/output_low/output_high/input/spi_mode]      [id]     [mode]", cli_gpio_cmd},
 	{"gpio_driver", "gpio_driver    [init/deinit]}", cli_gpio_driver_cmd},
 	{"gpio_map", "gpio_map     [sdio_map/spi_map]",cli_gpio_map_cmd},
+#if CONFIG_PM
+	{"gpio_wkup_cfg", "gpio_wkup_cfg    [index]    [low/high_level/rising/falling_edge]", cli_gpio_wakeup_config}
+#endif
 #if CONFIG_GPIO_DYNAMIC_WAKEUP_SUPPORT
 	{"gpio_wake", "gpio_wake [index][low/high_level/rising/falling edge][enable/disable wakeup]", cli_gpio_set_wake_source_cmd},
 	{"gpio_kpsta", "gpio_kpsta [register/unregister][index][io_mode][pull_mode][func_mode]", cli_gpio_set_keep_status_config},

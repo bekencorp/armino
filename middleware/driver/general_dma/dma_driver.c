@@ -598,6 +598,40 @@ bk_err_t bk_dma_set_dest_data_width(dma_id_t id, dma_data_width_t data_width)
 }
 
 #ifdef CONFIG_SPE
+bk_err_t bk_dma_set_dest_burst_len(dma_id_t id, dma_burst_len_e len)
+{
+    DMA_RETURN_ON_NOT_INIT();
+    DMA_RETURN_ON_INVALID_ID(id);
+
+    dma_hal_set_dest_burst_len(&s_dma.hal, id, len);
+    return BK_OK;
+}
+
+uint32_t bk_dma_get_dest_burst_len(dma_id_t id)
+{
+    DMA_RETURN_ON_NOT_INIT();
+    DMA_RETURN_ON_INVALID_ID(id);
+
+    return dma_hal_get_dest_burst_len(&s_dma.hal, id);
+}
+
+bk_err_t bk_dma_set_src_burst_len(dma_id_t id, dma_burst_len_e len)
+{
+    DMA_RETURN_ON_NOT_INIT();
+    DMA_RETURN_ON_INVALID_ID(id);
+
+    dma_hal_set_src_burst_len(&s_dma.hal, id, len);
+    return BK_OK;
+}
+
+uint32_t bk_dma_get_src_burst_len(dma_id_t id)
+{
+    DMA_RETURN_ON_NOT_INIT();
+    DMA_RETURN_ON_INVALID_ID(id);
+
+    return dma_hal_get_src_burst_len(&s_dma.hal, id);
+}
+
 bk_err_t bk_dma_bus_err_int_enable(dma_id_t id)
 {
     DMA_RETURN_ON_NOT_INIT();

@@ -32,6 +32,9 @@ typedef struct {
 
 bk_err_t wdt_hal_init(wdt_hal_t *hal);
 bk_err_t wdt_hal_init_wdt(wdt_hal_t *hal, uint32_t timeout);
+void wdt_hal_close(void);
+void wdt_hal_force_feed(void);
+void wdt_hal_force_reboot(void);
 
 #if CFG_HAL_DEBUG_WDT
 void wdt_struct_dump(void);

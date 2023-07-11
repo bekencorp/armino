@@ -79,6 +79,7 @@ typedef enum {
 	INT_ID_DMA1_SEC              ,
 	INT_ID_DMA1_NSEC             ,
 	INT_ID_YUVB                  ,
+	INT_ID_ROTT                  ,
 	INT_ID_MAX
 } arch_int_src_t;
 

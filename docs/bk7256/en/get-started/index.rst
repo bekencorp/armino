@@ -143,7 +143,7 @@ Enter the following command in the terminal to compile the Armino default projec
 - Of course, you can also compile any other project under armono/projects. The command is as follows::
 
     cd ~/armino
-    make BK7256 PROJECT=examples/get-started/hello_world
+    make bk7256 PROJECT=examples/get-started/hello_world
 
 
 Configuration project

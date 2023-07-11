@@ -7,19 +7,6 @@
 #include "system_hw.h"
 #include "cm_backtrace.h"
 
-#define FIREWARE_NAME    "app"
-#define HARDWARE_VERSION "V1.0.0"
-#define SOFTWARE_VERSION "V1.0.0"
-
-void close_wdt(void)
-{
-	REG_WRITE(SOC_AON_WDT_REG_BASE, 0x5A0000);
-	REG_WRITE(SOC_AON_WDT_REG_BASE, 0xA50000);
-	REG_SET(SOC_WDT_REG_BASE + 4 * 2, 1, 1, 1);
-	REG_WRITE(SOC_WDT_REG_BASE + 4 * 4, 0x5A0000);
-	REG_WRITE(SOC_WDT_REG_BASE + 4 * 4, 0xA50000);
-}
-
 void Delay1(volatile uint32_t times)
 {
 	while(times--);
@@ -60,34 +47,4 @@ void bk7236_sys_init(void)
 	sys_hal_mclk_div_set(480000000/CONFIG_CPU_FREQ_HZ - 1);
 	Delay1(10000);
 	sys_hal_mclk_mux_set(0x3);/*clock source: DPLL, 480M*/
-}
-
-void backtrace_init(void)
-{
-	cm_backtrace_init(FIREWARE_NAME, HARDWARE_VERSION, SOFTWARE_VERSION);
-}
-
-void psram_init(void)
-{
-	typedef struct {
-		uint32_t const *src;
-		uint32_t *dest;
-		uint32_t  wlen;
-	} __copy_table_t;
-
-	typedef struct {
-		uint32_t *dest;
-		uint32_t  wlen;
-	} __zero_table_t;
-
-	extern const __copy_table_t __copy_table_start__;
-	extern const __zero_table_t __zero_table_start__;
-	__copy_table_t const* pCopyTable = &__copy_table_start__;
-	__zero_table_t const* pZeroTable = &__zero_table_start__;
-	++pCopyTable;
-	++pZeroTable;
-
-	bk_psram_init();
-	os_memcpy(pCopyTable->dest, pCopyTable->src, pCopyTable->wlen);
-	os_memset(pZeroTable->dest, 0, pZeroTable->wlen);
 }

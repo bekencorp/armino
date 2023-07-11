@@ -1,40 +1,60 @@
 menu "Media"
 
 	config MEDIA
+		depends on CAMERA || USB_UVC || LCD
 		bool "Enable Media"
 		default n
 		help
 			Enable media service
 	config WIFI_TRANSFER
+		depends on MEDIA
 		bool "Enable Wifi Transfer"
 		default n
 	config LVGL
+		depends on LCD
 		bool "Enable Lvgl"
 		default n
-	config LCD_FLASH_JPEG_DISPLAY 
+	config LCD_FLASH_JPEG_DISPLAY
+		depends on LCD
 		bool "Enable Lcd Flash Jpeg Display"
 		default n
 		help
 			enable lcd display flash img
-	config LCD_DMA2D_BLEND_FLASH_IMG 
+	config LCD_DMA2D_BLEND_FLASH_IMG
+		depends on DMA2D
 		bool "Enable Lcd Dma2d Blend Flash Img"
 		default n
 		help
 			enable lcd dma2d blend flash logo
-	config BLEND_USE_GUI 
+	config BLEND_USE_GUI
+		depends on LCD
 		bool "Enable Blend Use Gui"
 		default n
 		help
 			enable lcd dma2d blend from gui
-	config BLEND_GUI_OUTPUT_888 
+	config BLEND_GUI_OUTPUT_888
+		depends on LCD
 		bool "Enable Blend Gui Output 888"
 		default n
 		help
 			enable lcd dma2d blend from gui, gui data is rgb888
 	config LCD_FONT_BLEND
+		depends on LCD
 		bool "Enable Lcd Font Blend"
 		default n
 		help
 			enable lcd blend by font logo
+	config IMAGE_STORAGE
+		depends on MEDIA
+		bool "enable image storage function"
+		default n
+		help
+			enable image save and read image
+	config JPEG_YUV_MIX
+		depends on CAMERA
+		bool "enable jpeg module for jpeg and yuv mix mode"
+		default n
+		help
+			enable jpeg work method: encode and yuv by turns
 
 endmenu

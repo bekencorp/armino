@@ -181,13 +181,21 @@ void audio_deinit(void)
 	}
 }
 
-void voice_init(void)
+void voice_init(uint8_t type, aud_intf_voc_samp_rate_t samp_rate, bool aec_en)
 {
 	bk_err_t ret = BK_OK;
 
 	aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_PCM;
 	aud_intf_voc_setup.spk_mode   = AUD_DAC_WORK_MODE_SIGNAL_END;
-	//aud_intf_voc_setup.aec_enable = false;
+	aud_intf_voc_setup.aec_enable = aec_en;
+	aud_intf_voc_setup.samp_rate = samp_rate;
+	if (type == 1) {
+		aud_intf_voc_setup.mic_type = AUD_INTF_MIC_TYPE_UAC;
+		aud_intf_voc_setup.spk_type = AUD_INTF_MIC_TYPE_UAC;
+	} else {
+		aud_intf_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
+		aud_intf_voc_setup.spk_type = AUD_INTF_MIC_TYPE_BOARD;
+	}
 
 	bk_aud_intf_voc_init(aud_intf_voc_setup);
 	if (ret != BK_ERR_AUD_INTF_OK) {
@@ -195,7 +203,6 @@ void voice_init(void)
 	} else {
 		LOGI("bk_aud_intf_voc_init complete \r\n");
 	}
-	bk_printf("2\n");
 }
 
 void voice_start(void)
@@ -208,7 +215,6 @@ void voice_start(void)
 	} else {
 		LOGI("bk_aud_intf_voc_start complete \r\n");
 	}
-	bk_printf("3\n");
 }
 
 void voice_stop(void)

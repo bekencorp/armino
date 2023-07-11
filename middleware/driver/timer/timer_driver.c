@@ -23,6 +23,7 @@
 #include "power_driver.h"
 #include <driver/int.h>
 #include "sys_driver.h"
+#include "timer_driver.h"
 
 #if (SOC_TIMER_INTERRUPT_NUM > 1)
 static void timer1_isr(void) __BK_SECTION(".itcm");
@@ -214,6 +215,12 @@ bk_err_t bk_timer_start_without_callback(timer_id_t timer_id, uint32_t time_ms)
 {
     uint32_t en_status = 0;
 
+#if CONFIG_TIMER_US
+	if (timer_id == TIMER_ID0) {
+		TIMER_LOGE("timer0 is reserved for us timer!\r\n");
+	}
+#endif
+
     TIMER_RETURN_ON_NOT_INIT();
     TIMER_RETURN_ON_INVALID_ID(timer_id);
 
@@ -248,6 +255,12 @@ bk_err_t bk_timer_start_without_callback(timer_id_t timer_id, uint32_t time_ms)
 
 bk_err_t bk_timer_start(timer_id_t timer_id, uint32_t time_ms, timer_isr_t callback)
 {
+#if CONFIG_TIMER_US
+	if (timer_id == TIMER_ID0) {
+		TIMER_LOGE("timer0 is reserved for us timer!\r\n");
+	}
+#endif
+
 #if CONFIG_TIMER_SUPPORT_ID_BITS
     TIMER_RETURN_TIMER_ID_IS_ERR(timer_id);
 #endif
@@ -465,3 +478,10 @@ bk_err_t bk_timer_delay_with_callback(timer_id_t timer_id, uint64_t time_us, tim
 
     return BK_OK;
 }
+
+#if CONFIG_TIMER_US
+void bk_timer_delay_us(uint32_t us)
+{
+	timer_hal_delay_us(us);
+}
+#endif

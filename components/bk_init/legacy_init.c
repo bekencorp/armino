@@ -50,7 +50,7 @@ extern void bk_ota_confirm_update_partition(ota_confirm_flag ota_confirm_val);
 #include "media_core.h"
 #endif
 
-#if (CONFIG_SOC_BK7236)
+#if (CONFIG_SOC_BK7236XX)
 #include "sys_ll.h"
 #include "bk_saradc.h"
 #include "temp_detect_pub.h"
@@ -58,7 +58,7 @@ extern void bk_ota_confirm_update_partition(ota_confirm_flag ota_confirm_val);
 
 #include "sdk_version.h"
 
-#if ((CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7236) && CONFIG_DEBUG_FIRMWARE)
+#if ((CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7236XX) && CONFIG_DEBUG_FIRMWARE)
 extern bk_err_t bk_dbg_init(void);
 #endif
 void rtos_user_app_launch_over(void);
@@ -72,7 +72,7 @@ static int app_wifi_init(void)
 	BK_LOG_ON_ERR(bk_event_init());
 	BK_LOG_ON_ERR(bk_netif_init());
 	BK_LOG_ON_ERR(bk_wifi_init(&wifi_config));
-#if ((CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7236) && CONFIG_DEBUG_FIRMWARE)
+#if ((CONFIG_SOC_BK7256XX || CONFIG_SOC_BK7236XX) && CONFIG_DEBUG_FIRMWARE)
 	BK_LOG_ON_ERR(bk_dbg_init());
 #endif
 
@@ -228,17 +228,11 @@ int legacy_init(void)
 	vnd_cal_overlay();
 #endif
 
-#if (CONFIG_SOC_BK7236 && !CONFIG_SLAVE_CORE)
-	/* enable ioldo bypass when VBAT <= 3.45V */
+#if 0//(CONFIG_SOC_BK7236XX && !CONFIG_SLAVE_CORE)
 	UINT32 volt_adc = 0;
 	if (!volt_single_get_current_voltage(&volt_adc))
 	{
-		float volt_value = saradc_calculate((UINT16)volt_adc) * 2;
-		BK_LOGI(TAG, "adc0=%d,volt=%.3fV\r\n", volt_adc, volt_value);
-		if (volt_value <= 3.45)
-		{
-			sys_ll_set_ana_reg10_iobyapssen(1);
-		}
+		rwnx_cal_do_volt_detect(volt_adc);
 	}
 #endif
 
@@ -326,6 +320,11 @@ int legacy_init(void)
     os_printf("exec part b\r\n");
     bk_ota_confirm_update_partition(CONFIRM_EXEC_B);
     #endif
+#endif
+
+#if CONFIG_MICROPYTHON
+extern int mp_do_startup(int heap_len);
+	mp_do_startup(0);
 #endif
 
 	return 0;

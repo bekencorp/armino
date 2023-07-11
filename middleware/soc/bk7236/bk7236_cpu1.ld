@@ -19,6 +19,8 @@ OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
 __MSP_STACK_SIZE = (4 << 10);
 __MIN_HEAP_SIZE  = (32 << 10);
 
+__SWAP_SIZE = (32);
+
 MEMORY
 {
   FLASH (rx)            : ORIGIN = (SOC_FLASH_DATA_BASE + CONFIG_SECOND_APP_VIRTUAL_CODE_START), LENGTH = CONFIG_SECOND_APP_VIRTUAL_CODE_SIZE
@@ -26,7 +28,7 @@ MEMORY
 
   ITCM (rwx)            : ORIGIN = SOC_ITCM_DATA_BASE + 4, LENGTH = CONFIG_ITCM_SIZE - 4
   DTCM (rwx)            : ORIGIN = SOC_DTCM_DATA_BASE,     LENGTH = CONFIG_DTCM_SIZE
-
+  SWAP (rwx)            : ORIGIN = 0x28080000 - __SWAP_SIZE, LENGTH = __SWAP_SIZE
   PSRAM (rwx)           : ORIGIN = SOC_PSRAM_DATA_BASE, LENGTH = 0x4000000
 }
 
@@ -222,6 +224,16 @@ SECTIONS
         __StackTop = .;
         _estack = .;
     } > RAM
+
+    .swap ORIGIN(SWAP):
+    {
+        . = ALIGN(8);
+        _swap_start = .;
+
+        * (.swap_data)
+        * (.swap_data*)
+        _swap_end = .;
+    } > IRAM AT > RAM
 
     .video.cache.data :
     {

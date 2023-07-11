@@ -2,7 +2,6 @@
 if (CONFIG_LCD_DEMO)
 set(incs . ../common/.)
 set(srcs
-	#"../common/lcd_dma2d_config.c"
 	#"../common/lcd_sdcard_config.c"
 	)
 endif()

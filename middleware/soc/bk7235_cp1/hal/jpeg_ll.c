@@ -29,12 +29,11 @@ static const uint32_t jpeg_quant_table[JPEG_QUANT_TABLE_LEN] = {
 
 void jpeg_ll_init_quant_table(jpeg_hw_t *hw)
 {
-    uint32_t reg_addr;
+	uint32_t reg_addr;
 
-    for (uint32_t i = 0; i < JPEG_QUANT_TABLE_LEN; i++)
-    {
-        reg_addr = JPEG_R_QUANT_TABLE + i * 4;
-        REG_WRITE(reg_addr, (uint32_t)jpeg_quant_table[i]);
-    }
+	for (uint32_t i = 0; i < JPEG_QUANT_TABLE_LEN; i++) {
+		reg_addr = JPEG_R_QUANT_TABLE + i * 4;
+		REG_WRITE(reg_addr, (uint32_t)jpeg_quant_table[i]);
+	}
 }
 

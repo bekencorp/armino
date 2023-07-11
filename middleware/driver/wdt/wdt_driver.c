@@ -60,7 +60,7 @@ typedef struct {
 		}\
 	} while(0)
 
-#define WDT_BARK_TIME_MS    2000
+#define WDT_BARK_TIME_MS    1000
 #define NMI_WDT_CLK_DIV_16  3
 
 static wdt_driver_t s_wdt = {0};
@@ -91,7 +91,6 @@ static void wdt_deinit_common(void)
 	s_wdt_period = CONFIG_INT_WDT_PERIOD_MS;
 	wdt_hal_reset_config_to_default(&s_wdt.hal);
 #if (CONFIG_SYSTEM_CTRL)
-	extern void close_wdt(void);
 	close_wdt();
 	sys_drv_dev_clk_pwr_up(CLK_PWR_ID_WDG_CPU, CLK_PWR_CTRL_PWR_DOWN);
 #else
@@ -107,7 +106,7 @@ bk_err_t bk_wdt_driver_init(void)
 
 	os_memset(&s_wdt, 0, sizeof(s_wdt));
 	wdt_hal_init(&s_wdt.hal);
-#if (CONFIG_SOC_BK7236)
+#if (CONFIG_SOC_BK7236XX)
 	sys_drv_nmi_wdt_set_clk_div(NMI_WDT_CLK_DIV_16);
 #elif ((CONFIG_SOC_BK7256XX) && (!CONFIG_SLAVE_CORE))
 	bk_timer_start(TIMER_ID2, WDT_BARK_TIME_MS, (timer_isr_t)bk_wdt_feed_handle);
@@ -252,3 +251,21 @@ void bk_wdt_feed_handle(void)
 	GLOBAL_INT_RESTORE();
 }
 
+void close_wdt(void)
+{
+	wdt_hal_close();
+}
+
+void bk_wdt_force_feed(void)
+{
+	wdt_hal_force_feed();
+}
+
+void bk_wdt_force_reboot(void)
+{
+	GLOBAL_INT_DECLARATION();
+	GLOBAL_INT_DISABLE();
+	wdt_hal_force_reboot();
+	while(1);
+	GLOBAL_INT_RESTORE();
+}

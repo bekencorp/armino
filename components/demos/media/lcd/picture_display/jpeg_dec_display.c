@@ -27,7 +27,7 @@
 #include <driver/pwm.h>
 #endif
 
-#if (CONFIG_JPEG_DECODE)
+#if (CONFIG_JPEGDEC_SW)
 #include <components/jpeg_decode.h>
 #endif
 
@@ -230,7 +230,7 @@ void jpeg_dec_display_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 			{
 				bk_lcd_driver_init(LCD_12M);
 				bk_lcd_isr_register(RGB_OUTPUT_EOF, lcd_complete_callback);
-				bk_lcd_rgb_init(lcd_config.device->id, lcd_jpeg_display.lcd_size_x, lcd_jpeg_display.lcd_size_y, PIXEL_FMT_RGB565);
+				bk_lcd_rgb_init(lcd_config.device->id, lcd_jpeg_display.lcd_size_x, lcd_jpeg_display.lcd_size_y, PIXEL_FMT_RGB565_LE);
 			}
 			else if (lcd_ppi == PPI_320X480)
 			{
@@ -269,7 +269,7 @@ void jpeg_dec_display_demo(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 		}
 		else
 		{
-#if (CONFIG_JPEG_DECODE)
+#if (CONFIG_JPEGDEC_SW)
 			sw_jpeg_dec_res_t result;
 
 			bk_jpeg_dec_driver_deinit();
@@ -347,35 +347,7 @@ void sdcard_write_from_mem(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 #else
 		os_printf("Not support\r\n");
 #endif
-} 
-#if 0
-void lcd_storage_capture_save(char * capture_name, uint8_t *addr, uint32_t len)
-{
-#if (CONFIG_FATFS)
-	FIL fp1;
-	unsigned int uiTemp = 0;
-	char file_name[50] = {0};
-
-	sprintf(file_name, "%d:/%s", DISK_NUMBER_SDIO_SD, capture_name);
-
-	FRESULT fr = f_open(&fp1, file_name, FA_CREATE_ALWAYS | FA_WRITE);
-	if (fr != FR_OK)
-	{
-		os_printf("can not open file: %s, error: %d\n", file_name, fr);
-		return;
-	}
-
-	os_printf("open file:%s!\n", file_name);
-
-	fr = f_write(&fp1, addr, len, &uiTemp);
-	if (fr != FR_OK)
-	{
-		os_printf("f_write failed 1 fr = %d\r\n", fr);
-	}
-	f_close(&fp1);
-#endif
 }
-#endif
 
 void sdcard_read_to_psram(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {

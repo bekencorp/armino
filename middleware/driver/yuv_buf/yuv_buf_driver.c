@@ -335,7 +335,7 @@ static void yuv_buf_isr(void)
 	}
 
 	if (yuv_buf_hal_is_sensor_resolution_err_int_triggered(hal, int_status)) {
-		YUV_BUF_LOGD("sensor's yuyv data resoltion is not right\r\n");
+		YUV_BUF_LOGE("sensor's yuyv data resoltion is not right\r\n");
 		if (s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_SEN_RESL_ERR].isr_handler) {
 			s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_SEN_RESL_ERR].isr_handler(0, s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_SEN_RESL_ERR].param);
 		}

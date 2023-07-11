@@ -958,7 +958,13 @@ typedef struct
 #define SCB_DTCMCR_SZ_Pos                   3U                                            /*!< SCB DTCMCR: SZ Position */
 #define SCB_DTCMCR_SZ_Msk                  (0xFUL << SCB_DTCMCR_SZ_Pos)                   /*!< SCB DTCMCR: SZ Mask */
 #define SCB_DTCMCR_EN_Pos                   0U                                            /*!< SCB DTCMCR: EN Position */
-#define SCB_DTCMCR_EN_Msk                  (1UL /*<< SCB_DTCMCR_EN_Pos*/)                 /*!< SCB DTCMCR: EN Mask */
+#define SCB_DTCMCR_EN_Msk                  (1UL /*<< SCB_DTCMCR_EN_Pos*/)
+
+/* TGU*/
+#define TGU_DBFEN_Pos                       0U
+#define TGU_DBFEN_Msk                      (0x1UL << TGU_DBFEN_Pos)
+#define TGU_DEREN_Pos                       1U
+#define TGU_DEREN_Msk                      (0x1UL << TGU_DEREN_Pos)
 
 /* L1 Cache Control Register Definitions */
 #define SCB_CACR_DCCLEAN_Pos                16U                                            /*!< SCB CACR: DCCLEAN Position */
@@ -1078,12 +1084,10 @@ typedef struct
  */
 typedef struct
 {
-	__IOM uint32_t ITGU_CTRL;
-	__IOM uint32_t ITGU_CFG;
-	__IOM uint32_t ITGU_LUT;
-	__IOM uint32_t DTGU_CTRL;
-	__IOM uint32_t DTGU_CFG;
-	__IOM uint32_t DTGU_LUT;
+	__IOM uint32_t TGU_CTRL;
+	__IOM uint32_t TGU_CFG;
+	uint32_t RESERVED0[2U];
+	__IOM uint32_t TGU_LUT;
 }TGU_Type;
 
 
@@ -2176,7 +2180,8 @@ typedef struct
 #define DIB_BASE            (0xE000EFB0UL)                             /*!< DIB Base Address */
 #define EMSS_BASE           (0xE001E000UL)                             /*!< Enhanced Memory SubSystem Base Address */
 #define TCM_BASE			(0xE001E010UL)							   /*!< TCM Base Address */
-#define TGU_BASE			(0xE001E500UL)							   /*!< TGU Base Address */
+#define ITGU_BASE			(0xE001E500UL)							   /*!< ITGU Base Address */
+#define DTGU_BASE			(0xE001E600UL)							   /*!< DTGU Base Address */
 
 #define SysTick_BASE        (SCS_BASE +  0x0010UL)                     /*!< SysTick Base Address */
 #define NVIC_BASE           (SCS_BASE +  0x0100UL)                     /*!< NVIC Base Address */
@@ -2193,7 +2198,8 @@ typedef struct
 #define DIB                 ((DIB_Type       *)     DIB_BASE         ) /*!< DIB configuration struct */
 #define EMSS                ((EMSS_Type      *)     EMSS_BASE        ) /*!<Ehanced MSS Registers struct */
 #define TCM                 ((TCM_Type       *)     TCM_BASE         ) /*!< ITM configuration struct */
-#define TGU                 ((TGU_Type       *)     TGU_BASE         ) /*!< ITM configuration struct */
+#define ITGU                ((TGU_Type       *)     ITGU_BASE        ) /*!< ITGU configuration struct */
+#define DTGU                ((TGU_Type       *)     DTGU_BASE        ) /*!< DTGU configuration struct */
 
   #if defined (__MPU_PRESENT) && (__MPU_PRESENT == 1U)
     #define MPU_BASE          (SCS_BASE +  0x0D90UL)                     /*!< Memory Protection Unit */
@@ -2271,7 +2277,9 @@ typedef struct
   #define NVIC_GetEnableIRQ           __NVIC_GetEnableIRQ
   #define NVIC_DisableIRQ             __NVIC_DisableIRQ
   #define NVIC_GetPendingIRQ          __NVIC_GetPendingIRQ
+  #define NVIC_GetAllPendingIRQ       __NVIC_GetAllPendingIRQ
   #define NVIC_SetPendingIRQ          __NVIC_SetPendingIRQ
+  #define NVIC_TriggerIRQ             __NVIC_TriggerIRQ
   #define NVIC_ClearPendingIRQ        __NVIC_ClearPendingIRQ
   #define NVIC_GetActive              __NVIC_GetActive
   #define NVIC_SetPriority            __NVIC_SetPriority
@@ -2426,6 +2434,16 @@ __STATIC_INLINE uint32_t __NVIC_GetPendingIRQ(IRQn_Type IRQn)
 
 
 /**
+ *   \brief   Get Pending Interrupt
+ *     \Reads the NVIC pending register and returns all bit for the pending interrupt.
+ *       \return             Interrupt status.
+ *        */
+__STATIC_INLINE uint64_t __NVIC_GetAllPendingIRQ(void)
+{
+    return (((uint64_t)(NVIC->ISPR[1])<< 32) | (NVIC->ISPR[0]));
+}
+
+/**
   \brief   Set Pending Interrupt
   \details Sets the pending bit of a device specific interrupt in the NVIC pending register.
   \param [in]      IRQn  Device specific interrupt number.
@@ -2436,6 +2454,14 @@ __STATIC_INLINE void __NVIC_SetPendingIRQ(IRQn_Type IRQn)
   if ((int32_t)(IRQn) >= 0)
   {
     NVIC->ISPR[(((uint32_t)IRQn) >> 5UL)] = (uint32_t)(1UL << (((uint32_t)IRQn) & 0x1FUL));
+  }
+}
+
+__STATIC_INLINE void __NVIC_TriggerIRQ(IRQn_Type IRQn)
+{
+  if ((int32_t)(IRQn) >= 0)
+  {
+    NVIC->STIR = IRQn;
   }
 }
 
@@ -2676,7 +2702,7 @@ __STATIC_INLINE uint32_t __NVIC_GetVector(IRQn_Type IRQn)
   \brief   System Reset
   \details Initiates a system reset request to reset the MCU.
  */
-__NO_RETURN __STATIC_INLINE void __NVIC_SystemReset(void)
+__NO_RETURN __STATIC_INLINE __attribute__((section(".iram"))) void __NVIC_SystemReset(void)
 {
   __DSB();                                                          /* Ensure all outstanding memory accesses including
                                                                        buffered write are completed before reset */
@@ -2695,7 +2721,7 @@ __NO_RETURN __STATIC_INLINE void __NVIC_SystemReset(void)
   \brief   Software Reset
   \details Initiates a system reset request to reset the CPU.
  */
-__NO_RETURN __STATIC_INLINE void __SW_SystemReset(void)
+__NO_RETURN __STATIC_INLINE __attribute__((section(".iram"))) void __SW_SystemReset(void)
 {
   __DSB();                                                          /* Ensure all outstanding memory accesses including
                                                                        buffered write are completed before reset */

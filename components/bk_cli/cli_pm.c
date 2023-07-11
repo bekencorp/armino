@@ -32,7 +32,9 @@ static void cli_pm_help(void)
 	CLI_LOGI("   policy latency\n");
 	CLI_LOGI("   policy state\n");
 	CLI_LOGI("pm wakesource {enable|disable} {dev}\r\n");
+#if CONFIG_PM_DEPEND
 	CLI_LOGI("pm depend {dev1_id} {dev2_id} {type}\r\n");
+#endif
 #if CONFIG_PM_DEBUG
 	CLI_LOGI("pm debug tree [dev]\r\n");
 	CLI_LOGI("   debug list\r\n");
@@ -54,6 +56,7 @@ static void cli_pm_help(void)
 	CLI_LOGI("   lv flash {0|1}\r\n");
 	CLI_LOGI("   lv core {0|1}\r\n");
 #endif
+	CLI_LOGI("pm lpo {rosc|x32|26m}\r\n");
 }
 
 static void cli_pm_device_vote_freq(const device_t *dev1, const device_t *dev2, int argc, char **argv)
@@ -75,9 +78,14 @@ static void cli_pm_device_vote_freq(const device_t *dev1, const device_t *dev2, 
 		return;
 	}
 
+#if CONFIG_PM_DEPEND
 	BK_LOG_ON_ERR(pm_device_vote_freq(dev1, dev2, freq));
+#else
+	BK_LOG_ON_ERR(pm_device_vote_cpu_freq(dev1, freq));
+#endif
 }
 
+#if CONFIG_PM_DEPEND
 static void cli_pm_device_depend(const device_t *dev1, int argc, char **argv)
 {
 	const device_t *dev2 = device_get_ptr_by_name(argv[3]);
@@ -100,6 +108,7 @@ static void cli_pm_device_depend(const device_t *dev1, int argc, char **argv)
 	uint32_t value = os_strtoul(argv[5], NULL, 10);
 	BK_LOG_ON_ERR(pm_depend_add(dev1, dev2, type, value));
 }
+#endif
 
 static void cli_pm_device_vote(const device_t *dev1, int argc, char **argv)
 {
@@ -144,9 +153,11 @@ static void cli_pm_device_cmd(int argc, char **argv)
 		BK_LOG_ON_ERR(pm_device_poweron(device));
 	} else if (os_strcmp(argv[1], "off") == 0) {
 		BK_LOG_ON_ERR(pm_device_poweroff(device));
+#if CONFIG_PM_DEPEND
 	} else if (os_strcmp(argv[1], "depend") == 0) {
 		CLI_RET_ON_INVALID_ARGC(argc, 5);
 		cli_pm_device_depend(device, argc, argv);
+#endif
 	} else if (os_strcmp(argv[1], "vote") == 0) {
 		cli_pm_device_vote(device, argc, argv);
 	} else {
@@ -356,6 +367,24 @@ static void cli_pm_lv_cmd(int argc, char **argv)
 
 }
 
+static void cli_pm_lpo_cmd(int argc, char **argv)
+{
+	CLI_RET_ON_INVALID_ARGC(argc, 3);
+	sys_lpo_src_t src;
+
+	if (os_strcmp(argv[2], "rosc") == 0) {
+		src = SYS_LPO_SRC_ROSC;
+	} else if (os_strcmp(argv[2], "x32") == 0) {
+		src = SYS_LPO_SRC_EXTERNAL_32K;
+	} else if (os_strcmp(argv[2], "26m") == 0) {
+		src = SYS_LPO_SRC_26M32K;
+	} else {
+		cli_pm_help();
+		return;
+	}
+	BK_LOG_ON_ERR(sys_pm_set_lpo_src(src));
+}
+
 static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	if ((os_strcmp(argv[1], "help") == 0) || (argc < 2)) {
@@ -376,6 +405,8 @@ static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 	} else if (os_strcmp(argv[1], "lv") == 0) {
 		cli_pm_lv_cmd(argc, argv);
 #endif
+	} else if (os_strcmp(argv[1], "lpo") == 0) {
+		cli_pm_lpo_cmd(argc, argv);
 	} else {
 		cli_pm_device_cmd(argc, argv);
 		return;
@@ -389,7 +420,6 @@ static const struct cli_command s_pm_commands[] = {
 
 int cli_pm_init(void)
 {
-	BK_LOG_ON_ERR(pm_init());
 	return cli_register_commands(s_pm_commands, PM_CMD_CNT);
 }
 
@@ -417,7 +447,7 @@ static int cli_pm_action_cb(const device_t *device, pm_device_action_t action)
 
 	}
 
-        return BK_OK;
+		return BK_OK;
 }
 
 //Define three application device for CLI test only
@@ -431,19 +461,3 @@ PM_DEVICE_DEFINE(d5,   null, 0, 0, cli_pm_action_cb);
 PM_DEVICE_DEFINE(d6,   null, 0, 0, cli_pm_action_cb);
 PM_DEVICE_DEFINE(app1, null, 0, 0, cli_pm_action_cb);
 PM_DEVICE_DEFINE(app2, null, 0, 0, cli_pm_action_cb);
-
-//Define GPIO wakesource
-//TODO optimize and simplify it, maybe need to define a MACRO
-static void gpio_isr(gpio_id_t id)
-{
-	CLI_LOGI("gpio%d isr\r\n", id);
-}
-
-static gpio_wakeup_config_t s_gpio_wakeup_config = {
-	.id = 22,
-	.int_type = GPIO_INT_TYPE_RISING_EDGE,
-	.isr = gpio_isr,
-	.valid = 0,
-        };
-
-PM_DEVICE_DEFINE(gpio, null, 0, &s_gpio_wakeup_config, default_gpio_pm_action_cb);

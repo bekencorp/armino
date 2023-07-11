@@ -60,8 +60,8 @@ def pack(tools_dir, base_cfg_dir, prefered_cfg_dir, gen_dir, soc):
 	install_configs(f'{prefered_cfg_dir}/{soc}', _BUILD_DIR)
 
 	logging.debug(f'partition pre-processing')
-	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions.json --genhdr --genbl1 --genbl2')
-	run_cmd(f'cp {_BUILD_DIR}/partitions.json_partition.h {gen_dir}/partitions_gen.h')
+	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions --genhdr --genbl1 --genbl2')
+	run_cmd(f'cp {_BUILD_DIR}/partitions_partition.h {gen_dir}/partitions_gen.h')
 
 @click.group()
 @click.version_option(version='1.0.0.0')

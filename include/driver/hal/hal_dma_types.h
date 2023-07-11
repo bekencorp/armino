@@ -133,6 +133,13 @@ typedef enum {
 	DMA_ATTR_SEC,          /**< DMA secure attr */
 } dma_sec_attr_t;
 
+typedef enum {
+	BURST_LEN_SINGLE = 0,
+	BURST_LEN_INC4,
+	BURST_LEN_INC8,
+	BURST_LEN_INC16
+} dma_burst_len_e;
+
 /**
  * @}
  */

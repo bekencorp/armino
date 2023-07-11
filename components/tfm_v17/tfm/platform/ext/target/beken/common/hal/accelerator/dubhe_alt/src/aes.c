@@ -27,6 +27,9 @@
 #include "mbedtls/platform.h"
 #else
 #include <stdio.h>
+
+int printf(const char *fmt, ...);
+
 #define mbedtls_printf printf
 #endif /* MBEDTLS_PLATFORM_C */
 

@@ -1,0 +1,5 @@
+menu "MAILBOX"
+	config MAILBOX
+		bool "Enable mail_box"
+		default n
+endmenu

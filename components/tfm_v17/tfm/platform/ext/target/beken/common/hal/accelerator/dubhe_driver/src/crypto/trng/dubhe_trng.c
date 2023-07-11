@@ -20,6 +20,7 @@
 #include "pal_time.h"
 #include "dubhe_event.h"
 
+#define CONFIG_DUBHE_FPGA 1
 #define POOL_SIZE ( 8 )
 #define WAIT_POOL_FILLED_US ( 3U )
 #define BIT_MASK( V, M ) ( ( V ) & ( M ) )
@@ -47,6 +48,8 @@
 #endif
 
 /*  default config for dubhe trng */
+
+#if ((0 == CONFIG_DUBHE_FPGA) && defined(DUBHE_SECURE))
 static const dbh_trng_config_t trng_config = {
         .src = {
             .grp0_en = 1,
@@ -97,6 +100,7 @@ static const dbh_trng_config_t trng_config = {
             .adap_err_th = 1,
         }
 };
+#endif
 
 /* handler for handle trng error */
 __attribute__( ( __weak__ ) ) void on_trng_error( int errno )
@@ -112,7 +116,7 @@ __attribute__( ( __weak__ ) ) void on_trng_produce_data( void *data,
     (void) size;
 }
 
-static void arm_ce_trng_setup( const dbh_trng_config_t *trng_cfg )
+static void __attribute__((unused)) arm_ce_trng_setup( const dbh_trng_config_t *trng_cfg )
 {
     uint32_t value = 0;
     dbh_trng_int_t int_mask = {
@@ -161,7 +165,7 @@ static void arm_ce_trng_setup( const dbh_trng_config_t *trng_cfg )
     DBH_WRITE_REGISTER( TRNG_POOL, RESET_CTRL, value );
 }
 
-static int _arm_ce_trng_error_count( void )
+static int __attribute__((unused)) _arm_ce_trng_error_count( void )
 {
     int ret = 0;
     int err = 0;
@@ -231,7 +235,7 @@ static inline bool _arm_ce_is_pool_full( void )
     }
 }
 
-static void _arm_ce_trng_flush_pool( uint32_t desbuf[POOL_SIZE] )
+static void __attribute__((unused)) _arm_ce_trng_flush_pool( uint32_t desbuf[POOL_SIZE] )
 {
     uint32_t tmp = 0;
     for ( size_t i = 0; i < POOL_SIZE; i++ ) {
@@ -242,7 +246,6 @@ static void _arm_ce_trng_flush_pool( uint32_t desbuf[POOL_SIZE] )
     }
 }
 
-#define CONFIG_DUBHE_FPGA 1
 #if CONFIG_DUBHE_FPGA
 #include <stdlib.h>
 

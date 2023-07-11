@@ -17,6 +17,7 @@ set(srcs
 	initfini.c
 	riscv.c
 	mon_call.c
+	arch_delay.c
 	)
 
 #if(CONFIG_CACHE_ENABLE)

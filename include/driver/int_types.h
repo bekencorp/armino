@@ -93,7 +93,7 @@ typedef enum {
 	INT_SRC_BMC64,	//Andes RISC-V
 	INT_SRC_NONE,
 } icu_int_src_t;
-#elif CONFIG_SOC_BK7236
+#elif CONFIG_SOC_BK7236XX
 typedef enum {
 	INT_SRC_DMA0_NSEC = 0,
 	INT_SRC_ENC_SEC,

@@ -70,6 +70,7 @@ macro(tfm_toolchain_reset_linker_flags)
         LINKER:--gc-sections
         LINKER:--no-wchar-size-warning
         ${MEMORY_USAGE_FLAG}
+		${LINKER_CP_OPTION}
     )
 endmacro()
 

@@ -31,6 +31,8 @@ set(incs
 	fft
 	chip_support
 	../compal/common_io/include
+	wdt
+	timer
 	)
 
 set(srcs
@@ -67,6 +69,7 @@ set(srcs
 	security/hal_aes.c
 	security/hal_sha.c
 	spinlock/amp_res_lock.c
+	spinlock/spinlock.c
 	pwr_clk/pwr_clk.c
 	)
 if (CONFIG_AON_WDT)
@@ -99,6 +102,8 @@ if (NOT CMAKE_BUILD_EARLY_EXPANSION)
 	add_subdirectory(prro)
 	add_subdirectory(h264)
 	add_subdirectory(device)
+	add_subdirectory(hw_rotate)
+	add_subdirectory(yuv_buf)
 endif()
 
 if (CONFIG_CHIP_SUPPORT)
@@ -136,7 +141,7 @@ if (CONFIG_SIM_I2C)
 	list(APPEND srcs
 		i2c/sim_i2c_driver.c
 	)
-endif() 
+endif()
 endif()  #if (CONFIG_I2C)
 
 if (CONFIG_SUPPORT_IRDA)
@@ -152,7 +157,7 @@ if (CONFIG_PWM)
 endif()  #if (CONFIG_PWM)
 
 if (NOT CONFIG_SOC_BK7256XX)
-if (NOT CONFIG_SOC_BK7236)
+if (NOT CONFIG_SOC_BK7236XX)
 if (CONFIG_I2S)
 	list(APPEND srcs
 		i2s/i2s.c
@@ -199,7 +204,7 @@ if (CONFIG_I2S)
 endif()
 endif()
 
-if (CONFIG_SOC_BK7236)
+if (CONFIG_SOC_BK7236XX)
 if (CONFIG_I2S)
 	list(APPEND incs
 		"i2s"
@@ -207,12 +212,6 @@ if (CONFIG_I2S)
 
 	list(APPEND srcs
 		i2s/i2s_driver_v1_1.c
-	)
-endif()
-
-if (CONFIG_HW_ROTATE_PFC)
-	list(APPEND srcs
-		hw_rotate/rott_driver.c
 	)
 endif()
 endif()
@@ -306,19 +305,10 @@ if (CONFIG_TP)
 endif()
 endif()
 
-if (CONFIG_JPEG_DEC)
+if (CONFIG_JPEGDEC_HW)
 	list(APPEND srcs
 		"jpeg_dec/jpeg_dec_driver.c"
 		)
-endif()
-
-if (CONFIG_YUV_BUF)
-	list(APPEND incs 
-		yuv_buf
-	)
-	list(APPEND srcs
-		"yuv_buf/yuv_buf_driver.c"
-	)
 endif()
 
 if(CONFIG_DMA2D)
@@ -367,12 +357,12 @@ if (CONFIG_LCD_QSPI_ST77903)
 endif()
 endif()
 
-if (CONFIG_JPEG_ENCODE)
+if (CONFIG_JPEGENC_HW)
 	list(APPEND srcs
 		"jpeg_enc/jpeg_driver.c"
 		"jpeg_enc/jpeg_statis.c"
 		)
-endif() #if (CONFIG_JPEG_ENCODE)
+endif() #if (CONFIG_JPEGENC_HW)
 
 if (CONFIG_PSRAM)
 	list(APPEND srcs
@@ -460,16 +450,7 @@ if (CONFIG_ES8311)
 		)
 endif()
 
-if (CONFIG_SOC_BK7251)
-	list(APPEND srcs
-		"audio/audio_adc.c"
-		"audio/audio_dac.c"
-		"audio/ring_buffer_dma_read.c"
-		"audio/ring_buffer_dma_write.c"
-		)
-endif()
-
-if (CONFIG_SOC_BK7236)
+if (CONFIG_SOC_BK7236XX)
 	list(APPEND incs
 		"audio"
 		)
@@ -500,11 +481,6 @@ if (NOT CONFIG_FULLY_HOSTED)
 		"dsp/dsp.c"
 		)
 
-if (CONFIG_SOC_BK7271)
-	list(APPEND srcs
-		"bk7271/mailbox_driver.c"
-		)
-endif()
 endif() #if (NOT CONFIG_FULLY_HOSTED)
 
 if (CONFIG_SOC_BK7256XX)
@@ -518,7 +494,12 @@ if (CONFIG_SOC_BK7236)
 	list(APPEND srcs
 		"bk7236/mailbox_driver.c"
 		)
+endif()
 
+if (CONFIG_SOC_BK7258)
+	list(APPEND srcs
+		"bk7258/mailbox_driver.c"
+		)
 endif()
 
 if (CONFIG_MAILBOX)
@@ -535,25 +516,10 @@ if (CONFIG_MAILBOX)
 
 endif()
 
-if (CONFIG_SOC_BK7251)
-	list(APPEND incs
-		"spi"
-		)
-endif()
-
-if( "${target}" STREQUAL "bk7231u")
-	set(target "bk7251")
-endif()
-
-if( "${target}" STREQUAL "bk7236a")
-	set(target "bk7231n")
-endif()
-
 if( "${target}" STREQUAL "bk7231n"
-	OR  "${target}" STREQUAL "bk7251"
-	OR "${target}" STREQUAL "bk7271"
 	OR "${target}" STREQUAL "bk7256_cp1"
 	OR "${target}" STREQUAL "bk7236"
+	OR "${target}" STREQUAL "bk7258"
 	OR CONFIG_SOC_BK7256XX
 	)
 
@@ -575,6 +541,7 @@ if (CONFIG_CAMERA)
 		"camera/dvp_gc2145.c"
 		"camera/dvp_hm1055.c"
 		"camera/dvp_ov2640.c"
+		"camera/dvp_gc0308.c"
 		"camera/dvp_sensor_devices.c"
 		)
 endif()
@@ -600,7 +567,7 @@ if (CONFIG_VAULT_SUPPORT)
 	list(APPEND srcs
 		"vault/vault_driver.c"
 	)
-	
+
 	if (CONFIG_OTP)
 		list(APPEND incs
 			"otp"
@@ -611,8 +578,6 @@ if (CONFIG_VAULT_SUPPORT)
 		)
 	endif()
 endif()
-
-
 
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"

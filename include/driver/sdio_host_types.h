@@ -30,6 +30,7 @@ extern "C" {
 #define BK_ERR_SDIO_HOST_DATA_CRC_FAIL       (BK_ERR_SDIO_HOST_BASE - 7) /**< sdio host receive slave data crc fail */
 #define BK_ERR_SDIO_HOST_INVALID_VOLT_RANGE  (BK_ERR_SDIO_HOST_BASE - 8) /**< sd card invalid voltage range */
 #define BK_ERR_SDIO_HOST_UNSUPPORTED_FEATURE (BK_ERR_SDIO_HOST_BASE - 9) /**< sd card unsupport feature */
+#define BK_ERR_SDIO_HOST_READ_DATA_FAIL (BK_ERR_SDIO_HOST_BASE - 10) /**< sdio host read data from FIFO fail */
 
 typedef void (*sdio_host_isr_t)(void *param); /**< SDIO host interrupt service routine */
 

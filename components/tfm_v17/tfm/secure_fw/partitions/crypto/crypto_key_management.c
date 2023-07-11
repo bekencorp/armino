@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "common.h"//TODO wzl-issue9, why?
 #include "config_crypto.h"
 #include "tfm_mbedcrypto_include.h"
 #include "tfm_crypto_api.h"

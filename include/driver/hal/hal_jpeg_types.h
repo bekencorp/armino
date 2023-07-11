@@ -80,6 +80,8 @@ typedef enum {
 	JPEG_SOF,            /**< when work at jpeg encode mode, detect vsync rising edge after few cycle will trigger this isr */
 	JPEG_EOF,            /**< when work at jpeg encode mode, transfer a complete frame will trigger this isr */
 	JPEG_VSYNC_NEGEDGE,  /**< when detect vsync negedge will trigger this isr */
+	JPEG_LINE_CLEAR,     /**< when used encode yuv data by 8line every time will trigger this isr */
+	JPEG_FRAME_ERR,      /**< when detect jpeg encode error, will trigger this isr */
 	JPEG_ISR_MAX,
 }jpeg_isr_type_t;
 

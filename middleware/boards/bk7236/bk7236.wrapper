@@ -40,6 +40,9 @@ def install_configs(cfg_dir, install_dir):
 	if os.path.exists(f'{cfg_dir}/partitions') == True:
 		run_cmd(f'cp -r {cfg_dir}/partitions/* {install_dir} 2>/dev/null || :')
 
+	if os.path.exists(f'{install_dir}/{armino_soc}.partitions') == True:
+		run_cmd(f'cp {install_dir}/{armino_soc}.partitions {install_dir}/partitions 2>/dev/null || :')
+
 def copy_binary(bin_name, src_dir, dst_dir):
 	logging.debug(f'copy {bin_name} from {src_dir}')
 	logging.debug(f'to {dst_dir}')
@@ -89,7 +92,7 @@ def pack(tools_dir, bin_dir, base_cfg_dir, prefered_cfg_dir, soc, gencodeonly, g
 	if (debug):
 		debug_option = f'--debug'
 	logging.debug(f'partition pre-processing')
-	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions.json --genhdr --genbl1 --genbl2 {debug_option}')
+	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions --genhdr --genbl1 --genbl2 {debug_option}')
 	if (gencodeonly == True):
 		if (gen_dir == None):
 			logging.error(f'Generated dir should NOT be empty')
@@ -119,7 +122,7 @@ def pack(tools_dir, bin_dir, base_cfg_dir, prefered_cfg_dir, soc, gencodeonly, g
 		logging.debug(f'Skip generate BL1 bl1_control.bin')
 
 	logging.debug(f'partition post-processing')
-	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions.json --genota --genapp --genall {debug_option}')
+	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions --genota --genapp --genall {debug_option}')
 
 	logging.debug(f'copy binaries')
 	copy_binary('ota.bin', _BUILD_DIR, CMAKE_BIN_DIR)

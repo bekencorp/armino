@@ -1,0 +1,20 @@
+menu "Demos::Bluetooth"
+	config A2DP_SINK_DEMO
+		bool "Enable A2DP SINK DEMO"
+		depends on BT
+		depends on AUDIO
+		depends on AAC_DECODER
+		default n
+
+	config A2DP_CACHE_FRAME_NUM
+		int "A2DP Cache Frame Num"
+		depends on A2DP_SINK_DEMO
+		range 3 255
+		default 4
+
+	config HFP_HF_DEMO
+		bool "Enable HFP HF DEMO"
+		depends on BT
+		depends on AUDIO
+		default n
+endmenu

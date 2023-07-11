@@ -15,7 +15,7 @@
 
 reset_vector:
 	/* Decide whether this is an NMI or cold reset */
-//	csrw uscratch, t0
+	csrw uscratch, t0
 	csrr t0, ucause
 	bnez t0, nmi_handler
 
@@ -61,8 +61,6 @@ __platform_init:
 
 	.weak nmi_handler
 nmi_handler:
-
-#if 0
 	csrrw t0, uscratch, x0
 	addi sp, sp, -64
 //	sw ra, 0(sp)
@@ -83,7 +81,6 @@ nmi_handler:
 	sw x29, 52(sp)
 	sw x30, 56(sp)
 	sw x31, 60(sp)
-#endif
 
 	csrrw a0, ucause, x0
 	mv  a1, ra
@@ -91,7 +88,6 @@ nmi_handler:
 	li a0, TRAP_M_USER_NP_WDT
 	csrw ucause, a0
 
-#if 0
 //	lw ra, 0(sp)
 	lw x5, 4(sp)			
 	lw x6, 8(sp)
@@ -111,7 +107,6 @@ nmi_handler:
 	lw x31, 60(sp)
 
 	addi sp, sp, 64
-#endif
 
 	csrr ra, utvec
 	jr ra
@@ -132,7 +127,7 @@ nmi_handler:
 .word 0x00000000
 .word 0x00000000
 
-1:	j 1b
+	.align 4
 
 init_trap_handler:
 	addi sp, sp, -120

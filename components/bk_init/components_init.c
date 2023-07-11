@@ -26,6 +26,9 @@
 #include "release.h"
 #include "sys_driver.h"
 #include "bk_pm_model.h"
+#if CONFIG_PM
+#include <pm/pm.h>
+#endif
 #if CONFIG_SOC_BK7256XX
 #include "BK7256_RegList.h"
 #endif
@@ -130,7 +133,6 @@ int memory_debug_todo(void)
 	return BK_OK;
 }
 
-//TODO put it to better place, check with XB/HT
 __attribute__((unused)) static int pm_init_todo(void)
 {
 #if CONFIG_SOC_BK7256XX
@@ -141,7 +143,7 @@ __attribute__((unused)) static int pm_init_todo(void)
 #endif
 #endif
 
-#if CONFIG_SOC_BK7236 && !CONFIG_SLAVE_CORE
+#if CONFIG_SOC_BK7236XX && !CONFIG_SLAVE_CORE
 	extern void rf_ps_pm_init(void);
 	rf_ps_pm_init();
 #else
@@ -264,6 +266,10 @@ void UartDbgInit()
 
 int components_init(void)
 {
+#if CONFIG_PM
+	pm_init();
+#endif
+
 /*for bringup test*/
 #if CONFIG_SOC_BK7256XX
 	reset_reason_init();
@@ -298,6 +304,8 @@ int components_init(void)
 	random_init();
 	wdt_init();
 	show_init_info();
+
+	ipc_init();
 #endif
 	return BK_OK;
 }

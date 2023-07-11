@@ -1,9 +1,9 @@
-config TFM
-	bool "Enable TFM"
+config TFM_V17
+	bool "Enable TFM_V17"
 	default n
 
 menu "TFM"
-	depends on TFM
+	depends on TFM_V17
 
 	config TFM_PROFILE
 		string "psa level:0(profile_small) 1(profile_medium) 2(profile_large)"

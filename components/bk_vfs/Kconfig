@@ -1,8 +1,5 @@
-<<<<<<< HEAD   (73f994 Initial empty repository)
-=======
 menu "Bk_vfs"
 	config VFS
 		bool "Enable Vfs"
 		default n
 endmenu
->>>>>>> CHANGE (785f1c [Jira BK7256-4567]: <fix>menuconfig目录优化:bk_vfs Konfig文件修改)

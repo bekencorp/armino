@@ -364,7 +364,7 @@ void cli_wifi_ipdbg_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 	if (argc == 3)
 	{
-		func = (uint32_t)os_strtoul(argv[1], NULL, 10);
+		func = (uint32_t)os_strtoul(argv[1], NULL, 16);
 		value =  (uint16_t)os_strtoul(argv[2], NULL, 10);
 		demo_wifi_ipdbg_init(func, value);
 	}

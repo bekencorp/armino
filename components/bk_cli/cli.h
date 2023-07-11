@@ -97,6 +97,7 @@ int cli_i2c_init(void);
 int cli_aon_rtc_init(void);
 int cli_sd_init(void);
 int cli_fatfs_init(void);
+int cli_vfs_init(void);
 int cli_temp_detect_init(void);
 int cli_security_init(void);
 int cli_mico_init(void);

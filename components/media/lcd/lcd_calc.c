@@ -145,7 +145,7 @@ MINOOR_ITCM void memcpy_word(uint32_t *dst, uint32_t *src, uint32_t size)
 
 MINOOR_ITCM void lcd_jpeg_dec_sw(uint32_t param)
 {
-#if CONFIG_JPEGDEC_SW
+#if CONFIG_JPEG_DECODE
 	bk_err_t ret = BK_FAIL;
 	mb_chnl_cmd_t mb_cmd;
 	sw_jpeg_dec_res_t result;
@@ -348,7 +348,7 @@ void lcd_calc_init(void)
 	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_RX_ISR, lcd_calc_mailbox_rx_isr);
 	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_TX_ISR, lcd_calc_mailbox_tx_isr);
 	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_TX_CMPL_ISR, lcd_calc_mailbox_tx_cmpl_isr);
-#if CONFIG_JPEGDEC_SW
+#if CONFIG_JPEG_DECODE
 	bk_jpeg_dec_sw_init();
 #endif
 }

@@ -1536,6 +1536,10 @@ int bk_cli_init(void)
 	cli_fatfs_init();
 #endif
 
+#if (CLI_CFG_VFS == 1)
+	cli_vfs_init();
+#endif
+
 #if (CLI_CFG_SECURITY == 1)
 	cli_security_init();
 #endif

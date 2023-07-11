@@ -54,6 +54,7 @@
 #include "aud_tras_drv_co_list.h"
 #endif
 #include "bk_misc.h"
+#include <soc/mapping.h>
 
 
 #define AUD_TRAS_DRV_TAG "aud_tras_drv"
@@ -251,7 +252,16 @@ static bk_err_t aud_tras_drv_aec_cfg(void)
 	/* init aec context */
 	aec_context_size = aec_size(1000);
 	LOGI("malloc aec size: %d \r\n", aec_context_size);
+#if CONFIG_AUD_TRAS_AEC_FIXED_SRAM
+	temp_aec_info->aec = (AECContext*)AUD_AEC_SRAM_ADDRESS;
+	LOGI("aec use fixed sram: %p \n", temp_aec_info->aec);
+#elif CONFIG_AUD_TRAS_AEC_MALLOC_PSRAM
+	temp_aec_info->aec = (AECContext*)psram_malloc(aec_context_size);
+	LOGI("aec use malloc psram: %p \n", temp_aec_info->aec);
+#else
 	temp_aec_info->aec = (AECContext*)os_malloc(aec_context_size);
+	LOGI("aec use malloc sram: %p \n", temp_aec_info->aec);
+#endif
 	if (temp_aec_info->aec == NULL) {
 		LOGE("malloc aec fail, aec_context_size: %d \r\n", aec_context_size);
 		return BK_FAIL;
@@ -342,7 +352,11 @@ static void aud_tras_drv_aec_decfg(void)
 {
 	if (aud_tras_drv_info.voc_info.aec_enable) {
 		if (aud_tras_drv_info.voc_info.aec_info->aec) {
+#if CONFIG_AUD_TRAS_AEC_MALLOC_SRAM
 			os_free(aud_tras_drv_info.voc_info.aec_info->aec);
+#else
+			//not need free
+#endif
 			aud_tras_drv_info.voc_info.aec_info->aec = NULL;
 		}
 

@@ -334,6 +334,7 @@ void uvc_bulk_packet_process(void *curptr, uint32_t newlen, uint8_t is_eof, uint
 				length -= USB_UVC_HEAD_LEN;
 				fack_len = length;
 				uvc_camera_drv->eof = true;
+				curr_frame_buffer->sequence = ++uvc_frame_id;
 				UVC_JPEG_EOF_OUT();
 			}
 			else
@@ -342,10 +343,25 @@ void uvc_bulk_packet_process(void *curptr, uint32_t newlen, uint8_t is_eof, uint
 				{
 					UVC_JPEG_EOF_ENTRY();
 					uvc_camera_drv->eof = true;
+					curr_frame_buffer->sequence = ++uvc_frame_id;
 					UVC_JPEG_EOF_OUT();
 				}
 			}
 		}
+	}
+
+	if (uvc_drop_frame)
+	{
+		if (uvc_camera_drv->eof == true)
+		{
+			media_debug->isr_jpeg++;
+			uvc_camera_drv->eof = false;
+			uvc_camera_drv->sof = true;
+			uvc_drop_frame--;
+		}
+
+		if (uvc_drop_frame != 0)
+			return;
 	}
 
 	if (uvc_camera_drv->eof)

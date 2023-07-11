@@ -36,5 +36,11 @@ menu "Media"
 		default n
 		help
 			enable lcd blend by font logo
+	config JPEG_YUV_MIX
+		depends on CAMERA
+		bool "enable jpeg module for jpeg and yuv mix mode"
+		default n
+		help
+			enable jpeg work method: encode and yuv by turns
 
 endmenu

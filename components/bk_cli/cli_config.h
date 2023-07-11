@@ -201,6 +201,12 @@ extern "C" {
 #define CLI_FATFS          0
 #endif
 
+#if (CONFIG_VFS_TEST && (!CONFIG_SLAVE_CORE))
+#define CLI_CFG_VFS          1
+#else
+#define CLI_CFG_VFS          0
+#endif
+
 #if (CONFIG_AIRKISS_TEST && (!CONFIG_SLAVE_CORE))
 #define CLI_CFG_AIRKISS     1
 #else

@@ -21,6 +21,8 @@
 #define LOGW(...) BK_LOGW(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
+#define RTSA_CODEC    1
+
 static aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
 static aud_intf_voc_setup_t aud_intf_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
 static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
@@ -181,13 +183,25 @@ void audio_deinit(void)
 	}
 }
 
-void voice_init(void)
+void voice_init(uint8_t type, aud_intf_voc_samp_rate_t samp_rate, bool aec_en)
 {
 	bk_err_t ret = BK_OK;
 
+#if RTSA_CODEC
 	aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_PCM;
+#else
+	aud_intf_voc_setup.data_type  = AUD_INTF_VOC_DATA_TYPE_G711U;
+#endif
 	aud_intf_voc_setup.spk_mode   = AUD_DAC_WORK_MODE_SIGNAL_END;
-	//aud_intf_voc_setup.aec_enable = false;
+	aud_intf_voc_setup.aec_enable = aec_en;
+	aud_intf_voc_setup.samp_rate = samp_rate;
+	if (type == 1) {
+		aud_intf_voc_setup.mic_type = AUD_INTF_MIC_TYPE_UAC;
+		aud_intf_voc_setup.spk_type = AUD_INTF_MIC_TYPE_UAC;
+	} else {
+		aud_intf_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
+		aud_intf_voc_setup.spk_type = AUD_INTF_MIC_TYPE_BOARD;
+	}
 
 	bk_aud_intf_voc_init(aud_intf_voc_setup);
 	if (ret != BK_ERR_AUD_INTF_OK) {
@@ -195,7 +209,6 @@ void voice_init(void)
 	} else {
 		LOGI("bk_aud_intf_voc_init complete \r\n");
 	}
-	bk_printf("2\n");
 }
 
 void voice_start(void)
@@ -208,7 +221,6 @@ void voice_start(void)
 	} else {
 		LOGI("bk_aud_intf_voc_start complete \r\n");
 	}
-	bk_printf("3\n");
 }
 
 void voice_stop(void)

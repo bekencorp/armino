@@ -37,7 +37,8 @@ extern "C" {
         PS_BMSG_IOCTL_AP_PS_STOP = 14,
         PS_BMSG_IOCTL_AP_PS_START = 15,
         PS_BMSG_IOCTL_AP_PS_RUN = 16,
-
+        PS_BMSG_IOCTL_EXC32K_START = 17,
+        PS_BMSG_IOCTL_EXC32K_STOP = 18,
     }
     PS_BMSG_IOCTL_CMD;
 

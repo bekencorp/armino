@@ -18,10 +18,10 @@
 extern "C" {
 #endif
 
-#define SOC_PWM_UNIT_NUM               1
+#define SOC_PWM_UNIT_NUM               2	//Alloc two units PWM to CPU-0, Doesn't alloc PWM for CPU1
 #define SOC_PWM_CHAN_NUM_PER_UNIT      6
 #define SOC_PWM_CHAN_NUM_PER_GROUP     2
-#define SOC_PWM_GROUP_NUM              3
+#define SOC_PWM_GROUP_NUM              (SOC_PWM_CHAN_NUM_PER_UNIT/SOC_PWM_CHAN_NUM_PER_GROUP)
 
 #ifdef __cplusplus
 }

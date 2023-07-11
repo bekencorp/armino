@@ -928,7 +928,6 @@ components/bk_cli/cli_wdt.c
 components/bk_cli/cli_trng.c
 components/bk_cli/cli_efuse.c
 components/bk_cli/cli_wifi.c
-components/bk_cli/cli_icu.c
 components/bk_cli/cli_exception.c
 components/bk_cli/cli_adc.c
 components/bk_cli/cli_spi.c

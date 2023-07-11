@@ -59,7 +59,9 @@ typedef volatile struct {
 			uint32_t crc_err_num: 8;  /**< bit[8:15] */
 			uint32_t byte_sel_wr: 3;  /**< bit[16:18] */
 			uint32_t byte_sel_rd: 3;  /**< bit[19:21] */
-			uint32_t reserved:    10; /**< bit[22:31] */
+			uint32_t m_value:     8;  /**< bit[22:29] Quad M value */
+			uint32_t pw_write:    1;  /**< bit[30] page write enable */
+			uint32_t reserved:    1;  /**< bit[31] */
 		};
 		uint32_t v;
 	} state;

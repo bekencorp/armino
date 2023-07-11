@@ -173,7 +173,7 @@ typedef enum {
 	INT_ID_BLE                   ,
 	INT_ID_BT                    ,
 	INT_ID_NULL3_INT             ,
-	INT_ID_NULL4_INT             ,
+	INT_ID_PWM1                  ,	//INT_ID_NULL4_INT
 	INT_ID_NULL5_INT             ,
 	INT_ID_NULL6_INT             ,
 	INT_ID_NULL7_INT             ,

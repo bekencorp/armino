@@ -30,7 +30,6 @@ set(srcs
 	cli_security.c
 	cli_spi.c
 	cli_exception.c
-	cli_icu.c
 	)
 
 if (CONFIG_INT_WDT)

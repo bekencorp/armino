@@ -495,6 +495,8 @@ bk_err_t bk_i2c_init(i2c_id_t id, const i2c_config_t *cfg)
 
 bk_err_t bk_i2c_deinit(i2c_id_t id)
 {
+	I2cSetSclLow();
+	I2cSetSdaLow();
 	return BK_OK;
 }
 

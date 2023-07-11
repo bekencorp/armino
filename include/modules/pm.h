@@ -264,6 +264,25 @@ typedef struct {
     void *args;
 } pm_cb_conf_t;
 
+typedef enum
+{
+	PM_32K_MODULE_BT = 0,
+	PM_32K_MODULE_WIFI = 1,
+	PM_32K_MODULE_MAX,
+}pm_cb_module_e;
+
+typedef enum
+{
+	PM_32K_STEP_BEGIN = 0,
+	PM_32K_STEP_FINISH = 1,
+}pm_sw_step_e;     // Indicate switch status
+
+typedef int (*pm_cb_notify)(void);
+typedef int (*pm_cb_extern32k)(pm_sw_step_e sw_step, pm_lpo_src_e lpo_src, pm_cb_notify cb);
+typedef struct {
+	pm_cb_module_e cb_module;
+	pm_cb_extern32k cb_func;
+} pm_cb_extern32k_cfg_t;
 
 typedef enum
 {
@@ -898,6 +917,43 @@ static inline bk_err_t pm_sleep_vote_init()
 
     return BK_OK;
 }
+/**
+ * @brief 32k source switch
+ *
+ * When the external 32k clock source is enabled, this api used to switch the 32k clock source
+ *
+ * @param
+ * - pm_lpo_src_e  taget 32k clock source
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+bk_err_t pm_clk_32k_source_switch(pm_lpo_src_e lpo_src);
+/**
+ * @brief register callback function
+ *
+ * BT WIFI module registered callback function, used to switch synchronization when switching clock source
+ *
+ * @param
+ * - pm_cb_extern32k_cfg_t   Structure pointer
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+bk_err_t pm_extern32k_register_cb(pm_cb_extern32k_cfg_t *cfg);
+/**
+ * @brief unregister callback function
+ *
+ * @param
+ * - pm_cb_extern32k_cfg_t   Structure pointer
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+bk_err_t pm_extern32k_unregister_cb(pm_cb_extern32k_cfg_t *cfg);
 
 #ifdef __cplusplus
 }

@@ -30,6 +30,8 @@
 #include "cache.h"
 #endif
 
+#include "bk_misc.h"
+
 #include <os/mem.h>
 
 #define DMA_CPU_MASTER		0
@@ -336,12 +338,43 @@ uint32_t bk_dma_get_enable_status(dma_id_t id)
     return ret;
 }
 
+#define DMA_MAX_BUSY_TIME (10000)  //us
+static uint32_t dma_wait_to_idle(dma_id_t id)
+{
+	if(dma_hal_get_work_mode(&s_dma.hal, id) == DMA_WORK_MODE_SINGLE)
+	{
+		uint32_t i = 0;
+		while(bk_dma_get_enable_status(id))
+		{
+			delay_us(1);
+
+			i++;
+			if(i > DMA_MAX_BUSY_TIME)
+			{
+				DMA_LOGE("ch%d busy,remain len=%d,dst_addr=%x\r\n", id,
+							dma_hal_get_remain_len(&s_dma.hal, id),
+							dma_hal_get_dest_write_addr(&s_dma.hal, id));
+				break;
+			}
+		}
+
+		return i;
+	}
+	else
+	{
+		//TODO:
+	}
+
+	return 0;
+}
+
 /* DTCM->peripheral
  */
 bk_err_t bk_dma_write(dma_id_t id, const uint8_t *data, uint32_t size)
 {
     DMA_RETURN_ON_NOT_INIT();
     DMA_RETURN_ON_ID_NOT_INIT(id);
+	dma_wait_to_idle(id);
 
     dma_hal_set_src_start_addr(&s_dma.hal, id, (uint32_t)data);
     dma_hal_set_src_loop_addr(&s_dma.hal, id, (uint32_t)data, (uint32_t)(data + size));
@@ -357,6 +390,7 @@ bk_err_t bk_dma_read(dma_id_t id, uint8_t *data, uint32_t size)
 {
     DMA_RETURN_ON_NOT_INIT();
     DMA_RETURN_ON_ID_NOT_INIT(id);
+	dma_wait_to_idle(id);
 
     dma_hal_set_dest_start_addr(&s_dma.hal, id, (uint32_t)data);
     dma_hal_set_dest_loop_addr(&s_dma.hal, id, (uint32_t)data, (uint32_t)(data + size));
@@ -422,6 +456,7 @@ bk_err_t bk_dma_set_transfer_len(dma_id_t id, uint32_t tran_len)
 {
     DMA_RETURN_ON_NOT_INIT();
     DMA_RETURN_ON_INVALID_ID(id);
+	dma_wait_to_idle(id);
     dma_hal_set_transfer_len(&s_dma.hal, id, tran_len);
     return BK_OK;
 }
@@ -447,7 +482,8 @@ bk_err_t bk_dma_set_dest_addr(dma_id_t id, uint32_t start_addr, uint32_t end_add
 {
     DMA_RETURN_ON_NOT_INIT();
     DMA_RETURN_ON_INVALID_ID(id);
-    dma_hal_set_dest_start_addr(&s_dma.hal, id, start_addr);
+	dma_wait_to_idle(id);
+	dma_hal_set_dest_start_addr(&s_dma.hal, id, start_addr);
     dma_hal_set_dest_loop_addr(&s_dma.hal, id, start_addr, end_addr);
     return BK_OK;
 }
@@ -456,6 +492,7 @@ bk_err_t bk_dma_set_dest_start_addr(dma_id_t id, uint32_t start_addr)
 {
     DMA_RETURN_ON_NOT_INIT();
     DMA_RETURN_ON_INVALID_ID(id);
+	dma_wait_to_idle(id);
     dma_hal_set_dest_start_addr(&s_dma.hal, id, start_addr);
     return BK_OK;
 }
@@ -535,6 +572,7 @@ bk_err_t dma_set_src_pause_addr(dma_id_t id, uint32_t addr)
 {
     DMA_RETURN_ON_NOT_INIT();
     DMA_RETURN_ON_INVALID_ID(id);
+
     dma_hal_set_src_pause_addr(&s_dma.hal, id, addr);
 
     return BK_OK;
@@ -544,6 +582,7 @@ bk_err_t dma_set_dst_pause_addr(dma_id_t id, uint32_t addr)
 {
     DMA_RETURN_ON_NOT_INIT();
     DMA_RETURN_ON_INVALID_ID(id);
+
     dma_hal_set_dest_pause_addr(&s_dma.hal, id, addr);
 
     return BK_OK;
@@ -570,6 +609,7 @@ bk_err_t bk_dma_set_src_data_width(dma_id_t id, dma_data_width_t data_width)
     DMA_RETURN_ON_NOT_INIT();
     DMA_RETURN_ON_INVALID_ID(id);
 
+	dma_wait_to_idle(id);
     dma_hal_set_src_data_width(&s_dma.hal, id, data_width);
     return BK_OK;
 }
@@ -579,6 +619,7 @@ bk_err_t bk_dma_set_dest_data_width(dma_id_t id, dma_data_width_t data_width)
     DMA_RETURN_ON_NOT_INIT();
     DMA_RETURN_ON_INVALID_ID(id);
 
+	dma_wait_to_idle(id);
     dma_hal_set_dest_data_width(&s_dma.hal, id, data_width);
     return BK_OK;
 }
@@ -651,6 +692,8 @@ bk_err_t dma_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_id_t cp
     GLOBAL_INT_DECLARATION();
     GLOBAL_INT_DISABLE();
 
+	dma_wait_to_idle(cpy_chnl);
+
     bk_dma_init(cpy_chnl, &dma_config);
     dma_hal_set_transfer_len(&s_dma.hal, cpy_chnl, len);
     dma_hal_start_common(&s_dma.hal, cpy_chnl);
@@ -660,6 +703,8 @@ bk_err_t dma_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_id_t cp
 #endif
     GLOBAL_INT_RESTORE();
 
+//TODO:I think no need to wait copy data finish,just confirm before copy start, the previous one is finish.
+#if 1
 #if CONFIG_ARCH_RISCV
     uint64_t cur_time = 0;
     uint64_t save_time = 0;
@@ -677,6 +722,7 @@ bk_err_t dma_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_id_t cp
     }
 #else
     BK_WHILE(dma_hal_get_enable_status(&s_dma.hal, cpy_chnl));
+#endif
 #endif
 
     return BK_OK;
@@ -704,6 +750,8 @@ static void dma_isr(void)
     for (int id = 0; id < SOC_DMA_CHAN_NUM_PER_UNIT; id++) {
         if (dma_hal_is_half_finish_interrupt_triggered(hal, id)) {
             DMA_LOGD("dma_isr HALF FINISH TRIGGERED! id: %d\r\n", id);
+			//NOTES:clear intrrupt in condition because maybe multi-core(two CPU) access one DMA
+			//it can't cleared peer-side channels status.
             if (s_dma_half_finish_isr[id]) {
                 DMA_LOGD("dma_isr HALF_finish_isr! id: %d\r\n", id);
                 dma_hal_clear_half_finish_interrupt_status(hal, id);

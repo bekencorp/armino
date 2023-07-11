@@ -28,6 +28,7 @@ typedef struct {
     dma_unit_t id;
 } dma_hal_t;
 
+#define dma_hal_get_work_mode(hal, id) dma_ll_get_work_mode((hal)->hw, id)
 #define dma_hal_clear_half_finish_interrupt_status(hal, id) dma_ll_clear_half_finish_interrupt_status((hal)->hw, (id))
 #define dma_hal_clear_finish_interrupt_status(hal, id) dma_ll_clear_finish_interrupt_status((hal)->hw, (id))
 #define dma_hal_is_half_finish_interrupt_triggered(hal, id) dma_ll_is_half_finish_interrupt_triggered((hal)->hw, id)

@@ -405,11 +405,11 @@ void uvc_bulk_packet_process(void *curptr, uint32_t newlen, uint8_t is_eof, uint
 	}
 
 	UVC_LOGD("curr_frame_buffer->frame:%x curr_frame_buffer->length:%d fack_len:%d====== \r\n",curr_frame_buffer->frame, curr_frame_buffer->length, fack_len);
-
-	os_memcpy_word((uint32_t *)(curr_frame_buffer->frame + curr_frame_buffer->length), (const uint32_t *)data,
-					fack_len);
-	curr_frame_buffer->length += length;
-
+	if (uvc_camera_drv->sof) {
+		os_memcpy_word((uint32_t *)(curr_frame_buffer->frame + curr_frame_buffer->length), (const uint32_t *)data,
+						fack_len);
+		curr_frame_buffer->length += length;
+	}
 	UVC_PSRAM_DMA_OUT();
 }
 

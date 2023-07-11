@@ -193,7 +193,9 @@ void frame_buffer_fb_free(frame_buffer_t *frame, frame_module_t index)
 
 	if (mem_list == NULL)
 	{
-		LOGE("%s invalid mem_list: %p\n", __func__, mem_list);
+		LOGE("%s invalid mem_list: %p, %d\n", __func__, mem_list, index);
+		if (fb_info->modules[index].enable)
+			rtos_set_semaphore(&fb_info->modules[index].sem);
 		return;
 	}
 

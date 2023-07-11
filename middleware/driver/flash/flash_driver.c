@@ -106,6 +106,65 @@ static flash_ps_callback_t s_flash_ps_resume_cb = NULL;
 #if (CONFIG_SOC_BK7256XX)
 static uint32_t s_hold_low_speed_status = 0;
 #endif
+#define FLASH_MAX_WAIT_CB_CNT (4)
+static flash_wait_callback_t s_flash_wait_cb[FLASH_MAX_WAIT_CB_CNT] = {NULL};
+
+bk_err_t bk_flash_register_wait_cb(flash_wait_callback_t wait_cb)
+{
+	uint32_t i = 0;
+
+	for(i = 0; i < FLASH_MAX_WAIT_CB_CNT; i++)
+	{
+		if(s_flash_wait_cb[i] == NULL)
+		{
+			s_flash_wait_cb[i] = wait_cb;
+			break;
+		}
+	}
+
+	if(i == FLASH_MAX_WAIT_CB_CNT)
+	{
+		FLASH_LOGE("cb is full\r\n");
+		return BK_ERR_FLASH_WAIT_CB_FULL;
+	}
+
+	return BK_OK;
+}
+
+bk_err_t bk_flash_unregister_wait_cb(flash_wait_callback_t wait_cb)
+{
+	uint32_t i = 0;
+
+	for(i = 0; i < FLASH_MAX_WAIT_CB_CNT; i++)
+	{
+		if(s_flash_wait_cb[i] == wait_cb)
+		{
+			s_flash_wait_cb[i] = NULL;
+			break;
+		}
+	}
+
+	if(i == FLASH_MAX_WAIT_CB_CNT)
+	{
+		FLASH_LOGE("cb isn't registered\r\n");
+		return BK_ERR_FLASH_WAIT_CB_NOT_REGISTER;
+	}
+
+	return BK_OK;
+}
+
+__attribute__((section(".itcm_sec_code"))) void flash_waiting_cb(void)
+{
+	uint32_t i = 0;
+
+	for(i = 0; i < FLASH_MAX_WAIT_CB_CNT; i++)
+	{
+		if(s_flash_wait_cb[i])
+		{
+			s_flash_wait_cb[i]();
+		}
+	}
+}
 
 static UINT32 flash_ps_suspend(UINT32 ps_level)
 {
@@ -277,7 +336,8 @@ static void flash_set_qe(void)
 {
 	uint32_t status_reg;
 
-	while (flash_hal_is_busy(&s_flash.hal));
+	flash_hal_wait_op_done(&s_flash.hal);
+
 	status_reg = flash_hal_read_status_reg(&s_flash.hal, s_flash.flash_cfg->status_reg_size);
 	if (status_reg & (s_flash.flash_cfg->quad_en_val << s_flash.flash_cfg->quad_en_post)) {
 		return;
@@ -303,7 +363,7 @@ static void flash_read_common(uint8_t *buffer, uint32_t address, uint32_t len)
 	}
 
 	uint32_t int_level = rtos_disable_int();
-	while (flash_hal_is_busy(&s_flash.hal));
+	flash_hal_wait_op_done(&s_flash.hal);
 	while (len) {
 		flash_hal_set_op_cmd_read(&s_flash.hal, addr);
 		addr += FLASH_BYTES_CNT;
@@ -335,7 +395,7 @@ static void flash_read_word_common(uint32_t *buffer, uint32_t address, uint32_t 
 	}
 
 	uint32_t int_level = rtos_disable_int();
-	while (flash_hal_is_busy(&s_flash.hal));
+	flash_hal_wait_op_done(&s_flash.hal);
 	while (len) {
 		flash_hal_set_op_cmd_read(&s_flash.hal, addr);
 		addr += FLASH_BYTES_CNT;
@@ -368,11 +428,11 @@ static bk_err_t flash_write_common(const uint8_t *buffer, uint32_t address, uint
 	else
 		os_memset(pb, 0xFF, FLASH_BYTES_CNT);
 
-	while (flash_hal_is_busy(&s_flash.hal));
+	flash_hal_wait_op_done(&s_flash.hal);
 	while (len) {
 		if (len < FLASH_BYTES_CNT) {
 			flash_read_common(pb, addr, FLASH_BYTES_CNT);
-			while (flash_hal_is_busy(&s_flash.hal));
+			flash_hal_wait_op_done(&s_flash.hal);
 		}
 		for (uint32_t i = address % FLASH_BYTES_CNT; i < FLASH_BYTES_CNT; i++) {
 			pb[i] = *buffer++;
@@ -729,22 +789,37 @@ bk_err_t bk_flash_register_ps_resume_callback(flash_ps_callback_t ps_resume_cb)
 	return BK_OK;
 }
 
+#define FLASH_OPERATE_SIZE_AND_OFFSET    (4096)
 bk_err_t bk_spec_flash_write_bytes(bk_partition_t partition, const uint8_t *user_buf, uint32_t size,uint32_t offset)
 {
 	bk_logic_partition_t *bk_ptr = NULL;
 	u8 *save_flashdata_buff  = NULL;
+	flash_protect_type_t protect_type;
+     
+	bk_ptr = bk_flash_partition_get_info(partition);
+	if((size + offset) > FLASH_OPERATE_SIZE_AND_OFFSET)
+		return BK_FAIL;
+	
+	save_flashdata_buff= os_malloc(bk_ptr->partition_length);
+	if(save_flashdata_buff == NULL)
+	{
+		os_printf("save_flashdata_buff malloc err\r\n");
+		return BK_FAIL;
+	}
 
-	bk_ptr = bk_flash_partition_get_info(partition);	
-	save_flashdata_buff= os_malloc(bk_ptr->partition_length);	
-	//os_printf("ota_write_flash:partition_start_addr:0x%x  size :%d\r\n",(bk_ptr->partition_start_addr),bk_ptr->partition_length);
 	bk_flash_read_bytes((bk_ptr->partition_start_addr),(uint8_t *)save_flashdata_buff, bk_ptr->partition_length);
-
+    
+	protect_type = bk_flash_get_protect_type();
 	bk_flash_set_protect_type(FLASH_PROTECT_NONE);
+    
 	bk_flash_erase_sector(bk_ptr->partition_start_addr);
 	os_memcpy((save_flashdata_buff + offset), user_buf, size);
 	bk_flash_write_bytes(bk_ptr->partition_start_addr ,(uint8_t *)save_flashdata_buff, bk_ptr->partition_length);	
-    	bk_flash_set_protect_type(FLASH_UNPROTECT_LAST_BLOCK);
+    bk_flash_set_protect_type(protect_type);
+        
 	os_free(save_flashdata_buff);
+	save_flashdata_buff = NULL;
+    
 	return BK_OK;
 
 }

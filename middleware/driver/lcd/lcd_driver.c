@@ -36,6 +36,7 @@
 #include <driver/timer.h>
 #include <soc/mapping.h>
 #include <driver/lcd_spi.h>
+#include <driver/flash.h>
 
 #if CONFIG_PWM
 #include <driver/pwm.h>
@@ -1108,6 +1109,19 @@ void lcd_driver_ppi_set(uint16_t width, uint16_t height)
 			frame = NULL;						\
 		}										\
 	} while (0)
+
+
+__attribute__((section(".itcm_sec_code")))  void flash_busy_lcd_callback(void)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	if (lcd_disp_ll_get_display_int_rgb_eof())
+	{
+		lcd_disp_ll_set_display_int_rgb_eof(1);
+	}
+	rtos_enable_int(int_level);
+
+}
 
 __attribute__((section(".itcm_sec_code"))) static void lcd_driver_display_rgb_isr(void)
 {
@@ -2396,6 +2410,7 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 		lcd_rgb_gpio_init();
 #endif
 		lcd_driver_rgb_init(config);
+		bk_flash_register_wait_cb(flash_busy_lcd_callback);
 	}
 	else if (device->type == LCD_TYPE_MCU8080)
 	{

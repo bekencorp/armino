@@ -114,7 +114,7 @@ extern "C" {
 #define CLI_CFG_DMA         0
 #endif
 
-#if(CONFIG_PWM && (!CONFIG_SLAVE_CORE))
+#if(CONFIG_PWM)
 #define CLI_CFG_PWM         1
 #else
 #define CLI_CFG_PWM         0
@@ -130,12 +130,6 @@ extern "C" {
 #define CLI_CFG_SDIO_HOST   1
 #else
 #define CLI_CFG_SDIO_HOST   0
-#endif
-
-#if(CONFIG_ICU && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_ICU         1
-#else
-#define CLI_CFG_ICU         0
 #endif
 
 #if (CONFIG_I2C && (!CONFIG_SLAVE_CORE))

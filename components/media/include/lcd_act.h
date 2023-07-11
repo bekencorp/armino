@@ -48,11 +48,13 @@ typedef enum
 typedef struct
 {
 	uint8_t debug : 1;
+	uint8_t resize : 1;
 	uint8_t step_mode : 1;
 	uint8_t step_trigger : 1;
 	uint8_t dma2d_blend : 1;
 	uint8_t decode_mode;
 	media_rotate_t rotate;
+	media_ppi_t resize_ppi;
 	lcd_state_t state;
 } lcd_info_t;
 
@@ -115,6 +117,7 @@ void lcd_init(void);
 void lcd_frame_complete_notify(frame_buffer_t *buffer);
 
 void lcd_act_rotate_degree90(uint32_t param);
+void lcd_act_vuyy_resize(uint32_t param);
 void lcd_jpeg_dec_sw(uint32_t param);
 
 void lcd_calc_init(void);

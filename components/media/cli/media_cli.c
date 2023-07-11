@@ -358,6 +358,27 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				lcd_open.device_name = name;
 				ret = media_app_lcd_open(&lcd_open);
 			}
+
+			if (os_strcmp(argv[2], "resize") == 0)
+			{
+				if (argc >= 4)
+				{
+					ppi = get_string_to_ppi(argv[3]);
+					if (ppi == PPI_DEFAULT)
+					{
+						LOGE("param ppi error!\r\n");
+					}
+					else
+					{
+						ret = media_app_lcd_resize(ppi);
+					}
+				}
+				else
+				{
+					LOGE("param error!\r\n");
+				}
+			}
+
 #if (CONFIG_LVGL) && (CONFIG_LVGL_DEMO)
 			#if CONFIG_BLEND_USE_GUI
 			else if (os_strcmp(argv[2], "gui_blend") == 0)
@@ -642,20 +663,20 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		}
 #endif
 
-        if (os_strcmp(argv[1], "avi") == 0)
-        {
+		if (os_strcmp(argv[1], "avi") == 0)
+		{
 #if defined(CONFIG_CAMERA) && !defined(CONFIG_SLAVE_CORE) && defined(CONFIG_VIDEO_AVI)
-            if (0 == os_strcmp(argv[2], "v_open"))
-            {
-                ret = media_app_avi_open();
-                LOGI("media_app_avi_open\r\n");
-            }
+		if (0 == os_strcmp(argv[2], "v_open"))
+		{
+			ret = media_app_avi_open();
+			LOGI("media_app_avi_open\r\n");
+		}
 
-            if (0 == os_strcmp(argv[2], "v_close"))
-            {
-                ret = media_app_avi_close();
-                LOGI("media_app_avi_close\r\n");
-            }
+		if (0 == os_strcmp(argv[2], "v_close"))
+		{
+			ret = media_app_avi_close();
+			LOGI("media_app_avi_close\r\n");
+		}
 #endif
 
 #if (CONFIG_AUD_INTF && CONFIG_VIDEO_AVI)
@@ -671,7 +692,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				LOGI("bk_aud_intf_mic_save_stop\r\n");
 			}
 #endif
-        }
+		}
 	}
 
 output:

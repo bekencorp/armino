@@ -87,16 +87,10 @@ static const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 	{
 		.partition_owner           = BK_FLASH_EMBEDDED,
 		.partition_description     = "RF Firmware",
-#if (CONFIG_SOC_BK7251)
-		.partition_start_addr      = 0x1e0000,// bootloader unused space for rf cal+mac related info.
-#elif (CONFIG_SOC_BK7271)
-		.partition_start_addr      = 0x3FE000,
-#else
 #if (CONFIG_FLASH_SIZE_4M)
 		.partition_start_addr      = 0x3FE000,
 #else
 		.partition_start_addr      = 0x1e0000,// for rf related info
-#endif
 #endif
 		.partition_length          = 0x1000,
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
@@ -105,16 +99,10 @@ static const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 	{
 		.partition_owner           = BK_FLASH_EMBEDDED,
 		.partition_description     = "NET info",
-#if (CONFIG_SOC_BK7251)
-		.partition_start_addr      = 0x1FF000,// for net related info
-#elif (CONFIG_SOC_BK7271)
-		.partition_start_addr      = 0x3FF000,
-#else
 #if (CONFIG_FLASH_SIZE_4M)
 		.partition_start_addr      = 0x3FF000,
 #else
 		.partition_start_addr      = 0x1e1000,// for net related info
-#endif
 #endif
 		.partition_length          = 0x1000,
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
@@ -168,12 +156,14 @@ bk_err_t bk_flash_partition_erase(bk_partition_t partition, uint32_t offset, uin
 	return BK_OK;
 }
 
+
 bk_err_t bk_flash_partition_write(bk_partition_t partition, const uint8_t *buffer, uint32_t offset, uint32_t buffer_len)
 {
 	BK_RETURN_ON_NULL(buffer);
 
 	uint32_t start_addr;
 	bk_logic_partition_t *partition_info;
+
 	GLOBAL_INT_DECLARATION();
 
 	partition_info = bk_flash_partition_get_info(partition);
@@ -183,8 +173,20 @@ bk_err_t bk_flash_partition_write(bk_partition_t partition, const uint8_t *buffe
 	}
 
 	start_addr = partition_info->partition_start_addr + offset;
+	if((offset + buffer_len) > partition_info->partition_length) {
+		FLASH_LOGE("partition overlap. offset(%d),len(%d)\r\n", offset, buffer_len);
+		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
+	}
+
 	GLOBAL_INT_DISABLE();
-	bk_flash_write_bytes(start_addr, buffer, buffer_len);
+
+	flash_protect_type_t  partition_type = bk_flash_get_protect_type();
+	bk_flash_set_protect_type(FLASH_PROTECT_NONE);
+	if((offset + buffer_len) <= partition_info->partition_length) {
+		bk_flash_write_bytes(start_addr, buffer, buffer_len);
+	}
+	bk_flash_set_protect_type(partition_type);
+
 	GLOBAL_INT_RESTORE();
 
 	return BK_OK;

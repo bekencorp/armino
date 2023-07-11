@@ -421,7 +421,6 @@ static void video_transfer_main(beken_thread_arg_t data)
 		goto tvideo_exit;
 	}
 
-
 	if (tvideo_pool.open_type == TVIDEO_OPEN_SPIDMA) {
 
 #if CONFIG_SPIDMA
@@ -488,16 +487,6 @@ tvideo_exit:
 	LOGI("video_transfer_main exit\r\n");
 
 	bk_timer_stop(TVIDEO_TIMER_CHANNEL);
-	g_frame_total_num = 0;
-
-	if (g_dma_id != DMA_ID_MAX)
-	{
-		bk_dma_stop(g_dma_id);
-
-		bk_dma_deinit(g_dma_id);
-
-		bk_dma_free(DMA_DEV_DTCM, g_dma_id);
-	}
 
 	if (tvideo_pool.open_type == TVIDEO_OPEN_SPIDMA) {
 #if CONFIG_SPIDMA
@@ -519,6 +508,17 @@ tvideo_exit:
 
 			tvideo_open = false;
 		}
+	}
+
+	g_frame_total_num = 0;
+
+	if (g_dma_id != DMA_ID_MAX)
+	{
+		bk_dma_stop(g_dma_id);
+
+		bk_dma_deinit(g_dma_id);
+
+		bk_dma_free(DMA_DEV_DTCM, g_dma_id);
 	}
 
 	if (tvideo_pool.pool) {

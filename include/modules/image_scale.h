@@ -5,6 +5,8 @@ extern "C" {
 #endif
 #include <stdint.h>
 
+#include <modules/image_scale_types.h>
+
 #if CONFIG_SLAVE_CORE
 #define MINOOR_ITCM __attribute__((section(".itcm_sec_code ")))
 #else
@@ -143,6 +145,20 @@ MINOOR_ITCM int vuyy_to_rgb565(uint8_t *src_buff, uint8_t *dst_buff, int width, 
 
 MINOOR_ITCM void argb8888_to_vuyy_blend(uint8_t *src, uint8_t *dst, uint32_t width, uint32_t height);
 MINOOR_ITCM void argb8888_to_yuyv_blend(uint8_t *src, uint8_t *dst, uint32_t width, uint32_t height);
+
+MINOOR_ITCM int vuyy_image_resize(uint8_t *src_img, uint8_t *dst_img, uint32_t src_width, uint32_t src_height, uint32_t dst_width, uint32_t dst_height);
+
+// 640X480-->800X480
+MINOOR_ITCM int vuyy_image_vga_to_lvga(uint8_t * src_buf, uint8_t *dst_buf, uint8_t row_count);
+
+// 640X480-->480X320
+MINOOR_ITCM int vuyy_image_vga_to_rsvga(uint8_t * src_buf, uint8_t *dst_buf, uint8_t row_count);
+
+// 640X480-->320X240
+MINOOR_ITCM int vuyy_image_vga_to_qvga(uint8_t * src_buf, uint8_t *dst_buf, uint8_t row_count);
+
+// 640X480-->320X240
+MINOOR_ITCM int yuyv_image_vga_to_qvga(uint8_t * src_buf, uint8_t *dst_buf, uint8_t row_count);
 
 /*
  * @}

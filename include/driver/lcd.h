@@ -493,6 +493,19 @@ const lcd_device_t * get_lcd_device_by_name(char * name);
 frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame);
 
 /**
+ * @brief for resize yuv image, like decode image is 640X480, you can resize other ppi
+ *
+ *
+ * @param yuv image, include addr, format, width, hight,size etc.
+ * @param the output ppi, like 320X480.
+ *
+ * @return
+ *     - BK_OK: succeed
+ *     - others: other errors.
+ */
+frame_buffer_t *lcd_driver_resize_frame(frame_buffer_t *frame, media_ppi_t ppi);
+
+/**
  * @brief push decode complete frame to rotate
  *
  *

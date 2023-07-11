@@ -42,15 +42,12 @@
 #include <driver/gpio.h>
 #include <driver/jpeg_dec.h>
 #include <driver/dma2d.h>
-//#include <lcd_dma2d_config.h>
 #include <driver/jpeg_dec_types.h>
 #include "modules/image_scale.h"
-//#include "lcd_blend_config.h"
 #include <driver/uvc_camera_types.h>
 #include <driver/uvc_camera.h>
 
 #include <driver/timer.h>
-//#include <driver/media_types.h>
 #include <driver/psram.h>
 #include "lv_vendor.h"
 
@@ -115,12 +112,49 @@ static short g_lcd_height = 0;
 static short g_cammer_width = 0;
 static short g_blend_x_size = 0;
 static short g_blend_y_size = 0;
-static short g_blend_hor_align = 0;   //0£ºË®Æ½×ó¶ÔÆë  1£ºË®Æ½¾ÓÖÐ   2£ºË®Æ½ÓÒ¶ÔÆë
-static short g_blend_ver_offset = 0;  //´¹Ö±Æ«ÒÆ
+static short g_blend_hor_align = 0;
+static short g_blend_ver_offset = 0;
 static beken_mutex_t g_disp_mutex_blend;
 static int g_gui_blend_switch = BK_FALSE;
 lcd_blend_t g_lcd_blend_data;
 #endif
+
+static char *frame_suffix(pixel_format_t fmt)
+{
+	switch (fmt)
+	{
+		case PIXEL_FMT_UNKNOW:
+			return ".unknow";
+		case PIXEL_FMT_DVP_JPEG:
+			return "_dvp.jpg";
+		case PIXEL_FMT_UVC_JPEG:
+			return "_uvc.jpg";
+		case PIXEL_FMT_UVC_H264:
+			return "_uvc.h264";
+		case PIXEL_FMT_RGB565:
+			return ".rgb565";
+		case PIXEL_FMT_YUYV:
+			return ".yuyv";
+		case PIXEL_FMT_UYVY:
+			return ".uyvy";
+		case PIXEL_FMT_YYUV:
+			return ".yyuv";
+		case PIXEL_FMT_UVYY:
+			return ".uvyy";
+		case PIXEL_FMT_VUYY:
+			return ".vuyy";
+		case PIXEL_FMT_YVYU:
+			return ".yvyu";
+		case PIXEL_FMT_VYUY:
+			return ".vyuy";
+		case PIXEL_FMT_YYVU:
+			return ".yyvu";
+		default:
+			break;
+	}
+
+	return ".unknow";
+}
 
 #ifdef DISPLAY_PIPELINE_TASK
 static void jpeg_display_task_entry(beken_thread_arg_t data)
@@ -140,6 +174,18 @@ static void jpeg_display_task_entry(beken_thread_arg_t data)
 		{
 			LOGD("read display frame NULL\n");
 			continue;
+		}
+
+		if (lcd_info.resize)
+		{
+			LOGD("%d\n", lcd_info.resize_ppi);
+			frame = lcd_driver_resize_frame(frame, lcd_info.resize_ppi);
+
+			if (frame == NULL)
+			{
+				LOGD("resize frame NULL\n");
+				continue;
+			}
 		}
 
 		if (rotate != ROTATE_NONE)
@@ -278,6 +324,17 @@ static void camera_display_task_entry(beken_thread_arg_t data)
 			frame_buffer_fb_display_push(dec_frame);
 #else
 
+			if (lcd_info.resize)
+			{
+				dec_frame = lcd_driver_resize_frame(dec_frame, lcd_info.resize_ppi);
+
+				if (dec_frame == NULL)
+				{
+					LOGD("resize frame NULL\n");
+					continue;
+				}
+			}
+
 			if (rotate != ROTATE_NONE)
 			{
 				dec_frame = lcd_driver_rodegree_frame(dec_frame, rotate);
@@ -328,6 +385,17 @@ static void camera_display_task_entry(beken_thread_arg_t data)
 				continue;
 			}
 
+			if (lcd_info.resize == true)
+			{
+				dec_frame = lcd_driver_resize_frame(dec_frame, lcd_info.resize_ppi);
+
+				if (dec_frame == NULL)
+				{
+					LOGD("resize frame NULL\n");
+					continue;
+				}
+			}
+
 			if (rotate == true)
 			{
 				dec_frame = lcd_driver_rotate_frame(dec_frame);
@@ -338,7 +406,6 @@ static void camera_display_task_entry(beken_thread_arg_t data)
 					continue;
 				}
 			}
-
 
 			dbg_display_frame = dec_frame;
 
@@ -688,9 +755,12 @@ void lcd_display_handle(param_pak_t *param)
 	
 	camera_display_task_stop();
 	set_lcd_state(LCD_STATE_DISPLAY);
-	rtos_delay_milliseconds(10);
+//	rtos_delay_milliseconds(10);
 
-	ret = frame_buffer_fb_jpeg_init(PPI_800X600);
+	if (lcd_transfer_info.device_ppi < PPI_1024X600)
+		ret = frame_buffer_fb_jpeg_init(PPI_800X600);
+	else
+		ret = frame_buffer_fb_jpeg_init(PPI_1280X720);
 	frame_buffer_fb_register(MODULE_DECODER, FB_INDEX_JPEG);
 	frame_buffer_t *jpeg_frame = frame_buffer_fb_jpeg_malloc();
 	if (jpeg_frame == NULL)
@@ -745,9 +815,12 @@ void lcd_display_file_handle(param_pak_t *param)
 
 	camera_display_task_stop();
 	set_lcd_state(LCD_STATE_DISPLAY);
-	rtos_delay_milliseconds(10);
+//	rtos_delay_milliseconds(10);
 
-	ret = frame_buffer_fb_jpeg_init(PPI_800X600);
+	if (lcd_transfer_info.device_ppi < PPI_1024X600)
+		ret = frame_buffer_fb_jpeg_init(PPI_800X600);
+	else
+		ret = frame_buffer_fb_jpeg_init(PPI_1280X720);
 	frame_buffer_fb_register(MODULE_DECODER, FB_INDEX_JPEG);
 	frame_buffer_t *jpeg_frame = frame_buffer_fb_jpeg_malloc();
 	if (jpeg_frame == NULL)
@@ -812,7 +885,7 @@ void lcd_display_beken_logo_handle(param_pak_t *param)
 #endif
 
 	camera_display_task_stop();  //USB Camera
-	rtos_delay_milliseconds(10);
+//	rtos_delay_milliseconds(10);
 	set_lcd_state(LCD_STATE_DISPLAY);
 
 	ret = frame_buffer_fb_jpeg_init(PPI_800X600);
@@ -1109,6 +1182,7 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 	{
 		return BK_OK;
 	}
+	
 	if ((g_lcd_width < frame->width)  || (g_lcd_height < frame->height) ) //for lcd size is small then frame image size
 	{
 		if (g_lcd_width < frame->width)
@@ -1116,6 +1190,7 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 		if (g_lcd_height < frame->height)
 			start_y = (frame->height - g_lcd_height) / 2;
 	}
+
 	if ((g_blend_data.lcd_blend_type & LCD_BLEND_TIME) != 0)         /// start display lcd (0,0)
 	{
 #if CONFIG_CAMERA
@@ -1441,6 +1516,8 @@ void lcd_close_handle(param_pak_t *param)
 #endif
 
 	lcd_info.rotate = ROTATE_NONE;
+	lcd_info.resize = false;
+	lcd_info.resize_ppi = PPI_800X480;
 
 	set_lcd_state(LCD_STATE_DISABLED);
 
@@ -1459,44 +1536,6 @@ void lcd_set_backligth_handle(param_pak_t *param)
 	lcd_driver_set_backlight(param->param);
 
 	MEDIA_EVT_RETURN(param, ret);
-}
-
-
-static char *frame_suffix(pixel_format_t fmt)
-{
-	switch (fmt)
-	{
-		case PIXEL_FMT_UNKNOW:
-			return ".unknow";
-		case PIXEL_FMT_DVP_JPEG:
-			return "_dvp.jpg";
-		case PIXEL_FMT_UVC_JPEG:
-			return "_uvc.jpg";
-		case PIXEL_FMT_UVC_H264:
-			return "_uvc.h264";
-		case PIXEL_FMT_RGB565:
-			return ".rgb565";
-		case PIXEL_FMT_YUYV:
-			return ".yuyv";
-		case PIXEL_FMT_UYVY:
-			return ".uyvy";
-		case PIXEL_FMT_YYUV:
-			return ".yyuv";
-		case PIXEL_FMT_UVYY:
-			return ".uvyy";
-		case PIXEL_FMT_VUYY:
-			return ".vuyy";
-		case PIXEL_FMT_YVYU:
-			return ".yvyu";
-		case PIXEL_FMT_VYUY:
-			return ".vyuy";
-		case PIXEL_FMT_YYVU:
-			return ".yyvu";
-		default:
-			break;
-	}
-
-	return ".unknow";
 }
 
 #ifdef CONFIG_FATFS
@@ -1551,6 +1590,23 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 
 			param_pak = (param_pak_t *)param;
 			lcd_info.rotate = param_pak->param;
+			MEDIA_EVT_RETURN(param_pak, BK_OK);
+		}
+		break;
+
+		case EVENT_LCD_RESIZE_IND:
+		{
+			param_pak = (param_pak_t *)param;
+			if (lcd_info.resize)
+			{
+				lcd_info.resize = false;
+			}
+			else
+			{
+				lcd_info.resize = true;
+				lcd_info.resize_ppi = (media_ppi_t)(param_pak->param);
+			}
+
 			MEDIA_EVT_RETURN(param_pak, BK_OK);
 		}
 		break;
@@ -1711,7 +1767,7 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 						LOGE("g_blend_data.ver_data =%s\n", g_blend_data.ver_data );
 					}
 				}
-			 }				
+			}				
 
 			MEDIA_EVT_RETURN(param_pak, BK_OK);
 break;
@@ -1738,6 +1794,8 @@ void lcd_init(void)
 	lcd_info.state = LCD_STATE_DISABLED;
 	lcd_info.debug = false;
 	lcd_info.rotate = ROTATE_NONE;
+	lcd_info.resize = false;
+	lcd_info.resize_ppi = PPI_800X480;
 	lcd_info.decode_mode = HARDWARE_DECODING;
 }
 

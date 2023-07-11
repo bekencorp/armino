@@ -180,12 +180,14 @@ typedef struct
 	uint8_t enable : 1;
 	uint8_t decoder_en : 1;
 	uint8_t rotate_en : 1;
+	uint8_t resize_en : 1;
 	uint8_t display_en : 1;
 	uint8_t dma2d_blend : 1;
     uint8_t result;
 
 	frame_buffer_t *decoder_frame;
 	frame_buffer_t *rotate_frame;
+	frame_buffer_t *resize_frame;
 	frame_buffer_t *display_frame;
 	frame_buffer_t *lvgl_frame;
 	frame_buffer_t *pingpong_frame;
@@ -193,12 +195,14 @@ typedef struct
 	beken_semaphore_t dec_sem;
 	beken_semaphore_t rot_sem;
 	beken_semaphore_t disp_sem;
+	beken_semaphore_t resize_sem;
 #if (USE_DMA2D_BLEND_ISR_CALLBACKS == 1)
 	beken_semaphore_t dma2d_complete_sem;
 	beken_semaphore_t dma2d_err_sem;
 #endif
 	beken_mutex_t dec_lock;
 	beken_mutex_t rot_lock;
+	beken_mutex_t resize_lock;
 	beken_mutex_t disp_lock;
 
 } lcd_driver_t;
@@ -393,9 +397,19 @@ static void lcd_driver_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 
 	//LOGI("%s, %08X\n", __func__, cmd_buf->param1);
 
-	if (cmd_buf->hdr.cmd == 0x19)
+	if (cmd_buf->hdr.cmd == EVENT_LCD_ROTATE_MBRSP)
 	{
 		ret = rtos_set_semaphore(&s_lcd.rot_sem);
+
+		if (ret != BK_OK)
+		{
+			LOGE("%s semaphore get failed: %d\n", __func__, ret);
+		}
+	}
+
+	if (cmd_buf->hdr.cmd == EVENT_LCD_RESIZE_MBRSP)
+	{
+		ret = rtos_set_semaphore(&s_lcd.resize_sem);
 
 		if (ret != BK_OK)
 		{
@@ -1110,7 +1124,6 @@ void lcd_driver_ppi_set(uint16_t width, uint16_t height)
 		}										\
 	} while (0)
 
-
 __attribute__((section(".itcm_sec_code")))  void flash_busy_lcd_callback(void)
 {
 	uint32_t int_level = rtos_disable_int();
@@ -1119,8 +1132,8 @@ __attribute__((section(".itcm_sec_code")))  void flash_busy_lcd_callback(void)
 	{
 		lcd_disp_ll_set_display_int_rgb_eof(1);
 	}
-	rtos_enable_int(int_level);
 
+	rtos_enable_int(int_level);
 }
 
 __attribute__((section(".itcm_sec_code"))) static void lcd_driver_display_rgb_isr(void)
@@ -1423,19 +1436,20 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 #endif
 #endif
 	}
-	if (s_lcd.decoder_frame == NULL)
-	{
-		media_debug->err_dec++;
-
-		LOGD("%s decoder failed\n", __func__);
-		ret = BK_FAIL;
-		goto out;
-	}
-
-	dec_frame = s_lcd.decoder_frame;
-	s_lcd.decoder_frame = NULL;
 
 out:
+
+    if (s_lcd.decoder_frame == NULL)
+    {
+        media_debug->err_dec++;
+        LOGD("%s decoder failed\n", __func__);
+        ret = BK_FAIL;
+    }
+    else
+    {
+        dec_frame = s_lcd.decoder_frame;
+        s_lcd.decoder_frame = NULL;
+    }
 
 	rtos_unlock_mutex(&s_lcd.dec_lock);
 #if CONFIG_ARCH_RISCV
@@ -1448,6 +1462,121 @@ out:
 	return dec_frame;
 }
 
+frame_buffer_t *lcd_driver_resize_frame(frame_buffer_t *frame, media_ppi_t ppi)
+{
+	frame_buffer_t *resize_frame = NULL;
+	uint64_t before, after;
+
+#ifdef CONFIG_MASTER_CORE
+	bk_err_t ret = BK_FAIL;
+	mb_chnl_cmd_t mb_cmd;
+#endif
+
+	LCD_ROTATE_START();
+
+	if (s_lcd.enable == false)
+	{
+		LCD_DRIVER_FRAME_FREE(frame);
+		return resize_frame;
+	}
+
+	rtos_lock_mutex(&s_lcd.resize_lock);
+
+	if (s_lcd.resize_en == false)
+	{
+		rtos_unlock_mutex(&s_lcd.resize_lock);
+		LCD_DRIVER_FRAME_FREE(frame);
+		return resize_frame;
+	}
+#if CONFIG_ARCH_RISCV
+	before = riscv_get_mtimer();
+#else
+	before = 0;
+#endif
+	if (s_lcd.resize_frame == NULL && s_lcd.rotate_frame == NULL)
+	{
+		s_lcd.resize_frame = s_lcd.config.fb_malloc();
+		s_lcd.rotate_frame = s_lcd.resize_frame;
+	}
+	else if (s_lcd.resize_frame == NULL && s_lcd.rotate_frame)
+	{
+		s_lcd.resize_frame = s_lcd.rotate_frame;
+	}
+	else if (s_lcd.resize_frame && s_lcd.rotate_frame == NULL)
+	{
+		s_lcd.rotate_frame = s_lcd.resize_frame;
+	}
+	else
+	{
+		s_lcd.resize_frame = s_lcd.rotate_frame;
+	}
+
+	s_lcd.resize_frame->height = ppi_to_pixel_y(ppi);
+	s_lcd.resize_frame->width = ppi_to_pixel_x(ppi);
+	s_lcd.resize_frame->sequence = frame->sequence;
+	s_lcd.resize_frame->length = s_lcd.resize_frame->height * s_lcd.resize_frame->width * 2;
+	s_lcd.resize_frame->fmt = frame->fmt;
+
+#ifdef CONFIG_MASTER_CORE
+
+	mb_cmd.hdr.cmd = EVENT_LCD_RESIZE_MBCMD;
+	mb_cmd.param1 = (uint32_t)frame;
+	mb_cmd.param2 = (uint32_t)s_lcd.resize_frame;
+	mb_cmd.param3 = 0;
+
+	//LOGI("%s start rotate\n", __func__);
+	ret = mb_chnl_write(MB_CHNL_VID, &mb_cmd);
+
+	if (ret != BK_OK)
+	{
+		LOGE("%s mb_chnl_write failed: %d\n", __func__, ret);
+		goto error;
+	}
+
+	//LOGI("%s wait rotate\n", __func__);
+	ret = rtos_get_semaphore(&s_lcd.resize_sem, BEKEN_NEVER_TIMEOUT);
+
+	if (ret != BK_OK)
+	{
+		LOGE("%s semaphore get failed: %d\n", __func__, ret);
+		goto error;
+	}
+
+#else
+	//TODO
+#endif
+
+	resize_frame = s_lcd.resize_frame;
+	s_lcd.resize_frame = frame;
+	s_lcd.rotate_frame = frame;
+
+	rtos_unlock_mutex(&s_lcd.resize_lock);
+#if CONFIG_ARCH_RISCV
+	after = riscv_get_mtimer();
+#else
+	after = 0;
+#endif
+	LOGD("resize time: %lu\n", (after - before) / 26000);
+
+	LCD_ROTATE_END();
+
+	return resize_frame;
+
+#ifdef CONFIG_MASTER_CORE
+error:
+
+	LCD_DRIVER_FRAME_FREE(frame);
+
+	if (s_lcd.resize_frame)
+	{
+		LCD_DRIVER_FRAME_FREE(s_lcd.resize_frame);
+	}
+#endif
+
+	rtos_unlock_mutex(&s_lcd.resize_lock);
+
+	return NULL;
+}
 
 frame_buffer_t *lcd_driver_rodegree_frame(frame_buffer_t *frame, media_rotate_t rotate)
 {
@@ -1487,9 +1616,23 @@ frame_buffer_t *lcd_driver_rodegree_frame(frame_buffer_t *frame, media_rotate_t 
 #else
 	before = 0;
 #endif
-	if (s_lcd.rotate_frame == NULL)
+
+	if (s_lcd.rotate_frame == NULL && s_lcd.resize_frame == NULL)
 	{
 		s_lcd.rotate_frame = s_lcd.config.fb_malloc();
+		s_lcd.resize_frame = s_lcd.rotate_frame;
+	}
+	else if (s_lcd.rotate_frame == NULL && s_lcd.resize_frame)
+	{
+		s_lcd.rotate_frame = s_lcd.resize_frame;
+	}
+	else if (s_lcd.rotate_frame && s_lcd.resize_frame == NULL)
+	{
+		s_lcd.resize_frame = s_lcd.rotate_frame;
+	}
+	else
+	{
+		s_lcd.rotate_frame = s_lcd.resize_frame;
 	}
 
 	s_lcd.rotate_frame->height = frame->width;
@@ -1501,7 +1644,7 @@ frame_buffer_t *lcd_driver_rodegree_frame(frame_buffer_t *frame, media_rotate_t 
 
 #ifdef CONFIG_MASTER_CORE
 
-	mb_cmd.hdr.cmd = 0x18;
+	mb_cmd.hdr.cmd = EVENT_LCD_ROTATE_MBCMD;
 	mb_cmd.param1 = (uint32_t)frame;
 	mb_cmd.param2 = (uint32_t)s_lcd.rotate_frame;
 	mb_cmd.param3 = rotate;
@@ -1529,6 +1672,7 @@ frame_buffer_t *lcd_driver_rodegree_frame(frame_buffer_t *frame, media_rotate_t 
 #endif
 	rot_frame = s_lcd.rotate_frame;
 	s_lcd.rotate_frame = frame;
+	s_lcd.resize_frame = frame;
 
 	rtos_unlock_mutex(&s_lcd.rot_lock);
 #if CONFIG_ARCH_RISCV
@@ -2322,10 +2466,12 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 
 	rtos_init_mutex(&s_lcd.dec_lock);
 	rtos_init_mutex(&s_lcd.rot_lock);
+	rtos_init_mutex(&s_lcd.resize_lock);
 	rtos_init_mutex(&s_lcd.disp_lock);
 
 	s_lcd.decoder_en = true;
 	s_lcd.rotate_en = true;
+	s_lcd.resize_en = true;
 	s_lcd.display_en = true;
 
 	s_lcd.lvgl_frame = os_malloc(sizeof(frame_buffer_t));
@@ -2344,6 +2490,14 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 	if (ret != BK_OK)
 	{
 		LOGE("%s rot_sem init failed: %d\n", __func__, ret);
+		return ret;
+	}
+
+	ret = rtos_init_semaphore_ex(&s_lcd.resize_sem, 1, 0);
+
+	if (ret != BK_OK)
+	{
+		LOGE("%s resize_sem init failed: %d\n", __func__, ret);
 		return ret;
 	}
 
@@ -2519,6 +2673,10 @@ bk_err_t lcd_driver_deinit(void)
 	s_lcd.rotate_en = false;
 	rtos_unlock_mutex(&s_lcd.rot_lock);
 
+	rtos_lock_mutex(&s_lcd.resize_lock);
+	s_lcd.resize_en = false;
+	rtos_unlock_mutex(&s_lcd.resize_lock);
+
 	rtos_lock_mutex(&s_lcd.disp_lock);
 	s_lcd.display_en = false;
 	rtos_unlock_mutex(&s_lcd.disp_lock);
@@ -2587,10 +2745,28 @@ bk_err_t lcd_driver_deinit(void)
 	}
 #endif
 
-	if (s_lcd.rotate_frame)
+	if (s_lcd.rotate_frame == s_lcd.resize_frame)
 	{
-		s_lcd.config.fb_free(s_lcd.rotate_frame);
-		s_lcd.rotate_frame = NULL;
+		if (s_lcd.rotate_frame)
+		{
+			s_lcd.config.fb_free(s_lcd.rotate_frame);
+			s_lcd.rotate_frame = NULL;
+			s_lcd.resize_frame = NULL;
+		}
+	}
+	else
+	{
+		if (s_lcd.rotate_frame)
+		{
+			s_lcd.config.fb_free(s_lcd.rotate_frame);
+			s_lcd.rotate_frame = NULL;
+		}
+
+		if (s_lcd.resize_frame)
+		{
+			s_lcd.config.fb_free(s_lcd.resize_frame);
+			s_lcd.resize_frame = NULL;
+		}
 	}
 
 	if (s_lcd.decoder_frame)
@@ -2642,6 +2818,14 @@ bk_err_t lcd_driver_deinit(void)
 		return ret;
 	}
 
+	ret = rtos_deinit_semaphore(&s_lcd.resize_sem);
+
+	if (ret != BK_OK)
+	{
+		LOGE("%s resize_sem deinit failed: %d\n", __func__, ret);
+		return ret;
+	}
+
 	ret = rtos_deinit_semaphore(&s_lcd.disp_sem);
 
 	if (ret != BK_OK)
@@ -2652,6 +2836,7 @@ bk_err_t lcd_driver_deinit(void)
 
 	rtos_deinit_mutex(&s_lcd.dec_lock);
 	rtos_deinit_mutex(&s_lcd.rot_lock);
+	rtos_deinit_mutex(&s_lcd.resize_lock);
 	rtos_deinit_mutex(&s_lcd.disp_lock);
 
 //	s_lcd.config.fb_display_deinit();

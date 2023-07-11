@@ -38,6 +38,18 @@ static inline void gpio_ll_init(gpio_hw_t *hw)
 	gpio_system_gpio_func_mode = (system_gpio_func_mode_hw_t *)GPIO_LL_SYSTEM_REG_BASE;
 }
 
+//some special code re-use a GPIO, it doesn't care the GPIO setting value, just bake/restore value.
+static inline void gpio_ll_set_value(gpio_hw_t *hw, uint32 index, uint32_t v)
+{
+	*(volatile uint32_t *)&hw->gpio_num[index] = v;
+}
+
+//some special code re-use a GPIO, it doesn't care the GPIO setting value, just bake/restore value.
+static inline uint32_t gpio_ll_get_value(gpio_hw_t *hw, uint32 index)
+{
+	return *(volatile uint32_t *)&hw->gpio_num[index];
+}
+
 static inline void gpio_ll_set_io_mode(gpio_hw_t *hw, uint32 index, const gpio_config_t *config)
 {
 	uint32 io_mode = 0;

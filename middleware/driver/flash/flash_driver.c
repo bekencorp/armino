@@ -415,6 +415,25 @@ static void flash_read_word_common(uint32_t *buffer, uint32_t address, uint32_t 
 	rtos_enable_int(int_level);
 }
 
+bool flash_is_area_write_disable(uint32_t addr)
+{
+	uint32_t firmware_area_end_address = 0;
+	bk_logic_partition_t * flash_pt = NULL;
+
+#if CONFIG_HTTP_AB_PARTITION
+	flash_pt = bk_flash_partition_get_info(BK_PARTITION_APPLICATION);
+#else
+	flash_pt = bk_flash_partition_get_info(BK_PARTITION_OTA);
+#endif
+	firmware_area_end_address = flash_pt->partition_start_addr;
+	if (addr < firmware_area_end_address) {
+		FLASH_LOGE("valid write/erase start address = 0x%x, but current address = 0x%x.\r\n", firmware_area_end_address, addr);
+		BK_ASSERT(addr >= firmware_area_end_address);
+		return true;
+	}
+	return false;
+}
+
 static bk_err_t flash_write_common(const uint8_t *buffer, uint32_t address, uint32_t len)
 {
 	uint32_t buf[FLASH_BUFFER_LEN];
@@ -540,6 +559,10 @@ __attribute__((section(".itcm_sec_code"))) bk_err_t bk_flash_erase_sector(uint32
 		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
 	}
 
+	if (flash_is_area_write_disable(address)) {
+		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
+	}
+
 	uint32_t int_level = rtos_disable_int();
 	flash_hal_erase_sector(&s_flash.hal, erase_addr);
 	rtos_enable_int(int_level);
@@ -577,6 +600,11 @@ bk_err_t bk_flash_write_bytes(uint32_t address, const uint8_t *user_buf, uint32_
 		FLASH_LOGW("write error:invalid address 0x%x\r\n", address);
 		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
 	}
+
+	if (flash_is_area_write_disable(address)) {
+		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
+	}
+
 	flash_write_common(user_buf, address, size);
 	flash_ps_resume(NORMAL_PS);
 

@@ -26,18 +26,20 @@ extern "C" {
  * @{
  */
 
-#define PIXEL_240 	(240)
-#define PIXEL_272 	(272)
-#define PIXEL_320 	(320)
-#define PIXEL_400	(400)
-#define PIXEL_454	(454)
-#define PIXEL_480 	(480)
-#define PIXEL_600 	(600)
-#define PIXEL_640 	(640)
-#define PIXEL_720 	(720)
-#define PIXEL_800 	(800)
+#define PIXEL_240   (240)
+#define PIXEL_272   (272)
+#define PIXEL_288   (288)
+#define PIXEL_320   (320)
+#define PIXEL_400   (400)
+#define PIXEL_454   (454)
+#define PIXEL_480   (480)
+#define PIXEL_576   (576)
+#define PIXEL_600   (600)
+#define PIXEL_640   (640)
+#define PIXEL_720   (720)
+#define PIXEL_800   (800)
 #define PIXEL_854   (854)
-#define PIXEL_864 	(864)
+#define PIXEL_864   (864)
 #define PIXEL_1024 (1024)
 #define PIXEL_1200 (1200)
 #define PIXEL_1280 (1280)
@@ -68,9 +70,11 @@ typedef enum
 	PPI_480X320     = (PIXEL_480 << 16) | PIXEL_320,
 	PPI_480X480     = (PIXEL_480 << 16) | PIXEL_480,
 	PPI_640X480     = (PIXEL_640 << 16) | PIXEL_480,
-	PPI_480X800 	= (PIXEL_480 << 16) | PIXEL_800,
-	PPI_480X854		= (PIXEL_480 << 16) | PIXEL_854,
-	PPI_800X480 	= (PIXEL_800 << 16) | PIXEL_480,
+	PPI_480X800     = (PIXEL_480 << 16) | PIXEL_800,
+	PPI_480X854     = (PIXEL_480 << 16) | PIXEL_854,
+	PPI_720X288     = (PIXEL_720 << 16) | PIXEL_288,
+	PPI_720X576     = (PIXEL_720 << 16) | PIXEL_576,
+	PPI_800X480     = (PIXEL_800 << 16) | PIXEL_480,
 	PPI_864X480     = (PIXEL_864 << 16) | PIXEL_480,
 	PPI_800X600     = (PIXEL_800 << 16) | PIXEL_600,
 	PPI_1024X600    = (PIXEL_1024 << 16) | PIXEL_600,
@@ -94,6 +98,9 @@ typedef enum
 	PPI_CAP_1280X720    = (1 << 10), /**< 1280 * 720 */
 	PPI_CAP_1600X1200   = (1 << 11), /**< 1600 * 1200 */
 	PPI_CAP_480X480     = (1 << 12), /**< 480 * 480 */
+	PPI_CAP_720X288     = (1 << 13), /**< 720 * 288 */
+	PPI_CAP_720X576     = (1 << 14), /**< 720 * 576 */
+	PPI_CAP_480X854     = (1 << 15), /**< 480 * 854 */
 } media_ppi_cap_t;
 
 /** rgb lcd input data format, data save in mem is little endian, like VUYY format is [bit31-bit0] is [V U Y Y]*/
@@ -267,6 +274,9 @@ static inline media_ppi_cap_t pixel_ppi_to_cap(media_ppi_t ppi)
 
 		case PPI_800X480:
 			cap = PPI_CAP_800X480;
+			break;
+		case PPI_480X854:
+			cap = PPI_CAP_480X854;
 			break;
 		case PPI_864X480:
 			cap = PPI_CAP_864X480;

@@ -72,6 +72,8 @@ bk_err_t gpio_hal_default_map_init(gpio_hal_t *hal);
 #endif
 
 bk_err_t gpio_hal_init(gpio_hal_t *hal);
+void gpio_hal_set_value(gpio_hal_t *hal, gpio_id_t id, uint32_t v);
+uint32_t gpio_hal_get_value(gpio_hal_t *hal, gpio_id_t id);
 bk_err_t gpio_hal_disable_jtag_mode(gpio_hal_t *hal);
 
 bk_err_t gpio_hal_output_enable(gpio_hal_t *hal, gpio_id_t gpio_id, uint32 enable);

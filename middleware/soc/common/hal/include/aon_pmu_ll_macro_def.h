@@ -816,8 +816,11 @@ static inline void aon_pmu_ll_set_reg42_reg42(uint32_t value)
 #define AON_PMU_REG43_CLR_INT_USBPLUG_POS (16) 
 #define AON_PMU_REG43_CLR_INT_USBPLUG_MASK (0x1) 
 
-#define AON_PMU_REG43_RESERVED_POS (17) 
-#define AON_PMU_REG43_RESERVED_MASK (0x7FFF) 
+#define AON_PMU_REG43_WAKE_SRC_POS (17) 
+#define AON_PMU_REG43_WAKE_SRC_MASK (0x1) 
+
+#define AON_PMU_REG43_RESERVED_POS (18) 
+#define AON_PMU_REG43_RESERVED_MASK (0x3FFF) 
 
 static inline uint32_t aon_pmu_ll_get_reg43_value(void)
 {
@@ -840,9 +843,25 @@ static inline uint32_t aon_pmu_ll_get_reg43_clr_int_touched(void)
 
 static inline void aon_pmu_ll_set_reg43_clr_int_touched(uint32_t value)
 {
+	/* 
+	 * WARNING:This REG has many bits which attribute is write 1 to clear.
+	 * If reads data from REG and write it back, maybe the other bits is 1
+	 * and cleared by this function un-expectly.
+	 */
+#if 0
     uint32_t reg_value;
     reg_value = REG_READ(AON_PMU_REG43_ADDR);
     reg_value &= ~(AON_PMU_REG43_CLR_INT_TOUCHED_MASK << AON_PMU_REG43_CLR_INT_TOUCHED_POS);
+    reg_value |= ((value & AON_PMU_REG43_CLR_INT_TOUCHED_MASK) << AON_PMU_REG43_CLR_INT_TOUCHED_POS);
+    REG_WRITE(AON_PMU_REG43_ADDR,reg_value);
+#endif
+    uint32_t reg_value;
+    reg_value = REG_READ(AON_PMU_REG43_ADDR);
+
+	//clear all "W1C" bits to 0 to avoid clear other bits
+    reg_value &= ~((AON_PMU_REG43_CLR_INT_TOUCHED_MASK << AON_PMU_REG43_CLR_INT_TOUCHED_POS) |
+    				(AON_PMU_REG43_CLR_INT_USBPLUG_MASK << AON_PMU_REG43_CLR_INT_USBPLUG_POS) |
+    				(AON_PMU_REG43_WAKE_SRC_MASK << AON_PMU_REG43_WAKE_SRC_POS));
     reg_value |= ((value & AON_PMU_REG43_CLR_INT_TOUCHED_MASK) << AON_PMU_REG43_CLR_INT_TOUCHED_POS);
     REG_WRITE(AON_PMU_REG43_ADDR,reg_value);
 }
@@ -858,9 +877,25 @@ static inline uint32_t aon_pmu_ll_get_reg43_clr_int_usbplug(void)
 
 static inline void aon_pmu_ll_set_reg43_clr_int_usbplug(uint32_t value)
 {
+	/* 
+	 * WARNING:This REG has many bits which attribute is write 1 to clear.
+	 * If reads data from REG and write it back, maybe the other bits is 1
+	 * and cleared by this function un-expectly.
+	 */
+#if 0
     uint32_t reg_value;
     reg_value = REG_READ(AON_PMU_REG43_ADDR);
     reg_value &= ~(AON_PMU_REG43_CLR_INT_USBPLUG_MASK << AON_PMU_REG43_CLR_INT_USBPLUG_POS);
+    reg_value |= ((value & AON_PMU_REG43_CLR_INT_USBPLUG_MASK) << AON_PMU_REG43_CLR_INT_USBPLUG_POS);
+    REG_WRITE(AON_PMU_REG43_ADDR,reg_value);
+#endif
+    uint32_t reg_value;
+    reg_value = REG_READ(AON_PMU_REG43_ADDR);
+
+	//clear all "W1C" bits to 0 to avoid clear other bits
+    reg_value &= ~((AON_PMU_REG43_CLR_INT_TOUCHED_MASK << AON_PMU_REG43_CLR_INT_TOUCHED_POS) |
+    				(AON_PMU_REG43_CLR_INT_USBPLUG_MASK << AON_PMU_REG43_CLR_INT_USBPLUG_POS) |
+    				(AON_PMU_REG43_WAKE_SRC_MASK << AON_PMU_REG43_WAKE_SRC_POS));
     reg_value |= ((value & AON_PMU_REG43_CLR_INT_USBPLUG_MASK) << AON_PMU_REG43_CLR_INT_USBPLUG_POS);
     REG_WRITE(AON_PMU_REG43_ADDR,reg_value);
 }

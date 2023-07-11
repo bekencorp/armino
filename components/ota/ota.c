@@ -192,7 +192,6 @@ int bk_http_ota_download(const char *uri)
 	os_memset(&http_content, 0, sizeof(HTTP_RESP_CONTENT_LEN));
 	httpclient.header = "Accept: text/xml,text/html,\r\n";
 	httpclient_data.response_buf = http_content;
-	httpclient_data.response_buf_len = HTTP_RESP_CONTENT_LEN;
 	httpclient_data.response_content_len = HTTP_RESP_CONTENT_LEN;
 	ret = httpclient_common(&httpclient,
 							uri,

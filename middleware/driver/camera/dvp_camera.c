@@ -61,7 +61,7 @@
 #define FRAME_BUFFER_CACHE (1024 * 10)
 //#define JPEG_DROP_SENSOR_FRAME
 
-//#define DVP_STRIP
+#define DVP_STRIP
 
 //#define DVP_DIAG_DEBUG
 
@@ -162,7 +162,7 @@ typedef struct
 	uint8 eof : 1;
 	uint8 psram_dma;
 	uint8 psram_dma_busy;
-	uint16 psram_dma_left;
+	int16 psram_dma_left;
 	uint8 *buffer;
 	uint8 drop_count;
 	frame_buffer_t *frame;
@@ -216,14 +216,30 @@ static void jpeg_dump(char *tag, uint8_t *src, uint32_t size)
 #ifdef DVP_STRIP
 static uint32_t dvp_frame_sram_strip(uint8_t *src, uint32_t size)
 {
-	uint32_t i;
+	uint32_t i, first_zero = 0;
 	uint32_t tail = size - 1;
 
 	if (src[tail] != 0xD9
-	    && src[tail - 1 ] != 0xFF)
+		&& src[tail - 1] != 0xFF)
 	{
-		LOGE("strip tail error\n");
-		return size;
+		if (dvp_camera_drv->index)
+		{
+			src = (dvp_camera_drv->buffer);
+		}
+		else
+		{
+			src = (dvp_camera_drv->buffer + FRAME_BUFFER_CACHE);
+		}
+		if (src[tail] != 0xD9
+		&& src[tail - 1] != 0xFF)
+		{
+			LOGE("strip tail error %u %u %u\n", curr_jpeg_frame->length, size, curr_jpeg_frame->sequence);
+			return size;
+		}
+		else
+		{
+			tail -= 2;
+		}
 	}
 	else
 	{
@@ -238,6 +254,31 @@ static uint32_t dvp_frame_sram_strip(uint8_t *src, uint32_t size)
 		{
 			tail--;
 		}
+		else if(src[i] == 0x00)
+		{
+			if (first_zero == 0)
+			{
+				if (src[i-1] == 0xFF)
+				{
+					tail--;
+					first_zero ++;
+				}
+				else if (src[i-1] & 0x01)
+				{
+					tail--;
+				}
+				else
+				{
+					tail++;
+					break;
+				}
+			}
+			else
+			{
+				tail++;
+				break;
+			}
+		}
 		else
 		{
 			tail++;
@@ -247,7 +288,6 @@ static uint32_t dvp_frame_sram_strip(uint8_t *src, uint32_t size)
 
 	src[tail++] = 0xFF;
 	src[tail++] = 0xD9;
-
 	//jpeg_dump("after", src + tail - 10, 10);
 
 	return tail;
@@ -399,8 +439,8 @@ bk_err_t dvp_memcpy_by_chnl(void *out, const void *in, uint32_t len, dma_id_t cp
 static void dvp_camera_eof_handler(jpeg_unit_t id, void *param)
 {
 	uint32_t real_length = bk_jpeg_enc_get_frame_size();
-	uint32_t remain_length = FRAME_BUFFER_CACHE - bk_dma_get_remain_len(dvp_camera_dma_channel);
-	uint32_t left_length = remain_length - JPEG_CRC_SIZE;
+	int32_t remain_length = FRAME_BUFFER_CACHE - bk_dma_get_remain_len(dvp_camera_dma_channel);
+	int32_t left_length = remain_length - JPEG_CRC_SIZE;
 
 	DVP_JPEG_EOF_ENTRY();
 
@@ -431,12 +471,20 @@ static void dvp_camera_eof_handler(jpeg_unit_t id, void *param)
 		}
 
 #ifdef DVP_STRIP
-		left_length = dvp_frame_sram_strip(dvp_camera_drv->index ? (dvp_camera_drv->buffer + FRAME_BUFFER_CACHE) : dvp_camera_drv->buffer, left_length);
+		if (left_length > 0)
+		{
+			left_length = dvp_frame_sram_strip(dvp_camera_drv->index ? (dvp_camera_drv->buffer + FRAME_BUFFER_CACHE) : dvp_camera_drv->buffer, left_length);
+		}
+		else
+		{
+			dvp_camera_drv->index = !dvp_camera_drv->index;
+			left_length = dvp_frame_sram_strip(dvp_camera_drv->index ? (dvp_camera_drv->buffer + FRAME_BUFFER_CACHE) : dvp_camera_drv->buffer, (curr_jpeg_frame->length + left_length)%FRAME_BUFFER_CACHE);
+		}
 #endif
 		bk_dma_stop(dvp_camera_dma_channel);
 
 		if ((dvp_camera_device->type == MEDIA_DVP_MIX)
-		    && (dvp_state == MSTATE_TURN_ON))
+			&& (dvp_state == MSTATE_TURN_ON))
 		{
 			curr_jpeg_frame->mix = true;
 
@@ -468,8 +516,19 @@ static void dvp_camera_eof_handler(jpeg_unit_t id, void *param)
 		if (dvp_camera_drv->psram_dma_busy == true)
 		{
 			dvp_camera_drv->frame = curr_jpeg_frame;
-			dvp_camera_drv->psram_dma_left = left_length;
 			dvp_camera_drv->eof = true;
+			if ((remain_length - JPEG_CRC_SIZE) > 0)
+			{
+				dvp_camera_drv->psram_dma_left = left_length;
+			}
+			else
+			{
+				if (curr_jpeg_frame->length >= FRAME_BUFFER_CACHE)
+				{
+					curr_jpeg_frame->length -= FRAME_BUFFER_CACHE;
+				}
+				dvp_camera_drv->psram_dma_left = left_length;
+			}
 		}
 		else
 		{
@@ -478,8 +537,8 @@ static void dvp_camera_eof_handler(jpeg_unit_t id, void *param)
 			dvp_camera_drv->eof = true;
 
 			dvp_memcpy_by_chnl(curr_jpeg_frame->frame + curr_jpeg_frame->length,
-			                   dvp_camera_drv->index ? (dvp_camera_drv->buffer + FRAME_BUFFER_CACHE) : dvp_camera_drv->buffer,
-			                   left_length, dvp_camera_drv->psram_dma);
+							   dvp_camera_drv->index ? (dvp_camera_drv->buffer + FRAME_BUFFER_CACHE) : dvp_camera_drv->buffer,
+							   left_length, dvp_camera_drv->psram_dma);
 			curr_jpeg_frame->length += left_length;
 			curr_jpeg_frame->sequence = ++sequence;
 		}

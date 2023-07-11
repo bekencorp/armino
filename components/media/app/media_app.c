@@ -87,13 +87,18 @@ bk_err_t media_send_msg_sync(uint32_t event, uint32_t param)
 
 	ret = param_pak->ret;
 
-	rtos_deinit_semaphore(&param_pak->sem);
 
 out:
 
 	if (param_pak)
 	{
+		if (param_pak->sem)
+		{
+			rtos_deinit_semaphore(&param_pak->sem);
+			param_pak->sem = NULL;
+		}
 		os_free(param_pak);
+		param_pak = NULL;
 	}
 
 	return ret;
@@ -329,6 +334,19 @@ bk_err_t media_app_lcd_rotate(media_rotate_t rotate)
 	LOGI("%s\n", __func__);
 
 	ret = media_send_msg_sync(EVENT_LCD_ROTATE_ENABLE_IND, rotate);
+
+	LOGI("%s complete\n", __func__);
+
+	return ret;
+}
+
+bk_err_t media_app_lcd_resize(media_ppi_t ppi)
+{
+	bk_err_t ret;
+
+	LOGI("%s\n", __func__);
+
+	ret = media_send_msg_sync(EVENT_LCD_RESIZE_IND, ppi);
 
 	LOGI("%s complete\n", __func__);
 

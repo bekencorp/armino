@@ -59,6 +59,26 @@ bk_err_t bk_gpio_driver_deinit(void);
 
 
 /**
+ * @brief     Direct set GPIO config value.
+ *
+ * @NOTES     Please be care to use this API,unless you know the detail mean,
+ *            because it will set the GPIO config value.
+ *            Sometimes the special GPIO needs to re-used by one more owner,
+ *            after the second owner re-used it, it should restore the config value.
+ *            Before re-use a GPIO, the owner can call bk_gpio_get_value
+ *            and bakup it, after re-used finish, it call bk_gpio_set_value
+ *            to restore the prevous value.
+ */
+void bk_gpio_set_value(gpio_id_t id, uint32_t v);
+
+
+/**
+ * @brief     get GPIO config value.
+ */
+uint32_t bk_gpio_get_value(gpio_id_t id);
+
+
+/**
  * @brief     enable GPIO output mode
  *
  *

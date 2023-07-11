@@ -340,14 +340,32 @@ static inline void uart_ll_clear_id_interrupt_status(uart_hw_t *hw, uart_id_t id
 
 static inline void uart_ll_clear_id_tx_interrupt_status(uart_hw_t *hw, uart_id_t id)
 {
+	/* 
+	 * WARNING:This REG has many bits which attribute is write 1 to clear.
+	 * If uses union bit operation, the asm codes will read data from REG
+	 * and write it back, maybe the other bits is 1 and cleared by this function.
+	 */
+#if 0
 	hw->int_status.tx_fifo_need_write = 1;
 	hw->int_status.tx_finish = 1;
+#endif
+	//BIT(0):need write, BIT(5): tx finish
+	hw->int_status.v = (BIT(0) | BIT(5));
 }
 
 static inline void uart_ll_clear_id_rx_interrupt_status(uart_hw_t *hw, uart_id_t id)
 {
+	/* 
+	 * WARNING:This REG has many bits which attribute is write 1 to clear.
+	 * If uses union bit operation, the asm codes will read data from REG
+	 * and write it back, maybe the other bits is 1 and cleared by this function.
+	 */
+#if 0
 	hw->int_status.rx_fifo_need_read = 1;
 	hw->int_status.rx_finish = 1;
+#endif
+	//BIT(1):need read, BIT(6): rx finish
+	hw->int_status.v = (BIT(1) | BIT(6));
 }
 
 static inline bool uart_ll_is_rx_interrupt_triggered(uart_hw_t *hw, uart_id_t id, uint32_t status)
@@ -413,6 +431,41 @@ static inline void uart_ll_set_cts_polarity(uart_hw_t *hw, uart_id_t id, uint32_
 static inline void uart_ll_reset_wake_config_to_default(uart_hw_t *hw, uart_id_t id)
 {
 	hw->wake_config.v = 0;
+}
+
+static inline void uart_ll_enable_fifo_over_flow_interrupt(uart_hw_t *hw, uart_id_t id)
+{
+	hw->int_enable.rx_fifo_overflow = 1;
+}
+
+static inline void uart_ll_disable_fifo_over_flow_interrupt(uart_hw_t *hw, uart_id_t id)
+{
+	hw->int_enable.rx_fifo_overflow = 0;
+}
+
+static inline void uart_ll_enable_parity_err_interrupt(uart_hw_t *hw, uart_id_t id)
+{
+	hw->int_enable.rx_parity_err = 1;
+}
+
+static inline void uart_ll_disable_parity_err_interrupt(uart_hw_t *hw, uart_id_t id)
+{
+	hw->int_enable.rx_parity_err = 0;
+}
+
+static inline void uart_ll_enable_stop_bit_err_interrupt(uart_hw_t *hw, uart_id_t id)
+{
+	hw->int_enable.rx_stop_bits_err = 1;
+}
+
+static inline bool uart_ll_is_rx_over_flow_int_triggered(uart_hw_t *hw, uart_id_t id, uint32_t status)
+{
+	return !!(status & BIT(2));
+}
+
+static inline bool uart_ll_is_rx_stop_bits_err_int_triggered(uart_hw_t *hw, uart_id_t id, uint32_t status)
+{
+	return !!(status & BIT(4));
 }
 
 static inline uint32_t uart_ll_wait_tx_over(void)

@@ -25,7 +25,8 @@ extern "C" {
 	do { \
 		if (res != NULL) { \
 			res->ret = val; \
-			rtos_set_semaphore(&res->sem); \
+			if (res->sem != NULL) \
+				rtos_set_semaphore(&res->sem); \
 		} \
 	} while(0)
 
@@ -126,6 +127,7 @@ typedef enum
 	EVENT_LCD_DEFAULT_CMD = (MAILBOX_CMD << MEDIA_EVT_BIT),
 	EVENT_LCD_ROTATE_RIGHT_CMD,
 
+	EVENT_LCD_RESIZE_CMD,
     EVENT_LCD_DEC_SW_CMD,
 
 	EVENT_LVGL_DRAW_CMD,
@@ -141,7 +143,6 @@ typedef enum
 	EVENT_APP_EXIT,
 } media_app_event_t;
 
-
 typedef struct
 {
 	uint32_t event;
@@ -155,7 +156,6 @@ typedef struct
 	uint32_t param;
 	int ret;
 } param_pak_t;
-
 
 bk_err_t media_send_msg(media_msg_t *msg);
 bk_err_t media_app_send_msg(media_msg_t *msg);

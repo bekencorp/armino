@@ -1,1 +1,0 @@
-This project is used to debug  Bluetooth Dual Mode(such as A2DP).

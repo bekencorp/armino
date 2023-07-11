@@ -21,40 +21,19 @@
 #include <os/mem.h>
 #include <driver/gpio.h>
 #include <driver/gpio_types.h>
+#include "gpio_map.h"
+#include "gpio_driver.h"
 
-#include <driver/dma.h>
-
-#include <os/mem.h>
-#include <driver/gpio.h>
-#include <driver/gpio_types.h>
-
-#include <driver/dma.h>
-#include <driver/i2c.h>
-#include <driver/jpeg_enc.h>
-#include <driver/jpeg_enc_types.h>
-#include <driver/uvc_camera.h>
-
-#include <driver/dvp_camera.h>
-#include <driver/dvp_camera_types.h>
 #include <driver/media_types.h>
 
 #include <soc/mapping.h>
-
-#include <driver/timer.h>
-
-
-#include "bk_general_dma.h"
 
 #include "transfer_act.h"
 #include "media_evt.h"
 
 #include "frame_buffer.h"
-#include <driver/gpio.h>
-#include "gpio_map.h"
-#include "gpio_driver.h"
 
 #include "wlan_ui_pub.h"
-
 
 #if CONFIG_ARCH_RISCV
 #include "cache.h"

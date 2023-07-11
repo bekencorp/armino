@@ -81,9 +81,11 @@ menu "Cli"
 		default n
 
 	config SHELL_ASYNCLOG
-		depends on CLI
-		bool "Enable Shell and Async log optimize"
+
+		bool "Enable Shell Asynclog"
 		default n
+		help
+			Enable Shell and Async log optimize
 
 	config TOUCH_TEST
 		depends on CLI

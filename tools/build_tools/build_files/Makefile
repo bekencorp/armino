@@ -24,7 +24,9 @@ ARMINO_SOC := $(findstring $(MAKECMDGOALS), $(soc_targets))
 ARMINO_SOC_LIB := $(findstring $(MAKECMDGOALS), $(properties_lib_targets))
 
 ifeq ("$(APP_VERSION)", "")
-APP_VERSION := unknow
+	export APP_VERSION := unknow
+else
+	export APP_VERSION := test
 endif
 
 ifeq ("$(PROJECT)", "")

@@ -6,6 +6,7 @@ init_bk_libs_dir()
 	mkdir -p ${s_bk_libs_dir}/${s_soc}_${s_project}
 	mkdir -p ${s_bk_libs_dir}/${s_soc}_${s_project}/libs
 	mkdir -p ${s_bk_libs_dir}/${s_soc}_${s_project}/config
+	mkdir -p ${s_bk_libs_dir}/${s_soc}_${s_project}/hash
 }
 
 copy_libs()
@@ -20,8 +21,12 @@ copy_libs()
 		fi
 	done
 	rm ${s_bk_libs_dir}/${s_soc}_${s_project}/libs/libmain.a
-
 	cp -rf ${s_armino_dir}/properties/modules/audio_codec/aac_decoder/libaac_decoder.a ${s_bk_libs_dir}/${s_soc}_${s_project}/libs/
+	#find ${s_bk_libs_dir}/${s_soc}_${s_project}/libs -name *.a | xargs md5sum > ${s_bk_libs_dir}/${s_soc}_${s_project}/hash/libs_hash.txt
+	compute_hash_tool=${s_armino_dir}/tools/build_tools/compute_files_hash.py
+	compute_hash_src_dir=${s_bk_libs_dir}/${s_soc}_${s_project}/libs
+	compute_hash_dest_file=${s_bk_libs_dir}/${s_soc}_${s_project}/hash/libs_hash.txt
+	python3 ${compute_hash_tool} ${compute_hash_src_dir} > ${compute_hash_dest_file}
 }
 
 copy_sdkconfig()

@@ -832,6 +832,7 @@ int httpclient_retrieve_content(httpclient_t *client, char *data, int len, uint3
 			} else {
 				os_memcpy(client_data->response_buf + count, data, client_data->response_buf_len - 1 - count);
 				client_data->response_buf[client_data->response_buf_len - 1] = '\0';
+				log_err("%s: receive response_content_len = -1!!!\r\n", __func__);
 				return HTTP_RETRIEVE_MORE_DATA;
 			}
 
@@ -1257,7 +1258,7 @@ int httpclient_common(httpclient_t *client, const char *url, int port, const cha
 			httpclient_close(client);
 		}
 
-		ret = (ret >= 0) ? 0 : -1;
+		ret = ((ret >= 0) && (client_data->response_content_len != -1))? 0 : -1;
 	} while(0);
 
 	if (NULL != host) {

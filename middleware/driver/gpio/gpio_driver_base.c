@@ -176,6 +176,15 @@ bk_err_t bk_gpio_driver_deinit(void)
 	return BK_OK;
 }
 
+void bk_gpio_set_value(gpio_id_t id, uint32_t v)
+{
+	gpio_hal_set_value(&s_gpio.hal, id, v);
+}
+
+uint32_t bk_gpio_get_value(gpio_id_t id)
+{
+	return gpio_hal_get_value(&s_gpio.hal, id);
+}
 
 bk_err_t bk_gpio_enable_output(gpio_id_t gpio_id)
 {

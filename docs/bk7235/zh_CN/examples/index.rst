@@ -11,3 +11,4 @@
    Command Line <cli/index>
    外设 <peripheral/index>
    平台 <platform/index>
+   wifi <wifi/index>

@@ -344,7 +344,7 @@ static uint32_t dma_wait_to_idle(dma_id_t id)
 	if(dma_hal_get_work_mode(&s_dma.hal, id) == DMA_WORK_MODE_SINGLE)
 	{
 		uint32_t i = 0;
-		while(bk_dma_get_enable_status(id))
+		while(dma_hal_get_enable_status(&s_dma.hal, id))
 		{
 			delay_us(1);
 

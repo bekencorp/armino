@@ -388,30 +388,6 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			}
 
 #if (CONFIG_LVGL) && (CONFIG_LVGL_DEMO)
-			#if CONFIG_BLEND_USE_GUI
-			else if (os_strcmp(argv[2], "gui_blend") == 0)
-			{
-				if(argc >= 4)
-				{
-					if(os_strcmp(argv[3], "on") == 0)
-					{
-						if(argc >= 6)
-						{
-							ret = media_app_lcd_gui_blend_open(atoi(argv[4]), atoi(argv[5]));
-						}
-					}
-					else if(os_strcmp(argv[3], "off") == 0)
-					{
-						ret = media_app_lcd_gui_blend_close();
-					}
-					else if(os_strcmp(argv[3], "set") == 0)
-					{
-						bk_err_t media_app_lcd_set_pos(int hor_pos, int ver_offset);
-						ret = media_app_lcd_set_pos(atoi(argv[4]), atoi(argv[5]));
-					}
-				}
-			}
-			#endif
 			else if(os_strcmp(argv[2], "demoui") == 0)
 			{
 				if(argc >= 4)

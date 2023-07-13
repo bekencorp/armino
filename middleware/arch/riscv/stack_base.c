@@ -68,7 +68,7 @@ void stack_mem_dump(uint32_t stack_top, uint32_t stack_bottom)
 			BK_DUMP_OUT("\r\n");
 		}
 #if CONFIG_DEBUG_FIRMWARE && CONFIG_INT_WDT
-		if((cnt & 0xfff) == 0) {
+		if((cnt & 0x7ff) == 0) {
 			bk_wdt_feed();
 		}
 #endif

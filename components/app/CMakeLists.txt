@@ -12,7 +12,6 @@ set(srcs "")
 
 if (CONFIG_LVGL_DEMO)
 	list(APPEND srcs
-		lvgl_demo/lv_example_meter.c
 		lvgl_demo/lv_example_image_show.c
 		lvgl_demo/img_utility.c
 	)

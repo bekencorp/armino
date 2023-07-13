@@ -10,7 +10,10 @@
 void cli_memory_free_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	uint32_t total_size,free_size,mini_size;
+    CLI_LOGI("================Static memory================\r\n");
+    os_show_memory_config_info();
 
+	CLI_LOGI("================Dynamic memory================\r\n");
 	cmd_printf("%-5s   %-5s   %-5s   %-5s   %-5s\r\n",
 		"name", "total", "free", "minimum", "peak");
 	

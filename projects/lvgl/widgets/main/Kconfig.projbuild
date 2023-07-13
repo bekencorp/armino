@@ -1,6 +1,6 @@
-menu "LVLG Widgets Configuration"
+menu "LVGL Widgets Configuration"
 
     config LV_USE_DEMO_WIDGETS
-        bool "LVLG Widgets"
+        bool "LVGL Widgets"
         default n
 endmenu

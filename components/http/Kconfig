@@ -1,5 +1,6 @@
 menu "Http"
 	config HTTP
+		depends on WIFI_ENABLE
 		bool "Enable Http"
 		default y
 

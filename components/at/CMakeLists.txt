@@ -8,9 +8,12 @@ if (CONFIG_AT_CMD)
 	list(APPEND srcs
 		"src/at_common.c"
 		"src/ble_at_command.c"
-		"src/video_at_command.c"
-		"src/wifi_at_command.c"
-		)
+		"src/video_at_command.c")
+	if (CONFIG_WIFI_ENABLE)
+		list(APPEND srcs
+			"src/wifi_at_command.c")
+	endif()
+
 	if (CONFIG_BT)
 		list(APPEND srcs
 			"src/bt_at_command.c")

@@ -73,11 +73,7 @@ static const flash_config_t flash_config[] = {
 	{0x0B6018,   1,               FLASH_SIZE_16M, FLASH_LINE_MODE_TWO,   0,     2,            0x0F,         0x0F,        0x00,         0x0A,         0x00E,                0,            0,           0xA0,                          0x01}, //xt_25q128d
 #endif
 	{0x0E4016,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x0E,         0x101,                9,            1,           0xA0,                          0x01}, //xtx_FT25H32
-#if CONFIG_FLASH_QUAD_ENABLE
-	{0x1C4116,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_FOUR, 14,      2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                9,            1,           0xA0,                          0x02}, //en_25qe32a
-#else
-	{0x1C4116,   1,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 0,        2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                0,            0,           0xA0,                          0x01}, //en_25qe32a
-#endif
+	{0x1C4116,   1,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 0,        2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                0,            0,           0xA0,                          0x01}, //en_25qe32a (not support 4 line)
 	{0x5E5018,   1,               FLASH_SIZE_16M, FLASH_LINE_MODE_TWO, 0, 	    2,            0x0F,         0x0F,        0x00,         0x0A,         0x00E,                0,            0,           0xA0,                          0x01}, //zb_25lq128c
 	{0xC84015,   2,               FLASH_SIZE_2M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x0D,         0x101,                9,            1,           0xA0,                          0x01}, //gd_25q16c
 #if CONFIG_FLASH_QUAD_ENABLE
@@ -85,11 +81,16 @@ static const flash_config_t flash_config[] = {
 #else
 	{0xC84016,   1,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 0,        2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                0,            0,           0xA0,                          0x01}, //gd_25q32c
 #endif
+#if CONFIG_FLASH_QUAD_ENABLE
+	{0xC86018,   2,               FLASH_SIZE_16M,FLASH_LINE_MODE_FOUR, 0,       2,            0x0F,         0x0F,        0x00,         0x0A,         0x00E,                9,            1,           0xA0,                          0x02}, //gd_25lq128e
+#else
+	{0xC86018,   1,               FLASH_SIZE_16M,FLASH_LINE_MODE_TWO,  0,       2,            0x0F,         0x0F,        0x00,         0x0A,         0x00E,                0,            0,           0xA0,                          0x01}, //gd_25lq128e
+#endif
 	{0xC86515,   2,               FLASH_SIZE_2M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x0D,         0x101,                9,            1,           0xA0,                          0x01}, //gd_25w16e
 #if CONFIG_FLASH_QUAD_ENABLE
-	{0xC86516,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_FOUR, 14,      2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                9,            1,           0xA0,                          0x02}, //en_25qe32a
+	{0xC86516,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_FOUR, 14,      2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                9,            1,           0xA0,                          0x02}, //gd_25wq32e
 #else
-	{0xC86516,   1,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 0,        2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                0,            0,           0xA0,                          0x01}, //en_25qe32a
+	{0xC86516,   1,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 0,        2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                0,            0,           0xA0,                          0x01}, //gd_25wq32e
 #endif
 	{0xEF4016,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x00,         0x101,                9,            1,           0xA0,                          0x01}, //w_25q32(bfj)
 	{0x204016,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x0E,         0x101,                9,            1,           0xA0,                          0x01}, //xmc_25qh32b
@@ -257,7 +258,9 @@ static void flash_get_current_config(void)
 
 	if (!cfg_success) {
 		s_flash.flash_cfg = &flash_config[ARRAY_SIZE(flash_config) - 1];
-		FLASH_LOGW("don't config this flash, choose default config\r\n");
+		for(int i = 0; i < 10; i++) {
+			FLASH_LOGE("This flash is not identified, choose default config\r\n");
+		}
 	}
 }
 
@@ -418,6 +421,25 @@ static void flash_read_word_common(uint32_t *buffer, uint32_t address, uint32_t 
 	rtos_enable_int(int_level);
 }
 
+bool flash_is_area_write_disable(uint32_t addr)
+{
+	uint32_t firmware_area_end_address = 0;
+	bk_logic_partition_t * flash_pt = NULL;
+
+#if CONFIG_HTTP_AB_PARTITION
+	flash_pt = bk_flash_partition_get_info(BK_PARTITION_APPLICATION);
+#else
+	flash_pt = bk_flash_partition_get_info(BK_PARTITION_OTA);
+#endif
+	firmware_area_end_address = flash_pt->partition_start_addr;
+	if (addr < firmware_area_end_address) {
+		FLASH_LOGE("valid write/erase start address = 0x%x, but current address = 0x%x.\r\n", firmware_area_end_address, addr);
+		BK_ASSERT(addr >= firmware_area_end_address);
+		return true;
+	}
+	return false;
+}
+
 static bk_err_t flash_write_common(const uint8_t *buffer, uint32_t address, uint32_t len)
 {
 	uint32_t buf[FLASH_BUFFER_LEN];
@@ -545,6 +567,10 @@ __attribute__((section(".itcm_sec_code"))) bk_err_t bk_flash_erase_sector(uint32
 		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
 	}
 
+	if (flash_is_area_write_disable(address)) {
+		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
+	}
+
 	uint32_t int_level = rtos_disable_int();
 	flash_hal_erase_sector(&s_flash.hal, erase_addr);
 	rtos_enable_int(int_level);
@@ -582,6 +608,11 @@ bk_err_t bk_flash_write_bytes(uint32_t address, const uint8_t *user_buf, uint32_
 		FLASH_LOGW("write error:invalid address 0x%x\r\n", address);
 		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
 	}
+
+	if (flash_is_area_write_disable(address)) {
+		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
+	}
+
 	flash_write_common(user_buf, address, size);
 	flash_ps_resume(NORMAL_PS);
 

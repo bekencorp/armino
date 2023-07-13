@@ -68,7 +68,8 @@ static uint16_t s_ethermind_send_intv_handle = 0;
 
 
 static uint8_t s_ethermind_send_test_value = 0xa;
-static uint16_t s_ethermind_send_size_value = 20;
+static uint16_t s_ethermind_current_mtu = 23;
+static uint16_t s_ethermind_send_size_value = 23 - 3;
 static uint16_t s_ethermind_send_intv_value = 1000;
 
 static uint8_t s_ethermind_att_handle; //ATT_CON_ID
@@ -1138,8 +1139,8 @@ static uint32_t dm_ble_at_event_cb(ble_event_enum_t event, void *param)
     case BK_DM_BLE_EVENT_MTU_CHANGE:
     {
         ble_mtu_change_t *m_ind = (ble_mtu_change_t *) param;
-        os_printf("%s m_ind:conn_idx:%d, mtu_size:%d\r\n", __func__,
-                  m_ind->conn_idx, m_ind->mtu_size);
+        os_printf("%s m_ind:conn_idx:%d, mtu_size:%d\r\n", __func__, m_ind->conn_idx, m_ind->mtu_size);
+        s_ethermind_current_mtu = m_ind->mtu_size;
         break;
     }
 
@@ -1206,9 +1207,9 @@ static uint32_t dm_ble_at_event_cb(ble_event_enum_t event, void *param)
     case BK_DM_BLE_EVENT_TX_DONE:
     {
         ble_att_tx_compl_t *tx_comp = (typeof(tx_comp)) param;
-        os_printf("%s BK_DM_BLE_EVENT_TX_DONE res %d ATT_CON_ID %d ATT_ATTR_HANDLE %d\n",
-                  __func__, tx_comp->event_result, tx_comp->conn_handle,
-                  tx_comp->attr_handle);
+//        os_printf("%s BK_DM_BLE_EVENT_TX_DONE res %d ATT_CON_ID %d ATT_ATTR_HANDLE %d\n",
+//                  __func__, tx_comp->event_result, tx_comp->conn_handle,
+//                  tx_comp->attr_handle);
 
         if (s_ethermind_service_type == 1 && s_ethermind_auto_tx_enable)
         {
@@ -1216,6 +1217,7 @@ static uint32_t dm_ble_at_event_cb(ble_event_enum_t event, void *param)
             //                {
             //                    ble_tx_test_active_timer_callback(NULL);
             //                }
+            ble_tx_test_active_timer_callback(NULL);
         }
     }
 
@@ -1233,6 +1235,11 @@ static uint32_t dm_ble_at_event_cb(ble_event_enum_t event, void *param)
                       ind->peer_address.addr[0],
                       ind->status, ind->conn_interval,
                       ind->conn_latency, ind->supervision_timeout);
+
+            if (ble_at_cmd_sema != NULL)
+            {
+                rtos_set_semaphore( &ble_at_cmd_sema );
+            }
         }
 
         break;
@@ -1270,8 +1277,7 @@ static uint32_t dm_ble_at_event_cb(ble_event_enum_t event, void *param)
             }
             else
             {
-                os_printf("%s cant find info ATT_CON_ID %d\n", __func__,
-                          tmp->conn_handle);
+//                os_printf("%s cant find info ATT_CON_ID %d\n", __func__, tmp->conn_handle);
             }
         }
     }
@@ -3055,6 +3061,8 @@ int ble_update_conn_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
     }
     else
     {
+        bk_ble_set_event_callback(dm_ble_at_event_cb);
+
         ble_update_conn_param_t tmp;
         tmp.peer_address_type = addr_type;
 
@@ -3065,7 +3073,7 @@ int ble_update_conn_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 
         memcpy(tmp.peer_address.addr, connect_addr.addr, sizeof(connect_addr.addr));
 
-        err = bk_ble_update_connection_params(&tmp, ble_at_cmd_cb);
+        err = bk_ble_update_connection_params(&tmp);
     }
 
     if (err != BK_ERR_BLE_SUCCESS)
@@ -3392,10 +3400,16 @@ int ble_update_mtu_2_max_handle(char *pcWriteBuffer, int xWriteBufferLen, int ar
     else
     {
         uint8_t conn_handle;
+        uint16_t mtu = 251;
 
         bk_ble_set_event_callback(dm_ble_at_event_cb);
         conn_handle = os_strtoul(argv[0], NULL, 10) & 0xFF;
-        err = bk_ble_set_gatt_mtu(conn_handle, 517);
+        if(argc >= 2)
+        {
+            mtu = os_strtoul(argv[1], NULL, 10);
+        }
+
+        err = bk_ble_set_gatt_mtu(conn_handle, mtu);
 
         if (err == 0)
         {
@@ -3453,6 +3467,12 @@ int ble_tx_test_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc,
     if(inter == 0 || len == 0)
     {
         os_printf("%s param err\n", __func__);
+        err = kParamErr;
+        goto error;
+    }
+    if(len > s_ethermind_current_mtu - 3)
+    {
+        os_printf("%s len %d must less than s_ethermind_current_mtu - 3 %d!!!\n", __func__, len, s_ethermind_current_mtu - 3);
         err = kParamErr;
         goto error;
     }
@@ -4666,14 +4686,14 @@ int ble_set_max_mtu_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 		}
 	}
 
-	bk_ble_set_notice_cb(ble_at_notice_cb);
-	att_max_mtu = os_strtoul(argv[0], NULL, 10) & 0xFF;
+    bk_ble_set_notice_cb(ble_at_notice_cb);
 
-	err = bk_ble_set_max_mtu(att_max_mtu);
-	if (err != kNoErr) {
-		os_printf("set att maximal MTU failed\r\n");
-		goto error;
-	}
+    att_max_mtu = os_strtoul(argv[0], NULL, 10) & 0xFF;
+    err = bk_ble_set_max_mtu(att_max_mtu);
+    if (err != kNoErr) {
+        os_printf("set att maximal MTU failed\r\n");
+        goto error;
+    }
 
 	if(ble_at_cmd_sema != NULL) {
 		err = rtos_get_semaphore(&ble_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);

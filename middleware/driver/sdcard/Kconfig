@@ -1,6 +1,6 @@
 menu "SDCARD"
-	config SDCARD_HOST
-		bool "Enable SDCARD Host"
+	config SDCARD
+		bool "Enable SDCARD"
 		default y if (USB && USB_DEVICE)
 		default n if !(USB && USB_DEVICE)
 
@@ -26,6 +26,10 @@ menu "SDCARD"
 
 	config SDCARD_BUSWIDTH_4LINE
 		bool "Support SDCARD 4 Data Wires"
+		default n
+
+	config SDCARD_POWER_GPIO_CTRL
+		bool "Enable SDcard power gpio ctrl"
 		default n
 endmenu
 

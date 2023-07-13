@@ -33,6 +33,10 @@ extern void bk_ota_confirm_update_partition(ota_confirm_flag ota_confirm_val);
 
 #if ((CONFIG_FREERTOS) || (CONFIG_LITEOS_M) || (CONFIG_LITEOS_M_V3)) && (CONFIG_CLI)
 #include "bk_api_cli.h"
+#else
+#if CONFIG_SHELL_ASYNCLOG
+#include "bk_api_cli.h"
+#endif
 #endif
 
 #if (CONFIG_NTP_SYNC_RTC)
@@ -142,6 +146,10 @@ static int app_cli_init(void)
 {
 #if ((CONFIG_FREERTOS) || (CONFIG_LITEOS_M) || (CONFIG_LITEOS_M_V3)) && (CONFIG_CLI)
 #if !CONFIG_FULLY_HOSTED
+	bk_cli_init();
+#endif
+#else
+#if CONFIG_SHELL_ASYNCLOG
 	bk_cli_init();
 #endif
 #endif

@@ -26,6 +26,16 @@ bk_err_t gpio_hal_init(gpio_hal_t *hal)
 	return BK_OK;
 }
 
+void gpio_hal_set_value(gpio_hal_t *hal, gpio_id_t id, uint32_t v)
+{
+	gpio_ll_set_value(hal->hw, id, v);
+}
+
+uint32_t gpio_hal_get_value(gpio_hal_t *hal, gpio_id_t id)
+{
+	return gpio_ll_get_value(hal->hw, id);
+}
+
 bk_err_t gpio_hal_disable_jtag_mode(gpio_hal_t *hal)
 {
 	return BK_OK;

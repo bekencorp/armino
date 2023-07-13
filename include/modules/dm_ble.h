@@ -353,6 +353,18 @@ ble_err_t bk_ble_gatt_get_char_val(GATT_DB_HANDLE *handle, ATT_VALUE *attr_value
  */
 ble_err_t bk_ble_set_random_addr(bd_addr_t *addr, ble_cmd_cb_t callback);
 
+
+/**
+  @brief     update connection param, result as BK_DM_BLE_EVENT_CONN_UPDATA
+  @param conn_param: ble_update_conn_param_t
+  @attention 1.you must wait callback status, 0 mean success.
+  @attention 2.you don't need to wait BK_DM_BLE_EVENT_CONN_UPDATA because it is an aysnc procedure.
+  @return
+     - BK_ERR_BLE_SUCCESS: succeed
+     - others: other errors.
+ */
+ble_err_t bk_ble_update_connection_params(ble_update_conn_param_t *conn_param);
+
 /*
  * @}
  */

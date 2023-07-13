@@ -29,6 +29,8 @@
 #include "bk_api_cli.h"
 #include "boot.h"
 
+#define TAG    "debug"
+
 static void debug_help_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 #if 0
@@ -55,7 +57,7 @@ static void debug_show_boot_time(char *pcWriteBuffer, int xWriteBufferLen, int a
 const struct cli_command debug_cmds[] = {
 	{"help", "list debug cmds", debug_help_command},
 #if 0
-	{"ipc", "ipc", debug_ipc_command},
+	{"ipc", "ipc [spinlock addr]", debug_ipc_command},
 	{"rpc", "rpc", debug_rpc_command},
 	{"gpio_out", "gpio_out gpio_id {0|1}", debug_rpc_gpio_command},
 	{"cpu_lock", "cpu_lock [timeout 1~20]", debug_cpulock_command},
@@ -120,12 +122,12 @@ static void debug_rpc_command(char *pcWriteBuffer, int xWriteBufferLen, int argc
 
 	if(rpc_inited)
 	{
-		os_printf("rpc started\r\n");
+		BK_LOGI(TAG,"rpc started\r\n");
 		return;
 	}
 
 	ret_val = rpc_init();
-	os_printf("rpc init: %d\r\n", ret_val);
+	sprintf(pcWriteBuffer,"rpc init: %d\r\n", ret_val);
 	rpc_inited = 1;
 
 #if CONFIG_MASTER_CORE
@@ -133,16 +135,16 @@ static void debug_rpc_command(char *pcWriteBuffer, int xWriteBufferLen, int argc
 	if(ipc_inited)
 	{
 		ret_val = ipc_send_test_cmd(0x12);
-		os_printf("ipc server test: ret=%d\r\n", ret_val);
+		BK_LOGI(TAG,"ipc server test: ret=%d\r\n", ret_val);
 
 		ret_val = ipc_send_get_ps_flag();
-		os_printf("ipc server ps: ret= 0x%x\r\n", ret_val);
+		BK_LOGI(TAG,"ipc server ps: ret= 0x%x\r\n", ret_val);
 
 		ret_val = ipc_send_get_heart_rate();
-		os_printf("ipc server hr: ret= 0x%x\r\n", ret_val);
+		BK_LOGI(TAG,"ipc server hr: ret= 0x%x\r\n", ret_val);
 
 		ret_val = ipc_send_set_heart_rate(0x33);
-		os_printf("ipc server set hr: ret= %d\r\n", ret_val);
+		BK_LOGI(TAG,"ipc server set hr: ret= %d\r\n", ret_val);
 	}
 
 #endif
@@ -155,26 +157,91 @@ static void debug_ipc_command(char *pcWriteBuffer, int xWriteBufferLen, int argc
 
 	if(ipc_inited)
 	{
-		os_printf("ipc started\r\n");
+		BK_LOGI(TAG,"ipc started\r\n");
 		return;
 	}
 
+#if CONFIG_SLAVE_CORE
+
+	if (argc < 2)
+	{
+		sprintf(pcWriteBuffer,"usage: ipc spinlock_addr\r\n");
+
+		return;
+	}
+
+#endif
+
 	ret_val = ipc_init();
-	os_printf("ipc init: %d\r\n", ret_val);
+	BK_LOGI(TAG,"ipc init: %d\r\n", ret_val);
+
 	ipc_inited = 1;
 
 #if CONFIG_SLAVE_CORE
 
 	ret_val = ipc_send_power_up();
-	os_printf("ipc client power: %d\r\n", ret_val);
+	BK_LOGI(TAG,"ipc client power: %d\r\n", ret_val);
 
 	ret_val = ipc_send_heart_beat(0x34);
-	os_printf("ipc client heartbeat: %d\r\n", ret_val);
+	BK_LOGI(TAG,"ipc client heartbeat: %d\r\n", ret_val);
 
 	ret_val = ipc_send_test_cmd(0x12);
-	os_printf("ipc client test: %d\r\n", ret_val);
+	BK_LOGI(TAG,"ipc client test: 0x%x\r\n", ret_val);
+
+	gpio_spinlock_ptr = (spinlock_t *)strtoul(argv[1], NULL, 0);
+	sprintf(pcWriteBuffer,"spinlock_addr: 0x%x\r\n", gpio_spinlock_ptr);
+
+#else
+
+	spinlock_init(&gpio_spinlock);
+	sprintf(pcWriteBuffer,"spinlock_addr: 0x%x\r\n", &gpio_spinlock);
 
 #endif
+}
+
+static void debug_spinlock_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	u32 timeout_second = 10;  // 10s
+
+	if(ipc_inited == 0)
+	{
+		BK_LOGI(TAG,"Failed: no rpc client/server in CPU0/CPU1.\r\n");
+		return;
+	}
+
+	if (argc > 1)
+	{
+		timeout_second = strtoul(argv[1], NULL, 0);
+
+		if(timeout_second > 20)
+			timeout_second = 20;
+		if(timeout_second == 0)
+			timeout_second = 10;
+	}
+
+	int i;
+
+	for(i = 0; i < 10; i++)
+	{
+		BK_LOGI(TAG,"times: %d\r\n", i);
+
+#if CONFIG_MASTER_CORE
+		spinlock_acquire(&gpio_spinlock);
+		BK_LOGI(TAG,"svr spinlock acquired %d\r\n", gpio_spinlock.locked);
+		rtos_delay_milliseconds(timeout_second * 1000);
+		spinlock_release(&gpio_spinlock);
+		BK_LOGI(TAG,"svr spinlock released %d\r\n", gpio_spinlock.locked);
+#endif
+
+#if CONFIG_SLAVE_CORE
+		spinlock_acquire(gpio_spinlock_ptr);
+		BK_LOGI(TAG,"client spinlock acquired %d\r\n", gpio_spinlock_ptr->locked);
+		rtos_delay_milliseconds(timeout_second * 1000);
+		spinlock_release(gpio_spinlock_ptr);
+		BK_LOGI(TAG,"client spinlock released %d\r\n", gpio_spinlock_ptr->locked);
+#endif
+
+	}
 }
 
 extern bk_err_t bk_gpio_enable_output_rpc(gpio_id_t gpio_id);
@@ -200,14 +267,14 @@ static void debug_rpc_gpio_command(char *pcWriteBuffer, int xWriteBufferLen, int
 	level   = strtoul(argv[2], NULL, 0);
 
 	ret_val = bk_gpio_enable_output_rpc(gpio_id);
-	os_printf("rpc gpio:ret=%d\r\n", ret_val);
+	BK_LOGI(TAG,"rpc gpio:ret=%d\r\n", ret_val);
 
 	if(level)
 		ret_val = bk_gpio_set_output_high_rpc(gpio_id);
 	else
 		ret_val = bk_gpio_set_output_low_rpc(gpio_id);
 
-	os_printf("rpc gpio:ret=%d\r\n", ret_val);
+	BK_LOGI(TAG,"rpc gpio:ret=%d\r\n", ret_val);
 
 #endif
 
@@ -219,7 +286,7 @@ static void debug_cpulock_command(char *pcWriteBuffer, int xWriteBufferLen, int 
 
 	if(ipc_inited == 0)
 	{
-		os_printf("Failed: no ipc client/server in CPU0/CPU1.\r\n");
+		BK_LOGI(TAG,"Failed: no ipc client/server in CPU0/CPU1.\r\n");
 		return;
 	}
 
@@ -235,27 +302,27 @@ static void debug_cpulock_command(char *pcWriteBuffer, int xWriteBufferLen, int 
 	else
 	{
 		print_debug_cmd_help(debug_cpulock_command);
-		os_printf("default timeout 10s is used.\r\n");
+		BK_LOGI(TAG,"default timeout 10s is used.\r\n");
 	}
 
 	int	ret_val = BK_FAIL;
 
 	ret_val = amp_res_init(AMP_RES_ID_GPIO);
-	os_printf("amp res init:ret=%d\r\n", ret_val);
+	BK_LOGI(TAG,"amp res init:ret=%d\r\n", ret_val);
 
 	ret_val = amp_res_acquire(AMP_RES_ID_GPIO, timeout_second * 1000);
-	os_printf("amp res acquire:ret=%d\r\n", ret_val);
+	BK_LOGI(TAG,"amp res acquire:ret=%d\r\n", ret_val);
 
 	rtos_delay_milliseconds(timeout_second * 1000);
 
 	if(ret_val == 0)
 	{
 		ret_val = amp_res_release(AMP_RES_ID_GPIO);
-		os_printf("amp res release:ret=%d\r\n", ret_val);
+		BK_LOGI(TAG,"amp res release:ret=%d\r\n", ret_val);
 	}
 	else
 	{
-		os_printf("amp res release: no release\r\n");
+		BK_LOGI(TAG,"amp res release: no release\r\n");
 	}
 
 }
@@ -281,8 +348,8 @@ static void debug_perfmon_command(char *pcWriteBuffer, int xWriteBufferLen, int 
 	u64 cur_time = riscv_get_mtimer();
 	u64 cur_inst_cnt = riscv_get_instruct_cnt();
 
-	os_printf("cur time: %x:%08x\r\n", (u32)(cur_time >> 32), (u32)(cur_time & 0xFFFFFFFF));
-	os_printf("cur inst_cnt: %x:%08x\r\n", (u32)(cur_inst_cnt >> 32), (u32)(cur_inst_cnt & 0xFFFFFFFF));
+	BK_LOGI(TAG,"cur time: %x:%08x\r\n", (u32)(cur_time >> 32), (u32)(cur_time & 0xFFFFFFFF));
+	BK_LOGI(TAG,"cur inst_cnt: %x:%08x\r\n", (u32)(cur_inst_cnt >> 32), (u32)(cur_inst_cnt & 0xFFFFFFFF));
 
 	saved_time = (cur_time - saved_time) / 26;
 	saved_inst_cnt = cur_inst_cnt - saved_inst_cnt;
@@ -290,7 +357,7 @@ static void debug_perfmon_command(char *pcWriteBuffer, int xWriteBufferLen, int 
 //	os_printf("elapse time(us): %x:%08x\r\n", (u32)(saved_time >> 32), (u32)(saved_time & 0xFFFFFFFF));
 //	os_printf("diff inst_cnt: %x:%08x\r\n", (u32)(saved_inst_cnt >> 32), (u32)(saved_inst_cnt & 0xFFFFFFFF));
 
-	os_printf("MIPS: %d KIPS\r\n", (u32)(saved_inst_cnt * 1000 / saved_time));
+	sprintf(pcWriteBuffer,"MIPS: %d KIPS\r\n", (u32)(saved_inst_cnt * 1000 / saved_time));
 
 	saved_time = cur_time;
 	saved_inst_cnt = cur_inst_cnt;
@@ -302,9 +369,9 @@ static void debug_show_boot_time(char *pcWriteBuffer, int xWriteBufferLen, int a
 	u64 cur_time = riscv_get_mtimer();
 	u64 cur_inst_cnt = riscv_get_instruct_cnt();
 
-	BK_LOGI("debug","cur time: %x:%08x\r\n", (u32)(cur_time >> 32), (u32)(cur_time & 0xFFFFFFFF));
-	BK_LOGI("debug","cur time: %ldms\r\n", (u32)(cur_time/26000));
-	BK_LOGI("debug","cur inst_cnt: %x:%08x\r\n", (u32)(cur_inst_cnt >> 32), (u32)(cur_inst_cnt & 0xFFFFFFFF));
+	BK_LOGI(TAG,"cur time: %x:%08x\r\n", (u32)(cur_time >> 32), (u32)(cur_time & 0xFFFFFFFF));
+	BK_LOGI(TAG,"cur time: %ldms\r\n", (u32)(cur_time/26000));
+	BK_LOGI(TAG,"cur inst_cnt: %x:%08x\r\n", (u32)(cur_inst_cnt >> 32), (u32)(cur_inst_cnt & 0xFFFFFFFF));
 
 #if	CONFIG_SAVE_BOOT_TIME_POINT
 	show_saved_mtime_info();

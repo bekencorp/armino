@@ -8,3 +8,4 @@ bluetooth
 
    ble_boarding <ble_boarding_demo>
    DUT <dut>
+   BLE throughput <ble_throughput>

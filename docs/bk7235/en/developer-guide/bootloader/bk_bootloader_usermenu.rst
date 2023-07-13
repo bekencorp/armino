@@ -118,17 +118,50 @@ l_bootloader: mainly downloads uart. Figure 2 shows the flowchart.
 - 3. Use the serial port to send the cli command, for example:
   http_ota http://192.168.21.101/D%3A/E/build/app.rbl
 
-八. Compile priority of bootloader.bin file in the project
+八. Compatible with bootloader and no OTA requirement
+--------------------------------------------------------
+
+- Make the download partition adaptable for compatibility with customers who do not need OTA functionality (delete the downlaod partition to achieve the requirement of no OTA function)
+
+- Use tools/env_tools/rt_partition_tool/rt_partition_tool.exe to modify the partition table where the new bootloader is inserted.
+
+  - Open the rt_partition_tool.exe tool
+
+  - Take bk7256 as an example, load middleware/boards/bk7256 / bootloader. Bin (if no partition table in the bootloader will prompt will add import partition table)
+
+  - Export the partition table as a bootloader_orign.json file as shown in Figure 7.
+
+  - Modify the bootloader_orign.json file, delete the download partition, and generate the bootloader_update.json file as shown in Figure 8
+
+  - Import the bootloader_update.json file and save it to the bootloader
+
+  - Put the generated bootloader.bin into the middleware/boards/bk7256 directory
+
+ .. figure:: ../../../_static/bootloader_orign.png
+    :align: center
+    :alt: bootloader_orign
+    :figclass: align-center
+
+    Figure 7 bootloader_orign.json
+
+ .. figure:: ../../../_static/bootloader_update.png
+    :align: center
+    :alt: bootloader_update
+    :figclass: align-center
+
+    Figure 8 bootloader_update.json
+
+九. Compile priority of bootloader.bin file in the project
 -------------------------------------------------------------
 
-- The bootloader.bin file in the projects directory overrides the default bootloader.bin file in the middleware/boards directory.
+- When compiling, if there is a bootloader.bin file in the projects directory file, the bootloader.bin file in the projects directory file will be overwritten by using the middleware/boards directory; If there is no bootloader.bin file in the projects directory file,Use the bootloader.bin file in the middleware/boards directory.
 
 - case1: for example: for projects/customization/bk7256_config1
 
-  When modifying the bootloader.bin files in projects/customization/bk7256_config1 directory, compile bk7256_config1 project, Priority will be compiled, packaging projects/customization/bk7256_config1 /bootloader.bin, rather than middleware/boards/bk7256/bootloader.bin file.
+  When modifying the bootloader. Bin files in projects/customization/bk7256_config1 directory, compile bk7256_config1 project, Priority will be compiled, packaging projects/customization/bk7256_config1 /bootloader.bin, rather than middleware/boards/bk7256/bootloader.bin file.
 
-- case2: for example: For projects/customization/bk7256_config3
+- case2: for example: for projects/customization/bk7256_config3
 
-  When the projects/customization/bk7256_config3 without bootloader.bin file, compile bk7256_config3 project, Priority will be compiled and packaged middleware/boards/bk7256/bootloader.bin file.
+  When the projects/customization/bk7256_config3 without the bootloader.bin file, compile bk7256_config3 project, Priority will be compiled and packaged middleware/boards/bk7256/bootloader.bin file.
 
 

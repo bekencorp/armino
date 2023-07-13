@@ -63,3 +63,27 @@ int bk_feature_fast_dhcp_enable(void);
  */
 int bk_feature_temp_detect_enable(void);
 
+/**
+ * @brief     Interface for customer to Enable/Disable lvgl use psram functionality
+ *
+ * @attention 1 Controled by middleware/soc/bk72xx.defconfig
+ *
+ * @return
+ *    - 1: enable
+ *    - 0: disable
+ */
+int bk_feature_lvgl_use_psram_enable(void);
+
+/**
+ * @brief     Interface for customer to Enable/Disable lvgl use direct mode functionality
+ *
+ * @attention 1 Controled by middleware/soc/bk72xx.defconfig
+ * @attention 2 The macro only takes effect if the LVGL use psram
+ *
+ * @return
+ *    - 1: enable
+ *    - 0: disable
+ */
+int bk_feature_lvgl_use_direct_mode_enable(void);
+
+

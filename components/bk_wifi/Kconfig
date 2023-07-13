@@ -8,6 +8,7 @@ menu "Bk_Wifi"
 			enable wifi
 
 	config WIFI6_CODE_STACK
+		depends on WIFI_ENABLE
 		bool "Enable Wifi6 Code Stack"
 		default n
 		help
@@ -15,7 +16,7 @@ menu "Bk_Wifi"
 
 	config WIFI6
 		bool "Enable Wifi6"
-		depends on WIFI6_CODE_STACK
+		depends on WIFI6_CODE_STACK && WIFI_ENABLE
 		default n
 
 	config WIFI4
@@ -59,6 +60,7 @@ menu "Bk_Wifi"
 		default n
 
 	config BSSID_CONNECT
+		depends on WIFI_ENABLE
 		bool "Enable Bssid Connect"
 		default n
 		help
@@ -90,6 +92,7 @@ menu "Bk_Wifi"
 		default n if RF_OTA_TEST
 
 	config MAC_BSSID
+		depends on WIFI_ENABLE
 		bool "Enable Mac Bssid"
 		default n
 

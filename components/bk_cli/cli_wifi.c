@@ -1500,6 +1500,41 @@ error:
 	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 	return;
 }
+
+void cli_wifi_ps_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	uint8_t ps_id = 0;
+	uint8_t ps_val = 0;
+	int ret = 0;
+	char *msg = NULL;
+
+	if (os_strcmp(argv[1], "open") == 0) {
+		ps_id = 0;
+	} else if (os_strcmp(argv[1], "close") == 0) {
+		ps_id = 1;
+	} else if (os_strcmp(argv[1], "debug_pf") == 0) {
+		ps_id = 2;
+		ps_val = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
+	} else {
+		CLI_LOGI("invalid ps paramter\n");
+		goto error;
+	}
+
+	bk_wifi_ps_config(ps_id, ps_val);
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+error:
+	CLI_LOGI("ps {open|close|debug_pf|state|}\n");
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
+
+}
+
 void cli_wifi_capa_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv) {
 	uint32_t capa_id = 0;
 	uint32_t capa_val = 0;
@@ -1657,7 +1692,7 @@ static const struct cli_command s_wifi_commands[] = {
 	{"iplog", "iplog [modle][type]", cli_wifi_iplog_cmd},
 	{"ipdbg", "ipdbg [function][value]", cli_wifi_ipdbg_cmd},
 	{"mem_apply", "mem_apply [module][value]", cli_wifi_mem_apply_cmd},
-
+	{"ps","ps enable and debug info config", cli_wifi_ps_cmd},
 
 #ifdef CONFIG_WPA_TWT_TEST
 	{"twt", "twt {setup|teardown}", cli_wifi_twt_cmd},

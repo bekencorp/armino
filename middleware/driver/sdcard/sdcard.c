@@ -2,7 +2,7 @@
 #include "sys_rtos.h"
 #include <common/bk_kernel_err.h>
 
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 #include "sdio_driver.h"
 #include <os/os.h>
 #include "sys_rtos.h"
@@ -210,7 +210,7 @@ static void sdio_hw_init(void)
 	sys_drv_set_qspi_vddram_voltage(param);
 #endif
 
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 	if(sdcard_check_inserted() == false)
 		return;
 #endif
@@ -995,7 +995,7 @@ sdcard_read_single_block(UINT8 *readbuff, UINT32 readaddr, UINT32 blocksize)
 #if CONFIG_SOC_BK7256
 
 #else
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 	if(sdcard_check_inserted() == false)
 		return SD_ERROR;
 #endif
@@ -1047,7 +1047,7 @@ static void sd_read_data_init(void)
 #if CONFIG_SOC_BK7256XX
 
 #else
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 	if(sdcard_check_inserted() == false)
 		return;
 #endif
@@ -1253,7 +1253,7 @@ SDIO_Error sdcard_read_multi_block(UINT8 *read_buff, int first_block, int block_
 #if CONFIG_SOC_BK7256
 
 #else
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 	if(sdcard_check_inserted() == false)
 		return SD_ERROR;
 #endif
@@ -1343,7 +1343,7 @@ SDIO_Error sdcard_write_single_block(UINT8 *writebuff, UINT32 writeaddr)
 #if CONFIG_SOC_BK7256XX
 
 #else
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 	if(sdcard_check_inserted() == false)
 		return SD_ERROR;
 #endif
@@ -1445,7 +1445,7 @@ static SDIO_Error sdcard_cmd25_process(UINT32 block_addr)
 #if CONFIG_SOC_BK7256XX
 
 #else
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 	if(sdcard_check_inserted() == false)
 		return SD_ERROR;
 #endif
@@ -1637,7 +1637,7 @@ static SDIO_Error sdcard_send_write_stop(int err)
 #if CONFIG_SOC_BK7256XX
 
 #else
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 		if(sdcard_check_inserted() == false)
 			return SD_ERROR;
 #endif
@@ -1746,7 +1746,7 @@ SDIO_Error sdcard_write_multi_block(UINT8 *write_buff, UINT32 first_block, UINT3
 #if CONFIG_SOC_BK7256
 
 #else
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 	if(sdcard_check_inserted() == false)
 		return SD_ERROR;
 #endif
@@ -1883,7 +1883,7 @@ SDIO_Error sdcard_write_multi_block(UINT8 *write_buff, UINT32 first_block, UINT3
 #if CONFIG_SOC_BK7256XX
 
 #else
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 	if(sdcard_check_inserted() == false)
 		return SD_ERROR;
 #endif
@@ -1894,7 +1894,7 @@ sndcmd12:
 	if (ret != SD_OK)
 		SDCARD_FATAL("===write err:%x,%x,%x====\r\n", first_block, ret, cmd.err);
 #if 0
-#if CONFIG_SDCARD_HOST
+#if CONFIG_SDCARD
 	if(sdcard_check_inserted() == false)
 		return SD_ERROR;
 #endif
@@ -2066,5 +2066,5 @@ void sdcard_register_ps_resume_callback(sdcard_ps_callback_t ps_resume_cb)
 	s_sdcard_ps_resume_cb = ps_resume_cb;
 }
 
-#endif  // CONFIG_SDCARD_HOST
+#endif  // CONFIG_SDCARD
 // EOF

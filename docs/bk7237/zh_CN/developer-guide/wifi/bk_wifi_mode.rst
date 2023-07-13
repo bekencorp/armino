@@ -64,7 +64,9 @@ BEKEN在V1的基础上,通过定制化客户需求,完成第二版命令的适�
 
 Wi-Fi AP模式
 ++++++++++++++++++++++++++++++++++++++++++++++++++
-AP模式V1版入口函数是 ``cmd_wlan_ap_exec`` ,代码路径同STA模式,主要配置参数有SSID和密码:
+普通SoftAP模式
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+普通AP模式V1版入口函数是 ``cmd_wlan_ap_exec`` ,代码路径同STA模式,主要配置参数有SSID和密码:
 ::
 
      net ap set <field> <value>
@@ -89,6 +91,13 @@ V2版本AP模式入口函数 ``cli_wifi_ap_cmd`` ,代码路径: ``components\bk_
 
      cmd example:
      ap BEKEN_TEST 12345678
+
+隐藏SoftAP模式
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+函数 ``cli_wifi_hidden_ap_cmd`` 设计了隐藏SoftAP的功能,客户需配置ap_config.hidden=true;设置成功后,扫描列表无法发现设定AP,需要手动添加.命令行具体用法可以参考:
+::
+
+     start_hidden_softap SSID Password
 
 .. Note:: BEKEN Wi-Fi支持AP+STA共存
 

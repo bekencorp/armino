@@ -108,16 +108,7 @@ uint8_t g_wifi_current_level = WIFI_LEVEL_MAX;
 static int g_lcd_display_logo_first = 0;
 static short g_lcd_width = 0;
 static short g_lcd_height = 0;
-#if CONFIG_BLEND_USE_GUI
-static short g_cammer_width = 0;
-static short g_blend_x_size = 0;
-static short g_blend_y_size = 0;
-static short g_blend_hor_align = 0;
-static short g_blend_ver_offset = 0;
-static beken_mutex_t g_disp_mutex_blend;
-static int g_gui_blend_switch = BK_FALSE;
-lcd_blend_t g_lcd_blend_data;
-#endif
+
 
 static char *frame_suffix(pixel_format_t fmt)
 {
@@ -688,58 +679,6 @@ out:
 
 }
 
-#if CONFIG_LVGL && CONFIG_BLEND_USE_GUI
-bk_err_t media_app_lcd_set_pos(int hor_pos, int ver_offset)
-{
-    if(hor_pos >= 0 && hor_pos <= 2)
-        g_blend_hor_align = hor_pos;
-
-    if(ver_offset < (g_lcd_height - g_blend_y_size))
-        g_blend_ver_offset = ver_offset;
-
-    bk_printf("g_blend_hor_align:%d, g_blend_ver_offset:%d\r\n", g_blend_hor_align, g_blend_ver_offset);
-    return kNoErr;
-}
-
-bk_err_t media_app_lcd_gui_blend_open(int blend_x_size, int blend_y_size)
-{
-    //if(g_lcd_with_gui)
-    {
-        bk_printf("[%s][%d] you should close gui first: media lcd close\r\n", __FUNCTION__, __LINE__);
-        return kGeneralErr;
-    }
-
-    if(g_lcd_width> 0 && blend_x_size > g_lcd_width)
-    {
-        bk_printf("[%s][%d] blend_x_size %d is two big, should <= lcd width \r\n", 
-                                                            __FUNCTION__, __LINE__, blend_x_size);
-        return kGeneralErr;
-    }
-
-    rtos_init_mutex(&g_disp_mutex_blend);
-    g_blend_x_size = blend_x_size;
-    g_blend_y_size = blend_y_size;
-    bk_err_t bk_psram_init(void);
-    bk_psram_init();
-    bk_gui_disp_task_init(blend_x_size, blend_y_size, BK_TRUE);
-    g_gui_blend_switch = BK_TRUE;
-    
-    return kNoErr;
-}
-
-bk_err_t media_app_lcd_gui_blend_close(void)
-{
-    g_gui_blend_switch = BK_FALSE;
-
-    bk_gui_disp_task_deinit();
-    rtos_deinit_mutex(&g_disp_mutex_blend);
-
-    os_memset(&g_lcd_blend_data, 0, sizeof(g_lcd_blend_data));
-
-    return kNoErr;
-}
-#endif
-
 #if (CONFIG_IMAGE_STORAGE)
 extern storage_flash_t storge_flash;
 #endif
@@ -938,52 +877,6 @@ void lcd_display_beken_logo_handle(param_pak_t *param)
 out:
 
 	MEDIA_EVT_RETURN(param, ret);
-}
-
-void lcd_driver_set_blend_data(uint8_t *gui_addr, uint32 xsize, uint32 ysize, uint32 color_size)
-{
-#if CONFIG_BLEND_USE_GUI
-    u8 *gui_bak_addr = NULL;
-
-    if(g_gui_blend_switch == BK_TRUE)
-    {
-        rtos_lock_mutex(&g_disp_mutex_blend);
-        void lv_get_gui_blend_buff(u8 **yuv_data, u8 **rgb565_data, u8 **gui_bak_data);
-        void dma2d_memcpy_psram(void *Psrc, void *Pdst, uint32_t xsize, uint32_t ysize, uint32_t src_offline, uint32_t dest_offline);
-
-        lv_get_gui_blend_buff(NULL, NULL, &gui_bak_addr);
-        if(g_cammer_width < xsize)   //eg:lcd:800*480 camera:640*480  blend:700*480
-        {
-            if(color_size == 2)
-                dma2d_memcpy_psram(gui_addr, gui_bak_addr, g_cammer_width, ysize, (xsize-g_cammer_width), 0);
-            else if(color_size == 4)
-                dma2d_memcpy_psram(gui_addr, gui_bak_addr, g_cammer_width*2, ysize, (xsize-g_cammer_width)*2, 0);
-            //os_memcpy_word((uint32_t*)gui_bak_addr, (const uint32_t *)gui_addr, xsize*ysize*color_size);
-            g_lcd_blend_data.xsize = g_cammer_width;
-        }
-        else
-        {
-            if(color_size == 2)
-                dma2d_memcpy_psram(gui_addr, gui_bak_addr, xsize, ysize, 0, 0);
-            else
-                dma2d_memcpy_psram(gui_addr, gui_bak_addr, xsize*2, ysize, 0, 0);
-            //os_memcpy_word((uint32_t*)gui_bak_addr, (const uint32_t *)gui_addr, xsize*ysize*color_size*2);
-            g_lcd_blend_data.xsize = xsize;
-        }
-        
-        g_lcd_blend_data.pfg_addr = (uint8_t *)gui_bak_addr;
-        
-        g_lcd_blend_data.fg_offline = 0;
-        g_lcd_blend_data.ysize = ysize;
-        g_lcd_blend_data.fg_alpha_value = 255;
-#if !CONFIG_BLEND_GUI_OUTPUT_888
-        g_lcd_blend_data.fg_data_format = RGB565;
-#else
-        g_lcd_blend_data.fg_data_format = ARGB8888;
-#endif
-        rtos_unlock_mutex(&g_disp_mutex_blend);
-    }
-#endif
 }
 
 bk_err_t lcd_blend_handle(frame_buffer_t *frame)

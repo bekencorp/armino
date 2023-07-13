@@ -633,6 +633,7 @@ bk_err_t ipc_send_available_ind(u16 resource_id)
 #if CONFIG_MASTER_CORE
 
 /**    ============================      IPC server    ============================   **/
+#include "spinlock.h"
 
 static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf)
 {

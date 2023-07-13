@@ -10,6 +10,7 @@ menu "App"
 		default n
 
 	config OTA_HTTP
+		depends on WIFI_ENABLE
 		bool "Enable Ota Http"
 		default y if NO_HOSTED
 		default n if !NO_HOSTED
@@ -20,17 +21,18 @@ menu "App"
 		default n
 
 	config USE_APP_DEMO_VIDEO_TRANSSER
+		depends on WIFI_ENABLE
 		depends on CAMERA
 		bool "Enable Use App Demo Video Transser"
 		default n
 
 	config APP_DEMO_VIDEO_TRANSFER
-		depends on CAMERA
+		depends on CAMERA && WIFI_ENABLE
 		bool "Enable App Demo Video Transser"
 		default n
 
 	config NET_WORK_VIDEO_TRANSFER
-		depends on CAMERA
+		depends on CAMERA && WIFI_ENABLE
 		bool "Enable Net Work Video Transser"
 		default n
 

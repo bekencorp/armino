@@ -1396,15 +1396,14 @@ static unsigned inflateHuffmanBlock(ucvector* out, LodePNGBitReader* reader,
   HuffmanTree tree_ll; /*the huffman tree for literal and length codes*/
   HuffmanTree tree_d; /*the huffman tree for distance codes*/
 
-  unsigned char *sram_buffer = lodepng_malloc(LAST_LENGTH_CODE_INDEX);
+#if LV_PNG_USE_PSRAM
+  unsigned char *tmp1 = NULL;
+  unsigned char *tmp2 = NULL;
+  unsigned char *sram_buffer = lodepng_malloc(1024);
   if (sram_buffer == NULL) {
     os_printf("inflateHuffmanBlock sram buffer malloc fail\n");
     return 83;
   }
-
-#if LV_PNG_USE_PSRAM
-  unsigned char *tmp1 = NULL;
-  unsigned char *tmp2 = NULL;
 #endif
 
   HuffmanTree_init(&tree_ll);
@@ -1518,7 +1517,9 @@ static unsigned inflateHuffmanBlock(ucvector* out, LodePNGBitReader* reader,
   HuffmanTree_cleanup(&tree_ll);
   HuffmanTree_cleanup(&tree_d);
 
+#if LV_PNG_USE_PSRAM
   lodepng_free(sram_buffer);
+#endif
 
   return error;
 }

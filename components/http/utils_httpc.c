@@ -1273,7 +1273,7 @@ int httpclient_common(httpclient_t *client, const char *url, int port, const cha
 			httpclient_close(client);
 		}
 
-		ret = (ret >= 0) ? 0 : -1;
+		ret = (ret >= 0)? 0 : -1;
 	} while(0);
 
 	if (NULL != host) {

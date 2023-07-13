@@ -23,10 +23,10 @@ extern void lv_example_meter_exit(void);
 
 const lcd_open_t lcd_open =
 {
-	//.device_ppi = PPI_800X480,
-	//.device_name = "h050iwv",
-	.device_ppi = PPI_480X800,
-	.device_name = "st7710s",
+	.device_ppi = PPI_800X480,
+	.device_name = "h050iwv",
+	// .device_ppi = PPI_480X800,
+	// .device_name = "st7710s",
 };
 
 
@@ -116,13 +116,13 @@ void lvcamera_main_init(void)
 	lv_vnd_config.draw_buf_2_2 = NULL;
 #endif
 	lv_vnd_config.rotation = ROTATE_NONE;
+	lv_vnd_config.color_depth = LV_COLOR_DEPTH;
 
 #if (CONFIG_TP)
 	drv_tp_open(ppi_to_pixel_x(lcd_open.device_ppi), ppi_to_pixel_y(lcd_open.device_ppi));
 #endif
 
 	lv_vendor_init(&lv_vnd_config, ppi_to_pixel_x(lcd_open.device_ppi), ppi_to_pixel_y(lcd_open.device_ppi));
-	media_app_lcd_rotate(BK_TRUE);
 	ret = media_app_lcd_open((lcd_open_t *)&lcd_open);
 	lv_vendor_start();
 

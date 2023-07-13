@@ -99,20 +99,6 @@ typedef struct
     uint16_t *maximum_ce_length;
 } ble_conn_param_ex_t;
 
-/**
-    @brief use in ble connection
- */
-typedef struct
-{
-    uint8_t    peer_address_type;
-    bd_addr_t  peer_address;
-    uint16_t conn_interval_min;
-    uint16_t conn_interval_max;
-    uint16_t conn_latency;
-    uint16_t supervision_timeout;
-    uint16_t minimum_ce_length;
-    uint16_t maximum_ce_length;
-} ble_update_conn_param_t;
 
 /**
     @brief use in BLE_5_REPORT_ADV

@@ -128,7 +128,7 @@ ble_err_t bk_ble_read_local_addr(ble_cmd_cb_t callback);
 void bk_ble_bt_gatt_db_get_char_val_hndl(GATT_DB_HANDLE *gdbh, ATT_ATTR_HANDLE *attr_handle);
 
 ble_err_t bk_ble_cancel_connect(ble_cmd_cb_t callback);
-ble_err_t bk_ble_update_connection_params(ble_update_conn_param_t *conn_param, ble_cmd_cb_t callback);
+
 ble_err_t bk_ble_set_gatt_mtu(uint8_t conn_handle, uint16_t mtu);
 
 ATT_ATTR_HANDLE bk_ble_get_current_gatt_db_attr_handle(void);

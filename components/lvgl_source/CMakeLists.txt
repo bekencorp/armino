@@ -39,6 +39,7 @@ set(srcs
 	src/draw/lv_img_decoder.c
 	src/draw/sw/lv_draw_sw.c
 	src/draw/sw/lv_draw_sw_arc.c
+	src/draw/sw/lv_draw_sw_blend.c
 	src/draw/sw/lv_draw_sw_dither.c
 	src/draw/sw/lv_draw_sw_gradient.c
 	src/draw/sw/lv_draw_sw_img.c

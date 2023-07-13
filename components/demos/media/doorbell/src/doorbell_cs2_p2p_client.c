@@ -95,6 +95,7 @@ static int doorbell_cs2_p2p_client_send_video_packet(uint8_t *data, uint32_t len
     {
         return len;
     }
+
     s_send_video_count++;
 
     tmp->magic_head = MAGIC_HEAD;
@@ -138,7 +139,16 @@ static int doorbell_cs2_p2p_client_send_video_packet(uint8_t *data, uint32_t len
 
         if (index < len + sizeof(*tmp))
         {
-            //            LOGI("%s delay %d %d\n", __func__, index, len + sizeof(*tmp));
+            //            LOGE("%s delay %d %d 0x%02X%02X%02X%02X%02X%02X%02X%02X\n", __func__, index, len + sizeof(*tmp),
+            //                                data[0],
+            //                                data[1],
+            //                                data[2],
+            //                                data[3],
+            //                                data[4],
+            //                                data[5],
+            //                                data[6],
+            //                                data[7]);
+
             rtos_delay_milliseconds(CS2_P2P_TRANSFER_DELAY);
         }
 
@@ -174,7 +184,6 @@ static int doorbell_cs2_p2p_client_send_video_packet(uint8_t *data, uint32_t len
 
 static int av_cs2_p2p_voice_client_send_packet(unsigned char *data, unsigned int len)
 {
-
     int send_byte = 0;
     uint32_t index = 0;
 
@@ -189,7 +198,7 @@ static int av_cs2_p2p_voice_client_send_packet(unsigned char *data, unsigned int
 
     do
     {
-        send_byte = cs2_p2p_send_raw(CS2_P2P_CHANNEL_VOICE, data, len - index);
+        send_byte = cs2_p2p_send_raw(CS2_P2P_CHANNEL_VOICE, data + index, len - index);
 
 
         if (send_byte < 0)

@@ -1,6 +1,7 @@
 menu "Bk_netif"
 
 	config BK_NETIF
+		depends on WIFI_ENABLE
 		bool "Enable Bk Netif" 
 		default y
 

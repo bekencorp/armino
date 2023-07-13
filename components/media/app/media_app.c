@@ -87,13 +87,18 @@ bk_err_t media_send_msg_sync(uint32_t event, uint32_t param)
 
 	ret = param_pak->ret;
 
-	rtos_deinit_semaphore(&param_pak->sem);
 
 out:
 
 	if (param_pak)
 	{
+		if (param_pak->sem)
+		{
+			rtos_deinit_semaphore(&param_pak->sem);
+			param_pak->sem = NULL;
+		}
 		os_free(param_pak);
+		param_pak = NULL;
 	}
 
 	return ret;

@@ -5,7 +5,8 @@ Aud_Intf APIs
 
 .. important::
 
-   The Aud_Intf API v1.0 is the lastest and stable Audio interface APIs. All new applications should use Audio interface API v1.0.
+	The Aud_Intf API v1.0 is the lastest and stable Audio interface APIs. All new applications should use Audio interface API v1.0.
+	And all Aud_Intf API cannot be called in mic and speaker callback registed in  `bk_aud_intf_drv_init` .
 
 Audio Interface
 ----------------------------

@@ -1,4 +1,9 @@
 menu "SDCARD"
+	config SDCARD
+		bool "Enable SDCARD"
+		default y if (USB && USB_DEVICE)
+		default n if !(USB && USB_DEVICE)
+
 	config SDCARD_DEFAULT_CLOCK_FREQ
 		int "sd card default clock freq"
 		default 9
@@ -14,4 +19,12 @@ menu "SDCARD"
 			int "Detect whether to connect the GPIO ID of the sdcard"
 			default 0
 	endmenu
+
+	config SDCARD_BUSWIDTH_4LINE
+		bool "Support SDCARD 4 Data Wires"
+		default n
+
+	config SDCARD_POWER_GPIO_CTRL
+		bool "Enable SDcard power gpio ctrl"
+		default n
 endmenu

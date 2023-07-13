@@ -50,10 +50,6 @@ static void timer_cb(struct _lv_timer_t *arg)
  */
 void lv_example_meter(void)
 {
-	void bk_gui_set_dma2d_swith(int onoff);
-
-	bk_gui_set_dma2d_swith(0);
-
 	lv_vendor_disp_lock();
 
 	lv_disp_set_bg_color(lv_disp_get_default(), lv_color_white());

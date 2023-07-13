@@ -99,13 +99,15 @@ Armino Wi-Fi Failure Reason Code
 
 Armino Wi-Fi MAC Address Configuration
 -------------------------------------------------------
-The configuration of Wi-Fi MAC address is in ``bk_system/mac.c``, it contains base_mac、sta_mac、ap_mac. The ways to configure MAC address is as following:
+The configuration of Wi-Fi MAC address is in ``bk_system\mac.c``,it contains base_mac、sta_mac、ap_mac.The overall architecture of BEKEN Wi-Fi MAC address is as follows:
 
-- Write through EFUSE
-- Random generation. This function should enable macro ``CONFIG_RANDOM_MAC_ADDR`` in ``bk72xx.defconfig``
-- MAC address configuration tool: bk_writer_Vxx
-- function ``bk_check_mac_address`` used to validate the setting of MAC address, users can disable it if no need
-- use command ``mac`` for temporary test
+- It contains three functional macros:CONFIG_NEW_MAC_POLICY、CONFIG_RANDOM_MAC_ADDR、CONFIG_BK_MAC_ADDR_CHECK,all of them are configured to yes by default
+- CONFIG_NEW_MAC_POLICY defines the MAC address are stored in the first 6 bytes of Net_param partition(3ff000);if this area is empty,use a random MAC address
+- When first 6 bytes of Net_param are empty and CONFIG_RANDOM_MAC_ADDR is enabled,the MAC address is randomly generated then will be stored in Net_param partition.Certainly,the MAC address generated randomly will follow BEKEN MAC address rules: C8:47:8C
+- CONFIG_BK_MAC_ADDR_CHECK is used to determine whether the MAC address configured by the customer complies with the BEKEN rule C8:47:8C .If not required,set it to N in the defconfig file
+- All above three macro definitions are located in ``middleware\soc\bk7235\bk7235.defconfig`` ,with default values of y
+- Using the MAC Address Configuration Tool: bk_writer writes the MAC address to flash.If the flash is fully erased,it will cause the MAC address to be lost,resulting in the use of random MAC address
+- use command ``mac`` for temporary test,the example is as follows:
 
 ::
 

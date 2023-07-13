@@ -6,6 +6,8 @@ menu "Media"
 		help
 			Enable media service
 	config WIFI_TRANSFER
+
+		depends on MEDIA && WIFI_ENABLE
 		bool "Enable Wifi Transfer"
 		default n
 	config LVGL

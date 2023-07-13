@@ -8,6 +8,7 @@ menu "Lwip_intf_v2_0"
 			Statistics mobile connect sap time
 
 	config LWIP
+		depends on WIFI_ENABLE
 		bool "Enable Lwip"
 		default y
 

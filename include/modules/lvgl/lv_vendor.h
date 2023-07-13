@@ -17,6 +17,7 @@ typedef struct {
 	lv_color_t *draw_buf_2_1;
 	lv_color_t *draw_buf_2_2;
 	media_rotate_t rotation;
+	uint8_t color_depth;
 } lv_vnd_config_t;
 
 #define LV_NOTIFY_TIMER_DURATION       10

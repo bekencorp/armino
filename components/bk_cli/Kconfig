@@ -25,7 +25,7 @@ menu "Cli"
 		default 255
 
 	config IPERF_TEST
-		depends on CLI
+		depends on CLI && WIFI_ENABLE
 		bool "Enable Iperf Test"
 		default y
 
@@ -81,9 +81,11 @@ menu "Cli"
 		default n
 
 	config SHELL_ASYNCLOG
-		depends on CLI
-		bool "Enable Shell and Async log optimize"
+
+		bool "Enable Shell Asynclog"
 		default n
+		help
+			Enable Shell and Async log optimize
 
 	config TOUCH_TEST
 		depends on CLI

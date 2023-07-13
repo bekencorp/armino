@@ -1445,19 +1445,20 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 #endif
 #endif
 	}
-	if (s_lcd.decoder_frame == NULL)
-	{
-		media_debug->err_dec++;
-
-		LOGD("%s decoder failed\n", __func__);
-		ret = BK_FAIL;
-		goto out;
-	}
-
-	dec_frame = s_lcd.decoder_frame;
-	s_lcd.decoder_frame = NULL;
 
 out:
+
+    if (s_lcd.decoder_frame == NULL)
+    {
+        media_debug->err_dec++;
+        LOGD("%s decoder failed\n", __func__);
+        ret = BK_FAIL;
+    }
+    else
+    {
+        dec_frame = s_lcd.decoder_frame;
+        s_lcd.decoder_frame = NULL;
+    }
 
 	rtos_unlock_mutex(&s_lcd.dec_lock);
 #if CONFIG_ARCH_RISCV
@@ -1902,97 +1903,7 @@ extern void lcd_storage_capture_save(char * capture_name, uint8_t *addr, uint32_
 
 bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend)
 {
-#if CONFIG_BLEND_USE_GUI
-#define BLEND_DATA_MAX_ROW   2
-    uint8_t *tmp_yuv_data = NULL;
-    uint8_t *tmp_rgb565_data = NULL;
-    uint8_t *tmp_blend_data = NULL;
-    int tmp_blend_data_size = 0;
-    int y = 0;
-    int blend_y_size = 0;
-    dma2d_blend_t dma2d_config;
-    int addr_offset = 0;
-
-    void lv_get_gui_blend_buff(u8 **yuv_data, u8 **rgb565_data, u8 **gui_bak_data);
-    lv_get_gui_blend_buff(&tmp_yuv_data, &tmp_rgb565_data, NULL);
-
-    pixel_format_t format = lcd_blend->bg_data_format;
-
-    //STEP 1 : bg img yuyv copy to sram and pixel convert to rgb565
-    dma2d_memcpy_psram(lcd_blend->pbg_addr, tmp_yuv_data, lcd_blend->xsize, lcd_blend->ysize, lcd_blend->bg_offline, 0);
-
-    if (PIXEL_FMT_VUYY == format)
-    {
-        vuyy_to_rgb565_convert((unsigned char *)tmp_yuv_data, (unsigned char *)tmp_rgb565_data, lcd_blend->xsize, lcd_blend->ysize);
-    }
-    else
-    {
-        yuyv_to_rgb565_convert((unsigned char *)tmp_yuv_data, (unsigned char *)tmp_rgb565_data, lcd_blend->xsize, lcd_blend->ysize);
-    }
-
-    tmp_blend_data_size = lcd_blend->xsize * BLEND_DATA_MAX_ROW * 2;
-    tmp_blend_data = (uint8_t *)os_malloc(tmp_blend_data_size);
-    if(!tmp_blend_data)
-    {
-        bk_printf("[%s][%d] malloc fail\r\n", __FUNCTION__, __LINE__);
-        return BK_FAIL;
-    }
-
-    //STEP 2 : bg img rgb565 and fg img argb8888 blend , the resulr output bg mem
-    for(y=0; y<lcd_blend->ysize; y+=BLEND_DATA_MAX_ROW)
-    {
-        if((y+BLEND_DATA_MAX_ROW) <= lcd_blend->ysize)
-            blend_y_size = BLEND_DATA_MAX_ROW;
-        else
-            blend_y_size = lcd_blend->ysize - y;
-
-        dma2d_memcpy_psram(tmp_rgb565_data + addr_offset, tmp_blend_data, lcd_blend->xsize, blend_y_size, 0, 0);
-        //os_memcpy(tmp_blend_data, tmp_rgb565_data + addr_offset, lcd_blend->xsize * blend_y_size * 2);
-
-#if CONFIG_BLEND_GUI_OUTPUT_888
-        dma2d_config.pfg_addr = lcd_blend->pfg_addr + addr_offset*2;
-#else
-        dma2d_config.pfg_addr = lcd_blend->pfg_addr + addr_offset;
-#endif
-        dma2d_config.pbg_addr = tmp_blend_data;
-        dma2d_config.pdst_addr = tmp_blend_data;
-#if CONFIG_BLEND_GUI_OUTPUT_888
-        dma2d_config.fg_color_mode = DMA2D_INPUT_ARGB8888;
-        dma2d_config.red_bule_swap = DMA2D_RB_SWAP;
-#else
-        dma2d_config.fg_color_mode = DMA2D_INPUT_RGB565;
-        dma2d_config.red_bule_swap = DMA2D_RB_REGULAR;
-#endif
-        dma2d_config.bg_color_mode = DMA2D_INPUT_RGB565;
-        dma2d_config.dst_color_mode = DMA2D_OUTPUT_RGB565;
-        dma2d_config.fg_offline = 0;
-        dma2d_config.bg_offline = 0;
-        dma2d_config.dest_offline = 0;
-        dma2d_config.xsize = lcd_blend->xsize;
-        dma2d_config.ysize = blend_y_size;
-        dma2d_config.fg_alpha_value = lcd_blend->fg_alpha_value;
-        dma2d_config.bg_alpha_value = lcd_blend->bg_alpha_value;
-        bk_dma2d_blend(&dma2d_config);
-		while (bk_dma2d_is_transfer_busy()) {}
-
-        dma2d_memcpy_psram(tmp_blend_data, tmp_yuv_data + addr_offset, lcd_blend->xsize, blend_y_size, 0, 0);
-        //os_memcpy_word((uint32_t *)(tmp_yuv_data + addr_offset), (const uint32_t *)tmp_blend_data, lcd_blend->xsize * blend_y_size * 2);
-        addr_offset += lcd_blend->xsize * blend_y_size * 2;
-    }
-
-    os_free(tmp_blend_data);
-    tmp_blend_data = NULL;
-
-    if (PIXEL_FMT_VUYY == format)
-    {
-        rgb565_to_vuyy_convert((uint16_t *)tmp_yuv_data, (uint16_t *)tmp_rgb565_data, lcd_blend->xsize, lcd_blend->ysize);
-    }
-    else
-    {
-        rgb565_to_yuyv_convert((uint16_t *)tmp_yuv_data, (uint16_t *)tmp_rgb565_data, lcd_blend->xsize, lcd_blend->ysize);
-    }
-    dma2d_memcpy_psram(tmp_rgb565_data, lcd_blend->pbg_addr, lcd_blend->xsize, lcd_blend->ysize, 0, lcd_blend->bg_offline);
-#elif CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
+#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
 	if (s_lcd.dma2d_blend == true)
 	{
 #if 0 //blend yuyv not use pixel convert and dma2d

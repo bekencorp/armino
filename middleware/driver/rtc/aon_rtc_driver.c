@@ -77,6 +77,7 @@ static aon_rtc_callback_t s_aon_rtc_tick_isr[AON_RTC_UNIT_NUM] = {NULL};
 static aon_rtc_callback_t s_aon_rtc_upper_isr[AON_RTC_UNIT_NUM] = {NULL};
 static aon_rtc_nodes_memory_t *s_aon_rtc_nodes_p[AON_RTC_UNIT_NUM];
 static uint64_t s_high_tick[AON_RTC_UNIT_NUM];
+static void aon_rtc_interrupt_disable(aon_rtc_id_t id);
 
 #define AONRTC_GET_SET_TIME_RTC_ID AON_RTC_ID_1
 #define S_RTC_CLK_FREQ    32000 //unit:31us
@@ -203,15 +204,18 @@ bk_err_t aon_rtc_enter_reboot(void)
 
 	AON_RTC_LOGD("%s[+]\r\n", __func__);
 
-	//bake poweroff time
+	//backup poweroff time
     bk_rtc_gettimeofday(&rtc_keep_time, 0);
     AON_RTC_LOGD("bake:tv_sec:%d,tv_usec:%d\n", rtc_keep_time.tv_sec, rtc_keep_time.tv_usec);
 
 	*(uint32_t *)RTC_TIME_SEC_ADDR = rtc_keep_time.tv_sec;
 	*(uint32_t *)RTC_TIME_USEC_ADDR = rtc_keep_time.tv_usec;
 
-	//deinit
-	bk_aon_rtc_driver_deinit();
+	for (int id = AON_RTC_ID_1; id < AON_RTC_ID_MAX; id++) {
+#if (CONFIG_SYSTEM_CTRL)
+		aon_rtc_interrupt_disable(id);
+#endif
+	}
 
     return BK_OK;
 }

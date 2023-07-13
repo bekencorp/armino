@@ -1199,7 +1199,7 @@ typedef struct
     uint32_t adv_intv_min;
     /// Maximum advertising interval (in unit of 625us). Must be greater than or equal to 20ms
     uint32_t adv_intv_max;
-    /// Advertising type, see adv_legacy_type
+    /// Advertising type, see advertise_legacy_type
     uint8_t adv_type;
     /// Own address type:  public=0 / random=1 / rpa_or_pub=2 / rpa_or_rnd=3
     uint8_t own_addr_type;
@@ -1281,6 +1281,21 @@ typedef struct
     uint16_t conn_latency;
     uint16_t supervision_timeout;
 } ble_conn_update_param_compl_ind_t;
+
+/**
+    @brief use when we need to trigger an update
+ */
+typedef struct
+{
+    uint8_t peer_address_type;
+    bd_addr_t peer_address;
+    uint16_t conn_interval_min;
+    uint16_t conn_interval_max;
+    uint16_t conn_latency;
+    uint16_t supervision_timeout;
+    uint16_t minimum_ce_length;
+    uint16_t maximum_ce_length;
+} ble_update_conn_param_t;
 
 /**
     @brief use in BK_DM_BLE_EVENT_ATT_READ_RESPONSE

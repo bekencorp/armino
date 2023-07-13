@@ -1,5 +1,5 @@
 #include "diskio.h"		/* Declarations of low level disk I/O functions */
-#if CONFIG_SDCARD_HOST && CONFIG_USB_MSD
+#if CONFIG_SDCARD && CONFIG_USB_MSD
 #include "ff.h"
 
 #define MAX_DIR_SUPPORT     1024

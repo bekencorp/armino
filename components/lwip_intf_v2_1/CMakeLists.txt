@@ -1,8 +1,7 @@
 set(incs)
 set(srcs)
 
-if (CONFIG_LWIP_V2_1)
-	list(APPEND incs
+list(APPEND incs
 	lwip-2.1.2/src
 	lwip-2.1.2/port
 	lwip-2.1.2/src/include
@@ -10,6 +9,7 @@ if (CONFIG_LWIP_V2_1)
 	lwip-2.1.2/src/include/lwip
 	)
 
+if (CONFIG_LWIP_V2_1)
 	list(APPEND srcs
 	lwip-2.1.2/port/ethernetif.c
 	lwip-2.1.2/port/net.c
@@ -61,6 +61,10 @@ if (CONFIG_LWIP_V2_1)
 	lwip-2.1.2/src/netif/ethernet.c
 	dhcpd/dhcp-server.c
 	dhcpd/dhcp-server-main.c
+	)
+else()
+list(APPEND srcs
+	lwip-2.1.2/src/core/disable_wifi.c
 	)
 endif()
 

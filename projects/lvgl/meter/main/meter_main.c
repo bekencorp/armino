@@ -69,6 +69,7 @@ void meter_init(void)
 	lv_vnd_config.draw_buf_2_2 = NULL;
 #endif
 	lv_vnd_config.rotation = ROTATE_NONE;
+	lv_vnd_config.color_depth = LV_COLOR_DEPTH;
 
 #if (CONFIG_TP)
 	drv_tp_open(ppi_to_pixel_x(lcd_open.device_ppi), ppi_to_pixel_y(lcd_open.device_ppi));

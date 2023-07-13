@@ -151,6 +151,9 @@ typedef enum
 
 	EVENT_LCD_RESIZE_MBCMD = 0x1a,
 	EVENT_LCD_RESIZE_MBRSP = 0x1b,
+
+	EVENT_LCD_DEC_SW_MBCMD = 0x1c,
+	EVENT_LCD_DEC_SW_MBRSP = 0x1d,
 } media_mailbox_event_t;
 
 typedef struct {

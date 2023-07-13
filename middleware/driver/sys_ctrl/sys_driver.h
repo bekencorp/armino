@@ -340,6 +340,8 @@ uint32_t sys_drv_aud_micbias_trim_set(uint32_t value);
 uint32_t sys_drv_aud_mic_rst_set(uint32_t value);
 uint32_t sys_drv_aud_mic1_gain_set(uint32_t value);
 uint32_t sys_drv_aud_mic2_gain_set(uint32_t value);
+uint32_t sys_drv_aud_mic1_single_en(uint32_t value);
+uint32_t sys_drv_aud_mic2_single_en(uint32_t value);
 uint32_t sys_drv_aud_int_en(uint32_t value);
 uint32_t sys_drv_sbc_int_en(uint32_t value);
 uint32_t sys_drv_aud_power_en(uint32_t value);

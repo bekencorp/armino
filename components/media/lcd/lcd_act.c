@@ -1611,7 +1611,19 @@ void lcd_init(void)
 	lcd_info.state = LCD_STATE_DISABLED;
 	lcd_info.debug = false;
 	lcd_info.rotate = ROTATE_NONE;
+	lcd_info.decode_mode = HARDWARE_DECODING;
 }
+
+uint8_t get_decode_mode(void)
+{
+	return lcd_info.decode_mode;
+}
+
+void set_decode_mode(uint8_t mode)
+{
+	lcd_info.decode_mode = mode;
+}
+
 void lcd_set_logo_on(int status)
 {
 	g_lcd_display_logo_first = status;

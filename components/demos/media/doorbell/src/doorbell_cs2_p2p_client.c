@@ -59,6 +59,7 @@ static uint8_t s_tran_type = TRANSFER_TYPE_NONE;
 
 static beken_timer_t s_throughput_timer;
 
+static volatile  uint32_t s_send_video_count = 0;
 static volatile  uint32_t s_send_video_bytes = 0;
 static volatile  uint32_t s_send_audio_bytes = 0;
 static volatile  uint32_t s_recv_audio_bytes = 0;
@@ -94,6 +95,7 @@ static int doorbell_cs2_p2p_client_send_video_packet(uint8_t *data, uint32_t len
     {
         return len;
     }
+    s_send_video_count++;
 
     tmp->magic_head = MAGIC_HEAD;
     tmp->package_len = len;
@@ -472,14 +474,15 @@ static void cs2_p2p_client_aud_voc_stop(void)
 
 static void throughput_anlayse_timer_hdl(void *param)
 {
-    BK_LOGI("cs2_tp", "send video %.3f audio %.3f, recv audio %.3f total %.3f KB/s\n",
+    BK_LOGI("cs2_tp", "send %d video %.3f audio %.3f, recv audio %.3f total %.3f KB/s\n",
+            s_send_video_count,
             (float)(s_send_video_bytes / (THROUGHPUT_ANLAYSE_MS / 1000) / 1024.0),
             (float)(s_send_audio_bytes / (THROUGHPUT_ANLAYSE_MS / 1000) / 1024.0),
             (float)(s_recv_audio_bytes / (THROUGHPUT_ANLAYSE_MS / 1000) / 1024.0),
             (float)(s_recv_total_bytes / (THROUGHPUT_ANLAYSE_MS / 1000) / 1024.0));
 
 
-    s_recv_total_bytes = s_send_video_bytes = s_send_audio_bytes = s_recv_audio_bytes = 0;
+    s_send_video_count = s_recv_total_bytes = s_send_video_bytes = s_send_audio_bytes = s_recv_audio_bytes = 0;
 
     return;
 }

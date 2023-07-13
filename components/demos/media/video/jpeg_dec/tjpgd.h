@@ -35,7 +35,7 @@ typedef enum {
 	JDF_MAX,
 }JFORMAT;
 
-#if 0
+#if CONFIG_SLAVE_CORE
 #define JPEG_DTCM  __attribute__((section(".dtcm_sec_data")))
 #define JPEG_ITCM  __attribute__((section(".itcm_sec_code")))
 #else

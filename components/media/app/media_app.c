@@ -648,7 +648,7 @@ bk_err_t media_app_init(void)
 		LOGE("%s, media_app_th_hd allready init, exit!\n");
 		goto error;
 	}
-
+/*
 	ret = rtos_init_queue(&media_app_msg_queue,
 	                      "media_app_msg_queue",
 	                      sizeof(media_msg_t),
@@ -659,7 +659,7 @@ bk_err_t media_app_init(void)
 		LOGE("%s, ceate media minor message queue failed\n");
 		goto error;
 	}
-
+*/
 	if (media_debug == NULL)
 	{
 		media_debug = (media_debug_t *)os_malloc(sizeof(media_debug_t));
@@ -678,7 +678,7 @@ bk_err_t media_app_init(void)
 			LOGE("malloc media_debug_cached fail\n");
 		}
 	}
-
+/*
 	ret = rtos_create_thread(&media_app_th_hd,
 	                         BEKEN_DEFAULT_WORKER_PRIORITY,
 	                         "media_app_thread",
@@ -691,7 +691,7 @@ bk_err_t media_app_init(void)
 		LOGE("create media app thread fail\n");
 		goto error;
 	}
-
+*/
 
 	LOGI("media app thread startup complete\n");
 

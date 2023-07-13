@@ -216,6 +216,10 @@ _tx_retry:
 
 				break;
 			}
+
+			#if (CONFIG_TASK_WDT)
+			bk_task_wdt_feed();
+			#endif
 		}
 
 		closesocket(sock);

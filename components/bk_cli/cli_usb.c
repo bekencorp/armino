@@ -697,6 +697,26 @@ void cli_uvc_test_init(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 			CLI_LOGD("cli_uac_operation check_uvc UNsupport\r\n");
 		else
 			CLI_LOGD("cli_uac_operation check_uvc Support\r\n");
+	} if (os_strcmp(argv[1], "trans_mode") == 0) {
+		uint8_t tran_mode = USB_ENDPOINT_INVALID_TRANSFER;
+		bk_uvc_get_stream_transfer_mode(&tran_mode);
+        switch(tran_mode)
+        {
+            case USB_ENDPOINT_CONTROL_TRANSFER:
+                CLI_LOGD("UVC Transfer Mode: USB_ENDPOINT_CONTROL_TRANSFER\r\n");;
+                break;
+            case USB_ENDPOINT_ISOCH_TRANSFER:
+                CLI_LOGD("UVC Transfer Mode: USB_ENDPOINT_ISOCH_TRANSFER\r\n");;
+                break;
+            case USB_ENDPOINT_BULK_TRANSFER:
+                CLI_LOGD("UVC Transfer Mode: USB_ENDPOINT_BULK_TRANSFER\r\n");;
+                break;
+            case USB_ENDPOINT_INT_TRANSFER:
+                CLI_LOGD("UVC Transfer Mode: USB_ENDPOINT_INT_TRANSFER\r\n");;
+                break;
+            default:
+                break;
+        }
 	} else {
 		cli_usb_help();
 		return;

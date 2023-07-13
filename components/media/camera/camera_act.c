@@ -293,7 +293,7 @@ void camera_uvc_conect_state(uint8_t state)
 						 4,
 						 "disc_task",
 						 (beken_thread_function_t)camera_uvc_connect_state_change_task_entry,
-						 1024,
+						 1024 * 2,
 						 (beken_thread_arg_t)&state);
 
 	if (BK_OK != ret)

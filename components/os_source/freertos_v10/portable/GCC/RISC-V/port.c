@@ -150,7 +150,7 @@ extern void 	trap_handler(uint32_t mcause, SAVED_CONTEXT *context);
 
 void port_check_isr_stack(void)
 {
-	portCHECK_ISR_STACK();
+	//portCHECK_ISR_STACK();//close isr stack check and have hardware implement the check
 }
 
 void port_init_isr_stack(void)

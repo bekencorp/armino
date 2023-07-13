@@ -1173,6 +1173,10 @@ error:
 
 	bk_jpeg_enc_driver_deinit();
 
+#if (CONFIG_PSRAM)
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_PSRAM, PM_CPU_FRQ_DEFAULT);
+#endif
+
 	bk_dvp_camera_power_enable(0);
 
 #if CONFIG_EXTERN_32K
@@ -1244,6 +1248,10 @@ bk_err_t bk_dvp_camera_driver_deinit(void)
 
 #if CONFIG_SOC_BK7256XX
 	bk_jpeg_enc_driver_deinit();
+#endif
+
+#if (CONFIG_PSRAM)
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_PSRAM, PM_CPU_FRQ_DEFAULT);
 #endif
 
 	bk_dvp_camera_power_enable(0);

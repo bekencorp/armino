@@ -78,6 +78,21 @@ bk_err_t bk_usb_close (void);
 bk_err_t bk_usb_check_device_supported (E_USB_DEVICE_T usb_dev);
 
 /**
+ * @brief     Get the transport mode of the data stream
+ *
+ * Detect different transmission modes and perform corresponding data format analysis:
+ *   - Pass in the pointer.
+ *   - Get the UVC data transmission mode through This API, generally BULK or ISOC transmission.
+ *
+ *
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_uvc_get_stream_transfer_mode(uint8_t *transfermode);
+
+/**
  * @brief     Start UVC stream transmission
  *
  * USB video camera data transfer starts:

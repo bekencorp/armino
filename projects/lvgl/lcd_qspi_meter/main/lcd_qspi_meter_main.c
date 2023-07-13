@@ -88,6 +88,7 @@ void meter_init(void)
 	lv_vnd_config.draw_buf_2_1 = LV_MEM_CUSTOM_ALLOC(lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));
 	lv_vnd_config.draw_buf_2_2 = NULL;
 #endif
+	lv_vnd_config.rotation = ROTATE_NONE;
 
 	lv_vendor_init(&lv_vnd_config, ppi_to_pixel_x(s_device_config->ppi), ppi_to_pixel_y(s_device_config->ppi));
 	lv_vendor_start();

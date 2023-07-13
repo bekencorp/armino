@@ -26,3 +26,11 @@ int bk_feature_fast_dhcp_enable(void) {
 #endif
 }
 
+int bk_feature_temp_detect_enable(void) {
+#if CONFIG_TEMP_DETECT
+    return 1;
+#else
+    return 0;
+#endif
+}
+

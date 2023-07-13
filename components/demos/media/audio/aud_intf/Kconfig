@@ -88,7 +88,7 @@ menu "Demos::Media::Audio::Aud_intf"
 			config AUD_TRAS_AEC_DUMP_MODE_WIFI
 				bool "AUD_TRAS_AEC_DUMP_MODE_WIFI"
 				help
-					Audio Transfer AEC Dump by udp
+					Audio Transfer AEC Dump by wifi
 
 			choice AUD_TRAS_AEC_DUMP_MODE_WIFI_MODE
 				depends on AUD_TRAS_AEC_DUMP_MODE_WIFI
@@ -164,5 +164,26 @@ menu "Demos::Media::Audio::Aud_intf"
 					Indirect set uac speaker volume after mute, then unmute
 		endchoice
 
+		choice AUD_TRAS_AEC_RAM_TYPE
+			depends on AUDIO_TRANSFER
+			prompt "Select AEC ram type"
+			default AUD_TRAS_AEC_MALLOC_SRAM
+
+			config AUD_TRAS_AEC_MALLOC_SRAM
+				bool "aec use os_malloc sram"
+				help
+					use os_malloc sram
+
+			config AUD_TRAS_AEC_FIXED_SRAM
+				bool "use SRAM0 fixed sram"
+				depends on !LCD_FONT_BLEND && !LCD_DMA2D_BLEND
+				help
+					use fixed sram
+
+			config AUD_TRAS_AEC_MALLOC_PSRAM
+				bool "aec use psram_malloc psram"
+				help
+					use psram_malloc psram
+		endchoice
 	endmenu
 endmenu

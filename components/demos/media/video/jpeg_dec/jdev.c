@@ -43,7 +43,7 @@ JPEG_DTCM static jpeg_dec_t jpeg_dec_st = {0};
 JPEG_DTCM static uint8_t jpeg_dec_out_fomat = JDF_VYUY;
 JPEG_DTCM static bool s_jpegdec_is_init = false;
 
-#if 0
+#if CONFIG_SLAVE_CORE
 JPEG_DTCM static uint8_t jpeg_dec_work_buff[WORK_AREA_SIZE] = {0};
 #endif
 
@@ -189,7 +189,7 @@ bk_err_t bk_jpeg_dec_sw_init(void)
 	jpeg_dec_st.scale_ratio = SCALE;
 	jpeg_dec_st.rd_ptr = 0;
 	jpeg_dec_st.jpg_file_size = 1024;
-#if 0
+#if CONFIG_SLAVE_CORE
 	jpeg_dec_st.workbuf = &jpeg_dec_work_buff[0];
 #else
 	if (NULL != jpeg_dec_st.workbuf)

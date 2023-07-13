@@ -737,12 +737,11 @@ int frame_buffer_fb_deinit(fb_type_t type)
 		list_for_each_safe(pos, n, &mem_list->free)
 		{
 			tmp = list_entry(pos, frame_buffer_node_t, list);
-			LOGI("free list: %p\n", tmp);
+			LOGD("free list: %p\n", tmp);
 			if (tmp != NULL)
 			{
 				list_del(pos);
 				os_free(tmp);
-				break;
 			}
 		}
 
@@ -753,13 +752,12 @@ int frame_buffer_fb_deinit(fb_type_t type)
 	{
 		list_for_each_safe(pos, n, &mem_list->ready)
 		{
-			LOGI("ready list: %p\n", tmp);
+			LOGD("ready list: %p\n", tmp);
 			tmp = list_entry(pos, frame_buffer_node_t, list);
 			if (tmp != NULL)
 			{
 				list_del(pos);
 				os_free(tmp);
-				break;
 			}
 		}
 

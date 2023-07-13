@@ -1455,7 +1455,7 @@ static bk_err_t aud_intf_genl_write_spk_data(uint8_t *dac_buff, uint32_t size)
 
 	//os_printf("enter: %s \r\n", __func__);
 
-	if (aud_intf_info.spk_status == AUD_INTF_SPK_STA_START) {
+	if (aud_intf_info.spk_status == AUD_INTF_SPK_STA_START || aud_intf_info.spk_status == AUD_INTF_SPK_STA_IDLE) {
 		if (ring_buffer_get_free_size(aud_intf_info.spk_info.spk_rx_rb) >= size) {
 			write_size = ring_buffer_write(aud_intf_info.spk_info.spk_rx_rb, dac_buff, size);
 			if (write_size != size) {

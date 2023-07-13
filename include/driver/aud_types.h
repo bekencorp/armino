@@ -67,6 +67,12 @@ typedef enum {
 } aud_adc_work_mode_t;
 
 typedef enum {
+	AUD_ADC_INTF_MODE_DIFFEN = 0,
+	AUD_ADC_INTF_MODE_SIGNAL_END,
+	AUD_ADC_INTF_MODE_MAX,
+} aud_adc_intf_mode_t;
+
+typedef enum {
 	AUD_ADC_SAMP_RATE_8K = 0,  /**< ADC sample rate : 8k */
 	AUD_ADC_SAMP_RATE_11_025K, /**< ADC sample rate : 11.025k */
 	AUD_ADC_SAMP_RATE_12K,     /**< ADC sample rate : 12k */
@@ -194,6 +200,12 @@ typedef enum {
 	AUD_MIC_ALL_ENABLE,  /**< enable all mic */
 	AUD_MIC_MAX,
 } aud_mic_enable_t;
+
+typedef enum {
+	AUD_MIC_MIC1,        /**< enable mic1 */
+	AUD_MIC_MIC2,        /**< enable mic2 */
+	AUD_MIC_BOTH,        /**< enable mic1 and mic2 */
+} aud_mic_id_t;
 
 typedef enum {
 	AUD_GAC_NOISE_TOUT_0 = 0,       /**< AGC noise tout: 0  0ms */

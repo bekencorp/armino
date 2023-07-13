@@ -730,13 +730,23 @@ bk_err_t bk_flash_register_ps_resume_callback(flash_ps_callback_t ps_resume_cb)
 	return BK_OK;
 }
 
+#define FLASH_OPERATE_SIZE_AND_OFFSET    (4096)
 bk_err_t bk_spec_flash_write_bytes(bk_partition_t partition, const uint8_t *user_buf, uint32_t size,uint32_t offset)
 {
 	bk_logic_partition_t *bk_ptr = NULL;
 	u8 *save_flashdata_buff  = NULL;
 
-	bk_ptr = bk_flash_partition_get_info(partition);	
-	save_flashdata_buff= os_malloc(bk_ptr->partition_length);	
+	bk_ptr = bk_flash_partition_get_info(partition);
+	if((size + offset) > FLASH_OPERATE_SIZE_AND_OFFSET)
+		return BK_FAIL;
+	
+	save_flashdata_buff= os_malloc(bk_ptr->partition_length);
+	if(save_flashdata_buff == NULL)
+	{
+		os_printf("save_flashdata_buff malloc err\r\n");
+		return BK_FAIL;
+	}
+	
 	//os_printf("ota_write_flash:partition_start_addr:0x%x  size :%d\r\n",(bk_ptr->partition_start_addr),bk_ptr->partition_length);
 	bk_flash_read_bytes((bk_ptr->partition_start_addr),(uint8_t *)save_flashdata_buff, bk_ptr->partition_length);
 

@@ -610,7 +610,21 @@ void temp_detect_change_configuration(uint32_t interval, uint32_t threshold, uin
 		BK_ASSERT(kNoErr == err);
 	}
 }
+#else
+int temp_detect_init(uint32_t init_temperature)
+{
+    return 0;
+}
 
+bool temp_detect_is_init(void)
+{
+    return 1;
+}
+
+void temp_detect_change_configuration(uint32_t interval, uint32_t threshold, uint32_t dist)
+{
+    return;
+}
 #endif  // CONFIG_TEMP_DETECT
 
 //TODO why only check the temperature range here?

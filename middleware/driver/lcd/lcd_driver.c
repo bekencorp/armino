@@ -154,6 +154,13 @@ extern lcd_qspi_device_t *s_device_config;
 
 extern media_debug_t *media_debug;
 extern u64 riscv_get_mtimer(void);
+extern uint8_t get_decode_mode(void);
+typedef enum
+{
+	SOFTWARE_DECODING_CPU0,
+	SOFTWARE_DECODING_CPU1,
+	HARDWARE_DECODING,
+} decode_mode_t;
 
 typedef struct
 {
@@ -174,6 +181,7 @@ typedef struct
 	uint8_t rotate_en : 1;
 	uint8_t display_en : 1;
 	uint8_t dma2d_blend : 1;
+    uint8_t result;
 
 	frame_buffer_t *decoder_frame;
 	frame_buffer_t *rotate_frame;
@@ -249,7 +257,6 @@ const lcd_device_t *lcd_devices[] =
 };
 
 static lcd_driver_t s_lcd = {0};
-static uint8_t sw_decode_en = 0;
 
 const lcd_device_t * get_lcd_device_by_name(char * name)
 {
@@ -404,6 +411,16 @@ static void lcd_driver_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 		}
 	}
 
+	if (cmd_buf->hdr.cmd == EVENT_LCD_DEC_SW_MBRSP)
+	{
+		ret = rtos_set_semaphore(&s_lcd.dec_sem);
+
+		if (ret != BK_OK)
+		{
+			LOGE("%s semaphore get failed: %d\n", __func__, ret);
+		}
+        s_lcd.result = (uint8_t)cmd_buf->param3;
+	}
 
 }
 
@@ -1101,6 +1118,18 @@ void lcd_driver_ppi_set(uint16_t width, uint16_t height)
 		}										\
 	} while (0)
 
+__attribute__((section(".itcm_sec_code")))  void flash_busy_lcd_callback(void)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	if (lcd_disp_ll_get_display_int_rgb_eof())
+	{
+		lcd_disp_ll_set_display_int_rgb_eof(1);
+	}
+	
+	rtos_enable_int(int_level);
+}
+
 __attribute__((section(".itcm_sec_code"))) static void lcd_driver_display_rgb_isr(void)
 {
 	LCD_DISPLAY_ISR_ENTRY();
@@ -1268,6 +1297,9 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 	frame_buffer_t *dec_frame = NULL;
 	uint64_t before, after;
 
+#ifdef CONFIG_MASTER_CORE
+	 mb_chnl_cmd_t mb_cmd;
+#endif
 	if (s_lcd.enable == false)
 	{
 		return dec_frame;
@@ -1297,7 +1329,7 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 
 	s_lcd.decoder_frame->sequence = frame->sequence;
 
-	if (!sw_decode_en)
+	if (get_decode_mode() == HARDWARE_DECODING)
 	{
 		s_lcd.decoder_frame->fmt = PIXEL_FMT_VUYY;
 
@@ -1338,21 +1370,64 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 	else
 	{
 		s_lcd.decoder_frame->fmt = PIXEL_FMT_YUYV;
-#if CONFIG_JPEG_DECODE
-		sw_jpeg_dec_res_t result;
-		ret = bk_jpeg_dec_sw_start(frame->length, frame->frame, s_lcd.decoder_frame->frame, &result);
 
-		if (ret != BK_OK)
+#if CONFIG_JPEG_DECODE
+#ifdef CONFIG_MASTER_CORE
+		if (get_decode_mode() == SOFTWARE_DECODING_CPU1)
 		{
-			LOGE("%s sw decoder error\n", __func__);
-			LCD_DRIVER_FRAME_FREE(s_lcd.decoder_frame);
-			goto out;
+			mb_cmd.hdr.cmd = EVENT_LCD_DEC_SW_MBCMD;
+			mb_cmd.param1 = (uint32_t)frame;
+			mb_cmd.param2 = (uint32_t)s_lcd.decoder_frame;
+			mb_cmd.param3 = 0;
+			s_lcd.result = BK_FAIL;
+
+			ret = mb_chnl_write(MB_CHNL_VID, &mb_cmd);
+
+			if (ret != BK_OK)
+			{
+				LOGE("%s mb_chnl_write failed: %d\n", __func__, ret);
+				LCD_DRIVER_FRAME_FREE(s_lcd.decoder_frame);
+				goto out;
+			}
+
+			//LOGI("%s wait rotate\n", __func__);
+			ret = rtos_get_semaphore(&s_lcd.dec_sem, BEKEN_NEVER_TIMEOUT);
+
+			if (ret != BK_OK)
+			{
+				LOGE("%s semaphore get failed: %d\n", __func__, ret);
+				LCD_DRIVER_FRAME_FREE(s_lcd.decoder_frame);
+				goto out;
+			}
+
+			if (s_lcd.result != BK_OK)
+			{
+				LOGE("%s sw decoder error\n", __func__);
+				LCD_DRIVER_FRAME_FREE(s_lcd.decoder_frame);
+				goto out;
+			}
 		}
-		else
+		else if (get_decode_mode() == SOFTWARE_DECODING_CPU0)
 		{
-			s_lcd.decoder_frame->height = result.pixel_y;
-			s_lcd.decoder_frame->width = result.pixel_x ;
+			sw_jpeg_dec_res_t result;
+			ret = bk_jpeg_dec_sw_start(frame->length, frame->frame, s_lcd.decoder_frame->frame, &result);
+#if (CONFIG_TASK_WDT)
+			extern void bk_task_wdt_feed(void);
+			bk_task_wdt_feed();
+#endif
+			if (ret != BK_OK)
+			{
+				LOGE("%s sw decoder error\n", __func__);
+				LCD_DRIVER_FRAME_FREE(s_lcd.decoder_frame);
+				goto out;
+			}
+			else
+			{
+				s_lcd.decoder_frame->height = result.pixel_y;
+				s_lcd.decoder_frame->width = result.pixel_x ;
+			}
 		}
+#endif
 #endif
 	}
 	if (s_lcd.decoder_frame == NULL)
@@ -1895,7 +1970,7 @@ bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend)
 	{
 		os_memcpy_word((uint32_t *)p_yuv_src, (uint32_t *)p_yuv_dst, lcd_blend->xsize*2);
 		p_yuv_dst += (lcd_blend->xsize*2);
-		p_yuv_src += (lcd_blend->bg_width*2);
+		p_yuv_src += (lcd_blend->bg_width*2);
 	}
 #endif
 	}
@@ -2287,7 +2362,8 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 		LOGE("%s disp_sem init failed: %d\n", __func__, ret);
 		return ret;
 	}
-	if (!sw_decode_en)
+
+	if (get_decode_mode() == HARDWARE_DECODING)
 	{
 		ret = bk_jpeg_dec_driver_init();
 #if(1)  //enable jpeg complete int isr
@@ -2342,6 +2418,7 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 		lcd_rgb_gpio_init();
 #endif
 		lcd_driver_rgb_init(config);
+		//bk_flash_register_wait_cb(NULL);   //flash_busy_lcd_callback
 	}
 	else if (device->type == LCD_TYPE_MCU8080)
 	{
@@ -2457,7 +2534,7 @@ bk_err_t lcd_driver_deinit(void)
 	type = s_lcd.config.device->type;
 
 	bk_timer_stop(TIMER_ID3);
-	if (!sw_decode_en)
+	if (get_decode_mode() == HARDWARE_DECODING)
 	{
 		bk_jpeg_dec_driver_deinit();
 	}

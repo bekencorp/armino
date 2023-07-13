@@ -16,6 +16,7 @@
 #include <components/aud_intf.h>
 #include <driver/sbc.h>
 #include "aac_decoder.h"
+#include "ring_buffer_node.h"
 
 
 #define CODEC_AUDIO_SBC                      0x00U
@@ -25,12 +26,19 @@
 
 #define LOCAL_NAME "soundbar"
 
+#define A2DP_SINK_DEMO_TASK_PRIORITY      (4)
+
+#define A2DP_CACHE_BUFFER_SIZE  ((CONFIG_A2DP_CACHE_FRAME_NUM + 2) * 1024)
+#define A2DP_SBC_FRAME_BUFFER_MAX_SIZE  128   /**< A2DP SBC encoded frame maximum size */
+#define A2DP_AAC_FRAME_BUFFER_MAX_SIZE  1024  /**< A2DP AAC encoded frame maximum size */
+
 enum
 {
     BT_AUDIO_MSG_NULL = 0,
     BT_AUDIO_D2DP_START_MSG = 1,
     BT_AUDIO_D2DP_STOP_MSG = 2,
     BT_AUDIO_D2DP_DATA_IND_MSG = 3,
+    BT_AUDIO_D2DP_SEND_DATA_2_SPK_MSG = 4,
 };
 
 typedef struct
@@ -48,6 +56,12 @@ static sbcdecodercontext_t bt_audio_sink_sbc_decoder;
 static beken_queue_t bt_audio_sink_demo_msg_que = NULL;
 static beken_thread_t bt_audio_sink_demo_thread_handle = NULL;
 static void *sink_aac_decoder = NULL;
+//static uint16_t speaker_frame_size = 0;
+static uint8_t s_frames_2_spk_per_pkt = 0;
+static uint8_t s_frame_caching = 0;
+static RingBufferNodeContext s_a2dp_frame_nodes;
+static uint8_t s_spk_is_started = 0;
+static uint8_t *p_cache_buff = NULL;
 
 uint8_t bt_audio_a2dp_sink_convert_to_dac_sample_rate(uint8_t codec_type, uint32_t sample_rate)
 {
@@ -103,6 +117,28 @@ uint8_t bt_audio_a2dp_sink_convert_to_dac_sample_rate(uint8_t codec_type, uint32
     return dac_sample_rate;
 }
 
+static bk_err_t one_spk_frame_played_cmpl_handler(unsigned int size)
+{
+    bt_audio_sink_demo_msg_t demo_msg;
+    int rc = -1;
+
+    if (bt_audio_sink_demo_msg_que == NULL)
+    {
+        return BK_OK;
+    }
+
+    demo_msg.type = BT_AUDIO_D2DP_SEND_DATA_2_SPK_MSG;
+    demo_msg.len = 0;
+
+    rc = rtos_push_to_queue(&bt_audio_sink_demo_msg_que, &demo_msg, BEKEN_NO_WAIT);
+
+    if (kNoErr != rc)
+    {
+        os_printf("%s, send queue failed\r\n", __func__);
+    }
+    return BK_OK;
+}
+
 void bt_audio_sink_demo_main(void *arg)
 {
     while (1)
@@ -123,17 +159,33 @@ void bt_audio_sink_demo_main(void *arg)
                 uint8_t dac_sample_rate = 0;
                 uint16_t frame_size = 0;
 
+                s_frame_caching = 0;
+                s_spk_is_started = 0;
+
                 os_printf("BT_AUDIO_D2DP_START_MSG \r\n");
 
                 if (CODEC_AUDIO_SBC == p_codec_info->type)
                 {
                     dac_sample_rate = bt_audio_a2dp_sink_convert_to_dac_sample_rate(p_codec_info->type, p_codec_info->cie.sbc_codec.sample_rate);
-                    frame_size = p_codec_info->cie.sbc_codec.sample_rate * 20 / 1000 * 2 * 2;
+                    s_frames_2_spk_per_pkt = (p_codec_info->cie.sbc_codec.sample_rate * 20 / 1000 / (p_codec_info->cie.sbc_codec.block_len * p_codec_info->cie.sbc_codec.subbands)) + 1;
+                    frame_size = s_frames_2_spk_per_pkt * (p_codec_info->cie.sbc_codec.block_len * p_codec_info->cie.sbc_codec.subbands) * 2 * 2;
+                    os_printf("frames_2_speaker %d, frame_size %d\r\n",s_frames_2_spk_per_pkt, frame_size);
                     bk_sbc_decoder_init(&bt_audio_sink_sbc_decoder);
+
+                    p_cache_buff  = (uint8_t *)os_malloc(A2DP_CACHE_BUFFER_SIZE);
+                    if (!p_cache_buff)
+                    {
+                        os_printf("%s, malloc cache buf failed!!!\r\n", __func__);
+                    }
+                    else
+                    {
+                        ring_buffer_node_init(&s_a2dp_frame_nodes, p_cache_buff, A2DP_SBC_FRAME_BUFFER_MAX_SIZE, A2DP_CACHE_BUFFER_SIZE / A2DP_SBC_FRAME_BUFFER_MAX_SIZE);
+                    }
                 }
                 else if (CODEC_AUDIO_AAC == p_codec_info->type)
                 {
                     dac_sample_rate = bt_audio_a2dp_sink_convert_to_dac_sample_rate(p_codec_info->type, p_codec_info->cie.aac_codec.sample_rate);
+                    s_frames_2_spk_per_pkt = 1;
                     frame_size = 4096;
                     sink_aac_decoder = (void *)(os_malloc(aac_decoder_get_ram_size_without_in_buffer()));
 
@@ -144,6 +196,16 @@ void bt_audio_sink_demo_main(void *arg)
                     else
                     {
                         bt_a2dp_aac_decoder_init(sink_aac_decoder, p_codec_info->cie.aac_codec.sample_rate, p_codec_info->cie.aac_codec.channels);
+                    }
+
+                    p_cache_buff  = (uint8_t *)os_malloc(A2DP_CACHE_BUFFER_SIZE);
+                    if (!p_cache_buff)
+                    {
+                        os_printf("%s, malloc cache buf failed!!!\r\n", __func__);
+                    }
+                    else
+                    {
+                        ring_buffer_node_init(&s_a2dp_frame_nodes, p_cache_buff, A2DP_AAC_FRAME_BUFFER_MAX_SIZE, A2DP_CACHE_BUFFER_SIZE / A2DP_AAC_FRAME_BUFFER_MAX_SIZE);
                     }
                 }
                 else
@@ -159,7 +221,7 @@ void bt_audio_sink_demo_main(void *arg)
 
                 aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
                 aud_intf_drv_setup.task_config.priority = 3;
-                aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
+                aud_intf_drv_setup.aud_intf_rx_spk_data = one_spk_frame_played_cmpl_handler;
                 aud_intf_drv_setup.aud_intf_tx_mic_data = NULL;
                 ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
 
@@ -200,17 +262,6 @@ void bt_audio_sink_demo_main(void *arg)
                     os_printf("bk_aud_intf_spk_init complete \r\n");
                 }
 
-                ret = bk_aud_intf_spk_start();
-
-                if (ret != BK_ERR_AUD_INTF_OK)
-                {
-                    os_printf("bk_aud_intf_spk_start fail, ret:%d \r\n", ret);
-                }
-                else
-                {
-                    os_printf("bk_aud_intf_spk_start complete \r\n");
-                }
-
                 os_free(msg.data);
             }
             break;
@@ -222,32 +273,28 @@ void bt_audio_sink_demo_main(void *arg)
 
                 if (CODEC_AUDIO_SBC == bt_audio_a2dp_sink_codec.type)
                 {
-                    fb++;  //skip Number of Frames
-                    uint16_t inlen = msg.len - 1;
-                    uint32 fp = 0;
+                    uint8_t frames = *fb++;
+                    //os_printf("recv sbc frames %d\r\n",frames);
 
-                    while (fp < inlen)
+                    for (uint8_t i = 0; i < frames; i++)
                     {
-                        int32_t res = bk_sbc_decoder_frame_decode(&bt_audio_sink_sbc_decoder, fb, inlen);
+                        uint32_t len = (msg.len - 1) / frames;
 
-                        if (res >= 0)
+                        if (ring_buffer_node_get_free_nodes(&s_a2dp_frame_nodes))
                         {
-                            fb += res;
-                            fp += res;
+                            uint8_t *node = ring_buffer_node_get_write_node(&s_a2dp_frame_nodes);
+                            *((uint32_t *)node) = len;
+                            os_memcpy(node + 4, fb, len);
+                            fb += len;
                         }
-
-                        ret = bk_aud_intf_write_spk_data((uint8_t *)bt_audio_sink_sbc_decoder.pcm_sample, bt_audio_sink_sbc_decoder.pcm_length * 4);
-
-                        if (ret != BK_OK)
+                        else
                         {
-                            os_printf("write spk data fail \r\n");
+                            os_printf("A2DP frame nodes buffer(sbc) is full\n");
                         }
                     }
                 }
                 else if (CODEC_AUDIO_AAC == bt_audio_a2dp_sink_codec.type)
                 {
-                    uint8_t *outbuf = NULL;
-                    uint32_t outlen;
                     uint8_t *inbuf = &fb[9];
                     uint32_t inlen = 0;
                     uint8_t  len   = 255;
@@ -258,18 +305,15 @@ void bt_audio_sink_demo_main(void *arg)
                     }
                     while (len == 255);
 
-                    if (sink_aac_decoder && (0 == bt_a2dp_aac_decoder_decode(sink_aac_decoder, inbuf, inlen, &outbuf, &outlen)))
+                    if (ring_buffer_node_get_free_nodes(&s_a2dp_frame_nodes))
                     {
-                        ret = bk_aud_intf_write_spk_data(outbuf, outlen);
-
-                        if (ret != BK_OK)
-                        {
-                            os_printf("write spk data fail \r\n");
-                        }
+                        uint8_t *node = ring_buffer_node_get_write_node(&s_a2dp_frame_nodes);
+                        *((uint32_t *)node) = inlen;
+                        os_memcpy(node + 4, inbuf, inlen);
                     }
                     else
                     {
-                        os_printf("bt_a2dp_aac_decoder_decode failed!\r\n");
+                        os_printf("A2DP frame nodes buffer(aac) is full\n");
                     }
                 }
                 else
@@ -278,6 +322,30 @@ void bt_audio_sink_demo_main(void *arg)
                 }
 
                 os_free(msg.data);
+
+                if (0 == s_spk_is_started)
+                {
+                    s_frame_caching++;
+
+                    if (s_frame_caching <= 2)
+                    {
+                        one_spk_frame_played_cmpl_handler(0);
+                    }
+                    else if (CONFIG_A2DP_CACHE_FRAME_NUM == s_frame_caching)
+                    {
+                        ret = bk_aud_intf_spk_start();
+
+                        if (ret != BK_ERR_AUD_INTF_OK)
+                        {
+                            os_printf("bk_aud_intf_spk_start fail, ret:%d \r\n", ret);
+                        }
+                        else
+                        {
+                            os_printf("bk_aud_intf_spk_start complete \r\n");
+                        }
+                        s_spk_is_started = 1;
+                    }
+                }
             }
             break;
 
@@ -291,6 +359,67 @@ void bt_audio_sink_demo_main(void *arg)
                 {
                     os_free(sink_aac_decoder);
                     sink_aac_decoder = NULL;
+                }
+
+                ring_buffer_node_clear(&s_a2dp_frame_nodes);
+
+                if (p_cache_buff)
+                {
+                    os_free(p_cache_buff);
+                    p_cache_buff = NULL;
+                }
+            }
+            break;
+
+            case BT_AUDIO_D2DP_SEND_DATA_2_SPK_MSG:
+            {
+                uint32_t frame_count = ring_buffer_node_get_fill_nodes(&s_a2dp_frame_nodes);
+                uint32_t i, sent_frames = s_frames_2_spk_per_pkt > frame_count ? frame_count : s_frames_2_spk_per_pkt;
+
+                //os_printf("frame_count %d, sent_frames %d \r\n", frame_count, sent_frames);
+
+                for (i = 0; i < sent_frames; i++)
+                {
+                    uint8_t *inbuf = ring_buffer_node_get_read_node(&s_a2dp_frame_nodes);
+                    uint32_t inlen = *(uint32_t *)inbuf;
+                    bk_err_t ret;
+
+                    inbuf += 4;//skip length
+
+                    if (CODEC_AUDIO_SBC == bt_audio_a2dp_sink_codec.type)
+                    {
+                        ret = bk_sbc_decoder_frame_decode(&bt_audio_sink_sbc_decoder, inbuf, inlen);
+                        if (ret < 0)
+                        {
+                            os_printf("sbc_decoder_decode error <%d>\n", ret);
+                            break;
+                        }
+
+                        ret = bk_aud_intf_write_spk_data((uint8_t *)bt_audio_sink_sbc_decoder.pcm_sample, bt_audio_sink_sbc_decoder.pcm_length * 4);
+
+                        if (ret != BK_OK)
+                        {
+                            os_printf("write spk data fail \r\n");
+                        }
+                    }
+                    else if (CODEC_AUDIO_AAC == bt_audio_a2dp_sink_codec.type)
+                    {
+                        uint8_t *outbuf = NULL;
+                        uint32_t outlen;
+                        if (sink_aac_decoder && (0 == bt_a2dp_aac_decoder_decode(sink_aac_decoder, inbuf, inlen, &outbuf, &outlen)))
+                        {
+                            ret = bk_aud_intf_write_spk_data(outbuf, outlen);
+
+                            if (ret != BK_OK)
+                            {
+                                os_printf("write spk data fail \r\n");
+                            }
+                        }
+                        else
+                        {
+                            os_printf("bt_a2dp_aac_decoder_decode failed!\r\n");
+                        }
+                    }
                 }
             }
             break;
@@ -325,7 +454,7 @@ int bt_audio_sink_demo_task_init(void)
         }
 
         ret = rtos_create_thread(&bt_audio_sink_demo_thread_handle,
-                                 BEKEN_DEFAULT_WORKER_PRIORITY,
+                                 A2DP_SINK_DEMO_TASK_PRIORITY,
                                  "bt_audio_sink_demo",
                                  (beken_thread_function_t)bt_audio_sink_demo_main,
                                  4096,

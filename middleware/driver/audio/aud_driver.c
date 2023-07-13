@@ -291,8 +291,7 @@ bk_err_t bk_aud_set_adc_gain(uint32_t value)
 bk_err_t bk_aud_set_mic_chl(aud_mic_enable_t mic_chl)
 {
 	AUD_RETURN_ON_NOT_INIT();
-	if (adc_mode != AUD_ADC_WORK_MODE_ADC) {
-		return BK_FAIL;
+	if (adc_mode != AUD_ADC_WORK_MODE_ADC) {		return BK_FAIL;
 	}
 
 	switch (mic_chl) {
@@ -313,6 +312,41 @@ bk_err_t bk_aud_set_mic_chl(aud_mic_enable_t mic_chl)
 			sys_drv_analog_reg14_set(0x0);
 			sys_drv_analog_reg15_set(0x40038002);
 			sys_drv_aud_mic2_en(1);
+			break;
+
+		default:
+			break;
+	}
+
+	return BK_OK;
+}
+
+bk_err_t bk_aud_set_mic_intf_mode(aud_mic_id_t mic_id, aud_adc_intf_mode_t intf_mode)
+{
+	AUD_RETURN_ON_NOT_INIT();
+	if (adc_mode != AUD_ADC_WORK_MODE_ADC) {		return BK_FAIL;
+	}
+
+	uint32_t intf_value = 0;
+
+	if (intf_mode == AUD_ADC_INTF_MODE_SIGNAL_END) {
+		intf_value = 1;
+	} else {
+		intf_value = 0;
+	}
+
+	switch (mic_id) {
+		case AUD_MIC_MIC1:
+			sys_drv_aud_mic1_single_en(intf_value);
+			break;
+
+		case AUD_MIC_MIC2:
+			sys_drv_aud_mic2_single_en(intf_value);
+			break;
+
+		case AUD_MIC_BOTH:
+			sys_drv_aud_mic1_single_en(intf_value);
+			sys_drv_aud_mic2_single_en(intf_value);
 			break;
 
 		default:

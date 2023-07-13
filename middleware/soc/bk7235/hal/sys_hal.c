@@ -2056,6 +2056,16 @@ void sys_hal_aud_mic2_gain_set(uint32_t value)
 	sys_ll_set_ana_reg15_micgain(value);
 }
 
+void sys_hal_aud_mic1_single_en(uint32_t value)
+{
+	sys_ll_set_ana_reg14_micsingleen(value);
+}
+
+void sys_hal_aud_mic2_single_en(uint32_t value)
+{
+	sys_ll_set_ana_reg15_micsingleen(value);
+}
+
 void sys_hal_aud_int_en(uint32_t value)
 {
 	sys_ll_set_cpu0_int_0_31_en_cpu0_aud_int_en(value);

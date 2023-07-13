@@ -52,6 +52,7 @@ typedef uintptr_t UINTp;
 #define CHECK_BUFFER_FLAGS          0       // check buffer thread will be create, check buffer every 1 sec.
 #define CHECK_FLAGS                 1       // check session mode every 100 ms, if connections mode is changed, it will print.
 #define RECV_TMP_BUFF_SIZE   (1024 * 3)
+#define READ_COUNT_PER (256)
 #define NORMAL_MSLEEP 10
 
 
@@ -84,6 +85,7 @@ static uint8_t s_cs2_p2p_main_loop_control;
 static st_PPCS_NetInfo s_cs2_p2p_networkinfo;
 
 static beken_thread_t s_cs2_p2p_main_tid;
+static uint8_t s_log_level = CS2_P2P_LOG_LEVEL_ERROR;
 
 typedef struct
 {
@@ -1340,7 +1342,10 @@ static int32_t picserver_send_raw(int SessionID, uint8_t Channel, uint8_t *buff,
 
         if (WriteSize <= write_not_send_thr)
         {
-            //            os_printf("%s start write %d WriteSize %d SessionID %d channel %d\n", __func__, will_write_size, WriteSize, SessionID, Channel);
+            if (s_log_level >= CS2_P2P_LOG_LEVEL_DEBUG)
+            {
+                BK_LOGI("p2p", "%s start write %d WriteSize %d SessionID %d channel %d\n", __func__, will_write_size, WriteSize, SessionID, Channel);
+            }
             ret = PPCS_Write(SessionID, Channel, (CHAR *)(buff + write_index), will_write_size);
 
             if (0 > ret)
@@ -1361,11 +1366,22 @@ static int32_t picserver_send_raw(int SessionID, uint8_t Channel, uint8_t *buff,
 
                 goto WRITE_FAIL;
             }
+            else
+            {
+                if (s_log_level >= CS2_P2P_LOG_LEVEL_DEBUG)
+                {
+                    BK_LOGI("p2p", "%s end write %d\n", __func__, ret);
+                }
+            }
 
             write_index += ret;
         }
         else
         {
+            if (s_log_level >= CS2_P2P_LOG_LEVEL_DEBUG)
+            {
+                BK_LOGI("p2p", "%s WriteSize %d\n", __func__, WriteSize);
+            }
             break;
         }
     }
@@ -1714,8 +1730,10 @@ static int do_server_job(char *DIDString, char *APILicense, int32_t (*recv_callb
         if (ret < 0)
         {
             BK_LOGE("p2p", "%s PPCS_NetworkDetect err %d %s\n", __func__, ret, getP2PErrorCodeInfo(ret));
-            return -1;
+            mSleep(1000);
+            continue;
         }
+        showNetwork(s_cs2_p2p_networkinfo);
 
         if (0)//!s_cs2_p2p_networkinfo.bFlagInternet)
         {
@@ -1790,7 +1808,7 @@ static int do_server_job(char *DIDString, char *APILicense, int32_t (*recv_callb
                             {
                                 already_read = 1;
 
-                                ReadSize = 256 * 1;
+                                ReadSize = READ_COUNT_PER;
                                 ret = PPCS_Read(SessionID, i, (char *)tmp_read_buf, &ReadSize, 0);
 
                                 if (ret < 0 && ERROR_PPCS_TIME_OUT != ret)
@@ -1933,7 +1951,16 @@ static int do_client_job(char *DIDString, char *APILicense, char *InitString, in
     while (*is_run)
     {
         ret = PPCS_NetworkDetect(&s_cs2_p2p_networkinfo, 0);
-        showNetwork(s_cs2_p2p_networkinfo);
+        if (ret < 0)
+        {
+            BK_LOGE("p2p", "%s PPCS_NetworkDetect err %d\n", __func__, ret);
+            mSleep(1000);
+            continue;
+        }
+        else
+        {
+            showNetwork(s_cs2_p2p_networkinfo);
+        }
 
         if (0)//!s_cs2_p2p_networkinfo.bFlagInternet)
         {
@@ -1953,11 +1980,10 @@ static int do_client_job(char *DIDString, char *APILicense, char *InitString, in
 
         if (0 > ret)
         {
-            st_info("[%s] PPCS_ConnectByServer(%s,0x%02X,0,ByServerStr"
-                    "inglen %d) Failed: %d ms, %d [%s]\n", t2.Date, DIDString, bEnableLanSearch, strlen(ByServerString), TU_MS(t1, t2), ret, getP2PErrorCodeInfo(ret));
+            st_info("[%s] PPCS_ConnectByServer(%s,0x%02X,0,ByServerStringlen %d) Failed: %d ms, %d [%s]\n", t2.Date, DIDString, bEnableLanSearch, strlen(ByServerString), TU_MS(t1, t2), ret, getP2PErrorCodeInfo(ret));
 
             // st_info("[%s] PPCS_Connect(%s,0x%02X,0) Failed: %d ms, %d [%s]\n", t2.Date, DIDString, bEnableLanSearch, TU_MS(t1,t2), ret, getP2PErrorCodeInfo(ret));
-            if (ERROR_PPCS_TIME_OUT == ret || ERROR_PPCS_FAILED_TO_CONNECT_TCP_RELAY == ret)
+            if (1)//ERROR_PPCS_TIME_OUT == ret || ERROR_PPCS_FAILED_TO_CONNECT_TCP_RELAY == ret || ERROR_PPCS_DEVICE_NOT_ONLINE == ret)
             {
                 continue;
             }
@@ -2069,7 +2095,7 @@ static int do_client_job(char *DIDString, char *APILicense, char *InitString, in
                             {
                                 already_read = 1;
 
-                                ReadSize = 256 * 1;
+                                ReadSize = READ_COUNT_PER;
                                 ret = PPCS_Read(SessionID, i, (char *)tmp_read_buf, &ReadSize, 0);
 
                                 if (ret < 0 && ERROR_PPCS_TIME_OUT != ret)
@@ -2442,7 +2468,7 @@ bk_err_t cs2_p2p_main_task_create_ext(char *did_dskey, char *apilicense_crckey, 
     memset(targ->did_dskey, 0, strlen(did_dskey) + 1);
     strcpy(targ->did_dskey, did_dskey);
 
-    targ->apilicense_crckey = os_malloc(strlen(apilicense_crckey));
+    targ->apilicense_crckey = os_malloc(strlen(apilicense_crckey) + 1);
 
     if (!targ->apilicense_crckey)
     {
@@ -2453,7 +2479,7 @@ bk_err_t cs2_p2p_main_task_create_ext(char *did_dskey, char *apilicense_crckey, 
     memset(targ->apilicense_crckey, 0, strlen(apilicense_crckey) + 1);
     strcpy(targ->apilicense_crckey, apilicense_crckey);
 
-    targ->initstring_p2pkey = os_malloc(strlen(initstring_p2pkey));
+    targ->initstring_p2pkey = os_malloc(strlen(initstring_p2pkey) + 1);
 
     if (!targ->initstring_p2pkey)
     {
@@ -2560,4 +2586,9 @@ int32_t cs2_p2p_ternimal(void)
 {
     s_cs2_p2p_main_loop_control = 0;
     return PPCS_Listen_Break();
+}
+int32_t cs2_p2p_set_log_level(uint8_t level)
+{
+    s_log_level = level;
+    return 0;
 }

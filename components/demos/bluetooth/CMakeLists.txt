@@ -11,6 +11,7 @@ endif()
 if (CONFIG_A2DP_SINK_DEMO)
 	list(APPEND srcs
 		a2dp_sink/a2dp_sink_demo.c
+		a2dp_sink/ring_buffer_node.c
 		)
 endif()
 

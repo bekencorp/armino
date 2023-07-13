@@ -7,6 +7,7 @@ static void cs2_p2p_usage(void)
               "cs2_p2p stop\n"
               "cs2_p2p send <channel> <string>\n"
               "cs2_p2p send_count <channel> <count>\n"
+              "cs2_p2p log <level>\n"
 #if CONFIG_CS2_P2P_TEST
 
 #if CONFIG_CS2_P2P_SERVER
@@ -110,6 +111,18 @@ static void cmd_cs2_p2p(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
             goto __usage;
         }
     }
+    else if (os_strcmp(argv[1], "log") == 0)
+    {
+        if (argc >= 3)
+        {
+            cs2_p2p_set_log_level(atoi(argv[2]));
+        }
+        else
+        {
+            goto __usage;
+        }
+    }
+
 #if (CONFIG_CS2_P2P_TEST)
     else if (os_strcmp(argv[1], "test") == 0)
     {

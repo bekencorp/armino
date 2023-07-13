@@ -90,6 +90,7 @@ static void dm_ble_cmd_cb(ble_cmd_t cmd, ble_cmd_param_t *param)
     case BLE_CONN_READ_PHY:
     case BLE_CONN_SET_PHY:
     case BLE_CONN_UPDATE_MTU:
+    case BLE_SET_RANDOM_ADDR:
         if (ble_boarding_sema != NULL)
         {
             rtos_set_semaphore( &ble_boarding_sema );
@@ -163,7 +164,16 @@ static uint32_t dm_ble_event_cb(ble_event_enum_t notice, void *param)
 int dm_ble_demo_main(void)
 {
     int retval = kNoErr;
-    const uint8_t adv_data[] =
+    bd_addr_t random_addr;
+    bk_get_mac((uint8_t *)random_addr.addr, MAC_TYPE_BLUETOOTH);
+    for (int i = 0; i < sizeof(random_addr.addr) / 2; i++)
+    {
+        uint8_t tmp_addr = random_addr.addr[i];
+        random_addr.addr[i] = random_addr.addr[sizeof(random_addr.addr) - 1 - i];
+        random_addr.addr[sizeof(random_addr.addr) - 1 - i] = tmp_addr;
+    }
+    random_addr.addr[0]++;
+    uint8_t adv_data[31] =
     {
         //adv format <len> <type> <payload>, len = type + payload, type pls see <<Generic Access Profile>>'s Assigned number
 
@@ -171,10 +181,14 @@ int dm_ble_demo_main(void)
         0x02, 0x01, 0x06,
 
         //len = 0xf type = 0x8 means Shortened Local Name, "SMART-SOUNDBAR"
-        0x0f, 0x08, 'S', 'M', 'A', 'R', 'T', '-', 'S', 'O', 'U', 'N', 'D', 'B', 'A', 'R',
+        1 + 0, 0x08, //name suchas 'S', 'M', 'A', 'R', 'T', '-', 'S', 'O', 'U', 'N', 'D', 'B', 'A', 'R',
     };
 
-    uint8_t adv_len = sizeof(adv_data);
+    uint8_t adv_name_len = snprintf((char *)(adv_data + 5), sizeof(adv_data) - 5, "SMART-SOUNDBAR-%02X%02X%02X", random_addr.addr[2], random_addr.addr[1], random_addr.addr[0]);
+
+    adv_data[3] = adv_name_len + 1;
+
+    uint8_t adv_len = 5 + adv_name_len;
 
     extern uint8_t test_adv_data_len[31 - sizeof(adv_data)];  //attention: sizeof(adv_data) must <= 31 !!!!!!!!!!!!!
 
@@ -360,7 +374,7 @@ int dm_ble_demo_main(void)
     tmp_param.adv_type = ADV_LEGACY_TYPE_ADV_IND;
     tmp_param.chnl_map = ADV_ALL_CHNLS;
     tmp_param.filter_policy = ADV_FILTER_POLICY_ALLOW_SCAN_ANY_CONNECT_ANY;
-    tmp_param.own_addr_type = 0;
+    tmp_param.own_addr_type = 1;//0;
     tmp_param.peer_addr_type = 0;
     //tmp_param.peer_addr;
 
@@ -369,6 +383,23 @@ int dm_ble_demo_main(void)
 
     retval = bk_ble_set_advertising_params(&tmp_param, dm_ble_cmd_cb);
 
+
+    if (retval != BK_ERR_BLE_SUCCESS)
+    {
+        goto error;
+    }
+
+    if (ble_boarding_sema != NULL)
+    {
+        retval = rtos_get_semaphore(&ble_boarding_sema, SYNC_CMD_TIMEOUT_MS);
+
+        if (retval != kNoErr)
+        {
+            goto error;
+        }
+    }
+
+    retval = bk_ble_set_random_addr((bd_addr_t *)&random_addr, dm_ble_cmd_cb);
 
     if (retval != BK_ERR_BLE_SUCCESS)
     {
@@ -424,6 +455,7 @@ int dm_ble_demo_main(void)
     return retval;
 
 error:
+    os_printf("%s failed. \n", __func__);
 
     if (ble_boarding_sema != NULL)
     {

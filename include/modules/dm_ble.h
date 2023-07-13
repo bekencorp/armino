@@ -341,6 +341,18 @@ ble_err_t bk_ble_send_notify
  */
 ble_err_t bk_ble_gatt_get_char_val(GATT_DB_HANDLE *handle, ATT_VALUE *attr_value);
 
+/**
+  @brief     set random addr
+  @param addr: addr
+  @param callback: register a callback for this action, ble_cmd_t: BLE_SET_RANDOM_ADDR
+  @attention 1.you must wait callback status, 0 mean success.
+  @attention 2.this api must call after bk_ble_set_advertising_params now !
+  @return
+     - BK_ERR_BLE_SUCCESS: succeed
+     - others: other errors.
+ */
+ble_err_t bk_ble_set_random_addr(bd_addr_t *addr, ble_cmd_cb_t callback);
+
 /*
  * @}
  */

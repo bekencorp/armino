@@ -20,35 +20,8 @@
 #include "lcd_act.h"
 #include "frame_buffer.h"
 
-#include <driver/int.h>
-#include <os/mem.h>
-#include <driver/gpio.h>
-#include <driver/gpio_types.h>
-
-#include <driver/dma.h>
-
-#include <driver/jpeg_enc.h>
-#include <driver/jpeg_enc_types.h>
-#include <driver/dvp_camera.h>
-#include <driver/dvp_camera_types.h>
-
 #include <soc/mapping.h>
-
-#include <driver/lcd.h>
-#include <driver/dma.h>
-#include <driver/gpio.h>
-#include <driver/jpeg_dec.h>
-#include <driver/dma2d.h>
-//#include <lcd_dma2d_config.h>
-#include <driver/jpeg_dec_types.h>
 #include "modules/image_scale.h"
-//#include <BK7256_RegList.h>
-#include <driver/uvc_camera_types.h>
-#include <driver/uvc_camera.h>
-
-#include <driver/pwm.h>
-#include "modules/image_scale.h"
-
 #include <components/jpeg_decode.h>
 
 #if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
@@ -110,13 +83,11 @@ const block_ppi_t block_ppi_aray[] = {
 	{80, 40},
 
 	{MAX_BLOCK_WIDTH, MAX_BLOCK_HEIGHT}
-	
 };
 
 MINOOR_DTCM uint16_t block_width;
 MINOOR_DTCM uint16_t block_height;
 MINOOR_DTCM uint16_t block_size;
-
 
 
 #define BLOCK_SIZE      (MAX_BLOCK_WIDTH * MAX_BLOCK_HEIGHT * 2)
@@ -170,6 +141,95 @@ MINOOR_ITCM void lcd_jpeg_dec_sw(uint32_t param)
 #endif
 }
 
+
+MINOOR_ITCM void lcd_act_vuyy_resize(uint32_t param)
+{
+	register uint32_t i;
+	register uint8_t *cp_ptr = NULL;
+	mb_chnl_cmd_t mb_cmd;
+
+	uint32_t src_copy_byte;
+	uint32_t dst_copy_byte;
+	uint32_t max_width, max_copy_row, max_dst_copy_row;/*need according BLOCK_SIZE and max_width and src_heigth/dst_height to set*/
+
+#if 0
+	register uint8_t *dst_frame_temp = rotate_frame->frame + 0x4000000;
+	register uint8_t *src_frame_temp = decoder_frame->frame + 0x4000000;
+#else
+	register uint8_t *dst_frame_temp = rotate_frame->frame;
+	register uint8_t *src_frame_temp = decoder_frame->frame;
+#endif
+
+	if (decoder_frame->width >= rotate_frame->width)
+	{
+		max_width = decoder_frame->width;
+	}
+	else
+	{
+		max_width = rotate_frame->width;
+	}
+
+	// copy max_copy_row line one time
+
+	int (*func)(uint8_t *srcVuyy, uint8_t *dstVuyy, uint8_t row_count);
+
+	if (rotate_frame->width == 800 && rotate_frame->height == 480)
+	{
+		max_copy_row = BLOCK_SIZE / max_width / 2;
+		max_dst_copy_row = max_copy_row;
+		func = vuyy_image_vga_to_lvga;
+	}
+	else if (rotate_frame->width == 480 && rotate_frame->height == 320)
+	{
+		max_copy_row = 3;
+		max_dst_copy_row = 2;
+		func = vuyy_image_vga_to_rsvga;
+	}
+	else if (rotate_frame->width == 320 && rotate_frame->height == 240)
+	{
+		max_copy_row = 4;
+		max_dst_copy_row = 2;
+		func = vuyy_image_vga_to_qvga;
+	}
+	else
+	{
+		max_copy_row = BLOCK_SIZE / (max_width * 2);
+		max_dst_copy_row = 6;
+		func = NULL;//vuyy_image_resize;
+		goto error;
+	}
+
+	src_copy_byte = decoder_frame->width * 2 * max_copy_row;
+	dst_copy_byte = rotate_frame->width * 2 * max_dst_copy_row;
+
+	LOGD("src:%d-%d, dst:%d-%d, src_row:dst_row:%d-%d\r\n", decoder_frame->width, decoder_frame->height, rotate_frame->width,
+		rotate_frame->height, max_copy_row, max_dst_copy_row);
+
+#if 0
+	flush_dcache(src_frame_temp, JPEG_DEC_FRAME_SIZE);
+	flush_dcache(dst_frame_temp, JPEG_DEC_FRAME_SIZE);
+#endif
+
+	for (i = 0; i < decoder_frame->height / max_copy_row; i++)
+	{
+		cp_ptr = src_frame_temp + i * src_copy_byte;
+		memcpy_word((uint32_t *)rx_block, (uint32_t *)cp_ptr, src_copy_byte >> 2);
+
+		func(rx_block, tx_block, max_copy_row);
+
+		cp_ptr = dst_frame_temp + i * dst_copy_byte;
+		memcpy_word((uint32_t *)cp_ptr, (uint32_t *)tx_block, dst_copy_byte >> 2);
+	}
+
+error:
+
+	mb_cmd.hdr.cmd = EVENT_LCD_RESIZE_MBRSP;
+	mb_cmd.param1 = (uint32_t)decoder_frame;
+	mb_cmd.param2 = (uint32_t)rotate_frame;
+	mb_cmd.param3 = 1;
+
+	mb_chnl_write(MB_CHNL_VID, &mb_cmd);
+}
 
 MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 {

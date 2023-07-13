@@ -371,6 +371,7 @@ void ble_at_cmd_cb(ble_cmd_t cmd, ble_cmd_param_t *param)
         case BLE_SET_LOCAL_NAME:
         case BLE_GET_LOCAL_NAME:
         case BLE_READ_LOCAL_ADDR:
+        case BLE_SET_RANDOM_ADDR:
             if (ble_at_cmd_sema != NULL)
                 rtos_set_semaphore( &ble_at_cmd_sema );
             break;

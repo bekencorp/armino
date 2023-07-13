@@ -29,6 +29,7 @@ typedef struct {
 } flash_hal_t;
 
 #define flash_hal_is_busy(hal) flash_ll_is_busy((hal)->hw)
+#define flash_hal_wait_op_done(hal) flash_ll_wait_op_done((hal)->hw)
 #define flash_hal_get_id(hal) flash_ll_get_id((hal)->hw)
 #define flash_hal_get_mid(hal) flash_ll_get_mid((hal)->hw)
 #define flash_hal_read_status_reg(hal, sr_width) flash_ll_read_status_reg((hal)->hw, sr_width)

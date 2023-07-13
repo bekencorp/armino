@@ -106,7 +106,7 @@ typedef struct {
 } pwm_group_config_t;
 
 /**
- * @brief PWM group type
+ * @brief PWM group type.
  */
 typedef uint8_t pwm_group_t;
 

@@ -334,6 +334,7 @@ typedef enum
     BLE_GET_LOCAL_NAME,
 
     BLE_READ_LOCAL_ADDR,
+    BLE_SET_RANDOM_ADDR,
     BLE_CMD_MAX,
 } ble_cmd_t;
 

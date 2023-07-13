@@ -31,6 +31,7 @@ void ota_write_flash(bk_partition_t ota_partition_flag, u8 flag, u8 offset)
 	u8 ota_final_buff[1],ota_temp_buff[1],ota_cconfirm_buff[1];
 
     u8 temp1_buff[1],temp2_buff[1],temp3_buff[1];
+    flash_protect_type_t protect_type;
     
 	bk_ptr = bk_flash_partition_get_info(ota_partition_flag);
 	
@@ -41,6 +42,8 @@ void ota_write_flash(bk_partition_t ota_partition_flag, u8 flag, u8 offset)
 	
 	os_printf("before:ota_final_buff:0x%x,ota_temp_buff:0x%x,ota_cconfirm_buff:0x%x\r\n",
 			ota_final_buff[0],ota_temp_buff[0],ota_cconfirm_buff[0]);
+    
+	protect_type = bk_flash_get_protect_type();
 	bk_flash_set_protect_type(FLASH_PROTECT_NONE);
 	bk_flash_erase_sector(bk_ptr->partition_start_addr);
     
@@ -73,7 +76,7 @@ void ota_write_flash(bk_partition_t ota_partition_flag, u8 flag, u8 offset)
 	os_printf("ota_final_buff:0x%x,ota_temp_buff:0x%x,ota_cconfirm_buff:0x%x\r\n",
 			temp1_buff[0],temp2_buff[0],temp3_buff[0]);
     #endif
-    bk_flash_set_protect_type(FLASH_UNPROTECT_LAST_BLOCK);
+    bk_flash_set_protect_type(protect_type);
 }
 
 void bk_ota_confirm_update_partition(ota_confirm_flag ota_confirm_val)

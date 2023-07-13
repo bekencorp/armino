@@ -174,6 +174,8 @@ bk_err_t bk_dma_read(dma_id_t id, uint8_t *data, uint32_t size);
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
+ *
+ * @NOTES before enable interrupt, please confirm have called bk_dma_register_isr.
  */
 bk_err_t bk_dma_enable_finish_interrupt(dma_id_t id);
 
@@ -196,6 +198,8 @@ bk_err_t bk_dma_disable_finish_interrupt(dma_id_t id);
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
+ *
+ * @NOTES before enable interrupt, please confirm have called bk_dma_register_isr.
  */
 bk_err_t bk_dma_enable_half_finish_interrupt(dma_id_t id);
 

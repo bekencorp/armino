@@ -37,7 +37,7 @@
 #define DEFAULT_USER_ID 0 // sdk will automatically assign a random user id
 #define DEFAULT_AREA_CODE AREA_CODE_GLOB
 
-#define RTSA_CODEC    1
+#define RTSA_CODEC    0
 
 #define CONFIG_PCM_CHANNEL_NUM (1)
 #define CONFIG_PCM_SAMPLE_RATE (8000)

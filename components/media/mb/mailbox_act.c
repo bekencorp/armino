@@ -69,6 +69,10 @@ void mailbox_cmd_handle(uint32_t event, uint32_t param)
 			lcd_act_rotate_degree90(param);
 			break;
 
+		case EVENT_LCD_RESIZE_CMD:
+			lcd_act_vuyy_resize(param);
+			break;
+
 		case EVENT_LVGL_DRAW_CMD:
 #ifdef CONFIG_LVGL_DRAW_ON_CPU1
 			lv_draw_sw_blend_basic_slave(param);

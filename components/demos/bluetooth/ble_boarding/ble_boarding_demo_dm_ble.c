@@ -77,6 +77,7 @@ static void ble_at_cmd_cb(ble_cmd_t cmd, ble_cmd_param_t *param)
     case BLE_CONN_READ_PHY:
     case BLE_CONN_SET_PHY:
     case BLE_CONN_UPDATE_MTU:
+    case BLE_SET_RANDOM_ADDR:
         if (ble_boarding_sema != NULL)
         {
             rtos_set_semaphore( &ble_boarding_sema );
@@ -355,6 +356,34 @@ int dm_ble_boarding_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 
     retval = bk_ble_set_advertising_params(&tmp_param, ble_at_cmd_cb);
 
+    if (retval != BK_ERR_BLE_SUCCESS)
+    {
+        goto error;
+    }
+
+    if (ble_boarding_sema != NULL)
+    {
+        retval = rtos_get_semaphore(&ble_boarding_sema, AT_SYNC_CMD_TIMEOUT_MS);
+
+        if (retval != kNoErr)
+        {
+            goto error;
+        }
+    }
+
+    bd_addr_t random_addr;
+    bk_get_mac((uint8_t *)random_addr.addr, MAC_TYPE_BLUETOOTH);
+
+    for (int i = 0; i < sizeof(random_addr.addr) / 2; i++)
+    {
+        uint8_t tmp_addr = random_addr.addr[i];
+        random_addr.addr[i] = random_addr.addr[sizeof(random_addr.addr) - 1 - i];
+        random_addr.addr[sizeof(random_addr.addr) - 1 - i] = tmp_addr;
+    }
+
+    random_addr.addr[0]++;
+
+    retval = bk_ble_set_random_addr((bd_addr_t *)&random_addr, ble_at_cmd_cb);
 
     if (retval != BK_ERR_BLE_SUCCESS)
     {
@@ -421,6 +450,7 @@ int dm_ble_boarding_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
     return retval;
 
 error:
+    os_printf("%s failed. \n", __func__);
     msg = AT_CMD_RSP_ERROR;
     os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 

@@ -1576,10 +1576,6 @@ int bk_cli_init(void)
 	cli_exception_init();
 #endif
 
-#if (CLI_CFG_ICU == 1)
-	cli_icu_init();
-#endif
-
 #if (CLI_CFG_TOUCH == 1)
 	cli_touch_init();
 #endif

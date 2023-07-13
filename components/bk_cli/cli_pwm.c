@@ -273,13 +273,13 @@ static void cli_pwm_idle_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int 
 		config.duty2_cycle = 0;
 		config.duty3_cycle = 0;
 
-		for(int chan = 0; chan < SOC_PWM_CHAN_NUM_PER_UNIT; chan++) {
+		for(int chan = 0; chan < SOC_PWM_CHAN_NUM_PER_UNIT * SOC_PWM_UNIT_NUM; chan++) {
 			BK_LOG_ON_ERR(bk_pwm_init(chan, &config));
 			BK_LOG_ON_ERR(bk_pwm_start(chan));
 			CLI_LOGI("pwm init, chan=%d period=%x duty=%x\n", chan, config.period_cycle, config.duty_cycle);
 		}
 	} else if (os_strcmp(argv[1], "idle_stop") == 0) {
-			for(int chan = 0; chan < SOC_PWM_CHAN_NUM_PER_UNIT; chan++) {
+			for(int chan = 0; chan < SOC_PWM_CHAN_NUM_PER_UNIT * SOC_PWM_UNIT_NUM; chan++) {
 			BK_LOG_ON_ERR(bk_pwm_stop(chan));
 			BK_LOG_ON_ERR(bk_pwm_deinit(chan));
 		}
@@ -295,7 +295,7 @@ static const struct cli_command s_pwm_commands[] = {
 	{"pwm_driver", "{init|deinit} [26M|DCO]}", cli_pwm_driver_cmd},
 	{"pwm", "pwm {chan} {config|start|stop|init|deinit|signal} [...]", cli_pwm_cmd},
 	{"pwm_int", "pwm_int {chan} {reg|enable|disable}", cli_pwm_int_cmd},
-	{"pwm_duty", "pwm_duty {chan} {period} {d1} [d2] [d3]", cli_pwm_int_cmd},
+	//{"pwm_duty", "pwm_duty {chan} {period} {d1} [d2] [d3]", cli_pwm_cmd},
 	{"pwm_capture", "pwm_capture {chan} {config|start|stop|init|deinit}", cli_pwm_capture_cmd},
 	{"pwm_group", "pwm_group {init|deinit|config|start|stop} [...]", cli_pwm_group_cmd},
 	{"pwm_timer", "pwm_timer ", cli_pwm_timer_cmd},

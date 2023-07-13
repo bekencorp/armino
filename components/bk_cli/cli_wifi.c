@@ -280,6 +280,77 @@ void cli_wifi_ap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
 
+void cli_wifi_hidden_ap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	wifi_ap_config_t ap_config = WIFI_DEFAULT_AP_CONFIG();
+	netif_ip4_config_t ip4_config = {0};
+	int len;
+	char *ap_ssid = NULL;
+	char *ap_key = "";
+	char *ap_channel = NULL;
+	int ret = 0;
+	char *msg = NULL;
+
+	if (argc == 2)
+			ap_ssid = argv[1];
+	else if (argc == 3) {
+		ap_ssid = argv[1];
+		if (os_strlen(argv[2]) <= 2)
+			ap_channel = argv[2];
+		else
+			ap_key = argv[2];
+	} else if (argc == 4) {
+		ap_ssid = argv[1];
+		ap_key = argv[2];
+		ap_channel = argv[3];
+	}else{
+		CLI_LOGI("Invalid parameters\n");
+		return;
+	}
+
+	if (ap_ssid) {
+		len = os_strlen(ap_ssid);
+		if (32 < len) {
+			CLI_LOGE("ssid name more than 32 Bytes\r\n");
+			return;
+		}
+
+		os_strcpy(ip4_config.ip, WLAN_DEFAULT_IP);
+		os_strcpy(ip4_config.mask, WLAN_DEFAULT_MASK);
+		os_strcpy(ip4_config.gateway, WLAN_DEFAULT_GW);
+		os_strcpy(ip4_config.dns, WLAN_DEFAULT_GW);
+		ret = bk_netif_set_ip4_config(NETIF_IF_AP, &ip4_config);
+
+		os_strcpy(ap_config.ssid, ap_ssid);
+		os_strcpy(ap_config.password, ap_key);
+
+		if (ap_channel) {
+			int channel;
+			char *end;
+
+			channel = strtol(ap_channel, &end, 0);
+			if (*end) {
+				CLI_LOGE("Invalid number '%s'", ap_channel);
+				return;
+			}
+			ap_config.channel = channel;
+		}
+
+		CLI_LOGI("ssid:%s  key:%s\r\n", ap_config.ssid, ap_config.password);
+		ap_config.hidden = true;
+		ret = bk_wifi_ap_set_config(&ap_config);
+		ret = bk_wifi_ap_start();
+	}
+
+
+	if(ret == 0)
+		msg = WIFI_CMD_RSP_SUCCEED;
+	else
+		msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+
+}
+
 void cli_wifi_stop_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int ret = 0;
@@ -1568,6 +1639,7 @@ void blacklist_Command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 static const struct cli_command s_wifi_commands[] = {
 	{"scan", "scan [ssid]", cli_wifi_scan_cmd},
 	{"ap", "ap ssid [password] [channel[1:14]]", cli_wifi_ap_cmd},
+	{"start_hidden_softap", "start_hidden_softap ssid [password] [channel[1:14]]", cli_wifi_hidden_ap_cmd},
 	{"sta", "sta ssid [password][bssid][channel]", cli_wifi_sta_cmd}, //TODO support connect speicific BSSID
 #if CONFIG_COMPONENTS_WPA2_ENTERPRISE
 	{"sta_eap", "sta_eap ssid password [identity] [client_cert] [private_key]", cli_wifi_sta_eap_cmd},

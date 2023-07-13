@@ -23,16 +23,23 @@
 extern "C" {
 #endif
 
-#define PWM_LL_REG_BASE(_pwm_unit_id) (SOC_PWM01_REG_BASE)
+#define PWM_LL_REG_BASE(_pwm_unit_id) (SOC_PWM01_REG_BASE + _pwm_unit_id * (SOC_PWM67_REG_BASE - SOC_PWM01_REG_BASE))
 #define PWM_LL_GROUP(chan) ((chan) / SOC_PWM_CHAN_NUM_PER_GROUP)
 #define PWM_LL_CHAN(chan) ((chan) % SOC_PWM_CHAN_NUM_PER_GROUP)
 
+/* though CPU-1 doesn't use PWM, I still define it here */
 #define PWM0_LL_PIN		6
 #define PWM1_LL_PIN		7
 #define PWM2_LL_PIN		8
 #define PWM3_LL_PIN		9
 #define PWM4_LL_PIN		24
 #define PWM5_LL_PIN		25
+#define PWM6_LL_PIN		32
+#define PWM7_LL_PIN		33
+#define PWM8_LL_PIN		34
+#define PWM9_LL_PIN		35
+#define PWM10_LL_PIN		36
+#define PWM11_LL_PIN		37
 
 typedef enum {
 	GROUP_CHAN0 = 0,

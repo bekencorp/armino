@@ -48,11 +48,13 @@ typedef enum
 typedef struct
 {
 	uint8_t debug : 1;
+	uint8_t resize : 1;
 	uint8_t step_mode : 1;
 	uint8_t step_trigger : 1;
 	uint8_t dma2d_blend : 1;
 	uint8_t decode_mode;
 	media_rotate_t rotate;
+	media_ppi_t resize_ppi;
 	lcd_state_t state;
 } lcd_info_t;
 

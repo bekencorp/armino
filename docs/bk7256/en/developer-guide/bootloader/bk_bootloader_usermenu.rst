@@ -118,6 +118,17 @@ l_bootloader: mainly downloads uart. Figure 2 shows the flowchart.
 - 3. Use the serial port to send the cli command, for example:
   http_ota http://192.168.21.101/D%3A/E/build/app.rbl
 
+八. Compile priority of bootloader.bin file in the project
+-------------------------------------------------------------
 
+- The bootloader.bin file in the projects directory overrides the default bootloader.bin file in the middleware/boards directory.
+
+- case1: for example: for projects/customization/bk7256_config1
+
+  When modifying the bootloader.bin files in projects/customization/bk7256_config1 directory, compile bk7256_config1 project, Priority will be compiled, packaging projects/customization/bk7256_config1 /bootloader.bin, rather than middleware/boards/bk7256/bootloader.bin file.
+
+- case2: for example: For projects/customization/bk7256_config3
+
+  When the projects/customization/bk7256_config3 without bootloader.bin file, compile bk7256_config3 project, Priority will be compiled and packaged middleware/boards/bk7256/bootloader.bin file.
 
 

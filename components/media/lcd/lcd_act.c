@@ -176,6 +176,18 @@ static void jpeg_display_task_entry(beken_thread_arg_t data)
 			continue;
 		}
 
+		if (lcd_info.resize)
+		{
+			LOGD("%d\n", lcd_info.resize_ppi);
+			frame = lcd_driver_resize_frame(frame, lcd_info.resize_ppi);
+
+			if (frame == NULL)
+			{
+				LOGD("resize frame NULL\n");
+				continue;
+			}
+		}
+
 		if (rotate != ROTATE_NONE)
 		{
 			frame = lcd_driver_rodegree_frame(frame, rotate);
@@ -312,6 +324,17 @@ static void camera_display_task_entry(beken_thread_arg_t data)
 			frame_buffer_fb_display_push(dec_frame);
 #else
 
+			if (lcd_info.resize)
+			{
+				dec_frame = lcd_driver_resize_frame(dec_frame, lcd_info.resize_ppi);
+
+				if (dec_frame == NULL)
+				{
+					LOGD("resize frame NULL\n");
+					continue;
+				}
+			}
+
 			if (rotate != ROTATE_NONE)
 			{
 				dec_frame = lcd_driver_rodegree_frame(dec_frame, rotate);
@@ -360,6 +383,17 @@ static void camera_display_task_entry(beken_thread_arg_t data)
 			{
 				LOGD("jpeg decoder frame NULL\n");
 				continue;
+			}
+
+			if (lcd_info.resize == true)
+			{
+				dec_frame = lcd_driver_resize_frame(dec_frame, lcd_info.resize_ppi);
+
+				if (dec_frame == NULL)
+				{
+					LOGD("resize frame NULL\n");
+					continue;
+				}
 			}
 
 			if (rotate == true)
@@ -1352,6 +1386,8 @@ void lcd_close_handle(param_pak_t *param)
 #endif
 
 	lcd_info.rotate = ROTATE_NONE;
+	lcd_info.resize = false;
+	lcd_info.resize_ppi = PPI_800X480;
 
 	set_lcd_state(LCD_STATE_DISABLED);
 
@@ -1427,6 +1463,23 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 
 			param_pak = (param_pak_t *)param;
 			lcd_info.rotate = param_pak->param;
+			MEDIA_EVT_RETURN(param_pak, BK_OK);
+		}
+		break;
+
+		case EVENT_LCD_RESIZE_IND:
+		{
+			param_pak = (param_pak_t *)param;
+			if (lcd_info.resize)
+			{
+				lcd_info.resize = false;
+			}
+			else
+			{
+				lcd_info.resize = true;
+				lcd_info.resize_ppi = (media_ppi_t)(param_pak->param);
+			}
+
 			MEDIA_EVT_RETURN(param_pak, BK_OK);
 		}
 		break;
@@ -1611,6 +1664,8 @@ void lcd_init(void)
 	lcd_info.state = LCD_STATE_DISABLED;
 	lcd_info.debug = false;
 	lcd_info.rotate = ROTATE_NONE;
+	lcd_info.resize = false;
+	lcd_info.resize_ppi = PPI_800X480;
 	lcd_info.decode_mode = HARDWARE_DECODING;
 }
 

@@ -120,6 +120,17 @@ l_bootloader：主要是uart下载功能，流程图如上图2所示。
 - 3.使用串口发送cli命令，例如：
   http_ota http://192.168.21.101/D%3A/E/build/app.rbl
 
+八、工程中bootloader.bin文件的编译优先级
+-------------------------------------------
 
+- 编译时将以projects目录文件下的bootloader.bin文件 Override 默认middleware/boards目录下的bootloader.bin文件。
+
+- case1: 以projects/customization/bk7256_config1为例：
+
+  当修改的bootloader.bin文件放在projects/customization/bk7256_config1目录下，编译bk7256_config1工程时，将会优先编译、打包projects/customization/bk7256_config1/bootloader.bin，而非是middleware/boards/bk7256/bootloader.bin文件。
+
+- case2: 以projects/customization/bk7256_config3为例：
+
+  当前projects/customization/bk7256_config3下面没有bootloader.bin文件，编译bk7256_config3工程时，将会优先编译、打包middleware/boards/bk7256/bootloader.bin文件。
 
 

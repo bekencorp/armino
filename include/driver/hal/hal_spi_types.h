@@ -28,6 +28,7 @@ extern "C" {
 #define BK_ERR_SPI_TX_TIMEOUT            (BK_ERR_SPI_BASE - 5) /**< SPI send data timeout */
 #define BK_ERR_SPI_FIFO_WR_NOT_READY     (BK_ERR_SPI_BASE - 6) /**< SPI tx fifo write not ready */
 #define BK_ERR_SPI_FIFO_RD_NOT_READY     (BK_ERR_SPI_BASE - 6) /**< SPI rx fifo read not ready */
+#define BK_ERR_SPI_DUPLEX_SIZE_NOT_EQUAL (BK_ERR_SPI_BASE - 7) /**< SPI duplex tx rx size not equal */
 
 typedef uint8_t spi_unit_t; /**< spi uint id */
 

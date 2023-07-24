@@ -452,10 +452,12 @@ CONFIG_TIMER_SUPPORT_ID_BITS=0
 # end of FLASH
 
 #
-# EXTERN_32K
+# PWR_CLK
 #
 # CONFIG_EXTERN_32K is not set
-# end of EXTERN_32K
+# CONFIG_MEM_AUTO_POWER_DISABLE is not set
+# CONFIG_CP1_AUTO_POWER_DISABLE is not set
+# end of PWR_CLK
 
 #
 # VAULT
@@ -849,6 +851,12 @@ CONFIG_DSP_SRC_ADD=0x130000
 #
 CONFIG_VIDEO_SCALE=y
 # end of modules::video_code::scale
+
+#
+# modules::video_code::tjpg
+#
+CONFIG_JPEGDEC_TJPG=y
+# end of modules::video_code::tjpg
 
 #
 # modules::wfa_ca

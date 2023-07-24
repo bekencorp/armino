@@ -10,6 +10,7 @@
 #include "bk_pm_internal_api.h"
 #include "boot.h"
 #include "wdt_driver.h"
+#include <modules/pm.h>
 
 extern void c_startup(void);
 extern void system_init(void);
@@ -38,7 +39,14 @@ void reset_handler(void)
 
 	/*power manager init*/
 	pm_hardware_init();
-
+#if !CONFIG_SLAVE_CORE
+	#if CONFIG_MEM_AUTO_POWER_DISABLE
+	bk_pm_mem_auto_power_down_state_set(PM_MEM_AUTO_CTRL_DISABLE);
+	#endif
+	#if CONFIG_CP1_AUTO_POWER_DISABLE
+	bk_pm_cp1_auto_power_down_state_set(PM_CP1_AUTO_CTRL_DISABLE);
+	#endif
+#endif
 #if (CONFIG_SOC_BK7256XX)
 	//clear mannully reboot flag
 	set_reboot_tag(0);

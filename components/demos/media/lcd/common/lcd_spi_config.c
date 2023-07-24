@@ -88,28 +88,28 @@ void lcd_init_gpio(void)
 //	BK_LOG_ON_ERR(bk_gpio_enable_output(34));
 //	// pull up gpio34, enable lcd backlight control
 //	bk_gpio_set_output_low(34);
-//	delay_ms(15);
+//	rtos_delay_milliseconds(15);
 //	bk_gpio_set_output_high(34);
 
 	BK_LOG_ON_ERR(bk_gpio_disable_input(37));
 	BK_LOG_ON_ERR(bk_gpio_enable_output(37));
 	// pull up gpio37, enable uvc camera vol
 	bk_gpio_set_output_low(37);
-	delay_ms(15);
+	rtos_delay_milliseconds(15);
 	bk_gpio_set_output_high(37);
 
 	BK_LOG_ON_ERR(bk_gpio_disable_input(8));
 	BK_LOG_ON_ERR(bk_gpio_enable_output(8));
 	// pull up gpio8, enbale pa and TF card vol
 	bk_gpio_set_output_high(8);
-	delay_ms(15);
+	rtos_delay_milliseconds(15);
 	bk_gpio_set_output_low(8);
 
 //	BK_LOG_ON_ERR(bk_gpio_disable_input(39));
 //	BK_LOG_ON_ERR(bk_gpio_enable_output(39));
 //	// pull up gpio39, enable audio pa vol
 //	bk_gpio_set_output_low(39);
-//	delay_ms(15);
+//	rtos_delay_milliseconds(15);
 //	bk_gpio_set_output_high(39);
 
 	BK_LOG_ON_ERR(bk_gpio_disable_input(6));
@@ -117,9 +117,9 @@ void lcd_init_gpio(void)
 	bk_gpio_set_output_low(6);
 	bk_gpio_set_output_high(6);
 	bk_gpio_set_output_low(6);
-	delay_ms(15);
+	rtos_delay_milliseconds(15);
 	bk_gpio_set_output_high(6);
-	delay_ms(150);
+	rtos_delay_milliseconds(150);
 }
 
 void spi_init_gpio(void)
@@ -728,9 +728,9 @@ void lcd_gc9503v_set_config(void)
 	SPI_WriteData(0x55);
 
 	SPI_WriteComm(0x11);
-	delay_ms(20);
+	rtos_delay_milliseconds(20);
 	SPI_WriteComm(0x29);
-	delay_ms(10); 
+	rtos_delay_milliseconds(10); 
 }
 
 void lcd_st7701s_set_config(void)
@@ -842,7 +842,7 @@ void lcd_st7701s_set_config(void)
 
 	SPI_WriteComm(0xD0);
 	SPI_WriteData(0x88);
-	delay_ms(10);
+	rtos_delay_milliseconds(10);
 
 	SPI_WriteComm(0xE0);
 	SPI_WriteData(0x00);
@@ -990,12 +990,12 @@ void lcd_st7701s_set_config(void)
 	SPI_WriteData(0x0E);
 
 	SPI_WriteComm(0x11);
-	delay_ms(20);
+	rtos_delay_milliseconds(20);
 
 	SPI_WriteComm(0xE8);
 	SPI_WriteData(0x00);
 	SPI_WriteData(0x0C);
-	delay_ms(10);
+	rtos_delay_milliseconds(10);
 
 	SPI_WriteComm(0xE8);
 	SPI_WriteData(0x00);
@@ -1012,7 +1012,7 @@ void lcd_st7701s_set_config(void)
 	SPI_WriteData(0x55);
 
 	SPI_WriteComm(0x29);
-	delay_ms(10);
+	rtos_delay_milliseconds(10);
 }
 
 

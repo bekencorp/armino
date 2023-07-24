@@ -469,10 +469,12 @@ CONFIG_FLASH_SRC_CLK_60M=y
 # end of FLASH
 
 #
-# EXTERN_32K
+# PWR_CLK
 #
 # CONFIG_EXTERN_32K is not set
-# end of EXTERN_32K
+# CONFIG_MEM_AUTO_POWER_DISABLE is not set
+# CONFIG_CP1_AUTO_POWER_DISABLE is not set
+# end of PWR_CLK
 
 #
 # VAULT
@@ -742,6 +744,7 @@ CONFIG_SELF_LE_INIT_UPDATE_CON_PARAM=y
 # CONFIG_SELF_LE_IND_NTF is not set
 # CONFIG_SELF_LE_INIT_MTU is not set
 CONFIG_SELF_LE_INIT_SDP=y
+CONFIG_BLE_3E_RECONNECT=y
 # end of BTDM 5.2 RW Host
 
 #
@@ -979,6 +982,12 @@ CONFIG_VIDEO_QR_CODE_GEN=y
 #
 CONFIG_VIDEO_SCALE=y
 # end of modules::video_code::scale
+
+#
+# modules::video_code::tjpg
+#
+CONFIG_JPEGDEC_TJPG=y
+# end of modules::video_code::tjpg
 
 #
 # modules::wfa_ca

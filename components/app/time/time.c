@@ -214,7 +214,7 @@ static int gettimeofday(struct s_timeval *tp, void *ignore)
 	{
 		uint64_t tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 
-		long current_time = g_seconds_offset + tick/32/1000;
+		long current_time = g_seconds_offset + tick/(AON_RTC_MS_TICK_CNT*1000);
 
 		tp->tv_sec = current_time;
 		tp->tv_usec = 0;
@@ -235,7 +235,7 @@ static int settimeofday(const struct s_timeval *tp,const struct timezone *tz)
     if(tp)
     {
         uint64_t tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
-		long current_tick_seconds = tick/32/1000;
+		long current_tick_seconds = tick/(AON_RTC_MS_TICK_CNT*1000);
 
         long settime_seconds = tp->tv_sec;
 

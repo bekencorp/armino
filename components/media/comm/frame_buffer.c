@@ -113,6 +113,7 @@ fb_mem_list_t *frame_buffer_list_get(pixel_format_t fmt)
 			ret = &fb_mem_list[FB_INDEX_JPEG];
 			break;
 		case PIXEL_FMT_RGB565:
+		case PIXEL_FMT_RGB565_LE:
 		case PIXEL_FMT_YUYV:
 		case PIXEL_FMT_UYVY:
 		case PIXEL_FMT_YYUV:
@@ -143,6 +144,7 @@ fb_type_t frame_buffer_type_get(pixel_format_t fmt)
 			ret = FB_INDEX_JPEG;
 			break;
 		case PIXEL_FMT_RGB565:
+		case PIXEL_FMT_RGB565_LE:
 		case PIXEL_FMT_YUYV:
 		case PIXEL_FMT_UYVY:
 		case PIXEL_FMT_YYUV:
@@ -186,6 +188,12 @@ bk_err_t frame_buffer_list_remove(frame_buffer_t *frame, LIST_HEADER_T *list)
 
 void frame_buffer_fb_free(frame_buffer_t *frame, frame_module_t index)
 {
+	if (frame == NULL)
+	{
+		LOGE("%s %d, frame is null\r\n", __func__, index);
+		return;
+	}
+
 	fb_mem_list_t *mem_list = frame_buffer_list_get(frame->fmt);
 	frame_buffer_node_t *node = list_entry(frame, frame_buffer_node_t, frame);
 	uint32_t isr_context = platform_is_in_interrupt_context();
@@ -250,10 +258,12 @@ void frame_buffer_fb_free(frame_buffer_t *frame, frame_module_t index)
 			LOGD("%s remove failed\n", __func__);
 		}
 
-
-		node->free_mask = 0;
-		node->read_mask = 0;
-		list_add_tail(&node->list, &mem_list->free);
+		if (node->free_mask != 0)
+		{
+			node->free_mask = 0;
+			node->read_mask = 0;
+			list_add_tail(&node->list, &mem_list->free);
+		}
 	}
 
 out:
@@ -697,11 +707,20 @@ out:
 
 int frame_buffer_fb_deinit(fb_type_t type)
 {
+	int ret = BK_OK;
 	fb_mem_list_t *mem_list = NULL;
 	frame_buffer_node_t *tmp = NULL;
 	LIST_HEADER_T *pos, *n;
+	uint32_t isr_context = platform_is_in_interrupt_context();
+	GLOBAL_INT_DECLARATION();
 
 	mem_list = &fb_mem_list[type];
+
+	if (!isr_context)
+	{
+		rtos_lock_mutex(&mem_list->lock);
+		GLOBAL_INT_DISABLE();
+	}
 
 	if (type == FB_INDEX_DISPLAY)
 	{
@@ -724,13 +743,14 @@ int frame_buffer_fb_deinit(fb_type_t type)
 	else
 	{
 		LOGE("%s unknow type: %d\n", __func__, type);
-		return BK_FAIL;
+		ret = BK_FAIL;
+		goto out;
 	}
 
 	if (mem_list->enable == false)
 	{
 		LOGE("%s already deinit\n", __func__);
-		return BK_FAIL;
+		goto out;
 	}
 
 	if (!list_empty(&mem_list->free))
@@ -767,7 +787,14 @@ int frame_buffer_fb_deinit(fb_type_t type)
 
 	mem_list->enable = false;
 
-	return BK_OK;
+out:
+	if (!isr_context)
+	{
+		GLOBAL_INT_RESTORE();
+		rtos_unlock_mutex(&mem_list->lock);
+	}
+
+	return ret;
 }
 
 
@@ -882,6 +909,12 @@ frame_buffer_t *frame_buffer_fb_jpeg_malloc(void)
 
 void frame_buffer_fb_jpeg_free(frame_buffer_t *frame)
 {
+	if (frame == NULL)
+	{
+		LOGE("%s, frame is null\r\n", __func__);
+		return;
+	}
+
 	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_JPEG];
 	frame_buffer_node_t *node = list_entry(frame, frame_buffer_node_t, frame);
 	uint32_t isr_context = platform_is_in_interrupt_context();
@@ -963,6 +996,12 @@ frame_buffer_t *frame_buffer_fb_display_malloc_wait(void)
 
 void frame_buffer_fb_display_free(frame_buffer_t *frame)
 {
+	if (frame == NULL)
+	{
+		LOGE("%s, frame is null\r\n", __func__);
+		return;
+	}
+
 	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_DISPLAY];
 	frame_buffer_node_t *tmp = NULL, *node = list_entry(frame, frame_buffer_node_t, frame);
 	uint32_t length = 0, isr_context = platform_is_in_interrupt_context();

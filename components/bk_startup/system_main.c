@@ -223,6 +223,8 @@ static void user_app_thread( void *arg )
 	save_mtime_point(CPU_APP_FINISH_TIME);
 #endif
 
+	rtos_deinit_semaphore(&user_app_sema);
+
 	rtos_delete_thread( NULL );
 }
 

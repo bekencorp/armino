@@ -120,6 +120,42 @@ l_bootloader：主要是uart下载功能，流程图如上图2所示。
 - 3.使用串口发送cli命令，例如：
   http_ota http://192.168.21.101/D%3A/E/build/app.rbl
 
+八.兼容bootloader无OTA功能需求
+-------------------------------
+- 为兼容客户不需要OTA功能，将download分区做成可适配性（即将downlaod分区删掉，达到无OTA功能的需求）
 
+- 使用tools/env_tools/rt_partition_tool/rt_partition_tool.exe工具修改插入新的bootloader的分区表，简要步骤如下：
 
+  - 打开rt_partition_tool.exe工具
+  - 以bk7256为例，加载middleware/boards/bk7256/bootloader.bin（若bootloader中没有分区表则会提示添加会导入分区表）
+  - 导出分区表为bootloader_orign.json文件见图7.
+  - 修改bootloader_orign.json文件，将download分区删掉，生成bootloader_update.json文件见图8
+  - 导入bootloader_update.json文件并保存到bootloader
+  - 将生成的bootloader.bin放到middleware/boards/bk7256目录下
 
+ .. figure:: ../../../_static/bootloader_orign.png
+    :align: center
+    :alt: bootloader_orign
+    :figclass: align-center
+
+    图7 bootloader_orign.json
+
+ .. figure:: ../../../_static/bootloader_update.png
+    :align: center
+    :alt: bootloader_update
+    :figclass: align-center
+
+    图8 bootloader_update.json
+
+九、工程中bootloader.bin文件的编译优先级
+-------------------------------------------
+
+- 编译时，如果projects目录文件下有bootloader.bin文件，将使用projects目录文件下的bootloader.bin文件覆盖middleware/boards 目录下的bootloader.bin文件;如果projects目录文件下没有bootloader.bin文件，则使用middleware/boards目录下的bootloader.bin文件。
+
+- case1: 以projects/customization/bk7256_config1为例：
+
+  当修改的bootloader.bin文件放在projects/customization/bk7256_config1目录下，编译bk7256_config1工程时，将会优先编译、打包projects/customization/bk7256_config1/bootloader.bin，而非是middleware/boards/bk7256/bootloader.bin文件。
+
+- case2: 以projects/customization/bk7256_config3为例：
+
+  当前projects/customization/bk7256_config3下面没有bootloader.bin文件，编译bk7256_config3工程时，将会优先编译、打包middleware/boards/bk7256/bootloader.bin文件。

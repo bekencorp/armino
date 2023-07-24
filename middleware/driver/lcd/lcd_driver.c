@@ -50,6 +50,7 @@
 
 #if (CONFIG_JPEG_DECODE)
 #include <components/jpeg_decode.h>
+#include <modules/tjpgd.h>
 #endif
 #include <driver/dma2d.h>
 #include "modules/image_scale.h"
@@ -666,11 +667,11 @@ bk_err_t bk_lcd_set_yuv_mode(pixel_format_t input_data_format)
 {
 	switch (input_data_format)
 	{
-		case PIXEL_FMT_RGB565:
+		case PIXEL_FMT_RGB565_LE:
 			lcd_hal_display_yuv_sel(0);
 			lcd_hal_set_pixel_reverse(0);
 			break;
-		case PIXEL_FMT_BGR565:
+		case PIXEL_FMT_RGB565:
 			lcd_hal_display_yuv_sel(0);
 			lcd_hal_set_pixel_reverse(1);
 			break;
@@ -722,7 +723,7 @@ pixel_format_t bk_lcd_get_yuv_mode()
 	{
 		if (yuv_mode == 0)
 		{
-			output_data_format = PIXEL_FMT_RGB565;
+			output_data_format = PIXEL_FMT_RGB565_LE;
 		}
 		else if (yuv_mode == 1)
 		{
@@ -1302,6 +1303,9 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 	bk_err_t ret = BK_FAIL;
 	frame_buffer_t *dec_frame = NULL;
 	uint64_t before, after;
+#if (CONFIG_JPEG_DECODE)
+	jd_output_format *format = NULL;
+#endif
 
 #ifdef CONFIG_MASTER_CORE
 	 mb_chnl_cmd_t mb_cmd;
@@ -1381,10 +1385,35 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 #ifdef CONFIG_MASTER_CORE
 		if (get_decode_mode() == SOFTWARE_DECODING_CPU1)
 		{
+			format = os_malloc(sizeof(jd_output_format));
+			if (format == NULL)
+			{
+				LOGE("%s no buffer\n", __func__);
+				LCD_DRIVER_FRAME_FREE(s_lcd.decoder_frame);
+				goto out;
+			}
+			switch (s_lcd.decoder_frame->fmt)
+			{
+				case PIXEL_FMT_RGB565:
+					format->format = JD_FORMAT_RGB565;
+					format->scale = 1;
+					format->byte_order = JD_BIG_ENDIAN;
+					break;
+				case PIXEL_FMT_YUYV:
+					format->format = JD_FORMAT_VYUY;
+					format->scale = 0;
+					format->byte_order = JD_LITTLE_ENDIAN;
+					break;
+				default:
+					format->format = JD_FORMAT_VYUY;
+					format->scale = 0;
+					format->byte_order = JD_LITTLE_ENDIAN;
+					break;
+			}
 			mb_cmd.hdr.cmd = EVENT_LCD_DEC_SW_MBCMD;
 			mb_cmd.param1 = (uint32_t)frame;
 			mb_cmd.param2 = (uint32_t)s_lcd.decoder_frame;
-			mb_cmd.param3 = 0;
+			mb_cmd.param3 = (uint32_t)format;
 			s_lcd.result = BK_FAIL;
 
 			ret = mb_chnl_write(MB_CHNL_VID, &mb_cmd);
@@ -1439,6 +1468,12 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 
 out:
 
+#if (CONFIG_JPEG_DECODE)
+	if (format)
+	{
+		os_free(format);
+	}
+#endif
     if (s_lcd.decoder_frame == NULL)
     {
         media_debug->err_dec++;
@@ -2341,7 +2376,7 @@ void lcd_driver_display_frame_with_gui(void *buffer, int width, int height)
 	}
 
     if(s_lcd.lvgl_frame){
-        s_lcd.lvgl_frame->fmt = PIXEL_FMT_BGR565;
+        s_lcd.lvgl_frame->fmt = PIXEL_FMT_RGB565;
         s_lcd.lvgl_frame->frame = buffer;
         s_lcd.lvgl_frame->width = width;
         s_lcd.lvgl_frame->height = height;

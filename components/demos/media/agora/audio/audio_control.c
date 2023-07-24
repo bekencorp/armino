@@ -22,18 +22,29 @@
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
 #define RTSA_CODEC    0
+#define AUD_TASK    1
 
 static aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
 static aud_intf_voc_setup_t aud_intf_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
 static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 
 #if AUD_TASK
+typedef enum {
+	AUD_TRAS_TX_DATA = 0,
+
+	AUD_TRAS_EXIT,
+} aud_tras_op_t;
+
+typedef struct {
+	aud_tras_op_t op;
+} aud_tras_msg_t;
+
 static beken_thread_t  agora_aud_thread_hdl = NULL;
 static beken_queue_t agora_aud_msg_que = NULL;
 static RingBufferContext mic_data_rb;
 static uint8_t *mic_data_buffer = NULL;
-#define MIC_FRAME_SIZE 320
-#define MIC_FRAME_NUM 2
+#define MIC_FRAME_SIZE 160
+#define MIC_FRAME_NUM 4
 #endif
 
 extern int send_agora_audio_frame(uint8_t *data, uint32_t len);
@@ -42,11 +53,14 @@ extern int send_agora_audio_frame(uint8_t *data, uint32_t len);
 static bk_err_t agora_aud_send_msg(void)
 {
 	bk_err_t ret;
+	aud_tras_msg_t msg;
+
+	msg.op = AUD_TRAS_TX_DATA;
 
 	if (agora_aud_msg_que) {
-		ret = rtos_push_to_queue(&agora_aud_msg_que, NULL, BEKEN_NO_WAIT);
+		ret = rtos_push_to_queue(&agora_aud_msg_que, &msg, BEKEN_NO_WAIT);
 		if (kNoErr != ret) {
-			os_printf("es8311_send_int_msg fail \r\n");
+			LOGE("audio send msg: AUD_TRAS_TX_DATA fail \r\n");
 			return kOverrunErr;
 		}
 
@@ -54,6 +68,25 @@ static bk_err_t agora_aud_send_msg(void)
 	}
 	return kNoResourcesErr;
 }
+
+static bk_err_t agora_aud_tras_deinit(void)
+{
+	bk_err_t ret;
+	aud_tras_msg_t msg;
+
+	msg.op = AUD_TRAS_EXIT;
+	if (agora_aud_msg_que) {
+		ret = rtos_push_to_queue_front(&agora_aud_msg_que, &msg, BEKEN_NO_WAIT);
+		if (kNoErr != ret) {
+			LOGE("audio send msg: AUD_TRAS_EXIT fail \r\n");
+			return kOverrunErr;
+		}
+
+		return ret;
+	}
+	return kNoResourcesErr;
+}
+
 #endif
 
 static int send_audio_data_to_agora(uint8_t *data, unsigned int len)
@@ -63,19 +96,20 @@ static int send_audio_data_to_agora(uint8_t *data, unsigned int len)
 //GLOBAL_INT_DECLARATION();
 		ring_buffer_write(&mic_data_rb, data, len);
 //GLOBAL_INT_RESTORE();
+	} else {
+		return 0;
 	}
-	
 
 	if (ring_buffer_get_fill_size(&mic_data_rb) >= MIC_FRAME_SIZE) {
-		//bk_i2s_stop();
-		addAON_GPIO_Reg0x3 = 2;
+//		addAON_GPIO_Reg0x3 = 2;
 		agora_aud_send_msg();
-		addAON_GPIO_Reg0x3 = 0;
+//		addAON_GPIO_Reg0x3 = 0;
 	}
+	return len;
 #else
 	send_agora_audio_frame(data, len);
-#endif
 	return len;
+#endif
 }
 
 #if AUD_TASK
@@ -89,27 +123,60 @@ static void agora_aud_main(void)
 	uint8_t *mic_temp_buff = NULL;
 
 	while(1) {
-		ret = rtos_pop_from_queue(&agora_aud_msg_que, NULL, BEKEN_WAIT_FOREVER);
-		if (kNoErr == ret) {
-			//addAON_GPIO_Reg0x8 = 2;
-			size = ring_buffer_get_fill_size(&mic_data_rb);
-			if (size) {
-				mic_temp_buff = os_malloc(size);
-				if (mic_temp_buff != NULL) {
-					GLOBAL_INT_DISABLE();
-					count = ring_buffer_read(&mic_data_rb, mic_temp_buff, size);
-					GLOBAL_INT_RESTORE();
-					if (count)
-						send_agora_audio_frame(mic_temp_buff, count);
-					os_free(mic_temp_buff);
-				}
-			}
-			//addAON_GPIO_Reg0x8 = 0;
+		aud_tras_msg_t msg;
 
+		ret = rtos_pop_from_queue(&agora_aud_msg_que, &msg, BEKEN_WAIT_FOREVER);
+		if (kNoErr == ret) {
+			switch (msg.op) {
+				case AUD_TRAS_TX_DATA:
+					//addAON_GPIO_Reg0x8 = 2;
+					size = ring_buffer_get_fill_size(&mic_data_rb);
+					if (size) {
+						mic_temp_buff = os_malloc(size);
+						if (mic_temp_buff != NULL) {
+							GLOBAL_INT_DISABLE();
+							count = ring_buffer_read(&mic_data_rb, mic_temp_buff, size);
+							GLOBAL_INT_RESTORE();
+							if (count)
+								send_agora_audio_frame(mic_temp_buff, count);
+							os_free(mic_temp_buff);
+						}
+					}
+					//addAON_GPIO_Reg0x8 = 0;
+					break;
+
+				case AUD_TRAS_EXIT:
+					LOGD("goto: AUD_TRAS_EXIT \r\n");
+					goto aud_tras_exit;
+					break;
+
+				default:
+					break;
+			}
 		}
 	}
 
-	os_free(mic_temp_buff);
+aud_tras_exit:
+
+	ring_buffer_clear(&mic_data_rb);
+
+	if (mic_data_buffer) {
+		os_free(mic_data_buffer);
+		mic_data_buffer = NULL;
+	}
+
+	/* delete msg queue */
+	ret = rtos_deinit_queue(&agora_aud_msg_que);
+	if (ret != kNoErr) {
+		LOGE("delete message queue fail \r\n");
+	}
+	agora_aud_msg_que = NULL;
+	LOGI("delete message queue complete \r\n");
+
+	/* delete task */
+	agora_aud_thread_hdl = NULL;
+	rtos_delete_thread(NULL);
+
 }
 #endif
 
@@ -136,35 +203,35 @@ void audio_init(void)
 #if AUD_TASK
 	mic_data_buffer = os_malloc(MIC_FRAME_SIZE * MIC_FRAME_NUM);
 	if (mic_data_buffer == NULL) {
-		os_printf("malloc mic_data_buffer fail \n");
+		LOGE("malloc mic_data_buffer fail \n");
 		return;
 	}
 	ring_buffer_init(&mic_data_rb, mic_data_buffer, MIC_FRAME_SIZE*MIC_FRAME_NUM, DMA_ID_MAX, RB_DMA_TYPE_NULL);
 
 	ret = rtos_init_queue(&agora_aud_msg_que,
 						  "aud_int_que",
-						  0,
-						  80);
+						  sizeof(aud_tras_msg_t),
+						  60);
 	if (ret != kNoErr) {
-		os_printf("ceate audio asr message queue fail \r\n");
+		LOGE("ceate agoar audio tras message queue fail \r\n");
 		return;
 	}
-	os_printf("ceate audio asr message queue complete \r\n");
+	LOGI("ceate audio asr message queue complete \r\n");
 
 	/* create task to asr */
 	ret = rtos_create_thread(&agora_aud_thread_hdl,
 						 3,
 						 "agora_aud",
 						 (beken_thread_function_t)agora_aud_main,
-						 4096,
+						 2048,
 						 NULL);
 	if (ret != kNoErr) {
-		os_printf("create audio transfer driver task fail \r\n");
+		LOGE("create audio transfer driver task fail \r\n");
 		rtos_deinit_queue(&agora_aud_msg_que);
 		agora_aud_msg_que= NULL;
 		agora_aud_thread_hdl = NULL;
 	}
-	os_printf("create audio transfer driver task complete \r\n");
+	LOGI("create audio transfer driver task complete \r\n");
 #endif
 }
 
@@ -181,6 +248,10 @@ void audio_deinit(void)
 	} else {
 		LOGI("bk_aud_intf_drv_deinit complete \r\n");
 	}
+
+#if AUD_TASK
+	agora_aud_tras_deinit();
+#endif
 }
 
 void voice_init(uint8_t type, aud_intf_voc_samp_rate_t samp_rate, bool aec_en)

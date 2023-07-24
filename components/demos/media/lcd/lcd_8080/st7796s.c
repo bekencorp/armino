@@ -2,7 +2,6 @@
 #include <driver/lcd.h>
 #include "st7796s.h"
 
-extern void  delay_ms(INT32 ms_count);
 
 uint32_t param_sleep_out[1]  = {0x0 };
 uint32_t param_command1[1]   = {0xc3};
@@ -28,11 +27,11 @@ uint32_t param_display_on[1] = {0x0 };
  */
 bk_err_t st7796s_init(void)
 {
-	delay_ms(131);
-	delay_ms(10);
+	rtos_delay_milliseconds(131);
+	rtos_delay_milliseconds(10);
 
 	bk_lcd_8080_send_cmd(0, SLEEP_OUT, param_sleep_out);
-	delay_ms(120);
+	rtos_delay_milliseconds(120);
 
 	bk_lcd_8080_send_cmd(1, COMMAND_1, param_command1);
 	bk_lcd_8080_send_cmd(1, COMMAND_2, param_command2);
@@ -48,7 +47,7 @@ bk_err_t st7796s_init(void)
 	bk_lcd_8080_send_cmd(1, COMMAND_1, param_command12);
 	bk_lcd_8080_send_cmd(1, COMMAND_2, param_command22);
 
-	delay_ms(120);
+	rtos_delay_milliseconds(120);
 	bk_lcd_8080_send_cmd(0, DISPLAY_ON, param_display_on);
 
 	return BK_OK;

@@ -27,3 +27,4 @@ User and Developer Guide
    Write Examples <examples/index>
    Documentation <documentation/index>
    ab_partition_ota <ab_partition_ota/index>
+   Partition_specification <partition_specification/index>

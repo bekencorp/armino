@@ -17,6 +17,10 @@
 #include "modules/ota.h"
 extern part_flag update_part_flag;
 #endif
+#ifdef CONFIG_TASK_WDT
+#include "bk_wdt.h"
+#endif
+
 uintptr_t HAL_TCP_Establish(const char *host, uint16_t port)
 {
 	struct addrinfo hints;
@@ -198,8 +202,12 @@ int32_t HAL_TCP_Read(uintptr_t fd, char *buf, uint32_t len, uint32_t timeout_ms)
 					if (ret < len)
 						data_over = 1;
 					if (bk_http_ptr->do_data == 1)
+					{
+#if (CONFIG_TASK_WDT)
+						bk_task_wdt_feed();
+#endif
 						http_data_process(buf, ret);
-
+					}
 					len_recv += ret;
 				} else if (0 == ret) {
 					log_err("connection is closed");

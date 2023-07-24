@@ -170,6 +170,8 @@ int flash_area_read(const struct flash_area *area, uint32_t off, void *dst,
         }
     }
 
+    extern int flash_area_read_post_hook(const struct flash_area *area, uint32_t off, void *dst, uint32_t len); //TODO move to better place
+    flash_area_read_post_hook(area, off, dst, len);
     /* CMSIS ARM_FLASH_ReadData can return the number of data items read or
      * Status Error Codes which are negative for failures.
      */

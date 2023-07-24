@@ -20,14 +20,9 @@
 #include <driver/hal/hal_spi_types.h>
 #include "sys_hal.h"
 
-#define CONFIG_SPI_MAX_BAUD_RATE                ((120000000 >> 1) / (1 + 1)) /**< 30M */
+#define CONFIG_SPI_MAX_BAUD_RATE                49000000     //49M
 
-#if 0
-static icu_hal_t s_icu_hal = {
-	.hw = (icu_hw_t *)ICU_LL_REG_BASE(),
-};
-#endif
-
+#if (!CONFIG_SYSTEM_CTRL)
 /* spi_clk(more than 1M) support list when source_clk = XTAL_26M
  * sort the numbers from largest to smallest, otherwize binary_search will not work
  */
@@ -64,6 +59,7 @@ static int binary_search(const uint32_t *array, uint32_t size, uint32_t target)
 	}
 	return BK_FAIL;
 }
+#endif
 
 bk_err_t spi_hal_init(spi_hal_t *hal)
 {
@@ -76,6 +72,7 @@ bk_err_t spi_hal_init(spi_hal_t *hal)
  * 2. if 4 wire mode, enable sla_release_int_en, clear slv_release_int
  * 3. set rx_callback, tx_need_write_callback, tx_finish_callback
  * 4. enable spi, bit[23] spi_en
+ * 5. if need clk_rate more than 26M, need close i2s to avoid conflict about APLL 98M clock
  */
 bk_err_t spi_hal_configure(spi_hal_t *hal, const spi_config_t *config)
 {
@@ -134,7 +131,11 @@ bk_err_t spi_hal_set_baud_rate(spi_hal_t *hal, uint32_t baud_rate)
 		spi_clk = CONFIG_SPI_MAX_BAUD_RATE;
 	}
 
+#if (CONFIG_SYSTEM_CTRL)
+	if (baud_rate <= CONFIG_XTAL_FREQ) {
+#else
 	if (binary_search(s_spi_clk_list, ARRAY_SIZE(s_spi_clk_list), baud_rate) >= 0) {
+#endif
 		HAL_LOGI("spi select src_clk xtal\r\n");
 		src_clk = CONFIG_XTAL_FREQ;
 #if (CONFIG_SYSTEM_CTRL)
@@ -146,10 +147,17 @@ bk_err_t spi_hal_set_baud_rate(spi_hal_t *hal, uint32_t baud_rate)
 #endif
 	} else {
 #if (CONFIG_SYSTEM_CTRL)
-		//APLL is for i2s
-		HAL_LOGI("spi select src_clk xtal\r\n");
-		src_clk = CONFIG_XTAL_FREQ;
-		sys_hal_spi_select_clock(hal->id, SPI_CLK_XTAL);
+		HAL_LOGI("spi select src_clk apll\r\n");
+#if CONFIG_SOC_BK7256XX
+		//enable apll clock and set clock config
+		sys_hal_apll_en(true);
+		sys_hal_cb_manu_val_set(SPI_EN_APLL_MANU_VAL);
+		sys_hal_ana_reg11_vsel_set(SPI_EN_APLL_VSEL_VAL);
+		src_clk = SPI_APLL_98M;
+#else
+		src_clk = SPI_APLL_120M;
+#endif
+		sys_hal_spi_select_clock(hal->id, SPI_CLK_APLL);
 		clk_div = (src_clk / (2 * spi_clk)) & SPI_F_CLK_DIV_M;
 #else
 		HAL_LOGI("spi select src_clk dco\r\n");
@@ -158,7 +166,7 @@ bk_err_t spi_hal_set_baud_rate(spi_hal_t *hal, uint32_t baud_rate)
 		clk_div = (src_clk / spi_clk) & SPI_F_CLK_DIV_M;
 #endif
 	}
-
+	HAL_LOGD("baud_rate = %d, src_clk = %d, clk_div = 0x%x.\r\n", baud_rate, src_clk, clk_div);
 	spi_ll_set_clk_div(hal->hw, clk_div);
 
 	return BK_OK;

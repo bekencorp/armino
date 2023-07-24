@@ -17,25 +17,36 @@
 OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
 
 __MSP_STACK_SIZE = (4 << 10);
-__MIN_HEAP_SIZE  = (32 << 10);
+__MIN_HEAP_SIZE  = (90 << 10);
 
 __SWAP_SIZE = (1024);
 
-MEMORY
-{
-#if CONFIG_SPE
-  FLASH (rx)            : ORIGIN = (SOC_FLASH_DATA_BASE + CONFIG_PRIMARY_APP_VIRTUAL_CODE_START), LENGTH = CONFIG_PRIMARY_APP_VIRTUAL_CODE_SIZE
-  IRAM (rwx)            : ORIGIN = SOC_SRAM1_DATA_BASE, LENGTH = CONFIG_PRIMARY_APP_IRAM_SIZE
-  RAM (rwx)             : ORIGIN = SOC_SRAM1_DATA_BASE + CONFIG_PRIMARY_APP_IRAM_SIZE, LENGTH = CONFIG_SPE_TOTAL_RAM_SIZE - CONFIG_PRIMARY_APP_IRAM_SIZE
+__PRIMARY_APP_RAM_BASE = SOC_SRAM0_DATA_BASE;
+
+#if CONFIG_CACHE_ENABLE
+__PRIMARY_APP_NOCACHE_SIZE = CONFIG_PRIMARY_APP_NOCACHE_SIZE;
 #else
-  FLASH (rx)            : ORIGIN = (SOC_FLASH_DATA_BASE + CONFIG_PRIMARY_NS_VIRTUAL_CODE_START), LENGTH = CONFIG_PRIMARY_NS_VIRTUAL_CODE_SIZE
-  RAM (rwx)             : ORIGIN = SOC_SRAM1_DATA_BASE, LENGTH = CONFIG_NSPE_TOTAL_RAM_SIZE
+__PRIMARY_APP_NOCACHE_SIZE = 0;
 #endif
 
+__PRIMARY_APP_VIRTUAL_CODE_START = CONFIG_PRIMARY_APP_VIRTUAL_CODE_START;
+__PRIMARY_APP_VIRTUAL_CODE_SIZE = CONFIG_PRIMARY_APP_VIRTUAL_CODE_SIZE;
+__TOTAL_RAM_SIZE = CONFIG_SPE_TOTAL_RAM_SIZE;
+
+MEMORY
+{
+  FLASH (rx)            : ORIGIN = (SOC_FLASH_DATA_BASE + __PRIMARY_APP_VIRTUAL_CODE_START), LENGTH = __PRIMARY_APP_VIRTUAL_CODE_SIZE
+  IRAM (rwx)            : ORIGIN = __PRIMARY_APP_RAM_BASE, LENGTH = CONFIG_PRIMARY_APP_IRAM_SIZE
+
+#if CONFIG_CACHE_ENABLE
+  NOCACHE (rwx)         : ORIGIN = __PRIMARY_APP_RAM_BASE + CONFIG_PRIMARY_APP_IRAM_SIZE, LENGTH = __PRIMARY_APP_NOCACHE_SIZE
+#endif
+
+  RAM (rwx)             : ORIGIN = __PRIMARY_APP_RAM_BASE + CONFIG_PRIMARY_APP_IRAM_SIZE + __PRIMARY_APP_NOCACHE_SIZE, LENGTH = __TOTAL_RAM_SIZE - CONFIG_PRIMARY_APP_IRAM_SIZE - __PRIMARY_APP_NOCACHE_SIZE - __SWAP_SIZE
 
   ITCM (rwx)            : ORIGIN = SOC_ITCM_DATA_BASE + 4, LENGTH = CONFIG_ITCM_SIZE - 4
   DTCM (rwx)            : ORIGIN = SOC_DTCM_DATA_BASE + 0, LENGTH = CONFIG_DTCM_SIZE
-  SWAP (rwx)            : ORIGIN = SOC_SRAM1_DATA_BASE + CONFIG_SPE_TOTAL_RAM_SIZE + CONFIG_SECOND_APP_RAM_SIZE - __SWAP_SIZE, LENGTH = __SWAP_SIZE
+  SWAP (rwx)            : ORIGIN = __PRIMARY_APP_RAM_BASE + CONFIG_SPE_TOTAL_RAM_SIZE - __SWAP_SIZE, LENGTH = __SWAP_SIZE
   PSRAM (rwx)           : ORIGIN = SOC_PSRAM_DATA_BASE, LENGTH = 0x4000000
 }
 
@@ -72,12 +83,6 @@ SECTIONS
     {
         . = ALIGN(4);
         _stext = .;
-        EXCLUDE_FILE (*txl_he.c.obj *txl_agg.c.obj *txl_cntrl.c.obj *rxl_hwdesc.c.obj *libip_ax_next.a:rc.c.obj) *(.text*)
-        EXCLUDE_FILE (*txl_he.c.obj *txl_agg.c.obj *txl_cntrl.c.obj *rxl_hwdesc.c.obj *libip_ax_next.a:rc.c.obj) *(".text.*")
-
-        . = ALIGN(4);
-        EXCLUDE_FILE (*txl_he.c.obj *txl_agg.c.obj *txl_cntrl.c.obj *rxl_hwdesc.c.obj *libip_ax_next.a:rc.c.obj) *(.rodata*)
-        EXCLUDE_FILE (*txl_he.c.obj *txl_agg.c.obj *txl_cntrl.c.obj *rxl_hwdesc.c.obj *libip_ax_next.a:rc.c.obj) *(".rodata.*")
 
         . = ALIGN(4);
         __devconfig_start = .;
@@ -133,10 +138,9 @@ SECTIONS
         LONG (__data_start__)
         LONG ((__data_end__ - __data_start__) / 4)
 
-        /* Add each additional data section here */
-        LONG (__etext2)
-        LONG (__data2_start__)
-        LONG ((__data2_end__ - __data2_start__) / 4)
+        LONG (__video_cache_text)
+        LONG (__video_cache_data_start__)
+        LONG ((__video_cache_data_end__ - __video_cache_data_start__) / 4)
 
         LONG (__iram_flash_begin)
         LONG (__iram_start__)
@@ -160,8 +164,12 @@ SECTIONS
         LONG (_bss_start)
         LONG ((_bss_end - _bss_start) / 4)
         /* Add each additional bss section here */
-        LONG (__bss2_start__)
-        LONG ((__bss2_end__ - __bss2_start__) / 4)
+        LONG (__video_cache_bss_start__)
+        LONG ((__video_cache_bss_end__ - __video_cache_bss_start__) / 4)
+#if CONFIG_CACHE_ENABLE
+        LONG (_nocache_start)
+        LONG ((_nocache_end - _nocache_start) / 4)
+#endif
         __zero_table_end__ = .;
     } > FLASH
 
@@ -175,9 +183,6 @@ SECTIONS
         *(.itcm_sec_code*)
         . = ALIGN(4);
 
-        *txl_he.c.obj(.text.* )
-        *txl_cntrl.c.obj(.text.*)
-        *rxl_hwdesc.c.obj(.text.* *.rodata *.rodata.*)
         __itcm_end__ = .;
     } > ITCM AT > FLASH
 
@@ -200,15 +205,19 @@ SECTIONS
         PROVIDE(__iram_flash_begin = LOADADDR(.iram));
         __iram_start__ = .;
 
-        /* TBD: Put macsw time ciritical code here, may move to itcm section */
-        *libip_ax_next.a:rc.c.obj(.text.* *.rodata *.rodata.*)
-        *txl_he.c.obj(.text.* *.rodata *.rodata.*)
-        *txl_agg.c.obj(.text.* *.rodata *.rodata.*)
-        *txl_cntrl.c.obj(.text.* *.rodata *.rodata.*)
-
         *(.iram)
         __iram_end__ = .;
     } > IRAM AT > FLASH
+
+#if CONFIG_CACHE_ENABLE
+    .nocache :
+    {
+        . = ALIGN(4);
+        _nocache_start = .;
+        *(.sram_nocache*)
+        _nocache_end = .;
+    } > NOCACHE AT > FLASH
+#endif
 
     .data :
     {
@@ -283,29 +292,29 @@ SECTIONS
         * (.swap_data)
         * (.swap_data*)
         _swap_end = .;
-    } > IRAM AT > RAM
+    } > SWAP AT > FLASH
 
     .video.cache.data :
     {
         . = ALIGN(4);
-        PROVIDE(__etext2 = LOADADDR(.video.cache.data));
-        __data2_start__ = .;
+        PROVIDE(__video_cache_text = LOADADDR(.video.cache.data));
+        __video_cache_data_start__ = .;
 
         *(.video_cache_data)
         *(.video_cache_data*)
 
         . = ALIGN(4);
-        __data2_end__ = .;
+        __video_cache_data_end__ = .;
     } > PSRAM AT > FLASH
 
     .video_cache_bss (NOLOAD):
     {
         . = ALIGN(4);
-        __bss2_start__ = .;
+        __video_cache_bss_start__ = .;
         *(.video_cache_bss)
         *(.video_cache_bss*)
         . = ALIGN(4);
-        __bss2_end__ = .;
+        __video_cache_bss_end__ = .;
     } > PSRAM
 
     /* Set stack top to end of RAM, and stack limit move down by
@@ -315,5 +324,5 @@ SECTIONS
 
     ASSERT((s_rom_end < ORIGIN(FLASH) + LENGTH(FLASH)), "ROM overflow!!!")
     ASSERT(((ORIGIN(RAM) + LENGTH(RAM)) > (_heap_start + __MSP_STACK_SIZE + 8)), "Stack overflowed with bss")
-    ASSERT(((_heap_end - _heap_start) >= __MIN_HEAP_SIZE), "Heap smaller than minimize size 32K!!!")
+    ASSERT(((_heap_end - _heap_start) >= __MIN_HEAP_SIZE), "Heap smaller than minimize size 90K!!!")
 }

@@ -1,10 +1,10 @@
 armino_build_get_property(target ARMINO_SOC)
 set(incs include)
 set(srcs
-	legacy_init.c
+	bk_init.c
 	components_init.c
 	)
-set(priv_req bk_common bk_netif bk_ble bk_ate driver easy_flash bk_libs riscv media)
+set(priv_req bk_common bk_netif bk_ble bk_ate driver easy_flash bk_libs riscv media multimedia tfm)
 
 if (("${target}" STREQUAL "bk7237") OR ("${target}" STREQUAL "bk7256") OR ("${target}" STREQUAL "bk7236") OR ("${target}" STREQUAL "bk7258"))
 list(APPEND priv_req vnd_cal)

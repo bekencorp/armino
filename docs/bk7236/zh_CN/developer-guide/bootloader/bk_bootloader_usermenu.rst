@@ -120,6 +120,31 @@ l_bootloader：主要是uart下载功能，流程图如上图2所示。
 - 3.使用串口发送cli命令，例如：
   http_ota http://192.168.21.101/D%3A/E/build/app.rbl
 
+八.兼容bootloader无OTA功能需求
+-------------------------------
+- 为兼容客户不需要OTA功能，将download分区做成可适配性（即将downlaod分区删掉，达到无OTA功能的需求）
 
+- 使用tools/env_tools/rt_partition_tool/rt_partition_tool.exe工具修改插入新的bootloader的分区表，简要步骤如下：
+
+  - 打开rt_partition_tool.exe工具
+  - 以bk7256为例，加载middleware/boards/bk7256/bootloader.bin（若bootloader中没有分区表则会提示添加会导入分区表）
+  - 导出分区表为bootloader_orign.json文件见图7.
+  - 修改bootloader_orign.json文件，将download分区删掉，生成bootloader_update.json文件见图8
+  - 导入bootloader_update.json文件并保存到bootloader
+  - 将生成的bootloader.bin放到middleware/boards/bk7256目录下
+
+ .. figure:: ../../../_static/bootloader_orign.png
+    :align: center
+    :alt: bootloader_orign
+    :figclass: align-center
+
+    图7 bootloader_orign.json
+
+ .. figure:: ../../../_static/bootloader_update.png
+    :align: center
+    :alt: bootloader_update
+    :figclass: align-center
+
+    图8 bootloader_update.json
 
 

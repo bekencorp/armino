@@ -1,5 +1,6 @@
 menu "Demos::Net::Iperf"
 	config DEMOS_IPERF
+		depends on WIFI_ENABLE
 		bool "Enable Demos Iperf"
 		default y
 		help

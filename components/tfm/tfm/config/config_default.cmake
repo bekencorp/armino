@@ -146,6 +146,8 @@ set(TFM_PARTITION_AUDIT_LOG             OFF         CACHE BOOL      "Enable Audi
 
 set(TFM_PARTITION_PSA_PROXY             OFF         CACHE BOOL      "Enable PSA Proxy partition")
 
+set(TFM_PARTITION_SYSTEM_CLOCK          ON          CACHE BOOL      "Enable System CLOCK partition")
+
 set(FORWARD_PROT_MSG                    OFF         CACHE BOOL      "Whether to forward all PSA RoT messages to a Secure Enclave")
 set(TFM_PARTITION_FIRMWARE_UPDATE       OFF         CACHE BOOL      "Enable firmware update partition")
 set(TFM_FWU_BOOTLOADER_LIB              "mcuboot"   CACHE STRING    "Bootloader configure file for Firmware Update partition")

@@ -37,11 +37,34 @@
 #define WS_CPU0_INT_0_31_MASK  WS_WIFI_INT0
 #define WS_CPU0_INT_32_64_MASK (WS_WIFI_INT1 | WS_BT_INT | WS_TOUCH_INT | WS_USBPLUG_INT | WS_RTC_INT | WS_GPIO_INT)
 
-#define PD_ALL          (0xFFFF | BIT(25))
-#define PD_MEM          (BIT(0) | BIT(1) | BIT(2) | BIT(11) | BIT(12) | BIT(14) | BIT(15) | BIT(25)) //TODO consider TCM/MEM low power
-#define PD_BTSP         (BIT(8) | BIT(10)) //TODO remove PHY
-#define PD_WIFI         (BIT(9) | BIT(10)) //TODO remove PHY
-#define PD_DOWN_DOMAIN  (PD_ALL & ~(PD_MEM))
+#define PD_ALL          (0xFFFF)
+#define PD_MEM1         (BIT(0))
+#define PD_MEM2         (BIT(1))
+#define PD_MEM3         (BIT(2))
+#define PD_ENCP         (BIT(3))
+#define PD_BAKP         (BIT(4))
+#define PD_AHBP         (BIT(5))
+#define PD_AUDP         (BIT(6))
+#define PD_VIDP         (BIT(7))
+#define PD_BTSP         (BIT(8))
+#define PD_WIFI         (BIT(9))
+#define PD_PHY          (BIT(10))
+#define PD_MEM0         (BIT(11))
+#define PD_MEM4         (BIT(12))
+#define PD_OFDM         (BIT(13))
+#define PD_TCM0         (BIT(14))
+#define PD_ROM          (BIT(15))
+#define PD_MEM          (PD_MEM0 | PD_MEM1 | PD_MEM2 | PD_MEM3 | PD_MEM4 | PD_TCM0) //TODO consider TCM/MEM low power
+#define PD_DOWN_DOMAIN  (PD_ALL & ~(PD_MEM) & ~(PD_BTSP) & ~(PD_WIFI) & ~(PD_PHY) & ~(PD_OFDM) & ~(PD_ENCP) & ~(PD_AUDP) & ~(PD_VIDP))
 
-#define HF_ALL          (BIT(0) | BIT(1) | BIT(2) | BIT(3) | BIT(4) | BIT(5) | BIT(7))
-#define HF_XTAL         (BIT(1))
+#define EN_USB          (BIT(0))
+#define EN_XTAL         (BIT(1))
+#define EN_DCO          (BIT(2))
+#define EN_RAM          (BIT(3))
+#define EN_TEMP         (BIT(4))
+#define EN_DPLL         (BIT(5))
+#define EN_CB           (BIT(6))
+#define EN_LCD          (BIT(7))
+//#define EN_ALL          (EN_USB | EN_XTAL | EN_DCO | EN_RAM | EN_TEMP | EN_DPLL | EN_LCD)
+#define EN_ALL          (EN_USB | EN_DCO | EN_RAM | EN_TEMP | EN_DPLL | EN_LCD)
+

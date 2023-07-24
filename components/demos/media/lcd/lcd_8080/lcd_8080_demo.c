@@ -18,6 +18,7 @@
 #include <driver/dvp_camera.h>
 #include <driver/i2c.h>
 #include <driver/jpeg_enc.h>
+#include <./lcd/lcd_devices.h>
 
 extern const uint8_t fg_blend_image1[];
 
@@ -212,6 +213,8 @@ static volatile uint8_t lcd_cnt;
 static void lcd_i8080_isr_test(void)
 {
 	g_disp_frame_done_flag=1;
+	bk_lcd_8080_start_transfer(0);
+	os_printf("%s : %d \r\n", __func__, __LINE__);
 }
 extern void bk_mem_dump_ex(const char *title, unsigned char *data, uint32_t data_len);
 
@@ -246,7 +249,7 @@ void lcd_8080_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 		bk_dma2d_driver_init();
 		os_printf("lcd driver init. \r\n");
 		os_printf("lcd driver init. \r\n");
-		ret = bk_lcd_driver_init(LCD_20M);
+		ret = bk_lcd_driver_init(LCD_80M);
 		if (ret != BK_OK) {
 			os_printf("bk_lcd_driver_init failed\r\n");
 			return;
@@ -263,11 +266,8 @@ void lcd_8080_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 			os_printf("bk_lcd_isr_register failed\r\n");
 			return;
 		}	
-		ret = st7796s_init();
-		if (ret != BK_OK) {
-			os_printf("st7796s init failed\r\n");
-			return;
-		}
+		lcd_st7796s_init();
+
 		os_printf("st7796 init ok. \r\n");
 	} else if (os_strcmp(argv[1], "frame_disp") == 0) {
 		uint32_t frameaddr = os_strtoul(argv[2], NULL, 16) & 0xFFFFFFFF;
@@ -322,7 +322,17 @@ void lcd_8080_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 		lcd_disp.buffer = (uint32_t *)data_addr;
 		bk_lcd_fill_data(LCD_DEVICE_ST7796S, &lcd_disp);
 //		bk_lcd_8080_ram_write(RAM_WRITE);
-	} else if (os_strcmp(argv[1], "close") == 0) {
+	} else if (os_strcmp(argv[1], "cmd_disp") == 0) {
+		uint32_t data_addr = os_strtoul(argv[2], NULL, 16) & 0xFFFFFFFF;
+		uint16_t xs, xe, ys, ye;
+		xs = os_strtoul(argv[3], NULL, 10) & 0xFFFF;
+		xe = os_strtoul(argv[4], NULL, 10) & 0xFFFF;
+		ys = os_strtoul(argv[5], NULL, 10) & 0xFFFF;
+		ye = os_strtoul(argv[6], NULL, 10) & 0xFFFF;
+		st7796s_set_display_mem_area(xs, xe, ys, ye);
+		bk_lcd_send_data(RAM_WRITE, (uint16_t *)data_addr, (xe-xs+1)*(ye-ys+1));
+	}
+	else if (os_strcmp(argv[1], "close") == 0) {
 		bk_lcd_8080_deinit();
 	}
 }
@@ -342,11 +352,8 @@ void lcd_8080_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 
 	bk_lcd_8080_init(PIXEL_320, PIXEL_480, PIXEL_FMT_YUYV);
 	bk_lcd_8080_int_enable(0,1);
-	err = st7796s_init();
-	if (err != BK_OK) {
-		os_printf("st7796s init failed\r\n");
-		return;
-	}
+	lcd_st7796s_init();
+
 	os_printf("st7796 init ok. \r\n");
 
 	lcd_driver_set_display_base_addr((uint32_t)psram_lcd->display[0]);
@@ -375,11 +382,8 @@ void lcd_8080_display_480p_yuv(char *pcWriteBuffer, int xWriteBufferLen, int arg
 	bk_lcd_8080_int_enable(0,1);
 	lcd_driver_set_display_base_addr((uint32_t)psram_lcd->display[0]);
 	bk_lcd_set_partical_display(1, I8080_PARTICAL_XS, I8080_PARTICAL_XE, I8080_PARTICAL_YS, I8080_PARTICAL_YE);
-	err = st7796s_init();
-	if (err != BK_OK) {
-		os_printf("st7796s init failed\r\n");
-		return;
-	}
+	lcd_st7796s_init();
+
 	os_printf("st7796 init ok. \r\n");
 
 	err = dvp_camera_init(JPEG_YUV_MODE);

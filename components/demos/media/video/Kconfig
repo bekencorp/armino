@@ -34,6 +34,10 @@ menu "Demos::Media::Video"
 		help
 			Enable jpeg_dec interface
 
+	config JPEGDEC_LIBJPEG
+		bool "Enable libjpeg"
+		default n
+
 	config SPIDMA
 		bool "Enable Spi Dma"
 		default n

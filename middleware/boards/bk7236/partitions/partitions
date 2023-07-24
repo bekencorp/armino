@@ -1,72 +1,15 @@
 {
-    "description": "Configuration to merge all images",
-    "flash_base_addr" : "0x02000000",
-    "cpu_vector_align": "0x80",
-    "pack_ota": [ "default" ],
-    "pack_app": [ "default" ],
-    "partitions": [
-        { "partition": "bl1",               "offset": "0x00000000", "size": "128k", "bin": "bl1.bin",                "bin_type": "code" },
-        { "partition": "bl1_control",       "offset": "0x00020000", "size": "12k",  "bin": "bl1_control.bin",        "bin_type": "data" },
-        { "partition": "primary_manifest",  "offset": "0x00023000", "size": "4k",   "bin": "primary_manifest.bin",   "bin_type": "data" },
-        {
-          "partition"          : "primary_bl2",
-          "offset"             : "0x00024000",
-          "size"               : "64k",
-          "bin"                : "bl2.bin",
-          "bin_type"           : "code",
-          "version"            : "0x00010001",
-          "load_addr"          : "0x28040000"
-        },
-        { "partition": "secondary_manifest","offset": "0x00034000", "size": "4k",   "bin": "secondary_manifest.bin", "bin_type": "data" },
-        {
-          "partition"          : "secondary_bl2",
-          "offset"             : "0x00035000",
-          "size"               : "64k",
-          "bin"                : "bl2.bin",
-          "bin_type"           : "code",
-          "version"            : "0x00010001",
-          "load_addr"          : "0x28040000"
-        },
-        {
-          "partition"          : "primary_s",
-          "offset"             : "0x00045000",
-          "size"               : "416k",
-          "bin"                : "tfm_s_signed.bin",
-          "bin_type"           : "code",
-          "bin_hdr_size"       : "0x1000",
-          "bin_tail_size"      : "0x1000"
-        },
-        {
-          "partition"          : "primary_ns",
-          "offset"             : "0x000ad000",
-          "size"               : "256k",
-          "bin"                : "tfm_ns_signed.bin",
-          "bin_type"           : "code",
-          "bin_hdr_size"       : "0x1000",
-          "bin_tail_size"      : "0x1000"
-        },
-        {
-          "partition"          : "secondary_s",
-          "offset"             : "0x000ed000",
-          "size"               : "416k",
-          "bin"                : "tfm_s_signed.bin",
-          "bin_type"           : "code",
-          "bin_hdr_size"       : "0x1000",
-          "bin_tail_size"      : "0x1000"
-        },
-        {
-          "partition"          : "secondary_ns",
-          "offset"             : "0x00155000",
-          "size"               : "256k",
-          "bin"                : "tfm_ns_signed.bin",
-          "bin_type"           : "code",
-          "bin_hdr_size"       : "0x1000",
-          "bin_tail_size"      : "0x1000",
-          "bin_pad_size"       : "0k",
-          "bin_encrypted_addr" : "0"
-        },
-        { "partition": "scratch",           "offset": "0x00195000", "size": "32k",  "bin": "",                  "bin_type": "data" },
-        { "partition": "ps",                "offset": "0x0019d000", "size": "32k",  "bin": "",                  "bin_type": "data" },
-        { "partition": "its",               "offset": "0x001a5000", "size": "32k",  "bin": "",                  "bin_type": "data" }
-   ]
+	"description": "NS BL1 -> Armino S",
+
+	"partitions":
+	[
+		{
+			"partition": "primary_app",
+			"offset": "0x00000000",
+			"size": "2304k",
+			"bin": "app.bin",
+			"bin_type": "code",
+			"version": "0x00010001"
+		}
+	]
 }

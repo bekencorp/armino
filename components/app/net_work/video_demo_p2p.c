@@ -16,7 +16,7 @@
 
 #include "video_transfer_tcp.h"
 #include "video_transfer_udp.h"
-#include "video_transfer_cs2_p2p.h"
+
 #include "video_demo_pub.h"
 #include "video_upd_spd.h"
 #ifdef CONFIG_P2P
@@ -257,9 +257,6 @@ static void app_demo_p2p_main(beken_thread_arg_t data)
                     vudp_sdp_stop();
                     #endif
 
-                    #if CONFIG_CS2_P2P_SERVER
-//                    app_demo_cs2_p2p_deinit();
-                    #endif
 
 #ifdef CONFIG_P2P
 		wlan_hw_reinit();
@@ -294,9 +291,6 @@ static void app_demo_p2p_main(beken_thread_arg_t data)
                     vudp_sdp_start();
                     #endif
 
-                    #if CONFIG_CS2_P2P_SERVER
-                    //app_demo_cs2_p2p_init();
-                    #endif
 
                     APP_DEMO_P2P_PRT("wifi connected!\r\n");
                 }

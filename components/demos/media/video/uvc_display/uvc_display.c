@@ -1,8 +1,6 @@
 #include <modules/pm.h>
 #include <driver/uvc_camera.h>
-#if (CONFIG_MEDIA)
-#include "frame_buffer.h"
-#endif
+
 
 extern bk_err_t bk_uvc_camera_open(media_ppi_t ppi);
 extern int lcd_act_driver_init(uint32_t lcd_ppi);

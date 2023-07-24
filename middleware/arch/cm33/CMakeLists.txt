@@ -17,6 +17,18 @@ if("${CONFIG_SOC_ARCH}" STREQUAL ${COMPONENT_NAME})
 		arch_delay.c
 	)
 
+if(CONFIG_MPU)
+	list(APPEND srcs
+		mpu.c
+	)
+endif()
+
+if(CONFIG_CACHE_ENABLE)
+	list(APPEND srcs
+		cache.c
+	)
+endif()
+
 if(CONFIG_FREERTOS)
 	list(APPEND incs os/freertos)
 	list(APPEND srcs os/freertos/cpu.c)
@@ -29,5 +41,5 @@ elseif(CONFIG_NON_OS)
 endif()
 endif()
 
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES cmsis coredump os_source)
+armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES cmsis coredump os_source tfm)
 

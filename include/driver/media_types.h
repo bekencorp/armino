@@ -26,6 +26,7 @@ extern "C" {
  * @{
  */
 
+#define PIXEL_170   (170)
 #define PIXEL_240   (240)
 #define PIXEL_272   (272)
 #define PIXEL_288   (288)
@@ -41,9 +42,11 @@ extern "C" {
 #define PIXEL_854   (854)
 #define PIXEL_864   (864)
 #define PIXEL_1024 (1024)
+#define PIXEL_1080 (1080)
 #define PIXEL_1200 (1200)
 #define PIXEL_1280 (1280)
 #define PIXEL_1600 (1600)
+#define PIXEL_1920 (1920)
 
 typedef enum {
 	MSTATE_TURN_OFF,
@@ -58,11 +61,13 @@ typedef enum {
     ROTATE_180, /**< No support yet, reserved for the future*/
     ROTATE_270, /**< Image rotaged 270 degress*/
     ROTATE_YUV2RGB565,
+    YUV2RGB565,    /**< bypass rotating, only use yuv2rgb565 pixel formart convert function */
 } media_rotate_t;
 
 typedef enum
 {
 	PPI_DEFAULT     = 0,
+	PPI_170X320     = (PIXEL_170 << 16) | PIXEL_320,
 	PPI_320X240     = (PIXEL_320 << 16) | PIXEL_240,
 	PPI_320X480     = (PIXEL_320 << 16) | PIXEL_480,
 	PPI_400X400     = (PIXEL_400 << 16) | PIXEL_400,
@@ -75,17 +80,19 @@ typedef enum
 	PPI_480X854     = (PIXEL_480 << 16) | PIXEL_854,
 	PPI_720X288     = (PIXEL_720 << 16) | PIXEL_288,
 	PPI_720X576     = (PIXEL_720 << 16) | PIXEL_576,
+	PPI_720X1280    = (PIXEL_720 << 16) | PIXEL_1280,
 	PPI_800X480     = (PIXEL_800 << 16) | PIXEL_480,
 	PPI_864X480     = (PIXEL_864 << 16) | PIXEL_480,
 	PPI_800X600     = (PIXEL_800 << 16) | PIXEL_600,
 	PPI_1024X600    = (PIXEL_1024 << 16) | PIXEL_600,
 	PPI_1280X720    = (PIXEL_1280 << 16) | PIXEL_720,
 	PPI_1600X1200   = (PIXEL_1600 << 16) | PIXEL_1200,
+	PPI_1920X1080   = (PIXEL_1920 << 16) | PIXEL_1080,
 } media_ppi_t;
 
 typedef enum
 {
-	PPI_CAP_UNKNOW 		= 0,
+	PPI_CAP_UNKNOW      = 0,
 	PPI_CAP_320X240     = (1 << 0), /**< 320 * 240 */
 	PPI_CAP_320X480     = (1 << 1), /**< 320 * 480 */
 	PPI_CAP_480X272     = (1 << 2), /**< 480 * 272 */
@@ -102,6 +109,7 @@ typedef enum
 	PPI_CAP_720X288     = (1 << 13), /**< 720 * 288 */
 	PPI_CAP_720X576     = (1 << 14), /**< 720 * 576 */
 	PPI_CAP_480X854     = (1 << 15), /**< 480 * 854 */
+	PPI_CAP_170X320     = (1 << 16), /**< 170 * 320 */
 } media_ppi_cap_t;
 
 /** rgb lcd input data format, data save in mem is little endian, like VUYY format is [bit31-bit0] is [V U Y Y]*/
@@ -244,6 +252,10 @@ static inline media_ppi_cap_t pixel_ppi_to_cap(media_ppi_t ppi)
 
 	switch (ppi)
 	{
+		case PPI_170X320:
+			cap = PPI_CAP_170X320;
+			break;
+
 		case PPI_320X240:
 			cap = PPI_CAP_320X240;
 			break;
@@ -316,9 +328,19 @@ static inline media_ppi_t get_string_to_ppi(char *string)
 {
 	uint32_t value = PPI_DEFAULT;
 
+	if (os_strcmp(string, "1920X1080") == 0)
+	{
+		value = PPI_1920X1080;
+	}
+
 	if (os_strcmp(string, "1280X720") == 0)
 	{
 		value = PPI_1280X720;
+	}
+
+	if (os_strcmp(string, "720X1280") == 0)
+	{
+		value = PPI_720X1280;
 	}
 
 	if (os_strcmp(string, "1024X600") == 0)
@@ -380,6 +402,12 @@ static inline media_ppi_t get_string_to_ppi(char *string)
 	{
 		value = PPI_480X480;
 	}
+
+	if (os_strcmp(string, "170X320") == 0)
+	{
+		value = PPI_170X320;
+	}
+
 	return value;
 }
 

@@ -24,7 +24,7 @@ typedef enum
 {
     MODULE_OTP = 0,
 	MODULE_SECURITYIP = 1,
-}module_name_t;
+}security_module_name_t;
 
 #ifdef __cplusplus
 }

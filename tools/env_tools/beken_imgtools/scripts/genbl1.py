@@ -54,7 +54,7 @@ s_man = {\
 \
     "mnft_desc_cfg": {\
         "fmt_ver":          "0x00010001",\
-        "mnft_ver":         "0x00000003",\
+        "mnft_ver":         "0x00000000",\
         "sec_boot":         True,\
     },\
     "imgs": [\
@@ -128,10 +128,11 @@ class Genbl1:
             exit(1)
  
     def gen_key(self):
-        if os.path.exists(self.prvkey) and os.path.exists(self.pubkey):
+        pwd = os.getcwd()
+        logging.debug(f'checking private/public key {self.sig_sch} {self.prvkey} {self.pubkey}')
+        if (os.path.exists(self.prvkey) == True) and (os.path.exists(self.pubkey) == True):
             logging.debug(f'private/public key exists, skip key generation')
             return
-
         self.run_cmd(f'./gen_key.sh {self.sig_sch} {self.prvkey} {self.pubkey}')
 
     def parse_key_config_json(self):
@@ -178,11 +179,10 @@ class Genbl1:
             s_key['mnft_sig_cfg']['mnft_pubkey'] = self.pubkey
             json.dump(s_key, f, indent=4, separators=(',', ':'))
 
-
     def gen_manifest(self, version, static_addr, load_addr="0x28040000", bin_name="bl2.bin", out_manifest_file="primary_manifest"):
         logging.debug(f'start to gen {out_manifest_file}')
         with open(out_manifest_file, 'w+') as f:
-            s_man['mnft_desc_cfg']['fmt_ver'] = version
+            s_man['mnft_desc_cfg']['mnft_ver'] = version
             s_man['mnft_desc_cfg']['sec_boot'] = self.is_sec_boot
             s_man['imgs'][0]['static_addr'] = static_addr
             s_man['imgs'][0]['load_addr'] = load_addr
@@ -190,8 +190,9 @@ class Genbl1:
             s_man['imgs'][0]['path'] = bin_name
             json.dump(s_man, f, indent=4, separators=(',', ':'))
 
-    def __init__(self, key_config_json_file='bl1_key.json'):
+    def __init__(self, key_config_json_file='bl1_key.json', tools_dir=None):
         self.key_config_json_file = key_config_json_file
+        self.tools_dir = tools_dir
         self.parse_key_config_json()
 
 if __name__ == '__main__':

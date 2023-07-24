@@ -196,6 +196,13 @@ typedef enum {
 	DMA2D_RB_SWAP,             /**< Select swap mode (BGR or ABGR) * = 0*/
 }red_blue_swap_t;
 
+
+typedef enum {
+	TWO_BYTES   = 2,
+	THREE_BYTES = 3,
+	FOUR_BYTES      = 4,
+}color_bytes_t;
+
 /**
   * @}
   */
@@ -305,9 +312,9 @@ typedef struct
 	red_blue_swap_t bg_red_blue_swap;        /**< bg img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
 	red_blue_swap_t dst_red_blue_swap;        /**< dst img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
 	
-	uint8_t fg_pixel_byte;
-	uint8_t bg_pixel_byte;
-	uint8_t dst_pixel_byte;
+	color_bytes_t fg_pixel_byte;
+	color_bytes_t bg_pixel_byte;
+	color_bytes_t dst_pixel_byte;
 }dma2d_offset_blend_t;
 
 
@@ -330,8 +337,8 @@ typedef struct
 
 	input_color_mode_t input_color_mode;  /**< The pixel convert src color mode */
 	out_color_mode_t output_color_mode;   /**< The pixel convert dst color mode */
-	uint8_t src_pixel_byte;
-	uint8_t dst_pixel_byte;
+	color_bytes_t src_pixel_byte;
+	color_bytes_t dst_pixel_byte;
 	uint8_t input_alpha;                /**< src data alpha, depend on alpha_mode */
 	uint8_t output_alpha;                /**< dst data alpha,depend on alpha_mode */
 	red_blue_swap_t input_red_blue_swap;        /**< src img red blue swap, select DMA2D_RB_SWAP or  DMA2D_RB_REGULAR */
@@ -347,7 +354,7 @@ typedef struct {
 	uint16_t width;              /**< dma2d fill width */
 	uint16_t high;               /**< dma2d fill height */
 	out_color_mode_t color_format;
-	uint8_t pixel_byte;
+	color_bytes_t pixel_byte;
 	uint32_t color;              /**< dma2d fill color */
 }dma2d_fill_t;
 

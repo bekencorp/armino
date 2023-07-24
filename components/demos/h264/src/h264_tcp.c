@@ -226,8 +226,9 @@ static void demo_h264_tcp_camera_data_handle(uint8_t *data, uint16_t length)
 				}
 				lcd_open.device_name = NULL;
 				media_app_lcd_open(&lcd_open);
-				delay(30000);
+				delay(3000);
 				media_app_camera_open(APP_CAMERA_DVP_H264_ENC_LCD, ppi);
+				delay(3000);
 				media_app_h264_open(&setup);
 			}
 			break;
@@ -235,12 +236,11 @@ static void demo_h264_tcp_camera_data_handle(uint8_t *data, uint16_t length)
 			case H264_DVP_STOP:
 			{
 				LOGI("DVP STOP\n");
-
-				media_app_h264_close();
-				media_app_lcd_close();
-				delay(30000);
 				media_app_camera_close(APP_CAMERA_DVP_H264_ENC_LCD);
-
+				delay(3000);
+				media_app_lcd_close();
+				delay(3000);
+				media_app_h264_close();
 			}
 			break;
 

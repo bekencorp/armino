@@ -79,8 +79,8 @@ bk_err_t bk_dma2d_driver_init(void)
 		DMA2D_LOGW("%s already init. \n", __func__);
 		return BK_OK;
 	}
-	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_DMA2D, PM_POWER_MODULE_STATE_ON);
 
+	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_DMA2D, PM_POWER_MODULE_STATE_ON);
 	sys_drv_int_enable(DMA2D_INTERRUPT_CTRL_BIT);
 
 #if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
@@ -116,7 +116,6 @@ bk_err_t bk_dma2d_driver_deinit(void)
 
 	bk_int_isr_unregister(INT_SRC_DMA2D);
 	dma2d_hal_deinit();
-
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_DMA2D, PM_POWER_MODULE_STATE_OFF);
 	s_dma2d_driver_is_init = false;
 	

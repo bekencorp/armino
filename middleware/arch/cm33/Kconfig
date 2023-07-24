@@ -9,6 +9,10 @@ menu "Arch::Cm33"
 		config FPGA
 			bool "Enable FPGA"
 			default n
+
+		config MPU
+			bool "Enable Memory Protect Unit Feature"
+			default n
 	
 		config SPE
 			int "Enable SPE"
@@ -25,8 +29,23 @@ menu "Arch::Cm33"
 			default n
 			help
 				Enable interrupt statis
+
 		config SYSTICK_32K
 			bool "Systick use external 32K clock"
 			default n
+			
+		config CACHE_ENABLE
+                	depends on MPU
+			bool "Enable DCache"
+			default n
+			help
+				Enable DCache
+
+		config MEMDUMP_ALL
+			bool "Enable Memdump All"
+			default y
+			help
+				Dump all memory when exception happen
+
 	endmenu
 endmenu

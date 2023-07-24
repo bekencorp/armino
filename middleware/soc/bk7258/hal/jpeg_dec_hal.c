@@ -804,6 +804,7 @@ JRESULT jd_decomp_hw(void)
 	jpeg_dec_ll_set_reg0x50_jpeg_dec_en(1);
 	jpeg_dec_ll_set_reg0x5_mcu_x(0);
 	jpeg_dec_ll_set_reg0x6_mcu_y(0);
+	jpeg_dec_ll_set_reg0x50_dri_bps(1);
 	//mx = jd->msx * 8; my = jd->msy * 8;			/* Size of the MCU (pixel) */
 	jpeg_dec_ll_set_reg0xa_value(jdec.width);  //pixel number X
 	jpeg_dec_ll_set_reg0x8_dec_cmd(JPEGDEC_DC_CLEAR);

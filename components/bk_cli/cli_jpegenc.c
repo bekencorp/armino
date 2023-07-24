@@ -58,7 +58,6 @@ static void cli_jpeg_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 
 	if (os_strcmp(argv[1], "init") == 0) {
 		jpeg_config_t jpeg_cfg = {0};
-		BK_LOG_ON_ERR(bk_jpeg_enc_driver_init());
 		BK_LOG_ON_ERR(bk_jpeg_enc_init(&jpeg_cfg));
 		msg = CLI_CMD_RSP_SUCCEED;
 	} else if (os_strcmp(argv[1], "deinit") == 0) {

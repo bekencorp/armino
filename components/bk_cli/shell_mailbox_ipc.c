@@ -6,7 +6,7 @@
 #include "shell_drv.h"
 #include "mailbox_channel.h"
 
-#if CONFIG_ARCH_RISCV
+#if CONFIG_CACHE_ENABLE
 #include "cache.h"
 #endif
 

@@ -29,7 +29,7 @@
 
 lcd_qspi_device_t *device_config = NULL;
 
-#define READ_SDCARD_PICTURE_SIZE	1024 * 64
+#define READ_SDCARD_PICTURE_SIZE	1024 * 24
 #define write_data(addr,val)                 *((volatile uint32_t *)(addr)) = val
 #define get_addr_data(addr)                  *((volatile uint32_t *)(addr))
 
@@ -104,7 +104,7 @@ void cli_lcd_qspi_display_picture_test_cmd(char *pcWriteBuffer, int xWriteBuffer
 		BK_LOG_ON_ERR(bk_qspi_init(&lcd_qspi_config));
 		rtos_delay_milliseconds(5);
 
-		uint32_t psram_addr = 0x64000000;
+		uint32_t psram_addr = 0x60000000;
 
 #if (CONFIG_FATFS)
 		char cFileName[50];

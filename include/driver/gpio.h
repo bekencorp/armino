@@ -59,6 +59,26 @@ bk_err_t bk_gpio_driver_deinit(void);
 
 
 /**
+ * @brief     Direct set GPIO config value.
+ *
+ * @NOTES     Please be care to use this API,unless you know the detail mean,
+ *            because it will set the GPIO config value.
+ *            Sometimes the special GPIO needs to re-used by one more owner,
+ *            after the second owner re-used it, it should restore the config value.
+ *            Before re-use a GPIO, the owner can call bk_gpio_get_value
+ *            and bakup it, after re-used finish, it call bk_gpio_set_value
+ *            to restore the prevous value.
+ */
+void bk_gpio_set_value(gpio_id_t id, uint32_t v);
+
+
+/**
+ * @brief     get GPIO config value.
+ */
+uint32_t bk_gpio_get_value(gpio_id_t id);
+
+
+/**
  * @brief     enable GPIO output mode
  *
  *
@@ -430,6 +450,26 @@ bk_err_t bk_gpio_wakeup_enable(int64_t index, uint64_t type_l, uint64_t type_h);
  */
 bk_err_t bk_gpio_wakeup_interrupt_clear();
 
+#endif
+
+#if CONFIG_GPIO_ANA_WAKEUP_SUPPORT
+/**
+ * @brief     Register the GPIO analog channel to wakeup system with select int type.
+ *
+ * This API regist gpio to wakeup source.
+ *
+ * @attention
+ * This API is used for super deep sleep only.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - BK_ERR_GPIO_CHAN_ID: invalid gpio channel
+ *    - BK_ERR_GPIO_INVALID_INT_TYPE: invalid gpio int type
+ *    - BK_ERR_GPIO_WAKESOURCE_OVER_MAX_CNT: too many gpio is register to wakeup source
+ *      default max value is: 2
+ *    - others: other errors.
+ */
+bk_err_t bk_gpio_ana_register_wakeup_source(gpio_id_t gpio_id, gpio_int_type_t int_type);
 #endif
 
 #if CONFIG_PM

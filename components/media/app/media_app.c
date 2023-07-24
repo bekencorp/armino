@@ -87,13 +87,18 @@ bk_err_t media_send_msg_sync(uint32_t event, uint32_t param)
 
 	ret = param_pak->ret;
 
-	rtos_deinit_semaphore(&param_pak->sem);
 
 out:
 
 	if (param_pak)
 	{
+		if (param_pak->sem)
+		{
+			rtos_deinit_semaphore(&param_pak->sem);
+			param_pak->sem = NULL;
+		}
 		os_free(param_pak);
+		param_pak = NULL;
 	}
 
 	return ret;
@@ -294,6 +299,36 @@ bk_err_t media_app_camera_close(app_camera_type_t type)
 
 			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, MEDIA_DVP_H264_WIFI_TRANSFER);
 			break;
+		
+		case APP_CAMERA_DVP_H264_ENC_LCD:
+			if (CAMERA_STATE_ENABLED != get_camera_state())
+			{
+				LOGI("%s already closed\n", __func__);
+				return kNoErr;
+			}
+
+			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, MEDIA_DVP_H264_ENC_LCD);
+			break;
+		
+		case APP_CAMERA_DVP_H264_LOCAL:
+			if (CAMERA_STATE_ENABLED != get_camera_state())
+			{
+				LOGI("%s already closed\n", __func__);
+				return kNoErr;
+			}
+
+			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, MEDIA_DVP_H264_LOCAL);
+			break;
+		
+		case APP_CAMERA_DVP_H264_USB_TRANSFER:
+			if (CAMERA_STATE_ENABLED != get_camera_state())
+			{
+				LOGI("%s already closed\n", __func__);
+				return kNoErr;
+			}
+
+			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, APP_CAMERA_DVP_H264_USB_TRANSFER);
+			break;
 
 		default:
 			ret = kNoErr;
@@ -364,6 +399,24 @@ bk_err_t media_app_h264_close(void)
 	return ret;
 }
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+bk_err_t media_app_transfer_open(const media_transfer_cb_t *cb)
+{
+	bk_err_t ret = BK_OK;
+
+#if (CONFIG_WIFI_TRANSFER)
+
+	rwnxl_set_video_transfer_flag(true);
+
+	ret = media_send_msg_sync(EVENT_TRANSFER_OPEN_IND, (uint32_t)cb);
+
+#endif
+
+	LOGI("%s complete, %d\n", __func__, ret);
+
+	return ret;
+}
+#else
 bk_err_t media_app_transfer_open(void *setup_cfg)
 {
 	int ret = kNoErr;
@@ -391,6 +444,7 @@ bk_err_t media_app_transfer_open(void *setup_cfg)
 
 	return ret;
 }
+#endif
 
 bk_err_t media_app_transfer_pause(bool pause)
 {
@@ -754,7 +808,7 @@ bk_err_t media_app_init(void)
 		LOGE("%s, media_app_th_hd allready init, exit!\n");
 		goto error;
 	}
-
+/*
 	ret = rtos_init_queue(&media_app_msg_queue,
 	                      "media_app_msg_queue",
 	                      sizeof(media_msg_t),
@@ -765,7 +819,7 @@ bk_err_t media_app_init(void)
 		LOGE("%s, ceate media minor message queue failed\n");
 		goto error;
 	}
-
+*/
 	if (media_debug == NULL)
 	{
 		media_debug = (media_debug_t *)os_malloc(sizeof(media_debug_t));
@@ -784,7 +838,7 @@ bk_err_t media_app_init(void)
 			LOGE("malloc media_debug_cached fail\n");
 		}
 	}
-
+/*
 	ret = rtos_create_thread(&media_app_th_hd,
 	                         BEKEN_DEFAULT_WORKER_PRIORITY,
 	                         "media_app_thread",
@@ -797,7 +851,7 @@ bk_err_t media_app_init(void)
 		LOGE("create media app thread fail\n");
 		goto error;
 	}
-
+*/
 
 	LOGI("media app thread startup complete\n");
 

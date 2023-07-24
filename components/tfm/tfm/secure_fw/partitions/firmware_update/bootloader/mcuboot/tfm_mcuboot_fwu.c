@@ -56,6 +56,7 @@ static int convert_id_from_bl_to_mcuboot(bl_image_id_t bl_image_id,
                                          uint8_t *mcuboot_image_id)
 {
 #if (MCUBOOT_IMAGE_NUMBER == 1)
+#if 0
     /* Only full image upgrade is supported in this case. */
     if (bl_image_id != FWU_IMAGE_TYPE_FULL) {
         LOG_ERRFMT("TFM FWU: multi-image is not supported in current mcuboot configuration.");
@@ -64,6 +65,23 @@ static int convert_id_from_bl_to_mcuboot(bl_image_id_t bl_image_id,
 
     /* The image id in mcuboot. 0: the full image. */
     *mcuboot_image_id = 0;
+#endif
+	if (bl_image_id == FWU_IMAGE_TYPE_PRIMARY_MANIFEST) {
+		*mcuboot_image_id = 0;
+	} else if (bl_image_id == FWU_IMAGE_TYPE_SECONDARY_MANIFEST) {
+		*mcuboot_image_id = 1;
+	} else if (bl_image_id == FWU_IMAGE_TYPE_PRIMARY_BL2) {
+		*mcuboot_image_id = 2;
+	} else if (bl_image_id == FWU_IMAGE_TYPE_SECONDARY_BL2) {
+		*mcuboot_image_id = 3;
+	} else if (bl_image_id == FWU_IMAGE_TYPE_SECONDARY_SPE) {
+		*mcuboot_image_id = 4;
+	} else if (bl_image_id == FWU_IMAGE_TYPE_SECONDARY_NSPE) {
+		*mcuboot_image_id = 5;
+	} else {
+		LOG_ERRFMT("TFM FWU: invalid image_type: %d", bl_image_id);
+		return -1;
+	}
 #else
     if (bl_image_id == FWU_IMAGE_TYPE_SECURE) {
         /* The image id in mcuboot. 0: the secure image. */

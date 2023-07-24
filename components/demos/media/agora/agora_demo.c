@@ -29,7 +29,8 @@
 #include "agora_config.h"
 #include <agora_rtc_api.h>
 #include "BK7256_RegList.h"
-#include "amf_list.h"
+//#include "amf_list.h"
+#include "lcd_act.h"
 
 #define DEFAULT_TOKEN NULL
 #define DEFAULT_CHANNEL_NAME "hello_bk7256demo"
@@ -63,35 +64,21 @@ static beken_thread_t  agora_thread_hdl = NULL;
 static bool agora_runing = false;
 static bool audio_en = false;
 static bool video_en = false;
-static uint8_t video_send_fps_count = 0;
-static app_camera_type_t camera_type = APP_CAMERA_DVP_JPEG;
-static media_ppi_t camera_ppi = PPI_320X240;
+static bool lcd_en = false;
+static app_camera_type_t camera_type = APP_CAMERA_UVC_MJPEG;
+static media_ppi_t camera_ppi = PPI_800X480;
+static media_ppi_t lcd_ppi = PPI_480X272;
 #define DEFAULT_VIDEO_FRAME_NUM  15
-#define DEFAULT_AUDIO_BPS  200000	//8k sample rate  200000
-#define SAFE_BPS 100000
-static bool safe_flag = false;
-static uint8_t video_frame_num = DEFAULT_VIDEO_FRAME_NUM;
-static uint32_t audio_bps = DEFAULT_AUDIO_BPS;
 static uint8_t audio_type = 0;
 static aud_intf_voc_samp_rate_t audio_samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
 static bool aec_enable = false;
-
-typedef struct {
-	uint32_t band_width_bps;
-	uint32_t video_latest_1_second_send_bps;
-	video_frame_node_t *video_fram_list;
-
-	uint8_t video_capture_fps;
-} video_bitrat_info_t;
-
-video_bitrat_info_t video_bitrat_info = {0};
 
 
 static void cli_agora_help(void)
 {
 	os_printf("agora_test {audio start|stop appid audio_type sampple_rate aec_en} \r\n");
 	os_printf("agora_test {video start|stop appid video_type ppi} \r\n");
-	os_printf("agora_test {both start|stop appid audio_type sample_rate video_type ppi aec_en} \r\n");
+	os_printf("agora_test {both start|stop appid audio_type sample_rate video_type ppi aec_en lcd_ppi} \r\n");
 }
 
 static int _netif_event_cb(void *arg, event_module_t event_module, int event_id, void *event_data)
@@ -128,13 +115,13 @@ int send_agora_audio_frame(uint8_t *data, uint32_t len)
 		return 0;
 	}
 
-	addAON_GPIO_Reg0x3 = 2;
+//	addAON_GPIO_Reg0x3 = 2;
 	int rval = agora_rtc_send_audio_data(g_conn_id, data, len, &info);
 	if (rval < 0) {
 		LOGE("Failed to send audio data, reason: %s\n", agora_rtc_err_2_str(rval));
 		return -1;
 	}
-	addAON_GPIO_Reg0x3 = 0;
+//	addAON_GPIO_Reg0x3 = 0;
 
 	return 0;
 }
@@ -219,7 +206,6 @@ static void __on_error(connection_id_t conn_id, int code, const char *msg)
 
 static void __on_audio_data(connection_id_t conn_id, const uint32_t uid, uint16_t sent_ts, const void *data, size_t len, const audio_frame_info_t *info_ptr)
 {
-#if 1
 	bk_err_t ret = BK_OK;
 
 	/* write a fram speaker data to speaker_ring_buff */
@@ -227,7 +213,6 @@ static void __on_audio_data(connection_id_t conn_id, const uint32_t uid, uint16_
 	if (ret != BK_OK) {
 		LOGE("write spk data fail \r\n");
 	}
-#endif
 }
 
 static void __on_mixed_audio_data(connection_id_t conn_id, const void *data, size_t len,
@@ -247,13 +232,6 @@ static void __on_video_data(connection_id_t conn_id, const uint32_t uid, uint16_
 static void __on_target_bitrate_changed(connection_id_t conn_id, uint32_t target_bps)
 {
 	LOGI("[conn-%u] Bandwidth change detected. Please adjust encoder bitrate to %u kbps\n", conn_id, target_bps / 1000);
-	//band_width = target_bps;
-	video_bitrat_info.band_width_bps = target_bps;
-	if ((!safe_flag) && audio_en && (target_bps > (audio_bps + SAFE_BPS + 50000))) {
-		audio_bps += SAFE_BPS;
-		safe_flag = true;
-		LOGI("change safe_flag, target_bps: %d, audio_bps: %d, SAFE_BPS: %d \n", target_bps, audio_bps, SAFE_BPS);
-	}
 }
 
 /* used in video h264 and h265 */
@@ -305,116 +283,13 @@ static void memory_free_show(void)
 }
 
 
-static void calc_video_data_bps(video_bitrat_info_t *video_bitrat_info, uint32_t video_data_len)
-{
-	static int32_t last_time = 0;
-	static uint32_t total_bytes_len = 0;
-	static uint32_t total_frame_cnt = 0;
-	int32_t 	   now;
-	uint8_t video_send_fps = 0;
-	video_frame_node_t *node = NULL;
-	video_frame_data_t video_data = {0};
-
-	//init last time
-	if (0 == last_time) {
-	  last_time = rtos_get_time();
-	}
-
-	total_bytes_len += video_data_len;
-	++total_frame_cnt;
-	now = rtos_get_time();
-
-//	os_printf("last_time = %d, total_bytes_len = %d, now = %d, diff = %d, video_data_len = %d\n",
-//	  last_time, total_bytes_len, now, now - last_time, video_data_len);
-	//uint32_t wrap around
-	if (now < last_time) {
-		total_bytes_len = 0;
-		total_frame_cnt = 0;
-		last_time		= now;
-		return;
-	}
-	uint32_t diff = (now - last_time);
-	if (diff >= 1000) {
-		video_bitrat_info->video_capture_fps = (total_frame_cnt * 1000) / diff;
-		total_bytes_len 					 = 0;
-		total_frame_cnt 					 = 0;
-		last_time							 = now;
-		video_send_fps = (video_send_fps_count * 1000) / diff;
-		LOGI("video_capture_fps: %d, video_send_fps: %d \n", video_bitrat_info->video_capture_fps, video_send_fps);
-		if (video_bitrat_info->video_capture_fps < 20) {
-			if (video_frame_num != 15) {
-				for (uint8_t n = 0; n < 10; n++) {
-					video_fram_list_pop_front(&video_bitrat_info->video_fram_list);
-				}
-				video_frame_num = 15;
-			}
-		} else {
-			if (video_frame_num != 25) {
-				for (uint8_t n = 0; n < 10; n++) {
-					video_data.frame_length = video_data_len;
-					node = video_fram_list_node_malloc(video_data);
-					if (node == NULL) {
-						LOGE("malloc node fail \n");
-					} else {
-						video_fram_list_push_back(&(video_bitrat_info->video_fram_list), node);
-					}
-				}
-				video_frame_num = 25;
-			}
-		}
-
-		video_send_fps_count = 0;
-		memory_free_show();
-	}
-}
-
-
-static bool video_frame_send_check(video_bitrat_info_t *video_bitrat, uint32_t video_data_len)
-{
-	bool ret = false;
-	uint32_t temp = 0;
-	video_frame_node_t *node = NULL;
-	video_frame_data_t video_data = {0};
-
-	temp = video_fram_list_get_all_length(video_bitrat->video_fram_list, video_frame_num);
-	video_bitrat->video_latest_1_second_send_bps = temp<<3;
-	//os_printf("video_latest_1_second_send_bps: %d, band_width_bps: %d \n", video_bitrat->video_latest_1_second_send_bps, video_bitrat->band_width_bps);
-
-	if ((video_bitrat->band_width_bps <= audio_bps) || ((temp<<3) >= (video_bitrat->band_width_bps - audio_bps))) {
-		ret = false;
-		video_fram_list_pop_front(&video_bitrat->video_fram_list);
-		video_data.frame_length = 0;
-		node = video_fram_list_node_malloc(video_data);
-		if (node == NULL) {
-			LOGE("malloc node fail \n");
-		} else {
-			video_fram_list_push_back(&(video_bitrat->video_fram_list), node);
-		}
-		LOGI("band_width_bps: %d, video_latest_1_second_send_bps: %d \n", video_bitrat->band_width_bps, video_bitrat->video_latest_1_second_send_bps);
-	} else {
-		ret = true;
-		video_fram_list_pop_front(&video_bitrat->video_fram_list);
-		video_data.frame_length = video_data_len;
-		node = video_fram_list_node_malloc(video_data);
-		if (node == NULL) {
-			LOGE("malloc node fail \n");
-		} else {
-			video_fram_list_push_back(&(video_bitrat->video_fram_list), node);
-		}
-	}
-
-	return ret;
-}
-
 //static uint8_t *video_frame_buffer = NULL;
 void app_media_read_frame_callback(frame_buffer_t * frame)
 {
-	calc_video_data_bps(&video_bitrat_info, frame->length);
-
-	if (video_frame_send_check(&video_bitrat_info, frame->length)) {
-		++video_send_fps_count;
-		send_agora_video_frame((uint8_t *)frame->frame, frame->length);
-	}
+//	addAON_GPIO_Reg0x2 = 2;
+//	addAON_GPIO_Reg0x2 = 0;
+	send_agora_video_frame((uint8_t *)frame->frame, frame->length);
+	rtos_delay_milliseconds(60);
 }
 
 void agora_main(void)
@@ -441,14 +316,19 @@ void agora_main(void)
 
 	LOGI("-----start agora rtc process-----\r\n");
 
+	if (lcd_en) {
+		LOGI("open lcd \r\n");
+		memory_free_show();
+		lcd_open_t lcd_open;
+		lcd_open.device_ppi = lcd_ppi;
+		lcd_open.device_name = "NULL";
+		media_app_lcd_open(&lcd_open);
+		memory_free_show();
+	}
+
 	if (audio_en) {
 		audio_init();
 		voice_init(audio_type, audio_samp_rate, aec_enable);
-		if (audio_samp_rate == AUD_INTF_VOC_SAMP_RATE_8K)
-			//audio_bps = 100000 + SAFE_BPS;
-			audio_bps = 100000; //avoid video frame not send, and bandwidth change not notify
-		else
-			audio_bps = 200000 + SAFE_BPS;
 	}
 
 	rtc_service_option_t service_opt = { 0 };
@@ -515,35 +395,23 @@ void agora_main(void)
 	}
 
 	if (video_en) {
-		if (audio_en) {
-			video_bitrat_info.band_width_bps = audio_bps + 50000; //one frame must send
-		} else {
-			video_bitrat_info.band_width_bps = 50000; //50Kbps avoid dump at start
-		}
-		video_bitrat_info.video_fram_list = NULL;
-		video_frame_node_t *node = NULL;
-		video_frame_data_t video_frame_data = {0};
-
-		for (uint8_t i = 0; i < video_frame_num; i++) {
-			node = video_fram_list_node_malloc(video_frame_data);
-			if (node == NULL) {
-				LOGE("malloc node fail \n");
-			} else {
-				node->data.frame_length = 0;
-				video_fram_list_push_back(&(video_bitrat_info.video_fram_list), node);
-			}
-		}
 		memory_free_show();
 
 		media_app_camera_open(camera_type, camera_ppi);	// PPI_320X240   PPI_640X480
 		media_app_register_read_frame_cb(app_media_read_frame_callback);
 		media_app_save_start("unused_name");
+		memory_free_show();
 	}
 
 	agora_runing = true;
 
 	while (agora_runing) {
-		rtos_delay_milliseconds(100);
+		rtos_delay_milliseconds(1000);
+		memory_free_show();
+	}
+
+	if (lcd_en) {
+		media_app_lcd_close();
 	}
 
 	/* free audio  */
@@ -557,7 +425,6 @@ void agora_main(void)
 	if (video_en) {
 		media_app_save_stop();
 		media_app_camera_close(camera_type);
-		video_fram_list_destory(video_bitrat_info.video_fram_list);
 	}
 
 	/* free agora */
@@ -568,6 +435,7 @@ void agora_main(void)
 	// 9. API: fini rtc sdk
 	agora_rtc_fini();
 
+	lcd_en = false;
 	audio_en = false;
 	video_en = false;
 
@@ -659,7 +527,6 @@ void cli_agora_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				goto cmd_fail;
 			}
 			audio_en = false;
-			audio_bps = 0;
 			video_en = true;
 			agora_start();
 		} else if (os_strcmp(argv[2], "stop") == 0) {
@@ -717,8 +584,28 @@ void cli_agora_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				aec_enable = true;
 			}
 
+			if (os_strcmp(argv[9], "480X272") == 0) {
+				lcd_ppi = PPI_480X272;
+			} else if (os_strcmp(argv[7], "320X480") == 0) {
+				lcd_ppi = PPI_320X480;
+			} else if (os_strcmp(argv[7], "480X320") == 0) {
+				lcd_ppi = PPI_480X320;
+			} else if (os_strcmp(argv[7], "480X480") == 0) {
+				lcd_ppi = PPI_480X480;
+			} else if (os_strcmp(argv[7], "480X800") == 0) {
+				lcd_ppi = PPI_480X800;
+			} else if (os_strcmp(argv[7], "640X480") == 0) {
+				lcd_ppi = PPI_640X480;
+			} else if (os_strcmp(argv[7], "800X480") == 0) {
+				lcd_ppi = PPI_800X480;
+			} else {
+				LOGW("the ppi is not support \n");
+				goto cmd_fail;
+			}
+
 			audio_en = true;
 			video_en = true;
+			lcd_en = true;
 			agora_start();
 		} else if (os_strcmp(argv[2], "stop") == 0) {
 			//TODO stop video

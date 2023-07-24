@@ -207,12 +207,12 @@ void rott_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 		rott.input_addr = (uint8_t *)0x60400000;
 		if (os_strcmp(argv[2], "90") == 0)
 		{
-			rott.rot_mode = ROTT_ROTATE90;
+			rott.rot_mode = ROTATE_90;
 			LOGD("rott.rot_mode = ROTATE90_YUV2RGB565\n");
 		}
 		else if (os_strcmp(argv[2], "270") == 0)
 		{
-			rott.rot_mode = ROTT_ROTATE270;
+			rott.rot_mode = ROTATE_270;
 			LOGD("rott.rot_mode = ROTATE270_YUV2RGB565\n");
 		}
 		else

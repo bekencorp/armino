@@ -81,12 +81,6 @@ static void aud_tras_main(beken_thread_arg_t param_data)
 	uint8_t *aud_temp_data = NULL;
 	GLOBAL_INT_DECLARATION();
 
-	aud_temp_data = os_malloc(3200);
-	if (aud_temp_data == NULL) {
-		LOGE("%s: malloc aud_temp_data fail \r\n");
-		goto aud_tras_exit;
-	}
-
 	aud_tras_msg_t msg;
 	while (1) {
 		ret = rtos_pop_from_queue(&aud_tras_int_msg_que, &msg, BEKEN_WAIT_FOREVER);
@@ -104,10 +98,16 @@ static void aud_tras_main(beken_thread_arg_t param_data)
 					do {
 						fill_size = ring_buffer_get_fill_size(aud_trs_setup->aud_tx_rb);
 						if (fill_size) {
+							aud_temp_data = os_malloc(fill_size);
+							if (aud_temp_data == NULL) {
+								LOGE("%s: malloc aud_temp_data fail \r\n");
+								goto aud_tras_exit;
+							}
 							GLOBAL_INT_DISABLE();
 							ring_buffer_read(aud_trs_setup->aud_tx_rb, aud_temp_data, fill_size);
 							GLOBAL_INT_RESTORE();
 							aud_trs_setup->aud_tras_send_data_cb(aud_temp_data, fill_size);
+							os_free(aud_temp_data);
 						}
 					} while(fill_size);
 					break;
@@ -119,10 +119,6 @@ static void aud_tras_main(beken_thread_arg_t param_data)
 	}
 
 aud_tras_exit:
-	if (aud_temp_data) {
-		os_free(aud_temp_data);
-		aud_temp_data = NULL;
-	}
 
 	/* delete msg queue */
 	ret = rtos_deinit_queue(&aud_tras_int_msg_que);

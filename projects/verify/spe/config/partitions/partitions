@@ -3,7 +3,7 @@
     "partitions": [
         { "partition": "primary_app",
             "offset": "0x00000000",
-            "size": "1536k",
+            "size": "2304k",
             "bin": "app.bin",
             "bin_type": "code",
             "version": "0x00010001"}

@@ -144,7 +144,8 @@ static void sys_dump_cpu_clk_div_mode2(void)
 	SOC_LOGI("	ckdiv_psram: %8x\r\n", r->ckdiv_psram);
 	SOC_LOGI("	cksel_psram: %8x\r\n", r->cksel_psram);
 	SOC_LOGI("	ckdiv_qspi0: %8x\r\n", r->ckdiv_qspi0);
-	SOC_LOGI("	reserved_10_13: %8x\r\n", r->reserved_10_13);
+	SOC_LOGI("	cksel_qspi0: %8x\r\n", r->cksel_qspi0);
+	SOC_LOGI("	reserved_11_13: %8x\r\n", r->reserved_11_13);
 	SOC_LOGI("	ckdiv_sdio: %8x\r\n", r->ckdiv_sdio);
 	SOC_LOGI("	cksel_sdio: %8x\r\n", r->cksel_sdio);
 	SOC_LOGI("	ckdiv_auxs: %8x\r\n", r->ckdiv_auxs);
@@ -164,7 +165,9 @@ static void sys_dump_cpu_26m_wdt_clk_div(void)
 	SOC_LOGI("	ckdiv_wdt: %8x\r\n", r->ckdiv_wdt);
 	SOC_LOGI("	clksel_spi0: %8x\r\n", r->clksel_spi0);
 	SOC_LOGI("	clksel_spi1: %8x\r\n", r->clksel_spi1);
-	SOC_LOGI("	reserved_bit_6_31: %8x\r\n", r->reserved_bit_6_31);
+	SOC_LOGI("	ckdiv_qspi1: %8x\r\n", r->ckdiv_qspi1);
+	SOC_LOGI("	cksel_qspi1: %8x\r\n", r->cksel_qspi1);
+	SOC_LOGI("	reserved_bit_11_31: %8x\r\n", r->reserved_bit_11_31);
 }
 
 static void sys_dump_cpu_anaspi_freq(void)
@@ -791,9 +794,9 @@ static void sys_dump_ana_reg1(void)
 {
 	sys_ana_reg1_t *r = (sys_ana_reg1_t *)(SOC_SYS_REG_BASE + (0x41 << 2));
 
-	SOC_LOGI("ana_reg1: %8x\r\n", REG_READ(SOC_SYS_REG_BASE + (0x41 << 2)));
-	SOC_LOGI("	nc3: %8x\r\n", r->nc3);
-	SOC_LOGI("	nc2: %8x\r\n", r->nc2);
+	SOC_LOGI("ana_reg1: %8x\r\n", REG_READ(SOC_SYSTEM_REG_BASE + (0x41 << 2)));
+	SOC_LOGI("	nc_0_0: %8x\r\n", r->nc_0_0);
+	SOC_LOGI("	nc_1_1: %8x\r\n", r->nc_1_1);
 	SOC_LOGI("	msw: %8x\r\n", r->msw);
 	SOC_LOGI("	ictrl: %8x\r\n", r->ictrl);
 	SOC_LOGI("	osc_trig: %8x\r\n", r->osc_trig);
@@ -802,8 +805,8 @@ static void sys_dump_ana_reg1(void)
 	SOC_LOGI("	spi_rst: %8x\r\n", r->spi_rst);
 	SOC_LOGI("	amsel: %8x\r\n", r->amsel);
 	SOC_LOGI("	divctrl: %8x\r\n", r->divctrl);
-	SOC_LOGI("	nc1: %8x\r\n", r->nc1);
-	SOC_LOGI("	nc0: %8x\r\n", r->nc0);
+	SOC_LOGI("	nc_30_30: %8x\r\n", r->nc_30_30);
+	SOC_LOGI("	nc_31_31: %8x\r\n", r->nc_31_31);
 }
 
 static void sys_dump_ana_reg2(void)
@@ -1061,8 +1064,13 @@ static void sys_dump_ana_reg14(void)
 	sys_ana_reg14_t *r = (sys_ana_reg14_t *)(SOC_SYS_REG_BASE + (0x4e << 2));
 
 	SOC_LOGI("ana_reg14: %8x\r\n", REG_READ(SOC_SYS_REG_BASE + (0x4e << 2)));
-	SOC_LOGI("	chs: %8x\r\n", r->chs);
-	SOC_LOGI("	en_lpmod: %8x\r\n", r->en_lpmod);
+	SOC_LOGI("	reg: %8x\r\n", r->reg);
+	SOC_LOGI("	en_adcmode: %8x\r\n", r->en_adcmode);
+	SOC_LOGI("	en_out_test1v: %8x\r\n", r->en_out_test1v);
+	SOC_LOGI("	nc_12_12: %8x\r\n", r->nc_12_12);
+	SOC_LOGI("	sel_seri_cap: %8x\r\n", r->sel_seri_cap);
+	SOC_LOGI("	en_seri_cap: %8x\r\n", r->en_seri_cap);
+	SOC_LOGI("	cal_ctrl: %8x\r\n", r->cal_ctrl);
 	SOC_LOGI("	cal_vth: %8x\r\n", r->cal_vth);
 	SOC_LOGI("	crg: %8x\r\n", r->crg);
 	SOC_LOGI("	vrefs: %8x\r\n", r->vrefs);
@@ -1076,36 +1084,27 @@ static void sys_dump_ana_reg15(void)
 	sys_ana_reg15_t *r = (sys_ana_reg15_t *)(SOC_SYS_REG_BASE + (0x4f << 2));
 
 	SOC_LOGI("ana_reg15: %8x\r\n", REG_READ(SOC_SYS_REG_BASE + (0x4f << 2)));
-	SOC_LOGI("	cal_number1v: %8x\r\n", r->cal_number1v);
-	SOC_LOGI("	cal_period1v: %8x\r\n", r->cal_period1v);
 	SOC_LOGI("	test_number1v: %8x\r\n", r->test_number1v);
 	SOC_LOGI("	test_period1v: %8x\r\n", r->test_period1v);
-	SOC_LOGI("	nc_21_21: %8x\r\n", r->nc_21_21);
+	SOC_LOGI("	chs: %8x\r\n", r->chs);
 	SOC_LOGI("	chs_sel_cal1v: %8x\r\n", r->chs_sel_cal1v);
 	SOC_LOGI("	cal_done_clr1v: %8x\r\n", r->cal_done_clr1v);
 	SOC_LOGI("	en_cal_force1v: %8x\r\n", r->en_cal_force1v);
 	SOC_LOGI("	en_cal_auto1v: %8x\r\n", r->en_cal_auto1v);
-	SOC_LOGI("	en_scm: %8x\r\n", r->en_scm);
-	SOC_LOGI("	en_adcmod: %8x\r\n", r->en_adcmod);
-	SOC_LOGI("	enfsr1v: %8x\r\n", r->enfsr1v);
+	SOC_LOGI("	en_scan: %8x\r\n", r->en_scan);
 }
 
 static void sys_dump_ana_reg16(void)
 {
 	sys_ana_reg16_t *r = (sys_ana_reg16_t *)(SOC_SYS_REG_BASE + (0x50 << 2));
 
-	SOC_LOGI("ana_reg16: %8x\r\n", REG_READ(SOC_SYS_REG_BASE + (0x50 << 2)));
+	SOC_LOGI("ana_reg16: %8x\r\n", REG_READ(SOC_SYSTEM_REG_BASE + (0x50 << 2)));
 	SOC_LOGI("	int_en: %8x\r\n", r->int_en);
 	SOC_LOGI("	int_en16: %8x\r\n", r->int_en16);
-	SOC_LOGI("	nc_11_15: %8x\r\n", r->nc_11_15);
-	SOC_LOGI("	ckadc_sel: %8x\r\n", r->ckadc_sel);
-	SOC_LOGI("	int_clr_sel1v: %8x\r\n", r->int_clr_sel1v);
-	SOC_LOGI("	ctrl_ck2d: %8x\r\n", r->ctrl_ck2d);
-	SOC_LOGI("	ctrl_seri_cap: %8x\r\n", r->ctrl_seri_cap);
-	SOC_LOGI("	en_testcmp1v: %8x\r\n", r->en_testcmp1v);
-	SOC_LOGI("	en_man_wr1v: %8x\r\n", r->en_man_wr1v);
-	SOC_LOGI("	en_manmod1v: %8x\r\n", r->en_manmod1v);
-	SOC_LOGI("	cap_calspi1v: %8x\r\n", r->cap_calspi1v);
+	SOC_LOGI("	nc_17_17: %8x\r\n", r->nc_17_17);
+	SOC_LOGI("	nc_18_18: %8x\r\n", r->nc_18_18);
+	SOC_LOGI("	cal_number1v: %8x\r\n", r->cal_number1v);
+	SOC_LOGI("	cal_period1v: %8x\r\n", r->cal_period1v);
 }
 
 static void sys_dump_ana_reg17(void)
@@ -1115,9 +1114,13 @@ static void sys_dump_ana_reg17(void)
 	SOC_LOGI("ana_reg17: %8x\r\n", REG_READ(SOC_SYS_REG_BASE + (0x51 << 2)));
 	SOC_LOGI("	int_clr: %8x\r\n", r->int_clr);
 	SOC_LOGI("	int_clr16: %8x\r\n", r->int_clr16);
-	SOC_LOGI("	nc_11_11: %8x\r\n", r->nc_11_11);
-	SOC_LOGI("	int_clr_cal: %8x\r\n", r->int_clr_cal);
-	SOC_LOGI("	int_en_cal: %8x\r\n", r->int_en_cal);
+	SOC_LOGI("	ck_adc_sel: %8x\r\n", r->ck_adc_sel);
+	SOC_LOGI("	int_clr_sel: %8x\r\n", r->int_clr_sel);
+	SOC_LOGI("	en_lpmod: %8x\r\n", r->en_lpmod);
+	SOC_LOGI("	en_testcmp1v: %8x\r\n", r->en_testcmp1v);
+	SOC_LOGI("	en_man_wr1v: %8x\r\n", r->en_man_wr1v);
+	SOC_LOGI("	en_manmod1v: %8x\r\n", r->en_manmod1v);
+	SOC_LOGI("	cap_calspi1v: %8x\r\n", r->cap_calspi1v);
 }
 
 static void sys_dump_ana_reg18(void)
@@ -1133,13 +1136,13 @@ static void sys_dump_ana_reg18(void)
 	SOC_LOGI("	enmicbias: %8x\r\n", r->enmicbias);
 	SOC_LOGI("	adcckinven1v: %8x\r\n", r->adcckinven1v);
 	SOC_LOGI("	dacfb2st0v9: %8x\r\n", r->dacfb2st0v9);
-	SOC_LOGI("	nc1: %8x\r\n", r->nc1);
+	SOC_LOGI("	nc_8_8: %8x\r\n", r->nc_8_8);
 	SOC_LOGI("	micbias_trm: %8x\r\n", r->micbias_trm);
 	SOC_LOGI("	micbias_voc: %8x\r\n", r->micbias_voc);
 	SOC_LOGI("	vrefsel1v: %8x\r\n", r->vrefsel1v);
 	SOC_LOGI("	capswspi: %8x\r\n", r->capswspi);
 	SOC_LOGI("	adref_sel: %8x\r\n", r->adref_sel);
-	SOC_LOGI("	nc0: %8x\r\n", r->nc0);
+	SOC_LOGI("	nc_24_25: %8x\r\n", r->nc_24_25);
 	SOC_LOGI("	reserved_bit_26_30: %8x\r\n", r->reserved_bit_26_30);
 	SOC_LOGI("	spi_dacckpssel: %8x\r\n", r->spi_dacckpssel);
 }
@@ -1184,12 +1187,12 @@ static void sys_dump_ana_reg20(void)
 	SOC_LOGI("	dcochg: %8x\r\n", r->dcochg);
 	SOC_LOGI("	diffen: %8x\r\n", r->diffen);
 	SOC_LOGI("	endaccal: %8x\r\n", r->endaccal);
-	SOC_LOGI("	nc2: %8x\r\n", r->nc2);
+	SOC_LOGI("	nc_15_15: %8x\r\n", r->nc_15_15);
 	SOC_LOGI("	lendcoc: %8x\r\n", r->lendcoc);
-	SOC_LOGI("	nc1: %8x\r\n", r->nc1);
+	SOC_LOGI("	nc_17_17: %8x\r\n", r->nc_17_17);
 	SOC_LOGI("	lenvcmd: %8x\r\n", r->lenvcmd);
 	SOC_LOGI("	dacdrven: %8x\r\n", r->dacdrven);
-	SOC_LOGI("	nc0: %8x\r\n", r->nc0);
+	SOC_LOGI("	nc_20_20: %8x\r\n", r->nc_20_20);
 	SOC_LOGI("	daclen: %8x\r\n", r->daclen);
 	SOC_LOGI("	dacg: %8x\r\n", r->dacg);
 	SOC_LOGI("	dacmute: %8x\r\n", r->dacmute);
@@ -1203,9 +1206,9 @@ static void sys_dump_ana_reg21(void)
 
 	SOC_LOGI("ana_reg21: %8x\r\n", REG_READ(SOC_SYS_REG_BASE + (0x55 << 2)));
 	SOC_LOGI("	lmdcin: %8x\r\n", r->lmdcin);
-	SOC_LOGI("	nc1: %8x\r\n", r->nc1);
+	SOC_LOGI("	nc_8_15: %8x\r\n", r->nc_8_15);
 	SOC_LOGI("	spirst_ovc: %8x\r\n", r->spirst_ovc);
-	SOC_LOGI("	nc0: %8x\r\n", r->nc0);
+	SOC_LOGI("	nc_17_17: %8x\r\n", r->nc_17_17);
 	SOC_LOGI("	enidacl: %8x\r\n", r->enidacl);
 	SOC_LOGI("	dac3rdhc0v9: %8x\r\n", r->dac3rdhc0v9);
 	SOC_LOGI("	hc2s: %8x\r\n", r->hc2s);
@@ -1218,39 +1221,6 @@ static void sys_dump_ana_reg21(void)
 	SOC_LOGI("	oct0v9: %8x\r\n", r->oct0v9);
 	SOC_LOGI("	sout0v9: %8x\r\n", r->sout0v9);
 	SOC_LOGI("	hc0v9: %8x\r\n", r->hc0v9);
-}
-
-static void sys_dump_ana_reg22(void)
-{
-	sys_ana_reg22_t *r = (sys_ana_reg22_t *)(SOC_SYS_REG_BASE + (0x56 << 2));
-
-	SOC_LOGI("ana_reg22: %8x\r\n", REG_READ(SOC_SYS_REG_BASE + (0x56 << 2)));
-	SOC_LOGI("	ictrl_dsppll: %8x\r\n", r->ictrl_dsppll);
-	SOC_LOGI("	nc_4_18: %8x\r\n", r->nc_4_18);
-	SOC_LOGI("	mode: %8x\r\n", r->mode);
-	SOC_LOGI("	iamsel: %8x\r\n", r->iamsel);
-	SOC_LOGI("	hvref: %8x\r\n", r->hvref);
-	SOC_LOGI("	lvref: %8x\r\n", r->lvref);
-	SOC_LOGI("	nc_25_31: %8x\r\n", r->nc_25_31);
-}
-
-static void sys_dump_ana_reg23(void)
-{
-	sys_ana_reg23_t *r = (sys_ana_reg23_t *)(SOC_SYS_REG_BASE + (0x57 << 2));
-
-	SOC_LOGI("ana_reg23: %8x\r\n", REG_READ(SOC_SYS_REG_BASE + (0x57 << 2)));
-	SOC_LOGI("	camsel: %8x\r\n", r->camsel);
-	SOC_LOGI("	msw: %8x\r\n", r->msw);
-	SOC_LOGI("	tstcken_dpll: %8x\r\n", r->tstcken_dpll);
-	SOC_LOGI("	osccal_trig: %8x\r\n", r->osccal_trig);
-	SOC_LOGI("	cnti: %8x\r\n", r->cnti);
-	SOC_LOGI("	nc_21_21: %8x\r\n", r->nc_21_21);
-	SOC_LOGI("	spi_rst: %8x\r\n", r->spi_rst);
-	SOC_LOGI("	closeloop_en: %8x\r\n", r->closeloop_en);
-	SOC_LOGI("	caltime: %8x\r\n", r->caltime);
-	SOC_LOGI("	lpfrz: %8x\r\n", r->lpfrz);
-	SOC_LOGI("	icp: %8x\r\n", r->icp);
-	SOC_LOGI("	cp2ctrl: %8x\r\n", r->cp2ctrl);
 }
 
 static sys_reg_fn_map_t s_fn[] =
@@ -1317,8 +1287,6 @@ static sys_reg_fn_map_t s_fn[] =
 	{0x53, 0x53, sys_dump_ana_reg19},
 	{0x54, 0x54, sys_dump_ana_reg20},
 	{0x55, 0x55, sys_dump_ana_reg21},
-	{0x56, 0x56, sys_dump_ana_reg22},
-	{0x57, 0x57, sys_dump_ana_reg23},
 	{-1, -1, 0}
 };
 

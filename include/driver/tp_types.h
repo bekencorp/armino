@@ -32,6 +32,7 @@ typedef enum
 	TP_ID_UNKNOW = 0,
 	TP_ID_GT911,
 	TP_ID_GT1151,
+	TP_ID_FT6336,
 } tp_sensor_id_t;
 
 /**
@@ -113,6 +114,8 @@ typedef struct
  */
 typedef struct
 {
+	int (*read_uint8) (uint8_t addr, uint8_t reg, uint8_t *buff, uint16_t len);  /**< i2c read by one byte */
+	int (*write_uint8) (uint8_t addr, uint8_t reg, uint8_t *buff, uint16_t len);  /**< i2c write by one byte */
 	int (*read_uint16) (uint8_t addr, uint16_t reg, uint8_t *buff, uint16_t len);  /**< i2c read by two byte */
 	int (*write_uint16) (uint8_t addr, uint16_t reg, uint8_t *buff, uint16_t len);  /**< i2c write by two byte */
 } tp_i2c_callback_t;

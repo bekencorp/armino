@@ -51,3 +51,23 @@ menu "SOC_CONFIG"
 		bool "For bk7236 series chipset"
 		default n
 endmenu
+
+menu "System"
+	choice SYS
+		prompt "System"
+		default SYS_CPU0
+
+		config SYS_CPU0
+			bool "CPU0 system"
+
+		config SYS_CPU1
+			bool "CPU1 system"
+
+		config SYS_CPU2
+			bool "CPU2 system"
+	endchoice
+
+	config CPU_CNT
+			int "System CPU count: 1: single core, 2: dual core, etc."
+			default 1
+endmenu

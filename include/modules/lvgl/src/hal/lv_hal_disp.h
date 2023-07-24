@@ -103,7 +103,7 @@ typedef struct _lv_disp_drv_t {
 
     /** MANDATORY: Write the internal buffer (draw_buf) to the display. 'lv_disp_flush_ready()' has to be
      * called when finished*/
-    void (*flush_cb)(struct _lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t * color_p);
+    void (*flush_cb)(struct _lv_disp_drv_t * disp_drv, const lv_area_t * area, void * color_p);
 
     /** OPTIONAL: Extend the invalidated areas to match with the display drivers requirements
      * E.g. round `y` to, 8, 16 ..) on a monochrome display*/

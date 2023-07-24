@@ -69,8 +69,8 @@ static void h264_init_common(void)
 
 	/* h264 AHB bus clock config */
 	sys_drv_set_h264_clk_en();
-	sys_drv_mclk_mux_set(H264_AHB_CLK_SEL);
-	sys_drv_h264_set_mclk_div(H264_AHB_CLK_DIV);
+	//sys_drv_mclk_mux_set(H264_AHB_CLK_SEL);
+	//sys_drv_h264_set_mclk_div(H264_AHB_CLK_DIV);
 
 	/* h264 global ctrl set */
 	h264_hal_set_global_ctrl(&s_h264.hal);
@@ -139,12 +139,11 @@ bk_err_t bk_h264_enc_lcd_dma_cpy(void *out, const void *in, uint32_t len, dma_id
 	BK_LOG_ON_ERR(bk_dma_init(cpy_chnl, &dma_config));
 	BK_LOG_ON_ERR(bk_dma_set_transfer_len(cpy_chnl, len));
 	BK_LOG_ON_ERR(bk_dma_set_src_burst_len(cpy_chnl, 3));
-	BK_LOG_ON_ERR(bk_dma_set_src_burst_len(cpy_chnl, 3));
+	BK_LOG_ON_ERR(bk_dma_set_dest_burst_len(cpy_chnl, 3));
 #if (CONFIG_SPE)
 	BK_LOG_ON_ERR(bk_dma_set_dest_sec_attr(cpy_chnl, DMA_ATTR_SEC));
 	BK_LOG_ON_ERR(bk_dma_set_src_sec_attr(cpy_chnl, DMA_ATTR_SEC));
 #endif
-	BK_LOG_ON_ERR(bk_dma_start(cpy_chnl));
 
 	return BK_OK;
 }
@@ -152,6 +151,7 @@ bk_err_t bk_h264_enc_lcd_dma_cpy(void *out, const void *in, uint32_t len, dma_id
 bk_err_t bk_h264_dma_rx_deinit(void)
 {
 	BK_LOG_ON_ERR(bk_dma_stop(h264_dma_rx_id));
+	BK_LOG_ON_ERR(bk_dma_deinit(h264_dma_rx_id));
 	BK_LOG_ON_ERR(bk_dma_free(DMA_DEV_H264, h264_dma_rx_id));
 	h264_dma_rx_id = 0;
 	return BK_OK;
@@ -189,7 +189,7 @@ bk_err_t bk_h264_driver_deinit(void)
 
 	bk_int_isr_unregister(INT_SRC_H264);
 	h264_int_disable();
-	bk_h264_reset();
+	bk_h264_config_reset();
 	os_memset(&s_h264, 0, sizeof(s_h264));
 	s_h264_driver_is_init = false;
 
@@ -221,6 +221,7 @@ bk_err_t bk_h264_config_init(const h264_config_t *config, uint16_t media_width, 
 
 bk_err_t bk_h264_init(media_ppi_t media_ppi)
 {
+	H264_RETURN_ON_DRIVER_NOT_INIT();
 	uint16_t media_width = ppi_to_pixel_x(media_ppi);
 	uint16_t media_height = ppi_to_pixel_y(media_ppi);
 	if (media_height % 16 != 0) {
@@ -235,6 +236,7 @@ bk_err_t bk_h264_init(media_ppi_t media_ppi)
 
 bk_err_t bk_h264_set_pframe_num(uint32_t pframe_number)
 {
+	H264_RETURN_ON_DRIVER_NOT_INIT();
 	if(pframe_number > MAX_PFRAME || pframe_number < MIN_PFRAME) {
 		return BK_ERR_H264_INVALID_PFRAME_NUMBER;
 	}
@@ -250,6 +252,7 @@ bk_err_t bk_h264_set_pframe_num(uint32_t pframe_number)
 
 bk_err_t bk_h264_set_qp(uint32_t qp)
 {
+	H264_RETURN_ON_DRIVER_NOT_INIT();
 	if(qp > MAX_QP || qp < MIN_QP) {
 		return BK_ERR_H264_INVALID_QP;
 	}
@@ -266,6 +269,7 @@ bk_err_t bk_h264_set_qp(uint32_t qp)
 
 bk_err_t bk_h264_set_quality(uint32_t imb_bits, uint32_t pmb_bits)
 {
+	H264_RETURN_ON_DRIVER_NOT_INIT();
 	if(imb_bits > MAX_FRAME_BITS || imb_bits < MIN_FRAME_BITS) {
 		return BK_ERR_H264_INVALID_IMB_BITS;
 	}
@@ -284,17 +288,20 @@ bk_err_t bk_h264_set_quality(uint32_t imb_bits, uint32_t pmb_bits)
 
 bk_err_t bk_h264_deblocking_filter_config_init(const h264_config_t *config, uint32_t alpha_off, uint32_t beta_off)
 {
+	H264_RETURN_ON_DRIVER_NOT_INIT();
 	return h264_hal_filter_config(&s_h264.hal, config, alpha_off, beta_off);
 }
 
 bk_err_t bk_h264_encode_enable()
 {
+	H264_RETURN_ON_DRIVER_NOT_INIT();
 	h264_hal_encode_enable(&s_h264.hal);
 	return BK_OK;
 }
 
 bk_err_t bk_h264_encode_disable()
 {
+	H264_RETURN_ON_DRIVER_NOT_INIT();
 	h264_hal_encode_disable(&s_h264.hal);
 	return BK_OK;
 }
@@ -328,6 +335,7 @@ bk_err_t bk_h264_camera_clk_enhance(void)
 
 uint32_t bk_h264_get_encode_count()
 {
+	H264_RETURN_ON_DRIVER_NOT_INIT();
 	return h264_hal_get_encode_count(&s_h264.hal);
 }
 
@@ -404,9 +412,18 @@ bk_err_t bk_h264_int_count_show(void)
 	return BK_OK;
 }
 
-bk_err_t bk_h264_reset(void)
+bk_err_t bk_h264_config_reset(void)
 {
+	H264_RETURN_ON_DRIVER_NOT_INIT();
 	h264_hal_reset(&s_h264.hal);
+	return BK_OK;
+}
+
+bk_err_t bk_h264_soft_reset(void)
+{
+	H264_RETURN_ON_DRIVER_NOT_INIT();
+	h264_hal_soft_reset_active(&s_h264.hal);
+	h264_hal_soft_reset_deactive(&s_h264.hal);
 	return BK_OK;
 }
 

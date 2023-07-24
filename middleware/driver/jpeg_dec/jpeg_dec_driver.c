@@ -76,9 +76,7 @@ bk_err_t bk_jpeg_dec_driver_init(void)
 		JPEGDEC_LOGE("%s, jpeg dec malloc dma fail \r\n", __func__);
 		return BK_FAIL;
 	}
-
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_DE, PM_POWER_MODULE_STATE_ON);
-
 	sys_drv_int_enable(JPEGDEC_INTERRUPT_CTRL_BIT);
 	sys_drv_set_jpeg_dec_disckg(1);
 
@@ -103,9 +101,7 @@ bk_err_t bk_jpeg_dec_driver_deinit(void)
 
 	bk_int_isr_unregister(INT_SRC_JPEG_DEC);
 	jpg_decoder_deinit();
-
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_DE, PM_POWER_MODULE_STATE_OFF);
-
 	bk_dma_stop(jpeg_dec_dma);
 	bk_dma_deinit(jpeg_dec_dma);
 	bk_dma_free(DMA_DEV_JPEG, jpeg_dec_dma);
@@ -252,6 +248,10 @@ bool jpeg_dec_comp_status(uint8_t *src, uint32_t src_size, uint32_t dec_size)
 		{
 			strip++;
 		}
+        else if(src[i] == 0x00 && (src[i-1] & 0x01))
+        {
+            strip++;
+        }
 		else
 		{
 			break;

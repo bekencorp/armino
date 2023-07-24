@@ -1,6 +1,6 @@
-menu "LVLG Benchmark Configuration"
+menu "LVGL Benchmark Configuration"
 
     config LV_USE_DEMO_BENCHMARK
-        bool "LVLG Benchmark"
+        bool "LVGL Benchmark"
         default n
 endmenu

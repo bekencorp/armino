@@ -369,10 +369,8 @@ int driver_init(void)
 	bk_yuv_buf_driver_init();
 #endif
 
-#if !CONFIG_SYSTEM_CTRL
 #if CONFIG_JPEGENC_HW
 	bk_jpeg_enc_driver_init();
-#endif
 #endif
 
 #if CONFIG_AON_RTC

@@ -1,0 +1,6 @@
+menu "INTEGRATION_DOORBELL"
+
+    config INTEGRATION_DOORBELL
+        bool "Doorbell integration"
+        default y
+endmenu

@@ -114,7 +114,7 @@ extern "C" {
 #define CLI_CFG_DMA         0
 #endif
 
-#if(CONFIG_PWM && (!CONFIG_SLAVE_CORE))
+#if(CONFIG_PWM)
 #define CLI_CFG_PWM         1
 #else
 #define CLI_CFG_PWM         0
@@ -136,12 +136,6 @@ extern "C" {
 #define CLI_CFG_SDIO_SLAVE   1
 #else
 #define CLI_CFG_SDIO_SLAVE   0
-#endif
-
-#if(CONFIG_ICU && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_ICU         0
-#else
-#define CLI_CFG_ICU         0
 #endif
 
 #if (CONFIG_I2C && (!CONFIG_SLAVE_CORE))
@@ -243,7 +237,11 @@ extern "C" {
 #define CLI_CFG_ROTT  0
 #endif
 
-
+#if (CONFIG_LCD_QSPI_TEST && (!CONFIG_SLAVE_CORE))
+#define CLI_CFG_LCD_QSPI	0
+#else
+#define CLI_CFG_LCD_QSPI	0
+#endif
 
 #if (CONFIG_DMA2D_TEST && (!CONFIG_SLAVE_CORE))
 #define CLI_CFG_DMA2D  0
@@ -288,13 +286,6 @@ extern "C" {
 #define CLI_CFG_TOUCH	0
 #endif
 
-
-#if (CONFIG_LCD_QSPI_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_LCD_QSPI	0
-#else
-#define CLI_CFG_LCD_QSPI	0
-#endif
-
 #if (CONFIG_QRCODEGEN_TEST && (!CONFIG_SLAVE_CORE))
 #define CLI_CFG_QRCODEGEN	0
 #else
@@ -316,6 +307,11 @@ extern "C" {
 #if (CONFIG_SOC_BK7236XX)
 #if (CONFIG_AUDIO && CONFIG_AUDIO_TEST)
 #define CLI_CFG_AUD         1
+#endif
+#if (CONFIG_TOUCH && CONFIG_TOUCH_TEST)
+#define CLI_CFG_TOUCH    1
+#else
+#define CLI_CFG_TOUCH    0
 #endif
 #endif
 
@@ -359,7 +355,7 @@ extern "C" {
 #define CLI_CFG_PSRAM        0
 #endif
 
-#if (CONFIG_H264)
+#if (CONFIG_H264 && (!CONFIG_SLAVE_CORE))
 #define CLI_CFG_H264         1
 #else
 #define CLI_CFG_H264         0

@@ -97,6 +97,15 @@ uint32_t sys_drv_touch_scan_mode_chann_set(uint32_t value)
 	return SYS_DRV_SUCCESS;
 }
 
+uint32_t sys_drv_touch_scan_mode_chann_sel(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_touch_scan_mode_chann_sel(value);
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
 uint32_t sys_drv_touch_serial_cap_enable(void)
 {
 	uint32_t int_level = rtos_disable_int();
@@ -111,6 +120,87 @@ uint32_t sys_drv_touch_serial_cap_disable(void)
 	uint32_t int_level = rtos_disable_int();
 
 	sys_hal_touch_serial_cap_disable();
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
+uint32_t sys_drv_touch_serial_cap_sel(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_touch_serial_cap_sel(value);
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
+uint32_t sys_drv_touch_spi_lock(void)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_touch_spi_lock();
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
+uint32_t sys_drv_touch_spi_unlock(void)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_touch_spi_unlock();
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
+uint32_t sys_drv_touch_test_period_set(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_touch_test_period_set(value);
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
+uint32_t sys_drv_touch_test_number_set(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_touch_test_number_set(value);
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
+uint32_t sys_drv_touch_calib_period(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_touch_calib_period_set(value);
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
+uint32_t sys_drv_touch_calib_number(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_touch_calib_number_set(value);
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
+uint32_t sys_drv_touch_int_set(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_touch_int_set(value);
+	rtos_enable_int(int_level);
+	return SYS_DRV_SUCCESS;
+}
+
+uint32_t sys_drv_touch_int_clear(uint32_t value)
+{
+	uint32_t int_level = rtos_disable_int();
+
+	sys_hal_touch_int_clear(value);
 	rtos_enable_int(int_level);
 	return SYS_DRV_SUCCESS;
 }

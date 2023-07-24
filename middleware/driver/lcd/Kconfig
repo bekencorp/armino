@@ -62,10 +62,17 @@ menu "LCD"
 		depends on LCD
 		bool "Enable LCD_ST7701S API"
 		default n
+   
 	config LCD_ST7701S_LY
 		depends on LCD
 		bool "Enable LCD_ST7701S API"
 		default n
+   
+	config LCD_ST7789V
+		depends on LCD
+		bool "Enable LCD_ST7789V API"
+		default n
+   
 	config LCD_QSPI
 		bool "Enable LCD QSPI"
 		default n

@@ -1,5 +1,9 @@
 ################################ BL2 ###########################################
 if(BL2)
+    target_compile_options(bl2_crypto_hw
+        PUBLIC
+            ${BL2_COMPILER_CP_FLAG}
+    )
 
     target_sources(bl2_crypto_hw
         PRIVATE
@@ -32,6 +36,7 @@ if(BL2)
         PRIVATE
             ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_driver/inc/common
             ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_driver/inc/crypto
+            ${PLATFORM_DIR}/ext/target/beken/common/hal/inc
     )
 
     target_sources(bl2_crypto_hw
@@ -80,6 +85,10 @@ if(BL2)
         PRIVATE
             ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/spe/src/misc.c
             ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/crypto_hw.c
+            ${PLATFORM_DIR}/ext/target/beken/common/hal/crypto/hal_crypto_aes.c
+            ${PLATFORM_DIR}/ext/target/beken/common/hal/crypto/hal_crypto_rsa.c
+            ${PLATFORM_DIR}/ext/target/beken/common/hal/crypto/hal_crypto_hash.c
+            ${PLATFORM_DIR}/ext/target/beken/common/hal/crypto/hal_crypto_ecdsa.c
     )
 
     target_include_directories(bl2_crypto_hw
@@ -126,8 +135,8 @@ if(BL2)
     )
 
 endif()
-############################ Crypto Service ####################################
 
+############################ Crypto Service ####################################
 target_sources(crypto_service_crypto_hw
     PRIVATE
         ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_driver/src/common/dubhe_driver.c
@@ -157,8 +166,9 @@ target_sources(crypto_service_crypto_hw
 
 target_include_directories(crypto_service_crypto_hw
     PRIVATE
-        ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_driver/inc/common
-        ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_driver/inc/crypto
+		${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_driver/inc/common
+		${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/dubhe_driver/inc/crypto
+		${PLATFORM_DIR}/ext/target/beken/common/hal/inc
 )
 
 target_sources(crypto_service_crypto_hw
@@ -208,8 +218,12 @@ target_sources(crypto_service_crypto_hw
 
 target_sources(crypto_service_crypto_hw
     PRIVATE
-        ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/spe/src/misc.c
-        ${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/crypto_hw.c
+		${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/spe/src/misc.c
+		${PLATFORM_DIR}/ext/target/beken/common/hal/accelerator/crypto_hw.c
+		${PLATFORM_DIR}/ext/target/beken/common/hal/crypto/hal_crypto_aes.c
+		${PLATFORM_DIR}/ext/target/beken/common/hal/crypto/hal_crypto_rsa.c
+		${PLATFORM_DIR}/ext/target/beken/common/hal/crypto/hal_crypto_hash.c
+		${PLATFORM_DIR}/ext/target/beken/common/hal/crypto/hal_crypto_ecdsa.c
 )
 
 target_include_directories(crypto_service_crypto_hw

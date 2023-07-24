@@ -26,8 +26,11 @@
 #include <driver/gpio.h>
 #include "bk_misc.h"
 
-
+#if CONFIG_SOC_BK7256XX
 #define LCD_QSPI_DISPLAY_PSRAM_ADDR		0x68000000
+#else
+#define LCD_QSPI_DISPLAY_PSRAM_ADDR		0x64000000
+#endif
 
 #if CONFIG_LCD_QSPI_SH8601A
 extern lcd_qspi_device_t lcd_qspi_device_sh8601a;
@@ -70,11 +73,11 @@ static bk_err_t bk_lcd_qspi_hardware_reset(void)
 	gpio_dev_map(GPIO_47, 0);
 	bk_gpio_enable_pull(GPIO_47);
 	bk_gpio_pull_up(GPIO_47);
-	delay_ms(10);
+	rtos_delay_milliseconds(10);
 	bk_gpio_pull_down(GPIO_47);
-	delay_ms(10);
+	rtos_delay_milliseconds(10);
 	bk_gpio_pull_up(GPIO_47);
-	delay_ms(120);
+	rtos_delay_milliseconds(120);
 
 	return BK_OK;
 }
@@ -111,6 +114,10 @@ static bk_err_t bk_lcd_qspi_quad_write_start(lcd_qspi_write_config_t *reg_config
 	qspi_hal_cmd_c_start(&s_lcd_qspi.hal);
 	qspi_hal_wait_cmd_done(&s_lcd_qspi.hal);
 
+#if CONFIG_SOC_BK7258
+	qspi_hal_io_cpu_mem_select(&s_lcd_qspi.hal, 1);
+#endif
+
 	qspi_hal_disable_cmd_sck_enable(&s_lcd_qspi.hal);
 
 	return BK_OK;
@@ -120,6 +127,10 @@ static bk_err_t bk_lcd_qspi_quad_write_stop(void)
 {
 	qspi_hal_disable_cmd_sck_disable(&s_lcd_qspi.hal);
 	qspi_hal_force_spi_cs_low_disable(&s_lcd_qspi.hal);
+
+#if CONFIG_SOC_BK7258
+	qspi_hal_io_cpu_mem_select(&s_lcd_qspi.hal, 0);
+#endif
 
 	return BK_OK;
 }

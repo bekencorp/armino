@@ -27,6 +27,9 @@ extern const dvp_sensor_config_t dvp_sensor_ov2640;
 extern const dvp_sensor_config_t dvp_sensor_gc0308;
 
 
+const dvp_sensor_config_t **get_sensor_config_devices_list(void);
+int get_sensor_config_devices_num(void);
+
 const dvp_sensor_config_t *get_sensor_config_interface_by_id(sensor_id_t id);
 
 /**

@@ -259,6 +259,45 @@ __STATIC_INLINE void ARM_MPU_SetRegionEx(MPU_Type* mpu, uint32_t rnr, uint32_t r
   mpu->RLAR = rlar;
 }
 
+/** Configure the given MPU region of the given MPU.
+* \param mpu Pointer to MPU to be used.
+* \param rnr Region number to be configured.
+* \param rbar Value for RBAR register.
+* \param rlar Value for RLAR register.
+*/
+__STATIC_INLINE void ARM_MPU_SetRegionA1Ex(MPU_Type* mpu, uint32_t rnr, uint32_t rbar, uint32_t rlar)
+{
+  mpu->RNR = rnr;
+  mpu->RBAR_A1 = rbar;
+  mpu->RLAR_A1 = rlar;
+}
+
+/** Configure the given MPU region of the given MPU.
+* \param mpu Pointer to MPU to be used.
+* \param rnr Region number to be configured.
+* \param rbar Value for RBAR register.
+* \param rlar Value for RLAR register.
+*/
+__STATIC_INLINE void ARM_MPU_SetRegionA2Ex(MPU_Type* mpu, uint32_t rnr, uint32_t rbar, uint32_t rlar)
+{
+  mpu->RNR = rnr;
+  mpu->RBAR_A2 = rbar;
+  mpu->RLAR_A2 = rlar;
+}
+
+/** Configure the given MPU region of the given MPU.
+* \param mpu Pointer to MPU to be used.
+* \param rnr Region number to be configured.
+* \param rbar Value for RBAR register.
+* \param rlar Value for RLAR register.
+*/
+__STATIC_INLINE void ARM_MPU_SetRegionA3Ex(MPU_Type* mpu, uint32_t rnr, uint32_t rbar, uint32_t rlar)
+{
+  mpu->RNR = rnr;
+  mpu->RBAR_A3 = rbar;
+  mpu->RLAR_A3 = rlar;
+}
+
 /** Configure the given MPU region.
 * \param rnr Region number to be configured.
 * \param rbar Value for RBAR register.
@@ -267,6 +306,36 @@ __STATIC_INLINE void ARM_MPU_SetRegionEx(MPU_Type* mpu, uint32_t rnr, uint32_t r
 __STATIC_INLINE void ARM_MPU_SetRegion(uint32_t rnr, uint32_t rbar, uint32_t rlar)
 {
   ARM_MPU_SetRegionEx(MPU, rnr, rbar, rlar);
+}
+
+/** Configure the given MPU region.
+* \param rnr Region number to be configured.
+* \param rbar Value for RBAR register.
+* \param rlar Value for RLAR register.
+*/
+__STATIC_INLINE void ARM_MPU_SetRegionA1(uint32_t rnr, uint32_t rbar, uint32_t rlar)
+{
+  ARM_MPU_SetRegionA1Ex(MPU, rnr, rbar, rlar);
+}
+
+/** Configure the given MPU region.
+* \param rnr Region number to be configured.
+* \param rbar Value for RBAR register.
+* \param rlar Value for RLAR register.
+*/
+__STATIC_INLINE void ARM_MPU_SetRegionA2(uint32_t rnr, uint32_t rbar, uint32_t rlar)
+{
+  ARM_MPU_SetRegionA2Ex(MPU, rnr, rbar, rlar);
+}
+
+/** Configure the given MPU region.
+* \param rnr Region number to be configured.
+* \param rbar Value for RBAR register.
+* \param rlar Value for RLAR register.
+*/
+__STATIC_INLINE void ARM_MPU_SetRegionA3(uint32_t rnr, uint32_t rbar, uint32_t rlar)
+{
+  ARM_MPU_SetRegionA3Ex(MPU, rnr, rbar, rlar);
 }
 
 #ifdef MPU_NS

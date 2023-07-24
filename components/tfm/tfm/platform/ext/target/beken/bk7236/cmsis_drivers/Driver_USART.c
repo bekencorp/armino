@@ -20,6 +20,7 @@
 #include "device_cfg.h"
 #include "driver/uart.h"
 #include "driver/gpio.h"
+#include "sys_driver.h"
 
 #ifndef ARG_UNUSED
 #define ARG_UNUSED(arg)  (void)arg
@@ -89,7 +90,6 @@ static int32_t USARTx_Initialize(UARTx_Resources* uart_dev)
         config.src_clk = UART_SCLK_XTAL_26M,
     };
 
-    extern void sys_drv_init(void); //TODO peter
     sys_drv_init();
     bk_gpio_driver_init();
 

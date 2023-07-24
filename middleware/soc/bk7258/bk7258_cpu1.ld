@@ -21,15 +21,16 @@ __MIN_HEAP_SIZE  = (32 << 10);
 
 __SWAP_SIZE = (1024);
 
+__PRIMARY_APP_RAM_BASE = SOC_SRAM0_DATA_BASE;
+
 MEMORY
 {
   FLASH (rx)            : ORIGIN = (SOC_FLASH_DATA_BASE + CONFIG_SECOND_APP_VIRTUAL_CODE_START), LENGTH = CONFIG_SECOND_APP_VIRTUAL_CODE_SIZE
-  DRAM (rwx)            : ORIGIN = SOC_SRAM0_DATA_BASE, LENGTH = SOC_SRAM1_DATA_BASE - SOC_SRAM0_DATA_BASE
-  RAM (rwx)             : ORIGIN = SOC_SRAM1_DATA_BASE + CONFIG_SPE_TOTAL_RAM_SIZE, LENGTH = CONFIG_SECOND_APP_RAM_SIZE - __SWAP_SIZE
+  RAM (rwx)             : ORIGIN = __PRIMARY_APP_RAM_BASE + CONFIG_SPE_TOTAL_RAM_SIZE, LENGTH = CONFIG_SECOND_APP_RAM_SIZE
 
   ITCM (rwx)            : ORIGIN = SOC_ITCM_DATA_BASE + 4, LENGTH = CONFIG_ITCM_SIZE - 4
   DTCM (rwx)            : ORIGIN = SOC_DTCM_DATA_BASE,     LENGTH = CONFIG_DTCM_SIZE
-  SWAP (rwx)            : ORIGIN = SOC_SRAM1_DATA_BASE + CONFIG_SPE_TOTAL_RAM_SIZE + CONFIG_SECOND_APP_RAM_SIZE - __SWAP_SIZE, LENGTH = __SWAP_SIZE
+  SWAP (rwx)            : ORIGIN = __PRIMARY_APP_RAM_BASE + CONFIG_SPE_TOTAL_RAM_SIZE - __SWAP_SIZE, LENGTH = __SWAP_SIZE
   PSRAM (rwx)           : ORIGIN = SOC_PSRAM_DATA_BASE, LENGTH = 0x4000000
 }
 
@@ -161,13 +162,6 @@ SECTIONS
         __dtcm_end__ = .;
     } > DTCM AT > FLASH
 
-    .dram :
-    {
-        . = ALIGN(1024*64);
-         *(.video_spec_data*)
-        . = ALIGN(1024*64);
-    } > DRAM AT > FLASH
-
     .data :
     {
         . = ALIGN(4);
@@ -240,7 +234,7 @@ SECTIONS
         * (.swap_data)
         * (.swap_data*)
         _swap_end = .;
-    } > IRAM AT > RAM
+    } > SWAP AT > FLASH
 
     .video.cache.data :
     {

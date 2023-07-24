@@ -11,7 +11,7 @@
  */
 #include <common/bk_include.h>
 #include "bk_private/bk_driver.h"
-#include "bk_private/legacy_init.h"
+#include "bk_private/bk_init.h"
 #include <os/mem.h>
 #include "bk_uart.h"
 #include <components/ate.h>
@@ -72,7 +72,7 @@ void soc_system_init(void)
 	hal_init();
 
 #ifndef AOS_NO_WIFI
-	legacy_init();
+	bk_init();
 
 	hw_start_hal();
 #endif

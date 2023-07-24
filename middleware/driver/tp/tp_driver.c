@@ -36,8 +36,15 @@
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
 
+#if 0
+// ft6336 pin definition.
+#define TP_RST_GPIO_ID (GPIO_38) //(GPIO_7)  
+#define TP_INT_GPIO_ID (GPIO_37) //(GPIO_28)
+#else
+// beken pin definition.
 #define TP_RST_GPIO_ID (GPIO_9)
 #define TP_INT_GPIO_ID (GPIO_6)
+#endif
 
 #define TP_I2C_INIT_INNER (1)
 #define TP_I2C_ID (1)
@@ -51,10 +58,13 @@ const tp_sensor_config_t *tp_sensor_configs[] =
 {
 	&tp_sensor_gt911,
 	&tp_sensor_gt1151,
+	&tp_sensor_ft6336,
 };
 
 static const tp_i2c_callback_t tp_i2c_cb =
 {
+	tp_i2c_read_uint8,
+	tp_i2c_write_uint8,
 	tp_i2c_read_uint16,
 	tp_i2c_write_uint16,
 };
@@ -104,6 +114,58 @@ const tp_sensor_config_t *tp_get_sensor_auto_detect(const tp_i2c_callback_t *cb)
 	}
 
 	return NULL;
+}
+
+int tp_i2c_read_uint8(uint8_t addr, uint8_t reg, uint8_t *buff, uint16_t len)
+{
+	if(NULL == buff)
+	{
+		LOGE("%s, pointer is null!\r\n", __func__);
+		return BK_FAIL;
+	}
+
+	if(0 == len)
+	{
+		LOGE("%s, len is 0!\r\n", __func__);
+		return BK_FAIL;
+	}
+
+	i2c_mem_param_t mem_param = {0};
+
+	mem_param.dev_addr = addr;
+	mem_param.mem_addr = reg;
+	mem_param.mem_addr_size = I2C_MEM_ADDR_SIZE_8BIT;
+	mem_param.data = buff;
+	mem_param.data_size = len;
+	mem_param.timeout_ms = TP_I2C_TIMEOUT;
+
+	return bk_i2c_memory_read(TP_I2C_ID, &mem_param);
+}
+
+int tp_i2c_write_uint8(uint8_t addr, uint8_t reg, uint8_t *buff, uint16_t len)
+{
+	if(NULL == buff)
+	{
+		LOGE("%s, pointer is null!\r\n", __func__);
+		return BK_FAIL;
+	}
+
+	if(0 == len)
+	{
+		LOGE("%s, len is 0!\r\n", __func__);
+		return BK_FAIL;
+	}
+	
+	i2c_mem_param_t mem_param = {0};
+
+	mem_param.dev_addr = addr;
+	mem_param.mem_addr = reg;
+	mem_param.mem_addr_size = I2C_MEM_ADDR_SIZE_8BIT;
+	mem_param.data = buff;
+	mem_param.data_size = len;
+	mem_param.timeout_ms = TP_I2C_TIMEOUT;
+
+	return bk_i2c_memory_write(TP_I2C_ID, &mem_param);
 }
 
 int tp_i2c_read_uint16(uint8_t addr, uint16_t reg, uint8_t *buff, uint16_t len)
@@ -186,7 +248,8 @@ bk_err_t bk_tp_gpio_init(const tp_config_t *config)
     BK_LOG_ON_ERR(bk_gpio_set_output_low(rst_id));	
 
 	// this delay time maybe can optimization.
-	rtos_delay_milliseconds(2);
+//	rtos_delay_milliseconds(2);
+	rtos_delay_milliseconds(20);
     BK_LOG_ON_ERR(bk_gpio_set_output_high(rst_id));
 	
 	return BK_OK;
@@ -403,7 +466,8 @@ bk_err_t bk_tp_driver_init(tp_config_t *config)
 		return BK_FAIL;
 	}
 
-	rtos_delay_milliseconds(100);
+//	rtos_delay_milliseconds(100);
+	rtos_delay_milliseconds(300);
 
 	current_sensor = tp_get_sensor_auto_detect(&tp_i2c_cb);
 	if (NULL == current_sensor)

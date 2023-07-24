@@ -17,7 +17,7 @@ extern "C" {
 #endif
 
 /* The maxinum of images that TF-M support to update concurrently. */
-#define TFM_FWU_MAX_IMAGES    2
+#define TFM_FWU_MAX_IMAGES    4
 
 /**
  * \brief Handles the write request.

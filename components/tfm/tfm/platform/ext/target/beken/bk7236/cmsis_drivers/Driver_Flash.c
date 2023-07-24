@@ -37,8 +37,12 @@
 #define ARM_FLASH_DRV_VERSION      ARM_DRIVER_VERSION_MAJOR_MINOR(1, 1)
 #define ARM_FLASH_DRV_ERASE_VALUE  0xFF
 
+#if CONFIG_CODE_BUS_OPS_FLASH  
 #define FLASH_CBUS_ADDR_FLAG          (1<<31)
 #define FLASH_CLR_CBUS_ADDR_FLAG(x)   (x) &= ~FLASH_CBUS_ADDR_FLAG
+#else
+#define FLASH_CLR_CBUS_ADDR_FLAG(x)
+#endif
 
 /* these flash api MUST at the spe. For flash controller/device is exclusive,
  * it is used at the S/NS world. ns--nsc--s
@@ -111,15 +115,7 @@ static const ARM_FLASH_CAPABILITIES DriverCapabilities = {
 
 static bool is_access_from_code_bus(uint32_t absolute_addr)
 {
-	/*true condition:
-	  0, disble flash write protection;
-	  1, enable flash cpu write;*/
-	#define CONFIG_CODE_BUS_OPS_FLASH 0
-	#if CONFIG_CODE_BUS_OPS_FLASH  
-	return true;
-	#else
-    return false;
-	#endif
+	return false;
 }
 
 static uint32_t flash_sector_count(void)

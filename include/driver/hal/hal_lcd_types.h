@@ -54,8 +54,13 @@ extern "C" {
 /**< 8080 cfg*/
 #define VERIFY_1MS_COUNT   0x64
 #define TIK_CNT            0x2
+//#if CONFIG_SOC_BK7258
+//#define DATA_FIFO_WR_THRD  960
+//#define DATA_FIFO_RD_THRD  16
+//#else
 #define DATA_FIFO_WR_THRD  0x80
 #define DATA_FIFO_RD_THRD  0x180
+//#endif
 #define CMD_FIFO_WR_THRD   0x60
 #define CMD_FIFO_RD_THRD   0
 

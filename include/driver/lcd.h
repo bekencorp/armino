@@ -339,6 +339,21 @@ bk_err_t lcd_driver_init(const lcd_config_t *config);
 const lcd_device_t *get_lcd_device_by_id(lcd_device_id_t id);
 
 /**
+ * @brief get lcd device list
+ * @return
+ *     - devices list
+ */
+const lcd_device_t **get_lcd_devices_list(void);
+
+/**
+ * @brief get lcd device number
+ * @return
+ *     - devices number
+ */
+uint32_t get_lcd_devices_num(void);
+
+
+/**
  * @brief this api used to init lcd backlight
  * 
  * @param pwm_id gpio7-->PWM_ID_1  gpio8-->PWM_ID_2
@@ -515,9 +530,7 @@ frame_buffer_t *lcd_driver_resize_frame(frame_buffer_t *frame, media_ppi_t ppi);
  *     - BK_OK: succeed
  *     - others: other errors.
  */
-frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame);
-
-frame_buffer_t *lcd_driver_rodegree_frame(frame_buffer_t *frame, media_rotate_t rotate);
+frame_buffer_t *lcd_driver_rotate_frame(frame_buffer_t *frame, media_rotate_t rotate);
 
 
 /**
@@ -544,6 +557,18 @@ frame_buffer_t *lcd_driver_rotate_frame_ppi(frame_buffer_t *frame, media_ppi_t p
  *     - others: other errors.
  */
 bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend);
+
+/**
+ * @brief lcd blend icon by dma2d
+ *
+ *
+ * @param frame_buffer_t
+ *
+ * @return
+ *     - BK_OK: succeed
+ *     - others: other errors.
+ */
+bk_err_t lcd_dma2d_driver_blend(lcd_blend_t *lcd_blend);
 
 /**
  * @brief this api for lcd blend font
@@ -593,6 +618,18 @@ bk_err_t lcd_backlight_control_enable(uint8_t enable);
  *     - others: other errors.
  */
 bk_err_t bk_lcd_input_pixel_hf_reverse(bool hf_reverse);
+
+
+/**
+ * @brief lcd_driver_rotate
+ *
+ *
+ * @param src addr
+ *       dsr addr
+ *       rotate type
+ *
+ */
+void lcd_driver_rotate(void *src, void *dst, uint8_t rotate);
 
 /**
   * @}

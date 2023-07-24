@@ -25,7 +25,8 @@ extern "C" {
 	do { \
 		if (res != NULL) { \
 			res->ret = val; \
-			rtos_set_semaphore(&res->sem); \
+			if (res->sem != NULL) \
+				rtos_set_semaphore(&res->sem); \
 		} \
 	} while(0)
 

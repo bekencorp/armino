@@ -189,7 +189,6 @@ out:
 
 static int av_cs2_p2p_voice_server_send_packet(unsigned char *data, unsigned int len)
 {
-
     int send_byte = 0;
     uint32_t index = 0;
 
@@ -204,7 +203,7 @@ static int av_cs2_p2p_voice_server_send_packet(unsigned char *data, unsigned int
 
     do
     {
-        send_byte = cs2_p2p_send_raw(CS2_P2P_CHANNEL_VOICE, data, len - index);
+        send_byte = cs2_p2p_send_raw(CS2_P2P_CHANNEL_VOICE, data + index, len - index);
 
 
         if (send_byte < 0)

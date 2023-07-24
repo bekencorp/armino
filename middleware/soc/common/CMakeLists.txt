@@ -37,7 +37,7 @@ if (CONFIG_MPC)
 endif()
 
 if (CONFIG_PRRO)
-	list(APPEND srcs 
+	list(APPEND srcs
 		hal/prro_hal.c
 	)
 endif()
@@ -159,4 +159,4 @@ if(CONFIG_SDMADC)
 	)
 endif()
 
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" REQUIRES ${target})
+armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" REQUIRES ${target} tfm)

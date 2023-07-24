@@ -35,6 +35,16 @@ const dvp_sensor_config_t *dvp_sensor_configs[] =
 	&dvp_sensor_gc0308,
 };
 
+const dvp_sensor_config_t **get_sensor_config_devices_list(void)
+{
+	return &dvp_sensor_configs[0];
+}
+
+int get_sensor_config_devices_num(void)
+{
+	return sizeof(dvp_sensor_configs) / sizeof(dvp_sensor_config_t *);
+}
+
 const dvp_sensor_config_t *get_sensor_config_interface_by_id(sensor_id_t id)
 {
 	uint32_t i, size = sizeof(dvp_sensor_configs) / sizeof(dvp_sensor_config_t *);

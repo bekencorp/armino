@@ -53,19 +53,10 @@ int32_t tfm_ns_interface_dispatch(veneer_fn fn,
                                   uint32_t arg2, uint32_t arg3)
 {
     int32_t result;
-	//GLOBAL_INT_DECLARATION();
 
     /* TF-M request protected by NS lock. */
     while (rtos_lock_mutex(&ns_lock_handle) != BK_OK);
-//BK_LOGI("John#", "dispatch 0\r\n");
-	//ns_interface_delay(1000);
-	//GLOBAL_INT_DISABLE();
-	//REG_WRITE(0x54010000+0x20*4, 0);
-	//REG_WRITE(0x54010000+0x21*4, 0);
     result = fn(arg0, arg1, arg2, arg3);
-	//GLOBAL_INT_RESTORE();
-	//ns_interface_delay(1000);
-//BK_LOGI("John#", "dispatch 1\r\n");
 
     /*
      * Whether to check/handle lock release return code depends on NS RTOS

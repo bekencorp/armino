@@ -162,11 +162,7 @@ boot_save_boot_status(uint8_t sw_module,
             if (len > sizeof(buf)) {
                 return -1;
             }
-#if CONFIG_BK_MCUBOOT
-            rc = LOAD_IMAGE_DATA(hdr, fap, offset, buf, len);
-#else
             rc = flash_area_read(fap, offset, buf, len);
-#endif
             if (rc) {
                 return -1;
             }
@@ -179,11 +175,7 @@ boot_save_boot_status(uint8_t sw_module,
             if (len > sizeof(image_hash)) {
                 return -1;
             }
-#if CONFIG_BK_MCUBOOT
-            rc = LOAD_IMAGE_DATA(hdr, fap, offset, image_hash, len);
-#else
             rc = flash_area_read(fap, offset, image_hash, len);
-#endif
             if (rc) {
                 return -1;
             }

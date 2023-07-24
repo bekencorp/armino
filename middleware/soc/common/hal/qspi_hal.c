@@ -162,6 +162,17 @@ bk_err_t qspi_hal_disable_cmd_sck_disable(qspi_hal_t *hal)
 	return BK_OK;
 }
 
+bk_err_t qspi_hal_io_cpu_mem_select(qspi_hal_t *hal, uint32_t cmd_value)
+{
+#if CONFIG_SOC_BK7256XX
+
+#else
+	qspi_ll_select_io_cpu_mem(hal->hw, cmd_value);
+#endif
+
+	return BK_OK;
+}
+
 /* qspi oled end */
 
 

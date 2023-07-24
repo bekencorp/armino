@@ -66,7 +66,7 @@ void stack_mem_dump(uint32_t stack_top, uint32_t stack_bottom)
 			BK_DUMP_OUT("\r\n");
 		}
 #if CONFIG_DEBUG_FIRMWARE && CONFIG_INT_WDT
-		if((cnt & 0xfff) == 0) {
+		if((cnt & 0x7ff) == 0) {
 			bk_wdt_feed();
 		}
 #endif
@@ -126,23 +126,5 @@ void arch_parse_stack_backtrace(const char *str_type, uint32_t stack_top, uint32
 		BK_DUMP_OUT("%-16s   [0x%-6x ~ 0x%-6x]   0x%-6x   %-4d   %-8d   ",
 				  str_type, stack_minimum, stack_bottom, init_stack_top, stack_size, init_stack_top < stack_minimum);
 	}
-}
-
-
-void *__stack_chk_guard = NULL;
-
-// Intialize random stack guard, must after trng start.
-void bk_stack_guard_setup(void)
-{
-    BK_LOGI(TAG, "Intialize random stack guard.\r\n");
-#if CONFIG_TRNG_SUPPORT
-    __stack_chk_guard = (void *)bk_rand();
-#endif
-}
-
-void __stack_chk_fail (void)
-{
-    BK_DUMP_OUT("Stack guard warning, local buffer overflow!!!\r\n");
-    BK_ASSERT(0);
 }
 

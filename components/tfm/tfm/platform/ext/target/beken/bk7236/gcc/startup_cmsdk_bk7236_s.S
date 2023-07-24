@@ -53,7 +53,7 @@ __Vectors:
     .long    ENCP_NS_Handler                /* 2: Encrypt enginee NS Handler */
     .long    TFM_TIMER0_Handler             /* 3: TFM Timer Handler */
     .long    UART0_Handler                  /* 4: UART 0 Handler */
-#if CONFIG_BOOTROM
+#if CONFIG_TFM_TAKE_FOR_BL2
     .rept    43                             /* bootrom will check the magic word:asc ii:bk7236*/
     .long    0
     .endr

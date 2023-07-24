@@ -33,23 +33,23 @@ if(CONFIG_FREERTOS)
 			freertos_v10/timers.c
 			freertos_v10/portable/MemMang/heap_4.c
 			)
-		
+
 		if(CONFIG_ARCH_RISCV)
 			list(APPEND incs
 				freertos_v10/portable/GCC/RISC-V
 				freertos_v10/portable/GCC/RISC-V/chip_specific_extensions/Andes_V5_RV32RV64
 				)
-		
+
 			list(APPEND srcs
 				freertos_v10/portable/GCC/RISC-V/port.c
 				freertos_v10/portable/GCC/RISC-V/portASM.S
 				)
-			
+
 		elseif(CONFIG_ARCH_CM33)
 			list(APPEND incs
 				freertos_v10/portable/GCC/ARM_CM33_NTZ/non_secure
 				)
-			
+
 			list(APPEND srcs
 				freertos_v10/portable/GCC/ARM_CM33_NTZ/non_secure/port.c
 				freertos_v10/portable/GCC/ARM_CM33_NTZ/non_secure/portasm.c
@@ -65,13 +65,13 @@ if(CONFIG_FREERTOS)
 				)
 			set_source_files_properties("${CMAKE_CURRENT_LIST_DIR}/freertos_v10/portable/Keil/ARM968es/port.c" PROPERTIES COMPILE_FLAGS "-marm")
 		endif()
-		
+
 		if(CONFIG_FULLY_HOSTED OR CONFIG_MEM_MGMT)
 			list(REMOVE_ITEM srcs freertos_v10/portable/MemMang/heap_4.c)
 		endif()
 	endif()
 elseif(CONFIG_LITEOS_M)
-	set(incs 
+	set(incs
 		liteos_m/config/
 		liteos_m/components/exchook
 		liteos_m/components/cpup
@@ -85,7 +85,7 @@ elseif(CONFIG_LITEOS_M)
 		liteos_m/utils/
 		liteos_m/kernel/arch/arm/arm9/gcc/
 	)
-	set(srcs 
+	set(srcs
 		liteos_m/kernel/src/mm/los_membox.c
 		liteos_m/kernel/src/mm/los_memory.c
 		liteos_m/kernel/src/los_event.c
@@ -237,5 +237,5 @@ endif()
 
 armino_component_register(SRCS "${srcs}"
 		INCLUDE_DIRS "${incs}"
-		PRIV_REQUIRES bk_common bk_rtos cmsis)
+		PRIV_REQUIRES bk_common bk_rtos cmsis tfm)
 

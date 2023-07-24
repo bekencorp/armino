@@ -1,7 +1,6 @@
 set(incs
 	camera
 	spidma
-	jpeg_dec
 	video_transfer
 	capture
 	)
@@ -25,14 +24,6 @@ if (CONFIG_SPIDMA)
 		"spidma/spidma_driver.c"
 		)
 endif()
-
-if (CONFIG_JPEGDEC_SW)
-	list(APPEND srcs
-		"jpeg_dec/tjpgd.c"
-		"jpeg_dec/jdev.c"
-		)
-endif()
-
 
 if (CONFIG_CAMERA OR CONFIG_USB_UVC OR CONFIG_SPIDMA)
 	list(APPEND srcs

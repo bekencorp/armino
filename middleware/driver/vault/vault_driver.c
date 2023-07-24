@@ -31,7 +31,7 @@ typedef struct {
 
 static vault_driver_t s_vault = {0};
 
-bk_err_t bk_vault_driver_init(module_name_t module_name)
+bk_err_t bk_vault_driver_init(security_module_name_t module_name)
 {
 	vault_hal_init(&s_vault.hal);
 
@@ -51,7 +51,7 @@ bk_err_t bk_vault_driver_init(module_name_t module_name)
 	return BK_OK;
 }
 
-bk_err_t bk_vault_driver_deinit(module_name_t module_name)
+bk_err_t bk_vault_driver_deinit(security_module_name_t module_name)
 {
 	switch (module_name)
 		{

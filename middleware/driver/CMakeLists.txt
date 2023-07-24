@@ -291,6 +291,12 @@ if (CONFIG_LCD_ST7701S_LY)
 		)
 endif()
 
+if (CONFIG_LCD_ST7789V)
+	list(APPEND srcs
+		"lcd/lcd_st7789v.c"
+		)
+endif()
+
 endif()
 
 if (CONFIG_LCD)
@@ -299,6 +305,7 @@ if (CONFIG_TP)
 		"tp/tp_driver.c"
 		"tp/tp_gt911.c"
 		"tp/tp_gt1151.c"
+		"tp/tp_ft6336.c"
 		"tp/bk_queue.c"
 		"tp/drv_tp.c"
 		)
@@ -338,6 +345,12 @@ if (CONFIG_QSPI)
 		"qspi/qspi_flash.c"
 		)
 endif() #if (CONFIG_QSPI)
+
+if (CONFIG_SPI_MST_FLASH)
+	list(APPEND srcs
+		"spi/spi_flash.c"
+		)
+endif() #if (CONFIG_SPI_MST_FLASH)
 
 if (CONFIG_QSPI AND CONFIG_LCD_QSPI)
 	list(APPEND srcs
@@ -456,6 +469,7 @@ if (CONFIG_SOC_BK7236XX)
 		)
 	list(APPEND srcs
 		"audio/aud_driver_v1_1.c"
+		"audio/uac_driver.c"
 		)
 endif()
 
@@ -465,6 +479,11 @@ if (CONFIG_TOUCH)
 if (CONFIG_SOC_BK7256XX)
 	list(APPEND srcs
 		"touch/touch_driver.c"
+		)
+endif()
+if (CONFIG_SOC_BK7236XX)
+	list(APPEND srcs
+		"touch/touch_driver_v1_1.c"
 		)
 endif()
 endif()
@@ -582,5 +601,5 @@ endif()
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
 	REQUIRES arm9 riscv cm33
-	PRIV_REQUIRES bk_log bk_ate easy_flash
+	PRIV_REQUIRES bk_log bk_ate easy_flash tfm
 )

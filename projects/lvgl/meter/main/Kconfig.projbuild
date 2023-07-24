@@ -1,6 +1,6 @@
-menu "LVLG Meter Configuration"
+menu "LVGL Meter Configuration"
 
     config LV_USE_DEMO_METER
-        bool "LVLG Meter"
+        bool "LVGL Meter"
         default n
 endmenu

@@ -12,7 +12,7 @@ enter deepsleep , using the RTC wakeup source description
 
                                       "low_vol",
 
-                                      3000*RTC_TICKS_PER_1MS,//eg:set wakeup time: 3000ms
+                                      3000*AON_RTC_MS_TICK_CNT,//eg:set wakeup time: 3000ms
 
                                       1,
 
@@ -46,7 +46,7 @@ enter low voltage sleep mode,  using the RTC wakeup source description
 
                                     "low_vol",
 
-                                    3000*RTC_TICKS_PER_1MS,//eg:set wakeup time: 3000ms
+                                    3000*AON_RTC_MS_TICK_CNT,//eg:set wakeup time: 3000ms
 
                                     1,
 

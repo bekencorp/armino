@@ -8,15 +8,85 @@
 #include "utils_httpc.h"
 #include "modules/wifi.h"
 #endif
-#if (CONFIG_TFM)
-#include "psa/update.h"
-#endif
 
-#if (CONFIG_TFM)
-psa_image_id_t ota_image = \
+#if (CONFIG_TFM_FWU)
+static uint32_t ota_image_flag = 0;
+
+psa_image_id_t primary_manifest_image = \
                 (psa_image_id_t)FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_STAGE,
-                                                       FWU_IMAGE_TYPE_FULL,
+                                                       FWU_IMAGE_TYPE_PRIMARY_MANIFEST,
                                                        0);
+psa_image_id_t secondary_manifest_image = \
+                (psa_image_id_t)FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_STAGE,
+                                                       FWU_IMAGE_TYPE_SECONDARY_MANIFEST,
+                                                       0);
+psa_image_id_t primary_bl2_image = \
+                (psa_image_id_t)FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_STAGE,
+                                                       FWU_IMAGE_TYPE_PRIMARY_BL2,
+                                                       0);
+psa_image_id_t secondary_bl2_image = \
+                (psa_image_id_t)FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_STAGE,
+                                                       FWU_IMAGE_TYPE_SECONDARY_BL2,
+                                                       0);
+psa_image_id_t spe_image = \
+                (psa_image_id_t)FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_STAGE,
+                                                       FWU_IMAGE_TYPE_SECONDARY_SPE,
+                                                       0);
+psa_image_id_t nspe_image = \
+                (psa_image_id_t)FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_STAGE,
+                                                       FWU_IMAGE_TYPE_SECONDARY_NSPE,
+                                                       0);
+
+static int bk_ota_check(psa_image_id_t ota_image)
+{
+	psa_status_t status;
+	psa_image_id_t dependency_uuid;
+	psa_image_version_t dependency_version;
+	psa_image_info_t info;
+
+	status = psa_fwu_query(ota_image, &info);
+	if (status != PSA_SUCCESS) {
+		bk_printf("query status %d\r\n", status);
+		return -1;
+	}
+	if (info.state != PSA_IMAGE_CANDIDATE) {
+		bk_printf("info state %d\r\n", info.state);
+		return -1;
+	}
+
+	status = psa_fwu_install(ota_image, &dependency_uuid, &dependency_version);
+	if (status != PSA_SUCCESS_REBOOT) {
+		bk_printf("install fail %d\r\n", status);
+		return -1;
+	}
+
+	status = psa_fwu_query(ota_image, &info);
+	if (status != PSA_SUCCESS) {
+		bk_printf("query fail %d\r\n", status);
+		return -1;
+	}
+	if (info.state != PSA_IMAGE_REBOOT_NEEDED) {
+		bk_printf("info fail %d\r\n", info.state);
+		return -1;
+	}
+
+	return 0;
+}
+
+void bk_ota_set_flag(uint32_t flag)
+{
+	ota_image_flag |= flag;
+}
+
+uint32_t bk_ota_get_flag(void)
+{
+	return ota_image_flag;
+}
+
+void bk_ota_clear_flag(void)
+{
+	ota_image_flag = 0;
+}
 #endif
 
 #ifdef CONFIG_HTTP_AB_PARTITION
@@ -26,8 +96,8 @@ uint8 bk_ota_get_current_partition(void)
 {
     exec_flag ota_exec_flag = 5;
     bk_logic_partition_t *bk_ptr = NULL;
-
-    bk_ptr = bk_flash_partition_get_info(BK_PARTITION_OTA_FINA_EXECUTIVE);
+    
+    bk_ptr = bk_flash_partition_get_info(BK_PARTITION_OTA_FINA_EXECUTIVE); 
     os_printf("bk_ptr->partition_start_addr  :0x%x\r\n",bk_ptr->partition_start_addr);
     bk_flash_read_bytes(bk_ptr->partition_start_addr ,(uint8_t *)&ota_exec_flag, sizeof(u8));
 
@@ -40,10 +110,11 @@ void ota_write_flash(bk_partition_t ota_partition_flag, u8 flag, u8 offset)
 	bk_logic_partition_t *bk_ptr = NULL;
 	u8 ota_final_buff[1],ota_temp_buff[1],ota_cconfirm_buff[1];
 
-    u8 temp1_buff[1],temp2_buff[1],temp3_buff[1];
-    
+	u8 temp1_buff[1],temp2_buff[1],temp3_buff[1];
+	flash_protect_type_t protect_type;
+
 	bk_ptr = bk_flash_partition_get_info(ota_partition_flag);
-	
+    
 	os_printf("ota_write_flash:partition_start_addr:0x%x\r\n",(bk_ptr->partition_start_addr));
 	bk_flash_read_bytes((bk_ptr->partition_start_addr),(uint8_t *)ota_final_buff, sizeof(u8));
 	bk_flash_read_bytes((bk_ptr->partition_start_addr + 4),(uint8_t *)ota_temp_buff, sizeof(u8));
@@ -51,6 +122,8 @@ void ota_write_flash(bk_partition_t ota_partition_flag, u8 flag, u8 offset)
 	
 	os_printf("before:ota_final_buff:0x%x,ota_temp_buff:0x%x,ota_cconfirm_buff:0x%x\r\n",
 			ota_final_buff[0],ota_temp_buff[0],ota_cconfirm_buff[0]);
+    
+	protect_type = bk_flash_get_protect_type();
 	bk_flash_set_protect_type(FLASH_PROTECT_NONE);
 	bk_flash_erase_sector(bk_ptr->partition_start_addr);
     
@@ -83,27 +156,36 @@ void ota_write_flash(bk_partition_t ota_partition_flag, u8 flag, u8 offset)
 	os_printf("ota_final_buff:0x%x,ota_temp_buff:0x%x,ota_cconfirm_buff:0x%x\r\n",
 			temp1_buff[0],temp2_buff[0],temp3_buff[0]);
     #endif
-    bk_flash_set_protect_type(FLASH_UNPROTECT_LAST_BLOCK);
+    bk_flash_set_protect_type(protect_type);
 }
+
 
 void bk_ota_confirm_update_partition(ota_confirm_flag ota_confirm_val)
 {
     exec_flag ota_exec_flag ;   
-    
-    ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, ota_confirm_val,8); 
-    
-    if(ota_confirm_val == CONFIRM_EXEC_A)   
-    {   
-        ota_exec_flag = EXEX_A_PART;    
-        ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, ota_exec_flag, 0);
-    }
-    else if(ota_confirm_val == CONFIRM_EXEC_B)
-    { 
-        ota_exec_flag = EXEC_B_PART;
-        ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, ota_exec_flag, 0);
+    uint8 last_exec_flag;
+    bk_logic_partition_t *bk_ptr = NULL;
+
+    bk_ptr = bk_flash_partition_get_info(BK_PARTITION_OTA_FINA_EXECUTIVE);
+    bk_flash_read_bytes((bk_ptr->partition_start_addr + 8) ,(uint8_t *)&last_exec_flag, sizeof(u8));
+    os_printf("bk_ptr->partition_start_addr:0x%x,last_exec_flag:0x%x\r\n",bk_ptr->partition_start_addr,last_exec_flag);
+
+    if(last_exec_flag != ota_confirm_val)
+    {
+        ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, ota_confirm_val,8); 
+
+        if(ota_confirm_val == CONFIRM_EXEC_A)   
+        {   
+            ota_exec_flag = EXEX_A_PART;    
+            ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, ota_exec_flag, 0);
+        }
+        else if(ota_confirm_val == CONFIRM_EXEC_B)
+        { 
+            ota_exec_flag = EXEC_B_PART;
+            ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, ota_exec_flag, 0);
+        }
     }
 }
-
 #if 0
 uint8 custmer_state_cb(uint8 temp_exec_part)
 {
@@ -145,12 +227,7 @@ int bk_http_ota_download(const char *uri)
 	httpclient_t httpclient;
 	httpclient_data_t httpclient_data;
 	char http_content[HTTP_RESP_CONTENT_LEN];
-#if (CONFIG_TFM)
-	psa_status_t status;
-	psa_image_id_t dependency_uuid;
-	psa_image_version_t dependency_version;
-	psa_image_info_t info;
-#endif
+
 	if(!uri)
 	{
 		ret = BK_FAIL;
@@ -257,33 +334,38 @@ int bk_http_ota_download(const char *uri)
         ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, exec_temp_part, 4); //
 		bk_reboot();
 #else
-#if (CONFIG_TFM)
-		status = psa_fwu_query(ota_image, &info);
-		if (status != PSA_SUCCESS) {
-			bk_printf("query status %d\r\n", status);
-			return -1;
-		}
-		if (info.state != PSA_IMAGE_CANDIDATE) {
-			bk_printf("info state %d\r\n", info.state);
-			return -1;
-		}
-
-		status = psa_fwu_install(ota_image, &dependency_uuid, &dependency_version);
-		if (status != PSA_SUCCESS_REBOOT) {
-			bk_printf("install fail %d\r\n", status);
-			return -1;
-		} else {
-			bk_printf("install success\r\n");
+#if (CONFIG_TFM_FWU)
+		if (bk_ota_get_flag() & OTA_BL2_FLAG) {
+			bk_printf("start bl2 checking...\r\n");
+			ret = bk_ota_check(secondary_bl2_image);
+			if (ret) {
+				bk_printf("check bl2 fail\r\n");
+				return -1;
+			} else {
+				bk_printf("check bl2 success\r\n");
+			}
 		}
 
-		status = psa_fwu_query(ota_image, &info);
-		if (status != PSA_SUCCESS) {
-			bk_printf("query fail %d\r\n", status);
-			return -1;
+		if (bk_ota_get_flag() & OTA_SPE_FLAG) {
+			bk_printf("start spe checking...\r\n");
+			ret = bk_ota_check(spe_image);
+			if (ret) {
+				bk_printf("check spe fail\r\n");
+				return -1;
+			} else {
+				bk_printf("check spe success\r\n");
+			}
 		}
-		if (info.state != PSA_IMAGE_REBOOT_NEEDED) {
-			bk_printf("info fail %d\r\n", info.state);
-			return -1;
+
+		if (bk_ota_get_flag() & OTA_NSPE_FLAG) {
+			bk_printf("start nspe checking...\r\n");
+			ret = bk_ota_check(nspe_image);
+			if (ret) {
+				bk_printf("check nspe fail\r\n");
+				return -1;
+			} else {
+				bk_printf("check nspe success\r\n");
+			}
 		}
 
 		bk_printf("reboot\r\n");

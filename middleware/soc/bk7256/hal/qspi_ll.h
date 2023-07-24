@@ -237,10 +237,15 @@ static inline bool qspi_ll_is_cmd_start_done(qspi_hw_t *hw)
 
 static inline void qspi_ll_wait_cmd_done(qspi_hw_t *hw)
 {
-	for(int i = 0; i < 10000; i++) {
+	for(int i = 0; i <= 10000; i++) {
 		if(0 != qspi_ll_is_cmd_start_done(hw)) {
 			break;
 		}
+		if(i == 10000) {
+			os_printf("ERROR: qspi_ll_wait_cmd_done timeout \n");
+		}
+		extern void delay_us(UINT32 us);
+		delay_us(1);
 	}
 	hw->status_clr.clr_cmd_start_done = 1;
 	hw->status_clr.v = 0;
@@ -306,7 +311,13 @@ if(QSPI_FLASH == cmd->device) {
 			if(FLASH_WR_S0_S7_CMD == ((cmd->cmd) & QSPI_F_CMD1_M) || (FLASH_WR_S8_S15_CMD == ((cmd->cmd) & QSPI_F_CMD1_M))) {
 				hw->cmd_c_h.v &= (~(QSPI_F_CMD2_M << QSPI_F_CMD2_S));
 				hw->cmd_c_h.v |= (cmd->cmd & (QSPI_F_CMD2_M << QSPI_F_CMD2_S));
-				hw->cmd_c_cfg1.v = 0x30;
+				if (cmd->cmd & (QSPI_F_CMD3_M << QSPI_F_CMD3_S)) {
+					hw->cmd_c_h.v &= (~(QSPI_F_CMD3_M << QSPI_F_CMD3_S));
+					hw->cmd_c_h.v |= (cmd->cmd & (QSPI_F_CMD3_M << QSPI_F_CMD3_S));
+					hw->cmd_c_cfg1.v = 0xc0;
+				} else {
+					hw->cmd_c_cfg1.v = 0x30;
+				}
 			} else if (FLASH_WR_EN_CMD == ((cmd->cmd) & QSPI_F_CMD1_M)) {
 				hw->cmd_c_cfg1.v = 0xc;
 			} else {

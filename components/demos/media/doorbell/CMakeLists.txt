@@ -25,4 +25,8 @@ endif()
 
 endif()
 
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES media aud_intf bk_common bk_thirdparty)
+armino_component_register(
+    SRCS "${srcs}"
+    INCLUDE_DIRS "${incs}"
+    REQUIRES cs2p2p_middleware
+    PRIV_REQUIRES media multimedia bk_common aud_intf cs2p2p_middleware)

@@ -264,48 +264,51 @@ void UartDbgInit()
 }
 #endif
 
+void *__stack_chk_guard = NULL;
+
+// Intialize random stack guard, must after trng start.
+void bk_stack_guard_setup(void)
+{
+    BK_LOGI(TAG, "Intialize random stack guard.\r\n");
+#if CONFIG_TRNG_SUPPORT
+    __stack_chk_guard = (void *)bk_rand();
+#endif
+}
+
+void __stack_chk_fail (void)
+{
+    BK_DUMP_OUT("Stack guard warning, local buffer overflow!!!\r\n");
+    BK_ASSERT(0);
+}
+
 int components_init(void)
 {
 #if CONFIG_PM
 	pm_init();
 #endif
 
-/*for bringup test*/
-#if CONFIG_SOC_BK7256XX
+#if CONFIG_RESET_REASON
 	reset_reason_init();
-
+#endif
 	if(driver_init())
 		return BK_FAIL;
 
 	pm_init_todo();
-	//reset_reason_init();
+
 	show_init_info();
 	random_init();
 #if (!CONFIG_SLAVE_CORE)
 	wdt_init();
+#endif
+
 #if (CONFIG_PSRAM_AS_SYS_MEMORY && CONFIG_FREERTOS_V10)
 	extern void bk_psram_heap_init(void);
 	bk_psram_heap_init();
 #endif
-#endif
+
 	ipc_init();
 
-	extern void bk_stack_guard_setup(void);
 	bk_stack_guard_setup();
 
-#else
-	driver_init();
-
-	pm_init_todo();
-
-#if CONFIG_RESET_REASON
-	reset_reason_init();
-#endif
-	random_init();
-	wdt_init();
-	show_init_info();
-
-	ipc_init();
-#endif
 	return BK_OK;
 }

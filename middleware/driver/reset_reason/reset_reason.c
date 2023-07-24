@@ -177,7 +177,12 @@ void bk_misc_set_reset_reason(uint32_t type)
 uint32_t reset_reason_init(void) {
 #if (!CONFIG_SLAVE_CORE)
 	uint32_t misc_value = REG_READ(START_TYPE_ADDR) >> 1;
-	s_start_type = misc_value;
+
+	if (misc_value == (POWERON_INIT_MEM_TAG >> 1)) {
+		s_start_type = RESET_SOURCE_POWERON;
+	} else {
+		s_start_type = misc_value;
+	}
 
 	s_misc_value_save = misc_value;
 	s_mem_value_save = persist_memory_get();

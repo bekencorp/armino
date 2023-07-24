@@ -365,7 +365,6 @@ static inline bool boot_u16_safe_add(uint16_t *dest, uint16_t a, uint16_t b)
 #define BOOT_SWAP_TYPE(state) ((state)->swap_type[BOOT_CURR_IMG(state)])
 #define BOOT_TLV_OFF(hdr) ((hdr)->ih_hdr_size + (hdr)->ih_img_size)
 
-
 #define BOOT_IS_UPGRADE(swap_type)             \
     (((swap_type) == BOOT_SWAP_TYPE_TEST) ||   \
      ((swap_type) == BOOT_SWAP_TYPE_REVERT) || \
@@ -460,19 +459,8 @@ struct bootsim_ram_info *bootsim_get_ram_info(void);
 #else
 #define IMAGE_RAM_BASE ((uintptr_t)0)
 
-#define CONFIG_BK_MCUBOOT 1
-
-#if CONFIG_BK_MCUBOOT
-#include "soc/soc.h"
-uint32_t boot_tlv_off(const struct flash_area *fap, const struct image_header *hdr);
-uint32_t boot_get_1st_instruction_physical_off(const struct flash_area *area);
-uint32_t boot_get_1st_instruction_virtual_off(const struct flash_area *area);
-
-#define LOAD_IMAGE_DATA(hdr, fap, start, output, size)  boot_read_tlv_data(fap, start, (uint8_t*)output, size)
-#else
 #define LOAD_IMAGE_DATA(hdr, fap, start, output, size)       \
     (flash_area_read((fap), (start), (output), (size)))
-#endif
 #endif /* MCUBOOT_RAM_LOAD */
 
 #ifdef __cplusplus

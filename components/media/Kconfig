@@ -7,7 +7,7 @@ menu "Media"
 		help
 			Enable media service
 	config WIFI_TRANSFER
-		depends on MEDIA
+		depends on MEDIA && WIFI_ENABLE
 		bool "Enable Wifi Transfer"
 		default n
 	config LVGL
@@ -20,7 +20,7 @@ menu "Media"
 		default n
 		help
 			enable lcd display flash img
-	config LCD_DMA2D_BLEND_FLASH_IMG
+	config LCD_DMA2D_BLEND
 		depends on DMA2D
 		bool "Enable Lcd Dma2d Blend Flash Img"
 		default n
@@ -56,5 +56,9 @@ menu "Media"
 		default n
 		help
 			enable jpeg work method: encode and yuv by turns
-
+	config EXTENTED_PSRAM_LAYOUT
+		bool "Externally controlling the PSRAM range of the framebuffer"
+		default n
+		help
+			extern external fb_layout variable
 endmenu

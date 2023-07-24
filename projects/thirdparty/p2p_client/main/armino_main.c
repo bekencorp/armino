@@ -1,4 +1,4 @@
-#include "bk_private/legacy_init.h"
+#include "bk_private/bk_init.h"
 #include <components/system.h>
 #include <os/os.h>
 #include <components/shell_task.h>
@@ -24,7 +24,7 @@ int main(void)
 //    bk_set_printf_sync(false);
     // shell_set_log_level(BK_LOG_WARN);
 #endif
-    legacy_init();
+    bk_init();
 
     return 0;
 }

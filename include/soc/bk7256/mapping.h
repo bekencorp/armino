@@ -69,5 +69,5 @@ typedef struct
 #define LCD_BLEND_JPEGSRAM_ADDR_2 0x3001A000
 #define LCD_BLEND_JPEGSRAM_SIZE    (1024 * 24)
 
-
+#define AUD_AEC_SRAM_ADDRESS (0x30014000)
 

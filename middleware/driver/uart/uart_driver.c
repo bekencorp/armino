@@ -501,7 +501,7 @@ static void uart_isr_register_functions(uart_id_t id)
 	}
 }
 
-#if CONFIG_UART_LOW_VOLTAGE_SUPPORT
+#if 0 // CONFIG_UART_LOW_VOLTAGE_SUPPORT
 typedef struct
 {
 	bool tx_status;
@@ -562,14 +562,20 @@ static void bk_uart_enter_lvsleep(uint64_t sleep_time, void *args)
 	switch((uart_id_t)*uart_id)
 	{
 		case UART_ID_0:
+			s_uart[UART_ID_0].hal.id = UART_ID_0;
+			uart_hal_init(&s_uart[UART_ID_0].hal);
 			bk_uart_before_lvsleep_record_status(UART_ID_0);
 			uart_hal_stop_common(&s_uart[UART_ID_0].hal, UART_ID_0);
 			break;
 		case UART_ID_1:
+			s_uart[UART_ID_1].hal.id = UART_ID_1;
+			uart_hal_init(&s_uart[UART_ID_1].hal);
 			bk_uart_before_lvsleep_record_status(UART_ID_1);
 			uart_hal_stop_common(&s_uart[UART_ID_1].hal, UART_ID_1);
 			break;
 		case UART_ID_2:
+			s_uart[UART_ID_2].hal.id = UART_ID_2;
+			uart_hal_init(&s_uart[UART_ID_2].hal);
 			bk_uart_before_lvsleep_record_status(UART_ID_2);
 			uart_hal_stop_common(&s_uart[UART_ID_2].hal, UART_ID_2);
 			break;
@@ -697,7 +703,7 @@ bk_err_t bk_uart_driver_init(void)
 	s_uart_driver_is_init = true;
 
 #if CONFIG_UART_LOW_VOLTAGE_SUPPORT
-	uart_lvsleep_init();
+//	uart_lvsleep_init();
 #endif
 
 #ifndef CONFIG_BK_PRINTF_DISABLE
@@ -718,7 +724,7 @@ bk_err_t bk_uart_driver_deinit(void)
 	}
 
 #if CONFIG_UART_LOW_VOLTAGE_SUPPORT
-	uart_lvsleep_deinit();
+//	uart_lvsleep_deinit();
 #endif
 	s_uart_driver_is_init = false;
 

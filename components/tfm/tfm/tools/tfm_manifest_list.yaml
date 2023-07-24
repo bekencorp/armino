@@ -157,5 +157,20 @@
          ]
       }
     },
+    {
+      "name": "TFM System Clock Service",
+      "short_name": "TFM_SP_SYS_CLOCK",
+      "manifest": "${CMAKE_SOURCE_DIR}/secure_fw/partitions/system_clock/tfm_system_clock.yaml",
+      "output_path": "secure_fw/partitions/system_clock",
+      "conditional": "@TFM_PARTITION_SYSTEM_CLOCK@",
+      "version_major": 0,
+      "version_minor": 1,
+      "pid": 272,
+      "linker_pattern": {
+        "library_list": [
+          "*tfm_*partition_system_clock*"
+         ]
+      }
+    },
   ]
 }

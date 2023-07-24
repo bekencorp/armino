@@ -243,8 +243,39 @@ bk_err_t bk_flash_register_ps_resume_callback(flash_ps_callback_t ps_resume_cb);
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-
 bk_err_t bk_flash_clk_switch(uint32_t flash_speed_type, uint32_t modules);
+
+/**
+ * @brief  register a callback to be called when flash is busy waiting.
+ *         WARNING/NOTES:
+ *         1. the wait_cb code is better in ITCM to avoid running in flash.
+ *                       or the wait_cb will be blocked until flash is idle.
+ *         2.The wait_cb will be called forever until flash is idle, so the implemetion of
+ *           wait_cb should garante the programm is safe.
+ * @param wait_cb:If flash is writing/erasing, it will block all of other applications.
+ *                But maybe the application can't be blocked when flash is writing/erasing.
+ *                So the application should register this wait_cb to flash.
+ *                When flash is writing/erasing, it will call this wait_cb
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: registered too many(>4) wait_cb to flash.
+ */
+bk_err_t bk_flash_register_wait_cb(flash_wait_callback_t wait_cb);
+
+/**
+ * @brief  unregister the wait_cb from flash waiting.
+ *
+ * @param wait_cb:If flash is writing/erasing, it will block all of other applications.
+ *                But maybe the application can't be blocked when flash is writing/erasing.
+ *                So the application should register this wait_cb to flash.
+ *                When flash is writing/erasing, it will call this wait_cb
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: The wait_cb isn't registered to flash.
+ */
+bk_err_t bk_flash_unregister_wait_cb(flash_wait_callback_t wait_cb);
 
 #ifdef __cplusplus
 }

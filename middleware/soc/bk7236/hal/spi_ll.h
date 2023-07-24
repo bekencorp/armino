@@ -68,7 +68,7 @@ static inline void spi_ll_init(spi_hw_t *hw)
 {
 	spi_ll_soft_reset(hw);
 	hw->ctrl.tx_fifo_int_level = 0;
-	hw->ctrl.rx_fifo_int_level = 2;
+	hw->ctrl.rx_fifo_int_level = 0;
 }
 
 static inline void spi_ll_enable(spi_hw_t *hw)

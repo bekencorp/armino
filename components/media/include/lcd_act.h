@@ -127,6 +127,7 @@ void camera_display_task_stop(void);
 void camera_display_task_start(media_rotate_t rotate);
 void jpeg_display_task_stop(void);
 bk_err_t lcd_blend_handle(frame_buffer_t *frame);
+bk_err_t lcd_dma2d_blend_handle(frame_buffer_t *frame);
 
 void lcd_set_logo_on(int status);
 

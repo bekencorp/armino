@@ -41,7 +41,7 @@ extern "C" {
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-bk_err_t bk_vault_driver_init(module_name_t module_name);
+bk_err_t bk_vault_driver_init(security_module_name_t module_name);
 
 /**
  * @brief vault deinit operation
@@ -52,7 +52,7 @@ bk_err_t bk_vault_driver_init(module_name_t module_name);
  *    - BK_OK: succeed
  *    - others: other errors.
  */
-bk_err_t bk_vault_driver_deinit(module_name_t module_name);
+bk_err_t bk_vault_driver_deinit(security_module_name_t module_name);
 
 /**
  * @}

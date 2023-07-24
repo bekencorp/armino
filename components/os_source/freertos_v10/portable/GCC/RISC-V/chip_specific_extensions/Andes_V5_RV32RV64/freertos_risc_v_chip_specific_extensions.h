@@ -86,6 +86,7 @@
 /* One additional registers to save and restore, as per the #defines above. */
 #define portasmADDITIONAL_CONTEXT_SIZE ( 2 + portasmFPU_CONTEXT_SIZE )  /* Must be even number on 32-bit cores. */
 
+#ifdef __ASSEMBLER__
 
 /* Save additional registers found on the V5 core. */
 .macro portasmSAVE_ADDITIONAL_REGISTERS
@@ -185,5 +186,5 @@
 
 	.endm
 
-
+#endif /* __ASSEMBLER__ */
 #endif /* __FREERTOS_RISC_V_EXTENSIONS_H__ */

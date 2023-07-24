@@ -49,7 +49,6 @@
 
 #include <driver/timer.h>
 #include <driver/psram.h>
-#include "lv_vendor.h"
 
 #include "driver/flash.h"
 #include "driver/flash_partition.h"
@@ -98,7 +97,7 @@ static frame_buffer_t *dbg_display_frame = NULL;
 lcd_open_t lcd_transfer_info = {0};
 
 ///char *g_blend_name = NULL;
-#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
+#if CONFIG_LCD_DMA2D_BLEND || CONFIG_LCD_FONT_BLEND
 static lcd_blend_data_t g_blend_data = {0};
 static uint8_t *yuv_blend_addr = NULL;
 static uint8_t *rgb_blend_addr = NULL;
@@ -108,16 +107,7 @@ uint8_t g_wifi_current_level = WIFI_LEVEL_MAX;
 static int g_lcd_display_logo_first = 0;
 static short g_lcd_width = 0;
 static short g_lcd_height = 0;
-#if CONFIG_BLEND_USE_GUI
-static short g_cammer_width = 0;
-static short g_blend_x_size = 0;
-static short g_blend_y_size = 0;
-static short g_blend_hor_align = 0;
-static short g_blend_ver_offset = 0;
-static beken_mutex_t g_disp_mutex_blend;
-static int g_gui_blend_switch = BK_FALSE;
-lcd_blend_t g_lcd_blend_data;
-#endif
+
 
 static char *frame_suffix(pixel_format_t fmt)
 {
@@ -184,7 +174,7 @@ static void jpeg_display_task_entry(beken_thread_arg_t data)
 
 		if (rotate != ROTATE_NONE)
 		{
-			frame = lcd_driver_rodegree_frame(frame, rotate);
+			frame = lcd_driver_rotate_frame(frame, rotate);
 
 			if (frame == NULL)
 			{
@@ -195,6 +185,9 @@ static void jpeg_display_task_entry(beken_thread_arg_t data)
 
 		lcd_blend_handle(frame);
 
+#if CONFIG_LCD_DMA2D_BLEND
+		lcd_dma2d_blend_handle(frame);
+#endif
 		lcd_driver_display_frame(frame);
 	}
 
@@ -331,7 +324,7 @@ static void camera_display_task_entry(beken_thread_arg_t data)
 
 			if (rotate != ROTATE_NONE)
 			{
-				dec_frame = lcd_driver_rodegree_frame(dec_frame, rotate);
+				dec_frame = lcd_driver_rotate_frame(dec_frame, rotate);
 
 				if (dec_frame == NULL)
 				{
@@ -392,7 +385,7 @@ static void camera_display_task_entry(beken_thread_arg_t data)
 
 			if (rotate == true)
 			{
-				dec_frame = lcd_driver_rotate_frame(dec_frame);
+				dec_frame = lcd_driver_rotate_frame(dec_frame,rotate);
 
 				if (dec_frame == NULL)
 				{
@@ -575,7 +568,7 @@ void lcd_open_handle(param_pak_t *param)
 	lcd_open_t *lcd_open = (lcd_open_t *)param->param;
 	lcd_config_t lcd_config = {0};
 
-#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG  || CONFIG_LCD_FONT_BLEND
+#if CONFIG_LCD_DMA2D_BLEND  || CONFIG_LCD_FONT_BLEND
 
 #if CONFIG_CAMERA
 	if (bk_dvp_camera_get_device() == NULL)
@@ -681,58 +674,6 @@ out:
 		MEDIA_EVT_RETURN(param, ret);
 
 }
-
-#if CONFIG_LVGL && CONFIG_BLEND_USE_GUI
-bk_err_t media_app_lcd_set_pos(int hor_pos, int ver_offset)
-{
-    if(hor_pos >= 0 && hor_pos <= 2)
-        g_blend_hor_align = hor_pos;
-
-    if(ver_offset < (g_lcd_height - g_blend_y_size))
-        g_blend_ver_offset = ver_offset;
-
-    bk_printf("g_blend_hor_align:%d, g_blend_ver_offset:%d\r\n", g_blend_hor_align, g_blend_ver_offset);
-    return kNoErr;
-}
-
-bk_err_t media_app_lcd_gui_blend_open(int blend_x_size, int blend_y_size)
-{
-    //if(g_lcd_with_gui)
-    {
-        bk_printf("[%s][%d] you should close gui first: media lcd close\r\n", __FUNCTION__, __LINE__);
-        return kGeneralErr;
-    }
-
-    if(g_lcd_width> 0 && blend_x_size > g_lcd_width)
-    {
-        bk_printf("[%s][%d] blend_x_size %d is two big, should <= lcd width \r\n", 
-                                                            __FUNCTION__, __LINE__, blend_x_size);
-        return kGeneralErr;
-    }
-
-    rtos_init_mutex(&g_disp_mutex_blend);
-    g_blend_x_size = blend_x_size;
-    g_blend_y_size = blend_y_size;
-    bk_err_t bk_psram_init(void);
-    bk_psram_init();
-    bk_gui_disp_task_init(blend_x_size, blend_y_size, BK_TRUE);
-    g_gui_blend_switch = BK_TRUE;
-    
-    return kNoErr;
-}
-
-bk_err_t media_app_lcd_gui_blend_close(void)
-{
-    g_gui_blend_switch = BK_FALSE;
-
-    bk_gui_disp_task_deinit();
-    rtos_deinit_mutex(&g_disp_mutex_blend);
-
-    os_memset(&g_lcd_blend_data, 0, sizeof(g_lcd_blend_data));
-
-    return kNoErr;
-}
-#endif
 
 #if (CONFIG_IMAGE_STORAGE)
 extern storage_flash_t storge_flash;
@@ -934,98 +875,8 @@ out:
 	MEDIA_EVT_RETURN(param, ret);
 }
 
-void lcd_driver_set_blend_data(uint8_t *gui_addr, uint32 xsize, uint32 ysize, uint32 color_size)
-{
-#if CONFIG_BLEND_USE_GUI
-    u8 *gui_bak_addr = NULL;
-
-    if(g_gui_blend_switch == BK_TRUE)
-    {
-        rtos_lock_mutex(&g_disp_mutex_blend);
-        void lv_get_gui_blend_buff(u8 **yuv_data, u8 **rgb565_data, u8 **gui_bak_data);
-        void dma2d_memcpy_psram(void *Psrc, void *Pdst, uint32_t xsize, uint32_t ysize, uint32_t src_offline, uint32_t dest_offline);
-
-        lv_get_gui_blend_buff(NULL, NULL, &gui_bak_addr);
-        if(g_cammer_width < xsize)   //eg:lcd:800*480 camera:640*480  blend:700*480
-        {
-            if(color_size == 2)
-                dma2d_memcpy_psram(gui_addr, gui_bak_addr, g_cammer_width, ysize, (xsize-g_cammer_width), 0);
-            else if(color_size == 4)
-                dma2d_memcpy_psram(gui_addr, gui_bak_addr, g_cammer_width*2, ysize, (xsize-g_cammer_width)*2, 0);
-            //os_memcpy_word((uint32_t*)gui_bak_addr, (const uint32_t *)gui_addr, xsize*ysize*color_size);
-            g_lcd_blend_data.xsize = g_cammer_width;
-        }
-        else
-        {
-            if(color_size == 2)
-                dma2d_memcpy_psram(gui_addr, gui_bak_addr, xsize, ysize, 0, 0);
-            else
-                dma2d_memcpy_psram(gui_addr, gui_bak_addr, xsize*2, ysize, 0, 0);
-            //os_memcpy_word((uint32_t*)gui_bak_addr, (const uint32_t *)gui_addr, xsize*ysize*color_size*2);
-            g_lcd_blend_data.xsize = xsize;
-        }
-        
-        g_lcd_blend_data.pfg_addr = (uint8_t *)gui_bak_addr;
-        
-        g_lcd_blend_data.fg_offline = 0;
-        g_lcd_blend_data.ysize = ysize;
-        g_lcd_blend_data.fg_alpha_value = 255;
-#if !CONFIG_BLEND_GUI_OUTPUT_888
-        g_lcd_blend_data.fg_data_format = RGB565;
-#else
-        g_lcd_blend_data.fg_data_format = ARGB8888;
-#endif
-        rtos_unlock_mutex(&g_disp_mutex_blend);
-    }
-#endif
-}
-
 bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 {
-#if CONFIG_BLEND_USE_GUI
-    int x_offset = 0;
-    int y_offset = 0;
-
-    if(g_gui_blend_switch == BK_TRUE)
-    {
-        if(0 == g_cammer_width)
-            g_cammer_width = frame->width;
-        
-        rtos_lock_mutex(&g_disp_mutex_blend);
-        if(g_lcd_blend_data.xsize > 0)
-        {
-            if(0 == g_blend_hor_align)
-            {
-                if(frame->width >= g_lcd_width)
-                    x_offset = (frame->width - g_lcd_width)/2;
-                else
-                    x_offset = 0;
-            }
-            else if(1 == g_blend_hor_align)
-            {
-                x_offset = (frame->width - g_blend_x_size)/2;
-            }
-            else if(2 == g_blend_hor_align)
-            {
-                if(frame->width >= g_lcd_width)
-                    x_offset = (frame->width - g_lcd_width)/2 + (g_lcd_width - g_blend_x_size);
-                else
-                    x_offset = frame->width - g_blend_x_size;
-            }
-
-            if(frame->height >= g_lcd_height)
-                y_offset = (frame->height - g_lcd_height)/2 + g_blend_ver_offset;
-            else
-                y_offset = 0 + g_blend_ver_offset;
-            
-            g_lcd_blend_data.pbg_addr = (uint8_t *)(frame->frame + y_offset*frame->width*2 + x_offset*2);
-            g_lcd_blend_data.bg_offline = frame->width - g_lcd_blend_data.xsize;
-            lcd_driver_blend(&g_lcd_blend_data);
-        }
-        rtos_unlock_mutex(&g_disp_mutex_blend);
-    }
-#endif 
-
 #if CONFIG_LCD_FONT_BLEND
 	lcd_blend_t lcd_blend = {0};
 	lcd_font_config_t lcd_font_config = {0};
@@ -1060,14 +911,12 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 			lcd_font_config.xsize = CLOCK_LOGO_W;
 			lcd_font_config.ysize = CLOCK_LOGO_H;
 			lcd_font_config.str_num = 1;
-			#if 1  ///font yuv data to bg yuv image
 			if (frame->fmt == PIXEL_FMT_VUYY)
 				lcd_font_config.font_format = FONT_VUYY;
-			else
+			else if (frame->fmt == PIXEL_FMT_YUYV)
 				lcd_font_config.font_format = FONT_YUYV;
-			#else  ///font rgb data to bg yuv image
-			lcd_font_config.font_format = FONT_RGB565;
-			#endif
+			else
+				lcd_font_config.font_format = FONT_RGB565;
 			lcd_font_config.str[0] = (font_str_t){(const char *)g_blend_data.time_data, FONT_WHITE, font_digit_Roboto53, 0, 0}; 
 			lcd_font_config.bg_data_format = frame->fmt;
 			lcd_font_config.bg_width = frame->width;
@@ -1083,14 +932,13 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 			lcd_font_config.xsize = DVP_LOGO_W;
 			lcd_font_config.ysize = DVP_LOGO_H;
 			lcd_font_config.str_num = 1;
-			#if 1  ///font yuv data to bg yuv image
 			if (frame->fmt == PIXEL_FMT_VUYY)
 				lcd_font_config.font_format = FONT_VUYY;
-			else
+			else if (frame->fmt == PIXEL_FMT_YUYV)
 				lcd_font_config.font_format = FONT_YUYV;
-			#else  ///font rgb data to bg yuv image
-			lcd_font_config.font_format = FONT_RGB565;
-			#endif
+			else
+				lcd_font_config.font_format = FONT_RGB565;
+
 			lcd_font_config.str[0] = (font_str_t){(const char *)g_blend_data.time_data, FONT_WHITE, font_digit_black24, 0,0}; 
 			lcd_font_config.bg_data_format = frame->fmt;
 			lcd_font_config.bg_width = frame->width;
@@ -1106,14 +954,13 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 		lcd_font_config.xsize = CLOCK_LOGO_W;
 		lcd_font_config.ysize = CLOCK_LOGO_H;
 		lcd_font_config.str_num = 1;
-		#if 1  ///font yuv data to bg yuv image
 		if (frame->fmt == PIXEL_FMT_VUYY)
 			lcd_font_config.font_format = FONT_VUYY;
-		else
+		else if (frame->fmt == PIXEL_FMT_YUYV)
 			lcd_font_config.font_format = FONT_YUYV;
-		#else  ///font rgb data to bg yuv image
-		lcd_font_config.font_format = FONT_RGB565;
-		#endif
+		else
+			lcd_font_config.font_format = FONT_RGB565;
+
 		lcd_font_config.str[0] = (font_str_t){(const char *)g_blend_data.time_data, FONT_WHITE, font_digit_Roboto53, 0, 0}; 
 		lcd_font_config.bg_data_format = frame->fmt;
 		lcd_font_config.bg_width = frame->width;
@@ -1162,14 +1009,13 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 			lcd_font_config.xsize = DATA_LOGO_W;
 			lcd_font_config.ysize = DATA_LOGO_H;
 			lcd_font_config.str_num = 2;
-			#if 1  ///font yuv data to bg yuv image
 			if (frame->fmt == PIXEL_FMT_VUYY)
 				lcd_font_config.font_format = FONT_VUYY;
-			else
+			else if (frame->fmt == PIXEL_FMT_YUYV)
 				lcd_font_config.font_format = FONT_YUYV;
-			#else  ///font rgb data to bg yuv image
-			lcd_font_config.font_format = FONT_RGB565;
-			#endif
+			else
+				lcd_font_config.font_format = FONT_RGB565;
+
 			lcd_font_config.str[0] = (font_str_t){(const char *)("晴转多云, 27℃"), FONT_WHITE, font_digit_black24, 0, 2};
 			lcd_font_config.str[1] = (font_str_t){(const char *)("2022-12-12 星期三"), FONT_WHITE, font_digit_black24, 0, 26};
 
@@ -1186,14 +1032,12 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 			lcd_font_config.xsize = DVP_LOGO_W;
 			lcd_font_config.ysize = DVP_LOGO_H;
 			lcd_font_config.str_num = 1;
-			#if 1  ///font yuv data to bg yuv image
 			if (frame->fmt == PIXEL_FMT_VUYY)
 				lcd_font_config.font_format = FONT_VUYY;
-			else
+			else if (frame->fmt == PIXEL_FMT_YUYV)
 				lcd_font_config.font_format = FONT_YUYV;
-			#else  ///font rgb data to bg yuv image
-			lcd_font_config.font_format = FONT_RGB565;
-			#endif
+			else
+				lcd_font_config.font_format = FONT_RGB565;
 			lcd_font_config.str[0] = (font_str_t){(const char *)("2023-"), FONT_WHITE, font_digit_black24, 0, 0};
 			lcd_font_config.bg_data_format = frame->fmt;
 			lcd_font_config.bg_width = frame->width;
@@ -1206,14 +1050,13 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 			lcd_font_config.xsize = DVP_LOGO_W;
 			lcd_font_config.ysize = DVP_LOGO_H;
 			lcd_font_config.str_num = 1;
-			#if 1  ///font yuv data to bg yuv image
 			if (frame->fmt == PIXEL_FMT_VUYY)
 				lcd_font_config.font_format = FONT_VUYY;
-			else
+			else if (frame->fmt == PIXEL_FMT_YUYV)
 				lcd_font_config.font_format = FONT_YUYV;
-			#else  ///font rgb data to bg yuv image
-			lcd_font_config.font_format = FONT_RGB565;
-			#endif
+			else
+				lcd_font_config.font_format = FONT_RGB565;
+
 			lcd_font_config.str[0] = (font_str_t){(const char *)("01-14"), FONT_WHITE,font_digit_black24, 0, 0};
 			lcd_font_config.bg_data_format = frame->fmt;
 			lcd_font_config.bg_width = frame->width;
@@ -1232,14 +1075,13 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 			lcd_font_config.xsize = DATA_LOGO_W;
 			lcd_font_config.ysize = DATA_LOGO_H;
 			lcd_font_config.str_num = 2;
-			#if 1  ///font yuv data to bg yuv image
 			if (frame->fmt == PIXEL_FMT_VUYY)
 				lcd_font_config.font_format = FONT_VUYY;
-			else
+			else if (frame->fmt == PIXEL_FMT_YUYV)
 				lcd_font_config.font_format = FONT_YUYV;
-			#else  ///font rgb data to bg yuv image
-			lcd_font_config.font_format = FONT_RGB565;
-			#endif
+			else
+				lcd_font_config.font_format = FONT_RGB565;
+
 			lcd_font_config.str[0] = (font_str_t){(const char *)("晴转多云, 27℃"), FONT_WHITE, font_digit_black24, 0, 2};
 			lcd_font_config.str[1] = (font_str_t){(const char *)("2022-12-12 星期三"), FONT_WHITE, font_digit_black24, 0, 26};
 			lcd_font_config.bg_data_format = frame->fmt;
@@ -1274,14 +1116,13 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 			lcd_font_config.xsize = DVP_LOGO_W;
 			lcd_font_config.ysize = DVP_LOGO_H;
 			lcd_font_config.str_num = 1;
-			#if 1  ///font yuv data to bg yuv image
 			if (frame->fmt == PIXEL_FMT_VUYY)
 				lcd_font_config.font_format = FONT_VUYY;
-			else
+			else if (frame->fmt == PIXEL_FMT_YUYV)
 				lcd_font_config.font_format = FONT_YUYV;
-			#else  ///font rgb data to bg yuv image
-			lcd_font_config.font_format = FONT_RGB565;
-			#endif
+			else
+				lcd_font_config.font_format = FONT_RGB565;
+
 			lcd_font_config.str[0] = (font_str_t){(const char *)half_ver, FONT_WHITE, font_digit_black24, 0, 0};
 			lcd_font_config.bg_data_format = frame->fmt;
 			lcd_font_config.bg_width = frame->width;
@@ -1324,7 +1165,35 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 	return BK_OK;
 }
 
+#if CONFIG_LCD_DMA2D_BLEND
+bk_err_t lcd_dma2d_blend_handle(frame_buffer_t *frame)
+{
+	lcd_blend_t lcd_blend = {0};
 
+	if(g_blend_data.lcd_blend_type == 0)
+	{
+		return BK_OK;
+	}
+	if ((g_blend_data.lcd_blend_type & LCD_BLEND_WIFI) != 0)      /// start display lcd (xpos,ypos)
+	{
+		if(g_blend_data.wifi_data > WIFI_LEVEL_MAX - 1)
+			return BK_FAIL;
+		lcd_blend.pfg_addr = (uint8_t *)wifi_logo[g_blend_data.wifi_data];
+		lcd_blend.pbg_addr = (uint8_t *)(frame->frame);
+		lcd_blend.xsize = WIFI_LOGO_W;
+		lcd_blend.ysize = WIFI_LOGO_H;
+		lcd_blend.xpos = WIFI_LOGO_XPOS;
+		lcd_blend.ypos = WIFI_LOGO_YPOS;
+		lcd_blend.fg_alpha_value = FG_ALPHA;
+		lcd_blend.fg_data_format = ARGB8888;
+		lcd_blend.bg_data_format = frame->fmt;
+		lcd_blend.bg_width = frame->width;
+		lcd_blend.bg_height = frame->height;
+		lcd_dma2d_driver_blend(&lcd_blend);
+	}
+	return BK_OK;
+}
+#endif
 
 void lcd_close_handle(param_pak_t *param)
 {
@@ -1357,7 +1226,7 @@ void lcd_close_handle(param_pak_t *param)
 
 	lcd_driver_deinit();
 
-#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
+#if CONFIG_LCD_DMA2D_BLEND || CONFIG_LCD_FONT_BLEND
 	g_blend_data.lcd_blend_type = 0;
 
 	if (yuv_blend_addr != NULL && (uint32_t)yuv_blend_addr != LCD_BLEND_JPEGSRAM_ADDR_1)
@@ -1571,7 +1440,7 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 
 		case EVENT_LCD_BLEND_IND:
 		{
-#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
+#if CONFIG_LCD_DMA2D_BLEND || CONFIG_LCD_FONT_BLEND
 			param_pak = (param_pak_t *)param;
 			lcd_blend_msg_t  *blend_data =(lcd_blend_msg_t  *)param_pak->param;
 			if(blend_data != NULL)

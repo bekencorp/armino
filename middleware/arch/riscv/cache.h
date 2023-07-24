@@ -20,4 +20,6 @@ void flush_dcache(void *va, long size);
 
 void flush_all_dcache(void);
 
+void enable_dcache(int enable);
+
 #endif //__CACHE_H__

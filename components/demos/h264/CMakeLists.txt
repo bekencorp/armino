@@ -1,7 +1,8 @@
 set(incs)
 set(srcs)
 
-if (CONFIG_H264)
+if (CONFIG_H264 AND CONFIG_SOC_BK7236)
+
 	list(APPEND incs
 		include
 	)

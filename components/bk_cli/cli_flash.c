@@ -33,7 +33,7 @@ static void cli_flash_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	}
 
 	uint32_t start_addr = os_strtoul(argv[2], NULL, 16);
-	uint32_t len = os_strtoul(argv[3], NULL, 10);
+	uint32_t len = os_strtoul(argv[3], NULL, 16);
 
 	if (os_strcmp(argv[1], "erase") == 0) {
 		bk_flash_set_protect_type(FLASH_PROTECT_NONE);

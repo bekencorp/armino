@@ -26,6 +26,7 @@
 
 #define LOCAL_NAME "soundbar"
 
+#define A2DP_SINK_DEMO_TASK_PRIORITY      (4)
 
 #define A2DP_CACHE_BUFFER_SIZE  ((CONFIG_A2DP_CACHE_FRAME_NUM + 2) * 1024)
 #define A2DP_SBC_FRAME_BUFFER_MAX_SIZE  128   /**< A2DP SBC encoded frame maximum size */
@@ -453,7 +454,7 @@ int bt_audio_sink_demo_task_init(void)
         }
 
         ret = rtos_create_thread(&bt_audio_sink_demo_thread_handle,
-                                 BEKEN_DEFAULT_WORKER_PRIORITY,
+                                 A2DP_SINK_DEMO_TASK_PRIORITY,
                                  "bt_audio_sink_demo",
                                  (beken_thread_function_t)bt_audio_sink_demo_main,
                                  4096,
@@ -710,6 +711,76 @@ static uint32_t gap_event_cb(bt_event_enum_t event, void *param)
     return 0;
 }
 
+uint8_t avrcp_remote_bda[6] = {0};
+
+static void bt_av_notify_evt_handler(uint8_t event_id, bk_avrcp_rn_param_t *event_parameter)
+{
+    switch (event_id)
+    {
+        /* when track status changed, this event comes */
+        case BK_AVRCP_RN_PLAY_STATUS_CHANGE:
+            {
+                os_printf("Playback status changed: 0x%x\r\n", event_parameter->playback);
+                bk_bt_ct_send_register_notification_cmd(avrcp_remote_bda, BK_AVRCP_RN_PLAY_STATUS_CHANGE, 0);
+            }
+            break;
+        /* others */
+        default:
+            os_printf("unhandled event: %d\r\n", event_id);
+            break;
+    }
+}
+
+void bk_bt_app_avrcp_ct_cb(bk_avrcp_ct_cb_event_t event, bk_avrcp_ct_cb_param_t *param)
+{
+    os_printf("%s event: %d\r\n", __func__, event);
+
+    bk_avrcp_ct_cb_param_t *avrcp = (bk_avrcp_ct_cb_param_t *)(param);
+
+    switch (event)
+    {
+        case BK_AVRCP_CT_CONNECTION_STATE_EVT:
+        {
+            uint8_t *bda = avrcp->conn_state.remote_bda;
+            os_printf("AVRCP CT connection state: %d, [%02x:%02x:%02x:%02x:%02x:%02x]\r\n",
+                      avrcp->conn_state.connected, bda[5], bda[4], bda[3], bda[2], bda[1], bda[0]);
+
+            if (avrcp->conn_state.connected)
+            {
+                os_memcpy(avrcp_remote_bda, bda, 6);
+                bk_bt_avrcp_ct_send_get_rn_capabilities_cmd(bda);
+            }
+            else
+            {
+                os_memset(avrcp_remote_bda, 0x0, sizeof(avrcp_remote_bda));
+            }
+        }
+        break;
+
+        case BK_AVRCP_CT_GET_RN_CAPABILITIES_RSP_EVT:
+        {
+            os_printf("AVRCP peer supported notification events 0x%x\r\n", avrcp->get_rn_caps_rsp.evt_set.bits);
+
+            if (avrcp->get_rn_caps_rsp.evt_set.bits & (0x01 << BK_AVRCP_RN_PLAY_STATUS_CHANGE))
+            {
+                bk_bt_ct_send_register_notification_cmd(avrcp_remote_bda, BK_AVRCP_RN_PLAY_STATUS_CHANGE, 0);
+            }
+        }
+        break;
+
+        case BK_AVRCP_CT_CHANGE_NOTIFY_EVT:
+        {
+            os_printf("AVRCP event notification: %d\r\n", avrcp->change_ntf.event_id);
+            bt_av_notify_evt_handler(avrcp->change_ntf.event_id, &avrcp->change_ntf.event_parameter);
+        }
+        break;
+
+        default:
+            os_printf("Invalid AVRCP event: %d\r\n", event);
+            break;
+    }
+}
+
 int a2dp_sink_demo_init(uint8_t aac_supported)
 {
     os_printf("%s\r\n", __func__);
@@ -726,6 +797,11 @@ int a2dp_sink_demo_init(uint8_t aac_supported)
     bk_bt_gap_set_visibility(BK_BT_CONNECTABLE, BK_BT_DISCOVERABLE);
 
     bt_audio_sink_demo_task_init();
+
+    bk_bt_avrcp_ct_init();
+    bk_bt_avrcp_ct_register_callback(bk_bt_app_avrcp_ct_cb);
+
+    bk_bt_avrcp_tg_init();
 
     bk_bt_a2dp_sink_init(aac_supported);
     bk_bt_a2dp_register_callback(bk_bt_app_a2dp_sink_cb);

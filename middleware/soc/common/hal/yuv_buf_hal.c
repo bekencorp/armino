@@ -59,7 +59,15 @@ bk_err_t yuv_buf_hal_set_jpeg_mode_config(yuv_buf_hal_t *hal, const yuv_buf_conf
 	/* jpeg_mode set em_base_addr as psram/share memory
 	 * current use share mem, must 40K size
 	*/
-	yuv_buf_ll_set_em_base_addr(hal->hw, jpeg_hal_get_jpeg_share_mem_addr());
+#if (CONFIG_ENCODE_BUF_DYNAMIC)
+	yuv_buf_ll_set_em_base_addr(hal->hw, (uint32_t)config->base_addr);
+#else
+	uint32_t base_addr = jpeg_hal_get_jpeg_share_mem_addr();
+	if (base_addr == 0)
+		return BK_FAIL;
+
+	yuv_buf_ll_set_em_base_addr(hal->hw, base_addr);
+#endif
 
 	return BK_OK;
 }
@@ -71,7 +79,15 @@ bk_err_t yuv_buf_hal_set_h264_mode_config(yuv_buf_hal_t *hal, const yuv_buf_conf
 	/* h264 mode set em_base_addr as share memory
 	 * current use share mem, must 80K size, see jpeg_hal.c [video_sram]
 	*/
-	yuv_buf_ll_set_em_base_addr(hal->hw, jpeg_hal_get_jpeg_share_mem_addr());
+#if (CONFIG_ENCODE_BUF_DYNAMIC)
+	yuv_buf_ll_set_em_base_addr(hal->hw, (uint32_t)config->base_addr);
+#else
+	uint32_t base_addr = jpeg_hal_get_jpeg_share_mem_addr();
+	if (base_addr == 0)
+		return BK_FAIL;
+
+	yuv_buf_ll_set_em_base_addr(hal->hw, base_addr);
+#endif
 
 	return BK_OK;
 }
@@ -132,5 +148,10 @@ bk_err_t yuv_buf_hal_set_partial_display_offset_config(yuv_buf_hal_t *hal, const
 	yuv_buf_ll_set_y_partial_offset_r(hal->hw, offset_config->y_partial_offset_r);
 
 	return BK_OK;
+}
+
+uint32_t yuv_buf_hal_get_em_base_addr(yuv_buf_hal_t *hal)
+{
+	return yuv_buf_ll_get_em_base_addr(hal->hw);
 }
 

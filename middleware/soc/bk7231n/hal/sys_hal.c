@@ -177,6 +177,11 @@ uint32_t sys_hal_bandgap_cali_get()
 {
 	return 0;
 }
+int32 sys_hal_switch_cpu_bus_freq(pm_cpu_freq_e cpu_bus_freq)
+{
+	return 0;
+}
+
 /*low power feature end*/
 void sys_hal_enable_mac_wakeup_source()
 {

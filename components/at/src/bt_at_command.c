@@ -127,7 +127,7 @@ static uint16_t conn_handle = 0xff;
 static bk_bt_linkkey_storage_t s_bt_linkkey;
 
 static spp_env_s spp_env;
-#if CONFIG_AUDIO
+#if CONFIG_AUDIO && CONFIG_AUDIO_SBC
 static a2dp_env_s a2dp_env;
 static union codec_info s_a2dp_cap_info;
 
@@ -165,6 +165,7 @@ static int bt_a2dp_sink_disconnect_handle(char *pcWriteBuffer, int xWriteBufferL
 #ifdef CONFIG_AUDIO
 static int bt_enable_a2dp_sink_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static int bt_enable_hfp_unit_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#if CONFIG_AUDIO_SBC
 static int bt_enable_a2dp_source_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static int bt_enable_a2dp_source_disconnect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
@@ -173,7 +174,7 @@ static int bt_enable_a2dp_source_suspend_handle(char *pcWriteBuffer, int xWriteB
 static int bt_enable_a2dp_source_stop_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 static int bt_enable_a2dp_source_write_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-
+#endif
 #endif
 
 static int bt_enable_opp_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -373,7 +374,7 @@ const at_command_t bt_at_cmd_table[] = {
 #endif
     {8, "OPP_TEST", 0, "enable opp test", bt_enable_opp_test_handle},
 
-#if CONFIG_AUDIO
+#if CONFIG_AUDIO && CONFIG_AUDIO_SBC
     {9, "A2DP_SOURCE_CONNECT", 0, "enable a2dp source connect", bt_enable_a2dp_source_connect_handle},
     {10, "A2DP_SOURCE_DISCONNECT", 0, "enable a2dp source disconnect", bt_enable_a2dp_source_disconnect_handle},
     {11, "A2DP_SOURCE_START", 0, "enable a2dp source start", bt_enable_a2dp_source_start_handle},
@@ -518,7 +519,7 @@ API_RESULT bt_spp_event_notify_cb
             float spend_time = (float)(current_time - spp_env.tx_time)/26/1000000;
 #elif CONFIG_ARCH_CM33
             uint64_t current_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
-            float spend_time = (float)(current_time - spp_env.tx_time)*1000/32;
+            float spend_time = (float)(current_time - spp_env.tx_time)*1000/AON_RTC_MS_TICK_CNT;
 #endif
             os_printf("---->spend time: %f s\r\n", spend_time);
             float speed = (float)spp_env.tx_throught_len/1024/spend_time;
@@ -578,7 +579,7 @@ API_RESULT bt_spp_event_notify_cb
                     float spend_time = (float)(current_time - spp_env.rx_time)/26/1000000;
 #elif CONFIG_ARCH_CM33
                     uint64_t current_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
-                    float spend_time = (float)(current_time - spp_env.rx_time)*1000/32;
+                    float spend_time = (float)(current_time - spp_env.rx_time)*1000/AON_RTC_MS_TICK_CNT;
 #endif
                     os_printf("-----> spend time: %f s\r\n", spend_time);
                     float speed = (float)spp_env.rx_through_len/ 1024 / spend_time;
@@ -618,7 +619,7 @@ API_RESULT bt_spp_event_notify_cb
     return 0x00;
 }
 
-#if CONFIG_AUDIO
+#if CONFIG_AUDIO && CONFIG_AUDIO_SBC
 static void user_a2dp_connection_change(uint8_t status, uint8_t reason)
 {
 
@@ -1508,7 +1509,7 @@ error:
     return err;
 }
 
-#if CONFIG_AUDIO
+#if CONFIG_AUDIO && CONFIG_AUDIO_SBC
 
 #define A2DP_SOURCE_WRITE_AUTO_TIMER_MS 30
 static beken_time_t s_last_get_sample_time = 0;
@@ -2433,12 +2434,34 @@ void bt_a2dp_source_write_from_file(FIL *fd)
                 {
                     os_printf("%s read file end %d %d !!\n", __func__, read_len, one_pcm_frame_encode_sample_bytes);
                     os_free(tmp_buf);
-                    f_close(pcm_file_fd);
+
 //                    fclose(pcm_file_fd);
 //                    *(FILE **)param = NULL;
                     rtos_stop_timer(&bt_a2dp_source_write_timer);
                     bt_a2dp_set_get_sample_clean();
                     a2dp_env.play_status = 0;
+
+
+                    if(1) //repeat
+                    {
+                        fr = f_lseek(pcm_file_fd, 0);
+                        if (fr != FR_OK)
+                        {
+                            os_printf("%s f_lseek fail.\n", __func__);
+                            f_close(pcm_file_fd);
+                            memset(pcm_file_fd, 0, sizeof(*pcm_file_fd));
+                            return;
+                        }
+
+                        rtos_start_timer(&bt_a2dp_source_write_timer);
+                        a2dp_env.play_status = 1;
+                    }
+                    else
+                    {
+                        f_close(pcm_file_fd);
+                        memset(pcm_file_fd, 0, sizeof(*pcm_file_fd));
+                    }
+
                     return;
                 }
 
@@ -2519,6 +2542,7 @@ void bt_a2dp_source_main(void *arg)
                 case BT_A2DP_SOURCE_STOP_MSG:
                 {
                     f_close(&pcm_file_fd);
+                    memset(&pcm_file_fd, 0, sizeof(pcm_file_fd));
                     rtos_stop_timer(&bt_a2dp_source_write_timer);
                     rtos_deinit_timer(&bt_a2dp_source_write_timer);
                     bt_a2dp_set_get_sample_clean();
@@ -2595,7 +2619,6 @@ static int32_t bt_a2dp_source_encode_from_file(uint8_t * path)
         if (rtos_is_timer_running(&bt_a2dp_source_write_timer))
         {
             rtos_stop_timer(&bt_a2dp_source_write_timer);
-            f_close(&pcm_file_fd);
         }
 
         rtos_deinit_timer(&bt_a2dp_source_write_timer);
@@ -2605,11 +2628,15 @@ static int32_t bt_a2dp_source_encode_from_file(uint8_t * path)
     {
 //        rtos_init_timer(&bt_a2dp_source_write_timer, inter, bt_a2dp_source_write_from_file_timer_hdl, (void *)&pcm_file_fd);
         rtos_init_timer(&bt_a2dp_source_write_timer, A2DP_SOURCE_WRITE_AUTO_TIMER_MS, bt_a2dp_source_write_from_file_timer_auto_hdl, (void *)&pcm_file_fd);
-
     }
 
 
     rtos_change_period(&bt_a2dp_source_write_timer, inter);
+
+    if(pcm_file_fd.fs)
+    {
+        f_close(&pcm_file_fd);
+    }
 
     memset(&pcm_file_fd, 0, sizeof(pcm_file_fd));
     fr = f_open(&pcm_file_fd, (const char *)full_path, FA_OPEN_EXISTING | FA_READ);

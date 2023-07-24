@@ -92,7 +92,7 @@ def pack(tools_dir, bin_dir, base_cfg_dir, prefered_cfg_dir, soc, gencodeonly, g
 	if (debug):
 		debug_option = f'--debug'
 	logging.debug(f'partition pre-processing')
-	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions --genhdr --genbl1 --genbl2 {debug_option}')
+	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions --genhdr --genbl1 --genbl2 {debug_option} --tools_dir {tools_dir}')
 	if (gencodeonly == True):
 		if (gen_dir == None):
 			logging.error(f'Generated dir should NOT be empty')
@@ -122,7 +122,7 @@ def pack(tools_dir, bin_dir, base_cfg_dir, prefered_cfg_dir, soc, gencodeonly, g
 		logging.debug(f'Skip generate BL1 bl1_control.bin')
 
 	logging.debug(f'partition post-processing')
-	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions --genota --genapp --genall {debug_option}')
+	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions --genota --genapp --genall {debug_option} --tools_dir {tools_dir}')
 
 	logging.debug(f'copy binaries')
 	copy_binary('ota.bin', _BUILD_DIR, CMAKE_BIN_DIR)

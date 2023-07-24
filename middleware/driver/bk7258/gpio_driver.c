@@ -44,6 +44,11 @@ bk_err_t gpio_dev_map(gpio_id_t gpio_id, gpio_dev_t dev)
 	if(ret_val != BK_OK)
 		return ret_val;
 
+	/* Restore a configuration that is not a secondary function to its initial state. */
+	gpio_hal_output_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_input_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_pull_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_disable_interrupt(&s_gpio.hal, gpio_id);
 	gpio_hal_func_map(&s_gpio.hal, gpio_id, dev);
 
 	ret_val = amp_res_release(AMP_RES_ID_GPIO);
@@ -63,12 +68,45 @@ bk_err_t gpio_dev_unmap(gpio_id_t gpio_id)
 	if(ret_val != BK_OK)
 		return ret_val;
 
+	/* Restore a configuration that is not a secondary function to its initial state. */
+	gpio_hal_output_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_input_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_pull_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_disable_interrupt(&s_gpio.hal, gpio_id);
 	gpio_hal_func_unmap(&s_gpio.hal, gpio_id);
 
 	ret_val = amp_res_release(AMP_RES_ID_GPIO);
 	GPIO_LOGD("amp res release:ret=%d\r\n", ret_val);
 	if(ret_val != BK_OK)
 		return ret_val;
+
+	return BK_OK;
+}
+
+/* Here doesn't check the GPIO id is whether used by another CPU-CORE, but checked current CPU-CORE */
+bk_err_t gpio_dev_unprotect_map(gpio_id_t gpio_id, gpio_dev_t dev)
+{
+	GPIO_LOGI("%s:id=%d, dev=%d\r\n", __func__, gpio_id, dev);
+
+	/* Restore a configuration that is not a secondary function to its initial state. */
+	gpio_hal_output_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_input_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_pull_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_disable_interrupt(&s_gpio.hal, gpio_id);
+	gpio_hal_func_map(&s_gpio.hal, gpio_id, dev);
+
+	return BK_OK;
+}
+
+/* Here doesn't check the GPIO id is whether used by another CPU-CORE */
+bk_err_t gpio_dev_unprotect_unmap(gpio_id_t gpio_id)
+{
+	/* Restore a configuration that is not a secondary function to its initial state. */
+	gpio_hal_output_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_input_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_pull_enable(&s_gpio.hal, gpio_id, 0);
+	gpio_hal_disable_interrupt(&s_gpio.hal, gpio_id);
+	gpio_hal_func_unmap(&s_gpio.hal, gpio_id);
 
 	return BK_OK;
 }
@@ -81,8 +119,6 @@ bk_err_t gpio_i2c1_sel(gpio_i2c1_map_mode_t mode)
 
 	gpio_hal_devs_map(&s_gpio.hal, i2c1_gpio_map[mode].gpio_bits, i2c1_gpio_map[mode].devs, GPIO_I2C1_USED_GPIO_NUM);
 
-	GPIO_LOGI("Warning bk7256 USE PLIC  NOT icu\n");
-
 	return BK_OK;
 }
 
@@ -94,8 +130,6 @@ bk_err_t gpio_i2s_sel(gpio_i2s_map_mode_t mode)
 
 	gpio_hal_devs_map(&s_gpio.hal, i2s_gpio_map[mode].gpio_bits, i2s_gpio_map[mode].devs, GPIO_I2S_USED_GPIO_NUM);
 
-	GPIO_LOGI("Warning bk7256 USE PLIC  NOT icu\n");
-
 	return BK_OK;
 }
 
@@ -106,8 +140,6 @@ bk_err_t gpio_spi_sel(gpio_spi1_map_mode_t mode)
 	GPIO_MAP_TABLE(GPIO_SPI0_USED_GPIO_NUM, GPIO_SPI_MAP_MODE_MAX, spi_gpio_map) = GPIO_SPI0_MAP_TABLE;
 
 	gpio_hal_devs_map(&s_gpio.hal, spi_gpio_map[mode].gpio_bits, spi_gpio_map[mode].devs, GPIO_SPI0_USED_GPIO_NUM);
-
-	GPIO_LOGI("Warning bk7256 USE PLIC  NOT icu\n");
 
 	return BK_OK;
 }
@@ -133,6 +165,29 @@ bk_err_t gpio_sdio_one_line_sel(gpio_sdio_map_mode_t mode)
 
 	return BK_OK;
 }
+
+
+bk_err_t gpio_jtag_sel(gpio_jtag_map_group_t group_id)
+{
+	gpio_dev_unprotect_unmap(GPIO_20);
+	gpio_dev_unprotect_unmap(GPIO_21);
+	gpio_dev_unprotect_unmap(GPIO_0);
+	gpio_dev_unprotect_unmap(GPIO_1);
+
+	if (group_id == GPIO_JTAG_MAP_GROUP0) {
+		gpio_dev_unprotect_map(GPIO_20, GPIO_DEV_JTAG_TCK);
+		gpio_dev_unprotect_map(GPIO_21, GPIO_DEV_JTAG_TMS);
+	} else if (group_id == GPIO_JTAG_MAP_GROUP1) {
+		gpio_dev_unprotect_map(GPIO_0, GPIO_DEV_JTAG_TCK);
+		gpio_dev_unprotect_map(GPIO_1, GPIO_DEV_JTAG_TMS);
+	} else {
+		GPIO_LOGI("Unsupported group id(%d).\r\n", group_id);
+		return BK_FAIL;
+	}
+
+	return BK_OK;
+}
+
 
 #if CONFIG_PM
 #if CONFIG_AON_PMU

@@ -97,9 +97,7 @@ HAL_API hal_ret_t hal_otp_init(void);
  * @ingroup	securedebug_hal_otp
  * @brief	hal_otp_cleanup function
  */
-
 HAL_API void hal_otp_cleanup(void);
-
 HAL_API hal_ret_t hal_otp_read(hal_addr_t offset, uint8_t *data, size_t size);
 HAL_API hal_ret_t hal_otp_write(hal_addr_t offset,
                                 const uint8_t *data,

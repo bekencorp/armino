@@ -91,6 +91,11 @@ extern "C" {
 #define AON_PMU_R3_RSV_POS (0)
 #define AON_PMU_R3_RSV_MASK (0xffffffff)
 
+#define AON_PMU_R25_ADDR (SOC_AON_PMU_REG_BASE + (0x25 << 2))
+
+#define AON_PMU_R25_RSV_POS (0)
+#define AON_PMU_R25_RSV_MASK (0xffffffff)
+
 #define AON_PMU_R40_ADDR (SOC_AON_PMU_REG_BASE + (0x40 << 2))
 
 #define AON_PMU_R40_WAKE1_DELAY_POS (0)
@@ -181,7 +186,7 @@ extern "C" {
 
 #define AON_PMU_R41_HALT_WLPPWD_POS (31)
 #define AON_PMU_R41_HALT_WLPPWD_MASK (0x1)
-
+#define AON_PMU_R42_ADDR (SOC_AON_PMU_REG_BASE + (0x42 << 2))
 #define AON_PMU_R43_ADDR (SOC_AON_PMU_REG_BASE + (0x43 << 2))
 
 #define AON_PMU_R43_CLR_INT_TOUCHED_POS (0)

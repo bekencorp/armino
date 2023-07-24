@@ -36,9 +36,14 @@ typedef struct
 	uint32_t param;
 } transfer_info_t;
 
-
-
-
+typedef struct
+{
+	uint8_t id;
+	uint8_t eof;
+	uint8_t cnt;
+	uint8_t size;
+	uint8_t data[];
+} transfer_data_t;
 
 
 void transfer_event_handle(uint32_t event, uint32_t param);

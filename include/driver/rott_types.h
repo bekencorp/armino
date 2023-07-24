@@ -31,12 +31,7 @@ typedef enum {
 	ROTATE_CFG_ERR_INT =    1 << 2,      /**< rotate config error int enable */
 } rott_int_type_t;
 
-typedef enum {
-	ROTT_MODE_UNKNOW = 0,
-	ROTT_ONLY_YUV2RGB565, /**< bypass rotating, only use yuv2rgb565 pixel formart convert function */
-	ROTT_ROTATE90,
-	ROTT_ROTATE270,
-} rott_mode_t;
+
 
 typedef enum {
 	ROTT_INPUT_NORMAL = 0,                     /**< input data not flip */
@@ -50,7 +45,7 @@ typedef enum {
 } rott_output_data_flow_t;
 
 typedef struct {
-	rott_mode_t rot_mode;                    /**< bypass rotating, only use yuv2rgb565 pixel formart convert function */
+	media_rotate_t rot_mode;                    /**< bypass rotating, only use yuv2rgb565 pixel formart convert function */
 	void * input_addr;                       /**< input data addr*/
 	void * output_addr;                      /**< output data addr*/
 	pixel_format_t input_fmt;              /**< pixel format, output rgb565 always*/

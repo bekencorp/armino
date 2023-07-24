@@ -1,5 +1,5 @@
 set(incs include include/bk_private)
-
+set(srcs)
 
 list(APPEND incs
 	../../properties/modules/aec/
@@ -11,7 +11,7 @@ list(APPEND incs ${CONFIG_CLI_USER_CONFIG_DIR})
 endif()
 
 if (CONFIG_CLI)
-set(srcs
+list(APPEND srcs
 	cli_adc.c
 	cli_ble.c
 	cli_event.c
@@ -30,7 +30,6 @@ set(srcs
 	cli_security.c
 	cli_spi.c
 	cli_exception.c
-	cli_icu.c
 	)
 
 if (CONFIG_INT_WDT)
@@ -116,7 +115,7 @@ if (CONFIG_FLASH)
 	)
 endif()
 
-if (CONFIG_FLASH AND CONFIG_SOC_BK7256XX)
+if (CONFIG_FLASH)
 	list(APPEND srcs
 		cli_flash_test.c
 	)
@@ -160,23 +159,6 @@ if (CONFIG_BK_NETIF)
 	list(APPEND srcs
 		cli_netif.c
 	)
-endif()
-
-if (CONFIG_SHELL_ASYNCLOG)
-	list(APPEND srcs
-			shell_task.c
-			shell_uart.c
-	)
-	if (CONFIG_MASTER_CORE)
-		list(APPEND srcs
-			shell_mailbox_ipc.c
-		)
-	endif()
-	if (CONFIG_SLAVE_CORE)
-		list(APPEND srcs
-			shell_mailbox_cp1.c
-		)
-	endif()
 endif()
 
 if (CONFIG_DUAL_CORE)
@@ -310,7 +292,26 @@ if (CONFIG_CALENDAR)
 	list(APPEND srcs "cli_calendar.c")
 endif()
 
+elseif (CONFIG_SHELL_ASYNCLOG)
+	list(APPEND srcs "cli_main.c")
 endif() #if(CONFIG_CLI)
+
+if (CONFIG_SHELL_ASYNCLOG)
+	list(APPEND srcs
+			shell_task.c
+			shell_uart.c
+	)
+	if (CONFIG_MASTER_CORE)
+		list(APPEND srcs
+			shell_mailbox_ipc.c
+		)
+	endif()
+	if (CONFIG_SLAVE_CORE)
+		list(APPEND srcs
+			shell_mailbox_cp1.c
+		)
+	endif()
+endif()
 
 if (CONFIG_JPEGDEC_SW)
 	list(APPEND srcs cli_jpegdec.c)
@@ -388,10 +389,14 @@ if (CONFIG_ASR_TEST)
 	list(APPEND srcs cli_asr.c)
 endif()
 
+if (CONFIG_FLASHDB_DEMO)
+	list(APPEND srcs cli_flashdb.c)
+endif()
+
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
 	REQUIRES utf8 temp_detect app driver user_driver bk_system iperf fatfs user_driver http adc_key
 	#PRIV_REQUIRES airkiss bk_common bk_netif bk_ble bk_ps
-	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_vfs bk_init at bk_wifi compal media_common media bk_bt ota cmsis jrtplib
+	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_vfs bk_init at bk_wifi compal media_common media multimedia bk_bt ota cmsis jrtplib flashdb
 	)
 

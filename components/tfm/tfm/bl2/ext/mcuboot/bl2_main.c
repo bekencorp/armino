@@ -85,7 +85,9 @@ static void do_boot(struct boot_rsp *rsp)
     }
 
 #if MCUBOOT_LOG_LEVEL > MCUBOOT_LOG_LEVEL_OFF || TEST_BL2
+#if CONFIG_BL2_CLEAN_UART_ON_EXIT
     stdio_uninit();
+#endif
 #endif
 
     /* This function never returns, because it calls the secure application

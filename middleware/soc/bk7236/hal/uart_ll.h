@@ -32,6 +32,11 @@ extern "C" {
 
 #define UART1_FLOW_CTRL_CNT  0xCC
 
+static inline void uart_ll_set_int_enable_status(uart_hw_t *hw, uart_id_t id, uint32_t value)
+{
+	hw->int_enable.v = value;
+}
+
 static inline void uart_ll_soft_reset(uart_hw_t *hw)
 {
 	hw->global_ctrl.soft_reset = 1;
@@ -128,6 +133,11 @@ static inline uint32_t uart_ll_to_reg_parity(uart_parity_t parity)
 	}
 }
 
+static inline bool uart_ll_get_tx_enable(uart_hw_t *hw)
+{
+	return hw->config.tx_enable;
+}
+
 static inline void uart_ll_set_tx_enable(uart_hw_t *hw, uart_id_t id, uint32_t value)
 {
 	hw->config.tx_enable = value & 0x01;
@@ -141,6 +151,11 @@ static inline void uart_ll_enable_tx(uart_hw_t *hw, uart_id_t id)
 static inline void uart_ll_disable_tx(uart_hw_t *hw, uart_id_t id)
 {
 	uart_ll_set_tx_enable(hw, id, 0);
+}
+
+static inline bool uart_ll_get_rx_enable(uart_hw_t *hw)
+{
+	return hw->config.rx_enable;
 }
 
 static inline void uart_ll_set_rx_enable(uart_hw_t *hw, uart_id_t id, uint32_t value)
@@ -347,14 +362,32 @@ static inline void uart_ll_clear_id_interrupt_status(uart_hw_t *hw, uart_id_t id
 
 static inline void uart_ll_clear_id_tx_interrupt_status(uart_hw_t *hw, uart_id_t id)
 {
+	/* 
+	 * WARNING:This REG has many bits which attribute is write 1 to clear.
+	 * If uses union bit operation, the asm codes will read data from REG
+	 * and write it back, maybe the other bits is 1 and cleared by this function.
+	 */
+#if 0
 	hw->int_status.tx_fifo_need_write = 1;
 	hw->int_status.tx_finish = 1;
+#endif
+	//BIT(0):need write, BIT(5): tx finish
+	hw->int_status.v = (BIT(0) | BIT(5));
 }
 
 static inline void uart_ll_clear_id_rx_interrupt_status(uart_hw_t *hw, uart_id_t id)
 {
+	/* 
+	 * WARNING:This REG has many bits which attribute is write 1 to clear.
+	 * If uses union bit operation, the asm codes will read data from REG
+	 * and write it back, maybe the other bits is 1 and cleared by this function.
+	 */
+#if 0
 	hw->int_status.rx_fifo_need_read = 1;
 	hw->int_status.rx_finish = 1;
+#endif
+	//BIT(1):need read, BIT(6): rx finish
+	hw->int_status.v = (BIT(1) | BIT(6));
 }
 
 static inline bool uart_ll_is_rx_interrupt_triggered(uart_hw_t *hw, uart_id_t id, uint32_t status)

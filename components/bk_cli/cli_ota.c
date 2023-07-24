@@ -61,18 +61,41 @@ HTTP_CMD_ERR:
 #endif
 
 #if CONFIG_OTA_HTTPS
-extern int bk_https_ota_download(const char *url);
-void https_ota_Command(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
-char **argv)
-{
+char *https_url = NULL;
+int bk_https_ota_download(const char *url);
+void bk_https_start_download(beken_thread_arg_t arg) {
 	int ret;
+	ret = bk_https_ota_download(https_url);
+	if(ret != BK_OK) {
+		os_printf("%s download fail, ret:%d\r\n", __func__, ret);
+	}
+	rtos_delete_thread(NULL);
+}
+
+void https_ota_start(void)
+{
+	UINT32 ret;
+
+	os_printf("https_ota_start\r\n");
+	ret = rtos_create_thread(NULL, BEKEN_APPLICATION_PRIORITY,
+							 "https_ota",
+							 (beken_thread_function_t)bk_https_start_download,
+							 5120,
+							 0);
+
+	if (kNoErr != ret)
+		os_printf("https_ota_start failed\r\n");
+
+}
+
+void https_ota_Command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
 
 	if (argc != 2)
 		goto HTTP_CMD_ERR;
-	ret = bk_https_ota_download(argv[1]);
 
-	if (0 != ret)
-		os_printf("http_ota download failed.");
+	https_url = argv[1];
+	https_ota_start();
 
 	return;
 
@@ -102,12 +125,12 @@ static const struct cli_command s_ota_commands[] = {
 #endif
 };
 
-#if (CONFIG_TFM)
+#if (CONFIG_TFM_FWU)
 extern int32_t ns_interface_lock_init(void);
 #endif
 int cli_ota_init(void)
 {
-#if (CONFIG_TFM)
+#if (CONFIG_TFM_FWU)
 	ns_interface_lock_init();
 #endif
 	return cli_register_commands(s_ota_commands, OTA_CMD_CNT);

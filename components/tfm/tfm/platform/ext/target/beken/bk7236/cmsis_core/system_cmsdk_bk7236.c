@@ -15,16 +15,10 @@
 #include "platform_irq.h"
 #include "STAR_SE.h"
 #include "core_star.h"
+#include "sdkconfig.h"
 
-/*
- * BK7236 has different frequencies for system core clock (20MHz) and
- * peripherals clock (25MHz).
- */
-#define  XTAL             (40000000UL)
-#define  PERIPHERAL_XTAL  (50000000UL)
-
-#define  SYSTEM_CLOCK     (XTAL/2)
-#define  PERIPHERAL_CLOCK (PERIPHERAL_XTAL/2)
+#define  SYSTEM_CLOCK     CONFIG_XTAL_FREQ
+#define  PERIPHERAL_CLOCK CONFIG_XTAL_FREQ
 
 #if defined (__VTOR_PRESENT) && (__VTOR_PRESENT == 1U)
   extern uint32_t __Vectors;
@@ -63,7 +57,8 @@ void SystemInit (void)
 
   SystemCoreClock = SYSTEM_CLOCK;
   PeripheralClock = PERIPHERAL_CLOCK;
-  
+
+#if CONFIG_SPE
 #if defined (__ITCM_PRESENT) && (__ITCM_PRESENT == 1U)
 	TCM->ITCMCR |= SCB_ITCMCR_EN_Msk;
 	ITGU->TGU_CTRL |= TGU_DBFEN_Msk | TGU_DEREN_Msk;
@@ -73,6 +68,7 @@ void SystemInit (void)
 #if defined (__DTCM_PRESENT) && (__DTCM_PRESENT == 1U)
 	TCM->DTCMCR |= SCB_DTCMCR_EN_Msk;
 	DTGU->TGU_LUT = 0xFFFF;
+#endif
 #endif
 }
 // eof

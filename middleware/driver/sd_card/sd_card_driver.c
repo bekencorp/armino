@@ -1547,6 +1547,8 @@ bk_err_t bk_sd_card_read_blocks(uint8_t *data, uint32_t block_addr, uint32_t blo
 
 	if(sd_card_check_continious_rw(SDCARD_OPS_READ, block_addr, block_num) != SDCARD_RW_STATE_READING)
 	{
+		extern void bk_sdio_host_discard_previous_receive_data_sema(void);
+
 		error_state = bk_sdcard_wait_busy_to_idle(1000);
 		if (error_state != BK_OK) {
 			SD_CARD_LOGW("****sdcard is busy\r\n");
@@ -1556,6 +1558,10 @@ bk_err_t bk_sd_card_read_blocks(uint8_t *data, uint32_t block_addr, uint32_t blo
 
 		//before read data, reset it
 		bk_sdio_host_reset_sd_state();
+
+		//before read data, discard previous read data sema if it has
+		//(previous read feature cause SDIO hardware read one more block data)
+		bk_sdio_host_discard_previous_receive_data_sema();
 
 #if CONFIG_SDCARD_OPS_TRACE_EN
 		s_sdcard_sw_status.read = 2;

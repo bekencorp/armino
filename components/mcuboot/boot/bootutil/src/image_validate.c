@@ -40,8 +40,6 @@
 
 #include "mcuboot_config/mcuboot_config.h"
 
-#include "bootutil/bootutil_log.h"
-
 #ifdef MCUBOOT_ENC_IMAGES
 #include "bootutil/enc_key.h"
 #endif
@@ -111,13 +109,11 @@ bootutil_img_hash(struct enc_key_data *enc_state, int image_index,
 
     /* Hash is computed over image header and image itself. */
     size = hdr_size = hdr->ih_hdr_size;
-#if !CONFIG_BK_MCUBOOT
     size += hdr->ih_img_size;
     tlv_off = size;
 
     /* If protected TLVs are present they are also hashed. */
     size += hdr->ih_protect_tlv_size;
-#endif
 
 #ifdef MCUBOOT_RAM_LOAD
     bootutil_sha256_update(&sha256_ctx,
@@ -159,21 +155,6 @@ bootutil_img_hash(struct enc_key_data *enc_state, int image_index,
 #endif
         bootutil_sha256_update(&sha256_ctx, tmp_buf, blk_sz);
     }
-
-#if CONFIG_BK_MCUBOOT
-    size = hdr->ih_img_size;
-    size += hdr->ih_protect_tlv_size;
-    uint32_t code_off = boot_get_1st_instruction_virtual_off(fap);
-    for (off = 0; off < size; off += blk_sz) {
-        blk_sz = size - off;
-        if (blk_sz > tmp_buf_sz) {
-            blk_sz = tmp_buf_sz;
-        }
-        memcpy(tmp_buf, (void*)(SOC_FLASH_DATA_BASE + code_off + off), blk_sz);
-        bootutil_sha256_update(&sha256_ctx, tmp_buf, blk_sz);
-    }
-#endif
-
 #endif /* MCUBOOT_RAM_LOAD */
     bootutil_sha256_finish(&sha256_ctx, hash_result);
     bootutil_sha256_drop(&sha256_ctx);

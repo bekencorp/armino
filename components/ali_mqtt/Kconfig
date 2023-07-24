@@ -1,6 +1,7 @@
 menu "Ali_mqtt"
 
 	config ALI_MQTT
+		depends on WIFI_ENABLE
 		bool "Enable Ali Mqtt"
 		default y
 

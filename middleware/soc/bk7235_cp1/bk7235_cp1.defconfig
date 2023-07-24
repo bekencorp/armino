@@ -14,6 +14,7 @@ CONFIG_SOC_STR="bk7235_cp1"
 #
 # Common Configuration
 #
+CONFIG_SYS_CPU1=y
 
 #
 # Compile/Build
@@ -364,7 +365,7 @@ CONFIG_FFT=n
 #
 # pwm
 #
-CONFIG_PWM=y
+CONFIG_PWM=n
 # end of pwm
 
 CONFIG_SUPPORT_IRDA=n
@@ -504,7 +505,6 @@ CONFIG_POWER_SAVE=n
 
 CONFIG_AON_PMU=y
 CONFIG_FLASH=n
-CONFIG_PWM=n
 CONFIG_TRNG_SUPPORT=n
 CONFIG_EFUSE=n
 CONFIG_SARADC=n
@@ -516,10 +516,7 @@ CONFIG_TIMER_COUNTER=n
 #
 CONFIG_ALI_MQTT=n
 
-# jtag change group gpio
-#
-#
-CONFIG_CHANGE_JTAG_GPIO=y
+
 
 # adc key support
 #

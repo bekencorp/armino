@@ -50,9 +50,8 @@ else
 		export LIB_HASH="NULL"
 	else
 		need_build_properties_lib=0
-		find components/bk_libs/${ARMINO_SOC}_${PROJECT} -name *.a | xargs cat > components/bk_libs/${ARMINO_SOC}_${PROJECT}.a
-		export LIB_HASH=$(md5sum components/bk_libs/${ARMINO_SOC}_${PROJECT}.a|cut -f1 -d " ")
-		rm -rf components/bk_libs/${ARMINO_SOC}_${PROJECT}.a
+		compute_hash_tool=${ARMINO_DIR}/tools/build_tools/compute_files_hash.py
+		export LIB_HASH=$(python3 ${compute_hash_tool} ${ARMINO_DIR}/components/bk_libs/${ARMINO_SOC}_${PROJECT}/libs)
 	fi
 fi
 

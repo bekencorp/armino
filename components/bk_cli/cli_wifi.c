@@ -284,6 +284,77 @@ void cli_wifi_ap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
 
+void cli_wifi_hidden_ap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	wifi_ap_config_t ap_config = WIFI_DEFAULT_AP_CONFIG();
+	netif_ip4_config_t ip4_config = {0};
+	int len;
+	char *ap_ssid = NULL;
+	char *ap_key = "";
+	char *ap_channel = NULL;
+	int ret = 0;
+	char *msg = NULL;
+
+	if (argc == 2)
+			ap_ssid = argv[1];
+	else if (argc == 3) {
+		ap_ssid = argv[1];
+		if (os_strlen(argv[2]) <= 2)
+			ap_channel = argv[2];
+		else
+			ap_key = argv[2];
+	} else if (argc == 4) {
+		ap_ssid = argv[1];
+		ap_key = argv[2];
+		ap_channel = argv[3];
+	}else{
+		CLI_LOGI("Invalid parameters\n");
+		return;
+	}
+
+	if (ap_ssid) {
+		len = os_strlen(ap_ssid);
+		if (32 < len) {
+			CLI_LOGE("ssid name more than 32 Bytes\r\n");
+			return;
+		}
+
+		os_strcpy(ip4_config.ip, WLAN_DEFAULT_IP);
+		os_strcpy(ip4_config.mask, WLAN_DEFAULT_MASK);
+		os_strcpy(ip4_config.gateway, WLAN_DEFAULT_GW);
+		os_strcpy(ip4_config.dns, WLAN_DEFAULT_GW);
+		ret = bk_netif_set_ip4_config(NETIF_IF_AP, &ip4_config);
+
+		os_strcpy(ap_config.ssid, ap_ssid);
+		os_strcpy(ap_config.password, ap_key);
+
+		if (ap_channel) {
+			int channel;
+			char *end;
+
+			channel = strtol(ap_channel, &end, 0);
+			if (*end) {
+				CLI_LOGE("Invalid number '%s'", ap_channel);
+				return;
+			}
+			ap_config.channel = channel;
+		}
+
+		CLI_LOGI("ssid:%s  key:%s\r\n", ap_config.ssid, ap_config.password);
+		ap_config.hidden = true;
+		ret = bk_wifi_ap_set_config(&ap_config);
+		ret = bk_wifi_ap_start();
+	}
+
+
+	if(ret == 0)
+		msg = WIFI_CMD_RSP_SUCCEED;
+	else
+		msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+
+}
+
 void cli_wifi_stop_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int ret = 0;
@@ -1459,6 +1530,40 @@ error:
 	return;
 }
 
+void cli_wifi_ps_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	uint8_t ps_id = 0;
+	uint8_t ps_val = 0;
+	int ret = 0;
+	char *msg = NULL;
+
+	if (os_strcmp(argv[1], "open") == 0) {
+		ps_id = 0;
+	} else if (os_strcmp(argv[1], "close") == 0) {
+		ps_id = 1;
+	} else if (os_strcmp(argv[1], "debug_pf") == 0) {
+		ps_id = 2;
+		ps_val = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
+	} else {
+		CLI_LOGI("invalid ps paramter\n");
+		goto error;
+	}
+
+	bk_wifi_ps_config(ps_id, ps_val);
+
+	if (!ret) {
+		msg = WIFI_CMD_RSP_SUCCEED;
+		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+		return;
+	}
+error:
+	CLI_LOGI("ps {open|close|debug_pf|state|}\n");
+	msg = WIFI_CMD_RSP_ERROR;
+	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+	return;
+
+}
+
 void cli_wifi_capa_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	uint32_t capa_id = 0;
@@ -1617,6 +1722,7 @@ void cli_wifi_rtp_cmd(char * pcWriteBuffer, int xWriteBufferLen, int argc, char 
 static const struct cli_command s_wifi_commands[] = {
 	{"scan", "scan [ssid]", cli_wifi_scan_cmd},
 	{"ap", "ap ssid [password] [channel[1:14]]", cli_wifi_ap_cmd},
+	{"start_hidden_softap", "start_hidden_softap ssid [password] [channel[1:14]]", cli_wifi_hidden_ap_cmd},
 	{"sta", "sta ssid [password][bssid][channel]", cli_wifi_sta_cmd}, //TODO support connect speicific BSSID
 #if CONFIG_COMPONENTS_WPA2_ENTERPRISE
 	{"sta_eap", "sta_eap ssid password [identity] [client_cert] [private_key]", cli_wifi_sta_eap_cmd},
@@ -1634,7 +1740,7 @@ static const struct cli_command s_wifi_commands[] = {
 	{"iplog", "iplog [modle][type]", cli_wifi_iplog_cmd},
 	{"ipdbg", "ipdbg [function][value]", cli_wifi_ipdbg_cmd},
 	{"mem_apply", "mem_apply [module][value]", cli_wifi_mem_apply_cmd},
-
+	{"ps","ps enable and debug info config", cli_wifi_ps_cmd},
 
 #ifdef CONFIG_WPA_TWT_TEST
 	{"twt", "twt {setup|teardown}", cli_wifi_twt_cmd},

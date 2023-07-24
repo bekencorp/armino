@@ -60,13 +60,6 @@ void sys_drv_module_RF_power_ctrl (module_name_t module, power_module_state_t po
 	rtos_enable_int(int_level);
 }
 
-void sys_drv_core_bus_clock_ctrl(high_clock_module_name_t core, uint32_t clksel, uint32_t clkdiv, high_clock_module_name_t bus, uint32_t bus_clksel, uint32_t bus_clkdiv)
-{
-	uint32_t int_level = rtos_disable_int();
-	sys_hal_core_bus_clock_ctrl(core, clksel, clkdiv, bus, bus_clksel, bus_clkdiv);
-	rtos_enable_int(int_level);
-}
-
 void sys_drv_cpu0_main_int_ctrl(dev_clk_pwr_ctrl_t clock_state)
 {
 	uint32_t int_level = rtos_disable_int();
@@ -144,6 +137,16 @@ void sys_drv_usb_wakeup_enable(uint8_t index)
     sys_hal_usb_wakeup_enable(index);
 }
 
+void sys_drv_rtc_ana_wakeup_enable(uint32_t period)
+{
+	sys_hal_rtc_ana_wakeup_enable(period);
+}
+
+void sys_drv_gpio_ana_wakeup_enable(uint32_t index, uint32_t type)
+{
+	sys_hal_gpio_ana_wakeup_enable(index, type);
+}
+
 void sys_drv_cpu_clk_div_set(uint32_t core_index, uint32_t value)
 {
 	sys_hal_cpu_clk_div_set(core_index,value);
@@ -178,6 +181,14 @@ int32 sys_drv_bandgap_cali_set(uint32_t value)//increase or decrease the dvdddig
 uint32_t sys_drv_bandgap_cali_get()
 {
 	return sys_hal_bandgap_cali_get();
+}
+bk_err_t sys_drv_switch_cpu_bus_freq(pm_cpu_freq_e cpu_bus_freq)
+{
+    return sys_hal_switch_cpu_bus_freq(cpu_bus_freq);
+}
+bk_err_t sys_drv_core_bus_clock_ctrl(uint32_t cksel_core, uint32_t ckdiv_core,uint32_t ckdiv_bus, uint32_t ckdiv_cpu0,uint32_t ckdiv_cpu1)
+{
+    return sys_hal_core_bus_clock_ctrl(cksel_core, ckdiv_core,ckdiv_bus, ckdiv_cpu0,ckdiv_cpu1);
 }
 /*for low power function end*/
 

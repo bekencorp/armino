@@ -3,5 +3,6 @@ set(OVERRIDE_COMPILE_OPTIONS
     "-mfpu=fpv5-sp-d16"
     "-mfloat-abi=hard"
     "-mcmse"
+	"-fstack-protector"
 )
 

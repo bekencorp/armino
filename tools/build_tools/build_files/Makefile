@@ -24,7 +24,9 @@ export ARMINO_SOC := $(findstring $(MAKECMDGOALS), $(soc_targets))
 export ARMINO_SOC_LIB := $(findstring $(MAKECMDGOALS), $(properties_lib_targets))
 
 ifeq ("$(APP_VERSION)", "")
-APP_VERSION := unknow
+	export APP_VERSION := unknow
+else
+	export APP_VERSION := test
 endif
 
 ifeq ("$(PROJECT)", "")
@@ -68,8 +70,8 @@ else
 endif
 
 # overwrite project config
--include $(ARMINO_DIR)/components/part_table/part_table.mk
 -include $(ARMINO_DIR)/middleware/soc/$(ARMINO_SOC)/soc_config.mk
+-include $(ARMINO_DIR)/components/part_table/part_table.mk
 -include $(ARMINO_DIR)/$(PROJECT_DIR)/pj_config.mk
 
 .PHONY: all_targets
@@ -103,8 +105,10 @@ $(info $$(PROJECT) is $(PROJECT))
 bootloader:
 ifeq ($(has_lib_src), 1)
 ifneq ($(findstring $(ARMINO_SOC), $(PART_TABLE_SUPPORTED_TARGETS)),)
+ifneq ($(findstring $(PROJECT), $(PART_TABLE_SUPPORTED_PROJECTS)),)
 	@$(ARMINO_TOOL_PART_TABLE) $(PARTITIONS_CSV_FILE) --to-json=$(BOOTLOADER_JSON) $(PARTITIONS_ARGS) $(BOOTLOADER_JSON_INSEQ)
 	@cp $(BOOTLOADER_JSON) $(BOOTLOADER_JSON_OLD)
+endif
 endif
 	make clean -C ${ARMINO_BOOTLOADER}
 	make -C ${ARMINO_BOOTLOADER}

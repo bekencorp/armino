@@ -63,3 +63,59 @@ int bk_feature_fast_dhcp_enable(void);
  */
 int bk_feature_temp_detect_enable(void);
 
+/**
+ * @brief     Interface for customer to Enable/Disable lvgl use psram functionality
+ *
+ * @attention 1 Controled by middleware/soc/bk72xx.defconfig
+ *
+ * @return
+ *    - 1: enable
+ *    - 0: disable
+ */
+int bk_feature_lvgl_use_psram_enable(void);
+
+/**
+ * @brief     Interface for customer to Enable/Disable lvgl use direct mode functionality
+ *
+ * @attention 1 Controled by middleware/soc/bk72xx.defconfig
+ * @attention 2 The macro only takes effect if the LVGL use psram
+ *
+ * @return
+ *    - 1: enable
+ *    - 0: disable
+ */
+int bk_feature_lvgl_use_direct_mode_enable(void);
+
+
+typedef enum {
+    BK_CPU0 = 0, /**< cpu0 id */
+    BK_CPU1 = 1, /**< cpu1 id */
+    BK_CPU2 = 2 /**< cpu2 id */
+} BK_CPU_ID;
+
+
+/**
+ * @brief     Interface to get if current system is cpu0
+ *
+ *
+ * @return
+ *    - BK_CPU0: current system is cpu0
+ *    - BK_CPU1: current system is cpu1
+ *    - BK_CPU2: current system is cpu2
+ *
+ */
+int bk_feature_get_cpu_id(void);
+
+
+/**
+ * @brief     Interface to get the cpu count of system
+ *
+ *
+ * @return
+ *    - 1: current system is single core
+ *    - 2: current system is dual core
+ *    - 3: current system is triple core
+ *
+ */
+int bk_feature_get_cpu_cnt(void);
+

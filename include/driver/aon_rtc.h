@@ -181,6 +181,7 @@ bk_err_t bk_aon_rtc_open_rtc_wakeup(uint32_t period);
 /**
  * @brief  Get AON RTC current tick with 64 bits
  *	       AON RTC uses 32 Bits counter with 32K clock, the max time is about 36.4 hours.
+ *         The 32K clock really frequency is 32768 HZ(External 32K XTL) or 32000 HZ(Internel ROSC).
  *         Set upper interrupt as the 0xFFFFFFFF ticks as one round.
  * @id: register to which aon_rtc id
  * @return
@@ -188,6 +189,21 @@ bk_err_t bk_aon_rtc_open_rtc_wakeup(uint32_t period);
  *    - others: other errors.
  */
 uint64_t bk_aon_rtc_get_current_tick(aon_rtc_id_t id);
+
+#if CONFIG_RTC_ANA_WAKEUP_SUPPORT
+/**
+ * @brief     Register the RTC analog channel to wakeup system with input period.
+ *
+ * This API regist RTC to wakeup source.
+ *
+ * @attention
+ * This API is used for super deep sleep only.
+ *
+ * @return
+ *    - BK_OK: succeed
+ */
+bk_err_t bk_rtc_ana_register_wakeup_source(uint32_t period);
+#endif
 
 #if CONFIG_AON_RTC_DEBUG
 /**

@@ -504,6 +504,12 @@ enum {
 	WIFI_CAPA_ID_MAX,
 };
 
+enum {
+	WIFI_PS_CMD_OPEN= 0,
+	WIFI_PS_CMD_CLOSE,
+	WIFI_PS_CMD_DEBUG_PRINTF,
+};
+
 /**
  * @addr: softap deauth sta's mac addr, all 0xff for deauth all STA.
  * @reason: reason code: <=0 for automatic select

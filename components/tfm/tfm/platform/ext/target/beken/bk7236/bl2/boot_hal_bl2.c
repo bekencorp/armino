@@ -45,6 +45,7 @@ REGION_DECLARE(Image$$, ARM_LIB_STACK, $$ZI$$Base);
 
 void boot_clear_ram_area(void)
 {
+#if CONFIG_BL2_CLEAN_RAM_ON_EXIT
     __ASM volatile(
 #if !defined(__ICCARM__)
         ".syntax unified                             \n"
@@ -67,6 +68,7 @@ void boot_clear_ram_area(void)
         "bx      lr                                  \n"
          : : : "r0" , "r1" , "r2" , "memory"
     );
+#endif
 }
 
 /*!
@@ -249,6 +251,6 @@ void boot_platform_quit(struct boot_arm_vector_table *vt)
     __DSB();
     __ISB();
 
-    printf("Jump to TFM, msp=%p vector=%p\r\n", vt_cpy->msp, vt_cpy->reset);
+    printf("Jump to 1st app, msp=%p vector=%p\r\n", vt_cpy->msp, vt_cpy->reset);
     boot_jump_to_next_image(vt_cpy->reset);
 }

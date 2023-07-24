@@ -1136,6 +1136,134 @@ __STATIC_FORCEINLINE uint32_t __get_LR(void)
   return(result);
 }
 
+__STATIC_FORCEINLINE uint32_t __get_SP(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, sp" : "=r" (result) );
+  return(result);
+}
+
+__STATIC_FORCEINLINE uint32_t __get_PC(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, pc" : "=r" (result) );
+  return(result);
+}
+
+
+__STATIC_FORCEINLINE uint32_t __get_R0(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, r0" : "=r" (result) );
+  return(result);
+}
+
+__STATIC_FORCEINLINE uint32_t __get_R1(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, r1" : "=r" (result) );
+  return(result);
+}
+
+__STATIC_FORCEINLINE uint32_t __get_R2(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, r2" : "=r" (result) );
+  return(result);
+}
+
+__STATIC_FORCEINLINE uint32_t __get_R3(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, r3" : "=r" (result) );
+  return(result);
+}
+
+__STATIC_FORCEINLINE uint32_t __get_R4(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, r4" : "=r" (result) );
+  return(result);
+}
+
+
+__STATIC_FORCEINLINE uint32_t __get_R5(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, r5" : "=r" (result) );
+  return(result);
+}
+
+
+__STATIC_FORCEINLINE uint32_t __get_R6(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, r6" : "=r" (result) );
+  return(result);
+}
+
+
+__STATIC_FORCEINLINE uint32_t __get_R7(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, r7" : "=r" (result) );
+  return(result);
+}
+
+
+__STATIC_FORCEINLINE uint32_t __get_R8(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, r8" : "=r" (result) );
+  return(result);
+}
+
+
+__STATIC_FORCEINLINE uint32_t __get_R9(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, r9" : "=r" (result) );
+  return(result);
+}
+
+
+__STATIC_FORCEINLINE uint32_t __get_R10(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, r10" : "=r" (result) );
+  return(result);
+}
+
+
+__STATIC_FORCEINLINE uint32_t __get_R11(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, r11" : "=r" (result) );
+  return(result);
+}
+
+
+__STATIC_FORCEINLINE uint32_t __get_R12(void)
+{
+  uint32_t result;
+
+  __ASM volatile ("MOV %0, r12" : "=r" (result) );
+  return(result);
+}
 
 #if (defined (__ARM_FEATURE_CMSE ) && (__ARM_FEATURE_CMSE == 3))
 /**

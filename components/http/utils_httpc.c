@@ -18,11 +18,12 @@
 #include "driver/flash.h"
 #endif
 #endif
-#if (CONFIG_TFM)
+#if (CONFIG_TFM_FWU)
 #include <driver/flash.h>
-#include "psa/update.h"
+#include "partitions.h"
 #include "CheckSumUtils.h"
 #define OTA_MAGIC_WORD "\x62\x65\x6B\x65\x6E\x2E\x2E\x2E"
+#define MANIFEST_SIZE  (4 * 1024)
 #endif
 
 #ifdef CONFIG_HTTP_AB_PARTITION
@@ -67,23 +68,40 @@ HTTP_DATA_ST *bk_http_ptr = &bk_http;
 #if HTTP_WR_TO_FLASH
 static UINT32 ota_wr_block = 0;
 #endif
-#if (CONFIG_TFM)
+#if (CONFIG_TFM_FWU)
 typedef enum {
 	OTA_PARSE_HEADER = 0,
 	OTA_PARSE_IMG_HEADER,
 	OTA_PARSE_IMG,
 } ota_parse_type;
 
+typedef enum {
+	OTA_IMG_BL2 = 0,
+	OTA_IMG_SPE,
+	OTA_IMG_NSPE,
+	OTA_IMG_MAX
+} ota_image_type;
+
 typedef struct ota_parse_s {
-	ota_parse_type type;
+	ota_parse_type phase;
 	ota_hdr_t ota_header;
 	ota_img_hdr_t *ota_img_header;
 	UINT32 offset;
+	UINT32 index;
 	CRC32_Context ota_crc;
 } ota_parse_t;
 
 static ota_parse_t ota_parse = {0};
-extern psa_image_id_t ota_image;
+
+static int http_ota_parse_header(uint8_t **data, int *len);
+static int http_ota_parse_image_header(uint8_t **data, int *len);
+static ota_image_type http_ota_get_image_type(void);
+static int http_ota_handle_bl2(uint8_t **data, int *len);
+static int http_ota_handle_spe(uint8_t **data, int *len);
+static int http_ota_handle_nspe(uint8_t **data, int *len);
+static int http_ota_parse_data(char *data, int len);
+static void http_ota_init(void);
+static int http_ota_deinit(void);
 #endif
 
 // static int httpclient_parse_host(const char *url, char *host, uint32_t maxhost_len);
@@ -821,74 +839,262 @@ void http_wr_to_flash(char *page, UINT32 len)
 	}
 }
 #endif
-#if (CONFIG_TFM)
-static int http_ota_parse_data(char *data, int len)
+#if (CONFIG_TFM_FWU)
+static int http_ota_parse_header(uint8_t **data, int *len)
 {
 	uint32_t data_len, offset;
 	uint8_t *tmp;
 
-	/*copy ota header*/
-	if (ota_parse.type == OTA_PARSE_HEADER) {
-		if (len == 0) return 0;
-		tmp = (uint8_t *)&ota_parse.ota_header;
-		data_len = sizeof(ota_hdr_t) - ota_parse.offset;
-		if (len < data_len) {
-			os_memcpy(tmp + ota_parse.offset, data, len);
-			ota_parse.offset += len;
-			return 0;
-		} else {
-			os_memcpy(tmp + ota_parse.offset, data, data_len);
-			data += data_len;
-			len -= data_len;
+	if (*len == 0) return 0;
 
-			/*calculate header crc*/
-			offset = sizeof(ota_parse.ota_header.magic) + sizeof(ota_parse.ota_header.crc);
-			tmp += offset;
-			CRC32_Update(&ota_parse.ota_crc, tmp, sizeof(ota_hdr_t) - offset);
+	tmp = (uint8_t *)&ota_parse.ota_header;
+	data_len = sizeof(ota_hdr_t) - ota_parse.offset;
+	if (*len < data_len) {
+		os_memcpy(tmp + ota_parse.offset, *data, *len);
+		ota_parse.offset += *len;
+		return 0;
+	} else {
+		os_memcpy(tmp + ota_parse.offset, *data, data_len);
+		*data += data_len;
+		*len -= data_len;
 
-			/*to next parse*/
-			ota_parse.type = OTA_PARSE_IMG_HEADER;
-			ota_parse.offset = 0;
-			if (ota_parse.ota_img_header) {
-				os_free(ota_parse.ota_img_header);
-			}
-			offset = ota_parse.ota_header.img_num * sizeof(ota_img_hdr_t);
-			ota_parse.ota_img_header = (ota_img_hdr_t *)os_malloc(offset);
-			bk_printf("crc %x, version %x, hdr_len %x, img_num %x\r\n",
-				ota_parse.ota_header.crc, ota_parse.ota_header.version, ota_parse.ota_header.hdr_len, ota_parse.ota_header.img_num);
+		/*calculate header crc*/
+		offset = sizeof(ota_parse.ota_header.magic) + sizeof(ota_parse.ota_header.crc);
+		tmp += offset;
+		CRC32_Update(&ota_parse.ota_crc, tmp, sizeof(ota_hdr_t) - offset);
+
+		/*to next parse*/
+		ota_parse.phase = OTA_PARSE_IMG_HEADER;
+		ota_parse.offset = 0;
+		if (ota_parse.ota_img_header) {
+			os_free(ota_parse.ota_img_header);
 		}
+		offset = ota_parse.ota_header.img_num * sizeof(ota_img_hdr_t);
+		ota_parse.ota_img_header = (ota_img_hdr_t *)os_malloc(offset);
+		bk_printf("crc %x, version %x, hdr_len %x, img_num %x\r\n",
+			ota_parse.ota_header.crc, ota_parse.ota_header.version, ota_parse.ota_header.hdr_len, ota_parse.ota_header.img_num);
+	}
+
+	return 0;
+}
+
+static int http_ota_parse_image_header(uint8_t **data, int *len)
+{
+	int i;
+	uint32_t data_len, offset;
+	uint8_t *tmp;
+
+	if (*len == 0) return 0;
+
+	tmp = (uint8_t *)ota_parse.ota_img_header;
+	data_len = ota_parse.ota_header.img_num * sizeof(ota_img_hdr_t) - ota_parse.offset;
+	if (*len < data_len) {
+		os_memcpy(tmp + ota_parse.offset, *data, *len);
+		ota_parse.offset += *len;
+		return 0;
+	} else {
+		os_memcpy(tmp + ota_parse.offset, *data, data_len);
+		*data += data_len;
+		*len -= data_len;
+
+		/*calculate header crc*/
+		offset = ota_parse.ota_header.img_num * sizeof(ota_img_hdr_t);
+		CRC32_Update(&ota_parse.ota_crc, tmp, offset);
+
+		/*to next parse*/
+		ota_parse.phase = OTA_PARSE_IMG;
+		ota_parse.offset = 0;
+		for (i = 0; i < ota_parse.ota_header.img_num; i++) {
+			bk_printf("img[%d], img_len=%x, img_offset=%x, flash_offset=%x\r\n", i,
+				ota_parse.ota_img_header[i].img_len,
+				ota_parse.ota_img_header[i].img_offset,
+				ota_parse.ota_img_header[i].flash_offset);
+		}
+	}
+
+	return 0;
+}
+
+static ota_image_type http_ota_get_image_type(void)
+{
+	uint32_t flash_offset;
+
+	if (ota_parse.phase != OTA_PARSE_IMG
+		|| ota_parse.index >= ota_parse.ota_header.img_num) {
+		return OTA_IMG_MAX;
+	}
+
+	flash_offset = ota_parse.ota_img_header[ota_parse.index].flash_offset;
+
+	if (flash_offset == 0) {
+		return OTA_IMG_BL2;
+	} else if (flash_offset == CONFIG_SECONDARY_S_PHY_PARTITION_OFFSET) {
+		return OTA_IMG_SPE;
+	} else if (flash_offset == CONFIG_SECONDARY_NS_PHY_PARTITION_OFFSET) {
+		return OTA_IMG_NSPE;
+	}
+
+	return OTA_IMG_MAX;
+}
+
+static int http_ota_handle_bl2(uint8_t **data, int *len)
+{
+	uint32_t data_len, offset;
+
+	if ((bk_ota_get_flag() & OTA_BL2_FLAG) == 0) {
+		bk_ota_set_flag(OTA_BL2_FLAG);
+		bk_printf("ota bl2 .");
+	} else {
+		bk_printf(" .");
+	}
+
+	if (ota_parse.offset + *len < MANIFEST_SIZE) {
+		/*write manifest*/
+		psa_fwu_write(secondary_manifest_image, ota_parse.offset, (const void *)*data, *len);
+		ota_parse.offset += *len;
+	} else {
+		/*write manifest*/
+		if (ota_parse.offset < MANIFEST_SIZE) {
+			offset = MANIFEST_SIZE - ota_parse.offset;
+			psa_fwu_write(secondary_manifest_image, ota_parse.offset, (const void *)*data, offset);
+			*data += offset;
+			*len -= offset;
+			ota_parse.offset += offset;
+		}
+
+		/*write bl2*/
+		if (ota_parse.offset + *len < ota_parse.ota_img_header[ota_parse.index].img_len) {
+			offset = ota_parse.offset - MANIFEST_SIZE;
+			psa_fwu_write(secondary_bl2_image, offset, (const void *)*data, *len);
+			ota_parse.offset += *len;
+		} else {
+			data_len = ota_parse.ota_img_header[ota_parse.index].img_len - ota_parse.offset;
+			offset = ota_parse.offset - MANIFEST_SIZE;
+			psa_fwu_write(secondary_bl2_image, offset, (const void *)*data, data_len);
+			*data += data_len;
+			*len -= data_len;
+
+			/*to next image*/
+			bk_printf("\r\n");
+			ota_parse.index++;
+			ota_parse.offset = 0;
+			if (*len) {
+				if (http_ota_get_image_type() == OTA_IMG_SPE) {
+					http_ota_handle_spe(data, len);
+				} else if (http_ota_get_image_type() == OTA_IMG_NSPE) {
+					http_ota_handle_nspe(data, len);
+				} else {
+					bk_printf("ota bl2 error, index=%d, len=%d\r\n", ota_parse.index, *len);
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+
+static int http_ota_handle_spe(uint8_t **data, int *len)
+{
+	uint32_t data_len;
+
+	if ((bk_ota_get_flag() & OTA_SPE_FLAG) == 0) {
+		bk_ota_set_flag(OTA_SPE_FLAG);
+		bk_printf("ota spe .");
+	} else {
+		bk_printf(" .");
+	}
+
+	data_len = ota_parse.ota_img_header[ota_parse.index].img_len - ota_parse.offset;
+	if (*len < data_len) {
+		psa_fwu_write(spe_image, ota_parse.offset, (const void *)*data, *len);
+		ota_parse.offset += *len;
+	} else {
+		psa_fwu_write(spe_image, ota_parse.offset, (const void *)*data, data_len);
+		*data += data_len;
+		*len -= data_len;
+
+		/*to next image*/
+		bk_printf("\r\n");
+		ota_parse.index++;
+		ota_parse.offset = 0;
+		if (*len) {
+			if (http_ota_get_image_type() == OTA_IMG_BL2) {
+				http_ota_handle_bl2(data, len);
+			} else if (http_ota_get_image_type() == OTA_IMG_NSPE) {
+				http_ota_handle_nspe(data, len);
+			} else {
+				bk_printf("ota spe error, index=%d, len=%d\r\n", ota_parse.index, *len);
+			}
+		}
+	}
+
+	return 0;
+}
+
+static int http_ota_handle_nspe(uint8_t **data, int *len)
+{
+	uint32_t data_len;
+
+	if ((bk_ota_get_flag() & OTA_NSPE_FLAG) == 0) {
+		bk_ota_set_flag(OTA_NSPE_FLAG);
+		bk_printf("ota nspe ");
+	} else {
+		bk_printf(" .");
+	}
+
+	data_len = ota_parse.ota_img_header[ota_parse.index].img_len - ota_parse.offset;
+	if (*len < data_len) {
+		psa_fwu_write(nspe_image, ota_parse.offset, (const void *)*data, *len);
+		ota_parse.offset += *len;
+	} else {
+		psa_fwu_write(nspe_image, ota_parse.offset, (const void *)*data, data_len);
+		*data += data_len;
+		*len -= data_len;
+
+		/*to next imgae*/
+		bk_printf("\r\n");
+		ota_parse.index++;
+		ota_parse.offset = 0;
+		if (*len) {
+			if (http_ota_get_image_type() == OTA_IMG_BL2) {
+				http_ota_handle_bl2(data, len);
+			} else if (http_ota_get_image_type() == OTA_IMG_SPE) {
+				http_ota_handle_spe(data, len);
+			} else {
+				bk_printf("ota nspe error, index=%x, len=%d\r\n", ota_parse.index, *len);
+			}
+		}
+	}
+
+	return 0;
+}
+
+static int http_ota_parse_data(char *data, int len)
+{
+	/*copy ota header*/
+	if (ota_parse.phase == OTA_PARSE_HEADER) {
+		http_ota_parse_header((uint8_t **)&data, &len);
 	}
 
 	/*copy img header*/
-	if (ota_parse.type == OTA_PARSE_IMG_HEADER) {
-		if (len == 0) return 0;
-		tmp = (uint8_t *)ota_parse.ota_img_header;
-		data_len = ota_parse.ota_header.img_num * sizeof(ota_img_hdr_t) - ota_parse.offset;
-		if (len < data_len) {
-			os_memcpy(tmp + ota_parse.offset, data, len);
-			ota_parse.offset += len;
-			return 0;
-		} else {
-			os_memcpy(tmp + ota_parse.offset, data, data_len);
-			data += data_len;
-			len -= data_len;
-
-			/*calculate header crc*/
-			offset = ota_parse.ota_header.img_num * sizeof(ota_img_hdr_t);
-			CRC32_Update(&ota_parse.ota_crc, tmp, offset);
-
-			/*to next parse*/
-			ota_parse.type = OTA_PARSE_IMG;
-			ota_parse.offset = 0;
-		}
+	if (ota_parse.phase == OTA_PARSE_IMG_HEADER) {
+		http_ota_parse_image_header((uint8_t **)&data, &len);
 	}
 
 	/*process image data*/
-	if (ota_parse.type == OTA_PARSE_IMG) {
+	if (ota_parse.phase == OTA_PARSE_IMG) {
 		if (len == 0) return 0;
 		CRC32_Update(&ota_parse.ota_crc, data, len);
-		psa_fwu_write(ota_image, ota_parse.offset, (uint8_t *)data, len);
-		ota_parse.offset += len;
+
+		if (http_ota_get_image_type() == OTA_IMG_BL2) {
+			http_ota_handle_bl2((uint8_t **)&data, &len);
+		} else if (http_ota_get_image_type() == OTA_IMG_SPE) {
+			http_ota_handle_spe((uint8_t **)&data, &len);
+		} else if (http_ota_get_image_type() == OTA_IMG_NSPE) {
+			http_ota_handle_nspe((uint8_t **)&data, &len);
+		} else {
+			bk_printf("ota parse data error, index=%d, len=%d\r\n", ota_parse.index, len);
+		}
 	}
 
 	return 0;
@@ -897,11 +1103,12 @@ static int http_ota_parse_data(char *data, int len)
 static void http_ota_init(void)
 {
 	os_memset(&ota_parse, 0, sizeof(ota_parse_t));
+	bk_ota_clear_flag();
 	CRC32_Init(&ota_parse.ota_crc);
 	bk_flash_set_protect_type(FLASH_PROTECT_NONE);
 }
 
-static void http_ota_deinit(void)
+static int http_ota_deinit(void)
 {
 	uint32_t crc_final;
 
@@ -910,7 +1117,13 @@ static void http_ota_deinit(void)
 		os_free(ota_parse.ota_img_header);
 		ota_parse.ota_img_header = NULL;
 	}
-	bk_printf("crc %x %x\r\n", crc_final, ota_parse.ota_header.crc);
+
+	bk_printf("crc %x:%x\r\n", crc_final, ota_parse.ota_header.crc);
+	if (crc_final != ota_parse.ota_header.crc) {
+		return -1;
+	}
+
+	return 0;
 }
 #endif
 
@@ -935,7 +1148,7 @@ void http_data_process(char *buf, UINT32 len, UINT32 recived, UINT32 total)
 		http_wr_to_flash(buf, len);
 		os_printf("cyg_recvlen_per:(%.2f)%%\r\n",(((float)(recived))/(total))*100);
 #else
-#if (CONFIG_TFM)
+#if (CONFIG_TFM_FWU)
 	http_ota_parse_data(buf, len);
 #else
 	os_printf("d");
@@ -1058,7 +1271,7 @@ int httpclient_retrieve_content(httpclient_t *client, char *data, int len, uint3
 		http_flash_init();
 		http_wr_to_flash(data, len);
 #endif
-#if (CONFIG_TFM)
+#if (CONFIG_TFM_FWU)
 		http_ota_init();
 		http_ota_parse_data(data, len);
 #endif
@@ -1136,8 +1349,10 @@ int httpclient_retrieve_content(httpclient_t *client, char *data, int len, uint3
 #endif
 			http_flash_deinit();
 #endif
-#if (CONFIG_TFM)
-			http_ota_deinit();
+#if (CONFIG_TFM_FWU)
+			if (http_ota_deinit() != 0) {
+				return FAIL_RETURN;
+			}
 #endif
 			client_data->is_more = false;
 			break;
@@ -1409,7 +1624,7 @@ int httpclient_common(httpclient_t *client, const char *url, int port, const cha
 			httpclient_close(client);
 		}
 
-		ret = (ret >= 0) ? 0 : -1;
+		ret = (ret >= 0)? 0 : -1;
 	} while(0);
 
 	if (NULL != host) {

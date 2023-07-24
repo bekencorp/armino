@@ -21,10 +21,13 @@
 #include "bk_tfm_log.h"
 
 #define TAG "hook"
-#define BL2_HOOK_LOGD BK_LOGI
+#define BL2_HOOK_LOGD BK_LOGD
 #define BL2_HOOK_LOGI BK_LOGI
 #define BL2_HOOK_LOGW BK_LOGW
 #define BL2_HOOK_LOGE BK_LOGE
+#define BL2_HOOK_DEBUG 0
+
+#define BL2_HOOK_IMG_READ_DEBUG_LEN 0x100
 
 static void dump_image_header(struct image_header *hdr)
 {
@@ -53,14 +56,17 @@ boot_is_header_valid(const struct image_header *hdr, const struct flash_area *fa
     uint32_t size;
 
     if (hdr->ih_magic != IMAGE_MAGIC) {
+        BL2_HOOK_LOGE(TAG, "invalid img magic: %x\r\n", hdr->ih_magic);
         return false;
     }   
 
     if (!boot_u32_safe_add(&size, hdr->ih_img_size, hdr->ih_hdr_size)) {
+        BL2_HOOK_LOGE(TAG, "invalid size: size=%x, img_size=%d, hdr_size=%x\r\n", size, hdr->ih_img_size, hdr->ih_hdr_size);
         return false;
     }
 
     if (size >= flash_area_get_size(fap)) {
+        BL2_HOOK_LOGE(TAG, "invalid size: size=%x, area_size=%x\r\n", size, fap->fa_size);
         return false;
     }   
 
@@ -83,11 +89,25 @@ uint32_t boot_get_1st_instruction_virtual_off(const struct flash_area *area)
 	uint32_t code_partition_phy_off = area->fa_off + BL2_HEADER_SIZE;
 	uint32_t first_instruction_virtual_off = FLASH_PHY2VIRTUAL_CODE_START(code_partition_phy_off);
 
-	BL2_HOOK_LOGD(TAG, "code_partition_off=%x, 1st_instruction_virtual_off=%x\r\n",
-		code_partition_phy_off, first_instruction_virtual_off);
+	BL2_HOOK_LOGD(TAG, "code_partition_off=%x, 1st_instruction_virtual_off=%x, header=%x\r\n",
+		code_partition_phy_off, first_instruction_virtual_off, BL2_HEADER_SIZE);
 	return first_instruction_virtual_off;
 }
 
+uint32_t boot_get_img_padding_len(const struct flash_area *area)
+{
+	uint32_t padding_len = boot_get_1st_instruction_physical_off(area) - area->fa_off - BL2_HEADER_SIZE;
+	return padding_len;
+}
+
+uint32_t boot_get_off_with_padding(const struct flash_area *area, uint32_t off)
+{
+	if ((off < BL2_HEADER_SIZE) || (off >= (area->fa_size - BL2_TRAILER_SIZE))) {
+		return off;
+	}
+
+	return (off + boot_get_img_padding_len(area));
+}
  
 uint32_t boot_tlv_off(const struct flash_area *fap, const struct image_header *hdr)
 {
@@ -186,4 +206,24 @@ int boot_img_install_stat_hook(int image_index, int slot, int *img_install_stat)
 	return BOOT_HOOK_REGULAR;
 }
 
+int flash_area_read_post_hook(const struct flash_area *area, uint32_t off, void *dst, uint32_t len)
+{
+#if BL2_HOOK_DEBUG
+	if ((len > 0) && (len < BL2_HOOK_IMG_READ_DEBUG_LEN)) {
+		uint8_t *buf = (uint8_t*)dst;
 
+        	printf("area%d read: flash_off=%x off=%x len=%x\r\n", area->fa_id, area->fa_off, off, len);
+		for (int i = 0; i < len; i++) {
+			printf("%02x ", buf[i]);
+
+			if (i && (i % 16 == 0)) {
+				printf("\r\n");
+			}
+		}
+
+        	printf("\r\n");
+	}
+#endif
+
+	return 0;
+}

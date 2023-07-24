@@ -26,3 +26,4 @@ User and Developer Guide
    CPU Specific Guide <cpu/index>
    Write Examples <examples/index>
    Documentation <documentation/index>
+   Partition_specification <partition_specification/index>

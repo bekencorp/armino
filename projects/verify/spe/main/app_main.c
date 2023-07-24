@@ -1,7 +1,7 @@
-#include "bk_private/legacy_init.h"
+#include "bk_private/bk_init.h"
 
 int main(void)
 {
-	legacy_init();
+	bk_init();
 	return 0;
 }

@@ -169,7 +169,7 @@ static void camera_intf_vsync_negedge_handler(jpeg_unit_t id, void *param)
 {
 	if (jpeg_eof_flag)
 	{
-#if (CONFIG_I2C_SIM)
+#if (CONFIG_SIM_I2C)
 		current_sensor->power_down();
 #endif
 		bk_jpeg_enc_set_enable(0, JPEG_ENC_MODE);
@@ -178,6 +178,11 @@ static void camera_intf_vsync_negedge_handler(jpeg_unit_t id, void *param)
 		{
 			rtos_set_semaphore(&ejpeg_sema);
 		}
+	}
+	else
+	{
+		bk_jpeg_enc_set_enable(0, JPEG_ENC_MODE);
+		bk_jpeg_enc_set_enable(1, JPEG_ENC_MODE);
 	}
 
 #if (EJPEG_DROP_FRAME)
@@ -217,17 +222,12 @@ bk_err_t bk_dvp_camera_init(void *data)
 		return err;
 	}
 
-#if CONFIG_SOC_BK7256XX
-
 #if CONFIG_EXTERN_32K
 		pm_clk_32k_source_switch(PM_LPO_SRC_DIVD);
 #endif
 
 	// step 1: enbale dvp power
 	bk_dvp_camera_power_enable(1);
-
-	bk_jpeg_enc_driver_init();
-#endif
 
 	// step 2: enable jpeg mclk for i2c communicate with dvp
 	bk_jpeg_enc_mclk_enable();
@@ -351,15 +351,10 @@ bk_err_t bk_dvp_camera_deinit(void)
 
 	bk_i2c_deinit(CONFIG_CAMERA_I2C_ID);
 
-#if CONFIG_SOC_BK7256XX
-	bk_jpeg_enc_driver_deinit();
-
 	bk_dvp_camera_power_enable(0);
 
 #if CONFIG_EXTERN_32K
 		pm_clk_32k_source_switch(PM_LPO_SRC_X32K);
-#endif
-
 #endif
 
 	jpeg_eof_flag = 0;

@@ -56,6 +56,7 @@ typedef struct {
 	uint32_t y_pixel;    /**< sensor data's resolution for height */
 	yuv_mode_cfg_t yuv_mode_cfg;
 	h264_enc_mode_cfg_t h264_enc_mode_cfg;
+	uint8_t *base_addr;  /**< used for base addr */
 } yuv_buf_config_t;
 
 typedef struct {

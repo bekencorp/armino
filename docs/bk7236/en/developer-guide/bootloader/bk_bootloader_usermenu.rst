@@ -118,6 +118,37 @@ l_bootloader: mainly downloads uart. Figure 2 shows the flowchart.
 - 3. Use the serial port to send the cli command, for example:
   http_ota http://192.168.21.101/D%3A/E/build/app.rbl
 
+八. Compatible with bootloader and no OTA requirement
+--------------------------------------------------------
 
+- Make the download partition adaptable for compatibility with customers who do not need OTA functionality (delete the downlaod partition to achieve the requirement of no OTA function)
+
+- Use tools/env_tools/rt_partition_tool/rt_partition_tool.exe to modify the partition table where the new bootloader is inserted.
+
+  - Open the rt_partition_tool.exe tool
+
+  - Take bk7256 as an example, load middleware/boards/bk7256 / bootloader. Bin (if no partition table in the bootloader will prompt will add import partition table)
+
+  - Export the partition table as a bootloader_orign.json file as shown in Figure 7.
+
+  - Modify the bootloader_orign.json file, delete the download partition, and generate the bootloader_update.json file as shown in Figure 8
+
+  - Import the bootloader_update.json file and save it to the bootloader
+
+  - Put the generated bootloader.bin into the middleware/boards/bk7256 directory
+
+ .. figure:: ../../../_static/bootloader_orign.png
+    :align: center
+    :alt: bootloader_orign
+    :figclass: align-center
+
+    Figure 7 bootloader_orign.json
+
+ .. figure:: ../../../_static/bootloader_update.png
+    :align: center
+    :alt: bootloader_update
+    :figclass: align-center
+
+    Figure 8 bootloader_update.json
 
 

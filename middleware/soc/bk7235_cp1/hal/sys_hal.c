@@ -307,42 +307,7 @@ void sys_hal_module_RF_power_ctrl (module_name_t module,power_module_state_t pow
 	sys_ll_set_ana_reg6_value(value);
 
 }
-void sys_hal_core_bus_clock_ctrl(high_clock_module_name_t core, uint32_t clksel,uint32_t clkdiv, high_clock_module_name_t bus,uint32_t bus_clksel,uint32_t bus_clkdiv)
-{
-    UINT32 clock_value = 0;
-	clock_value = sys_ll_get_cpu_clk_div_mode1_value();
-    /*core:0: clk_DCO      1 : XTAL      2 : 320M      3 : 480M*/
 
-    /*1.cpu1:480m ,maxtrix:240m*/
-	if((core == HIGH_FREQUECY_CLOCK_MODULE_CPU1) &&(clksel == 3))
-	{
-		clock_value |=  0x3 << 4;
-		clock_value |=  0x1 << 6;
-	}/*2.cpu1:320m ,maxtrix:160m*/
-	else if((core == HIGH_FREQUECY_CLOCK_MODULE_CPU1) &&(clksel == 2))
-	{
-        clock_value |=  0x2 << 4;
-        clock_value |=  0x1 << 6;
-	}/*3.cpu1:120m ,maxtrix:120m*/
-	else if((core == HIGH_FREQUECY_CLOCK_MODULE_CPU1) &&(clksel == 0))
-	{
-        clock_value |=  0x0 << 4;
-        clock_value |=  0x0 << 6;
-	}/*3.cpu1:26m ,maxtrix:26m*/
-	else if((core == HIGH_FREQUECY_CLOCK_MODULE_CPU1) &&(clksel == 1))
-	{
-        clock_value |=  0x1 << 4;
-        clock_value |=  0x0 << 6;
-	}
-	else
-	{
-        clock_value |=  0x0 << 4;
-        clock_value |=  0x0 << 6;
-	}
-
-	sys_ll_set_cpu_clk_div_mode1_value(clock_value);
-
-}
 void sys_hal_cpu0_main_int_ctrl(dev_clk_pwr_ctrl_t clock_state)
 {
     sys_ll_set_cpu0_int_halt_clk_op_cpu0_int_mask( clock_state);
@@ -1515,6 +1480,11 @@ void sys_hal_aud_mic1_single_en(uint32_t value)
 void sys_hal_aud_mic2_single_en(uint32_t value)
 {
 	sys_ll_set_ana_reg15_micsingleen(value);
+}
+
+void sys_hal_aud_dacg_set(uint32_t value)
+{
+	sys_ll_set_ana_reg16_dacg(value);
 }
 
 void sys_hal_aud_int_en(uint32_t value)

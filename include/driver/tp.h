@@ -92,6 +92,40 @@ tp_device_t *bk_tp_get_device(void);
  *    - 0 : succeed
  *    - other: other errors.
  */
+int tp_i2c_read_uint8(uint8_t addr, uint8_t reg, uint8_t *buff, uint16_t len);
+
+/**
+ * @brief     Write sensor register value
+ *
+ * This API will called after bk_i2c_init
+ *
+ * param addr: sensor write address
+ *
+ * param reg: sensor register address
+ *
+ * param value: sensor register value
+ *
+ * @return
+ *    - 0 : succeed
+ *    - other: other errors.
+ */
+int tp_i2c_write_uint8(uint8_t addr, uint8_t reg, uint8_t *buff, uint16_t len);
+
+/**
+ * @brief     Read sensor register value
+ *
+ * This API will called after bk_i2c_init
+ *
+ * param addr: sensor read address
+ *
+ * param reg: sensor register address
+ *
+ * param value: sensor register value
+ *
+ * @return
+ *    - 0 : succeed
+ *    - other: other errors.
+ */
 int tp_i2c_read_uint16(uint8_t addr, uint16_t reg, uint8_t *buff, uint16_t len);
 
 /**

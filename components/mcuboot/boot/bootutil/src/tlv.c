@@ -46,12 +46,7 @@ bootutil_tlv_iter_begin(struct image_tlv_iter *it, const struct image_header *hd
         return -1;
     }
 
-#if CONFIG_BK_MCUBOOT
-    off_ = boot_tlv_off(fap, hdr);
-#else
     off_ = BOOT_TLV_OFF(hdr);
-#endif
-
     if (LOAD_IMAGE_DATA(hdr, fap, off_, &info, sizeof(info))) {
         return -1;
     }

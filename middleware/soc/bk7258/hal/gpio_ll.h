@@ -38,6 +38,18 @@ static inline void gpio_ll_init(gpio_hw_t *hw)
 	gpio_system_gpio_func_mode = (system_gpio_func_mode_hw_t *)GPIO_LL_SYSTEM_REG_BASE;
 }
 
+//some special code re-use a GPIO, it doesn't care the GPIO setting value, just bake/restore value.
+static inline void gpio_ll_set_value(gpio_hw_t *hw, uint32 index, uint32_t v)
+{
+	*(volatile uint32_t *)&hw->gpio_num[index] = v;
+}
+
+//some special code re-use a GPIO, it doesn't care the GPIO setting value, just bake/restore value.
+static inline uint32_t gpio_ll_get_value(gpio_hw_t *hw, uint32 index)
+{
+	return *(volatile uint32_t *)&hw->gpio_num[index];
+}
+
 static inline void gpio_ll_set_io_mode(gpio_hw_t *hw, uint32 index, const gpio_config_t *config)
 {
 	uint32 io_mode = 0;
@@ -213,10 +225,7 @@ static inline void gpio_ll_clear_interrupt_status(gpio_hw_t *hw, gpio_interrupt_
 
 static inline void gpio_ll_clear_chan_interrupt_status(gpio_hw_t *hw, uint32 index)
 {
-	if (index < GPIO_32)
-		REG_MCHAN_SET_FIELD(index, &hw->gpio_0_31_int_st, GPIO_F_INT_EN, 1);
-	else
-		REG_MCHAN_SET_FIELD(index - GPIO_32, &hw->gpio_32_47_int_st, GPIO_F_INT_EN, 1);
+	hw->gpio_num[index].cfg.gpio_int_clear = 1;
 }
 
 static inline bool gpio_ll_is_interrupt_triggered(gpio_hw_t *hw, uint32 index, gpio_interrupt_status_t *gpio_status)

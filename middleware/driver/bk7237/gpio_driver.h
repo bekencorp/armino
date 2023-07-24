@@ -43,10 +43,10 @@ typedef enum {
 } gpio_i2s_map_mode_t;
 
 typedef enum {
-       GPIO_JTAG_MAP_MODE = 0,	       /**<GPIO20~GPIO21 is used for jtag */
-       GPIO_JTAG_MAP_MODE1,		       /**<GPIO0~GPIO1 is used for jtag */
-       GPIO_JTAG_MAP_MODE_MAX,			/**< Invalid mode*/
-} gpio_jtag_map_mode_t;
+       GPIO_JTAG_MAP_GROUP0 = 0,	       /**<GPIO20~GPIO21 is used for jtag */
+       GPIO_JTAG_MAP_GROUP1,		       /**<GPIO0~GPIO1 is used for jtag */
+       GPIO_JTAG_MAP_GROUP_MAX,			/**< Invalid mode*/
+} gpio_jtag_map_group_t;
 
 
 bk_err_t gpio_dev_map(gpio_id_t gpio_id, gpio_dev_t dev);
@@ -58,7 +58,7 @@ bk_err_t gpio_sdio_sel(gpio_sdio_map_mode_t gpio_sdio_sel_mode);
 bk_err_t gpio_sdio_one_line_sel(gpio_sdio_map_mode_t gpio_sdio_sel_mode);
 bk_err_t gpio_i2c1_sel(gpio_i2c1_map_mode_t gpio_i2c1_sel_mode);
 bk_err_t gpio_i2s_sel(gpio_i2s_map_mode_t gpio_i2s_sel_mode);
-bk_err_t gpio_jtag_sel(gpio_jtag_map_mode_t gpio_jtag_sel_mode);
+bk_err_t gpio_jtag_sel(gpio_jtag_map_group_t gpio_jtag_sel_mode);
 
 
 #if CONFIG_GPIO_WAKEUP_SUPPORT

@@ -72,6 +72,11 @@ static inline void yuv_buf_ll_set_em_base_addr(yuv_buf_hw_t *hw, uint32_t em_bas
 	hw->em_base_addr = em_base_addr;
 }
 
+static inline uint32_t yuv_buf_ll_get_em_base_addr(yuv_buf_hw_t *hw)
+{
+	return hw->em_base_addr;
+}
+
 static inline void yuv_buf_ll_set_encode_begin_hsync_posedge(yuv_buf_hw_t *hw)
 {
 	hw->ctrl.soi_hsync = 1;

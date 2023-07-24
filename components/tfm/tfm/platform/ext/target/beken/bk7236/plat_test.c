@@ -30,8 +30,13 @@ void timer0_handler(void)
 
 void tfm_plat_test_secure_timer_start(void)
 {
-	*((volatile uint32_t *)(0x41040000 + 5 * 4)) = 0; // TODO wangzhilei
-	
+	 // TODO wangzhilei
+	*((volatile uint32_t *)(0x41040000 + 5 * 4)) &= ~(1 << 1); /*sys secure*/
+	*((volatile uint32_t *)(0x41040000 + 4 * 4)) |= (1 << 1);  /*sys non-privilege*/
+
+	*((volatile uint32_t *)(0x41040000 + 8 * 4)) &= ~((1 << 1) | (1 << 6)); /* timer0 secure, timer1 secure*/
+	*((volatile uint32_t *)(0x41040000 + 7 * 4)) |= ((1 << 1) | (1 << 6));  /* timer non-privilege*/
+
 	bk_timer_driver_init();
 	bk_timer_start(TIMER_ID1, 500, (timer_isr_t)NULL);
 }

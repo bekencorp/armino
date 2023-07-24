@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <driver/qspi.h>
+#include <driver/qspi_flash.h>
 #include <driver/qspi_psram.h>
 #include "cli.h"
 #include "qspi_hw.h"
@@ -30,6 +31,10 @@ static void cli_qspi_help(void)
 	CLI_LOGI("qspi quad_write\r\n");
 	CLI_LOGI("qspi quad_read\r\n");
 	CLI_LOGI("qspi compare\r\n");
+	CLI_LOGI("qspi_flash get_id\r\n");
+	CLI_LOGI("qspi_flash erase 0 256\r\n");
+	CLI_LOGI("qspi_flash single_write 0 256\r\n");
+	CLI_LOGI("qspi_flash single_read 0 256\r\n");
 }
 
 static void cli_qspi_driver_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -116,7 +121,7 @@ static void cli_qspi_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	} else if (os_strcmp(argv[1], "flash_test") == 0) {
 		extern void test_qspi_flash(uint32_t base_addr, uint32_t buf_len);
 		uint32_t base_addr = os_strtoul(argv[2], NULL, 16);
-		uint32_t buf_len = 256;
+		uint32_t buf_len = os_strtoul(argv[3], NULL, 10);
 		test_qspi_flash(base_addr, buf_len);
 		CLI_LOGI("qspi flash test end\r\n");
 	} else if (os_strcmp(argv[1], "enter_quad_mode") == 0) {
@@ -185,10 +190,87 @@ static void cli_qspi_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	}
 }
 
+#define FLASH_PAGE_SIZE 256
+#define FLASH_SECTOR_SIZE 0x1000
+
+static void cli_qspi_flash_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		cli_qspi_help();
+		return;
+	}
+
+	uint32_t start_addr = os_strtoul(argv[2], NULL, 16);
+	uint32_t len = os_strtoul(argv[3], NULL, 10);
+
+	if (os_strcmp(argv[1], "erase") == 0) {
+		for (uint32_t addr = start_addr; addr < (start_addr + len); addr += FLASH_SECTOR_SIZE) {
+			bk_qspi_flash_erase_sector(addr);
+		}
+
+	} else if (os_strcmp(argv[1], "read") == 0) {
+		uint8_t buf[FLASH_PAGE_SIZE] = {0};
+		for (uint32_t addr = start_addr; addr < (start_addr + len); addr += FLASH_PAGE_SIZE) {
+			os_memset(buf, 0, FLASH_PAGE_SIZE);
+			bk_qspi_flash_read(addr, buf, FLASH_PAGE_SIZE);
+			CLI_LOGI("flash read addr:%x\r\n", addr);
+
+			CLI_LOGI("dump read flash data:\r\n");
+			for (uint32_t i = 0; i < 16; i++) {
+				for (uint32_t j = 0; j < 16; j++) {
+					os_printf("%02x ", buf[i * 16 + j]);
+				}
+				os_printf("\r\n");
+			}
+		}
+	} else if (os_strcmp(argv[1], "write") == 0) {
+		uint8_t buf[FLASH_PAGE_SIZE] = {0};
+		for (uint32_t i = 0; i < FLASH_PAGE_SIZE; i++) {
+			buf[i] = i;
+		}
+
+		for (uint32_t addr = start_addr; addr < (start_addr + len); addr += FLASH_PAGE_SIZE) {
+			bk_qspi_flash_write(addr, buf, FLASH_PAGE_SIZE);
+		}
+	} else if (os_strcmp(argv[1], "single_read") == 0) {
+		uint8_t buf[FLASH_PAGE_SIZE] = {0};
+		for (uint32_t addr = start_addr; addr < (start_addr + len); addr += FLASH_PAGE_SIZE) {
+			os_memset(buf, 0, FLASH_PAGE_SIZE);
+			bk_qspi_flash_single_read(addr, buf, FLASH_PAGE_SIZE);
+			CLI_LOGI("flash read addr:%x\r\n", addr);
+
+			CLI_LOGI("dump read flash data:\r\n");
+			for (uint32_t i = 0; i < 16; i++) {
+				for (uint32_t j = 0; j < 16; j++) {
+					os_printf("%02x ", buf[i * 16 + j]);
+				}
+				os_printf("\r\n");
+			}
+		}
+	} else if (os_strcmp(argv[1], "single_write") == 0) {
+		uint8_t buf[FLASH_PAGE_SIZE] = {0};
+		for (uint32_t i = 0; i < FLASH_PAGE_SIZE; i++) {
+			buf[i] = i;
+		}
+
+		for (uint32_t addr = start_addr; addr < (start_addr + len); addr += FLASH_PAGE_SIZE) {
+			bk_qspi_flash_single_page_program(addr, buf, FLASH_PAGE_SIZE);
+		}
+
+	} else if (os_strcmp(argv[1], "get_id") == 0) {
+		uint32_t flash_id = bk_qspi_flash_read_id();
+		bk_qspi_flash_set_protect_none();
+		bk_qspi_flash_quad_enable();
+		CLI_LOGI("flash_id:%x\r\n", flash_id);
+	}
+}
+
+
 #define QSPI_CMD_CNT (sizeof(s_qspi_commands) / sizeof(struct cli_command))
 static const struct cli_command s_qspi_commands[] = {
 	{"qspi_driver", "qspi_driver {init|deinit}", cli_qspi_driver_cmd},
 	{"qspi", "qspi {init|write|read}", cli_qspi_cmd},
+	{"qspi_flash", "qspi_flash {write|read}", cli_qspi_flash_cmd},
 };
 
 int cli_qspi_init(void)

@@ -61,6 +61,7 @@ bk_err_t yuv_buf_hal_start_h264_mode(yuv_buf_hal_t *hal);
 bk_err_t yuv_buf_hal_stop_h264_mode(yuv_buf_hal_t *hal);
 bk_err_t yuv_buf_hal_enable_h264_nosensor_mode(yuv_buf_hal_t *hal);
 bk_err_t yuv_buf_hal_set_partial_display_offset_config(yuv_buf_hal_t *hal, const yuv_buf_partial_offset_config_t *offset_config);
+uint32_t yuv_buf_hal_get_em_base_addr(yuv_buf_hal_t *hal);
 
 #if CFG_HAL_DEBUG_YUV_BUF
 void yuv_buf_struct_dump(void);

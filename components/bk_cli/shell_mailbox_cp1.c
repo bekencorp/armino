@@ -6,7 +6,7 @@
 #include "shell_drv.h"
 #include "mailbox_channel.h"
 
-#if CONFIG_ARCH_RISCV
+#if CONFIG_CACHE_ENABLE
 #include "cache.h"
 #endif
 
@@ -320,6 +320,9 @@ static bk_err_t write_sync(shell_mb_ext_t *mb_ext, u8 * p_buf, u16 buf_len)
 		while(*buff_busy)
 		{
 			// wait buffer to be free.
+		#if CONFIG_CACHE_ENABLE
+			flush_dcache((void *)tx_buff, buf_len);
+		#endif
 		}
 	}
 

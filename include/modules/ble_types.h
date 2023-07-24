@@ -334,6 +334,8 @@ typedef enum
     BLE_GET_LOCAL_NAME,
 
     BLE_READ_LOCAL_ADDR,
+
+    BLE_SET_RANDOM_ADDR,
     BLE_CMD_MAX,
 } ble_cmd_t;
 
@@ -766,9 +768,25 @@ enum initiating_phy_type_le
     INIT_PHY_TYPE_LE_CODED = (1UL<<(2)),
 };
 
+/// Own addr type
+enum ble_own_addr_type
+{
+    /// Public or Private Static Address according to device address configuration
+    /// Attention: Private Static Address is not used now, so set will be public
+    OWN_ADDR_TYPE_PUBLIC_OR_STATIC_ADDR,
+
+    /// Generated resolvable private random or random address, will auto refresh periodic
+    /// Attention: RPA is not used now, so set will be random
+    OWN_ADDR_TYPE_GEN_RSLV_OR_RANDOM_ADDR,
+
+    /// Generated non-resolvable private random or random address, will auto refresh periodic
+    /// Attention: NRPA is not used now, so set will be random
+    OWN_ADDR_TYPE_GEN_NON_RSLV_OR_RANDOM_ADDR,
+};
+
 typedef struct
 {
-    /// Own address type:  public=0 / random=1 / rpa_or_pub=2 / rpa_or_rnd=3
+    /// Own address type: see enum ble_own_addr_type
     uint8_t own_addr_type;
     /// Advertising type (@see enum adv_type)
     uint8_t adv_type;
@@ -789,7 +807,7 @@ typedef struct
 
 typedef struct
 {
-    /// Own address type:  public=0 / random=1 / rpa_or_pub=2 / rpa_or_rnd=3
+    /// Own address type: see enum ble_own_addr_type
     uint8_t own_addr_type;
     /// on which the advertising packets should be received:  LE 1M=1 / LE CODED=4 / LE 1M and LE CODED=5
     uint8_t scan_phy;
@@ -807,7 +825,7 @@ typedef struct
     uint16_t intv_max;
     /// Connection latency. The range is 0x0000 to 0x01F3
     uint16_t con_latency;
-    /// Link supervision timeout(in unit of 10ms). Must be greater than or equal to 100ms 
+    /// Link supervision timeout(in unit of 10ms). Must be greater than or equal to 100ms
     uint16_t sup_to;
     /// on which the advertising packets should be received on the primary advertising physical channel (@see enum phy_type_le)
     uint8_t init_phys;

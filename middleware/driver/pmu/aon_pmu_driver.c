@@ -80,6 +80,11 @@ uint32_t aon_pmu_drv_reg_get(pmu_reg_e reg)
 {
 	return aon_pmu_hal_reg_get(reg);
 }
+
+void aon_pmu_drv_lpo_src_extern32k_enable(void)
+{
+	aon_pmu_hal_lpo_src_extern32k_enable();
+}
 void aon_pmu_drv_lpo_src_set(uint32_t lpo_src)
 {
     aon_pmu_hal_lpo_src_set(lpo_src);

@@ -17,6 +17,7 @@ This is the documentation for Beken Armino Development Framework.
     Supported Boards <boards/index>
     Samples and Demos <examples/index>
     Application Development <application/index>
+	Projects code <projects_work/index>
     Projects and Solutions <projects/index>
     Development and Contribution Process <process/index>
     Cloud Platform <clounds/index>

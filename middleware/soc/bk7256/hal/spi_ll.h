@@ -43,7 +43,7 @@ extern "C" {
 static inline void spi_ll_init(spi_hw_t *hw)
 {
 	hw->ctrl.tx_fifo_int_level = 0;
-	hw->ctrl.rx_fifo_int_level = 2;
+	hw->ctrl.rx_fifo_int_level = 0;
 }
 
 static inline void spi_ll_enable(spi_hw_t *hw)
@@ -138,7 +138,8 @@ static inline void spi_ll_disable_rx_fifo_int(spi_hw_t *hw)
 
 static inline void spi_ll_set_clk_div(spi_hw_t *hw, uint32_t clk_div)
 {
-	hw->ctrl.clk_rate = clk_div & SPI_F_CLK_DIV_M;
+	hw->ctrl.v &= (~(SPI_F_CLK_DIV_M << SPI_F_CLK_DIV_S));
+	hw->ctrl.v |= ((clk_div & SPI_F_CLK_DIV_M) << SPI_F_CLK_DIV_S);
 }
 
 static inline void spi_ll_enable_slave_release_int(spi_hw_t *hw)

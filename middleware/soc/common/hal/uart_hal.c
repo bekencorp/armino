@@ -32,7 +32,6 @@ bk_err_t uart_hal_init(uart_hal_t *hal)
 bk_err_t uart_hal_init_uart(uart_hal_t *hal, uart_id_t id, const uart_config_t *config)
 {
 	uart_ll_reset_int_en_to_default(hal->hw, id);
-	uart_ll_reset_fifo_port_to_default(hal->hw, id);
 
 	uart_ll_set_mode_uart(hal->hw, id);
 	uart_ll_set_data_bits(hal->hw, id, config->data_bits);

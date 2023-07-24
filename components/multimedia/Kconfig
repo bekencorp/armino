@@ -1,0 +1,75 @@
+menu "Media"
+
+	config MEDIA
+		bool "Enable Media"
+		default n
+		help
+			Enable media service
+			
+	config MEDIA_MAJOR
+		bool "Enable Media"
+		default n
+
+	config MEDIA_APP
+		bool "Enable Media"
+		default n
+
+	config MEDIA_MINOR
+		bool "Enable Media"
+		default n
+	config WIFI_TRANSFER
+		depends on MEDIA
+		bool "Enable Wifi Transfer"
+		default n
+	config LVGL
+		depends on LCD
+		bool "Enable Lvgl"
+		default n
+	config LCD_FLASH_JPEG_DISPLAY
+		depends on LCD
+		bool "Enable Lcd Flash Jpeg Display"
+		default n
+		help
+			enable lcd display flash img
+	config LCD_DMA2D_BLEND
+		depends on DMA2D
+		bool "Enable Lcd Dma2d Blend Flash Img"
+		default n
+		help
+			enable lcd dma2d blend flash logo
+	config BLEND_USE_GUI
+		depends on LCD
+		bool "Enable Blend Use Gui"
+		default n
+		help
+			enable lcd dma2d blend from gui
+	config BLEND_GUI_OUTPUT_888
+		depends on LCD
+		bool "Enable Blend Gui Output 888"
+		default n
+		help
+			enable lcd dma2d blend from gui, gui data is rgb888
+	config LCD_FONT_BLEND
+		depends on LCD
+		bool "Enable Lcd Font Blend"
+		default n
+		help
+			enable lcd blend by font logo
+	config IMAGE_STORAGE
+		depends on MEDIA
+		bool "enable image storage function"
+		default n
+		help
+			enable image save and read image
+	config JPEG_YUV_MIX
+		depends on CAMERA
+		bool "enable jpeg module for jpeg and yuv mix mode"
+		default n
+		help
+			enable jpeg work method: encode and yuv by turns
+	config EXTENTED_PSRAM_LAYOUT
+		bool "Externally controlling the PSRAM range of the framebuffer"
+		default n
+		help
+			extern external fb_layout variable
+endmenu

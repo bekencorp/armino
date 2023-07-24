@@ -90,8 +90,9 @@ static const ARM_FLASH_CAPABILITIES DriverCapabilities = {
 static bool is_access_from_code_bus(uint32_t absolute_addr)
 {
 	/*true condition:
-	  0, disble flash write protection;
-	  1, enable flash cpu write;*/
+	  0.0, disble flash write protection;
+	  0.1, enable flash cpu write;
+	  0.2, current code need be at itcm/iram;*/
 	#define CONFIG_CODE_BUS_OPS_FLASH 0
 	#if CONFIG_CODE_BUS_OPS_FLASH  
 	return true;
@@ -216,25 +217,25 @@ static int32_t Flash_PowerControl(ARM_POWER_STATE state)
     return ARM_DRIVER_OK;
 }
 
-static int32_t Flash_ReadData(uint32_t addr, void *data, uint32_t cnt)
+static int32_t Flash_ReadData(uint32_t offset, void *data, uint32_t cnt)
 {
     bool use_cbus = false;
     int32_t rc = 0;
 
-    BK_TFM_FLASH_LOGD(TAG, "read off=%x cnt=%x\r\n", addr, cnt);
+    BK_TFM_FLASH_LOGD(TAG, "read off=%x cnt=%x\r\n", offset, cnt);
 
     if (cnt == 0) {
         BK_TFM_FLASH_LOGW(TAG, "read 0B\r\n");
         return ARM_DRIVER_OK;
     }
 
-    use_cbus = is_access_from_code_bus(addr);
-    FLASH_CLR_CBUS_ADDR_FLAG(addr);
+    use_cbus = is_access_from_code_bus(offset);
+    FLASH_CLR_CBUS_ADDR_FLAG(offset);
 
     /* CMSIS ARM_FLASH_ReadData API requires the `addr` data type size aligned.
      * Data type size is specified by the data_width in ARM_FLASH_CAPABILITIES.
      */
-    if (addr % data_width_byte[DriverCapabilities.data_width] != 0) {
+    if (offset % data_width_byte[DriverCapabilities.data_width] != 0) {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
@@ -242,18 +243,18 @@ static int32_t Flash_ReadData(uint32_t addr, void *data, uint32_t cnt)
     cnt *= data_width_byte[DriverCapabilities.data_width];
 
     /* Check flash memory boundaries */
-    rc = is_range_valid(FLASH0_DEV, addr + cnt);
+    rc = is_range_valid(FLASH0_DEV, offset + cnt);
     if (rc != 0) {
-        BK_TFM_FLASH_LOGE(TAG, "invalid addr range, addr=%x cnt=%x\r\n", addr, cnt);
+        BK_TFM_FLASH_LOGE(TAG, "invalid addr range, addr=%x cnt=%x\r\n", offset, cnt);
         return ARM_DRIVER_ERROR_PARAMETER;
     }
 
     if (use_cbus) {
-        BK_TFM_FLASH_LOGD(TAG, "flash cbus read, addr=%x cnt=%x+\r\n", FLASH0_DEV->memory_base + addr, cnt);
-        memcpy(data, (void *)(FLASH0_DEV->memory_base + addr), cnt);
+        BK_TFM_FLASH_LOGD(TAG, "flash cbus read, addr=%x cnt=%x+\r\n", FLASH0_DEV->memory_base + offset, cnt);
+        memcpy(data, (void *)(FLASH0_DEV->memory_base + offset), cnt);
         BK_TFM_FLASH_LOGD(TAG, "flash cbus read-\r\n");
     } else {
-        BK_LOG_ON_ERR(bk_flash_read_bytes(addr, data, cnt));
+        BK_LOG_ON_ERR(bk_flash_read_bytes(offset, data, cnt));
     }
 
     /* Conversion between bytes and data items */
@@ -263,27 +264,27 @@ static int32_t Flash_ReadData(uint32_t addr, void *data, uint32_t cnt)
     return cnt;
 }
 
-static int32_t Flash_ProgramData(uint32_t addr, const void *data,
+static int32_t Flash_ProgramData(uint32_t offset, const void *data,
                                      uint32_t cnt)
 {
     bool use_cbus = false;
     int32_t rc = 0;
 
-    BK_TFM_FLASH_LOGD(TAG, "write off=%x cnt=%x base=%x\r\n", addr, cnt, FLASH0_DEV->memory_base);
+    BK_TFM_FLASH_LOGD(TAG, "write off=%x cnt=%x base=%x\r\n", offset, cnt, FLASH0_DEV->memory_base);
 
     if (cnt == 0) {
         BK_TFM_FLASH_LOGW(TAG, "write 0B\r\n");
         return ARM_DRIVER_OK;
     }
-    use_cbus = is_access_from_code_bus(addr);
-    FLASH_CLR_CBUS_ADDR_FLAG(addr);
+    use_cbus = is_access_from_code_bus(offset);
+    FLASH_CLR_CBUS_ADDR_FLAG(offset);
 
     /* Conversion between data items and bytes */
     cnt *= data_width_byte[DriverCapabilities.data_width];
 
     /* Check flash memory boundaries and alignment with minimal write size */
-    rc  = is_range_valid(FLASH0_DEV, addr + cnt);
-    rc |= is_write_aligned(FLASH0_DEV, addr);
+    rc  = is_range_valid(FLASH0_DEV, offset + cnt);
+    rc |= is_write_aligned(FLASH0_DEV, offset);
     rc |= is_write_aligned(FLASH0_DEV, cnt);
     if (rc != 0) {
         return ARM_DRIVER_ERROR_PARAMETER;
@@ -292,10 +293,10 @@ static int32_t Flash_ProgramData(uint32_t addr, const void *data,
     /* Check if the flash area to write the data was erased previously */
 
     if (use_cbus) {
-        memcpy((uint8_t*)(FLASH0_DEV->memory_base + addr), (uint8_t*)data, cnt);
+        memcpy((uint8_t*)(FLASH0_DEV->memory_base + offset), (uint8_t*)data, cnt);
     } else {
-        rc = is_flash_ready_to_write((const uint8_t*)addr, cnt);
-        BK_LOG_ON_ERR(bk_flash_write_bytes(addr, data, cnt));
+        rc = is_flash_ready_to_write((const uint8_t*)offset, cnt);
+        BK_LOG_ON_ERR(bk_flash_write_bytes(offset, data, cnt));
     }
 
     /* Conversion between bytes and data items */
@@ -304,15 +305,14 @@ static int32_t Flash_ProgramData(uint32_t addr, const void *data,
     return cnt;
 }
 
-static int32_t Flash_EraseSector(uint32_t addr)
+static int32_t Flash_EraseSector(uint32_t offset)
 {
-    uint32_t offset = addr;
     uint32_t rc = 0;
 
-    BK_TFM_FLASH_LOGD(TAG, "flash erase off=%x\r\n", addr);
+    BK_TFM_FLASH_LOGD(TAG, "flash erase offset=%x\r\n", offset);
 
-    rc  = is_range_valid(FLASH0_DEV, addr);
-    rc |= is_sector_aligned(FLASH0_DEV, addr);
+    rc  = is_range_valid(FLASH0_DEV, offset);
+    rc |= is_sector_aligned(FLASH0_DEV, offset);
     if (rc != 0) {
         return ARM_DRIVER_ERROR_PARAMETER;
     }
@@ -365,4 +365,30 @@ ARM_DRIVER_FLASH Driver_FLASH0 = {
     Flash_GetStatus,
     Flash_GetInfo
 };
+
+#define CONFIG_FLASH_SELF_TEST 0
+
+#if CONFIG_FLASH_SELF_TEST
+#define FLASH_TEST_OFFSET (416 * 1024) /*0---0x02000000*/
+#define FlASH_TEST_BUF_CNT  (128)
+
+uint8_t test_buf[FlASH_TEST_BUF_CNT] = {0};
+void Flash_SelfTest(void)
+{
+	int32_t ret, i;
+
+	ret = Flash_ReadData(0, test_buf, sizeof(test_buf));
+	printf("Flash_ReadData return value:0x%x\r\n", ret);
+	printf_buf_hex(test_buf, sizeof(test_buf));
+
+	for(i = 0; i < sizeof(test_buf); i ++){
+		test_buf[i] = i + 1;
+	}
+	ret = Flash_EraseSector(FLASH_TEST_OFFSET);
+	ret = Flash_ProgramData(FLASH_TEST_OFFSET, test_buf, sizeof(test_buf));
+	ret = Flash_ReadData(FLASH_TEST_OFFSET, test_buf, sizeof(test_buf));
+	printf_buf_hex(test_buf, sizeof(test_buf));
+}
+#endif
+
 #endif /* RTE_FLASH0 */

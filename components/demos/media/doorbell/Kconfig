@@ -1,7 +1,7 @@
 menu "Demos::Media::Doorbell"
 	config DOORBELL
+		depends on MEDIA && WIFI_ENABLE
 		bool "Enable Doorbell"
-		depends on MEDIA
 		default n
 
 	config DOORBELL_DEMO2

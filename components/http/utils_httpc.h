@@ -7,6 +7,9 @@
 
 #include "iot_export_errno.h"
 #include "utils_net.h"
+#if (CONFIG_TFM_FWU)
+#include "psa/update.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,6 +60,18 @@ typedef enum {
 
 #define HTTP_RESP_CONTENT_LEN   (256)
 
+#if (CONFIG_TFM_FWU)
+#define OTA_BL2_FLAG   (1 << 0)
+#define OTA_SPE_FLAG   (1 << 1)
+#define OTA_NSPE_FLAG  (1 << 2)
+
+extern psa_image_id_t primary_manifest_image;
+extern psa_image_id_t secondary_manifest_image;
+extern psa_image_id_t primary_bl2_image;
+extern psa_image_id_t secondary_bl2_image;
+extern psa_image_id_t spe_image;
+extern psa_image_id_t nspe_image;
+#endif
 
 /** @defgroup httpclient_struct Struct
  * @{
@@ -150,6 +165,12 @@ void http_flash_init(void);
 void http_flash_deinit(void);
 void http_flash_wr(UINT8 *src, unsigned len);
 void http_wr_to_flash(char *page, UINT32 len);
+
+#if (CONFIG_TFM_FWU)
+void bk_ota_set_flag(uint32_t flag);
+uint32_t bk_ota_get_flag(void);
+void bk_ota_clear_flag(void);
+#endif
 
 #ifdef __cplusplus
 }

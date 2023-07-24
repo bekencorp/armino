@@ -18,6 +18,7 @@
 ; */
 
 #include "tfm_plat_config.h"
+#include "region_defs.h"
 
     .syntax    unified
     .arch    armv8-m.main
@@ -75,6 +76,10 @@ Reset_Handler:
     cmp     r0,#0
 not_the_core_to_run_on:
     bne     not_the_core_to_run_on
+
+set_msp_limit:
+    mov     r0, BL2_MSP_STACK_SIZE
+    MSR msplim, r0
 
 #ifdef __STARTUP_COPY_MULTIPLE
 /*  Multiple sections scheme.

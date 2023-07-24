@@ -29,6 +29,7 @@
 #include "spi_statis.h"
 #include "spi_config.h"
 #include "sys_driver.h"
+#include "bk_misc.h"
 
 typedef struct {
 	spi_hal_t hal;
@@ -73,6 +74,25 @@ typedef struct {
 	}\
 } while(0)
 
+
+#ifdef CONFIG_SOC_BK7236XX
+#define SPI_SET_PIN(id) do {\
+	gpio_dev_unmap(SPI##id##_LL_CSN_PIN);\
+	gpio_dev_unmap(SPI##id##_LL_SCK_PIN);\
+	gpio_dev_unmap(SPI##id##_LL_MOSI_PIN);\
+	gpio_dev_unmap(SPI##id##_LL_MISO_PIN);\
+	gpio_dev_map(SPI##id##_LL_CSN_PIN, GPIO_DEV_SPI##id##_CSN);\
+	gpio_dev_map(SPI##id##_LL_SCK_PIN, GPIO_DEV_SPI##id##_SCK);\
+	gpio_dev_map(SPI##id##_LL_MOSI_PIN, GPIO_DEV_SPI##id##_MOSI);\
+	gpio_dev_map(SPI##id##_LL_MISO_PIN, GPIO_DEV_SPI##id##_MISO);\
+	bk_gpio_pull_up(SPI##id##_LL_CSN_PIN);\
+	bk_gpio_pull_up(SPI##id##_LL_SCK_PIN);\
+	bk_gpio_set_capacity(SPI##id##_LL_CSN_PIN, 3);\
+	bk_gpio_set_capacity(SPI##id##_LL_SCK_PIN, 3);\
+	bk_gpio_set_capacity(SPI##id##_LL_MOSI_PIN, 3);\
+	bk_gpio_set_capacity(SPI##id##_LL_MISO_PIN, 3);\
+} while(0)
+#else
 #define SPI_SET_PIN(id) do {\
 	gpio_dev_unmap(SPI##id##_LL_CSN_PIN);\
 	gpio_dev_unmap(SPI##id##_LL_SCK_PIN);\
@@ -85,6 +105,8 @@ typedef struct {
 	bk_gpio_pull_up(SPI##id##_LL_CSN_PIN);\
 	bk_gpio_pull_up(SPI##id##_LL_SCK_PIN);\
 } while(0)
+
+#endif
 
 static spi_driver_t s_spi[SOC_SPI_UNIT_NUM] = {0};
 static bool s_spi_driver_is_init = false;
@@ -146,6 +168,13 @@ static void spi_clock_enable(spi_id_t id)
 
 static void spi_clock_disable(spi_id_t id)
 {
+#if CONFIG_SOC_BK7256XX
+	//disable apll clock, and restore the clock config
+	sys_drv_apll_en(false);
+	sys_drv_cb_manu_val_set(SPI_DIS_APLL_MANU_VAL);
+	sys_drv_ana_reg11_vsel_set(SPI_DIS_APLL_VSEL_VAL);
+#endif
+
 	switch(id)
 	{
 		case SPI_ID_0:
@@ -274,7 +303,7 @@ static uint32_t spi_id_read_bytes_common(spi_id_t id)
 
 static void spi_dma_tx_finish_handler(dma_id_t id)
 {
-	SPI_LOGI("[%s] spi_id:%d\r\n", __func__, s_current_spi_dma_wr_id);
+	SPI_LOGD("[%s] spi_id:%d\r\n", __func__, s_current_spi_dma_wr_id);
 
 	if (s_spi_tx_finish_isr[s_current_spi_dma_wr_id].callback){
 		s_spi_tx_finish_isr[s_current_spi_dma_wr_id].callback(s_current_spi_dma_wr_id,s_spi_tx_finish_isr[s_current_spi_dma_wr_id].param);
@@ -287,7 +316,7 @@ static void spi_dma_tx_finish_handler(dma_id_t id)
 
 static void spi_dma_rx_finish_handler(dma_id_t id)
 {
-	SPI_LOGI("[%s] spi_id:%d\r\n", __func__, s_current_spi_dma_rd_id);
+	SPI_LOGD("[%s] spi_id:%d\r\n", __func__, s_current_spi_dma_rd_id);
 	if (s_spi_rx_finish_isr[s_current_spi_dma_rd_id].callback){
 		s_spi_rx_finish_isr[s_current_spi_dma_rd_id].callback(s_current_spi_dma_rd_id,s_spi_rx_finish_isr[s_current_spi_dma_rd_id].param);
 	} 
@@ -777,6 +806,14 @@ bk_err_t bk_spi_dma_duplex_xfer(spi_id_t id, const void *tx_data, uint32_t tx_si
 		spi_duplex_tx_rx_enable(id);
 		rtos_get_semaphore(&s_spi[id].tx_sema, BEKEN_NEVER_TIMEOUT);
 		rtos_get_semaphore(&s_spi[id].rx_sema, BEKEN_NEVER_TIMEOUT);
+
+		uint32_t int_level = rtos_disable_int();
+		spi_hal_disable_rx(&s_spi[id].hal);
+		spi_hal_disable_tx(&s_spi[id].hal);
+		spi_hal_disable_tx_fifo_int(&s_spi[id].hal);
+		spi_hal_disable_rx_fifo_int(&s_spi[id].hal);
+		rtos_enable_int(int_level);
+
 		len = rx_size > 0 ? (len-rx_size) : (len-tx_size);
 		offset += rx_size > 0 ? (rx_size) : (tx_size);
 	}
@@ -793,6 +830,7 @@ bk_err_t bk_spi_dma_write_bytes(spi_id_t id, const void *data, uint32_t size)
 	uint32_t int_level = rtos_disable_int();
 	s_spi[id].is_tx_blocked = true;
 	s_current_spi_dma_wr_id = id;
+	spi_hal_clear_tx_fifo(&s_spi[id].hal);
 	//set spi trans_len as 0, to increase max trans_len from 4096(spi max length) to 65536(dma max length).
 	spi_hal_set_tx_trans_len(&s_spi[id].hal, 0);
 
@@ -805,10 +843,15 @@ bk_err_t bk_spi_dma_write_bytes(spi_id_t id, const void *data, uint32_t size)
 	int_level = rtos_disable_int();
 	//wait spi last fifo data transfer finish
 	spi_hal_enable_tx_fifo_int(&s_spi[id].hal);
-	for (int i = 0; i < 20; i++) {
+	for (int i = 0; i <= 500; i++) {
+		delay_us(1);
 		SPI_LOGD("index = %d, id=%d, tx_fifo_int_status = %d\n", i, id, spi_hal_is_tx_fifo_int_triggered(&s_spi[id].hal));
-		if(spi_hal_is_tx_fifo_int_triggered(&s_spi[id].hal))
+		if(spi_hal_is_tx_fifo_int_triggered(&s_spi[id].hal)) {
+			delay_us(1);
 			break;
+		}
+		if(i == 500)
+			SPI_LOGE("wait tx fifo empty timeout.\n");
 	}
 	spi_hal_disable_tx_fifo_int(&s_spi[id].hal);
 	spi_hal_clear_tx_fifo_int_status(&s_spi[id].hal);
@@ -831,6 +874,7 @@ bk_err_t bk_spi_dma_read_bytes(spi_id_t id, void *data, uint32_t size)
 	spi_hal_set_rx_trans_len(&s_spi[id].hal, 0);
 	spi_hal_clear_rx_fifo(&s_spi[id].hal);
 	spi_hal_disable_rx_fifo_int(&s_spi[id].hal);
+	spi_hal_disable_rx_overflow_int(&s_spi[id].hal);
 	spi_hal_enable_rx(&s_spi[id].hal);
 	rtos_enable_int(int_level);
 	bk_dma_read(s_spi[id].spi_rx_dma_chan, (uint8_t *)data, size);

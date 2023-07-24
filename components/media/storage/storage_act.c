@@ -455,7 +455,7 @@ int storage_task_start(void)
 		frame_buffer_fb_register(MODULE_CAPTURE, FB_INDEX_JPEG);
 
 		ret = rtos_create_thread(&storage_task_thread,
-		                         4,
+		                         BEKEN_DEFAULT_WORKER_PRIORITY,
 		                         "storage_task_thread",
 		                         (beken_thread_function_t)storage_task_entry,
 		                         4 * 1024,

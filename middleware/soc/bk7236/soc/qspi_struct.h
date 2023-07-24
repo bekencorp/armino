@@ -270,7 +270,10 @@ typedef volatile struct {
 			uint32_t disable_cmd_sck:   1;   /**< bit[16] */
 			uint32_t reserved1:         1;   /**< bit[17] */
 			uint32_t first_bit_mode:    1;   /**< bit[18] */
-			uint32_t reserved2:         5;   /**< bit[19:23] */
+			uint32_t dahb_trans_type:   2;   /**< bit[19:20] */
+			uint32_t tx_fifo_clr_sync_sck_bps:  1;  /**< bit[21] */
+			uint32_t io_cpu_mem_sel:    1;   /**< bit[22] */
+			uint32_t spi_rcv_4byte_mode:1;   /**< bit[23] */
 			uint32_t qspi_cs_h_wait:    8;   /**< bit[24:31] */
 		};
 		uint32_t v;

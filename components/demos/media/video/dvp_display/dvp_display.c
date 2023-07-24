@@ -2,9 +2,6 @@
 #include <driver/int.h>
 #include <driver/dvp_camera.h>
 #include <driver/dvp_camera_types.h>
-#if (CONFIG_MEDIA)
-#include "frame_buffer.h"
-#endif
 
 extern bk_err_t bk_dvp_camera_open(media_ppi_t ppi, media_camera_type_t type);
 extern int lcd_act_driver_init(uint32_t lcd_ppi);

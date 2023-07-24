@@ -27,6 +27,14 @@ typedef enum {
 	PWM_ID_3,     /**< pwm id 3 */
 	PWM_ID_4,     /**< pwm id 4 */
 	PWM_ID_5,     /**< pwm id 5 */
+
+	PWM_ID_6,
+	PWM_ID_7,
+	PWM_ID_8,
+	PWM_ID_9,
+	PWM_ID_10,
+	PWM_ID_11,
+
 	PWM_ID_MAX    /**< pwm id max */
 } pwm_id_t;
 
@@ -49,7 +57,7 @@ typedef enum {
 } pwm_capture_edge_t;
 
 typedef uint8_t pwm_unit_t;
-typedef uint8_t pwm_chan_t;
+typedef uint8_t pwm_chan_t;	//pwm_id_t
 
 #define BK_ERR_PWM_HAL_CLOCK (BK_ERR_PWM_HAL_BASE - 1)
 

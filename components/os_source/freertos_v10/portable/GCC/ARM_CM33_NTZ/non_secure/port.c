@@ -565,7 +565,11 @@ PRIVILEGED_DATA static volatile uint32_t ulCriticalNesting = 0xaaaaaaaaUL;
 __attribute__( ( weak ) ) void vPortSetupTimerInterrupt( void ) /* PRIVILEGED_FUNCTION */
 {
 #if CONFIG_SYSTICK_32K
+    #if !CONFIG_SLAVE_CORE
     sys_ll_set_cpu_power_sleep_wakeup_cpu0_ticktimer_32k_enable(1);
+    #else
+    sys_ll_set_cpu_power_sleep_wakeup_cpu1_ticktimer_32k_enable(1);
+    #endif
 #endif
 
     /* Calculate the constants required to configure the tick interrupt. */

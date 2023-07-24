@@ -156,14 +156,15 @@ macro(tfm_toolchain_reload_compiler)
     set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS_INIT})
     set(CMAKE_ASM_FLAGS ${CMAKE_ASM_FLAGS_INIT})
 
-    set(BL2_COMPILER_CP_FLAG -mfloat-abi=soft)
 
     if (CONFIG_TFM_FP STREQUAL "hard")
         set(COMPILER_CP_FLAG -mfloat-abi=hard -mfpu=${CONFIG_TFM_FP_ARCH})
         set(LINKER_CP_OPTION -mfloat-abi=hard -mfpu=${CONFIG_TFM_FP_ARCH})
+        set(BL2_COMPILER_CP_FLAG -mfloat-abi=hard -mfpu=${CONFIG_TFM_FP_ARCH})
     else()
         set(COMPILER_CP_FLAG -mfloat-abi=soft)
         set(LINKER_CP_OPTION -mfloat-abi=soft)
+        set(BL2_COMPILER_CP_FLAG -mfloat-abi=soft)
     endif()
 
     # For GNU Arm Embedded Toolchain doesn't emit __ARM_ARCH_8_1M_MAIN__, adding this macro manually.

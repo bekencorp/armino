@@ -21,40 +21,21 @@
 #include <os/mem.h>
 #include <driver/gpio.h>
 #include <driver/gpio_types.h>
+#include "gpio_map.h"
+#include "gpio_driver.h"
 
-#include <driver/dma.h>
-
-#include <os/mem.h>
-#include <driver/gpio.h>
-#include <driver/gpio_types.h>
-
-#include <driver/dma.h>
-#include <driver/i2c.h>
-#include <driver/jpeg_enc.h>
-#include <driver/jpeg_enc_types.h>
-#include <driver/uvc_camera.h>
-
-#include <driver/dvp_camera.h>
-#include <driver/dvp_camera_types.h>
 #include <driver/media_types.h>
 
 #include <soc/mapping.h>
-
-#include <driver/timer.h>
-
-
-#include "bk_general_dma.h"
 
 #include "transfer_act.h"
 #include "media_evt.h"
 
 #include "frame_buffer.h"
-#include <driver/gpio.h>
-#include "gpio_map.h"
-#include "gpio_driver.h"
 
 #include "wlan_ui_pub.h"
 
+#include "media_app.h"
 
 #if CONFIG_ARCH_RISCV
 #include "cache.h"
@@ -121,15 +102,6 @@ typedef enum
 	TRS_TRANSFER_EXIT,
 } trs_task_msg_type_t;
 
-typedef struct
-{
-	uint8_t id;
-	uint8_t eof;
-	uint8_t cnt;
-	uint8_t size;
-	uint8_t data[];
-} transfer_data_t;
-
 
 
 transfer_info_t transfer_info;
@@ -150,8 +122,11 @@ uint8_t frame_id = 0;
 
 frame_buffer_t *wifi_tranfer_frame = NULL;
 
-
+#ifdef CONFIG_INTEGRATION_DOORBELL
+media_transfer_cb_t *media_transfer_callback = NULL;
+#else
 video_setup_t vido_transfer_info = {0};
+#endif
 
 uint32_t lost_size = 0;
 uint32_t complete_size = 0;
@@ -180,6 +155,43 @@ int dvp_frame_send(uint8_t *data, uint32_t size, uint32_t retry_max, uint32_t ms
 {
 	int ret = BK_FAIL;
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+	if (transfer_data == NULL)
+	{
+		LOGI("%s transfer_data is null\n", __func__);
+		return ret;
+	}
+
+	if (media_transfer_callback->prepare)
+	{
+		media_transfer_callback->prepare(data, size);
+	}
+
+	do
+	{
+		ret = media_transfer_callback->send(data, size);
+
+		if (ret < 0)
+		{
+			LOGE("frame send error, %d\n", ret);
+			return -1;
+		}
+
+
+		if (ret == size)
+		{
+			//LOGI("size: %d\n", size);
+			complete_size += size;
+			rtos_delay_milliseconds(1);
+			break;
+		}
+
+//		LOGI("%s retry %d %d\n", __func__, ret, size);
+		lost_size += size;
+		rtos_delay_milliseconds(ms_time);
+	}
+	while (retry_max-- && transfer_task_running);
+#else
 	if (!vido_transfer_info.send_func)
 	{
 		return ret;
@@ -203,6 +215,7 @@ int dvp_frame_send(uint8_t *data, uint32_t size, uint32_t retry_max, uint32_t ms
 	}
 	while (retry_max-- && transfer_task_running);
 
+#endif
 	return ret == size ? BK_OK : BK_FAIL;
 }
 
@@ -245,6 +258,14 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 
 	WIFI_TRANSFER_START();
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+	if (transfer_data == NULL)
+	{
+		LOGI("%s transfer_data is null\n", __func__);
+		return;
+	}
+#endif
+
 	LOGD("seq: %u, length: %u, size: %u\n", buffer->sequence, buffer->length, buffer->size);
 #ifdef TRANSFER_STRIP
 	check_frame_header_handle(buffer->frame);
@@ -279,6 +300,7 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 		if (ret != BK_OK)
 		{
 			LOGE("send failed\n");
+			return;
 		}
 	}
 
@@ -297,14 +319,19 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 		}
 		WIFI_DMA_END();
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+		ret = dvp_frame_send((uint8_t *)transfer_data, tail + sizeof(transfer_data_t), MAX_RETRY, RETRANSMITS_TIME);
+#else
 		if (vido_transfer_info.send_type ==  TVIDEO_SND_UDP)
 			ret = dvp_frame_send((uint8_t *)transfer_data, tail + sizeof(transfer_data_t), MAX_RETRY, RETRANSMITS_TIME);
 		else
 			ret = dvp_frame_send((uint8_t *)transfer_data, TCP_MAX_TX_SIZE, MAX_RETRY, RETRANSMITS_TIME);
+#endif
 
 		if (ret != BK_OK)
 		{
 			LOGE("send failed\n");
+			return;
 		}
 	}
 
@@ -355,11 +382,11 @@ static volatile bool g_avi_enable = false;
 static volatile uint32_t picture_cnt = 0;
 static void avi_open(param_pak_t *param)
 {
-    if(g_avi_enable)
-    {
-	    LOGI("avi already open\n");
-        goto exit;
-    }
+	if(g_avi_enable)
+	{
+		LOGI("avi already open\n");
+		goto exit;
+	}
 
 	LOGI("%s\n", __func__);
 
@@ -377,19 +404,19 @@ static void avi_open(param_pak_t *param)
 	jpeg2avi_set_audio_param(AUDIO_CHANEL_NUM, AUDIO_SAMPLE_RATE, AUDIO_SAMPLE_BITS);
 
 exit:
-    if(param)
-    {
-        MEDIA_EVT_RETURN(param, BK_OK);
-    }
+	if(param)
+	{
+		MEDIA_EVT_RETURN(param, BK_OK);
+	}
 }
 
 static void avi_close(param_pak_t *param)
 {
-    if(!g_avi_enable)
-    {
-	    LOGI("avi already close\n");
-        goto exit;
-    }
+	if(!g_avi_enable)
+	{
+		LOGI("avi already close\n");
+		goto exit;
+	}
 
 	LOGI("%\n", __func__);
 
@@ -405,17 +432,17 @@ static void avi_close(param_pak_t *param)
 	jpeg2avi_deinit();
 
 exit:
-    if(param)
-    {
-        MEDIA_EVT_RETURN(param, BK_OK);
-    }
+	if(param)
+	{
+		MEDIA_EVT_RETURN(param, BK_OK);
+	}
 
 	LOGI("%\n", __func__);
 }
 
 static bool avi_is_enable(void)
 {
-    return g_avi_enable;
+	return g_avi_enable;
 }
 #endif
 
@@ -452,6 +479,9 @@ void h264_task_start(void)
 {
 	bk_err_t ret;
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+	//TODO
+#else
 	if (transfer_data == NULL) {
 		if (vido_transfer_info.send_type ==  TVIDEO_SND_UDP) {
 			transfer_data = (transfer_data_t *)os_malloc(UDP_MAX_TX_SIZE);
@@ -466,7 +496,7 @@ void h264_task_start(void)
 			return;
 		}
 	}
-
+#endif
 	if (transfer_task != NULL) {
 		LOGE("%s transfer_task already running\n", __func__);
 		return;
@@ -533,10 +563,13 @@ void h264_task_stop(void)
 
 void h264_open_handle(param_pak_t *param)
 {
+#ifdef CONFIG_INTEGRATION_DOORBELL
+	//TODO
+#else
 	video_setup_t *setup_cfg = (video_setup_t *)param->param;
 
 	os_memcpy(&vido_transfer_info, setup_cfg, sizeof(video_setup_t));
-
+#endif
 	h264_task_start();
 
 	set_transfer_state(TRS_STATE_ENABLED);
@@ -550,8 +583,6 @@ void h264_close_handle(param_pak_t *param)
 
 	h264_task_stop();
 	set_transfer_state(TRS_STATE_DISABLED);
-
-	rwnxl_set_video_transfer_flag(false);
 
 	MEDIA_EVT_RETURN(param, BK_OK);
 }
@@ -596,7 +627,7 @@ static void transfer_task_entry(beken_thread_arg_t data)
 			jpeg2avi_input_data(jpeg_frame->frame,jpeg_frame->length,eTypeVideo);
 
 			picture_cnt++;
-			if(0 == picture_cnt%AVI_VIDEO_FRAMES_MAX)
+			if(0 == picture_cnt % AVI_VIDEO_FRAMES_MAX)
 			{
 				picture_cnt = 0;
 				jpeg2avi_stop_record();
@@ -634,6 +665,9 @@ void transfer_task_start(void)
 
 	TRANSFER_DIAG_DEBUG_INIT();
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+	//TODO
+#else
 	if (transfer_data == NULL)
 	{
 		if (vido_transfer_info.send_type ==  TVIDEO_SND_UDP) {
@@ -650,7 +684,7 @@ void transfer_task_start(void)
 			return;
 		}
 	}
-
+#endif
 	if (transfer_task != NULL)
 	{
 		LOGE("%s transfer_task already running\n", __func__);
@@ -718,22 +752,46 @@ void transfer_task_stop(void)
 		LOGE("%s transfer deinit failed\n");
 	}
 
-	if (transfer_data)
-	{
-		os_free(transfer_data);
-		transfer_data = NULL;
-	}
-
 }
 
 
 void transfer_open_handle(param_pak_t *param)
 {
+#ifdef CONFIG_INTEGRATION_DOORBELL
+	media_transfer_callback = (media_transfer_cb_t *)param->param;
+
+	LOGI("%s cb: %p ++\n", __func__, media_transfer_callback);
+
+	if (media_transfer_callback->get_tx_buf)
+	{
+		transfer_data = media_transfer_callback->get_tx_buf();
+		packet_size = media_transfer_callback->get_tx_size() - sizeof(transfer_data_t);
+
+		if (transfer_data == NULL
+			|| packet_size <= 0)
+		{
+			LOGE("%s transfer_data: %p, size: %d\n", __func__, transfer_data, packet_size);
+			MEDIA_EVT_RETURN(param, BK_FAIL);
+			return;
+		}
+	}
+	else
+	{
+		packet_size = 1472;
+		if (transfer_data == NULL)
+		{
+			transfer_data = os_malloc(packet_size);
+		}
+	}
+
+	LOGI("%s transfer_data: %p, size: %d\n", __func__, transfer_data, packet_size);
+#else
 	video_setup_t *setup_cfg = (video_setup_t *)param->param;
 
 	os_memcpy(&vido_transfer_info, setup_cfg, sizeof(video_setup_t));
 
 	LOGI("%s ++\n", __func__);
+#endif
 
 	transfer_task_start();
 
@@ -753,7 +811,29 @@ void transfer_close_handle(param_pak_t *param)
 	transfer_task_stop();
 	set_transfer_state(TRS_STATE_DISABLED);
 
-	rwnxl_set_video_transfer_flag(false);
+#ifdef CONFIG_INTEGRATION_DOORBELL
+	if (media_transfer_callback->get_tx_buf == NULL)
+	{
+		if (transfer_data)
+		{
+			os_free(transfer_data);
+		}
+		transfer_data = NULL;
+	}
+	else
+	{
+		transfer_data = NULL;
+	}
+
+	packet_size = 0;
+	media_transfer_callback = NULL;
+#else
+	if (transfer_data)
+	{
+		os_free(transfer_data);
+		transfer_data = NULL;
+	}
+#endif
 
 	MEDIA_EVT_RETURN(param, BK_OK);
 }
@@ -786,14 +866,16 @@ void transfer_event_handle(uint32_t event, uint32_t param)
 		case EVENT_TRANSFER_PAUSE_IND:
 			transfer_pause_handle((param_pak_t *)param);
 			break;
+
 #if CONFIG_VIDEO_AVI
-        case EVENT_AVI_OPEN_IND:
-            avi_open((param_pak_t *)param);
-            break;
-        case EVENT_AVI_CLOSE_IND:
-            avi_close((param_pak_t *)param);
-            break;
+		case EVENT_AVI_OPEN_IND:
+			avi_open((param_pak_t *)param);
+			break;
+		case EVENT_AVI_CLOSE_IND:
+			avi_close((param_pak_t *)param);
+			break;
 #endif
+
 		case EVENT_H264_OPEN_IND:
 			h264_open_handle((param_pak_t *)param);
 			break;

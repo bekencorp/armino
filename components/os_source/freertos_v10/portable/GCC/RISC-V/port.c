@@ -40,66 +40,50 @@
 #include "platform.h"
 #include "mon_call.h"
 
-#ifdef configCLINT_BASE_ADDRESS
-	#warning The configCLINT_BASE_ADDRESS constant has been deprecated.  configMTIME_BASE_ADDRESS and configMTIMECMP_BASE_ADDRESS are currently being derived from the (possibly 0) configCLINT_BASE_ADDRESS setting.  Please update to define configMTIME_BASE_ADDRESS and configMTIMECMP_BASE_ADDRESS dirctly in place of configCLINT_BASE_ADDRESS.  See https://www.FreeRTOS.org/Using-FreeRTOS-on-RISC-V.html
-#endif
-
-#ifndef configMTIME_BASE_ADDRESS
-	#warning configMTIME_BASE_ADDRESS must be defined in FreeRTOSConfig.h.  If the target chip includes a memory-mapped mtime register then set configMTIME_BASE_ADDRESS to the mapped address.  Otherwise set configMTIME_BASE_ADDRESS to 0.  See https://www.FreeRTOS.org/Using-FreeRTOS-on-RISC-V.html
-#endif
-
-#ifndef configMTIMECMP_BASE_ADDRESS
-	#warning configMTIMECMP_BASE_ADDRESS must be defined in FreeRTOSConfig.h.  If the target chip includes a memory-mapped mtimecmp register then set configMTIMECMP_BASE_ADDRESS to the mapped address.  Otherwise set configMTIMECMP_BASE_ADDRESS to 0.  See https://www.FreeRTOS.org/Using-FreeRTOS-on-RISC-V.html
-#endif
-
-/* Let the user override the pre-loading of the initial LR with the address of
-prvTaskExitError() in case it messes up unwinding of the stack in the
-debugger. */
-#ifdef configTASK_RETURN_ADDRESS
-	#define portTASK_RETURN_ADDRESS	configTASK_RETURN_ADDRESS
-#else
-	#define portTASK_RETURN_ADDRESS	prvTaskExitError
-#endif
+#define portWORD_SIZE	(sizeof(uint32_t))
+#include "freertos_risc_v_chip_specific_extensions.h"
 
 #define configMTIME_CLOCK_HZ                          ( ( unsigned long ) 26000000 )
 
 typedef struct {
 	union {
 		struct {
-			long x1;		/* ra */
-			long x5;		/* t0 */
-			long x6;		/* t1 */
-			long x7;		/* t2 */
-			long x10;		/* a0 */
-			long x11;
-			long x12;
-			long x13;
-			long x14;
-			long x15;
-			long x16;
-			long x17;		/* a7 */
-			long x28;		/* t3 */
-			long x29;
-			long x30;
-			long x31;		/* t6 */
-			long mepc;
-			long mstatus;
-			long x8;		/* s0 */
-			long x9;		/* s1 */
-			long x18;		/* s2 */
-			long x19;
-			long x20;
-			long x21;
-			long x22;
-			long x23;
-			long x24;
-			long x25;
-			long x26;
-			long x27;		/* s11 */
+			uint32_t ra;		/* x1  */
+			uint32_t t0;		/* x5  */
+			uint32_t t1;		/* x6  */
+			uint32_t t2;		/* x7  */
+			uint32_t a0;		/* x10 */
+			uint32_t a1;
+			uint32_t a2;
+			uint32_t a3;
+			uint32_t a4;
+			uint32_t a5;
+			uint32_t a6;
+			uint32_t a7;		/* x17 */
+			uint32_t t3;		/* x28 */
+			uint32_t t4;
+			uint32_t t5;
+			uint32_t t6;		/* x31 */
+			uint32_t uepc;
+			uint32_t ustatus;
+			uint32_t s0;		/* x8  */
+			uint32_t s1;		/* x9 */
+			uint32_t s2;		/* x11 */
+			uint32_t s3;
+			uint32_t s4;
+			uint32_t s5;
+			uint32_t s6;
+			uint32_t s7;
+			uint32_t s8;
+			uint32_t s9;
+			uint32_t s10;
+			uint32_t s11;		/* x27 */
 		};
-		long riscv_regs[30];
+		uint32_t riscv_regs[30];
 	};
-} SAVED_CONTEXT;
+} port_task_context_t;
+
+typedef port_task_context_t SAVED_CONTEXT;
 
 /* The stack used by interrupt service routines.  Set configISR_STACK_SIZE_WORDS
 to use a statically allocated array as the interrupt stack.  Alternative leave
@@ -153,8 +137,6 @@ void port_check_isr_stack(void)
 
 /*-----------------------------------------------------------*/
 
-#if( configMTIME_BASE_ADDRESS != 0 ) && ( configMTIMECMP_BASE_ADDRESS != 0 )
-
 void vPortSetupTimerInterrupt( void )
 {
 	ullNextTime = riscv_get_mtimer();
@@ -167,7 +149,6 @@ void vPortSetupTimerInterrupt( void )
 	mon_timer_int_clear();
 }
 
-#endif /* ( configMTIME_BASE_ADDRESS != 0 ) && ( configMTIME_BASE_ADDRESS != 0 ) */
 
 BaseType_t xPortStartScheduler( void )
 {
@@ -263,7 +244,7 @@ void FreeRTOS_tick_handler( void )
 	}
 }
 
-void freertos_trap_handler(uint32_t mcause, SAVED_CONTEXT *context)
+void freertos_trap_handler(uint32_t mcause, port_task_context_t *context)
 {
 	if(UCAUSE_INT & mcause)
 	{
@@ -288,7 +269,7 @@ void freertos_trap_handler(uint32_t mcause, SAVED_CONTEXT *context)
 	{
 		if((mcause == U_EXCP_ECALL) && (g_trap_nest_cnt == 1))
 		{
-			context->mepc += 4;
+			context->uepc += 4;
 			vTaskSwitchContext();
 			return;
 		}
@@ -296,5 +277,37 @@ void freertos_trap_handler(uint32_t mcause, SAVED_CONTEXT *context)
 
 	trap_handler(mcause, context);
 	while(1);
+}
+
+static void prvTaskExitError( void )
+{
+	/* A function that implements a task must not exit or attempt to return to
+	its caller as there is nothing to return to.  If a task wants to exit it
+	should instead call vTaskDelete( NULL ). */
+
+	BK_LOGE("\r\nOS", "==> Task exits abnormally!\r\n\r\n");
+	vTaskDelete( NULL );
+}
+
+StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack,
+									TaskFunction_t pxCode,
+									void *pvParameters )
+{
+    port_task_context_t  *context;
+	uint32_t  * bottom;
+
+    context = (port_task_context_t *)(((uint32_t)pxTopOfStack) - sizeof(port_task_context_t));
+	memset(context, 0, sizeof(port_task_context_t));
+
+	bottom = (uint32_t *)context - (portasmADDITIONAL_CONTEXT_SIZE);  // reserve the space for FPU regs. REGBYTES = sizeof(UINT32);
+	memset(bottom, 0, (portasmADDITIONAL_CONTEXT_SIZE * sizeof(uint32_t)));
+
+    context->ustatus = USTATUS_UPIE;   /* Set UPIE bit in ustatus value, otherwise interrupts would be disabled anyway. */
+    context->uepc = (uint32_t)pxCode;
+    context->a0 = (uint32_t)pvParameters;
+    context->ra = (uint32_t)prvTaskExitError;
+
+	return (StackType_t *)bottom;
+
 }
 

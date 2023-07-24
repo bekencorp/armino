@@ -167,6 +167,11 @@ static inline void dma_ll_set_work_mode(dma_hw_t *hw, dma_id_t id, uint32_t mode
 #define dma_ll_set_mode_single(hw, id) dma_ll_set_work_mode(hw, id, DMA_V_WORK_MODE_SINGLE)
 #define dma_ll_set_mode_repeat(hw, id) dma_ll_set_work_mode(hw, id, DMA_V_WORK_MODE_REPEAT)
 
+static uint32_t dma_ll_get_work_mode(dma_hw_t *hw, dma_id_t id)
+{
+    return hw->config_group[id].ctrl.mode;
+}
+
 static inline void dma_ll_set_chan_prio(dma_hw_t *hw, dma_id_t id, uint32_t chan_prio)
 {
     hw->config_group[id].ctrl.chan_prio = chan_prio & 0x07;

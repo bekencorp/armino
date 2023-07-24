@@ -16,6 +16,7 @@
 
 #define SHELL_EVENT_TX_REQ  	0x01
 #define SHELL_EVENT_RX_IND  	0x02
+#define SHELL_EVENT_WAKEUP  	0x04
 
 #define SHELL_LOG_BUF1_LEN      136
 #define SHELL_LOG_BUF2_LEN      64
@@ -76,6 +77,12 @@
 #endif
 
 #define TBL_SIZE(tbl)		(sizeof(tbl) / sizeof(tbl[0]))
+
+typedef struct
+{
+	beken_semaphore_t   event_semaphore;  // will release from ISR.
+	u32       event_flag;
+} os_ext_event_t;
 
 enum
 {
@@ -219,8 +226,68 @@ static u8     prompt_str_idx = 0;
 static u32    shell_pm_wake_time = SHELL_TASK_WAKE_CYCLE;   // wait cycles before enter sleep.
 static u8     shell_pm_wake_flag = 1;
 
-static beken_semaphore_t   shell_semaphore;  // will release from ISR.
+#if 1
 
+static os_ext_event_t   shell_task_event;
+
+static bool_t create_shell_event(void)
+{
+	shell_task_event.event_flag = 0;
+	rtos_init_semaphore(&shell_task_event.event_semaphore, 1);
+
+	return bTRUE;
+}
+
+/* this API may be called from ISR. */
+bool_t set_shell_event(u32 event_flag)
+{
+	u32  int_mask;
+
+	int_mask = rtos_disable_int();
+
+	shell_task_event.event_flag |= event_flag;
+
+	rtos_enable_int(int_mask);
+
+	rtos_set_semaphore(&shell_task_event.event_semaphore);
+
+	return bTRUE;
+}
+
+u32 wait_any_event(u32 timeout)
+{
+	u32  int_mask;
+	u32  event_flag;
+
+	int  result;
+
+	while(bTRUE)
+	{
+		int_mask = rtos_disable_int();
+
+		event_flag = shell_task_event.event_flag;
+		shell_task_event.event_flag = 0;
+
+		rtos_enable_int(int_mask);
+
+		if((event_flag != 0) || (timeout == 0))
+		{
+			return event_flag;
+		}
+		else
+		{
+			result = rtos_get_semaphore(&shell_task_event.event_semaphore, timeout);
+
+			if(result == kTimeoutErr)
+				return 0;
+		}
+	}
+
+}
+
+#else
+
+static beken_semaphore_t   shell_semaphore;  // will release from ISR.
 
 static bool_t create_shell_event(void)
 {
@@ -249,6 +316,7 @@ static u32 wait_any_event(u32 timeout)
 
 	return SHELL_EVENT_RX_IND;
 }
+#endif
 
 static void tx_req_process(void);
 
@@ -1330,8 +1398,51 @@ static void rx_ind_process(void)
 	return;
 }
 
-void shell_rx_wakeup(int);
 extern gpio_id_t bk_uart_get_rx_gpio(uart_id_t id);
+
+static void shell_rx_wakeup(int gpio_id);
+
+static void shell_power_save_enter(void)
+{
+	u32		flush_log = 0;
+
+	log_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_TX_SUSPEND, (void *)flush_log);
+	cmd_dev->dev_drv->io_ctrl(cmd_dev, SHELL_IO_CTRL_RX_SUSPEND, NULL);
+
+	if(cmd_dev->dev_type == SHELL_DEV_UART)
+	{
+		u8   uart_port = UART_ID_MAX;
+		
+		cmd_dev->dev_drv->io_ctrl(cmd_dev, SHELL_IO_CTRL_GET_UART_PORT, &uart_port);
+		u32  gpio_id = bk_uart_get_rx_gpio(uart_port);
+
+		bk_gpio_register_isr(gpio_id, (gpio_isr_t)shell_rx_wakeup);
+	}
+}
+
+static void shell_power_save_exit(void)
+{
+	log_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_TX_RESUME, NULL);
+	cmd_dev->dev_drv->io_ctrl(cmd_dev, SHELL_IO_CTRL_RX_RESUME, NULL);
+	if(cmd_dev->dev_type == SHELL_DEV_UART)
+	{
+	//	u8   uart_port = UART_ID_MAX;
+		
+	//	cmd_dev->dev_drv->io_ctrl(cmd_dev, SHELL_IO_CTRL_GET_UART_PORT, &uart_port);
+	//	u32  gpio_id = bk_uart_get_rx_gpio(uart_port);
+	//	bk_gpio_register_isr(gpio_id, NULL);
+	}
+}
+
+static void shell_rx_wakeup(int gpio_id)
+{
+	set_shell_event(SHELL_EVENT_WAKEUP);
+
+	if(cmd_dev->dev_type == SHELL_DEV_UART)
+	{
+		bk_gpio_register_isr(gpio_id, NULL);
+	}
+}
 
 static void shell_task_init(void)
 {
@@ -1387,7 +1498,23 @@ static void shell_task_init(void)
 
 	shell_init_ok = bTRUE;
 
-	shell_rx_wakeup(bk_uart_get_rx_gpio(bk_get_printf_port()));
+	{
+        pm_cb_conf_t enter_config;
+        enter_config.cb = (pm_cb)shell_power_save_enter;
+        enter_config.args = NULL;
+
+        pm_cb_conf_t exit_config;
+        exit_config.cb = (pm_cb)shell_power_save_exit;
+        exit_config.args = NULL;
+
+		bk_pm_sleep_register_cb(PM_MODE_LOW_VOLTAGE, PM_DEV_ID_UART1, &enter_config, &exit_config);
+
+		u8   uart_port = UART_ID_MAX;
+		
+		cmd_dev->dev_drv->io_ctrl(cmd_dev, SHELL_IO_CTRL_GET_UART_PORT, &uart_port);
+
+		shell_rx_wakeup(bk_uart_get_rx_gpio(uart_port));
+	}
 
 	if(ate_is_enabled())
 		prompt_str_idx = 1;
@@ -1409,6 +1536,15 @@ void shell_task( void *para )
 	{
 		Events = wait_any_event(timeout);  // WAIT_EVENT;
 
+		if(Events & SHELL_EVENT_WAKEUP)
+		{
+			bk_pm_module_vote_sleep_ctrl(PM_SLEEP_MODULE_NAME_LOG, 0, 0);
+			shell_pm_wake_flag = 1;
+			shell_pm_wake_time = SHELL_TASK_WAKE_CYCLE;
+
+			shell_log_raw_data((const u8*)"wakeup\r\n", sizeof("wakeup\r\n") - 1);
+		}
+
 		if(Events & SHELL_EVENT_TX_REQ)
 		{
 			echo_out((u8 *)"Unsolicited", sizeof("Unsolicited") - 1);
@@ -1420,7 +1556,7 @@ void shell_task( void *para )
 			rx_ind_process();
 			shell_pm_wake_time = SHELL_TASK_WAKE_CYCLE;
 		}
-
+		
 		if(Events == 0)
 		{
 			if(shell_pm_wake_time > 0)
@@ -1431,7 +1567,8 @@ void shell_task( void *para )
 				if(shell_pm_wake_flag != 0)
 				{
 					shell_pm_wake_flag = 0;
-					// bk_pm_module_vote_sleep_ctrl(PM_POWER_MODULE_NAME_APP, 1, 0);
+					bk_pm_module_vote_sleep_ctrl(PM_SLEEP_MODULE_NAME_LOG, 1, 0);
+					shell_log_raw_data((const u8*)"sleep\r\n", sizeof("sleep\r\n") - 1);
 				}
 			}
 		}
@@ -1884,50 +2021,14 @@ void shell_log_flush(void)
 	rtos_enable_int(int_mask);
 }
 
-void shell_power_save_enter(void)
-{
-	u32		flush_log = 1;
-
-	log_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_TX_SUSPEND, (void *)flush_log);
-	cmd_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_RX_SUSPEND, NULL);
-
-	if(cmd_dev->dev_type == SHELL_DEV_UART)
-	{
-		u32  gpio_id = bk_uart_get_rx_gpio(bk_get_printf_port());
-		bk_gpio_register_isr(gpio_id, (gpio_isr_t)shell_rx_wakeup);
-	}
-}
-
-void shell_power_save_exit(void)
-{
-	log_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_TX_RESUME, NULL);
-	cmd_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_RX_RESUME, NULL);
-
-	if(cmd_dev->dev_type == SHELL_DEV_UART)
-	{
-		//u32  gpio_id = bk_uart_get_rx_gpio(bk_get_printf_port());
-		//bk_gpio_register_isr(gpio_id, NULL);
-	}
-}
-
-void shell_rx_wakeup(int gpio_id)
-{
-	// bk_pm_module_vote_sleep_ctrl(PM_POWER_MODULE_NAME_APP, 0, 0);
-	shell_pm_wake_flag = 1;
-	shell_pm_wake_time = SHELL_TASK_WAKE_CYCLE;
-
-	if(cmd_dev->dev_type == SHELL_DEV_UART)
-	{
-		bk_gpio_register_isr(gpio_id, NULL);
-		bk_uart_set_enable_rx(bk_get_printf_port(), 1);
-	}
-
-	shell_log_raw_data((const u8*)"wakeup\r\n", sizeof("wakeup\r\n") - 1);
-}
-
 void shell_set_uart_port(uint8_t uart_port)
 {
 #if (!CONFIG_SLAVE_CORE)
+	if(log_dev->dev_type != SHELL_DEV_UART)
+	{
+		return;
+	}
+
 	if (bk_get_printf_port() != uart_port && uart_port < UART_ID_MAX)
 	{
 		u32  int_mask = rtos_disable_int();

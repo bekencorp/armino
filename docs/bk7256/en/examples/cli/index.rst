@@ -10,4 +10,4 @@ Cli
    Audio <audio/index>
    Video <video/index>
    Touch <touch/index>
-
+   flashdb <flashdb/flashdb>

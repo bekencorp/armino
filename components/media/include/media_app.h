@@ -51,12 +51,29 @@ typedef enum
 	APP_LCD_MCU,
 } app_lcd_type_t;
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+typedef int (*media_transfer_send_cb)(uint8_t *data, uint32_t length);
+typedef int (*media_transfer_prepare_cb)(uint8_t *data, uint32_t length);
+typedef void* (*media_transfer_get_tx_buf_cb)(void);
+typedef int (*media_transfer_get_tx_size_cb)(void);
+
+typedef struct {
+	media_transfer_send_cb send;
+	media_transfer_prepare_cb prepare;
+	media_transfer_get_tx_buf_cb get_tx_buf;
+	media_transfer_get_tx_size_cb get_tx_size;
+} media_transfer_cb_t;
+#endif
 
 bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi);
 bk_err_t media_app_camera_close(app_camera_type_t type);
 bk_err_t media_app_h264_open(void *setup_cfg);
 bk_err_t media_app_h264_close(void);
+#ifdef CONFIG_INTEGRATION_DOORBELL
+bk_err_t media_app_transfer_open(const media_transfer_cb_t *cb);
+#else
 bk_err_t media_app_transfer_open(void *setup_cfg);
+#endif
 bk_err_t media_app_transfer_close(void);
 bk_err_t media_app_lcd_open(void *lcd_open);
 bk_err_t media_app_lcd_close(void);

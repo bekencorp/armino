@@ -653,12 +653,10 @@ static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf
 			{
 				ipc_rsp->rsp_data_len = sizeof(u32);
 
-			//	u32 * p_src = (u32 *)chnl_cb->cmd_buf;
+				u32 * p_src = (u32 *)chnl_cb->cmd_buf;
 				u32 * p_dst = (u32 *)ipc_rsp->rsp_buff;
 
-				extern spinlock_t		gpio_spinlock;
-
-				*p_dst = (u32)&gpio_spinlock;
+				*p_dst = (*p_src) + 1;
 				
 				result = ACK_STATE_COMPLETE;
 			}

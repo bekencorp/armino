@@ -17,9 +17,12 @@ typedef struct{
     beken_mutex_t            m_mutex;
 }tp_dev_t;
 
+typedef void (*tp_touch_event_notify)(void *arg);
+
 int drv_tp_open(int hor_size, int ver_size);
 int drv_tp_close(void);
 int drv_tp_read(tp_point_infor_t *point);
 int drv_tp_write(uint16_t x, uint16_t y, uint16_t state);
+void drv_tp_reg_touch_event(tp_touch_event_notify event_notify_func, void *arg);
 
 #endif

@@ -1,5 +1,5 @@
 {
-    "//": "The 1st 4K is for deep sleep fast boot-mode",
+    "//": "The 1st 4K is for deep sleep fast boot-mode or jump bin",
     "//": "The 2nd 4K is for Boot control, debug only",
     "//": "The 3rd 4K is for OTP simulation, debug only",
 
@@ -16,7 +16,7 @@
         {"name": "pll_ena",                "size": "4b",  "value": "01000000", "hex":"y"},
         {"name": "security_boot_supported","size": "4b",  "value": "01000000", "hex":"y"},
         {"name": "security_boot_ena",      "size": "4b",  "value": "00000000", "hex":"y"},
-        {"name": "security_boot_print_dis","size": "4b",  "value": "01000000", "hex":"y"},
+        {"name": "security_boot_print_dis","size": "4b",  "value": "00000000", "hex":"y"},
         {"name": "jtag_dis",               "size": "4b",  "value": "01000000", "hex":"y"},
         {"name": "sw_fih_delay_ena",       "size": "4b",  "value": "00000000", "hex":"y"},
         {"name": "reserved1",              "size": "4056b", "fill": "255"},

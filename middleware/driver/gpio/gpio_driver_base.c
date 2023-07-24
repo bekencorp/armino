@@ -30,6 +30,9 @@
 #if CONFIG_GPIO_SIMULATE_UART_WRITE
 #include "bk_misc.h"
 #endif
+#if CONFIG_GPIO_ANA_WAKEUP_SUPPORT
+#include "sys_driver.h"
+#endif
 #if CONFIG_PM
 #include <pm/pm.h>
 #include <pm/device.h>
@@ -40,6 +43,11 @@ static gpio_isr_t s_gpio_isr[SOC_GPIO_NUM] = {NULL};
 static bool s_gpio_is_init = false;
 #if CONFIG_GPIO_WAKEUP_SUPPORT
 static uint64_t s_wakeup_id = 0;
+#endif
+#if CONFIG_GPIO_ANA_WAKEUP_SUPPORT
+#define GPIO_ANA_WAKEUP_MAX 2
+static uint32_t s_wkup_cnt = 0;
+static gpio_wakeup_config_t s_wkup_cfg[GPIO_ANA_WAKEUP_MAX] = {0};
 #endif
 
 #define GPIO_RETURN_ON_INVALID_ID(id) do {\
@@ -200,6 +208,15 @@ bk_err_t bk_gpio_driver_deinit(void)
 	return BK_OK;
 }
 
+void bk_gpio_set_value(gpio_id_t id, uint32_t v)
+{
+	gpio_hal_set_value(&s_gpio.hal, id, v);
+}
+
+uint32_t bk_gpio_get_value(gpio_id_t id)
+{
+	return gpio_hal_get_value(&s_gpio.hal, id);
+}
 
 bk_err_t bk_gpio_enable_output(gpio_id_t gpio_id)
 {
@@ -367,13 +384,15 @@ static void gpio_isr(void)
 				GPIO_LOGD("gpio int: index:%d \r\n",gpio_id);
 				s_gpio_isr[gpio_id](gpio_id);
 			}
+			bk_gpio_clear_interrupt(gpio_id);
 		}
 	}
 
+#if (0 == CONFIG_SOC_BK7236XX)
 	//move it after callback:if isr is caused by level type,
 	//clear IRQ status and doesn't disable IRQ, then it causes a new ISR
 	gpio_hal_clear_interrupt_status(hal, &gpio_status);
-
+#endif
 }
 
 #if CONFIG_GPIO_WAKEUP_SUPPORT
@@ -1150,6 +1169,49 @@ void gpio_simulate_uart_write(unsigned char *buff, uint32_t len, gpio_id_t gpio_
 
 		GLOBAL_INT_RESTORE();
 	}
+}
+#endif
+
+#if CONFIG_GPIO_ANA_WAKEUP_SUPPORT
+static int gpio_ana_enter_cb(uint64_t sleep_time, void *args)
+{
+	uint32_t gpio_id;
+	gpio_int_type_t int_type;
+
+	for (int i = 0; i < MIN(s_wkup_cnt, GPIO_ANA_WAKEUP_MAX); i++) {
+		gpio_id = s_wkup_cfg[i].id;
+		int_type = (uint32_t)s_wkup_cfg[i].int_type;
+		bk_gpio_enable_input(gpio_id);
+		if (int_type == GPIO_INT_TYPE_LOW_LEVEL) {
+			bk_gpio_pull_up(gpio_id);
+		} else if (int_type == GPIO_INT_TYPE_HIGH_LEVEL) {
+			bk_gpio_pull_down(gpio_id);
+		} else {
+			GPIO_LOGE("gpio wakeup type support low/high level only\r\n");
+		}
+		sys_drv_gpio_ana_wakeup_enable(gpio_id, int_type);
+	}
+
+	return 0;
+}
+
+bk_err_t bk_gpio_ana_register_wakeup_source(gpio_id_t gpio_id, gpio_int_type_t int_type)
+{
+	uint32_t next_idx;
+	pm_cb_conf_t enter_conf;
+
+	GPIO_RETURN_ON_INVALID_ID(gpio_id);
+	GPIO_RETURN_ON_INVALID_INT_TYPE_MODE(int_type);
+
+	next_idx = (s_wkup_cnt++) % GPIO_ANA_WAKEUP_MAX;
+	s_wkup_cfg[next_idx].id = gpio_id;
+	s_wkup_cfg[next_idx].int_type = int_type;
+	GPIO_LOGI("regist wakeup source gpio id: %d type: %d\r\n", gpio_id, int_type);
+
+	enter_conf.cb = gpio_ana_enter_cb;
+	enter_conf.args = NULL;
+
+	return bk_pm_sleep_register_cb(PM_MODE_DEEP_SLEEP, PM_DEV_ID_GPIO, &enter_conf, NULL);
 }
 #endif
 

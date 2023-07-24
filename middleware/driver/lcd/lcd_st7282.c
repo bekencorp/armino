@@ -19,6 +19,7 @@
 #include "lcd_devices.h"
 #include "gpio_map.h"
 #include <driver/lcd.h>
+#include "gpio_driver.h"
 
 #if CONFIG_PWM
 #include <driver/pwm.h>
@@ -40,6 +41,12 @@ static void lcd_backlight_open(void)
 {
 #if CONFIG_PWM
 	lcd_driver_backlight_init(LCD_RGB_PWM_BACKLIGHT, 100);
+#else
+	gpio_dev_unmap(LCD_BACKLIGHT_CTRL_GPIO);
+	bk_gpio_set_capacity(LCD_BACKLIGHT_CTRL_GPIO, GPIO_DRIVER_CAPACITY_1);
+	BK_LOG_ON_ERR(bk_gpio_enable_output(LCD_BACKLIGHT_CTRL_GPIO));
+	BK_LOG_ON_ERR(bk_gpio_pull_up(LCD_BACKLIGHT_CTRL_GPIO));
+	bk_gpio_set_output_high(LCD_BACKLIGHT_CTRL_GPIO);
 #endif
 }
 
@@ -64,6 +71,8 @@ static void lcd_backlight_close(void)
 {
 #if CONFIG_PWM
 	lcd_driver_backlight_deinit(LCD_RGB_PWM_BACKLIGHT);
+#else
+	bk_gpio_set_output_low(LCD_BACKLIGHT_CTRL_GPIO);
 #endif
 }
 

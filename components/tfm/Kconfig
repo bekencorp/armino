@@ -19,10 +19,20 @@ menu "Tfm"
 				build type: debug, release or minsizerel
 
 		config TFM_FPGA
-			string "Define Tfm FPGA"
-			default "ON"
+			string "Enable FPGA: ON/OFF"
+			default "OFF"
+
+		config TFM_FWU
+			bool "Enable Firmware Update"
+			default n
 			help
-				Enable FPGA: ON/OFF
+				Enable FWU: ON/OFF
+
+		config TFM_SYSTEM_CLOCK
+			bool "Enable TFM system clock ctrl"
+			default n
+			help
+				Enable TFM_SYSTEM_CLOCK: ON/OFF
 
 		config TFM_TEST_S
 			string "Define Tfm Test S"
@@ -50,7 +60,7 @@ menu "Tfm"
 
 		config OTP_NV_COUNTERS_RAM_EMULATION
 			string "Define Otp Nv Counters Ram Emulation"
-			default "ON"
+			default "OFF"
 			help
 				Enable OTP/NV counter RAM emulation: ON/OFF
 
@@ -59,5 +69,20 @@ menu "Tfm"
 			default "ON"
 			help
 				Enable platform default OTP writable: ON/OFF
+
+		config TFM_SYS_LL_NSC
+			bool "Enable system_ll nsc"
+			default n
+
+		config TFM_AON_PMU_LL_NSC
+			bool "Enable aon_pmu_ll nsc"
+			default n
+
+		config BL2_UPGRADE_STRATEGY
+			string "Define mcuboot upgrade strategy"
+			default "SWAP_USING_SCRATCH"
+			help
+				The MCUBOOT upgrade strategy can be:
+				OVERWRITE_ONLY, SWAP_USING_SCRATCH, SWAP_USING_MOVE.
 	endmenu
 endmenu

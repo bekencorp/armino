@@ -78,7 +78,7 @@ extern "C" {
 #define __DCACHE_PRESENT          1U        /* Defines whether DCACHE is present or not in this device */
 #define __ITCM_PRESENT            1U        /* Defines whether ITCM is present or not in this device */
 #define __DTCM_PRESENT            1U        /* Defines whether DTCM is present or not in this device */
-
+#define __EN_ICACHE               1U
 
 #include "core_star.h"                      /* Processor and core peripherals */
 #include "system_STAR.h"                 /* System Header */

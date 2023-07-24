@@ -38,6 +38,18 @@ static inline void gpio_ll_init(gpio_hw_t *hw)
 	gpio_system_gpio_func_mode = (system_gpio_func_mode_hw_t *)GPIO_LL_SYSTEM_REG_BASE;
 }
 
+//some special code re-use a GPIO, it doesn't care the GPIO setting value, just bake/restore value.
+static inline void gpio_ll_set_value(gpio_hw_t *hw, uint32 index, uint32_t v)
+{
+	*(volatile uint32_t *)&hw->gpio_num[index] = v;
+}
+
+//some special code re-use a GPIO, it doesn't care the GPIO setting value, just bake/restore value.
+static inline uint32_t gpio_ll_get_value(gpio_hw_t *hw, uint32 index)
+{
+	return *(volatile uint32_t *)&hw->gpio_num[index];
+}
+
 static inline void gpio_ll_set_io_mode(gpio_hw_t *hw, uint32 index, const gpio_config_t *config)
 {
 	uint32 io_mode = 0;
@@ -292,50 +304,92 @@ static inline void gpio_ll_restore_configs(uint16_t *gpio_cfg, uint32_t count)
 
 static inline void gpio_ll_bak_int_type_configs(uint32_t *gpio_int_cfg, uint32_t count)
 {
-	uint32_t  i = 0;
+	uint32_t  int_cfg_index = 0;
+	uint32_t  gpio_id = 0;
+	uint32_t reg = 0;
 
 	if (gpio_int_cfg == NULL)
 		return;
 
-	for (i = 0; i < count; i++) {
-		gpio_int_cfg[i] = REG_READ(GPIO_LL_REG_BASE+(i + 0x40)*4);
+	gpio_int_cfg[int_cfg_index] = 0x0;
+
+	for (gpio_id = 0; gpio_id < SOC_GPIO_NUM; gpio_id++) {
+		reg = REG_READ(GPIO_LL_REG_BASE + 0x04 *gpio_id);
+		if(((gpio_id % 16) == 0) && (gpio_id != 0)) {
+			int_cfg_index++;
+			gpio_int_cfg[int_cfg_index] = 0x0;
+		}
+		if(!(int_cfg_index < count))
+			break;
+		gpio_int_cfg[int_cfg_index] |= (((0xC00 & reg) >> 10) << ((gpio_id % 16) * 2));
+		
 	}
 }
 
 static inline void gpio_ll_restore_int_type_configs(uint32_t *gpio_int_cfg, uint32_t count)
 {
-	uint32_t  i = 0;
+	uint32_t  int_cfg_index = 0;
+	uint32_t  gpio_id = 0;
+	uint32_t reg = 0;
 
 	if (gpio_int_cfg == NULL)
 		return;
 
-	for (i = 0; i < count; i ++) {
-		REG_WRITE((GPIO_LL_REG_BASE+(i + 0x40)*4), gpio_int_cfg[i]);
+	for (gpio_id = 0; gpio_id < SOC_GPIO_NUM; gpio_id++) {
+		reg = REG_READ(GPIO_LL_REG_BASE + 0x04 *gpio_id);
+		if(((gpio_id % 16) == 0) && (gpio_id != 0))
+			int_cfg_index++;
+		if(!(int_cfg_index < count))
+			break;
+		reg |= (((gpio_int_cfg[int_cfg_index] >> ((gpio_id % 16) * 2)) & 0x3) << 10);
+		REG_WRITE(GPIO_LL_REG_BASE + 0x04 *gpio_id, reg);
 	}
 }
 
 static inline void gpio_ll_bak_int_enable_configs(uint32_t *gpio_int_cfg, uint32_t count)
 {
-	uint32_t  i = 0;
+	uint32_t  int_cfg_index = 0;
+	uint32_t  gpio_id = 0;
+	uint32_t reg = 0;
 
 	if (gpio_int_cfg == NULL)
 		return;
 
-	for(i = 0; i < count; i++) {
-		gpio_int_cfg[i] = REG_READ(GPIO_LL_REG_BASE + (i + 0x43) * 4);
+	gpio_int_cfg[int_cfg_index] = 0x0;
+
+	for (gpio_id = 0; gpio_id < SOC_GPIO_NUM; gpio_id++) {
+		reg = REG_READ(GPIO_LL_REG_BASE + 0x04 *gpio_id);
+		if(((gpio_id % 32) == 0) && (gpio_id != 0)) {
+			int_cfg_index++;
+			gpio_int_cfg[int_cfg_index] = 0x0;
+		}
+		if(!(int_cfg_index < count))
+			break;
+		gpio_int_cfg[int_cfg_index] |= (((0x1000 & reg) >> 12) << (gpio_id % 32));
+		
 	}
+
 }
 
 static inline void gpio_ll_restore_int_enable_configs(uint32_t *gpio_int_cfg, uint32_t count)
 {
-	uint32_t  i = 0;
+		uint32_t  int_cfg_index = 0;
+		uint32_t  gpio_id = 0;
+		uint32_t reg = 0;
+	
+		if (gpio_int_cfg == NULL)
+			return;
+	
+		for (gpio_id = 0; gpio_id < SOC_GPIO_NUM; gpio_id++) {
+			reg = REG_READ(GPIO_LL_REG_BASE + 0x04 *gpio_id);
+			if(((gpio_id % 32) == 0) && (gpio_id != 0))
+				int_cfg_index++;
+			if(!(int_cfg_index < count))
+				break;
+			reg |= (((gpio_int_cfg[int_cfg_index] >> (gpio_id % 32)) & 0x1) << 12);
+			REG_WRITE(GPIO_LL_REG_BASE + 0x04 *gpio_id, reg);
+		}
 
-	if(gpio_int_cfg == NULL)
-		return;
-
-	for(i = 0; i < count; i ++) {
-		REG_WRITE((GPIO_LL_REG_BASE + (i + 0x43) * 4), gpio_int_cfg[i]);
-	}
 }
 
 /* gpio switch to low power status:set all gpios to input mode */

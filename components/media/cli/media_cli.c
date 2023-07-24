@@ -109,6 +109,10 @@ char * get_string_to_name(char *string, char * pre)
 	{
 		value = "st7701s";
 	}
+	if (os_strcmp(string, "st7789v") == 0)
+	{
+		value = "st7789v";
+	}
 	return value;
 }
 
@@ -405,30 +409,6 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				}
 			}
 #if (CONFIG_LVGL) && (CONFIG_LVGL_DEMO)
-			#if CONFIG_BLEND_USE_GUI
-			else if (os_strcmp(argv[2], "gui_blend") == 0)
-			{
-				if(argc >= 4)
-				{
-					if(os_strcmp(argv[3], "on") == 0)
-					{
-						if(argc >= 6)
-						{
-							ret = media_app_lcd_gui_blend_open(atoi(argv[4]), atoi(argv[5]));
-						}
-					}
-					else if(os_strcmp(argv[3], "off") == 0)
-					{
-						ret = media_app_lcd_gui_blend_close();
-					}
-					else if(os_strcmp(argv[3], "set") == 0)
-					{
-						bk_err_t media_app_lcd_set_pos(int hor_pos, int ver_offset);
-						ret = media_app_lcd_set_pos(atoi(argv[4]), atoi(argv[5]));
-					}
-				}
-			}
-			#endif
 			else if(os_strcmp(argv[2], "demoui") == 0)
 			{
 				if(argc >= 4)
@@ -505,7 +485,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			}
 			if (os_strcmp(argv[2], "dma2d_blend") == 0)
 			{
-#if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
+#if CONFIG_LCD_DMA2D_BLEND || CONFIG_LCD_FONT_BLEND
 
 				if (argc < 4)
 				{
@@ -545,7 +525,6 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 					blend.blend_on = 1;
 					blend.lcd_blend_type = LCD_BLEND_DATA;
 					//os_memcpy(blend.data, argv[4], 5);
-					LOGI("chs dma2d blend data = %s \r\n", blend.data);
 				}
 				else if (os_memcmp (argv[3], "ver", 3) == 0)
 				{
@@ -597,7 +576,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				}
 				ret = media_app_lcd_blend(&blend);
 #else
-				LOGI(" macro CONFIG_LCD_DMA2D_BLEND_FLASH_IMG is close \r\n");
+				LOGI(" macro CONFIG_LCD_DMA2D_BLEND is close \r\n");
 #endif
 			}
 #endif

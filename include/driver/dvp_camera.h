@@ -59,7 +59,7 @@ bk_err_t bk_dvp_camera_driver_deinit(void);
 dvp_camera_device_t *bk_dvp_camera_get_device(void);
 
 /**
- * @brief     uvc power on
+ * @brief     dvp power on
  *
  * This API called by user, before calling bk_dvp_driver_init, you should power on dvp
  *
@@ -73,7 +73,33 @@ dvp_camera_device_t *bk_dvp_camera_get_device(void);
  */
 bk_err_t bk_dvp_camera_power_enable(uint8_t enable);
 
+/**
+ * @brief     auto detect dvp camera
+ *
+ * This API called by user, before use dvp camera
+ *
+ * @attation 1. This api return a pointer for dvp camera sensor config
+ *
+ * @return
+ *    - get current dvp config(type)
+ *    - return NULL
+ */
 const dvp_sensor_config_t *bk_dvp_get_sensor_auto_detect(void);
+
+/**
+ * @brief     free encode mem
+ *
+ * This API called by user, once call this api, will free malloc sram for jpeg enc or h264 encode
+ *
+ * @attation 1. This api only effect in camera is not working, and call this api when you do not use dvp again,
+ * if you want use again, you maybe malloc encode mem success.
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_dvp_camera_free_encode_mem(void);
+
 
 #ifdef __cplusplus
 }

@@ -234,7 +234,7 @@ function(__build_init armino_path)
     __component_add(${armino_path}/include ${prefix})
 
     # Set components required by all other components in the build
-    set(requires_common include bk_log bk_event driver bk_rtos common)
+    set(requires_common include bk_log bk_event driver bk_rtos common part_table)
     armino_build_set_property(__COMPONENT_REQUIRES_COMMON "${requires_common}")
 
     armino_build_set_property(COMPILE_DEFINITIONS "-DAPP_VERSION=\"$ENV{APP_VERSION}\"" APPEND)
@@ -516,7 +516,7 @@ macro(armino_build_process target)
     # Check for required Python modules
     __build_check_python()
 
-    armino_build_set_property(__COMPONENT_REQUIRES_COMMON ${target} APPEND)
+    #armino_build_set_property(__COMPONENT_REQUIRES_COMMON ${target} APPEND)
 
     # Perform early expansion of component CMakeLists.txt in CMake scripting mode.
     # It is here we retrieve the public and private requirements of each component.

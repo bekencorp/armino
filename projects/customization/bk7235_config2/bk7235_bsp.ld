@@ -1,1 +1,0 @@
-../../../middleware/soc/common/dualcore_cpu0.ld

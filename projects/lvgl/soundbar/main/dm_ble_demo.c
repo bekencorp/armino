@@ -48,6 +48,8 @@ static uint16_t s_boarding_password_len = 0;
 static uint8_t s_boarding_notify[1] = {0};
 static uint8_t s_conn_ind = ~0;
 
+static uint8_t *s_app_alloc_buff = NULL;
+
 #define GATT_BOARDING_SERVICE_UUID              0xFFFFU
 #define GATT_BOARDING_NOTIFY_CHARACTERISTIC     0x1234U
 #define GATT_BOARDING_SSID_CHARACTERISTIC       0x9ABCU
@@ -59,6 +61,9 @@ typedef struct
     uint16_t chara_notify_handle;
     uint16_t chara_ssid_handle;
     uint16_t chara_pass_handle;
+
+    uint16_t chara_app_alloc_handle;
+    uint16_t chara_host_alloc_handle;
 } boarding_env_s;
 
 static boarding_env_s boarding_env;
@@ -90,6 +95,7 @@ static void dm_ble_cmd_cb(ble_cmd_t cmd, ble_cmd_param_t *param)
     case BLE_CONN_READ_PHY:
     case BLE_CONN_SET_PHY:
     case BLE_CONN_UPDATE_MTU:
+    case BLE_SET_RANDOM_ADDR:
         if (ble_boarding_sema != NULL)
         {
             rtos_set_semaphore( &ble_boarding_sema );
@@ -150,6 +156,7 @@ static uint32_t dm_ble_event_cb(ble_event_enum_t notice, void *param)
         ble_conn_update_param_compl_ind_t *updata_param = (typeof(updata_param))param;
         os_printf("BK_DM_BLE_EVENT_CONN_UPDATA:conn_interval:0x%04x, con_latency:0x%04x, sup_to:0x%04x\n",
                   updata_param->conn_interval, updata_param->conn_latency, updata_param->supervision_timeout);
+
         break;
     }
 
@@ -163,21 +170,36 @@ static uint32_t dm_ble_event_cb(ble_event_enum_t notice, void *param)
 int dm_ble_demo_main(void)
 {
     int retval = kNoErr;
-    const uint8_t adv_data[] =
+    bd_addr_t random_addr;
+    bk_get_mac((uint8_t *)random_addr.addr, MAC_TYPE_BLUETOOTH);
+
+    for (int i = 0; i < sizeof(random_addr.addr) / 2; i++)
+    {
+        uint8_t tmp_addr = random_addr.addr[i];
+        random_addr.addr[i] = random_addr.addr[sizeof(random_addr.addr) - 1 - i];
+        random_addr.addr[sizeof(random_addr.addr) - 1 - i] = tmp_addr;
+    }
+
+    random_addr.addr[0]++;
+
+    uint8_t adv_data[31] =
     {
         //adv format <len> <type> <payload>, len = type + payload, type pls see <<Generic Access Profile>>'s Assigned number
 
-        //len = 0x2 type = 1 means Flags
+        //len = 0x2, type = 1 means Flags
         0x02, 0x01, 0x06,
 
-        //len = 0xf type = 0x8 means Shortened Local Name, "SMART-SOUNDBAR"
-        0x0f, 0x08, 'S', 'M', 'A', 'R', 'T', '-', 'S', 'O', 'U', 'N', 'D', 'B', 'A', 'R',
+        //len = strlen(name) + 1, type = 0x8 means Shortened Local Name, "SMART-SOUNDBAR"
+        1 + 0, 0x08, //name suchas 'S', 'M', 'A', 'R', 'T', '-', 'S', 'O', 'U', 'N', 'D', 'B', 'A', 'R',
     };
 
-    uint8_t adv_len = sizeof(adv_data);
+    uint8_t adv_name_len = snprintf((char *)(adv_data + 5), sizeof(adv_data) - 5, "SMART-SOUNDBAR-%02X%02X%02X", random_addr.addr[2], random_addr.addr[1], random_addr.addr[0]);
+
+    adv_data[3] = adv_name_len + 1;
+
+    uint8_t adv_len = 5 + adv_name_len;
 
     extern uint8_t test_adv_data_len[31 - sizeof(adv_data)];  //attention: sizeof(adv_data) must <= 31 !!!!!!!!!!!!!
-
     (void)test_adv_data_len;
 
     ble_adv_parameter_t tmp_param;
@@ -335,6 +357,74 @@ int dm_ble_demo_main(void)
         boarding_env.chara_pass_handle = char_handle;
     }
 
+
+    //for chara_app_alloc_handle
+    char_uuid.uuid_format = ATT_16_BIT_UUID_FORMAT;
+    char_uuid.uuid.uuid_16 = 0x1111;
+    perm = GATT_DB_PERM_READ | GATT_DB_PERM_WRITE;
+    property = (GATT_DB_CHAR_READ_PROPERTY | GATT_DB_CHAR_WRITE_PROPERTY | GATT_DB_CHAR_WRITE_WITHOUT_RSP_PROPERTY);
+
+    s_app_alloc_buff = os_malloc(522);
+
+    if(!s_app_alloc_buff)
+    {
+        os_printf("%s malloc fail\n", __func__);
+    }
+
+    char_value.val = s_app_alloc_buff;
+    char_value.len = 522;
+    char_value.actual_len = char_value.len;
+    retval = bk_ble_gatt_db_add_characteristic
+             (
+                 service_handle,
+                 &char_uuid,
+                 perm,
+                 property,
+                 &char_value,
+                 &char_handle
+             );
+
+    if (0 != retval)
+    {
+        os_printf("%s: bk_ble_gatt_db_add_characteristic() failed. Result: 0x%04X\n", __func__, retval);
+        goto error;
+    }
+    else
+    {
+        boarding_env.chara_app_alloc_handle = char_handle;
+    }
+
+
+    //for chara_host_alloc_handle
+    char_uuid.uuid_format = ATT_16_BIT_UUID_FORMAT;
+    char_uuid.uuid.uuid_16 = 0x2222;
+    perm = GATT_DB_PERM_READ | GATT_DB_PERM_WRITE;
+    property = (GATT_DB_CHAR_READ_PROPERTY | GATT_DB_CHAR_WRITE_PROPERTY | GATT_DB_CHAR_WRITE_WITHOUT_RSP_PROPERTY);
+
+
+    char_value.val = NULL;
+    char_value.len = 128;
+    char_value.actual_len = char_value.len;
+    retval = bk_ble_gatt_db_add_characteristic
+             (
+                 service_handle,
+                 &char_uuid,
+                 perm,
+                 property,
+                 &char_value,
+                 &char_handle
+             );
+
+    if (0 != retval)
+    {
+        os_printf("%s: bk_ble_gatt_db_add_characteristic() failed. Result: 0x%04X\n", __func__, retval);
+        goto error;
+    }
+    else
+    {
+        boarding_env.chara_host_alloc_handle = char_handle;
+    }
+
     retval = bk_ble_gatt_db_add_completed();
 
     if (retval != 0)
@@ -360,7 +450,7 @@ int dm_ble_demo_main(void)
     tmp_param.adv_type = ADV_LEGACY_TYPE_ADV_IND;
     tmp_param.chnl_map = ADV_ALL_CHNLS;
     tmp_param.filter_policy = ADV_FILTER_POLICY_ALLOW_SCAN_ANY_CONNECT_ANY;
-    tmp_param.own_addr_type = 0;
+    tmp_param.own_addr_type = 1;//0;
     tmp_param.peer_addr_type = 0;
     //tmp_param.peer_addr;
 
@@ -384,6 +474,24 @@ int dm_ble_demo_main(void)
             goto error;
         }
     }
+
+    retval = bk_ble_set_random_addr((bd_addr_t *)&random_addr, dm_ble_cmd_cb);
+
+    if (retval != BK_ERR_BLE_SUCCESS)
+    {
+        goto error;
+    }
+
+    if (ble_boarding_sema != NULL)
+    {
+        retval = rtos_get_semaphore(&ble_boarding_sema, SYNC_CMD_TIMEOUT_MS);
+
+        if (retval != kNoErr)
+        {
+            goto error;
+        }
+    }
+
 
     retval = bk_ble_set_advertising_data(adv_len, (uint8_t *)adv_data, dm_ble_cmd_cb);
 
@@ -424,6 +532,8 @@ int dm_ble_demo_main(void)
     return retval;
 
 error:
+
+    os_printf("%s failed. \n", __func__);
 
     if (ble_boarding_sema != NULL)
     {
@@ -514,6 +624,24 @@ static bk_err_t gatt_db_boarding_gatt_char_handler(uint8_t conn_handle, GATT_DB_
             }
         }
         break;
+
+        case GATT_DB_CHAR_PEER_EXECUTE_WRITE_REQ:
+        {
+            if (handle->char_id == boarding_env.chara_app_alloc_handle)
+            {
+                uint16_t value = 0;
+                memcpy(&value, params->value.val, sizeof(value));
+                os_printf("%s write exe chara_app_alloc_handle 0x%X len %d %d\n", __func__, value, params->value.len, params->value.actual_len);
+            }
+
+            if (handle->char_id == boarding_env.chara_host_alloc_handle)
+            {
+                uint16_t value = 0;
+                memcpy(&value, params->value.val, sizeof(value));
+                os_printf("%s write exe chara_host_alloc_handle 0x%X len %d %d\n", __func__, value, params->value.len, params->value.actual_len);
+            }
+        }
+            break;
 
         default:
             //                os_printf(

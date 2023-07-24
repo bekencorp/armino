@@ -10,7 +10,6 @@ set(GEN_FILE ${GEN_DIR}/partitions_gen.h)
 set(CONFIG_FILE_LISTS
 	partitions
 	../bl1/bl1_key.json
-	../bl1/bl1.bin
 	../bl1/bl1_control.json
 	../bl2/bl2_key.json
 	)

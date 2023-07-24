@@ -16,7 +16,7 @@
 #include "bk_pm_internal_api.h"
 #include "reset_reason.h"
 #include <modules/pm.h>
-#if CONFIG_ARCH_RISCV
+#if CONFIG_CACHE_ENABLE
 #include "cache.h"
 #endif
 #include <components/ate.h>
@@ -85,7 +85,6 @@ __maybe_unused static void cli_misc_help(void)
 #if (CONFIG_MASTER_CORE)
 	CLI_LOGI("bootcore1 boot slave core,1:start,0:stop,others:start and stop many times\r\n");
 #endif
-	CLI_LOGI("jtagmode get jtag mode\r\n");
 	CLI_LOGI("setjtagmode set jtag mode [cpu0|cpu1] [group1|group2]\r\n");
 	CLI_LOGI("setcpufreq [cksel] [ckdiv_core] [ckdiv_bus] [ckdiv_cpu]\r\n");
 #if CONFIG_COMMON_IO
@@ -264,56 +263,21 @@ static void boot_slave_core(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 }
 #endif
 
-#if (!CONFIG_SLAVE_CORE)
-static void get_jtag_mode(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv) 
-{
-	uint32 jtag_mode = sys_drv_get_jtag_mode();
 
-	CLI_LOGI("get_jtag_mode: %d.\r\n", jtag_mode);
-}
-
-static void set_jtag_mode(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv) 
-{
-	if (argc < 3) {
-		cli_misc_help();
-		return;
-	}
-
+void bk_set_jtag_mode(uint32_t cpu_id, uint32_t group_id) {
 	uint32_t cksel_core = 3;
 	uint32_t ckdiv_core = 3;
 	uint32_t ckdiv_bus  = 0;
 	uint32_t ckdiv_cpu0 = 0;
 	uint32_t ckdiv_cpu1 = 0;
 
-	if (argc > 3)
-		cksel_core = os_strtoul(argv[3], NULL, 10);
-	if (argc > 4)
-		ckdiv_core = os_strtoul(argv[4], NULL, 10);
-	if (argc > 5)
-		ckdiv_bus  = os_strtoul(argv[5], NULL, 10);
-
-	if (os_strcmp(argv[1], "cpu0") == 0) {
+	if (cpu_id == 0) {
 		(void)sys_drv_set_jtag_mode(0);
-		CLI_LOGI("gpio Jtag CPU0\r\n");
-		if (argc > 6) {
-			ckdiv_cpu0 = os_strtoul(argv[6], NULL, 10);
-			if((ckdiv_bus != ckdiv_cpu0)) {
-				CLI_LOGI("Please set [ckdiv_bus == ckdiv_cpu0]\r\n");
-				return;
-			}
-		}
-	} else if (os_strcmp(argv[1], "cpu1") == 0) {
+	} else if (cpu_id == 1) {
 		(void)sys_drv_set_jtag_mode(1);
-		CLI_LOGI("gpio Jtag CPU1\r\n");
-		if (argc > 6) {
-			ckdiv_cpu1 = os_strtoul(argv[6], NULL, 10);
-			if((ckdiv_bus != ckdiv_cpu1)) {
-				CLI_LOGI("Please set [ckdiv_bus == ckdiv_cpu1]\r\n");
-				return;
-			}
-		}
 	} else {
-		cli_misc_help();
+		CLI_LOGI("Unsupported cpu id(%d).\r\n", cpu_id);
+		return;
 	}
 
 	CLI_LOGI("[cksel:%d] [ckdiv_core:%d] [ckdiv_bus:%d] [ckdiv_cpu0:%d] [ckdiv_cpu1:%d]\r\n",
@@ -328,17 +292,47 @@ static void set_jtag_mode(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 	bk_task_wdt_stop();
 #endif
 
-#if CONFIG_CHANGE_JTAG_GPIO
+	if (group_id == 0) {
+		gpio_jtag_sel(0);
+	} else if (group_id == 1) {
+		gpio_jtag_sel(1);
+	} else {
+		CLI_LOGI("Unsupported group id(%d).\r\n", group_id);
+		return;
+	}
+
+}
+
+static void set_jtag_mode(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 3) {
+		cli_misc_help();
+		return;
+	}
+
+	uint32_t cpu_id = 0;
+	uint32_t group_id = 0;
+
+	if (os_strcmp(argv[1], "cpu0") == 0) {
+		cpu_id = 0;
+		CLI_LOGI("gpio Jtag CPU0\r\n");
+	} else if (os_strcmp(argv[1], "cpu1") == 0) {
+		cpu_id = 1;
+		CLI_LOGI("gpio Jtag CPU1\r\n");
+	} else {
+		cli_misc_help();
+	}
 
 	if (os_strcmp(argv[2], "group1") == 0) {
-		gpio_jtag_sel(0);
-		CLI_LOGD("gpio Jtag group1\r\n");
+		group_id = 0;
+		CLI_LOGI("gpio Jtag group1\r\n");
 	} else if (os_strcmp(argv[2], "group2") == 0) {
-		gpio_jtag_sel(1);
-		CLI_LOGD("gpio Jtag group2\r\n");
+		group_id = 1;
+		CLI_LOGI("gpio Jtag group2\r\n");
 	} else
 		cli_misc_help();
-#endif
+
+	bk_set_jtag_mode(cpu_id, group_id);
 
 	CLI_LOGI("set_jtag_mode end.\r\n");
 }
@@ -393,7 +387,7 @@ static void set_cpu_clock_freq(char *pcWriteBuffer, int xWriteBufferLen, int arg
 
 	CLI_LOGI("set_cpu_clock_freq end.\r\n");
 }
-#endif
+
 
 #if CONFIG_COMMON_IO
 extern int common_io_test_main(int argc, const char * argv[]);
@@ -467,12 +461,25 @@ static void prvBUS(void) {
 }
 
 
-void show_cache_config(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+void cli_cache_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	show_cache_config_info();
+	if (argc < 2) {
+		show_cache_config_info();
+	}
 
-	prvBUS();
+	uint32_t mode = os_strtoul(argv[1], NULL, 10);
+	os_printf("cache mode(%d).\n", mode);
+
+	if (mode == 0) {
+		enable_dcache(0);
+	} else if (mode == 1) {
+		enable_dcache(1);
+	} else {
+		prvBUS();
+	}
+
 }
+
 #endif
 
 #if CONFIG_ADC_KEY
@@ -495,7 +502,7 @@ static void adc_key_menu_cb()
 static void cli_adc_key_op(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	if (argc < 2) {
-		os_printf("cli_adc_key_op please init/deinit");
+		os_printf("cli_adc_key_op please init/deinit\n");
 		return;
 	}
 	if (os_strcmp(argv[1], "init") == 0) {
@@ -575,8 +582,6 @@ static const struct cli_command s_misc_commands[] = {
 #endif
 
 #if (!CONFIG_SLAVE_CORE)
-
-	{"jtagmode", "get jtag mode", get_jtag_mode},
 	{"setjtagmode", "set jtag mode {cpu0|cpu1} {group1|group2}", set_jtag_mode},
 #if CONFIG_COMMON_IO
 	{"testcommonio", "test common io", test_common_io},
@@ -586,7 +591,7 @@ static const struct cli_command s_misc_commands[] = {
 #endif
 	{"setprintport", "set log/shell uart port 0/1/2", set_printf_uart_port},
 #if CONFIG_CACHE_ENABLE
-	{"cache", "show cache config info", show_cache_config},
+	{"cache", "show cache config info", cli_cache_cmd},
 #endif
 #if CONFIG_ADC_KEY
 	{"adc_key", "adc_key {init|deinit}", cli_adc_key_op},

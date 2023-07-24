@@ -36,7 +36,7 @@ menu "Bk_cli"
 				MAX number of commands is configured by default
 
 		config IPERF_TEST
-			depends on CLI
+			depends on CLI && WIFI_ENABLE
 			bool "Enable Iperf Test"
 			default y
 
@@ -97,7 +97,6 @@ menu "Bk_cli"
 			default n
 
 		config SHELL_ASYNCLOG
-			depends on CLI
 			bool "Enable Shell Asynclog"
 			default n
 			help
@@ -119,12 +118,12 @@ menu "Bk_cli"
 			default n
 
 		config PSRAM_TEST
-			depends on CLI
+			depends on CLI && PSRAM
 			bool "Enable Psram Test"
 			default n
 
 		config CAMERA_TEST
-			depends on CLI
+			depends on CLI && CAMERA
 			bool "Enable Camera Test"
 			default n
 

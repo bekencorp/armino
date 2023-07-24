@@ -583,37 +583,7 @@ exit:
     return ( ret );
 #endif
 }
-#if 0
-int arm_ce_revoke_puf( void )
-{
-    int ret;
-    volatile uint32_t value = 0xFFFFFFFF;
-    uint32_t dev_key[DBH_OTP_DEV_ROOT_KEY_SIZE] = { 0 };
 
-#if !defined( DBH_OTP_PUF_SUPPORT )
-        return DBH_OTP_WR_IL_ERR;
-#endif
-    value     = DBH_READ_REGISTER( OTP_MGR, OTP_SET );
-
-    /* Set PTA[1:0] to 0, PAPUF to 0 */
-    DBH_REG_FLD_SET( OTP_SET, GENERAL_CTRL_PTA, value, 0x0 );
-    DBH_REG_FLD_SET( OTP_SET, GENERAL_CTRL_PAPUF, value, 0x0 );
-    DBH_WRITE_REGISTER( OTP_MGR, OTP_SET, value );
-    /* Write the last word to trigger revoking operation. */
-    value = 0xFFFFFFFF;
-    _DBH_WRITE_OTP_INFO( DBH_OTP_DEV_ROOT_KEY_OFFSET + 0xC, DBH_OTP_WORD_SIZE, &value );
-
-    DBH_OTP_SET_DIRECT_READ( );
-    ret = arm_ce_get_otp_info( OTP_INFO_DEV_ROOT_KEY, dev_key, sizeof( dev_key ), 0 );
-    PAL_LOG_DUMP_BUF("dev root key:", dev_key, sizeof(dev_key));
-    DBH_OTP_SET_SHADOW_READ( );
-    if ( 0!= ret ) {
-        return ret;
-    }
-
-    return ( ret );
-}
-#endif
 #if defined(DUBHE_SECURE)
 static int arm_ce_enroll_dev_root_key( const uint32_t *input, size_t size )
 {

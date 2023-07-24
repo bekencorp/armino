@@ -1,10 +1,10 @@
-set(incs)
+set(incs ble_boarding)
 set(srcs)
 
 if (CONFIG_AT_CMD)
 	list(APPEND srcs
-		ble_boarding/ble_boarding_demo.c
-		ble_boarding/ble_boarding_demo_dm_ble.c
+		ble_boarding/ble_boarding.c
+		ble_boarding/dm_ble_boarding.c
 		)
 endif()
 
@@ -13,6 +13,10 @@ if (CONFIG_A2DP_SINK_DEMO)
 		a2dp_sink/a2dp_sink_demo.c
 		a2dp_sink/ring_buffer_node.c
 		)
+endif()
+
+if (CONFIG_A2DP_SOURCE_DEMO)
+
 endif()
 
 if (CONFIG_HFP_HF_DEMO)

@@ -1,6 +1,6 @@
-menu "LVLG Stress Configuration"
+menu "LVGL Stress Configuration"
 
     config LV_USE_DEMO_STRESS
-        bool "LVLG Stress"
+        bool "LVGL Stress"
         default n
 endmenu

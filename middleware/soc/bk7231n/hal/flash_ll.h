@@ -37,6 +37,11 @@ static inline bool flash_ll_is_busy(flash_hw_t *hw)
 	return hw->op_sw.busy_sw;
 }
 
+static inline void flash_ll_wait_op_done(flash_hw_t *hw)
+{
+	while (flash_ll_is_busy(hw));
+}
+
 static inline uint32_t flash_ll_read_flash_id(flash_hw_t *hw)
 {
 	return hw->rd_flash_id;
@@ -132,7 +137,7 @@ static inline void flash_ll_set_dual_mode(flash_hw_t *hw)
 
 static inline void flash_ll_set_quad_m_value(flash_hw_t *hw, uint32_t m_value)
 {
-
+	hw->state.m_value = m_value;
 }
 
 static inline void flash_ll_erase_sector(flash_hw_t *hw, uint32_t erase_addr)

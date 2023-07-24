@@ -1,3 +1,5 @@
+if (CONFIG_SOC_BK7258)
+else ()
 if (CONFIG_MEDIA)
 set(incs include)
 
@@ -157,4 +159,5 @@ endif()# NOT CONFIG_SLAVE_CORE
 
 endif()# CONFIG_MEDIA
 
+endif()
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" PRIV_REQUIRES bk_cli)

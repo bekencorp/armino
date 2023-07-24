@@ -64,10 +64,19 @@ typedef volatile union {
 
 typedef volatile union {
 	struct {
-		uint32_t rsv                      : 32; /**<bit[0 : 31] */
+		uint32_t reserved_bit_0_30        : 31; /**<bit[0 : 30] */
+		uint32_t sd_en                    :  1; /**<bit[31 : 31]>*/
 	};
 	uint32_t v;
 } aon_pmu_r3_t;
+
+
+typedef volatile union {
+	struct {
+		uint32_t rsv                      : 32; /**<bit[0 : 31] */
+	};
+	uint32_t v;
+} aon_pmu_r25_t;
 
 
 typedef volatile union {
@@ -145,6 +154,24 @@ typedef volatile union {
 	uint32_t v;
 } aon_pmu_r71_t;
 
+typedef volatile union {
+	struct {
+		uint32_t vdw_soft1v               : 16; /**<bit[0 : 15]*/
+		uint32_t vup_soft1v               : 16; /**<bit[16 :31]*/
+	};
+	uint32_t v;
+} aon_pmu_r72_t;
+
+typedef volatile union {
+	struct {
+		uint32_t mul_touch_int            : 16; /**<bit[0 : 15]*/
+		uint32_t wake_up_soft             :  1; /**<bit[16 : 16]*/
+		uint32_t cap_cal                  :  9; /**<bit[17 : 25]*/
+		uint32_t cal_done                 :  1; /**<bit[26 : 26]*/
+		uint32_t nc_27_31                 :  5; /**<bit[27 : 31]*/
+	};
+	uint32_t v;
+} aon_pmu_r73_t;
 
 typedef volatile union {
 	struct {
@@ -178,14 +205,6 @@ typedef volatile union {
 	uint32_t v;
 } aon_pmu_r7e_t;
 
-
-typedef volatile union {
-	struct {
-		uint32_t td_states2               : 32; /**<bit[0 : 31] */
-	};
-	uint32_t v;
-} aon_pmu_r7f_t;
-
 typedef volatile struct {
 	volatile aon_pmu_r0_t r0;
 	volatile aon_pmu_r1_t r1;
@@ -199,11 +218,12 @@ typedef volatile struct {
 	volatile uint32_t rsv_44_6f[44];
 	volatile aon_pmu_r70_t r70;
 	volatile aon_pmu_r71_t r71;
-	volatile uint32_t rsv_72_7b[10];
+	volatile aon_pmu_r72_t r72;
+	volatile aon_pmu_r73_t r73;
+	volatile uint32_t rsv_74_7b[8];
 	volatile aon_pmu_r7c_t r7c;
 	volatile aon_pmu_r7d_t r7d;
 	volatile aon_pmu_r7e_t r7e;
-	volatile aon_pmu_r7f_t r7f;
 } aon_pmu_hw_t;
 
 #ifdef __cplusplus

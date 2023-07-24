@@ -14,10 +14,7 @@
 
 #include "cli.h"
 #if (CONFIG_MEDIA)
-#if (CONFIG_CAMERA)
-#include "camera.h"
-#endif
-#include "frame_buffer.h"
+#include "media_app.h"
 #endif
 #include "driver/i2c.h"
 #if (CONFIG_YUV_BUF)
@@ -42,10 +39,7 @@ static void cli_dvp_camera_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 {
 	if (os_strcmp(argv[1], "jpeg") == 0) {
 #if (CONFIG_MEDIA)
-		frame_buffer_init();
-#if (CONFIG_CAMERA)
-		BK_LOG_ON_ERR(bk_dvp_camera_open(PPI_640X480, MEDIA_DVP_MJPEG));
-#endif
+		media_app_camera_open(APP_CAMERA_DVP_JPEG, PPI_640X480);
 #endif
 	} else if (os_strcmp(argv[1], "clock") == 0) { /* enable mclk */
 		BK_LOG_ON_ERR(bk_jpeg_enc_set_gpio_enable(1, JPEG_GPIO_CLK));

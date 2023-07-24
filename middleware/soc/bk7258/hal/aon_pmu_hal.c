@@ -76,6 +76,21 @@ void aon_pmu_hal_touch_int_en(uint32_t value)
 	aon_pmu_ll_set_r1_touch_int_en(int_state);
 }
 
+uint32_t aon_pmu_hal_get_touch_int_status(void)
+{
+	return aon_pmu_ll_get_reg73_mul_touch_int();
+}
+
+uint32_t aon_pmu_hal_get_cap_cal(void)
+{
+	return aon_pmu_ll_get_reg73_cap_cal();
+}
+
+uint32_t aon_pmu_hal_get_touch_state(void)
+{
+	return aon_pmu_ll_get_reg73_mul_touch_int();
+}
+
 uint32_t aon_pmu_hal_get_adc_cal()
 {
 	return aon_pmu_ll_get_r7d_adc_cal();
@@ -83,12 +98,21 @@ uint32_t aon_pmu_hal_get_adc_cal()
 
 void aon_pmu_hal_reg_set(pmu_reg_e reg, uint32_t value)
 {
+    pmu_address_map_t pmu_addr_map[] = PMU_ADDRESS_MAP;
+    pmu_address_map_t *pmu_addr = &pmu_addr_map[reg];
 
+    uint32_t pmu_reg_addr = pmu_addr->reg_address;
+
+	REG_WRITE(pmu_reg_addr, value);
 }
-
 uint32_t aon_pmu_hal_reg_get(pmu_reg_e reg)
 {
-	return 0;
+    pmu_address_map_t pmu_addr_map[] = PMU_ADDRESS_MAP;
+    pmu_address_map_t *pmu_addr = &pmu_addr_map[reg];
+
+    uint32_t pmu_reg_addr = pmu_addr->reg_address;
+
+	return REG_READ(pmu_reg_addr);
 }
 
 
@@ -99,6 +123,11 @@ void aon_pmu_hal_wdt_rst_dev_enable()
 	aon_pmu_r2 |= 0x1ff;
 
 	aon_pmu_ll_set_r2(aon_pmu_r2);
+}
+
+void aon_pmu_hal_lpo_src_extern32k_enable(void)
+{
+	//Empty function
 }
 
 void aon_pmu_hal_lpo_src_set(uint32_t lpo_src)

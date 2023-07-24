@@ -24,7 +24,7 @@ extern "C" {
 #define  USE_LCD_REGISTER_CALLBACKS  1
 typedef void (*lcd_isr_t)(void);
 
-#define  USE_DMA2D_BLEND_ISR_CALLBACKS  0
+#define  USE_DMA2D_BLEND_ISR_CALLBACKS  1
 
 
 #if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG
@@ -49,6 +49,7 @@ typedef enum {
 	LCD_DEVIDE_ST7710S, /**< 480X800 RGB  */
 	LCD_DEVICE_ST7701S, /**< 480X480 RGB  */
 	LCD_DEVICE_ST7701S_LY, /**< 480X480 RGB  */
+	LCD_DEVICE_ST7789V, /**< 170X320 MCU  */
 } lcd_device_id_t;
 
 typedef enum {
@@ -61,24 +62,23 @@ typedef enum {
 	RGB_OUTPUT_SOF =1 << 4, 	 /**< reg display output start of frame  */
 	I8080_OUTPUT_SOF =1 << 6,	/**< 8080 display output start of frame  */
 	I8080_OUTPUT_EOF = 1 << 7,	 /**< 8080 display output end of frame	  */
+	RGB_DE_INT = 1 << 8,
 }lcd_int_type_t;
 
 /** rgb lcd clk select, infulence pfs, user should select according to lcd device spec*/
 typedef enum {
-	LCD_320M = 0,    /**< diaplay module clk config 320MHz*/
-	LCD_160M,
-	LCD_120M,
 	LCD_80M,
+	LCD_64M,
 	LCD_60M,
-	LCD_54M,  //5
+	LCD_54M,
 	LCD_40M,
 	LCD_32M,
 	LCD_30M,
 	LCD_26M,
 	LCD_20M,
-	LCD_12M,//10
+	LCD_12M,
 	LCD_10M,
-	LCD_8M   //12
+	LCD_8M
 }lcd_clk_t;
 
 /** rgb data output in clk rising or falling */

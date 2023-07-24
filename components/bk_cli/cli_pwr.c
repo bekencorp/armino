@@ -17,6 +17,7 @@
 #include <driver/aon_rtc.h>
 #include <modules/ble_types.h>
 #include <driver/timer.h>
+#include <driver/trng.h>
 
 #if !CONFIG_SLAVE_CORE
 #if CONFIG_SYSTEM_CTRL
@@ -156,7 +157,7 @@ static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		}
 	}
 
-	s_cli_sleep_mode  = pm_sleep_mode;
+	s_cli_sleep_mode = pm_sleep_mode;
 	s_pm_vote1 = pm_vote1;
 	s_pm_vote2 = pm_vote2;
 	s_pm_vote3 = pm_vote3;
@@ -164,10 +165,13 @@ static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 	/*set wakeup source*/
 	if(pm_wake_source == PM_WAKEUP_SOURCE_INT_RTC)
 	{
+	#if CONFIG_RTC_ANA_WAKEUP_SUPPORT
+		bk_rtc_ana_register_wakeup_source(pm_param1);
+	#else //CONFIG_RTC_ANA_WAKEUP_SUPPORT
 		#if CONFIG_AON_RTC
 		alarm_info_t low_valtage_alarm = {
 										"low_vol",
-										pm_param1*RTC_TICKS_PER_1MS,
+										pm_param1*AON_RTC_MS_TICK_CNT,
 										1,
 										cli_pm_rtc_callback,
 										NULL
@@ -176,17 +180,21 @@ static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		//force unregister previous if doesn't finish.
 		bk_alarm_unregister(AON_RTC_ID_1, low_valtage_alarm.name);
 		bk_alarm_register(AON_RTC_ID_1, &low_valtage_alarm);
-		#endif
+		#endif //CONFIG_AON_RTC
 		bk_pm_wakeup_source_set(PM_WAKEUP_SOURCE_INT_RTC, NULL);
-
+	#endif //!CONFIG_RTC_ANA_WAKEUP_SUPPORT
 	}
 	else if(pm_wake_source == PM_WAKEUP_SOURCE_INT_GPIO)
 	{
+	#if CONFIG_GPIO_ANA_WAKEUP_SUPPORT
+		bk_gpio_ana_register_wakeup_source(pm_param1,pm_param2);
+	#else //CONFIG_GPIO_ANA_WAKEUP_SUPPORT
 	#if CONFIG_GPIO_WAKEUP_SUPPORT
 		bk_gpio_register_isr(pm_param1, cli_pm_gpio_callback);
 		bk_gpio_register_wakeup_source(pm_param1,pm_param2);
 		bk_pm_wakeup_source_set(PM_WAKEUP_SOURCE_INT_GPIO, NULL);
-	#endif
+	#endif //CONFIG_GPIO_WAKEUP_SUPPORT
+	#endif //!CONFIG_GPIO_ANA_WAKEUP_SUPPORT
 	}
 	else if(pm_wake_source == PM_WAKEUP_SOURCE_INT_SYSTEM_WAKE)
 	{   
@@ -376,7 +384,7 @@ static void cli_pm_power(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 
 	pm_module_id = os_strtoul(argv[1], NULL, 10);
 	pm_power_state = os_strtoul(argv[2], NULL, 10);
-	if ((pm_power_state < 0) || (pm_power_state > 1) || (pm_module_id < 0) || (pm_module_id > 31))
+	if (pm_power_state > 1)
 	{
 		os_printf("set pm power value invalid %d %d \r\n",pm_power_state,pm_module_id);
 		return;
@@ -488,9 +496,7 @@ static void cli_pm_auto_vote(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 		os_printf("set pm auto vote value invalid %d\r\n",pm_ctrl);
 		return;
 	}
-
-	bk_pm_app_auto_vote_state_set(pm_ctrl);
-
+	bk_pm_module_vote_sleep_ctrl(PM_SLEEP_MODULE_NAME_APP,0x0,0x0);
 }
 
 #define CLI_DVFS_FREQUNCY_DIV_MAX      (15)
@@ -502,7 +508,6 @@ static void cli_dvfs_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	UINT32 ckdiv_bus  = 0;
 	UINT32 ckdiv_cpu0 = 0;
 	UINT32 ckdiv_cpu1 = 0;
-	UINT32 clk_param  = 0;
 
 	if (argc != 6) 
 	{
@@ -537,63 +542,43 @@ static void cli_dvfs_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 		GLOBAL_INT_RESTORE();
 		return;
 	}
-
-	clk_param = 0;
-	clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
-	if(((clk_param >> 0x4)&0x3) > cksel_core)//when it from the higher frequecy to lower frqquecy
-	{
-		/*1.core clk select*/
-		clk_param = 0;
-		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
-		clk_param &=  ~(0x3 << 4);
-		clk_param |=  cksel_core << 4;
-		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
-
-		/*2.config bus and core clk div*/
-		clk_param = 0;
-		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
-		clk_param &=  ~((0x1 << 6)|(0xF << 0));
-		clk_param |=  ckdiv_core << 0;
-		clk_param |=  (ckdiv_bus&0x1) << 6;
-		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
-
-		/*3.config cpu clk div*/
-		sys_drv_cpu_clk_div_set(0,ckdiv_cpu0);
-
-		sys_drv_cpu_clk_div_set(1,ckdiv_cpu1);
-
-	}
-	else//when it from the lower frequecy to higher frqquecy
-	{
-		/*1.config bus and core clk div*/
-		clk_param = 0;
-		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
-		clk_param &=  ~(0xF << 0);
-		clk_param |=  ckdiv_core << 0;
-		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
-	
-		clk_param = 0;
-		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
-		clk_param &=  ~(0x1 << 6);
-		clk_param |=  (ckdiv_bus&0x1) << 6;
-		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
-
-		/*2.config cpu clk div*/
-		sys_drv_cpu_clk_div_set(0,ckdiv_cpu0);
-
-		sys_drv_cpu_clk_div_set(1,ckdiv_cpu1);
-
-		/*3.core clk select*/
-
-		clk_param = 0;
-		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
-		clk_param &=  ~(0x3 << 4);
-		clk_param |=  cksel_core << 4;
-		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
-	}
+	pm_core_bus_clock_ctrl(cksel_core, ckdiv_core,ckdiv_bus, ckdiv_cpu0,ckdiv_cpu1);
 	GLOBAL_INT_RESTORE();
 	os_printf("switch cpu frequency ok 0x%x 0x%x 0x%x\r\n",sys_drv_all_modules_clk_div_get(CLK_DIV_REG0),sys_drv_cpu_clk_div_get(0),sys_drv_cpu_clk_div_get(1));
 }
+
+#define DVFS_AUTO_TEST_COUNT (100)
+extern void delay_us(uint32 num);
+static void cli_dvfs_auto_test_timer_isr(timer_id_t chan)
+{
+	uint8_t rand_num;
+	uint8_t i;
+	for(i=0; i<DVFS_AUTO_TEST_COUNT; i++)
+	{
+		rand_num = (uint32_t)bk_rand()%PM_CPU_FRQ_DEFAULT;
+		//os_printf("dvfs %d \r\n",rand_num);
+		delay_us(5);
+		sys_drv_switch_cpu_bus_freq(rand_num);
+	}
+}
+static void cli_dvfs_auto_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	uint32_t period_us;
+	
+	if (argc != 2)
+	{
+		os_printf("set dvfs_auto_test parameter invalid %d\r\n",argc);
+		return;
+	}
+	period_us = os_strtoul(argv[1], NULL, 10);
+	os_printf("dvfs auto test period set %d us!\r\n",period_us);
+
+	bk_trng_driver_init();
+	bk_trng_start();
+	
+	bk_timer_delay_with_callback(TIMER_ID5,period_us,cli_dvfs_auto_test_timer_isr);
+}
+
 #if CONFIG_AON_RTC
 static UINT32 s_pre_tick;
 static void cli_pm_timer_isr(timer_id_t chan)
@@ -898,11 +883,29 @@ void cli_pwr_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv
 }
 #endif 
 #endif //!CONFIG_SYSTEM_CTRL
+#if CONFIG_SOC_BK7236XX //temp mofify for bk7236 & bk7258
+/**
+ * BK7236XX use buck power supply as default and should not close buck any time during use.
+ * This function can only be used when buck power supply is unstable (hardware v4).
+ * Please remove it when buck is stable (next hardware version).
+*/
+extern void sys_hal_buck_switch(uint32_t flag);
+static void cli_pm_buck(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	UINT32 flag = 0;
+	if (argc != 2)
+	{
+		os_printf("set buck power supply invalid %d\r\n",argc);
+		return;
+	}
+
+	flag = os_strtoul(argv[1], NULL, 10);
+
+	sys_hal_buck_switch(flag);
+}
+#endif
 #define PWR_CMD_CNT (sizeof(s_pwr_commands) / sizeof(struct cli_command))
 static const struct cli_command s_pwr_commands[] = {
-#if CONFIG_WIFI_ENABLE
-	{"ps", "ps {rfdtim|mcudtim|rf_timer} {1|0}", cli_ps_cmd},
-#endif
 #if !CONFIG_SYSTEM_CTRL
 #if CONFIG_MCU_PS
 	{"mac_ps", "mac_ps {func} [param1] [param2]", cli_mac_ps_cmd},
@@ -918,6 +921,7 @@ static const struct cli_command s_pwr_commands[] = {
 #if CONFIG_DEBUG_FIRMWARE
 	{"pm", "pm [sleep_mode] [wake_source] [vote1] [vote2] [vote3] [param1] [param2] [param3]", cli_pm_cmd},
 	{"dvfs", "dvfs [cksel_core] [ckdiv_core] [ckdiv_bus] [ckdiv_cpu0] [ckdiv_cpu1]", cli_dvfs_cmd},
+	{"dvfs_auto_test", "dvfs_auto_test [period]", cli_dvfs_auto_test},
 	{"pm_vote", "pm_vote [pm_sleep_mode] [pm_vote] [pm_vote_value] [pm_sleep_time]", cli_pm_vote_cmd},
 	{"pm_debug", "pm_debug [debug_en_value]", cli_pm_debug},
 	{"pm_lpo", "pm_lpo [lpo_type]", cli_pm_lpo},
@@ -932,6 +936,9 @@ static const struct cli_command s_pwr_commands[] = {
 	{"pm_rosc_cali", "pm_rosc_cali [cali_mode][cal_intval]", cli_pm_rosc_cali},
 	{"pm_wakeup_source", "pm_wakeup_source [pm_sleep_mode]", cli_pm_wakeup_source},
 	{"pm_cp1_ctrl", "pm_cp1_ctrl [cp1_auto_pw_ctrl]", cli_pm_cp1_ctrl},
+#if CONFIG_SOC_BK7236XX //temp mofify for bk7236 & bk7258
+	{"pm_buck", "pm_buck [1/0]", cli_pm_buck}
+#endif
 #else
 	{"pm", "pm [sleep_mode] [wake_source] [vote1] [vote2] [vote3] [param1] [param2] [param3]", cli_pm_cmd},
 	{"pm_vote", "pm_vote [pm_sleep_mode] [pm_vote] [pm_vote_value] [pm_sleep_time]", cli_pm_vote_cmd},

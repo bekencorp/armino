@@ -289,9 +289,10 @@ static bool_t shell_uart_init(shell_dev_t * shell_dev)
 
 #if 0
 	bk_uart_init(uart_id, &config);
+#endif
 	bk_uart_set_enable_rx(uart_id, 0);
 	bk_uart_set_enable_rx(uart_id, 1);
-#endif
+
 	return bTRUE;
 }
 
@@ -547,6 +548,14 @@ static bool_t shell_uart_ctrl(shell_dev_t * shell_dev, u8 cmd, void *param)
 			}
 			u8 uart_port = *(u8 *)param;
 			uart_ext->uart_id = uart_port;
+			break;
+
+		case SHELL_IO_CTRL_GET_UART_PORT:
+			if(param == NULL) 
+			{
+				return bFALSE;
+			}
+			*(u8 *)param = uart_ext->uart_id;
 			break;
 
 		case SHELL_IO_CTRL_GET_RX_STATUS:

@@ -18,6 +18,7 @@ menu "Lwip_intf_v2_1"
 			Enable ACK_NOW if MQTT is open
 
 	config LWIP
+		depends on WIFI_ENABLE
 		bool "Enable LWIP"
 		default y
 
@@ -25,6 +26,7 @@ menu "Lwip_intf_v2_1"
 		depends on LWIP
 
 		config DHCP
+			depends on WIFI_ENABLE
 			bool "Enable DHCP"
 			default y
 		
@@ -37,6 +39,7 @@ menu "Lwip_intf_v2_1"
 			default n
 
 		config TASK_LWIP_PRIO
+			depends on WIFI_ENABLE
 			int "Set Task Lwip Prio"
 			range 1 10
 			default 4
@@ -73,6 +76,7 @@ menu "Lwip_intf_v2_1"
 				help
 					Default Memory Policy
 			config LWIP_MEM_REDUCE
+				depends on WIFI_ENABLE
 				bool "LWIP_MEM_REDUCE"
 				help
 					Reduced Memory Policy

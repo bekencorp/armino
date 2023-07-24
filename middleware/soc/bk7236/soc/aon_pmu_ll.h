@@ -21,6 +21,10 @@
 #include "hal_port.h"
 #include "aon_pmu_hw.h"
 
+#if CONFIG_TFM_AON_PMU_LL_NSC
+#include "tfm_aon_pmu_ll_nsc.h"
+#else
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -225,14 +229,26 @@ static inline uint32_t aon_pmu_ll_get_r3(void) {
 	return r->v;
 }
 
-static inline void aon_pmu_ll_set_r3_rsv(uint32_t v) {
+static inline void aon_pmu_ll_set_r3_sd_en(uint32_t v) {
 	aon_pmu_r3_t *r = (aon_pmu_r3_t*)(SOC_AON_PMU_REG_BASE + (0x3 << 2));
-	r->rsv = v;
+	r->sd_en = v;
 }
 
-static inline uint32_t aon_pmu_ll_get_r3_rsv(void) {
+static inline uint32_t aon_pmu_ll_get_r3_sd_en(void) {
 	aon_pmu_r3_t *r = (aon_pmu_r3_t*)(SOC_AON_PMU_REG_BASE + (0x3 << 2));
-	return r->rsv;
+	return r->sd_en;
+}
+
+//reg r25:
+
+static inline void aon_pmu_ll_set_r25(uint32_t v) {
+	aon_pmu_r25_t *r = (aon_pmu_r25_t*)(SOC_AON_PMU_REG_BASE + (0x25 << 2));
+	r->v = v;
+}
+
+static inline uint32_t aon_pmu_ll_get_r25(void) {
+	aon_pmu_r25_t *r = (aon_pmu_r25_t*)(SOC_AON_PMU_REG_BASE + (0x25 << 2));
+	return r->v;
 }
 
 //reg r40:
@@ -620,6 +636,60 @@ static inline uint32_t aon_pmu_ll_get_r71_wakeup_source(void) {
 	return r->wakeup_source;
 }
 
+//reg reg72:
+
+static inline void aon_pmu_ll_set_reg72_value(uint32_t v) {
+	aon_pmu_r72_t *r = (aon_pmu_r72_t*)(SOC_AON_PMU_REG_BASE + (0x72 << 2));
+	r->v = v;
+}
+
+static inline uint32_t aon_pmu_ll_get_reg72_value(void) {
+	aon_pmu_r72_t *r = (aon_pmu_r72_t*)(SOC_AON_PMU_REG_BASE + (0x72 << 2));
+	return r->v;
+}
+
+static inline uint32_t aon_pmu_ll_get_reg72_vdw_soft1v(void) {
+	aon_pmu_r72_t *r = (aon_pmu_r72_t*)(SOC_AON_PMU_REG_BASE + (0x72 << 2));
+	return r->vdw_soft1v;
+}
+
+static inline uint32_t aon_pmu_ll_get_reg72_vup_soft1v(void) {
+	aon_pmu_r72_t *r = (aon_pmu_r72_t*)(SOC_AON_PMU_REG_BASE + (0x72 << 2));
+	return r->vup_soft1v;
+}
+
+//reg reg73:
+
+static inline void aon_pmu_ll_set_reg73_value(uint32_t v) {
+	aon_pmu_r73_t *r = (aon_pmu_r73_t*)(SOC_AON_PMU_REG_BASE + (0x73 << 2));
+	r->v = v;
+}
+
+static inline uint32_t aon_pmu_ll_get_reg73_value(void) {
+	aon_pmu_r73_t *r = (aon_pmu_r73_t*)(SOC_AON_PMU_REG_BASE + (0x73 << 2));
+	return r->v;
+}
+
+static inline uint32_t aon_pmu_ll_get_reg73_mul_touch_int(void) {
+	aon_pmu_r73_t *r = (aon_pmu_r73_t*)(SOC_AON_PMU_REG_BASE + (0x73 << 2));
+	return r->mul_touch_int;
+}
+
+static inline uint32_t aon_pmu_ll_get_reg73_wake_up_soft(void) {
+	aon_pmu_r73_t *r = (aon_pmu_r73_t*)(SOC_AON_PMU_REG_BASE + (0x73 << 2));
+	return r->wake_up_soft;
+}
+
+static inline uint32_t aon_pmu_ll_get_reg73_cap_cal(void) {
+	aon_pmu_r73_t *r = (aon_pmu_r73_t*)(SOC_AON_PMU_REG_BASE + (0x73 << 2));
+	return r->cap_cal;
+}
+
+static inline uint32_t aon_pmu_ll_get_reg73_cal_done(void) {
+	aon_pmu_r73_t *r = (aon_pmu_r73_t*)(SOC_AON_PMU_REG_BASE + (0x73 << 2));
+	return r->cal_done;
+}
+
 //reg r7c:
 
 static inline void aon_pmu_ll_set_r7c(uint32_t v) {
@@ -715,23 +785,8 @@ static inline uint32_t aon_pmu_ll_get_r7e_h2(void) {
 	aon_pmu_r7e_t *r = (aon_pmu_r7e_t*)(SOC_AON_PMU_REG_BASE + (0x7e << 2));
 	return r->h2;
 }
-
-//reg r7f:
-
-static inline void aon_pmu_ll_set_r7f(uint32_t v) {
-	aon_pmu_r7f_t *r = (aon_pmu_r7f_t*)(SOC_AON_PMU_REG_BASE + (0x7f << 2));
-	r->v = v;
-}
-
-static inline uint32_t aon_pmu_ll_get_r7f(void) {
-	aon_pmu_r7f_t *r = (aon_pmu_r7f_t*)(SOC_AON_PMU_REG_BASE + (0x7f << 2));
-	return r->v;
-}
-
-static inline uint32_t aon_pmu_ll_get_r7f_td_states2(void) {
-	aon_pmu_r7f_t *r = (aon_pmu_r7f_t*)(SOC_AON_PMU_REG_BASE + (0x7f << 2));
-	return r->td_states2;
-}
 #ifdef __cplusplus
 }
 #endif
+
+#endif // CONFIG_TFM_AON_PMU_LL_NSC

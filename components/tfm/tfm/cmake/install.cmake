@@ -40,6 +40,9 @@ install(FILES       ${INTERFACE_INC_DIR}/tfm_api.h
 install(FILES       ${INTERFACE_INC_DIR}/tfm_ns_client_ext.h
         DESTINATION ${INSTALL_INTERFACE_INC_DIR})
 
+install(FILES       ${CMAKE_BINARY_DIR}/generated/interface/include/config_impl.h
+        DESTINATION ${INSTALL_INTERFACE_INC_DIR})
+
 if (TFM_PSA_API)
     install(FILES       ${INTERFACE_INC_DIR}/tfm_psa_call_pack.h
             DESTINATION ${INSTALL_INTERFACE_INC_DIR})
@@ -160,6 +163,17 @@ if (TFM_PARTITION_CRYPTO OR FORWARD_PROT_MSG)
     endif()
 endif()
 
+if(TFM_PARTITION_SYSTEM_CLOCK)
+    if(TFM_PSA_API)
+        install(FILES       ${INTERFACE_SRC_DIR}/tfm_system_clock_ipc_api.c
+                DESTINATION ${INSTALL_INTERFACE_SRC_DIR})
+        install(FILES       ${INTERFACE_INC_DIR}/tfm_system_clock_api.h
+                DESTINATION ${INSTALL_INTERFACE_INC_DIR})
+        install(FILES       ${INTERFACE_INC_DIR}/tfm_system_clock_defs.h
+                DESTINATION ${INSTALL_INTERFACE_INC_DIR})
+    endif()
+endif()
+
 if (TFM_PARTITION_INITIAL_ATTESTATION OR FORWARD_PROT_MSG)
     if (TFM_PSA_API)
         install(FILES       ${INTERFACE_SRC_DIR}/tfm_initial_attestation_ipc_api.c
@@ -223,3 +237,4 @@ if(TFM_PARTITION_FIRMWARE_UPDATE)
                 DESTINATION ${INSTALL_INTERFACE_SRC_DIR})
     endif()
 endif()
+

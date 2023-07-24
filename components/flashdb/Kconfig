@@ -1,0 +1,44 @@
+menu "flashdb"
+	config FLASHDB
+		bool "Enable flashdb"
+		default n
+
+	config FLASHDB_USING_KVDB
+		depends on FLASHDB
+		bool "Enable use kvdb of flashdb"
+		default n
+		
+	config FLASHDB_KVDB_START_ADDR
+		depends on FLASHDB_USING_KVDB
+		hex "config the addr offset in flash of kvdb"
+		range 0x0 0xFFFFFFFF
+	    default 0xFFFFFFFF
+		
+	config FLASHDB_KVDB_SIZE
+		depends on FLASHDB_USING_KVDB
+		hex "config the size in flash of kvdb"
+		range 0x0 0xFFFFFFFF
+	    default 0xFFFFFFFF
+				
+	config FLASHDB_USING_TSDB
+		depends on FLASHDB
+		bool "Enable use tsdb of flashdb"
+		default n
+		
+	config FLASHDB_TSDB_START_ADDR
+		depends on FLASHDB_USING_TSDB
+		hex "config the addr offset in flash of tsdb"
+		range 0x0 0xFFFFFFFF
+	    default 0xFFFFFFFF
+		
+	config FLASHDB_TSDB_SIZE
+		depends on FLASHDB_USING_TSDB
+		hex "config the size in flash of tsdb"
+		range 0x0 0xFFFFFFFF
+	    default 0xFFFFFFFF
+		
+	config FLASHDB_DEMO
+		depends on FLASHDB
+		bool "test case for flashdb"
+		default n
+endmenu

@@ -1,6 +1,6 @@
-menu "LVLG Keypad encoder Configuration"
+menu "LVGL Keypad encoder Configuration"
 
     config LV_USE_DEMO_KEYPAD_AND_ENCODER
-        bool "LVLG Keypad encoder"
+        bool "LVGL Keypad encoder"
         default n
 endmenu

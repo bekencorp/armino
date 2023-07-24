@@ -7,7 +7,6 @@ set(incs
 	./
 	)
 
-if (NOT CONFIG_SLAVE_CORE)
 set(srcs
 	src/core/lv_disp.c
 	src/core/lv_group.c
@@ -39,6 +38,7 @@ set(srcs
 	src/draw/lv_img_decoder.c
 	src/draw/sw/lv_draw_sw.c
 	src/draw/sw/lv_draw_sw_arc.c
+	src/draw/sw/lv_draw_sw_blend.c
 	src/draw/sw/lv_draw_sw_dither.c
 	src/draw/sw/lv_draw_sw_gradient.c
 	src/draw/sw/lv_draw_sw_img.c
@@ -175,7 +175,6 @@ if (CONFIG_FATFS)
 endif()
 
 endif()
-endif()
 
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
@@ -183,9 +182,7 @@ armino_component_register(SRCS "${srcs}"
 	)
 
 if (CONFIG_LVGL)
-if (NOT CONFIG_SLAVE_CORE)
 target_compile_options(${COMPONENT_LIB} PRIVATE -O3)
-endif()
 endif()
 
 

@@ -4,21 +4,36 @@ if(NOT "${target}" STREQUAL "bk7236")
     return()
 endif()
 
-if (CONFIG_TFM)
-set(incs
-	tfm/interface/include
-	tfm/secure_fw/include
-	${CMAKE_BINARY_DIR}/armino/tfm/generated/interface/include
-)
+set(incs)
+set(srcs)
 
-set(srcs
-	tfm/interface/src/tfm_firmware_update_ipc_api.c
-	tfm/interface/src/tfm_psa_ns_api.c
-	tfm_ns_interface.c
-)
+if (CONFIG_TFM)
+	list(APPEND srcs
+		tfm_ns_interface.c
+		tfm/interface/src/tfm_psa_ns_api.c
+	)
+	list(APPEND incs
+		tfm/interface/include
+		tfm/secure_fw/include
+		${CMAKE_BINARY_DIR}/armino/tfm/generated/interface/include
+	)
 endif()
 
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" REQUIRES partitions)
+if (CONFIG_TFM_SYSTEM_CLOCK)
+	list(APPEND srcs
+		tfm/interface/src/tfm_system_clock_ipc_api.c
+	)
+endif()
+
+if (CONFIG_TFM_FWU)
+	list(APPEND srcs
+		tfm/interface/src/tfm_firmware_update_ipc_api.c
+	)
+endif()
+
+armino_component_register(SRCS "${srcs}"
+	INCLUDE_DIRS "${incs}"
+	REQUIRES partitions)
 
 if (CONFIG_TFM)
 armino_build_get_property(partition_hdr_dir PARTITIONS_HDR_DIR)
@@ -55,6 +70,9 @@ ExternalProject_Add(tfm_project
 		-DPLATFORM_DEFAULT_OTP_WRITEABLE=${CONFIG_PLATFORM_DEFAULT_OTP_WRITEABLE}
 		-DMCUBOOT_LOG_LEVEL=${CONFIG_TFM_BL2_LOG_LEVEL}
 		-DPARTITION_HDR_DIR=${partition_hdr_dir}
+		-DMCUBOOT_UPGRADE_STRATEGY=${CONFIG_BL2_UPGRADE_STRATEGY}
+		-DTFM_AON_PMU_LL_NSC=${CONFIG_TFM_AON_PMU_LL_NSC}
+		-DTFM_SYS_LL_NSC=${CONFIG_TFM_SYS_LL_NSC}
 		&& cd ${tfm_build_dir}
 		&& ninja -- install
 	BUILD_BYPRODUCTS ${tfm_build_dir}/secure_fw/libtfm_s_veneers.a
@@ -63,15 +81,14 @@ ExternalProject_Add(tfm_project
 	)
 
 add_dependencies(${COMPONENT_LIB} tfm_project)
-
 add_library(lib_tfm STATIC IMPORTED GLOBAL)
 add_dependencies(lib_tfm tfm_project)
+if (CONFIG_TFM_SYSTEM_CLOCK OR CONFIG_TFM_FWU)
 set_target_properties(lib_tfm PROPERTIES IMPORTED_LOCATION ${tfm_build_dir}/secure_fw/libtfm_s_veneers.a)
 target_link_libraries(${COMPONENT_LIB} PUBLIC lib_tfm)
-
 target_compile_definitions(${COMPONENT_LIB}
 	PRIVATE
 		TFM_PSA_API
 )
-
+endif()
 endif()

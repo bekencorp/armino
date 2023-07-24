@@ -479,7 +479,7 @@ static void lcd_nt35510_config(void)
 	//lcd_spi_write_hf_word_cmd(0x4a00); lcd_spi_write_hf_word_data(0x0000);
 
     lcd_spi_write_hf_word_cmd(0x1100);
-    delay_ms(120);
+    rtos_delay_milliseconds(120);
     lcd_spi_write_hf_word_cmd(0x2900);
 }
 
@@ -515,10 +515,10 @@ static void nt35510_lcd_backlight_close(void)
 static bk_err_t nt35510_lcd_off(void)
 {
 	lcd_spi_write_hf_word_cmd(0x2800);
-	delay_ms(100);
+	rtos_delay_milliseconds(100);
 
 	lcd_spi_write_hf_word_cmd(0x1100);
-	delay_ms(100);
+	rtos_delay_milliseconds(100);
 
 	return BK_OK;
 }

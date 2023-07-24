@@ -69,7 +69,8 @@ static uint16_t s_ethermind_send_intv_handle = 0;
 
 
 static uint8_t s_ethermind_send_test_value = 0xa;
-static uint16_t s_ethermind_send_size_value = 20;
+static uint16_t s_ethermind_current_mtu = 23;
+static uint16_t s_ethermind_send_size_value = 23 - 3;
 static uint16_t s_ethermind_send_intv_value = 1000;
 
 static uint8_t s_ethermind_att_handle; //ATT_CON_ID
@@ -372,6 +373,7 @@ void ble_at_cmd_cb(ble_cmd_t cmd, ble_cmd_param_t *param)
         case BLE_SET_LOCAL_NAME:
         case BLE_GET_LOCAL_NAME:
         case BLE_READ_LOCAL_ADDR:
+        case BLE_SET_RANDOM_ADDR:
             if (ble_at_cmd_sema != NULL)
                 rtos_set_semaphore( &ble_at_cmd_sema );
             break;
@@ -1125,8 +1127,8 @@ static uint32_t dm_ble_at_event_cb(ble_event_enum_t event, void *param)
     case BK_DM_BLE_EVENT_MTU_CHANGE:
     {
         ble_mtu_change_t *m_ind = (ble_mtu_change_t *) param;
-        os_printf("%s m_ind:conn_idx:%d, mtu_size:%d\r\n", __func__,
-                  m_ind->conn_idx, m_ind->mtu_size);
+        os_printf("%s m_ind:conn_idx:%d, mtu_size:%d\r\n", __func__, m_ind->conn_idx, m_ind->mtu_size);
+        s_ethermind_current_mtu = m_ind->mtu_size;
         break;
     }
 
@@ -1193,16 +1195,17 @@ static uint32_t dm_ble_at_event_cb(ble_event_enum_t event, void *param)
     case BK_DM_BLE_EVENT_TX_DONE:
     {
         ble_att_tx_compl_t *tx_comp = (typeof(tx_comp)) param;
-        os_printf("%s BK_DM_BLE_EVENT_TX_DONE res %d ATT_CON_ID %d ATT_ATTR_HANDLE %d\n",
-                  __func__, tx_comp->event_result, tx_comp->conn_handle,
-                  tx_comp->attr_handle);
+//        os_printf("%s BK_DM_BLE_EVENT_TX_DONE res %d ATT_CON_ID %d ATT_ATTR_HANDLE %d\n",
+//                  __func__, tx_comp->event_result, tx_comp->conn_handle,
+//                  tx_comp->attr_handle);
 
         if (s_ethermind_service_type == 1 && s_ethermind_auto_tx_enable)
         {
-            //                for (uint8_t i = 0; i < a_wr_c->num_compl; ++i)
+            //                for (uint8_t i = 0; i < a_wr_c->number_package_completed; ++i)
             //                {
             //                    ble_tx_test_active_timer_callback(NULL);
             //                }
+            ble_tx_test_active_timer_callback(NULL);
         }
     }
 
@@ -1220,6 +1223,11 @@ static uint32_t dm_ble_at_event_cb(ble_event_enum_t event, void *param)
                       ind->peer_address.addr[0],
                       ind->status, ind->conn_interval,
                       ind->conn_latency, ind->supervision_timeout);
+
+            if (ble_at_cmd_sema != NULL)
+            {
+                rtos_set_semaphore( &ble_at_cmd_sema );
+            }
         }
 
         break;
@@ -1227,7 +1235,6 @@ static uint32_t dm_ble_at_event_cb(ble_event_enum_t event, void *param)
 
     case BK_DM_BLE_EVENT_RECV_NOTIFY:
     {
-
         ble_att_notify_t *tmp = (typeof(tmp)) param;
 
         s_ethermind_performance_rx_bytes += tmp->len;
@@ -1257,8 +1264,7 @@ static uint32_t dm_ble_at_event_cb(ble_event_enum_t event, void *param)
             }
             else
             {
-                os_printf("%s cant find info ATT_CON_ID %d\n", __func__,
-                          tmp->conn_handle);
+//                os_printf("%s cant find info ATT_CON_ID %d\n", __func__, tmp->conn_handle);
             }
         }
     }
@@ -1660,28 +1666,8 @@ int ble_set_adv_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc,
     }
 
     adv_param.own_addr_type = os_strtoul(argv[3], NULL, 16) & 0xFF;
-    switch (adv_param.own_addr_type)
-    {
-        case 0:
-        case 1:
-            adv_param.own_addr_type = BLE_STATIC_ADDR;
-            break;
-        case 2:
-            adv_param.own_addr_type = BLE_GEN_RSLV_ADDR;
-            break;
-        case 3:
-            adv_param.own_addr_type = BLE_GEN_NON_RSLV_ADDR;
-            break;
-        default:
-            os_printf("\nThe third(own_addr_type) param is wrong!\n");
-            err = kParamErr;
-            break;
-    }
-
-    if (err != kNoErr)
-        goto error;
-
     adv_param.adv_type = os_strtoul(argv[4], NULL, 16) & 0xFF;
+
     if (adv_param.adv_type > 2)
     {
         os_printf("\nThe forth(adv_type) param is wrong!\n");
@@ -1715,6 +1701,26 @@ int ble_set_adv_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 
     if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
     {
+        switch (adv_param.own_addr_type)
+        {
+            case 0:
+            case 1:
+                adv_param.own_addr_type = OWN_ADDR_TYPE_PUBLIC_OR_STATIC_ADDR;
+                break;
+            case 2:
+                adv_param.own_addr_type = OWN_ADDR_TYPE_GEN_RSLV_OR_RANDOM_ADDR;
+                break;
+            case 3:
+                adv_param.own_addr_type = OWN_ADDR_TYPE_GEN_NON_RSLV_OR_RANDOM_ADDR;
+                break;
+            default:
+                os_printf("\nThe third(own_addr_type) param is wrong!\n");
+                err = kParamErr;
+                break;
+        }
+
+        if (err != kNoErr)
+            goto error;
 
         actv_idx = bk_ble_find_actv_state_idx_handle(AT_ACTV_ADV_CREATED);
         if (actv_idx == AT_BLE_MAX_ACTV)
@@ -2254,28 +2260,8 @@ int ble_set_scan_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
 
     os_memset(&scan_param, 0, sizeof(ble_scan_param_t));
     scan_param.own_addr_type = os_strtoul(argv[0], NULL, 16) & 0xFF;
-    switch (scan_param.own_addr_type)
-    {
-        case 0:
-        case 1:
-            scan_param.own_addr_type = BLE_STATIC_ADDR;
-            break;
-        case 2:
-            scan_param.own_addr_type = BLE_GEN_RSLV_ADDR;
-            break;
-        case 3:
-            scan_param.own_addr_type = BLE_GEN_NON_RSLV_ADDR;
-            break;
-        default:
-            os_printf("\nThe fourth param is wrong!\n");
-            err = kParamErr;
-            break;
-    }
-
-    if (err != kNoErr)
-        goto error;
-
     scan_param.scan_phy = os_strtoul(argv[1], NULL, 16) & 0xFF;
+
     if (!(scan_param.scan_phy & (PHY_1MBPS_BIT | PHY_CODED_BIT)))
     {
         os_printf("\nThe scan phy param is wrong!\n");
@@ -2302,10 +2288,29 @@ int ble_set_scan_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
         }
     }
 
-
-
     if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
     {
+        switch (scan_param.own_addr_type)
+        {
+            case 0:
+            case 1:
+                scan_param.own_addr_type = OWN_ADDR_TYPE_PUBLIC_OR_STATIC_ADDR;
+                break;
+            case 2:
+                scan_param.own_addr_type = OWN_ADDR_TYPE_GEN_RSLV_OR_RANDOM_ADDR;
+                break;
+            case 3:
+                scan_param.own_addr_type = OWN_ADDR_TYPE_GEN_NON_RSLV_OR_RANDOM_ADDR;
+                break;
+            default:
+                os_printf("\nThe fourth param is wrong!\n");
+                err = kParamErr;
+                break;
+        }
+
+        if (err != kNoErr)
+            goto error;
+
         bk_ble_set_notice_cb(ble_at_notice_cb);
         actv_idx = bk_ble_find_actv_state_idx_handle(AT_ACTV_SCAN_CREATED);
         if (actv_idx == AT_BLE_MAX_ACTV)
@@ -3033,6 +3038,8 @@ int ble_update_conn_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
     }
     else
     {
+        bk_ble_set_event_callback(dm_ble_at_event_cb);
+
         ble_update_conn_param_t tmp;
         tmp.peer_address_type = addr_type;
 
@@ -3043,7 +3050,7 @@ int ble_update_conn_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 
         memcpy(tmp.peer_address.addr, connect_addr.addr, sizeof(connect_addr.addr));
 
-        err = bk_ble_update_connection_params(&tmp, ble_at_cmd_cb);
+        err = bk_ble_update_connection_params(&tmp);
     }
 
     if (err != BK_ERR_BLE_SUCCESS)
@@ -3370,10 +3377,17 @@ int ble_update_mtu_2_max_handle(char *pcWriteBuffer, int xWriteBufferLen, int ar
     else
     {
         uint8_t conn_handle;
+        uint16_t mtu = 251;
 
         bk_ble_set_event_callback(dm_ble_at_event_cb);
         conn_handle = os_strtoul(argv[0], NULL, 10) & 0xFF;
-        err = bk_ble_set_gatt_mtu(conn_handle, 517);
+
+        if(argc >= 2)
+        {
+            mtu = os_strtoul(argv[1], NULL, 10);
+        }
+
+        err = bk_ble_set_gatt_mtu(conn_handle, mtu);
 
         if (err == 0)
         {
@@ -3434,6 +3448,14 @@ int ble_tx_test_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc,
         err = kParamErr;
         goto error;
     }
+
+    if(len > s_ethermind_current_mtu - 3)
+    {
+        os_printf("%s len %d must less than s_ethermind_current_mtu - 3 %d!!!\n", __func__, len, s_ethermind_current_mtu - 3);
+        err = kParamErr;
+        goto error;
+    }
+
     s_ethermind_send_size_value = s_test_data_len = len;
     s_ethermind_send_intv_value = s_test_send_inter = inter;
     os_printf("%s len %d inter %d\n", __func__, s_test_data_len, s_test_send_inter);
@@ -3568,7 +3590,7 @@ error:
 }
 
 
-static void ble_sdp_charac_callback(uint32_t type, uint8 conidx, uint16_t hdl, uint16_t len, uint8 *data)
+static void ble_sdp_charac_callback(CHAR_TYPE type, uint8 conidx, uint16_t hdl, uint16_t len, uint8 *data)
 {
     //os_printf("%s recv type %d len %d data[0] 0x%02X\n", __func__, type, len, data[0]);
     s_performance_rx_bytes += len;
@@ -4045,8 +4067,9 @@ static int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen,
             }
         }
         bk_ble_set_notice_cb(ble_at_notice_cb);
-        extern void register_app_sdp_charac_callback(void (*)(uint32_t type,uint8 conidx,uint16_t hdl,uint16_t len,uint8 *data));
-        register_app_sdp_charac_callback(ble_sdp_charac_callback);
+        //extern void register_app_sdp_charac_callback(void (*)(uint32_t type,uint8 conidx,uint16_t hdl,uint16_t len,uint8 *data));
+        //register_app_sdp_charac_callback(ble_sdp_charac_callback);
+        bk_ble_register_app_sdp_charac_callback(ble_sdp_charac_callback);
         err = bk_ble_create_db(&ble_db_cfg);
 
 
@@ -4643,14 +4666,14 @@ int ble_set_max_mtu_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 		}
 	}
 
-	bk_ble_set_notice_cb(ble_at_notice_cb);
-	att_max_mtu = os_strtoul(argv[0], NULL, 10) & 0xFF;
+    bk_ble_set_notice_cb(ble_at_notice_cb);
 
-	err = bk_ble_set_max_mtu(att_max_mtu);
-	if (err != kNoErr) {
-		os_printf("set att maximal MTU failed\r\n");
-		goto error;
-	}
+    att_max_mtu = os_strtoul(argv[0], NULL, 10) & 0xFF;
+    err = bk_ble_set_max_mtu(att_max_mtu);
+    if (err != kNoErr) {
+        os_printf("set att maximal MTU failed\r\n");
+        goto error;
+    }
 
 	if(ble_at_cmd_sema != NULL) {
 		err = rtos_get_semaphore(&ble_at_cmd_sema, AT_SYNC_CMD_TIMEOUT_MS);
@@ -4934,10 +4957,11 @@ int ble_connect_by_name_handle(char *pcWriteBuffer, int xWriteBufferLen, int arg
             return err;
         }
     */
-    }else
+    }
+    else
     {
         ble_scan_param_t scan_param;
-        scan_param.own_addr_type = BLE_STATIC_ADDR;
+        scan_param.own_addr_type = 0; // ethermind does not have OWN_ADDR_TYPE_PUBLIC_OR_STATIC_ADDR
         scan_param.scan_phy = PHY_1MBPS_BIT;
         scan_param.scan_intv = 0x64;
         scan_param.scan_wd = 0x1e;

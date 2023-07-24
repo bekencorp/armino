@@ -40,7 +40,9 @@ bk_err_t bk_h264_encode_enable(void);
 
 bk_err_t bk_h264_encode_disable(void);
 
-bk_err_t bk_h264_reset(void);
+bk_err_t bk_h264_soft_reset(void);
+
+bk_err_t bk_h264_config_reset(void);
 
 bk_err_t bk_h264_clk_check(void);
 

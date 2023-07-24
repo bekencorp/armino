@@ -137,7 +137,8 @@ typedef volatile union {
 		uint32_t ckdiv_psram                      :  1; /**<bit[4 : 4] */
 		uint32_t cksel_psram                      :  1; /**<bit[5 : 5] */
 		uint32_t ckdiv_qspi0                      :  4; /**<bit[6 : 9] */
-		uint32_t reserved_10_13                   :  4; /**<bit[10 : 13] */
+		uint32_t cksel_qspi0                      :  1; /**<bit[10 : 10] */
+		uint32_t reserved_11_13                   :  3; /**<bit[11 : 13] */
 		uint32_t ckdiv_sdio                       :  3; /**<bit[14 : 16] */
 		uint32_t cksel_sdio                       :  1; /**<bit[17 : 17] */
 		uint32_t ckdiv_auxs                       :  4; /**<bit[18 : 21] */
@@ -157,7 +158,9 @@ typedef volatile union {
 		uint32_t ckdiv_wdt                        :  2; /**<bit[2 : 3] */
 		uint32_t clksel_spi0                      :  1; /**<bit[4 : 4] */
 		uint32_t clksel_spi1                      :  1; /**<bit[5 : 5] */
-		uint32_t reserved_bit_6_31                : 26; /**<bit[6 : 31] */
+		uint32_t ckdiv_qspi1                      :  4; /**<bit[6 : 9] */
+		uint32_t cksel_qspi1                      :  1; /**<bit[10 : 10] */
+		uint32_t reserved_bit_11_31               : 21; /**<bit[11 : 31] */
 	};
 	uint32_t v;
 } sys_cpu_26m_wdt_clk_div_t;
@@ -780,8 +783,8 @@ typedef volatile union {
 
 typedef volatile union {
 	struct {
-		uint32_t nc3                              :  1; /**<bit[0 : 0] */
-		uint32_t nc2                              :  1; /**<bit[1 : 1] */
+		uint32_t nc_0_0                           :  1; /**<bit[0 : 0] */
+		uint32_t nc_1_1                           :  1; /**<bit[1 : 1] */
 		uint32_t msw                              :  9; /**<bit[2 : 10] */
 		uint32_t ictrl                            :  3; /**<bit[11 : 13] */
 		uint32_t osc_trig                         :  1; /**<bit[14 : 14] */
@@ -790,8 +793,8 @@ typedef volatile union {
 		uint32_t spi_rst                          :  1; /**<bit[25 : 25] */
 		uint32_t amsel                            :  1; /**<bit[26 : 26] */
 		uint32_t divctrl                          :  3; /**<bit[27 : 29] */
-		uint32_t nc1                              :  1; /**<bit[30 : 30] */
-		uint32_t nc0                              :  1; /**<bit[31 : 31] */
+		uint32_t nc_30_30                         :  1; /**<bit[30 : 30] */
+		uint32_t nc_31_31                         :  1; /**<bit[31 : 31] */
 	};
 	uint32_t v;
 } sys_ana_reg1_t;
@@ -1052,8 +1055,13 @@ typedef volatile union {
 
 typedef volatile union {
 	struct {
-		uint32_t chs                              : 16; /**<bit[0 : 15] */
-		uint32_t en_lpmod                         :  1; /**<bit[16 : 16] */
+		uint32_t reg                              : 10; /**<bit[0 : 9] */
+		uint32_t en_adcmode                       :  1; /**<bit[10 : 10] */
+		uint32_t en_out_test1v                    :  1; /**<bit[11 : 11] */
+		uint32_t nc_12_12                         :  1; /**<bit[12 : 12] */
+		uint32_t sel_seri_cap                     :  1; /**<bit[13 : 13] */
+		uint32_t en_seri_cap                      :  1; /**<bit[14 : 14] */
+		uint32_t cal_ctrl                         :  2; /**<bit[15 : 16] */
 		uint32_t cal_vth                          :  3; /**<bit[17 : 19] */
 		uint32_t crg                              :  2; /**<bit[20 : 21] */
 		uint32_t vrefs                            :  4; /**<bit[22 : 25] */
@@ -1067,18 +1075,14 @@ typedef volatile union {
 
 typedef volatile union {
 	struct {
-		uint32_t cal_number1v                     :  4; /**<bit[0 : 3] */
-		uint32_t cal_period1v                     :  9; /**<bit[4 : 12] */
-		uint32_t test_number1v                    :  4; /**<bit[13 : 16] */
-		uint32_t test_period1v                    :  4; /**<bit[17 : 20] */
-		uint32_t nc_21_21                         :  1; /**<bit[21 : 21] */
-		uint32_t chs_sel_cal1v                    :  4; /**<bit[22 : 25] */
-		uint32_t cal_done_clr1v                   :  1; /**<bit[26 : 26] */
-		uint32_t en_cal_force1v                   :  1; /**<bit[27 : 27] */
-		uint32_t en_cal_auto1v                    :  1; /**<bit[28 : 28] */
-		uint32_t en_scm                           :  1; /**<bit[29 : 29] */
-		uint32_t en_adcmod                        :  1; /**<bit[30 : 30] */
-		uint32_t enfsr1v                          :  1; /**<bit[31 : 31] */
+		uint32_t test_number1v                    :  4; /**<bit[0 : 3] */
+		uint32_t test_period1v                    :  4; /**<bit[4 : 7] */
+		uint32_t chs                              : 16; /**<bit[8 : 23] */
+		uint32_t chs_sel_cal1v                    :  4; /**<bit[24 : 27] */
+		uint32_t cal_done_clr1v                   :  1; /**<bit[28 : 28] */
+		uint32_t en_cal_force1v                   :  1; /**<bit[29 : 29] */
+		uint32_t en_cal_auto1v                    :  1; /**<bit[30 : 30] */
+		uint32_t en_scan                          :  1; /**<bit[31 : 31] */
 	};
 	uint32_t v;
 } sys_ana_reg15_t;
@@ -1086,17 +1090,12 @@ typedef volatile union {
 
 typedef volatile union {
 	struct {
-		uint32_t int_en                           : 10; /**<bit[0 : 9] */
-		uint32_t int_en16                         :  1; /**<bit[10 : 10] */
-		uint32_t nc_11_15                         :  5; /**<bit[11 : 15] */
-		uint32_t ckadc_sel                        :  1; /**<bit[16 : 16] */
-		uint32_t int_clr_sel1v                    :  1; /**<bit[17 : 17] */
-		uint32_t ctrl_ck2d                        :  1; /**<bit[18 : 18] */
-		uint32_t ctrl_seri_cap                    :  1; /**<bit[19 : 19] */
-		uint32_t en_testcmp1v                     :  1; /**<bit[20 : 20] */
-		uint32_t en_man_wr1v                      :  1; /**<bit[21 : 21] */
-		uint32_t en_manmod1v                      :  1; /**<bit[22 : 22] */
-		uint32_t cap_calspi1v                     :  9; /**<bit[23 : 31] */
+		uint32_t int_en                           : 16; /**<bit[0 : 15] */
+		uint32_t int_en16                         :  1; /**<bit[16 : 16] */
+		uint32_t nc_17_17                         :  1; /**<bit[17 : 17] */
+		uint32_t nc_18_18                         :  1; /**<bit[18 : 18] */
+		uint32_t cal_number1v                     :  4; /**<bit[19 : 22] */
+		uint32_t cal_period1v                     :  9; /**<bit[23 : 31] */
 	};
 	uint32_t v;
 } sys_ana_reg16_t;
@@ -1104,11 +1103,15 @@ typedef volatile union {
 
 typedef volatile union {
 	struct {
-		uint32_t int_clr                          : 10; /**<bit[0 : 9] */
-		uint32_t int_clr16                        :  1; /**<bit[10 : 10] */
-		uint32_t nc_11_11                         :  1; /**<bit[11 : 11] */
-		uint32_t int_clr_cal                      : 10; /**<bit[12 : 21] */
-		uint32_t int_en_cal                       : 10; /**<bit[22 : 31] */
+		uint32_t int_clr                          : 16; /**<bit[0 : 15] */
+		uint32_t int_clr16                          :  1; /**<bit[16 : 16] */
+		uint32_t ck_adc_sel                       :  1; /**<bit[17 : 17] */
+		uint32_t int_clr_sel                      :  1; /**<bit[18 : 18] */
+		uint32_t en_lpmod                         :  1; /**<bit[19 : 19] */
+		uint32_t en_testcmp1v                     :  1; /**<bit[20 : 20] */
+		uint32_t en_man_wr1v                      :  1; /**<bit[21 : 21] */
+		uint32_t en_manmod1v                      :  1; /**<bit[22 : 22] */
+		uint32_t cap_calspi1v                     :  9; /**<bit[23 : 31] */
 	};
 	uint32_t v;
 } sys_ana_reg17_t;
@@ -1124,13 +1127,13 @@ typedef volatile union {
 		uint32_t enmicbias                        :  1; /**<bit[5 : 5] */
 		uint32_t adcckinven1v                     :  1; /**<bit[6 : 6] */
 		uint32_t dacfb2st0v9                      :  1; /**<bit[7 : 7] */
-		uint32_t nc1                              :  1; /**<bit[8 : 8] */
+		uint32_t nc_8_8                           :  1; /**<bit[8 : 8] */
 		uint32_t micbias_trm                      :  2; /**<bit[9 : 10] */
 		uint32_t micbias_voc                      :  5; /**<bit[11 : 15] */
 		uint32_t vrefsel1v                        :  1; /**<bit[16 : 16] */
 		uint32_t capswspi                         :  5; /**<bit[17 : 21] */
 		uint32_t adref_sel                        :  2; /**<bit[22 : 23] */
-		uint32_t nc0                              :  2; /**<bit[24 : 25] */
+		uint32_t nc_24_25                         :  2; /**<bit[24 : 25] */
 		uint32_t reserved_bit_26_30               :  5; /**<bit[26 : 30] */
 		uint32_t spi_dacckpssel                   :  1; /**<bit[31 : 31] */
 	};
@@ -1175,12 +1178,12 @@ typedef volatile union {
 		uint32_t dcochg                           :  2; /**<bit[11 : 12] */
 		uint32_t diffen                           :  1; /**<bit[13 : 13] */
 		uint32_t endaccal                         :  1; /**<bit[14 : 14] */
-		uint32_t nc2                              :  1; /**<bit[15 : 15] */
+		uint32_t nc_15_15                         :  1; /**<bit[15 : 15] */
 		uint32_t lendcoc                          :  1; /**<bit[16 : 16] */
-		uint32_t nc1                              :  1; /**<bit[17 : 17] */
+		uint32_t nc_17_17                         :  1; /**<bit[17 : 17] */
 		uint32_t lenvcmd                          :  1; /**<bit[18 : 18] */
 		uint32_t dacdrven                         :  1; /**<bit[19 : 19] */
-		uint32_t nc0                              :  1; /**<bit[20 : 20] */
+		uint32_t nc_20_20                         :  1; /**<bit[20 : 20] */
 		uint32_t daclen                           :  1; /**<bit[21 : 21] */
 		uint32_t dacg                             :  4; /**<bit[22 : 25] */
 		uint32_t dacmute                          :  1; /**<bit[26 : 26] */
@@ -1194,9 +1197,9 @@ typedef volatile union {
 typedef volatile union {
 	struct {
 		uint32_t lmdcin                           :  8; /**<bit[0 : 7] */
-		uint32_t nc1                              :  8; /**<bit[8 : 15] */
+		uint32_t nc_8_15                          :  8; /**<bit[8 : 15] */
 		uint32_t spirst_ovc                       :  1; /**<bit[16 : 16] */
-		uint32_t nc0                              :  1; /**<bit[17 : 17] */
+		uint32_t nc_17_17                         :  1; /**<bit[17 : 17] */
 		uint32_t enidacl                          :  1; /**<bit[18 : 18] */
 		uint32_t dac3rdhc0v9                      :  1; /**<bit[19 : 19] */
 		uint32_t hc2s                             :  1; /**<bit[20 : 20] */
@@ -1212,37 +1215,6 @@ typedef volatile union {
 	};
 	uint32_t v;
 } sys_ana_reg21_t;
-
-typedef volatile union {
-	struct {
-		uint32_t ictrl_dsppll                     :  4; /**<bit[0 : 3] */
-		uint32_t nc_4_18                          : 15; /**<bit[4 : 18] */
-		uint32_t mode                             :  1; /**<bit[19 : 19] */
-		uint32_t iamsel                           :  1; /**<bit[20 : 20] */
-		uint32_t hvref                            :  2; /**<bit[21 : 22] */
-		uint32_t lvref                            :  2; /**<bit[23 : 24] */
-		uint32_t nc_25_31                         :  7; /**<bit[25 : 31] */
-	};
-	uint32_t v;
-} sys_ana_reg22_t;
-
-typedef volatile union {
-	struct {
-		uint32_t camsel                           :  1; /**<bit[0 : 0] */
-		uint32_t msw                              :  9; /**<bit[1 : 9] */
-		uint32_t tstcken_dpll                     :  1; /**<bit[10 : 10] */
-		uint32_t osccal_trig                      :  1; /**<bit[11 : 11] */
-		uint32_t cnti                             :  9; /**<bit[12 : 20] */
-		uint32_t nc_21_21                         :  1; /**<bit[21 : 21] */
-		uint32_t spi_rst                          :  1; /**<bit[22 : 22] */
-		uint32_t closeloop_en                     :  1; /**<bit[23 : 23] */
-		uint32_t caltime                          :  1; /**<bit[24 : 24] */
-		uint32_t lpfrz                            :  2; /**<bit[25 : 26] */
-		uint32_t icp                              :  4; /**<bit[27 : 30] */
-		uint32_t cp2ctrl                          :  1; /**<bit[31 : 31] */
-	};
-	uint32_t v;
-} sys_ana_reg23_t;
 
 typedef volatile struct {
 	volatile sys_device_id_t device_id;
@@ -1307,8 +1279,6 @@ typedef volatile struct {
 	volatile sys_ana_reg19_t ana_reg19;
 	volatile sys_ana_reg20_t ana_reg20;
 	volatile sys_ana_reg21_t ana_reg21;
-	volatile sys_ana_reg22_t ana_reg22;
-	volatile sys_ana_reg23_t ana_reg23;
 } sys_hw_t;
 
 #ifdef __cplusplus

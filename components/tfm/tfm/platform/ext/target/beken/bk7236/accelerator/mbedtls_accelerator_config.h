@@ -3,7 +3,6 @@
 
 #define MBEDTLS_NO_UDBL_DIVISION
 #define MBEDTLS_PLATFORM_NO_STD_FUNCTIONS
-//#define MBEDTLS_PLATFORM_PRINTF_ALT
 #define MBEDTLS_PLATFORM_SNPRINTF_ALT
 #define MBEDTLS_AES_ALT
 #define MBEDTLS_SM4_ALT
@@ -22,7 +21,18 @@
 #define MBEDTLS_RSA_C
 #define MBEDTLS_PKCS1_V15
 #define MBEDTLS_PKCS1_V21
-#define MBEDTLS_SHA1_C
+
+/* sha-1 effects the tfm-test-repo testing. The following is tfm-test offical reply:
+   The configuration of the TF-M Crypto service that it’s tested by default is just an example, and the SHA-1 algorithm is 
+   allowed from the PSA spec point of view; in our case we have decided to not enable SHA-1 support due to the fact that 
+   it’s widely accepted to have known collision attacks [1], NIST deprecating it in 2011 [2], and having exposed weaknesses 
+   since long, 2005 [3], i.e. to encourage by default having a look into more robust alternatives.
+   Anyway, TF-M’s test 1010 just aims at testing the interface for the correct error response, nothing more. If your 
+   deployment still supports PSA_ALG_SHA_1, I’d recommend to just ignore the output of TEST_1010. On our side, we could 
+   gate the test not to run when PSA_WANT_ALG_SHA_1 is defined.
+ */
+//#define MBEDTLS_SHA1_C
+
 #define MBEDTLS_DHM_C
 #define MBEDTLS_PKCS5_C
 #define MBEDTLS_PKCS12_C

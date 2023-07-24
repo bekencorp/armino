@@ -101,7 +101,7 @@ void tfm_s_2_ns_hook(void)
 	*((volatile uint32_t *)(0x45030000 + 4 * 4)) = 0;
 
 	*((volatile uint32_t *)(0x41040000 + 2 * 4)) = 1; /*soft reset ppro module*/
-	
+
 	*((volatile uint32_t *)(0x41040000 + 4 * 4)) = 0; /* privilege setting*/
 	*((volatile uint32_t *)(0x41040000 + 5 * 4)) = 0xFFFFFFFF;
 	*((volatile uint32_t *)(0x41040000 + 8 * 4)) = 0xFFFFFFFB; /*[2]uart0 for spe*/

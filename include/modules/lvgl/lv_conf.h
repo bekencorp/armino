@@ -699,17 +699,14 @@
     #endif
 #endif
 
-#ifndef LVGL_USE_DMA2D
-    #ifdef CONFIG_LVGL_USE_DMA2D
-        #define LVGL_USE_DMA2D CONFIG_LVGL_USE_DMA2D
+#ifndef LVGL_USE_DIRECT_MODE
+    #ifdef CONFIG_LVGL_USE_DIRECT_MODE
+        #define LVGL_USE_DIRECT_MODE CONFIG_LVGL_USE_DIRECT_MODE
     #else
-        #define LVGL_USE_DMA2D 0
+        #define LVGL_USE_DIRECT_MODE 0
     #endif
 #endif
 
-#if LVGL_USE_PSRAM
-#define LVGL_USE_DIRECT_MODE     1
-#endif
 /*--END OF LV_CONF_H--*/
 
 #endif /*LV_CONF_H*/

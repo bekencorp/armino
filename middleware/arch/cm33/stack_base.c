@@ -20,42 +20,77 @@
 #include "bk_uart.h"
 #include <components/system.h>
 #include <os/os.h>
-
-extern uint32_t und_stack_start;
-extern uint32_t abt_stack_start;
-extern uint32_t fiq_stack_start;
-extern uint32_t irq_stack_start;
-extern uint32_t sys_stack_start;
-extern uint32_t svc_stack_start;
-
-extern void fiq_handler();
-extern char __flash_txt_end;
-extern char _itcmcode_ram_begin, _itcmcode_ram_end;
+#include <components/log.h>
+#include <common/bk_assert.h>
+#include <os/mem.h>
+#include <driver/wdt.h>
 
 #define STACK_CALLBACK_BUF_SIZE 32
 
-#if STACK_DUMP_MEMORY
-static void stack_mem_dump(uint32_t stack_top, uint32_t stack_bottom)
-{
-	uint32_t data = *((uint32_t *) stack_top);
-	uint32_t cnt = 0;
+extern unsigned char __itcm_start__;
+extern unsigned char __itcm_end__;
 
-	os_printf("cur stack_top=%08x, stack end=%08x\n", stack_top, stack_bottom);
-	for (;  stack_top < stack_bottom; stack_top += sizeof(size_t)) {
-		data = *((uint32_t *) stack_top);
-		if ((cnt++ % 4) == 0)
-			os_printf("\n%08x: ", stack_top);
-		os_printf("%08x ", data);
+#if !CONFIG_SLAVE_CORE
+extern unsigned char __iram_start__;
+extern unsigned char __iram_end__;
+#endif //#if !CONFIG_SLAVE_CORE
+
+extern char __vector_table, __etext;
+
+static inline int addr_is_in_flash_txt(uint32_t addr)
+{
+	return ((addr > (uint32_t)&__vector_table) && (addr < (uint32_t)&__etext));
+}
+
+static inline int addr_is_in_itcm_txt(uint32_t addr)
+{
+	return ((addr > (uint32_t)&__itcm_start__) && (addr < (uint32_t)&__itcm_end__));
+}
+
+static inline int addr_is_in_iram_txt(uint32_t addr)
+{
+#if !CONFIG_SLAVE_CORE
+	if ((addr > (uint32_t)&__iram_start__) && (addr < (uint32_t)&__iram_end__)) {
+		return 1;
 	}
-	os_printf("\n");
-}
 #endif
-
-static bool code_addr_is_valid(uint32_t addr)
-{
-	//TODO
-	return false;
+	return 0;
 }
+
+static int code_addr_is_valid(uint32_t addr)
+{
+	return (addr_is_in_flash_txt(addr) || addr_is_in_itcm_txt(addr) || addr_is_in_iram_txt(addr));
+}
+
+void stack_mem_dump(uint32_t stack_top, uint32_t stack_bottom)
+{
+	unsigned char *data = NULL;
+	volatile uint32_t value = 0;
+	uint32_t cnt = 0;
+	uint32_t sp = stack_top;
+	uint32_t fp = stack_bottom;
+
+	BK_DUMP_OUT(">>>>stack mem dump begin, stack_top=%08x, stack end=%08x\r\n", stack_top, stack_bottom);
+	for (;  sp < fp; sp += sizeof(size_t)) {
+		value = os_get_word(sp);
+		data = ((unsigned char *)&value);
+
+		if ((cnt++ & 0x7) == 0) {
+			BK_DUMP_OUT("\r\n");
+		}
+#if CONFIG_DEBUG_FIRMWARE && CONFIG_INT_WDT
+		if((cnt & 0x7ff) == 0) {
+			bk_wdt_feed();
+		}
+#endif
+		BK_DUMP_OUT("%02x %02x %02x %02x ", data[0], data[1], data[2], data[3]);
+	}
+	BK_DUMP_OUT("\r\n");
+	BK_DUMP_OUT("<<<<stack mem dump end. stack_top=%08x, stack end=%08x\r\n", stack_top, stack_bottom);
+	BK_DUMP_OUT("\r\n");
+}
+
+
 
 /* The stack is grow from bottom to top
  *
@@ -77,15 +112,8 @@ void arch_parse_stack_backtrace(const char *str_type, uint32_t stack_top, uint32
 	int call_stack_index = 0;
 	uint32_t init_stack_top = stack_top;
 
-#if STACK_DUMP_MEMORY
-	stack_mem_dump(stack_top, stack_bottom);
-#endif
 	for (; stack_top < stack_bottom && (call_stack_index < STACK_CALLBACK_BUF_SIZE); stack_top += sizeof(size_t)) {
 		pc = *((uint32_t *) stack_top);
-
-		/* ARM9 using thumb instruction, so the pc must be an odd number */
-		if (thumb_mode && (pc & 1) == 0)
-			continue;
 
 		if (code_addr_is_valid(pc)) {
 			if (pc & 1)
@@ -99,43 +127,16 @@ void arch_parse_stack_backtrace(const char *str_type, uint32_t stack_top, uint32
 	if (call_stack_index > 0) {
 		int index;
 
-		os_printf("%-16s   [0x%-6x ~ 0x%-6x]   0x%-6x   %-4d   %-8d   ",
+		BK_DUMP_OUT("%-16s   [0x%-6x ~ 0x%-6x]   0x%-6x   %-4d   %-8d",
 				  str_type, stack_minimum, stack_bottom, init_stack_top, stack_size, init_stack_top < stack_minimum);
+
 		for (index = 0; index < call_stack_index; index++)
-			os_printf("%lx ", call_stack_buf[index]);
-		os_printf("\n");
+			BK_DUMP_OUT("%lx ", call_stack_buf[index]);
+		BK_DUMP_OUT("\r\n");
 	} else if (init_stack_top < stack_minimum) {
-		os_printf("%-16s   [0x%-6x ~ 0x%-6x]   0x%-6x   %-4d   %-8d   ",
+		BK_DUMP_OUT("%-16s   [0x%-6x ~ 0x%-6x]   0x%-6x   %-4d   %-8d   ",
 				  str_type, stack_minimum, stack_bottom, init_stack_top, stack_size, init_stack_top < stack_minimum);
 	}
 }
 
-void arch_dump_exception_stack(void)
-{
-	uint32_t stack_bottom;
-	uint32_t sp;
 
-	sp = *(uint32_t*)(MCU_REG_BACKUP_SP_FIQ);
-	stack_bottom = (uint32_t)&fiq_stack_start;
-	arch_parse_stack_backtrace("fiq", sp, stack_bottom, FIQ_STACK_SIZE, false);
-
-	sp = *(uint32_t*)(MCU_REG_BACKUP_SP_IRQ);
-	stack_bottom = (uint32_t)&irq_stack_start;
-	arch_parse_stack_backtrace("irq", sp, stack_bottom, IRQ_STACK_SIZE, false);
-
-	sp = *(uint32_t*)(MCU_REG_BACKUP_SP_UND);
-	stack_bottom = (uint32_t)&und_stack_start;
-	arch_parse_stack_backtrace("und", sp, stack_bottom, UND_STACK_SIZE, false);
-
-	sp = *(uint32_t*)(MCU_REG_BACKUP_SP_ABT);
-	stack_bottom = (uint32_t)&abt_stack_start;
-	arch_parse_stack_backtrace("abt", sp, stack_bottom, ABT_STACK_SIZE, false);
-
-	sp = *(uint32_t*)(MCU_REG_BACKUP_SP_SVC);
-	stack_bottom = (uint32_t)&svc_stack_start;
-	arch_parse_stack_backtrace("svc", sp, stack_bottom, SVC_STACK_SIZE, false);
-
-	sp = *(uint32_t*)(MCU_REG_BACKUP_SP_SYS);
-	stack_bottom = (uint32_t)&sys_stack_start;
-	arch_parse_stack_backtrace("sys", sp, stack_bottom, SYS_STACK_SIZE, false);
-}

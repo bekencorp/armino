@@ -957,14 +957,6 @@ boot_copy_region(struct boot_loader_state *state,
     (void)state;
 #endif
 
-#if CONFIG_BK_MCUBOOT
-    int32_t first_instruction_physical_off_diff;
-    uint32_t first_instruction_physical_off_pri = boot_get_1st_instruction_physical_off(fap_dst);
-    uint32_t first_instruction_physical_off_sec = boot_get_1st_instruction_physical_off(fap_src);
-    first_instruction_physical_off_diff = (first_instruction_physical_off_sec - fap_src -> fa_off)
-                                               -(first_instruction_physical_off_pri - fap_dst -> fa_off);
-#endif
-
     bytes_copied = 0;
     while (bytes_copied < sz) {
         if (sz - bytes_copied > sizeof buf) {
@@ -972,12 +964,6 @@ boot_copy_region(struct boot_loader_state *state,
         } else {
             chunk_sz = sz - bytes_copied;
         }
-
-#if CONFIG_BK_MCUBOOT 
-       if (bytes_copied >= BL2_HEADER_SIZE && bytes_copied < (FLASH_MAX_PARTITION_SIZE - BL2_HEADER_SIZE)){
-           bytes_copied += first_instruction_physical_off_diff;
-       }
-#endif
 
         rc = flash_area_read(fap_src, off_src + bytes_copied, buf, chunk_sz);
         if (rc != 0) {
@@ -1041,12 +1027,6 @@ boot_copy_region(struct boot_loader_state *state,
                 }
             }
         }
-#endif
-
-#if CONFIG_BK_MCUBOOT  
-       if (bytes_copied >= BL2_HEADER_SIZE && bytes_copied < (FLASH_MAX_PARTITION_SIZE - BL2_HEADER_SIZE)){
-           bytes_copied -= first_instruction_physical_off_diff;
-       }
 #endif
 
         rc = flash_area_write(fap_dst, off_dst + bytes_copied, buf, chunk_sz);

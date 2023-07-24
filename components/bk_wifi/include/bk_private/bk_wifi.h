@@ -122,6 +122,7 @@ void app_p2p_restart_thread(void);
 #endif
 void bk_wifi_rc_config(uint8_t sta_idx, uint16_t rate_cfg);
 void bk_wifi_capa_config(uint32_t capa_id, uint32_t capa_val);
+void bk_wifi_ps_config(uint8_t ps_id, uint8_t ps_val);
 #ifdef __cplusplus
 }
 #endif

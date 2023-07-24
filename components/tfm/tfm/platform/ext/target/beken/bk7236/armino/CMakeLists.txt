@@ -3,81 +3,77 @@ string(REGEX REPLACE "beken/" "" SOC "${TFM_PLATFORM}")
 set(incs
         config/
         port/
-
-        ${ARMINO_INCLUDE_REPO_PATH}/
-        ${ARMINO_INCLUDE_REPO_PATH}/arch/compiler
-        ${ARMINO_COMMON_REPO_PATH}/include
-
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/arch/cm33/include
-
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/include/bk_private
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/common
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/${SOC}
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/uart
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/gpio
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/sys_ctrl
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/flash
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/spinlock
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/mailbox
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/timer
-
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/common/soc/include
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/common/hal/include
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/soc
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/boards/${SOC}/partitions
-	${PARTITION_HDR_DIR}
+        driver/
+        driver/include/bk_private
+        driver/common
+        driver/include
+        driver/uart
+        driver/gpio
+        driver/sys_ctrl
+        driver/flash
+        driver/spinlock
+        driver/mailbox
+        driver/timer
+        driver/hal
+        include/
+        ../../../../../../secure_fw/spm/include
+        ../../../../../../secure_fw/include
+        ../../../../../../secure_fw/spm/include/interface
 )
 
 set(srcs
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/port/os_port.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/port/mem_port.c
-
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/sys_ctrl/sys_driver_common.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/sys_ctrl/sys_clock_driver.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/uart/uart_driver.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/uart/uart_statis.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/gpio/gpio_driver_base.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/${SOC}/gpio_driver.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/spinlock/amp_res_lock.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/flash/flash_driver.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/sys_ctrl/sys_driver.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/sys_ctrl/sys_driver_common.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/sys_ctrl/sys_clock_driver.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/timer/timer_driver.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/sys_ctrl/sys_int_driver.c
-
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/common/hal/uart_hal.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/common/hal/timer_hal.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal/uart_hal_debug.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal/uart_ll.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal/timer_ll.c
-
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal/sys_hal.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/common/hal/gpio_hal.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal/gpio_hal_debug.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal/gpio_ll.c
-
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/common/hal/flash_hal.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal/flash_hal_debug.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal/flash_ll.c
-
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal/sys_hal.c
+    ./driver/port/os_port.c
+    ./driver/port/mem_port.c
+    ./driver/sys_ctrl/sys_driver.c
+    ./driver/sys_ctrl/sys_driver_common.c
+    ./driver/sys_ctrl/sys_clock_driver.c
+    ./driver/sys_ctrl/sys_int_driver.c
+    ./driver/uart/uart_driver.c
+    ./driver/uart/uart_statis.c
+    ./driver/gpio/gpio_driver_base.c
+    ./driver/gpio/gpio_driver.c
+    ./driver/spinlock/amp_res_lock.c
+    ./driver/flash/flash_driver.c
+    ./driver/timer/timer_driver.c
+    ./driver/hal/uart_hal.c
+    ./driver/hal/timer_hal.c
+    ./driver/hal/sys_hal.c
+    ./driver/hal/aon_pmu_hal.c
+    ./driver/hal/gpio_hal.c
+    ./driver/hal/uart_hal_debug.c
+    ./driver/hal/gpio_hal_debug.c
+    ./driver/hal/flash_hal_debug.c
+    ./driver/hal/flash_hal.c
+    ./driver/hal/uart_ll.c
+    ./driver/hal/timer_ll.c
+    ./driver/hal/gpio_ll.c
+    ./driver/hal/flash_ll.c
 )
 
 set(s_srcs
         driver/bk_tfm_mpc.c
         driver/bk_tfm_log.c
-
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/mpc/mpc_driver.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/common/hal/mpc_hal.c
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/soc/${SOC}/hal/mpc_hal_debug.c
+        driver/mpc/mpc_driver.c
+        driver/hal/mpc_hal.c
+        driver/hal/mpc_hal_debug.c
+        driver/prro/prro_driver.c
+        driver/hal/prro_hal.c
+        driver/hal/prro_hal_debug.c
 )
 
 set(s_incs
         driver
-        ${ARMINO_MIDDLEWARE_REPO_PATH}/driver/mpc
+        driver/mpc
+        driver/prro
 )
+
+if(TFM_AON_PMU_LL_NSC)
+    list(APPEND s_srcs "./driver/hal/aon_pmu_ll_nsc.c")
+endif()
+
+if(TFM_SYS_LL_NSC)
+    list(APPEND s_srcs "./driver/hal/sys_ll_nsc.c")
+endif()
 
 target_include_directories(platform_s PUBLIC ${incs} ${s_incs})
 target_sources(platform_s PRIVATE ${srcs} ${s_srcs})
@@ -86,7 +82,6 @@ target_compile_options(platform_s
         ${COMPILER_CP_FLAG}
 )
 
-
 target_include_directories(platform_ns PUBLIC ${incs})
 target_sources(platform_ns PRIVATE ${srcs})
 target_compile_options(platform_ns
@@ -94,19 +89,34 @@ target_compile_options(platform_ns
         ${COMPILER_CP_FLAG}
 )
 
+if(TEST_S)
+    target_compile_definitions(platform_s
+        PUBLIC
+        CONFIG_ENABLE_TEST_S
+    )
+endif()
+
+if(TEST_NS)
+    target_compile_definitions(platform_ns
+        PUBLIC
+        CONFIG_ENABLE_TEST_NS
+    )
+endif()
+
 if(BL2)
-	set(bl2_srcs driver/bk_tfm_flash.c)
-	set(bl2_incs driver)
-	target_include_directories(platform_bl2 PUBLIC ${incs} ${bl2_incs})
-	target_sources(platform_bl2 PRIVATE ${srcs} ${bl2_srcs})
+    set(bl2_srcs driver/bk_tfm_flash.c)
+    set(bl2_incs driver)
+    target_include_directories(platform_bl2 PUBLIC ${incs} ${bl2_incs})
+    target_sources(platform_bl2 PRIVATE ${srcs} ${bl2_srcs})
+    target_compile_options(platform_bl2 PUBLIC ${BL2_COMPILER_CP_FLAG})
 endif()
 
 if(NS)
     #TODO wangzhilei
     target_compile_definitions(platform_ns
-    	PUBLIC
-    	CONFIG_TFM_NS
-    	DOMAIN_NS
+        PUBLIC
+        CONFIG_TFM_NS
+        DOMAIN_NS
     )
 endif()
 

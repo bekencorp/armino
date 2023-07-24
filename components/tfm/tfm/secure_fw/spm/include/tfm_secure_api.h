@@ -55,6 +55,9 @@
  */
 #define __tfm_psa_secure_gateway_attributes__ \
         __attribute__((cmse_nonsecure_entry, noclone, naked, section("SFN")))
+
+#define __tfm_psa_secure_gateway_no_naked_attributes__ \
+        __attribute__((cmse_nonsecure_entry, noclone, section("SFN")))
 #else
 #define __tfm_psa_secure_gateway_attributes__ \
         __attribute__((cmse_nonsecure_entry, naked, section("SFN")))

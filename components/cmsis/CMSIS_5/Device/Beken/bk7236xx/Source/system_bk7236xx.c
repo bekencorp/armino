@@ -81,10 +81,6 @@ void SystemInit (void)
 		SCB_EnableICache();
 #endif
 
-#if (CONFIG_DCACHE)
-	if (SCB->CLIDR & SCB_CLIDR_IC_Msk)
-		SCB_EnableDCache();
-#endif
 }
 // eof
 

@@ -73,11 +73,7 @@ static const flash_config_t flash_config[] = {
 	{0x0B6018,   1,               FLASH_SIZE_16M, FLASH_LINE_MODE_TWO,   0,     2,            0x0F,         0x0F,        0x00,         0x0A,         0x00E,                0,            0,           0xA0,                          0x01}, //xt_25q128d
 #endif
 	{0x0E4016,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x0E,         0x101,                9,            1,           0xA0,                          0x01}, //xtx_FT25H32
-#if CONFIG_FLASH_QUAD_ENABLE
-	{0x1C4116,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_FOUR, 14,      2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                9,            1,           0xA0,                          0x02}, //en_25qe32a
-#else
-	{0x1C4116,   1,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 0,        2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                0,            0,           0xA0,                          0x01}, //en_25qe32a
-#endif
+	{0x1C4116,   1,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 0,        2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                0,            0,           0xA0,                          0x01}, //en_25qe32a(not support 4 line)
 	{0x5E5018,   1,               FLASH_SIZE_16M, FLASH_LINE_MODE_TWO, 0, 	    2,            0x0F,         0x0F,        0x00,         0x0A,         0x00E,                0,            0,           0xA0,                          0x01}, //zb_25lq128c
 	{0xC84015,   2,               FLASH_SIZE_2M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x0D,         0x101,                9,            1,           0xA0,                          0x01}, //gd_25q16c
 #if CONFIG_FLASH_QUAD_ENABLE
@@ -85,11 +81,16 @@ static const flash_config_t flash_config[] = {
 #else
 	{0xC84016,   1,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 0,        2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                0,            0,           0xA0,                          0x01}, //gd_25q32c
 #endif
+#if CONFIG_FLASH_QUAD_ENABLE
+	{0xC86018,   2,               FLASH_SIZE_16M,FLASH_LINE_MODE_FOUR, 0,       2,            0x0F,         0x0F,        0x00,         0x0A,         0x00E,                9,            1,           0xA0,                          0x02}, //gd_25lq128e
+#else
+	{0xC86018,   1,               FLASH_SIZE_16M,FLASH_LINE_MODE_TWO,  0,       2,            0x0F,         0x0F,        0x00,         0x0A,         0x00E,                0,            0,           0xA0,                          0x01}, //gd_25lq128e
+#endif
 	{0xC86515,   2,               FLASH_SIZE_2M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x0D,         0x101,                9,            1,           0xA0,                          0x01}, //gd_25w16e
 #if CONFIG_FLASH_QUAD_ENABLE
-	{0xC86516,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_FOUR, 14,      2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                9,            1,           0xA0,                          0x02}, //en_25qe32a
+	{0xC86516,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_FOUR, 14,      2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                9,            1,           0xA0,                          0x02}, //gd_25wq32e
 #else
-	{0xC86516,   1,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 0,        2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                0,            0,           0xA0,                          0x01}, //en_25qe32a
+	{0xC86516,   1,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 0,        2,            0x1F,         0x1F,        0x00,         0x0E,         0x00E,                0,            0,           0xA0,                          0x01}, //gd_25wq32e
 #endif
 	{0xEF4016,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x00,         0x101,                9,            1,           0xA0,                          0x01}, //w_25q32(bfj)
 	{0x204016,   2,               FLASH_SIZE_4M, FLASH_LINE_MODE_TWO, 14,       2,            0x1F,         0x1F,        0x00,         0x0E,         0x101,                9,            1,           0xA0,                          0x01}, //xmc_25qh32b
@@ -107,6 +108,65 @@ static flash_ps_callback_t s_flash_ps_resume_cb = NULL;
 #if (CONFIG_SOC_BK7256XX)
 static uint32_t s_hold_low_speed_status = 0;
 #endif
+#define FLASH_MAX_WAIT_CB_CNT (4)
+static flash_wait_callback_t s_flash_wait_cb[FLASH_MAX_WAIT_CB_CNT] = {NULL};
+
+bk_err_t bk_flash_register_wait_cb(flash_wait_callback_t wait_cb)
+{
+	uint32_t i = 0;
+
+	for(i = 0; i < FLASH_MAX_WAIT_CB_CNT; i++)
+	{
+		if(s_flash_wait_cb[i] == NULL)
+		{
+			s_flash_wait_cb[i] = wait_cb;
+			break;
+		}
+	}
+
+	if(i == FLASH_MAX_WAIT_CB_CNT)
+	{
+		FLASH_LOGE("cb is full\r\n");
+		return BK_ERR_FLASH_WAIT_CB_FULL;
+	}
+
+	return BK_OK;
+}
+
+bk_err_t bk_flash_unregister_wait_cb(flash_wait_callback_t wait_cb)
+{
+	uint32_t i = 0;
+
+	for(i = 0; i < FLASH_MAX_WAIT_CB_CNT; i++)
+	{
+		if(s_flash_wait_cb[i] == wait_cb)
+		{
+			s_flash_wait_cb[i] = NULL;
+			break;
+		}
+	}
+
+	if(i == FLASH_MAX_WAIT_CB_CNT)
+	{
+		FLASH_LOGE("cb isn't registered\r\n");
+		return BK_ERR_FLASH_WAIT_CB_NOT_REGISTER;
+	}
+
+	return BK_OK;
+}
+
+__attribute__((section(".itcm_sec_code"))) void flash_waiting_cb(void)
+{
+	uint32_t i = 0;
+
+	for(i = 0; i < FLASH_MAX_WAIT_CB_CNT; i++)
+	{
+		if(s_flash_wait_cb[i])
+		{
+			s_flash_wait_cb[i]();
+		}
+	}
+}
 
 static UINT32 flash_ps_suspend(UINT32 ps_level)
 {
@@ -198,7 +258,9 @@ static void flash_get_current_config(void)
 
 	if (!cfg_success) {
 		s_flash.flash_cfg = &flash_config[ARRAY_SIZE(flash_config) - 1];
-		FLASH_LOGW("don't config this flash, choose default config\r\n");
+		for(int i = 0; i < 10; i++) {
+			FLASH_LOGE("This flash is not identified, choose default config\r\n");
+		}
 	}
 }
 
@@ -278,7 +340,8 @@ static void flash_set_qe(void)
 {
 	uint32_t status_reg;
 
-	while (flash_hal_is_busy(&s_flash.hal));
+	flash_hal_wait_op_done(&s_flash.hal);
+
 	status_reg = flash_hal_read_status_reg(&s_flash.hal, s_flash.flash_cfg->status_reg_size);
 	if (status_reg & (s_flash.flash_cfg->quad_en_val << s_flash.flash_cfg->quad_en_post)) {
 		return;
@@ -305,7 +368,8 @@ static void flash_read_common(uint8_t *buffer, uint32_t address, uint32_t len)
 
 	while (len) {
 		uint32_t int_level = rtos_disable_int();
-		while (flash_hal_is_busy(&s_flash.hal));
+		flash_hal_wait_op_done(&s_flash.hal);
+
 		flash_hal_set_op_cmd_read(&s_flash.hal, addr);
 		addr += FLASH_BYTES_CNT;
 		for (uint32_t i = 0; i < FLASH_BUFFER_LEN; i++) {
@@ -338,7 +402,7 @@ static void flash_read_word_common(uint32_t *buffer, uint32_t address, uint32_t 
 	while (len) {
 		uint32_t int_level = rtos_disable_int();
 
-		while (flash_hal_is_busy(&s_flash.hal));
+		flash_hal_wait_op_done(&s_flash.hal);
 
 		flash_hal_set_op_cmd_read(&s_flash.hal, addr);
 		addr += FLASH_BYTES_CNT;
@@ -357,6 +421,25 @@ static void flash_read_word_common(uint32_t *buffer, uint32_t address, uint32_t 
 			}
 		}
 	}
+}
+
+bool flash_is_area_write_disable(uint32_t addr)
+{
+	uint32_t firmware_area_end_address = 0;
+	bk_logic_partition_t * flash_pt = NULL;
+
+#if CONFIG_HTTP_AB_PARTITION
+	flash_pt = bk_flash_partition_get_info(BK_PARTITION_APPLICATION);
+#else
+	flash_pt = bk_flash_partition_get_info(BK_PARTITION_OTA);
+#endif
+	firmware_area_end_address = flash_pt->partition_start_addr;
+	if (addr < firmware_area_end_address) {
+		FLASH_LOGE("valid write/erase start address = 0x%x, but current address = 0x%x.\r\n", firmware_area_end_address, addr);
+		BK_ASSERT(addr >= firmware_area_end_address);
+		return true;
+	}
+	return false;
 }
 
 static bk_err_t flash_write_common(const uint8_t *buffer, uint32_t address, uint32_t len)
@@ -379,7 +462,8 @@ static bk_err_t flash_write_common(const uint8_t *buffer, uint32_t address, uint
 		}
 
 		uint32_t int_level = rtos_disable_int();
-		while (flash_hal_is_busy(&s_flash.hal));
+		flash_hal_wait_op_done(&s_flash.hal);
+
 		for (uint32_t i = 0; i < FLASH_BUFFER_LEN; i++) {
 			flash_hal_write_data(&s_flash.hal, buf[i]);
 		}
@@ -431,6 +515,7 @@ bk_err_t bk_flash_driver_init(void)
 #endif
 	os_memset(&s_flash, 0, sizeof(s_flash));
 	flash_hal_init(&s_flash.hal);
+	bk_flash_set_line_mode(FLASH_LINE_MODE_TWO);
 	s_flash.flash_id = flash_hal_get_id(&s_flash.hal);
 	FLASH_LOGI("id=0x%x\r\n", s_flash.flash_id);
 	flash_get_current_config();
@@ -476,6 +561,10 @@ __attribute__((section(".itcm_sec_code"))) bk_err_t bk_flash_erase_sector(uint32
 		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
 	}
 
+	if (flash_is_area_write_disable(address)) {
+		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
+	}
+
 	uint32_t int_level = rtos_disable_int();
 	flash_hal_erase_sector(&s_flash.hal, erase_addr);
 	rtos_enable_int(int_level);
@@ -513,6 +602,11 @@ bk_err_t bk_flash_write_bytes(uint32_t address, const uint8_t *user_buf, uint32_
 		FLASH_LOGW("write error:invalid address 0x%x\r\n", address);
 		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
 	}
+
+	if (flash_is_area_write_disable(address)) {
+		return BK_ERR_FLASH_ADDR_OUT_OF_RANGE;
+	}
+
 	flash_write_common(user_buf, address, size);
 	flash_ps_resume(NORMAL_PS);
 
@@ -598,10 +692,12 @@ bk_err_t bk_flash_clk_switch(uint32_t flash_speed_type, uint32_t modules)
 			FLASH_LOGD("%s: clear low bit, 0x%x 0x%x\r\n", __func__, s_hold_low_speed_status, modules);
 			if (0 == s_hold_low_speed_status) {
 				chip_id = bk_get_hardware_chip_id_version();
-				if (chip_id == CHIP_VERSION_C)
+				//chipC version with GD flash switch to 80M for peformance
+				if ((chip_id == CHIP_VERSION_C) && ((s_flash.flash_id >> FLASH_ManuFacID_POSI) == FLASH_ManuFacID_GD)) {
 					bk_flash_set_clk(FLASH_CLK_DPLL, FLASH_DPLL_DIV_VALUE_SIX);
-				else
+				} else {
 					bk_flash_set_clk(FLASH_CLK_DPLL, FLASH_DPLL_DIV_VALUE_TEN);
+				}
 			}
 			break;
 	}
@@ -730,7 +826,8 @@ bk_err_t bk_spec_flash_write_bytes(bk_partition_t partition, const uint8_t *user
 {
 	bk_logic_partition_t *bk_ptr = NULL;
 	u8 *save_flashdata_buff  = NULL;
-
+	flash_protect_type_t protect_type;
+     
 	bk_ptr = bk_flash_partition_get_info(partition);
 	if((size + offset) > FLASH_OPERATE_SIZE_AND_OFFSET)
 		return BK_FAIL;
@@ -741,16 +838,20 @@ bk_err_t bk_spec_flash_write_bytes(bk_partition_t partition, const uint8_t *user
 		os_printf("save_flashdata_buff malloc err\r\n");
 		return BK_FAIL;
 	}
-	
-	//os_printf("ota_write_flash:partition_start_addr:0x%x  size :%d\r\n",(bk_ptr->partition_start_addr),bk_ptr->partition_length);
-	bk_flash_read_bytes((bk_ptr->partition_start_addr),(uint8_t *)save_flashdata_buff, bk_ptr->partition_length);
 
+	bk_flash_read_bytes((bk_ptr->partition_start_addr),(uint8_t *)save_flashdata_buff, bk_ptr->partition_length);
+    
+	protect_type = bk_flash_get_protect_type();
 	bk_flash_set_protect_type(FLASH_PROTECT_NONE);
+    
 	bk_flash_erase_sector(bk_ptr->partition_start_addr);
 	os_memcpy((save_flashdata_buff + offset), user_buf, size);
 	bk_flash_write_bytes(bk_ptr->partition_start_addr ,(uint8_t *)save_flashdata_buff, bk_ptr->partition_length);	
-    	bk_flash_set_protect_type(FLASH_UNPROTECT_LAST_BLOCK);
+    	bk_flash_set_protect_type(protect_type);
+        
 	os_free(save_flashdata_buff);
+	save_flashdata_buff = NULL;
+    
 	return BK_OK;
 
 }

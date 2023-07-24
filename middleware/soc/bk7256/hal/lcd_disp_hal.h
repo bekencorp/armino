@@ -63,6 +63,7 @@ void lcd_hal_set_sync_low(uint8_t hsync_back_low, uint16_t vsync_back_low);
 #define lcd_hal_get_8080_cmd_cfg_done_status    lcd_disp_ll_get_disp_status_i8080_cmd_cfg_done
 #define lcd_hal_get_8080_fifo_empty_status      lcd_disp_ll_get_disp_status_disp_fifo_empty
 #define lcd_hal_get_8080_fifo_near_full_status  lcd_disp_ll_get_disp_status_disp_fifo_near_full
+#define lcd_hal_set_i8080_ena(enable)
 void lcd_hal_8080_cmd_send(uint8_t param_count, uint32_t command, uint32_t *param);
 void bk_lcd_send_data(uint32_t command, uint16_t *data, uint32_t len);
 

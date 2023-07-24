@@ -30,7 +30,7 @@ import copy
 
 quiet = False
 gen_files_path = "%s/config/gen_files_list.txt"%(sys.path[0])
-JSON_FILENAMES = ['configuration.json', 'partition_bk7256_ota_a_new.json', 'partition_bk7256_ota_r_new.json']
+JSON_FILENAMES = ['configuration_new.json', 'partition_bk7256_ota_a_new.json', 'partition_bk7256_ota_r_new.json']
 
 def status(msg):
     """ Print status message to stderr """
@@ -251,6 +251,24 @@ class Bk7256PartTableGenerator:
     def print_part_table_info(self):
         for p in self.part_table:
             print(p)
+
+
+    def print_part_table_apps(self):
+        KEYWORDS = {
+            "application": "app",
+            "application1": "app1",
+        }
+        part_table_temp = list()
+        for p in self.part_table:
+            if re.match(r'^application(\d)*$',p.name):
+                part_table_temp.append(p)
+            if re.match(r'^app(\d)*$',p.name):
+                part_table_temp.append(p)
+        app_names = list()
+        for p in part_table_temp:
+            app_names.append(parse_int(p.name, KEYWORDS, stop = False))
+        res = ' '.join(app_names)
+        print(res)
 
 
     def print_part_table_csv(self, to_csv):
@@ -745,7 +763,7 @@ class Bk7256PartTableGenerator:
                 res += "#endif\n"
             res += "\n"
 
-            res += "enum\n"
+            res += "typedef enum\n"
             res += "{\n"
             res += "    BK_PARTITION_START_USER = BK_PARTITION_%s_TEMP - 1,\n"%('max'.upper())
             for index in range(len(inner_entries)):
@@ -1212,6 +1230,9 @@ class Bk7256PartTableCli:
         self.inseq_id = 0
         self.ptg = None
         self.root_tbl = None
+        self.tbl_inseq = list()
+        self.tbl_inseq_list = list()
+        self.tbl_inseq_dict = dict()
 
     @classmethod
     def from_generator(cls, smode, smode_inseq, flash_size, no_verify, to_json, to_sag, to_src, to_inc, to_csv, from_csv):
@@ -1234,6 +1255,9 @@ class Bk7256PartTableCli:
     def cli_clean_files(self, table, iret, isel):
         self.ptg.clean_files_set()
         self.ptg.print_files_set_info(to_txt = True)
+
+    def cli_show_apps(self, table, iret, isel):
+        self.ptg.print_part_table_apps()
 
     def cli_gen_csv_file(self, table, iret, isel):
         self.ptg.print_part_table_csv(to_csv = True)
@@ -1307,7 +1331,7 @@ class Bk7256PartTableCli:
                 select = self.cli_cmode_input()
             else:
                 select = self.cli_smode_input()
-            for tsel,func,tbl,tret,ban in table:
+            for tsel,func,tbl,tret,ban,inseqKey in table:
                 if select == tsel:
                     if func is not None and callable(func):
                         func(tbl,tret,tsel)
@@ -1318,47 +1342,82 @@ class Bk7256PartTableCli:
 
     def cli_tbl_init(self):
         # tbl template below:
-        # tbl = [ ('No', FuncObj, SubTbl, FuncRet, 'BannerStr'), ]
+        # tbl = [ ('No', FuncObj, SubTbl, FuncRet, 'BannerStr', 'InseqKey'), ]
         gen_json_files_tbl = []
         outfiles = self.ptg.json_funcs_outfiles
         for json_funcs_id in range(len(outfiles)):
-            tbl_item = ('%d'%(json_funcs_id+1), self.cli_gen_sub_json_file, None, False, "# %d : Gen %s"%(json_funcs_id+1, outfiles[json_funcs_id]))
+            tbl_item = ('%d'%(json_funcs_id+1), self.cli_gen_sub_json_file, None, False, "# %d : Gen %s"%(json_funcs_id+1, outfiles[json_funcs_id]), "%s"%(outfiles[json_funcs_id]))
             gen_json_files_tbl.append(tbl_item)
-        tbl_item = ('%d'%(len(outfiles)+1), self.cli_gen_all_json_file, None, False, "# %d : Gen all json"%(len(outfiles)+1))
+        tbl_item = ('%d'%(len(outfiles)+1), self.cli_gen_all_json_file, None, False, "# %d : Gen all json"%(len(outfiles)+1), "genAllJson")
         gen_json_files_tbl.append(tbl_item)
-        tbl_item = ('0', None, None, False, "# 0 : back")
+        tbl_item = ('0', None, None, False, "# 0 : back", "back")
         gen_json_files_tbl.append(tbl_item)
 
         gen_sag_files_tbl = []
         pto = [p for p in self.ptg.part_table_old if p.execute]
         for pto_id in range(len(pto)):
-            tbl_item = ('%d'%(pto_id+1), self.cli_gen_sub_sag_file, None, False, "# %d : Gen %s.sag"%((pto_id+1), pto[pto_id].name))
+            tbl_item = ('%d'%(pto_id+1), self.cli_gen_sub_sag_file, None, False, "# %d : Gen %s.sag"%((pto_id+1), pto[pto_id].name), "%s.sag"%(pto[pto_id].name))
             gen_sag_files_tbl.append(tbl_item)
-        tbl_item = ('%d'%(len(pto)+1), self.cli_gen_all_sag_file, None, False, "# %d : Gen all sag"%(len(pto)+1))
+        tbl_item = ('%d'%(len(pto)+1), self.cli_gen_all_sag_file, None, False, "# %d : Gen all sag"%(len(pto)+1), "genAllSag")
         gen_sag_files_tbl.append(tbl_item)
-        tbl_item = ('0', None, None, False, "# 0 : back")
+        tbl_item = ('0', None, None, False, "# 0 : back", "back")
         gen_sag_files_tbl.append(tbl_item)
 
         gen_files_tbl = [
-            ('1', self.cli_gen_json_files, gen_json_files_tbl, True, "# 1 : Gen *.json files"),
-            ('2', self.cli_gen_sag_files, gen_sag_files_tbl, True, "# 2 : Gen *.sag files"),
-            ('3', self.cli_gen_source_file, None, False, "# 3 : Gen *.h,*.c files"),
-            ('4', self.cli_gen_all_file, None, False, "# 4 : Gen all files"),
-            ('0', None, None, False, "# 0 : back"),
+            ('1', self.cli_gen_json_files, gen_json_files_tbl, True, "# 1 : Gen *.json files", "genJsonFiles"),
+            ('2', self.cli_gen_sag_files, gen_sag_files_tbl, True, "# 2 : Gen *.sag files", "genSagFiles"),
+            ('3', self.cli_gen_source_file, None, False, "# 3 : Gen *.h,*.c files", "genSourceFiles"),
+            ('4', self.cli_gen_all_file, None, False, "# 4 : Gen all files", "genAllFiles"),
+            ('0', None, None, False, "# 0 : back", "back"),
         ]
 
         root_tbl = [
-            ('1', self.cli_gen_files, gen_files_tbl, True, "# 1 : Gen files"),
-            ('2', self.cli_show_files, None, False, "# 2 : Display all Generated files"),
-            ('3', self.cli_clean_files, None, False, "# 3 : Clean all Generated files"),
-            ('0', None, None, False, "# 0 : exit")
+            ('1', self.cli_gen_files, gen_files_tbl, True, "# 1 : Gen files", "genFiles"),
+            ('2', self.cli_show_files, None, False, "# 2 : Display all Generated files", "display"),
+            ('3', self.cli_clean_files, None, False, "# 3 : Clean all Generated files", "clean"),
+            ('4', self.cli_show_apps, None, False, "# 4 : Show all apps name", "showApps"),
+            ('0', None, None, False, "# 0 : exit", "exit")
         ]
 
         self.root_tbl = root_tbl
 
+    def cli_tbl_inseq_travel(self, table):
+        for tbl_item in table:
+            if tbl_item[1] == None:
+                continue
+            if tbl_item[2] != None:
+                self.tbl_inseq.append(tbl_item[0])
+                self.cli_tbl_inseq_out(tbl_item[2])
+                self.tbl_inseq.pop()
+            else:
+                self.tbl_inseq.append(tbl_item[0])
+                tbl_inseq_temp = list()
+                tbl_inseq_temp.extend(self.tbl_inseq)
+                for index in range(len(tbl_inseq_temp)):
+                    tbl_inseq_temp.append('0')
+                self.tbl_inseq_list.append({'%s'%(tbl_item[5]): tbl_inseq_temp})
+                self.tbl_inseq_dict[tbl_item[5]] = tbl_inseq_temp
+                self.tbl_inseq.pop()
+
+    def cli_tbl_inseq_out(self, table):
+        self.cli_tbl_inseq_travel(table)
+        inseq_json_temp = {
+            'count': 0,
+            'inseqs': [],
+        }
+        inseq_dict = dict()
+        inseq_dict.update(inseq_json_temp)
+        inseq_dict['count'] = len(self.tbl_inseq_dict)
+        inseq_dict['inseqs'] = self.tbl_inseq_dict
+        inseq_json = json.dumps(inseq_dict, sort_keys=False, indent=4)
+        inseq_json_path = "%s/config/inseqs.json"%(sys.path[0])
+        with open(inseq_json_path, 'w') as f:
+            f.write(inseq_json)
+
     def cli_start(self):
         self.cli_tbl_init()
         table = self.root_tbl
+        self.cli_tbl_inseq_out(table)
         self.cli_scan_tbl(table, True, '0')
 
 

@@ -242,12 +242,14 @@ static void _arm_ce_trng_flush_pool( uint32_t desbuf[POOL_SIZE] )
     }
 }
 
-#define CONFIG_DUBHE_FPGA 1
+#define CONFIG_DUBHE_FPGA 0
+
 #if CONFIG_DUBHE_FPGA
+#error "[FPGA]check whether target supports trng!!!"
+
 #include <stdlib.h>
 
-static void
-arm_ce_random_data_read( unsigned char *buf, size_t buf_len, bool need_error )
+static void arm_ce_random_data_read( unsigned char *buf, size_t buf_len, bool need_error )
 {
 	unsigned char *pos;
 	int rand_value, size;
@@ -305,7 +307,6 @@ int arm_ce_trng_calibration_dump( uint32_t regBase,
     return 0;
 }
 #else
-#error "check whether target supports trng!!!"
 static void arm_ce_random_data_read( unsigned char *buf, size_t buf_len, bool need_error )
 {
     uint32_t i, block_size = 0, extra_size = 0, error_count = 0;

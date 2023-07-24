@@ -8,7 +8,7 @@
 #include <driver/hal/hal_timer_types.h>
 #include <driver/hal/hal_spi_types.h>
 #include <driver/sys_pm_types.h>
-
+#include <modules/pm.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -96,18 +96,20 @@ void sys_hal_module_power_ctrl(power_module_name_t module,power_module_state_t p
 void sys_hal_wakeup_interrupt_clear(wakeup_source_t interrupt_source);
 void sys_hal_module_power_ctrl(power_module_name_t module,power_module_state_t power_state);
 void sys_hal_module_RF_power_ctrl (module_name_t module,power_module_state_t power_state);
-void sys_hal_core_bus_clock_ctrl(high_clock_module_name_t core, uint32_t clksel,uint32_t clkdiv, high_clock_module_name_t bus,uint32_t bus_clksel,uint32_t bus_clkdiv);
 void sys_hal_cpu0_main_int_ctrl(dev_clk_pwr_ctrl_t clock_state);
 void sys_hal_cpu1_main_int_ctrl(dev_clk_pwr_ctrl_t clock_state);
 void sys_hal_set_cpu1_boot_address_offset(uint32_t address_offset);
 void sys_hal_set_cpu1_reset(uint32_t reset_value);
 void sys_hal_enable_mac_wakeup_source();
 void sys_hal_enable_bt_wakeup_source();
+
 uint32_t sys_hal_all_modules_clk_div_get(clk_div_reg_e reg);
 void sys_hal_all_modules_clk_div_set(clk_div_reg_e reg, uint32_t value);
 void sys_hal_usb_wakeup_enable(uint8_t index);
 void sys_hal_touch_wakeup_enable(uint8_t index);
 void sys_hal_rtc_wakeup_enable(uint32_t value);
+void sys_hal_rtc_ana_wakeup_enable(uint32_t period);
+void sys_hal_gpio_ana_wakeup_enable(uint32_t index, uint32_t type);
 void sys_hal_cpu_clk_div_set(uint32_t core_index, uint32_t value);
 uint32_t sys_hal_cpu_clk_div_get(uint32_t core_index);
 void sys_hal_low_power_hardware_init();
@@ -118,6 +120,9 @@ int32 sys_hal_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval);
 int sys_hal_rosc_test_mode(bool enabled);
 int32 sys_hal_bandgap_cali_set(uint32_t value);//increase or decrease the dvdddig voltage
 uint32_t sys_hal_bandgap_cali_get();
+bk_err_t sys_hal_switch_cpu_bus_freq(pm_cpu_freq_e cpu_bus_freq);
+bk_err_t sys_hal_core_bus_clock_ctrl(uint32_t cksel_core, uint32_t ckdiv_core,uint32_t ckdiv_bus, uint32_t ckdiv_cpu0,uint32_t ckdiv_cpu1);
+
 /*low power feature end*/
 uint32 sys_hal_get_chip_id(void);
 uint32 sys_hal_get_device_id(void);
@@ -335,6 +340,7 @@ void sys_hal_aud_mic1_gain_set(uint32_t value);
 void sys_hal_aud_mic2_gain_set(uint32_t value);
 void sys_hal_aud_mic1_single_en(uint32_t value);
 void sys_hal_aud_mic2_single_en(uint32_t value);
+void sys_hal_aud_dacg_set(uint32_t value);
 void sys_hal_aud_dcoc_en(uint32_t value);
 void sys_hal_aud_lmdcin_set(uint32_t value);
 void sys_hal_aud_audbias_en(uint32_t value);
@@ -384,8 +390,18 @@ void sys_hal_touch_calib_enable(uint32_t value);
 void sys_hal_touch_manul_mode_calib_value_set(uint32_t value);
 void sys_hal_touch_manul_mode_enable(uint32_t value);
 void sys_hal_touch_scan_mode_chann_set(uint32_t value);
+void sys_hal_touch_scan_mode_chann_sel(uint32_t value);
 void sys_hal_touch_serial_cap_enable(void);
 void sys_hal_touch_serial_cap_disable(void);
+void sys_hal_touch_serial_cap_sel(uint32_t value);
+void sys_hal_touch_spi_lock(void);
+void sys_hal_touch_spi_unlock(void);
+void sys_hal_touch_test_period_set(uint32_t value);
+void sys_hal_touch_test_number_set(uint32_t value);
+void sys_hal_touch_calib_period_set(uint32_t value);
+void sys_hal_touch_calib_number_set(uint32_t value);
+void sys_hal_touch_int_set(uint32_t value);
+void sys_hal_touch_int_clear(uint32_t value);
 void sys_hal_touch_int_enable(uint32_t value);
 
 /**  Touch End **/

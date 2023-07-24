@@ -7,10 +7,22 @@
 #include <driver/psram.h>
 #endif
 
+/* Platform includes. */
+#include "sys_driver.h"
+#include <soc/soc.h>
+
+#if CONFIG_AON_RTC
+#include <driver/aon_rtc.h>
+#include <driver/aon_rtc_types.h>
+#endif
+
 void cli_memory_free_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	uint32_t total_size,free_size,mini_size;
+    CLI_LOGI("================Static memory================\r\n");
+    os_show_memory_config_info();
 
+	CLI_LOGI("================Dynamic memory================\r\n");
 	cmd_printf("%-5s   %-5s   %-5s   %-5s   %-5s\r\n",
 		"name", "total", "free", "minimum", "peak");
 	
@@ -300,7 +312,85 @@ int32_t mem_test(uint32_t address, uint32_t size, uint8_t quiet_mode)
     return 0;
 }
 
+__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) \
+void mem_time(uint32_t *base, uint32_t count, uint8_t mode)
+{
+    /** write addr x times*/
+__maybe_unused volatile uint32_t data = 0;
+    volatile uint32_t *address = base;
+    uint64_t saved_aon_time = 0, cur_aon_time = 0, diff_time = 0;
+    uint32_t diff_ms = 0;
 
+    uint32_t intbk = rtos_disable_int();
+
+#if CONFIG_AON_RTC
+    saved_aon_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
+#endif
+
+    switch(mode)
+    {
+        case 0://single read
+            for(uint32_t i=0; i<count; i++)
+            {
+                data = REG_READ(address);
+            }
+            break;
+        case 1://single write
+            for(uint32_t i=0; i<count; i++)
+            {
+                REG_WRITE(address, i);
+            }
+            break;
+        case 2://read&write
+            for(uint32_t i=0; i<count; i++)
+            {
+                REG_WRITE(address, i);
+                data = REG_READ(address);
+            }
+            break;
+        case 3://multi-mem read
+            for(uint32_t i=0; i<count; i++)
+            {
+                data = REG_READ(address);
+                address++;
+                if(address == (base+256) ) address = base;
+            }
+            break;
+        case 4://multi-mem write
+            for(uint32_t i=0; i<count; i++)
+            {
+                REG_WRITE(address, i);
+                address++;
+                if(address == (base+256) ) address = base;
+            }
+        case 5://multi-mem read&write
+            for(uint32_t i=0; i<count; i++)
+            {
+                data = REG_READ(address);
+                REG_WRITE(address, i);
+                address++;
+                if(address == (base+256) ) address = base;
+            }
+            break;
+
+        default:
+            os_printf("error!!\r\n");
+    }
+
+#if CONFIG_AON_RTC
+    cur_aon_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
+    diff_time = (cur_aon_time - saved_aon_time);
+    diff_ms = (uint32_t)diff_time/(RTC_TICKS_PER_1MS);
+#endif
+
+    rtos_enable_int(intbk);
+
+    BK_DUMP_OUT("saved time: 0x%x:0x%08x\r\n", (u32)(saved_aon_time >> 32), (u32)(saved_aon_time & 0xFFFFFFFF));
+    BK_DUMP_OUT("curr time: 0x%x:0x%08x\r\n", (u32)(cur_aon_time >> 32), (u32)(cur_aon_time & 0xFFFFFFFF));
+    BK_DUMP_OUT("diff time: 0x%x:0x%08x\r\n", (u32)(diff_time >> 32), (u32)(diff_time & 0xFFFFFFFF));
+
+    BK_DUMP_OUT("memtime end, time consume=%d ms\r\n", diff_ms);
+}
 
 int32_t mem_read_test(uint32_t src, uint32_t dst, uint32_t size)
 {
@@ -418,6 +508,21 @@ static void cli_mem_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 }
 
 
+static void cli_mem_time(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    uint32_t address, count, mode;
+    if (argc >= 4) {
+        address = strtoll(argv[1], NULL, 16);
+        count = strtoll(argv[2], NULL, 16);
+        mode = strtoll(argv[3], NULL, 16);
+    } else {
+        os_printf("memtime <addr> <count> <0:write,1:read> \r\n");
+        return;
+    }
+    os_printf("memtime, address: 0x%08X count: 0x%08X, read=%d\r\n", address, count, mode);
+    mem_time((uint32_t *)address, count, mode);
+}
+
 
 static void cli_memread_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
@@ -434,6 +539,47 @@ static void cli_memread_test(char *pcWriteBuffer, int xWriteBufferLen, int argc,
     }
 }
 
+#if CONFIG_MPU
+void mpu_cfg(int index, uint32_t rbar, uint32_t rlar);
+void mpu_init(void);
+
+static void cli_mpucfg_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    uint32_t index = 0, rbar = 0, rlar = 0;
+
+    if (argc >= 4) {
+        index = strtoll(argv[1], NULL, 10);
+        rbar = strtoll(argv[2], NULL, 16);
+        rlar = strtoll(argv[3], NULL, 16);
+    } else {
+        os_printf("mpucfg <index> <rbar> <rlar>\r\n");
+        return;
+    }
+
+    os_printf("mpucfg, index:%d rbar: 0x%08X rlar: 0x%08X.\r\n", index, rbar, rlar);
+    mpu_cfg(index, rbar, rlar);
+}
+
+void mpu_clear(uint32_t rnr);
+static void cli_mpuclr_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv) {
+    uint32_t rnr;
+
+    if (argc >= 2) {
+        rnr = strtoll(argv[1], NULL, 10);
+    } else {
+        os_printf("mpuclr <rnr>.\r\n");
+        return;
+    }
+
+    os_printf("mpuclr, rnr:%d.\r\n", rnr);
+    mpu_clear(rnr);
+}
+
+void mpu_dump(void);
+static void cli_mpudump_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv) {
+    mpu_dump();
+}
+#endif //#if CONFIG_MPU
 
 #define __is_print(ch) ((unsigned int)((ch) - ' ') < 127u - ' ')
 static void dump_hex(const uint8_t *ptr, size_t buflen)
@@ -494,7 +640,13 @@ static const struct cli_command s_mem_commands[] = {
     {"memtest", "<addr> <length>", cli_mem_test},
     {"memtest_r", "<src> <dest> <size>", cli_memread_test},
     {"memtest_wr", "<addr> <count>", cli_memtest_wr_cmd},
-#endif
+	{"memtime", "<addr> <count> <0:write,1:read>", cli_mem_time},
+#if CONFIG_MPU
+    {"mpucfg", "<rnr> <rbar> <rlar>", cli_mpucfg_cmd},
+    {"mpuclr", "<rnr>", cli_mpuclr_cmd},
+    {"mpudump", "dump mpu config", cli_mpudump_cmd},
+#endif //#if CONFIG_MPU
+#endif //#if CONFIG_DEBUG_FIRMWARE
 #if CONFIG_PSRAM_AS_SYS_MEMORY && CONFIG_FREERTOS
     {"psram_malloc", "psram_malloc <length>", cli_psram_malloc_cmd},
     {"psram_free", "psram_free <addr>", cli_psram_free_cmd},

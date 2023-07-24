@@ -40,6 +40,11 @@ static inline bool flash_ll_is_busy(flash_hw_t *hw)
 	return hw->op_ctrl.busy_sw;
 }
 
+static inline void flash_ll_wait_op_done(flash_hw_t *hw)
+{
+	while (flash_ll_is_busy(hw));
+}
+
 static inline uint32_t flash_ll_read_flash_id(flash_hw_t *hw)
 {
 	return hw->rd_flash_id;
@@ -68,17 +73,64 @@ static inline uint32_t flash_ll_get_mid(flash_hw_t *hw)
 	return flash_ll_read_flash_id(hw);
 }
 
-static inline void flash_ll_write_status_reg(flash_hw_t *hw, uint8_t sr_width, uint16_t sr_data)
+static inline void flash_ll_init_wrsr_cmd(flash_hw_t *hw, uint8_t wrsr_cmd)
 {
-	while (flash_ll_is_busy(hw));
-	hw->config.wrsr_data = sr_data;
-	while (flash_ll_is_busy(hw));
+	hw->cmd_cfg.wrsr_cmd_reg = wrsr_cmd;
+	hw->cmd_cfg.wrsr_cmd_sel = 1;
+	flash_ll_wait_op_done(hw);
+}
 
-	if (sr_width == 1) {
-		flash_ll_set_op_cmd(hw, FLASH_OP_CMD_WRSR);
-	} else if (sr_width == 2) {
-		flash_ll_set_op_cmd(hw, FLASH_OP_CMD_WRSR2);
-	}
+static inline void flash_ll_init_rdsr_cmd(flash_hw_t *hw, uint8_t rdsr_cmd)
+{
+	hw->cmd_cfg.rdsr_cmd_reg = rdsr_cmd;
+	hw->cmd_cfg.rdsr_cmd_sel = 1;
+	flash_ll_wait_op_done(hw);
+}
+
+static inline void flash_ll_deinit_wrsr_cmd(flash_hw_t *hw)
+{
+	hw->cmd_cfg.wrsr_cmd_reg = 0x1;
+	hw->cmd_cfg.wrsr_cmd_sel = 0;
+	flash_ll_wait_op_done(hw);
+}
+
+static inline void flash_ll_deinit_rdsr_cmd(flash_hw_t *hw)
+{
+	hw->cmd_cfg.rdsr_cmd_reg = 0x5;
+	hw->cmd_cfg.rdsr_cmd_sel = 0;
+	flash_ll_wait_op_done(hw);
+}
+
+
+static inline void flash_ll_write_status_reg(flash_hw_t *hw, uint8_t sr_width, uint32_t sr_data)
+{
+
+		while (flash_ll_is_busy(hw));
+		hw->config.wrsr_data = sr_data;
+		while (flash_ll_is_busy(hw));
+		if (sr_width == 1) {
+			flash_ll_set_op_cmd(hw, FLASH_OP_CMD_WRSR);
+		} else if (sr_width == 2) {
+			if(FLASH_ID_GD25Q32C == flash_ll_get_id(hw)) {
+				flash_ll_set_op_cmd(hw, FLASH_OP_CMD_WRSR);
+				flash_ll_wait_op_done(hw);
+
+				hw->config.wrsr_data = (sr_data >> LEN_WRSR_S0_S7);
+				flash_ll_wait_op_done(hw);
+
+				flash_ll_init_wrsr_cmd(hw, CMD_WRSR_S8_S15);
+				flash_ll_wait_op_done(hw);
+
+				flash_ll_set_op_cmd(hw, FLASH_OP_CMD_WRSR);
+				flash_ll_wait_op_done(hw);
+
+				flash_ll_deinit_wrsr_cmd(hw);
+			} else {
+				flash_ll_set_op_cmd(hw, FLASH_OP_CMD_WRSR2);
+			}
+
+		}
+
 	while (flash_ll_is_busy(hw));
 }
 
@@ -87,21 +139,31 @@ static inline void flash_ll_set_qe(flash_hw_t *hw, uint8_t qe_bit, uint8_t qe_bi
 	hw->config.v |= qe_bit << qe_bit_post;
 }
 
-static inline uint16_t flash_ll_read_status_reg(flash_hw_t *hw, uint8_t sr_width)
+static inline uint32_t flash_ll_read_status_reg(flash_hw_t *hw, uint8_t sr_width)
 {
-	uint16_t state_reg_data = 0;
+	uint32_t state_reg_data = 0;
 
+	hw->cmd_cfg.v = 0;
 	while (flash_ll_is_busy(hw));
 	flash_ll_set_op_cmd(hw, FLASH_OP_CMD_RDSR);
 	while (flash_ll_is_busy(hw));
-
 	state_reg_data = hw->state.status_reg;
 
-	if (sr_width == 2) {
-		flash_ll_set_op_cmd(hw, FLASH_OP_CMD_RDSR2);
-		while (flash_ll_is_busy(hw));
-		state_reg_data |= hw->state.status_reg << 8;
-	}
+	if (sr_width ==1) return state_reg_data;
+
+	flash_ll_set_op_cmd(hw, FLASH_OP_CMD_RDSR2);
+	while (flash_ll_is_busy(hw));
+	state_reg_data |= hw->state.status_reg << 8;
+
+	if (sr_width ==2) return state_reg_data;
+
+	hw->cmd_cfg.rdsr_cmd_sel = 1;
+	hw->cmd_cfg.rdsr_cmd_reg = 0x15;
+	flash_ll_set_op_cmd(hw, FLASH_OP_CMD_RDSR);
+	while (flash_ll_is_busy(hw));
+	state_reg_data |= hw->state.status_reg << 16;
+	hw->cmd_cfg.v = 0;
+
 	return state_reg_data;
 }
 
@@ -135,7 +197,7 @@ static inline void flash_ll_set_dual_mode(flash_hw_t *hw)
 
 static inline void flash_ll_set_quad_m_value(flash_hw_t *hw, uint32_t m_value)
 {
-
+	hw->state.m_value = m_value;
 }
 
 static inline void flash_ll_erase_sector(flash_hw_t *hw, uint32_t erase_addr)

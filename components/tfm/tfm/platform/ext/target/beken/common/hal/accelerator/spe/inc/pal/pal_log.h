@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 #define PAL_LOG_PREFIX_NAME "[IPSS-M]"
-#define PAL_MAX_LOG_LEVEL 3
+#define PAL_MAX_LOG_LEVEL 2
 
 #include "pal_common.h"
 

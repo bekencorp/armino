@@ -165,7 +165,7 @@ static void h264_err_resume_task_entry(beken_thread_arg_t data)
 			{
 				os_printf("%s semaphore get failed: %d\n", __func__, ret);
 			}
-		bk_dvp_camera_close();
+		media_app_camera_close(APP_CAMERA_DVP_H264_WIFI_TRANSFER);
 	}
 }
 
@@ -335,9 +335,9 @@ static void h264_test_func(int frame,int ppi_second)
 	//bk_h264_camera_gpio_set();
 	//frame_buffer_init();
 #if (CONFIG_USB_DEVICE && CONFIG_USB_UVC)
-	bk_dvp_camera_open(PPI_640X480, MEDIA_DVP_H264_USB_TRANSFER);
+	media_app_camera_open(APP_CAMERA_DVP_H264_USB_TRANSFER, PPI_640X480);
 #else
-	bk_dvp_camera_open(media_ppi, MEDIA_DVP_H264_LOCAL);
+	media_app_camera_open(APP_CAMERA_DVP_H264_LOCAL, media_ppi);
 #endif
 
 	/*encode start*/
@@ -364,14 +364,14 @@ static void h264_demo_main(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 		{
 			h264_test_func(v1,v2);
 			delay(400000);
-			bk_dvp_camera_close();
+			media_app_camera_close(APP_CAMERA_DVP_H264_WIFI_TRANSFER);
 			bk_h264_dma_rx_deinit();
 			h264_print(h264_dma_config.rx_buf, 8);
 			delay(10000);
-		}	
+		}
 	}
 	else if (os_strcmp(argv[1], "stop") == 0) {
-		bk_dvp_camera_close();
+		media_app_camera_close(APP_CAMERA_DVP_H264_WIFI_TRANSFER);
 		bk_h264_dma_rx_deinit();
 		h264_print(h264_dma_config.rx_buf, 8);
 	}

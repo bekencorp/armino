@@ -338,3 +338,8 @@ void flush_all_dcache(void) {
         }
     }
 }
+
+void enable_dcache(int enable) {
+    // RISC-V enable dcache as default
+    return;
+}

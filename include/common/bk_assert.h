@@ -26,9 +26,9 @@ extern "C" {
 
 void bk_reboot(void);
 
-#if CONFIG_ARCH_RISCV
-extern void trap_entry(void);
-#define BK_ASSERT_DUMP()    trap_entry()
+#if CONFIG_DEBUG_FIRMWARE
+void bk_system_dump(void);
+#define BK_ASSERT_DUMP()   bk_system_dump()
 #else
 #define BK_ASSERT_DUMP()
 #endif

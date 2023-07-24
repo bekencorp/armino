@@ -149,10 +149,11 @@ void rand_bytes(uint8_t *data, uint32_t len)
 		data[i] = ((rand()) & 0xFF);
 	}
 #else
-	printf("TODO rand bytes\r\n");
+	extern int arm_ce_seed_read( unsigned char *buf, size_t buf_len );
+
+	arm_ce_seed_read(data, len);
 #endif
 	return;
 }
-
 // eof
 

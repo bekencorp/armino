@@ -20,6 +20,15 @@ CONFIG_SOC_BK7256XX=y
 # end of SOC_CONFIG
 
 #
+# System
+#
+CONFIG_SYS_CPU0=y
+# CONFIG_SYS_CPU1 is not set
+# CONFIG_SYS_CPU2 is not set
+CONFIG_CPU_CNT=1
+# end of System
+
+#
 # ARMINO Configuration
 #
 
@@ -47,9 +56,6 @@ CONFIG_ASSERT_REBOOT=y
 #
 # Features Configuration
 #
-CONFIG_LWIP=y
-# CONFIG_LWIP_V2_0 is not set
-CONFIG_LWIP_V2_1=y
 CONFIG_NO_HOSTED=y
 # CONFIG_SEMI_HOSTED is not set
 # CONFIG_FULLY_HOSTED is not set
@@ -152,7 +158,6 @@ CONFIG_AUDIO_SBC=y
 #
 # Modules::Bk_airkiss
 #
-# CONFIG_BK_AIRKISS is not set
 # end of Modules::Bk_airkiss
 
 #
@@ -175,13 +180,11 @@ CONFIG_LA_CAPTURE_MAC_DIAGS=y
 #
 # Modules::Bk_coex
 #
-# CONFIG_RF_POLICY_SUPPORT is not set
 # end of Modules::Bk_coex
 
 #
 # Modules::Bk_hostapd
 #
-# CONFIG_BK_HOSTAPD is not set
 # CONFIG_MINIMUM_SCAN_RESULTS is not set
 # end of Modules::Bk_hostapd
 
@@ -193,6 +196,11 @@ CONFIG_LA_CAPTURE_MAC_DIAGS=y
 # SOC_CONFIG
 #
 # end of SOC_CONFIG
+
+#
+# System
+#
+# end of System
 
 #
 # Driver
@@ -310,6 +318,7 @@ CONFIG_AON_RTC_MANY_USERS=y
 CONFIG_AON_RTC_TEST=y
 # CONFIG_AON_RTC_DEBUG is not set
 CONFIG_AON_RTC_KEEP_TIME_SUPPORT=y
+# CONFIG_RTC_ANA_WAKEUP_SUPPORT is not set
 # end of AON_RTC
 
 #
@@ -323,7 +332,7 @@ CONFIG_CONFIG_GPIO_WAKEUP_ID=22
 CONFIG_CONFIG_GPIO_WAKEUP_INT_TYPE=0
 CONFIG_GPIO_SIMULATE_UART_WRITE=y
 CONFIG_GPIO_DEFAULT_SET_SUPPORT=y
-CONFIG_CHANGE_JTAG_GPIO=y
+# CONFIG_GPIO_ANA_WAKEUP_SUPPORT is not set
 # end of GPIO
 
 #
@@ -548,6 +557,7 @@ CONFIG_LCD=y
 # CONFIG_LCD_ST7710S is not set
 # CONFIG_LCD_ST7701S is not set
 # CONFIG_LCD_ST7701S_LY is not set
+# CONFIG_LCD_ST7789V is not set
 # CONFIG_LCD_QSPI is not set
 # CONFIG_LCD_POWER_GPIO_CTRL is not set
 # CONFIG_LCD_BACKLIGHT_GPIO_CTRL is not set
@@ -563,6 +573,8 @@ CONFIG_LCD=y
 # CAMERA
 #
 # CONFIG_CAMERA_POWER_GPIO_CTRL is not set
+# CONFIG_ENCODE_BUF_DYNAMIC is not set
+# CONFIG_DVP_PCLK_72M is not set
 # end of CAMERA
 
 #
@@ -626,31 +638,6 @@ CONFIG_CACHE_ENABLE=y
 # end of Arch::Cm33
 
 #
-# Bk_Wifi
-#
-# CONFIG_WIFI_ENABLE is not set
-CONFIG_WIFI6_CODE_STACK=y
-CONFIG_WIFI4=y
-# CONFIG_WIFI5 is not set
-CONFIG_WIFI6=y
-# CONFIG_WIFI6E is not set
-CONFIG_WIFI6_IP_DEBUG=y
-CONFIG_MSDU_RESV_HEAD_LENGTH=96
-CONFIG_MSDU_RESV_TAIL_LENGTH=16
-CONFIG_TASK_RECONNECT_PRIO=4
-# CONFIG_AP_MONITOR_COEXIST is not set
-# CONFIG_CONNECT_THROUGH_PSK_OR_SAE_PASSWORD is not set
-# CONFIG_WIFI_FAST_CONNECT is not set
-# CONFIG_BSSID_CONNECT is not set
-# CONFIG_WFA_CERT is not set
-# CONFIG_LESS_MEMERY_IN_RWNX is not set
-# CONFIG_AP_PROBEREQ_CB is not set
-CONFIG_STA_PS=y
-CONFIG_MAC_BSSID=y
-# CONFIG_COMPONENTS_STA_VSIE is not set
-# end of Bk_Wifi
-
-#
 # Bk_ble
 #
 CONFIG_BT=y
@@ -679,10 +666,10 @@ CONFIG_CLI=y
 # CONFIG_CLI_USER_CONFIG is not set
 CONFIG_BKREG=y
 CONFIG_MAX_COMMANDS=255
-CONFIG_IPERF_TEST=y
 # CONFIG_TCP_SERVER_TEST is not set
 # CONFIG_AIRKISS_TEST is not set
 # CONFIG_WIFI_RAW_TX_TEST is not set
+# CONFIG_CONNECT_THROUGH_PSK_OR_SAE_PASSWORD is not set
 # CONFIG_VFS_TEST is not set
 # CONFIG_I2C1_TEST is not set
 # CONFIG_I2C2_TEST is not set
@@ -694,7 +681,6 @@ CONFIG_SHELL_ASYNCLOG=y
 # CONFIG_TOUCH_TEST is not set
 # CONFIG_SBC_TEST is not set
 # CONFIG_PSRAM_TEST is not set
-# CONFIG_CAMERA_TEST is not set
 # CONFIG_SPE_TEST is not set
 # CONFIG_MPC_TEST is not set
 # CONFIG_PRRO_TEST is not set
@@ -773,17 +759,6 @@ CONFIG_MEM_DEBUG_TASK_NAME_LEN=8
 # Lwip_intf_v2_0
 #
 # CONFIG_COMPONENTS_MOBILE_CONNECT_SAP_STATISTICS is not set
-
-#
-# Modify Lwip Config
-#
-CONFIG_DHCP=y
-# CONFIG_AUTOIP is not set
-CONFIG_MDNS=y
-CONFIG_TASK_LWIP_PRIO=4
-# CONFIG_LWIP_MEM_DEFAULT is not set
-CONFIG_LWIP_MEM_REDUCE=y
-# end of Modify Lwip Config
 # end of Lwip_intf_v2_0
 
 #
@@ -792,16 +767,6 @@ CONFIG_LWIP_MEM_REDUCE=y
 # CONFIG_IPV6 is not set
 # CONFIG_WIFI_FAST_DHCP is not set
 CONFIG_MQTT_ACK_NOW=y
-
-#
-# Modify Lwip Config
-#
-# CONFIG_MIDEA is not set
-CONFIG_LWIP_MEM_TRX_DYNAMIC_EN=y
-# CONFIG_LWIP_MEM_LIBC_MALLOC is not set
-CONFIG_LWIP_MEMP_STATS=y
-CONFIG_LWIP_MEM_STATS=y
-# end of Modify Lwip Config
 # end of Lwip_intf_v2_1
 
 #
@@ -809,14 +774,19 @@ CONFIG_LWIP_MEM_STATS=y
 #
 # CONFIG_PM is not set
 # end of Pm
+
+# CONFIG_WIFI_ENABLE is not set
+CONFIG_WIFI4=y
+# CONFIG_WIFI_FAST_CONNECT is not set
+# CONFIG_AP_PROBEREQ_CB is not set
 # end of Shared Configs with Public components
 
-CONFIG_BLE_PS=y
 # CONFIG_BLE_HOST_NONE is not set
 # CONFIG_BLE_HOST_RW is not set
 # CONFIG_BLE_HOST_ZEPHYR is not set
 CONFIG_BLE_MESH_NONE=y
 # CONFIG_BLE_MESH_ZEPHYR is not set
+CONFIG_BLE_PS=y
 CONFIG_BLE_ADV_NUM=1
 CONFIG_BLE_SCAN_NUM=1
 CONFIG_BLE_INIT_NUM=1
@@ -849,19 +819,14 @@ CONFIG_AVDTP=y
 CONFIG_A2DP=y
 # CONFIG_A2DP_SOURCE is not set
 CONFIG_A2DP_SINK=y
-# CONFIG_AVCTP is not set
+CONFIG_AVCTP=y
+CONFIG_AVRCP=y
+CONFIG_AVRCP_TG=y
+CONFIG_AVRCP_CT=y
 # end of Modify Ble Host Ethermind Config
 
 CONFIG_ACLSEMI_BT_MESH_DEBUG_LEVEL=4
 # end of Modules::Bluetooth::Bt_host::Mindtree
-
-#
-# modules::bt
-#
-CONFIG_BT_HOST_NONE=y
-# CONFIG_BT_HOST_JUNGO is not set
-CONFIG_BT_SRC_ADD=0x280000
-# end of modules::bt
 
 #
 # modules::ft_test
@@ -878,7 +843,6 @@ CONFIG_HOMEKIT=y
 #
 # modules::ip_ax
 #
-# CONFIG_WIFI_IP_AX is not set
 CONFIG_WIFI_MAC_VERSION="V21"
 CONFIG_WIFI_MDM_VERSION="v30"
 CONFIG_WIFI_PLF_VERSION="v31"
@@ -892,7 +856,6 @@ CONFIG_MM_BEACON_LOSS_HIGH_COEFF=40
 CONFIG_MM_BEACON_LOSS_RSSI_THRESHOLD=-80
 CONFIG_HE_MCS_LIMIT_7=y
 CONFIG_MAC_CHAN=y
-CONFIG_SPECIAL_TX_TYPE=y
 CONFIG_MAC_RESET_BCMC_AUTO_MODE=y
 CONFIG_MAC_KEEP_ALIVE_PERIOD_AUTO_MODE=y
 # CONFIG_MQTT_ARP_ALIGN_EN is not set
@@ -908,6 +871,9 @@ CONFIG_BK_MEM_DYNA_APPLY_EN=y
 CONFIG_NX_OTA_DYNC_DTIM=y
 CONFIG_MAC_SFRAME_SOFTWARE_RETRY=y
 CONFIG_SM_FAST_CONNECT=y
+# CONFIG_BK_NO_CHECK_RX_PN is not set
+# CONFIG_BK_INTEROPER is not set
+# CONFIG_RX_DMA_ASYNC is not set
 
 #
 # ate_test
@@ -918,10 +884,6 @@ CONFIG_SM_FAST_CONNECT=y
 #
 # modules::ip_ax_next
 #
-# CONFIG_WIFI_IP_AX_NEXT is not set
-# CONFIG_BK_NO_CHECK_RX_PN is not set
-# CONFIG_BK_INTEROPER is not set
-# CONFIG_RX_DMA_ASYNC is not set
 
 #
 # ate_test
@@ -933,33 +895,6 @@ CONFIG_SM_FAST_CONNECT=y
 # modules::lvgl
 #
 CONFIG_LVGL=y
-# CONFIG_LVGL_DRAW_ON_CPU1 is not set
-CONFIG_LV_COLOR_DEPTH=16
-# CONFIG_LV_COLOR_SCREEN_TRANSP is not set
-# CONFIG_LV_FONT_MONTSERRAT_8 is not set
-# CONFIG_LV_FONT_MONTSERRAT_16 is not set
-# CONFIG_LV_FONT_MONTSERRAT_12 is not set
-CONFIG_LV_FONT_MONTSERRAT_14=y
-# CONFIG_LV_FONT_MONTSERRAT_18 is not set
-# CONFIG_LV_FONT_MONTSERRAT_20 is not set
-# CONFIG_LV_FONT_MONTSERRAT_22 is not set
-# CONFIG_LV_FONT_MONTSERRAT_24 is not set
-# CONFIG_LV_FONT_MONTSERRAT_26 is not set
-# CONFIG_LV_FONT_MONTSERRAT_28 is not set
-# CONFIG_LV_FONT_MONTSERRAT_30 is not set
-# CONFIG_LV_FONT_MONTSERRAT_32 is not set
-# CONFIG_LV_FONT_MONTSERRAT_34 is not set
-# CONFIG_LV_FONT_MONTSERRAT_36 is not set
-# CONFIG_LV_FONT_MONTSERRAT_38 is not set
-# CONFIG_LV_FONT_MONTSERRAT_40 is not set
-# CONFIG_LV_FONT_MONTSERRAT_42 is not set
-# CONFIG_LV_FONT_MONTSERRAT_44 is not set
-# CONFIG_LV_FONT_MONTSERRAT_46 is not set
-# CONFIG_LV_FONT_MONTSERRAT_48 is not set
-# CONFIG_LV_USE_PERF_MONITOR is not set
-# CONFIG_LVGL_USE_PSRAM is not set
-# CONFIG_LVGL_USE_DMA2D is not set
-CONFIG_LV_ATTRIBUTE_FAST_MEM=y
 # end of modules::lvgl
 
 #
@@ -980,6 +915,7 @@ CONFIG_NET_PARAM_INTF=y
 CONFIG_POWER_SAVE=y
 CONFIG_MCU_PS=y
 # CONFIG_DEEP_PS is not set
+# CONFIG_PM_SUPER_DEEP_SLEEP is not set
 # CONFIG_AP_IDLE is not set
 # CONFIG_FAKE_RTC_PS is not set
 CONFIG_TICK_CALI=y
@@ -988,6 +924,8 @@ CONFIG_TICK_CALI=y
 CONFIG_PM_V2=y
 CONFIG_MAC_TX_CACHE=y
 # CONFIG_PM_LIGHT_SLEEP is not set
+# CONFIG_PM_MULT_CORE is not set
+# CONFIG_PM_DSSS_ONLY is not set
 # end of modules::power_save
 
 #
@@ -1006,13 +944,9 @@ CONFIG_RX_SENSE_TEST=y
 #
 # modules::rwnx_intf
 #
-# CONFIG_WIFI_RWNX is not set
 CONFIG_MSDU_RESV_HEAD_LEN=96
 CONFIG_MSDU_RESV_TAIL_LEN=16
 # CONFIG_WPA_TWT_TEST is not set
-# CONFIG_RWNX_SW_TXQ is not set
-# CONFIG_RWNX_MULTIPLE_SSID_STA_MODE is not set
-# CONFIG_RWNX_FAST_CONNECT is not set
 # CONFIG_P2P is not set
 # CONFIG_P2P_GO is not set
 # CONFIG_TX_BUFING is not set
@@ -1051,6 +985,7 @@ CONFIG_USB_HOST=y
 CONFIG_USB2_PORT=y
 CONFIG_TASK_USB_PRIO=5
 # CONFIG_USB_MSD is not set
+# CONFIG_USB_UPC is not set
 # CONFIG_USB_HID is not set
 # CONFIG_USB_CCD is not set
 CONFIG_USB_UVC=y
@@ -1094,6 +1029,12 @@ CONFIG_LCD_DMA2D_BLEND_FONT=y
 # end of modules::video_code::lcd_font
 
 #
+# modules::video_code::libjpeg
+#
+# CONFIG_JPEGDEC_LIBJPEG is not set
+# end of modules::video_code::libjpeg
+
+#
 # modules::video_code::qrcodegen
 #
 CONFIG_VIDEO_QR_CODE_GEN=y
@@ -1104,6 +1045,12 @@ CONFIG_VIDEO_QR_CODE_GEN=y
 #
 CONFIG_VIDEO_SCALE=y
 # end of modules::video_code::scale
+
+#
+# modules::video_code::tjpg
+#
+CONFIG_JPEGDEC_TJPG=y
+# end of modules::video_code::tjpg
 
 #
 # modules::wfa_ca
@@ -1120,7 +1067,6 @@ CONFIG_VIDEO_SCALE=y
 #
 # modules::wpa_supplicant-2.10
 #
-# CONFIG_WPA_SUPPLICANT_2_10 is not set
 # CONFIG_WLAN_FAST_CONNECT_WITHOUT_SCAN is not set
 # CONFIG_WLAN_FAST_CONNECT_DEAUTH_FIRST is not set
 # CONFIG_WLAN_FAST_CONNECT_WPA3 is not set
@@ -1131,7 +1077,6 @@ CONFIG_WPA_AUTH_TIMEOUT=2
 #
 # modules::wpa_supplicant-2.9
 #
-# CONFIG_WPA_SUPPLICANT_2_9 is not set
 # end of modules::wpa_supplicant-2.9
 # end of Properties Configuration
 # end of Modules Configuration

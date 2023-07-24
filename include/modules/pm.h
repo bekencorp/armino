@@ -8,13 +8,85 @@ extern "C" {
 
 #include <driver/int.h>
 #include "common/bk_err.h"
-
+#include "sys_types.h"
 
 #define PARAM_DATA_VALID  (0xFFFF)
 #define PM_APP_AUTO_VOTE_ENABLE          (0x1)
 #define PM_APP_AUTO_VOTE_DISENABLE       (0x0)
 #define PM_CP1_AUTO_POWER_DOWN_ENABLE    (0x1)
 #define PM_CP1_AUTO_POWER_DOWN_DISENABLE (0x0)
+
+/*--------------------------WAKEUP SOURCE DEFINE  START--------------------------------*/
+#define pm_wakeup_source_e                wakeup_source_t
+
+#define PM_WAKEUP_SOURCE_INT_GPIO        (WAKEUP_SOURCE_INT_GPIO)
+#define PM_WAKEUP_SOURCE_INT_RTC         (WAKEUP_SOURCE_INT_RTC)
+#define PM_WAKEUP_SOURCE_INT_TOUCHED     (WAKEUP_SOURCE_INT_TOUCHED)
+#define PM_WAKEUP_SOURCE_INT_SYSTEM_WAKE (WAKEUP_SOURCE_INT_WIFI)//WAKEUP_SOURCE_INT_BT AND WAKEUP_SOURCE_INT_WIFI ARE THE SAME BIT
+#define PM_WAKEUP_SOURCE_INT_WIFI        (WAKEUP_SOURCE_INT_WIFI)
+#define PM_WAKEUP_SOURCE_INT_BT          (WAKEUP_SOURCE_INT_BT)
+#define PM_WAKEUP_SOURCE_INT_USBPLUG     (WAKEUP_SOURCE_INT_USBPLUG)
+#define PM_WAKEUP_SOURCE_INT_NONE        (WAKEUP_SOURCE_INT_NONE)
+/*--------------------------WAKEUP SOURCE DEFINE  END--------------------------------*/
+
+/*--------------------------POWER DOMAIN MODUEL DEFINE  START--------------------------------*/
+#define pm_power_module_name_e                         unsigned int
+
+/*----POWER DOMAIN DEFINE--------*/
+#define PM_POWER_MODULE_NAME_MEM1                      (POWER_MODULE_NAME_MEM1) //0
+#define PM_POWER_MODULE_NAME_MEM2                      (POWER_MODULE_NAME_MEM2) //1
+#define PM_POWER_MODULE_NAME_MEM3                      (POWER_MODULE_NAME_MEM3) //2
+#define PM_POWER_MODULE_NAME_ENCP                      (POWER_MODULE_NAME_ENCP) //3
+#define PM_POWER_MODULE_NAME_BAKP                      (POWER_MODULE_NAME_BAKP) //4
+#define PM_POWER_MODULE_NAME_AHBP                      (POWER_MODULE_NAME_AHBP) //5
+#define PM_POWER_MODULE_NAME_AUDP                      (POWER_MODULE_NAME_AUDP) //6
+#define PM_POWER_MODULE_NAME_VIDP                      (POWER_MODULE_NAME_VIDP) //7
+#define PM_POWER_MODULE_NAME_BTSP                      (POWER_MODULE_NAME_BTSP) //8
+#define PM_POWER_MODULE_NAME_WIFIP_MAC                 (POWER_MODULE_NAME_WIFIP_MAC)//9
+#define PM_POWER_MODULE_NAME_PHY                       (POWER_MODULE_NAME_WIFI_PHY) //10
+#define PM_POWER_MODULE_NAME_MEM0                      (POWER_MODULE_NAME_MEM0) //11
+#define PM_POWER_MODULE_NAME_MEM4                      (POWER_MODULE_NAME_MEM4) //12
+#define PM_POWER_MODULE_NAME_OFDM                      (POWER_MODULE_NAME_OFDM) //13
+#define PM_POWER_MODULE_NAME_TCM0_PGEN                 (POWER_MODULE_NAME_TCM0_PGEN)//14
+#define PM_POWER_MODULE_NAME_ROM_PGEN                  (POWER_MODULE_NAME_ROM_PGEN) //15
+#define PM_POWER_MODULE_NAME_TCM1_PGEN                 (POWER_MODULE_NAME_TCM1_PGEN)//16
+#define PM_POWER_MODULE_NAME_CPU1                      (POWER_MODULE_NAME_CPU1)     //17
+
+#define PM_POWER_MODULE_NAME_APP                       (POWER_MODULE_NAME_APP)      //18
+
+#define PM_POWER_MODULE_NAME_NONE                      (POWER_MODULE_NAME_NONE)     //19
+
+/*----SUB POWER DOMAIN AUDP--------*/
+#define PM_POWER_SUB_MODULE_NAME_AUDP_FFT              (POWER_SUB_MODULE_NAME_AUDP_FFT)
+#define PM_POWER_SUB_MODULE_NAME_AUDP_SBC              (POWER_SUB_MODULE_NAME_AUDP_SBC)
+#define PM_POWER_SUB_MODULE_NAME_AUDP_AUDIO            (POWER_SUB_MODULE_NAME_AUDP_AUDIO)
+#define PM_POWER_SUB_MODULE_NAME_AUDP_I2S              (POWER_SUB_MODULE_NAME_AUDP_I2S)
+/*----SUB POWER DOMAIN VIDP--------*/
+#define PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_EN          (POWER_SUB_MODULE_NAME_VIDP_JPEG_EN)
+#define PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_DE          (POWER_SUB_MODULE_NAME_VIDP_JPEG_DE)
+#define PM_POWER_SUB_MODULE_NAME_VIDP_DMA2D            (POWER_SUB_MODULE_NAME_VIDP_DMA2D)
+#define PM_POWER_SUB_MODULE_NAME_VIDP_LCD              (POWER_SUB_MODULE_NAME_VIDP_LCD)
+/*----SUB POWER DOMAIN PHY--------*/
+#define PM_POWER_SUB_MODULE_NAME_PHY_BT                (POWER_SUB_MODULE_NAME_PHY_BT)
+#define PM_POWER_SUB_MODULE_NAME_PHY_WIFI              (POWER_SUB_MODULE_NAME_PHY_WIFI)
+/*----SUB POWER DOMAIN AHB--------*/
+#define PM_POWER_SUB_MODULE_NAME_AHBP_CAN              (POWER_SUB_MODULE_NAME_AHBP_CAN)
+#define PM_POWER_SUB_MODULE_NAME_AHBP_QSPI             (POWER_SUB_MODULE_NAME_AHBP_QSPI)
+#define PM_POWER_SUB_MODULE_NAME_AHBP_USB              (POWER_SUB_MODULE_NAME_AHBP_USB)
+#define PM_POWER_SUB_MODULE_NAME_AHBP_PSRAM            (POWER_SUB_MODULE_NAME_AHBP_PSRAM)
+
+/*---------------------------POWER DOMAIN MODUEL DEFINE  END-------------------------------------*/
+typedef enum
+{
+	PM_CP1_AUTO_CTRL_DISABLE = 0,
+	PM_CP1_AUTO_CTRL_ENABLE    = 1,
+}pm_cp1_auto_ctrl_e;
+
+typedef enum
+{
+	PM_MEM_AUTO_CTRL_DISABLE = 0,
+	PM_MEM_AUTO_CTRL_ENABLE    = 1,
+}pm_mem_auto_ctrl_e;
 
 typedef enum
 {
@@ -62,50 +134,11 @@ typedef enum
 	PM_MODE_NORMAL_SLEEP = 0,
 	PM_MODE_LOW_VOLTAGE ,
 	PM_MODE_DEEP_SLEEP ,
+	PM_MODE_SUPER_DEEP_SLEEP ,
 	PM_MODE_DEFAULT
 }pm_sleep_mode_e;
 
-typedef enum
-{
-	PM_WAKEUP_SOURCE_INT_GPIO = 0,
-	PM_WAKEUP_SOURCE_INT_RTC ,
-	PM_WAKEUP_SOURCE_INT_SYSTEM_WAKE ,
-	PM_WAKEUP_SOURCE_INT_USBPLUG ,
-	PM_WAKEUP_SOURCE_INT_TOUCHED ,
-	PM_WAKEUP_SOURCE_INT_NONE ,
-}pm_wakeup_source_e;
-typedef enum
-{
-	PM_POWER_MODULE_NAME_MEM1 = 0,   // 0
-	PM_POWER_MODULE_NAME_MEM2,       // 1
-	PM_POWER_MODULE_NAME_MEM3,       // 2
-	PM_POWER_MODULE_NAME_ENCP,       // 3
-	PM_POWER_MODULE_NAME_BAKP,       // 4
-	PM_POWER_MODULE_NAME_AHBP,       // 5
-	PM_POWER_MODULE_NAME_AUDP,       // 6
-	PM_POWER_MODULE_NAME_VIDP,       // 7
-	PM_POWER_MODULE_NAME_BTSP,       // 8
-	PM_POWER_MODULE_NAME_WIFIP_MAC,  // 9
-	PM_POWER_MODULE_NAME_PHY,        // 10
-	PM_POWER_MODULE_NAME_CPU1 ,      // 11
-	PM_POWER_MODULE_NAME_APP ,       // 12  app not power domain
-	PM_POWER_SUB_MODULE_NAME_AUDP_FFT ,     // 13
-	PM_POWER_SUB_MODULE_NAME_AUDP_SBC ,     // 14
-	PM_POWER_SUB_MODULE_NAME_AUDP_AUDIO ,   // 15
-	PM_POWER_SUB_MODULE_NAME_AUDP_I2S ,     // 16
-	PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_EN , // 17
-	PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_DE , // 18
-	PM_POWER_SUB_MODULE_NAME_VIDP_DMA2D ,   // 19
-	PM_POWER_SUB_MODULE_NAME_VIDP_LCD ,     // 20
-	PM_POWER_SUB_MODULE_NAME_PHY_BT ,       // 21
-	PM_POWER_SUB_MODULE_NAME_PHY_WIFI ,     // 22
-	PM_POWER_SUB_MODULE_NAME_AHBP_CAN ,     // 23
-	PM_POWER_SUB_MODULE_NAME_AHBP_QSPI ,    // 24
-	PM_POWER_SUB_MODULE_NAME_AHBP_USB ,     // 25
-	PM_POWER_SUB_MODULE_NAME_AHBP_PSRAM ,   // 26
 
-	PM_POWER_MODULE_NAME_NONE               // 27
-}pm_power_module_name_e;
 
 typedef enum
 {
@@ -131,7 +164,7 @@ typedef enum
 	PM_SLEEP_MODULE_NAME_QSPI_2,   // 19
 	PM_SLEEP_MODULE_NAME_SDIO,     // 20
 	PM_SLEEP_MODULE_NAME_AUXS,     // 21
-	PM_SLEEP_MODULE_NAME_CPU,      // 22
+	PM_SLEEP_MODULE_NAME_LOG,      // 22
 	PM_SLEEP_MODULE_NAME_XVR,      // 23
 	PM_SLEEP_MODULE_NAME_I2C2,     // 24
 	PM_SLEEP_MODULE_NAME_UART2,    // 25
@@ -239,8 +272,9 @@ typedef enum
 	PM_DEV_ID_DISP,     // 29
 	PM_DEV_ID_AUDIO,    // 30
 	PM_DEV_ID_RTC,      // 31
+	PM_DEV_ID_GPIO,     // 32
 
-	PM_DEV_ID_DEFAULT,  // 32  it is used by pm module set default cpu frequency
+	PM_DEV_ID_DEFAULT,  // 33  it is used by pm module set default cpu frequency
 
 	PM_DEV_ID_MAX
 }pm_dev_id_e;
@@ -325,7 +359,7 @@ typedef enum
 	PM_SLEEP_MODULE_NAME_QSPI_2,\
 	PM_SLEEP_MODULE_NAME_SDIO,\
 	PM_SLEEP_MODULE_NAME_AUXS,\
-	PM_SLEEP_MODULE_NAME_CPU,\
+	PM_SLEEP_MODULE_NAME_LOG,\
 	PM_SLEEP_MODULE_NAME_XVR,\
 	PM_SLEEP_MODULE_NAME_I2C2,\
 	PM_SLEEP_MODULE_NAME_UART2,\
@@ -419,6 +453,37 @@ bk_err_t bk_pm_exit_low_vol_wakeup_source_set();
  * - wakeup source(0x0:WAKEUP SOURCE OF GPIO;0x1:WAKEUP SOURCE OF RTC;0x2:WAKEUP SOURCE OF WIFI OR BT;0x4:WAKEUP SOURCE OF TOUCHED;0x5:NONE WAKEUP_SOURCE)
  */
 pm_wakeup_source_e bk_pm_exit_low_vol_wakeup_source_get();
+/**
+ * @brief get memory auto power down flag
+ *
+ * get memory auto power down flag
+ *
+ * @attention
+ * - This API is used to get memory auto power down flag
+ *
+ * @param
+ * -void
+ * @return
+ * - memory auto power down flag(PM_MEM_AUTO_CTRL_DISABLE:disable memory auto power down feature ;PM_MEM_AUTO_CTRL_ENABLE:enable memory auto power down feature)
+ */
+pm_mem_auto_ctrl_e bk_pm_mem_auto_power_down_state_get();
+/**
+ * @brief memory auto power down flag set
+ *
+ * set memory auto power down flag
+ *
+ * @attention
+ * - This API is used to set memory auto power down flag
+ *
+ * @param
+ * -PM_MEM_AUTO_CTRL_DISABLE:disable memory auto power down feature ;PM_MEM_AUTO_CTRL_ENABLE:enable memory auto power down feature
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+bk_err_t bk_pm_mem_auto_power_down_state_set(pm_mem_auto_ctrl_e value);
+
 /**
  * @brief get cp1 auto power down flag
  *

@@ -53,6 +53,10 @@ menu "Bk_usb"
 			bool "Enable Usb Msd"
 			default y
 
+                config USB_UPC
+                        bool "Enable Usb Upc"
+                        default n
+
 		config USB_HID
 			bool "Enable Usb Hid"
 			default n

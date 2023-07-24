@@ -200,19 +200,19 @@ bk_err_t bk_rott_int_enable(rott_int_type_t int_type, bool en)
 }
 
 
-bk_err_t bk_rott_mode_config(rott_mode_t rot_mode)
+bk_err_t bk_rott_mode_config(media_rotate_t rot_mode)
 {
 	switch (rot_mode)
 	{
-		case ROTT_ONLY_YUV2RGB565:
+		case YUV2RGB565:
 			rott_ll_set_rotate_ctrl_rotate_bps(1);
 			rott_ll_set_rotate_fmt_rotate_anticlock(0);
 			break;
-		case ROTT_ROTATE90:
+		case ROTATE_90:
 			rott_ll_set_rotate_ctrl_rotate_bps(0);
 			rott_ll_set_rotate_fmt_rotate_anticlock(0);
 			break;
-		case ROTT_ROTATE270:
+		case ROTATE_270:
 			rott_ll_set_rotate_ctrl_rotate_bps(0);
 			rott_ll_set_rotate_fmt_rotate_anticlock(1);
 			break;
@@ -333,7 +333,7 @@ bk_err_t bk_rott_wartermark_block_config(uint16_t wtmk_block)
 	{
 		if (0 == wtmk_block)
 		{
-			LOGE("%s: block num is 0, so disable watermark int\n", __func__);
+			LOGD("%s: block num is 0, so disable watermark int\n", __func__);
 			rott_ll_set_rotate_ctrl_rotate_wtmk_int_ena(0);
 		}
 		else
@@ -343,7 +343,6 @@ bk_err_t bk_rott_wartermark_block_config(uint16_t wtmk_block)
 	}
 	else
 	{
-		LOGW("%s: watermark interrupt not open \n", __func__);
 		return BK_FAIL;
 	}
 	return BK_OK;

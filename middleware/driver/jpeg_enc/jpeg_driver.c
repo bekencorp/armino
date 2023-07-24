@@ -38,7 +38,6 @@ typedef struct {
 typedef struct {
 	uint8_t  set_enable  : 1; // 0:1/enable:disable config jpeg_encode
 	uint8_t  auto_enable : 1; // enable/disable set encode size
-	uint8_t  jpeg_err   : 1; // jpeg error:true/false
 	uint16_t up_size;
 	uint16_t low_size;
 } jpeg_encode_size_t;
@@ -55,15 +54,13 @@ static jpeg_encode_size_t jpeg_encode_size =
 {
 	.set_enable = false,
 	.auto_enable = false,
-	.jpeg_err = false,
 	.up_size = 40 * 1024,
 	.low_size = 10 * 1024,
 };
 
 static void jpeg_isr(void);
 
-#if (CONFIG_SYSTEM_CTRL)
-static void jpeg_power_config_set(const jpeg_config_t *config)
+static void jpeg_clk_mclk_config_set(const jpeg_config_t *config)
 {
 	switch (config->clk)
 	{
@@ -98,40 +95,48 @@ static void jpeg_power_config_set(const jpeg_config_t *config)
 			jpeg_hal_set_mclk_div(&s_jpeg.hal, JPEG_MCLK_DIV_4);
 	}
 
+	// bus clk always on
 	sys_drv_set_jpeg_disckg(1);
-	bk_pm_clock_ctrl(PM_CLK_ID_JPEG, CLK_PWR_CTRL_PWR_UP);
 }
-#endif
 
 static void jpeg_init_common(const jpeg_config_t *config)
 {
-#if (CONFIG_SYSTEM_CTRL)
+	/*
+	* 1) set jpeg_clk, mclk and bus clk always on for bk7256
+	* 2) enable power of jpeg
+	* 3) enable jpeg ststem interrupt
+	* 4) enable dvp io of clk(mclk/pclk, may be use auxs_clk as mclk, need attenation)
+	*/
 #if (!CONFIG_YUV_BUF)
-	jpeg_power_config_set(config);
+	jpeg_clk_mclk_config_set(config);
 #endif
+
+	bk_pm_clock_ctrl(PM_CLK_ID_JPEG, CLK_PWR_CTRL_PWR_UP);
 	sys_drv_int_enable(JPEGENC_INTERRUPT_CTRL_BIT);
 	bk_jpeg_enc_set_gpio_enable(1, JPEG_GPIO_CLK);
-#else
-	power_jpeg_pwr_up();
-	icu_enable_jpeg_interrupt();
-	bk_jpeg_enc_set_gpio_enable(1, JPEG_GPIO_ALL);
-#endif
 }
 
 static void jpeg_deinit_common(void)
 {
+	/*
+	* 1) stop jpeg encode mode
+	* 2) stop jpeg yuv mode only for bk7256
+	* 3) close all jpeg enable interrupt
+	* 4) power off jpeg clk
+	* 5) power off auxs clk if mclk from auxs
+	* 6) bus clk enable on module of jpeg enable only for bk7256
+	* 7) close jpeg interrupt of system
+	* 8) unmap all dvp io
+	*/
 	jpeg_hal_stop_common(&s_jpeg.hal, JPEG_ENC_MODE);
+#if (!CONFIG_YUV_BUF)
 	jpeg_hal_stop_common(&s_jpeg.hal, JPEG_YUV_MODE);
+#endif
 	jpeg_hal_reset_config_to_default(&s_jpeg.hal);
-#if (CONFIG_SYSTEM_CTRL)
 	bk_pm_clock_ctrl(PM_CLK_ID_JPEG, CLK_PWR_CTRL_PWR_DOWN);
 	bk_pm_clock_ctrl(PM_CLK_ID_AUXS, CLK_PWR_CTRL_PWR_DOWN);
 	sys_drv_set_jpeg_disckg(0);
 	sys_drv_int_disable(JPEGENC_INTERRUPT_CTRL_BIT);
-#else
-	icu_disable_jpeg_interrupt();
-	power_jpeg_pwr_down();
-#endif
 
 	bk_jpeg_enc_set_gpio_enable(0, JPEG_GPIO_ALL);
 }
@@ -143,12 +148,6 @@ bk_err_t bk_jpeg_enc_driver_init(void)
 	}
 
 	bk_jpeg_enc_set_gpio_enable(0, JPEG_GPIO_ALL);
-
-#if CONFIG_SYSTEM_CTRL
-	bk_pm_module_vote_cpu_freq(PM_DEV_ID_JPEG, PM_CPU_FRQ_320M);
-	//power on
-	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_EN, PM_POWER_MODULE_STATE_ON);
-#endif
 
 	os_memset(&s_jpeg, 0, sizeof(s_jpeg));
 	jpeg_hal_init(&s_jpeg.hal);
@@ -163,13 +162,10 @@ bk_err_t bk_jpeg_enc_driver_deinit(void)
 	if (!s_jpeg_driver_is_init) {
 		return BK_OK;
 	}
-	bk_int_isr_unregister(INT_SRC_JPEG);
-#if CONFIG_SYSTEM_CTRL
-	bk_pm_module_vote_cpu_freq(PM_DEV_ID_JPEG, PM_CPU_FRQ_DEFAULT);
-	// power off
-	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_EN, PM_POWER_MODULE_STATE_OFF);
-#endif
 
+	bk_int_isr_unregister(INT_SRC_JPEG);
+
+	os_memset(&s_jpeg, 0, sizeof(s_jpeg));
 	s_jpeg_driver_is_init = false;
 
 	return BK_OK;
@@ -179,6 +175,11 @@ bk_err_t bk_jpeg_enc_init(const jpeg_config_t *config)
 {
 	BK_RETURN_ON_NULL(config);
 	JPEG_RETURN_ON_NOT_INIT();
+
+	// set cpu frequent to 320M
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_JPEG, PM_CPU_FRQ_320M);
+	//power on
+	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_EN, PM_POWER_MODULE_STATE_ON);
 
 	jpeg_init_common(config);
 
@@ -192,6 +193,11 @@ bk_err_t bk_jpeg_enc_deinit(void)
 	JPEG_RETURN_ON_NOT_INIT();
 
 	jpeg_deinit_common();
+
+	// set cpu frequent to default value
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_JPEG, PM_CPU_FRQ_DEFAULT);
+	// power off
+	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_EN, PM_POWER_MODULE_STATE_OFF);
 
 	return BK_OK;
 }
@@ -431,6 +437,9 @@ bk_err_t bk_jpeg_enc_mclk_enable(void)
 {
 	JPEG_RETURN_ON_NOT_INIT();
 
+	//power on
+	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_JPEG_EN, PM_POWER_MODULE_STATE_ON);
+
 	sys_drv_set_jpeg_clk_sel(JPEG_SYS_CLK_480M);
 	sys_drv_set_clk_div_mode1_clkdiv_jpeg(4);
 	sys_drv_set_jpeg_disckg(1);
@@ -496,7 +505,7 @@ static void jpeg_isr(void)
 			s_jpeg.jpeg_isr_handler[JPEG_EOF].isr_handler(0, s_jpeg.jpeg_isr_handler[JPEG_EOF].param);
 		}
 
-		if (jpeg_encode_size.set_enable && !jpeg_encode_size.jpeg_err)
+		if (jpeg_encode_size.set_enable)
 		{
 			if (jpeg_encode_size.auto_enable)
 			{
@@ -510,12 +519,6 @@ static void jpeg_isr(void)
 			}
 
 			jpeg_encode_size.set_enable = false;
-		}
-
-		if (jpeg_encode_size.jpeg_err)
-		{
-			jpeg_hal_soft_reset(&s_jpeg.hal);
-			jpeg_encode_size.jpeg_err = false;
 		}
 	}
 
@@ -544,11 +547,7 @@ static void jpeg_isr(void)
 	}
 
 	if (jpeg_hal_is_frame_error_int_triggered(hal, int_status)) {
-		JPEG_LOGE("jpeg decode error!\r\n");
-		if (!jpeg_encode_size.jpeg_err) {
-			jpeg_encode_size.jpeg_err = true;
-		}
-
+		JPEG_LOGD("jpeg decode error!\r\n");
 		if (s_jpeg.jpeg_isr_handler[JPEG_FRAME_ERR].isr_handler) {
 			s_jpeg.jpeg_isr_handler[JPEG_FRAME_ERR].isr_handler(0, s_jpeg.jpeg_isr_handler[JPEG_FRAME_ERR].param);
 		}

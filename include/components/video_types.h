@@ -21,6 +21,12 @@
 extern "C" {
 #endif
 
+#define VIDEO_UDP_TRAN_LEN              (1472)
+#define VIDEO_TCP_TRAN_LEN              (1460)
+#define TRAN_MAX_RETRY_TIME             (10000)
+#define TRAN_RETRY_DELAY_TIME           (5)
+
+
 /**
  * @brief video sample module protocol type
  */
@@ -90,10 +96,11 @@ typedef struct {
 	media_camera_device_t *device;       /**< config of camera */
 	uint16_t open_type;                  /**< video transfer network comunication protocol type, video_open_type_t */
 	uint16_t send_type;                  /**< video transfer network comunication protocol type, video_send_type_t */
+	uint16_t pkt_header_size;            /**< packet header size */
+	uint16_t pkt_size;                   /**<packet size */
 	video_transfer_send_func send_func;  /**< function ptr for send to uplayer */
 	video_transfer_start_cb start_cb;    /**< function ptr for start to send to uplayer */
 	video_transfer_start_cb end_cb;      /**< function ptr for end to send to uplayer */
-	uint32_t pkt_header_size;            /**< packet header size */
 	tvideo_add_pkt_header add_pkt_header;/**< function ptr for add packet header */
 } video_setup_t;
 

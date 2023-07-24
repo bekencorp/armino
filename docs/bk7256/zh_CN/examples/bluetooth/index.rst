@@ -9,3 +9,4 @@
    蓝牙配网 <ble_boarding_demo>
    SPP <spp_demo>
    DUT <dut>
+   BLE吞吐(gatt notify) <ble_throughput>

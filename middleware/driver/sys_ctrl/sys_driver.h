@@ -7,6 +7,7 @@
 #include <components/log.h>
 #include "sys_types.h"
 #include "sys_hal.h"
+#include <modules/pm.h>
 
 #define SYS_DRV_DEBUG   0
 
@@ -123,8 +124,6 @@ int32 sys_drv_module_power_state_get(power_module_name_t module);
 
 void sys_drv_module_RF_power_ctrl (module_name_t module,power_module_state_t power_state);
 
-void sys_drv_core_bus_clock_ctrl(high_clock_module_name_t core, uint32_t clksel,uint32_t clkdiv, high_clock_module_name_t bus,uint32_t bus_clksel,uint32_t bus_clkdiv);
-
 void sys_drv_cpu0_main_int_ctrl(dev_clk_pwr_ctrl_t clock_state);
 
 void sys_drv_cpu1_main_int_ctrl(dev_clk_pwr_ctrl_t clock_state);
@@ -141,6 +140,8 @@ void sys_drv_wakeup_interrupt_clear(wakeup_source_t interrupt_source);
 void sys_drv_wakeup_interrupt_set(wakeup_source_t interrupt_source);
 void sys_drv_touch_wakeup_enable(uint8_t index);
 void sys_drv_usb_wakeup_enable(uint8_t index);
+void sys_drv_rtc_ana_wakeup_enable(uint32_t period);
+void sys_drv_gpio_ana_wakeup_enable(uint32_t index, uint32_t type);
 void sys_drv_cpu_clk_div_set(uint32_t core_index, uint32_t value);
 uint32_t sys_drv_cpu_clk_div_get(uint32_t core_index);
 void sys_drv_low_power_hardware_init();
@@ -150,6 +151,9 @@ int32 sys_drv_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval);
 int32 sys_drv_bandgap_cali_set(uint32_t value);//increase or decrease the dvdddig voltage
 int sys_drv_rosc_test_mode(bool enabled);
 uint32_t sys_drv_bandgap_cali_get();
+bk_err_t sys_drv_switch_cpu_bus_freq(pm_cpu_freq_e cpu_bus_freq);
+bk_err_t sys_drv_core_bus_clock_ctrl(uint32_t cksel_core, uint32_t ckdiv_core,uint32_t ckdiv_bus, uint32_t ckdiv_cpu0,uint32_t ckdiv_cpu1);
+
 /*for  low power  function end*/
 uint32 sys_drv_get_device_id(void); // CMD_GET_DEVICE_ID
 uint32 sys_drv_get_chip_id(void); // CMD_GET_CHIP_ID
@@ -344,6 +348,7 @@ uint32_t sys_drv_aud_mic1_gain_set(uint32_t value);
 uint32_t sys_drv_aud_mic2_gain_set(uint32_t value);
 uint32_t sys_drv_aud_mic1_single_en(uint32_t value);
 uint32_t sys_drv_aud_mic2_single_en(uint32_t value);
+uint32_t sys_drv_aud_dacg_set(uint32_t value);
 uint32_t sys_drv_aud_int_en(uint32_t value);
 uint32_t sys_drv_sbc_int_en(uint32_t value);
 uint32_t sys_drv_aud_power_en(uint32_t value);
@@ -383,8 +388,18 @@ uint32_t sys_drv_touch_calib_enable(uint32_t enable);
 uint32_t sys_drv_touch_manul_mode_calib_value_set(uint32_t value);
 uint32_t sys_drv_touch_manul_mode_enable(uint32_t enable);
 uint32_t sys_drv_touch_scan_mode_chann_set(uint32_t value);
+uint32_t sys_drv_touch_scan_mode_chann_sel(uint32_t value);
 uint32_t sys_drv_touch_serial_cap_enable(void);
 uint32_t sys_drv_touch_serial_cap_disable(void);
+uint32_t sys_drv_touch_serial_cap_sel(uint32_t value);
+uint32_t sys_drv_touch_spi_lock(void);
+uint32_t sys_drv_touch_spi_unlock(void);
+uint32_t sys_drv_touch_test_period_set(uint32_t value);
+uint32_t sys_drv_touch_test_number_set(uint32_t value);
+uint32_t sys_drv_touch_calib_period(uint32_t value);
+uint32_t sys_drv_touch_calib_number(uint32_t value);
+uint32_t sys_drv_touch_int_set(uint32_t value);
+uint32_t sys_drv_touch_int_clear(uint32_t value);
 uint32_t sys_drv_touch_int_enable(uint32_t value);
 
 /**  Touch End **/

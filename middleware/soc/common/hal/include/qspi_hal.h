@@ -76,6 +76,7 @@ bk_err_t qspi_hal_force_spi_cs_low_enable(qspi_hal_t *hal);
 bk_err_t qspi_hal_force_spi_cs_low_disable(qspi_hal_t *hal);
 bk_err_t qspi_hal_disable_cmd_sck_enable(qspi_hal_t *hal);
 bk_err_t qspi_hal_disable_cmd_sck_disable(qspi_hal_t *hal);
+bk_err_t qspi_hal_io_cpu_mem_select(qspi_hal_t *hal, uint32_t cmd_value);
 
 #if CFG_HAL_DEBUG_QSPI
 void qspi_struct_dump(void);

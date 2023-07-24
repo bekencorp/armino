@@ -22,7 +22,7 @@
 #include "gpio_driver_base.h"
 #include "icu_driver.h"
 #include "amp_lock_api.h"
-#include <driver/gpio_types.h>
+#include <driver/gpio.h>
 
 extern gpio_driver_t s_gpio;
 
@@ -36,7 +36,7 @@ extern gpio_driver_t s_gpio;
 bk_err_t gpio_dev_map(gpio_id_t gpio_id, gpio_dev_t dev)
 {
 	uint32_t ret_val = 1;
-	
+
 	ret_val = amp_res_acquire(AMP_RES_ID_GPIO, GPIO_REG_LOCK_WAIT_TIME_MS);
 	GPIO_LOGD("amp_res_acquire:ret=%d\r\n", ret_val);
 	if(ret_val != BK_OK)
@@ -164,27 +164,24 @@ bk_err_t gpio_sdio_one_line_sel(gpio_sdio_map_mode_t mode)
 	return BK_OK;
 }
 
-static gpio_jtag_map_mode_t gpio_jtag_default_mode = GPIO_JTAG_MAP_MODE_MAX;
-bk_err_t gpio_jtag_sel(gpio_jtag_map_mode_t mode)
+
+bk_err_t gpio_jtag_sel(gpio_jtag_map_group_t group_id)
 {
-	GPIO_RETURN_ON_INVALID_PERIAL_MODE(mode, GPIO_JTAG_MAP_MODE_MAX);
+	gpio_dev_unprotect_unmap(GPIO_20);
+	gpio_dev_unprotect_unmap(GPIO_21);
+	gpio_dev_unprotect_unmap(GPIO_0);
+	gpio_dev_unprotect_unmap(GPIO_1);
 
-	GPIO_MAP_TABLE(GPIO_JTAG_USED_GPIO_NUM, GPIO_JTAG_MAP_MODE_MAX, jtag_gpio_map) = GPIO_JTAG_MAP_TABLE;
-
-	if(gpio_jtag_default_mode != mode) {
-
-		for(int gpio_index = 0; gpio_index < SOC_GPIO_NUM; gpio_index++)
-		{
-			if (jtag_gpio_map[mode].gpio_bits & BIT64(gpio_index)) {
-				GPIO_LOGI("gpio_jtag_sel unmap gpio_index = %d\r\n", gpio_index);
-				gpio_hal_func_unmap(&s_gpio.hal, gpio_index);
-			}
-		}
-
-		gpio_hal_devs_map(&s_gpio.hal, jtag_gpio_map[mode].gpio_bits, jtag_gpio_map[mode].devs, GPIO_JTAG_USED_GPIO_NUM);
-		gpio_jtag_default_mode = mode;
-	} else
-		gpio_jtag_default_mode = mode;
+	if (group_id == GPIO_JTAG_MAP_GROUP0) {
+		gpio_dev_unprotect_map(GPIO_20, GPIO_DEV_JTAG_TCK);
+		gpio_dev_unprotect_map(GPIO_21, GPIO_DEV_JTAG_TMS);
+	} else if (group_id == GPIO_JTAG_MAP_GROUP1) {
+		gpio_dev_unprotect_map(GPIO_0, GPIO_DEV_JTAG_TCK);
+		gpio_dev_unprotect_map(GPIO_1, GPIO_DEV_JTAG_TMS);
+	} else {
+		GPIO_LOGI("Unsupported group id(%d).\r\n", group_id);
+		return BK_FAIL;
+	}
 
 	return BK_OK;
 }

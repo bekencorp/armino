@@ -70,7 +70,7 @@ bk_err_t bk_rott_int_enable(rott_int_type_t int_type, bool en);
  *     - BK_OK: succeed
  *     - others: other errors.
  */
-bk_err_t bk_rott_mode_config(rott_mode_t rot_mode);
+bk_err_t bk_rott_mode_config(media_rotate_t    rot_mode);
 
 /**
 * @brief This API used config input data format, output data format is default rgb565

@@ -26,6 +26,9 @@
 
 
 static tp_dev_t g_tp_dev = {0};
+static tp_touch_event_notify g_event_notify_func = NULL;
+static void *g_event_notify_arg = NULL;
+
 
 /**
  * @brief tp open
@@ -219,6 +222,15 @@ void bk_tp_read_info_callback(tp_data_t *tp_data)
 	{
 		drv_tp_write(tp_data->x_coordinate, tp_data->y_coordinate, 0);
 	}
+
+    if(g_event_notify_func)
+        g_event_notify_func(g_event_notify_arg);
+}
+
+void drv_tp_reg_touch_event(tp_touch_event_notify event_notify_func, void *arg)
+{
+    g_event_notify_func = event_notify_func;
+    g_event_notify_arg = arg;
 }
 
 // #endif

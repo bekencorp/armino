@@ -19,7 +19,6 @@
 #include "bk_tfm_log.h"
 #include "sdkconfig.h"
 
-#if CONFIG_FPGA
 int printf(const char *fmt, ...)
 {
 	char string[CONFIG_STDIO_PRINTF_BUF_SIZE] = {0};
@@ -93,7 +92,6 @@ void printf_buf_hex(const uint8_t *ptr, size_t buflen)
 		printf("\n");
 	}
 }
-#endif
 
 void bk_tfm_dump_buf(const char *str, const uint8_t *buf, uint32_t len)
 {

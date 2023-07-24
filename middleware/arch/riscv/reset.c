@@ -11,6 +11,7 @@
 #include "boot.h"
 #include "mon_call.h"
 #include "wdt_driver.h"
+#include <driver/pwr_clk.h>
 
 #if CONFIG_ATE_TEST
 extern void c_startup_ate(void);
@@ -48,6 +49,7 @@ void reset_handler(void)
 
 	/*power manager init*/
 	pm_hardware_init();
+	bk_pm_mailbox_init();
 
 #if (CONFIG_SOC_BK7256XX)
 	//clear mannully reboot flag

@@ -1,4 +1,4 @@
-Memory and performance (TBC)
+Memory and performance
 ---------------------------------------------------------
 
 :link_to_translation:`zh_CN:[中文]`
@@ -31,6 +31,25 @@ Memory and performance (TBC)
    When exiting the low-voltage mode, you must use interface 'void bk_psram_heap_init(void)' to reinitialize memory 'PSRAM Heap',
    and the memory previously applied through 'psram_malloc' cannot be used again.
 
+3. PSRAM Partition
+---------------------------------------
 
+    The BK7256 chip has 8M PSRAM, with the first 7M mainly used for Camera data acquisition and LCD image display;
 
+ - 800 * 600 Resolution ::
 
+    YUV image storage address range, 0x6000000-0x603BFFFF, a total of 4 frames,
+        Display occupies 1 frame, pingping buffer occupies 1 frame, jpeg decoding occupies 1 frame, and rotation occupies 1 frame;
+    The storage address range for jpeg images is 0x60330000-0x60488000, with a total of 4 frames,
+        Camera acquisition occupies 1 frame, jpeg decoding occupies 1 frame, image transmission occupies 1 frame, and image storage occupies 1 frame;
+
+ - 1280 * 720 Resolution ::
+
+    Yuv image storage address range, 0x6000000-0x6056FFFF, a total of 3 frames,
+        Display occupies 1 frame, pingping buffer occupies 1 frame, and jpeg decoding occupies 1 frame;
+    Jpeg image storage address range, 0x60570000-0x60637FFF, a total of 4 frames,
+        Camera acquisition occupies 1 frame, jpeg decoding occupies 1 frame, image transmission occupies 1 frame, and image storage occupies 1 frame;
+
+ - LVGL drawing is a separate usage scenario ::
+
+    LVGL drawing start address: 0x6050000 (configurable)

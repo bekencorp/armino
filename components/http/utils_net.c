@@ -17,6 +17,10 @@
 #include "modules/ota.h"
 extern part_flag update_part_flag;
 #endif
+#ifdef CONFIG_TASK_WDT
+#include "bk_wdt.h"
+#endif
+
 uintptr_t HAL_TCP_Establish(const char *host, uint16_t port)
 {
 	struct addrinfo hints;
@@ -162,7 +166,6 @@ int32_t HAL_TCP_Write(uintptr_t fd, const char *buf, uint32_t len, uint32_t time
 	return len_sent;
 }
 
-
 int32_t HAL_TCP_Read(uintptr_t fd, char *buf, uint32_t len, uint32_t timeout_ms)
 {
 	int ret, err_code = 0, data_over;
@@ -199,7 +202,12 @@ int32_t HAL_TCP_Read(uintptr_t fd, char *buf, uint32_t len, uint32_t timeout_ms)
 						data_over = 1;
 					len_recv += ret;
 					if (bk_http_ptr->do_data == 1)
+					{
+#if (CONFIG_TASK_WDT)
+						bk_task_wdt_feed();
+#endif
 						http_data_process(buf, ret, len_recv, bk_http_ptr->http_total);
+					}
 				} else if (0 == ret) {
 					log_err("connection is closed");
 					err_code = -1;
@@ -228,6 +236,7 @@ int32_t HAL_TCP_Read(uintptr_t fd, char *buf, uint32_t len, uint32_t timeout_ms)
 		}
 		log_info("cyg_recvlen_per:(%.2f)%%\r\n",(((float)(len_recv))/((float)(bk_http_ptr->http_total)))*100);
 
+    
 	} while ((bk_http_ptr->do_data == 1 && len_recv < bk_http_ptr->http_total) || ((len_recv < len) && (0 == data_over)));
 #ifdef CONFIG_HTTP_AB_PARTITION
     if(((((float)(len_recv))/((float)(bk_http_ptr->http_total)))*100 == 100) &&((((float)(len_recv))/((float)(bk_http_ptr->http_total)))*100> 90))
@@ -250,7 +259,7 @@ int32_t HAL_TCP_Read(uintptr_t fd, char *buf, uint32_t len, uint32_t timeout_ms)
 	//It will get error code on next calling
 
 #endif
-	return (0 != len_recv) ? len_recv : err_code;
+	return (err_code == 0 && 0 != len_recv) ? len_recv : err_code;
 }
 
 /*** TCP connection ***/

@@ -111,11 +111,11 @@ menu "Lvgl_source"
 		help
 			Enable PSRAM draw buffer
 
-	config LVGL_USE_DMA2D
-		bool "Enable Lvgl Use Dma2d"
+	config LVGL_USE_DIRECT_MODE
+		bool "Enable Lvgl Use Direct Mode"
 		default n
 		help
-			Enable DMA2D Hardware blend
+			Enable use direct mode in LVGL use psram draw buffer
 
 	config LV_ATTRIBUTE_FAST_MEM
 		bool "Enable Lv Attribute Fast Mem"

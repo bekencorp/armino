@@ -51,9 +51,12 @@ static bk_err_t uvc_camera_deinit(uvc_state_t state)
 
 		usb_device_set_using_status(0, USB_UVC_DEVICE);
 
-		bk_usb_close();
+		ret = bk_usb_close();
 
-		bk_uvc_camera_power_enable(0);
+		if (ret == BK_OK)
+		{
+			bk_uvc_camera_power_enable(0);
+		}
 
 		// unregister connect & disconnect
 		parameter = NULL;

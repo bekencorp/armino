@@ -3,6 +3,9 @@ import os
 import json
 import logging
 import shutil
+import re
+import copy
+
 from .crc import *
 from .common import *
 from .genbl1 import *
@@ -49,6 +52,32 @@ def int2hexstr2(v):
 
 def int2hexstr4(v):
     return (f'%08x' %(v))
+
+def pattern_match(string, pattern):
+    match = re.search(pattern, string)
+    if match:
+        return True
+    else:
+        return False
+
+def run_cmd(cmd):
+    p = subprocess.Popen(cmd, shell=True)
+    ret = p.wait()
+    if (ret):
+        logging.error(f'failed to run "{cmd}"')
+        exit(1)
+
+def run_cmd_not_check_ret(cmd):
+    p = subprocess.Popen(cmd, shell=True)
+    p.wait()
+
+def signing(partition, in_bin_name, out_bin_name):
+    logging.debug(f'signing: partition_size={partition.partition_size}')
+    bl2_signing_tool_dir = f'{partition.tools_dir}/mcuboot_tools/imgtool.py'
+    # TODO - Auto generate the signing parameter per the BL2 key.json and partitions.json
+    cmd = f'{bl2_signing_tool_dir} sign -k root-RSA-3072.pem --public-key-format full --max-align 8 --align 1 --version 0.0.1 --security-counter 1 --pad-header --header-size 0x1000 --slot-size {partition.partition_size} --pad --boot-record SPE --endian little --encrypt-keylen 128 {in_bin_name} {out_bin_name}'
+    run_cmd(cmd)
+    return
 
 class Hdr:
     def __init__(self, magic, crc, version, hdr_len, img_num, flags = 0):
@@ -102,12 +131,26 @@ class Partition:
                 exit(1)
 
         self.partition_name = self.partition_json['partition']
+        match = pattern_match(self.partition_name, r"secondary_")
+        if match == True:
+            self.is_secondary = True
+        else:
+            self.is_secondary = False
+
+        self.primary_partition_name = None
+        self.primary_partition = None
+        if self.is_secondary == True:
+            self.primary_partition_name = self.partition_name.replace("secondary_", "primary_")
+            self.primary_partition = self.find_partition_by_name(self.primary_partition_name)
+
         all_possible_fields = ["partition", "offset", "size", "bin",
-            "bin_type", "bin_hdr_size", "bin_tail_size", "bin_pad_size", "bin_encrypted_addr", "version", "load_addr", "location", "boot_partition"]
+            "bin_type", "bin_hdr_size", "bin_tail_size", "bin_pad_size", "bin_encrypted_addr",
+            "version", "load_addr", "location", "verifier"]
         for key in self.partition_json.keys():
             if key not in all_possible_fields:
                 logging.error(f'partition{self.idx} unknown "{key}"')
                 exit(1)
+        logging.debug(f'partition{self.partition_name} is_secondary={self.is_secondary} primary_partition={self.primary_partition_name}')
 
     def parse_and_check_bin_location(self):
         self.bin_location = f''
@@ -117,6 +160,8 @@ class Partition:
 
     def parse_and_check_bin(self):
         self.bin_name = self.partition_json['bin']
+        if (self.bin_name == 'reserved'):
+            self.gencode_only = True
         if (self.gencode_only == True):
             self.bin_size = 0
             return
@@ -146,14 +191,38 @@ class Partition:
         logging.debug(f'bin name={self.bin_name}, size=%x' %(self.bin_size))
 
     def parse_and_check_bin_type(self):
-        self.bin_type = "data"
+        self.bin_type = "code"
         if "bin_type" in self.partition_json.keys():
             self.bin_type = self.partition_json['bin_type']
 
         if (self.bin_type != "code") and (self.bin_type != "data"):
             logging.error(f'partition{idx} {self.partition} type should be one of "code", "data"')
             exit(1)
-        logging.debug(f'bin type={self.bin_type}')
+        if (self.bin_type == "code"):
+            self.need_add_crc = True
+        else:
+            self.need_add_crc = False
+        logging.debug(f'bin type={self.bin_type} need_add_crc={self.need_add_crc}')
+
+    def parse_and_check_verifier(self):
+        self.bin_verifier = None
+
+        if "verifier" not in self.partition_json.keys():
+            return
+
+        if "verifier" in self.partition_json.keys():
+            self.bin_verifier = self.partition_json['verifier']
+
+        if (self.bin_verifier != "bl1") and (self.bin_verifier != "bl2") and (self.bin_verifier != None):
+            logging.error(f'partition{self.idx} {self.partition} verifier should be "bl1" or "bl2"')
+            exit(1)
+
+
+        if (self.bin_type == "data"):
+            logging.error(f'partition{self.idx} {self.partition} skip verifier for data partition')
+            return
+
+        logging.debug(f'bin verifier={self.bin_verifier}')
 
     def parse_and_check_bin_hdr_tail_size(self):
         self.bin_hdr_size = 0;
@@ -167,10 +236,16 @@ class Partition:
 
         if (self.is_flash_sector_aligned(self.bin_hdr_size) == False):
             logging.error(f'partition{self.idx} hdr offset=%x not 4K aligned' %(self.bin_hdr_size))
+            exit(1)
 
         if (self.is_flash_sector_aligned(self.bin_tail_size) == False):
             logging.error(f'partition{self.idx} tail offset=%x not 4K aligned' %(self.bin_tail_size))
-             
+            exit(1)
+
+        if (self.bin_verifier == "bl2"):
+            self.bin_hdr_size = 0x1000
+            self.bin_tail_size = 0x1000
+
         logging.debug(f'bin bin_hdr_size=%x, bin_tail_size=%x' %(self.bin_hdr_size, self.bin_tail_size))
 
     def parse_and_check_partition_offset(self):
@@ -284,12 +359,18 @@ class Partition:
                 exit(1)
         logging.debug(f'boot partition={self.boot_partition}') 
 
+    def find_partition_by_name(self, name):
+        for p in self.partitions.partitions:
+            if (name == p.partition_name):
+                return p
+        return None
+
     '''
     +------------------------+  <--- partition_offset/bin_hdr_offset
     |  HDR (plain data)      |
     |  (bin_hdr_size)        |  
     |                        |
-   +------------------------+  <--- bin_code_partition_offset
+    +------------------------+  <--- bin_code_partition_offset
     |  CRC aligned pad       |
     |  (less than 33B)       |
     +------------------------+  <--- bin_1st_instruction_offset
@@ -319,25 +400,37 @@ class Partition:
             self.bin_tail_offset = self.partition_offset + self.partition_size - self.bin_tail_size
             self.bin_code_partition_offset = self.bin_hdr_offset + self.bin_hdr_size
 
-            min_phy_1st_instruction_offset = ceil_align(self.bin_code_partition_offset, CRC_UNIT_TOTAL_SZ)
-            min_virtual_1st_instrution_offset = phy2virtual(min_phy_1st_instruction_offset)
-            virtual_1st_vector_instruction_offset = ceil_align(min_virtual_1st_instrution_offset, self.cpu_vector_align_bytes)
-            self.bin_1st_instruction_offset = virtual2phy(virtual_1st_vector_instruction_offset)
-            self.bin_code_aligned_pad_size = self.bin_1st_instruction_offset - self.bin_code_partition_offset
-            logging.debug(f'partition{self.idx} partition offset=%x, hdr_offset=%x, tail_offset=%x, code_partition_offset=%x, 1st_instruction_offset=%x'
-                %(self.partition_offset, self.bin_hdr_offset, self.bin_tail_offset, self.bin_code_partition_offset, self.bin_1st_instruction_offset))
-            logging.debug(f'partition{self.idx} min_phy_1st_instruction=%x, min_virtual_1st_instrution_offset=%x' %(min_phy_1st_instruction_offset,
-                min_virtual_1st_instrution_offset))
-            logging.debug(f'partition{self.idx} virtual_1st_vector_instruction_offset=%x, bin_1st_instruction_offset=%x' %(virtual_1st_vector_instruction_offset,
-                self.bin_1st_instruction_offset))
-
-            
-            virtual_partition_size = phy2virtual(self.partition_size - self.bin_hdr_size - self.bin_tail_size)
-            self.virtual_partition_size = floor_align(virtual_partition_size, CRC_UNIT_DATA_SZ)
-            virtual_code_size = phy2virtual(self.partition_size - self.bin_code_aligned_pad_size - self.bin_hdr_size - self.bin_tail_size - 34)
-            self.virtual_code_size = floor_align(virtual_code_size, CRC_UNIT_DATA_SZ)
-            logging.debug(f'flash max virtual partition size=%x, virtual max code size=%x' %(self.virtual_partition_size, self.virtual_code_size))
+            if (self.is_secondary) and (self.bin_verifier == "bl2"):
+                if (self.primary_partition == None):
+                    logging.error(f'partition{self.idx} missing primary partition')
+                    exit(1)
+                
+                self.bin_code_aligned_pad_size = self.primary_partition.bin_code_aligned_pad_size
+                self.bin_1st_instruction_offset = self.partition_offset + self.bin_code_aligned_pad_size + self.bin_hdr_size
+                self.virtual_partition_size = self.primary_partition.virtual_partition_size
+                self.virtual_code_size = self.primary_partition.virtual_code_size
+                logging.debug(f'partition{self.idx} bin_1st_instruction_offset={self.bin_1st_instruction_offset} bin_code_aligned_pad_size={self.bin_code_aligned_pad_size}')
+                logging.debug(f'partition{self.idx} virtual_partition_size={self.virtual_partition_size} virtual_code_size={self.virtual_code_size}')
+            else:
+                min_phy_1st_instruction_offset = ceil_align(self.bin_code_partition_offset, CRC_UNIT_TOTAL_SZ)
+                min_virtual_1st_instrution_offset = phy2virtual(min_phy_1st_instruction_offset)
+                virtual_1st_vector_instruction_offset = ceil_align(min_virtual_1st_instrution_offset, self.cpu_vector_align_bytes)
+                self.bin_1st_instruction_offset = virtual2phy(virtual_1st_vector_instruction_offset)
+                self.bin_code_aligned_pad_size = self.bin_1st_instruction_offset - self.bin_code_partition_offset
+                logging.debug(f'partition{self.idx} partition offset=%x, hdr_offset=%x, tail_offset=%x, code_partition_offset=%x, 1st_instruction_offset=%x'
+                    %(self.partition_offset, self.bin_hdr_offset, self.bin_tail_offset, self.bin_code_partition_offset, self.bin_1st_instruction_offset))
+                logging.debug(f'partition{self.idx} min_phy_1st_instruction=%x, min_virtual_1st_instrution_offset=%x' %(min_phy_1st_instruction_offset,
+                    min_virtual_1st_instrution_offset))
+                logging.debug(f'partition{self.idx} virtual_1st_vector_instruction_offset=%x, bin_1st_instruction_offset=%x' %(virtual_1st_vector_instruction_offset,
+                    self.bin_1st_instruction_offset))
     
+                
+                virtual_partition_size = phy2virtual(self.partition_size - self.bin_hdr_size - self.bin_tail_size)
+                self.virtual_partition_size = floor_align(virtual_partition_size, CRC_UNIT_DATA_SZ)
+                virtual_code_size = phy2virtual(self.partition_size - self.bin_code_aligned_pad_size - self.bin_hdr_size - self.bin_tail_size - 34)
+                self.virtual_code_size = floor_align(virtual_code_size, CRC_UNIT_DATA_SZ)
+                logging.debug(f'flash max virtual partition size=%x, virtual max code size=%x' %(self.virtual_partition_size, self.virtual_code_size))
+        
             self.bin_code_size = self.bin_size - self.bin_hdr_size - self.bin_tail_size
             self.bin_code_with_crc_size = crc_size(self.bin_code_size) 
             self.bin_total_size = self.bin_hdr_size + self.bin_tail_size + self.bin_code_aligned_pad_size + self.bin_code_with_crc_size
@@ -370,43 +463,102 @@ class Partition:
         for i in range(size):
             buf[i] = fill
 
+    def bl2_layout_contains_only_one_bin(self):
+        if ((self.partitions.is_1st_bin_verified_by_bl2(self.partition_name) == True)
+            and (self.partitions.is_last_bin_verified_by_bl2(self.partition_name) == True)):
+            return True
+        return False
+
+    def is_1st_bin_verified_by_bl2(self):
+        return self.partitions.is_1st_bin_verified_by_bl2(self.partition_name)
+
+    def is_last_bin_verified_by_bl2(self):
+        return self.partitions.is_last_bin_verified_by_bl2(self.partition_name)
+
     def process_code_bin(self):
+        if self.partition_name == 'primary_all' or self.partition_name == 'secondary_all':
+            return
+
+        if self.partitions.aes_key != None:
+            self.aes_bin_name = f'{self.file_name_prefix}_code_aes.bin'
+            aes_tool = f'{self.tools_dir}/beken_packager/cmake_xts_aes'
+            start_address = hex(phy2virtual(self.bin_1st_instruction_offset))
+            logging.debug(f'encrypt {self.partition_name}, startaddress={start_address}')
+            cmd = f'{aes_tool} encrypt -infile {self.bin_name} -keywords {self.partitions.aes_key} -outfile {self.aes_bin_name} -startaddress {start_address}'
+            run_cmd_not_check_ret(cmd)
+        else:
+            self.aes_bin_name = self.bin_name
+
+        # Add CRC
+        self.crc_bin_name = f'{self.file_name_prefix}_code_crc.bin'
+        if (self.need_add_crc == True):
+            crc(self.aes_bin_name, self.crc_bin_name)
+        else:
+            self.crc_bin_name = self.aes_bin_name
+
+        # Process code aligned pad
+        if (self.bin_code_aligned_pad_size > 0):
+            self.crc_aligned_bin_name = f'{self.file_name_prefix}_code_crc_aligned.bin'
+            crc_aligned_buf = bytearray(self.bin_code_aligned_pad_size)
+            self.init_buf(crc_aligned_buf, self.bin_code_aligned_pad_size, 0xff)
+            with open(self.crc_bin_name, 'rb') as crcf:
+                crc_aligned_buf += crcf.read()
+
+            with open(self.crc_aligned_bin_name, 'wb+') as crc_aligned_f:
+                crc_aligned_f.write(crc_aligned_buf)
+        else:
+            self.crc_aligned_bin_name = self.crc_bin_name
+
+        # Signing
+        bin_is_signed = False
+        if (self.bin_verifier == "bl2"):
+            self.signed_bin_name = f'{self.file_name_prefix}_code_signed.bin'
+            if (self.bl2_slot_type == "multiple") or self.bl2_layout_contains_only_one_bin():
+                signing(self, self.crc_aligned_bin_name, self.signed_bin_name)
+                bin_is_signed = True
+            else:
+                self.signed_bin_name = self.crc_aligned_bin_name
+        else:
+            self.signed_bin_name = self.crc_aligned_bin_name
+
+        self.signed_bin_size = os.path.getsize(self.signed_bin_name)
         self.partition_buf = bytearray()
-        with open(self.bin_name, 'rb') as f:
-            if (self.bin_hdr_size > 0):
-                self.hdr_buf = f.read(self.bin_hdr_size)
-                self.partition_buf = self.hdr_buf
+        with open(self.signed_bin_name, 'rb') as f:
 
-            f.seek(self.bin_hdr_size)
-            self.temp_code_bin_name = f'{self.file_name_prefix}_code.bin'
-            self.temp_code_bin_name_crc = f'{self.file_name_prefix}_code_crc.bin'
-            self.code_buf = f.read(self.bin_size - self.bin_hdr_size - self.bin_tail_size)
-            with open(self.temp_code_bin_name, 'wb+') as cf:
-                cf.write(self.code_buf)
+            if (bin_is_signed == True):
+                self.partition_buf = f.read()
+                return
 
-            if (self.bin_code_aligned_pad_size > 0):
-                pad_buf = bytearray(self.bin_code_aligned_pad_size)
-                self.partition_buf += pad_buf
+            # Process header
+            pad_header_buf_size = 0
+            if self.bin_hdr_size > 0:
+                if ((self.bl2_slot_type == "single") and (self.is_1st_bin_verified_by_bl2() == False)):
+                    # Padding header
+                    pad_header_buf_size = self.bin_hdr_size
+                    pad_header_buf = bytearray(pad_header_buf_size)
+                    self.init_buf(pad_header_buf, pad_header_buf_size, 0xff)
+                    self.partition_buf += pad_header_buf
 
-            crc(self.temp_code_bin_name, self.temp_code_bin_name_crc)
-            #TODO encrypted here!
+            # Process code
+            self.code_buf = f.read()
+            self.partition_buf += self.code_buf
 
-            with open(self.temp_code_bin_name_crc, 'rb') as cf_crc:
-                self.code_buf = cf_crc.read()
-                self.partition_buf += self.code_buf
+            # Process tail padding
+            if (self.bin_verifier == "bl2") and (self.bl2_slot_type == "single") and self.is_last_bin_verified_by_bl2():
+                pad_tail_buf_size = 0
+            else:
+                pad_tail_buf_size = self.partition_size - self.bin_hdr_size - self.signed_bin_size
 
-            crc_bin_size = os.path.getsize(self.temp_code_bin_name_crc)
-            pad_0xff_buf_size = self.partition_size - crc_bin_size - self.bin_code_aligned_pad_size - self.bin_hdr_size - self.bin_tail_size
-            pad_0xff_buf = bytearray(pad_0xff_buf_size)
-            self.init_buf(pad_0xff_buf, pad_0xff_buf_size, 0xff)
-            self.partition_buf += pad_0xff_buf
-            logging.debug(f'Filled 0xFF size= {pad_0xff_buf_size} crc_bin_size={crc_bin_size}')
-            logging.debug(f'hdr_size={self.bin_hdr_size} tail_size={self.bin_tail_size} align_pad={self.bin_code_aligned_pad_size}')
+            if (pad_tail_buf_size > 0):
+                pad_tail_buf = bytearray(pad_tail_buf_size)
+                self.init_buf(pad_tail_buf, pad_tail_buf_size, 0xff)
+                self.partition_buf += pad_tail_buf
 
-            if (self.bin_tail_size > 0):
-                tail_offset = self.bin_size - self.bin_tail_size
-                f.seek(tail_offset)
-                self.tail_buf = f.read(self.bin_tail_size)
+            logging.debug(f'Padding header buf size={pad_header_buf_size}')
+            logging.debug(f'Padding code align size={self.bin_code_aligned_pad_size}')
+            logging.debug(f'Padding tail buf size={pad_tail_buf_size}')
+            logging.debug(f'bin_size= {self.bin_size} signed_bin_size={self.signed_bin_size}')
+            logging.debug(f'hdr_size={self.bin_hdr_size} tail_size={self.bin_tail_size}')
 
     def process_bin(self):
         if (self.bin_is_code()):
@@ -418,11 +570,20 @@ class Partition:
             self.temp_partition_bin_name = f'{self.file_name_prefix}_partition.bin'
             with open(self.temp_partition_bin_name, 'wb+') as pf:
                 pf.write(self.partition_buf)
-                if (self.bin_tail_size > 0):
-                    pf.seek(self.bin_tail_offset - self.partition_offset)
-                    pf.write(self.tail_buf)
+
+    def __init__(self, p):
+        self.partition_offset = p.partition_offset
+        self.partition_size = p.partition_size
+        self.virtual_partition_size = p.virtual_partition_size
+        self.bin_code_aligned_pad_size = p.bin_code_aligned_pad_size
+        self.virtual_code_size = p.virtual_code_size
+        self.bin_hdr_size = p.bin_hdr_size
+        self.bin_tail_size = p.bin_tail_size
 
     def __init__(self, partitions, idx, partition_dic, deduced_min_partition_offset):
+        self.partitions = partitions
+        self.bl2_slot_type = partitions.bl2_slot_type
+        self.tools_dir = partitions.tools_dir
         self.idx = idx
         self.partition_json = partition_dic
         self.deduced_min_partition_offset = deduced_min_partition_offset
@@ -430,14 +591,16 @@ class Partition:
         self.json_file_base_name = partitions.json_file_base_name
         self.gencode_only = partitions.gencode_only
         self.cpu_vector_align_bytes = partitions.cpu_vector_align_bytes
+        self.need_add_crc = False
         self.crc = 0 # TODO
 
         self.file_name_prefix = f'{self.json_file_base_name}_{idx}'
-        logging.debug(f'')
+        logging.debug(f'Partitions: tools_dir={self.tools_dir}')
 
         self.check_fields()
         logging.debug(f'processing {self.json_file_base_name}.partition[{idx}].{self.partition_name}')
         self.parse_and_check_bin_type() # partition checking used bin type, so parse bin type firstly
+        self.parse_and_check_verifier()
         self.parse_and_check_partition_offset() 
         self.parse_and_check_partition_size()
         self.parse_and_check_bin_location()
@@ -449,7 +612,6 @@ class Partition:
         self.parse_and_check_bin_version()
         self.check_constraints()
         self.parse_and_check_static_and_load_addr() # call it after check_constraints since it depends on 1st_instruction_offset
-        self.parse_and_check_boot_partition()
 
 class Partitions:
 
@@ -473,9 +635,11 @@ class Partitions:
         return False
 
     def partition_name_to_idx(self, partition_name):
-        for idx in range(self.partitions_cnt):
-            if (partition_name == self.partitions[idx].partition_name):
+        idx = 0
+        for p in self.partitions:
+            if (partition_name == p.partition_name):
                 return idx
+            idx += 1
         return -1
 
     def build_pack_list(self, tag, pack_list, pattern, match):
@@ -498,15 +662,206 @@ class Partitions:
             logging.debug(f'{tag} pack partition list={pack_idx_list}') 
             return pack_idx_list
 
-        for idx in range(self.partitions_cnt):
-            partition_name = self.partitions[idx].partition_name
+        idx = 0
+        for p in self.partitions:
+            partition_name = p.partition_name
             found = False
             if (partition_name.find(f'{pattern}') == 0):
                 found = True
             if (match == found):
                 pack_idx_list.append(idx)
+            idx += 1
         logging.debug(f'{tag} partitions list={pack_idx_list}')
         return pack_idx_list
+
+    def is_1st_bin_verified_by_bl2(self, partition_name):
+        if (self.primary_partitions_verified_by_bl2[0] == partition_name):
+            return True
+
+        if (self.secondary_partitions_verified_by_bl2[0] == partition_name):
+            return True
+
+        return False
+
+    def is_last_bin_verified_by_bl2(self, partition_name):
+        if (self.primary_partitions_verified_by_bl2[-1] == partition_name):
+            return True
+
+        if (self.secondary_partitions_verified_by_bl2[-1] == partition_name):
+            return True
+
+        return False
+
+    def find_partition_by_name(self, name):
+        for p in self.partitions:
+            if (name == p.partition_name):
+                return p
+        return None
+
+    def gen_primary_secondary_all_bin(self, partition_name, child_partition_names):
+        if (self.bl2_slot_type == 'multiple'):
+            return
+
+        if (self.prefer_primary_secondary_all == False):
+            return
+
+        partition_buf = bytearray()
+        for pname in child_partition_names:
+            p = self.find_partition_by_name(pname)
+            partition_buf += p.partition_buf
+
+        all_bin_name = f'{self.json_file_base_name}_{partition_name}_code.bin'
+        with open(all_bin_name, 'wb+') as f:
+            f.write(partition_buf)
+
+        all_bin_signed_name = f'{self.json_file_base_name}_{partition_name}_code_signed.bin'
+        all_bin_partition = self.find_partition_by_name(partition_name)
+        signing(all_bin_partition, all_bin_name, all_bin_signed_name)
+
+        with open(all_bin_signed_name, 'rb+') as f:
+            all_bin_partition.partition_buf = f.read()
+            all_bin_partition.bin_size = len(all_bin_partition.partition_buf)
+
+    def create_primary_secondary_all_partition(self, partition_name, child_partition_names):
+        if self.bl2_slot_type == "multiple":
+            return
+
+        child_num = len(child_partition_names)
+        if (child_num <= 0):
+            return
+
+        partition_name_1st = child_partition_names[0]
+        partition_1st = self.find_partition_by_name(partition_name_1st)
+
+        partition_name_last = child_partition_names[-1]
+        partition_last = self.find_partition_by_name(partition_name_last)
+
+        all_partition = copy.copy(partition_1st)
+
+        child_partition_num = len(child_partition_names)
+        all_partition.prefer_primary_secondary_all = False
+        if (child_partition_num > 1):
+            self.prefer_primary_secondary_all = True
+
+        all_partition.bin_size = 0
+        all_partition.partition_name = partition_name
+        all_partition.partition_size = (partition_last.partition_offset - partition_1st.partition_offset) + partition_last.partition_size
+
+        if (partition_name == 'primary_all'):
+            virtual_partition_size = phy2virtual(all_partition.partition_size - all_partition.bin_hdr_size - all_partition.bin_tail_size)
+            all_partition.virtual_partition_size = floor_align(virtual_partition_size, CRC_UNIT_DATA_SZ)
+            virtual_code_size = phy2virtual(all_partition.partition_size - all_partition.bin_code_aligned_pad_size - all_partition.bin_hdr_size - all_partition.bin_tail_size - 34)
+            all_partition.virtual_code_size = floor_align(virtual_code_size, CRC_UNIT_DATA_SZ)
+        else:
+            partition_primary = self.find_partition_by_name('primary_all')
+            all_partition.virtual_partition_size = partition_primary.virtual_partition_size
+            all_partition.virtual_code_size = partition_primary.virtual_code_size
+
+        idx = self.partition_name_to_idx(partition_name_last)
+        self.partitions.insert(idx + 1, all_partition)
+        logging.debug(f'create virtual partition: {partition_name} id={idx}')
+        logging.debug(f'create virtual partition: offset={all_partition.partition_offset}, size={all_partition.partition_size}')
+        logging.debug(f'create virtual partition: virtual_partition_size={all_partition.virtual_partition_size}, virtual_code_size={all_partition.virtual_code_size}')
+
+    def parse_and_check_aes_key(self):
+        self.aes_key = None
+        if "aes_key" in self.json_data.keys():
+            self.aes_key = self.json_data['aes_key']
+            if len(self.aes_key) != 64:
+                logging.error(f'Invalid AES key: key length should be 64')
+                exit(1)
+
+    def parse_partition_names(self):
+        for pjson in self.json_data['partitions']:
+            if 'partition' not in pjson.keys():
+                logging.error(f'partition{idx} missing field "partition"')
+                exit(1)
+            self.partition_names.append(pjson['partition'])
+
+    def parse_and_check_secureboot(self):
+        self.secure_boot = False
+        if ('bl1_control' in self.partition_names):
+            logging.debug('Detect partition "bl1_control", secure debug is considered enabled')
+            self.secure_boot = True
+
+        if ('primary_manifest' in self.partition_names):
+            logging.debug('Detect partition "primary_manifest", secure debug is considered enabled')
+            self.secure_boot = True
+
+        if ('secondary_manifest' in self.partition_names):
+            logging.debug('Detect partition "secondary_manifest", secure debug is considered enabled')
+            self.secure_boot = True
+
+        for pjson in self.json_data['partitions']:
+            partition_name = pjson['partition']
+            if (partition_name == 'primary_bl2') or (partition_name == 'secondary_bl2'):
+                if 'verifier' in pjson.keys():
+                    bin_verifier = pjson['verifier']
+                    if bin_verifier == 'bl1':
+                        logging.debug(f'verifier of Partition {partition_name} is "bl1", secure debug is considerd enabled')
+                        self.secure_boot = True
+
+        logging.debug(f'secure boot is {self.secure_boot}')
+        if (self.secure_boot == True):
+            logging.debug(f'When secure debug is enabled, "bl1_control", "primary_manifest", "secondary_manifest", "primary_bl2", "secondary_bl2" are required')
+
+        if (self.secure_boot == True):
+            if ('bl1_control' not in self.partition_names):
+                logging.err('Secure debug is enabled, but missing partition "bl1_control"')
+                exit(1)
+
+            if ('primary_manifest' not in self.partition_names):
+                logging.err('Secure debug is enabled, but missing partition "primary_manifest"')
+                exit(1)
+
+            if ('secondary_manifest' not in self.partition_names):
+                logging.err('Secure debug is enabled, but missing partition "secondary_manifest"')
+                exit(1)
+
+            if ('primary_bl2' not in self.partition_names):
+                logging.err('Secure debug is enabled, but missing partition "primary_bl2"')
+                exit(1)
+
+            if ('secondary_bl2' not in self.partition_names):
+                logging.err('Secure debug is enabled, but missing partition "secondary_bl2"')
+                exit(1)
+
+    def check_duplicated_partitions(self):
+        if (len(self.partition_names) != len(set(self.partition_names))):
+            logging.error(f'contains duplicated partitions!')
+            return False
+        return True
+
+    def parse_and_check_app_ota_partitions(self):
+        return
+
+    def parse_and_check_verifier(self):
+        idx = -1
+        for pjson in self.json_data['partitions']:
+            idx += 1
+            partition_name = pjson['partition']
+
+            if 'verifier' not in pjson.keys():
+                continue
+
+            if (pjson['verifier'] == 'bl1'):
+                if (partition_name != 'primary_bl2') and (partition_name != 'secondary_bl2'):
+                    logging.error(f'Partitions verified by bl1 should be "primary_bl2" or "secondary_bl2"!')
+                    exit(1)
+                continue
+
+            if pjson['verifier'] != 'bl2':
+                continue
+
+            match = pattern_match(partition_name, r"primary_")
+            if (match == True):
+                self.primary_partitions_verified_by_bl2.append(partition_name)
+        
+            match = pattern_match(partition_name, r"secondary_")
+            if (match == True):
+                self.secondary_partitions_verified_by_bl2.append(partition_name)
+        print(f'primary partitions verfied by bl2: {self.primary_partitions_verified_by_bl2}')
+        print(f'secondary partitions verfied by bl2: {self.secondary_partitions_verified_by_bl2}')
 
     def parse_json(self):
         if ("partitions" not in self.json_data):
@@ -535,30 +890,50 @@ class Partitions:
             self.pack_app = self.json_data['pack_app']
         logging.debug(f'APP binary list: {self.pack_app}')
 
-        self.partitions_cnt = len(self.json_data['partitions'])
-        if (self.partitions_cnt == 0):
+        if ("bl2_slot_type" not in self.json_data):
+            self.bl2_slot_type = "single"
+        else:
+            self.bl2_slot_type = self.json_data['bl2_slot_type']
+        logging.debug(f'BL2 bin blob: {self.bl2_slot_type}')
+ 
+        partitions_cnt = len(self.json_data['partitions'])
+        if (partitions_cnt == 0):
             logging.error(f'partitions of json does not contain any item!')
             exit(1)
 
+        self.parse_partition_names()
+        self.check_duplicated_partitions()
+        self.parse_and_check_verifier()
+        self.parse_and_check_secureboot()
+        self.parse_and_check_aes_key()
+        self.parse_and_check_app_ota_partitions()
+
         deduced_next_partition_offset = 0
         self.first_partition_offset = 0
-        for idx in range(self.partitions_cnt):
+        for idx in range(partitions_cnt):
             partition = Partition(self, idx, self.json_data['partitions'][idx], deduced_next_partition_offset)
             deduced_next_partition_offset = partition.partition_offset + partition.partition_size
             self.partitions.append(partition)
             if (idx == 0):
                 self.first_partition_offset = partition.partition_offset
 
+        self.create_primary_secondary_all_partition('primary_all', self.primary_partitions_verified_by_bl2)
+        self.create_primary_secondary_all_partition('secondary_all', self.secondary_partitions_verified_by_bl2)
         self.ota_pack_idx_list = self.build_pack_list("OTA", self.pack_ota, "secondary_", True)
         self.app_pack_idx_list = self.build_pack_list("APP", self.pack_app, "secondary_", False)
 
-    def __init__(self, json_file, need_crc=True, need_encrypted=False, gencode_only=False):
+    def __init__(self, json_file, tools_dir=None, need_crc=True, need_encrypted=False, gencode_only=False):
+        self.partition_names = []
         self.partitions = []
         self.json_file_name = json_file
+        self.tools_dir = tools_dir
         self.need_crc = need_crc
         self.need_encrypted = need_encrypted
         self.gencode_only = gencode_only
         self.gen_partitions_bin_done = False
+        self.primary_partitions_verified_by_bl2 = [];
+        self.secondary_partitions_verified_by_bl2 = [];
+        self.prefer_primary_secondary_all = False
 
         self.load_json()
         self.parse_json()
@@ -577,6 +952,11 @@ class Partitions:
         f.write(line)
         line = f'#define %-45s %s' %("MB(size)", "((size) << 20)\r\n\r\n")
         f.write(line)
+
+        if (self.bl2_slot_type == 'single'):
+            line = f'#define %-45s %s' %("CONFIG_BL2_SLOT_SINGLE", "1\r\n")
+        else:
+            line = f'#define %-45s %s' %("CONFIG_BL2_SLOT_SINGLE", "0\r\n")
 
         macro_name = f'CONFIG_CODE_ENCRYPTED'
         if self.need_encrypted:
@@ -609,8 +989,7 @@ class Partitions:
         f.write(s_phy2code_start)
         self.empty_line(f)
 
-        for idx in range(self.partitions_cnt):
-            partition = self.partitions[idx]
+        for partition in self.partitions:
             partition_name = partition.partition_name
             partition_name = partition_name.upper()
             partition_name = partition_name.replace(' ', '_')
@@ -664,27 +1043,67 @@ class Partitions:
         if (self.gen_partitions_bin_done == True):
             return
 
-        for idx in range(self.partitions_cnt):
-            partition = self.partitions[idx]
-            partition.process_bin()
+        for p in self.partitions:
+            p.process_bin()
  
+
+    def bin_need_to_bypass_in_bl2_merged_bin(self, name):
+        if (self.bl2_slot_type == 'multiple'):
+            return False
+
+        p = self.find_partition_by_name(name)
+        if (p.bin_verifier != "bl2"):
+            return False
+
+        m1 = pattern_match(name, r"primary_")
+        m2 = pattern_match(name, r"secondary_")
+        if (m1 == False) and (m2 == False):
+            return False
+
+        if (self.prefer_primary_secondary_all == True):
+            if (name == 'primary_all') or (name == 'secondary_all'):
+                return False
+            else:
+                return True
+        else:
+            if (name == 'primary_all') or (name == 'secondary_all'):
+                return True
+            else:
+                return False
+ 
+    def gen_manifest_bin(self, manifest_json_file_name):
+        if (self.secure_boot == False):
+            return
+
+        manifest_bin_name = manifest_json_file_name.replace("json", "bin")
+        sh_sec_tools = f'{self.tools_dir}/sh_sec_tools/secure_boot_tool'
+        pwd = os.getcwd()
+        cmd = f'{sh_sec_tools} -k key_desc.json -m {manifest_json_file_name} -o {pwd}/'
+        run_cmd(cmd)
+        cmd = f'mv manifest.bin {manifest_bin_name}'
+        run_cmd(cmd)
+
 
     def gen_all(self):
         if (self.first_partition_offset != 0):
             logging.debug(f'first partition offset=%x, not generate all.bin' %(self.first_partition_offset))
             return
 
+        self.gen_manifest_bin('primary_manifest.json')
+        self.gen_manifest_bin('secondary_manifest.json')
         self.gen_partitions_bin()
+        self.gen_primary_secondary_all_bin('primary_all', self.primary_partitions_verified_by_bl2)
+        self.gen_primary_secondary_all_bin('secondary_all', self.secondary_partitions_verified_by_bl2)
 
         f = open('all.bin', 'wb+')
-        for idx in range(self.partitions_cnt):
-            partition = self.partitions[idx]
-            if (partition.bin_size > 0):
-                f.seek(partition.partition_offset)
-                f.write(partition.partition_buf)
-                if (partition.bin_tail_size > 0):
-                    f.seek(partition.bin_tail_offset)
-                    f.write(partition.tail_buf)
+        for p in self.partitions:
+            if (p.bin_size > 0):
+                if self.bin_need_to_bypass_in_bl2_merged_bin(p.partition_name):
+                    logging.debug(f'create all.bin: bypass {p.partition_name}')
+                    continue
+                logging.debug(f'create all.bin: {p.partition_name} seek={p.partition_offset}')
+                f.seek(p.partition_offset)
+                f.write(p.partition_buf)
         f.flush()
         f.close()
 
@@ -735,10 +1154,6 @@ class Partitions:
                 if (partition.bin_size > 0):
                     f.seek(offset)
                     f.write(partition.partition_buf)
-                    if (partition.bin_tail_size > 0):
-                        bin_tail_offset = offset + partition.partition_size - partition.bin_tail_size
-                        f.seek(bin_tail_offset)
-                        f.write(partition.tail_buf)
                 logging.debug('start to append partitions{idx}: offset=%x, partition_size=%x, bin_size=%x, bin_tail_size=%x'
                     %(offset, partition.partition_size, partition.bin_size, partition.bin_tail_size))
                 offset += partition.partition_size
@@ -754,28 +1169,18 @@ class Partitions:
             self.gen_common("ota", self.ota_pack_idx_list)
 
     def gen_manifest(self, gen, manifest_partition):
-        found_boot_partition = False
-        for idx in range(self.partitions_cnt):
-            p = self.partitions[idx]
-            if p.partition_name == manifest_partition.boot_partition:
-                found_boot_partition = True
-                break
-        if found_boot_partition == False:
-            logging.error(f'failed to find boot_partition {manifest_partition.boot_partition}')
-            exit(1)
-
+        boot_partition_name = manifest_partition.partition_name.replace("manifest", "bl2")
+        p = self.find_partition_by_name(boot_partition_name)
         manifest_name = f'{manifest_partition.partition_name}.json'
         gen.gen_manifest(p.version, p.static_addr, p.load_addr, p.bin_name, manifest_name)
 
     def gen_bl1_config(self):
-        g = Genbl1('bl1_key.json')
+        g = Genbl1('bl1_key.json', self.tools_dir)
         g.gen_key_desc()
         pre_partition_manifest_type = 0
-        for idx in range(self.partitions_cnt):
-            partition = self.partitions[idx]
-
-            if (partition.partition_name == 'primary_manifest') or (partition.partition_name == 'secondary_manifest'):
-                self.gen_manifest(g, partition)
+        for p in self.partitions:
+            if (p.partition_name == 'primary_manifest') or (p.partition_name == 'secondary_manifest'):
+                self.gen_manifest(g, p)
 
     def gen_bl2_config(self):
         logging.info(f'TODO gen bl2')

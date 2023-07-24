@@ -8,6 +8,8 @@
 #define LV_CONF_INTERNAL_H
 /* clang-format off */
 
+#include "os/os.h"
+
 #include <stdint.h>
 
 /* Handle special Kconfig options */
@@ -1177,6 +1179,7 @@
     #endif
 #endif
 
+#if CONFIG_LVGL
 /*Always set a default font*/
 #ifndef LV_FONT_DEFAULT
     #ifdef CONFIG_LV_FONT_DEFAULT
@@ -1184,6 +1187,9 @@
     #else
         #define LV_FONT_DEFAULT &lv_font_montserrat_14
     #endif
+#endif
+#else
+#define LV_FONT_DEFAULT NULL
 #endif
 
 /*Enable handling large font and/or fonts with a lot of characters.

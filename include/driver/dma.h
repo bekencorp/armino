@@ -174,6 +174,8 @@ bk_err_t bk_dma_read(dma_id_t id, uint8_t *data, uint32_t size);
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
+ *
+ * @NOTES before enable interrupt, please confirm have called bk_dma_register_isr.
  */
 bk_err_t bk_dma_enable_finish_interrupt(dma_id_t id);
 
@@ -196,6 +198,8 @@ bk_err_t bk_dma_disable_finish_interrupt(dma_id_t id);
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
+ *
+ * @NOTES before enable interrupt, please confirm have called bk_dma_register_isr.
  */
 bk_err_t bk_dma_enable_half_finish_interrupt(dma_id_t id);
 
@@ -404,6 +408,18 @@ bk_err_t bk_dma_set_dest_burst_len(dma_id_t id, dma_burst_len_e len);
 uint32_t bk_dma_get_dest_burst_len(dma_id_t id);
 bk_err_t bk_dma_set_src_burst_len(dma_id_t id, dma_burst_len_e len);
 uint32_t bk_dma_get_src_burst_len(dma_id_t id);
+
+/**
+ * @brief     flush reserved data in dma internal buffer
+ *
+ * @param id DMA channel
+ * @param attr DMA privileged attr
+ *
+ * @return
+ *    - 0: Channel idle state
+ *    - others: Channel busy state.
+ */
+bk_err_t bk_dma_flush_src_buffer(dma_id_t id);
 
 /**
  * @brief     Enable the current DMA channel bus err interrupt

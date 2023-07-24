@@ -22,6 +22,7 @@
 #if (!CONFIG_SLAVE_CORE)
 #include <modules/pm.h>
 #endif
+#include <driver/flash_partition.h>
 
 #include "boot.h"
 
@@ -178,40 +179,66 @@ void rtos_thread_func_test()
 #if (CONFIG_MASTER_CORE)
 extern void mon_reset_cpu1(u32 enable, u32 start_addr);
 
-void reset_slave_core(uint32 offset, uint32_t reset_value)
+static uint32 get_partition_addr(uint32 slave_core_id)
 {
-	if (0 != reset_value  && 1 != reset_value) {
-		os_printf("reset_value must be 0 or 1.\r\n");
-		reset_value = CONFIG_SLAVE_CORE_RESET_VALUE;
+	(void)slave_core_id;
+
+	bk_logic_partition_t *pt;
+	bk_partition_t   part_id;
+
+	uint32    addr = -1;
+
+	//if(slave_core_id == 1)
+	{
+		part_id = BK_PARTITION_APPLICATION1;
 	}
-	os_printf("reset_slave_core at: %08x, reset value:%d\r\n", offset, reset_value);
+
+	pt = bk_flash_partition_get_info(part_id);
+
+	if((pt != NULL) && ((pt->partition_start_addr % 34) == 0))
+	{
+		addr = (pt->partition_start_addr / 34) * 32;   // CRC16 appended every 32 bytes in flash.  (32 bytes -> 34 bytes).
+	}
+	else
+	{
+		os_printf("slave core start addr not valid.\r\n");
+	}
+
+#if (!CONFIG_SOC_BK7256XX)
+#if (CONFIG_SLAVE_CORE_OFFSET)
+	return CONFIG_SLAVE_CORE_OFFSET;
+#endif
+#endif
+
+	return addr;
+}
+
+static void reset_slave_core(uint32 offset, uint32_t reset_flag)
+{
+	uint32    start_flag = 0;
+
+	if(reset_flag == 0)
+		start_flag = 1;
+
+	os_printf("reset_slave_core at: %08x, start=%d\r\n", offset, start_flag);
 
 	#if CONFIG_SOC_BK7256XX //u-mode
-	mon_reset_cpu1(reset_value, offset);
+	mon_reset_cpu1(start_flag, offset);
 	#else
 	sys_drv_set_cpu1_boot_address_offset(offset >> 8);
-	sys_drv_set_cpu1_reset(reset_value);
+	sys_drv_set_cpu1_reset(start_flag);
 	#endif
 }
 
 void start_slave_core(void)
 {
-#if (CONFIG_SLAVE_CORE_OFFSET && CONFIG_SLAVE_CORE_RESET_VALUE)
-	//bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_ON);
-	reset_slave_core(CONFIG_SLAVE_CORE_OFFSET, CONFIG_SLAVE_CORE_RESET_VALUE);
-#endif
-	os_printf("start_slave_core end.\r\n");
+	uint32  addr = get_partition_addr(1);
+	reset_slave_core(addr, 0);
 }
 
 void stop_slave_core(void)
 {
-#if (CONFIG_SLAVE_CORE_OFFSET && CONFIG_SLAVE_CORE_RESET_VALUE)
-	uint32_t reset_value = ( 0x1) & (~CONFIG_SLAVE_CORE_RESET_VALUE);
-	reset_slave_core(CONFIG_SLAVE_CORE_OFFSET, reset_value);
-	//bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_OFF);
-#endif
-
-	os_printf("stop_slave_core end.\r\n");
+	reset_slave_core(0, 1);
 }
 
 #endif
@@ -229,6 +256,8 @@ static void user_app_thread( void *arg )
 #if CONFIG_SAVE_BOOT_TIME_POINT
 	save_mtime_point(CPU_APP_FINISH_TIME);
 #endif
+
+	rtos_deinit_semaphore(&user_app_sema);
 
 	rtos_delete_thread( NULL );
 }

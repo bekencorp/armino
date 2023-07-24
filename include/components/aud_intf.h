@@ -21,6 +21,7 @@ extern "C" {
  *   - Register read mic data and write speaker data callback
  *
  * This API should be called before any other AUD INTF APIs.
+ * This API cannot be called in mic and speaker callback.
  *
  * @param setup audio interface driver init configuration
  *
@@ -39,6 +40,7 @@ bk_err_t bk_aud_intf_drv_init(aud_intf_drv_setup_t *setup);
  *   - Unregister read mic data and write speaker data callback
  *
  * This API should be called when audio is not needed.
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -48,6 +50,8 @@ bk_err_t bk_aud_intf_drv_deinit(void);
 
 /**
  * @brief     Set the AUD INTF work mode
+ *
+ * This API cannot be called in mic and speaker callback.
  *
  * @param work_mode audio interface work mode
  *
@@ -64,6 +68,7 @@ bk_err_t bk_aud_intf_set_mode(aud_intf_work_mode_t work_mode);
  *
  * This API should be called when onboard mic has been initialized.
  * And this API should not be called when UAC mic has been used.
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -80,6 +85,7 @@ bk_err_t bk_aud_intf_set_mic_gain(uint8_t value);
  *
  * This API should be called when speaker has been initialized.
  * And this API set board speaker gain and uac speaker volume.
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -94,6 +100,7 @@ bk_err_t bk_aud_intf_set_spk_gain(uint32_t value);
  * @param value the parameter value
  *
  * This API should be called when voice has been initialized and AEC is enable.
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -105,6 +112,7 @@ bk_err_t bk_aud_intf_set_aec_para(aud_intf_voc_aec_para_t aec_para, uint32_t val
  * @brief     Get the aec parameter
  *
  * This API should be called when voice has been initialized and AEC is enable.
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -123,6 +131,7 @@ bk_err_t bk_aud_intf_get_aec_para(void);
  *   - Configure UAC mic
  *
  * This API should be called after bk_aud_intf_drv_init.
+ * This API cannot be called in mic and speaker callback.
  *
  * @param mic_setup audio adc setup configuration
  *
@@ -156,6 +165,7 @@ bk_err_t bk_aud_intf_mic_init(aud_intf_mic_setup_t *mic_setup);
  *   - Close UAC mic
  *
  * This API should be called after bk_aud_intf_mic_stop.
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -167,6 +177,8 @@ bk_err_t bk_aud_intf_mic_deinit(void);
 /**
  * @brief     Start the AUD INTF mic work
  *
+ * This API cannot be called in mic and speaker callback.
+ *
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
@@ -177,6 +189,7 @@ bk_err_t bk_aud_intf_mic_start(void);
  * @brief     Pause the AUD INTF mic work
  *
  * This API should be called after bk_aud_intf_mic_init.
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -186,6 +199,8 @@ bk_err_t bk_aud_intf_mic_pause(void);
 
 /**
  * @brief     Stop the AUD INTF mic work
+ *
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -198,6 +213,7 @@ bk_err_t bk_aud_intf_mic_stop(void);
  *
  * This API should be called after bk_aud_intf_mic_init.
  * This API only support onboard mic, and not support UAC mic.
+ * This API cannot be called in mic and speaker callback.
  *
  * @param mic_chl audio interface mic channel
  *
@@ -212,6 +228,7 @@ bk_err_t bk_aud_intf_set_mic_chl(aud_intf_mic_chl_t mic_chl);
  *
  * This API should be called after bk_aud_intf_mic_init.
  * This API only support onboard mic, and not support UAC mic.
+ * This API cannot be called in mic and speaker callback.
  *
  * @param mic_chl save audio interface mic channel
  *
@@ -226,6 +243,7 @@ bk_err_t bk_aud_intf_get_mic_chl(aud_intf_mic_chl_t *mic_chl);
  *
  * This API should be called after bk_aud_intf_mic_init.
  * This API only support onboard mic, and not support UAC mic.
+ * This API cannot be called in mic and speaker callback.
  *
  * @param samp_rate audio interface mic sample rate
  *
@@ -240,6 +258,7 @@ bk_err_t bk_aud_intf_set_mic_samp_rate(aud_adc_samp_rate_t samp_rate);
  *
  * This API should be called after bk_aud_intf_mic_init.
  * This API only support onboard mic, and not support UAC mic.
+ * This API cannot be called in mic and speaker callback.
  *
  * @param samp_rate save audio interface mic sample rate
  *
@@ -261,6 +280,7 @@ bk_err_t bk_aud_intf_get_mic_samp_rate(aud_adc_samp_rate_t *samp_rate);
  *   - Configure UAC speaker
  *
  * This API should be called after bk_aud_intf_drv_init.
+ * This API cannot be called in mic and speaker callback.
  *
  * @param spk_setup audio speaker setup configuration
  *
@@ -295,6 +315,7 @@ bk_err_t bk_aud_intf_spk_init(aud_intf_spk_setup_t *spk_setup);
  *   - Close UAC speaker
  *
  * This API should be called after bk_aud_intf_spk_stop.
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -305,6 +326,8 @@ bk_err_t bk_aud_intf_spk_deinit(void);
 /**
  * @brief     Start the AUD INTF speaker work
  *
+ * This API cannot be called in mic and speaker callback.
+ *
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
@@ -314,6 +337,8 @@ bk_err_t bk_aud_intf_spk_start(void);
 /**
  * @brief     Pause the AUD INTF speaker work
  *
+ * This API cannot be called in mic and speaker callback.
+ *
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
@@ -322,6 +347,8 @@ bk_err_t bk_aud_intf_spk_pause(void);
 
 /**
  * @brief     Stop the AUD INTF speaker work
+ *
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -336,6 +363,7 @@ bk_err_t bk_aud_intf_spk_stop(void);
  *
  * This API should be called after bk_aud_intf_spk_init.
  * This API only support onboard speaker, and not support UAC speaker.
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -350,6 +378,7 @@ bk_err_t bk_aud_intf_set_spk_chl(aud_intf_spk_chl_t spk_chl);
  *
  * This API should be called after bk_aud_intf_spk_init.
  * This API only support onboard speaker, and not support UAC speaker.
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -362,6 +391,7 @@ bk_err_t bk_aud_intf_get_spk_chl(aud_intf_mic_chl_t *spk_chl);
  *
  * This API should be called after bk_aud_intf_spk_init.
  * This API only support onboard speaker, and not support UAC speaker.
+ * This API cannot be called in mic and speaker callback.
  *
  * @param samp_rate audio interface speaker sample rate
  *
@@ -376,6 +406,7 @@ bk_err_t bk_aud_intf_set_spk_samp_rate(aud_dac_samp_rate_t samp_rate);
  *
  * This API should be called after bk_aud_intf_spk_init.
  * This API only support onboard speaker, and not support UAC speaker.
+ * This API cannot be called in mic and speaker callback.
  *
  * @param samp_rate save audio interface speaker sample rate
  *
@@ -390,6 +421,7 @@ bk_err_t bk_aud_intf_get_spk_samp_rate(aud_dac_samp_rate_t *samp_rate);
  *
  * This API should be called after bk_aud_intf_spk_init.
  * This API only support uac mic and uac speaker.
+ * This API cannot be called in mic and speaker callback.
  *
  * @param cb callback api
  *
@@ -405,6 +437,7 @@ bk_err_t bk_aud_intf_register_uac_connect_state_cb(void *cb);
  * If enable the feature, uac will automatic connect after uac abnormal disconnect.
  * This API only support uac mic and uac speaker.
  * This feature is enabled by default.
+ * This API cannot be called in mic and speaker callback.
  *
  * @param enable
  *    - TRUE: enable uac automatic connnet
@@ -428,6 +461,7 @@ bk_err_t bk_aud_intf_uac_auto_connect_ctrl(bool enable);
  *   - Configure UAC mic and speaker
  *
  * This API should be called after bk_aud_intf_drv_init.
+ * This API cannot be called in mic and speaker callback.
  *
  * @param voc_setup audio voice setup configuration
  *
@@ -460,6 +494,7 @@ bk_err_t bk_aud_intf_voc_init(aud_intf_voc_setup_t setup);
  *   - Close DMA
  *
  * This API should be called after bk_aud_intf_voice_stop.
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -470,6 +505,8 @@ bk_err_t bk_aud_intf_voc_deinit(void);
 /**
  * @brief     Start the AUD INTF voice work
  *
+ * This API cannot be called in mic and speaker callback.
+ *
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
@@ -478,6 +515,8 @@ bk_err_t bk_aud_intf_voc_start(void);
 
 /**
  * @brief     Stop the AUD INTF voice work
+ *
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -493,6 +532,7 @@ bk_err_t bk_aud_intf_voc_stop(void);
  *    - AUD_INTF_VOC_MIC_CLOSE: disable mic
  *
  * This API should be called in voice work mode.
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -508,6 +548,7 @@ bk_err_t bk_aud_intf_voc_mic_ctrl(aud_intf_voc_mic_ctrl_t mic_en);
  *    - AUD_INTF_VOC_SPK_CLOSE: disable speaker
  *
  * This API should be called in voice work mode.
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -523,6 +564,7 @@ bk_err_t bk_aud_intf_voc_spk_ctrl(aud_intf_voc_spk_ctrl_t spk_en);
  *    - false: disable aec
  *
  * This API should be called in voice work mode.
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed
@@ -533,10 +575,11 @@ bk_err_t bk_aud_intf_voc_aec_ctrl(bool aec_en);
 /**
  * @brief     Write the speaker data to audio dac
  *
+ * This API should be called in general and voice work mode.
+ * This API cannot be called in mic and speaker callback.
+ *
  * @param dac_buff the address of speaker data written
  * @param size the data size (byte)
- *
- * This API should be called in general and voice work mode.
  *
  * @return
  *    - BK_OK: succeed
@@ -548,9 +591,10 @@ bk_err_t bk_aud_intf_write_spk_data(uint8_t *dac_buff, uint32_t size);
 /**
  * @brief     debug api of audio dac
  *
- * @param enable enable/disable audio dac debug
- *
  * This API should be called in voice work mode.
+ * This API cannot be called in mic and speaker callback.
+ *
+ * @param enable enable/disable audio dac debug
  *
  * @return
  *    - BK_OK: succeed
@@ -562,9 +606,10 @@ bk_err_t bk_aud_intf_set_voc_dac_debug(bool enable);
 /**
  * @brief     register callback to dump tx data in voice work mode
  *
- * @param dump_callback callback
- *
  * This API should be called in voice work mode. And audio transfer driver will call the callback to save data.
+ * This API cannot be called in mic and speaker callback.
+ *
+ * @param dump_callback callback
  *
  * @return
  *    - BK_OK: succeed
@@ -575,9 +620,10 @@ bk_err_t bk_aud_intf_voc_tx_debug(aud_intf_dump_data_callback dump_callback);
 /**
  * @brief     register callback to dump rx data in voice work mode
  *
- * @param dump_callback callback
- *
  * This API should be called in voice work mode. And audio transfer driver will call the callback to save data.
+ * This API cannot be called in mic and speaker callback.
+ *
+ * @param dump_callback callback
  *
  * @return
  *    - BK_OK: succeed
@@ -588,9 +634,10 @@ bk_err_t bk_aud_intf_voc_rx_debug(aud_intf_dump_data_callback dump_callback);
 /**
  * @brief     register callback to dump aec data(include mic data, ref data, and out data) in voice work mode
  *
- * @param dump_callback callback
- *
  * This API should be called in voice work mode. And audio transfer driver will call the callback to save data.
+ * This API cannot be called in mic and speaker callback.
+ *
+ * @param dump_callback callback
  *
  * @return
  *    - BK_OK: succeed
@@ -602,6 +649,8 @@ bk_err_t bk_aud_intf_voc_aec_debug(aud_intf_dump_data_callback dump_callback);
 /**
  * @brief     Start the AVI save work
  *
+ * This API cannot be called in mic and speaker callback.
+ *
  * @return
  *    - BK_OK: succeed
  *    - others: other errors.
@@ -610,6 +659,8 @@ bk_err_t bk_aud_intf_mic_save_start(void);
 
 /**
  * @brief     Stop the AVI save work
+ *
+ * This API cannot be called in mic and speaker callback.
  *
  * @return
  *    - BK_OK: succeed

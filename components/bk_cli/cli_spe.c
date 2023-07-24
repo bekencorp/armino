@@ -97,14 +97,14 @@ static void cli_prepare_jump_to_ns(void)
 
 void jump_test(void)
 {
-	uint32_t addr = SOC_GET_NS_ADDR(CONFIG_PRIMARY_NS_VIRTUAL_CODE_START + SOC_FLASH_DATA_BASE);
+	uint32_t addr = SOC_GET_NS_ADDR(CONFIG_PRIMARY_TFM_NS_VIRTUAL_CODE_START + SOC_FLASH_DATA_BASE);
 	cli_prepare_jump_to_ns();
 	jump_to_ns(addr);
 }
 
 static void cli_jump_ns(void)
 {
-	uint32_t addr = SOC_GET_NS_ADDR(CONFIG_PRIMARY_NS_VIRTUAL_CODE_START + SOC_FLASH_DATA_BASE);
+	uint32_t addr = SOC_GET_NS_ADDR(CONFIG_PRIMARY_TFM_NS_VIRTUAL_CODE_START + SOC_FLASH_DATA_BASE);
 
 	CLI_LOGI("S -> NS: %x\n", addr);
 	jump_to_ns(addr);
@@ -112,7 +112,7 @@ static void cli_jump_ns(void)
 
 static void cli_auto_jump_ns(void)
 {
-	uint32_t addr = SOC_GET_NS_ADDR(CONFIG_PRIMARY_NS_VIRTUAL_CODE_START + SOC_FLASH_DATA_BASE);
+	uint32_t addr = SOC_GET_NS_ADDR(CONFIG_PRIMARY_TFM_NS_VIRTUAL_CODE_START + SOC_FLASH_DATA_BASE);
 
 	CLI_LOGD("Auto S -> NS: %x\n", addr);
 	cli_prepare_jump_to_ns();

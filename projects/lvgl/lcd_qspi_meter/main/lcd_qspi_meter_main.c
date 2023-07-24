@@ -1,4 +1,4 @@
-#include "bk_private/legacy_init.h"
+#include "bk_private/bk_init.h"
 #include <components/system.h>
 #include <os/os.h>
 #include <components/shell_task.h>
@@ -11,6 +11,7 @@
 
 #include "lcd_act.h"
 #include "media_app.h"
+#include "lvgl.h"
 #include "lv_vendor.h"
 #include "driver/drv_tp.h"
 
@@ -84,11 +85,16 @@ void meter_init(void)
 	lv_vnd_config.draw_buf_2_1 = (lv_color_t *)PSRAM_DRAW_BUFFER;
 	lv_vnd_config.draw_buf_2_2 = (lv_color_t *)(PSRAM_DRAW_BUFFER + lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));
 #else
+	#define PSRAM_FRAME_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)
+
 	lv_vnd_config.draw_pixel_size = (75 * 1024) / sizeof(lv_color_t);
 	lv_vnd_config.draw_buf_2_1 = LV_MEM_CUSTOM_ALLOC(lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));
 	lv_vnd_config.draw_buf_2_2 = NULL;
+	lv_vnd_config.sram_frame_buf_1 = (lv_color_t *)PSRAM_FRAME_BUFFER;
+	lv_vnd_config.sram_frame_buf_2 = (lv_color_t *)PSRAM_FRAME_BUFFER + ppi_to_pixel_x(s_device_config->ppi) * ppi_to_pixel_y(s_device_config->ppi) * sizeof(lv_color_t);
 #endif
 	lv_vnd_config.rotation = ROTATE_NONE;
+	lv_vnd_config.color_depth = LV_COLOR_DEPTH;
 
 	lv_vendor_init(&lv_vnd_config, ppi_to_pixel_x(s_device_config->ppi), ppi_to_pixel_y(s_device_config->ppi));
 	lv_vendor_start();
@@ -112,7 +118,7 @@ int main(void)
 	// bk_set_printf_sync(true);
 	// shell_set_log_level(BK_LOG_WARN);
 #endif
-	legacy_init();
+	bk_init();
 
 	meter_init();
 

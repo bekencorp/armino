@@ -28,6 +28,8 @@
 #include <components/aud_intf.h>
 #include <driver/uvc_camera.h>
 
+#include <driver/media_types.h>
+
 #define TAG "mcli"
 
 #define LOGI(...) BK_LOGI(TAG, ##__VA_ARGS__)
@@ -44,7 +46,22 @@ void uvc_connect_state_callback(uint8_t state)
 {
 	LOGI("%s %d+++\n", __func__, state);
 	if (state == UVC_CONNECTED)
+	{
+#ifdef CONFIG_INTEGRATION_DOORBELL
+		camera_config_t camera_config;
+
+		os_memset(&camera_config, 0, sizeof(camera_config_t));
+
+		camera_config.type = UVC_CAMERA;
+		camera_config.image_format = IMAGE_MJPEG;
+		camera_config.width = 640;
+		camera_config.height = 480;
+			
+		media_app_camera_open(&camera_config);
+#else
 		media_app_camera_open(APP_CAMERA_UVC, PPI_640X480);
+#endif
+	}
 }
 #endif
 
@@ -194,7 +211,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 	{
 		if (os_strcmp(argv[1], "dvp") == 0)
 		{
-#if (defined(CONFIG_CAMERA) && !defined(CONFIG_SLAVE_CORE))
+#if (defined(CONFIG_DVP_CAMERA) && !defined(CONFIG_SLAVE_CORE))
 			media_ppi_t ppi = GET_PPI(PPI_640X480);
 			app_camera_type_t camera_type = APP_CAMERA_DVP_JPEG;
 
@@ -212,24 +229,76 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			{
 				if (CMD_CONTAIN("encode"))
 				{
+#ifdef CONFIG_INTEGRATION_DOORBELL
+					camera_config_t camera_config;
+			
+					os_memset(&camera_config, 0, sizeof(camera_config_t));
+			
+					camera_config.type = DVP_CAMERA;
+					camera_config.image_format = IMAGE_MJPEG;
+					camera_config.width = ppi >> 16;
+					camera_config.height = ppi & 0xFFFF;
+								
+					ret = media_app_camera_open(&camera_config);
+#else
 					ret = media_app_camera_open(APP_CAMERA_DVP_H264_LOCAL, ppi);
+#endif
 				}
 				
 				if (CMD_CONTAIN("enc_lcd"))
 				{
+#ifdef CONFIG_INTEGRATION_DOORBELL
+					camera_config_t camera_config;
+			
+					os_memset(&camera_config, 0, sizeof(camera_config_t));
+			
+					camera_config.type = DVP_CAMERA;
+					camera_config.image_format = IMAGE_MJPEG;
+					camera_config.width = ppi >> 16;
+					camera_config.height = ppi & 0xFFFF;
+								
+					ret = media_app_camera_open(&camera_config);
+#else
 					ret = media_app_camera_open(APP_CAMERA_DVP_H264_ENC_LCD, ppi);
+#endif
 				}
 
-				if (CMD_CONTAIN("usb_transfer"))
+				if (CMD_CONTAIN("transfer"))
 				{
-					ret = media_app_camera_open(APP_CAMERA_DVP_H264_USB_TRANSFER, ppi);
+#ifdef CONFIG_INTEGRATION_DOORBELL
+					camera_config_t camera_config;
+			
+					os_memset(&camera_config, 0, sizeof(camera_config_t));
+			
+					camera_config.type = DVP_CAMERA;
+					camera_config.image_format = IMAGE_MJPEG;
+					camera_config.width = ppi >> 16;
+					camera_config.height = ppi & 0xFFFF;
+								
+					ret = media_app_camera_open(&camera_config);
+#else
+					ret = media_app_camera_open(APP_CAMERA_DVP_H264_TRANSFER, ppi);
+#endif
 				}
 				
 			}
 
 			if (os_strcmp(argv[2], "open") == 0)
 			{
+#ifdef CONFIG_INTEGRATION_DOORBELL
+				camera_config_t camera_config;
+		
+				os_memset(&camera_config, 0, sizeof(camera_config_t));
+		
+				camera_config.type = DVP_CAMERA;
+				camera_config.image_format = IMAGE_MJPEG;
+				camera_config.width = ppi >> 16;
+				camera_config.height = ppi & 0xFFFF;
+							
+				ret = media_app_camera_open(&camera_config);
+#else
 				ret = media_app_camera_open(camera_type, ppi);
+#endif
 			}
 
 			if (os_strcmp(argv[2], "close") == 0)
@@ -602,9 +671,23 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				}
 				else
 				{
+					bk_uvc_camera_drop_frame(5);
 					media_app_register_uvc_connect_state_cb(uvc_connect_state_callback);
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+					camera_config_t camera_config;
+			
+					os_memset(&camera_config, 0, sizeof(camera_config_t));
+			
+					camera_config.type = DVP_CAMERA;
+					camera_config.image_format = IMAGE_MJPEG;
+					camera_config.width = ppi >> 16;
+					camera_config.height = ppi & 0xFFFF;
+								
+					ret = media_app_camera_open(&camera_config);
+#else
 					ret = media_app_camera_open(camera_type, ppi);
+#endif
 				}
 			}
 
@@ -669,7 +752,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 		if (os_strcmp(argv[1], "avi") == 0)
 		{
-#if defined(CONFIG_CAMERA) && !defined(CONFIG_SLAVE_CORE) && defined(CONFIG_VIDEO_AVI)
+#if defined(CONFIG_DVP_CAMERA) && !defined(CONFIG_SLAVE_CORE) && defined(CONFIG_VIDEO_AVI)
 		if (0 == os_strcmp(argv[2], "v_open"))
 		{
 			ret = media_app_avi_open();

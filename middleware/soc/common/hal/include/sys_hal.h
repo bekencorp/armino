@@ -115,6 +115,10 @@ uint32_t sys_hal_cpu_clk_div_get(uint32_t core_index);
 void sys_hal_low_power_hardware_init();
 int32 sys_hal_lp_vol_set(uint32_t value);
 uint32_t sys_hal_lp_vol_get();
+int32 sys_hal_rf_tx_vol_set(uint32_t value);
+uint32_t sys_hal_rf_tx_vol_get();
+int32 sys_hal_rf_rx_vol_set(uint32_t value);
+uint32_t sys_hal_rf_rx_vol_get();
 int32 sys_hal_module_power_state_get(power_module_name_t module);
 int32 sys_hal_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval);
 int sys_hal_rosc_test_mode(bool enabled);
@@ -315,6 +319,12 @@ void sys_hal_enable_hsu_int(void);
 
 void sys_hal_set_ana_vtempsel(uint32_t value);
 /**  WIFI End **/
+
+/**  MISC Start  */
+
+void sys_hal_set_ioldo_lp(uint32_t value);
+
+/**  MISC End  */
 
 /**  Audio Start  **/
 

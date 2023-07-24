@@ -165,3 +165,5 @@ int main(void)
     BOOT_LOG_ERR("Never should get here");
     FIH_PANIC;
 }
+// eof
+

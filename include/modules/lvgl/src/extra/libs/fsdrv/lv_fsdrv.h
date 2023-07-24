@@ -43,6 +43,10 @@ void lv_fs_posix_init(void);
 void lv_fs_win32_init(void);
 #endif
 
+#if CONFIG_VFS
+void lv_fs_bk_posix_init(void);
+#endif
+
 /**********************
  *      MACROS
  **********************/

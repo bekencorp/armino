@@ -16,6 +16,7 @@
 #include <components/video_types.h>
 #include "media_evt.h"
 #include "wlan_ui_pub.h"
+#include "media_app.h"
 #include "transfer_act.h"
 #include "storage_act.h"
 
@@ -32,12 +33,6 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
-#define WORD_REVERSE(x) ((((x) & 0x000000ffUL) << 24) | \
-						(((x) & 0x0000ff00UL) <<  8) | \
-						(((x) & 0x00ff0000UL) >>  8) | \
-						(((x) & 0xff000000UL) >> 24))
-
-
 static beken_thread_t transfer_app_task = NULL;
 static beken_queue_t transfer_app_msg_que = NULL;
 static transfer_data_t *transfer_app_data = NULL;
@@ -45,6 +40,10 @@ static video_setup_t *transfer_app_config = NULL;
 static frame_buffer_t *current_frame = NULL;
 static media_mailbox_msg_t *transfer_app_node = NULL;
 static bool transfer_app_task_running = false;
+
+#ifdef CONFIG_INTEGRATION_DOORBELL
+const media_transfer_cb_t *media_transfer_callback = NULL;
+#endif
 
 void os_memcpy_word_reverse(uint32_t *dst, uint32_t *src, uint32_t size)
 {
@@ -82,6 +81,23 @@ int send_frame_buffer_packet(uint8_t *data, uint32_t size, uint32_t retry_max)
 {
 	int ret = BK_FAIL;
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+
+	if (media_transfer_callback == NULL)
+		return ret;
+
+	if (media_transfer_callback->prepare)
+	{
+		media_transfer_callback->prepare(data, size);
+	}
+
+	//LOGI("%02x %02x %02x %02x, %d\r\n", data[0], data[1], data[2], data[3], size);
+
+	do
+	{
+		ret = media_transfer_callback->send(data, size);
+#else
+
 	if (!transfer_app_config->send_func)
 	{
 		return ret;
@@ -90,6 +106,7 @@ int send_frame_buffer_packet(uint8_t *data, uint32_t size, uint32_t retry_max)
 	do
 	{
 		ret = transfer_app_config->send_func(data, size);
+#endif
 		if (ret == size)
 		{
 			//rtos_delay_milliseconds(1);
@@ -184,7 +201,7 @@ static void transfer_app_task_send_handle(uint32_t param)
 		current_frame = NULL;
 
 		// send finish notify to cp1
-		msg_send_to_media_app_mailbox(transfer_app_node, BK_OK);
+		msg_send_rsp_to_media_app_mailbox(transfer_app_node, BK_OK);
 	}
 }
 
@@ -220,17 +237,22 @@ exit:
 
 	LOGI("transfer_app_task exit\n");
 
-	if (transfer_app_data)
-	{
-		os_free(transfer_app_data);
-		transfer_app_data = NULL;
-	}
-
 	if (transfer_app_config)
 	{
 		os_free(transfer_app_config);
 		transfer_app_config = NULL;
 	}
+
+#ifdef CONFIG_INTEGRATION_DOORBELL
+	media_transfer_callback = NULL;
+	transfer_app_data = NULL;
+#else
+	if (transfer_app_data)
+	{
+		os_free(transfer_app_data);
+		transfer_app_data = NULL;
+	}
+#endif
 
 	current_frame = NULL;
 	transfer_app_node = NULL;
@@ -244,6 +266,60 @@ exit:
 	rtos_delete_thread(NULL);
 }
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+bk_err_t transfer_app_task_init(const media_transfer_cb_t *cb)
+{
+	int ret = BK_OK;
+
+	if (transfer_app_task_running)
+	{
+		LOGI("transfer_app_task already init!\r\n");
+		return ret;
+	}
+
+	media_transfer_callback = cb;
+
+	LOGI("%s cb: %p ++\n", __func__, media_transfer_callback);
+
+	if (transfer_app_config == NULL)
+	{
+		transfer_app_config = (video_setup_t *)os_malloc(sizeof(video_setup_t));
+		if (transfer_app_config == NULL)
+		{
+			LOGE("% malloc failed\r\n", __func__);
+			return BK_ERR_NO_MEM;
+		}
+
+		os_memset(transfer_app_config, 0, sizeof(video_setup_t));
+		transfer_app_config->pkt_header_size = sizeof(transfer_data_t);
+	}
+
+	LOGI("%s, %p, %d\r\n", __func__, media_transfer_callback->get_tx_buf, __LINE__);
+
+	if (media_transfer_callback->get_tx_buf)
+	{
+		transfer_app_data = media_transfer_callback->get_tx_buf();
+		transfer_app_config->pkt_size = media_transfer_callback->get_tx_size() - transfer_app_config->pkt_header_size;
+
+		if (transfer_app_data == NULL
+			|| transfer_app_config->pkt_size <= 0)
+		{
+			LOGE("%s transfer_data: %p, size: %d\n", __func__, transfer_app_data, transfer_app_config->pkt_size);
+			return BK_FAIL;
+		}
+	}
+	else
+	{
+		if (transfer_app_data == NULL)
+		{
+			transfer_app_data = os_malloc(1472);
+		}
+
+		transfer_app_config->pkt_size = 1472 - transfer_app_config->pkt_header_size;
+	}
+
+	LOGI("%s transfer_data: %p, size: %d\n", __func__, transfer_app_data, transfer_app_config->pkt_size);
+#else
 bk_err_t transfer_app_task_init(video_setup_t *config)
 {
 	int ret = BK_OK;
@@ -281,6 +357,8 @@ bk_err_t transfer_app_task_init(video_setup_t *config)
 		}
 	}
 
+#endif
+
 	if ((!transfer_app_task) && (!transfer_app_msg_que))
 	{
 		ret = rtos_init_queue(&transfer_app_msg_que,
@@ -298,7 +376,7 @@ bk_err_t transfer_app_task_init(video_setup_t *config)
 								BEKEN_DEFAULT_WORKER_PRIORITY,
 								"transfer_app_task",
 								(beken_thread_function_t)transfer_app_task_entry,
-								1024,
+								1536,
 								NULL);
 
 		if (BK_OK != ret)
@@ -338,7 +416,7 @@ static bk_err_t transfer_app_task_start_handle(media_mailbox_msg_t *mailbox_msg)
 	else
 	{
 		LOGI("%s transfer_app_task not start\r\n", __func__);
-		msg_send_to_media_app_mailbox(mailbox_msg, BK_OK);
+		msg_send_rsp_to_media_app_mailbox(mailbox_msg, BK_OK);
 	}
 
 	return kNoErr;

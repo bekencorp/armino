@@ -54,7 +54,7 @@ const unsigned int g_sram_addr_map[4] =
 
 void meter_init(void)
 {
-#ifdef CONFIG_LV_USE_DEMO_METER
+#ifdef CONFIG_LV_QSPI_USE_DEMO_METER
 	lv_vnd_config_t lv_vnd_config;
 
 	os_printf("meter Start\r\n");

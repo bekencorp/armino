@@ -147,6 +147,10 @@ uint32_t sys_drv_cpu_clk_div_get(uint32_t core_index);
 void sys_drv_low_power_hardware_init();
 int32 sys_drv_lp_vol_set(uint32_t value);
 uint32_t sys_drv_lp_vol_get();
+int32 sys_drv_rf_tx_vol_set(uint32_t value);
+uint32_t sys_drv_rf_tx_vol_get();
+int32 sys_drv_rf_rx_vol_set(uint32_t value);
+uint32_t sys_drv_rf_rx_vol_get();
 int32 sys_drv_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval);
 int32 sys_drv_bandgap_cali_set(uint32_t value);//increase or decrease the dvdddig voltage
 int sys_drv_rosc_test_mode(bool enabled);
@@ -487,6 +491,7 @@ void sys_drv_set_ana_vlsel_ldodig(uint32_t value);
 void sys_drv_set_ana_vhsel_ldodig(uint32_t value);
 void sys_drv_set_ana_vctrl_sysldo(uint32_t value);
 void sys_drv_set_ana_vtempsel(uint32_t value);
+void sys_drv_set_ana_ioldo_lp(uint32_t value);
 
 uint32_t sys_drv_get_cpu_storage_connect_op_select_flash_sel(void);
 void sys_drv_set_cpu_storage_connect_op_select_flash_sel(uint32_t value);

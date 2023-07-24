@@ -16,6 +16,7 @@
 #include <common/bk_generic.h>
 
 #include "doorbell_comm.h"
+#include "doorbell_network.h"
 #include "doorbell_transmission.h"
 #include "doorbell_devices.h"
 #include "doorbell_cmd.h"
@@ -54,6 +55,9 @@ typedef enum
 	DBCMD_SET_LCD_TURN_ON = 13,
 	DBCMD_SET_LCD_TURN_OFF = 14,
 	DBCMD_GET_LCD_STATUS = 15,
+
+	DBCMD_PNG = 100,
+
 } dbcmd_t;
 
 
@@ -75,13 +79,11 @@ typedef struct
 	beken_mutex_t tx_lock;
 	beken_timer_t timer;
 	uint32_t intval_ms;
+	in_addr_t remote_address;
 } db_cmd_info_t;
 
 
 db_cmd_info_t *db_cmd_info = NULL;
-
-
-
 
 int doorbell_transmission_send(uint8_t *data, uint16_t length)
 {
@@ -100,7 +102,7 @@ int doorbell_transmission_send(uint8_t *data, uint16_t length)
 	}
 
 	rtos_lock_mutex(&db_cmd_info->tx_lock);
-	ret = write(db_cmd_info->client_fd, data, length);
+	ret = doorbell_socket_write(&db_cmd_info->client_fd, data, length, 0);
 	rtos_unlock_mutex(&db_cmd_info->tx_lock);
 
 	return ret;
@@ -114,6 +116,8 @@ static const db_channel_cb_t db_channel_callback =
 
 void doorbell_transmission_event_report(db_channel_t *channel, uint32_t opcode, uint8_t status, uint16_t flags)
 {
+	LOGI("%s, %d\n", __func__, opcode);
+
 	db_evt_head_t evt;
 	evt.opcode = CHECK_ENDIAN_UINT16(opcode);
 	evt.status = status;
@@ -278,6 +282,8 @@ void doorbell_transmission_cmd_recive_callback(db_channel_t *channel, uint16_t s
 			{
 				doorbell_keep_alive_stop_timer();
 			}
+
+			doorbell_transmission_event_report(channel, cmd.opcode, EVT_STATUS_OK, EVT_FLAGS_COMPLETE);
 		}
 		break;
 
@@ -300,11 +306,12 @@ void doorbell_transmission_cmd_recive_callback(db_channel_t *channel, uint16_t s
 				LOGD("error\n");
 			}
 
-			uint16_t width, height;
+			uint16_t width, height, format;
 			STREAM_TO_UINT16(width, p);
 			STREAM_TO_UINT16(height, p);
+			STREAM_TO_UINT16(format, p);
 
-			int ret = doorbell_camera_turn_on(cmd.param & 0xFFFF, width, height);
+			int ret = doorbell_camera_turn_on(cmd.param & 0xFFFF, width, height, format);
 
 			doorbell_transmission_event_report(channel, cmd.opcode, ret & 0xFF, EVT_FLAGS_COMPLETE);
 		}
@@ -381,8 +388,17 @@ void doorbell_transmission_cmd_recive_callback(db_channel_t *channel, uint16_t s
 		}
 		break;
 
+		case DBCMD_PNG:
+		{
+			doorbell_transmission_event_report(channel, cmd.opcode, EVT_STATUS_OK, EVT_FLAGS_COMPLETE);
+		}
+		break;
 
-
+		default:
+		{
+			doorbell_transmission_event_report(channel, cmd.opcode, EVT_STATUS_UNKNOWN, EVT_FLAGS_COMPLETE);
+		}
+		break;
 	}
 }
 
@@ -469,6 +485,7 @@ static void doorbell_cmd_server_thread(beken_thread_arg_t data)
 				socklen_t cliaddr_len = 0;
 
 				cliaddr_len = sizeof(client_addr);
+
 				db_cmd_info->client_fd = accept(db_cmd_info->server_fd, (struct sockaddr *)&client_addr, &cliaddr_len);
 
 				if (db_cmd_info->client_fd < 0)
@@ -477,11 +494,27 @@ static void doorbell_cmd_server_thread(beken_thread_arg_t data)
 					break;
 				}
 
-				LOGI("accept a new connection fd:%d\n", db_cmd_info->client_fd);
+				uint8_t *src_ipaddr = (UINT8 *)&client_addr.sin_addr.s_addr;
 
-				//doorbell_cmd_set_keepalive(db_cmd_info->client_fd);
+				LOGI("accept a new connection fd:%d, %d.%d.%d.%d\n", db_cmd_info->client_fd, src_ipaddr[0], src_ipaddr[1],
+											 src_ipaddr[2], src_ipaddr[3]);
 
-				db_cmd_info->server_state = BK_TRUE;
+				 db_cmd_info->remote_address = client_addr.sin_addr.s_addr;
+
+
+				doorbell_socket_set_qos(db_cmd_info->client_fd, IP_QOS_PRIORITY_HIGHEST);
+
+				if (db_cmd_info->server_state == BK_FALSE)
+				{
+					doorbell_msg_t msg;
+
+					db_cmd_info->server_state = BK_TRUE;
+
+					msg.event = DBEVT_REMOTE_DEVICE_CONNECTED;
+					msg.param = db_cmd_info->remote_address;
+					doorbell_send_msg(&msg);
+				}
+				
 
 				while (db_cmd_info->server_state == BK_TRUE)
 				{
@@ -498,6 +531,17 @@ static void doorbell_cmd_server_thread(beken_thread_arg_t data)
 						LOGI("recv close fd:%d, rcv_len:%d\n", db_cmd_info->client_fd, rcv_len);
 						close(db_cmd_info->client_fd);
 						db_cmd_info->client_fd = -1;
+
+						if (db_cmd_info->server_state == BK_TRUE)
+						{
+							doorbell_msg_t msg;
+
+							db_cmd_info->server_state = BK_FALSE;
+
+							msg.event = DBEVT_REMOTE_DEVICE_DISCONNECTED;
+							msg.param = BK_OK;
+							doorbell_send_msg(&msg);
+						}						
 						break;
 					}
 
@@ -525,6 +569,11 @@ out:
 
 	db_cmd_info->thread = NULL;
 	rtos_delete_thread(NULL);
+}
+
+in_addr_t doorbell_cmd_get_socket_address(void)
+{
+	return db_cmd_info->remote_address;
 }
 
 void doorbell_cmd_server_init(void)

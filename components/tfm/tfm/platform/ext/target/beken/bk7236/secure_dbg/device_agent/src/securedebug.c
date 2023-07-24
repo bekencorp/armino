@@ -41,7 +41,6 @@ hal_ret_t sec_debug_init(sec_debug_ctx_t *sec_debug_ctx, void *args)
     return HAL_OK;
 }
 
-
 hal_ret_t sec_debug_cleanup(sec_debug_ctx_t sec_debug_ctx)
 {
     if (sec_debug_ctx != (sec_debug_ctx_t *)(&g_sec_dbg_ctx)) {
@@ -51,6 +50,7 @@ hal_ret_t sec_debug_cleanup(sec_debug_ctx_t sec_debug_ctx)
     hal_channel_cleanup(g_sec_dbg_ctx.channel);
 
     pal_memset(&g_sec_dbg_ctx, 0, sizeof(sec_debug_buff_alloc_ctx_t));
+
     return HAL_OK;
 }
 
@@ -62,11 +62,6 @@ hal_ret_t sec_debug_enable(sec_debug_ctx_t sec_debug_ctx)
     }
 
     return sec_debug_protocol_process();
-}
-
-bool sec_debug_get_enable_flag(void)
-{
-    return hal_secure_debug_is_enabled();
 }
 // eof
 

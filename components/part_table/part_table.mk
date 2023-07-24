@@ -1,15 +1,16 @@
 PART_TABLE_SUPPORTED_TARGETS := bk7256 bk7235
-PART_TABLE_SUPPORTED_PROJECTS := app
+PART_TABLE_SUPPORTED_PROJECTS := app ate_mini_code
 ARMINO_TOOL_PART_TABLE := $(ARMINO_DIR)/tools/build_tools/part_table_tools/gen_bk7256partitions.py
 PARTITIONS_ARGS := --flash-size=16MB --smode
 BOOTLOADER_JSON_INSEQ := --smode-inseq=1,1,2,0,0,0
-BOOTLOADER_JSON := $(ARMINO_BOOTLOADER)tools/partition_bk7256_ota_a_new.json
+BOOTLOADER_JSON := $(ARMINO_DIR)/tools/build_tools/part_table_tools/tempFiles/partition_bk7256_ota_a_new.json
 BOOTLOADER_JSON_OLD := $(ARMINO_BOOTLOADER)tools/partition_bk7256_ota_a.json
 CLEAN_ALLFILE_INSEQ := --smode-inseq=3,0
 SHOW_APPS_INSEQ := --smode-inseq=4,0
 DEFAULT_CSV_FILE := $(ARMINO_DIR)/tools/build_tools/part_table_tools/bk7256Partitions.csv
 
 ifneq ($(findstring $(ARMINO_SOC), $(PART_TABLE_SUPPORTED_TARGETS)),)
+ifneq ($(findstring $(PROJECT), $(PART_TABLE_SUPPORTED_PROJECTS)),)
 	main_target_config := $(ARMINO_DIR)/$(PROJECT_DIR)/config/$(ARMINO_SOC).config
 	target_config_tool := $(ARMINO_DIR)/tools/build_tools/part_table_tools/otherScript/get_target_config_val.py
 	target_config_tool_args := --config=$(main_target_config)
@@ -30,6 +31,9 @@ ifneq ($(findstring $(ARMINO_SOC), $(PART_TABLE_SUPPORTED_TARGETS)),)
 else
 	PARTITIONS_CSV_FILE := $(ARMINO_DIR)/middleware/boards/$(ARMINO_SOC)/partitions.csv
 endif
+else
+	PARTITIONS_CSV_FILE := $(ARMINO_DIR)/middleware/boards/$(ARMINO_SOC)/partitions.csv
+endif
 
 PT_VERBOSE ?= 0
 ifeq ("$(PT_VERBOSE)", "1")
@@ -45,7 +49,8 @@ $(info "PARTITIONS_CSV_FILE: $(PARTITIONS_CSV_FILE)")
 $(info "BOOTLOADER_JSON: $(BOOTLOADER_JSON)")
 $(info "BOOTLOADER_JSON_INSEQ: $(BOOTLOADER_JSON_INSEQ)")
 $(info "SHOW_APPS_INSEQ: $(SHOW_APPS_INSEQ)")
-#$(info "app_names: $(app_names)")
-#$(info "SUPPORT_DUAL_CORE: $(SUPPORT_DUAL_CORE)")
+$(info "app_names: $(app_names)")
+$(info "SUPPORT_DUAL_CORE: $(SUPPORT_DUAL_CORE)")
+$(info "PROJECT: $(PROJECT)")
 $(info "<========================part_table_tools info stop ========================>")
 endif

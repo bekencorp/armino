@@ -21,6 +21,7 @@
 #include "boot.h"
 #include <modules/pm.h>
 #include "aon_pmu_driver.h"
+#include <driver/pwr_clk.h>
 #if CONFIG_BLE
 #include "modules/ble.h"
 #include "ble_api_5_x.h"
@@ -56,6 +57,10 @@ extern void bk_ota_confirm_update_partition(ota_confirm_flag ota_confirm_val);
 
 #ifdef CONFIG_MEDIA
 #include "media_core.h"
+#endif
+
+#if CONFIG_BUTTON
+#include "key_main.h"
 #endif
 
 #if (CONFIG_SOC_BK7236XX)
@@ -230,9 +235,9 @@ int bk_init(void)
 
 #if (CONFIG_MEDIA && CONFIG_SOC_BK7258)
 #if (CONFIG_MEDIA_MAJOR)
-    media_major_mailbox_init();
+	media_major_mailbox_init();
 #else
-    media_app_mailbox_init();
+	media_app_mailbox_init();
 
 #if (CONFIG_PSRAM)
 	bk_psram_init();
@@ -240,6 +245,8 @@ int bk_init(void)
 
 #endif
 #endif
+
+	bk_pm_mailbox_init();
 
 #if (!CONFIG_SLAVE_CORE)
 
@@ -329,5 +336,10 @@ extern int mp_do_startup(int heap_len);
 	mp_do_startup(0);
 #endif
 
+#if !CONFIG_SLAVE_CORE
+#if CONFIG_CPU_DEFAULT_FREQ_60M
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DEFAULT,PM_CPU_FRQ_60M);
+#endif
+#endif
 	return 0;
 }

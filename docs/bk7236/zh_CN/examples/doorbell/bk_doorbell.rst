@@ -54,11 +54,11 @@ DOORBELL
 	+======================================+========================+============================================+=========+
 	|CONFIG_DOORBELL                       |support DOORBELL        |``middleware\soc\bk7236\bk7236.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_JPEGENC_HW                     |suport hw jpeg ecoder   |``middleware\soc\bk7236\bk7236.defconfig``  |    y    |
+	|CONFIG_JPEGENC_HW                     |support hw jpeg ecoder  |``middleware\soc\bk7236\bk7236.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_CAMERA                         |suport use dvp camera   |``middleware\soc\bk7236\bk7236.defconfig``  |    y    |
+	|CONFIG_DVP_CAMERA                     |support use dvp camera  |``middleware\soc\bk7236\bk7236.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_CAMERA_USE_I2C1                |suport use I2C1         |``middleware\soc\bk7236\bk7236.defconfig``  |    y    |
+	|CONFIG_DVP_CAMERA_I2C_ID              |support use I2C ID      |``middleware\soc\bk7236\bk7236.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 	|CONFIG_AUDIO                          |support audio function  |``middleware\soc\bk7236\bk7236.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+

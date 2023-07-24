@@ -9,7 +9,6 @@ if (CONFIG_H264 AND CONFIG_SOC_BK7236)
 
 	list(APPEND srcs
 		"src/h264_core.c"
-		"src/h264_udp.c"
 		"src/h264_tcp.c"
 	)
 

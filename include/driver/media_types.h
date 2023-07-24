@@ -130,13 +130,13 @@ typedef enum {
 
 typedef enum {
 	MEDIA_DVP_MJPEG,
-	MEDIA_DVP_H264_WIFI_TRANSFER,
-	MEDIA_DVP_H264_USB_TRANSFER,
+	MEDIA_DVP_H264_TRANSFER,
 	MEDIA_DVP_H264_ENC_LCD,
 	MEDIA_DVP_H264_LOCAL,
 	MEDIA_DVP_YUV,
 	MEDIA_DVP_MIX,
 	MEDIA_UVC_MJPEG,
+	MEDIA_UVC_MJPEG_TO_H264,
 	MEDIA_UVC_H264,
 	MEDIA_CAMERA_UNKNOW,
 } media_camera_type_t;
@@ -163,6 +163,47 @@ typedef enum
 	EVENT_LCD_DEC_SW_MBCMD = 0x1c,
 	EVENT_LCD_DEC_SW_MBRSP = 0x1d,
 } media_mailbox_event_t;
+
+typedef enum
+{
+	TRS_STATE_DISABLED,
+	TRS_STATE_ENABLED,
+} media_trs_state_t;
+
+typedef enum
+{
+	STORAGE_STATE_DISABLED,
+	STORAGE_STATE_ENABLED,
+} media_storage_state_t;
+
+typedef enum
+{
+	LCD_STATE_DISABLED,
+	LCD_STATE_ENABLED,
+	LCD_STATE_DISPLAY,
+} media_lcd_state_t;
+
+typedef enum
+{
+	CAMERA_STATE_DISABLED,
+	CAMERA_STATE_ENABLED,
+} media_camera_state_t;
+
+typedef enum
+{
+	AUDIO_STATE_DISABLED,
+	AUDIO_STATE_ENABLED,
+} media_audio_state_t;
+
+
+typedef struct
+{
+	media_audio_state_t  aud_state;
+	media_camera_state_t cam_state;
+	media_lcd_state_t    lcd_state;
+	media_storage_state_t stor_state;
+	media_trs_state_t    trs_state;
+} media_modules_state_t;
 
 typedef struct {
 	media_camera_type_t camera_type;
@@ -196,6 +237,30 @@ typedef enum
 	DVP_CAMERA,    /**< dvp camera */
 	UVC_CAMERA,    /**< uvc camera */
 } camera_type_t;
+
+
+typedef enum
+{
+	IMAGE_UNKNOW = 0,
+	IMAGE_YUV    = (1 << 0),
+	IMAGE_RGB    = (1 << 1),
+	IMAGE_MJPEG   = (1 << 2),
+	IMAGE_H264   = (1 << 3),
+} image_format_t;
+
+/**
+ * @brief define camera config
+ * @{
+ */
+typedef struct
+{
+	uint8_t type;
+	uint16_t image_format;
+	uint16_t pixel_format;
+	uint16_t width;
+	uint16_t height;
+} camera_config_t;
+
 
 /**
  * @brief define struct for debug

@@ -3,8 +3,36 @@ menu "PWM"
 		bool "Enable pwm"
 		default y
 
+	choice PWM_VERSION
+		prompt "ASIC PWM IP Version"
+		default PWM_V0P0
+
+		config PWM_V0P0
+			bool "PWM_V0P0"
+			help 
+			    ASIC PWM IP Version V0P0:BK7256XX,BK7251XX,the chips MP before 2023-04
+
+		config PWM_V1PX
+			bool "PWM_V1PX"
+			help 
+			    "ASIC PWM IP Version V1P1:BK7236XX...,the chips MP after 2023-04"
+	endchoice
+
+	config PWM_DEVICE0_SUPPORT
+		bool "PWM_DEVICE0_SUPPORT"
+		default y
+		help
+		    The PWM device-0 is enable,the PWM device-0 supports PWM channel 0~5
+
+	config PWM_DEVICE1_SUPPORT
+		bool "PWM_DEVICE1_SUPPORT"
+		default y
+		help
+		    The PWM device-1 is enable,the PWM device-1 supports PWM channel 6~11
+
 	config PWM_HAS_TWO_INT
 		bool "Enable pwm has two int"
 		default n
+
 endmenu
 

@@ -41,7 +41,9 @@ void media_deinit();
 
 
 bk_err_t media_major_mailbox_init(void);
+bk_err_t media_major_mailbox_deinit(void);
 bk_err_t media_app_mailbox_init(void);
+bk_err_t media_app_mailbox_deinit(void);
 
 bk_err_t media_mailbox_send_msg(uint32_t cmd, uint32_t param1, uint32_t param2);
 

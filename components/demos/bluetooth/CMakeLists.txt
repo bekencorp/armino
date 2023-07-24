@@ -2,10 +2,12 @@ set(incs ble_boarding)
 set(srcs)
 
 if (CONFIG_AT_CMD)
+if (NOT CONFIG_BTDM_CONTROLLER_ONLY)
 	list(APPEND srcs
 		ble_boarding/ble_boarding.c
 		ble_boarding/dm_ble_boarding.c
 		)
+endif()
 endif()
 
 if (CONFIG_A2DP_SINK_DEMO)

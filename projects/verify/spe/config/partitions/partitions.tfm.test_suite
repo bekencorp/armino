@@ -1,21 +1,15 @@
 {
-    "description": "NS BL1 -> TFM S -> TFM NS",
+    "description": "legacy boot: BL1->TFM S->TFM NS",
     "partitions": [
-        { "partition": "primary_s", 
+        { "partition": "primary_tfm_s", 
 		"offset": "0x00000000", 
 		"size": "544k",
 		"bin": "tfm_s.bin", 
 		"bin_type": "code"},
-        { "partition": "primary_ns", 
+        { "partition": "primary_tfm_ns", 
 		"offset": "0x00088000",
 		"size": "256k", 
 		"bin": "tfm_ns.bin", 
-		"bin_type": "code"},
-        { "partition": "primary_app",
-		"offset": "0x000c8000",
-		"size": "476k",
-		"bin": "app.bin",
-		"bin_type": "code",
-		"version": "0x00010001"}
+		"bin_type": "code"}
    ]
 }

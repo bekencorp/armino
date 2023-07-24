@@ -10,32 +10,9 @@
 #endif
 
 #if (CONFIG_TFM_FWU)
-static uint32_t ota_image_flag = 0;
+#include "sys_ctrl/sys_driver.h"
 
-psa_image_id_t primary_manifest_image = \
-                (psa_image_id_t)FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_STAGE,
-                                                       FWU_IMAGE_TYPE_PRIMARY_MANIFEST,
-                                                       0);
-psa_image_id_t secondary_manifest_image = \
-                (psa_image_id_t)FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_STAGE,
-                                                       FWU_IMAGE_TYPE_SECONDARY_MANIFEST,
-                                                       0);
-psa_image_id_t primary_bl2_image = \
-                (psa_image_id_t)FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_STAGE,
-                                                       FWU_IMAGE_TYPE_PRIMARY_BL2,
-                                                       0);
-psa_image_id_t secondary_bl2_image = \
-                (psa_image_id_t)FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_STAGE,
-                                                       FWU_IMAGE_TYPE_SECONDARY_BL2,
-                                                       0);
-psa_image_id_t spe_image = \
-                (psa_image_id_t)FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_STAGE,
-                                                       FWU_IMAGE_TYPE_SECONDARY_SPE,
-                                                       0);
-psa_image_id_t nspe_image = \
-                (psa_image_id_t)FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_STAGE,
-                                                       FWU_IMAGE_TYPE_SECONDARY_NSPE,
-                                                       0);
+static uint32_t ota_image_flag = 0;
 
 static int bk_ota_check(psa_image_id_t ota_image)
 {
@@ -335,41 +312,29 @@ int bk_http_ota_download(const char *uri)
 		bk_reboot();
 #else
 #if (CONFIG_TFM_FWU)
-		if (bk_ota_get_flag() & OTA_BL2_FLAG) {
-			bk_printf("start bl2 checking...\r\n");
-			ret = bk_ota_check(secondary_bl2_image);
-			if (ret) {
-				bk_printf("check bl2 fail\r\n");
-				return -1;
+	psa_image_id_t psa_image_id = 0;
+	uint8_t fwu_image_id = 0;
+
+	sys_drv_module_power_ctrl(POWER_MODULE_NAME_ENCP, POWER_MODULE_STATE_ON);
+	uint32_t ota_flags = bk_ota_get_flag();
+	while (ota_flags) {
+		if (ota_flags & 1) {
+			bk_printf("checking fwu image%d...\r\n", fwu_image_id);
+			psa_image_id = (psa_image_id_t)FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_STAGE, fwu_image_id, 0);
+			ret = bk_ota_check(psa_image_id);
+			if (ret != BK_OK) {
+				bk_printf("check fwu image%d failed\r\n", fwu_image_id);
+				return BK_FAIL;
 			} else {
-				bk_printf("check bl2 success\r\n");
+				bk_printf("check fwu image%d success\r\n", fwu_image_id);
 			}
 		}
-
-		if (bk_ota_get_flag() & OTA_SPE_FLAG) {
-			bk_printf("start spe checking...\r\n");
-			ret = bk_ota_check(spe_image);
-			if (ret) {
-				bk_printf("check spe fail\r\n");
-				return -1;
-			} else {
-				bk_printf("check spe success\r\n");
-			}
-		}
-
-		if (bk_ota_get_flag() & OTA_NSPE_FLAG) {
-			bk_printf("start nspe checking...\r\n");
-			ret = bk_ota_check(nspe_image);
-			if (ret) {
-				bk_printf("check nspe fail\r\n");
-				return -1;
-			} else {
-				bk_printf("check nspe success\r\n");
-			}
-		}
-
-		bk_printf("reboot\r\n");
-		psa_fwu_request_reboot();
+		ota_flags >>= 1;
+		fwu_image_id++;
+	}
+	
+	bk_printf("reboot\r\n");
+	psa_fwu_request_reboot();
 #else
         bk_reboot();
 #endif

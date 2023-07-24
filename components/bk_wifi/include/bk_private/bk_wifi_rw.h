@@ -46,6 +46,7 @@ void bk_wifi_get_mac_trx_status(bool reset_status);
 uint8_t bk_wifi_get_bandw(void);
 void bk_wifi_get_rx_statistic(uint32_t *RxSuccessCount);
 void bk_wifi_get_tx_statistic(uint32_t *TxSuccessCount, uint32_t *TxRetryCount, uint32_t *TxFailCount);
+void bk_wifi_get_wifi_config(void);
 #ifdef __cplusplus
 }
 #endif

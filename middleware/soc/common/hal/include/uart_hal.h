@@ -47,11 +47,9 @@ typedef struct {
 #define uart_hal_is_rx_interrupt_triggered(hal, id, status) uart_ll_is_rx_interrupt_triggered((hal)->hw, id, status)
 #define uart_hal_is_tx_interrupt_triggered(hal, id, status) uart_ll_is_tx_interrupt_triggered((hal)->hw, id, status)
 #define uart_hal_is_rx_recv_fini_int_triggered(hal, id, status) uart_ll_is_rx_recv_fini_int_triggered((hal)->hw, id, status)
-#if CONFIG_UART_ERR_INTERRUPT
-	#define uart_hal_is_rx_over_flow_int_triggered(hal, id, status) uart_ll_is_rx_over_flow_int_triggered((hal)->hw, id, status)
-	#define uart_hal_is_rx_parity_err_int_triggered(hal, id, status) uart_ll_is_rx_parity_err_int_triggered((hal)->hw, id, status)
-	#define uart_hal_is_rx_stop_bits_err_int_triggered(hal, id, status) uart_ll_is_rx_stop_bits_err_int_triggered((hal)->hw, id, status)
-#endif
+#define uart_hal_is_rx_over_flow_int_triggered(hal, id, status) uart_ll_is_rx_over_flow_int_triggered((hal)->hw, id, status)
+#define uart_hal_is_rx_parity_err_int_triggered(hal, id, status) uart_ll_is_rx_parity_err_int_triggered((hal)->hw, id, status)
+#define uart_hal_is_rx_stop_bits_err_int_triggered(hal, id, status) uart_ll_is_rx_stop_bits_err_int_triggered((hal)->hw, id, status)
 #define uart_hal_disable_tx(hal, id) uart_ll_disable_tx((hal)->hw, id)
 #define uart_hal_disable_rx(hal, id) uart_ll_disable_rx((hal)->hw, id)
 #define uart_hal_set_tx_enable(hal, id, enable) uart_ll_set_tx_enable((hal)->hw, id, enable)
@@ -82,6 +80,8 @@ typedef struct {
 
 #define uart_hal_write_byte(hal, id, data) uart_ll_write_byte((hal)->hw, id, data)
 #define uart_hal_read_byte(hal, id) uart_ll_read_byte((hal)->hw, id)
+#define uart_hal_get_write_data_addr(hal, id) uart_ll_get_write_data_addr((hal)->hw, id)
+#define uart_hal_get_read_data_addr(hal, id) uart_ll_get_read_data_addr((hal)->hw, id)
 #define uart_hal_get_tx_pin(id) uart_ll_get_tx_pin(id)
 #define uart_hal_get_rx_pin(id) uart_ll_get_rx_pin(id)
 #define uart_hal_get_cts_pin(id) uart_ll_get_cts_pin(id)

@@ -690,6 +690,11 @@ static inline uint32_t aon_pmu_ll_get_reg73_cal_done(void) {
 	return r->cal_done;
 }
 
+static inline uint32_t aon_pmu_ll_get_r7b(void) {
+	aon_pmu_r7b_t *r = (aon_pmu_r7b_t*)(SOC_AON_PMU_REG_BASE + (0x7b << 2));
+	return r->v;
+}
+
 //reg r7c:
 
 static inline void aon_pmu_ll_set_r7c(uint32_t v) {

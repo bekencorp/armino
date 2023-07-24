@@ -17,6 +17,8 @@
 #include "bootutil/fault_injection_hardening.h"
 #endif /* CRYPTO_HW_ACCELERATOR */
 
+void bl2_secure_debug(void);
+
 /* Flash device names must be specified by target */
 #ifdef FLASH_DEV_NAME
 extern ARM_DRIVER_FLASH FLASH_DEV_NAME;
@@ -137,6 +139,8 @@ int32_t boot_platform_init(void)
     int32_t result;
 
     close_wdt();
+	bl2_secure_debug();
+
     boot_platform_enable_fault_interrupt();
 #if defined(__ARM_ARCH_8M_MAIN__) || defined(__ARM_ARCH_8M_BASE__) \
  || defined(__ARM_ARCH_8_1M_MAIN__)

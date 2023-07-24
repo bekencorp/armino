@@ -1,33 +1,4 @@
 menu "Demos::Media::Video"
-
-	menu "Modify Camera Config"
-		config CAMERA
-			bool "Enable Camera"
-			depends on I2C
-			depends on GENERAL_DMA
-			default n
-			help
-				Enable camera interface
-
-		choice CAMERA_I2C_ID
-			prompt "Select Camera I2C"
-			default CAMERA_USE_I2C0
-		
-			config CAMERA_USE_I2C0
-				bool "CAMERA_USE_I2C0"
-			config CAMERA_USE_I2C1
-				bool "CAMERA_USE_I2C1"
-			config CAMERA_USE_I2C2
-				bool "CAMERA_USE_I2C2"
-		endchoice
-
-		config CAMERA_I2C_ID
-			int "Set Camera I2c Id"
-			default 0 if CAMERA_USE_I2C0
-			default 1 if CAMERA_USE_I2C1
-			default 2 if CAMERA_USE_I2C2
-	endmenu
-
 	config JPEGDEC_SW
 		bool "Enable SoftWare Jpeg Decode"
 		default n

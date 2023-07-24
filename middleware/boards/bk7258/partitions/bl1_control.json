@@ -1,0 +1,41 @@
+{
+    "//": "The 1st 4K is for deep sleep fast boot-mode or jump bin",
+    "//": "The 2nd 4K is for Boot control, debug only",
+    "//": "The 3rd 4K is for OTP simulation, debug only",
+
+    "description": "flash control configurations",
+    "tlvs": [
+        {"name": "msp",                    "size": "4b",  "fill": "255"},
+        {"name": "pc",                     "size": "4b",  "fill": "255"},
+        {"name": "reserved",               "size": "4088b",  "fill": "255"},
+
+        {"name": "magic",                  "size": "4b",  "value": "6354724C", "hex":"y"},
+        {"name": "boot_flag",              "size": "4b",  "value": "ffffffff", "hex":"y"},
+        {"name": "primary_manifest_addr",  "size": "4b",  "value": "00000000", "hex":"y"},
+        {"name": "recovery_manifest_addr", "size": "4b",  "value": "00000000", "hex":"y"},
+        {"name": "pll_ena",                "size": "4b",  "value": "01000000", "hex":"y"},
+        {"name": "security_boot_supported","size": "4b",  "value": "01000000", "hex":"y"},
+        {"name": "security_boot_ena",      "size": "4b",  "value": "00000000", "hex":"y"},
+        {"name": "security_boot_print_dis","size": "4b",  "value": "00000000", "hex":"y"},
+        {"name": "jtag_dis",               "size": "4b",  "value": "01000000", "hex":"y"},
+        {"name": "sw_fih_delay_ena",       "size": "4b",  "value": "00000000", "hex":"y"},
+        {"name": "reserved1",              "size": "4056b", "fill": "255"},
+
+        {"name": "Hardware1",   "size": "96b",  "fill": "0"},
+        {"name": "aes_k1",      "size": "16b",  "value": "5cdc65b9a703744ebfd62a7f39bfc773", "hex":"y", "endian":"l"},
+        {"name": "aes_k2",      "size": "16b",  "value": "18fb833140fb4f819cd6c239f05d64e0", "hex":"y", "endian":"l"},
+        {"name": "Hardware",      "size": "128b",  "fill": "0"},
+        {"name": "Model ID",      "size": "4b",  "value": "7236"},
+        {"name": "Model Key",     "size": "16b", "value": "1111111111111111"},
+        {"name": "Device ID",     "size": "4b",  "fill": "0"},
+        {"name": "Root Key",      "size": "16b", "value": "2222222222222222"},
+        {"name": "BT PK Hash",    "size": "32b", "firmware": "puk_digest.bin"},
+        {"name": "Debug PK Hash", "size": "32b", "value": "11223344556677889900aabbccddeeff", "hex":"y"},
+        {"name": "LCS",           "size": "4b",  "value": "01000000", "hex":"y"},
+        {"name": "Reserved",      "size": "16b", "fill": "0"},
+        {"name": "Lock Control",  "size": "4b",  "fill": "0"},
+        {"name": "FOTA Ver",      "size": "4b",  "fill": "0"},
+        {"name": "Recovery Ver",  "size": "4b",  "fill": "0"},
+        {"name": "Primary Ver",   "size": "4b",  "fill": "0"}
+    ]
+}

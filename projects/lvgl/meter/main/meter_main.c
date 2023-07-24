@@ -44,8 +44,8 @@ int cli_meter_init(void)
 const unsigned int g_sram_addr_map[4] =
 {
 	0x38000000,
-	0x30020000,
 	0x38020000,
+	0x38040000,
 	0x30000000
 };
 #endif

@@ -1005,9 +1005,7 @@ static inline int _arm_ce_opt_check_write_valid( arm_ce_otp_info_t type,
         return ret;
     }
 
-
     readback_v = (uint8_t *)pal_malloc(size);
-
     if (NULL == readback_v)
     {
         PAL_LOG_DEBUG("pal_malloc(%d) failed\n", size);

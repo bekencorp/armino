@@ -20,6 +20,13 @@ extern "C" {
 
 #include <common/bk_err.h>
 
+typedef enum
+{
+    PWM_MODE_IDLE = 0,
+    PWM_MODE_PWM  = 1,
+    PWM_MODE_CAPTUR = 2,
+}pwm_mode_t;
+
 typedef enum {
 	PWM_ID_0 = 0, /**< pwm id 0 */
 	PWM_ID_1,     /**< pwm id 1 */
@@ -37,6 +44,16 @@ typedef enum {
 
 	PWM_ID_MAX    /**< pwm id max */
 } pwm_id_t;
+
+typedef enum {
+	PWM_CH_0 = 0,	/* pwm channel id 0 */
+	PWM_CH_1,
+	PWM_CH_2,
+	PWM_CH_3,
+	PWM_CH_4,
+	PWM_CH_5,
+	PWM_CH_MAX
+}pwm_ch_t;
 
 typedef enum {
 	PWM_SCLK_CLK32 = 0,  /**< PWM source clock dco */

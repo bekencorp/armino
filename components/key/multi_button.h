@@ -25,6 +25,12 @@ typedef enum {
 	NONE_PRESS
 } PRESS_EVT;
 
+typedef enum {
+	LOW_LEVEL_TRIGGER = 0,
+	HIGH_LEVEL_TRIGGER,
+	ACTIVE_LEVEL_INVALID,
+} ACTIVE_LEVELS_EVT;
+
 typedef struct _button_ {
 	uint16_t ticks;
 	uint8_t  repeat : 4;

@@ -55,7 +55,7 @@ endif
 
 ifeq ("$(ARMINO_SOC)", "")
 ifeq ("$(ARMINO_SOC_LIB)", "")
-	ARMINO_SOC := bk7231n
+	ARMINO_SOC := bk7256
 	ARMINO_TARGET := $(MAKECMDGOALS)
 endif
 else
@@ -99,7 +99,6 @@ common:
 	@export APP_NAME=$(APP_NAME)
 
 has_lib_src := $(shell $(ARMINO_DIR)/tools/build_tools/detect_internal_lib_src.py)
-build_dual_core := $(shell $(ARMINO_DIR)/tools/build_tools/detect_build_dual_core.py $(ARMINO_SOC) $(PROJECT))
 
 $(info $$(PROJECT) is $(PROJECT))
 bootloader:

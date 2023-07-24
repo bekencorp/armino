@@ -175,6 +175,13 @@ typedef volatile union {
 
 typedef volatile union {
 	struct {
+		uint32_t rsv                      : 32; /**<bit[0 : 31] */
+	};
+	uint32_t v;
+} aon_pmu_r7b_t;
+
+typedef volatile union {
+	struct {
 		uint32_t id                       : 32; /**<bit[0 : 31] */
 	};
 	uint32_t v;

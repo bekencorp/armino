@@ -26,10 +26,7 @@
 /* Size of a Secure and of a Non-secure image */
 #define FLASH_S_PARTITION_SIZE          CONFIG_PRIMARY_TFM_S_PHY_PARTITION_SIZE
 #define FLASH_NS_PARTITION_SIZE         CONFIG_PRIMARY_TFM_NS_PHY_PARTITION_SIZE
-#define FLASH_MAX_PARTITION_SIZE        ((FLASH_S_PARTITION_SIZE >   \
-                                          FLASH_NS_PARTITION_SIZE) ? \
-                                         FLASH_S_PARTITION_SIZE :    \
-                                         FLASH_NS_PARTITION_SIZE)
+#define FLASH_MAX_PARTITION_SIZE        CONFIG_PRIMARY_ALL_PHY_PARTITION_SIZE
 
 /* Sector size of the flash hardware; same as FLASH0_SECTOR_SIZE */
 #define FLASH_AREA_IMAGE_SECTOR_SIZE    (0x1000)     /* 4 KB */
@@ -41,6 +38,18 @@
 #define FLASH_BASE_ADDRESS              (0x02000000)
 
 #define FLASH_IMAGE_ALL_ID                 0
+
+/* Per BL2 image define principles, each image upgraded by BL2 only have
+ * one image ID, but two slots: primary and secondary.
+ *
+ * For manifest/bl2 images, they are not upgraded by BL2, but by BL1,
+ * we need to define an image ID for each slot because the BL1 upgrade
+ * is similar as A/B partition upgrade
+ */
+#define FLASH_IMAGE_PRIMARY_MANIFEST_ID    0x11
+#define FLASH_IMAGE_SECONDARY_MANIFEST_ID  0x12
+#define FLASH_IMAGE_PRIMARY_BL2_ID         0x13
+#define FLASH_IMAGE_SECONDARY_BL2_ID       0x14
 
 #define FLASH_AREA_PRIMARY_ALL_ID          (0)
 #define FLASH_AREA_PRIMARY_ALL_OFFSET      CONFIG_PRIMARY_ALL_PHY_PARTITION_OFFSET
@@ -85,7 +94,7 @@
 #define FLASH_AREA_SECONDARY_NSPE_SIZE     FLASH_AREA_3_SIZE
 
 /* Scratch area */
-#define FLASH_AREA_SCRATCH_ID              (FLASH_AREA_SECONDARY_NSPE_ID + 1)
+#define FLASH_AREA_SCRATCH_ID              (FLASH_AREA_SECONDARY_ALL_ID + 1)
 #define FLASH_AREA_SCRATCH_OFFSET          (FLASH_AREA_3_OFFSET + FLASH_AREA_3_SIZE)
 #define FLASH_AREA_SCRATCH_SIZE            (FLASH_MAX_PARTITION_SIZE)
 
@@ -115,16 +124,16 @@
 #define MCUBOOT_MAX_IMG_SECTORS    (FLASH_MAX_PARTITION_SIZE / FLASH_AREA_IMAGE_SECTOR_SIZE)
 
 /* Protected Storage (PS) Service definitions */
-#define FLASH_PS_AREA_OFFSET            CONFIG_PS_PHY_PARTITION_OFFSET
-#define FLASH_PS_AREA_SIZE              CONFIG_PS_PHY_PARTITION_SIZE
+#define FLASH_PS_AREA_OFFSET            CONFIG_SYS_PS_PHY_PARTITION_OFFSET
+#define FLASH_PS_AREA_SIZE              CONFIG_SYS_PS_PHY_PARTITION_SIZE
 
 /* Internal Trusted Storage (ITS) Service definitions */
-#define FLASH_ITS_AREA_OFFSET           CONFIG_ITS_PHY_PARTITION_OFFSET
-#define FLASH_ITS_AREA_SIZE             CONFIG_ITS_PHY_PARTITION_SIZE
+#define FLASH_ITS_AREA_OFFSET           CONFIG_SYS_ITS_PHY_PARTITION_OFFSET
+#define FLASH_ITS_AREA_SIZE             CONFIG_SYS_ITS_PHY_PARTITION_SIZE
 
 /* OTP_definitions */
-#define FLASH_OTP_NV_COUNTERS_AREA_OFFSET (FLASH_ITS_AREA_OFFSET + FLASH_ITS_AREA_SIZE)
-#define FLASH_OTP_NV_COUNTERS_AREA_SIZE   (FLASH_AREA_IMAGE_SECTOR_SIZE * 2)
+#define FLASH_OTP_NV_COUNTERS_AREA_OFFSET CONFIG_SYS_OTP_NV_PHY_PARTITION_OFFSET
+#define FLASH_OTP_NV_COUNTERS_AREA_SIZE   CONFIG_SYS_OTP_NV_PHY_PARTITION_SIZE
 #define FLASH_OTP_NV_COUNTERS_SECTOR_SIZE FLASH_AREA_IMAGE_SECTOR_SIZE
 
 /* Offset and size definition in flash area used by assemble.py */
@@ -202,7 +211,13 @@
 #define CONFIG_BL2_RAM_LOAD_ADDR               0x28040000
 
 #define FLASH_AREA_IMAGE_PRIMARY(x)     (((x) == FLASH_IMAGE_ALL_ID) ? FLASH_AREA_PRIMARY_ALL_ID : 255 )
-#define FLASH_AREA_IMAGE_SECONDARY(x)   (((x) == FLASH_IMAGE_ALL_ID) ? FLASH_AREA_SECONDARY_ALL_ID : 255 )
+
+#define FLASH_AREA_IMAGE_SECONDARY(x)   (((x) == FLASH_IMAGE_ALL_ID) ? FLASH_AREA_SECONDARY_ALL_ID : \
+					 (((x) == FLASH_IMAGE_PRIMARY_MANIFEST_ID) ? FLASH_AREA_PRIMARY_MANIFEST_ID : \
+					 (((x) == FLASH_IMAGE_SECONDARY_MANIFEST_ID) ? FLASH_AREA_SECONDARY_MANIFEST_ID : \
+					 (((x) == FLASH_IMAGE_PRIMARY_BL2_ID) ? FLASH_AREA_PRIMARY_BL2_ID : \
+					 (((x) == FLASH_IMAGE_SECONDARY_BL2_ID) ? FLASH_AREA_SECONDARY_BL2_ID : 255 \
+					  )))))
 
 #define FLASH_AREA_IMAGE_SCRATCH        FLASH_AREA_SCRATCH_ID
 

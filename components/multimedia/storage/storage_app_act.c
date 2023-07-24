@@ -19,7 +19,7 @@
 
 #include <driver/psram.h>
 #include "frame_buffer.h"
-
+#include "media_app.h"
 #include "media_evt.h"
 #include "storage_act.h"
 
@@ -66,7 +66,7 @@ bk_err_t media_app_register_read_frame_cb(void *cb)
 
 static bk_err_t storage_app_task_send_msg(uint8_t msg_type, uint32_t data)
 {
-	bk_err_t ret;
+	bk_err_t ret = BK_ERR_NOT_INIT;
 	storages_task_msg_t msg;
 
 	if (storage_app_task_queue)
@@ -75,24 +75,24 @@ static bk_err_t storage_app_task_send_msg(uint8_t msg_type, uint32_t data)
 		msg.data = data;
 
 		ret = rtos_push_to_queue(&storage_app_task_queue, &msg, BEKEN_NO_WAIT);
-		if (kNoErr != ret)
+		if (BK_OK != ret)
 		{
 			LOGE("storage_app_task_send_msg failed\r\n");
-			return kOverrunErr;
 		}
-
-		return ret;
 	}
-	return kNoResourcesErr;
+
+	return ret;
 }
 
 void storage_frame_buffer_dump(frame_buffer_t *frame, char *name)
 {
+	char cFileName[30];
 	LOGI("%s dump frame: %p, %u, size: %d\n", __func__, frame->frame, frame->sequence, frame->length);
 
-#if (CONFIG_FATFS)
-	storage_mem_to_sdcard(name, frame->frame, frame->length);
+	sprintf(cFileName, "%d%s", frame->sequence, name);
 
+#if (CONFIG_FATFS)
+	storage_mem_to_sdcard(cFileName, frame->frame, frame->length);
 	LOGI("%s, complete\n", __func__);
 #endif
 }
@@ -322,14 +322,17 @@ static void storage_app_capture_save_handle(uint32_t param)
 		flush_dcache(storage_app_info.frame->frame, storage_app_info.frame->length);
 #endif
 
-		storage_capture_save(storage_app_info.frame);
+		if (storage_app_info.frame->fmt == PIXEL_FMT_DVP_JPEG)
+			storage_capture_save(storage_app_info.frame);
+		else
+			storage_capture_save(storage_app_info.frame);
 
 		storage_app_info.frame = NULL;
 
 		storage_app_info.capture_state = STORAGE_STATE_DISABLED;
 
 		// send finish notify to cp1
-		msg_send_to_media_app_mailbox(storage_app_node, BK_OK);
+		msg_send_rsp_to_media_app_mailbox(storage_app_node, BK_OK);
 
 		if (capture_name)
 		{
@@ -353,17 +356,16 @@ static void storage_app_video_save_handle(uint32_t param)
 		}
 		else
 		{
-#if (CONFIG_FATFS)
-			storage_save_frame(storage_app_info.frame);
-#else
-			LOGI("%s, not support save to sdcard\r\n", __func__);
-#endif
+			if (storage_app_info.frame->fmt == PIXEL_FMT_DVP_JPEG)
+				storage_save_frame(storage_app_info.frame);
+			else
+				storage_save_frame(storage_app_info.frame);
 		}
 
 		storage_app_info.frame = NULL;
 
 		// send finish notify to cp1
-		msg_send_to_media_app_mailbox(storage_app_node, BK_OK);
+		msg_send_rsp_to_media_app_mailbox(storage_app_node, BK_OK);
 	}
 }
 
@@ -376,7 +378,7 @@ static void storage_app_task_entry(beken_thread_arg_t data)
 	{
 		ret = rtos_pop_from_queue(&storage_app_task_queue, &msg, BEKEN_WAIT_FOREVER);
 
-		if (kNoErr == ret)
+		if (BK_OK == ret)
 		{
 			switch (msg.type)
 			{
@@ -423,7 +425,7 @@ exit:
 
 int storage_app_task_init(void)
 {
-	int ret = kNoErr;
+	int ret = BK_OK;
 
 	if (storage_app_task_queue == NULL)
 	{
@@ -432,7 +434,7 @@ int storage_app_task_init(void)
 								sizeof(storages_task_msg_t),
 								10);
 
-		if (kNoErr != ret)
+		if (BK_OK != ret)
 		{
 			LOGE("storage_app_task_queue init failed\n");
 			goto error;
@@ -448,7 +450,7 @@ int storage_app_task_init(void)
 		                         2 * 1024,
 		                         NULL);
 
-		if (kNoErr != ret)
+		if (BK_OK != ret)
 		{
 			LOGE("storage_app_task_thread init failed\n");
 			goto error;
@@ -476,7 +478,7 @@ error:
 
 static bk_err_t storage_capture_notify_handle(media_mailbox_msg_t *msg)
 {
-	int ret = kNoErr;
+	int ret = BK_OK;
 
 	if (storage_app_info.capture_state == STORAGE_STATE_ENABLED)
 	{
@@ -487,7 +489,7 @@ static bk_err_t storage_capture_notify_handle(media_mailbox_msg_t *msg)
 	if (capture_name == NULL)
 	{
 		LOGI("%s capture name not init\n", __func__);
-		ret = kPathErr;
+		ret = BK_ERR_PATH;
 		goto error;
 	}
 
@@ -502,26 +504,26 @@ static bk_err_t storage_capture_notify_handle(media_mailbox_msg_t *msg)
 
 error:
 
-	msg_send_to_media_app_mailbox(msg, ret);
+	msg_send_rsp_to_media_app_mailbox(msg, ret);
 
 	return ret;
 }
 
 static bk_err_t storage_save_all_notify_handle(media_mailbox_msg_t *msg)
 {
-	int ret = kNoErr;
+	int ret = BK_OK;
 
 	if (storage_app_info.state == STORAGE_STATE_DISABLED)
 	{
 		LOGI("%s storage app task not start\n", __func__);
-		ret = kGeneralErr;
+		ret = BK_ERR_NOT_INIT;
 		goto error;
 	}
 
 	if (capture_name == NULL)
 	{
 		LOGI("%s capture name not init\n", __func__);
-		ret = kPathErr;
+		ret = BK_ERR_PATH;
 		goto error;
 	}
 
@@ -543,14 +545,14 @@ static bk_err_t storage_save_all_notify_handle(media_mailbox_msg_t *msg)
 
 error:
 
-	msg_send_to_media_app_mailbox(msg, ret);
+	msg_send_rsp_to_media_app_mailbox(msg, ret);
 
 	return ret;
 }
 
 static bk_err_t storage_save_video_exit_handle(void)
 {
-	int ret = kNoErr;
+	int ret = BK_OK;
 
 	LOGI("%s\n", __func__);
 
@@ -580,7 +582,7 @@ static bk_err_t storage_save_video_exit_handle(void)
 
 bk_err_t storage_app_task_open_handle(void)
 {
-	int ret = kNoErr;
+	int ret = BK_OK;
 
 	LOGI("%s\n", __func__);
 
@@ -594,7 +596,7 @@ bk_err_t storage_app_task_open_handle(void)
 
 	ret = storage_app_task_init();
 
-	if (ret != kNoErr)
+	if (ret != BK_OK)
 	{
 		storage_app_info.state = STORAGE_STATE_DISABLED;
 	}
@@ -608,7 +610,7 @@ bk_err_t storage_app_task_open_handle(void)
 
 bk_err_t storage_app_task_close_handle(void)
 {
-	int ret = kNoErr;
+	int ret = BK_OK;
 
 	if (storage_app_info.state == STORAGE_STATE_DISABLED)
 	{
@@ -637,12 +639,12 @@ bk_err_t storage_app_set_frame_name(char *name)
 
 	capture_name[len] = '\0';
 
-	return kNoErr;
+	return BK_OK;
 }
 
 bk_err_t storage_app_event_handle(media_mailbox_msg_t *msg)
 {
-	int ret = kNoErr;
+	int ret = BK_OK;
 
 	switch (msg->event)
 	{
@@ -674,12 +676,12 @@ bk_err_t storage_app_event_handle(media_mailbox_msg_t *msg)
 	return ret;
 }
 
-storage_state_t get_storage_state(void)
+media_storage_state_t get_storage_state(void)
 {
 	return storage_app_info.state;
 }
 
-void set_storage_state(storage_state_t state)
+void set_storage_state(media_storage_state_t state)
 {
 	storage_app_info.state = state;
 }

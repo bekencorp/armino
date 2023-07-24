@@ -1,6 +1,15 @@
-menu "EXTERN_32K"
+menu "PWR_CLK"
 	config EXTERN_32K
 		bool "Use an external 32k crystal"
+		default n
+	config MEM_AUTO_POWER_DISABLE
+		bool "mem auto power disable"
+		default n
+	config CP1_AUTO_POWER_DISABLE
+		bool "cp1 auto power disable"
+		default n
+	config CPU_DEFAULT_FREQ_60M
+		bool "set cpu default frequency 60M"
 		default n
 endmenu
 

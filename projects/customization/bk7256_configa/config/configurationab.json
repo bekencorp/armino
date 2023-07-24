@@ -8,7 +8,7 @@
             "version": "2M.1220",
             "partition": "bootloader",
             "start_addr": "0x00000000",
-            "size": "64k"
+            "size": "64K"
         },
         {
             "firmware": "app_ab.bin",

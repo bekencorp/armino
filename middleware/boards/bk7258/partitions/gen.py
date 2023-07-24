@@ -11,6 +11,8 @@ from genericpath import exists
 import click
 from click_option_group import optgroup,RequiredMutuallyExclusiveOptionGroup
 
+armino_soc = ''
+
 def run_cmd(cmd):
 	p = subprocess.Popen(cmd, shell=True)
 	ret = p.wait()
@@ -19,22 +21,25 @@ def run_cmd(cmd):
 		exit(1)
 
 def install_configs(cfg_dir, install_dir):
+	global armino_soc
 	logging.debug(f'install configs from: {cfg_dir}')
 	logging.debug(f'to: {install_dir}')
 	if os.path.exists(f'{cfg_dir}') == False:
             return
 
-	if os.path.exists(f'{cfg_dir}/bl1') == True:
-		run_cmd(f'cp -r {cfg_dir}/bl1/* {install_dir} 2>/dev/null || :')
-
-	if os.path.exists(f'{cfg_dir}/bl2') == True:
-		run_cmd(f'cp -r {cfg_dir}/bl2/* {install_dir} 2>/dev/null || :')
+	if os.path.exists(f'{cfg_dir}/key') == True:
+		run_cmd(f'cp -r {cfg_dir}/key/* {install_dir} 2>/dev/null || :')
 
 	if os.path.exists(f'{cfg_dir}/partitions') == True:
 		run_cmd(f'cp -r {cfg_dir}/partitions/* {install_dir} 2>/dev/null || :')
 
+	if os.path.exists(f'{install_dir}/{armino_soc}.partitions') == True:
+		run_cmd(f'cp {install_dir}/{armino_soc}.partitions {install_dir}/partitions 2>/dev/null || :')
+
+
 
 def pack(tools_dir, base_cfg_dir, prefered_cfg_dir, gen_dir, soc):
+	global armino_soc
 	logging.debug(f'tools_dir={tools_dir}')
 	logging.debug(f'base_cfg_dir={base_cfg_dir}')
 	logging.debug(f'prefered_cfg_dir={prefered_cfg_dir}')
@@ -46,6 +51,7 @@ def pack(tools_dir, base_cfg_dir, prefered_cfg_dir, gen_dir, soc):
 	MCUBOOT_IMG_TOOL = f'{tools_dir}/mcuboot_tools'
 
 	BASE_CFG_DIR = base_cfg_dir
+	armino_soc = soc
 
 	logging.debug(f'Create temporary _build')
 	_BUILD_DIR=f'{gen_dir}/../_gen'
@@ -60,7 +66,7 @@ def pack(tools_dir, base_cfg_dir, prefered_cfg_dir, gen_dir, soc):
 	install_configs(f'{prefered_cfg_dir}/{soc}', _BUILD_DIR)
 
 	logging.debug(f'partition pre-processing')
-	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions --genhdr --genbl1 --genbl2 --tools_dir {tools_dir}')
+	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions -s {_BUILD_DIR}/sys_partitions --genhdr --genbl1 --genbl2 --tools_dir {tools_dir}')
 	run_cmd(f'cp {_BUILD_DIR}/partitions_partition.h {gen_dir}/partitions_gen.h')
 
 @click.group()

@@ -1,0 +1,1 @@
+../bk7258/toolchain-bk7258.cmake

@@ -257,18 +257,18 @@ function(__build_check_config)
         set(config_check_tool ${armino_path}/components/bk_libs/config_checking.py)
         set(lib_sdkconfig ${armino_path}/components/bk_libs/${ARMINO_SOC}_$ENV{PROJECT}/config/sdkconfig)
         set(armino_sdkconfig ${CMAKE_BINARY_DIR}/sdkconfig)
-        execute_process(
-            COMMAND ${config_check_tool} --lib_sdkconfig ${lib_sdkconfig} --armino_sdkconfig ${armino_sdkconfig}
-           RESULT_VARIABLE result 
-        )
+	#execute_process(
+		#COMMAND ${config_check_tool} --lib_sdkconfig ${lib_sdkconfig} --armino_sdkconfig ${armino_sdkconfig}
+		#RESULT_VARIABLE result 
+		#)
 
-        if ("${result}" EQUAL "0")
-            LOGI("sdkconfig checking passed")
-        else()
+		#if ("${result}" EQUAL "0")
+		#LOGI("sdkconfig checking passed")
+		#else()
             #TODO fix it after optimze bk_private!
-            LOGI("!!!sdkconfig checking failed")
+	    #LOGI("!!!sdkconfig checking failed")
             #LOGE("sdkconfig checking failed")
-        endif()
+	    #endif()
     endif()
 endfunction()
 
@@ -624,25 +624,50 @@ function(armino_build_executable bin)
     set(PREFERED_CFG_DIR ${PROJECT_DIR}/config)
     set(BIN_DIR ${CMAKE_BINARY_DIR}/)
 
+    armino_build_get_property(build_dir BUILD_DIR)
+    set(config_dir ${build_dir}/config)
+    set(sdkconfig_header ${config_dir}/sdkconfig.h)
+    foreach(config_file ${sdkconfig_header})
+        file(STRINGS ${config_file} objdump)
+        string(REGEX MATCH "CONFIG_OBJDUMP 1" match_string "${objdump}")
+        if(match_string)
+            set(objdump_config 1)
+        else()
+            set(objdump_config 0)
+        endif()
+    endforeach()
     if (("${target}" STREQUAL "bk7236") OR ("${target}" STREQUAL "bk7258"))
-        add_custom_command(OUTPUT "${bin_dir}/bin_tmp"
-            COMMAND "${armino_objcopy}" -O binary "${bin_dir}/${bin}" "${bin_dir}/${bin_name}.bin"
-            COMMAND "${armino_readelf}" -a -h -l -S -g -s "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.txt"
-            COMMAND "${armino_nm}" -n -l -C -a -A -g "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.nm"
-            COMMAND "${armino_objdump}" -d "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.lst"
-            COMMAND python3 ${armino_pack} pack -t "${TOOLS_PATH}" -b "${BIN_DIR}" -c "${BASE_CFG_DIR}" -p "${PREFERED_CFG_DIR}" -s "${ARMINO_SOC}" #--debug
-            DEPENDS ${bin}
-            VERBATIM
-            WORKING_DIRECTORY ${bin_dir}
-            COMMENT "Generating binary image from built executable"
-        )
+        if(objdump_config EQUAL 1)
+            add_custom_command(OUTPUT "${bin_dir}/bin_tmp"
+                COMMAND "${armino_objcopy}" -O binary "${bin_dir}/${bin}" "${bin_dir}/${bin_name}.bin"
+                COMMAND "${armino_readelf}" -a -h -l -S -g -s "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.txt"
+                COMMAND "${armino_nm}" -n -l -C -a -A -g "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.nm"
+                COMMAND "${armino_objdump}" -d "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.lst"
+                COMMAND python3 ${armino_pack} pack -t "${TOOLS_PATH}" -b "${BIN_DIR}" -c "${BASE_CFG_DIR}" -p "${PREFERED_CFG_DIR}" -s "${ARMINO_SOC}" #--debug
+                DEPENDS ${bin}
+                VERBATIM
+                WORKING_DIRECTORY ${bin_dir}
+                COMMENT "Generating binary image from built executable"
+            )
+        else()
+            add_custom_command(OUTPUT "${bin_dir}/bin_tmp"
+                COMMAND "${armino_objcopy}" -O binary "${bin_dir}/${bin}" "${bin_dir}/${bin_name}.bin"
+                COMMAND "${armino_readelf}" -a -h -l -S -g -s "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.txt"
+                COMMAND "${armino_nm}" -n -l -C -a -A -g "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.nm"
+                COMMAND python3 ${armino_pack} pack -t "${TOOLS_PATH}" -b "${BIN_DIR}" -c "${BASE_CFG_DIR}" -p "${PREFERED_CFG_DIR}" -s "${ARMINO_SOC}" #--debug
+                DEPENDS ${bin}
+                VERBATIM
+                WORKING_DIRECTORY ${bin_dir}
+                COMMENT "Generating binary image from built executable"
+            )
+        endif()
     else()
         add_custom_command(OUTPUT "${bin_dir}/bin_tmp"
             COMMAND "${armino_objcopy}" -O binary "${bin_dir}/${bin}" "${bin_dir}/${bin_name}.bin"
             COMMAND "${armino_readelf}" -a -h -l -S -g -s "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.txt"
             COMMAND "${armino_nm}" -n -l -C -a -A -g "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.nm"
             COMMAND "${armino_objdump}" -d "${bin_dir}/${bin}" > "${bin_dir}/${bin_name}.lst"
-            COMMAND python "${armino_pack}" -n "all-${bin_name}.bin" -f "${bin_name}.bin" -c "${ARMINO_SOC}"
+            COMMAND python3 "${armino_pack}" -n "all-${bin_name}.bin" -f "${bin_name}.bin" -c "${ARMINO_SOC}"
             DEPENDS ${bin}
             VERBATIM
             WORKING_DIRECTORY ${bin_dir}

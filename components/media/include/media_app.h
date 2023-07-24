@@ -30,10 +30,9 @@ typedef enum
 	APP_CAMERA_UVC_H264,
 	APP_CAMERA_NET_MJPEG,
 	APP_CAMERA_NET_H264,
-	APP_CAMERA_DVP_H264_WIFI_TRANSFER,
+	APP_CAMERA_DVP_H264_TRANSFER,
 	APP_CAMERA_DVP_H264_LOCAL,
 	APP_CAMERA_DVP_H264_ENC_LCD,
-	APP_CAMERA_DVP_H264_USB_TRANSFER,
 	APP_CAMERA_INVALIED,
 } app_camera_type_t;
 
@@ -65,7 +64,11 @@ typedef struct {
 } media_transfer_cb_t;
 #endif
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+bk_err_t media_app_camera_open(camera_config_t *camera_config);
+#else
 bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi);
+#endif
 bk_err_t media_app_camera_close(app_camera_type_t type);
 bk_err_t media_app_h264_open(void *setup_cfg);
 bk_err_t media_app_h264_close(void);

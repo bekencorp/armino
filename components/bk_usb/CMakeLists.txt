@@ -29,7 +29,7 @@ if (CONFIG_CHERRY_USB)
 		list(APPEND srcs
 			CherryUSB/class/video/usbd_video.c
 			# CherryUSB/demo/beken/usb_device/video/video_static_mjpeg.c
-			CherryUSB/demo/beken/usb_device/video/video_stream_h264.c
+			CherryUSB/demo/beken/usb_device/video/video_stream_common.c
 		)
 
 		list(APPEND incs

@@ -23,6 +23,14 @@
 #include <common/bk_err.h>
 #include <driver/dma.h>
 #include "bk_general_dma.h"
+#if CONFIG_YUV_BUF
+#include <driver/yuv_buf.h>
+#endif
+
+#if CONFIG_H264
+#include <driver/h264.h>
+#include <driver/jpeg_dec.h>
+#endif
 
 #include <driver/psram.h>
 #include <driver/gpio.h>
@@ -75,6 +83,11 @@
 		bk_gpio_enable_output(GPIO_37);          \
 		bk_gpio_set_output_low(GPIO_37);         \
 		\
+		gpio_dev_unmap(GPIO_38);                 \
+		bk_gpio_disable_pull(GPIO_38);           \
+		bk_gpio_enable_output(GPIO_38);          \
+		bk_gpio_set_output_low(GPIO_38);         \
+		\
 	} while (0)
 
 #define UVC_USB_ISR_ENTRY()                 bk_gpio_set_output_high(GPIO_32)
@@ -95,6 +108,8 @@
 #define UVC_JPEG_EOF_ENTRY()                bk_gpio_set_output_high(GPIO_37)
 #define UVC_JPEG_EOF_OUT()                  bk_gpio_set_output_low(GPIO_37)
 
+#define UVC_EMP_PAC_ENTRY()                bk_gpio_set_output_high(GPIO_38)
+#define UVC_EMP_PAC_OUT()                  bk_gpio_set_output_low(GPIO_38)
 
 #else
 
@@ -118,6 +133,9 @@
 #define UVC_JPEG_EOF_ENTRY()
 #define UVC_JPEG_EOF_OUT()
 
+#define UVC_EMP_PAC_ENTRY()
+#define UVC_EMP_PAC_OUT()
+
 #endif
 
 
@@ -133,14 +151,37 @@ static frame_buffer_t *curr_frame_buffer = NULL;
 uint32_t uvc_frame_id = 0;
 static uint8_t uvc_drop_frame = 0;
 
+#if CONFIG_H264
+/* h264 uvc camera param */
+static frame_buffer_t *uvc_curr_enc_frame = NULL;
+static uint32_t sequence = 0;
+static uint32_t sensor_data_length = 0;
+static uint8_t *sensor_data = 0;
+static uint32_t mb_lines = 0;
+static bool jump_line = false;
+static bool odd_frame = false;
+static uint8_t *jpeg_to_yuv_frame1 = 0;
+static uint8_t *jpeg_to_yuv_frame2 = 0;
+static uint8_t uvc_camera_dma_channel = 0;
+// static frame_buffer_t *jpeg_to_yuv_frame1 = NULL;
+// static frame_buffer_t *jpeg_to_yuv_frame2 = NULL;
+static frame_buffer_t *jpeg_frame = NULL;
+beken_thread_t h264_uvc_dec_task = NULL;
+beken_semaphore_t jpeg_start_dec_sem = NULL;
+#endif
+
 extern media_debug_t *media_debug;
 
 #define FRAME_BUFFER_UVC         (1024 * 5)
+#define FRAME_BUFFER_DMA_TH       1024 * 10
+#define MEDIA_UVC_MJPEG_CAM(type)        type == MEDIA_UVC_MJPEG ||    \
+                                         type == MEDIA_UVC_MJPEG_TO_H264
 
 typedef struct
 {
 	uint8_t  frame_flag : 1;
 	uint8_t  eof: 1;
+	uint8_t  packet_err:1;
 	uint8_t  psram_dma_busy : 1;
 	uint8_t  uvc_dma;
 	uint8_t  psram_dma;
@@ -241,15 +282,23 @@ static void uvc_packet_check(uint8_t *ptr, uint32_t len)
 static void uvc_camera_eof_handle(void)
 {
 	// frame_buffer complete
-	media_debug->isr_jpeg++;
-
 	UVC_JPEG_EOF_ENTRY();
 
-	uvc_camera_config_ptr->fb_complete(curr_frame_buffer);
+	if (uvc_camera_drv->packet_err)
+	{
+		uvc_camera_drv->packet_err = false;
+		uvc_camera_drv->eof = false;
+		curr_frame_buffer->length = 0;
+		return;
+	}
+
+	media_debug->isr_jpeg++;
+
+	uvc_camera_config_ptr->fb_jpeg_complete(curr_frame_buffer);
 	uvc_camera_drv->eof = false;
 
 	UVC_JPEG_EOF_OUT();
-	curr_frame_buffer = uvc_camera_config_ptr->fb_malloc();
+	curr_frame_buffer = uvc_camera_config_ptr->fb_jpeg_malloc();
 
 	if (curr_frame_buffer == NULL
 			|| curr_frame_buffer->frame == NULL)
@@ -262,7 +311,7 @@ static void uvc_camera_eof_handle(void)
 	curr_frame_buffer->width = uvc_camera_config_ptr->uvc_config->device.width;
 	curr_frame_buffer->height = uvc_camera_config_ptr->uvc_config->device.height;
 
-	if (uvc_camera_config_ptr->uvc_config->type == MEDIA_UVC_MJPEG)
+	if (MEDIA_UVC_MJPEG_CAM(uvc_camera_config_ptr->uvc_config->type))
 	{
 		curr_frame_buffer->fmt = PIXEL_FMT_UVC_JPEG;
 	}
@@ -291,6 +340,7 @@ static void uvc_camera_connect_state_change_callback(uvc_state_t state)
 void uvc_bulk_packet_process(void *curptr, uint32_t newlen)
 {
 	uint32_t length = newlen;
+	uint32_t fack_length = 0;
 	uint8_t *data = curptr;
 
 	UVC_PSRAM_DMA_ENTRY();
@@ -299,22 +349,6 @@ void uvc_bulk_packet_process(void *curptr, uint32_t newlen)
 	{
 		UVC_LOGE("curr_frame_buffer NULL\n");
 		return;
-	}
-
-	if (uvc_drop_frame)
-	{
-		if (uvc_camera_drv->eof)
-		{
-			media_debug->isr_jpeg++;
-			uvc_camera_drv->eof = false;
-			uvc_drop_frame--;
-		}
-
-		if (uvc_drop_frame != 0)
-		{
-			UVC_PSRAM_DMA_OUT();
-			return;
-		}
 	}
 
 	if (length > USB_UVC_HEAD_LEN)
@@ -339,7 +373,23 @@ void uvc_bulk_packet_process(void *curptr, uint32_t newlen)
 		}
 	}
 
-	if (length & 0x3)
+	if (uvc_drop_frame)
+	{
+		if (uvc_camera_drv->eof)
+		{
+			media_debug->isr_jpeg++;
+			uvc_camera_drv->eof = false;
+			uvc_drop_frame--;
+		}
+
+		if (uvc_drop_frame != 0)
+		{
+			UVC_PSRAM_DMA_OUT();
+			return;
+		}
+	}
+
+	if (curr_frame_buffer->length & 0x3)
 	{
 		uvc_camera_drv->eof = true;
 	}
@@ -349,10 +399,36 @@ void uvc_bulk_packet_process(void *curptr, uint32_t newlen)
 		uvc_camera_eof_handle();
 	}
 
+	fack_length = length;
+
+	if (fack_length & 0x3)
+	{
+		fack_length = ((fack_length >> 2) + 1) << 2;
+	}
+
 	UVC_LOGD("curr_frame_buffer->frame:%x curr_frame_buffer->length:%d length:%d====== \r\n",curr_frame_buffer->frame, curr_frame_buffer->length, length);
 
-	os_memcpy_word((uint32_t *)(curr_frame_buffer->frame + curr_frame_buffer->length), (const uint32_t *)data,
-					length);
+#if 0
+	// bk7258 use cpu write from sram to psram will occur psram data error, so replace by dma_memcpy
+
+	// method 1: called os_memcpy_word() write data to psram
+	//os_memcpy_word((uint32_t *)(curr_frame_buffer->frame + curr_frame_buffer->length), (const uint32_t *)data,
+	//				fack_length);
+
+	// method 2: direct write data to psram, and check psram data addr have aligend 4 byte
+	if (curr_frame_buffer->length & 0x3)
+	{
+		curr_frame_buffer->length = ((curr_frame_buffer->length >> 2) + 1) << 2;
+		UVC_LOGI("%s, %d\r\n", __func__, __LINE__);
+	}
+
+	for (uint32_t i = 0; i < fack_length; i += 4)
+	{
+		*((uint32_t *)(curr_frame_buffer->frame + curr_frame_buffer->length + i)) = *((uint32_t *)(data + i));
+	}
+#else
+	uvc_memcpy_by_chnl(curr_frame_buffer->frame + curr_frame_buffer->length, data, fack_length, uvc_camera_drv->psram_dma);
+#endif
 	curr_frame_buffer->length += length;
 
 	UVC_PSRAM_DMA_OUT();
@@ -392,6 +468,24 @@ static void uvc_process_data_packet(void *curptr, uint32_t newlen)
 	}
 	else
 	{
+		uvc_mem_cpy.length = 0;
+
+		// step 2_2: check this packet is ok
+		if (bmhead_info & 0x40)  // bit6 = 1, payload error
+		{
+			uvc_camera_drv->packet_err = true;
+			UVC_PSRAM_DMA_OUT();
+			return;
+		}
+
+		if (uvc_camera_drv->frame_flag != (bmhead_info & 0x01))   // bit0 fliped
+		{
+			uvc_camera_drv->frame_flag = (bmhead_info & 0x01);
+			// maybe first packet will satify this condition
+			if (curr_frame_buffer->length != 0 || uvc_drop_frame > 0)
+				uvc_camera_drv->eof = true;
+		}
+
 		if (uvc_drop_frame)
 		{
 			if (uvc_camera_drv->eof == true)
@@ -406,23 +500,6 @@ static void uvc_process_data_packet(void *curptr, uint32_t newlen)
 				UVC_PSRAM_DMA_OUT();
 				return;
 			}
-		}
-
-		uvc_mem_cpy.length = 0;
-
-		// step 2_2: check this packet is ok
-		if (bmhead_info & 0x40)  // bit6 = 1, payload error
-		{
-			UVC_PSRAM_DMA_OUT();
-			return;
-		}
-
-		if (uvc_camera_drv->frame_flag != (bmhead_info & 0x01))   // bit0 fliped
-		{
-			uvc_camera_drv->frame_flag = (bmhead_info & 0x01);
-			// maybe first packet will satify this condition
-			if (curr_frame_buffer->length != 0)
-				uvc_camera_drv->eof = true;
 		}
 
 		// step 2_3: check if current packet is new frame
@@ -470,6 +547,11 @@ static void uvc_process_data_packet(void *curptr, uint32_t newlen)
 
 			uvc_memcpy_by_chnl(curr_frame_buffer->frame + curr_frame_buffer->length, data + need_add_length, fack_len, uvc_camera_drv->psram_dma);
 			curr_frame_buffer->length += fack_len;
+		}
+		else
+		{
+			UVC_EMP_PAC_ENTRY();
+			UVC_EMP_PAC_OUT();
 		}
 	}
 
@@ -555,7 +637,7 @@ static void uvc_camera_dma_finish_callback(dma_id_t id)
 static bk_err_t uvc_dma_config(void)
 {
 	bk_err_t ret = kNoErr;
-	curr_frame_buffer = uvc_camera_config_ptr->fb_malloc();
+	curr_frame_buffer = uvc_camera_config_ptr->fb_jpeg_malloc();
 
 	if (curr_frame_buffer == NULL)
 	{
@@ -566,7 +648,7 @@ static bk_err_t uvc_dma_config(void)
 
 	curr_frame_buffer->width = uvc_camera_config_ptr->uvc_config->device.width;
 	curr_frame_buffer->height = uvc_camera_config_ptr->uvc_config->device.height;
-	if (uvc_camera_config_ptr->uvc_config->type == MEDIA_UVC_MJPEG)
+	if (MEDIA_UVC_MJPEG_CAM(uvc_camera_config_ptr->uvc_config->type))
 		curr_frame_buffer->fmt = PIXEL_FMT_UVC_JPEG;
 	else
 		curr_frame_buffer->fmt = PIXEL_FMT_UVC_H264;
@@ -698,7 +780,7 @@ static bk_err_t uvc_camera_init(void)
 	media_debug->isr_jpeg = 0;
 	media_debug->psram_busy = 0;
 
-	uvc_camera_config_ptr->fb_init((uint32_t)(uvc_camera_config_ptr->uvc_config->device.width) << 16 | uvc_camera_config_ptr->uvc_config->device.height);
+	uvc_camera_config_ptr->fb_jpeg_init((uint32_t)(uvc_camera_config_ptr->uvc_config->device.width) << 16 | uvc_camera_config_ptr->uvc_config->device.height);
 
 	// step 1: init dma, fifo to sharemem
 	err = uvc_dma_config();
@@ -760,11 +842,33 @@ static bk_err_t uvc_camera_deinit(void)
 
 	if (curr_frame_buffer)
 	{
-		uvc_camera_config_ptr->fb_free(curr_frame_buffer);
+		uvc_camera_config_ptr->fb_jpeg_free(curr_frame_buffer);
 		curr_frame_buffer = NULL;
 	}
+#if CONFIG_H264
+	if (uvc_camera_config_ptr->uvc_config->type == MEDIA_UVC_MJPEG_TO_H264)
+	{
+		bk_yuv_buf_stop(YUV_BUF_MODE_H264);
+		bk_h264_driver_deinit();
+		bk_yuv_buf_driver_deinit();
+		bk_jpeg_dec_driver_deinit();
 
-	uvc_camera_config_ptr->fb_deinit();
+		if (uvc_camera_dma_channel < DMA_ID_MAX)
+		{
+			bk_dma_stop(uvc_camera_dma_channel);
+			bk_dma_deinit(uvc_camera_dma_channel);
+			bk_dma_free(DMA_DEV_H264, uvc_camera_dma_channel);
+		}
+
+		if (uvc_curr_enc_frame)
+		{
+			uvc_camera_config_ptr->fb_jpeg_free(uvc_curr_enc_frame);
+			uvc_curr_enc_frame = NULL;
+		}
+	}
+#endif
+
+	uvc_camera_config_ptr->fb_jpeg_deinit();
 
 	if (uvc_camera_drv)
 	{
@@ -795,12 +899,250 @@ static bk_err_t uvc_camera_deinit(void)
 	return BK_OK;
 }
 
+
+#if CONFIG_H264
+static bk_err_t uvc_enc_h264_dma_config(void)
+{
+	uint32_t encode_fifo_addr;
+	uvc_curr_enc_frame = uvc_camera_config_ptr->fb_h264_malloc();
+	uvc_curr_enc_frame->width = uvc_camera_config_ptr->uvc_config->device.width;
+	uvc_curr_enc_frame->height = uvc_camera_config_ptr->uvc_config->device.height;
+	uvc_curr_enc_frame->fmt = PIXEL_FMT_DVP_H264;
+	bk_h264_get_fifo_addr(&encode_fifo_addr);
+
+	dma_config_t dma_config = {0};
+	dma_config.mode = DMA_WORK_MODE_REPEAT;
+	dma_config.chan_prio = 0;
+	dma_config.src.dev = DMA_DEV_H264;
+	dma_config.src.width = DMA_DATA_WIDTH_32BITS;
+	dma_config.src.start_addr = encode_fifo_addr;
+
+	dma_config.dst.dev = DMA_DEV_DTCM;
+	dma_config.dst.width = DMA_DATA_WIDTH_32BITS;
+	dma_config.dst.addr_inc_en = DMA_ADDR_INC_ENABLE;
+	dma_config.dst.start_addr = (uint32_t)uvc_curr_enc_frame->frame;
+	dma_config.dst.end_addr = (uint32_t)(uvc_curr_enc_frame->frame + uvc_curr_enc_frame->size);
+	uvc_camera_dma_channel = bk_dma_alloc(DMA_DEV_H264);
+	UVC_LOGI("dma for uvc enc h264 is %x \r\n", uvc_camera_dma_channel);
+
+	BK_LOG_ON_ERR(bk_dma_init(uvc_camera_dma_channel, &dma_config));
+	BK_LOG_ON_ERR(bk_dma_set_transfer_len(uvc_camera_dma_channel, FRAME_BUFFER_DMA_TH));
+#if (CONFIG_SPE)
+	BK_LOG_ON_ERR(bk_dma_set_dest_sec_attr(uvc_camera_dma_channel, DMA_ATTR_SEC));
+	BK_LOG_ON_ERR(bk_dma_set_src_sec_attr(uvc_camera_dma_channel, DMA_ATTR_SEC));
+#endif
+	BK_LOG_ON_ERR(bk_dma_start(uvc_camera_dma_channel));
+
+	return BK_OK;
+}
+
+static void h264_print_log0(uint8_t *buffer, int length)
+{
+	for (int i = 0; i < length; i++)
+	{
+		os_printf("%02x ", *(buffer+i));
+	}
+	os_printf("\r\n");
+}
+
+static void h264_uvc_final_out_handler(void *param)
+{
+	uint32_t real_length = bk_h264_get_encode_count() * 4;
+	bk_dma_stop(uvc_camera_dma_channel);
+	uint32_t remain_length = 0;
+
+	media_debug->isr_jpeg++;
+
+	remain_length = FRAME_BUFFER_DMA_TH - bk_dma_get_remain_len(uvc_camera_dma_channel);
+
+	if (uvc_curr_enc_frame->length + remain_length != real_length)
+	{
+		UVC_LOGW("size no match: %u:%u\n", uvc_curr_enc_frame->length + remain_length, real_length);
+	}
+	bk_yuv_buf_stop(YUV_BUF_MODE_H264);
+
+	uvc_curr_enc_frame->length += remain_length;
+	uvc_curr_enc_frame->sequence = ++sequence;
+	uvc_camera_config_ptr->fb_h264_complete(uvc_curr_enc_frame);
+	//h264_print(uvc_curr_enc_frame->frame);
+	uvc_curr_enc_frame = uvc_camera_config_ptr->fb_h264_malloc();
+	uvc_curr_enc_frame->width = uvc_camera_config_ptr->uvc_config->device.width;
+	uvc_curr_enc_frame->height = uvc_camera_config_ptr->uvc_config->device.height;
+	uvc_curr_enc_frame->fmt = PIXEL_FMT_DVP_H264;
+
+	if (uvc_curr_enc_frame == NULL
+		|| uvc_curr_enc_frame->frame == NULL)
+	{
+		UVC_LOGE("alloc frame error\n");
+		return;
+	}
+
+	bk_dma_set_dest_addr(uvc_camera_dma_channel, (uint32_t)uvc_curr_enc_frame->frame, (uint32_t)(uvc_curr_enc_frame->frame + uvc_curr_enc_frame->size));
+	bk_dma_start(uvc_camera_dma_channel);
+}
+
+static void h264_uvc_line_done_handler(void)
+{
+	delay_us(100);
+	if (jump_line)
+	{
+		jump_line = false;
+		sensor_data += sensor_data_length;
+		bk_yuv_buf_set_em_base_addr((uint32_t)sensor_data);
+		mb_lines ++;
+		if (mb_lines < 30)
+		{
+			//sensor_transform_to_yuyv_half1();
+			bk_yuv_buf_send_data_to_h264();
+		}
+	}
+	else
+	{
+		jump_line = true;
+		mb_lines ++;
+		if (mb_lines < 30)
+		{
+			//sensor_transform_to_yuyv_half2();
+			bk_yuv_buf_send_data_to_h264();
+		}
+	}
+}
+
+static void h264_jpeg_dec(void)
+{
+	//os_printf("jpeg decoder end \r\n");
+	media_debug->isr_decoder ++ ;
+	bk_yuv_buf_start(YUV_BUF_MODE_H264);
+	rtos_set_semaphore(&jpeg_start_dec_sem);
+}
+
+static void h264_jpeg_dec_task_entry(void)
+{
+	os_printf("enter jpeg dec task \r\n");
+	while (1)
+	{
+		rtos_get_semaphore(&jpeg_start_dec_sem, BEKEN_NEVER_TIMEOUT);
+		uvc_camera_config_ptr->fb_jpeg_free(jpeg_frame);
+		jpeg_frame = uvc_camera_config_ptr->fb_jpeg_read();
+		if (odd_frame)
+		{
+			sensor_data = jpeg_to_yuv_frame2;
+			bk_yuv_buf_set_em_base_addr((uint32_t)sensor_data);
+			bk_yuv_buf_send_data_to_h264();
+			mb_lines = 0;
+			while(bk_jpeg_dec_hw_start(jpeg_frame->length, jpeg_frame->frame, jpeg_to_yuv_frame1))
+			{
+				uvc_camera_config_ptr->fb_jpeg_free(jpeg_frame);
+				jpeg_frame = uvc_camera_config_ptr->fb_jpeg_read();
+				UVC_LOGE("jpeg dec failed! \r\n");
+			}
+			odd_frame = false;
+		}
+		else
+		{
+			sensor_data = jpeg_to_yuv_frame1;
+			bk_yuv_buf_set_em_base_addr((uint32_t)sensor_data);
+			bk_yuv_buf_send_data_to_h264();
+			mb_lines = 0;
+			while(bk_jpeg_dec_hw_start(jpeg_frame->length, jpeg_frame->frame, jpeg_to_yuv_frame2))
+			{
+				uvc_camera_config_ptr->fb_jpeg_free(jpeg_frame);
+				jpeg_frame = uvc_camera_config_ptr->fb_jpeg_read();
+				UVC_LOGE("jpeg dec failed! \r\n");
+			}
+			odd_frame = true;
+		}
+	}
+	
+}
+
+static bk_err_t bk_uvc_jpeg_to_h264_start(uvc_camera_config_t *config)
+{
+	int ret = BK_OK;
+	bk_jpeg_dec_driver_init();
+	/* task init */
+	uint16_t ppi_width = config->uvc_config->device.width;
+	uint16_t ppi_height = config->uvc_config->device.height;
+	media_ppi_t uvc_camera_device_ppi = ppi_width << 16 | ppi_height;
+
+	config->fb_jpeg_dec_register();
+	config->fb_h264_init(uvc_camera_device_ppi);
+	UVC_LOGI("uvc camera x_pixel: %d , y_pixel:%d \r\n", ppi_width, ppi_height);
+
+	rtos_init_semaphore(&jpeg_start_dec_sem, 1);
+	rtos_create_thread(&h264_uvc_dec_task,
+						4,
+						"hjpeg_dec",
+						(beken_thread_function_t)h264_jpeg_dec_task_entry,
+						1024 * 6,
+						(beken_thread_arg_t)NULL);
+	
+	/* dma for h264 fifo */
+	uvc_enc_h264_dma_config();
+
+	/* h264 driver init */
+	ret = bk_h264_driver_init();
+	if (ret)
+	{
+		UVC_LOGE("h264 driver init failed! err code -0x%x \r\n", -ret);
+	}
+	ret = bk_h264_init(uvc_camera_device_ppi);
+	if (ret)
+	{
+		UVC_LOGE("h264 module init failed! err code -0x%x \r\n", -ret);
+	}
+
+	/* register h264 callback */
+	bk_h264_register_isr(H264_LINE_DONE, (h264_isr_t)h264_uvc_line_done_handler, 0);
+	bk_h264_register_isr(H264_FINAL_OUT, (h264_isr_t)h264_uvc_final_out_handler, 0);
+
+	//yuv_buf driver init
+
+	yuv_buf_config_t yuv_mode_config = {0};
+	ret = bk_yuv_buf_driver_init();
+	if (ret)
+	{
+		UVC_LOGE("yuv driver init failed! err code -0x%x \r\n", -ret);
+	}
+	yuv_mode_config.x_pixel = ppi_width / 8;
+	yuv_mode_config.y_pixel = ppi_height / 8;
+	yuv_mode_config.work_mode = YUV_BUF_MODE_H264;
+	sensor_data_length = ppi_width * 16 * 2 * 2;
+	jpeg_to_yuv_frame1 = (uint8_t *)0x60000000;
+	jpeg_to_yuv_frame2 = jpeg_to_yuv_frame1 + ppi_width * ppi_height *2;
+	sensor_data = jpeg_to_yuv_frame1;
+	bk_yuv_buf_init(&yuv_mode_config);
+	bk_yuv_buf_enable_h264_nosensor_mode();
+	bk_yuv_buf_set_em_base_addr((uint32_t)jpeg_to_yuv_frame1);
+	bk_yuv_buf_set_video_module_clk(JPEG_120M_MCLK_20M);
+
+	/*jpeg decoder*/
+	
+	media_debug->isr_decoder = 0;
+	bk_jpeg_dec_isr_register(DEC_END_OF_FRAME,(jpeg_dec_isr_cb_t)h264_jpeg_dec);
+
+	jpeg_frame = config->fb_jpeg_read();      // try to change it to pop wait mode
+	while(bk_jpeg_dec_hw_start(jpeg_frame->length, jpeg_frame->frame, jpeg_to_yuv_frame1))
+	{
+		uvc_camera_config_ptr->fb_jpeg_free(jpeg_frame);
+		jpeg_frame = uvc_camera_config_ptr->fb_jpeg_read();
+		UVC_LOGE("jpeg dec failed! \r\n");
+	}
+
+	/*encode start*/
+	bk_h264_encode_enable();
+	UVC_LOGI("h264 encode start! \r\n");
+
+	return ret;
+}
+#endif
+
 bk_err_t bk_uvc_camera_driver_init(uvc_camera_config_t *config)
 {
 	int ret = kNoErr;
 
-	BK_ASSERT(config->fb_malloc != NULL);
-	BK_ASSERT(config->fb_complete != NULL);
+	BK_ASSERT(config->fb_jpeg_malloc != NULL);
+	BK_ASSERT(config->fb_jpeg_complete != NULL);
 
 	UVC_DIAG_DEBUG_INIT();
 
@@ -859,6 +1201,13 @@ bk_err_t bk_uvc_camera_driver_init(uvc_camera_config_t *config)
 		UVC_LOGE("start uvc error!\r\n");
 		goto error;
 	}
+
+#if CONFIG_H264
+	if (config->uvc_config->type == MEDIA_UVC_MJPEG_TO_H264)
+	{
+		ret = bk_uvc_jpeg_to_h264_start(config);
+	}
+#endif
 
 	return ret;
 

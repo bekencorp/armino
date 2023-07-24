@@ -21,6 +21,7 @@
 #include "components/log.h"
 #include "common/bk_err.h"
 #include "bk_tfm_log.h"
+#include "partitions.h"
 
 #define TAG "cmsis_flash"
 
@@ -219,6 +220,11 @@ static int32_t Flash_Initialize(ARM_Flash_SignalEvent_t cb_event)
     bk_flash_set_protect_type(FLASH_PROTECT_NONE); //TODO wangzhilei double check
 
     flash_size = bk_flash_get_current_total_size();
+    if (flash_size < CONFIG_PARTITION_FLASH_SIZE) {
+        BK_TFM_FLASH_LOGE(TAG, "partition configured flash size=%x, actual flash size=%x\r\n",
+            CONFIG_PARTITION_FLASH_SIZE, flash_size);
+        return ARM_DRIVER_ERROR;
+    }
 
     /* Optimze it if we support more than one flash */
     s_flash_sector_count = flash_size / FLASH0_SECTOR_SIZE;

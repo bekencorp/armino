@@ -29,7 +29,7 @@ extern "C" {
  */
 
 typedef uint8_t dma_unit_t;          /**< DMA uint id */
-typedef uint8_t dma_chan_priority_t; /**< DMA channel priority */
+typedef uint8_t dma_chan_priority_t; /**< DMA channel priority:the value is higher then the priority is higher */
 
 /**
  * @}

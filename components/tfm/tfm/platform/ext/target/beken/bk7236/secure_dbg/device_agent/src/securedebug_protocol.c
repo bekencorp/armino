@@ -293,11 +293,9 @@ static hal_ret_t sec_debug_protocol_sig_and_cmd_process(
         return HAL_ERR_OUT_OF_MEMORY;
     }
 
-     
-     
     msg      = (uint8_t *)data;
     model_id = data[0];
-     
+
     if (model_id != (protocol_info->model_id)) {
         ret          = HAL_ERR_GENERIC;
         protocol_ret = SEC_DEBUG_PROTOCOL_FAILED_INTERNAL;
@@ -319,7 +317,7 @@ static hal_ret_t sec_debug_protocol_sig_and_cmd_process(
     }
 
     cmd = data[2];
-     
+
     data[2] = SWAP_ENDIAN(data[2]);
     PAL_LOG_INFO("Debug-cmd: 0x%x \n", (unsigned int)cmd);
     pal_memcpy(
@@ -468,7 +466,6 @@ hal_ret_t sec_debug_protocol_process(void)
     sec_debug_protocol_status_t protocol_status = SEC_DEBUG_PROTOCOL_INITIAL;
     debug_protocol_info_t protocol_info         = {0};
 
-     
     protocol_read_data =
         (uint32_t *)pal_malloc(SEC_DEBUG_PROTOCOL_MAX_DATA_SIZE);
     if (!protocol_read_data) {
@@ -485,17 +482,16 @@ hal_ret_t sec_debug_protocol_process(void)
                                &read_data_size);
         if (HAL_OK != ret) {
             PAL_LOG_ERR("hal_channel_read failed!\n");
-             
+
             continue;
         }
         ret = sec_debug_check_protocol_data(protocol_read_data, read_data_size);
         if (HAL_OK != ret) {
             PAL_LOG_ERR("sec_debug_check_protocol_data fail: 0x%x\n", ret);
-             
+
             continue;
         }
-         
-         
+
         tag = _PROTOCOL_CMD(protocol_read_data);
         switch (tag) {
         case SEC_DEBUG_DEVICE_TERMINATE_REQUEST: {
@@ -576,9 +572,5 @@ hal_ret_t sec_debug_protocol_process(void)
     pal_free(protocol_read_data);
     return ret;
 }
-
- 
-
-
-/*************************** The End Of File*****************************/
+// eof
 

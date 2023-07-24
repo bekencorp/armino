@@ -336,8 +336,20 @@ static int8_t before_start(void)
 
     if (s_tran_type & TRANSFER_TYPE_VIDEO)
     {
-        media_app_camera_open(APP_CAMERA_NET_MJPEG, camera_ppi);
+#ifdef CONFIG_INTEGRATION_DOORBELL
+		camera_config_t camera_config;
 
+		os_memset(&camera_config, 0, sizeof(camera_config_t));
+
+		camera_config.type = DVP_CAMERA;
+		camera_config.image_format = IMAGE_MJPEG;
+		camera_config.width = camera_ppi >> 16;
+		camera_config.height = camera_ppi & 0xFFFF;
+					
+		media_app_camera_open(&camera_config);
+#else
+        media_app_camera_open(APP_CAMERA_NET_MJPEG, camera_ppi);
+#endif
         lcd_open_t lcd_open;
         lcd_open.device_ppi = lcd_ppi;
         lcd_open.device_name = lcd_name;

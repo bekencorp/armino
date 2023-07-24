@@ -28,6 +28,7 @@
 #define FLASH_SIZE_4M                    0x400000
 #define FLASH_SIZE_8M                    0x800000
 #define FLASH_SIZE_16M                   0x1000000
+#define FLASH_SIZE_64M                   0x4000000
 #define FLASH_STATUS_REG_PROTECT_MASK    0xff
 #define FLASH_STATUS_REG_PROTECT_OFFSET  8
 #define FLASH_CMP_MASK                   0x1

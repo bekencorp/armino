@@ -43,7 +43,22 @@ void uvc_connect_state_callback(uint8_t state)
 {
 	LOGI("%s %d+++\n", __func__, state);
 	if (state == UVC_CONNECTED)
+	{
+#ifdef CONFIG_INTEGRATION_DOORBELL
+		camera_config_t camera_config;
+		
+		os_memset(&camera_config, 0, sizeof(camera_config_t));
+		
+		camera_config.type = UVC_CAMERA;
+		camera_config.image_format = IMAGE_MJPEG;
+		camera_config.width = 640;
+		camera_config.height = 480;
+
+		media_app_camera_open(&camera_config);
+#else
 		media_app_camera_open(APP_CAMERA_UVC, PPI_640X480);
+#endif
+	}
 }
 
 int media_send_frame_callback(uint8_t *data, uint32_t len)
@@ -240,15 +255,28 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 					camera_type = APP_CAMERA_DVP_H264_ENC_LCD;
 				}
 
-				if (CMD_CONTAIN("usb_transfer"))
+				if (CMD_CONTAIN("transfer"))
 				{
-					camera_type = APP_CAMERA_DVP_H264_USB_TRANSFER;
+					camera_type = APP_CAMERA_DVP_H264_TRANSFER;
 				}
 			}
 
 			if (os_strcmp(argv[2], "open") == 0)
 			{
+#ifdef CONFIG_INTEGRATION_DOORBELL
+				camera_config_t camera_config;
+
+				os_memset(&camera_config, 0, sizeof(camera_config_t));
+
+				camera_config.type = UVC_CAMERA;
+				camera_config.image_format = IMAGE_MJPEG;
+				camera_config.width = ppi >> 16;
+				camera_config.height = ppi & 0xFFFF;
+
+				ret = media_app_camera_open(&camera_config);
+#else
 				ret = media_app_camera_open(camera_type, ppi);
+#endif
 			}
 
 			if (os_strcmp(argv[2], "close") == 0)
@@ -488,8 +516,20 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				else
 				{
 					//media_app_register_uvc_connect_state_cb(uvc_connect_state_callback);
-
+#ifdef CONFIG_INTEGRATION_DOORBELL
+					camera_config_t camera_config;
+	
+					os_memset(&camera_config, 0, sizeof(camera_config_t));
+	
+					camera_config.type = UVC_CAMERA;
+					camera_config.image_format = IMAGE_MJPEG;
+					camera_config.width = ppi >> 16;
+					camera_config.height = ppi & 0xFFFF;
+	
+					ret = media_app_camera_open(&camera_config);
+#else
 					ret = media_app_camera_open(camera_type, ppi);
+#endif
 				}
 			}
 
@@ -503,6 +543,9 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 		{
 			if (os_strcmp(argv[2], "open") == 0)
 			{
+#ifdef CONFIG_INTEGRATION_DOORBELL
+
+#else
 				video_setup_t setup;
 
 				if (CMD_CONTAIN("h264"))
@@ -523,6 +566,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				setup.add_pkt_header = NULL;
 
 				ret = media_app_transfer_open(&setup);
+#endif
 			}
 			else if (os_strcmp(argv[2], "pause") == 0)
 			{

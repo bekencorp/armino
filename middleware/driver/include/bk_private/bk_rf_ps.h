@@ -29,6 +29,19 @@ enum {
     CMD_RF_HOLD_BIT_CLR,
 };
 
+#if CONFIG_PM_DSSS_ONLY
+#define RF_PLL_HOLD_BY_BLE_BIT                       (1 << 1)
+#define RF_PLL_HOLD_BY_WIFI_BIT                      (1 << 0)
+
+enum {
+    CMD_RF_WIFI_BTPLL_HOLD_BIT_SET,
+    CMD_RF_WIFI_BTPLL_HOLD_BIT_CLR,
+    CMD_RF_WIFI_WIFIPLL_HOLD_BIT_SET,
+    CMD_RF_WIFI_WIFIPLL_HOLD_BIT_CLR,
+};
+extern UINT32 rf_pll_ctrl(UINT32 cmd, UINT32 param);
+#endif
+
 extern UINT8 rf_sleeped ( void );
 
 extern void power_save_wake_rf_if_in_sleep ( void );

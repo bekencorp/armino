@@ -774,7 +774,7 @@ bk_err_t bk_pm_clock_ctrl(pm_dev_clk_e module,pm_dev_clk_pwr_e clock_state);
  * - others: other errors.
  *
  */
-bk_err_t bk_pm_lp_vol_set( uint32_t lp_vol);
+bk_err_t bk_pm_lp_vol_set(uint32_t lp_vol);
 
 /**
  * @brief lp voltage get
@@ -791,6 +791,73 @@ bk_err_t bk_pm_lp_vol_set( uint32_t lp_vol);
  *
  */
 uint32_t bk_pm_lp_vol_get();
+
+/**
+ * @brief rf tx voltage set
+ *
+ * set the tx voltage of RF
+ *
+ * @attention
+ * - This API is used to set tx voltage of RF
+ *
+ * @param
+ * -uint32_t:0x0:1.25v;0x1:1.3v;0x2:1.35v;0x3:1.4v;0x4:1.45v;0x5:1.5v;0x6:1.55v;0x7:1.6v;
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+bk_err_t bk_pm_rf_tx_vol_set(uint32_t tx_vol);
+
+/**
+ * @brief rf tx voltage get
+ *
+ * get the tx voltage of RF
+ *
+ * @attention
+ * - This API is used to get tx voltage value of RF
+ *
+ * @param
+ * -void
+ * @return
+ * - the tx voltage value
+ *
+ */
+uint32_t bk_pm_rf_tx_vol_get();
+
+/**
+ * @brief rf rx voltage set
+ *
+ * set the rx voltage of RF
+ *
+ * @attention
+ * - This API is used to set rx voltage of RF
+ *
+ * @param
+ * -uint32_t:0x0:1.25v;0x1:1.3v;0x2:1.35v;0x3:1.4v;0x4:1.45v;0x5:1.5v;0x6:1.55v;0x7:1.6v;
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+bk_err_t bk_pm_rf_rx_vol_set(uint32_t rx_vol);
+
+/**
+ * @brief rf rx voltage get
+ *
+ * get the rx voltage of RF
+ *
+ * @attention
+ * - This API is used to get rx voltage value of RF
+ *
+ * @param
+ * -void
+ * @return
+ * - the rx voltage value
+ *
+ */
+uint32_t bk_pm_rf_rx_vol_get();
+
 /**
  * @brief lpo source set
  *

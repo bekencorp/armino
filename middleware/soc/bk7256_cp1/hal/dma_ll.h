@@ -49,10 +49,13 @@ static inline uint32_t dma_ll_dev_to_req_mux(uint32 req_mux)
     {
         CASE_DEV(DTCM);
         CASE_DEV(UART1);
+        CASE_DEV(UART1_RX);
         CASE_DEV(GSPI0);
         CASE_DEV(SDIO);
         CASE_DEV(UART2);
+        CASE_DEV(UART2_RX);
         CASE_DEV(UART3);
+        CASE_DEV(UART3_RX);
         CASE_DEV(GSPI1);
         CASE_DEV(USB);
         CASE_DEV(AUDIO);
@@ -296,6 +299,12 @@ static inline uint32_t dma_ll_get_src_read_addr(dma_hw_t *hw, dma_id_t id)
 static inline uint32_t dma_ll_get_dest_write_addr(dma_hw_t *hw, dma_id_t id)
 {
     return hw->dest_wr_addr[id];
+}
+
+static inline void dma_ll_flush_src_buffer(dma_hw_t *hw, dma_id_t id)
+{
+	hw->status_group[id].status.flush_src_buff = 1;
+	BK_WHILE(hw->status_group[id].status.flush_src_buff);
 }
 
 #ifdef __cplusplus

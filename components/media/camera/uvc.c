@@ -113,11 +113,11 @@ bk_err_t bk_uvc_camera_open(media_ppi_t ppi, media_camera_type_t type)
 	uvc_camera_config_st->uvc_config->connect_state_change_cb = NULL;
 	uvc_camera_config_st->uvc_config->uvc_packet_rx_cb = NULL;
 
-	uvc_camera_config_st->fb_init = frame_buffer_fb_jpeg_init;
-	uvc_camera_config_st->fb_deinit = frame_buffer_fb_jpeg_deinit;
-	uvc_camera_config_st->fb_complete = frame_buffer_fb_push;
-	uvc_camera_config_st->fb_malloc = frame_buffer_fb_jpeg_malloc;
-	uvc_camera_config_st->fb_free = frame_buffer_fb_jpeg_free;
+	uvc_camera_config_st->fb_jpeg_init = frame_buffer_fb_jpeg_init;
+	uvc_camera_config_st->fb_jpeg_deinit = frame_buffer_fb_jpeg_deinit;
+	uvc_camera_config_st->fb_jpeg_complete = frame_buffer_fb_push;
+	uvc_camera_config_st->fb_jpeg_malloc = frame_buffer_fb_jpeg_malloc;
+	uvc_camera_config_st->fb_jpeg_free = frame_buffer_fb_jpeg_free;
 	uvc_camera_config_st->uvc_connect_state_change_cb = uvc_device_connect_state_callback;
 
 	ret = bk_uvc_camera_driver_init(uvc_camera_config_st);

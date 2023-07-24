@@ -32,7 +32,7 @@ const UINT32 g_default_xtal   = DEFAULT_TXID_XTAL;
  * pwr_gain<21:18> Rgm in TRX_C<15:12>, 8 at present
  * pwr_gain<31:31> 1:11g/b 0:11b
  */
-const UINT32 pwr_gain_base_gain_b = 0x00233C00;
+const UINT32 pwr_gain_base_gain_b = 0x19637c00;//0x00233C00;
 #define TPC_PAMAP_TAB_B_LEN			 (48)
 const PWR_REGS cfg_tab_b[TPC_PAMAP_TAB_B_LEN] = {
 	// pregain
@@ -104,7 +104,7 @@ const PWR_REGS cfg_tab_b[TPC_PAMAP_TAB_B_LEN] = {
 #endif
 };
 
-const UINT32 pwr_gain_base_gain_g = 0x80233C00;
+const UINT32 pwr_gain_base_gain_g = 0x99637c00;//0x80233C00;
 #define TPC_PAMAP_TAB_G_LEN			 (80)
 const PWR_REGS cfg_tab_g[TPC_PAMAP_TAB_G_LEN] = {
 	// pregain
@@ -191,7 +191,7 @@ const PWR_REGS cfg_tab_g[TPC_PAMAP_TAB_G_LEN] = {
 	PWRI(0x38F),   // 79   22.25  dBm
 };
 
-const UINT32 pwr_gain_base_gain_ble = 0x00220C00;
+const UINT32 pwr_gain_base_gain_ble = 0x99628c00;//0x00220C00;
 #define TPC_PAMAP_TAB_BT_LEN                        (65)
 const PWR_REGS cfg_tab_bt[TPC_PAMAP_TAB_BT_LEN] = {
 	// pregain

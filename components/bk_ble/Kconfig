@@ -24,4 +24,7 @@ menu "Bk_ble"
 			bool "BTDM 5.2 Mindtree Host"
 	endchoice
 
+	config BTDM_CONTROLLER_ONLY
+		bool "BTDM controller only"
+		default n
 endmenu

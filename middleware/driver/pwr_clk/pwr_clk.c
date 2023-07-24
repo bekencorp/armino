@@ -18,8 +18,6 @@
 #include <modules/pm.h>
 #include "sys_driver.h"
 
-#define MB_CHNL_PWC                (0x4)
-
 /*=====================DEFINE  SECTION  START=====================*/
 
 /*=====================DEFINE  SECTION  END=====================*/
@@ -278,8 +276,8 @@ static void pm_cp0_mailbox_rx_isr(int *pm_mb, mb_chnl_cmd_t *cmd_buf)
 			{
 				s_pm_cp1_boot_ready = PM_MAILBOX_COMMUNICATION_FINISH;
 			}
-			//if(pm_debug_mode()&0x2)
-				//os_printf("cpu0 receive the cpu1 event [%d]\r\n",cmd_buf->param1);
+			//if(pm_debug_mode()&0x2)//for temp debug
+				os_printf("cpu0 receive the cpu1 boot success event [%d]\r\n",cmd_buf->param1);
 			break;
 		default:
 			break;
@@ -312,7 +310,7 @@ static void pm_cp0_mailbox_init()
 #endif //!CONFIG_SLAVE_CORE && CONFIG_DUAL_CORE
 
 
-#if !CONFIG_SLAVE_CORE
+#if !CONFIG_SLAVE_CORE&& CONFIG_DUAL_CORE
 static uint32_t s_pm_cp1_ctrl_state           = 0;
 extern void start_slave_core(void);
 extern void stop_slave_core(void);
@@ -330,12 +328,16 @@ static void pm_module_bootup_cpu(pm_power_module_name_e module)
 }
 static void pm_module_shutdown_cpu(pm_power_module_name_e module)
 {
+	GLOBAL_INT_DECLARATION();
 	if(PM_POWER_MODULE_STATE_ON == sys_drv_module_power_state_get(module))
 	{
 		if(module == PM_POWER_MODULE_NAME_CPU1)
 		{
             stop_slave_core();
 		    bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_OFF);
+			GLOBAL_INT_DISABLE();
+			s_pm_cp1_boot_ready = 0;
+			GLOBAL_INT_RESTORE();
 		}
 	}
 }
@@ -346,33 +348,20 @@ bk_err_t bk_pm_module_vote_boot_cp1_ctrl(pm_boot_cp1_module_name_e module,pm_pow
 
     if(power_state == PM_POWER_MODULE_STATE_ON)//power on
     {
-            if((module == PM_BOOT_CP1_MODULE_NAME_FFT)
-                ||(module == PM_BOOT_CP1_MODULE_NAME_AUDP_SBC)
-                ||(module == PM_BOOT_CP1_MODULE_NAME_AUDP_AUDIO)
-                ||(module == PM_BOOT_CP1_MODULE_NAME_AUDP_I2S))
-            {
-                GLOBAL_INT_DISABLE();
-                s_pm_cp1_ctrl_state |= 0x1 << (module);
-                GLOBAL_INT_RESTORE();
-                pm_module_bootup_cpu(PM_POWER_MODULE_NAME_CPU1);
-            }
+        GLOBAL_INT_DISABLE();
+        s_pm_cp1_ctrl_state |= 0x1 << (module);
+        GLOBAL_INT_RESTORE();
+        pm_module_bootup_cpu(PM_POWER_MODULE_NAME_CPU1);
     }
     else //power down
     {
-        if((module == PM_BOOT_CP1_MODULE_NAME_FFT)
-             ||(module == PM_BOOT_CP1_MODULE_NAME_AUDP_SBC)
-             ||(module == PM_BOOT_CP1_MODULE_NAME_AUDP_AUDIO)
-             ||(module == PM_BOOT_CP1_MODULE_NAME_AUDP_I2S))
-
+		GLOBAL_INT_DISABLE();
+		s_pm_cp1_ctrl_state &= ~(0x1 << (module));
+		GLOBAL_INT_RESTORE();
+		if(0x0 == s_pm_cp1_ctrl_state)
 		{
-			GLOBAL_INT_DISABLE();
-			s_pm_cp1_ctrl_state &= ~(0x1 << (module));
-			if(0x0 == s_pm_cp1_ctrl_state)
-			{
-				pm_module_shutdown_cpu(PM_POWER_MODULE_NAME_CPU1);
-			}
-			GLOBAL_INT_RESTORE();
-         }
+			pm_module_shutdown_cpu(PM_POWER_MODULE_NAME_CPU1);
+		}
     }
 
     return BK_OK;

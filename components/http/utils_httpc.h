@@ -60,19 +60,6 @@ typedef enum {
 
 #define HTTP_RESP_CONTENT_LEN   (256)
 
-#if (CONFIG_TFM_FWU)
-#define OTA_BL2_FLAG   (1 << 0)
-#define OTA_SPE_FLAG   (1 << 1)
-#define OTA_NSPE_FLAG  (1 << 2)
-
-extern psa_image_id_t primary_manifest_image;
-extern psa_image_id_t secondary_manifest_image;
-extern psa_image_id_t primary_bl2_image;
-extern psa_image_id_t secondary_bl2_image;
-extern psa_image_id_t spe_image;
-extern psa_image_id_t nspe_image;
-#endif
-
 /** @defgroup httpclient_struct Struct
  * @{
  */

@@ -32,7 +32,7 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
-#ifdef CONFIG_USB_UVC
+#if CONFIG_USB_UVC
 
 static bool uvc_state_flag = false;
 static uvc_camera_config_t *uvc_camera_config_st = NULL;
@@ -139,11 +139,21 @@ bk_err_t bk_uvc_camera_open(media_ppi_t ppi, media_camera_type_t type)
 	uvc_camera_config_st->uvc_config->connect_state_change_cb = NULL;
 	uvc_camera_config_st->uvc_config->uvc_packet_rx_cb = NULL;
 
-	uvc_camera_config_st->fb_init = frame_buffer_fb_jpeg_init;
-	uvc_camera_config_st->fb_deinit = frame_buffer_fb_jpeg_deinit;
-	uvc_camera_config_st->fb_complete = frame_buffer_fb_push;
-	uvc_camera_config_st->fb_malloc = frame_buffer_fb_jpeg_malloc;
-	uvc_camera_config_st->fb_free = frame_buffer_fb_jpeg_free;
+	uvc_camera_config_st->fb_jpeg_dec_register = frame_buffer_fb_jpeg_dec_register;
+	uvc_camera_config_st->fb_jpeg_init = frame_buffer_fb_jpeg_init;
+	uvc_camera_config_st->fb_jpeg_malloc = frame_buffer_fb_jpeg_malloc;
+	uvc_camera_config_st->fb_jpeg_free = frame_buffer_fb_jpg_free;
+	uvc_camera_config_st->fb_jpeg_complete = frame_buffer_fb_push;
+	uvc_camera_config_st->fb_jpeg_read = frame_buffer_fb_jpeg_read;
+	uvc_camera_config_st->fb_jpeg_deinit = frame_buffer_fb_jpeg_deinit;
+
+	uvc_camera_config_st->fb_disp_init = frame_buffer_fb_display_init;
+	uvc_camera_config_st->fb_disp_malloc = frame_buffer_fb_display_malloc;
+
+	uvc_camera_config_st->fb_h264_init = frame_buffer_fb_h264_init;
+	uvc_camera_config_st->fb_h264_complete = frame_buffer_fb_h264_push;
+	uvc_camera_config_st->fb_h264_malloc = frame_buffer_fb_h264_malloc_wait;
+	uvc_camera_config_st->fb_h264_free = frame_buffer_fb_h264_free;
 	uvc_camera_config_st->uvc_connect_state_change_cb = uvc_device_connect_state_callback;
 
 	ret = bk_uvc_camera_driver_init(uvc_camera_config_st);

@@ -1429,11 +1429,11 @@ INSERTED:
 // TODO - after we support bk_eary_printf() API, we can remove this API.
 //
 #if CONFIG_SOC_BK7236XX
-extern unsigned char __data_start__;
-#define RAM_START_ADDRESS  ((uint32_t)&__data_start__)
-
 extern unsigned char _data_ram_begin;
-#define DATA_START_ADDRESS ((uint32_t)&_data_ram_begin)
+#define RAM_START_ADDRESS  ((uint32_t)&_data_ram_begin)
+
+extern unsigned char __data_start__;
+#define DATA_START_ADDRESS ((uint32_t)&__data_start__)
 
 extern unsigned char _data_ram_end;
 #define DATA_END_ADDRESS ((uint32_t)&_data_ram_end)
@@ -1480,16 +1480,16 @@ void pvShowMemoryConfigInfo(void)
 	BK_LOGI(TAG, "%-8s %-8s %-8s %-8s\n", "--------", "--------", "--------", "--------");
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "itcm", ITCM_START_ADDRESS, ITCM_END_ADDRESS, (ITCM_END_ADDRESS - ITCM_START_ADDRESS));
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "dtcm", DTCM_START_ADDRESS, DTCM_END_ADDRESS, (DTCM_END_ADDRESS - DTCM_START_ADDRESS));
-#if !CONFIG_SLAVE_CORE
-	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "iram", IRAM_START_ADDRESS, IRAM_END_ADDRESS, (IRAM_END_ADDRESS - IRAM_START_ADDRESS));
-#if CONFIG_CACHE_ENABLE
-	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "non_cache", NOCACHE_START_ADDRESS, NOCACHE_END_ADDRESS, (NOCACHE_END_ADDRESS - NOCACHE_START_ADDRESS));
-#endif //#if CONFIG_CACHE_ENABLE
-#endif// #if !CONFIG_SLAVE_CORE
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "ram", RAM_START_ADDRESS, HEAP_END_ADDRESS, (HEAP_END_ADDRESS - RAM_START_ADDRESS));
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "non_heap", RAM_START_ADDRESS, HEAP_START_ADDRESS, (HEAP_START_ADDRESS - RAM_START_ADDRESS));
+#if !CONFIG_SLAVE_CORE
+	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "iram", IRAM_START_ADDRESS, IRAM_END_ADDRESS, (IRAM_END_ADDRESS - IRAM_START_ADDRESS));
+#endif //#if !CONFIG_SLAVE_CORE
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "data", DATA_START_ADDRESS, DATA_END_ADDRESS, (DATA_END_ADDRESS - DATA_START_ADDRESS));
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "bss", BSS_START_ADDRESS, BSS_END_ADDRESS, (BSS_END_ADDRESS - BSS_START_ADDRESS));
+#if !CONFIG_SLAVE_CORE && CONFIG_CACHE_ENABLE
+	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "non_cache", NOCACHE_START_ADDRESS, NOCACHE_END_ADDRESS, (NOCACHE_END_ADDRESS - NOCACHE_START_ADDRESS));
+#endif// #if !CONFIG_SLAVE_CORE && CONFIG_CACHE_ENABLE
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "heap", HEAP_START_ADDRESS, HEAP_END_ADDRESS, (HEAP_END_ADDRESS - HEAP_START_ADDRESS));
 #if (CONFIG_PSRAM_AS_SYS_MEMORY)
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "psram", PSRAM_START_ADDRESS, (PSRAM_START_ADDRESS + PSRAM_HEAP_SIZE), PSRAM_HEAP_SIZE);

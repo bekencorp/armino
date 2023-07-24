@@ -1,0 +1,12 @@
+{
+	"partitions": [
+	{ "partition": "bl1_control",        "size": "12k", "bin": "bl1_control.bin",        "bin_type":  "data", "owner": "secureboot"},
+	{ "partition": "primary_manifest",   "size": "4k",  "bin": "primary_manifest.bin",   "bin_type":  "data", "owner": "secureboot"},
+	{ "partition": "secondary_manifest", "size": "4k",  "bin": "secondary_manifest.bin", "bin_type":  "data", "owner": "secureboot"},
+        { "partition": "sys_scratch",        "size": "32k", "owner": "secureboot", "security": "s"},
+        { "partition": "sys_ps",             "size": "32k", "owner": "secureboot", "security": "s"},
+        { "partition": "sys_its",            "size": "32k", "owner": "secureboot", "security": "s"},
+        { "partition": "sys_rf",             "size": "4k", "security": "ns"},
+        { "partition": "sys_net",            "size": "4k", "security": "ns"}
+	]
+}

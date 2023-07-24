@@ -151,6 +151,7 @@ static void doorbell_sdp_timer_handler(void *data)
 		ap_set_default_netif();
 	}
 
+	LOGD("sdp: %s\n", doorbell_sdp->sdp_data);
 	sendto(doorbell_sdp->sock,
 	       doorbell_sdp->sdp_data,
 	       doorbell_sdp->sdp_length,

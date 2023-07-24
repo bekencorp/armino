@@ -1,7 +1,8 @@
 {
     "description": "NS BL1 -> Armino S",
+    "cpu_vector_align": "0x200",
     "partitions": [
-        { "partition": "primary_app",
+        { "partition": "primary_cpu0_app",
             "offset": "0x00000000",
             "size": "2304k",
             "bin": "app.bin",

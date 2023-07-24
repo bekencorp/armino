@@ -3,14 +3,20 @@
 #include <os/os.h>
 #include <components/shell_task.h>
 
+#include <modules/wifi.h>
+#include <components/event.h>
+#include <components/netif.h>
+
+
 #include "ble_boarding.h"
 #include "doorbell_comm.h"
 #include "doorbell_sdp.h"
 #include "doorbell_cmd.h"
 #include "doorbell_devices.h"
-#include "doorbell_wifi.h"
+#include "doorbell_network.h"
 #include "doorbell_cs2_service.h"
 #include "doorbell_udp_service.h"
+#include "doorbell_tcp_service.h"
 #include "doorbell_boarding.h"
 #include "cli.h"
 
@@ -84,7 +90,19 @@ static void doorbell_message_handle(void)
 				{
 					LOGI("DBEVT_WIFI_STATION_CONNECTED\n");
 
-					doorbell_boarding_event_notify(BOARDING_OP_STATION_START, BK_OK);
+					netif_ip4_config_t ip4_config;
+					extern uint32_t uap_ip_is_start(void);
+
+					os_memset(&ip4_config, 0x0, sizeof(netif_ip4_config_t));
+					bk_netif_get_ip4_config(NETIF_IF_AP, &ip4_config);
+					if (uap_ip_is_start())
+						bk_netif_get_ip4_config(NETIF_IF_AP, &ip4_config);
+					else
+						bk_netif_get_ip4_config(NETIF_IF_STA, &ip4_config);
+
+					LOGI("ip: %s\n", ip4_config.ip);
+
+					doorbell_boarding_event_notify_with_data(BOARDING_OP_STATION_START, BK_OK, ip4_config.ip, strlen(ip4_config.ip));
 				}
 				break;
 
@@ -98,7 +116,16 @@ static void doorbell_message_handle(void)
 				{
 					LOGI("DBEVT_WIFI_SOFT_AP_TURNING_ON\n");
 					ble_boarding_info_t *boarding = (ble_boarding_info_t *) msg.param;
-					doorbell_wifi_soft_ap_start(boarding->ssid_value, boarding->password_value);
+					int ret = doorbell_wifi_soft_ap_start(boarding->ssid_value, boarding->password_value);
+
+					if (ret == BK_OK)
+					{
+						doorbell_boarding_event_notify(BOARDING_OP_SOFT_AP_START, EVT_STATUS_OK);
+					}
+					else
+					{
+						doorbell_boarding_event_notify(BOARDING_OP_SOFT_AP_START, EVT_STATUS_ERROR);
+					}
 				}
 				break;
 
@@ -144,7 +171,7 @@ static void doorbell_message_handle(void)
 					db_info->service = DOORBELL_SERVICE_LAN_TCP;
 
 					doorbell_cmd_server_init();
-					//doorbell_tcp_service_init();
+					doorbell_tcp_service_init();
 
 				}
 				break;
@@ -152,12 +179,6 @@ static void doorbell_message_handle(void)
 				case DBEVT_LAN_TCP_SERVICE_START_RESPONSE:
 				{
 					LOGI("DBEVT_LAN_TCP_SERVICE_START_RESPONSE\n");
-
-					if (db_info->service != DOORBELL_SERVICE_NONE)
-					{
-						LOGW("DBEVT_LAN_TCP_SERVICE_START_RESPONSE service: %d already start up\n", db_info->service);
-						break;
-					}
 
 					doorbell_sdp_start("doorbell-tcp", DOORBELL_CMD_PORT, DOORBELL_TCP_IMG_PORT, DOORBELL_TCP_AUD_PORT);
 
@@ -167,6 +188,7 @@ static void doorbell_message_handle(void)
 
 				case DBEVT_P2P_CS2_SERVICE_START_REQUEST:
 				{
+#ifdef CONFIG_INTEGRATION_DOORBELL_CS2
 					LOGI("DBEVT_P2P_CS2_SERVICE_START_REQUEST\n");
 
 					if (db_info->service != DOORBELL_SERVICE_NONE)
@@ -181,7 +203,7 @@ static void doorbell_message_handle(void)
 
 					doorbell_current_service = get_doorbell_cs2_service_interface();
 					doorbell_current_service->init(key);
-
+#endif
 				}
 				break;
 
@@ -208,8 +230,12 @@ static void doorbell_message_handle(void)
 
 				case DBEVT_REMOTE_DEVICE_CONNECTED:
 				{
-					if (db_info->service == DOORBELL_SERVICE_LAN_TCP
-					    || DOORBELL_SERVICE_LAN_TCP == DOORBELL_SERVICE_LAN_UDP)
+					if (db_info->service == DOORBELL_SERVICE_LAN_UDP)
+					{
+						doorbell_udp_update_remote_address((in_addr_t)msg.param);
+						doorbell_sdp_stop();
+					}
+					else if(db_info->service == DOORBELL_SERVICE_LAN_TCP)
 					{
 						doorbell_sdp_stop();
 					}
@@ -220,6 +246,17 @@ static void doorbell_message_handle(void)
 				{
 					doorbell_camera_turn_off();
 					doorbell_audio_turn_off();
+
+					if (db_info->service == DOORBELL_SERVICE_LAN_UDP)
+					{
+						doorbell_sdp_start("doorbell-udp", DOORBELL_CMD_PORT, DOORBELL_UDP_IMG_PORT, DOORBELL_UDP_AUD_PORT);
+					}
+					else if(db_info->service == DOORBELL_SERVICE_LAN_TCP)
+					{
+						doorbell_sdp_start("doorbell-tcp", DOORBELL_CMD_PORT, DOORBELL_TCP_IMG_PORT, DOORBELL_TCP_AUD_PORT);
+					}
+
+
 				}
 				break;
 

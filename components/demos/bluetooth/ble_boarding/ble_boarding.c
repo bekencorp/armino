@@ -291,13 +291,13 @@ static void ble_at_legacy_notice_cb(ble_notice_t notice, void *param)
                 case BOARDING_IDX_CHAR_VALUE:
                     break;
 				case BOARDING_IDX_CHAR_DESC:
-					bk_ble_read_response_value(sizeof(ble_boarding_info->boarding_notify), &ble_boarding_info->boarding_notify[0], r_req->prf_id, r_req->att_idx);
+					bk_ble_read_response_value(r_req->conn_idx, sizeof(ble_boarding_info->boarding_notify), &ble_boarding_info->boarding_notify[0], r_req->prf_id, r_req->att_idx);
 					break;
 
                 case BOARDING_IDX_CHAR_SSID_DECL:
                     break;
                 case BOARDING_IDX_CHAR_SSID_VALUE:
-                    bk_ble_read_response_value(ble_boarding_info->ssid_length, (uint8_t*)ble_boarding_info->ssid_value, r_req->prf_id, r_req->att_idx);
+                    bk_ble_read_response_value(r_req->conn_idx, ble_boarding_info->ssid_length, (uint8_t*)ble_boarding_info->ssid_value, r_req->prf_id, r_req->att_idx);
                     //os_printf("len:%d, data[0]:0x%02x, data[1]:0x%02x, data[2]:0x%02x\r\n", s_boarding_ssid_len, s_boarding_ssid[0], s_boarding_ssid[1], s_boarding_ssid[2]);
 					LOGI("read ssid: %s, length: %d\n", ble_boarding_info->ssid_value, ble_boarding_info->ssid_length);
                     break;
@@ -305,7 +305,7 @@ static void ble_at_legacy_notice_cb(ble_notice_t notice, void *param)
                 case BOARDING_IDX_CHAR_PASSWORD_DECL:
                     break;
                 case BOARDING_IDX_CHAR_PASSWORD_VALUE:
-                    bk_ble_read_response_value(ble_boarding_info->password_length, (uint8_t*)ble_boarding_info->password_value, r_req->prf_id, r_req->att_idx);
+                    bk_ble_read_response_value(r_req->conn_idx, ble_boarding_info->password_length, (uint8_t*)ble_boarding_info->password_value, r_req->prf_id, r_req->att_idx);
                     //os_printf("len:%d, data[0]:0x%02x, data[1]:0x%02x, data[2]:0x%02x\r\n", s_boarding_password_len, s_boarding_password[0], s_boarding_password[1], s_boarding_password[2]);
 					LOGI("read password: %s, length: %d\n", ble_boarding_info->password_value, ble_boarding_info->password_length);
                     break;

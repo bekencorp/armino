@@ -16,13 +16,14 @@
 
 extern void cli_lcd_qspi_display_pure_color_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 extern void cli_lcd_qspi_display_picture_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-
+extern void cli_lcd_qspi_read_reg_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 #define LCD_QSPI_CMD_CNT	(sizeof(s_lcd_qspi_commands) / sizeof(struct cli_command))
 
 static const struct cli_command s_lcd_qspi_commands[] = {
 	{"lcd_qspi_display_pure_color_test", "lcd_qspi_display_pure_color_test {start|stop} {device name}", cli_lcd_qspi_display_pure_color_test_cmd},
 	{"lcd_qspi_display_picture_test", "lcd_qspi_display_picture_test {start|stop} {file name} {device name}", cli_lcd_qspi_display_picture_test_cmd},
+	{"lcd_qspi_read_reg_test", "lcd_qspi_read_reg {reg_address}", cli_lcd_qspi_read_reg_test_cmd},
 };
 
 int cli_lcd_qspi_init(void)

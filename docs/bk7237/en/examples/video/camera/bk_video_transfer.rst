@@ -41,17 +41,17 @@ Video_transfer
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 	|                 NAME                 |      Description       |                  File                      |  value  |
 	+======================================+========================+============================================+=========+
-	|CONFIG_JPEGENC_HW                     |support hw jpeg encode  |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
+	|CONFIG_JPEGENC_HW                     |support hw jpeg encode  |``middleware\soc\bk7237\bk7237.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_CAMERA                         |suport use dvp camera   |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
+	|CONFIG_DVP_CAMERA                     |support use dvp camera  |``middleware\soc\bk7237\bk7237.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_USE_APP_DEMO_VIDEO_TRANSSER    |support video transfer  |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
+	|CONFIG_USE_APP_DEMO_VIDEO_TRANSSER    |support video transfer  |``middleware\soc\bk7237\bk7237.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_NET_WORK_VIDEO_TRANSFER        |support wifi transfer   |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
+	|CONFIG_NET_WORK_VIDEO_TRANSFER        |support wifi transfer   |``middleware\soc\bk7237\bk7237.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_COMPONENTS_P2P                 |support p2p transfer    |``middleware\soc\bk7256\bk7256.defconfig``  |    n    |
+	|CONFIG_COMPONENTS_P2P                 |support p2p transfer    |``middleware\soc\bk7237\bk7237.defconfig``  |    n    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_CAMERA_USE_I2C1                |suport use I2C1         |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
+	|CONFIG_DVP_CAMERA_I2C_ID              |support use I2C ID      |``middleware\soc\bk7237\bk7237.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 
 4 Presentation Introduction

@@ -325,7 +325,7 @@ bk_err_t bk_uvc_camera_set_type(media_camera_type_t type)
 	{
 		ret = bk_uvc_enable_H264();
 	}
-	else if (type == MEDIA_UVC_MJPEG)
+	else if (type == MEDIA_UVC_MJPEG || type == MEDIA_UVC_MJPEG_TO_H264)
 	{
 		ret = bk_uvc_enable_mjpeg();
 	}

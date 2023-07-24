@@ -37,6 +37,15 @@ extern int TABLE_R2V[TABLE_MAX_SIZE];
  *
  */
 
+typedef enum
+{
+	YUV_ERR,
+	YUV_444,
+	YUV_422,
+	YUV_420,
+	YUV_400, // gray image
+} yuv_enc_fmt_t;
+
 typedef union{
 	struct {
 		uint32_t b2 : 5;//bit[0-4]

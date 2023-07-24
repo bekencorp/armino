@@ -48,15 +48,6 @@ hal_ret_t sec_debug_cleanup(sec_debug_ctx_t sec_debug_ctx);
  * @return	SEC_DEBUG_TRUE when got the enable flag. otherwise
  */
 hal_ret_t sec_debug_enable(sec_debug_ctx_t sec_debug_ctx);
-
-/**
- * @ingroup securedebug_common
- * @brief	sec_debug_get_enable_flag function
- * @return	HAL_OK on success. error codes SEC_DEBUG_FALSE
- *          means no need to call sec_debug_enable
- */
-bool sec_debug_get_enable_flag(void);
-
 #ifdef __cplusplus
 }
 #endif

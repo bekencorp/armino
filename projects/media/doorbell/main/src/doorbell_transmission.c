@@ -13,6 +13,10 @@
 
 #include <components/video_transfer.h>
 
+#if CONFIG_ARCH_CM33
+#include <driver/aon_rtc.h>
+#endif
+
 #define TAG "db-tran"
 
 #define LOGI(...) BK_LOGW(TAG, ##__VA_ARGS__)
@@ -388,9 +392,18 @@ void doorbell_transmission_unpack(db_channel_t *channel, uint8_t *data, uint32_t
 
 uint32_t doorbell_transmission_get_milliseconds(void)
 {
+	uint32_t time = 0;
+
+#if CONFIG_ARCH_RISCV
 	extern u64 riscv_get_mtimer(void);
 
-	return (riscv_get_mtimer() / 26000) & 0xFFFFFFFF;
+	time = (riscv_get_mtimer() / 26000) & 0xFFFFFFFF;
+#elif CONFIG_ARCH_CM33
+
+	time = (bk_aon_rtc_get_us() / 1000) & 0xFFFFFFFF;
+#endif
+
+	return time;
 }
 
 void doorbell_transmission_pack(db_channel_t *channel, uint8_t *data, uint32_t length)

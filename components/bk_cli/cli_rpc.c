@@ -35,7 +35,7 @@ static void debug_help_command(char *pcWriteBuffer, int xWriteBufferLen, int arg
 
 #ifdef CONFIG_DUAL_CORE
 #include "mb_ipc_cmd.h"
-#include <driver/gpio.h>
+// #include <driver/gpio.h>
 
 #include "amp_lock_api.h"
 
@@ -48,7 +48,6 @@ static void debug_cpulock_command(char *pcWriteBuffer, int xWriteBufferLen, int 
 static void debug_spinlock_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 static u8     ipc_inited = 0;
-static u8     rpc_inited = 0;
 
 spinlock_t		gpio_spinlock;
 spinlock_t  *	gpio_spinlock_ptr;
@@ -70,8 +69,8 @@ const struct cli_command debug_cmds[] = {
 	{"help", "list debug cmds", debug_help_command},
 #ifdef CONFIG_DUAL_CORE
 	{"ipc", "ipc [spinlock addr]", debug_ipc_command},
-	{"rpc", "rpc", debug_rpc_command},
-	{"gpio_out", "gpio_out gpio_id {0|1}", debug_rpc_gpio_command},
+//	{"rpc", "rpc", debug_rpc_command},
+//	{"gpio_out", "gpio_out gpio_id {0|1}", debug_rpc_gpio_command},
 	{"cpu_lock", "cpu_lock [timeout 1~20]", debug_cpulock_command},
 	{"spin_lock", "spin_lock [timeout 1~20]", debug_spinlock_command},
 #endif
@@ -135,6 +134,10 @@ static void print_debug_cmd_help(void *func)
 	print_cmd_help(debug_cmds, ARRAY_SIZE(debug_cmds), func);
 }
 
+#if 0
+
+static u8     rpc_inited = 0;
+
 static void debug_rpc_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int ret_val;
@@ -169,6 +172,7 @@ static void debug_rpc_command(char *pcWriteBuffer, int xWriteBufferLen, int argc
 #endif
 
 }
+#endif
 
 static void debug_ipc_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
@@ -263,6 +267,7 @@ static void debug_spinlock_command(char *pcWriteBuffer, int xWriteBufferLen, int
 	}
 }
 
+#if 0
 extern bk_err_t bk_gpio_enable_output_rpc(gpio_id_t gpio_id);
 extern bk_err_t bk_gpio_set_output_high_rpc(gpio_id_t gpio_id);
 extern bk_err_t bk_gpio_set_output_low_rpc(gpio_id_t gpio_id);
@@ -298,6 +303,7 @@ static void debug_rpc_gpio_command(char *pcWriteBuffer, int xWriteBufferLen, int
 #endif
 
 }
+#endif
 
 static void debug_cpulock_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {

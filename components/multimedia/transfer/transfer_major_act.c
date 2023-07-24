@@ -162,12 +162,7 @@ static void transfer_major_task_transfer_data(uint32_t param)
 		// send msg to cpu0
 		transfer_major_node->event = EVENT_MEDIA_DATA_NOTIFY;
 		transfer_major_node->param = (uint32_t)encode_frame;
-		msg_send_to_media_major_mailbox(transfer_major_node, BK_OK, APP_MODULE);
-
-		if (rtos_get_semaphore(&transfer_major_node->sem, BEKEN_WAIT_FOREVER))//BEKEN_WAIT_FOREVER
-		{
-			LOGE("%s wait semaphore failed\n", __func__);
-		}
+		msg_send_req_to_media_major_mailbox_sync(transfer_major_node, APP_MODULE);
 
 		if (transfer_info.param == FB_INDEX_JPEG)
 		{
@@ -205,7 +200,7 @@ static void transfer_major_task_exit_handle(uint32_t param)
 
 	set_transfer_state(TRS_STATE_DISABLED);
 
-	msg_send_to_media_major_mailbox(msg, kNoErr, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox(msg, kNoErr, APP_MODULE);
 }
 
 static void transfer_major_task_entry(beken_thread_arg_t data)
@@ -352,7 +347,7 @@ static bk_err_t transfer_major_task_open_handle(media_mailbox_msg_t *msg)
 
 end:
 
-	msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 
 	LOGI("%s complete\n", __func__);
 
@@ -366,7 +361,7 @@ static bk_err_t transfer_major_task_close_handle(media_mailbox_msg_t *msg)
 	if (transfer_major_task_running == false || get_transfer_state() == TRS_STATE_DISABLED)
 	{
 		LOGI("transfer_major_task have closed!\r\n");
-		msg_send_to_media_major_mailbox(msg, BK_OK, APP_MODULE);
+		msg_send_rsp_to_media_major_mailbox(msg, BK_OK, APP_MODULE);
 	}
 
 	transfer_major_task_running = false;
@@ -387,7 +382,7 @@ static bk_err_t transfer_major_task_pause_handle(media_mailbox_msg_t *msg)
 
 	GLOBAL_INT_RESTORE();
 
-	msg_send_to_media_major_mailbox(msg, kNoErr, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox(msg, kNoErr, APP_MODULE);
 
 	return BK_OK;
 }
@@ -415,12 +410,12 @@ bk_err_t transfer_major_event_handle(media_mailbox_msg_t *msg)
 	return ret;
 }
 
-trs_state_t get_transfer_state(void)
+media_trs_state_t get_transfer_state(void)
 {
 	return transfer_info.state;
 }
 
-void set_transfer_state(trs_state_t state)
+void set_transfer_state(media_trs_state_t state)
 {
 	transfer_info.state = state;
 }

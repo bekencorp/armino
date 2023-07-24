@@ -1,5 +1,5 @@
 {
-	"description": "legacy boot: bl2->test1->test2",
+	"description": "legacy boot: bl1->bl2->test1->test2",
         "bl2_slot_type": "single",
 
 	"partitions": [

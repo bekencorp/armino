@@ -6,9 +6,12 @@ USER_SECTIONS	.dtcm_sec_data
 USER_SECTIONS	.dtcm_sec_bss
 USER_SECTIONS	.swap_data
 
-CPU1 0x1B0000 0x20000
+DEFINE CPU1_FLASH_START 0x1d0000
+DEFINE CPU1_FLASH_SIZE 0x1c0000
+
+CPU1 CPU1_FLASH_START CPU1_FLASH_SIZE
 {
-	FLASH 0x1B0000
+	FLASH +0
 	{
 		* (.nds_vector)
 		* (+RO)
@@ -19,7 +22,6 @@ CPU1 0x1B0000 0x20000
 		LOADADDR NEXT _itcm_lma_start
 		ADDR NEXT _itcm_ema_start
 		* KEEP (.itcm_sec_code)
-		* KEEP (.itcm) 
 		LOADADDR _itcm_lma_end
 		ADDR _itcm_ema_end
 		

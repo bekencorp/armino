@@ -53,6 +53,9 @@ static void cli_icu_help(void)
 #if CONFIG_PWM
 static void cli_int_service_pwm_isr(void)
 {
+#if CONFIG_PWM_V1PX
+	CLI_LOGI("TODO:PWM ASIC IP V1PX\r\n");
+#else
 	pwm_hal_t *hal = &s_pwm.hal;
 	uint32_t int_status;
 	int chan;
@@ -64,6 +67,7 @@ static void cli_int_service_pwm_isr(void)
 			CLI_LOGI("pwm change register isr test :pwm[%d] isr\r\n", chan);
 		}
 	}
+#endif
 }
 #endif
 

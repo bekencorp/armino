@@ -11,11 +11,20 @@ USER_SECTIONS	.itcm
 USER_SECTIONS	.interrupt.text
 USER_SECTIONS	.interrupt.HalTrapVector.text.HalTrapVector
 
-CPU0_LOAD1 0x00010000 0x8800
+DEFINE CPU0_FLASH_START 0x10000
+DEFINE CPU0_FLASH_SIZE 0x1c0000
+
+CPU0_LOAD1 CPU0_FLASH_START CPU0_FLASH_SIZE
 {
-    FLASH1 0x00010000 0x800
+    FLASH1 +0
 	{
 		* KEEP (.nds_vector)
+
+		* KEEP (.interrupt.text)
+		* KEEP (.interrupt.HalTrapVector.text.HalTrapVector)
+		* KEEP (.itcm)
+
+		* (+RO)
 	}
 
 	ITCM 0x10000000 0x8000
@@ -25,19 +34,6 @@ CPU0_LOAD1 0x00010000 0x8800
 		* KEEP (.itcm_sec_code LMA_FORCE_ALIGN)
 		LOADADDR _itcm_lma_end
 		ADDR _itcm_ema_end
-	}
-
-}
-
-CPU0_LOAD2 0x00018800  0x197800
-{
-    FLASH2 +0
-	{
-		* KEEP (.interrupt.text)
-		* KEEP (.interrupt.HalTrapVector.text.HalTrapVector)
-		* KEEP (.itcm)
-
-		* (+RO)
 	}
 
 	DTCM 0x20000400 0x6C00

@@ -426,6 +426,11 @@ void _start(void)
 #endif
 
   cm_backtrace_init(FIREWARE_NAME, HARDWARE_VERSION, SOFTWARE_VERSION);
+
+#if CONFIG_RESET_REASON
+  extern void bk_misc_resume_reset_reason();
+  bk_misc_resume_reset_reason();
+#endif
   #if !CONFIG_PM
   /*power manager init*/
   pm_hardware_init();
@@ -433,7 +438,7 @@ void _start(void)
   bk_pm_cp1_auto_power_down_state_set(PM_CP1_AUTO_CTRL_DISABLE);
   bk_pm_mem_auto_power_down_state_set(PM_MEM_AUTO_CTRL_DISABLE);
   #endif
-  bk_pm_mailbox_init();
+  //bk_pm_mailbox_init();
   #endif
   entry_main();
   while(1) {BK_LOGW(TAG, "@\r\n");};

@@ -3497,7 +3497,7 @@ static bk_err_t camera_intf_sccb_write_byte(uint8_t addr, uint8_t data)
 	mem_param.data = &data;
 	mem_param.data_size = 1;
 	mem_param.timeout_ms = I2C_WIRTE_TIMEOUT_MS;
-	return bk_i2c_memory_write(CONFIG_CAMERA_I2C_ID, &mem_param);
+	return bk_i2c_memory_write(CONFIG_DVP_CAMERA_I2C_ID, &mem_param);
 }
 
 static bk_err_t camera_intf_sccb_write_word(uint16_t addr, uint8_t data)
@@ -3509,7 +3509,7 @@ static bk_err_t camera_intf_sccb_write_word(uint16_t addr, uint8_t data)
 	mem_param.data = &data;
 	mem_param.data_size = 1;
 	mem_param.timeout_ms = I2C_WIRTE_TIMEOUT_MS;
-	return bk_i2c_memory_write(CONFIG_CAMERA_I2C_ID, &mem_param);
+	return bk_i2c_memory_write(CONFIG_DVP_CAMERA_I2C_ID, &mem_param);
 }
 
 static void camera_intf_sccb_read_byte(uint8_t addr, uint8_t *data)
@@ -3521,7 +3521,7 @@ static void camera_intf_sccb_read_byte(uint8_t addr, uint8_t *data)
 	mem_param.data = data;
 	mem_param.data_size = 1;
 	mem_param.timeout_ms = I2C_WIRTE_TIMEOUT_MS;
-	BK_LOG_ON_ERR(bk_i2c_memory_read(CONFIG_CAMERA_I2C_ID, &mem_param));
+	BK_LOG_ON_ERR(bk_i2c_memory_read(CONFIG_DVP_CAMERA_I2C_ID, &mem_param));
 }
 
 static void camera_intf_sccb_read_word(uint16_t addr, uint8_t *data)
@@ -3533,7 +3533,7 @@ static void camera_intf_sccb_read_word(uint16_t addr, uint8_t *data)
 	mem_param.data = data;
 	mem_param.data_size = 1;
 	mem_param.timeout_ms = I2C_WIRTE_TIMEOUT_MS;
-	BK_LOG_ON_ERR(bk_i2c_memory_read(CONFIG_CAMERA_I2C_ID, &mem_param));
+	BK_LOG_ON_ERR(bk_i2c_memory_read(CONFIG_DVP_CAMERA_I2C_ID, &mem_param));
 }
 
 static bk_err_t camera_inf_write_cfg_byte(const uint8_t (*cfg_table)[2], uint32_t size)

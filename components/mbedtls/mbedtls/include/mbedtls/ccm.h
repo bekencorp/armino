@@ -57,17 +57,18 @@
 
 #include "mbedtls/cipher.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#if !defined(MBEDTLS_CCM_ALT)
+
 #define MBEDTLS_ERR_CCM_BAD_INPUT       -0x000D /**< Bad input parameters to the function. */
 #define MBEDTLS_ERR_CCM_AUTH_FAILED     -0x000F /**< Authenticated decryption failed. */
 
 /* MBEDTLS_ERR_CCM_HW_ACCEL_FAILED is deprecated and should not be used. */
 #define MBEDTLS_ERR_CCM_HW_ACCEL_FAILED -0x0011 /**< CCM hardware accelerator failed. */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#if !defined(MBEDTLS_CCM_ALT)
 // Regular implementation
 //
 
@@ -82,7 +83,7 @@ typedef struct mbedtls_ccm_context
 mbedtls_ccm_context;
 
 #else  /* MBEDTLS_CCM_ALT */
-#include "ccm_alt.h"
+#include <modules/bk_mbedtls_alt/bk_ccm_alt.h>
 #endif /* MBEDTLS_CCM_ALT */
 
 /**

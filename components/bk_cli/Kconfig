@@ -122,9 +122,9 @@ menu "Bk_cli"
 			bool "Enable Psram Test"
 			default n
 
-		config CAMERA_TEST
-			depends on CLI && CAMERA
-			bool "Enable Camera Test"
+		config DVP_CAMERA_TEST
+			depends on CLI && DVP_CAMERA
+			bool "Enable dvp Camera Test"
 			default n
 
 		config SPE_TEST
@@ -159,6 +159,16 @@ menu "Bk_cli"
 		config PM_TEST
 			depends on CLI
 			bool "Enable Pm Test"
+			default n
+
+		config VIDEO_TRANSFER_DEMO
+			depends on CLI
+			bool "Enable H264 DEMO"
+			default n
+
+		config PUF_TEST
+			depends on CLI
+			bool "Enable PUF Test"
 			default n
 
 		config EFUSE
@@ -198,10 +208,7 @@ menu "Bk_cli"
 		config ENABLE_WIFI_DEFAULT_CONNECT
 			bool "Enable Wifi Default Connect"
 			default n
-			
-		config OTP
-			bool "Enable OTP"
-			default y
+
 
 		config RTC_TIMER_PRECISION_TEST
 			bool "Enable RTC Timer precision test"
@@ -258,6 +265,11 @@ menu "Bk_cli"
 
 		config RWNX_PROTO_DEBUG
 			bool "Enable Rwnx Proto Debug"
+			default n
+
+		config HW_ACC_MBEDTLS_TEST
+			depends on SECURITYIP
+			bool "Enable Mbedtls Hardware Acceleration Test"
 			default n
 
 	endmenu

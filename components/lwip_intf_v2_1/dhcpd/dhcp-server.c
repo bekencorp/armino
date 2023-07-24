@@ -8,6 +8,7 @@
 #include "lwip/etharp.h"
 #include "lwip/sockets.h"
 #include "opt.h"
+#include "net.h"
 
 #define os_mem_alloc os_malloc
 #define os_mem_free  os_free
@@ -258,10 +259,6 @@ static int send_response(int sock, struct sockaddr *addr, char *msg, int len)
 {
 	int nb;
 	unsigned int sent = 0;
-	/* in AP+STA mode, should set ap-netif as default */
-	int dest_ip = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
-	if((dest_ip == IPADDR_ANY) || (dest_ip == IPADDR_BROADCAST))
-		ap_set_default_netif();
 
 	while (sent < len) {
 		nb = lwip_sendto(sock, msg + sent, len - sent, 0, addr,
@@ -274,9 +271,6 @@ static int send_response(int sock, struct sockaddr *addr, char *msg, int len)
 		}
 		sent += nb;
 	}
-	/* rest default netif to sta's netif */
-	if((dest_ip == IPADDR_ANY) || (dest_ip == IPADDR_BROADCAST))
-		reset_default_netif();
 
 	dhcp_d("sent response, %d bytes %s\r\n", sent,
 	    inet_ntoa(((struct sockaddr_in *)addr)->sin_addr));
@@ -639,6 +633,8 @@ static int create_and_bind_udp_socket(struct sockaddr_in *address,
 {
 	int one = 1;
 	int ret;
+	struct ifreq ifreq_name = {0};
+	struct netif *netif = net_get_uap_handle();
 
 	int sock = lwip_socket(PF_INET, SOCK_DGRAM, 0);
 	if (sock == -1) {
@@ -657,6 +653,15 @@ static int create_and_bind_udp_socket(struct sockaddr_in *address,
 		       (char *)&one, sizeof(one)) == -1) {
 		dhcp_e("failed to set SO_BROADCAST\r\n");
 		lwip_close(sock);
+		return -1;
+	}
+
+	ifreq_name.ifr_name[0] = netif->name[0];
+	ifreq_name.ifr_name[1] = netif->name[1];
+	sprintf(&ifreq_name.ifr_name[2], "%u", netif->num);
+
+	if (setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, &ifreq_name, sizeof(struct ifreq)) != 0) {
+		dhcp_e("failed to set SO_BINDTODEVICE\r\n");
 		return -1;
 	}
 

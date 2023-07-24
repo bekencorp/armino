@@ -41,7 +41,7 @@
 static beken_thread_t media_app_th_hd = NULL;
 static beken_queue_t media_app_msg_queue = NULL;
 
-#if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
+#if (defined(CONFIG_DVP_CAMERA) || defined(CONFIG_USB_UVC))
 static app_camera_type_t app_camera_type = APP_CAMERA_INVALIED;
 #endif
 
@@ -105,12 +105,30 @@ out:
 }
 
 
-#if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
+#if (defined(CONFIG_DVP_CAMERA) || defined(CONFIG_USB_UVC))
+#ifdef CONFIG_INTEGRATION_DOORBELL
+bk_err_t media_app_camera_open(camera_config_t *camera_config)
+{
+	int ret = kGeneralErr;
+	int type = 0;
+	media_ppi_t ppi = camera_config->width << 16 | camera_config->height;
+
+	LOGI("%s, type:%d, ppi:%d-%d\n", __func__, type, ppi >> 16, ppi & 0xFFFF);
+
+	if (camera_config->type == UVC_CAMERA)
+	{
+		type = APP_CAMERA_UVC_MJPEG;
+	}
+
+	if (camera_config->type == DVP_CAMERA)
+	{
+		type = APP_CAMERA_DVP_JPEG;
+	}
+#else
 bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 {
 	int ret = kGeneralErr;
-
-	LOGI("%s, type:%d, ppi:%d-%d\n", __func__, type, ppi >> 16, ppi & 0xFFFF);
+#endif
 
 	app_camera_type = type;
 
@@ -185,14 +203,14 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 			ret = media_send_msg_sync(EVENT_CAM_NET_H264_OPEN_IND, ppi);
 			break;
 
-		case APP_CAMERA_DVP_H264_WIFI_TRANSFER:
+		case APP_CAMERA_DVP_H264_TRANSFER:
 			if (CAMERA_STATE_DISABLED != get_camera_state())
 			{
 				LOGI("%s already opened\n", __func__);
 				return kNoErr;
 			}
 
-			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_WIFI_TRANSFER_OPEN_IND, ppi);
+			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_TRANSFER_OPEN_IND, ppi);
 			break;
 		
 		case APP_CAMERA_DVP_H264_LOCAL:
@@ -213,16 +231,6 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 			}
 
 			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_ENC_LCD_OPEN_IND, ppi);
-			break;
-		
-		case APP_CAMERA_DVP_H264_USB_TRANSFER:
-			if (CAMERA_STATE_DISABLED != get_camera_state())
-			{
-				LOGI("%s already opened\n", __func__);
-				return kNoErr;
-			}
-
-			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_USB_TRANSFER_OPEN_IND, ppi);
 			break;
 
 		default:
@@ -290,14 +298,14 @@ bk_err_t media_app_camera_close(app_camera_type_t type)
 			ret = media_send_msg_sync(EVENT_CAM_NET_CLOSE_IND, 0);
 			break;
 
-		case APP_CAMERA_DVP_H264_WIFI_TRANSFER:
+		case APP_CAMERA_DVP_H264_TRANSFER:
 			if (CAMERA_STATE_ENABLED != get_camera_state())
 			{
 				LOGI("%s already closed\n", __func__);
 				return kNoErr;
 			}
 
-			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, MEDIA_DVP_H264_WIFI_TRANSFER);
+			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, MEDIA_DVP_H264_TRANSFER);
 			break;
 		
 		case APP_CAMERA_DVP_H264_ENC_LCD:
@@ -318,16 +326,6 @@ bk_err_t media_app_camera_close(app_camera_type_t type)
 			}
 
 			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, MEDIA_DVP_H264_LOCAL);
-			break;
-		
-		case APP_CAMERA_DVP_H264_USB_TRANSFER:
-			if (CAMERA_STATE_ENABLED != get_camera_state())
-			{
-				LOGI("%s already closed\n", __func__);
-				return kNoErr;
-			}
-
-			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, APP_CAMERA_DVP_H264_USB_TRANSFER);
 			break;
 
 		default:

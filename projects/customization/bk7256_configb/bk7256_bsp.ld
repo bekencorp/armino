@@ -2,158 +2,111 @@
 ENTRY(_start)
 SECTIONS
 {
-	PROVIDE (__executable_start = 0x001D0000);
-	NDS_SAG_LMA_CPU0_LOAD1 = 0x001D0000 ;
+	PROVIDE (__executable_start = 0x10000);
+	NDS_SAG_LMA_CPU0_LOAD1 = 0x10000 ;
 	CPU0_LOAD1_BEGIN = NDS_SAG_LMA_CPU0_LOAD1;
-	. = 0x001D0000;
-	FLASH1_BEGIN = .;
+	. = 0 + NDS_SAG_LMA_CPU0_LOAD1;
 	. = ALIGN(ALIGNOF(.nds_vector));
 	.nds_vector 	: { KEEP(*(.nds_vector )) KEEP(*(SORT(.nds_vector.* ))) }
-	FLASH1_SIZE = . - FLASH1_BEGIN;
+	.interrupt.text 	: { KEEP(*(.interrupt.text )) }
+	.interrupt.HalTrapVector.text.HalTrapVector 	: { KEEP(*(.interrupt.HalTrapVector.text.HalTrapVector )) }
+	.itcm 	: { KEEP(*(.itcm )) }
+	. = ALIGN(8);
+	. = ALIGN(ALIGNOF(.nds_init));
+	.nds_init 	: { KEEP(*(.nds_init )) } = 0x0100
+	. = ALIGN(ALIGNOF(.interp));
+	.interp 	: { *(.interp ) }
+	. = ALIGN(ALIGNOF(.note.gnu.build-id));
+	.note.gnu.build-id 	: { *(.note.gnu.build-id ) }
+	. = ALIGN(ALIGNOF(.note.ABI-tag));
+	.note.ABI-tag 	: { *(.note.ABI-tag ) }
+	. = ALIGN(ALIGNOF(.hash));
+	.hash 	: { *(.hash ) }
+	. = ALIGN(ALIGNOF(.gnu.hash));
+	.gnu.hash 	: { *(.gnu.hash ) }
+	. = ALIGN(ALIGNOF(.dynsym));
+	.dynsym 	: { *(.dynsym ) }
+	. = ALIGN(ALIGNOF(.dynstr));
+	.dynstr 	: { *(.dynstr ) }
+	. = ALIGN(ALIGNOF(.gnu.version));
+	.gnu.version 	: { *(.gnu.version ) }
+	. = ALIGN(ALIGNOF(.gnu.version_d));
+	.gnu.version_d 	: { *(.gnu.version_d ) }
+	. = ALIGN(ALIGNOF(.gnu.version_r));
+	.gnu.version_r 	: { *(.gnu.version_r ) }
+	. = ALIGN(ALIGNOF(.rela.init));
+	.rela.init 	: { *(.rela.init ) }
+	. = ALIGN(ALIGNOF(.rela.text));
+	.rela.text 	: { *(.rela.text .rela.text.* .rela.gnu.linkonce.t.* ) }
+	. = ALIGN(ALIGNOF(.rela.fini));
+	.rela.fini 	: { *(.rela.fini ) }
+	. = ALIGN(ALIGNOF(.rela.rodata));
+	.rela.rodata 	: { *(.rela.rodata .rela.rodata.* .rela.gnu.linkonce.r.* ) }
+	. = ALIGN(ALIGNOF(.rela.data.rel.ro));
+	.rela.data.rel.ro 	: { *(.rel.data.rel.ro* ) }
+	. = ALIGN(ALIGNOF(.rela.data));
+	.rela.data 	: { *(.rela.data .rela.data.* .rela.gnu.linkonce.d.* ) }
+	. = ALIGN(ALIGNOF(.rela.tdata));
+	.rela.tdata 	: { *(.rela.tdata .rela.tdata.* .rela.gnu.linkonce.td.* ) }
+	. = ALIGN(ALIGNOF(.rela.tbss));
+	.rela.tbss 	: { *(.rela.tbss .rela.tbss.* .rela.gnu.linkonce.tb.* ) }
+	. = ALIGN(ALIGNOF(.rela.ctors));
+	.rela.ctors 	: { *(.rela.ctors ) }
+	. = ALIGN(ALIGNOF(.rela.dtors));
+	.rela.dtors 	: { *(.rela.dtors ) }
+	. = ALIGN(ALIGNOF(.rela.dyn));
+	.rela.dyn 	: { *(rela.dyn ) *(.rela__libc_subfreeres ) *(.rela__libc_atexit ) *(.rela__libc_thread_subfreeres ) *(.rela.init_array ) *(.rela.fini_array ) }
+	. = ALIGN(ALIGNOF(.rela.got));
+	.rela.got 	: { *(.rela.got ) }
+	. = ALIGN(ALIGNOF(.rela.sdata));
+	.rela.sdata 	: { *(.rela.sdata .rela.sdata.* .rela.gnu.linkonce.s.* ) }
+	. = ALIGN(ALIGNOF(.rela.sbss));
+	.rela.sbss 	: { *(.rela.sbss .rela.sbss.* .rela.gnu.linkonce.sb.* ) }
+	. = ALIGN(ALIGNOF(.rela.sdata2));
+	.rela.sdata2 	: { *(.rela.sdata2 .rela.sdata2.* .rela.gnu.linkonce.s2.* ) }
+	. = ALIGN(ALIGNOF(.rela.sbss2));
+	.rela.sbss2 	: { *(.rela.sbss2 .rela.sbss2.* .rela.gnu.linkonce.sb2.* ) }
+	. = ALIGN(ALIGNOF(.rela.bss));
+	.rela.bss 	: { *(.rela.bss .rela.bss.* .rela.gnu.linkonce.b.* ) }
+	. = ALIGN(ALIGNOF(.rela.plt));
+	.rela.plt 	: { *(.rela.plt ) }
+	. = ALIGN(ALIGNOF(.init));
+	.init 	: { KEEP(*(.init )) }
+	. = ALIGN(ALIGNOF(.plt));
+	.plt 	: { *(.plt ) }
+	. = ALIGN(ALIGNOF(.text));
+	.text 	: { *(.text .stub .text.* .gnu.linkonce.t.* ) KEEP(*(.text.*personality* )) *(.gnu.warning ) . = ALIGN(4); } = 0x0100
+	. = ALIGN(ALIGNOF(.fini));
+	.fini 	: { KEEP(*(.fini )) }
+	. = ALIGN(ALIGNOF(.exec.itable));
+	.exec.itable 	: { *(.exec.itable ) }
+	PROVIDE (__etext = .);
+	PROVIDE (_etext = .);
+	PROVIDE (etext = .);
+	. = ALIGN(ALIGNOF(.rodata));
+	.rodata 	: { *(.rodata .rodata.* .gnu.linkonce.r.* ) }
+	. = ALIGN(ALIGNOF(.rodata1));
+	.rodata1 	: { *(.rodata1 ) }
+	. = ALIGN(ALIGNOF(.sdata2));
+	.sdata2 	: { *(.sdata2 .sdata2.* .gnu.linkonce.s2.* ) }
+	. = ALIGN(ALIGNOF(.sbss2));
+	.sbss2 	: { *(.sbss2 .sbss2.* .gnu.linkonce.sb2.* ) }
+	. = ALIGN(ALIGNOF(.eh_frame_hdr));
+	.eh_frame_hdr 	: { *(.eh_frame_hdr ) }
 	. = 0x10000000;
 	ITCM_BEGIN = .;
 	. = ALIGN(8);
-	.itcm_sec_code 	: AT(ALIGN(ALIGN(LOADADDR (.nds_vector) + SIZEOF (.nds_vector), ALIGNOF(.itcm_sec_code)), 8))
+	.itcm_sec_code 	: AT(ALIGN(ALIGN(LOADADDR (.eh_frame_hdr) + SIZEOF (.eh_frame_hdr), ALIGNOF(.itcm_sec_code)), 8))
 		{ KEEP(*(.itcm_sec_code )) }
 	_itcm_lma_start =  LOADADDR (.itcm_sec_code);
 	_itcm_ema_start = ADDR(.itcm_sec_code);
 	_itcm_lma_end =  LOADADDR (.itcm_sec_code) + SIZEOF (.itcm_sec_code);
 	_itcm_ema_end = .;
 	ITCM_SIZE = . - ITCM_BEGIN;
-	CPU0_LOAD1_SIZE = LOADADDR(.itcm_sec_code) + SIZEOF(.itcm_sec_code) - CPU0_LOAD1_BEGIN;
-	NDS_SAG_LMA_CPU0_LOAD2 = 0x001D8800 ;
-	CPU0_LOAD2_BEGIN = NDS_SAG_LMA_CPU0_LOAD2;
-	. = 0 + NDS_SAG_LMA_CPU0_LOAD2;
-	.interrupt.text .	: AT(NDS_SAG_LMA_CPU0_LOAD2)	{ KEEP(*(.interrupt.text )) }
-	.interrupt.HalTrapVector.text.HalTrapVector 	: AT(LOADADDR (.interrupt.text) + SIZEOF (.interrupt.text))
-		{ KEEP(*(.interrupt.HalTrapVector.text.HalTrapVector )) }
-	.itcm 	: AT(LOADADDR (.interrupt.HalTrapVector.text.HalTrapVector) + SIZEOF (.interrupt.HalTrapVector.text.HalTrapVector))
-		{ KEEP(*(.itcm )) }
-	. = ALIGN(8);
-	. = ALIGN(ALIGNOF(.nds_init));
-	.nds_init 	: AT(ALIGN(ALIGN(LOADADDR (.itcm) + SIZEOF (.itcm), ALIGNOF(.nds_init)), 8))
-		{ KEEP(*(.nds_init )) } = 0x0100
-	. = ALIGN(ALIGNOF(.interp));
-	.interp 	: AT(ALIGN(LOADADDR (.nds_init) + SIZEOF (.nds_init), ALIGNOF(.interp)))
-		{ *(.interp ) }
-	. = ALIGN(ALIGNOF(.note.gnu.build-id));
-	.note.gnu.build-id 	: AT(ALIGN(LOADADDR (.interp) + SIZEOF (.interp), ALIGNOF(.note.gnu.build-id)))
-		{ *(.note.gnu.build-id ) }
-	. = ALIGN(ALIGNOF(.note.ABI-tag));
-	.note.ABI-tag 	: AT(ALIGN(LOADADDR (.note.gnu.build-id) + SIZEOF (.note.gnu.build-id), ALIGNOF(.note.ABI-tag)))
-		{ *(.note.ABI-tag ) }
-	. = ALIGN(ALIGNOF(.hash));
-	.hash 	: AT(ALIGN(LOADADDR (.note.ABI-tag) + SIZEOF (.note.ABI-tag), ALIGNOF(.hash)))
-		{ *(.hash ) }
-	. = ALIGN(ALIGNOF(.gnu.hash));
-	.gnu.hash 	: AT(ALIGN(LOADADDR (.hash) + SIZEOF (.hash), ALIGNOF(.gnu.hash)))
-		{ *(.gnu.hash ) }
-	. = ALIGN(ALIGNOF(.dynsym));
-	.dynsym 	: AT(ALIGN(LOADADDR (.gnu.hash) + SIZEOF (.gnu.hash), ALIGNOF(.dynsym)))
-		{ *(.dynsym ) }
-	. = ALIGN(ALIGNOF(.dynstr));
-	.dynstr 	: AT(ALIGN(LOADADDR (.dynsym) + SIZEOF (.dynsym), ALIGNOF(.dynstr)))
-		{ *(.dynstr ) }
-	. = ALIGN(ALIGNOF(.gnu.version));
-	.gnu.version 	: AT(ALIGN(LOADADDR (.dynstr) + SIZEOF (.dynstr), ALIGNOF(.gnu.version)))
-		{ *(.gnu.version ) }
-	. = ALIGN(ALIGNOF(.gnu.version_d));
-	.gnu.version_d 	: AT(ALIGN(LOADADDR (.gnu.version) + SIZEOF (.gnu.version), ALIGNOF(.gnu.version_d)))
-		{ *(.gnu.version_d ) }
-	. = ALIGN(ALIGNOF(.gnu.version_r));
-	.gnu.version_r 	: AT(ALIGN(LOADADDR (.gnu.version_d) + SIZEOF (.gnu.version_d), ALIGNOF(.gnu.version_r)))
-		{ *(.gnu.version_r ) }
-	. = ALIGN(ALIGNOF(.rela.init));
-	.rela.init 	: AT(ALIGN(LOADADDR (.gnu.version_r) + SIZEOF (.gnu.version_r), ALIGNOF(.rela.init)))
-		{ *(.rela.init ) }
-	. = ALIGN(ALIGNOF(.rela.text));
-	.rela.text 	: AT(ALIGN(LOADADDR (.rela.init) + SIZEOF (.rela.init), ALIGNOF(.rela.text)))
-		{ *(.rela.text .rela.text.* .rela.gnu.linkonce.t.* ) }
-	. = ALIGN(ALIGNOF(.rela.fini));
-	.rela.fini 	: AT(ALIGN(LOADADDR (.rela.text) + SIZEOF (.rela.text), ALIGNOF(.rela.fini)))
-		{ *(.rela.fini ) }
-	. = ALIGN(ALIGNOF(.rela.rodata));
-	.rela.rodata 	: AT(ALIGN(LOADADDR (.rela.fini) + SIZEOF (.rela.fini), ALIGNOF(.rela.rodata)))
-		{ *(.rela.rodata .rela.rodata.* .rela.gnu.linkonce.r.* ) }
-	. = ALIGN(ALIGNOF(.rela.data.rel.ro));
-	.rela.data.rel.ro 	: AT(ALIGN(LOADADDR (.rela.rodata) + SIZEOF (.rela.rodata), ALIGNOF(.rela.data.rel.ro)))
-		{ *(.rel.data.rel.ro* ) }
-	. = ALIGN(ALIGNOF(.rela.data));
-	.rela.data 	: AT(ALIGN(LOADADDR (.rela.data.rel.ro) + SIZEOF (.rela.data.rel.ro), ALIGNOF(.rela.data)))
-		{ *(.rela.data .rela.data.* .rela.gnu.linkonce.d.* ) }
-	. = ALIGN(ALIGNOF(.rela.tdata));
-	.rela.tdata 	: AT(ALIGN(LOADADDR (.rela.data) + SIZEOF (.rela.data), ALIGNOF(.rela.tdata)))
-		{ *(.rela.tdata .rela.tdata.* .rela.gnu.linkonce.td.* ) }
-	. = ALIGN(ALIGNOF(.rela.tbss));
-	.rela.tbss 	: AT(ALIGN(LOADADDR (.rela.tdata) + SIZEOF (.rela.tdata), ALIGNOF(.rela.tbss)))
-		{ *(.rela.tbss .rela.tbss.* .rela.gnu.linkonce.tb.* ) }
-	. = ALIGN(ALIGNOF(.rela.ctors));
-	.rela.ctors 	: AT(ALIGN(LOADADDR (.rela.tbss) + SIZEOF (.rela.tbss), ALIGNOF(.rela.ctors)))
-		{ *(.rela.ctors ) }
-	. = ALIGN(ALIGNOF(.rela.dtors));
-	.rela.dtors 	: AT(ALIGN(LOADADDR (.rela.ctors) + SIZEOF (.rela.ctors), ALIGNOF(.rela.dtors)))
-		{ *(.rela.dtors ) }
-	. = ALIGN(ALIGNOF(.rela.dyn));
-	.rela.dyn 	: AT(ALIGN(LOADADDR (.rela.dtors) + SIZEOF (.rela.dtors), ALIGNOF(.rela.dyn)))
-		{ *(rela.dyn ) *(.rela__libc_subfreeres ) *(.rela__libc_atexit ) *(.rela__libc_thread_subfreeres ) *(.rela.init_array ) *(.rela.fini_array ) }
-	. = ALIGN(ALIGNOF(.rela.got));
-	.rela.got 	: AT(ALIGN(LOADADDR (.rela.dyn) + SIZEOF (.rela.dyn), ALIGNOF(.rela.got)))
-		{ *(.rela.got ) }
-	. = ALIGN(ALIGNOF(.rela.sdata));
-	.rela.sdata 	: AT(ALIGN(LOADADDR (.rela.got) + SIZEOF (.rela.got), ALIGNOF(.rela.sdata)))
-		{ *(.rela.sdata .rela.sdata.* .rela.gnu.linkonce.s.* ) }
-	. = ALIGN(ALIGNOF(.rela.sbss));
-	.rela.sbss 	: AT(ALIGN(LOADADDR (.rela.sdata) + SIZEOF (.rela.sdata), ALIGNOF(.rela.sbss)))
-		{ *(.rela.sbss .rela.sbss.* .rela.gnu.linkonce.sb.* ) }
-	. = ALIGN(ALIGNOF(.rela.sdata2));
-	.rela.sdata2 	: AT(ALIGN(LOADADDR (.rela.sbss) + SIZEOF (.rela.sbss), ALIGNOF(.rela.sdata2)))
-		{ *(.rela.sdata2 .rela.sdata2.* .rela.gnu.linkonce.s2.* ) }
-	. = ALIGN(ALIGNOF(.rela.sbss2));
-	.rela.sbss2 	: AT(ALIGN(LOADADDR (.rela.sdata2) + SIZEOF (.rela.sdata2), ALIGNOF(.rela.sbss2)))
-		{ *(.rela.sbss2 .rela.sbss2.* .rela.gnu.linkonce.sb2.* ) }
-	. = ALIGN(ALIGNOF(.rela.bss));
-	.rela.bss 	: AT(ALIGN(LOADADDR (.rela.sbss2) + SIZEOF (.rela.sbss2), ALIGNOF(.rela.bss)))
-		{ *(.rela.bss .rela.bss.* .rela.gnu.linkonce.b.* ) }
-	. = ALIGN(ALIGNOF(.rela.plt));
-	.rela.plt 	: AT(ALIGN(LOADADDR (.rela.bss) + SIZEOF (.rela.bss), ALIGNOF(.rela.plt)))
-		{ *(.rela.plt ) }
-	. = ALIGN(ALIGNOF(.init));
-	.init 	: AT(ALIGN(LOADADDR (.rela.plt) + SIZEOF (.rela.plt), ALIGNOF(.init)))
-		{ KEEP(*(.init )) }
-	. = ALIGN(ALIGNOF(.plt));
-	.plt 	: AT(ALIGN(LOADADDR (.init) + SIZEOF (.init), ALIGNOF(.plt)))
-		{ *(.plt ) }
-	. = ALIGN(ALIGNOF(.text));
-	.text 	: AT(ALIGN(LOADADDR (.plt) + SIZEOF (.plt), ALIGNOF(.text)))
-		{ *(.text .stub .text.* .gnu.linkonce.t.* ) KEEP(*(.text.*personality* )) *(.gnu.warning ) . = ALIGN(4); } = 0x0100
-	. = ALIGN(ALIGNOF(.fini));
-	.fini 	: AT(ALIGN(LOADADDR (.text) + SIZEOF (.text), ALIGNOF(.fini)))
-		{ KEEP(*(.fini )) }
-	. = ALIGN(ALIGNOF(.exec.itable));
-	.exec.itable 	: AT(ALIGN(LOADADDR (.fini) + SIZEOF (.fini), ALIGNOF(.exec.itable)))
-		{ *(.exec.itable ) }
-	PROVIDE (__etext = .);
-	PROVIDE (_etext = .);
-	PROVIDE (etext = .);
-	. = ALIGN(ALIGNOF(.rodata));
-	.rodata 	: AT(ALIGN(LOADADDR (.exec.itable) + SIZEOF (.exec.itable), ALIGNOF(.rodata)))
-		{ *(.rodata .rodata.* .gnu.linkonce.r.* ) }
-	. = ALIGN(ALIGNOF(.rodata1));
-	.rodata1 	: AT(ALIGN(LOADADDR (.rodata) + SIZEOF (.rodata), ALIGNOF(.rodata1)))
-		{ *(.rodata1 ) }
-	. = ALIGN(ALIGNOF(.sdata2));
-	.sdata2 	: AT(ALIGN(LOADADDR (.rodata1) + SIZEOF (.rodata1), ALIGNOF(.sdata2)))
-		{ *(.sdata2 .sdata2.* .gnu.linkonce.s2.* ) }
-	. = ALIGN(ALIGNOF(.sbss2));
-	.sbss2 	: AT(ALIGN(LOADADDR (.sdata2) + SIZEOF (.sdata2), ALIGNOF(.sbss2)))
-		{ *(.sbss2 .sbss2.* .gnu.linkonce.sb2.* ) }
-	. = ALIGN(ALIGNOF(.eh_frame_hdr));
-	.eh_frame_hdr 	: AT(ALIGN(LOADADDR (.sbss2) + SIZEOF (.sbss2), ALIGNOF(.eh_frame_hdr)))
-		{ *(.eh_frame_hdr ) }
 	. = 0x20000400;
 	DTCM_BEGIN = .;
 	. = ALIGN(8);
-	.dtcm_sec_data 	: AT(ALIGN(ALIGN(LOADADDR (.eh_frame_hdr) + SIZEOF (.eh_frame_hdr), ALIGNOF(.dtcm_sec_data)), 8))
+	.dtcm_sec_data 	: AT(ALIGN(ALIGN(LOADADDR (.itcm_sec_code) + SIZEOF (.itcm_sec_code), ALIGNOF(.dtcm_sec_data)), 8))
 		{ KEEP(*(.dtcm_sec_data )) }
 	_dtcm_lma_start =  LOADADDR (.dtcm_sec_data);
 	_dtcm_ema_start = ADDR(.dtcm_sec_data);
@@ -381,7 +334,7 @@ SECTIONS
 		{ KEEP(*(.swap_data )) }
 	_swap_start = ADDR(.swap_data);
 	SWAP_SIZE = . - SWAP_BEGIN;
-	CPU0_LOAD2_SIZE = LOADADDR(.swap_data) + SIZEOF(.swap_data) - CPU0_LOAD2_BEGIN;
+	CPU0_LOAD1_SIZE = LOADADDR(.swap_data) + SIZEOF(.swap_data) - CPU0_LOAD1_BEGIN;
 	.stab	0 : { *(.stab) }
 	.stabstr	0 : { *(.stabstr) }
 	.stab.excl	0 : { *(.stab.excl) }
@@ -407,12 +360,10 @@ SECTIONS
 	.debug_typenames	0 : { *(.debug_typenames) }
 	.debug_varnames	0 : { *(.debug_varnames) }
 }
-ASSERT((DEFINED (_RELAX_END_) ? FLASH1_SIZE : 0x0)<= 0x800, "FLASH1 OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? ITCM_SIZE : 0x0)<= 0x8000, "ITCM OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD1_SIZE : 0x0)<= 0x8800, "CPU0_LOAD1 OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x6C00, "DTCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM_VIDEO_SIZE : 0x0)<= 0xA000, "SRAM_VIDEO OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM_BT_SIZE : 0x0)<= 0x16000, "SRAM_BT OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM_DATA_SIZE : 0x0)<= 0x58C00, "SRAM_DATA OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SWAP_SIZE : 0x0)<= 0x400, "SWAP OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD2_SIZE : 0x0)<= 0x197800, "CPU0_LOAD2 OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD1_SIZE : 0x0)<= 0x1c0000, "CPU0_LOAD1 OVERFLOW");

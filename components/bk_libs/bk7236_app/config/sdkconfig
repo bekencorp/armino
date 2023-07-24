@@ -8,25 +8,23 @@
 #
 # CONFIG_SOC_BK7231N is not set
 CONFIG_SOC_BK7236=y
+# CONFIG_SOC_BK7236_CP1 is not set
 # CONFIG_SOC_BK7258 is not set
+# CONFIG_SOC_BK7258_CP1 is not set
 # CONFIG_SOC_BK7256 is not set
 # CONFIG_SOC_BK7256_CP1 is not set
 # CONFIG_SOC_BK7235 is not set
-# CONFIG_SOC_BK7237 is not set
+# CONFIG_SOC_BK7235_CP1 is not set
+# CONFIG_SOC_BK7235M is not set
+CONFIG_SYS_CPU0=y
+# CONFIG_SYS_CPU1 is not set
+# CONFIG_SYS_CPU2 is not set
+CONFIG_CPU_CNT=1
 CONFIG_SOC_STR="bk7236"
 CONFIG_SOC_ARCH="cm33"
 # CONFIG_SOC_BK7256XX is not set
 CONFIG_SOC_BK7236XX=y
 # end of SOC_CONFIG
-
-#
-# System
-#
-CONFIG_SYS_CPU0=y
-# CONFIG_SYS_CPU1 is not set
-# CONFIG_SYS_CPU2 is not set
-CONFIG_CPU_CNT=1
-# end of System
 
 #
 # ARMINO Configuration
@@ -39,8 +37,9 @@ CONFIG_CPU_CNT=1
 #
 # Compile/Build
 #
-CONFIG_TOOLCHAIN_PATH="/opt/gcc-arm-none-eabi-9-2020-q2-update/bin"
+CONFIG_TOOLCHAIN_PATH="/opt/gcc-arm-none-eabi-10.3-2021.10/bin"
 CONFIG_TOOLCHAIN_PREFIX="arm-none-eabi-"
+CONFIG_OBJDUMP=y
 # end of Compile/Build
 
 #
@@ -207,11 +206,6 @@ CONFIG_BK_HOSTAPD=y
 # end of SOC_CONFIG
 
 #
-# System
-#
-# end of System
-
-#
 # Driver
 #
 
@@ -255,6 +249,8 @@ CONFIG_KFIFO_SIZE=128
 # CONFIG_UART_STATIS is not set
 CONFIG_UART_LOW_VOLTAGE_SUPPORT=y
 # CONFIG_UART_ERR_INTERRUPT is not set
+# CONFIG_UART_RX_DMA is not set
+CONFIG_UART_RX_DMA_KFIFO_SIZE=512
 # end of UART
 
 #
@@ -325,6 +321,7 @@ CONFIG_AON_RTC_MANY_USERS=y
 # CONFIG_AON_RTC_DEBUG is not set
 # CONFIG_AON_RTC_KEEP_TIME_SUPPORT is not set
 # CONFIG_RTC_ANA_WAKEUP_SUPPORT is not set
+# CONFIG_AON_RTC_DYNAMIC_CLOCK_SUPPORT is not set
 # end of AON_RTC
 
 #
@@ -383,6 +380,8 @@ CONFIG_JPEGDEC_HW=y
 # PSRAM
 #
 # CONFIG_PSRAM is not set
+CONFIG_PSRAM_APM=y
+# CONFIG_PSRAM_WBD955 is not set
 # end of PSRAM
 
 #
@@ -453,7 +452,11 @@ CONFIG_FM_I2C=y
 #
 # PWM
 #
-# CONFIG_PWM is not set
+CONFIG_PWM=y
+# CONFIG_PWM_V0P0 is not set
+CONFIG_PWM_V1PX=y
+CONFIG_PWM_DEVICE0_SUPPORT=y
+CONFIG_PWM_DEVICE1_SUPPORT=y
 # CONFIG_PWM_HAS_TWO_INT is not set
 # end of PWM
 
@@ -508,10 +511,13 @@ CONFIG_FLASH=y
 # end of SDMADC
 
 #
-# EXTERN_32K
+# PWR_CLK
 #
 # CONFIG_EXTERN_32K is not set
-# end of EXTERN_32K
+# CONFIG_MEM_AUTO_POWER_DISABLE is not set
+# CONFIG_CP1_AUTO_POWER_DISABLE is not set
+# CONFIG_CPU_DEFAULT_FREQ_60M is not set
+# end of PWR_CLK
 
 #
 # VAULT
@@ -575,6 +581,8 @@ CONFIG_LCD=y
 #
 # CAMERA
 #
+# CONFIG_DVP_CAMERA is not set
+CONFIG_DVP_CAMERA_I2C_ID=0
 # CONFIG_CAMERA_POWER_GPIO_CTRL is not set
 # CONFIG_ENCODE_BUF_DYNAMIC is not set
 CONFIG_DVP_PCLK_72M=y
@@ -650,6 +658,7 @@ CONFIG_BLE=y
 # CONFIG_BLE_4_2 is not set
 CONFIG_BTDM_5_2=y
 # CONFIG_BTDM_5_2_MINDTREE is not set
+# CONFIG_BTDM_CONTROLLER_ONLY is not set
 # end of Bk_ble
 
 #
@@ -692,6 +701,8 @@ CONFIG_IPERF_TEST=y
 # CONFIG_AON_PMU_TEST is not set
 # CONFIG_SDMADC_TEST is not set
 # CONFIG_PM_TEST is not set
+# CONFIG_VIDEO_TRANSFER_DEMO is not set
+# CONFIG_PUF_TEST is not set
 CONFIG_ICU=y
 # CONFIG_SECURITYIP is not set
 # CONFIG_KEYVALUE is not set
@@ -725,6 +736,7 @@ CONFIG_FREERTOS=y
 # CONFIG_FREERTOS_V9 is not set
 CONFIG_FREERTOS_V10=y
 # CONFIG_FREERTOS_POSIX is not set
+# CONFIG_FREERTOS_TRACE is not set
 CONFIG_FREERTOS_USE_TICKLESS_IDLE=2
 # end of Modify FreeRTOS Config
 
@@ -812,7 +824,6 @@ CONFIG_TASK_RECONNECT_PRIO=4
 CONFIG_WIFI6_IP_DEBUG=y
 CONFIG_STA_PS=y
 # CONFIG_MAC_BSSID is not set
-# CONFIG_COMPONENTS_STA_VSIE is not set
 # end of Shared Configs with Public components
 
 # CONFIG_BLE_HOST_NONE is not set
@@ -901,6 +912,7 @@ CONFIG_SM_FAST_CONNECT=y
 CONFIG_BK_NO_CHECK_RX_PN=y
 CONFIG_BK_INTEROPER=y
 # CONFIG_RX_DMA_ASYNC is not set
+# CONFIG_MAX_STA_IN_SAP is not set
 
 #
 # ate_test
@@ -1145,5 +1157,9 @@ CONFIG_WPA_AUTH_TIMEOUT=10
 # CONFIG_WPA_SUPPLICANT_2_9 is not set
 # end of modules::wpa_supplicant-2.9
 # end of Properties Configuration
+
+#
+# Extra Modules Configuration
+#
 # end of Modules Configuration
 # end of ARMINO Configuration

@@ -26,6 +26,12 @@
 
 #include "boot.h"
 
+#if CONFIG_FREERTOS_TRACE
+#include "trcRecorder.h"
+#endif
+
+#include "stack_base.h"
+
 #if (!CONFIG_SLAVE_CORE)
 
 static beken_thread_function_t s_user_app_entry = NULL;
@@ -350,6 +356,15 @@ void entry_main(void)
 	if(components_init())
 		return;
 
+#if (CONFIG_FREERTOS_TRACE)
+	xTraceEnable(TRC_START);
+	uint32_t trace_addr = (uint32_t)xTraceGetTraceBuffer();
+	uint32_t trace_size = uiTraceGetTraceBufferSize();
+
+	rtos_regist_plat_dump_hook(trace_addr, trace_size);
+#endif
+
+
 #if CONFIG_SAVE_BOOT_TIME_POINT
 	save_mtime_point(CPU_INIT_DRIVER_TIME);
 #endif
@@ -367,6 +382,8 @@ void entry_main(void)
 #if CONFIG_SAVE_BOOT_TIME_POINT
 	save_mtime_point(CPU_START_SCHE_TIME);
 #endif
+
+
 
 	rtos_start_scheduler();
 }

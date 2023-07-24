@@ -67,7 +67,7 @@ __Vectors:
     .thumb
     .thumb_func
     .align    2
-    .globl    Reset_Handler
+    .globl   Reset_Handler
     .type    Reset_Handler, %function
 Reset_Handler:
 /*  Firstly it copies data from read only memory to RAM. There are two schemes

@@ -50,6 +50,7 @@ target_include_directories(bl2
 target_sources(bl2
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/bl2_main.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/bl2_securedebug.c
         ${CMAKE_CURRENT_SOURCE_DIR}/keys.c
         ${CMAKE_CURRENT_SOURCE_DIR}/flash_map_extended.c
         ${CMAKE_CURRENT_SOURCE_DIR}/flash_map_legacy.c

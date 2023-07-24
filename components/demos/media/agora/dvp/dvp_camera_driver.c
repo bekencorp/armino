@@ -324,7 +324,7 @@ bk_err_t bk_camera_init(void *data)
 
 	i2c_config.baud_rate = EJPEG_I2C_DEFAULT_BAUD_RATE;
 	i2c_config.addr_mode = I2C_ADDR_MODE_7BIT;
-	bk_i2c_init(CONFIG_CAMERA_I2C_ID, &i2c_config);
+	bk_i2c_init(CONFIG_DVP_CAMERA_I2C_ID, &i2c_config);
 
 	err = bk_camera_sensor_config();
 
@@ -350,7 +350,7 @@ bk_err_t bk_camera_deinit(void)
 	bk_dma_deinit(ejpeg_cfg.dma_channel);
 	bk_dma_free(DMA_DEV_JPEG, ejpeg_cfg.dma_channel);
 
-	bk_i2c_deinit(CONFIG_CAMERA_I2C_ID);
+	bk_i2c_deinit(CONFIG_DVP_CAMERA_I2C_ID);
 
 #if CONFIG_SOC_BK7256XX
 	bk_jpeg_enc_driver_deinit();

@@ -4,7 +4,7 @@ set(srcs
 	lcd_qspi_meter_main.c
 )
 
-if (CONFIG_LV_USE_DEMO_METER)
+if (CONFIG_LV_QSPI_USE_DEMO_METER)
 list(APPEND srcs
 	lv_example_meter.c
 )

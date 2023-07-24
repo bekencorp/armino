@@ -92,7 +92,7 @@ static const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 #if (CONFIG_FLASH_SIZE_4M)
 		.partition_start_addr      = 0x3FE000,
 #else
-		.partition_start_addr      = CONFIG_SYS_RF_PHY_DATA_START,// for rf related info
+		.partition_start_addr      = CONFIG_SYS_RF_PHY_PARTITION_OFFSET,// for rf related info
 #endif
 		.partition_length          = CONFIG_SYS_RF_PHY_PARTITION_SIZE,
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
@@ -104,7 +104,7 @@ static const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 #if (CONFIG_FLASH_SIZE_4M)
 		.partition_start_addr      = 0x3FF000,
 #else
-		.partition_start_addr      = CONFIG_SYS_NET_PHY_DATA_START,// for net related info
+		.partition_start_addr      = CONFIG_SYS_NET_PHY_PARTITION_OFFSET,// for net related info
 #endif
 		.partition_length          = CONFIG_SYS_NET_PHY_PARTITION_SIZE,
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,

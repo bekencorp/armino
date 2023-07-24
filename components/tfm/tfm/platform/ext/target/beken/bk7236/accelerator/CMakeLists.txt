@@ -119,6 +119,7 @@ if(BL2)
             ARM_CE_DUBHE_OTP
             ARM_CE_DUBHE_HASH
             ARM_CE_DUBHE_ACA
+            CONFIG_ENABLE_MCUBOOT_BL2
     )
 
     target_link_libraries(bl2_crypto_hw

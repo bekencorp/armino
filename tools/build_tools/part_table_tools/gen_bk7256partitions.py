@@ -202,6 +202,22 @@ class Bk7256PartTableGenerator:
                     p.size = align_to_strval(p.size, '4K')
             last = p
 
+        self.part_table_old_excute = copy.deepcopy(self.part_table)
+        self.part_table_old_excute = [p for p in self.part_table_old_excute if p.execute]
+        last = None
+        for p in self.part_table_old_excute:
+            if last is None:
+                p.offset = align_to_strval(p.offset, '4K')
+                p.size = align_to_strval(p.size, '4K')
+            if last is not None:
+                if p.offset < last.offset + last.size:
+                    p.offset = align_to_strval(last.offset + last.size, '4K')
+                    p.size = align_to_strval(p.size, '4K')
+                else:
+                    p.offset = align_to_strval(p.offset, '4K')
+                    p.size = align_to_strval(p.size, '4K')
+            last = p
+
         last = None
         for p in self.part_table:
             # for partition with flag execute, offset and size must be aligned to 68K (bk7256xx flash controller feature)
@@ -1289,7 +1305,7 @@ class Bk7256PartTableCli:
 
     def cli_gen_sub_sag_file(self, table, iret, isel):
         part_table_old_temp = self.ptg.part_table_old
-        self.ptg.part_table_old = [self.ptg.part_table_old[int(isel,0)-1],]
+        self.ptg.part_table_old = [self.ptg.part_table_old_excute[int(isel,0)-1],]
         self.ptg.print_part_table_sag(to_sag = True)
         self.ptg.print_files_set_info(to_txt = True)
         self.ptg.part_table_old = part_table_old_temp
@@ -1354,7 +1370,7 @@ class Bk7256PartTableCli:
         gen_json_files_tbl.append(tbl_item)
 
         gen_sag_files_tbl = []
-        pto = [p for p in self.ptg.part_table_old if p.execute]
+        pto = self.ptg.part_table_old_excute
         for pto_id in range(len(pto)):
             tbl_item = ('%d'%(pto_id+1), self.cli_gen_sub_sag_file, None, False, "# %d : Gen %s.sag"%((pto_id+1), pto[pto_id].name), "%s.sag"%(pto[pto_id].name))
             gen_sag_files_tbl.append(tbl_item)

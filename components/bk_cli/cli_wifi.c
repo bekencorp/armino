@@ -866,6 +866,115 @@ exit:
 	return;
 }
 
+#if CONFIG_AP_STATYPE_LIMIT
+void cli_wifi_sta_vsie_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	char *ssid = NULL;
+	char *password = "";
+	BK_STA_TYPE sta_type = STA_TYPE1;
+	wifi_sta_config_t sta_config = {"0"};
+
+	if (argc >= 2)
+			ssid = argv[1];
+
+	if (argc == 3 || argc == 4) {
+		if (os_strlen(argv[2]) <= 1) {
+			sta_type = *argv[2] - '0';
+			u8 mac[6];
+			sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ] = (struct bk_vise *)os_zalloc(sizeof(struct bk_vise));
+			/*set EID*/
+			sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->buf[0] = WLAN_EID_VENDOR_SPECIFIC;
+			sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->buf[1] = 10;
+			/*set OUI*/
+			//os_memcpy(sta_config.vsies[sta_type].buf, OUI_BEKEN);
+			sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->buf[2] = (OUI_BEKEN >> 16) & 0xff;
+			sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->buf[3] = (OUI_BEKEN >> 8) & 0xff;
+			sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->buf[4] = OUI_BEKEN & 0xff;
+			/*set payload*/
+			bk_wifi_sta_get_mac(mac);
+			os_memcpy(sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->buf+5, mac, WIFI_MAC_LEN);
+			sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->buf[11] = sta_type;
+			sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->len = 12;
+		} else {
+			password = argv[2];
+			if (argc == 4)
+				sta_type = *argv[3] - '0';
+			else sta_type = 0;
+
+				u8 mac[6];
+				sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ] = (struct bk_vise *)os_zalloc(sizeof(struct bk_vise));
+				/*set EID*/
+				sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->buf[0] = WLAN_EID_VENDOR_SPECIFIC;
+				sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->buf[1] = 10;
+				/*set OUI*/
+				//os_memcpy(sta_config.vsies[sta_type].buf, OUI_BEKEN);
+				sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->buf[2] = (OUI_BEKEN >> 16) & 0xff;
+				sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->buf[3] = (OUI_BEKEN >> 8) & 0xff;
+				sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->buf[4] = OUI_BEKEN & 0xff;
+				/*set payload*/
+				bk_wifi_sta_get_mac(mac);
+				os_memcpy(sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->buf+5, mac, WIFI_MAC_LEN);
+				sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->buf[11] = sta_type;
+				sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]->len = 12;
+		}
+	}
+
+	strncpy(sta_config.ssid, ssid, WIFI_SSID_STR_LEN);
+	strncpy(sta_config.password, password, WIFI_PASSWORD_LEN);
+
+	BK_LOGI(TAG, "ssid:%s password:%s\n", sta_config.ssid, sta_config.password);
+	BK_LOG_ON_ERR(bk_wifi_sta_set_config(&sta_config));
+	BK_LOG_ON_ERR(bk_wifi_sta_start());
+	if (sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ])
+		os_free(sta_config.vsies[WIFI_VENDOR_ELEM_ASSOC_REQ]);
+}
+
+void cli_wifi_ap_vsie_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	wifi_ap_config_t ap_config = {"0"};
+	netif_ip4_config_t ip4_config = {0};
+	char *ap_ssid = NULL;
+	char *ap_key = "";
+	int i;
+
+	ap_ssid = argv[1];
+	if (argc >= 3) {
+		if (os_strlen(argv[2]) <= 1) {
+			i = 0;
+		} else {
+			i = 1;
+			ap_key = argv[2];
+		}
+		switch (argc - i - 2) {
+			case 4:
+				ap_config.max_statype_num[3] = *argv[i+5] - '0';
+			case 3:
+				ap_config.max_statype_num[2] = *argv[i+4] - '0';
+			case 2:
+				ap_config.max_statype_num[1] = *argv[i+3] - '0';
+			case 1:
+				ap_config.max_statype_num[0] = *argv[i+2] - '0';
+			default:
+				break;
+		}
+	}
+
+	strncpy(ip4_config.ip, "192.168.0.1", NETIF_IP4_STR_LEN);
+	strncpy(ip4_config.mask, "255.255.255.0", NETIF_IP4_STR_LEN);
+	strncpy(ip4_config.gateway, "192.168.0.1", NETIF_IP4_STR_LEN);
+	strncpy(ip4_config.dns, "0.0.0.0", NETIF_IP4_STR_LEN);
+	BK_LOG_ON_ERR(bk_netif_set_ip4_config(NETIF_IF_AP, &ip4_config));
+
+	strncpy(ap_config.ssid, ap_ssid, WIFI_SSID_STR_LEN);
+	strncpy(ap_config.password, ap_key, WIFI_PASSWORD_LEN);
+
+	BK_LOGI(TAG, "ssid:%s  key:%s\r\n", ap_config.ssid, ap_config.password);
+	BK_LOG_ON_ERR(bk_wifi_ap_set_config(&ap_config));
+	BK_LOG_ON_ERR(bk_wifi_ap_start());
+
+}
+#endif
+
 #if CONFIG_COMPONENTS_WPA2_ENTERPRISE
 /**
  * cli command: sta_eap <ssid>, connect to EAP-TLS AP.
@@ -1484,6 +1593,16 @@ void cli_wifi_get_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 			goto error;
 		}
 	}
+	else if (os_strcmp(argv[1], "wifi") == 0) {
+
+		if(os_strcmp(argv[2], "config") == 0) {
+			CLI_LOGI("wifi config: \n");
+			bk_wifi_get_wifi_config();
+		} else {
+			CLI_LOGI("Usage get ps status\n");
+			goto error;
+		}
+	}
 
 	if (!ret) {
 		msg = WIFI_CMD_RSP_SUCCEED;
@@ -1600,7 +1719,9 @@ void cli_wifi_capa_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		capa_id = WIFI_CAPA_ID_SGI;
 	} else if (os_strcmp(argv[1], "ldpc") == 0) {
 		capa_id = WIFI_CAPA_ID_LDPC;
-	} else {
+	} else if (os_strcmp(argv[1], "bfmee") == 0) {
+       capa_id = WIFI_CAPA_ID_BEAMFORMEE;
+    }  else {
 		CLI_LOGI("invalid CAPA paramter\n");
 		goto error;
 	}
@@ -1762,6 +1883,10 @@ static const struct cli_command s_wifi_commands[] = {
 	{"blacklist", "Set ssid blacklist", blacklist_Command},
 #if CONFIG_RTP
 	{"rtp", "rtp -s/c ip", cli_wifi_rtp_cmd},
+#endif
+#if CONFIG_AP_STATYPE_LIMIT
+	{"sta_vsie", "sta ssid [password][bssid][sta_type]", cli_wifi_sta_vsie_cmd},
+	{"ap_vsie", "ap ssid [password][bssid][statype_num]", cli_wifi_ap_vsie_cmd}
 #endif
 };
 

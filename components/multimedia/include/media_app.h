@@ -22,19 +22,25 @@
 extern "C" {
 #endif
 
+#define WORD_REVERSE(x) ((((x) & 0x000000ffUL) << 24) | \
+						(((x) & 0x0000ff00UL) <<  8) | \
+						(((x) & 0x00ff0000UL) >>  8) | \
+						(((x) & 0xff000000UL) >> 24))
+
+
 typedef enum
 {
 	APP_CAMERA_DVP_JPEG,
 	APP_CAMERA_DVP_YUV,
 	APP_CAMERA_DVP_MIX,
 	APP_CAMERA_UVC_MJPEG,
+	APP_CAMERA_UVC_MJPEG_TO_H264,
 	APP_CAMERA_UVC_H264,
 	APP_CAMERA_NET_MJPEG,
 	APP_CAMERA_NET_H264,
-	APP_CAMERA_DVP_H264_WIFI_TRANSFER,
+	APP_CAMERA_DVP_H264_TRANSFER,
 	APP_CAMERA_DVP_H264_LOCAL,
 	APP_CAMERA_DVP_H264_ENC_LCD,
-	APP_CAMERA_DVP_H264_USB_TRANSFER,
 	APP_CAMERA_INVALIED,
 } app_camera_type_t;
 
@@ -52,11 +58,36 @@ typedef enum
 	APP_LCD_MCU,
 } app_lcd_type_t;
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+typedef int (*media_transfer_send_cb)(uint8_t *data, uint32_t length);
+typedef int (*media_transfer_prepare_cb)(uint8_t *data, uint32_t length);
+typedef void* (*media_transfer_get_tx_buf_cb)(void);
+typedef int (*media_transfer_get_tx_size_cb)(void);
 
+typedef struct {
+	media_transfer_send_cb send;
+	media_transfer_prepare_cb prepare;
+	media_transfer_get_tx_buf_cb get_tx_buf;
+	media_transfer_get_tx_size_cb get_tx_size;
+} media_transfer_cb_t;
+#endif
+
+#ifdef CONFIG_INTEGRATION_DOORBELL
+bk_err_t media_app_camera_open(camera_config_t *camera_config);
+#else
 bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi);
+#endif
 bk_err_t media_app_camera_close(app_camera_type_t type);
+bk_err_t media_app_h264_open(void *setup_cfg);
+bk_err_t media_app_h264_close(void);
+#ifdef CONFIG_INTEGRATION_DOORBELL
+bk_err_t media_app_transfer_open(const media_transfer_cb_t *cb);
+#else
 bk_err_t media_app_transfer_open(video_setup_t *setup_cfg);
+#endif
 bk_err_t media_app_transfer_close(void);
+bk_err_t media_app_usb_open(video_setup_t *setup_cfg);
+bk_err_t media_app_usb_close(void);
 bk_err_t media_app_lcd_open(void *lcd_open);
 bk_err_t media_app_lcd_close(void);
 bk_err_t media_app_storage_enable(app_camera_type_t type, uint8_t enable);
@@ -87,6 +118,7 @@ bk_err_t media_app_avi_open(void);
 bk_err_t media_app_avi_close(void);
 #endif
 
+bk_err_t media_app_lvgl_draw(void *lcd_open);
 
 #ifdef __cplusplus
 }

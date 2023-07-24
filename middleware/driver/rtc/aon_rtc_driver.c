@@ -105,6 +105,60 @@ static void aon_rtc_delay_to_grantee_ops_safe()
 	delay_us(AON_RTC_OPS_SAFE_DELAY_US);
 }
 
+#ifdef CONFIG_EXTERN_32K
+static uint32_t s_aon_rtc_clock_freq = AON_RTC_EXTERN_32K_CLOCK_FREQ;
+#else
+static uint32_t s_aon_rtc_clock_freq = AON_RTC_DEFAULT_CLOCK_FREQ;
+#endif
+static uint64_t s_time_base_us = 0;
+static uint64_t s_time_base_tick = 0;
+
+float bk_rtc_get_ms_tick_count(void) {
+	return (float)s_aon_rtc_clock_freq/1000;
+}
+
+uint32_t bk_rtc_get_clock_freq(void) {
+	return s_aon_rtc_clock_freq;
+}
+
+static inline uint64_t get_diff_time_us(void) {
+	uint64_t time_tick = bk_aon_rtc_get_current_tick(AONRTC_GET_SET_TIME_RTC_ID);
+	uint64_t time_diff = (time_tick - s_time_base_tick)*1000LL/bk_rtc_get_ms_tick_count();
+	return time_diff;
+}
+
+void bk_rtc_update_base_time(void) {
+	uint64_t time_tick = bk_aon_rtc_get_current_tick(AONRTC_GET_SET_TIME_RTC_ID);
+	uint64_t time_diff = (time_tick - s_time_base_tick)*1000LL/bk_rtc_get_ms_tick_count();
+
+	s_time_base_tick = time_tick;
+	s_time_base_us += time_diff;
+	// AON_RTC_LOGI("s_time_base_tick: 0x%x:0x%08x\r\n", (u32)(s_time_base_tick >> 32), (u32)(s_time_base_tick & 0xFFFFFFFF));
+	// AON_RTC_LOGI("s_time_base_us: 0x%x:0x%08x\r\n", (u32)(s_time_base_us >> 32), (u32)(s_time_base_us & 0xFFFFFFFF));
+}
+
+void bk_rtc_set_clock_freq(uint32_t clock_freq){
+#if CONFIG_AON_RTC_DYNAMIC_CLOCK_SUPPORT
+	AON_RTC_LOGI("Set clock freq: %d\n", clock_freq);
+	if (clock_freq == s_aon_rtc_clock_freq) {
+		return;
+	}
+	uint32_t int_level = rtos_disable_int();
+	{
+		bk_rtc_update_base_time();
+		s_aon_rtc_clock_freq = clock_freq;
+	}
+	rtos_enable_int(int_level);
+#endif
+}
+
+uint64_t bk_aon_rtc_get_us(void) {
+	uint64_t time_tick = bk_aon_rtc_get_current_tick(AONRTC_GET_SET_TIME_RTC_ID);
+	uint64_t time_diff = (time_tick - s_time_base_tick)*1000LL/bk_rtc_get_ms_tick_count();
+    uint64_t time_us = s_time_base_us + time_diff;
+    return  time_us;
+}
+
 #if CONFIG_AON_RTC_KEEP_TIME_SUPPORT
 static int32_t s_rtc_keep_tick_offset = 0x0;
 #define AONRTC_DEEPSLEEP_KEEPTIME_EF_KEYNUM 2
@@ -244,7 +298,7 @@ static void aon_rtc_compute_boot_timeofday(void)
 		AON_RTC_LOGD("s_rtc_keep_tick_offset=%d\r\n", (uint32_t)s_rtc_keep_tick_offset);
 
 		s_boot_time_us = ((uint64_t)time.tv_sec)*1000000LL+time.tv_usec +
-						((uint64_t)(s_rtc_keep_tick_offset/AON_RTC_MS_TICK_CNT))*1000;
+						((uint64_t)(s_rtc_keep_tick_offset/bk_rtc_get_ms_tick_count()))*1000;
 	}
 	else if(bk_misc_get_reset_reason() != RESET_SOURCE_POWERON)	//hot reboot
 	{
@@ -315,7 +369,7 @@ static void aon_rtc_register_deepsleep_cb(void)
 bk_err_t bk_rtc_get_deepsleep_duration_seconds(uint32_t *deepsleep_seconds)
 {
 #if CONFIG_AON_RTC_KEEP_TIME_SUPPORT
-    *deepsleep_seconds = s_rtc_keep_tick_offset/(AON_RTC_MS_TICK_CNT * 1000);
+    *deepsleep_seconds = s_rtc_keep_tick_offset/(bk_rtc_get_ms_tick_count() * 1000);
     return BK_OK;
 #endif
     return BK_FAIL;
@@ -601,7 +655,7 @@ static void alarm_update_expeired_nodes(aon_rtc_id_t id)
 		next_p = cur_p->next;
 
 		cur_tick = bk_aon_rtc_get_current_tick(id);
-		//maybe callback runs too much time,so assume the time in AON_RTC_MS_TICK_CNT means has expired
+		//maybe callback runs too much time,so assume the time in bk_rtc_get_ms_tick_count() means has expired
 		if(cur_p->expired_tick <= cur_tick + AON_RTC_PRECISION_TICK)
 		{
 			if(cur_p->callback)
@@ -1374,7 +1428,7 @@ bk_err_t bk_rtc_gettimeofday(struct timeval *tv, void *ptz)
 
     if(tv!=NULL)
     {
-        uint64_t uCurTimeUs = s_boot_time_us + bk_aon_rtc_get_current_tick(AONRTC_GET_SET_TIME_RTC_ID)*1000LL/AON_RTC_MS_TICK_CNT;
+        uint64_t uCurTimeUs = s_boot_time_us + bk_aon_rtc_get_current_tick(AONRTC_GET_SET_TIME_RTC_ID)*1000LL/bk_rtc_get_ms_tick_count();
 
         tv->tv_sec=uCurTimeUs/1000000;
         tv->tv_usec=uCurTimeUs%1000000;
@@ -1392,7 +1446,7 @@ bk_err_t bk_rtc_settimeofday(const struct timeval *tv,const struct timezone *tz)
     if(tv)
     {
         uint64_t setTimeUs = ((uint64_t)tv->tv_sec)*1000000LL + tv->tv_usec ;
-        uint64_t getCurTimeUs = bk_aon_rtc_get_current_tick(AONRTC_GET_SET_TIME_RTC_ID)*1000LL/AON_RTC_MS_TICK_CNT;
+        uint64_t getCurTimeUs = bk_aon_rtc_get_current_tick(AONRTC_GET_SET_TIME_RTC_ID)*1000LL/bk_rtc_get_ms_tick_count();
 
         s_boot_time_us = setTimeUs - getCurTimeUs;
         AON_RTC_LOGD("%s:sec=%d us=%d\n", __func__, tv->tv_sec, tv->tv_usec);
@@ -1401,6 +1455,7 @@ bk_err_t bk_rtc_settimeofday(const struct timeval *tv,const struct timezone *tz)
 
     return BK_OK;
 }
+
 
 #if CONFIG_AON_RTC_DEBUG
 void bk_64bits_test(void)

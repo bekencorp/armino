@@ -1,4 +1,20 @@
 menu "CAMERA"
+	config DVP_CAMERA
+		bool "Enable Camera"
+		depends on JPEGENC_HW
+		depends on I2C
+		depends on GENERAL_DMA
+		default n
+		help
+			Enable camera interface
+
+	config DVP_CAMERA_I2C_ID
+		int "Set Camera I2c Id"
+		range 0 2
+		default 0
+		help
+			The value should be changed if need to change i2c id
+
 	config CAMERA_POWER_GPIO_CTRL
 		bool "Enable camera power gpio ctrl"
 		default n

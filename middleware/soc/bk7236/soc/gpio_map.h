@@ -237,6 +237,26 @@ extern "C" {
 	{GPIO_14, GPIO_DEV_LCD_RGB20},\
 }
 
+#define GPIO_PWM_MAP_TABLE \
+{ \
+	{ \
+		{GPIO_6,  GPIO_DEV_PWM0},\
+		{GPIO_7,  GPIO_DEV_PWM1},\
+		{GPIO_8,  GPIO_DEV_PWM2},\
+		{GPIO_9,  GPIO_DEV_PWM3},\
+		{GPIO_24, GPIO_DEV_PWM4},\
+		{GPIO_25, GPIO_DEV_PWM5},\
+	}, \
+	{ \
+		{GPIO_32, GPIO_DEV_PWM6},\
+		{GPIO_33, GPIO_DEV_PWM7},\
+		{GPIO_34, GPIO_DEV_PWM8},\
+		{GPIO_35, GPIO_DEV_PWM9},\
+		{GPIO_36, GPIO_DEV_PWM10},\
+		{GPIO_37, GPIO_DEV_PWM11},\
+	} \
+}
+
 #define GPIO_MAP_TABLE(DEV_NUM, MODE_NUM, table) \
 struct {\
 	uint64_t gpio_bits;\
@@ -324,7 +344,7 @@ struct {\
 #define CAMERA_DVP_PXDATA6_FUNC         (GPIO_DEV_JPEG_PXDATA6)
 #define CAMERA_DVP_PXDATA7_FUNC         (GPIO_DEV_JPEG_PXDATA7)
 
-#define CAMERA_DVP_I2C_ID               (CONFIG_CAMERA_I2C_ID)
+#define CAMERA_DVP_I2C_ID               (CONFIG_DVP_CAMERA_I2C_ID)
 #define CAMERA_DVP_I2C_BAUD_RATE        (I2C_BAUD_RATE_100KHZ)
 #define CAMERA_DVP_I2C_MODE             (I2C_ADDR_MODE_7BIT)
 

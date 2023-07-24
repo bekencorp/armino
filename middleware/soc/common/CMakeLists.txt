@@ -6,7 +6,6 @@ set(incs
 	)
 
 set(srcs
-	hal/pwm_hal.c
 	hal/timer_hal.c
 	hal/dma_hal.c
 	hal/icu_hal.c
@@ -22,6 +21,19 @@ if (CONFIG_AON_WDT)
 	list(APPEND srcs
 		hal/aon_wdt_hal.c
 	)
+endif()
+
+if (CONFIG_PWM)
+if (CONFIG_PWM_V1PX)
+	list(APPEND srcs
+		hal/pwm_hal_v1px.c
+		)
+endif()
+if (CONFIG_PWM_V0P0)
+	list(APPEND srcs
+		hal/pwm_hal.c
+		)
+endif()
 endif()
 
 if (CONFIG_FLASH)
@@ -157,6 +169,14 @@ if(CONFIG_SDMADC)
 	list(APPEND srcs
 		"hal/sdmadc_hal.c"
 	)
+endif()
+
+if(CONFIG_OTP)
+if (CONFIG_SOC_BK7236XX)
+	list(APPEND srcs
+		"hal/otp_hal.c"
+	)
+endif()
 endif()
 
 armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" REQUIRES ${target} tfm)

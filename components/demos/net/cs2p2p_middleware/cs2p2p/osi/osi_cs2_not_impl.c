@@ -15,22 +15,19 @@
 
 INT32 PPCS_Share_Bandwidth(CHAR bOnOff)
 {
-#pragma message "not impl, please contact CS2 !!!!"
 //    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
     return ERROR_PPCS_SUCCESSFUL;
 }
 
 INT32 PPCS_PktSend(INT32 SessionHandle, UCHAR Channel, CHAR *PktBuf, INT32 PktSize)
 {
-#pragma message "not impl, please contact CS2 !!!!"
-    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
+//    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
     return ERROR_PPCS_SUCCESSFUL;
 }
 
 INT32 PPCS_PktRecv(INT32 SessionHandle, UCHAR Channel, CHAR *PktBuf, INT32 *PktSize, UINT32 TimeOut_ms)
 {
-#pragma message "not impl, please contact CS2 !!!!"
-    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
+//    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
     return ERROR_PPCS_SUCCESSFUL;
 }
 
@@ -38,22 +35,19 @@ INT32 PPCS_PktRecv(INT32 SessionHandle, UCHAR Channel, CHAR *PktBuf, INT32 *PktS
 
 INT32 PPCS_Connect_fake(const CHAR *TargetID, CHAR bEnableLanSearch, UINT16 UDP_Port)
 {
-#pragma message "not impl, please contact CS2 !!!!"
-    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
+//    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
     return ERROR_PPCS_NOT_INITIALIZED;
 }
 
 INT32 PPCS_ConnectByServer_fake(const CHAR *TargetID, CHAR bEnableLanSearch, UINT16 UDP_Port, CHAR *ServerString)
 {
-#pragma message "not impl, please contact CS2 !!!!"
-    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
+//    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
     return ERROR_PPCS_NOT_INITIALIZED;
 }
 
 INT32 PPCS_Connect_Break_fake()
 {
-#pragma message "not impl, please contact CS2 !!!!"
-    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
+//    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
     return 0;
 }
 
@@ -63,15 +57,13 @@ INT32 PPCS_Connect_Break_fake()
 
 INT32 PPCS_Listen_fake(const CHAR *MyID, const UINT32 TimeOut_Sec, UINT16 UDP_Port, CHAR bEnableInternet, const CHAR *APILicense)
 {
-#pragma message "not impl, please contact CS2 !!!!"
-    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
+//    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
     return 0;
 }
 
 INT32 PPCS_Listen_Break_fake(void)
 {
-#pragma message "not impl, please contact CS2 !!!!"
-    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
+//    os_printf("\n!!!! %s not impl, please contact CS2 !!!!\n", __func__);
     return 0;
 }
 

@@ -14,6 +14,7 @@
 
 #define DOORBELL_NETWORK_MAX_SIZE       (1472)
 
+
 typedef enum
 {
 	DBEVT_WIFI_STATION_CONNECT,

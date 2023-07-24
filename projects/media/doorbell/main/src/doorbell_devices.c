@@ -27,8 +27,11 @@
 #include "media_app.h"
 #include "lcd_act.h"
 
+#include "driver/dvp_camera.h"
 
 #include "cli.h"
+
+#include "aud_tras.h"
 
 #define TAG "db-device"
 
@@ -40,6 +43,7 @@
 #define DB_SAMPLE_RARE_8K (8000)
 #define DB_SAMPLE_RARE_16K (16000)
 
+#define CAMERA_DEVICES_REPORT (BK_FALSE)//(BK_TRUE)
 
 extern const dvp_sensor_config_t **get_sensor_config_devices_list(void);
 extern int get_sensor_config_devices_num(void);
@@ -66,7 +70,7 @@ db_device_info_t *db_device_info = NULL;
 static aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
 static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 static aud_intf_voc_setup_t aud_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
-
+static aud_tras_setup_t aud_tras_setup;
 
 int doorbell_get_ppis(char *ppi, int capability, int size)
 {
@@ -163,9 +167,6 @@ int doorbell_get_ppis(char *ppi, int capability, int size)
 
 int doorbell_get_supported_camera_devices(int opcode, db_channel_t *channel, doorbell_transmission_send_t cb)
 {
-	int ret = 0;
-	const dvp_sensor_config_t **sensors = get_sensor_config_devices_list();
-	uint32_t i, size = get_sensor_config_devices_num();
 	db_evt_head_t *evt = os_malloc(sizeof(db_evt_head_t) + DEVICE_RESPONSE_SIZE);
 	char *p = (char *)(evt + 1);
 
@@ -174,6 +175,13 @@ int doorbell_get_supported_camera_devices(int opcode, db_channel_t *channel, doo
 	evt->flags = EVT_FLAGS_CONTINUE;
 
 	LOGI("DBCMD_GET_CAMERA_SUPPORTED_DEVICES\n");
+
+#if (CAMERA_DEVICES_REPORT == BK_TRUE)
+
+	int ret = 0;
+	const dvp_sensor_config_t **sensors = get_sensor_config_devices_list();
+	uint32_t i, size = get_sensor_config_devices_num();
+
 
 	for (i = 0; i < size; i++)
 	{
@@ -202,7 +210,19 @@ int doorbell_get_supported_camera_devices(int opcode, db_channel_t *channel, doo
 		doorbell_transmission_pack_send(channel, (uint8_t *)evt, sizeof(db_evt_head_t) + evt->length, cb);
 	}
 
+#else
+	os_memset(p, 0, DEVICE_RESPONSE_SIZE);
 
+	sprintf(p, "{\"name\": \"%s\", \"id\": \"%d\", \"type\": \"DVP\", \"ppi\":[\"%uX%u\"]}",
+	        "DVP",
+	        1,
+	        ppi_to_pixel_x(0),
+	        ppi_to_pixel_y(0));
+	evt->length = CHECK_ENDIAN_UINT16(strlen(p));
+	doorbell_transmission_pack_send(channel, (uint8_t *)evt, sizeof(db_evt_head_t) + evt->length, cb);
+
+
+#endif
 	os_memset(p, 0, DEVICE_RESPONSE_SIZE);
 
 	sprintf(p, "{\"name\": \"%s\", \"id\": \"%d\", \"type\": \"UVC\", \"ppi\":[\"%uX%u\"]}",
@@ -289,10 +309,13 @@ int doorbell_devices_set_audio_transfer_callback(const void *cb)
 	return BK_OK;
 }
 
-int doorbell_camera_turn_on(uint16_t id, uint16_t width, uint16_t height)
+int doorbell_camera_turn_on(uint16_t id, uint16_t width, uint16_t height, uint16_t image_format)
 {
-	LOGI("%s, id: %d, width: %d, height: %d\n", __func__, id, width, height);
-	uint32_t ppi = ((uint32_t)width) << 16 | height;
+	camera_config_t camera_config;
+
+	LOGI("%s, id: %d, width: %d, height: %d, format: %d\n", __func__, id, width, height, image_format);
+
+	os_memset(&camera_config, 0, sizeof(camera_config_t));
 
 	if (db_device_info->camera_id != 0)
 	{
@@ -302,12 +325,26 @@ int doorbell_camera_turn_on(uint16_t id, uint16_t width, uint16_t height)
 
 	if (id == UVC_DEVICE_ID)
 	{
-		media_app_camera_open(APP_CAMERA_UVC_MJPEG, ppi);
+		camera_config.type = UVC_CAMERA;
 	}
 	else
 	{
-		media_app_camera_open(APP_CAMERA_DVP_JPEG, ppi);
+		camera_config.type = DVP_CAMERA;
 	}
+
+	if (image_format == 0)
+	{
+		camera_config.image_format = IMAGE_MJPEG;
+	}
+	else
+	{
+		camera_config.image_format = IMAGE_H264;
+	}
+
+	camera_config.width = width;
+	camera_config.height = height;
+
+	media_app_camera_open(&camera_config);
 
 	if (db_device_info->camera_transfer_cb)
 	{
@@ -325,7 +362,7 @@ int doorbell_camera_turn_on(uint16_t id, uint16_t width, uint16_t height)
 
 int doorbell_camera_turn_off(void)
 {
-	LOGI("%s, id: %d", __func__, db_device_info->camera_id);
+	LOGI("%s, id: %d\r\n", __func__, db_device_info->camera_id);
 
 	if (db_device_info->camera_id == 0)
 	{
@@ -375,7 +412,7 @@ int doorbell_display_turn_on(uint16_t id, uint16_t rotate)
 
 
 	lcd_open_t lcd_open = {0};
-	lcd_open.device_ppi = 0;
+	lcd_open.device_ppi = device->ppi;
 	lcd_open.device_name = device->name;
 	media_app_lcd_open(&lcd_open);
 
@@ -463,24 +500,6 @@ int doorbell_audio_turn_on(BOOL aec, BOOL uac, int sample_rate)
 
 	LOGI("%s, AEC: %d, UAC: %d, sample rate: %d\n", __func__, aec, uac, sample_rate);
 
-	aud_intf_drv_setup.aud_intf_tx_mic_data = doorbell_udp_voice_send_callback;
-	ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
-
-	if (ret != BK_ERR_AUD_INTF_OK)
-	{
-		LOGE("bk_aud_intf_drv_init fail, ret:%d\n", ret);
-		goto error;
-	}
-
-	aud_work_mode = AUD_INTF_WORK_MODE_VOICE;
-	ret = bk_aud_intf_set_mode(aud_work_mode);
-
-	if (ret != BK_ERR_AUD_INTF_OK)
-	{
-		LOGE("bk_aud_intf_set_mode fail, ret:%d\n", ret);
-		goto error;
-	}
-
 	if (aec == 1)
 	{
 		aud_voc_setup.aec_enable = true;
@@ -523,16 +542,34 @@ int doorbell_audio_turn_on(BOOL aec, BOOL uac, int sample_rate)
 			break;
 	}
 
-	aud_voc_setup.mic_gain = 0x2d;
-	aud_voc_setup.spk_gain = 0x2d;
-	aud_voc_setup.aec_cfg.ec_depth = 20;
-	aud_voc_setup.aec_cfg.TxRxThr = 30;
-	aud_voc_setup.aec_cfg.TxRxFlr = 6;
-	aud_voc_setup.aec_cfg.ns_level = 2;
-	aud_voc_setup.aec_cfg.ns_para = 1;
+	/* init audio transfer task */
+	aud_tras_setup.aud_tras_send_data_cb = doorbell_udp_voice_send_callback;
+	aud_tras_setup.aud_tx_rb = NULL;
+	ret = aud_tras_init(&aud_tras_setup);
+	if (ret != BK_OK) {
+		LOGE("aud_tras_init fail\n");
+		return BK_FAIL;
+	}
+
+	aud_intf_drv_setup.aud_intf_tx_mic_data = doorbell_udp_voice_send_callback;
+	aud_intf_drv_setup.aud_tx_rb = aud_tras_get_tx_rb();
+	ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
+	if (ret != BK_ERR_AUD_INTF_OK)
+	{
+		LOGE("bk_aud_intf_drv_init fail, ret:%d\n", ret);
+		goto error;
+	}
+
+	aud_work_mode = AUD_INTF_WORK_MODE_VOICE;
+	ret = bk_aud_intf_set_mode(aud_work_mode);
+	if (ret != BK_ERR_AUD_INTF_OK)
+	{
+		LOGE("bk_aud_intf_set_mode fail, ret:%d\n", ret);
+		goto error;
+	}
+
 
 	ret = bk_aud_intf_voc_init(aud_voc_setup);
-
 	if (ret != BK_ERR_AUD_INTF_OK)
 	{
 		LOGE("bk_aud_intf_voc_init fail, ret:%d\n", ret);
@@ -540,7 +577,6 @@ int doorbell_audio_turn_on(BOOL aec, BOOL uac, int sample_rate)
 	}
 
 	ret = bk_aud_intf_voc_start();
-
 	if (ret != BK_ERR_AUD_INTF_OK)
 	{
 		LOGE("bk_aud_intf_voc_start fail, ret:%d\n", ret);
@@ -566,6 +602,7 @@ int doorbell_audio_turn_on(BOOL aec, BOOL uac, int sample_rate)
 	}
 	return BK_OK;
 error:
+	bk_aud_intf_drv_deinit();
 	return BK_FAIL;
 }
 
@@ -578,6 +615,8 @@ int doorbell_audio_turn_off(void)
 		return BK_FAIL;
 	}
 
+	LOGI("%s entry\n", __func__);
+
 	db_device_info->audio_enable = BK_FALSE;
 
 	if (doorbell_current_service
@@ -586,14 +625,16 @@ int doorbell_audio_turn_off(void)
 		doorbell_current_service->audio_state_changed(DB_TURN_OFF);
 	}
 
-
-	LOGI("%s\n", __func__);
-
 	bk_aud_intf_voc_stop();
 	bk_aud_intf_voc_deinit();
+	/* deinit aud_tras task */
+	aud_tras_deinit();
 	aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 	bk_aud_intf_set_mode(aud_work_mode);
 	bk_aud_intf_drv_deinit();
+
+	LOGI("%s out\n", __func__);
+
 	return 0;
 }
 

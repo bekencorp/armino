@@ -77,16 +77,15 @@ static void storage_frame_major_notify_app(uint32_t param)
 
 	storage_major_node->event = EVENT_VID_CAPTURE_NOTIFY;
 	storage_major_node->param = (uint32_t)frame;
-	msg_send_to_media_major_mailbox(storage_major_node, BK_OK, APP_MODULE);
 
-	if (rtos_get_semaphore(&storage_major_node->sem, BEKEN_WAIT_FOREVER))
-	{
-		LOGE("%s wait semaphore failed\n", __func__);
-	}
+	msg_send_req_to_media_major_mailbox_sync(storage_major_node, APP_MODULE);
 
-	frame_buffer_fb_free(frame, MODULE_CAPTURE);
+	if (storage_major_info.param == FB_INDEX_JPEG)
+		frame_buffer_fb_free(frame, MODULE_CAPTURE);
+	else
+		frame_buffer_fb_h264_free(frame);
 
-	msg_send_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
 
 	storage_major_info.capture_state = STORAGE_STATE_DISABLED;
 }
@@ -95,7 +94,7 @@ static void storage_video_major_notify_app(uint32_t param)
 {
 	frame_buffer_t *frame = NULL;
 
-	msg_send_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
 
 	storage_major_info.capture_state = STORAGE_STATE_ENABLED;
 
@@ -114,14 +113,12 @@ static void storage_video_major_notify_app(uint32_t param)
 
 		storage_major_node->event = EVENT_VID_SAVE_ALL_NOTIFY;
 		storage_major_node->param = (uint32_t)frame;
-		msg_send_to_media_major_mailbox(storage_major_node, BK_OK, APP_MODULE);
+		msg_send_req_to_media_major_mailbox_sync(storage_major_node, APP_MODULE);
 
-		if (rtos_get_semaphore(&storage_major_node->sem, BEKEN_WAIT_FOREVER))
-		{
-			LOGE("%s wait semaphore failed\n", __func__);
-		}
-
-		frame_buffer_fb_free(frame, MODULE_CAPTURE);
+		if (storage_major_info.param == FB_INDEX_JPEG)
+			frame_buffer_fb_free(frame, MODULE_CAPTURE);
+		else
+			frame_buffer_fb_h264_free(frame);
 	};
 
 	if (storage_major_sem)
@@ -137,7 +134,7 @@ static void storage_video_major_notify_app_stop(uint32_t param)
 		LOGE("%s wait semaphore failed\n", __func__);
 	}
 
-	msg_send_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
 }
 
 static void storage_major_deinit(uint32_t param)
@@ -163,7 +160,7 @@ static void storage_major_deinit(uint32_t param)
 	storage_major_info.state = STORAGE_STATE_DISABLED;
 	storage_major_info.capture_state = STORAGE_STATE_DISABLED;
 
-	msg_send_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
 }
 
 static void storage_major_task_entry(beken_thread_arg_t data)
@@ -351,7 +348,7 @@ static bk_err_t storage_major_task_open_handle(media_mailbox_msg_t *msg)
 
 end:
 
-	msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 
 	LOGI("%s complete\n", __func__);
 
@@ -365,7 +362,7 @@ static bk_err_t storage_major_task_close_handle(media_mailbox_msg_t *msg)
 	if (get_storage_state() == STORAGE_STATE_DISABLED)
 	{
 		LOGI("%s already close\r\n", __func__);
-		msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+		msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 	}
 	else
 	{
@@ -385,14 +382,14 @@ static bk_err_t storage_major_capture_handle(media_mailbox_msg_t *msg)
 	{
 			LOGE("%s storage major task not open\r\n", __func__);
 			ret = kGeneralErr;
-			msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+			msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 			return ret;
 	}
 
 	if (storage_major_info.capture_state == STORAGE_STATE_ENABLED)
 	{
 		LOGE("%s capture busy\r\n", __func__);
-		msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+		msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 	}
 	else
 	{
@@ -410,14 +407,14 @@ static bk_err_t storage_major_video_save_start_handle(media_mailbox_msg_t *msg)
 	{
 			LOGE("%s storage major task not open\r\n", __func__);
 			ret = kGeneralErr;
-			msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+			msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 			return ret;
 	}
 
 	if (storage_major_info.capture_state == STORAGE_STATE_ENABLED)
 	{
 		LOGE("%s save video busy\r\n", __func__);
-		msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+		msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 	}
 	else
 	{
@@ -435,7 +432,7 @@ static bk_err_t storage_major_video_save_stop_handle(media_mailbox_msg_t *msg)
 	if (storage_major_info.capture_state == STORAGE_STATE_DISABLED)
 	{
 		LOGI("%s, alread stop save video\r\n", __func__);
-		msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+		msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 	}
 	else
 	{
@@ -481,12 +478,12 @@ bk_err_t storage_major_event_handle(media_mailbox_msg_t *msg)
 }
 
 
-storage_state_t get_storage_state(void)
+media_storage_state_t get_storage_state(void)
 {
 	return storage_major_info.state;
 }
 
-void set_storage_state(storage_state_t state)
+void set_storage_state(media_storage_state_t state)
 {
 	storage_major_info.state = state;
 }

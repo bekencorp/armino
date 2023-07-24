@@ -16,12 +16,46 @@
 #include <driver/i2c.h>
 #include "cli.h"
 
+#include <driver/gpio.h>
+#include "gpio_driver.h"
+
 #define EEPROM_DEV_ADDR          0x50
 #define EEPROM_MEM_ADDR          0x10
 #define I2C_SLAVE_ADDR           0x73
 #define I2C_WRITE_WAIT_MAX_MS    (500)
 #define I2C_READ_WAIT_MAX_MS     (500)
 #define CAMERA_DEV_ADDR          (0x21)
+
+uint8_t sensor_gc0328c_init_talbe_test1[][2] =
+{
+{0xF1, 0x00},
+{0xF2, 0x00},
+{0xFE, 0x00},
+{0x4F, 0x00},
+{0x42, 0x00},
+{0x77, 0x5A},
+{0x78, 0x40},
+{0x79, 0x56},
+{0xFE, 0x00},
+{0x0D, 0x01},
+{0x0E, 0xE8},//480 + 8
+{0x0F, 0x02},
+{0x81, 0x58},
+{0x82, 0x98},
+{0x83, 0x60},
+{0x84, 0x58},
+};
+
+static void gpio_debug(uint32_t gpio_id)
+{
+	gpio_dev_unmap(gpio_id);
+	BK_LOG_ON_ERR(bk_gpio_disable_input(gpio_id));
+	BK_LOG_ON_ERR(bk_gpio_enable_output(gpio_id));
+	bk_gpio_set_output_high(gpio_id);
+	bk_gpio_set_output_low(gpio_id);
+	bk_gpio_set_output_high(gpio_id);
+	bk_gpio_set_output_low(gpio_id);
+}
 
 static void cli_i2c_help(void)
 {
@@ -129,6 +163,153 @@ static void cli_i2c_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 			data_buf = NULL;
 		}
 		CLI_LOGI("i2c(%d) memory_read buf_len:%d\r\n", i2c_id, buf_len);
+	} else if (os_strcmp(argv[2], "cam_write") == 0) {
+		uint32_t buf_len = 1;
+		uint8_t data = os_strtoul(argv[3], NULL, 16);
+		uint32_t dev_addr = os_strtoul(argv[4], NULL, 16);
+		uint32_t mem_addr = os_strtoul(argv[5], NULL, 16);
+		i2c_mem_param_t mem_param = {0};
+		mem_param.dev_addr = dev_addr;
+		mem_param.mem_addr = mem_addr;
+		mem_param.mem_addr_size = I2C_MEM_ADDR_SIZE_8BIT;
+		mem_param.data = &data;
+		mem_param.data_size = buf_len;
+		mem_param.timeout_ms = I2C_WRITE_WAIT_MAX_MS;
+		BK_LOG_ON_ERR(bk_i2c_memory_write(i2c_id, &mem_param));
+		CLI_LOGI("i2c(%d) cam_write buf_len:%d\r\n", i2c_id, buf_len);
+	} else if (os_strcmp(argv[2], "cam_read") == 0) {
+		uint32_t buf_len = 1;
+		uint8_t data = os_strtoul(argv[3], NULL, 16);
+		uint32_t dev_addr = os_strtoul(argv[4], NULL, 16);
+		uint32_t mem_addr = os_strtoul(argv[5], NULL, 16);
+		i2c_mem_param_t mem_param = {0};
+		mem_param.dev_addr = dev_addr;
+		mem_param.mem_addr = mem_addr;
+		mem_param.mem_addr_size = I2C_MEM_ADDR_SIZE_8BIT;
+		mem_param.data = &data;
+		mem_param.data_size = buf_len;
+		mem_param.timeout_ms = I2C_WRITE_WAIT_MAX_MS;
+		BK_LOG_ON_ERR(bk_i2c_memory_read(i2c_id, &mem_param));
+		CLI_LOGI("i2c_read_buf = %x\r\n", data);
+	    CLI_LOGI("i2c_read_buf = %x\r\n", *(mem_param.data));
+		CLI_LOGI("i2c(%d) cam_read buf_len:%d\r\n", i2c_id, buf_len);
+	} else if (os_strcmp(argv[2], "cam_test1") == 0) {
+		uint32_t buf_len = 1;
+		uint32_t cmp_len = sizeof(sensor_gc0328c_init_talbe_test1)/2;
+		uint8_t *data_buf = os_zalloc(cmp_len);
+		if(NULL == data_buf)
+		{
+			CLI_LOGE("os_zalloc fail\r\n");
+			return;
+		}
+		os_printf("sizeof(sensor_gc0328c_init_talbe_test1) = %d\n ", sizeof(sensor_gc0328c_init_talbe_test1));
+		for(int i = 0; i < cmp_len; i++) {
+			uint32_t dev_addr = CAMERA_DEV_ADDR;
+			uint32_t mem_addr = sensor_gc0328c_init_talbe_test1[i][0];
+
+			i2c_mem_param_t mem_param_w = {0};
+			mem_param_w.dev_addr = dev_addr;
+			mem_param_w.mem_addr = mem_addr;
+			mem_param_w.mem_addr_size = I2C_MEM_ADDR_SIZE_8BIT;
+			mem_param_w.data = &(sensor_gc0328c_init_talbe_test1[i][1]);
+			mem_param_w.data_size = buf_len;
+			mem_param_w.timeout_ms = I2C_WRITE_WAIT_MAX_MS;
+			BK_LOG_ON_ERR(bk_i2c_memory_write(i2c_id, &mem_param_w));
+
+			i2c_mem_param_t mem_param = {0};
+			mem_param.dev_addr = dev_addr;
+			mem_param.mem_addr = mem_addr;
+			mem_param.mem_addr_size = I2C_MEM_ADDR_SIZE_8BIT;
+			mem_param.data = data_buf + i;
+			mem_param.data_size = buf_len;
+			mem_param.timeout_ms = I2C_WRITE_WAIT_MAX_MS;
+			BK_LOG_ON_ERR(bk_i2c_memory_read(i2c_id, &mem_param));
+			CLI_LOGI("i2c(%d) cam_read addr:0x%x, data:0x%x\r\n", i2c_id, sensor_gc0328c_init_talbe_test1[i][0], data_buf[i]);
+			if(sensor_gc0328c_init_talbe_test1[i][1] != data_buf[i]) {
+				CLI_LOGE("i2c(%d) cam_read addr:0x%x, data=0x%x,  correct_data=0x%x.\r\n", i2c_id, sensor_gc0328c_init_talbe_test1[i][0], data_buf[i], sensor_gc0328c_init_talbe_test1[i][1]);
+				gpio_debug(19);
+			}
+		}
+		if (data_buf) {
+			os_free(data_buf);
+			data_buf = NULL;
+		}
+	} else if (os_strcmp(argv[2], "cam_test") == 0) {
+		uint32_t buf_len = 1;
+		uint32_t cmp_len = 2048;
+		uint8_t *data_buf = os_zalloc(cmp_len);
+		if(NULL == data_buf)
+		{
+			CLI_LOGE("os_zalloc fail\r\n");
+			return;
+		}
+		for(int i = 0; i < cmp_len; i++) {
+			uint32_t dev_addr = CAMERA_DEV_ADDR;
+			uint32_t mem_addr = 0x84;
+			uint8_t test_data = i & 0xff;
+
+			i2c_mem_param_t mem_param_w = {0};
+			mem_param_w.dev_addr = dev_addr;
+			mem_param_w.mem_addr = mem_addr;
+			mem_param_w.mem_addr_size = I2C_MEM_ADDR_SIZE_8BIT;
+			mem_param_w.data = &(test_data);
+			mem_param_w.data_size = buf_len;
+			mem_param_w.timeout_ms = I2C_WRITE_WAIT_MAX_MS;
+			BK_LOG_ON_ERR(bk_i2c_memory_write(i2c_id, &mem_param_w));
+
+			i2c_mem_param_t mem_param = {0};
+			mem_param.dev_addr = dev_addr;
+			mem_param.mem_addr = mem_addr;
+			mem_param.mem_addr_size = I2C_MEM_ADDR_SIZE_8BIT;
+			mem_param.data = data_buf + i;
+			mem_param.data_size = buf_len;
+			mem_param.timeout_ms = I2C_WRITE_WAIT_MAX_MS;
+			BK_LOG_ON_ERR(bk_i2c_memory_read(i2c_id, &mem_param));
+			CLI_LOGI("i2c(%d) cam_read addr:0x%x, data:0x%x\r\n", i2c_id, mem_addr, data_buf[i]);
+			if(test_data != data_buf[i]) {
+				CLI_LOGE("i2c(%d) cam_read addr:0x%x, data=0x%x,  correct_data=0x%x.\r\n", i2c_id, mem_addr, data_buf[i], test_data);
+				gpio_debug(18);
+			}
+		}
+		if (data_buf) {
+			os_free(data_buf);
+			data_buf = NULL;
+		}
+	} else if (os_strcmp(argv[2], "cam_dump") == 0) {
+		uint32_t buf_len = 1;
+		uint32_t cmp_len = 256;
+		uint8_t *data_buf = os_zalloc(cmp_len);
+		if(NULL == data_buf)
+		{
+			CLI_LOGE("os_zalloc fail\r\n");
+			return;
+		}
+		uint32_t dev_addr = CAMERA_DEV_ADDR;
+		uint32_t mem_addr = 0;
+		i2c_mem_param_t mem_param = {0};
+
+		for(int i = 0; i < cmp_len; i++) {
+			mem_param.dev_addr = dev_addr;
+			mem_param.mem_addr = mem_addr;
+			mem_param.mem_addr_size = I2C_MEM_ADDR_SIZE_8BIT;
+			mem_param.data = data_buf + i;
+			mem_param.data_size = buf_len;
+			mem_param.timeout_ms = I2C_WRITE_WAIT_MAX_MS;
+			BK_LOG_ON_ERR(bk_i2c_memory_read(i2c_id, &mem_param));
+			mem_addr++;
+		}
+		os_printf("\r\n");
+		for (uint32_t i = 0; i < 16; i++) {
+			os_printf("REG%01x0 : ", i);
+			for (uint32_t j = 0; j < 16; j++) {
+				os_printf("%02x ", data_buf[i * 16 + j]);
+			}
+			os_printf("\r\n");
+		}
+		if (data_buf) {
+			os_free(data_buf);
+			data_buf = NULL;
+		}
 	} else {
 		cli_i2c_help();
 		return;

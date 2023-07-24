@@ -35,16 +35,9 @@ REGION_DECLARE(Load$$LR$$, LR_SECONDARY_PARTITION, $$Base);
 #endif /* BL2 */
 
 const struct memory_region_limits memory_regions = {
-    .non_secure_code_start =
-        (uint32_t)&REGION_NAME(Load$$LR$$, LR_NS_PARTITION, $$Base) +
-        BL2_HEADER_SIZE,
-
-    .non_secure_partition_base =
-        (uint32_t)&REGION_NAME(Load$$LR$$, LR_NS_PARTITION, $$Base),
-
-    .non_secure_partition_limit =
-        (uint32_t)&REGION_NAME(Load$$LR$$, LR_NS_PARTITION, $$Base) +
-        NS_PARTITION_SIZE - 1,
+    .non_secure_code_start = NS_CODE_START,
+    .non_secure_partition_base = NS_CODE_START,
+    .non_secure_partition_limit = NS_CODE_LIMIT,
 
     .veneer_base = (uint32_t)&REGION_NAME(Image$$, ER_VENEER, $$Base),
     .veneer_limit = (uint32_t)&REGION_NAME(Image$$, VENEER_ALIGN, $$Limit),
@@ -207,6 +200,7 @@ enum tfm_plat_err_t nvic_interrupt_target_state_cfg(void)
     NVIC_ClearTargetState(UARTTX1_IRQn);
     NVIC_ClearTargetState(UART1_IRQn);
 #endif
+    NVIC_ClearTargetState(ENCP_S_IRQn);
 
     return TFM_PLAT_ERR_SUCCESS;
 }

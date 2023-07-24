@@ -28,9 +28,7 @@
 #if (CONFIG_AUD_INTF)
 #include "aud_debug_tcp.h"
 #endif
-#if CONFIG_SOC_BK7258
 #include "aud_tras.h"
-#endif
 #include "media_app.h"
 
 #define TAG "doorbell-UDP"
@@ -61,14 +59,8 @@ static uint8_t decode_fmt = DOORBELL_IMG_FMT_MJPEG;
 static aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
 static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 static aud_intf_voc_setup_t aud_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
-#if CONFIG_SOC_BK7258
-static aud_tras_setup_t aud_tras_setup;
 static bool audio_start_flag = false;
-static RingBufferContext aud_tras_rb;	//save mic data needed to send by aud_tras task
-static uint8_t *aud_tras_buff_addr = NULL;
-#define AUD_DELAY_FRAME    (20)    //delay (20*N)ms
-static uint32_t frame_size = 0;
-#endif
+static aud_tras_setup_t aud_tras_setup;
 #endif
 
 extern int delay_ms(INT32 ms_count);
@@ -175,35 +167,24 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 #if AUDIO_TRANSFER_ENABLE
 			case AUDIO_CLOSE:
 				LOGI("close audio \n");
-#if CONFIG_SOC_BK7258
 				if (audio_start_flag)
 					audio_start_flag = false;
 				else
 					break;
-#endif
+
 				bk_aud_intf_voc_stop();
 				bk_aud_intf_voc_deinit();
 				aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 				bk_aud_intf_set_mode(aud_work_mode);
 				bk_aud_intf_drv_deinit();
-#if CONFIG_SOC_BK7258
-				aud_tras_deinit();
-				ring_buffer_clear(&aud_tras_rb);
-				if (aud_tras_buff_addr) {
-					os_free(aud_tras_buff_addr);
-					aud_tras_buff_addr = NULL;
-				}
-#endif
 				break;
 
 			case AUDIO_OPEN:
 				LOGI("open audio \n");
-#if CONFIG_SOC_BK7258
 				if (!audio_start_flag)
 					audio_start_flag = true;
 				else
 					break;
-#endif
 
 				//aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711A;
 				//aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_PCM;
@@ -221,6 +202,14 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 					aud_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
 					aud_voc_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
 				}
+				if (data[9] == 1)
+				{
+					aud_voc_setup.aec_enable = true;
+				}
+				else
+				{
+					aud_voc_setup.aec_enable = false;
+				}
 				switch (data[10])
 				{
 					case 8:
@@ -236,57 +225,21 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 						break;
 				}
 
-				//aud_voc_setup.aec_cfg.ref_scale = 1;
-#if CONFIG_DOORBELL_DEMO2
-				aud_voc_setup.mic_gain = 0x2d;
-				aud_voc_setup.spk_gain = 0x27;
-				aud_voc_setup.aec_cfg.ec_depth = 0x60;
-				aud_voc_setup.aec_cfg.TxRxThr = 30;
-				aud_voc_setup.aec_cfg.TxRxFlr = 6;
-				aud_voc_setup.aec_cfg.ns_level = 2;
-				aud_voc_setup.aec_cfg.ns_para = 1;
-#else
-				aud_voc_setup.mic_gain = 0x2d;
-				aud_voc_setup.spk_gain = 0x2d;
-				aud_voc_setup.aec_cfg.ec_depth = 20;
-				aud_voc_setup.aec_cfg.TxRxThr = 30;
-				aud_voc_setup.aec_cfg.TxRxFlr = 6;
-				aud_voc_setup.aec_cfg.ns_level = 2;
-				aud_voc_setup.aec_cfg.ns_para = 1;
-#endif
-
-#if CONFIG_SOC_BK7258
-				/* TODO */
-				uint32_t data_type_size = 0;
-				uint32_t data_sample_size = 0;
-
-				if (aud_voc_setup.data_type == AUD_INTF_VOC_DATA_TYPE_PCM)
-					data_type_size = 2;
-				else
-					data_type_size = 1;
-				if (aud_voc_setup.samp_rate == AUD_INTF_VOC_SAMP_RATE_16K)
-					data_sample_size = 320;
-				else
-					data_sample_size = 160;
-				frame_size = data_sample_size * data_type_size;
-
-				aud_tras_buff_addr = os_malloc(AUD_DELAY_FRAME * frame_size + 4);
-				if (aud_tras_buff_addr == NULL) {
-					os_printf("malloc aud_tras_buff_addr fail \r\n");
+				/* init audio transfer task */
+				aud_tras_setup.aud_tras_send_data_cb = demo_doorbell_udp_voice_send_packet;
+				aud_tras_setup.aud_tx_rb = NULL;
+				ret = aud_tras_init(&aud_tras_setup);
+				if (ret != BK_OK) {
+					LOGE("aud_tras_init fail\n");
 					break;
 				}
-				ring_buffer_init(&aud_tras_rb, aud_tras_buff_addr, AUD_DELAY_FRAME * frame_size + 4, DMA_ID_MAX, RB_DMA_TYPE_NULL);
-				LOGI("aud_tras_rb: %p \n", &aud_tras_rb);
-#endif
 
 				//aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711U;
 				//aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
 				//aud_intf_drv_setup.task_config.priority = 3;
 				//aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
 				aud_intf_drv_setup.aud_intf_tx_mic_data = demo_doorbell_udp_voice_send_packet;
-#if CONFIG_SOC_BK7258
-				aud_intf_drv_setup.aud_tx_rb = &aud_tras_rb;
-#endif
+				aud_intf_drv_setup.aud_tx_rb = aud_tras_get_tx_rb();
 				ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
 				if (ret != BK_ERR_AUD_INTF_OK)
 				{
@@ -299,14 +252,6 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 				{
 					LOGE("bk_aud_intf_set_mode fail, ret:%d\n", ret);
 					break;
-				}
-				if (data[9] == 1)
-				{
-					aud_voc_setup.aec_enable = true;
-				}
-				else
-				{
-					aud_voc_setup.aec_enable = false;
 				}
 
 				ret = bk_aud_intf_voc_init(aud_voc_setup);
@@ -332,17 +277,6 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 						break;
 					}
 				}
-
-#if CONFIG_SOC_BK7258
-				/*  */
-				aud_tras_setup.aud_tras_send_data_cb = demo_doorbell_udp_voice_send_packet;
-				aud_tras_setup.aud_tx_rb = &aud_tras_rb;
-				ret = aud_tras_init(&aud_tras_setup);
-				if (ret != BK_OK) {
-					LOGI("aud_tras init fail\n");
-					break;
-				}
-#endif
 
 				ret = bk_aud_intf_voc_start();
 				if (ret != BK_ERR_AUD_INTF_OK)
@@ -472,14 +406,17 @@ static void demo_doorbell_udp_receiver(uint8_t *data, uint32_t len, struct socka
 				GLOBAL_INT_RESTORE();
 
 #ifdef CONFIG_INTEGRATION_DOORBELL
-				//if (fmt == DOORBELL_IMG_FMT_MJPEG) {
-				if (decode_fmt == DOORBELL_IMG_FMT_MJPEG) {
-					media_app_camera_open(APP_CAMERA_DVP_JPEG, ppi);
-				}
-				else
-				{
-					media_app_camera_open(APP_CAMERA_DVP_H264_WIFI_TRANSFER, ppi);
-				}
+
+				camera_config_t camera_config;
+
+				os_memset(&camera_config, 0, sizeof(camera_config_t));
+
+				camera_config.type = DVP_CAMERA;
+				camera_config.image_format = IMAGE_MJPEG;
+				camera_config.width = ppi >> 16;
+				camera_config.height = ppi & 0xFFFF;
+
+				media_app_camera_open(&camera_config);
 
 				media_app_transfer_open(&doorbell_udp_callback);
 #else
@@ -558,14 +495,16 @@ static void demo_doorbell_udp_receiver(uint8_t *data, uint32_t len, struct socka
 
 #ifdef CONFIG_INTEGRATION_DOORBELL
 				//if (fmt == DOORBELL_IMG_FMT_MJPEG)
-				if (decode_fmt == DOORBELL_IMG_FMT_MJPEG)
-				{
-					media_app_camera_open(APP_CAMERA_UVC_MJPEG, ppi);
-				}
-				else
-				{
-					media_app_camera_open(APP_CAMERA_UVC_H264, ppi);
-				}
+				camera_config_t camera_config;
+
+				os_memset(&camera_config, 0, sizeof(camera_config_t));
+
+				camera_config.type = UVC_CAMERA;
+				camera_config.image_format = IMAGE_MJPEG;
+				camera_config.width = ppi >> 16;
+				camera_config.height = ppi & 0xFFFF;
+
+				media_app_camera_open(&camera_config);
 
 				media_app_transfer_open(&doorbell_udp_callback);
 #else
@@ -890,7 +829,7 @@ out:
 	LOGE("demo_doorbell_udp_main exit %d\n", demo_doorbell_udp_run);
 	media_app_transfer_close();
 
-#if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
+#if (defined(CONFIG_DVP_CAMERA) || defined(CONFIG_USB_UVC))
 
 	media_app_camera_close(APP_CAMERA_DVP_JPEG);
 

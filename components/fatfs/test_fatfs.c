@@ -44,10 +44,25 @@ FRESULT scan_files
             if (fno.fattrib & AM_DIR)
             {
                 /* It is a directory */
-                char pathTemp[255];
+                char *pathTemp = os_malloc(strlen(path)+strlen(fno.fname)+2);
+                if(pathTemp == 0)
+                {
+                    FATFS_LOGE("%s:os_malloc dir fail \r\n", __func__);
+                    break;
+                }
                 sprintf(pathTemp, "%s/%s", path, fno.fname);
                 fr = scan_files(pathTemp);      /* Enter the directory */
-                if (fr != FR_OK) break;
+                if (fr != FR_OK)
+                {
+                    os_free(pathTemp);
+                    pathTemp = 0;
+                    break;
+		  }
+                if(pathTemp)
+                {
+                    os_free(pathTemp);
+                    pathTemp = 0;
+	         }
             }
             else
             {

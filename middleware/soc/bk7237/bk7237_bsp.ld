@@ -1,1 +1,0 @@
-../common/singlecore_cpu.ld

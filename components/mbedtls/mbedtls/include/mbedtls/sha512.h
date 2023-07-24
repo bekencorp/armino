@@ -67,9 +67,9 @@ typedef struct mbedtls_sha512_context
 mbedtls_sha512_context;
 
 #else  /* MBEDTLS_SHA512_ALT */
-#warning "defined(MBEDTLS_SHA512_ALT)"
+// #warning "defined(MBEDTLS_SHA512_ALT)"
 
-#include "sha512_alt.h"
+#include "modules/bk_mbedtls_alt/bk_sha512_alt.h"
 #endif /* MBEDTLS_SHA512_ALT */
 
 /**

@@ -885,12 +885,12 @@ void transfer_event_handle(uint32_t event, uint32_t param)
 	}
 }
 
-trs_state_t get_transfer_state(void)
+media_trs_state_t get_transfer_state(void)
 {
 	return transfer_info.state;
 }
 
-void set_transfer_state(trs_state_t state)
+void set_transfer_state(media_trs_state_t state)
 {
 	transfer_info.state = state;
 }

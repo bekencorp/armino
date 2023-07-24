@@ -12,7 +12,7 @@ int doorbell_devices_init(void);
 int doorbell_devices_set_camera_transfer_callback(const void *cb);
 int doorbell_devices_set_audio_transfer_callback(const void *cb);
 
-int doorbell_camera_turn_on(uint16_t id, uint16_t width, uint16_t height);
+int doorbell_camera_turn_on(uint16_t id, uint16_t width, uint16_t height, uint16_t image_format);
 int doorbell_camera_turn_off(void);
 
 int doorbell_audio_turn_on(BOOL aec, BOOL uac, int sample_rate);

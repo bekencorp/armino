@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 #-------------------------------------------------------------------------------
-
 cmake_minimum_required(VERSION 3.15)
 
 project("Bootloader" VERSION 0.1.0 LANGUAGES C ASM)
@@ -54,6 +53,7 @@ target_compile_definitions(bl2
         $<$<BOOL:${DEFAULT_MCUBOOT_FLASH_MAP}>:DEFAULT_MCUBOOT_FLASH_MAP>
         $<$<BOOL:${PLATFORM_PSA_ADAC_SECURE_DEBUG}>:PLATFORM_PSA_ADAC_SECURE_DEBUG>
         $<$<BOOL:${TEST_BL2}>:TEST_BL2>
+        -DCONFIG_ENABLE_MCUBOOT_BL2=1
 )
 
 add_convert_to_bin_target(bl2)
@@ -68,7 +68,6 @@ target_include_directories(bl2_hal
 )
 
 ############################### MBEDCRYPTO #####################################
-
 add_library(bl2_mbedcrypto_config INTERFACE)
 
 target_compile_definitions(bl2_mbedcrypto_config

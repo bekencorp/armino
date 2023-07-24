@@ -938,6 +938,85 @@ frame_buffer_t *frame_buffer_fb_jpeg_malloc(void)
 	return frame_buffer_fb_malloc(FB_INDEX_JPEG);
 }
 
+frame_buffer_t *frame_buffer_fb_jpeg_pop(void)
+{
+	frame_buffer_node_t *node = NULL, *tmp = NULL;
+	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_JPEG];
+	LIST_HEADER_T *pos, *n;
+	GLOBAL_INT_DECLARATION() = 0;
+
+	//LOGI("dis pop\n");
+	rtos_lock_mutex(&mem_list->lock);
+	GLOBAL_INT_DISABLE();
+
+	list_for_each_safe(pos, n, &mem_list->ready)
+	{
+		tmp = list_entry(pos, frame_buffer_node_t, list);
+		if (tmp != NULL)
+		{
+			node = tmp;
+			list_del(pos);
+			break;
+		}
+	}
+
+	GLOBAL_INT_RESTORE();
+	rtos_unlock_mutex(&mem_list->lock);
+
+	if (node == NULL)
+	{
+		LOGD("%s failed\n", __func__);
+		return NULL;
+	}
+
+	//LOGI("pop\n");
+
+	return &node->frame;
+}
+
+frame_buffer_t *frame_buffer_fb_jpeg_pop_wait(void)
+{
+	frame_buffer_t *frame = NULL;
+	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_JPEG];
+	bk_err_t ret;
+
+	do
+	{
+		frame = frame_buffer_fb_jpeg_pop();
+
+		if (frame != NULL)
+		{
+			break;
+		}
+
+		ret = rtos_get_semaphore(&mem_list->ready_sem, 2000);
+
+		if (ret != BK_OK)
+		{
+			LOGD("%s semaphore get failed: %d\n", __func__, ret);
+			break;
+		}
+
+	}
+	while (true);
+
+	return frame;
+}
+
+void frame_buffer_fb_jpeg_dec_register()
+{
+	frame_buffer_fb_register(MODULE_DECODER, FB_INDEX_JPEG);
+}
+
+frame_buffer_t *frame_buffer_fb_jpeg_read(void)
+{
+	return frame_buffer_fb_read(MODULE_DECODER);
+}
+
+void frame_buffer_fb_jpg_free(frame_buffer_t *frame)
+{
+	frame_buffer_fb_free(frame, MODULE_DECODER);
+}
 
 void frame_buffer_fb_jpeg_free(frame_buffer_t *frame)
 {

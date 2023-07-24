@@ -19,15 +19,15 @@ demo运行依赖的宏配置：
 	+---------------------------+------------------------------------+--------------------------------------------+---------+
 	|           NAME            |      Description                   |                  File                      |  value  |
 	+===========================+====================================+============================================+=========+
-	|CONFIG_I2C                 | support i2c                        | ``middleware\soc\bk7256\bk7256.defconfig`` |    y    |
+	|CONFIG_I2C                 | support i2c                        | ``middleware\soc\bk7235\bk7235.defconfig`` |    y    |
 	+---------------------------+------------------------------------+--------------------------------------------+---------+
-	|CONFIG_SIM_I2C             | support use of gpio simulates i2c  | ``middleware\soc\bk7256\bk7256.defconfig`` |    y    |
+	|CONFIG_SIM_I2C             | support use of gpio simulates i2c  | ``middleware\soc\bk7235\bk7235.defconfig`` |    y    |
 	+---------------------------+------------------------------------+--------------------------------------------+---------+
-	|CONFIG_I2C_SUPPORT_ID_BITS | number of i2c IDs support(binary)  | ``middleware\soc\bk7256\bk7256.defconfig`` |11(dec:3)|
+	|CONFIG_I2C_SUPPORT_ID_BITS | number of i2c IDs support(binary)  | ``middleware\soc\bk7235\bk7235.defconfig`` |11(dec:3)|
 	+---------------------------+------------------------------------+--------------------------------------------+---------+
-	|CONFIG_FM_I2C              | iic used by FM                     | ``middleware\soc\bk7256\bk7256.defconfig`` |    n    |
+	|CONFIG_FM_I2C              | iic used by FM                     | ``middleware\soc\bk7235\bk7235.defconfig`` |    n    |
 	+---------------------------+------------------------------------+--------------------------------------------+---------+
-	|CONFIG_CAMERA_USE_I2C1     | iic used by camera                 | ``middleware\soc\bk7256\bk7256.defconfig`` |    y    |
+	|CONFIG_DVP_CAMERA_I2C_ID   | iic used by camera                 | ``middleware\soc\bk7235\bk7235.defconfig`` |    y    |
 	+---------------------------+------------------------------------+--------------------------------------------+---------+
 
 demo支持的命令如下表：

@@ -160,6 +160,9 @@ MINOOR_ITCM int vuyy_image_vga_to_qvga(uint8_t * src_buf, uint8_t *dst_buf, uint
 // 640X480-->320X240
 MINOOR_ITCM int yuyv_image_vga_to_qvga(uint8_t * src_buf, uint8_t *dst_buf, uint8_t row_count);
 
+yuv_enc_fmt_t bk_get_original_jpeg_encode_data_format(uint8_t *src_buf, uint32_t length);
+
+
 /*
  * @}
  */

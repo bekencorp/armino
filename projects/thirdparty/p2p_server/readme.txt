@@ -1,1 +1,0 @@
-copy from bk7256_config4 (20230215), use for CS2 P2P/ camara

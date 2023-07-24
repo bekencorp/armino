@@ -21,15 +21,6 @@
 extern "C" {
 #endif
 
-
-typedef enum
-{
-	LCD_STATE_DISABLED,
-	LCD_STATE_ENABLED,
-	LCD_STATE_DISPLAY,
-} lcd_state_t;
-
-
 typedef enum
 {
 	DISPLAY_EVENT,
@@ -44,7 +35,6 @@ typedef enum
 	HARDWARE_DECODING,
 } decode_mode_t;
 
-
 typedef struct
 {
 	uint8_t debug : 1;
@@ -55,7 +45,7 @@ typedef struct
 	uint8_t decode_mode;
 	media_rotate_t rotate;
 	media_ppi_t resize_ppi;
-	lcd_state_t state;
+	media_lcd_state_t state;
 } lcd_info_t;
 
 typedef struct {
@@ -108,8 +98,8 @@ typedef struct {
 ///added end
 
 void lcd_event_handle(uint32_t event, uint32_t param);
-lcd_state_t get_lcd_state(void);
-void set_lcd_state(lcd_state_t state);
+media_lcd_state_t get_lcd_state(void);
+void set_lcd_state(media_lcd_state_t state);
 uint8_t get_decode_mode(void);
 void set_decode_mode(uint8_t mode);
 

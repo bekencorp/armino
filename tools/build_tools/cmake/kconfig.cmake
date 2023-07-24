@@ -151,10 +151,11 @@ function(__kconfig_generate_config sdkconfig sdkconfig_defaults sdkconfig_defaul
     # COMPONENT_KCONFIGS_PROJBUILD
     set(kconfigs_projbuild_path "${CMAKE_CURRENT_BINARY_DIR}/kconfigs_projbuild.in")
     set(kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/kconfigs.in")
-	set(components_kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/components_kconfigs.in")
-	set(middleware_kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/middleware_kconfigs.in")
-	set(projects_kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/projects_kconfigs.in")
-	set(properties_kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/properties_kconfigs.in")
+    set(components_kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/components_kconfigs.in")
+    set(middleware_kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/middleware_kconfigs.in")
+    set(projects_kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/projects_kconfigs.in")
+    set(properties_kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/properties_kconfigs.in")
+    set(extra_kconfigs_path "${CMAKE_CURRENT_BINARY_DIR}/extra_kconfigs.in")
 
     # Place config-related environment arguments into config.env file
     # to work around command line length limits for execute_process
@@ -287,10 +288,11 @@ function(__kconfig_generate_config sdkconfig sdkconfig_defaults sdkconfig_defaul
         COMMAND ${CMAKE_COMMAND} -E env
         "COMPONENT_KCONFIGS_SOURCE_FILE=${kconfigs_path}"
         "COMPONENT_KCONFIGS_PROJBUILD_SOURCE_FILE=${kconfigs_projbuild_path}"
-		"COMPONENTS_KCONFIGS_SOURCE_FILE=${components_kconfigs_path}"
-		"MIDDLEWARE_KCONFIGS_SOURCE_FILE=${middleware_kconfigs_path}"
-		"PROJECTS_KCONFIGS_SOURCE_FILE=${projects_kconfigs_path}"
-		"PROPERTIES_KCONFIGS_SOURCE_FILE=${properties_kconfigs_path}"
+        "COMPONENTS_KCONFIGS_SOURCE_FILE=${components_kconfigs_path}"
+        "MIDDLEWARE_KCONFIGS_SOURCE_FILE=${middleware_kconfigs_path}"
+        "PROJECTS_KCONFIGS_SOURCE_FILE=${projects_kconfigs_path}"
+        "PROPERTIES_KCONFIGS_SOURCE_FILE=${properties_kconfigs_path}"
+        "EXTRA_KCONFIGS_SOURCE_FILE=${extra_kconfigs_path}"
         "ARMINO_CMAKE=y"
         "KCONFIG_CONFIG=${sdkconfig}"
         "ARMINO_SOC=${armino_target}"

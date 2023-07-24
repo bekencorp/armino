@@ -50,6 +50,7 @@
 
 #if (CONFIG_JPEGDEC_SW)
 #include <components/jpeg_decode.h>
+#include <modules/tjpgd.h>
 #endif
 #include <driver/dma2d.h>
 #include "modules/image_scale.h"
@@ -605,12 +606,9 @@ bk_err_t bk_lcd_driver_init(lcd_clk_t clk)
 	sys_drv_int_enable(LCD_INTERRUPT_CTRL_BIT);
 
 #if CONFIG_SOC_BK7258
-//	sys_ll_set_ana_reg11_aldosel(1);
-//	rtos_delay_milliseconds(1);
-//	sys_ll_set_ana_reg12_dldosel(1);
-//	rtos_delay_milliseconds(1);
+	sys_drv_set_ana_ioldo_lp(0);
 	lcd_hal_control_clk_gate(1);
-	LOGI("%s, buck off\n", __func__);
+	LOGI("%s, io ldo high power mode \n", __func__);
 #endif
 	switch (clk)
 	{
@@ -631,17 +629,6 @@ bk_err_t bk_lcd_driver_init(lcd_clk_t clk)
 		case LCD_64M:
 			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_0, DISP_DIV_H_2, DSIP_DISCLK_ALWAYS_ON);
 			break;
-		case LCD_40M:
-			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_1, DSIP_DISCLK_ALWAYS_ON);
-			//ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_3, DSIP_DISCLK_ALWAYS_ON);
-			break;
-		case LCD_30M:
-			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_1, DSIP_DISCLK_ALWAYS_ON);
-			break;
-		case LCD_20M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_7, DSIP_DISCLK_ALWAYS_ON);
-			//ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_2, DSIP_DISCLK_ALWAYS_ON);
-			break;
 		case LCD_60M:
 			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_0, DSIP_DISCLK_ALWAYS_ON);
 			break;
@@ -651,8 +638,41 @@ bk_err_t bk_lcd_driver_init(lcd_clk_t clk)
 		case LCD_54M:
 			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_2, DSIP_DISCLK_ALWAYS_ON);
 			break;
+		case LCD_45M:
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_3, DSIP_DISCLK_ALWAYS_ON);
+			break;
+		case LCD_40M:
+			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_1, DSIP_DISCLK_ALWAYS_ON);
+			//ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_3, DSIP_DISCLK_ALWAYS_ON);
+			break;
+		case LCD_35M:
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_0, DISP_DIV_H_4, DSIP_DISCLK_ALWAYS_ON);
+			//ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_3, DSIP_DISCLK_ALWAYS_ON);
+			break;
 		case LCD_32M:
 			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_4, DSIP_DISCLK_ALWAYS_ON);
+			break;
+		case LCD_30M:
+				ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_1, DSIP_DISCLK_ALWAYS_ON);
+			break;
+		case LCD_26M:
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_5, DSIP_DISCLK_ALWAYS_ON);
+			break;
+		case LCD_24M:
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_0, DISP_DIV_H_6, DSIP_DISCLK_ALWAYS_ON);
+		break;
+		case LCD_22M:
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_6, DSIP_DISCLK_ALWAYS_ON);
+		break;
+		case LCD_20M:
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_7, DSIP_DISCLK_ALWAYS_ON);
+			//ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_2, DSIP_DISCLK_ALWAYS_ON);
+			break;
+		case LCD_17M:
+			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_3, DSIP_DISCLK_ALWAYS_ON);
+			break;
+		case LCD_15M:
+			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_3, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_12M:
 			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_4, DSIP_DISCLK_ALWAYS_ON);
@@ -660,10 +680,13 @@ bk_err_t bk_lcd_driver_init(lcd_clk_t clk)
 		case LCD_10M:
 			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_5, DSIP_DISCLK_ALWAYS_ON);
 			break;
-		case LCD_26M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_5, DSIP_DISCLK_ALWAYS_ON);
+		case LCD_9M:
+			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_6, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_8M:
+			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_7, DSIP_DISCLK_ALWAYS_ON);
+			break;
+		case LCD_7M:
 			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_7, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		default:
@@ -879,8 +902,7 @@ bk_err_t bk_lcd_8080_init(uint16_t x_pixel, uint16_t y_pixel, pixel_format_t inp
 	bk_lcd_set_yuv_mode(input_data_format);
 	lcd_hal_8080_sleep_in(1);
 	lcd_hal_8080_start_transfer(0);
-	extern void delay_ms(UINT32 ms_count);
-	delay_ms(131); //reset need 131ms.
+	rtos_delay_milliseconds(131); //reset need 131ms.
 	return BK_OK;
 }
 
@@ -896,12 +918,9 @@ static bk_err_t bk_lcd_driver_deinit(void)
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_LCD, PM_POWER_MODULE_STATE_OFF);
 
 #if CONFIG_SOC_BK7258
-//	sys_ll_set_ana_reg11_aldosel(0);
-//	rtos_delay_milliseconds(1);
-//	sys_ll_set_ana_reg12_dldosel(0);
-//	rtos_delay_milliseconds(1);
+	sys_drv_set_ana_ioldo_lp(1);
 	lcd_hal_control_clk_gate(0);
-	LOGI("%s, buck on\n", __func__);
+	LOGI("%s, io ldo low power mode \n", __func__);
 #endif
 
 	if (sys_drv_lcd_close() != 0)
@@ -1370,6 +1389,9 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 	bk_err_t ret = BK_FAIL;
 	frame_buffer_t *dec_frame = NULL;
 	uint64_t before, after;
+#if (CONFIG_JPEGDEC_SW)
+	jd_output_format *format = NULL;
+#endif
 
 	if (s_lcd.enable == false)
 	{
@@ -1449,10 +1471,40 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 		mb_chnl_cmd_t mb_cmd;
 		if (get_decode_mode() == SOFTWARE_DECODING_CPU1)
 		{
+			format = os_malloc(sizeof(jd_output_format));
+			if (format == NULL)
+			{
+				LOGE("%s no buffer\n", __func__);
+				LCD_DRIVER_FRAME_FREE(s_lcd.decoder_frame);
+				goto out;
+			}
+			switch (s_lcd.decoder_frame->fmt)
+			{
+				case PIXEL_FMT_RGB565:
+					format->format = JD_FORMAT_RGB565;
+					format->scale = 1;
+					format->byte_order = JD_BIG_ENDIAN;
+					break;
+				case PIXEL_FMT_YUYV:
+					format->format = JD_FORMAT_YUYV;
+					format->scale = 0;
+					format->byte_order = JD_LITTLE_ENDIAN;
+					break;
+				case PIXEL_FMT_VUYY:
+					format->format = JD_FORMAT_VUYY;
+					format->scale = 0;
+					format->byte_order = JD_LITTLE_ENDIAN;
+					break;
+				default:
+					format->format = JD_FORMAT_VYUY;
+					format->scale = 0;
+					format->byte_order = JD_LITTLE_ENDIAN;
+					break;
+			}
 			mb_cmd.hdr.cmd = EVENT_LCD_DEC_SW_MBCMD;
 			mb_cmd.param1 = (uint32_t)frame;
 			mb_cmd.param2 = (uint32_t)s_lcd.decoder_frame;
-			mb_cmd.param3 = 0;
+			mb_cmd.param3 = (uint32_t)format;
 			s_lcd.result = BK_FAIL;
 
 			ret = mb_chnl_write(MB_CHNL_VID, &mb_cmd);
@@ -1507,6 +1559,12 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 
 out:
 
+#if (CONFIG_JPEGDEC_SW)
+	if (format)
+	{
+		os_free(format);
+	}
+#endif
     if (s_lcd.decoder_frame == NULL)
     {
         media_debug->err_dec++;

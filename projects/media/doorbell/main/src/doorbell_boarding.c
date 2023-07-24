@@ -104,7 +104,7 @@ static void doorbell_boarding_operation_handle(uint16_t opcode, uint16_t length,
 		{
 			doorbell_msg_t msg;
 
-			msg.event = DBEVT_START_TCP_SERVICE;
+			msg.event = DBEVT_LAN_TCP_SERVICE_START_REQUEST;
 			msg.param = 0;
 			doorbell_send_msg(&msg);
 		}
@@ -288,7 +288,7 @@ int doorbell_boarding_init(void)
 	adv_data[adv_index++] = ADV_TYPE_LOCAL_NAME;
 
 	ret = sprintf((char *)&adv_data[adv_index], "%s_%02X%02X%02X",
-	              ADV_NAME_HEAD, mac[3], mac[4], mac[5]);
+	              ADV_NAME_HEAD, mac[0], mac[1], mac[2]);
 
 	adv_index += ret;
 	adv_data[len_index] = ret + 1;
@@ -358,6 +358,28 @@ void doorbell_boarding_ble_notice_cb(ble_notice_t notice, void *param)
 			break;
 	}
 }
+
+void doorbell_boarding_event_notify_with_data(uint16_t opcode, int status, char *payload, uint16_t length)
+{
+	uint8_t data[1024] =
+	{
+		opcode & 0xFF, opcode >> 8,     /* opcode           */
+		status & 0xFF,            		/* status           */
+		length & 0xFF, length >> 8,     /* payload length   */
+	};
+
+	if (length > 1024 - 5)
+	{
+		LOGE("size %d over flow\n", length);
+		return;
+	}
+
+	os_memcpy(&data[5], payload, length);
+
+	LOGI("%s: %d, %d\n", __func__, opcode, status);
+	ble_boarding_notify(data, length + 5);
+}
+
 
 void doorbell_boarding_ble_disable(void)
 {

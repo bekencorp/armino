@@ -15,6 +15,24 @@
 #include "pal_string.h"
 #include "pal_heap.h"
 
+#if CONFIG_ENABLE_MCUBOOT_BL2
+void *pal_malloc( size_t size )
+{
+    void *p = NULL;
+
+    p = malloc( size );
+    if ( p ) {
+        memset( p, 0, size );
+    }
+
+    return p;
+}
+
+void pal_free( void *ptr )
+{
+    free( ptr );
+}
+#else
 void *pal_malloc( size_t size )
 {
     void *p = NULL;
@@ -31,5 +49,6 @@ void pal_free( void *ptr )
 {
     psa_free( ptr );
 }
-
+#endif
 /*************************** The End Of File*****************************/
+

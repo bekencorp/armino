@@ -901,24 +901,20 @@ static int doorbell_cs2_p2p_audio_receiver(beken_thread_arg_t arg)
 
 				if (ret < 0 && ERROR_PPCS_TIME_OUT != ret)
 				{
-					LOGI("%s PPCS_Read ret err %d %s\n", __func__, ret, get_p2p_error_code_info(ret));
+					LOGE("%s PPCS_Read ret err %d %s\n", __func__, ret, get_p2p_error_code_info(ret));
+					doorbell_cs2_session_close();
 					break;
 				}
 			}
 			while (doorbell_cs2_info->aud_running == BK_TRUE);
 
 			doorbell_cs2_info->aud_status = BK_FALSE;
-
-			LOGE("audio session thread  close it\n");
-			doorbell_cs2_session_close();
 			rtos_delay_milliseconds(300);
-			goto error;
+			break;
 		}
 		else
 		{
 			LOGE("session error wait\n");
-
-
 			rtos_delay_milliseconds(300);
 		}
 	}
@@ -930,7 +926,7 @@ static int doorbell_cs2_p2p_audio_receiver(beken_thread_arg_t arg)
 		os_free(tmp_read_buf);
 	}
 
-error:
+	LOGE("audio thread exit\n");
 
 	rtos_delete_thread(NULL);
 

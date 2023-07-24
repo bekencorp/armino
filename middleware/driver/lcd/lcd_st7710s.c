@@ -37,12 +37,12 @@ static const lcd_rgb_t lcd_rgb =
 static void lcd_st7710s_config(void)
 {
 	bk_gpio_set_output_low(LCD_SPI_RST);
-	delay_ms(15);
+	delay(800);
 	bk_gpio_set_output_high(LCD_SPI_RST);
-	delay_ms(10);
+	delay(800);
 
 	lcd_spi_write_cmd (0x11);
-	delay_ms(10);
+	rtos_delay_milliseconds(120);
 /*-------------------------------Bank0 Setting--------------------------------*/
 /*--------------------------Display Control setting---------------------------*/
 	lcd_spi_write_cmd (0xFF);
@@ -133,7 +133,7 @@ static void lcd_st7710s_config(void)
 	lcd_spi_write_cmd(0xD0);
 	lcd_spi_write_data(0x88);
 /*--------------------End Power Control Registers Initial --------------------*/
-	delay_ms (10);
+	rtos_delay_milliseconds (10);
 /*--------------------------------GIP Setting---------------------------------*/
 	lcd_spi_write_cmd(0xE0);
 	lcd_spi_write_data(0x00);

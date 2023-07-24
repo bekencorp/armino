@@ -13,8 +13,9 @@
  * 2018-07-26     chenyong     modify log information
  * 2018-08-07     chenyong     modify header processing
  */
-#if CONFIG_WIFI_ENABLE
 #include "components/webclient.h"
+
+#if CONFIG_WIFI_ENABLE
 
 #include <string.h>
 #include <stdio.h>

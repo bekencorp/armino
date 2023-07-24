@@ -39,7 +39,20 @@ static void cli_dvp_camera_cmd(char *pcWriteBuffer, int xWriteBufferLen, int arg
 {
 	if (os_strcmp(argv[1], "jpeg") == 0) {
 #if (CONFIG_MEDIA)
+#ifdef CONFIG_INTEGRATION_DOORBELL
+		camera_config_t camera_config;
+
+		os_memset(&camera_config, 0, sizeof(camera_config_t));
+
+		camera_config.type = DVP_CAMERA;
+		camera_config.image_format = IMAGE_MJPEG;
+		camera_config.width = 640;
+		camera_config.height = 480;
+			
+		media_app_camera_open(&camera_config);
+#else
 		media_app_camera_open(APP_CAMERA_DVP_JPEG, PPI_640X480);
+#endif
 #endif
 	} else if (os_strcmp(argv[1], "clock") == 0) { /* enable mclk */
 		BK_LOG_ON_ERR(bk_jpeg_enc_set_gpio_enable(1, JPEG_GPIO_CLK));

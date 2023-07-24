@@ -285,6 +285,13 @@ static inline uint32_t dma_ll_get_dest_write_addr(dma_hw_t *hw, dma_id_t id)
     return hw->dest_wr_addr[id];
 }
 
+static inline void dma_ll_flush_src_buffer(dma_hw_t *hw, dma_id_t id)
+{
+	hw->status_group[id].status.flush_src_buff = 1;
+	BK_WHILE(hw->status_group[id].status.flush_src_buff);
+}
+
+
 #ifdef __cplusplus
 }
 #endif

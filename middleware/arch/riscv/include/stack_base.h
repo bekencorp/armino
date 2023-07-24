@@ -14,4 +14,11 @@
 
 #pragma once
 
+typedef void (*hook_func)(void);
+
 void arch_dump_exception_stack(void);
+void stack_mem_dump(uint32_t stack_top, uint32_t stack_bottom);
+
+void rtos_regist_wifi_dump_hook(hook_func wifi_func);
+void rtos_regist_ble_dump_hook(hook_func ble_func);
+void rtos_regist_plat_dump_hook(uint32_t reg_base_addr, uint32_t reg_size);

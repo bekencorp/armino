@@ -23,9 +23,10 @@ void usbd_video_close(uint8_t intf);
 uint32_t usbd_video_mjpeg_payload_fill(uint8_t *input, uint32_t input_len, uint8_t *output, uint32_t *out_len);
 uint32_t usbd_video_h264_payload_fill(uint8_t *input, uint32_t input_len, uint8_t *output, uint32_t *out_len);
 uint32_t usbd_video_get_max_payload_transfer_size(void);
-uint32_t usbd_video_h264_get_payload_header_length(void);
-void usbd_video_h264_update_header_with_new_frame(void);
-int usbd_video_h264_frame_payload_fill(uint8_t *input, uint32_t input_len, uint8_t *output, uint32_t *out_len, bool is_endof_frame);
+uint32_t usbd_video_common_get_payload_header_length(void);
+void usbd_video_common_update_header_with_new_frame(void);
+int usbd_video_common_frame_payload_fill(uint8_t *input, uint32_t input_len, uint8_t *output, uint32_t *out_len, bool is_endof_frame);
+void usbd_video_send_common_frame(uint8_t *data, uint32_t size);
 
 #ifdef __cplusplus
 }

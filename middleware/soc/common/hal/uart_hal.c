@@ -49,12 +49,6 @@ bk_err_t uart_hal_init_uart(uart_hal_t *hal, uart_id_t id, const uart_config_t *
 		uart_ll_enable_flow_control(hal->hw, id);
 	}
 
-	#if CONFIG_UART_ERR_INTERRUPT
-		uart_ll_enable_fifo_over_flow_interrupt(hal->hw, id);
-		uart_ll_enable_parity_err_interrupt(hal->hw, id);
-		uart_ll_enable_stop_bit_err_interrupt(hal->hw, id);
-	#endif
-
 	uart_ll_reset_wake_config_to_default(hal->hw, id);
 
 	return BK_OK;

@@ -17,6 +17,7 @@
 #include <os/os.h>
 #include <os/str.h>
 
+#include "driver/dvp_camera.h"
 
 #include <driver/i2c.h>
 
@@ -33,6 +34,7 @@ const dvp_sensor_config_t *dvp_sensor_configs[] =
 	&dvp_sensor_gc2145,
 	&dvp_sensor_ov2640,
 	&dvp_sensor_gc0308,
+	&dvp_sensor_SC101,
 };
 
 const dvp_sensor_config_t **get_sensor_config_devices_list(void)

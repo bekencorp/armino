@@ -13,6 +13,9 @@
 #include "pal.h"
 #include "string.h"
 #include "hal_src_internal.h"
+#include "uart.h"
+#include "gpio.h"
+#include "sys_driver.h"
 
 // clang-format off
 /**
@@ -319,6 +322,14 @@ static hal_ret_t _serial_write(const uint8_t *data, size_t data_size)
 
 hal_ret_t hal_channel_init(hal_chan_t *ch, void *args)
 {
+    uart_config_t config = {
+        config.baud_rate = UART_BAUDRATE_115200,
+        config.data_bits = UART_DATA_8_BITS,
+        config.parity = UART_PARITY_NONE,
+        config.stop_bits = UART_STOP_BITS_1,
+        config.flow_ctrl = UART_FLOWCTRL_DISABLE,
+        config.src_clk = UART_SCLK_XTAL_26M,
+    };
     hal_ret_t ret = HAL_OK;
 
     HAL_CHECK_CONDITION(ch, HAL_ERR_BAD_PARAM, "Parameter ch is NULL!\n");
@@ -329,6 +340,13 @@ hal_ret_t hal_channel_init(hal_chan_t *ch, void *args)
 
     PAL_LOG_DEBUG("Receive timeout value: %d ms\n",
                   _g_channel_ctx.recv_timeout);
+
+    sys_drv_init();
+    bk_gpio_driver_init();
+
+    bk_uart_driver_init();
+	/* _g_channel_ctx specifies uart0*/
+    bk_uart_init(UART_ID_0, &config);
 
     /*  add channel reference count */
     _g_channel_ctx.reference_count++;
@@ -389,7 +407,6 @@ hal_ret_t hal_channel_read(hal_chan_t ch, uint8_t *data, size_t *data_size)
         data_size, HAL_ERR_BAD_PARAM, "Parameter data_size is NULL!\n");
 
     ret = _serial_read(data, data_size, ctx->recv_timeout);
-// HAL_CHECK_RET("Serial read failed!\n");
 
 finish:
     return ret;

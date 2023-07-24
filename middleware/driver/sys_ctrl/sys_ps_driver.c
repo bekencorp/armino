@@ -173,19 +173,47 @@ uint32_t sys_drv_lp_vol_get()
 {
 	return sys_hal_lp_vol_get();
 }
+
+int32 sys_drv_rf_tx_vol_set(uint32_t value)
+{
+	int32 ret = 0;
+	ret = sys_hal_rf_tx_vol_set(value);
+	return ret;
+}
+
+uint32_t sys_drv_rf_tx_vol_get()
+{
+	return sys_hal_rf_tx_vol_get();
+}
+
+int32 sys_drv_rf_rx_vol_set(uint32_t value)
+{
+	int32 ret = 0;
+	ret = sys_hal_rf_rx_vol_set(value);
+	return ret;
+}
+
+uint32_t sys_drv_rf_rx_vol_get()
+{
+	return sys_hal_rf_rx_vol_get();
+}
+
 int32 sys_drv_bandgap_cali_set(uint32_t value)//increase or decrease the dvdddig voltage
 {
 	sys_hal_bandgap_cali_set(value);
 	return 0;
 }
+
 uint32_t sys_drv_bandgap_cali_get()
 {
 	return sys_hal_bandgap_cali_get();
 }
+
 bk_err_t sys_drv_switch_cpu_bus_freq(pm_cpu_freq_e cpu_bus_freq)
 {
     return sys_hal_switch_cpu_bus_freq(cpu_bus_freq);
 }
+
 bk_err_t sys_drv_core_bus_clock_ctrl(uint32_t cksel_core, uint32_t ckdiv_core,uint32_t ckdiv_bus, uint32_t ckdiv_cpu0,uint32_t ckdiv_cpu1)
 {
     return sys_hal_core_bus_clock_ctrl(cksel_core, ckdiv_core,ckdiv_bus, ckdiv_cpu0,ckdiv_cpu1);
@@ -224,10 +252,12 @@ uint32_t sys_drv_get_arm_wakeup(void)
 
 	return ret;
 }
+
 int32 sys_drv_module_power_state_get(power_module_name_t module)
 {
 	return sys_hal_module_power_state_get(module);
 }
+
 int32 sys_drv_rosc_calibration(uint32_t rosc_cali_mode, uint32_t cali_interval)
 {
 	return sys_hal_rosc_calibration(rosc_cali_mode,cali_interval);

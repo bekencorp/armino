@@ -32,6 +32,12 @@ list(APPEND srcs
 	cli_exception.c
 	)
 
+if (CONFIG_BUTTON OR CONFIG_ADC_KEY)
+	list(APPEND srcs
+		cli_key.c
+	)
+endif()
+
 if (CONFIG_INT_WDT)
 	list(APPEND srcs
 		cli_wdt.c
@@ -49,26 +55,26 @@ if (CONFIG_PM_TEST)
 endif()
 
 if (CONFIG_OTA_TFTP OR CONFIG_OTA_HTTP)
-	list(APPEND srcs 
+	list(APPEND srcs
 		cli_ota.c
 	)
 endif()
 
 if (CONFIG_WIFI_ENABLE)
-	list(APPEND srcs 
+	list(APPEND srcs
 		cli_wifi.c
 		cli_phy.c
 	)
 endif()
 
 if (CONFIG_AIRKISS_TEST)
-	list(APPEND srcs 
+	list(APPEND srcs
 		cli_airkiss.c
 	)
 endif()
 
 if (CONFIG_IPERF_TEST)
-	list(APPEND srcs 
+	list(APPEND srcs
 		cli_iperf.c
 	)
 endif()
@@ -85,7 +91,7 @@ if (CONFIG_SDCARD)
 	)
 endif()
 
-if (CONFIG_SDIO_SLAVE) 
+if (CONFIG_SDIO_SLAVE)
 	list(APPEND srcs
 		cli_sdio_slave.c
 	)
@@ -317,7 +323,7 @@ if (CONFIG_JPEGDEC_SW)
 	list(APPEND srcs cli_jpegdec.c)
 endif()
 
-if (CONFIG_CAMERA AND CONFIG_CAMERA_TEST)
+if (CONFIG_DVP_CAMERA AND CONFIG_DVP_CAMERA_TEST)
 	list(APPEND srcs "cli_dvp.c")
 endif()
 
@@ -369,8 +375,8 @@ if (CONFIG_INTERRUPT_TEST)
 	list(APPEND srcs cli_interrupt.c)
 endif()
 
-if (CONFIG_H264)
-	list(APPEND srcs cli_h264.c)
+if (CONFIG_VIDEO_TRANSFER_DEMO)
+	list(APPEND srcs cli_video_transfer.c)
 endif()
 
 if (CONFIG_SDMADC_TEST)
@@ -393,10 +399,14 @@ if (CONFIG_FLASHDB_DEMO)
 	list(APPEND srcs cli_flashdb.c)
 endif()
 
+if (CONFIG_PUF_TEST)
+	list(APPEND srcs cli_puf.c)
+endif()
+
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
-	REQUIRES utf8 temp_detect app driver user_driver bk_system iperf fatfs user_driver http adc_key
+	REQUIRES utf8 temp_detect app driver user_driver bk_system iperf fatfs user_driver http adc_key key
 	#PRIV_REQUIRES airkiss bk_common bk_netif bk_ble bk_ps
-	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_vfs bk_init at bk_wifi compal media_common media multimedia bk_bt ota cmsis jrtplib flashdb
+	PRIV_REQUIRES bk_common mbedtls bk_netif bk_ble bk_ps fatfs bk_vfs bk_init at bk_wifi compal media_common media multimedia bk_bt ota cmsis jrtplib flashdb
 	)
 

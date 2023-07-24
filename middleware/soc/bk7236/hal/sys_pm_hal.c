@@ -72,12 +72,12 @@ static inline bool is_touch_ws_enabled(uint8_t ena_bits)
 	return !!(ena_bits & WS_TOUCH);
 }
 
-static inline bool is_wifi_pd_poweron(uint8_t pd_bits)
+static inline bool is_wifi_pd_poweron(uint32_t pd_bits)
 {
 	return !(pd_bits & PD_WIFI);
 }
 
-static inline bool is_btsp_pd_poweron(uint8_t pd_bits)
+static inline bool is_btsp_pd_poweron(uint32_t pd_bits)
 {
 	return !(pd_bits & PD_BTSP);
 }
@@ -538,7 +538,7 @@ static inline void sys_hal_set_low_voltage(volatile uint32_t *ana_r8, volatile u
 	sys_ll_set_ana_reg8_t_vanaldosel(0);//tenglong20230417(need modify setting value)
 	sys_ll_set_ana_reg8_r_vanaldosel(0);//tenglong20230417(need modify setting value)
 
-	sys_ll_set_ana_reg9_vcorelsel(3); //0.525V sleep active
+	//sys_ll_set_ana_reg9_vcorelsel(3); //0.525V sleep active
 	sys_ll_set_ana_reg9_vlden(1);//0x1: coreldo low voltage enable
 	sys_ll_set_ana_reg9_vdd12lden(1);//0x1: digldo low voltage enable
 
@@ -849,6 +849,19 @@ int sys_hal_set_lpo_src(sys_lpo_src_t src)
 	return BK_OK;
 }
 
+/**
+ * set io ldo power mode
+ *
+ * uint32_t type input:
+ *   0: high power mode
+ *   1: low power mode
+ *   other: undefine
+*/
+void sys_hal_set_ioldo_lp(uint32_t val)
+{
+	sys_ll_set_ana_reg8_ioldo_lp(!!val);
+}
+
 void sys_hal_low_power_hardware_init()
 {
 	volatile uint8_t cksel_core = 0, clkdiv_core = 0, clkdiv_bus = 0;
@@ -894,4 +907,7 @@ void sys_hal_low_power_hardware_init()
 	sys_hal_module_power_ctrl(POWER_MODULE_NAME_WIFIP_MAC,POWER_MODULE_STATE_OFF);
 	sys_hal_module_power_ctrl(POWER_MODULE_NAME_WIFI_PHY,POWER_MODULE_STATE_OFF);
 	sys_hal_module_power_ctrl(POWER_MODULE_NAME_CPU1,POWER_MODULE_STATE_OFF);
+
+	/*set the lp voltage*/
+	sys_hal_lp_vol_set(0x3); // core 0.525V
 }

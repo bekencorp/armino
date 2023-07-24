@@ -159,7 +159,7 @@ static void media_ui_task_main(beken_thread_arg_t data)
 //					//comm_event_handle(msg.event, msg.param);
 //					break;
 
-#if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
+#if (defined(CONFIG_DVP_CAMERA) || defined(CONFIG_USB_UVC))
 				case CAM_EVENT:
 					mb_msg = (media_mailbox_msg_t *)msg.param;
 					camera_event_handle(mb_msg);
@@ -198,6 +198,13 @@ static void media_ui_task_main(beken_thread_arg_t data)
 				case STORAGE_EVENT:
 					mb_msg = (media_mailbox_msg_t *)msg.param;
 					storage_major_event_handle(mb_msg);
+					break;
+#endif
+
+#ifdef CONFIG_USB_TRANSFER
+				case USB_TRS_EVENT:
+					mb_msg = (media_mailbox_msg_t *)msg.param;
+					usb_major_event_handle(mb_msg);
 					break;
 #endif
 
@@ -306,7 +313,7 @@ void media_init()
 {
 	frame_buffer_init();
 
-#if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
+#if (defined(CONFIG_DVP_CAMERA) || defined(CONFIG_USB_UVC))
 	camera_init();
 #endif
 

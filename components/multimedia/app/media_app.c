@@ -18,6 +18,7 @@
 
 #include <driver/int.h>
 #include <driver/dvp_camera_types.h>
+#include <driver/pwr_clk.h>
 
 #include <components/log.h>
 #include <common/bk_include.h>
@@ -40,12 +41,15 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
-static beken_thread_t media_app_th_hd = NULL;
-static beken_queue_t media_app_msg_queue = NULL;
 static app_camera_type_t app_camera_type = APP_CAMERA_INVALIED;
 static char *capture_name = NULL;
+static media_modules_state_t *media_modules_state = NULL;
 
 extern void rwnxl_set_video_transfer_flag(uint32_t video_transfer_flag);
+#if CONFIG_CHERRY_USB && CONFIG_USB_DEVICE
+extern void usbd_video_h264_init();
+extern void usbd_video_h264_deinit();
+#endif
 
 bk_err_t media_send_msg_sync(uint32_t event, uint32_t param)
 {
@@ -53,7 +57,6 @@ bk_err_t media_send_msg_sync(uint32_t event, uint32_t param)
 
 	media_mailbox_msg_t *node = NULL;
 
-	uint32_t result = BK_OK;
 	node = os_malloc(sizeof(media_mailbox_msg_t));
 	if (node != NULL)
 	{
@@ -67,19 +70,12 @@ bk_err_t media_send_msg_sync(uint32_t event, uint32_t param)
 		node->event = event;
 		node->param = param;
 		LOGD("====>>>>1 %s %x\n", __func__, node->sem);
-		msg_send_to_media_app_mailbox(node, result);
+		ret = msg_send_req_to_media_app_mailbox_sync(node);
 	}
 	else
 	{
 		goto out;
 	}
-	ret = rtos_get_semaphore(&node->sem, BEKEN_WAIT_FOREVER);//BEKEN_WAIT_FOREVER
-	if (ret != kNoErr)
-	{
-		LOGE("%s %d wait semaphore failed\n", __func__, node->event);
-		goto out;
-	}
-	ret = node->result;
 
 out:
 
@@ -97,13 +93,51 @@ out:
 	return ret;
 }
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+bk_err_t media_app_camera_open(camera_config_t *camera_config)
+{
+	int ret = BK_FAIL;
+	int type;
+	media_ppi_t ppi = camera_config->width << 16 | camera_config->height;
+
+	if (camera_config->type == UVC_CAMERA)
+	{
+		if (camera_config->image_format == IMAGE_MJPEG)
+		{
+			type = APP_CAMERA_UVC_MJPEG;
+		}
+		else
+		{
+			type = APP_CAMERA_UVC_H264;
+		}
+	}
+	else // DVP
+	{
+		if (camera_config->image_format == IMAGE_MJPEG)
+		{
+			type = APP_CAMERA_DVP_JPEG;
+		}
+		else
+		{
+			type = APP_CAMERA_DVP_H264_ENC_LCD;
+		}
+	}
+
+	app_camera_type = type;
+
+	LOGI("%s, type:%d, ppi:%d-%d\n", __func__, app_camera_type, ppi >> 16, ppi & 0xFFFF);
+
+#else
 bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 {
-	int ret = kGeneralErr;
+	int ret = BK_FAIL;
 
 	LOGI("%s, type:%d, ppi:%d-%d\n", __func__, type, ppi >> 16, ppi & 0xFFFF);
 
 	app_camera_type = type;
+#endif
+
+	bk_pm_module_vote_boot_cp1_ctrl(PM_BOOT_CP1_MODULE_NAME_VIDP_JPEG_EN, PM_POWER_MODULE_STATE_ON);
 
 	switch (type)
 	{
@@ -122,6 +156,11 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 		case APP_CAMERA_UVC_MJPEG:
 			ret = media_send_msg_sync(EVENT_CAM_UVC_MJPEG_OPEN_IND, ppi);
 			break;
+
+		case APP_CAMERA_UVC_MJPEG_TO_H264:
+			ret = media_send_msg_sync(EVENT_CAM_UVC_MJPEG_TO_H264_OPEN_IND, ppi);
+			break;
+
 		case APP_CAMERA_UVC_H264:
 			ret = media_send_msg_sync(EVENT_CAM_UVC_H264_OPEN_IND, ppi);
 			break;
@@ -134,8 +173,8 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 			ret = media_send_msg_sync(EVENT_CAM_NET_H264_OPEN_IND, ppi);
 			break;
 
-		case APP_CAMERA_DVP_H264_WIFI_TRANSFER:
-			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_WIFI_TRANSFER_OPEN_IND, ppi);
+		case APP_CAMERA_DVP_H264_TRANSFER:
+			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_TRANSFER_OPEN_IND, ppi);
 			break;
 		
 		case APP_CAMERA_DVP_H264_LOCAL:
@@ -145,13 +184,9 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 		case APP_CAMERA_DVP_H264_ENC_LCD:
 			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_ENC_LCD_OPEN_IND, ppi);
 			break;
-		
-		case APP_CAMERA_DVP_H264_USB_TRANSFER:
-			ret = media_send_msg_sync(EVENT_CAM_DVP_H264_USB_TRANSFER_OPEN_IND, ppi);
-			break;
 
 		default:
-			ret = kNoErr;
+			ret = BK_OK;
 	}
 
 	LOGI("%s complete\n", __func__);
@@ -161,29 +196,23 @@ bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 
 bk_err_t media_app_camera_close(app_camera_type_t type)
 {
-	int ret = kGeneralErr;
+	int ret = BK_OK;
 
 	LOGI("%s\n", __func__);
-
-	if (app_camera_type != type)
-	{
-		LOGE("The camera type of open and close not match!\n");
-		return ret;
-	}
 
 	switch (type)
 	{
 		case APP_CAMERA_DVP_JPEG:
 		case APP_CAMERA_DVP_YUV:
 		case APP_CAMERA_DVP_H264_LOCAL:
-		case APP_CAMERA_DVP_H264_WIFI_TRANSFER:
 		case APP_CAMERA_DVP_H264_ENC_LCD:
-		case APP_CAMERA_DVP_H264_USB_TRANSFER:
+		case APP_CAMERA_DVP_H264_TRANSFER:
 			ret = media_send_msg_sync(EVENT_CAM_DVP_CLOSE_IND, 0);
 			break;
 
 		case APP_CAMERA_UVC_H264:
 		case APP_CAMERA_UVC_MJPEG:
+		case APP_CAMERA_UVC_MJPEG_TO_H264:
 			ret = media_send_msg_sync(EVENT_CAM_UVC_CLOSE_IND, 0);
 			break;
 
@@ -196,10 +225,12 @@ bk_err_t media_app_camera_close(app_camera_type_t type)
 			ret = media_send_msg_sync(EVENT_CAM_DVP_FREE_ENCODE_MEM_IND, 0);
 
 		default:
-			ret = kNoErr;
+			ret = BK_OK;
 	}
 
 	app_camera_type = APP_CAMERA_INVALIED;
+
+	bk_pm_module_vote_boot_cp1_ctrl(PM_BOOT_CP1_MODULE_NAME_VIDP_JPEG_EN, PM_POWER_MODULE_STATE_OFF);
 
 	LOGI("%s complete\n", __func__);
 
@@ -220,17 +251,46 @@ bk_err_t media_app_mailbox_test(void)
 	return ret;
 }
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+bk_err_t media_app_transfer_open(const media_transfer_cb_t *cb)
+{
+	int ret = BK_OK;
+	int type = APP_CAMERA_UVC_MJPEG;
+	uint32_t param = FB_INDEX_JPEG;
+
+	if (media_modules_state->trs_state == TRS_STATE_ENABLED)
+	{
+		LOGI("%s, transfer have been opened!\r\n", __func__);
+		return ret;
+	}
+
+	rwnxl_set_video_transfer_flag(true);
+
+	ret = transfer_app_task_init(cb);
+
+	type = app_camera_type;
+
+#else
 bk_err_t media_app_transfer_open(video_setup_t *setup_cfg)
 {
+
 	int ret = kNoErr;
 
 	uint32_t param = FB_INDEX_JPEG;
 
 	app_camera_type_t type = setup_cfg->open_type;
 
+	if (media_modules_state->trs_state == TRS_STATE_ENABLED)
+	{
+		LOGI("%s, transfer have been opened!\r\n", __func__);
+		return ret;
+	}
+
 	rwnxl_set_video_transfer_flag(true);
 
 	ret = transfer_app_task_init((video_setup_t *)setup_cfg);
+#endif
+
 	if (ret != kNoErr)
 	{
 		LOGE("transfer_app_task_init failed\r\n");
@@ -247,9 +307,10 @@ bk_err_t media_app_transfer_open(video_setup_t *setup_cfg)
 			break;
 
 		case APP_CAMERA_NET_H264:
-		case APP_CAMERA_DVP_H264_WIFI_TRANSFER:
+		case APP_CAMERA_DVP_H264_TRANSFER:
 		case APP_CAMERA_DVP_H264_LOCAL:
 		case APP_CAMERA_DVP_H264_ENC_LCD:
+		case APP_CAMERA_UVC_MJPEG_TO_H264:
 			param = FB_INDEX_H264;
 			break;
 
@@ -260,6 +321,11 @@ bk_err_t media_app_transfer_open(video_setup_t *setup_cfg)
 	LOGI("%s, %d %d\n", __func__, type, param);
 
 	ret = media_send_msg_sync(EVENT_TRANSFER_OPEN_IND, param);
+
+	if (ret == BK_OK)
+	{
+		media_modules_state->trs_state = TRS_STATE_ENABLED;
+	}
 
 	LOGI("%s complete\n", __func__);
 
@@ -281,12 +347,84 @@ bk_err_t media_app_transfer_close(void)
 
 	media_mailbox_msg_t mb_msg;
 
+	if (media_modules_state->trs_state == TRS_STATE_DISABLED)
+	{
+		LOGI("%s, transfer have been closed!\r\n", __func__);
+		return ret;
+	}
+
 	LOGI("%s\n", __func__);
 
 	mb_msg.event = EVENT_TRANSFER_CLOSE_IND;
 	transfer_app_event_handle(&mb_msg);
 
 	ret = media_send_msg_sync(EVENT_TRANSFER_CLOSE_IND, 0);
+
+	if (ret == BK_OK)
+	{
+		media_modules_state->trs_state = TRS_STATE_DISABLED;
+	}
+
+	return ret;
+}
+
+bk_err_t media_app_usb_open(video_setup_t *setup_cfg)
+{
+	int ret = kNoErr;
+#if CONFIG_CHERRY_USB && CONFIG_USB_DEVICE
+
+	uint32_t param_fmt = FB_INDEX_H264;
+
+	app_camera_type_t type = setup_cfg->open_type;
+
+	usbd_video_h264_init();
+
+	ret = usb_app_task_init((video_setup_t *)setup_cfg);
+	if (ret != kNoErr)
+	{
+		LOGE("usb_app_task_init failed\r\n");
+		return ret;
+	}
+
+	switch (type)
+	{
+		case APP_CAMERA_DVP_H264_TRANSFER:
+			param_fmt = FB_INDEX_H264;
+			break;
+		case APP_CAMERA_DVP_JPEG:
+			param_fmt = FB_INDEX_JPEG;
+
+		default:
+			LOGE("unsupported format! \r\n");
+			break;
+	}
+
+	LOGI("%s, %d %d\n", __func__, type, param_fmt);
+
+	ret = media_send_msg_sync(EVENT_TRANSFER_USB_OPEN_IND, param_fmt);
+
+	LOGI("%s complete\n", __func__);
+#endif
+
+	return ret;
+}
+
+bk_err_t media_app_usb_close(void)
+{
+	bk_err_t ret = BK_OK;
+	
+#if CONFIG_CHERRY_USB && CONFIG_USB_DEVICE
+	media_mailbox_msg_t mb_msg;
+
+	LOGI("%s\n", __func__);
+
+	usbd_video_h264_deinit();
+
+	mb_msg.event = EVENT_TRANSFER_USB_CLOSE_IND;
+	usb_app_event_handle(&mb_msg);
+
+	ret = media_send_msg_sync(EVENT_TRANSFER_USB_CLOSE_IND, 0);
+#endif
 
 	return ret;
 }
@@ -345,6 +483,8 @@ bk_err_t media_app_lcd_open(void *lcd_open)
 		return kGeneralErr;
 	}
 	os_memcpy(ptr, (lcd_open_t *)lcd_open, sizeof(lcd_open_t));
+
+	bk_pm_module_vote_boot_cp1_ctrl(PM_BOOT_CP1_MODULE_NAME_VIDP_LCD, PM_POWER_MODULE_STATE_ON);
 
 	ret = media_send_msg_sync(EVENT_LCD_OPEN_IND, (uint32_t)ptr);
 
@@ -417,7 +557,7 @@ bk_err_t read_storage_file_to_mem_handle(media_mailbox_msg_t *msg)
 	resd_storage_node->param = (uint32_t)frame;
 	resd_storage_node->event = EVENT_LCD_PICTURE_ECHO_NOTIFY;
 	resd_storage_node->result = ret;
-	ret = msg_send_to_media_app_mailbox(resd_storage_node, ret);
+	ret = msg_send_rsp_to_media_app_mailbox(resd_storage_node, ret);
 
 	return ret;
 }
@@ -457,6 +597,8 @@ bk_err_t media_app_lcd_close(void)
 
 	ret = media_send_msg_sync(EVENT_LCD_CLOSE_IND, 0);
 
+	bk_pm_module_vote_boot_cp1_ctrl(PM_BOOT_CP1_MODULE_NAME_VIDP_LCD, PM_POWER_MODULE_STATE_OFF);
+
 	LOGI("%s complete\n", __func__);
 
 	return ret;
@@ -465,7 +607,7 @@ bk_err_t media_app_lcd_close(void)
 
 bk_err_t media_app_lcd_set_backlight(uint8_t level)
 {
-	bk_err_t ret;
+	bk_err_t ret = BK_OK;
 
 	LOGI("%s\n", __func__);
 
@@ -476,37 +618,23 @@ bk_err_t media_app_lcd_set_backlight(uint8_t level)
 	return ret;
 }
 
-
-bk_err_t media_app_send_msg(media_msg_t *msg)
-{
-	bk_err_t ret;
-
-	if (media_app_msg_queue)
-	{
-		ret = rtos_push_to_queue(&media_app_msg_queue, msg, BEKEN_NO_WAIT);
-
-		if (kNoErr != ret)
-		{
-			LOGE("%s failed\n", __func__);
-			return kOverrunErr;
-		}
-
-		return ret;
-	}
-	return kNoResourcesErr;
-}
-
 bk_err_t media_app_storage_enable(app_camera_type_t type, uint8_t enable)
 {
-	int ret;
+	int ret = BK_OK;
 	uint32_t param = FB_INDEX_JPEG;
 	media_mailbox_msg_t msg = {0};
 
 	if (enable)
 	{
+		if (media_modules_state->stor_state == STORAGE_STATE_ENABLED)
+		{
+			LOGD("%s, storage have been opened!\r\n", __func__);
+			return ret;
+		}
+
 		msg.event = EVENT_STORAGE_OPEN_IND;
 		ret = storage_app_event_handle(&msg);
-		if (ret != kNoErr)
+		if (ret != BK_OK)
 		{
 			return ret;
 		}
@@ -515,17 +643,33 @@ bk_err_t media_app_storage_enable(app_camera_type_t type, uint8_t enable)
 			param = FB_INDEX_H264;
 
 		ret = media_send_msg_sync(EVENT_STORAGE_OPEN_IND, param);
+
+		if (ret == BK_OK)
+		{
+			media_modules_state->stor_state = STORAGE_STATE_ENABLED;
+		}
 	}
 	else
 	{
+		if (media_modules_state->stor_state == STORAGE_STATE_DISABLED)
+		{
+			LOGI("%s, storage have been closed!\r\n", __func__);
+			return ret;
+		}
+
 		ret = media_send_msg_sync(EVENT_STORAGE_CLOSE_IND, 0);
-		if (ret != kNoErr)
+		if (ret != BK_OK)
 		{
 			LOGE("storage_major_task deinit failed\r\n");
 		}
 
 		msg.event = EVENT_STORAGE_CLOSE_IND;
 		ret = storage_app_event_handle(&msg);
+
+		if (ret == BK_OK)
+		{
+			media_modules_state->stor_state = STORAGE_STATE_DISABLED;
+		}
 	}
 
 	return ret;
@@ -533,15 +677,17 @@ bk_err_t media_app_storage_enable(app_camera_type_t type, uint8_t enable)
 
 bk_err_t media_app_capture(char *name)
 {
-	int ret = kGeneralErr;
+	int ret = BK_OK;
 
 	if (name == NULL)
 	{
 		return ret;
 	}
 
+	media_app_storage_enable(app_camera_type, 1);
+
 	ret = storage_app_set_frame_name(name);
-	if (ret != kNoErr)
+	if (ret != BK_OK)
 	{
 		return ret;
 	}
@@ -555,15 +701,17 @@ bk_err_t media_app_capture(char *name)
 
 bk_err_t media_app_save_start(char *name)
 {
-	int ret = kGeneralErr;
+	int ret = BK_OK;
 
 	if (name == NULL)
 	{
 		return ret;
 	}
 
+	media_app_storage_enable(app_camera_type, 1);
+
 	ret = storage_app_set_frame_name(name);
-	if (ret != kNoErr)
+	if (ret != BK_OK)
 	{
 		return ret;
 	}
@@ -578,13 +726,17 @@ bk_err_t media_app_save_start(char *name)
 
 bk_err_t media_app_save_stop(void)
 {
-	int ret;
+	int ret = BK_OK;
 	media_mailbox_msg_t msg = {0};
 
-	LOGI("%s\n", __func__);
+	if (media_modules_state->stor_state == STORAGE_STATE_DISABLED)
+	{
+		LOGI("%s storage function not init\n", __func__);
+		return ret;
+	}
 
 	ret = media_send_msg_sync(EVENT_STORAGE_SAVE_STOP_IND, 0);
-	if (ret != kNoErr)
+	if (ret != BK_OK)
 	{
 		LOGE("storage_major_task stop save video failed\r\n");
 	}
@@ -597,124 +749,25 @@ bk_err_t media_app_save_stop(void)
 	return ret;
 }
 
-static void media_app_message_handle(void)
-{
-	bk_err_t ret = BK_OK;
-	media_msg_t msg;
-
-	while (1)
-	{
-		ret = rtos_pop_from_queue(&media_app_msg_queue, &msg, BEKEN_WAIT_FOREVER);
-
-		if (kNoErr == ret)
-		{
-			switch (msg.event)
-			{
-				case EVENT_APP_DVP_OPEN:
-					break;
-
-				case EVENT_APP_EXIT:
-					goto exit;
-					break;
-
-				default:
-					break;
-			}
-		}
-	}
-
-exit:
-
-	/* delate msg queue */
-	ret = rtos_deinit_queue(&media_app_msg_queue);
-
-	if (ret != kNoErr)
-	{
-		LOGE("delate message queue fail\n");
-	}
-
-	media_app_msg_queue = NULL;
-
-	LOGE("delate message queue complete\n");
-
-	/* delate task */
-	media_app_th_hd = NULL;
-	rtos_delete_thread(NULL);
-
-}
-
 bk_err_t media_app_init(void)
 {
 	bk_err_t ret = BK_OK;
 
-	if (media_app_msg_queue != NULL)
+	if (media_modules_state == NULL)
 	{
-		ret = kNoErr;
-		LOGE("%s, media_app_msg_queue allready init, exit!\n");
-		goto error;
-	}
-
-	if (media_app_th_hd != NULL)
-	{
-		ret = kNoErr;
-		LOGE("%s, media_app_th_hd allready init, exit!\n");
-		goto error;
-	}
-/*
-	ret = rtos_init_queue(&media_app_msg_queue,
-	                      "media_app_msg_queue",
-	                      sizeof(media_msg_t),
-	                      MEDIA_MINOR_MSG_QUEUE_SIZE);
-
-	if (ret != kNoErr)
-	{
-		LOGE("%s, ceate media minor message queue failed\n");
-		goto error;
-	}
-
-	if (media_debug == NULL)
-	{
-		media_debug = (media_debug_t *)os_malloc(sizeof(media_debug_t));
-
-		if (media_debug == NULL)
+		media_modules_state = (media_modules_state_t *)os_malloc(sizeof(media_modules_state_t));
+		if (media_modules_state == NULL)
 		{
-			LOGE("malloc media_debug fail\n");
+			LOGE("%s, media_modules_state malloc failed!\n");
+			return BK_ERR_NO_MEM;
 		}
 	}
 
-	if (media_debug_cached == NULL)
-	{
-		media_debug_cached = (media_debug_t *)os_malloc(sizeof(media_debug_t));
-		if (media_debug_cached == NULL)
-		{
-			LOGE("malloc media_debug_cached fail\n");
-		}
-	}
-
-	ret = rtos_create_thread(&media_app_th_hd,
-	                         BEKEN_DEFAULT_WORKER_PRIORITY,
-	                         "media_app_thread",
-	                         (beken_thread_function_t)media_app_message_handle,
-	                         4096,
-	                         NULL);
-
-	if (ret != kNoErr)
-	{
-		LOGE("create media app thread fail\n");
-		goto error;
-	}
-*/
-
-	LOGI("media app thread startup complete\n");
-
-	return kNoErr;
-error:
-
-	if (media_app_msg_queue)
-	{
-		rtos_deinit_queue(&media_app_msg_queue);
-		media_app_msg_queue = NULL;
-	}
+	media_modules_state->aud_state = AUDIO_STATE_DISABLED;
+	media_modules_state->cam_state = CAMERA_STATE_DISABLED;
+	media_modules_state->lcd_state = LCD_STATE_DISABLED;
+	media_modules_state->stor_state = STORAGE_STATE_DISABLED;
+	media_modules_state->trs_state = TRS_STATE_DISABLED;
 
 	return ret;
 }
@@ -756,16 +809,15 @@ bk_err_t media_app_avi_close(void)
 }
 #endif
 
-#if CONFIG_LVGL
 bk_err_t media_app_lvgl_draw(void *lcd_open)
 {
-	int ret = kNoErr;
+	int ret = BK_OK;
 	lcd_open_t *ptr = NULL;
 
 	ptr = (lcd_open_t *)os_malloc(sizeof(lcd_open_t));
 	if (ptr == NULL) {
 		LOGE("malloc lcd_open_t failed\r\n");
-		return kGeneralErr;
+		return BK_ERR_NO_MEM;
 	}
 	os_memcpy(ptr, (lcd_open_t *)lcd_open, sizeof(lcd_open_t));
 
@@ -780,5 +832,4 @@ bk_err_t media_app_lvgl_draw(void *lcd_open)
 
 	return ret;
 }
-#endif
 

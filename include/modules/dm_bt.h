@@ -152,69 +152,6 @@ bt_err_t bk_bt_a2dp_sink_connect(uint8_t *remote_bda);
  */
 bt_err_t bk_bt_a2dp_sink_disconnect(uint8_t *remote_bda);
 
-/**
- *
- * @brief           Initialize the bluetooth AVRCP controller module
- *
- * @return
- *                  - BK_ERR_BT_SUCCESS: success
- *                  - others: fail
- *
- */
-bt_err_t bk_bt_avrcp_ct_init(void);
-
-/**
- *
- * @brief           Initialize the bluetooth AVRCP target module
- *
- * @return
- *                  - BK_ERR_BT_SUCCESS: success
- *                  - others: fail
- *
- */
-bt_err_t bk_bt_avrcp_tg_init(void);
-
-/**
- * @brief           Register application callbacks to AVRCP module.
- *
- * @param[in]       callback: AVRCP controller callback function
- *
- * @return
- *                  - BK_ERR_BT_SUCCESS: success
- *                  - others: fail
- *
- */
-bt_err_t bk_bt_avrcp_ct_register_callback(bk_avrcp_ct_cb_t callback);
-
-/**
- * @brief           Send GetCapabilities PDU to AVRCP target to retrieve remote device's supported
- *                  notification event_ids. This function should be called after
- *                  BK_AVRCP_CT_CONNECTION_STATE_EVT is received and AVRCP connection is established.
- *
- * @param[in]       remote_bda: remote bluetooth device address
- *
- * @return
- *                  - BK_ERR_BT_SUCCESS: success
- *                  - others: fail
- */
-bt_err_t bk_bt_avrcp_ct_send_get_rn_capabilities_cmd(uint8_t *remote_bda);
-
-/**
- * @brief           Send register notification command to AVRCP target. This function should be called after
- *                  BK_AVRCP_CT_CONNECTION_STATE_EVT is received and AVRCP connection is established.
- *
- * @param[in]       remote_bda: remote bluetooth device address
- *
- * @param[in]       event_id : id of events, e.g. BK_AVRCP_RN_PLAY_STATUS_CHANGE, BK_AVRCP_RN_TRACK_CHANGE, etc.
- *
- * @param[in]       event_parameter : playback interval for BK_AVRCP_RN_PLAY_POS_CHANGED;
- *                                    For other events , value of this parameter is ignored.
- * @return
- *                  - BK_ERR_BT_SUCCESS: success
- *                  - others: fail
- */
-bt_err_t bk_bt_ct_send_register_notification_cmd(uint8_t *remote_bda, uint8_t event_id, uint32_t event_parameter);
-
 
 #ifdef __cplusplus
 }

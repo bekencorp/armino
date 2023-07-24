@@ -9,6 +9,8 @@ import shutil
 import argparse
 import copy
 import re
+import errno
+import csv
 
 armino_path=os.getenv("ARMINO_PATH")
 build_path=os.path.realpath('.')
@@ -18,6 +20,24 @@ enc_start_addr = 0
 enc_count = 0
 boot_loader_path = ""
 tmp_config = {}
+
+# Read the csv file and update the bin version
+def read_csv_data(file_path):
+    data = {}
+    with open(file_path, 'r') as file:
+        reader = csv.reader(file)
+        next(reader)  # Skip header line
+        for row in reader:
+            data[row[0]] = row[1]
+    return data
+
+def write_hex_to_bin(file_path, address, hex_value):
+    with open(file_path, 'rb') as file:
+        content = bytearray(file.read())
+    content[address] = hex_value
+    with open(file_path,'wb') as file:
+        file.write(content)
+
 # parse commandline arguments
 def parse_args():
     description = '''Beken HID Downloader.'''
@@ -78,8 +98,13 @@ if os.getenv("PROJECT_DIR") != "projects/ate_mini_code":
                 shutil.copy("{}/{}/output/bootloader.bin".format(armino_path,project_bootloader), 
                                 "{}/middleware/boards/{}/bootloader.bin".format(armino_path,chip))
                 #copy bootloader and monitor elf-map-asm to build directory
-                shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader), './bootloader_out')
-
+                try:
+                    shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader), './bootloader_out')
+                except FileExistsError:
+                    #raise RuntimeError("==========>./bootloader_out exist")
+                    shutil.rmtree('./bootloader_out')
+                    shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader), './bootloader_out')
+                   
 def package_json_rebuild():
     if os.path.exists("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR"))):
         with open("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR")), 'r') as local_json:
@@ -177,6 +202,11 @@ with open(str(enc_out_path), "w") as f, open(str(pack_out_path), "w") as f1:
     enc_start_addr = int(tmp_config["app_enc_addr"], 16)
     # print("###### enc addr {}".format({hex(enc_start_addr)}))
 
+if os.path.exists("{}/middleware/boards/{}/version_anti_rollback.csv".format(armino_path, chip)):
+    version_csv_file = "{}/middleware/boards/{}/version_anti_rollback.csv".format(armino_path, chip)
+    #print(">>>version_csv_file",version_csv_file)
+    version_data = read_csv_data(version_csv_file)
+
 if sys.platform == 'win32':
     os.system("beken_packager {}".format(out_path))
 elif sys.platform == 'darwin':
@@ -194,13 +224,21 @@ else:
     os.remove("all_app.bin");
 
     # new enc pack steps:
+    #0.updata bootloader version
     #1.sign bootloader ./SignTool_P384 sign -infile bootloader.bin -prikey ecdsa384.der -outfile bootloader_sign.bin -len 10000
-    prikey = "{}/tools/env_tools/beken_packager/ecdsa384.der".format(armino_path)
     if os.path.exists("{}/middleware/boards/{}/ecdsa.der".format(armino_path, chip)):
-        prikey = "{}/middleware/boards/{}/ecdsa.der".format(armino_path, chip)
+        prikey = "{}/middleware/boards/{}/ecdsa384.der".format(armino_path, chip)
+    else:
+        prikey = "{}/tools/env_tools/beken_packager/ecdsa384.der".format(armino_path)
     # shutil.copy(tmp_config["boot_loader_path"], tmp_config["sign_boot_loader_name"])
     # print("$$$$$$$$$$$${}".format(tmp_config["boot_loader_size"]))
     if tmp_config["with_boot_loader"]:
+        if os.path.exists("{}/middleware/boards/{}/version_anti_rollback.csv".format(armino_path, chip)):
+            version = int(version_data.get("bootloader", 0))
+        else:
+            version = 0
+        write_hex_to_bin(tmp_config["boot_loader_path"], 0x120, version)
+        print(">>>bootloader version ", version)
         os.system("{}/tools/env_tools/beken_packager/SignTool_P384 sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, tmp_config["boot_loader_path"], prikey, tmp_config["sign_boot_loader_name"], tmp_config["boot_loader_size"]))
     #2.pack app & cup*
     if(tmp_config["count"] > 2):
@@ -220,15 +258,21 @@ else:
     #3.sign app
     #sign app_pack.bin ./SignTool_P384 sign -infile app_pack.bin -prikey ecdsa384.der -outfile app_pack_sign.bin -len length
     #to do: prikey need change
+    if os.path.exists("{}/middleware/boards/{}/version_anti_rollback.csv".format(armino_path, chip)):
+        version = int(version_data.get("app", 0))
+    else:
+        version = 0
+    write_hex_to_bin("app_pack.bin", 0x120, version)
+    print(">>>app version ", version)
     os.system("{}/tools/env_tools/beken_packager/SignTool_P384 sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, "app_pack.bin", prikey, tmp_config["sign_app_name"], hex(tmp_config["app_all_size"]*1024)))
     # shutil.copy("app_pack.bin", tmp_config["sign_app_name"])
     #4.enc app
-    #./cmake_xts_aes encrypt -infile app.bin -startaddress 0x10000 -keyfile 123_bk7235.txt -outfile app_xts.bin
-    key_file = "{}/tools/env_tools/beken_packager/key.txt".format(armino_path)
-    if os.path.exists("{}/middleware/boards/{}/key.txt".format(armino_path, chip)):
-        key_file = "{}/middleware/boards/{}/key.txt".format(armino_path, chip)
-    os.system("{}/tools/env_tools/beken_packager/cmake_xts_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, tmp_config["sign_app_name"], tmp_config["app_enc_addr"], key_file, "app_pack_sign_enc.bin"))
-    # print("{}/tools/env_tools/beken_packager/cmake_xts_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, tmp_config["sign_app_name"], tmp_config["app_enc_addr"], key_file, "app_pack_enc.bin"))
+    #./beken_aes encrypt -infile app.bin -startaddress 0x10000 -keyfile 123_bk7235.txt -outfile app_xts.bin
+    key_file = "{}/tools/env_tools/beken_packager/config.json".format(armino_path)
+    if os.path.exists("{}/middleware/boards/{}/config.json".format(armino_path, chip)):
+        key_file = "{}/middleware/boards/{}/config.json".format(armino_path, chip)
+    os.system("{}/tools/env_tools/beken_packager/beken_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, tmp_config["sign_app_name"], tmp_config["app_enc_addr"], key_file, "app_pack_sign_enc.bin"))
+    # print("{}/tools/env_tools/beken_packager/beken_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, tmp_config["sign_app_name"], tmp_config["app_enc_addr"], key_file, "app_pack_enc.bin"))
     #5.pack bootloader app
     if tmp_config["with_boot_loader"]:
         infile1 = ""
@@ -241,8 +285,8 @@ else:
         #5.5 crc all
         os.system("{}/tools/env_tools/beken_packager/cmake_encrypt_crc -crc {}".format(armino_path, "all_app_pack.bin"))
         #6.enc all_app
-        os.system("{}/tools/env_tools/beken_packager/cmake_xts_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, "all_app_pack.bin", 0, key_file, "all_app_pack_sign_enc.bin"))
-        # print("{}/tools/env_tools/beken_packager/cmake_xts_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, "all_app_pack.bin", 0, key_file, "all_app_pack_enc.bin"))
+        os.system("{}/tools/env_tools/beken_packager/beken_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, "all_app_pack.bin", 0, key_file, "all_app_pack_sign_enc.bin"))
+        # print("{}/tools/env_tools/beken_packager/beken_aes encrypt -infile {} -startaddress {} -keyfile {} -outfile {}".format(armino_path, "all_app_pack.bin", 0, key_file, "all_app_pack_enc.bin"))
     # print("******************************over******************************")
 
 shutil.move(tmp_config["sign_app_name"], "app_pack_sign.bin")

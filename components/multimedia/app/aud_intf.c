@@ -19,10 +19,9 @@
 #include "sys_driver.h"
 #include "aud_intf_private.h"
 
-
 #include "media_evt.h"
 #include "media_mailbox_list_util.h"
-
+#include <driver/pwr_clk.h>
 
 #define AUD_INTF_TAG "aud_intf"
 
@@ -78,7 +77,6 @@ static bk_err_t aud_intf_voc_write_spk_data(uint8_t *dac_buff, uint32_t size);
 bk_err_t mailbox_media_aud_send_msg(media_event_t event, void *param)
 {
 	bk_err_t ret = BK_OK;
-	uint32_t result = BK_OK;
 
 	if (!media_aud_mailbox_msg) {
 		media_aud_mailbox_msg = os_malloc(sizeof(media_mailbox_msg_t));
@@ -90,23 +88,9 @@ bk_err_t mailbox_media_aud_send_msg(media_event_t event, void *param)
 	}
 
 	media_aud_mailbox_msg->event = event;
-	media_aud_mailbox_msg->dest = MAJOR_MODULE;
-	media_aud_mailbox_msg->src = APP_MODULE;
 	media_aud_mailbox_msg->param = (uint32_t)param;
-	media_aud_mailbox_msg->result = result;
 	media_aud_mailbox_msg->sem = mailbox_media_app_aud_sem;
-	//        LOGE("====>>>>1 %s\n", __func__);
-	msg_send_to_media_app_mailbox(media_aud_mailbox_msg, result);
-	ret = rtos_get_semaphore(&mailbox_media_app_aud_sem, BEKEN_WAIT_FOREVER);
-	if (ret != BK_OK)
-	{
-		LOGE("%s, rtos_get_semaphore\n", __func__);
-		ret = BK_FAIL;
-	}
-	else
-	{
-		ret = result;
-	}
+	ret = msg_send_req_to_media_app_mailbox_sync(media_aud_mailbox_msg);
 
 	aud_intf_info.api_info.busy_status = false;
 	return ret;
@@ -1290,6 +1274,8 @@ bk_err_t bk_aud_intf_drv_init(aud_intf_drv_setup_t *setup)
 	bk_err_t ret = BK_OK;
 	bk_err_t err = BK_ERR_AUD_INTF_FAIL;
 
+	bk_pm_module_vote_boot_cp1_ctrl(PM_BOOT_CP1_MODULE_NAME_AUDP_AUDIO, PM_POWER_MODULE_STATE_ON);
+
 	/* init semaphore used to  */
 	if (!mailbox_media_app_aud_sem) {
 		ret = rtos_init_semaphore(&mailbox_media_app_aud_sem, 1);
@@ -1376,6 +1362,8 @@ bk_err_t bk_aud_intf_drv_deinit(void)
 	}
 
 	aud_intf_info.drv_status = AUD_INTF_DRV_STA_NULL;
+
+	bk_pm_module_vote_boot_cp1_ctrl(PM_BOOT_CP1_MODULE_NAME_AUDP_AUDIO, PM_POWER_MODULE_STATE_OFF);
 
 	return BK_ERR_AUD_INTF_OK;
 }

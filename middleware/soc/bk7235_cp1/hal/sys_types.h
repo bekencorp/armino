@@ -22,12 +22,6 @@
 extern "C" {              
 #endif                      
 
-#ifdef CONFIG_EXTERN_32K
-#define RTC_CLOCK_FREQ				(32768)
-#else
-#define RTC_CLOCK_FREQ				(32000)
-#endif
-#define RTC_TICKS_PER_1MS				((float)RTC_CLOCK_FREQ/1000)
 
 //int_0_31_en DIRTY define
 #define BMC32_INTERRUPT_CTRL_BIT       (1 << SYS_CPU1_INT_0_31_EN_CPU1_BMC32_INT_EN_POS)

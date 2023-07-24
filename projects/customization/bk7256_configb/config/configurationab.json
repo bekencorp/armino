@@ -8,13 +8,13 @@
             "version": "2M.1220",
             "partition": "bootloader",
             "start_addr": "0x00000000",
-            "size": "64k"
+            "size": "64K"
         },
         {
             "firmware": "app_ab.bin",
             "version": "2M.1220",
             "partition": "app",
-            "start_addr": "0x001D0000",
+            "start_addr": "0x001d0000",
             "size": "1792K"
         }
     ]

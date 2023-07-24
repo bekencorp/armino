@@ -58,7 +58,7 @@ bk_err_t camera_dvp_reset_open_handle(media_mailbox_msg_t *msg)
 {
 	bk_err_t ret = BK_OK;
 
-#ifdef CONFIG_CAMERA
+#ifdef CONFIG_DVP_CAMERA
 
 	if (dvp_camera_reset_open_ind)
 	{
@@ -87,7 +87,7 @@ bk_err_t camera_dvp_open_handle(media_mailbox_msg_t *msg, media_camera_type_t ty
 	int ret = BK_OK;
 
 	LOGI("%s\n", __func__);
-#ifdef CONFIG_CAMERA
+#ifdef CONFIG_DVP_CAMERA
 
 	if (CAMERA_STATE_DISABLED != get_camera_state())
 	{
@@ -112,7 +112,7 @@ bk_err_t camera_dvp_open_handle(media_mailbox_msg_t *msg, media_camera_type_t ty
 
 
 end:
-	msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 
 #endif
 
@@ -125,7 +125,7 @@ bk_err_t camera_dvp_close_handle(media_mailbox_msg_t *msg)
 
 	LOGI("%s\n", __func__);
 
-#ifdef CONFIG_CAMERA
+#ifdef CONFIG_DVP_CAMERA
 
 	if (CAMERA_STATE_DISABLED == get_camera_state())
 	{
@@ -141,7 +141,7 @@ bk_err_t camera_dvp_close_handle(media_mailbox_msg_t *msg)
 
 
 end:
-	msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 
 #endif
 
@@ -152,19 +152,19 @@ bk_err_t camera_dvp_free_encode_mem_handle(media_mailbox_msg_t *msg)
 {
 	int ret = BK_OK;
 
-#ifdef CONFIG_CAMERA
+#ifdef CONFIG_DVP_CAMERA
 	ret = bk_dvp_camera_free_encode_mem();
 #endif
 	LOGI("%s complete\n", __func__);
 
-	msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 
 	return ret;
 }
 
 bk_err_t camera_dvp_drop_frame(uint32_t param)
 {
-#ifdef CONFIG_CAMERA
+#ifdef CONFIG_DVP_CAMERA
 
 	if (param)
 	{
@@ -261,7 +261,7 @@ bk_err_t camera_uvc_open_handle(media_mailbox_msg_t *msg, media_camera_type_t ty
 #endif
 
 end:
-	msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 
 	return ret;
 }
@@ -289,7 +289,7 @@ bk_err_t camera_uvc_close_handle(media_mailbox_msg_t *msg)
 #endif
 
 end:
-	msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 
 	return ret;
 }
@@ -356,7 +356,7 @@ bk_err_t camera_net_open_handle(media_mailbox_msg_t *msg, media_camera_type_t ty
 #endif
 
 end:
-	msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 
 	return ret;
 }
@@ -382,7 +382,7 @@ bk_err_t camera_net_close_handle(media_mailbox_msg_t *msg)
 #endif
 
 end:
-	msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
+	msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
 
 	return ret;
 }
@@ -401,11 +401,8 @@ bk_err_t camera_event_handle(media_mailbox_msg_t *msg)
 		case EVENT_CAM_DVP_MIX_OPEN_IND:
 			ret = camera_dvp_open_handle(msg, MEDIA_DVP_MIX);
 			break;
-		case EVENT_CAM_DVP_H264_WIFI_TRANSFER_OPEN_IND:
-			ret = camera_dvp_open_handle(msg, MEDIA_DVP_H264_WIFI_TRANSFER);
-			break;
-		case EVENT_CAM_DVP_H264_USB_TRANSFER_OPEN_IND:
-			ret = camera_dvp_open_handle(msg, MEDIA_DVP_H264_USB_TRANSFER);
+		case EVENT_CAM_DVP_H264_TRANSFER_OPEN_IND:
+			ret = camera_dvp_open_handle(msg, MEDIA_DVP_H264_TRANSFER);
 			break;
 		case EVENT_CAM_DVP_H264_LOCAL_OPEN_IND:
 			ret = camera_dvp_open_handle(msg, MEDIA_DVP_H264_LOCAL);
@@ -424,6 +421,9 @@ bk_err_t camera_event_handle(media_mailbox_msg_t *msg)
 			break;
 		case EVENT_CAM_UVC_MJPEG_OPEN_IND:
 			ret = camera_uvc_open_handle(msg, MEDIA_UVC_MJPEG);
+			break;
+		case EVENT_CAM_UVC_MJPEG_TO_H264_OPEN_IND:
+			ret = camera_uvc_open_handle(msg, MEDIA_UVC_MJPEG_TO_H264);
 			break;
 		case EVENT_CAM_UVC_H264_OPEN_IND:
 			ret = camera_uvc_open_handle(msg, MEDIA_UVC_H264);
@@ -456,12 +456,12 @@ bk_err_t camera_event_handle(media_mailbox_msg_t *msg)
 	return ret;
 }
 
-camera_state_t get_camera_state(void)
+media_camera_state_t get_camera_state(void)
 {
 	return camera_info.state;
 }
 
-void set_camera_state(camera_state_t state)
+void set_camera_state(media_camera_state_t state)
 {
 	camera_info.state = state;
 }

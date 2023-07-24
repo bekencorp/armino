@@ -71,14 +71,22 @@ typedef enum {
 	LCD_64M,
 	LCD_60M,
 	LCD_54M,
+	LCD_45M, //45.7M
 	LCD_40M,
+	LCD_35M, //35.5
 	LCD_32M,
 	LCD_30M,
-	LCD_26M,
+	LCD_26M, //26.6M
+	LCD_24M, //24.6M
+	LCD_22M, //22.85M
 	LCD_20M,
+	LCD_17M, //17.1M
+	LCD_15M,
 	LCD_12M,
 	LCD_10M,
-	LCD_8M
+	LCD_9M,  //9.2M
+	LCD_8M,
+	LCD_7M   //7.5M
 }lcd_clk_t;
 
 /** rgb data output in clk rising or falling */

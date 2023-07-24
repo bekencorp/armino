@@ -165,6 +165,7 @@ static int bt_a2dp_sink_disconnect_handle(char *pcWriteBuffer, int xWriteBufferL
 #ifdef CONFIG_AUDIO
 static int bt_enable_a2dp_sink_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static int bt_enable_hfp_unit_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static int bt_avrcp_ctrl_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #if CONFIG_AUDIO_SBC
 static int bt_enable_a2dp_source_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static int bt_enable_a2dp_source_disconnect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -387,6 +388,9 @@ const at_command_t bt_at_cmd_table[] = {
     {17, "SPP_THROUGH_TEST", 1, "spp_through_test", bt_spp_through_test_handle},
     {18, "A2DP_SINK_CONNECT", 1, "a2dp sink connect", bt_a2dp_sink_connect_handle},
     {19, "A2DP_SINK_DISCONNECT", 1, "a2dp sink disconnect", bt_a2dp_sink_disconnect_handle},
+#ifdef CONFIG_AUDIO
+    {20, "AVRCP_CTRL", 1, "avrcp ctrl", bt_avrcp_ctrl_handle},
+#endif
 };
 
 static void bt_spp_clear()
@@ -1362,6 +1366,89 @@ error:
     os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
     return err;
 }
+
+#ifdef CONFIG_AUDIO
+static int bt_avrcp_ctrl_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    PRINT_FUNC;
+    char *msg;
+    int err = kNoErr;
+
+    if (argc < 1)
+    {
+        os_printf("input param error\n");
+        err = kParamErr;
+        goto error;
+    }
+
+#if CONFIG_A2DP_SINK_DEMO
+    if (os_strcmp(argv[0], "play") == 0)
+    {
+        void bk_bt_app_avrcp_ct_play(void);
+        bk_bt_app_avrcp_ct_play();
+    }
+    else if (os_strcmp(argv[0], "pause") == 0)
+    {
+        void bk_bt_app_avrcp_ct_pause(void);
+        bk_bt_app_avrcp_ct_pause();
+    }
+    else if (os_strcmp(argv[0], "next") == 0)
+    {
+        void bk_bt_app_avrcp_ct_next(void);
+        bk_bt_app_avrcp_ct_next();
+    }
+    else if (os_strcmp(argv[0], "prev") == 0)
+    {
+        void bk_bt_app_avrcp_ct_prev(void);
+        bk_bt_app_avrcp_ct_prev();
+    }
+    else if (os_strcmp(argv[0], "rewind") == 0)
+    {
+        void bk_bt_app_avrcp_ct_rewind(void);
+        bk_bt_app_avrcp_ct_rewind();
+    }
+    else if (os_strcmp(argv[0], "fast_forward") == 0)
+    {
+        void bk_bt_app_avrcp_ct_fast_forward(void);
+        bk_bt_app_avrcp_ct_fast_forward();
+    }
+    else if (os_strcmp(argv[0], "vol_up") == 0)
+    {
+        void bk_bt_app_avrcp_ct_vol_up(void);
+        bk_bt_app_avrcp_ct_vol_up();
+    }
+    else if (os_strcmp(argv[0], "vol_down") == 0)
+    {
+        void bk_bt_app_avrcp_ct_vol_down(void);
+        bk_bt_app_avrcp_ct_vol_down();
+    }
+    else
+    {
+        os_printf("the input param is error\n");
+        err = kParamErr;
+        goto error;
+    }
+#else
+    err = BK_ERR_NOT_SUPPORT;
+#endif
+
+    if (!err)
+    {
+        msg = AT_CMD_RSP_SUCCEED;
+        os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+        return err;
+    }
+    else
+    {
+        goto error;
+    }
+
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    return err;
+}
+#endif
 
 #if CONFIG_FATFS
 #include "ff.h"

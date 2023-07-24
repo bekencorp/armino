@@ -37,15 +37,27 @@ static uint32_t s_int_statis[InterruptMAX_IRQn] = {0};
 #define INT_INC_STATIS(irq)
 #endif
 
-void arch_int_enable_all_irq(void)
+
+void arch_int_init_all_irq(void)
 {
-	__enable_irq();
-	__enable_fault_irq();
+	__disable_irq();
+	__disable_fault_irq();
 
 	for (IRQn_Type irq_type = 0; irq_type < InterruptMAX_IRQn; irq_type++) {
 		NVIC_SetPriority((IRQn_Type)irq_type, IRQ_DEFAULT_PRIORITY);
 		NVIC_EnableIRQ(irq_type);
 	}
+}
+
+void arch_int_enable_all_irq(void)
+{
+	for (IRQn_Type irq_type = 0; irq_type < InterruptMAX_IRQn; irq_type++) {
+		NVIC_SetPriority((IRQn_Type)irq_type, IRQ_DEFAULT_PRIORITY);
+		NVIC_EnableIRQ(irq_type);
+	}
+
+	__enable_fault_irq();
+	__enable_irq();
 }
 
 void arch_int_disable_all_irq(void)
@@ -130,7 +142,7 @@ bk_err_t arch_isr_entry_init(void)
 	/* group priority is depends on macro:__NVIC_PRIO_BITS.
 	   please refer to: www.freertos.org/zh-cn-cmn-s/RTOS-Cortex-M3-M4.html*/
 	NVIC_SetPriorityGrouping(PRI_GOURP_BITS_7_5);
-	arch_int_enable_all_irq();
+	arch_int_init_all_irq();
 
 	return BK_OK;
 }

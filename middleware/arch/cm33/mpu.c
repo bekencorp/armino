@@ -66,7 +66,7 @@ ARM_MPU_Region_t mpu_regions[] = {
 
      /* MPU region 6，external ram data */
      { ARM_MPU_RBAR(0x60700000UL, ARM_MPU_SH_NON, 0, 1, 0),
-       ARM_MPU_RLAR(0x9FFFFFE0UL, 0) },
+       ARM_MPU_RLAR(0x9FFFFFE0UL, 6) },
 
      /* MPU region 7，external device memory */
      { ARM_MPU_RBAR(0xA0000000UL, ARM_MPU_SH_OUTER, 0, 1, 0),

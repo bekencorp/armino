@@ -22,6 +22,8 @@
 #include "lcd_act.h"
 
 #include "doorbell_comm.h"
+#include "doorbell_cmd.h"
+#include "doorbell_network.h"
 #include "doorbell_udp_service.h"
 #include "doorbell_transmission.h"
 #include "doorbell_devices.h"
@@ -63,28 +65,24 @@ static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 static aud_intf_voc_setup_t aud_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
 #endif
 
+#define UDP_MAX_RETRY (1000)
+#define UDP_MAX_DELAY (20)
+
+void doorbell_udp_update_remote_address(in_addr_t address)
+{
+	LOGI("%s\n", __func__);
+	db_udp_service->img_remote.sin_addr.s_addr = address;
+	db_udp_service->aud_remote.sin_addr.s_addr = address;
+}
+
 int doorbell_udp_img_send_packet(uint8_t *data, uint32_t len)
 {
-	int send_byte = 0;
-	uint8_t *ptr = data - sizeof(db_trans_head_t);
-	uint16_t size = len + sizeof(db_trans_head_t);
-
 	if (!db_udp_service->img_status)
 	{
-		return 0;
+		return -1;
 	}
 
-	send_byte = sendto(db_udp_service->img_fd, ptr, size, MSG_DONTWAIT | MSG_MORE,
-	                   (struct sockaddr *)&db_udp_service->img_remote, sizeof(struct sockaddr_in));
-
-	if (send_byte < 0)
-	{
-		/* err */
-		//DBD("send return fd:%d\n", send_byte);
-		send_byte = 0;
-	}
-
-	return send_byte - sizeof(db_trans_head_t);
+	return doorbell_socket_sendto(&db_udp_service->img_fd, (struct sockaddr *)&db_udp_service->img_remote, data, len, -sizeof(db_trans_head_t));
 }
 
 
@@ -134,26 +132,12 @@ int doorbell_udp_img_get_tx_size(void)
 
 int doorbell_udp_aud_send_packet(uint8_t *data, uint32_t len)
 {
-	int send_byte = 0;
-	uint8_t *ptr = data - sizeof(db_trans_head_t);
-	uint16_t size = len + sizeof(db_trans_head_t);
-
 	if (!db_udp_service->aud_status)
 	{
-		return 0;
+		return -1;
 	}
 
-	send_byte = sendto(db_udp_service->aud_fd, ptr, size, MSG_DONTWAIT | MSG_MORE,
-	                   (struct sockaddr *)&db_udp_service->aud_remote, sizeof(struct sockaddr_in));
-
-	if (send_byte < 0)
-	{
-		/* err */
-		//DBD("send return fd:%d\n", send_byte);
-		send_byte = 0;
-	}
-
-	return send_byte - sizeof(db_trans_head_t);
+	return doorbell_socket_sendto(&db_udp_service->aud_fd, (struct sockaddr *)&db_udp_service->aud_remote, data, len, -sizeof(db_trans_head_t));
 }
 
 
@@ -201,6 +185,22 @@ int doorbell_udp_aud_get_tx_size(void)
 	return db_udp_service->aud_channel->tsize - sizeof(db_trans_head_t);
 }
 
+static const media_transfer_cb_t doorbell_udp_img_channel =
+{
+	.send = doorbell_udp_img_send_packet,
+	.prepare = doorbell_udp_img_send_prepare,
+	.get_tx_buf = doorbell_udp_img_get_tx_buf,
+	.get_tx_size = doorbell_udp_img_get_tx_size
+};
+
+static const media_transfer_cb_t doorbell_udp_aud_channel =
+{
+	.send = doorbell_udp_aud_send_packet,
+	.prepare = doorbell_udp_aud_send_prepare,
+	.get_tx_buf = doorbell_udp_aud_get_tx_buf,
+	.get_tx_size = doorbell_udp_aud_get_tx_size
+};
+
 static inline void doorbell_udp_voice_receiver(db_channel_t *channel, uint16_t sequence, uint16_t flags, uint32_t timestamp, uint8_t sequences, uint8_t *data, uint16_t length)
 {
 	LOGD("%s %d\n", __func__, length);
@@ -216,6 +216,7 @@ static void doorbell_udp_service_main(beken_thread_arg_t data)
 	fd_set watchfd;
 	struct timeval timeout;
 	u8 *rcv_buf = NULL;
+	in_addr_t remote = doorbell_cmd_get_socket_address();
 
 	LOGI("doorbell_udp_service, img: %d, aud: %d\n", DOORBELL_UDP_IMG_PORT, DOORBELL_UDP_AUD_PORT);
 	(void)(data);
@@ -238,7 +239,15 @@ static void doorbell_udp_service_main(beken_thread_arg_t data)
 
 	db_udp_service->img_remote.sin_family = AF_INET;
 	db_udp_service->img_remote.sin_port = htons(DOORBELL_UDP_IMG_PORT);
-	db_udp_service->img_remote.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	if (remote == 0)
+	{
+		db_udp_service->img_remote.sin_addr.s_addr = htonl(INADDR_ANY);
+	}
+	else
+	{
+		db_udp_service->img_remote.sin_addr.s_addr = remote;
+	}
 
 	srvaddr_len = (socklen_t)sizeof(struct sockaddr_in);
 	if (bind(db_udp_service->img_fd, (struct sockaddr *)&db_udp_service->img_remote, srvaddr_len) == -1)
@@ -257,7 +266,16 @@ static void doorbell_udp_service_main(beken_thread_arg_t data)
 
 	db_udp_service->aud_remote.sin_family = AF_INET;
 	db_udp_service->aud_remote.sin_port = htons(DOORBELL_UDP_AUD_PORT);
-	db_udp_service->aud_remote.sin_addr.s_addr = htonl(INADDR_ANY);
+
+
+	if (remote == 0)
+	{
+		db_udp_service->aud_remote.sin_addr.s_addr = htonl(INADDR_ANY);
+	}
+	else
+	{
+		db_udp_service->aud_remote.sin_addr.s_addr = remote;
+	}
 
 	srvaddr_len = (socklen_t)sizeof(struct sockaddr_in);
 	if (bind(db_udp_service->aud_fd, (struct sockaddr *)&db_udp_service->aud_remote, srvaddr_len) == -1)
@@ -353,7 +371,7 @@ out:
 	LOGE("doorbell_udp_service_main exit %d\n", db_udp_service->running);
 	media_app_transfer_close();
 
-#if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
+#if (defined(CONFIG_DVP_CAMERA) || defined(CONFIG_USB_UVC))
 
 	media_app_camera_close(APP_CAMERA_DVP_JPEG);
 
@@ -394,21 +412,6 @@ out:
 }
 
 
-static const media_transfer_cb_t doorbell_udp_img_channel =
-{
-	.send = doorbell_udp_img_send_packet,
-	.prepare = doorbell_udp_img_send_prepare,
-	.get_tx_buf = doorbell_udp_img_get_tx_buf,
-	.get_tx_size = doorbell_udp_img_get_tx_size
-};
-
-static const media_transfer_cb_t doorbell_udp_aud_channel =
-{
-	.send = doorbell_udp_aud_send_packet,
-	.prepare = doorbell_udp_aud_send_prepare,
-	.get_tx_buf = doorbell_udp_aud_get_tx_buf,
-	.get_tx_size = doorbell_udp_aud_get_tx_size
-};
 
 
 bk_err_t doorbell_udp_service_init(void)

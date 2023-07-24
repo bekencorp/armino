@@ -24,5 +24,10 @@ menu "AON_RTC"
 		default n
 		help
 			This is for super deep sleep
+
+	config AON_RTC_DYNAMIC_CLOCK_SUPPORT
+		bool "Enable AON RTC dynamic clock"
+		default n
+
 endmenu
 

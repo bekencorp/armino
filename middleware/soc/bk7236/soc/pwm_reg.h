@@ -18,43 +18,7 @@
 extern "C" {
 #endif
 
-#include <soc/soc.h>
-
-//TODO place all auto-generated Registers here!!!
-
-#define PWM_R_BASE                  (SOC_PWM_REG_BASE)
-
-#define PWM_R_CTRL                  (PWM_R_BASE)
-
-#define PWM_R_INT_STATUS            (PWM_R_BASE + 4 * 0x1)
-
-#define PWM_F_EN                    (BIT(0))
-#define PWM_F_EN_M                  (BIT(0))
-#define PWM_F_EN_V                  0x1
-#define PWM_F_EN_S                  0
-#define PWM_F_EN_MS(_ch)            (PWM_F_EN_S + 4 * (_ch))
-
-#define PWM_F_INT_EN                (BIT(1))
-#define PWM_F_INT_EN_M              (BIT(1))
-#define PWM_F_INT_EN_V              0x1
-#define PWM_F_INT_EN_S              0x1
-#define PWM_F_INT_EN_MS(_ch)        (PWM_F_INT_EN_S + 4 * (_ch))
-
-#define PWM_V_MODE_IDLE             0x0
-#define PWM_V_MODE_PWM              0x1
-#define PWM_V_MODE_TIMER            0x2
-#define PWM_V_MODE_COUNTER          0x3
-#define PWM_V_MODE_CAPTURE_POS      0x4
-#define PWM_V_MODE_CAPTURE_NEG      0x5
-#define PWM_V_MODE_CAPTURE_EDGE     0x6
-
-#define PWM_R_INT_ST_CAPTURE_EDGE  (PWM_R_BASE + (0x4 * 1))
-
-#define PWM_F_INT_ST                (BIT(0))
-#define PWM_F_INT_ST_M              (BIT(0))
-#define PWM_F_INT_ST_V              0x1
-#define PWM_F_INT_ST_S              0
-#define PWM_F_INT_ST_MS(_ch)        (PWM_F_INT_ST_S + 1 * (_ch))
+#include "pwm_ll_macro_def.h"
 
 #ifdef __cplusplus
 }

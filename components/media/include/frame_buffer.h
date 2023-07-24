@@ -111,6 +111,11 @@ void frame_buffer_fb_free(frame_buffer_t *frame, frame_module_t index);
 void frame_buffer_fb_push(frame_buffer_t *frame);
 bk_err_t frame_buffer_fb_register(frame_module_t index, fb_type_t type);
 bk_err_t frame_buffer_fb_deregister(frame_module_t index);
+frame_buffer_t *frame_buffer_fb_jpeg_pop(void);
+frame_buffer_t *frame_buffer_fb_jpeg_pop_wait(void);
+frame_buffer_t *frame_buffer_fb_jpeg_read(void);
+void frame_buffer_fb_jpeg_dec_register(void);
+void frame_buffer_fb_jpg_free(frame_buffer_t *frame);
 void frame_buffer_init(void);
 void frame_buffer_deinit(void);
 

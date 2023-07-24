@@ -167,7 +167,7 @@ static bk_err_t dvp_camera_init(jpeg_mode_t mode)
 	// step 3: init i2c
 	i2c_config.baud_rate = I2C_BAUD_RATE_100KHZ;
 	i2c_config.addr_mode = I2C_ADDR_MODE_7BIT;
-	bk_i2c_init(CONFIG_CAMERA_I2C_ID, &i2c_config);
+	bk_i2c_init(CONFIG_DVP_CAMERA_I2C_ID, &i2c_config);
 
 	current_sensor = bk_dvp_get_sensor_auto_detect();
 	if (current_sensor == NULL)

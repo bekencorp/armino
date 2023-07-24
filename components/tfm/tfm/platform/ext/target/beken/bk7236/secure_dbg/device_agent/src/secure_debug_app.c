@@ -25,15 +25,9 @@ int secure_debug_agent_entry(void)
     sec_debug_stat_t result = HAL_OK;
     sec_debug_ctx_t sec_debug_ctx;
 
-    printf("sec debug flag:%d\n", sec_debug_get_enable_flag());
-    if (SEC_DEBUG_TRUE != sec_debug_get_enable_flag()) {
-        printf(
-            "secure debug enable flag NOT set, no need enable secure debug \n");
-        return 0;
-    }
-
     printf("please open secure debug tool to start secure debug enable \n");
-    result = sec_debug_init(&sec_debug_ctx, NULL);//TODO wangzhilei
+	/*TODO wangzhilei, we only support uart0, args format: UART0-Sleep_Time*/
+    result = sec_debug_init(&sec_debug_ctx, "UART0-20000");
     if (SEC_DEBUG_STAT_OK != result) {
         printf("\n===sec_debug_init fail:0x%x\n", result);
         goto exit;
@@ -50,3 +44,5 @@ exit:
 
     return result;
 }
+// eof
+

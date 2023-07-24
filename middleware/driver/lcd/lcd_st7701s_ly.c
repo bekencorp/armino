@@ -42,7 +42,7 @@ static const lcd_rgb_t lcd_rgb =
 
 static void lcd_st7701s_config(void)
 {
-	#define Delay delay_ms
+	#define Delay rtos_delay_milliseconds
 	#define SPI_WriteComm lcd_spi_write_cmd
 	#define SPI_WriteData lcd_spi_write_data
 

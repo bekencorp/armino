@@ -66,6 +66,8 @@ typedef struct {
 #define dma_hal_set_src_data_width(hal, id, data_width) dma_ll_set_src_data_width((hal)->hw, id, data_width)
 #define dma_hal_set_dest_data_width(hal, id, data_width) dma_ll_set_dest_data_width((hal)->hw, id, data_width)
 
+#define dma_hal_flush_src_buffer(hal, id) dma_ll_flush_src_buffer((hal)->hw, id)
+
 #ifdef CONFIG_SPE
 #define dma_hal_set_dest_burst_len(hal, id, len) dma_ll_set_dest_burst_len((hal)->hw, id, len)
 #define dma_hal_get_dest_burst_len(hal, id) dma_ll_get_dest_burst_len((hal)->hw, id)
@@ -78,8 +80,6 @@ typedef struct {
 
 #define dma_hal_bus_err_int_enable(hal, id) dma_ll_bus_err_int_enable((hal)->hw, id)
 #define dma_hal_bus_err_int_disable(hal, id) dma_ll_bus_err_int_disable((hal)->hw, id)
-
-#define dma_hal_flush_src_buffer(hal, id) dma_ll_flush_src_buffer((hal)->hw, id)
 #endif
 
 #if (CONFIG_SPE)

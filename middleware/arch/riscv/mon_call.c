@@ -60,20 +60,27 @@ u32 mon_app_started(void)
 	return riscv_sys_call1(SYS_CALL_ENCLV_STARTED);
 }
 
-u32 mon_read_otp(u32 *buf, u32 otp_addr, u32 len)
+u32 mon_read_otp(u32 *buf, u32 data_id, u32 len)
 {
-	return riscv_sys_call4(SYS_CALL_READ_OTP, (u32)buf, otp_addr, len);
+	return riscv_sys_call4(SYS_CALL_READ_OTP, (u32)buf, data_id, len);
 }
 
-u32 mon_write_otp(u32 otp_addr, u32 *buf, u32 len)
+u32 mon_write_otp(u32 data_id, u32 *buf, u32 len)
 {
-	return riscv_sys_call4(SYS_CALL_WRITE_OTP, otp_addr, (u32)buf, len);
+	return riscv_sys_call4(SYS_CALL_WRITE_OTP, data_id, (u32)buf, len);
 }
 
+u32 mon_create_otp(u32 data_id, u32 *buf, u32 len, u32 attr)
+{
+	return riscv_sys_call4(SYS_CALL_CREATE_OTP, data_id, (u32)buf, (len & 0xFFFF) + (attr << 16));
+}
+
+#if 0
 u32 mon_enable_otp(u32 enabled)
 {
 	return riscv_sys_call2(SYS_CALL_ENABLE_OTP, enabled);
 }
+#endif
 
 u32 mon_pmp_cfg(u32 start_addr, u32 size, u8 attr)
 {

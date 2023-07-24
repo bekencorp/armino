@@ -52,7 +52,6 @@ typedef struct _debug_cmd_t {
     uint32_t cmd31 : 1;
 } debug_cmd_t;
 
-HAL_API bool hal_secure_debug_is_enabled(void);
 HAL_API hal_ret_t hal_secure_debug_excute_debug_cmd(debug_cmd_t cmds);
 
 #ifdef __cplusplus

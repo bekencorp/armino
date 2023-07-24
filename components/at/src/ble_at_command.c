@@ -582,7 +582,7 @@ static void ble_at_notice_cb(ble_notice_t notice, void *param)
                     value[1] = 0x22;
                     value[2] = 0x33;
                     length = 3;
-                    bk_ble_read_response_value(length, value, r_req->prf_id, r_req->att_idx);
+                    bk_ble_read_response_value(r_req->conn_idx, length, value, r_req->prf_id, r_req->att_idx);
                     break;
                 }
                 case TEST_IDX_CHAR_DATALEN_DECL:
@@ -591,7 +591,7 @@ static void ble_at_notice_cb(ble_notice_t notice, void *param)
                 case TEST_IDX_CHAR_DATALEN_VALUE:
                 {
                     uint8_t *value = (uint8_t *)&s_test_data_len;
-                    bk_ble_read_response_value(sizeof(s_test_data_len), value, r_req->prf_id, r_req->att_idx);
+                    bk_ble_read_response_value(r_req->conn_idx, sizeof(s_test_data_len), value, r_req->prf_id, r_req->att_idx);
                     break;
                 }
 
@@ -602,7 +602,7 @@ static void ble_at_notice_cb(ble_notice_t notice, void *param)
                 case TEST_IDX_CHAR_INTER_VALUE:
                 {
                     uint8_t *value = (uint8_t *)&s_test_send_inter;
-                    bk_ble_read_response_value(sizeof(s_test_send_inter), value, r_req->prf_id, r_req->att_idx);
+                    bk_ble_read_response_value(r_req->conn_idx, sizeof(s_test_send_inter), value, r_req->prf_id, r_req->att_idx);
                     break;
                 }
 

@@ -326,11 +326,37 @@ uint32_t sys_hal_cpu_clk_div_get(uint32_t core_index)
 }
 int32 sys_hal_lp_vol_set(uint32_t value)
 {
+	sys_ll_set_ana_reg9_spi_latch1v(1);
+	sys_ll_set_ana_reg9_vcorelsel(value);
+	sys_ll_set_ana_reg9_spi_latch1v(0);
+
 	return 0;
 }
 uint32_t sys_hal_lp_vol_get()
 {
+	return sys_ll_get_ana_reg9_vcorelsel();
+}
+int32 sys_hal_rf_tx_vol_set(uint32_t value)
+{
+	sys_ll_set_ana_reg9_spi_latch1v(1);
+	sys_ll_set_ana_reg8_t_vanaldosel(value);
+	sys_ll_set_ana_reg9_spi_latch1v(0);
 	return 0;
+}
+uint32_t sys_hal_rf_tx_vol_get()
+{
+	return sys_ll_get_ana_reg8_t_vanaldosel();
+}
+int32 sys_hal_rf_rx_vol_set(uint32_t value)
+{
+	sys_ll_set_ana_reg9_spi_latch1v(1);
+	sys_ll_set_ana_reg8_r_vanaldosel(value);
+	sys_ll_set_ana_reg9_spi_latch1v(0);
+	return 0;
+}
+uint32_t sys_hal_rf_rx_vol_get()
+{
+	return sys_ll_get_ana_reg8_r_vanaldosel();
 }
 int32 sys_hal_bandgap_cali_set(uint32_t value)//increase or decrease the dvdddig voltage
 {

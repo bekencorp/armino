@@ -229,8 +229,7 @@ ethernetif_input(int iface, struct pbuf *p)
 	if (wifi_netif_vif_to_netif_type(vif) == NETIF_IF_AP) {
 		if (((!is_broadcast_mac_addr(ethhdr->dest.addr) &&
 			(memcmp(netif->hwaddr,ethhdr->dest.addr,NETIF_MAX_HWADDR_LEN) != 0))) ||
-			(is_broadcast_mac_addr(ethhdr->dest.addr) &&
-			(htons(ethhdr->type) != ETHTYPE_IP) && (htons(ethhdr->type) != ETHTYPE_IPV6))) {
+			(is_broadcast_mac_addr(ethhdr->dest.addr))) {
 				struct pbuf *q;
 				q = pbuf_clone(PBUF_RAW_TX, PBUF_RAM, p);
 				if (q != NULL) {

@@ -452,10 +452,12 @@ CONFIG_TIMER_SUPPORT_ID_BITS=0
 # end of FLASH
 
 #
-# EXTERN_32K
+# PWR_CLK
 #
 # CONFIG_EXTERN_32K is not set
-# end of EXTERN_32K
+# CONFIG_MEM_AUTO_POWER_DISABLE is not set
+# CONFIG_CP1_AUTO_POWER_DISABLE is not set
+# end of PWR_CLK
 
 #
 # VAULT
@@ -475,6 +477,14 @@ CONFIG_TIMER_SUPPORT_ID_BITS=0
 # CONFIG_FFT is not set
 # end of FFT
 
+#
+# CAMERA
+#
+# CONFIG_CAMERA_POWER_GPIO_CTRL is not set
+# CONFIG_ENCODE_BUF_DYNAMIC is not set
+# CONFIG_DVP_PCLK_72M is not set
+# end of CAMERA
+
 # CONFIG_LCD is not set
 # CONFIG_LCD_QSPI is not set
 # CONFIG_MAC_PHY_BYPASS is not set
@@ -489,7 +499,6 @@ CONFIG_CHANGE_JTAG_GPIO=y
 CONFIG_RESET_REASON=y
 # CONFIG_LCD_POWER_GPIO_CTRL is not set
 # CONFIG_LCD_BACKLIGHT_GPIO_CTRL is not set
-# CONFIG_CAMERA_POWER_GPIO_CTRL is not set
 # end of Driver
 
 #
@@ -681,6 +690,7 @@ CONFIG_MM_BEACON_LOSS_HIGH_COEFF=40
 CONFIG_MM_BEACON_LOSS_RSSI_THRESHOLD=-80
 # CONFIG_HE_MCS_LIMIT_7 is not set
 # CONFIG_MAC_CHAN is not set
+# CONFIG_MAX_STA_IN_SAP is not set
 
 #
 # ate_test
@@ -801,6 +811,12 @@ CONFIG_DSP_SRC_ADD=0x130000
 #
 CONFIG_VIDEO_SCALE=y
 # end of modules::video_code::scale
+
+#
+# modules::video_code::tjpg
+#
+CONFIG_JPEGDEC_TJPG=y
+# end of modules::video_code::tjpg
 
 #
 # modules::wfa_ca

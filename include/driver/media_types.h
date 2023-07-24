@@ -110,8 +110,8 @@ typedef enum {
 	PIXEL_FMT_DVP_H264,
 	PIXEL_FMT_UVC_JPEG,
 	PIXEL_FMT_UVC_H264,
-	PIXEL_FMT_RGB565,        /**< input data format is rgb565*/
-	PIXEL_FMT_BGR565,
+	PIXEL_FMT_RGB565,		   /**< input data format is rgb565(big endian), high pixel is bit[31-16], low pixel is bit[15-0] (PIXEL BIG ENDIAN)*/
+	PIXEL_FMT_RGB565_LE,		  /**< input data format is rgb565(little endian), high pixel is bit[15-0], low pixel is bit[31-16] (PIXEL little ENDIAN)*/
 	PIXEL_FMT_YUYV,    /**< input data is yuyv format, diaplay module internal may convert to rgb565 data*/
 	PIXEL_FMT_UYVY,
 	PIXEL_FMT_YYUV,            /**< input data is yyuv format */

@@ -2624,7 +2624,7 @@ static void aud_tras_drv_voc_uac_spk_cb(void)
 				os_memset(aud_tras_drv_info.voc_info.uac_spk_buff, 0x00, aud_tras_drv_info.voc_info.uac_spk_buff_size);
 			}
 		} else {
-			LOGW("write 0x00 uac spk data fail \r\n");
+			LOGD("write 0x00 uac spk data \r\n");
 			os_memset(aud_tras_drv_info.voc_info.uac_spk_buff, 0x00, aud_tras_drv_info.voc_info.uac_spk_buff_size);
 		}
 	}

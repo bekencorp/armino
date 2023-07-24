@@ -15,6 +15,7 @@
 #include <string.h>
 #include <driver/es8311.h>
 #include <driver/i2c.h>
+#include <os/os.h>
 
 
 #define ES8311_TAG "es8311"
@@ -413,7 +414,7 @@ bk_err_t es8311_codec_start(es8311_codec_config_t *cfg)
 	ret |= es8311_write_reg(0x00, 0xC1);	//chip powerup slave mode. master mode(0xC0)
 	ret |= es8311_set_i2s_role(cfg->i2s_cfg.role);
 
-	delay_ms(50);
+	rtos_delay_milliseconds(50);
 	ret |= es8311_write_reg(0x01, 0x3A);	//power up digital
 
 	/* set adc */
@@ -541,7 +542,7 @@ void es8311_codec_init_demo(void)
 	es8311_write_reg(0x10, 0x1F);	//set vmid/ibias
 	es8311_write_reg(0x11, 0x7F);	//set vsel
 	es8311_write_reg(0x00, 0x80);	//chip powerup slave mode. master mode(0xC0)
-	delay_ms(50);
+	rtos_delay_milliseconds(50);
 	es8311_write_reg(0x0D, 0x01);	//power up analog
 	es8311_write_reg(0x01, 0x3F);	//power up digital
 
@@ -618,7 +619,7 @@ void es8311_adc_init_demo(void)
 	es8311_write_reg(0x11, 0x7B);	//set vsel
 	es8311_write_reg(0x00, 0x81);	//chip powerup, slave mode(0x81)
 	//es8311_write_reg(0x00, 0xC1);	//chip powerup, master mode(0xC1)
-	delay_ms(50);
+	rtos_delay_milliseconds(50);
 	//es8311_write_reg(0x0D, 0x0A);	//power up analog
 	es8311_write_reg(0x0D, 0x09);	//power up analog
 	es8311_write_reg(0x01, 0x3A);	//power up digital
@@ -674,7 +675,7 @@ void es8311_codec_init_slave_demo(void)
 	es8311_write_reg(0x10, 0x03);	//set vmid/ibias
 	es8311_write_reg(0x11, 0x7B);	//set vsel
 	es8311_write_reg(0x00, 0x81);	//chip powerup slave mode. master mode(0xC0)
-	delay_ms(50);
+	rtos_delay_milliseconds(50);
 	es8311_write_reg(0x01, 0x3A);	//power up digital
 
 	/* set adc */
@@ -726,7 +727,7 @@ void es8311_codec_init_master_demo(void)
 	es8311_write_reg(0x10, 0x03);	//set vmid/ibias
 	es8311_write_reg(0x11, 0x7B);	//set vsel
 	es8311_write_reg(0x00, 0xC1);	//chip powerup slave mode. master mode(0xC0)
-	delay_ms(50);
+	rtos_delay_milliseconds(50);
 	es8311_write_reg(0x01, 0x3A);	//power up digital
 
 	/* set adc */

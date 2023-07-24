@@ -80,8 +80,7 @@ static uint64_t s_high_tick[AON_RTC_UNIT_NUM];
 static void aon_rtc_interrupt_disable(aon_rtc_id_t id);
 
 #define AONRTC_GET_SET_TIME_RTC_ID AON_RTC_ID_1
-#define S_RTC_CLK_FREQ    32000 //unit:31us
-int64_t s_boot_time_us = 0;	//timeofday value
+static int64_t s_boot_time_us = 0;	//timeofday value
 
 #define AON_RTC_OPS_SAFE_DELAY_US (125)
 /*
@@ -98,7 +97,7 @@ static void aon_rtc_delay_to_grantee_ops_safe()
 }
 
 #if CONFIG_AON_RTC_KEEP_TIME_SUPPORT
-int32_t s_rtc_keep_tick_offset = 0x0;
+static int32_t s_rtc_keep_tick_offset = 0x0;
 #define AONRTC_DEEPSLEEP_KEEPTIME_EF_KEYNUM 2
 
 static bool bk_rtc_get_aon_pmu_deepsleep_flag()
@@ -307,7 +306,7 @@ static void aon_rtc_register_deepsleep_cb(void)
 bk_err_t bk_rtc_get_deepsleep_duration_seconds(uint32_t *deepsleep_seconds)
 {
 #if CONFIG_AON_RTC_KEEP_TIME_SUPPORT
-    *deepsleep_seconds = s_rtc_keep_tick_offset/S_RTC_CLK_FREQ;
+    *deepsleep_seconds = s_rtc_keep_tick_offset/(AON_RTC_MS_TICK_CNT * 1000);
     return BK_OK;
 #endif
     return BK_FAIL;
@@ -1357,7 +1356,7 @@ bk_err_t bk_rtc_gettimeofday(struct timeval *tv, void *ptz)
 
     if(tv!=NULL)
     {
-        uint64_t uCurTimeUs = s_boot_time_us + bk_aon_rtc_get_current_tick(AONRTC_GET_SET_TIME_RTC_ID)*1000000LL/S_RTC_CLK_FREQ;
+        uint64_t uCurTimeUs = s_boot_time_us + bk_aon_rtc_get_current_tick(AONRTC_GET_SET_TIME_RTC_ID)*1000LL/AON_RTC_MS_TICK_CNT;
 
         tv->tv_sec=uCurTimeUs/1000000;
         tv->tv_usec=uCurTimeUs%1000000;
@@ -1375,7 +1374,7 @@ bk_err_t bk_rtc_settimeofday(const struct timeval *tv,const struct timezone *tz)
     if(tv)
     {
         uint64_t setTimeUs = ((uint64_t)tv->tv_sec)*1000000LL + tv->tv_usec ;
-        uint64_t getCurTimeUs = bk_aon_rtc_get_current_tick(AONRTC_GET_SET_TIME_RTC_ID)*1000000LL/S_RTC_CLK_FREQ;
+        uint64_t getCurTimeUs = bk_aon_rtc_get_current_tick(AONRTC_GET_SET_TIME_RTC_ID)*1000LL/AON_RTC_MS_TICK_CNT;
 
         s_boot_time_us = setTimeUs - getCurTimeUs;
         AON_RTC_LOGD("%s:sec=%d us=%d\n", __func__, tv->tv_sec, tv->tv_usec);

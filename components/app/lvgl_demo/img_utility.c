@@ -5,7 +5,7 @@
 #include <soc/mapping.h>
 #include "../media/include/frame_buffer.h"
 #include "../media/include/storage_act.h"
-#include "../../demos/media/video/jpeg_dec/tjpgd.h"
+#include <modules/tjpgd.h>
 #include <components/jpeg_decode.h>
 
 #if (CONFIG_LCD) && (CONFIG_LVGL) && (CONFIG_LVGL_DEMO)
@@ -168,9 +168,9 @@ s32 img_jpg_load_from_sd(char *filename, lv_img_dsc_t *img_dst)
             break;
         }
 
-        jd_set_JD_FORMAT(JD_FORMAT_RGB565);
+        jd_set_format(JD_FORMAT_RGB565);
         ret = _dec_img_file_from_sdcard(filename, img_dst);
-        jd_set_JD_FORMAT(JD_FORMAT_VYUY);
+        jd_set_format(JD_FORMAT_VYUY);
     }while(0);
 
     return ret;

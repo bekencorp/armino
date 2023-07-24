@@ -49,7 +49,6 @@
 
 #include <driver/timer.h>
 #include <driver/psram.h>
-#include "lv_vendor.h"
 
 #include "driver/flash.h"
 #include "driver/flash_partition.h"
@@ -122,8 +121,8 @@ static char *frame_suffix(pixel_format_t fmt)
 			return "_uvc.jpg";
 		case PIXEL_FMT_UVC_H264:
 			return "_uvc.h264";
-		case PIXEL_FMT_RGB565:
-			return ".rgb565";
+		case PIXEL_FMT_RGB565_LE:
+			return ".rgb565le";
 		case PIXEL_FMT_YUYV:
 			return ".yuyv";
 		case PIXEL_FMT_UYVY:

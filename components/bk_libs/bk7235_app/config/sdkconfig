@@ -468,10 +468,12 @@ CONFIG_FLASH_SRC_CLK_60M=y
 # end of FLASH
 
 #
-# EXTERN_32K
+# PWR_CLK
 #
 # CONFIG_EXTERN_32K is not set
-# end of EXTERN_32K
+# CONFIG_MEM_AUTO_POWER_DISABLE is not set
+# CONFIG_CP1_AUTO_POWER_DISABLE is not set
+# end of PWR_CLK
 
 #
 # VAULT
@@ -491,6 +493,14 @@ CONFIG_FLASH_SRC_CLK_60M=y
 # CONFIG_FFT is not set
 # end of FFT
 
+#
+# CAMERA
+#
+# CONFIG_CAMERA_POWER_GPIO_CTRL is not set
+# CONFIG_ENCODE_BUF_DYNAMIC is not set
+# CONFIG_DVP_PCLK_72M is not set
+# end of CAMERA
+
 # CONFIG_LCD is not set
 # CONFIG_LCD_QSPI is not set
 CONFIG_MAC_PHY_BYPASS=y
@@ -505,7 +515,6 @@ CONFIG_CHANGE_JTAG_GPIO=y
 CONFIG_RESET_REASON=y
 # CONFIG_LCD_POWER_GPIO_CTRL is not set
 # CONFIG_LCD_BACKLIGHT_GPIO_CTRL is not set
-# CONFIG_CAMERA_POWER_GPIO_CTRL is not set
 # end of Driver
 
 #
@@ -723,6 +732,7 @@ CONFIG_SELF_LE_INIT_UPDATE_CON_PARAM=y
 # CONFIG_SELF_LE_IND_NTF is not set
 # CONFIG_SELF_LE_INIT_MTU is not set
 CONFIG_SELF_LE_INIT_SDP=y
+CONFIG_BLE_3E_RECONNECT=y
 # end of BTDM 5.2 RW Host
 
 #
@@ -767,6 +777,7 @@ CONFIG_MM_BEACON_LOSS_RSSI_THRESHOLD=-80
 CONFIG_HE_MCS_LIMIT_7=y
 CONFIG_MAC_CHAN=y
 CONFIG_SPECIAL_TX_TYPE=y
+# CONFIG_MAX_STA_IN_SAP is not set
 
 #
 # ate_test
@@ -839,7 +850,7 @@ CONFIG_RWNX_QOS_MSDU=y
 CONFIG_MSDU_RESV_HEAD_LEN=96
 CONFIG_MSDU_RESV_TAIL_LEN=16
 # CONFIG_WPA_TWT_TEST is not set
-# CONFIG_RWNX_SW_TXQ is not set
+CONFIG_RWNX_SW_TXQ=y
 # CONFIG_RWNX_FAST_CONNECT is not set
 # CONFIG_P2P is not set
 # CONFIG_P2P_GO is not set
@@ -908,6 +919,12 @@ CONFIG_VAD=y
 #
 CONFIG_VIDEO_SCALE=y
 # end of modules::video_code::scale
+
+#
+# modules::video_code::tjpg
+#
+# CONFIG_JPEGDEC_TJPG is not set
+# end of modules::video_code::tjpg
 
 #
 # modules::wfa_ca

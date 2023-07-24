@@ -15,6 +15,17 @@ extern "C" {
 #define PM_APP_AUTO_VOTE_DISENABLE       (0x0)
 #define PM_CP1_AUTO_POWER_DOWN_ENABLE    (0x1)
 #define PM_CP1_AUTO_POWER_DOWN_DISENABLE (0x0)
+typedef enum
+{
+	PM_CP1_AUTO_CTRL_DISABLE = 0,
+	PM_CP1_AUTO_CTRL_ENABLE    = 1,
+}pm_cp1_auto_ctrl_e;
+
+typedef enum
+{
+	PM_MEM_AUTO_CTRL_DISABLE = 0,
+	PM_MEM_AUTO_CTRL_ENABLE    = 1,
+}pm_mem_auto_ctrl_e;
 
 typedef enum
 {
@@ -419,6 +430,37 @@ bk_err_t bk_pm_exit_low_vol_wakeup_source_set();
  * - wakeup source(0x0:WAKEUP SOURCE OF GPIO;0x1:WAKEUP SOURCE OF RTC;0x2:WAKEUP SOURCE OF WIFI OR BT;0x4:WAKEUP SOURCE OF TOUCHED;0x5:NONE WAKEUP_SOURCE)
  */
 pm_wakeup_source_e bk_pm_exit_low_vol_wakeup_source_get();
+/**
+ * @brief get memory auto power down flag
+ *
+ * get memory auto power down flag
+ *
+ * @attention
+ * - This API is used to get memory auto power down flag
+ *
+ * @param
+ * -void
+ * @return
+ * - memory auto power down flag(PM_MEM_AUTO_CTRL_DISABLE:disable memory auto power down feature ;PM_MEM_AUTO_CTRL_ENABLE:enable memory auto power down feature)
+ */
+pm_mem_auto_ctrl_e bk_pm_mem_auto_power_down_state_get();
+/**
+ * @brief memory auto power down flag set
+ *
+ * set memory auto power down flag
+ *
+ * @attention
+ * - This API is used to set memory auto power down flag
+ *
+ * @param
+ * -PM_MEM_AUTO_CTRL_DISABLE:disable memory auto power down feature ;PM_MEM_AUTO_CTRL_ENABLE:enable memory auto power down feature
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+bk_err_t bk_pm_mem_auto_power_down_state_set(pm_mem_auto_ctrl_e value);
+
 /**
  * @brief get cp1 auto power down flag
  *

@@ -8,7 +8,7 @@
 #include <os/os.h>
 #include <common/bk_kernel_err.h>
 
-#include "lwip/sockets.h"
+#include <lwip/sockets.h>
 
 #include <components/video_transfer.h>
 
@@ -783,7 +783,7 @@ static void demo_doorbell_tcp_main(beken_thread_arg_t data)
 				if (rcv_len <= 0)
 				{
 					// close this socket
-					LOGI("recv close fd:%d, rcv_len:%d\n", demo_doorbell_watch_fd_list[i], rcv_len);
+					LOGI("recv close fd:%d, rcv_len:%d, %d\n", demo_doorbell_watch_fd_list[i], rcv_len, errno);
 					close(demo_doorbell_watch_fd_list[i]);
 					demo_doorbell_watch_fd_list[i] = -1;
 				}

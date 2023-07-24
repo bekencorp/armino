@@ -1,6 +1,6 @@
 menu "LVGL Meter Configuration"
 
-    config LV_USE_DEMO_METER
-        bool "LVGL Meter"
+    config LV_QSPI_USE_DEMO_METER
+        bool "LVGL QSPI Meter"
         default n
 endmenu

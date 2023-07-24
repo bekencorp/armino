@@ -1054,11 +1054,11 @@ bk_err_t bk_uvc_camera_driver_init(uvc_camera_config_t *config)
 
 	UVC_DIAG_DEBUG_INIT();
 
-#if (CONFIG_PSRAM)
+#if (CONFIG_PSRAM && (!CONFIG_SLAVE_CORE))
 	bk_pm_module_vote_cpu_freq(PM_DEV_ID_PSRAM, PM_CPU_FRQ_320M);
-
 	bk_psram_init();
 #endif
+
 
 	if (uvc_camera_drv == NULL)
 	{
@@ -1142,6 +1142,10 @@ error:
 
 	uvc_camera_deinit();
 
+#if (CONFIG_PSRAM && (!CONFIG_SLAVE_CORE))
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_PSRAM, PM_CPU_FRQ_DEFAULT);
+#endif
+
 	if (uvc_drv_msg_que)
 	{
 		rtos_deinit_queue(&uvc_drv_msg_que);
@@ -1171,6 +1175,10 @@ bk_err_t bk_uvc_camera_driver_deinit()
 	{
 		delay_us(10);
 	}
+
+#if (CONFIG_PSRAM && (!CONFIG_SLAVE_CORE))
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_PSRAM, PM_CPU_FRQ_DEFAULT);
+#endif
 
 	return BK_OK;
 }

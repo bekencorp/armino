@@ -44,7 +44,8 @@
 
 #endif
 
-#define RTC_CLK_FREQ    32000 //unit:31us
+#define RTC_CLK_FREQ    (AON_RTC_MS_TICK_CNT * 1000)
+
 #define USEC_TO_SEC (1000000)
 #define INVALID_VAL_YEAR  (0xFFFF)
 #define LIMIT_VAL_MONTH    (12)

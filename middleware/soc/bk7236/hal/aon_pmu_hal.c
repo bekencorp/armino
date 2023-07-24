@@ -93,6 +93,10 @@ uint32_t aon_pmu_hal_reg_get(pmu_reg_e reg)
 	return 0;
 }
 
+void aon_pmu_hal_lpo_src_extern32k_enable(void)
+{
+	//Empty function
+}
 void aon_pmu_hal_lpo_src_set(uint32_t lpo_src)
 {
 

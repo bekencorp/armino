@@ -70,6 +70,7 @@ static bool lcd_en = false;
 static app_camera_type_t camera_type = APP_CAMERA_UVC_MJPEG;
 static media_ppi_t camera_ppi = PPI_800X480;
 static media_ppi_t lcd_ppi = PPI_480X272;
+static char lcd_name[10] = {'0'};
 #define DEFAULT_VIDEO_FRAME_NUM  15
 static uint8_t audio_type = 0;
 static aud_intf_voc_samp_rate_t audio_samp_rate = AUD_INTF_VOC_SAMP_RATE_8K;
@@ -82,7 +83,7 @@ static void cli_agora_help(void)
 {
 	os_printf("agora_test {audio start|stop appid audio_type sampple_rate aec_en} \r\n");
 	os_printf("agora_test {video start|stop appid video_type ppi} \r\n");
-	os_printf("agora_test {both start|stop appid audio_type sample_rate video_type ppi aec_en lcd_ppi} \r\n");
+	os_printf("agora_test {both start|stop appid audio_type sample_rate video_type ppi aec_en lcd_ppi lcd_name} \r\n");
 }
 
 static int _netif_event_cb(void *arg, event_module_t event_module, int event_id, void *event_data)
@@ -331,7 +332,7 @@ void agora_main(void)
 		media_app_lcd_rotate(ROTATE_90);
 		lcd_open_t lcd_open;
 		lcd_open.device_ppi = lcd_ppi;
-		lcd_open.device_name = "st7796s";
+		lcd_open.device_name = lcd_name;//"st7796s" "h050iwv" "st7282"
 		media_app_lcd_open(&lcd_open);
 		memory_free_show();
 	}
@@ -401,7 +402,10 @@ void agora_main(void)
 	LOGI("-----agora_rtc_join_channel success-----\r\n");
 
 	if (audio_en) {
+		LOGI("audio start \r\n");
+		memory_free_show();
 		voice_start();
+		memory_free_show();
 	}
 
 	if (video_en) {
@@ -613,6 +617,8 @@ void cli_agora_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				LOGW("the ppi is not support \n");
 				goto cmd_fail;
 			}
+
+			os_memcpy(lcd_name, argv[10], os_strlen(argv[10]));
 
 			audio_en = true;
 			video_en = true;

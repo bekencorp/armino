@@ -11,3 +11,4 @@ Cli
    视频 <video/index>
    触摸 <touch/index>
    saradc <saradc/saradc>
+   flashdb <flashdb/flashdb>

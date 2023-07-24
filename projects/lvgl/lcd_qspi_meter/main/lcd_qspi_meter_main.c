@@ -11,6 +11,7 @@
 
 #include "lcd_act.h"
 #include "media_app.h"
+#include "lvgl.h"
 #include "lv_vendor.h"
 #include "driver/drv_tp.h"
 
@@ -53,8 +54,8 @@ const unsigned int g_sram_addr_map[4] =
 
 void meter_init(void)
 {
-#ifdef CONFIG_LV_USE_DEMO_METER
-	lv_vnd_config_t lv_vnd_config;
+#ifdef CONFIG_LV_QSPI_USE_DEMO_METER
+	lv_vnd_config_t lv_vnd_config = {0};
 
 	os_printf("meter Start\r\n");
 
@@ -84,12 +85,17 @@ void meter_init(void)
 	lv_vnd_config.draw_buf_2_1 = (lv_color_t *)PSRAM_DRAW_BUFFER;
 	lv_vnd_config.draw_buf_2_2 = (lv_color_t *)(PSRAM_DRAW_BUFFER + lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));
 #else
+	#define PSRAM_FRAME_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)
+
 	lv_vnd_config.draw_pixel_size = (75 * 1024) / sizeof(lv_color_t);
 	lv_vnd_config.draw_buf_2_1 = LV_MEM_CUSTOM_ALLOC(lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));
 	lv_vnd_config.draw_buf_2_2 = NULL;
+	lv_vnd_config.sram_frame_buf_1 = (lv_color_t *)PSRAM_FRAME_BUFFER;
+	lv_vnd_config.sram_frame_buf_2 = (lv_color_t *)PSRAM_FRAME_BUFFER + ppi_to_pixel_x(s_device_config->ppi) * ppi_to_pixel_y(s_device_config->ppi) * sizeof(lv_color_t);
 #endif
 	lv_vnd_config.rotation = ROTATE_NONE;
 	lv_vnd_config.color_depth = LV_COLOR_DEPTH;
+
 	lv_vendor_init(&lv_vnd_config, ppi_to_pixel_x(s_device_config->ppi), ppi_to_pixel_y(s_device_config->ppi));
 	lv_vendor_start();
 

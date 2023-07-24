@@ -218,7 +218,7 @@ const uint8_t sensor_gc0328c_init_talbe[][2] =
 	{0x40, 0x7F},
 	{0x41, 0x26},
 	{0x42, 0xFB},
-	{0x44, 0x02},
+	{0x44, 0x02}, //Y Cb Y Cr
 	{0x45, 0x00},
 	{0x46, 0x03},
 	{0x4F, 0x01},
@@ -494,6 +494,7 @@ const uint8_t sensor_gc0328c_20pfs_talbe[][2] =
 
 const uint8_t sensor_gc0328c_25pfs_talbe[][2] =
 {
+	{0xFE, 0x10},
 	{0x05, 0x01},
 	{0x06, 0x0a},
 	{0x07, 0x00},
@@ -513,6 +514,7 @@ const uint8_t sensor_gc0328c_25pfs_talbe[][2] =
 
 const uint8_t sensor_gc0328c_30pfs_talbe[][2] =
 {
+	{0xFE, 0x10},
 	{0x05, 0x00},
 	{0x06, 0x6a},
 	{0x07, 0x00},
@@ -1020,8 +1022,8 @@ const dvp_sensor_config_t dvp_sensor_gc0328c =
 	.name = "gc0328c",
 	.clk = JPEG_96M_MCLK_24M,
 	.fmt = PIXEL_FMT_YUYV,
-	.vsync = JPEG_SYNC_HiGH_LEVEL,
-	.hsync = JPEG_SYNC_HiGH_LEVEL,
+	.vsync = JPEG_SYNC_HIGH_LEVEL,
+	.hsync = JPEG_SYNC_HIGH_LEVEL,
 	/* default config */
 	.def_ppi = PPI_640X480,
 	.def_fps = FPS25,

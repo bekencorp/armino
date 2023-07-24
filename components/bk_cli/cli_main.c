@@ -1643,6 +1643,9 @@ int bk_cli_init(void)
 #if CONFIG_PRRO_TEST
 	cli_prro_init();
 #endif
+#if CONFIG_FLASHDB_DEMO
+    cli_flashdb_init();
+#endif
 
 /*-----open the cli comand both at release and debug vertion end ------*/
 

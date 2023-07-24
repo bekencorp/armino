@@ -1677,28 +1677,8 @@ int ble_set_adv_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc,
     }
 
     adv_param.own_addr_type = os_strtoul(argv[3], NULL, 16) & 0xFF;
-    switch (adv_param.own_addr_type)
-    {
-        case 0:
-        case 1:
-            adv_param.own_addr_type = BLE_STATIC_ADDR;
-            break;
-        case 2:
-            adv_param.own_addr_type = BLE_GEN_RSLV_ADDR;
-            break;
-        case 3:
-            adv_param.own_addr_type = BLE_GEN_NON_RSLV_ADDR;
-            break;
-        default:
-            os_printf("\nThe third(own_addr_type) param is wrong!\n");
-            err = kParamErr;
-            break;
-    }
-
-    if (err != kNoErr)
-        goto error;
-
     adv_param.adv_type = os_strtoul(argv[4], NULL, 16) & 0xFF;
+
     if (adv_param.adv_type > 2)
     {
         os_printf("\nThe forth(adv_type) param is wrong!\n");
@@ -1732,6 +1712,26 @@ int ble_set_adv_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 
     if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
     {
+        switch (adv_param.own_addr_type)
+        {
+            case 0:
+            case 1:
+                adv_param.own_addr_type = OWN_ADDR_TYPE_PUBLIC_OR_STATIC_ADDR;
+                break;
+            case 2:
+                adv_param.own_addr_type = OWN_ADDR_TYPE_GEN_RSLV_OR_RANDOM_ADDR;
+                break;
+            case 3:
+                adv_param.own_addr_type = OWN_ADDR_TYPE_GEN_NON_RSLV_OR_RANDOM_ADDR;
+                break;
+            default:
+                os_printf("\nThe third(own_addr_type) param is wrong!\n");
+                err = kParamErr;
+                break;
+        }
+
+        if (err != kNoErr)
+            goto error;
 
         actv_idx = bk_ble_find_actv_state_idx_handle(AT_ACTV_ADV_CREATED);
         if (actv_idx == AT_BLE_MAX_ACTV)
@@ -2271,28 +2271,8 @@ int ble_set_scan_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
 
     os_memset(&scan_param, 0, sizeof(ble_scan_param_t));
     scan_param.own_addr_type = os_strtoul(argv[0], NULL, 16) & 0xFF;
-    switch (scan_param.own_addr_type)
-    {
-        case 0:
-        case 1:
-            scan_param.own_addr_type = BLE_STATIC_ADDR;
-            break;
-        case 2:
-            scan_param.own_addr_type = BLE_GEN_RSLV_ADDR;
-            break;
-        case 3:
-            scan_param.own_addr_type = BLE_GEN_NON_RSLV_ADDR;
-            break;
-        default:
-            os_printf("\nThe fourth param is wrong!\n");
-            err = kParamErr;
-            break;
-    }
-
-    if (err != kNoErr)
-        goto error;
-
     scan_param.scan_phy = os_strtoul(argv[1], NULL, 16) & 0xFF;
+
     if (!(scan_param.scan_phy & (PHY_1MBPS_BIT | PHY_CODED_BIT)))
     {
         os_printf("\nThe scan phy param is wrong!\n");
@@ -2319,10 +2299,29 @@ int ble_set_scan_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
         }
     }
 
-
-
     if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
     {
+        switch (scan_param.own_addr_type)
+        {
+            case 0:
+            case 1:
+                scan_param.own_addr_type = OWN_ADDR_TYPE_PUBLIC_OR_STATIC_ADDR;
+                break;
+            case 2:
+                scan_param.own_addr_type = OWN_ADDR_TYPE_GEN_RSLV_OR_RANDOM_ADDR;
+                break;
+            case 3:
+                scan_param.own_addr_type = OWN_ADDR_TYPE_GEN_NON_RSLV_OR_RANDOM_ADDR;
+                break;
+            default:
+                os_printf("\nThe fourth param is wrong!\n");
+                err = kParamErr;
+                break;
+        }
+
+        if (err != kNoErr)
+            goto error;
+
         bk_ble_set_notice_cb(ble_at_notice_cb);
         actv_idx = bk_ble_find_actv_state_idx_handle(AT_ACTV_SCAN_CREATED);
         if (actv_idx == AT_BLE_MAX_ACTV)
@@ -4977,10 +4976,11 @@ int ble_connect_by_name_handle(char *pcWriteBuffer, int xWriteBufferLen, int arg
             return err;
         }
     */
-    }else
+    }
+    else
     {
         ble_scan_param_t scan_param;
-        scan_param.own_addr_type = BLE_STATIC_ADDR;
+        scan_param.own_addr_type = 0; // ethermind does not have OWN_ADDR_TYPE_PUBLIC_OR_STATIC_ADDR
         scan_param.scan_phy = PHY_1MBPS_BIT;
         scan_param.scan_intv = 0x64;
         scan_param.scan_wd = 0x1e;

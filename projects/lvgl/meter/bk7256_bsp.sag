@@ -92,19 +92,9 @@ CPU0_LOAD2 0x00018800  0x2F7800
 		ADDR _dtcm_bss_end
 	}
 
-	SRAM_BT 0x30000000 0x16000
-	{
-		LOADADDR NEXT _bt_data_lmastart
-		ADDR NEXT   _bt_data_start
-		* KEEP (.bt_spec_data LMA_FORCE_ALIGN)
-		* KEEP (.ble_bss_data LMA_FORCE_ALIGN)
-		*rwip.c.obj *rwip_driver.c.obj *uart_ble.c.obj *uart_controller_only.c.obj(+ZI)
-		*sdp_common.c.obj *app_ble.c.obj *prf.c.obj(+ZI)
-		ADDR _bt_data_end
 
-	}
 
-	SRAM_DATA 0x30016000 0x2A000
+	SRAM_DATA 0x30000000 0x20000
 	{
 		* KEEP (.sram_nocache)
 		LOADADDR NEXT _data_lmastart
@@ -115,7 +105,7 @@ CPU0_LOAD2 0x00018800  0x2F7800
 
 	}
 
-	SRAM_CACHE 0x38000000 0x40000
+	SRAM_CACHE 0x38000000 0x60000
 	{
 		* KEEP (.sram_cache)
 	}

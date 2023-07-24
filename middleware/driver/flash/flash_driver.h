@@ -41,6 +41,8 @@
 #define FLASH_PAGE_SIZE                  256 /* each page has 256 bytes */
 #define FLASH_DPLL_DIV_VALUE_TEN         3
 #define FLASH_DPLL_DIV_VALUE_SIX         1
+#define FLASH_ManuFacID_POSI             (16)
+#define FLASH_ManuFacID_GD               (0xC8)
 
 typedef struct {
 	uint32_t flash_id;

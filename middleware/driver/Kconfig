@@ -48,6 +48,7 @@ menu "Driver"
 	source "${ARMINO_PATH}/middleware/driver/vault/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/otp/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/fft/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/camera/Kconfig"
 
 	config LCD
 		bool "Enable LCD"
@@ -182,7 +183,4 @@ menu "Driver"
 		bool "Enable lcd backlight gpio ctrl"
 		default n
 
-	config CAMERA_POWER_GPIO_CTRL
-		bool "Enable camera power gpio ctrl"
-		default n
 endmenu

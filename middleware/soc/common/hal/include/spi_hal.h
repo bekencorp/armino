@@ -82,8 +82,14 @@ typedef struct {
 #define spi_hal_clear_tx_fifo(hal) spi_ll_clear_tx_fifo((hal)->hw)
 #define spi_hal_clear_rx_fifo(hal) spi_ll_clear_rx_fifo((hal)->hw)
 #define spi_hal_is_rx_fifo_empty(hal) spi_ll_is_rx_fifo_empty((hal)->hw)
-
 #define spi_hal_write_byte(hal, data) spi_ll_write_byte((hal)->hw, data)
+
+#define SPI_EN_APLL_MANU_VAL   0x14
+#define SPI_EN_APLL_VSEL_VAL   0x7
+#define SPI_DIS_APLL_MANU_VAL  0x10
+#define SPI_DIS_APLL_VSEL_VAL  0x5
+#define SPI_APLL_98M           98000000
+#define SPI_APLL_120M          120000000
 
 bk_err_t spi_hal_init(spi_hal_t *hal);
 bk_err_t spi_hal_configure(spi_hal_t *hal, const spi_config_t *config);
@@ -91,6 +97,9 @@ bk_err_t spi_hal_start_common(spi_hal_t *hal);
 bk_err_t spi_hal_stop_common(spi_hal_t *hal);
 bk_err_t spi_hal_set_baud_rate(spi_hal_t *hal, uint32_t baud_rate);
 bk_err_t spi_hal_read_byte(spi_hal_t *hal, uint8_t *data);
+bk_err_t spi_hal_duplex_config(spi_hal_t *hal);
+bk_err_t spi_hal_duplex_release(spi_hal_t *hal);
+bk_err_t spi_hal_enable_tx_rx(spi_hal_t *hal);
 
 #if CFG_HAL_DEBUG_SPI
 void spi_struct_dump(spi_id_t id);

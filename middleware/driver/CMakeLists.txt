@@ -338,6 +338,12 @@ if (CONFIG_QSPI)
 		)
 endif() #if (CONFIG_QSPI)
 
+if (CONFIG_SPI_MST_FLASH)
+	list(APPEND srcs
+		"spi/spi_flash.c"
+		)
+endif() #if (CONFIG_SPI_MST_FLASH)
+
 if (CONFIG_QSPI AND CONFIG_LCD_QSPI)
 	list(APPEND srcs
 		"lcd/lcd_qspi_driver.c"

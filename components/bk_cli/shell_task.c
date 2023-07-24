@@ -155,12 +155,21 @@ typedef struct
 	u32     empty_cnt;
 } free_queue_t;
 
+#if (CONFIG_CACHE_ENABLE) && (CONFIG_LV_USE_DEMO_METER)
+static __attribute__((section(".sram_cache"))) u8    shell_log_buff1[SHELL_LOG_BUF1_NUM * SHELL_LOG_BUF1_LEN];
+static __attribute__((section(".sram_cache"))) u8    shell_log_buff2[SHELL_LOG_BUF2_NUM * SHELL_LOG_BUF2_LEN];
+static __attribute__((section(".sram_cache"))) u8    shell_log_buff3[SHELL_LOG_BUF3_NUM * SHELL_LOG_BUF3_LEN];
+static __attribute__((section(".sram_cache"))) u16   buff1_free_list[SHELL_LOG_BUF1_NUM];
+static __attribute__((section(".sram_cache"))) u16   buff2_free_list[SHELL_LOG_BUF2_NUM];
+static __attribute__((section(".sram_cache"))) u16   buff3_free_list[SHELL_LOG_BUF3_NUM];
+#else
 static u8    shell_log_buff1[SHELL_LOG_BUF1_NUM * SHELL_LOG_BUF1_LEN];
 static u8    shell_log_buff2[SHELL_LOG_BUF2_NUM * SHELL_LOG_BUF2_LEN];
 static u8    shell_log_buff3[SHELL_LOG_BUF3_NUM * SHELL_LOG_BUF3_LEN];
 static u16   buff1_free_list[SHELL_LOG_BUF1_NUM];
 static u16   buff2_free_list[SHELL_LOG_BUF2_NUM];
 static u16   buff3_free_list[SHELL_LOG_BUF3_NUM];
+#endif
 
 /*    queue sort ascending in blk_len.    */
 static free_queue_t       free_queue[3] =
@@ -178,10 +187,19 @@ static free_queue_t       free_queue[3] =
 			.free_blk_num = SHELL_LOG_BUF1_NUM, .empty_cnt = 0},
 	};
 
+#if (CONFIG_CACHE_ENABLE) && (CONFIG_LV_USE_DEMO_METER)
+static __attribute__((section(".sram_cache")))  busy_queue_t       log_busy_queue;
+static __attribute__((section(".sram_cache")))  pending_queue_t    pending_queue;
+#else
 static busy_queue_t       log_busy_queue;
 static pending_queue_t    pending_queue;
+#endif
 
+#if (CONFIG_CACHE_ENABLE) && (CONFIG_LV_USE_DEMO_METER)
+static __attribute__((section(".sram_cache")))  cmd_line_t  cmd_line_buf;
+#else
 static cmd_line_t  cmd_line_buf;
+#endif
 
 #ifdef CONFIG_SLAVE_CORE
 #if 1

@@ -407,7 +407,7 @@ int ble_boarding_legacy_handle(char *pcWriteBuffer, int xWriteBufferLen, int arg
 	adv_param.chnl_map = 7;
 	adv_param.adv_intv_min = 120;
 	adv_param.adv_intv_max = 160;
-	adv_param.own_addr_type = BLE_STATIC_ADDR;
+	adv_param.own_addr_type = OWN_ADDR_TYPE_PUBLIC_OR_STATIC_ADDR;
 	adv_param.adv_type = 0;
 	adv_param.adv_prop = 3;
 	adv_param.prim_phy = 1;

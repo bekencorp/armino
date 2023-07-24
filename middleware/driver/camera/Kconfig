@@ -1,0 +1,14 @@
+menu "CAMERA"
+	config CAMERA_POWER_GPIO_CTRL
+		bool "Enable camera power gpio ctrl"
+		default n
+
+	config ENCODE_BUF_DYNAMIC
+		bool "Enable encode buffer dynamic malloc"
+		default n
+
+	config DVP_PCLK_72M
+		bool "current ip support 72M pclk"
+		default y if SOC_BK7236XX
+		default n if !SOC_BK7236XX
+endmenu

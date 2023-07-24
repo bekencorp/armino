@@ -68,7 +68,7 @@ static inline void spi_ll_init(spi_hw_t *hw)
 {
 	spi_ll_soft_reset(hw);
 	hw->ctrl.tx_fifo_int_level = 0;
-	hw->ctrl.rx_fifo_int_level = 2;
+	hw->ctrl.rx_fifo_int_level = 0;
 }
 
 static inline void spi_ll_enable(spi_hw_t *hw)
@@ -282,6 +282,11 @@ static inline void spi_ll_set_rx_trans_len(spi_hw_t *hw, uint32_t len)
 	hw->cfg.rx_trans_len = len & SPI_F_RX_TRANS_LEN_M;
 }
 
+static inline void spi_ll_enable_tx_rx(spi_hw_t *hw)
+{
+	hw->cfg.v |= 0b11;
+}
+
 static inline void spi_ll_clear_int_status(spi_hw_t *hw)
 {
 	hw->int_status.tx_fifo_int = 1;
@@ -313,12 +318,12 @@ static inline void spi_ll_clear_rx_overflow_int_status(spi_hw_t *hw)
 
 static inline uint32_t spi_ll_get_interrupt_status(spi_hw_t *hw)
 {
-	return REG_READ(SPI_R_INT_STATUS(0));
+	return hw->int_status.v;
 }
 
 static inline void spi_ll_clear_interrupt_status(spi_hw_t *hw, uint32_t status)
 {
-	REG_WRITE(SPI_R_INT_STATUS(0), status);
+	hw->int_status.v = status;
 }
 
 static inline bool spi_ll_is_tx_fifo_wr_ready(spi_hw_t *hw)
@@ -328,7 +333,7 @@ static inline bool spi_ll_is_tx_fifo_wr_ready(spi_hw_t *hw)
 
 static inline bool spi_ll_is_rx_fifo_rd_ready(spi_hw_t *hw)
 {
-	return !!REG_GET_BIT(SPI_R_INT_STATUS(0), SPI_F_RX_FIOF_RD_READY);
+	return !!(hw->int_status.rx_fifo_rd_ready);
 }
 
 static inline bool spi_ll_is_tx_fifo_int_triggered(spi_hw_t *hw)

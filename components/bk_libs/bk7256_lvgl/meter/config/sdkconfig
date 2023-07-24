@@ -56,7 +56,7 @@ CONFIG_NO_HOSTED=y
 # CONFIG_SEMI_HOSTED is not set
 # CONFIG_FULLY_HOSTED is not set
 # CONFIG_WIFI_SENSOR is not set
-CONFIG_BLUETOOTH=y
+# CONFIG_BLUETOOTH is not set
 # end of Features Configuration
 
 #
@@ -471,10 +471,12 @@ CONFIG_FLASH_SRC_CLK_60M=y
 # end of FLASH
 
 #
-# EXTERN_32K
+# PWR_CLK
 #
 # CONFIG_EXTERN_32K is not set
-# end of EXTERN_32K
+# CONFIG_MEM_AUTO_POWER_DISABLE is not set
+# CONFIG_CP1_AUTO_POWER_DISABLE is not set
+# end of PWR_CLK
 
 #
 # VAULT
@@ -493,6 +495,14 @@ CONFIG_FLASH_SRC_CLK_60M=y
 #
 # CONFIG_FFT is not set
 # end of FFT
+
+#
+# CAMERA
+#
+# CONFIG_CAMERA_POWER_GPIO_CTRL is not set
+# CONFIG_ENCODE_BUF_DYNAMIC is not set
+# CONFIG_DVP_PCLK_72M is not set
+# end of CAMERA
 
 CONFIG_LCD=y
 # CONFIG_LCD_GC9503V is not set
@@ -522,7 +532,6 @@ CONFIG_CHANGE_JTAG_GPIO=y
 CONFIG_RESET_REASON=y
 # CONFIG_LCD_POWER_GPIO_CTRL is not set
 # CONFIG_LCD_BACKLIGHT_GPIO_CTRL is not set
-# CONFIG_CAMERA_POWER_GPIO_CTRL is not set
 # end of Driver
 
 #
@@ -549,17 +558,6 @@ CONFIG_CACHE_ENABLE=y
 # CONFIG_FPGA is not set
 # CONFIG_SPE is not set
 # end of Arch::Cm33
-
-#
-# Bk_ble
-#
-# CONFIG_BT is not set
-CONFIG_BLE=y
-# CONFIG_BLE_5_X is not set
-# CONFIG_BLE_4_2 is not set
-CONFIG_BTDM_5_2=y
-# CONFIG_BTDM_5_2_MINDTREE is not set
-# end of Bk_ble
 
 #
 # Temp_detect
@@ -706,42 +704,11 @@ CONFIG_MAC_BSSID=y
 # CONFIG_COMPONENTS_STA_VSIE is not set
 # end of Shared Configs with Public components
 
-CONFIG_BLE_PS=y
-# CONFIG_BLE_HOST_NONE is not set
-CONFIG_BLE_HOST_RW=y
-# CONFIG_BLE_HOST_ZEPHYR is not set
-CONFIG_BLE_MESH_NONE=y
-# CONFIG_BLE_MESH_RW is not set
-# CONFIG_BLE_MESH_ZEPHYR is not set
-CONFIG_BLE_ADV_NUM=5
-CONFIG_BLE_SCAN_NUM=1
-CONFIG_BLE_INIT_NUM=1
-CONFIG_BLE_CONN_NUM=8
-
 #
 # Modules::Ble_wifi_exchange
 #
 CONFIG_BLE_WIFI_EXCHANGE=y
 # end of Modules::Ble_wifi_exchange
-
-#
-# BTDM 5.2 Controller
-#
-CONFIG_ACLSEMI_BTC_FEATURE_INCLUDED=y
-CONFIG_BT_CONN_NUM=7
-# end of BTDM 5.2 Controller
-
-# CONFIG_BLE_HOST_ETHERMIND is not set
-CONFIG_ACLSEMI_BT_MESH_DEBUG_LEVEL=4
-
-#
-# BTDM 5.2 RW Host
-#
-CONFIG_SELF_LE_INIT_UPDATE_CON_PARAM=y
-# CONFIG_SELF_LE_IND_NTF is not set
-# CONFIG_SELF_LE_INIT_MTU is not set
-CONFIG_SELF_LE_INIT_SDP=y
-# end of BTDM 5.2 RW Host
 
 #
 # BT Configuration
@@ -785,6 +752,7 @@ CONFIG_MM_BEACON_LOSS_RSSI_THRESHOLD=-80
 CONFIG_HE_MCS_LIMIT_7=y
 CONFIG_MAC_CHAN=y
 CONFIG_SPECIAL_TX_TYPE=y
+# CONFIG_MAX_STA_IN_SAP is not set
 
 #
 # ate_test
@@ -857,7 +825,7 @@ CONFIG_RWNX_QOS_MSDU=y
 CONFIG_MSDU_RESV_HEAD_LEN=96
 CONFIG_MSDU_RESV_TAIL_LEN=16
 # CONFIG_WPA_TWT_TEST is not set
-# CONFIG_RWNX_SW_TXQ is not set
+CONFIG_RWNX_SW_TXQ=y
 # CONFIG_RWNX_FAST_CONNECT is not set
 # CONFIG_P2P is not set
 # CONFIG_P2P_GO is not set
@@ -953,6 +921,12 @@ CONFIG_VIDEO_QR_CODE_GEN=y
 #
 CONFIG_VIDEO_SCALE=y
 # end of modules::video_code::scale
+
+#
+# modules::video_code::tjpg
+#
+CONFIG_JPEGDEC_TJPG=y
+# end of modules::video_code::tjpg
 
 #
 # modules::wfa_ca

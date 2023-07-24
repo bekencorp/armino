@@ -72,6 +72,8 @@ extern "C" {
 #define     CRASH_DATA_ABORT_VALUE        0xbedead03
 #define     CRASH_UNUSED_VALUE            0xbedead04
 
+#define     POWERON_INIT_MEM_TAG          (0xaaaaaaaa)
+
 
 void show_reset_reason(void);
 uint32_t reset_reason_init(void);

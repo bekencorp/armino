@@ -146,6 +146,7 @@ int cli_cs2_p2p_init(void);
 int cli_agora_init(void);
 int cli_es8311_init(void);
 int cli_asr_init(void);
+int cli_flashdb_init(void);
 
 extern int hexstr2bin_cli(const char *hex, u8 *buf, size_t len);
 

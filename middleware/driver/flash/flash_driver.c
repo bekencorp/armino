@@ -522,6 +522,7 @@ bk_err_t bk_flash_driver_init(void)
 #endif
 	os_memset(&s_flash, 0, sizeof(s_flash));
 	flash_hal_init(&s_flash.hal);
+	bk_flash_set_line_mode(FLASH_LINE_MODE_TWO);
 	s_flash.flash_id = flash_hal_get_id(&s_flash.hal);
 	FLASH_LOGI("id=0x%x\r\n", s_flash.flash_id);
 	flash_get_current_config();
@@ -698,10 +699,12 @@ bk_err_t bk_flash_clk_switch(uint32_t flash_speed_type, uint32_t modules)
 			FLASH_LOGD("%s: clear low bit, 0x%x 0x%x\r\n", __func__, s_hold_low_speed_status, modules);
 			if (0 == s_hold_low_speed_status) {
 				chip_id = bk_get_hardware_chip_id_version();
-				if (chip_id == CHIP_VERSION_C)
+				//chipC version with GD flash switch to 80M for peformance
+				if ((chip_id == CHIP_VERSION_C) && ((s_flash.flash_id >> FLASH_ManuFacID_POSI) == FLASH_ManuFacID_GD)) {
 					bk_flash_set_clk(FLASH_CLK_DPLL, FLASH_DPLL_DIV_VALUE_SIX);
-				else
+				} else {
 					bk_flash_set_clk(FLASH_CLK_DPLL, FLASH_DPLL_DIV_VALUE_TEN);
+				}
 			}
 			break;
 	}

@@ -98,8 +98,11 @@ int32_t ring_buffer_particle_init(ring_buffer_particle_ctx *ctx, uint32_t len)
     }
 
 #if USE_PSRAM
+    final_len = INT_CEIL_4(final_len);
+    BK_LOGI("rb", "%s alloc final_len %d\n", __func__, final_len);
     ctx->buffer = psram_malloc(final_len);
 #else
+    BK_LOGI("rb", "%s alloc final_len %d\n", __func__, final_len);
     ctx->buffer = os_malloc(final_len);
 #endif
 
@@ -108,6 +111,7 @@ int32_t ring_buffer_particle_init(ring_buffer_particle_ctx *ctx, uint32_t len)
         BK_LOGE("rb", "%s alloc err\n", __func__);
         return -1;
     }
+
 
     ctx->len = final_len;
     ctx->rp = ctx->wp = 0;
@@ -129,6 +133,16 @@ int32_t ring_buffer_particle_deinit(ring_buffer_particle_ctx *ctx)
     os_memset(ctx, 0, sizeof(*ctx));
 
     return 0;
+}
+
+bool ring_buffer_particle_is_init(ring_buffer_particle_ctx *ctx)
+{
+    if(ctx->buffer && ctx->len)
+    {
+        return true;
+    }
+
+    return false;
 }
 
 int32_t ring_buffer_particle_reset(ring_buffer_particle_ctx *ctx)

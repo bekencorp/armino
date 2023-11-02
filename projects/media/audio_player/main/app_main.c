@@ -91,7 +91,9 @@ int main(void)
 #endif
 	legacy_init();
 
+#if (!CONFIG_SLAVE_CORE)
 	cli_audio_player_init();
+#endif
 
 	return 0;
 }

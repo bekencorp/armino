@@ -87,6 +87,11 @@ MINOOR_ITCM int yuyv_rotate_degree90_to_yuyv(unsigned char *yuyv, unsigned char 
 MINOOR_ITCM int yuyv_rotate_degree270_to_yuyv(unsigned char *yuyv, unsigned char *rotatedYuyv, int width, int height);
 
 /**
+ * @brief yuyv clockwise rotate180, and output yuyv
+ */
+MINOOR_ITCM int yuyv_rotate_degree180_to_yuyv(unsigned char *yuyv, unsigned char *rotatedyuyv, int width, int height);
+
+/**
  * @brief yuyv data rotate270, and output vuyy
  */
 MINOOR_ITCM int yuyv_rotate_degree270_to_vuyy(unsigned char *src_yuyv, unsigned char *rotated_to_vuyy, int width, int height);
@@ -95,6 +100,11 @@ MINOOR_ITCM int yuyv_rotate_degree270_to_vuyy(unsigned char *src_yuyv, unsigned 
  * @brief vuyy clockwise rotate90, and output yuyv
  */
 MINOOR_ITCM int vuyy_rotate_degree90_to_yuyv(unsigned char *vuyy, unsigned char *rotatedVuyy, int width, int height);
+
+/**
+ * @brief vuyy clockwise rotate180, and output yuyv
+ */
+MINOOR_ITCM int vuyy_rotate_degree180_to_yuyv(unsigned char *vuyy, unsigned char *rotatedyuyv, int width, int height);
 
 /**
  * @brief vuyy clockwise rotate270, and output yuyv

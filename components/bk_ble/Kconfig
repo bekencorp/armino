@@ -11,7 +11,7 @@ menu "Bk_ble"
 
 	choice BLE_STACK
 		prompt "Select Ble Version"
-		depends on BLE
+		depends on (BLE || BT)
 		default BLE_5_X
 
 		config BLE_5_X

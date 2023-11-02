@@ -39,6 +39,13 @@ typedef enum
     COD_HEADSET  = 0x240404,
 } common_cod_t;
 
+/** Inquiry Mode */
+typedef enum
+{
+    BK_BT_INQ_MODE_GENERAL_INQUIRY,                /*!< General inquiry mode */
+} bk_bt_inq_mode_t;
+
+
 /**
  * @brief A2DP callback events
  */
@@ -46,7 +53,22 @@ typedef enum {
     BK_A2DP_CONNECTION_STATE_EVT = 0,           /*!< connection state changed event */
     BK_A2DP_AUDIO_STATE_EVT,                    /*!< audio stream transmission state changed event */
     BK_A2DP_AUDIO_CFG_EVT,                      /*!< audio codec is configured, only used for A2DP SINK */
+    BK_A2DP_AUDIO_SOURCE_CFG_EVT,               /*!< audio codec is configured, only used for A2DP SOURCE */
 } bk_a2dp_cb_event_t;
+
+
+/**
+ * @brief           A2DP source data read callback function
+ *
+ * @param[in]       buf : buffer to be filled with PCM data stream from higher layer
+ *
+ * @param[in]       len : size(in bytes) of data block to be copied to buf. -1 is an indication to user
+ *                  that data buffer shall be flushed
+ *
+ * @return          size of bytes read successfully, if the argument len is -1, this value is ignored.
+ *
+ */
+typedef int32_t (* bk_a2dp_source_data_cb_t)(uint8_t *buf, int32_t len);
 
 /**
  * @brief Bluetooth A2DP connection states
@@ -73,6 +95,15 @@ typedef enum {
     BK_A2DP_AUDIO_STATE_SUSPEND = 0,           /*!< audio stream datapath suspend */
     BK_A2DP_AUDIO_STATE_STARTED,               /*!< audio stream datapath started */
 } bk_a2dp_audio_state_t;
+
+/**
+ * @brief A2DP media control commands
+ */
+typedef enum {
+    BK_A2DP_MEDIA_CTRL_START,                  /*!< command to set up media transmission channel */
+    BK_A2DP_MEDIA_CTRL_SUSPEND,                /*!< command to suspend media transmission  */
+} bk_a2dp_media_ctrl_t;
+
 
 /**
  * @brief A2DP media codec capabilities union
@@ -110,6 +141,7 @@ typedef struct {
  * @brief A2DP state callback parameters
  */
 typedef union {
+
     /**
      * @brief  BK_A2DP_CONNECTION_STATE_EVT
      */
@@ -134,39 +166,65 @@ typedef union {
         uint8_t remote_bda[6];                 /*!< remote bluetooth device address */
         bk_a2dp_mcc_t mcc;                     /*!< A2DP media codec capability information */
     } audio_cfg;                               /*!< media codec configuration information */
+
+    /**
+     * @brief BK_A2DP_AUDIO_SOURCE_CFG_EVT
+     */
+    struct a2dp_audio_source_cfg_param {
+        uint8_t remote_bda[6];                 /*!< remote bluetooth device address */
+        uint16_t mtu;                          /** max payload len, only used in source */
+        bk_a2dp_mcc_t mcc;                     /*!< A2DP media codec capability information */
+    } audio_source_cfg;                               /*!< media codec configuration information */
 }bk_a2dp_cb_param_t;
 
 
-/*
- * @brief used in bk_bt_gap_set_event_callback, this enum show as "event", you must analyse param in same time
- */
+/// Bluetooth Device Property type
 typedef enum
 {
-    /// bt stack init ok, param NULL
-    BK_DM_BT_EVENT_STACK_OK,
+    BK_BT_GAP_DEV_PROP_BDNAME = 1,                 /*!< Bluetooth device name, value type is int8_t [] */
+    BK_BT_GAP_DEV_PROP_COD,                        /*!< Class of Device, value type is uint32_t */
+    BK_BT_GAP_DEV_PROP_RSSI,                       /*!< Received Signal strength Indication, value type is int8_t, ranging from -128 to 127 */
+    BK_BT_GAP_DEV_PROP_EIR,                        /*!< Extended Inquiry Response, value type is uint8_t [] */
+} bk_bt_gap_dev_prop_type_t;
 
-    /// inquiry result, not used now
-    BK_DM_BT_EVENT_INQUIRY_RESULT,
-
-    /// disconnect completed, not used now
-    BK_DM_BT_EVENT_DISCONNECT,
-
-    //BK_DM_BT_EVENT_CMD_COMPLETE,
-
-    /// connection completed, not used now
-    BK_DM_BT_EVENT_CONNECTION_COMPLETE,
-
-    /// recv cb when pair success and get link key, param bk_bt_linkkey_storage_t
-    BK_DM_BT_EVENT_LINKKEY_NOTIFY,
-
-    /// recv cb when peer need user to input link key, param bd_addr_t
-    BK_DM_BT_EVENT_LINKKEY_REQ,
-
-} bt_event_enum_t;
+/** Bluetooth Device Discovery state */
+typedef enum
+{
+    BK_BT_GAP_DISCOVERY_STOPPED,                   /*!< Device discovery stopped */
+    BK_BT_GAP_DISCOVERY_STARTED,                   /*!< Device discovery started */
+} bk_bt_gap_discovery_state_t;
 
 
+/// Bluetooth Device Property Descriptor
+typedef struct
+{
+    bk_bt_gap_dev_prop_type_t type;                /*!< Device property type */
+    int len;                                        /*!< Device property value length */
+    void *val;                                      /*!< Device property value */
+} bk_bt_gap_dev_prop_t;
 
+/// GAP state callback parameters
+typedef union
+{
+    /**
+     * @brief BK_DM_BT_GAP_DISC_RES_EVT
+     */
+    struct disc_res_param
+    {
+        uint8_t bda[6];                     /*!< remote bluetooth device address*/
+        int num_prop;                          /*!< number of properties got */
+        bk_bt_gap_dev_prop_t *prop;           /*!< properties discovered from the new device */
+    } disc_res;                                /*!< discovery result parameter struct */
 
+    /**
+     * @brief  BK_DM_BT_GAP_DISC_STATE_CHANGED_EVT
+     */
+    struct disc_state_changed_param
+    {
+        bk_bt_gap_discovery_state_t state;    /*!< discovery state */
+    } disc_st_chg;                             /*!< discovery state changed parameter struct */
+
+} bk_bt_gap_cb_param_t;
 
 /**
  * @brief bt link key storage
@@ -184,6 +242,43 @@ typedef struct
     uint8_t link_key[16];//BT_LINK_KEY_SIZE];
 
 }__attribute__((packed)) bk_bt_linkkey_storage_t;//SM_DEVICE_ENTITY
+
+
+/*
+ * @brief used in bk_bt_gap_set_event_callback, this enum show as "event", you must analyse param in same time
+ */
+typedef enum
+{
+    /// bt stack init ok, param NULL
+    BK_DM_BT_EVENT_STACK_OK,
+
+    /// inquiry result, not used now
+    BK_DM_BT_EVENT_INQUIRY_RESULT,
+
+    /// disconnect completed, param addr
+    BK_DM_BT_EVENT_DISCONNECT,
+
+    /// connection completed, param addr
+    BK_DM_BT_EVENT_CONNECTION_COMPLETE,
+
+    /// recv cb when pair success and get link key, param bk_bt_linkkey_storage_t
+    BK_DM_BT_EVENT_LINKKEY_NOTIFY,
+
+    /// recv cb when peer need user to input link key, param bd_addr_t
+    BK_DM_BT_EVENT_LINKKEY_REQ,
+
+    /*!< Device discovery result event, param bk_bt_gap_cb_param_t */
+    BK_DM_BT_GAP_DISC_RES_EVT,
+
+    /*!< Discovery state changed event, param bk_bt_gap_cb_param_t */
+    BK_DM_BT_GAP_DISC_STATE_CHANGED_EVT,
+
+} bt_event_enum_t;
+
+
+
+
+
 
 /// AVRCP event notification ids
 typedef enum {
@@ -304,6 +399,7 @@ typedef enum {
 /// AVRCP notification parameters
 typedef union
 {
+    //todo: use union
     uint8_t volume;                          /*!< response data for BK_AVRCP_RN_VOLUME_CHANGE, ranges 0..127 */
     bk_avrcp_playback_stat_t playback;       /*!< response data for BK_AVRCP_RN_PLAY_STATUS_CHANGE */
     uint8_t elm_id[8];                       /*!< response data for BK_AVRCP_RN_TRACK_CHANGE */
@@ -345,6 +441,71 @@ typedef union {
 } bk_avrcp_ct_cb_param_t;
 
 
+
+/// AVRC notification response type
+typedef enum
+{
+    BK_AVRCP_RN_RSP_INTERIM,     /*!< initial response to RegisterNotification, should be sent T_mtp(1000ms) from receiving the command */
+    BK_AVRCP_RN_RSP_CHANGED,     /*!< final response to RegisterNotification command */
+} bk_avrcp_rn_rsp_t;
+
+/// AVRC target notification event notification capability
+typedef enum
+{
+    BK_AVRCP_RN_CAP_API_METHOD_ALLOWED = 0,              /*!< all of the notification events that can possibly be supported, immutable */
+    BK_AVRCP_RN_CAP_API_METHOD_CURRENT_ENABLE = 1,            /*!< notification events selectively supported according to the current configuration */
+    BK_AVRCP_RN_CAP_API_METHOD_MAX,
+} bk_avrcp_rn_cap_api_method_t;
+
+/// AVRC Target callback events
+typedef enum
+{
+    BK_AVRCP_TG_CONNECTION_STATE_EVT,          /*!< connection state changed event */
+    BK_AVRCP_TG_PASSTHROUGH_CMD_EVT,           /*!< passthrough command event */
+    BK_AVRCP_TG_SET_ABSOLUTE_VOLUME_CMD_EVT,   /*!< set absolute volume command from remote device */
+    BK_AVRCP_TG_REGISTER_NOTIFICATION_EVT,     /*!< register notification event */
+} bk_avrcp_tg_cb_event_t;
+
+/// AVRC target callback parameters
+typedef union
+{
+    /**
+     * @brief BK_AVRCP_TG_CONNECTION_STATE_EVT
+     */
+    struct avrcp_tg_conn_stat_param
+    {
+        bool connected;                          /*!< whether AVRC connection is set up */
+        uint8_t remote_bda[6];                /*!< remote bluetooth device address */
+    } conn_stat;                                 /*!< AVRC connection status */
+
+    /**
+     * @brief BK_AVRCP_TG_PASSTHROUGH_CMD_EVT
+     */
+    struct avrcp_tg_psth_cmd_param
+    {
+        uint8_t key_code;                        /*!< passthrough command code */
+        uint8_t key_state;                       /*!< 0 for PRESSED, 1 for RELEASED */
+    } psth_cmd;                                  /*!< passthrough command */
+
+    /**
+     * @brief BK_AVRCP_TG_SET_ABSOLUTE_VOLUME_CMD_EVT
+     */
+    struct avrcp_tg_set_abs_vol_param
+    {
+        uint8_t volume;                          /*!< volume ranges from 0 to 127 */
+    } set_abs_vol;                               /*!< set absolute volume command targeted on audio sink */
+
+    /**
+     * @brief BK_AVRCP_TG_REGISTER_NOTIFICATION_EVT
+     */
+    struct avrcp_tg_reg_ntf_param
+    {
+        uint8_t event_id;                        /*!< event id of bk_avrcp_rn_event_ids_t */
+        uint32_t event_parameter;                /*!< event notification parameter, used with BK_AVRCP_RN_PLAY_POS_CHANGED only now */
+    } reg_ntf;                                   /*!< register notification */
+
+} bk_avrcp_tg_cb_param_t;
+
 /**
  * @brief           A2DP profile callback function type
  *
@@ -371,6 +532,15 @@ typedef void (* bk_bt_sink_data_cb_t)(const uint8_t *buf, uint16_t len);
  * @param           param : Pointer to callback parameter union
  */
 typedef void (* bk_avrcp_ct_cb_t)(bk_avrcp_ct_cb_event_t event, bk_avrcp_ct_cb_param_t *param);
+
+/**
+ * @brief           AVRCP target callback function type
+ *
+ * @param           event : Event type
+ *
+ * @param           param : Pointer to callback parameter union
+ */
+typedef void (* bk_avrcp_tg_cb_t)(bk_avrcp_tg_cb_event_t event, bk_avrcp_tg_cb_param_t *param);
 
 
 

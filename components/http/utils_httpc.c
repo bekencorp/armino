@@ -608,7 +608,7 @@ void http_flash_wr(UINT8 *src, unsigned len)
         while(1)
         {
             flash_erase_ready = ble_callback_deal_handler(ERASE_FLASH_TIMEOUT);
-            
+
             temp_time = rtos_get_time();
             if(temp_time >= anchor_time)
             {
@@ -618,16 +618,16 @@ void http_flash_wr(UINT8 *src, unsigned len)
             {
                 temp_time += (0xFFFFFFFF - anchor_time);
             }
-            
+
             if(temp_time >= ERASE_TOUCH_TIMEOUT)
                 flash_erase_ready = 1;
-            
+
             //os_printf("flash_erase_ready~111 :%d\n",flash_erase_ready);
             if(flash_erase_ready == 1)
     	    {
         		param = bk_http_ptr->flash_address;
         		//GLOBAL_INT_DISABLE();
-			
+
 #if CONFIG_FLASH_ORIGIN_API
         		ddev_control(bk_http_ptr->flash_hdl, CMD_FLASH_ERASE_SECTOR, (void *)&param);
 #else
@@ -650,7 +650,7 @@ void http_flash_wr(UINT8 *src, unsigned len)
             while(1)
             {
                 flash_erase_ready = ble_callback_deal_handler(WRITE_FLASH_TIMEOUT);
-                
+
                 temp_time = rtos_get_time();
                 if(temp_time >= anchor_time)
                 {
@@ -659,11 +659,11 @@ void http_flash_wr(UINT8 *src, unsigned len)
                 else
                 {
                     temp_time += (0xFFFFFFFF - anchor_time);
-                }                
-                
+                }
+
                 if(temp_time >= ERASE_TOUCH_TIMEOUT)
                     flash_erase_ready = 1;
-                
+
                 //os_printf("flash_erase_ready~222 :%d\n",flash_erase_ready);
                 if(flash_erase_ready == 1)
     	        {
@@ -978,7 +978,7 @@ int httpclient_retrieve_content(httpclient_t *client, char *data, int len, uint3
         {
             return ret;
         }
-        
+
 		if (client_data->is_chunked) {
 			if (len < 2) {
 				int new_trf_len;
@@ -1252,7 +1252,7 @@ int httpclient_common(httpclient_t *client, const char *url, int port, const cha
 		iotx_time_init(&timer);
 		utils_time_countdown_ms(&timer, timeout_ms);
 #ifdef CONFIG_HTTP_OTA_WITH_BLE
-#if (CONFIG_BLE)
+#if CONFIG_BLUETOOTH
         bk_ble_register_sleep_state_callback(ble_sleep_cb);
 #endif
 #endif

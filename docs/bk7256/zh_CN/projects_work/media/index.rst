@@ -6,4 +6,5 @@
 .. toctree::
    :maxdepth: 1
 
+   doorbell <doorbell/index>
    audio_player <audio_player/index>

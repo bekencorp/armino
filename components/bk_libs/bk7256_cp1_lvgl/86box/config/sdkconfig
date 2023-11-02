@@ -1,0 +1,850 @@
+#
+# Automatically generated file. DO NOT EDIT.
+# Beken IoT Development Framework (BEKEN-ARMINO) Project Configuration
+#
+
+#
+# SOC_CONFIG
+#
+# CONFIG_SOC_BK7231N is not set
+# CONFIG_SOC_BK7231U is not set
+# CONFIG_SOC_BK7251 is not set
+# CONFIG_SOC_BK7271 is not set
+# CONFIG_SOC_BK7236 is not set
+# CONFIG_SOC_BK7236A is not set
+CONFIG_SOC_BK7256=y
+# CONFIG_SOC_BK7256_CP1 is not set
+# CONFIG_SOC_BK7235 is not set
+# CONFIG_SOC_BK7237 is not set
+CONFIG_SOC_STR="bk7256_cp1"
+CONFIG_SOC_ARCH="riscv"
+CONFIG_SOC_BK7256XX=y
+# end of SOC_CONFIG
+
+#
+# ARMINO Configuration
+#
+
+#
+# Common Configuration
+#
+
+#
+# Compile/Build
+#
+CONFIG_TOOLCHAIN_PATH="/opt/risc-v/nds32le-elf-mculib-v5f/bin"
+CONFIG_TOOLCHAIN_PREFIX="riscv32-elf-"
+# end of Compile/Build
+
+#
+# Debug
+#
+# CONFIG_ASSERT_IGNORE is not set
+# CONFIG_ASSERT_HALT is not set
+CONFIG_ASSERT_REBOOT=y
+# CONFIG_JTAG is not set
+# end of Debug
+# end of Common Configuration
+
+#
+# Features Configuration
+#
+CONFIG_NO_HOSTED=y
+# CONFIG_SEMI_HOSTED is not set
+# CONFIG_FULLY_HOSTED is not set
+# CONFIG_WIFI_SENSOR is not set
+CONFIG_BLUETOOTH=y
+# end of Features Configuration
+
+#
+# Modules Configuration
+#
+
+#
+# Components Configuration
+#
+
+#
+# Middleware Configuration
+#
+
+#
+# Projects Configuration
+#
+
+#
+# Properties Configuration
+#
+
+#
+# Modules::Audio_codec::Aec
+#
+CONFIG_AUDIO_AEC=y
+# end of Modules::Audio_codec::Aec
+
+#
+# Modules::Audio_codec::Aud_ns
+#
+# CONFIG_AUDIO_NS is not set
+# end of Modules::Audio_codec::Aud_ns
+
+#
+# Modules::Audio_codec::Aud_vad
+#
+# CONFIG_AUDIO_VAD is not set
+# end of Modules::Audio_codec::Aud_vad
+
+#
+# Modules::Audio_codec::Audio_ring_buffer
+#
+CONFIG_AUDIO_RING_BUFF=y
+# end of Modules::Audio_codec::Audio_ring_buffer
+
+#
+# Modules::Audio_codec::Flac
+#
+# CONFIG_AUDIO_FLAC is not set
+# end of Modules::Audio_codec::Flac
+
+#
+# Modules::Audio_codec::G711
+#
+CONFIG_AUDIO_G711=y
+# end of Modules::Audio_codec::G711
+
+#
+# Modules::Audio_codec::Helix
+#
+# CONFIG_AUDIO_MP3 is not set
+# end of Modules::Audio_codec::Helix
+
+#
+# Modules::Audio_codec::Ogg
+#
+# CONFIG_AUDIO_OGG is not set
+# end of Modules::Audio_codec::Ogg
+
+#
+# Modules::Audio_codec::Opus
+#
+# CONFIG_AUDIO_OPUS is not set
+# end of Modules::Audio_codec::Opus
+
+#
+# Modules::Audio_codec::Resample
+#
+# CONFIG_AUDIO_RSP is not set
+# end of Modules::Audio_codec::Resample
+
+#
+# Modules::Audio_codec::Sbc
+#
+# CONFIG_AUDIO_SBC is not set
+# end of Modules::Audio_codec::Sbc
+
+#
+# Modules::Bk_airkiss
+#
+# end of Modules::Bk_airkiss
+
+#
+# Modules::Bk_cal
+#
+# CONFIG_CALI is not set
+# CONFIG_TEMP_DETECT is not set
+# CONFIG_SARADC_CALI is not set
+# CONFIG_LA_CAPTURE_MAC_DIAGS is not set
+# end of Modules::Bk_cal
+
+#
+# Modules::Bk_coex
+#
+# end of Modules::Bk_coex
+
+#
+# Modules::Bk_hostapd
+#
+# end of Modules::Bk_hostapd
+
+#
+# Shared Configs with Public components
+#
+
+#
+# SOC_CONFIG
+#
+# end of SOC_CONFIG
+
+#
+# Driver
+#
+
+#
+# SOFTWARE_SUPPORT_CHIP
+#
+# CONFIG_CHIP_SUPPORT is not set
+# end of SOFTWARE_SUPPORT_CHIP
+
+#
+# Interrupt
+#
+# CONFIG_ISR_REG_DISABLE is not set
+# end of Interrupt
+
+#
+# Watchdog
+#
+# CONFIG_INT_WDT is not set
+CONFIG_INT_WDT_PERIOD_MS=1000
+CONFIG_TASK_WDT=y
+CONFIG_TASK_WDT_PERIOD_MS=60000
+# CONFIG_NMI_WDT_EN is not set
+# end of Watchdog
+
+#
+# AON_Watchdog
+#
+# CONFIG_AON_WDT is not set
+# CONFIG_INT_AON_WDT is not set
+CONFIG_INT_AON_WDT_PERIOD_MS=1000
+# end of AON_Watchdog
+
+#
+# UART
+#
+# CONFIG_UART1 is not set
+# CONFIG_UART1_FLOW_CTRL is not set
+# CONFIG_UART2 is not set
+CONFIG_UART3=y
+# CONFIG_PRINT_PORT_UART1 is not set
+# CONFIG_PRINT_PORT_UART2 is not set
+CONFIG_PRINT_PORT_UART3=y
+CONFIG_UART_PRINT_PORT=2
+CONFIG_UART_ATE_PORT=1
+CONFIG_PRINTF_BUF_SIZE=128
+# CONFIG_BACKGROUND_PRINT is not set
+CONFIG_KFIFO_SIZE=128
+# CONFIG_UART_STATIS is not set
+# CONFIG_UART_LOW_VOLTAGE_SUPPORT is not set
+# CONFIG_UART_ERR_INTERRUPT is not set
+# end of UART
+
+#
+# TRNG
+#
+# CONFIG_TRNG_SUPPORT is not set
+# end of TRNG
+
+#
+# SDIO_HOST
+#
+# CONFIG_SDIO_HOST is not set
+CONFIG_SDIO_HOST_DEFAULT_CLOCK_FREQ=200000
+# end of SDIO_HOST
+
+#
+# SDCARD
+#
+# CONFIG_SDCARD is not set
+CONFIG_SDCARD_V2P0=y
+# CONFIG_SDCARD_V1P0 is not set
+# CONFIG_SDCARD_BUSWIDTH_4LINE is not set
+# CONFIG_SDCARD_POWER_GPIO_CTRL is not set
+# end of SDCARD
+
+#
+# SDCARD
+#
+CONFIG_SDCARD_DEFAULT_CLOCK_FREQ=9
+# CONFIG_SDCARD_CHECK_INSERTION_EN is not set
+# end of SDCARD
+
+#
+# FATFS
+#
+# CONFIG_FATFS is not set
+# CONFIG_FATFS_SDCARD is not set
+# end of FATFS
+
+#
+# SDIO
+#
+# CONFIG_SDIO is not set
+# CONFIG_SDIO_V2P0 is not set
+# end of SDIO
+
+#
+# SPI
+#
+CONFIG_SPI_DMA=y
+CONFIG_SPI_SLAVE=y
+CONFIG_SPI_MASTER=y
+CONFIG_SPI_STATIS=y
+CONFIG_SPI_SUPPORT_TX_FIFO_WR_READY=y
+# CONFIG_HSLAVE_SPI is not set
+# CONFIG_SPI_MST_FLASH is not set
+# CONFIG_SPI_MST_PSRAM is not set
+# end of SPI
+
+#
+# QSPI
+#
+# CONFIG_QSPI is not set
+CONFIG_QSPI_STATIS=y
+# CONFIG_QSPI_FLASH_GD is not set
+# end of QSPI
+
+#
+# AON_RTC
+#
+# CONFIG_AON_RTC is not set
+# CONFIG_AON_RTC_MANY_USERS is not set
+# CONFIG_AON_RTC_TEST is not set
+# CONFIG_AON_RTC_DEBUG is not set
+# CONFIG_AON_RTC_KEEP_TIME_SUPPORT is not set
+# CONFIG_AON_RTC_DYNAMIC_CLOCK_SUPPORT is not set
+# end of AON_RTC
+
+#
+# GPIO
+#
+# CONFIG_GPIO_WAKEUP_SUPPORT is not set
+CONFIG_GPIO_DYNAMIC_WAKEUP_SOURCE_MAX_CNT=4
+# CONFIG_GPIO_SIMULATE_UART_WRITE is not set
+# CONFIG_GPIO_DEFAULT_SET_SUPPORT is not set
+# end of GPIO
+
+#
+# AON_PMU
+#
+CONFIG_AON_PMU=y
+# end of AON_PMU
+
+#
+# GENERAL_DMA
+#
+CONFIG_GENERAL_DMA=y
+# CONFIG_GENERAL_DMA_SEC is not set
+# end of GENERAL_DMA
+
+#
+# TOUCH
+#
+# CONFIG_TOUCH is not set
+# CONFIG_TOUCH_INTERNAL_SERIAL_CAP is not set
+# CONFIG_TOUCH_PM_SUPPORT is not set
+# end of TOUCH
+
+#
+# SBC
+#
+CONFIG_SBC=y
+# end of SBC
+
+#
+# JPEG_ENC
+#
+# CONFIG_JPEG_ENCODE is not set
+# end of JPEG_ENC
+
+#
+# PSRAM
+#
+CONFIG_PSRAM=y
+# CONFIG_PSRAM_AS_SYS_MEMORY is not set
+# end of PSRAM
+
+#
+# CALENDAR
+#
+# CONFIG_CALENDAR is not set
+# end of CALENDAR
+
+#
+# MPC
+#
+# CONFIG_MPC is not set
+# end of MPC
+
+#
+# PRRO
+#
+# CONFIG_PRRO is not set
+# end of PRRO
+
+#
+# SYS_CTRL
+#
+# CONFIG_SYS_REDUCE_NORMAL_POWER is not set
+# CONFIG_XTAL_FREQ_40M is not set
+CONFIG_XTAL_FREQ_26M=y
+CONFIG_XTAL_FREQ=26000000
+CONFIG_DCO_FREQ=120000000
+CONFIG_SYSTEM_CTRL=y
+# CONFIG_POWER_CLOCK_RF is not set
+# CONFIG_SYSTEM_CLOCK is not set
+# end of SYS_CTRL
+
+#
+# PHY
+#
+# CONFIG_PTA is not set
+# CONFIG_ATE_TEST is not set
+# end of PHY
+
+#
+# I2S
+#
+# CONFIG_I2S is not set
+# end of I2S
+
+#
+# I2C
+#
+CONFIG_I2C=y
+CONFIG_I2C_SUPPORT_ID_BITS=1
+# CONFIG_FM_I2C is not set
+# CONFIG_SIM_I2C is not set
+# end of I2C
+
+#
+# AUDIO
+#
+CONFIG_AUDIO=y
+CONFIG_AUDIO_RISCV_IP_V1_0=y
+# CONFIG_AUDIO_DSP_IP_V1_0 is not set
+# end of AUDIO
+
+#
+# PWM
+#
+# CONFIG_PWM is not set
+# CONFIG_PWM_HAS_TWO_INT is not set
+# end of PWM
+
+#
+# ICU
+#
+# CONFIG_ICU_GPIO is not set
+# end of ICU
+
+#
+# TIMER
+#
+CONFIG_TIMER=y
+# CONFIG_TIMER_COUNTER is not set
+CONFIG_TIMER_SUPPORT_ID_BITS=0
+# end of TIMER
+
+#
+# SARADC
+#
+# CONFIG_SARADC is not set
+# CONFIG_SARADC_NEED_FLUSH is not set
+# CONFIG_SARADC_RANGE_DIVIDE is not set
+# end of SARADC
+
+#
+# FLASH
+#
+# CONFIG_FLASH is not set
+# CONFIG_FLASH_QUAD_ENABLE is not set
+# CONFIG_FLASH_SRC_CLK_60M is not set
+# CONFIG_FLASH_ORIGIN_API is not set
+# end of FLASH
+
+#
+# PWR_CLK
+#
+# CONFIG_EXTERN_32K is not set
+# CONFIG_MEM_AUTO_POWER_DISABLE is not set
+# CONFIG_CP1_AUTO_POWER_DISABLE is not set
+# end of PWR_CLK
+
+#
+# VAULT
+#
+# CONFIG_VAULT_SUPPORT is not set
+# end of VAULT
+
+#
+# OTP
+#
+# CONFIG_OTP is not set
+# end of OTP
+
+#
+# FFT
+#
+# CONFIG_FFT is not set
+# end of FFT
+
+#
+# CAMERA
+#
+# CONFIG_CAMERA_POWER_GPIO_CTRL is not set
+# CONFIG_ENCODE_BUF_DYNAMIC is not set
+# CONFIG_DVP_PCLK_72M is not set
+# end of CAMERA
+
+#
+# JPEG_DEC
+#
+# CONFIG_JPEG_DEC is not set
+CONFIG_JPEG_DEC_UVC_SRAM_BUFFER_SIZE=131072
+# end of JPEG_DEC
+
+# CONFIG_LCD is not set
+# CONFIG_LCD_QSPI is not set
+# CONFIG_MAC_PHY_BYPASS is not set
+# CONFIG_SUPPORT_IRDA is not set
+CONFIG_MAILBOX=y
+# CONFIG_TP is not set
+# CONFIG_DMA2D is not set
+# CONFIG_YUV_BUF is not set
+# CONFIG_EFUSE is not set
+CONFIG_CHANGE_JTAG_GPIO=y
+CONFIG_RESET_REASON=y
+# CONFIG_LCD_POWER_GPIO_CTRL is not set
+# CONFIG_LCD_BACKLIGHT_GPIO_CTRL is not set
+# end of Driver
+
+#
+# Arch::Riscv
+#
+CONFIG_CPU_FREQ_HZ=120000000
+CONFIG_ARCH_RISCV=y
+
+#
+# Modify Arch Riscv Config
+#
+# CONFIG_NEST_INT_SUPPORT is not set
+CONFIG_MEMDUMP_ALL=y
+# CONFIG_SAVE_BOOT_TIME_POINT is not set
+# CONFIG_CACHE_ENABLE is not set
+# end of Modify Arch Riscv Config
+# end of Arch::Riscv
+
+#
+# Arch::Cm33
+#
+# CONFIG_ARCH_CM33 is not set
+# CONFIG_FPGA is not set
+# CONFIG_SPE is not set
+# end of Arch::Cm33
+
+#
+# Bk_ble
+#
+# CONFIG_BT is not set
+# CONFIG_BLE is not set
+# end of Bk_ble
+
+#
+# Temp_detect
+#
+# end of Temp_detect
+
+#
+# Cli
+#
+CONFIG_CLI=y
+# CONFIG_CLI_USER_CONFIG is not set
+# CONFIG_BKREG is not set
+CONFIG_MAX_COMMANDS=255
+CONFIG_CLI_TASK_SIZE=3072
+# CONFIG_TCP_SERVER_TEST is not set
+# CONFIG_AIRKISS_TEST is not set
+# CONFIG_WIFI_RAW_TX_TEST is not set
+# CONFIG_VFS_TEST is not set
+# CONFIG_I2C1_TEST is not set
+# CONFIG_I2C2_TEST is not set
+# CONFIG_UART_TEST is not set
+# CONFIG_SPI_TEST is not set
+# CONFIG_PERI_TEST is not set
+# CONFIG_RF_OTA_TEST is not set
+CONFIG_SHELL_ASYNCLOG=y
+# CONFIG_TOUCH_TEST is not set
+CONFIG_SBC_TEST=y
+# CONFIG_ICU is not set
+# CONFIG_SECURITYIP is not set
+# CONFIG_KEYVALUE is not set
+# CONFIG_IDLE_UART_OUT_TEST is not set
+# CONFIG_COMPONENTS_WPA2_ENTERPRISE is not set
+# CONFIG_COMPONENTS_WPA_TWT_TEST is not set
+# CONFIG_COMPONENTS_WFA_CA is not set
+# CONFIG_ENABLE_WIFI_DEFAULT_CONNECT is not set
+# CONFIG_PSRAM_TEST is not set
+# CONFIG_CAMERA_TEST is not set
+# CONFIG_CM33_TEST is not set
+# CONFIG_MPC_TEST is not set
+# CONFIG_PRRO_TEST is not set
+# end of Cli
+
+#
+# DUAL_CORE
+#
+CONFIG_DUAL_CORE=y
+# CONFIG_MASTER_CORE is not set
+CONFIG_SLAVE_CORE=y
+# CONFIG_RWNX_PROTO_DEBUG is not set
+# end of DUAL_CORE
+
+#
+# Bk_rtos
+#
+CONFIG_CUSTOMIZE_HEAP_SIZE=163840
+
+#
+# Modify FreeRTOS Config
+#
+CONFIG_FREERTOS=y
+# CONFIG_MEM_MGMT is not set
+# CONFIG_FREERTOS_V9 is not set
+CONFIG_FREERTOS_V10=y
+# CONFIG_FREERTOS_POSIX is not set
+# CONFIG_FREERTOS_TRACE is not set
+CONFIG_FREERTOS_USE_TICKLESS_IDLE=2
+# end of Modify FreeRTOS Config
+
+#
+# Modify LITEOS_M Config
+#
+# CONFIG_LITEOS_M is not set
+# CONFIG_LITEOS_M_V3 is not set
+# end of Modify LITEOS_M Config
+
+#
+# Modify NON_OS Config
+#
+# CONFIG_NON_OS is not set
+# end of Modify NON_OS Config
+
+#
+# Modify Memory Debug Config
+#
+# CONFIG_MALLOC_STATIS is not set
+# CONFIG_MEM_DEBUG is not set
+# end of Modify Memory Debug Config
+# end of Bk_rtos
+
+#
+# Mbedtls
+#
+# CONFIG_MBEDTLS is not set
+# end of Mbedtls
+
+#
+# Lwip_intf_v2_0
+#
+# CONFIG_COMPONENTS_MOBILE_CONNECT_SAP_STATISTICS is not set
+# end of Lwip_intf_v2_0
+
+#
+# Lwip_intf_v2_1
+#
+# CONFIG_IPV6 is not set
+# CONFIG_WIFI_FAST_DHCP is not set
+CONFIG_MQTT_ACK_NOW=y
+# end of Lwip_intf_v2_1
+
+# CONFIG_WIFI_ENABLE is not set
+CONFIG_WIFI4=y
+# CONFIG_WIFI_FAST_CONNECT is not set
+# CONFIG_AP_PROBEREQ_CB is not set
+# end of Shared Configs with Public components
+
+#
+# Modules::Ble_wifi_exchange
+#
+# CONFIG_BLE_WIFI_EXCHANGE is not set
+# end of Modules::Ble_wifi_exchange
+
+#
+# BT Configuration
+#
+# end of BT Configuration
+
+#
+# modules::ft_test
+#
+# CONFIG_FT_TEST_TRANSFER is not set
+# end of modules::ft_test
+
+#
+# modules::homekit
+#
+CONFIG_HOMEKIT=y
+# end of modules::homekit
+
+#
+# modules::ip
+#
+# CONFIG_WIFI_IP is not set
+# CONFIG_GDMA2TCM_WAR is not set
+# end of modules::ip
+
+#
+# modules::ip_ax
+#
+CONFIG_WIFI_MAC_VERSION="V21"
+CONFIG_WIFI_MDM_VERSION="v30"
+CONFIG_WIFI_PLF_VERSION="v31"
+# CONFIG_MOBILE_CONNECT_SAP_STATISTICS is not set
+# CONFIG_MM_PS_BASED_ON_LISTEN_INTERVAL is not set
+CONFIG_MM_PS_SET_LISTEN_INTERVAL_VALUE=30
+CONFIG_MM_BEACON_LOSS_INITAL_COEFF=4
+CONFIG_MM_BEACON_LOSS_LOW_COEFF=8
+CONFIG_MM_BEACON_LOSS_MIDDLE_COEFF=20
+CONFIG_MM_BEACON_LOSS_HIGH_COEFF=40
+CONFIG_MM_BEACON_LOSS_RSSI_THRESHOLD=-80
+# CONFIG_HE_MCS_LIMIT_7 is not set
+# CONFIG_MAC_CHAN is not set
+# CONFIG_MAX_STA_IN_SAP is not set
+# CONFIG_RWNX_NO_USE_DTCM is not set
+
+#
+# ate_test
+#
+# end of ate_test
+# end of modules::ip_ax
+
+#
+# modules::lvgl
+#
+# CONFIG_LVGL is not set
+# end of modules::lvgl
+
+#
+# modules::net_param_intf
+#
+# CONFIG_NET_PARAM_INTF is not set
+# end of modules::net_param_intf
+
+#
+# modules::pcm_resampler
+#
+# CONFIG_PCM_RESAMPLER is not set
+# end of modules::pcm_resampler
+
+#
+# modules::power_save
+#
+# CONFIG_POWER_SAVE is not set
+# CONFIG_MCU_PS is not set
+# CONFIG_DEEP_PS is not set
+# CONFIG_AP_IDLE is not set
+# CONFIG_FAKE_RTC_PS is not set
+# CONFIG_TICK_CALI is not set
+# CONFIG_PM_MODEM_PWD is not set
+# CONFIG_PM_STANDALONE is not set
+# CONFIG_PM_V2 is not set
+# CONFIG_MAC_TX_CACHE is not set
+# CONFIG_PM_LIGHT_SLEEP is not set
+# end of modules::power_save
+
+#
+# modules::rf_test
+#
+# CONFIG_RF_TEST is not set
+# end of modules::rf_test
+
+#
+# modules::rwnx_intf
+#
+CONFIG_MSDU_RESV_HEAD_LEN=96
+CONFIG_MSDU_RESV_TAIL_LEN=16
+# CONFIG_WPA_TWT_TEST is not set
+# CONFIG_P2P is not set
+# CONFIG_P2P_GO is not set
+# CONFIG_TX_BUFING is not set
+# CONFIG_AP_PS is not set
+# CONFIG_USE_P2P_PS is not set
+# end of modules::rwnx_intf
+
+#
+# modules::securityip
+#
+# CONFIG_SECURITYIP_SELFTEST is not set
+# end of modules::securityip
+
+#
+# modules::sensor
+#
+# end of modules::sensor
+
+#
+# modules::uart_debug
+#
+# CONFIG_UART_DEBUG is not set
+# CONFIG_ATE is not set
+# end of modules::uart_debug
+
+#
+# modules::usb
+#
+# CONFIG_USB is not set
+
+#
+# Modify DSP Config
+#
+# CONFIG_DSP is not set
+CONFIG_DSP_SRC_ADD=0x130000
+# end of Modify DSP Config
+# end of modules::usb
+
+#
+# modules::vad
+#
+# CONFIG_VAD is not set
+# end of modules::vad
+
+#
+# modules::video_code::avi
+#
+# CONFIG_VIDEO_AVI is not set
+# end of modules::video_code::avi
+
+#
+# modules::video_code::lcd_font
+#
+# CONFIG_LCD_DMA2D_BLEND_FONT is not set
+# end of modules::video_code::lcd_font
+
+#
+# modules::video_code::qrcodegen
+#
+# CONFIG_VIDEO_QR_CODE_GEN is not set
+# end of modules::video_code::qrcodegen
+
+#
+# modules::video_code::scale
+#
+CONFIG_VIDEO_SCALE=y
+# end of modules::video_code::scale
+
+#
+# modules::video_code::tjpg
+#
+CONFIG_JPEGDEC_TJPG=y
+# end of modules::video_code::tjpg
+
+#
+# modules::wfa_ca
+#
+# CONFIG_WFA_CA is not set
+# end of modules::wfa_ca
+
+#
+# modules::wolfssl
+#
+# CONFIG_WOLFSSL_BEKEN is not set
+# end of modules::wolfssl
+
+#
+# modules::wpa_supplicant-2.9
+#
+# end of modules::wpa_supplicant-2.9
+# end of Properties Configuration
+# end of Modules Configuration
+# end of ARMINO Configuration

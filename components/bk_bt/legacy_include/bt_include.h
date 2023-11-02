@@ -82,21 +82,7 @@ BK_BT_CONTROLLER_STACK_TYPE bk_bt_get_controller_stack_type(void);
 BK_BT_HOST_STACK_TYPE bk_bt_get_host_stack_type(void);
 
 uint16_t bk_bt_get_conn_handle(uint8_t *addr);
-bt_err_t bk_bt_connect(uint8_t *addr,
-                            uint16_t packet_type,
-                            uint8_t page_scan_repetition_mode,
-                            uint8_t page_scan_mode,
-                            uint16_t clock_offset,
-                            uint8_t allow_role_switch,
-                            bt_cmd_cb_t callback);
 
-bt_err_t bk_bt_inquiry(
-                uint32_t  lap,
-                uint16_t  len,
-                uint8_t num_response,
-                bt_cmd_cb_t callback);
-
-bt_err_t bk_bt_disconnect(uint8_t *addr, uint8_t reason, bt_cmd_cb_t callback);
 bt_err_t bk_bt_write_scan_enable(uint8_t scan_enable, bt_cmd_cb_t callback);
 bt_err_t bk_bt_read_scan_enable(bt_cmd_cb_t callback);
 
@@ -113,12 +99,20 @@ bt_err_t bk_bt_hfp_unit_init(uint8_t msbc_supported, void *cb);
 bt_err_t bk_bt_voice_out_write(uint8_t *data, uint16_t len);
 bt_err_t bk_bt_opp_server_init(void *cb);
 
-bt_err_t bk_bt_a2dp_source_init(void *cb);
-bt_err_t bk_bt_a2dp_source_connect(bd_addr_t *addr);
-bt_err_t bk_bt_a2dp_source_disconnect(bd_addr_t *addr);
+
+bt_err_t bk_bt_connect(uint8_t *addr, uint16_t packet_type, uint8_t page_scan_repetition_mode, uint8_t page_scan_mode, uint16_t clock_offset,
+                            uint8_t allow_role_switch, bt_cmd_cb_t callback);
+
+bt_err_t bk_bt_inquiry(uint32_t lap, uint16_t len, uint8_t num_response, bt_cmd_cb_t callback);
+
+bt_err_t bk_bt_disconnect(uint8_t *addr, uint8_t reason, bt_cmd_cb_t callback);
+
+
+
 bt_err_t bk_bt_a2dp_source_start(bd_addr_t *addr);
 bt_err_t bk_bt_a2dp_source_suspend(bd_addr_t *addr);
 bt_err_t bk_bt_a2dp_source_write(bd_addr_t *addr, uint32_t frame_count, uint8_t *data, uint32_t len);
+
 /*
  * @}
  */

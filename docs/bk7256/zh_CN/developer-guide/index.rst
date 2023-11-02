@@ -28,3 +28,5 @@ User and Developer Guide
    文档系统 <documentation/index>
    分区规范 <partition_specification/index>
    AB分区方案的OTA升级 <ab_partition_ota/index>
+   声网开发指南 <agora/index>
+   华镇语音识别开发指南 <wanson_asr/index>

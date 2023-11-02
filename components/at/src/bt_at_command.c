@@ -11,7 +11,7 @@
 #include "bt_sbc_encoder.h"
 #endif
 
-#if CONFIG_BT && CONFIG_BLE
+#if CONFIG_BT
 #include "modules/dm_bt.h"
 #endif
 
@@ -24,6 +24,9 @@
 #endif
 #if CONFIG_ARCH_CM33
 #include <driver/aon_rtc.h>
+#endif
+#if CONFIG_A2DP_SOURCE_DEMO
+//#include "a2dp_source_demo.h"
 #endif
 #include <cli.h>
 
@@ -169,7 +172,7 @@ static int bt_enable_a2dp_source_suspend_handle(char *pcWriteBuffer, int xWriteB
 static int bt_enable_a2dp_source_stop_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 static int bt_enable_a2dp_source_write_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-static int bt_enable_a2dp_source_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+//static int bt_enable_a2dp_source_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
 
 #endif
@@ -334,7 +337,7 @@ static void bt_at_cmd_cb(bt_cmd_t cmd, bt_cmd_param_t *param)
             break;
         default:
             break;
-    }   
+    }
     bt_at_sema_set();
 }
 
@@ -368,7 +371,7 @@ const at_command_t bt_at_cmd_table[] = {
     {18, "A2DP_SOURCE_SUSPEND", 1, "enable a2dp source suspend", bt_enable_a2dp_source_suspend_handle},
     {19, "A2DP_SOURCE_WRITE_TEST", 1, "enable a2dp source write test", bt_enable_a2dp_source_write_test_handle},
     {20, "A2DP_SOURCE_STOP", 1, "enable a2dp source stop", bt_enable_a2dp_source_stop_handle},
-    {21, "A2DP_SOURCE_TEST", 0, "connect to soundbar and play mp3", bt_enable_a2dp_source_test_handle},
+    //{21, "A2DP_SOURCE_TEST", 0, "connect to soundbar and play mp3", bt_enable_a2dp_source_test_handle},
 #endif
 };
 
@@ -832,7 +835,7 @@ static int bt_spp_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
             CLI_LOGE("With remote device is connected, please disconnect first \r\n");
             goto error;
         }
-        bk_bt_connect(&(spp_env.peer_addr.addr[0]), 
+        bk_bt_connect(&(spp_env.peer_addr.addr[0]),
                         CONNECTION_PACKET_TYPE,
                         CONNECTION_PAGE_SCAN_REPETITIOIN_MODE,
                         0,
@@ -842,7 +845,7 @@ static int bt_spp_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
         if(bt_at_cmd_sema == NULL) goto error;
         err = bt_at_sema_get(10*1000);
         if(err != kNoErr) goto error;
-        if(at_cmd_status == 0x00) 
+        if(at_cmd_status == 0x00)
         {
             spp_env.conn_state = STATE_CONNECTED;
             spp_env.conn_handle = conn_handle;
@@ -855,7 +858,7 @@ static int bt_spp_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
         err = bt_at_sema_get(10*1000);
         if(err != kNoErr) goto error;
         if(!at_cmd_status) goto error;
-        
+
         bk_bt_spp_connect(&(spp_env.peer_addr.addr[0]), spp_env.peer_server_channel, (uint32_t)spp_env.client_spp_handle, bt_at_cmd_cb);
         err = bt_at_sema_get(10*1000);
         if(!err)
@@ -1613,14 +1616,15 @@ static int bt_enable_a2dp_source_connect_handle(char *pcWriteBuffer, int xWriteB
 
         err = get_addr_from_param(&a2dp_env.peer_addr, argv[0]);
 
-        if(err) 
+        if(err)
 		{
 			CLI_LOGE("%s get_addr_from_param err %d\n", __func__, err);
 			goto error;
 		}
         if(!a2dp_env.inited)
         {
-            bk_bt_a2dp_source_init((void *)&bt_a2dp_source_cb);
+            //bk_bt_a2dp_source_init((void *)&bt_a2dp_source_cb);
+            (void)bt_a2dp_source_cb;
             a2dp_env.inited = 1;
         }
 
@@ -1669,7 +1673,7 @@ static int bt_enable_a2dp_source_connect_handle(char *pcWriteBuffer, int xWriteB
 //
 //        if(!at_cmd_status) goto error;
 
-        err = bk_bt_a2dp_source_connect(&(a2dp_env.peer_addr));
+        err = bk_bt_a2dp_source_connect(a2dp_env.peer_addr.addr);
 
         if(err)
         {
@@ -1728,7 +1732,7 @@ static int bt_enable_a2dp_source_disconnect_handle(char *pcWriteBuffer, int xWri
             goto error;
         }
 
-        err = bk_bt_a2dp_source_disconnect(&(a2dp_env.peer_addr));
+        err = bk_bt_a2dp_source_disconnect(a2dp_env.peer_addr.addr);
 
         if(err)
         {
@@ -2375,7 +2379,7 @@ static void bt_a2dp_source_write_from_file_timer_auto_hdl(void *param)
         rc = rtos_push_to_queue(&bt_a2dp_source_msg_que, &msg, BEKEN_NO_WAIT);
         if (kNoErr != rc)
         {
-            CLI_LOGE("%s, send queue failed\r\n",__func__);
+            //CLI_LOGE("%s, send queue failed\r\n",__func__);
         }
     }
 }
@@ -2825,7 +2829,7 @@ error:
     return err;
 }
 
-
+#if 0
 static int bt_enable_a2dp_source_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     PRINT_FUNC;
@@ -2855,9 +2859,8 @@ static int bt_enable_a2dp_source_test_handle(char *pcWriteBuffer, int xWriteBuff
                     goto error;
                 }
 
-                extern bk_err_t a2dp_source_demo_main_ext(uint8_t *addr, uint8_t is_mp3, uint8_t *file_path);
 
-                err = a2dp_source_demo_main_ext(a2dp_env.peer_addr.addr, 1, (uint8_t *)argv[2]);
+                err = bt_a2dp_source_demo_test(a2dp_env.peer_addr.addr, 1, (uint8_t *)argv[2]);
             }
             else
             {
@@ -2892,7 +2895,7 @@ error:
         rtos_deinit_semaphore(&bt_at_cmd_sema);
     return err;
 }
-
+#endif
 #endif
 #define DO1(buf) crc = crc_table(((int)crc ^ (*buf++)) & 0xff) ^ (crc >> 8);
 #define DO2(buf)  DO1(buf); DO1(buf);

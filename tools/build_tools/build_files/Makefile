@@ -67,7 +67,7 @@ PROJECT_NAME := $(notdir $(PROJECT_DIR))
 ifdef BUILD_DIR
 	PROJECT_BUILD_DIR := $(BUILD_DIR)
 else
-	PROJECT_BUILD_DIR := build/$(PROJECT_NAME)/$(ARMINO_SOC)
+	PROJECT_BUILD_DIR := build/$(PROJECT_NAME)
 endif
 
 # overwrite project config

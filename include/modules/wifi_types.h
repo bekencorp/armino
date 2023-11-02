@@ -240,6 +240,57 @@ typedef enum {
 } wifi_second_channel_t;
 
 /**
+ * @brief WiFi capability interface ID
+ */
+typedef enum {
+	WIFI_CAPA_ID_ERP_EN= 0,     /**< Update Wi-Fi 11g support capability */
+	WIFI_CAPA_ID_HT_EN,         /**< Update Wi-Fi 11n support capability */
+	WIFI_CAPA_ID_VHT_EN,        /**< Update Wi-Fi 11ac support capability */
+	WIFI_CAPA_ID_HE_EN,         /**< Update Wi-Fi 11ax support capability */
+	WIFI_CAPA_ID_TX_AMPDU_EN,   /**< Update Wi-Fi TX AMPDU support capability */
+	WIFI_CAPA_ID_RX_AMPDU_EN,   /**< Update Wi-Fi RX AMPDU support capability */
+	WIFI_CAPA_ID_TX_AMPDU_NUM,  /**< Update Wi-Fi TX AMPDU maximum number */
+	WIFI_CAPA_ID_RX_AMPDU_NUM,  /**< Update Wi-Fi RX AMPDU maximum number */
+	WIFI_CAPA_ID_VHT_MCS,       /**< Update Wi-Fi VHT MCS */
+	WIFI_CAPA_ID_HE_MCS,        /**< Update Wi-Fi HE MCS */
+	WIFI_CAPA_ID_B40_EN,        /**< Update Wi-Fi 40M bandwidth support capability */
+	WIFI_CAPA_ID_STBC_EN,       /**< Update Wi-Fi STBC support capability */
+	WIFI_CAPA_ID_SGI_EN,        /**< Update Wi-Fi Short GI support capability */
+	WIFI_CAPA_ID_LDPC_EN,       /**< Update Wi-Fi LDPC support capability */
+	WIFI_CAPA_ID_BEAMFORMEE_EN, /**< Update Wi-Fi Beamforming support capability */
+	WIFI_CAPA_ID_11B_ONLY_EN,   /**< Update Wi-Fi 11b support capability */
+	WIFI_CAPA_ID_MAX,
+}wifi_capability_t;
+
+/**
+ * enum wifi_vht_mcs_support_t - VHT MCS support definitions
+ * @WIFI_VHT_MCS_SUPPORT_0_7: MCSes 0-7 are supported for the number of streams
+ * @WIFI_VHT_MCS_SUPPORT_0_8: MCSes 0-8 are supported
+ * @WIFI_VHT_MCS_SUPPORT_0_9: MCSes 0-9 are supported
+ * @WIFI_VHT_MCS_NOT_SUPPORTED: This number of streams isn't supported
+ */
+typedef enum {
+	WIFI_VHT_MCS_SUPPORT_0_7    = 0,
+	WIFI_VHT_MCS_SUPPORT_0_8    = 1,
+	WIFI_VHT_MCS_SUPPORT_0_9    = 2,
+	WIFI_VHT_MCS_NOT_SUPPORTED  = 3,
+}wifi_vht_mcs_support_t;
+
+/**
+ * enum wifi_he_mcs_support_t - HE MCS support definitions
+ * @WIFI_HE_MCS_SUPPORT_0_7: MCSes 0-7 are supported for the number of streams
+ * @WIFI_HE_MCS_SUPPORT_0_9: MCSes 0-9 are supported
+ * @WIFI_HE_MCS_SUPPORT_0_11: MCSes 0-11 are supported
+ * @WIFI_HE_MCS_NOT_SUPPORTED: This number of streams isn't supported
+ */
+typedef enum {
+	WIFI_HE_MCS_SUPPORT_0_7     = 0,
+	WIFI_HE_MCS_SUPPORT_0_9     = 1,
+	WIFI_HE_MCS_SUPPORT_0_11    = 2,
+	WIFI_HE_MCS_NOT_SUPPORTED   = 3,
+}wifi_he_mcs_support_t;
+
+/**
  * @}
  */
 

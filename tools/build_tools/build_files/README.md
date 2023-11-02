@@ -19,6 +19,8 @@ SoC is already supported.
 |main          |![alt text][supported] |![alt text][supported] |![alt text][developing] |![alt text][developing] |Develop Branch           |
 |release/v1.5  |![alt text][supported] |![alt text][supported] |                        |                        |MP branch                |
 |release/v1.5.1|![alt text][supported] |![alt text][supported] |                        |                        |MP branch for smart lock |
+|release/v1.6.0|![alt text][supported] |![alt text][supported] |                        |                        |MP branch for security   |
+|release/v1.7.0|![alt text][supported] |![alt text][supported] |                        |                        |Develop Branch           |
 
 
 [supported]: https://img.shields.io/badge/-supported-green "supported"

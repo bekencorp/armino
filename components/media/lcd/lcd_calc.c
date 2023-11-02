@@ -272,10 +272,16 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 			{
 				func = vuyy_rotate_degree90_to_yuyv;
 			}
-			else
+			else if (param == ROTATE_270)
 			{
 				func = vuyy_rotate_degree270_to_yuyv;
 			}
+			else if (param == ROTATE_180)
+			{
+				func = vuyy_rotate_degree180_to_yuyv;
+			}
+			else
+				func = vuyy_rotate_degree90_to_yuyv;
 
 			rotate_frame->fmt = PIXEL_FMT_YUYV;
 			break;
@@ -285,10 +291,16 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 			{
 				func = yuyv_rotate_degree90_to_yuyv;
 			}
-			else
+			else if (param == ROTATE_270)
 			{
 				func = yuyv_rotate_degree270_to_yuyv;
 			}
+			else if (param == ROTATE_180)
+			{
+				func = yuyv_rotate_degree180_to_yuyv;
+			}
+			else
+				func = yuyv_rotate_degree90_to_yuyv;
 			rotate_frame->fmt = PIXEL_FMT_YUYV;
 			break;
 	}
@@ -299,7 +311,24 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 #endif
 
 	//LOGI("width:-%d-%d, height:%d-%d\r\n", src_width, rotate_frame->height, src_height, rotate_frame->width);
-
+	if (param == ROTATE_180)
+	{
+		const int line_bytes = src_width << 1;
+		const int rot_line_num = src_height;
+		const int revert_Bytes = 4;
+		const int totalBytes = src_width * src_height << 1;
+		const int copy_line_word = src_width >> 1;
+		register uint8_t *dst_addr1_end = rx_block + line_bytes - revert_Bytes;
+		register uint8_t *dst_addr2_end = dst_frame_temp + totalBytes - line_bytes;
+	
+		for(i = 0; i < rot_line_num; i++)
+		{
+			memcpy_word((uint32_t *)tx_block, (uint32_t *)(src_frame_temp + i*line_bytes), copy_line_word);
+			func(tx_block, dst_addr1_end, src_width, 1);
+			memcpy_word((uint32_t *)(dst_addr2_end - (i*line_bytes)), (uint32_t *)rx_block, copy_line_word);
+		}
+	}
+	else {
 	if (src_width == rotate_frame->height && src_height == rotate_frame->width)
 	{
 		// rotate a complete frame
@@ -363,7 +392,7 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 				}
 			}
 		}
-	}
+	}}
 
 	mb_cmd.hdr.cmd = EVENT_LCD_ROTATE_MBRSP;
 	mb_cmd.param1 = (uint32_t)decoder_frame;

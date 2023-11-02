@@ -3,7 +3,7 @@
 #include <os/os.h>
 #if (!CONFIG_SLAVE_CORE)
 #include <components/shell_task.h>
-#include "bk_private/bk_wifi.h"
+#include <modules/wifi.h>
 #include "bk_private/bk_wifi_wrapper.h"
 
 #include "av_audio.h"

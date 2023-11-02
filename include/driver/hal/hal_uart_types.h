@@ -20,6 +20,8 @@
 extern "C" {
 #endif
 
+//UART BAUDRATE:User can add special baudrate and set it as the really value.
+//I.E: #define UART_BARDRATE_USER_XXX 1234
 #define UART_BAUDRATE_3250000        3250000
 #define UART_BAUDRATE_2000000        2000000
 #define UART_BAUDRATE_921600         921600
@@ -28,6 +30,7 @@ extern "C" {
 #define UART_BAUDRATE_115200         115200  //default
 #define UART_BAUDRATE_3000           3250
 #define UART_BAUDRATE_19200          19200
+#define UART_BAUDRATE_9600           9600
 
 #define UART_BAUD_RATE               UART_BAUDRATE_115200
 

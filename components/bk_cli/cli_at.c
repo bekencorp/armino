@@ -5,7 +5,7 @@
 #include <components/system.h>
 
 #if (CONFIG_AT_CMD)
-#if CONFIG_BLE//(CONFIG_BLE_5_X)
+#if CONFIG_BLUETOOTH//(CONFIG_BLE_5_X)
 #include "ble_api_5_x.h"
 #include <modules/ble.h>
 #endif
@@ -74,7 +74,7 @@ static void at_version_command(char *pcWriteBuffer, int xWriteBufferLen, int arg
 }
 
 //#if (CONFIG_BLE_5_X || CONFIG_BTDM_5_2)
-#if CONFIG_BLE
+#if CONFIG_BLUETOOTH
 static void bleat_command_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     char *msg = NULL;
@@ -129,7 +129,7 @@ static void wifi_Command_handler(char *pcWriteBuffer, int xWriteBufferLen, int a
 {
 	char *msg = NULL;
 	const at_command_t *command = NULL;
-	
+
 	command = lookup_wifi_at_command(argv[1]);
     if (command == NULL) {
         bk_printf("cannot find this cmd, please check again!!!\n");
@@ -140,124 +140,6 @@ static void wifi_Command_handler(char *pcWriteBuffer, int xWriteBufferLen, int a
 
     command->function(pcWriteBuffer, xWriteBufferLen, argc - 2, argv + 2);
 }
-
-void at_wifi_Command_sta(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-	char buf[128];
-	int i, left = sizeof(buf) - 1, len = 0;
-	int ret;
-	char *msg = NULL;
-
-	if (argc <= 1) {
-		os_printf("no cmd, please check again!!!");
-		msg = AT_CMD_RSP_ERROR;
-		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-		return;
-	}
-	buf[0] = 0;
-	for (i = 1; i < argc; i++) {
-		len = os_strlen(buf);
-		snprintf(buf + len, left - len, "%s ", argv[i]);
-	}
-	buf[strlen(buf)-1] = 0;
-	//os_printf("CMD: |%s|\n", buf);
-
-#if 1
-	if (buf != 0) {
-		ret = cmd_wlan_sta_exec(buf);
-	}
-    else {
-		os_printf("buf null, please check again!!!");
-		msg = AT_CMD_RSP_ERROR;
-		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-		return;
-	}
-	if(ret == 0)
-		msg = AT_CMD_RSP_SUCCEED;
-	else
-		msg = AT_CMD_RSP_ERROR;
-	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-#endif
-}
-
-void at_wifi_Command_ap(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-	char buf[128];
-	int i, left = sizeof(buf) - 1, len = 0;
-	int ret;
-	char *msg = NULL;
-
-	if (argc <= 1) {
-		os_printf("no cmd, please check again!!!");
-		msg = AT_CMD_RSP_ERROR;
-		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-		return;
-	}
-	buf[0] = 0;
-	for (i = 1; i < argc; i++) {
-		len = os_strlen(buf);
-		snprintf(buf + len, left - len, "%s ", argv[i]);
-	}
-	buf[strlen(buf)-1] = 0;
-	//os_printf("CMD: |%s|\n", buf);
-
-#if 1
-	if (buf != 0) {
-		ret = cmd_wlan_ap_exec(buf);
-	}
-    else {
-		os_printf("buf null, please check again!!!");
-		msg = AT_CMD_RSP_ERROR;
-		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-		return;
-	}
-	if(ret == 0)
-		msg = AT_CMD_RSP_SUCCEED;
-	else
-		msg = AT_CMD_RSP_ERROR;
-	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-#endif
-}
-void at_wifi_state(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-    char *msg = NULL;
-
-    if(argc != 1) {
-        msg = AT_CMD_RSP_ERROR;
-    }
-    else {
-        if(demo_state_app_init())
-		msg = AT_CMD_RSP_ERROR;
-	else
-        	msg = AT_CMD_RSP_SUCCEED;
-    }
-    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-}
-void at_wifi_ping(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-	char *msg = NULL;
-	int ret;
-	uint32_t cnt = 4;
-
-	if (argc == 1) {
-		os_printf("Please input: ping <host address>\n");
-		msg = AT_CMD_RSP_ERROR;
-		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-		return;
-	}
-	
-	if (argc > 2)
-		cnt = os_strtoul(argv[2], NULL, 10);
-	
-	os_printf("ping IP address:%s\n", argv[1]);
-	ret = ping(argv[1], cnt, 0);
-	if(ret == 0)
-		msg = AT_CMD_RSP_SUCCEED;
-	else
-		msg = AT_CMD_RSP_ERROR;
-	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
-}
-
 #endif
 
 void videoat_command_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -327,17 +209,12 @@ static const struct cli_command s_at_commands[] = {
     {"AT+BT", "AT+TYPE_CMD=CMD_name,param1,...,paramn", bt_at_command_handler},
 #endif
 #if CONFIG_LWIP
-    {"AT+WIFISTA", "at sta config", at_wifi_Command_sta},
-    {"AT+WIFIAP", "at ap config", at_wifi_Command_ap},
-    {"AT+WIFISTATE", "state", at_wifi_state},
-    {"AT+WIFIPING", "state", at_wifi_ping},
-    {"AT+WIFI", "AT+TYPE_CMD=CMD_name,param1,...,paramn", wifi_Command_handler},
+    {"AT+WIFI", "AT+TYPE_CMD=CMD_name,param1,...,paramn, refer to the at guide.", wifi_Command_handler},
 #endif
     {"AT+VIDEO", "video cmd(open/read/close)", videoat_command_handler},
 #if (CONFIG_WIFI_ENABLE)
-    {"AT+MAC", "mac <mac>, get/set mac. e.g. mac c89346000001", at_mac_command},
+    {"AT+MAC", "AT+MAC=<param>, e.g. AT+MAC=c8478c000001", at_mac_command},
 #endif
-
     /*
     {"AT+HELP","AT+HELP", at_help_command},
     {"AT+VERSION", "AT+VERSION", at_version_command},

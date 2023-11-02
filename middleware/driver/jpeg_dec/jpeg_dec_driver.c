@@ -254,10 +254,6 @@ bool jpeg_dec_comp_status(uint8_t *src, uint32_t src_size, uint32_t dec_size)
 		{
 			strip++;
 		}
-        else if(src[i] == 0x00 && (src[i-1] & 0x01))
-        {
-            strip++;
-        }
 		else
 		{
 			break;
@@ -289,7 +285,7 @@ static void jpeg_decoder_isr(void)
 #ifdef JPEG_DEC_STRIP
 		result.ok = jpeg_dec_comp_status(jpeg_address, jpeg_size, result.size);
 #else
-		result.ok = result.size == (jpeg_size + JPEG_TAIL_SIZE);
+		result.ok = result.size == (jpeg_size - JPEG_TAIL_SIZE);
 #endif
 
 		if (jpeg_dec_ll_get_reg0x2_jpeg_dec_linen())  //enable line num en

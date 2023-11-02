@@ -850,6 +850,8 @@ void bk_bt_app_avrcp_ct_vol_down(void)
 
 int a2dp_sink_demo_init(uint8_t aac_supported)
 {
+    bt_err_t ret = 0;
+
     os_printf("%s\r\n", __func__);
 
     bk_bt_gap_set_event_callback(gap_event_cb);
@@ -870,9 +872,29 @@ int a2dp_sink_demo_init(uint8_t aac_supported)
 
     bk_bt_avrcp_tg_init();
 
-    bk_bt_a2dp_sink_init(aac_supported);
-    bk_bt_a2dp_register_callback(bk_bt_app_a2dp_sink_cb);
-    bk_bt_a2dp_sink_register_data_callback(&bt_audio_sink_media_data_ind);
+    ret = bk_bt_a2dp_sink_init(aac_supported);
+
+    if(ret)
+    {
+        os_printf("%s bk_bt_a2dp_sink_init err\n", ret);
+        return -1;
+    }
+
+    ret = bk_bt_a2dp_register_callback(bk_bt_app_a2dp_sink_cb);
+
+    if(ret)
+    {
+        os_printf("%s bk_bt_a2dp_register_callback err\n", ret);
+        return -1;
+    }
+
+    ret = bk_bt_a2dp_sink_register_data_callback(&bt_audio_sink_media_data_ind);
+
+    if(ret)
+    {
+        os_printf("%s bk_bt_a2dp_sink_register_data_callback err\n", ret);
+        return -1;
+    }
 
     return 0;
 }

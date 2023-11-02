@@ -89,10 +89,45 @@ bt_err_t bk_bt_gap_set_device_class(uint32_t cod);
 bt_err_t bk_bt_gap_set_local_name(uint8_t *name, uint8_t len);
 
 /**
+ * @brief           This function starts Inquiry and Name Discovery. This function should be called after esp_bluedroid_enable() completes successfully.
+ *                  When Inquiry is halted and cached results do not contain device name, then Name Discovery will connect to the peer target to get the device name.
+ *                  bk_bt_gap_cb_t will be called with BK_DM_BT_GAP_DISC_STATE_CHANGED_EVT when Inquiry is started or Name Discovery is completed.
+ *                  bk_bt_gap_cb_t will be called with BK_DM_BT_GAP_DISC_RES_EVT each time the two types of discovery results are got.
+ *
+ * @param[in]       mode - Inquiry mode
+ *
+ * @param[in]       inq_len - Inquiry duration in 1.28 sec units, ranging from 0x01 to 0x30. This parameter only specifies the total duration of the Inquiry process,
+ *                          - when this time expires, Inquiry will be halted.
+ *
+ * @param[in]       num_rsps - Number of responses that can be received before the Inquiry is halted, value 0 indicates an unlimited number of responses.
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS : Succeed
+ *                  - others: fail
+ */
+bk_err_t bk_bt_gap_start_discovery(bk_bt_inq_mode_t mode, uint8_t inq_len, uint8_t num_rsps);
+
+
+
+/**
+ * @brief           Cancel Inquiry and Name Discovery. This function should be called after esp_bluedroid_enable() completes successfully.
+ *                  bt_event_cb_t will be called with BK_DM_BT_GAP_DISC_STATE_CHANGED_EVT if Inquiry or Name Discovery is cancelled by
+ *                  calling this function.
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS : Succeed
+ *                  - others: fail
+ */
+bt_err_t bk_bt_gap_cancel_discovery(void);
+
+
+/**
  *
  * @brief     Initialize the bluetooth A2DP sink module.
  *
  * @param[in]   aac_supported: 1 means aac is supported, 0 means aac is not supported.
+ *
+ * @attention   sink/source must init only one.
  *
  * @return
  *            - BK_ERR_BT_SUCCESS: the initialization request is successfully
@@ -106,6 +141,8 @@ bt_err_t bk_bt_a2dp_sink_init(uint8_t aac_supported);
  *                  and sink.
  *
  * @param[in]       callback: A2DP event callback function
+ *
+ * @attention       this function must call after sink or source init
  *
  * @return
  *                  - BK_ERR_BT_SUCCESS: success
@@ -163,16 +200,7 @@ bt_err_t bk_bt_a2dp_sink_disconnect(uint8_t *remote_bda);
  */
 bt_err_t bk_bt_avrcp_ct_init(void);
 
-/**
- *
- * @brief           Initialize the bluetooth AVRCP target module
- *
- * @return
- *                  - BK_ERR_BT_SUCCESS: success
- *                  - others: fail
- *
- */
-bt_err_t bk_bt_avrcp_tg_init(void);
+
 
 /**
  * @brief           Register application callbacks to AVRCP module.
@@ -231,6 +259,174 @@ bt_err_t bk_bt_ct_send_register_notification_cmd(uint8_t *remote_bda, uint8_t ev
  *                  - others: fail
  */
 bt_err_t bk_bt_avrcp_ct_send_passthrough_cmd(uint8_t *remote_bda, uint8_t key_code, uint8_t key_state);
+
+
+
+/**
+ *
+ * @brief           Initialize the bluetooth AVRCP target module
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS: success
+ *                  - others: fail
+ *
+ */
+bt_err_t bk_bt_avrcp_tg_init(void);
+
+
+/**
+ * @brief           Register application callbacks to AVRCP target module.
+ *
+ * @param[in]       callback: AVRCP target callback function
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS: success
+ *                  - others: fail
+ *
+ */
+bt_err_t bk_bt_avrcp_tg_register_callback(bk_avrcp_tg_cb_t callback);
+
+
+
+/**
+ *
+ * @brief           Get the requested event notification capabilies on local AVRC target. The capability is returned
+ *                  in a bit mask representation in evt_set. This function should be called after bk_avrcp_tg_init().
+ *
+ *                  For capability type "BK_AVRCP_RN_CAP_API_METHOD_ALLOWED, the retrieved event set is constant and
+ *                  it covers all of the notification events that can possibly be supported with current
+ *                  implementation.
+ *
+ *                  For capability type BK_AVRCP_RN_CAP_API_METHOD_CURRENT_ENABLE, the event set covers the notification
+ *                  events selected to be supported under current configuration, The configuration can be
+ *                  changed using bk_avrcp_tg_set_rn_evt_cap().
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS: success
+ *                  - others: fail
+ */
+bt_err_t bk_bt_avrcp_tg_get_rn_evt_cap(bk_avrcp_rn_cap_api_method_t cap, bk_avrcp_rn_evt_cap_mask_t *evt_set);
+
+/**
+ *
+ * @brief           Set the event notification capabilities on local AVRCP target. The capability is given in a
+ *                  bit mask representation in evt_set and must be a subset of allowed event IDs with current
+ *                  implementation. This function should be called after bk_avrcp_tg_init().
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS: success
+ *                  - others: fail
+ *
+ */
+bt_err_t bk_bt_avrcp_tg_set_rn_evt_cap(const bk_avrcp_rn_evt_cap_mask_t *evt_set);
+
+/**
+ *
+ * @brief           Send RegisterNotification Response to remote AVRCP controller. Local event notification
+ *                  capability can be set using bk_avrcp_tg_set_rn_evt_cap(), in a bit mask representation
+ *                  in evt_set. This function should be called after bk_avrcp_tg_init().
+ *
+ * @param[in]       addr: peer addr
+ *
+ * @param[in]       event_id: notification event ID that remote AVRCP CT registers
+ *
+ * @param[in]       rsp: notification response code
+ *
+ * @param[in]       param: parameters included in the specific notification
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS: success
+ *                  - others: fail
+ *
+ */
+bt_err_t bk_bt_avrcp_tg_send_rn_rsp(uint8_t *addr, bk_avrcp_rn_event_ids_t event_id, bk_avrcp_rn_rsp_t rsp,
+                                    bk_avrcp_rn_param_t *param);
+
+/**
+ *
+ * @brief           Initialize the bluetooth A2DP source module. A2DP can work independently.
+ *
+ * @attention       sink/source must init only one.
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS: if the initialization request is sent to lower layer successfully
+ *                  - others: fail
+ *
+ */
+bt_err_t bk_bt_a2dp_source_init(void);
+
+/**
+ * @brief           Register A2DP source data input function. For now, the input should be PCM data stream.
+
+ *
+ * @param[in]       callback: A2DP source data callback function
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS: success
+ *                  - others: fail
+ *
+ */
+bk_err_t bk_a2dp_source_register_data_callback(bk_a2dp_source_data_cb_t callback);
+
+/**
+ * @brief           set a2dp source data format
+ *
+ * @param[in]       sample_rate: pcm data sample rate, such as 8000 16000 32000 44100 48000.
+ *
+ * @param[in]       bit_depth : pcm data bit depth, now support 16 bits only.
+ *
+ * @param[in]       channel_count : pcm data channel count, support 1 or 2 now.
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS: success
+ *                  - others: fail
+ */
+bk_err_t bk_a2dp_source_set_pcm_data_format(uint32_t sample_rate, uint8_t bit_depth, uint8_t channel_count);
+
+
+/**
+ *
+ * @brief           Connect to remote A2DP sink device. This API must be called
+ *                  after bk_bt_a2dp_source_init()
+ *
+ * @param[in]       addr: remote bluetooth device address
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS: connect request is sent to lower layer successfully
+ *                  - others: fail
+ *
+ */
+bt_err_t bk_bt_a2dp_source_connect(uint8_t *addr);
+
+/**
+ *
+ * @brief           Disconnect from the remote A2DP sink device. This API must be called
+ *                  after bk_bt_a2dp_source_init()
+ *
+ * @param[in]       addr: remote bluetooth device address
+ * @return
+ *
+ *                  - BK_ERR_BT_SUCCESS: connect request is sent to lower layer successfully
+ *                  - others: fail
+ *
+ */
+bt_err_t bk_bt_a2dp_source_disconnect(uint8_t *addr);
+
+/**
+ *
+ * @brief           Media control commands. This API can be used for both A2DP sink
+ *                  and must be called after bk_bt_a2dp_source_init()
+ *
+ * @param[in]       ctrl: control commands for A2DP action
+ *
+ * @attention       this function only used for a2dp source
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS: control command is sent to lower layer successfully
+ *                  - others: fail
+ *
+ */
+bt_err_t bk_a2dp_media_ctrl(bk_a2dp_media_ctrl_t ctrl);
 
 #ifdef __cplusplus
 }

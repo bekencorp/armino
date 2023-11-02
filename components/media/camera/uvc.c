@@ -104,6 +104,7 @@ bk_err_t bk_uvc_camera_open(media_ppi_t ppi, media_camera_type_t type)
 		}
 	}
 
+	// first set uvc_stat_flag to ture, to avoid confusion caused by abnormal disconnection during the opening of uvc
 	uvc_state_flag = true;
 
 	uvc_camera_config_st->uvc_config->type = type;
@@ -121,11 +122,9 @@ bk_err_t bk_uvc_camera_open(media_ppi_t ppi, media_camera_type_t type)
 	uvc_camera_config_st->uvc_connect_state_change_cb = uvc_device_connect_state_callback;
 
 	ret = bk_uvc_camera_driver_init(uvc_camera_config_st);
-	if (ret == BK_OK)
-	{
-		uvc_state_flag = true;
-	}
-	else
+
+	// only judge the state of api calling
+	if (ret != BK_OK)
 	{
 		LOGE("%s failed\r\n", __func__);
 		uvc_state_flag = false;

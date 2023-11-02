@@ -1,0 +1,6 @@
+menu "LVGL 86box Configuration"
+
+    config LV_USE_DEMO_86BOX
+        bool "LVGL 86Box"
+        default n
+endmenu

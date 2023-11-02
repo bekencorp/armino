@@ -1459,6 +1459,11 @@ int bk_cli_init(void)
 #if (CLI_CFG_MATTER == 1)
     cli_matter_init();
 #endif
+
+#if CONFIG_A2DP_SOURCE_DEMO && CONFIG_FATFS
+    cli_a2dp_source_demo_init();
+#endif
+
 /*--------------BT&MultMedia cli command init end------------------*/
 
 

@@ -119,4 +119,16 @@ menu "Lvgl_source"
 	config LV_ATTRIBUTE_FAST_MEM
 		bool "Enable Lv Attribute Fast Mem"
 		default n
+
+    config LVGL_TASK_PRIORITY
+        int "lvgl internal task priority"
+        default 4
+        help
+            lvgl internal task priority
+
+    config LVGL_TASK_DELAY
+        int "lvgl internal task delay(ms) per loop"
+        default 5
+        help
+            lvgl internal task delay(ms) per loop
 endmenu

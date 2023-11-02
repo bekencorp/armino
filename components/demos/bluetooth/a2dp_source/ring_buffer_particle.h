@@ -21,6 +21,7 @@ typedef struct
 
 int32_t ring_buffer_particle_init(ring_buffer_particle_ctx *ctx, uint32_t len);
 int32_t ring_buffer_particle_deinit(ring_buffer_particle_ctx *ctx);
+bool ring_buffer_particle_is_init(ring_buffer_particle_ctx *ctx);
 int32_t ring_buffer_particle_reset(ring_buffer_particle_ctx *ctx);
 
 int32_t ring_buffer_particle_write(ring_buffer_particle_ctx *ctx, uint8_t *data, uint32_t len);

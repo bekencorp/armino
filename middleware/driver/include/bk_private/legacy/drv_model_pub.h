@@ -35,7 +35,7 @@ typedef enum _dd_device_type_
 #if (!CONFIG_SOC_BK7231)
     DD_DEV_TYPE_TIMER,
 #endif
-#if ((!CONFIG_SOC_BK7231) && (CONFIG_BLE == 1))
+#if ((!CONFIG_SOC_BK7231) && (CONFIG_BLUETOOTH == 1))
     DD_DEV_TYPE_BLE,
 #endif
 #if ((!CONFIG_SOC_BK7271) && (!CONFIG_SOC_BK7256XX))

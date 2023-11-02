@@ -120,3 +120,25 @@ int bk_feature_lvgl_use_direct_mode_enable(void);
  */
 int bk_feature_not_check_ssid_enable(void);
 
+
+/**
+ * @brief     Interface for customer to set lvgl internal task priority
+ *
+ *
+ * @return
+ *    - priority for lvgl internal task
+ *
+ *
+ */
+int bk_feature_get_lvgl_task_priority(void);
+
+/**
+ * @brief     Interface for customer to set lvgl internal task delay per loop
+ *
+ *
+ * @return
+ *    - delay(ms) for lvgl internal task
+ *
+ *
+ */
+int bk_feature_get_lvgl_task_delay(void);

@@ -18,6 +18,11 @@ menu "Demos::Bluetooth"
         depends on FATFS
         default n
 
+    config A2DP_SOURCE_DEMO_AVRCP
+        bool "Enable avrcp for a2dp source demo"
+        depends on A2DP_SOURCE_DEMO
+        default n
+
 	config A2DP_CACHE_FRAME_NUM
 		int "A2DP Cache Frame Num"
 		depends on A2DP_SINK_DEMO

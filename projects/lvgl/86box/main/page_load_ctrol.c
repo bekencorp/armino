@@ -131,43 +131,38 @@ void hor_page_load_main(void)
     //lv_obj_add_event_cb(lv_tabview_get_content(ui_tabview), scroll_begin_event, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_tabview, get_tab_act_index_event_handler, LV_EVENT_VALUE_CHANGED, NULL);
     
-    ui_tab1 = lv_tabview_add_tab(ui_tabview, "Tab 1");
-    ui_tab2 = lv_tabview_add_tab(ui_tabview, "Tab 2");
-    ui_tab3 = lv_tabview_add_tab(ui_tabview, "Tab 3");
-//    lv_obj_t *tab4 = lv_tabview_add_tab(ui_tabview, "Tab 4");
-//    lv_obj_t *tab5 = lv_tabview_add_tab(ui_tabview, "Tab 5");
-//    lv_obj_t *tab6 = lv_tabview_add_tab(ui_tabview, "Tab 6");
+    lv_obj_t *tab1 = lv_tabview_add_tab(ui_tabview, "Tab 1");
+    lv_obj_t *tab2 = lv_tabview_add_tab(ui_tabview, "Tab 2");
+    lv_obj_t *tab3 = lv_tabview_add_tab(ui_tabview, "Tab 3");
+    lv_obj_t *tab4 = lv_tabview_add_tab(ui_tabview, "Tab 4");
+    lv_obj_t *tab5 = lv_tabview_add_tab(ui_tabview, "Tab 5");
+    lv_obj_t *tab6 = lv_tabview_add_tab(ui_tabview, "Tab 6");
 
-    lv_obj_set_style_pad_all(ui_tab1, 0, 0);
-    lv_obj_set_style_radius(ui_tab1, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    ui_UiPage1_screen_init(ui_tab1);
-    
-    lv_obj_set_style_pad_all(ui_tab2, 0, 0);
-    lv_obj_set_style_border_width(ui_tab2, 0, 0);
-    ui_UiPage2_screen_init(ui_tab2);
-    
-    lv_obj_set_style_pad_all(ui_tab3, 0, 0);
-    lv_obj_set_style_border_width(ui_tab3, 0, 0);
-    ui_UiArcPage_screen_init(ui_tab3);
-    
-/*
+    lv_obj_set_style_pad_all(tab1, 0, 0);
+    lv_obj_set_style_radius(tab1, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    ui_UiPage1_screen_init(tab1);
+
+    lv_obj_set_style_pad_all(tab2, 0, 0);
+    lv_obj_set_style_border_width(tab2, 0, 0);
+    ui_UiPage2_screen_init(tab2);
+
+    lv_obj_set_style_pad_all(tab3, 0, 0);
+    lv_obj_set_style_border_width(tab3, 0, 0);
+    ui_UiArcPage_screen_init(tab3);
+
     lv_obj_set_style_pad_all(tab4, 0, 0);
     lv_obj_set_style_border_width(tab4, 0, 0);
     ui_UiPage3_screen_init(tab4);
-    
+
     lv_obj_set_style_pad_all(tab5, 0, 0);
     lv_obj_set_style_border_width(tab5, 0, 0);
     ui_UiPage4_screen_init(tab5);
-    
+
     lv_obj_set_style_pad_all(tab6, 0, 0);
     lv_obj_set_style_border_width(tab6, 0, 0);
     ui_UiPage5_screen_init(tab6);
-*/
+
     lv_disp_load_scr(ui_tabview_screen);
 }
 
-void ui_tabview_set(uint32_t id)
-{
-	lv_tabview_set_act(ui_tabview, id, LV_ANIM_ON);
-}
 

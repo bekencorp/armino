@@ -75,3 +75,20 @@ int bk_feature_not_check_ssid_enable(void) {
 #endif
 }
 
+int bk_feature_get_lvgl_task_priority(void)
+{
+#ifdef CONFIG_LVGL_TASK_PRIORITY
+    return CONFIG_LVGL_TASK_PRIORITY;
+#else
+    return 4;
+#endif
+}
+
+int bk_feature_get_lvgl_task_delay(void)
+{
+#ifdef CONFIG_LVGL_TASK_DELAY
+    return CONFIG_LVGL_TASK_DELAY;
+#else
+    return 5;
+#endif
+}

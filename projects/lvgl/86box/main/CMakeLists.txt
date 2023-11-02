@@ -58,12 +58,6 @@ list(APPEND srcs
 )
 endif()
 
-if (CONFIG_ASR AND CONFIG_AUD_INTF)
-list(APPEND srcs
-	wanson_asr.c
-)
-endif()
-
 if (CONFIG_OVERRIDE_FLASH_PARTITION)
     list(APPEND srcs
         vnd_flash.c
@@ -73,7 +67,7 @@ endif()
 armino_component_register(
 	SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}" 
-	PRIV_REQUIRES media bk_init bk_cli wanson
+	PRIV_REQUIRES media bk_init bk_cli
 )
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-unused-variable)

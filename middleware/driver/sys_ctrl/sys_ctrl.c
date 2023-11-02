@@ -17,7 +17,7 @@
 
 #if (!CONFIG_SOC_BK7256XX)
 
-#if CONFIG_BLE
+#if CONFIG_BLUETOOTH
 #include <modules/ble.h>
 #endif
 #if ((CONFIG_SOC_BK7231N) || (CONFIG_SOC_BK7256XX))

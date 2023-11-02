@@ -103,6 +103,7 @@ typedef struct {
 	uint16_t frame_size;				/**< size: a frame packet mic data size(byte) */
 	uint8_t mic_gain;					/**< audio adc gain: value range:0x0 ~ 0x3f, suggest:0x2d */
 	aud_intf_mic_type_t mic_type;		/**< audio mic type: uac or microphone */
+	aud_adc_intf_mode_t mic_mode;		/**< audio mic mode: signal_ended/differen */
 } aud_intf_mic_setup_t;
 
 #define DEFAULT_AUD_INTF_MIC_SETUP_CONFIG() {          \
@@ -111,6 +112,7 @@ typedef struct {
         .frame_size = 320,                             \
         .mic_gain = 0x2d,                              \
         .mic_type = AUD_INTF_MIC_TYPE_BOARD,           \
+        .mic_mode = AUD_ADC_INTF_MODE_DIFFEN,          \
     }
 
 /**************** audio interface speaker ****************/
@@ -219,6 +221,7 @@ typedef struct {
 	aud_intf_voc_spk_ctrl_t spk_en;			/**< spk default status */
 	aud_intf_mic_type_t mic_type;			/**< audio mic type: uac or microphone */
 	aud_intf_spk_type_t spk_type;			/**< audio speaker type: uac or speaker */
+	aud_adc_intf_mode_t mic_mode;			/**< audio mic mode: signal_ended/differen */
 	uint8_t frame_num;						/**< the max number of frames in rx buffer to save rx data, the time of one frame is 20ms */
 	uint8_t fifo_frame_num;					/**< the number of frames in rx buffer before start voice transfer, the time of one frame is 20ms */
 } aud_intf_voc_setup_t;
@@ -242,6 +245,7 @@ typedef struct {
         .spk_en = AUD_INTF_VOC_SPK_OPEN,               \
         .mic_type = AUD_INTF_MIC_TYPE_BOARD,           \
         .spk_type = AUD_INTF_SPK_TYPE_BOARD,           \
+        .mic_mode = AUD_ADC_INTF_MODE_DIFFEN,          \
         .frame_num = 15,                               \
         .fifo_frame_num = 10,                          \
     }

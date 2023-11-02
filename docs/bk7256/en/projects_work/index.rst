@@ -8,3 +8,5 @@ projects code
 
    Bluetooth <bluetooth/index>
    Multi-meida <media/index>
+   LVGL <lvgl/index>
+   thirdparty <thirdparty/index>

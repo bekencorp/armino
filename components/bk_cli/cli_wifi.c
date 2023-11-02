@@ -1653,40 +1653,39 @@ void cli_wifi_capa_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		goto error;
 	}
 
-	if(os_strcmp(argv[1], "ht") == 0) {
+	if (os_strcmp(argv[1], "erp") == 0) {
+		capa_id = WIFI_CAPA_ID_ERP_EN;
+	} else if (os_strcmp(argv[1], "ht") == 0) {
 		capa_id = WIFI_CAPA_ID_HT_EN;
-	}
-	else if(os_strcmp(argv[1], "vht") == 0) {
+	} else if (os_strcmp(argv[1], "vht") == 0) {
 		capa_id = WIFI_CAPA_ID_VHT_EN;
-	}
-	else if(os_strcmp(argv[1], "he") == 0) {
+	} else if (os_strcmp(argv[1], "he") == 0) {
 		capa_id = WIFI_CAPA_ID_HE_EN;
-	}
-	else if(os_strcmp(argv[1], "tx_ampdu") == 0) {
+	} else if (os_strcmp(argv[1], "tx_ampdu") == 0) {
 		capa_id = WIFI_CAPA_ID_TX_AMPDU_EN;
-	}
-	else if(os_strcmp(argv[1], "rx_ampdu") == 0) {
+	} else if (os_strcmp(argv[1], "rx_ampdu") == 0) {
 		capa_id = WIFI_CAPA_ID_RX_AMPDU_EN;
-	}
-	else if(os_strcmp(argv[1], "tx_ampdu_num") == 0) {
+	} else if (os_strcmp(argv[1], "tx_ampdu_num") == 0) {
 		capa_id = WIFI_CAPA_ID_TX_AMPDU_NUM;
-	}
-	else if(os_strcmp(argv[1], "rx_ampdu_num") == 0) {
+	} else if (os_strcmp(argv[1], "rx_ampdu_num") == 0) {
 		capa_id = WIFI_CAPA_ID_RX_AMPDU_NUM;
-	}
-	else if(os_strcmp(argv[1], "vht_mcs") == 0) {
+	} else if (os_strcmp(argv[1], "vht_mcs") == 0) {
 		capa_id = WIFI_CAPA_ID_VHT_MCS;
-	}
-	else if(os_strcmp(argv[1], "he_mcs") == 0) {
+	} else if (os_strcmp(argv[1], "he_mcs") == 0) {
 		capa_id = WIFI_CAPA_ID_HE_MCS;
-	}
-	else if(os_strcmp(argv[1], "b40") == 0) {
-		capa_id = WIFI_CAPA_ID_B40;
-	}
-	else if(os_strcmp(argv[1], "sgi") == 0) {
-		capa_id = WIFI_CAPA_ID_SGI;
-	}
-	else {
+	} else if (os_strcmp(argv[1], "b40") == 0) {
+		capa_id = WIFI_CAPA_ID_B40_EN;
+	} else if (os_strcmp(argv[1], "stbc") == 0) {
+		capa_id = WIFI_CAPA_ID_STBC_EN;
+	} else if (os_strcmp(argv[1], "sgi") == 0) {
+		capa_id = WIFI_CAPA_ID_SGI_EN;
+	} else if (os_strcmp(argv[1], "ldpc") == 0) {
+		capa_id = WIFI_CAPA_ID_LDPC_EN;
+	} else if (os_strcmp(argv[1], "bfmee") == 0) {
+		capa_id = WIFI_CAPA_ID_BEAMFORMEE_EN;
+	} else if (os_strcmp(argv[1], "11b_only") == 0) {
+		capa_id = WIFI_CAPA_ID_11B_ONLY_EN;
+	} else {
 		CLI_LOGI("invalid CAPA paramter\n");
 		goto error;
 	}

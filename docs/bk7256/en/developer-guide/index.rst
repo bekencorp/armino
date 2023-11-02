@@ -28,3 +28,5 @@ User and Developer Guide
    Documentation <documentation/index>
    ab_partition_ota <ab_partition_ota/index>
    Partition_specification <partition_specification/index>
+   agora <agora/index>
+   wanson_asr <wanson_asr/index>

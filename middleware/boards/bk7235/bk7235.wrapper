@@ -87,8 +87,14 @@ if os.getenv("PROJECT_DIR") != "projects/ate_mini_code":
                 shutil.copy("{}/{}/PACK/generate_out/bootloader.bin".format(armino_path,project_bootloader_a_b), 
                             "{}/{}".format(armino_path, os.getenv("PROJECT_DIR")))
                 #copy bootloader elf-map-asm to build directory
-                shutil.copytree("{}/{}/l_boot/out/".format(armino_path,project_bootloader_a_b), "./bootloader_out/l_boot",ignore=shutil.ignore_patterns("temp","*.bin","l_bootloader1.asm"))
-                shutil.copytree("{}/{}/up_boot/out/".format(armino_path,project_bootloader_a_b), "./bootloader_out/u_boot",ignore=shutil.ignore_patterns("temp","*.bin","u_bootloader1.asm"))
+                try:
+                    shutil.copytree("{}/{}/l_boot/out/".format(armino_path,project_bootloader_a_b), "./bootloader_out/l_boot",ignore=shutil.ignore_patterns("temp","*.bin","l_bootloader1.asm"))
+                    shutil.copytree("{}/{}/up_boot/out/".format(armino_path,project_bootloader_a_b), "./bootloader_out/u_boot",ignore=shutil.ignore_patterns("temp","*.bin","u_bootloader1.asm"))
+                except FileExistsError:
+                    #raise RuntimeError("==========>./bootloader_out exist")
+                    shutil.rmtree('./bootloader_out')
+                    shutil.copytree("{}/{}/l_boot/out/".format(armino_path,project_bootloader_a_b), "./bootloader_out/l_boot",ignore=shutil.ignore_patterns("temp","*.bin","l_bootloader1.asm"))
+                    shutil.copytree("{}/{}/up_boot/out/".format(armino_path,project_bootloader_a_b), "./bootloader_out/u_boot",ignore=shutil.ignore_patterns("temp","*.bin","u_bootloader1.asm"))
         else:
             if (os.path.exists("{}/{}".format(armino_path,project_bootloader))):
                 print("PROJECT_DIR:",os.getenv("PROJECT_DIR"))
@@ -97,9 +103,15 @@ if os.getenv("PROJECT_DIR") != "projects/ate_mini_code":
                 shutil.copy("{}/{}/PACK/generate_out/bootloader.bin".format(armino_path,project_bootloader), 
                             "{}/middleware/boards/{}/bootloader.bin".format(armino_path,chip))
                 #copy bootloader elf-map-asm to build directory
-                shutil.copytree("{}/{}/l_boot/out/".format(armino_path,project_bootloader), "./bootloader_out/l_boot",ignore=shutil.ignore_patterns("temp","*.bin","l_bootloader1.asm"))
-                shutil.copytree("{}/{}/up_boot/out/".format(armino_path,project_bootloader), "./bootloader_out/u_boot",ignore=shutil.ignore_patterns("temp","*.bin","u_bootloader1.asm"))
-
+                try:
+                    shutil.copytree("{}/{}/l_boot/out/".format(armino_path,project_bootloader), "./bootloader_out/l_boot",ignore=shutil.ignore_patterns("temp","*.bin","l_bootloader1.asm"))
+                    shutil.copytree("{}/{}/up_boot/out/".format(armino_path,project_bootloader), "./bootloader_out/u_boot",ignore=shutil.ignore_patterns("temp","*.bin","u_bootloader1.asm"))
+                except FileExistsError:
+                    #raise RuntimeError("==========>./bootloader_out exist")
+                    shutil.rmtree('./bootloader_out')
+                    shutil.copytree("{}/{}/l_boot/out/".format(armino_path,project_bootloader), "./bootloader_out/l_boot",ignore=shutil.ignore_patterns("temp","*.bin","l_bootloader1.asm"))
+                    shutil.copytree("{}/{}/up_boot/out/".format(armino_path,project_bootloader), "./bootloader_out/u_boot",ignore=shutil.ignore_patterns("temp","*.bin","u_bootloader1.asm"))
+                    
 def package_json_rebuild():
     if os.path.exists("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR"))):
         with open("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR")), 'r') as local_json:

@@ -1642,8 +1642,7 @@ frame_buffer_t *lcd_driver_rodegree_frame(frame_buffer_t *frame, media_rotate_t 
 	mb_chnl_cmd_t mb_cmd;
 #endif
 
-	if (rotate == ROTATE_NONE
-		|| rotate == ROTATE_180)
+	if (rotate == ROTATE_NONE)
 	{
 		LOGE("%s no supported paramters\n", __func__);
 		return frame;
@@ -1689,9 +1688,17 @@ frame_buffer_t *lcd_driver_rodegree_frame(frame_buffer_t *frame, media_rotate_t 
 		s_lcd.rotate_frame = s_lcd.resize_frame;
 	}
 
-	s_lcd.rotate_frame->height = frame->width;
-	s_lcd.rotate_frame->width = frame->height;
-	s_lcd.rotate_frame->sequence = frame->sequence;
+		if (rotate != ROTATE_180)
+		{
+			s_lcd.rotate_frame->height = frame->width;
+			s_lcd.rotate_frame->width = frame->height;
+		}
+		else
+		{
+			s_lcd.rotate_frame->width = frame->width;
+			s_lcd.rotate_frame->height = frame->height;
+		}
+		s_lcd.rotate_frame->sequence = frame->sequence;
 	s_lcd.rotate_frame->length = frame->width * frame->height * 2;
 	s_lcd.rotate_frame->fmt = frame->fmt;
 

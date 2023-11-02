@@ -797,6 +797,79 @@ bk_err_t bk_wifi_get_tx_raw_ac(uint8_t *ac);
 bk_err_t bk_wifi_get_tx_raw_timeout(uint16_t *time);
 
 /**
+  * @brief Update the minimux heap memory size that Wi-Fi should reserve
+  *
+  * @attention 1. An small piece of extra memory will be malloced from heap for each TX packets delivered to Wi-Fi,
+  *               so if the pending TX packets are too many for some reasons, the heap memory will be occupied
+  *               too much by TX packets. To ensure the stability of whole system, this interface is provied to
+  *               limit the memory size for Wi-Fi TX packets.
+  * @attention 2. The default minimux reserved memory size is 10K bytes
+  *
+  * @param mem_bytes: the expected reserved memory size(bytes)
+  *
+  * @return
+  *    - BK_OK: succeed
+  *    - others: other errors
+  */
+bk_err_t bk_wifi_set_min_rsv_mem(uint32_t mem_bytes);
+
+/**
+  * @brief Get the minimux heap memory size that Wi-Fi currently creserves
+  *
+  * @param mem_bytes: return currently reserved memory size(bytes)
+  *
+  * @return
+  *    - BK_OK: succeed
+  *    - others: other errors
+  */
+bk_err_t bk_wifi_get_min_rsv_mem(uint32_t *mem_bytes);
+
+/**
+  * @brief Update the maximum MSDU count that Wi-Fi could handle
+  *
+  * @param max_cnt: the maxmimum MSDU count
+  *
+  * @return
+  *    - BK_OK: succeed
+  *    - others: other errors
+  */
+bk_err_t bk_wifi_set_tx_max_msdu_cnt(uint16_t max_cnt);
+
+/**
+  * @brief Get the maximum MSDU count configuration that Wi-Fi could handle
+  *
+  * @param max_cnt: return the maxmimum MSDU count
+  *
+  * @return
+  *    - BK_OK: succeed
+  *    - others: other errors
+  */
+bk_err_t bk_wifi_get_tx_max_msdu_cnt(uint16_t *max_cnt);
+
+/**
+  * @brief Update Wi-Fi capability configuration
+  *
+  * This API is used to change some Wi-Fi capability configuration, please refer to 
+  * wifi_capability_t to get the capability that has been supported.
+  * 
+  * @attention 1. Please keep in mind that Wi-Fi behavior may change if the capability
+  *               is changed to different value compared with the default value.
+  * @attention 2. We strongly suggest not using this API except you are very farmiliar with
+  *               the Wi-Fi specification.
+  * @attention 3. If you want Wi-Fi working on 11b only mode, please set 11b only mode by
+  *               configurate paramter capa_id with WIFI_CAPA_ID_11B_ONLY_EN and capa_val
+  *               with true BEFORE connecting AP or opening SoftAP.
+  *
+  * @param capa_id: the specific capability you want to change
+  * @param capa_val: new capability value
+  *
+  * @return
+  *    - BK_OK: succeed
+  *    - others: other errors
+  */
+bk_err_t bk_wifi_capa_config(wifi_capability_t capa_id, uint32_t capa_val);
+
+/**
  * @brief     configure country info
  *
  * @attention 1. The default country is {.cc="CN", .schan=1, .nchan=13, policy=WIFI_COUNTRY_POLICY_AUTO}

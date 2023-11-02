@@ -14,7 +14,5 @@
    外设 <peripheral/index>
    平台 <platform/index>
    LVGL <lvgl/lvgl>
-   声网 <agora/agora>
    尚云P2P <cs2_p2p/index>
-   华镇语音识别 <wanson_asr/wanson_asr>
    wifi <wifi/index>

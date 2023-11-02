@@ -42,7 +42,7 @@
 #include "sdcard_pub.h"
 #endif
 
-#if CONFIG_BLE
+#if CONFIG_BLUETOOTH
 #include <modules/ble.h>
 #endif
 

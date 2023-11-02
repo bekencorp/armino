@@ -17,6 +17,8 @@ Armino 是**博通集成**推出的物联网开发框架，旨在支持**博通�
 |main          |![alt text][支持] |![alt text][支持] |![alt text][开发中] |![alt text][开发中] |Develop Branch           |
 |release/v1.5  |![alt text][支持] |![alt text][支持] |                    |                    |MP branch                |
 |release/v1.5.1|![alt text][支持] |![alt text][支持] |                    |                    |MP branch for smart lock |
+|release/v1.6.0|![alt text][支持] |![alt text][支持] |                    |                    |MP branch for security   |
+|release/v1.7.0|![alt text][支持] |![alt text][支持] |                    |                    |Develop Branch           |
 
 
 [支持]: https://img.shields.io/badge/-supported-green "支持"

@@ -1,0 +1,83 @@
+USER_SECTIONS	.nds_vector
+USER_SECTIONS	.itcm_sec_code
+USER_SECTIONS	.dtcm_sec_data
+USER_SECTIONS	.dtcm_sec_bss
+USER_SECTIONS	.bt_spec_data
+
+USER_SECTIONS	.ble_bss_data
+USER_SECTIONS	.video_spec_data
+USER_SECTIONS	.media_bss_data
+USER_SECTIONS	.swap_data
+USER_SECTIONS	.itcm
+USER_SECTIONS	.interrupt.text
+USER_SECTIONS	.interrupt.HalTrapVector.text.HalTrapVector
+USER_SECTIONS   .sram_nocache
+USER_SECTIONS   .sram_cache
+
+CPU0_LOAD1 0x10000 0x3a0000
+{
+	FLASH1 +0
+	{
+		* KEEP (.nds_vector)
+		* KEEP (.interrupt.text)
+		* KEEP (.interrupt.HalTrapVector.text.HalTrapVector)
+		* KEEP (.itcm)
+
+		* (+RO)
+	}
+
+	ITCM 0x10000000 0x8000
+	{
+		LOADADDR NEXT _itcm_lma_start
+		ADDR NEXT _itcm_ema_start
+		* KEEP (.itcm_sec_code LMA_FORCE_ALIGN)
+		LOADADDR _itcm_lma_end
+		ADDR _itcm_ema_end
+	}
+
+	DTCM 0x20000000 0x7800
+	{
+		LOADADDR NEXT _dtcm_lma_start
+		ADDR NEXT _dtcm_ema_start
+
+		* KEEP (.dtcm_sec_data LMA_FORCE_ALIGN)
+
+		LOADADDR _dtcm_lma_end
+		ADDR _dtcm_ema_end
+
+		ADDR _dtcm_bss_start
+
+		* KEEP (.dtcm_sec_bss)
+
+		ADDR _dtcm_bss_end
+	}
+
+	SRAM_BT 0x30000000 0x10000
+	{
+		LOADADDR NEXT _bt_data_lmastart
+		ADDR NEXT   _bt_data_start
+		* KEEP (.bt_spec_data LMA_FORCE_ALIGN)
+		* KEEP (.ble_bss_data LMA_FORCE_ALIGN)
+		*rwip.c.obj *rwip_driver.c.obj *uart_ble.c.obj *uart_controller_only.c.obj(+ZI)
+		*sdp_common.c.obj *app_ble.c.obj *prf.c.obj(+ZI)
+		ADDR _bt_data_end
+
+	}
+
+	SRAM_DATA 0x30010000 0x30000
+	{
+		* KEEP (.sram_nocache)
+		LOADADDR NEXT _data_lmastart
+		ADDR NEXT _data_start
+		*(+RW,+ZI LMA_FORCE_ALIGN)
+
+		STACK = 0x20007FE0
+
+	}
+
+	SRAM_CACHE 0x38000000 0x40000
+	{
+		* KEEP (.sram_cache)
+	}
+
+}

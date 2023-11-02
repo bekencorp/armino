@@ -11,7 +11,6 @@
 #include "lvgl.h"
 #include "page_load_ctrol.h"
 #include "img_utility.h"
-#include "wanson_asr.h"
 
 extern void user_app_main(void);
 extern void rtos_set_user_app_entry(beken_thread_function_t entry);
@@ -110,10 +109,6 @@ int main(void)
 
 #if (!CONFIG_SLAVE_CORE)
 	lv_86box_init();
-#endif
-
-#if (!CONFIG_SLAVE_CORE)
-	wanson_asr_open(AUD_INTF_MIC_TYPE_BOARD);
 #endif
 
 	return 0;

@@ -20,7 +20,7 @@
 #include <string.h>
 #include "boot.h"
 #include <modules/pm.h>
-#if CONFIG_BLE
+#if CONFIG_BLUETOOTH
 #include "modules/ble.h"
 #include "ble_api_5_x.h"
 #include "legacy_include/bluetooth_legacy_include.h"
@@ -77,7 +77,7 @@ static int app_wifi_init(void)
 
 static int app_ble_init(void)
 {
-#if CONFIG_BLE
+#if CONFIG_BLUETOOTH
     BK_LOG_ON_ERR(bk_ble_init_ext(NULL));
 #endif
 	return BK_OK;

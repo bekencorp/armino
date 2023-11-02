@@ -29,11 +29,8 @@
 #endif
 
 #ifndef CONFIG_PRINTF_BUF_SIZE
-#define CONFIG_PRINTF_BUF_SIZE    (128)
+#define CONFIG_PRINTF_BUF_SIZE    (136)
 #endif
-
-static char s_exception_mode_printf_buf[CONFIG_PRINTF_BUF_SIZE] = {0};
-// static char s_task_mode_printf_buf[CONFIG_PRINTF_BUF_SIZE] = {0};
 
 static uint8_t s_printf_enable = 1;
 #if CONFIG_SHELL_ASYNCLOG
@@ -51,25 +48,8 @@ static u8 whitelist_enabled = 0;
 
 #endif
 
-static beken_mutex_t s_printf_lock = NULL;
-
-void printf_lock(void)
-{
-    rtos_lock_mutex(&s_printf_lock);
-}
-
-void printf_unlock(void)
-{
-    rtos_unlock_mutex(&s_printf_lock);
-}
-
 int printf_lock_init(void)
 {
-	int ret = rtos_init_mutex(&s_printf_lock);
-	if (kNoErr != ret) {
-		return BK_ERR_NO_MEM;
-	}
-
 #if CONFIG_SHELL_ASYNCLOG
 	memset(&mod_tag_list[0], 0, sizeof(mod_tag_list));
 	shell_set_log_level(LOG_LEVEL);
@@ -80,80 +60,25 @@ int printf_lock_init(void)
 
 int printf_lock_deinit(void)
 {
-	if (s_printf_lock)
-		rtos_deinit_mutex(&s_printf_lock);
-
-	s_printf_lock = NULL;
 	return BK_OK;
 }
-
-static void exception_mode_printf(const char *fmt, va_list ap)
-{
-	vsnprintf(s_exception_mode_printf_buf, sizeof(s_exception_mode_printf_buf) - 1, fmt, ap);
-	s_exception_mode_printf_buf[CONFIG_PRINTF_BUF_SIZE - 1] = 0;
-	uart_write_string(bk_get_printf_port(), s_exception_mode_printf_buf);
-}
-
-#if CONFIG_ARCH_ARM9
-static void irq_printf(const char *fmt, va_list ap)
-{
-	char string[CONFIG_PRINTF_BUF_SIZE];
-
-	vsnprintf(string, sizeof(string) - 1, fmt, ap);
-	string[CONFIG_PRINTF_BUF_SIZE - 1] = 0;
-	uart_write_string(bk_get_printf_port(), string);
-}
-#endif
-
-
-static void task_printf(const char *fmt, va_list ap)
-{
-	char string[CONFIG_PRINTF_BUF_SIZE];
-
-	vsnprintf(string, sizeof(string) - 1, fmt, ap);
-	string[CONFIG_PRINTF_BUF_SIZE - 1] = 0;
-	uart_write_string(bk_get_printf_port(), string);
-
-}
-
 
 static void bk_printf_sync(const char *fmt, va_list args)
 {
 	if(!printf_is_init())
 		return;
 
-#if (CONFIG_ARCH_RISCV || CONFIG_ARCH_CM33)
+	char string[CONFIG_PRINTF_BUF_SIZE];
 
-	if (rtos_is_in_interrupt_context() || (!rtos_is_scheduler_started()))
-		exception_mode_printf(fmt, args);
-	else
-		task_printf(fmt, args);
+	strcpy(string, "[SYNC]:");
 
-#else // #if CONFIG_ARCH_RISCV
-
-	uint32_t cpsr_val = rtos_get_cpsr();
-	uint32_t arm_mode = cpsr_val & /*ARM968_MODE_MASK*/0x1f;
-
-	if ((/*ARM_MODE_FIQ*/17 == arm_mode)
-		|| (/*ARM_MODE_ABT*/23 == arm_mode)
-		|| (/*ARM_MODE_UND*/27 == arm_mode)
-		|| (!rtos_is_scheduler_started()))
-		exception_mode_printf(fmt, args);
-	else if (/*ARM_MODE_IRQ*/18 == arm_mode)
-		irq_printf(fmt, args);
-	else
-		task_printf(fmt, args);
-
-#endif // #if CONFIG_ARCH_RISCV
+	vsnprintf(&string[7], sizeof(string) - 8, fmt, args);
+	string[CONFIG_PRINTF_BUF_SIZE - 1] = 0;
+	uart_write_string(bk_get_printf_port(), string);
 }
 
-void bk_printf_port(int level, char *tag, const char *fmt, va_list args)
+static void bk_printf_port(int level, char *tag, const char *fmt, va_list args)
 {
-	if (!rtos_is_scheduler_started()) {
-		exception_mode_printf(fmt, args);
-		return;
-	}
-
 #if CONFIG_SHELL_ASYNCLOG
 
 	if(s_printf_sync == 0)
@@ -229,22 +154,8 @@ int bk_white_list_state(void)
 
 void bk_buf_printf_sync(char *buf, int buf_len)
 {
-	if (!printf_is_init())
-		return;
-
-	if (!s_printf_enable) {
-	    return;
-	}
-
-	if (NULL == buf || buf_len <= 0)
-		return;
-
-	buf[buf_len -1] = '\0';
-
-	uart_write_string(bk_get_printf_port(), buf);
+	return;
 }
-
-
 
 void bk_printf_ex(int level, char *tag, const char *fmt, ...)
 {

@@ -12,6 +12,4 @@ Samples and Demos
    doorbell <doorbell/index>
    Command Line <cli/index>
    LVGL <lvgl/lvgl>
-   agora <agora/agora>
    CS2 P2P <cs2_p2p/index>
-   wanson asr <wanson_asr/wanson_asr>

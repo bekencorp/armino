@@ -17,7 +17,7 @@
 #endif
 #include "video_transfer_tcp.h"
 #include "video_transfer_udp.h"
-#include "video_transfer_cs2_p2p.h"
+
 #include "video_demo_pub.h"
 #include "video_upd_spd.h"
 
@@ -251,10 +251,6 @@ static void app_demo_sta_main(beken_thread_arg_t data)
                     vudp_sdp_stop();
                     #endif
 
-                    #if CONFIG_CS2_P2P_SERVER
-                    app_demo_cs2_p2p_deinit();
-                    #endif
-
                     APP_DEMO_STA_PRT("wifi disconnected!\r\n");
                 }
                 break;
@@ -274,17 +270,6 @@ static void app_demo_sta_main(beken_thread_arg_t data)
 
                     #if APP_DEMO_CFG_USE_UDP_SDP
                     vudp_sdp_start();
-                    #endif
-
-                    #if CONFIG_CS2_P2P_SERVER
-                    if(targ->argc >= 3)
-                    {
-                        app_demo_cs2_p2p_init(targ->argv[0], targ->argv[1], targ->argv[2]);
-                    }
-                    else
-                    {
-                        os_printf("cs2 p2p arg is not match %d, need 3\n", targ->argc);
-                    }
                     #endif
 
                     APP_DEMO_STA_PRT("wifi connected!\r\n");

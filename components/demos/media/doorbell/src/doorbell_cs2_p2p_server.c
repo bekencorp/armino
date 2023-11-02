@@ -336,8 +336,20 @@ static int8_t before_start(void)
 
     if (s_tran_type & TRANSFER_TYPE_VIDEO)
     {
-        media_app_camera_open(APP_CAMERA_NET_MJPEG, camera_ppi);
+#ifdef CONFIG_INTEGRATION_DOORBELL
+		camera_config_t camera_config;
 
+		os_memset(&camera_config, 0, sizeof(camera_config_t));
+
+		camera_config.type = DVP_CAMERA;
+		camera_config.image_format = IMAGE_MJPEG;
+		camera_config.width = camera_ppi >> 16;
+		camera_config.height = camera_ppi & 0xFFFF;
+					
+		media_app_camera_open(&camera_config);
+#else
+        media_app_camera_open(APP_CAMERA_NET_MJPEG, camera_ppi);
+#endif
         lcd_open_t lcd_open;
         lcd_open.device_ppi = lcd_ppi;
         lcd_open.device_name = lcd_name;
@@ -478,14 +490,14 @@ static int32_t recv_callback(uint8_t channel, uint8_t *buff, uint32_t len)
                 do
                 {
                     already_len = ((RECV_BUFF_SIZE - s_recv_buff_write_index) < len - recv_len ? (RECV_BUFF_SIZE - s_recv_buff_write_index) : len - recv_len);
-                    os_memcpy(s_recv_buff + s_recv_buff_write_index, buff, already_len);
+                    os_memcpy(s_recv_buff + s_recv_buff_write_index, buff + recv_len, already_len);
 
                     s_recv_buff_write_index += already_len;
                     recv_len += already_len;
 
                     if (s_recv_buff_write_index > sizeof(media_hdr_ext_t))
                     {
-                        for (i = 0, read_index = 0; i < s_recv_buff_write_index - sizeof(media_hdr_ext_t); ++i)
+                        for (i = 0, read_index = 0; i < s_recv_buff_write_index - sizeof(media_hdr_ext_t);)
                         {
                             media_hdr_ext_t *m_head = (typeof(m_head))(s_recv_buff + i);
 
@@ -521,7 +533,7 @@ static int32_t recv_callback(uint8_t channel, uint8_t *buff, uint32_t len)
                                 if (sum != m_head->check_sum)
                                 {
                                     LOGE("%s check sum not match 0x%02X 0x%02X\n", __func__, sum, m_head->check_sum);
-                                    read_index = i + sizeof(media_hdr_ext_t) + package_len;
+                                    i = read_index = i + sizeof(media_hdr_ext_t) + package_len;
                                     continue;
                                 }
 
@@ -537,7 +549,12 @@ static int32_t recv_callback(uint8_t channel, uint8_t *buff, uint32_t len)
                                 //                                     s_recv_buff[i + sizeof(media_hdr_ext_t) + 7]);
                                 bk_net_send_data(s_recv_buff + i + sizeof(media_hdr_ext_t), package_len, TVIDEO_SND_UDP);
                                 //                                LOGI("%s send end\n", __func__);
-                                read_index = i + sizeof(media_hdr_ext_t) + package_len;
+                                i = read_index = i + sizeof(media_hdr_ext_t) + package_len;
+                            }
+                            else
+                            {
+                                i++;
+                                read_index = i;
                             }
                         }
                     }

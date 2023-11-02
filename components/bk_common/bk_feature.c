@@ -67,3 +67,11 @@ int bk_feature_lvgl_use_direct_mode_enable(void) {
 }
 
 
+int bk_feature_not_check_ssid_enable(void) {
+#if CONFIG_NOT_CHECK_SSID_CHANGE
+    return 1;
+#else
+    return 0;
+#endif
+}
+

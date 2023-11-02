@@ -80,6 +80,16 @@ int demo_doorbell_udp_send_packet(uint8_t *data, uint32_t len)
 	return send_byte;
 }
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+static const media_transfer_cb_t doorbell_udp_callback = {
+	.send = demo_doorbell_udp_send_packet,
+	.prepare = NULL,
+	.get_tx_buf = NULL,
+	.get_tx_size = NULL
+};
+#endif
+
+
 #if DEMO_DOORBELL_EN_VOICE_TRANSFER
 int demo_doorbell_udp_voice_send_packet(unsigned char *data, unsigned int len)
 {
@@ -125,7 +135,9 @@ void aud_intf_uac_connect_state_cb_handle(uint8_t state)
 
 static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 {
+#if AUDIO_TRANSFER_ENABLE
 	bk_err_t ret = BK_ERR_AUD_INTF_OK;
+#endif
 	uint32_t param = 0;
 	bool lcd_rotate = 0;
 	uint32_t cmd = (uint32_t)data[0] << 24 | (uint32_t)data[1] << 16 | (uint32_t)data[2] << 8 | data[3];
@@ -148,6 +160,7 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 #if AUDIO_TRANSFER_ENABLE
 			case AUDIO_CLOSE:
 				LOGI("close audio \n");
+
 				bk_aud_intf_voc_stop();
 				bk_aud_intf_voc_deinit();
 				aud_work_mode = AUD_INTF_WORK_MODE_NULL;
@@ -184,7 +197,8 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 				aud_voc_setup.spk_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 				//aud_voc_setup.mic_en = AUD_INTF_VOC_MIC_OPEN;
 				//aud_voc_setup.spk_en = AUD_INTF_VOC_SPK_OPEN;
-				if (data[8] == 1) {
+				if (data[8] == 1)
+				{
 					aud_voc_setup.mic_type = AUD_INTF_MIC_TYPE_UAC;
 					aud_voc_setup.spk_type = AUD_INTF_SPK_TYPE_UAC;
 					//aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_16K;
@@ -194,6 +208,16 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 					aud_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
 					aud_voc_setup.spk_type = AUD_INTF_SPK_TYPE_BOARD;
 				}
+				
+				if (data[9] == 1)
+				{
+					aud_voc_setup.aec_enable = true;
+				}
+				else
+				{
+					aud_voc_setup.aec_enable = false;
+				}
+				
 				switch (data[10])
 				{
 					case 8:
@@ -273,6 +297,7 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 				media_app_lcd_open(&lcd_open);
 				break;
 
+#if CONFIG_AUD_INTF
 			case ECHO_DEPTH:
 				LOGI("set ECHO_DEPTH: %d\n", param);
 				bk_aud_intf_set_aec_para(AUD_INTF_VOC_AEC_EC_DEPTH, param);
@@ -300,15 +325,18 @@ static void demo_doorbell_udp_handle_cmd_data(uint8_t *data, UINT16 len)
 
 			/* open audio debug, create tcp port for audio debug */
 			case AUD_DEBUG_OPEN:
-				if (param) {
+				if (param)
+				{
 					LOGI("open audio debug: %d\n", param);
 					bk_aud_debug_tcp_init();
-				} else {
+				}
+				else
+				{
 					LOGI("close audio debug: %d\n", param);
 					bk_aud_debug_tcp_deinit();
 				}
 				break;
-
+#endif // CONFIG_AUD_INTF
 			default:
 				break;
 		}
@@ -333,10 +361,11 @@ static void demo_doorbell_udp_app_disconnected(void)
 static void demo_doorbell_udp_receiver(uint8_t *data, uint32_t len, struct sockaddr_in *demo_doorbell_remote)
 {
 	LOGD("demo_doorbell_udp_receiver\n");
-
 #if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
-
 	GLOBAL_INT_DECLARATION();
+
+	uint32_t ppi = PPI_DEFAULT;
+
 
 	if (len < 2)
 	{
@@ -350,8 +379,6 @@ static void demo_doorbell_udp_receiver(uint8_t *data, uint32_t len, struct socka
 		{
 			case DOORBELL_DVP_START:
 			{
-				uint32_t ppi = PPI_DEFAULT;
-
 				if (len >= 6)
 				{
 					ppi = data[2] << 24 | data[3] << 16 | data[4] << 8 | data[5];
@@ -362,13 +389,28 @@ static void demo_doorbell_udp_receiver(uint8_t *data, uint32_t len, struct socka
 
 				uint8_t *src_ipaddr = (uint8_t *)&demo_doorbell_remote->sin_addr.s_addr;
 				LOGI("src_ipaddr: %d.%d.%d.%d\n", src_ipaddr[0], src_ipaddr[1],
-				     src_ipaddr[2], src_ipaddr[3]);
+					src_ipaddr[2], src_ipaddr[3]);
 				LOGI("udp connect to new port:%d\n", demo_doorbell_remote->sin_port);
 
 				GLOBAL_INT_DISABLE();
 				demo_doorbell_udp_romote_connected = 1;
 				GLOBAL_INT_RESTORE();
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+
+				camera_config_t camera_config;
+
+				os_memset(&camera_config, 0, sizeof(camera_config_t));
+
+				camera_config.type = DVP_CAMERA;
+				camera_config.image_format = IMAGE_MJPEG;
+				camera_config.width = ppi >> 16;
+				camera_config.height = ppi & 0xFFFF;
+
+				media_app_camera_open(&camera_config);
+
+				media_app_transfer_open(&doorbell_udp_callback);
+#else
 				video_setup_t setup;
 
 				setup.open_type = TVIDEO_OPEN_SCCB;
@@ -383,6 +425,7 @@ static void demo_doorbell_udp_receiver(uint8_t *data, uint32_t len, struct socka
 				media_app_camera_open(APP_CAMERA_DVP_JPEG, ppi);
 
 				media_app_transfer_open(&setup);
+#endif
 			}
 			break;
 
@@ -395,13 +438,12 @@ static void demo_doorbell_udp_receiver(uint8_t *data, uint32_t len, struct socka
 				media_app_transfer_close();
 
 				media_app_camera_close(APP_CAMERA_DVP_JPEG);
+
 			}
 			break;
 
 			case DOORBELL_UVC_START:
 			{
-				uint32_t ppi = PPI_DEFAULT;
-
 				if (len >= 6)
 				{
 					ppi = data[2] << 24 | data[3] << 16 | data[4] << 8 | data[5];
@@ -418,6 +460,21 @@ static void demo_doorbell_udp_receiver(uint8_t *data, uint32_t len, struct socka
 				demo_doorbell_udp_romote_connected = 1;
 				GLOBAL_INT_RESTORE();
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+				//if (fmt == DOORBELL_IMG_FMT_MJPEG)
+				camera_config_t camera_config;
+
+				os_memset(&camera_config, 0, sizeof(camera_config_t));
+
+				camera_config.type = UVC_CAMERA;
+				camera_config.image_format = IMAGE_MJPEG;
+				camera_config.width = ppi >> 16;
+				camera_config.height = ppi & 0xFFFF;
+
+				media_app_camera_open(&camera_config);
+
+				media_app_transfer_open(&doorbell_udp_callback);
+#else
 				video_setup_t setup;
 
 				setup.open_type = TVIDEO_OPEN_SCCB;
@@ -431,6 +488,7 @@ static void demo_doorbell_udp_receiver(uint8_t *data, uint32_t len, struct socka
 
 				media_app_camera_open(APP_CAMERA_UVC_MJPEG, ppi);
 				media_app_transfer_open(&setup);
+#endif
 			}
 			break;
 
@@ -445,8 +503,6 @@ static void demo_doorbell_udp_receiver(uint8_t *data, uint32_t len, struct socka
 			}
 			break;
 		}
-
-
 	}
 
 #endif
@@ -468,7 +524,7 @@ static void demo_doorbell_udp_voice_receiver(uint8_t *data, uint32_t len, struct
 	ret = bk_aud_intf_write_spk_data(data, len);
 	if (ret != BK_OK)
 	{
-		LOGE("write speaker data fial\n", len);
+		LOGE("write speaker data fail\n", len);
 	}
 #endif  //AUDIO_TRANSFER_ENABLE
 

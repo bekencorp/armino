@@ -772,7 +772,7 @@ CONFIG_OTA_HTTPS=n
 #
 # memory auto power ctrl
 #
-CONFIG_MEM_AUTO_POWER_DISABLE=n
+CONFIG_MEM_AUTO_POWER_DISABLE=y
 #
 # cpu1 auto power ctrl
 #

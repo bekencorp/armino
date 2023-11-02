@@ -167,11 +167,13 @@ static bk_err_t bk_lcd_qspi_common_init(void)
 
 	bk_lcd_qspi_driver_init();
 
+#if (CONFIG_PSRAM)
 	ret = bk_psram_init();
 	if (ret != BK_OK) {
 		os_printf("psram init failed!\r\n");
 		return BK_FAIL;
 	}
+#endif
 
 	ret = bk_dma2d_driver_init();
 	if (ret != BK_OK) {
@@ -212,7 +214,10 @@ static bk_err_t bk_lcd_qspi_common_deinit(void)
 	}
 #endif
 
+#if (CONFIG_PSRAM)
 	bk_psram_deinit();
+#endif
+
 	bk_dma2d_driver_deinit();
 
 	return BK_OK;

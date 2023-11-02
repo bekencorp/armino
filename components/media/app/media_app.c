@@ -106,11 +106,29 @@ out:
 
 
 #if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
+#ifdef CONFIG_INTEGRATION_DOORBELL
+bk_err_t media_app_camera_open(camera_config_t *camera_config)
+{
+	int ret = kGeneralErr;
+	int type = 0;
+	media_ppi_t ppi = camera_config->width << 16 | camera_config->height;
+
+	LOGI("%s, type:%d, ppi:%d-%d\n", __func__, type, ppi >> 16, ppi & 0xFFFF);
+
+	if (camera_config->type == UVC_CAMERA)
+	{
+		type = APP_CAMERA_UVC_MJPEG;
+	}
+
+	if (camera_config->type == DVP_CAMERA)
+	{
+		type = APP_CAMERA_DVP_JPEG;
+	}
+#else
 bk_err_t media_app_camera_open(app_camera_type_t type, media_ppi_t ppi)
 {
 	int ret = kGeneralErr;
-
-	LOGI("%s, type:%d, ppi:%d-%d\n", __func__, type, ppi >> 16, ppi & 0xFFFF);
+#endif
 
 	app_camera_type = type;
 
@@ -276,6 +294,24 @@ bk_err_t media_app_mailbox_test(void)
 	return ret;
 }
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+bk_err_t media_app_transfer_open(const media_transfer_cb_t *cb)
+{
+	bk_err_t ret = BK_OK;
+
+#if (CONFIG_WIFI_TRANSFER)
+
+	rwnxl_set_video_transfer_flag(true);
+
+	ret = media_send_msg_sync(EVENT_TRANSFER_OPEN_IND, (uint32_t)cb);
+
+#endif
+
+	LOGI("%s complete, %d\n", __func__, ret);
+
+	return ret;
+}
+#else
 bk_err_t media_app_transfer_open(void *setup_cfg)
 {
 	int ret = kNoErr;
@@ -303,6 +339,7 @@ bk_err_t media_app_transfer_open(void *setup_cfg)
 
 	return ret;
 }
+#endif
 
 bk_err_t media_app_transfer_pause(bool pause)
 {

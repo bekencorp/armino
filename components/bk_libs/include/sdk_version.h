@@ -1,4 +1,0 @@
-#pragma once
-#define ARMINO_TAG_VERSION "v1.5.11"
-#define bk7256_HASH_VERSION "d41d8cd98f00b204e9800998ecf8427e"
-#define bk7235_HASH_VERSION "d41d8cd98f00b204e9800998ecf8427e"

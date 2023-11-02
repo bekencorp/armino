@@ -264,6 +264,16 @@ const lcd_device_t *lcd_devices[] =
 
 static lcd_driver_t s_lcd = {0};
 
+const lcd_device_t **get_lcd_devices_list(void)
+{
+	return &lcd_devices[0];
+}
+
+uint32_t get_lcd_devices_num(void)
+{
+	return sizeof(lcd_devices) / sizeof(lcd_device_t *);
+}
+
 const lcd_device_t * get_lcd_device_by_name(char * name)
 {
 	uint32_t i, size = sizeof(lcd_devices) / sizeof(lcd_device_t *);
@@ -1355,7 +1365,7 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 		LCD_DECODER_START();
 		if (frame->fmt == PIXEL_FMT_UVC_JPEG)
 		{
-			if (frame->length <= 128 * 1024)
+			if (frame->length <= CONFIG_JPEG_DEC_UVC_SRAM_BUFFER_SIZE)
 			{
 				ret = bk_jpeg_dec_dma_start(frame->length, frame->frame, s_lcd.decoder_frame->frame);
 			}

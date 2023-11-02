@@ -1,0 +1,13 @@
+menu "JPEG_DEC"
+	config JPEG_DEC
+		bool "Enable JPEGDEC Display"
+		default n
+
+	config JPEG_DEC_UVC_SRAM_BUFFER_SIZE
+		int "set jpeg decoder sram size"
+		range 1 131072
+		default 131072
+		help
+			the sram used to save jepg data from UVC
+
+endmenu

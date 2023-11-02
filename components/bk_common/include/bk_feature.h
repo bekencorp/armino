@@ -109,3 +109,14 @@ int bk_feature_lvgl_use_psram_enable(void);
 int bk_feature_lvgl_use_direct_mode_enable(void);
 
 
+/**
+ * @brief     Interface for customer to Enable/Disable not check beacon ssid changes
+ *
+ *
+ * @return
+ *    - 0: Disable not check beacon ssid changes
+ *    - 1: Enable not check beacon ssid changes
+ *
+ */
+int bk_feature_not_check_ssid_enable(void);
+

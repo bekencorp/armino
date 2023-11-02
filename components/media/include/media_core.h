@@ -21,7 +21,7 @@ extern "C" {
 #endif
 
 #define MEDIA_MAJOR_MSG_QUEUE_SIZE (60)
-#define MEDIA_MINOR_MSG_QUEUE_SIZE (60)
+
 
 #define MEDIA_EVT_BIT (16)
 

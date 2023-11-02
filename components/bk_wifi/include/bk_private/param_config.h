@@ -69,6 +69,7 @@ typedef struct ap_param {
 	uint8_t vsie_len;
 #endif
 	uint8_t max_statype_num[4];
+	u8 max_con;
 } ap_param_t;
 
 typedef struct sta_param {

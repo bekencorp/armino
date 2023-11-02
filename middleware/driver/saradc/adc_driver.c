@@ -612,6 +612,7 @@ bk_err_t bk_adc_read(uint16_t* data, uint32_t timeout)
 {
 	uint32_t sum = 0;
 	int ret = BK_OK;
+	UINT32 num;
 
 	//TODO init check
 
@@ -622,11 +623,12 @@ bk_err_t bk_adc_read(uint16_t* data, uint32_t timeout)
 	if (BK_OK != ret)
 		return ret;
 
-	for (uint16_t i = 0; i < s_adc_buf.size; i++) {
+	num = s_adc_buf.size/2 + s_adc_buf.size%2;
+	for (uint16_t i = num; i < s_adc_buf.size; i++) {
 		sum += s_adc_buf.buf[i];
 	}
 
-	sum = sum / s_adc_buf.size;
+	sum = sum / (s_adc_buf.size / 2);
 
 #if CONFIG_SARADC_RANGE_DIVIDE
 	sum = sum >> 1;

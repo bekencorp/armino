@@ -63,23 +63,22 @@ extern media_debug_t *media_debug_cached;
 camera_info_t camera_info;
 bool dvp_camera_reset_open_ind = false;
 beken_semaphore_t camera_act_sema = NULL;
+beken_timer_t camera_debug_timer = {0};
 
 static beken_thread_t disc_task = NULL;
 
 camera_connect_state_t camera_connect_state_change_cb = NULL;
 
-static void camera_debug_dump(timer_id_t timer_id)
+static void camera_debug_dump(void)
 {
-#if (CONFIG_WIFI_TRANSFER)
-	transfer_dump(DEBUG_INTERVAL);
-#endif
-
-	uint16_t jpg = (media_debug->isr_jpeg - media_debug_cached->isr_jpeg) / 2;
-	uint16_t dec = (media_debug->isr_decoder - media_debug_cached->isr_decoder) / 2;
-	uint16_t lcd = (media_debug->isr_lcd - media_debug_cached->isr_lcd) / 2;
-	uint16_t fps = (media_debug->fps_lcd - media_debug_cached->fps_lcd) / 2;
-	uint16_t wifi = (media_debug->fps_wifi - media_debug_cached->fps_wifi) / 2;
-	uint16_t err_dec = (media_debug->err_dec - media_debug_cached->err_dec) / 2;
+	GLOBAL_INT_DECLARATION();
+	GLOBAL_INT_DISABLE();
+	uint16_t jpg = (media_debug->isr_jpeg - media_debug_cached->isr_jpeg) / (DEBUG_INTERVAL / 1000);
+	uint16_t dec = (media_debug->isr_decoder - media_debug_cached->isr_decoder) / (DEBUG_INTERVAL / 1000);
+	uint16_t lcd = (media_debug->isr_lcd - media_debug_cached->isr_lcd) / (DEBUG_INTERVAL / 1000);
+	uint16_t fps = (media_debug->fps_lcd - media_debug_cached->fps_lcd) / (DEBUG_INTERVAL / 1000);
+	uint16_t wifi = (media_debug->fps_wifi - media_debug_cached->fps_wifi) / (DEBUG_INTERVAL / 1000);
+	uint16_t err_dec = (media_debug->err_dec - media_debug_cached->err_dec) / (DEBUG_INTERVAL / 1000);
 
 	media_debug_cached->isr_jpeg = media_debug->isr_jpeg;
 	media_debug_cached->isr_decoder = media_debug->isr_decoder;
@@ -96,6 +95,11 @@ static void camera_debug_dump(timer_id_t timer_id)
 	{
 		media_debug->transfer_timer_us = 1000000 / jpg;
 	}
+	GLOBAL_INT_RESTORE();
+
+#if (CONFIG_WIFI_TRANSFER)
+	transfer_dump(DEBUG_INTERVAL);
+#endif
 
 	LOGI("jpg: %d[%d, %d], dec: %d[%d, %d], lcd: %d[%d], fps: %d[%d], wifi: %d[%d], wifi_read: [%d]\n",
 	     jpg, media_debug->isr_jpeg, media_debug->psram_busy,
@@ -178,7 +182,8 @@ void camera_dvp_open_handle(param_pak_t *param, media_camera_type_t type)
 
 	if (camera_info.debug)
 	{
-		bk_timer_start(TIMER_ID1, DEBUG_INTERVAL, camera_debug_dump);
+		rtos_init_timer(&camera_debug_timer, DEBUG_INTERVAL, (timer_handler_t)camera_debug_dump, NULL);
+		rtos_start_timer(&camera_debug_timer);
 	}
 
 out:
@@ -210,7 +215,8 @@ void camera_dvp_close_handle(param_pak_t *param)
 
 	if (camera_info.debug)
 	{
-		bk_timer_stop(TIMER_ID1);
+		rtos_stop_timer(&camera_debug_timer);
+		rtos_deinit_timer(&camera_debug_timer);
 	}
 
 out:
@@ -277,7 +283,8 @@ static void camera_uvc_connect_state_change_task_entry(beken_thread_arg_t data)
 
 				if (camera_info.debug)
 				{
-					bk_timer_start(TIMER_ID1, DEBUG_INTERVAL, camera_debug_dump);
+					rtos_init_timer(&camera_debug_timer, DEBUG_INTERVAL, (timer_handler_t)camera_debug_dump, NULL);
+					rtos_start_timer(&camera_debug_timer);
 				}
 			}
 		}
@@ -329,6 +336,7 @@ void camera_uvc_open_handle(param_pak_t *param, media_camera_type_t type)
 		else
 		{
 			bk_ble_set_event_callback(NULL);
+
 			LOGE("%s not support !!!\n");
 			ret = kGeneralErr;
 			goto out;
@@ -337,7 +345,6 @@ void camera_uvc_open_handle(param_pak_t *param, media_camera_type_t type)
 		LOGI("bluetooth is enabled, shutdown bluetooth\n");
 		rtos_init_semaphore(&camera_act_sema, 1);
 		bk_ble_deinit();
-
 		if (rtos_get_semaphore(&camera_act_sema, 1000) != BK_OK)
 		{
 			LOGI("%s TIMEOUT\n", __func__);
@@ -379,7 +386,8 @@ void camera_uvc_open_handle(param_pak_t *param, media_camera_type_t type)
 
 	if (camera_info.debug)
 	{
-		bk_timer_start(TIMER_ID1, DEBUG_INTERVAL, camera_debug_dump);
+		rtos_init_timer(&camera_debug_timer, DEBUG_INTERVAL, (timer_handler_t)camera_debug_dump, NULL);
+		rtos_start_timer(&camera_debug_timer);
 	}
 
 out:
@@ -405,7 +413,8 @@ void camera_uvc_close_handle(param_pak_t *param)
 
 	if (camera_info.debug)
 	{
-		bk_timer_stop(TIMER_ID1);
+		rtos_stop_timer(&camera_debug_timer);
+		rtos_deinit_timer(&camera_debug_timer);
 	}
 
 	bk_uvc_camera_close();
@@ -438,7 +447,8 @@ void camera_uvc_reset_handle(uint32_t param)
 
 		if (camera_info.debug)
 		{
-			bk_timer_stop(TIMER_ID1);
+			rtos_stop_timer(&camera_debug_timer);
+			rtos_deinit_timer(&camera_debug_timer);
 		}
 
 		bk_uvc_camera_close();
@@ -491,7 +501,6 @@ void camera_net_open_handle(param_pak_t *param, media_camera_type_t type)
 		LOGI("bluetooth is enabled, shutdown bluetooth\n");
 		rtos_init_semaphore(&camera_act_sema, 1);
 		bk_ble_deinit();
-
 		if (rtos_get_semaphore(&camera_act_sema, 1000) != BK_OK)
 		{
 			LOGI("%s TIMEOUT\n", __func__);
@@ -530,7 +539,8 @@ void camera_net_open_handle(param_pak_t *param, media_camera_type_t type)
 
 	if (camera_info.debug)
 	{
-		bk_timer_start(TIMER_ID1, DEBUG_INTERVAL, camera_debug_dump);
+		rtos_init_timer(&camera_debug_timer, DEBUG_INTERVAL, (timer_handler_t)camera_debug_dump, NULL);
+		rtos_start_timer(&camera_debug_timer);
 	}
 
 out:

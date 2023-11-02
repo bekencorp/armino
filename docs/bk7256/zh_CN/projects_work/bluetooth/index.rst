@@ -41,11 +41,9 @@
 ----------------------------
 
 • central：
-    | 1.准备一张sd卡，格式化成exfat，放入project/bluetooth/central/pcm_sample_s16l_44100_dual.pcm至根目录。
+    | 1.准备一张sd卡，格式化成exfat，将project/bluetooth/central/1_qcs.mp3放入根目录。(必须是44.1KHz，双通道的mp3)
     | 2.插入sd卡，开机。
     | 3.令音响进入配对模式
-    | 4.输入 ``AT+BT=A2DP_SOURCE_CONNECT,xx:xx:xx:xx:xx:xx``，其中xx为音响地址
-    | 5.连接成功后，输入 ``AT+BT=A2DP_SOURCE_START,xx:xx:xx:xx:xx:xx``
-    | 6.输入 ``AT+BT=A2DP_SOURCE_WRITE_TEST,xx:xx:xx:xx:xx:xx,file,1:/pcm_sample_s16l_44100_dual.pcm``
-    | 7.此时可以听到音响播出声音
+    | 4.输入 ``AT+BT=A2DP_SOURCE_TEST,xx:xx:xx:xx:xx:xx,file,1_qcs.mp3``，其中xx为音响地址。
+    | 5.此时可以听到音响播出声音
 

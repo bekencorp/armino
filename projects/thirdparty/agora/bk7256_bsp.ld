@@ -193,15 +193,9 @@ SECTIONS
 	_dtcm_bss_end = .;
 	DTCM_SIZE = . - DTCM_BEGIN;
 	. = 0x30000000;
-	SRAM_VIDEO_BEGIN = .;
-	.video_spec_data 	: AT(LOADADDR (.dtcm_sec_bss) + SIZEOF (.dtcm_sec_bss))
-		{ KEEP(*(.video_spec_data )) }
-	_video_start = ADDR(.video_spec_data);
-	SRAM_VIDEO_SIZE = . - SRAM_VIDEO_BEGIN;
-	. = 0x3000A000;
 	SRAM_BT_BEGIN = .;
 	. = ALIGN(8);
-	.bt_spec_data 	: AT(ALIGN(ALIGN(LOADADDR (.video_spec_data) + SIZEOF (.video_spec_data), ALIGNOF(.bt_spec_data)), 8))
+	.bt_spec_data 	: AT(ALIGN(ALIGN(LOADADDR (.dtcm_sec_bss) + SIZEOF (.dtcm_sec_bss), ALIGNOF(.bt_spec_data)), 8))
 		{ KEEP(*(.bt_spec_data )) }
 	_bt_data_lmastart =  LOADADDR (.bt_spec_data);
 	_bt_data_start = ADDR(.bt_spec_data);
@@ -236,7 +230,7 @@ SECTIONS
 	".sbss_d_*ble_util_buf.c.obj" 	(NOLOAD)	: { *ble_util_buf.c.obj(.sbss_d .sbss_d.* ) *sch_prog.c.obj(.sbss_d .sbss_d.* ) *sch_slice.c.obj(.sbss_d .sbss_d.* ) *llm.c.obj(.sbss_d .sbss_d.* ) *ble_util_buf.c.obj(.scommon_d .scommon_d.* ) *sch_prog.c.obj(.scommon_d .scommon_d.* ) *sch_slice.c.obj(.scommon_d .scommon_d.* ) *llm.c.obj(.scommon_d .scommon_d.* ) }
 	".bss_*ble_util_buf.c.obj" 	(NOLOAD)	: { *ble_util_buf.c.obj(.dynbss ) *sch_prog.c.obj(.dynbss ) *sch_slice.c.obj(.dynbss ) *llm.c.obj(.dynbss ) *ble_util_buf.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *sch_prog.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *sch_slice.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *llm.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *ble_util_buf.c.obj(COMMON ) *sch_prog.c.obj(COMMON ) *sch_slice.c.obj(COMMON ) *llm.c.obj(COMMON ) . = ALIGN(8); }
 	SRAM_BT_SIZE = . - SRAM_BT_BEGIN;
-	. = 0x30020000;
+	. = 0x30011800;
 	SRAM_DATA_BEGIN = .;
 	. = ALIGN(8);
 	. = ALIGN(0x20);
@@ -362,8 +356,7 @@ SECTIONS
 }
 ASSERT((DEFINED (_RELAX_END_) ? ITCM_SIZE : 0x0)<= 0x8000, "ITCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x7000, "DTCM OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? SRAM_VIDEO_SIZE : 0x0)<= 0xA000, "SRAM_VIDEO OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? SRAM_BT_SIZE : 0x0)<= 0x16000, "SRAM_BT OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? SRAM_DATA_SIZE : 0x0)<= 0x58C00, "SRAM_DATA OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? SRAM_BT_SIZE : 0x0)<= 0x11800, "SRAM_BT OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? SRAM_DATA_SIZE : 0x0)<= 0x6A400, "SRAM_DATA OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SWAP_SIZE : 0x0)<= 0x400, "SWAP OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD1_SIZE : 0x0)<= 0x220000, "CPU0_LOAD1 OVERFLOW");

@@ -753,6 +753,50 @@ bk_err_t bk_wifi_send_raw_ex(wifi_raw_tx_info_t *raw_tx, void *cb, void *param);
 bk_err_t bk_wifi_set_tx_raw_rate_power(uint32_t rate, uint32_t power);
 
 /**
+ * @brief Update raw 802.11 frame TX AC
+ *
+ * @param rate : TX AC
+ *
+ * @return
+ *    - kNoErr: succeed
+ *    - otherwise: fail
+ */
+bk_err_t bk_wifi_set_tx_raw_ac(uint8_t ac);
+
+/**
+ * @brief Update raw 802.11 frame TX timeout
+ *
+ * @param rate : TX timeout
+ *
+ * @return
+ *    - kNoErr: succeed
+ *    - otherwise: fail
+ */
+bk_err_t bk_wifi_set_tx_raw_timeout(uint16_t timeout_ms);
+
+/**
+  * @brief     get tx raw ac info
+  *
+  * @param     ac  ac info
+  *
+  * @return
+  *    - BK_OK: succeed
+  *    - others: other errors
+  */
+bk_err_t bk_wifi_get_tx_raw_ac(uint8_t *ac);
+
+/**
+  * @brief     get tx raw timeout info
+  *
+  * @param     time  timeout info
+  *
+  * @return
+  *    - BK_OK: succeed
+  *    - others: other errors
+  */
+bk_err_t bk_wifi_get_tx_raw_timeout(uint16_t *time);
+
+/**
  * @brief     configure country info
  *
  * @attention 1. The default country is {.cc="CN", .schan=1, .nchan=13, policy=WIFI_COUNTRY_POLICY_AUTO}

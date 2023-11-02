@@ -135,8 +135,20 @@ int demo_doorbell_tcp_video_send_packet(uint8_t *data, uint32_t len)
 	return snd_len - TCP_HEAD_SIZE;
 }
 
+
+#ifdef CONFIG_INTEGRATION_DOORBELL
+static const media_transfer_cb_t doorbell_tcp_callback = {
+	.send = demo_doorbell_tcp_video_send_packet,
+	.prepare = NULL,
+	.get_tx_buf = NULL,
+	.get_tx_size = NULL
+};
+#endif
+
+
 int demo_doorbell_tcp_audio_send_packet(unsigned char *data, unsigned int len)
 {
+#if AUDIO_TRANSFER_ENABLE
 	int i = 0, snd_len = 0;
 
 	if ((!demo_doorbell_tcp_task) || (demo_doorbell_tcp_server_fd == -1))
@@ -155,9 +167,10 @@ int demo_doorbell_tcp_audio_send_packet(unsigned char *data, unsigned int len)
 	audio_tcp_send_buffer[6] = (len >> 8) & 0xFF;
 	audio_tcp_send_buffer[7] = (len >> 0) & 0xFF;
 
+	//LOGI("sequence: %u, length: %u\n", tcp_sequence, len);
+
 	os_memcpy(audio_tcp_send_buffer + TCP_HEAD_SIZE, data, len);
 
-	//LOGI("sequence: %u, length: %u\n", tcp_sequence, len);
 
 	for (i = 0; i < DEMO_DOORBELL_TCP_LISTEN_MAX; i++)
 	{
@@ -178,6 +191,9 @@ int demo_doorbell_tcp_audio_send_packet(unsigned char *data, unsigned int len)
 	}
 
 	return snd_len - TCP_HEAD_SIZE;
+#else
+	return len;
+#endif
 }
 
 
@@ -200,23 +216,42 @@ void demo_doorbell_dump(uint8_t *data, uint32_t length)
 static void demo_doorbell_tcp_camera_data_handle(uint8_t *data, uint16_t length)
 {
 #if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
-
 	if (data[0] == DOORBELL_CMD_IMG_HEADER)
 	{
+		uint32_t ppi = PPI_DEFAULT;
+		//uint8_t fmt = DOORBELL_IMG_FMT_MJPEG;
 
 		switch (data[1])
 		{
 			case DOORBELL_DVP_START:
 			{
-				uint32_t ppi = PPI_DEFAULT;
-
 				if (length >= 6)
 				{
 					ppi = data[2] << 24 | data[3] << 16 | data[4] << 8 | data[5];
 				}
 
+				//if (length >= 7)
+				//{
+				//	fmt = data[6];
+				//}
+
 				LOGI("DVP START: %dX%d\n", ppi >> 16, ppi & 0xFFFF);
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+				//if (fmt == DOORBELL_IMG_FMT_MJPEG) {
+				camera_config_t camera_config;
+
+				os_memset(&camera_config, 0, sizeof(camera_config_t));
+
+				camera_config.type = DVP_CAMERA;
+				camera_config.image_format = IMAGE_MJPEG;
+				camera_config.width = ppi >> 16;
+				camera_config.height = ppi & 0xFFFF;
+
+				media_app_camera_open(&camera_config);
+
+				media_app_transfer_open(&doorbell_tcp_callback);
+#else
 				video_setup_t setup;
 
 				setup.open_type = TVIDEO_OPEN_SCCB;
@@ -225,6 +260,8 @@ static void demo_doorbell_tcp_camera_data_handle(uint8_t *data, uint16_t length)
 
 				media_app_camera_open(APP_CAMERA_DVP_JPEG, ppi);
 				media_app_transfer_open(&setup);
+
+#endif
 			}
 			break;
 
@@ -240,15 +277,33 @@ static void demo_doorbell_tcp_camera_data_handle(uint8_t *data, uint16_t length)
 
 			case DOORBELL_UVC_START:
 			{
-				uint32_t ppi = PPI_DEFAULT;
-
 				if (length >= 6)
 				{
 					ppi = data[2] << 24 | data[3] << 16 | data[4] << 8 | data[5];
 				}
 
+				//if (length >= 7)
+				//{
+				//	fmt = data[6];
+				//}
+
 				LOGI("DVP START: %dX%d\n", ppi >> 16, ppi & 0xFFFF);
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+				//if (fmt == DOORBELL_IMG_FMT_MJPEG)
+				camera_config_t camera_config;
+
+				os_memset(&camera_config, 0, sizeof(camera_config_t));
+
+				camera_config.type = UVC_CAMERA;
+				camera_config.image_format = IMAGE_MJPEG;
+				camera_config.width = ppi >> 16;
+				camera_config.height = ppi & 0xFFFF;
+
+				media_app_camera_open(&camera_config);
+
+				media_app_transfer_open(&doorbell_tcp_callback);
+#else
 				video_setup_t setup;
 
 				setup.open_type = TVIDEO_OPEN_SCCB;
@@ -257,6 +312,7 @@ static void demo_doorbell_tcp_camera_data_handle(uint8_t *data, uint16_t length)
 
 				media_app_camera_open(APP_CAMERA_UVC_MJPEG, ppi);
 				media_app_transfer_open(&setup);
+#endif
 			}
 			break;
 
@@ -275,7 +331,10 @@ static void demo_doorbell_tcp_camera_data_handle(uint8_t *data, uint16_t length)
 
 static void demo_doorbell_tcp_cmd_data_handle(uint8_t *data, uint16_t length)
 {
-	bk_err_t ret = BK_ERR_AUD_INTF_OK;
+#if AUDIO_TRANSFER_ENABLE
+    bk_err_t ret = BK_ERR_AUD_INTF_OK;
+#endif
+
 	uint32_t param = 0;
 	bool lcd_rotate = 0;
 	uint32_t cmd = (uint32_t)data[0] << 24 | (uint32_t)data[1] << 16 | (uint32_t)data[2] << 8 | data[3];
@@ -325,9 +384,12 @@ static void demo_doorbell_tcp_cmd_data_handle(uint8_t *data, uint16_t length)
 					LOGE("bk_aud_intf_set_mode fail, ret:%d\n", ret);
 					break;
 				}
-				if (data[9] == 1) {
+				if (data[9] == 1)
+				{
 					aud_voc_setup.aec_enable = true;
-				} else {
+				}
+				else
+				{
 					aud_voc_setup.aec_enable = false;
 				}
 				//aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_G711A;
@@ -335,7 +397,8 @@ static void demo_doorbell_tcp_cmd_data_handle(uint8_t *data, uint16_t length)
 				aud_voc_setup.spk_mode = AUD_DAC_WORK_MODE_SIGNAL_END;
 				//aud_voc_setup.mic_en = AUD_INTF_VOC_MIC_OPEN;
 				//aud_voc_setup.spk_en = AUD_INTF_VOC_SPK_OPEN;
-				if (data[8] == 1) {
+				if (data[8] == 1)
+				{
 					aud_voc_setup.mic_type = AUD_INTF_MIC_TYPE_UAC;
 					aud_voc_setup.spk_type = AUD_INTF_SPK_TYPE_UAC;
 					//aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_16K;
@@ -384,6 +447,7 @@ static void demo_doorbell_tcp_cmd_data_handle(uint8_t *data, uint16_t length)
 					LOGE("bk_aud_intf_voc_init fail, ret:%d\n", ret);
 					break;
 				}
+
 				ret = bk_aud_intf_voc_start();
 				if (ret != BK_ERR_AUD_INTF_OK)
 				{
@@ -458,7 +522,7 @@ static void demo_doorbell_tcp_voice_data_handle(uint8_t *data, uint32_t len)
 	ret = bk_aud_intf_write_spk_data(data, len);
 	if (ret != BK_OK)
 	{
-		LOGE("write speaker data fial\n", len);
+		LOGE("write speaker data fail\n", len);
 	}
 #endif  //AUDIO_TRANSFER_ENABLE
 

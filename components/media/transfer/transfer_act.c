@@ -35,6 +35,7 @@
 
 #include "wlan_ui_pub.h"
 
+#include "media_app.h"
 #if CONFIG_ARCH_RISCV
 #include "cache.h"
 #endif
@@ -129,8 +130,11 @@ uint8_t frame_id = 0;
 
 frame_buffer_t *wifi_tranfer_frame = NULL;
 
-
+#ifdef CONFIG_INTEGRATION_DOORBELL
+media_transfer_cb_t *media_transfer_callback = NULL;
+#else
 video_setup_t vido_transfer_info = {0};
+#endif
 
 uint32_t lost_size = 0;
 uint32_t complete_size = 0;
@@ -159,6 +163,43 @@ int dvp_frame_send(uint8_t *data, uint32_t size, uint32_t retry_max, uint32_t ms
 {
 	int ret = BK_FAIL;
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+	if (transfer_data == NULL)
+	{
+		LOGI("%s transfer_data is null\n", __func__);
+		return ret;
+	}
+
+	if (media_transfer_callback->prepare)
+	{
+		media_transfer_callback->prepare(data, size);
+	}
+
+	do
+	{
+		ret = media_transfer_callback->send(data, size);
+
+		if (ret < 0)
+		{
+			LOGE("frame send error, %d\n", ret);
+			return -1;
+		}
+
+
+		if (ret == size)
+		{
+			//LOGI("size: %d\n", size);
+			complete_size += size;
+			rtos_delay_milliseconds(1);
+			break;
+		}
+
+//		LOGI("%s retry %d %d\n", __func__, ret, size);
+		lost_size += size;
+		rtos_delay_milliseconds(ms_time);
+	}
+	while (retry_max-- && transfer_task_running);
+#else
 	if (!vido_transfer_info.send_func)
 	{
 		return ret;
@@ -182,6 +223,7 @@ int dvp_frame_send(uint8_t *data, uint32_t size, uint32_t retry_max, uint32_t ms
 	}
 	while (retry_max-- && transfer_task_running);
 
+#endif
 	return ret == size ? BK_OK : BK_FAIL;
 }
 
@@ -197,6 +239,7 @@ void transfer_memcpy_word(uint32_t *dst, uint32_t *src, uint32_t size)
 	}
 }
 
+
 static void dvp_frame_handle(frame_buffer_t *buffer)
 {
 	uint32_t i;
@@ -208,14 +251,21 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 
 	WIFI_TRANSFER_START();
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+	if (transfer_data == NULL)
+	{
+		LOGI("%s transfer_data is null\n", __func__);
+		return;
+	}
+#endif
 	LOGD("seq: %u, length: %u, size: %u\n", buffer->sequence, buffer->length, buffer->size);
 #ifdef TRANSFER_STRIP
 	check_frame_header_handle(buffer->frame);
 #endif
 	transfer_data->id = id;
-	transfer_data->size = count + (tail ? 1 : 0);
 	transfer_data->eof = 0;
 	transfer_data->cnt = 0;
+	transfer_data->size = count + (tail ? 1 : 0);//one frame package counts
 
 #if CONFIG_ARCH_RISCV
 	flush_dcache(src_address, buffer->size);
@@ -238,6 +288,9 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 		if (ret != BK_OK)
 		{
 			LOGE("send failed\n");
+#if CONFIG_INTEGRATION_DOORBELL
+			return;
+#endif
 		}
 	}
 
@@ -245,20 +298,29 @@ static void dvp_frame_handle(frame_buffer_t *buffer)
 	{
 		transfer_data->eof = 1;
 		transfer_data->cnt = count + 1;
-
+#if CONFIG_INTEGRATION_DOORBELL
+		os_memset(transfer_data->data, 0, packet_size);
+#endif
 		/* fix for psram 4bytes alignment */
 		WIFI_DMA_START();
 		transfer_memcpy_word((uint32_t *)transfer_data->data, (uint32_t *)(src_address + (packet_size * i)), (tail % 4) ? ((tail / 4 + 1) * 4) : tail);
 		WIFI_DMA_END();
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+		ret = dvp_frame_send((uint8_t *)transfer_data, tail + sizeof(transfer_data_t), MAX_RETRY, RETRANSMITS_TIME);
+#else
 		if (vido_transfer_info.send_type ==  TVIDEO_SND_UDP)
 			ret = dvp_frame_send((uint8_t *)transfer_data, tail + sizeof(transfer_data_t), MAX_RETRY, RETRANSMITS_TIME);
 		else
 			ret = dvp_frame_send((uint8_t *)transfer_data, TCP_MAX_TX_SIZE, MAX_RETRY, RETRANSMITS_TIME);
+#endif
 
 		if (ret != BK_OK)
 		{
 			LOGE("send failed\n");
+#if CONFIG_INTEGRATION_DOORBELL
+			return;
+#endif
 		}
 	}
 
@@ -451,6 +513,9 @@ void transfer_task_start(void)
 
 	TRANSFER_DIAG_DEBUG_INIT();
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+	//TODO
+#else
 	if (transfer_data == NULL)
 	{
 		if (vido_transfer_info.send_type ==  TVIDEO_SND_UDP) {
@@ -467,7 +532,7 @@ void transfer_task_start(void)
 			return;
 		}
 	}
-
+#endif
 	if (transfer_task != NULL)
 	{
 		LOGE("%s transfer_task already running\n", __func__);
@@ -534,23 +599,54 @@ void transfer_task_stop(void)
 	{
 		LOGE("%s transfer deinit failed\n");
 	}
-
+#if CONFIG_INTEGRATION_DOORBELL
+#else
 	if (transfer_data)
 	{
 		os_free(transfer_data);
 		transfer_data = NULL;
 	}
+#endif
 
 }
 
-
 void transfer_open_handle(param_pak_t *param)
 {
+#ifdef CONFIG_INTEGRATION_DOORBELL
+	media_transfer_callback = (media_transfer_cb_t *)param->param;
+
+	LOGI("%s cb: %p ++\n", __func__, media_transfer_callback);
+
+	if (media_transfer_callback->get_tx_buf)
+	{
+		transfer_data = media_transfer_callback->get_tx_buf();
+		packet_size = media_transfer_callback->get_tx_size() - sizeof(transfer_data_t);
+
+		if (transfer_data == NULL
+			|| packet_size <= 0)
+		{
+			LOGE("%s transfer_data: %p, size: %d\n", __func__, transfer_data, packet_size);
+			MEDIA_EVT_RETURN(param, BK_FAIL);
+			return;
+		}
+	}
+	else
+	{
+		packet_size = 1472;
+		if (transfer_data == NULL)
+		{
+			transfer_data = os_malloc(packet_size);
+		}
+	}
+
+	LOGI("%s transfer_data: %p, size: %d\n", __func__, transfer_data, packet_size);
+#else
 	video_setup_t *setup_cfg = (video_setup_t *)param->param;
 
 	os_memcpy(&vido_transfer_info, setup_cfg, sizeof(video_setup_t));
 
 	LOGI("%s ++\n", __func__);
+#endif
 
 	transfer_task_start();
 
@@ -570,7 +666,31 @@ void transfer_close_handle(param_pak_t *param)
 	transfer_task_stop();
 	set_transfer_state(TRS_STATE_DISABLED);
 
-	rwnxl_set_video_transfer_flag(false);
+#ifdef CONFIG_INTEGRATION_DOORBELL
+	if (media_transfer_callback->get_tx_buf == NULL)
+	{
+		if (transfer_data)
+		{
+			os_free(transfer_data);
+		}
+		transfer_data = NULL;
+	}
+	else
+	{
+		transfer_data = NULL;
+	}
+
+	packet_size = 0;
+	media_transfer_callback = NULL;
+#elif 0
+	if (transfer_data)
+	{
+		os_free(transfer_data);
+		transfer_data = NULL;
+	}
+#else
+    rwnxl_set_video_transfer_flag(false);
+#endif
 
 	MEDIA_EVT_RETURN(param, BK_OK);
 }

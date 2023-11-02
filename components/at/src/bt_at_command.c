@@ -21,13 +21,12 @@
 #include <driver/aud.h>
 #include <components/aud_intf.h>
 #include <driver/sbc.h>
-#if CONFIG_FATFS
-#include "test_fatfs.h"
-#endif
 #endif
 #if CONFIG_ARCH_CM33
 #include <driver/aon_rtc.h>
 #endif
+#include <cli.h>
+
 
 #if CONFIG_ARCH_RISCV
 #define CFG_AAC_SUPPORT 1
@@ -49,7 +48,7 @@
 #define DISCONNECT_REASON DISCONNECT_REASON_REMOTE_USER_TERMINATE
 
 #define SPP_HANDLE_INVALID                   0xFFU
-#define PRINT_FUNC os_printf("%s \n", __func__)
+#define PRINT_FUNC CLI_LOGI("%s \n", __func__)
 #define SPP_ENABLE_DATA_CNF_LOG
 #define SPP_TX_BUFF_SIZE  4096
 #define SPP_TX_BUFF_LIST_NUM 2
@@ -170,6 +169,7 @@ static int bt_enable_a2dp_source_suspend_handle(char *pcWriteBuffer, int xWriteB
 static int bt_enable_a2dp_source_stop_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 static int bt_enable_a2dp_source_write_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static int bt_enable_a2dp_source_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 #endif
 
 #endif
@@ -195,7 +195,7 @@ static void bt_at_sema_set()
     if (bt_at_cmd_sema != NULL)
     {
         sema_value++;
-//        os_printf("-->sem set%d\r\n", sema_value);
+//        CLI_LOGI("-->sem set%d\r\n", sema_value);
         rtos_set_semaphore(&bt_at_cmd_sema);
     }
 }
@@ -208,7 +208,7 @@ static bk_err_t bt_at_sema_get(uint32_t timeout_ms)
         re = rtos_get_semaphore(&bt_at_cmd_sema, timeout_ms);
         sema_value--;
     }
-//    os_printf("-->sem get%d\r\n", sema_value);
+//    CLI_LOGI("-->sem get%d\r\n", sema_value);
     return re;
 }
 
@@ -219,13 +219,13 @@ static uint32_t bt_at_event_cb(bt_event_enum_t event, void *param)
         case BK_DM_BT_EVENT_INQUIRY_RESULT:
             {
                 uint8_t *addr = (uint8_t *)param;
-                os_printf("BT Inquiryed addr: %x %x %x %x %x %x \r\n",*(addr+5), *(addr+4), *(addr+3), *(addr+2),*(addr+1),*(addr));
+                CLI_LOGI("BT Inquiryed addr: %x %x %x %x %x %x \r\n",*(addr+5), *(addr+4), *(addr+3), *(addr+2),*(addr+1),*(addr));
             }
             break;
         case BK_DM_BT_EVENT_DISCONNECT:
             {
                 uint8_t *addr = (uint8_t *)param;
-                os_printf("Disconnected from %x %x %x %x %x %x \r\n",addr[5],addr[4],addr[3],addr[2],addr[1],addr[0]);
+                CLI_LOGI("Disconnected from %x %x %x %x %x %x \r\n",addr[5],addr[4],addr[3],addr[2],addr[1],addr[0]);
                 if (!os_memcmp(addr, spp_env.peer_addr.addr, 6))
                 {
                     bt_spp_clear();
@@ -235,20 +235,20 @@ static uint32_t bt_at_event_cb(bt_event_enum_t event, void *param)
 #if 0
         case BK_DM_BT_EVENT_CMD_COMPLETE:
             {
-                os_printf("BT Event Complete!!! \r\n");
+                CLI_LOGI("BT Event Complete!!! \r\n");
             }
             break;
 #endif
         case BK_DM_BT_EVENT_CONNECTION_COMPLETE:
             {
                 uint8_t *addr = (uint8_t *)param;
-                os_printf("Connected to %02x:%02x:%02x:%02x:%02x:%02x\n",addr[5],addr[4],addr[3],addr[2],addr[1],addr[0]);
+                CLI_LOGI("Connected to %02x:%02x:%02x:%02x:%02x:%02x\n",addr[5],addr[4],addr[3],addr[2],addr[1],addr[0]);
             }
             break;
         case BK_DM_BT_EVENT_LINKKEY_NOTIFY:
         {
             bk_bt_linkkey_storage_t *linkkey = (typeof(linkkey))param;
-            os_printf("%s recv linkkey %02X:%02X:%02X:%02X:%02X:%02X\n", __func__,
+            CLI_LOGI("%s recv linkkey %02X:%02X:%02X:%02X:%02X:%02X\n", __func__,
                     linkkey->addr[5],
                     linkkey->addr[4],
                     linkkey->addr[3],
@@ -263,7 +263,7 @@ static uint32_t bt_at_event_cb(bt_event_enum_t event, void *param)
             uint8_t *addr = (typeof(addr))param;
             if(!memcmp(addr, s_bt_linkkey.addr, sizeof(s_bt_linkkey.addr)))
             {
-                os_printf("%s found linkkey %02X:%02X:%02X:%02X:%02X:%02X\n", __func__,
+                CLI_LOGI("%s found linkkey %02X:%02X:%02X:%02X:%02X:%02X\n", __func__,
                         addr[5],
                         addr[4],
                         addr[3],
@@ -275,7 +275,7 @@ static uint32_t bt_at_event_cb(bt_event_enum_t event, void *param)
             else
             {
                 bk_bt_linkkey_storage_t tmp;
-                os_printf("%s notfound linkkey %02X:%02X:%02X:%02X:%02X:%02X\n", __func__,
+                CLI_LOGI("%s notfound linkkey %02X:%02X:%02X:%02X:%02X:%02X\n", __func__,
                          addr[5],
                          addr[4],
                          addr[3],
@@ -297,7 +297,7 @@ static uint32_t bt_at_event_cb(bt_event_enum_t event, void *param)
 static void bt_at_cmd_cb(bt_cmd_t cmd, bt_cmd_param_t *param)
 {
     at_cmd_status = param->status;
-//    os_printf("%s %d \r\n", __func__, cmd);
+//    CLI_LOGI("%s %d \r\n", __func__, cmd);
     switch (cmd)
     {
         case BT_CMD_CREATE_CONNECT:
@@ -326,11 +326,11 @@ static void bt_at_cmd_cb(bt_cmd_t cmd, bt_cmd_param_t *param)
                 {
                     scan_enable = *(uint8_t *)(param->param+4);
                 }
-                os_printf("Read scan enable, status:%d, Scan Enable: 0x%x \r\n", param->status, scan_enable);
+                CLI_LOGI("Read scan enable, status:%d, Scan Enable: 0x%x \r\n", param->status, scan_enable);
             }
             break;
         case BT_CMD_WRITE_SCAN_ENABLE:
-            os_printf("Write scan enable, status:%d \r\n", param->status);
+            CLI_LOGI("Write scan enable, status:%d \r\n", param->status);
             break;
         default:
             break;
@@ -362,12 +362,13 @@ const at_command_t bt_at_cmd_table[] = {
     {14, "AVRCP_CTRL", 1, "avrcp ctrl", bt_avrcp_ctrl_handle},
 #endif
 #if CONFIG_AUDIO && CONFIG_A2DP_SOURCE_DEMO
-    {15, "A2DP_SOURCE_CONNECT", 0, "enable a2dp source connect", bt_enable_a2dp_source_connect_handle},
-    {16, "A2DP_SOURCE_DISCONNECT", 0, "enable a2dp source disconnect", bt_enable_a2dp_source_disconnect_handle},
-    {17, "A2DP_SOURCE_START", 0, "enable a2dp source start", bt_enable_a2dp_source_start_handle},
-    {18, "A2DP_SOURCE_SUSPEND", 0, "enable a2dp source suspend", bt_enable_a2dp_source_suspend_handle},
-    {19, "A2DP_SOURCE_WRITE_TEST", 0, "enable a2dp source write test", bt_enable_a2dp_source_write_test_handle},
-    {20, "A2DP_SOURCE_STOP", 0, "enable a2dp source stop", bt_enable_a2dp_source_stop_handle},
+    {15, "A2DP_SOURCE_CONNECT", 1, "enable a2dp source connect", bt_enable_a2dp_source_connect_handle},
+    {16, "A2DP_SOURCE_DISCONNECT", 1, "enable a2dp source disconnect", bt_enable_a2dp_source_disconnect_handle},
+    {17, "A2DP_SOURCE_START", 1, "enable a2dp source start", bt_enable_a2dp_source_start_handle},
+    {18, "A2DP_SOURCE_SUSPEND", 1, "enable a2dp source suspend", bt_enable_a2dp_source_suspend_handle},
+    {19, "A2DP_SOURCE_WRITE_TEST", 1, "enable a2dp source write test", bt_enable_a2dp_source_write_test_handle},
+    {20, "A2DP_SOURCE_STOP", 1, "enable a2dp source stop", bt_enable_a2dp_source_stop_handle},
+    {21, "A2DP_SOURCE_TEST", 0, "connect to soundbar and play mp3", bt_enable_a2dp_source_test_handle},
 #endif
 };
 
@@ -402,23 +403,23 @@ API_RESULT bt_spp_event_notify_cb
     UCHAR * l_data;
     l_data = (UCHAR*)( data );
 #if 0
-    os_printf("\n"\
+    CLI_LOGI("\n"\
            "SPP HANDLE : %u\n"\
            "EVENT      : %d\n"\
            "RESULT     : 0x%04X\n",
             (unsigned int) spp_handle, spp_event, status);
     if (API_SUCCESS != status)
     {
-        os_printf("\nSPP Command failure\n");
+        CLI_LOGE("\nSPP Command failure\n");
         return API_FAILURE;
     }
 #endif /* 0 */
     switch(spp_event)
     {
     case SPP_CONNECT_CNF:
-        os_printf("SPP_CONNECT_CNF -> 0x%04X\n", status);
-        os_printf("SPP Instance Connected : %u\n",(unsigned int) spp_handle);
-        os_printf("Remote device " BT_DEVICE_ADDR_ONLY_FRMT_SPECIFIER " \n",
+        CLI_LOGI("SPP_CONNECT_CNF -> 0x%04X\n", status);
+        CLI_LOGI("SPP Instance Connected : %u\n",(unsigned int) spp_handle);
+        CLI_LOGI("Remote device " BT_DEVICE_ADDR_ONLY_FRMT_SPECIFIER " \n",
         BT_DEVICE_ADDR_ONLY_PRINT_STR (l_data));
         if (0x00 == status)
         {
@@ -427,9 +428,9 @@ API_RESULT bt_spp_event_notify_cb
         }
         break;
     case SPP_CONNECT_IND:
-        os_printf("SPP_CONNECT_IND -> 0x%04X\n", status);
-        os_printf("SPP Instance Connected : %u\n",(unsigned int) spp_handle);
-        os_printf("Remote device " BT_DEVICE_ADDR_ONLY_FRMT_SPECIFIER " \n",
+        CLI_LOGI("SPP_CONNECT_IND -> 0x%04X\n", status);
+        CLI_LOGI("SPP Instance Connected : %u\n",(unsigned int) spp_handle);
+        CLI_LOGI("Remote device " BT_DEVICE_ADDR_ONLY_FRMT_SPECIFIER " \n",
         BT_DEVICE_ADDR_ONLY_PRINT_STR (l_data));
 
         /* Set the global handle */
@@ -441,17 +442,17 @@ API_RESULT bt_spp_event_notify_cb
             spp_env.conn_handle = conn_handle;
             spp_env.server_spp_handle = spp_handle;
             os_memcpy(&spp_env.peer_addr.addr[0], l_data, 6);
-            os_printf("Conn Handle: 0x%02x\n, Server spp handle: 0x%02x\n", conn_handle, spp_env.server_spp_handle);
+            CLI_LOGI("Conn Handle: 0x%02x\n, Server spp handle: 0x%02x\n", conn_handle, spp_env.server_spp_handle);
         }
         break;
     case SPP_DISCONNECT_CNF:
-        os_printf("SPP_DISCONNECT_CNF -> Disconnection Successful\n");
-        os_printf("Remote device " BT_DEVICE_ADDR_ONLY_FRMT_SPECIFIER " \n",
+        CLI_LOGI("SPP_DISCONNECT_CNF -> Disconnection Successful\n");
+        CLI_LOGI("Remote device " BT_DEVICE_ADDR_ONLY_FRMT_SPECIFIER " \n",
         BT_DEVICE_ADDR_ONLY_PRINT_STR (l_data));
         break;
     case SPP_DISCONNECT_IND:
-        os_printf("SPP_DISCONNECT_IND -> Disconnection Successful\n");
-        os_printf("Remote device " BT_DEVICE_ADDR_ONLY_FRMT_SPECIFIER " \n",
+        CLI_LOGI("SPP_DISCONNECT_IND -> Disconnection Successful\n");
+        CLI_LOGI("Remote device " BT_DEVICE_ADDR_ONLY_FRMT_SPECIFIER " \n",
         BT_DEVICE_ADDR_ONLY_PRINT_STR (l_data));
         if(spp_env.conn_state == STATE_PROFILE_CONNECTED_AS_CLIENT || spp_env.conn_state == STATE_PROFILE_CONNECTED_AS_SERVER)
         {
@@ -459,7 +460,7 @@ API_RESULT bt_spp_event_notify_cb
         }
         break;
     case SPP_STOP_CNF:
-        os_printf("SPP_STOP_CNF -> Stop Successful\n");
+        CLI_LOGI("SPP_STOP_CNF -> Stop Successful\n");
         break;
     case SPP_SEND_CNF:
     {
@@ -467,27 +468,27 @@ API_RESULT bt_spp_event_notify_cb
         UCHAR * buffer;
         API_RESULT retval;
         #endif
-        os_printf("Received spp send cnf\n");
-        os_printf("   spp handle = %d\n", spp_handle);
-//            os_printf("    Buffer = %p\n", l_data);
-        os_printf("    Actual Data Length = %d\n", data_length);
+        CLI_LOGI("Received spp send cnf\n");
+        CLI_LOGI("   spp handle = %d\n", spp_handle);
+//            CLI_LOGI("    Buffer = %p\n", l_data);
+        CLI_LOGI("    Actual Data Length = %d\n", data_length);
         if (0x00 != status)
         {
-            os_printf ("status: *** 0x%04X\n", status);
+            CLI_LOGE ("status: *** 0x%04X\n", status);
             break;
         }
 
         if(spp_env.tx_confirm)
         {
-            os_printf("\n----------------CHAR DUMP-----------------------\n");
+            CLI_LOGI("\n----------------CHAR DUMP-----------------------\n");
             for (index = 0U; index < data_length; index++)
             {
-                os_printf("%c ", l_data[index]);
+                CLI_LOGI("%c ", l_data[index]);
             }
-            os_printf("\n------------------------------------------------\n");
+            CLI_LOGI("\n------------------------------------------------\n");
 
             spp_env.tx_confirm = 0;
-//            os_printf("free buff->%p \r\n", data);
+//            CLI_LOGI("free buff->%p \r\n", data);
             os_free(data);
             bt_at_sema_set();
             break;
@@ -503,11 +504,11 @@ API_RESULT bt_spp_event_notify_cb
             uint64_t current_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
             float spend_time = (float)(current_time - spp_env.tx_time)*1000/AON_RTC_MS_TICK_CNT;
 #endif
-            os_printf("---->spend time: %f s\r\n", spend_time);
+            CLI_LOGI("---->spend time: %f s\r\n", spend_time);
             float speed = (float)spp_env.tx_throught_len/1024/spend_time;
             spp_env.crc = calc_crc32(spp_env.crc, (uint8_t *)l_data, data_length);
             spp_env.speed = speed;
-            os_printf("Spp tx length: %d, speed: %.3fKB/s \r\n", spp_env.tx_throught_len, speed);
+            CLI_LOGI("Spp tx length: %d, speed: %.3fKB/s \r\n", spp_env.tx_throught_len, speed);
             if(spp_env.tx_throught_len < spp_env.tx_throught_total_len)
             {
                 bt_spp_through_poll(data);
@@ -523,36 +524,36 @@ API_RESULT bt_spp_event_notify_cb
             do{
                 if(!spp_env.rx_through)
                 {
-                    os_printf("SPP_RECVD_DATA_IND -> Data received successfully\n");
-                    os_printf("\n----------------CHAR DUMP-----------------------\n");
+                    CLI_LOGI("SPP_RECVD_DATA_IND -> Data received successfully\n");
+                    CLI_LOGI("\n----------------CHAR DUMP-----------------------\n");
                     for (index = 0U; index < data_length; index++)
                     {
-                        os_printf("%c ", l_data[index]);
+                        CLI_LOGI("%c ", l_data[index]);
                     }
-                    os_printf("\n------------------------------------------------\n");
+                    CLI_LOGI("\n------------------------------------------------\n");
                     #if 0
-                    os_printf("\n----------------HEX DUMP------------------------\n");
+                    CLI_LOGI("\n----------------HEX DUMP------------------------\n");
                     for (index = 0U; index < data_length; index++)
                     {
-                        os_printf("%02X ", l_data[index]);
+                        CLI_LOGI("%02X ", l_data[index]);
                     }
-                    os_printf("\n------------------------------------------------\n");
+                    CLI_LOGI("\n------------------------------------------------\n");
                     #endif
                 }else
                 {
                     if(data_length == os_strlen(tx_through_cmd_end) && !os_strncmp((char *)l_data, tx_through_cmd_end, data_length))
                     {
-                        os_printf("\n----------------CHAR DUMP-----------------------\n");
+                        CLI_LOGI("\n----------------CHAR DUMP-----------------------\n");
                         for (index = 0U; index < data_length; index++)
                         {
-                            os_printf("%c ", l_data[index]);
+                            CLI_LOGI("%c ", l_data[index]);
                         }
-                        os_printf("\n------------------------------------------------\n");
+                        CLI_LOGI("\n------------------------------------------------\n");
                         break;
                     }
 //                    for (index = 0U; index < data_length; index++)
 //                    {
-    //                    os_printf("0x%02x ", l_data[index]);
+    //                    CLI_LOGI("0x%02x ", l_data[index]);
 //                    }
                     spp_env.rx_through_len+=data_length;
                     spp_env.crc = calc_crc32(spp_env.crc, l_data, data_length);
@@ -563,15 +564,15 @@ API_RESULT bt_spp_event_notify_cb
                     uint64_t current_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
                     float spend_time = (float)(current_time - spp_env.rx_time)*1000/AON_RTC_MS_TICK_CNT;
 #endif
-                    os_printf("-----> spend time: %f s\r\n", spend_time);
+                    CLI_LOGI("-----> spend time: %f s\r\n", spend_time);
                     float speed = (float)spp_env.rx_through_len/ 1024 / spend_time;
                     spp_env.speed = speed;
-                    os_printf("Spp received data len: %d, speed :%.4fKB/s\r\n", spp_env.rx_through_len, speed);
+                    CLI_LOGI("Spp received data len: %d, speed :%.4fKB/s\r\n", spp_env.rx_through_len, speed);
                 }
             }while(0);
             if(!os_strncmp((char *)l_data, tx_through_cmd_start, data_length))
             {
-                os_printf("Spp received spp tx through start cmd \r\n");
+                CLI_LOGI("Spp received spp tx through start cmd \r\n");
                 spp_env.crc = 0xffffffff;
                 make_crc32_table();
                 spp_env.rx_through = 1;
@@ -579,8 +580,8 @@ API_RESULT bt_spp_event_notify_cb
             }
             if(!os_strncmp((char *)l_data, tx_through_cmd_end, data_length))
             {
-                os_printf("Spp received spp tx through end cmd \r\n");
-                os_printf("Spp tx through test finish, rx total len: %d, crc value: 0x%x, speed: %.4fKB/s \r\n", spp_env.rx_through_len, spp_env.crc, spp_env.speed);
+                CLI_LOGI("Spp received spp tx through end cmd \r\n");
+                CLI_LOGI("Spp tx through test finish, rx total len: %d, crc value: 0x%x, speed: %.4fKB/s \r\n", spp_env.rx_through_len, spp_env.crc, spp_env.speed);
                 spp_env.rx_through = 0;
                 spp_env.crc = 0xffffffff;
                 spp_env.rx_through_len = 0;
@@ -590,7 +591,7 @@ API_RESULT bt_spp_event_notify_cb
         }
         break;
     default:
-        os_printf("\nUnknown command type\n");
+        CLI_LOGE("\nUnknown command type\n");
         break;
     } /* switch */
     BT_IGNORE_UNUSED_PARAM(spp_handle);
@@ -615,12 +616,12 @@ static void user_a2dp_connection_change(uint8_t status, uint8_t reason)
 
     }
 
-    bk_printf("%s %d %d\n", __func__, status, reason);
+    CLI_LOGI("%s %d %d\n", __func__, status, reason);
 }
 
 static void user_a2dp_start_cnf(uint8_t result, uint8_t reason, uint32_t mtu)
 {
-    bk_printf("%s %d %d\n", __func__, result, reason);
+    CLI_LOGI("%s %d %d\n", __func__, result, reason);
 
     if(result == 0 && a2dp_env.start_status == 0 )
     {
@@ -636,7 +637,7 @@ static void user_a2dp_start_cnf(uint8_t result, uint8_t reason, uint32_t mtu)
 
 static void user_a2dp_suspend_cnf(uint8_t result, uint8_t reason)
 {
-    bk_printf("%s %d %d\n", __func__, result, reason);
+    CLI_LOGI("%s %d %d\n", __func__, result, reason);
 
     if(result == 0 && a2dp_env.start_status == 1 )
     {
@@ -812,7 +813,7 @@ static int bt_spp_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
     {
         if(spp_env.conn_state == STATE_PROFILE_CONNECTED_AS_CLIENT || spp_env.conn_state == STATE_PROFILE_CONNECTED_AS_SERVER || spp_env.conn_state == STATE_PROFILE_DISCONNECT)
         {
-            os_printf("Spp exisit one connection now, please disconnect first!!\r\n");
+            CLI_LOGE("Spp exisit one connection now, please disconnect first!!\r\n");
             goto error;
         }
         bk_bt_gap_set_event_callback(bt_at_event_cb);
@@ -824,11 +825,11 @@ static int bt_spp_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
             spp_env.client_spp_handle = SPP_HANDLE_INVALID;
             bk_bt_spp_start((uint32_t *)&spp_env.client_spp_handle, &spp_env.local_server_channel, &spp_env.spp_record_handle);
             spp_env.spp_init = 1;
-            os_printf("Spp init, spp handle: 0x%02x , record handle: 0x%02x  \r\n", spp_env.client_spp_handle, spp_env.spp_record_handle);
+            CLI_LOGI("Spp init, spp handle: 0x%02x , record handle: 0x%02x  \r\n", spp_env.client_spp_handle, spp_env.spp_record_handle);
         }
         if(spp_env.conn_state != STATE_DISCONNECT)
         {
-            os_printf("With remote device is connected, please disconnect first \r\n");
+            CLI_LOGE("With remote device is connected, please disconnect first \r\n");
             goto error;
         }
         bk_bt_connect(&(spp_env.peer_addr.addr[0]), 
@@ -847,7 +848,7 @@ static int bt_spp_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
             spp_env.conn_handle = conn_handle;
         }else
         {
-            os_printf("BT Connect fail !!!!!!\r\n");
+            CLI_LOGE("BT Connect fail !!!!!!\r\n");
             goto error;
         }
         bk_bt_sdp(spp_env.conn_handle, &(spp_env.peer_addr.addr[0]), bt_at_cmd_cb);
@@ -863,7 +864,7 @@ static int bt_spp_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
             os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
             if (bt_at_cmd_sema != NULL)
                 rtos_deinit_semaphore(&bt_at_cmd_sema);
-//            os_printf("------------>spp connect cnf1 %d\r\n", spp_env.conn_state);
+//            CLI_LOGI("------------>spp connect cnf1 %d\r\n", spp_env.conn_state);
             return err;
         }else
         {
@@ -873,7 +874,7 @@ static int bt_spp_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 error:
     if(spp_env.conn_state == STATE_CONNECTED)
     {
-        os_printf("Spp connect fail, disconnect acl link \r\n!!");
+        CLI_LOGE("Spp connect fail, disconnect acl link \r\n!!");
         bk_bt_disconnect(&spp_env.peer_addr.addr[0], DISCONNECT_REASON, bt_at_cmd_cb);
     }
     msg = AT_CMD_RSP_ERROR;
@@ -901,14 +902,14 @@ static int bt_spp_tx_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
         bk_bt_gap_set_event_callback(bt_at_event_cb);
         if(spp_env.conn_state != STATE_PROFILE_CONNECTED_AS_CLIENT && spp_env.conn_state != STATE_PROFILE_CONNECTED_AS_SERVER)
         {
-            os_printf("Please connet spp first !! \r\n");
+            CLI_LOGE("Please connet spp first !! \r\n");
             goto error;
         }
         uint16_t tx_len = os_strlen((char *)argv[0]);
         char * tx_data = (char *)os_malloc(tx_len);
-//        os_printf("alloc buffer->%p\r\n", tx_data);
+//        CLI_LOGI("alloc buffer->%p\r\n", tx_data);
         os_memcpy(tx_data, argv[0], tx_len);
-        os_printf("spp tx data %d: %s \r\n", tx_len, tx_data);
+        CLI_LOGI("spp tx data %d: %s \r\n", tx_len, tx_data);
         if(tx_len)
         {
             spp_env.tx_confirm = 1;
@@ -922,7 +923,7 @@ static int bt_spp_tx_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
             {
                 if(tx_data)
                 {
-                    os_printf("spp tx fail, over time !!\r\n");
+                    CLI_LOGE("spp tx fail, over time !!\r\n");
                     os_free(tx_data);
                     tx_data = NULL;
                 }
@@ -930,7 +931,7 @@ static int bt_spp_tx_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
             }
         }else
         {
-            os_printf("Data is null !!\r\n");
+            CLI_LOGE("Data is null !!\r\n");
             return err;
         }
     }
@@ -977,19 +978,19 @@ static int bt_spp_through_test_handle(char *pcWriteBuffer, int xWriteBufferLen, 
     {
         if(spp_env.conn_state != STATE_PROFILE_CONNECTED_AS_CLIENT && spp_env.conn_state != STATE_PROFILE_CONNECTED_AS_SERVER)
         {
-            os_printf("Please connet spp first !! \r\n");
+            CLI_LOGE("Please connet spp first !! \r\n");
             goto error;
         }
         uint32_t tx_data_length = os_strtoul(argv[0], NULL, 16) & 0xFFFFFFFF;
-        os_printf("spp tx throught test, data len:%d \r\n", tx_data_length);
+        CLI_LOGI("spp tx throught test, data len:%d \r\n", tx_data_length);
         if(tx_data_length == 0)
         {
             tx_data_length = 0xffff;
-            os_printf("data len is 0, set to default, data len:%d \r\n", tx_data_length);
+            CLI_LOGE("data len is 0, set to default, data len:%d \r\n", tx_data_length);
         }
         char *tx_buff = (char *)os_malloc(os_strlen(tx_through_cmd_start));
         os_memcpy(tx_buff, tx_through_cmd_start, os_strlen(tx_through_cmd_start));
-//        os_printf("alloc buffer->%p\r\n", tx_buff);
+//        CLI_LOGI("alloc buffer->%p\r\n", tx_buff);
         spp_env.tx_confirm = 1;
         uint32_t spp_hanle  = ((spp_env.conn_state == STATE_PROFILE_CONNECTED_AS_CLIENT) ? spp_env.client_spp_handle : spp_env.server_spp_handle);
         bk_bt_spp_tx(spp_hanle, tx_buff, os_strlen(tx_through_cmd_start), NULL);
@@ -998,7 +999,7 @@ static int bt_spp_through_test_handle(char *pcWriteBuffer, int xWriteBufferLen, 
         {
             if(tx_buff)
             {
-                os_printf("spp tx through init fail, tx cmd over time !!\r\n");
+                CLI_LOGE("spp tx through init fail, tx cmd over time !!\r\n");
                 os_free(tx_buff);
                 tx_buff = NULL;
             }
@@ -1015,13 +1016,13 @@ static int bt_spp_through_test_handle(char *pcWriteBuffer, int xWriteBufferLen, 
         os_free(tx_data);
         if(err)
         {
-            os_printf("spp tx through tx fail, tx cmd over time !!\r\n");
+            CLI_LOGE("spp tx through tx fail, tx cmd over time !!\r\n");
             goto error;
         }
 
         tx_buff = (char *)os_malloc(os_strlen(tx_through_cmd_end));
         os_memcpy(tx_buff, tx_through_cmd_end, os_strlen(tx_through_cmd_end));
-//        os_printf("alloc buffer->%p\r\n", tx_buff);
+//        CLI_LOGI("alloc buffer->%p\r\n", tx_buff);
         spp_env.tx_confirm = 1;
         bk_bt_spp_tx(spp_hanle, tx_buff, os_strlen(tx_through_cmd_end), NULL);
         err = bt_at_sema_get(AT_SYNC_CMD_TIMEOUT_MS);
@@ -1029,14 +1030,14 @@ static int bt_spp_through_test_handle(char *pcWriteBuffer, int xWriteBufferLen, 
         {
             if(tx_buff)
             {
-                os_printf("spp tx through end fail, tx cmd over time !!\r\n");
+                CLI_LOGE("spp tx through end fail, tx cmd over time !!\r\n");
                 os_free(tx_buff);
                 tx_buff = NULL;
             }
             goto error;
         }
-        os_printf("Spp tx thtrouth finish    \n");
-        os_printf("TX throuth CRC value: 0x%x , speed: %.3fKB/s \r\n", spp_env.crc, spp_env.speed);
+        CLI_LOGI("Spp tx thtrouth finish    \n");
+        CLI_LOGI("TX throuth CRC value: 0x%x , speed: %.3fKB/s \r\n", spp_env.crc, spp_env.speed);
         spp_env.speed = 0;
         spp_env.tx_confirm = 0;
         spp_env.tx_throught_len = 0;
@@ -1069,7 +1070,7 @@ static int bt_spp_init_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
             bk_bt_spp_start((uint32_t *)&spp_env.client_spp_handle, &spp_env.local_server_channel, &spp_env.spp_record_handle);
             spp_env.spp_init = 1;
         }
-        os_printf("SPP INIT, SPP__HANDL:0x%x\r\n", spp_env.client_spp_handle);
+        CLI_LOGI("SPP INIT, SPP__HANDL:0x%x\r\n", spp_env.client_spp_handle);
     }
     return err;
 }
@@ -1093,10 +1094,10 @@ static int bt_write_scan_enable_handle(char *pcWriteBuffer, int xWriteBufferLen,
         uint8_t scan_enable = os_strtoul(argv[0], NULL, 10) & 0xFFFFFFFF;
         if(scan_enable > 0x03)
         {
-            os_printf("%s para error, scan_enable:%d \r\n", scan_enable);
+            CLI_LOGE("%s para error, scan_enable:%d \r\n", scan_enable);
             goto error;
         }
-//        os_printf("%s, %d \r\n", __func__, scan_enable);
+//        CLI_LOGI("%s, %d \r\n", __func__, scan_enable);
         //serr = bk_bt_write_scan_enable(scan_enable, bt_at_cmd_cb);
         //if(err) goto error;
 
@@ -1175,7 +1176,7 @@ static int bt_enable_a2dp_sink_test_handle(char *pcWriteBuffer, int xWriteBuffer
 
     if (argc < 1)
     {
-        os_printf("input param error\n");
+        CLI_LOGE("input param error\n");
         err = kParamErr;
         goto error;
     }
@@ -1190,7 +1191,7 @@ static int bt_enable_a2dp_sink_test_handle(char *pcWriteBuffer, int xWriteBuffer
     }
     else
     {
-        os_printf("the input param is error\n");
+        CLI_LOGE("the input param is error\n");
         err = kParamErr;
         goto error;
     }
@@ -1229,7 +1230,7 @@ static int bt_enable_hfp_unit_test_handle(char *pcWriteBuffer, int xWriteBufferL
 
     if (argc < 1)
     {
-        os_printf("input param error\n");
+        CLI_LOGE("input param error\n");
         err = kParamErr;
         goto error;
     }
@@ -1244,7 +1245,7 @@ static int bt_enable_hfp_unit_test_handle(char *pcWriteBuffer, int xWriteBufferL
     }
     else
     {
-        os_printf("the input param is error\n");
+        CLI_LOGE("the input param is error\n");
         err = kParamErr;
         goto error;
     }
@@ -1289,7 +1290,7 @@ static int bt_a2dp_sink_connect_handle(char *pcWriteBuffer, int xWriteBufferLen,
 
     if (err)
     {
-        bk_printf("%s a2dp sink connect err %d\n", __func__, err);
+        CLI_LOGE("%s a2dp sink connect err %d\n", __func__, err);
         goto error;
     }
     else
@@ -1320,7 +1321,7 @@ static int bt_a2dp_sink_disconnect_handle(char *pcWriteBuffer, int xWriteBufferL
 
     if(err)
     {
-        bk_printf("%s a2dp sink disconnect err %d\n", __func__, err);
+        CLI_LOGE("%s a2dp sink disconnect err %d\n", __func__, err);
         goto error;
     }
     else
@@ -1345,7 +1346,7 @@ static int bt_avrcp_ctrl_handle(char *pcWriteBuffer, int xWriteBufferLen, int ar
 
     if (argc < 1)
     {
-        os_printf("input param error\n");
+        CLI_LOGE("input param error\n");
         err = kParamErr;
         goto error;
     }
@@ -1393,7 +1394,7 @@ static int bt_avrcp_ctrl_handle(char *pcWriteBuffer, int xWriteBufferLen, int ar
     }
     else
     {
-        os_printf("the input param is error\n");
+        CLI_LOGE("the input param is error\n");
         err = kParamErr;
         goto error;
     }
@@ -1421,6 +1422,7 @@ error:
 
 #if CONFIG_FATFS
 #include "ff.h"
+#include "test_fatfs.h"
 #endif
 
 bt_opp_server_cb_t bt_opp_server_cb;
@@ -1432,7 +1434,7 @@ static uint8_t opp_file_is_open = 0;
 
 void bt_opp_server_push_started(uint8_t *obj_name, uint16_t len)
 {
-    os_printf("OPP Push Object Name: %s, len %d\r\n", obj_name, len);
+    CLI_LOGI("OPP Push Object Name: %s, len %d\r\n", obj_name, len);
 
 #if CONFIG_FATFS
     os_memset(opp_file_name, 0, sizeof(opp_file_name));
@@ -1441,7 +1443,7 @@ void bt_opp_server_push_started(uint8_t *obj_name, uint16_t len)
     FRESULT fr = f_open(&opp_file, opp_file_name, FA_CREATE_ALWAYS | FA_WRITE);
     if (fr != FR_OK)
     {
-        os_printf("open %s fail, error = %d.\r\n", opp_file_name, fr);
+        CLI_LOGE("open %s fail, error = %d.\r\n", opp_file_name, fr);
     }
     else
     {
@@ -1452,7 +1454,7 @@ void bt_opp_server_push_started(uint8_t *obj_name, uint16_t len)
 
 void bt_opp_server_push_finished(void)
 {
-    os_printf("OPP Push Object Finish!\r\n");
+    CLI_LOGI("OPP Push Object Finish!\r\n");
 
 #if CONFIG_FATFS
     if (opp_file_is_open)
@@ -1460,7 +1462,7 @@ void bt_opp_server_push_finished(void)
         FRESULT fr = f_close(&opp_file);
         if (fr != FR_OK)
         {
-            os_printf("close %s fail, error = %d.\r\n", opp_file_name, fr);
+            CLI_LOGE("close %s fail, error = %d.\r\n", opp_file_name, fr);
         }
 
         opp_file_is_open = 0;
@@ -1478,7 +1480,7 @@ void bt_opp_server_push_data_ind(uint8_t *data, uint16_t data_len)
         FRESULT fr = f_write(&opp_file, (void *)data, data_len, &bw);
         if (fr != FR_OK)
         {
-            os_printf("write %s fail, error = %d.\r\n", opp_file_name, fr);
+            CLI_LOGE("write %s fail, error = %d.\r\n", opp_file_name, fr);
         }
     }
 #endif
@@ -1494,7 +1496,7 @@ static int bt_enable_opp_test_handle(char *pcWriteBuffer, int xWriteBufferLen, i
 
     if (argc < 1)
     {
-        os_printf("input param error\n");
+        CLI_LOGE("input param error\n");
         err = kParamErr;
         goto error;
     }
@@ -1509,7 +1511,7 @@ static int bt_enable_opp_test_handle(char *pcWriteBuffer, int xWriteBufferLen, i
     }
     else
     {
-        os_printf("the input param is error\n");
+        CLI_LOGE("the input param is error\n");
         err = kParamErr;
         goto error;
     }
@@ -1596,10 +1598,12 @@ static int bt_enable_a2dp_source_connect_handle(char *pcWriteBuffer, int xWriteB
     PRINT_FUNC;
     char *msg;
     int err = kNoErr;
+
     if (bt_at_cmd_table[15].is_sync_cmd)
     {
         err = rtos_init_semaphore(&bt_at_cmd_sema, 1);
         if(err != kNoErr){
+			CLI_LOGE("%s init sem err %d\n", __func__, err);
             goto error;
         }
     }
@@ -1609,7 +1613,11 @@ static int bt_enable_a2dp_source_connect_handle(char *pcWriteBuffer, int xWriteB
 
         err = get_addr_from_param(&a2dp_env.peer_addr, argv[0]);
 
-        if(err) goto error;
+        if(err) 
+		{
+			CLI_LOGE("%s get_addr_from_param err %d\n", __func__, err);
+			goto error;
+		}
         if(!a2dp_env.inited)
         {
             bk_bt_a2dp_source_init((void *)&bt_a2dp_source_cb);
@@ -1618,7 +1626,7 @@ static int bt_enable_a2dp_source_connect_handle(char *pcWriteBuffer, int xWriteB
 
         if(a2dp_env.conn_state != BK_A2DP_CONNECTION_STATE_DISCONNECTED)
         {
-            os_printf("With remote device is not idle, please disconnect first\n");
+            CLI_LOGE("With remote device is not idle, please disconnect first\n");
             goto error;
         }
 
@@ -1632,11 +1640,20 @@ static int bt_enable_a2dp_source_connect_handle(char *pcWriteBuffer, int xWriteB
                         1,
                         bt_at_cmd_cb);
 
-        if(bt_at_cmd_sema == NULL) goto error;
+        if(bt_at_cmd_sema == NULL)
+		{
+			CLI_LOGE("%s bt_at_cmd_sema null\n", __func__);
+			goto error;
+		}
 
         err = rtos_get_semaphore(&bt_at_cmd_sema, 12 * 1000);
 
-        if(err != kNoErr) goto error;
+        if(err != kNoErr)
+		{
+			CLI_LOGE("%s rtos_get_semaphore err %d\n", __func__, err);
+			goto error;
+		}
+
 
         if(at_cmd_status == 0x00)
         {
@@ -1656,7 +1673,7 @@ static int bt_enable_a2dp_source_connect_handle(char *pcWriteBuffer, int xWriteB
 
         if(err)
         {
-            bk_printf("%s connect a2dp err %d\n", __func__, err);
+            CLI_LOGE("%s connect a2dp err %d\n", __func__, err);
             goto error;
         }
 
@@ -1707,7 +1724,7 @@ static int bt_enable_a2dp_source_disconnect_handle(char *pcWriteBuffer, int xWri
 
         if(a2dp_env.conn_state != BK_A2DP_CONNECTION_STATE_CONNECTED)
         {
-            os_printf("With remote device is not connected\n");
+            CLI_LOGE("With remote device is not connected\n");
             goto error;
         }
 
@@ -1715,7 +1732,7 @@ static int bt_enable_a2dp_source_disconnect_handle(char *pcWriteBuffer, int xWri
 
         if(err)
         {
-            bk_printf("%s disconnect a2dp err %d\n", __func__, err);
+            CLI_LOGE("%s disconnect a2dp err %d\n", __func__, err);
             goto error;
         }
 
@@ -1723,7 +1740,7 @@ static int bt_enable_a2dp_source_disconnect_handle(char *pcWriteBuffer, int xWri
 
         if(err)
         {
-            bk_printf("%s disconnect a2dp timeout %d\n", __func__, err);
+            CLI_LOGE("%s disconnect a2dp timeout %d\n", __func__, err);
             goto error;
         }
 
@@ -1731,7 +1748,7 @@ static int bt_enable_a2dp_source_disconnect_handle(char *pcWriteBuffer, int xWri
 
         if(err)
         {
-            bk_printf("%s disconnect link err %d\n", __func__, err);
+            CLI_LOGE("%s disconnect link err %d\n", __func__, err);
             goto error;
         }
 
@@ -1772,21 +1789,21 @@ static int bt_a2dp_source_mic_data_handler(uint8_t *data, unsigned int len)//640
     bt_err_t ret = 0;
 
     static uint32_t last_len = 0;
-    //os_printf("[send_mic_data_to_air]  %d \r\n",len);
+    //CLI_LOGE("[send_mic_data_to_air]  %d \r\n",len);
     if(((uint32_t)data) % 2)
     {
-        os_printf("%s err data is not 2 bytes aligned !!!\n", __func__);
+        CLI_LOGE("%s err data is not 2 bytes aligned !!!\n", __func__);
     }
 
     if(last_len != len)
     {
-        os_printf("%s len %d\n", __func__, len);
+        CLI_LOGE("%s len %d\n", __func__, len);
         last_len = len;
     }
 
     if(len > sizeof(mic_sco_data))
     {
-        os_printf("%s too long %d !\n", __func__, len);
+        CLI_LOGE("%s too long %d !\n", __func__, len);
         return 0;
     }
 
@@ -1798,7 +1815,7 @@ static int bt_a2dp_source_mic_data_handler(uint8_t *data, unsigned int len)//640
         encode_len = sbc_encoder_encode(&s_sbc_software_encoder_ctx, (const int16_t *)(mic_sco_data + i * sent_threshold));
         if(encode_len < 0)
         {
-            os_printf("%s encode err %d\n", __func__, encode_len);
+            CLI_LOGE("%s encode err %d\n", __func__, encode_len);
             mic_data_count = 0;
             return 0;
         }
@@ -1807,7 +1824,7 @@ static int bt_a2dp_source_mic_data_handler(uint8_t *data, unsigned int len)//640
 
         if(ret)
         {
-            os_printf("%s bk_bt_a2dp_source_write err %d\n", __func__, ret);
+            CLI_LOGE("%s bk_bt_a2dp_source_write err %d\n", __func__, ret);
         }
 
     }
@@ -1823,7 +1840,7 @@ static int bt_a2dp_source_mic_data_handler(uint8_t *data, unsigned int len)//640
         encode_len = sbc_encoder_encode(&s_sbc_software_encoder_ctx, (const int16_t *)(mic_sco_data + index));
         if(encode_len < 0)
         {
-            os_printf("%s encode err %d\n", __func__, encode_len);
+            CLI_LOGE("%s encode err %d\n", __func__, encode_len);
             mic_data_count = 0;
             return 0;
         }
@@ -1836,7 +1853,7 @@ static int bt_a2dp_source_mic_data_handler(uint8_t *data, unsigned int len)//640
 
         if(ret)
         {
-            os_printf("%s bk_bt_a2dp_source_write err %d\n", __func__, ret);
+            CLI_LOGE("%s bk_bt_a2dp_source_write err %d\n", __func__, ret);
         }
 
     }
@@ -1851,7 +1868,7 @@ static int32_t bt_a2dp_source_prepare_sbc_encoder(void)
 {
     bk_err_t ret = BK_OK;
 
-    os_printf("%s\n", __func__);
+    CLI_LOGE("%s\n", __func__);
 
     memset(&s_sbc_software_encoder_ctx, 0, sizeof(s_sbc_software_encoder_ctx));
 
@@ -1875,7 +1892,7 @@ static int32_t bt_a2dp_source_prepare_sbc_encoder(void)
 
     if (ret != SBC_ENCODER_ERROR_OK)
     {
-        os_printf("%s SBC_ENCODER_CTRL_CMD_SET_ALLOCATION_METHOD err %d\n", __func__, ret);
+        CLI_LOGE("%s SBC_ENCODER_CTRL_CMD_SET_ALLOCATION_METHOD err %d\n", __func__, ret);
         return ret;
     }
 
@@ -1883,7 +1900,7 @@ static int32_t bt_a2dp_source_prepare_sbc_encoder(void)
 
     if (ret != SBC_ENCODER_ERROR_OK)
     {
-        os_printf("%s SBC_ENCODER_CTRL_CMD_SET_BITPOOL err %d\n", __func__, ret);
+        CLI_LOGE("%s SBC_ENCODER_CTRL_CMD_SET_BITPOOL err %d\n", __func__, ret);
         return ret;
     }
 
@@ -1914,7 +1931,7 @@ static int32_t bt_a2dp_source_prepare_sbc_encoder(void)
 
     if (ret != SBC_ENCODER_ERROR_OK)
     {
-        os_printf("%s SBC_ENCODER_CTRL_CMD_SET_BLOCK_MODE err %d\n", __func__, ret);
+        CLI_LOGE("%s SBC_ENCODER_CTRL_CMD_SET_BLOCK_MODE err %d\n", __func__, ret);
         return ret;
     }
 
@@ -1944,7 +1961,7 @@ static int32_t bt_a2dp_source_prepare_sbc_encoder(void)
 
     if (ret != SBC_ENCODER_ERROR_OK)
     {
-        os_printf("%s SBC_ENCODER_CTRL_CMD_SET_CHANNEL_MODE err %d\n", __func__, ret);
+        CLI_LOGE("%s SBC_ENCODER_CTRL_CMD_SET_CHANNEL_MODE err %d\n", __func__, ret);
         return ret;
     }
 
@@ -1974,7 +1991,7 @@ static int32_t bt_a2dp_source_prepare_sbc_encoder(void)
 
     if (ret != SBC_ENCODER_ERROR_OK)
     {
-        os_printf("%s SBC_ENCODER_CTRL_CMD_SET_SAMPLE_RATE_INDEX err %d\n", __func__, ret);
+        CLI_LOGE("%s SBC_ENCODER_CTRL_CMD_SET_SAMPLE_RATE_INDEX err %d\n", __func__, ret);
         return ret;
     }
 
@@ -1997,12 +2014,12 @@ static int32_t bt_a2dp_source_prepare_sbc_encoder(void)
 
     if (ret != SBC_ENCODER_ERROR_OK)
     {
-        os_printf("%s SBC_ENCODER_CTRL_CMD_SET_SUBBAND_MODE err %d\n", __func__, ret);
+        CLI_LOGE("%s SBC_ENCODER_CTRL_CMD_SET_SUBBAND_MODE err %d\n", __func__, ret);
         return ret;
     }
 
 
-    os_printf("%s sbc encode count %d\n", __func__, s_sbc_software_encoder_ctx.pcm_length);
+    CLI_LOGE("%s sbc encode count %d\n", __func__, s_sbc_software_encoder_ctx.pcm_length);
 
     return 0;
 }
@@ -2012,9 +2029,9 @@ static int32_t bt_a2dp_source_start_voc(void)
 {
     bk_err_t ret = BK_OK;
 
-    os_printf("%s\n", __func__);
+    CLI_LOGE("%s\n", __func__);
 
-    os_printf("%s TODO: most sound box a2dp support neither mono channel nor 16 kHZ !!!\n", __func__);
+    CLI_LOGE("%s TODO: most sound box a2dp support neither mono channel nor 16 kHZ !!!\n", __func__);
     aud_intf_drv_setup_t aud_intf_drv_setup;
     aud_intf_work_mode_t aud_work_mode = 0;
     aud_intf_voc_setup_t aud_voc_setup;
@@ -2031,12 +2048,12 @@ static int32_t bt_a2dp_source_start_voc(void)
 
     if (ret != BK_ERR_AUD_INTF_OK)
     {
-        os_printf("%s bk_aud_intf_drv_init fail, ret:%d\n", __func__, ret);
+        CLI_LOGE("%s bk_aud_intf_drv_init fail, ret:%d\n", __func__, ret);
         return ret;
     }
     else
     {
-        os_printf("%s bk_aud_intf_drv_init complete\n", __func__);
+        CLI_LOGE("%s bk_aud_intf_drv_init complete\n", __func__);
     }
 
     aud_work_mode = AUD_INTF_WORK_MODE_VOICE;
@@ -2045,12 +2062,12 @@ static int32_t bt_a2dp_source_start_voc(void)
 
     if (ret != BK_ERR_AUD_INTF_OK)
     {
-        os_printf("%s bk_aud_intf_set_mode fail, ret:%d\n", __func__, ret);
+        CLI_LOGE("%s bk_aud_intf_set_mode fail, ret:%d\n", __func__, ret);
         return ret;
     }
     else
     {
-        os_printf("%s bk_aud_intf_set_mode complete\n", __func__);
+        CLI_LOGE("%s bk_aud_intf_set_mode complete\n", __func__);
     }
 
     aud_voc_setup.aec_enable = true;
@@ -2069,18 +2086,18 @@ static int32_t bt_a2dp_source_start_voc(void)
     ret = bk_aud_intf_voc_init(aud_voc_setup);
     if (ret != BK_ERR_AUD_INTF_OK)
     {
-        os_printf("%s bk_aud_intf_voc_init fail, ret:%d\n", __func__, ret);
+        CLI_LOGE("%s bk_aud_intf_voc_init fail, ret:%d\n", __func__, ret);
         return ret;
     }
 
     ret = bk_aud_intf_voc_start();
     if (ret != BK_ERR_AUD_INTF_OK)
     {
-        os_printf("%s bk_aud_intf_voc_start fail, ret:%d\n", __func__, ret);
+        CLI_LOGE("%s bk_aud_intf_voc_start fail, ret:%d\n", __func__, ret);
         return ret;
     }
 
-    os_printf("%s ok\n", __func__);
+    CLI_LOGE("%s ok\n", __func__);
 
     return 0;
 }
@@ -2106,13 +2123,13 @@ static int bt_enable_a2dp_source_start_handle(char *pcWriteBuffer, int xWriteBuf
 
         if(a2dp_env.conn_state != BK_A2DP_CONNECTION_STATE_CONNECTED)
         {
-            os_printf("With remote device is not connected\n");
+            CLI_LOGE("With remote device is not connected\n");
             goto error;
         }
 
         if(a2dp_env.start_status != 0)
         {
-            os_printf("is already start\n");
+            CLI_LOGE("is already start\n");
             goto error;
         }
 
@@ -2120,7 +2137,7 @@ static int bt_enable_a2dp_source_start_handle(char *pcWriteBuffer, int xWriteBuf
 
         if(err)
         {
-            bk_printf("%s start err %d\n", __func__, err);
+            CLI_LOGE("%s start err %d\n", __func__, err);
             goto error;
         }
 
@@ -2169,13 +2186,13 @@ static int bt_enable_a2dp_source_suspend_handle(char *pcWriteBuffer, int xWriteB
 
         if(a2dp_env.conn_state != BK_A2DP_CONNECTION_STATE_CONNECTED)
         {
-            os_printf("With remote device is not connected\n");
+            CLI_LOGE("With remote device is not connected\n");
             goto error;
         }
 
         if(a2dp_env.start_status == 0)
         {
-            os_printf("is already suspend\n");
+            CLI_LOGE("is already suspend\n");
             goto error;
         }
 
@@ -2183,7 +2200,7 @@ static int bt_enable_a2dp_source_suspend_handle(char *pcWriteBuffer, int xWriteB
 
         if(err)
         {
-            bk_printf("%s suspend err %d\n", __func__, err);
+            CLI_LOGE("%s suspend err %d\n", __func__, err);
             goto error;
         }
 
@@ -2240,7 +2257,7 @@ static int bt_enable_a2dp_source_stop_handle(char *pcWriteBuffer, int xWriteBuff
         rc = rtos_push_to_queue(&bt_a2dp_source_msg_que, &a2dp_msg, BEKEN_NO_WAIT);
         if (kNoErr != rc)
         {
-            os_printf("%s, send queue failed\r\n",__func__);
+            CLI_LOGE("%s, send queue failed\r\n",__func__);
             goto error;
         }
 
@@ -2279,7 +2296,7 @@ static void bt_a2dp_source_write_from_file_timer_hdl(void *param)
 
     if(!tmp_buf)
     {
-        os_printf("%s malloc err\n", __func__);
+        CLI_LOGE("%s malloc err\n", __func__);
         return;
     }
 
@@ -2288,18 +2305,18 @@ static void bt_a2dp_source_write_from_file_timer_hdl(void *param)
         fr = f_read(pcm_file_fd, (void *)(mic_sco_data + offset), sent_threshold, &read_len);
         if (fr != FR_OK)
         {
-            os_printf("%s read fail %d\n", __func__, fr);
+            CLI_LOGE("%s read fail %d\n", __func__, fr);
             os_free(tmp_buf);
             return;
         }
 
         if(read_len < sent_threshold)
         {
-            os_printf("%s read len %d < %d !!\n", __func__, read_len, sent_threshold);
+            CLI_LOGE("%s read len %d < %d !!\n", __func__, read_len, sent_threshold);
 
             if(read_len == 0)
             {
-                os_printf("%s read file end !!\n", __func__, read_len, sent_threshold);
+                CLI_LOGE("%s read file end !!\n", __func__, read_len, sent_threshold);
                 os_free(tmp_buf);
                 rtos_stop_timer(&bt_a2dp_source_write_timer);
                 return;
@@ -2311,14 +2328,14 @@ static void bt_a2dp_source_write_from_file_timer_hdl(void *param)
         encode_len = sbc_encoder_encode(&s_sbc_software_encoder_ctx, (const int16_t *)(mic_sco_data));
         if(encode_len < 0)
         {
-           os_printf("%s encode err %d\n", __func__, encode_len);
+           CLI_LOGE("%s encode err %d\n", __func__, encode_len);
            os_free(tmp_buf);
            return;
         }
 
         if(encode_index + encode_len > A2DP_SOURCE_SBC_FRAME_COUNT * 128)
         {
-            os_printf("%s encode data large than malloc !! %d\n", __func__, encode_len);
+            CLI_LOGE("%s encode data large than malloc !! %d\n", __func__, encode_len);
             os_free(tmp_buf);
             return;
 
@@ -2332,7 +2349,7 @@ static void bt_a2dp_source_write_from_file_timer_hdl(void *param)
 
     if(ret)
     {
-        os_printf("%s bk_bt_a2dp_source_write err %d\n", __func__, ret);
+        CLI_LOGE("%s bk_bt_a2dp_source_write err %d\n", __func__, ret);
     }
 
     os_free(tmp_buf);
@@ -2358,7 +2375,7 @@ static void bt_a2dp_source_write_from_file_timer_auto_hdl(void *param)
         rc = rtos_push_to_queue(&bt_a2dp_source_msg_que, &msg, BEKEN_NO_WAIT);
         if (kNoErr != rc)
         {
-            os_printf("%s, send queue failed\r\n",__func__);
+            CLI_LOGE("%s, send queue failed\r\n",__func__);
         }
     }
 }
@@ -2445,12 +2462,12 @@ void bt_a2dp_source_write_from_file(FIL *fd)
 
     if(will_send_frame_count > 100)
     {
-        os_printf("%s\n", __func__);
+        CLI_LOGE("%s\n", __func__);
     }
 
     if(!will_send_frame_count)
     {
-        os_printf("%s 0\n", __func__);
+        CLI_LOGE("%s 0\n", __func__);
     }
 
     //printf("%s will_send_frame_count %d \n", __func__, will_send_frame_count);
@@ -2459,7 +2476,7 @@ void bt_a2dp_source_write_from_file(FIL *fd)
 
     if(tmp_buf == NULL)
     {
-        os_printf("%s tmp_buf no buffer malloc\n", __func__);
+        CLI_LOGE("%s tmp_buf no buffer malloc\n", __func__);
         bt_a2dp_set_get_sample_clean();
         return;
     }
@@ -2473,7 +2490,7 @@ void bt_a2dp_source_write_from_file(FIL *fd)
 
             if (fr != FR_OK)
             {
-                os_printf("%s read fail %d\n", __func__, fr);
+                CLI_LOGE("%s read fail %d\n", __func__, fr);
                 os_free(tmp_buf);
                 return;
             }
@@ -2482,12 +2499,12 @@ void bt_a2dp_source_write_from_file(FIL *fd)
 
             if (read_len < one_pcm_frame_encode_sample_bytes)
             {
-                os_printf("%s read len %d < %d!!\n", __func__, read_len, one_pcm_frame_encode_sample_bytes);
+                CLI_LOGE("%s read len %d < %d!!\n", __func__, read_len, one_pcm_frame_encode_sample_bytes);
 
 
                 if (read_len == 0)
                 {
-                    os_printf("%s read file end %d %d !!\n", __func__, read_len, one_pcm_frame_encode_sample_bytes);
+                    CLI_LOGE("%s read file end %d %d !!\n", __func__, read_len, one_pcm_frame_encode_sample_bytes);
                     os_free(tmp_buf);
 
 //                    fclose(pcm_file_fd);
@@ -2502,7 +2519,7 @@ void bt_a2dp_source_write_from_file(FIL *fd)
                         fr = f_lseek(pcm_file_fd, 0);
                         if (fr != FR_OK)
                         {
-                            os_printf("%s f_lseek fail.\n", __func__);
+                            CLI_LOGE("%s f_lseek fail.\n", __func__);
                             f_close(pcm_file_fd);
                             memset(pcm_file_fd, 0, sizeof(*pcm_file_fd));
                             return;
@@ -2527,14 +2544,14 @@ void bt_a2dp_source_write_from_file(FIL *fd)
 
             if (encode_len < 0)
             {
-                os_printf("%s encode err %d\n", __func__, encode_len);
+                CLI_LOGE("%s encode err %d\n", __func__, encode_len);
                 os_free(tmp_buf);
                 return;
             }
 
             if (encode_index + encode_len > will_send_frame_count * 128)
             {
-                os_printf("%s encode data large than malloc !! %d\n", __func__, encode_len);
+                CLI_LOGE("%s encode data large than malloc !! %d\n", __func__, encode_len);
                 os_free(tmp_buf);
                 return;
             }
@@ -2549,12 +2566,12 @@ void bt_a2dp_source_write_from_file(FIL *fd)
 
         if (encode_index > 10000 || i > 5)
         {
-            os_printf("%s encode_index %d i %d\n", __func__, encode_index, i);
+            CLI_LOGE("%s encode_index %d i %d\n", __func__, encode_index, i);
         }
 
         if (ret)
         {
-            os_printf("%s bk_bt_a2dp_source_write err %d\n", __func__, ret);
+            CLI_LOGE("%s bk_bt_a2dp_source_write err %d\n", __func__, ret);
         }
 
         encode_index = 0;
@@ -2624,7 +2641,7 @@ int bt_a2dp_source_task_init(void)
                               sizeof(bt_audio_demo_msg_t),
                               10);
         if (ret != kNoErr) {
-            os_printf("bt_audio demo msg queue failed \r\n");
+            CLI_LOGE("bt_audio demo msg queue failed \r\n");
             return BK_FAIL;
         }
 
@@ -2635,7 +2652,7 @@ int bt_a2dp_source_task_init(void)
                              4096,
                              (beken_thread_arg_t)0);
         if (ret != kNoErr) {
-            os_printf("bt_a2dp_source task fail \r\n");
+            CLI_LOGE("bt_a2dp_source task fail \r\n");
             rtos_deinit_queue(&bt_a2dp_source_msg_que);
             bt_a2dp_source_msg_que = NULL;
             bt_a2dp_source_thread_handle = NULL;
@@ -2664,7 +2681,7 @@ static int32_t bt_a2dp_source_encode_from_file(uint8_t * path)
     sprintf((char *)full_path, "%s", path);
 
 
-    os_printf("%s send interval %d\n", __func__, inter);
+    CLI_LOGE("%s send interval %d\n", __func__, inter);
     a2dp_env.play_status = 1;
 
     bt_a2dp_source_task_init();
@@ -2697,7 +2714,7 @@ static int32_t bt_a2dp_source_encode_from_file(uint8_t * path)
     fr = f_open(&pcm_file_fd, (const char *)full_path, FA_OPEN_EXISTING | FA_READ);
     if (fr != FR_OK)
     {
-        os_printf("open %s fail.\n", full_path);
+        CLI_LOGE("open %s fail.\n", full_path);
         return -1;
     }
 
@@ -2738,13 +2755,13 @@ static int bt_enable_a2dp_source_write_test_handle(char *pcWriteBuffer, int xWri
 
                 if(argc < 3)
                 {
-                    os_printf("%s please input file path\n", __func__);
+                    CLI_LOGE("%s please input file path\n", __func__);
                     goto error;
                 }
             }
             else
             {
-                os_printf("%s unknow case %S\n", __func__, argv[1]);
+                CLI_LOGE("%s unknow case %S\n", __func__, argv[1]);
                 goto error;
             }
 
@@ -2759,13 +2776,13 @@ static int bt_enable_a2dp_source_write_test_handle(char *pcWriteBuffer, int xWri
 #if 1
         if(a2dp_env.conn_state != BK_A2DP_CONNECTION_STATE_CONNECTED)
         {
-            os_printf("With remote device is not connected\n");
+            CLI_LOGE("With remote device is not connected\n");
             goto error;
         }
 
         if(a2dp_env.start_status == 0)
         {
-            os_printf("is suspend\n");
+            CLI_LOGE("is suspend\n");
             goto error;
         }
 #endif
@@ -2792,6 +2809,74 @@ static int bt_enable_a2dp_source_write_test_handle(char *pcWriteBuffer, int xWri
             os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
             if (bt_at_cmd_sema != NULL)
                 rtos_deinit_semaphore(&bt_at_cmd_sema);
+            return err;
+        }
+        else
+        {
+            goto error;
+        }
+    }
+
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    if (bt_at_cmd_sema != NULL)
+        rtos_deinit_semaphore(&bt_at_cmd_sema);
+    return err;
+}
+
+
+static int bt_enable_a2dp_source_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    PRINT_FUNC;
+    char *msg;
+    int err = kNoErr;
+
+    if (0)//bt_at_cmd_table[3].is_sync_cmd)
+    {
+        err = rtos_init_semaphore(&bt_at_cmd_sema, 1);
+        if(err != kNoErr){
+            goto error;
+        }
+    }
+
+    if(bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
+    {
+        err = get_addr_from_param(&a2dp_env.peer_addr, argv[0]);
+        if(err) goto error;
+
+        if(argc >= 2)
+        {
+            if(strcasecmp(argv[1], "file") == 0)
+            {
+                if(argc < 3)
+                {
+                    CLI_LOGE("%s please input file path\n", __func__);
+                    goto error;
+                }
+
+                extern bk_err_t a2dp_source_demo_main_ext(uint8_t *addr, uint8_t is_mp3, uint8_t *file_path);
+
+                err = a2dp_source_demo_main_ext(a2dp_env.peer_addr.addr, 1, (uint8_t *)argv[2]);
+            }
+            else
+            {
+                CLI_LOGE("%s unknow case %s\n", __func__, argv[1]);
+                goto error;
+            }
+
+        }
+
+        if(!err)
+        {
+            msg = AT_CMD_RSP_SUCCEED;
+            os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+
+            if (bt_at_cmd_sema != NULL)
+            {
+                rtos_deinit_semaphore(&bt_at_cmd_sema);
+            }
+
             return err;
         }
         else
@@ -2868,7 +2953,7 @@ unsigned int make_crc32_table(void)
 		}
 
 		crc32_table[i] = c;
-//		os_printf("crc32_table[%d] = %08x\r\n",i,crc32_table[i]);
+//		CLI_LOGE("crc32_table[%d] = %08x\r\n",i,crc32_table[i]);
 	}
 
 	return 0;

@@ -189,6 +189,29 @@ typedef enum
 	UVC_CAMERA,    /**< uvc camera */
 } camera_type_t;
 
+
+typedef enum
+{
+	IMAGE_UNKNOW = 0,
+	IMAGE_YUV    = (1 << 0),
+	IMAGE_RGB    = (1 << 1),
+	IMAGE_MJPEG   = (1 << 2),
+	IMAGE_H264   = (1 << 3),
+} image_format_t;
+
+/**
+ * @brief define camera config
+ * @{
+ */
+typedef struct
+{
+	uint8_t type;
+	uint16_t image_format;
+	uint16_t pixel_format;
+	uint16_t width;
+	uint16_t height;
+} camera_config_t;
+
 /**
  * @brief define struct for debug
  * @{

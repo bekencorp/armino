@@ -1,3 +1,8 @@
+32K时钟源
+=======================
+
+:link_to_translation:`en:[English]`
+
 32k的时钟源说明
 -----------------------------------------------
 
@@ -41,7 +46,6 @@ typedef enum
 	PM_LPO_SRC_DEFAULT  //32K from ROSC
 
 }pm_lpo_src_e;
-+++++++++++++++++++++++++++++++++++++++++++++++
 
 -  设置32K时钟源函数接口：
 
@@ -52,5 +56,4 @@ bk_pm_lpo_src_set(pm_lpo_src_e lpo_src)
 
 pm_lpo_src_e bk_pm_lpo_src_get()
 
-:link_to_translation:`en:[English]`
 

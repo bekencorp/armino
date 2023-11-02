@@ -128,10 +128,10 @@
 #define configDYNAMIC_HEAP_SIZE                     1
 #endif
 
-#if (CONFIG_SLAVE_CORE)
-#define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 20 * 1024 ) )
-#elif (CONFIG_CUSTOMIZE_HEAP_SIZE)
+#if (CONFIG_CUSTOMIZE_HEAP_SIZE)
 #define configTOTAL_HEAP_SIZE                       ( ( size_t ) (CONFIG_CUSTOMIZE_HEAP_SIZE) )
+#elif (CONFIG_SLAVE_CORE)
+#define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 20 * 1024 ) )
 #else
 #define configTOTAL_HEAP_SIZE                       ( ( size_t ) ( 212 * 1024 ) )
 #endif

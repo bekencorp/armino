@@ -496,9 +496,16 @@ static void throughput_anlayse_timer_hdl(void *param)
     return;
 }
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+static const media_transfer_cb_t doorbell_udp_callback = {
+	.send = doorbell_cs2_p2p_client_send_video_packet,
+	.prepare = NULL,
+	.get_tx_buf = NULL,
+	.get_tx_size = 0
+};
+#endif
 static int8_t before_start(void)
 {
-    video_setup_t setup;
 
     s_send_buff = os_malloc(SEND_BUFF_LEN);
 
@@ -516,6 +523,10 @@ static int8_t before_start(void)
         lcd_open.device_name = lcd_name;
         media_app_lcd_open(&lcd_open);
 
+#ifdef CONFIG_INTEGRATION_DOORBELL
+        media_app_transfer_open(&doorbell_udp_callback);
+#else
+		video_setup_t setup;
         setup.open_type = TVIDEO_OPEN_SCCB;
         setup.send_type = TVIDEO_SND_UDP;
         setup.send_func = doorbell_cs2_p2p_client_send_video_packet;
@@ -525,14 +536,35 @@ static int8_t before_start(void)
         setup.pkt_header_size = sizeof(media_hdr_t);
         setup.add_pkt_header = NULL;//demo_doorbell_add_pkt_header;
         media_app_transfer_open(&setup);
+#endif
 
         if (camera_type == APP_CAMERA_DVP_JPEG)
         {
+#ifdef CONFIG_INTEGRATION_DOORBELL
+			camera_config_t camera_config;
+			os_memset(&camera_config, 0, sizeof(camera_config_t));
+			camera_config.type = DVP_CAMERA;
+			camera_config.image_format = IMAGE_MJPEG;
+			camera_config.width = camera_ppi >> 16;
+			camera_config.height = camera_ppi & 0xFFFF;
+			media_app_camera_open(&camera_config);
+#else
             media_app_camera_open(APP_CAMERA_DVP_JPEG, camera_ppi);
+#endif
         }
         else if (camera_type == APP_CAMERA_UVC_MJPEG)
         {
+#ifdef CONFIG_INTEGRATION_DOORBELL
+			camera_config_t camera_config;
+			os_memset(&camera_config, 0, sizeof(camera_config_t));
+			camera_config.type = DVP_CAMERA;
+			camera_config.image_format = IMAGE_MJPEG;
+			camera_config.width = camera_ppi >> 16;
+			camera_config.height = camera_ppi & 0xFFFF;
+			media_app_camera_open(&camera_config);
+#else
             media_app_camera_open(APP_CAMERA_UVC_MJPEG, camera_ppi);
+#endif
         }
         else
         {

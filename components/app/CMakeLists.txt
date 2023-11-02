@@ -42,7 +42,6 @@ if (CONFIG_APP_DEMO_VIDEO_TRANSFER)
 	list(APPEND srcs
 		video_work/video_transfer_tcp.c
 		video_work/video_transfer_udp.c
-		video_work/video_transfer_cs2_p2p.c
 		video_work/video_upd_spd.c
 		video_work/video_upd_spd_pub.c
 	)
@@ -69,6 +68,6 @@ endif()
 #TODO fix main
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
-	REQUIRES bk_wifi bk_cli lwip_intf_v2_0 at_server bk_rtos p2p bk_thirdparty
+	REQUIRES bk_wifi bk_cli lwip_intf_v2_0 at_server bk_rtos
 	PRIV_REQUIRES bk_common aud_intf include  littlefs
 	)

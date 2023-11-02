@@ -105,4 +105,8 @@ menu "Bk_Wifi"
 		depends on WIFI_ENABLE && COMPONENTS_STA_VSIE
 		bool "Enable Ap mode Sta Type Limit"
 		default n
+
+	config NOT_CHECK_SSID_CHANGE
+		bool "Enable not check beacon ssid changes"
+		default n
 endmenu

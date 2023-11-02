@@ -5,17 +5,23 @@ import os
 import subprocess
 import sys
 
+
 def run_cmd(cmd):
 	p = subprocess.Popen(cmd, shell=True)
 	ret = p.wait()
+	return p
 
 def build_lan_doc(doc_path, target, lan):
 	lan_dir = f'{doc_path}/{lan}'
 	os.chdir(lan_dir)
-	run_cmd('make arminodocs -j32')
+	p = run_cmd('make arminodocs -j32')
+	if p.returncode:
+		print("make doc failed!")
+		exit(1)
 	run_cmd(f'mkdir -p ../build/{lan}')
 	run_cmd(f'cp -r _build/* ../build/{lan}')
 	os.chdir(doc_path)
+
 
 def build_with_target(clean, target):
 	cur_dir_is_docs_dir = True
@@ -69,7 +75,6 @@ def build_doc_internal(clean, target):
 
 	if (target == "all"):
 		build_with_target(clean, "bk7235")
-		build_with_target(clean, "bk7237")
 		build_with_target(clean, "bk7256")
 	else:
 		build_with_target(clean, target)

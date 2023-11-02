@@ -32,17 +32,6 @@ Software：
  - Serial port burning software
 
 
-Introdection to Development Board
---------------------------------------------------------
-
-Click the following link to learn more about the development boards supported by Armino:
-
-.. toctree::
-    :maxdepth: 1
-
-        BK7235 <../boards/bk7235>
-
-
 
 
 Armino SDK Code download
@@ -82,12 +71,12 @@ BK7235 Tool download path：
 
 	Toolchain Download：
 	http://dl.bekencorp.com/tools/toolchain/
-	Get the latest version in this directory, ps：toolchain_v5.1.1.tgz
+	Get the latest version in this directory, ps：toolchain_v5.2.1.tgz
 
 
 After downloading the tool kit, decompress it to '/opt/risc-v' through the following command::
 
-    $ sudo tar -zxvf toolchain_v5.1.1.tgz -C /
+    $ sudo tar -zxvf toolchain_v5.2.1.tgz -C /
 
 
 !Note:
@@ -95,6 +84,9 @@ After downloading the tool kit, decompress it to '/opt/risc-v' through the follo
     Tool chain the default path in the middleware/soc/bk7235/bk.7235defconfig file definition, customers can configure
 	CONFIG_TOOLCHAIN_PATH="/opt/risc-v/nds32le-elf-mculib-v5/bin"
 
+    The toolchain can also support relative path configuration, such as putting the toolchain in the sdk directory::
+
+        CONFIG_TOOLCHAIN_PATH="toolchain_v5.2.1/nds32le-elf-mculib-v5/bin"
 
 
 Program compilation depends on library installation
@@ -105,7 +97,7 @@ Enter the following command in the terminal to install python\CMake\Ninja\crypto
     sudo dpkg --add-architecture i386
     sudo apt-get update
     sudo apt-get install build-essential cmake python3 python3-pip doxygen ninja-build libc6:i386 libstdc++6:i386 libncurses5-dev lib32z1 -y
-    sudo pip3 install pycrypto
+    sudo pip3 install pycrypto click
 
 Document Compilation Dependent Library Installation
 ------------------------------------------------------------------------------
@@ -278,4 +270,12 @@ Serial port Log and Command Line
     Cpu1 help//Output the command list of cpu1
 
     Cpu1 time//Output the current running time of cpu1
+
+
+Compile options and link options
+------------------------------------------------------
+
+- BK7235, with default compile option "-mstrict-align", link option "-wl,--defsym,memcpy=memcpy_ss"
+- To compile the lib library separately, you need to add the compile option "-mstrict-align".
+- If you do not use platform linking commands, such as compiling HarmonyOS, for Andes v5.1.1 tool chain, you need to add the link option "-wl,--defsym,memcpy=memcpy_ss".
 

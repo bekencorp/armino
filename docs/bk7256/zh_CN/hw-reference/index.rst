@@ -8,15 +8,7 @@ H/W 参考文档
 ------------------------
 .. toctree::
     :maxdepth: 3
-<<<<<<< HEAD   (dc174e [Jira BK7256-6101]: <fix>update the info of wifi powersave)
-
-    BK7256 技术规格书 <http://docs.bekencorp.com/spec/BK7256/BK7256%C2%A0Datasheet.pdf>
-    BK7256 技术参考手册 <https://wiki.bekencorp.com/display/BK7256>
-=======
     
-<<<<<<< HEAD   (705946 [Jira BK7256-6101]: <fix>update the info of wifi powersave)
-    BK7256 技术规格书 <http://docs.bekencorp.com/spec/BK7256/BK7256%C2%A0Datasheet_V0.1.pdf>
-=======
     BK7256 技术规格书 <http://docs.bekencorp.com/spec/BK7256/BK7256%C2%A0Datasheet.pdf>
     BK7256 技术参考手册 <https://wiki.bekencorp.com/display/BK7256>
     BK7256 QFN68硬件参考设计 <https://docs.bekencorp.com/HW/SCH-HDK/SCH-BK7256_QFN68_8X8_Reference_V5.2.pdf>
@@ -91,5 +83,3 @@ EVB Demo板展示
     :figclass: align-center
 
     BK7256 EVB fittings
->>>>>>> CHANGE (f99ae7 [Jira BK7256-5064]: <docs> add HW doc)
->>>>>>> CHANGE (ca1961 [Jira BK7256-5064]: <docs> add HW doc)

@@ -10,20 +10,6 @@ var sdkList = [
         ]
     },
     {
-        "name" : "bk7236",
-        "lang" : [ "zh-cn" ],
-        "version" : [
-            "latest"
-        ]
-    },
-    {
-        "name" : "bk7237",
-        "lang" : [ "zh-cn" ],
-        "version" : [
-            "latest"
-        ]
-    },
-    {
         "name" : "bk7256",
         "lang" : [ "zh-cn" ],
         "version" : [

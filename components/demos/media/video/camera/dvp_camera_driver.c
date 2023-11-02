@@ -169,9 +169,6 @@ static void camera_intf_vsync_negedge_handler(jpeg_unit_t id, void *param)
 {
 	if (jpeg_eof_flag)
 	{
-#if (CONFIG_I2C_SIM)
-		current_sensor->power_down();
-#endif
 		bk_jpeg_enc_set_enable(0, JPEG_ENC_MODE);
 		jpeg_eof_flag = 0;
 		if (ejpeg_sema != NULL)

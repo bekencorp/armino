@@ -13,7 +13,6 @@
  * 2018-07-26     chenyong     modify log information
  * 2018-08-07     chenyong     modify header processing
  */
-
 #include "webclient.h"
 
 #include <string.h>

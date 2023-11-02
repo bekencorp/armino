@@ -15,9 +15,12 @@ union codec_info
     {
         uint8_t codec_type;
         uint8_t channels;
+        uint8_t channel_mode;
         uint8_t block_len;
         uint8_t subbands;
         uint32_t sample_rate;
+        uint8_t bit_pool;
+        uint8_t alloc_mode;
     }sbc_codec;
 
     struct a2dp_aac_codec
@@ -40,7 +43,9 @@ typedef struct
     void (*a2dp_connection_change)(uint8_t status, uint8_t reason);
     void (*a2dp_capabilities_report)(void *arg);
     void (*a2dp_set_config_cnf)(uint8_t result, uint8_t reason);
-    void (*a2dp_start_cnf)(uint8_t result, uint8_t reason);
+    void (*a2dp_final_cap_select)(union codec_info *info);
+
+    void (*a2dp_start_cnf)(uint8_t result, uint8_t reason, uint32_t mtu);
     void (*a2dp_suspend_cnf)(uint8_t result, uint8_t reason);
 } bt_a2dp_source_cb_t;
 

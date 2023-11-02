@@ -348,6 +348,21 @@ bk_err_t media_app_lcd_rotate(media_rotate_t rotate)
 
 	return ret;
 }
+bk_err_t media_app_lcd_icon_rotate(media_rotate_t rotate)
+{
+	bk_err_t ret;
+
+	LOGI("%s\n", __func__);
+
+	ret = media_send_msg_sync(EVENT_LCD_ICON_ROTATE_ENABLE_IND, rotate);
+
+	LOGI("%s complete\n", __func__);
+
+	return ret;
+}
+
+
+
 
 bk_err_t media_app_lcd_resize(media_ppi_t ppi)
 {
@@ -384,11 +399,11 @@ bk_err_t media_app_lcd_open(void *lcd_open)
 	int ret = kNoErr;
 	lcd_open_t *ptr = NULL;
 
-	if (LCD_STATE_ENABLED == get_lcd_state())
-	{
-		LOGI("%s already opened\n", __func__);
-		return ret;
-	}
+//	if (LCD_STATE_ENABLED == get_lcd_state())
+//	{
+//		LOGI("%s already opened\n", __func__);
+//		return ret;
+//	}
 	LOGI("%s \n", __func__);
 
 	ptr = (lcd_open_t *)os_malloc(sizeof(lcd_open_t));

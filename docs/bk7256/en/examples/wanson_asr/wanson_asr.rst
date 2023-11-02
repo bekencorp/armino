@@ -55,6 +55,7 @@ The steps performed by real-time recognition are as follows:
 	2. Test the wake-up words and command words, the supported wake-up words and command words are as follows:
 
 	 - ``Little Bee Steward`` recognizes successfully and prints the log ``xiao feng guan jia`` on the serial port
+	 - ``armino`` recognizes successfully and prints the log ``a er mi nuo`` on the serial port
 	 - ``Visitor mode`` recognize successful serial port print log ``hui ke mo shi``
 	 - ``dining mode`` recognizes successfully and prints the log ``yong can mo shi`` on the serial port
 	 - ``Leave mode`` recognize successful serial port print log ``li kai mo shi``

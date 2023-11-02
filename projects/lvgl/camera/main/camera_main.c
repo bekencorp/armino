@@ -10,6 +10,7 @@
 #include "lvgl.h"
 #include "lv_vendor.h"
 #include "driver/drv_tp.h"
+#include "lvgl_vfs_init.h"
 
 extern void user_app_main(void);
 extern void rtos_set_user_app_entry(beken_thread_function_t entry);
@@ -104,6 +105,8 @@ void lvcamera_main_init(void)
 	os_printf("meter Start\r\n");
 
 	cli_lvcamera_init();
+
+	lvgl_vfs_init();
 
 #ifdef CONFIG_LVGL_USE_PSRAM
 #define PSRAM_DRAW_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)

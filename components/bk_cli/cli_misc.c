@@ -20,7 +20,9 @@
 #include "cache.h"
 #endif
 #include <components/ate.h>
-
+#if CONFIG_AON_RTC
+#include <driver/aon_rtc.h>
+#endif
 
 #if (CONFIG_EFUSE)
 static void efuse_cmd_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -118,7 +120,18 @@ void get_id(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 
 static void uptime_Command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	CLI_LOGI("UP time %ldms\r\n", rtos_get_time());
+	CLI_LOGI("OS time %ldms\r\n", rtos_get_time());
+#if CONFIG_NTP_SYNC_RTC
+	extern time_t bk_datetime_get();
+	time_t cur_time = bk_datetime_get();
+	CLI_LOGI("Current time:%s\n", ctime(&cur_time));
+#endif
+
+#if CONFIG_AON_RTC
+	uint64_t rtc_time_us = bk_aon_rtc_get_us();
+	CLI_LOGI("Aon rtc time_h:%u, time_l:%u us\n", (uint32_t)((rtc_time_us)>>32), (uint32_t)(rtc_time_us));
+	CLI_LOGI("Aon rtc clock freq:%d\n", bk_rtc_get_clock_freq());
+#endif
 }
 
 void reboot(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -467,6 +480,28 @@ static void cli_adc_key_op(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 }
 #endif
 
+#if CONFIG_EXTERN_32K
+void cli_set_clock_source(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	extern bk_err_t pm_clk_32k_source_switch(pm_lpo_src_e lpo_src);
+	unsigned char clock_source = 0;
+
+	if (argc != 2) {
+		os_printf("set clock source, 0: PM_LPO_SRC_DIVD, 1: PM_LPO_SRC_X32K.\r\n");
+		return;
+	}
+
+	clock_source = os_strtoul(argv[1], NULL, 10);
+	if (clock_source == 0) {
+		pm_clk_32k_source_switch(PM_LPO_SRC_DIVD);
+	} else {
+		pm_clk_32k_source_switch(PM_LPO_SRC_X32K);
+	}
+
+	os_printf("set clock source end.\r\n");
+}
+#endif
+
 #define MISC_CMD_CNT (sizeof(s_misc_commands) / sizeof(struct cli_command))
 static const struct cli_command s_misc_commands[] = {
 	{"version", NULL, get_version},
@@ -504,6 +539,10 @@ static const struct cli_command s_misc_commands[] = {
 #endif
 #if CONFIG_ADC_KEY
 	{"adc_key", "adc_key {init|deinit}", cli_adc_key_op},
+#endif
+
+#if CONFIG_EXTERN_32K
+	{"setclock", "set clock freq, 0: PM_LPO_SRC_DIVD, 1: PM_LPO_SRC_X32K", cli_set_clock_source},
 #endif
 
 #endif //#if (!CONFIG_SLAVE_CORE)

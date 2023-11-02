@@ -60,6 +60,7 @@ bk_err_t media_app_save_stop(void);
 bk_err_t media_app_lcd_set_backlight(uint8_t level);
 bk_err_t media_app_mailbox_test(void);
 bk_err_t media_app_lcd_rotate(media_rotate_t rotate);
+bk_err_t media_app_lcd_icon_rotate(media_rotate_t rotate);
 bk_err_t media_app_lcd_resize(media_ppi_t ppi);
 bk_err_t media_app_dump_display_frame(void);
 bk_err_t media_app_dump_decoder_frame(void);

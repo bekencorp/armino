@@ -229,7 +229,10 @@ bk_err_t bk_uvc_camera_init(uvc_config_t *config)
 
 init_error:
 
-	uvc_camera_state = UVC_DISCONNECT_ABNORMAL;
+	if (ret == BK_UVC_NO_RESPON)
+		uvc_camera_state = UVC_DISCONNECT_ABNORMAL;
+	else
+		uvc_camera_state = UVC_DISCONNECT_NORMAL;
 
 	LOGE("%s failed, state:%d\r\n", __func__, uvc_camera_state);
 

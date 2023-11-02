@@ -17,7 +17,7 @@
 //#endif
 #include <common/bk_kernel_err.h>
 
-#define MAX_BT_AT_CMD_LEN               20
+#define MAX_BT_AT_CMD_LEN               32
 #define MAX_BLE_AT_CMD_LEN              64
 #define MAX_WIFI_AT_CMD_LEN             30
 #define MAX_VIDEO_AT_CMD_LEN            10

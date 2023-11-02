@@ -587,7 +587,7 @@
 #if LV_USE_FS_FATFS
     #define LV_FS_FATFS_LETTER '/'      /*Set an upper cased letter on which the drive will accessible (e.g. 'A')*/
     #define LV_FS_FATFS_CACHE_SIZE 0    /*>0 to cache this number of bytes in lv_fs_read()*/
-    #define LV_FS_FATFS_DISK_NUM 3      /* 0: RAM, 1: SDIO_SD, 2: UDISK, 3: FLASH. */
+    #define LV_FS_FATFS_DISK_NUM 1      /* 0: RAM, 1: SDIO_SD, 2: UDISK, 3: FLASH. */
 #endif
 
 

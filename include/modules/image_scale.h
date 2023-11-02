@@ -68,19 +68,38 @@ int image_16bit_rotate90_anticlockwise(uint8_t *des,const uint8_t *src, uint32_t
 int image_16bit_rotate90_clockwise(uint8_t *des, uint8_t *src, uint32_t img_width, uint32_t img_height);
 
 /**
- * @brief yuyv data clockwise rotate90
+ * @brief yuyv data clockwise rotate90, and output yuyv
  */
-MINOOR_ITCM int yuyv_rotate_degree90(unsigned char *yuyv, unsigned char *rotatedYuyv, int width, int height);
+MINOOR_ITCM int yuyv_rotate_degree90_to_yuyv(unsigned char *yuyv, unsigned char *rotatedYuyv, int width, int height);
 
 /**
- * @brief yuyv data clockwise rotate90
+ * @brief yuyv rotete 270 degree and output data format yuyv
+ *
+ * @param 1 src yuyv data
+ *        2 rotate src yuyv 270 degrees to yuyv,the dst yuyyv
+ *        3 src width
+ *        4 src height
+ * 
+ * @return
+ *     - BK_OK: succeed
+ *     - others: other errors.
  */
-MINOOR_ITCM int vuyy_rotate_degree90(unsigned char *vuyy, unsigned char *rotatedVuyy, int width, int height);
+MINOOR_ITCM int yuyv_rotate_degree270_to_yuyv(unsigned char *yuyv, unsigned char *rotatedYuyv, int width, int height);
 
 /**
- * @brief yuyv data clockwise rotate270
+ * @brief yuyv data rotate270, and output vuyy
  */
-MINOOR_ITCM int vuyy_rotate_degree270(unsigned char *vuyy, unsigned char *rotatedVuyy, int width, int height);
+MINOOR_ITCM int yuyv_rotate_degree270_to_vuyy(unsigned char *src_yuyv, unsigned char *rotated_to_vuyy, int width, int height);
+
+/**
+ * @brief vuyy clockwise rotate90, and output yuyv
+ */
+MINOOR_ITCM int vuyy_rotate_degree90_to_yuyv(unsigned char *vuyy, unsigned char *rotatedVuyy, int width, int height);
+
+/**
+ * @brief vuyy clockwise rotate270, and output yuyv
+ */
+MINOOR_ITCM int vuyy_rotate_degree270_to_yuyv(unsigned char *vuyy, unsigned char *rotatedVuyy, int width, int height);
 
 /**
  * @brief yuyv to rgb data clockwise rotate90
@@ -159,6 +178,8 @@ MINOOR_ITCM int vuyy_image_vga_to_qvga(uint8_t * src_buf, uint8_t *dst_buf, uint
 
 // 640X480-->320X240
 MINOOR_ITCM int yuyv_image_vga_to_qvga(uint8_t * src_buf, uint8_t *dst_buf, uint8_t row_count);
+
+yuv_enc_fmt_t bk_get_original_jpeg_encode_data_format(uint8_t *src_buf, uint32_t length);
 
 /*
  * @}

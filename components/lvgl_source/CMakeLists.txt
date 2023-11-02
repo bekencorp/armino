@@ -169,9 +169,9 @@ set(srcs
 	src/widgets/lv_textarea.c
 	)
 
-if (CONFIG_FATFS)
+if (CONFIG_VFS)
 	list(APPEND srcs
-		hal/lv_fatfs.c
+		hal/lv_fs_bk_posix.c
 	)
 endif()
 
@@ -180,7 +180,7 @@ endif()
 
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
-	PRIV_REQUIRES include fatfs
+	PRIV_REQUIRES include bk_vfs
 	)
 
 if (CONFIG_LVGL)

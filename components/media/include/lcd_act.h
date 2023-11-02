@@ -54,6 +54,7 @@ typedef struct
 	uint8_t dma2d_blend : 1;
 	uint8_t decode_mode;
 	media_rotate_t rotate;
+	media_rotate_t icon_rotate;  //lcd_rot90_view
 	media_ppi_t resize_ppi;
 	lcd_state_t state;
 } lcd_info_t;

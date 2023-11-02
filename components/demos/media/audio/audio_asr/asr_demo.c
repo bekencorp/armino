@@ -24,7 +24,10 @@
 #include <components/aud_intf_types.h>
 #include <modules/audio_ring_buff.h>
 #include <modules/pm.h>
-#include "BK7256_RegList.h"
+#include <driver/media_types.h>
+#include "media_app.h"
+#include "lcd_act.h"
+//#include "BK7256_RegList.h"
 
 
 #define ASR_BUFF_SIZE 8000  //>960*2
@@ -43,6 +46,7 @@ static float score;
 static int rs;
 
 static char result0[13] = {0xE5,0xB0,0x8F,0xE8,0x9C,0x82,0xE7,0xAE,0xA1,0xE5,0xAE,0xB6,0x00};//小蜂管家
+static char result1[13] = {0xE9,0x98,0xBF,0xE5,0xB0,0x94,0xE7,0xB1,0xB3,0xE8,0xAF,0xBA,0x00};//阿尔米诺
 static char result2[13] = {0xE4,0xBC,0x9A,0xE5,0xAE,0xA2,0xE6,0xA8,0xA1,0xE5,0xBC,0x8F,0x00};//会客模式
 static char result3[13] = {0xE7,0x94,0xA8,0xE9,0xA4,0x90,0xE6,0xA8,0xA1,0xE5,0xBC,0x8F,0x00};//用餐模式
 static char resulta[13] = {0xE7,0xA6,0xBB,0xE5,0xBC,0x80,0xE6,0xA8,0xA1,0xE5,0xBC,0x8F,0x00};//离开模式
@@ -102,6 +106,8 @@ void cli_asr_file_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 				os_printf(" ASR Result: %s\n", text);    //识别结果打印
 				if (os_strcmp(text, result0) == 0) {    //识别出唤醒词 小蜂管家
 					os_printf("%s \n", "xiao feng guan jia ");
+				} else if (os_strcmp(text, result1) == 0) {    //识别出唤醒词 阿尔米诺
+					os_printf("%s \n", "a er mi nuo ");
 				} else if (os_strcmp(text, result2) == 0) {    //识别出 会客模式
 					os_printf("%s \n", "hui ke mo shi ");
 				} else if (os_strcmp(text, result3) == 0) {	 //识别出 用餐模式
@@ -131,6 +137,27 @@ void cli_asr_file_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 	os_printf("test finish \r\n");
 }
 
+#if 0
+static bk_err_t video_display_open(void)
+{
+	media_app_camera_open(APP_CAMERA_DVP_JPEG, PPI_800X480);
+	lcd_open_t lcd_open;
+	lcd_open.device_ppi = PPI_480X272;
+	lcd_open.device_name = "st7282";
+	media_app_lcd_open(&lcd_open);
+
+	return BK_OK;
+}
+
+static bk_err_t video_display_close(void)
+{
+	media_app_save_stop();
+	media_app_camera_close(APP_CAMERA_DVP_JPEG);
+	media_app_lcd_close();
+
+	return BK_OK;
+}
+#endif
 
 static bk_err_t aud_asr_send_msg(void)
 {
@@ -151,8 +178,8 @@ static bk_err_t aud_asr_send_msg(void)
 static int aud_asr_handle(uint8_t *data, unsigned int len)
 {
 	uint32 uiTemp = 0;
-	addAON_GPIO_Reg0x2 = 2;
-	addAON_GPIO_Reg0x2 = 0;
+//	addAON_GPIO_Reg0x2 = 2;
+//	addAON_GPIO_Reg0x2 = 0;
 	//os_printf("%s, write data fail, len: %d \n", __func__, len);
 
 	/* write data to file */
@@ -165,8 +192,8 @@ static int aud_asr_handle(uint8_t *data, unsigned int len)
 	if (ring_buffer_get_fill_size(&asr_rb) >= 960) {
 		uiTemp = ring_buffer_read(&asr_rb, (uint8_t *)asr_buff, 960);
 		aud_asr_send_msg();
-		addAON_GPIO_Reg0x3 = 2;
-		addAON_GPIO_Reg0x3 = 0;
+//		addAON_GPIO_Reg0x3 = 2;
+//		addAON_GPIO_Reg0x3 = 0;
 	}
 
 	return len;
@@ -183,21 +210,25 @@ static void aud_asr_main(void)
 		if (kNoErr == ret) {
 			//uiTemp = ring_buffer_read(&asr_rb, (uint8_t *)asr_buff, 960);
 			//if (uiTemp == 960) {
-				addAON_GPIO_Reg0x4 = 2;
+//				addAON_GPIO_Reg0x4 = 2;
 				rs = Wanson_ASR_Recog((short*)asr_buff, 480, &text, &score);
-				addAON_GPIO_Reg0x4 = 0;
+//				addAON_GPIO_Reg0x4 = 0;
 				if (rs == 1) {
 					os_printf(" ASR Result: %s\n", text);	 //识别结果打印
 					if (os_strcmp(text, result0) == 0) {	//识别出唤醒词 小蜂管家
 						os_printf("%s \n", "xiao feng guan jia ");
+					} else if (os_strcmp(text, result1) == 0) {    //识别出唤醒词 阿尔米诺
+						os_printf("%s \n", "a er mi nuo ");
 					} else if (os_strcmp(text, result2) == 0) {    //识别出 会客模式
 						os_printf("%s \n", "hui ke mo shi ");
 					} else if (os_strcmp(text, result3) == 0) {  //识别出 用餐模式
 						os_printf("%s \n", "yong can mo shi ");
 					} else if (os_strcmp(text, resulta) == 0) {  //识别出 离开模式
 						os_printf("%s \n", "li kai mo shi ");
+//						video_display_close();
 					} else if (os_strcmp(text, resultc) == 0) {  //识别出 回家模式
 						os_printf("%s \n", "hui jia mo shi ");
+//						video_display_open();
 					} else {
 						//os_printf(" \n");
 					}
@@ -235,9 +266,9 @@ void cli_aud_intf_asr_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 			return;
 		}
 
-		addAON_GPIO_Reg0x2 = 0;
-		addAON_GPIO_Reg0x3 = 0;
-		addAON_GPIO_Reg0x4 = 0;
+//		addAON_GPIO_Reg0x2 = 0;
+//		addAON_GPIO_Reg0x3 = 0;
+//		addAON_GPIO_Reg0x4 = 0;
 
 		if (Wanson_ASR_Init() < 0)
 		{

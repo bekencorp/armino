@@ -17,14 +17,11 @@
 #include <driver/lcd_qspi_types.h>
 #include <driver/pwm.h>
 #include <driver/pwm_types.h>
-#include "bk_misc.h"
+
 
 #define LCD_QSPI_SHA8601A_REGISTER_WRITE_COMMAND		0x02
 #define LCD_QSPI_SHA8601A_REGISTER_READ_COMMAND			0x03
 
-#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
-extern beken_semaphore_t lcd_qspi_semaphore;
-#endif
 
 static const lcd_qspi_init_cmd_t sh8601a_init_cmds[] = {
 	{0x11, {0x00}, 0},
@@ -92,6 +89,7 @@ const lcd_qspi_device_t lcd_qspi_device_sh8601a =
 	.ppi = PPI_454X454,
 	.refresh_method = LCD_QSPI_REFRESH_BY_FRAME,
 	.reg_write_cmd = LCD_QSPI_SHA8601A_REGISTER_WRITE_COMMAND,
+	.reg_read_cmd = LCD_QSPI_SHA8601A_REGISTER_READ_COMMAND,
 	.reg_read_config = {0},
 	.pixel_write_config.cmd = sh8601a_cmd,
 	.pixel_write_config.cmd_len = sizeof(sh8601a_cmd),

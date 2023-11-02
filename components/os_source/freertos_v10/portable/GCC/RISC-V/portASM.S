@@ -68,6 +68,9 @@
 	#error Assembler did not define __riscv_xlen
 #endif
 
+// no need include trcRecorder.h for PortASM.s compile
+#define TRC_RECORDER_H
+
 #include "freertos_risc_v_chip_specific_extensions.h"
 
 /* Only the standard core registers are stored by default.  Any additional

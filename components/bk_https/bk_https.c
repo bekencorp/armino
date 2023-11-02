@@ -1536,19 +1536,19 @@ bk_err_t bk_http_client_perform(bk_http_client_handle_t client)
 						if (client->is_async && errno == EAGAIN) {
 							return BK_ERR_HTTP_EAGAIN;
 						}
-						BK_LOGE(TAG, "Read finish or server requests close\r\n");
-						break;
+						BK_LOGE(TAG, "Read finish or server requests close, err:%d\r\n", errno);
+						return -1;
 					}
 				}
 				while (client->response->data_process < client->response->content_length) {
 					BK_LOGD(TAG, "begin get data\r\n");
 					if (bk_http_client_get_data(client) <= 0) {
 						if (client->is_async && errno == EAGAIN) {
-							return -1;
+							return BK_ERR_HTTP_EAGAIN;
 						}
-						BK_LOGE(TAG, "Read finish or server requests close\r\n");
+						BK_LOGE(TAG, "Read finish or server requests close, err:%d\r\n", errno);
 						http_dispatch_event(client, HTTP_EVENT_ERROR, NULL, 0);
-						break;
+						return -1;
 					}
 					//bk_hex_dump(client->response->data, 10);
 				}

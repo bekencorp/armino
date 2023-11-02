@@ -54,6 +54,18 @@ if(CONFIG_FREERTOS)
 					freertos/posix/freertos_impl/source/FreeRTOS_POSIX_clock.c
 		)
 	endif()
+
+	if(CONFIG_FREERTOS_TRACE)
+		list(APPEND incs
+					freertos/trace/include
+					freertos/trace/config
+		)
+		list(APPEND srcs
+					freertos/trace/trcKernelPort.c
+					freertos/trace/trcSnapshotRecorder.c
+		)
+	endif()
+
 elseif(CONFIG_LITEOS_M)
 	list(APPEND incs liteos_m)
 	set(srcs

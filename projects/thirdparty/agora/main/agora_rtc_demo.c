@@ -17,6 +17,7 @@
 #include <driver/media_types.h>
 #include "media_app.h"
 #include "lcd_act.h"
+#include "fpscc.h"
 
 #include "BK7256_RegList.h"
 
@@ -51,6 +52,9 @@ static agora_rtc_option_t agora_rtc_option = DEFAULT_AGORA_RTC_OPTION();
 static aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
 static aud_intf_voc_setup_t aud_intf_voc_setup = DEFAULT_AUD_INTF_VOC_SETUP_CONFIG();
 static aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
+
+static void* cc_handle = NULL;
+static uint32_t g_target_bps = 0;
 
 
 extern void rwnxl_set_video_transfer_flag(uint32_t video_transfer_flag);
@@ -102,11 +106,28 @@ static void agora_rtc_user_notify_msg_handle(agora_rtc_msg_t *p_msg)
 		case AGORA_RTC_MSG_TOKEN_EXPIRED:
 			LOGE("Invalid token. Please double check.\n");
 			break;
+		case AGORA_RTC_MSG_BWE_TARGET_BITRATE_UPDATE:
+			g_target_bps = p_msg->data.bwe.target_bitrate;
+			break;
 		default:
 			break;
 	}
 }
 
+static void _print_capture_fps(void) {
+	static uint32_t last_print = 0;
+	static uint32_t g_capture_fps = 0;
+	uint32_t now = rtos_get_time();
+	g_capture_fps++;
+	if (last_print == 0) {
+		last_print = now;
+	}
+	if (now > last_print + 1000) {
+		LOGI("capture fps: %d, target_bps: %d \n", g_capture_fps, g_target_bps);
+		g_capture_fps = 0;
+		last_print = now;
+	}
+}
 
 static void memory_free_show(void)
 {
@@ -139,7 +160,13 @@ void app_media_read_frame_callback(frame_buffer_t * frame)
 	info.frame_type = VIDEO_FRAME_KEY;
 	info.stream_type = VIDEO_STREAM_HIGH;
 
-	bk_agora_rtc_video_data_send((uint8_t *)frame->frame, frame->length, &info);
+	_print_capture_fps();
+	uint32_t recent_bps = 0;
+	uint32_t recent_fps = 0;
+	get_bps_fps(cc_handle, &recent_bps, &recent_fps);
+	if (0 == insert_frame_within_target_bitrate(cc_handle, frame->length, g_target_bps + 200000)) {
+		bk_agora_rtc_video_data_send((uint8_t *)frame->frame, frame->length, &info);
+	}
 //	addAON_GPIO_Reg0x2 = 0;
 	rtos_delay_milliseconds(60);
 }
@@ -171,6 +198,8 @@ static int agora_rtc_user_audio_rx_data_handle(unsigned char *data, unsigned int
 void agora_main(void)
 {
 	bk_err_t ret = BK_OK;
+
+	cc_handle = create_bps_fps_calculator(2);
 
 	memory_free_show();
 
@@ -335,6 +364,8 @@ void agora_main(void)
 
 	/* destory agora rtc */
 	bk_agora_rtc_destroy();
+
+	destroy_bps_fps_calculator(cc_handle);
 
 	if (agora_rtc_config.p_appid) {
 		os_free((char *)agora_rtc_config.p_appid);

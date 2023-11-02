@@ -59,6 +59,7 @@
 #include "modules/image_scale.h"
 #include <driver/dma2d.h>
 #include "modules/lcd_font.h"
+#include "camera_act.h"
 
 #ifdef CONFIG_LVGL
 #include "lvgl.h"
@@ -101,7 +102,6 @@ lcd_open_t lcd_transfer_info = {0};
 static lcd_blend_data_t g_blend_data = {0};
 static uint8_t *yuv_blend_addr = NULL;
 static uint8_t *rgb_blend_addr = NULL;
-uint8_t g_wifi_current_level = WIFI_LEVEL_MAX;
 
 #endif
 static int g_lcd_display_logo_first = 0;
@@ -158,6 +158,7 @@ static void jpeg_display_task_entry(beken_thread_arg_t data)
 
 	while (jpeg_display_task_running)
 	{
+		rotate = lcd_info.rotate;
 		frame = frame_buffer_fb_display_pop_wait();
 
 		if (frame == NULL)
@@ -551,9 +552,62 @@ static bk_err_t display_logo(void)
 	return 	BK_OK;
 }
 
+static media_ppi_t lcd_act_get_frame_resolution(void)
+{
+#if (CONFIG_DVP_CAMERA)
+	dvp_camera_device_t *dvp_device = bk_dvp_camera_get_device();
+	if (dvp_device != NULL)
+	{
+		return dvp_device->ppi;
+	}
+#endif
+
+#if (CONFIG_USB_UVC)
+	uvc_camera_device_t *uvc_device = bk_uvc_camera_get_device();
+	if (uvc_device != NULL)
+	{
+		return (uvc_device->width << 16 | uvc_device->height);
+	}
+#endif
+
+	return PPI_DEFAULT;
+}
+
+static void lcd_act_deinit_display_frame(void)
+{
+#if (CONFIG_USB_UVC || CONFIG_CAMERA)
+	if (CAMERA_STATE_DISABLED == get_camera_state())
+	{
+		frame_buffer_fb_display_deinit();
+	}
+	else
+	{
+#if (CONFIG_USB_UVC)
+		if (bk_uvc_camera_get_device())
+		{
+			// uvc is working, but uvc not use display frame buffer, you can deinit
+			frame_buffer_fb_display_deinit();
+		}
+#endif
+
+#if (CONFIG_CAMERA)
+		dvp_camera_device_t *dvp_device = bk_dvp_camera_get_device();
+		if (dvp_device != NULL && dvp_device->type != MEDIA_DVP_MIX)
+		{
+			// while dvp sensor work in mix mode, you cannot deinit display frame buffer
+			frame_buffer_fb_display_deinit();
+		}
+#endif
+	}
+#else
+	frame_buffer_fb_display_deinit();
+#endif
+}
+
 void lcd_open_handle(param_pak_t *param)
 {
 	int ret = BK_OK;
+	media_ppi_t frame_ppi = PPI_DEFAULT;
 
 	if (LCD_STATE_DISPLAY == get_lcd_state())
 	{
@@ -645,10 +699,20 @@ void lcd_open_handle(param_pak_t *param)
 
 	LOGI("%s, ppi: %dX%d %s\n", __func__, lcd_config.device->ppi >> 16, lcd_config.device->ppi & 0xFFFF, lcd_config.device->name);
 
-	lcd_config.fb_display_init  = frame_buffer_fb_display_init;
+	//lcd_config.fb_display_init  = frame_buffer_fb_display_init;
 	lcd_config.fb_display_deinit  = frame_buffer_fb_display_deinit;
 	lcd_config.fb_free  = frame_buffer_fb_display_free;
 	lcd_config.fb_malloc = frame_buffer_fb_display_malloc_wait;
+
+	frame_ppi = lcd_act_get_frame_resolution();
+	if (frame_ppi != PPI_DEFAULT)
+	{
+		frame_buffer_fb_display_init(frame_ppi);
+	}
+	else
+	{
+		frame_buffer_fb_display_init(lcd_config.device->ppi);
+	}
 
 	lcd_driver_init(&lcd_config);
 
@@ -880,49 +944,6 @@ out:
 
 bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 {
-#if CONFIG_BLEND_USE_GUI
-    int x_offset = 0;
-    int y_offset = 0;
-
-    if(g_gui_blend_switch == BK_TRUE)
-    {
-        if(0 == g_cammer_width)
-            g_cammer_width = frame->width;
-        
-        rtos_lock_mutex(&g_disp_mutex_blend);
-        if(g_lcd_blend_data.xsize > 0)
-        {
-            if(0 == g_blend_hor_align)
-            {
-                if(frame->width >= g_lcd_width)
-                    x_offset = (frame->width - g_lcd_width)/2;
-                else
-                    x_offset = 0;
-            }
-            else if(1 == g_blend_hor_align)
-            {
-                x_offset = (frame->width - g_blend_x_size)/2;
-            }
-            else if(2 == g_blend_hor_align)
-            {
-                if(frame->width >= g_lcd_width)
-                    x_offset = (frame->width - g_lcd_width)/2 + (g_lcd_width - g_blend_x_size);
-                else
-                    x_offset = frame->width - g_blend_x_size;
-            }
-
-            if(frame->height >= g_lcd_height)
-                y_offset = (frame->height - g_lcd_height)/2 + g_blend_ver_offset;
-            else
-                y_offset = 0 + g_blend_ver_offset;
-            
-            g_lcd_blend_data.pbg_addr = (uint8_t *)(frame->frame + y_offset*frame->width*2 + x_offset*2);
-            g_lcd_blend_data.bg_offline = frame->width - g_lcd_blend_data.xsize;
-            lcd_driver_blend(&g_lcd_blend_data);
-        }
-        rtos_unlock_mutex(&g_disp_mutex_blend);
-    }
-#endif
 
 #if CONFIG_LCD_FONT_BLEND
 	lcd_blend_t lcd_blend = {0};
@@ -950,13 +971,23 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 #if CONFIG_CAMERA
 		if (bk_dvp_camera_get_device() == NULL)
 		{
-			LOGD("lcd time blend =%s \n", g_blend_data.time_data);
-			frame_addr_offset = (start_y * frame->width + start_x) * 2;
-
+			if(lcd_info.icon_rotate == ROTATE_NONE)
+			{
+				frame_addr_offset = (start_y * frame->width + start_x) * 2;
+				lcd_font_config.bg_offline = frame->width - CLOCK_LOGO_W;
+				lcd_font_config.xsize = CLOCK_LOGO_W;
+				lcd_font_config.ysize = CLOCK_LOGO_H;
+				lcd_font_config.font_rotate = ROTATE_NONE;
+			}
+			else
+			{
+				frame_addr_offset = ((start_y + g_lcd_height -CLOCK_LOGO_W)  * frame->width + start_x) * 2;
+				lcd_font_config.bg_offline = frame->width - CLOCK_LOGO_H;
+				lcd_font_config.xsize = CLOCK_LOGO_H;
+				lcd_font_config.ysize = CLOCK_LOGO_W;
+				lcd_font_config.font_rotate = ROTATE_270;
+			}
 			lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
-			lcd_font_config.bg_offline = frame->width - CLOCK_LOGO_W;
-			lcd_font_config.xsize = CLOCK_LOGO_W;
-			lcd_font_config.ysize = CLOCK_LOGO_H;
 			lcd_font_config.str_num = 1;
 			#if 1  ///font yuv data to bg yuv image
 			if (frame->fmt == PIXEL_FMT_VUYY)
@@ -997,12 +1028,23 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 		}
 #else
 		LOGD("lcd time blend =%s \n", g_blend_data.time_data);
-		frame_addr_offset = (start_y * frame->width + start_x) * 2;
-
+		if(lcd_info.icon_rotate == ROTATE_NONE)
+		{
+			frame_addr_offset = (start_y * frame->width + start_x) * 2;
+			lcd_font_config.bg_offline = frame->width - CLOCK_LOGO_W;
+			lcd_font_config.xsize = CLOCK_LOGO_W;
+			lcd_font_config.ysize = CLOCK_LOGO_H;
+			lcd_font_config.font_rotate = ROTATE_NONE;
+		}
+		else
+		{
+			frame_addr_offset = ((start_y + g_lcd_height - CLOCK_LOGO_W)  * frame->width + start_x) * 2;
+			lcd_font_config.bg_offline = frame->width - CLOCK_LOGO_H;
+			lcd_font_config.xsize = CLOCK_LOGO_H;
+			lcd_font_config.ysize = CLOCK_LOGO_W;
+			lcd_font_config.font_rotate = ROTATE_270;
+		}
 		lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
-		lcd_font_config.bg_offline = frame->width - CLOCK_LOGO_W;
-		lcd_font_config.xsize = CLOCK_LOGO_W;
-		lcd_font_config.ysize = CLOCK_LOGO_H;
 		lcd_font_config.str_num = 1;
 		#if 1  ///font yuv data to bg yuv image
 		if (frame->fmt == PIXEL_FMT_VUYY)
@@ -1022,28 +1064,29 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 	if ((g_blend_data.lcd_blend_type & LCD_BLEND_WIFI) != 0)      /// start display lcd (lcd_width,0)
 	{
 		LOGD("lcd wifi blend level =%d \n", g_blend_data.wifi_data);
-		frame_addr_offset = (start_y * frame->width + start_x + (g_lcd_width - WIFI_LOGO_W)) * 2;
+		if(lcd_info.icon_rotate == ROTATE_NONE)
+		{
+			frame_addr_offset = (start_y * frame->width + start_x + (g_lcd_width - WIFI_LOGO_W)) * 2;
+			lcd_blend.xsize = WIFI_LOGO_W;
+			lcd_blend.ysize = WIFI_LOGO_H;
+			lcd_blend.blend_rotate = ROTATE_NONE;
+		}
+		else
+		{
+			frame_addr_offset = ((start_y + g_lcd_height - WIFI_ROT90_POSTION_X - WIFI_LOGO_W) * frame->width + start_x + WIFI_ROT90_POSTION_Y) * 2;
+			lcd_blend.xsize = WIFI_LOGO_H;
+			lcd_blend.ysize = WIFI_LOGO_W;
+			lcd_blend.blend_rotate = ROTATE_270;
+		}
 
 		lcd_blend.pfg_addr = (uint8_t *)wifi_logo[g_blend_data.wifi_data];
 		lcd_blend.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
 		lcd_blend.fg_offline = 0;
-		lcd_blend.bg_offline = frame->width - WIFI_LOGO_W;
-		lcd_blend.xsize = WIFI_LOGO_W;
-		lcd_blend.ysize = WIFI_LOGO_H;
 		lcd_blend.fg_alpha_value = FG_ALPHA;
 		lcd_blend.fg_data_format = ARGB8888;
 		lcd_blend.bg_data_format = frame->fmt;
 		lcd_blend.bg_width = frame->width;
 		lcd_blend.bg_height = frame->height;
-		if (g_blend_data.wifi_data != g_wifi_current_level)
-		{
-			g_wifi_current_level = g_blend_data.wifi_data;
-			lcd_blend.flag = 1;
-		}
-		else
-		{
-			lcd_blend.flag = 0;
-		}
 		lcd_driver_blend(&lcd_blend);
 	}
 	if ((g_blend_data.lcd_blend_type & LCD_BLEND_DATA) != 0)   /// tart display lcd (DATA_POSTION_X,DATA_POSTION_Y)
@@ -1051,14 +1094,27 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 #if CONFIG_CAMERA
 		if (bk_dvp_camera_get_device() == NULL)
 		{
-			if ((DATA_POSTION_X + DATA_LOGO_W) > g_lcd_width)
-				frame_addr_offset = ((start_y + DATA_POSTION_Y + g_lcd_height - DATA_LOGO_H) * frame->width + start_x) * 2;
+			if(lcd_info.icon_rotate == ROTATE_NONE)
+			{
+				if ((DATA_POSTION_X + DATA_LOGO_W) > g_lcd_width)
+					frame_addr_offset = ((start_y + DATA_POSTION_Y + g_lcd_height - DATA_LOGO_H) * frame->width + start_x) * 2;
+				else
+					frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X) * 2;
+				lcd_font_config.bg_offline = frame->width - DATA_LOGO_W;
+				lcd_font_config.xsize = DATA_LOGO_W;
+				lcd_font_config.ysize = DATA_LOGO_H;
+				lcd_font_config.font_rotate = ROTATE_NONE;
+			}
 			else
-				frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X) * 2;
+			{
+				frame_addr_offset = ((start_y + g_lcd_height - DATA_ROT90_POSTION_X - DATA_LOGO_W) * frame->width + start_x + DATA_ROT90_POSTION_Y) * 2;
+				lcd_font_config.bg_offline = frame->width - DATA_LOGO_H;
+				lcd_font_config.xsize = DATA_LOGO_H;
+				lcd_font_config.ysize = DATA_LOGO_W;
+				lcd_font_config.font_rotate = ROTATE_270;
+			}
+			
 			lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
-			lcd_font_config.bg_offline = frame->width - DATA_LOGO_W;
-			lcd_font_config.xsize = DATA_LOGO_W;
-			lcd_font_config.ysize = DATA_LOGO_H;
 			lcd_font_config.str_num = 2;
 			#if 1  ///font yuv data to bg yuv image
 			if (frame->fmt == PIXEL_FMT_VUYY)
@@ -1078,7 +1134,7 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 		}
 		else
 		{
-			frame_addr_offset = ((start_y + DATA_POSTION_Y + g_lcd_height - DVP_LOGO_H) * frame->width + start_x) * 2;
+			frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X) * 2;
 			lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
 			lcd_font_config.bg_offline = frame->width - DVP_LOGO_W;
 			lcd_font_config.xsize = DVP_LOGO_W;
@@ -1098,7 +1154,7 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 			lcd_font_config.bg_height = frame->height;
 			lcd_driver_font_blend(&lcd_font_config);
 
-			frame_addr_offset = frame_addr_offset + 60 * 2;
+			frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X+60) * 2;
 			lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
 			lcd_font_config.bg_offline = frame->width - DVP_LOGO_W;
 			lcd_font_config.xsize = DVP_LOGO_W;
@@ -1119,16 +1175,26 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 			lcd_driver_font_blend(&lcd_font_config);
 		}
 #else
-			if ((DATA_POSTION_X + DATA_LOGO_W) > g_lcd_width)
-				frame_addr_offset = ((start_y + DATA_POSTION_Y + g_lcd_height - DATA_LOGO_H) * frame->width + start_x) * 2;
+			if(lcd_info.icon_rotate == ROTATE_NONE)
+			{
+				if ((DATA_POSTION_X + DATA_LOGO_W) > g_lcd_width)
+					frame_addr_offset = ((start_y + DATA_POSTION_Y + g_lcd_height - DATA_LOGO_H) * frame->width + start_x) * 2;
+				else
+					frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X) * 2;
+				lcd_font_config.bg_offline = frame->width - DATA_LOGO_W;
+				lcd_font_config.xsize = DATA_LOGO_W;
+				lcd_font_config.ysize = DATA_LOGO_H;
+				lcd_font_config.font_rotate = ROTATE_NONE;
+			}
 			else
-				frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X) * 2;
-
-//			frame_addr_offset = ((start_y + DATA_POSTION_Y) * frame->width + start_x + DATA_POSTION_X) * 2;
+			{
+				frame_addr_offset = ((start_y + g_lcd_height - DATA_ROT90_POSTION_X - DATA_LOGO_W) * frame->width + start_x + DATA_ROT90_POSTION_Y) * 2;
+				lcd_font_config.bg_offline = frame->width - DATA_LOGO_H;
+				lcd_font_config.xsize = DATA_LOGO_H;
+				lcd_font_config.ysize = DATA_LOGO_W;
+				lcd_font_config.font_rotate = ROTATE_270;
+			}
 			lcd_font_config.pbg_addr = (uint8_t *)(frame->frame + frame_addr_offset);
-			lcd_font_config.bg_offline = frame->width - DATA_LOGO_W;
-			lcd_font_config.xsize = DATA_LOGO_W;
-			lcd_font_config.ysize = DATA_LOGO_H;
 			lcd_font_config.str_num = 2;
 			#if 1  ///font yuv data to bg yuv image
 			if (frame->fmt == PIXEL_FMT_VUYY)
@@ -1254,6 +1320,7 @@ void lcd_close_handle(param_pak_t *param)
 	jpeg_display_task_stop();
 
 	lcd_driver_deinit();
+	lcd_act_deinit_display_frame();
 
 #if CONFIG_LCD_DMA2D_BLEND_FLASH_IMG || CONFIG_LCD_FONT_BLEND
 	g_blend_data.lcd_blend_type = 0;
@@ -1273,12 +1340,12 @@ void lcd_close_handle(param_pak_t *param)
 
 	yuv_blend_addr = NULL;
 	rgb_blend_addr = NULL;
-	g_wifi_current_level = WIFI_LEVEL_MAX;
 
 #endif
 
 	lcd_info.rotate = ROTATE_NONE;
 	lcd_info.resize = false;
+	lcd_info.icon_rotate = ROTATE_NONE;
 	lcd_info.resize_ppi = PPI_800X480;
 
 	set_lcd_state(LCD_STATE_DISABLED);
@@ -1355,9 +1422,19 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 
 			param_pak = (param_pak_t *)param;
 			lcd_info.rotate = param_pak->param;
+			LOGI("lcd rotate[0-no, 1-90, 3-270] %d\n", lcd_info.rotate);
 			MEDIA_EVT_RETURN(param_pak, BK_OK);
 		}
 		break;
+		case EVENT_LCD_ICON_ROTATE_ENABLE_IND:
+		{
+			param_pak = (param_pak_t *)param;
+			lcd_info.icon_rotate = param_pak->param;
+			LOGI("lcd icon rotate = %d\n", lcd_info.icon_rotate);
+			MEDIA_EVT_RETURN(param_pak, BK_OK);
+		}
+		break;
+		
 
 		case EVENT_LCD_RESIZE_IND:
 		{
@@ -1480,7 +1557,6 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 				{
 					if(blend_data->blend_on == 0)
 					{
-						g_wifi_current_level = WIFI_LEVEL_MAX;
 						g_blend_data.lcd_blend_type &= (~LCD_BLEND_WIFI);
 					}
 					else
@@ -1532,9 +1608,9 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 			 }
 
 			MEDIA_EVT_RETURN(param_pak, BK_OK);
+break;
 #endif
 		}
-		break;
 	}
 }
 
@@ -1556,6 +1632,7 @@ void lcd_init(void)
 	lcd_info.state = LCD_STATE_DISABLED;
 	lcd_info.debug = false;
 	lcd_info.rotate = ROTATE_NONE;
+	lcd_info.icon_rotate = ROTATE_NONE;
 	lcd_info.resize = false;
 	lcd_info.resize_ppi = PPI_800X480;
 	lcd_info.decode_mode = HARDWARE_DECODING;

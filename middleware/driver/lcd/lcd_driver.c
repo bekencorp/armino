@@ -2034,47 +2034,87 @@ bk_err_t lcd_driver_blend(lcd_blend_t *lcd_blend)
 #endif
 	//	lcd_storage_capture_save("pbg_addr.yuv", (uint8_t *)0x60000000, (640*480*2));
 #else
-	int	i = 0;
-	uint8_t * p_fg_yuv = (uint8_t *)lcd_blend->pfg_addr;
-	uint8_t * p_yuv_src = (uint8_t *)lcd_blend->pbg_addr;
-	uint8_t * p_yuv_dst = (uint8_t *)yuv_data;
-	uint8_t * p_logo_addr = rgb565_data;
-	//STEP 1 COPY BG YUV DATA
+		int	i = 0;
+		//uint8_t * p_logo_addr = (uint8_t *)lcd_blend->pfg_addr;
+		uint8_t * p_yuv_src = (uint8_t *)lcd_blend->pbg_addr;
+		uint8_t * p_yuv_dst = (uint8_t *)yuv_data;
+		uint8_t * p_yuv_temp = (uint8_t *)rgb565_data;
+		pixel_format_t bg_fmt  = lcd_blend->bg_data_format;
+		//STEP 1 COPY BG YUV DATA
 
-	if (lcd_blend->flag == 1)
-	{
-		os_memcpy_word((uint32_t *)(p_logo_addr), (uint32_t *)p_fg_yuv, lcd_blend->xsize * lcd_blend->ysize *4);
-	}
-	for(i = 0; i < lcd_blend->ysize; i++)
-	{
-		os_memcpy_word((uint32_t *)p_yuv_dst,(uint32_t *) p_yuv_src, lcd_blend->xsize*2);
-		p_yuv_dst += (lcd_blend->xsize*2);
-		p_yuv_src += (lcd_blend->bg_width*2);
-	}
-	p_yuv_dst = (uint8_t *)yuv_data;
-	//STEP 2 check alpha=0 logo pixel,and copy alpha!=0 pixel to bg yuv data
-	if (lcd_blend->bg_data_format == PIXEL_FMT_VUYY)
-	{
-		argb8888_to_vuyy_blend(p_logo_addr, p_yuv_dst, lcd_blend->xsize, lcd_blend->ysize);
-	}
-	else
-	{
-		argb8888_to_yuyv_blend(p_logo_addr, p_yuv_dst, lcd_blend->xsize, lcd_blend->ysize);
-	}
-	//STEP 3 copy return bg image
-	p_yuv_src = (uint8_t *)lcd_blend->pbg_addr;
-	for(i = 0; i < lcd_blend->ysize; i++)
-	{
-		os_memcpy_word((uint32_t *)p_yuv_src, (uint32_t *)p_yuv_dst, lcd_blend->xsize*2);
-		p_yuv_dst += (lcd_blend->xsize*2);
-		p_yuv_src += (lcd_blend->bg_width*2);
-	}
+		for(i = 0; i < lcd_blend->ysize; i++)
+		{
+			os_memcpy_word((uint32_t *)p_yuv_dst,(uint32_t *) p_yuv_src, lcd_blend->xsize*2);
+			p_yuv_dst += (lcd_blend->xsize*2);
+			p_yuv_src += (lcd_blend->bg_width*2);
+		}
+		p_yuv_dst = (uint8_t *)yuv_data;
+		
+		if (lcd_blend->blend_rotate == ROTATE_270)
+		{
+			p_yuv_dst = (uint8_t *)yuv_data;
+			if (PIXEL_FMT_VUYY == bg_fmt)
+			{
+				//step2 rotate area 
+				vuyy_rotate_degree90_to_yuyv((unsigned char *)p_yuv_dst, (unsigned char *)p_yuv_temp, lcd_blend->xsize, lcd_blend->ysize);
+			}
+			if (PIXEL_FMT_YUYV == bg_fmt)
+			{
+				yuyv_rotate_degree90_to_yuyv((unsigned char *)p_yuv_dst, (unsigned char *)p_yuv_temp, lcd_blend->xsize, lcd_blend->ysize);
+			}
+
+			i = lcd_blend->xsize;
+			lcd_blend->xsize = lcd_blend->ysize;
+			lcd_blend->ysize = i;
+			bg_fmt = PIXEL_FMT_YUYV;
+			p_yuv_dst = rgb565_data;
+		}
+		
+		//STEP 2 check alpha=0 logo pixel,and copy alpha!=0 pixel to bg yuv data
+	//	if (lcd_blend->flag == 1)
+	//	{
+	//		p_yuv_temp = yuv_data;
+	//		os_memcpy_word((uint32_t *)(p_yuv_temp), (uint32_t *)lcd_blend->pfg_addr, lcd_blend->xsize * lcd_blend->ysize *4);
+	//	}
+
+		if (PIXEL_FMT_VUYY == bg_fmt)
+		{
+			argb8888_to_vuyy_blend((uint8_t *)lcd_blend->pfg_addr, p_yuv_dst, lcd_blend->xsize, lcd_blend->ysize);
+		}
+		else
+		{
+			argb8888_to_yuyv_blend((uint8_t *)lcd_blend->pfg_addr, p_yuv_dst, lcd_blend->xsize, lcd_blend->ysize);
+		}
+
+		if (lcd_blend->blend_rotate == ROTATE_270)
+		{
+			p_yuv_temp = yuv_data;
+			
+			if (PIXEL_FMT_VUYY == lcd_blend->bg_data_format)
+			{
+				// rotate back
+				yuyv_rotate_degree270_to_vuyy((unsigned char *)p_yuv_dst, (unsigned char *)p_yuv_temp, lcd_blend->xsize, lcd_blend->ysize);
+			}
+			else
+			{
+				yuyv_rotate_degree270_to_yuyv((unsigned char *)p_yuv_dst, (unsigned char *)p_yuv_temp, lcd_blend->xsize, lcd_blend->ysize);
+			}
+			i = lcd_blend->xsize;
+			lcd_blend->xsize = lcd_blend->ysize;
+			lcd_blend->ysize = i;
+			p_yuv_dst = yuv_data;
+		}
+			
+		//STEP 3 copy return bg image
+		p_yuv_src = (uint8_t *)lcd_blend->pbg_addr;
+		for(i = 0; i < lcd_blend->ysize; i++)
+		{
+			os_memcpy_word((uint32_t *)p_yuv_src, (uint32_t *)p_yuv_dst, lcd_blend->xsize*2);
+			p_yuv_dst += (lcd_blend->xsize*2);
+			p_yuv_src += (lcd_blend->bg_width*2);
+		}
 #endif
-	}
-	else
-	{
-		LOGE("%s s_lcd.dma2d_blend == false \n", __func__);
-	}
+			}
 #endif
 	return BK_OK;
 }
@@ -2091,6 +2131,9 @@ bk_err_t lcd_driver_font_blend(lcd_font_config_t *lcd_font)
 		register uint32_t i =0;
 		uint32_t * p_yuv_src = (uint32_t *)lcd_font->pbg_addr;
 		uint32_t * p_yuv_dst = (uint32_t *)yuv_data;
+		uint32_t * p_yuv_rotate_temp = (uint32_t *)rgb565_data;
+
+		//step1  copy area to p_yuv_dst
 		for(i = 0; i < lcd_font->ysize; i++)
 		{
 			os_memcpy_word(p_yuv_dst, p_yuv_src, lcd_font->xsize*2);
@@ -2098,7 +2141,25 @@ bk_err_t lcd_driver_font_blend(lcd_font_config_t *lcd_font)
 			p_yuv_src += (lcd_font->bg_width/2);
 		}
 		#endif
-		//	lcd_storage_capture_save("yuv_data.yuv", yuv_data, len);
+		p_yuv_dst = (uint32_t *)yuv_data;
+
+		if (lcd_font->font_rotate == ROTATE_270)
+		{
+			if (PIXEL_FMT_VUYY == lcd_font->bg_data_format)
+			{
+				//step2 rotate area 
+				vuyy_rotate_degree90_to_yuyv((unsigned char *)p_yuv_dst, (unsigned char *)p_yuv_rotate_temp, lcd_font->xsize, lcd_font->ysize);
+			}
+			if (PIXEL_FMT_YUYV == lcd_font->bg_data_format)
+			{
+				yuyv_rotate_degree90_to_yuyv((unsigned char *)p_yuv_dst, (unsigned char *)p_yuv_rotate_temp, lcd_font->xsize, lcd_font->ysize);
+			}
+			i = lcd_font->xsize;
+			lcd_font->xsize = lcd_font->ysize;
+			lcd_font->ysize = i;
+			lcd_font->font_format = FONT_YUYV;
+			p_yuv_dst = (uint32_t *)rgb565_data;
+		}
 		if(lcd_font->font_format == FONT_RGB565)  //font rgb565 data to yuv bg image
 		{
 			if (PIXEL_FMT_VUYY == lcd_font->bg_data_format)
@@ -2137,7 +2198,7 @@ bk_err_t lcd_driver_font_blend(lcd_font_config_t *lcd_font)
 		else  //font yuv data to yuv bg image
 		{
 			font_t font;
-			font.info = (ui_display_info_struct){yuv_data,0,lcd_font->ysize,0,{0}};
+			font.info = (ui_display_info_struct){(unsigned char *)p_yuv_dst,0,lcd_font->ysize,0,{0}};
 			font.width = lcd_font->xsize;
 			font.height = lcd_font->ysize;
 			font.font_fmt = lcd_font->font_format;
@@ -2151,18 +2212,35 @@ bk_err_t lcd_driver_font_blend(lcd_font_config_t *lcd_font)
 				lcd_draw_font(&font);
 			}
 		}
-			//	lcd_storage_capture_save("blend_to_yuv.yuv", yuv_data, len);
 		#if 0
-			dma2d_memcpy_psram(yuv_data, lcd_font->pbg_addr, lcd_font->xsize, lcd_font->ysize, 0, lcd_font->bg_offline);
+		dma2d_memcpy_psram(yuv_data, lcd_font->pbg_addr, lcd_font->xsize, lcd_font->ysize, 0, lcd_font->bg_offline);
 		#else
-				p_yuv_src = (uint32_t *)yuv_data;
-				p_yuv_dst = lcd_font->pbg_addr;
-				for(i = 0; i < lcd_font->ysize; i++)
-				{
-					os_memcpy_word(p_yuv_dst, p_yuv_src, lcd_font->xsize*2);
-					p_yuv_src += (lcd_font->xsize/2);
-					p_yuv_dst += (lcd_font->bg_width/2);
-				}
+		if (lcd_font->font_rotate == ROTATE_270)
+		{
+			p_yuv_rotate_temp = (uint32_t *)yuv_data;
+			if (PIXEL_FMT_VUYY == lcd_font->bg_data_format)
+			{
+				yuyv_rotate_degree270_to_vuyy((unsigned char *)p_yuv_dst, (unsigned char *)p_yuv_rotate_temp, lcd_font->xsize, lcd_font->ysize);
+			}
+			else
+			{
+				yuyv_rotate_degree270_to_yuyv((unsigned char *)p_yuv_dst, (unsigned char *)p_yuv_rotate_temp, lcd_font->xsize, lcd_font->ysize);
+			}
+			// rotate back
+			i = lcd_font->xsize;
+			lcd_font->xsize = lcd_font->ysize;
+			lcd_font->ysize = i;
+		}
+
+		p_yuv_src = (uint32_t *)yuv_data;
+		p_yuv_dst = lcd_font->pbg_addr;
+		for(i = 0; i < lcd_font->ysize; i++)
+		{
+			os_memcpy_word(p_yuv_dst, p_yuv_src, lcd_font->xsize*2);
+			p_yuv_src += (lcd_font->xsize/2);
+			p_yuv_dst += (lcd_font->bg_width/2);
+		}
+
 		#endif
 	}
 	else
@@ -2413,9 +2491,9 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 	os_memset(&s_lcd, 0, sizeof(s_lcd));
 	os_memcpy(&s_lcd.config, config, sizeof(lcd_config_t));
 
-	uint16_t x = ppi_to_pixel_x(config->device->ppi);  //lcd size x
-	uint16_t y = ppi_to_pixel_y(config->device->ppi);  //lcd size y
-	config->fb_display_init(x << 16 | y);
+//	uint16_t x = ppi_to_pixel_x(config->device->ppi);  //lcd size x
+//	uint16_t y = ppi_to_pixel_y(config->device->ppi);  //lcd size y
+	//config->fb_display_init(x << 16 | y);
 
 #ifdef CONFIG_MASTER_CORE
 	/* Mailbox */
@@ -2645,16 +2723,13 @@ bk_err_t lcd_driver_deinit(void)
 	type = s_lcd.config.device->type;
 
 	bk_timer_stop(TIMER_ID3);
-	if (get_decode_mode() == HARDWARE_DECODING)
-	{
+
+#if (CONFIG_JPEG_DEC)
 		bk_jpeg_dec_driver_deinit();
-	}
-	else
-	{
+#endif
 #if (CONFIG_JPEG_DECODE)
 		bk_jpeg_dec_sw_deinit();
 #endif
-	}
 #ifdef CONFIG_MASTER_CORE
 	/* Mailbox */
 	mb_chnl_close(MB_CHNL_VID);

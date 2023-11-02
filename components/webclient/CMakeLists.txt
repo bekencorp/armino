@@ -1,7 +1,7 @@
 set(incs .)
 set(srcs)
 
-if (CONFIG_WEBCLINET)
+if (CONFIG_WEBCLIENT)
 list(APPEND srcs
 	webclient.c
 	)

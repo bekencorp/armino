@@ -1,5 +1,5 @@
 menu "Webclient"
-	config WEBCLINET
+	config WEBCLIENT
 		bool "Enable Webclient"
 		default n
 endmenu

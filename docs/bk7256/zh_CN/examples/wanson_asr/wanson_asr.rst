@@ -1,19 +1,19 @@
-华震语音识别 demo
+华镇语音识别 demo
 ========================
 
 :link_to_translation:`en:[English]`
 
 1、功能概述
 --------------------
-	基于第三方公司 ``华震`` 提供的本地语音识别库，实现本地离线语音唤醒词和命令词识别功能。
+	基于第三方公司 ``华镇`` 提供的本地语音识别库，实现本地离线语音唤醒词和命令词识别功能。
 
 2、代码路径
 --------------------
 	demo路径: ``\components\demos\media\audio\audio_asr``
 
-	华震的本地语音识别库（浮点库）路径: ``\components\bk_thirdparty\asr\wanson``
+	华镇的本地语音识别库（浮点库）路径: ``\components\bk_thirdparty\asr\wanson``
 
-	华震的本地语音识别 API接口的详细说明请参考源文件: ``\components\bk_thirdparty\asr\wanson\include\asr.h``
+	华镇的本地语音识别 API接口的详细说明请参考源文件: ``\components\bk_thirdparty\asr\wanson\include\asr.h``
 
 3、cli命令简介
 --------------------
@@ -52,6 +52,7 @@ demo编译指令： ``make bk7256 PROJECT=thirdparty/wanson_asr``
 
 	2.测试唤醒词和命令词，支持的唤醒词和命令词如下:
 	 - ``小蜂管家`` 识别成功串口打印log ``xiao feng guan jia``
+	 - ``阿尔米诺`` 识别成功串口打印log ``a er mi nuo``
 	 - ``会客模式`` 识别成功串口打印log ``hui ke mo shi``
 	 - ``用餐模式`` 识别成功串口打印log ``yong can mo shi``
 	 - ``离开模式`` 识别成功串口打印log ``li kai mo shi``

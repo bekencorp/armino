@@ -215,6 +215,22 @@ bt_err_t bk_bt_avrcp_ct_send_get_rn_capabilities_cmd(uint8_t *remote_bda);
  */
 bt_err_t bk_bt_ct_send_register_notification_cmd(uint8_t *remote_bda, uint8_t event_id, uint32_t event_parameter);
 
+/**
+ * @brief           Send passthrough command to AVRCP target. This function should be called after
+ *                  BK_AVRCP_CT_CONNECTION_STATE_EVT is received and AVRCP connection is established.
+ *
+ * @param[in]       remote_bda: remote bluetooth device address.
+ *
+ * @param[in]       key_code : passthrough command code, e.g. BK_AVRCP_PT_CMD_PLAY, BK_AVRCP_PT_CMD_STOP, etc.
+ *
+ * @param[in]       key_state : passthrough command key state, BK_AVRCP_PT_CMD_STATE_PRESSED or
+ *                  BK_AVRCP_PT_CMD_STATE_RELEASED
+ *
+ * @return
+ *                  - BK_ERR_BT_SUCCESS: success
+ *                  - others: fail
+ */
+bt_err_t bk_bt_avrcp_ct_send_passthrough_cmd(uint8_t *remote_bda, uint8_t key_code, uint8_t key_state);
 
 #ifdef __cplusplus
 }

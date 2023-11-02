@@ -1136,8 +1136,6 @@ bk_err_t bk_uvc_camera_driver_init(uvc_camera_config_t *config)
 
 error:
 
-	uvc_camera_set_state(UVC_DISCONNECT_ABNORMAL);
-
 	UVC_LOGI("uvc_camera_drv init failed, %d\n", uvc_camera_get_state());
 
 	uvc_camera_deinit();

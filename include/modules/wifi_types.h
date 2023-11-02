@@ -267,18 +267,29 @@ enum wifi_sta_vsie {
 	NUM_WIFI_VENDOR_ELEM_FRAMES
 };
 
+#define BK_MAX_STA_TYPE 4
+#define OUI_BEKEN           0xC8478C
+#define WLAN_EID_VENDOR_SPECIFIC 221
+typedef enum sta_type{
+	STA_TYPE1,
+	STA_TYPE2,
+	STA_TYPE3,
+	STA_TYPE4,
+	MAX_STA_TYPE = BK_MAX_STA_TYPE,
+}BK_STA_TYPE;
+
+struct bk_vise{
+	uint8_t len;
+	uint8_t buf[255];
+};
+
 typedef struct {
 	char ssid[WIFI_SSID_STR_LEN];      /**< SSID of AP to be connected */
 	uint8_t bssid[WIFI_BSSID_LEN];     /**< BSSID of AP to be connected, fast connect only */
 	uint8_t channel;                   /**< Primary channel of AP to be connected, fast connect only */
 	wifi_security_t security;          /**< Security of AP to be connected */
 	char  password[WIFI_PASSWORD_LEN]; /**< Security key or PMK of the wlan. */
-#if CONFIG_INCLUDE_STA_VSIE
-	struct {
-		uint8_t len;
-		uint8_t buf[255];
-	} vsies[NUM_WIFI_VENDOR_ELEM_FRAMES];
-#endif
+	struct bk_vise *vsies[NUM_WIFI_VENDOR_ELEM_FRAMES];	/**<Vnedor Specific IEs*/
 	uint8_t reserved[32];              /**< reserved, **must set to 0** */
 
 #if CONFIG_INCLUDE_WPA2_ENTERPRISE
@@ -343,6 +354,7 @@ typedef struct {
 	uint8_t vsie_len;                  /**< Beacon/ProbeResp Vendor Specific IE len */
 	uint8_t vsie[255];                 /**< Beacon/ProbeResp Vendor Specific IE */
 	uint8_t max_con;                   /**< Max number of stations allowed to connect to BK AP, TODO default value? */
+	uint8_t max_statype_num[4];		/**<Max number of different station types allowed to connect to BK AP*/
 	uint8_t reserved[32];              /**< Reserved, **must be zero** */
 } wifi_ap_config_t;
 

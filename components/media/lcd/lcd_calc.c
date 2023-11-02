@@ -270,18 +270,25 @@ MINOOR_ITCM void lcd_act_rotate_degree90(uint32_t param)
 
 			if (param == ROTATE_90)
 			{
-				func = vuyy_rotate_degree90;
+				func = vuyy_rotate_degree90_to_yuyv;
 			}
 			else
 			{
-				func = vuyy_rotate_degree270;
+				func = vuyy_rotate_degree270_to_yuyv;
 			}
 
 			rotate_frame->fmt = PIXEL_FMT_YUYV;
 			break;
 		case PIXEL_FMT_YUYV:
 		default:
-			func = yuyv_rotate_degree90;
+			if (param == ROTATE_90)
+			{
+				func = yuyv_rotate_degree90_to_yuyv;
+			}
+			else
+			{
+				func = yuyv_rotate_degree270_to_yuyv;
+			}
 			rotate_frame->fmt = PIXEL_FMT_YUYV;
 			break;
 	}

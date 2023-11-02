@@ -16,5 +16,5 @@
    LVGL <lvgl/lvgl>
    声网 <agora/agora>
    尚云P2P <cs2_p2p/index>
-   华震语音识别 <wanson_asr/wanson_asr>
+   华镇语音识别 <wanson_asr/wanson_asr>
    wifi <wifi/index>

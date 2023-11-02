@@ -234,6 +234,73 @@ typedef enum {
     BK_AVRCP_PLAYBACK_ERROR = 0xFF,               /*!< error */
 } bk_avrcp_playback_stat_t;
 
+/// AVRCP passthrough command code
+typedef enum {
+    BK_AVRCP_PT_CMD_SELECT         =   0x00,    /*!< select */
+    BK_AVRCP_PT_CMD_UP             =   0x01,    /*!< up */
+    BK_AVRCP_PT_CMD_DOWN           =   0x02,    /*!< down */
+    BK_AVRCP_PT_CMD_LEFT           =   0x03,    /*!< left */
+    BK_AVRCP_PT_CMD_RIGHT          =   0x04,    /*!< right */
+    BK_AVRCP_PT_CMD_RIGHT_UP       =   0x05,    /*!< right-up */
+    BK_AVRCP_PT_CMD_RIGHT_DOWN     =   0x06,    /*!< right-down */
+    BK_AVRCP_PT_CMD_LEFT_UP        =   0x07,    /*!< left-up */
+    BK_AVRCP_PT_CMD_LEFT_DOWN      =   0x08,    /*!< left-down */
+    BK_AVRCP_PT_CMD_ROOT_MENU      =   0x09,    /*!< root menu */
+    BK_AVRCP_PT_CMD_SETUP_MENU     =   0x0A,    /*!< setup menu */
+    BK_AVRCP_PT_CMD_CONT_MENU      =   0x0B,    /*!< contents menu */
+    BK_AVRCP_PT_CMD_FAV_MENU       =   0x0C,    /*!< favorite menu */
+    BK_AVRCP_PT_CMD_EXIT           =   0x0D,    /*!< exit */
+    BK_AVRCP_PT_CMD_0              =   0x20,    /*!< 0 */
+    BK_AVRCP_PT_CMD_1              =   0x21,    /*!< 1 */
+    BK_AVRCP_PT_CMD_2              =   0x22,    /*!< 2 */
+    BK_AVRCP_PT_CMD_3              =   0x23,    /*!< 3 */
+    BK_AVRCP_PT_CMD_4              =   0x24,    /*!< 4 */
+    BK_AVRCP_PT_CMD_5              =   0x25,    /*!< 5 */
+    BK_AVRCP_PT_CMD_6              =   0x26,    /*!< 6 */
+    BK_AVRCP_PT_CMD_7              =   0x27,    /*!< 7 */
+    BK_AVRCP_PT_CMD_8              =   0x28,    /*!< 8 */
+    BK_AVRCP_PT_CMD_9              =   0x29,    /*!< 9 */
+    BK_AVRCP_PT_CMD_DOT            =   0x2A,    /*!< dot */
+    BK_AVRCP_PT_CMD_ENTER          =   0x2B,    /*!< enter */
+    BK_AVRCP_PT_CMD_CLEAR          =   0x2C,    /*!< clear */
+    BK_AVRCP_PT_CMD_CHAN_UP        =   0x30,    /*!< channel up */
+    BK_AVRCP_PT_CMD_CHAN_DOWN      =   0x31,    /*!< channel down */
+    BK_AVRCP_PT_CMD_PREV_CHAN      =   0x32,    /*!< previous channel */
+    BK_AVRCP_PT_CMD_SOUND_SEL      =   0x33,    /*!< sound select */
+    BK_AVRCP_PT_CMD_INPUT_SEL      =   0x34,    /*!< input select */
+    BK_AVRCP_PT_CMD_DISP_INFO      =   0x35,    /*!< display information */
+    BK_AVRCP_PT_CMD_HELP           =   0x36,    /*!< help */
+    BK_AVRCP_PT_CMD_PAGE_UP        =   0x37,    /*!< page up */
+    BK_AVRCP_PT_CMD_PAGE_DOWN      =   0x38,    /*!< page down */
+    BK_AVRCP_PT_CMD_POWER          =   0x40,    /*!< power */
+    BK_AVRCP_PT_CMD_VOL_UP         =   0x41,    /*!< volume up */
+    BK_AVRCP_PT_CMD_VOL_DOWN       =   0x42,    /*!< volume down */
+    BK_AVRCP_PT_CMD_MUTE           =   0x43,    /*!< mute */
+    BK_AVRCP_PT_CMD_PLAY           =   0x44,    /*!< play */
+    BK_AVRCP_PT_CMD_STOP           =   0x45,    /*!< stop */
+    BK_AVRCP_PT_CMD_PAUSE          =   0x46,    /*!< pause */
+    BK_AVRCP_PT_CMD_RECORD         =   0x47,    /*!< record */
+    BK_AVRCP_PT_CMD_REWIND         =   0x48,    /*!< rewind */
+    BK_AVRCP_PT_CMD_FAST_FORWARD   =   0x49,    /*!< fast forward */
+    BK_AVRCP_PT_CMD_EJECT          =   0x4A,    /*!< eject */
+    BK_AVRCP_PT_CMD_FORWARD        =   0x4B,    /*!< forward */
+    BK_AVRCP_PT_CMD_BACKWARD       =   0x4C,    /*!< backward */
+    BK_AVRCP_PT_CMD_ANGLE          =   0x50,    /*!< angle */
+    BK_AVRCP_PT_CMD_SUBPICT        =   0x51,    /*!< subpicture */
+    BK_AVRCP_PT_CMD_F1             =   0x71,    /*!< F1 */
+    BK_AVRCP_PT_CMD_F2             =   0x72,    /*!< F2 */
+    BK_AVRCP_PT_CMD_F3             =   0x73,    /*!< F3 */
+    BK_AVRCP_PT_CMD_F4             =   0x74,    /*!< F4 */
+    BK_AVRCP_PT_CMD_F5             =   0x75,    /*!< F5 */
+    BK_AVRCP_PT_CMD_VENDOR         =   0x7E,    /*!< vendor unique */
+} bk_avrcp_pt_cmd_t;
+
+/// AVRCP passthrough command state
+typedef enum {
+    BK_AVRCP_PT_CMD_STATE_PRESSED = 0,           /*!< key pressed */
+    BK_AVRCP_PT_CMD_STATE_RELEASED = 1           /*!< key released */
+} bk_avrcp_pt_cmd_state_t;
+
 /// AVRCP notification parameters
 typedef union
 {

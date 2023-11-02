@@ -102,9 +102,9 @@ void cli_lcd_qspi_display_picture_test_cmd(char *pcWriteBuffer, int xWriteBuffer
 		lcd_qspi_config.src_clk_div = 4;
 		lcd_qspi_config.clk_div = 1;
 		BK_LOG_ON_ERR(bk_qspi_init(&lcd_qspi_config));
-		rtos_delay_milliseconds(5);
+		rtos_delay_milliseconds(2);
 
-		uint32_t psram_addr = 0x64000000;
+		uint32_t psram_addr = 0x60000000;
 
 #if (CONFIG_FATFS)
 		char cFileName[50];
@@ -193,6 +193,32 @@ void cli_lcd_qspi_display_picture_test_cmd(char *pcWriteBuffer, int xWriteBuffer
 		CLI_LOGI("lcd_qspi_display_picture_test {start|stop} {file_name} {device name}\r\n");
 	}
 
+}
+
+void cli_lcd_qspi_read_reg_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	qspi_config_t lcd_qspi_config = {0};
+	uint8_t idx = 0;
+
+	lcd_qspi_config.src_clk = 5;
+	lcd_qspi_config.src_clk_div = 4;
+	lcd_qspi_config.clk_div = 2;
+	BK_LOG_ON_ERR(bk_qspi_init(&lcd_qspi_config));
+	rtos_delay_milliseconds(2);
+
+	device_config = bk_lcd_qspi_get_device_by_name("st77903");
+	bk_lcd_qspi_init(device_config);
+
+	device_config->reg_read_config.cmd = os_strtoul(argv[1], NULL, 16) & 0xFF;
+	device_config->reg_read_config.data_len = os_strtoul(argv[2], NULL, 10) & 0xFF;
+	device_config->reg_read_config.dummy_clk = 0;
+	device_config->reg_read_config.dummy_mode = 0;
+
+	uint8_t reg_data[device_config->reg_read_config.data_len];
+	bk_lcd_qspi_read_data(reg_data, device_config);
+	for (idx = 0; idx < device_config->reg_read_config.data_len; idx++) {
+		os_printf("reg_data[%d]: 0x%02x\r\n", idx, reg_data[idx]);
+	}
 }
 
 

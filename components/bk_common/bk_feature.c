@@ -26,6 +26,22 @@ int bk_feature_fast_dhcp_enable(void) {
 #endif
 }
 
+int bk_feature_sta_vsie_enable(void) {
+#if CONFIG_COMPONENTS_STA_VSIE
+	return 1;
+#else
+	return 0;
+#endif
+}
+
+int bk_feature_ap_statype_limit_enable(void) {
+#if CONFIG_AP_STATYPE_LIMIT
+	return 1;
+#else
+	return 0;
+#endif
+}
+
 int bk_feature_temp_detect_enable(void) {
 #if CONFIG_TEMP_DETECT
     return 1;

@@ -15,6 +15,25 @@
 #include "modules/dm_bt.h"
 #endif
 
+#if CONFIG_AUDIO
+#include <driver/sbc_types.h>
+#include <driver/aud_types.h>
+#include <driver/aud.h>
+#include <components/aud_intf.h>
+#include <driver/sbc.h>
+#if CONFIG_FATFS
+#include "test_fatfs.h"
+#endif
+#endif
+#if CONFIG_ARCH_CM33
+#include <driver/aon_rtc.h>
+#endif
+
+#if CONFIG_ARCH_RISCV
+#define CFG_AAC_SUPPORT 1
+#elif CONFIG_ARCH_CM33
+#define CFG_AAC_SUPPORT 0
+#endif
 #define LOCAL_NAME "soundbar"
 
 #define INQUIRY_LAP 0x9e8B33U
@@ -46,8 +65,10 @@
         "ADDR: %02X %02X %02X %02X %02X %02X, TYPE: %02X"
 #define BT_IGNORE_UNUSED_PARAM(v) (void)(v)
 
+#define A2DP_SOURCE_SBC_FRAME_COUNT 5
 typedef enum{
-    STATE_DISCONNECT,
+    STATE_DISCONNECT = 0,
+    STATE_CONNECTING,
     STATE_CONNECTED,
     STATE_PROFILE_DISCONNECT,
     STATE_PROFILE_CONNECTED_AS_CLIENT,
@@ -75,6 +96,24 @@ typedef struct{
     float speed;
 }spp_env_s;
 
+typedef struct
+{
+    uint8_t inited;
+    uint16_t conn_handle;
+    bd_addr_t peer_addr;
+    uint8_t conn_state;
+    uint8_t start_status;
+    uint8_t play_status;
+    uint32_t mtu;
+}a2dp_env_s;
+
+
+typedef struct
+{
+    uint8_t type;
+    uint16_t len;
+    char *data;
+} bt_audio_demo_msg_t;
 static bt_err_t at_cmd_status = BK_ERR_BT_SUCCESS;
 
 static beken_semaphore_t bt_at_cmd_sema = NULL;
@@ -82,7 +121,20 @@ static beken_semaphore_t bt_at_cmd_sema = NULL;
 static uint16_t conn_handle = 0xff;
 static bk_bt_linkkey_storage_t s_bt_linkkey;
 static spp_env_s spp_env;
+#if CONFIG_AUDIO && CONFIG_A2DP_SOURCE_DEMO
+static a2dp_env_s a2dp_env;
+static union codec_info s_a2dp_cap_info;
 
+#if CONFIG_FATFS
+static beken_timer_t bt_a2dp_source_write_timer;
+#endif
+
+static SbcEncoderContext s_sbc_software_encoder_ctx;
+
+static uint8_t mic_sco_data[1000] = {0};
+static uint16_t mic_data_count = 0;
+
+#endif
 
 static char *tx_through_cmd_start = "spp tx throught start";
 static char *tx_through_cmd_end = "spp tx throught end";
@@ -107,6 +159,19 @@ static int bt_a2dp_sink_disconnect_handle(char *pcWriteBuffer, int xWriteBufferL
 #ifdef CONFIG_AUDIO
 static int bt_enable_a2dp_sink_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static int bt_enable_hfp_unit_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static int bt_avrcp_ctrl_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+#if CONFIG_A2DP_SOURCE_DEMO
+static int bt_enable_a2dp_source_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static int bt_enable_a2dp_source_disconnect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+static int bt_enable_a2dp_source_start_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static int bt_enable_a2dp_source_suspend_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+static int bt_enable_a2dp_source_stop_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+
+static int bt_enable_a2dp_source_write_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+#endif
+
 #endif
 static int bt_enable_opp_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 static int bt_spp_through_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -293,6 +358,17 @@ const at_command_t bt_at_cmd_table[] = {
     {11, "SPP_THROUGH_TEST", 1, "spp_through_test", bt_spp_through_test_handle},
     {12, "A2DP_SINK_CONNECT", 1, "a2dp sink connect", bt_a2dp_sink_connect_handle},
     {13, "A2DP_SINK_DISCONNECT", 1, "a2dp sink disconnect", bt_a2dp_sink_disconnect_handle},
+#ifdef CONFIG_AUDIO
+    {14, "AVRCP_CTRL", 1, "avrcp ctrl", bt_avrcp_ctrl_handle},
+#endif
+#if CONFIG_AUDIO && CONFIG_A2DP_SOURCE_DEMO
+    {15, "A2DP_SOURCE_CONNECT", 0, "enable a2dp source connect", bt_enable_a2dp_source_connect_handle},
+    {16, "A2DP_SOURCE_DISCONNECT", 0, "enable a2dp source disconnect", bt_enable_a2dp_source_disconnect_handle},
+    {17, "A2DP_SOURCE_START", 0, "enable a2dp source start", bt_enable_a2dp_source_start_handle},
+    {18, "A2DP_SOURCE_SUSPEND", 0, "enable a2dp source suspend", bt_enable_a2dp_source_suspend_handle},
+    {19, "A2DP_SOURCE_WRITE_TEST", 0, "enable a2dp source write test", bt_enable_a2dp_source_write_test_handle},
+    {20, "A2DP_SOURCE_STOP", 0, "enable a2dp source stop", bt_enable_a2dp_source_stop_handle},
+#endif
 };
 
 static void bt_spp_clear()
@@ -521,6 +597,71 @@ API_RESULT bt_spp_event_notify_cb
     return 0x00;
 }
 
+#if CONFIG_AUDIO && CONFIG_A2DP_SOURCE_DEMO
+static void user_a2dp_connection_change(uint8_t status, uint8_t reason)
+{
+
+    if (a2dp_env.conn_state != status)
+    {
+        a2dp_env.conn_state = status;
+
+        if(status == BK_A2DP_CONNECTION_STATE_CONNECTED || status == BK_A2DP_CONNECTION_STATE_DISCONNECTED)
+        {
+            if (bt_at_cmd_sema != NULL)
+            {
+                rtos_set_semaphore( &bt_at_cmd_sema );
+            }
+        }
+
+    }
+
+    bk_printf("%s %d %d\n", __func__, status, reason);
+}
+
+static void user_a2dp_start_cnf(uint8_t result, uint8_t reason, uint32_t mtu)
+{
+    bk_printf("%s %d %d\n", __func__, result, reason);
+
+    if(result == 0 && a2dp_env.start_status == 0 )
+    {
+        a2dp_env.start_status = 1;
+        a2dp_env.mtu = mtu;
+
+        if (bt_at_cmd_sema != NULL)
+        {
+            rtos_set_semaphore( &bt_at_cmd_sema );
+        }
+    }
+}
+
+static void user_a2dp_suspend_cnf(uint8_t result, uint8_t reason)
+{
+    bk_printf("%s %d %d\n", __func__, result, reason);
+
+    if(result == 0 && a2dp_env.start_status == 1 )
+    {
+        a2dp_env.start_status = 0;
+
+        if (bt_at_cmd_sema != NULL)
+        {
+            rtos_set_semaphore( &bt_at_cmd_sema );
+        }
+    }
+}
+
+static void user_a2dp_final_cap_select(union codec_info *info)
+{
+    memcpy(&s_a2dp_cap_info, info, sizeof(*info));
+}
+
+const static bt_a2dp_source_cb_t bt_a2dp_source_cb =
+{
+    .a2dp_connection_change = user_a2dp_connection_change,
+    .a2dp_start_cnf = user_a2dp_start_cnf,
+    .a2dp_suspend_cnf = user_a2dp_suspend_cnf,
+    .a2dp_final_cap_select = user_a2dp_final_cap_select,
+};
+#endif
 int bt_at_cmd_cnt(void)
 {
     return sizeof(bt_at_cmd_table) / sizeof(bt_at_cmd_table[0]);
@@ -1195,6 +1336,89 @@ error:
     return err;
 }
 
+#ifdef CONFIG_AUDIO
+static int bt_avrcp_ctrl_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    PRINT_FUNC;
+    char *msg;
+    int err = kNoErr;
+
+    if (argc < 1)
+    {
+        os_printf("input param error\n");
+        err = kParamErr;
+        goto error;
+    }
+
+#if CONFIG_A2DP_SINK_DEMO
+    if (os_strcmp(argv[0], "play") == 0)
+    {
+        void bk_bt_app_avrcp_ct_play(void);
+        bk_bt_app_avrcp_ct_play();
+    }
+    else if (os_strcmp(argv[0], "pause") == 0)
+    {
+        void bk_bt_app_avrcp_ct_pause(void);
+        bk_bt_app_avrcp_ct_pause();
+    }
+    else if (os_strcmp(argv[0], "next") == 0)
+    {
+        void bk_bt_app_avrcp_ct_next(void);
+        bk_bt_app_avrcp_ct_next();
+    }
+    else if (os_strcmp(argv[0], "prev") == 0)
+    {
+        void bk_bt_app_avrcp_ct_prev(void);
+        bk_bt_app_avrcp_ct_prev();
+    }
+    else if (os_strcmp(argv[0], "rewind") == 0)
+    {
+        void bk_bt_app_avrcp_ct_rewind(void);
+        bk_bt_app_avrcp_ct_rewind();
+    }
+    else if (os_strcmp(argv[0], "fast_forward") == 0)
+    {
+        void bk_bt_app_avrcp_ct_fast_forward(void);
+        bk_bt_app_avrcp_ct_fast_forward();
+    }
+    else if (os_strcmp(argv[0], "vol_up") == 0)
+    {
+        void bk_bt_app_avrcp_ct_vol_up(void);
+        bk_bt_app_avrcp_ct_vol_up();
+    }
+    else if (os_strcmp(argv[0], "vol_down") == 0)
+    {
+        void bk_bt_app_avrcp_ct_vol_down(void);
+        bk_bt_app_avrcp_ct_vol_down();
+    }
+    else
+    {
+        os_printf("the input param is error\n");
+        err = kParamErr;
+        goto error;
+    }
+#else
+    err = BK_ERR_NOT_SUPPORT;
+#endif
+
+    if (!err)
+    {
+        msg = AT_CMD_RSP_SUCCEED;
+        os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+        return err;
+    }
+    else
+    {
+        goto error;
+    }
+
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    return err;
+}
+#endif
+
 #if CONFIG_FATFS
 #include "ff.h"
 #endif
@@ -1340,6 +1564,1251 @@ error:
     return err;
 }
 
+#if CONFIG_AUDIO && CONFIG_A2DP_SOURCE_DEMO
+
+#define A2DP_SOURCE_WRITE_AUTO_TIMER_MS 30
+static beken_time_t s_last_get_sample_time = 0;
+static uint32_t s_remain_send_sample_count = 0;
+static uint32_t s_remain_send_sample_miss_num = 0;
+
+typedef struct
+{
+    uint8_t type;
+    uint16_t len;
+    char *data;
+} bt_a2dp_source_msg_t;
+
+enum
+{
+    BT_A2DP_SOURCE_MSG_NULL = 0,
+    BT_A2DP_SOURCE_START_MSG = 1,
+    BT_A2DP_SOURCE_STOP_MSG = 2,
+};
+
+beken_queue_t bt_a2dp_source_msg_que = NULL;
+beken_thread_t bt_a2dp_source_thread_handle = NULL;
+#if CONFIG_FATFS
+static FIL pcm_file_fd;
+#endif
+
+static int bt_enable_a2dp_source_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    PRINT_FUNC;
+    char *msg;
+    int err = kNoErr;
+    if (bt_at_cmd_table[15].is_sync_cmd)
+    {
+        err = rtos_init_semaphore(&bt_at_cmd_sema, 1);
+        if(err != kNoErr){
+            goto error;
+        }
+    }
+    if(bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
+    {
+        bk_bt_gap_set_event_callback(bt_at_event_cb);
+
+        err = get_addr_from_param(&a2dp_env.peer_addr, argv[0]);
+
+        if(err) goto error;
+        if(!a2dp_env.inited)
+        {
+            bk_bt_a2dp_source_init((void *)&bt_a2dp_source_cb);
+            a2dp_env.inited = 1;
+        }
+
+        if(a2dp_env.conn_state != BK_A2DP_CONNECTION_STATE_DISCONNECTED)
+        {
+            os_printf("With remote device is not idle, please disconnect first\n");
+            goto error;
+        }
+
+//        a2dp_env.conn_state = STATE_CONNECTING;
+
+        bk_bt_connect(&(a2dp_env.peer_addr.addr[0]),
+                        CONNECTION_PACKET_TYPE,
+                        CONNECTION_PAGE_SCAN_REPETITIOIN_MODE,
+                        0,
+                        CONNECTION_CLOCK_OFFSET,
+                        1,
+                        bt_at_cmd_cb);
+
+        if(bt_at_cmd_sema == NULL) goto error;
+
+        err = rtos_get_semaphore(&bt_at_cmd_sema, 12 * 1000);
+
+        if(err != kNoErr) goto error;
+
+        if(at_cmd_status == 0x00)
+        {
+//            a2dp_env.conn_state = STATE_CONNECTED;
+            a2dp_env.conn_handle = conn_handle;
+        }
+
+//        bk_bt_sdp(a2dp_env.conn_handle, &(a2dp_env.peer_addr.addr[0]), bt_at_cmd_cb);
+//
+//        err = rtos_get_semaphore(&bt_at_cmd_sema, 60 * 1000);
+//
+//        if(err != kNoErr) goto error;
+//
+//        if(!at_cmd_status) goto error;
+
+        err = bk_bt_a2dp_source_connect(&(a2dp_env.peer_addr));
+
+        if(err)
+        {
+            bk_printf("%s connect a2dp err %d\n", __func__, err);
+            goto error;
+        }
+
+        err = rtos_get_semaphore(&bt_at_cmd_sema, 6 * 1000);
+
+        if(!err)
+        {
+//            spp_env.conn_state = STATE_PROFILE_CONNECTED;
+            msg = AT_CMD_RSP_SUCCEED;
+            os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+            if (bt_at_cmd_sema != NULL)
+                rtos_deinit_semaphore(&bt_at_cmd_sema);
+            return err;
+        }
+        else
+        {
+            goto error;
+        }
+    }
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+//    os_memset(&spp_env, 0, sizeof(spp_env_s));
+    if (bt_at_cmd_sema != NULL)
+        rtos_deinit_semaphore(&bt_at_cmd_sema);
+    return err;
+}
+
+static int bt_enable_a2dp_source_disconnect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    PRINT_FUNC;
+    char *msg;
+    int err = kNoErr;
+    if (bt_at_cmd_table[16].is_sync_cmd)
+    {
+        err = rtos_init_semaphore(&bt_at_cmd_sema, 1);
+        if(err != kNoErr){
+            goto error;
+        }
+    }
+    if(bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
+    {
+        bk_bt_gap_set_event_callback(bt_at_event_cb);
+
+        err = get_addr_from_param(&a2dp_env.peer_addr, argv[0]);
+
+        if(err) goto error;
+
+        if(a2dp_env.conn_state != BK_A2DP_CONNECTION_STATE_CONNECTED)
+        {
+            os_printf("With remote device is not connected\n");
+            goto error;
+        }
+
+        err = bk_bt_a2dp_source_disconnect(&(a2dp_env.peer_addr));
+
+        if(err)
+        {
+            bk_printf("%s disconnect a2dp err %d\n", __func__, err);
+            goto error;
+        }
+
+        err = rtos_get_semaphore(&bt_at_cmd_sema, 6 * 1000);
+
+        if(err)
+        {
+            bk_printf("%s disconnect a2dp timeout %d\n", __func__, err);
+            goto error;
+        }
+
+        err = bk_bt_disconnect(a2dp_env.peer_addr.addr, DISCONNECT_REASON_REMOTE_USER_TERMINATE, bt_at_cmd_cb);
+
+        if(err)
+        {
+            bk_printf("%s disconnect link err %d\n", __func__, err);
+            goto error;
+        }
+
+        err = rtos_get_semaphore(&bt_at_cmd_sema, 6 * 1000);
+
+        if(!err)
+        {
+//            spp_env.conn_state = STATE_PROFILE_CONNECTED;
+            msg = AT_CMD_RSP_SUCCEED;
+            os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+
+            os_memset(&a2dp_env, 0, sizeof(a2dp_env));
+
+            if (bt_at_cmd_sema != NULL)
+                rtos_deinit_semaphore(&bt_at_cmd_sema);
+            return err;
+        }
+        else
+        {
+            goto error;
+        }
+    }
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+//    os_memset(&spp_env, 0, sizeof(spp_env_s));
+    if (bt_at_cmd_sema != NULL)
+        rtos_deinit_semaphore(&bt_at_cmd_sema);
+    return err;
+}
+
+static int bt_a2dp_source_mic_data_handler(uint8_t *data, unsigned int len)//640
+{
+//    uint8_t sent_threshold = ((CODEC_VOICE_MSBC == bt_audio_hfp_codec) ? SCO_MSBC_SAMPLES_PER_FRAME * 2 : SCO_CVSD_SAMPLES_PER_FRAME * 2);
+    uint32_t sent_threshold = s_sbc_software_encoder_ctx.pcm_length * 2; //pcm_length == 128
+    uint32_t index = 0;
+    int32_t encode_len = 0;
+    bt_err_t ret = 0;
+
+    static uint32_t last_len = 0;
+    //os_printf("[send_mic_data_to_air]  %d \r\n",len);
+    if(((uint32_t)data) % 2)
+    {
+        os_printf("%s err data is not 2 bytes aligned !!!\n", __func__);
+    }
+
+    if(last_len != len)
+    {
+        os_printf("%s len %d\n", __func__, len);
+        last_len = len;
+    }
+
+    if(len > sizeof(mic_sco_data))
+    {
+        os_printf("%s too long %d !\n", __func__, len);
+        return 0;
+    }
+
+    os_memcpy(&mic_sco_data[mic_data_count], data, len);
+    mic_data_count += len;
+
+    for (uint32_t i = 0; i < mic_data_count / sent_threshold; ++i)
+    {
+        encode_len = sbc_encoder_encode(&s_sbc_software_encoder_ctx, (const int16_t *)(mic_sco_data + i * sent_threshold));
+        if(encode_len < 0)
+        {
+            os_printf("%s encode err %d\n", __func__, encode_len);
+            mic_data_count = 0;
+            return 0;
+        }
+
+        ret = bk_bt_a2dp_source_write(&(a2dp_env.peer_addr), 1, s_sbc_software_encoder_ctx.stream, encode_len);
+
+        if(ret)
+        {
+            os_printf("%s bk_bt_a2dp_source_write err %d\n", __func__, ret);
+        }
+
+    }
+
+    os_memmove(mic_sco_data, &mic_sco_data[(mic_data_count / sent_threshold) * sent_threshold], mic_data_count % sent_threshold);
+
+    mic_data_count = mic_data_count % sent_threshold;
+
+    return 0;
+
+    while (mic_data_count >= sent_threshold)
+    {
+        encode_len = sbc_encoder_encode(&s_sbc_software_encoder_ctx, (const int16_t *)(mic_sco_data + index));
+        if(encode_len < 0)
+        {
+            os_printf("%s encode err %d\n", __func__, encode_len);
+            mic_data_count = 0;
+            return 0;
+        }
+
+        mic_data_count -= sent_threshold;
+        index += sent_threshold;
+
+
+        ret = bk_bt_a2dp_source_write(&(a2dp_env.peer_addr), 1, s_sbc_software_encoder_ctx.stream, encode_len);
+
+        if(ret)
+        {
+            os_printf("%s bk_bt_a2dp_source_write err %d\n", __func__, ret);
+        }
+
+    }
+
+
+    os_memmove(mic_sco_data, &mic_sco_data[sent_threshold], mic_data_count);
+
+    return len;
+}
+
+static int32_t bt_a2dp_source_prepare_sbc_encoder(void)
+{
+    bk_err_t ret = BK_OK;
+
+    os_printf("%s\n", __func__);
+
+    memset(&s_sbc_software_encoder_ctx, 0, sizeof(s_sbc_software_encoder_ctx));
+
+    sbc_encoder_init(&s_sbc_software_encoder_ctx, s_a2dp_cap_info.sbc_codec.sample_rate, 1);
+
+    uint8_t alloc_mode = 0;
+
+    switch (s_a2dp_cap_info.sbc_codec.alloc_mode)
+    {
+    case 2://A2DP_SBC_ALLOCATION_METHOD_SNR:
+        alloc_mode = 1;
+        break;
+
+    default:
+    case 1://A2DP_SBC_ALLOCATION_METHOD_LOUDNESS:
+        alloc_mode = 0;
+        break;
+    }
+
+    ret = sbc_encoder_ctrl(&s_sbc_software_encoder_ctx, SBC_ENCODER_CTRL_CMD_SET_ALLOCATION_METHOD, alloc_mode); //0:loundness, 1:SNR
+
+    if (ret != SBC_ENCODER_ERROR_OK)
+    {
+        os_printf("%s SBC_ENCODER_CTRL_CMD_SET_ALLOCATION_METHOD err %d\n", __func__, ret);
+        return ret;
+    }
+
+    ret = sbc_encoder_ctrl(&s_sbc_software_encoder_ctx, SBC_ENCODER_CTRL_CMD_SET_BITPOOL, s_a2dp_cap_info.sbc_codec.bit_pool);
+
+    if (ret != SBC_ENCODER_ERROR_OK)
+    {
+        os_printf("%s SBC_ENCODER_CTRL_CMD_SET_BITPOOL err %d\n", __func__, ret);
+        return ret;
+    }
+
+
+    uint8_t block_mode = 3;
+
+    switch (s_a2dp_cap_info.sbc_codec.block_len)
+    {
+    case 4://A2DP_SBC_BLOCK_LENGTH_4:
+        block_mode = 0;
+        break;
+
+    case 8://A2DP_SBC_BLOCK_LENGTH_8:
+        block_mode = 1;
+        break;
+
+    case 12://A2DP_SBC_BLOCK_LENGTH_12:
+        block_mode = 2;
+        break;
+
+    default:
+    case 16://A2DP_SBC_BLOCK_LENGTH_16:
+        block_mode = 3;
+        break;
+    }
+
+    ret = sbc_encoder_ctrl(&s_sbc_software_encoder_ctx, SBC_ENCODER_CTRL_CMD_SET_BLOCK_MODE, block_mode); //0:4, 1:8, 2:12, 3:16
+
+    if (ret != SBC_ENCODER_ERROR_OK)
+    {
+        os_printf("%s SBC_ENCODER_CTRL_CMD_SET_BLOCK_MODE err %d\n", __func__, ret);
+        return ret;
+    }
+
+    uint8_t channle_mode = 3;
+
+    switch (s_a2dp_cap_info.sbc_codec.channel_mode)
+    {
+    case 8:
+        channle_mode = 0;
+        break;
+
+    case 4:
+        channle_mode = 1;
+        break;
+
+    case 2:
+        channle_mode = 2;
+        break;
+
+    default:
+    case 1:
+        channle_mode = 3;
+        break;
+    }
+
+    ret = sbc_encoder_ctrl(&s_sbc_software_encoder_ctx, SBC_ENCODER_CTRL_CMD_SET_CHANNEL_MODE, channle_mode); //0:MONO, 1:DUAL, 2:STEREO, 3:JOINT STEREO
+
+    if (ret != SBC_ENCODER_ERROR_OK)
+    {
+        os_printf("%s SBC_ENCODER_CTRL_CMD_SET_CHANNEL_MODE err %d\n", __func__, ret);
+        return ret;
+    }
+
+    uint8_t samp_rate_select = 2;
+
+    switch (s_a2dp_cap_info.sbc_codec.sample_rate)
+    {
+    case 16000:
+        samp_rate_select = 0;
+        break;
+
+    case 32000:
+        samp_rate_select = 1;
+        break;
+
+    default:
+    case 44100:
+        samp_rate_select = 2;
+        break;
+
+    case 48000:
+        samp_rate_select = 3;
+        break;
+    }
+
+    ret = sbc_encoder_ctrl(&s_sbc_software_encoder_ctx, SBC_ENCODER_CTRL_CMD_SET_SAMPLE_RATE_INDEX, samp_rate_select); //0:16000, 1:32000, 2:44100, 3:48000
+
+    if (ret != SBC_ENCODER_ERROR_OK)
+    {
+        os_printf("%s SBC_ENCODER_CTRL_CMD_SET_SAMPLE_RATE_INDEX err %d\n", __func__, ret);
+        return ret;
+    }
+
+
+    uint8_t subband = 1;
+
+    switch (s_a2dp_cap_info.sbc_codec.subbands)
+    {
+    case 4:
+        subband = 0;
+        break;
+
+    default:
+    case 8:
+        subband = 1;
+        break;
+    }
+
+    ret = sbc_encoder_ctrl(&s_sbc_software_encoder_ctx, SBC_ENCODER_CTRL_CMD_SET_SUBBAND_MODE, subband); //0:4, 1:8
+
+    if (ret != SBC_ENCODER_ERROR_OK)
+    {
+        os_printf("%s SBC_ENCODER_CTRL_CMD_SET_SUBBAND_MODE err %d\n", __func__, ret);
+        return ret;
+    }
+
+
+    os_printf("%s sbc encode count %d\n", __func__, s_sbc_software_encoder_ctx.pcm_length);
+
+    return 0;
+}
+
+
+static int32_t bt_a2dp_source_start_voc(void)
+{
+    bk_err_t ret = BK_OK;
+
+    os_printf("%s\n", __func__);
+
+    os_printf("%s TODO: most sound box a2dp support neither mono channel nor 16 kHZ !!!\n", __func__);
+    aud_intf_drv_setup_t aud_intf_drv_setup;
+    aud_intf_work_mode_t aud_work_mode = 0;
+    aud_intf_voc_setup_t aud_voc_setup;
+
+    memset(&aud_intf_drv_setup, 0, sizeof(aud_intf_drv_setup));
+    memset(&aud_voc_setup, 0, sizeof(aud_voc_setup));
+
+    aud_intf_drv_setup.work_mode = AUD_INTF_WORK_MODE_NULL;
+    aud_intf_drv_setup.task_config.priority = 3;
+    aud_intf_drv_setup.aud_intf_rx_spk_data = NULL;
+    aud_intf_drv_setup.aud_intf_tx_mic_data = bt_a2dp_source_mic_data_handler;
+
+    ret = bk_aud_intf_drv_init(&aud_intf_drv_setup);
+
+    if (ret != BK_ERR_AUD_INTF_OK)
+    {
+        os_printf("%s bk_aud_intf_drv_init fail, ret:%d\n", __func__, ret);
+        return ret;
+    }
+    else
+    {
+        os_printf("%s bk_aud_intf_drv_init complete\n", __func__);
+    }
+
+    aud_work_mode = AUD_INTF_WORK_MODE_VOICE;
+
+    ret = bk_aud_intf_set_mode(aud_work_mode);
+
+    if (ret != BK_ERR_AUD_INTF_OK)
+    {
+        os_printf("%s bk_aud_intf_set_mode fail, ret:%d\n", __func__, ret);
+        return ret;
+    }
+    else
+    {
+        os_printf("%s bk_aud_intf_set_mode complete\n", __func__);
+    }
+
+    aud_voc_setup.aec_enable = true;
+    aud_voc_setup.samp_rate = AUD_INTF_VOC_SAMP_RATE_16K;
+    aud_voc_setup.data_type = AUD_INTF_VOC_DATA_TYPE_PCM;
+    aud_voc_setup.spk_mode = AUD_DAC_WORK_MODE_SIGNAL_END; //AUD_DAC_WORK_MODE_DIFFEN;
+    aud_voc_setup.mic_type = AUD_INTF_MIC_TYPE_BOARD;
+    aud_voc_setup.mic_gain = 0x2d;
+    aud_voc_setup.spk_gain = 0x2d;
+    aud_voc_setup.aec_cfg.ec_depth = 20;
+    aud_voc_setup.aec_cfg.TxRxThr = 30;
+    aud_voc_setup.aec_cfg.TxRxFlr = 6;
+    aud_voc_setup.aec_cfg.ns_level = 2;
+    aud_voc_setup.aec_cfg.ns_para = 1;
+
+    ret = bk_aud_intf_voc_init(aud_voc_setup);
+    if (ret != BK_ERR_AUD_INTF_OK)
+    {
+        os_printf("%s bk_aud_intf_voc_init fail, ret:%d\n", __func__, ret);
+        return ret;
+    }
+
+    ret = bk_aud_intf_voc_start();
+    if (ret != BK_ERR_AUD_INTF_OK)
+    {
+        os_printf("%s bk_aud_intf_voc_start fail, ret:%d\n", __func__, ret);
+        return ret;
+    }
+
+    os_printf("%s ok\n", __func__);
+
+    return 0;
+}
+
+
+static int bt_enable_a2dp_source_start_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    PRINT_FUNC;
+    char *msg;
+    int err = kNoErr;
+    if (bt_at_cmd_table[17].is_sync_cmd)
+    {
+        err = rtos_init_semaphore(&bt_at_cmd_sema, 1);
+        if(err != kNoErr){
+            goto error;
+        }
+    }
+    if(bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
+    {
+        err = get_addr_from_param(&a2dp_env.peer_addr, argv[0]);
+
+        if(err) goto error;
+
+        if(a2dp_env.conn_state != BK_A2DP_CONNECTION_STATE_CONNECTED)
+        {
+            os_printf("With remote device is not connected\n");
+            goto error;
+        }
+
+        if(a2dp_env.start_status != 0)
+        {
+            os_printf("is already start\n");
+            goto error;
+        }
+
+        err = bk_bt_a2dp_source_start(&(a2dp_env.peer_addr));
+
+        if(err)
+        {
+            bk_printf("%s start err %d\n", __func__, err);
+            goto error;
+        }
+
+        err = rtos_get_semaphore(&bt_at_cmd_sema, 6 * 1000);
+        if(!err)
+        {
+//            spp_env.conn_state = STATE_PROFILE_CONNECTED;
+            msg = AT_CMD_RSP_SUCCEED;
+            os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+            if (bt_at_cmd_sema != NULL)
+                rtos_deinit_semaphore(&bt_at_cmd_sema);
+            return err;
+        }
+        else
+        {
+            goto error;
+        }
+    }
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+//    os_memset(&spp_env, 0, sizeof(spp_env_s));
+    if (bt_at_cmd_sema != NULL)
+        rtos_deinit_semaphore(&bt_at_cmd_sema);
+    return err;
+}
+
+
+static int bt_enable_a2dp_source_suspend_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    PRINT_FUNC;
+    char *msg;
+    int err = kNoErr;
+    if (bt_at_cmd_table[18].is_sync_cmd)
+    {
+        err = rtos_init_semaphore(&bt_at_cmd_sema, 1);
+        if(err != kNoErr){
+            goto error;
+        }
+    }
+    if(bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
+    {
+        err = get_addr_from_param(&a2dp_env.peer_addr, argv[0]);
+
+        if(err) goto error;
+
+        if(a2dp_env.conn_state != BK_A2DP_CONNECTION_STATE_CONNECTED)
+        {
+            os_printf("With remote device is not connected\n");
+            goto error;
+        }
+
+        if(a2dp_env.start_status == 0)
+        {
+            os_printf("is already suspend\n");
+            goto error;
+        }
+
+        err = bk_bt_a2dp_source_suspend(&(a2dp_env.peer_addr));
+
+        if(err)
+        {
+            bk_printf("%s suspend err %d\n", __func__, err);
+            goto error;
+        }
+
+        err = rtos_get_semaphore(&bt_at_cmd_sema, 6 * 1000);
+        if(!err)
+        {
+            msg = AT_CMD_RSP_SUCCEED;
+            os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+            if (bt_at_cmd_sema != NULL)
+                rtos_deinit_semaphore(&bt_at_cmd_sema);
+            return err;
+        }
+        else
+        {
+            goto error;
+        }
+    }
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    if (bt_at_cmd_sema != NULL)
+        rtos_deinit_semaphore(&bt_at_cmd_sema);
+    return err;
+}
+
+static void bt_a2dp_set_get_sample_clean(void)
+{
+    s_last_get_sample_time = 0;
+    s_remain_send_sample_count = 0;
+    s_remain_send_sample_miss_num = 0;
+}
+
+static int bt_enable_a2dp_source_stop_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    PRINT_FUNC;
+    char *msg;
+    int err = kNoErr;
+    bt_a2dp_source_msg_t a2dp_msg;
+    if (bt_at_cmd_table[20].is_sync_cmd)
+    {
+        err = rtos_init_semaphore(&bt_at_cmd_sema, 1);
+        if(err != kNoErr){
+            goto error;
+        }
+    }
+    if(bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
+    {
+        int rc = -1;
+
+        a2dp_msg.len = 0;
+        a2dp_msg.type = BT_A2DP_SOURCE_STOP_MSG;
+        a2dp_env.play_status = 0;
+
+        rc = rtos_push_to_queue(&bt_a2dp_source_msg_que, &a2dp_msg, BEKEN_NO_WAIT);
+        if (kNoErr != rc)
+        {
+            os_printf("%s, send queue failed\r\n",__func__);
+            goto error;
+        }
+
+        msg = AT_CMD_RSP_SUCCEED;
+        os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+        if (bt_at_cmd_sema != NULL)
+            rtos_deinit_semaphore(&bt_at_cmd_sema);
+        return err;
+
+    }
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    if (bt_at_cmd_sema != NULL)
+        rtos_deinit_semaphore(&bt_at_cmd_sema);
+    return err;
+}
+
+#if CONFIG_FATFS
+static void bt_a2dp_source_write_from_file_timer_hdl(void *param)
+{
+    FRESULT fr;
+    static uint32_t offset = 0;
+    unsigned int read_len = 0;
+    FIL *pcm_file_fd = (typeof(pcm_file_fd))param;
+    int32_t encode_len = 0;
+    bt_err_t ret = 0;
+    uint8_t *tmp_buf = NULL;
+    uint32_t encode_index = 0;
+
+    uint32_t sent_threshold = s_sbc_software_encoder_ctx.pcm_length * 2 *
+            s_sbc_software_encoder_ctx.num_channels; //pcm_length == 128 when 16 block 8 subband 1 channel
+    //s_sbc_software_encoder_ctx.frame.blocks * s_sbc_software_encoder_ctx.frame.subbands == s_sbc_software_encoder_ctx.pcm_length;
+
+    tmp_buf = os_malloc(A2DP_SOURCE_SBC_FRAME_COUNT * 128); //max 128
+
+    if(!tmp_buf)
+    {
+        os_printf("%s malloc err\n", __func__);
+        return;
+    }
+
+    for (uint32_t i = 0; i < A2DP_SOURCE_SBC_FRAME_COUNT; ++i)
+    {
+        fr = f_read(pcm_file_fd, (void *)(mic_sco_data + offset), sent_threshold, &read_len);
+        if (fr != FR_OK)
+        {
+            os_printf("%s read fail %d\n", __func__, fr);
+            os_free(tmp_buf);
+            return;
+        }
+
+        if(read_len < sent_threshold)
+        {
+            os_printf("%s read len %d < %d !!\n", __func__, read_len, sent_threshold);
+
+            if(read_len == 0)
+            {
+                os_printf("%s read file end !!\n", __func__, read_len, sent_threshold);
+                os_free(tmp_buf);
+                rtos_stop_timer(&bt_a2dp_source_write_timer);
+                return;
+            }
+
+            memset(mic_sco_data + read_len, 0, sent_threshold - read_len);
+        }
+
+        encode_len = sbc_encoder_encode(&s_sbc_software_encoder_ctx, (const int16_t *)(mic_sco_data));
+        if(encode_len < 0)
+        {
+           os_printf("%s encode err %d\n", __func__, encode_len);
+           os_free(tmp_buf);
+           return;
+        }
+
+        if(encode_index + encode_len > A2DP_SOURCE_SBC_FRAME_COUNT * 128)
+        {
+            os_printf("%s encode data large than malloc !! %d\n", __func__, encode_len);
+            os_free(tmp_buf);
+            return;
+
+        }
+        memcpy(tmp_buf + encode_index, s_sbc_software_encoder_ctx.stream, encode_len);
+        encode_index += encode_len;
+
+    }
+
+    ret = bk_bt_a2dp_source_write(&(a2dp_env.peer_addr), A2DP_SOURCE_SBC_FRAME_COUNT, tmp_buf, encode_index);
+
+    if(ret)
+    {
+        os_printf("%s bk_bt_a2dp_source_write err %d\n", __func__, ret);
+    }
+
+    os_free(tmp_buf);
+}
+#endif
+
+#if CONFIG_FATFS
+static void bt_a2dp_source_write_from_file_timer_auto_hdl(void *param)
+{
+    bt_a2dp_source_msg_t msg;
+    int rc = -1;
+
+    if (bt_a2dp_source_msg_que == NULL)
+        return;
+
+    msg.len = sizeof(FIL *);
+    msg.data = param;
+
+    msg.type = BT_A2DP_SOURCE_START_MSG;
+
+    if(a2dp_env.play_status == 1)
+    {
+        rc = rtos_push_to_queue(&bt_a2dp_source_msg_que, &msg, BEKEN_NO_WAIT);
+        if (kNoErr != rc)
+        {
+            os_printf("%s, send queue failed\r\n",__func__);
+        }
+    }
+}
+
+#endif
+#if CONFIG_FATFS
+void bt_a2dp_source_write_from_file(FIL *fd)
+{
+
+    unsigned int read_len = 0;
+    static uint32_t read_len_all = 0;
+    FIL *pcm_file_fd = fd;
+    FRESULT fr;
+    int32_t encode_len = 0;
+    bt_err_t ret = 0;
+    uint8_t *tmp_buf = NULL;
+    uint32_t encode_index = 0;
+
+
+    //    beken_time_t last_time = s_last_get_sample_time;
+    beken_time_t cur_time = rtos_get_time();
+    beken_time_t will_send_period_time = 0;
+
+
+    uint32_t will_send_frame_count = 0;
+//    uint32_t sample_count = 0, sample_miss_num = 0;
+
+
+    //s_sbc_software_encoder_ctx.frame.blocks * s_sbc_software_encoder_ctx.frame.subbands == s_sbc_software_encoder_ctx.pcm_length;
+    //pcm_length == 128 when 16 block 8 subband
+    uint32_t one_pcm_frame_encode_sample_count_per_channel = s_sbc_software_encoder_ctx.pcm_length;
+    uint32_t one_pcm_frame_encode_sample_bytes = one_pcm_frame_encode_sample_count_per_channel * 2 * s_sbc_software_encoder_ctx.num_channels;
+    const uint32_t send_sbc_frame_count = 2;// A2DP_SOURCE_SBC_FRAME_COUNT;
+    const uint32_t ignore_max_mtu = 0;
+
+    uint32_t i = 0, j = 0;
+
+    if (s_last_get_sample_time == 0)
+    {
+        will_send_period_time = A2DP_SOURCE_WRITE_AUTO_TIMER_MS;//first
+    }
+    else
+    {
+        will_send_period_time = cur_time - s_last_get_sample_time;
+    }
+
+    s_remain_send_sample_count += will_send_period_time * s_sbc_software_encoder_ctx.sample_rate / 1000;
+    s_remain_send_sample_miss_num += will_send_period_time * s_sbc_software_encoder_ctx.sample_rate % 1000;
+
+    s_remain_send_sample_count += s_remain_send_sample_miss_num / 1000;
+    s_remain_send_sample_miss_num = s_remain_send_sample_miss_num % 1000;
+
+    s_last_get_sample_time = cur_time;
+
+    if(!s_remain_send_sample_count)
+    {
+        return;
+    }
+    else if (s_remain_send_sample_count < one_pcm_frame_encode_sample_count_per_channel)
+    {
+        if (will_send_period_time * s_sbc_software_encoder_ctx.sample_rate / 1000 <
+                send_sbc_frame_count * one_pcm_frame_encode_sample_count_per_channel)
+        {
+            return;
+        }
+    }
+    else if (s_remain_send_sample_count >= one_pcm_frame_encode_sample_count_per_channel &&
+            s_remain_send_sample_count < one_pcm_frame_encode_sample_count_per_channel * send_sbc_frame_count)
+    {
+        if (0)//will_send_period_time * s_sbc_software_encoder_ctx.sample_rate / 1000 < send_sbc_frame_count * one_pcm_frame_encode_sample_count_per_channel)
+        {
+            return;
+        }
+    }
+
+
+    will_send_frame_count = ((s_remain_send_sample_count / one_pcm_frame_encode_sample_count_per_channel > 1) ?
+            (s_remain_send_sample_count / one_pcm_frame_encode_sample_count_per_channel) : 1);
+
+//    if(will_send_frame_count > A2DP_SOURCE_SBC_FRAME_COUNT)
+//    {
+//        will_send_frame_count = A2DP_SOURCE_SBC_FRAME_COUNT;
+//    }
+
+    if(will_send_frame_count > 100)
+    {
+        os_printf("%s\n", __func__);
+    }
+
+    if(!will_send_frame_count)
+    {
+        os_printf("%s 0\n", __func__);
+    }
+
+    //printf("%s will_send_frame_count %d \n", __func__, will_send_frame_count);
+
+    tmp_buf = os_malloc(will_send_frame_count * 128); //max 128
+
+    if(tmp_buf == NULL)
+    {
+        os_printf("%s tmp_buf no buffer malloc\n", __func__);
+        bt_a2dp_set_get_sample_clean();
+        return;
+    }
+    do
+    {
+//        for (; i < will_send_frame_count; ++i)
+        for(i = 0; ( ignore_max_mtu || encode_index + encode_len <= a2dp_env.mtu) && i + j < will_send_frame_count; ++i)
+        {
+            fr = f_read(pcm_file_fd, (void *)(mic_sco_data), one_pcm_frame_encode_sample_bytes, &read_len);
+//            read_len = fread((mic_sco_data), 1, one_pcm_frame_encode_sample_bytes, pcm_file_fd);
+
+            if (fr != FR_OK)
+            {
+                os_printf("%s read fail %d\n", __func__, fr);
+                os_free(tmp_buf);
+                return;
+            }
+
+            read_len_all += read_len;
+
+            if (read_len < one_pcm_frame_encode_sample_bytes)
+            {
+                os_printf("%s read len %d < %d!!\n", __func__, read_len, one_pcm_frame_encode_sample_bytes);
+
+
+                if (read_len == 0)
+                {
+                    os_printf("%s read file end %d %d !!\n", __func__, read_len, one_pcm_frame_encode_sample_bytes);
+                    os_free(tmp_buf);
+
+//                    fclose(pcm_file_fd);
+//                    *(FILE **)param = NULL;
+                    rtos_stop_timer(&bt_a2dp_source_write_timer);
+                    bt_a2dp_set_get_sample_clean();
+                    a2dp_env.play_status = 0;
+
+
+                    if(1) //repeat
+                    {
+                        fr = f_lseek(pcm_file_fd, 0);
+                        if (fr != FR_OK)
+                        {
+                            os_printf("%s f_lseek fail.\n", __func__);
+                            f_close(pcm_file_fd);
+                            memset(pcm_file_fd, 0, sizeof(*pcm_file_fd));
+                            return;
+                        }
+
+                        rtos_start_timer(&bt_a2dp_source_write_timer);
+                        a2dp_env.play_status = 1;
+                    }
+                    else
+                    {
+                        f_close(pcm_file_fd);
+                        memset(pcm_file_fd, 0, sizeof(*pcm_file_fd));
+                    }
+
+                    return;
+                }
+
+                memset(mic_sco_data + read_len, 0, one_pcm_frame_encode_sample_bytes - read_len);
+            }
+
+            encode_len = sbc_encoder_encode(&s_sbc_software_encoder_ctx, (const int16_t *)(mic_sco_data));
+
+            if (encode_len < 0)
+            {
+                os_printf("%s encode err %d\n", __func__, encode_len);
+                os_free(tmp_buf);
+                return;
+            }
+
+            if (encode_index + encode_len > will_send_frame_count * 128)
+            {
+                os_printf("%s encode data large than malloc !! %d\n", __func__, encode_len);
+                os_free(tmp_buf);
+                return;
+            }
+
+            memcpy(tmp_buf + encode_index, s_sbc_software_encoder_ctx.stream, encode_len);
+            encode_index += encode_len;
+        }
+//        while(encode_index + encode_len <= a2dp_env.mtu && i < will_send_frame_count);
+
+        ret = bk_bt_a2dp_source_write(&(a2dp_env.peer_addr), i, tmp_buf, encode_index);
+
+
+        if (encode_index > 10000 || i > 5)
+        {
+            os_printf("%s encode_index %d i %d\n", __func__, encode_index, i);
+        }
+
+        if (ret)
+        {
+            os_printf("%s bk_bt_a2dp_source_write err %d\n", __func__, ret);
+        }
+
+        encode_index = 0;
+        j += i;
+    }
+    while(j < will_send_frame_count);
+
+    if(s_remain_send_sample_count < j * one_pcm_frame_encode_sample_count_per_channel)
+    {
+        s_remain_send_sample_count = 0;
+    }
+    else
+    {
+        s_remain_send_sample_count -= j * one_pcm_frame_encode_sample_count_per_channel;
+    }
+
+    os_free(tmp_buf);
+
+}
+#endif
+
+void bt_a2dp_source_main(void *arg)
+{
+    while (1) {
+        bk_err_t err;
+        bt_a2dp_source_msg_t msg;
+
+        err = rtos_pop_from_queue(&bt_a2dp_source_msg_que, &msg, BEKEN_WAIT_FOREVER);
+        if (kNoErr == err)
+        {
+            switch (msg.type) {
+#if CONFIG_FATFS
+                case BT_A2DP_SOURCE_START_MSG:
+                {
+                    if(a2dp_env.play_status == 1)
+                        bt_a2dp_source_write_from_file((FIL *)msg.data);
+                }
+                break;
+
+                case BT_A2DP_SOURCE_STOP_MSG:
+                {
+                    f_close(&pcm_file_fd);
+                    memset(&pcm_file_fd, 0, sizeof(pcm_file_fd));
+                    rtos_stop_timer(&bt_a2dp_source_write_timer);
+                    rtos_deinit_timer(&bt_a2dp_source_write_timer);
+                    bt_a2dp_set_get_sample_clean();
+                }
+                break;
+#endif
+            }
+        }
+    }
+
+    rtos_deinit_queue(&bt_a2dp_source_msg_que);
+    bt_a2dp_source_msg_que = NULL;
+    bt_a2dp_source_thread_handle = NULL;
+    rtos_delete_thread(NULL);
+}
+
+int bt_a2dp_source_task_init(void)
+{
+    bk_err_t ret = BK_OK;
+    if ((!bt_a2dp_source_thread_handle) && (!bt_a2dp_source_msg_que))
+    {
+        ret = rtos_init_queue(&bt_a2dp_source_msg_que,
+                              "bt_a2dp_source_msg_que",
+                              sizeof(bt_audio_demo_msg_t),
+                              10);
+        if (ret != kNoErr) {
+            os_printf("bt_audio demo msg queue failed \r\n");
+            return BK_FAIL;
+        }
+
+        ret = rtos_create_thread(&bt_a2dp_source_thread_handle,
+                             BEKEN_DEFAULT_WORKER_PRIORITY,
+                             "bt_a2dp_source",
+                             (beken_thread_function_t)bt_a2dp_source_main,
+                             4096,
+                             (beken_thread_arg_t)0);
+        if (ret != kNoErr) {
+            os_printf("bt_a2dp_source task fail \r\n");
+            rtos_deinit_queue(&bt_a2dp_source_msg_que);
+            bt_a2dp_source_msg_que = NULL;
+            bt_a2dp_source_thread_handle = NULL;
+        }
+
+        return kNoErr;
+    }
+    else
+    {
+        return kInProgressErr;
+    }
+}
+
+#if CONFIG_FATFS
+static int32_t bt_a2dp_source_encode_from_file(uint8_t * path)
+{
+    FRESULT fr;
+    uint32_t inter = (uint32_t)((640 * 1000.0) / (float)s_sbc_software_encoder_ctx.sample_rate);
+
+    char full_path[64] = {0};
+
+    test_mount(1);
+
+    //need s16le dual pcm
+//    sprintf((char *)full_path, "%d:/%s", mount_label, path);
+    sprintf((char *)full_path, "%s", path);
+
+
+    os_printf("%s send interval %d\n", __func__, inter);
+    a2dp_env.play_status = 1;
+
+    bt_a2dp_source_task_init();
+
+    if (rtos_is_timer_init(&bt_a2dp_source_write_timer))
+    {
+        if (rtos_is_timer_running(&bt_a2dp_source_write_timer))
+        {
+            rtos_stop_timer(&bt_a2dp_source_write_timer);
+        }
+
+        rtos_deinit_timer(&bt_a2dp_source_write_timer);
+    }
+
+    if (!rtos_is_timer_init(&bt_a2dp_source_write_timer))
+    {
+//        rtos_init_timer(&bt_a2dp_source_write_timer, inter, bt_a2dp_source_write_from_file_timer_hdl, (void *)&pcm_file_fd);
+        rtos_init_timer(&bt_a2dp_source_write_timer, A2DP_SOURCE_WRITE_AUTO_TIMER_MS, bt_a2dp_source_write_from_file_timer_auto_hdl, (void *)&pcm_file_fd);
+    }
+
+
+    rtos_change_period(&bt_a2dp_source_write_timer, inter);
+
+    if(pcm_file_fd.fs)
+    {
+        f_close(&pcm_file_fd);
+    }
+
+    memset(&pcm_file_fd, 0, sizeof(pcm_file_fd));
+    fr = f_open(&pcm_file_fd, (const char *)full_path, FA_OPEN_EXISTING | FA_READ);
+    if (fr != FR_OK)
+    {
+        os_printf("open %s fail.\n", full_path);
+        return -1;
+    }
+
+    rtos_start_timer(&bt_a2dp_source_write_timer);
+    return 0;
+}
+#endif
+
+static int bt_enable_a2dp_source_write_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+    PRINT_FUNC;
+    char *msg;
+    int err = kNoErr;
+    uint8_t choise = 0;//0 mic 1 file 2 static code
+
+    if (bt_at_cmd_table[19].is_sync_cmd)
+    {
+        err = rtos_init_semaphore(&bt_at_cmd_sema, 1);
+        if(err != kNoErr){
+            goto error;
+        }
+    }
+
+    if(bk_bt_get_host_stack_type() == BK_BT_HOST_STACK_TYPE_ETHERMIND)
+    {
+        err = get_addr_from_param(&a2dp_env.peer_addr, argv[0]);
+        if(err) goto error;
+
+        if(argc >= 2)
+        {
+            if(strcasecmp(argv[1], "mic") == 0)
+            {
+                choise = 0;
+            }
+            else if(strcasecmp(argv[1], "file") == 0)
+            {
+                choise = 1;
+
+                if(argc < 3)
+                {
+                    os_printf("%s please input file path\n", __func__);
+                    goto error;
+                }
+            }
+            else
+            {
+                os_printf("%s unknow case %S\n", __func__, argv[1]);
+                goto error;
+            }
+
+        }
+
+        err = bt_a2dp_source_prepare_sbc_encoder();
+        if(err)
+        {
+            goto error;
+        }
+
+#if 1
+        if(a2dp_env.conn_state != BK_A2DP_CONNECTION_STATE_CONNECTED)
+        {
+            os_printf("With remote device is not connected\n");
+            goto error;
+        }
+
+        if(a2dp_env.start_status == 0)
+        {
+            os_printf("is suspend\n");
+            goto error;
+        }
+#endif
+
+        switch(choise)
+        {
+        case 0:
+            err = bt_a2dp_source_start_voc();
+            break;
+
+#if CONFIG_FATFS
+        case 1:
+            err = bt_a2dp_source_encode_from_file((uint8_t *)argv[2]);
+            break;
+#endif
+        default:
+            break;
+        }
+
+//        err = rtos_get_semaphore(&bt_at_cmd_sema, 60 * 1000);
+        if(!err)
+        {
+            msg = AT_CMD_RSP_SUCCEED;
+            os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+            if (bt_at_cmd_sema != NULL)
+                rtos_deinit_semaphore(&bt_at_cmd_sema);
+            return err;
+        }
+        else
+        {
+            goto error;
+        }
+    }
+
+error:
+    msg = AT_CMD_RSP_ERROR;
+    os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
+    if (bt_at_cmd_sema != NULL)
+        rtos_deinit_semaphore(&bt_at_cmd_sema);
+    return err;
+}
+
+#endif
 #define DO1(buf) crc = crc_table(((int)crc ^ (*buf++)) & 0xff) ^ (crc >> 8);
 #define DO2(buf)  DO1(buf); DO1(buf);
 #define DO4(buf)  DO2(buf); DO2(buf);

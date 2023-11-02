@@ -3,48 +3,39 @@ OTP和eFuse的配置及读写方法
 
 :link_to_translation:`en:[English]`
 
-  OTP和eFuse需要使用配置表（example::download:`config.json<../../../../common/_static/otp_efuse_config.json>`）进行数据配置后，通过BKFIL工具进行读写。
+OTP和eFuse需要使用配置表（example::download:`otp_efuse_config.json<../../../../common/_static/otp_efuse_config.json>`）进行数据配置后，通过BKFIL工具进行读写。
+
+一、配置方法
++++++++++++++++++++++
 
 配置表包含以下配置区域：
- - 系统配置区
+
  - 区域总开关
  - 用户可配置区
  - eFuse配置区
  - 安全控制配置区
  - 安全数据配置区
 
-系统配置
-+++++++++++++++++++++
-
-进行系统信息配置，该区域不需要用户配置。
-
-   ::
-
-    "eFuse_totle_size":       "0x20",
-    "eFuse_VDD_BIT":          "0x1F",
-    "eFuse_vdd_addr":         "0x44880000",
-    "eFuse_driver_base_addr": "0x44880000",
-    "OTP_base_addr":          "0x4B00800C",
 
 区域总开关
-+++++++++++++++++++++
+---------------------
 
 配置表中包含四个区域总开关，分别控制用户可操作区域、Efuse区域、安全控制区域、安全数据区域的开关，用户根据操作需要进行配置，开关定义见下表：
 
    ::
 
-    "User_Operate_Status":  "true",      #定义“用户可配置区域” 为true，即表示后面配置相应”用户可配置区域”均会执行，如果此处为false，即表示后面配置”用户可配置的区域”均不会执行；
-    "Efuse_Status":         "false",     #定义“Efuse区域” 为true，即表示后面配置“Efuse区域”均会执行，如果此处为false，即表示后面配置”Efuse区域”均不会执行；
-    "Security_ctrl_Status": "false",     #定义“安全控制区域” 为true，即表示后面配置”安全控制区域”均会执行，如果此处为false，即表示后面配置”安全控制区域”均不会执行；
-    "Security_data_Status": "false",     #定义“安全数据区域” 为true，即表示后面配置”安全数据区域”均会执行，如果此处为false，即表示后面配置”安全数据区域”均不会执行；
+    "User_Operate_Enable":  "true",      #定义“用户可配置区域” 为true，即表示后面配置相应”用户可配置区域”均会执行，如果此处为false，即表示后面配置”用户可配置的区域”均不会执行；
+    "Efuse_Enable":         "false",     #定义“Efuse区域” 为true，即表示后面配置“Efuse区域”均会执行，如果此处为false，即表示后面配置”Efuse区域”均不会执行；
+    "Security_ctrl_Enable": "false",     #定义“安全控制区域” 为true，即表示后面配置”安全控制区域”均会执行，如果此处为false，即表示后面配置”安全控制区域”均不会执行；
+    "Security_data_Enable": "false",     #定义“安全数据区域” 为true，即表示后面配置”安全数据区域”均会执行，如果此处为false，即表示后面配置”安全数据区域”均不会执行；
 
 用户可配置区参数说明
-+++++++++++++++++++++++++
+---------------------
 
-  用户可配置的区域，当User_Operate_Status设置为true时该配置区域生效。按照以下格式，根据需求配置实现OTP读写操作，可多项配置对多个地址段进行读写。
+  用户可配置的区域，当User_Operate_Status设置为true时该配置区域生效。按照以下格式，根据需求配置实现OTP bank0读写操作，可多项配置对多个地址段进行读写。
 
 .. important::
-    - OTP的bank0供用户自由分配，地址范围为0x4B004000--0x4B0047FF，start_addr+byte_len应该小于0x4B0047FF;当在APP中读取OTP时，对应的地址范围为0x0--0x47FF。
+    - OTP的bank0供用户自由分配，地址范围为0x4B004000--0x4B0047FF，start_addr+byte_len应该小于0x4B0047FF;当在APP中读取OTP时，对应的地址范围为0x0--0x7FF。
     - 读写OTP时，name应包含otp_前缀，写入区域不能够重叠。
 
 数据格式如下：
@@ -99,7 +90,7 @@ example：
     ],
 
 eFuse配置区参数说明
-+++++++++++++++++++++++++
+---------------------
 
 用于系统信息配置，默认值为0，该区域不需要用户配置。当Efuse_Status设置为true时该配置区域生效，数据格式如下：
 
@@ -149,7 +140,7 @@ example：
     ],
 
 安全控制配置区参数说明
-+++++++++++++++++++++++++
+-------------------------
 
 用于安全控制信息的配置，默认值为0。用户有安全需求时，需根据安全需求进行配置。当Security_ctrl_Status设置为true时该配置区域生效，数据格式如下：
 
@@ -171,7 +162,7 @@ example：
     - security_boot和enEncryptWord位配置生效前必须先配置安全数据配置区和烧写支持安全的bin镜像。
 
 安全数据配置区参数说明
-+++++++++++++++++++++++++
+-------------------------
 
 用于安全密钥等关键数据的配置，包含验签的公钥、flash加密的密钥、OTA解密的密钥等。当Security_data_Status设置为true时该配置区域生效，数据格式如下：
 
@@ -298,3 +289,53 @@ example：
             "status":            "false"
         }
     ]
+
+二、读写步骤
++++++++++++++++++++++
+ - 1.BKFIL工具选择配置界面
+ - 2.勾选"OTP"或者"烧录eFuse"选项
+ - 3.选择"eFuse密钥"文件选择按钮
+ - 4.选择文件类型为"json file",选择配置好的config.json文件
+ - 5.BKFIL工具选择主界面，点击"烧录"按钮
+
+.. figure:: ../../../../common/_static/BKFIL_RW_OTP&eFuse.png
+    :align: center
+    :alt: BKFIL download step
+    :figclass: align-center
+
+    BKFIL读写OTP、eFuse步骤
+
+三、常见问题分析
++++++++++++++++++++++
+
+ - 1. json格式错误
+
+example：
+
+   ::
+
+    "eFuse":
+    [
+        {
+            "name":            "example1",
+            "mode":            "write",
+            "byte_addr":       "0x00",
+            "last_valid_byte": "0x1F",
+            "length":          "0x01",
+            "data":            "0x93",
+            "status":          "false"
+        },
+        {
+            "name":            "example2",
+            "mode":            "read",
+            "byte_addr":       "0x00",
+            "last_valid_byte": "0x1F",
+            "length":          "0x20",
+            "data":            "",
+            "status":          "false"
+        },                                   //Error: 最后一个子节点不应加逗号
+    ],
+
+ - 2. 模块开关未开启
+
+  操作失败时，请检查区域总开关和操作模块的“status”开关是否打开。

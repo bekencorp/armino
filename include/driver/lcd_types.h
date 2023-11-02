@@ -195,6 +195,7 @@ typedef struct
 	data_format_t fg_data_format;  /**< foregound data format */
 	pixel_format_t bg_data_format; /**< background data format */
 	uint8_t flag; /**< background data format */
+	uint8_t blend_rotate;
 }lcd_blend_t;
 
 
@@ -223,6 +224,7 @@ typedef struct
 	uint8_t str_num;
 	font_str_t str[3];
 	font_format_t font_format;
+	uint8_t font_rotate;
 }lcd_font_config_t;
 
 

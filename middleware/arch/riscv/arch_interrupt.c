@@ -11,12 +11,16 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include <sdkconfig.h>
 #include <stdio.h>
 #include "arch_interrupt.h"
 #include "platform.h"
 
 
 #include "BK7256_RegList.h"
+#if CONFIG_FREERTOS_TRACE
+#include "trcRecorder.h"
+#endif
 
 #define INT_NUMBER_MAX              (64)
 #define MACHINE_TIMER_PERIOD        ((2 * CPUFREQ)/5000)          // 0.002 seconds
@@ -95,8 +99,16 @@ void mext_interrupt(void)
 			traceISR_ENTER(irq_source);
 		#endif
 
+		#if (CONFIG_FREERTOS_TRACE)
+			xTraceISRBegin(xGetTraceISRHandle(irq_source));
+		#endif
+
 		/* Do interrupt handler */
 		p_intn_func_handle[irq_source]();
+
+		#if (CONFIG_FREERTOS_TRACE)
+			xTraceISREnd(0);
+		#endif
 
 #if (CONFIG_NEST_INT_TEST)
 		if (irq_source != INT_SRC_UART0 && g_test_nest_count != 0)

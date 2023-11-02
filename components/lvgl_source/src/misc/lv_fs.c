@@ -85,6 +85,7 @@ lv_fs_res_t lv_fs_open(lv_fs_file_t * file_p, const char * path, lv_fs_mode_t mo
     void * file_d = drv->open_cb(drv, real_path, mode);
 
     if(file_d == NULL || file_d == (void *)(-1)) {
+        LV_LOG_WARN("Can't open file (%s): open function not exists", path);
         return LV_FS_RES_UNKNOWN;
     }
 

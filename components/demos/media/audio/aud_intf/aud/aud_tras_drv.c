@@ -3766,15 +3766,17 @@ bk_err_t aud_tras_drv_set_work_mode(aud_intf_work_mode_t mode)
 
 static bk_err_t aud_tras_drv_set_mic_gain(uint8_t value)
 {
+	bk_err_t ret = BK_ERR_AUD_INTF_OK;
 	//CHECK_AUD_TRAS_DRV_MIC_STA();
-	if (aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD || aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+	if (aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD || aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
 		bk_aud_set_adc_gain((uint32_t)value);
-		if (aud_tras_drv_info.aud_tras_drv_com_event_cb)
-			aud_tras_drv_info.aud_tras_drv_com_event_cb(EVENT_AUD_TRAS_COM_SET_MIC_GAIN, BK_ERR_AUD_INTF_OK);
-		return BK_ERR_AUD_INTF_OK;
+		ret = BK_ERR_AUD_INTF_OK;
 	}
+	ret = BK_ERR_AUD_INTF_PARAM;
+	if (aud_tras_drv_info.aud_tras_drv_com_event_cb)
+		aud_tras_drv_info.aud_tras_drv_com_event_cb(EVENT_AUD_TRAS_COM_SET_MIC_GAIN, ret);
 
-	return BK_ERR_AUD_INTF_PARAM;
+	return ret;
 }
 
 #if CONFIG_AUD_TRAS_UAC_SPK_VOL_CTRL_MODE_STOP_UAC_TRAS

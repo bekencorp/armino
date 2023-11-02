@@ -53,7 +53,15 @@ void lv_example_meter(void)
 	lv_vendor_disp_lock();
 
 	lv_disp_set_bg_color(lv_disp_get_default(), lv_color_white());
-	meter = lv_meter_create(lv_scr_act());
+
+	lv_obj_t *bg = lv_img_create(lv_scr_act());
+#if CONFIG_VFS_DEMO_USE_FATFS
+	lv_img_set_src(bg, "/bg.jpg");
+#else
+	lv_img_set_src(bg, "/dir1/bg.jpg");
+#endif
+	
+	meter = lv_meter_create(bg);
 	lv_obj_center(meter);
 	lv_obj_set_size(meter, 200, 200);
 

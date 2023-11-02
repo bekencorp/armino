@@ -15,7 +15,6 @@
 
 #include <common/bk_include.h>
 #include <driver/lcd_qspi_types.h>
-#include "bk_misc.h"
 
 
 #define LCD_QSPI_ST77903_REGISTER_WRITE_COMMAND		0xDE
@@ -26,10 +25,6 @@
 #define LCD_QSPI_ST77903_HFP	(4)
 #define LCD_QSPI_ST77903_HBP	(4)
 
-
-#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
-extern beken_semaphore_t lcd_qspi_semaphore;
-#endif
 
 static const lcd_qspi_init_cmd_t st77903_init_cmds[] = {
 	{0xf0, {0xc3}, 1},
@@ -82,6 +77,7 @@ const lcd_qspi_device_t lcd_qspi_device_st77903 =
 	.ppi = PPI_400X400,
 	.refresh_method = LCD_QSPI_REFRESH_BY_LINE,
 	.reg_write_cmd = LCD_QSPI_ST77903_REGISTER_WRITE_COMMAND,
+	.reg_read_cmd = LCD_QSPI_ST77903_REGISTER_READ_COMMAND,
 	.reg_read_config = {0},
 	.pixel_write_config.cmd = st77903_cmd,
 	.pixel_write_config.cmd_len = sizeof(st77903_cmd),

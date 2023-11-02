@@ -273,6 +273,48 @@ lcd_qspi_device_t *lcd_qspi_devices[] = {
 #endif
 };
 
+static bk_err_t bk_lcd_qspi_reg_data_convert(uint8_t *data, uint32_t data_len)
+{
+	uint32_t data_buffer[data_len];
+	uint8_t i, j, data_tmp1;
+	uint8_t data_tmp2[4];
+
+	bk_qspi_read(data_buffer, data_len * 4);
+	for (i = 0; i < data_len; i++) {
+		for (j = 0; j < 4; j++) {
+			data_tmp1 = (data_buffer[i] >> ((j * 8) + 4)) & 0x1;
+			data_tmp2[j] = (data_tmp1 << 1) | ((data_buffer[i] >> (j * 8)) & 0x1);
+		}
+
+		data[i] = (data_tmp2[0] << 6) | (data_tmp2[1] << 4) | (data_tmp2[2] << 2) | (data_tmp2[3]);
+//		os_printf("reg_data[%d]: 0x%02x\r\n", i, data[i]);
+	}
+
+	return BK_OK;
+}
+
+bk_err_t bk_lcd_qspi_read_data(uint8_t *data, lcd_qspi_device_t *device)
+{
+	qspi_hal_set_cmd_d_h(&s_lcd_qspi.hal, 0);
+	qspi_hal_set_cmd_d_cfg1(&s_lcd_qspi.hal, 0);
+	qspi_hal_set_cmd_d_cfg2(&s_lcd_qspi.hal, 0);
+
+	qspi_hal_set_cmd_d_h(&s_lcd_qspi.hal, (device->reg_read_config.cmd << 16 | device->reg_read_cmd) & 0xFF00FF);
+	qspi_hal_set_cmd_d_cfg1(&s_lcd_qspi.hal, 0x300);
+
+	qspi_hal_set_cmd_d_data_line(&s_lcd_qspi.hal, 2);
+	qspi_hal_set_cmd_d_data_length(&s_lcd_qspi.hal, device->reg_read_config.data_len * 4);
+	qspi_hal_set_cmd_d_dummy_clock(&s_lcd_qspi.hal, device->reg_read_config.dummy_clk);
+	qspi_hal_set_cmd_d_dummy_mode(&s_lcd_qspi.hal, device->reg_read_config.dummy_mode);
+
+	qspi_hal_cmd_d_start(&s_lcd_qspi.hal);
+	qspi_hal_wait_cmd_done(&s_lcd_qspi.hal);
+
+	bk_lcd_qspi_reg_data_convert(data, device->reg_read_config.data_len);
+
+	return BK_OK;
+}
+
 lcd_qspi_device_t *bk_lcd_qspi_get_device_by_name(char *name)
 {
 	uint32_t i, size = sizeof(lcd_qspi_devices) / sizeof(lcd_qspi_device_t *);
@@ -365,7 +407,7 @@ bk_err_t bk_lcd_qspi_deinit(lcd_qspi_device_t *device)
 	return BK_OK;
 }
 
-bk_err_t bk_lcd_qspi_send_data(lcd_qspi_device_t *device, uint32_t *data, uint8_t data_len)
+bk_err_t bk_lcd_qspi_send_data(lcd_qspi_device_t *device, uint32_t *data, uint32_t data_len)
 {
 	bk_err_t ret = BK_OK;
 

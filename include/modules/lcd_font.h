@@ -82,15 +82,31 @@ typedef struct
 }font_t;
 
 /*======================antialiased 4bpp===============================*/
-#define FONT_ANTI4BPP_ROBOTO_53           1
+#define FONT_ANTI4BPP_ROBOTO_53           1 //Times New Roman
+#define FONT_ANTI4BPP_ROBOTO_96           1
+#define FONT_ANTI4BPP_ROBOTO_120          1
+#define FONT_ANTI4BPP_ROBOTO_140          0
+
 #define FONT_ANTI4BPP_BLACK24             1
 #define FONT_ANTI4BPP_BLACK48             1
 #define FONT_ANTI4BPP_SOURCE_HAN_SANS17   0   /* 思源黑体*/
 #define FONT_ANTI4BPP_SOURCE_HAN_SANS42   0 
+#define FONT_ANTI4BPP_BLACK96             0
+#define FONT_ANTI4BPP_BLACK72             0
 
 #if FONT_ANTI4BPP_ROBOTO_53
 extern const gui_font_digit_struct *const font_digit_Roboto53;
 #endif
+#if FONT_ANTI4BPP_ROBOTO_96
+extern const gui_font_digit_struct *const font_digit_Roboto96;
+#endif
+#if FONT_ANTI4BPP_ROBOTO_120
+extern const gui_font_digit_struct *const font_digit_Roboto120;
+#endif
+#if FONT_ANTI4BPP_ROBOTO_140
+extern const gui_font_digit_struct *const font_digit_Roboto140;
+#endif
+
 #if FONT_ANTI4BPP_SOURCE_HAN_SANS17
 extern const gui_font_digit_struct *const font_digitSource_Han_Sans17;
 #endif
@@ -103,6 +119,13 @@ extern const gui_font_digit_struct *const font_digit_black24;
 #if FONT_ANTI4BPP_BLACK48
 extern const gui_font_digit_struct *const font_digit_black48;
 #endif
+#if FONT_ANTI4BPP_BLACK72
+extern const gui_font_digit_struct *const font_digit_black72;
+#endif
+#if FONT_ANTI4BPP_BLACK96
+extern const gui_font_digit_struct *const font_digit_black96;
+#endif
+
 
 /*======================no antialiased font===============================*/
 #define FONT_NOANTI_NEWSONG42          0

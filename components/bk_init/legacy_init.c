@@ -210,19 +210,6 @@ int legacy_init(void)
 	BK_LOGI(TAG, "armino app init: %s\n", build_version);
     BK_LOGI(TAG, "ARMINO Version: %s\n", ARMINO_TAG_VERSION);
 
-#ifdef LIB_HASH
-    #define HASH_VERSION(soc) soc##_HASH_VERSION
-    #define HASH_VERSION_STR(soc) #soc"_HASH_VERSION"
-    #define PRINTF(soc) BK_LOGI(TAG, HASH_VERSION_STR(soc)" IS : %s\n", HASH_VERSION(soc));
-	#define MEMCMP(soc, lib_hash) memcmp(lib_hash, HASH_VERSION(soc), sizeof(lib_hash))
-    BK_LOGI(TAG, "LIB_HASH: %s\n", LIB_HASH);
-    PRINTF(ARMINO_SOC);
-    if(MEMCMP(ARMINO_SOC, LIB_HASH))
-	{
-        BK_LOGI(TAG, "The current version is not the release version\n");
-	}
-#endif
-
 #ifdef APP_VERSION
 	BK_LOGI(TAG, "APP Version: %s\n", APP_VERSION);
 #endif

@@ -47,6 +47,7 @@ menu "Driver"
 	source "${ARMINO_PATH}/middleware/driver/pwr_clk/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/vault/Kconfig"
 	source "${ARMINO_PATH}/middleware/driver/otp/Kconfig"
+	source "${ARMINO_PATH}/middleware/driver/jpeg_dec/Kconfig"
 
 	config LCD
 		bool "Enable LCD"
@@ -148,10 +149,6 @@ menu "Driver"
 
 	config YUV_BUF
 		bool "Enable yuv_buf"
-		default n
-
-	config JPEG_DEC
-		bool "Enable JPEGDEC Display"
 		default n
 
 	config EFUSE

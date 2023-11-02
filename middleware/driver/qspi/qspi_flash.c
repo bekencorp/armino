@@ -71,6 +71,7 @@ static void bk_qspi_flash_wren(void) {
 	wren_cmd.data_len = 0;
 
 	BK_LOG_ON_ERR(bk_qspi_command(&wren_cmd));
+	bk_qspi_flash_wait_wip_done();
 }
 
 uint32_t bk_qspi_flash_read_s0_s7(void)
@@ -111,7 +112,7 @@ uint32_t bk_qspi_flash_read_s8_s15(void)
 	return status_reg_data;
 }
 
-bk_err_t bk_qspi_flash_write_s0_s7(uint32_t status_reg_data)
+bk_err_t bk_qspi_flash_write_s0_s7(uint8_t status_reg_data)
 {
 	qspi_cmd_t write_status_cmd = {0};
 
@@ -121,16 +122,16 @@ bk_err_t bk_qspi_flash_write_s0_s7(uint32_t status_reg_data)
 	write_status_cmd.work_mode = INDIRECT_MODE;
 	write_status_cmd.op = QSPI_WRITE;
 	write_status_cmd.cmd = (status_reg_data << QSPI_CMD1_LEN) | FLASH_WR_S0_S7_CMD;
-	write_status_cmd.data_len = FLASH_STATUS_REG_SIZE;
+	write_status_cmd.data_len = 0;
 
 	BK_LOG_ON_ERR(bk_qspi_command(&write_status_cmd));
-	QSPI_LOGI("[%s]: status_reg_data to be writen is 0x%x.\n", __func__, (uint8_t)status_reg_data);
+	QSPI_LOGI("[%s]: status_reg_data to be writen is 0x%x.\n", __func__, status_reg_data);
 	bk_qspi_flash_wait_wip_done();
 
 	return BK_OK;
 }
 
-bk_err_t bk_qspi_flash_write_s8_s15(uint32_t status_reg_data)
+bk_err_t bk_qspi_flash_write_s8_s15(uint8_t status_reg_data)
 {
 	qspi_cmd_t write_status_cmd = {0};
 	bk_qspi_flash_wren();
@@ -139,26 +140,48 @@ bk_err_t bk_qspi_flash_write_s8_s15(uint32_t status_reg_data)
 	write_status_cmd.work_mode = INDIRECT_MODE;
 	write_status_cmd.op = QSPI_WRITE;
 	write_status_cmd.cmd = (status_reg_data << QSPI_CMD1_LEN) | FLASH_WR_S8_S15_CMD;
-	write_status_cmd.data_len = FLASH_STATUS_REG_SIZE;
+	write_status_cmd.data_len = 0;
 
 	BK_LOG_ON_ERR(bk_qspi_command(&write_status_cmd));
-	QSPI_LOGI("[%s]: status_reg_data to be writen is 0x%x.\n", __func__, (uint8_t)status_reg_data);
+	QSPI_LOGI("[%s]: status_reg_data to be writen is 0x%x.\n", __func__, status_reg_data);
 	bk_qspi_flash_wait_wip_done();
 
 	return BK_OK;
 }
 
-extern void delay_ms(UINT32 ms_count);
+bk_err_t bk_qspi_flash_write_s0_s15(uint16_t status_reg_data)
+{
+	qspi_cmd_t write_status_cmd = {0};
+
+	bk_qspi_flash_wren();
+	write_status_cmd.device = QSPI_FLASH;
+	write_status_cmd.wire_mode = QSPI_1WIRE;
+	write_status_cmd.work_mode = INDIRECT_MODE;
+	write_status_cmd.op = QSPI_WRITE;
+	write_status_cmd.cmd = (status_reg_data << QSPI_CMD1_LEN) | FLASH_WR_S0_S7_CMD;
+	write_status_cmd.data_len = 0;
+
+	BK_LOG_ON_ERR(bk_qspi_command(&write_status_cmd));
+	QSPI_LOGI("[%s]: status_reg_data to be writen is 0x%x.\n", __func__, status_reg_data);
+	QSPI_LOGI("[%s]: write_status_cmd.cmd is 0x%x.\n", __func__, write_status_cmd.cmd);
+	bk_qspi_flash_wait_wip_done();
+
+	return BK_OK;
+}
+
 static void bk_qspi_flash_wait_wip_done(void)
 {
 	uint32_t status_reg_data = 0;
 
-	for(int i = 0; i < 100; i++) {
+	for(int i = 0; i <= 2000; i++) {
 		status_reg_data = bk_qspi_flash_read_s0_s7();
 		if(0 == (status_reg_data & BIT(0))) {
 			break;
 		}
-		delay_ms(20);
+		if(i == 2000) {
+			QSPI_LOGW("[%s]: wait write_in_progress done timeout.\n", __func__);
+		}
+		rtos_delay_milliseconds(1);
 	}
 }
 
@@ -310,9 +333,15 @@ bk_err_t bk_qspi_flash_read(uint32_t base_addr, void *data, uint32_t size)
 void bk_qspi_flash_quad_enable(void) {
 	uint32_t status_reg_data = 0;
 
-	status_reg_data = bk_qspi_flash_read_s8_s15();
+	status_reg_data = (uint8_t)bk_qspi_flash_read_s8_s15();
 	status_reg_data |= FLASH_QE_DATA;
+#if CONFIG_QSPI_FLASH_GD
 	bk_qspi_flash_write_s8_s15(status_reg_data);
+#else
+	status_reg_data = (status_reg_data << 8);
+	bk_qspi_flash_write_s0_s15(status_reg_data);
+#endif
+	bk_qspi_flash_read_s8_s15();
 }
 
 void bk_qspi_flash_set_protect_none(void) {
@@ -353,47 +382,63 @@ void qspi_flash_test_case(uint32_t base_addr, void *data, uint32_t size)
 
 	read_id = bk_qspi_flash_read_id();
 	QSPI_LOGI("%s read_id = 0x%x\n", __func__, read_id);
-	bk_qspi_flash_quad_enable();
+
 	bk_qspi_flash_set_protect_none();
+	bk_qspi_flash_quad_enable();
 
+	/* quad write, then quad/single read to check data*/
 	bk_qspi_flash_erase_sector(base_addr);
-
 	bk_qspi_flash_read(base_addr, read_data, size);
+
 	for (int i = 0; i < size/4; i++) {
 		if(read_data[i] != 0xFFFFFFFF) {
-			QSPI_LOGI("[QUAD ERASE ERROR]: read_data[%d]=0x%x, should be 0xFFFFFFFF\n", i, read_data[i]);
+			QSPI_LOGI("[ERASE ERROR]: read_data[%d]=0x%x, should be 0xFFFFFFFF\n", i, read_data[i]);
 		}
-		QSPI_LOGD("[QUAD ERASE]: read_data[%d]=0x%x, should be 0xFFFFFFFF\n", i, read_data[i]);
+		QSPI_LOGD("[ERASE DBG]: read_data[%d]=0x%x, should be 0xFFFFFFFF\n", i, read_data[i]);
 	}
 
 	bk_qspi_flash_write(base_addr, data, size);
+	bk_qspi_flash_read(base_addr, read_data, size);
+	for (int i = 0; i < size/4; i++) {
+		if(read_data[i] != origin_data[i]) {
+			QSPI_LOGI("[QUAD WRITE - QUAD READ ERROR]: read_data[%d]=0x%x, origin data[%d]=0x%x\n", i, read_data[i], i, origin_data[i]);
+		}
+		QSPI_LOGD("[QUAD WRITE - QUAD READ DBG]: read_data[%d]=0x%x, origin data[%d]=0x%x\n", i, read_data[i], i, origin_data[i]);
+	}
+
+	bk_qspi_flash_single_read(base_addr, read_data, size);
+	for (int i = 0; i < size/4; i++) {
+		if(read_data[i] != origin_data[i]) {
+			QSPI_LOGI("[QUAD WRITE - SINGLE READ ERROR]: read_data[%d]=0x%x, origin data[%d]=0x%x\n", i, read_data[i], i, origin_data[i]);
+		}
+		QSPI_LOGD("[QUAD WRITE - SINGLE READ DBG]: read_data[%d]=0x%x, origin data[%d]=0x%x\n", i, read_data[i], i, origin_data[i]);
+	}
+
+	/* singel write, then single/quad read to check data*/
+	bk_qspi_flash_erase_sector(base_addr);
+	bk_qspi_flash_single_read(base_addr, read_data, size);
+	for (int i = 0; i < size/4; i++) {
+		if(read_data[i] != 0xFFFFFFFF) {
+			QSPI_LOGI("[ERASE ERROR]: read_data[%d]=0x%x, should be 0xFFFFFFFF\n", i, read_data[i]);
+		}
+		QSPI_LOGD("[ERASE DBG]: read_data[%d]=0x%x, should be 0xFFFFFFFF\n", i, read_data[i]);
+	}
+
+	bk_qspi_flash_single_page_program(base_addr, data, size);
+	bk_qspi_flash_single_read(base_addr, read_data, size);
+	for (int i = 0; i < size/4; i++) {
+		if(read_data[i] != origin_data[i]) {
+			QSPI_LOGI("[SINGLE WRITE - SINGLE READ ERROR]: read_data[%d]=0x%x, origin data[%d]=0x%x\n", i, read_data[i], i, origin_data[i]);
+		}
+		QSPI_LOGD("[SINGLE WRITE - SINGLE READ DBG]: read_data[%d]=0x%x, origin data[%d]=0x%x\n", i, read_data[i], i, origin_data[i]);
+	}
 
 	bk_qspi_flash_read(base_addr, read_data, size);
 	for (int i = 0; i < size/4; i++) {
 		if(read_data[i] != origin_data[i]) {
-			QSPI_LOGI("[QUAD WRITE ERROR]: read_data[%d]=0x%x, origin data[%d]=0x%x\n", i, read_data[i], i, origin_data[i]);
+			QSPI_LOGI("[SINGLE WRITE - QUAD READ ERROR]: read_data[%d]=0x%x, origin data[%d]=0x%x\n", i, read_data[i], i, origin_data[i]);
 		}
-		QSPI_LOGD("[QUAD WRITE]: read_data[%d]=0x%x, origin data[%d]=0x%x\n", i, read_data[i], i, origin_data[i]);
-	}
-
-	bk_qspi_flash_erase_sector(base_addr);
-
-	bk_qspi_flash_single_read(base_addr, read_data, size);
-	for (int i = 0; i < size/4; i++) {
-		if(read_data[i] != 0xFFFFFFFF) {
-			QSPI_LOGI("[SINGLE ERASE ERROR]: read_data[%d]=0x%x, should be 0xFFFFFFFF\n", i, read_data[i]);
-		}
-		QSPI_LOGD("[SINGLE ERASE ERROR]: read_data[%d]=0x%x, should be 0xFFFFFFFF\n", i, read_data[i]);
-	}
-
-	bk_qspi_flash_single_page_program(base_addr, data, size);
-
-	bk_qspi_flash_single_read(base_addr, read_data, size);
-	for (int i = 0; i < size/4; i++) {
-		if(read_data[i] != origin_data[i]) {
-			QSPI_LOGI("[SINGLE WRITE ERROR]: read_data[%d]=0x%x, origin data[%d]=0x%x\n", i, read_data[i], i, origin_data[i]);
-		}
-		QSPI_LOGD("[SINGLE WRITE ERROR]: read_data[%d]=0x%x, origin data[%d]=0x%x\n", i, read_data[i], i, origin_data[i]);
+		QSPI_LOGD("[SINGLE WRITE - QUAD READ DBG]: read_data[%d]=0x%x, origin data[%d]=0x%x\n", i, read_data[i], i, origin_data[i]);
 	}
 
 	if (read_data) {

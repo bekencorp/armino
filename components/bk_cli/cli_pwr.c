@@ -167,7 +167,7 @@ static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		#if CONFIG_AON_RTC
 		alarm_info_t low_valtage_alarm = {
 										"low_vol",
-										pm_param1*AON_RTC_MS_TICK_CNT,
+										pm_param1*bk_rtc_get_ms_tick_count(),
 										1,
 										cli_pm_rtc_callback,
 										NULL

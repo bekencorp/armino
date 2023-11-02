@@ -742,6 +742,10 @@ void net_wlan_initial(void)
 #ifdef CONFIG_IPV6
     net_ipv6stack_init(&g_mlan.netif);
 #endif /* CONFIG_IPV6 */
+
+#if CONFIG_MDNS
+    mdns_resp_init();
+#endif
 }
 
 int net_wlan_add_netif(uint8_t *mac)

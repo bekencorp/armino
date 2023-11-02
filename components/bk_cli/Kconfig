@@ -24,6 +24,12 @@ menu "Cli"
 		range 0 65535
 		default 255
 
+	config CLI_TASK_SIZE
+		depends on CLI
+		int "MAX number of commands is configured by default"
+		range 0 4096
+		default 3072
+
 	config IPERF_TEST
 		depends on CLI
 		bool "Enable Iperf Test"

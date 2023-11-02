@@ -244,7 +244,7 @@ int at_wifi_ap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 		ap_ssid = argv[0];
 	else if (argc == 2) {
 		ap_ssid = argv[0];
-		if (os_strtoul(argv[1], NULL, 10) >= 1 && os_strtoul(argv[1], NULL, 10) <= 11)
+		if (os_strlen(argv[1]) <= 2)
 			ap_channel = argv[1];
 		else
 			ap_key = argv[1];

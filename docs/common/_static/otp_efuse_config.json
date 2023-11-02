@@ -1,0 +1,190 @@
+{
+    "User_Operate_Enable":   "true",
+    "eFuse_Enable":          "false",
+    "Security_Ctrl_Enable":  "false",
+    "Security_data_Enable":  "false",
+
+    "User_Operate":
+    [
+        {
+            "name":                "OTP_example1",
+            "mode":                "write",
+            "start_addr":          "0x4B004000",
+            "last_valid_addr":     "0x4B0047FF",
+            "byte_len":            "0x8",
+            "data_type":           "hex",
+            "data":                "0123456786666666",
+            "status":              "false"
+        },
+        {
+            "name":                "OTP_example2",
+            "mode":                "write",
+            "start_addr":          "0x4B004008",
+            "last_valid_addr":     "0x4B0047FF",
+            "byte_len":            "0x8",
+            "data_type":           "hex",
+            "data":                "0123456789ABCDEF",
+            "status":              "false"
+        },
+        {
+            "name":                "OTP_example3",
+            "mode":                "read",
+            "start_addr":          "0x4B004000",
+            "last_valid_addr":     "0x4B0047FF",
+            "byte_len":            "0x10",
+            "data":                "",
+            "data_type":           "hex",
+            "status":              "true"
+        }
+    ],
+    "eFuse":
+    [
+
+       {
+            "name":            "example1",
+            "mode":            "write",
+            "byte_addr":       "0x00",
+            "last_valid_byte": "0x1F",
+            "length":          "0x01",
+            "data":            "0x93",
+            "status":          "false"
+        },
+        {
+            "name":            "example2",
+            "mode":            "write",
+            "byte_addr":       "0x01",
+            "last_valid_byte": "0x1F",
+            "length":          "0x04",
+            "data":            "0x510fb000",
+            "status":          "false"
+        },
+        {
+            "name":            "example3",
+            "mode":            "read",
+            "byte_addr":       "0x00",
+            "last_valid_byte": "0x1F",
+            "length":          "0x20",
+            "data":            "",
+            "status":          "false"
+        }
+    ],
+    "Security_Ctrl":
+    [
+        {
+            "disJtag":               "31,7,0",
+            "disSpiFlash":           "31,6,0",
+            "enEncryptWord":         "31,5,0",
+            "disReadEncryptWord":    "31,4,0",
+            "disWriteEncryptWord":   "31,3,0",
+            "disWriteUID":           "31,2,0",
+            "disWriteMAC":           "31,1,0",
+            "disWriteEfuse":         "31,0,0",
+            "security_boot_fastboot":"30,2,0",
+            "security_boot_log":     "30,1,0",
+            "security_boot":         "30,0,0"
+        }
+    ],
+    "Security_data":
+    [
+        {
+            "name":              "OTA_key",
+            "mode":              "write",
+            "start_addr":        "0x4B004810",
+            "last_valid_addr":   "0x4B004FFF",
+            "byte_len":          "0x20",
+            "data":              "bzbybxcdbwbxbybzcjcicqctcrcocpcmcdcccbcacicjckclbwbwcucxcwdadbcy",
+            "data_type":         "ascii",
+            "status":            "false"
+        },
+        {
+            "name":              "OTA_key",
+            "mode":              "read",
+            "start_addr":        "0x4B004810",
+            "last_valid_addr":   "0x4B004FFF",
+            "byte_len":          "0x20",
+            "data":              "",
+            "data_type":         "ascii",
+            "status":            "false"
+        },
+        {
+            "name":              "OTA_IV",
+            "mode":              "write",
+            "start_addr":        "0x4B004838",
+            "last_valid_addr":   "0x4B004848",
+            "byte_len":          "0x10",
+            "data":              "bzbybxcdbwbxbybzcjcicqctcrcocpcm",
+            "data_type":         "ascii",
+            "status":            "false"
+        },
+        {
+            "name":              "OTA_IV",
+            "mode":              "read",
+            "start_addr":        "0x4B004838",
+            "last_valid_addr":   "0x4B004848",
+            "byte_len":          "0x10",
+            "data":              "",
+            "data_type":         "ascii",
+            "status":            "false"
+        },
+        {
+            "name":              "bootloader_public_key",
+            "mode":              "write",
+            "start_addr":        "0x4B0048B0",
+            "last_valid_addr":   "0x4B00491F",
+            "byte_len":          "0x60",
+            "data":              "5AE5AD1FBDF341B9DF03C081D97194DA16344B620F502B452207DB39710F5E815181B8E77B9E572C0A003AC3E50C00B7458A6564DD5C76B3AFD786C9D0C0620687709231C982F0AE2179E1502DD9C40928151FDE71724D3C5B8219473C475EB9",
+            "data_type":         "hex",
+            "status":            "false"
+        },
+        {
+            "name":              "bootloader_public_key",
+            "mode":              "read",
+            "start_addr":        "0x4B0048B0",
+            "last_valid_addr":   "0x4B004920",
+            "byte_len":          "0x60",
+            "data":              "",
+            "data_type":         "hex",
+            "status":            "false"
+        },
+        {
+            "name":              "bootrom_public_key",
+            "mode":              "write",
+            "start_addr":        "0x4B005000",
+            "last_valid_addr":   "0x4B00505F",
+            "byte_len":          "0x60",
+            "data":              "5AE5AD1FBDF341B9DF03C081D97194DA16344B620F502B452207DB39710F5E815181B8E77B9E572C0A003AC3E50C00B7458A6564DD5C76B3AFD786C9D0C0620687709231C982F0AE2179E1502DD9C40928151FDE71724D3C5B8219473C475EB9",
+            "data_type":         "hex",
+            "status":            "false"
+        },
+        {
+            "name":              "bootrom_public_key",
+            "mode":              "read",
+            "start_addr":        "0x4B005000",
+            "last_valid_addr":   "0x4B00505F",
+            "byte_len":          "0x60",
+            "data":              "",
+            "data_type":         "hex",
+            "status":            "false"
+        },
+        {
+            "name":              "aes_key",
+            "mode":              "write",
+            "start_addr":        "0x4B0057E0",
+            "last_valid_addr":   "0x4B0057FF",
+            "byte_len":          "0x20",
+            "data":              "cbdsbxcdcjbxdtbycdcibxduckbycabxdwckbwegbxefcfeccleackcfcebyegeaebcbchcacfedcbeccjcecfegeebgblejbgbpeleibmbgepbjbheobnbnbmekeibt",
+            "data_type":         "ascii",
+            "status":            "false"
+        },
+        {
+            "name":              "aes_key",
+            "mode":              "read",
+            "start_addr":        "0x4B0057E0",
+            "last_valid_addr":   "0x4B0057FF",
+            "byte_len":          "0x20",
+            "data":              "",
+            "data_type":         "ascii",
+            "status":            "false"
+        }
+    ]
+}

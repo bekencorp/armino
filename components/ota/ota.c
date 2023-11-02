@@ -16,8 +16,8 @@ uint8 bk_ota_get_current_partition(void)
 {
     exec_flag ota_exec_flag = 5;
     bk_logic_partition_t *bk_ptr = NULL;
-
-    bk_ptr = bk_flash_partition_get_info(BK_PARTITION_OTA_FINA_EXECUTIVE);
+    
+    bk_ptr = bk_flash_partition_get_info(BK_PARTITION_OTA_FINA_EXECUTIVE); 
     os_printf("bk_ptr->partition_start_addr  :0x%x\r\n",bk_ptr->partition_start_addr);
     bk_flash_read_bytes(bk_ptr->partition_start_addr ,(uint8_t *)&ota_exec_flag, sizeof(u8));
 
@@ -30,11 +30,11 @@ void ota_write_flash(bk_partition_t ota_partition_flag, u8 flag, u8 offset)
 	bk_logic_partition_t *bk_ptr = NULL;
 	u8 ota_final_buff[1],ota_temp_buff[1],ota_cconfirm_buff[1];
 
-    u8 temp1_buff[1],temp2_buff[1],temp3_buff[1];
-    flash_protect_type_t protect_type;
-    
+	u8 temp1_buff[1],temp2_buff[1],temp3_buff[1];
+	flash_protect_type_t protect_type;
+
 	bk_ptr = bk_flash_partition_get_info(ota_partition_flag);
-	
+    
 	os_printf("ota_write_flash:partition_start_addr:0x%x\r\n",(bk_ptr->partition_start_addr));
 	bk_flash_read_bytes((bk_ptr->partition_start_addr),(uint8_t *)ota_final_buff, sizeof(u8));
 	bk_flash_read_bytes((bk_ptr->partition_start_addr + 4),(uint8_t *)ota_temp_buff, sizeof(u8));
@@ -79,24 +79,33 @@ void ota_write_flash(bk_partition_t ota_partition_flag, u8 flag, u8 offset)
     bk_flash_set_protect_type(protect_type);
 }
 
+
 void bk_ota_confirm_update_partition(ota_confirm_flag ota_confirm_val)
 {
     exec_flag ota_exec_flag ;   
-    
-    ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, ota_confirm_val,8); 
-    
-    if(ota_confirm_val == CONFIRM_EXEC_A)   
-    {   
-        ota_exec_flag = EXEX_A_PART;    
-        ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, ota_exec_flag, 0);
-    }
-    else if(ota_confirm_val == CONFIRM_EXEC_B)
-    { 
-        ota_exec_flag = EXEC_B_PART;
-        ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, ota_exec_flag, 0);
+    uint8 last_exec_flag;
+    bk_logic_partition_t *bk_ptr = NULL;
+
+    bk_ptr = bk_flash_partition_get_info(BK_PARTITION_OTA_FINA_EXECUTIVE);
+    bk_flash_read_bytes((bk_ptr->partition_start_addr + 8) ,(uint8_t *)&last_exec_flag, sizeof(u8));
+    os_printf("bk_ptr->partition_start_addr:0x%x,last_exec_flag:0x%x\r\n",bk_ptr->partition_start_addr,last_exec_flag);
+
+    if(last_exec_flag != ota_confirm_val)
+    {
+        ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, ota_confirm_val,8); 
+
+        if(ota_confirm_val == CONFIRM_EXEC_A)   
+        {   
+            ota_exec_flag = EXEX_A_PART;    
+            ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, ota_exec_flag, 0);
+        }
+        else if(ota_confirm_val == CONFIRM_EXEC_B)
+        { 
+            ota_exec_flag = EXEC_B_PART;
+            ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, ota_exec_flag, 0);
+        }
     }
 }
-
 #if 0
 uint8 custmer_state_cb(uint8 temp_exec_part)
 {

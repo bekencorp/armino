@@ -19,8 +19,8 @@
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
 #define DEFAULT_BANDWIDTH_ESTIMATE_MIN_BITRATE   (400000)
-#define DEFAULT_BANDWIDTH_ESTIMATE_MAX_BITRATE   (5000000)
-#define DEFAULT_BANDWIDTH_ESTIMATE_START_BITRATE (200000)
+#define DEFAULT_BANDWIDTH_ESTIMATE_MAX_BITRATE   (3000000)
+#define DEFAULT_BANDWIDTH_ESTIMATE_START_BITRATE (1000000)
 
 
 static agora_rtc_t agora_rtc = {0};
@@ -120,7 +120,7 @@ static void __on_error(connection_id_t conn_id, int code, const char *msg)
 			__error_msg(rtc, AGORA_RTC_MSG_TOKEN_EXPIRED);
 			break;
 		default:
-			LOGI("Unknown Error Code \n");
+			LOGI("Unknown Error Code: %d \n", code);
 			break;
 	}
 }

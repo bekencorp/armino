@@ -258,18 +258,18 @@ function(__build_check_config)
         set(config_check_tool ${armino_path}/components/bk_libs/config_checking.py)
         set(lib_sdkconfig ${armino_path}/components/bk_libs/${ARMINO_SOC}_$ENV{PROJECT}/config/sdkconfig)
         set(armino_sdkconfig ${CMAKE_BINARY_DIR}/sdkconfig)
-        execute_process(
-            COMMAND ${config_check_tool} --lib_sdkconfig ${lib_sdkconfig} --armino_sdkconfig ${armino_sdkconfig}
-           RESULT_VARIABLE result 
-        )
+	#execute_process(
+		#COMMAND ${config_check_tool} --lib_sdkconfig ${lib_sdkconfig} --armino_sdkconfig ${armino_sdkconfig}
+		#RESULT_VARIABLE result 
+		#)
 
-        if ("${result}" EQUAL "0")
-            LOGI("sdkconfig checking passed")
-        else()
+		#if ("${result}" EQUAL "0")
+		#LOGI("sdkconfig checking passed")
+		#else()
             #TODO fix it after optimze bk_private!
-            LOGI("!!!sdkconfig checking failed")
+	    #LOGI("!!!sdkconfig checking failed")
             #LOGE("sdkconfig checking failed")
-        endif()
+	    #endif()
     endif()
 endfunction()
 

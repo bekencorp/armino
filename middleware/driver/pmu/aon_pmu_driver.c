@@ -14,7 +14,8 @@
 
 #include <common/bk_include.h>
 #include "aon_pmu_hal.h"
-
+#include <driver/aon_rtc.h>
+#include <modules/pm.h>
 
 void aon_pmu_drv_init()
 {
@@ -87,6 +88,13 @@ void aon_pmu_drv_lpo_src_extern32k_enable(void)
 }
 void aon_pmu_drv_lpo_src_set(uint32_t lpo_src)
 {
+	if(lpo_src == PM_LPO_SRC_X32K)
+	{
+		bk_rtc_set_clock_freq(AON_RTC_EXTERN_32K_CLOCK_FREQ);
+	} else {
+		bk_rtc_set_clock_freq(AON_RTC_DEFAULT_CLOCK_FREQ);
+	}
+
     aon_pmu_hal_lpo_src_set(lpo_src);
 }
 uint32_t aon_pmu_drv_lpo_src_get()

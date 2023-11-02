@@ -292,6 +292,7 @@ static void uvc_camera_connect_state_change_callback(uvc_state_t state)
 void uvc_bulk_packet_process(void *curptr, uint32_t newlen)
 {
 	uint32_t length = newlen;
+	uint32_t fack_length = 0;
 	uint8_t *data = curptr;
 
 	UVC_PSRAM_DMA_ENTRY();
@@ -300,22 +301,6 @@ void uvc_bulk_packet_process(void *curptr, uint32_t newlen)
 	{
 		UVC_LOGE("curr_frame_buffer NULL\n");
 		return;
-	}
-
-	if (uvc_drop_frame)
-	{
-		if (uvc_camera_drv->eof)
-		{
-			media_debug->isr_jpeg++;
-			uvc_camera_drv->eof = false;
-			uvc_drop_frame--;
-		}
-
-		if (uvc_drop_frame != 0)
-		{
-			UVC_PSRAM_DMA_OUT();
-			return;
-		}
 	}
 
 	if (length > USB_UVC_HEAD_LEN)
@@ -340,7 +325,23 @@ void uvc_bulk_packet_process(void *curptr, uint32_t newlen)
 		}
 	}
 
-	if (length & 0x3)
+	if (uvc_drop_frame)
+	{
+		if (uvc_camera_drv->eof)
+		{
+			media_debug->isr_jpeg++;
+			uvc_camera_drv->eof = false;
+			uvc_drop_frame--;
+		}
+
+		if (uvc_drop_frame != 0)
+		{
+			UVC_PSRAM_DMA_OUT();
+			return;
+		}
+	}
+
+	if (curr_frame_buffer->length & 0x3)
 	{
 		uvc_camera_drv->eof = true;
 	}
@@ -350,10 +351,17 @@ void uvc_bulk_packet_process(void *curptr, uint32_t newlen)
 		uvc_camera_eof_handle();
 	}
 
+	fack_length = length;
+
+	if (fack_length & 0x3)
+	{
+		fack_length = ((fack_length >> 2) + 1) << 2;
+	}
+
 	UVC_LOGD("curr_frame_buffer->frame:%x curr_frame_buffer->length:%d length:%d====== \r\n",curr_frame_buffer->frame, curr_frame_buffer->length, length);
 
 	os_memcpy_word((uint32_t *)(curr_frame_buffer->frame + curr_frame_buffer->length), (const uint32_t *)data,
-					length);
+					fack_length);
 	curr_frame_buffer->length += length;
 
 	UVC_PSRAM_DMA_OUT();
@@ -393,6 +401,23 @@ static void uvc_process_data_packet(void *curptr, uint32_t newlen)
 	}
 	else
 	{
+		uvc_mem_cpy.length = 0;
+
+		// step 2_2: check this packet is ok
+		if (bmhead_info & 0x40)  // bit6 = 1, payload error
+		{
+			UVC_PSRAM_DMA_OUT();
+			return;
+		}
+
+		if (uvc_camera_drv->frame_flag != (bmhead_info & 0x01))   // bit0 fliped
+		{
+			uvc_camera_drv->frame_flag = (bmhead_info & 0x01);
+			// maybe first packet will satify this condition
+			if (curr_frame_buffer->length != 0 || uvc_drop_frame > 0)
+				uvc_camera_drv->eof = true;
+		}
+
 		if (uvc_drop_frame)
 		{
 			if (uvc_camera_drv->eof == true)
@@ -407,23 +432,6 @@ static void uvc_process_data_packet(void *curptr, uint32_t newlen)
 				UVC_PSRAM_DMA_OUT();
 				return;
 			}
-		}
-
-		uvc_mem_cpy.length = 0;
-
-		// step 2_2: check this packet is ok
-		if (bmhead_info & 0x40)  // bit6 = 1, payload error
-		{
-			UVC_PSRAM_DMA_OUT();
-			return;
-		}
-
-		if (uvc_camera_drv->frame_flag != (bmhead_info & 0x01))   // bit0 fliped
-		{
-			uvc_camera_drv->frame_flag = (bmhead_info & 0x01);
-			// maybe first packet will satify this condition
-			if (curr_frame_buffer->length != 0)
-				uvc_camera_drv->eof = true;
 		}
 
 		// step 2_3: check if current packet is new frame
@@ -864,8 +872,6 @@ bk_err_t bk_uvc_camera_driver_init(uvc_camera_config_t *config)
 	return ret;
 
 error:
-
-	uvc_camera_set_state(UVC_DISCONNECT_ABNORMAL);
 
 	UVC_LOGI("uvc_camera_drv init failed, %d\n", uvc_camera_get_state());
 

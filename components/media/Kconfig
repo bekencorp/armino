@@ -43,4 +43,21 @@ menu "Media"
 		help
 			enable jpeg work method: encode and yuv by turns
 
+	config JPEG_BASE_ADDRESS
+		hex "set jpeg base address"
+		default 0x30000000
+		help
+			set jpeg base sram address
+
+	config MEDIA_MINOR_TASK_SIZE
+		int "Config media minor task stack size"
+		default 4096
+		help
+			Config media minor task stack size
+
+	config MEDIA_MINOR_QUEUE_SIZE
+		int "Config media minor message queue size"
+		default 60
+		help
+			Config media minor message queue size
 endmenu

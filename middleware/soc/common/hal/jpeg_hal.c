@@ -32,9 +32,6 @@
 #define PSRAM_BASEADDR                    0x60000000
 
 
-__attribute__((section(".video_spec_data"))) uint8_t video_sram[40*1024];
-#define JPEG_SHARE_MEM                    (&video_sram[0])
-
 bk_err_t jpeg_hal_init(jpeg_hal_t *hal)
 {
 	hal->hw = (jpeg_hw_t *)JPEG_LL_REG_BASE(hal->id);
@@ -103,7 +100,7 @@ bk_err_t jpeg_hal_switch_mode(jpeg_hal_t *hal, const jpeg_config_t *config)
 		jpeg_ll_set_default_bitrate_step(hal->hw);
 		jpeg_ll_enable_video_byte_reverse(hal->hw);
 		jpeg_ll_enable_enc_size(hal->hw);
-		jpeg_ll_set_em_base_addr(hal->hw, (uint32_t)JPEG_SHARE_MEM);
+		jpeg_ll_set_em_base_addr(hal->hw, (uint32_t)CONFIG_JPEG_BASE_ADDRESS);
 		jpeg_ll_enable(hal->hw);
 	}
 	else
@@ -195,6 +192,6 @@ bk_err_t jpeg_hal_set_target_size(jpeg_hal_t *hal, uint32_t up_size, uint32_t lo
 }
 uint32_t jpeg_hal_get_jpeg_share_mem_addr(void)
 {
-	return ((uint32_t)JPEG_SHARE_MEM);
+	return ((uint32_t)CONFIG_JPEG_BASE_ADDRESS);
 }
 

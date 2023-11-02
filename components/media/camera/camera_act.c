@@ -262,10 +262,10 @@ static void camera_uvc_connect_state_change_task_entry(beken_thread_arg_t data)
 			{
 				int ret = bk_uvc_camera_open(camera_info.param, camera_info.type);
 
-				if (ret != kNoErr)
+				if (ret != BK_OK)
 				{
 					LOGE("%s open failed\n", __func__);
-					return;
+					goto out;
 				}
 
 				set_camera_state(CAMERA_STATE_ENABLED);
@@ -278,6 +278,7 @@ static void camera_uvc_connect_state_change_task_entry(beken_thread_arg_t data)
 		}
 	}
 
+out:
 	disc_task = NULL;
 	rtos_delete_thread(NULL);
 }

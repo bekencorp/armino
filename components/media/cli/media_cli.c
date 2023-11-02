@@ -38,6 +38,7 @@
 #define CMD_CONTAIN(value) cmd_contain(argc, argv, value)
 #define GET_PPI(value)     get_ppi_from_cmd(argc, argv, value)
 #define GET_NAME(value)    get_name_from_cmd(argc, argv, value)
+#define GET_ROTATE()        get_rotate_from_cmd(argc, argv)
 
 #if defined(CONFIG_USB_UVC) && !defined(CONFIG_SLAVE_CORE)
 void uvc_connect_state_callback(uint8_t state)
@@ -150,6 +151,26 @@ char * get_name_from_cmd(int argc, char **argv, char * pre)
 
 	return value;
 }
+media_rotate_t get_rotate_from_cmd(int argc, char **argv)
+{
+	int i;
+	media_rotate_t value = ROTATE_90;
+	for (i = 3; i < argc; i++)
+	{
+		if (os_strcmp(argv[i], "90") == 0)
+			value = ROTATE_90;
+		else if (os_strcmp(argv[i], "270") == 0)
+			value = ROTATE_270;
+		else if (os_strcmp(argv[i], "0") == 0)
+			value = ROTATE_NONE;
+		else if (os_strcmp(argv[i], "180") == 0)
+			value = ROTATE_180;
+		else
+			value = ROTATE_90;
+	}
+	return value;
+}
+
 
 bool cmd_contain(int argc, char **argv, char *string)
 {
@@ -316,28 +337,20 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 #if defined(CONFIG_LCD) && !defined(CONFIG_SLAVE_CORE)
 			media_ppi_t ppi = PPI_480X272;
 			char *name = "NULL";
+			lcd_open_t lcd_open;
+			media_rotate_t rotate = ROTATE_NONE;
+			media_rotate_t icon_rotate = ROTATE_NONE;
 
 			ppi = GET_PPI(PPI_480X272);
 			name = GET_NAME(name);
 
-			if (CMD_CONTAIN("rotate"))
-			{
-				media_app_lcd_rotate(ROTATE_90);
-			}
-
-			if (CMD_CONTAIN("90"))
-			{
-				media_app_lcd_rotate(ROTATE_90);
-			}
-
-			if (CMD_CONTAIN("270"))
-			{
-				media_app_lcd_rotate(ROTATE_270);
-			}
-
-
 			if (os_strcmp(argv[2], "open") == 0)
 			{
+				if (CMD_CONTAIN("rotate"))
+				{
+					rotate = GET_ROTATE();
+					ret = media_app_lcd_rotate(rotate);
+				}
 				if (argc >= 4)
 				{
 					if(os_strcmp(argv[3], "cp0") == 0)
@@ -353,10 +366,20 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 						set_decode_mode(HARDWARE_DECODING);
 					}
 				}
-				lcd_open_t lcd_open;
+				
 				lcd_open.device_ppi = ppi;
 				lcd_open.device_name = name;
 				ret = media_app_lcd_open(&lcd_open);
+			}
+			if (os_strcmp(argv[2], "rotate") == 0)
+			{
+				rotate = GET_ROTATE();
+				ret = media_app_lcd_rotate(rotate);
+			}
+			if (os_strcmp(argv[2], "icon_rotate") == 0)
+			{
+				icon_rotate = GET_ROTATE();
+				ret = media_app_lcd_icon_rotate(icon_rotate);
 			}
 
 			if (os_strcmp(argv[2], "resize") == 0)
@@ -598,6 +621,7 @@ void media_cli_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 				}
 				else
 				{
+					bk_uvc_camera_drop_frame(5);
 					media_app_register_uvc_connect_state_cb(uvc_connect_state_callback);
 
 					ret = media_app_camera_open(camera_type, ppi);

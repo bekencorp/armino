@@ -394,11 +394,15 @@ static void aud_tras_adc_dma_finish_isr(void)
 {
 	bk_err_t ret = BK_OK;
 
-	if (aud_tras_drv_info.work_mode == AUD_INTF_WORK_MODE_GENERAL)
+	if (aud_tras_drv_info.work_mode == AUD_INTF_WORK_MODE_GENERAL) {
 		ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_MIC_TX_DATA, NULL);
-	else
-		/* send msg to AEC to process mic and ref data */
-		ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_AEC, NULL);
+	} else {
+		/* send msg to AEC or ENCODER to process mic data */
+		if (aud_tras_drv_info.voc_info.aec_enable)
+			ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_AEC, NULL);
+		else
+			ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_ENCODER, NULL);
+	}
 	if (ret != kNoErr) {
 		LOGE("send msg: AUD_TRAS_DRV_AEC fail \r\n");
 	}
@@ -551,7 +555,7 @@ static bk_err_t aud_tras_aec(void)
 			//return BK_FAIL;
 		}
 	} else {
-		LOGE("%s: do not have mic data need to aec \r\n", __func__);
+		LOGD("%s: do not have mic data need to aec \r\n", __func__);
 		return BK_OK;
 	}
 
@@ -890,12 +894,21 @@ static bk_err_t aud_tras_enc(void)
 		return BK_OK;
 
 	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
-		/* get data from aec_ring_buff */
-		size = ring_buffer_read(&(aud_tras_drv_info.voc_info.aec_info->aec_rb), (uint8_t *)aud_tras_drv_info.voc_info.encoder_temp.pcm_data, temp_mic_samp_rate_points*2);
-		if (size != temp_mic_samp_rate_points*2) {
-			//LOGE("read aec_rb :%d \r\n", size);
-			//os_memset(aud_tras_drv_info.voc_info.encoder_temp.pcm_data, 0, temp_mic_samp_rate_points*2);
-			goto encoder_exit;
+		if (aud_tras_drv_info.voc_info.aec_enable) {
+			/* get data from aec_ring_buff */
+			size = ring_buffer_read(&(aud_tras_drv_info.voc_info.aec_info->aec_rb), (uint8_t *)aud_tras_drv_info.voc_info.encoder_temp.pcm_data, temp_mic_samp_rate_points*2);
+			if (size != temp_mic_samp_rate_points*2) {
+				//LOGE("read aec_rb :%d \r\n", size);
+				//os_memset(aud_tras_drv_info.voc_info.encoder_temp.pcm_data, 0, temp_mic_samp_rate_points*2);
+				goto encoder_exit;
+			}
+		} else {
+			/* get data from mic_ring_buff */
+			size = ring_buffer_read(&(aud_tras_drv_info.voc_info.mic_rb), (uint8_t *)aud_tras_drv_info.voc_info.encoder_temp.pcm_data, temp_mic_samp_rate_points*2);
+			if (size != temp_mic_samp_rate_points*2) {
+				LOGD("the data readed from mic_ring_buff is not a frame, size:%d \r\n", size);
+				goto encoder_exit;
+			}
 		}
 	} else {
 		if (aud_tras_drv_info.voc_info.aec_enable) {
@@ -3753,15 +3766,17 @@ bk_err_t aud_tras_drv_set_work_mode(aud_intf_work_mode_t mode)
 
 static bk_err_t aud_tras_drv_set_mic_gain(uint8_t value)
 {
+	bk_err_t ret = BK_ERR_AUD_INTF_OK;
 	//CHECK_AUD_TRAS_DRV_MIC_STA();
-	if (aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD || aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+	if (aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD || aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
 		bk_aud_set_adc_gain((uint32_t)value);
-		if (aud_tras_drv_info.aud_tras_drv_com_event_cb)
-			aud_tras_drv_info.aud_tras_drv_com_event_cb(EVENT_AUD_TRAS_COM_SET_MIC_GAIN, BK_ERR_AUD_INTF_OK);
-		return BK_ERR_AUD_INTF_OK;
+		ret = BK_ERR_AUD_INTF_OK;
 	}
+	ret = BK_ERR_AUD_INTF_PARAM;
+	if (aud_tras_drv_info.aud_tras_drv_com_event_cb)
+		aud_tras_drv_info.aud_tras_drv_com_event_cb(EVENT_AUD_TRAS_COM_SET_MIC_GAIN, ret);
 
-	return BK_ERR_AUD_INTF_PARAM;
+	return ret;
 }
 
 #if CONFIG_AUD_TRAS_UAC_SPK_VOL_CTRL_MODE_STOP_UAC_TRAS

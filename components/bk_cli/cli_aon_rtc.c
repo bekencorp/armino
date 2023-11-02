@@ -90,12 +90,12 @@ static void cli_aon_rtc_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 		CLI_LOGI("aon_rtc id:%d bk_aon_rtc_deinit\n", aon_rtc_id);
 	} else if (os_strcmp(argv[2], "set") == 0) {
 		tick = os_strtoul(argv[3], NULL, 10);
-		tick = AON_RTC_MS_TICK_CNT * 1000 * tick;
+		tick = bk_rtc_get_ms_tick_count() * 1000 * tick;
 		BK_LOG_ON_ERR(bk_aon_rtc_create(0, tick, 1));
 		CLI_LOGI("aon_rtc id:%d set rtc period = %d s.\n", aon_rtc_id, tick);
 	} else if (os_strcmp(argv[2], "get") == 0) {
 		tick = bk_aon_rtc_get_current_tick(aon_rtc_id);
-		tick = tick / (AON_RTC_MS_TICK_CNT * 1000);
+		tick = tick / (bk_rtc_get_ms_tick_count() * 1000);
 		CLI_LOGI("aon_rtc id:%d get rtc tick time = %d s.\n", aon_rtc_id, tick);
 	} else {
 		cli_aon_rtc_help();
@@ -138,10 +138,10 @@ static void cli_aon_rtc_get_time(char *pcWriteBuffer, int xWriteBufferLen, int a
 	uint64_t tick = 0;
 
 	aon_rtc_id = os_strtoul(argv[1], NULL, 10);
-	tick = bk_aon_rtc_get_current_tick(aon_rtc_id);
+	tick = bk_aon_rtc_get_current_tick(aon_rtc_id)/bk_rtc_get_ms_tick_count();
 
 	//CLI_LOGI("id=%d, tick_h=%d tick_l=%d\r\n", aon_rtc_id, (uint32_t)(tick>>32), (uint32_t)tick);
-	CLI_LOGI("id=%d, tick_h=%d tick_l=%d ms\r\n", aon_rtc_id, (uint32_t)((tick/AON_RTC_MS_TICK_CNT)>>32), (uint32_t)(tick/AON_RTC_MS_TICK_CNT));
+	CLI_LOGI("id=%d, tick_h=%d tick_l=%d ms\r\n", aon_rtc_id, (uint32_t)((tick)>>32), (uint32_t)(tick));
 }
 
 static void cli_aon_rtc_register_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -181,12 +181,12 @@ static void cli_aon_rtc_unregister_cmd(char *pcWriteBuffer, int xWriteBufferLen,
 
 static alarm_info_t s_cli_alarm_info[] = 
 {
-	{"alarm_1", (1000 * AON_RTC_MS_TICK_CNT), 0xFFFFFFFF, alarm_auto_test_callback, NULL},
-	{"alarm_2", (6000 * AON_RTC_MS_TICK_CNT), 0xFFFFFFFF, alarm_auto_test_callback, NULL},
-	{"alarm_3", (12000 * AON_RTC_MS_TICK_CNT), 0xFFFFFFFF, alarm_auto_test_callback, NULL},
-	{"alarm_4", (48000 * AON_RTC_MS_TICK_CNT), 0xFFFFFFFF, alarm_auto_test_callback, NULL},
-	{"alarm_5", (3000 * AON_RTC_MS_TICK_CNT), 0xFFFFFFFF, alarm_auto_test_callback, NULL},
-	{"alarm_6", (4000 * AON_RTC_MS_TICK_CNT), 0xFFFFFFFF, alarm_auto_test_callback, NULL},
+	{"alarm_1", (1000), 0xFFFFFFFF, alarm_auto_test_callback, NULL},
+	{"alarm_2", (6000), 0xFFFFFFFF, alarm_auto_test_callback, NULL},
+	{"alarm_3", (12000), 0xFFFFFFFF, alarm_auto_test_callback, NULL},
+	{"alarm_4", (48000), 0xFFFFFFFF, alarm_auto_test_callback, NULL},
+	{"alarm_5", (3000), 0xFFFFFFFF, alarm_auto_test_callback, NULL},
+	{"alarm_6", (4000), 0xFFFFFFFF, alarm_auto_test_callback, NULL},
 };
 
 static void alarm_auto_test_callback(aon_rtc_id_t id, uint8_t *name_p, void *param)
@@ -202,9 +202,10 @@ static void alarm_auto_test_callback(aon_rtc_id_t id, uint8_t *name_p, void *par
 			//forbid unregister self in the callback
 			//CLI_LOGI("Unregister name=%s\r\n", name_p);
 			//bk_alarm_unregister(id, s_cli_alarm_info[i].name);
+			int index = (i+3)%arr_size;
 
-			CLI_LOGI("register name=%s\r\n", s_cli_alarm_info[(i+3)%arr_size].name);
-			bk_alarm_register(id, &s_cli_alarm_info[(i+3)%arr_size]);
+			CLI_LOGI("register name=%s\r\n", s_cli_alarm_info[index].name);
+			bk_alarm_register(id, &s_cli_alarm_info[index]);
 
 			break;
 		}
@@ -346,6 +347,14 @@ static const struct cli_command s_aon_rtc_commands[] = {
 int cli_aon_rtc_init(void)
 {
 	BK_LOG_ON_ERR(bk_aon_rtc_driver_init());
+
+	uint32_t arr_size = sizeof(s_cli_alarm_info)/sizeof(alarm_info_t);
+	for(int i = 0; i < arr_size; i++)
+	{
+		uint32_t period_ms = s_cli_alarm_info[i].period_tick;
+		s_cli_alarm_info[i].period_tick = period_ms * bk_rtc_get_ms_tick_count();
+	}
+
 	return cli_register_commands(s_aon_rtc_commands, AON_RTC_CMD_CNT);
 }
 

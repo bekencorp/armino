@@ -1655,7 +1655,7 @@ int bk_cli_init(void)
 							 SHELL_TASK_PRIORITY,
 							 "cli",
 							 (beken_thread_function_t)shell_task,
-							 3072,
+							 CONFIG_CLI_TASK_SIZE,
 							 0);
 #endif
 #else // #if CONFIG_SHELL_ASYNCLOG
@@ -1679,12 +1679,6 @@ int bk_cli_init(void)
 	pCli->echo_disabled = 0;
 #endif
 
-#if (CONFIG_SLAVE_CORE && CONFIG_MEDIA)
-	ret = common_mb_init();
-	if (ret != kNoErr) {
-		os_printf("Error: Failed to create common_mb thread: %d\r\n", ret);
-	}
-#endif
 #endif  // CONFIG_CLI
 
 	return kNoErr;

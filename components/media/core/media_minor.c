@@ -188,7 +188,7 @@ bk_err_t media_minor_init(void)
 	ret = rtos_init_queue(&media_minor_msg_queue,
 	                      "media_minor_queue",
 	                      sizeof(media_msg_t),
-	                      MEDIA_MINOR_MSG_QUEUE_SIZE);
+	                      CONFIG_MEDIA_MINOR_QUEUE_SIZE);
 
 	if (ret != kNoErr)
 	{
@@ -200,7 +200,7 @@ bk_err_t media_minor_init(void)
 	                         BEKEN_DEFAULT_WORKER_PRIORITY,
 	                         "media_minor_thread",
 	                         (beken_thread_function_t)media_minor_message_handle,
-	                         4096,
+	                         CONFIG_MEDIA_MINOR_TASK_SIZE,
 	                         NULL);
 
 	if (ret != kNoErr)

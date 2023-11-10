@@ -2,10 +2,4 @@ menu "Bk_vfs"
 	config VFS
 		bool "Enable Vfs"
 		default n
-		
-	config VFS_MAX_FD_NUM
-			int "bk vfs max file fd num"
-			default 20
-			help
-				bk vfs max file fd num
 endmenu

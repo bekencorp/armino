@@ -55,7 +55,7 @@ endif
 
 ifeq ("$(ARMINO_SOC)", "")
 ifeq ("$(ARMINO_SOC_LIB)", "")
-	ARMINO_SOC := bk7256
+	ARMINO_SOC := bk7231n
 	ARMINO_TARGET := $(MAKECMDGOALS)
 endif
 else
@@ -70,8 +70,8 @@ else
 endif
 
 # overwrite project config
--include $(ARMINO_DIR)/middleware/soc/$(ARMINO_SOC)/soc_config.mk
 -include $(ARMINO_DIR)/components/part_table/part_table.mk
+-include $(ARMINO_DIR)/middleware/soc/$(ARMINO_SOC)/soc_config.mk
 -include $(ARMINO_DIR)/$(PROJECT_DIR)/pj_config.mk
 
 .PHONY: all_targets
@@ -99,15 +99,14 @@ common:
 	@export APP_NAME=$(APP_NAME)
 
 has_lib_src := $(shell $(ARMINO_DIR)/tools/build_tools/detect_internal_lib_src.py)
+build_dual_core := $(shell $(ARMINO_DIR)/tools/build_tools/detect_build_dual_core.py $(ARMINO_SOC) $(PROJECT))
 
 $(info $$(PROJECT) is $(PROJECT))
 bootloader:
 ifeq ($(has_lib_src), 1)
 ifneq ($(findstring $(ARMINO_SOC), $(PART_TABLE_SUPPORTED_TARGETS)),)
-ifneq ($(findstring $(PROJECT), $(PART_TABLE_SUPPORTED_PROJECTS)),)
 	@$(ARMINO_TOOL_PART_TABLE) $(PARTITIONS_CSV_FILE) --to-json=$(BOOTLOADER_JSON) $(PARTITIONS_ARGS) $(BOOTLOADER_JSON_INSEQ)
 	@cp $(BOOTLOADER_JSON) $(BOOTLOADER_JSON_OLD)
-endif
 endif
 	make clean -C ${ARMINO_BOOTLOADER}
 	make -C ${ARMINO_BOOTLOADER}

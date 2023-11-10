@@ -7,17 +7,12 @@
 #include <os/os.h>
 #include <os/mem.h>
 #include <common/bk_kernel_err.h>
-#include <driver/gpio.h>
-#include <driver/hal/hal_gpio_types.h>
-#include "gpio_driver.h"
-
 
 #if CONFIG_BUTTON
-//#include <drivers/pin.h>
+#include <drivers/pin.h>
 
 beken_timer_t g_key_timer;
 beken_mutex_t g_key_mutex;
-static bool s_key_init_status_flag = 0;
 
 void key_configure(void)
 {
@@ -52,6 +47,13 @@ void key_unconfig(void)
 {
 	bk_err_t ret;
 
+	ret = rtos_deinit_mutex(&g_key_mutex);
+	if(kNoErr != ret)
+	{
+		KEY_PRT("rtos_deinit_mutex fail\r\n");
+		return;
+	}
+
 	if (rtos_is_timer_init(&g_key_timer)) {
 		if (rtos_is_timer_running(&g_key_timer)) {
 			ret = rtos_stop_timer(&g_key_timer);
@@ -68,30 +70,11 @@ void key_unconfig(void)
 			KEY_PRT("rtos_deinit_timer fail\r\n");
 			return;
 		}
-
 	}
-
-	ret = rtos_deinit_mutex(&g_key_mutex);
-	if(kNoErr != ret)
-	{
-		KEY_PRT("rtos_deinit_mutex fail\r\n");
-		return;
-	}
-
-}
-static void key_gpio_config(uint32_t gpio_id, uint8_t active_level)
-{
-	gpio_dev_unmap(gpio_id);
-	BK_LOG_ON_ERR(bk_gpio_disable_output(gpio_id));
-	BK_LOG_ON_ERR(bk_gpio_enable_input(gpio_id));
-	BK_LOG_ON_ERR(bk_gpio_enable_pull(gpio_id));
-	if(active_level)
-		BK_LOG_ON_ERR(bk_gpio_pull_down(gpio_id));
-	else
-		BK_LOG_ON_ERR(bk_gpio_pull_up(gpio_id));
 }
 
-#if USING_DEMO_BOARD
+
+#if (USING_DEMO_BOARD != 1)
 uint8_t matrix_key_get_value(BUTTON_S *handle)
 {
 	KEYITEM key;
@@ -213,12 +196,13 @@ int matrix_key_item_configure(KEYITEM key, void short_press(void *), void double
 }
 
 #else
+
 uint8_t key_get_gpio_value(BUTTON_S *handle)
 {
-	return bk_gpio_get_input((uint32_t)handle->user_data);//gpio_input((uint32_t)handle->user_data);
+	return gpio_input((uint32_t)handle->user_data);
 }
 
-int key_item_configure(uint32_t gpio, uint8_t active_level, void short_press(void *), void double_press(void *), void long_press(void *), void hold_press(void *))
+int key_item_configure(uint32_t gpio, void short_press(void *), void double_press(void *), void long_press(void *), void hold_press(void *))
 {
 	BUTTON_S *handle;
 	int result;
@@ -227,14 +211,13 @@ int key_item_configure(uint32_t gpio, uint8_t active_level, void short_press(voi
 	if (NULL == handle)
 		return kNoMemoryErr;
 	rtos_lock_mutex(&g_key_mutex);
+	gpio_config(gpio, GMODE_INPUT_PULLUP);
+	button_init(handle, key_get_gpio_value, 0, (void *)gpio);
 
-	key_gpio_config(gpio, active_level);
-	button_init(handle, key_get_gpio_value, active_level, (void *)gpio);
 	button_attach(handle, SINGLE_CLICK, (btn_callback)short_press);
 	button_attach(handle, DOUBLE_CLICK, (btn_callback)double_press);
 	button_attach(handle, LONG_PRESS_START,	(btn_callback)long_press);
 	button_attach(handle, LONG_PRESS_HOLD, (btn_callback)hold_press);
-
 	rtos_unlock_mutex(&g_key_mutex);
 	result = button_start(handle);
 	if (result < 0) {
@@ -242,7 +225,6 @@ int key_item_configure(uint32_t gpio, uint8_t active_level, void short_press(voi
 		os_free(handle);
 		return kGeneralErr;
 	}
-	os_printf("key_item_configure\r\n");
 
 	return kNoErr;
 }
@@ -265,24 +247,12 @@ int key_item_unconfigure(uint32_t gpio)
 
 void key_initialization(void)
 {
-	if(s_key_init_status_flag) {
-		KEY_PRT("INITED\n");
-		return;
-	}
-
 	key_configure();
-	s_key_init_status_flag = 1;
 }
 
 void key_uninitialization(void)
 {
-	if(!s_key_init_status_flag) {
-		KEY_PRT("UNINITED\n");
-		return;
-	}
-
 	key_unconfig();
-	s_key_init_status_flag = 0;
 }
 
 // eof

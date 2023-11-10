@@ -197,8 +197,9 @@ char *ctime(const time_t *timep)
 	return asctime(localtime(timep));
 }
 
+
 int64_t g_seconds_offset = 0;
-extern uint64_t bk_aon_rtc_get_us(void);
+extern uint64_t bk_aon_rtc_get_current_tick(aon_rtc_id_t id);
 
 static int gettimeofday(struct s_timeval *tp, void *ignore)
 {
@@ -207,13 +208,13 @@ static int gettimeofday(struct s_timeval *tp, void *ignore)
 		return -1;
 	}
 
-	(void)ignore;
-
+    (void)ignore;
+ 
 	if (tp != NULL)
 	{
-		uint64_t time_s = bk_aon_rtc_get_us()/(1000*1000);
+		uint64_t tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 
-		long current_time = g_seconds_offset + time_s;
+		long current_time = g_seconds_offset + tick/32/1000;
 
 		tp->tv_sec = current_time;
 		tp->tv_usec = 0;
@@ -229,17 +230,19 @@ static int settimeofday(const struct s_timeval *tp,const struct timezone *tz)
 		return -1;
 	}
 
-	(void)tz;
+    (void)tz;
 
-	if(tp)
-	{
-		long current_tick_seconds = bk_aon_rtc_get_us()/(1000*1000);
-		long settime_seconds = tp->tv_sec;
+    if(tp)
+    {
+        uint64_t tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
+		long current_tick_seconds = tick/32/1000;
 
-		g_seconds_offset = settime_seconds - current_tick_seconds;
-	}
+        long settime_seconds = tp->tv_sec;
 
-	return 0;
+        g_seconds_offset = settime_seconds - current_tick_seconds;
+    }
+
+    return 0;
 }
 
 int datetime_set(time_t      sec)
@@ -276,7 +279,6 @@ int datetime_get(struct tm *t)
     return 0;
 } 
 
-
 time_t os_time(void)
 {
     struct s_timeval get_time = {0};
@@ -285,4 +287,3 @@ time_t os_time(void)
 
     return get_time.tv_sec;
 }
-

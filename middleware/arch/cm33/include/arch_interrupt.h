@@ -96,7 +96,6 @@ typedef enum {
 
 #define IRQ_DEFAULT_PRIORITY    (6)
 
-
 bk_err_t arch_isr_entry_init(void);
 void arch_interrupt_unregister_int(arch_int_src_t int_number);
 void arch_interrupt_register_int(arch_int_src_t int_number, int_group_isr_t isr_callback);
@@ -116,3 +115,4 @@ void BusFault_Handler(void);
 void UsageFault_Handler(void);
 void SecureFault_Handler(void);
 void DebugMon_Handler(void);
+

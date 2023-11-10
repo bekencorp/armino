@@ -74,7 +74,7 @@ static void at_version_command(char *pcWriteBuffer, int xWriteBufferLen, int arg
 }
 
 //#if (CONFIG_BLE_5_X || CONFIG_BTDM_5_2)
-#if CONFIG_BLE &&  !CONFIG_BTDM_CONTROLLER_ONLY
+#if CONFIG_BLE
 static void bleat_command_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     char *msg = NULL;
@@ -100,7 +100,7 @@ static void bleat_command_handler(char *pcWriteBuffer, int xWriteBufferLen, int 
 }
 #endif /// CONFIG_BLE_5_X || CONFIG_BTDM_5_2
 
-#if CONFIG_BT &&  !CONFIG_BTDM_CONTROLLER_ONLY
+#if CONFIG_BT
 static void bt_at_command_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     char *msg = NULL;
@@ -320,10 +320,10 @@ static const struct cli_command s_at_commands[] = {
     {"AT", "AT", at_base_command},
     {"AT+RST", "AT+RST", at_reset_command},
     {"AT+VERSION", "AT+VERSION", at_version_command},
-#if CONFIG_BLE && !CONFIG_BTDM_CONTROLLER_ONLY
+#if CONFIG_BLE//(CONFIG_BLE_5_X || CONFIG_BTDM_5_2)
     {"AT+BLE", "AT+TYPE_CMD=CMD_name,param1,...,paramn", bleat_command_handler},
 #endif
-#if CONFIG_BT && !CONFIG_BTDM_CONTROLLER_ONLY
+#if CONFIG_BT
     {"AT+BT", "AT+TYPE_CMD=CMD_name,param1,...,paramn", bt_at_command_handler},
 #endif
 #if CONFIG_LWIP

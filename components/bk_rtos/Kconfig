@@ -34,11 +34,6 @@ menu "Bk_rtos"
 			bool "Enable FreeRTOS Posix"
 			default n
 
-		config FREERTOS_TRACE
-			depends on FREERTOS_V10
-			bool "FreeRTOS Trace"
-			default n
-
 		config FREERTOS_USE_TICKLESS_IDLE
 			depends on FREERTOS_V10
 			int "Set FreeRTOS Use Tickless Idle"

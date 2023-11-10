@@ -339,21 +339,6 @@ bk_err_t lcd_driver_init(const lcd_config_t *config);
 const lcd_device_t *get_lcd_device_by_id(lcd_device_id_t id);
 
 /**
- * @brief get lcd device list
- * @return
- *     - devices list
- */
-const lcd_device_t **get_lcd_devices_list(void);
-
-/**
- * @brief get lcd device number
- * @return
- *     - devices number
- */
-uint32_t get_lcd_devices_num(void);
-
-
-/**
  * @brief this api used to init lcd backlight
  * 
  * @param pwm_id gpio7-->PWM_ID_1  gpio8-->PWM_ID_2

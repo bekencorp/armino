@@ -23,7 +23,6 @@ typedef struct
     uint32_t result;
     uint32_t src;
     uint32_t dest;
-	uint32_t type;
     uint32_t param;
 } media_mailbox_msg_t;
 
@@ -40,26 +39,12 @@ enum
     MINOR_MODULE,
 } ;
 
-enum
-{
-    MAILBOX_MSG_TYPE_REQ = 0,
-    MAILBOX_MSG_TYPE_RSP,
-    MAILBOX_MSG_TYPE_NOTIFY,
-    MAILBOX_MSG_TYPE_ABORT,
-} ;
-void media_mailbox_list_clear(LIST_HEADER_T *list);
-media_mailbox_msg_t *media_mailbox_list_get_node(beken_semaphore_t msg, LIST_HEADER_T *list);
-media_mailbox_msg_t *media_mailbox_list_del_node(beken_semaphore_t msg, LIST_HEADER_T *list);
-media_mailbox_msg_t *media_mailbox_list_del_node_by_event(uint32_t event, LIST_HEADER_T *list);
-media_mailbox_msg_t *media_mailbox_list_pop(LIST_HEADER_T *list);
-void media_mailbox_list_push(media_mailbox_msg_t *tmp, LIST_HEADER_T *list);
+media_mailbox_msg_t *media_mailbox_list_get_node(beken_semaphore_t msg, LIST_HEADER_T *list, beken_mutex_t lock);
+media_mailbox_msg_t *media_mailbox_list_del_node(beken_semaphore_t msg, LIST_HEADER_T *list, beken_mutex_t lock);
+media_mailbox_msg_t *media_mailbox_list_del_node_by_event(uint32_t event, LIST_HEADER_T *list, beken_mutex_t lock);
+media_mailbox_msg_t *media_mailbox_list_pop(LIST_HEADER_T *list, beken_mutex_t lock);
+void media_mailbox_list_push(media_mailbox_msg_t *tmp, LIST_HEADER_T *list, beken_mutex_t lock);
 
-bk_err_t msg_send_req_to_media_app_mailbox_sync(media_mailbox_msg_t *msg);
-bk_err_t msg_send_rsp_to_media_app_mailbox(media_mailbox_msg_t *msg, uint32_t result);
-bk_err_t msg_send_notify_to_media_app_mailbox(media_mailbox_msg_t *msg);
-
-bk_err_t msg_send_req_to_media_major_mailbox_sync(media_mailbox_msg_t *msg, uint32_t dest);
-bk_err_t msg_send_rsp_to_media_major_mailbox(media_mailbox_msg_t *msg, uint32_t result, uint32_t dest);
-bk_err_t msg_send_notify_to_media_major_mailbox(media_mailbox_msg_t *msg, uint32_t dest);
-
+bk_err_t msg_send_to_media_major_mailbox(media_mailbox_msg_t *msg, uint32_t result, uint32_t dest);
+bk_err_t msg_send_to_media_app_mailbox(media_mailbox_msg_t *msg, uint32_t result);
 

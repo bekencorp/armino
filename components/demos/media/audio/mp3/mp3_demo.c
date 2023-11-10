@@ -969,12 +969,6 @@ static aud_intf_spk_setup_t aud_intf_spk_setup = DEFAULT_AUD_INTF_SPK_SETUP_CONF
 
 static const uint16_t MP3_SAMPLE_RATES[] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000};
 
-static const char *song_list[] = {
-	"http://dl.bekencorp.com/d/test/2023/music/qingtian.mp3?sign=YzsQI3YhI1QU6KQ9trGAzMo6OHJxAo0aMVNQtr2DLsg=:0",
-	"http://dl.bekencorp.com/d/test/2023/music/chengdu.mp3?sign=WSKOehaDFGv8csOmTEGjHXHLaygTurgT5NEgjgw4jCY=:0",
-	"http://dl.bekencorp.com/d/test/2023/music/myheart.mp3?sign=R9SLp-MvEEkiauuuKDmPsyV_74wePmKsRdJbFWw4mBo=:0",
-};
-
 static bk_err_t http_mp3_send_msg(audio_mp3_play_msg_t msg)
 {
 	bk_err_t ret = BK_OK;
@@ -1040,7 +1034,7 @@ static bk_err_t http_mp3_decode_handler(unsigned int size)
 			}
 			aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_DUAL;
 			aud_intf_spk_setup.frame_size = mp3FrameInfo.outputSamps * 2;
-			aud_intf_spk_setup.spk_gain = 0x20;
+			aud_intf_spk_setup.spk_gain = 0x2d;
 			aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
 			ret = bk_aud_intf_spk_init(&aud_intf_spk_setup);
 			if (ret != BK_ERR_AUD_INTF_OK) {
@@ -1091,6 +1085,10 @@ static void http_mp3_play_main(void)
 {
 	bk_err_t ret = BK_OK;
 
+	bk_audio_mp3_play_decode_init();
+
+	g_readptr = readBuf;
+
 	aud_intf_drv_setup_t aud_intf_drv_setup = DEFAULT_AUD_INTF_DRV_SETUP_CONFIG();
 	aud_intf_work_mode_t aud_work_mode = AUD_INTF_WORK_MODE_NULL;
 
@@ -1116,10 +1114,8 @@ static void http_mp3_play_main(void)
 		if (kNoErr == ret) {
 			switch (msg.op) {
 				case AUDIO_MP3_PLAY_START:
-					bk_audio_mp3_play_decode_init();
-					g_readptr = readBuf;
 					http_mp3_find_id3();
-					ret = http_mp3_decode_handler(0);
+					ret = http_mp3_decode_handler(1);
 					if (ret != BK_OK) {
 						BK_LOGE(TAG, "http_mp3_decode_handler error!\r\n");
 					}
@@ -1153,10 +1149,7 @@ static void http_mp3_play_main(void)
 					os_free(readBuf);
 					os_free(pcmBuf);
 					goto http_mp3_play_exit;
-					break;
 
-				case AUDIO_MP3_PLAY_EXIT:
-					goto http_mp3_play_exit;
 					break;
 
 				default:
@@ -1278,71 +1271,51 @@ __exit:
 void cli_http_mp3_play_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	int ret = 0;
-	uint32_t song_index = 0;
+
+	if (argc != 2) {
+		BK_LOGE(TAG, "http_mp3_play {uri}\r\n");
+		return;
+	}
+
 	psram_ptr = (unsigned char *)psram_buffer;
 
-	if (os_strcmp(argv[1], "init") == 0) {
-		ret = rtos_init_queue(&http_mp3_play_msg_que,
-								"http_mp3_play_queue",
-								sizeof(audio_mp3_play_msg_t),
-								TU_QITEM_COUNT);
-		if (ret != kNoErr) {
-			BK_LOGE(TAG, "create http mp3 play message queue failed!\r\n");
-			return;
-		}
+	uri = web_strdup(argv[1]);
+	if(uri == NULL) {
+		BK_LOGE(TAG, "no memory for create get request uri buffer.\n");
+		return;
+	}
 
-		ret = rtos_create_thread(&http_mp3_play_thread_hdl,
-								 BEKEN_DEFAULT_WORKER_PRIORITY,
-								 "http_mp3_play",
-								 (beken_thread_function_t)http_mp3_play_main,
-								 4096,
-								 NULL);
-		if (ret != kNoErr) {
-			BK_LOGE(TAG, "http mp3 play task create fail!\r\n");
-			rtos_deinit_queue(&http_mp3_play_msg_que);
-			http_mp3_play_msg_que = NULL;
-			http_mp3_play_thread_hdl = NULL;
-		}
+	ret = rtos_init_queue(&http_mp3_play_msg_que,
+							"http_mp3_play_queue",
+							sizeof(audio_mp3_play_msg_t),
+							TU_QITEM_COUNT);
+	if (ret != kNoErr) {
+		BK_LOGE(TAG, "create http mp3 play message queue failed!\r\n");
+		return;
+	}
 
-	} else if (os_strcmp(argv[1], "start") == 0) {
-		song_index = os_strtoul(argv[2], NULL, 10);
-		if (song_list[song_index] != NULL) {
-			uri = web_strdup(song_list[song_index]);
-			if(uri == NULL) {
-				BK_LOGE(TAG, "no memory for create get request uri buffer.\n");
-				return;
-			}
+	ret = rtos_create_thread(&http_get_thread_hdl,
+							 BEKEN_DEFAULT_WORKER_PRIORITY,
+							 "http_get",
+							 (beken_thread_function_t)http_get_main,
+							 2048,
+							 NULL);
+	if (ret != kNoErr) {
+		BK_LOGE(TAG, "http get task create fail\r\n");
+		return;
+	}
 
-			ret = rtos_create_thread(&http_get_thread_hdl,
-									 BEKEN_DEFAULT_WORKER_PRIORITY,
-									 "http_get",
-									 (beken_thread_function_t)http_get_main,
-									 2048,
-									 NULL);
-			if (ret != kNoErr) {
-				BK_LOGE(TAG, "http get task create fail\r\n");
-				http_get_thread_hdl = NULL;
-			}
-		}
-	}else if (os_strcmp(argv[1], "pause") == 0) {
-		ret = bk_aud_intf_spk_pause();
-		if (ret != BK_ERR_AUD_INTF_OK) {
-			BK_LOGE(TAG, "bk_aud_intf_spk_pause fail, ret:%d \r\n", ret);
-		} else {
-			BK_LOGI(TAG, "bk_aud_intf_spk_pause complete \r\n");
-		}
-
-	} else if (os_strcmp(argv[1], "play") == 0) {
-		ret = bk_aud_intf_spk_start();
-		if (ret != BK_ERR_AUD_INTF_OK) {
-			BK_LOGE(TAG, "bk_aud_intf_spk_start fail, ret:%d \r\n", ret);
-		} else {
-			BK_LOGI(TAG, "bk_aud_intf_spk_start complete \r\n");
-		}
-
-	} else if (os_strcmp(argv[1], "set_volume") == 0) {
-		uint32_t value = os_strtoul(argv[2], NULL, 0); // The range of value is 0x0 ~ 0x3F.
-		bk_aud_intf_set_spk_gain(value);
+	ret = rtos_create_thread(&http_mp3_play_thread_hdl,
+							 5,
+							 "http_mp3_play",
+							 (beken_thread_function_t)http_mp3_play_main,
+							 4096,
+							 NULL);
+	if (ret != kNoErr) {
+		BK_LOGE(TAG, "create http mp3 play task fail!\r\n");
+		rtos_deinit_queue(&http_mp3_play_msg_que);
+		http_mp3_play_msg_que = NULL;
+		http_mp3_play_thread_hdl = NULL;
 	}
 }
 

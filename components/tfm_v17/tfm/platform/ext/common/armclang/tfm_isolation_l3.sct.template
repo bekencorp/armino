@@ -1,0 +1,293 @@
+/*
+ * Copyright (c) 2017-2022 Arm Limited. All rights reserved.
+ * Copyright (c) 2022 Cypress Semiconductor Corporation (an Infineon company)
+ * or an affiliate of Cypress Semiconductor Corporation. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/***********{{utilities.donotedit_warning}}***********/
+
+/*
+ * Customized region name prefix abbreviation:
+ *  LR : A Load region.
+ *  ER : A typical execution region.
+ *  PT : An empty execution region used as position-tag/address-alignment.
+ *
+ * No applying customzied prefixes on linker/system reserved/intentional
+ * names, such as 'ARM_LIB_STACK'.
+ */
+
+#include "region_defs.h"
+
+/* Include file with definitions for section alignments.
+ * Note: it should be included after region_defs.h to let platform define
+ * default values if needed. */
+#include "tfm_s_linker_alignments.h"
+
+LR_CODE S_CODE_START S_CODE_SIZE {
+    PT_RO_START +0 ALIGN TFM_LINKER_PT_RO_ALIGNMENT EMPTY 0x0 {
+        /* Position tag: code + RO-data */
+    }
+
+    /**** This initial section contains mainly the SPM code and RO-data */
+    ER_VECTORS +0 ALIGN 4 S_CODE_VECTOR_TABLE_SIZE {
+        *.o (RESET +First)
+    }
+#ifdef CONFIG_TFM_USE_TRUSTZONE
+    ER_VECTORS_FILL +0 EMPTY (S_CODE_VECTOR_TABLE_SIZE - ImageLength(ER_VECTORS)) {
+    }
+
+    /*
+     * Place the CMSE Veneers (containing the SG instruction) in a separate
+     * 32 bytes aligned region so that the SAU can be programmed to
+     * just set this region as Non-Secure Callable.
+     */
+    ER_VENEER +0 FIXED ALIGN TFM_LINKER_VENEERS_ALIGNMENT {
+        *(Veneer$$CMSE)
+    }
+    /*
+     * The Limit of the VENEER_ALIGN region should be at least 32 bytes aligned
+     * so that the SAU can set this region as Non-Secure Callable.
+     */
+    VENEER_ALIGN +0 ALIGN TFM_LINKER_VENEERS_ALIGNMENT EMPTY 0x0 {
+    }
+#endif
+
+    ER_TFM_CODE +0 {
+        *startup*(.text*)
+        *libplatform_s* (+RO)
+        *libtfm_spm* (+RO)
+    }
+
+    /**** Section for holding partition RO load data */
+    /*
+     * Sort the partition info by priority to guarantee the initing order.
+     * The first loaded partition will be inited at last in SFN model.
+     */
+    TFM_SP_LOAD_LIST +0 ALIGN 4 {
+        *(.part_load_priority_lowest)
+        *(.part_load_priority_low)
+        *(.part_load_priority_normal)
+        *(.part_load_priority_high)
+    }
+
+    /**** PSA RoT CODE + RO-data starts here */
+{% for partition in partitions %}
+    {% if partition.manifest.type == 'PSA-ROT' %}
+    ER_{{partition.manifest.name}}_RO +0 ALIGN TFM_LINKER_PSA_ROT_LINKER_CODE_ALIGNMENT {
+    {% if partition.attr.linker_pattern.library_list %}
+        {% for pattern in partition.attr.linker_pattern.library_list %}
+        {{pattern}} (+RO-CODE, +RO-DATA)
+        {% endfor %}
+    {% endif %}
+    {% if partition.attr.linker_pattern.object_list %}
+        {% for pattern in partition.attr.linker_pattern.object_list %}
+        {{pattern}} (+RO-CODE, +RO-DATA)
+        {% endfor %}
+    {% endif %}
+        *({{partition.manifest.name}}_PSA-ROT_ATTR_FN)
+    }
+
+    {% endif %}
+{% endfor %}
+    /**** PSA RoT CODE + RO-data ends here */
+
+    /**** APPLICATION RoT CODE + RO-data starts here */
+{% for partition in partitions %}
+    {% if partition.manifest.type == 'APPLICATION-ROT' %}
+    ER_{{partition.manifest.name}}_RO +0 ALIGN TFM_LINKER_APP_ROT_LINKER_CODE_ALIGNMENT {
+    {% if partition.attr.linker_pattern.library_list %}
+        {% for pattern in partition.attr.linker_pattern.library_list %}
+        {{pattern}} (+RO-CODE, +RO-DATA)
+        {% endfor %}
+    {% endif %}
+    {% if partition.attr.linker_pattern.object_list %}
+        {% for pattern in partition.attr.linker_pattern.object_list %}
+        {{pattern}} (+RO-CODE, +RO-DATA)
+        {% endfor %}
+    {% endif %}
+        *({{partition.manifest.name}}_APP-ROT_ATTR_FN)
+    }
+
+    {% endif %}
+{% endfor %}
+    /**** APPLICATION RoT CODE + RO-data ends here */
+
+    /**** Unprivileged Secure code + RO-data starts here */
+    TFM_UNPRIV_CODE +0 ALIGN TFM_LINKER_UNPRIV_CODE_ALIGNMENT {
+        *(SFN)
+        * (+RO)
+    }
+
+    PT_RO_END +0 ALIGN TFM_LINKER_PT_RO_ALIGNMENT EMPTY 0x0 {
+        /* Position tag */
+    }
+
+    /**** Base address of secure data area */
+    PT_SECURE_DATA_START S_DATA_START EMPTY 0x0 {
+        /* Position tag */
+    }
+
+    PT_PRIV_RWZI_START +0 ALIGN TFM_LINKER_PT_PRIV_RWZI_ALIGNMENT EMPTY 0x0 {
+        /* Position tag */
+    }
+
+    /* Shared area between BL2 and runtime to exchange data */
+    TFM_SHARED_DATA +0 ALIGN TFM_LINKER_BL2_SHARED_DATA_ALIGNMENT OVERLAY EMPTY BOOT_TFM_SHARED_DATA_SIZE {
+    }
+
+    /* MSP */
+    ARM_LIB_STACK +0 ALIGN TFM_LINKER_MSP_STACK_ALIGNMENT OVERLAY EMPTY S_MSP_STACK_SIZE - 0x8 {
+    }
+
+    STACKSEAL +0 EMPTY 0x8 {
+    }
+
+    ER_TFM_DATA +0 {
+        * (+RW +ZI)
+    }
+
+    /**** The runtime partition placed order is same as load partition */
+    ER_PART_RT_POOL +0 ALIGN 4 {
+        *(.bss.part_runtime_priority_lowest)
+        *(.bss.part_runtime_priority_low)
+        *(.bss.part_runtime_priority_normal)
+        *(.bss.part_runtime_priority_high)
+    }
+
+    /**** The runtime service placed order is same as load partition */
+    ER_SERV_RT_POOL +0 ALIGN 4 {
+        *(.bss.serv_runtime_priority_lowest)
+        *(.bss.serv_runtime_priority_low)
+        *(.bss.serv_runtime_priority_normal)
+        *(.bss.serv_runtime_priority_high)
+    }
+
+    /**** PSA RoT RWZI starts here */
+{% for partition in partitions %}
+    {% if partition.manifest.type == 'PSA-ROT' %}
+
+    PT_{{partition.manifest.name}}_PRIVATE_DATA_START +0 ALIGN TFM_LINKER_PSA_ROT_LINKER_DATA_ALIGNMENT {
+        /* Position tag */
+    }
+
+    ER_{{partition.manifest.name}}_RWZI +0 ALIGN TFM_LINKER_PSA_ROT_LINKER_DATA_ALIGNMENT {
+    {% if partition.attr.linker_pattern.library_list %}
+        {% for pattern in partition.attr.linker_pattern.library_list %}
+        {{pattern}} (+RW +ZI)
+        {% endfor %}
+    {% endif %}
+    {% if partition.attr.linker_pattern.object_list %}
+        {% for pattern in partition.attr.linker_pattern.object_list %}
+        {{pattern}} (+RW +ZI)
+        {% endfor %}
+    {% endif %}
+        *({{partition.manifest.name}}_PSA-ROT_ATTR_RW)
+        *({{partition.manifest.name}}_PSA-ROT_ATTR_ZI)
+    }
+
+    PT_{{partition.manifest.name}}_PRIVATE_DATA_END +0 ALIGN TFM_LINKER_PSA_ROT_LINKER_DATA_ALIGNMENT {
+        /* Position tag */
+    }
+
+    {% endif %}
+{% endfor %}
+
+    /**** PSA RoT RWZI ends here */
+    PT_PRIV_RWZI_END +0 ALIGN TFM_LINKER_PSA_ROT_LINKER_DATA_ALIGNMENT EMPTY 0x0 {
+        /* Position tag */
+    }
+
+{% for partition in partitions %}
+    {% if partition.manifest.type == 'APPLICATION-ROT' %}
+
+    PT_{{partition.manifest.name}}_PRIVATE_DATA_START +0 ALIGN TFM_LINKER_APP_ROT_LINKER_DATA_ALIGNMENT {
+        /* Position tag */
+    }
+
+    ER_{{partition.manifest.name}}_RWZI +0 ALIGN TFM_LINKER_APP_ROT_LINKER_DATA_ALIGNMENT {
+    {% if partition.attr.linker_pattern.library_list %}
+        {% for pattern in partition.attr.linker_pattern.library_list %}
+        {{pattern}} (+RW +ZI)
+        {% endfor %}
+    {% endif %}
+    {% if partition.attr.linker_pattern.object_list %}
+        {% for pattern in partition.attr.linker_pattern.object_list %}
+        {{pattern}} (+RW +ZI)
+        {% endfor %}
+    {% endif %}
+        *({{partition.manifest.name}}_APP-ROT_ATTR_RW)
+        *({{partition.manifest.name}}_APP-ROT_ATTR_ZI)
+    }
+
+    PT_{{partition.manifest.name}}_PRIVATE_DATA_END +0 ALIGN TFM_LINKER_APP_ROT_LINKER_DATA_ALIGNMENT {
+        /* Position tag */
+    }
+
+    {% endif %}
+{% endfor %}
+
+#if defined(CONFIG_TFM_PARTITION_META)
+    TFM_SP_META_PTR +0 ALIGN TFM_LINKER_SP_META_PTR_ALIGNMENT {
+        *(.bss.SP_META_PTR_SPRTL_INST)
+    }
+#endif
+
+#ifdef RAM_VECTORS_SUPPORT
+    ER_RAM_VECTORS +0 ALIGN TFM_LINKER_RAM_VECTORS_ALIGNMENT UNINIT {
+        * (RESET_RAM)
+    }
+#endif
+
+    PT_SRAM_WATERMARK +0 EMPTY 0x0 {
+        /* Position tag */
+    }
+
+    /* Make sure that the sections allocated in the SRAM does not exceed the
+     * size of the SRAM available.
+     */
+    ScatterAssert(ImageLimit(PT_SRAM_WATERMARK) <= S_DATA_START + S_DATA_SIZE)
+
+#if defined(S_CODE_SRAM_ALIAS_BASE)
+    /* eFlash driver code that gets copied from Flash to SRAM */
+    ER_EFLASH_DRIVER_RO S_CODE_SRAM_ALIAS_BASE ALIGN 4 {
+        Driver_GFC100_EFlash.o (+RO-CODE, +RO-DATA)
+        gfc100_eflash_drv.o (+RO-CODE, +RO-DATA)
+        musca_b1_eflash_drv.o (+RO-CODE, +RO-DATA)
+    }
+#endif
+}
+
+LR_NS_PARTITION NS_PARTITION_START {
+    /* Reserved place for NS application.
+     * No code will be placed here, just address of this region is used in the
+     * secure code to configure certain HW components. This generates an empty
+     * execution region description warning during linking.
+     */
+    ER_NS_PARTITION NS_PARTITION_START UNINIT NS_PARTITION_SIZE {
+    }
+}
+
+#ifdef BL2
+LR_SECONDARY_PARTITION SECONDARY_PARTITION_START {
+    /* Reserved place for new image in case of firmware upgrade.
+     * No code will be placed here, just address of this region is used in the
+     * secure code to configure certain HW components. This generates an empty
+     * execution region description warning during linking.
+     */
+    ER_SECONDARY_PARTITION SECONDARY_PARTITION_START \
+        UNINIT SECONDARY_PARTITION_SIZE {
+    }
+}
+#endif /* BL2 */

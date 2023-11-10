@@ -138,23 +138,6 @@ static bool statck_has_fpu_regs = false;
 static bool on_thread_before_fault = false;
 
 /**
- * wifi exception handlers
- */
-__attribute__((weak))
-void wifi_except_handler(void)
-{
-}
-
-/**
- * user exception handlers
- */
-__attribute__((weak))
-void user_except_handler()
-{
-
-}
-
-/**
  * library initialize
  */
 void cm_backtrace_init(const char *firmware_name, const char *hardware_ver, const char *software_ver) {
@@ -441,10 +424,6 @@ void cm_backtrace_assert(uint32_t sp) {
 #endif /* CMB_USING_OS_PLATFORM */
 
     print_call_stack(sp);
-
-    wifi_except_handler();
-
-    user_except_handler();
 }
 
 #if (CMB_CPU_PLATFORM_TYPE != CMB_CPU_ARM_CORTEX_M0)
@@ -576,7 +555,21 @@ static uint32_t statck_del_fpu_regs(uint32_t fault_handler_lr, uint32_t sp) {
 }
 #endif
 
+/**
+ * wifi exception handlers
+ */
+__attribute__((weak))
+void wifi_except_handler(void)
+{
+}
 
+/**
+ * user exception handlers
+ */
+void user_except_handler()
+{
+    wifi_except_handler();
+}
 
 /**
  * backtrace for fault
@@ -680,8 +673,6 @@ void cm_backtrace_fault(uint32_t fault_handler_lr, uint32_t fault_handler_sp) {
 #endif
 
     print_call_stack(stack_pointer);
-
-    wifi_except_handler();
 
     user_except_handler();
 }

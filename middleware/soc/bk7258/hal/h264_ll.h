@@ -52,8 +52,7 @@ static inline void h264_ll_init(h264_hw_t *hw)
 
 static inline void h264_ll_reset(h264_hw_t *hw)
 {
-	hw->global_ctrl.soft_reset = 0;
-	hw->global_ctrl.soft_reset = 1;
+	 hw->global_ctrl.soft_reset = 0;
 }
 
 static inline void h264_ll_encode_enable(h264_hw_t *hw)

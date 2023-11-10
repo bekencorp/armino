@@ -25,6 +25,7 @@ typedef enum {
 	LCD_QSPI_DEVICE_UNKNOW,
 	LCD_QSPI_DEVICE_SH8601A,
 	LCD_QSPI_DEVICE_ST77903,
+	LCD_QSPI_DEVICE_ST77903_SAT61478M,
 } lcd_qspi_device_id_t;
 
 typedef enum {
@@ -32,24 +33,6 @@ typedef enum {
 	LCD_QSPI_REFRESH_BY_FRAME,
 	LCD_QSPI_REFRESH_INVALID,
 } lcd_qspi_refresh_method_t;
-
-typedef enum {
-	LCD_QSPI_DATA_1_LINE,
-	LCD_QSPI_DATA_2_LINE,
-	LCD_QSPI_DATA_4_LINE,
-	LCD_QSPI_DATA_INVALID,
-} lcd_qspi_data_line_t;
-
-typedef enum {
-	LCD_QSPI_NO_INSERT_DUMMMY_CLK,
-	LCD_QSPI_CMD1_DUMMY_CLK_CMD2,
-	LCD_QSPI_CMD2_DUMMY_CLK_CMD3,
-	LCD_QSPI_CMD3_DUMMY_CLK_CMD4,
-	LCD_QSPI_CMD4_DUMMY_CLK_CMD5,
-	LCD_QSPI_CMD5_DUMMY_CLK_CMD6,
-	LCD_QSPI_CMD6_DUMMY_CLK_CMD7,
-	LCD_QSPI_CMD7_DUMMY_CLK_CMD8,
-} lcd_qspi_dummy_mode_t;
 
 typedef struct {
 	uint8_t cmd;
@@ -59,16 +42,18 @@ typedef struct {
 
 typedef struct {
 	uint8_t *cmd;
-	uint8_t cmd_len;		// cmd is 1 ~ 8 bytes
+	uint8_t cmd_len;		// cmd is 1~8 bytes
 } lcd_qspi_write_config_t;
 
 typedef struct {
-	uint8_t cmd;
-	uint8_t dummy_clk;		// 1 ~ 127
-	uint16_t data_len;  	// 0 ~ 256 bytes
+	uint8_t *cmd;
+	uint8_t cmd_len;        // cmd is 1~8 bytes
+	uint8_t *reg_rdata;
+	uint8_t reg_rdata_len;  // rdata 0~64 bytes
 
-	lcd_qspi_data_line_t data_line;
-	lcd_qspi_dummy_mode_t dummy_mode;
+	uint8_t data_line;
+	uint8_t dummy_mode;
+	uint8_t dummy_clk;
 } lcd_qspi_reg_read_config_t;
 
 typedef struct {
@@ -85,8 +70,8 @@ typedef struct {
 	media_ppi_t ppi;
 	lcd_qspi_refresh_method_t refresh_method;
 	uint8_t reg_write_cmd;
-	uint8_t reg_read_cmd;
 	lcd_qspi_write_config_t pixel_write_config;
+	lcd_qspi_reg_read_config_t reg_read_config;
 	const lcd_qspi_init_cmd_t *init_cmd;
 	uint32_t device_init_cmd_len;
 	bk_err_t (*backlight_init)(uint8_t);
@@ -95,6 +80,13 @@ typedef struct {
 	lcd_qspi_refresh_config_by_line_t refresh_config;
 	uint32_t frame_len;
 } lcd_qspi_device_t;
+
+typedef enum {
+	LCD_QSPI_ACT_DISP_IDLE,
+	LCD_QSPI_ACT_DISP_FRAME,
+//	LCD_QSPI_ACT_DISP_NULL_FRAME,
+	LCD_QSPI_ACT_DISP_CLOSE,
+} lcd_qspi_act_option_t;
 
 #ifdef __cplusplus
 }

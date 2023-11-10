@@ -1,0 +1,39 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2022, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+#-------------------------------------------------------------------------------
+
+menu "Attestation component configs"
+    depends on TFM_PARTITION_INITIAL_ATTESTATION
+
+config ATTEST_INCLUDE_OPTIONAL_CLAIMS
+    bool "Include optional claims in initial attestation token"
+    default y
+
+config ATTEST_INCLUDE_COSE_KEY_ID
+    bool "Include COSE key-id in initial attestation token"
+    default n
+
+choice
+    prompt "Set the initial attestation token profile"
+    config ATTEST_TOKEN_PROFILE_PSA_IOT_1
+        bool "PSA_IOT_1"
+    config ATTEST_TOKEN_PROFILE_PSA_2_0_0
+        bool "PSA_2_0_0"
+    config ATTEST_TOKEN_PROFILE_ARM_CCA
+        bool "ARM_CCA"
+endchoice
+
+config ATTEST_TOKEN_PROFILE
+    string
+    default "PSA_IOT_1" if ATTEST_TOKEN_PROFILE_PSA_IOT_1
+    default "PSA_2_0_0" if ATTEST_TOKEN_PROFILE_PSA_2_0_0
+    default "ARM_CCA" if ATTEST_TOKEN_PROFILE_ARM_CCA
+
+config ATTEST_STACK_SIZE
+    hex "Stack size"
+    default 0x700
+
+endmenu

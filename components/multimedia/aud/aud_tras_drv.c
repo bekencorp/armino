@@ -49,10 +49,6 @@
 #define LOGE(...) BK_LOGE(AUD_TRAS_DRV_TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(AUD_TRAS_DRV_TAG, ##__VA_ARGS__)
 
-
-#define AUD_MEDIA_SEM_ENABLE    0
-
-
 #define CONFIG_AUD_TRAS_AEC_MIC_DELAY_POINTS   53
 //#define CONFIG_AUD_RING_BUFF_SAFE_INTERVAL    20
 
@@ -66,14 +62,12 @@ static beken_queue_t aud_trs_drv_int_msg_que = NULL;
 
 aud_tras_drv_info_t aud_tras_drv_info = DEFAULT_AUD_TRAS_DRV_INFO();
 static bool uac_mic_read_flag = false;
-static bool uac_spk_write_flag = false;
 
 media_mailbox_msg_t *aud_to_media_app_msg = NULL;
 
 media_mailbox_msg_t mic_to_media_app_msg = {0};
-#if AUD_MEDIA_SEM_ENABLE
 beken_semaphore_t mailbox_media_aud_mic_sem = NULL;
-#endif
+
 aud_tras_drv_mic_notify_t mic_nofity = {0, 0};
 
 
@@ -85,7 +79,6 @@ static uint8_t mic_delay_num = 0;
 
 
 #if AUD_MIC_DEBUG
-//#if 1
 static const unsigned int PCM_8000[] = {
 	0x0001, 0x5A82, 0x7FFF, 0x5A82, 0x0000, 0xA57F, 0x8001, 0xA57E,
 	0x0001, 0x5A82, 0x7FFF, 0x5A82, 0x0000, 0xA57F, 0x8001, 0xA57E,
@@ -228,9 +221,16 @@ static bk_err_t aud_tras_drv_aec_cfg(void)
 	/* init aec context */
 	aec_context_size = aec_size(1000);
 	LOGI("malloc aec size: %d \r\n", aec_context_size);
-//	temp_aec_info->aec = (AECContext*)os_malloc(aec_context_size);
+#if CONFIG_AUD_TRAS_AEC_FIXED_SRAM
+	temp_aec_info->aec = (AECContext*)AUD_AEC_SRAM_ADDRESS;
+	LOGI("aec use fixed sram: %p \n", temp_aec_info->aec);
+#elif CONFIG_AUD_TRAS_AEC_MALLOC_PSRAM
 	temp_aec_info->aec = (AECContext*)psram_malloc(aec_context_size);
+	LOGI("aec use malloc psram: %p \n", temp_aec_info->aec);
+#else
+	temp_aec_info->aec = (AECContext*)os_malloc(aec_context_size);
 	LOGI("aec use malloc sram: %p \n", temp_aec_info->aec);
+#endif
 	if (temp_aec_info->aec == NULL) {
 		LOGE("malloc aec fail, aec_context_size: %d \r\n", aec_context_size);
 		return BK_FAIL;
@@ -321,7 +321,11 @@ static void aud_tras_drv_aec_decfg(void)
 {
 	if (aud_tras_drv_info.voc_info.aec_enable) {
 		if (aud_tras_drv_info.voc_info.aec_info->aec) {
+#if CONFIG_AUD_TRAS_AEC_MALLOC_SRAM
 			os_free(aud_tras_drv_info.voc_info.aec_info->aec);
+#else
+			//not need free
+#endif
 			aud_tras_drv_info.voc_info.aec_info->aec = NULL;
 		}
 
@@ -358,7 +362,7 @@ static void aud_tras_drv_aec_decfg(void)
 static void aud_tras_adc_dma_finish_isr(void)
 {
 	bk_err_t ret = BK_OK;
-//	GPIO_UP(3);
+	GPIO_UP(3);
 
 	if (aud_tras_drv_info.work_mode == AUD_INTF_WORK_MODE_GENERAL) {
 		ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_MIC_TX_DATA, NULL);
@@ -372,7 +376,7 @@ static void aud_tras_adc_dma_finish_isr(void)
 	if (ret != kNoErr) {
 		LOGE("send msg: AUD_TRAS_DRV_AEC fail \r\n");
 	}
-//	GPIO_DOWN(3);
+	GPIO_DOWN(3);
 }
 
 static bk_err_t aud_tras_adc_dma_config(dma_id_t dma_id, int32_t *ring_buff_addr, uint32_t ring_buff_size, uint32_t transfer_len, aud_intf_mic_chl_t mic_chl)
@@ -440,7 +444,7 @@ static bk_err_t aud_tras_adc_dma_config(dma_id_t dma_id, int32_t *ring_buff_addr
 static void aud_tras_dac_dma_finish_isr(void)
 {
 	bk_err_t ret = BK_OK;
-	//GPIO_UP(2);
+	GPIO_UP(2);
 
 	if (aud_tras_drv_info.work_mode == AUD_INTF_WORK_MODE_GENERAL)
 		/* send msg to notify app to write speaker data */
@@ -449,9 +453,9 @@ static void aud_tras_dac_dma_finish_isr(void)
 		/* send msg to decoder to decoding recevied data */
 		ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_DECODER, NULL);
 	if (ret != kNoErr) {
-		LOGE("dac send msg: AUD_TRAS_DRV_DECODER fail \r\n");
+		LOGE("send msg: AUD_TRAS_DRV_DECODER fails \r\n");
 	}
-	//GPIO_DOWN(2);
+	GPIO_DOWN(2);
 }
 
 static bk_err_t aud_tras_dac_dma_config(dma_id_t dma_id, int32_t *ring_buff_addr, uint32_t ring_buff_size, uint32_t transfer_len, aud_intf_spk_chl_t spk_chl)
@@ -867,17 +871,16 @@ static bk_err_t aud_tras_enc(void)
 			/* get data from aec_ring_buff */
 			size = ring_buffer_read(&(aud_tras_drv_info.voc_info.aec_info->aec_rb), (uint8_t *)aud_tras_drv_info.voc_info.encoder_temp.pcm_data, temp_mic_samp_rate_points*2);
 			if (size != temp_mic_samp_rate_points*2) {
-				LOGE("read aec_rb :%d \r\n", size);
-				os_memset(aud_tras_drv_info.voc_info.encoder_temp.pcm_data, 0, temp_mic_samp_rate_points*2);
-				//goto encoder_exit;
+				//LOGE("read aec_rb :%d \r\n", size);
+				//os_memset(aud_tras_drv_info.voc_info.encoder_temp.pcm_data, 0, temp_mic_samp_rate_points*2);
+				goto encoder_exit;
 			}
 		} else {
 			/* get data from mic_ring_buff */
 //			fill_size = ring_buffer_get_fill_size(&(aud_tras_drv_info.voc_info.mic_rb));
 			size = ring_buffer_read(&(aud_tras_drv_info.voc_info.mic_rb), (uint8_t *)aud_tras_drv_info.voc_info.encoder_temp.pcm_data, temp_mic_samp_rate_points*2);
 			if (size != temp_mic_samp_rate_points*2) {
-				LOGE("read mic_rb :%d \r\n", size);
-				os_memset(aud_tras_drv_info.voc_info.encoder_temp.pcm_data, 0, temp_mic_samp_rate_points*2);
+				//LOGE("mic fill:%d, need:%d, read:%d,\r\n", fill_size,  temp_mic_samp_rate_points*2, size);
 				//goto encoder_exit;
 			}
 #if AUD_MIC_DEBUG
@@ -944,17 +947,6 @@ static bk_err_t aud_tras_enc(void)
 		aud_tras_drv_info.voc_info.aud_tras_dump_tx_cb((uint8_t *)temp_tx_info.ping.buff_addr, (uint32_t)temp_tx_info.buff_length);
 	}
 
-	if (aud_tras_drv_info.aud_tx_rb) {
-		int free_size = ring_buffer_get_free_size(aud_tras_drv_info.aud_tx_rb);
-		if (free_size > temp_tx_info.buff_length) {
-			//GPIO_UP(4);
-			ring_buffer_write(aud_tras_drv_info.aud_tx_rb, (uint8_t *)temp_tx_info.ping.buff_addr, temp_tx_info.buff_length);
-			//GPIO_DOWN(4);
-		} else {
-			//LOGE("aud_tx_rb free_size: %d \n", free_size);
-		}
-	}
-
 	/* send mic notify mailbox msg to media app */
 	if (aud_tras_drv_info.aud_tras_tx_mic_data != NULL) {
 		uint32_t result = BK_OK;
@@ -962,15 +954,11 @@ static bk_err_t aud_tras_enc(void)
 		mic_nofity.length = (uint32_t)temp_tx_info.buff_length;
 		mic_to_media_app_msg.event = EVENT_AUD_MIC_DATA_NOTIFY;
 		mic_to_media_app_msg.param = (uint32_t)&mic_nofity;
-#if AUD_MEDIA_SEM_ENABLE
 		mic_to_media_app_msg.sem = mailbox_media_aud_mic_sem;
-#else
-		mic_to_media_app_msg.sem = NULL;
-#endif
 		mic_to_media_app_msg.result = (uint32_t)&result;
-		//msg_send_to_media_major_mailbox(&mic_to_media_app_msg, (uint32_t)&result, APP_MODULE);
+		//msg_send_to_app_mailbox(mic_to_media_app_msg, );
+		msg_send_to_media_major_mailbox(&mic_to_media_app_msg, (uint32_t)&result, APP_MODULE);
 
-#if AUD_MEDIA_SEM_ENABLE
 		ret = rtos_get_semaphore(&mailbox_media_aud_mic_sem, BEKEN_WAIT_FOREVER);
 		if (ret != BK_OK)
 		{
@@ -981,7 +969,6 @@ static bk_err_t aud_tras_enc(void)
 		{
 			ret = result;
 		}
-#endif
 	}
 
 	return ret;
@@ -1204,7 +1191,7 @@ static bk_err_t aud_tras_dec(void)
 			size = ring_buffer_write(&(aud_tras_drv_info.voc_info.aec_info->ref_rb), (uint8_t *)aud_tras_drv_info.voc_info.decoder_temp.pcm_data, aud_tras_drv_info.voc_info.aec_info->samp_rate_points*2);
 			if (size != aud_tras_drv_info.voc_info.aec_info->samp_rate_points*2) {
 				LOGE("write data to ref_ring_buff fail, size=%d \r\n", size);
-				//goto decoder_exit;
+				goto decoder_exit;
 			}
 		}
 
@@ -1236,7 +1223,7 @@ static bk_err_t aud_tras_dec(void)
 	{
 	/* save the data after G711A processed to encoder_ring_buffer */
 		if (ring_buffer_get_free_size(&(aud_tras_drv_info.voc_info.speaker_rb)) > aud_tras_drv_info.voc_info.speaker_samp_rate_points*2) {
-#if 0
+#if AUD_MIC_DEBUG
 			size = ring_buffer_write(&(aud_tras_drv_info.voc_info.speaker_rb), (uint8_t *)PCM_8000, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2);
 			if (size != aud_tras_drv_info.voc_info.speaker_samp_rate_points*2) {
 				LOGE("the data writeten to speaker_ring_buff is not a frame, size=%d \r\n", size);
@@ -1248,6 +1235,7 @@ static bk_err_t aud_tras_dec(void)
 				LOGE("the data writeten to speaker_ring_buff is not a frame, size=%d \r\n", size);
 				goto decoder_exit;
 			}
+
 #endif
 			aud_tras_drv_info.voc_info.rx_info.aud_trs_read_seq++;
 		}
@@ -1641,7 +1629,8 @@ static bk_err_t aud_tras_drv_spk_init(aud_intf_spk_config_t *spk_cfg)
 	if (aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb)
 		aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb(EVENT_AUD_TRAS_SPK_INIT, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 	LOGI("step4: init spk complete \r\n");
 
@@ -1683,7 +1672,8 @@ aud_tras_drv_spk_init_exit:
 		aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb(EVENT_AUD_TRAS_SPK_INIT, err);
 	aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb = NULL;
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
+//	msg_send_to_app_mailbox(aud_to_media_app_msg, err);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
 
 	return err;
 }
@@ -1810,13 +1800,15 @@ static bk_err_t aud_tras_drv_spk_start(void)
 	if (aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb)
 		aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb(EVENT_AUD_TRAS_SPK_START, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 	return BK_ERR_AUD_INTF_OK;
 spk_start_err:
 	if (aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb)
 		aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb(EVENT_AUD_TRAS_SPK_START, err);
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, err);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
 
 	return err;
 }
@@ -1844,7 +1836,8 @@ static bk_err_t aud_tras_drv_spk_pause(void)
 	if (aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb)
 		aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb(EVENT_AUD_TRAS_SPK_PAUSE, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 	return BK_ERR_AUD_INTF_OK;
 
 spk_pause_err:
@@ -1852,7 +1845,8 @@ spk_pause_err:
 	if (aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb)
 		aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb(EVENT_AUD_TRAS_SPK_STOP, err);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, err);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
 
 	return err;
 }
@@ -1880,7 +1874,8 @@ static bk_err_t aud_tras_drv_spk_stop(void)
 	if (aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb)
 		aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb(EVENT_AUD_TRAS_SPK_STOP, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 	return BK_ERR_AUD_INTF_OK;
 
 spk_stop_err:
@@ -1888,7 +1883,8 @@ spk_stop_err:
 	if (aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb)
 		aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb(EVENT_AUD_TRAS_SPK_STOP, err);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, err);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
 
 	return err;
 }
@@ -1916,7 +1912,8 @@ static bk_err_t aud_tras_drv_spk_set_chl(aud_intf_spk_chl_t spk_chl)
 	if (aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb)
 		aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb(EVENT_AUD_TRAS_SPK_SET_CHL, ret);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, ret);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
 
 	return ret;
 }
@@ -2175,7 +2172,8 @@ static bk_err_t aud_tras_drv_mic_init(aud_intf_mic_config_t *mic_cfg)
 	if (aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb)
 		aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb(EVENT_AUD_TRAS_MIC_INIT, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 	return err = BK_ERR_AUD_INTF_OK;
 
@@ -2216,7 +2214,8 @@ aud_tras_drv_mic_init_exit:
 		aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb(EVENT_AUD_TRAS_MIC_INIT, err);
 	aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb = NULL;
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, err);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
 
 	return err;
 }
@@ -2297,7 +2296,8 @@ static bk_err_t aud_tras_drv_mic_start(void)
 	if (aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb)
 		aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb(EVENT_AUD_TRAS_MIC_START, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 	return BK_ERR_AUD_INTF_OK;
 
 mic_start_err:
@@ -2305,7 +2305,8 @@ mic_start_err:
 	if (aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb)
 		aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb(EVENT_AUD_TRAS_MIC_START, err);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, err);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
 
 	return err;
 }
@@ -2339,7 +2340,8 @@ static bk_err_t aud_tras_drv_mic_pause(void)
 	if (aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb)
 		aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb(EVENT_AUD_TRAS_MIC_PAUSE, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 	return BK_ERR_AUD_INTF_OK;
 
 mic_pause_err:
@@ -2347,7 +2349,8 @@ mic_pause_err:
 	if (aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb)
 		aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb(EVENT_AUD_TRAS_MIC_PAUSE, err);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, err);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
 
 	return err;
 }
@@ -2381,7 +2384,8 @@ static bk_err_t aud_tras_drv_mic_stop(void)
 	if (aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb)
 		aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb(EVENT_AUD_TRAS_MIC_STOP, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 	return BK_ERR_AUD_INTF_OK;
 
 mic_stop_err:
@@ -2389,7 +2393,8 @@ mic_stop_err:
 	if (aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb)
 		aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb(EVENT_AUD_TRAS_MIC_STOP, err);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, err);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
 
 	return err;
 }
@@ -2427,7 +2432,8 @@ static bk_err_t aud_tras_drv_mic_set_chl(aud_intf_mic_chl_t mic_chl)
 	if (aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb)
 		aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb(EVENT_AUD_TRAS_MIC_SET_CHL, ret);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, ret);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
 
 	return ret;
 }
@@ -2440,7 +2446,8 @@ static bk_err_t aud_tras_drv_mic_set_samp_rate(aud_adc_samp_rate_t samp_rate)
 	if (aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb)
 		aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb(EVENT_AUD_TRAS_MIC_SET_SAMP_RATE, ret);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, ret);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
 
 	return ret;
 }
@@ -2603,18 +2610,13 @@ static void aud_tras_drv_voc_uac_mic_cb(uint8_t *buff, uint32_t count)
 	if ((ring_buffer_get_fill_size(&aud_tras_drv_info.voc_info.mic_rb) > aud_tras_drv_info.voc_info.mic_samp_rate_points * 2) && (uac_mic_read_flag == false)) {
 		uac_mic_read_flag = true;
 		/* send msg to AEC or ENCODER to process mic data */
-		if (aud_tras_drv_info.voc_info.aec_enable) {
+		if (aud_tras_drv_info.voc_info.aec_enable)
 			ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_AEC, NULL);
-			if (ret != kNoErr) {
-				LOGE("uac send msg: AUD_TRAS_DRV_AEC fail \r\n");
-				uac_mic_read_flag = false;
-			}
-		} else {
+		else
 			ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_ENCODER, NULL);
-			if (ret != kNoErr) {
-				LOGE("uac send msg: AUD_TRAS_DRV_ENCODER fail \r\n");
-				uac_mic_read_flag = false;
-			}
+		if (ret != kNoErr) {
+			LOGE("send msg: AUD_TRAS_DRV_ENCODER fail \r\n");
+			uac_mic_read_flag = false;
 		}
 	}
 }
@@ -2633,22 +2635,15 @@ static void aud_tras_drv_voc_uac_spk_cb(void)
 				os_memset(aud_tras_drv_info.voc_info.uac_spk_buff, 0x00, aud_tras_drv_info.voc_info.uac_spk_buff_size);
 			}
 		} else {
-			LOGD("write 0x00 uac spk data \r\n");
+			LOGW("write 0x00 uac spk data fail \r\n");
 			os_memset(aud_tras_drv_info.voc_info.uac_spk_buff, 0x00, aud_tras_drv_info.voc_info.uac_spk_buff_size);
 		}
 	}
 
-	if (uac_spk_write_flag && (ring_buffer_get_free_size(&aud_tras_drv_info.voc_info.speaker_rb) < aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2))
-		uac_spk_write_flag = false;
-
-	if ((ring_buffer_get_free_size(&aud_tras_drv_info.voc_info.speaker_rb) > aud_tras_drv_info.voc_info.speaker_samp_rate_points * 2) && (uac_spk_write_flag == false)) {
-		uac_spk_write_flag = true;
-		/* send msg to decoder to decoding recevied data */
-		ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_DECODER, NULL);
-		if (ret != kNoErr) {
-			LOGE("uac send msg: AUD_TRAS_DRV_DECODER fail \r\n");
-			uac_spk_write_flag = false;
-		}
+	/* send msg to decoder to decoding recevied data */
+	ret = aud_tras_drv_send_msg(AUD_TRAS_DRV_DECODER, NULL);
+	if (ret != kNoErr) {
+		LOGE("send msg: AUD_TRAS_DRV_DECODER fails \r\n");
 	}
 }
 
@@ -2941,7 +2936,7 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 
 		ring_buffer_init(&(aud_tras_drv_info.voc_info.speaker_rb), (uint8_t*)aud_tras_drv_info.voc_info.speaker_ring_buff, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2*aud_tras_drv_info.voc_info.speaker_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, aud_tras_drv_info.voc_info.dac_dma_id, RB_DMA_TYPE_READ);
 
-		LOGI("step4: init and config speaker DMA complete, dac_dma_id:%d, speaker_ring_buff:%p, size:%d, carry_length:%d \r\n", aud_tras_drv_info.voc_info.dac_dma_id, aud_tras_drv_info.voc_info.speaker_ring_buff, (aud_tras_drv_info.voc_info.speaker_samp_rate_points*2)*aud_tras_drv_info.voc_info.speaker_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2);
+//		LOGI("step4: init and config speaker DMA complete, dac_dma_id:%d, speaker_ring_buff:%p, size:%d, carry_length:%d \r\n", aud_tras_drv_info.voc_info.dac_dma_id, aud_tras_drv_info.voc_info.speaker_ring_buff, (aud_tras_drv_info.voc_info.speaker_samp_rate_points*2)*aud_tras_drv_info.voc_info.speaker_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2);
 	} else if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_UAC) {
 		aud_tras_drv_info.voc_info.spk_en = false;
 		/* get uac info, and set uac_spk_buff_size */
@@ -2971,7 +2966,7 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 
 		ring_buffer_init(&(aud_tras_drv_info.voc_info.speaker_rb), (uint8_t*)aud_tras_drv_info.voc_info.speaker_ring_buff, aud_tras_drv_info.voc_info.speaker_samp_rate_points*2*aud_tras_drv_info.voc_info.speaker_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, DMA_ID_MAX, RB_DMA_TYPE_NULL);
 
-		LOGI("step4: init uac speaker_ring_buff:%p, spk_ring_buff_size:%d, uac_spk_buff:%p, uac_spk_buff_size:%d\r\n", aud_tras_drv_info.voc_info.speaker_ring_buff, (aud_tras_drv_info.voc_info.speaker_samp_rate_points*2)*aud_tras_drv_info.voc_info.speaker_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, aud_tras_drv_info.voc_info.uac_spk_buff, aud_tras_drv_info.voc_info.uac_spk_buff_size);
+//		LOGI("step4: init uac speaker_ring_buff:%p, spk_ring_buff_size:%d, uac_spk_buff:%p, uac_spk_buff_size:%d\r\n", aud_tras_drv_info.voc_info.speaker_ring_buff, (aud_tras_drv_info.voc_info.speaker_samp_rate_points*2)*aud_tras_drv_info.voc_info.speaker_frame_number + CONFIG_AUD_RING_BUFF_SAFE_INTERVAL, aud_tras_drv_info.voc_info.uac_spk_buff, aud_tras_drv_info.voc_info.uac_spk_buff_size);
 	} else {
 		//TODO
 	}
@@ -3026,7 +3021,7 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 
 	/* change status: AUD_TRAS_DRV_VOC_NULL --> AUD_TRAS_DRV_VOC_IDLE */
 	aud_tras_drv_info.voc_info.status = AUD_TRAS_DRV_VOC_STA_IDLE;
-	LOGD("step6: init aud ring buff complete \r\n");
+//	LOGI("step6: init aud ring buff complete \r\n");
 
 	LOGI("init voc complete \r\n");
 
@@ -3035,7 +3030,8 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_INIT, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 	return BK_ERR_AUD_INTF_OK;
 
@@ -3043,7 +3039,8 @@ aud_tras_drv_voc_init_exit:
 	/* audio transfer driver deconfig */
 	aud_tras_drv_voc_deinit();
 	//CALLBACK_VOC_CB_AND_DEINIT(EVENT_AUD_TRAS_VOC_INIT, err);
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, err);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
 
 	return err;
 }
@@ -3068,7 +3065,7 @@ static bk_err_t aud_tras_drv_voc_start(void)
 			}
 
 			/* start DMA */
-			ret = bk_dma_start(aud_tras_drv_info.voc_info.adc_dma_id);
+			//ret = bk_dma_start(aud_tras_drv_info.voc_info.adc_dma_id);
 			if (ret != BK_OK) {
 				LOGE("start adc dma fail \r\n");
 				err = BK_ERR_AUD_INTF_DMA;
@@ -3237,9 +3234,6 @@ static bk_err_t aud_tras_drv_voc_stop(void)
 {
 	bk_err_t ret = BK_OK;
 
-	if (aud_tras_drv_info.voc_info.status == AUD_TRAS_DRV_VOC_STA_STOP)
-		return ret;
-
 	LOGI("%s \r\n", __func__);
 
 #if CONFIG_AUD_TRAS_LOST_COUNT_DEBUG
@@ -3300,7 +3294,6 @@ static bk_err_t aud_tras_drv_voc_stop(void)
 	ring_buffer_clear(&(aud_tras_drv_info.voc_info.mic_rb));
 
 	uac_mic_read_flag = false;
-	uac_spk_write_flag = false;
 
 	/* notify cpu0 that audio transfer start */
 /*
@@ -3308,6 +3301,8 @@ static bk_err_t aud_tras_drv_voc_stop(void)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_STOP, BK_ERR_AUD_INTF_OK);
 	}
 */
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 	/* change status:
 				AUD_TRAS_DRV_VOC_STA_IDLE --> AUD_TRAS_DRV_VOC_STA_STOP
@@ -3377,7 +3372,8 @@ static bk_err_t aud_tras_drv_voc_ctrl_mic(aud_intf_voc_mic_ctrl_t mic_en)
 	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_CTRL_MIC, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 	return BK_OK;
 
 voc_ctrl_mic_fail:
@@ -3389,7 +3385,8 @@ voc_ctrl_mic_fail:
 	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_CTRL_MIC, err);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, err);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
 
 	return err;
 }
@@ -3433,7 +3430,6 @@ static bk_err_t aud_tras_drv_voc_ctrl_spk(aud_intf_voc_spk_ctrl_t spk_en)
 				err = BK_ERR_AUD_INTF_UAC_SPK;
 				goto voc_ctrl_spk_fail;
 			}
-			uac_spk_write_flag = false;
 		}
 
 		/* write two frame data to speaker and ref ring buffer */
@@ -3482,7 +3478,8 @@ static bk_err_t aud_tras_drv_voc_ctrl_spk(aud_intf_voc_spk_ctrl_t spk_en)
 	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_CTRL_SPK, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 	return BK_OK;
 
@@ -3503,7 +3500,8 @@ voc_ctrl_spk_fail:
 	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_CTRL_SPK, err);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, err);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, err, APP_MODULE);
 
 	return err;
 }
@@ -3519,7 +3517,8 @@ static bk_err_t aud_tras_drv_voc_ctrl_aec(bool aec_en)
 	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_CTRL_AEC, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 	return BK_OK;
 }
@@ -3586,7 +3585,8 @@ static bk_err_t aud_tras_drv_set_aec_para(aud_intf_voc_aec_ctl_t *aec_ctl)
 	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_SET_AEC_PARA, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 	return BK_OK;
 }
@@ -3608,7 +3608,8 @@ static bk_err_t aud_tras_drv_get_aec_para(void)
 	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_GET_AEC_PARA, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 	return BK_OK;
 }
@@ -3624,7 +3625,8 @@ static bk_err_t aud_tras_drv_voc_tx_debug(aud_intf_dump_data_callback callback)
 	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_TX_DEBUG, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 	return BK_OK;
 }
@@ -3640,7 +3642,8 @@ static bk_err_t aud_tras_drv_voc_rx_debug(aud_intf_dump_data_callback callback)
 	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_RX_DEBUG, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 	return BK_OK;
 }
@@ -3656,7 +3659,8 @@ static bk_err_t aud_tras_drv_voc_aec_debug(aud_intf_dump_data_callback callback)
 	if (aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb)
 		aud_tras_drv_info.voc_info.aud_tras_drv_voc_event_cb(EVENT_AUD_TRAS_VOC_AEC_DEBUG, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 	return BK_OK;
 }
@@ -3672,7 +3676,8 @@ static bk_err_t aud_tras_drv_uac_register_connect_state_cb(void * cb)
 	if (aud_tras_drv_info.aud_tras_drv_com_event_cb)
 		aud_tras_drv_info.aud_tras_drv_com_event_cb(EVENT_AUD_TRAS_COM_UAC_REGIS_CONT_STATE_CB, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 	return BK_OK;
 }
@@ -3697,7 +3702,8 @@ static bk_err_t aud_tras_drv_spk_set_samp_rate(aud_dac_samp_rate_t samp_rate)
 	if (aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb)
 		aud_tras_drv_info.spk_info.aud_tras_drv_spk_event_cb(EVENT_AUD_TRAS_SPK_SET_SAMP_RATE, ret);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, ret);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
 
 	return ret;
 }
@@ -3771,27 +3777,27 @@ bk_err_t aud_tras_drv_set_work_mode(aud_intf_work_mode_t mode)
 	if (aud_tras_drv_info.aud_tras_drv_com_event_cb)
 		aud_tras_drv_info.aud_tras_drv_com_event_cb(EVENT_AUD_TRAS_COM_SET_MODE, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, ret);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
 
 	return BK_ERR_AUD_INTF_OK;
 }
 
 static bk_err_t aud_tras_drv_set_mic_gain(uint8_t value)
 {
-	bk_err_t ret = BK_ERR_AUD_INTF_OK;
-
-	if (aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD || aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+	if (aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD || aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
 		bk_aud_set_adc_gain((uint32_t)value);
 /*
 		if (aud_tras_drv_info.aud_tras_drv_com_event_cb)
 			aud_tras_drv_info.aud_tras_drv_com_event_cb(EVENT_AUD_TRAS_COM_SET_MIC_GAIN, BK_ERR_AUD_INTF_OK);
 */
-		ret = BK_ERR_AUD_INTF_OK;
-	}
-	ret = BK_ERR_AUD_INTF_PARAM;
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
+		//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+		msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
-	return ret;
+		return BK_ERR_AUD_INTF_OK;
+	}
+
+	return BK_ERR_AUD_INTF_PARAM;
 }
 
 #if CONFIG_AUD_TRAS_UAC_SPK_VOL_CTRL_MODE_STOP_UAC_TRAS
@@ -3885,7 +3891,6 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 	aud_tras_drv_info.aud_tras_tx_mic_data = aud_trs_setup->setup.aud_intf_tx_mic_data;
 	aud_tras_drv_info.aud_tras_rx_spk_data = aud_trs_setup->setup.aud_intf_rx_spk_data;
 //	aud_tras_drv_info.aud_tras_drv_com_event_cb = aud_trs_setup->aud_tras_drv_com_event_cb;
-	aud_tras_drv_info.aud_tx_rb = aud_trs_setup->setup.aud_tx_rb;
 
 	/* set work status to IDLE */
 	aud_tras_drv_info.status = AUD_TRAS_DRV_STA_IDLE;
@@ -3893,13 +3898,12 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 	if (aud_tras_drv_info.aud_tras_drv_com_event_cb)
 		aud_tras_drv_info.aud_tras_drv_com_event_cb(EVENT_AUD_TRAS_COM_INIT, BK_ERR_AUD_INTF_OK);
 */
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
-
-//	bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_320M);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 	while(1) {
 		aud_tras_drv_msg_t msg;
-		//GPIO_UP(5);
+		GPIO_UP(5);
 		ret = rtos_pop_from_queue(&aud_trs_drv_int_msg_que, &msg, BEKEN_WAIT_FOREVER);
 		if (kNoErr == ret) {
 			switch (msg.op) {
@@ -3925,7 +3929,8 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 				case AUD_TRAS_DRV_MIC_DEINIT:
 					LOGD("goto: AUD_TRAS_DRV_MIC_DEINIT \r\n");
 					ret = aud_tras_drv_mic_deinit();
-					msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
+					//msg_send_to_app_mailbox(aud_to_media_app_msg, ret);
+					msg_send_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
 					break;
 
 				case AUD_TRAS_DRV_MIC_START:
@@ -3972,7 +3977,8 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 				case AUD_TRAS_DRV_SPK_DEINIT:
 					LOGD("goto: AUD_TRAS_DRV_SPK_DEINIT \r\n");
 					ret = aud_tras_drv_spk_deinit();
-					msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
+					//msg_send_to_app_mailbox(aud_to_media_app_msg, ret);
+					msg_send_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
 					break;
 
 				case AUD_TRAS_DRV_SPK_START:
@@ -4004,7 +4010,7 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 				case AUD_TRAS_DRV_SPK_SET_GAIN:
 					LOGD("goto: AUD_TRAS_DRV_SPK_SET_GAIN \r\n");
 					ret = aud_tras_drv_set_spk_gain(*((uint16_t *)msg.param));
-					msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
+					msg_send_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
 					break;
 
 				case AUD_TRAS_DRV_SPK_REQ_DATA:
@@ -4025,19 +4031,18 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 					} else {
 						ret = BK_ERR_AUD_INTF_OK;
 					}
-					msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
+					msg_send_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
 					break;
 
 				case AUD_TRAS_DRV_VOC_START:
 					LOGD("goto: AUD_TRAS_DRV_VOC_START \r\n");
 					ret = aud_tras_drv_voc_start();
-					msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
+					msg_send_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
 					break;
 
 				case AUD_TRAS_DRV_VOC_STOP:
 					LOGD("goto: AUD_TRAS_DRV_VOC_STOP \r\n");
-					ret = aud_tras_drv_voc_stop();
-					msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
+					aud_tras_drv_voc_stop();
 					break;
 
 				case AUD_TRAS_DRV_VOC_CTRL_MIC:
@@ -4063,7 +4068,7 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 				case AUD_TRAS_DRV_VOC_SET_SPK_GAIN:
 					LOGI("goto: AUD_TRAS_DRV_VOC_SET_SPK_GAIN \r\n");
 					ret = aud_tras_drv_set_spk_gain(*((uint16_t *)msg.param));
-					msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
+					msg_send_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
 					break;
 
 				case AUD_TRAS_DRV_VOC_SET_AEC_PARA:
@@ -4137,7 +4142,7 @@ static void aud_tras_drv_main(beken_thread_arg_t param_data)
 				default:
 					break;
 			}
-			//GPIO_DOWN(5);
+			GPIO_DOWN(5);
 		}
 	}
 
@@ -4191,21 +4196,19 @@ aud_tras_drv_exit:
 	aud_trs_drv_int_msg_que = NULL;
 	LOGI("delete message queue complete \r\n");
 
-	msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
+	//msg_send_to_app_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK);
+	msg_send_to_media_major_mailbox(aud_to_media_app_msg, BK_ERR_AUD_INTF_OK, APP_MODULE);
 
 /*
 	if (aud_tras_drv_info.aud_tras_drv_com_event_cb)
 		aud_tras_drv_info.aud_tras_drv_com_event_cb(EVENT_AUD_TRAS_COM_DEINIT, BK_ERR_AUD_INTF_OK);
 	aud_tras_drv_info.aud_tras_drv_com_event_cb = NULL;
 */
-#if AUD_MEDIA_SEM_ENABLE
 	/* deinit semaphore used to  */
 	if (mailbox_media_aud_mic_sem) {
 		rtos_deinit_semaphore(&mailbox_media_aud_mic_sem);
 		mailbox_media_aud_mic_sem = NULL;
 	}
-#endif
-//	bk_pm_module_vote_cpu_freq(PM_DEV_ID_AUDIO, PM_CPU_FRQ_DEFAULT);
 
 	/* reset uac to default */
 	aud_tras_drv_info.aud_tras_drv_uac_connect_state_cb = NULL;
@@ -4223,7 +4226,6 @@ bk_err_t aud_tras_drv_init(aud_intf_drv_config_t *setup_cfg)
 {
 	bk_err_t ret = BK_OK;
 
-#if AUD_MEDIA_SEM_ENABLE
 	/* init semaphore used to  */
 	if (!mailbox_media_aud_mic_sem) {
 		ret = rtos_init_semaphore(&mailbox_media_aud_mic_sem, 1);
@@ -4234,7 +4236,6 @@ bk_err_t aud_tras_drv_init(aud_intf_drv_config_t *setup_cfg)
 			return BK_FAIL;
 		}
 	}
-#endif
 
 	if ((!aud_trs_drv_thread_hdl) && (!aud_trs_drv_int_msg_que)) {
 		LOGI("init audio transfer driver \r\n");
@@ -4294,10 +4295,7 @@ bk_err_t audio_event_handle(media_mailbox_msg_t * msg)
 	bk_err_t ret = BK_FAIL;
 
 	/* save mailbox msg received from media app */
-
-	if (msg->event >> MEDIA_EVT_BIT == AUD_EVENT) {
-		aud_to_media_app_msg = msg;
-	}
+	aud_to_media_app_msg = msg;
 
 	LOGD(" %s, event: %d \n", __func__, msg->event);
 
@@ -4307,7 +4305,8 @@ bk_err_t audio_event_handle(media_mailbox_msg_t * msg)
 			ret = aud_tras_drv_init((aud_intf_drv_config_t *)msg->param);
 			if (ret != BK_OK) {
 				LOGE("aud_tras_drv_init fail, ret: %d \n", ret);
-				msg_send_rsp_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
+				//msg_send_to_app_mailbox(aud_to_media_app_msg, ret);
+				msg_send_to_media_major_mailbox(aud_to_media_app_msg, ret, APP_MODULE);
 			}
 			break;
 
@@ -4460,15 +4459,13 @@ bk_err_t audio_event_handle(media_mailbox_msg_t * msg)
 			break;
 
 		case EVENT_AUD_MIC_DATA_NOTIFY:
-			//GPIO_UP(6);
-#if AUD_MEDIA_SEM_ENABLE
+			GPIO_UP(6);
 			ret = rtos_set_semaphore(&msg->sem);
 			if (ret != BK_OK)
 			{
 				LOGE("%s semaphore set failed: %d\n", __func__, ret);
 			}
-#endif
-			//GPIO_DOWN(6);
+			GPIO_DOWN(6);
 			break;
 
 		case EVENT_AUD_SPK_DATA_NOTIFY:

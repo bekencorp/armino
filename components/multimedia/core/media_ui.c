@@ -98,7 +98,7 @@ static void media_debug_dump(void)
 	     fps, media_debug->fps_lcd,
 	     wifi, media_debug->fps_wifi, media_debug->wifi_read);
 
-	/*if ((jpg == 0) && (camera_info.type == MEDIA_DVP_MJPEG)
+	/*if ((jpg == 0) && (camera_info.type == MEDIA_DVP_MJPEG || camera_info.type == MEDIA_DVP_MIX))
 	{
 		if (CAMERA_STATE_DISABLED == get_camera_state())
 		{
@@ -106,25 +106,10 @@ static void media_debug_dump(void)
 			return;
 		}
 
-		media_mailbox_msg_t *node = NULL;
-
-		node = (media_mailbox_msg_t *)os_malloc(sizeof(media_mailbox_msg_t));
-		if (node != NULL)
-		{
-			node->event = EVENT_CAM_UVC_RESET_IND;
-			node->param = state;
-		}
-		else
-		{
-			LOGW("%s\n", __func__);
-			return;
-		}
-
 		media_msg_t msg;
 
 		msg.event = EVENT_CAM_DVP_RESET_OPEN_IND;
-		media_msg.event = EVENT_CAM_UVC_RESET_IND;
-		media_msg.param = (uint32_t)node;
+		msg.param = camera_info.param;
 
 		media_send_msg(&msg);
 
@@ -159,7 +144,7 @@ static void media_ui_task_main(beken_thread_arg_t data)
 //					//comm_event_handle(msg.event, msg.param);
 //					break;
 
-#if (defined(CONFIG_DVP_CAMERA) || defined(CONFIG_USB_UVC))
+#if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
 				case CAM_EVENT:
 					mb_msg = (media_mailbox_msg_t *)msg.param;
 					camera_event_handle(mb_msg);
@@ -179,14 +164,6 @@ static void media_ui_task_main(beken_thread_arg_t data)
 					break;
 #endif
 
-#ifdef CONFIG_LVGL
-				case LVGL_EVENT:
-					mb_msg = (media_mailbox_msg_t *)msg.param;
-					extern void lvgl_event_handle(media_mailbox_msg_t *msg);
-					lvgl_event_handle(mb_msg);
-					break;
-#endif
-
 #ifdef CONFIG_WIFI_TRANSFER
 				case TRS_EVENT:
 					mb_msg = (media_mailbox_msg_t *)msg.param;
@@ -198,13 +175,6 @@ static void media_ui_task_main(beken_thread_arg_t data)
 				case STORAGE_EVENT:
 					mb_msg = (media_mailbox_msg_t *)msg.param;
 					storage_major_event_handle(mb_msg);
-					break;
-#endif
-
-#ifdef CONFIG_USB_TRANSFER
-				case USB_TRS_EVENT:
-					mb_msg = (media_mailbox_msg_t *)msg.param;
-					usb_major_event_handle(mb_msg);
 					break;
 #endif
 
@@ -232,19 +202,7 @@ static void media_ui_task_main(beken_thread_arg_t data)
 	}
 
 exit:
-	bk_timer_stop(TIMER_ID1);
 
-	if (media_debug)
-	{
-		os_free(media_debug);
-		media_debug = NULL;
-	}
-
-	if (media_debug_cached)
-	{
-		os_free(media_debug_cached);
-		media_debug_cached = NULL;
-	}
 
 	rtos_deinit_queue(&media_ui_msg_que);
 	media_ui_msg_que = NULL;
@@ -263,7 +221,7 @@ bk_err_t media_ui_task_init(void)
 		ret = rtos_init_queue(&media_ui_msg_que,
 								"media_ui_msg_que",
 								sizeof(media_msg_t),
-								20);
+								30);
 		if (kNoErr != ret)
 		{
 			LOGE("media_ui_msg_que init failed\n");
@@ -275,7 +233,7 @@ bk_err_t media_ui_task_init(void)
 								BEKEN_DEFAULT_WORKER_PRIORITY,
 								"media_ui_task",
 								(beken_thread_function_t)media_ui_task_main,
-								2 * 1024,
+								4 * 1024,
 								NULL);
 
 		if (kNoErr != ret)
@@ -286,13 +244,13 @@ bk_err_t media_ui_task_init(void)
 		}
 	}
 
-	bk_timer_start(TIMER_ID1, DEBUG_INTERVAL * 1000, media_ui_timer_debug_handle);
+	bk_timer_start(TIMER_ID3, DEBUG_INTERVAL * 1000, media_ui_timer_debug_handle);
 
 	return ret;
 
 error:
 
-	bk_timer_stop(TIMER_ID1);
+	bk_timer_stop(TIMER_ID3);
 
 	if (media_ui_msg_que)
 	{
@@ -313,7 +271,7 @@ void media_init()
 {
 	frame_buffer_init();
 
-#if (defined(CONFIG_DVP_CAMERA) || defined(CONFIG_USB_UVC))
+#if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
 	camera_init();
 #endif
 
@@ -322,7 +280,7 @@ void media_init()
 #endif
 
 #ifdef CONFIG_WIFI_TRANSFER
-	transfer_init();
+	transfer_major_init();
 #endif
 
 #ifdef CONFIG_LCD

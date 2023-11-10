@@ -452,26 +452,6 @@ bk_err_t bk_gpio_wakeup_interrupt_clear();
 
 #endif
 
-#if CONFIG_GPIO_ANA_WAKEUP_SUPPORT
-/**
- * @brief     Register the GPIO analog channel to wakeup system with select int type.
- *
- * This API regist gpio to wakeup source.
- *
- * @attention
- * This API is used for super deep sleep only.
- *
- * @return
- *    - BK_OK: succeed
- *    - BK_ERR_GPIO_CHAN_ID: invalid gpio channel
- *    - BK_ERR_GPIO_INVALID_INT_TYPE: invalid gpio int type
- *    - BK_ERR_GPIO_WAKESOURCE_OVER_MAX_CNT: too many gpio is register to wakeup source
- *      default max value is: 2
- *    - others: other errors.
- */
-bk_err_t bk_gpio_ana_register_wakeup_source(gpio_id_t gpio_id, gpio_int_type_t int_type);
-#endif
-
 #if CONFIG_PM
 /**
  * @brief Set GPIO wakeup config

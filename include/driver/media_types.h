@@ -26,11 +26,11 @@ extern "C" {
  * @{
  */
 
-#define PIXEL_170   (170)
 #define PIXEL_240   (240)
 #define PIXEL_272   (272)
 #define PIXEL_288   (288)
 #define PIXEL_320   (320)
+#define PIXEL_360   (360)
 #define PIXEL_400   (400)
 #define PIXEL_454   (454)
 #define PIXEL_480   (480)
@@ -42,11 +42,9 @@ extern "C" {
 #define PIXEL_854   (854)
 #define PIXEL_864   (864)
 #define PIXEL_1024 (1024)
-#define PIXEL_1080 (1080)
 #define PIXEL_1200 (1200)
 #define PIXEL_1280 (1280)
 #define PIXEL_1600 (1600)
-#define PIXEL_1920 (1920)
 
 typedef enum {
 	MSTATE_TURN_OFF,
@@ -67,9 +65,9 @@ typedef enum {
 typedef enum
 {
 	PPI_DEFAULT     = 0,
-	PPI_170X320     = (PIXEL_170 << 16) | PIXEL_320,
 	PPI_320X240     = (PIXEL_320 << 16) | PIXEL_240,
 	PPI_320X480     = (PIXEL_320 << 16) | PIXEL_480,
+	PPI_360X480 	= (PIXEL_360 << 16) | PIXEL_480,
 	PPI_400X400     = (PIXEL_400 << 16) | PIXEL_400,
 	PPI_454X454     = (PIXEL_454 << 16) | PIXEL_454,
 	PPI_480X272     = (PIXEL_480 << 16) | PIXEL_272,
@@ -80,19 +78,17 @@ typedef enum
 	PPI_480X854     = (PIXEL_480 << 16) | PIXEL_854,
 	PPI_720X288     = (PIXEL_720 << 16) | PIXEL_288,
 	PPI_720X576     = (PIXEL_720 << 16) | PIXEL_576,
-	PPI_720X1280    = (PIXEL_720 << 16) | PIXEL_1280,
 	PPI_800X480     = (PIXEL_800 << 16) | PIXEL_480,
 	PPI_864X480     = (PIXEL_864 << 16) | PIXEL_480,
 	PPI_800X600     = (PIXEL_800 << 16) | PIXEL_600,
 	PPI_1024X600    = (PIXEL_1024 << 16) | PIXEL_600,
 	PPI_1280X720    = (PIXEL_1280 << 16) | PIXEL_720,
 	PPI_1600X1200   = (PIXEL_1600 << 16) | PIXEL_1200,
-	PPI_1920X1080   = (PIXEL_1920 << 16) | PIXEL_1080,
 } media_ppi_t;
 
 typedef enum
 {
-	PPI_CAP_UNKNOW      = 0,
+	PPI_CAP_UNKNOW 		= 0,
 	PPI_CAP_320X240     = (1 << 0), /**< 320 * 240 */
 	PPI_CAP_320X480     = (1 << 1), /**< 320 * 480 */
 	PPI_CAP_480X272     = (1 << 2), /**< 480 * 272 */
@@ -109,7 +105,6 @@ typedef enum
 	PPI_CAP_720X288     = (1 << 13), /**< 720 * 288 */
 	PPI_CAP_720X576     = (1 << 14), /**< 720 * 576 */
 	PPI_CAP_480X854     = (1 << 15), /**< 480 * 854 */
-	PPI_CAP_170X320     = (1 << 16), /**< 170 * 320 */
 } media_ppi_cap_t;
 
 /** rgb lcd input data format, data save in mem is little endian, like VUYY format is [bit31-bit0] is [V U Y Y]*/
@@ -130,13 +125,13 @@ typedef enum {
 
 typedef enum {
 	MEDIA_DVP_MJPEG,
-	MEDIA_DVP_H264_TRANSFER,
+	MEDIA_DVP_H264_WIFI_TRANSFER,
+	MEDIA_DVP_H264_USB_TRANSFER,
 	MEDIA_DVP_H264_ENC_LCD,
 	MEDIA_DVP_H264_LOCAL,
 	MEDIA_DVP_YUV,
 	MEDIA_DVP_MIX,
 	MEDIA_UVC_MJPEG,
-	MEDIA_UVC_MJPEG_TO_H264,
 	MEDIA_UVC_H264,
 	MEDIA_CAMERA_UNKNOW,
 } media_camera_type_t;
@@ -162,48 +157,16 @@ typedef enum
 
 	EVENT_LCD_DEC_SW_MBCMD = 0x1c,
 	EVENT_LCD_DEC_SW_MBRSP = 0x1d,
+
+	EVENT_LCD_QSPI_OPEN_MBCMD = 0x1e,
+	EVENT_LCD_QSPI_OPEN_MBRSP = 0x1f,
+
+	EVENT_LCD_QSPI_CLOSE_MBCMD = 0x20,
+	EVENT_LCD_QSPI_CLOSE_MBRSP = 0x21,
+
+	EVENT_LCD_QSPI_DISP_MBCMD = 0x22,
+	EVENT_LCD_QSPI_DISP_MBRSP = 0x23,
 } media_mailbox_event_t;
-
-typedef enum
-{
-	TRS_STATE_DISABLED,
-	TRS_STATE_ENABLED,
-} media_trs_state_t;
-
-typedef enum
-{
-	STORAGE_STATE_DISABLED,
-	STORAGE_STATE_ENABLED,
-} media_storage_state_t;
-
-typedef enum
-{
-	LCD_STATE_DISABLED,
-	LCD_STATE_ENABLED,
-	LCD_STATE_DISPLAY,
-} media_lcd_state_t;
-
-typedef enum
-{
-	CAMERA_STATE_DISABLED,
-	CAMERA_STATE_ENABLED,
-} media_camera_state_t;
-
-typedef enum
-{
-	AUDIO_STATE_DISABLED,
-	AUDIO_STATE_ENABLED,
-} media_audio_state_t;
-
-
-typedef struct
-{
-	media_audio_state_t  aud_state;
-	media_camera_state_t cam_state;
-	media_lcd_state_t    lcd_state;
-	media_storage_state_t stor_state;
-	media_trs_state_t    trs_state;
-} media_modules_state_t;
 
 typedef struct {
 	media_camera_type_t camera_type;
@@ -237,30 +200,6 @@ typedef enum
 	DVP_CAMERA,    /**< dvp camera */
 	UVC_CAMERA,    /**< uvc camera */
 } camera_type_t;
-
-
-typedef enum
-{
-	IMAGE_UNKNOW = 0,
-	IMAGE_YUV    = (1 << 0),
-	IMAGE_RGB    = (1 << 1),
-	IMAGE_MJPEG   = (1 << 2),
-	IMAGE_H264   = (1 << 3),
-} image_format_t;
-
-/**
- * @brief define camera config
- * @{
- */
-typedef struct
-{
-	uint8_t type;
-	uint16_t image_format;
-	uint16_t pixel_format;
-	uint16_t width;
-	uint16_t height;
-} camera_config_t;
-
 
 /**
  * @brief define struct for debug
@@ -317,10 +256,6 @@ static inline media_ppi_cap_t pixel_ppi_to_cap(media_ppi_t ppi)
 
 	switch (ppi)
 	{
-		case PPI_170X320:
-			cap = PPI_CAP_170X320;
-			break;
-
 		case PPI_320X240:
 			cap = PPI_CAP_320X240;
 			break;
@@ -393,19 +328,9 @@ static inline media_ppi_t get_string_to_ppi(char *string)
 {
 	uint32_t value = PPI_DEFAULT;
 
-	if (os_strcmp(string, "1920X1080") == 0)
-	{
-		value = PPI_1920X1080;
-	}
-
 	if (os_strcmp(string, "1280X720") == 0)
 	{
 		value = PPI_1280X720;
-	}
-
-	if (os_strcmp(string, "720X1280") == 0)
-	{
-		value = PPI_720X1280;
 	}
 
 	if (os_strcmp(string, "1024X600") == 0)
@@ -467,12 +392,6 @@ static inline media_ppi_t get_string_to_ppi(char *string)
 	{
 		value = PPI_480X480;
 	}
-
-	if (os_strcmp(string, "170X320") == 0)
-	{
-		value = PPI_170X320;
-	}
-
 	return value;
 }
 

@@ -7,6 +7,7 @@ set(incs
 	./
 	)
 
+if (NOT CONFIG_SLAVE_CORE)
 set(srcs
 	src/core/lv_disp.c
 	src/core/lv_group.c
@@ -168,21 +169,24 @@ set(srcs
 	src/widgets/lv_textarea.c
 	)
 
-if (CONFIG_VFS)
+if (CONFIG_FATFS)
 	list(APPEND srcs
-		hal/lv_fs_bk_posix.c
+		hal/lv_fatfs.c
 	)
 endif()
 
+endif()
 endif()
 
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
-	PRIV_REQUIRES include bk_vfs
+	PRIV_REQUIRES include fatfs
 	)
 
 if (CONFIG_LVGL)
+if (NOT CONFIG_SLAVE_CORE)
 target_compile_options(${COMPONENT_LIB} PRIVATE -O3)
+endif()
 endif()
 
 

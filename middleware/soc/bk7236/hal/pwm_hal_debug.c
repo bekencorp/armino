@@ -14,8 +14,8 @@
 
 #include "hal_config.h"
 #include "pwm_hw.h"
+#include "pwm_hal.h"
 #include "pwm_ll.h"
-#include "pwm_hal_v1px.h"
 
 //TODO finally we will automatically generate this code
 
@@ -23,9 +23,8 @@
 void pwm_struct_dump(void)
 {
 	pwm_hw_t *hw = (pwm_hw_t *)PWM_LL_REG_BASE(0); //Currently only 1 PWM unit
-	SOC_LOGI("TODO:base=%x\n", (uint32_t)hw);
+	SOC_LOGI("base=%x\n", (uint32_t)hw);
 
-#if 0
 	for (int group = 0; group < SOC_PWM_GROUP_NUM; group ++) {
 		SOC_LOGI("group(%x)\n", group);
 		SOC_LOGI("  ctrl=%x value=%x\n", &hw->group[group].ctrl, hw->group[group].ctrl.v);
@@ -69,7 +68,6 @@ void pwm_struct_dump(void)
 					 hw->group[group].cnt_or_capture_rdata[chan]);
 		}
 	}
-#endif
 }
 
 #endif

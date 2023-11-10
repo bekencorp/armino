@@ -25,8 +25,9 @@ extern const dvp_sensor_config_t dvp_sensor_gc2145;
 extern const dvp_sensor_config_t dvp_sensor_hm1055;
 extern const dvp_sensor_config_t dvp_sensor_ov2640;
 extern const dvp_sensor_config_t dvp_sensor_gc0308;
-extern const dvp_sensor_config_t dvp_sensor_SC101;
 
+
+const dvp_sensor_config_t *get_sensor_config_interface_by_id(sensor_id_t id);
 
 /**
  * @brief     Read sensor register value

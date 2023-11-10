@@ -41,12 +41,11 @@ enum
 	IPC_FREE_DMA_CHNL,                      /* CPU1 -> CPU0  */
 	IPC_DMA_CHNL_USER,                      /* CPU1 -> CPU0  */
 
-//	IPC_CALL_CMD = 0x60,                    /* CPU1 -> CPU0  */
+	IPC_CALL_CMD = 0x60,                    /* CPU1 -> CPU0  */
 
 	IPC_CMD_MAX  = 0x7F,  /* cmd id can NOT great than 0x7F. */
 };
 
-#if 0
 /**    =============================     RPC    =============================   **/
 
 #define FIELD_OFFSET(type, member)		((u32)(&(((type *)0)->member)))
@@ -88,7 +87,6 @@ enum
 	RPC_MOD_DMA,
 	RPC_MOD_MAX,
 } ;
-#endif
 
 #ifdef CONFIG_DUAL_CORE
 
@@ -106,13 +104,11 @@ u8 ipc_send_alloc_dma_chnl(u32 user_id);
 bk_err_t ipc_send_free_dma_chnl(u32 user_id, u8 chnl_id);
 u32 ipc_send_dma_chnl_user(u8 chnl_id);
 
-#if 0
 bk_err_t rpc_client_init(void);
 bk_err_t rpc_client_call(rpc_call_def_t *rpc_param, u16 param_len, rpc_ret_def_t *ret_buf, u16 buf_len);
-#endif
 
 #define ipc_init	ipc_client_init
-// #define rpc_init	rpc_client_init
+#define rpc_init	rpc_client_init
 
 #endif  /* CONFIG_SLAVE_CORE */
 
@@ -123,22 +119,20 @@ u32 ipc_send_get_ps_flag(void);
 u32 ipc_send_get_heart_rate(void);
 bk_err_t ipc_send_set_heart_rate(u32 param);
 
-#if 0
 bk_err_t rpc_server_init(void);
 bk_err_t rpc_server_rsp(rpc_ret_def_t *rsp_param, u16 param_len);
 int rpc_server_listen_cmd(u32 timeout_ms);
 void rpc_server_handle_cmd(void);
-#endif
 
 #define ipc_init	ipc_server_init
-// #define rpc_init	rpc_server_init
+#define rpc_init	rpc_server_init
 
 #endif  /* CONFIG_MASTER_CORE */
 
 #else  /* CONFIG_DUAL_CORE */
 
 #define ipc_init(void)	
-//#define rpc_init(void)	
+#define rpc_init(void)	
 
 #endif  /* CONFIG_DUAL_CORE */
 

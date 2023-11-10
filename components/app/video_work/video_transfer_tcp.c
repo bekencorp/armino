@@ -157,7 +157,7 @@ static void app_demo_tcp_main(beken_thread_arg_t data)
 
 						app_demo_tcp_set_keepalive(new_cli_sockfd);
 
-#if (CONFIG_SPIDMA || CONFIG_DVP_CAMERA)
+#if (CONFIG_SPIDMA || CONFIG_CAMERA)
 						video_setup_t setup;
 
 						setup.open_type = TVIDEO_OPEN_SCCB;
@@ -204,7 +204,7 @@ static void app_demo_tcp_main(beken_thread_arg_t data)
 					if (j == APP_DEMO_TCP_LISTEN_MAX) {
 						APP_DEMO_TCP_PRT("not client left, close spidma\r\n");
 
-#if (CONFIG_SPIDMA || CONFIG_DVP_CAMERA)
+#if (CONFIG_SPIDMA || CONFIG_CAMERA)
 						bk_video_transfer_deinit();
 #endif
 					}
@@ -227,7 +227,7 @@ app_demo_tcp_exit:
 
 	APP_DEMO_TCP_FATAL("app_demo_tcp_main exit\r\n");
 
-#if (CONFIG_SPIDMA || CONFIG_DVP_CAMERA)
+#if (CONFIG_SPIDMA || CONFIG_CAMERA)
 	bk_video_transfer_deinit();
 #endif
 	//app_drone_send_msg(DRONE_TCP_DISCONECTED);

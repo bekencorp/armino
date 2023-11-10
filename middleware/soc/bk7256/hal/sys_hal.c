@@ -519,7 +519,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	previous_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 
 	current_tick = previous_tick;
-	while(((current_tick - previous_tick)) < (LOW_POWER_DPLL_STABILITY_DELAY_TIME*bk_rtc_get_ms_tick_count()))
+	while(((current_tick - previous_tick)) < (LOW_POWER_DPLL_STABILITY_DELAY_TIME*RTC_TICKS_PER_1MS))
 	{
 		current_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 	}
@@ -931,8 +931,6 @@ void sys_hal_low_power_hardware_init()
 	aon_pmu_hal_lpo_src_set(PM_LPO_SRC_ROSC);
 #endif
 
-	/*set the lp voltage*/
-	sys_hal_lp_vol_set(PM_VOLTAGE_OF_LOW_VOL);
 }
 int32 sys_hal_lp_vol_set(uint32_t value)
 {
@@ -943,22 +941,6 @@ int32 sys_hal_lp_vol_set(uint32_t value)
 uint32_t sys_hal_lp_vol_get()
 {
 	return sys_ll_get_ana_reg3_vlsel_ldodig();
-}
-int32 sys_hal_rf_tx_vol_set(uint32_t value)
-{
-	return 0;
-}
-uint32_t sys_hal_rf_tx_vol_get()
-{
-	return 0;
-}
-int32 sys_hal_rf_rx_vol_set(uint32_t value)
-{
-	return 0;
-}
-uint32_t sys_hal_rf_rx_vol_get()
-{
-	return 0;
 }
 int32 sys_hal_bandgap_cali_set(uint32_t value)//increase or decrease the dvdddig voltage
 {
@@ -2187,11 +2169,6 @@ void sys_hal_aud_mic1_single_en(uint32_t value)
 void sys_hal_aud_mic2_single_en(uint32_t value)
 {
 	sys_ll_set_ana_reg15_micsingleen(value);
-}
-
-void sys_hal_aud_dacg_set(uint32_t value)
-{
-	sys_ll_set_ana_reg16_dacg(value);
 }
 
 void sys_hal_aud_int_en(uint32_t value)

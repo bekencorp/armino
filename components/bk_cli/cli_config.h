@@ -237,11 +237,7 @@ extern "C" {
 #define CLI_CFG_ROTT  0
 #endif
 
-#if (CONFIG_LCD_QSPI_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_LCD_QSPI	0
-#else
-#define CLI_CFG_LCD_QSPI	0
-#endif
+
 
 #if (CONFIG_DMA2D_TEST && (!CONFIG_SLAVE_CORE))
 #define CLI_CFG_DMA2D  0
@@ -286,6 +282,13 @@ extern "C" {
 #define CLI_CFG_TOUCH	0
 #endif
 
+
+#if (CONFIG_LCD_QSPI_TEST && (!CONFIG_SLAVE_CORE))
+#define CLI_CFG_LCD_QSPI	0
+#else
+#define CLI_CFG_LCD_QSPI	0
+#endif
+
 #if (CONFIG_QRCODEGEN_TEST && (!CONFIG_SLAVE_CORE))
 #define CLI_CFG_QRCODEGEN	0
 #else
@@ -316,7 +319,7 @@ extern "C" {
 #endif
 
 #if (CONFIG_AUDIO_AEC_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_AEC         1
+#define CLI_CFG_AEC         0
 #endif
 
 #if (CONFIG_AUDIO_G711_TEST && (!CONFIG_SLAVE_CORE))
@@ -343,22 +346,22 @@ extern "C" {
 #define CLI_CFG_SECURITYIP		0
 #endif
 
-#if (CONFIG_DVP_CAMERA && CONFIG_DVP_CAMERA_TEST &&(!CONFIG_SLAVE_CORE))
+#if (CONFIG_CAMERA && CONFIG_CAMERA_TEST &&(!CONFIG_SLAVE_CORE))
 #define CLI_CFG_DVP        1
 #else
 #define CLI_CFG_DVP        0
 #endif
 
 #if (CONFIG_PSRAM_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_PSRAM        1
+#define CLI_CFG_PSRAM        0
 #else
 #define CLI_CFG_PSRAM        0
 #endif
 
-#if (CONFIG_VIDEO_TRANSFER_DEMO && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_VIDEO_TRANSFER         1
+#if (CONFIG_H264 && (!CONFIG_SLAVE_CORE))
+#define CLI_CFG_H264         1
 #else
-#define CLI_CFG_VIDEO_TRANSFER         0
+#define CLI_CFG_H264         0
 #endif
 
 #if (CONFIG_AGORA_IOT_SDK_TEST && (!CONFIG_SLAVE_CORE))
@@ -373,13 +376,8 @@ extern "C" {
 #define CLI_CFG_ASR         1
 #endif
 
-#if (CONFIG_BUTTON || CONFIG_ADC_KEY)
-#define CLI_CFG_KEY_DEMO     1
-#else
-#define CLI_CFG_KEY_DEMO     0
 #endif
 
-#endif
 #ifdef __cplusplus
 }
 #endif

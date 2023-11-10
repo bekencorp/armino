@@ -23,7 +23,6 @@ extern "C" {
 
 extern const tp_sensor_config_t tp_sensor_gt911;
 extern const tp_sensor_config_t tp_sensor_gt1151;
-extern const tp_sensor_config_t tp_sensor_ft6336;
 
 
 #ifdef __cplusplus

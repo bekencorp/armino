@@ -46,13 +46,13 @@ if (CONFIG_DUAL_CORE)
 	)
 endif()
 
-if (CONFIG_DVP_CAMERA OR CONFIG_USB_UVC)
+if (CONFIG_CAMERA OR CONFIG_USB_UVC)
 	list(APPEND incs camera)
 	list(APPEND srcs
 		camera/camera_act.c
 	)
 
-if (CONFIG_DVP_CAMERA)
+if (CONFIG_CAMERA)
 		list(APPEND srcs
 		camera/dvp.c
 	)
@@ -70,7 +70,7 @@ if (0)
 	)
 endif()
 
-endif()#(CONFIG_DVP_CAMERA OR CONFIG_USB_UVC)
+endif()#(CONFIG_CAMERA OR CONFIG_USB_UVC)
 
 if (CONFIG_WIFI_TRANSFER)
 
@@ -83,22 +83,6 @@ endif()
 if (CONFIG_MEDIA_MAJOR)
 	list(APPEND srcs
 		transfer/transfer_major_act.c
-	)
-endif()
-
-endif()#CONFIG_WIFI_TRANSFER
-
-if (CONFIG_USB_TRANSFER)
-
-if (CONFIG_MEDIA_APP)
-	list(APPEND srcs
-		transfer/usb_app_act.c
-	)
-endif()
-
-if (CONFIG_MEDIA_MAJOR)
-	list(APPEND srcs
-		transfer/usb_major_act.c
 	)
 endif()
 

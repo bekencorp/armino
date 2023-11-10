@@ -17,7 +17,6 @@
 
 #include <os/os.h>
 #include "mb_ipc_cmd.h"
-#if 0
 #include <driver/gpio.h>
 
 #define MOD_TAG		"RPC"
@@ -54,6 +53,7 @@ typedef struct
 	void *	gpio_disable_interrupt;
 	void *	gpio_set_interrupt_type;
 } gpio_func_tbl_t;
+
 
 #if CONFIG_SLAVE_CORE
 
@@ -265,6 +265,4 @@ int bk_dma_api_svr(rpc_call_def_t * call_buf)
 }
 
 /**    ============================    dma server end  ============================   **/
-
-#endif
 

@@ -45,10 +45,5 @@ menu "GPIO"
 		bool "Enable GPIO default set devs"
 		default n
 
-	config GPIO_ANA_WAKEUP_SUPPORT
-		bool "Enable GPIO wakeup system from analog channel"
-		default n
-		help
-			This is for super deep sleep
 endmenu
 

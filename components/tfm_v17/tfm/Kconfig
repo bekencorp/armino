@@ -1,0 +1,101 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2022, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+#-------------------------------------------------------------------------------
+
+# Load platform Kconfig file if exists
+osource "$(PLATFORM_PATH)/Kconfig"
+
+################################# SPM ##########################################
+
+menu "SPM"
+config TFM_ISOLATION_LEVEL
+    int "Isolation level"
+    default 1
+    range 1 1 if TFM_SPM_BACKEND_SFN
+    range 1 3 if PLATFORM_HAS_ISOLATION_L3_SUPPORT
+    range 1 2
+
+choice
+    prompt "SPM Backend"
+    default TFM_SPM_BACKEND_SFN
+
+    config TFM_SPM_BACKEND_SFN
+        bool "SFN Backend"
+
+    config TFM_SPM_BACKEND_IPC
+        bool "IPC Backend"
+endchoice
+
+config CONFIG_TFM_SPM_BACKEND
+    string
+    default "IPC" if TFM_SPM_BACKEND_IPC
+    default "SFN" if TFM_SPM_BACKEND_SFN
+    default ""
+
+choice
+    prompt "Fault injection hardening profile"
+
+    config TFM_FIH_PROFILE_OFF
+        bool "OFF"
+
+    config TFM_FIH_PROFILE_LOW
+        bool "Low"
+
+    config TFM_FIH_PROFILE_MEDIUM
+        bool "Medium"
+
+    config TFM_FIH_PROFILE_HIGH
+        bool "High"
+endchoice
+
+config TFM_FIH_PROFILE
+    string
+    default "OFF" if TFM_FIH_PROFILE_OFF
+    default "LOW" if TFM_FIH_PROFILE_LOW
+    default "MEDIUM" if TFM_FIH_PROFILE_MEDIUM
+    default "HIGH" if TFM_FIH_PROFILE_HIGH
+
+config PSA_FRAMEWORK_HAS_MM_IOVEC
+    bool "Enable MM-IOVEC"
+    default n
+    depends on TFM_ISOLATION_LEVEL = 1
+endmenu
+
+################################# Secure partitions ############################
+
+# These are partition switches.
+rsource "secure_fw/partitions/Kconfig"
+
+################################# Platforms ####################################
+
+rsource "platform/Kconfig"
+
+################################# TEST #########################################
+
+menu "TF-M tests"
+rsource "lib/ext/tf-m-tests/Kconfig"
+rsource "lib/ext/psa_arch_tests/Kconfig"
+endmenu
+
+################################# Component ####################################
+
+# These configs in this menu are local to a component or externally referenced
+# when components are coupled. Usually, such options are located in C header
+# file. The Header File Config System has more details about it.
+
+# Other configs above which are not in component menu are TF-M build options to
+# select which file or component to include into compilation. These are options,
+# usually used by a build system to enable/disable modules, specify location of
+# external dependency or other selection, global to a project. These options
+# shall be considered while adopting TF-M to other build systems.
+
+menu "TF-M component configs"
+rsource "secure_fw/spm/Kconfig"
+
+menu "Secure Partitions component configs"
+    rsource "secure_fw/partitions/*/Kconfig"
+endmenu
+endmenu

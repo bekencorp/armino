@@ -79,7 +79,6 @@ typedef struct ap_param {
 #if CONFIG_WIFI_AP_HW_MODE
 	int hw_mode;
 #endif
-	u8 max_statype_num[4];
 } ap_param_t;
 
 typedef struct sta_param {
@@ -97,7 +96,12 @@ typedef struct sta_param {
 	uint8_t psk_len;
 #endif
 
-	struct bk_vise *vsies[NUM_WIFI_VENDOR_ELEM_FRAMES];
+#if CONFIG_COMPONENTS_STA_VSIE
+	struct {
+		uint8_t len;
+		uint8_t buf[255];
+	} vsies[NUM_WIFI_VENDOR_ELEM_FRAMES];
+#endif
 
 #if CONFIG_COMPONENTS_WPA2_ENTERPRISE
 	/* starts of WPA2-Enterprise/WPA3-Enterprise EAP-TLS configuration */

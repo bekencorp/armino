@@ -26,7 +26,7 @@
 #define IPC_RSP_CMD_MASK		0x7F
 
 #define IPC_RSP_TIMEOUT			10		/* 10ms */
-#define IPC_XCHG_DATA_MAX		32
+#define IPC_XCHG_DATA_MAX		64
 
 typedef union
 {
@@ -52,12 +52,10 @@ typedef union
 	mb_chnl_ack_t	mb_ack;
 } ipc_rsp_t;
 
-/* all slave CPUs must send msg to master CPU0 ONLY. */
-/* all slave CPUs can't communicate with each other. */
 typedef struct
 {
-	u8		cp0_tx_buff[SYSTEM_CPU_NUM][IPC_XCHG_DATA_MAX];
-	u8		cp0_rx_buff[SYSTEM_CPU_NUM][IPC_XCHG_DATA_MAX];
+	u8		client_buff[IPC_XCHG_DATA_MAX];
+	u8		server_buff[IPC_XCHG_DATA_MAX];
 } ipc_chnl_buf_t;
 
 typedef u32 (* ipc_rx_cmd_hdlr_t)(void * chnl_cb, mb_chnl_ack_t *ack_buf);
@@ -272,18 +270,17 @@ static bk_err_t ipc_chnl_init(u8 client, ipc_chnl_cb_t *chnl_cb, u8 chnl_id, ipc
 	memset(chnl_cb, 0, sizeof(ipc_chnl_cb_t));
 	chnl_cb->chnl_id = chnl_id;
 
-	u32  src_cpu_id = GET_SRC_CPU_ID(chnl_id);
-	u32  dst_cpu_id = GET_DST_CPU_ID(chnl_id);
-
-	if(src_cpu_id == MAILBOX_CPU0)
+	if(client)
 	{
-		chnl_cb->tx_xchg_buff = ipc_xchg_buf[GET_LOG_CHNL_ID(chnl_id)].cp0_tx_buff[dst_cpu_id];
-		chnl_cb->rx_xchg_buff = ipc_xchg_buf[GET_LOG_CHNL_ID(chnl_id)].cp0_rx_buff[dst_cpu_id];
+		/* client rx cmds from server. */
+		chnl_cb->tx_xchg_buff = ipc_xchg_buf[chnl_id].client_buff;
+		chnl_cb->rx_xchg_buff = ipc_xchg_buf[chnl_id].server_buff;
 	}
 	else
 	{
-		chnl_cb->tx_xchg_buff = ipc_xchg_buf[GET_LOG_CHNL_ID(chnl_id)].cp0_rx_buff[src_cpu_id];
-		chnl_cb->rx_xchg_buff = ipc_xchg_buf[GET_LOG_CHNL_ID(chnl_id)].cp0_tx_buff[src_cpu_id];
+		/* server rx cmds from client. */
+		chnl_cb->tx_xchg_buff = ipc_xchg_buf[chnl_id].server_buff;
+		chnl_cb->rx_xchg_buff = ipc_xchg_buf[chnl_id].client_buff;
 	}
 
 	ret_code = rtos_init_semaphore_adv(&chnl_cb->chnl_sema, 1, 1);
@@ -636,6 +633,7 @@ bk_err_t ipc_send_available_ind(u16 resource_id)
 #if CONFIG_MASTER_CORE
 
 /**    ============================      IPC server    ============================   **/
+#include "spinlock.h"
 
 static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf)
 {
@@ -655,10 +653,12 @@ static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf
 			{
 				ipc_rsp->rsp_data_len = sizeof(u32);
 
-				u32 * p_src = (u32 *)chnl_cb->cmd_buf;
+			//	u32 * p_src = (u32 *)chnl_cb->cmd_buf;
 				u32 * p_dst = (u32 *)ipc_rsp->rsp_buff;
 
-				*p_dst = (*p_src) + 1;
+				extern spinlock_t		gpio_spinlock;
+
+				*p_dst = (u32)&gpio_spinlock;
 				
 				result = ACK_STATE_COMPLETE;
 			}
@@ -837,9 +837,9 @@ static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf
 			}
 			break;
 
-		// case IPC_CALL_CMD:
+		case IPC_CALL_CMD:
 			/* will handle it in RPC channel. */
-		//	break;
+			break;
 
 		default:
 			{
@@ -884,7 +884,6 @@ bk_err_t ipc_send_set_heart_rate(u32 param)
 
 #endif
 
-#if 0
 static ipc_chnl_cb_t		rpc_chnl_cb; // = { .chnl_id = MB_CHNL_RPC, .chnl_inited = 0 };
 
 #if CONFIG_SLAVE_CORE
@@ -1089,6 +1088,5 @@ static void rpc_svr_task( void *para )
 
 /**    ============================    RPC server end  ============================   **/
 
-#endif
 #endif
 

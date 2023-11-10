@@ -153,20 +153,15 @@ typedef struct A_BLOCK_LINK
 	struct list_head node;					/*<< linked to xUsed */
 
 #if CONFIG_MEM_DEBUG_FUNC_NAME
-	char *funcName;                                     /*<< the function name */
+	char funcName[CONFIG_MEM_DEBUG_FUNC_NAME_LEN];		/*<< the function name */
 #endif
 
 #if CONFIG_MEM_DEBUG_TASK_NAME
-	char *taskName;                                  /*<< the task name */
+	char taskName[CONFIG_MEM_DEBUG_TASK_NAME_LEN];		/*<< the task name */
 #endif
-	union {
-		struct {
-			uint16_t allocTime;					        /*<< the leak time (*1sec)*/
-			uint16_t line;                              /*<< the function line */
-		};
-		uint32_t time_line;
-	};
-	uint32_t wantedSize;						/*<< malloc size */
+	unsigned int allocTime;					/*<< the leak time (*1sec)*/
+	unsigned int line;					/*<< the function line */
+	int wantedSize;						/*<< malloc size */
 #endif
 } BlockLink_t;
 
@@ -536,20 +531,18 @@ void *psram_malloc( size_t xWantedSize )
 #endif
 		}
 #if CONFIG_MEM_DEBUG
-		pxLink->time_line = ((xTaskGetTickCount()/configTICK_RATE_HZ) & 0xffff) | ((line & 0xffff) << 16);
-
+		pxLink->allocTime = xTaskGetTickCount();
 #if CONFIG_MEM_DEBUG_FUNC_NAME
-		pxLink->funcName = (char *)call_func_name;
+		os_memcpy_word((uint32_t *)pxLink->funcName, (uint32_t *)call_func_name, sizeof(pxLink->funcName));
 #endif
 #if CONFIG_MEM_DEBUG_TASK_NAME
 		//malloc can only be called in Task context!
-		if (rtos_is_scheduler_started()) {
-			pxLink->taskName = pcTaskGetName(NULL);
-		}
+		if (rtos_is_scheduler_started())
+			os_memcpy_word((uint32_t *)pxLink->taskName, (uint32_t *)pcTaskGetName(NULL), sizeof(pxLink->taskName));
 		else
-			pxLink->taskName = "NA";
+			os_memcpy_word((uint32_t *)pxLink->taskName, (uint32_t *)"NA", sizeof(pxLink->taskName));
 #endif
-
+		pxLink->line = line;
 		pxLink->wantedSize = xWantedSize;
 
  		mem_end = pvReturn + xWantedSize;
@@ -653,19 +646,19 @@ INSERTED:
 static inline void show_mem_info(BlockLink_t *pxLink)
 {
 #if CONFIG_MEM_DEBUG_FUNC_NAME && CONFIG_MEM_DEBUG_TASK_NAME
-	BK_DUMP_OUT("%-8d   0x%-8x   %-4d   %-5d   %-32s   %-16s\r\n",
+	BK_LOG_RAW("%-8d   0x%-8x   %-4d   %-5d   %-32s   %-16s\r\n",
 		pxLink->allocTime, (u8*)pxLink + xHeapStructSize, pxLink->wantedSize,
 		pxLink->line, pxLink->funcName, pxLink->taskName);
 #elif  CONFIG_MEM_DEBUG_FUNC_NAME
-	BK_DUMP_OUT("%-8d   0x%-8x   %-4d   %-5d   %-32s\r\n",
+	BK_LOG_RAW("%-8d   0x%-8x   %-4d   %-5d   %-32s\r\n",
 		pxLink->allocTime, (u8*)pxLink + xHeapStructSize, pxLink->wantedSize,
 		pxLink->line, pxLink->funcName);
 #elif CONFIG_MEM_DEBUG_TASK_NAME
-	BK_DUMP_OUT("%-8d   0x%-8x   %-4d   %-5d   %-16s\r\n",
+	BK_LOG_RAW("%-8d   0x%-8x   %-4d   %-5d   %-16s\r\n",
 		pxLink->allocTime, (u8*)pxLink + xHeapStructSize, pxLink->wantedSize,
 		pxLink->line, pxLink->taskName);
 #else
-	BK_DUMP_OUT("%-8d   0x%-8x   %-4d   %-5d\r\n",
+	BK_LOG_RAW("%-8d   0x%-8x   %-4d   %-5d\r\n",
 		pxLink->allocTime, (u8*)pxLink + xHeapStructSize, pxLink->wantedSize,
 		pxLink->line);
 #endif
@@ -682,7 +675,7 @@ static inline void mem_overflow_check(BlockLink_t *pxLink)
 		|| MEM_OVERFLOW_TAG != mem_end[2]
 		|| MEM_OVERFLOW_TAG != mem_end[3])
 	{
-		BK_DUMP_OUT("Mem Overflow ............\r\n");
+		BK_LOG_RAW("Mem Overflow ............\r\n");
 		show_mem_info(pxLink);
 		configASSERT( false );
 	}
@@ -870,16 +863,16 @@ void *pvPortMalloc( size_t xWantedSize )
 #endif
 		}
 #if CONFIG_MEM_DEBUG
-		pxLink->allocTime = (uint16_t)(xTaskGetTickCount()/configTICK_RATE_HZ);
+		pxLink->allocTime = xTaskGetTickCount();
 #if CONFIG_MEM_DEBUG_FUNC_NAME
-		pxLink->funcName = (char *)call_func_name;
+		os_strlcpy(pxLink->funcName, call_func_name, sizeof(pxLink->funcName) - 1);
 #endif
 #if CONFIG_MEM_DEBUG_TASK_NAME
 		//malloc can only be called in Task context!
 		if (rtos_is_scheduler_started())
-			pxLink->taskName = pcTaskGetName(NULL);
+			os_strlcpy(pxLink->taskName, pcTaskGetName(NULL), sizeof(pxLink->taskName) - 1);
 		else
-			pxLink->taskName = "NA";
+			os_strlcpy(pxLink->taskName, "NA", sizeof(pxLink->taskName) - 1);
 #endif
 		pxLink->line = line;
 		pxLink->wantedSize = xWantedSize;
@@ -945,10 +938,10 @@ void vPortFree( void *pv )
 				list_del(&pxLink->node);
 				pxLink->allocTime = 0;
 #if CONFIG_MEM_DEBUG_FUNC_NAME
-				pxLink->funcName = 0;
+				pxLink->funcName[0] = 0;
 #endif
 #if CONFIG_MEM_DEBUG_TASK_NAME
-				pxLink->taskName = 0;
+				pxLink->taskName[0] = 0;
 #endif
 				pxLink->line = 0;
 #endif
@@ -991,27 +984,27 @@ void xPortDumpMemStats(uint32_t start_tick, uint32_t ticks_since_malloc, const c
 {
 	BlockLink_t *pxLink;
 
-	BK_DUMP_OUT("%-8s   %-10s   %-4s   %-5s", "tick", "addr", "size", "line");
+	BK_LOG_RAW("%-8s   %-10s   %-4s   %-5s", "tick", "addr", "size", "line");
 
 #if CONFIG_MEM_DEBUG_FUNC_NAME
-	BK_DUMP_OUT("   %-32s", "func");
+	BK_LOG_RAW("   %-32s", "func");
 #endif
 
 #if CONFIG_MEM_DEBUG_TASK_NAME
-	BK_DUMP_OUT("   %-16s", "task");
+	BK_LOG_RAW("   %-16s", "task");
 #endif
-	BK_DUMP_OUT("\n");
+	BK_LOG_RAW("\n");
 
-	BK_DUMP_OUT("%-8s   %-10s   %-4s   %-5s", "--------", "----------", "----", "-----");
+	BK_LOG_RAW("%-8s   %-10s   %-4s   %-5s", "--------", "----------", "----", "-----");
 
 #if CONFIG_MEM_DEBUG_FUNC_NAME
-	BK_DUMP_OUT("   %-32s", "--------------------------------");
+	BK_LOG_RAW("   %-32s", "--------------------------------");
 #endif
 
 #if CONFIG_MEM_DEBUG_TASK_NAME
-	BK_DUMP_OUT("   %-16s", "----------------");
+	BK_LOG_RAW("   %-16s", "----------------");
 #endif
-	BK_DUMP_OUT("\n");
+	BK_LOG_RAW("\n");
 
 	vTaskSuspendAll();
 
@@ -1201,8 +1194,6 @@ uint32_t prvHeapGetTotalSize(void)
 
 #endif //#if configDYNAMIC_HEAP_SIZE
 
-void rtos_regist_plat_dump_hook(uint32_t reg_base_addr, uint32_t reg_size);
-
 static void prvHeapInit( void )
 {
 	BlockLink_t *pxFirstFreeBlock;
@@ -1213,7 +1204,6 @@ static void prvHeapInit( void )
 	#if configDYNAMIC_HEAP_SIZE
 	xTotalHeapSize = prvHeapGetTotalSize();
 	ucHeap = prvHeapGetHeaderPointer();
-	rtos_regist_plat_dump_hook((uint32_t)ucHeap, xTotalHeapSize);
 	#else
 	xTotalHeapSize = configTOTAL_HEAP_SIZE;
 	#endif
@@ -1429,11 +1419,11 @@ INSERTED:
 // TODO - after we support bk_eary_printf() API, we can remove this API.
 //
 #if CONFIG_SOC_BK7236XX
-extern unsigned char _data_ram_begin;
-#define RAM_START_ADDRESS  ((uint32_t)&_data_ram_begin)
-
 extern unsigned char __data_start__;
-#define DATA_START_ADDRESS ((uint32_t)&__data_start__)
+#define RAM_START_ADDRESS  ((uint32_t)&__data_start__)
+
+extern unsigned char _data_ram_begin;
+#define DATA_START_ADDRESS ((uint32_t)&_data_ram_begin)
 
 extern unsigned char _data_ram_end;
 #define DATA_END_ADDRESS ((uint32_t)&_data_ram_end)
@@ -1480,16 +1470,16 @@ void pvShowMemoryConfigInfo(void)
 	BK_LOGI(TAG, "%-8s %-8s %-8s %-8s\n", "--------", "--------", "--------", "--------");
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "itcm", ITCM_START_ADDRESS, ITCM_END_ADDRESS, (ITCM_END_ADDRESS - ITCM_START_ADDRESS));
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "dtcm", DTCM_START_ADDRESS, DTCM_END_ADDRESS, (DTCM_END_ADDRESS - DTCM_START_ADDRESS));
-	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "ram", RAM_START_ADDRESS, HEAP_END_ADDRESS, (HEAP_END_ADDRESS - RAM_START_ADDRESS));
-	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "non_heap", RAM_START_ADDRESS, HEAP_START_ADDRESS, (HEAP_START_ADDRESS - RAM_START_ADDRESS));
 #if !CONFIG_SLAVE_CORE
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "iram", IRAM_START_ADDRESS, IRAM_END_ADDRESS, (IRAM_END_ADDRESS - IRAM_START_ADDRESS));
-#endif //#if !CONFIG_SLAVE_CORE
+#if CONFIG_CACHE_ENABLE
+	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "non_cache", NOCACHE_START_ADDRESS, NOCACHE_END_ADDRESS, (NOCACHE_END_ADDRESS - NOCACHE_START_ADDRESS));
+#endif //#if CONFIG_CACHE_ENABLE
+#endif// #if !CONFIG_SLAVE_CORE
+	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "ram", RAM_START_ADDRESS, HEAP_END_ADDRESS, (HEAP_END_ADDRESS - RAM_START_ADDRESS));
+	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "non_heap", RAM_START_ADDRESS, HEAP_START_ADDRESS, (HEAP_START_ADDRESS - RAM_START_ADDRESS));
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "data", DATA_START_ADDRESS, DATA_END_ADDRESS, (DATA_END_ADDRESS - DATA_START_ADDRESS));
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "bss", BSS_START_ADDRESS, BSS_END_ADDRESS, (BSS_END_ADDRESS - BSS_START_ADDRESS));
-#if !CONFIG_SLAVE_CORE && CONFIG_CACHE_ENABLE
-	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "non_cache", NOCACHE_START_ADDRESS, NOCACHE_END_ADDRESS, (NOCACHE_END_ADDRESS - NOCACHE_START_ADDRESS));
-#endif// #if !CONFIG_SLAVE_CORE && CONFIG_CACHE_ENABLE
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "heap", HEAP_START_ADDRESS, HEAP_END_ADDRESS, (HEAP_END_ADDRESS - HEAP_START_ADDRESS));
 #if (CONFIG_PSRAM_AS_SYS_MEMORY)
 	BK_LOGI(TAG, "%-8s 0x%-6x 0x%-6x %-8d\r\n", "psram", PSRAM_START_ADDRESS, (PSRAM_START_ADDRESS + PSRAM_HEAP_SIZE), PSRAM_HEAP_SIZE);

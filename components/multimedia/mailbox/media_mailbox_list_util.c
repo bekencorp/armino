@@ -30,37 +30,13 @@
 #define LOGE(...) BK_LOGE(TAG, ##__VA_ARGS__)
 #define LOGD(...) BK_LOGD(TAG, ##__VA_ARGS__)
 
-void media_mailbox_list_clear(LIST_HEADER_T *list)
+
+media_mailbox_msg_t *media_mailbox_list_get_node(beken_semaphore_t msg, LIST_HEADER_T *list, beken_mutex_t lock)
 {
 	GLOBAL_INT_DECLARATION();
 
 	GLOBAL_INT_DISABLE();
-	LIST_HEADER_T *pos, *n;
-	media_mailbox_msg_t *node = NULL;
-	media_mailbox_list_t *tmp = NULL;
-	if (!list_empty(list))
-	{
-		list_for_each_safe(pos, n, list)
-		{
-			tmp = list_entry(pos, media_mailbox_list_t, list);
-			if (tmp != NULL)
-			{
-				rtos_set_semaphore(&node->sem);
-				node = tmp->msg;
-				list_del(pos);
-				os_free(tmp);
-			}
-		}
-		INIT_LIST_HEAD(list);
-	}
-	GLOBAL_INT_RESTORE();
-}
-
-media_mailbox_msg_t *media_mailbox_list_get_node(beken_semaphore_t msg, LIST_HEADER_T *list)
-{
-	GLOBAL_INT_DECLARATION();
-
-	GLOBAL_INT_DISABLE();
+	rtos_lock_mutex(&lock);
 	LIST_HEADER_T *pos, *n;
 	media_mailbox_msg_t *node = NULL;
 	media_mailbox_list_t *tmp = NULL;
@@ -76,14 +52,16 @@ media_mailbox_msg_t *media_mailbox_list_get_node(beken_semaphore_t msg, LIST_HEA
 			}
 		}
 	}
+	rtos_unlock_mutex(&lock);
 	GLOBAL_INT_RESTORE();
 	return node;
 }
 
-media_mailbox_msg_t *media_mailbox_list_del_node_by_event(uint32_t event, LIST_HEADER_T *list)
+media_mailbox_msg_t *media_mailbox_list_del_node_by_event(uint32_t event, LIST_HEADER_T *list, beken_mutex_t lock)
 {
 	GLOBAL_INT_DECLARATION();
 	GLOBAL_INT_DISABLE();
+	rtos_lock_mutex(&lock);
 	LIST_HEADER_T *pos, *n;
 	media_mailbox_msg_t *node = NULL;
 	media_mailbox_list_t *tmp = NULL;
@@ -101,14 +79,16 @@ media_mailbox_msg_t *media_mailbox_list_del_node_by_event(uint32_t event, LIST_H
 			}
 		}
 	}
+	rtos_unlock_mutex(&lock);
 	GLOBAL_INT_RESTORE();
 	return node;
 }
 
-media_mailbox_msg_t *media_mailbox_list_del_node(beken_semaphore_t msg, LIST_HEADER_T *list)
+media_mailbox_msg_t *media_mailbox_list_del_node(beken_semaphore_t msg, LIST_HEADER_T *list, beken_mutex_t lock)
 {
 	GLOBAL_INT_DECLARATION();
 	GLOBAL_INT_DISABLE();
+	rtos_lock_mutex(&lock);
 	LIST_HEADER_T *pos, *n;
 	media_mailbox_msg_t *node = NULL;
 	media_mailbox_list_t *tmp = NULL;
@@ -126,14 +106,16 @@ media_mailbox_msg_t *media_mailbox_list_del_node(beken_semaphore_t msg, LIST_HEA
 			}
 		}
 	}
+	rtos_unlock_mutex(&lock);
 	GLOBAL_INT_RESTORE();
 	return node;
 }
 
-media_mailbox_msg_t *media_mailbox_list_pop(LIST_HEADER_T *list)
+media_mailbox_msg_t *media_mailbox_list_pop(LIST_HEADER_T *list, beken_mutex_t lock)
 {
 	GLOBAL_INT_DECLARATION();
 	GLOBAL_INT_DISABLE();
+	rtos_lock_mutex(&lock);
 	LIST_HEADER_T *pos, *n;
 	media_mailbox_msg_t *node = NULL;
 	media_mailbox_list_t *tmp = NULL;
@@ -148,17 +130,20 @@ media_mailbox_msg_t *media_mailbox_list_pop(LIST_HEADER_T *list)
 			break;
 		}
 	}
+	rtos_unlock_mutex(&lock);
 	GLOBAL_INT_RESTORE();
 	return node;
 }
 
-void media_mailbox_list_push(media_mailbox_msg_t *tmp, LIST_HEADER_T *list)
+void media_mailbox_list_push(media_mailbox_msg_t *tmp, LIST_HEADER_T *list, beken_mutex_t lock)
 {
 	GLOBAL_INT_DECLARATION();
 	GLOBAL_INT_DISABLE();
+	rtos_lock_mutex(&lock);
 	media_mailbox_list_t *mailbox_list = os_malloc(sizeof(media_mailbox_list_t));
 	mailbox_list->msg = tmp;
 	list_add_tail(&mailbox_list->list, list);
+	rtos_unlock_mutex(&lock);
 	GLOBAL_INT_RESTORE();
 }
 

@@ -50,7 +50,6 @@
 #include "soc/bk7235/soc.h"
 #elif CONFIG_SOC_BK7235 && CONFIG_SLAVE_CORE
 #include "soc/bk7235_cp1/soc.h"
-#elif CONFIG_SOC_BK7235M
-#include "soc/bk7235m/soc.h"
+
 #endif
 

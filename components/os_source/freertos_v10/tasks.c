@@ -266,12 +266,7 @@ typedef struct tskTaskControlBlock       /* The old naming convention is used to
     ListItem_t xEventListItem;                  /*< Used to reference a task from an event list. */
     UBaseType_t uxPriority;                     /*< The priority of the task.  0 is the lowest priority. */
     StackType_t * pxStack;                      /*< Points to the start of the stack. */
-
-    #if configBK_FREERTOS
-    char *pcTaskName;
-    #else
     char pcTaskName[ configMAX_TASK_NAME_LEN ]; /*< Descriptive name given to the task when created.  Facilitates debugging only. */ /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
-    #endif
 
     #if ( ( portSTACK_GROWTH > 0 ) || ( configRECORD_STACK_HIGH_ADDRESS == 1 ) )
         StackType_t * pxEndOfStack; /*< Points to the highest valid address for the stack. */
@@ -840,9 +835,7 @@ static void prvInitialiseNewTask( TaskFunction_t pxTaskCode,
                                   const MemoryRegion_t * const xRegions )
 {
     StackType_t * pxTopOfStack;
-#if !configBK_FREERTOS
     UBaseType_t x;
-#endif
 
     BK_LOGI(TAG, "create %s, tcb=%x, stack=[%x-%x:%d], prio=%d\r\n",
                 pcName,
@@ -910,9 +903,6 @@ static void prvInitialiseNewTask( TaskFunction_t pxTaskCode,
         }
     #endif /* portSTACK_GROWTH */
 
-    #if configBK_FREERTOS
-    pxNewTCB->pcTaskName = (char *)pcName;
-    #else
     /* Store the task name in the TCB. */
     if( pcName != NULL )
     {
@@ -943,7 +933,6 @@ static void prvInitialiseNewTask( TaskFunction_t pxTaskCode,
          * terminator when it is read out. */
         pxNewTCB->pcTaskName[ 0 ] = 0x00;
     }
-    #endif
 
     /* This is used as an array index so must ensure it's not too large. */
     configASSERT( uxPriority < configMAX_PRIORITIES );
@@ -2417,12 +2406,7 @@ char * pcTaskGetName( TaskHandle_t xTaskToQuery ) /*lint !e971 Unqualified char 
      * queried. */
     pxTCB = prvGetTCBFromHandle( xTaskToQuery );
     configASSERT( pxTCB );
-
-    #if configBK_FREERTOS
-    return pxTCB->pcTaskName;
-    #else
     return &( pxTCB->pcTaskName[ 0 ] );
-    #endif
 }
 /*-----------------------------------------------------------*/
 
@@ -3790,11 +3774,7 @@ static void prvCheckTasksWaitingTermination( void )
         pxTCB = prvGetTCBFromHandle( xTask );
 
         pxTaskStatus->xHandle = ( TaskHandle_t ) pxTCB;
-    #if configBK_FREERTOS
-        pxTaskStatus->pcTaskName = pxTCB->pcTaskName;
-    #else
         pxTaskStatus->pcTaskName = ( const char * ) &( pxTCB->pcTaskName[ 0 ] );
-    #endif
         pxTaskStatus->uxCurrentPriority = pxTCB->uxPriority;
         pxTaskStatus->pxStackBase = pxTCB->pxStack;
         pxTaskStatus->xTaskNumber = pxTCB->uxTCBNumber;
@@ -4588,11 +4568,7 @@ static void prvResetNextTaskUnblockTime( void )
                 pcWriteBuffer = prvWriteNameToBuffer( pcWriteBuffer, pxTaskStatusArray[ x ].pcTaskName );
 
                 /* Write the rest of the string. */
-                sprintf( pcWriteBuffer, "\t%c\t%u\t%u\t%u\r\n",
-                         cStatus,
-                         ( unsigned int ) pxTaskStatusArray[ x ].uxCurrentPriority,
-                         ( unsigned int ) pxTaskStatusArray[ x ].usStackHighWaterMark * sizeof(StackType_t),
-                         ( unsigned int ) pxTaskStatusArray[ x ].xTaskNumber ); /*lint !e586 sprintf() allowed as this is compiled with many compilers and this is a utility function only - not part of the core kernel implementation. */
+                sprintf( pcWriteBuffer, "\t%c\t%u\t%u\t%u\r\n", cStatus, ( unsigned int ) pxTaskStatusArray[ x ].uxCurrentPriority, ( unsigned int ) pxTaskStatusArray[ x ].usStackHighWaterMark, ( unsigned int ) pxTaskStatusArray[ x ].xTaskNumber ); /*lint !e586 sprintf() allowed as this is compiled with many compilers and this is a utility function only - not part of the core kernel implementation. */
                 pcWriteBuffer += strlen( pcWriteBuffer );                                                                                                                                                                                                /*lint !e9016 Pointer arithmetic ok on char pointers especially as in this case where it best denotes the intent of the code. */
             }
 

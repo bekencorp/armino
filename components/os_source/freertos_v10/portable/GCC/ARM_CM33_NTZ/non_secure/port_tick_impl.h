@@ -16,9 +16,10 @@ static uint32_t base_os_time = 0;
 
 void rtos_init_base_time(void) {
 #if CONFIG_AON_RTC
-	base_aon_time = bk_aon_rtc_get_us()/1000;
+	base_aon_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 	base_os_time = rtos_get_time();
-	BK_LOGI(TAG, "os time(%dms).\r\n", base_os_time);
+	BK_LOGI(TAG, "os time(%dms),rtc time(%dms).\r\n", base_os_time,
+		(uint32_t)base_aon_time/RTC_TICKS_PER_1MS);
 	BK_LOGI(TAG, "base aon rtc time: %d:%d\r\n", (uint32_t)(base_aon_time >> 32),
 		(uint32_t)(base_aon_time & 0xFFFFFFFF));
 #endif
@@ -26,9 +27,9 @@ void rtos_init_base_time(void) {
 
 uint32_t rtos_get_time_diff(void) {
 #if CONFIG_AON_RTC
-	uint64_t cur_aon_time = bk_aon_rtc_get_us()/1000;
+	uint64_t cur_aon_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 	uint64_t cur_os_time = (uint64_t)rtos_get_time(); //ms
-	uint64_t diff_time = (cur_aon_time - base_aon_time); //ms
+	uint64_t diff_time = (cur_aon_time - base_aon_time)/RTC_TICKS_PER_1MS; //ms
 	uint32_t diff_ms = 0;
 
 	if((uint32_t)(diff_time >> 32) & 0x7FF0000) {
@@ -119,12 +120,11 @@ static inline void systick_gated_update(TickType_t xExpectedIdleTime, uint32_t u
 #if CONFIG_AON_RTC
 	TickType_t slept_ticks = rtos_get_time_diff();
 
-	/* Restart SysTick so it runs from portNVIC_SYSTICK_LOAD_REG
-	* again, then set portNVIC_SYSTICK_LOAD_REG back to its standard
-	* value. */
-	portNVIC_SYSTICK_CURRENT_VALUE_REG = 0UL;
-	portNVIC_SYSTICK_LOAD_REG = ulTimerCountsForOneTick - 1;
-	portNVIC_SYSTICK_CTRL_REG |= portNVIC_SYSTICK_ENABLE_BIT;
+        /* Restart SysTick so it runs from portNVIC_SYSTICK_LOAD_REG
+        * again, then set portNVIC_SYSTICK_LOAD_REG back to its standard
+        * value. */
+        portNVIC_SYSTICK_CURRENT_VALUE_REG = 0UL;
+	    portNVIC_SYSTICK_LOAD_REG = ulTimerCountsForOneTick - 1;
 	if(slept_ticks > 1) {
 		vTaskStepTick(slept_ticks - 1);
 #if CONFIG_TASK_WDT
@@ -220,6 +220,7 @@ void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime )
 	 * inevitably result in some tiny drift of the time maintained by the
 	 * kernel with respect to calendar time. */
 	portNVIC_SYSTICK_CTRL_REG &= ~portNVIC_SYSTICK_ENABLE_BIT;
+	portNVIC_SYSTICK_CTRL_REG &= ~portNVIC_SYSTICK_INT_BIT;
 	/* Calculate the reload value required to wait xExpectedIdleTime
 	 * tick periods. -1 is used because this code will execute part way
 	 * through one of the tick periods. */
@@ -248,20 +249,20 @@ void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime )
 
 		/* Restart SysTick. */
 		portNVIC_SYSTICK_CTRL_REG |= portNVIC_SYSTICK_ENABLE_BIT;
-		//portNVIC_SYSTICK_CTRL_REG |= portNVIC_SYSTICK_INT_BIT;
+		portNVIC_SYSTICK_CTRL_REG |= portNVIC_SYSTICK_INT_BIT;
 		/* Re-enable interrupts - see comments above the cpsid instruction()
 		* above. */
 		__asm volatile ( "cpsie i" ::: "memory" );
 	} else {
 		/* Set the new reload value. */
-		portNVIC_SYSTICK_LOAD_REG = ulReloadValue;
+		//portNVIC_SYSTICK_LOAD_REG = ulReloadValue;
 
 		/* Clear the SysTick count flag and set the count value back to
 		* zero. */
-		portNVIC_SYSTICK_CURRENT_VALUE_REG = 0UL;
+		//portNVIC_SYSTICK_CURRENT_VALUE_REG = 0UL;
 
 		/* Restart SysTick. */
-		portNVIC_SYSTICK_CTRL_REG |= portNVIC_SYSTICK_ENABLE_BIT;
+		//portNVIC_SYSTICK_CTRL_REG |= portNVIC_SYSTICK_ENABLE_BIT;
 
 		/* Sleep until something happens. configPRE_SLEEP_PROCESSING() can
 		* set its parameter to 0 to indicate that its implementation
@@ -281,9 +282,11 @@ void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime )
 		}
 
 		configPOST_SLEEP_PROCESSING( xExpectedIdleTime );
-		#if CONFIG_UPDATE_TICK_THEN_ENABLE_INT
-		systick_gated_update(xExpectedIdleTime, ulReloadValue);//it improve the systick update when adding here,otherwize the systick update fail and enter the vPortSuppressTicksAndSleep() fail
-		#endif
+
+#if CONFIG_UPDATE_TICK_THEN_ENABLE_INT
+		systick_gated_update(xExpectedIdleTime, ulReloadValue);
+#else
+
 		/* Re-enable interrupts to allow the interrupt that brought the MCU
 		* out of sleep mode to execute immediately. See comments above
 		* the cpsid instruction above. */
@@ -298,13 +301,12 @@ void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime )
 		__asm volatile ( "cpsid i" ::: "memory" );
 		__asm volatile ( "dsb" );
 		__asm volatile ( "isb" );
-#if CONFIG_UPDATE_TICK_THEN_ENABLE_INT
-		systick_gated_update(xExpectedIdleTime, ulReloadValue);//it improve the systick update when adding here,otherwize the systick update fail and enter the vPortSuppressTicksAndSleep() fai
-#else
+
 		systick_update(xExpectedIdleTime, ulReloadValue);
 #endif
 /* Restart SysTick. */
 		portNVIC_SYSTICK_CTRL_REG |= portNVIC_SYSTICK_ENABLE_BIT;
+        portNVIC_SYSTICK_CTRL_REG |= portNVIC_SYSTICK_INT_BIT;
 		/* Exit with interrupts enabled. */
 		__asm volatile ( "cpsie i" ::: "memory" );
 	}

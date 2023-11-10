@@ -24,16 +24,8 @@
 #include "gpio_hal.h"
 #include "timer_hal.h"
 
-#define PM_CLKSEL_CORE_320M        (2)
-#define PM_CLKSEL_CORE_480M        (3)
-#define PM_CLKDIV_CORE_0           (0)
-#define PM_CLKDIV_CORE_1           (1)
-#define PM_VDDDIG_H_VOL_0v9        (0xC)
-#define PM_CLKDV_CPU1_1            (0x1)
 static sys_hal_t s_sys_hal;
 uint32 sys_hal_get_int_group2_status(void);
-bk_err_t sys_hal_ctrl_vdddig_h_vol(uint32_t vol_value);
-uint32_t sys_hal_vdddig_h_vol_get();
 /**  Platform Start **/
 //Platform
 
@@ -326,37 +318,11 @@ uint32_t sys_hal_cpu_clk_div_get(uint32_t core_index)
 }
 int32 sys_hal_lp_vol_set(uint32_t value)
 {
-	sys_ll_set_ana_reg9_spi_latch1v(1);
-	sys_ll_set_ana_reg9_vcorelsel(value);
-	sys_ll_set_ana_reg9_spi_latch1v(0);
-
 	return 0;
 }
 uint32_t sys_hal_lp_vol_get()
 {
-	return sys_ll_get_ana_reg9_vcorelsel();
-}
-int32 sys_hal_rf_tx_vol_set(uint32_t value)
-{
-	sys_ll_set_ana_reg9_spi_latch1v(1);
-	sys_ll_set_ana_reg8_t_vanaldosel(value);
-	sys_ll_set_ana_reg9_spi_latch1v(0);
 	return 0;
-}
-uint32_t sys_hal_rf_tx_vol_get()
-{
-	return sys_ll_get_ana_reg8_t_vanaldosel();
-}
-int32 sys_hal_rf_rx_vol_set(uint32_t value)
-{
-	sys_ll_set_ana_reg9_spi_latch1v(1);
-	sys_ll_set_ana_reg8_r_vanaldosel(value);
-	sys_ll_set_ana_reg9_spi_latch1v(0);
-	return 0;
-}
-uint32_t sys_hal_rf_rx_vol_get()
-{
-	return sys_ll_get_ana_reg8_r_vanaldosel();
 }
 int32 sys_hal_bandgap_cali_set(uint32_t value)//increase or decrease the dvdddig voltage
 {
@@ -369,7 +335,7 @@ uint32_t sys_hal_bandgap_cali_get()
 bk_err_t sys_hal_core_bus_clock_ctrl(uint32_t cksel_core, uint32_t ckdiv_core,uint32_t ckdiv_bus, uint32_t ckdiv_cpu0,uint32_t ckdiv_cpu1)
 {
 	uint32_t clk_param  = 0;
-	uint32_t     h_vol  = 0;
+
 	if(cksel_core > 3)
 	{
 		os_printf("set dvfs cksel core > 3 invalid %d\r\n",cksel_core);
@@ -381,32 +347,7 @@ bk_err_t sys_hal_core_bus_clock_ctrl(uint32_t cksel_core, uint32_t ckdiv_core,ui
 		os_printf("set dvfs ckdiv_core ckdiv_bus ckdiv_cpu0  ckdiv_cpu0  > 15 invalid\r\n");
 		return BK_FAIL;
 	}
-	if((cksel_core == PM_CLKSEL_CORE_320M)&&(ckdiv_core == PM_CLKDIV_CORE_0)&&(ckdiv_cpu1 != PM_CLKDV_CPU1_1))
-	{
-		os_printf("unsupport the cpu freq setting %d %d %d\r\n",cksel_core,ckdiv_core,ckdiv_cpu1);
-		return BK_FAIL;
-	}
 
-	if((cksel_core == PM_CLKSEL_CORE_480M)&&(ckdiv_core == PM_CLKDIV_CORE_0))
-	{
-		os_printf("unsupport the cpu freq setting %d %d %d\r\n",cksel_core,ckdiv_core,ckdiv_cpu1);
-		return BK_FAIL;
-	}
-
-	if((cksel_core == PM_CLKSEL_CORE_480M)&&(ckdiv_core == PM_CLKDIV_CORE_1)&&(ckdiv_cpu1 != PM_CLKDV_CPU1_1))
-	{
-		os_printf("unsupport the cpu freq setting %d %d %d\r\n",cksel_core,ckdiv_core,ckdiv_cpu1);
-		return BK_FAIL;
-	}
-
-	if((cksel_core == PM_CLKSEL_CORE_320M)&&(ckdiv_core == PM_CLKDIV_CORE_0))
-	{
-		h_vol = sys_hal_vdddig_h_vol_get();
-		if(h_vol < PM_VDDDIG_H_VOL_0v9)
-		{
-			sys_hal_ctrl_vdddig_h_vol(PM_VDDDIG_H_VOL_0v9);
-		}
-	}
 	clk_param = 0;
 	clk_param = sys_hal_all_modules_clk_div_get(CLK_DIV_REG0);
 	if(((clk_param >> 0x4)&0x3) > cksel_core)//when it from the higher frequency to lower frequency
@@ -458,18 +399,15 @@ bk_err_t sys_hal_core_bus_clock_ctrl(uint32_t cksel_core, uint32_t ckdiv_core,ui
 	}
 
 	return BK_OK;
-}
+} 
 bk_err_t sys_hal_ctrl_vdddig_h_vol(uint32_t vol_value)
 {
-	sys_ll_set_ana_reg9_spi_latch1v(1);
-	sys_ll_set_ana_reg9_vcorehsel(vol_value);
-	sys_ll_set_ana_reg9_spi_latch1v(0);
-	return BK_OK;
+    sys_ll_set_ana_reg9_spi_latch1v(1);
+    sys_ll_set_ana_reg9_vcorehsel(vol_value);
+    sys_ll_set_ana_reg9_spi_latch1v(0);
+    return BK_OK;
 }
-uint32_t sys_hal_vdddig_h_vol_get()
-{
-	return sys_ll_get_ana_reg9_vcorehsel();
-}
+
 /*
 	//For BK7256 ckdiv_bus is 0x8[6]
 	//For BK7236 ckdiv_bus is the same as ckdiv_cpu1 0x5[4]
@@ -540,7 +478,7 @@ int32 sys_hal_int_disable(uint32 param) //CMD_ICU_INT_DISABLE
 {
 	uint32 reg = 0;
 	uint32 value = 0;
-
+    
 #if !CONFIG_SLAVE_CORE
 	reg = sys_ll_get_cpu0_int_0_31_en_value();
 	value = reg;
@@ -577,7 +515,7 @@ int32 sys_hal_int_enable(uint32 param) //CMD_ICU_INT_ENABLE
 int32 sys_hal_int_group2_disable(uint32 param)
 {
 	uint32 reg = 0;
-	uint32 value = 0;
+	uint32 value = 0;    
 
 #if !CONFIG_SLAVE_CORE
 	reg = sys_ll_get_cpu0_int_32_63_en_value();
@@ -615,7 +553,7 @@ int32 sys_hal_int_group2_enable(uint32 param)
 int32 sys_hal_fiq_disable(uint32 param)
 {
 	uint32 reg = 0;
-	uint32 value = 0;
+	uint32 value = 0;        
 
 #if !CONFIG_SLAVE_CORE
 	reg = sys_ll_get_cpu0_int_32_63_en_value();
@@ -759,27 +697,14 @@ uint32 sys_hal_get_jtag_mode(void)
  */
 void sys_hal_clk_pwr_ctrl(dev_clk_pwr_id_t dev, dev_clk_pwr_ctrl_t power_up)
 {
-	uint32_t v = 0;
-	uint32_t offset = 0;
-
-	if (dev >= CLK_PWR_ID_H264) {
-		offset += CLK_PWR_ID_H264;
-		v = sys_ll_get_reserver_reg0xd_value();
-	} else {
-		offset = 0;
-		v = sys_ll_get_cpu_device_clk_enable_value();
-	}
+	uint32 v = sys_ll_get_cpu_device_clk_enable_value();
 
 	if(CLK_PWR_CTRL_PWR_UP == power_up)
-		v |= (1 << (dev - offset));
+		v |= (1 << dev);
 	else
-		v &= ~(1 << (dev - offset));
+		v &= ~(1 << dev);
 
-	if (dev >= CLK_PWR_ID_H264) {
-		sys_ll_set_reserver_reg0xd_value(v);
-	} else {
-		sys_ll_set_cpu_device_clk_enable_value(v);
-	}
+	sys_ll_set_cpu_device_clk_enable_value(v);
 }
 
 /* UART select clock **/
@@ -1355,13 +1280,13 @@ void sys_hal_mac_clk_ctrl(bool clk_en)
 
 void sys_hal_set_vdd_value(uint32_t param)
 {
-	sys_hal_ctrl_vdddig_h_vol(param);
+	//TODO
 }
 
 uint32_t sys_hal_get_vdd_value(void)
 {
 	//TODO reg0x43 Write only
-	return sys_ll_get_ana_reg9_vcorehsel();
+	return 4;
 }
 
 //CMD_SCTRL_BLOCK_EN_MUX_SET
@@ -1742,11 +1667,6 @@ void sys_hal_aud_mic2_en(uint32_t value)
 
 void sys_hal_aud_mic2_gain_set(uint32_t value)
 {
-}
-
-void sys_hal_aud_dacg_set(uint32_t value)
-{
-	sys_ll_set_ana_reg20_dacg(value);
 }
 
 void sys_hal_aud_aud_en(uint32_t value)
@@ -2226,11 +2146,11 @@ void sys_hal_early_init(void)
 {
 	uint32_t chip_id = aon_pmu_hal_get_chipid();
 
-	uint32_t val = sys_hal_analog_get(ANALOG_REG5);
-	val |= (0x1 << 14) | (0x1 << 5) | (0x1 << 3) | (0x1 << 2);
-	sys_hal_analog_set(ANALOG_REG5,val);
+	uint32_t val = sys_hal_analog_get(0x5);//ffe7 31a7
+	val |=  (0x1 << 14) | (0x1 << 5) | (0x1 << 3) | (0x1 << 2) | (0x1 << 1);
+	sys_hal_analog_set(0x5,val);
 
-	val = sys_hal_analog_get(ANALOG_REG0);
+	val = sys_hal_analog_get(ANALOG_REG0);//ffe7 31a7
 	val |= (0x13 << 20) ;
 	sys_hal_analog_set(ANALOG_REG0,val);
 
@@ -2253,16 +2173,16 @@ void sys_hal_early_init(void)
 	} else {
 		sys_hal_analog_set(ANALOG_REG8, 0x57E62F26);//shuguang20230414[8:3]7->4: for evm
 	}
-	sys_hal_analog_set(ANALOG_REG9, 0x787BC34A);
-	sys_hal_analog_set(ANALOG_REG10, 0xC35543C7);//tenglong20230417:rosc config for buck in lowpower
+	sys_hal_analog_set(ANALOG_REG9, 0x787BC2A4);
+	sys_hal_analog_set(ANALOG_REG10, 0xC355C3A7);//tenglong20230417:rosc config for buck in lowpower
 	if ((chip_id & PM_CHIP_ID_MASK) == (PM_CHIP_ID_MPW_V2_3 & PM_CHIP_ID_MASK)) {
 		sys_hal_analog_set(ANALOG_REG11, 0x9FEF31F7);
 		sys_hal_analog_set(ANALOG_REG12, 0x9F03EF6F);
 		sys_hal_analog_set(ANALOG_REG13, 0x1F6FB3FF);
 	} else {
-		sys_hal_analog_set(ANALOG_REG11, 0xD77EB9FF);
-		sys_hal_analog_set(ANALOG_REG12, 0xD77ECA4A);
-		sys_hal_analog_set(ANALOG_REG13, 0x547AB0F5);
+		sys_hal_analog_set(ANALOG_REG11, 0xD47AB8FA);
+		sys_hal_analog_set(ANALOG_REG12, 0xD47AC36A);
+		sys_hal_analog_set(ANALOG_REG13, 0x547AB0EF);
 	}
 	sys_ll_set_ana_reg9_spi_latch1v(0);
 

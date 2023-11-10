@@ -71,7 +71,7 @@ extern void arch_int_restore(int int_flag);
 #if CONFIG_AON_RTC
 	#define RTC_WAKEUP_TIMER       "rtc_wk"
 	#define OS_MS_PER_TICK          (1000/configTICK_RATE_HZ)
-	#define RTC_TICKS_PER_OS_TICK   (bk_rtc_get_ms_tick_count()*OS_MS_PER_TICK)
+	#define RTC_TICKS_PER_OS_TICK   (RTC_TICKS_PER_1MS*OS_MS_PER_TICK)
 	#define OS_SLEEP_MIN_TICKS      (3)
 	#define OS_SLEEP_MAX_TICKS      (60*60*1000/OS_MS_PER_TICK)   //60min
 
@@ -82,9 +82,10 @@ extern void arch_int_restore(int int_flag);
 
 __maybe_unused void rtos_init_base_time(void) {
 #if CONFIG_AON_RTC
-	base_aon_time = bk_aon_rtc_get_us()/1000;
+	base_aon_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 	base_os_time = rtos_get_time();
-	BK_LOGI(TAG, "os time(%dms).\r\n", base_os_time);
+	BK_LOGI(TAG, "os time(%dms),rtc time(%dms).\r\n", base_os_time,
+		(uint32_t)base_aon_time/RTC_TICKS_PER_1MS);
 	BK_LOGI(TAG, "base aon rtc time: %d:%d\r\n", (uint32_t)(base_aon_time >> 32),
 		(uint32_t)(base_aon_time & 0xFFFFFFFF));
 #endif
@@ -92,9 +93,9 @@ __maybe_unused void rtos_init_base_time(void) {
 
 uint32_t rtos_get_time_diff(void) {
 #if CONFIG_AON_RTC
-	uint64_t cur_aon_time = bk_aon_rtc_get_us()/1000;
+	uint64_t cur_aon_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 	uint64_t cur_os_time = (uint64_t)rtos_get_time(); //ms
-	uint64_t diff_time = (cur_aon_time - base_aon_time); //ms
+	uint64_t diff_time = (cur_aon_time - base_aon_time)/RTC_TICKS_PER_1MS; //ms
 	uint32_t diff_ms = 0;
 
 	if((uint32_t)(diff_time >> 32) & 0x7FF0000) {

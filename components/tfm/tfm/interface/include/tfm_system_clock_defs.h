@@ -12,13 +12,6 @@
 extern "C" {
 #endif
 
-enum {
-    TFM_SYSTEM_JTAG_CONNECT_CORE0 = (0u),
-    TFM_SYSTEM_JTAG_CONNECT_CORE1,
-    TFM_SYSTEM_ROM_BOOT,
-    TFM_SYSTEM_FLASH_BOOT,
-};
-
 #ifdef __cplusplus
 }
 #endif

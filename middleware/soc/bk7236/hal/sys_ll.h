@@ -21,10 +21,6 @@
 #include "hal_port.h"
 #include "system_hw.h"
 
-#if CONFIG_TFM_SYS_LL_NSC
-#include "tfm_sys_ll_nsc.h"
-#else
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -7273,5 +7269,3 @@ static inline uint32_t sys_ll_get_ana_reg21_hc0v9(void) {
 #ifdef __cplusplus
 }
 #endif
-
-#endif // CONFIG_TFM_SYS_LL_NSC

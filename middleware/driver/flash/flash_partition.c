@@ -18,7 +18,6 @@
 #include "flash_driver.h"
 #include "flash_hal.h"
 
-
 #if CONFIG_FLASH_ORIGIN_API
 #define PAR_OPT_READ_POS      (0)
 #define PAR_OPT_WRITE_POS     (1)
@@ -33,7 +32,6 @@
 #if (CONFIG_SOC_BK7256XX)
 extern const bk_logic_partition_t bk7256_partitions[BK_PARTITION_MAX];
 #else
-#include "partitions.h"
 static const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 	[BK_PARTITION_BOOTLOADER] =
 	{
@@ -46,7 +44,7 @@ static const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 	[BK_PARTITION_APPLICATION] =
 	{
 		.partition_owner           = BK_FLASH_EMBEDDED,
-		.partition_description     = "Primary Application",
+		.partition_description     = "Application",
 		.partition_start_addr      = 0x11000,
 #if CONFIG_SUPPORT_MATTER	|| 	 CONFIG_FLASH_SIZE_4M
 		.partition_length          = 0x1A9000,
@@ -92,9 +90,9 @@ static const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 #if (CONFIG_FLASH_SIZE_4M)
 		.partition_start_addr      = 0x3FE000,
 #else
-		.partition_start_addr      = CONFIG_SYS_RF_PHY_PARTITION_OFFSET,// for rf related info
+		.partition_start_addr      = 0x1e0000,// for rf related info
 #endif
-		.partition_length          = CONFIG_SYS_RF_PHY_PARTITION_SIZE,
+		.partition_length          = 0x1000,
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
 	},
 	[BK_PARTITION_NET_PARAM] =
@@ -104,9 +102,9 @@ static const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 #if (CONFIG_FLASH_SIZE_4M)
 		.partition_start_addr      = 0x3FF000,
 #else
-		.partition_start_addr      = CONFIG_SYS_NET_PHY_PARTITION_OFFSET,// for net related info
+		.partition_start_addr      = 0x1e1000,// for net related info
 #endif
-		.partition_length          = CONFIG_SYS_NET_PHY_PARTITION_SIZE,
+		.partition_length          = 0x1000,
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
 	},
 };
@@ -114,7 +112,7 @@ static const bk_logic_partition_t bk7231_partitions[BK_PARTITION_MAX] = {
 
 static bool flash_partition_is_valid(bk_partition_t partition)
 {
-	if (partition >= BK_PARTITION_BOOTLOADER) {
+	if ((partition >= BK_PARTITION_BOOTLOADER) && (partition < BK_PARTITION_MAX)) {
 		return true;
 	} else {
 		return false;

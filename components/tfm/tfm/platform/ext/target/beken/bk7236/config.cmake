@@ -19,7 +19,7 @@ set(BL2                              ON         CACHE BOOL      "Whether to buil
 set(DEFAULT_MCUBOOT_FLASH_MAP        OFF        CACHE BOOL      "Whether to use the default flash map defined by TF-M project")
 set(FPGA                             OFF        CACHE BOOL      "Build for FPGA")
 
-set(TFM_PARTITION_FIRMWARE_UPDATE    ON        CACHE BOOL      "Enable firmware update partition")
+set(TFM_PARTITION_FIRMWARE_UPDATE    OFF        CACHE BOOL      "Enable firmware update partition")
 if(TFM_PARTITION_FIRMWARE_UPDATE)
 set(CONFIG_TFM_FP                     hard  CACHE STRING "Whether to support float, and set the type")
 set(CONFIG_TFM_FP_ARCH                fpv5-sp-d16 CACHE STRING "float processing unit arch version")

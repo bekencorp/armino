@@ -91,7 +91,7 @@ static transfer_info_t transfer_info;
 static media_mailbox_msg_t *transfer_major_node = NULL;
 static beken_thread_t transfer_major_task = NULL;
 static beken_queue_t transfer_major_msg_que = NULL;
-static bool transfer_major_task_running = false;
+static bool transfer_task_running = false;
 extern media_debug_t *media_debug;
 
 extern u64 riscv_get_mtimer(void);
@@ -133,9 +133,9 @@ static void transfer_major_task_transfer_data(uint32_t param)
 
 	frame_buffer_t *encode_frame = NULL;
 
-	transfer_major_task_running = true;
+	transfer_task_running = true;
 
-	while (transfer_major_task_running)
+	while (transfer_task_running)
 	{
 		if (transfer_info.param == FB_INDEX_JPEG)
 		{
@@ -159,10 +159,19 @@ static void transfer_major_task_transfer_data(uint32_t param)
 		before = 0;
 #endif
 
+		//GPIO_UP(2);
+		//GPIO_UP(3);
 		// send msg to cpu0
 		transfer_major_node->event = EVENT_MEDIA_DATA_NOTIFY;
 		transfer_major_node->param = (uint32_t)encode_frame;
-		msg_send_req_to_media_major_mailbox_sync(transfer_major_node, APP_MODULE);
+		msg_send_to_media_major_mailbox(transfer_major_node, BK_OK, APP_MODULE);
+
+		if (rtos_get_semaphore(&transfer_major_node->sem, BEKEN_WAIT_FOREVER))//BEKEN_WAIT_FOREVER
+		{
+			LOGE("%s wait semaphore failed\n", __func__);
+		}
+		//GPIO_DOWN(5);
+		//GPIO_DOWN(2);
 
 		if (transfer_info.param == FB_INDEX_JPEG)
 		{
@@ -200,7 +209,7 @@ static void transfer_major_task_exit_handle(uint32_t param)
 
 	set_transfer_state(TRS_STATE_DISABLED);
 
-	msg_send_rsp_to_media_major_mailbox(msg, kNoErr, APP_MODULE);
+	msg_send_to_media_major_mailbox(msg, kNoErr, APP_MODULE);
 }
 
 static void transfer_major_task_entry(beken_thread_arg_t data)
@@ -250,7 +259,7 @@ exit:
 
 static bk_err_t transfer_major_task_init(void)
 {
-	bk_err_t ret = BK_FAIL;
+	bk_err_t ret;
 
 	TRANSFER_DIAG_DEBUG_INIT();
 
@@ -274,7 +283,7 @@ static bk_err_t transfer_major_task_init(void)
 		ret = rtos_init_queue(&transfer_major_msg_que,
 								"transfer_major_msg_que",
 								sizeof(trs_task_msg_t),
-								10);
+								30);
 		if (kNoErr != ret)
 		{
 			LOGE("transfer_major_msg_que init failed\n");
@@ -286,7 +295,7 @@ static bk_err_t transfer_major_task_init(void)
 								BEKEN_DEFAULT_WORKER_PRIORITY,
 								"transfer_major_task",
 								(beken_thread_function_t)transfer_major_task_entry,
-								1024,
+								2 * 1024,
 								NULL);
 
 		if (BK_OK != ret)
@@ -329,46 +338,32 @@ error:
 
 static bk_err_t transfer_major_task_open_handle(media_mailbox_msg_t *msg)
 {
-	int ret = BK_OK;
-
-	if (get_transfer_state() == TRS_STATE_ENABLED)
-	{
-		LOGI("transfer_major_task have been opened!\r\n");
-		goto end;
-	}
+	int ret = kNoErr;
 
 	ret = transfer_major_task_init();
-	if (ret == BK_OK)
+	if (ret == kNoErr)
 	{
 		transfer_major_task_send_msg(TRS_TRANSFER_START, msg->param);
 
 		set_transfer_state(TRS_STATE_ENABLED);
 	}
 
-end:
-
-	msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
+	msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
 
 	LOGI("%s complete\n", __func__);
 
-	return ret;
+	return kNoErr;
 }
 
 static bk_err_t transfer_major_task_close_handle(media_mailbox_msg_t *msg)
 {
 	LOGI("%s\n", __func__);
 
-	if (transfer_major_task_running == false || get_transfer_state() == TRS_STATE_DISABLED)
-	{
-		LOGI("transfer_major_task have closed!\r\n");
-		msg_send_rsp_to_media_major_mailbox(msg, BK_OK, APP_MODULE);
-	}
-
-	transfer_major_task_running = false;
+	transfer_task_running = false;
 
 	transfer_major_task_send_msg(TRS_TRANSFER_EXIT, (uint32_t)msg);
 
-	return BK_OK;
+	return kNoErr;
 }
 
 static bk_err_t transfer_major_task_pause_handle(media_mailbox_msg_t *msg)
@@ -382,14 +377,14 @@ static bk_err_t transfer_major_task_pause_handle(media_mailbox_msg_t *msg)
 
 	GLOBAL_INT_RESTORE();
 
-	msg_send_rsp_to_media_major_mailbox(msg, kNoErr, APP_MODULE);
+	msg_send_to_media_major_mailbox(msg, kNoErr, APP_MODULE);
 
-	return BK_OK;
+	return kNoErr;
 }
 
 bk_err_t transfer_major_event_handle(media_mailbox_msg_t *msg)
 {
-	int ret = BK_OK;
+	int ret = kNoErr;
 
 	switch (msg->event)
 	{
@@ -410,17 +405,17 @@ bk_err_t transfer_major_event_handle(media_mailbox_msg_t *msg)
 	return ret;
 }
 
-media_trs_state_t get_transfer_state(void)
+trs_state_t get_transfer_state(void)
 {
 	return transfer_info.state;
 }
 
-void set_transfer_state(media_trs_state_t state)
+void set_transfer_state(trs_state_t state)
 {
 	transfer_info.state = state;
 }
 
-void transfer_init(void)
+void transfer_major_init(void)
 {
 	transfer_info.state = TRS_STATE_DISABLED;
 	transfer_info.debug = false;

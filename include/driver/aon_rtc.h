@@ -181,7 +181,6 @@ bk_err_t bk_aon_rtc_open_rtc_wakeup(uint32_t period);
 /**
  * @brief  Get AON RTC current tick with 64 bits
  *	       AON RTC uses 32 Bits counter with 32K clock, the max time is about 36.4 hours.
- *         The 32K clock really frequency is 32768 HZ(External 32K XTL) or 32000 HZ(Internel ROSC).
  *         Set upper interrupt as the 0xFFFFFFFF ticks as one round.
  * @id: register to which aon_rtc id
  * @return
@@ -189,21 +188,6 @@ bk_err_t bk_aon_rtc_open_rtc_wakeup(uint32_t period);
  *    - others: other errors.
  */
 uint64_t bk_aon_rtc_get_current_tick(aon_rtc_id_t id);
-
-#if CONFIG_RTC_ANA_WAKEUP_SUPPORT
-/**
- * @brief     Register the RTC analog channel to wakeup system with input period.
- *
- * This API regist RTC to wakeup source.
- *
- * @attention
- * This API is used for super deep sleep only.
- *
- * @return
- *    - BK_OK: succeed
- */
-bk_err_t bk_rtc_ana_register_wakeup_source(uint32_t period);
-#endif
 
 #if CONFIG_AON_RTC_DEBUG
 /**
@@ -266,54 +250,6 @@ bk_err_t bk_rtc_settimeofday(const struct timeval *tv,const struct timezone *tz)
  */
 bk_err_t bk_rtc_get_deepsleep_duration_seconds(uint32_t *deepsleep_seconds);
 
-/**
- * @brief   Get aon rtc ticks of per ms
- *
- *
- * @return
- *    - aon rtc ticks of per ms
- *        |- EXTERN 32K: 32.768
- *        |- Default:    32.000
- */
-float bk_rtc_get_ms_tick_count(void);
-
-
-/**
- * @brief   Get aon rtc clock freq
- *
- *
- * @return
- *    - aon rtc clock freq
- *        |- EXTERN 32K: 32768
- *        |- Default:    32000
- */
-uint32_t bk_rtc_get_clock_freq(void);
-
-/**
- * @brief  Set aon rtc ticks of per ms while dynamic swith clock
- *
- * @ms_tick_cnt: aon rtc clock freq
- *        |- EXTERN 32K: 32768
- *        |- Default:    32000
- *
- * @return
- *    NA
- *
- */
-void bk_rtc_set_clock_freq(uint32_t clock_freq);
-
-/**
- * @brief  Get AON RTC current us with 64 bits
- *         AON RTC uses 32 Bits counter with 32K clock, the max time is about 36.4 hours.
- *         The 32K clock really frequency is 32768 HZ(External 32K XTL) or 32000 HZ(Internel ROSC).
- *         Set upper interrupt as the 0xFFFFFFFF ticks as one round.
- * @id: use AON_RTC_ID_1
- *
- * @return
- *    - AON RTC current us with 64 bits with about +30us/-30us presision
- *
- */
-uint64_t bk_aon_rtc_get_us(void);
 
 /**
  * @}

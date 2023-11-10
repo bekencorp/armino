@@ -10,7 +10,6 @@
 #include "media_app.h"
 #include "lv_vendor.h"
 #include "driver/drv_tp.h"
-#include "driver/pwr_clk.h"
 
 extern void user_app_main(void);
 extern void rtos_set_user_app_entry(beken_thread_function_t entry);
@@ -38,47 +37,6 @@ int cli_widgets_init(void)
 	return cli_register_commands(s_widgets_commands, CMDS_COUNT);
 }
 
-#if (CONFIG_SLAVE_CORE) && (CONFIG_SOC_BK7258)
-void lvgl_event_handle(media_mailbox_msg_t *msg)
-{
-	os_printf("%s EVENT_LVGL_DRAW_IND \n", __func__);
-
-	lv_vnd_config_t lv_vnd_config = {0};
-	lcd_open_t *lcd_open = (lcd_open_t *)msg->param;
-
-#ifdef CONFIG_LVGL_USE_PSRAM
-#define PSRAM_DRAW_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)
-
-	lv_vnd_config.draw_pixel_size = ppi_to_pixel_x(lcd_open->device_ppi) * ppi_to_pixel_y(lcd_open->device_ppi);
-	lv_vnd_config.draw_buf_2_1 = (lv_color_t *)PSRAM_DRAW_BUFFER;
-	lv_vnd_config.draw_buf_2_2 = (lv_color_t *)(PSRAM_DRAW_BUFFER + lv_vnd_config->draw_pixel_size * sizeof(lv_color_t));
-#else
-#define PSRAM_FRAME_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)
-	lv_vnd_config.draw_pixel_size = (30 * 1024) / sizeof(lv_color_t);
-	lv_vnd_config.draw_buf_2_1 = LV_MEM_CUSTOM_ALLOC(lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));
-	lv_vnd_config.draw_buf_2_2 = NULL;
-	lv_vnd_config.sram_frame_buf_1 = (lv_color_t *)PSRAM_FRAME_BUFFER;
-	lv_vnd_config.sram_frame_buf_2 = (lv_color_t *)PSRAM_FRAME_BUFFER + ppi_to_pixel_x(lcd_open->device_ppi) * ppi_to_pixel_y(lcd_open->device_ppi) * sizeof(lv_color_t);
-//	os_memset(lv_vnd_config.sram_frame_buf_1, 0x00, 800 * 480 * 4);
-#endif
-	lv_vnd_config.rotation = ROTATE_NONE;
-	lv_vnd_config.color_depth = LV_COLOR_DEPTH;
-	lv_vnd_config.flush_cb = 0;
-
-#if (CONFIG_TP)
-	drv_tp_open(ppi_to_pixel_x(lcd_open->device_ppi), ppi_to_pixel_y(lcd_open->device_ppi));
-#endif
-
-	lv_vendor_init(&lv_vnd_config, ppi_to_pixel_x(lcd_open->device_ppi), ppi_to_pixel_y(lcd_open->device_ppi));
-	lv_vendor_start();
-
-	lv_vendor_disp_lock();
-	lv_demo_widgets();
-	lv_vendor_disp_unlock();
-}
-#endif
-
-#if (CONFIG_SOC_BK7256)
 #ifdef CONFIG_CACHE_CUSTOM_SRAM_MAPPING
 const unsigned int g_sram_addr_map[4] =
 {
@@ -88,17 +46,14 @@ const unsigned int g_sram_addr_map[4] =
 	0x30000000
 };
 #endif
-#endif
 
-#if (!CONFIG_SLAVE_CORE)
 void widgets_init(void)
 {
-	cli_widgets_init();
-
-#if (CONFIG_SOC_BK7256)
 #ifdef LV_USE_DEMO_WIDGETS
 	bk_err_t ret;
 	lv_vnd_config_t lv_vnd_config;
+
+	cli_widgets_init();
 
 #ifdef CONFIG_LVGL_USE_PSRAM
 #define PSRAM_DRAW_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)
@@ -112,8 +67,7 @@ void widgets_init(void)
 	lv_vnd_config.draw_pixel_size = (30 * 1024) / sizeof(lv_color_t);
 	lv_vnd_config.draw_buf_2_1 = LV_MEM_CUSTOM_ALLOC(lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));
 	lv_vnd_config.draw_buf_2_2 = NULL;
-	lv_vnd_config.sram_frame_buf_1 = (lv_color_t *)PSRAM_FRAME_BUFFER;
-	lv_vnd_config.sram_frame_buf_2 = (lv_color_t *)PSRAM_FRAME_BUFFER + ppi_to_pixel_x(lcd_open.device_ppi)*ppi_to_pixel_y(lcd_open.device_ppi) * sizeof(lv_color_t);
+	lv_vnd_config.sram_frame_buf = (lv_color_t *)PSRAM_FRAME_BUFFER;
 #endif
 	lv_vnd_config.rotation = ROTATE_NONE;
 	lv_vnd_config.color_depth = LV_COLOR_DEPTH;
@@ -135,32 +89,7 @@ void widgets_init(void)
 	lv_demo_widgets();
 	lv_vendor_disp_unlock();
 #endif
-
-#elif (CONFIG_SOC_BK7258)
-	bk_err_t ret;
-	os_printf("!!!BK7258 LVGL WIDGETS!!!\r\n");
-
-	lcd_open_t lcd_open;
-	lcd_open.device_ppi = PPI_800X480;
-	lcd_open.device_name = "h050iwv";
-	lcd_open.rotate = ROTATE_NONE;
-	lcd_open.yuv2rgb = ROTATE_NONE;
-	ret = media_app_lcd_open((lcd_open_t *)&lcd_open);
-	if (ret != BK_OK)
-	{
-		os_printf("media_app_lcd_open failed\r\n");
-		return;
-	}
-
-	ret = media_app_lvgl_draw((lcd_open_t *)&lcd_open);
-	if (ret != BK_OK)
-	{
-		os_printf("media_app_lvgl_draw failed\r\n");
-		return;
-	}
-#endif
 }
-#endif
 
 
 void user_app_main(void)
@@ -176,13 +105,7 @@ int main(void)
 #endif
 	bk_init();
 
-#if (!CONFIG_SLAVE_CORE) && (CONFIG_SOC_BK7258)
-	bk_pm_module_vote_boot_cp1_ctrl(PM_BOOT_CP1_MODULE_NAME_VIDP_LCD, PM_POWER_MODULE_STATE_ON);
-#endif
-
-#if (!CONFIG_SLAVE_CORE)
 	widgets_init();
-#endif
 
 	return 0;
 }

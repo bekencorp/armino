@@ -36,7 +36,6 @@ typedef struct {
 bk_err_t aud_tras_send_msg(aud_tras_op_t op, void *param);
 bk_err_t aud_tras_init(aud_tras_setup_t *setup_cfg);
 bk_err_t aud_tras_deinit(void);
-RingBufferContext *aud_tras_get_tx_rb(void);
 
 
 #ifdef __cplusplus

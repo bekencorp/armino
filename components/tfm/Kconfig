@@ -18,10 +18,6 @@ menu "Tfm"
 			help
 				build type: debug, release or minsizerel
 
-		config TFM_FPGA
-			string "Enable FPGA: ON/OFF"
-			default "OFF"
-
 		config TFM_FWU
 			bool "Enable Firmware Update"
 			default n
@@ -69,20 +65,5 @@ menu "Tfm"
 			default "ON"
 			help
 				Enable platform default OTP writable: ON/OFF
-
-		config TFM_SYS_LL_NSC
-			bool "Enable system_ll nsc"
-			default n
-
-		config TFM_AON_PMU_LL_NSC
-			bool "Enable aon_pmu_ll nsc"
-			default n
-
-		config BL2_UPGRADE_STRATEGY
-			string "Define mcuboot upgrade strategy"
-			default "SWAP_USING_SCRATCH"
-			help
-				The MCUBOOT upgrade strategy can be:
-				OVERWRITE_ONLY, SWAP_USING_SCRATCH, SWAP_USING_MOVE.
 	endmenu
 endmenu

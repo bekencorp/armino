@@ -395,22 +395,6 @@ uint32_t sys_hal_lp_vol_get()
 {
 	return 0;
 }
-int32 sys_hal_rf_tx_vol_set(uint32_t value)
-{
-	return 0;
-}
-uint32_t sys_hal_rf_tx_vol_get()
-{
-	return 0;
-}
-int32 sys_hal_rf_rx_vol_set(uint32_t value)
-{
-	return 0;
-}
-uint32_t sys_hal_rf_rx_vol_get()
-{
-	return 0;
-}
 int32 sys_hal_bandgap_cali_set(uint32_t value)//increase or decrease the dvdddig voltage
 {
 	return 0;
@@ -1496,11 +1480,6 @@ void sys_hal_aud_mic1_single_en(uint32_t value)
 void sys_hal_aud_mic2_single_en(uint32_t value)
 {
 	sys_ll_set_ana_reg15_micsingleen(value);
-}
-
-void sys_hal_aud_dacg_set(uint32_t value)
-{
-	sys_ll_set_ana_reg16_dacg(value);
 }
 
 void sys_hal_aud_int_en(uint32_t value)

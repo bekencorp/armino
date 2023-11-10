@@ -1,8 +1,0 @@
-# Name,Offset,Size,Execute,Read,Write
-bootloader,0x00,64K,TRUE,TRUE,FALSE
-app,0x00,1728K,TRUE,TRUE,FALSE
-app1,0x00,448K,TRUE,TRUE,FALSE
-download,0x00,1472K,,TRUE,
-usr_config,0x00,144K,,TRUE,
-rf_firmware,0x3FE000,4K,,TRUE,
-net_param,0x3FF000,4K,,TRUE,

@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include <os/mem.h>
+
 #include "jpeg_ll.h"
 #include "jpeg_hal.h"
 #include <driver/hal/hal_jpeg_types.h>
@@ -31,10 +31,8 @@
 
 #define PSRAM_BASEADDR                    0x60000000
 
-#if !CONFIG_ENCODE_BUF_DYNAMIC
 __attribute__((section(".video_spec_data"), aligned(8))) uint8_t video_sram[40*1024];
 #define JPEG_SHARE_MEM                    (&video_sram[0])
-#endif
 
 bk_err_t jpeg_hal_init(jpeg_hal_t *hal)
 {
@@ -104,11 +102,7 @@ bk_err_t jpeg_hal_switch_mode(jpeg_hal_t *hal, const jpeg_config_t *config)
 		jpeg_ll_set_default_bitrate_step(hal->hw);
 		jpeg_ll_enable_video_byte_reverse(hal->hw);
 		jpeg_ll_enable_enc_size(hal->hw);
-#if (!CONFIG_YUV_BUF)
 		jpeg_ll_set_em_base_addr(hal->hw, (uint32_t)JPEG_SHARE_MEM);
-#else
-		jpeg_ll_enable_bitrate_ctrl(hal->hw, 1);
-#endif
 		jpeg_ll_enable(hal->hw);
 	}
 	else
@@ -118,9 +112,7 @@ bk_err_t jpeg_hal_switch_mode(jpeg_hal_t *hal, const jpeg_config_t *config)
 		jpeg_ll_set_x_pixel(hal->hw, config->x_pixel);
 		jpeg_ll_set_y_pixel(hal->hw, config->y_pixel);
 		jpeg_ll_enable_yuv_word_reverse(hal->hw, 1);
-#if (!CONFIG_YUV_BUF)
 		jpeg_ll_set_em_base_addr(hal->hw, PSRAM_BASEADDR);//PSRAM_BASEADDR
-#endif
 		jpeg_ll_set_yuv_mode(hal->hw, 1);
 	}
 
@@ -201,13 +193,8 @@ bk_err_t jpeg_hal_set_target_size(jpeg_hal_t *hal, uint32_t up_size, uint32_t lo
 
 	return BK_OK;
 }
-
 uint32_t jpeg_hal_get_jpeg_share_mem_addr(void)
 {
-#if CONFIG_ENCODE_BUF_DYNAMIC
-	return 0;
-#else
 	return ((uint32_t)JPEG_SHARE_MEM);
-#endif
 }
 

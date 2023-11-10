@@ -93,13 +93,6 @@ typedef enum {
 	UART_RX_STOP_DETECT_TIME_256_BITS     /**< UART rx stop time 256 bits */
 } uart_rx_stop_detect_time_t;
 
-#if CONFIG_UART_RX_DMA
-typedef enum {
-	UART_DMA_DISABLE,
-	UART_DMA_ENABLE,
-}uart_dma_enable_t;
-#endif
-
 typedef struct {
 	uint32_t baud_rate;            /**< UART baud rate */
 	uart_data_bits_t data_bits;    /**< UART data bits */
@@ -107,19 +100,6 @@ typedef struct {
 	uart_stop_bits_t stop_bits;    /**< UART stop bits */
 	uart_flow_control_t flow_ctrl; /**< UART flow control  */
 	uart_src_clk_t src_clk;        /**< UART source clock */
-#if CONFIG_UART_RX_DMA
-	/*
-	 * Special feature used for UART RX data.
-	 * When erase Flash, CPU can't get instructions from flash then it can't work.
-	 * NOTES:
-	 * 1. The parameter of rx_dma_en,should not be changed after UART init.
-	 * 2. If enable rx_dma, it will hold a DMA channel and not release it.
-	 * 3. It will force enable sw_fifo, which relate with "bk_uart_enable_sw_fifo"
-	 *    please don't call "bk_uart_disable_sw_fifo" after enabled rx_dma_en.
-	 * 4. Does not support UART TX DMA,because UART TX data isn't too large and CPU speed is enough.
-	 */
-	uart_dma_enable_t rx_dma_en;
-#endif
 } uart_config_t;
 
 #ifdef __cplusplus

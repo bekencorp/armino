@@ -128,6 +128,7 @@ target_link_libraries(platform_ns
 
 target_compile_definitions(platform_ns
     PUBLIC
+        # CONFIG_TFM_FP
         $<$<STREQUAL:${CONFIG_TFM_FP},hard>:CONFIG_TFM_FP=2>
         $<$<STREQUAL:${CONFIG_TFM_FP},soft>:CONFIG_TFM_FP=0>
         $<$<BOOL:${TEST_NS_FPU}>:TEST_NS_FPU>

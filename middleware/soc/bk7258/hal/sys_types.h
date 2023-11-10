@@ -85,13 +85,12 @@ extern "C" {
 #define ROTT_INTERRUPT_CTRL_BIT        (1 << SYS_CPU0_INT_32_63_EN_CPU0_ROTT_INT_EN_POS)
 
 #ifdef CONFIG_EXTERN_32K
-#define RTC_CLOCK_FREQ				(32768)
+#define RTC_TICKS_PER_1MS                                (32.768)
 #else
-#define RTC_CLOCK_FREQ				(32000)
+#define RTC_TICKS_PER_1MS                                (32)
 #endif
-#define RTC_TICKS_PER_1MS				((float)RTC_CLOCK_FREQ/1000)
 #define LOW_POWER_DPLL_STABILITY_DELAY_TIME              (0.19) // 0.19ms(hardware need at least 180us,because making the precise it use 190us,it will additional add 6us or 2us(external) )
-#define LOW_POWER_RESTORE_DELAY_TIME_HARDWARE            (0.7) //0.6ms,cpu 60M 0.7ms
+#define LOW_POWER_RESTORE_DELAY_TIME_HARDWARE            (2.8) //2.8ms TODO
 #define LOW_POWER_XTAL_DPLL_STABILITY_DELAY_TIME  ((LOW_POWER_DPLL_STABILITY_DELAY_TIME+LOW_POWER_RESTORE_DELAY_TIME_HARDWARE)*1000)
 
 #define LOW_POWER_26M_STABILITY_DELAY_TIME_HARDWARE      (750)
@@ -194,11 +193,6 @@ typedef enum	//SYS TYPES index is from 1~X
 	CLK_PWR_ID_DISP,
 	CLK_PWR_ID_AUDIO,
 	CLK_PWR_ID_WDG_CPU,
-	CLK_PWR_ID_H264,
-	CLK_PWR_ID_I2S2,
-	CLK_PWR_ID_I2S3,
-	CLK_PWR_ID_YUV,
-	CLK_PWR_ID_SLCD,
 
 	CLK_PWR_ID_NONE
 }dev_clk_pwr_id_t;
@@ -212,59 +206,16 @@ typedef enum
 /*
 clock select for periphral unit
 */
-typedef enum
+typedef enum	//Just for temp build
 {
-	CLK_SEL_ID_26M = 0,
-	CLK_SEL_ID_WDT,
-	CLK_SEL_ID_SPI0,
-	CLK_SEL_ID_SPI1,
-	CLK_SEL_ID_QSPI0,
-	CLK_SEL_ID_QSPI1,
-	CLK_SEL_ID_DISP,
-	CLK_SEL_ID_PSRAM,
-	CLK_SEL_ID_SDIO,
-	CLK_SEL_ID_AUXS,
-	CLK_SEL_ID_FLASH,
-	CLK_SEL_ID_I2S,
-	CLK_SEL_ID_CORE,
-	CLK_SEL_ID_UART0,
-	CLK_SEL_ID_UART1,
-	CLK_SEL_ID_UART2,
-	CLK_SEL_ID_SADC,
-	CLK_SEL_ID_PWM0,
-	CLK_SEL_ID_PWM1,
-	CLK_SEL_ID_TIMER0,
-	CLK_SEL_ID_TIMER1,
-	CLK_SEL_ID_TIMER2,
-	CLK_SEL_ID_AUDIO,
-	CLK_SEL_ID_JPEG,
+	CLK_SEL_ID_CORE = 4,
 }dev_clk_select_id_t;
 
 typedef enum
 {
 	CLK_SEL_DCO = 0,
 	CLK_SEL_XTL_26M,
-	CLK_SEL_32K,
-	CLK_SEL_APLL,
-	CLK_SEL_DPLL,
-	CLK_SEL_320M,
-	CLK_SEL_480M,
 }dev_clk_select_t;
-
-typedef enum
-{
-	CLK_DIV_1 = 1,
-	CLK_DIV_2 = 2,
-	CLK_DIV_4 = 4,
-	CLK_DIV_6 = 6,
-	CLK_DIV_8 = 8,
-	CLK_DIV_10 = 10,
-	CLK_DIV_12 = 12,
-	CLK_DIV_16 = 16,
-	CLK_DIV_32 = 32,
-	CLK_DIV_64 = 64,
-	CLK_DIV_256 = 256,
-}dev_clk_div_t;
 
 typedef enum
 {
@@ -452,7 +403,6 @@ typedef enum
 	PMU_REG1,
 	PMU_REG2,
 	PMU_REG3,
-	PMU_REG0x25,
 	PMU_REG0x40,
 	PMU_REG0x41,
 	PMU_REG0x42,
@@ -468,7 +418,6 @@ typedef enum
 	{PMU_REG1, AON_PMU_R1_ADDR, }, \
 	{PMU_REG2, AON_PMU_R2_ADDR, }, \
 	{PMU_REG3, AON_PMU_R3_ADDR, }, \
-	{PMU_REG0x25, AON_PMU_R25_ADDR, }, \
 	{PMU_REG0x40, AON_PMU_R40_ADDR, }, \
 	{PMU_REG0x41, AON_PMU_R41_ADDR, }, \
 	{PMU_REG0x42, AON_PMU_R42_ADDR, }, \

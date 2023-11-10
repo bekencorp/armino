@@ -24,9 +24,12 @@
  */
 
 /* Size of a Secure and of a Non-secure image */
-#define FLASH_S_PARTITION_SIZE          CONFIG_PRIMARY_TFM_S_PHY_PARTITION_SIZE
-#define FLASH_NS_PARTITION_SIZE         CONFIG_PRIMARY_TFM_NS_PHY_PARTITION_SIZE
-#define FLASH_MAX_PARTITION_SIZE        CONFIG_PRIMARY_ALL_PHY_PARTITION_SIZE
+#define FLASH_S_PARTITION_SIZE          CONFIG_PRIMARY_S_PHY_PARTITION_SIZE
+#define FLASH_NS_PARTITION_SIZE         CONFIG_PRIMARY_NS_PHY_PARTITION_SIZE
+#define FLASH_MAX_PARTITION_SIZE        ((FLASH_S_PARTITION_SIZE >   \
+                                          FLASH_NS_PARTITION_SIZE) ? \
+                                         FLASH_S_PARTITION_SIZE :    \
+                                         FLASH_NS_PARTITION_SIZE)
 
 /* Sector size of the flash hardware; same as FLASH0_SECTOR_SIZE */
 #define FLASH_AREA_IMAGE_SECTOR_SIZE    (0x1000)     /* 4 KB */
@@ -37,66 +40,30 @@
 /* Flash layout info for BL2 bootloader */
 #define FLASH_BASE_ADDRESS              (0x02000000)
 
-#define FLASH_IMAGE_ALL_ID                 0
-
-/* Per BL2 image define principles, each image upgraded by BL2 only have
- * one image ID, but two slots: primary and secondary.
- *
- * For manifest/bl2 images, they are not upgraded by BL2, but by BL1,
- * we need to define an image ID for each slot because the BL1 upgrade
- * is similar as A/B partition upgrade
- */
-#define FLASH_IMAGE_PRIMARY_MANIFEST_ID    0x11
-#define FLASH_IMAGE_SECONDARY_MANIFEST_ID  0x12
-#define FLASH_IMAGE_PRIMARY_BL2_ID         0x13
-#define FLASH_IMAGE_SECONDARY_BL2_ID       0x14
-
-#define FLASH_AREA_PRIMARY_ALL_ID          (0)
-#define FLASH_AREA_PRIMARY_ALL_OFFSET      CONFIG_PRIMARY_ALL_PHY_PARTITION_OFFSET
-#define FLASH_AREA_PRIMARY_ALL_SIZE        CONFIG_PRIMARY_ALL_VIRTUAL_PARTITION_SIZE
- 
-#define FLASH_AREA_SECONDARY_ALL_ID        (1)
-#define FLASH_AREA_SECONDARY_ALL_OFFSET    CONFIG_SECONDARY_ALL_PHY_PARTITION_OFFSET
-#define FLASH_AREA_SECONDARY_ALL_SIZE      CONFIG_SECONDARY_ALL_VIRTUAL_PARTITION_SIZE
-
 /* Secure image primary slot */
-#define FLASH_AREA_0_ID                    (0)
-#define FLASH_AREA_0_OFFSET                CONFIG_PRIMARY_TFM_S_PHY_PARTITION_OFFSET
-#define FLASH_AREA_0_SIZE                  CONFIG_PRIMARY_TFM_S_VIRTUAL_PARTITION_SIZE
-#define FLASH_AREA_PRIMARY_SPE_ID          FLASH_AREA_0_ID
-#define FLASH_AREA_PRIMARY_OFFSET          FLASH_AREA_0_OFFSET
-#define FLASH_AREA_PRIMARY_SIZE            FLASH_AREA_0_SIZE
- 
-/* Non-secure image primary slot */
-#define FLASH_AREA_1_ID                    (FLASH_AREA_0_ID + 1)
-#define FLASH_AREA_1_OFFSET                CONFIG_PRIMARY_TFM_NS_PHY_PARTITION_OFFSET
-#define FLASH_AREA_1_SIZE                  CONFIG_PRIMARY_TFM_NS_VIRTUAL_PARTITION_SIZE
-#define FLASH_AREA_PRIMARY_NSPE_ID         FLASH_AREA_1_ID
-#define FLASH_AREA_PRIMARY_NSPE_OFFSET     FLASH_AREA_1_OFFSET
-#define FLASH_AREA_PRIMARY_NSPE_SIZE       FLASH_AREA_1_SIZE
+#define FLASH_AREA_0_ID            (1)
+#define FLASH_AREA_0_OFFSET        CONFIG_PRIMARY_S_PHY_PARTITION_OFFSET
+#define FLASH_AREA_0_SIZE          CONFIG_PRIMARY_S_VIRTUAL_PARTITION_SIZE
 
-/* CPU0 TODO */ 
+/* Non-secure image primary slot */
+#define FLASH_AREA_1_ID            (FLASH_AREA_0_ID + 1)
+#define FLASH_AREA_1_OFFSET        CONFIG_PRIMARY_NS_PHY_PARTITION_OFFSET
+#define FLASH_AREA_1_SIZE          CONFIG_PRIMARY_NS_VIRTUAL_PARTITION_SIZE
 
 /* Secure image secondary slot */
-#define FLASH_AREA_2_ID                    (FLASH_AREA_1_ID + 1)
-#define FLASH_AREA_2_OFFSET                CONFIG_SECONDARY_S_PHY_PARTITION_OFFSET
-#define FLASH_AREA_2_SIZE                  CONFIG_SECONDARY_S_VIRTUAL_PARTITION_SIZE
-#define FLASH_AREA_SECONDARY_SPE_ID        FLASH_AREA_2_ID
-#define FLASH_AREA_SECONDARY_SPE_OFFSET    FLASH_AREA_2_OFFSET
-#define FLASH_AREA_SECONDARY_SPE_SIZE      FLASH_AREA_2_SIZE
- 
+#define FLASH_AREA_2_ID            (FLASH_AREA_1_ID + 1)
+#define FLASH_AREA_2_OFFSET        CONFIG_SECONDARY_S_PHY_PARTITION_OFFSET
+#define FLASH_AREA_2_SIZE          CONFIG_SECONDARY_S_VIRTUAL_PARTITION_SIZE
+
 /* Non-secure image secondary slot */
-#define FLASH_AREA_3_ID                    (FLASH_AREA_2_ID + 1)
-#define FLASH_AREA_3_OFFSET                CONFIG_SECONDARY_NS_PHY_PARTITION_OFFSET
-#define FLASH_AREA_3_SIZE                  CONFIG_SECONDARY_NS_VIRTUAL_CODE_SIZE
-#define FLASH_AREA_SECONDARY_NSPE_ID       FLASH_AREA_3_ID
-#define FLASH_AREA_SECONDARY_NSPE_OFFSET   FLASH_AREA_3_OFFSET
-#define FLASH_AREA_SECONDARY_NSPE_SIZE     FLASH_AREA_3_SIZE
+#define FLASH_AREA_3_ID            (FLASH_AREA_2_ID + 1)
+#define FLASH_AREA_3_OFFSET        CONFIG_SECONDARY_NS_PHY_PARTITION_OFFSET
+#define FLASH_AREA_3_SIZE          CONFIG_SECONDARY_NS_VIRTUAL_CODE_SIZE
 
 /* Scratch area */
-#define FLASH_AREA_SCRATCH_ID              (FLASH_AREA_SECONDARY_ALL_ID + 1)
-#define FLASH_AREA_SCRATCH_OFFSET          (FLASH_AREA_3_OFFSET + FLASH_AREA_3_SIZE)
-#define FLASH_AREA_SCRATCH_SIZE            (FLASH_MAX_PARTITION_SIZE)
+#define FLASH_AREA_SCRATCH_ID      (FLASH_AREA_3_ID + 1)
+#define FLASH_AREA_SCRATCH_OFFSET  (FLASH_AREA_3_OFFSET + FLASH_AREA_3_SIZE)
+#define FLASH_AREA_SCRATCH_SIZE    (FLASH_MAX_PARTITION_SIZE)
 
 /*ota area start*/
 #define FLASH_AREA_PRIMARY_MANIFEST_ID            (FLASH_AREA_SCRATCH_ID + 1)
@@ -115,6 +82,13 @@
 #define FLASH_AREA_SECONDARY_BL2_OFFSET           CONFIG_SECONDARY_BL2_PHY_PARTITION_OFFSET
 #define FLASH_AREA_SECONDARY_BL2_SIZE             CONFIG_SECONDARY_BL2_PHY_PARTITION_SIZE
 
+#define FLASH_AREA_SECONDARY_SPE_ID               (FLASH_AREA_SECONDARY_BL2_ID + 1)
+#define FLASH_AREA_SECONDARY_SPE_OFFSET           CONFIG_SECONDARY_S_PHY_PARTITION_OFFSET
+#define FLASH_AREA_SECONDARY_SPE_SIZE             CONFIG_SECONDARY_S_PHY_PARTITION_SIZE
+
+#define FLASH_AREA_SECONDARY_NSPE_ID              (FLASH_AREA_SECONDARY_SPE_ID + 1)
+#define FLASH_AREA_SECONDARY_NSPE_OFFSET          CONFIG_SECONDARY_NS_PHY_PARTITION_OFFSET
+#define FLASH_AREA_SECONDARY_NSPE_SIZE            CONFIG_SECONDARY_NS_PHY_PARTITION_SIZE
 /*ota area end*/
 
 /* The maximum number of status entries supported by the bootloader. */
@@ -124,16 +98,16 @@
 #define MCUBOOT_MAX_IMG_SECTORS    (FLASH_MAX_PARTITION_SIZE / FLASH_AREA_IMAGE_SECTOR_SIZE)
 
 /* Protected Storage (PS) Service definitions */
-#define FLASH_PS_AREA_OFFSET            CONFIG_SYS_PS_PHY_PARTITION_OFFSET
-#define FLASH_PS_AREA_SIZE              CONFIG_SYS_PS_PHY_PARTITION_SIZE
+#define FLASH_PS_AREA_OFFSET            CONFIG_PS_PHY_PARTITION_OFFSET
+#define FLASH_PS_AREA_SIZE              CONFIG_PS_PHY_PARTITION_SIZE
 
 /* Internal Trusted Storage (ITS) Service definitions */
-#define FLASH_ITS_AREA_OFFSET           CONFIG_SYS_ITS_PHY_PARTITION_OFFSET
-#define FLASH_ITS_AREA_SIZE             CONFIG_SYS_ITS_PHY_PARTITION_SIZE
+#define FLASH_ITS_AREA_OFFSET           CONFIG_ITS_PHY_PARTITION_OFFSET
+#define FLASH_ITS_AREA_SIZE             CONFIG_ITS_PHY_PARTITION_SIZE
 
 /* OTP_definitions */
-#define FLASH_OTP_NV_COUNTERS_AREA_OFFSET CONFIG_SYS_OTP_NV_PHY_PARTITION_OFFSET
-#define FLASH_OTP_NV_COUNTERS_AREA_SIZE   CONFIG_SYS_OTP_NV_PHY_PARTITION_SIZE
+#define FLASH_OTP_NV_COUNTERS_AREA_OFFSET (FLASH_ITS_AREA_OFFSET + FLASH_ITS_AREA_SIZE)
+#define FLASH_OTP_NV_COUNTERS_AREA_SIZE   (FLASH_AREA_IMAGE_SECTOR_SIZE * 2)
 #define FLASH_OTP_NV_COUNTERS_SECTOR_SIZE FLASH_AREA_IMAGE_SECTOR_SIZE
 
 /* Offset and size definition in flash area used by assemble.py */
@@ -210,15 +184,16 @@
 
 #define CONFIG_BL2_RAM_LOAD_ADDR               0x28040000
 
-#define FLASH_AREA_IMAGE_PRIMARY(x)     (((x) == FLASH_IMAGE_ALL_ID) ? FLASH_AREA_PRIMARY_ALL_ID : 255 )
-
-#define FLASH_AREA_IMAGE_SECONDARY(x)   (((x) == FLASH_IMAGE_ALL_ID) ? FLASH_AREA_SECONDARY_ALL_ID : \
-					 (((x) == FLASH_IMAGE_PRIMARY_MANIFEST_ID) ? FLASH_AREA_PRIMARY_MANIFEST_ID : \
-					 (((x) == FLASH_IMAGE_SECONDARY_MANIFEST_ID) ? FLASH_AREA_SECONDARY_MANIFEST_ID : \
-					 (((x) == FLASH_IMAGE_PRIMARY_BL2_ID) ? FLASH_AREA_PRIMARY_BL2_ID : \
-					 (((x) == FLASH_IMAGE_SECONDARY_BL2_ID) ? FLASH_AREA_SECONDARY_BL2_ID : 255 \
-					  )))))
-
+#define FLASH_AREA_IMAGE_PRIMARY(x)     (((x) == 0) ? FLASH_AREA_0_ID : \
+                                         ((x) == 1) ? FLASH_AREA_1_ID : \
+                                                      255 )
+#define FLASH_AREA_IMAGE_SECONDARY(x)   (((x) == 0) ? FLASH_AREA_PRIMARY_MANIFEST_ID : \
+                                         ((x) == 1) ? FLASH_AREA_SECONDARY_MANIFEST_ID : \
+                                         ((x) == 2) ? FLASH_AREA_PRIMARY_BL2_ID : \
+                                         ((x) == 3) ? FLASH_AREA_SECONDARY_BL2_ID : \
+                                         ((x) == 4) ? FLASH_AREA_SECONDARY_SPE_ID : \
+                                         ((x) == 5) ? FLASH_AREA_SECONDARY_NSPE_ID : \
+                                                      255 )
 #define FLASH_AREA_IMAGE_SCRATCH        FLASH_AREA_SCRATCH_ID
 
 

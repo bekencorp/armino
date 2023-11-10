@@ -244,7 +244,7 @@ static void app_demo_udp_receiver(UINT8 *data, UINT32 len, struct sockaddr_in *a
 			app_demo_udp_romote_connected = 1;
 			GLOBAL_INT_RESTORE();
 
-#if (CONFIG_SPIDMA || CONFIG_DVP_CAMERA)
+#if (CONFIG_SPIDMA || CONFIG_CAMERA)
 			video_setup_t setup;
 
 			setup.open_type = TVIDEO_OPEN_SCCB;
@@ -264,7 +264,7 @@ static void app_demo_udp_receiver(UINT8 *data, UINT32 len, struct sockaddr_in *a
 		} else if (data[1] == CMD_STOP_IMG) {
 			APP_DEMO_UDP_PRT("udp close\r\n");
 
-#if (CONFIG_SPIDMA || CONFIG_DVP_CAMERA)
+#if (CONFIG_SPIDMA || CONFIG_CAMERA)
 			bk_video_transfer_deinit();
 
 			rwnxl_set_video_transfer_flag(false);
@@ -468,7 +468,7 @@ app_udp_exit:
 
 	APP_DEMO_UDP_FATAL("app_demo_udp_main exit %d\r\n", app_demo_udp_run);
 
-#if (CONFIG_SPIDMA || CONFIG_DVP_CAMERA)
+#if (CONFIG_SPIDMA || CONFIG_CAMERA)
 	bk_video_transfer_deinit();
 
 	rwnxl_set_video_transfer_flag(false);

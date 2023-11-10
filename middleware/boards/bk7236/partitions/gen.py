@@ -24,8 +24,11 @@ def install_configs(cfg_dir, install_dir):
 	if os.path.exists(f'{cfg_dir}') == False:
             return
 
-	if os.path.exists(f'{cfg_dir}/key') == True:
-		run_cmd(f'cp -r {cfg_dir}/key/* {install_dir} 2>/dev/null || :')
+	if os.path.exists(f'{cfg_dir}/bl1') == True:
+		run_cmd(f'cp -r {cfg_dir}/bl1/* {install_dir} 2>/dev/null || :')
+
+	if os.path.exists(f'{cfg_dir}/bl2') == True:
+		run_cmd(f'cp -r {cfg_dir}/bl2/* {install_dir} 2>/dev/null || :')
 
 	if os.path.exists(f'{cfg_dir}/partitions') == True:
 		run_cmd(f'cp -r {cfg_dir}/partitions/* {install_dir} 2>/dev/null || :')
@@ -57,7 +60,7 @@ def pack(tools_dir, base_cfg_dir, prefered_cfg_dir, gen_dir, soc):
 	install_configs(f'{prefered_cfg_dir}/{soc}', _BUILD_DIR)
 
 	logging.debug(f'partition pre-processing')
-	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions -s {_BUILD_DIR}/sys_partitions --genhdr --genbl1 --genbl2 --tools_dir {tools_dir}')
+	run_cmd(f'{BK_IMG_TOOL} partition -j {_BUILD_DIR}/partitions --genhdr --genbl1 --genbl2')
 	run_cmd(f'cp {_BUILD_DIR}/partitions_partition.h {gen_dir}/partitions_gen.h')
 
 @click.group()

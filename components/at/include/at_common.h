@@ -60,7 +60,7 @@ typedef struct
     int (*function) (char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 }at_command_t;
 
-#if !CONFIG_BTDM_CONTROLLER_ONLY
+//#if (CONFIG_BLE_5_X || CONFIG_BTDM_5_2)
 const at_command_t *lookup_bt_at_command(char *str1);
 const at_command_t *lookup_ble_at_command(char *str1);
 const at_command_t *lookup_bt_at_command(char *str1);
@@ -72,8 +72,7 @@ int bt_at_cmd_cnt(void);
 extern const at_command_t ble_at_cmd_table[MAX_BLE_AT_CMD_LEN];
 extern const at_command_t bt_at_cmd_table[MAX_BT_AT_CMD_LEN];
 
-#endif
-
+//#endif
 #if CONFIG_LWIP
 const at_command_t *lookup_wifi_at_command(char *str1);
 int wifi_at_cmd_cnt(void);

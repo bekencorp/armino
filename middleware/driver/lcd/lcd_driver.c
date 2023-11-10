@@ -50,7 +50,6 @@
 
 #if (CONFIG_JPEGDEC_SW)
 #include <components/jpeg_decode.h>
-#include <modules/tjpgd.h>
 #endif
 #include <driver/dma2d.h>
 #include "modules/image_scale.h"
@@ -68,9 +67,6 @@
 #if CONFIG_HW_ROTATE_PFC
 #include <driver/rott_driver.h>
 #endif
-#if CONFIG_CACHE_ENABLE
-#include "cache.h"
-#endif
 
 #define TAG "lcd_drv"
 #define timer_control_pfs   0
@@ -79,14 +75,14 @@
 		gpio_dev_unmap(pin);            \
 		gpio_dev_map(pin, func);        \
 		bk_gpio_enable_output(pin); 	\
-		bk_gpio_set_capacity(pin,GPIO_DRIVER_CAPACITY_1);	\
+		bk_gpio_set_capacity(pin,0);	\
 	} while (0)
 #define IO_FUNCTION_ENABLE_I8080(pin, func)   \
 	do {                                \
 		gpio_dev_unmap(pin);            \
 		gpio_dev_map(pin, func);        \
 		bk_gpio_enable_output(pin);     \
-		bk_gpio_set_capacity(pin,GPIO_DRIVER_CAPACITY_3);    \
+		bk_gpio_set_capacity(pin,3);    \
 	} while (0)
 #define IO_FUNCTION_DISLAY(pin) 	\
 	do {								\
@@ -112,8 +108,6 @@ extern uint8_t g_wifi_current_level;
 
 #ifdef LCD_DIAG_DEBUG
 
-#define LCD_DEBUG_IO0    GPIO_0  
-
 #define LCD_DIAG_DEBUG_INIT()                   \
 	do {                                        \
 		gpio_dev_unmap(GPIO_2);                 \
@@ -131,24 +125,25 @@ extern uint8_t g_wifi_current_level;
 		bk_gpio_enable_output(GPIO_4);          \
 		bk_gpio_set_output_low(GPIO_4);         \
 		\
-		gpio_dev_unmap(LCD_DEBUG_IO0);                 \
-		bk_gpio_disable_pull(LCD_DEBUG_IO0);           \
-		bk_gpio_enable_output(LCD_DEBUG_IO0);          \
-		bk_gpio_set_output_low(LCD_DEBUG_IO0);         \
+		gpio_dev_unmap(GPIO_5);                 \
+		bk_gpio_disable_pull(GPIO_5);           \
+		bk_gpio_enable_output(GPIO_5);          \
+		bk_gpio_set_output_low(GPIO_5);         \
 		\
 	} while (0)
 
 #define LCD_DECODER_START()                 bk_gpio_set_output_high(GPIO_2)
 #define LCD_DECODER_END()                   bk_gpio_set_output_low(GPIO_2)
 
-#define LCD_ROTATE_START()                  bk_gpio_set_output_high(LCD_DEBUG_IO0)
-#define LCD_ROTATE_END()                    bk_gpio_set_output_low(LCD_DEBUG_IO0)
+#define LCD_ROTATE_START()                  bk_gpio_set_output_high(GPIO_3)
+#define LCD_ROTATE_END()                    bk_gpio_set_output_low(GPIO_3)
 
 #define LCD_DISPLAY_START()                 bk_gpio_set_output_high(GPIO_4)
 #define LCD_DISPLAY_END()                   bk_gpio_set_output_low(GPIO_4)
 
-#define LCD_DISPLAY_ISR_ENTRY()             bk_gpio_set_output_high(GPIO_3)
-#define LCD_DISPLAY_ISR_OUT()               bk_gpio_set_output_low(GPIO_3)
+#define LCD_DISPLAY_ISR_ENTRY()             bk_gpio_set_output_high(GPIO_5)
+#define LCD_DISPLAY_ISR_OUT()               bk_gpio_set_output_low(GPIO_5)
+
 #else
 
 #define LCD_DIAG_DEBUG_INIT()
@@ -188,7 +183,6 @@ typedef struct
 	lcd_isr_t lcd_8080_frame_end_handler;
 	lcd_isr_t lcd_rgb_frame_end_handler;
 	lcd_isr_t lcd_rgb_frame_start_handler;
-	lcd_isr_t lcd_rgb_de_handler;
 #endif
 
 	beken_semaphore_t display;
@@ -275,21 +269,9 @@ const lcd_device_t *lcd_devices[] =
 	&lcd_device_st7701s_ly,
 #endif
 
-#if CONFIG_LCD_ST7789V
-	&lcd_device_st7789v,
-#endif
 };
 
 static lcd_driver_t s_lcd = {0};
-const lcd_device_t **get_lcd_devices_list(void)
-{
-	return &lcd_devices[0];
-}
-
-uint32_t get_lcd_devices_num(void)
-{
-	return sizeof(lcd_devices) / sizeof(lcd_device_t *);
-}
 
 const lcd_device_t * get_lcd_device_by_name(char * name)
 {
@@ -487,10 +469,6 @@ bk_err_t  bk_lcd_isr_register(lcd_int_type_t int_type, lcd_isr_t isr)
 	{
 		s_lcd.lcd_rgb_frame_end_handler = isr;
 	}
-	if (int_type == RGB_DE_INT)
-	{
-		s_lcd.lcd_rgb_de_handler = isr;
-	}
 	return BK_OK;
 }
 
@@ -515,16 +493,6 @@ __attribute__((section(".itcm_sec_code"))) void lcd_isr()
 		}
 		lcd_hal_rgb_eof_int_status_clear();
 	}
-#ifdef CONFIG_SOC_BK7258
-	if (int_status & RGB_DE_INT)
-	{
-		if (s_lcd.lcd_rgb_de_handler)
-		{
-			s_lcd.lcd_rgb_de_handler();
-		}
-		lcd_hal_rgb_de_int_status_clear();
-	}
-#endif
 	if (int_status & I8080_OUTPUT_SOF)
 	{
 		if (s_lcd.lcd_8080_frame_start_handler)
@@ -604,30 +572,28 @@ bk_err_t bk_lcd_driver_init(lcd_clk_t clk)
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_LCD, PM_POWER_MODULE_STATE_ON);
 	bk_pm_clock_ctrl(PM_CLK_ID_DISP, CLK_PWR_CTRL_PWR_UP);
 	sys_drv_int_enable(LCD_INTERRUPT_CTRL_BIT);
-
-#if CONFIG_SOC_BK7258
-	sys_drv_set_ana_ioldo_lp(0);
-	lcd_hal_control_clk_gate(1);
-	LOGI("%s, io ldo high power mode \n", __func__);
-#endif
+	
 	switch (clk)
 	{
-#if 0
 		case LCD_320M:
 			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_0, DISP_DIV_H_0, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_160M:
 			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_0, DSIP_DISCLK_ALWAYS_ON);
 			break;
-		case LCD_106M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_0, DISP_DIV_H_1, DSIP_DISCLK_ALWAYS_ON);
-			break;
 		case LCD_120M:
 			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_0, DSIP_DISCLK_ALWAYS_ON);
 			break;
-#endif
-		case LCD_64M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_0, DISP_DIV_H_2, DSIP_DISCLK_ALWAYS_ON);
+		case LCD_40M:
+			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_1, DSIP_DISCLK_ALWAYS_ON);
+			//ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_3, DSIP_DISCLK_ALWAYS_ON);
+			break;
+		case LCD_30M:
+			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_1, DSIP_DISCLK_ALWAYS_ON);
+			break;
+		case LCD_20M:
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_7, DSIP_DISCLK_ALWAYS_ON);
+			//ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_2, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_60M:
 			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_0, DSIP_DISCLK_ALWAYS_ON);
@@ -638,41 +604,8 @@ bk_err_t bk_lcd_driver_init(lcd_clk_t clk)
 		case LCD_54M:
 			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_2, DSIP_DISCLK_ALWAYS_ON);
 			break;
-		case LCD_45M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_3, DSIP_DISCLK_ALWAYS_ON);
-			break;
-		case LCD_40M:
-			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_1, DSIP_DISCLK_ALWAYS_ON);
-			//ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_3, DSIP_DISCLK_ALWAYS_ON);
-			break;
-		case LCD_35M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_0, DISP_DIV_H_4, DSIP_DISCLK_ALWAYS_ON);
-			//ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_3, DSIP_DISCLK_ALWAYS_ON);
-			break;
 		case LCD_32M:
 			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_4, DSIP_DISCLK_ALWAYS_ON);
-			break;
-		case LCD_30M:
-				ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_1, DSIP_DISCLK_ALWAYS_ON);
-			break;
-		case LCD_26M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_5, DSIP_DISCLK_ALWAYS_ON);
-			break;
-		case LCD_24M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_0, DISP_DIV_H_6, DSIP_DISCLK_ALWAYS_ON);
-		break;
-		case LCD_22M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_6, DSIP_DISCLK_ALWAYS_ON);
-		break;
-		case LCD_20M:
-			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_7, DSIP_DISCLK_ALWAYS_ON);
-			//ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_2, DSIP_DISCLK_ALWAYS_ON);
-			break;
-		case LCD_17M:
-			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_3, DSIP_DISCLK_ALWAYS_ON);
-			break;
-		case LCD_15M:
-			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_3, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_12M:
 			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_4, DSIP_DISCLK_ALWAYS_ON);
@@ -680,13 +613,10 @@ bk_err_t bk_lcd_driver_init(lcd_clk_t clk)
 		case LCD_10M:
 			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_5, DSIP_DISCLK_ALWAYS_ON);
 			break;
-		case LCD_9M:
-			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_6, DSIP_DISCLK_ALWAYS_ON);
+		case LCD_26M:
+			ret = sys_drv_lcd_set(DISP_CLK_320M, DISP_DIV_L_1, DISP_DIV_H_5, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		case LCD_8M:
-			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_0, DISP_DIV_H_7, DSIP_DISCLK_ALWAYS_ON);
-			break;
-		case LCD_7M:
 			ret = sys_drv_lcd_set(DISP_CLK_120M, DISP_DIV_L_1, DISP_DIV_H_7, DSIP_DISCLK_ALWAYS_ON);
 			break;
 		default:
@@ -902,7 +832,8 @@ bk_err_t bk_lcd_8080_init(uint16_t x_pixel, uint16_t y_pixel, pixel_format_t inp
 	bk_lcd_set_yuv_mode(input_data_format);
 	lcd_hal_8080_sleep_in(1);
 	lcd_hal_8080_start_transfer(0);
-	rtos_delay_milliseconds(131); //reset need 131ms.
+	extern void delay_ms(UINT32 ms_count);
+	delay_ms(131); //reset need 131ms.
 	return BK_OK;
 }
 
@@ -916,13 +847,6 @@ static bk_err_t bk_lcd_driver_deinit(void)
 	bk_int_isr_unregister(INT_SRC_LCD);
 	bk_pm_clock_ctrl(PM_CLK_ID_DISP, CLK_PWR_CTRL_PWR_DOWN);
 	bk_pm_module_vote_power_ctrl(PM_POWER_SUB_MODULE_NAME_VIDP_LCD, PM_POWER_MODULE_STATE_OFF);
-
-#if CONFIG_SOC_BK7258
-	sys_drv_set_ana_ioldo_lp(1);
-	lcd_hal_control_clk_gate(0);
-	LOGI("%s, io ldo low power mode \n", __func__);
-#endif
-
 	if (sys_drv_lcd_close() != 0)
 	{
 		LOGE("lcd system deinit reg config error \r\n");
@@ -930,6 +854,7 @@ static bk_err_t bk_lcd_driver_deinit(void)
 	}
 	s_lcd_driver_is_init = false;
 	return BK_OK;
+
 }
 
 bk_err_t bk_lcd_8080_deinit(void)
@@ -1097,16 +1022,7 @@ bk_err_t lcd_driver_display_enable(void)
 			if(s_lcd.config.device->mcu->start_transform)
 				s_lcd.config.device->mcu->start_transform();
 		}
-		else if(s_lcd.config.device->id == LCD_DEVICE_ST7789V)
-		{
-			lcd_hal_8080_start_transfer(0);
-			if(s_lcd.config.device->mcu->set_display_area)
-				s_lcd.config.device->mcu->set_display_area(0+35, 169+35, 0, 319); // special process
 
-			if(s_lcd.config.device->mcu->start_transform)
-				s_lcd.config.device->mcu->start_transform();
-		}
-		
 		lcd_hal_8080_start_transfer(1);
 		lcd_hal_8080_cmd_param_count(1);
 		lcd_hal_8080_write_cmd(0x2c);
@@ -1124,18 +1040,20 @@ bk_err_t lcd_driver_display_continue(void)
 
 	if (type == LCD_TYPE_MCU8080)
 	{
-		lcd_hal_8080_start_transfer(1);
 		if(s_lcd.config.device->id != LCD_DEVICE_NT35510_MCU)
 		{
 			lcd_hal_8080_write_cmd(0x3c);
 		}
 		else
 		{
+			lcd_hal_8080_start_transfer(0);
+
 			if(s_lcd.config.device->mcu->continue_transform)
 				s_lcd.config.device->mcu->continue_transform();
 
+			lcd_hal_8080_start_transfer(1);
 			lcd_hal_8080_cmd_param_count(1);
-			lcd_hal_8080_write_cmd(0x2c);
+			lcd_hal_8080_write_cmd(0x3c);
 		}
 	}
 	return BK_OK;
@@ -1216,13 +1134,7 @@ __attribute__((section(".itcm_sec_code")))  void flash_busy_lcd_callback(void)
 	rtos_enable_int(int_level);
 
 }
-#ifdef CONFIG_SOC_BK7258
-static void lcd_driver_de_isr(void)
-{
-	LOGW("%s lcd_driver_de_isr. \n", __func__);
-	rtos_set_semaphore(&s_lcd.disp_sem);
-}
-#endif
+
 __attribute__((section(".itcm_sec_code"))) static void lcd_driver_display_rgb_isr(void)
 {
 	LCD_DISPLAY_ISR_ENTRY();
@@ -1389,9 +1301,6 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 	bk_err_t ret = BK_FAIL;
 	frame_buffer_t *dec_frame = NULL;
 	uint64_t before, after;
-#if (CONFIG_JPEGDEC_SW)
-	jd_output_format *format = NULL;
-#endif
 
 	if (s_lcd.enable == false)
 	{
@@ -1427,9 +1336,6 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 		s_lcd.decoder_frame->fmt = PIXEL_FMT_VUYY;
 
 		LCD_DECODER_START();
-#if CONFIG_SOC_BK7258
-		ret = bk_jpeg_dec_hw_start(frame->length, frame->frame, s_lcd.decoder_frame->frame);
-#else
 		if (frame->fmt == PIXEL_FMT_UVC_JPEG)
 		{
 			if (frame->length <= 128 * 1024)
@@ -1446,7 +1352,7 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 		{
 			ret = bk_jpeg_dec_hw_start(frame->length, frame->frame, s_lcd.decoder_frame->frame);
 		}
-#endif
+
 		if (ret != BK_OK)
 		{
 			LOGE("%s hw decoder error\n", __func__);
@@ -1471,40 +1377,10 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 		mb_chnl_cmd_t mb_cmd;
 		if (get_decode_mode() == SOFTWARE_DECODING_CPU1)
 		{
-			format = os_malloc(sizeof(jd_output_format));
-			if (format == NULL)
-			{
-				LOGE("%s no buffer\n", __func__);
-				LCD_DRIVER_FRAME_FREE(s_lcd.decoder_frame);
-				goto out;
-			}
-			switch (s_lcd.decoder_frame->fmt)
-			{
-				case PIXEL_FMT_RGB565:
-					format->format = JD_FORMAT_RGB565;
-					format->scale = 1;
-					format->byte_order = JD_BIG_ENDIAN;
-					break;
-				case PIXEL_FMT_YUYV:
-					format->format = JD_FORMAT_YUYV;
-					format->scale = 0;
-					format->byte_order = JD_LITTLE_ENDIAN;
-					break;
-				case PIXEL_FMT_VUYY:
-					format->format = JD_FORMAT_VUYY;
-					format->scale = 0;
-					format->byte_order = JD_LITTLE_ENDIAN;
-					break;
-				default:
-					format->format = JD_FORMAT_VYUY;
-					format->scale = 0;
-					format->byte_order = JD_LITTLE_ENDIAN;
-					break;
-			}
 			mb_cmd.hdr.cmd = EVENT_LCD_DEC_SW_MBCMD;
 			mb_cmd.param1 = (uint32_t)frame;
 			mb_cmd.param2 = (uint32_t)s_lcd.decoder_frame;
-			mb_cmd.param3 = (uint32_t)format;
+			mb_cmd.param3 = 0;
 			s_lcd.result = BK_FAIL;
 
 			ret = mb_chnl_write(MB_CHNL_VID, &mb_cmd);
@@ -1559,12 +1435,6 @@ frame_buffer_t *lcd_driver_decoder_frame(frame_buffer_t *frame)
 
 out:
 
-#if (CONFIG_JPEGDEC_SW)
-	if (format)
-	{
-		os_free(format);
-	}
-#endif
     if (s_lcd.decoder_frame == NULL)
     {
         media_debug->err_dec++;
@@ -2021,21 +1891,16 @@ void dma2d_memcpy_psram(void *Psrc, void *Pdst, uint32_t xsize, uint32_t ysize, 
 	while (bk_dma2d_is_transfer_busy()) {}
 }
 
-static u8 g_dma2d_use_flag = 0;
-void dma2d_memcpy_psram_wait_last_transform_is_finish(void)
-{
-	if(1 == g_dma2d_use_flag)
-	{
-		while (bk_dma2d_is_transfer_busy()) {}
-		g_dma2d_use_flag = 0;
-	}
-}
-
 void dma2d_memcpy_psram_wait_last_transform(void *Psrc, void *Pdst, uint32_t xsize, uint32_t ysize, uint32_t src_offline, uint32_t dest_offline)
 {
 	dma2d_config_t dma2d_config = {0};
+	static u8 flag = 0;
 
-	dma2d_memcpy_psram_wait_last_transform_is_finish();
+	if(1 == flag)
+	{
+		while (bk_dma2d_is_transfer_busy()) {}
+		flag = 0;
+	}
 
 	/*##-1- Configure the DMA2D Mode, Output Color Mode and output offset #############*/
 	dma2d_config.init.mode         = DMA2D_M2M;             /**< Mode Memory To Memory */
@@ -2056,7 +1921,7 @@ void dma2d_memcpy_psram_wait_last_transform(void *Psrc, void *Pdst, uint32_t xsi
 
 	bk_dma2d_transfer_config(&dma2d_config, (uint32_t)Psrc, (uint32_t)Pdst, xsize/2, ysize);
 	bk_dma2d_start_transfer();
-	g_dma2d_use_flag = 1;
+	flag = 1;
 }
 
 bk_err_t lcd_dma2d_driver_blend(lcd_blend_t *lcd_blend)
@@ -2300,10 +2165,7 @@ bk_err_t lcd_driver_font_blend(lcd_font_config_t *lcd_font)
 		LOGE("%s, s_lcd.font_draw=false \n", __func__);
 		return BK_FAIL;
 	}
-	#if CONFIG_SOC_BK7258
-#if CONFIG_CACHE_ENABLE
-	flush_dcache(lcd_font->pbg_addr, lcd_font->bg_height * lcd_font->bg_width * 2);
-#endif
+	#if 0
 	dma2d_memcpy_psram(lcd_font->pbg_addr, yuv_data, lcd_font->xsize, lcd_font->ysize, lcd_font->bg_offline, 0);
 	#else
 	register uint32_t i =0;
@@ -2350,7 +2212,7 @@ bk_err_t lcd_driver_font_blend(lcd_font_config_t *lcd_font)
 			lcd_draw_font(&font);
 		}
 	}
-	#if CONFIG_SOC_BK7258
+	#if 0
 		dma2d_memcpy_psram(yuv_data, lcd_font->pbg_addr, lcd_font->xsize, lcd_font->ysize, 0, lcd_font->bg_offline);
 	#else
 			p_yuv_src = (uint32_t *)yuv_data;
@@ -2444,7 +2306,7 @@ bk_err_t lcd_driver_display_frame_sync(frame_buffer_t *frame, bool wait)
 			lcd_driver_ppi_set(frame->width, frame->height);
 			bk_lcd_set_yuv_mode(frame->fmt);
 			lcd_driver_set_display_base_addr((uint32_t)frame->frame);
-
+			bk_lcd_8080_start_transfer(1);
 			lcd_driver_display_continue();
 		}
 	}
@@ -2484,7 +2346,12 @@ static u8 g_gui_need_to_wait = BK_FALSE;
 void lcd_driver_display_frame_with_gui(void *buffer, int width, int height)
 {
 #if (CONFIG_LCD_QSPI && CONFIG_LVGL)
-	bk_lcd_qspi_send_data(s_device_config, (uint32_t *)buffer, width * height * 4);
+	extern bk_err_t bk_lcd_qspi_display(uint32_t *frame_buffer_addr, uint32_t frame_buffer_len);
+#if (CONFIG_LV_COLOR_DEPTH == 16)
+	bk_lcd_qspi_display(buffer, width * height * 2);
+#else
+	bk_lcd_qspi_display(buffer, width * height * 4);
+#endif
 #else
 
     if(g_gui_need_to_wait)
@@ -2597,6 +2464,7 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 	lcd_ldo_power_enable(1);
 
 	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DISP, PM_CPU_FRQ_320M);
+
 	media_debug->err_dec = 0;
 	media_debug->fps_lcd = 0;
 	media_debug->isr_decoder = 0;
@@ -2607,9 +2475,7 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 
 	s_lcd.width = ppi_to_pixel_x(config->device->ppi);  //lcd size x
 	s_lcd.height = ppi_to_pixel_y(config->device->ppi);  //lcd size y
-#ifdef CONFIG_SOC_BK7256XX
 	config->fb_display_init(s_lcd.width << 16 | s_lcd.height);
-#endif
 
 #ifdef CONFIG_MASTER_CORE
 	/* Mailbox */
@@ -2709,9 +2575,6 @@ bk_err_t lcd_driver_init(const lcd_config_t *config)
 	{
 		LOGD("%s, rgb eof register\n", __func__);
 		s_lcd.lcd_rgb_frame_end_handler = lcd_driver_display_rgb_isr;
-#ifdef CONFIG_SOC_BK7258
-		s_lcd.lcd_rgb_de_handler = lcd_driver_de_isr;
-#endif
 #if CONFIG_GPIO_DEFAULT_SET_SUPPORT
 		/*
 		 * GPIO info is setted in GPIO_DEFAULT_DEV_CONFIG and

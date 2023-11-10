@@ -18,7 +18,6 @@
 #include <driver/dvp_camera.h>
 #include <driver/i2c.h>
 #include <driver/jpeg_enc.h>
-#include <./lcd/lcd_devices.h>
 
 extern const uint8_t fg_blend_image1[];
 
@@ -167,7 +166,7 @@ static bk_err_t dvp_camera_init(jpeg_mode_t mode)
 	// step 3: init i2c
 	i2c_config.baud_rate = I2C_BAUD_RATE_100KHZ;
 	i2c_config.addr_mode = I2C_ADDR_MODE_7BIT;
-	bk_i2c_init(CONFIG_DVP_CAMERA_I2C_ID, &i2c_config);
+	bk_i2c_init(CONFIG_CAMERA_I2C_ID, &i2c_config);
 
 	current_sensor = bk_dvp_get_sensor_auto_detect();
 	if (current_sensor == NULL)
@@ -266,8 +265,11 @@ void lcd_8080_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 			os_printf("bk_lcd_isr_register failed\r\n");
 			return;
 		}	
-		lcd_st7796s_init();
-
+		ret = st7796s_init();
+		if (ret != BK_OK) {
+			os_printf("st7796s init failed\r\n");
+			return;
+		}
 		os_printf("st7796 init ok. \r\n");
 	} else if (os_strcmp(argv[1], "frame_disp") == 0) {
 		uint32_t frameaddr = os_strtoul(argv[2], NULL, 16) & 0xFFFFFFFF;
@@ -352,8 +354,11 @@ void lcd_8080_display_yuv(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 
 	bk_lcd_8080_init(PIXEL_320, PIXEL_480, PIXEL_FMT_YUYV);
 	bk_lcd_8080_int_enable(0,1);
-	lcd_st7796s_init();
-
+	err = st7796s_init();
+	if (err != BK_OK) {
+		os_printf("st7796s init failed\r\n");
+		return;
+	}
 	os_printf("st7796 init ok. \r\n");
 
 	lcd_driver_set_display_base_addr((uint32_t)psram_lcd->display[0]);
@@ -382,8 +387,11 @@ void lcd_8080_display_480p_yuv(char *pcWriteBuffer, int xWriteBufferLen, int arg
 	bk_lcd_8080_int_enable(0,1);
 	lcd_driver_set_display_base_addr((uint32_t)psram_lcd->display[0]);
 	bk_lcd_set_partical_display(1, I8080_PARTICAL_XS, I8080_PARTICAL_XE, I8080_PARTICAL_YS, I8080_PARTICAL_YE);
-	lcd_st7796s_init();
-
+	err = st7796s_init();
+	if (err != BK_OK) {
+		os_printf("st7796s init failed\r\n");
+		return;
+	}
 	os_printf("st7796 init ok. \r\n");
 
 	err = dvp_camera_init(JPEG_YUV_MODE);

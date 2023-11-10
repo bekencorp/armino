@@ -19,13 +19,9 @@ extern "C" {
 #endif
 
 #define SOC_PWM_UNIT_NUM               1
-#if (CONFIG_PWM_DEVICE0_SUPPORT && CONFIG_PWM_DEVICE1_SUPPORT)
-#define SOC_PWM_GROUP_NUM              2
-#elif (CONFIG_PWM_DEVICE0_SUPPORT || CONFIG_PWM_DEVICE1_SUPPORT)
-#define SOC_PWM_GROUP_NUM              1
-#endif
 #define SOC_PWM_CHAN_NUM_PER_UNIT      6
-#define SOC_PWM_CHAN_NUM_PER_GROUP     6
+#define SOC_PWM_CHAN_NUM_PER_GROUP     2
+#define SOC_PWM_GROUP_NUM              3
 
 #ifdef __cplusplus
 }

@@ -21,7 +21,6 @@
 #include "components/log.h"
 #include "common/bk_err.h"
 #include "bk_tfm_log.h"
-#include "partitions.h"
 
 #define TAG "cmsis_flash"
 
@@ -38,12 +37,8 @@
 #define ARM_FLASH_DRV_VERSION      ARM_DRIVER_VERSION_MAJOR_MINOR(1, 1)
 #define ARM_FLASH_DRV_ERASE_VALUE  0xFF
 
-#if CONFIG_CODE_BUS_OPS_FLASH  
 #define FLASH_CBUS_ADDR_FLAG          (1<<31)
 #define FLASH_CLR_CBUS_ADDR_FLAG(x)   (x) &= ~FLASH_CBUS_ADDR_FLAG
-#else
-#define FLASH_CLR_CBUS_ADDR_FLAG(x)
-#endif
 
 /* these flash api MUST at the spe. For flash controller/device is exclusive,
  * it is used at the S/NS world. ns--nsc--s
@@ -116,7 +111,15 @@ static const ARM_FLASH_CAPABILITIES DriverCapabilities = {
 
 static bool is_access_from_code_bus(uint32_t absolute_addr)
 {
-	return false;
+	/*true condition:
+	  0, disble flash write protection;
+	  1, enable flash cpu write;*/
+	#define CONFIG_CODE_BUS_OPS_FLASH 0
+	#if CONFIG_CODE_BUS_OPS_FLASH  
+	return true;
+	#else
+    return false;
+	#endif
 }
 
 static uint32_t flash_sector_count(void)
@@ -220,11 +223,6 @@ static int32_t Flash_Initialize(ARM_Flash_SignalEvent_t cb_event)
     bk_flash_set_protect_type(FLASH_PROTECT_NONE); //TODO wangzhilei double check
 
     flash_size = bk_flash_get_current_total_size();
-    if (flash_size < CONFIG_PARTITION_FLASH_SIZE) {
-        BK_TFM_FLASH_LOGE(TAG, "partition configured flash size=%x, actual flash size=%x\r\n",
-            CONFIG_PARTITION_FLASH_SIZE, flash_size);
-        return ARM_DRIVER_ERROR;
-    }
 
     /* Optimze it if we support more than one flash */
     s_flash_sector_count = flash_size / FLASH0_SECTOR_SIZE;

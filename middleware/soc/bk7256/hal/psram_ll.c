@@ -50,20 +50,16 @@ void psram_hal_power_clk_enable(uint8_t enable)
 // config 2: reset psram and wait psram ready
 void psram_hal_reset(void)
 {
+	int chip_id = 0;
 	psram_hal_set_sf_reset(1);
 
-#if (CONFIG_PSRAM_APM)
-
-	int chip_id = bk_get_hardware_chip_id_version();
+	chip_id = bk_get_hardware_chip_id_version();
 
 	if (chip_id == CHIP_VERSION_C)
 		psram_hal_set_mode_value(0xE8054043);
 	else
 		psram_hal_set_mode_value(0xa8054043);
-#else
-	//psram_hal_set_mode_value(0x100b4045);// mode 1
-	psram_hal_set_mode_value(0xB80B4045);// mode 2
-#endif
+
 	psram_hal_set_cmd_reset();
 }
 
@@ -72,8 +68,6 @@ void psram_hal_config(void)
 {
 	uint32_t val = 0;
 
-#if (CONFIG_PSRAM_APM)
-
 	psram_hal_cmd_read(0x00000000);//1 0001 10001101
 
 	val = psram_hal_get_regb_value();
@@ -90,23 +84,12 @@ void psram_hal_config(void)
 	val = (val & ~(0x7 << 13)) | (0x6 << 13);//write latency 110 166Mhz
 
 	psram_hal_cmd_write(0x00000004, val);
-#else
-	uint32_t io_drv = 0; /*range [0, 3]*/
-
-	val = psram_hal_cmd_read(0x01000000);
-
-	//val = 0x8F1F | (io_drv << 12);// mode 1
-	val = 0x8F1C | (io_drv << 12);// mode 2
-
-	psram_hal_cmd_write(0x01000000, val);
-
-	psram_hal_cmd_read(0x01000000);
-#endif
 }
 
 
 void psram_hal_config_init(void)
 {
+	uint32_t chip_id = 0;
 	uint32_t val = 0;
 
 	// wait clk stable
@@ -114,9 +97,7 @@ void psram_hal_config_init(void)
 
 	psram_hal_set_sf_reset(1);
 
-#if (CONFIG_PSRAM_APM)
-
-	uint32_t chip_id = bk_get_hardware_chip_id_version();
+	chip_id = bk_get_hardware_chip_id_version();
 
 	if (chip_id == CHIP_VERSION_C)
 		psram_hal_set_mode_value(0xE8054043);
@@ -142,24 +123,6 @@ void psram_hal_config_init(void)
 	val = (val & ~(0x7 << 13)) | (0x6 << 13);//write latency 110 166Mhz
 
 	psram_hal_cmd_write(0x00000004, val);
-
-#else
-	uint32_t io_drv = 0; /*range [0, 3]*/
-	//psram_hal_set_mode_value(0x100b4045);// mode 1
-	psram_hal_set_mode_value(0xB80B4045);// mode 2
-
-	psram_hal_set_cmd_reset();
-	delay_us(100);//40
-
-	val = psram_hal_cmd_read(0x01000000);
-
-	//val = 0x8F1F | (io_drv << 12);// mode 1
-	val = 0x8F1C | (io_drv << 12); // mode 2
-
-	psram_hal_cmd_write(0x01000000, val);
-
-	psram_hal_cmd_read(0x01000000);
-#endif
 }
 
 void psram_hal_continue_write(uint32_t start_addr, uint32_t *data_buf, uint32_t len)

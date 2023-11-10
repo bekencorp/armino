@@ -65,6 +65,4 @@
 #define EN_DPLL         (BIT(5))
 #define EN_CB           (BIT(6))
 #define EN_LCD          (BIT(7))
-//#define EN_ALL          (EN_USB | EN_XTAL | EN_DCO | EN_RAM | EN_TEMP | EN_DPLL | EN_LCD)
-#define EN_ALL          (EN_USB | EN_DCO | EN_RAM | EN_TEMP | EN_DPLL | EN_LCD)
-
+#define EN_ALL          (EN_USB | EN_XTAL | EN_DCO | EN_RAM | EN_TEMP | EN_DPLL | EN_LCD)

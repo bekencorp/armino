@@ -1,0 +1,183 @@
+/*
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+#include "test_interrupt.h"
+
+#if defined(TEST_NS_FPU) || defined(TEST_S_FPU)
+__attribute__((naked)) void TFM_FPU_S_TEST_Handler(void)
+{
+    __asm volatile(
+        "mov       r0, #0x000000E0         \n"
+        "vmov      s0, r0                  \n"
+        "mov       r0, #0x000000E1         \n"
+        "vmov      s1, r0                  \n"
+        "mov       r0, #0x000000E2         \n"
+        "vmov      s2, r0                  \n"
+        "mov       r0, #0x000000E3         \n"
+        "vmov      s3, r0                  \n"
+        "mov       r0, #0x000000E4         \n"
+        "vmov      s4, r0                  \n"
+        "mov       r0, #0x000000E5         \n"
+        "vmov      s5, r0                  \n"
+        "mov       r0, #0x000000E6         \n"
+        "vmov      s6, r0                  \n"
+        "mov       r0, #0x000000E7         \n"
+        "vmov      s7, r0                  \n"
+        "mov       r0, #0x000000E8         \n"
+        "vmov      s8, r0                  \n"
+        "mov       r0, #0x000000E9         \n"
+        "vmov      s9, r0                  \n"
+        "mov       r0, #0x000000EA         \n"
+        "vmov      s10, r0                 \n"
+        "mov       r0, #0x000000EB         \n"
+        "vmov      s11, r0                 \n"
+        "mov       r0, #0x000000EC         \n"
+        "vmov      s12, r0                 \n"
+        "mov       r0, #0x000000ED         \n"
+        "vmov      s13, r0                 \n"
+        "mov       r0, #0x000000EE         \n"
+        "vmov      s14, r0                 \n"
+        "mov       r0, #0x000000EF         \n"
+        "vmov      s15, r0                 \n"
+        "mov       r0, #0x000000F0         \n"
+        "vmov      s16, r0                 \n"
+        "mov       r0, #0x000000F1         \n"
+        "vmov      s17, r0                 \n"
+        "mov       r0, #0x000000F2         \n"
+        "vmov      s18, r0                 \n"
+        "mov       r0, #0x000000F3         \n"
+        "vmov      s19, r0                 \n"
+        "mov       r0, #0x000000F4         \n"
+        "vmov      s20, r0                 \n"
+        "mov       r0, #0x000000F5         \n"
+        "vmov      s21, r0                 \n"
+        "mov       r0, #0x000000F6         \n"
+        "vmov      s22, r0                 \n"
+        "mov       r0, #0x000000F7         \n"
+        "vmov      s23, r0                 \n"
+        "mov       r0, #0x000000F8         \n"
+        "vmov      s24, r0                 \n"
+        "mov       r0, #0x000000F9         \n"
+        "vmov      s25, r0                 \n"
+        "mov       r0, #0x000000FA         \n"
+        "vmov      s26, r0                 \n"
+        "mov       r0, #0x000000FB         \n"
+        "vmov      s27, r0                 \n"
+        "mov       r0, #0x000000FC         \n"
+        "vmov      s28, r0                 \n"
+        "mov       r0, #0x000000FD         \n"
+        "vmov      s29, r0                 \n"
+        "mov       r0, #0x000000FE         \n"
+        "vmov      s30, r0                 \n"
+        "mov       r0, #0x000000FF         \n"
+        "vmov      s31, r0                 \n"
+        "bx        lr                      \n"
+    );
+}
+#endif
+
+#ifdef TEST_NS_FPU
+__attribute__((used)) static uint32_t is_non_zero(uint32_t *p, uint32_t n)
+{
+
+    while(n && p[n - 1] == 0) {
+        n--;
+    }
+    return n;
+}
+
+__attribute__((naked)) void TFM_FPU_NS_TEST_Handler(void)
+{
+    __asm volatile(
+        /*
+        * If LR.BIT[6] equals 1, the interrupt is triggerred by secure thread.
+        */
+        "ands      r0, lr, #0x40           \n"
+        "cmp       r0, 0x40                \n"
+        "bne       change_regs             \n"
+        "push      {r7, lr}                \n"
+        "vpush     {s0-s15}                \n"
+        "vpush     {s16-s31}               \n"
+        "mov       r0, sp                  \n"
+        "mov       r1, #32                 \n"
+        "bl        is_non_zero             \n"
+        "vpop      {s16-s31}               \n"
+        "vpop      {s0-s15}                \n"
+        "pop       {r7, lr}                \n"
+        "cmp       r0, #0                  \n"
+        "bne       panic                   \n"
+    "change_regs:                          \n"
+        "mov       r0, #0x000000E0         \n"
+        "vmov      s0, r0                  \n"
+        "mov       r0, #0x000000E1         \n"
+        "vmov      s1, r0                  \n"
+        "mov       r0, #0x000000E2         \n"
+        "vmov      s2, r0                  \n"
+        "mov       r0, #0x000000E3         \n"
+        "vmov      s3, r0                  \n"
+        "mov       r0, #0x000000E4         \n"
+        "vmov      s4, r0                  \n"
+        "mov       r0, #0x000000E5         \n"
+        "vmov      s5, r0                  \n"
+        "mov       r0, #0x000000E6         \n"
+        "vmov      s6, r0                  \n"
+        "mov       r0, #0x000000E7         \n"
+        "vmov      s7, r0                  \n"
+        "mov       r0, #0x000000E8         \n"
+        "vmov      s8, r0                  \n"
+        "mov       r0, #0x000000E9         \n"
+        "vmov      s9, r0                  \n"
+        "mov       r0, #0x000000EA         \n"
+        "vmov      s10, r0                 \n"
+        "mov       r0, #0x000000EB         \n"
+        "vmov      s11, r0                 \n"
+        "mov       r0, #0x000000EC         \n"
+        "vmov      s12, r0                 \n"
+        "mov       r0, #0x000000ED         \n"
+        "vmov      s13, r0                 \n"
+        "mov       r0, #0x000000EE         \n"
+        "vmov      s14, r0                 \n"
+        "mov       r0, #0x000000EF         \n"
+        "vmov      s15, r0                 \n"
+        "mov       r0, #0x000000F0         \n"
+        "vmov      s16, r0                 \n"
+        "mov       r0, #0x000000F1         \n"
+        "vmov      s17, r0                 \n"
+        "mov       r0, #0x000000F2         \n"
+        "vmov      s18, r0                 \n"
+        "mov       r0, #0x000000F3         \n"
+        "vmov      s19, r0                 \n"
+        "mov       r0, #0x000000F4         \n"
+        "vmov      s20, r0                 \n"
+        "mov       r0, #0x000000F5         \n"
+        "vmov      s21, r0                 \n"
+        "mov       r0, #0x000000F6         \n"
+        "vmov      s22, r0                 \n"
+        "mov       r0, #0x000000F7         \n"
+        "vmov      s23, r0                 \n"
+        "mov       r0, #0x000000F8         \n"
+        "vmov      s24, r0                 \n"
+        "mov       r0, #0x000000F9         \n"
+        "vmov      s25, r0                 \n"
+        "mov       r0, #0x000000FA         \n"
+        "vmov      s26, r0                 \n"
+        "mov       r0, #0x000000FB         \n"
+        "vmov      s27, r0                 \n"
+        "mov       r0, #0x000000FC         \n"
+        "vmov      s28, r0                 \n"
+        "mov       r0, #0x000000FD         \n"
+        "vmov      s29, r0                 \n"
+        "mov       r0, #0x000000FE         \n"
+        "vmov      s30, r0                 \n"
+        "mov       r0, #0x000000FF         \n"
+        "vmov      s31, r0                 \n"
+        "bx        lr                      \n"
+    "panic:                                \n"
+        "b         .                       \n"
+    );
+}
+#endif

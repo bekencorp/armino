@@ -202,11 +202,9 @@ EXAMPLE 1: 使用WIFI保活来唤醒低压设备
 
 	测试步骤如下：
 	1）开机启动5s之后，（开机之后，BT、WIFI、CPU做初始化）；
-	2）输入以下四条命令：
-	A. set_interval 10 (该命令是设置DTIM10）
-    (备注：配置其他值：DTIM1命令：set_interval 1； DTIM3命令：set_interval 3)
-	B. sta 123(路由器名称) 12345678（路由器密码）（连接路由器，WIFI会进入sleep wakeup流程）
-	C. 蓝牙默认进入sleep(为了最优的功耗，BT使用完毕后，请关闭，关闭命令：AT+BLE=POWER,0)
-	D. pm_vote 1 12 1 0（投app票）
+	2）输入以下三条命令：
+	A. sta 123(路由器名称) 12345678（路由器密码）（连接路由器，WIFI会进入sleep wakeup流程）
+	B. 蓝牙默认进入sleep(为了最优的功耗，BT使用完毕后，请关闭，关闭命令：AT+BLE=POWER,0)
+	C. pm_vote 1 12 1 0（投app票）
 	3）在low voltage过程中，通过测量VDDDIG的电压会变成设定的电压值，（例如0.6或0.9v）；唤醒之后，VDDDIG的电压会变成1.1v；
 	4）同时通过使用精密电源来测量整个low voltage到唤醒过程的功耗。

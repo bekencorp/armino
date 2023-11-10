@@ -5,7 +5,7 @@
 
 #if CONFIG_APP_DEMO_VIDEO_TRANSFER
 
-#if (!CONFIG_DVP_CAMERA && (!CONFIG_SPIDMA && !CONFIG_HSLAVE_SPI))
+#if (!CONFIG_CAMERA && (!CONFIG_SPIDMA && !CONFIG_HSLAVE_SPI))
 #error "video transfer need open jpeg / hspi moudel"
 #endif
 

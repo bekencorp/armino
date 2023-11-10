@@ -51,6 +51,8 @@
 
 static LIST_HEADER_T media_major_mailbox_msg_queue_req;
 static LIST_HEADER_T media_major_mailbox_msg_queue_rsp;
+static beken_mutex_t media_major_mailbox_msg_queue_req_lock;
+static beken_mutex_t media_major_mailbox_msg_queue_rsp_lock;
 
 static beken_queue_t media_major_mailbox_msg_queue;
 
@@ -58,58 +60,25 @@ static beken_queue_t media_major_mailbox_msg_queue;
 static beken_thread_t media_major_mailbox_th_hd = NULL;
 beken_semaphore_t media_major_mailbox_sem = NULL;
 beken_semaphore_t media_major_mailbox_rsp_sem = NULL;
+beken_semaphore_t media_major_mailbox_send_sem = NULL;
 
 media_mailbox_msg_t *msg_major_send = NULL;
-static uint8_t           media_major_mailbox_inited = 0;
+
 
 static void msg_send_to_media_major_mailbox_list(media_mailbox_msg_t *msg)
 {
-	media_mailbox_list_push(msg, &media_major_mailbox_msg_queue_req);
+	media_mailbox_list_push(msg, &media_major_mailbox_msg_queue_req, media_major_mailbox_msg_queue_req_lock);
 
 	rtos_set_semaphore(&media_major_mailbox_sem);
 }
 
-bk_err_t msg_send_req_to_media_major_mailbox_sync(media_mailbox_msg_t *msg, uint32_t dest)
+bk_err_t msg_send_to_media_major_mailbox(media_mailbox_msg_t *msg, uint32_t result, uint32_t dest)
 {
 	bk_err_t ret = BK_OK;
 	msg->src = MAJOR_MODULE;
 	msg->dest = dest;
-	msg->type = MAILBOX_MSG_TYPE_REQ;
-
-	msg_send_to_media_major_mailbox_list(msg);
-
-	ret = rtos_get_semaphore(&msg->sem, BEKEN_WAIT_FOREVER);
-
-	if (ret != kNoErr)
-	{
-		LOGE("%s wait semaphore failed\n", __func__);
-		goto out;
-	}
-	ret = msg->result;
-
-out:
-	return ret;
-
-}
-
-bk_err_t msg_send_rsp_to_media_major_mailbox(media_mailbox_msg_t *msg, uint32_t result, uint32_t dest)
-{
-	bk_err_t ret = BK_OK;
-	msg->src = MAJOR_MODULE;
-	msg->dest = dest;
-	msg->type = MAILBOX_MSG_TYPE_RSP;
 	msg->result = result;
-
-	msg_send_to_media_major_mailbox_list(msg);
-	return ret;
-}
-
-bk_err_t msg_send_notify_to_media_major_mailbox(media_mailbox_msg_t *msg, uint32_t dest)
-{
-	bk_err_t ret = BK_OK;
-	msg->src = MAJOR_MODULE;
-	msg->dest = dest;
-	msg->type = MAILBOX_MSG_TYPE_NOTIFY;
+	LOGD("====>>>>7 %s %p %x\n", __func__, msg->sem, msg->result);
 
 	msg_send_to_media_major_mailbox_list(msg);
 	return ret;
@@ -120,7 +89,6 @@ static bk_err_t msg_send_back_to_media_major_mailbox(media_mailbox_msg_t *msg, u
 	bk_err_t ret = BK_OK;
 	msg->src = MAJOR_MODULE;
 	msg->dest = MAJOR_MODULE;
-	msg->type = MAILBOX_MSG_TYPE_RSP;
 	msg->result = result;
 	LOGD("====>>>>7 %s %p %x\n", __func__, msg->sem, msg->result);
 
@@ -131,6 +99,7 @@ static bk_err_t msg_send_back_to_media_major_mailbox(media_mailbox_msg_t *msg, u
 static bk_err_t media_major_mailbox_send_msg_to_media_app_mailbox(media_mailbox_msg_t *msg)
 {
 	mb_chnl_cmd_t mb_cmd;
+
 	mb_cmd.hdr.cmd = 1;
 	mb_cmd.param1 = msg->event;
 	mb_cmd.param2 = (uint32_t)msg;
@@ -174,8 +143,10 @@ static bk_err_t media_send_msg_to_queue(media_mailbox_msg_t *param, uint8_t ori)
 static void media_major_mailbox_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 {
 	media_mailbox_msg_t *msg;
+	LOGD("====>>>>3 %s\n", __func__);
 
 	msg = (media_mailbox_msg_t *)cmd_buf->param2;
+//	media_mailbox_list_push(msg, &media_major_mailbox_msg_queue_req, media_major_mailbox_msg_queue_req_lock);
 	media_send_msg_to_queue(msg, 0);
 
 	rtos_set_semaphore(&media_major_mailbox_sem);
@@ -184,134 +155,109 @@ static void media_major_mailbox_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_b
 
 static void media_major_mailbox_mailbox_tx_isr(void *param)
 {
+	LOGD("%s\n", __func__);
 }
 
 static void media_major_mailbox_mailbox_tx_cmpl_isr(void *param, mb_chnl_ack_t *ack_buf)
 {
+	LOGD("====>>>>10 %s %p %p\n", __func__, msg_major_send, media_major_mailbox_rsp_sem);
+
+//	if (msg_major_send && msg_major_send->sem)
+//	{
+//		rtos_lock_mutex(&media_major_mailbox_msg_queue_rsp_lock);
+//		media_mailbox_list_del_node(msg_major_send->sem, &media_major_mailbox_msg_queue_rsp);
+//		rtos_unlock_mutex(&media_major_mailbox_msg_queue_rsp_lock);
+//	}
+
 	if (msg_major_send)
 	{
+		//media_mailbox_list_push(msg_major_send, &media_major_mailbox_msg_queue_rsp, media_major_mailbox_msg_queue_rsp_lock);
 		media_send_msg_to_queue(msg_major_send, 1);
 		msg_major_send = NULL;
 	}
 
-	if (media_major_mailbox_rsp_sem)
+	if (media_major_mailbox_send_sem)
 	{
-		rtos_set_semaphore(media_major_mailbox_rsp_sem);
+		rtos_set_semaphore(media_major_mailbox_send_sem);
+		media_major_mailbox_send_sem = NULL;
 	}
+}
+
+void media_major_mailbox_rsp_handle_ext(media_mailbox_msg_t *msg)
+{
+	bk_err_t ret = BK_OK;
+
+	//media_mailbox_list_del_node(msg->sem, &media_major_mailbox_msg_queue_rsp, media_major_mailbox_msg_queue_rsp_lock);
+
+	ret = rtos_set_semaphore(&msg->sem);
+	
+	if (ret != BK_OK)
+	{
+		LOGE("%s semaphore set failed: %d\n", __func__, ret);
+	}
+
 }
 
 void media_major_mailbox_msg_handle(media_mailbox_msg_t *msg)
 {
-	bk_err_t ret = BK_OK;
+	LOGD("====>>>>50 %s %x %x %x\n", __func__, msg->src, msg->event, LCD_EVENT);
+
 	media_msg_t media_msg;
+
 	if (msg->src == APP_MODULE)
 	{
-		if(msg->type == MAILBOX_MSG_TYPE_REQ) //send req msg to cpu1 other threads
+		switch (msg->event >> MEDIA_EVT_BIT)
 		{
-			switch (msg->event >> MEDIA_EVT_BIT)
-			{
-				case LCD_EVENT:
-					media_msg.event = msg->event;
-					media_msg.param = (uint32_t)msg;
-					media_send_msg(&media_msg);
-					break;
-			
-				case LVGL_EVENT:
-					media_msg.event = msg->event;
-					media_msg.param = (uint32_t)msg;
-					media_send_msg(&media_msg);
-					break;
-			
-				case CAM_EVENT:
-					media_msg.event = msg->event;
-					media_msg.param = (uint32_t)msg;
-					media_send_msg(&media_msg);
-					break;
-			
-				case TRS_EVENT:
-					media_msg.event = msg->event;
-					media_msg.param = (uint32_t)msg;
-					media_send_msg(&media_msg);
-					break;
+			case LCD_EVENT:
+				media_msg.event = msg->event;
+				media_msg.param = (uint32_t)msg;
+				media_send_msg(&media_msg);
+				break;
 
-				case USB_TRS_EVENT:
-					media_msg.event = msg->event;
-					media_msg.param = (uint32_t)msg;
-					media_send_msg(&media_msg);
-					break;
-			
-				case STORAGE_EVENT:
-					media_msg.event = msg->event;
-					media_msg.param = (uint32_t)msg;
-					media_send_msg(&media_msg);
-					break;
-			
-				case AUD_EVENT:
-				case AUD_NOTIFY:
-					audio_event_handle(msg);
-					break;
-			
-//				case MAILBOX_NOTIFY:
-//					switch (msg->event)
-//					{
-//						case EVENT_MEDIA_DATA_NOTIFY:
-//						case EVENT_VID_CAPTURE_NOTIFY:
-//						case EVENT_VID_SAVE_ALL_NOTIFY:
-//							media_major_mailbox_rsp_handle_ext(msg);
-//							break;
-//			
-//						case EVENT_AUD_MIC_DATA_NOTIFY:
-//						case EVENT_AUD_SPK_DATA_NOTIFY:
-//							audio_event_handle(msg);
-//							break;
-//			
-//						case EVENT_LCD_PICTURE_ECHO_NOTIFY:
-//							lcd_display_echo_event_handle(msg);
-//							break;
-//			
-//						default:
-//							break;
-//					}
-//					break;
-				default:
-					break;
-			}
-		}
-		else if(msg->type == MAILBOX_MSG_TYPE_RSP) //set semaphore from cpu1 other threads and delete from rsp list
-		{
-			if( msg->event == EVENT_LCD_PICTURE_ECHO_NOTIFY)
-			{
-				media_mailbox_list_del_node(msg->sem, &media_major_mailbox_msg_queue_rsp);
-				lcd_display_echo_event_handle(msg);
-				return;
-			}
+			case CAM_EVENT:
+				media_msg.event = msg->event;
+				media_msg.param = (uint32_t)msg;
+				media_send_msg(&media_msg);
+				break;
 
-			if (msg->sem)
-			{
-				media_mailbox_list_del_node(msg->sem, &media_major_mailbox_msg_queue_rsp);
-				ret = rtos_set_semaphore(&msg->sem);
+			case TRS_EVENT:
+				media_msg.event = msg->event;
+				media_msg.param = (uint32_t)msg;
+				media_send_msg(&media_msg);
+				break;
 
-				if (ret != BK_OK)
+			case STORAGE_EVENT:
+				media_msg.event = msg->event;
+				media_msg.param = (uint32_t)msg;
+				media_send_msg(&media_msg);
+				break;
+
+			case AUD_EVENT:
+			case AUD_NOTIFY:
+				audio_event_handle(msg);
+				break;
+
+			case MAILBOX_NOTIFY:
+				switch (msg->event)
 				{
-					LOGE("%s semaphore set failed: %d\n", __func__, ret);
+					case EVENT_MEDIA_DATA_NOTIFY:
+					case EVENT_VID_CAPTURE_NOTIFY:
+					case EVENT_VID_SAVE_ALL_NOTIFY:
+						media_major_mailbox_rsp_handle_ext(msg);
+						break;
+
+					case EVENT_AUD_MIC_DATA_NOTIFY:
+					case EVENT_AUD_SPK_DATA_NOTIFY:
+						audio_event_handle(msg);
+						break;
+
+					default:
+						break;
 				}
-			}
-			else
-			{
-				media_mailbox_list_del_node_by_event(msg->event, &media_major_mailbox_msg_queue_rsp);
-			}
-		}
-		else if(msg->type == MAILBOX_MSG_TYPE_ABORT)
-		{
-			
-		}
-		else if(msg->type == MAILBOX_MSG_TYPE_NOTIFY)
-		{
-			
-		}
-		else
-		{
-			LOGE("%s unsupported type %x\n", __func__, msg->type);
+				break;
+			default:
+				break;
+
 		}
 	}
 	else if (msg->src == MINOR_MODULE)
@@ -327,52 +273,14 @@ void media_major_mailbox_msg_send(media_mailbox_msg_t *msg)
 {
 	bk_err_t ret = BK_OK;
 
+	LOGD("====>>>>8 %s %x %x\n", __func__, msg->src, msg->result);
+	media_major_mailbox_send_sem = media_major_mailbox_rsp_sem;
+	ret = media_major_mailbox_send_msg_to_media_app_mailbox(msg);
 
-	if(msg->type == MAILBOX_MSG_TYPE_REQ) //send req msg to cpu0 and add to rsp list
+	ret = rtos_get_semaphore(&media_major_mailbox_rsp_sem, 500);
+	if(ret != BK_OK)
 	{
-		msg_major_send = msg;
-		ret = media_major_mailbox_send_msg_to_media_app_mailbox(msg);
-		if (ret != BK_OK)
-		{
-			if (msg_major_send)
-			{
-				msg_major_send = NULL;
-			}
-			msg_send_back_to_media_major_mailbox(msg, BK_FAIL);
-			LOGE("%s FAILED 2\n", __func__);
-		}
-
-		ret = rtos_get_semaphore(&media_major_mailbox_rsp_sem, 5);
-		if(ret != BK_OK)
-		{
-			LOGE("%s send msg error\n", __func__);
-		}
-	}
-	else if(msg->type == MAILBOX_MSG_TYPE_RSP) //send rsp msg to cpu0
-	{
-		ret = media_major_mailbox_send_msg_to_media_app_mailbox(msg);
-		if (ret != BK_OK)
-		{
-			LOGE("%s FAILED 1\n", __func__);
-		}
-	
-		ret = rtos_get_semaphore(&media_major_mailbox_rsp_sem, 5);
-		if(ret != BK_OK)
-		{
-			LOGE("%s send msg error\n", __func__);
-		}
-	}
-	else if(msg->type == MAILBOX_MSG_TYPE_ABORT)
-	{
-
-	}
-	else if(msg->type == MAILBOX_MSG_TYPE_NOTIFY)
-	{
-		
-	}
-	else
-	{
-		LOGE("%s unsupported type %x\n", __func__, msg->type);
+		LOGE("%s send msg error\n", __func__);
 	}
 }
 
@@ -392,7 +300,7 @@ static void media_major_mailbox_message_handle(void)
 	{
 		if (msg_major_send == NULL)
 		{
-			node = media_mailbox_list_pop(&media_major_mailbox_msg_queue_req);
+			node = media_mailbox_list_pop(&media_major_mailbox_msg_queue_req, media_major_mailbox_msg_queue_req_lock);
 		}
 		else
 		{
@@ -411,10 +319,13 @@ static void media_major_mailbox_message_handle(void)
 					break;
 
 				case APP_MODULE:
+//					msg_major_send = node;
 					media_major_mailbox_msg_send(node);
 					break;
 
 				case MINOR_MODULE:
+//					msg_major_send = node;
+//					media_major_mailbox_rsp_handle(node);
 					break;
 
 				default:
@@ -426,27 +337,26 @@ static void media_major_mailbox_message_handle(void)
 			if (media_major_mailbox_sem)
 			{
 				ret = rtos_get_semaphore(&media_major_mailbox_sem, BEKEN_WAIT_FOREVER);
-			}
-		}
-
-		while(!rtos_is_queue_empty(&media_major_mailbox_msg_queue))
-		{
-			ret = rtos_pop_from_queue(&media_major_mailbox_msg_queue, &msg, 0);
-			if (kNoErr == ret)
-			{
-				tmp = (media_mailbox_msg_t *)msg.param;
-				if (msg.event == 0)
+				while(1)
 				{
-					media_mailbox_list_push(tmp, &media_major_mailbox_msg_queue_req);
+					ret = rtos_pop_from_queue(&media_major_mailbox_msg_queue, &msg, 0);
+					if (kNoErr == ret)
+					{
+						tmp = (media_mailbox_msg_t *)msg.param;
+						if (msg.event == 0)
+						{
+							media_mailbox_list_push(tmp, &media_major_mailbox_msg_queue_req, media_major_mailbox_msg_queue_req_lock);
+						}
+						else
+						{
+							media_mailbox_list_push(tmp, &media_major_mailbox_msg_queue_rsp, media_major_mailbox_msg_queue_rsp_lock);
+						}
+					}
+					else
+					{
+						break;
+					}
 				}
-				else
-				{
-					media_mailbox_list_push(tmp, &media_major_mailbox_msg_queue_rsp);
-				}
-			}
-			else
-			{
-				break;
 			}
 		}
 	}
@@ -454,27 +364,6 @@ static void media_major_mailbox_message_handle(void)
 exit:
 
 	media_deinit();
-
-	media_major_mailbox_deinit();
-
-	/* delate task */
-	rtos_delete_thread(NULL);
-
-	media_major_mailbox_th_hd = NULL;
-
-	LOGE("delete task complete\n");
-}
-
-bk_err_t media_major_mailbox_deinit(void)
-{
-	media_mailbox_list_clear(&media_major_mailbox_msg_queue_req);
-	media_mailbox_list_clear(&media_major_mailbox_msg_queue_rsp);
-
-	if (media_major_mailbox_msg_queue)
-	{
-		rtos_deinit_queue(&media_major_mailbox_msg_queue);
-		media_major_mailbox_msg_queue = NULL;
-	}
 
 	if (media_major_mailbox_rsp_sem)
 	{
@@ -487,10 +376,13 @@ bk_err_t media_major_mailbox_deinit(void)
 		rtos_deinit_semaphore(&media_major_mailbox_sem);
 		media_major_mailbox_sem = NULL;
 	}
-	msg_major_send = NULL;
-	media_major_mailbox_inited = 0;
-	return BK_OK;
 
+	/* delate task */
+	rtos_delete_thread(NULL);
+
+	media_major_mailbox_th_hd = NULL;
+
+	LOGE("delete task complete\n");
 }
 
 bk_err_t media_major_mailbox_init(void)
@@ -498,50 +390,65 @@ bk_err_t media_major_mailbox_init(void)
 	bk_err_t ret = BK_OK;
 	LOGE("%s\n", __func__);
 
-	if (media_major_mailbox_inited != 0)
+	if (media_major_mailbox_sem != NULL)
 	{
-		LOGE("media_major_mailbox already init, exit!\n");
-		return ret;
+		LOGE("media_major_mailbox_sem already init, exit!\n");
+		goto exit;
 	}
 
 	ret = rtos_init_semaphore(&media_major_mailbox_sem, 1);
+
 	if (ret != BK_OK)
 	{
 		LOGE("create media_major_mailbox_sem failed\n");
-		goto exit;
+		goto error1;
 	}
 
-	ret = rtos_init_semaphore(&media_major_mailbox_rsp_sem, 1);
-	if (ret != BK_OK)
+	if (media_major_mailbox_rsp_sem == NULL)
 	{
-		LOGE("create media_major_mailbox_rsp_sem failed\n");
-		goto exit;
+		ret = rtos_init_semaphore(&media_major_mailbox_rsp_sem, 1);
+		if (ret != BK_OK)
+		{
+			LOGE("create media_major_mailbox_rsp_sem failed\n");
+			goto error1;
+		}
+	}
+
+	if (media_major_mailbox_th_hd != NULL)
+	{
+		ret = BK_OK;
+		LOGE("media_major_mailbox_th_hd already init, exit!\n");
+		goto error2;
 	}
 
 	INIT_LIST_HEAD(&media_major_mailbox_msg_queue_req);
 	INIT_LIST_HEAD(&media_major_mailbox_msg_queue_rsp);
+	rtos_init_mutex(&media_major_mailbox_msg_queue_req_lock);
+	rtos_init_mutex(&media_major_mailbox_msg_queue_rsp_lock);
 
-	mb_chnl_open(MB_CHNL_MEDIA, NULL);
-	mb_chnl_ctrl(MB_CHNL_MEDIA, MB_CHNL_SET_RX_ISR, media_major_mailbox_mailbox_rx_isr);
-	mb_chnl_ctrl(MB_CHNL_MEDIA, MB_CHNL_SET_TX_ISR, media_major_mailbox_mailbox_tx_isr);
-	mb_chnl_ctrl(MB_CHNL_MEDIA, MB_CHNL_SET_TX_CMPL_ISR, media_major_mailbox_mailbox_tx_cmpl_isr);
-
+	 mb_chnl_open(MB_CHNL_MEDIA, NULL);
+	 mb_chnl_ctrl(MB_CHNL_MEDIA, MB_CHNL_SET_RX_ISR, media_major_mailbox_mailbox_rx_isr);
+	 mb_chnl_ctrl(MB_CHNL_MEDIA, MB_CHNL_SET_TX_ISR, media_major_mailbox_mailbox_tx_isr);
+	 mb_chnl_ctrl(MB_CHNL_MEDIA, MB_CHNL_SET_TX_CMPL_ISR, media_major_mailbox_mailbox_tx_cmpl_isr);
+ 
 #ifdef CONFIG_MINOR
-	mb_chnl_open(MB_CHNL_VID, NULL);
-	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_RX_ISR, media_major_mailbox_mailbox_rx_isr);
-	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_TX_ISR, media_major_mailbox_mailbox_tx_isr);
-	mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_TX_CMPL_ISR, media_major_mailbox_mailbox_tx_cmpl_isr);
+	 mb_chnl_open(MB_CHNL_VID, NULL);
+	 mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_RX_ISR, media_major_mailbox_mailbox_rx_isr);
+	 mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_TX_ISR, media_major_mailbox_mailbox_tx_isr);
+	 mb_chnl_ctrl(MB_CHNL_VID, MB_CHNL_SET_TX_CMPL_ISR, media_major_mailbox_mailbox_tx_cmpl_isr);
 #endif
+
+	if (media_major_mailbox_msg_queue != NULL)
+	{
+		ret = kNoErr;
+		LOGE("media_major_mailbox_msg_queue already init, exit!\n");
+		goto error2;
+	}
 
 	ret = rtos_init_queue(&media_major_mailbox_msg_queue,
 							"media_major_mailbox_msg_queue",
 							sizeof(media_msg_t),
 							20);
-	if (ret != BK_OK)
-	{
-		LOGE("create media_major_mailbox_msg_queue fail\n");
-		goto exit;
-	}
 
 	ret = rtos_create_thread(&media_major_mailbox_th_hd,
 							 4,
@@ -553,16 +460,36 @@ bk_err_t media_major_mailbox_init(void)
 	if (ret != BK_OK)
 	{
 		LOGE("create mailbox major thread fail\n");
-		goto exit;
+		goto error3;
 	}
 
 	LOGI("mailboxs major thread startup complete\n");
-	media_major_mailbox_inited = 1;
 
 	return BK_OK;
 
+	error3:
+		if (media_major_mailbox_msg_queue)
+		{
+			rtos_deinit_queue(&media_major_mailbox_msg_queue);
+			media_major_mailbox_msg_queue = NULL;
+		}
+
+error2:
+	if (media_major_mailbox_rsp_sem)
+	{
+		rtos_deinit_semaphore(&media_major_mailbox_rsp_sem);
+		media_major_mailbox_rsp_sem = NULL;
+	}
+
+error1:
+	if (media_major_mailbox_sem)
+	{
+		rtos_deinit_semaphore(&media_major_mailbox_sem);
+		media_major_mailbox_sem = NULL;
+	}
+
 exit:
-	media_major_mailbox_deinit();
+
 
 	return ret;
 }

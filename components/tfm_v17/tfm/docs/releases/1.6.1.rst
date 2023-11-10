@@ -1,0 +1,15 @@
+*************
+Version 1.6.1
+*************
+
+Hotfixes
+========
+
+ - Correctly apply the stack sealing for the PSP stack in library mode
+ - Fix an issue by which the TF-M Crypto service might use invalid lengths for
+   output buffer parameters for some PSA Crypto APIs calls leading to an automatic
+   reset of the device when the API should just return PSA_ERROR_BUFFER_TOO_SMALL
+
+--------------
+
+*Copyright (c) 2022, Arm Limited. All rights reserved.*

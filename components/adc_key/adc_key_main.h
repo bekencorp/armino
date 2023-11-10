@@ -15,14 +15,6 @@
 #pragma once
 
 #include <stdbool.h>
-#include "bk_gpio.h"
-#include <driver/gpio.h>
-#include "gpio_driver.h"
-#include "bk_saradc.h"
-#include <driver/adc.h>
-#include "adc_statis.h"
-#include <driver/hal/hal_gpio_types.h>
-#include <driver/hal/hal_adc_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,66 +28,38 @@ extern "C" {
 
 #define ADC_KEY_GPIO_ID   GPIO_28
 #define ADC_KEY_SADC_CHAN_ID   4
+#define ADC_KEY_GET_VALUE_WAIT_MS 50
+#define ADC_KEY_VALID_VALUE_STATISTICS 35
+#define ADC_KEY_ADC_COLLECT_NUMBER 100
 
-#define ADCKEY_TMR_DURATION 10
-#define ADCKEY_TICKS_INTERVAL    10	//ms
-#define ADCKEY_DEBOUNCE_TICKS    6	//MAX 8
-#define ADCKEY_SHORT_TICKS       (400 /ADCKEY_TICKS_INTERVAL)
-#define ADCKEY_LONG_TICKS        (1000 /ADCKEY_TICKS_INTERVAL)
-
-typedef void (*adc_key_callback)(void *);
-
-typedef enum {
-	ADCKEY_PRESS_DOWN = 0,
-	ADCKEY_PRESS_UP,
-	ADCKEY_PRESS_REPEAT,
-	ADCKEY_SINGLE_CLICK,
-	ADCKEY_DOUBLE_CLICK,
-	ADCKEY_LONG_PRESS_START,
-	ADCKEY_LONG_PRESS_HOLD,
-	ADCKEY_NUMBER_OF_EVENT,
-	ADCKEY_NONE_PRESS
-} ADCKEY_PRESS_EVT;
-
-typedef struct _adckey_ {
-	uint16_t ticks;
-	uint16_t lowest_active_level;
-	uint16_t highest_active_level;
-	uint16_t adc_read_level;
-	uint8_t repeat;
-	uint8_t event;
-	uint8_t state;
-	uint8_t debounce_cnt;
-
-	void *user_data;
-	adc_key_callback  cb[ADCKEY_NUMBER_OF_EVENT];
-	struct _adckey_ *next;
-} ADCKEY_S;
-
-typedef enum {
-
-	ADCKEY_PEV = 0,
-	ADCKEY_NEXT,
-	ADCKEY_MENU,
-	ADCKEY_PLAY_PAUSE,
-	ADCKEY_NULL,
-} ADCKEY_INDEX;
+typedef void (*adc_key_isr_t)();
 
 typedef struct
 {
-	uint16_t lowest_level;
-	uint16_t highest_level;
-	ADCKEY_INDEX user_index;
-	adc_key_callback short_press_cb;
-	adc_key_callback double_press_cb;
-	adc_key_callback long_press_cb;
-	adc_key_callback hold_press_cb;
-} adckey_configure_t;
+	adc_key_isr_t next_cb;
+	adc_key_isr_t prev_cb;
+	adc_key_isr_t play_pause_cb;
+	adc_key_isr_t menu_cb;
 
-void bk_adc_key_init(gpio_id_t gpio_id, adc_chan_t adc_chan);
-void bk_adc_key_deinit(void);
-uint32_t bk_adckey_item_configure(adckey_configure_t *config);
-uint32_t bk_adckey_item_unconfigure(ADCKEY_INDEX user_data);
+} adc_key_callback_t;
+
+typedef struct
+{
+	beken_semaphore_t adc_key_semaphore;
+	beken_thread_t adc_key_handle;
+	uint32_t anti_shake_count;
+
+} adc_key_config_t;
+
+void adc_key_init(void);
+void adc_key_deinit(void);
+void adc_key_register_next_cb(adc_key_isr_t isr);
+void adc_key_register_prev_cb(adc_key_isr_t isr);
+void adc_key_register_play_pause_cb(adc_key_isr_t isr);
+void adc_key_register_menu_cb(adc_key_isr_t isr);
+
+void adc_key_set_gpio_int_type(int adc_key_gpio_int_type);
+
 
 #ifdef __cplusplus
 }

@@ -14,7 +14,6 @@ CONFIG_SOC_STR="bk7235_cp1"
 #
 # Common Configuration
 #
-CONFIG_SYS_CPU1=y
 
 #
 # Compile/Build
@@ -93,7 +92,8 @@ CONFIG_JPEGDEC_SW=n
 #
 # Video transfer
 #
-CONFIG_DVP_CAMERA=n
+CONFIG_CAMERA=n
+CONFIG_CAMERA_USE_I2C1=n
 #
 #end of Video 
 

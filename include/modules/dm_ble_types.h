@@ -692,28 +692,28 @@ enum
     GATT_DB_CHAR_PEER_PREPARE_WRITE_REQ =     (GATT_DB_PEER_INITIATED | GATT_DB_PREPARE),
 
     /** Characteristic Client Configuration Peer Read Operation */
-    GATT_DB_CHAR_PEER_CLI_CNFG_READ_REQ =     (0x10U | GATT_DB_PEER_INITIATED | GATT_DB_READ),
+    GATT_DB_CHAR_PEER_CLI_CNFG_READ_REQ =     0x91U,
 
     /** Characteristic Client Configuration Peer Write Operation */
-    GATT_DB_CHAR_PEER_CLI_CNFG_WRITE_REQ =    (0x10U | GATT_DB_PEER_INITIATED | GATT_DB_WRITE),
+    GATT_DB_CHAR_PEER_CLI_CNFG_WRITE_REQ =    0x92U,
 
     /** Characteristic Server Configuration Peer Read Operation */
-    GATT_DB_CHAR_PEER_SER_CNFG_READ_REQ =     (0x20U | GATT_DB_PEER_INITIATED | GATT_DB_READ),
+    GATT_DB_CHAR_PEER_SER_CNFG_READ_REQ =     0xA1U,
 
     /** Characteristic Server Configuration Peer Write Operation */
-    GATT_DB_CHAR_PEER_SER_CNFG_WRITE_REQ =    (0x20U | GATT_DB_PEER_INITIATED | GATT_DB_WRITE),
+    GATT_DB_CHAR_PEER_SER_CNFG_WRITE_REQ =    0xA2U,
 
     /** Characteristic User Description Peer Read Operation */
-    GATT_DB_CHAR_PEER_USR_DESC_READ_REQ =     (0x30U | GATT_DB_PEER_INITIATED | GATT_DB_READ),
+    GATT_DB_CHAR_PEER_USR_DESC_READ_REQ =     0xB1U,
 
     /** Characteristic User Description Peer Write Operation */
-    GATT_DB_CHAR_PEER_USR_DESC_WRITE_REQ =    (0x30U | GATT_DB_PEER_INITIATED | GATT_DB_WRITE),
+    GATT_DB_CHAR_PEER_USR_DESC_WRITE_REQ =    0xB2U,
 
     /** Characteristic Higher Layer Defined Descriptor Peer Read Operation */
-    GATT_DB_CHAR_PEER_HLD_DESC_READ_REQ =     (0x70U | GATT_DB_PEER_INITIATED | GATT_DB_READ),
+    GATT_DB_CHAR_PEER_HLD_DESC_READ_REQ =     0xF1U,
 
     /** Characteristic Higher Layer Defined Descriptor Peer Write Operation */
-    GATT_DB_CHAR_PEER_HLD_DESC_WRITE_REQ =    (0x70U | GATT_DB_PEER_INITIATED | GATT_DB_WRITE),
+    GATT_DB_CHAR_PEER_HLD_DESC_WRITE_REQ =    0xF2U,
 };
 
 /** \} */

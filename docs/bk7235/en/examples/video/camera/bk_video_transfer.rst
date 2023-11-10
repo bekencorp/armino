@@ -43,7 +43,7 @@ Video_transfer
 	+======================================+========================+============================================+=========+
 	|CONFIG_JPEGENC_HW                     |support hw jpeg encode  |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_DVP_CAMERA                     |support use dvp camera  |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
+	|CONFIG_CAMERA                         |suport use dvp camera   |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 	|CONFIG_USE_APP_DEMO_VIDEO_TRANSSER    |support video transfer  |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
@@ -51,7 +51,7 @@ Video_transfer
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 	|CONFIG_COMPONENTS_P2P                 |support p2p transfer    |``middleware\soc\bk7256\bk7256.defconfig``  |    n    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_DVP_CAMERA_I2C_ID              |support use I2C ID      |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
+	|CONFIG_CAMERA_USE_I2C1                |suport use I2C1         |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 
 4 Presentation Introduction
@@ -235,7 +235,7 @@ Video_transfer
 
 	3. Supports dynamic setting of resolution and frame rate, and does not support setting and replacing dvp devices
 
-	- After exiting the video transmission, send the video_transfer -s|a ssid [key] [camera_type] [ppi] [fps] command, only camera_type, ppi and fps can be modified.
+		- After exiting the video transmission, send the video_transfer -s|a ssid [key] [camera_type] [ppi] [fps] command, only camera_type, ppi and fps can be modified.
 
 	4. Testable solutions
 

@@ -30,13 +30,5 @@
       "version": 1,
       "version_policy": "STRICT"
     },
-    {
-      "name": "TFM_SYSTEM_CORE_SET",
-      "sid": "0x000000C2",
-      "non_secure_clients": true,
-      "connection_based": true,
-      "version": 1,
-      "version_policy": "STRICT"
-    },
   ],
 }

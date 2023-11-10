@@ -10,15 +10,9 @@ if (CONFIG_DOORBELL)
 		"src/doorbell_core.c"
 		"src/doorbell_udp.c"
 		"src/doorbell_tcp.c"
-	)
-
-if (CONFIG_CS2_P2P_SERVER OR CONFIG_CS2_P2P_CLIENT)
-    list(APPEND srcs
 		src/doorbell_cs2_p2p_server.c
 		src/doorbell_cs2_p2p_client.c
-    )
-endif()
-
+	)
 
 if (CONFIG_AV_DEMO)
 		list(APPEND srcs

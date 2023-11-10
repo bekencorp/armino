@@ -48,8 +48,6 @@ static uint16_t s_boarding_password_len = 0;
 static uint8_t s_boarding_notify[1] = {0};
 static uint8_t s_conn_ind = ~0;
 
-static uint8_t *s_app_alloc_buff = NULL;
-
 #define GATT_BOARDING_SERVICE_UUID              0xFFFFU
 #define GATT_BOARDING_NOTIFY_CHARACTERISTIC     0x1234U
 #define GATT_BOARDING_SSID_CHARACTERISTIC       0x9ABCU
@@ -61,9 +59,6 @@ typedef struct
     uint16_t chara_notify_handle;
     uint16_t chara_ssid_handle;
     uint16_t chara_pass_handle;
-
-    uint16_t chara_app_alloc_handle;
-    uint16_t chara_host_alloc_handle;
 } boarding_env_s;
 
 static boarding_env_s boarding_env;
@@ -156,7 +151,6 @@ static uint32_t dm_ble_event_cb(ble_event_enum_t notice, void *param)
         ble_conn_update_param_compl_ind_t *updata_param = (typeof(updata_param))param;
         os_printf("BK_DM_BLE_EVENT_CONN_UPDATA:conn_interval:0x%04x, con_latency:0x%04x, sup_to:0x%04x\n",
                   updata_param->conn_interval, updata_param->conn_latency, updata_param->supervision_timeout);
-
         break;
     }
 
@@ -355,74 +349,6 @@ int dm_ble_demo_main(void)
     else
     {
         boarding_env.chara_pass_handle = char_handle;
-    }
-
-
-    //for chara_app_alloc_handle
-    char_uuid.uuid_format = ATT_16_BIT_UUID_FORMAT;
-    char_uuid.uuid.uuid_16 = 0x1111;
-    perm = GATT_DB_PERM_READ | GATT_DB_PERM_WRITE;
-    property = (GATT_DB_CHAR_READ_PROPERTY | GATT_DB_CHAR_WRITE_PROPERTY | GATT_DB_CHAR_WRITE_WITHOUT_RSP_PROPERTY);
-
-    s_app_alloc_buff = os_malloc(522);
-
-    if(!s_app_alloc_buff)
-    {
-        os_printf("%s malloc fail\n", __func__);
-    }
-
-    char_value.val = s_app_alloc_buff;
-    char_value.len = 522;
-    char_value.actual_len = char_value.len;
-    retval = bk_ble_gatt_db_add_characteristic
-             (
-                 service_handle,
-                 &char_uuid,
-                 perm,
-                 property,
-                 &char_value,
-                 &char_handle
-             );
-
-    if (0 != retval)
-    {
-        os_printf("%s: bk_ble_gatt_db_add_characteristic() failed. Result: 0x%04X\n", __func__, retval);
-        goto error;
-    }
-    else
-    {
-        boarding_env.chara_app_alloc_handle = char_handle;
-    }
-
-
-    //for chara_host_alloc_handle
-    char_uuid.uuid_format = ATT_16_BIT_UUID_FORMAT;
-    char_uuid.uuid.uuid_16 = 0x2222;
-    perm = GATT_DB_PERM_READ | GATT_DB_PERM_WRITE;
-    property = (GATT_DB_CHAR_READ_PROPERTY | GATT_DB_CHAR_WRITE_PROPERTY | GATT_DB_CHAR_WRITE_WITHOUT_RSP_PROPERTY);
-
-
-    char_value.val = NULL;
-    char_value.len = 128;
-    char_value.actual_len = char_value.len;
-    retval = bk_ble_gatt_db_add_characteristic
-             (
-                 service_handle,
-                 &char_uuid,
-                 perm,
-                 property,
-                 &char_value,
-                 &char_handle
-             );
-
-    if (0 != retval)
-    {
-        os_printf("%s: bk_ble_gatt_db_add_characteristic() failed. Result: 0x%04X\n", __func__, retval);
-        goto error;
-    }
-    else
-    {
-        boarding_env.chara_host_alloc_handle = char_handle;
     }
 
     retval = bk_ble_gatt_db_add_completed();
@@ -624,24 +550,6 @@ static bk_err_t gatt_db_boarding_gatt_char_handler(uint8_t conn_handle, GATT_DB_
             }
         }
         break;
-
-        case GATT_DB_CHAR_PEER_EXECUTE_WRITE_REQ:
-        {
-            if (handle->char_id == boarding_env.chara_app_alloc_handle)
-            {
-                uint16_t value = 0;
-                memcpy(&value, params->value.val, sizeof(value));
-                os_printf("%s write exe chara_app_alloc_handle 0x%X len %d %d\n", __func__, value, params->value.len, params->value.actual_len);
-            }
-
-            if (handle->char_id == boarding_env.chara_host_alloc_handle)
-            {
-                uint16_t value = 0;
-                memcpy(&value, params->value.val, sizeof(value));
-                os_printf("%s write exe chara_host_alloc_handle 0x%X len %d %d\n", __func__, value, params->value.len, params->value.actual_len);
-            }
-        }
-            break;
 
         default:
             //                os_printf(

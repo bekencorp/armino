@@ -18,7 +18,6 @@
 #include <modules/ble_types.h>
 #include <driver/timer.h>
 #include <driver/trng.h>
-#include <driver/pwr_clk.h>
 
 #if !CONFIG_SLAVE_CORE
 #if CONFIG_SYSTEM_CTRL
@@ -158,7 +157,7 @@ static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 		}
 	}
 
-	s_cli_sleep_mode = pm_sleep_mode;
+	s_cli_sleep_mode  = pm_sleep_mode;
 	s_pm_vote1 = pm_vote1;
 	s_pm_vote2 = pm_vote2;
 	s_pm_vote3 = pm_vote3;
@@ -166,49 +165,29 @@ static void cli_pm_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char 
 	/*set wakeup source*/
 	if(pm_wake_source == PM_WAKEUP_SOURCE_INT_RTC)
 	{
-		do {
-			#if CONFIG_RTC_ANA_WAKEUP_SUPPORT
-			if (pm_sleep_mode == PM_MODE_DEEP_SLEEP)
-			{
-				bk_rtc_ana_register_wakeup_source(pm_param1);
-				break;
-			}
-			#endif //CONFIG_RTC_ANA_WAKEUP_SUPPORT
+		#if CONFIG_AON_RTC
+		alarm_info_t low_valtage_alarm = {
+										"low_vol",
+										pm_param1*RTC_TICKS_PER_1MS,
+										1,
+										cli_pm_rtc_callback,
+										NULL
+										};
 
-			#if CONFIG_AON_RTC
-			alarm_info_t low_valtage_alarm = {
-											"low_vol",
-											pm_param1*AON_RTC_MS_TICK_CNT,
-											1,
-											cli_pm_rtc_callback,
-											NULL
-											};
+		//force unregister previous if doesn't finish.
+		bk_alarm_unregister(AON_RTC_ID_1, low_valtage_alarm.name);
+		bk_alarm_register(AON_RTC_ID_1, &low_valtage_alarm);
+		#endif
+		bk_pm_wakeup_source_set(PM_WAKEUP_SOURCE_INT_RTC, NULL);
 
-			//force unregister previous if doesn't finish.
-			bk_alarm_unregister(AON_RTC_ID_1, low_valtage_alarm.name);
-			bk_alarm_register(AON_RTC_ID_1, &low_valtage_alarm);
-			#endif //CONFIG_AON_RTC
-			bk_pm_wakeup_source_set(PM_WAKEUP_SOURCE_INT_RTC, NULL);
-		} while(0);
 	}
 	else if(pm_wake_source == PM_WAKEUP_SOURCE_INT_GPIO)
 	{
-		do {
-			#if CONFIG_GPIO_ANA_WAKEUP_SUPPORT
-			if (pm_sleep_mode == PM_MODE_DEEP_SLEEP)
-			{
-				bk_gpio_ana_register_wakeup_source(pm_param1,pm_param2);
-				break;
-			}
-			break;
-			#endif //CONFIG_GPIO_ANA_WAKEUP_SUPPORT
-
-			#if CONFIG_GPIO_WAKEUP_SUPPORT
-			bk_gpio_register_isr(pm_param1, cli_pm_gpio_callback);
-			bk_gpio_register_wakeup_source(pm_param1,pm_param2);
-			bk_pm_wakeup_source_set(PM_WAKEUP_SOURCE_INT_GPIO, NULL);
-			#endif //CONFIG_GPIO_WAKEUP_SUPPORT
-		} while(0);
+	#if CONFIG_GPIO_WAKEUP_SUPPORT
+		bk_gpio_register_isr(pm_param1, cli_pm_gpio_callback);
+		bk_gpio_register_wakeup_source(pm_param1,pm_param2);
+		bk_pm_wakeup_source_set(PM_WAKEUP_SOURCE_INT_GPIO, NULL);
+	#endif
 	}
 	else if(pm_wake_source == PM_WAKEUP_SOURCE_INT_SYSTEM_WAKE)
 	{   
@@ -510,7 +489,9 @@ static void cli_pm_auto_vote(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 		os_printf("set pm auto vote value invalid %d\r\n",pm_ctrl);
 		return;
 	}
-	bk_pm_module_vote_sleep_ctrl(PM_SLEEP_MODULE_NAME_APP,0x0,0x0);
+
+	bk_pm_app_auto_vote_state_set(pm_ctrl);
+
 }
 
 #define CLI_DVFS_FREQUNCY_DIV_MAX      (15)
@@ -522,6 +503,7 @@ static void cli_dvfs_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	UINT32 ckdiv_bus  = 0;
 	UINT32 ckdiv_cpu0 = 0;
 	UINT32 ckdiv_cpu1 = 0;
+	UINT32 clk_param  = 0;
 
 	if (argc != 6) 
 	{
@@ -556,95 +538,65 @@ static void cli_dvfs_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 		GLOBAL_INT_RESTORE();
 		return;
 	}
-	pm_core_bus_clock_ctrl(cksel_core, ckdiv_core,ckdiv_bus, ckdiv_cpu0,ckdiv_cpu1);
+
+	clk_param = 0;
+	clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
+	if(((clk_param >> 0x4)&0x3) > cksel_core)//when it from the higher frequecy to lower frqquecy
+	{
+		/*1.core clk select*/
+		clk_param = 0;
+		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
+		clk_param &=  ~(0x3 << 4);
+		clk_param |=  cksel_core << 4;
+		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
+
+		/*2.config bus and core clk div*/
+		clk_param = 0;
+		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
+		clk_param &=  ~((0x1 << 6)|(0xF << 0));
+		clk_param |=  ckdiv_core << 0;
+		clk_param |=  (ckdiv_bus&0x1) << 6;
+		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
+
+		/*3.config cpu clk div*/
+		sys_drv_cpu_clk_div_set(0,ckdiv_cpu0);
+
+		sys_drv_cpu_clk_div_set(1,ckdiv_cpu1);
+
+	}
+	else//when it from the lower frequecy to higher frqquecy
+	{
+		/*1.config bus and core clk div*/
+		clk_param = 0;
+		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
+		clk_param &=  ~(0xF << 0);
+		clk_param |=  ckdiv_core << 0;
+		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
+	
+		clk_param = 0;
+		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
+		clk_param &=  ~(0x1 << 6);
+		clk_param |=  (ckdiv_bus&0x1) << 6;
+		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
+
+		/*2.config cpu clk div*/
+		sys_drv_cpu_clk_div_set(0,ckdiv_cpu0);
+
+		sys_drv_cpu_clk_div_set(1,ckdiv_cpu1);
+
+		/*3.core clk select*/
+
+		clk_param = 0;
+		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
+		clk_param &=  ~(0x3 << 4);
+		clk_param |=  cksel_core << 4;
+		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
+	}
 	GLOBAL_INT_RESTORE();
 	os_printf("switch cpu frequency ok 0x%x 0x%x 0x%x\r\n",sys_drv_all_modules_clk_div_get(CLK_DIV_REG0),sys_drv_cpu_clk_div_get(0),sys_drv_cpu_clk_div_get(1));
 }
 
-typedef struct{
-	uint32_t cksel_core;  // 0:XTAL       1 : clk_DCO      2 : 320M      3 : 480M
-	uint32_t ckdiv_core;  // Frequency division : F/(1+N), N is the data of the reg value 0--15
-	uint32_t ckdiv_bus;   // Frequency division : F/(1+N), N is the data of the reg value:0--1
-	uint32_t ckdiv_cpu0;  // Frequency division : F/(1+N), N is the data of the reg value:0--15
-	uint32_t ckdiv_cpu1;  // 0: cpu0,cpu1 and bus  sel same clock frequence 1: cpu0_clk and  bus_clk is half cpu1_clk
-}core_bus_clock_ctrl_t;
-
-#define CORE_BUS_CLOCK_AUTO_TEST 0
-#if CORE_BUS_CLOCK_AUTO_TEST
-#define CORE_BUS_CLOCK_MAP \
-{ \
-	{0x0,0x0,0x0,0x0,0x0 },  /*0:XTAL */\
-	{0x2,0x1,0x0,0x0,0x0 },  /*2 : 320M  ckdiv_cpu1 = 0 */ \
-	{0x2,0x2,0x0,0x0,0x0 },  /*2 : 320M */ \
-	{0x2,0x3,0x0,0x0,0x0 },  /*2 : 320M */ \
-	{0x2,0x4,0x0,0x0,0x0 },  /*2 : 320M */ \
-	{0x2,0x5,0x0,0x0,0x0 },  /*2 : 320M */ \
-	{0x2,0x6,0x0,0x0,0x0 },  /*2 : 320M */ \
-	{0x2,0x7,0x0,0x0,0x0 },  /*2 : 320M */ \
-	{0x2,0x8,0x0,0x0,0x0 },  /*2 : 320M */ \
-	{0x2,0x9,0x0,0x0,0x0 },  /*2 : 320M */ \
-	{0x2,0xA,0x0,0x0,0x0 },  /*2 : 320M */ \
-	{0x2,0xB,0x0,0x0,0x0 },  /*2 : 320M */ \
-	{0x2,0xC,0x0,0x0,0x0 },  /*2 : 320M */ \
-	{0x2,0xD,0x0,0x0,0x0 },  /*2 : 320M */ \
-	{0x2,0xE,0x0,0x0,0x0 },  /*2 : 320M */ \
-	{0x2,0xF,0x0,0x0,0x0 },  /*2 : 320M */ \
-	{0x2,0x0,0x0,0x0,0x1 },  /*2 : 320M  ckdiv_cpu1 = 1*/ \
-	{0x2,0x1,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x2,0x2,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x2,0x3,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x2,0x4,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x2,0x5,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x2,0x6,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x2,0x7,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x2,0x8,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x2,0x9,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x2,0xA,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x2,0xB,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x2,0xC,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x2,0xD,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x2,0xE,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x2,0xF,0x0,0x0,0x1 },  /*2 : 320M */ \
-	{0x3,0x2,0x0,0x0,0x0 },  /*3 : 480M ckdiv_cpu1 = 0*/ \
-	{0x3,0x3,0x0,0x0,0x0 },  /*3 : 480M */ \
-	{0x3,0x4,0x0,0x0,0x0 },  /*3 : 480M */ \
-	{0x3,0x5,0x0,0x0,0x0 },  /*3 : 480M */ \
-	{0x3,0x6,0x0,0x0,0x0 },  /*3 : 480M */ \
-	{0x3,0x7,0x0,0x0,0x0 },  /*3 : 480M */ \
-	{0x3,0x8,0x0,0x0,0x0 },  /*3 : 480M */ \
-	{0x3,0x9,0x0,0x0,0x0 },  /*3 : 480M */ \
-	{0x3,0xA,0x0,0x0,0x0 },  /*3 : 480M */ \
-	{0x3,0xB,0x0,0x0,0x0 },  /*3 : 480M */ \
-	{0x3,0xC,0x0,0x0,0x0 },  /*3 : 480M */ \
-	{0x3,0xD,0x0,0x0,0x0 },  /*3 : 480M */ \
-	{0x3,0xE,0x0,0x0,0x0 },  /*3 : 480M */ \
-	{0x3,0xF,0x0,0x0,0x0 },  /*3 : 480M */ \
-	{0x3,0x1,0x0,0x0,0x1 },  /*3 : 480M ckdiv_cpu1 = 1*/ \
-	{0x3,0x2,0x0,0x0,0x1 },  /*3 : 480M */ \
-	{0x3,0x3,0x0,0x0,0x1 },  /*3 : 480M */ \
-	{0x3,0x4,0x0,0x0,0x1 },  /*3 : 480M */ \
-	{0x3,0x5,0x0,0x0,0x1 },  /*3 : 480M */ \
-	{0x3,0x6,0x0,0x0,0x1 },  /*3 : 480M */ \
-	{0x3,0x7,0x0,0x0,0x1 },  /*3 : 480M */ \
-	{0x3,0x8,0x0,0x0,0x1 },  /*3 : 480M */ \
-	{0x3,0x9,0x0,0x0,0x1 },  /*3 : 480M */ \
-	{0x3,0xA,0x0,0x0,0x1 },  /*3 : 480M */ \
-	{0x3,0xB,0x0,0x0,0x1 },  /*3 : 480M */ \
-	{0x3,0xC,0x0,0x0,0x1 },  /*3 : 480M */ \
-	{0x3,0xD,0x0,0x0,0x1 },  /*3 : 480M */ \
-	{0x3,0xE,0x0,0x0,0x1 },  /*3 : 480M */ \
-	{0x3,0xF,0x0,0x0,0x1 },  /*3 : 480M */ \
-}
-#else
-#define CORE_BUS_CLOCK_MAP \
-{ \
-	{0x0,0x0,0x0,0x0,0x0 },  /*0:XTAL */\
-	{0x2,0x1,0x0,0x0,0x0 },  /*2 : 320M  ckdiv_cpu1 = 0 */ \
-	{0x3,0x2,0x0,0x0,0x0 },  /*3 : 480M  ckdiv_cpu1 = 0 */ \
-	{0x3,0x1,0x0,0x0,0x1 },  /*3 : 480M  ckdiv_cpu1 = 1 */ \
-}
-#endif
-#define DVFS_AUTO_TEST_COUNT (2)
+#define DVFS_AUTO_TEST_COUNT (100)
 extern void delay_us(uint32 num);
 static void cli_dvfs_auto_test_timer_isr(timer_id_t chan)
 {
@@ -653,34 +605,16 @@ static void cli_dvfs_auto_test_timer_isr(timer_id_t chan)
 	for(i=0; i<DVFS_AUTO_TEST_COUNT; i++)
 	{
 		rand_num = (uint32_t)bk_rand()%PM_CPU_FRQ_DEFAULT;
-		//os_printf("dvfs random %d \r\n",rand_num);
+		//os_printf("dvfs %d \r\n",rand_num);
 		delay_us(5);
 		sys_drv_switch_cpu_bus_freq(rand_num);
 	}
 }
-
-core_bus_clock_ctrl_t core_bus_clock[] = CORE_BUS_CLOCK_MAP;
-static void cli_dvfs_auto_test_all_timer_isr(timer_id_t chan)
-{
-	uint8_t rand_num;
-	uint8_t i;
-	
-	for(i=0; i<DVFS_AUTO_TEST_COUNT; i++)
-	{
-		rand_num = (uint32_t)bk_rand()%(sizeof(core_bus_clock)/sizeof(core_bus_clock_ctrl_t));
-		//os_printf("dvfs random %d \r\n",rand_num);
-		//os_printf("[cksel:%d] [ckdiv_core:%d] [ckdiv_bus:%d] [ckdiv_cpu0:%d] [ckdiv_cpu1:%d]\r\n",
-			//core_bus_clock[rand_num].cksel_core, core_bus_clock[rand_num].ckdiv_core, core_bus_clock[rand_num].ckdiv_bus, core_bus_clock[rand_num].ckdiv_cpu0, core_bus_clock[rand_num].ckdiv_cpu1);
-		delay_us(5);
-		pm_core_bus_clock_ctrl(core_bus_clock[rand_num].cksel_core, core_bus_clock[rand_num].ckdiv_core, core_bus_clock[rand_num].ckdiv_bus, core_bus_clock[rand_num].ckdiv_cpu0, core_bus_clock[rand_num].ckdiv_cpu1);
-	}
-}
-
 static void cli_dvfs_auto_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	uint32_t period_us;
 	
-	if (argc != 3)
+	if (argc != 2)
 	{
 		os_printf("set dvfs_auto_test parameter invalid %d\r\n",argc);
 		return;
@@ -691,18 +625,7 @@ static void cli_dvfs_auto_test(char *pcWriteBuffer, int xWriteBufferLen, int arg
 	bk_trng_driver_init();
 	bk_trng_start();
 	
-	if (os_strcmp(argv[2], "default") == 0)
-	{
-		bk_timer_delay_with_callback(TIMER_ID5,period_us,cli_dvfs_auto_test_timer_isr);
-	}
-	else if (os_strcmp(argv[2], "all") == 0)
-	{
-		bk_timer_delay_with_callback(TIMER_ID5,period_us,cli_dvfs_auto_test_all_timer_isr);
-	}
-	else
-	{
-		bk_timer_delay_with_callback(TIMER_ID5,period_us,cli_dvfs_auto_test_timer_isr);
-	}
+	bk_timer_delay_with_callback(TIMER_ID5,period_us,cli_dvfs_auto_test_timer_isr);
 }
 
 #if CONFIG_AON_RTC
@@ -788,21 +711,6 @@ static void cli_pm_cp1_ctrl(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 
 	cp1_ctrl   = os_strtoul(argv[1], NULL, 10);
 	bk_pm_cp1_auto_power_down_state_set(cp1_ctrl);
-#endif
-}
-static void cli_pm_boot_cp1(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-#if !CONFIG_SLAVE_CORE && CONFIG_DUAL_CORE
-	UINT32 boot_cp1_state = 0;
-	UINT32 module_name    = 0;
-	if (argc != 3)
-	{
-		os_printf("cp1 ctrl parameter invalid %d\r\n",argc);
-		return;
-	}
-	module_name   = os_strtoul(argv[1], NULL, 10);
-	boot_cp1_state   = os_strtoul(argv[2], NULL, 10);
-	bk_pm_module_vote_boot_cp1_ctrl(module_name,boot_cp1_state);
 #endif
 }
 #endif//CONFIG_DEBUG_FIRMWARE
@@ -1024,27 +932,6 @@ void cli_pwr_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv
 }
 #endif 
 #endif //!CONFIG_SYSTEM_CTRL
-#if CONFIG_SOC_BK7236XX //temp mofify for bk7236 & bk7258
-/**
- * BK7236XX use buck power supply as default and should not close buck any time during use.
- * This function can only be used when buck power supply is unstable (hardware v4).
- * Please remove it when buck is stable (next hardware version).
-*/
-extern void sys_hal_buck_switch(uint32_t flag);
-static void cli_pm_buck(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-	UINT32 flag = 0;
-	if (argc != 2)
-	{
-		os_printf("set buck power supply invalid %d\r\n",argc);
-		return;
-	}
-
-	flag = os_strtoul(argv[1], NULL, 10);
-
-	sys_hal_buck_switch(flag);
-}
-#endif
 #define PWR_CMD_CNT (sizeof(s_pwr_commands) / sizeof(struct cli_command))
 static const struct cli_command s_pwr_commands[] = {
 #if !CONFIG_SYSTEM_CTRL
@@ -1077,10 +964,6 @@ static const struct cli_command s_pwr_commands[] = {
 	{"pm_rosc_cali", "pm_rosc_cali [cali_mode][cal_intval]", cli_pm_rosc_cali},
 	{"pm_wakeup_source", "pm_wakeup_source [pm_sleep_mode]", cli_pm_wakeup_source},
 	{"pm_cp1_ctrl", "pm_cp1_ctrl [cp1_auto_pw_ctrl]", cli_pm_cp1_ctrl},
-	{"pm_boot_cp1", "pm_boot_cp1 [module_name] [ctrl_state:0x0:bootup; 0x1:shutdowm]", cli_pm_boot_cp1},
-#if CONFIG_SOC_BK7236XX //temp mofify for bk7236 & bk7258
-	{"pm_buck", "pm_buck [1/0]", cli_pm_buck}
-#endif
 #else
 	{"pm", "pm [sleep_mode] [wake_source] [vote1] [vote2] [vote3] [param1] [param2] [param3]", cli_pm_cmd},
 	{"pm_vote", "pm_vote [pm_sleep_mode] [pm_vote] [pm_vote_value] [pm_sleep_time]", cli_pm_vote_cmd},

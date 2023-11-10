@@ -51,12 +51,9 @@ static bk_err_t uvc_camera_deinit(uvc_state_t state)
 
 		usb_device_set_using_status(0, USB_UVC_DEVICE);
 
-		ret = bk_usb_close();
+		bk_usb_close();
 
-		if (ret == BK_OK)
-		{
-			bk_uvc_camera_power_enable(0);
-		}
+		bk_uvc_camera_power_enable(0);
 
 		// unregister connect & disconnect
 		parameter = NULL;
@@ -325,7 +322,7 @@ bk_err_t bk_uvc_camera_set_type(media_camera_type_t type)
 	{
 		ret = bk_uvc_enable_H264();
 	}
-	else if (type == MEDIA_UVC_MJPEG || type == MEDIA_UVC_MJPEG_TO_H264)
+	else if (type == MEDIA_UVC_MJPEG)
 	{
 		ret = bk_uvc_enable_mjpeg();
 	}

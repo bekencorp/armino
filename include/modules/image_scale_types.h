@@ -30,21 +30,10 @@ extern "C" {
 #define RGB_FILP(var) ((var < 0) ? 0 : ((var > 255) ? 255 : var))
 #define CLIP(X) ((X) > 255 ? 255 : (X) < 0 ? 0 : X)
 
-#define TABLE_MAX_SIZE 256
-extern int TABLE_R2V[TABLE_MAX_SIZE];
 
 /* @brief define rgb565 data type, two rgb565 combain a word
  *
  */
-
-typedef enum
-{
-	YUV_ERR,
-	YUV_444,
-	YUV_422,
-	YUV_420,
-	YUV_400, // gray image
-} yuv_enc_fmt_t;
 
 typedef union{
 	struct {

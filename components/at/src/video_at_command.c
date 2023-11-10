@@ -18,7 +18,7 @@ int video_psram_enable_handler(char *pcWriteBuffer, int xWriteBufferLen, int arg
 
 #endif
 
-#if CONFIG_DVP_CAMERA && CONFIG_JPEGENC_HW
+#if CONFIG_CAMERA && CONFIG_JPEGENC_HW
 static beken_semaphore_t video_at_cmd_sema = NULL;
 static uint8_t jpeg_isr_cnt = 20;
 
@@ -26,7 +26,7 @@ int video_set_yuv_psram_handler(char *pcWriteBuffer, int xWriteBufferLen, int ar
 
 int video_close_yuv_psram_handler(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
-#endif //CONFIG_DVP_CAMERA
+#endif //CONFIG_CAMERA
 
 #if CONFIG_MEDIA && CONFIG_LCD
 
@@ -41,7 +41,7 @@ const at_command_t video_at_cmd_table[] = {
 	{0, "PSRAMREAD", 0, "psram write/read", video_read_psram_handler},
 	{1, "PSRAMENABLE", 0, "init/deinit psram", video_psram_enable_handler},
 #endif
-#if CONFIG_DVP_CAMERA && CONFIG_JPEGENC_HW
+#if CONFIG_CAMERA && CONFIG_JPEGENC_HW
 	{3, "SETYUV", 0, "set jpeg/yuv mode and to psram", video_set_yuv_psram_handler},
 	{4, "CLOSEYUV", 0, "close jpeg", video_close_yuv_psram_handler},
 #endif
@@ -151,7 +151,7 @@ error:
 }
 #endif // CONFIG_PSRAM
 
-#if CONFIG_DVP_CAMERA && CONFIG_JPEGENC_HW
+#if CONFIG_CAMERA && CONFIG_JPEGENC_HW
 static void end_of_jpeg_frame(jpeg_unit_t id, void *param)
 {
 	if (jpeg_isr_cnt)
@@ -222,6 +222,10 @@ int video_set_yuv_psram_handler(char *pcWriteBuffer, int xWriteBufferLen, int ar
 
 	bk_dvp_camera_power_enable(1);
 
+#if CONFIG_SOC_BK7256XX
+	bk_jpeg_enc_driver_init();
+#endif
+
 	// step 2: enable jpeg mclk for i2c communicate with dvp
 	bk_jpeg_enc_mclk_enable();
 
@@ -230,7 +234,7 @@ int video_set_yuv_psram_handler(char *pcWriteBuffer, int xWriteBufferLen, int ar
 	// step 3: init i2c
 	i2c_config.baud_rate = I2C_BAUD_RATE_100KHZ;
 	i2c_config.addr_mode = I2C_ADDR_MODE_7BIT;
-	bk_i2c_init(CONFIG_DVP_CAMERA_I2C_ID, &i2c_config);
+	bk_i2c_init(CONFIG_CAMERA_I2C_ID, &i2c_config);
 
 	sensor = bk_dvp_get_sensor_auto_detect();
 	if (sensor == NULL)
@@ -301,13 +305,23 @@ int video_close_yuv_psram_handler(char *pcWriteBuffer, int xWriteBufferLen, int 
 	}
 	os_printf("jpeg deinit ok!\n");
 
-	err = bk_i2c_deinit(CONFIG_DVP_CAMERA_I2C_ID);
+	err = bk_i2c_deinit(CONFIG_CAMERA_I2C_ID);
 	if (err != kNoErr) {
 		os_printf("i2c deinit error\n");
 		err = kParamErr;
 		goto error;
 	}
 	os_printf("I2c deinit ok!\n");
+
+#if CONFIG_SYSTEM_CTRL
+	err = bk_jpeg_enc_driver_deinit();
+	if (err != kNoErr) {
+		os_printf("video deinit error\n");
+		err = kParamErr;
+		goto error;
+	}
+	os_printf("video deinit ok!\n");
+#endif
 
 #if CONFIG_PSRAM
 	err = bk_psram_deinit();
@@ -333,7 +347,7 @@ error:
 	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 	return err;
 }
-#endif // CONFIG_DVP_CAMERA
+#endif // CONFIG_CAMERA
 
 
 #if (CONFIG_MEDIA && CONFIG_LCD)

@@ -9,9 +9,9 @@
 #include <stdbool.h>
 #include "common/bk_generic.h"
 
-#if LV_GIF_USE_PSRAM
-#include <driver/psram.h>
-#endif
+// #if LV_GIF_USE_PSRAM
+// #include <driver/psram.h>
+// #endif
 
 // #define MIN(A, B) ((A) < (B) ? (A) : (B))
 // #define MAX(A, B) ((A) > (B) ? (A) : (B))
@@ -118,7 +118,7 @@ static gd_GIF * gif_open(gd_GIF * gif_base)
     /* Create gd_GIF Structure. */
 
 #if LV_GIF_USE_PSRAM
-    gif = lv_mem_alloc(sizeof(gd_GIF));
+    gif = lv_mem_alloc(sizeof(gd_GIF);
 #if LV_COLOR_DEPTH == 32
     psram_addr = lv_psram_mem_alloc(5 * width * height);
 #elif LV_COLOR_DEPTH == 16
@@ -634,16 +634,16 @@ dispose(gd_GIF *gif)
                 bk_psram_byte_write(&gif->canvas[(i+k)*4 + 2], *(bgcolor + 0));
                 bk_psram_byte_write(&gif->canvas[(i+k)*4 + 3], opa);
 #elif LV_COLOR_DEPTH == 16
-                lv_color_t c = lv_color_make(*(bgcolor + 0), *(bgcolor + 1), *(bgcolor + 2));
+                lv_color_t c = lv_color_make(*(color + 0), *(color + 1), *(color + 2));
                 bk_psram_byte_write(&gif->canvas[(i+k)*3 + 0], c.full & 0xff);
                 bk_psram_byte_write(&gif->canvas[(i+k)*3 + 1], (c.full >> 8) & 0xff);
                 bk_psram_byte_write(&gif->canvas[(i+k)*3 + 2], opa);
 #elif LV_COLOR_DEPTH == 8
-                lv_color_t c = lv_color_make(*(bgcolor + 0), *(bgcolor + 1), *(bgcolor + 2));
+                lv_color_t c = lv_color_make(*(color + 0), *(color + 1), *(color + 2));
                 bk_psram_byte_write(&gif->canvas[(i+k)*2 + 0], c.full);
                 bk_psram_byte_write(&gif->canvas[(i+k)*2 + 1], opa);
 #elif LV_COLOR_DEPTH == 1
-                uint8_t b = (*(bgcolor + 0)) | (*(bgcolor + 1)) | (*(bgcolor + 2));
+                uint8_t b = (*(color + 0)) | (*(color + 1)) | (*(color + 2));
                 bk_psram_byte_write(&gif->canvas[(i+k)*2 + 0], b > 128 ? 1 : 0);
                 bk_psram_byte_write(&gif->canvas[(i+k)*2 + 1], opa);
 #endif

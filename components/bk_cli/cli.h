@@ -70,6 +70,7 @@ int cli_misc_init(void);
 int cli_mem_init(void);
 int cli_airkiss_init(void);
 int cli_phy_init(void);
+
 #if CONFIG_LWIP
 int cli_lwip_init(void);
 #endif
@@ -147,20 +148,15 @@ int cli_usb_init(void);
 int cli_mpc_init(void);
 int cli_prro_init(void);
 int cli_interrupt_init(void);
-int cli_video_transfer_init(void);
+int cli_h264_init(void);
 int cli_pm_init(void);
 int cli_cs2_p2p_init(void);
 int cli_agora_init(void);
 int cli_es8311_init(void);
 int cli_asr_init(void);
 int cli_flashdb_init(void);
-int cli_puf_init(void);
 
 extern int hexstr2bin_cli(const char *hex, u8 *buf, size_t len);
-extern int hexstr2bin(const char *hex, u8 *buf, size_t len);
-#if (CONFIG_BUTTON || CONFIG_ADC_KEY)
-int cli_key_demo_init();
-#endif
 
 #ifdef __cplusplus
 }

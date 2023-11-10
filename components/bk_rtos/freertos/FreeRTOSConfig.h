@@ -146,7 +146,6 @@
 
 /* Utilities */
 #define configUSE_TRACE_FACILITY                    1
-
 #define configUSE_ALTERNATIVE_API                   0
 //Set configCHECK_FOR_STACK_OVERFLOW to 3 to add ISR stack checking.
 #define configCHECK_FOR_STACK_OVERFLOW              3
@@ -253,12 +252,7 @@ Members except log buffer in uncached buffer used at most 6 cache line space. */
 #define configMTIME_BASE_ADDRESS		( 0xE6000000 )
 #define configMTIMECMP_BASE_ADDRESS		( 0xE6000008 )
 
-/*Trace Recorder for Tracealyzer v4.6.6*/
-#if CONFIG_FREERTOS_TRACE
-#include "trcRecorder.h"
 #endif
-
-#endif // #if CONFIG_SOC_BK7256XX
 
 #if (CONFIG_ARCH_CM33 == 1)
 #define configENABLE_FPU                   1

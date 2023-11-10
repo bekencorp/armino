@@ -151,16 +151,9 @@ if (CONFIG_SUPPORT_IRDA)
 endif()  #if (CONFIG_SUPPORT_IRDA)
 
 if (CONFIG_PWM)
-if (CONFIG_PWM_V1PX)
 	list(APPEND srcs
-		pwm/v1px/pwm_driver.c
+		pwm/pwm_driver.c
 		)
-endif()
-if (CONFIG_PWM_V0P0)
-	list(APPEND srcs
-		pwm/v0p0/pwm_driver.c
-		)
-endif()
 endif()  #if (CONFIG_PWM)
 
 if (NOT CONFIG_SOC_BK7256XX)
@@ -298,12 +291,6 @@ if (CONFIG_LCD_ST7701S_LY)
 		)
 endif()
 
-if (CONFIG_LCD_ST7789V)
-	list(APPEND srcs
-		"lcd/lcd_st7789v.c"
-		)
-endif()
-
 endif()
 
 if (CONFIG_LCD)
@@ -312,7 +299,6 @@ if (CONFIG_TP)
 		"tp/tp_driver.c"
 		"tp/tp_gt911.c"
 		"tp/tp_gt1151.c"
-		"tp/tp_ft6336.c"
 		"tp/bk_queue.c"
 		"tp/drv_tp.c"
 		)
@@ -353,12 +339,6 @@ if (CONFIG_QSPI)
 		)
 endif() #if (CONFIG_QSPI)
 
-if (CONFIG_SPI_MST_FLASH)
-	list(APPEND srcs
-		"spi/spi_flash.c"
-		)
-endif() #if (CONFIG_SPI_MST_FLASH)
-
 if (CONFIG_QSPI AND CONFIG_LCD_QSPI)
 	list(APPEND srcs
 		"lcd/lcd_qspi_driver.c"
@@ -373,6 +353,12 @@ endif()
 if (CONFIG_LCD_QSPI_ST77903)
 	list(APPEND srcs
 		"lcd/lcd_qspi_st77903.c"
+		)
+endif()
+
+if (CONFIG_LCD_QSPI_ST77903_SAT61478M)
+	list(APPEND srcs
+		"lcd/lcd_qspi_st77903_sat61478m.c"
 		)
 endif()
 endif()
@@ -495,19 +481,6 @@ if (CONFIG_SOC_BK7236XX)
 endif()
 endif()
 
-if (CONFIG_OTP)
-if (CONFIG_SOC_BK7256XX)
-	list(APPEND srcs
-		"otp/otp_driver.c"
-		)
-endif()
-if (CONFIG_SOC_BK7236XX)
-	list(APPEND srcs
-		"otp/otp_driver_v1_1.c"
-		)
-endif()
-endif()
-
 if (NOT CONFIG_FULLY_HOSTED)
 
 	list(APPEND incs
@@ -522,17 +495,30 @@ if (NOT CONFIG_FULLY_HOSTED)
 
 endif() #if (NOT CONFIG_FULLY_HOSTED)
 
+if (CONFIG_SOC_BK7256XX)
+	list(APPEND srcs
+		"bk7256/mailbox_driver.c"
+		)
+
+endif()
+
+if (CONFIG_SOC_BK7236)
+	list(APPEND srcs
+		"bk7236/mailbox_driver.c"
+		)
+endif()
+
+if (CONFIG_SOC_BK7258)
+	list(APPEND srcs
+		"bk7258/mailbox_driver.c"
+		)
+endif()
 
 if (CONFIG_MAILBOX)
 
 	list(APPEND srcs
-		"${target}/mailbox_driver.c"
-		)
-
-	list(APPEND srcs
 		"mailbox/mailbox_driver_base.c"
 		)
-
 	if (CONFIG_DUAL_CORE)
 		list(APPEND srcs
 			mailbox/mailbox_channel.c
@@ -542,7 +528,12 @@ if (CONFIG_MAILBOX)
 
 endif()
 
-
+if( "${target}" STREQUAL "bk7231n"
+	OR "${target}" STREQUAL "bk7256_cp1"
+	OR "${target}" STREQUAL "bk7236"
+	OR "${target}" STREQUAL "bk7258"
+	OR CONFIG_SOC_BK7256XX
+	)
 
 	list(APPEND incs
 		"${target}"
@@ -553,9 +544,9 @@ endif()
 		"${target}/interrupt.c"
 		"${target}/interrupt_statis.c"
 		)
+endif()
 
-
-if (CONFIG_DVP_CAMERA)
+if (CONFIG_CAMERA)
     list(APPEND srcs
 		"camera/dvp_camera.c"
 		"camera/dvp_gc0328c.c"
@@ -563,7 +554,6 @@ if (CONFIG_DVP_CAMERA)
 		"camera/dvp_hm1055.c"
 		"camera/dvp_ov2640.c"
 		"camera/dvp_gc0308.c"
-		"camera/dvp_sc101.c"
 		"camera/dvp_sensor_devices.c"
 		)
 endif()
@@ -604,5 +594,5 @@ endif()
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
 	REQUIRES arm9 riscv cm33
-	PRIV_REQUIRES bk_log bk_ate easy_flash tfm
+	PRIV_REQUIRES bk_log bk_ate easy_flash
 )

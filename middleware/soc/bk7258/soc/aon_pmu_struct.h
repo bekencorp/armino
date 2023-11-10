@@ -64,19 +64,10 @@ typedef volatile union {
 
 typedef volatile union {
 	struct {
-		uint32_t reserved_bit_0_30        : 31; /**<bit[0 : 30] */
-		uint32_t sd_en                    :  1; /**<bit[31 : 31]>*/
-	};
-	uint32_t v;
-} aon_pmu_r3_t;
-
-
-typedef volatile union {
-	struct {
 		uint32_t rsv                      : 32; /**<bit[0 : 31] */
 	};
 	uint32_t v;
-} aon_pmu_r25_t;
+} aon_pmu_r3_t;
 
 
 typedef volatile union {
@@ -172,13 +163,6 @@ typedef volatile union {
 	};
 	uint32_t v;
 } aon_pmu_r73_t;
-
-typedef volatile union {
-	struct {
-		uint32_t rsv                      : 32; /**<bit[0 : 31] */
-	};
-	uint32_t v;
-} aon_pmu_r7b_t;
 
 typedef volatile union {
 	struct {

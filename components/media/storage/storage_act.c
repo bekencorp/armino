@@ -115,13 +115,10 @@ bk_err_t storage_task_send_msg(uint8_t msg_type, uint32_t data)
 
 void storage_frame_buffer_dump(frame_buffer_t *frame, char *name)
 {
-	char cFileName[30];
 	LOGI("%s dump frame: %p, %u, size: %d\n", __func__, frame->frame, frame->sequence, frame->length);
 
-	sprintf(cFileName, "%d%s", frame->sequence, name);
-
 #if (CONFIG_FATFS)
-	storage_mem_to_sdcard(cFileName, frame->frame, frame->length);
+	storage_mem_to_sdcard(name, frame->frame, frame->length);
 
 	LOGI("%s, complete\n", __func__);
 #endif
@@ -631,12 +628,12 @@ void storage_event_handle(uint32_t event, uint32_t param)
 	}
 }
 
-media_storage_state_t get_storage_state(void)
+storage_state_t get_storage_state(void)
 {
 	return storage_info.state;
 }
 
-void set_storage_state(media_storage_state_t state)
+void set_storage_state(storage_state_t state)
 {
 	storage_info.state = state;
 }

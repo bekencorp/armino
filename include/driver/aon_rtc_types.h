@@ -24,12 +24,7 @@ extern "C" {
 
 #define ALARM_NAME_MAX_LEN ((uint32_t)7)
 #define ALARM_LOOP_FOREVER (0xffffffff)
-
-#define AON_RTC_EXTERN_32K_CLOCK_FREQ (32768)
-#define AON_RTC_DEFAULT_CLOCK_FREQ    (32000)
-
-#define AON_RTC_MS_TICK_CNT           (bk_rtc_get_ms_tick_count())
-
+#define AON_RTC_MS_TICK_CNT (32)
 #define AON_RTC_PRECISION_TICK (32)	//
 //#define AON_RTC_SET_TICK_TIME (8)	//CPU compute can be set tick but the time consumes about 4~8 ticks
 #define AON_RTC_ROUND_TICK (0XFFFFFFFF)	//we can set to other value, but maybe easy to cause a new round as the max value is less then 38 hours.

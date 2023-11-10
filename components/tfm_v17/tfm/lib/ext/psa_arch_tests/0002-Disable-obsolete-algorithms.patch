@@ -1,0 +1,149 @@
+From 2806bec1cca4ead8ae2deb0c5cfa09b1037dc944 Mon Sep 17 00:00:00 2001
+From: Summer Qin <summer.qin@arm.com>
+Date: Fri, 10 Jun 2022 10:13:43 +0800
+Subject: [PATCH 2/2] Disable obsolete algorithms
+
+curves of size <255 are obsolete algorithms, should be disabled.
+
+Signed-off-by: Summer Qin <summer.qin@arm.com>
+---
+ .../targets/tgt_dev_apis_tfm_an521/nspe/pal_crypto_config.h    | 3 +++
+ .../targets/tgt_dev_apis_tfm_an524/nspe/pal_crypto_config.h    | 3 +++
+ .../targets/tgt_dev_apis_tfm_an539/nspe/pal_crypto_config.h    | 3 +++
+ .../targets/tgt_dev_apis_tfm_musca_b1/nspe/pal_crypto_config.h | 3 +++
+ .../targets/tgt_dev_apis_tfm_musca_s1/nspe/pal_crypto_config.h | 3 +++
+ .../targets/tgt_dev_apis_tfm_nrf5340/nspe/pal_crypto_config.h  | 3 +++
+ .../targets/tgt_dev_apis_tfm_nrf9160/nspe/pal_crypto_config.h  | 3 +++
+ .../targets/tgt_dev_apis_tfm_psoc64/nspe/pal_crypto_config.h   | 3 +++
+ .../tgt_dev_apis_tfm_stm32l562e_dk/nspe/pal_crypto_config.h    | 3 +++
+ 9 files changed, 27 insertions(+)
+
+diff --git a/api-tests/platform/targets/tgt_dev_apis_tfm_an521/nspe/pal_crypto_config.h b/api-tests/platform/targets/tgt_dev_apis_tfm_an521/nspe/pal_crypto_config.h
+index 49d4ee8..573ee2f 100644
+--- a/api-tests/platform/targets/tgt_dev_apis_tfm_an521/nspe/pal_crypto_config.h
++++ b/api-tests/platform/targets/tgt_dev_apis_tfm_an521/nspe/pal_crypto_config.h
+@@ -65,6 +65,9 @@
+ #define ARCH_TEST_ECC_CURVE_SECP384R1
+ #endif
+ #endif
++/* curves of size <255 are obsolete algorithms, should be disabled. */
++#undef ARCH_TEST_ECC_CURVE_SECP192R1
++#undef ARCH_TEST_ECC_CURVE_SECP224R1
+ 
+ /**
+  * \def ARCH_TEST_AES
+diff --git a/api-tests/platform/targets/tgt_dev_apis_tfm_an524/nspe/pal_crypto_config.h b/api-tests/platform/targets/tgt_dev_apis_tfm_an524/nspe/pal_crypto_config.h
+index 49d4ee8..573ee2f 100644
+--- a/api-tests/platform/targets/tgt_dev_apis_tfm_an524/nspe/pal_crypto_config.h
++++ b/api-tests/platform/targets/tgt_dev_apis_tfm_an524/nspe/pal_crypto_config.h
+@@ -65,6 +65,9 @@
+ #define ARCH_TEST_ECC_CURVE_SECP384R1
+ #endif
+ #endif
++/* curves of size <255 are obsolete algorithms, should be disabled. */
++#undef ARCH_TEST_ECC_CURVE_SECP192R1
++#undef ARCH_TEST_ECC_CURVE_SECP224R1
+ 
+ /**
+  * \def ARCH_TEST_AES
+diff --git a/api-tests/platform/targets/tgt_dev_apis_tfm_an539/nspe/pal_crypto_config.h b/api-tests/platform/targets/tgt_dev_apis_tfm_an539/nspe/pal_crypto_config.h
+index 95ec31a..838c1e6 100644
+--- a/api-tests/platform/targets/tgt_dev_apis_tfm_an539/nspe/pal_crypto_config.h
++++ b/api-tests/platform/targets/tgt_dev_apis_tfm_an539/nspe/pal_crypto_config.h
+@@ -65,6 +65,9 @@
+ #define ARCH_TEST_ECC_CURVE_SECP384R1
+ #endif
+ #endif
++/* curves of size <255 are obsolete algorithms, should be disabled. */
++#undef ARCH_TEST_ECC_CURVE_SECP192R1
++#undef ARCH_TEST_ECC_CURVE_SECP224R1
+ 
+ /**
+  * \def ARCH_TEST_AES
+diff --git a/api-tests/platform/targets/tgt_dev_apis_tfm_musca_b1/nspe/pal_crypto_config.h b/api-tests/platform/targets/tgt_dev_apis_tfm_musca_b1/nspe/pal_crypto_config.h
+index eeb98e5..e465b71 100644
+--- a/api-tests/platform/targets/tgt_dev_apis_tfm_musca_b1/nspe/pal_crypto_config.h
++++ b/api-tests/platform/targets/tgt_dev_apis_tfm_musca_b1/nspe/pal_crypto_config.h
+@@ -65,6 +65,9 @@
+ #define ARCH_TEST_ECC_CURVE_SECP384R1
+ #endif
+ #endif
++/* curves of size <255 are obsolete algorithms, should be disabled. */
++#undef ARCH_TEST_ECC_CURVE_SECP192R1
++#undef ARCH_TEST_ECC_CURVE_SECP224R1
+ 
+ /**
+  * \def ARCH_TEST_AES
+diff --git a/api-tests/platform/targets/tgt_dev_apis_tfm_musca_s1/nspe/pal_crypto_config.h b/api-tests/platform/targets/tgt_dev_apis_tfm_musca_s1/nspe/pal_crypto_config.h
+index e0cfa72..652022e 100644
+--- a/api-tests/platform/targets/tgt_dev_apis_tfm_musca_s1/nspe/pal_crypto_config.h
++++ b/api-tests/platform/targets/tgt_dev_apis_tfm_musca_s1/nspe/pal_crypto_config.h
+@@ -65,6 +65,9 @@
+ #define ARCH_TEST_ECC_CURVE_SECP384R1
+ #endif
+ #endif
++/* curves of size <255 are obsolete algorithms, should be disabled. */
++#undef ARCH_TEST_ECC_CURVE_SECP192R1
++#undef ARCH_TEST_ECC_CURVE_SECP224R1
+ 
+ /**
+  * \def ARCH_TEST_AES
+diff --git a/api-tests/platform/targets/tgt_dev_apis_tfm_nrf5340/nspe/pal_crypto_config.h b/api-tests/platform/targets/tgt_dev_apis_tfm_nrf5340/nspe/pal_crypto_config.h
+index 49d4ee8..573ee2f 100644
+--- a/api-tests/platform/targets/tgt_dev_apis_tfm_nrf5340/nspe/pal_crypto_config.h
++++ b/api-tests/platform/targets/tgt_dev_apis_tfm_nrf5340/nspe/pal_crypto_config.h
+@@ -65,6 +65,9 @@
+ #define ARCH_TEST_ECC_CURVE_SECP384R1
+ #endif
+ #endif
++/* curves of size <255 are obsolete algorithms, should be disabled. */
++#undef ARCH_TEST_ECC_CURVE_SECP192R1
++#undef ARCH_TEST_ECC_CURVE_SECP224R1
+ 
+ /**
+  * \def ARCH_TEST_AES
+diff --git a/api-tests/platform/targets/tgt_dev_apis_tfm_nrf9160/nspe/pal_crypto_config.h b/api-tests/platform/targets/tgt_dev_apis_tfm_nrf9160/nspe/pal_crypto_config.h
+index 49d4ee8..573ee2f 100644
+--- a/api-tests/platform/targets/tgt_dev_apis_tfm_nrf9160/nspe/pal_crypto_config.h
++++ b/api-tests/platform/targets/tgt_dev_apis_tfm_nrf9160/nspe/pal_crypto_config.h
+@@ -65,6 +65,9 @@
+ #define ARCH_TEST_ECC_CURVE_SECP384R1
+ #endif
+ #endif
++/* curves of size <255 are obsolete algorithms, should be disabled. */
++#undef ARCH_TEST_ECC_CURVE_SECP192R1
++#undef ARCH_TEST_ECC_CURVE_SECP224R1
+ 
+ /**
+  * \def ARCH_TEST_AES
+diff --git a/api-tests/platform/targets/tgt_dev_apis_tfm_psoc64/nspe/pal_crypto_config.h b/api-tests/platform/targets/tgt_dev_apis_tfm_psoc64/nspe/pal_crypto_config.h
+index 69c31e8..1ad2483 100644
+--- a/api-tests/platform/targets/tgt_dev_apis_tfm_psoc64/nspe/pal_crypto_config.h
++++ b/api-tests/platform/targets/tgt_dev_apis_tfm_psoc64/nspe/pal_crypto_config.h
+@@ -66,6 +66,9 @@
+ #define ARCH_TEST_ECC_CURVE_SECP384R1
+ #endif
+ #endif
++/* curves of size <255 are obsolete algorithms, should be disabled. */
++#undef ARCH_TEST_ECC_CURVE_SECP192R1
++#undef ARCH_TEST_ECC_CURVE_SECP224R1
+ 
+ /**
+  * \def ARCH_TEST_AES
+diff --git a/api-tests/platform/targets/tgt_dev_apis_tfm_stm32l562e_dk/nspe/pal_crypto_config.h b/api-tests/platform/targets/tgt_dev_apis_tfm_stm32l562e_dk/nspe/pal_crypto_config.h
+index 49d4ee8..573ee2f 100644
+--- a/api-tests/platform/targets/tgt_dev_apis_tfm_stm32l562e_dk/nspe/pal_crypto_config.h
++++ b/api-tests/platform/targets/tgt_dev_apis_tfm_stm32l562e_dk/nspe/pal_crypto_config.h
+@@ -65,6 +65,9 @@
+ #define ARCH_TEST_ECC_CURVE_SECP384R1
+ #endif
+ #endif
++/* curves of size <255 are obsolete algorithms, should be disabled. */
++#undef ARCH_TEST_ECC_CURVE_SECP192R1
++#undef ARCH_TEST_ECC_CURVE_SECP224R1
+ 
+ /**
+  * \def ARCH_TEST_AES
+-- 
+2.25.1
+

@@ -95,7 +95,6 @@ static int doorbell_cs2_p2p_client_send_video_packet(uint8_t *data, uint32_t len
     {
         return len;
     }
-
     s_send_video_count++;
 
     tmp->magic_head = MAGIC_HEAD;
@@ -139,16 +138,7 @@ static int doorbell_cs2_p2p_client_send_video_packet(uint8_t *data, uint32_t len
 
         if (index < len + sizeof(*tmp))
         {
-            //            LOGE("%s delay %d %d 0x%02X%02X%02X%02X%02X%02X%02X%02X\n", __func__, index, len + sizeof(*tmp),
-            //                                data[0],
-            //                                data[1],
-            //                                data[2],
-            //                                data[3],
-            //                                data[4],
-            //                                data[5],
-            //                                data[6],
-            //                                data[7]);
-
+            //            LOGI("%s delay %d %d\n", __func__, index, len + sizeof(*tmp));
             rtos_delay_milliseconds(CS2_P2P_TRANSFER_DELAY);
         }
 
@@ -184,6 +174,7 @@ static int doorbell_cs2_p2p_client_send_video_packet(uint8_t *data, uint32_t len
 
 static int av_cs2_p2p_voice_client_send_packet(unsigned char *data, unsigned int len)
 {
+
     int send_byte = 0;
     uint32_t index = 0;
 
@@ -198,7 +189,7 @@ static int av_cs2_p2p_voice_client_send_packet(unsigned char *data, unsigned int
 
     do
     {
-        send_byte = cs2_p2p_send_raw(CS2_P2P_CHANNEL_VOICE, data + index, len - index);
+        send_byte = cs2_p2p_send_raw(CS2_P2P_CHANNEL_VOICE, data, len - index);
 
 
         if (send_byte < 0)
@@ -496,17 +487,10 @@ static void throughput_anlayse_timer_hdl(void *param)
     return;
 }
 
-#ifdef CONFIG_INTEGRATION_DOORBELL
-static const media_transfer_cb_t doorbell_udp_callback = {
-	.send = doorbell_cs2_p2p_client_send_video_packet,
-	.prepare = NULL,
-	.get_tx_buf = NULL,
-	.get_tx_size = 0
-};
-#endif
-
 static int8_t before_start(void)
 {
+    video_setup_t setup;
+
     s_send_buff = os_malloc(SEND_BUFF_LEN);
 
     if (!s_send_buff)
@@ -523,12 +507,7 @@ static int8_t before_start(void)
         lcd_open.device_name = lcd_name;
         media_app_lcd_open(&lcd_open);
 
-#ifdef CONFIG_INTEGRATION_DOORBELL
-        media_app_transfer_open(&doorbell_udp_callback);
-#else
-		video_setup_t setup;
-
-		setup.open_type = TVIDEO_OPEN_SCCB;
+        setup.open_type = TVIDEO_OPEN_SCCB;
         setup.send_type = TVIDEO_SND_UDP;
         setup.send_func = doorbell_cs2_p2p_client_send_video_packet;
         setup.start_cb = doorbell_cs2_p2p_cli_connected;
@@ -537,41 +516,14 @@ static int8_t before_start(void)
         setup.pkt_header_size = sizeof(media_hdr_t);
         setup.add_pkt_header = NULL;//demo_doorbell_add_pkt_header;
         media_app_transfer_open(&setup);
-#endif
 
         if (camera_type == APP_CAMERA_DVP_JPEG)
         {
-#ifdef CONFIG_INTEGRATION_DOORBELL
-			camera_config_t camera_config;
-	
-			os_memset(&camera_config, 0, sizeof(camera_config_t));
-	
-			camera_config.type = DVP_CAMERA;
-			camera_config.image_format = IMAGE_MJPEG;
-			camera_config.width = camera_ppi >> 16;
-			camera_config.height = camera_ppi & 0xFFFF;
-						
-			media_app_camera_open(&camera_config);
-#else
             media_app_camera_open(APP_CAMERA_DVP_JPEG, camera_ppi);
-#endif
         }
         else if (camera_type == APP_CAMERA_UVC_MJPEG)
         {
-#ifdef CONFIG_INTEGRATION_DOORBELL
-			camera_config_t camera_config;
-
-			os_memset(&camera_config, 0, sizeof(camera_config_t));
-
-			camera_config.type = DVP_CAMERA;
-			camera_config.image_format = IMAGE_MJPEG;
-			camera_config.width = camera_ppi >> 16;
-			camera_config.height = camera_ppi & 0xFFFF;
-						
-			media_app_camera_open(&camera_config);
-#else
             media_app_camera_open(APP_CAMERA_UVC_MJPEG, camera_ppi);
-#endif
         }
         else
         {

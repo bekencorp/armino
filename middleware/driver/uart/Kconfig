@@ -58,18 +58,5 @@ menu "UART"
 	config UART_ERR_INTERRUPT
 		bool "Enable UART support error interrupt"
 		default n
-
-	config UART_RX_DMA
-		bool "Enable UART rx dma copy data support,special feature used for UART RX data. \
-		      When erase Flash, CPU can't get instructions from flash then it can't work, \
-		      so DMA copy data from UART FIFO to RAM"
-		default n
-
-	config UART_RX_DMA_KFIFO_SIZE
-		int "Kfifo Size"
-		range 1 4096
-		default 512
-		help
-			This will reset kfifo size of "CONFIG_KFIFO_SIZE" when software enable rx dma.
 endmenu
 

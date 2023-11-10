@@ -43,7 +43,7 @@ Video_transfer
 	+======================================+========================+============================================+=========+
 	|CONFIG_JPEGENC_HW                     |support hw jpeg encode  |``middleware\soc\bk7236\bk7236.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_DVP_CAMERA                     |support use dvp camera  |``middleware\soc\bk7236\bk7236.defconfig``  |    y    |
+	|CONFIG_CAMERA                         |suport use dvp camera   |``middleware\soc\bk7236\bk7236.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 	|CONFIG_USE_APP_DEMO_VIDEO_TRANSSER    |support video transfer  |``middleware\soc\bk7236\bk7236.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
@@ -51,7 +51,7 @@ Video_transfer
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 	|CONFIG_COMPONENTS_P2P                 |support p2p transfer    |``middleware\soc\bk7236\bk7236.defconfig``  |    n    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_DVP_CAMERA_I2C_ID              |support use I2C ID      |``middleware\soc\bk7236\bk7236.defconfig``  |    y    |
+	|CONFIG_CAMERA_USE_I2C1                |suport use I2C1         |``middleware\soc\bk7236\bk7236.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 
 4 Presentation Introduction

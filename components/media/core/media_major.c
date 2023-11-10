@@ -157,7 +157,7 @@ static void media_major_message_handle(void)
 
 	frame_buffer_init();
 
-#if (defined(CONFIG_DVP_CAMERA) || defined(CONFIG_USB_UVC))
+#if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
 	camera_init();
 #endif
 
@@ -186,7 +186,7 @@ static void media_major_message_handle(void)
 					comm_event_handle(msg.event, msg.param);
 					break;
 
-#if (defined(CONFIG_DVP_CAMERA) || defined(CONFIG_USB_UVC))
+#if (defined(CONFIG_CAMERA) || defined(CONFIG_USB_UVC))
 				case CAM_EVENT:
 					camera_event_handle(msg.event, msg.param);
 					break;

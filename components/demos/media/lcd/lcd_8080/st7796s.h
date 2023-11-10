@@ -34,6 +34,13 @@ extern "C" {
 #define CONTINUE_WRITE     0x3c
 #define MEM_ACCESS_CTRL    0x36
 
+/**
+ * @brief  lcd_st7796s_init
+ * @param  none
+ * @return none.
+ */
+bk_err_t st7796s_init(void);
+void i8080_display_off(void);
 
 /**
  * @brief  set display mem area

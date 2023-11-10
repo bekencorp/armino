@@ -20,27 +20,24 @@
 #include "media_mailbox_list_util.h"
 #include <components/video_types.h>
 
-#include "media_app.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef enum
+{
+	TRS_STATE_DISABLED,
+	TRS_STATE_ENABLED,
+} trs_state_t;
+
+
 typedef struct
 {
-	media_trs_state_t state;
+	trs_state_t state;
 	uint8_t pause : 1;
 	uint8_t debug : 1;
 	uint32_t param;
 } transfer_info_t;
-
-typedef struct
-{
-	media_trs_state_t state;
-	uint8_t pause : 1;
-	uint8_t debug : 1;
-	uint32_t param;
-} usb_trs_info_t;
 
 typedef struct
 {
@@ -62,28 +59,15 @@ typedef enum
 	TRS_TRANSFER_START,
 	TRS_TRANSFER_DATA,
 	TRS_TRANSFER_EXIT,
-	TRS_USB_START,
-	TRS_USB_DATA,
-	TRS_USB_EXIT,
 } trs_task_msg_type_t;
 
-void set_transfer_state(media_trs_state_t state);
-media_trs_state_t get_transfer_state(void);
-#ifdef CONFIG_INTEGRATION_DOORBELL
-bk_err_t transfer_app_task_init(const media_transfer_cb_t *cb);
-#else
+void set_transfer_state(trs_state_t state);
+trs_state_t get_transfer_state(void);
 bk_err_t transfer_app_task_init(video_setup_t *config);
-#endif
-void transfer_init(void);
+void transfer_major_init(void);
 bk_err_t transfer_app_event_handle(media_mailbox_msg_t *msg);
 bk_err_t transfer_major_event_handle(media_mailbox_msg_t *msg);
 
-void set_usb_trs_state(media_trs_state_t state);
-media_trs_state_t get_usb_trs_state(void);
-bk_err_t usb_app_task_init(video_setup_t *config);
-void usb_transfer_init(void);
-bk_err_t usb_app_event_handle(media_mailbox_msg_t *msg);
-bk_err_t usb_major_event_handle(media_mailbox_msg_t *msg);
 
 #ifdef __cplusplus
 }

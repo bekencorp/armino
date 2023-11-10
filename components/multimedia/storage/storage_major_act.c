@@ -47,7 +47,7 @@ static bk_err_t storage_major_task_send_msg(uint8_t msg_type, uint32_t data)
 		msg.data = data;
 
 		ret = rtos_push_to_queue(&storage_major_task_queue, &msg, BEKEN_NO_WAIT);
-		if (BK_OK != ret)
+		if (kNoErr != ret)
 		{
 			LOGE("storage_major_task_queue failed\r\n");
 			return kOverrunErr;
@@ -77,15 +77,16 @@ static void storage_frame_major_notify_app(uint32_t param)
 
 	storage_major_node->event = EVENT_VID_CAPTURE_NOTIFY;
 	storage_major_node->param = (uint32_t)frame;
+	msg_send_to_media_major_mailbox(storage_major_node, BK_OK, APP_MODULE);
 
-	msg_send_req_to_media_major_mailbox_sync(storage_major_node, APP_MODULE);
+	if (rtos_get_semaphore(&storage_major_node->sem, BEKEN_WAIT_FOREVER))
+	{
+		LOGE("%s wait semaphore failed\n", __func__);
+	}
 
-	if (storage_major_info.param == FB_INDEX_JPEG)
-		frame_buffer_fb_free(frame, MODULE_CAPTURE);
-	else
-		frame_buffer_fb_h264_free(frame);
+	frame_buffer_fb_free(frame, MODULE_CAPTURE);
 
-	msg_send_rsp_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
+	msg_send_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
 
 	storage_major_info.capture_state = STORAGE_STATE_DISABLED;
 }
@@ -94,7 +95,7 @@ static void storage_video_major_notify_app(uint32_t param)
 {
 	frame_buffer_t *frame = NULL;
 
-	msg_send_rsp_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
+	msg_send_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
 
 	storage_major_info.capture_state = STORAGE_STATE_ENABLED;
 
@@ -108,17 +109,19 @@ static void storage_video_major_notify_app(uint32_t param)
 		if (frame == NULL)
 		{
 			LOGE("read frame NULL\n");
-			continue;
+			return;
 		}
 
 		storage_major_node->event = EVENT_VID_SAVE_ALL_NOTIFY;
 		storage_major_node->param = (uint32_t)frame;
-		msg_send_req_to_media_major_mailbox_sync(storage_major_node, APP_MODULE);
+		msg_send_to_media_major_mailbox(storage_major_node, BK_OK, APP_MODULE);
 
-		if (storage_major_info.param == FB_INDEX_JPEG)
-			frame_buffer_fb_free(frame, MODULE_CAPTURE);
-		else
-			frame_buffer_fb_h264_free(frame);
+		if (rtos_get_semaphore(&storage_major_node->sem, BEKEN_WAIT_FOREVER))
+		{
+			LOGE("%s wait semaphore failed\n", __func__);
+		}
+
+		frame_buffer_fb_free(frame, MODULE_CAPTURE);
 	};
 
 	if (storage_major_sem)
@@ -127,15 +130,6 @@ static void storage_video_major_notify_app(uint32_t param)
 	}
 }
 
-static void storage_video_major_notify_app_stop(uint32_t param)
-{
-	if (rtos_get_semaphore(&storage_major_sem, BEKEN_WAIT_FOREVER))
-	{
-		LOGE("%s wait semaphore failed\n", __func__);
-	}
-
-	msg_send_rsp_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
-}
 
 static void storage_major_deinit(uint32_t param)
 {
@@ -151,16 +145,10 @@ static void storage_major_deinit(uint32_t param)
 		storage_major_node = NULL;
 	}
 
-	if (storage_major_sem)
-	{
-		rtos_deinit_semaphore(&storage_major_sem);
-		storage_major_sem = NULL;
-	}
-
 	storage_major_info.state = STORAGE_STATE_DISABLED;
 	storage_major_info.capture_state = STORAGE_STATE_DISABLED;
 
-	msg_send_rsp_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
+	msg_send_to_media_major_mailbox((media_mailbox_msg_t *)param, BK_OK, APP_MODULE);
 }
 
 static void storage_major_task_entry(beken_thread_arg_t data)
@@ -173,7 +161,7 @@ static void storage_major_task_entry(beken_thread_arg_t data)
 	{
 		ret = rtos_pop_from_queue(&storage_major_task_queue, &msg, BEKEN_WAIT_FOREVER);
 
-		if (ret == BK_OK)
+		if (ret == kNoErr)
 		{
 			switch (msg.type)
 			{
@@ -183,10 +171,6 @@ static void storage_major_task_entry(beken_thread_arg_t data)
 
 				case STORAGE_TASK_SAVE:
 					storage_video_major_notify_app(msg.data);
-					break;
-
-				case STORAGE_TASK_SAVE_STOP:
-					storage_video_major_notify_app_stop(msg.data);
 					break;
 
 				case STORAGE_TASK_EXIT:
@@ -201,7 +185,11 @@ static void storage_major_task_entry(beken_thread_arg_t data)
 
 exit:
 
-	LOGI("storage_major_task exit success!\r\n");
+	if (storage_major_sem)
+	{
+		rtos_deinit_semaphore(&storage_major_sem);
+		storage_major_sem = NULL;
+	}
 
 	rtos_deinit_queue(&storage_major_task_queue);
 	storage_major_task_queue = NULL;
@@ -212,13 +200,13 @@ exit:
 
 static bk_err_t storage_major_task_init(uint32_t param)
 {
-	int ret = BK_OK;
+	int ret = kNoErr;
 
-	if (storage_major_sem == NULL)
+	if (storage_major_sem)
 	{
 		ret = rtos_init_semaphore_ex(&storage_major_sem, 1, 0);
 
-		if (ret != BK_OK)
+		if (ret != kNoErr)
 		{
 			LOGE("%s, init semaphore failed\r\n", __func__);
 			storage_major_sem = NULL;
@@ -233,7 +221,7 @@ static bk_err_t storage_major_task_init(uint32_t param)
 		{
 			ret = rtos_init_semaphore_ex(&storage_major_node->sem, 1, 0);
 
-			if (ret != BK_OK)
+			if (ret != kNoErr)
 			{
 				LOGE("%s init semaphore failed\n", __func__);
 				goto error;
@@ -242,7 +230,7 @@ static bk_err_t storage_major_task_init(uint32_t param)
 		else
 		{
 			LOGE("%s malloc storage_major_node failed\n", __func__);
-			ret = BK_ERR_NO_MEM;
+			ret = kNoMemoryErr;
 			goto error;
 		}
 	}
@@ -254,7 +242,7 @@ static bk_err_t storage_major_task_init(uint32_t param)
 								sizeof(storages_task_msg_t),
 								10);
 
-		if (BK_OK != ret)
+		if (kNoErr != ret)
 		{
 			LOGE("%s storage_major_task_queue init failed\n");
 			goto error;
@@ -274,10 +262,9 @@ static bk_err_t storage_major_task_init(uint32_t param)
 		                         1024,
 		                         NULL);
 
-		if (BK_OK != ret)
+		if (kNoErr != ret)
 		{
 			LOGE("%s storage_major_task_thread init failed\n");
-			ret = BK_ERR_NO_MEM;
 			goto error;
 		}
 	}
@@ -287,24 +274,6 @@ static bk_err_t storage_major_task_init(uint32_t param)
 error:
 
 	frame_buffer_fb_deregister(MODULE_CAPTURE);
-
-	if (storage_major_sem)
-	{
-		rtos_deinit_semaphore(&storage_major_sem);
-		storage_major_sem = NULL;
-	}
-
-	if (storage_major_node)
-	{
-		if (storage_major_node->sem)
-		{
-			rtos_deinit_semaphore(&storage_major_node->sem);
-			storage_major_node->sem = NULL;
-		}
-
-		os_free(storage_major_node);
-		storage_major_node = NULL;
-	}
 
 	if (storage_major_task_queue)
 	{
@@ -323,12 +292,11 @@ error:
 
 static bk_err_t storage_major_task_open_handle(media_mailbox_msg_t *msg)
 {
-	int ret = BK_OK;
+	int ret = kNoErr;
 
 	if (get_storage_state() == STORAGE_STATE_ENABLED)
 	{
 		LOGI("%s already open\r\n", __func__);
-		goto end;
 	}
 	else
 	{
@@ -336,7 +304,7 @@ static bk_err_t storage_major_task_open_handle(media_mailbox_msg_t *msg)
 
 		ret = storage_major_task_init(msg->param);
 
-		if (ret != BK_OK)
+		if (ret != kNoErr)
 		{
 			storage_major_info.state = STORAGE_STATE_DISABLED;
 		}
@@ -346,9 +314,7 @@ static bk_err_t storage_major_task_open_handle(media_mailbox_msg_t *msg)
 		}
 	}
 
-end:
-
-	msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
+	msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
 
 	LOGI("%s complete\n", __func__);
 
@@ -357,12 +323,12 @@ end:
 
 static bk_err_t storage_major_task_close_handle(media_mailbox_msg_t *msg)
 {
-	int ret = BK_OK;
+	int ret = kNoErr;
 
 	if (get_storage_state() == STORAGE_STATE_DISABLED)
 	{
 		LOGI("%s already close\r\n", __func__);
-		msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
+		msg_send_to_media_major_mailbox(msg, BK_OK, APP_MODULE);
 	}
 	else
 	{
@@ -376,20 +342,12 @@ static bk_err_t storage_major_task_close_handle(media_mailbox_msg_t *msg)
 
 static bk_err_t storage_major_capture_handle(media_mailbox_msg_t *msg)
 {
-	int ret = BK_OK;
-
-	if (storage_major_info.state != STORAGE_STATE_ENABLED)
-	{
-			LOGE("%s storage major task not open\r\n", __func__);
-			ret = kGeneralErr;
-			msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
-			return ret;
-	}
+	int ret = kNoErr;
 
 	if (storage_major_info.capture_state == STORAGE_STATE_ENABLED)
 	{
 		LOGE("%s capture busy\r\n", __func__);
-		msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
+		msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
 	}
 	else
 	{
@@ -401,24 +359,15 @@ static bk_err_t storage_major_capture_handle(media_mailbox_msg_t *msg)
 
 static bk_err_t storage_major_video_save_start_handle(media_mailbox_msg_t *msg)
 {
-	int ret = BK_OK;
-
-	if (storage_major_info.state != STORAGE_STATE_ENABLED)
-	{
-			LOGE("%s storage major task not open\r\n", __func__);
-			ret = kGeneralErr;
-			msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
-			return ret;
-	}
+	int ret = kNoErr;
 
 	if (storage_major_info.capture_state == STORAGE_STATE_ENABLED)
 	{
 		LOGE("%s save video busy\r\n", __func__);
-		msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
+		msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
 	}
 	else
 	{
-		storage_major_info.capture_state = STORAGE_STATE_ENABLED;
 		ret = storage_major_task_send_msg(STORAGE_TASK_SAVE, (uint32_t)msg);
 	}
 
@@ -427,18 +376,23 @@ static bk_err_t storage_major_video_save_start_handle(media_mailbox_msg_t *msg)
 
 static bk_err_t storage_major_video_save_stop_handle(media_mailbox_msg_t *msg)
 {
-	int ret = BK_OK;
+	int ret = kNoErr;
 
 	if (storage_major_info.capture_state == STORAGE_STATE_DISABLED)
 	{
 		LOGI("%s, alread stop save video\r\n", __func__);
-		msg_send_rsp_to_media_major_mailbox(msg, ret, APP_MODULE);
+		msg_send_to_media_major_mailbox(msg, ret, APP_MODULE);
 	}
 	else
 	{
 		storage_major_info.capture_state = STORAGE_STATE_DISABLED;
 
-		storage_major_task_send_msg(STORAGE_TASK_SAVE_STOP, (uint32_t)msg);
+		if (rtos_get_semaphore(&storage_major_sem, BEKEN_WAIT_FOREVER))
+		{
+			LOGE("%s wait semaphore failed\n", __func__);
+		}
+
+		ret = msg_send_to_media_major_mailbox(msg, BK_OK, APP_MODULE);
 	}
 
 	return ret;
@@ -446,7 +400,7 @@ static bk_err_t storage_major_video_save_stop_handle(media_mailbox_msg_t *msg)
 
 bk_err_t storage_major_event_handle(media_mailbox_msg_t *msg)
 {
-	int ret = BK_OK;
+	int ret = kNoErr;
 
 	switch (msg->event)
 	{
@@ -478,12 +432,12 @@ bk_err_t storage_major_event_handle(media_mailbox_msg_t *msg)
 }
 
 
-media_storage_state_t get_storage_state(void)
+storage_state_t get_storage_state(void)
 {
 	return storage_major_info.state;
 }
 
-void set_storage_state(media_storage_state_t state)
+void set_storage_state(storage_state_t state)
 {
 	storage_major_info.state = state;
 }

@@ -21,10 +21,17 @@
 extern "C" {
 #endif
 
+typedef enum
+{
+	STORAGE_STATE_DISABLED,
+	STORAGE_STATE_ENABLED,
+} storage_state_t;
+
+
 typedef struct
 {
-	media_storage_state_t state;
-	media_storage_state_t capture_state;
+	storage_state_t state;
+	storage_state_t capture_state;
 	frame_buffer_t *frame;
 } storage_info_t;
 
@@ -35,8 +42,8 @@ typedef struct
 } storage_flash_t;
 
 
-media_storage_state_t get_storage_state(void);
-void set_storage_state(media_storage_state_t state);
+storage_state_t get_storage_state(void);
+void set_storage_state(storage_state_t state);
 void storage_init(void);
 void storage_frame_buffer_dump(frame_buffer_t *frame, char *name);
 

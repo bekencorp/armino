@@ -21,10 +21,6 @@
 #include "hal_port.h"
 #include "aon_pmu_hw.h"
 
-#if CONFIG_TFM_AON_PMU_LL_NSC
-#include "tfm_aon_pmu_ll_nsc.h"
-#else
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -229,26 +225,14 @@ static inline uint32_t aon_pmu_ll_get_r3(void) {
 	return r->v;
 }
 
-static inline void aon_pmu_ll_set_r3_sd_en(uint32_t v) {
+static inline void aon_pmu_ll_set_r3_rsv(uint32_t v) {
 	aon_pmu_r3_t *r = (aon_pmu_r3_t*)(SOC_AON_PMU_REG_BASE + (0x3 << 2));
-	r->sd_en = v;
+	r->rsv = v;
 }
 
-static inline uint32_t aon_pmu_ll_get_r3_sd_en(void) {
+static inline uint32_t aon_pmu_ll_get_r3_rsv(void) {
 	aon_pmu_r3_t *r = (aon_pmu_r3_t*)(SOC_AON_PMU_REG_BASE + (0x3 << 2));
-	return r->sd_en;
-}
-
-//reg r25:
-
-static inline void aon_pmu_ll_set_r25(uint32_t v) {
-	aon_pmu_r25_t *r = (aon_pmu_r25_t*)(SOC_AON_PMU_REG_BASE + (0x25 << 2));
-	r->v = v;
-}
-
-static inline uint32_t aon_pmu_ll_get_r25(void) {
-	aon_pmu_r25_t *r = (aon_pmu_r25_t*)(SOC_AON_PMU_REG_BASE + (0x25 << 2));
-	return r->v;
+	return r->rsv;
 }
 
 //reg r40:
@@ -690,11 +674,6 @@ static inline uint32_t aon_pmu_ll_get_reg73_cal_done(void) {
 	return r->cal_done;
 }
 
-static inline uint32_t aon_pmu_ll_get_r7b(void) {
-	aon_pmu_r7b_t *r = (aon_pmu_r7b_t*)(SOC_AON_PMU_REG_BASE + (0x7b << 2));
-	return r->v;
-}
-
 //reg r7c:
 
 static inline void aon_pmu_ll_set_r7c(uint32_t v) {
@@ -793,5 +772,3 @@ static inline uint32_t aon_pmu_ll_get_r7e_h2(void) {
 #ifdef __cplusplus
 }
 #endif
-
-#endif // CONFIG_TFM_AON_PMU_LL_NSC

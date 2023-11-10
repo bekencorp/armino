@@ -576,17 +576,6 @@ bk_err_t bk_sdio_host_write_fifo(const uint8_t *write_data, uint32_t data_size)
 	return error_state;
 }
 
-/*
- * Internal API only for SD-CARD Driver.
- * SDIO has pre-read feature, it cause SD-CARD driver gets one more sema if the read block
- * isn't continious addr with previous block address.
- * So add one special API for SD-CARD to discard the previous rx data sema.
- */
-void bk_sdio_host_discard_previous_receive_data_sema(void)
-{
-	rtos_get_semaphore(&(s_sdio_host.rx_sema), 0);
-}
-
 bk_err_t bk_sdio_host_wait_receive_data(void)
 {
 	SDIO_HOST_RETURN_ON_NOT_INIT();

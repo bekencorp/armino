@@ -14,211 +14,172 @@
 
 #include <stdint.h>
 #include "boot.h"
-#include "sdkconfig.h"
 #include "reset_reason.h"
 #include <os/os.h>
 #include "bk_arch.h"
-#include "bk_rtos_debug.h"
-#include <components/system.h>
-#include <os/mem.h>
-#include <components/log.h>
-#include <common/bk_assert.h>
-#include "arch_interrupt.h"
 #include "stack_base.h"
-#include "wdt_driver.h"
+#include "bk_uart.h"
+#include "bk_rtos_debug.h"
+#include <os/os.h>
 
-
-#define MAX_DUMP_SYS_MEM_COUNT       (8)
-
-typedef struct sys_mem_info
+struct arm9_register
 {
-    uint32_t mem_base_addr;
-    uint32_t mem_size;
-} sys_mem_info_t;
-
-static unsigned int s_mem_count = 0;
-static sys_mem_info_t s_dump_sys_mem_info[MAX_DUMP_SYS_MEM_COUNT] = {0};
-
-static hook_func s_wifi_dump_func = NULL;
-static hook_func s_ble_dump_func = NULL;
-
-volatile unsigned int g_enter_exception = 0;
-volatile unsigned int g_enter_nmi_vector = 0;
-
-extern unsigned char __dtcm_start__;
-extern unsigned char __dtcm_end__;
-
-#if !CONFIG_SLAVE_CORE
-extern unsigned char __iram_start__;
-extern unsigned char __iram_end__;
-#if CONFIG_CACHE_ENABLE
-extern unsigned char _nocache_start;
-extern unsigned char _nocache_end;
-#endif //#if CONFIG_CACHE_ENABLE
-#endif //#if !CONFIG_SLAVE_CORE
-
-extern unsigned char __data_start__;
-extern unsigned char __data_end__;
-extern unsigned char _bss_start;
-extern unsigned char _bss_end;
-extern unsigned char _sstack;
-extern unsigned char _estack;
-
-static void rtos_dump_plat_memory(void) {
-    // Dump DTCM
-    stack_mem_dump((uint32_t)&__dtcm_start__, (uint32_t)&__dtcm_end__);
-
-#if !CONFIG_SLAVE_CORE
-    // Dump IRAM
-    stack_mem_dump((uint32_t)&__iram_start__, (uint32_t)&__iram_end__);
-#if CONFIG_CACHE_ENABLE
-    stack_mem_dump((uint32_t)&_nocache_start, (uint32_t)&_nocache_end);
-#endif //#if CONFIG_CACHE_ENABLE
-#endif //#if !CONFIG_SLAVE_CORE
-
-    // Dump data bss stack
-    stack_mem_dump((uint32_t)&__data_start__, (uint32_t)&_bss_end);
-
-    // Dump data bss stack
-    stack_mem_dump((uint32_t)&_sstack, (uint32_t)&_estack);
-}
-
-
-unsigned int arch_is_enter_exception(void) {
-    return g_enter_exception;
-}
-
-void rtos_regist_wifi_dump_hook(hook_func wifi_func)
-{
-    s_wifi_dump_func = wifi_func;
-}
-
-void rtos_regist_ble_dump_hook(hook_func ble_func)
-{
-    s_ble_dump_func = ble_func;
-}
-
-void rtos_regist_plat_dump_hook(uint32_t mem_base_addr, uint32_t mem_size)
-{
-    if (s_mem_count < MAX_DUMP_SYS_MEM_COUNT) {
-        s_dump_sys_mem_info[s_mem_count].mem_base_addr = mem_base_addr;
-        s_dump_sys_mem_info[s_mem_count].mem_size = mem_size;
-        s_mem_count++;
-    } else {
-        BK_DUMP_OUT("rtos_regist_plat_dump_hook failed:s_mem_count(%d).\r\n", s_mem_count);
-    }
-}
-
-void rtos_dump_plat_sys_mems(void) {
-#if CONFIG_MEMDUMP_ALL
-    rtos_dump_plat_memory();
-
-    for (int i = 0; i < s_mem_count; i++) {
-        uint32_t begin = s_dump_sys_mem_info[i].mem_base_addr;
-        uint32_t end = begin + s_dump_sys_mem_info[i].mem_size;
-        stack_mem_dump(begin, end);
-    }
-#endif
-}
+	uint32_t r0;
+	uint32_t r1;
+	uint32_t r2;
+	uint32_t r3;
+	uint32_t r4;
+	uint32_t r5;
+	uint32_t r6;
+	uint32_t r7;
+	uint32_t r8;
+	uint32_t r9;
+	uint32_t r10;
+	uint32_t fp;
+	uint32_t ip;
+	uint32_t sp;
+	uint32_t lr;
+	uint32_t pc;
+	uint32_t spsr;
+	uint32_t cpsr;
+};
 
 /**
  * this function will show registers of CPU
  *
- * @param mcause
- * @param context
+ * @param regs the registers point
  */
-void arch_dump_cpu_registers(uint32_t mcause, SAVED_CONTEXT *context) {
 
-    BK_DUMP_OUT("Current regs:\r\n");
-
-    BK_DUMP_OUT("0 r0 x 0x%lx\r\n", context->r0);
-    BK_DUMP_OUT("1 r1 x 0x%lx\r\n", context->r1);
-    BK_DUMP_OUT("2 r2 x 0x%lx\r\n", context->r2);
-    BK_DUMP_OUT("3 r3 x 0x%lx\r\n", context->r3);
-    BK_DUMP_OUT("4 r4 x 0x%lx\r\n", context->r4);
-    BK_DUMP_OUT("5 r5 x 0x%lx\r\n", context->r5);
-    BK_DUMP_OUT("6 r6 x 0x%lx\r\n", context->r6);
-    BK_DUMP_OUT("7 r7 x 0x%lx\r\n", context->r7);
-    BK_DUMP_OUT("8 r8 x 0x%lx\r\n", context->r8);
-    BK_DUMP_OUT("9 r9 x 0x%lx\r\n", context->r9);
-    BK_DUMP_OUT("10 r10 x 0x%lx\r\n", context->r10);
-    BK_DUMP_OUT("11 r11 x 0x%lx\r\n", context->r11);
-    BK_DUMP_OUT("12 r12 x 0x%lx\r\n", context->r12);
-    BK_DUMP_OUT("14 sp x 0x%lx\r\n", context->sp);
-    BK_DUMP_OUT("15 lr x 0x%lx\r\n", context->lr);
-    BK_DUMP_OUT("16 pc x 0x%lx\r\n", context->pc);
-    BK_DUMP_OUT("17 xpsr x 0x%lx\r\n", context->xpsr);
-    BK_DUMP_OUT("18 msp x 0x%lx\r\n", context->msp);
-    BK_DUMP_OUT("19 psp x 0x%lx\r\n", context->psp);
-    BK_DUMP_OUT("20 primask x 0x%lx\r\n", context->primask);
-    BK_DUMP_OUT("21 basepri x 0x%lx\r\n", context->basepri);
-    BK_DUMP_OUT("22 faultmask x 0x%lx\r\n", context->faultmask);
-    BK_DUMP_OUT("23 control x 0x%lx\r\n", context->control);
-    BK_DUMP_OUT("24 fpscr x 0x%lx\r\n", context->fpscr);
-
-}
-
-void rtos_dump_system(void)
+void arch_dump_cpu_registers (struct arm9_register *regs)
 {
-#if CONFIG_DEBUG_FIRMWARE
-    BK_LOG_FLUSH();
-    bk_set_printf_sync(true);
+	os_printf("Current regs:\n");
+	os_printf("r00:0x%08x r01:0x%08x r02:0x%08x r03:0x%08x\n",
+		regs->r0, regs->r1, regs->r2, regs->r3);
+	os_printf("r04:0x%08x r05:0x%08x r06:0x%08x r07:0x%08x\n",
+		regs->r4, regs->r5, regs->r6, regs->r7);
+	os_printf("r08:0x%08x r09:0x%08x r10:0x%08x\n",
+		regs->r8, regs->r9, regs->r10);
+	os_printf("fp :0x%08x ip :0x%08x\n",
+		regs->fp, regs->ip);
+	os_printf("sp :0x%08x lr :0x%08x pc :0x%08x\n",
+		regs->sp, regs->lr, regs->pc);
+	os_printf("SPSR:0x%08x\n", regs->spsr);
+	os_printf("CPSR:0x%08x\n", regs->cpsr);
 
-    BK_DUMP_OUT("***********************************************************************************************\r\n");
-    BK_DUMP_OUT("***********************************user except handler begin***********************************\r\n");
-    BK_DUMP_OUT("***********************************************************************************************\r\n");
+	const unsigned int *reg_fiq, *reg_irq, *reg_und, *reg_abt, *reg_svc, *reg_sys;
+	int i;
 
-#if CONFIG_INT_WDT
-    bk_wdt_feed();
-#endif
+	reg_fiq = (const unsigned int *)MCU_REG_BACKUP_BOTTOM_FIQ;
+	reg_irq = (const unsigned int *)MCU_REG_BACKUP_BOTTOM_IRQ;
+	reg_und = (const unsigned int *)MCU_REG_BACKUP_BOTTOM_UND;
+	reg_abt = (const unsigned int *)MCU_REG_BACKUP_BOTTOM_ABT;
+	reg_svc = (const unsigned int *)MCU_REG_BACKUP_BOTTOM_SVC;
+	reg_sys = (const unsigned int *)MCU_REG_BACKUP_BOTTOM_SYS;
 
-    if(NULL != s_wifi_dump_func) {
-        s_wifi_dump_func();
-    }
+	os_printf("\nseparate regs:\n");
+	os_printf(" reg      FIQ        IRQ        UND        ABT        SVC        SYS\r\n");
+	os_printf("------ ---------- ---------- ---------- ---------- ---------- ----------\r\n");
+	os_printf("%-6s 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\r\n", "cpsr", reg_fiq[0], reg_irq[0],
+		reg_und[0], reg_abt[0], reg_svc[0], reg_sys[0]);
+	os_printf("%-6s 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\r\n", "spsr", reg_fiq[1], reg_irq[1],
+		reg_und[1], reg_abt[1], reg_svc[1], reg_sys[1]);
+	os_printf("%-6s 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\r\n", "r13-SP", reg_fiq[7], reg_irq[7],
+		reg_und[7], reg_abt[7], reg_svc[7], reg_sys[7]);
+	os_printf("%-6s 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\r\n", "r14-LR", reg_fiq[8], reg_irq[8],
+		reg_und[8], reg_abt[8], reg_svc[8], reg_sys[8]);
 
-    if(NULL != s_ble_dump_func) {
-        s_ble_dump_func();
-    }
+	//display backup R8~R12 of FIQ
+	for (i=2; i<7; i++) {
+		os_printf("r%-5d 0x%08x %-10s %-10s %-10s %-10s %-10s\r\n", i+6, reg_fiq[i],
+			"-", "-", "-", "-", "-");
+	}
 
-    rtos_dump_plat_sys_mems();
-
-#if CONFIG_FREERTOS && CONFIG_MEM_DEBUG
-    os_dump_memory_stats(0, 0, NULL);
-#endif
-
-    rtos_dump_backtrace();
-    rtos_dump_task_list();
-#if CONFIG_FREERTOS
-    rtos_dump_task_runtime_stats();
-#endif
-
-    BK_DUMP_OUT("***********************************************************************************************\r\n");
-    BK_DUMP_OUT("************************************user except handler end************************************\r\n");
-    BK_DUMP_OUT("***********************************************************************************************\r\n");
-#endif //CONFIG_DEBUG_FIRMWARE
+	os_printf("\r\n");
 }
 
-void user_except_handler(void)
+static void arch_dump_exception_info(const char* exception_str, struct arm9_register *regs)
 {
-    if (0 == g_enter_exception) {
-        // Make sure the interrupt is disable
-        uint32_t int_level = rtos_disable_int();
-
-        /* Handled Trap */
-        g_enter_exception = 1;
-
-        rtos_dump_system();
-#if !CONFIG_SLAVE_CORE
-        bk_reboot_ex(RESET_SOURCE_REBOOT);
-#endif
-        while(g_enter_exception);
-
-        rtos_enable_int(int_level);
-    } else {
-#if !CONFIG_SLAVE_CORE
-        bk_wdt_force_reboot();
-#endif
-    }
-
+	os_printf("%s\n", exception_str);
+	arch_dump_cpu_registers(regs);
+	rtos_dump_task_list();
+	rtos_dump_backtrace();
+	arch_dump_exception_stack();
 }
 
+/**
+ * When ARM7TDMI comes across an instruction which it cannot handle,
+ * it takes the undefined instruction trap.
+ *
+ * @param regs system registers
+ *
+ * @note never invoke this function in application
+ */
+void boot_exception_undefine(struct arm9_register *regs)
+{
+    bk_misc_set_reset_reason(CRASH_UNDEFINED_VALUE);
+
+    arch_dump_exception_info("undefined instruction", regs);
+    rtos_shutdown();
+}
+
+/**
+ * The software interrupt instruction (SWI) is used for entering
+ * Supervisor mode, usually to request a particular supervisor
+ * function.
+ *
+ * @param regs system registers
+ *
+ * @note never invoke this function in application
+ */
+void boot_exception_swi(struct arm9_register *regs)
+{
+    arch_dump_exception_info("software interrupt", regs);
+    rtos_shutdown();
+}
+
+/**
+ * An abort indicates that the current memory access cannot be completed,
+ * which occurs during an instruction prefetch.
+ *
+ * @param regs system registers
+ *
+ * @note never invoke this function in application
+ */
+void boot_exception_prefetch_abort(struct arm9_register *regs)
+{
+    bk_misc_set_reset_reason(CRASH_PREFETCH_ABORT_VALUE);
+
+    arch_dump_exception_info("prefetch abort", regs);
+    rtos_shutdown();
+}
+
+/**
+ * An abort indicates that the current memory access cannot be completed,
+ * which occurs during a data access.
+ *
+ * @param regs system registers
+ *
+ * @note never invoke this function in application
+ */
+void boot_exception_data_abort(struct arm9_register *regs)
+{
+    bk_misc_set_reset_reason(CRASH_DATA_ABORT_VALUE);
+
+    arch_dump_exception_info("data abort", regs);
+    rtos_shutdown();
+}
+
+/**
+ * Normally, system will never reach here
+ *
+ * @param regs system registers
+ *
+ * @note never invoke this function in application
+ */
+void boot_exception_reserved(struct arm9_register *regs)
+{
+    bk_misc_set_reset_reason(CRASH_UNUSED_VALUE);
+
+    arch_dump_exception_info("not used", regs);
+    rtos_shutdown();
+}

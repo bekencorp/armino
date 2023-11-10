@@ -12,7 +12,6 @@
 #include "psa_manifest/tfm_system_clock.h"
 #include "sys_driver.h"
 #include "driver/prro.h"
-#include "tfm_system_clock_api.h"
 
 typedef psa_status_t (*sys_func_t)(const psa_msg_t *msg);
 
@@ -76,36 +75,6 @@ static psa_status_t system_clock_set_ipc(const psa_msg_t *msg)
     return ret;
 }
 
-static psa_status_t system_core_set_ipc(const psa_msg_t *msg)
-{
-    uint32_t system_operation_id = 0;
-    int num = 0;
-    psa_status_t ret = 0;
-
-    num = psa_read(msg->handle, 0, &system_operation_id, sizeof(system_operation_id));
-    if (num != sizeof(system_operation_id)) {
-        return PSA_ERROR_PROGRAMMER_ERROR;
-    }
-
-    printf("tfm:system_operation_id:%d\r\n", system_operation_id);
-
-    bk_prro_driver_init();
-    bk_prro_set_secure(PRRO_DEV_AHB_SYSTEM, PRRO_SECURE);
-    switch (system_operation_id) {
-    case TFM_SYSTEM_JTAG_CONNECT_CORE0:
-        sys_drv_set_jtag_mode(0);
-        break;
-    case TFM_SYSTEM_JTAG_CONNECT_CORE1:
-        sys_drv_set_jtag_mode(1);
-        break;
-    default:
-        break;
-    }
-    bk_prro_set_secure(PRRO_DEV_AHB_SYSTEM, PRRO_NON_SECURE);
-
-    return ret;
-}
-
 static void system_clock_signal_handle(psa_signal_t signal, sys_func_t pfn)
 {
     psa_msg_t msg = {0};
@@ -143,8 +112,6 @@ void tfm_system_clock_thread(void)
             system_clock_signal_handle(TFM_SYSTEM_POWER_CTRL_SIGNAL, system_clock_power_ctrl_ipc);
         } else if (signals & TFM_SYSTEM_CLOCK_SET_SIGNAL) {
             system_clock_signal_handle(TFM_SYSTEM_CLOCK_SET_SIGNAL, system_clock_set_ipc);
-        } else if (signals & TFM_SYSTEM_CORE_SET_SIGNAL) {
-            system_clock_signal_handle(TFM_SYSTEM_CORE_SET_SIGNAL, system_core_set_ipc);
         } else {
             psa_panic();
         }

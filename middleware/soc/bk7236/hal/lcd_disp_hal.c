@@ -110,7 +110,6 @@ void lcd_hal_rgb_display_sel(bool en)
 /* is_sof_en :1 enable,0:disable ;  is_eof_en:1 enable,0:disable   */
 void lcd_hal_rgb_int_enable(bool         is_sof_en, bool is_eof_en)
 {
-	lcd_disp_ll_set_display_int_de_int_en(1);
 	lcd_disp_ll_set_display_int_rgb_int_en(is_sof_en | (is_eof_en << 1));
 }
 
@@ -140,11 +139,6 @@ void lcd_hal_eof_int_status_clear(void)
 void lcd_hal_sof_int_status_clear(void)
 {
 	lcd_disp_ll_set_display_int_i8080_sof(1);
-}
-
-void lcd_hal_rgb_de_int_status_clear(void)
-{
-	lcd_disp_ll_set_display_int_i8080_de(1);
 }
 
 /* wr_threshold_val: 0-0xff rd_threshold_val：0-0xff */

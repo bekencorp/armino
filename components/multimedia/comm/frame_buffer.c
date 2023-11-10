@@ -42,10 +42,14 @@
 	for (pos = (head)->next, n = pos->next; (pos != (head)) && (pos->next != pos); \
 	     pos = n, n = pos->next)
 
-#if (CONFIG_ENCODE_BUF_DYNAMIC || CONFIG_SOC_BK7256XX)
-#define PSRAM_ADDRESS          (0x60000000UL)
+#define PSRAM_USE_IN_VIDEO     0
+#define PSRAM_JPEG_SHARE_MEM   (1024 * 40)
+#define PSRAM_H264_SHARE_MEM   (1024 * 80)
+
+#if (PSRAM_USE_IN_VIDEO)
+#define PSRAM_ADDRESS          (0x60000000UL + PSRAM_H264_SHARE_MEM)//PSRAM_JPEG_SHARE_MEM
 #else
-#define PSRAM_ADDRESS          (YUV_BUFFER_BASE_ADDR + H264_PSRAM_BUFFER_SIZE)
+#define PSRAM_ADDRESS          (0x60000000UL)
 #endif
 #define ALINE_SIZE             (1024 * 64)
 
@@ -79,9 +83,6 @@
 
 extern uint32_t platform_is_in_interrupt_context(void);
 
-#ifdef CONFIG_EXTENTED_PSRAM_LAYOUT
-extern fb_layout_t fb_layout[];
-#else
 const fb_layout_t fb_layout[] =
 {
 	{
@@ -125,7 +126,7 @@ const fb_layout_t fb_layout[] =
 		},
 	},
 };
-#endif
+
 
 
 fb_info_t *fb_info = NULL;
@@ -917,85 +918,6 @@ frame_buffer_t *frame_buffer_fb_jpeg_malloc(void)
 	return frame_buffer_fb_malloc(FB_INDEX_JPEG);
 }
 
-frame_buffer_t *frame_buffer_fb_jpeg_pop(void)
-{
-	frame_buffer_node_t *node = NULL, *tmp = NULL;
-	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_JPEG];
-	LIST_HEADER_T *pos, *n;
-	GLOBAL_INT_DECLARATION() = 0;
-
-	//LOGI("dis pop\n");
-	rtos_lock_mutex(&mem_list->lock);
-	GLOBAL_INT_DISABLE();
-
-	list_for_each_safe(pos, n, &mem_list->ready)
-	{
-		tmp = list_entry(pos, frame_buffer_node_t, list);
-		if (tmp != NULL)
-		{
-			node = tmp;
-			list_del(pos);
-			break;
-		}
-	}
-
-	GLOBAL_INT_RESTORE();
-	rtos_unlock_mutex(&mem_list->lock);
-
-	if (node == NULL)
-	{
-		LOGD("%s failed\n", __func__);
-		return NULL;
-	}
-
-	//LOGI("pop\n");
-
-	return &node->frame;
-}
-
-frame_buffer_t *frame_buffer_fb_jpeg_pop_wait(void)
-{
-	frame_buffer_t *frame = NULL;
-	fb_mem_list_t *mem_list = &fb_mem_list[FB_INDEX_JPEG];
-	bk_err_t ret;
-
-	do
-	{
-		frame = frame_buffer_fb_jpeg_pop();
-
-		if (frame != NULL)
-		{
-			break;
-		}
-
-		ret = rtos_get_semaphore(&mem_list->ready_sem, 2000);
-
-		if (ret != BK_OK)
-		{
-			LOGD("%s semaphore get failed: %d\n", __func__, ret);
-			break;
-		}
-
-	}
-	while (true);
-
-	return frame;
-}
-
-void frame_buffer_fb_jpeg_dec_register()
-{
-	frame_buffer_fb_register(MODULE_DECODER, FB_INDEX_JPEG);
-}
-
-frame_buffer_t *frame_buffer_fb_jpeg_read(void)
-{
-	return frame_buffer_fb_read(MODULE_DECODER);
-}
-
-void frame_buffer_fb_jpg_free(frame_buffer_t *frame)
-{
-	frame_buffer_fb_free(frame, MODULE_DECODER);
-}
 
 void frame_buffer_fb_jpeg_free(frame_buffer_t *frame)
 {

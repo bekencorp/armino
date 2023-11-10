@@ -238,13 +238,6 @@ void sys_drv_set_ana_vtempsel(uint32_t value)
     rtos_enable_int(int_level);
 }
 
-void sys_drv_set_ana_ioldo_lp(uint32_t value)
-{
-    uint32_t int_level = rtos_disable_int();
-    sys_hal_set_ioldo_lp(value);
-    rtos_enable_int(int_level);
-}
-
 void sys_drv_early_init(void)
 {
 	sys_hal_early_init();

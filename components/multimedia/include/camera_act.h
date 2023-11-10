@@ -22,17 +22,25 @@
 extern "C" {
 #endif
 
+
+typedef enum
+{
+	CAMERA_STATE_DISABLED,
+	CAMERA_STATE_ENABLED,
+} camera_state_t;
+
 typedef struct
 {
 	media_camera_type_t type;
-	media_camera_state_t state;
+	camera_state_t state;
 	uint32_t debug : 1;
 	uint32_t param;
 } camera_info_t;
 
+
 bk_err_t camera_event_handle(media_mailbox_msg_t *msg);
-void set_camera_state(media_camera_state_t state);
-media_camera_state_t get_camera_state(void);
+void set_camera_state(camera_state_t state);
+camera_state_t get_camera_state(void);
 void camera_init(void);
 
 #ifdef __cplusplus

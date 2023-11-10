@@ -307,7 +307,6 @@ typedef struct {
 	int (*aud_tras_tx_mic_data)(unsigned char *data, unsigned int size);	/**< the api is called when collecting a frame mic packet data is complete */
 	bk_err_t (*aud_tras_rx_spk_data)(unsigned int size);					/**< the api is called when playing a frame speaker packet data is complete */
 	void (*aud_tras_drv_com_event_cb)(aud_tras_drv_com_event_t event, bk_err_t result);
-	RingBufferContext *aud_tx_rb;
 
 	/* uac connect state callback */
 	aud_intf_uac_sta_t uac_status;
@@ -437,7 +436,6 @@ typedef struct {
                     },                                                             \
         .aud_tras_tx_mic_data = NULL,                                              \
         .aud_tras_rx_spk_data = NULL,                                              \
-        .aud_tx_rb = NULL,                                                         \
         .uac_status = AUD_INTF_UAC_NORMAL_DISCONNECTED,                            \
         .uac_auto_connect = true,                                                  \
         .aud_tras_drv_uac_connect_state_cb = NULL,                                 \

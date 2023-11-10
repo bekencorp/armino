@@ -35,13 +35,13 @@ void cli_doorbell_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 
 	if (argc == 1)
 	{
-		ret = demo_doorbell_udp_init("MJPEG");
+		ret = demo_doorbell_udp_init();
 		goto output;
 	}
 
 	if (os_strcmp(argv[1], "tcp") == 0)
 	{
-		ret = demo_doorbell_tcp_init(argv[2]);
+		ret = demo_doorbell_tcp_init();
 	}
 #ifdef CONFIG_AV_DEMO
 	else if (os_strcmp(argv[1], "udp_c") == 0)
@@ -78,7 +78,7 @@ void cli_doorbell_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 
 	else
 	{
-		ret = demo_doorbell_udp_init(argv[2]);
+		ret = demo_doorbell_udp_init();
 	}
 
 output:

@@ -58,10 +58,6 @@ void lv_extra_init(void)
     lv_fs_posix_init();
 #endif
 
-#if CONFIG_VFS
-    lv_fs_bk_posix_init();
-#endif
-
 #if LV_USE_FS_WIN32 != '\0'
     lv_fs_win32_init();
 #endif

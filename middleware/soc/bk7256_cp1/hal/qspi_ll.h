@@ -164,19 +164,9 @@ static inline void qspi_ll_set_cmd_d_l(qspi_hw_t *hw, uint32_t cmd_value)
 	hw->cmd_d_l.v = cmd_value;
 }
 
-static inline uint32_t qspi_ll_get_cmd_d_l(qspi_hw_t *hw)
-{
-	return hw->cmd_d_l.v;
-}
-
 static inline void qspi_ll_set_cmd_d_h(qspi_hw_t *hw, uint32_t cmd_value)
 {
 	hw->cmd_d_h.v = cmd_value;
-}
-
-static inline uint32_t qspi_ll_get_cmd_d_h(qspi_hw_t *hw)
-{
-	return hw->cmd_d_h.v;
 }
 
 static inline void qspi_ll_set_cmd_d_cfg1(qspi_hw_t *hw, uint32_t cmd_line)
@@ -184,34 +174,14 @@ static inline void qspi_ll_set_cmd_d_cfg1(qspi_hw_t *hw, uint32_t cmd_line)
 	hw->cmd_d_cfg1.v = cmd_line;
 }
 
-static inline void qspi_ll_set_cmd_d_cfg2(qspi_hw_t *hw, uint32_t config_value)
-{
-	hw->cmd_d_cfg2.v = config_value;
-}
-
-static inline void qspi_ll_cmd_d_start(qspi_hw_t *hw)
-{
-	hw->cmd_d_cfg2.cmd_start = 1;
-}
-
 static inline void qspi_ll_set_cmd_d_data_line(qspi_hw_t *hw, qspi_wire_mode_t data_line)
 {
 	hw->cmd_d_cfg2.data_line = data_line;
 }
 
-static inline void qspi_ll_set_cmd_d_data_length(qspi_hw_t *hw, qspi_wire_mode_t data_len)
-{
-	hw->cmd_d_cfg2.data_len = data_len;
-}
-
 static inline void qspi_ll_set_cmd_d_dummy_clock(qspi_hw_t *hw, uint32_t dummy_clock)
 {
 	hw->cmd_d_cfg2.dummy_clock = dummy_clock & QSPI_F_DUMMY_CLK_M;
-}
-
-static inline void qspi_ll_set_cmd_d_dummy_mode(qspi_hw_t *hw, uint32_t dummy_mode)
-{
-	hw->cmd_d_cfg2.dummy_mode = dummy_mode & 0x7;
 }
 
 static inline void qspi_ll_enable(qspi_hw_t *hw)
@@ -267,18 +237,13 @@ static inline bool qspi_ll_is_cmd_start_done(qspi_hw_t *hw)
 
 static inline void qspi_ll_wait_cmd_done(qspi_hw_t *hw)
 {
-	for(int i = 0; i <= 10000; i++) {
+	for(int i = 0; i < 10000; i++) {
 		if(0 != qspi_ll_is_cmd_start_done(hw)) {
 			break;
 		}
-		if(i == 10000) {
-			os_printf("ERROR: qspi_ll_wait_cmd_done timeout \n");
-		}
-		extern void delay_us(UINT32 us);
-		delay_us(1);
 	}
 	hw->status_clr.clr_cmd_start_done = 1;
-	hw->status_clr.clr_cmd_start_done = 0;
+	hw->status_clr.v = 0;
 }
 
 static inline void qspi_ll_direct_write(uint32_t base_addr, const void *data, uint32_t size)
@@ -341,13 +306,7 @@ if(QSPI_FLASH == cmd->device) {
 			if(FLASH_WR_S0_S7_CMD == ((cmd->cmd) & QSPI_F_CMD1_M) || (FLASH_WR_S8_S15_CMD == ((cmd->cmd) & QSPI_F_CMD1_M))) {
 				hw->cmd_c_h.v &= (~(QSPI_F_CMD2_M << QSPI_F_CMD2_S));
 				hw->cmd_c_h.v |= (cmd->cmd & (QSPI_F_CMD2_M << QSPI_F_CMD2_S));
-				if (cmd->cmd & (QSPI_F_CMD3_M << QSPI_F_CMD3_S)) {
-					hw->cmd_c_h.v &= (~(QSPI_F_CMD3_M << QSPI_F_CMD3_S));
-					hw->cmd_c_h.v |= (cmd->cmd & (QSPI_F_CMD3_M << QSPI_F_CMD3_S));
-					hw->cmd_c_cfg1.v = 0xc0;
-				} else {
-					hw->cmd_c_cfg1.v = 0x30;
-				}
+				hw->cmd_c_cfg1.v = 0x30;
 			} else if (FLASH_WR_EN_CMD == ((cmd->cmd) & QSPI_F_CMD1_M)) {
 				hw->cmd_c_cfg1.v = 0xc;
 			} else {
@@ -520,7 +479,6 @@ static inline uint32_t qspi_ll_get_interrupt_status_before_mask(qspi_hw_t *hw)
 static inline void qspi_ll_clear_interrupt_status(qspi_hw_t *hw, uint32_t status)
 {
 	hw->status_clr.v = status;
-	hw->status_clr.v = 0;
 }
 
 static inline uint32_t qspi_ll_get_interrupt_status_after_mask(qspi_hw_t *hw)

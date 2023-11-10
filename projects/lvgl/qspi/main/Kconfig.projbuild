@@ -1,0 +1,6 @@
+menu "LVGL QSPI Configuration"
+
+    config LV_QSPI_DEMO
+        bool "Enable LVGL QSPI Demo"
+        default n
+endmenu

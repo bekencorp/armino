@@ -395,22 +395,6 @@ uint32_t sys_hal_lp_vol_get()
 {
 	return 0;
 }
-int32 sys_hal_rf_tx_vol_set(uint32_t value)
-{
-	return 0;
-}
-uint32_t sys_hal_rf_tx_vol_get()
-{
-	return 0;
-}
-int32 sys_hal_rf_rx_vol_set(uint32_t value)
-{
-	return 0;
-}
-uint32_t sys_hal_rf_rx_vol_get()
-{
-	return 0;
-}
 int32 sys_hal_bandgap_cali_set(uint32_t value)//increase or decrease the dvdddig voltage
 {
 	return 0;
@@ -730,6 +714,16 @@ void sys_hal_spi_select_clock(spi_id_t num, spi_src_clk_t mode)
 		default:
 			break;
 	}
+}
+
+void sys_hal_qspi_clk_sel(uint32_t param)
+{
+	sys_ll_set_cpu_clk_div_mode2_cksel_qspi0(param);
+}
+
+void sys_hal_qspi_set_src_clk_div(uint32_t value)
+{
+	sys_ll_set_cpu_clk_div_mode2_ckdiv_qspi0(value);
 }
 
 #if 1	//tmp build
@@ -1508,11 +1502,6 @@ void sys_hal_aud_mic1_single_en(uint32_t value)
 void sys_hal_aud_mic2_single_en(uint32_t value)
 {
 	sys_ll_set_ana_reg15_micsingleen(value);
-}
-
-void sys_hal_aud_dacg_set(uint32_t value)
-{
-	sys_ll_set_ana_reg16_dacg(value);
 }
 
 void sys_hal_aud_int_en(uint32_t value)

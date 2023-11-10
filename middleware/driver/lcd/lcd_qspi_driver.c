@@ -22,14 +22,18 @@
 #include <driver/qspi_types.h>
 #include <driver/lcd_qspi_types.h>
 #include <driver/media_types.h>
+#include <modules/pm.h>
 #include "gpio_driver.h"
 #include <driver/gpio.h>
 #include "bk_misc.h"
 
-#if CONFIG_SOC_BK7256XX
+
 #define LCD_QSPI_DISPLAY_PSRAM_ADDR		0x68000000
+
+#if CONFIG_LCD_QSPI_CUSTOM
+#define LCD_QSPI_RESET_PIN				GPIO_46
 #else
-#define LCD_QSPI_DISPLAY_PSRAM_ADDR		0x64000000
+#define LCD_QSPI_RESET_PIN				GPIO_47
 #endif
 
 #if CONFIG_LCD_QSPI_SH8601A
@@ -38,6 +42,10 @@ extern lcd_qspi_device_t lcd_qspi_device_sh8601a;
 
 #if CONFIG_LCD_QSPI_ST77903
 extern lcd_qspi_device_t lcd_qspi_device_st77903;
+#endif
+
+#if CONFIG_LCD_QSPI_ST77903_SAT61478M
+extern lcd_qspi_device_t lcd_qspi_device_st77903_sat61478m;
 #endif
 
 static qspi_driver_t s_lcd_qspi = {0};
@@ -69,15 +77,15 @@ static bk_err_t bk_lcd_qspi_driver_init(void)
 
 static bk_err_t bk_lcd_qspi_hardware_reset(void)
 {
-	gpio_dev_unmap(GPIO_47);
-	gpio_dev_map(GPIO_47, 0);
-	bk_gpio_enable_pull(GPIO_47);
-	bk_gpio_pull_up(GPIO_47);
-	rtos_delay_milliseconds(10);
-	bk_gpio_pull_down(GPIO_47);
-	rtos_delay_milliseconds(10);
-	bk_gpio_pull_up(GPIO_47);
-	rtos_delay_milliseconds(120);
+	gpio_dev_unmap(LCD_QSPI_RESET_PIN);
+	gpio_dev_map(LCD_QSPI_RESET_PIN, 0);
+	bk_gpio_enable_pull(LCD_QSPI_RESET_PIN);
+	bk_gpio_pull_up(LCD_QSPI_RESET_PIN);
+	delay_ms(10);
+	bk_gpio_pull_down(LCD_QSPI_RESET_PIN);
+	delay_ms(10);
+	bk_gpio_pull_up(LCD_QSPI_RESET_PIN);
+	delay_ms(10);
 
 	return BK_OK;
 }
@@ -114,10 +122,6 @@ static bk_err_t bk_lcd_qspi_quad_write_start(lcd_qspi_write_config_t *reg_config
 	qspi_hal_cmd_c_start(&s_lcd_qspi.hal);
 	qspi_hal_wait_cmd_done(&s_lcd_qspi.hal);
 
-#if CONFIG_SOC_BK7258
-	qspi_hal_io_cpu_mem_select(&s_lcd_qspi.hal, 1);
-#endif
-
 	qspi_hal_disable_cmd_sck_enable(&s_lcd_qspi.hal);
 
 	return BK_OK;
@@ -127,10 +131,6 @@ static bk_err_t bk_lcd_qspi_quad_write_stop(void)
 {
 	qspi_hal_disable_cmd_sck_disable(&s_lcd_qspi.hal);
 	qspi_hal_force_spi_cs_low_disable(&s_lcd_qspi.hal);
-
-#if CONFIG_SOC_BK7258
-	qspi_hal_io_cpu_mem_select(&s_lcd_qspi.hal, 0);
-#endif
 
 	return BK_OK;
 }
@@ -250,16 +250,28 @@ static void bk_lcd_qspi_dma2d_memcpy(uint32_t *Psrc, uint32_t xsize, uint32_t ys
 	dma2d_config_t dma2d_config = {0};
 
 #if CONFIG_LVGL
+#if (CONFIG_LV_COLOR_DEPTH == 32)
 	dma2d_config.init.mode         = DMA2D_M2M_PFC;
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_color_mode = DMA2D_INPUT_ARGB8888;
-	dma2d_config.init.data_reverse   = data_reverse;
+	dma2d_config.init.data_reverse = data_reverse;
+	dma2d_config.init.color_mode   = DMA2D_OUTPUT_RGB888; /**< Output color mode is RGB888 */
+#else
+	dma2d_config.init.mode         = DMA2D_M2M;
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_color_mode = DMA2D_INPUT_RGB565;
+	dma2d_config.init.color_mode   = DMA2D_OUTPUT_RGB565; /**< Output color mode is RGB565 */
+#endif
 #else
 	dma2d_config.init.mode         = DMA2D_M2M;             /**< Mode Memory To Memory */
+#if (CONFIG_LCD_QSPI_PIXEL_DEPTH_BYTE == 2)
+	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_color_mode = DMA2D_INPUT_RGB565;	 /**< Input color is RGB565 */
+	dma2d_config.init.color_mode	= DMA2D_OUTPUT_RGB565; /**< Output color mode is RGB565 */
+#else
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].input_color_mode = DMA2D_INPUT_RGB888;	 /**< Input color is RGB888 */
+	dma2d_config.init.color_mode	= DMA2D_OUTPUT_RGB888; /**< Output color mode is RGB888 */
+#endif
 #endif
 
 	dma2d_config.layer_cfg[DMA2D_FOREGROUND_LAYER].red_blue_swap   = DMA2D_RB_REGULAR;		/**< No R&B swap for the input image */
-	dma2d_config.init.color_mode    = DMA2D_OUTPUT_RGB888; /**< Output color mode is RGB888 */
 	dma2d_config.init.output_offset = 0;                   /**< No offset on output */
 	dma2d_config.init.red_blue_swap   = DMA2D_RB_REGULAR;     /**< No R&B swap for the output image */
 	dma2d_config.init.alpha_inverted = DMA2D_REGULAR_ALPHA;  /**< No alpha inversion for the output image */
@@ -284,27 +296,11 @@ lcd_qspi_device_t *lcd_qspi_devices[] = {
 #if CONFIG_LCD_QSPI_ST77903
 	&lcd_qspi_device_st77903,
 #endif
+
+#if CONFIG_LCD_QSPI_ST77903_SAT61478M
+	&lcd_qspi_device_st77903_sat61478m,
+#endif
 };
-
-bk_err_t bk_lcd_qspi_read_data(lcd_qspi_reg_read_config_t read_config, lcd_qspi_device_t *device)
-{
-	qspi_hal_set_cmd_d_h(&s_lcd_qspi.hal, 0);
-	qspi_hal_set_cmd_d_cfg1(&s_lcd_qspi.hal, 0);
-	qspi_hal_set_cmd_d_cfg2(&s_lcd_qspi.hal, 0);
-
-	qspi_hal_set_cmd_d_h(&s_lcd_qspi.hal, (read_config.cmd << 16 | device->reg_read_cmd) & 0xFF00FF);
-	qspi_hal_set_cmd_d_cfg1(&s_lcd_qspi.hal, 0x300);
-
-	qspi_hal_set_cmd_d_data_line(&s_lcd_qspi.hal, read_config.data_line);
-	qspi_hal_set_cmd_d_data_length(&s_lcd_qspi.hal, read_config.data_len);
-	qspi_hal_set_cmd_d_dummy_clock(&s_lcd_qspi.hal, read_config.dummy_clk);
-	qspi_hal_set_cmd_d_dummy_mode(&s_lcd_qspi.hal, read_config.dummy_mode);
-
-	qspi_hal_cmd_d_start(&s_lcd_qspi.hal);
-	qspi_hal_wait_cmd_done(&s_lcd_qspi.hal);
-
-	return BK_OK;
-}
 
 lcd_qspi_device_t *bk_lcd_qspi_get_device_by_name(char *name)
 {
@@ -336,6 +332,38 @@ lcd_qspi_device_t *bk_lcd_qspi_get_device_by_ppi(media_ppi_t ppi)
 	return NULL;
 }
 
+#if (CONFIG_MASTER_CORE) && (CONFIG_PWM)
+bk_err_t bk_lcd_qspi_backlight_init(lcd_qspi_device_t *device, uint8_t percent)
+{
+	bk_err_t ret = BK_OK;
+
+	if (device->backlight_init != NULL) {
+		ret = device->backlight_init(percent);
+		if (ret != BK_OK) {
+			os_printf("lcd qspi backlight init failed!\r\n");
+			return ret;
+		}
+	}
+
+	return BK_OK;
+}
+
+bk_err_t bk_lcd_qspi_backlight_deinit(lcd_qspi_device_t *device)
+{
+	bk_err_t ret = BK_OK;
+
+	if (device->backlight_deinit != NULL) {
+		ret = device->backlight_deinit();
+		if (ret != BK_OK) {
+			os_printf("lcd qspi backlight deinit failed!\r\n");
+			return ret;
+		}
+	}
+
+	return BK_OK;
+}
+#endif
+
 bk_err_t bk_lcd_qspi_init(lcd_qspi_device_t *device)
 {
 	bk_err_t ret = BK_OK;
@@ -345,25 +373,26 @@ bk_err_t bk_lcd_qspi_init(lcd_qspi_device_t *device)
 		return BK_FAIL;
 	}
 
+	bk_pm_module_vote_cpu_freq(PM_DEV_ID_DISP, PM_CPU_FRQ_320M);
+
 	ret = bk_lcd_qspi_common_init();
 	if (ret == BK_FAIL) {
 		os_printf("lcd qspi common init failed!\r\n");
 		return ret;
 	}
 
-	if (device->backlight_init != NULL) {
-		ret = device->backlight_init(100);
-		if (ret != BK_OK) {
-			os_printf("lcd qspi backlight init failed!\r\n");
-			return ret;
-		}
+#if (CONFIG_MASTER_CORE) && (CONFIG_PWM)
+	ret = bk_lcd_qspi_backlight_init(device, 100);
+	if (ret == BK_FAIL) {
+		return ret;
 	}
+#endif
 
 	if (device->init_cmd != NULL) {
 		const lcd_qspi_init_cmd_t *init = device->init_cmd;
 		for (uint32_t i = 0; i < device->device_init_cmd_len; i++) {
 			if (init->cmd == 0xff) {
-				rtos_delay_milliseconds(init->data[0]);
+				delay_ms(init->data[0]);
 			} else {
 				bk_lcd_qspi_send_cmd(device->reg_write_cmd, init->cmd, init->data, init->data_len);
 			}
@@ -387,18 +416,17 @@ bk_err_t bk_lcd_qspi_deinit(lcd_qspi_device_t *device)
 		return ret;
 	}
 
-	if (device->backlight_deinit != NULL) {
-		ret = device->backlight_deinit();
-		if (ret != BK_OK) {
-			os_printf("lcd qspi backlight deinit failed!\r\n");
-			return ret;
-		}
+#if (CONFIG_MASTER_CORE) && (CONFIG_PWM)
+	ret = bk_lcd_qspi_backlight_deinit(device);
+	if (ret == BK_FAIL) {
+		return ret;
 	}
+#endif
 
 	return BK_OK;
 }
 
-bk_err_t bk_lcd_qspi_send_data(lcd_qspi_device_t *device, uint32_t *data, uint8_t data_len)
+bk_err_t bk_lcd_qspi_send_data(lcd_qspi_device_t *device, uint32_t *data, uint32_t data_len)
 {
 	bk_err_t ret = BK_OK;
 
@@ -413,15 +441,23 @@ bk_err_t bk_lcd_qspi_send_data(lcd_qspi_device_t *device, uint32_t *data, uint8_
 			delay_us(35);
 		}
 
-		for (uint16_t i = 0; i < device->ppi >> 16; i++) {
+		for (uint16_t i = 0; i < (device->ppi & 0xFFFF); i++) {
 			bk_lcd_qspi_quad_write_start(&(device->pixel_write_config), 0);
 			if (data_len == 1) {
 				bk_lcd_qspi_dma2d_fill(device->ppi >> 16, 1, *data, 0);
 			} else {
 #if CONFIG_LVGL
+#if (CONFIG_LV_COLOR_DEPTH == 32)
 				bk_lcd_qspi_dma2d_memcpy(data + i * (device->ppi >> 16), device->ppi >> 16, 1, 0);
 #else
+				bk_lcd_qspi_dma2d_memcpy(data + i * ((device->ppi >> 16) * 2 / 4), device->ppi >> 16, 1, 0);
+#endif
+#else
+#if (CONFIG_LCD_QSPI_PIXEL_DEPTH_BYTE == 2)
+				bk_lcd_qspi_dma2d_memcpy(data + i * ((device->ppi >> 16) * 2 / 4), device->ppi >> 16, 1, 0);
+#else
 				bk_lcd_qspi_dma2d_memcpy(data + i * ((device->ppi >> 16) * 3 / 4), device->ppi >> 16, 1, 0);
+#endif
 #endif			
 			}
 #if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)

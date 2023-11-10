@@ -15,24 +15,20 @@
 
 #include <os/os.h>
 #include <driver/psram.h>
-#include <driver/aon_rtc.h>
+#include <driver/trng.h>
 #include "bk_general_dma.h"
-#include "soc/mapping.h"
+
+#if (CONFIG_ARCH_RISCV)
+extern u64 riscv_get_mtimer(void);
+
+#define PSRAM_QITEM_COUNT      (30)
+
+#define PSRAM_TEST_LEN               (1024 * 4)
 
 #define write_data(addr,val)                 *((volatile uint32_t *)(addr)) = val
 #define read_data(addr,val)                  val = *((volatile uint32_t *)(addr))
 #define get_addr_data(addr)                  *((volatile uint32_t *)(addr))
 
-#if (CONFIG_ARCH_RISCV)
-extern u64 riscv_get_mtimer(void);
-#endif
-
-static void cli_psram_help(void)
-{
-	CLI_LOGI("psram_test {start|stop}\n");
-}
-
-#define PSRAM_TEST_LEN               (1024 * 4)
 beken_thread_t  psram_thread_hdl = NULL;
 
 typedef struct {
@@ -45,54 +41,19 @@ typedef struct {
 
 psram_debug_t * psram_debug = NULL;
 
-static uint64_t bk_get_current_timer(void)
+static void cli_psram_help(void)
 {
-	uint64_t timer = 0;
-
-#ifdef CONFIG_ARCH_RISCV
-	timer = riscv_get_mtimer();// tick
-#else // CONFIG_ARCH_RISCV
-
-#ifdef CONFIG_AON_RTC
-	timer = bk_aon_rtc_get_us();
-#endif
-
-#endif // CONFIG_ARCH_RISCV
-
-	return timer;
+	CLI_LOGI("psram_test {start|stop}\n");
 }
 
-static uint64_t bk_get_spend_time_us(uint64_t before, uint64_t after)
-{
-	uint64_t spend_time = 0;
 
-	if (after == 0 || before >= after)
-	{
-		spend_time = 0;
-		return spend_time;
-	}
-
-#ifdef CONFIG_ARCH_RISCV
-	spend_time = (after - before) / 26;
-#else // CONFIG_ARCH_RISCV
-
-#ifdef CONFIG_AON_RTC
-	spend_time = after - before;
-#endif
-
-#endif // CONFIG_ARCH_RISCV
-
-	return spend_time;
-}
-
-static void psram_cpu_write_test(void)
+static void psram_test_dtcm(void)
 {
 	uint32_t i = 0;
 	uint32_t error_num = 0;
-	uint64_t rate = 0;
 	uint64_t timer0, timer1;
-	uint64_t total_time = 0;
-
+	uint32_t total_time = 0;
+	uint32_t test_len = 1024 * 1024 * 8;
 	uint32_t value = 0;
 	uint32_t base_addr = 0x60000000;
 
@@ -101,44 +62,25 @@ static void psram_cpu_write_test(void)
 		base_addr = 0x64000000;
 	}
 
-#if (CONFIG_PSRAM_APM)
-	uint32_t test_len = 1024 * 1024 * 8;
-#else
-	uint32_t test_len = 1024 * 1024 * 4;
-#endif
-
-	CLI_LOGI("begin write %08x-%08x test\r\n", base_addr, base_addr + test_len);
-
-	timer0 = bk_get_current_timer();
-
+	CLI_LOGI("begin write %08x, len:8Mbyte\r\n", base_addr);
+	timer0 = riscv_get_mtimer();
 	for (i = 0; i < test_len / 4; i++)
 		write_data((base_addr + i * 0x4), 0x11111111 + i);
 
-	timer1 = bk_get_current_timer();
+	timer1 = riscv_get_mtimer();
+	total_time = (uint32_t) (timer1 - timer0)/26000;
+	CLI_LOGI("finish write, use time: %ld ms, write_rate:%ld byte/ms\r\n", total_time, test_len / total_time);
 
-	if (timer1 > timer0)
-	{
-		total_time = bk_get_spend_time_us(timer0, timer1);
-		rate = ((uint64_t)test_len) * 1000000 / total_time;
-		CLI_LOGI("finish write, use time: %ld ms, write_rate:%ld%ld byte/s\r\n", (uint32_t)(total_time / 1000),
-			(uint32_t)(rate >> 32), (uint32_t)(rate & 0xFFFFFFFF));
-	}
-
-	CLI_LOGI("begin read %08x-%08x test\r\n", base_addr, base_addr + test_len);
-
-	timer0 = bk_get_current_timer();
-
+	CLI_LOGI("begin read %08x, len:8Mbyte\r\n", base_addr);
+	timer0 = riscv_get_mtimer();
 	for (i = 0; i < test_len / 4; i++)
 		read_data((base_addr + i * 0x4), value);
 
-	timer1 = bk_get_current_timer();
-	if (timer1 > timer0)
-	{
-		total_time = bk_get_spend_time_us(timer0, timer1);
-		rate = ((uint64_t)test_len) * 1000000 / total_time;
-		CLI_LOGI("finish read, use time: %ld ms, write_rate:%d%ld byte/s\r\n", (uint32_t)(total_time / 1000),
-			(uint32_t)(rate >> 32), (uint32_t)(rate & 0xFFFFFFFF));
-	}
+	timer1 = riscv_get_mtimer();
+	total_time = (uint32_t) (timer1 - timer0)/26000;
+	CLI_LOGI("finish read, use time: %ld ms, read_rate:%ld byte/ms\r\n", total_time, test_len / total_time);
+
+	CLI_LOGI("begin compare %08x, len:8Mbyte\r\n", base_addr);
 
 	for (i = 0; i < test_len / 4; i++)
 	{
@@ -147,87 +89,7 @@ static void psram_cpu_write_test(void)
 			error_num++;
 	}
 
-	CLI_LOGI("finish compare, error_num: %ld, corr_rate: %ld.\r\n", error_num, ((test_len / 4 - error_num) * 100 / (test_len / 4)));
-
-	rtos_delay_milliseconds(psram_debug->delay_time);
-
-}
-
-static void psram_dma_write_test(void)
-{
-	uint32_t i = 0;
-	uint32_t error_num = 0;
-	uint64_t rate = 0;
-	uint64_t timer0, timer1;
-	uint32_t total_time = 0;
-
-	uint32_t value = 0;
-	uint32_t base_addr = 0x60000000;
-
-	if (psram_debug->cacheable)
-	{
-		base_addr = 0x64000000;
-	}
-
-#if (CONFIG_PSRAM_APM)
-	uint32_t test_len = 1024 * 1024 * 8;
-#else
-	uint32_t test_len = 1024 * 1024 * 4;
-#endif
-
-	for (i = 0; i < 1024; i++)
-	{
-		psram_debug->data[i] = 0x11223344 + i;
-	}
-
-	CLI_LOGI("begin write %08x-%08x test\r\n", base_addr, base_addr + test_len);
-
-	timer0 = bk_get_current_timer();
-
-	for (i = 0; i < test_len / 4096; i++)
-	{
-		dma_memcpy((void *)(base_addr + i * 4096), psram_debug->data, 4096);
-	}
-
-	timer1 = bk_get_current_timer();
-	if (timer1 > timer0)
-	{
-		total_time = bk_get_spend_time_us(timer0, timer1);
-		rate = ((uint64_t)test_len) * 1000000 / total_time;
-		CLI_LOGI("finish write, use time: %ld ms, write_rate:%d%ld byte/s\r\n", (uint32_t)(total_time / 1000),
-			(uint32_t)(rate >> 32), (uint32_t)(rate & 0xFFFFFFFF));
-	}
-
-	CLI_LOGI("begin read %08x-%08x test\r\n", base_addr, base_addr + test_len);
-
-	timer0 = bk_get_current_timer();
-
-	for (i = 0; i < test_len / 4; i++)
-		read_data((base_addr + i * 0x4), value);
-
-	timer1 = bk_get_current_timer();
-	if (timer1 > timer0)
-	{
-		total_time = bk_get_spend_time_us(timer0, timer1);
-		rate = ((uint64_t)test_len) * 1000000 / total_time;
-		CLI_LOGI("finish read, use time: %ld ms, write_rate:%d%ld byte/s\r\n", (uint32_t)(total_time / 1000),
-			(uint32_t)(rate >> 32), (uint32_t)(rate & 0xFFFFFFFF));
-	}
-
-	for (i = 0; i < test_len / 4096; i++)
-	{
-		for (uint32_t k = 0; k < 1024; k++)
-		{
-			value = get_addr_data(base_addr + i * 4096 + k * 0x4);
-
-			if (value != psram_debug->data[k])
-			{
-				error_num++;
-			}
-		}
-	}
-
-	CLI_LOGI("finish compare, error_num: %ld, corr_rate: %ld.\r\n", error_num, ((test_len / 4 - error_num) * 100 / (test_len / 4)));
+	CLI_LOGI("finish cpmpare, error_num: %ld, corr_rate: %ld.\r\n", error_num, ((test_len - error_num) * 100 / test_len));
 
 	rtos_delay_milliseconds(psram_debug->delay_time);
 
@@ -237,10 +99,9 @@ static void psram_write_continue_test(void)
 {
 	uint32_t i = 0;
 	uint32_t error_num = 0;
-	uint64_t rate = 0;
 	uint64_t timer0, timer1;
 	uint32_t total_time = 0;
-
+	uint32_t test_len = 1024 * 1024 * 8; // 8Mbyte
 	uint32_t value = 0;
 	uint32_t base_addr = 0x60000000;
 
@@ -249,48 +110,34 @@ static void psram_write_continue_test(void)
 		base_addr = 0x64000000;
 	}
 
-#if (CONFIG_PSRAM_APM)
-	uint32_t test_len = 1024 * 1024 * 8;
-#else
-	uint32_t test_len = 1024 * 1024 * 4;
-#endif
-
-
 	for (i = 0; i < 1024; i++)
 	{
 		psram_debug->data[i] = 0x11223344 + i;
 	}
 
-	CLI_LOGI("begin write %08x-%08x test\r\n", base_addr, base_addr + test_len);
-	timer0 = bk_get_current_timer();
+	CLI_LOGI("begin write %08x, len:8Mbyte\r\n", base_addr);
+	timer0 = riscv_get_mtimer();
+
 	for (i = 0; i < test_len; i += 4096)
 	{
 		bk_psram_memcpy(base_addr + i, &psram_debug->data[0], 4096);
 	}
 
-	timer1 = bk_get_current_timer();
-	if (timer1 > timer0)
-	{
-		total_time = bk_get_spend_time_us(timer0, timer1);
-		rate = ((uint64_t)test_len) * 1000000 / total_time;
-		CLI_LOGI("finish write, use time: %ld ms, write_rate:%d%ld byte/s\r\n", (uint32_t)(total_time / 1000),
-			(uint32_t)(rate >> 32), (uint32_t)(rate & 0xFFFFFFFF));
-	}
+	timer1 = riscv_get_mtimer();
 
+	total_time = (uint32_t) (timer1 - timer0)/26000;
+	CLI_LOGI("finish write, use time: %ld ms, write_rate:%ld byte/ms\r\n", total_time, test_len / total_time);
 
-	CLI_LOGI("begin read %08x-%08x test\r\n", base_addr, base_addr + test_len);
-	timer0 = bk_get_current_timer();
+	CLI_LOGI("begin read %08x, len:8Mbyte\r\n", base_addr);
+	timer0 = riscv_get_mtimer();
 	for (i = 0; i < test_len / 4; i++)
 		read_data((base_addr + i * 0x4), value);
 
-	timer1 = bk_get_current_timer();
-	if (timer1 > timer0)
-	{
-		total_time = bk_get_spend_time_us(timer0, timer1);
-		rate = ((uint64_t)test_len) * 1000000 / total_time;
-		CLI_LOGI("finish read, use time: %ld ms, write_rate:%d%ld byte/s\r\n", (uint32_t)(total_time / 1000),
-			(uint32_t)(rate >> 32), (uint32_t)(rate & 0xFFFFFFFF));
-	}
+	timer1 = riscv_get_mtimer();
+
+	total_time = (uint32_t) (timer1 - timer0)/26000;
+	CLI_LOGI("finish read, use time: %ld ms, read_rate:%ld byte/ms\r\n", total_time, test_len / total_time);
+
 
 	for (i = 0; i < test_len / 4096; i++)
 	{
@@ -305,60 +152,44 @@ static void psram_write_continue_test(void)
 		}
 	}
 
-	CLI_LOGI("finish compare, error_num: %ld, corr_rate: %ld.\r\n", error_num, (test_len / 4 - error_num) * 100 / (test_len / 4));
+	CLI_LOGI("finish cpmpare, error_num: %ld, corr_rate: %ld.\r\n", error_num, (test_len - error_num) * 100 / test_len);
 
 	rtos_delay_milliseconds(psram_debug->delay_time);
 
 }
 
+
+#include "soc/mapping.h"
 static void psram_test_unit(void)
 {
 #if (CONFIG_BK7256_SOC)
 
 	uint32_t i = 0;
 	uint32_t error_num = 0;
-	uint64_t rate = 0;
 	uint64_t timer0, timer1;
 	uint32_t total_time = 0;
-
 	uint32_t start_address = (uint32_t)&psram_map->reserved;
 	uint32_t end_address = (8 * 1024 * 1024 + 0x60000000);
 	uint32_t test_len = end_address - start_address;
 
 	uint32_t value = 0;
 	CLI_LOGI("begin write %08X-%08X, count: %d\n", start_address, end_address, test_len / 4);
-
-	timer0 = bk_get_current_timer();
-
+	timer0 = riscv_get_mtimer();
 	for (i = 0; i < test_len / 4; i++)
 		write_data((start_address + i * 0x4), 0x11111111 + i);
 
-	timer1 = bk_get_current_timer();
-	if (timer1 > timer0)
-	{
-		total_time = bk_get_spend_time_us(timer0, timer1);
-		rate = ((uint64_t)test_len) * 1000000 / total_time;
-		CLI_LOGI("finish write, use time: %ld ms, write_rate:%d%ld byte/s\r\n", (uint32_t)(total_time / 1000),
-			(uint32_t)(rate >> 32), (uint32_t)(rate & 0xFFFFFFFF));
-	}
-
-
+	timer1 = riscv_get_mtimer();
+	total_time = (uint32_t) (timer1 - timer0)/26000;
+	CLI_LOGI("finish write, use time: %ld ms, write_rate:%ld byte/ms\n", total_time, test_len / total_time);
 
 	CLI_LOGI("begin write %08X-%08X, count: %d\n", start_address, end_address, test_len);
-	timer0 = bk_get_current_timer();
+	timer0 = riscv_get_mtimer();
 	for (i = 0; i < test_len / 4; i++)
 		read_data((start_address + i * 0x4), value);
 
-	timer1 = bk_get_current_timer();
-	if (timer1 > timer0)
-	{
-		total_time = bk_get_spend_time_us(timer0, timer1);
-		rate = ((uint64_t)test_len) * 1000000 / total_time;
-		CLI_LOGI("finish read, use time: %ld ms, write_rate:%d%ld byte/s\r\n", (uint32_t)(total_time / 1000),
-			(uint32_t)(rate >> 32), (uint32_t)(rate & 0xFFFFFFFF));
-	}
-
-
+	timer1 = riscv_get_mtimer();
+	total_time = (uint32_t) (timer1 - timer0)/26000;
+	CLI_LOGI("finish read, use time: %ld ms, read_rate:%ld byte/ms\n", total_time, test_len / total_time);
 
 	CLI_LOGI("begin write %08X-%08X, count: %d\n", start_address, end_address, test_len);
 
@@ -369,7 +200,7 @@ static void psram_test_unit(void)
 			error_num++;
 	}
 
-	CLI_LOGI("finish compare, error_num: %ld, corr_rate: %ld\n", error_num, ((test_len / 4 - error_num) * 100 / (test_len / 4 ));
+	CLI_LOGI("finish cpmpare, error_num: %ld, corr_rate: %ld\n", error_num, ((test_len - error_num) * 100 / test_len));
 
 	rtos_delay_milliseconds(psram_debug->delay_time);
 #endif
@@ -381,14 +212,11 @@ static void psram_test_main(void)
 	{
 		if (psram_debug->test_mode == 0)
 		{
-			psram_cpu_write_test();
+			psram_test_dtcm();
 		} else if (psram_debug->test_mode == 1) {
 			psram_test_unit();
 		} else if (psram_debug->test_mode == 2) {
 			psram_write_continue_test();
-		} else
-		{
-			psram_dma_write_test();
 		}
 	}
 
@@ -412,34 +240,34 @@ static void psram_test_main(void)
 
 static bk_err_t psram_task_init(void)
 {
-	bk_err_t ret = BK_OK;
+	bk_err_t ret = kNoErr;
+
+	ret = bk_psram_init();
+	if (ret != kNoErr)
+	{
+		CLI_LOGE("psram init failed!\r\n");
+		return ret;
+	}
 
 	if (!psram_thread_hdl)
 	{
-		ret = bk_psram_init();
-		if (ret != BK_OK)
-		{
-			CLI_LOGE("psram init failed!\r\n");
-			return ret;
-		}
-
 		ret = rtos_create_thread(&psram_thread_hdl,
 								 4,
 								 "psram_debug",
 								 (beken_thread_function_t)psram_test_main,
 								 4 * 1024,
 								 (beken_thread_arg_t)NULL);
-		if (ret != BK_OK)
+		if (ret != kNoErr)
 		{
 			psram_thread_hdl = NULL;
 			CLI_LOGE("Error: Failed to create psram test task: %d\r\n", ret);
-			return BK_ERR_NOT_INIT;
+			return kGeneralErr;
 		}
 
-		return BK_OK;
+		return kNoErr;
 	}
 	else
-		return BK_OK;
+		return kInProgressErr;
 }
 
 static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -464,7 +292,7 @@ static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 
 		psram_debug->test_running = 1;
 
-		if (os_strcmp(argv[2], "cpu") == 0)
+		if (os_strcmp(argv[2], "dtcm") == 0)
 		{
 			psram_debug->test_mode = 0;
 		}
@@ -475,18 +303,6 @@ static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 		else if (os_strcmp(argv[2], "continue_write") == 0)
 		{
 			psram_debug->test_mode = 2;
-			if (psram_debug->data == NULL)
-			{
-				psram_debug->data = (uint32_t *)os_malloc(1024 * 4);
-				if (psram_debug->data == NULL)
-				{
-					CLI_LOGE("malloc error!\r\n");
-					os_free(psram_debug);
-					psram_debug = NULL;
-				}
-			}
-		} else if (os_strcmp(argv[2], "dma") == 0) {
-			psram_debug->test_mode = 3;
 			if (psram_debug->data == NULL)
 			{
 				psram_debug->data = (uint32_t *)os_malloc(1024 * 4);
@@ -632,12 +448,16 @@ static void cli_psram_cmd_handle(char *pcWriteBuffer, int xWriteBufferLen, int a
 
 	os_memcpy(pcWriteBuffer, msg, os_strlen(msg));
 }
+#endif
 
 #if (CONFIG_MPC)
 #include <driver/mpc.h>
 
 #define BUFFER_SIZE         (34)
 #define TEST_VALUE_START    0x41
+
+uint8_t psram_tx_buffer[BUFFER_SIZE] = {0};
+uint8_t psram_rx_buffer[BUFFER_SIZE] = {0};
 
 static void fill_buffer(uint8_t *pBuffer, uint32_t uwBufferLenght, uint32_t uwOffset)
 {
@@ -654,8 +474,6 @@ static void cli_psram_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 	int i;
 	uint32_t test_addr_sec;
 	char *msg = NULL;
-	uint8_t psram_tx_buffer[BUFFER_SIZE] = {0};
-	uint8_t psram_rx_buffer[BUFFER_SIZE] = {0};
 
 	fill_buffer(psram_tx_buffer, BUFFER_SIZE, TEST_VALUE_START);
 
@@ -795,9 +613,11 @@ static void cli_psram_cmd_handle_ext(char *pcWriteBuffer, int xWriteBufferLen, i
 #define PSRAM_CNT (sizeof(s_psram_commands) / sizeof(struct cli_command))
 static const struct cli_command s_psram_commands[] = {
 	{"psram_test_ext", "init|byte|word|rewirte|deinit", cli_psram_cmd_handle_ext},
+#if (CONFIG_ARCH_RISCV)
 	{"psram_test", "start|stop", cli_psram_cmd_handle},
+#endif
 #if (CONFIG_MPC)
-	{"psram_mpc", "", cli_psram_test},
+	{"psram_test", "", cli_psram_test},
 #endif
 };
 

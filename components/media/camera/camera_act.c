@@ -128,7 +128,7 @@ static void camera_debug_dump(void)
 
 void camera_dvp_reset_open_handle(uint32_t param)
 {
-#ifdef CONFIG_DVP_CAMERA
+#ifdef CONFIG_CAMERA
 
 	bk_err_t ret = kNoErr;
 
@@ -155,7 +155,7 @@ void camera_dvp_open_handle(param_pak_t *param, media_camera_type_t type)
 	int ret = 0;
 
 	LOGI("%s\n", __func__);
-#ifdef CONFIG_DVP_CAMERA
+#ifdef CONFIG_CAMERA
 
 	if (CAMERA_STATE_DISABLED != get_camera_state())
 	{
@@ -198,7 +198,7 @@ void camera_dvp_close_handle(param_pak_t *param)
 
 	LOGI("%s\n", __func__);
 
-#ifdef CONFIG_DVP_CAMERA
+#ifdef CONFIG_CAMERA
 
 	if (CAMERA_STATE_DISABLED == get_camera_state())
 	{
@@ -227,7 +227,7 @@ out:
 
 void camera_dvp_drop_frame(uint32_t param)
 {
-#ifdef CONFIG_DVP_CAMERA
+#ifdef CONFIG_CAMERA
 
 	if (param)
 	{
@@ -328,22 +328,18 @@ void camera_uvc_open_handle(param_pak_t *param, media_camera_type_t type)
 #if CONFIG_BTDM_5_2
 	if (bk_ble_get_env_state())
 	{
-		#if CONFIG_BTDM_CONTROLLER_ONLY
-		 bk_ble_set_notice_cb(uvc_ble_notice_cb);
-		#else
-		if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
-		{
-			bk_ble_set_notice_cb(uvc_ble_notice_cb);
-		}
-		else
-		{
-			bk_ble_set_event_callback(NULL);
+	    if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
+	    {
+	        bk_ble_set_notice_cb(uvc_ble_notice_cb);
+	    }
+	    else
+	    {
+	        bk_ble_set_event_callback(NULL);
 
-			LOGE("%s not support !!!\n");
-			ret = kGeneralErr;
-			goto out;
-		}
-		#endif
+	        LOGE("%s not support !!!\n");
+	        ret = kGeneralErr;
+	        goto out;
+	    }
 
 		LOGI("bluetooth is enabled, shutdown bluetooth\n");
 		rtos_init_semaphore(&camera_act_sema, 1);
@@ -356,9 +352,6 @@ void camera_uvc_open_handle(param_pak_t *param, media_camera_type_t type)
 		rtos_deinit_semaphore(&camera_act_sema);
 		camera_act_sema = NULL;
 
-        #if CONFIG_BTDM_CONTROLLER_ONLY
-        bk_ble_set_notice_cb(NULL);
-        #else
         if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
         {
             bk_ble_set_notice_cb(NULL);
@@ -372,7 +365,6 @@ void camera_uvc_open_handle(param_pak_t *param, media_camera_type_t type)
             goto out;
 
         }
-        #endif
 	}
 	else
 	{
@@ -495,9 +487,6 @@ void camera_net_open_handle(param_pak_t *param, media_camera_type_t type)
 #if CONFIG_BTDM_5_2
 	if (bk_ble_get_env_state())
 	{
-        #if CONFIG_BTDM_CONTROLLER_ONLY
-        bk_ble_set_notice_cb(uvc_ble_notice_cb);
-        #else
         if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
         {
             bk_ble_set_notice_cb(uvc_ble_notice_cb);
@@ -510,7 +499,6 @@ void camera_net_open_handle(param_pak_t *param, media_camera_type_t type)
             ret = kGeneralErr;
             goto out;
         }
-        #endif
 
 		LOGI("bluetooth is enabled, shutdown bluetooth\n");
 		rtos_init_semaphore(&camera_act_sema, 1);
@@ -523,9 +511,6 @@ void camera_net_open_handle(param_pak_t *param, media_camera_type_t type)
 		rtos_deinit_semaphore(&camera_act_sema);
 		camera_act_sema = NULL;
 
-        #if CONFIG_BTDM_CONTROLLER_ONLY
-        bk_ble_set_notice_cb(NULL);
-        #else
         if(bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
         {
             bk_ble_set_notice_cb(NULL);
@@ -538,7 +523,6 @@ void camera_net_open_handle(param_pak_t *param, media_camera_type_t type)
             ret = kGeneralErr;
             goto out;
         }
-        #endif
 	}
 	else
 	{
@@ -607,8 +591,11 @@ void camera_event_handle(uint32_t event, uint32_t param)
 		case EVENT_CAM_DVP_MIX_OPEN_IND:
 			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_MIX);
 			break;
-		case EVENT_CAM_DVP_H264_TRANSFER_OPEN_IND:
-			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_H264_TRANSFER);
+		case EVENT_CAM_DVP_H264_WIFI_TRANSFER_OPEN_IND:
+			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_H264_WIFI_TRANSFER);
+			break;
+		case EVENT_CAM_DVP_H264_USB_TRANSFER_OPEN_IND:
+			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_H264_USB_TRANSFER);
 			break;
 		case EVENT_CAM_DVP_H264_LOCAL_OPEN_IND:
 			camera_dvp_open_handle((param_pak_t *)param, MEDIA_DVP_H264_LOCAL);
@@ -652,12 +639,12 @@ void camera_event_handle(uint32_t event, uint32_t param)
 	}
 }
 
-media_camera_state_t get_camera_state(void)
+camera_state_t get_camera_state(void)
 {
 	return camera_info.state;
 }
 
-void set_camera_state(media_camera_state_t state)
+void set_camera_state(camera_state_t state)
 {
 	camera_info.state = state;
 }

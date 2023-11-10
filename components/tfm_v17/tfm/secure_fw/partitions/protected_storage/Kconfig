@@ -1,0 +1,53 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2022, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+#-------------------------------------------------------------------------------
+
+menu "PS component configs"
+    depends on TFM_PARTITION_PROTECTED_STORAGE
+
+config PS_CREATE_FLASH_LAYOUT
+    bool "Create flash FS"
+    default y
+    help
+      Create flash FS if it doesn't exist for Protected Storage partition
+
+config PS_RAM_FS
+    bool "Enable emulated RAM FS"
+    default n
+    help
+      Enable emulated RAM FS for platforms that don't have flash for
+      Protected Storage partition
+
+config PS_ROLLBACK_PROTECTION
+    bool "Enable rollback protection"
+    default y
+    help
+      Enable rollback protection for Protected Storage partition
+
+config PS_VALIDATE_METADATA_FROM_FLASH
+    bool "Validate filesystem metadata"
+    default y
+    help
+      Validate filesystem metadata every time it is read from flash
+
+config PS_MAX_ASSET_SIZE
+    int "Maximum stored asset size"
+    default 2048
+    help
+      The maximum asset size to be stored in the Protected Storage area
+
+config PS_NUM_ASSETS
+    int "Maximum stored assets number"
+    default 10
+    help
+      The maximum number of assets to be stored in the Protected Storage
+      area
+
+config PS_STACK_SIZE
+    hex "Stack size"
+    default 0x700
+
+endmenu

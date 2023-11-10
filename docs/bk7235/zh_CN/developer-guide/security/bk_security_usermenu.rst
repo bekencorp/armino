@@ -3,10 +3,6 @@
 
 :link_to_translation:`en:[English]`
 
-工具下载
-+++++++++++++++++++++
-  相关工具 `下载地址 </dl.bekencorp.com/tools/flash/>`_
-
 设计说明
 +++++++++++++++++++++
  BK7235的安全功能基于BK130，实现了security boot与flash加解密等功能。
@@ -20,17 +16,17 @@
  - 2.镜像打包
  - 3.镜像加密
  - 4.添加CRC
- - 5.下载镜像，烧写密钥和efuse使能安全功能
+ - 5.烧写密钥和efuse使能安全功能
 
 1. 镜像签名
 ----------------------------------
 
-    当secureboot功能使能之后，BOOT ROM会强制对bootlaoder bin（flash的0x0地址开始）进行验签，只有通过BOOT ROM验签的bootlaoder才能够运行；在bootlaoder中对app验签，通过验签才能够正常启动app。
-    因此，需要对bootloader和app进行签名，客户可以自己生成密钥对分别对bootloader和app进行签名。
+    当secureboot功能使能之后，BOOT ROM会强制对bootlaoder bin（flash的0x0地址开始）进行验签，只有通过BOOT ROM验签的bootlaoder才能够运行；对app验签在bootlaoder中进行，此功能是否开启可在bootloader中控制。
+    客户可以自己生成密钥对对镜像进行签名。
 
 签名算法
 ********************
-		 - ECDSA P384
+		 - ECDSA P256/P384
 		 - SHA256
 
 签名指令
@@ -54,7 +50,7 @@
 |             +----------+-------------+--------------------------------------------+
 |             | -outfile | outfile     | Output file containing exported public key |
 +-------------+----------+-------------+--------------------------------------------+
-|             | -algo    | ecdsa384    | ECDSA bit-length                           |
+|             | -algo    | ecdsa256    | ECDSA bit-length                           |
 | genkeypair  +----------+-------------+--------------------------------------------+
 |             | -outfile | outfile.der | Output file containing ECDSA keypair       |
 +-------------+----------+-------------+--------------------------------------------+
@@ -68,7 +64,7 @@
 
 		 - 运行脚本Signtool_GenKeypair.bat生成ECDSA密钥对。
 		 - 运行脚本Signtool_GetKey.bat获取该密钥对中的公钥。
-		 - 将需要签名的镜像和签名工具放置在同一目录下，运行脚本Signtool_Sign.bat，使用生成的密钥对对镜像签名。
+		 - 将bootloader.bin和签名工具放置在同一目录下，运行脚本Signtool_Sign.bat，使用生成的密钥对对镜像签名。
 
 .. figure:: ../../../../common/_static/BK_SignTool.png
     :align: center
@@ -79,12 +75,12 @@
 
 举例说明::
 
-    生成密钥对：SignTool.exe genkeypair -algo ecdsa384 -outfile ecdsa384.der
-    获取公钥：SignTool.exe getkey -type BLKeyC -key ecdsa384.der -outfile ecdsa384.c
-    镜像签名：SignTool.exe sign -prikey ecdsa384.der -infile bootloader.bin  -outfile bootloader_sign.bin -len 0x10000
+    生成密钥对：SignTool.exe genkeypair -algo ecdsa256 -outfile ecdsa256.der
+    获取公钥：SignTool.exe getkey -type BLKeyC -key ecdsa256.der -outfile ecdsa256.c
+    镜像签名：SignTool.exe sign -prikey ecdsa256.der -infile bootloader.bin  -outfile bootloader_sign.bin -len 0x10000
 
 .. important::
-    ECDSA密钥对生成脚本执行一次即可，生成的密钥对请妥善保管；ecdsa384.c文件中的公钥需要拷贝到otp_efuse_config.json中供第五步密钥烧写使用。
+    ECDSA密钥对生成脚本执行一次即可，生成的密钥对请妥善保管；获取到的公钥ecdsa256.c需要拷贝到project.txt中供第五步密钥烧写使用。
 
 2. 镜像打包
 ----------------------------------
@@ -105,7 +101,7 @@
 |           +---------------+--------------------+---------------------------------+
 |           | -outfile      | all bin            | Output all bin file             |
 +-----------+---------------+--------------------+---------------------------------+
-|  version  | To print the current version of this utility                         |
+|  version  |  To print the current version of this utility                        |
 +-----------+----------------------------------------------------------------------+
 |  help     | To print this help message                                           |
 +-----------+----------------------------------------------------------------------+
@@ -117,8 +113,7 @@
 
 举例说明::
 
-    将bootloader_sign.bin和app_sign.bin打包成all_app.bin：
-    cmake_Gen_image.exe  genfile -injsonfile configuration.json -infile bootloader_sign.bin app_sign.bin -outfile all_app.bin
+    镜像打包：cmake_Gen_image.exe  genfile -injsonfile configuration.json -infile bootloader_sign.bin app.bin -outfile all.bin
 
 
 3. 镜像加密
@@ -134,42 +129,45 @@
 加密指令
 ********************
 
-    提供加密工具beken_aes.exe，用于密钥生成和镜像加密。
+    提供加密工具XTS_AES_encrypt.exe，用于密钥生成和镜像加密。
 
-+-----------+---------------+-------------+---------------------------------------------+
-|  Command  |  Options      |  Value      | Description                                 |
-+===========+===============+=============+=============================================+
-|           | -outfile      | config.json | falsh encrypt key is saved in config.json   |
-|  genkey   +---------------+-------------+---------------------------------------------+
-|           | -aes_cbc      | config.json | Key and IV for OTA are saved in config.json |
-+-----------+---------------+-------------+---------------------------------------------+
-|           | -keyfile      | config.json | File containing AES key                     |
-|           +---------------+-------------+---------------------------------------------+
-|           | -infile       | infile      | the image to be encrypted                   |
-|  encrypt  +---------------+-------------+---------------------------------------------+
-|           | -startaddress | Hex         | encrypt with logical start address          |
-|           +---------------+-------------+---------------------------------------------+
-|           | -outfile      | outfile     | encrypted image                             |
-+-----------+---------------+-------------+---------------------------------------------+
-|  version  |  To print the current version of this utility                             |
-+-----------+---------------------------------------------------------------------------+
-|  help     | To print this help message                                                |
-+-----------+---------------------------------------------------------------------------+
++-----------+---------------+-------------+--------------------------------------------+
+|  Command  |  Options      |  Value      | Description                                |
++===========+===============+=============+============================================+
+|           | -outfile      | project.txt | the AES key is saved to project.txt,       |
+|           |               |             | including plaintext and ciphertext         |
+|  genkey   +---------------+-------------+--------------------------------------------+
+|           | -version      | [0 - 9999]  | version of key                             |
++-----------+---------------+-------------+--------------------------------------------+
+|           | -keyfile      | project.txt | File containing AES key                    |
+|           +---------------+-------------+--------------------------------------------+
+|           | -infile       | infile      | Input file with the image to encrypt       |
+|  encrypt  +---------------+-------------+--------------------------------------------+
+|           | -startaddress | Hex         | encrypt with logical start address         |
+|           +---------------+-------------+--------------------------------------------+
+|           | -outfile      | outfile     | Output file containing the encrypted image |
++-----------+---------------+-------------+--------------------------------------------+
+|  version  |  To print the current version of this utility                            |
++-----------+--------------------------------------------------------------------------+
+|  help     | To print this help message                                               |
++-----------+--------------------------------------------------------------------------+
 
 加密过程
 ********************
 
- - 运行脚本genkey_random.bat，生成用于flash加密的密钥；
- - 将需要加密的镜像和加密工具放置在同一目录下，运行脚本encrypt_bin_in_aes_file.bat完成对镜像的加密。
+ - 运行脚本XTS_AES_encrypt_getkey.bat，生成用于flash加密的密钥；如果当前目录下存在project.txt,则生成的密钥将插入到该文件中且文件名添加version前缀，否则将生成project.txt文件。
+ - 将需要加密的镜像和加密工具放置在同一目录下，运行脚本XTS_AES_encrypt.bat完成对镜像的加密。
 
 举例说明::
 
-    生成AES密钥：beken_aes.exe genkey -aes_cbc -outfile config.json
-    app镜像加密：beken_aes.exe encrypt -infile app.bin -startaddress 0x10000 -keyfile config.json -outfile app_enc.bin
-    all_app.bin加密：beken_aes.exe encrypt -infile all_app.bin -startaddress 0x0 -keyfile config.json -outfile all_app_enc.bin
+    生成AES密钥：XTS_AES_encrypt.exe genkey  -version 123 -outfile bk7235.txt
+    镜 像 加 密：XTS_AES_encrypt.exe encrypt -infile all.bin -startaddress 0 -keyfile 123_bk7235.txt -outfile all_enc.bin
+
 
 .. important::
     AES-XTS模式加密结果与被加密文件的地址相关，在需要单独加密app镜像时-startaddress应设置为该镜像的逻辑地址。
+    生成的project.txt文本中包含AES密钥的明文和密文，密钥管理者应保护密钥不能泄露，
+    使用bk_write.exe烧写密钥时只提供密钥的密文即可，密钥的明文请妥善保存后在project.txt中删除。
 
 4. 添加CRC校验
 ----------------------------------
@@ -192,17 +190,31 @@
     *Note：OTP和eFuse只能烧写一次，一但烧写后不可更改，需要谨慎操作！*
     在使能efuse的secure boot和encrypt之前，请确保flash中烧写有经过加签、加密、加CRC后的镜像，否则该芯片将无法更新镜像。
 
-将第一步生成的ecdsa384.c中的publickey和第三步生成的config.json中的aes key拷贝到otp_efuse_config.json的安全数据配置区，方法见:doc:`bk_OTP_and_eFuse_usermenu`。
-BKFIL.exe会根据配置文件otp_efuse_config.json，将其中的签名的公钥、加密的密钥和eFuse的配置烧写到OTP和eFuse中。
+    bk_write.exe会根据配置文件project.txt，将其中的签名的公钥、加密的密钥和eFuse的配置烧写到OTP和eFuse中。
+
+配置文件project.txt的相关配置和烧写过程如下：
+
+     - 1.选择对应的project.txt
+     - 2.勾选main bin file，选择all_app_pack_sign_enc_crc.bin镜像
+     - 3.勾选OTP选项，会烧写public_key和aes_key
+     - 4.勾选updata eFuse选项，会烧写efuse_cfg和security_boot项
+     - 5.串口波特率设置为2000000，点击program后上电开始烧写
+
+
+.. figure:: ../../../../common/_static/OTP_eFuse_write.png
+    :align: center
+    :alt: secureboot
+    :figclass: align-center
+
+    OTP和eFuse烧写
 
 .. important::
-    为方便开发和使用，已将step1-4部署到编译服务器\tools\env_tools\beken_packager下，用于签名的ecdsa384.der和flash加密的密钥config.json，优先在middleware\boards\bk7235下寻找，如果不存在则使用\tools\env_tools\beken_packager下的测试用的key。
-    build/app/project/encrypt路经下会生成all_app_pack_enc_crc.bin可用于step5使能安全功能前烧写，app_pack_enc_crc.bin用于开启安全之后镜像更新，app_pack_sign.rbl用于OTA升级app。
+    为方便开发和测试人员测试，已将step1-4部署到编译服务器，build/app/project/encrypt路经下会生成all_app_pack_enc_crc.bin可用于step5使能安全功能前烧写，app_pack_enc_crc.bin用于开启安全之后镜像更新。
 
 开启安全后镜像升级方式
 +++++++++++++++++++++++++
 
-    开启安全后，当前bootloader将不可更新，只能对app镜像进行更新升级。
+    开启安全后，当前bootloader将不能够升级，只能对app镜像进行升级。
 
-     - 方式一：使用BKFIL.exe工具将build/app/project/encrypt下的app_pack_enc_crc.bin烧写到对应的物理分区上。用于烧写的镜像可根据step1-4生成，也可以直接从编译服务器上获取。
-     - 方式二: 使用OTA升级方式，使用build/app/project/encrypt下的app_pack_sign.rbl升级，升级方法和非安全版本一样，见OTA升级。
+     - 方式一：使用bk_write.exe工具将加密、加CRC之后的app镜像烧写到对应的物理分区上。用于烧写的镜像可根据step1-4生成，也可以直接从编译服务器上获取。
+     - 方式二: 使用OTA升级方式，使用签名后的app，升级方法和非安全版本一样，见OTA升级。

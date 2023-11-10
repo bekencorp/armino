@@ -1,0 +1,26 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2021-2022 Cypress Semiconductor Corporation (an Infineon
+# company) or an affiliate of Cypress Semiconductor Corporation. All rights
+# reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+#-------------------------------------------------------------------------------
+
+{
+  "psa_framework_version": 1.1,
+  "name": "TFM_NS_MAILBOX_AGENT",
+  "type": "PSA-ROT",
+  "ns_agent": true,
+  "priority": "LOW",
+  "model": "IPC",
+  "entry_point": "ns_agent_mailbox_entry",
+  "stack_size": "0x800",
+  "irqs": [
+    {
+      "source": "MAILBOX_IRQ",
+      "name": "MAILBOX",
+      "handling": "SLIH"
+    }
+  ],
+}

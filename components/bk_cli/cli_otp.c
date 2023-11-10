@@ -29,7 +29,7 @@ static void cli_otp_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 	}
 
 	uint32_t addr, length;
-	uint8_t *buff_p, *record_p;
+	uint8_t *buff_p, *record_p; 
 
 	if (os_strcmp(argv[1], "read") == 0) {
 		addr   = os_strtoul(argv[2], NULL, 16);
@@ -37,16 +37,16 @@ static void cli_otp_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 
 		record_p = buff_p = (uint8_t *)malloc(length);
 		memset(buff_p, 0x0, length);
-
+		
 		BK_LOG_ON_ERR(bk_otp_read_bytes_nonsecure(buff_p, addr, length));
 
 		for(int i=0; i<length; i++){
 			bk_printf("%02x",*buff_p);
 			buff_p++;
 		}
-		free(record_p);
-		CLI_LOGI("\r\n read OTP suc! \r\n");
-	} else {
+    free(record_p);
+	CLI_LOGI("\r\n read OTP suc! \r\n");
+	}else {
 		cli_otp_help();
 		return;
 	}

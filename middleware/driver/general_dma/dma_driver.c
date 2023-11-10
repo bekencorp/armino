@@ -359,7 +359,7 @@ static uint32_t dma_wait_to_idle(dma_id_t id)
 	if(dma_hal_get_work_mode(&s_dma.hal, id) == DMA_WORK_MODE_SINGLE)
 	{
 		uint32_t i = 0;
-		while(dma_hal_get_enable_status(&s_dma.hal, id))
+		while(bk_dma_get_enable_status(id))
 		{
 			delay_us(1);
 
@@ -639,15 +639,6 @@ bk_err_t bk_dma_set_dest_data_width(dma_id_t id, dma_data_width_t data_width)
     return BK_OK;
 }
 
-bk_err_t bk_dma_flush_src_buffer(dma_id_t id)
-{
-    DMA_RETURN_ON_NOT_INIT();
-    DMA_RETURN_ON_INVALID_ID(id);
-
-    dma_hal_flush_src_buffer(&s_dma.hal, id);
-    return BK_OK;
-}
-
 #ifdef CONFIG_SPE
 bk_err_t bk_dma_set_dest_burst_len(dma_id_t id, dma_burst_len_e len)
 {
@@ -681,6 +672,15 @@ uint32_t bk_dma_get_src_burst_len(dma_id_t id)
     DMA_RETURN_ON_INVALID_ID(id);
 
     return dma_hal_get_src_burst_len(&s_dma.hal, id);
+}
+
+bk_err_t bk_dma_flush_src_buffer(dma_id_t id)
+{
+    DMA_RETURN_ON_NOT_INIT();
+    DMA_RETURN_ON_INVALID_ID(id);
+
+    dma_hal_flush_src_buffer(&s_dma.hal, id);
+    return BK_OK;
 }
 
 bk_err_t bk_dma_bus_err_int_enable(dma_id_t id)

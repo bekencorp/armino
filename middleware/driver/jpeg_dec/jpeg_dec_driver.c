@@ -248,6 +248,10 @@ bool jpeg_dec_comp_status(uint8_t *src, uint32_t src_size, uint32_t dec_size)
 		{
 			strip++;
 		}
+        else if(src[i] == 0x00 && (src[i-1] & 0x01))
+        {
+            strip++;
+        }
 		else
 		{
 			break;

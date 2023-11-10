@@ -5,7 +5,7 @@ if (NOT (CONFIG_AUD_TRAS_MODE_CPU1 AND (NOT CONFIG_DUAL_CORE)))
 set(incs include)
 
 set(srcs
-	#mb/aud_mb.c
+	mb/aud_mb.c
 	aud/aud_tras_drv.c
 	)
 

@@ -22,71 +22,24 @@ extern "C" {
 #include <common/bk_typedef.h>
 #include <driver/mailbox_types.h>
 
-
-#define SYSTEM_CPU_NUM		2
-
-#define DST_CPU_ID_MASK		0xC0
-#define DST_CPU_ID_POS		6
-#define SRC_CPU_ID_MASK		0x30
-#define SRC_CPU_ID_POS		4
-
-#define LOG_CHNL_ID_MASK	0x0F
-
-#define GET_SRC_CPU_ID(log_chnl)		(((log_chnl) & SRC_CPU_ID_MASK) >> SRC_CPU_ID_POS)
-#define GET_DST_CPU_ID(log_chnl)		(((log_chnl) & DST_CPU_ID_MASK) >> DST_CPU_ID_POS)
-
-#define CPX_LOG_CHNL_START(src_cpu, dst_cpu)	((((dst_cpu) << DST_CPU_ID_POS) & DST_CPU_ID_MASK) + (((src_cpu) << SRC_CPU_ID_POS) & SRC_CPU_ID_MASK))
-
-#define GET_LOG_CHNL_ID(log_chnl)		((log_chnl) & LOG_CHNL_ID_MASK)
-
-/* ======================================================================================= */
-/* ==========================  CPU0 --> Target_CPUs mailbox.   =========================== */
-/* ======================================================================================= */
-#ifdef CONFIG_MASTER_CORE
-
-#define SELF_CPU		MAILBOX_CPU0
-
-enum
-{
-	/* CPU0 --> CPU0 */
-	CP0_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAILBOX_CPU0),
-	CP0_MB_CHNL_CTRL        = CP0_MB_LOG_CHNL_START,
-
-	CP0_MB_LOG_CHNL_END,
-};
-
-/* the BIGGER the value, the LOWER the channel priority. */
-enum
-{
-	/* CPU0 --> CPU1 */
-	CP1_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAILBOX_CPU1),
-	MB_CHNL_HW_CTRL         = CP1_MB_LOG_CHNL_START,
-	MB_CHNL_RPC,
-	MB_CHNL_AUD,
-	MB_CHNL_VID,
-	MB_CHNL_PWC,
-	MB_CHNL_MEDIA,
-	MB_CHNL_LVGL,
-	MB_CHNL_LOG,   /* MB_CHNL_LOG should be the LAST one. LOWEST priority. */
-	MB_CHNL_COM,   /* MB_CHNL_COM is default mailbox channel used for audio and video */
-
-	CP1_MB_LOG_CHNL_END,
-};
-
-#endif
-
-/* ======================================================================================= */
-/* ==========================  CPU1 --> Target_CPUs mailbox.   =========================== */
-/* ======================================================================================= */
 #ifdef CONFIG_SLAVE_CORE
 
-#define SELF_CPU		MAILBOX_CPU1
+#define SRC_CPU		MAILBOX_CPU1
+#define DST_CPU		MAILBOX_CPU0
 
+#endif
+
+#ifdef CONFIG_MASTER_CORE
+
+#define SRC_CPU		MAILBOX_CPU0
+#define DST_CPU		MAILBOX_CPU1
+
+#endif
+
+/* the bigger the value, the lower the channel priority. */
 enum
 {
-	/* CPU1 --> CPU0 */
-	CP0_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAILBOX_CPU0),
-	MB_CHNL_HW_CTRL         = CP0_MB_LOG_CHNL_START,
+	MB_CHNL_HW_CTRL = 0,
 	MB_CHNL_RPC,
 	MB_CHNL_AUD,
 	MB_CHNL_VID,
@@ -95,219 +48,9 @@ enum
 	MB_CHNL_LVGL,
 	MB_CHNL_LOG,   /* MB_CHNL_LOG should be the LAST one. LOWEST priority. */
 	MB_CHNL_COM,   /* MB_CHNL_COM is default mailbox channel used for audio and video */
-
-	CP0_MB_LOG_CHNL_END,
+	MB_CHNL_LCD_QSPI,
+	MB_LOG_CHNL_NUM,
 };
-
-/* the BIGGER the value, the LOWER the channel priority. */
-enum
-{
-	/* CPU1 --> CPU1 */
-	CP1_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAILBOX_CPU1),
-	CP1_MB_CHNL_CTRL        = CP1_MB_LOG_CHNL_START,
-
-	CP1_MB_LOG_CHNL_END,
-};
-
-#endif
-
-#if 0
-
-#define MAIL_BOX_IFMCU		MAILBOX_CPU0
-#define MAIL_BOX_WLAN0		MAILBOX_CPU1
-#define MAIL_BOX_WLAN1		MAILBOX_DSP
-#define MAIL_BOX_BT			MAILBOX_BT
-
-/* ======================================================================================= */
-/* =========================  IFMCU --> Target_CPUs mailbox.   =========================== */
-/* ======================================================================================= */
-#if CONFIG_SYS_IFMCU
-
-#define SELF_CPU		MAIL_BOX_IFMCU
-
-enum
-{
-	/* CPU0 --> CPU0 */ /* IFMCU --> IFMCU */
-	CP0_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_IFMCU),
-	CP0_MB_CHNL_CTRL        = CP0_MB_LOG_CHNL_START,
-
-	CP0_MB_LOG_CHNL_END,
-};
-
-/* the BIGGER the value, the LOWER the channel priority. */
-enum
-{
-	/* CPU0 --> CPU1 */ /* IFMCU --> WLAN0 */
-	CP1_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_WLAN0),
-	CP1_MB_CHNL_CTRL        = CP1_MB_LOG_CHNL_START,
-
-	CP1_MB_LOG_CHNL_END,
-};
-
-enum
-{
-	/* CPU0 --> CPU2 */ /* IFMCU --> WLAN1 */
-	CP2_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_WLAN1),
-	CP2_MB_CHNL_CTRL        = CP2_MB_LOG_CHNL_START,
-
-	CP2_MB_LOG_CHNL_END,
-};
-
-enum
-{
-	/* CPU0 --> CPU3 */ /* IFMCU --> BT */
-	CP3_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_BT),
-	CP3_MB_CHNL_CTRL        = CP3_MB_LOG_CHNL_START,
-
-	CP3_MB_LOG_CHNL_END,
-};
-
-#endif
-
-/* ======================================================================================= */
-/* =========================  WLAN0 --> Target_CPUs mailbox.   =========================== */
-/* ======================================================================================= */
-#if CONFIG_SYS_WLAN0
-
-#define SELF_CPU		MAIL_BOX_WLAN0
-
-enum
-{
-	/* CPU1 --> CPU0 */ /* WLAN0 --> IFMCU */
-	CP0_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_IFMCU),
-	CP0_MB_CHNL_CTRL        = CP0_MB_LOG_CHNL_START,
-
-	CP0_MB_CHNL_LOG,                             /* MB_CHNL_LOG should be the LAST one. LOWEST priority. */
-	CP0_MB_LOG_CHNL_END,
-};
-
-/* the BIGGER the value, the LOWER the channel priority. */
-enum
-{
-	/* CPU1 --> CPU1 */ /* WLAN0 --> WLAN0 */
-	CP1_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_WLAN0),
-	CP1_MB_CHNL_CTRL        = CP1_MB_LOG_CHNL_START,
-
-	CP1_MB_LOG_CHNL_END,
-};
-
-enum
-{
-	/* CPU1 --> CPU2 */ /* WLAN0 --> WLAN1 */
-	CP2_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_WLAN1),
-	CP2_MB_CHNL_CTRL        = CP2_MB_LOG_CHNL_START,
-
-	CP2_MB_LOG_CHNL_END,
-};
-
-enum
-{
-	/* CPU1 --> CPU3 */ /* WLAN0 --> BT */
-	CP3_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_BT),
-	CP3_MB_CHNL_CTRL        = CP3_MB_LOG_CHNL_START,
-
-	CP3_MB_LOG_CHNL_END,
-};
-
-#endif
-
-/* ======================================================================================= */
-/* =========================  WLAN1 --> Target_CPUs mailbox.   =========================== */
-/* ======================================================================================= */
-#if CONFIG_SYS_WLAN1
-
-#define SELF_CPU		MAIL_BOX_WLAN1
-
-enum
-{
-	/* CPU2 --> CPU0 */ /* WLAN1 --> IFMCU */
-	CP0_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_IFMCU),
-	CP0_MB_CHNL_CTRL        = CP0_MB_LOG_CHNL_START,
-
-	CP0_MB_CHNL_LOG,                             /* MB_CHNL_LOG should be the LAST one. LOWEST priority. */
-	CP0_MB_LOG_CHNL_END,
-};
-
-/* the BIGGER the value, the LOWER the channel priority. */
-enum
-{
-	/* CPU2 --> CPU1 */ /* WLAN1 --> WLAN0 */
-	CP1_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_WLAN0),
-	CP1_MB_CHNL_CTRL        = CP1_MB_LOG_CHNL_START,
-
-	CP1_MB_LOG_CHNL_END,
-};
-
-enum
-{
-	/* CPU2 --> CPU2 */ /* WLAN1 --> WLAN1 */
-	CP2_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_WLAN1),
-	CP2_MB_CHNL_CTRL        = CP2_MB_LOG_CHNL_START,
-
-	CP2_MB_LOG_CHNL_END,
-};
-
-enum
-{
-	/* CPU2 --> CPU3 */ /* WLAN1 --> BT */
-	CP3_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_BT),
-	CP3_MB_CHNL_CTRL        = CP3_MB_LOG_CHNL_START,
-
-	CP3_MB_LOG_CHNL_END,
-};
-
-#endif
-
-/* ======================================================================================= */
-/* ===========================  BT --> Target_CPUs mailbox.   ============================ */
-/* ======================================================================================= */
-#if CONFIG_SYS_BT
-
-#define SELF_CPU		MAIL_BOX_BT
-
-enum
-{
-	/* CPU3 --> CPU0 */ /* BT --> IFMCU */
-	CP0_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_IFMCU),
-	CP0_MB_CHNL_CTRL        = CP0_MB_LOG_CHNL_START,
-
-	CP0_MB_CHNL_LOG,                             /* MB_CHNL_LOG should be the LAST one. LOWEST priority. */
-	CP0_MB_LOG_CHNL_END,
-};
-
-/* the BIGGER the value, the LOWER the channel priority. */
-enum
-{
-	/* CPU3 --> CPU1 */ /* BT --> WLAN0 */
-	CP1_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_WLAN0),
-	CP1_MB_CHNL_CTRL        = CP1_MB_LOG_CHNL_START,
-
-	CP1_MB_LOG_CHNL_END,
-};
-
-enum
-{
-	/* CPU3 --> CPU2 */ /* BT --> WLAN1 */
-	CP2_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_WLAN1),
-	CP2_MB_CHNL_CTRL        = CP2_MB_LOG_CHNL_START,
-
-	CP2_MB_LOG_CHNL_END,
-};
-
-enum
-{
-	/* CPU3 --> CPU3 */ /* BT --> BT */
-	CP3_MB_LOG_CHNL_START   = CPX_LOG_CHNL_START(SELF_CPU, MAIL_BOX_BT),
-	CP3_MB_CHNL_CTRL        = CP3_MB_LOG_CHNL_START,
-
-	CP3_MB_LOG_CHNL_END,
-};
-
-#endif
-
-#endif
-
-#define SRC_CPU		SELF_CPU
 
 #define CHNL_STATE_MASK			0xF
 #define CHNL_STATE_COM_FAIL		0x1		/* cmd NO target app, it is an ACK bit to peer CPU. */

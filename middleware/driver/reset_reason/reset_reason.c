@@ -11,7 +11,6 @@
 
 #include "reset_reason.h"
 #include <components/log.h>
-#include "aon_pmu_hal.h"
 
 #define TAG "init"
 #define DISPLAY_START_TYPE_STR 1
@@ -202,40 +201,15 @@ void bk_misc_set_reset_reason(uint32_t type)
 #endif
 }
 
-#elif (CONFIG_SOC_BK7236XX)
-
-uint32_t reset_reason_init(void)
-{
-	uint32_t misc_value = aon_pmu_ll_get_r7b();
-	misc_value = ((misc_value >> 24) & 0xf);
-
-	s_start_type = misc_value;
-	s_misc_value_save = misc_value;
-	bk_misc_set_reset_reason(RESET_SOURCE_POWERON);
-
+#elif CONFIG_SOC_BK7236XX
+uint32_t reset_reason_init(void) {
+	//wangzhilei TODO
 	return s_start_type;
 }
 
 void bk_misc_set_reset_reason(uint32_t type)
 {
-	/* use PMU_REG0 bit[24:27] for reset reason */
-	uint32_t misc_value = aon_pmu_ll_get_r0();
-	misc_value |= ((type & 0xf) << 24);
-	aon_pmu_ll_set_r0(misc_value);
-
-	/* pass PMU_REGO value to PMU_REG7B*/
-	aon_pmu_ll_set_r25(0x424B55AA);
-	aon_pmu_ll_set_r25(0xBDB4AA55);
-}
-
-void bk_misc_resume_reset_reason(void)
-{
-	uint32_t misc_value = aon_pmu_ll_get_r7b();
-	misc_value = ((misc_value >> 24) & 0xf);
-
-	uint32_t pmu_r0 = aon_pmu_ll_get_r0();
-	pmu_r0 |= (misc_value << 24);
-	aon_pmu_ll_set_r0(pmu_r0);
+	//wangzhilei TODO
 }
 
 #else

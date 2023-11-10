@@ -23,7 +23,6 @@
 
 #define PRIV_TYPE_TO_BITV(type) ((type) == ((uint8_t)PRRO_PRIVILEGED) ? 1 : 0)
 #define SEC_TYPE_TO_BITV(type) ((type) == ((uint8_t)PRRO_NON_SECURE) ? 1 : 0)
-#define BITV_TO_SEC_TYPE(bitv) ((bitv) == 1 ? PRRO_NON_SECURE : PRRO_SECURE)
 
 bk_err_t prro_hal_init(prro_hal_t *hal)
 {
@@ -147,14 +146,6 @@ bk_err_t prro_hal_set_secure(prro_dev_t dev, prro_secure_type_t secure_type)
 	prro_ll_set_reg_bit(sec_map[dev].reg, sec_map[dev].bit, SEC_TYPE_TO_BITV(secure_type));
 	return BK_OK;
 
-}
-
-prro_secure_type_t prro_hal_get_secure(prro_dev_t dev)
-{
-	PRRO_SEC_MAP(sec_map);
-
-	uint32_t bit_val = prro_ll_get_reg_bit(sec_map[dev].reg, sec_map[dev].bit);
-	return BITV_TO_SEC_TYPE(bit_val);
 }
 
 bk_err_t prro_hal_set_gpios_secure(uint32_t group0_bits, uint32_t group1_bits)

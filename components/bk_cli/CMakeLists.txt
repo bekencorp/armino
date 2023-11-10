@@ -1,5 +1,5 @@
 set(incs include include/bk_private)
-set(srcs)
+
 
 list(APPEND incs
 	../../properties/modules/aec/
@@ -11,7 +11,7 @@ list(APPEND incs ${CONFIG_CLI_USER_CONFIG_DIR})
 endif()
 
 if (CONFIG_CLI)
-list(APPEND srcs
+set(srcs
 	cli_adc.c
 	cli_ble.c
 	cli_event.c
@@ -32,12 +32,6 @@ list(APPEND srcs
 	cli_exception.c
 	)
 
-if (CONFIG_BUTTON OR CONFIG_ADC_KEY)
-	list(APPEND srcs
-		cli_key.c
-	)
-endif()
-
 if (CONFIG_INT_WDT)
 	list(APPEND srcs
 		cli_wdt.c
@@ -55,26 +49,26 @@ if (CONFIG_PM_TEST)
 endif()
 
 if (CONFIG_OTA_TFTP OR CONFIG_OTA_HTTP)
-	list(APPEND srcs
+	list(APPEND srcs 
 		cli_ota.c
 	)
 endif()
 
 if (CONFIG_WIFI_ENABLE)
-	list(APPEND srcs
+	list(APPEND srcs 
 		cli_wifi.c
 		cli_phy.c
 	)
 endif()
 
 if (CONFIG_AIRKISS_TEST)
-	list(APPEND srcs
+	list(APPEND srcs 
 		cli_airkiss.c
 	)
 endif()
 
 if (CONFIG_IPERF_TEST)
-	list(APPEND srcs
+	list(APPEND srcs 
 		cli_iperf.c
 	)
 endif()
@@ -91,7 +85,7 @@ if (CONFIG_SDCARD)
 	)
 endif()
 
-if (CONFIG_SDIO_SLAVE)
+if (CONFIG_SDIO_SLAVE) 
 	list(APPEND srcs
 		cli_sdio_slave.c
 	)
@@ -121,7 +115,7 @@ if (CONFIG_FLASH)
 	)
 endif()
 
-if (CONFIG_FLASH)
+if (CONFIG_FLASH AND CONFIG_SOC_BK7256XX)
 	list(APPEND srcs
 		cli_flash_test.c
 	)
@@ -165,6 +159,23 @@ if (CONFIG_BK_NETIF)
 	list(APPEND srcs
 		cli_netif.c
 	)
+endif()
+
+if (CONFIG_SHELL_ASYNCLOG)
+	list(APPEND srcs
+			shell_task.c
+			shell_uart.c
+	)
+	if (CONFIG_MASTER_CORE)
+		list(APPEND srcs
+			shell_mailbox_ipc.c
+		)
+	endif()
+	if (CONFIG_SLAVE_CORE)
+		list(APPEND srcs
+			shell_mailbox_cp1.c
+		)
+	endif()
 endif()
 
 if (CONFIG_DUAL_CORE)
@@ -298,32 +309,13 @@ if (CONFIG_CALENDAR)
 	list(APPEND srcs "cli_calendar.c")
 endif()
 
-elseif (CONFIG_SHELL_ASYNCLOG)
-	list(APPEND srcs "cli_main.c")
 endif() #if(CONFIG_CLI)
-
-if (CONFIG_SHELL_ASYNCLOG)
-	list(APPEND srcs
-			shell_task.c
-			shell_uart.c
-	)
-	if (CONFIG_MASTER_CORE)
-		list(APPEND srcs
-			shell_mailbox_ipc.c
-		)
-	endif()
-	if (CONFIG_SLAVE_CORE)
-		list(APPEND srcs
-			shell_mailbox_cp1.c
-		)
-	endif()
-endif()
 
 if (CONFIG_JPEGDEC_SW)
 	list(APPEND srcs cli_jpegdec.c)
 endif()
 
-if (CONFIG_DVP_CAMERA AND CONFIG_DVP_CAMERA_TEST)
+if (CONFIG_CAMERA AND CONFIG_CAMERA_TEST)
 	list(APPEND srcs "cli_dvp.c")
 endif()
 
@@ -375,8 +367,8 @@ if (CONFIG_INTERRUPT_TEST)
 	list(APPEND srcs cli_interrupt.c)
 endif()
 
-if (CONFIG_VIDEO_TRANSFER_DEMO)
-	list(APPEND srcs cli_video_transfer.c)
+if (CONFIG_H264)
+	list(APPEND srcs cli_h264.c)
 endif()
 
 if (CONFIG_SDMADC_TEST)
@@ -399,14 +391,10 @@ if (CONFIG_FLASHDB_DEMO)
 	list(APPEND srcs cli_flashdb.c)
 endif()
 
-if (CONFIG_PUF_TEST)
-	list(APPEND srcs cli_puf.c)
-endif()
-
 armino_component_register(SRCS "${srcs}"
 	INCLUDE_DIRS "${incs}"
-	REQUIRES utf8 temp_detect app driver user_driver bk_system iperf fatfs user_driver http adc_key key
+	REQUIRES utf8 temp_detect app driver user_driver bk_system iperf fatfs user_driver http adc_key
 	#PRIV_REQUIRES airkiss bk_common bk_netif bk_ble bk_ps
-	PRIV_REQUIRES bk_common mbedtls bk_netif bk_ble bk_ps fatfs bk_vfs bk_init at bk_wifi compal media_common media multimedia bk_bt ota cmsis jrtplib flashdb
+	PRIV_REQUIRES bk_common bk_netif bk_ble bk_ps fatfs bk_vfs bk_init at bk_wifi compal media_common media multimedia bk_bt ota cmsis jrtplib flashdb
 	)
 

@@ -89,7 +89,6 @@ void lcd_hal_rgb_sync_config(uint16_t rgb_hsync_back_porch, uint16_t rgb_hsync_f
 void lcd_hal_rgb_eof_int_status_clear(void);
 void lcd_hal_rgb_sof_int_status_clear(void);
 void lcd_hal_rgb_display_sel(bool en);
-void lcd_hal_rgb_de_int_status_clear(void);
 
 //8080 cfg
 #define lcd_hal_8080_set_tik               lcd_disp_ll_set_i8080_config_tik_cnt

@@ -45,13 +45,13 @@ static void lcd_st7701s_config(void)
 #if 0
 	//--------------------------------------ST7701 Reset Sequence---------------------------------------//
 	// bk_gpio_set_output_high(LCD_SPI_RST);
-	// rtos_delay_milliseconds(1);
+	// delay_ms(1);
 	// bk_gpio_set_output_low(LCD_SPI_RST);
-	// rtos_delay_milliseconds(1);
+	// delay_ms(1);
 	// bk_gpio_set_output_high(LCD_SPI_RST);
-	rtos_delay_milliseconds(120);
+	delay_ms(120);
 	lcd_spi_write_cmd(0x11);
-	rtos_delay_milliseconds(20);
+	delay_ms(20);
 	//---------------------------------------Bank0 Setting-------------------------------------------------//
 	//------------------------------------Display Control setting----------------------------------------------//
 	lcd_spi_write_cmd(0xFF);
@@ -144,7 +144,7 @@ static void lcd_st7701s_config(void)
 	lcd_spi_write_cmd(0xD0);
 	lcd_spi_write_data(0x88);
 	//---------------------------------End Power Control Registers Initial -------------------------------//
-	rtos_delay_milliseconds(100);
+	delay_ms(100);
 	//---------------------------------------------GIP Setting----------------------------------------------------//
 	lcd_spi_write_cmd(0xE0);
 	lcd_spi_write_data(0x00);
@@ -268,15 +268,15 @@ static void lcd_st7701s_config(void)
 	lcd_spi_write_data(0x00);
 	lcd_spi_write_cmd(0x29);
 #else
-	#define Delay rtos_delay_milliseconds
+	#define Delay delay_ms
 	#define SPI_WriteComm lcd_spi_write_cmd
 	#define SPI_WriteData lcd_spi_write_data
 
-	rtos_delay_milliseconds(10);
+	delay_ms(10);
 	bk_gpio_set_output_low(LCD_SPI_RST);
-	rtos_delay_milliseconds(10);
+	delay_ms(10);
 	bk_gpio_set_output_high(LCD_SPI_RST);
-	rtos_delay_milliseconds(10);
+	delay_ms(10);
 
 	SPI_WriteComm(0xFF);
 	SPI_WriteData(0x77);

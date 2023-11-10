@@ -19,14 +19,12 @@ extern "C" {
 #define FWU_IMAGE_TYPE_SECURE           0x02U
 #define FWU_IMAGE_TYPE_FULL             0x03U
 
-// Images for BL2 upgrade
-#define FWU_IMAGE_TYPE_PRIMARY_MANIFEST    0x4U
-#define FWU_IMAGE_TYPE_SECONDARY_MANIFEST  0x5U
-#define FWU_IMAGE_TYPE_PRIMARY_BL2         0x6U
-#define FWU_IMAGE_TYPE_SECONDARY_BL2       0x7U
-
-#define FWU_IMAGE_TYPE_INVALID             0xFFU
-
+#define FWU_IMAGE_TYPE_PRIMARY_MANIFEST    0x04U
+#define FWU_IMAGE_TYPE_SECONDARY_MANIFEST  0x05U
+#define FWU_IMAGE_TYPE_PRIMARY_BL2         0x06U
+#define FWU_IMAGE_TYPE_SECONDARY_BL2       0x07U
+#define FWU_IMAGE_TYPE_SECONDARY_SPE       0x08U
+#define FWU_IMAGE_TYPE_SECONDARY_NSPE      0x09U
 #ifdef __cplusplus
 }
 #endif

@@ -22,25 +22,41 @@ __MIN_HEAP_SIZE  = (90 << 10);
 __SWAP_SIZE = (1024);
 
 #if CONFIG_SPE
-__CPU0_APP_RAM_BASE = SOC_SRAM0_DATA_BASE;
+__PRIMARY_APP_RAM_BASE = SOC_SRAM0_DATA_BASE;
+#else
+__PRIMARY_APP_RAM_BASE = SOC_SRAM1_DATA_BASE;
+#endif
+
+#if CONFIG_CACHE_ENABLE
+__PRIMARY_APP_NOCACHE_SIZE = CONFIG_PRIMARY_APP_NOCACHE_SIZE;
+#else
+__PRIMARY_APP_NOCACHE_SIZE = 0;
+#endif
+
+#if CONFIG_SPE
+__PRIMARY_APP_VIRTUAL_CODE_START = CONFIG_PRIMARY_APP_VIRTUAL_CODE_START;
+__PRIMARY_APP_VIRTUAL_CODE_SIZE = CONFIG_PRIMARY_APP_VIRTUAL_CODE_SIZE;
 __TOTAL_RAM_SIZE = CONFIG_SPE_TOTAL_RAM_SIZE;
 #else
-__CPU0_APP_RAM_BASE = SOC_SRAM1_DATA_BASE;
+__PRIMARY_APP_VIRTUAL_CODE_START = CONFIG_PRIMARY_NS_VIRTUAL_CODE_START;
+__PRIMARY_APP_VIRTUAL_CODE_SIZE = CONFIG_PRIMARY_NS_VIRTUAL_CODE_SIZE;
 __TOTAL_RAM_SIZE = CONFIG_NSPE_TOTAL_RAM_SIZE;
 #endif
 
-
-__CPU0_APP_VIRTUAL_CODE_START = CONFIG_PRIMARY_CPU0_APP_VIRTUAL_CODE_START;
-__CPU0_APP_VIRTUAL_CODE_SIZE = CONFIG_PRIMARY_CPU0_APP_VIRTUAL_CODE_SIZE;
-
 MEMORY
 {
-  FLASH (rx)            : ORIGIN = (SOC_FLASH_DATA_BASE + __CPU0_APP_VIRTUAL_CODE_START), LENGTH = __CPU0_APP_VIRTUAL_CODE_SIZE
-  RAM (rwx)             : ORIGIN = __CPU0_APP_RAM_BASE, LENGTH = __TOTAL_RAM_SIZE - __SWAP_SIZE
+  FLASH (rx)            : ORIGIN = (SOC_FLASH_DATA_BASE + __PRIMARY_APP_VIRTUAL_CODE_START), LENGTH = __PRIMARY_APP_VIRTUAL_CODE_SIZE
+  IRAM (rwx)            : ORIGIN = __PRIMARY_APP_RAM_BASE, LENGTH = CONFIG_PRIMARY_APP_IRAM_SIZE
+
+#if CONFIG_CACHE_ENABLE
+  NOCACHE (rwx)         : ORIGIN = __PRIMARY_APP_RAM_BASE + CONFIG_PRIMARY_APP_IRAM_SIZE, LENGTH = __PRIMARY_APP_NOCACHE_SIZE
+#endif
+
+  RAM (rwx)             : ORIGIN = __PRIMARY_APP_RAM_BASE + CONFIG_PRIMARY_APP_IRAM_SIZE + __PRIMARY_APP_NOCACHE_SIZE, LENGTH = __TOTAL_RAM_SIZE - CONFIG_PRIMARY_APP_IRAM_SIZE - __PRIMARY_APP_NOCACHE_SIZE - __SWAP_SIZE
 
   ITCM (rwx)            : ORIGIN = SOC_ITCM_DATA_BASE + 4, LENGTH = CONFIG_ITCM_SIZE - 4
   DTCM (rwx)            : ORIGIN = SOC_DTCM_DATA_BASE + 0, LENGTH = CONFIG_DTCM_SIZE
-  SWAP (rwx)            : ORIGIN = __CPU0_APP_RAM_BASE + CONFIG_SPE_TOTAL_RAM_SIZE - __SWAP_SIZE, LENGTH = __SWAP_SIZE
+  SWAP (rwx)            : ORIGIN = __PRIMARY_APP_RAM_BASE + CONFIG_SPE_TOTAL_RAM_SIZE - __SWAP_SIZE, LENGTH = __SWAP_SIZE
   PSRAM (rwx)           : ORIGIN = SOC_PSRAM_DATA_BASE, LENGTH = 0x4000000
 }
 
@@ -49,7 +65,7 @@ ENTRY(Reset_Handler)
 SECTIONS
 {
 
-    ASSERT((. == ALIGN(512)), "vector table address align fault.")
+    ASSERT((. == ALIGN(128)), "vector table address align fault.")
     .vectors :
     {
         __vector_table = .;
@@ -58,7 +74,7 @@ SECTIONS
     } > FLASH
 
 #if CONFIG_CPU_WITHOUT_BOOTLOADER
-    ASSERT((. == ALIGN(512)), "vector table address align fault.")
+    ASSERT((. == ALIGN(128)), "vector table address align fault.")
     .vectors_cpu0 :
     {
         __vector_cpu0_table = .;
@@ -129,12 +145,16 @@ SECTIONS
         . = ALIGN(4);
         __copy_table_start__ = .;
         LONG (__etext)
-        LONG (__iram_start__)
-        LONG ((__data_end__ - __iram_start__) / 4)
+        LONG (__data_start__)
+        LONG ((__data_end__ - __data_start__) / 4)
 
         LONG (__video_cache_text)
         LONG (__video_cache_data_start__)
         LONG ((__video_cache_data_end__ - __video_cache_data_start__) / 4)
+
+        LONG (__iram_flash_begin)
+        LONG (__iram_start__)
+        LONG ((__iram_end__ - __iram_start__) / 4)
 
         LONG (__itcm_text)
         LONG (__itcm_start__)
@@ -156,6 +176,10 @@ SECTIONS
         /* Add each additional bss section here */
         LONG (__video_cache_bss_start__)
         LONG ((__video_cache_bss_end__ - __video_cache_bss_start__) / 4)
+#if CONFIG_CACHE_ENABLE
+        LONG (_nocache_start)
+        LONG ((_nocache_end - _nocache_start) / 4)
+#endif
         __zero_table_end__ = .;
     } > FLASH
 
@@ -180,23 +204,37 @@ SECTIONS
         __dtcm_start__ = .;
         *(.dtcm)
         *(.dtcm_section*)
-        *(.dtcm_sec_data*)
+	*(.dtcm_sec_data*)
 
         __dtcm_end__ = .;
     } > DTCM AT > FLASH
 
+    .iram :
+    {
+        . = ALIGN(512);
+        PROVIDE(__iram_flash_begin = LOADADDR(.iram));
+        __iram_start__ = .;
+
+        *(.iram)
+        __iram_end__ = .;
+    } > IRAM AT > FLASH
+
+#if CONFIG_CACHE_ENABLE
+    .nocache :
+    {
+        . = ALIGN(4);
+        _nocache_start = .;
+        *(.sram_nocache*)
+        _nocache_end = .;
+    } > NOCACHE AT > FLASH
+#endif
 
     .data :
     {
-        . = ALIGN(512);
-        PROVIDE(__etext = LOADADDR(.data));
-        PROVIDE(__iram_flash_begin = LOADADDR(.data));
-        __iram_start__ = .;
-        *(.iram)
-        __iram_end__ = .;
-
         . = ALIGN(4);
+        PROVIDE(__etext = LOADADDR(.data));
         __data_start__ = .;
+
         *(.data)
         *(".data.*")
         *(.sdata)
@@ -230,14 +268,6 @@ SECTIONS
         *(.bss)
         *(.bss*)
         *(COMMON)
-
-#if CONFIG_CACHE_ENABLE
-        . = ALIGN(4);
-        _nocache_start = .;
-        *(.sram_nocache*)
-        _nocache_end = .;
-#endif
-
         . = ALIGN(4);
         _bss_end = .;
     } > RAM

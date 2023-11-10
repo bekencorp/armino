@@ -22,7 +22,7 @@
 #include <common/sys_config.h>
 
 /*Swap the 2 bytes of RGB565 color. Useful if the display has an 8-bit interface (e.g. SPI)*/
-#define LV_COLOR_16_SWAP 0
+#define LV_COLOR_16_SWAP 1
 
 /* Adjust color mix functions rounding. GPUs might calculate color mix (blending) differently.
  * 0: round down, 64: round up from x.75, 128: round up from half, 192: round up from x.25, 254: round up */
@@ -132,7 +132,7 @@
  *With complex image decoders (e.g. PNG or JPG) caching can save the continuous open/decode of images.
  *However the opened images might consume additional RAM.
  *0: to disable caching*/
-#define LV_IMG_CACHE_DEF_SIZE 0
+#define LV_IMG_CACHE_DEF_SIZE 1
 
 /*Number of stops allowed per gradient. Increase this to allow more stops.
  *This adds (sizeof(lv_color_t) + 1) bytes per additional stop*/
@@ -587,7 +587,7 @@
 #if LV_USE_FS_FATFS
     #define LV_FS_FATFS_LETTER '/'      /*Set an upper cased letter on which the drive will accessible (e.g. 'A')*/
     #define LV_FS_FATFS_CACHE_SIZE 0    /*>0 to cache this number of bytes in lv_fs_read()*/
-    #define LV_FS_FATFS_DISK_NUM 1      /* 0: RAM, 1: SDIO_SD, 2: UDISK, 3: FLASH. */
+    #define LV_FS_FATFS_DISK_NUM 3      /* 0: RAM, 1: SDIO_SD, 2: UDISK, 3: FLASH. */
 #endif
 
 

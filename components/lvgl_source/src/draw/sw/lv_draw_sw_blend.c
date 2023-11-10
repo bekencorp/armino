@@ -23,6 +23,7 @@
 /**********************
  *  STATIC PROTOTYPES
  **********************/
+#if (defined(CONFIG_MASTER_CORE) || !defined(CONFIG_DUAL_CORE))
 #if LVGL_USE_PSRAM
 static void _memset_word(uint32_t *b, int32_t c, uint32_t n)
 {
@@ -1270,5 +1271,5 @@ static inline lv_color_t color_blend_true_color_multiply(lv_color_t fg, lv_color
 }
 
 #endif
-
+#endif
 

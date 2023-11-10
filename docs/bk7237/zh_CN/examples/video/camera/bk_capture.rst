@@ -34,17 +34,17 @@ Capture
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 	|                 NAME                 |      Description       |                  File                      |  value  |
 	+======================================+========================+============================================+=========+
-	|CONFIG_JPEGENC_HW                     |配置是否支持硬件编码    |``middleware\soc\bk7237\bk7237.defconfig``  |    y    |
+	|CONFIG_JPEGENC_HW                     |配置是否支持硬件编码    |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_DVP_CAMERA                     |配置是否使用dvp camera  |``middleware\soc\bk7237\bk7237.defconfig``  |    y    |
+	|CONFIG_CAMERA                         |配置是否使用dvp camera  |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_USE_APP_DEMO_VIDEO_TRANSSER    |配置是否使用图传应用    |``middleware\soc\bk7237\bk7237.defconfig``  |    y    |
+	|CONFIG_USE_APP_DEMO_VIDEO_TRANSSER    |配置是否使用图传应用    |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_NET_WORK_VIDEO_TRANSFER        |配置是否支持网络图传    |``middleware\soc\bk7237\bk7237.defconfig``  |    y    |
+	|CONFIG_NET_WORK_VIDEO_TRANSFER        |配置是否支持网络图传    |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_COMPONENTS_P2P                 |配置是否使用p2p传输     |``middleware\soc\bk7237\bk7237.defconfig``  |    n    |
+	|CONFIG_COMPONENTS_P2P                 |配置是否使用p2p传输     |``middleware\soc\bk7256\bk7256.defconfig``  |    n    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
-	|CONFIG_DVP_CAMERA_I2C_ID              |配置是否使用I2C通信     |``middleware\soc\bk7237\bk7237.defconfig``  |    y    |
+	|CONFIG_CAMERA_USE_I2C1                |配置是否使用I2C1通信    |``middleware\soc\bk7256\bk7256.defconfig``  |    y    |
 	+--------------------------------------+------------------------+--------------------------------------------+---------+
 
 4 演示介绍

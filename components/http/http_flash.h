@@ -11,25 +11,25 @@
 #undef HTTP_WR_TO_FLASH
 #define HTTP_WR_TO_FLASH        0
 
-typedef struct ota_header_s {
+typedef struct ota_hdr_s {
 	UINT64 magic;
 	UINT32 crc;
 	UINT32 version;
-	UINT16 header_len;
-	UINT16 image_num;
+	UINT16 hdr_len;
+	UINT16 img_num;
 	UINT32 flags;
 	UINT32 reserved[2];
-} ota_header_t;
+} ota_hdr_t;
 
-typedef struct ota_image_header_s {
-	UINT32 image_len;
-	UINT32 image_offset;
+typedef struct ota_img_hdr_s {
+	UINT32 img_len;
+	UINT32 img_offset;
 	UINT32 flash_offset;
 	UINT32 checksum;
 	UINT32 version;
 	UINT32 flags;
 	UINT32 reserved[2];
-} ota_image_header_t;
+} ota_img_hdr_t;
 #endif
 
 typedef struct http_data_st {

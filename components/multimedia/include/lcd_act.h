@@ -22,6 +22,15 @@
 extern "C" {
 #endif
 
+
+typedef enum
+{
+	LCD_STATE_DISABLED,
+	LCD_STATE_ENABLED,
+	LCD_STATE_DISPLAY,
+} lcd_state_t;
+
+
 typedef enum
 {
 	DISPLAY_EVENT,
@@ -47,11 +56,10 @@ typedef struct
 	uint8_t step_trigger : 1;
 	uint8_t dma2d_blend : 1;
 	uint8_t start_logo :1;
-	uint8_t picture_echo : 1;
 	uint8_t decode_mode;
 	media_rotate_t rotate;
 	media_ppi_t resize_ppi;
-	media_lcd_state_t state;
+	lcd_state_t state;
 } lcd_info_t;
 
 typedef struct {
@@ -108,8 +116,8 @@ typedef struct {
 void lcd_event_handle(media_mailbox_msg_t *msg);
 
 //void lcd_event_handle(uint32_t event, uint32_t param);
-media_lcd_state_t get_lcd_state(void);
-void set_lcd_state(media_lcd_state_t state);
+lcd_state_t get_lcd_state(void);
+void set_lcd_state(lcd_state_t state);
 uint8_t get_decode_mode(void);
 void set_decode_mode(uint8_t mode);
 
@@ -129,7 +137,6 @@ void jpeg_display_task_stop(void);
 bk_err_t lcd_dma2d_handle(frame_buffer_t *frame);
 bk_err_t lcd_font_handle(frame_buffer_t *frame);
 void lcd_set_logo_on(uint8_t on);
-bk_err_t lcd_display_echo_event_handle(media_mailbox_msg_t *msg);
 
 
 #ifdef __cplusplus

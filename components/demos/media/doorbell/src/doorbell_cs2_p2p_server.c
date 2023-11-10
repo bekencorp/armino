@@ -189,6 +189,7 @@ out:
 
 static int av_cs2_p2p_voice_server_send_packet(unsigned char *data, unsigned int len)
 {
+
     int send_byte = 0;
     uint32_t index = 0;
 
@@ -203,7 +204,7 @@ static int av_cs2_p2p_voice_server_send_packet(unsigned char *data, unsigned int
 
     do
     {
-        send_byte = cs2_p2p_send_raw(CS2_P2P_CHANNEL_VOICE, data + index, len - index);
+        send_byte = cs2_p2p_send_raw(CS2_P2P_CHANNEL_VOICE, data, len - index);
 
 
         if (send_byte < 0)
@@ -336,20 +337,8 @@ static int8_t before_start(void)
 
     if (s_tran_type & TRANSFER_TYPE_VIDEO)
     {
-#ifdef CONFIG_INTEGRATION_DOORBELL
-		camera_config_t camera_config;
-
-		os_memset(&camera_config, 0, sizeof(camera_config_t));
-
-		camera_config.type = DVP_CAMERA;
-		camera_config.image_format = IMAGE_MJPEG;
-		camera_config.width = camera_ppi >> 16;
-		camera_config.height = camera_ppi & 0xFFFF;
-					
-		media_app_camera_open(&camera_config);
-#else
         media_app_camera_open(APP_CAMERA_NET_MJPEG, camera_ppi);
-#endif
+
         lcd_open_t lcd_open;
         lcd_open.device_ppi = lcd_ppi;
         lcd_open.device_name = lcd_name;

@@ -137,12 +137,6 @@ prro_map_t sec_map[] = \
 	{PRRO_DEV_APB_BTDM_APB,   25, 8, 25},\
 	{PRRO_DEV_APB_MAX,        -1,  PRRO_INVALID_REG, -1},\
 \
-	{PRRO_DEV_AON_PMU,  0, 0xa, 0},\
-	{PRRO_DEV_AON_RTC,  1, 0xa, 1},\
-	{PRRO_DEV_AON_GPIO, 2, 0xa, 2},\
-	{PRRO_DEV_AON_WDT,  3, 0xa, 3},\
-	{PRRO_DEV_AON_MAX, -1,  PRRO_INVALID_REG, -1},\
-\
 	{PRRO_DEV_JPEC_ENC_HNONSEC, 0, 0xd, 0},\
 	{PRRO_DEV_JPEC_DEC_HNONSEC, 1, 0xe, 0},\
 	{PRRO_DEV_DMA2D_HNONSEC,    2, 0xf, 0},\

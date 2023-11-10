@@ -1,30 +1,5 @@
 menu "CAMERA"
-	config DVP_CAMERA
-		bool "Enable Camera"
-		depends on JPEGENC_HW
-		depends on I2C
-		depends on GENERAL_DMA
-		default n
-		help
-			Enable camera interface
-
-	config DVP_CAMERA_I2C_ID
-		int "Set Camera I2c Id"
-		range 0 2
-		default 0
-		help
-			The value should be changed if need to change i2c id
-
 	config CAMERA_POWER_GPIO_CTRL
 		bool "Enable camera power gpio ctrl"
 		default n
-
-	config ENCODE_BUF_DYNAMIC
-		bool "Enable encode buffer dynamic malloc"
-		default n
-
-	config DVP_PCLK_72M
-		bool "current ip support 72M pclk"
-		default y if SOC_BK7236XX
-		default n if !SOC_BK7236XX
 endmenu

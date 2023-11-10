@@ -3,7 +3,6 @@
 
 #include "bk_gpio.h"
 #include "bk_uart.h"
-#include "multi_button.h"
 
 #define KEY_DEBUG
 
@@ -30,12 +29,8 @@ typedef enum KEY_ITEM_T {
 #define KEY_S1_GPIO6 6
 #define KEY_S2_GPIO7 7
 #define KEY_S3_GPIO8 8
-#define KEY_S3_GPIO9 9
 
-
-void key_initialization(void);
-void key_uninitialization(void);
-int key_item_configure(uint32_t gpio, uint8_t active_level, void short_press(void *), void double_press(void *), void long_press(void *), void hold_press(void *));
+int key_item_configure(uint32_t gpio, void short_press(void *), void double_press(void *), void long_press(void *), void hold_press(void *));
 int key_item_unconfigure(uint32_t gpio);
 
 #endif // 

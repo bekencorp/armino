@@ -1,12 +1,13 @@
 set(incs
 	camera
 	spidma
+	jpeg_dec
 	video_transfer
 	capture
 	)
 set(srcs)
 
-if (CONFIG_DVP_CAMERA)
+if (CONFIG_CAMERA)
 	list(APPEND srcs
 		"camera/dvp_camera_driver.c"
 		)
@@ -25,14 +26,22 @@ if (CONFIG_SPIDMA)
 		)
 endif()
 
-if (CONFIG_DVP_CAMERA OR CONFIG_USB_UVC OR CONFIG_SPIDMA)
+if (CONFIG_JPEGDEC_SW)
+	list(APPEND srcs
+		"jpeg_dec/tjpgd.c"
+		"jpeg_dec/jdev.c"
+		)
+endif()
+
+
+if (CONFIG_CAMERA OR CONFIG_USB_UVC OR CONFIG_SPIDMA)
 	list(APPEND srcs
 		"video_transfer/video_transfer.c"
 		"video_transfer/video_buffer.c"
 		"dvp_display/dvp_display.c"
 		)
 
-if (CONFIG_DVP_CAMERA_TEST)
+if (CONFIG_CAMERA_TEST)
 		list(APPEND srcs
 		"capture/capture.c"
 		)

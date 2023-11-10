@@ -303,7 +303,7 @@ static uint32_t spi_id_read_bytes_common(spi_id_t id)
 
 static void spi_dma_tx_finish_handler(dma_id_t id)
 {
-	SPI_LOGD("[%s] spi_id:%d\r\n", __func__, s_current_spi_dma_wr_id);
+	SPI_LOGI("[%s] spi_id:%d\r\n", __func__, s_current_spi_dma_wr_id);
 
 	if (s_spi_tx_finish_isr[s_current_spi_dma_wr_id].callback){
 		s_spi_tx_finish_isr[s_current_spi_dma_wr_id].callback(s_current_spi_dma_wr_id,s_spi_tx_finish_isr[s_current_spi_dma_wr_id].param);
@@ -316,7 +316,7 @@ static void spi_dma_tx_finish_handler(dma_id_t id)
 
 static void spi_dma_rx_finish_handler(dma_id_t id)
 {
-	SPI_LOGD("[%s] spi_id:%d\r\n", __func__, s_current_spi_dma_rd_id);
+	SPI_LOGI("[%s] spi_id:%d\r\n", __func__, s_current_spi_dma_rd_id);
 	if (s_spi_rx_finish_isr[s_current_spi_dma_rd_id].callback){
 		s_spi_rx_finish_isr[s_current_spi_dma_rd_id].callback(s_current_spi_dma_rd_id,s_spi_rx_finish_isr[s_current_spi_dma_rd_id].param);
 	} 
@@ -806,14 +806,6 @@ bk_err_t bk_spi_dma_duplex_xfer(spi_id_t id, const void *tx_data, uint32_t tx_si
 		spi_duplex_tx_rx_enable(id);
 		rtos_get_semaphore(&s_spi[id].tx_sema, BEKEN_NEVER_TIMEOUT);
 		rtos_get_semaphore(&s_spi[id].rx_sema, BEKEN_NEVER_TIMEOUT);
-
-		uint32_t int_level = rtos_disable_int();
-		spi_hal_disable_rx(&s_spi[id].hal);
-		spi_hal_disable_tx(&s_spi[id].hal);
-		spi_hal_disable_tx_fifo_int(&s_spi[id].hal);
-		spi_hal_disable_rx_fifo_int(&s_spi[id].hal);
-		rtos_enable_int(int_level);
-
 		len = rx_size > 0 ? (len-rx_size) : (len-tx_size);
 		offset += rx_size > 0 ? (rx_size) : (tx_size);
 	}

@@ -19,10 +19,7 @@
 
 #include <soc/soc.h>
 #include "hal_port.h"
-
-#if CONFIG_TFM_SYS_LL_NSC
-#include "tfm_sys_ll_nsc.h"
-#else
+#include "system_hw.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -7581,5 +7578,3 @@ static inline uint32_t sys_ll_get_ana_reg23_cp2ctrl(void) {
 #ifdef __cplusplus
 }
 #endif
-
-#endif // CONFIG_TFM_SYS_LL_NSC

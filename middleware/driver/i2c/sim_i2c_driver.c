@@ -72,33 +72,21 @@ static inline void I2cSetSclOutput(void)
 
 static inline void I2cSetSdaHigh(void)
 {
-	bk_gpio_disable_input(HWD_GPIO_I2C_SDA);
-	bk_gpio_enable_output(HWD_GPIO_I2C_SDA);
-
 	bk_gpio_set_output_high(HWD_GPIO_I2C_SDA);
 }
 
 static inline void I2cSetSdaLow(void)
 {
-	bk_gpio_disable_input(HWD_GPIO_I2C_SDA);
-	bk_gpio_enable_output(HWD_GPIO_I2C_SDA);
-
 	bk_gpio_set_output_low(HWD_GPIO_I2C_SDA);
 }
 
 static inline void I2cSetSclHigh(void)
 {
-	bk_gpio_disable_input(HWD_GPIO_I2C_SCL);
-	bk_gpio_enable_output(HWD_GPIO_I2C_SCL);
-
 	bk_gpio_set_output_high(HWD_GPIO_I2C_SCL);
 }
 
 static inline void I2cSetSclLow(void)
 {
-	bk_gpio_disable_input(HWD_GPIO_I2C_SCL);
-	bk_gpio_enable_output(HWD_GPIO_I2C_SCL);
-
 	bk_gpio_set_output_low(HWD_GPIO_I2C_SCL);
 }
 
@@ -135,21 +123,11 @@ static inline void I2cSclPulse()
 	I2cDelay(SCL_DELAY);
 }
 
-void I2cSclPulse_ack()
-{
-	I2cSetSclHigh();
-	I2cDelay(SCL_DELAY);
-
-	I2cSetSclLow();
-	I2cSetSdaInput();
-	I2cDelay(SCL_DELAY);
-}
-
 void I2cStart(void)
 {
 	// Just to ensure SCL is in LOW state.
-//	I2cSetSclLow();
-//	I2cDelay(SCL_HALF_DELAY);
+	I2cSetSclLow();
+	I2cDelay(SCL_HALF_DELAY);
 
 	I2cSetSdaOutput();
 	I2C_PIN_DELAY();
@@ -230,6 +208,7 @@ bool I2cWaitForAck(void)
 {
 	bool	Ack;
 
+	I2cSetSdaHigh();	// release SDA.
 	I2cSetSdaInput();
 	I2C_PIN_DELAY();
 
@@ -243,11 +222,11 @@ bool I2cWaitForAck(void)
 	I2cSetSclLow();
 	I2C_PIN_DELAY();
 
-	I2cDelay(SCL_DELAY);
 	//Please note - the following call is required because
 	//the I2cSetSdaHigh and I2cSetSdaLow functions do not set the port to output state
-	//I2cSetSdaOutput();
+	I2cSetSdaOutput();
 
+	I2cDelay(SCL_DELAY);
 
 	return Ack;
 }
@@ -256,7 +235,6 @@ bool I2cSend(uint8_t I2cData)
 {
 	uint8_t	Mask;
 
-	I2cSetSdaOutput();
 	for(Mask = 128; Mask; Mask >>= 1)
 	{
 		if(I2cData & Mask)
@@ -270,14 +248,7 @@ bool I2cSend(uint8_t I2cData)
 
 		I2C_PIN_DELAY();
 
-		if(Mask == 1)
-		{
-			//The 9th bit of ack would exchange the output/input direction
-			//Change SDA PIN as input mode in time to improve wave not normative issue
-			I2cSclPulse_ack();
-		} else {
-			I2cSclPulse();
-		}
+		I2cSclPulse();
 	}
 
 	return I2cWaitForAck();
@@ -288,6 +259,7 @@ uint8_t I2cReceive(bool LastOne)
 	uint8_t		Mask;
 	uint8_t		I2cData = 0;
 
+	I2cSetSdaHigh();	// release SDA.
 	I2cSetSdaInput();
 	I2C_PIN_DELAY();
 

@@ -17,8 +17,6 @@
 #include "bootutil/fault_injection_hardening.h"
 #endif /* CRYPTO_HW_ACCELERATOR */
 
-void bl2_secure_debug(void);
-
 /* Flash device names must be specified by target */
 #ifdef FLASH_DEV_NAME
 extern ARM_DRIVER_FLASH FLASH_DEV_NAME;
@@ -47,7 +45,6 @@ REGION_DECLARE(Image$$, ARM_LIB_STACK, $$ZI$$Base);
 
 void boot_clear_ram_area(void)
 {
-#if CONFIG_BL2_CLEAN_RAM_ON_EXIT
     __ASM volatile(
 #if !defined(__ICCARM__)
         ".syntax unified                             \n"
@@ -70,7 +67,6 @@ void boot_clear_ram_area(void)
         "bx      lr                                  \n"
          : : : "r0" , "r1" , "r2" , "memory"
     );
-#endif
 }
 
 /*!
@@ -139,8 +135,6 @@ int32_t boot_platform_init(void)
     int32_t result;
 
     close_wdt();
-	bl2_secure_debug();
-
     boot_platform_enable_fault_interrupt();
 #if defined(__ARM_ARCH_8M_MAIN__) || defined(__ARM_ARCH_8M_BASE__) \
  || defined(__ARM_ARCH_8_1M_MAIN__)
@@ -255,6 +249,6 @@ void boot_platform_quit(struct boot_arm_vector_table *vt)
     __DSB();
     __ISB();
 
-    printf("Jump to 1st app, msp=%p vector=%p\r\n", vt_cpy->msp, vt_cpy->reset);
+    printf("Jump to TFM, msp=%p vector=%p\r\n", vt_cpy->msp, vt_cpy->reset);
     boot_jump_to_next_image(vt_cpy->reset);
 }

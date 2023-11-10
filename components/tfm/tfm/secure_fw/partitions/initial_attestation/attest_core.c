@@ -241,9 +241,9 @@ static int32_t attest_get_tlv_by_module(uint8_t    module,
  * \param[out]  tlv_ptr  Pointer to a shared data entry which belongs to the
  *                       SW_GENERAL module.
  *
- * \retval    -1         Error, boot status is malformed
- * \retval     0         Entry not found
- * \retval     1         Entry found
+ * \retval    -1          Error, boot status is malformed
+ * \retval     0          Entry not found
+ * \retval     1          Entry found
  */
 static int32_t attest_get_tlv_by_id(uint8_t    claim,
                                     uint16_t  *tlv_len,

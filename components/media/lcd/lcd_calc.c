@@ -23,7 +23,6 @@
 #include <soc/mapping.h>
 #include "modules/image_scale.h"
 #include <components/jpeg_decode.h>
-#include <modules/tjpgd.h>
 
 #if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
 #include "cache.h"
@@ -125,9 +124,6 @@ MINOOR_ITCM void lcd_jpeg_dec_sw(uint32_t param)
 	bk_err_t ret = BK_FAIL;
 	mb_chnl_cmd_t mb_cmd;
 	sw_jpeg_dec_res_t result;
-	jd_output_format *format = (jd_output_format *)param;
-
-	jd_set_output_format(format);
 
 	ret = bk_jpeg_dec_sw_start(decoder_frame->length, decoder_frame->frame, rotate_frame->frame, &result);
 
@@ -405,7 +401,6 @@ static void lcd_calc_mailbox_rx_isr(void *param, mb_chnl_cmd_t *cmd_buf)
 
 		media_msg_t msg;
 		msg.event = EVENT_LCD_DEC_SW_CMD;
-		msg.param = cmd_buf->param3;
 		media_send_msg(&msg);
 	}
 }

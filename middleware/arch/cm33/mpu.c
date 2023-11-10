@@ -60,17 +60,13 @@ ARM_MPU_Region_t mpu_regions[] = {
     { ARM_MPU_RBAR(0x40000000UL, ARM_MPU_SH_NON, 0, 1, 1),
       ARM_MPU_RLAR(0x5FFFFFE0UL, 4) },
 
-     /* MPU region 5，external ram data */
-     { ARM_MPU_RBAR(0x60000000UL, ARM_MPU_SH_NON, 0, 1, 0),
-       ARM_MPU_RLAR(0x606FFE0UL, 2) },
+    /* MPU region 5，external ram data */
+    { ARM_MPU_RBAR(0x60000000UL, ARM_MPU_SH_NON, 0, 1, 0),
+      ARM_MPU_RLAR(0x9FFFFFE0UL, 0) },
 
-     /* MPU region 6，external ram data */
-     { ARM_MPU_RBAR(0x60700000UL, ARM_MPU_SH_NON, 0, 1, 0),
-       ARM_MPU_RLAR(0x9FFFFFE0UL, 6) },
-
-     /* MPU region 7，external device memory */
-     { ARM_MPU_RBAR(0xA0000000UL, ARM_MPU_SH_OUTER, 0, 1, 0),
-       ARM_MPU_RLAR(0xFFFFFFE0UL, 2) }
+    /* MPU region 6，external device memory */
+    { ARM_MPU_RBAR(0xA0000000UL, ARM_MPU_SH_OUTER, 0, 1, 0),
+      ARM_MPU_RLAR(0xFFFFFFE0UL, 2) }
 };
 
 uint8_t mpu_attrs[] = {

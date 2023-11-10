@@ -1,8 +1,0 @@
-{
-    "description": "Configuration to merge all images",
-    "flash_base_addr" : "0x02000000",
-    "cpu_vector_align" : "0x80",
-    "partitions": [
-        { "partition": "primary_app",        "offset": "0x00000000", "size": "1536k", "bin": "app.bin",                "bin_type": "code", "version": "0x00010001"}
-   ]
-}

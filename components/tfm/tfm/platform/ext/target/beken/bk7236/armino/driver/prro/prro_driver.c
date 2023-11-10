@@ -96,13 +96,6 @@ bk_err_t bk_prro_set_secure(prro_dev_t dev, prro_secure_type_t secure_type)
 	return prro_hal_set_secure(dev, secure_type);
 }
 
-prro_secure_type_t bk_prro_get_secure(prro_dev_t dev)
-{
-	//PRRO_RETURN_ON_DRIVER_NOT_INIT();
-	//PRRO_RETURN_ON_INVALID_ID(dev);
-	return prro_hal_get_secure(dev);
-}
-
 bk_err_t bk_prro_set_gpios_secure(uint32_t gpio_0_31_bits, uint32_t gpio_32_63_bits)
 {
 	PRRO_RETURN_ON_DRIVER_NOT_INIT();

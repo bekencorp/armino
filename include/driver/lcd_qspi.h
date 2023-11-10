@@ -43,6 +43,32 @@ lcd_qspi_device_t *bk_lcd_qspi_get_device_by_name(char *name);
  */
 lcd_qspi_device_t *bk_lcd_qspi_get_device_by_ppi(media_ppi_t ppi);
 
+#if (CONFIG_MASTER_CORE) && (CONFIG_PWM)
+/**
+ * @brief     Init the lcd qspi backlight
+ *
+ * @param device the struct of lcd qspi device
+ * @param the percent of backlight, the range is 1 to 100
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_lcd_qspi_backlight_init(lcd_qspi_device_t *device, uint8_t percent);
+
+/**
+ * @brief     Deinit the lcd qspi backlight
+ *
+ * @param device the struct of lcd qspi device
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+bk_err_t bk_lcd_qspi_backlight_deinit(lcd_qspi_device_t *device);
+
+#endif
+
 /**
  * @brief     Init the lcd qspi
  *
@@ -52,7 +78,7 @@ lcd_qspi_device_t *bk_lcd_qspi_get_device_by_ppi(media_ppi_t ppi);
  *  - init the psram
  *  - init the dma2d driver
  *  - enable quad write
- *  - open the backlight of lcd qspi 
+ *  - open the backlight of lcd qspi(Just only execute on master core)
  * 
  * @param device the struct of lcd qspi device
  *
@@ -68,7 +94,7 @@ bk_err_t bk_lcd_qspi_init(const lcd_qspi_device_t *device);
  * This API deinit the lcd qspi module:
  *  - deinit the psram
  *  - deinit the dma2d driver
- *  - close the backlight of lcd qspi
+ *  - close the backlight of lcd qspi(Just only execute on master core)
  * 
  * @param device the struct of lcd qspi device
  *
@@ -77,21 +103,6 @@ bk_err_t bk_lcd_qspi_init(const lcd_qspi_device_t *device);
  *    - others: other errors.
  */
 bk_err_t bk_lcd_qspi_deinit(lcd_qspi_device_t *device);
-
-/**
- * @brief     Read the lcd qspi register value 
- *
- * This API read the lcd qspi register value
- * 
- * @param read_config the struct of lcd qspi register read config
- * @param device the struct of lcd qspi device
- *
- * @return
- *    - BK_OK: succeed
- *    - others: other errors.
- */
-
-bk_err_t bk_lcd_qspi_read_data(lcd_qspi_reg_read_config_t read_config, lcd_qspi_device_t *device);
 
 /**
  * @brief     Send a frame data to device display
@@ -103,7 +114,7 @@ bk_err_t bk_lcd_qspi_read_data(lcd_qspi_reg_read_config_t read_config, lcd_qspi_
  * @return
  *    - BK_OK: succeed
  */
-bk_err_t bk_lcd_qspi_send_data(const lcd_qspi_device_t *device, uint32_t *data, uint8_t data_len);
+bk_err_t bk_lcd_qspi_send_data(const lcd_qspi_device_t *device, uint32_t *data, uint32_t data_len);
 
 #ifdef __cplusplus
 }

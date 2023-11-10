@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import re
 import logging
-import subprocess
 
 s_base_addr = 0
 SZ_16M = 0x1000000
@@ -74,28 +73,3 @@ def crc16(data : bytearray, offset , length):
             else:
                 crc = crc << 1
     return crc & 0xFFFF
-
-def run_cmd(cmd):
-    p = subprocess.Popen(cmd, shell=True)
-    ret = p.wait()
-    if (ret):
-        logging.error(f'failed to run "{cmd}"')
-        exit(1)
-
-def run_cmd_not_check_ret(cmd):
-    p = subprocess.Popen(cmd, shell=True)
-    p.wait()
-
-def pattern_match(string, pattern):
-    match = re.search(pattern, string)
-    if match:
-        return True 
-    else:
-        return False
-
-def int2hexstr2(v):
-    return (f'%04x' %(v))
-
-def int2hexstr4(v):
-    return (f'%08x' %(v))
-

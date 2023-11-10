@@ -19,9 +19,17 @@ menu "bk7236"
 		hex "Total RAM size for NSPE"
 		default 0x40000
 
-	config CPU1_APP_RAM_SIZE
-			hex "CPU1 app RAM size"
-			default 0x00000
+	config PRIMARY_APP_IRAM_SIZE
+		hex "Primary app IRAM size"
+		default 0x2000
+
+	config PRIMARY_APP_NOCACHE_SIZE
+		hex "Primary app NOCACHE size"
+		default 0x14000
+
+	config SECOND_APP_RAM_SIZE
+		hex "Second app RAM size"
+		default 0x00000
 
 	config ANA_REG_WRITE_POLL_REG_B
 		bool "Write analog register polls sys reg0xb"

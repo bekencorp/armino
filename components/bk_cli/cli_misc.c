@@ -20,9 +20,7 @@
 #include "cache.h"
 #endif
 #include <components/ate.h>
-#if CONFIG_AON_RTC
-#include <driver/aon_rtc.h>
-#endif
+
 
 #if (CONFIG_EFUSE)
 static void efuse_cmd_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -119,18 +117,7 @@ void get_id(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 
 static void uptime_Command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
-	CLI_LOGI("OS time %ldms\r\n", rtos_get_time());
-#if CONFIG_NTP_SYNC_RTC
-	extern time_t bk_datetime_get();
-	time_t cur_time = bk_datetime_get();
-	CLI_LOGI("Current time:%s\n", ctime(&cur_time));
-#endif
-
-#if CONFIG_AON_RTC
-	uint64_t rtc_time_us = bk_aon_rtc_get_us();
-	CLI_LOGI("Aon rtc time_h:%u, time_l:%u us\n", (uint32_t)((rtc_time_us)>>32), (uint32_t)(rtc_time_us));
-	CLI_LOGI("Aon rtc clock freq:%d\n", bk_rtc_get_clock_freq());
-#endif
+	CLI_LOGI("UP time %ldms\r\n", rtos_get_time());
 }
 
 void reboot(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -495,6 +482,50 @@ void cli_cache_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 
 #endif
 
+#if CONFIG_ADC_KEY
+static void adc_key_next_cb()
+{
+	os_printf("adc_key_next_cb NEXT\r\n");
+}
+static void adc_key_prev_cb()
+{
+	os_printf("adc_key_prev_cb PREV\r\n");
+}
+static void adc_key_play_pause_cb()
+{
+	os_printf("adc_key_play_pause_cb PLAY PAUSE\r\n");
+}
+static void adc_key_menu_cb()
+{
+	os_printf("adc_key_menu_cb MENU\r\n");
+}
+static void cli_adc_key_op(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		os_printf("cli_adc_key_op please init/deinit\n");
+		return;
+	}
+	if (os_strcmp(argv[1], "init") == 0) {
+		adc_key_init();
+		adc_key_register_next_cb(adc_key_next_cb);
+		adc_key_register_prev_cb(adc_key_prev_cb);
+		adc_key_register_play_pause_cb(adc_key_play_pause_cb);
+		adc_key_register_menu_cb(adc_key_menu_cb);
+		CLI_LOGI("adc_key init\n");
+	} else if(os_strcmp(argv[1], "deinit") == 0) {
+		adc_key_deinit();
+		CLI_LOGI("adc_key deinit\n");
+	} else if(os_strcmp(argv[1], "set_int") == 0) {
+		int type = os_strtoul(argv[2], NULL, 10);
+		adc_key_set_gpio_int_type(type);
+		CLI_LOGI("adc_key SET_GPIO_INT_TYPE\n");
+	} else {
+		return;
+	}
+}
+#endif
+
+
 __attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) \
 int32_t cpu_test(uint32_t count) {
 #if CONFIG_SOC_BK7236XX
@@ -529,28 +560,6 @@ static void cli_cpu_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	CLI_LOGI("cputest end.\r\n");
 }
 
-#if CONFIG_EXTERN_32K
-void cli_set_clock_source(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-	extern bk_err_t pm_clk_32k_source_switch(pm_lpo_src_e lpo_src);
-	unsigned char clock_source = 0;
-
-	if (argc != 2) {
-		os_printf("set clock source, 0: PM_LPO_SRC_DIVD, 1: PM_LPO_SRC_X32K.\r\n");
-		return;
-	}
-
-	clock_source = os_strtoul(argv[1], NULL, 10);
-	if (clock_source == 0) {
-		pm_clk_32k_source_switch(PM_LPO_SRC_DIVD);
-	} else {
-		pm_clk_32k_source_switch(PM_LPO_SRC_X32K);
-	}
-
-	os_printf("set clock source end.\r\n");
-}
-#endif
-
 #define MISC_CMD_CNT (sizeof(s_misc_commands) / sizeof(struct cli_command))
 static const struct cli_command s_misc_commands[] = {
 	{"version", NULL, get_version},
@@ -584,12 +593,10 @@ static const struct cli_command s_misc_commands[] = {
 #if CONFIG_CACHE_ENABLE
 	{"cache", "show cache config info", cli_cache_cmd},
 #endif
-	{"setcpufreq", "setcpufreq [ckdiv_core] [ckdiv_bus] [ckdiv_cpu0] [ckdiv_cpu1]", set_cpu_clock_freq},
-
-#if CONFIG_EXTERN_32K
-	{"setclock", "set clock freq, 0: PM_LPO_SRC_DIVD, 1: PM_LPO_SRC_X32K", cli_set_clock_source},
+#if CONFIG_ADC_KEY
+	{"adc_key", "adc_key {init|deinit}", cli_adc_key_op},
 #endif
-
+	{"setcpufreq", "setcpufreq [ckdiv_core] [ckdiv_bus] [ckdiv_cpu0] [ckdiv_cpu1]", set_cpu_clock_freq},
 #endif //#if (!CONFIG_SLAVE_CORE)
 	{"cputest", "cputest [count]", cli_cpu_test},
 };

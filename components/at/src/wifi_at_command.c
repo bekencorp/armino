@@ -213,10 +213,7 @@ int at_wifi_ap_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 		ap_ssid = argv[0];
 	else if (argc == 2) {
 		ap_ssid = argv[0];
-		if (os_strlen(argv[1]) <= 2)
-			ap_channel = argv[1];
-		else
-			ap_key = argv[1];
+		ap_key = argv[1];
 	}
 	else if (argc == 3) {
 		ap_ssid = argv[0];
@@ -435,7 +432,6 @@ int at_wifi_ping_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 	char *msg = NULL;
 	int err = kNoErr;
 	uint32_t cnt = 4;
-	uint32_t size = 0;
 	if (argc == 0) {
 		os_printf("Please input: ping <host address>\n");
 		goto error;
@@ -452,10 +448,9 @@ int at_wifi_ping_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 	
 	if (argc > 1)
 		cnt = os_strtoul(argv[1], NULL, 10);
-	if (argc > 2)
-		size = os_strtoul(argv[2], NULL, 10);
+	
 	os_printf("ping IP address:%s\n", argv[0]);
-	ping_start(argv[0], cnt, size);
+	ping_start(argv[0], cnt, 0);
 	if(err == kNoErr) {
 		msg = AT_CMD_RSP_SUCCEED;
 		os_memcpy(pcWriteBuffer, msg, os_strlen(msg));

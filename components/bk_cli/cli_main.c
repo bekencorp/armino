@@ -56,7 +56,7 @@ static uint8_t s_running_status = 0;
 extern int cli_putstr(const char *msg);
 extern int hexstr2bin(const char *hex, u8 *buf, size_t len);
 
-#if CONFIG_DVP_CAMERA
+#if CONFIG_CAMERA
 extern int video_demo_register_cmd(void);
 #endif
 
@@ -139,59 +139,6 @@ int lookup_cmd_table(const struct cli_command *cmd_table, int table_items, char 
 
 #if (CONFIG_SHELL_ASYNCLOG && !CONFIG_ATE_TEST)
 
-static beken_thread_t shell_handle_thread_handle = NULL;
-static beken_semaphore_t wait_shell_handle_semaphore = NULL;
-struct cmd_parameter
-{
-	  char     *rsp_buff;
-	  char     *cmd_buff;
-	  int     cmd_data_len;
-	  int     out_buf_size;
-};
-int handle_shell_input2(char *inbuf, int in_buf_size, char * outbuf, int out_buf_size);
-
-static void handle_shell_input_proxy(beken_thread_arg_t arg)
-{
-       struct cmd_parameter *proxy = (struct cmd_parameter *)(int)arg;
-
-       handle_shell_input2( proxy->cmd_buff, proxy->cmd_data_len, proxy->rsp_buff, proxy->out_buf_size);
-
-       rtos_set_semaphore(&wait_shell_handle_semaphore);
-
-       rtos_delete_thread(NULL);
-}
-
-int handle_shell_input(char *inbuf, int in_buf_size, char * outbuf, int out_buf_size)
-{
-        int		ret = 0;
-	 int		err = kNoErr;
-	 struct cmd_parameter cmd_par = {0};
-
-        cmd_par.rsp_buff = outbuf;
-	 cmd_par.cmd_buff = inbuf;
-	 cmd_par.cmd_data_len = in_buf_size;
-	 cmd_par.out_buf_size = out_buf_size;
-
-        rtos_init_semaphore(&wait_shell_handle_semaphore,1);
-        ret = rtos_create_thread(&shell_handle_thread_handle,
-                                                        4,
-                                                        "shell_handle",
-                                                        (beken_thread_function_t)handle_shell_input_proxy,
-                                                        1024*5,
-                                                        (beken_thread_arg_t)(&cmd_par));
-	 if (ret != kNoErr) {
-                 os_printf("Error: Failed to create shell_handle_thread_handle thread: %d\r\n",ret);
-	        BK_ASSERT(0);
-        }
-
-        err = rtos_get_semaphore(&wait_shell_handle_semaphore,BEKEN_WAIT_FOREVER);
-	 if(err){
-                 os_printf("get wait_shell_handle_semaphore fail\r\n");
-	 }
-	 rtos_deinit_semaphore(&wait_shell_handle_semaphore);
-	return 0;
-}
-
 /* Parse input line and locate arguments (if any), keeping count of the number
 * of arguments and their locations.  Look up and call the corresponding cli
 * function if one is found and pass it the argv array.
@@ -202,10 +149,8 @@ int handle_shell_input(char *inbuf, int in_buf_size, char * outbuf, int out_buf_
 *          input line.
 *          2 on invalid syntax: the arguments list couldn't be parsed
 */
-int handle_shell_input2(char *inbuf, int in_buf_size, char * outbuf, int out_buf_size)
+int handle_shell_input(char *inbuf, int in_buf_size, char * outbuf, int out_buf_size)
 {
-#if CONFIG_CLI
-
 	struct {
 		unsigned inArg: 1;
 		unsigned inQuote: 1;
@@ -364,12 +309,6 @@ int handle_shell_input2(char *inbuf, int in_buf_size, char * outbuf, int out_buf
 	command->function(outbuf, out_buf_size , argc, argv);
 #endif
 
-#else  // no CONFIG_CLI
-
-	sprintf(outbuf, "\r\nCLI not supported!\r\n");
-
-#endif  // CONFIG_CLI
-
 	return 0;
 }
 
@@ -416,8 +355,7 @@ static void cli_ate_main(uint32_t data)
 	bk_uart_register_tx_isr(CONFIG_UART_PRINT_PORT, (uart_isr_t)ate_uart_tx_isr, NULL);
 	bk_uart_enable_tx_interrupt(CONFIG_UART_PRINT_PORT);
 
-	get_device_id();
-	send_chip_id();
+	send_device_id();
 	ate_test_multiple_cpus_init();
 
 	while (1) {
@@ -904,13 +842,6 @@ static void log_setting_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 		level = strtoul(argv[4], NULL, 0);
 		bk_enable_white_list(level);
 	}
-	if (argc > 5)
-	{
-		extern void shell_set_log_flush(int flush_flag);
-
-		level = strtoul(argv[5], NULL, 0);
-		shell_set_log_flush(level);
-	}
 #endif
 
 #if (CONFIG_SHELL_ASYNCLOG)
@@ -919,12 +850,11 @@ static void log_setting_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 	sync_lvl = bk_get_printf_sync();
 
 	extern int bk_white_list_state(void);
-	extern int shell_get_log_flush(void);
 
 	u8 white_state = bk_white_list_state();
-	u8 flush_flag = shell_get_log_flush();
 
-	sprintf(pcWriteBuffer, "log: echo %d, level %d, sync %d, white_list %d, flush %d.\r\n", echo_level, level, sync_lvl, white_state, flush_flag);
+
+	sprintf(pcWriteBuffer, "log: echo %d, level %d, sync %d, white_list %d.\r\n", echo_level, level, sync_lvl, white_state);
 #else
 
 	sprintf(pcWriteBuffer,"log: echo %d.\r\n", pCli->echo_disabled ? 0 : 1);
@@ -1134,7 +1064,7 @@ void bkreg_cmd_handle_input(char *inbuf, int len)
 static const struct cli_command built_ins[] = {
 	{"help", NULL, help_command},
 	{"log", "log [echo(0,1)] [level(0~5)] [sync(0,1)] [Whitelist(0,1)]", log_setting_cmd},
-
+//	{"sort", NULL, cli_sort_command},
 #if !CONFIG_RELEASE_VERSION
 	{"debug", "debug cmd [param] (ex:debug help)", cli_debug_command},
 #endif
@@ -1215,7 +1145,7 @@ int cli_register_command(const struct cli_command *command)
 {
 	int i;
 	if (!command->name || !command->function)
-		return 0;
+		return 1;
 
 	if (pCli->num_commands < MAX_COMMANDS) {
 		/* Check if the command has already been registered.
@@ -1331,18 +1261,13 @@ int cli_get_all_chars_len(void)
 	return uart_get_length_in_buffer(CLI_UART);
 }
 
-#if CONFIG_CLI
 static const struct cli_command user_clis[] = {
 };
-#endif
 
 beken_thread_t cli_thread_handle = NULL;
 int bk_cli_init(void)
 {
 	int ret;
-
-#if CONFIG_CLI
-
 	pCli = (struct cli_st *)os_malloc(sizeof(struct cli_st));
 	if (pCli == NULL)
 		return kNoMemoryErr;
@@ -1587,7 +1512,7 @@ int bk_cli_init(void)
 	cli_flash_init();
 #endif
 
-#if (CLI_CFG_FLASH == 1)
+#if (CLI_CFG_FLASH == 1 && CONFIG_SOC_BK7256XX == 1)
 	cli_flash_test_init();
 #endif
 
@@ -1698,10 +1623,6 @@ int bk_cli_init(void)
 	#endif
 #endif
 
-#if (CLI_CFG_KEY_DEMO == 1)
-	cli_key_demo_init();
-#endif
-
 #endif //CONFIG_DEBUG_FIRMWARE
 
 /*-----open the cli comand both at release and debug vertion begin-----*/
@@ -1734,8 +1655,8 @@ int bk_cli_init(void)
 	cli_interrupt_init();
 #endif
 
-#if (CLI_CFG_VIDEO_TRANSFER == 1)
-	cli_video_transfer_init();
+#if (CLI_CFG_H264 == 1)
+	cli_h264_init();
 #endif
 
 #if CONFIG_SDMADC
@@ -1751,10 +1672,6 @@ int bk_cli_init(void)
     cli_flashdb_init();
 #endif
 
-#if CONFIG_PUF_TEST
-	cli_puf_init();
-#endif
-
 /*-----open the cli comand both at release and debug vertion end ------*/
 
 
@@ -1762,8 +1679,6 @@ int bk_cli_init(void)
 
 	/* sort cmds after registered all cmds. */
 	cli_sort_command(NULL, 0, 0, NULL);
-
-#endif  // CONFIG_CLI
 
 #if CONFIG_SHELL_ASYNCLOG
 #if CONFIG_ATE_TEST
@@ -1777,17 +1692,16 @@ int bk_cli_init(void)
 	ret = rtos_create_thread(&cli_thread_handle,
 							 SHELL_TASK_PRIORITY,
 							 "cli",
-							 (beken_thread_function_t)shell_task,
-							 1024*2,
+							 (beken_thread_function_t)shell_task /*cli_main*/,
+							 4096,
 							 0);
-
 #endif
 #else // #if CONFIG_SHELL_ASYNCLOG
 	ret = rtos_create_thread(&cli_thread_handle,
 							 BEKEN_DEFAULT_WORKER_PRIORITY,
 							 "cli",
 							 (beken_thread_function_t)cli_main,
-							 3072,
+							 4096,
 							 0);
 #endif // #if CONFIG_SHELL_ASYNCLOG
 	if (ret != kNoErr) {
@@ -1796,22 +1710,17 @@ int bk_cli_init(void)
 		goto init_general_err;
 	}
 
-#if CONFIG_CLI
-
 	pCli->initialized = 1;
 #if (!CONFIG_SHELL_ASYNCLOG)
 	pCli->echo_disabled = 0;
 #endif
 
 #if (CONFIG_SLAVE_CORE && CONFIG_MEDIA)
-/*not used, need delete, current not delete*/
-//	ret = common_mb_init();
-//	if (ret != kNoErr) {
-//		os_printf("Error: Failed to create common_mb thread: %d\r\n", ret);
-//	}
+	ret = common_mb_init();
+	if (ret != kNoErr) {
+		os_printf("Error: Failed to create common_mb thread: %d\r\n", ret);
+	}
 #endif
-
-#endif  // CONFIG_CLI
 
 	return kNoErr;
 

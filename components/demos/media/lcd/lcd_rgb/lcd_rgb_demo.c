@@ -123,6 +123,8 @@ static bk_err_t dvp_camera_init(jpeg_mode_t mode, media_ppi_t ppi)
 	// step 1: enbale dvp power
 	bk_dvp_camera_power_enable(1);
 
+	bk_jpeg_enc_driver_init();
+
 	// step 2: enable jpeg mclk for i2c communicate with dvp
 	bk_jpeg_enc_mclk_enable();
 
@@ -131,7 +133,7 @@ static bk_err_t dvp_camera_init(jpeg_mode_t mode, media_ppi_t ppi)
 	// step 3: init i2c
 	i2c_config.baud_rate = I2C_BAUD_RATE_100KHZ;
 	i2c_config.addr_mode = I2C_ADDR_MODE_7BIT;
-	bk_i2c_init(CONFIG_DVP_CAMERA_I2C_ID, &i2c_config);
+	bk_i2c_init(CONFIG_CAMERA_I2C_ID, &i2c_config);
 
 	current_sensor = bk_dvp_get_sensor_auto_detect();
 	if (current_sensor == NULL)
@@ -193,6 +195,10 @@ void lcd_rgb_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 		uint32_t rgb_freq = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
 		os_printf("rgb_freq= %x \r\n", rgb_freq);
 		switch(rgb_freq) {
+			case LCD_320M:
+				bk_lcd_driver_init(LCD_320M);
+				os_printf(" RGB clk is 320M. \r\n");
+				break;
 			case LCD_40M:
 				bk_lcd_driver_init(LCD_40M);
 				os_printf(" RGB clk is 40M. \r\n");
@@ -271,7 +277,7 @@ void lcd_rgb_display_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 			os_printf("deinit rgb \r\n");
 		}
 		os_printf("close rgb ok \r\n");
-		if (bk_i2c_deinit(CONFIG_DVP_CAMERA_I2C_ID) !=BK_OK) {
+		if (bk_i2c_deinit(CONFIG_CAMERA_I2C_ID) !=BK_OK) {
 			os_printf("deinit rgb \r\n");
 		}
 		os_printf("close rgb ok \r\n");
@@ -329,6 +335,8 @@ void lcd_rgb_display_jpeg(char *pcWriteBuffer, int xWriteBufferLen, int argc, ch
 		return;
 	}
 	os_printf("malloc jpeg dma ch is DMA_ch%x \r\n", jpeg_dma_id);
+
+	BK_LOG_ON_ERR(bk_jpeg_enc_driver_init());
 	bk_jpeg_dec_isr_register(DEC_END_OF_FRAME, jpeg_dec_end_of_frame_cb);
 
 	bk_lcd_driver_init(LCD_20M);
@@ -509,7 +517,7 @@ void lcd_rgb_close(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 		}
 
 		os_printf("close rgb ok \r\n");
-		if (bk_i2c_deinit(CONFIG_DVP_CAMERA_I2C_ID) !=BK_OK) {
+		if (bk_i2c_deinit(CONFIG_CAMERA_I2C_ID) !=BK_OK) {
 			os_printf("deinit rgb \r\n");
 		}
 		os_printf("close rgb ok \r\n");
@@ -532,7 +540,7 @@ void lcd_rgb_close(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **ar
 		}
 
 		os_printf("close rgb ok \r\n");
-		if (bk_i2c_deinit(CONFIG_DVP_CAMERA_I2C_ID) !=BK_OK) {
+		if (bk_i2c_deinit(CONFIG_CAMERA_I2C_ID) !=BK_OK) {
 			os_printf("deinit rgb \r\n");
 		}
 		if( bk_jpeg_dec_driver_deinit() !=  BK_OK) {

@@ -463,7 +463,7 @@ int gt911_read_tp_info(const tp_i2c_callback_t *cb, uint8_t max_num, uint8_t *bu
 		return BK_FAIL;
 	}
 
-	if ( (0 == max_num) || (max_num > GT911_POINT_INFO_NUM) )
+	if( (0 == max_num) || (max_num > GT911_POINT_INFO_NUM) )
 	{
 		LOGE("%s, max_num %d is out range!\r\n", __func__, max_num);
 		return BK_FAIL;

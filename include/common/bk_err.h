@@ -119,7 +119,7 @@ typedef int bk_err_t;
 #define BK_ERR_NULL_PARAM          (BK_ERR_COMMON_BASE - 9)
 #define BK_ERR_NOT_SUPPORT         (BK_ERR_COMMON_BASE - 10)
 #define BK_ERR_BUSY                (BK_ERR_COMMON_BASE - 11)
-#define BK_ERR_PATH                (BK_ERR_COMMON_BASE - 12)
+
 
 #define BK_LOG_ON_ERR(_x) do {\
 	bk_err_t _err = (_x);\

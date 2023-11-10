@@ -124,11 +124,7 @@ void bk_psram_memread(uint32_t start_addr, uint32_t *data_buf, uint32_t len)
 
 char *bk_psram_strcat(char *start_addr, const char *data_buf)
 {
-#if (CONFIG_SOC_BK7256XX)
 	return psram_strcat(start_addr, data_buf);
-#else
-	return NULL;
-#endif
 }
 
 

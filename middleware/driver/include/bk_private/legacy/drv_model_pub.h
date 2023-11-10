@@ -93,7 +93,7 @@ typedef enum _dd_device_type_
 #if CONFIG_HSLAVE_SPI
     DD_DEV_TYPE_SPIDMA,
 #endif
-#if CONFIG_DVP_CAMERA
+#if CONFIG_CAMERA
     DD_DEV_TYPE_EJPEG,
 #endif
     DD_DEV_TYPE_I2C1,

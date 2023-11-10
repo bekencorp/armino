@@ -44,14 +44,6 @@ static inline void prro_ll_set_reg_bit(uint32_t reg_offset, uint32_t bit, uint32
 	}
 }
 
-static inline uint32_t prro_ll_get_reg_bit(uint32_t reg_offset, uint32_t bit)
-{
-	uint32_t reg = PRRO_LL_REG_BASE(0) + (reg_offset << 2);
-	uint32_t bit_val = ((*(volatile uint32_t*)reg) & BIT(bit)) >> bit;
-
-	return bit_val;
-}
-
 static inline void prro_ll_set_bit_aon_gpio_nonsec0(uint32_t bit, uint32_t value)
 {
 	prro_hw_t *hw = (prro_hw_t*)PRRO_LL_REG_BASE(0);

@@ -21,9 +21,16 @@
 extern "C" {
 #endif
 
+typedef enum
+{
+	TRS_STATE_DISABLED,
+	TRS_STATE_ENABLED,
+} trs_state_t;
+
+
 typedef struct
 {
-	media_trs_state_t state;
+	trs_state_t state;
 	uint8_t pause : 1;
 	uint8_t debug : 1;
 	uint32_t param;
@@ -38,9 +45,10 @@ typedef struct
 	uint8_t data[];
 } transfer_data_t;
 
+
 void transfer_event_handle(uint32_t event, uint32_t param);
-void set_transfer_state(media_trs_state_t state);
-media_trs_state_t get_transfer_state(void);
+void set_transfer_state(trs_state_t state);
+trs_state_t get_transfer_state(void);
 void transfer_init(void);
 
 

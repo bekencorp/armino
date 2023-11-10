@@ -2,10 +2,10 @@
 ENTRY(_start)
 SECTIONS
 {
-	PROVIDE (__executable_start = 0x1d0000);
-	NDS_SAG_LMA_CPU1 = 0x1d0000 ;
+	PROVIDE (__executable_start = 0x370000);
+	NDS_SAG_LMA_CPU1 = 0x370000 ;
 	CPU1_BEGIN = NDS_SAG_LMA_CPU1;
-	. = 0 + NDS_SAG_LMA_CPU1;
+	. = 0x370000;
 	. = ALIGN(ALIGNOF(.nds_vector));
 	.nds_vector 	: { KEEP(*(.nds_vector )) KEEP(*(SORT(.nds_vector.* ))) }
 	. = ALIGN(8);
@@ -96,10 +96,12 @@ SECTIONS
 		{ KEEP(*(.itcm_sec_code )) }
 	_itcm_lma_start =  LOADADDR (.itcm_sec_code);
 	_itcm_ema_start = ADDR(.itcm_sec_code);
-	_itcm_lma_end =  LOADADDR (.itcm_sec_code) + SIZEOF (.itcm_sec_code);
+	.itcm 	: AT(LOADADDR (.itcm_sec_code) + SIZEOF (.itcm_sec_code))
+		{ KEEP(*(.itcm )) }
+	_itcm_lma_end =  LOADADDR (.itcm) + SIZEOF (.itcm);
 	_itcm_ema_end = .;
 	_itcm_bss_start = .;
-	.itcm_sec_bss 	: AT(LOADADDR (.itcm_sec_code) + SIZEOF (.itcm_sec_code))
+	.itcm_sec_bss 	: AT(LOADADDR (.itcm) + SIZEOF (.itcm))
 		{ KEEP(*(.itcm_sec_bss )) }
 	_itcm_bss_end = .;
 	ITCM_SIZE = . - ITCM_BEGIN;
@@ -253,4 +255,4 @@ ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x6C00, "DTCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM1_SIZE : 0x0)<= 0xA000, "SRAM1 OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM2_SIZE : 0x0)<= 0x7000, "SRAM2 OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SWAP_SIZE : 0x0)<= 0x400, "SWAP OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? CPU1_SIZE : 0x0)<= 0x1c0000, "CPU1 OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? CPU1_SIZE : 0x0)<= 0x20000, "CPU1 OVERFLOW");

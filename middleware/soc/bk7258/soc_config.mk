@@ -1,1 +1,0 @@
-SUPPORT_DUAL_CORE := true

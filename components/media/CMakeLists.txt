@@ -13,13 +13,13 @@ if (NOT CONFIG_SLAVE_CORE)
 		utils/mlist.c
 	)
 
-if (CONFIG_DVP_CAMERA OR CONFIG_USB_UVC)
+if (CONFIG_CAMERA OR CONFIG_USB_UVC)
 	list(APPEND incs camera)
 	list(APPEND srcs
 		camera/camera_act.c
 	)
 
-if (CONFIG_DVP_CAMERA)
+if (CONFIG_CAMERA)
 		list(APPEND srcs
 		camera/dvp.c
 	)
@@ -37,7 +37,7 @@ if (CONFIG_WIFI_TRANSFER)
 	)
 endif()
 
-endif()#(CONFIG_DVP_CAMERA OR CONFIG_USB_UVC)
+endif()#(CONFIG_CAMERA OR CONFIG_USB_UVC)
 
 if (CONFIG_WIFI_TRANSFER)
 	list(APPEND srcs
@@ -54,6 +54,12 @@ endif()
 if (CONFIG_LCD)
 	list(APPEND srcs
 		lcd/lcd_act.c
+	)
+endif()
+
+if (CONFIG_LCD_QSPI)
+	list(APPEND srcs
+		lcd/lcd_qspi_act.c
 	)
 endif()
 
@@ -89,13 +95,13 @@ else()# NOT CONFIG_SLAVE_CORE
 	)
 
 
-if (CONFIG_DVP_CAMERA OR CONFIG_USB_UVC)
+if (CONFIG_CAMERA OR CONFIG_USB_UVC)
 	list(APPEND incs camera)
 	list(APPEND srcs
 		camera/camera_act.c
 	)
 
-if (CONFIG_DVP_CAMERA)
+if (CONFIG_CAMERA)
 		list(APPEND srcs
 		camera/dvp.c
 	)
@@ -113,7 +119,7 @@ if (CONFIG_AV_DEMO)
 	)
 endif()
 
-endif()#(CONFIG_DVP_CAMERA OR CONFIG_USB_UVC)
+endif()#(CONFIG_CAMERA OR CONFIG_USB_UVC)
 
 if (CONFIG_IMAGE_STORAGE)
 	list(APPEND srcs
@@ -140,6 +146,12 @@ if (CONFIG_LCD)
 	list(APPEND srcs
 		lcd/lcd_act.c
 		lcd/lcd_calc.c
+	)
+endif()
+
+if (CONFIG_LCD_QSPI)
+	list(APPEND srcs
+		lcd/lcd_qspi_act.c
 	)
 endif()
 

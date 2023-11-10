@@ -118,12 +118,6 @@ menu "Bk_Wifi"
 		default n
 
 	config COMPONENTS_STA_VSIE
-		depends on WIFI_ENABLE
 		bool "Enable Components Sta Vsie"
-		default n
-
-	config AP_STATYPE_LIMIT
-		depends on WIFI_ENABLE && COMPONENTS_STA_VSIE
-		bool "Enable Ap mode Sta Type Limit"
 		default n
 endmenu

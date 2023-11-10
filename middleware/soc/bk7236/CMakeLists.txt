@@ -67,7 +67,7 @@ list(APPEND srcs
 	"hal/sdmadc_hal_debug.c"
 )
 
-armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" REQUIRES partitions PRIV_REQUIRES tfm)
+armino_component_register(SRCS "${srcs}" INCLUDE_DIRS "${incs}" REQUIRES partitions)
 
 armino_build_get_property(sdkconfig_header SDKCONFIG_HEADER)
 armino_build_get_property(config_dir CONFIG_DIR)

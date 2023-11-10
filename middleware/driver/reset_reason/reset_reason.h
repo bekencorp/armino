@@ -57,9 +57,6 @@ extern "C" {
 
 	#define REBOOT_TAG_REQ         (0xAA55AA55)   //4 bytes
 	#define MCAUSE_CAUSE_WATCHDOG  (0x1)
-#elif (CONFIG_SOC_BK7236XX)
-	#define START_TYPE_ADDR        (SOC_AON_PMU_REG_BASE + (3 << 2))
-	#define PERSIST_MEMORY_ADDR    (0x20003FFC)
 #else
 	#define     START_TYPE_ADDR        (0x0080a080)
 	/* 1. For bk7231n/7236, persist memory lost after power on

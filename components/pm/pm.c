@@ -79,7 +79,7 @@ static void pm_rtc_wakeup_timer_cb(aon_rtc_id_t id, uint8_t *name_p, void *param
 static inline void pm_start_rtc_wakeup_timer(uint32_t sleep_ms)
 {
 	if (s_pm_state >= PM_STATE_LOW_VOLTAGE) {
-		alarm_info_t pm_rtc_timer = {"pm", sleep_ms*AON_RTC_MS_TICK_CNT, 1, pm_rtc_wakeup_timer_cb, NULL};
+		alarm_info_t pm_rtc_timer = {"pm", sleep_ms*RTC_TICKS_PER_1MS, 1, pm_rtc_wakeup_timer_cb, NULL};
 		PM_LOGV("start RTC wakeup timer: %ums\r\n", sleep_ms);
 		bk_alarm_unregister(AON_RTC_ID_1, pm_rtc_timer.name);
 		bk_alarm_register(AON_RTC_ID_1, &pm_rtc_timer);

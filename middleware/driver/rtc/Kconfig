@@ -18,16 +18,5 @@ menu "AON_RTC"
 	config AON_RTC_KEEP_TIME_SUPPORT
 		bool "Enable rtc keep time when enter deepsleep,set data on flash"
 		default n
-
-	config RTC_ANA_WAKEUP_SUPPORT
-		bool "Enable RTC wakeup system from analog channel"
-		default n
-		help
-			This is for super deep sleep
-
-	config AON_RTC_DYNAMIC_CLOCK_SUPPORT
-		bool "Enable AON RTC dynamic clock"
-		default n
-
 endmenu
 

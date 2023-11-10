@@ -134,9 +134,9 @@ typedef struct mbedtls_rsa_context
 }
 mbedtls_rsa_context;
 
-#else
-#include "modules/bk_mbedtls_alt/bk_rsa_alt.h"
-#endif
+#else  /* MBEDTLS_RSA_ALT */
+#include "rsa_alt.h"
+#endif /* MBEDTLS_RSA_ALT */
 
 /**
  * \brief          This function initializes an RSA context.

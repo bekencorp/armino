@@ -35,14 +35,14 @@ def cli():
 @click.option("-o", "--outfile", type=click.File("wb+"), default="create.bin", help="The outfile name.", show_default=True)
 def create_bin(outfile, size, fill):
     """create a new bin file from fill data."""
-    create.create_fill_img(outfile, size, fill)
+    create(outfile, size, fill)
     logging.debug(f"create success")
 # endregion
 
 @cli.command("merge_tlv")
 @click.option("-j", "--json_file", type=click.Path(exists=True, dir_okay=False),required=True, help="input a json file.")
 @click.option("-o", "--outfile", type=click.Path(exists=False, dir_okay=False), required=True, help="The outfile name.")
-@click.option("--debug/--no-debug", default=True, help="Enable debug options.")
+@click.option("--debug/--no-debug", default=False, help="Enable debug options.")
 def merge_tlv_bin(json_file, outfile, debug):
     """merge a new bin file from json file."""
     if (debug == True):
@@ -53,8 +53,6 @@ def merge_tlv_bin(json_file, outfile, debug):
 
 @cli.command("partition")
 @click.option("-j", "--partition_json", type=click.Path(exists=True, dir_okay=False),required=True, help="partition config json file.")
-@click.option("-s", "--sys_partition_json", type=click.Path(exists=True, dir_okay=False),required=True, help="system predefined partition config json file.")
-@click.option("-t", "--tools_dir", type=click.Path(exists=True, dir_okay=True),required=True, help="partition dependency tools dir.")
 @click.option("--crc/--no-crc", default=True, help="Add CRC to code.")
 @click.option("--encrypt/--no-encrypt", default=False, help="Encrypt code.")
 @click.option("--genota/--no-genota", default=False, help="Merge and generate OTA bin.")
@@ -63,9 +61,9 @@ def merge_tlv_bin(json_file, outfile, debug):
 @click.option("--genhdr/--no-genhdr", default=False, help="Generate partitions constants code.")
 @click.option("--genbl1/--no-genbl1", default=False, help="Generate BL1 configurations.")
 @click.option("--genbl2/--no-genbl2", default=False, help="Generate BL2 configurations.")
-@click.option("--debug/--no-debug", default=True, help="Enable debug option.")
+@click.option("--debug/--no-debug", default=False, help="Enable debug option.")
 
-def partition_process(partition_json, sys_partition_json, tools_dir, crc, encrypt, genota, genapp, genall, genhdr, genbl1, genbl2, debug):
+def partition_process(partition_json, crc, encrypt, genota, genapp, genall, genhdr, genbl1, genbl2, debug):
     """partitions processing."""
     gencode_only = False
     if (debug == True):
@@ -75,7 +73,17 @@ def partition_process(partition_json, sys_partition_json, tools_dir, crc, encryp
     if (genapp == False) and (genota == False):
         gencode_only = True
 
-    p = Partitions(partition_json, sys_partition_json, tools_dir, crc, encrypt, gencode_only)
+    p = Partitions(partition_json, crc, encrypt, gencode_only)
+    if (genall):
+        p.gen_all()
+
+    if (genapp):
+        logging.debug("start to generate application bin ..")
+        p.gen_app()
+
+    if (genota):
+        logging.debug("start to generate OTA bin ..")
+        p.gen_ota()
 
     if (genhdr):
         logging.debug("start to generate flash layout constants ...")
@@ -88,17 +96,6 @@ def partition_process(partition_json, sys_partition_json, tools_dir, crc, encryp
     if (genbl2):
         logging.debug("start to generate BL1 configurations ...")
         p.gen_bl2_config()
-
-    if (genall):
-        p.gen_all_bin()
-
-    if (genapp):
-        logging.debug("start to generate application bin ..")
-        p.gen_app_bin()
-
-    if (genota):
-        logging.debug("start to generate OTA bin ..")
-        p.gen_ota_bin()
 
 @cli.command("revert")
 @click.option("-i", "--infile", type=click.Path(exists=True, dir_okay=False),required=True, help="input a bin file.")

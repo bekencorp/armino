@@ -151,8 +151,7 @@ int bk_https_ota_download(const char *url)
 	    .url = url,
 	    .cert_pem = ca_crt_rsa,
 	    .event_handler = https_ota_event_cb,
-	    .buffer_size = HTTPS_INPUT_SIZE,
-	    .timeout_ms = 15000
+	    .buffer_size = HTTPS_INPUT_SIZE
 	};
 
 #ifdef CONFIG_HTTP_AB_PARTITION 
@@ -170,11 +169,6 @@ int bk_https_ota_download(const char *url)
 #endif
 
 	bk_http_client_handle_t client = bk_https_client_flash_init(config);
-	if (client == NULL) {
-		BK_LOGI(TAG, "client is NULL\r\n");
-		err = BK_FAIL;
-		return err;
-	}
 	err = bk_http_client_perform(client);
 	if(err == BK_OK){
 		BK_LOGI(TAG, "bk_http_client_perform ok\r\n");

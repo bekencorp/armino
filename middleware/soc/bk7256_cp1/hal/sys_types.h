@@ -22,6 +22,7 @@
 extern "C" {              
 #endif                      
 
+#define RTC_TICKS_PER_1MS                       (32)
 
 //int_0_31_en DIRTY define
 #define BMC32_INTERRUPT_CTRL_BIT       (1 << SYS_CPU1_INT_0_31_EN_CPU1_BMC32_INT_EN_POS)
@@ -444,6 +445,12 @@ typedef enum
     SPI_CLK_SRC_APLL,
     SPI_CLK_SRC_UNKNOW = 0xff
 } sys_spi_clk_sel_t;
+
+typedef enum
+{
+    QSPI_CLK_320M = 0,
+    QSPI_CLK_480M,
+} sys_qspi_clk_src_t;
 
 typedef enum
 {

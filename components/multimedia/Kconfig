@@ -21,10 +21,6 @@ menu "Media"
 		depends on MEDIA
 		bool "Enable Wifi Transfer"
 		default n
-	config USB_TRANSFER
-		depends on MEDIA
-		bool "Enable usb Transfer"
-		default n
 	config LVGL
 		depends on LCD
 		bool "Enable Lvgl"
@@ -66,14 +62,10 @@ menu "Media"
 		help
 			enable image save and read image
 	config JPEG_YUV_MIX
-		depends on DVP_CAMERA
+		depends on CAMERA
 		bool "enable jpeg module for jpeg and yuv mix mode"
 		default n
 		help
 			enable jpeg work method: encode and yuv by turns
-	config EXTENTED_PSRAM_LAYOUT
-		bool "Externally controlling the PSRAM range of the framebuffer"
-		default n
-		help
-			extern external fb_layout variable
+
 endmenu

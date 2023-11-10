@@ -315,9 +315,9 @@ void lcd_driver_rotate(void *src, void *dst, uint8_t rotate)
 			break;
 	}
 
-#if  CONFIG_CACHE_ENABLE
-	flush_dcache(src_frame_temp, decoder_frame->length);
-	flush_dcache(dst_frame_temp, rotate_frame->length);
+#if CONFIG_ARCH_RISCV && CONFIG_CACHE_ENABLE
+	flush_dcache(src_frame_temp, JPEG_DEC_FRAME_SIZE);
+	flush_dcache(dst_frame_temp, JPEG_DEC_FRAME_SIZE);
 #endif
 
 	//LOGI("width:-%d-%d, height:%d-%d\r\n", src_width, rotate_frame->height, src_height, rotate_frame->width);

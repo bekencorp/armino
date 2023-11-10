@@ -797,12 +797,6 @@ static uint8_t uvc_h264_header[H264_PAYLOAD_HEADER_LENGTH] = {
 
 #else
 
-#define COMMON_VIDEO_PAYLOAD_HEADER_LENGTH    0x02
-static uint8_t uvc_common_header[COMMON_VIDEO_PAYLOAD_HEADER_LENGTH] = {
-    0x02,
-    0x81,
-};
-
 #define H264_PAYLOAD_HEADER_LENGTH    0x02
 static uint8_t uvc_h264_header[H264_PAYLOAD_HEADER_LENGTH] = {
     0x02,
@@ -855,23 +849,23 @@ uint32_t usbd_video_h264_payload_fill(uint8_t *input, uint32_t input_len, uint8_
     return packets;
 }
 
-int usbd_video_common_frame_payload_fill(uint8_t *input, uint32_t input_len, uint8_t *output, uint32_t *out_len, bool is_endof_frame)
+int usbd_video_h264_frame_payload_fill(uint8_t *input, uint32_t input_len, uint8_t *output, uint32_t *out_len, bool is_endof_frame)
 {
     const uint32_t max_payload_transfer_size = usbd_video_cfg.probe.dwMaxPayloadTransferSize;
 
     if (input_len >= max_payload_transfer_size) {
-        os_printf("usbd_video__frame_payload_fill failed, input len:%d\r\n", input_len);
+        os_printf("usbd_video_h264_frame_payload_fill failed, input len:%d\r\n", input_len);
         return -1;
     }
 
-    for (size_t i = 0; i < COMMON_VIDEO_PAYLOAD_HEADER_LENGTH; i++) {
-        output[i] = uvc_common_header[i];
+    for (size_t i = 0; i < H264_PAYLOAD_HEADER_LENGTH; i++) {
+        output[i] = uvc_h264_header[i];
     }
-    memcpy(&output[COMMON_VIDEO_PAYLOAD_HEADER_LENGTH], input, input_len);
+    memcpy(&output[H264_PAYLOAD_HEADER_LENGTH], input, input_len);
     if (is_endof_frame) {
         output[1] |= (1 << 1);
     }
-    *out_len = (input_len + COMMON_VIDEO_PAYLOAD_HEADER_LENGTH);
+    *out_len = (input_len + H264_PAYLOAD_HEADER_LENGTH);
     return 0;
 }
 
@@ -880,14 +874,14 @@ uint32_t usbd_video_get_max_payload_transfer_size(void)
     return usbd_video_cfg.probe.dwMaxPayloadTransferSize;
 }
 
-uint32_t usbd_video_common_get_payload_header_length(void)
+uint32_t usbd_video_h264_get_payload_header_length(void)
 {
-    return COMMON_VIDEO_PAYLOAD_HEADER_LENGTH;
+    return H264_PAYLOAD_HEADER_LENGTH;
 }
 
-void usbd_video_common_update_header_with_new_frame(void)
+void usbd_video_h264_update_header_with_new_frame(void)
 {
-    uvc_common_header[1] ^= 1;
+    uvc_h264_header[1] ^= 1;
 }
 
 

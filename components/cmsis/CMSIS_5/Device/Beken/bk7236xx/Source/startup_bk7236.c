@@ -26,8 +26,6 @@
 #include "driver/uart.h"
 #include "wdt_driver.h"
 #include "bk_pm_internal_api.h"
-#include <modules/pm.h>
-#include <driver/pwr_clk.h>
 #if CONFIG_CM_BACKTRACE
 #include "cm_backtrace.h"
 #endif
@@ -35,8 +33,6 @@
 #if CONFIG_CACHE_ENABLE
 #include "cache.h"
 #endif
-
-#include "stack_base.h"
 
 #define TAG "arch"
 
@@ -413,9 +409,7 @@ __NO_RETURN void Reset_Handler(void)
   close_wdt();
   __set_MSPLIM((uint32_t)(&__STACK_LIMIT));
   SystemInit();                             /* CMSIS System Initialization */
-  #if !CONFIG_SLAVE_CORE
   sys_drv_early_init();
-  #endif
   __PROGRAM_START();                        /* Enter PreMain (C library entry point) */
 }
 
@@ -426,19 +420,9 @@ void _start(void)
 #endif
 
   cm_backtrace_init(FIREWARE_NAME, HARDWARE_VERSION, SOFTWARE_VERSION);
-
-#if CONFIG_RESET_REASON
-  extern void bk_misc_resume_reset_reason();
-  bk_misc_resume_reset_reason();
-#endif
   #if !CONFIG_PM
   /*power manager init*/
   pm_hardware_init();
-  #if !CONFIG_SLAVE_CORE
-  bk_pm_cp1_auto_power_down_state_set(PM_CP1_AUTO_CTRL_DISABLE);
-  bk_pm_mem_auto_power_down_state_set(PM_MEM_AUTO_CTRL_DISABLE);
-  #endif
-  //bk_pm_mailbox_init();
   #endif
   entry_main();
   while(1) {BK_LOGW(TAG, "@\r\n");};
@@ -451,51 +435,12 @@ void _start(void)
   #pragma clang diagnostic ignored "-Wmissing-noreturn"
 #endif
 
-
-///TODO:
-///1. Save to stack is better
-///2. Some regs already saved in stack
-__STATIC_FORCEINLINE void store_cpu_regs(uint32_t mcause, SAVED_CONTEXT *regs) {
-    regs->r0 = __get_R0();
-    regs->r1 = __get_R1();
-    regs->r2 = __get_R2();
-    regs->r3 = __get_R3();
-    regs->r4 = __get_R4();
-    regs->r5 = __get_R5();
-    regs->r6 = __get_R6();
-    regs->r7 = __get_R7();
-    regs->r8 = __get_R8();
-    regs->r9 = __get_R9();
-    regs->r10 = __get_R10();
-    regs->r11 = __get_R11();
-    regs->r12 = __get_R12();
-    regs->sp = __get_SP();
-    regs->lr = __get_LR();
-    regs->pc = __get_PC();
-
-    regs->xpsr = __get_xPSR();
-    regs->msp = __get_MSP();
-    regs->psp = __get_PSP();
-
-    regs->primask = __get_PRIMASK();
-    regs->basepri = __get_BASEPRI();
-    regs->faultmask = __get_FAULTMASK();
-
-    regs->control = __get_CONTROL();
-    regs->fpscr = __get_FPSCR();
-}
-
-
-__STATIC_FORCEINLINE void dump_system_info(uint32_t mcause) {
-    SAVED_CONTEXT regs = {0};
-    store_cpu_regs(mcause, &regs);
-    bk_set_printf_sync(true);
-    arch_dump_cpu_registers(mcause, &regs);
-
+static inline void dump_system_info(void) {
 #if CONFIG_CM_BACKTRACE
     uint32_t lr = __get_LR();
     uint32_t sp = __get_MSP();
 
+    bk_set_printf_sync(true);
     cm_backtrace_fault(lr, sp);
 #endif
 
@@ -507,18 +452,7 @@ __STATIC_FORCEINLINE void dump_system_info(uint32_t mcause) {
 }
 
 void bk_system_dump(void) {
-    SAVED_CONTEXT regs = {0};
-    store_cpu_regs(ECAUSE_ASSERT, &regs);
-    bk_set_printf_sync(true);
-    arch_dump_cpu_registers(ECAUSE_ASSERT, &regs);
-
-    user_except_handler();
-
-#if CONFIG_SLAVE_CORE
-    bk_set_jtag_mode(1, 0);  //setjtagmode cpu1 group1
-#else
-    bk_set_jtag_mode(0, 0);  //setjtagmode cpu0 group1
-#endif
+    dump_system_info();
 }
 
 /*----------------------------------------------------------------------------
@@ -526,7 +460,7 @@ void bk_system_dump(void) {
  *----------------------------------------------------------------------------*/
 void HardFault_Handler(void)
 {
-  dump_system_info(ECAUSE_HARD_FAULT);
+  dump_system_info();
 
   BK_LOGW(TAG, "HardFault_Handler\r\n");
   while(1);
@@ -534,7 +468,7 @@ void HardFault_Handler(void)
 
 void NMI_Handler(void)
 {
-  dump_system_info(ECAUSE_NMI);
+  dump_system_info();
 
   BK_LOGW(TAG, "NMI_Handler\r\n");
 
@@ -551,7 +485,7 @@ void NMI_Handler(void)
  *----------------------------------------------------------------------------*/
 void Default_Handler(void)
 {
-  dump_system_info(ECAUSE_UNKNOWN);
+  dump_system_info();
   BK_LOGW(TAG, "Default_Handler\r\n");
   while(1);
 }

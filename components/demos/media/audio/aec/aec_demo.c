@@ -61,7 +61,7 @@ void cli_aec_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char *
 		return;
 	}
 
-	aec_context_size = aec_size(1000);
+	aec_context_size = aec_size();
 	os_printf("sizeof(AECContext) = %d\n", aec_context_size);
 
 	//初始化

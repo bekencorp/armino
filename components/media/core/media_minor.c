@@ -216,6 +216,11 @@ bk_err_t media_minor_init(void)
 
 	lcd_calc_init();
 
+#if (CONFIG_LCD_QSPI)
+	void lcd_qspi_slave_init(void);
+	lcd_qspi_slave_init();
+#endif
+
 #ifdef CONFIG_LVGL
 	void lv_draw_sw_slave_init(void);
 	lv_draw_sw_slave_init();

@@ -4,8 +4,7 @@
 #endif
 
 uint8_t atcmd_updated = 0;
-
-#if CONFIG_BLE && (!CONFIG_BTDM_CONTROLLER_ONLY)
+//#if (CONFIG_BLE_5_X || CONFIG_BTDM_5_2)
 const at_command_t *lookup_ble_at_command(char *str1)
 {
     uint8_t type = bk_ble_get_controller_stack_type();
@@ -31,9 +30,8 @@ const at_command_t *lookup_ble_at_command(char *str1)
     }
     return NULL;
 }
-#endif
 
-#if CONFIG_BT && (!CONFIG_BTDM_CONTROLLER_ONLY)
+#if CONFIG_BT
 const at_command_t *lookup_bt_at_command(char *str1)
 {
     uint8_t type = bk_bt_get_controller_stack_type();

@@ -1,0 +1,18 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2022, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+#-------------------------------------------------------------------------------
+
+
+########{{utilities.donotedit_warning}}########
+
+set(CONFIG_TFM_CONNECTION_BASED_SERVICE_API {{config_impl['CONFIG_TFM_CONNECTION_BASED_SERVICE_API']}} PARENT_SCOPE)
+
+set(CONFIG_TFM_PSA_API_SFN_CALL             {{config_impl['CONFIG_TFM_PSA_API_SFN_CALL']}}             PARENT_SCOPE)
+set(CONFIG_TFM_PSA_API_CROSS_CALL           {{config_impl['CONFIG_TFM_PSA_API_CROSS_CALL']}}           PARENT_SCOPE)
+set(CONFIG_TFM_PSA_API_SUPERVISOR_CALL      {{config_impl['CONFIG_TFM_PSA_API_SUPERVISOR_CALL']}}      PARENT_SCOPE)
+
+set(CONFIG_TFM_FLIH_API     {{config_impl['CONFIG_TFM_FLIH_API']}}    PARENT_SCOPE)
+set(CONFIG_TFM_SLIH_API     {{config_impl['CONFIG_TFM_SLIH_API']}}    PARENT_SCOPE)

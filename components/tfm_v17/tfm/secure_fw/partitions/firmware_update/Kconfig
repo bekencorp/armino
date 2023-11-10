@@ -1,0 +1,28 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2022, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+#-------------------------------------------------------------------------------
+
+menu "FWU component configs"
+    depends on TFM_PARTITION_FIRMWARE_UPDATE
+
+config PSA_FWU_MAX_BLOCK_SIZE
+    int "Maximum permitted block size(bytes)"
+    default 1024
+    help
+      The maximum permitted size for block in psa_fwu_write, in bytes.
+
+config TFM_FWU_BUF_SIZE
+    int "Size of the FWU internal data transfer buffer"
+    default PSA_FWU_MAX_BLOCK_SIZE
+    help
+      Size of the FWU internal data transfer buffer
+      (defaults to PSA_FWU_MAX_BLOCK_SIZE if not set)
+
+config FWU_STACK_SIZE
+    hex "Stack size"
+    default 0x600
+
+endmenu

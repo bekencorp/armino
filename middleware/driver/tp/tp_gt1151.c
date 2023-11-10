@@ -472,7 +472,7 @@ int gt1151_read_tp_info(const tp_i2c_callback_t *cb, uint8_t max_num, uint8_t *b
 		return BK_FAIL;
 	}
 
-	if ( (0 == max_num) || (max_num > GT1151_POINT_INFO_NUM) )
+	if( (0 == max_num) || (max_num > GT1151_POINT_INFO_NUM) )
 	{
 		LOGE("%s, max_num %d is out range!\r\n", __func__, max_num);
 		return BK_FAIL;
@@ -537,7 +537,7 @@ const tp_sensor_config_t tp_sensor_gt1151 =
 	.def_refresh_rate = 10,
 	.def_tp_num = 5,
 	// capability config
-	.id = TP_ID_GT1151,
+	.id = TP_ID_GT911,
 	.address = (GT1151_WRITE_ADDRESS >> 1),
 	.detect = gt1151_detect,
 	.init = gt1151_init,

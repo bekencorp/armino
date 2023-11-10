@@ -22,10 +22,13 @@
 
 #include "region_defs.h"
 
+#define SPE_IRAM_SIZE  (128)
+
 MEMORY
 {
 	FLASH    (rx)  : ORIGIN = S_CODE_START, LENGTH = S_CODE_SIZE
-	RAM      (rwx) : ORIGIN = S_DATA_START, LENGTH = S_DATA_SIZE
+	IRAM     (rwx) : ORIGIN = S_DATA_START, LENGTH = SPE_IRAM_SIZE
+	RAM      (rwx) : ORIGIN = S_DATA_START+ SPE_IRAM_SIZE, LENGTH = S_DATA_SIZE - SPE_IRAM_SIZE
 #if defined(S_CODE_SRAM_ALIAS_BASE)
 	CODE_RAM (rwx) : ORIGIN = S_CODE_SRAM_ALIAS_BASE, LENGTH = TOTAL_CODE_SRAM_SIZE
 #endif
@@ -72,6 +75,16 @@ SECTIONS
     Image$$VENEER_ALIGN$$Limit = ADDR(.gnu.sgstubs) + SIZEOF(.gnu.sgstubs);
 #endif
 
+    .iram :
+    {
+        . = ALIGN(4);
+        PROVIDE(__iram_text = LOADADDR(.iram));
+        __iram_start__ = .;
+        *(.iram)
+        . = ALIGN(4);
+        __iram_end__ = .;
+    } > IRAM AT > FLASH
+
     .copy.table : ALIGN(4)
     {
         __copy_table_start__ = .;
@@ -92,6 +105,10 @@ SECTIONS
         LONG (LOADADDR(.TFM_APP_ROT_LINKER_DATA))
         LONG (ADDR(.TFM_APP_ROT_LINKER_DATA))
         LONG (SIZEOF(.TFM_APP_ROT_LINKER_DATA))
+
+        LONG (__iram_text)
+        LONG (__iram_start__)
+        LONG ((__iram_end__ - __iram_start__))
 
 #if defined (S_RAM_CODE_START)
         LONG (LOADADDR(.TFM_RAM_CODE))
@@ -223,7 +240,7 @@ SECTIONS
     /**** Base address of secure data area */
     .tfm_secure_data_start :
     {
-        . = ABSOLUTE(S_DATA_START) ;
+        . = ABSOLUTE(S_DATA_START + SPE_IRAM_SIZE) ;
     } > RAM
 
     /*
@@ -486,7 +503,6 @@ SECTIONS
 #endif
     {
         *(.data*)
-        *(.iram)
 
         . = ALIGN(4);
         /* preinit data */

@@ -192,7 +192,7 @@ CONFIG_BLE_INIT_NUM=0
 CONFIG_BLE_CONN_NUM=1
 # end of BLE 5.x
 
-# CONFIG_DVP_CAMERA is not set
+# CONFIG_CAMERA is not set
 
 #
 # Driver

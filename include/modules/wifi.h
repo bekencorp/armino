@@ -461,20 +461,6 @@ bk_err_t bk_wifi_ap_add_vendor_ie(void *buf, uint8_t len);
 bk_err_t bk_wifi_ap_del_vendor_ie(void);
 
 /**
- * @brief     Update softap's Hidden Ssid Capaility when softap is running.
- *
- * @attention If you want to update hidden ssid capability when softap starts, just call bk_wifi_ap_update_hidden_cap().
- *
- * @param     flag   set true for hidden ssid
- *
- * @return
- *
- *    - BK_OK: succeed
- *    - others: other errors
- */
-bk_err_t bk_wifi_ap_update_hidden_cap(bool flag);
-
-/**
  * @brief     Start the monitor
  *
  * @attention 1. When monitor mode is enabled, the scan will not work and

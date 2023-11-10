@@ -32,17 +32,7 @@
 #include "sdkconfig.h"
 
 /* print line, must config by user */
-#if CONFIG_SHELL_ASYNCLOG
-#define cmb_println(format, ... )           shell_assert_out(true, (char *)format, ##__VA_ARGS__);shell_assert_out(true, "\r\n");
-
-#else // #if CONFIG_SHELL_ASYNCLOG
-
-#define cmb_println(...)                    os_printf(__VA_ARGS__);os_printf("\r\n")
-
-#endif // #if CONFIG_SHELL_ASYNCLOG
-
-
-
+#define cmb_println(...)               os_printf(__VA_ARGS__);os_printf("\r\n")
 
 #if CONFIG_NON_OS
 /* enable bare metal (no OS) platform */

@@ -62,17 +62,12 @@ menu "LCD"
 		depends on LCD
 		bool "Enable LCD_ST7701S API"
 		default n
-   
+
 	config LCD_ST7701S_LY
 		depends on LCD
 		bool "Enable LCD_ST7701S API"
 		default n
-   
-	config LCD_ST7789V
-		depends on LCD
-		bool "Enable LCD_ST7789V API"
-		default n
-   
+
 	config LCD_QSPI
 		bool "Enable LCD QSPI"
 		default n
@@ -85,6 +80,24 @@ menu "LCD"
 	config LCD_QSPI_ST77903
 		depends on LCD_QSPI
 		bool "Enable LCD_QSPI_ST77903 API"
+		default n
+
+	config LCD_QSPI_ST77903_SAT61478M
+		depends on LCD_QSPI
+		bool "Enable LCD_QSPI_ST77903_SAT61478M API"
+		default n
+
+	config LCD_QSPI_PIXEL_DEPTH_BYTE
+		depends on LCD_QSPI
+		int "Set LCD QSPI Pixel Depth Byte"
+		default 3
+		help
+			2 - RGB565
+			3 - RGB888
+
+	config LCD_QSPI_CUSTOM
+		depends on LCD_QSPI
+		bool "Enable LCD_QSPI_CUSTOM API"
 		default n
 
 	config LCD_POWER_GPIO_CTRL

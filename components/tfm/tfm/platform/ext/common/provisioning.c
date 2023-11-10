@@ -254,7 +254,6 @@ enum tfm_plat_err_t tfm_plat_provisioning_perform(void)
 
     SPMLOG_INFMSG("[INF] Beginning TF-M provisioning\r\n");
 
-
 #ifdef TFM_DUMMY_PROVISIONING
     SPMLOG_ERRMSG("[WRN]\033[1;31m ");
     SPMLOG_ERRMSG("TFM_DUMMY_PROVISIONING is not suitable for production! ");

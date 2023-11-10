@@ -60,27 +60,3 @@ psa_status_t psa_system_clock_set(uint32_t module_id, uint32_t clk_src, uint32_t
 
     return status;
 }
-
-psa_status_t psa_system_core_set(uint32_t system_operation_id)
-{
-    psa_status_t status;
-    psa_handle_t handle;
-
-    psa_invec in_vec[] = {
-        { .base = &system_operation_id, .len = sizeof(system_operation_id) },
-    };
-
-    handle = psa_connect(TFM_SYSTEM_CORE_SET_SID, TFM_SYSTEM_CORE_SET_VERSION);
-    if (!PSA_HANDLE_IS_VALID(handle)) {
-        return PSA_ERROR_GENERIC_ERROR;
-    }
-
-    status = psa_call(handle, PSA_IPC_CALL, in_vec, IOVEC_LEN(in_vec), NULL, 0);
-
-    psa_close(handle);
-    if (status == (psa_status_t)TFM_ERROR_INVALID_PARAMETER) {
-        return PSA_ERROR_INVALID_ARGUMENT;
-    }
-
-    return status;
-}

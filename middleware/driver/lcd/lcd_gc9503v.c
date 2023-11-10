@@ -37,9 +37,9 @@ static const lcd_rgb_t lcd_rgb =
 static void lcd_gc9503v_config(void)
 {
 	bk_gpio_set_output_low(LCD_SPI_RST);
-	rtos_delay_milliseconds(15);
+	delay_ms(15);
 	bk_gpio_set_output_high(LCD_SPI_RST);
-	rtos_delay_milliseconds(10);
+	delay_ms(10);
 
 	lcd_spi_write_cmd(0xF0);
 	lcd_spi_write_data(0x55);
@@ -629,7 +629,7 @@ static void lcd_gc9503v_config(void)
 	lcd_spi_write_data(0x55);
 
 	lcd_spi_write_cmd(0x11);
-	rtos_delay_milliseconds(10);
+	delay_ms(10);
 	lcd_spi_write_cmd(0x29);
 	//delay_ms(10);
 }

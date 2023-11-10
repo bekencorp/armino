@@ -1,8 +1,7 @@
-#include "os/os.h"
 #include "bk_fdtable.h"
 #include "bk_filesystem.h"
 
-#define MAX_BK_FILE_NUMBER CONFIG_VFS_MAX_FD_NUM
+#define MAX_BK_FILE_NUMBER 20
 
 static struct bk_file files[MAX_BK_FILE_NUMBER];
 
@@ -13,9 +12,7 @@ int bk_fdtable_init(void) {
 	for (i = 0; i < MAX_BK_FILE_NUMBER; i++) {
 		files[i].magic = 0;
 	}
-
-	files[0].magic = BK_FILE_MAGIC;   //modify xhh, let fd don't return 0
-
+	
 	return 0;
 }
 

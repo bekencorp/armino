@@ -386,7 +386,6 @@ static inline void dma_ll_set_src_sec_attr(dma_hw_t *hw, dma_id_t id, uint32_t a
 static inline void dma_ll_flush_src_buffer(dma_hw_t *hw, dma_id_t id)
 {
 	hw->config_group[id].status.flush_src_buff = 1;
-	BK_WHILE(hw->config_group[id].status.flush_src_buff);
 }
 
 #ifdef __cplusplus

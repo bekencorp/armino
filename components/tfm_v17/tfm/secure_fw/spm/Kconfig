@@ -1,0 +1,21 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2022, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+#-------------------------------------------------------------------------------
+
+menu "TF-M SPM component configs"
+
+config CONFIG_TFM_CONN_HANDLE_MAX_NUM
+    int "Maximal number of handling secure services"
+    default 8
+    help
+      The maximal number of secure services that are connected or requested at
+      the same time
+
+config CONFIG_TFM_DOORBELL_API
+    bool "Enable the doorbell APIs"
+    depends on TFM_SPM_BACKEND_IPC
+    default y
+endmenu

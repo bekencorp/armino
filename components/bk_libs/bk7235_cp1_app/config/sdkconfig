@@ -8,18 +8,11 @@
 #
 # CONFIG_SOC_BK7231N is not set
 # CONFIG_SOC_BK7236 is not set
-# CONFIG_SOC_BK7236_CP1 is not set
 # CONFIG_SOC_BK7258 is not set
-# CONFIG_SOC_BK7258_CP1 is not set
 # CONFIG_SOC_BK7256 is not set
 # CONFIG_SOC_BK7256_CP1 is not set
 CONFIG_SOC_BK7235=y
-# CONFIG_SOC_BK7235_CP1 is not set
-# CONFIG_SOC_BK7235M is not set
-# CONFIG_SYS_CPU0 is not set
-CONFIG_SYS_CPU1=y
-# CONFIG_SYS_CPU2 is not set
-CONFIG_CPU_CNT=1
+# CONFIG_SOC_BK7237 is not set
 CONFIG_SOC_STR="bk7235_cp1"
 CONFIG_SOC_ARCH="riscv"
 CONFIG_SOC_BK7256XX=y
@@ -39,7 +32,6 @@ CONFIG_SOC_BK7256XX=y
 #
 CONFIG_TOOLCHAIN_PATH="/opt/risc-v/nds32le-elf-mculib-v5f/bin"
 CONFIG_TOOLCHAIN_PREFIX="riscv32-elf-"
-CONFIG_OBJDUMP=y
 # end of Compile/Build
 
 #
@@ -232,8 +224,6 @@ CONFIG_KFIFO_SIZE=128
 # CONFIG_UART_STATIS is not set
 # CONFIG_UART_LOW_VOLTAGE_SUPPORT is not set
 # CONFIG_UART_ERR_INTERRUPT is not set
-# CONFIG_UART_RX_DMA is not set
-CONFIG_UART_RX_DMA_KFIFO_SIZE=512
 # end of UART
 
 #
@@ -303,8 +293,6 @@ CONFIG_QSPI_STATIS=y
 # CONFIG_AON_RTC_TEST is not set
 # CONFIG_AON_RTC_DEBUG is not set
 # CONFIG_AON_RTC_KEEP_TIME_SUPPORT is not set
-# CONFIG_RTC_ANA_WAKEUP_SUPPORT is not set
-# CONFIG_AON_RTC_DYNAMIC_CLOCK_SUPPORT is not set
 # end of AON_RTC
 
 #
@@ -316,7 +304,6 @@ CONFIG_CONFIG_GPIO_WAKEUP_ID=22
 CONFIG_CONFIG_GPIO_WAKEUP_INT_TYPE=0
 # CONFIG_GPIO_SIMULATE_UART_WRITE is not set
 # CONFIG_GPIO_DEFAULT_SET_SUPPORT is not set
-# CONFIG_GPIO_ANA_WAKEUP_SUPPORT is not set
 # end of GPIO
 
 #
@@ -361,8 +348,6 @@ CONFIG_JPEGENC_HW=y
 # PSRAM
 #
 CONFIG_PSRAM=y
-CONFIG_PSRAM_APM=y
-# CONFIG_PSRAM_WBD955 is not set
 # CONFIG_PSRAM_AS_SYS_MEMORY is not set
 # end of PSRAM
 
@@ -437,10 +422,6 @@ CONFIG_AUDIO_RISCV_IP_V1_0=y
 # PWM
 #
 # CONFIG_PWM is not set
-CONFIG_PWM_V0P0=y
-# CONFIG_PWM_V1PX is not set
-CONFIG_PWM_DEVICE0_SUPPORT=y
-CONFIG_PWM_DEVICE1_SUPPORT=y
 # CONFIG_PWM_HAS_TWO_INT is not set
 # end of PWM
 
@@ -495,13 +476,10 @@ CONFIG_TIMER_SUPPORT_ID_BITS=0
 # end of SDMADC
 
 #
-# PWR_CLK
+# EXTERN_32K
 #
 # CONFIG_EXTERN_32K is not set
-# CONFIG_MEM_AUTO_POWER_DISABLE is not set
-# CONFIG_CP1_AUTO_POWER_DISABLE is not set
-# CONFIG_CPU_DEFAULT_FREQ_60M is not set
-# end of PWR_CLK
+# end of EXTERN_32K
 
 #
 # VAULT
@@ -551,11 +529,7 @@ CONFIG_TIMER_SUPPORT_ID_BITS=0
 #
 # CAMERA
 #
-CONFIG_DVP_CAMERA=y
-CONFIG_DVP_CAMERA_I2C_ID=1
 # CONFIG_CAMERA_POWER_GPIO_CTRL is not set
-# CONFIG_ENCODE_BUF_DYNAMIC is not set
-# CONFIG_DVP_PCLK_72M is not set
 # end of CAMERA
 
 #
@@ -622,7 +596,6 @@ CONFIG_MEMDUMP_ALL=y
 #
 # CONFIG_BT is not set
 # CONFIG_BLE is not set
-# CONFIG_BTDM_CONTROLLER_ONLY is not set
 # end of Bk_ble
 
 #
@@ -658,7 +631,6 @@ CONFIG_SHELL_ASYNCLOG=y
 # CONFIG_TOUCH_TEST is not set
 CONFIG_SBC_TEST=y
 # CONFIG_PSRAM_TEST is not set
-# CONFIG_DVP_CAMERA_TEST is not set
 # CONFIG_SPE_TEST is not set
 # CONFIG_MPC_TEST is not set
 # CONFIG_PRRO_TEST is not set
@@ -666,8 +638,6 @@ CONFIG_SBC_TEST=y
 # CONFIG_AON_PMU_TEST is not set
 # CONFIG_SDMADC_TEST is not set
 # CONFIG_PM_TEST is not set
-# CONFIG_VIDEO_TRANSFER_DEMO is not set
-# CONFIG_PUF_TEST is not set
 # CONFIG_ICU is not set
 # CONFIG_SECURITYIP is not set
 # CONFIG_KEYVALUE is not set
@@ -703,7 +673,6 @@ CONFIG_FREERTOS=y
 # CONFIG_FREERTOS_V9 is not set
 CONFIG_FREERTOS_V10=y
 # CONFIG_FREERTOS_POSIX is not set
-# CONFIG_FREERTOS_TRACE is not set
 CONFIG_FREERTOS_USE_TICKLESS_IDLE=2
 # end of Modify FreeRTOS Config
 
@@ -812,7 +781,6 @@ CONFIG_SM_FAST_CONNECT=y
 # CONFIG_BK_NO_CHECK_RX_PN is not set
 # CONFIG_BK_INTEROPER is not set
 # CONFIG_RX_DMA_ASYNC is not set
-# CONFIG_MAX_STA_IN_SAP is not set
 
 #
 # ate_test
@@ -854,7 +822,6 @@ CONFIG_SM_FAST_CONNECT=y
 # CONFIG_POWER_SAVE is not set
 # CONFIG_MCU_PS is not set
 # CONFIG_DEEP_PS is not set
-# CONFIG_PM_SUPER_DEEP_SLEEP is not set
 # CONFIG_AP_IDLE is not set
 # CONFIG_FAKE_RTC_PS is not set
 # CONFIG_TICK_CALI is not set
@@ -951,12 +918,6 @@ CONFIG_DSP_SRC_ADD=0x130000
 # end of modules::video_code::lcd_font
 
 #
-# modules::video_code::libjpeg
-#
-# CONFIG_JPEGDEC_LIBJPEG is not set
-# end of modules::video_code::libjpeg
-
-#
 # modules::video_code::qrcodegen
 #
 # CONFIG_VIDEO_QR_CODE_GEN is not set
@@ -967,12 +928,6 @@ CONFIG_DSP_SRC_ADD=0x130000
 #
 CONFIG_VIDEO_SCALE=y
 # end of modules::video_code::scale
-
-#
-# modules::video_code::tjpg
-#
-# CONFIG_JPEGDEC_TJPG is not set
-# end of modules::video_code::tjpg
 
 #
 # modules::wfa_ca
@@ -1001,9 +956,5 @@ CONFIG_WPA_AUTH_TIMEOUT=2
 #
 # end of modules::wpa_supplicant-2.9
 # end of Properties Configuration
-
-#
-# Extra Modules Configuration
-#
 # end of Modules Configuration
 # end of ARMINO Configuration

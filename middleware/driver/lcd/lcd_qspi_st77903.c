@@ -15,7 +15,6 @@
 
 #include <common/bk_include.h>
 #include <driver/lcd_qspi_types.h>
-#include "bk_misc.h"
 
 
 #define LCD_QSPI_ST77903_REGISTER_WRITE_COMMAND		0xDE
@@ -26,10 +25,6 @@
 #define LCD_QSPI_ST77903_HFP	(4)
 #define LCD_QSPI_ST77903_HBP	(4)
 
-
-#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
-extern beken_semaphore_t lcd_qspi_semaphore;
-#endif
 
 static const lcd_qspi_init_cmd_t st77903_init_cmds[] = {
 	{0xf0, {0xc3}, 1},
@@ -48,7 +43,11 @@ static const lcd_qspi_init_cmd_t st77903_init_cmds[] = {
     {0xe6, {0xb2, 0xf5, 0xbd, 0x24, 0x22, 0x25, 0x10, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22}, 14},
     {0xec, {0x40, 0x03}, 2},
     {0x36, {0x04}, 1},
-    {0x3a, {0x07}, 1},
+#if (CONFIG_LCD_QSPI_PIXEL_DEPTH_BYTE == 2)
+	{0x3a, {0x05}, 1},	// RGB565
+#elif (CONFIG_LCD_QSPI_PIXEL_DEPTH_BYTE == 3)
+	{0x3a, {0x07}, 1},	// RGB888
+#endif
     {0xb2, {0x00}, 1},
     {0xb3, {0x01}, 1},
     {0xb4, {0x00}, 1},
@@ -66,8 +65,6 @@ static const lcd_qspi_init_cmd_t st77903_init_cmds[] = {
 	{0xff, {0x78}, 1},
     {0x29, {0x00}, 0},
     {0xff, {0x78}, 1},
-//	{0xfe, {0x00}, 0},
-//	{0xee, {0x00}, 0},
 //	{0xb0, {0xa5}, 1},
 //	{0xcc, {0x40, 0x00, 0x3f, 0x00, 0x14, 0x14, 0x20, 0x20, 0x03}, 9},
 };
@@ -82,7 +79,7 @@ const lcd_qspi_device_t lcd_qspi_device_st77903 =
 	.ppi = PPI_400X400,
 	.refresh_method = LCD_QSPI_REFRESH_BY_LINE,
 	.reg_write_cmd = LCD_QSPI_ST77903_REGISTER_WRITE_COMMAND,
-	.reg_read_cmd = LCD_QSPI_ST77903_REGISTER_READ_COMMAND,
+	.reg_read_config = {0},
 	.pixel_write_config.cmd = st77903_cmd,
 	.pixel_write_config.cmd_len = sizeof(st77903_cmd),
 	.init_cmd = st77903_init_cmds,

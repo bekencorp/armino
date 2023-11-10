@@ -95,22 +95,11 @@ typedef struct {
 typedef struct
 {
 	uvc_config_t *uvc_config;
-	void (*fb_jpeg_dec_register)(void);
-	int (*fb_jpeg_init)(media_ppi_t max_ppi);
-	int (*fb_jpeg_deinit) (void);
-	frame_buffer_t* (*fb_jpeg_malloc)(void);
-	void (*fb_jpeg_free)(frame_buffer_t* buffer);
-	void (*fb_jpeg_complete)(frame_buffer_t* buffer);
-	frame_buffer_t* (*fb_jpeg_read)(void);
-
-	int (*fb_disp_init)(media_ppi_t max_ppi);
-	frame_buffer_t* (*fb_disp_malloc)(void);
-
-	int (*fb_h264_init)(media_ppi_t max_ppi);
-	void (*fb_h264_complete)(frame_buffer_t* buffer);
-	frame_buffer_t* (*fb_h264_malloc)(void);
-	void (*fb_h264_free)(frame_buffer_t* buffer);
-
+	int (*fb_init)(media_ppi_t max_ppi);
+	int (*fb_deinit) (void);
+	void (*fb_complete)(frame_buffer_t* buffer);
+	frame_buffer_t* (*fb_malloc)(void);
+	void (*fb_free)(frame_buffer_t* buffer);
 	void (*uvc_connect_state_change_cb)(uvc_state_t state);
 } uvc_camera_config_t;
 

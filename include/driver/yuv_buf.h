@@ -42,8 +42,6 @@ bk_err_t bk_yuv_buf_enable_mclk(yuv_buf_work_mode_t work_mode);
 
 bk_err_t bk_yuv_buf_set_em_base_addr(uint32_t em_base_addr);
 
-uint32_t bk_yuv_buf_get_em_base_addr(void);
-
 bk_err_t bk_yuv_buf_register_isr(yuv_buf_isr_type_t type_id, yuv_buf_isr_t isr, void *param);
 
 bk_err_t bk_yuv_buf_unregister_isr(yuv_buf_isr_type_t type_id);

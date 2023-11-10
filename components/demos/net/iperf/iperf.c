@@ -345,9 +345,6 @@ static void iperf_udp_client(void *thread_param)
 	uint32_t tick, packet_count = 0;
 	uint32_t retry_cnt;
 	int send_size;
-#if CONFIG_SOC_BK7236XX
-	int cycle = 7;
-#endif
 
 	send_size = iperf_size > 1470 ? 1470 : iperf_size;
 	buffer = os_malloc(iperf_size);
@@ -407,11 +404,6 @@ tx_retry:
 			#if (CONFIG_TASK_WDT)
 			bk_task_wdt_feed();
 			#endif
-
-#if CONFIG_SOC_BK7236XX
-			if(packet_count % cycle ==0)
-				rtos_delay_milliseconds(1);
-#endif
 		}
 
 		closesocket(sock);

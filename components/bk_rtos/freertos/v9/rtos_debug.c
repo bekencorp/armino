@@ -81,9 +81,6 @@ void stack_thread_show(uint32_t *total_cnt, uint32_t *used_cnt)
 	*used_cnt = used;
 
 tshow_exit:
-	if (NULL != pxTaskStatusArray) {
-		os_free(pxTaskStatusArray);
-	}
 	return;
 }
 
@@ -203,9 +200,6 @@ void rtos_dump_task_runtime_stats(void)
 
 	vTaskGetRunTimeStats(buf);
 	os_printf("%s\n", buf);
-	if (NULL != buf) {
-		os_free(buf);
-	}
 #else
 	os_printf("Not supported!\n");
 #endif
@@ -226,7 +220,4 @@ void rtos_dump_task_list( char* pcWriteBuffer, int xWriteBufferLen )
 
 	vTaskList(buf);
 	os_printf("%s\n", buf);
-	if (NULL != buf) {
-		os_free(buf);
-	}
 }

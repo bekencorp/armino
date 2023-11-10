@@ -23,10 +23,17 @@
 extern "C" {
 #endif
 
+typedef enum
+{
+	STORAGE_STATE_DISABLED,
+	STORAGE_STATE_ENABLED,
+} storage_state_t;
+
+
 typedef struct
 {
-	media_storage_state_t state;
-	media_storage_state_t capture_state;
+	storage_state_t state;
+	storage_state_t capture_state;
 	frame_buffer_t *frame;
 	uint32_t param;
 } storage_info_t;
@@ -48,13 +55,12 @@ typedef enum
 {
 	STORAGE_TASK_CAPTURE,
 	STORAGE_TASK_SAVE,
-	STORAGE_TASK_SAVE_STOP,
 	STORAGE_TASK_EXIT,
 } storage_task_evt_t;
 
 bk_err_t storage_app_set_frame_name(char *name);
-media_storage_state_t get_storage_state(void);
-void set_storage_state(media_storage_state_t state);
+storage_state_t get_storage_state(void);
+void set_storage_state(storage_state_t state);
 void storage_init(void);
 void storage_frame_buffer_dump(frame_buffer_t *frame, char *name);
 bk_err_t storage_app_event_handle(media_mailbox_msg_t *msg);
@@ -62,7 +68,6 @@ bk_err_t storage_major_event_handle(media_mailbox_msg_t *msg);
 bk_err_t sdcard_read_to_mem(char *filename, uint32_t *paddr, uint32_t *total_len);
 bk_err_t storage_mem_to_sdcard(char *filename, uint8_t *paddr, uint32_t total_len);
 bk_err_t sdcard_read_filelen(char *filename);
-bk_err_t read_storage_file_to_mem_handle(media_mailbox_msg_t *msg);
 
 
 #ifdef __cplusplus

@@ -49,6 +49,7 @@
 
 #include <driver/timer.h>
 #include <driver/psram.h>
+#include "lv_vendor.h"
 
 #include "driver/flash.h"
 #include "driver/flash_partition.h"
@@ -570,7 +571,7 @@ void lcd_open_handle(param_pak_t *param)
 
 #if CONFIG_LCD_DMA2D_BLEND  || CONFIG_LCD_FONT_BLEND
 
-#if CONFIG_DVP_CAMERA
+#if CONFIG_CAMERA
 	if (bk_dvp_camera_get_device() == NULL)
 	{
 		yuv_blend_addr = (uint8_t *)LCD_BLEND_JPEGSRAM_ADDR_1;
@@ -688,7 +689,7 @@ void lcd_display_handle(param_pak_t *param)
 	{
 		goto out;
 	}
-
+	
 	camera_display_task_stop();
 	set_lcd_state(LCD_STATE_DISPLAY);
 //	rtos_delay_milliseconds(10);
@@ -704,7 +705,7 @@ void lcd_display_handle(param_pak_t *param)
 		LOGE("src_frame malloc failed\r\n");
 		goto out;
 	}
-
+	
 	jpeg_frame->length = lcd_display->img_length;
 //		extern void bk_mem_dump_ex(const char *title, unsigned char *data, uint32_t data_len);
 //		uint8_t read_ptr[10] = {0};
@@ -900,7 +901,7 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 
 	if ((g_blend_data.lcd_blend_type & LCD_BLEND_TIME) != 0)         /// start display lcd (0,0)
 	{
-#if CONFIG_DVP_CAMERA
+#if CONFIG_CAMERA
 		if (bk_dvp_camera_get_device() == NULL)
 		{
 			LOGD("lcd time blend =%s \n", g_blend_data.time_data);
@@ -997,7 +998,7 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 	}
 	if ((g_blend_data.lcd_blend_type & LCD_BLEND_DATA) != 0)   /// tart display lcd (DATA_POSTION_X,DATA_POSTION_Y)
 	{
-#if CONFIG_DVP_CAMERA
+#if CONFIG_CAMERA
 		if (bk_dvp_camera_get_device() == NULL)
 		{
 			if ((DATA_POSTION_X + DATA_LOGO_W) > g_lcd_width)
@@ -1090,15 +1091,15 @@ bk_err_t lcd_blend_handle(frame_buffer_t *frame)
 			lcd_driver_font_blend(&lcd_font_config);
 #endif
 	}
-
+	
 	if ((g_blend_data.lcd_blend_type & LCD_BLEND_VERSION) != 0) /// start display lcd (VERSION_POSTION_X,VERSION_POSTION_Y)
 	{
 		LOGD("lcd blend version =%s \n", g_blend_data.ver_data);
-#if CONFIG_DVP_CAMERA
+#if CONFIG_CAMERA
 		char half_ver_temp[10] = {0};
 		char *half_ver = half_ver_temp;
 		uint32_t x_pos = VERSION_POSTION_X;
-
+		
 		uint8_t ver_len = strlen((char*)g_blend_data.ver_data);
 		os_memcpy(half_ver, (const char *)g_blend_data.ver_data, 7);
 		for (int i = 0; i < 2; i++)
@@ -1200,20 +1201,20 @@ void lcd_close_handle(param_pak_t *param)
 	int ret = BK_OK;
 
 	LOGI("%s\n", __func__);
+   
+    if (step_sem != NULL)
+    {
+        if (rtos_set_semaphore(&step_sem))
+        {
+            LOGE("%s step_sem set failed\n", __func__);
+        }
 
-	if (step_sem != NULL)
-	{
-		if (rtos_set_semaphore(&step_sem))
-		{
-			LOGE("%s step_sem set failed\n", __func__);
-		}
-
-		if (rtos_deinit_semaphore(&step_sem))
-		{
-			LOGE("%s step_sem deinit failed\n");
-		}
-		step_sem = NULL;
-	}
+        if (rtos_deinit_semaphore(&step_sem))
+        {
+            LOGE("%s step_sem deinit failed\n");
+        }
+        step_sem = NULL;
+    }
 
 	if (LCD_STATE_DISABLED == get_lcd_state())
 	{
@@ -1501,7 +1502,7 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 						LOGE("g_blend_data.ver_data =%s\n", g_blend_data.ver_data );
 					}
 				}
-			}
+			 }
 
 			MEDIA_EVT_RETURN(param_pak, BK_OK);
 #endif
@@ -1511,12 +1512,12 @@ void lcd_event_handle(uint32_t event, uint32_t param)
 }
 
 
-media_lcd_state_t get_lcd_state(void)
+lcd_state_t get_lcd_state(void)
 {
 	return lcd_info.state;
 }
 
-void set_lcd_state(media_lcd_state_t state)
+void set_lcd_state(lcd_state_t state)
 {
 	lcd_info.state = state;
 }

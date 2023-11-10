@@ -73,7 +73,7 @@ void stack_thread_show(uint32_t *total_cnt, uint32_t *used_cnt)
 		all += (uint32_t)pxTaskItem->uxStackSize;
 		used += (uint32_t)pxTaskItem->ptrTopOfStack - (uint32_t)pxTaskItem->pxStackBase;
 
-		BK_DUMP_OUT("%-16s   %-10d   0x%-08x- 0x%-08x   %-10d   %-13d   %-11d\r\n",
+		BK_DUMP_OUT("%-16s   %-10d   0x%-08x- 0x%-08x   0x%-8x   0x%-11x   0x%-9x\r\n",
 				  pxTaskItem->pcTaskName,
 				  pxTaskItem->uxStackSize, pxTaskItem->pxStackBase,
 				  (StackType_t *)((StackType_t)pxTaskItem->pxStackBase + pxTaskItem->uxStackSize),
@@ -85,9 +85,6 @@ void stack_thread_show(uint32_t *total_cnt, uint32_t *used_cnt)
 	*used_cnt = used;
 
 tshow_exit:
-	if (NULL != pxTaskStatusArray) {
-		os_free(pxTaskStatusArray);
-	}
 	return;
 }
 
@@ -200,7 +197,7 @@ void rtos_dump_backtrace(void)
 	uint32_t int_level = rtos_disable_int();
 	
 	BK_DUMP_OUT(">>>>dump task backtrace begin.\r\n");
-	BK_DUMP_OUT("%-16s   %-21s       %-8s     %-4s %-8s  %-s\r\n",
+	BK_DUMP_OUT("%-16s   %-21s   %-8s   %-4s   %-8s   %-s\r\n",
 		"task", "stack_addr", "top", "size", "overflow", "backtrace");
 	vTaskDumpAllThreadStack();
 	rtos_dump_isr_backtrace();

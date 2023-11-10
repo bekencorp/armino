@@ -1,6 +1,0 @@
-menu "Part_table"
-	config FLASH_PARTITION_USER
-		depends on OVERRIDE_FLASH_PARTITION
-		bool "Enable flash partition user"
-		default y
-endmenu

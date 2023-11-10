@@ -105,12 +105,12 @@ typedef struct __attribute__((packed))
 #define MAGIC_HEAD 0x25dca6f0
 
 int demo_doorbell_udp_send_packet(uint8_t *data, uint32_t len);
-bk_err_t demo_doorbell_udp_init(char *type);
+bk_err_t demo_doorbell_udp_init(void);
 void demo_doorbell_udp_deinit(void);
 void demo_doorbell_disconnect_cmd_udp(void);
 
 
-bk_err_t demo_doorbell_tcp_init(char *type);
+bk_err_t demo_doorbell_tcp_init(void);
 
 bk_err_t demo_doorbell_udp_client_init(int argc, char **argv);
 void demo_doorbell_udp_client_deinit(void);

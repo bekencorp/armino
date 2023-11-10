@@ -279,16 +279,6 @@ static inline uint8_t uart_ll_read_byte(uart_hw_t *hw, uart_id_t id)
 	return hw->fifo_port.rx_fifo_data_out;
 }
 
-static inline uint8_t *uart_ll_get_write_data_addr(uart_hw_t *hw, uart_id_t id)
-{
-	return (uint8_t *)(&hw->fifo_port);
-}
-
-static inline uint8_t *uart_ll_get_read_data_addr(uart_hw_t *hw, uart_id_t id)
-{
-	return (uint8_t *)((&hw->fifo_port)+1);
-}
-
 static inline void uart_ll_reset_int_en_to_default(uart_hw_t *hw, uart_id_t id)
 {
 	hw->int_enable.v = 0;

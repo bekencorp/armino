@@ -41,11 +41,5 @@ menu "Arch::Cm33"
 			help
 				Enable DCache
 
-		config MEMDUMP_ALL
-			bool "Enable Memdump All"
-			default y
-			help
-				Dump all memory when exception happen
-
 	endmenu
 endmenu

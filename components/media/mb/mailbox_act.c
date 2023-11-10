@@ -47,9 +47,15 @@
 
 #if CONFIG_SLAVE_CORE
 #include "mailbox/mailbox_channel.h"
+#include "driver/lcd_qspi_types.h"
+
+extern bk_err_t lcd_qspi_disp_open(void);
+extern bk_err_t lcd_qspi_disp_close(void);
+extern bk_err_t lcd_qspi_display(uint32_t frame);
+
 void mailbox_cmd_handle(uint32_t event, uint32_t param)
 {
-#ifdef CONFIG_LVGL_DRAW_ON_CPU1
+#if (CONFIG_LVGL_DRAW_ON_CPU1) || (CONFIG_LCD_QSPI)
 	mb_chnl_cmd_t mb_cmd;
 #endif
 
@@ -87,6 +93,41 @@ void mailbox_cmd_handle(uint32_t event, uint32_t param)
         case EVENT_LCD_DEC_SW_CMD:
             lcd_jpeg_dec_sw(param);
             break;
+
+#if CONFIG_LCD_QSPI
+		case EVENT_LCD_QSPI_OPEN_CMD:
+			lcd_qspi_disp_open();
+
+			mb_cmd.hdr.cmd = EVENT_LCD_QSPI_OPEN_MBRSP;
+			mb_cmd.param1 = 0;
+			mb_cmd.param2 = 0;
+			mb_cmd.param3 = 0;
+
+			mb_chnl_write(MB_CHNL_LCD_QSPI, &mb_cmd);
+			break;
+
+		case EVENT_LCD_QSPI_DISP_CMD:
+			lcd_qspi_display(param);
+
+			mb_cmd.hdr.cmd = EVENT_LCD_QSPI_DISP_MBRSP;
+			mb_cmd.param1 = 0;
+			mb_cmd.param2 = 0;
+			mb_cmd.param3 = 0;
+
+			mb_chnl_write(MB_CHNL_LCD_QSPI, &mb_cmd);
+			break;
+
+		case EVENT_LCD_QSPI_CLOSE_CMD:
+			lcd_qspi_disp_close();
+
+			mb_cmd.hdr.cmd = EVENT_LCD_QSPI_CLOSE_MBRSP;
+			mb_cmd.param1 = 0;
+			mb_cmd.param2 = 0;
+			mb_cmd.param3 = 0;
+
+			mb_chnl_write(MB_CHNL_LCD_QSPI, &mb_cmd);
+			break;
+#endif
 	}
 }
 #endif

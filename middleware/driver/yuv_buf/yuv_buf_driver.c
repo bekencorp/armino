@@ -236,13 +236,6 @@ bk_err_t bk_yuv_buf_set_em_base_addr(uint32_t em_base_addr)
 	return BK_OK;
 }
 
-uint32_t bk_yuv_buf_get_em_base_addr(void)
-{
-	YUV_BUF_RETURN_ON_DRIVER_NOT_INIT();
-
-	return yuv_buf_hal_get_em_base_addr(&s_yuv_buf.hal);
-}
-
 bk_err_t bk_yuv_buf_register_isr(yuv_buf_isr_type_t type_id, yuv_buf_isr_t isr, void *param)
 {
 	uint32_t int_level = rtos_disable_int();
@@ -332,10 +325,7 @@ static void yuv_buf_isr(void)
 	}
 
 	if (yuv_buf_hal_is_fifo_full_int_triggered(hal, int_status)) {
-		YUV_BUF_LOGD("sensor fifo is full\r\n");
-		if (s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_FULL].isr_handler) {
-			s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_FULL].isr_handler(0, s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_FULL].param);
-		}
+		YUV_BUF_LOGE("sensor fifo is full\r\n");
 	}
 
 	if (yuv_buf_hal_is_enc_line_done_int_triggered(hal, int_status)) {
@@ -345,24 +335,20 @@ static void yuv_buf_isr(void)
 	}
 
 	if (yuv_buf_hal_is_sensor_resolution_err_int_triggered(hal, int_status)) {
-		YUV_BUF_LOGD("sensor's yuyv data resoltion is not right\r\n");
-		if (s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_SEN_RESL].isr_handler) {
-			s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_SEN_RESL].isr_handler(0, s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_SEN_RESL].param);
+		YUV_BUF_LOGE("sensor's yuyv data resoltion is not right\r\n");
+		if (s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_SEN_RESL_ERR].isr_handler) {
+			s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_SEN_RESL_ERR].isr_handler(0, s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_SEN_RESL_ERR].param);
 		}
 	}
 
 	if (yuv_buf_hal_is_h264_err_int_triggered(hal, int_status)) {
-		YUV_BUF_LOGD("h264 encode error\r\n");
 		if (s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_H264_ERR].isr_handler) {
 			s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_H264_ERR].isr_handler(0, s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_H264_ERR].param);
 		}
 	}
 
 	if (yuv_buf_hal_is_enc_slow_int_triggered(hal, int_status)) {
-		YUV_BUF_LOGD("jpeg code rate is slow than sensor's data rate\r\n");
-		if (s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_ENC_SLOW].isr_handler) {
-			s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_ENC_SLOW].isr_handler(0, s_yuv_buf.yuv_buf_isr_handler[YUV_BUF_ENC_SLOW].param);
-		}
+		YUV_BUF_LOGE("jpeg code rate is slow than sensor's data rate\r\n");
 	}
 }
 

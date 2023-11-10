@@ -101,7 +101,6 @@ static psa_status_t psa_attest_get_token_size(const psa_msg_t *msg)
 
 psa_status_t tfm_attestation_service_sfn(const psa_msg_t *msg)
 {
-#if CONFIG_ENABLE_WANGZHILEI_ATTEST
     switch (msg->type) {
     case TFM_ATTEST_GET_TOKEN:
         return psa_attest_get_token(msg);
@@ -110,7 +109,7 @@ psa_status_t tfm_attestation_service_sfn(const psa_msg_t *msg)
     default:
         return PSA_ERROR_NOT_SUPPORTED;
     }
-#endif
+
     return PSA_ERROR_GENERIC_ERROR;
 }
 #endif /* TFM_PSA_API */

@@ -17,8 +17,15 @@
 #include "core_star.h"
 #include "sdkconfig.h"
 
-#define  SYSTEM_CLOCK     CONFIG_XTAL_FREQ
-#define  PERIPHERAL_CLOCK CONFIG_XTAL_FREQ
+/*
+ * BK7236 has different frequencies for system core clock (20MHz) and
+ * peripherals clock (25MHz).
+ */
+#define  XTAL             (40000000UL)
+#define  PERIPHERAL_XTAL  (50000000UL)
+
+#define  SYSTEM_CLOCK     (XTAL/2)
+#define  PERIPHERAL_CLOCK (PERIPHERAL_XTAL/2)
 
 #if defined (__VTOR_PRESENT) && (__VTOR_PRESENT == 1U)
   extern uint32_t __Vectors;

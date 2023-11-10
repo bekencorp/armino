@@ -44,7 +44,6 @@ extern "C" {
 
 //common rgb and 8080 all use
 #define lcd_hal_soft_reset                 lcd_disp_ll_set_module_control_soft_reset
-#define lcd_hal_control_clk_gate           lcd_disp_ll_set_module_control_clk_gate
 
 #define lcd_hal_set_de_int_en              lcd_disp_ll_set_display_int_de_int_en
 
@@ -90,7 +89,6 @@ void lcd_hal_rgb_sync_config(uint16_t rgb_hsync_back_porch, uint16_t rgb_hsync_f
 void lcd_hal_rgb_eof_int_status_clear(void);
 void lcd_hal_rgb_sof_int_status_clear(void);
 void lcd_hal_rgb_display_sel(bool en);
-void lcd_hal_rgb_de_int_status_clear(void);
 
 //8080 cfg
 #define lcd_hal_8080_set_tik               lcd_disp_ll_set_i8080_config_tik_cnt

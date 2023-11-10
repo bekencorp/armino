@@ -96,15 +96,6 @@ bk_err_t bk_prro_set_apb_dev_privilege(uint32_t apb_dev_privilege_bits);
 bk_err_t bk_prro_set_secure(prro_dev_t dev, prro_secure_type_t secure_type);
 
 /**
- * @brief     Get peripherals secure attribute
- *
- * @param dev the peripherals
- *
- * @return the secure type
- */
-prro_secure_type_t bk_prro_get_secure(prro_dev_t dev);
-
-/**
  * @brief     Set secure attribute of all GPIOs
  *
  * @param gpio_0_31_secure_bits the secure bitmap of GPIO 0 to 31,
@@ -126,7 +117,7 @@ bk_err_t bk_prro_set_gpios_secure(uint32_t gpio_0_31_secure_bits, uint32_t gpio_
  * @param ahb_dev_secure_bits the privilege bitmap of AHB peripherals,
  *        each bit indicates a AHB peripherals, 1 means PRRO_SECURE, and 0 means PRRO_NON_SECURE.
  *        refers to the PRRO manual for bits and peripheral map.
-
+ 
  * @return
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
@@ -139,7 +130,7 @@ bk_err_t bk_prro_set_ahb_dev_secure(uint32_t ahb_dev_secure_bits);
  * @param apb_dev_secure_bits the privilege bitmap of APB peripherals,
  *        each bit indicates a APB peripherals, 1 means PRRO_SECURE, and 0 means PRRO_NON_SECURE.
  *        refers to the PRRO manual for bits and peripheral map.
-
+ 
  * @return
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
@@ -152,7 +143,7 @@ bk_err_t bk_prro_set_apb_dev_secure(uint32_t apb_dev_secure_bits);
  * @param hnonsec_dev_secure_bits the privilege bitmap of hnonsec peripherals,
  *        each bit indicates a APB peripherals, 1 means PRRO_SECURE, and 0 means PRRO_NON_SECURE.
  *        refers to the PRRO manual for bits and peripheral map.
-
+ 
  * @return
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
@@ -166,7 +157,7 @@ bk_err_t bk_prro_set_hnonsec_dev_secure(uint32_t hnonsec_dev_bits);
  * @param start the start address, the hardware comparison is triggered when
  *        CPU fetch the first instruction from address start to end
  * @param end the end address
-
+ 
  * @return
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
@@ -178,7 +169,7 @@ bk_err_t bk_prro_set_hw_cmp_condition(prro_cmp_id_t it, uint32_t start, uint32_t
  *
  * @param prro_cmp_id hardware comparison id
  * @param src the hardware comparison source value
-
+ 
  * @return
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init
@@ -190,7 +181,7 @@ bk_err_t bk_prro_set_hw_cmp_src(prro_cmp_id_t id, uint32_t src);
  *
  * @param prro_cmp_id hardware comparison id
  * @param src the hardware comparison destination value
-
+ 
  * @return
  *    - BK_OK: succeed
  *    - BK_ERR_MPC_DRIVER_NOT_INIT: MPC driver is not init

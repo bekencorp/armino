@@ -17,14 +17,11 @@
 #include <driver/lcd_qspi_types.h>
 #include <driver/pwm.h>
 #include <driver/pwm_types.h>
-#include "bk_misc.h"
+
 
 #define LCD_QSPI_SHA8601A_REGISTER_WRITE_COMMAND		0x02
 #define LCD_QSPI_SHA8601A_REGISTER_READ_COMMAND			0x03
 
-#if (USE_HAL_DMA2D_REGISTER_CALLBACKS == 1)
-extern beken_semaphore_t lcd_qspi_semaphore;
-#endif
 
 static const lcd_qspi_init_cmd_t sh8601a_init_cmds[] = {
 	{0x11, {0x00}, 0},
@@ -40,7 +37,9 @@ static const lcd_qspi_init_cmd_t sh8601a_init_cmds[] = {
 
 static uint8_t sh8601a_cmd[4] = {0x12, 0x00, 0x2c, 0x00};
 
-#if CONFIG_PWM
+#if (CONFIG_MASTER_CORE) && (CONFIG_PWM)
+#define LCD_QSPI_SHA8601A_BACKLIGHT_PWM_ID				PWM_ID_2
+
 static bk_err_t bk_lcd_qspi_sh8601a_backlight_init(uint8_t percent)
 {
 	pwm_init_config_t config = {0};
@@ -53,16 +52,16 @@ static bk_err_t bk_lcd_qspi_sh8601a_backlight_init(uint8_t percent)
 
 	config.period_cycle = 100;
 	config.duty_cycle = percent;
-	BK_LOG_ON_ERR(bk_pwm_init(PWM_ID_2, &config));
-	BK_LOG_ON_ERR(bk_pwm_start(PWM_ID_2));
+	BK_LOG_ON_ERR(bk_pwm_init(LCD_QSPI_SHA8601A_BACKLIGHT_PWM_ID, &config));
+	BK_LOG_ON_ERR(bk_pwm_start(LCD_QSPI_SHA8601A_BACKLIGHT_PWM_ID));
 
 	return BK_OK;
 }
 
 static bk_err_t bk_lcd_qspi_sh8601a_backlight_deinit(void)
 {
-	BK_LOG_ON_ERR(bk_pwm_stop(PWM_ID_2));
-	BK_LOG_ON_ERR(bk_pwm_deinit(PWM_ID_2));
+	BK_LOG_ON_ERR(bk_pwm_stop(LCD_QSPI_SHA8601A_BACKLIGHT_PWM_ID));
+	BK_LOG_ON_ERR(bk_pwm_deinit(LCD_QSPI_SHA8601A_BACKLIGHT_PWM_ID));
 
 	return BK_OK;
 }
@@ -79,11 +78,12 @@ static bk_err_t bk_lcd_qspi_sh8601a_set_backlight(uint8_t percent)
 	config.period_cycle = 100;
 	config.duty_cycle = percent;
 
-	bk_pwm_set_period_duty(PWM_ID_2, &config);
+	bk_pwm_set_period_duty(LCD_QSPI_SHA8601A_BACKLIGHT_PWM_ID, &config);
 
 	return BK_OK;
 }
 #endif
+
 
 const lcd_qspi_device_t lcd_qspi_device_sh8601a =
 {
@@ -92,14 +92,20 @@ const lcd_qspi_device_t lcd_qspi_device_sh8601a =
 	.ppi = PPI_454X454,
 	.refresh_method = LCD_QSPI_REFRESH_BY_FRAME,
 	.reg_write_cmd = LCD_QSPI_SHA8601A_REGISTER_WRITE_COMMAND,
-	.reg_read_cmd = LCD_QSPI_SHA8601A_REGISTER_READ_COMMAND,
+	.reg_read_config = {0},
 	.pixel_write_config.cmd = sh8601a_cmd,
 	.pixel_write_config.cmd_len = sizeof(sh8601a_cmd),
 	.init_cmd = sh8601a_init_cmds,
 	.device_init_cmd_len = sizeof(sh8601a_init_cmds) / sizeof(lcd_qspi_init_cmd_t),
+#if (CONFIG_MASTER_CORE) && (CONFIG_PWM)
 	.backlight_init = bk_lcd_qspi_sh8601a_backlight_init,
 	.backlight_set = bk_lcd_qspi_sh8601a_set_backlight,
 	.backlight_deinit = bk_lcd_qspi_sh8601a_backlight_deinit,
+#else
+	.backlight_init = NULL,
+	.backlight_set = NULL,
+	.backlight_deinit = NULL,
+#endif
 	.refresh_config = {0},
 	.frame_len = (PPI_454X454 >> 16) * (PPI_454X454 & 0xFFFF) * 3,
 };

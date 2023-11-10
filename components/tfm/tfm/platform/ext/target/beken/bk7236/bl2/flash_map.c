@@ -53,18 +53,18 @@ extern ARM_DRIVER_FLASH FLASH_DEV_NAME_SCRATCH;
 
 const struct flash_area flash_map[] = {
     {
-        .fa_id = FLASH_AREA_PRIMARY_ALL_ID,
-        .fa_device_id = FLASH_DEVICE_ID,
-        .fa_driver = &FLASH_DEV_NAME,
-        .fa_off = CONFIG_PRIMARY_ALL_PHY_PARTITION_OFFSET,
-        .fa_size = CONFIG_PRIMARY_ALL_PHY_PARTITION_SIZE,
+        .fa_id = FLASH_AREA_0_ID,
+        .fa_device_id = FLASH_DEVICE_ID_0,
+        .fa_driver = &FLASH_DEV_NAME_0,
+        .fa_off = CONFIG_PRIMARY_S_PHY_PARTITION_OFFSET,
+        .fa_size = CONFIG_PRIMARY_S_PHY_PARTITION_SIZE,
     },
     {
-        .fa_id = FLASH_AREA_SECONDARY_ALL_ID,
-        .fa_device_id = FLASH_DEVICE_ID,
-        .fa_driver = &FLASH_DEV_NAME,
-        .fa_off = CONFIG_SECONDARY_ALL_PHY_PARTITION_OFFSET,
-        .fa_size = CONFIG_SECONDARY_ALL_PHY_PARTITION_SIZE,
+        .fa_id = FLASH_AREA_2_ID,
+        .fa_device_id = FLASH_DEVICE_ID_2,
+        .fa_driver = &FLASH_DEV_NAME_2,
+        .fa_off = CONFIG_SECONDARY_S_PHY_PARTITION_OFFSET,
+        .fa_size = CONFIG_SECONDARY_S_PHY_PARTITION_SIZE,
     },
     {
         .fa_id = FLASH_AREA_PRIMARY_MANIFEST_ID,
@@ -94,6 +94,36 @@ const struct flash_area flash_map[] = {
         .fa_off = CONFIG_SECONDARY_BL2_PHY_PARTITION_OFFSET,
         .fa_size = CONFIG_SECONDARY_BL2_PHY_PARTITION_SIZE,
     },
+    {
+        .fa_id = FLASH_AREA_SECONDARY_SPE_ID,
+        .fa_device_id = FLASH_DEVICE_ID,
+        .fa_driver = &FLASH_DEV_NAME,
+        .fa_off = CONFIG_SECONDARY_S_PHY_PARTITION_OFFSET,
+        .fa_size = CONFIG_SECONDARY_S_PHY_PARTITION_SIZE,
+    },
+    {
+        .fa_id = FLASH_AREA_SECONDARY_NSPE_ID,
+        .fa_device_id = FLASH_DEVICE_ID,
+        .fa_driver = &FLASH_DEV_NAME,
+        .fa_off = CONFIG_SECONDARY_NS_PHY_PARTITION_OFFSET,
+        .fa_size = CONFIG_SECONDARY_NS_PHY_PARTITION_SIZE,
+    },
+#if (MCUBOOT_IMAGE_NUMBER == 2)
+    {
+        .fa_id = FLASH_AREA_1_ID,
+        .fa_device_id = FLASH_DEVICE_ID_1,
+        .fa_driver = &FLASH_DEV_NAME_1,
+        .fa_off = CONFIG_PRIMARY_NS_PHY_PARTITION_OFFSET,
+        .fa_size = CONFIG_PRIMARY_NS_PHY_PARTITION_SIZE,
+    },
+    {
+        .fa_id = FLASH_AREA_3_ID,
+        .fa_device_id = FLASH_DEVICE_ID_3,
+        .fa_driver = &FLASH_DEV_NAME_3,
+        .fa_off = CONFIG_SECONDARY_NS_PHY_PARTITION_OFFSET,
+        .fa_size = CONFIG_SECONDARY_NS_PHY_PARTITION_SIZE,
+    },
+#endif
 #if defined(MCUBOOT_SWAP_USING_SCRATCH)
     {
         .fa_id = FLASH_AREA_SCRATCH_ID,
@@ -102,7 +132,7 @@ const struct flash_area flash_map[] = {
         .fa_off = FLASH_AREA_SCRATCH_OFFSET,
         .fa_size = FLASH_AREA_SCRATCH_SIZE,
     },
-#endif
+#endif /* defined(MCUBOOT_SWAP_USING_SCRATCH) */
 };
 
 const int flash_map_entry_num = ARRAY_SIZE(flash_map);

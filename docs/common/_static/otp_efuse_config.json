@@ -1,4 +1,10 @@
 {
+    "eFuse_totle_size":      "0x20",
+    "eFuse_VDD_BIT":         "0x1F",
+    "eFuse_vdd_addr":        "0x44880000",
+    "eFuse_driver_base_addr":"0x44880000",
+    "OTP_vdd_addr":          "0x4B00800C",
+
     "User_Operate_Status":   "true",
     "eFuse_Status":          "false",
     "Security_Ctrl_Status":  "false",

@@ -1,6 +1,5 @@
 menu "Lvgl_source"
 	config LVGL
-		depends on LCD
 		bool "Enable Lvgl"
 		default n
 
@@ -120,5 +119,4 @@ menu "Lvgl_source"
 	config LV_ATTRIBUTE_FAST_MEM
 		bool "Enable Lv Attribute Fast Mem"
 		default n
-
 endmenu

@@ -35,6 +35,9 @@
 #include "sys_driver.h"
 #include <modules/pm.h>
 #endif
+#if (CONFIG_UART_RX_DMA)
+#include <driver/dma.h>
+#endif
 
 static void uart_isr_common(uart_id_t id) __BK_SECTION(".itcm");
 static uint32_t uart_id_read_fifo_frame(uart_id_t id, const kfifo_ptr_t rx_ptr) __BK_SECTION(".itcm");
@@ -43,6 +46,10 @@ typedef struct {
 	uart_hal_t hal;
 	uint8_t id_init_bits;
 	uint8_t id_sw_fifo_enable_bits;
+#if CONFIG_UART_RX_DMA
+	bool rx_dma_enable;
+	dma_id_t rx_dma_id;
+#endif
 } uart_driver_t;
 
 typedef struct {
@@ -284,8 +291,15 @@ static void uart_deinit_rx_gpio(uart_id_t id)
 
 static bk_err_t uart_id_init_kfifo(uart_id_t id)
 {
+	uint32_t fifo_size = CONFIG_KFIFO_SIZE;
+//RX DMA needs bigger FIFO size when erase flash.
+#if (CONFIG_UART_RX_DMA)
+	if(s_uart[id].rx_dma_enable)
+		fifo_size = CONFIG_UART_RX_DMA_KFIFO_SIZE;
+#endif
+
 	if (!s_uart_rx_kfifo[id]) {
-		s_uart_rx_kfifo[id] = kfifo_alloc(CONFIG_KFIFO_SIZE);
+		s_uart_rx_kfifo[id] = kfifo_alloc(fifo_size);
 		if (!s_uart_rx_kfifo[id]) {
 			UART_LOGE("uart(%d) rx kfifo alloc failed\n", id);
 			return BK_ERR_NULL_PARAM;
@@ -330,12 +344,19 @@ static bk_err_t uart_id_init_common(uart_id_t id)
 	s_uart[id].id_init_bits |= BIT(id);
 	s_uart[id].id_sw_fifo_enable_bits |= BIT(id);
 
+#if CONFIG_UART_RX_DMA
+	//default not enable rx dma
+	s_uart[id].rx_dma_enable = 0;
+#endif
 	return ret;
 }
 
 static void uart_id_deinit_common(uart_id_t id)
 {
 	s_uart[id].id_init_bits &= ~BIT(id);
+#if CONFIG_UART_RX_DMA
+	s_uart[id].rx_dma_enable = 0;
+#endif
 	uart_hal_stop_common(&s_uart[id].hal, id);
 	uart_hal_reset_config_to_default(&s_uart[id].hal, id);
 #if (CONFIG_SYSTEM_CTRL)
@@ -346,13 +367,49 @@ static void uart_id_deinit_common(uart_id_t id)
 	power_uart_pwr_down(id);
 #endif
 	uart_id_deinit_kfifo(id);
-	rtos_deinit_semaphore(&(s_uart_sema[id].rx_int_sema));
+	if(s_uart_sema[id].rx_int_sema)
+	{
+		rtos_deinit_semaphore(&(s_uart_sema[id].rx_int_sema));
+		s_uart_sema[id].rx_int_sema = NULL;
+	}
 }
 
 static inline bool uart_id_is_sw_fifo_enabled(uart_id_t id)
 {
 	return !!(s_uart[id].id_sw_fifo_enable_bits & BIT(id));
 }
+
+#if CONFIG_UART_RX_DMA
+static uint32_t uart_id_dma_read_fifo_frame(uart_id_t id, const kfifo_ptr_t rx_ptr)
+{
+	//DMA stop
+	bk_dma_stop(s_uart[id].rx_dma_id);
+
+	//update WRITE-Pointer by DMA write length
+	uint16_t actual_trans_len = (s_uart_rx_kfifo[id]->size - bk_dma_get_remain_len(s_uart[id].rx_dma_id));
+	//buffer over-wrap:
+	//i.e:when erase flash,CPU can't get instruction from flash then can't handle this function.
+	//after Flash erase complete, UART handler come but DMA has copy more then s_uart_rx_kfifo[id]->size bytes data
+	if(actual_trans_len > s_uart_rx_kfifo[id]->size)
+	{
+		//TODO:
+		BK_ASSERT(0);
+	}
+	else
+	{
+		__attribute__((__unused__)) uart_statis_t *uart_statis = uart_statis_get_statis(id);
+
+		//data has been saved in buffer by DMA, only update write pointer
+		rx_ptr->in += actual_trans_len;
+
+		UART_STATIS_SET(uart_statis->kfifo_status.in, rx_ptr->in);
+	}
+
+	bk_dma_start(s_uart[id].rx_dma_id);
+
+	return actual_trans_len;
+}
+#endif
 
 static uint32_t uart_id_read_fifo_frame(uart_id_t id, const kfifo_ptr_t rx_ptr)
 {
@@ -736,6 +793,115 @@ int bk_uart_is_in_used(uart_id_t id)
 	return (s_uart[id].id_init_bits & BIT((id)));
 }
 
+#if (CONFIG_UART_RX_DMA)
+static void uart_rx_dma_fifo_full(dma_id_t dma_id)
+{
+	bk_printf("WARN:%s:dma_id=%d\r\n", __func__, dma_id);
+}
+
+static inline dma_dev_t uart_id_to_dma_dev(uart_id_t id, bool rx)
+{
+	uint32_t rx_id_offset = 0;
+	if(rx)
+		rx_id_offset = 1;
+	switch(id)
+	{
+		case UART_ID_0:
+			return DMA_DEV_UART1 + rx_id_offset;
+
+		case UART_ID_1:
+			return DMA_DEV_UART2 + rx_id_offset;
+
+		case UART_ID_2:
+			return DMA_DEV_UART3 + rx_id_offset;
+
+		default:
+			return DMA_DEV_UART1 + rx_id_offset;
+	}
+}
+
+static inline void uart_rx_dma_src_port_config(uart_id_t id, dma_port_config_t *cfg_ptr)
+{
+	cfg_ptr->width = DMA_DATA_WIDTH_8BITS;
+	cfg_ptr->addr_inc_en = DMA_ADDR_INC_DISABLE,
+	cfg_ptr->addr_loop_en = DMA_ADDR_LOOP_DISABLE,
+	cfg_ptr->dev = uart_id_to_dma_dev(id, 1);
+	bk_printf("src dev=%d\r\n", cfg_ptr->dev);
+	cfg_ptr->end_addr = cfg_ptr->start_addr = (uint32_t)uart_hal_get_read_data_addr(&s_uart[id].hal, id) & 0xffffffffc;
+}
+
+static bk_err_t uart_rx_dma_init(uart_id_t id)
+{
+	bk_err_t ret = BK_OK;
+	dma_config_t dma_cfg;
+
+	//DMA DST config:Memory
+	dma_port_config_t dma_mem_port_config = {
+						.dev = DMA_DEV_DTCM,
+						.width = DMA_DATA_WIDTH_32BITS,
+						.addr_inc_en = DMA_ADDR_INC_ENABLE,
+						.addr_loop_en = DMA_ADDR_LOOP_ENABLE,
+						.start_addr = 0,
+						.end_addr = 0,
+					};
+
+	dma_cfg.dst = dma_mem_port_config;
+	//force enable sw fifo
+	bk_uart_enable_sw_fifo(id);
+	if(s_uart_rx_kfifo[id] == NULL)
+	{
+		ret = uart_id_init_kfifo(id);
+		if(ret != BK_OK)
+			return ret;
+	}
+	dma_cfg.dst.start_addr = (uint32_t)s_uart_rx_kfifo[id]->buffer;
+	if(dma_cfg.dst.start_addr == 0)
+	{
+		//TODO:
+		BK_ASSERT(0);
+	}
+	dma_cfg.dst.end_addr = dma_cfg.dst.start_addr + s_uart_rx_kfifo[id]->size;
+
+	//DMA SRC config:UART RX read port
+	uart_rx_dma_src_port_config(id, &dma_cfg.src);
+
+	dma_cfg.mode = DMA_WORK_MODE_SINGLE;
+	dma_cfg.chan_prio = 0;	//UART speed is slow, so no need high priority
+
+	//init DMA config
+	dma_id_t dma_id = bk_dma_alloc(uart_id_to_dma_dev(id, 1));
+	if(dma_id < DMA_ID_MAX)
+	{
+		BK_LOG_ON_ERR(bk_dma_init(dma_id, &dma_cfg));
+		BK_LOG_ON_ERR(bk_dma_set_transfer_len(dma_id, s_uart_rx_kfifo[id]->size));
+#if (CONFIG_SPE)
+		BK_LOG_ON_ERR(bk_dma_set_dest_sec_attr(dma_id, DMA_ATTR_SEC));
+		BK_LOG_ON_ERR(bk_dma_set_src_sec_attr(dma_id, DMA_ATTR_SEC));
+#endif
+		bk_dma_register_isr(dma_id, NULL, uart_rx_dma_fifo_full);
+		BK_LOG_ON_ERR(bk_dma_start(dma_id));
+	}
+	else
+	{
+		bk_printf("Err:uart rx dma alloc fail\r\n");
+		return BK_FAIL;
+	}
+
+	s_uart[id].rx_dma_id = dma_id;
+	s_uart[id].rx_dma_enable = 1;
+
+	return BK_OK;
+}
+
+static bk_err_t uart_rx_dma_deinit(uart_id_t id)
+{
+	dma_id_t dma_id = s_uart[id].rx_dma_id;
+	s_uart[id].rx_dma_id = 0;
+	s_uart[id].rx_dma_enable = 0;
+	return bk_dma_free(uart_id_to_dma_dev(id, 1), dma_id);
+}
+#endif
+
 bk_err_t bk_uart_init(uart_id_t id, const uart_config_t *config)
 {
 	UART_RETURN_ON_NOT_INIT();
@@ -764,6 +930,13 @@ bk_err_t bk_uart_init(uart_id_t id, const uart_config_t *config)
 	}
 #endif
 
+#if CONFIG_UART_RX_DMA
+	if(config->rx_dma_en)
+	{
+		//DMA init RX
+		uart_rx_dma_init(id);
+	}
+#endif
 	uart_hal_init_uart(&s_uart[id].hal, id, config);
 	uart_hal_start_common(&s_uart[id].hal, id);
 
@@ -774,6 +947,9 @@ bk_err_t bk_uart_deinit(uart_id_t id)
 {
 	UART_RETURN_ON_NOT_INIT();
 	UART_RETURN_ON_INVALID_ID(id);
+#if CONFIG_UART_RX_DMA
+	uart_rx_dma_deinit(id);
+#endif
 	uart_id_deinit_common(id);
 	return BK_OK;
 }
@@ -1002,8 +1178,6 @@ bk_err_t bk_uart_read_bytes(uart_id_t id, void *data, uint32_t size, uint32_t ti
 
 		return read_count;
 	}
-
-
 }
 
 bk_err_t bk_uart_set_rx_full_threshold(uart_id_t id, uint8_t threshold)
@@ -1152,23 +1326,38 @@ static void uart_isr_common(uart_id_t id)
 	UART_STATIS_GET(uart_statis, id);
 	UART_STATIS_INC(uart_statis->uart_isr_cnt);
 
-	if (uart_hal_is_rx_interrupt_triggered(&s_uart[id].hal, id, status))
+	if (uart_hal_is_rx_interrupt_triggered(&s_uart[id].hal, id, status))	//rx end or rx fifo full
 	{
+		//overflow,rx_para_err,rx_stop_err
 		if(int_status & (BIT(2) | BIT(3) | BIT(4)))
 		{
-			int ret = 0;
-			uint8_t rx_data;
-
-			/* read all data from rx-FIFO. */
-		 	while (1)
+#if (CONFIG_UART_RX_DMA)
+			//TODO:Discard the RX FIFO data,set WR_PTR to RD_PTR
+			if(s_uart[id].rx_dma_enable)
 			{
-				ret = uart_read_byte_ex(id, &rx_data);
-				if (ret == -1)
+				uint32_t discard_len = s_uart_rx_kfifo[id]->out - s_uart_rx_kfifo[id]->in;
+				s_uart_rx_kfifo[id]->in = s_uart_rx_kfifo[id]->out;
+#if CONFIG_UART_ERR_INTERRUPT
+				UART_LOGW("uart rx error(0x%x)!,discard_len=%d\r\n", (status & (BIT(2) | BIT(3) | BIT(4))), discard_len);
+#endif
+			}
+			else
+#endif
+			{
+				int ret = 0;
+				uint8_t rx_data;
+
+				/* read all data from rx-FIFO. */
+				while (1)
 				{
-					#if CONFIG_UART_ERR_INTERRUPT
-					UART_LOGW("uart rx error(0x%x) triggered!\r\n", (int_status & (BIT(2) | BIT(3) | BIT(4))));
-					#endif
-					break;
+					ret = uart_read_byte_ex(id, &rx_data);
+					if (ret == -1)
+					{
+						#if CONFIG_UART_ERR_INTERRUPT
+						UART_LOGW("uart rx error(0x%x) triggered!\r\n", (status & (BIT(2) | BIT(3) | BIT(4))));
+						#endif
+						break;
+					}
 				}
 			}
 		}
@@ -1177,6 +1366,22 @@ static void uart_isr_common(uart_id_t id)
 		UART_STATIS_SET(uart_statis->rx_fifo_cnt, uart_hal_get_rx_fifo_cnt(&s_uart[id].hal, id));
 		if (uart_id_is_sw_fifo_enabled(id))
 		{
+#if CONFIG_UART_RX_DMA
+			if(s_uart[id].rx_dma_enable)
+			{
+				//force all of the UART RX FIFO data to DMA RAM space
+				bk_dma_flush_src_buffer(s_uart[id].rx_dma_id);
+				if (uart_id_dma_read_fifo_frame(id, s_uart_rx_kfifo[id]) > 0)
+				{
+					if (s_uart_sema[id].rx_int_sema && s_uart_sema[id].rx_blocked)
+					{
+						rtos_set_semaphore(&(s_uart_sema[id].rx_int_sema));
+						s_uart_sema[id].rx_blocked = false;
+					}
+				}
+			}
+			else
+#endif
 			if (uart_id_read_fifo_frame(id, s_uart_rx_kfifo[id]) > 0)
 			{
 				if (s_uart_sema[id].rx_int_sema && s_uart_sema[id].rx_blocked)

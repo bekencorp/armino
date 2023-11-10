@@ -17,8 +17,9 @@
 #include "clock_driver.h"
 #include "sys_driver.h"
 #include "psram_hal.h"
-#include "aon_pmu_hal.h"
 #include "driver/psram_types.h"
+#include <driver/psram.h>
+#include <modules/pm.h>
 
 
 #define BK_ERR_PSRAM_SERVER_NOT_INIT       (BK_ERR_PSRAM_BASE - 1) /**< psram server not init */
@@ -58,11 +59,21 @@ bk_err_t bk_psram_set_transfer_mode(psram_tansfer_mode_t transfer_mode)
 	return ret;
 }
 
+static int psram_suspend(uint64_t sleep_time, void *args)
+{
+	return bk_psram_suspend();
+}
+
 bk_err_t bk_psram_init(void)
 {
 	if (s_psram_server_is_init) {
 		return BK_OK;
 	}
+
+	pm_cb_conf_t enter_config;
+	enter_config.cb = (pm_cb)psram_suspend;
+	enter_config.args = NULL;
+	bk_pm_sleep_register_cb(PM_MODE_LOW_VOLTAGE, PM_DEV_ID_PSRAM, &enter_config, NULL);
 
 	// power up and clk config
 	psram_hal_power_clk_enable(1);

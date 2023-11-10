@@ -16,10 +16,9 @@ static uint32_t base_os_time = 0;
 
 void rtos_init_base_time(void) {
 #if CONFIG_AON_RTC
-	base_aon_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
+	base_aon_time = bk_aon_rtc_get_us()/1000;
 	base_os_time = rtos_get_time();
-	BK_LOGI(TAG, "os time(%dms),rtc time(%dms).\r\n", base_os_time,
-		(uint32_t)base_aon_time/RTC_TICKS_PER_1MS);
+	BK_LOGI(TAG, "os time(%dms).\r\n", base_os_time);
 	BK_LOGI(TAG, "base aon rtc time: %d:%d\r\n", (uint32_t)(base_aon_time >> 32),
 		(uint32_t)(base_aon_time & 0xFFFFFFFF));
 #endif
@@ -27,9 +26,9 @@ void rtos_init_base_time(void) {
 
 uint32_t rtos_get_time_diff(void) {
 #if CONFIG_AON_RTC
-	uint64_t cur_aon_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
+	uint64_t cur_aon_time = bk_aon_rtc_get_us()/1000;
 	uint64_t cur_os_time = (uint64_t)rtos_get_time(); //ms
-	uint64_t diff_time = (cur_aon_time - base_aon_time)/RTC_TICKS_PER_1MS; //ms
+	uint64_t diff_time = (cur_aon_time - base_aon_time); //ms
 	uint32_t diff_ms = 0;
 
 	if((uint32_t)(diff_time >> 32) & 0x7FF0000) {

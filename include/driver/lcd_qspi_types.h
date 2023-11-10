@@ -35,13 +35,6 @@ typedef enum {
 } lcd_qspi_refresh_method_t;
 
 typedef enum {
-	LCD_QSPI_DATA_1_LINE,
-	LCD_QSPI_DATA_2_LINE,
-	LCD_QSPI_DATA_4_LINE,
-	LCD_QSPI_DATA_INVALID,
-} lcd_qspi_data_line_t;
-
-typedef enum {
 	LCD_QSPI_NO_INSERT_DUMMMY_CLK,
 	LCD_QSPI_CMD1_DUMMY_CLK_CMD2,
 	LCD_QSPI_CMD2_DUMMY_CLK_CMD3,
@@ -66,9 +59,8 @@ typedef struct {
 typedef struct {
 	uint8_t cmd;
 	uint8_t dummy_clk;		// 1 ~ 127
-	uint16_t data_len;  	// 0 ~ 256 bytes
+	uint8_t data_len;  	    // 0 ~ 64 bytes
 
-	lcd_qspi_data_line_t data_line;
 	lcd_qspi_dummy_mode_t dummy_mode;
 } lcd_qspi_reg_read_config_t;
 

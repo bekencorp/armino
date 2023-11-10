@@ -44,7 +44,6 @@
 
 #endif
 
-#define RTC_CLK_FREQ    (AON_RTC_MS_TICK_CNT * 1000)
 
 #define USEC_TO_SEC (1000000)
 #define INVALID_VAL_YEAR  (0xFFFF)
@@ -77,7 +76,7 @@ int gettimeofday(struct timeval *tv, void *ptz)
     
     if(tv!=NULL)
     {
-        uint64_t uCurTimeUs=s_microseconds_offset+bk_aon_rtc_get_current_tick(AON_RTC_ID_1)*1000000LL/RTC_CLK_FREQ;
+        uint64_t uCurTimeUs=s_microseconds_offset+bk_aon_rtc_get_us();
 
         tv->tv_sec=uCurTimeUs/1000000;
         tv->tv_usec=uCurTimeUs%1000000;
@@ -94,7 +93,7 @@ int settimeofday(const struct timeval *tv,const struct timezone *tz)
     if(tv)
     {
         uint64_t setTimeUs=((uint64_t)tv->tv_sec)*1000000LL+tv->tv_usec ;
-        uint64_t getCurTimeUs=bk_aon_rtc_get_current_tick(AON_RTC_ID_1)*1000000LL/RTC_CLK_FREQ;
+        uint64_t getCurTimeUs=bk_aon_rtc_get_us();
         s_microseconds_offset=setTimeUs-getCurTimeUs;
         RTC_LOGI("%s sec:%d us:%d \n",__func__,tv->tv_sec,tv->tv_usec);
         RTC_LOGI("%s set:%d cur:%d diff:%d \n",__func__,setTimeUs,getCurTimeUs,s_microseconds_offset);
@@ -306,7 +305,7 @@ int32_t iot_rtc_ioctl( IotRtcHandle_t const pxRtcHandle,
             alarm_info.name[4]='t';
             alarm_info.name[5]='c';
 
-            alarm_info.period_tick=(uint64_t)rtc_instance->uUTC_time*RTC_CLK_FREQ;//switch to tick cnt
+            alarm_info.period_tick=(uint64_t)rtc_instance->uUTC_time*bk_rtc_get_clock_freq();//switch to tick cnt
             RTC_LOGI("eSetRtcAlarm Tgt:%d period:%d ",rtc_instance->uUTC_time,alarm_info.period_tick);
             alarm_info.period_cnt=1;
             alarm_info.param_p=(void*)rtc_instance;
@@ -378,14 +377,14 @@ int32_t iot_rtc_ioctl( IotRtcHandle_t const pxRtcHandle,
             alarm_info.name[4]='A';
             alarm_info.name[5]='K';
 
-            alarm_info.period_tick=(*uWakeUpTimeMs)*RTC_CLK_FREQ/1000;//switch to tick cnt
+            alarm_info.period_tick=(*uWakeUpTimeMs)*bk_rtc_get_clock_freq()/1000;//switch to tick cnt
             alarm_info.period_cnt=1;
             alarm_info.param_p=(void*)rtc_instance;
             alarm_info.callback=rtc_wake_cb;
             bk_alarm_register(AON_RTC_ID_1,&alarm_info);
             os_memcpy(rtc_instance->alarmName,alarm_info.name,ALARM_NAME_MAX_LEN);
             rtc_instance->status=eRtcTimerWakeupTriggered;
-            rtc_instance->uWakeUpTick=alarm_info.period_tick;//(*uWakeUpTimeMs)*RTC_CLK_FREQ/1000;
+            rtc_instance->uWakeUpTick=alarm_info.period_tick;//(*uWakeUpTimeMs)*bk_rtc_get_clock_freq()/1000;
             RTC_LOGI("eSetRtcWakeupTime Tgt_ms:%d period:%d curTick:%d\n",(*uWakeUpTimeMs),rtc_instance->uWakeUpTick,alarm_info.period_tick);
         }        
         break;
@@ -397,7 +396,7 @@ int32_t iot_rtc_ioctl( IotRtcHandle_t const pxRtcHandle,
             }
  //           return IOT_RTC_FUNCTION_NOT_SUPPORTED;
             uint32_t *uGetMs=(uint32_t *)pvBuffer;
-            (*uGetMs)=rtc_instance->uWakeUpTick*1000/RTC_CLK_FREQ;
+            (*uGetMs)=rtc_instance->uWakeUpTick*1000/bk_rtc_get_clock_freq();
 
             RTC_LOGI("eGetRtcWakeupTime :%dms \n",(*uGetMs));
         }        

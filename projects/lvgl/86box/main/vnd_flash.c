@@ -50,23 +50,23 @@ const bk_logic_partition_t bk7256_partitions[BK_PARTITION_MAX] = {
 		.partition_owner           = BK_FLASH_EMBEDDED,
 		.partition_description     = "Application",
 		.partition_start_addr      = 0x11000,
-		.partition_length          = 0x3C9000,      // 3876KB
+		.partition_length          = 0x396000,      // 3672KB
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
 	},
 	[BK_PARTITION_APPLICATION1] =
 	{
 		.partition_owner           = BK_FLASH_EMBEDDED,
 		.partition_description     = "Application1",
-		.partition_start_addr      = 0x3DA000,
-		.partition_length          = 0,       // 476KB
+		.partition_start_addr      = 0x3A7000,
+		.partition_length          = 0x44000,       // 272KB
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
 	},
 	[BK_PARTITION_OTA] =
 	{
 		.partition_owner           = BK_FLASH_EMBEDDED,
 		.partition_description     = "ota",
-		.partition_start_addr      = 0x3DA000,
-		.partition_length          = 0,      // 1564KB
+		.partition_start_addr      = 0x3EB000,
+		.partition_length          = 0x1000,      // 4KB
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
 	},
 #if CONFIG_SUPPORT_MATTER
@@ -91,8 +91,8 @@ const bk_logic_partition_t bk7256_partitions[BK_PARTITION_MAX] = {
 	{
 		.partition_owner           = BK_FLASH_EMBEDDED,
 		.partition_description     = "user_data",
-		.partition_start_addr	   = 0x3DA000,
-		.partition_length          = 0x10000, //64KB
+		.partition_start_addr	   = 0x3EC000,
+		.partition_length          = 0x12000, //72KB
 		.partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
 	},
 #endif

@@ -32,17 +32,6 @@
  - 串口烧录软件；
 
 
-开发板简介
-------------------------
-
-点击下列链接了解 Armino 支持的开发板详细信息：
-
-.. toctree::
-    :maxdepth: 1
-
-        BK7256 <../boards/bk7256>
-
-
 
 
 Armino SDK代码下载
@@ -80,11 +69,11 @@ BK7256工具链下载路径如下：
 
 	工具链下载：
 	http://dl.bekencorp.com/tools/toolchain/
-	在此目录下获取最新版本，如：toolchain_v5.1.1.tgz
+	在此目录下获取最新版本，如：toolchain_v5.2.1.tgz
 
 工具包下载后，通过如下操作命令解压至 /opt/risc-v目录下::
 
-    $ sudo tar -zxvf toolchain_v5.1.1.tgz -C /
+    $ sudo tar -zxvf toolchain_v5.2.1.tgz -C /
 
 
 .. note::
@@ -92,6 +81,12 @@ BK7256工具链下载路径如下：
     工具链默认路径在middleware/soc/bk7256/bk7256.defconfig文件中定义，客户可自行配置::
 
         CONFIG_TOOLCHAIN_PATH="/opt/risc-v/nds32le-elf-mculib-v5/bin"
+
+    工具链也可支持相对路径配置，如工具链放在sdk目录下::
+
+        CONFIG_TOOLCHAIN_PATH="toolchain_v5.2.1/nds32le-elf-mculib-v5/bin"
+
+
 
 程序编译依赖库安装
 ------------------------------------
@@ -101,7 +96,7 @@ BK7256工具链下载路径如下：
     sudo dpkg --add-architecture i386
     sudo apt-get update
     sudo apt-get install build-essential cmake python3 python3-pip doxygen ninja-build libc6:i386 libstdc++6:i386 libncurses5-dev lib32z1 -y
-    sudo pip3 install pycrypto
+    sudo pip3 install pycrypto click
 
 文档编译依赖库安装
 ------------------------------------

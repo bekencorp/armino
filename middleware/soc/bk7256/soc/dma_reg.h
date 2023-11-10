@@ -25,10 +25,13 @@ extern "C" {
 
 #define DMA_V_REQ_MUX_DTCM          0x0
 #define DMA_V_REQ_MUX_UART1         0x1
+#define DMA_V_REQ_MUX_UART1_RX      0x1
 #define DMA_V_REQ_MUX_GSPI0         0x2
 #define DMA_V_REQ_MUX_SDIO          0x3
 #define DMA_V_REQ_MUX_UART2         0x4
+#define DMA_V_REQ_MUX_UART2_RX      0x4
 #define DMA_V_REQ_MUX_UART3         0x5
+#define DMA_V_REQ_MUX_UART3_RX      0x5
 #define DMA_V_REQ_MUX_GSPI1         0x6
 #define DMA_V_REQ_MUX_USB           0x7
 #define DMA_V_REQ_MUX_AUDIO         0x8

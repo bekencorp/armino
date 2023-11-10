@@ -64,8 +64,6 @@ extern void bk_ota_confirm_update_partition(ota_confirm_flag ota_confirm_val);
 #include "temp_detect_pub.h"
 #endif
 
-#include "sdk_version.h"
-
 #if (CONFIG_DEBUG_FIRMWARE)
 extern bk_err_t bk_dbg_init(void);
 #endif
@@ -190,7 +188,6 @@ extern void demo_wifi_fast_connect(void);
 int bk_init(void)
 {
 	BK_LOGI(TAG, "armino app init: %s\n", build_version);
-    BK_LOGI(TAG, "ARMINO Version: %s\n", ARMINO_TAG_VERSION);
 
 #ifdef APP_VERSION
 	BK_LOGI(TAG, "APP Version: %s\n", APP_VERSION);

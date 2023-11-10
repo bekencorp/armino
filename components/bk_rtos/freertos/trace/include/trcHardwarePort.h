@@ -597,7 +597,7 @@ uint32_t uiTraceTimerGetValue(void);
     #define TRACE_EXIT_CRITICAL_SECTION()  port_enable_interrupts_flag(TRACE_ALLOC_CRITICAL_SECTION_NAME)
 	#define TRC_HWTC_TYPE TRC_FREE_RUNNING_32BIT_INCR
 #if CONFIG_AON_RTC
-	#define TRC_HWTC_COUNT (uint32_t)(bk_aon_rtc_get_current_tick(AON_RTC_ID_1)/AON_RTC_MS_TICK_CNT)
+	#define TRC_HWTC_COUNT (uint32_t)(bk_aon_rtc_get_us()/1000)
 #else
 	#define TRC_HWTC_COUNT (uint32_t)(riscv_get_mtimer()/26000)
 #endif

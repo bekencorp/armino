@@ -15,8 +15,8 @@
 ## Complie Command:
 1、make bk7256 PROJECT=lvgl/86box
 
-## CPU:
-1、BK7256: CPU0
+## CPU: 
+1、BK7256: CPU0+CPU1
 
 ## WIFI: STA/AP
 

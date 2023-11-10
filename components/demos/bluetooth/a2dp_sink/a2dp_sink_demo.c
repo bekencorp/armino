@@ -62,6 +62,7 @@ static uint8_t s_frame_caching = 0;
 static RingBufferNodeContext s_a2dp_frame_nodes;
 static uint8_t s_spk_is_started = 0;
 static uint8_t *p_cache_buff = NULL;
+static uint8_t s_a2dp_vol = 0x5A;//0~0x7f
 
 uint8_t bt_audio_a2dp_sink_convert_to_dac_sample_rate(uint8_t codec_type, uint32_t sample_rate)
 {
@@ -249,7 +250,7 @@ void bt_audio_sink_demo_main(void *arg)
                 aud_intf_spk_setup.spk_chl = AUD_INTF_SPK_CHL_DUAL;
                 aud_intf_spk_setup.samp_rate = dac_sample_rate;
                 aud_intf_spk_setup.frame_size = frame_size;
-                aud_intf_spk_setup.spk_gain = 0x2d;
+                aud_intf_spk_setup.spk_gain = s_a2dp_vol >> 1;
                 aud_intf_spk_setup.work_mode = AUD_DAC_WORK_MODE_DIFFEN;
                 ret = bk_aud_intf_spk_init(&aud_intf_spk_setup);
 
@@ -778,6 +779,72 @@ void bk_bt_app_avrcp_ct_cb(bk_avrcp_ct_cb_event_t event, bk_avrcp_ct_cb_param_t 
         default:
             os_printf("Invalid AVRCP event: %d\r\n", event);
             break;
+    }
+}
+
+void bk_bt_app_avrcp_ct_play(void)
+{
+    bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_PLAY, BK_AVRCP_PT_CMD_STATE_PRESSED);
+    bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_PLAY, BK_AVRCP_PT_CMD_STATE_RELEASED);
+}
+
+void bk_bt_app_avrcp_ct_pause(void)
+{
+    bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_PAUSE, BK_AVRCP_PT_CMD_STATE_PRESSED);
+    bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_PAUSE, BK_AVRCP_PT_CMD_STATE_RELEASED);
+}
+
+void bk_bt_app_avrcp_ct_next(void)
+{
+    bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_FORWARD, BK_AVRCP_PT_CMD_STATE_PRESSED);
+    bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_FORWARD, BK_AVRCP_PT_CMD_STATE_RELEASED);
+}
+
+void bk_bt_app_avrcp_ct_prev(void)
+{
+    bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_BACKWARD, BK_AVRCP_PT_CMD_STATE_PRESSED);
+    bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_BACKWARD, BK_AVRCP_PT_CMD_STATE_RELEASED);
+}
+
+void bk_bt_app_avrcp_ct_rewind(void)
+{
+    bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_REWIND, BK_AVRCP_PT_CMD_STATE_PRESSED);
+    bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_REWIND, BK_AVRCP_PT_CMD_STATE_RELEASED);
+}
+
+void bk_bt_app_avrcp_ct_fast_forward(void)
+{
+    bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_FAST_FORWARD, BK_AVRCP_PT_CMD_STATE_PRESSED);
+    bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_FAST_FORWARD, BK_AVRCP_PT_CMD_STATE_RELEASED);
+}
+
+void bk_bt_app_avrcp_ct_vol_up(void)
+{
+    uint8_t idx = (s_a2dp_vol + 5) >> 3;
+    if (idx < 16)
+    {
+        bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_VOL_UP, BK_AVRCP_PT_CMD_STATE_PRESSED);
+        bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_VOL_UP, BK_AVRCP_PT_CMD_STATE_RELEASED);
+
+        idx += 1;
+        s_a2dp_vol = (idx <= 0) ? 0 : (idx >= 16) ? 0x7f :((idx-1) * 8 + 9);
+        bk_aud_intf_set_spk_gain(s_a2dp_vol >> 1);
+        os_printf("vol_up, vol:%d\r\n", s_a2dp_vol);
+    }
+}
+
+void bk_bt_app_avrcp_ct_vol_down(void)
+{
+    uint8_t idx = (s_a2dp_vol + 5) >> 3;
+    if (idx > 0)
+    {
+        bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_VOL_DOWN, BK_AVRCP_PT_CMD_STATE_PRESSED);
+        bk_bt_avrcp_ct_send_passthrough_cmd(avrcp_remote_bda, BK_AVRCP_PT_CMD_VOL_DOWN, BK_AVRCP_PT_CMD_STATE_RELEASED);
+
+        idx -= 1;
+        s_a2dp_vol = (idx <= 0) ? 0 : (idx >= 16) ? 0x7f :((idx-1) * 8 + 9);
+        bk_aud_intf_set_spk_gain(s_a2dp_vol >> 1);
+        os_printf("vol_down, vol:%d\r\n", s_a2dp_vol);
     }
 }
 

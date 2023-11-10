@@ -4,6 +4,7 @@
 #include "adc_statis.h"
 #include <os/os.h>
 #include <os/os.h>
+#include "sys_driver.h"
 
 static UINT8 flag = 0;
 
@@ -54,6 +55,7 @@ static float cli_adc_read(UINT8 adc_chan)
 
     flag = 1;
     BK_LOG_ON_ERR(bk_adc_acquire());
+    sys_drv_set_ana_pwd_gadc_buf(1);
     BK_LOG_ON_ERR(bk_adc_init(adc_chan));
     adc_config_t config = {0};
 
@@ -72,7 +74,7 @@ static float cli_adc_read(UINT8 adc_chan)
     BK_LOG_ON_ERR(bk_adc_enable_bypass_clalibration());
     BK_LOG_ON_ERR(bk_adc_start());
     BK_LOG_ON_ERR(bk_adc_read(&value, ADC_READ_SEMAPHORE_WAIT_TIME));
-
+    
     if(adc_chan == 0)
     {
         cali_value = ((float)value/4096*5)*1.2*1000;
@@ -87,6 +89,7 @@ static float cli_adc_read(UINT8 adc_chan)
     }
 
     bk_adc_stop();
+    sys_drv_set_ana_pwd_gadc_buf(0);
     bk_adc_deinit(adc_chan);
     bk_adc_release();
     CLI_LOGI("volt value:%d mv\n",(uint32_t)cali_value);

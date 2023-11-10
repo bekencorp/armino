@@ -614,6 +614,7 @@ bk_err_t bk_adc_read(uint16_t* data, uint32_t timeout)
 {
 	uint32_t sum = 0;
 	int ret = BK_OK;
+	UINT32 num;
 
 	//TODO init check
 
@@ -624,7 +625,8 @@ bk_err_t bk_adc_read(uint16_t* data, uint32_t timeout)
 	if (BK_OK != ret)
 		return ret;
 
-	for (uint16_t i = s_adc_buf.size/2; i < s_adc_buf.size; i++) {
+	num = s_adc_buf.size/2 + s_adc_buf.size%2;
+	for (uint16_t i = num; i < s_adc_buf.size; i++) {
 		sum += s_adc_buf.buf[i];
 	}
 

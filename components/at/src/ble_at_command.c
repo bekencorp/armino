@@ -30,6 +30,7 @@ enum {
 
     TEST_IDX_CHAR_WRITE_TEST_DECL,
     TEST_IDX_CHAR_WRITE_TEST_VALUE,
+    TEST_IDX_CHAR_WRITE_TEST_DESC,
 
     TEST_IDX_NB,
 };
@@ -112,7 +113,8 @@ typedef struct
     uint8_t peer_addr_type;
     bd_addr_t peer_addr;
     uint16_t stability_wt_handle;
-    beken2_timer_t m_recon_tmr;
+    uint32_t s_recv_count;
+    beken2_timer_t m_tmr;
 } ble_st_conn_env_t;
 
 ble_st_conn_env_t ble_st_conn_env[10];
@@ -195,7 +197,7 @@ int ble_power_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **
 static int ble_att_read_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 int ble_stability_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
-static void ble_stability_show_recv_info(uint8_t *value, uint16_t len);
+static void ble_stability_show_recv_info(uint8_t *value, uint16_t len, uint8 con_idx);
 void ble_stability_test_master_reconnect_timer_hdl(void *param, unsigned int ulparam);
 
 int ble_set_atcmd_version_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
@@ -514,6 +516,7 @@ int8_t ethermind_find_index_by_att_con_id(uint8_t *index, ATT_CON_ID att_id)
     return -1;
 }
 
+static uint16_t s_write_test_ccc_val = 0;
 static void ble_at_notice_cb(ble_notice_t notice, void *param)
 {
     switch (notice) {
@@ -551,7 +554,11 @@ static void ble_at_notice_cb(ble_notice_t notice, void *param)
                 break;
 
             case TEST_IDX_CHAR_WRITE_TEST_VALUE:
-                ble_stability_show_recv_info(w_req->value, w_req->len);
+                ble_stability_show_recv_info(w_req->value, w_req->len, w_req->conn_idx);
+                break;
+
+            case TEST_IDX_CHAR_WRITE_TEST_DESC:
+                os_memcpy(&s_write_test_ccc_val, &w_req->value[0], sizeof(s_write_test_ccc_val));
                 break;
 
             default:
@@ -602,6 +609,13 @@ static void ble_at_notice_cb(ble_notice_t notice, void *param)
                 {
                     uint8_t *value = (uint8_t *)&s_test_send_inter;
                     bk_ble_read_response_value(sizeof(s_test_send_inter), value, r_req->prf_id, r_req->att_idx);
+                    break;
+                }
+
+                case TEST_IDX_CHAR_WRITE_TEST_DESC:
+                {
+                    uint8_t *value = (uint8_t *)&s_write_test_ccc_val;
+                    bk_ble_read_response_value(sizeof(s_write_test_ccc_val), value, r_req->prf_id, r_req->att_idx);
                     break;
                 }
 
@@ -759,10 +773,10 @@ static void ble_at_notice_cb(ble_notice_t notice, void *param)
             ble_st_conn_env[d_ind->conn_idx].state = 0;
             ble_st_conn_env[d_ind->conn_idx].stability_wt_handle = 0;
 
-            if (!rtos_is_oneshot_timer_init(&ble_st_conn_env[d_ind->conn_idx].m_recon_tmr))
+            if (!rtos_is_oneshot_timer_init(&ble_st_conn_env[d_ind->conn_idx].m_tmr))
             {
-                rtos_init_oneshot_timer(&ble_st_conn_env[d_ind->conn_idx].m_recon_tmr, 100, (timer_2handler_t)ble_stability_test_master_reconnect_timer_hdl, (void *)((uint32)d_ind->conn_idx), 0);
-                rtos_start_oneshot_timer(&ble_st_conn_env[d_ind->conn_idx].m_recon_tmr);
+                rtos_init_oneshot_timer(&ble_st_conn_env[d_ind->conn_idx].m_tmr, 100, (timer_2handler_t)ble_stability_test_master_reconnect_timer_hdl, (void *)((uint32)d_ind->conn_idx), 0);
+                rtos_start_oneshot_timer(&ble_st_conn_env[d_ind->conn_idx].m_tmr);
             }
         }
 
@@ -776,10 +790,10 @@ static void ble_at_notice_cb(ble_notice_t notice, void *param)
 
         if (stability_test_m_enabled)
         {
-            if (!rtos_is_oneshot_timer_init(&ble_st_conn_env[d_ind->conn_idx].m_recon_tmr))
+            if (!rtos_is_oneshot_timer_init(&ble_st_conn_env[d_ind->conn_idx].m_tmr))
             {
-                rtos_init_oneshot_timer(&ble_st_conn_env[d_ind->conn_idx].m_recon_tmr, 100, (timer_2handler_t)ble_stability_test_master_reconnect_timer_hdl, (void *)((uint32)d_ind->conn_idx), 0);
-                rtos_start_oneshot_timer(&ble_st_conn_env[d_ind->conn_idx].m_recon_tmr);
+                rtos_init_oneshot_timer(&ble_st_conn_env[d_ind->conn_idx].m_tmr, 100, (timer_2handler_t)ble_stability_test_master_reconnect_timer_hdl, (void *)((uint32)d_ind->conn_idx), 0);
+                rtos_start_oneshot_timer(&ble_st_conn_env[d_ind->conn_idx].m_tmr);
             }
         }
 
@@ -2705,7 +2719,7 @@ int ble_create_connect_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
             {
                 if (at_cmd_status == BK_ERR_BLE_SUCCESS)
                 {
-	                bk_ble_register_app_sdp_common_callback(ble_connect_sdp_comm_callback);
+	                //bk_ble_register_app_sdp_common_callback(ble_connect_sdp_comm_callback);
                     err = ble_start_connect_handle(actv_idx, peer_addr_type, &bdaddr, ble_at_cmd_cb);
                     if (err != kNoErr)
                         goto error;
@@ -3289,7 +3303,8 @@ ble_attm_desc_t test_service_db[TEST_IDX_NB] = {
 
     //write test
     [TEST_IDX_CHAR_WRITE_TEST_DECL]    = {DECL_CHARACTERISTIC_128,  BK_BLE_PERM_SET(RD, ENABLE), 0, 0},
-    [TEST_IDX_CHAR_WRITE_TEST_VALUE]   = {{0xf0, 0x12, 0}, BK_BLE_PERM_SET(WRITE_REQ, ENABLE) | BK_BLE_PERM_SET(RD, ENABLE), BK_BLE_PERM_SET(RI, ENABLE) | BK_BLE_PERM_SET(UUID_LEN, UUID_16), 255},
+    [TEST_IDX_CHAR_WRITE_TEST_VALUE]   = {{0xf0, 0x12, 0}, BK_BLE_PERM_SET(NTF, ENABLE) | BK_BLE_PERM_SET(WRITE_REQ, ENABLE) , BK_BLE_PERM_SET(UUID_LEN, UUID_16), 255},
+    [TEST_IDX_CHAR_WRITE_TEST_DESC] = {DESC_CLIENT_CHAR_CFG_128, BK_BLE_PERM_SET(RD, ENABLE) | BK_BLE_PERM_SET(WRITE_REQ, ENABLE), 0, 0},
 };
 
 int ble_update_mtu_2_max_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
@@ -4028,6 +4043,12 @@ static int ble_register_service_handle(char *pcWriteBuffer, int xWriteBufferLen,
     {
         s_test_data_len = os_strtoul(argv[3], NULL, 10) & 0xFFFF;
         s_test_send_inter = os_strtoul(argv[4], NULL, 10) & 0xFFFF;
+
+        //only for Midea case 19(add wrong attribute)
+        if ((argc >= 6) && (os_strtoul(argv[5], NULL, 10) & 0xFFFF))
+        {
+            test_service_db[TEST_IDX_CHAR_DECL].uuid[0] = 0xfe;
+        }
     }
 
     os_memcpy(&(test_service_db[TEST_IDX_CHAR_VALUE].uuid[0]), &my_char_uuid, 2);
@@ -6475,12 +6496,39 @@ error:
 
 static uint32_t stability_sent_interval = 0;
 static uint16_t stability_sent_data_len = 0;
+static uint32_t stability_sent_max = 0;
 static beken_timer_t stability_test_tmr;
 static uint32 stability_test_sent_count = 0;
 static uint32 stability_test_slave_recv_count = 0;
 
 const uint8_t stability_wt_uuid[] = {0xf0,0x12,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 
+void show_stability_test_result(void)
+{
+    uint32 m_sent_total = 0;
+    uint32 s_recv_total = 0;
+
+    for (uint8_t j =0; j < AT_BLE_MAX_CONN; j++)
+    {
+        if (ble_st_conn_env[j].state)
+        {
+            m_sent_total += stability_test_sent_count;
+            s_recv_total += ble_st_conn_env[j].s_recv_count;
+        }
+    }
+
+    os_printf("stability test result : %d-%d(%d.%02d%%)>\r\n", s_recv_total, m_sent_total,
+             (10000 * s_recv_total / m_sent_total) / 100, (10000 * s_recv_total / m_sent_total) % 100);
+}
+
+void ble_stability_test_enable_notification_timer_hdl(void *param, unsigned int ulparam)
+{
+    uint8 con_idx = (uint32)param;
+
+    rtos_deinit_oneshot_timer(&ble_st_conn_env[con_idx].m_tmr);
+
+    bk_ble_gatt_write_ccc(con_idx, (ble_st_conn_env[con_idx].stability_wt_handle + 1), 0x01);
+}
 
 static void ble_stability_sdp_comm_callback(MASTER_COMMON_TYPE type,uint8 conidx,void *param)
 {
@@ -6497,6 +6545,11 @@ static void ble_stability_sdp_comm_callback(MASTER_COMMON_TYPE type,uint8 conidx
     if (MST_TYPE_SDP_END == type)
     {
         bk_ble_gatt_mtu_change(conidx, NULL);
+        if (!rtos_is_oneshot_timer_init(&ble_st_conn_env[conidx].m_tmr))
+        {
+            rtos_init_oneshot_timer(&ble_st_conn_env[conidx].m_tmr, 100, (timer_2handler_t)ble_stability_test_enable_notification_timer_hdl, (void *)((uint32)conidx), 0);
+            rtos_start_oneshot_timer(&ble_st_conn_env[conidx].m_tmr);
+        }
     }
 
     if (type == MST_TYPE_UPP_ASK)
@@ -6508,7 +6561,19 @@ static void ble_stability_sdp_comm_callback(MASTER_COMMON_TYPE type,uint8 conidx
 
 }
 
-static void ble_stability_show_recv_info(uint8_t *value, uint16_t len)
+static void ble_stability_sdp_charac_callback(CHAR_TYPE type,uint8 conidx,uint16_t hdl,uint16_t len,uint8 *data)
+{
+    if (CHARAC_NOTIFY == type)
+    {
+        uint32 s_recv_count = atoi((char*)data);
+        ble_st_conn_env[conidx].s_recv_count = s_recv_count;
+        os_printf("stability test(link %d) <date_len : %d, PRR : %d-%d(%d.%02d%%)>\r\n", conidx, len, s_recv_count, stability_test_sent_count,
+                 (10000 * s_recv_count / stability_test_sent_count) / 100, (10000 * s_recv_count / stability_test_sent_count) % 100);
+
+    }
+}
+
+static void ble_stability_show_recv_info(uint8_t *value, uint16_t len, uint8 con_idx)
 {
     if ((len >= 2) && (0xba == value[0]))
     {
@@ -6529,8 +6594,25 @@ static void ble_stability_show_recv_info(uint8_t *value, uint16_t len)
                 value = value + 2;
                 stability_test_slave_recv_count++;
                 uint32 m_sent_id = atoi((char*)value);
-                os_printf("stability test rx <date_len : %d, PRR : %d-%d(%d.%02d %%)>\r\n", len, stability_test_slave_recv_count, m_sent_id,
+                os_printf("stability test(link %d) <date_len : %d, PRR : %d-%d(%d.%02d%%)>\r\n",con_idx, len, stability_test_slave_recv_count, m_sent_id,
                          (10000 * stability_test_slave_recv_count / m_sent_id) / 100, (10000 * stability_test_slave_recv_count / m_sent_id) % 100);
+
+                char *write_buffer = (char *)os_malloc(len);
+                if (!write_buffer)
+                {
+                    os_printf("%s alloc err\n", __func__);
+                    return;
+                }
+
+                os_memset(write_buffer, 0, len);
+                os_snprintf(write_buffer, len, "%d", stability_test_slave_recv_count);
+
+                ble_err_t ret = bk_ble_send_noti_value(con_idx, len, (uint8_t *)write_buffer, g_test_prf_task_id, TEST_IDX_CHAR_WRITE_TEST_VALUE);
+                if(ret != BK_ERR_BLE_SUCCESS)
+                {
+                    os_printf("%s ret err %d\n", __func__, ret);
+                }
+                os_free(write_buffer);
             }
             else
             {
@@ -6547,7 +6629,17 @@ static void ble_stability_show_recv_info(uint8_t *value, uint16_t len)
 
 void ble_stability_test_timer_hdl(void *param)
 {
-    uint8 *write_buffer;
+    uint8 *write_buffer = NULL;
+
+    if (stability_sent_max && (stability_sent_max == stability_test_sent_count))
+    {
+        if (rtos_is_timer_running(&stability_test_tmr))
+            rtos_stop_timer(&stability_test_tmr);
+        rtos_deinit_timer(&stability_test_tmr);
+
+        show_stability_test_result();
+        return;
+    }
 
     write_buffer = (uint8_t *)os_malloc(stability_sent_data_len);
 
@@ -6563,7 +6655,8 @@ void ble_stability_test_timer_hdl(void *param)
     write_buffer[0] = 0xba;
     write_buffer[1] = 0x2;
 
-    sprintf((char*)(&write_buffer[2]), "%d", stability_test_sent_count);
+    os_snprintf((char*)(&write_buffer[2]), stability_sent_data_len, "%d", stability_test_sent_count);
+    //sprintf((char*)(&write_buffer[2]), "%d", stability_test_sent_count);
 
     for (uint8_t j =0;j < AT_BLE_MAX_CONN; j++)
     {
@@ -6610,6 +6703,7 @@ int ble_stability_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
         {
             os_memset(&ble_st_conn_env, 0, sizeof(ble_st_conn_env));
             bk_ble_register_app_sdp_common_callback(ble_stability_sdp_comm_callback);
+            bk_ble_register_app_sdp_charac_callback(ble_stability_sdp_charac_callback);
             stability_test_m_enabled = 1;
         }
     }
@@ -6622,8 +6716,9 @@ int ble_stability_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
             goto error;
         }
 
-        stability_sent_interval = os_strtoul(argv[1], NULL, 10);
-        stability_sent_data_len = os_strtoul(argv[2], NULL, 10) & 0xFFFF;
+        stability_sent_max = os_strtoul(argv[1], NULL, 10);
+        stability_sent_interval = os_strtoul(argv[2], NULL, 10);
+        stability_sent_data_len = os_strtoul(argv[3], NULL, 10) & 0xFFFF;
 
         if (BK_BLE_HOST_STACK_TYPE_ETHERMIND != bk_ble_get_host_stack_type())
         {
@@ -6635,6 +6730,7 @@ int ble_stability_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
                 {
                     if (ble_st_conn_env[j].state && ble_st_conn_env[j].stability_wt_handle)
                     {
+                        rtos_delay_milliseconds(5);
                         bk_ble_gatt_write_value(j, ble_st_conn_env[j].stability_wt_handle, sizeof(cmd), cmd);
                     }
                     else
@@ -6679,6 +6775,8 @@ int ble_stability_test_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
                 }
             }
         }
+
+        show_stability_test_result();
     }
 
     if (err != BK_ERR_BLE_SUCCESS)
@@ -6713,7 +6811,7 @@ void ble_stability_test_master_reconnect_timer_hdl(void *param, unsigned int ulp
 {
     uint8 con_idx = (uint32)param;
 
-    rtos_deinit_oneshot_timer(&ble_st_conn_env[con_idx].m_recon_tmr);
+    rtos_deinit_oneshot_timer(&ble_st_conn_env[con_idx].m_tmr);
 
     if (bk_ble_get_host_stack_type() != BK_BLE_HOST_STACK_TYPE_ETHERMIND)
     {

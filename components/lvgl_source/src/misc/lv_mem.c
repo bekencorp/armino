@@ -216,6 +216,7 @@ void * lv_mem_realloc(void * data_p, size_t new_size)
     return new_p;
 }
 
+
 void * lv_psram_mem_alloc(size_t size)
 {
     MEM_TRACE("allocating %lu bytes", (unsigned long)size);

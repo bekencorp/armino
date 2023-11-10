@@ -516,7 +516,7 @@ static bk_err_t aud_tras_dac_dma_config(dma_id_t dma_id, int32_t *ring_buff_addr
 		dma_config.dst.end_addr = dac_port_addr + 4;
 	}
 	dma_config.src.addr_inc_en = DMA_ADDR_INC_ENABLE;
-	//dma_config.src.addr_loop_en = DMA_ADDR_LOOP_ENABLE;
+	dma_config.src.addr_loop_en = DMA_ADDR_LOOP_ENABLE;
 	dma_config.src.start_addr = (uint32_t)ring_buff_addr;
 	dma_config.src.end_addr = (uint32_t)(ring_buff_addr) + ring_buff_size;
 

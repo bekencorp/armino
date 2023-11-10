@@ -78,7 +78,8 @@ typedef struct {
 
 typedef void (*hook_func)(void);
 
-extern char _dtcm_ema_start, _dtcm_bss_end;
+extern char _dtcm_ema_start, _dtcm_bss_end, _stack;
+
 extern char _data_start, _end;  //BSS end in SRAM2
 
 extern void reset_vector(void);
@@ -289,7 +290,8 @@ void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context)
 	rtos_dump_plat_sys_regs();
 
 #if CONFIG_MEMDUMP_ALL
-	stack_mem_dump((uint32_t)&_dtcm_ema_start, (uint32_t)&_dtcm_bss_end);
+	//Dump DTCM
+	stack_mem_dump((uint32_t)&_dtcm_ema_start, (uint32_t)&_stack);
 #if CONFIG_CACHE_ENABLE && (!CONFIG_SLAVE_CORE)
 	for (int i = 0; i < SRAM_BLOCK_COUNT; i++) {
 		stack_mem_dump(g_sram_addr_map[i], g_sram_addr_map[i] + 0x20000);
@@ -300,14 +302,14 @@ void user_except_handler (unsigned long mcause, SAVED_CONTEXT *context)
 #endif
 #endif
 
+#if CONFIG_FREERTOS && CONFIG_MEM_DEBUG
+	os_dump_memory_stats(0, 0, NULL);
+#endif
+
 	rtos_dump_backtrace();
 	rtos_dump_task_list();
 #if CONFIG_FREERTOS
 	rtos_dump_task_runtime_stats();
-#endif
-
-#if CONFIG_FREERTOS && CONFIG_MEM_DEBUG
-	os_dump_memory_stats(0, 0, NULL);
 #endif
 
 	arch_dump_cpu_registers(mcause, context);

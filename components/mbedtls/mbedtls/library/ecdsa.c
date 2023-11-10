@@ -880,6 +880,8 @@ int mbedtls_ecdsa_read_signature_restartable( mbedtls_ecdsa_context *ctx,
         goto cleanup;
     }
 #if defined(MBEDTLS_ECDSA_VERIFY_ALT)
+	//mbedtls_printf( " mbedtls_ecdsa_verify Q = %d\r\n", ctx->Q.X.n);
+	//mbedtls_printf( " mbedtls_ecdsa_verify r = %d\r\n", r.n);
     if( ( ret = mbedtls_ecdsa_verify( &ctx->grp, hash, hlen,
                                       &ctx->Q, &r, &s ) ) != 0 )
         goto cleanup;
@@ -1005,4 +1007,187 @@ void mbedtls_ecdsa_restart_free( mbedtls_ecdsa_restart_ctx *ctx )
 }
 #endif /* MBEDTLS_ECP_RESTARTABLE */
 
+
+#if defined(MBEDTLS_SELF_TEST)
+
+static const uint8_t Vector_P384_Message[] =
+{
+    0xAB, 0xE1, 0x0A, 0xCE, 0x13, 0xE7, 0xE1, 0xD9, 0x18, 0x6C, 0x48, 0xF7, 0x88, 0x9D, 0x51, 0x47,
+    0x3D, 0x3A, 0x09, 0x61, 0x98, 0x4B, 0xC8, 0x72, 0xDF, 0x70, 0x8E, 0xCC, 0x3E, 0xD3, 0xB8, 0x16,
+    0x9D, 0x01, 0xE3, 0xD9, 0x6F, 0xC4, 0xF1, 0xD5, 0xEA, 0x00, 0xA0, 0x36, 0x92, 0xBC, 0xC5, 0xCF,
+    0xFD, 0x53, 0x78, 0x7C, 0x88, 0xB9, 0x34, 0xAF, 0x40, 0x4C, 0x03, 0x9D, 0x32, 0x89, 0xB5, 0xBA,
+    0xC5, 0xAE, 0x7D, 0xB1, 0x49, 0x68, 0x75, 0xB5, 0xDC, 0x73, 0xC3, 0x09, 0xF9, 0x25, 0xC1, 0x3D,
+    0x1C, 0x01, 0xAB, 0xDA, 0xAF, 0xEB, 0xCD, 0xAC, 0x2C, 0xEE, 0x43, 0x39, 0x39, 0xCE, 0x8D, 0x4A,
+    0x0A, 0x5D, 0x57, 0xBB, 0x70, 0x5F, 0x3B, 0xF6, 0xEC, 0x08, 0x47, 0x95, 0x11, 0xD4, 0xB4, 0xA3,
+    0x21, 0x1F, 0x61, 0x64, 0x9A, 0xD6, 0x27, 0x43, 0x14, 0xBF, 0x0D, 0x43, 0x8A, 0x81, 0xE0, 0x60
+};
+static void dump_buf( const char *title, unsigned char *buf, size_t len )
+{
+    size_t i;
+
+    mbedtls_printf( "%s", title );
+    for( i = 0; i < len; i++ )
+    {
+	    if(i%8 == 0)
+			mbedtls_printf( "\r\n" );
+
+		mbedtls_printf("%c%c", "0123456789ABCDEF" [buf[i] / 16],
+                       "0123456789ABCDEF" [buf[i] % 16] );
+    }
+	mbedtls_printf( "\r\n" );
+}
+
+static void dump_pubkey( const char *title, mbedtls_ecdsa_context *key )
+{
+    unsigned char buf[300];
+    size_t len;
+
+    if( mbedtls_ecp_point_write_binary( &key->grp, &key->Q,
+                MBEDTLS_ECP_PF_UNCOMPRESSED, &len, buf, sizeof buf ) != 0 )
+    {
+        mbedtls_printf("internal error\n");
+        return;
+    }
+
+    dump_buf( title, buf, len );
+}
+
+extern u64 riscv_get_mtimer(void);
+extern bk_err_t bk_securityip_trng_def_cfg(void);
+extern bk_err_t bk_securityip_get_trng(uint32_t size, uint8_t * RandNum_p);
+static int gen_rand( void *rng_state, unsigned char *output, size_t len )
+{
+	if( rng_state != NULL )
+		rng_state  = NULL;
+
+	bk_securityip_trng_def_cfg();
+	bk_securityip_get_trng(len, output);
+
+	return 0;
+}
+
+int mbedtls_ecdsa_self_test( int verbose ,uint32_t loop)
+{
+	int ret = 1;
+	mbedtls_ecdsa_context ctx_sign, ctx_verify;
+	unsigned char sig[MBEDTLS_ECDSA_MAX_LEN];
+	size_t sig_len;
+	uint32_t i;
+	uint64_t before, after;
+
+	mbedtls_ecdsa_init( &ctx_sign );
+	mbedtls_ecdsa_init( &ctx_verify );
+
+	memset( sig, 0, sizeof( sig ) );
+	if(loop < 1)
+		loop = 1;
+
+	/*
+	 * Generate a key pair for signing
+	 */
+	if( verbose != 0 )
+		mbedtls_printf( " 1. Generating key pair...\r\n  ." );
+
+	if( ( ret = mbedtls_ecdsa_genkey( &ctx_sign, MBEDTLS_ECP_DP_SECP256R1,gen_rand, NULL ) ) != 0 )
+	{
+		mbedtls_printf( " failed\n  ! mbedtls_ecdsa_genkey returned %d\r\n", ret );
+		goto exit;
+	}
+	if( verbose != 0 )
+		dump_pubkey( "  + Public key: ", &ctx_sign );
+
+	/*
+	 * Sign message hash
+	 */
+	if( verbose != 0 )
+		mbedtls_printf( "2. Signing message...\r\n" );
+
+#if CONFIG_ARCH_RISCV
+	before = riscv_get_mtimer();
+#else
+	before = 0;
+#endif
+
+	for(i = 0; i < loop; i++)
+	{
+		if( ( ret = mbedtls_ecdsa_write_signature( &ctx_sign, MBEDTLS_MD_SHA384,
+		                                   Vector_P384_Message, sizeof( Vector_P384_Message ),
+		                                   sig, &sig_len,
+		                                   gen_rand, NULL ) ) != 0 )
+		{
+			mbedtls_printf( " failed\n  ! mbedtls_ecdsa_write_signature returned %d\r\n", ret );
+			goto exit;
+		}
+	}
+#if CONFIG_ARCH_RISCV
+	after = riscv_get_mtimer();
+#else
+	after = 0;
+#endif
+	mbedtls_printf("signature run %d times, take time %d us.\r\n", loop,(after - before) / 26);
+	if( verbose != 0 )
+		dump_buf( "  + Signature: ", sig, sig_len );
+
+	/*
+	 * Transfer public information to verifying context
+	 *
+	 * We could use the same context for verification and signatures, but we
+	 * chose to use a new one in order to make it clear that the verifying
+	 * context only needs the public key (Q), and not the private key (d).
+	 */
+	if( verbose != 0 )
+		mbedtls_printf( "3. Preparing verification context...\r\n" );
+
+	if( ( ret = mbedtls_ecp_group_copy( &ctx_verify.grp, &ctx_sign.grp ) ) != 0 )
+	{
+		mbedtls_printf( " failed\n  ! mbedtls_ecp_group_copy returned %d\r\n", ret );
+		goto exit;
+	}
+
+	if( ( ret = mbedtls_ecp_copy( &ctx_verify.Q, &ctx_sign.Q ) ) != 0 )
+	{
+		mbedtls_printf( " failed\n  ! mbedtls_ecp_copy returned %d\r\n", ret );
+		goto exit;
+	}
+
+	/*
+	 * Verify signature
+	 */
+	if( verbose != 0 )
+		mbedtls_printf( "4. Verifying signature...\r\n" );
+
+#if CONFIG_ARCH_RISCV
+	before = riscv_get_mtimer();
+#else
+	before = 0;
+#endif
+
+	for(i = 0; i < loop; i++)
+	{
+		if( ( ret = mbedtls_ecdsa_read_signature( &ctx_verify,
+		                                  Vector_P384_Message, sizeof( Vector_P384_Message ),
+		                                  sig, sig_len ) ) != 0 )
+		{
+			mbedtls_printf( " failed\n  ! mbedtls_ecdsa_read_signature returned %d\r\n", ret );
+			goto exit;
+		}
+	}
+#if CONFIG_ARCH_RISCV
+	after = riscv_get_mtimer();
+#else
+	after = 0;
+#endif
+	mbedtls_printf("verify run %d times, take time %d us.\r\n", loop,(after - before) / 26);
+	if( verbose != 0 )
+		mbedtls_printf( " ecdsa self test suc\r\n" );
+
+exit:
+
+	mbedtls_ecdsa_free( &ctx_verify );
+	mbedtls_ecdsa_free( &ctx_sign );
+
+	return 0;
+}
+
+#endif
 #endif /* MBEDTLS_ECDSA_C */

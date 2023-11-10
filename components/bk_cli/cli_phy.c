@@ -65,6 +65,7 @@ static const struct cli_command s_phy_commands[] = {
 	{"inter_freq", "start close",                     cmd_inter_freq_config},
 	{"ate_param_select", "flag",                      nv_ate_param_select},
 	{"rfcali_cfg_to_flash",  "",                      cmd_rfcali_cfg_to_flash},
+	{"auto_pwr_change_by_rssi",  "1:enable,0:disable",cmd_auto_pwr_change_by_rssi},
 #endif
 #endif
 #if CONFIG_POWER_TABLE

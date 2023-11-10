@@ -1891,16 +1891,24 @@ void dma2d_memcpy_psram(void *Psrc, void *Pdst, uint32_t xsize, uint32_t ysize, 
 	while (bk_dma2d_is_transfer_busy()) {}
 }
 
-void dma2d_memcpy_psram_wait_last_transform(void *Psrc, void *Pdst, uint32_t xsize, uint32_t ysize, uint32_t src_offline, uint32_t dest_offline)
+static u8 g_dma2d_use_flag = 0;
+void dma2d_memcpy_psram_wait_last_transform_is_finish(void)
 {
-	dma2d_config_t dma2d_config = {0};
-	static u8 flag = 0;
-
-	if(1 == flag)
+	if(1 == g_dma2d_use_flag)
 	{
 		while (bk_dma2d_is_transfer_busy()) {}
-		flag = 0;
+		g_dma2d_use_flag = 0;
 	}
+}
+
+void dma2d_memcpy_psram_wait_last_transform(void *Psrc, void *Pdst, uint32_t xsize, uint32_t ysize, uint32_t src_offline, uint32_t dest_offline)
+{
+#if (CONFIG_LCD_QSPI && CONFIG_LVGL)
+    os_memcpy_word((uint32_t *)Pdst, (const uint32_t *)Psrc, xsize*ysize*2);
+#else
+	dma2d_config_t dma2d_config = {0};
+
+	dma2d_memcpy_psram_wait_last_transform_is_finish();
 
 	/*##-1- Configure the DMA2D Mode, Output Color Mode and output offset #############*/
 	dma2d_config.init.mode         = DMA2D_M2M;             /**< Mode Memory To Memory */
@@ -1921,7 +1929,8 @@ void dma2d_memcpy_psram_wait_last_transform(void *Psrc, void *Pdst, uint32_t xsi
 
 	bk_dma2d_transfer_config(&dma2d_config, (uint32_t)Psrc, (uint32_t)Pdst, xsize/2, ysize);
 	bk_dma2d_start_transfer();
-	flag = 1;
+	g_dma2d_use_flag = 1;
+#endif
 }
 
 bk_err_t lcd_dma2d_driver_blend(lcd_blend_t *lcd_blend)

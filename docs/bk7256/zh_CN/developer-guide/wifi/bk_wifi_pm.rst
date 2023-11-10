@@ -39,12 +39,10 @@ STA定期睡眠和唤醒, 在睡眠状态下, RF、MAC和MODEM理论上处于关
 
     Based on Listen Interval
 
-应用可以通过 ``CONFIG_MM_PS_BASED_ON_LISTEN_INTERVAL`` 来使能这种机制, 通过 ``CONFIG_MM_PS_SET_LISTEN_INTERVAL_VALUE`` 来配置 listen interval值.
+应用可以通过两种方式配置 listen interval值.
 
-.. code::
-
- CONFIG_MM_PS_SET_LISTEN_INTERVAL_VALUE=30
- CONFIG_MM_PS_BASED_ON_LISTEN_INTERVAL=y
+CLI命令方式：set_interval X （1：DTIM1 3:DTIM3 10:DTIM10）
+函数接口调用：bk_wifi_send_listen_interval_req(X) （1：DTIM1 3:DTIM3 10:DTIM10）
 
 通常listen interval越大,节能效果越好, 但listen interval越大, 性能与连接稳定性越差.
 

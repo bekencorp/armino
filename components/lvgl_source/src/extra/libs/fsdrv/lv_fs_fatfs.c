@@ -86,6 +86,7 @@ void lv_fs_fatfs_init(void)
 /**********************
  *   STATIC FUNCTIONS
  **********************/
+
 /*Initialize your Storage device and File system.*/
 static void fs_init(void)
 {

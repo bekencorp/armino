@@ -1,8 +1,8 @@
-/home/jenkins/workspace/Armino_SDK_Preview_All/armino/middleware/boards/bk7256/vnd_flash/vnd_flash_partition.h
-/home/jenkins/workspace/Armino_SDK_Preview_All/armino_main/middleware/boards/bk7256/vnd_flash/vnd_flash_new.c
 /home/jenkins/workspace/Armino_SDK_Preview_All/armino_main/properties/modules/bootloader/aboot/monitor_bootloader/tools/partition_bk7256_ota_a_new.json
-/home/jenkins/workspace/Armino_SDK_Preview_All/armino/middleware/boards/bk7256/vnd_flash/vnd_flash_new.c
+/home/jenkins/workspace/Armino_SDK_Preview_All/armino/middleware/boards/bk7256/configuration.json
+/home/jenkins/workspace/Armino_SDK_Preview_All/armino_main/middleware/boards/bk7256/configuration.json
+/home/jenkins/workspace/Armino_SDK_Preview_All/armino_main/middleware/boards/bk7256/vnd_flash/vnd_flash_new.c
 /home/jenkins/workspace/Armino_SDK_Preview_All/armino_main/properties/modules/bootloader/aboot/bootloader-a-b/tools/partition_bk7256_ota_r_new.json
 /home/jenkins/workspace/Armino_SDK_Preview_All/armino_main/middleware/boards/bk7256/vnd_flash/vnd_flash_partition.h
-/home/jenkins/workspace/Armino_SDK_Preview_All/armino_main/middleware/boards/bk7256/configuration.json
-/home/jenkins/workspace/Armino_SDK_Preview_All/armino/middleware/boards/bk7256/configuration.json
+/home/jenkins/workspace/Armino_SDK_Preview_All/armino/middleware/boards/bk7256/vnd_flash/vnd_flash_partition.h
+/home/jenkins/workspace/Armino_SDK_Preview_All/armino/middleware/boards/bk7256/vnd_flash/vnd_flash_new.c

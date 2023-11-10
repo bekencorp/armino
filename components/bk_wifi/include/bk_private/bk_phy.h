@@ -33,6 +33,7 @@ void cmd_rfcali_get_cfg_tssi(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 void cmd_rfcali_show_data(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 void cmd_rfcali_cfg_to_flash(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 void cmd_cali(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
+void cmd_auto_pwr_change_by_rssi(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);
 
 #if CONFIG_PSRAM
 void cmd_psram(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv);

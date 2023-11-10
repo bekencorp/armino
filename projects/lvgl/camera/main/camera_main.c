@@ -98,7 +98,7 @@ const unsigned int g_sram_addr_map[4] =
 void lvcamera_main_init(void)
 {
 	bk_err_t ret;
-	lv_vnd_config_t lv_vnd_config;
+	lv_vnd_config_t lv_vnd_config = {0};
 
 	os_printf("meter Start\r\n");
 
@@ -116,7 +116,8 @@ void lvcamera_main_init(void)
 	lv_vnd_config.draw_pixel_size = (30 * 1024) / sizeof(lv_color_t);
 	lv_vnd_config.draw_buf_2_1 = LV_MEM_CUSTOM_ALLOC(lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));
 	lv_vnd_config.draw_buf_2_2 = NULL;
-	lv_vnd_config.sram_frame_buf = (lv_color_t *)PSRAM_FRAME_BUFFER;
+	lv_vnd_config.sram_frame_buf_1 = (lv_color_t *)PSRAM_FRAME_BUFFER;
+	lv_vnd_config.sram_frame_buf_2 = (lv_color_t *)PSRAM_FRAME_BUFFER + ppi_to_pixel_x(lcd_open.device_ppi)*ppi_to_pixel_y(lcd_open.device_ppi) * sizeof(lv_color_t);
 #endif
 	lv_vnd_config.rotation = ROTATE_NONE;
 	lv_vnd_config.color_depth = LV_COLOR_DEPTH;
@@ -126,7 +127,6 @@ void lvcamera_main_init(void)
 #endif
 
 	lv_vendor_init(&lv_vnd_config, ppi_to_pixel_x(lcd_open.device_ppi), ppi_to_pixel_y(lcd_open.device_ppi));
-	media_app_lcd_rotate(BK_TRUE);
 	ret = media_app_lcd_open((lcd_open_t *)&lcd_open);
 	lv_vendor_start();
 

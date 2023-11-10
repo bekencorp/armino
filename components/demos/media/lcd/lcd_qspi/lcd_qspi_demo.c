@@ -198,7 +198,7 @@ void cli_lcd_qspi_display_picture_test_cmd(char *pcWriteBuffer, int xWriteBuffer
 void cli_lcd_qspi_read_reg_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	qspi_config_t lcd_qspi_config = {0};
-	lcd_qspi_reg_read_config_t read_config = {0};
+	uint8_t idx = 0;
 
 	lcd_qspi_config.src_clk = 5;
 	lcd_qspi_config.src_clk_div = 4;
@@ -206,15 +206,19 @@ void cli_lcd_qspi_read_reg_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, in
 	BK_LOG_ON_ERR(bk_qspi_init(&lcd_qspi_config));
 	rtos_delay_milliseconds(2);
 
-	device_config = bk_lcd_qspi_get_device_by_name("sh8601a");
+	device_config = bk_lcd_qspi_get_device_by_name("st77903");
 	bk_lcd_qspi_init(device_config);
 
-	read_config.cmd = os_strtoul(argv[1], NULL, 16) & 0xFF;
-	read_config.data_line = LCD_QSPI_DATA_1_LINE;
-	read_config.data_len = os_strtoul(argv[2], NULL, 10) & 0xFF;
-	read_config.dummy_clk = 1;
-	read_config.dummy_mode = LCD_QSPI_CMD4_DUMMY_CLK_CMD5;
-	bk_lcd_qspi_read_data(read_config, device_config);
+	device_config->reg_read_config.cmd = os_strtoul(argv[1], NULL, 16) & 0xFF;
+	device_config->reg_read_config.data_len = os_strtoul(argv[2], NULL, 10) & 0xFF;
+	device_config->reg_read_config.dummy_clk = 0;
+	device_config->reg_read_config.dummy_mode = 0;
+
+	uint8_t reg_data[device_config->reg_read_config.data_len];
+	bk_lcd_qspi_read_data(reg_data, device_config);
+	for (idx = 0; idx < device_config->reg_read_config.data_len; idx++) {
+		os_printf("reg_data[%d]: 0x%02x\r\n", idx, reg_data[idx]);
+	}
 }
 
 

@@ -83,6 +83,7 @@ arminodocs: | check_python_packages
 	time_interval=`expr $${current_time} - $(START_TIME)`; \
 	runtime=`date -u -d @$${time_interval} +%Hh:%Mm:%Ss`; \
 	echo ${YELLOW}"######## runtime: $${runtime} ########"${DEFAULT}
+	../check_doc_warnings.sh
 
 dirhtml: | check_python_packages
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml $(PROCESSES)

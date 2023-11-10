@@ -646,19 +646,19 @@ INSERTED:
 static inline void show_mem_info(BlockLink_t *pxLink)
 {
 #if CONFIG_MEM_DEBUG_FUNC_NAME && CONFIG_MEM_DEBUG_TASK_NAME
-	BK_LOG_RAW("%-8d   0x%-8x   %-4d   %-5d   %-32s   %-16s\r\n",
+	BK_DUMP_OUT("%-8d   0x%-8x   %-4d   %-5d   %-32s   %-16s\r\n",
 		pxLink->allocTime, (u8*)pxLink + xHeapStructSize, pxLink->wantedSize,
 		pxLink->line, pxLink->funcName, pxLink->taskName);
 #elif  CONFIG_MEM_DEBUG_FUNC_NAME
-	BK_LOG_RAW("%-8d   0x%-8x   %-4d   %-5d   %-32s\r\n",
+	BK_DUMP_OUT("%-8d   0x%-8x   %-4d   %-5d   %-32s\r\n",
 		pxLink->allocTime, (u8*)pxLink + xHeapStructSize, pxLink->wantedSize,
 		pxLink->line, pxLink->funcName);
 #elif CONFIG_MEM_DEBUG_TASK_NAME
-	BK_LOG_RAW("%-8d   0x%-8x   %-4d   %-5d   %-16s\r\n",
+	BK_DUMP_OUT("%-8d   0x%-8x   %-4d   %-5d   %-16s\r\n",
 		pxLink->allocTime, (u8*)pxLink + xHeapStructSize, pxLink->wantedSize,
 		pxLink->line, pxLink->taskName);
 #else
-	BK_LOG_RAW("%-8d   0x%-8x   %-4d   %-5d\r\n",
+	BK_DUMP_OUT("%-8d   0x%-8x   %-4d   %-5d\r\n",
 		pxLink->allocTime, (u8*)pxLink + xHeapStructSize, pxLink->wantedSize,
 		pxLink->line);
 #endif
@@ -675,7 +675,7 @@ static inline void mem_overflow_check(BlockLink_t *pxLink)
 		|| MEM_OVERFLOW_TAG != mem_end[2]
 		|| MEM_OVERFLOW_TAG != mem_end[3])
 	{
-		BK_LOG_RAW("Mem Overflow ............\r\n");
+		BK_DUMP_OUT("Mem Overflow ............\r\n");
 		show_mem_info(pxLink);
 		configASSERT( false );
 	}
@@ -984,27 +984,27 @@ void xPortDumpMemStats(uint32_t start_tick, uint32_t ticks_since_malloc, const c
 {
 	BlockLink_t *pxLink;
 
-	BK_LOG_RAW("%-8s   %-10s   %-4s   %-5s", "tick", "addr", "size", "line");
+	BK_DUMP_OUT("%-8s   %-10s   %-4s   %-5s", "tick", "addr", "size", "line");
 
 #if CONFIG_MEM_DEBUG_FUNC_NAME
-	BK_LOG_RAW("   %-32s", "func");
+	BK_DUMP_OUT("   %-32s", "func");
 #endif
 
 #if CONFIG_MEM_DEBUG_TASK_NAME
-	BK_LOG_RAW("   %-16s", "task");
+	BK_DUMP_OUT("   %-16s", "task");
 #endif
-	BK_LOG_RAW("\n");
+	BK_DUMP_OUT("\n");
 
-	BK_LOG_RAW("%-8s   %-10s   %-4s   %-5s", "--------", "----------", "----", "-----");
+	BK_DUMP_OUT("%-8s   %-10s   %-4s   %-5s", "--------", "----------", "----", "-----");
 
 #if CONFIG_MEM_DEBUG_FUNC_NAME
-	BK_LOG_RAW("   %-32s", "--------------------------------");
+	BK_DUMP_OUT("   %-32s", "--------------------------------");
 #endif
 
 #if CONFIG_MEM_DEBUG_TASK_NAME
-	BK_LOG_RAW("   %-16s", "----------------");
+	BK_DUMP_OUT("   %-16s", "----------------");
 #endif
-	BK_LOG_RAW("\n");
+	BK_DUMP_OUT("\n");
 
 	vTaskSuspendAll();
 
@@ -1194,6 +1194,8 @@ uint32_t prvHeapGetTotalSize(void)
 
 #endif //#if configDYNAMIC_HEAP_SIZE
 
+void rtos_regist_plat_dump_hook(uint32_t reg_base_addr, uint32_t reg_size);
+
 static void prvHeapInit( void )
 {
 	BlockLink_t *pxFirstFreeBlock;
@@ -1204,6 +1206,7 @@ static void prvHeapInit( void )
 	#if configDYNAMIC_HEAP_SIZE
 	xTotalHeapSize = prvHeapGetTotalSize();
 	ucHeap = prvHeapGetHeaderPointer();
+	rtos_regist_plat_dump_hook((uint32_t)ucHeap, xTotalHeapSize);
 	#else
 	xTotalHeapSize = configTOTAL_HEAP_SIZE;
 	#endif

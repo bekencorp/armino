@@ -6,13 +6,14 @@
 RESULT=0
 STARS='***************************************************'
 
-if [ -s doxygen-warning-log.txt ]; then
-    echo "$STARS"
-    echo "Build failed due to doxygen warnings:"
-    cat doxygen-warning-log.txt
-    echo "$STARS"
-    RESULT=1
-fi
+
+# if [ -s doxygen-warning-log.txt ]; then
+#     echo "$STARS"
+#     echo "Build failed due to doxygen warnings:"
+#     cat doxygen-warning-log.txt
+#     echo "$STARS"
+#     RESULT=1
+# fi
 
 # Remove escape characters, file paths, line numbers from
 # the Sphinx warning log

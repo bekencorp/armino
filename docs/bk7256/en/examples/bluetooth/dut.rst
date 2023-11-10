@@ -1,7 +1,7 @@
 DUT
 ========================
 
-:link_to_translation:`zh_CN:[Chinese]`
+:link_to_translation:`zh_CN:[中文]`
 
 Overview
 --------------------------
@@ -146,3 +146,15 @@ Introduction
 		| rx ：``01 e0 fc 0c fd 9c bd 35 9c 07 00 00 00 01 04 7f``
 		| end tx/rx ：``01 E0 FC 01 90``
 		| Received end resp ：``04 0E 18 01 E0 FC 90 DD 13 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00``
+
+
+Reference link
+----------------
+
+    `API Reference : <../../api-reference/bluetooth/index.html>`_ Introduced the Bluetooth API interface
+
+    `User and Developer Guide : <../../developer-guide/bluetooth/index.html>`_ Introduced common usage scenarios of Bluetooth
+
+    `Samples and Demos: <../../examples/bluetooth/index.html>`_ Introduced the use and operation of Bluetooth samples
+
+    `Bluetooth Project: <../../projects_work/bluetooth/index.html>`_ Introduced Bluetooth related Project

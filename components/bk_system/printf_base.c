@@ -24,9 +24,6 @@
 #include "printf_impl.h"
 
 
-void bk_set_printf_port(uint8_t port_num);
-int bk_get_printf_port(void);
-
 static bool s_printf_init = false;
 static uint8_t s_print_port = CONFIG_UART_PRINT_PORT;
 
@@ -40,7 +37,7 @@ bk_err_t bk_printf_deinit(void)
     s_printf_init = false;
 
 #if (!CONFIG_SLAVE_CORE)
-	bk_uart_deinit(bk_get_printf_port());
+	bk_uart_deinit(s_print_port);
 #endif
 	printf_lock_deinit();
 	return BK_OK;
@@ -50,8 +47,15 @@ bk_err_t bk_printf_init(void)
 {
 	int ret;
 
+	ret = printf_lock_init();
+    if (BK_OK != ret) 
+	{
+		return ret;
+    }
+
 #if (!CONFIG_SLAVE_CORE)
-        const uart_config_t config = {
+        const uart_config_t config = 
+        {
                 .baud_rate = UART_BAUD_RATE,
                 .data_bits = UART_DATA_8_BITS,
                 .parity = UART_PARITY_NONE,
@@ -59,29 +63,19 @@ bk_err_t bk_printf_init(void)
                 .flow_ctrl = UART_FLOWCTRL_DISABLE,
                 .src_clk = UART_SCLK_XTAL_26M
         };
-#endif
 
-	ret = printf_lock_init();
-        if (BK_OK != ret) {
-                return ret;
-        }
-
-#if (!CONFIG_SLAVE_CORE)
-        ret = bk_uart_init(bk_get_printf_port(), &config);
+        ret = bk_uart_init(s_print_port, &config);
         if (BK_OK != ret)
-		goto _bk_printf_init_fail;
+        {
+			bk_printf_deinit();
+			return ret;
+        }
 
 #endif
 
 	s_printf_init = true;
 
 	return BK_OK;
-
-#if (!CONFIG_SLAVE_CORE)
-_bk_printf_init_fail:
-	bk_printf_deinit();
-	return ret;
-#endif
 }
 
 void bk_null_printf(const char *fmt, ...)

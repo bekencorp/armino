@@ -116,10 +116,12 @@ SECTIONS
 		{ KEEP(*(.dtcm_sec_bss )) }
 	_dtcm_bss_end = .;
 	DTCM_SIZE = . - DTCM_BEGIN;
+	. = . + 0;
 	. = 0x30000000;
 	SRAM1_BEGIN = .;
 	.video_spec_data 	: AT(LOADADDR (.dtcm_sec_bss) + SIZEOF (.dtcm_sec_bss))
 		{ KEEP(*(.video_spec_data )) }
+	_sram_start = ADDR(.video_spec_data);
 	_video_start = ADDR(.video_spec_data);
 	SRAM1_SIZE = . - SRAM1_BEGIN;
 	. = 0x30078C00;
@@ -216,6 +218,9 @@ SECTIONS
 	PROVIDE (end = .);
 	PROVIDE (_stack = 0x20007FE0);
 	SRAM2_SIZE = . - SRAM2_BEGIN;
+	. = . + 0;
+	. = ALIGN(16);
+	_sram_end = .;
 	. = 0x3007FC00;
 	SWAP_BEGIN = .;
 	.swap_data 	: AT(LOADADDR (.sdata_f) + SIZEOF (.sdata_f))

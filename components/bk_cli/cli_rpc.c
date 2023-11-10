@@ -35,7 +35,6 @@ static void debug_help_command(char *pcWriteBuffer, int xWriteBufferLen, int arg
 
 #ifdef CONFIG_DUAL_CORE
 #include "mb_ipc_cmd.h"
-// #include <driver/gpio.h>
 
 #include "amp_lock_api.h"
 
@@ -121,46 +120,6 @@ static void print_debug_cmd_help(void *func)
 {
 	print_cmd_help(debug_cmds, ARRAY_SIZE(debug_cmds), func);
 }
-
-#if 0
-
-static u8     rpc_inited = 0;
-
-static void debug_rpc_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-	int ret_val;
-
-	if(rpc_inited)
-	{
-		BK_LOGI(TAG,"rpc started\r\n");
-		return;
-	}
-
-	ret_val = rpc_init();
-	sprintf(pcWriteBuffer,"rpc init: %d\r\n", ret_val);
-	rpc_inited = 1;
-
-#if CONFIG_MASTER_CORE
-
-	if(ipc_inited)
-	{
-		ret_val = ipc_send_test_cmd(0x12);
-		BK_LOGI(TAG,"ipc server test: ret=%d\r\n", ret_val);
-
-		ret_val = ipc_send_get_ps_flag();
-		BK_LOGI(TAG,"ipc server ps: ret= 0x%x\r\n", ret_val);
-
-		ret_val = ipc_send_get_heart_rate();
-		BK_LOGI(TAG,"ipc server hr: ret= 0x%x\r\n", ret_val);
-
-		ret_val = ipc_send_set_heart_rate(0x33);
-		BK_LOGI(TAG,"ipc server set hr: ret= %d\r\n", ret_val);
-	}
-
-#endif
-
-}
-#endif
 
 static void debug_ipc_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
@@ -254,44 +213,6 @@ static void debug_spinlock_command(char *pcWriteBuffer, int xWriteBufferLen, int
 
 	}
 }
-
-#if 0
-extern bk_err_t bk_gpio_enable_output_rpc(gpio_id_t gpio_id);
-extern bk_err_t bk_gpio_set_output_high_rpc(gpio_id_t gpio_id);
-extern bk_err_t bk_gpio_set_output_low_rpc(gpio_id_t gpio_id);
-
-static void debug_rpc_gpio_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
-{
-#if CONFIG_SLAVE_CORE
-
-	int ret_val;
-
-	u32 gpio_id = 0;
-	u32 level = 0;
-
-	if (argc < 3)
-	{
-		print_debug_cmd_help(debug_rpc_gpio_command);
-		return;
-	}
-
-	gpio_id = strtoul(argv[1], NULL, 0);
-	level   = strtoul(argv[2], NULL, 0);
-
-	ret_val = bk_gpio_enable_output_rpc(gpio_id);
-	BK_LOGI(TAG,"rpc gpio:ret=%d\r\n", ret_val);
-
-	if(level)
-		ret_val = bk_gpio_set_output_high_rpc(gpio_id);
-	else
-		ret_val = bk_gpio_set_output_low_rpc(gpio_id);
-
-	BK_LOGI(TAG,"rpc gpio:ret=%d\r\n", ret_val);
-
-#endif
-
-}
-#endif
 
 static void debug_cpulock_command(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {

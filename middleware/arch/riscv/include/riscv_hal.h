@@ -16,5 +16,20 @@
 #define __RISCV_HAL_H__
 
 #include "rv_interrupt.h"
-
+#include <common/bk_err.h>
+/**
+ * @brief get the uninitialized 1k sram base address
+ *
+ * get the uninitialized 1k sram base address
+ *
+ * @attention
+ *-This API is used to get the uninitialized 1k sram base address
+ *
+ * @param
+ * none
+ * @return
+ *-the base address of uninitialized 1k sram
+ *
+ */
+bk_err_t bk_arch_uninitialized_1k_sram_base_addr_get();
 #endif //#ifndef __RISCV_HAL_H__

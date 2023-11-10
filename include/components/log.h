@@ -140,33 +140,43 @@ void bk_mem_dump(const char* titile, uint32_t start, uint32_t len);
 #define BK_LOG_FORMAT(letter, format)   #letter "(%d):" format
 
 #if (LOG_LEVEL >= BK_LOG_ERROR)
-#define BK_LOGE( tag, format, ... ) bk_printf_ex(BK_LOG_ERROR, tag, tag ":" BK_LOG_FORMAT(E, format), rtos_get_time(),  ##__VA_ARGS__)
+#define BK_LOGE( tag, format, ... ) bk_printf_ext(BK_LOG_ERROR, tag, format,  ##__VA_ARGS__)
+#define BK_RAW_LOGE( tag, format, ... ) bk_printf_raw(BK_LOG_ERROR, tag, format,  ##__VA_ARGS__)
 #else
 #define BK_LOGE(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
+#define BK_RAW_LOGE(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_WARN)
-#define BK_LOGW( tag, format, ... ) bk_printf_ex(BK_LOG_WARN, tag, tag ":" BK_LOG_FORMAT(W, format), rtos_get_time(),  ##__VA_ARGS__)
+#define BK_LOGW( tag, format, ... ) bk_printf_ext(BK_LOG_WARN, tag, format,  ##__VA_ARGS__)
+#define BK_RAW_LOGW( tag, format, ... ) bk_printf_raw(BK_LOG_WARN, tag, format,  ##__VA_ARGS__)
 #else
 #define BK_LOGW(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
+#define BK_RAW_LOGW(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_INFO)
-#define BK_LOGI( tag, format, ... ) bk_printf_ex(BK_LOG_INFO, tag, tag ":" BK_LOG_FORMAT(I, format), rtos_get_time(),  ##__VA_ARGS__)
+#define BK_LOGI( tag, format, ... ) bk_printf_ext(BK_LOG_INFO, tag, format,  ##__VA_ARGS__)
+#define BK_RAW_LOGI( tag, format, ... ) bk_printf_raw(BK_LOG_INFO, tag, format,  ##__VA_ARGS__)
 #else
 #define BK_LOGI(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
+#define BK_RAW_LOGI(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_DEBUG)
-#define BK_LOGD( tag, format, ... ) bk_printf_ex(BK_LOG_DEBUG, tag, tag ":" BK_LOG_FORMAT(D, format), rtos_get_time(),  ##__VA_ARGS__)
+#define BK_LOGD( tag, format, ... ) bk_printf_ext(BK_LOG_DEBUG, tag, format,  ##__VA_ARGS__)
+#define BK_RAW_LOGD( tag, format, ... ) bk_printf_raw(BK_LOG_DEBUG, tag, format,  ##__VA_ARGS__)
 #else
 #define BK_LOGD(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
+#define BK_RAW_LOGD(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_VERBOSE)
-#define BK_LOGV( tag, format, ... ) bk_printf_ex(BK_LOG_VERBOSE, tag, tag ":" BK_LOG_FORMAT(V, format), rtos_get_time(), ##__VA_ARGS__)
+#define BK_LOGV( tag, format, ... ) bk_printf_ext(BK_LOG_VERBOSE, tag, format, ##__VA_ARGS__)
+#define BK_RAW_LOGV( tag, format, ... ) bk_printf_raw(BK_LOG_VERBOSE, tag, format, ##__VA_ARGS__)
 #else
 #define BK_LOGV(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
+#define BK_RAW_LOGV(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
 #endif
 
 #define BK_SPY( spy_id, byte_array, byte_cnt )		shell_spy_out(spy_id, byte_array, byte_cnt)

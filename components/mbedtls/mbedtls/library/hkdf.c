@@ -192,4 +192,76 @@ exit:
     return( ret );
 }
 
+#if defined(MBEDTLS_SELF_TEST)
+#include <stdlib.h>
+#include "md_internal.h"
+
+#define mbedtls_printf os_printf
+
+const unsigned char ikm_val[] =
+{
+	0xAB, 0xE1, 0x0A, 0xCE, 0x13, 0xE7, 0xE1, 0xD9, 0x18, 0x6C, 0x48, 0xF7, 0x88, 0x9D, 0x51, 0x47,
+	0x3D, 0x3A, 0x09, 0x61, 0x98, 0x4B, 0xC8, 0x72, 0xDF, 0x70, 0x8E, 0xCC, 0x3E, 0xD3, 0xB8, 0x16
+}; 
+
+const unsigned char info_val[] =
+{
+	0x9D, 0x01, 0xE3, 0xD9, 0x6F, 0xC4, 0xF1, 0xD5, 0xEA, 0x00, 0xA0, 0x36, 0x92, 0xBC, 0xC5, 0xCF,
+	0xFD, 0x53, 0x78, 0x7C, 0x88, 0xB9, 0x34, 0xAF, 0x40, 0x4C, 0x03, 0x9D, 0x32, 0x89, 0xB5, 0xBA
+};
+
+static void dump_buf( const char *title, unsigned char *buf, size_t len )
+{
+	size_t i;
+
+	mbedtls_printf( "%s", title );
+	for( i = 0; i < len; i++ )
+	{
+		if(i%8 == 0)
+			mbedtls_printf( "\r\n" );
+
+		mbedtls_printf("%c%c", "0123456789ABCDEF" [buf[i] / 16],
+                       "0123456789ABCDEF" [buf[i] % 16] );
+	}
+	mbedtls_printf( "\r\n" );
+}
+
+extern u64 riscv_get_mtimer(void);
+int mbedtls_hkdf_self_test( int verbose , mbedtls_md_type_t type, uint32_t okm_size)
+{
+	int ret = 0;
+	const mbedtls_md_info_t *md;
+	unsigned char *okm;
+	u64 before, after =  0;
+
+	okm = malloc(okm_size);
+	if(okm == NULL)
+		return MBEDTLS_ERR_MD_ALLOC_FAILED;
+
+	md = mbedtls_md_info_from_type(type);
+
+#if CONFIG_ARCH_RISCV
+    before = riscv_get_mtimer();
+#else
+    before = 0;
+#endif
+
+	ret = mbedtls_hkdf( md, NULL,0,
+						ikm_val, sizeof(ikm_val),
+						info_val, sizeof(info_val),
+						okm,okm_size );
+
+#if CONFIG_ARCH_RISCV
+    after = riscv_get_mtimer();
+#else
+    after = 0;
+#endif
+	mbedtls_printf("run 1 times, take time %d us.\r\n", (uint32_t)(after - before) / 26);
+	if( verbose != 0 )
+		dump_buf("hkdf:",okm,okm_size);
+
+	free(okm);
+	return ret;
+}
+#endif
 #endif /* MBEDTLS_HKDF_C */

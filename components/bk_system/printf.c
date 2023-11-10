@@ -24,12 +24,8 @@
 #include "bk_api_cli.h"
 #endif
 
-#if (CONFIG_SHELL_ASYNCLOG && CONFIG_SLAVE_CORE)
-#define CPU1_TAG "cpu1"
-#endif
-
 #ifndef CONFIG_PRINTF_BUF_SIZE
-#define CONFIG_PRINTF_BUF_SIZE    (128)
+#define CONFIG_PRINTF_BUF_SIZE    (136)
 #endif
 
 static uint8_t s_printf_enable = 1;
@@ -63,74 +59,134 @@ int printf_lock_deinit(void)
 	return BK_OK;
 }
 
-#if CONFIG_ARCH_ARM9
-static void irq_printf(const char *fmt, va_list ap)
-{
-	char string[CONFIG_PRINTF_BUF_SIZE];
-
-	vsnprintf(string, sizeof(string) - 1, fmt, ap);
-	string[CONFIG_PRINTF_BUF_SIZE - 1] = 0;
-	uart_write_string(bk_get_printf_port(), string);
-}
-#endif
-
-
-static void task_printf(const char *fmt, va_list ap)
-{
-	char string[CONFIG_PRINTF_BUF_SIZE];
-
-	vsnprintf(string, sizeof(string) - 1, fmt, ap);
-	string[CONFIG_PRINTF_BUF_SIZE - 1] = 0;
-	uart_write_string(bk_get_printf_port(), string);
-
-}
-
-
 static void bk_printf_sync(const char *fmt, va_list args)
 {
 	if(!printf_is_init())
 		return;
 
-#if (CONFIG_ARCH_RISCV || CONFIG_ARCH_CM33)
+	char string[CONFIG_PRINTF_BUF_SIZE];
 
-	task_printf(fmt, args);
+	strcpy(string, "[SYNC]:");
 
-#else // #if CONFIG_ARCH_RISCV
-
-	uint32_t cpsr_val = 0; // rtos_get_cpsr();
-	uint32_t arm_mode = cpsr_val & /*ARM968_MODE_MASK*/0x1f;
-
-	if ((/*ARM_MODE_FIQ*/17 == arm_mode)
-		|| (/*ARM_MODE_ABT*/23 == arm_mode)
-		|| (/*ARM_MODE_UND*/27 == arm_mode)
-		|| (!rtos_is_scheduler_started()))
-		irq_printf(fmt, args);
-	else if (/*ARM_MODE_IRQ*/18 == arm_mode)
-		irq_printf(fmt, args);
-	else
-		task_printf(fmt, args);
-
-#endif // #if CONFIG_ARCH_RISCV
+	vsnprintf(&string[7], sizeof(string) - 8, fmt, args);
+	string[CONFIG_PRINTF_BUF_SIZE - 1] = 0;
+	uart_write_string(bk_get_printf_port(), string);
 }
 
-void bk_printf_port(int level, char *tag, const char *fmt, va_list args)
+static void bk_printf_raw_sync(const char *fmt, va_list args)
 {
-#if (!CONFIG_SLAVE_CORE)
-	if (!rtos_is_scheduler_started()) {
-		task_printf(fmt, args);
+	if(!printf_is_init())
 		return;
-	}
-#endif
 
+	char string[CONFIG_PRINTF_BUF_SIZE];
+
+	vsnprintf(&string[0], sizeof(string), fmt, args);
+	string[CONFIG_PRINTF_BUF_SIZE - 1] = 0;
+	uart_write_string(bk_get_printf_port(), string);
+}
+
+static const char * level_format[] = 
+{
+	"%s%s",
+	"%s%s:E(%d):",
+	"%s%s:W(%d):",
+	"%s%s:I(%d):",
+	"%s%s:D(%d):",
+	"%s%s:V(%d):",
+};
+
+#include <os/str.h>
+
+#define CPU_STR_LEN		6
+
+static void bk_printf_port_ext(int level, char *tag, const char *fmt, va_list args)
+{
+#if CONFIG_SHELL_ASYNCLOG
+
+#define MAX_TAG_LEN		8
+#define MAX_INFO_LEN	16
+
+	if(s_printf_sync == 0)
+	{
+		char prefix_str[CPU_STR_LEN + MAX_TAG_LEN + MAX_INFO_LEN + 1];
+		char tag_str[MAX_TAG_LEN + 1];
+		char cpu_str[CPU_STR_LEN + 1];
+
+		int     fmt_idx = level;
+
+		if(tag != NULL)
+		{
+			strncpy(tag_str, tag, MAX_TAG_LEN);
+			tag_str[MAX_TAG_LEN] = 0;
+		}
+		else
+		{
+			tag_str[0] = 0;
+			fmt_idx = 0;
+		}
+
+		int  cpu_id = shell_get_cpu_id();
+
+		if(cpu_id >= 0)
+		{
+			os_snprintf(cpu_str, sizeof(cpu_str), "cpu%d:", cpu_id);
+		}
+		else
+		{
+			cpu_str[0] = 0;
+		}
+
+		os_snprintf(prefix_str, sizeof(prefix_str), level_format[fmt_idx], cpu_str, tag_str, rtos_get_time());
+
+		shell_log_out_port(level, prefix_str, fmt, args);
+	}
+	else
+	{
+		bk_printf_sync(fmt, args);
+	}
+
+#else
+	bk_printf_sync(fmt, args);
+#endif // #if CONFIG_SHELL_ASYNCLOG
+}
+
+static void bk_printf_raw_port(int level, char *tag, const char *fmt, va_list args)
+{
 #if CONFIG_SHELL_ASYNCLOG
 
 	if(s_printf_sync == 0)
 	{
-	#if (CONFIG_SLAVE_CORE)
-		shell_log_out_port(level, CPU1_TAG, fmt, args);
-	#else
 		shell_log_out_port(level, NULL, fmt, args);
-	#endif
+	}
+	else
+	{
+		bk_printf_raw_sync(fmt, args);
+	}
+
+#else
+	bk_printf_raw_sync(fmt, args);
+#endif // #if CONFIG_SHELL_ASYNCLOG
+}
+
+static void bk_printf_port(int level, char *tag, const char *fmt, va_list args)
+{
+#if CONFIG_SHELL_ASYNCLOG
+
+	if(s_printf_sync == 0)
+	{
+		char cpu_str[CPU_STR_LEN + 1];
+		int  cpu_id = shell_get_cpu_id();
+
+		if(cpu_id >= 0)
+		{
+			os_snprintf(cpu_str, sizeof(cpu_str), "cpu%d:", cpu_id);
+		}
+		else
+		{
+			cpu_str[0] = 0;
+		}
+
+		shell_log_out_port(level, cpu_str, fmt, args);
 	}
 	else
 	{
@@ -152,9 +208,14 @@ void bk_printf(const char *fmt, ...)
 	if(!s_printf_enable)
 		return;
 
+	int    level = BK_LOG_INFO;
+
+	if( !shell_level_check_valid(level) )  /* check here instead of in shell_log_out to reduce API instructions. */
+		return;
+
 	va_start(args, fmt);
 
-	bk_printf_port(BK_LOG_ERROR, NULL, fmt, args);
+	bk_printf_port_ext(level, NULL, fmt, args);
 
 	va_end(args);
 
@@ -197,24 +258,13 @@ int bk_white_list_state(void)
 
 void bk_buf_printf_sync(char *buf, int buf_len)
 {
-	if (!printf_is_init())
-		return;
-
-	if (!s_printf_enable) {
-	    return;
-	}
-
-	if (NULL == buf || buf_len <= 0)
-		return;
-
-	buf[buf_len -1] = '\0';
-
-	uart_write_string(bk_get_printf_port(), buf);
+	return;
 }
 
-
-
-void bk_printf_ex(int level, char *tag, const char *fmt, ...)
+/*  ========= !! NOTE !! =========  */
+/*          Obsoleted  API          */
+/* use bk_printf_ext(...) instead.  */
+void bk_printf_ex(int level, char *tag, const char *fmt, ...)   /* Obsoleted  API */
 {
 #if CONFIG_SHELL_ASYNCLOG
 
@@ -223,7 +273,7 @@ void bk_printf_ex(int level, char *tag, const char *fmt, ...)
 	if(!printf_is_init())
 		return;
 
-	if(level > shell_get_log_level())  /* check here instead of in shell_log_out to reduce API instructions. */
+	if( !shell_level_check_valid(level) )  /* check here instead of in shell_log_out to reduce API instructions. */
 		return;
 
 	if(bk_mod_printf_disbled(tag) ^ whitelist_enabled)
@@ -232,6 +282,56 @@ void bk_printf_ex(int level, char *tag, const char *fmt, ...)
 	va_start(args, fmt);
 
 	bk_printf_port(level, tag, fmt, args);
+
+	va_end(args);
+
+#endif
+	return;
+}
+
+void bk_printf_ext(int level, char *tag, const char *fmt, ...)
+{
+#if CONFIG_SHELL_ASYNCLOG
+
+	va_list args;
+
+	if(!printf_is_init())
+		return;
+
+	if( !shell_level_check_valid(level) )  /* check here instead of in shell_log_out to reduce API instructions. */
+		return;
+
+	if(bk_mod_printf_disbled(tag) ^ whitelist_enabled)
+		return;
+
+	va_start(args, fmt);
+
+	bk_printf_port_ext(level, tag, fmt, args);
+
+	va_end(args);
+
+#endif
+	return;
+}
+
+void bk_printf_raw(int level, char *tag, const char *fmt, ...)
+{
+#if CONFIG_SHELL_ASYNCLOG
+
+	va_list args;
+
+	if(!printf_is_init())
+		return;
+
+	if( !shell_level_check_valid(level) )  /* check here instead of in shell_log_out to reduce API instructions. */
+		return;
+
+	if(bk_mod_printf_disbled(tag) ^ whitelist_enabled)
+		return;
+
+	va_start(args, fmt);
+
+	bk_printf_raw_port(level, tag, fmt, args);
 
 	va_end(args);
 

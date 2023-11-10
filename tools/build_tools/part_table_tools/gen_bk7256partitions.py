@@ -378,6 +378,8 @@ class Bk7256PartTableGenerator:
                     part_table_temp.append(p)
                 if re.match(r'^application(\d)*$',p.name):
                     part_table_temp.append(p)
+                if re.match(r'^ota_fina_executive(\d)*$',p.name):
+                    part_table_temp.append(p)
             for p in part_table_temp:
                 p.name = parse_int(p.name, KEYWORDS, stop = False)
             for p in sorted(part_table_temp, key=lambda x:x.offset):

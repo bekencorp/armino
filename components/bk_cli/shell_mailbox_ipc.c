@@ -4,7 +4,7 @@
 
 #include "cli.h"
 #include "shell_drv.h"
-#include "mailbox_channel.h"
+#include <driver/mailbox_channel.h>
 
 #if CONFIG_CACHE_ENABLE
 #include "cache.h"
@@ -13,6 +13,7 @@
 typedef struct
 {
 	u8     chnl_id;
+	u8     cpu_id;
 
 	shell_ipc_rx_t		rx_callback;
 
@@ -21,7 +22,7 @@ typedef struct
 static bool_t     shell_ipc_init(shell_dev_ipc_t * dev_ipc);
 static bool_t     shell_ipc_open(shell_dev_ipc_t * dev_ipc, shell_ipc_rx_t rx_callback);
 static u16        shell_ipc_read(shell_dev_ipc_t * dev_ipc, u8 * pBuf, u16 BufLen);
-static u16        shell_ipc_write_sync(shell_dev_ipc_t * dev_ipc, u8 * pBuf, u16 BufLen);
+static u16        shell_ipc_write_cmd(shell_dev_ipc_t * dev_ipc, mb_chnl_cmd_t * cmd_buf);
 static bool_t     shell_ipc_ctrl(shell_dev_ipc_t * dev_ipc, u8 cmd, void *param);
 static bool_t     shell_ipc_close(shell_dev_ipc_t * dev_ipc);
 
@@ -30,14 +31,15 @@ static const shell_ipc_drv_t shell_ipc_drv =
 		.init    = shell_ipc_init,
 		.open    = shell_ipc_open,
 		.read    = shell_ipc_read,
-		.write_sync = shell_ipc_write_sync,
+		.write_cmd = shell_ipc_write_cmd,
 		.io_ctrl = shell_ipc_ctrl,
 		.close   = shell_ipc_close
 	};
 
 static shell_ipc_ext_t dev_ipc_ext = 
 	{
-		.chnl_id = MB_CHNL_LOG
+		.chnl_id = MB_CHNL_LOG,
+		.cpu_id  = MAILBOX_CPU1
 	};
 
 shell_dev_ipc_t     shell_dev_ipc = 
@@ -62,12 +64,7 @@ static void shell_ipc_rx_isr(shell_ipc_ext_t *ipc_ext, mb_chnl_cmd_t *cmd_buf)
 			flush_dcache((void *)log_cmd->buf, log_cmd->len);
 #endif
 
-			result = ipc_ext->rx_callback(log_cmd->hdr.cmd, log_cmd->buf, log_cmd->len);
-
-			if(result == 0)
-				result = ACK_STATE_FAIL;  // log discarded.
-			else
-				result = ACK_STATE_COMPLETE;
+			result = ipc_ext->rx_callback(log_cmd->hdr.cmd, log_cmd, ipc_ext->cpu_id);
 		}
 	}
 	else if (cmd_buf->hdr.cmd == MB_CMD_ASSERT_OUT)
@@ -76,12 +73,17 @@ static void shell_ipc_rx_isr(shell_ipc_ext_t *ipc_ext, mb_chnl_cmd_t *cmd_buf)
 		{
 			log_cmd_t * log_cmd = (log_cmd_t *)cmd_buf;
 
-			result = ipc_ext->rx_callback(log_cmd->hdr.cmd, log_cmd->buf + 1, log_cmd->len - 1);
+#if CONFIG_CACHE_ENABLE
+			flush_dcache((void *)log_cmd->buf, log_cmd->len);
+#endif
+			log_cmd_t    new_log_cmd_buf;
 
-			if(result == 0)
-				result = ACK_STATE_FAIL;  // log discarded.
-			else
-				result = ACK_STATE_COMPLETE;
+			new_log_cmd_buf.hdr.data = log_cmd->hdr.data;
+			new_log_cmd_buf.buf = log_cmd->buf + 1;
+			new_log_cmd_buf.len = log_cmd->len - 1;
+			new_log_cmd_buf.tag = log_cmd->tag;
+
+			result = ipc_ext->rx_callback(log_cmd->hdr.cmd, &new_log_cmd_buf, ipc_ext->cpu_id);
 
 			/* assert_out must be handled in synchrously, so the buffer is free when return. */
 			log_cmd->buf[0] = 0; /* notify the sender that buffer can be freed now. */
@@ -106,7 +108,7 @@ static void shell_ipc_rx_isr(shell_ipc_ext_t *ipc_ext, mb_chnl_cmd_t *cmd_buf)
 
 static bool_t shell_ipc_init(shell_dev_ipc_t * dev_ipc)
 {
-	u8    dev_id;
+	u8    dev_id, cpu_id;
 	shell_ipc_ext_t *ipc_ext;
 
 	if(dev_ipc == NULL)
@@ -114,9 +116,11 @@ static bool_t shell_ipc_init(shell_dev_ipc_t * dev_ipc)
 
 	ipc_ext = (shell_ipc_ext_t *)dev_ipc->dev_ext;
 	dev_id = ipc_ext->chnl_id;
+	cpu_id = ipc_ext->cpu_id;
 
 	memset(ipc_ext, 0, sizeof(shell_ipc_ext_t));
 	ipc_ext->chnl_id = dev_id;
+	ipc_ext->cpu_id  = cpu_id;
 
 	return bTRUE;
 }
@@ -149,26 +153,18 @@ static u16 shell_ipc_read(shell_dev_ipc_t * dev_ipc, u8 * pBuf, u16 BufLen)
 }
 
 /* call this after interrupt is DISABLED. */
-static u16 shell_ipc_write_sync(shell_dev_ipc_t * dev_ipc, u8 * pBuf, u16 BufLen)
+static u16 shell_ipc_write_cmd(shell_dev_ipc_t * dev_ipc, mb_chnl_cmd_t * cmd_buf)
 {
 	shell_ipc_ext_t *ipc_ext;
 	ipc_ext = (shell_ipc_ext_t *)dev_ipc->dev_ext;
 
-	mb_chnl_cmd_t	mb_cmd_buf;
-	user_cmd_t * user_cmd = (user_cmd_t *)&mb_cmd_buf;
-
-	user_cmd->hdr.data = 0;
-	user_cmd->hdr.cmd = MB_CMD_USER_INPUT;
-	user_cmd->buf = pBuf;
-	user_cmd->len = BufLen;
-
 	bk_err_t		ret_code;
 
-	ret_code = mb_chnl_write(ipc_ext->chnl_id, &mb_cmd_buf);
+	ret_code = mb_chnl_write(ipc_ext->chnl_id, cmd_buf);
 
 	if(ret_code == BK_OK)
 	{
-		return BufLen;
+		return 1;
 	}
 
 	return 0;

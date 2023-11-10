@@ -620,8 +620,8 @@ extern void tls_mbedtls_mem_free(void *ptr);
  * Enable Cipher Block Chaining mode (CBC) for symmetric ciphers.
  */
 #define MBEDTLS_CIPHER_MODE_CBC
-
 // #define MBEDTLS_CIPHER_MODE_CFB
+#define MBEDTLS_CIPHER_MODE_XTS
 #define MBEDTLS_CIPHER_MODE_CTR
 // #define MBEDTLS_CIPHER_PADDING_PKCS7
 // #define MBEDTLS_CIPHER_PADDING_ONE_AND_ZEROS
@@ -1041,6 +1041,12 @@ extern void tls_mbedtls_mem_free(void *ptr);
  */
 //#define MBEDTLS_SELF_TEST
 
+/**
+ * \def MBEDTLS_ADAPTER_SECURITYIP
+ *
+ * If define MBEDTLS_**_ALT and MBEDTLS_SELF_TEST,mbedtls needs to be adapted to SECURITYIP.
+ */
+#define MBEDTLS_ADAPTER_SECURITYIP
 /**
  * \def MBEDTLS_SHA256_SMALLER
  *

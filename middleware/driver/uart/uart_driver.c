@@ -46,7 +46,18 @@ typedef struct {
 	uart_hal_t hal;
 	uint8_t id_init_bits;
 	uint8_t id_sw_fifo_enable_bits;
-#if CONFIG_UART_RX_DMA
+/*
+ * !!! WARNING !!! !!! WARNING !!!
+ * If APP wants to set rx_dma_en, please enable macro of CONFIG_UART_RX_DMA.
+ *
+ * Struct forces enable this elem(not controlled by CONFIG_UART_RX_DMA).
+ * When build libs(the lib function calls this struct) it does not enable the macro of CONFIG_UART_RX_DMA,
+ * but build UART Driver codes, it enables the macro of CONFIG_UART_RX_DMA.
+ * Then the lib function call UART DRIVER hasn't set param of rx_dma_en, but UART driver API
+ * init function will check this item and maybe set RX dma enable.
+ * If defined these elems, the value will be 0 if APP not set it.
+ */
+#if 1
 	bool rx_dma_enable;
 	dma_id_t rx_dma_id;
 #endif
@@ -294,8 +305,7 @@ static bk_err_t uart_id_init_kfifo(uart_id_t id)
 	uint32_t fifo_size = CONFIG_KFIFO_SIZE;
 //RX DMA needs bigger FIFO size when erase flash.
 #if (CONFIG_UART_RX_DMA)
-	if(s_uart[id].rx_dma_enable)
-		fifo_size = CONFIG_UART_RX_DMA_KFIFO_SIZE;
+	fifo_size = CONFIG_UART_RX_DMA_KFIFO_SIZE;
 #endif
 
 	if (!s_uart_rx_kfifo[id]) {
@@ -935,6 +945,11 @@ bk_err_t bk_uart_init(uart_id_t id, const uart_config_t *config)
 	{
 		//DMA init RX
 		uart_rx_dma_init(id);
+	}
+#else	//avoid set err parameter.
+	if(config->rx_dma_en)
+	{
+		UART_LOGW("uart(%d)Please enable MACRO CONFIG_UART_RX_DMA then set DMA enable parameter\n", id);
 	}
 #endif
 	uart_hal_init_uart(&s_uart[id].hal, id, config);

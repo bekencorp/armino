@@ -18,6 +18,7 @@
 #include <modules/ble_types.h>
 #include <driver/timer.h>
 #include <driver/trng.h>
+#include <driver/pwr_clk.h>
 
 #if !CONFIG_SLAVE_CORE
 #if CONFIG_SYSTEM_CTRL
@@ -489,8 +490,7 @@ static void cli_pm_auto_vote(char *pcWriteBuffer, int xWriteBufferLen, int argc,
 		os_printf("set pm auto vote value invalid %d\r\n",pm_ctrl);
 		return;
 	}
-
-	bk_pm_app_auto_vote_state_set(pm_ctrl);
+	bk_pm_module_vote_sleep_ctrl(PM_SLEEP_MODULE_NAME_APP,pm_ctrl,0x0);
 
 }
 
@@ -503,7 +503,6 @@ static void cli_dvfs_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 	UINT32 ckdiv_bus  = 0;
 	UINT32 ckdiv_cpu0 = 0;
 	UINT32 ckdiv_cpu1 = 0;
-	UINT32 clk_param  = 0;
 
 	if (argc != 6) 
 	{
@@ -538,62 +537,10 @@ static void cli_dvfs_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, cha
 		GLOBAL_INT_RESTORE();
 		return;
 	}
-
-	clk_param = 0;
-	clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
-	if(((clk_param >> 0x4)&0x3) > cksel_core)//when it from the higher frequecy to lower frqquecy
-	{
-		/*1.core clk select*/
-		clk_param = 0;
-		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
-		clk_param &=  ~(0x3 << 4);
-		clk_param |=  cksel_core << 4;
-		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
-
-		/*2.config bus and core clk div*/
-		clk_param = 0;
-		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
-		clk_param &=  ~((0x1 << 6)|(0xF << 0));
-		clk_param |=  ckdiv_core << 0;
-		clk_param |=  (ckdiv_bus&0x1) << 6;
-		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
-
-		/*3.config cpu clk div*/
-		sys_drv_cpu_clk_div_set(0,ckdiv_cpu0);
-
-		sys_drv_cpu_clk_div_set(1,ckdiv_cpu1);
-
-	}
-	else//when it from the lower frequecy to higher frqquecy
-	{
-		/*1.config bus and core clk div*/
-		clk_param = 0;
-		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
-		clk_param &=  ~(0xF << 0);
-		clk_param |=  ckdiv_core << 0;
-		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
-	
-		clk_param = 0;
-		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
-		clk_param &=  ~(0x1 << 6);
-		clk_param |=  (ckdiv_bus&0x1) << 6;
-		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
-
-		/*2.config cpu clk div*/
-		sys_drv_cpu_clk_div_set(0,ckdiv_cpu0);
-
-		sys_drv_cpu_clk_div_set(1,ckdiv_cpu1);
-
-		/*3.core clk select*/
-
-		clk_param = 0;
-		clk_param = sys_drv_all_modules_clk_div_get(CLK_DIV_REG0);
-		clk_param &=  ~(0x3 << 4);
-		clk_param |=  cksel_core << 4;
-		sys_drv_all_modules_clk_div_set(CLK_DIV_REG0,clk_param);
-	}
+	pm_core_bus_clock_ctrl(cksel_core, ckdiv_core,ckdiv_bus, ckdiv_cpu0,ckdiv_cpu1);
 	GLOBAL_INT_RESTORE();
 	os_printf("switch cpu frequency ok 0x%x 0x%x 0x%x\r\n",sys_drv_all_modules_clk_div_get(CLK_DIV_REG0),sys_drv_cpu_clk_div_get(0),sys_drv_cpu_clk_div_get(1));
+
 }
 
 #define DVFS_AUTO_TEST_COUNT (100)
@@ -711,6 +658,21 @@ static void cli_pm_cp1_ctrl(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 
 	cp1_ctrl   = os_strtoul(argv[1], NULL, 10);
 	bk_pm_cp1_auto_power_down_state_set(cp1_ctrl);
+#endif
+}
+static void cli_pm_boot_cp1(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+#if !CONFIG_SLAVE_CORE && CONFIG_DUAL_CORE
+	UINT32 boot_cp1_state = 0;
+	UINT32 module_name    = 0;
+	if (argc != 3)
+	{
+		os_printf("cp1 ctrl parameter invalid %d\r\n",argc);
+		return;
+	}
+	module_name   = os_strtoul(argv[1], NULL, 10);
+	boot_cp1_state   = os_strtoul(argv[2], NULL, 10);
+	bk_pm_module_vote_boot_cp1_ctrl(module_name,boot_cp1_state);
 #endif
 }
 #endif//CONFIG_DEBUG_FIRMWARE
@@ -964,6 +926,7 @@ static const struct cli_command s_pwr_commands[] = {
 	{"pm_rosc_cali", "pm_rosc_cali [cali_mode][cal_intval]", cli_pm_rosc_cali},
 	{"pm_wakeup_source", "pm_wakeup_source [pm_sleep_mode]", cli_pm_wakeup_source},
 	{"pm_cp1_ctrl", "pm_cp1_ctrl [cp1_auto_pw_ctrl]", cli_pm_cp1_ctrl},
+	{"pm_boot_cp1", "pm_boot_cp1 [module_name] [ctrl_state:0x0:bootup; 0x1:shutdowm]", cli_pm_boot_cp1},
 #else
 	{"pm", "pm [sleep_mode] [wake_source] [vote1] [vote2] [vote3] [param1] [param2] [param3]", cli_pm_cmd},
 	{"pm_vote", "pm_vote [pm_sleep_mode] [pm_vote] [pm_vote_value] [pm_sleep_time]", cli_pm_vote_cmd},

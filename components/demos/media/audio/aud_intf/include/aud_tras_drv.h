@@ -197,6 +197,7 @@ typedef struct {
 	aud_intf_voc_spk_ctrl_t spk_en;
 	aud_intf_mic_type_t mic_type;			/**< audio mic type: uac or microphone */
 	aud_intf_spk_type_t spk_type;			/**< audio speaker type: uac or speaker */
+	aud_adc_intf_mode_t mic_mode;			/**< audio mic mode: signal_ended/differen */
 
 #if CONFIG_AUD_TRAS_LOST_COUNT_DEBUG
 	lost_count_debug_t lost_count;
@@ -231,6 +232,7 @@ typedef struct {
 	aud_tras_mic_sta_t status;
 	aud_intf_mic_chl_t mic_chl;
 	aud_intf_mic_type_t mic_type;		/**< audio mic type: uac or microphone */
+	aud_adc_intf_mode_t mic_mode;		/**< audio mic mode: signal_ended/differen */
 	aud_adc_config_t *adc_config;
 	uint32_t frame_size;									/* size of one frame mic data, (byte)
 																when AUD_MIC_CHL_MIC1 mode, the size must bean integer multiple of two bytes

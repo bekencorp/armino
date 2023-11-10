@@ -96,10 +96,12 @@ SECTIONS
 		{ KEEP(*(.itcm_sec_code )) }
 	_itcm_lma_start =  LOADADDR (.itcm_sec_code);
 	_itcm_ema_start = ADDR(.itcm_sec_code);
-	_itcm_lma_end =  LOADADDR (.itcm_sec_code) + SIZEOF (.itcm_sec_code);
+	.itcm 	: AT(LOADADDR (.itcm_sec_code) + SIZEOF (.itcm_sec_code))
+		{ KEEP(*(.itcm )) }
+	_itcm_lma_end =  LOADADDR (.itcm) + SIZEOF (.itcm);
 	_itcm_ema_end = .;
 	_itcm_bss_start = .;
-	.itcm_sec_bss 	: AT(LOADADDR (.itcm_sec_code) + SIZEOF (.itcm_sec_code))
+	.itcm_sec_bss 	: AT(LOADADDR (.itcm) + SIZEOF (.itcm))
 		{ KEEP(*(.itcm_sec_bss )) }
 	_itcm_bss_end = .;
 	ITCM_SIZE = . - ITCM_BEGIN;
@@ -116,18 +118,12 @@ SECTIONS
 		{ KEEP(*(.dtcm_sec_bss )) }
 	_dtcm_bss_end = .;
 	DTCM_SIZE = . - DTCM_BEGIN;
-	. = 0x30000000;
+	. = 0x30038C00;
 	SRAM1_BEGIN = .;
-	.video_spec_data 	: AT(LOADADDR (.dtcm_sec_bss) + SIZEOF (.dtcm_sec_bss))
-		{ KEEP(*(.video_spec_data )) }
-	_video_start = ADDR(.video_spec_data);
-	SRAM1_SIZE = . - SRAM1_BEGIN;
-	. = 0x30078C00;
-	SRAM2_BEGIN = .;
 	. = ALIGN(8);
 	. = ALIGN(0x20);
 	. = ALIGN(ALIGNOF(.eh_frame));
-	.eh_frame 	: AT(ALIGN(LOADADDR (.video_spec_data) + SIZEOF (.video_spec_data), 32))
+	.eh_frame 	: AT(ALIGN(LOADADDR (.dtcm_sec_bss) + SIZEOF (.dtcm_sec_bss), 32))
 		{ KEEP(*(.eh_frame )) }
 	_data_lmastart =  LOADADDR (.eh_frame);
 	_data_start = ADDR(.eh_frame);
@@ -215,8 +211,8 @@ SECTIONS
 	_end = .;
 	PROVIDE (end = .);
 	PROVIDE (_stack = 0x20007FE0);
-	SRAM2_SIZE = . - SRAM2_BEGIN;
-	. = 0x3007FC00;
+	SRAM1_SIZE = . - SRAM1_BEGIN;
+	. = 0x3003FC00;
 	SWAP_BEGIN = .;
 	.swap_data 	: AT(LOADADDR (.sdata_f) + SIZEOF (.sdata_f))
 		{ KEEP(*(.swap_data )) }
@@ -249,8 +245,7 @@ SECTIONS
 	.debug_varnames	0 : { *(.debug_varnames) }
 }
 ASSERT((DEFINED (_RELAX_END_) ? ITCM_SIZE : 0x0)<= 0x8000, "ITCM OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x6C00, "DTCM OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? SRAM1_SIZE : 0x0)<= 0xA000, "SRAM1 OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? SRAM2_SIZE : 0x0)<= 0x7000, "SRAM2 OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x7800, "DTCM OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? SRAM1_SIZE : 0x0)<= 0x7000, "SRAM1 OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SWAP_SIZE : 0x0)<= 0x400, "SWAP OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? CPU1_SIZE : 0x0)<= 0x20000, "CPU1 OVERFLOW");

@@ -11,5 +11,8 @@ menu "PWR_CLK"
 	config CPU_DEFAULT_FREQ_60M
 		bool "set cpu default frequency 60M"
 		default n
+	config RESERVE_1K_SRAM_UNINITIAL
+		bool "reserve 1k sram uninitialized"
+		default n
 endmenu
 

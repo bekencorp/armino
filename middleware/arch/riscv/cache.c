@@ -163,149 +163,6 @@ void sram_dcache_map(void)
    }
 }
 
-#if 0
-int show_cache_config_info(void)
-{
-    unsigned int iset, iway, isize, dset, dway, dsize;
-    unsigned long icm_cfg = 0, dcm_cfg = 0;
-
-    /* Check if support CCTL feature */
-    if (read_csr(NDS_MMSC_CFG) & CCTLCSR_MSK) {
-        os_printf("CPU supports CCTL operation\n");
-
-        if (read_csr(NDS_MMSC_CFG) & VCCTL_MSK) {
-            os_printf("CPU supports CCTL auto-increment\n");
-        } else {
-            os_printf("CPU does NOT support CCTL auto-increment\n");
-        }
-
-    } else {
-        os_printf("CPU supports FENCE operation\n");
-    }
-
-    /* Enable I/D cache HW prefetcher and D-cache write-around (threshold: 4 cache lines) as default */
-    // clear_csr(NDS_MCACHE_CTL, DC_WARND_MSK);
-    // set_csr(NDS_MCACHE_CTL, (1 << 13) | (1 << 10) | (1 << 9));
-
-    /* Get ICache ways, sets, line size */
-    icm_cfg = read_csr(NDS_MICM_CFG);
-    if ((icm_cfg & ISET_MSK) < 7) {
-        iset = (unsigned int)(1 << ((icm_cfg & ISET_MSK) + 6));
-    } else {
-        iset = 0;
-    }
-    os_printf("The L1C ICache sets = %u\n", iset);
-
-    iway = (unsigned int)(((icm_cfg & IWAY_MSK) >> 3) + 1);
-    os_printf("The L1C ICache ways = %u\n", iway);
-
-    if (((icm_cfg & ISIZE_MSK) >> 6) && (((icm_cfg & ISIZE_MSK) >> 6) <= 5)) {
-        isize = (unsigned int)(1 << (((icm_cfg & ISIZE_MSK) >> 6) + 2));
-    } else if (((icm_cfg & ISIZE_MSK) >> 6) >= 6) {
-        os_printf("Warning L1C i cacheline size is reserved value\n");
-        isize = 0;
-    } else {
-        isize = 0;
-    }
-
-    os_printf("The L1C ICache line size = %u\n", isize);
-    if (isize == 0) {
-        os_printf("This CPU doesn't have L1C ICache.\n");
-        return 0;
-    } else {
-        /* Enable L1C ICache */
-        // set_csr(NDS_MCACHE_CTL, (0x1 << 0));
-    }
-
-    /* Get DCache ways, sets, line size  */
-    dcm_cfg = read_csr(NDS_MDCM_CFG);
-    if ((dcm_cfg & DSET_MSK) < 7) {
-        dset = (unsigned int)(1 << ((dcm_cfg & DSET_MSK) + 6));
-    } else {
-        dset = 0;
-    }
-    os_printf("The L1C DCache sets = %u\n", dset);
-
-    dway = (unsigned int)(((dcm_cfg & DWAY_MSK) >> 3) + 1);
-    os_printf("The L1C DCache ways = %u\n", dway);
-
-    if (((dcm_cfg & DSIZE_MSK) >> 6) && (((dcm_cfg & DSIZE_MSK) >> 6) <= 5)) {
-        dsize = (unsigned int)(1 << (((dcm_cfg & DSIZE_MSK) >> 6) + 2));
-    } else if (((dcm_cfg & DSIZE_MSK) >> 6) >= 6) {
-        os_printf("Warning L1C d cacheline size is reserved value\n");
-        dsize = 0;
-    } else {
-        dsize = 0;
-    }
-
-    os_printf("The L1C DCache line size = %u\n", dsize);
-    if (dsize == 0) {
-        os_printf("This CPU doesn't have L1C DCache.\n");
-        return 0;
-    } else {
-        /* Enable L1C DCache */
-        // set_csr(NDS_MCACHE_CTL, (0x1 << 1));
-    }
-
-    if (read_csr(NDS_MCACHE_CTL) & 0x1) {
-        os_printf("Enable L1C I cache\n");
-    }
-
-    if (read_csr(NDS_MCACHE_CTL) & 0x2) {
-        os_printf("Enable L1C D cache\n");
-    }
-
-    if (!(read_csr(NDS_MCACHE_CTL) & 0x3)) {
-        os_printf("Can't enable L1C I/D cache\n");
-    }
-
-    return 1;
-}
-
-void flush_dcache(void *va, long size)
-{
-    // os_printf("I/D cache flush\n");
-
-    if(read_csr(NDS_MMSC_CFG) & CCTLCSR_MSK) {
-        unsigned int i, tmp = 0, dsize = 0;
-
-        dsize = (unsigned int)(1 << (((read_csr(NDS_MDCM_CFG) & DSIZE_MSK) >> 6) + 2));
-
-        /* Check whether the CPU configured with CCTL auto-incremented feature. */
-        if ((read_csr(NDS_MMSC_CFG) & VCCTL_MSK)) {
-            unsigned long final_va = (unsigned long)(va + size);
-            unsigned long next_va = (unsigned long)va;
-
-            /* Write only once at the beginning, it will be updated by CCTL command CSR write operation */
-            write_csr(NDS_MCCTLBEGINADDR, (unsigned long)va);
-
-            /* L1C DCache write back and invalidate */
-            while (next_va < final_va) {
-                /* Write back and invalid one cache line each time */
-                write_csr(NDS_MCCTLCOMMAND, CCTL_L1D_VA_WBINVAL);
-
-                /* Read back from BEGINADDR csr for next va */
-                next_va = read_csr(NDS_MCCTLBEGINADDR);
-            }
-
-        } else {
-            /* L1C DCache write back and invalidate */
-            for (i = 0; tmp < size; i++) {
-                /* Write back and invalid one cache line each time */
-                write_csr(NDS_MCCTLBEGINADDR, (unsigned long)(va + (i * dsize)));
-                tmp += dsize;
-                write_csr(NDS_MCCTLCOMMAND, CCTL_L1D_VA_WBINVAL);
-            }
-        }
-
-    } else {
-        /* FENCE.I go data writeback w/o data invalid but instruction invalid.
-           As src code is copied to dst and go to execute dst instruction,
-           you should use FENCE.I instead of FENCE */
-        __nds__fencei();
-    }
-}
-#else
 int show_cache_config_info(void)
 {
 	return 1;
@@ -314,32 +171,40 @@ int show_cache_config_info(void)
 void flush_dcache(void *va, long size)
 {
 	unsigned int  tmp = 0, line_size = 32;
+	unsigned int  start_line_va, end_line_va;
 
-	line_size = mon_get_dcache_linesize();
+	start_line_va = (((unsigned int)va) & (~(line_size - 1)));
+	end_line_va = ((((unsigned int)va) + size + line_size - 1) & (~(line_size - 1)));
+
+	// flush area: [start_line_va, end_line_va) .
+	size = end_line_va - start_line_va;
 
     /* L1C DCache write back and invalidate */
     while (tmp < size)
 	{
         /* Write back and invalid one cache line each time */
-        write_csr(NDS_UCCTLBEGINADDR, (unsigned long)(va + tmp));
+        write_csr(NDS_UCCTLBEGINADDR, (unsigned long)(start_line_va + tmp));
         tmp += line_size;
         write_csr(NDS_UCCTLCOMMAND, CCTL_L1D_VA_WBINVAL);
     }
 }
-#endif
 
-void flush_all_dcache(void) {
+void flush_all_dcache(void) 
+{
     int i = 0;
+	
     for(i = 0; i < SRAM_BLOCK_COUNT; i++)
     {
-        if(g_sram_addr_map[i] & 0x08000000) {
+        if(g_sram_addr_map[i] & 0x08000000) 
+		{
 			mon_flush_dcache(g_sram_addr_map[i]);
 			return;
         }
     }
 }
 
-void enable_dcache(int enable) {
+void enable_dcache(int enable) 
+{
     // RISC-V enable dcache as default
     return;
 }

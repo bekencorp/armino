@@ -3,8 +3,6 @@
 
 :link_to_translation:`en:[English]`
 
-
-
 概述
 """"""""""""""""""""""""""
 
@@ -25,8 +23,12 @@ API调用注意事项
 """"""""""""""""""""""""""
 
 大部分API具有callback参数，应当等待callback执行完成后再进行下一步。
+
 callback、event callback的处理不应有阻塞操作。
+
 callback的调用栈不能太深。
+
+因内存复用原因，media和蓝牙无法共存，使用蓝牙前需要关闭media相关功能，使用media前也需要将蓝牙功能关闭。
 
 .. important::
     应极力避免蓝牙task被阻塞，否则会出现断连、扫不到、连不上等异常现象。
@@ -34,6 +36,56 @@ callback的调用栈不能太深。
 	
 常用使用场景
 """"""""""""""""""""""""""
+
+打开蓝牙
+****************************************
+
+::
+
+    //回调函数（例）
+    void ble_notice_cb(ble_notice_t notice, void *param)
+    {
+        switch (notice) {
+        case BLE_5_STACK_OK:
+            rtos_set_semaphore(&sem);
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    //设置回调
+    bk_ble_set_notice_cb(ble_notice_cb);
+    //打开蓝牙
+    bk_ble_init()；
+    //等待蓝牙打开
+    ret = rtos_get_semaphore(&sem, 1000);
+
+关闭蓝牙
+****************************************
+
+::
+
+    //回调函数（例）
+    void ble_notice_cb(ble_notice_t notice, void *param)
+    {
+        switch (notice) {
+        case BLE_5_SHUTDOWN_SUCCEED:
+            rtos_set_semaphore(&sem);
+            break;
+        default:
+            break;
+        }
+    }
+
+    //设置回调
+    bk_ble_set_notice_cb(ble_notice_cb);
+    //关闭蓝牙
+    bk_ble_deinit();
+    //等待蓝牙关闭
+    ret = rtos_get_semaphore(&sem, 1000);
+
 
 作为slaver，创建ATT数据库供对端浏览
 ****************************************
@@ -172,7 +224,7 @@ ble通过ATT数据库作为双端的操作实体，所有的读写通知等操�
 	...
 	//
 
-	//蓝牙广播数据，请参考ble标准格式
+	//蓝牙广播数据，请参考ble标准格式,
 	const uint8_t adv_data[] = {0x02, 0x01, 0x06, 0x0A, 0x09, 0x37 0x32, 0x33, 0x31, 0x4e, 0x5f, 0x42, 0x4c, 0x45};
 	bk_ble_set_adv_data(actv_idx, adv_data, sizeof(adv_data), ble_at_cmd_cb);
 
@@ -197,6 +249,13 @@ ble通过ATT数据库作为双端的操作实体，所有的读写通知等操�
 	//
 
 
+广播格式如下图:
+    .. figure:: ../../../_static/adv_data.png
+        :align: center
+        :alt: menuconfig gui
+        :figclass: align-center
+
+AD Type定义在 `Assigned Numbers <https://www.bluetooth.com/specifications/assigned-numbers>`_。
 
 开启扫描
 ****************************************
@@ -260,3 +319,31 @@ ble通过ATT数据库作为双端的操作实体，所有的读写通知等操�
 	//在ble_at_cmd_cb中，等待BLE_INIT_START_CONN
 	...
 	//
+
+
+断开连接
+****************************************
+
+::
+
+    //通过蓝牙地址获取连接handle
+    conn_idx = bk_ble_find_conn_idx_from_addr(&connect_addr);
+
+    //断开连接
+    err = bk_ble_disconnect(conn_idx, ble_at_cmd);
+
+	//在ble_at_cmd_cb中，等待BLE_CONN_DIS_CONN
+	...
+	//
+
+
+参考链接
+""""""""""
+
+    `API参考: <../../api-reference/bluetooth/index.html>`_ 介绍了蓝牙API接口
+
+    `开发者指南: <../../developer-guide/bluetooth/index.html>`_ 介绍了蓝牙常用使用场景
+
+    `样例演示: <../../examples/bluetooth/index.html>`_ 介绍了蓝牙样例使用和操作
+
+    `蓝牙工程: <../../projects_work/bluetooth/index.html>`_ 介绍了蓝牙相关工程

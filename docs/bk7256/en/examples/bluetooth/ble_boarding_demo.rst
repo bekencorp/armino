@@ -77,3 +77,14 @@ Attention
         bk_ble_start_advertising(actv_idx, 0, NULL);
     }
 
+
+Reference link
+----------------
+
+    `API Reference : <../../api-reference/bluetooth/index.html>`_ Introduced the Bluetooth API interface
+
+    `User and Developer Guide : <../../developer-guide/bluetooth/index.html>`_ Introduced common usage scenarios of Bluetooth
+
+    `Samples and Demos: <../../examples/bluetooth/index.html>`_ Introduced the use and operation of Bluetooth samples
+
+    `Bluetooth Project: <../../projects_work/bluetooth/index.html>`_ Introduced Bluetooth related Project

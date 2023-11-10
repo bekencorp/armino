@@ -1,7 +1,7 @@
 SPP
 ========================
 
-:link_to_translation:`zh_CN:[Chinese]`
+:link_to_translation:`zh_CN:[中文]`
 
 Overview
 --------------------------
@@ -33,4 +33,16 @@ Instructions
 example
 --------------------------
  | SPP related at test code refer to: ``\components\at\src\bt_at_command.c``
- | For detailed introduction of AT commands, please refer to: ``examples/cli/bluetooth/bt.html``
+ | For detailed introduction of AT commands, please refer to: `examples/cli/bluetooth/bt.html <../cli/bluetooth/bt.html>`_
+
+
+Reference link
+----------------
+
+    `API Reference : <../../api-reference/bluetooth/index.html>`_ Introduced the Bluetooth API interface
+
+    `User and Developer Guide : <../../developer-guide/bluetooth/index.html>`_ Introduced common usage scenarios of Bluetooth
+
+    `Samples and Demos: <../../examples/bluetooth/index.html>`_ Introduced the use and operation of Bluetooth samples
+
+    `Bluetooth Project: <../../projects_work/bluetooth/index.html>`_ Introduced Bluetooth related Project

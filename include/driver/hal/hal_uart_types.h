@@ -20,6 +20,8 @@
 extern "C" {
 #endif
 
+//UART BAUDRATE:User can add special baudrate and set it as the really value.
+//I.E: #define UART_BARDRATE_USER_XXX 1234
 #define UART_BAUDRATE_3250000        3250000
 #define UART_BAUDRATE_2000000        2000000
 #define UART_BAUDRATE_921600         921600
@@ -28,6 +30,7 @@ extern "C" {
 #define UART_BAUDRATE_115200         115200  //default
 #define UART_BAUDRATE_3000           3250
 #define UART_BAUDRATE_19200          19200
+#define UART_BAUDRATE_9600           9600
 
 #define UART_BAUD_RATE               UART_BAUDRATE_115200
 
@@ -93,12 +96,10 @@ typedef enum {
 	UART_RX_STOP_DETECT_TIME_256_BITS     /**< UART rx stop time 256 bits */
 } uart_rx_stop_detect_time_t;
 
-#if CONFIG_UART_RX_DMA
 typedef enum {
 	UART_DMA_DISABLE,
 	UART_DMA_ENABLE,
 }uart_dma_enable_t;
-#endif
 
 typedef struct {
 	uint32_t baud_rate;            /**< UART baud rate */
@@ -107,7 +108,19 @@ typedef struct {
 	uart_stop_bits_t stop_bits;    /**< UART stop bits */
 	uart_flow_control_t flow_ctrl; /**< UART flow control  */
 	uart_src_clk_t src_clk;        /**< UART source clock */
-#if CONFIG_UART_RX_DMA
+
+/*
+ * !!! WARNING !!! !!! WARNING !!!
+ * If APP wants to set rx_dma_en, please enable macro of CONFIG_UART_RX_DMA.
+ *
+ * Header file forces enable this elem(not controlled by CONFIG_UART_RX_DMA).
+ * When build libs(the lib function calls this struct) it does not enable the macro of CONFIG_UART_RX_DMA,
+ * but build UART Driver codes, it enables the macro of CONFIG_UART_RX_DMA.
+ * Then the lib function call UART DRIVER hasn't set param of rx_dma_en, but UART driver API
+ * init function will check this item and maybe set RX dma enable.
+ * If defined these elems, the value will be 0 if APP not set it.
+ */
+#if 1
 	/*
 	 * Special feature used for UART RX data.
 	 * When erase Flash, CPU can't get instructions from flash then it can't work.

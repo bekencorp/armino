@@ -16,7 +16,7 @@
 #include <string.h>
 
 #include <os/os.h>
-#include "mailbox_channel.h"
+#include <driver/mailbox_channel.h>
 #include "mb_ipc_cmd.h"
 #include "amp_res_lock.h"
 #include "amp_lock_api.h"
@@ -28,7 +28,7 @@ typedef struct
 	u8					inited;
 	beken_semaphore_t	res_sema;
 
-#if CONFIG_MASTER_CORE
+#ifdef AMP_RES_SERVER
 	u16		req_cnt[AMP_CPU_CNT];
 #endif
 
@@ -36,7 +36,9 @@ typedef struct
 
 static amp_res_sync_t	amp_res_sync[AMP_RES_ID_MAX];
 
-#if CONFIG_MASTER_CORE
+#if CONFIG_DUAL_CORE
+
+#ifdef AMP_RES_SERVER
 
 /* call this API in interrupt disabled state. */
 bk_err_t amp_res_acquire_cnt(u16 res_id, u16 cpu_id, amp_res_req_cnt_t *cnt_list)
@@ -107,8 +109,6 @@ bk_err_t amp_res_release_cnt(u16 res_id, u16 cpu_id, amp_res_req_cnt_t *cnt_list
 
 #endif
 
-#ifdef CONFIG_DUAL_CORE
-
 /* Apps can't call this API, it's for IPC isr only. */
 bk_err_t amp_res_available(u16 res_id)
 {
@@ -140,11 +140,11 @@ bk_err_t amp_res_lock_acquire(u16 res_id, u32 timeout_ms, const char * func_name
 	if(amp_res_sync[res_id].inited == 0)
 		return BK_ERR_NOT_INIT;
 
-#ifdef CONFIG_DUAL_CORE
+#if CONFIG_DUAL_CORE
 
 	amp_res_req_cnt_t	cnt_list;
 
-#if CONFIG_MASTER_CORE
+#ifdef AMP_RES_SERVER
 
 	u32  int_mask = rtos_disable_int();
 
@@ -152,9 +152,7 @@ bk_err_t amp_res_lock_acquire(u16 res_id, u32 timeout_ms, const char * func_name
 
 	rtos_enable_int(int_mask);
 
-#endif
-
-#if CONFIG_SLAVE_CORE
+#else
 
 	ret_val = ipc_send_res_acquire_cnt(res_id, SRC_CPU, &cnt_list);
 
@@ -201,11 +199,11 @@ bk_err_t amp_res_lock_release(u16 res_id, const char * func_name, int line_no)
 	if(amp_res_sync[res_id].inited == 0)
 		return BK_ERR_NOT_INIT;
 
-#ifdef CONFIG_DUAL_CORE
+#if CONFIG_DUAL_CORE
 
 	amp_res_req_cnt_t	cnt_list;
 
-#if CONFIG_MASTER_CORE
+#ifdef AMP_RES_SERVER
 
 	u32  int_mask = rtos_disable_int();
 
@@ -213,9 +211,7 @@ bk_err_t amp_res_lock_release(u16 res_id, const char * func_name, int line_no)
 
 	rtos_enable_int(int_mask);
 
-#endif
-
-#if CONFIG_SLAVE_CORE
+#else
 
 	ret_val = ipc_send_res_release_cnt(res_id, SRC_CPU, &cnt_list);
 
@@ -256,7 +252,7 @@ bk_err_t amp_res_lock_init(u16 res_id)
 	if(amp_res_sync[res_id].inited != 0)
 		return BK_OK;
 
-#if CONFIG_MASTER_CORE
+#ifdef AMP_RES_SERVER
 
 	u16 i = 0;
 

@@ -18,8 +18,9 @@ int shell_assert_out(bool bContinue, char * format, ...);
 int shell_assert_raw(bool bContinue, char * data_buff, u16 data_len);
 int shell_trace_out( u32 trace_id, ... );
 int shell_spy_out( u16 spy_id, u8 * data_buf, u16 data_len);
-int shell_log_out(u8 level, char * mod_name, const char * format, ...);
-void shell_log_out_port(int level, char * mod_name, const char * format, va_list ap);
+int shell_get_cpu_id(void);
+int shell_level_check_valid(int level);
+void shell_log_out_port(int level, char * prefix, const char * format, va_list ap);
 int shell_log_raw_data(const u8 *data, u16 data_len);
 
 int shell_echo_get(void);

@@ -24,6 +24,8 @@ extern void rtos_set_user_app_entry(beken_thread_function_t entry);
 
 #define CMDS_COUNT  (sizeof(s_lv_qspi_lcd_commands) / sizeof(struct cli_command))
 
+#define PSRAM_FRAME_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)
+
 const lcd_open_t lcd_open =
 {
 	.device_ppi = PPI_360X480,
@@ -31,10 +33,20 @@ const lcd_open_t lcd_open =
 };
 
 extern void lv_example_meter(void);
-
+extern bk_err_t bk_lcd_qspi_open(char *lcd_name, uint32_t *frame_buffer_addr, uint32_t frame_buffer_len);
+extern bk_err_t bk_lcd_qspi_close(void);
+	
 void cli_lv_qspi_lcd_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
 	os_printf("%s\r\n", __func__);
+	if (os_strcmp(argv[1], "openlcd") == 0) {
+		if (BK_OK != bk_lcd_qspi_open(lcd_open.device_name, (uint32_t *)PSRAM_FRAME_BUFFER, ppi_to_pixel_x(lcd_open.device_ppi) * ppi_to_pixel_y(lcd_open.device_ppi) * (LV_COLOR_DEPTH / 8))) {
+			os_printf("lcd qspi open fail!\r\n");
+			return;
+		}
+	} else if (os_strcmp(argv[1], "closelcd") == 0) {
+		bk_lcd_qspi_close();
+	}
 }
 
 static const struct cli_command s_lv_qspi_lcd_commands[] =
@@ -75,19 +87,15 @@ void lv_qspi_lcd_display_init(void)
 	rtos_delay_milliseconds(10);
 
 #ifdef CONFIG_LVGL_USE_PSRAM
-#define PSRAM_DRAW_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)
-
 	lv_vnd_config.draw_pixel_size = ppi_to_pixel_x(lcd_open.device_ppi) * ppi_to_pixel_y(lcd_open.device_ppi);
 	lv_vnd_config.draw_buf_2_1 = (lv_color_t *)PSRAM_DRAW_BUFFER;
 	lv_vnd_config.draw_buf_2_2 = (lv_color_t *)(PSRAM_DRAW_BUFFER + lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));
 #else
-#define PSRAM_FRAME_BUFFER ((0x60000000UL) + 5 * 1024 * 1024)
-
 	lv_vnd_config.draw_pixel_size = (30 * 1024) / sizeof(lv_color_t);
 	lv_vnd_config.draw_buf_2_1 = LV_MEM_CUSTOM_ALLOC(lv_vnd_config.draw_pixel_size * sizeof(lv_color_t));
 	lv_vnd_config.draw_buf_2_2 = NULL;
 	lv_vnd_config.sram_frame_buf_1 = (lv_color_t *)PSRAM_FRAME_BUFFER;
-	lv_vnd_config.sram_frame_buf_2 = (lv_color_t *)PSRAM_FRAME_BUFFER + ppi_to_pixel_x(lcd_open.device_ppi)*ppi_to_pixel_y(lcd_open.device_ppi) * sizeof(lv_color_t);
+//	lv_vnd_config.sram_frame_buf_2 = (lv_color_t *)PSRAM_FRAME_BUFFER + ppi_to_pixel_x(lcd_open.device_ppi)*ppi_to_pixel_y(lcd_open.device_ppi) * sizeof(lv_color_t);
 #endif
 	lv_vnd_config.rotation = ROTATE_270;
 	lv_vnd_config.color_depth = LV_COLOR_DEPTH;

@@ -3,6 +3,8 @@
  * All rights reserved.
  */
 
+#if 0
+
 #include <stdio.h>
 #include "platform.h"
 #include "pmp.h"
@@ -305,3 +307,72 @@ void show_pmp_config()
 	os_printf("==========NDS_PMPADDR7: 0x%08x.\r\n", read_csr(NDS_PMPADDR7));
 
 }
+
+#else
+
+void show_pmp_config()
+{
+}
+
+#include "sdkconfig.h"
+#include "mon_call.h"
+
+extern char _sram_start;
+extern char _sram_end;
+extern char _swap_start;
+
+void init_u_mode_pmp_config()
+{
+#define SRAM_START_ADDR   0x30000000
+#define SRAM_END_ADDR     0X38080000
+
+#if CONFIG_DUAL_CORE  // #if config_multi_core
+// #if CONFIG_MAILBOX  // #if config_multi_core
+
+	u8    free_cfg = 0;
+
+	mon_get_free_pmp_cfg(&free_cfg);
+
+	if(free_cfg == 0)
+		return;
+
+    /* there codes are designed for simple configuration case as illustrated below */
+    /* for more complex cases, these codes should be modified to suite the config. */
+    /****************************************************/
+    /* SRAM                                             */
+    /* |--------------------|--------------|----------| */
+    /* |------- CPU0 -------|----- CPU1 ---|-- SWAP --| */
+    /* |------- CPU1 -------|----- CPU0 ---|-- SWAP --| */
+    /****************************************************/
+
+	u32    start_addr, size, tmp;
+	u8     attr = OTP_R_ON;
+
+	#if CONFIG_SYS_CPU0
+	attr = OTP_R_ON;  // used for CPU0 dump.
+	#else
+	attr = 0;
+	#endif
+
+	start_addr = (u32)&_sram_start;
+	tmp = start_addr & (~0x08000000);
+
+	if(tmp > SRAM_START_ADDR)
+	{
+		size = start_addr - SRAM_START_ADDR;
+
+		mon_pmp_cfg(SRAM_START_ADDR, size, attr);
+	}
+	else if(tmp == SRAM_START_ADDR)
+	{
+		start_addr = (u32)&_sram_end;  // _sram_end is aligned with 16 bytes set in SAG file.
+		size = (u32)&_swap_start - start_addr;
+		mon_pmp_cfg(start_addr, size, attr);
+	}
+
+#endif
+
+}
+
+#endif
+

@@ -51,7 +51,7 @@
 #include "mbedtls/platform.h"
 #else
 #include <stdio.h>
-#define mbedtls_printf printf
+#define mbedtls_printf bk_printf
 #endif /* MBEDTLS_PLATFORM_C */
 #endif /* MBEDTLS_SELF_TEST */
 
@@ -1747,10 +1747,12 @@ static const int aes_test_ctr_len[3] =
  */
 static const unsigned char aes_test_xts_key[][32] =
 {
+#if !defined(MBEDTLS_ADAPTER_SECURITYIP)  //Key1 and Key2 for XTSAES must be different
     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+#endif
     { 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
       0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
       0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
@@ -1763,10 +1765,12 @@ static const unsigned char aes_test_xts_key[][32] =
 
 static const unsigned char aes_test_xts_pt32[][32] =
 {
+#if !defined(MBEDTLS_ADAPTER_SECURITYIP)
     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+#endif
     { 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
       0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
       0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
@@ -1779,10 +1783,12 @@ static const unsigned char aes_test_xts_pt32[][32] =
 
 static const unsigned char aes_test_xts_ct32[][32] =
 {
+#if !defined(MBEDTLS_ADAPTER_SECURITYIP)
     { 0x91, 0x7c, 0xf6, 0x9e, 0xbd, 0x68, 0xb2, 0xec,
       0x9b, 0x9f, 0xe9, 0xa3, 0xea, 0xdd, 0xa6, 0x92,
       0xcd, 0x43, 0xd2, 0xf5, 0x95, 0x98, 0xed, 0x85,
       0x8c, 0x02, 0xc2, 0x65, 0x2f, 0xbf, 0x92, 0x2e },
+#endif
     { 0xc4, 0x54, 0x18, 0x5e, 0x6a, 0x16, 0x93, 0x6e,
       0x39, 0x33, 0x40, 0x38, 0xac, 0xef, 0x83, 0x8b,
       0xfb, 0x18, 0x6f, 0xff, 0x74, 0x80, 0xad, 0xc4,
@@ -1795,8 +1801,10 @@ static const unsigned char aes_test_xts_ct32[][32] =
 
 static const unsigned char aes_test_xts_data_unit[][16] =
 {
+#if !defined(MBEDTLS_ADAPTER_SECURITYIP)
    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+#endif
    { 0x33, 0x33, 0x33, 0x33, 0x33, 0x00, 0x00, 0x00,
      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
    { 0x33, 0x33, 0x33, 0x33, 0x33, 0x00, 0x00, 0x00,
@@ -1808,6 +1816,7 @@ static const unsigned char aes_test_xts_data_unit[][16] =
 /*
  * Checkup routine
  */
+extern u64 riscv_get_mtimer(void);
 int mbedtls_aes_self_test( int verbose )
 {
     int ret = 0, i, j, u, mode;
@@ -1815,6 +1824,7 @@ int mbedtls_aes_self_test( int verbose )
     unsigned char key[32];
     unsigned char buf[64];
     const unsigned char *aes_tests;
+    u64 before, after =  0;
 #if defined(MBEDTLS_CIPHER_MODE_CBC) || defined(MBEDTLS_CIPHER_MODE_CFB)
     unsigned char iv[16];
 #endif
@@ -1878,13 +1888,25 @@ int mbedtls_aes_self_test( int verbose )
             goto exit;
         }
 
+#if CONFIG_ARCH_RISCV
+        before = riscv_get_mtimer();
+#else
+        before = 0;
+#endif
         for( j = 0; j < 10000; j++ )
         {
+
             ret = mbedtls_aes_crypt_ecb( &ctx, mode, buf, buf );
+
             if( ret != 0 )
                 goto exit;
         }
-
+#if CONFIG_ARCH_RISCV
+        after = riscv_get_mtimer();
+#else
+        after = 0;
+#endif
+        mbedtls_printf("run 10000 times, take time %d us.\r\n", (uint32_t)(after - before) / 26);
         if( memcmp( buf, aes_tests, 16 ) != 0 )
         {
             ret = 1;
@@ -1941,7 +1963,11 @@ int mbedtls_aes_self_test( int verbose )
         {
             goto exit;
         }
-
+#if CONFIG_ARCH_RISCV
+        before = riscv_get_mtimer();
+#else
+        before = 0;
+#endif
         for( j = 0; j < 10000; j++ )
         {
             if( mode == MBEDTLS_AES_ENCRYPT )
@@ -1958,7 +1984,12 @@ int mbedtls_aes_self_test( int verbose )
                 goto exit;
 
         }
-
+#if CONFIG_ARCH_RISCV
+        after = riscv_get_mtimer();
+#else
+        after = 0;
+#endif
+        mbedtls_printf("run 10000 times, take time %d us.\r\n", (uint32_t)(after - before) / 26);
         if( memcmp( buf, aes_tests, 16 ) != 0 )
         {
             ret = 1;
@@ -2103,7 +2134,11 @@ int mbedtls_aes_self_test( int verbose )
     /*
      * CTR mode
      */
+#if defined(MBEDTLS_ADAPTER_SECURITYIP)  //SECURITYIP must be block size(128bit) aligned
+    for( i = 0; i < 4; i++ )
+#else
     for( i = 0; i < 6; i++ )
+#endif
     {
         u = i >> 1;
         mode = i & 1;
@@ -2131,9 +2166,20 @@ int mbedtls_aes_self_test( int verbose )
             memcpy( buf, aes_test_ctr_pt[u], len );
             aes_tests = aes_test_ctr_ct[u];
         }
-
+#if CONFIG_ARCH_RISCV
+        before = riscv_get_mtimer();
+#else
+        before = 0;
+#endif
         ret = mbedtls_aes_crypt_ctr( &ctx, len, &offset, nonce_counter,
                                      stream_block, buf, buf );
+
+#if CONFIG_ARCH_RISCV
+        after = riscv_get_mtimer();
+#else
+        after = 0;
+#endif
+        mbedtls_printf("run 1 times, take time %d us.\r\n", (uint32_t)(after - before) / 26);
         if( ret != 0 )
             goto exit;
 
@@ -2195,9 +2241,19 @@ int mbedtls_aes_self_test( int verbose )
             aes_tests = aes_test_xts_ct32[u];
         }
 
-
+#if CONFIG_ARCH_RISCV
+        before = riscv_get_mtimer();
+#else
+        before = 0;
+#endif
         ret = mbedtls_aes_crypt_xts( &ctx_xts, mode, len, data_unit,
                                      buf, buf );
+#if CONFIG_ARCH_RISCV
+        after = riscv_get_mtimer();
+#else
+        after = 0;
+#endif	
+        mbedtls_printf("run 1 times, take time %d us.\r\n", (uint32_t)(after - before) / 26);
         if( ret != 0 )
             goto exit;
 

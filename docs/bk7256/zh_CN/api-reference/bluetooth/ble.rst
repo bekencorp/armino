@@ -194,8 +194,6 @@ User Guide
 	bk_ble_init_start_conn(con_idx, ble_at_cmd)
 
 
-
-
 API Reference
 ----------------------------------------
 
@@ -204,3 +202,16 @@ API Reference
 API Typedefs
 ----------------------------------------
 .. include:: ../../_build/inc/ble_types.inc
+
+
+
+Reference link
+----------------
+
+    `API Reference : <../../api-reference/bluetooth/index.html>`_ Introduced the Bluetooth API interface
+
+    `User and Developer Guide : <../../developer-guide/bluetooth/index.html>`_ Introduced common usage scenarios of Bluetooth
+
+    `Samples and Demos: <../../examples/bluetooth/index.html>`_ Introduced the use and operation of Bluetooth samples
+
+    `Bluetooth Project: <../../projects_work/bluetooth/index.html>`_ Introduced Bluetooth related Project

@@ -43,12 +43,16 @@ CPU1 CPU1_FLASH_START CPU1_FLASH_SIZE
 		ADDR _dtcm_bss_end
 	}
 
+	SRAM_START +0
+	{
+		ADDR NEXT   _sram_start
+	}
+
 	SRAM1 0x30000000 0xA000
 	{
 		ADDR NEXT   _video_start
 		* KEEP (.video_spec_data)
 	}
-
 
 
 	SRAM2 0x30078C00 0x7000
@@ -57,6 +61,11 @@ CPU1 CPU1_FLASH_START CPU1_FLASH_SIZE
 		ADDR NEXT _data_start
 		*(+RW,+ZI)
         STACK = 0x20007FE0
+	}
+	
+	SRAM_END +0 ALIGN 16
+	{
+		ADDR  _sram_end
 	}
 	
 	SWAP  0x3007FC00 0x400

@@ -3,8 +3,6 @@ Bluetooth Low Energy(BLE)
 
 :link_to_translation:`zh_CN:[中文]`
 
-
-
 Overview
 """"""""""""""""""""""""""
 
@@ -25,8 +23,12 @@ Note
 """"""""""""""""""""""""""
 
 Most APIs have a callback parameter, and you should wait for the callback to complete before proceeding to the next step.
+
 The processing of callback and event callback should not have blocking operations.
+
 The call stack of callback cannot be too deep.
+
+Due to memory reuse, media and Bluetooth cannot coexist. Before using Bluetooth, media related functions need to be turned off, and Bluetooth functions also need to be turned off before using media.
 
 .. important::
     Try to avoid blocking the BLE task, otherwise there will be abnormal phenomena such as disconnection, failure to scan, and failure to connect.
@@ -34,6 +36,57 @@ The call stack of callback cannot be too deep.
 	
 Common usage scenarios
 """"""""""""""""""""""""""
+
+Turn on Bluetooth
+****************************************
+
+::
+
+    //Callback function (example)
+    void ble_notice_cb(ble_notice_t notice, void *param)
+    {
+        switch (notice) {
+        case BLE_5_STACK_OK:
+            rtos_set_semaphore(&sem);
+            break;
+        default:
+            break;
+        }
+    }
+
+    //Set callback
+    bk_ble_set_notice_cb(ble_notice_cb);
+    //Turn on Bluetooth
+    bk_ble_init()；
+    //Waiting for Bluetooth to turn on
+    ret = rtos_get_semaphore(&sem, 1000);
+
+
+
+Turn off Bluetooth
+****************************************
+
+::
+
+    //Callback function (example)
+    void ble_notice_cb(ble_notice_t notice, void *param)
+    {
+        switch (notice) {
+        case BLE_5_SHUTDOWN_SUCCEED:
+            rtos_set_semaphore(&sem);
+            break;
+        default:
+            break;
+        }
+    }
+
+    //Set callback
+    bk_ble_set_notice_cb(ble_notice_cb);
+    //Turn off Bluetooth
+    bk_ble_deinit();
+    //Waiting for Bluetooth to turn off
+    ret = rtos_get_semaphore(&sem, 1000);
+
 
 As a slave, create an ATT database for peer browsing
 *******************************************************
@@ -195,6 +248,13 @@ After setting the database, you need to enable Advertising to allow the peer to 
 	...
 	//
 
+The broadcast format is shown in the following figure:
+    .. figure:: ../../../_static/adv_data.png
+        :align: center
+        :alt: menuconfig gui
+        :figclass: align-center
+
+AD Type defined in `Assigned Numbers <https://www.bluetooth.com/specifications/assigned-numbers>`_。
 
 
 Enable Scan
@@ -259,3 +319,29 @@ Setup Connection
 	//Wait for BLE_INIT_START_CONN event in ble_at_cmd_cb
 	...
 	//
+
+Disconnect
+****************************************
+
+::
+
+    //Obtain connection handle through Bluetooth address
+    conn_idx = bk_ble_find_conn_idx_from_addr(&connect_addr);
+
+    //Disconnect
+    err = bk_ble_disconnect(conn_idx, ble_at_cmd);
+
+	//Wait for BLE_CONN_DIS_CONN event in ble_at_cmd_cb
+	...
+	//
+
+Reference link
+""""""""""""""""
+
+    `API Reference : <../../api-reference/bluetooth/index.html>`_ Introduced the Bluetooth API interface
+
+    `User and Developer Guide : <../../developer-guide/bluetooth/index.html>`_ Introduced common usage scenarios of Bluetooth
+
+    `Samples and Demos: <../../examples/bluetooth/index.html>`_ Introduced the use and operation of Bluetooth samples
+
+    `Bluetooth Project: <../../projects_work/bluetooth/index.html>`_ Introduced Bluetooth related Project

@@ -84,6 +84,11 @@ CPU0_LOAD1 CPU0_FLASH_START CPU0_FLASH_SIZE
 		ADDR _dtcm_bss_end
 	}
 
+	SRAM_START +0
+	{
+		ADDR NEXT   _sram_start
+	}
+
 	SRAM_VIDEO 0x30000000 0xA000
 	{
 		ADDR NEXT   _video_start
@@ -111,5 +116,9 @@ CPU0_LOAD1 CPU0_FLASH_START CPU0_FLASH_SIZE
 		STACK = 0x20007FE0
 	}
 
+	SRAM_END +0 ALIGN 16
+	{
+		ADDR  _sram_end
+	}
 
 }

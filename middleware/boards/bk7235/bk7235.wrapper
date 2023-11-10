@@ -233,12 +233,7 @@ else:
     # shutil.copy(tmp_config["boot_loader_path"], tmp_config["sign_boot_loader_name"])
     # print("$$$$$$$$$$$${}".format(tmp_config["boot_loader_size"]))
     if tmp_config["with_boot_loader"]:
-        if os.path.exists("{}/middleware/boards/{}/version_anti_rollback.csv".format(armino_path, chip)):
-            version = int(version_data.get("bootloader", 0))
-        else:
-            version = 0
-        write_hex_to_bin(tmp_config["boot_loader_path"], 0x120, version)
-        print(">>>bootloader version ", version)
+        write_hex_to_bin(tmp_config["boot_loader_path"], 0x120, 0)
         os.system("{}/tools/env_tools/beken_packager/SignTool_P384 sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, tmp_config["boot_loader_path"], prikey, tmp_config["sign_boot_loader_name"], tmp_config["boot_loader_size"]))
     #2.pack app & cup*
     if(tmp_config["count"] > 2):

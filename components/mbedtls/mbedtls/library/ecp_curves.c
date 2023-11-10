@@ -167,7 +167,7 @@ static const mbedtls_mpi_uint secp256r1_p[] = {
     BYTES_TO_T_UINT_8( 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 ),
     BYTES_TO_T_UINT_8( 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF ),
 };
-#if 1
+#if defined(MBEDTLS_ADAPTER_SECURITYIP)
 static const mbedtls_mpi_uint secp256r1_a[] = {
     BYTES_TO_T_UINT_8( 0xFC, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF ),
     BYTES_TO_T_UINT_8( 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00 ),
@@ -213,7 +213,7 @@ static const mbedtls_mpi_uint secp384r1_p[] = {
     BYTES_TO_T_UINT_8( 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF ),
     BYTES_TO_T_UINT_8( 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF ),
 };
-#if 1
+#if defined(MBEDTLS_ADAPTER_SECURITYIP)
 static const mbedtls_mpi_uint secp384r1_a[] = {
     BYTES_TO_T_UINT_8( 0xFC, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00 ),
     BYTES_TO_T_UINT_8( 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF ),
@@ -794,13 +794,21 @@ int mbedtls_ecp_group_load( mbedtls_ecp_group *grp, mbedtls_ecp_group_id id )
 #if defined(MBEDTLS_ECP_DP_SECP256R1_ENABLED)
         case MBEDTLS_ECP_DP_SECP256R1:
             NIST_MODP( p256 );
+#if defined(MBEDTLS_ADAPTER_SECURITYIP)
             return( LOAD_GROUP_A( secp256r1 ) );
+#else
+            return( LOAD_GROUP( secp256r1 ) );
+#endif
 #endif /* MBEDTLS_ECP_DP_SECP256R1_ENABLED */
 
 #if defined(MBEDTLS_ECP_DP_SECP384R1_ENABLED)
         case MBEDTLS_ECP_DP_SECP384R1:
             NIST_MODP( p384 );
+#if defined(MBEDTLS_ADAPTER_SECURITYIP)
             return( LOAD_GROUP_A( secp384r1 ) );
+#else
+            return( LOAD_GROUP( secp384r1 ) );
+#endif
 #endif /* MBEDTLS_ECP_DP_SECP384R1_ENABLED */
 
 #if defined(MBEDTLS_ECP_DP_SECP521R1_ENABLED)

@@ -16,7 +16,7 @@
 #include <string.h>
 
 #include <os/os.h>
-#include "mailbox_channel.h"
+#include <driver/mailbox_channel.h>
 #include "mailbox_driver_base.h"
 
 #define MB_PHY_CMD_CHNL		(MAILBOX_BOX0)

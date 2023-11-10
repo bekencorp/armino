@@ -66,7 +66,7 @@ extern shell_dev_t		shell_uart3;
 
 #ifdef CONFIG_DUAL_CORE
 
-#include "mailbox_channel.h"
+#include <driver/mailbox_channel.h>
 
 struct _shell_ipc_drv;
 
@@ -77,14 +77,14 @@ typedef struct
 	void  * dev_ext;
 } shell_dev_ipc_t;
 
-typedef int  (* shell_ipc_rx_t)(u16 cmd, void *data_buf, u16 dataLen);
+typedef int  (* shell_ipc_rx_t)(u16 cmd, void *data_buf, u16 cpu_id);
 
 typedef struct _shell_ipc_drv
 {
 	bool_t   (*init)(shell_dev_ipc_t * dev_ipc);
 	bool_t   (*open)(shell_dev_ipc_t * dev_ipc, shell_ipc_rx_t rx_callback);
 	u16      (*read)(shell_dev_ipc_t * dev_ipc, u8 * pBuf, u16 BufLen);
-	u16      (*write_sync)(shell_dev_ipc_t * dev_ipc, u8 * pBuf, u16 BufLen);
+	u16      (*write_cmd)(shell_dev_ipc_t * dev_ipc, mb_chnl_cmd_t * cmd_buf);
 	bool_t   (*io_ctrl)(shell_dev_ipc_t * dev_ipc, u8 cmd, void * param);
 	bool_t   (*close)(shell_dev_ipc_t * dev_ipc);
 } shell_ipc_drv_t;

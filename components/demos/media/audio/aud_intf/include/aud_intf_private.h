@@ -66,6 +66,7 @@ typedef struct {
 	uint16_t frame_size;				/**< size: a frame packet mic data size(byte) */
 	uint8_t mic_gain;					/**< audio adc gain: value range:0x0 ~ 0x3f */
 	aud_intf_mic_type_t mic_type;		/**< audio mic type: uac or microphone */
+	aud_adc_intf_mode_t mic_mode;		/**< audio mic mode: signal_ended/differen */
 
 	void (*aud_tras_drv_mic_event_cb)(aud_tras_drv_mic_event_t event, bk_err_t result);
 } aud_intf_mic_config_t;
@@ -155,7 +156,8 @@ typedef struct {
 	uint8_t mic_frame_number;			//the max frame number of mic ring buffer
 	uint16_t speaker_samp_rate_points;	//the number of points in speaker frame
 	uint8_t speaker_frame_number;		//the max frame number of speaker ring buffer
-	aud_dac_work_mode_t spk_mode;			/**< audio spk mode: signal_ended/differen */
+	aud_dac_work_mode_t spk_mode;		/**< audio spk mode: signal_ended/differen */
+	aud_adc_intf_mode_t mic_mode;		/**< audio mic mode: signal_ended/differen */
 } aud_intf_aud_config_t;
 
 typedef struct {

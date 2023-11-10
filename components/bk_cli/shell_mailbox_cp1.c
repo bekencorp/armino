@@ -4,7 +4,8 @@
 
 #include "cli.h"
 #include "shell_drv.h"
-#include "mailbox_channel.h"
+#include <driver/mailbox_channel.h>
+#include <driver/mb_chnl_buff.h>
 
 #if CONFIG_CACHE_ENABLE
 #include "cache.h"
@@ -12,7 +13,6 @@
 
 #define TX_QUEUE_LEN     8
 #define RX_BUFF_SIZE     160
-#define TX_SYNC_BUF_SIZE 142
 
 typedef struct
 {
@@ -40,7 +40,8 @@ typedef struct
 
 	tx_complete_t   tx_complete_callback;
 
-	u8		tx_sync_buff[TX_SYNC_BUF_SIZE + 2];	
+	u8     *tx_sync_buf;
+	u16     tx_sync_len;
 
 	/* ========  RX channel   ======= */
 	/* rx buffer */
@@ -76,7 +77,8 @@ static const shell_dev_drv_t shell_mb_drv =
 
 static shell_mb_ext_t dev_mb_ext = 
 	{
-		.chnl_id = MB_CHNL_LOG
+		.chnl_id = MB_CHNL_LOG,
+		.tx_sync_buf = NULL
 	};
 
 shell_dev_t     shell_dev_mb = 
@@ -285,18 +287,20 @@ static bk_err_t write_sync(shell_mb_ext_t *mb_ext, u8 * p_buf, u16 buf_len)
 	volatile u8 * buff_busy;
 	u8 *   tx_buff;
 
-	tx_buff = &mb_ext->tx_sync_buff[0];
-	if((buf_len + 1) > sizeof(mb_ext->tx_sync_buff))
+	if(mb_ext->tx_sync_buf == NULL)
 	{
-		buf_len = sizeof(mb_ext->tx_sync_buff) - 1;
+		mb_ext->tx_sync_buf = mb_chnl_get_tx_buff(mb_ext->chnl_id);
+		mb_ext->tx_sync_len = mb_chnl_get_buff_len();
+
+		if(mb_ext->tx_sync_buf == NULL)
+			return BK_FAIL;
 	}
-	/*
-	tx_buff = &mb_ext->rx_buff[0];
-	if((buf_len + 1) > sizeof(mb_ext->rx_buff))
+
+	tx_buff = mb_ext->tx_sync_buf;
+	if((buf_len + 1) > mb_ext->tx_sync_len)
 	{
-		buf_len = sizeof(mb_ext->rx_buff) - 1;
+		buf_len = mb_ext->tx_sync_len - 1;
 	}
-	*/  // can use rx_buff for assert_out, because the interrpt is disabled when assert, no cmd will be arrived.
 
 	buff_busy = (volatile u8 * )&tx_buff[0];
 	tx_buff[0] = 1;  /* the buffer is busy. */
@@ -320,9 +324,9 @@ static bk_err_t write_sync(shell_mb_ext_t *mb_ext, u8 * p_buf, u16 buf_len)
 		while(*buff_busy)
 		{
 			// wait buffer to be free.
-		#if CONFIG_CACHE_ENABLE
-			flush_dcache((void *)tx_buff, buf_len);
-		#endif
+			#if CONFIG_CACHE_ENABLE
+			flush_dcache((void *)buff_busy, 1);
+			#endif
 		}
 	}
 
@@ -401,6 +405,12 @@ static bool_t shell_mb_init(shell_dev_t * shell_dev)
 	memset(mb_ext, 0, sizeof(shell_mb_ext_t));
 	mb_ext->tx_stopped = 1;
 	mb_ext->chnl_id = dev_id;
+
+	mb_ext->tx_sync_buf = mb_chnl_get_tx_buff(mb_ext->chnl_id);
+	mb_ext->tx_sync_len = mb_chnl_get_buff_len();
+
+	if(mb_ext->tx_sync_buf == NULL)
+		return bFALSE;
 
 	return bTRUE;
 }

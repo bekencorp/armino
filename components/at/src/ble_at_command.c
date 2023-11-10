@@ -651,14 +651,17 @@ static void ble_at_notice_cb(ble_notice_t notice, void *param)
                         case (REPORT_INFO_COMPLETE_BIT | REPORT_TYPE_ADV_LEG):
                             os_printf("evt_type:ADV_NONCONN_IND,");
                             break;
-                        case (REPORT_INFO_COMPLETE_BIT | REPORT_TYPE_SCAN_RSP_LEG):
-                            os_printf("evt_type:SCAN_RSP,");
-                            break;
                         default:
                             os_printf("evt_type:ERR_LEG_ADV,");
                             break;
                     }
                 }
+                break;
+            case REPORT_TYPE_SCAN_RSP_LEG:
+                os_printf("evt_type:SCAN_RSP,");
+                break;
+            case REPORT_TYPE_SCAN_RSP_EXT:
+                os_printf("evt_type:AUX_SCAN_RSP,");
                 break;
             case REPORT_TYPE_PER_ADV:
                 os_printf("evt_type:PER_ADV,");
@@ -2265,7 +2268,7 @@ int ble_set_scan_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
     uint8_t actv_idx = 0;
     ble_scan_param_t scan_param;
 
-    if (argc != 4)
+    if (argc < 4)
     {
         os_printf("\nThe number of param is wrong!\n");
         err = kParamErr;
@@ -2305,6 +2308,12 @@ int ble_set_scan_param_handle(char *pcWriteBuffer, int xWriteBufferLen, int argc
 
     scan_param.scan_intv = os_strtoul(argv[2], NULL, 16) & 0xFFFF;
     scan_param.scan_wd = os_strtoul(argv[3], NULL, 16) & 0xFFFF;
+
+    if (argc >=5)
+    {
+        scan_param.scan_type = os_strtoul(argv[4], NULL, 16) & 0xFF;
+    }
+
     if (scan_param.scan_intv < SCAN_INTERVAL_MIN || scan_param.scan_intv > SCAN_INTERVAL_MAX ||
         scan_param.scan_wd < SCAN_WINDOW_MIN || scan_param.scan_wd > SCAN_WINDOW_MAX ||
         scan_param.scan_intv < scan_param.scan_wd)
@@ -3303,7 +3312,7 @@ ble_attm_desc_t test_service_db[TEST_IDX_NB] = {
 
     //write test
     [TEST_IDX_CHAR_WRITE_TEST_DECL]    = {DECL_CHARACTERISTIC_128,  BK_BLE_PERM_SET(RD, ENABLE), 0, 0},
-    [TEST_IDX_CHAR_WRITE_TEST_VALUE]   = {{0xf0, 0x12, 0}, BK_BLE_PERM_SET(NTF, ENABLE) | BK_BLE_PERM_SET(WRITE_REQ, ENABLE) , BK_BLE_PERM_SET(UUID_LEN, UUID_16), 255},
+    [TEST_IDX_CHAR_WRITE_TEST_VALUE]   = {{0xf0, 0x12, 0}, BK_BLE_PERM_SET(NTF, ENABLE) | BK_BLE_PERM_SET(WRITE_COMMAND, ENABLE) , BK_BLE_PERM_SET(UUID_LEN, UUID_16), 255},
     [TEST_IDX_CHAR_WRITE_TEST_DESC] = {DESC_CLIENT_CHAR_CFG_128, BK_BLE_PERM_SET(RD, ENABLE) | BK_BLE_PERM_SET(WRITE_REQ, ENABLE), 0, 0},
 };
 

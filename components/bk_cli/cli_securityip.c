@@ -17,9 +17,10 @@
 #include "cli.h"
 #include  "driver/securityip.h"
 #if CONFIG_HW_ACC_MBEDTLS_TEST
-#include "ecdsa.h"
 #include "ccm.h"
 #include "gcm.h"
+#include "aes.h"
+#include "hkdf.h"
 #endif
 static void cli_securityip_help(void)
 {
@@ -29,10 +30,12 @@ static void cli_securityip_help(void)
 //Note!!! Required CONFIG_MBEDTLS and MBEDTLS_SELF_TEST
 //Note!!! ecdsa Using hardware acceleration, need to be defined MBEDTLS_ECDSA_VERIFY_ALT、MBEDTLS_ECDSA_SIGN_ALT
 #if CONFIG_HW_ACC_MBEDTLS_TEST
-	CLI_LOGI("securityip_sha_test 256/512\r\n");
-	CLI_LOGI("securityip_ecdsa test 0/1 n\r\n");
-	CLI_LOGI("securityip_aes ccm/gcm 0/1\r\n");
-	CLI_LOGI("securityip_rsa_test pkcs1v15/pss");
+	CLI_LOGI("securityip_sha 256/512\r\n");
+	CLI_LOGI("securityip_ecdsa test 0/1 loop_count\r\n");
+	CLI_LOGI("securityip_aes ccm/gcm/test 0/1\r\n");
+	CLI_LOGI("securityip_rsa pkcs1v15/pss\r\n");
+	CLI_LOGI("securityip_hkdf test 0/1 type okm_size\r\n");
+	CLI_LOGI("securityip_pkcs5 test 0/1 type loop length\r\n");
 #endif
 }
 
@@ -183,6 +186,66 @@ static void cli_securityip_aes_cmd(char *pcWriteBuffer, int xWriteBufferLen, int
 		mbedtls_ccm_self_test(verbose);
 	}else if (os_strcmp(argv[1], "gcm") == 0) {
 		mbedtls_gcm_self_test(verbose);
+	}else if (os_strcmp(argv[1], "test") == 0) {
+		mbedtls_aes_self_test(verbose);
+	}else{
+		cli_securityip_help();
+	}
+}
+
+extern int mbedtls_hkdf_self_test( int verbose, mbedtls_md_type_t type, uint32_t okm_size);
+static void cli_securityip_hkdf_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 5) {
+		cli_securityip_help();
+		return;
+	}
+	int verbose;
+	uint32_t size;
+	mbedtls_md_type_t type;
+
+	verbose = os_strtoul(argv[2], NULL, 10);
+	type    = os_strtoul(argv[3], NULL, 10);
+	size    = os_strtoul(argv[4], NULL, 10);
+
+	if(type > MBEDTLS_MD_RIPEMD160)
+	{
+		CLI_LOGE("input type err!\r\n");
+		return;
+	}
+
+	if (os_strcmp(argv[1], "test") == 0) {
+		mbedtls_hkdf_self_test(verbose, type, size);
+	}else{
+		cli_securityip_help();
+	}
+}
+
+extern int mbedtls_pkcs5_self_test( int verbose );
+extern int mbedtls_pkcs5_self_test2( int verbose, mbedtls_md_type_t type, uint32_t loop, uint32_t length);
+static void cli_securityip_pkcs5_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 3) {
+		cli_securityip_help();
+		return;
+	}
+	int verbose;
+	mbedtls_md_type_t type;
+	uint32_t loop_count;
+	uint32_t len;
+
+	verbose    = os_strtoul(argv[2], NULL, 10);
+
+	if (os_strcmp(argv[1], "test") == 0) {
+		mbedtls_pkcs5_self_test(verbose);
+	}else if (os_strcmp(argv[1], "test1") == 0) {
+		type       = os_strtoul(argv[3], NULL, 10);
+		loop_count = os_strtoul(argv[4], NULL, 10);
+		len        = os_strtoul(argv[5], NULL, 10);
+
+		mbedtls_pkcs5_self_test2(verbose, type, loop_count, len);
+	}else{
+		cli_securityip_help();
 	}
 }
 
@@ -194,10 +257,12 @@ static const struct cli_command s_securityip_commands[] = {
 	{"securityip_system", "securityip_system {version|state|reset}", cli_securityip_system_cmd},
 	{"securityip_trng", "securityip_trng {cfg|get}", cli_securityip_trng_cmd},
 #if CONFIG_HW_ACC_MBEDTLS_TEST
-	{"securityip_sha_test", "securityip_sha_test {256|512}", cli_sha_test_cmd},
-	{"securityip_ecdsa", "securityip_ecdsa {test}", cli_securityip_ecdsa_cmd},
-	{"securityip_rsa_test", "securityip_rsa_test {pkcs1v15|pss}", cli_securityip_rsa_cmd},
-	{"securityip_aes", "securityip_aes {ccm|gcm}", cli_securityip_aes_cmd}
+	{"securityip_sha_test", "securityip_sha {256|512}", cli_sha_test_cmd},
+	{"securityip_ecdsa", "securityip_ecdsa {test} {verbose} {loop_count}", cli_securityip_ecdsa_cmd},
+	{"securityip_rsa_test", "securityip_rsa {pkcs1v15|pss}", cli_securityip_rsa_cmd},
+	{"securityip_aes", "securityip_aes {ccm|gcm|test} {verbose}", cli_securityip_aes_cmd},
+	{"securityip_hkdf", "securityip_hkdf {test} {verbose} {type} {okm_size}", cli_securityip_hkdf_cmd},
+	{"securityip_pkcs5", "securityip_pkcs5 {test} {verbose} {type} {loop} {length}", cli_securityip_pkcs5_cmd}
 #endif
 };
 

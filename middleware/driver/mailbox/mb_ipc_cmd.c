@@ -16,17 +16,20 @@
 #include <string.h>
 
 #include <os/os.h>
-#include "mailbox_channel.h"
+#include <driver/mailbox_channel.h>
+#include <driver/mb_chnl_buff.h>
 #include "mb_ipc_cmd.h"
 #include "dma_driver.h"
 
 #define MOD_TAG		"IPC"
 
+#if (CONFIG_DUAL_CORE)
+
 #define IPC_RSP_CMD_FLAG		0x80
 #define IPC_RSP_CMD_MASK		0x7F
 
 #define IPC_RSP_TIMEOUT			10		/* 10ms */
-#define IPC_XCHG_DATA_MAX		32
+#define IPC_XCHG_DATA_MAX		16
 
 typedef union
 {
@@ -51,14 +54,6 @@ typedef union
 
 	mb_chnl_ack_t	mb_ack;
 } ipc_rsp_t;
-
-/* all slave CPUs must send msg to master CPU0 ONLY. */
-/* all slave CPUs can't communicate with each other. */
-typedef struct
-{
-	u8		cp0_tx_buff[SYSTEM_CPU_NUM][IPC_XCHG_DATA_MAX];
-	u8		cp0_rx_buff[SYSTEM_CPU_NUM][IPC_XCHG_DATA_MAX];
-} ipc_chnl_buf_t;
 
 typedef u32 (* ipc_rx_cmd_hdlr_t)(void * chnl_cb, mb_chnl_ack_t *ack_buf);
 
@@ -86,9 +81,6 @@ typedef struct
 	u32				cmd_buf[IPC_XCHG_DATA_MAX / sizeof(u32)];
 	u16				cmd_len;
 } ipc_chnl_cb_t;
-
-extern char _swap_start;
-static ipc_chnl_buf_t * const ipc_xchg_buf = (ipc_chnl_buf_t *)(&_swap_start);
 
 static void ipc_cmd_rx_isr(ipc_chnl_cb_t *chnl_cb, mb_chnl_cmd_t *cmd_buf)
 {
@@ -262,7 +254,7 @@ static void ipc_cmd_tx_cmpl_isr(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf) 
 
 }
 
-static bk_err_t ipc_chnl_init(u8 client, ipc_chnl_cb_t *chnl_cb, u8 chnl_id, ipc_rx_cmd_hdlr_t rx_handler)
+static bk_err_t ipc_chnl_init(ipc_chnl_cb_t *chnl_cb, u8 chnl_id, ipc_rx_cmd_hdlr_t rx_handler)
 {
 	bk_err_t		ret_code;
 
@@ -272,18 +264,13 @@ static bk_err_t ipc_chnl_init(u8 client, ipc_chnl_cb_t *chnl_cb, u8 chnl_id, ipc
 	memset(chnl_cb, 0, sizeof(ipc_chnl_cb_t));
 	chnl_cb->chnl_id = chnl_id;
 
-	u32  src_cpu_id = GET_SRC_CPU_ID(chnl_id);
-	u32  dst_cpu_id = GET_DST_CPU_ID(chnl_id);
+	chnl_cb->tx_xchg_buff = mb_chnl_get_tx_buff(chnl_id);
+	chnl_cb->rx_xchg_buff = mb_chnl_get_rx_buff(chnl_id);
 
-	if(src_cpu_id == MAILBOX_CPU0)
+	if( (chnl_cb->tx_xchg_buff == NULL) || 
+		(chnl_cb->tx_xchg_buff == NULL) )
 	{
-		chnl_cb->tx_xchg_buff = ipc_xchg_buf[GET_LOG_CHNL_ID(chnl_id)].cp0_tx_buff[dst_cpu_id];
-		chnl_cb->rx_xchg_buff = ipc_xchg_buf[GET_LOG_CHNL_ID(chnl_id)].cp0_rx_buff[dst_cpu_id];
-	}
-	else
-	{
-		chnl_cb->tx_xchg_buff = ipc_xchg_buf[GET_LOG_CHNL_ID(chnl_id)].cp0_rx_buff[src_cpu_id];
-		chnl_cb->rx_xchg_buff = ipc_xchg_buf[GET_LOG_CHNL_ID(chnl_id)].cp0_tx_buff[src_cpu_id];
+		return BK_FAIL;
 	}
 
 	ret_code = rtos_init_semaphore_adv(&chnl_cb->chnl_sema, 1, 1);
@@ -319,7 +306,7 @@ static bk_err_t ipc_chnl_init(u8 client, ipc_chnl_cb_t *chnl_cb, u8 chnl_id, ipc
 	return BK_OK;
 }
 
-static bk_err_t ipc_send_cmd(ipc_chnl_cb_t *chnl_cb, u8 cmd, u8 *cmd_buf, u16 cmd_len, u8 * rsp_buf, u16 buf_len)
+static bk_err_t ipc_send_cmd(ipc_chnl_cb_t *chnl_cb, u8 cmd, u8 *cmd_buf, u16 cmd_len, u8 * rsp_buf, u16 rsp_buf_len)
 {
 	bk_err_t	ret_val = BK_FAIL;
 	ipc_cmd_t	ipc_cmd;
@@ -333,8 +320,6 @@ static bk_err_t ipc_send_cmd(ipc_chnl_cb_t *chnl_cb, u8 cmd, u8 *cmd_buf, u16 cm
 	chnl_cb->tx_cmd_failed = 0;
 	chnl_cb->tx_cmd_in_process = 1;
 
-	/* client uses the CLIENT buffer to exchange info(Cmd/Rsp) with server. */
-	/* server uses the SERVER buffer to exchange info(Cmd/Rsp) with client. */
 	void * dst_buf = (void *)chnl_cb->tx_xchg_buff;
 
 	do
@@ -376,13 +361,13 @@ static bk_err_t ipc_send_cmd(ipc_chnl_cb_t *chnl_cb, u8 cmd, u8 *cmd_buf, u16 cm
 			break;
 		}
 
-		if((rsp_buf == NULL) || (buf_len == 0))
+		if((rsp_buf == NULL) || (rsp_buf_len == 0))
 		{
 			ret_val = BK_OK;
 			break;
 		}
 
-		if(buf_len < chnl_cb->rsp_len)
+		if(rsp_buf_len < chnl_cb->rsp_len)
 		{
 			ret_val = BK_ERR_PARAM;
 			break;
@@ -417,227 +402,7 @@ typedef struct
 	u32		chnl_id;
 } ipc_dma_free_t;
 
-#if CONFIG_SLAVE_CORE
-
-/**    ============================      IPC client    ============================   **/
-
-static u32 ipc_client_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf)
-{
-	/* must NOT change ack_buf->hdr. */
-
-	u32		result = ACK_STATE_FAIL;
-	ipc_rsp_t * ipc_rsp = (ipc_rsp_t *)ack_buf;
-
-	/* chnl_cb->rx_xchg_buff == ipc_cmd->cmd_buff == ipc_rsp->rsp_buff. MUST be true. */
-
-	ipc_rsp->rsp_buff = chnl_cb->rx_xchg_buff; //ipc_xchg_buf[chnl_cb->chnl_id].server_buff;
-
-	switch(chnl_cb->rx_cmd)
-	{
-		case IPC_TEST_CMD:
-			if(chnl_cb->cmd_len >= sizeof(u32))
-			{
-				ipc_rsp->rsp_data_len = sizeof(u32);
-
-				u32 * p_src = (u32 *)chnl_cb->cmd_buf;
-				u32 * p_dst = (u32 *)ipc_rsp->rsp_buff;
-
-				*p_dst = (*p_src) + 1;
-				
-				result = ACK_STATE_COMPLETE;
-			}
-			else
-			{
-				ipc_rsp->rsp_data_len = 0;
-				result = ACK_STATE_FAIL;
-			}
-			break;
-
-		case IPC_GET_POWER_SAVE_FLAG:
-			{
-				ipc_rsp->rsp_data_len = sizeof(u32);
-
-				u32 * p_dst = (u32 *)ipc_rsp->rsp_buff;
-
-				// return PS flag to caller.
-				*p_dst = 0xAA; //(u32)get_cpu1_ps_flag();
-
-				result = ACK_STATE_COMPLETE;
-			}
-			break;
-
-		case IPC_SET_CPU1_HEART_RATE:
-			if(chnl_cb->cmd_len >= sizeof(u32))
-			{
-				ipc_rsp->rsp_data_len = 0;
-
-				//u32 * p_src = (u32 *)chnl_cb->cmd_buf;
-
-				// save the param.
-				//set_cpu1_heart_rate(*p_src);
-				
-				result = ACK_STATE_COMPLETE;
-			}
-			else
-			{
-				ipc_rsp->rsp_data_len = 0;
-				result = ACK_STATE_FAIL;
-			}
-			break;
-
-		case IPC_GET_CPU1_HEART_RATE:
-			{
-				ipc_rsp->rsp_data_len = sizeof(u32);
-
-				u32 * p_dst = (u32 *)ipc_rsp->rsp_buff;
-
-				// return heart_rate to caller.
-				*p_dst = 0xBB; //(u32)get_cpu1_heart_rate();
-
-				result = ACK_STATE_COMPLETE;
-			}
-			break;
-
-		case IPC_RES_AVAILABLE_INDICATION:
-			if(chnl_cb->cmd_len >= sizeof(u16))
-			{
-				ipc_rsp->rsp_data_len = 0;
-
-				u16  res_id = *((u16 *)chnl_cb->cmd_buf);
-
-				if(amp_res_available(res_id) == BK_OK)
-				{
-					result = ACK_STATE_COMPLETE;
-				}
-				else
-				{
-					result = ACK_STATE_FAIL;
-				}
-			}
-			else
-			{
-				ipc_rsp->rsp_data_len = 0;
-				result = ACK_STATE_FAIL;
-			}
-			break;
-
-		default:
-			{
-				ipc_rsp->rsp_data_len = 0;
-				result = ACK_STATE_FAIL;
-			}
-			break;
-	}
-
-	return result;
-}
-
-bk_err_t ipc_client_init(void)
-{
-	return ipc_chnl_init(1, &ipc_chnl_cb, MB_CHNL_HW_CTRL, (ipc_rx_cmd_hdlr_t)ipc_client_cmd_handler);
-}
-
-/**    ============================    IPC client end  ============================   **/
-
-bk_err_t ipc_send_power_up(void)
-{
-	return ipc_send_cmd(&ipc_chnl_cb, IPC_CPU1_POWER_UP_INDICATION, NULL, 0, NULL, 0);
-}
-
-bk_err_t ipc_send_heart_beat(u32 param)
-{
-	return ipc_send_cmd(&ipc_chnl_cb, IPC_CPU1_HEART_BEAT_INDICATION, (u8 *)&param, sizeof(param), NULL, 0);
-}
-
-bk_err_t ipc_send_res_acquire_cnt(u16 resource_id, u16 cpu_id, amp_res_req_cnt_t *cnt_list)
-{
-	ipc_res_req_t	res_req;
-
-	res_req.res_id = resource_id;
-	res_req.cpu_id = cpu_id;
-
-	return ipc_send_cmd(&ipc_chnl_cb, IPC_RES_ACQUIRE_CNT, \
-						(u8 *)&res_req, sizeof(res_req), (u8 *)cnt_list, sizeof(amp_res_req_cnt_t));
-}
-
-bk_err_t ipc_send_res_release_cnt(u16 resource_id, u16 cpu_id, amp_res_req_cnt_t *cnt_list)
-{
-	ipc_res_req_t	res_req;
-
-	res_req.res_id = resource_id;
-	res_req.cpu_id = cpu_id;
-
-	return ipc_send_cmd(&ipc_chnl_cb, IPC_RES_RELEASE_CNT, \
-						(u8 *)&res_req, sizeof(res_req), (u8 *)cnt_list, sizeof(amp_res_req_cnt_t));
-}
-
-u8 ipc_send_alloc_dma_chnl(u32 user_id)
-{
-	bk_err_t	ret_val = BK_FAIL;
-	u8	dma_chnl_id = -1;
-
-	ret_val = ipc_send_cmd(&ipc_chnl_cb, IPC_ALLOC_DMA_CHNL, \
-						(u8 *)&user_id, sizeof(user_id), (u8 *)&dma_chnl_id, sizeof(dma_chnl_id));
-
-	if(ret_val != BK_OK)
-		return (u8)(-1);
-
-	return dma_chnl_id;
-}
-
-bk_err_t ipc_send_free_dma_chnl(u32 user_id, u8 chnl_id)
-{
-	bk_err_t	ret_val = BK_FAIL;
-
-	ipc_dma_free_t	dma_free;
-
-	dma_free.user_id = user_id;
-	dma_free.chnl_id = chnl_id;
-
-	ret_val = ipc_send_cmd(&ipc_chnl_cb, IPC_FREE_DMA_CHNL, \
-						(u8 *)&dma_free, sizeof(dma_free), NULL, 0);
-
-	return ret_val;
-}
-
-u32 ipc_send_dma_chnl_user(u8 chnl_id)
-{
-	bk_err_t	ret_val = BK_FAIL;
-	u32		user_id = -1;
-
-	ret_val = ipc_send_cmd(&ipc_chnl_cb, IPC_DMA_CHNL_USER, \
-						(u8 *)&chnl_id, sizeof(chnl_id), (u8 *)&user_id, sizeof(user_id));
-
-	if(ret_val != BK_OK)
-		return (u32)(-1);
-
-	return user_id;
-}
-
-#endif
-
-#ifdef CONFIG_DUAL_CORE
-
-u32 ipc_send_test_cmd(u32 param)
-{
-	ipc_send_cmd(&ipc_chnl_cb, IPC_TEST_CMD, (u8 *)&param, sizeof(param), (u8 *)&param, sizeof(param));
-
-	return param;
-}
-
-bk_err_t ipc_send_available_ind(u16 resource_id)
-{
-	return ipc_send_cmd(&ipc_chnl_cb, IPC_RES_AVAILABLE_INDICATION, \
-						(u8 *)&resource_id, sizeof(resource_id), NULL, 0);
-}
-
-#endif
-
-#if CONFIG_MASTER_CORE
-
-/**    ============================      IPC server    ============================   **/
-
-static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf)
+static u32 ipc_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf)
 {
 	/* must NOT change ack_buf->hdr. */
 
@@ -669,6 +434,43 @@ static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf
 			}
 			break;
 
+		case IPC_RES_AVAILABLE_INDICATION:
+			if(chnl_cb->cmd_len >= sizeof(u16))
+			{
+				ipc_rsp->rsp_data_len = 0;
+
+				u16  res_id = *((u16 *)chnl_cb->cmd_buf);
+
+				if(amp_res_available(res_id) == BK_OK)
+				{
+					result = ACK_STATE_COMPLETE;
+				}
+				else
+				{
+					result = ACK_STATE_FAIL;
+				}
+			}
+			else
+			{
+				ipc_rsp->rsp_data_len = 0;
+				result = ACK_STATE_FAIL;
+			}
+			break;
+
+		case IPC_GET_POWER_SAVE_FLAG:
+			{
+				ipc_rsp->rsp_data_len = sizeof(u32);
+
+				u32 * p_dst = (u32 *)ipc_rsp->rsp_buff;
+
+				// return PS flag to caller.
+				*p_dst = 0xAA; //(u32)get_cpu1_ps_flag();
+
+				result = ACK_STATE_COMPLETE;
+			}
+			break;
+
+		#if CONFIG_SYS_CPU0
 		case IPC_CPU1_POWER_UP_INDICATION:		// cpu1 indication, power up successfully.
 			{
 				ipc_rsp->rsp_data_len = 0;
@@ -695,6 +497,42 @@ static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf
 			result = ACK_STATE_COMPLETE;
 			break;
 
+		#else
+		
+		case IPC_SET_CPU1_HEART_RATE:
+			if(chnl_cb->cmd_len >= sizeof(u32))
+			{
+				ipc_rsp->rsp_data_len = 0;
+
+				//u32 * p_src = (u32 *)chnl_cb->cmd_buf;
+
+				// save the param.
+				//set_cpu1_heart_rate(*p_src);
+				
+				result = ACK_STATE_COMPLETE;
+			}
+			else
+			{
+				ipc_rsp->rsp_data_len = 0;
+				result = ACK_STATE_FAIL;
+			}
+			break;
+
+		case IPC_GET_CPU1_HEART_RATE:
+			{
+				ipc_rsp->rsp_data_len = sizeof(u32);
+
+				u32 * p_dst = (u32 *)ipc_rsp->rsp_buff;
+
+				// return heart_rate to caller.
+				*p_dst = 0xBB; //(u32)get_cpu1_heart_rate();
+
+				result = ACK_STATE_COMPLETE;
+			}
+			break;
+		#endif
+
+		#ifdef AMP_RES_SERVER
 		case IPC_RES_ACQUIRE_CNT:
 			if(chnl_cb->cmd_len >= sizeof(ipc_res_req_t))
 			{
@@ -702,7 +540,11 @@ static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf
 				amp_res_req_cnt_t * res_cnt_list = (amp_res_req_cnt_t *)ipc_rsp->rsp_buff;
 
 				/* call amp_res_acquire_cnt in interrupt disabled state. */
-				if(amp_res_acquire_cnt(res_req->res_id, res_req->cpu_id, res_cnt_list) == BK_OK)
+				u32  int_mask = rtos_disable_int();
+				bk_err_t ret_code = amp_res_acquire_cnt(res_req->res_id, res_req->cpu_id, res_cnt_list);
+				rtos_enable_int(int_mask);
+
+				if(ret_code == BK_OK)
 				{
 					ipc_rsp->rsp_data_len = sizeof(amp_res_req_cnt_t);
 
@@ -728,7 +570,11 @@ static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf
 				amp_res_req_cnt_t * res_cnt_list = (amp_res_req_cnt_t *)ipc_rsp->rsp_buff;
 
 				/* call amp_res_release_cnt in interrupt disabled state. */
-				if(amp_res_release_cnt(res_req->res_id, res_req->cpu_id, res_cnt_list) == BK_OK)
+				u32  int_mask = rtos_disable_int();
+				bk_err_t ret_code = amp_res_release_cnt(res_req->res_id, res_req->cpu_id, res_cnt_list);
+				rtos_enable_int(int_mask);
+
+				if(ret_code == BK_OK)
 				{
 					ipc_rsp->rsp_data_len = sizeof(amp_res_req_cnt_t);
 
@@ -737,29 +583,6 @@ static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf
 				else
 				{
 					ipc_rsp->rsp_data_len = 0;
-					result = ACK_STATE_FAIL;
-				}
-			}
-			else
-			{
-				ipc_rsp->rsp_data_len = 0;
-				result = ACK_STATE_FAIL;
-			}
-			break;
-
-		case IPC_RES_AVAILABLE_INDICATION:
-			if(chnl_cb->cmd_len >= sizeof(u16))
-			{
-				ipc_rsp->rsp_data_len = 0;
-
-				u16  res_id = *((u16 *)chnl_cb->cmd_buf);
-
-				if(amp_res_available(res_id) == BK_OK)
-				{
-					result = ACK_STATE_COMPLETE;
-				}
-				else
-				{
 					result = ACK_STATE_FAIL;
 				}
 			}
@@ -836,10 +659,7 @@ static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf
 				result = ACK_STATE_FAIL;
 			}
 			break;
-
-		// case IPC_CALL_CMD:
-			/* will handle it in RPC channel. */
-		//	break;
+		#endif
 
 		default:
 			{
@@ -852,12 +672,23 @@ static u32 ipc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf
 	return result;
 }
 
-bk_err_t ipc_server_init(void)
+bk_err_t ipc_init(void)
 {
-	return ipc_chnl_init(0, &ipc_chnl_cb, MB_CHNL_HW_CTRL, (ipc_rx_cmd_hdlr_t)ipc_server_cmd_handler);
+	return ipc_chnl_init(&ipc_chnl_cb, MB_CHNL_HW_CTRL, (ipc_rx_cmd_hdlr_t)ipc_cmd_handler);
 }
 
-/**    ============================    IPC server end  ============================   **/
+u32 ipc_send_test_cmd(u32 param)
+{
+	ipc_send_cmd(&ipc_chnl_cb, IPC_TEST_CMD, (u8 *)&param, sizeof(param), (u8 *)&param, sizeof(param));
+
+	return param;
+}
+
+bk_err_t ipc_send_available_ind(u16 resource_id)
+{
+	return ipc_send_cmd(&ipc_chnl_cb, IPC_RES_AVAILABLE_INDICATION, \
+						(u8 *)&resource_id, sizeof(resource_id), NULL, 0);
+}
 
 u32 ipc_send_get_ps_flag(void)
 {
@@ -867,6 +698,8 @@ u32 ipc_send_get_ps_flag(void)
 
 	return param;
 }
+
+#if CONFIG_MASTER_CORE
 
 u32 ipc_send_get_heart_rate(void)
 {
@@ -882,213 +715,86 @@ bk_err_t ipc_send_set_heart_rate(u32 param)
 	return ipc_send_cmd(&ipc_chnl_cb, IPC_SET_CPU1_HEART_RATE, (u8 *)&param, sizeof(param), NULL, 0);
 }
 
-#endif
+#else
 
-#if 0
-static ipc_chnl_cb_t		rpc_chnl_cb; // = { .chnl_id = MB_CHNL_RPC, .chnl_inited = 0 };
-
-#if CONFIG_SLAVE_CORE
-
-/**    ============================      RPC client    ============================   **/
-
-bk_err_t rpc_client_init(void)
+bk_err_t ipc_send_power_up(void)
 {
-	return ipc_chnl_init(1, &rpc_chnl_cb, MB_CHNL_RPC, (ipc_rx_cmd_hdlr_t)ipc_client_cmd_handler);
+	return ipc_send_cmd(&ipc_chnl_cb, IPC_CPU1_POWER_UP_INDICATION, NULL, 0, NULL, 0);
 }
 
-bk_err_t rpc_client_call(rpc_call_def_t *rpc_param, u16 param_len, rpc_ret_def_t *ret_buf, u16 buf_len)
+bk_err_t ipc_send_heart_beat(u32 param)
 {
-	if(!rpc_chnl_cb.chnl_inited)
-		return BK_FAIL;
+	return ipc_send_cmd(&ipc_chnl_cb, IPC_CPU1_HEART_BEAT_INDICATION, (u8 *)&param, sizeof(param), NULL, 0);
+}
 
-	bk_err_t	ret_val;
+#endif
 
-	ret_val = ipc_send_cmd(&rpc_chnl_cb, IPC_CALL_CMD, (u8 *)rpc_param, param_len, (u8 *)ret_buf, buf_len);
+#ifdef AMP_RES_CLIENT
+bk_err_t ipc_send_res_acquire_cnt(u16 resource_id, u16 cpu_id, amp_res_req_cnt_t *cnt_list)
+{
+	ipc_res_req_t	res_req;
+
+	res_req.res_id = resource_id;
+	res_req.cpu_id = cpu_id;
+
+	return ipc_send_cmd(&ipc_chnl_cb, IPC_RES_ACQUIRE_CNT, \
+						(u8 *)&res_req, sizeof(res_req), (u8 *)cnt_list, sizeof(amp_res_req_cnt_t));
+}
+
+bk_err_t ipc_send_res_release_cnt(u16 resource_id, u16 cpu_id, amp_res_req_cnt_t *cnt_list)
+{
+	ipc_res_req_t	res_req;
+
+	res_req.res_id = resource_id;
+	res_req.cpu_id = cpu_id;
+
+	return ipc_send_cmd(&ipc_chnl_cb, IPC_RES_RELEASE_CNT, \
+						(u8 *)&res_req, sizeof(res_req), (u8 *)cnt_list, sizeof(amp_res_req_cnt_t));
+}
+
+u8 ipc_send_alloc_dma_chnl(u32 user_id)
+{
+	bk_err_t	ret_val = BK_FAIL;
+	u8	dma_chnl_id = -1;
+
+	ret_val = ipc_send_cmd(&ipc_chnl_cb, IPC_ALLOC_DMA_CHNL, \
+						(u8 *)&user_id, sizeof(user_id), (u8 *)&dma_chnl_id, sizeof(dma_chnl_id));
 
 	if(ret_val != BK_OK)
-		return ret_val;
+		return (u8)(-1);
 
-	if((ret_buf == NULL) || (buf_len == 0))
-	{
-		return BK_OK;
-	}
-
-	if( (rpc_param->call_hdr.mod_id != ret_buf->call_hdr.mod_id) || 
-		(rpc_param->call_hdr.mod_id != ret_buf->call_hdr.mod_id) )
-	{
-		/* un-matched rpc response. */
-		return BK_FAIL;
-	}
-
-	return BK_OK;
-
+	return dma_chnl_id;
 }
 
-
-/**    ============================    RPC client end  ============================   **/
-
-#endif
-
-#if CONFIG_MASTER_CORE
-
-/**    ============================      RPC server    ============================   **/
-
-static beken_semaphore_t	server_ind_sema;
-
-static void rpc_svr_task( void *para );
-
-static u32 rpc_server_cmd_handler(ipc_chnl_cb_t *chnl_cb, mb_chnl_ack_t *ack_buf)
+bk_err_t ipc_send_free_dma_chnl(u32 user_id, u8 chnl_id)
 {
-	/* must NOT change ack_buf->hdr. */
+	bk_err_t	ret_val = BK_FAIL;
 
-	u32		result = ACK_STATE_FAIL;
+	ipc_dma_free_t	dma_free;
 
-	switch(chnl_cb->rx_cmd)
-	{
-		case IPC_CALL_CMD:
-			result = ACK_STATE_PENDING;
+	dma_free.user_id = user_id;
+	dma_free.chnl_id = chnl_id;
 
-			/* informs server task to process the call. */
-			rtos_set_semaphore(&server_ind_sema);
-
-			break;
-
-		default:
-			return ipc_server_cmd_handler(chnl_cb, ack_buf);
-			break;
-	}
-
-	return result;
-}
-
-bk_err_t rpc_server_init(void)
-{
-	bk_err_t		ret_code;
-	beken_thread_t	thread_handle = NULL;
-
-	ret_code = rtos_init_semaphore(&server_ind_sema, 1);
-	if(ret_code != BK_OK)
-	{
-		return ret_code;
-	}
-
-	ret_code = ipc_chnl_init(0, &rpc_chnl_cb, MB_CHNL_RPC, (ipc_rx_cmd_hdlr_t)rpc_server_cmd_handler);
-
-	if(ret_code != BK_OK)
-	{
-		rtos_deinit_semaphore(&server_ind_sema);
-
-		return ret_code;
-	}
-
-	ret_code = rtos_create_thread(&thread_handle,
-							 BEKEN_DEFAULT_WORKER_PRIORITY, //BK_SYS_TASK_PRIO_7,
-							 "rpc_svr",
-							 (beken_thread_function_t)rpc_svr_task,
-							 4096,
-							 0);
-
-	return BK_OK;
-}
-
-int rpc_server_listen_cmd(u32 timeout_ms)
-{
-	bk_err_t	ret_val;
-
-	ret_val = rtos_get_semaphore(&server_ind_sema, timeout_ms);
-
-	if(ret_val == BK_OK)
-		return 1;
-	else
-		return 0;
-}
-
-typedef int (*rpc_svr_handler_t)(rpc_call_def_t * call_buf);
-
-typedef struct
-{
-	u8		rpc_mod_id;
-	rpc_svr_handler_t	svr_handler;
-} rpc_svr_dispatcher_t;
-
-typedef struct
-{
-	rpc_call_hdr_t	call_hdr;
-	bk_err_t		ret_val;		/* return fail code. */ /* struct of api_ret_data_t */
-} rpc_ret_fail_t;
-
-extern int bk_gpio_api_svr(rpc_call_def_t * call_buf);
-extern int bk_dma_api_svr(rpc_call_def_t * call_buf);
-
-static rpc_svr_dispatcher_t    svr_dispatcher[] =
-{
-	{RPC_MOD_GPIO,     bk_gpio_api_svr   },
-	{RPC_MOD_DMA,      bk_dma_api_svr    },
-};
-
-void rpc_server_handle_cmd(void)
-{
-	int		rpc_handled = 0;
-	int		i;
-
-	if(rpc_chnl_cb.rx_cmd_in_process == 0)  /* no rpc call cmd to handle. */
-		return;
-
-	rpc_call_def_t *rpc_call = (rpc_call_def_t *)rpc_chnl_cb.cmd_buf;
-
-	for(i = 0; i < ARRAY_SIZE(svr_dispatcher); i++)
-	{
-		if(rpc_call->call_hdr.mod_id == svr_dispatcher[i].rpc_mod_id)
-		{
-			rpc_handled = svr_dispatcher[i].svr_handler(rpc_call);
-		}
-	}
-
-	if(rpc_handled == 0)  /* rpc api not handled. */
-	{
-		rpc_ret_fail_t	rsp_buf;
-
-		rsp_buf.call_hdr.call_id = rpc_call->call_hdr.call_id;
-		rsp_buf.call_hdr.data_len = sizeof(rsp_buf) - sizeof(rsp_buf.call_hdr);
-		rsp_buf.ret_val = BK_ERR_NOT_SUPPORT;
-
-		rpc_server_rsp((rpc_ret_def_t *)&rsp_buf, sizeof(rsp_buf)); // return fail info.
-	}
-
-	return;
-}
-
-bk_err_t rpc_server_rsp(rpc_ret_def_t *rsp_param, u16 param_len)
-{
-	if(!rpc_chnl_cb.chnl_inited)
-		return BK_FAIL;
-
-	if(rpc_chnl_cb.rx_cmd_in_process == 0)
-		return BK_FAIL;
-
-	bk_err_t	ret_val;
-
-	ret_val = ipc_send_cmd(&rpc_chnl_cb, IPC_CALL_CMD | IPC_RSP_CMD_FLAG, (u8 *)rsp_param, param_len, NULL, 0);
-
-	rpc_chnl_cb.rx_cmd_in_process  = 0;
+	ret_val = ipc_send_cmd(&ipc_chnl_cb, IPC_FREE_DMA_CHNL, \
+						(u8 *)&dma_free, sizeof(dma_free), NULL, 0);
 
 	return ret_val;
-
 }
 
-static void rpc_svr_task( void *para )
+u32 ipc_send_dma_chnl_user(u8 chnl_id)
 {
-	// rpc_server_init
+	bk_err_t	ret_val = BK_FAIL;
+	u32		user_id = -1;
 
-	while(1)
-	{
-		rpc_server_listen_cmd(BEKEN_WAIT_FOREVER);
-		rpc_server_handle_cmd();
-	}
+	ret_val = ipc_send_cmd(&ipc_chnl_cb, IPC_DMA_CHNL_USER, \
+						(u8 *)&chnl_id, sizeof(chnl_id), (u8 *)&user_id, sizeof(user_id));
+
+	if(ret_val != BK_OK)
+		return (u32)(-1);
+
+	return user_id;
 }
-
-/**    ============================    RPC server end  ============================   **/
-
 #endif
+
 #endif
 

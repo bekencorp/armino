@@ -4,12 +4,12 @@ USER_SECTIONS	.dtcm_sec_data
 USER_SECTIONS	.dtcm_sec_bss
 USER_SECTIONS	.bt_spec_data
 USER_SECTIONS	.ble_bss_data
-USER_SECTIONS	.video_spec_data
-USER_SECTIONS	.media_bss_data
 USER_SECTIONS	.swap_data
 USER_SECTIONS	.itcm
 USER_SECTIONS	.interrupt.text
 USER_SECTIONS	.interrupt.HalTrapVector.text.HalTrapVector
+USER_SECTIONS   .sram_nocache
+USER_SECTIONS   .sram_cache
 
 DEFINE CPU0_FLASH_START  0x10000
 DEFINE CPU0_FLASH_SIZE   0x220000
@@ -36,7 +36,7 @@ CPU0_LOAD1 CPU0_FLASH_START CPU0_FLASH_SIZE
 		ADDR _itcm_ema_end
 	}
 
-	DTCM 0x20000400 0x6C00
+	DTCM 0x20000400 0x7800
 	{
 		LOADADDR NEXT _dtcm_lma_start
 		ADDR NEXT _dtcm_ema_start
@@ -97,19 +97,26 @@ CPU0_LOAD1 CPU0_FLASH_START CPU0_FLASH_SIZE
 
 		ADDR _bt_data_end
 	}
-
-
-	SRAM_DATA 0x30016000 0x68C00
+	
+	SRAM_DATA 0x30016000 0x22C00
 	{
+		* KEEP (.sram_nocache)
 		LOADADDR NEXT _data_lmastart
 		ADDR NEXT _data_start
 		*(+RW,+ZI LMA_FORCE_ALIGN)
+
 		STACK = 0x20007FE0
+
 	}
 
-	SWAP  0x3007FC00 0x400
+	SRAM_CACHE 0x38000000 0x40000
 	{
-		ADDR NEXT   _swap_start
+		* KEEP (.sram_cache)
+	}
+
+	SWAP 0x3003FC00 0x400
+	{
+		ADDR NEXT _swap_start
 		* KEEP (.swap_data)
 	}
 }

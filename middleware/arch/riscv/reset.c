@@ -20,7 +20,7 @@ extern void c_startup_ate(void);
 extern void c_startup(void);
 // extern void system_init(void);
 extern void __libc_init_array(void);
-extern void init_pmp_config();
+extern void init_u_mode_pmp_config();
 extern void entry_main(void);
 
 //volatile int g_debug_mode=1;
@@ -65,7 +65,7 @@ void reset_handler(void)
 #endif
 
 	/*Init pmp configuration*/
-	// init_pmp_config();
+	// init_u_mode_pmp_config();
 	
 	/* Entry function */
 	entry_main();

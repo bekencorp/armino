@@ -892,6 +892,15 @@ void bk_wifi_ota_dtim(bool is_open);
 
 
 /**
+ * @brief  register callback to get wifi ap power
+ *
+ * @param  callback interface
+ * *@return
+ * 	-void.
+ */
+void bk_wifi_ap_power_register_cb(FUNC_1PARAM_PTR cb);
+
+/**
  * @}
  */
 

@@ -233,10 +233,12 @@ SECTIONS
 	SRAM_BT_SIZE = . - SRAM_BT_BEGIN;
 	. = 0x30016000;
 	SRAM_DATA_BEGIN = .;
+	.sram_nocache 	: AT(LOADADDR (.ble_bss_data) + SIZEOF (.ble_bss_data))
+		{ KEEP(*(.sram_nocache )) }
 	. = ALIGN(8);
 	. = ALIGN(0x20);
 	. = ALIGN(ALIGNOF(.eh_frame));
-	.eh_frame 	: AT(ALIGN(LOADADDR (.ble_bss_data) + SIZEOF (.ble_bss_data), 32))
+	.eh_frame 	: AT(ALIGN(LOADADDR (.sram_nocache) + SIZEOF (.sram_nocache), 32))
 		{ KEEP(*(.eh_frame )) }
 	_data_lmastart =  LOADADDR (.eh_frame);
 	_data_start = ADDR(.eh_frame);
@@ -322,9 +324,14 @@ SECTIONS
 	PROVIDE (end = .);
 	PROVIDE (_stack = 0x20007FE0);
 	SRAM_DATA_SIZE = . - SRAM_DATA_BEGIN;
-	. = 0x3007FC00;
+	. = 0x38000000;
+	SRAM_CACHE_BEGIN = .;
+	.sram_cache 	: AT(LOADADDR (.sdata_f) + SIZEOF (.sdata_f))
+		{ KEEP(*(.sram_cache )) }
+	SRAM_CACHE_SIZE = . - SRAM_CACHE_BEGIN;
+	. = 0x3003FC00;
 	SWAP_BEGIN = .;
-	.swap_data 	: AT(LOADADDR (.sdata_f) + SIZEOF (.sdata_f))
+	.swap_data 	: AT(LOADADDR (.sram_cache) + SIZEOF (.sram_cache))
 		{ KEEP(*(.swap_data )) }
 	_swap_start = ADDR(.swap_data);
 	SWAP_SIZE = . - SWAP_BEGIN;
@@ -355,8 +362,9 @@ SECTIONS
 	.debug_varnames	0 : { *(.debug_varnames) }
 }
 ASSERT((DEFINED (_RELAX_END_) ? ITCM_SIZE : 0x0)<= 0x8000, "ITCM OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x6C00, "DTCM OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x7800, "DTCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SRAM_BT_SIZE : 0x0)<= 0x16000, "SRAM_BT OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? SRAM_DATA_SIZE : 0x0)<= 0x68C00, "SRAM_DATA OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? SRAM_DATA_SIZE : 0x0)<= 0x22C00, "SRAM_DATA OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? SRAM_CACHE_SIZE : 0x0)<= 0x40000, "SRAM_CACHE OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? SWAP_SIZE : 0x0)<= 0x400, "SWAP OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD1_SIZE : 0x0)<= 0x220000, "CPU0_LOAD1 OVERFLOW");

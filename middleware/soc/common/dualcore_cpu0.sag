@@ -84,6 +84,11 @@ CPU0_LOAD1 CPU0_FLASH_START CPU0_FLASH_SIZE
 
 		ADDR _dtcm_bss_end
 	}
+	
+	SRAM_START +0
+	{
+		ADDR NEXT   _sram_start
+	}
 
 	SRAM_VIDEO 0x30000000 0xA000
 	{
@@ -104,13 +109,17 @@ CPU0_LOAD1 CPU0_FLASH_START CPU0_FLASH_SIZE
 		ADDR _bt_data_end
 	}
 
-
 	SRAM_DATA 0x30020000 0x58C00
 	{
 		LOADADDR NEXT _data_lmastart
 		ADDR NEXT _data_start
 		*(+RW,+ZI LMA_FORCE_ALIGN)
 		STACK = 0x20007FE0
+	}
+
+	SRAM_END +0 ALIGN 16
+	{
+		ADDR  _sram_end
 	}
 
 	SWAP  0x3007FC00 0x400

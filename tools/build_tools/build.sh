@@ -42,6 +42,7 @@ elif [ "${BUILD_TARGET_PREFIX}" == "docbk" ]; then
 	need_doc=1
 else
 	ARMINO_SOC=${BUILD_TARGET}
+	BUILD_DIR=${BUILD_DIR}/${ARMINO_SOC}
 	need_build_soc=1
 	has_properties_lib_src=$(${ARMINO_DIR}/tools/build_tools/detect_internal_lib_src.py)
 	if [ ${has_properties_lib_src} == "1" ]; then

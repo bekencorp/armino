@@ -112,12 +112,14 @@ bk_err_t lcd_qspi_disp_open(void)
 
 bk_err_t lcd_qspi_disp_close(void)
 {
-    _lcd_qspi_display_deinit();
-    LOGI("[%s] close success\r\n", __FUNCTION__);
-
     rtos_lock_mutex(&g_lcd_qspi_mutex);
     g_lcd_qspi_act_step = LCD_QSPI_ACT_DISP_CLOSE;
     rtos_unlock_mutex(&g_lcd_qspi_mutex);
+
+    g_lcd_qspi_open_flag = 0;
+
+//    _lcd_qspi_display_deinit();
+    LOGI("[%s] close success\r\n", __FUNCTION__);
 
     return BK_OK;
 }
@@ -126,9 +128,11 @@ bk_err_t lcd_qspi_display(uint32_t frame)
 {
     if(g_lcd_qspi_open_flag)
     {
-        rtos_lock_mutex(&g_lcd_qspi_mutex);
-        g_lcd_qspi_imag_addr = (uint32_t *)frame;
-        rtos_unlock_mutex(&g_lcd_qspi_mutex);
+    	if (g_lcd_qspi_imag_addr != (uint32_t *)frame) {
+            rtos_lock_mutex(&g_lcd_qspi_mutex);
+            g_lcd_qspi_imag_addr = (uint32_t *)frame;
+            rtos_unlock_mutex(&g_lcd_qspi_mutex);
+    	}
     }
     return BK_OK;
 }
@@ -259,12 +263,12 @@ bk_err_t bk_lcd_qspi_open(char *lcd_name, uint32_t *frame_buffer_addr, uint32_t 
             LOGE("[%s] can't find this lcd:%s\r\n", __FUNCTION__, lcd_name);
             break;
         }
-        LOGE("[%s] lcd:%s, device:%x\r\n", __FUNCTION__, lcd_name, device_config);
+
+        LOGI("[%s] lcd:%s, device:%x\r\n", __FUNCTION__, lcd_name, device_config);
 
         rtos_init_semaphore_ex(&lcd_qspi_disp_sem, 1, 0);
         rtos_init_mutex(&g_lcd_qspi_mutex_master);
-        bk_lcd_qspi_backlight_init(device_config, 100);
-        g_lcd_qspi_open_flag = 1;
+
         ret = BK_OK;
     }while(0);
 
@@ -287,6 +291,8 @@ bk_err_t bk_lcd_qspi_open(char *lcd_name, uint32_t *frame_buffer_addr, uint32_t 
         if (ret != BK_OK) {
             LOGE("[%s]semaphore get failed: %d, %d\n", __func__, ret, EVENT_LCD_QSPI_OPEN_MBCMD);
         } else {
+            bk_lcd_qspi_backlight_init(device_config, 100);
+            g_lcd_qspi_open_flag = 1;
             LOGI("[%s] open lcd success\r\n", __FUNCTION__);
         }
     }
@@ -303,7 +309,7 @@ bk_err_t bk_lcd_qspi_display(uint32_t *frame_buffer_addr, uint32_t frame_buffer_
     do{
         if(!g_lcd_qspi_open_flag)
         {
-            LOGE("[%s] lcd don't open\r\n", __FUNCTION__);
+//            LOGE("[%s] lcd don't open\r\n", __FUNCTION__);
             break;
         }
 
@@ -344,7 +350,11 @@ bk_err_t bk_lcd_qspi_close(void)
             break;
         }
 
+        g_lcd_qspi_open_flag = 0;
         bk_lcd_qspi_backlight_deinit(device_config);
+
+        rtos_lock_mutex(&g_lcd_qspi_mutex_master);
+
         mb_cmd.hdr.cmd = EVENT_LCD_QSPI_CLOSE_MBCMD;
         mb_cmd.param1 = 0;
         mb_cmd.param2 = 0;
@@ -354,6 +364,7 @@ bk_err_t bk_lcd_qspi_close(void)
         if (ret != BK_OK)
         {
             LOGE("[%s] mb_chnl_write failed: %d\n", __func__, ret);
+            rtos_unlock_mutex(&g_lcd_qspi_mutex_master);
             break;
         }
 
@@ -363,11 +374,12 @@ bk_err_t bk_lcd_qspi_close(void)
         else
             LOGI("[%s] close lcd success\r\n", __FUNCTION__);
 
+		rtos_unlock_mutex(&g_lcd_qspi_mutex_master);
+
         if(ret == BK_OK)
         {
             rtos_deinit_mutex(&g_lcd_qspi_mutex_master);
             rtos_deinit_semaphore(&lcd_qspi_disp_sem);
-            g_lcd_qspi_open_flag = 0;
         }
     }while(0);
 

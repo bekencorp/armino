@@ -2022,6 +2022,7 @@ static bk_err_t aud_tras_drv_mic_init(aud_intf_mic_config_t *mic_cfg)
 
 	aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb = mic_cfg->aud_tras_drv_mic_event_cb;
 	aud_tras_drv_info.mic_info.mic_type = mic_cfg->mic_type;
+	aud_tras_drv_info.mic_info.mic_mode = mic_cfg->mic_mode;
 	if (aud_tras_drv_info.mic_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
 		/* get audio adc config */
 		aud_tras_drv_info.mic_info.adc_config = os_malloc(sizeof(aud_adc_config_t));
@@ -2113,6 +2114,14 @@ static bk_err_t aud_tras_drv_mic_init(aud_intf_mic_config_t *mic_cfg)
 			LOGE("audio adc init fail \r\n");
 			err = BK_ERR_AUD_INTF_ADC;
 			goto aud_tras_drv_mic_init_exit;
+		}
+		if (aud_tras_drv_info.mic_info.mic_mode == AUD_ADC_INTF_MODE_SIGNAL_END) {
+			ret = bk_aud_set_mic_intf_mode(AUD_MIC_MIC1, AUD_ADC_INTF_MODE_SIGNAL_END);
+			if (ret != BK_OK) {
+				LOGE("audio adc intf mode fail \r\n");
+				err = BK_ERR_AUD_INTF_ADC;
+				goto aud_tras_drv_mic_init_exit;
+			}
 		}
 		LOGI("step1: init audio and config ADC complete \r\n");
 
@@ -2226,6 +2235,7 @@ aud_tras_drv_mic_init_exit:
 	aud_tras_drv_info.mic_info.temp_mic_addr = NULL;
 
 	aud_tras_drv_info.mic_info.mic_type = AUD_INTF_MIC_TYPE_MAX;
+	aud_tras_drv_info.mic_info.mic_mode = AUD_ADC_INTF_MODE_DIFFEN;
 
 	if (aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb)
 		aud_tras_drv_info.mic_info.aud_tras_drv_mic_event_cb(EVENT_AUD_TRAS_MIC_INIT, err);
@@ -2242,6 +2252,7 @@ static bk_err_t aud_tras_drv_mic_deinit(void)
 		bk_dma_deinit(aud_tras_drv_info.mic_info.mic_dma_id);
 		bk_dma_free(DMA_DEV_AUDIO, aud_tras_drv_info.mic_info.mic_dma_id);
 		bk_aud_adc_deinit();
+		bk_aud_set_mic_intf_mode(AUD_MIC_BOTH, AUD_ADC_INTF_MODE_DIFFEN);
 		if (aud_tras_drv_info.spk_info.status == AUD_TRAS_DRV_SPK_STA_NULL)
 			bk_aud_driver_deinit();
 		os_free(aud_tras_drv_info.mic_info.adc_config);
@@ -2455,6 +2466,7 @@ static bk_err_t aud_tras_drv_voc_deinit(void)
 	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
 		bk_aud_stop_adc();
 		bk_aud_adc_deinit();
+		bk_aud_set_mic_intf_mode(AUD_MIC_BOTH, AUD_ADC_INTF_MODE_DIFFEN);
 		bk_dma_stop(aud_tras_drv_info.voc_info.adc_dma_id);
 		bk_dma_deinit(aud_tras_drv_info.voc_info.adc_dma_id);
 		bk_dma_free(DMA_DEV_AUDIO, aud_tras_drv_info.voc_info.adc_dma_id);
@@ -2684,6 +2696,7 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 	aud_tras_drv_info.voc_info.spk_en = voc_cfg->spk_en;
 	aud_tras_drv_info.voc_info.mic_type = voc_cfg->mic_type;
 	aud_tras_drv_info.voc_info.spk_type = voc_cfg->spk_type;
+	aud_tras_drv_info.voc_info.mic_mode = voc_cfg->aud_setup.mic_mode;
 
 	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
 		/* get audio adc config */
@@ -2754,7 +2767,7 @@ static bk_err_t aud_tras_drv_voc_init(aud_intf_voc_config_t* voc_cfg)
 		}
 	}
 
-	if (aud_tras_drv_info.voc_info.mic_type == AUD_INTF_MIC_TYPE_BOARD) {
+	if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {
 		/* get audio dac config */
 		aud_tras_drv_info.voc_info.dac_config = os_malloc(sizeof(aud_dac_config_t));
 		if (aud_tras_drv_info.voc_info.adc_config == NULL) {
@@ -3090,6 +3103,14 @@ static bk_err_t aud_tras_drv_voc_start(void)
 				err = BK_ERR_AUD_INTF_ADC;
 				goto audio_start_transfer_exit;
 			}
+			if (aud_tras_drv_info.voc_info.mic_mode == AUD_ADC_INTF_MODE_SIGNAL_END) {
+				ret = bk_aud_set_mic_intf_mode(AUD_MIC_MIC1, AUD_ADC_INTF_MODE_SIGNAL_END);
+				if (ret != BK_OK) {
+					LOGE("audio adc intf mode fail \r\n");
+					err = BK_ERR_AUD_INTF_ADC;
+					goto audio_start_transfer_exit;
+				}
+			}
 
 			/* start DMA */
 			ret = bk_dma_start(aud_tras_drv_info.voc_info.adc_dma_id);
@@ -3300,6 +3321,7 @@ static bk_err_t aud_tras_drv_voc_stop(void)
 		/* disable adc */
 		bk_aud_stop_adc();
 		bk_aud_adc_deinit();
+		bk_aud_set_mic_intf_mode(AUD_MIC_BOTH, AUD_ADC_INTF_MODE_DIFFEN);
 	}
 
 	if (aud_tras_drv_info.voc_info.spk_type == AUD_INTF_SPK_TYPE_BOARD) {

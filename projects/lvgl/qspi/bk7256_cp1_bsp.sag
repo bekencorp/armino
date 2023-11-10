@@ -1,5 +1,4 @@
 USER_SECTIONS	.nds_vector
-USER_SECTIONS	.video_spec_data
 USER_SECTIONS	.itcm_sec_code
 USER_SECTIONS	.itcm_sec_bss
 USER_SECTIONS	.dtcm_sec_data
@@ -19,6 +18,7 @@ CPU1 0x210000 0x20000
 		LOADADDR NEXT _itcm_lma_start
 		ADDR NEXT _itcm_ema_start
 		* KEEP (.itcm_sec_code)
+		* KEEP (.itcm) 
 		LOADADDR _itcm_lma_end
 		ADDR _itcm_ema_end
 		
@@ -27,7 +27,7 @@ CPU1 0x210000 0x20000
 		ADDR _itcm_bss_end
 	}
 
-	DTCM 0x20000400 0x6C00
+	DTCM 0x20000400 0x7800
 	{
 		LOADADDR NEXT _dtcm_lma_start
 		ADDR NEXT _dtcm_ema_start
@@ -39,16 +39,8 @@ CPU1 0x210000 0x20000
 		* KEEP (.dtcm_sec_bss)
 		ADDR _dtcm_bss_end
 	}
-
-	SRAM1 0x30000000 0xA000
-	{
-		ADDR NEXT   _video_start
-		* KEEP (.video_spec_data)
-	}
-
-
-
-	SRAM2 0x30078C00 0x7000
+	
+	SRAM1 0x30038C00 0x7000
 	{
 		LOADADDR NEXT _data_lmastart
 		ADDR NEXT _data_start
@@ -56,9 +48,10 @@ CPU1 0x210000 0x20000
         STACK = 0x20007FE0
 	}
 	
-	SWAP  0x3007FC00 0x400
+	
+	SWAP 0x3003FC00 0x400
 	{
-		ADDR NEXT   _swap_start
+		ADDR NEXT _swap_start
 		* KEEP (.swap_data)
 	}
 

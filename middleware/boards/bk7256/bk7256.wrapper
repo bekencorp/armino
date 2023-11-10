@@ -94,7 +94,12 @@ if os.getenv("PROJECT_DIR") != "projects/ate_mini_code":
                             "{}/{}".format(armino_path, os.getenv("PROJECT_DIR")))
                 #copy bootloader elf-map-asm to build directory
                 #shutil.copytree("{}/{}/l_boot/out/".format(armino_path,project_bootloader_a_b), "./bootloader_out/l_boot",ignore=shutil.ignore_patterns("temp","*.bin","l_bootloader1.asm"))
-                shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader_a_b), './bootloader_out')
+                try:
+                    shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader_a_b), './bootloader_out')
+                except FileExistsError:
+                    #raise RuntimeError("==========>./bootloader_out exist")
+                    shutil.rmtree('./bootloader_out')
+                    shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader_a_b), './bootloader_out')
         else:
             if (os.path.exists("{}/{}".format(armino_path,project_bootloader))):
                 print("PROJECT_DIR:",os.getenv("PROJECT_DIR"))
@@ -103,8 +108,12 @@ if os.getenv("PROJECT_DIR") != "projects/ate_mini_code":
                 shutil.copy("{}/{}/output/bootloader.bin".format(armino_path,project_bootloader), 
                             "{}/middleware/boards/{}/bootloader.bin".format(armino_path,chip))
                 #copy bootloader and monitor elf-map-asm to build directory
-                shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader), './bootloader_out')
-
+                try:
+                    shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader), './bootloader_out')
+                except FileExistsError:
+                    #raise RuntimeError("==========>./bootloader_out exist")
+                    shutil.rmtree('./bootloader_out')
+                    shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader), './bootloader_out')
 def package_json_rebuild():
     if os.path.exists("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR"))):
         with open("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR")), 'r') as local_json:
@@ -258,12 +267,7 @@ else:
     # shutil.copy(tmp_config["boot_loader_path"], tmp_config["sign_boot_loader_name"])
     # print("$$$$$$$$$$$${}".format(tmp_config["boot_loader_size"]))
     if tmp_config["with_boot_loader"]:
-        if os.path.exists("{}/middleware/boards/{}/version_anti_rollback.csv".format(armino_path, chip)):
-            version = int(version_data.get("bootloader", 0))
-        else:
-            version = 0
-        write_hex_to_bin(tmp_config["boot_loader_path"], 0x120, version)
-        print(">>>bootloader version ", version)
+        write_hex_to_bin(tmp_config["boot_loader_path"], 0x120, 0)
         os.system("{}/tools/env_tools/beken_packager/SignTool_P384 sign -infile {} -prikey {} -outfile {} -len {}".format(armino_path, tmp_config["boot_loader_path"], prikey, tmp_config["sign_boot_loader_name"], tmp_config["boot_loader_size"]))
     #2.pack app & cup*
     if(tmp_config["count"] > 2):

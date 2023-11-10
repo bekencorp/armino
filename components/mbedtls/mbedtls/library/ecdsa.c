@@ -1023,17 +1023,17 @@ static const uint8_t Vector_P384_Message[] =
 };
 static void dump_buf( const char *title, unsigned char *buf, size_t len )
 {
-    size_t i;
+	size_t i;
 
-    mbedtls_printf( "%s", title );
-    for( i = 0; i < len; i++ )
-    {
-	    if(i%8 == 0)
+	mbedtls_printf( "%s", title );
+	for( i = 0; i < len; i++ )
+	{
+		if(i%8 == 0)
 			mbedtls_printf( "\r\n" );
 
 		mbedtls_printf("%c%c", "0123456789ABCDEF" [buf[i] / 16],
                        "0123456789ABCDEF" [buf[i] % 16] );
-    }
+	}
 	mbedtls_printf( "\r\n" );
 }
 

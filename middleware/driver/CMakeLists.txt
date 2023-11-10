@@ -529,6 +529,7 @@ if (CONFIG_MAILBOX)
 		list(APPEND srcs
 			mailbox/mailbox_channel.c
 			mailbox/mb_ipc_cmd.c
+			mailbox/mb_chnl_buff.c
 		)
 	endif()
 

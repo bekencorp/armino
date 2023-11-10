@@ -31,4 +31,16 @@ SPP旨在通过蓝牙在两个支持spp profile的设备上做到数据透传功
 示例
 --------------------------
  | SPP相关AT测试代码可参考: ``\components\at\src\bt_at_command.c``
- | AT命令详细介绍可参考: ``examples/cli/bluetooth/bt.html``
+ | AT命令详细介绍可参考: `examples/cli/bluetooth/bt.html <../cli/bluetooth/bt.html>`_
+
+
+参考链接
+----------
+
+    `API参考: <../../api-reference/bluetooth/index.html>`_ 介绍了蓝牙API接口
+
+    `开发者指南: <../../developer-guide/bluetooth/index.html>`_ 介绍了蓝牙常用使用场景
+
+    `样例演示: <../../examples/bluetooth/index.html>`_ 介绍了蓝牙样例使用和操作
+
+    `蓝牙工程: <../../projects_work/bluetooth/index.html>`_ 介绍了蓝牙相关工程

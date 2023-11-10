@@ -581,6 +581,7 @@ bk_err_t bk_aud_intf_mic_init(aud_intf_mic_setup_t *setup)
 	aud_intf_info.mic_info.frame_size = setup->frame_size;
 	aud_intf_info.mic_info.mic_gain = setup->mic_gain;
 	aud_intf_info.mic_info.mic_type = setup->mic_type;
+	aud_intf_info.mic_info.mic_mode = setup->mic_mode;
 	aud_intf_info.mic_info.aud_tras_drv_mic_event_cb = aud_tras_drv_mic_event_cb_handle;
 
 	return aud_intf_send_msg_with_sem(AUD_TRAS_DRV_MIC_INIT, &aud_intf_info.mic_info, BEKEN_WAIT_FOREVER);
@@ -972,6 +973,7 @@ bk_err_t bk_aud_intf_voc_init(aud_intf_voc_setup_t setup)
 	aud_intf_info.voc_info.aud_setup.mic_frame_number = 2;
 	aud_intf_info.voc_info.aud_setup.speaker_frame_number = 2;
 	aud_intf_info.voc_info.aud_setup.spk_mode = setup.spk_mode;
+	aud_intf_info.voc_info.aud_setup.mic_mode = setup.mic_mode;
 	aud_intf_info.voc_info.mic_en = setup.mic_en;
 	aud_intf_info.voc_info.spk_en = setup.spk_en;
 	aud_intf_info.voc_info.mic_type = setup.mic_type;

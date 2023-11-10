@@ -30,7 +30,7 @@ typedef struct
 	u16		others_req_cnt;
 } amp_res_req_cnt_t;
 
-#if CONFIG_MASTER_CORE
+#ifdef AMP_RES_SERVER
 
 /* call this API in interrupt disabled state. */
 bk_err_t amp_res_acquire_cnt(u16 res_id, u16 cpu_id, amp_res_req_cnt_t *cnt_list);

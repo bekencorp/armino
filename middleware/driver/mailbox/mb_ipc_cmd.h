@@ -21,126 +21,67 @@ extern "C" {
 
 #include <common/bk_typedef.h>
 #include <common/bk_err.h>
-#include "amp_res_lock.h"
 
 enum
 {
-	IPC_TEST_CMD = 0,               /* CPU0 <-> CPU1 */
+	IPC_TEST_CMD = 0,               /* Server <-> Client */
 
 	IPC_CPU1_POWER_UP_INDICATION,           /* CPU1 -> CPU0  */
 	IPC_CPU1_HEART_BEAT_INDICATION,         /* CPU1 -> CPU0  */
-	IPC_GET_POWER_SAVE_FLAG,            /* CPU0 -> CPU1  */
-	IPC_GET_CPU1_HEART_RATE,            /* CPU0 -> CPU1  */
-	IPC_SET_CPU1_HEART_RATE,            /* CPU0 -> CPU1  */
+	IPC_GET_CPU1_HEART_RATE,                /* CPU0 -> CPU1  */
+	IPC_SET_CPU1_HEART_RATE,                /* CPU0 -> CPU1  */
 
-	IPC_RES_ACQUIRE_CNT,                    /* CPU1 -> CPU0  */
-	IPC_RES_RELEASE_CNT,                    /* CPU1 -> CPU0  */
+	IPC_GET_POWER_SAVE_FLAG,                /* Server -> Client  */
 
-	IPC_RES_AVAILABLE_INDICATION,   /* CPU0 <-> CPU1 */
-	IPC_ALLOC_DMA_CHNL,                     /* CPU1 -> CPU0  */
-	IPC_FREE_DMA_CHNL,                      /* CPU1 -> CPU0  */
-	IPC_DMA_CHNL_USER,                      /* CPU1 -> CPU0  */
+	IPC_RES_ACQUIRE_CNT,                    /* Client -> Server  */
+	IPC_RES_RELEASE_CNT,                    /* Client -> Server  */
 
-//	IPC_CALL_CMD = 0x60,                    /* CPU1 -> CPU0  */
+	IPC_RES_AVAILABLE_INDICATION,   /* Server <-> Client */
+	IPC_ALLOC_DMA_CHNL,                     /* Client -> Server  */
+	IPC_FREE_DMA_CHNL,                      /* Client -> Server  */
+	IPC_DMA_CHNL_USER,                      /* Client -> Server  */
 
 	IPC_CMD_MAX  = 0x7F,  /* cmd id can NOT great than 0x7F. */
 };
 
-#if 0
-/**    =============================     RPC    =============================   **/
 
-#define FIELD_OFFSET(type, member)		((u32)(&(((type *)0)->member)))
-#define FIELD_SIZE(type, member)		(sizeof(((type *)0)->member))
-
-/* FIELD_IDX works only when every member size of type is the SAME ! */
-#define FIELD_IDX(type, member)			(FIELD_OFFSET(type, member) / FIELD_SIZE(type, member))
-
-
-#define RPC_CTRL_NO_RETURN		0x00
-
-typedef union
-{
-	struct
-	{
-		u8	mod_id;
-		u8	api_id;
-		u8	ctrl;
-		u8	data_len;
-	};
-	u32		call_id;
-} rpc_call_hdr_t;
-
-typedef struct
-{
-	rpc_call_hdr_t	call_hdr;
-	u8	call_param[0];
-} rpc_call_def_t;
-
-typedef struct
-{
-	rpc_call_hdr_t	call_hdr;
-	u8	ret_data[0];		/* api_ret_data_t if has ret data. */
-} rpc_ret_def_t;
-
-enum
-{
-	RPC_MOD_GPIO = 0,
-	RPC_MOD_DMA,
-	RPC_MOD_MAX,
-} ;
-#endif
-
-#ifdef CONFIG_DUAL_CORE
-
-u32 ipc_send_test_cmd(u32 param);
-bk_err_t ipc_send_available_ind(u16 resource_id);
-
-#if CONFIG_SLAVE_CORE
-
-bk_err_t ipc_client_init(void);
-bk_err_t ipc_send_power_up(void);
-bk_err_t ipc_send_heart_beat(u32 param);
-bk_err_t ipc_send_res_acquire_cnt(u16 resource_id, u16 cpu_id, amp_res_req_cnt_t *cnt_list);
-bk_err_t ipc_send_res_release_cnt(u16 resource_id, u16 cpu_id, amp_res_req_cnt_t *cnt_list);
-u8 ipc_send_alloc_dma_chnl(u32 user_id);
-bk_err_t ipc_send_free_dma_chnl(u32 user_id, u8 chnl_id);
-u32 ipc_send_dma_chnl_user(u8 chnl_id);
-
-#if 0
-bk_err_t rpc_client_init(void);
-bk_err_t rpc_client_call(rpc_call_def_t *rpc_param, u16 param_len, rpc_ret_def_t *ret_buf, u16 buf_len);
-#endif
-
-#define ipc_init	ipc_client_init
-// #define rpc_init	rpc_client_init
-
-#endif  /* CONFIG_SLAVE_CORE */
+#if (CONFIG_DUAL_CORE)
 
 #if CONFIG_MASTER_CORE
-
-bk_err_t ipc_server_init(void);
-u32 ipc_send_get_ps_flag(void);
-u32 ipc_send_get_heart_rate(void);
-bk_err_t ipc_send_set_heart_rate(u32 param);
-
-#if 0
-bk_err_t rpc_server_init(void);
-bk_err_t rpc_server_rsp(rpc_ret_def_t *rsp_param, u16 param_len);
-int rpc_server_listen_cmd(u32 timeout_ms);
-void rpc_server_handle_cmd(void);
+#define AMP_RES_SERVER
+#else
+#define AMP_RES_CLIENT
 #endif
 
-#define ipc_init	ipc_server_init
-// #define rpc_init	rpc_server_init
+#include "amp_res_lock.h"
 
-#endif  /* CONFIG_MASTER_CORE */
+bk_err_t ipc_init(void);
 
-#else  /* CONFIG_DUAL_CORE */
+u32      ipc_send_test_cmd(u32 param);
+bk_err_t ipc_send_available_ind(u16 resource_id);
+u32      ipc_send_get_ps_flag(void);
+
+#if CONFIG_SYS_CPU0
+u32      ipc_send_get_heart_rate(void);
+bk_err_t ipc_send_set_heart_rate(u32 param);
+#else
+bk_err_t ipc_send_power_up(void);                     // CPU1 power up indication.
+bk_err_t ipc_send_heart_beat(u32 param);              // CPU1 heart beat.
+#endif  /* !CONFIG_SYS_CPU0 */
+
+#ifdef AMP_RES_CLIENT
+bk_err_t ipc_send_res_acquire_cnt(u16 resource_id, u16 cpu_id, amp_res_req_cnt_t *cnt_list);
+bk_err_t ipc_send_res_release_cnt(u16 resource_id, u16 cpu_id, amp_res_req_cnt_t *cnt_list);
+u8       ipc_send_alloc_dma_chnl(u32 user_id);
+bk_err_t ipc_send_free_dma_chnl(u32 user_id, u8 chnl_id);
+u32      ipc_send_dma_chnl_user(u8 chnl_id);
+#endif
+
+#else  /* (CONFIG_DUAL_CORE) */
 
 #define ipc_init(void)	
-//#define rpc_init(void)	
 
-#endif  /* CONFIG_DUAL_CORE */
+#endif  /* (CONFIG_DUAL_CORE) */
 
 /**    ============================    RPC end   ============================   **/
 

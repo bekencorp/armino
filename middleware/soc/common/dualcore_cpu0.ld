@@ -192,10 +192,12 @@ SECTIONS
 	".bss_*scan_task.c.obj" 	(NOLOAD)	: { *scan_task.c.obj(.dynbss ) *scan.c.obj(.dynbss ) *scanu.c.obj(.dynbss ) *scanu_task.c.obj(.dynbss ) *scan_task.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *scan.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *scanu.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *scanu_task.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *scan_task.c.obj(COMMON ) *scan.c.obj(COMMON ) *scanu.c.obj(COMMON ) *scanu_task.c.obj(COMMON ) . = ALIGN(8); }
 	_dtcm_bss_end = .;
 	DTCM_SIZE = . - DTCM_BEGIN;
+	. = . + 0;
 	. = 0x30000000;
 	SRAM_VIDEO_BEGIN = .;
 	.video_spec_data 	: AT(LOADADDR (.dtcm_sec_bss) + SIZEOF (.dtcm_sec_bss))
 		{ KEEP(*(.video_spec_data )) }
+	_sram_start = ADDR(.video_spec_data);
 	_video_start = ADDR(.video_spec_data);
 	SRAM_VIDEO_SIZE = . - SRAM_VIDEO_BEGIN;
 	. = 0x3000A000;
@@ -328,6 +330,9 @@ SECTIONS
 	PROVIDE (end = .);
 	PROVIDE (_stack = 0x20007FE0);
 	SRAM_DATA_SIZE = . - SRAM_DATA_BEGIN;
+	. = . + 0;
+	. = ALIGN(16);
+	_sram_end = .;
 	. = 0x3007FC00;
 	SWAP_BEGIN = .;
 	.swap_data 	: AT(LOADADDR (.sdata_f) + SIZEOF (.sdata_f))

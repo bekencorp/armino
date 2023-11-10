@@ -21,6 +21,25 @@
 extern "C" {
 #endif
 
+/* @brief Overview about this API header
+ *
+ */
+
+/**
+ * @brief psram API
+ * @defgroup bk_api_psram PSRAM API group
+ * @{
+ */
+
+/**
+ * @brief     write one byte of data to psram
+ *
+ * @param addr the psram address to write to
+ * @param value the value of one byte of data
+ *
+ * @return
+ *    - NULL
+ */
 static inline void bk_psram_byte_write(unsigned char *addr, unsigned char value)
 {
 	uint32_t addr_align = (uint32_t)addr;
@@ -54,6 +73,15 @@ static inline void bk_psram_byte_write(unsigned char *addr, unsigned char value)
 	*((volatile uint32_t *)addr_align) = temp;
 }
 
+/**
+ * @brief     write two bytes of data to psram
+ *
+ * @param addr the psram address to write to
+ * @param value the value of two bytes of data
+ *
+ * @return
+ *    - NULL
+ */
 static inline void bk_psram_half_word_write(unsigned short *dst, unsigned short value)
 {
 	int index = (unsigned int)dst & 0x03;
@@ -83,6 +111,15 @@ static inline void bk_psram_half_word_write(unsigned short *dst, unsigned short 
 
 }
 
+/**
+ * @brief     write one word of data to psram
+ *
+ * @param addr the psram address to write to
+ * @param value the value of one word of data
+ *
+ * @return
+ *    - NULL
+ */
 static inline void bk_psram_word_write(unsigned int *src, unsigned int value)
 {
 	int index = (unsigned int)src & 0x03;
@@ -107,6 +144,18 @@ static inline void bk_psram_word_write(unsigned int *src, unsigned int value)
 	}
 }
 
+/**
+ * @brief     psram memory copy
+ *
+ * @param dst_t the destination address to be copied to
+ * @param src_t the source address to be copied
+ * @param length length of the data copy
+ *
+ * @attation 1. length unit is byte
+ *
+ * @return
+ *    - NULL
+ */
 static inline void bk_psram_word_memcpy(void *dst_t, void *src_t, unsigned int length)
 {
 	unsigned int *dst = (unsigned int*)dst_t, *src = (unsigned int*)src_t;
@@ -182,17 +231,6 @@ static inline void bk_psram_word_memcpy(void *dst_t, void *src_t, unsigned int l
 		}
 	}
 }
-
-
-/* @brief Overview about this API header
- *
- */
-
-/**
- * @brief psram API
- * @defgroup bk_api_psram PSRAM API group
- * @{
- */
 
 /**
  * @brief     Init the PSRAM HW

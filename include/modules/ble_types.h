@@ -768,6 +768,16 @@ enum initiating_phy_type_le
     INIT_PHY_TYPE_LE_CODED = (1UL<<(2)),
 };
 
+/// Scan type
+enum ble_scan_type
+{
+    /// Passive Scanning. No scanning PDUs shall be sent (default)
+    PASSIVE_SCANNING,
+
+    /// Active scanning. Scanning PDUs may be sent
+    ACTIVE_SCANNING,
+};
+
 typedef struct
 {
     /// Own address type:  public=0 / random=1 / rpa_or_pub=2 / rpa_or_rnd=3
@@ -799,6 +809,8 @@ typedef struct
     uint16_t scan_intv;
     /// Scan window (in unit of 625us). Must be greater than or equal to 2.5ms
     uint16_t scan_wd;
+    /// Scan type: see enum ble_scan_type
+    uint8_t scan_type;
 } ble_scan_param_t;
 
 typedef struct

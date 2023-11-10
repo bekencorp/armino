@@ -146,3 +146,15 @@ DUT
 		| rx ：``01 e0 fc 0c fd 9c bd 35 9c 07 00 00 00 01 04 7f``
 		| end tx/rx ：``01 E0 FC 01 90``
 		| 接收到的end resp ：``04 0E 18 01 E0 FC 90 DD 13 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00``
+
+
+参考链接
+----------
+
+    `API参考: <../../api-reference/bluetooth/index.html>`_ 介绍了蓝牙API接口
+
+    `开发者指南: <../../developer-guide/bluetooth/index.html>`_ 介绍了蓝牙常用使用场景
+
+    `样例演示: <../../examples/bluetooth/index.html>`_ 介绍了蓝牙样例使用和操作
+
+    `蓝牙工程: <../../projects_work/bluetooth/index.html>`_ 介绍了蓝牙相关工程

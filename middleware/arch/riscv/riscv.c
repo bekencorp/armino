@@ -17,9 +17,23 @@
 #include "boot.h"
 #include "cache.h"
 #include "aon_pmu_driver.h"
+#include "sys_hal.h"
 
 extern void reset_vector(void);
 extern unsigned int g_sram_addr_map[SRAM_BLOCK_COUNT];
+
+#if CONFIG_RESERVE_1K_SRAM_UNINITIAL
+#define UNINITIALIZED_SRAM_SIZE         (0x400) // 1k
+static bk_err_t arch_mem_power_ctrl(pm_power_module_state_e power_state)
+{
+	sys_hal_module_power_ctrl(POWER_MODULE_NAME_MEM3,power_state);
+	return BK_OK;
+}
+uint32_t bk_arch_uninitialized_1k_sram_base_addr_get()
+{
+	return g_sram_addr_map[SRAM_BLOCK_MEM3]+SRAM_BLOCK_SIZE-UNINITIALIZED_SRAM_SIZE;
+}
+#endif
 
 /* This must be a leaf function, no child function */
 void __platform_init (void) __attribute__((naked));
@@ -34,8 +48,11 @@ void smem_reset_lastblock(void)
 {
 #define MEMSET(s, c, n)         __builtin_memset ((s), (c), (n))
 	
+#if CONFIG_RESERVE_1K_SRAM_UNINITIAL
+	MEMSET((void *)g_sram_addr_map[SRAM_BLOCK_MEM3], 0x0, SRAM_BLOCK_SIZE-UNINITIALIZED_SRAM_SIZE);
+#else
 	MEMSET((void *)g_sram_addr_map[SRAM_BLOCK_MEM3], 0x0, SRAM_BLOCK_SIZE);
-	
+#endif
 }
 
 void stack_mem_dump(uint32_t stack_top, uint32_t stack_bottom);
@@ -53,6 +70,10 @@ void c_startup(void)
 #define MEMSET(s, c, n)         __builtin_memset ((s), (c), (n))
 
 #if !CONFIG_SLAVE_CORE
+	#if CONFIG_RESERVE_1K_SRAM_UNINITIAL
+	arch_mem_power_ctrl(PM_POWER_MODULE_STATE_OFF);
+	arch_mem_power_ctrl(PM_POWER_MODULE_STATE_ON);
+	#endif
 	/* Init last sram block for BT/wifi TX-buffer/wifi Rx-buffer/etc. */
 	smem_reset_lastblock();
 #endif

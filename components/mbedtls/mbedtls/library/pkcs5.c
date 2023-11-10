@@ -52,7 +52,7 @@
 #include "mbedtls/platform.h"
 #else
 #include <stdio.h>
-#define mbedtls_printf printf
+#define mbedtls_printf os_printf
 #endif
 
 #if defined(MBEDTLS_ASN1_PARSE_C)
@@ -410,6 +410,82 @@ int mbedtls_pkcs5_self_test( int verbose )
 
 exit:
     mbedtls_md_free( &sha1_ctx );
+
+    return( ret );
+}
+
+static void dump_buf( const char *title, unsigned char *buf, size_t len )
+{
+	size_t i;
+
+	mbedtls_printf( "%s", title );
+	for( i = 0; i < len; i++ )
+	{
+		if(i%8 == 0)
+			mbedtls_printf( "\r\n" );
+
+		mbedtls_printf("%c%c", "0123456789ABCDEF" [buf[i] / 16],
+                       "0123456789ABCDEF" [buf[i] % 16] );
+	}
+	mbedtls_printf( "\r\n" );
+}
+
+static const unsigned char password_test[] = { "password"};
+static const unsigned char saltword_test[] = { "saltword"}; // at least 64bit
+extern u64 riscv_get_mtimer(void);
+int mbedtls_pkcs5_self_test2( int verbose, mbedtls_md_type_t type, uint32_t loop, uint32_t length)
+{
+    mbedtls_md_context_t sha_ctx;
+    const mbedtls_md_info_t *info_sha;
+    int ret = 0;
+    unsigned char *key = NULL;
+    u64 before, after =  0;
+
+    key = malloc(length);
+    if(key == NULL)
+        return MBEDTLS_ERR_MD_ALLOC_FAILED;
+
+    mbedtls_md_init( &sha_ctx );
+    info_sha = mbedtls_md_info_from_type( type );
+    if( info_sha == NULL )
+    {
+        ret = 1;
+        goto exit;
+    }
+
+    if( ( ret = mbedtls_md_setup( &sha_ctx, info_sha, 1 ) ) != 0 )
+    {
+        ret = 1;
+        goto exit;
+    }
+#if CONFIG_ARCH_RISCV
+    before = riscv_get_mtimer();
+#else
+    before = 0;
+#endif
+    ret = mbedtls_pkcs5_pbkdf2_hmac( &sha_ctx, password_test, sizeof(password_test),
+                                         saltword_test, sizeof(saltword_test),
+                                         loop, length, key);
+#if CONFIG_ARCH_RISCV
+    after = riscv_get_mtimer();
+#else
+    after = 0;
+#endif
+    mbedtls_printf("run %d times, take time %d us.\r\n", loop, (uint32_t)(after - before) / 26);
+    if( ret != 0)
+    {
+        if( verbose != 0 )
+            mbedtls_printf( "failed\n" );
+
+        ret = 1;
+        goto exit;
+    }
+    if( verbose != 0 )
+        dump_buf("pkcs5:",key,length);
+
+exit:
+    free(key);
+    mbedtls_md_free( &sha_ctx );
 
     return( ret );
 }

@@ -23,6 +23,8 @@
 #if CONFIG_SHELL_ASYNCLOG
 #include "bk_api_cli.h"
 #endif
+#include <os/str.h>
+#include <components/ate.h>
 
 #ifndef CONFIG_PRINTF_BUF_SIZE
 #define CONFIG_PRINTF_BUF_SIZE    (136)
@@ -44,12 +46,16 @@ static u8 whitelist_enabled = 0;
 
 #endif
 
+static u8   s_ate_enabled = 0;
+
 int printf_lock_init(void)
 {
 #if CONFIG_SHELL_ASYNCLOG
 	memset(&mod_tag_list[0], 0, sizeof(mod_tag_list));
 	shell_set_log_level(LOG_LEVEL);
 #endif
+
+	s_ate_enabled= ate_is_enabled();
 
 	return BK_OK;
 }
@@ -59,16 +65,24 @@ int printf_lock_deinit(void)
 	return BK_OK;
 }
 
-static void bk_printf_sync(const char *fmt, va_list args)
+static void bk_printf_sync_port(char *prefix, const char *fmt, va_list args)
 {
 	if(!printf_is_init())
 		return;
 
 	char string[CONFIG_PRINTF_BUF_SIZE];
 
-	strcpy(string, "[SYNC]:");
+	int   data_len = 0;
 
-	vsnprintf(&string[7], sizeof(string) - 8, fmt, args);
+	if(s_ate_enabled == 0)
+	{
+		os_snprintf(&string[0], CONFIG_PRINTF_BUF_SIZE, "[SYNC]:%s", prefix);
+
+		data_len = strlen(string);
+	}
+
+	vsnprintf(&string[data_len], CONFIG_PRINTF_BUF_SIZE - data_len, fmt, args);
+
 	string[CONFIG_PRINTF_BUF_SIZE - 1] = 0;
 	uart_write_string(bk_get_printf_port(), string);
 }
@@ -85,72 +99,69 @@ static void bk_printf_raw_sync(const char *fmt, va_list args)
 	uart_write_string(bk_get_printf_port(), string);
 }
 
-static const char * level_format[] = 
+static const char * level_format[] =
 {
-	"%s%s",
-	"%s%s:E(%d):",
-	"%s%s:W(%d):",
-	"%s%s:I(%d):",
-	"%s%s:D(%d):",
-	"%s%s:V(%d):",
+	"(%d):",
+	"E(%d):",
+	"W(%d):",
+	"I(%d):",
+	"D(%d):",
+	"V(%d):",
 };
-
-#include <os/str.h>
-
-#define CPU_STR_LEN		6
 
 static void bk_printf_port_ext(int level, char *tag, const char *fmt, va_list args)
 {
-#if CONFIG_SHELL_ASYNCLOG
-
+#define CPU_STR_LEN		4
 #define MAX_TAG_LEN		8
-#define MAX_INFO_LEN	16
+#define MAX_INFO_LEN	14    /* 13 + 1(:) */
+
+	/*                  "cpux" + ":"       "Tag12345" + ":"    "X(1234567890)" + ":"   */
+	char    prefix_str[(CPU_STR_LEN + 1) + (MAX_TAG_LEN + 1) + (MAX_INFO_LEN) + 1];
+	int     data_len = 0;
+	int     cpu_id = shell_get_cpu_id();
+
+	prefix_str[0] = 0;
+	
+	if(cpu_id >= 0)
+	{
+		os_snprintf(&prefix_str[data_len], CPU_STR_LEN + 1, "cpu%d", cpu_id);
+		data_len += CPU_STR_LEN;
+
+		prefix_str[data_len++] = ':';
+		prefix_str[data_len] = 0;
+	}
+
+	if((tag != NULL) && (tag[0] != 0))
+	{
+		strncpy(&prefix_str[data_len], tag, MAX_TAG_LEN);
+		prefix_str[MAX_TAG_LEN + data_len] = 0;
+
+		data_len = strlen(prefix_str);
+
+		prefix_str[data_len] = ':';
+		data_len++;
+		prefix_str[data_len] = 0;
+	}
+
+	os_snprintf(&prefix_str[data_len], MAX_INFO_LEN + 1, level_format[level], rtos_get_time());
+
+#if CONFIG_SHELL_ASYNCLOG
 
 	if(s_printf_sync == 0)
 	{
-		char prefix_str[CPU_STR_LEN + MAX_TAG_LEN + MAX_INFO_LEN + 1];
-		char tag_str[MAX_TAG_LEN + 1];
-		char cpu_str[CPU_STR_LEN + 1];
-
-		int     fmt_idx = level;
-
-		if(tag != NULL)
-		{
-			strncpy(tag_str, tag, MAX_TAG_LEN);
-			tag_str[MAX_TAG_LEN] = 0;
-		}
-		else
-		{
-			tag_str[0] = 0;
-			fmt_idx = 0;
-		}
-
-		int  cpu_id = shell_get_cpu_id();
-
-		if(cpu_id >= 0)
-		{
-			os_snprintf(cpu_str, sizeof(cpu_str), "cpu%d:", cpu_id);
-		}
-		else
-		{
-			cpu_str[0] = 0;
-		}
-
-		os_snprintf(prefix_str, sizeof(prefix_str), level_format[fmt_idx], cpu_str, tag_str, rtos_get_time());
-
 		shell_log_out_port(level, prefix_str, fmt, args);
 	}
 	else
 	{
-		bk_printf_sync(fmt, args);
+		bk_printf_sync_port(prefix_str, fmt, args);
 	}
 
 #else
-	bk_printf_sync(fmt, args);
+	bk_printf_sync_port(prefix_str, fmt, args);
 #endif // #if CONFIG_SHELL_ASYNCLOG
 }
 
-static void bk_printf_raw_port(int level, char *tag, const char *fmt, va_list args)
+static void bk_printf_raw_port(int level, const char *fmt, va_list args)
 {
 #if CONFIG_SHELL_ASYNCLOG
 
@@ -168,35 +179,36 @@ static void bk_printf_raw_port(int level, char *tag, const char *fmt, va_list ar
 #endif // #if CONFIG_SHELL_ASYNCLOG
 }
 
+#if 0
 static void bk_printf_port(int level, char *tag, const char *fmt, va_list args)
 {
-#if CONFIG_SHELL_ASYNCLOG
+	char cpu_str[CPU_STR_LEN + 1 + 1];
+	int  cpu_id = shell_get_cpu_id();
 
+	if(cpu_id >= 0)
+	{
+		os_snprintf(cpu_str, sizeof(cpu_str), "cpu%d:", cpu_id);
+	}
+	else
+	{
+		cpu_str[0] = 0;
+	}
+
+#if CONFIG_SHELL_ASYNCLOG
 	if(s_printf_sync == 0)
 	{
-		char cpu_str[CPU_STR_LEN + 1];
-		int  cpu_id = shell_get_cpu_id();
-
-		if(cpu_id >= 0)
-		{
-			os_snprintf(cpu_str, sizeof(cpu_str), "cpu%d:", cpu_id);
-		}
-		else
-		{
-			cpu_str[0] = 0;
-		}
-
 		shell_log_out_port(level, cpu_str, fmt, args);
 	}
 	else
 	{
-		bk_printf_sync(fmt, args);
+		bk_printf_sync_port(cpu_str, fmt, args);
 	}
 
 #else
-	bk_printf_sync(fmt, args);
+	bk_printf_sync_port(cpu_str, fmt, args);
 #endif // #if CONFIG_SHELL_ASYNCLOG
 }
+#endif
 
 void bk_printf(const char *fmt, ...)
 {
@@ -210,8 +222,10 @@ void bk_printf(const char *fmt, ...)
 
 	int    level = BK_LOG_INFO;
 
-	if( !shell_level_check_valid(level) )  /* check here instead of in shell_log_out to reduce API instructions. */
-		return;
+#if CONFIG_SHELL_ASYNCLOG
+//	if( !shell_level_check_valid(level) )  /* check here instead of in shell_log_out to reduce API instructions. */
+//		return;
+#endif
 
 	va_start(args, fmt);
 
@@ -256,7 +270,9 @@ int bk_white_list_state(void)
 
 #endif // #if CONFIG_SHELL_ASYNCLOG
 
-void bk_buf_printf_sync(char *buf, int buf_len)
+/*  ========= !! NOTE !! =========  */
+/*          Obsoleted  API          */
+void bk_buf_printf_sync(char *buf, int buf_len)   /* Obsoleted  API */
 {
 	return;
 }
@@ -266,18 +282,19 @@ void bk_buf_printf_sync(char *buf, int buf_len)
 /* use bk_printf_ext(...) instead.  */
 void bk_printf_ex(int level, char *tag, const char *fmt, ...)   /* Obsoleted  API */
 {
-#if CONFIG_SHELL_ASYNCLOG
-
+#if 0
 	va_list args;
 
 	if(!printf_is_init())
 		return;
 
+#if CONFIG_SHELL_ASYNCLOG
 	if( !shell_level_check_valid(level) )  /* check here instead of in shell_log_out to reduce API instructions. */
 		return;
 
 	if(bk_mod_printf_disbled(tag) ^ whitelist_enabled)
 		return;
+#endif
 
 	va_start(args, fmt);
 
@@ -285,24 +302,27 @@ void bk_printf_ex(int level, char *tag, const char *fmt, ...)   /* Obsoleted  AP
 
 	va_end(args);
 
-#endif
 	return;
+#endif
 }
 
 void bk_printf_ext(int level, char *tag, const char *fmt, ...)
 {
-#if CONFIG_SHELL_ASYNCLOG
-
 	va_list args;
 
 	if(!printf_is_init())
 		return;
 
+#if CONFIG_SHELL_ASYNCLOG
 	if( !shell_level_check_valid(level) )  /* check here instead of in shell_log_out to reduce API instructions. */
 		return;
 
-	if(bk_mod_printf_disbled(tag) ^ whitelist_enabled)
-		return;
+	if(tag != NULL)
+	{
+		if(bk_mod_printf_disbled(tag) ^ whitelist_enabled)
+			return;
+	}
+#endif
 
 	va_start(args, fmt);
 
@@ -310,32 +330,33 @@ void bk_printf_ext(int level, char *tag, const char *fmt, ...)
 
 	va_end(args);
 
-#endif
 	return;
 }
 
 void bk_printf_raw(int level, char *tag, const char *fmt, ...)
 {
-#if CONFIG_SHELL_ASYNCLOG
-
 	va_list args;
 
 	if(!printf_is_init())
 		return;
 
+#if CONFIG_SHELL_ASYNCLOG
 	if( !shell_level_check_valid(level) )  /* check here instead of in shell_log_out to reduce API instructions. */
 		return;
 
-	if(bk_mod_printf_disbled(tag) ^ whitelist_enabled)
-		return;
+	if(tag != NULL)
+	{
+		if(bk_mod_printf_disbled(tag) ^ whitelist_enabled)
+			return;
+	}
+#endif
 
 	va_start(args, fmt);
 
-	bk_printf_raw_port(level, tag, fmt, args);
+	bk_printf_raw_port(level, fmt, args);
 
 	va_end(args);
 
-#endif
 	return;
 }
 

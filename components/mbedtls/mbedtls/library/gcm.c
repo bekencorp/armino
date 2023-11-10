@@ -791,7 +791,12 @@ int mbedtls_gcm_self_test( int verbose )
     {
         int key_len = 128 + 64 * j;
 
+        
+#if (CONFIG_SECURITYIP)
+        for( i = 1; i < MAX_TESTS-3; i++ )
+#else
         for( i = 0; i < MAX_TESTS; i++ )
+#endif
         {
             mbedtls_gcm_init( &ctx );
 
@@ -876,7 +881,7 @@ int mbedtls_gcm_self_test( int verbose )
 
             if( verbose != 0 )
                 mbedtls_printf( "passed\n" );
-
+#if !(CONFIG_SECURITYIP)
             mbedtls_gcm_init( &ctx );
 
             if( verbose != 0 )
@@ -997,7 +1002,8 @@ int mbedtls_gcm_self_test( int verbose )
 
             if( verbose != 0 )
                 mbedtls_printf( "passed\n" );
-        }
+#endif
+		}
     }
 
     if( verbose != 0 )

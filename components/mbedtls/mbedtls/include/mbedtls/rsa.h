@@ -135,7 +135,7 @@ typedef struct mbedtls_rsa_context
 mbedtls_rsa_context;
 
 #else
-#include "modules/bk_mbedtls_alt/bk_rsa_alt.h"
+#include "bk_rsa_alt.h"
 #endif
 
 /**

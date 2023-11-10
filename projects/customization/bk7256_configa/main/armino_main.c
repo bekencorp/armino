@@ -14,7 +14,6 @@ int main(void)
 {
 #if (!CONFIG_SLAVE_CORE)
 	rtos_set_user_app_entry((beken_thread_function_t)user_app_main);
-	bk_set_printf_sync(true);
 	// shell_set_log_level(BK_LOG_WARN);
 #endif
 	bk_init();

@@ -397,12 +397,6 @@ bk_err_t bk_tp_driver_init(tp_config_t *config)
 		goto error;
 	}
 
-	if (BK_OK != bk_tp_int_init((const tp_config_t *)config))
-	{
-		LOGE("%s tp int init fail!\r\n", __func__);
-		return BK_FAIL;
-	}
-
 	rtos_delay_milliseconds(100);
 
 	current_sensor = tp_get_sensor_auto_detect(&tp_i2c_cb);
@@ -425,6 +419,12 @@ bk_err_t bk_tp_driver_init(tp_config_t *config)
 			LOGE("%s sensor init fail!\r\n", __func__);
 			return BK_FAIL;
 		}
+	}
+
+	if (BK_OK != bk_tp_int_init((const tp_config_t *)config))
+	{
+		LOGE("%s tp int init fail!\r\n", __func__);
+		return BK_FAIL;
 	}
 
 	// device parameters.

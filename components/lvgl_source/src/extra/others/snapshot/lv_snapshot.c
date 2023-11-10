@@ -12,6 +12,10 @@
 #include <stdbool.h>
 #include "../../../core/lv_disp.h"
 #include "../../../core/lv_refr.h"
+
+#if LV_SNAPSHOT_USE_PSRAM
+#include <driver/psram.h>
+#endif
 /*********************
  *      DEFINES
  *********************/
@@ -166,9 +170,14 @@ lv_img_dsc_t * lv_snapshot_take(lv_obj_t * obj, lv_img_cf_t cf)
     LV_ASSERT_NULL(obj);
     uint32_t buff_size = lv_snapshot_buf_size_needed(obj, cf);
 
+#if LV_SNAPSHOT_USE_PSRAM
+    void * buf = lv_psram_mem_alloc(buff_size);
+#else
     void * buf = lv_mem_alloc(buff_size);
+#endif
     LV_ASSERT_MALLOC(buf);
     if(buf == NULL) {
+        os_printf("snapshot buff malloc failed\r\n");
         return NULL;
     }
 

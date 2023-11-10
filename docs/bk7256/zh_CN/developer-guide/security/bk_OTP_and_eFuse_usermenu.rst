@@ -24,10 +24,10 @@ OTP和eFuse需要使用配置表（example::download:`otp_efuse_config.json<../.
 
    ::
 
-    "User_Operate_Status":  "true",      #定义“用户可配置区域” 为true，即表示后面配置相应”用户可配置区域”均会执行，如果此处为false，即表示后面配置”用户可配置的区域”均不会执行；
-    "Efuse_Status":         "false",     #定义“Efuse区域” 为true，即表示后面配置“Efuse区域”均会执行，如果此处为false，即表示后面配置”Efuse区域”均不会执行；
-    "Security_ctrl_Status": "false",     #定义“安全控制区域” 为true，即表示后面配置”安全控制区域”均会执行，如果此处为false，即表示后面配置”安全控制区域”均不会执行；
-    "Security_data_Status": "false",     #定义“安全数据区域” 为true，即表示后面配置”安全数据区域”均会执行，如果此处为false，即表示后面配置”安全数据区域”均不会执行；
+    "User_Operate_Enable":  "true",      #定义“用户可配置区域” 为true，即表示后面配置相应”用户可配置区域”均会执行，如果此处为false，即表示后面配置”用户可配置的区域”均不会执行；
+    "Efuse_Enable":         "false",     #定义“Efuse区域” 为true，即表示后面配置“Efuse区域”均会执行，如果此处为false，即表示后面配置”Efuse区域”均不会执行；
+    "Security_ctrl_Enable": "false",     #定义“安全控制区域” 为true，即表示后面配置”安全控制区域”均会执行，如果此处为false，即表示后面配置”安全控制区域”均不会执行；
+    "Security_data_Enable": "false",     #定义“安全数据区域” 为true，即表示后面配置”安全数据区域”均会执行，如果此处为false，即表示后面配置”安全数据区域”均不会执行；
 
 用户可配置区参数说明
 ---------------------
@@ -116,6 +116,7 @@ example：
             "byte_addr":       "0x00",
             "last_valid_byte": "0x1F",
             "length":          "0x01",
+            "data_type":       "hex",
             "data":            "0x93",
             "status":          "false"
         },
@@ -125,6 +126,7 @@ example：
             "byte_addr":       "0x01",
             "last_valid_byte": "0x1F",
             "length":          "0x04",
+            "data_type":       "hex",
             "data":            "0x510fb000",
             "status":          "false"
         },
@@ -134,6 +136,7 @@ example：
             "byte_addr":       "0x00",
             "last_valid_byte": "0x1F",
             "length":          "0x20",
+            "data_type":       "hex",
             "data":            "",
             "status":          "false"
         }
@@ -184,10 +187,62 @@ example：
 
 example：
 
+   其中前5项为关键数据的属性信息，对关键数据的操作权限进行了限制。
+
    ::
 
     "Security_data":
     [
+        {
+            "name":              "BL_AES_KEY_ATTRIBUTE",  //AES_KEY的属性信息
+            "mode":              "write",
+            "start_addr":        "0x4b004808",
+            "last_valid_addr":   "0x4B004FFF",
+            "byte_len":          "0x8",
+            "data":              "3150544F01080A08",
+            "data_type":         "hex",
+            "status":            "true"
+        },
+        {
+            "name":              "BL_AES_IV_ATTRIBUTE",  //AES_IV的属性信息
+            "mode":              "write",
+            "start_addr":        "0x4b004830",
+            "last_valid_addr":   "0x4B004FFF",
+            "byte_len":          "0x8",
+            "data":              "3150544F01040B08",
+            "data_type":         "hex",
+            "status":            "true"
+        },
+        {
+            "name":              "BL_VERSION_ATTRIBUTE",  //BL_VERSION的属性信息
+            "mode":              "write",
+            "start_addr":        "0x4b004858",
+            "last_valid_addr":   "0x4B004FFF",
+            "byte_len":          "0x8",
+            "data":              "3150544F05080C08",
+            "data_type":         "hex",
+            "status":            "true"
+        },
+        {
+            "name":              "APP_VERSION_ATTRIBUTE",  //APP_VERSION的属性信息
+            "mode":              "write",
+            "start_addr":        "0x4b004880",
+            "last_valid_addr":   "0x4B004FFF",
+            "byte_len":          "0x8",
+            "data":              "3150544F07080D08",
+            "data_type":         "hex",
+            "status":            "true"
+        },
+        {
+            "name":              "APP_ECDSA_P384_Public_Key_ATTRIBUTE",  //APP_ECDSA_P384_Public_Key的属性信息
+            "mode":              "write",
+            "start_addr":        "0x4b0048A8",
+            "last_valid_addr":   "0x4B004FFF",
+            "byte_len":          "0x8",
+            "data":              "3150544F01180E08",
+            "data_type":         "hex",
+            "status":            "true"
+        },
         {
             "name":              "OTA_key",     //写入加密后的OTA key
             "mode":              "write",
@@ -293,9 +348,9 @@ example：
 二、读写步骤
 +++++++++++++++++++++
  - 1.BKFIL工具选择配置界面
- - 2.勾选"OTP"或者"烧录eFuse"选项
- - 3.选择"eFuse密钥"文件选择按钮
- - 4.选择文件类型为"json file",选择配置好的config.json文件
+ - 2.仅当secureboot使能时，必须选择首次烧写对应的安全镜像；当用于读取数据或者烧写OTP bank0时可不选择镜像
+ - 3.选择"eFuse密钥"文件选择按钮,选择配置好的otp_efuse_config.json
+ - 4.勾选"OTP"或者"烧录eFuse"选项
  - 5.BKFIL工具选择主界面，点击"烧录"按钮
 
 .. figure:: ../../../../common/_static/BKFIL_RW_OTP&eFuse.png

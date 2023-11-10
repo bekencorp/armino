@@ -16,6 +16,8 @@
 #include "cli.h"
 #include <driver/otp.h>
 
+#define OTP_BANK_SIZE   (0x800)
+
 static void cli_otp_help(void)
 {
 	CLI_LOGI("otp_test read [addr] [length]\r\n");
@@ -34,6 +36,12 @@ static void cli_otp_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char
 	if (os_strcmp(argv[1], "read") == 0) {
 		addr   = os_strtoul(argv[2], NULL, 16);
 		length = os_strtoul(argv[3], NULL, 16);
+
+		if((addr > OTP_BANK_SIZE) || ((addr + length) > OTP_BANK_SIZE))
+		{			
+			CLI_LOGI("\r\n addr or length invalid! \r\n");	
+			return ;
+		}
 
 		record_p = buff_p = (uint8_t *)malloc(length);
 		memset(buff_p, 0x0, length);

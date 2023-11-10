@@ -51,16 +51,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#if ( defined(__ARMCC_VERSION) || defined(_MSC_VER) ) && \
-    !defined(inline) && !defined(__cplusplus)
-#define inline __inline
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#if !defined(MBEDTLS_AES_ALT)
 /* padlock.c and aesni.c rely on these values! */
 #define MBEDTLS_AES_ENCRYPT     1 /**< AES encryption. */
 #define MBEDTLS_AES_DECRYPT     0 /**< AES decryption. */
@@ -78,6 +68,16 @@ extern "C" {
 /* MBEDTLS_ERR_AES_HW_ACCEL_FAILED is deprecated and should not be used. */
 #define MBEDTLS_ERR_AES_HW_ACCEL_FAILED                   -0x0025  /**< AES hardware accelerator failed. */
 
+#if ( defined(__ARMCC_VERSION) || defined(_MSC_VER) ) && \
+    !defined(inline) && !defined(__cplusplus)
+#define inline __inline
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#if !defined(MBEDTLS_AES_ALT)
 // Regular implementation
 //
 
@@ -114,7 +114,7 @@ typedef struct mbedtls_aes_xts_context
 
 
 #else  /* MBEDTLS_AES_ALT */
-#include <modules/bk_mbedtls_alt/bk_aes_alt.h>
+#include "bk_aes_alt.h"
 #endif /* MBEDTLS_AES_ALT */
 
 /**

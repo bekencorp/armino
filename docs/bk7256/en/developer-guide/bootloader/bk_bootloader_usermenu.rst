@@ -1,5 +1,5 @@
-Bootloader user operation manual
-======================================
+Overview of Bootloader and OTA for non-AB solutions
+=====================================================
 
 :link_to_translation:`zh_CN:[中文]`
 
@@ -56,8 +56,8 @@ l_bootloader: mainly downloads uart. Figure 2 shows the flowchart.
 - 3.If there is no data in the uart rx_buf file, the up_boot is executed at the specified IP address (the logical IP address) after a certain number of times of cyclic detection.
 - 4.After the system starts normally, it runs the app service. After receiving the download handshake information, the uart automatically reboot to access the l_bootloader download program.
 
-五．Up_bootloader profile
-----------------------------
+五．Up_bootloader and OTA profile
+-----------------------------------
 
 - 1.up_bootloader function:
   Implements the OTA upgrade function.
@@ -69,13 +69,25 @@ l_bootloader: mainly downloads uart. Figure 2 shows the flowchart.
   - 3）The bootloader verifies, decrypts, decompress, and moves OTA firmware (to the corresponding flash partition).
 - 3.OTA upgrade process:
 
-  - 1）download ota firmware from the server using http protocol, then write it to the flash Download partition, and restart the device after success, as shown in Figure 3. This process is completed in the app thread;
+  - 1）download ota firmware from the server using http protocol, then write it to the flash Download partition, and restart the device after success, as shown in Figure 3. This process is completed in the app thread;(specific details are as follows)
+
+    - 1.1）Write firmware data to the flash download partition while downloading firmware data from the server; (Write a packet of 1k data to the download partition each time, and then read and compare the 1k data just written into the download partition to ensure data integrity)
+    - 1.2）After the firmware is downloaded, the hash function is used to ensure the integrity of the downloaded data;
+    - 1.3）After the upgrade firmware is downloaded, run the reboot command and then start from bootrom.
+
   - 2）After the restart, up_bootloader will decompress and decrypt the upgrade file of the download partition and move it to the corresponding appcode partition. After the verification is successful, the download partition is erased and the app partition is switched to for normal execution, as shown in Figure 4.
 
 .. figure:: ../../../_static/bootloader_app_process_e.png
     :align: center
     :alt: bootloader_app_process_e
     :figclass: align-center
+
+- 4.Introduction to the AB partition hash function verification process
+
+  The hash algorithm is used to ensure the integrity of downloaded data. The hash verification process consists of the following two steps:
+
+  - 1. Obtain the head information of the rbl in the upgrade firmware (the rbl information is stored at the last 4k position of the upgrade firmware).
+  - 2. Then calculate the hash value of the entire firmware using the hash256 algorithm and compare the hash value stored in the rbl. If two hash values are the same, the hash passes and the firmware is complete; otherwise, the downloaded data is incomplete.
 
 六.Bootloader image file generation
 --------------------------------------

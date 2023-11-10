@@ -2,4 +2,9 @@ menu "CAMERA"
 	config CAMERA_POWER_GPIO_CTRL
 		bool "Enable camera power gpio ctrl"
 		default n
+
+	config UVC_CHECK_BULK_JPEG_HEADER
+		depends on USB_UVC
+		bool "Check JPEG (ff d8) header in bulk payload"
+		default y
 endmenu

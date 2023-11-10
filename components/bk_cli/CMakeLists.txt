@@ -185,6 +185,12 @@ if (CONFIG_VAULT_SUPPORT)
 	endif()
 ENDIF()
 
+if (CONFIG_MBEDTLS)
+	if (CONFIG_MBEDTLS_TEST)
+		list(APPEND srcs "cli_mbedtls.c")
+	ENDIF()
+ENDIF()
+
 if (CONFIG_QSPI)
 	list(APPEND srcs
 		"cli_qspi.c"

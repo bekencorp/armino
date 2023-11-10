@@ -30,7 +30,7 @@ extern "C" {
  * @defgroup bk_api_vault VAULT API group
  * @{
  */
-
+bk_err_t bk_securityip_osi_funcs_init(void *os_funcs);
 /**
  * @brief     Init the VAULT driver
  *

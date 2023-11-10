@@ -5,7 +5,7 @@ Video_transfer
 
 1 Overview
 -------------------------------------
-	The function of image transmission is mainly to compress and encode the original data collected by the dvp/uvc sensor through
+	The function of image transmission is mainly to compress and encode the original data collected by the dvp sensor through
 	the jpeg encode module, and then send the data to the mobile phone by means of WiFi connection. The packet is parsed, and then the encoded video data stream is displayed in real time.
 
 2 Code Path
@@ -70,11 +70,6 @@ Video_transfer
 
 		If you test the h264 image of the dvp camera: video_transfer -a test 12345678 dvp_h264 640X480 20.
 		(dvp needs to support h264 compressed data output, and the app supports h264 data)
-
-		If testing the image of the uvc camera: video_transfer -a test 12345678 uvc_jpg 640X480 20
-
-		If testing the h264 image of the uvc camera: video_transfer -a test 12345678 uvc_h264 640X480 20
-		(uvc needs to support h264 compressed data output, and the app supports h264 data output)
 
 	3. Connect the mobile phone wifi to the route of the test name, the password is: 12345678
 
@@ -190,12 +185,6 @@ Video_transfer
 	camera_type: reference ``media_camera_type_t``
 		- "dvp_jpg" means: use dvp camera, and the output is JPEG data;
 		- "dvp_h264" means: use a dvp camera, and the output is H264 data, the current BK7256 series chip does not support
-		- "uvc_jpg" means: use uvc camera, and the output is JPEG data;
-		- "uvc_h264" means: use uvc camera, and the output is H264 data;
-		- "dvp_jpg" means: use dvp camera, and the output is JPEG data;
-		- "dvp_h264" means: use a dvp camera, and the output is H264 data, the current BK7256 series chip does not support
-		- "uvc_jpg" means: use uvc camera, and the output is JPEG data;
-		- "uvc_h264" means: use uvc camera, and the output is H264 data;
 
 	ppi:resolution，sensor output ppi，reference: ``media_ppi_t``.
 

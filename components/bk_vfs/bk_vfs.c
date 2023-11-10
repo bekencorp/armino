@@ -112,6 +112,11 @@ int bk_vfs_close(int fd) {
 		bk_set_errno(ENOTSUP);
 	}
 
+	if (file->path) {
+		free(file->path);
+		file->path = NULL;
+	}
+
 	put_file(file);
 
 	bk_file_put(file);	//release file

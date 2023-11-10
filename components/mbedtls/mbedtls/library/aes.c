@@ -1747,7 +1747,7 @@ static const int aes_test_ctr_len[3] =
  */
 static const unsigned char aes_test_xts_key[][32] =
 {
-#if !defined(MBEDTLS_ADAPTER_SECURITYIP)  //Key1 and Key2 for XTSAES must be different
+#if !(CONFIG_SECURITYIP)  //Key1 and Key2 for XTSAES must be different
     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1765,7 +1765,7 @@ static const unsigned char aes_test_xts_key[][32] =
 
 static const unsigned char aes_test_xts_pt32[][32] =
 {
-#if !defined(MBEDTLS_ADAPTER_SECURITYIP)
+#if !(CONFIG_SECURITYIP)
     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1783,7 +1783,7 @@ static const unsigned char aes_test_xts_pt32[][32] =
 
 static const unsigned char aes_test_xts_ct32[][32] =
 {
-#if !defined(MBEDTLS_ADAPTER_SECURITYIP)
+#if !(CONFIG_SECURITYIP)
     { 0x91, 0x7c, 0xf6, 0x9e, 0xbd, 0x68, 0xb2, 0xec,
       0x9b, 0x9f, 0xe9, 0xa3, 0xea, 0xdd, 0xa6, 0x92,
       0xcd, 0x43, 0xd2, 0xf5, 0x95, 0x98, 0xed, 0x85,
@@ -1801,7 +1801,7 @@ static const unsigned char aes_test_xts_ct32[][32] =
 
 static const unsigned char aes_test_xts_data_unit[][16] =
 {
-#if !defined(MBEDTLS_ADAPTER_SECURITYIP)
+#if !(CONFIG_SECURITYIP)
    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
 #endif
@@ -1915,6 +1915,7 @@ int mbedtls_aes_self_test( int verbose )
 
         if( verbose != 0 )
             mbedtls_printf( "passed\n" );
+            rtos_delay_milliseconds(3);
     }
 
     if( verbose != 0 )
@@ -1998,6 +1999,7 @@ int mbedtls_aes_self_test( int verbose )
 
         if( verbose != 0 )
             mbedtls_printf( "passed\n" );
+            rtos_delay_milliseconds(3);
     }
 
     if( verbose != 0 )
@@ -2061,6 +2063,7 @@ int mbedtls_aes_self_test( int verbose )
 
         if( verbose != 0 )
             mbedtls_printf( "passed\n" );
+            rtos_delay_milliseconds(3);
     }
 
     if( verbose != 0 )
@@ -2124,6 +2127,7 @@ int mbedtls_aes_self_test( int verbose )
 
         if( verbose != 0 )
             mbedtls_printf( "passed\n" );
+            rtos_delay_milliseconds(3);
     }
 
     if( verbose != 0 )
@@ -2134,7 +2138,7 @@ int mbedtls_aes_self_test( int verbose )
     /*
      * CTR mode
      */
-#if defined(MBEDTLS_ADAPTER_SECURITYIP)  //SECURITYIP must be block size(128bit) aligned
+#if defined(CONFIG_SECURITYIP)  //SECURITYIP must be block size(128bit) aligned
     for( i = 0; i < 4; i++ )
 #else
     for( i = 0; i < 6; i++ )
@@ -2191,6 +2195,7 @@ int mbedtls_aes_self_test( int verbose )
 
         if( verbose != 0 )
             mbedtls_printf( "passed\n" );
+            rtos_delay_milliseconds(3);
     }
 
     if( verbose != 0 )
@@ -2265,6 +2270,7 @@ int mbedtls_aes_self_test( int verbose )
 
         if( verbose != 0 )
             mbedtls_printf( "passed\n" );
+            rtos_delay_milliseconds(3);
     }
 
     if( verbose != 0 )

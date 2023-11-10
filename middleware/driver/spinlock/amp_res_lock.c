@@ -121,8 +121,6 @@ bk_err_t amp_res_available(u16 res_id)
 	return rtos_set_semaphore(&amp_res_sync[res_id].res_sema);
 }
 
-#endif
-
 bk_err_t amp_res_lock_acquire(u16 res_id, u32 timeout_ms, const char * func_name, int line_no)
 {
 	bk_err_t	ret_val = BK_FAIL;
@@ -139,8 +137,6 @@ bk_err_t amp_res_lock_acquire(u16 res_id, u32 timeout_ms, const char * func_name
 
 	if(amp_res_sync[res_id].inited == 0)
 		return BK_ERR_NOT_INIT;
-
-#if CONFIG_DUAL_CORE
 
 	amp_res_req_cnt_t	cnt_list;
 
@@ -163,18 +159,16 @@ bk_err_t amp_res_lock_acquire(u16 res_id, u32 timeout_ms, const char * func_name
 		return ret_val;
 	}
 
-	if((cnt_list.self_req_cnt == 0) && (cnt_list.others_req_cnt > 0))
+	if((cnt_list.self_req_cnt == 0) && (cnt_list.others_req_cnt == 0))
 	{
-		/* resource was occupied by other CPU, so set semaphore state to unavailable. */
-		ret_val = rtos_get_semaphore(&amp_res_sync[res_id].res_sema, 0);
+		/* resource is free, so set semaphore state to available. */
+		ret_val = rtos_set_semaphore(&amp_res_sync[res_id].res_sema);
 
 		if(ret_val != BK_OK)
 		{
 			return ret_val;
 		}
 	}
-
-#endif
 
 	ret_val = rtos_get_semaphore(&amp_res_sync[res_id].res_sema, timeout_ms);
 
@@ -199,8 +193,6 @@ bk_err_t amp_res_lock_release(u16 res_id, const char * func_name, int line_no)
 	if(amp_res_sync[res_id].inited == 0)
 		return BK_ERR_NOT_INIT;
 
-#if CONFIG_DUAL_CORE
-
 	amp_res_req_cnt_t	cnt_list;
 
 #ifdef AMP_RES_SERVER
@@ -222,21 +214,17 @@ bk_err_t amp_res_lock_release(u16 res_id, const char * func_name, int line_no)
 		return ret_val;
 	}
 
-	if((cnt_list.self_req_cnt == 0) && (cnt_list.others_req_cnt > 0))
+	if(cnt_list.self_req_cnt > 0)
+	{
+		/* other task is waiting for the resource, so unblock the task. */
+		ret_val = rtos_set_semaphore(&amp_res_sync[res_id].res_sema);
+	}
+	else if(cnt_list.others_req_cnt > 0)
 	{
 		/* other CPU is waiting for the resource, so inform CPU that it is available. */
 		/* which CPU is selected in multi-cores? (over than 2 cores)*/
 		ret_val = ipc_send_available_ind(res_id);
-
-		if(ret_val != BK_OK)
-		{
-			return ret_val;
-		}
 	}
-
-#endif
-
-	ret_val = rtos_set_semaphore(&amp_res_sync[res_id].res_sema);
 
 	return ret_val;
 
@@ -263,6 +251,67 @@ bk_err_t amp_res_lock_init(u16 res_id)
 
 #endif
 
+	ret_val = rtos_init_semaphore(&amp_res_sync[res_id].res_sema, 1);
+
+	if(ret_val != BK_OK)
+		return ret_val;
+
+	amp_res_sync[res_id].inited = 1;
+
+	return BK_OK;
+}
+
+#else
+
+bk_err_t amp_res_lock_acquire(u16 res_id, u32 timeout_ms, const char * func_name, int line_no)
+{
+	bk_err_t	ret_val = BK_FAIL;
+
+	if( rtos_is_in_interrupt_context() )
+	{
+		BK_LOGE("AMP", "can't call in ISR %s,%d\r\n", func_name, line_no);
+
+		return BK_FAIL;
+	}
+
+	if(res_id >= AMP_RES_ID_MAX)
+		return BK_ERR_PARAM;
+
+	if(amp_res_sync[res_id].inited == 0)
+		return BK_ERR_NOT_INIT;
+
+	ret_val = rtos_get_semaphore(&amp_res_sync[res_id].res_sema, timeout_ms);
+
+	return ret_val;
+
+}
+
+bk_err_t amp_res_lock_release(u16 res_id, const char * func_name, int line_no)
+{
+	bk_err_t	ret_val = BK_FAIL;
+
+	if(res_id >= AMP_RES_ID_MAX)
+		return BK_ERR_PARAM;
+
+	if(amp_res_sync[res_id].inited == 0)
+		return BK_ERR_NOT_INIT;
+
+	ret_val = rtos_set_semaphore(&amp_res_sync[res_id].res_sema);
+
+	return ret_val;
+
+}
+
+bk_err_t amp_res_lock_init(u16 res_id)
+{
+	bk_err_t	ret_val = BK_FAIL;
+
+	if(res_id >= AMP_RES_ID_MAX)
+		return BK_ERR_PARAM;
+
+	if(amp_res_sync[res_id].inited != 0)
+		return BK_OK;
+
 	ret_val = rtos_init_semaphore_adv(&amp_res_sync[res_id].res_sema, 1, 1);
 
 	if(ret_val != BK_OK)
@@ -272,4 +321,6 @@ bk_err_t amp_res_lock_init(u16 res_id)
 
 	return BK_OK;
 }
+
+#endif
 

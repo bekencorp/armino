@@ -782,6 +782,10 @@ void http_flash_init(void)
         os_printf("UPDATE_A_PART\r\n");
         bk_http_ptr->pt = bk_flash_partition_get_info(BK_PARTITION_APPLICATION);//update A_parition.
     }
+	
+	uint8_t	download_status_flag = DOWNLOAD_START_FLAG;
+
+	ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, download_status_flag, DOWNLOAD_STATUS_POS);
 #endif
 #endif
 

@@ -1,5 +1,5 @@
 armino_component_register(INCLUDE_DIRS . arch/compiler
-	modules/bk_mbedtls_alt
+	modules/securityip
 	modules/lvgl
 	modules/lvgl/src/core
 	modules/lvgl/src/draw

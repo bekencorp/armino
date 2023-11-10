@@ -1,0 +1,62 @@
+[
+        {
+        	"name":               "aes_key",
+        	"mode":               "write",
+        	"start_addr":         "",
+        	"last_valid_addr":    "",
+        	"byte_len":           "0x20",
+        	"data":               "cbdsbxcdcjbxdtbycdcibxduckbycabxdwckbwegbxefcfeccleackcfcebyegeaebcbchcacfedcbeccjcecfegeebgblejbgbpeleibmbgepbjbheobnbnbmekeibt",
+        	"data_type":          "ascii",
+        	"status":             "true"
+        },
+        {
+        	"name":               "aes_key_plaintext",
+        	"mode":               "write",
+        	"start_addr":         "",
+        	"last_valid_addr":    "",
+        	"byte_len":           "0x20",
+        	"data":               "6c5395e7297d8436c98f9e0c6b4339ece9794f8d366ac05a09ba42e13e445ad9",
+        	"data_type":          "ascii",
+        	"status":             "true"
+        },
+        {
+        	"name":               "OTA_key",
+        	"mode":               "write",
+        	"start_addr":         "",
+        	"last_valid_addr":    "",
+        	"byte_len":           "0x20",
+        	"data":               "bzbybxcdbwbxbybzcjcicqctcrcocpcmcdcccbcacicjckclbwbwcucxcwdadbcy",
+        	"data_type":          "ascii",
+        	"status":             "true"
+        },
+        {
+        	"name":               "OTA_key_plaintext",
+        	"mode":               "write",
+        	"start_addr":         "",
+        	"last_valid_addr":    "",
+        	"byte_len":           "0x20",
+        	"data":               "0123456789ABCDEF0123456789ABCDEF",
+        	"data_type":          "ascii",
+        	"status":             "true"
+        },
+        {
+        	"name":               "OTA_IV",
+        	"mode":               "write",
+        	"start_addr":         "",
+        	"last_valid_addr":    "",
+        	"byte_len":           "0x10",
+        	"data":               "bzbybxcdbwbxbybzcjcicqctcrcocpcm",
+        	"data_type":          "ascii",
+        	"status":             "true"
+        },
+        {
+        	"name":               "OTA_IV_plaintext",
+        	"mode":               "write",
+        	"start_addr":         "",
+        	"last_valid_addr":    "",
+        	"byte_len":           "0x10",
+        	"data":               "0123456789ABCDEF",
+        	"data_type":          "ascii",
+        	"status":             "true"
+        }
+]

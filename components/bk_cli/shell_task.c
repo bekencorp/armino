@@ -1472,7 +1472,7 @@ void shell_task( void *para )
 
 int shell_get_cpu_id(void)
 {
-#if defined(RECV_CMD_LOG_FROM_SLAVE)
+#ifdef CONFIG_DUAL_CORE
 
 	if(log_dev->dev_type == SHELL_DEV_MAILBOX)
 		return SELF_CPU;

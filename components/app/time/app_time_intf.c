@@ -83,7 +83,7 @@ int app_time_rtc_ntp_sync_init(void)
 		return -1;
 	}
 
-	soft_rtc_init();
+	//soft_rtc_init();
 
 	LOGI("rtc_ntp_sync_init complete\r\n");
 

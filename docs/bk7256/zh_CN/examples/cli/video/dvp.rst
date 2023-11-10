@@ -5,7 +5,7 @@ DVP Cli
 
 1、功能概述
 --------------------------
-	为了便于验证video_transfer(dvp和uvc)的相关功能，为此设计了一系列的CLI CMD。所有的DVP CLI命令以 ``dvp`` 开头，后面接具体命令和参数。如果命令执行成功，则返回 ``CMDRSP:OK``。如果命令执行失败，则返回 ``CMDRSP:ERROR``。
+	为了便于验证video_transfer(dvp)的相关功能，为此设计了一系列的CLI CMD。所有的DVP CLI命令以 ``dvp`` 开头，后面接具体命令和参数。如果命令执行成功，则返回 ``CMDRSP:OK``。如果命令执行失败，则返回 ``CMDRSP:ERROR``。
 	当前命令是否生效是由宏 ``CLI_CFG_DVP``，位置：``components\bk_cli\cli_config.h``。
 
 
@@ -18,7 +18,7 @@ DVP Cli
 支持的命令如下:
 	2.dvp init
 	 - 功能说明
-		初始化当前dvp/uvc摄像头，并进行硬件压缩编码
+		初始化当前dvp摄像头，并进行硬件压缩编码
 	 - 命令格式
 		dvp init param1 param2 param3
 
@@ -33,12 +33,10 @@ DVP Cli
 	 - 测试用例
 		| 初始化dvp/jpeg摄像头：``dvp init``
 		| 初始化dvp/jpeg摄像头：``dvp init 0 640X480 20``
-		| 初始化uvc/jpeg摄像头：``dvp init 4 640X480 20``
-		| 初始化uvc/h264摄像头：``dvp init 5 640X480 20``
 
 	3.dvp deinit
 	 - 功能说明
-		关闭当前使用的摄像头，在初始化dvp/uvc成功之后调用。
+		关闭当前使用的摄像头，在初始化dvp成功之后调用。
 	 - 命令格式
 		dvp deinit
 

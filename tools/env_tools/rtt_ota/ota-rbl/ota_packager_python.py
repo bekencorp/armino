@@ -652,12 +652,12 @@ def packager(args):
         with open(config,"rb") as fr:
             json_dict = json.load(fr)
             js = json.dumps(json_dict, indent=4)
+            # The default key is used for the non-secure upgrade, and secure upgrade use user-defined key
+            #if "key" in json_dict:
+            #    key = json_dict["key"].encode()
 
-            if "key" in json_dict:
-                key = json_dict["key"].encode()
-
-            if "iv" in json_dict:
-                iv = json_dict["iv"].encode()
+            #if "iv" in json_dict:
+            #    iv = json_dict["iv"].encode()
 
             if "gzip" in json_dict:
                 compress = json_dict["gzip"]

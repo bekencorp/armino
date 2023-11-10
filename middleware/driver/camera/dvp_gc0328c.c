@@ -218,7 +218,7 @@ const uint8_t sensor_gc0328c_init_talbe[][2] =
 	{0x40, 0x7F},
 	{0x41, 0x26},
 	{0x42, 0xFB},
-	{0x44, 0x02}, //Y Cb Y Cr
+	{0x44, 0x02},
 	{0x45, 0x00},
 	{0x46, 0x03},
 	{0x4F, 0x01},
@@ -428,6 +428,7 @@ const uint8_t sensor_gc0328c_init_talbe[][2] =
 const uint8_t sensor_gc0328c_5pfs_talbe[][2] =
 {
 	// all AEC_EXP_LEVEL_X set to 0xa3c = 2620
+	{0xFE, 0x10},
 	{0xFE, 0x01}, // page p1
 
 	{0x2B, 0x0a}, // AEC_EXP_LEVEL_0 [11:8]
@@ -441,7 +442,6 @@ const uint8_t sensor_gc0328c_5pfs_talbe[][2] =
 
 	{0x31, 0x0a}, // AEC_EXP_LEVEL_3
 	{0x32, 0x3c},
-
 	//{0x33,0x2a},  // AEC_EXP_MIN
 	//{0x34,0x3c},
 };
@@ -449,6 +449,7 @@ const uint8_t sensor_gc0328c_5pfs_talbe[][2] =
 const uint8_t sensor_gc0328c_10pfs_talbe[][2] =
 {
 	// all AEC_EXP_LEVEL_X set to 0x51e = 1310
+	{0xFE, 0x10},
 	{0xFE, 0x01}, // page p1
 
 	{0x2B, 0x05}, // AEC_EXP_LEVEL_0 [11:8]
@@ -465,7 +466,6 @@ const uint8_t sensor_gc0328c_10pfs_talbe[][2] =
 
 	//{0x33,0x25},  // // AEC_EXP_MIN
 	//{0x34,0x1e},
-	{0xFE, 0x10},
 	{0xFE, 0x00},
 	{0xF1, 0x07},
 	{0xF2, 0x01},
@@ -474,6 +474,7 @@ const uint8_t sensor_gc0328c_10pfs_talbe[][2] =
 const uint8_t sensor_gc0328c_20pfs_talbe[][2] =
 {
 	// all AEC_EXP_LEVEL_X set to 0x28f = 655
+	{0xFE, 0x10},
 	{0xFE, 0x01}, // page p1
 
 	{0x2B, 0x02}, // AEC_EXP_LEVEL_0 [11:8]
@@ -487,14 +488,12 @@ const uint8_t sensor_gc0328c_20pfs_talbe[][2] =
 
 	{0x31, 0x02}, // AEC_EXP_LEVEL_3
 	{0x32, 0x8f},
-
 	//{0x33,0x22},  // // AEC_EXP_MIN
 	//{0x34,0x8f},
 };
 
 const uint8_t sensor_gc0328c_25pfs_talbe[][2] =
 {
-	{0xFE, 0x10},
 	{0x05, 0x01},
 	{0x06, 0x0a},
 	{0x07, 0x00},

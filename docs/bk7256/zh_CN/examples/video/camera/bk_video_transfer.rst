@@ -5,7 +5,7 @@ Video_transfer
 
 1 功能概述
 -------------------------------------
-	图传的作用主要是将dvp/uvc sensor采集的原始数据，经jpeg encode模块压缩编码后，以WiFi连接的方式，将数据发送给手机，手机的图传应用（app）接收到数据后，会对数据包进行解析，然后实时显示编码之后的视频数据流。
+	图传的作用主要是将dvp sensor采集的原始数据，经jpeg encode模块压缩编码后，以WiFi连接的方式，将数据发送给手机，手机的图传应用（app）接收到数据后，会对数据包进行解析，然后实时显示编码之后的视频数据流。
 
 2 代码路径
 -------------------------------------
@@ -69,10 +69,6 @@ Video_transfer
 
 		如果测试dvp摄像头h264的图传: video_transfer -a test 12345678 dvp_h264 640X480 20 (需要dvp支持h264格式的压缩数据输出，app支持h264数据解码)
 
-		如果测试uvc摄像头的图传: video_transfer -a test 12345678 uvc_jpg 640X480 20
-
-		如果测试uvc摄像头h264的图传: video_transfer -a test 12345678 uvc_h264 640X480 20 (需要uvc支持h264格式的压缩数据输出，app支持h264数据解码)
-
 	3、手机wifi连接上test名字的路由, 密码为: 12345678
 
 	4、连接成功后打开图传的app即可，图2为app示意图，app操作如图3-6所示。
@@ -100,7 +96,7 @@ Video_transfer
 		- 1：设置解决方案，当前支持video_transfer和doorbell，此处选择video_transfer；
 		- 2：设置数据传输模式，当前仅支持UDP，默认选择UDP；
 		- 3：设置对端的ip地址，ap模式下默认为``192.168.0.1``不用修改，sta模式下设置为对端的ip地址；
-		- 4：设置摄像头类型，当前支持DVP和UVC，根据自己使用摄像头类型进行设置；
+		- 4：设置摄像头类型，当前支持DVP，根据自己使用摄像头类型进行设置；
 		- 5：设置摄像头的输出分辨率；
 		- 6：设置LCD输出的分辨率，根据自己使用的LCD屏幕分辨率进行设置；
 
@@ -176,8 +172,6 @@ Video_transfer
 	camera_type: 参考 ``media_camera_type_t``
 		- "dvp_jpg"表示：使用dvp摄像头，且输出的是JPEG数据；
 		- "dvp_h264"表示：使用dvp摄像头，且输出的是H264数据，当前BK7256系列芯片不支持
-		- "uvc_jpg"表示：使用uvc摄像头，且输出的是JPEG数据；
-		- "uvc_h264"表示：使用uvc摄像头，且输出的是H264数据；
 
 	ppi:分辨率，表示摄像头期望输出的分辨率，参考：``media_ppi_t``.
 
@@ -220,8 +214,6 @@ Video_transfer
 	4、可测试的方案
 		- dvp图传：video_transfer -a name_test 12345678
 		- dvp图传：video_transfer -s name_station key dvp_jpg 640X480 25
-		- uvc图传：video_transfer -s name_station key uvc_jpg 800X480 20
-		- uvc图传：video_transfer -s name_station key uvc_h264 800X480 20
 		- 支持关闭图传后，再次发送上面的进行摄像头参数的重设，包括摄像头类型、输出分辨率、和帧率。
 
 	5、图传软件流程

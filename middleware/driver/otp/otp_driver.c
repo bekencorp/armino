@@ -20,14 +20,13 @@
 
 
 #define OTP_BANK_SIZE   (0x800)
-#define OTP_BANK0_RANG  (SOC_VAULT_OTP_BASE + OTP_BANK_SIZE)
 
 bk_err_t bk_otp_read_bytes_nonsecure(uint8_t *buffer, uint32_t addr, uint32_t len)
 {
 	if(buffer == NULL)
 		return BK_ERR_OTP_READ_BUFFER_NULL;
 	
-	if((addr < 0) || (addr > OTP_BANK0_RANG) || ((addr + len) > OTP_BANK0_RANG))
+	if((addr > OTP_BANK_SIZE) || ((addr + len) > OTP_BANK_SIZE))
 		return BK_ERR_OTP_ADDR_OUT_OF_RANGE;
 
 	bk_vault_driver_init(MODULE_OTP);

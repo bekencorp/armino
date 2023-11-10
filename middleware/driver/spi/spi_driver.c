@@ -338,7 +338,7 @@ static void spi_dma_tx_init(spi_id_t id, dma_id_t spi_tx_dma_chan)
 	dma_config.src.dev = DMA_DEV_DTCM;
 	dma_config.src.width = DMA_DATA_WIDTH_32BITS;
 	dma_config.src.addr_inc_en = DMA_ADDR_INC_ENABLE;
-	dma_config.src.addr_loop_en = DMA_ADDR_LOOP_ENABLE;
+	dma_config.src.addr_loop_en = DMA_ADDR_LOOP_DISABLE;
 	dma_config.dst.width = DMA_DATA_WIDTH_8BITS;
 	dma_config.dst.start_addr = SPI_R_DATA(id);
 	dma_config.dst.dev = int_cfg_table[id].dma_dev;
@@ -367,7 +367,7 @@ static void spi_dma_rx_init(spi_id_t id, dma_id_t spi_rx_dma_chan)
 	dma_config.dst.dev = DMA_DEV_DTCM;
 	dma_config.dst.width = DMA_DATA_WIDTH_32BITS;
 	dma_config.dst.addr_inc_en = DMA_ADDR_INC_ENABLE;
-	dma_config.dst.addr_loop_en = DMA_ADDR_LOOP_ENABLE;
+	dma_config.dst.addr_loop_en = DMA_ADDR_LOOP_DISABLE;
 
 	BK_LOG_ON_ERR(bk_dma_init(spi_rx_dma_chan, &dma_config));
 	BK_LOG_ON_ERR(bk_dma_register_isr(spi_rx_dma_chan, NULL, spi_dma_rx_finish_handler));
@@ -870,6 +870,7 @@ bk_err_t bk_spi_dma_read_bytes(spi_id_t id, void *data, uint32_t size)
 	uint32_t int_level = rtos_disable_int();
 	s_current_spi_dma_rd_id = id;
 	s_spi[id].is_rx_blocked = true;
+
 	//set spi trans_len as 0, to increase max trans_len from 4096(spi max length) to 65536(dma max length).
 	spi_hal_set_rx_trans_len(&s_spi[id].hal, 0);
 	spi_hal_clear_rx_fifo(&s_spi[id].hal);

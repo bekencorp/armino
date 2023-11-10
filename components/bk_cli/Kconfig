@@ -175,6 +175,13 @@ menu "Bk_cli"
 			help
 				Enable SecurityIP
 
+		config MBEDTLS_TEST
+			depends on MBEDTLS
+			bool "Enable mbedtls test"
+			default n
+			help
+				Enable mbedtls test
+
 		config KEYVALUE
 			bool "Enable Keyvalue"
 			default n
@@ -258,11 +265,6 @@ menu "Bk_cli"
 
 		config RWNX_PROTO_DEBUG
 			bool "Enable Rwnx Proto Debug"
-			default n
-		
-		config HW_ACC_MBEDTLS_TEST
-			depends on SECURITYIP
-			bool "Enable Mbedtls Hardware Acceleration Test"
 			default n
 
 	endmenu

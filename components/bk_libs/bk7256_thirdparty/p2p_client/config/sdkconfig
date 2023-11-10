@@ -576,6 +576,7 @@ CONFIG_LCD=y
 # CAMERA
 #
 # CONFIG_CAMERA_POWER_GPIO_CTRL is not set
+CONFIG_UVC_CHECK_BULK_JPEG_HEADER=y
 # end of CAMERA
 
 #
@@ -706,7 +707,6 @@ CONFIG_IDLE_UART_OUT_TEST=y
 #
 # CONFIG_DUAL_CORE is not set
 # CONFIG_RWNX_PROTO_DEBUG is not set
-# CONFIG_HW_ACC_MBEDTLS_TEST is not set
 # end of Modify Dual Core Config
 # end of Bk_cli
 

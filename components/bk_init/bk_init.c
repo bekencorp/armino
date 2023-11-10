@@ -270,6 +270,12 @@ int bk_init(void)
 #endif //!(CONFIG_SLAVE_CORE)
 
 	app_cli_init();
+#if (CONFIG_VAULT_SUPPORT)
+#if (CONFIG_SECURITYIP)
+    extern bk_err_t bk_securityip_adaptor_init(void);
+    bk_securityip_adaptor_init();
+#endif
+#endif
 
 #if (CONFIG_SOC_BK7258 && CONFIG_MASTER_CORE)
 	bk_pm_module_vote_power_ctrl(PM_POWER_MODULE_NAME_CPU1, PM_POWER_MODULE_STATE_ON);

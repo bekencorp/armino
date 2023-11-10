@@ -9,6 +9,8 @@ set(incs
 
 if (NOT CONFIG_SLAVE_CORE)
 set(srcs
+	hal/lv_vendor.c
+	port/lv_port_indev.c
 	src/core/lv_disp.c
 	src/core/lv_group.c
 	src/core/lv_indev.c

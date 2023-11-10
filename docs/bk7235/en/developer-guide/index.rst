@@ -21,7 +21,7 @@ User and Developer Guide
    HTTP <http/index>
    OS Abstraction <os_abstraction/index>
    OS Porting Guide <porting/index>
-   Bootloader <bootloader/index>
+   Bootloader and OTA <bootloader/index>
    Board Specific Guide <boards/index>
    CPU Specific Guide <cpu/index>
    Write Examples <examples/index>

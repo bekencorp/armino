@@ -67,9 +67,13 @@ static int _erase(uint32_t addr, size_t size)
     }
 
     /* Calculate the start address of the flash sector(4kbytes) */
-    addr = addr & 0x00FFF000;
+    addr = addr & 0xFFFFF000;
 
     do {
+        extern bk_err_t bk_wdt_feed();
+
+        bk_wdt_feed();
+
         bk_flash_erase_sector(addr);
         addr += 4096;
 

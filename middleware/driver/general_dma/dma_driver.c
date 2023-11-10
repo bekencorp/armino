@@ -312,8 +312,9 @@ bk_err_t bk_dma_init(dma_id_t id, const dma_config_t *config)
     DMA_LOG_ON_ID_IS_STARTED(id);
 
 #if CONFIG_CACHE_ENABLE
-    flush_dcache((void *)config->src.start_addr, config->src.end_addr - config->src.start_addr);
-    flush_dcache((void *)config->dst.start_addr, config->dst.end_addr - config->dst.start_addr);
+    flush_all_dcache();
+    //flush_dcache((void *)config->src.start_addr, config->src.end_addr - config->src.start_addr);
+    //flush_dcache((void *)config->dst.start_addr, config->dst.end_addr - config->dst.start_addr);
 #endif
 
     dma_id_init_common(id);
@@ -816,6 +817,10 @@ bk_err_t dma_memcpy(void *out, const void *in, uint32_t len)
     DMA_RETURN_ON_INVALID_ID(cpy_chnl);
 
     ret = dma_memcpy_by_chnl(out, in, len, cpy_chnl);
+
+#if CONFIG_CACHE_ENABLE
+    flush_all_dcache();
+#endif
 
     bk_dma_free(DMA_DEV_DTCM, cpy_chnl);
 

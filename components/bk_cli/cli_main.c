@@ -1623,6 +1623,12 @@ int bk_cli_init(void)
 	#endif
 #endif
 
+#if CONFIG_MBEDTLS
+#if CONFIG_MBEDTLS_TEST
+	cli_mbedtls_init();
+#endif
+#endif
+
 #if (CLI_CFG_CALENDAR == 1)
 	cli_calendar_init();
 #endif

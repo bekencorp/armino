@@ -1,7 +1,7 @@
 #ifndef __TIME_H__
 #define __TIME_H__
 
-#include "time/sys_time.h"
+#include "sys/time.h"
 
 
 time_t mktime(struct tm * const t);
@@ -16,5 +16,9 @@ struct tm* localtime_r(const time_t* t, struct tm* r);
 
 int datetime_set(time_t       sec);
 int datetime_get(struct tm *t);
+int datetime_get_with_zone(struct tm *t, int zone);
+
+time_t timestamp_get(void);
+
 
 #endif

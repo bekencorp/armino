@@ -33,6 +33,9 @@
     #include "../extra/themes/default/lv_theme_default.h"
 #endif
 
+#if LV_SNAPSHOT_USE_PSRAM
+#include <driver/psram.h>
+#endif
 /*********************
  *      DEFINES
  *********************/
@@ -698,15 +701,25 @@ static void set_px_true_color_alpha(lv_disp_drv_t * disp_drv, uint8_t * buf, lv_
     bg_color.full = buf_px[0] + (buf_px[1] << 8);
     lv_color_mix_with_alpha(bg_color, bg_opa, color, opa, &res_color, &buf_px[2]);
     if(buf_px[2] <= LV_OPA_MIN) return;
+#if LV_SNAPSHOT_USE_PSRAM
+    bk_psram_byte_write(&buf_px[0], res_color.full & 0xff);
+    bk_psram_byte_write(&buf_px[1], res_color.full >> 8);
+#else
     buf_px[0] = res_color.full & 0xff;
     buf_px[1] = res_color.full >> 8;
+#endif
 #elif LV_COLOR_DEPTH == 32
     bg_color = *((lv_color_t *)buf_px);
     lv_color_mix_with_alpha(bg_color, bg_opa, color, opa, &res_color, &buf_px[3]);
     if(buf_px[3] <= LV_OPA_MIN) return;
+#if LV_SNAPSHOT_USE_PSRAM
+    bk_psram_byte_write(&buf_px[0], res_color.ch.blue);
+    bk_psram_byte_write(&buf_px[1], res_color.ch.green);
+    bk_psram_byte_write(&buf_px[2], res_color.ch.red);
+#else
     buf_px[0] = res_color.ch.blue;
     buf_px[1] = res_color.ch.green;
     buf_px[2] = res_color.ch.red;
 #endif
-
+#endif
 }

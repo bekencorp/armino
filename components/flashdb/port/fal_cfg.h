@@ -31,7 +31,7 @@ extern struct fal_flash_dev g_flashdb0;
 #error "Please defined CONFIG_FLASHDB_KVDB_START_ADDR or CONFIG_FLASHDB_KVDB_SIZE in config file"
 #endif
 
-#if defined(FDB_USING_KVDB) && (!defined(CONFIG_FLASHDB_TSDB_START_ADDR) || !defined(CONFIG_FLASHDB_TSDB_SIZE))
+#if defined(FDB_USING_TSDB) && (!defined(CONFIG_FLASHDB_TSDB_START_ADDR) || !defined(CONFIG_FLASHDB_TSDB_SIZE))
 #error "Please defined CONFIG_FLASHDB_TSDB_START_ADDR or CONFIG_FLASHDB_TSDB_SIZE in config file"
 #endif
 

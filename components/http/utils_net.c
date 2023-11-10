@@ -241,8 +241,9 @@ int32_t HAL_TCP_Read(uintptr_t fd, char *buf, uint32_t len, uint32_t timeout_ms)
 #ifdef CONFIG_HTTP_AB_PARTITION
     if(((((float)(len_recv))/((float)(bk_http_ptr->http_total)))*100 == 100) &&((((float)(len_recv))/((float)(bk_http_ptr->http_total)))*100> 90))
     {
-        u8 cust_confirm_flag = 0x1;
-
+        uint8_t cust_confirm_flag = 0x1;
+		uint8_t download_status_flag = DOWNLOAD_SUCCESS_FLAG;
+		
         ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, cust_confirm_flag, 8);
         if(update_part_flag == UPDATE_B_PART)
         {
@@ -254,6 +255,8 @@ int32_t HAL_TCP_Read(uintptr_t fd, char *buf, uint32_t len, uint32_t timeout_ms)
             exec_flag ota_exec_flag = EXEX_A_PART;         
             ota_write_flash( BK_PARTITION_OTA_FINA_EXECUTIVE, ota_exec_flag, 0);
         }
+        
+        ota_write_flash(BK_PARTITION_OTA_FINA_EXECUTIVE, download_status_flag, 12);
     }
 	//priority to return data bytes if any data be received from TCP connection.
 	//It will get error code on next calling

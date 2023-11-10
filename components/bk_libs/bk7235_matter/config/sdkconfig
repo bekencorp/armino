@@ -170,7 +170,7 @@ CONFIG_TPC_PA_MAP=y
 # end of Modify Cail Config
 
 CONFIG_TEMP_DETECT=y
-# CONFIG_SARADC_CALI is not set
+CONFIG_SARADC_CALI=y
 CONFIG_LA_CAPTURE_MAC_DIAGS=y
 # end of Modules::Bk_cal
 
@@ -686,7 +686,6 @@ CONFIG_IDLE_UART_OUT_TEST=y
 #
 # CONFIG_DUAL_CORE is not set
 # CONFIG_RWNX_PROTO_DEBUG is not set
-# CONFIG_HW_ACC_MBEDTLS_TEST is not set
 # end of Modify Dual Core Config
 # end of Bk_cli
 

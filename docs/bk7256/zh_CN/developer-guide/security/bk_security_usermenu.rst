@@ -3,35 +3,112 @@
 
 :link_to_translation:`en:[English]`
 
-工具下载
+一、工具下载
 +++++++++++++++++++++
   相关工具 `下载地址 </dl.bekencorp.com/tools/flash/>`_
 
-设计说明
+二、安全相关配置文件
 +++++++++++++++++++++
-  BK7256的安全功能基于BK130，实现了security boot与flash加解密等功能。
 
- - security boot基于BOOT ROM的信任链延申，在BOOT ROM中对bootloader bin进行验签，在bootlaoder bin中对app bin进行验签，保证bootloader和app的真实性+完整性，用于确保只有客户的代码可以在芯片上运行；
- - 使用flash加解密功能需要使用加密工具对bin文件进行加密，正常启动后硬件会自动解密，保障镜像的机密性。
+用于自动化编译生成安全相关镜像的配置文件在middleware/boards/bk7256下：
 
- 使用BK7256的安全功能需要以下五个步骤：
+ 1. security_ctrl.csv
+
+    该文件控制安全相关镜像是否编译生成。
+
+    "#Project"列对应所编译的project工程名称，"Enable"列对应自动编译状态，配置为"TRUE"时会生成安全相关镜像，配置为"FALSE"时不生成。
+    "#Project"列第一项"security"为总开关，配置为"FALSE"时所有工程都不编译生成安全相关镜像。
+
+    默认"app"、"customization/bk7256_configa"、"customization/bk7256_configb"三个工程会生成安全相关的镜像。
+
+    客户自定义project且需要生成安全镜像时，可将project工程名称添加到"#Project"列中并配置为"TRUE"。
+
+       +------------------------------+-----------+
+       | #Project                     | Enable    |
+       +==============================+===========+
+       | security                     | TRUE      |
+       +------------------------------+-----------+
+       | app                          | TRUE      |
+       +------------------------------+-----------+
+       | customization/bk7256_configa | TRUE      |
+       +------------------------------+-----------+
+       | customization/bk7256_configa | TRUE      |
+       +------------------------------+-----------+
+
+ 2. key_pair_selection.csv
+
+    该文件用于指定bootloader和app签名的密钥对。
+
+    编译系统在对镜像进行签名时，会按照以下路径优先级查找"key_pair"中指定的密钥对文件，当查找失败时会默认使用tools/env_tools/beken_packager下的用于测试的ecdsa384.der密钥对。
+
+    支持bootloader和app使用不同的密钥对进行签名，首先配置"key_pair"为不同名称如ecdsa384_bootloader.der和ecdsa384_app.der，
+    然后使用签名工具生成同名密钥对文件并放置到指定路径下。
+
+.. _查找路径优先级:
+
+    编译系统查找密钥文件指定路径和优先级：
+
+        1. projects/"project"/config/bk7256
+        2. middleware/boards/bk7256
+        3. tools/env_tools/beken_packager （默认放置了测试使用的密钥文件）
+
+       +--------------+--------------------+
+       | firmware     | key_pair           |
+       +==============+====================+
+       | bootloader   | ecdsa384.der       |
+       +--------------+--------------------+
+       | app          | ecdsa384.der       |
+       +--------------+--------------------+
+
+ 3. version_anti_rollback.csv
+
+    该文件用于版本防回滚功能的固件版本管理。
+
+    "version"取值范围为0--255，默认版本号为0.
+    开启安全之后，当前bootloader不支持版本升级，因此bootloader的版本号固定为0.
+
+       +--------------+---------------+
+       | firmware     | version       |
+       +==============+===============+
+       | bootloader   | 0             |
+       +--------------+---------------+
+       | app          | 0             |
+       +--------------+---------------+
+
+三、安全镜像生成步骤
++++++++++++++++++++++
+
+ 生成安全镜像需要以下四个步骤，为方便开发，以下步骤1到4已经集成到编译系统当中：
 
  - 1.镜像签名
  - 2.镜像打包
  - 3.镜像加密
  - 4.添加CRC
- - 5.下载镜像，烧写密钥和efuse使能安全功能
+
+以"app"工程为例，执行"make bk7256"命令编译结束后，会在build/app/bk7256/encrypt路径下生成用于安全的bin文件：
+
+   ::
+
+    all_app_pack_enc_crc.bin      //包含bootloader，用于仅开启flash加密时烧写
+    all_app_pack_sign_crc.bin     //包含bootloader，用于仅开启secureboot时首次烧写
+    all_app_pack_sign_enc_crc.bin //包含bootloader，用于开启secureboot和flash加密时首次烧写
+    app_pack.rbl                  //用于未开启安全后的OTA升级
+    app_pack_sign.rbl             //用于开启安全后的OTA升级
+    app_pack_sign_enc_crc.bin     //不包含bootloader，用于开启了secureboot和flash加密后通过uart更新app
+    bootloader_sign_enc_crc.bin   //经过签名和加密后的bootloader镜像
+
+工具使用方法
++++++++++++++++++++++
+
+    本小节为使用工具手动生成安全镜像的方法，当使用编译系统自动生成安全镜像时只需要关心签名密钥对和flash加密密钥生成方法。
 
 1. 镜像签名
 ----------------------------------
 
-    当secureboot功能使能之后，BOOT ROM会强制对bootlaoder bin（flash的0x0地址开始）进行验签，只有通过BOOT ROM验签的bootlaoder才能够运行；在bootlaoder中对app验签，通过验签才能够正常启动app。
-    因此，需要对bootloader和app进行签名，客户可以自己生成密钥对分别对bootloader和app进行签名。
-
 签名算法
 ********************
 		 - ECDSA P384
-		 - SHA256
+		 - SHA384
 
 签名指令
 ********************
@@ -70,6 +147,17 @@
 		 - 运行脚本Signtool_GetKey.bat获取该密钥对中的公钥。
 		 - 将需要签名的镜像和签名工具放置在同一目录下，运行脚本Signtool_Sign.bat，使用生成的密钥对对镜像签名。
 
+.. _提取的公钥:
+
+   ::
+
+     //从密钥对中获取到的公钥
+     uint32_t secure_boot_public_key[] =
+     {
+      /* the Qall value */
+      6ce8840b90c31a00542e07e9d608920eee7b8b363123d706c668bc1127b6b4a6278d2eddb7ccd83d32d6d094b528213e0bf6907209a13d6ecaa312a59c622372bfc511faab9b0f291b2cb7b17a7259c63d8453946a0969e0a070770973bd47e6,
+     }
+
 .. figure:: ../../../../common/_static/BK_SignTool.png
     :align: center
     :alt: BK_SignTool
@@ -84,7 +172,11 @@
     镜像签名：SignTool.exe sign -prikey ecdsa384.der -infile bootloader.bin  -outfile bootloader_sign.bin -len 0x10000
 
 .. important::
-    ECDSA密钥对生成脚本执行一次即可，生成的密钥对请妥善保管；ecdsa384.c文件中的公钥需要拷贝到otp_efuse_config.json中供第五步密钥烧写使用。
+    ECDSA密钥对生成脚本执行一次则生成一组密钥对，生成的密钥对请妥善保管；
+    获取的公钥存储在ecdsa384.c文件中，需要拷贝到otp_efuse_config.json中供BKFIL工具烧写密钥到OTP时使用。
+
+    客户自定义签名的密钥对时，请将生成的密钥对文件ecdsa384.der放在 :ref:`指定路径 <查找路径优先级>` 下，编译系统会按照路径优先级查找密钥对文件；
+    当系统在指定路径下找不到密钥文件时，默认使用tool下的测试密钥对文件。
 
 2. 镜像打包
 ----------------------------------
@@ -136,25 +228,25 @@
 
     提供加密工具beken_aes.exe，用于密钥生成和镜像加密。
 
-+-----------+---------------+-------------+---------------------------------------------+
-|  Command  |  Options      |  Value      | Description                                 |
-+===========+===============+=============+=============================================+
-|           | -outfile      | config.json | falsh encrypt key is saved in config.json   |
-|  genkey   +---------------+-------------+---------------------------------------------+
-|           | -aes_cbc      | config.json | Key and IV for OTA are saved in config.json |
-+-----------+---------------+-------------+---------------------------------------------+
-|           | -keyfile      | config.json | File containing AES key                     |
-|           +---------------+-------------+---------------------------------------------+
-|           | -infile       | infile      | the image to be encrypted                   |
-|  encrypt  +---------------+-------------+---------------------------------------------+
-|           | -startaddress | Hex         | encrypt with logical start address          |
-|           +---------------+-------------+---------------------------------------------+
-|           | -outfile      | outfile     | encrypted image                             |
-+-----------+---------------+-------------+---------------------------------------------+
-|  version  |  To print the current version of this utility                             |
-+-----------+---------------------------------------------------------------------------+
-|  help     | To print this help message                                                |
-+-----------+---------------------------------------------------------------------------+
++-----------+---------------+----------------------+------------------------------------------------------+
+|  Command  |  Options      |  Value               | Description                                          |
++===========+===============+======================+======================================================+
+|           | -outfile      | aes_encrypt_key.json | falsh encrypt key is saved in aes_encrypt_key.json   |
+|  genkey   +---------------+----------------------+------------------------------------------------------+
+|           | -aes_cbc      | aes_encrypt_key.json | Key and IV for OTA are saved in aes_encrypt_key.json |
++-----------+---------------+----------------------+------------------------------------------------------+
+|           | -keyfile      | aes_encrypt_key.json | File containing AES key                              |
+|           +---------------+----------------------+------------------------------------------------------+
+|           | -infile       | infile               | the image to be encrypted                            |
+|  encrypt  +---------------+----------------------+------------------------------------------------------+
+|           | -startaddress | Hex                  | encrypt with logical start address                   |
+|           +---------------+----------------------+------------------------------------------------------+
+|           | -outfile      | outfile              | encrypted image                                      |
++-----------+---------------+----------------------+------------------------------------------------------+
+|  version  |  To print the current version of this utility                                               |
++-----------+---------------------------------------------------------------------------------------------+
+|  help     | To print this help message                                                                  |
++-----------+---------------------------------------------------------------------------------------------+
 
 加密过程
 ********************
@@ -164,19 +256,92 @@
 
 举例说明::
 
-    生成AES密钥：beken_aes.exe genkey -aes_cbc -outfile config.json
-    app镜像加密：beken_aes.exe encrypt -infile app.bin -startaddress 0x10000 -keyfile config.json -outfile app_enc.bin
-    all_app.bin加密：beken_aes.exe encrypt -infile all_app.bin -startaddress 0x0 -keyfile config.json -outfile all_app_enc.bin
+    生成AES密钥：beken_aes.exe genkey -aes_cbc -outfile aes_encrypt_key.json
+    app镜像加密：beken_aes.exe encrypt -infile app.bin -startaddress 0x10000 -keyfile aes_encrypt_key.json -outfile app_enc.bin
+    all_app.bin加密：beken_aes.exe encrypt -infile all_app.bin -startaddress 0x0 -keyfile aes_encrypt_key.json -outfile all_app_enc.bin
+
+.. _对称密钥:
+
+生成的密钥内容：
+
+   ::
+
+        {
+            "name":               "aes_key",   //flash加密密钥的密文，将data部分复制到otp_efuse_config.json的Security_data的aes_key的data中
+            "mode":              "write",
+            "start_addr":         "",
+            "last_valid_addr":    "",
+            "byte_len":           "0x20",
+            "data":              "cbdzcdbwdscacjdyccbxbzbwdzducddvbxeeeecjedcgceeeegeecfehclcleacgciebckcledclecefcibobpbpbobibpboeienbgeibjeoejeneobkenepbnbgbten",
+            "data_type":          "ascii",
+            "status":            "true"
+        },
+        {
+            "name":               "aes_key_plaintext", //flash加密密钥的明文
+            "mode":              "write",
+            "start_addr":         "",
+            "last_valid_addr":    "",
+            "byte_len":           "0x20",
+            "data":              "6d34d08c3756ad0d6dd4b31fdf2d33d61d31e1db38998298ad2b1dbfb0ab258c",
+            "data_type":          "ascii",
+            "status":            "true"
+        },
+        {
+            "name":               "OTA_key", //用于OTA升级的密钥的密文，将data部分复制到otp_efuse_config.json的Security_data的OTA_key的data中
+            "mode":              "write",
+            "start_addr":         "",
+            "last_valid_addr":    "",
+            "byte_len":           "0x20",
+            "data":              "cbbwbxctcadgbxdibzcjccdicteadsbzejeccicqcqddeachetdyelcucredcuce",
+            "data_type":          "ascii",
+            "status":            "true"
+        },
+        {
+            "name":               "OTA_key_plaintext", //用于OTA升级的密钥的明文
+            "mode":              "write",
+            "start_addr":         "",
+            "last_valid_addr":    "",
+            "byte_len":           "0x20",
+            "data":              "632C0P5S683PAng4vb4LMXa1qlxCNgD4",
+            "data_type":          "ascii",
+            "status":            "true"
+        },
+        {
+            "name":               "OTA_IV", ////用于OTA升级的IV的密文，将data部分复制到otp_efuse_config.json的Security_data的OTA_IV的data中
+            "mode":              "write",
+            "start_addr":         "",
+            "last_valid_addr":    "",
+            "byte_len":           "0x10",
+            "data":              "dcemcdcybwcnbydrccckcuccewdwdtcl",
+            "data_type":          "ascii",
+            "status":            "true"
+        },
+        {
+            "name":               "OTA_IV_plaintext", //用于OTA升级的IV的明文
+            "mode":              "write",
+            "start_addr":         "",
+            "last_valid_addr":    "",
+            "byte_len":           "0x10",
+            "data":              "Sw3H4D7Z38N0xcf7",
+            "data_type":          "ascii",
+            "status":            "true"
+        },
 
 .. important::
-    AES-XTS模式加密结果与被加密文件的地址相关，在需要单独加密app镜像时-startaddress应设置为该镜像的逻辑地址。
+    AES-XTS模式加密结果与被加密文件的地址相关，在需要手动单独加密app镜像时-startaddress应设置为该镜像的逻辑地址。
+
+    客户自定义flash加密密钥时，请将生成的密钥文件aes_encrypt_key.json放在 :ref:`指定路径 <查找路径优先级>` 下，编译系统会按照路径优先级查找密钥文件；
+    当系统在指定路径下找不到密钥文件时，默认使用tool下的测试密钥文件。
 
 4. 添加CRC校验
 ----------------------------------
 
     CPU在读取FLASH上镜像时硬件会进行CRC校验，因此镜像需要添加CRC之后才可以烧写到flash中。
+
     CRC插入规则：每32个字节计算出2个字节的CRC值，插入到该32字节之后；插入CRC之前的地址对应逻辑地址，插入CRC之后的地址对应物理地址。
+
     上一步镜像加密后会输出对应添加CRC后的版本，可直接用于烧写。
+
     提供工具cmake_encrypt_crc.exe用于添加CRC。
 
 - 将需要添加CRC镜像和工具放置在同一目录下，运行脚本add_crc.bat即可。
@@ -185,24 +350,42 @@
 
     添加CRC： cmake_encrypt_crc.exe -crc all_enc.bin
 
-5. 烧写密钥和efuse使能安全功能
-----------------------------------
+四、烧写安全镜像和密钥，使能安全功能
++++++++++++++++++++++++++++++++++++++++++
 
 .. important::
     *Note：OTP和eFuse只能烧写一次，一但烧写后不可更改，需要谨慎操作！*
     在使能efuse的secure boot和encrypt之前，请确保flash中烧写有经过加签、加密、加CRC后的镜像，否则该芯片将无法更新镜像。
 
-将第一步生成的ecdsa384.c中的publickey和第三步生成的config.json中的aes key拷贝到otp_efuse_config.json的安全数据配置区，方法见 :doc:`bk_OTP_and_eFuse_usermenu` 中安全数据配置区参数说明。
-BKFIL.exe会根据配置文件otp_efuse_config.json，将其中的签名的公钥、加密的密钥和eFuse的配置烧写到OTP和eFuse中。
+1. 配置otp_efuse_config.json
+----------------------------------------
 
-.. important::
-    为方便开发和使用，已将step1-4部署到编译服务器\tools\env_tools\beken_packager下，用于签名的ecdsa384.der和flash加密的密钥config.json，优先在middleware\boards\bk7256下寻找，如果不存在则使用\tools\env_tools\beken_packager下的测试用的key。
-    build/app/project/encrypt路经下会生成all_app_pack_enc_crc.bin可用于step5使能安全功能前烧写，app_pack_enc_crc.bin用于开启安全之后镜像更新，app_pack_sign.rbl用于OTA升级app。
+生成的密钥对文件和flash加密密钥文件，除了用于生成安全镜像，还需要烧写到芯片的OTP中。
 
-开启安全后镜像升级方式
-+++++++++++++++++++++++++
+将3.1节生成的 :ref:`ecdsa384.c <提取的公钥>` 中的publickey和3.3节生成的 :ref:`aes_encrypt_key.json <对称密钥>` 中的aes_key、OTA_key、OTA_IV拷贝到otp_efuse_config.json的安全数据配置区，方法见 :doc:`bk_OTP_and_eFuse_usermenu` 中安全数据配置区参数说明。
+
+BKFIL.exe会根据配置文件otp_efuse_config.json，将其中的签名的公钥、加密的密钥烧写到OTP中，并根据eFuse的配置来使能安全功能。
+
+2. 烧写安全镜像并使能安全
+----------------------------------
+
+ - 1.BKFIL工具选择配置界面
+ - 2.选择第一次烧写对应的安全镜像
+ - 3.选择"eFuse密钥"文件选择按钮,选择配置好的otp_efuse_config.json
+ - 4.勾选"OTP"或者"烧录eFuse"选项
+ - 5.BKFIL工具选择主界面，点击"烧录"按钮
+
+.. figure:: ../../../../common/_static/BKFIL_RW_OTP&eFuse.png
+    :align: center
+    :alt: BKFIL download step
+    :figclass: align-center
+
+    首次烧写安全镜像
+
+四、开启安全后镜像升级方式
++++++++++++++++++++++++++++++
 
     开启安全后，当前bootloader将不可更新，只能对app镜像进行更新升级。
 
-     - 方式一：使用BKFIL.exe工具将build/app/project/encrypt下的app_pack_enc_crc.bin烧写到对应的物理分区上。用于烧写的镜像可根据step1-4生成，也可以直接从编译服务器上获取。
+     - 方式一：使用BKFIL.exe工具将build/app/project/encrypt下的app_pack_sign_enc_crc.bin烧写到对应的物理分区上。
      - 方式二: 使用OTA升级方式，使用build/app/project/encrypt下的app_pack_sign.rbl升级，升级方法和非安全版本一样，见OTA升级。

@@ -112,8 +112,8 @@ typedef struct
 	uint16_t hsync_front_porch;           /**< rang 0~0x3F (0~127), should refer lcd device spec*/
 	uint16_t vsync_back_porch;            /**< rang 0~0x1F (0~31), should refer lcd device spec*/
 	uint16_t vsync_front_porch;           /**< rang 0~0x7F (0~127), should refer lcd device spec*/
-	uint8_t hsync_pulse_width;            /**< rang 0~0x3F (0~63), should refer lcd device spec*/
-	uint8_t vsync_pulse_width;            /**< rang 0~0x3F (0~63), should refer lcd device spec*/
+	uint8_t hsync_pulse_width;            /**< rang 0~0x7 (0~7), should refer lcd device spec*/
+	uint8_t vsync_pulse_width;            /**< rang 0~0x7 (0~7), should refer lcd device spec*/
 } lcd_rgb_t;
 
 /** mcu interface config param */

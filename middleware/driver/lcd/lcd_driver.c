@@ -1896,7 +1896,7 @@ void dma2d_memcpy_psram_wait_last_transform_is_finish(void)
 {
 	if(1 == g_dma2d_use_flag)
 	{
-		while (bk_dma2d_is_transfer_busy()) {}
+		while (bk_dma2d_is_transfer_busy()) {rtos_delay_milliseconds(2);}
 		g_dma2d_use_flag = 0;
 	}
 }
@@ -1904,11 +1904,13 @@ void dma2d_memcpy_psram_wait_last_transform_is_finish(void)
 void dma2d_memcpy_psram_wait_last_transform(void *Psrc, void *Pdst, uint32_t xsize, uint32_t ysize, uint32_t src_offline, uint32_t dest_offline)
 {
 #if (CONFIG_LCD_QSPI && CONFIG_LVGL)
-    os_memcpy_word((uint32_t *)Pdst, (const uint32_t *)Psrc, xsize*ysize*2);
+	if(CONFIG_LV_COLOR_DEPTH == 16)
+		os_memcpy_word((uint32_t *)Pdst, (const uint32_t *)Psrc, xsize*ysize*2);
+	else if(CONFIG_LV_COLOR_DEPTH == 32)
+		os_memcpy_word((uint32_t *)Pdst, (const uint32_t *)Psrc, xsize*ysize*4);
 #else
-	dma2d_config_t dma2d_config = {0};
 
-	dma2d_memcpy_psram_wait_last_transform_is_finish();
+	dma2d_config_t dma2d_config = {0};
 
 	/*##-1- Configure the DMA2D Mode, Output Color Mode and output offset #############*/
 	dma2d_config.init.mode         = DMA2D_M2M;             /**< Mode Memory To Memory */
@@ -2350,26 +2352,8 @@ bk_err_t lcd_driver_display_frame(frame_buffer_t *frame)
 #if (CONFIG_LCD_QSPI && CONFIG_LVGL)
 #else
 static u8 g_gui_need_to_wait = BK_FALSE;
-#endif
-
-void lcd_driver_display_frame_with_gui(void *buffer, int width, int height)
+static void _lcd_driver_display_frame_with_gui(void *buffer, int width, int height)
 {
-#if (CONFIG_LCD_QSPI && CONFIG_LVGL)
-	extern bk_err_t bk_lcd_qspi_display(uint32_t *frame_buffer_addr, uint32_t frame_buffer_len);
-#if (CONFIG_LV_COLOR_DEPTH == 16)
-	bk_lcd_qspi_display(buffer, width * height * 2);
-#else
-	bk_lcd_qspi_display(buffer, width * height * 4);
-#endif
-#else
-
-    if(g_gui_need_to_wait)
-	{
-		lcd_driver_display_frame_wait(2000);
-
-		g_gui_need_to_wait = BK_FALSE;
-	}
-
     if(s_lcd.lvgl_frame){
         s_lcd.lvgl_frame->fmt = PIXEL_FMT_RGB565;
         s_lcd.lvgl_frame->frame = buffer;
@@ -2378,8 +2362,13 @@ void lcd_driver_display_frame_with_gui(void *buffer, int width, int height)
 
         if (s_lcd.config.device->type == LCD_TYPE_RGB565)
         {
+#if CONFIG_LVGL_USE_PSRAM
             lcd_driver_display_frame_sync(s_lcd.lvgl_frame, BK_FALSE);
             g_gui_need_to_wait = BK_TRUE;
+#else
+            lcd_driver_display_frame_sync(s_lcd.lvgl_frame, BK_TRUE);
+            g_gui_need_to_wait = BK_FALSE;
+#endif
         }
         else
         {
@@ -2390,6 +2379,308 @@ void lcd_driver_display_frame_with_gui(void *buffer, int width, int height)
     else{
         LOGI("[%s][%d] fb malloc fail\r\n", __FUNCTION__, __LINE__);
     }
+}
+#endif
+
+#if CONFIG_LVGL && !CONFIG_LCD_QSPI && !CONFIG_LVGL_USE_PSRAM 
+typedef enum{
+    STATE_INIT,
+    STATE_RUNNING,
+    STATE_STOP
+} lvgl_task_state_t;
+
+typedef struct
+{
+    uint32_t event;
+} gui_display_msg_t;
+
+static beken_mutex_t g_gui_display_mutex;
+static beken_thread_t  g_gui_display_thead_handle = NULL;
+static u8 g_disp_free_buff_index = 0;
+static u16 *g_disp_buff1 = NULL;
+static u16 *g_disp_buff2 = NULL;
+static u16 *g_disp_buff = NULL;
+static u8 g_gui_display_thread_step = STATE_INIT;
+static beken_semaphore_t g_gui_run_sem = NULL;
+static beken_queue_t g_gui_display_msg_queue = NULL;
+static void *g_last_buff = NULL;
+static u8 g_gui_app_display_buf_num = 0;    //1 µ¥buff 2 Ë«buffer
+
+bk_err_t _gui_display_send_msg(void)
+{
+    bk_err_t ret;
+    gui_display_msg_t msg = {0};
+
+    msg.event = 0;
+    if (g_gui_display_msg_queue)
+    {
+        ret = rtos_push_to_queue(&g_gui_display_msg_queue, &msg, BEKEN_NO_WAIT);
+
+        if (kNoErr != ret)
+        {
+            LOGE("%s failed\n", __func__);
+            return kOverrunErr;
+        }
+
+        return ret;
+    }
+    return kNoResourcesErr;
+}
+
+static void _gui_display_task_entry( void *arg )
+{
+    int hor_size = ppi_to_pixel_x(s_lcd.config.device->ppi);
+    int ver_size = ppi_to_pixel_x(s_lcd.config.device->ppi);
+    gui_display_msg_t msg = {0};
+
+    rtos_set_semaphore(&g_gui_run_sem);
+    while(1)
+    {
+        if (kNoErr == rtos_pop_from_queue(&g_gui_display_msg_queue, &msg, BEKEN_WAIT_FOREVER))
+        {
+            if(STATE_STOP == g_gui_display_thread_step)
+            {
+                break;
+            }
+
+            dma2d_memcpy_psram_wait_last_transform_is_finish();
+            rtos_lock_mutex(&g_gui_display_mutex);
+            g_disp_free_buff_index = g_disp_free_buff_index?0:1;
+            rtos_unlock_mutex(&g_gui_display_mutex);
+            _lcd_driver_display_frame_with_gui(g_disp_buff, hor_size, ver_size);
+        }
+    }
+
+    rtos_set_semaphore(&g_gui_run_sem);
+    rtos_delete_thread(NULL);
+}
+
+static void _gui_display_task_destory(void)
+{
+    g_last_buff = NULL;
+
+    if(g_gui_display_thead_handle)
+    {
+        g_gui_display_thread_step = STATE_STOP;
+        _gui_display_send_msg();
+        rtos_get_semaphore(&g_gui_run_sem, BEKEN_NEVER_TIMEOUT);
+
+        if(g_gui_run_sem)
+        {
+            rtos_deinit_semaphore(&g_gui_run_sem);
+            g_gui_run_sem = NULL;
+        }
+
+        if(g_gui_display_msg_queue)
+        {
+            rtos_deinit_queue(&g_gui_display_msg_queue);
+            g_gui_display_msg_queue = NULL;
+        }
+
+        if(g_gui_display_mutex)
+        {
+            rtos_deinit_mutex(&g_gui_display_mutex);
+            g_gui_display_mutex = NULL;
+        }
+
+        if(g_disp_buff1)
+        {
+            psram_free(g_disp_buff1);
+            g_disp_buff1 = NULL;
+        }
+
+        if(g_disp_buff2)
+        {
+            psram_free(g_disp_buff2);
+            g_disp_buff2 = NULL;
+        }
+
+        g_gui_display_thead_handle = NULL;
+        LOGI("%s exit success\n", __func__);
+    }
+}
+
+static int _gui_display_task_create(void)
+{
+    int hor_size = ppi_to_pixel_x(s_lcd.config.device->ppi);
+    int ver_size = ppi_to_pixel_x(s_lcd.config.device->ppi);
+    bk_err_t ret = BK_FAIL;
+    int lcd_size = 0;
+    
+    do{
+        if(g_gui_display_thead_handle)
+        {
+            ret = BK_OK;
+            break;
+        }
+
+        lcd_size = hor_size*ver_size*(CONFIG_LV_COLOR_DEPTH/8);
+        g_disp_buff1 = psram_malloc(lcd_size);
+        g_disp_buff2 = psram_malloc(lcd_size);
+        if(!g_disp_buff1 || !g_disp_buff2)
+        {
+            LOGE("[%s][%d] psram malloc fail\r\n", __FUNCTION__, __LINE__);
+            ret = BK_ERR_NO_MEM;
+            break;
+        }
+
+        ret = rtos_init_mutex(&g_gui_display_mutex);
+        if(ret != BK_OK)
+        {
+            LOGE("[%s][%d] init mutex fail\r\n", __FUNCTION__, __LINE__);
+            break;
+        }
+
+        ret = rtos_init_queue(&g_gui_display_msg_queue,
+                                  "lcd_check_msg_queue",
+                                  sizeof(gui_display_msg_t),
+                                  2);
+        if(ret != BK_OK)
+        {
+            LOGE("[%s][%d] create queue fail\r\n", __FUNCTION__, __LINE__);
+            break;
+        }
+
+        ret = rtos_init_semaphore_ex(&g_gui_run_sem, 1, 0);
+        if(ret != BK_OK)
+        {
+            LOGE("[%s][%d] create sem fail\r\n", __FUNCTION__, __LINE__);
+            break;
+        }
+
+        g_gui_display_thread_step = STATE_RUNNING;
+        ret = rtos_create_thread(&g_gui_display_thead_handle,
+                         2,
+                         "gui_dis",
+                         (beken_thread_function_t)_gui_display_task_entry,
+                         (unsigned short)1024,
+                         (beken_thread_arg_t)0);
+        if(ret != BK_OK)
+        {
+            LOGE("[%s][%d] create thread fail\r\n", __FUNCTION__, __LINE__);
+            break;
+        }
+
+        LOGI("[%s][%d] gui display task success\r\n", __FUNCTION__, __LINE__);
+        ret = rtos_get_semaphore(&g_gui_run_sem, BEKEN_NEVER_TIMEOUT);
+        if (BK_OK != ret)
+        {
+            LOGE("%s transfer_sem get failed\n", __func__);
+        }
+        ret = BK_OK;
+    }while(0);
+
+    if(BK_OK != ret)
+    {
+        if(g_gui_run_sem)
+        {
+            rtos_deinit_semaphore(&g_gui_run_sem);
+            g_gui_run_sem = NULL;
+        }
+        
+        if(g_gui_display_msg_queue)
+        {
+            rtos_deinit_queue(&g_gui_display_msg_queue);
+            g_gui_display_msg_queue = NULL;
+        }
+
+        if(g_gui_display_mutex)
+        {
+            rtos_deinit_mutex(&g_gui_display_mutex);
+            g_gui_display_mutex = NULL;
+        }
+
+        if(g_disp_buff1)
+        {
+            psram_free(g_disp_buff1);
+            g_disp_buff1 = NULL;
+        }
+
+        if(g_disp_buff2)
+        {
+            psram_free(g_disp_buff2);
+            g_disp_buff2 = NULL;
+        }
+    }
+
+    return ret;
+}
+#endif
+
+void lcd_driver_display_frame_with_gui(void *buffer, int width, int height)
+{
+#if CONFIG_LVGL
+    #if CONFIG_LCD_QSPI
+            extern bk_err_t bk_lcd_qspi_display(uint32_t *frame_buffer_addr, uint32_t frame_buffer_len);
+            #if (CONFIG_LV_COLOR_DEPTH == 16)
+            bk_lcd_qspi_display(buffer, width * height * 2);
+            #else
+            bk_lcd_qspi_display(buffer, width * height * 4);
+            #endif
+    #else
+        #if CONFIG_LVGL_USE_PSRAM
+        if(g_gui_need_to_wait)
+        {
+            lcd_driver_display_frame_wait(2000);
+
+            g_gui_need_to_wait = BK_FALSE;
+        }
+        _lcd_driver_display_frame_with_gui(buffer, width, height);
+        #else
+        if(0 == g_gui_app_display_buf_num)
+        {
+            if(NULL == g_last_buff)
+            {
+                g_last_buff = buffer;
+            }
+            else
+            {
+                if(g_last_buff != buffer)   //app use two framebuff
+                {
+                    g_gui_app_display_buf_num = 2;
+                }
+                else if(g_last_buff == buffer)   //app use single framebuff
+                {
+                    g_gui_app_display_buf_num = 1;
+                }
+            }
+        }
+        
+        if(0 == g_gui_app_display_buf_num || 2 == g_gui_app_display_buf_num)
+        {
+            _lcd_driver_display_frame_with_gui(buffer, width, height);
+        }
+        else if(1 == g_gui_app_display_buf_num)
+        {
+            do{
+                if(!g_gui_display_thead_handle)  _gui_display_task_create();
+
+                if(!g_gui_display_thead_handle)
+                {
+                    LOGE("[%s][%d] creat task fail, direct use two buff\r\n", __FUNCTION__, __LINE__);
+                    g_gui_app_display_buf_num = 2;
+                    _lcd_driver_display_frame_with_gui(buffer, width, height);
+                    break;
+                }
+
+                if(g_gui_need_to_wait)
+                {
+                    lcd_driver_display_frame_wait(2000);
+                    g_gui_need_to_wait = BK_FALSE;
+                }
+                
+                rtos_lock_mutex(&g_gui_display_mutex);
+                if(0 == g_disp_free_buff_index) 
+                    g_disp_buff = g_disp_buff1;
+                else
+                    g_disp_buff = g_disp_buff2;
+                rtos_unlock_mutex(&g_gui_display_mutex);
+                dma2d_memcpy_psram_wait_last_transform(buffer, g_disp_buff, width, height, 0, 0);
+                _gui_display_send_msg();
+            }while(0);
+        }
+        #endif
+    #endif
 #endif
 }
 
@@ -2855,6 +3146,9 @@ bk_err_t lcd_driver_deinit(void)
 
 #if (CONFIG_LCD_QSPI && CONFIG_LVGL)
 #else
+	#if CONFIG_LVGL && !CONFIG_LVGL_USE_PSRAM 
+	_gui_display_task_destory();
+	#endif
 	g_gui_need_to_wait = BK_FALSE;
 #endif
 

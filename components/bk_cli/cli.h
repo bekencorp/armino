@@ -113,6 +113,11 @@ int cli_at_init(void);
 #if CONFIG_SECURITYIP
 int cli_securityip_init(void);
 #endif
+#if CONFIG_MBEDTLS
+#if CONFIG_MBEDTLS_TEST
+int cli_mbedtls_init(void);
+#endif
+#endif
 int cli_otp_init(void);
 int cli_aud_init(void);
 int cli_aud_intf_init(void);

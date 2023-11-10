@@ -650,6 +650,9 @@
 
 /*1: Enable API to take snapshot for object*/
 #define LV_USE_SNAPSHOT 0
+#if LV_USE_SNAPSHOT
+    #define LV_SNAPSHOT_USE_PSRAM 0          /* 0: use default sram memory, 1: use psram memory. */
+#endif
 
 /*1: Enable Monkey test*/
 #define LV_USE_MONKEY 0

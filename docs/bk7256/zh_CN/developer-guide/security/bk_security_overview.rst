@@ -86,7 +86,7 @@ bank1：
 -------------------------
 固件进行使用和管理
 
- bl version、app version、ecdsa public key在安全功能开启时有效。
+ bl version、app version、ecdsa public key在secure boot开启时有效。
 
 +------------------+---------------+---------------------+-----------------------------------+
 | content          | start address | allocate size(byte) | Description                       |
@@ -114,10 +114,10 @@ bank2：
 +------------------+---------------+---------------------+------------------------------------+
 | content          | start address | allocate size(byte) | Description                        |
 +==================+===============+=====================+====================================+
-| ecdsa public key | 0x4B0048B0    |                     | public key for BOOT ROM to verify  |
+| ecdsa public key | 0x4B005000    |                     | public key for BOOT ROM to verify  |
 |                  |               | ecdsa384: 96        | the signature of bootloader        |
 +------------------+---------------+---------------------+------------------------------------+
-| AES256 key       | 0x4B004918    | 32                  | used for image encryption on flash |
+| AES256 key       | 0x4B0057E0    | 32                  | used for image encryption on flash |
 +------------------+---------------+---------------------+------------------------------------+
 
 bank3：

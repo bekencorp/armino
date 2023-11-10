@@ -110,7 +110,11 @@ int bk_printf_deinit(void);
 void bk_set_printf_enable(uint8_t enable);
 void bk_set_printf_sync(uint8_t enable);
 int bk_get_printf_sync(void);
-void bk_buf_printf_sync(char *buf, int buf_len);
+
+/*  ========= !! NOTE !! =========  */
+/*          Obsoleted  API          */
+/* use bk_printf_ext(...) instead.  */
+void bk_buf_printf_sync(char *buf, int buf_len);  /* Obsoleted  API */
 
 /*  ========= !! NOTE !! =========  */
 /*          Obsoleted  API          */

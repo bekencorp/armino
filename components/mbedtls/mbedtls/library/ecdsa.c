@@ -590,6 +590,22 @@ int mbedtls_ecdsa_sign_det_ext( mbedtls_ecp_group *grp, mbedtls_mpi *r,
 }
 #endif /* MBEDTLS_ECDSA_DETERMINISTIC */
 
+#if !defined(MBEDTLS_ECDSA_VERIFY_ALT)  && defined(MBEDTLS_ECDSA_SIGN_ALT)
+int mbedtls_ecdsa_can_do( mbedtls_ecp_group_id gid )
+{
+    switch( gid )
+    {
+#ifdef MBEDTLS_ECP_DP_CURVE25519_ENABLED
+        case MBEDTLS_ECP_DP_CURVE25519: return 0;
+#endif
+#ifdef MBEDTLS_ECP_DP_CURVE448_ENABLED
+        case MBEDTLS_ECP_DP_CURVE448: return 0;
+#endif
+    default: return 1;
+    }
+}
+#endif
+
 #if !defined(MBEDTLS_ECDSA_VERIFY_ALT)
 /*
  * Verify ECDSA signature of hashed message (SEC1 4.1.4)
@@ -1075,6 +1091,16 @@ int mbedtls_ecdsa_self_test( int verbose ,uint32_t loop)
 	uint32_t i;
 	uint64_t before, after;
 
+    extern int mbedtls_sha256_ret( const unsigned char *input,size_t ilen,unsigned char output[32],int is224 );
+    uint8_t digest[32] = {0};
+    memset(&digest[0], 0, sizeof(digest));
+    ret = mbedtls_sha256_ret(Vector_P384_Message, sizeof(Vector_P384_Message), &digest[0], 0);
+    if (ret != 0)
+    {
+        mbedtls_printf( " failed\n  ! mbedtls_sha256_ret returned %d\r\n", ret );
+        goto exit;
+    }
+
 	mbedtls_ecdsa_init( &ctx_sign );
 	mbedtls_ecdsa_init( &ctx_verify );
 
@@ -1110,14 +1136,14 @@ int mbedtls_ecdsa_self_test( int verbose ,uint32_t loop)
 
 	for(i = 0; i < loop; i++)
 	{
-		if( ( ret = mbedtls_ecdsa_write_signature( &ctx_sign, MBEDTLS_MD_SHA384,
-		                                   Vector_P384_Message, sizeof( Vector_P384_Message ),
-		                                   sig, &sig_len,
-		                                   gen_rand, NULL ) ) != 0 )
-		{
-			mbedtls_printf( " failed\n  ! mbedtls_ecdsa_write_signature returned %d\r\n", ret );
-			goto exit;
-		}
+            if( ( ret = mbedtls_ecdsa_write_signature( &ctx_sign, MBEDTLS_MD_SHA384,
+                                               &digest[0], sizeof( digest ),
+                                               sig, &sig_len,
+                                               gen_rand, NULL ) ) != 0 )
+            {
+            	mbedtls_printf( " failed\n  ! mbedtls_ecdsa_write_signature returned %d\r\n", ret );
+            	goto exit;
+            }
 	}
 #if CONFIG_ARCH_RISCV
 	after = riscv_get_mtimer();
@@ -1164,13 +1190,13 @@ int mbedtls_ecdsa_self_test( int verbose ,uint32_t loop)
 
 	for(i = 0; i < loop; i++)
 	{
-		if( ( ret = mbedtls_ecdsa_read_signature( &ctx_verify,
-		                                  Vector_P384_Message, sizeof( Vector_P384_Message ),
-		                                  sig, sig_len ) ) != 0 )
-		{
-			mbedtls_printf( " failed\n  ! mbedtls_ecdsa_read_signature returned %d\r\n", ret );
-			goto exit;
-		}
+        if( ( ret = mbedtls_ecdsa_read_signature( &ctx_verify,
+                                           &digest[0], sizeof(digest),
+                                          sig, sig_len ) ) != 0 )
+        {
+        	mbedtls_printf( " failed\n  ! mbedtls_ecdsa_read_signature returned %d\r\n", ret );
+        	goto exit;
+        }
 	}
 #if CONFIG_ARCH_RISCV
 	after = riscv_get_mtimer();

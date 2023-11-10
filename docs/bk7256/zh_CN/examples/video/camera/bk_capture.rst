@@ -5,7 +5,7 @@ Capture
 
 1 功能概述
 -------------------------------------
-	拍照的作用主要是将dvp/uvc sensor采集的一帧原始数据，经jpeg encode模块压缩编码后，存储到SDCard上。
+	拍照的作用主要是将dvp sensor采集的一帧原始数据，经jpeg encode模块压缩编码后，存储到SDCard上。
 
 2 代码路径
 -------------------------------------
@@ -58,8 +58,6 @@ Capture
 		fatfstest M 1
 
 		dvp拍照：dvp init 或 dvp init 0 640X480 20
-
-		uvc拍照：dvp init 4 640X480 20
 
 		dvp capture 1(file_id)
 

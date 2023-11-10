@@ -5,7 +5,7 @@ DVP Capture
 
 1 Overview
 -------------------------------------
-	The main function of taking pictures is to store a frame of raw data collected by the dvp/uvc sensor on the SDCard after being compressed and encoded by the jpeg encode module.
+	The main function of taking pictures is to store a frame of raw data collected by the dvp sensor on the SDCard after being compressed and encoded by the jpeg encode module.
 
 2 Code Path
 -------------------------------------
@@ -58,8 +58,6 @@ DVP Capture
 		fatfstest M 1
 
 		dvp capture：dvp init 或 dvp init 0 640X480 20
-
-		uvc capture：dvp init 4 640X480 20
 
 		dvp capture 1(file_id)
 

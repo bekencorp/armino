@@ -51,9 +51,12 @@ static bk_err_t uvc_camera_deinit(uvc_state_t state)
 
 		usb_device_set_using_status(0, USB_UVC_DEVICE);
 
-		bk_usb_close();
+		ret = bk_usb_close();
 
-		bk_uvc_camera_power_enable(0);
+		if (ret == BK_OK)
+		{
+			bk_uvc_camera_power_enable(0);
+		}
 
 		// unregister connect & disconnect
 		parameter = NULL;
@@ -120,9 +123,15 @@ static bk_err_t uvc_camera_reset(void)
 
 	LOGI("%s, state:%d\r\n", __func__, uvc_camera_state);
 
+	if (uvc_camera_state == UVC_CONNECTED)
+	{
+		return BK_OK;
+	}
+
 	// uvc power up
 	if (uvc_camera_state != UVC_DISCONNECT_ABNORMAL)
 	{
+		LOGI("%s, power_up-state:%d\r\n", __func__, uvc_camera_state);
 		void *parameter = (void *)uvc_camera_connect;
 		bk_uvc_register_config_callback(parameter);
 		bk_uvc_camera_power_enable(1);
@@ -226,7 +235,10 @@ bk_err_t bk_uvc_camera_init(uvc_config_t *config)
 
 init_error:
 
-	uvc_camera_state = UVC_DISCONNECT_ABNORMAL;
+	if (ret == BK_UVC_NO_RESPON)
+		uvc_camera_state = UVC_DISCONNECT_ABNORMAL;
+	else
+		uvc_camera_state = UVC_DISCONNECT_NORMAL;
 
 	LOGE("%s failed, state:%d\r\n", __func__, uvc_camera_state);
 
@@ -444,6 +456,11 @@ bk_err_t bk_uvc_camera_get_config(uvc_camera_device_t *param, uint16_t count)
 
 uvc_camera_device_t *bk_uvc_camera_get_device(void)
 {
+	if (uvc_camera_state != UVC_CONNECTED)
+	{
+		return NULL;
+	}
+
 	if (uvc_camera_config == NULL)
 	{
 		return NULL;

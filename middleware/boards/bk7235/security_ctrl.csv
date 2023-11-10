@@ -1,0 +1,5 @@
+#Project,Enable,"If ""security""set to false, all projects do not generate security-related images"
+security,TRUE,
+app,TRUE,
+customization/bk7256_configa,TRUE,
+customization/bk7256_configb,TRUE,

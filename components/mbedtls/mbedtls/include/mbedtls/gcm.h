@@ -43,12 +43,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#if !defined(MBEDTLS_GCM_ALT)
-
 #define MBEDTLS_GCM_ENCRYPT     1
 #define MBEDTLS_GCM_DECRYPT     0
 
@@ -59,6 +53,11 @@ extern "C" {
 
 #define MBEDTLS_ERR_GCM_BAD_INPUT                         -0x0014  /**< Bad input parameters to function. */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#if !defined(MBEDTLS_GCM_ALT)
 /**
  * \brief          The GCM context structure.
  */
@@ -79,7 +78,7 @@ typedef struct mbedtls_gcm_context
 mbedtls_gcm_context;
 
 #else  /* !MBEDTLS_GCM_ALT */
-#include <modules/bk_mbedtls_alt/bk_gcm_alt.h>
+#include "bk_gcm_alt.h"
 #endif /* !MBEDTLS_GCM_ALT */
 
 /**

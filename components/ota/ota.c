@@ -108,9 +108,9 @@ uint8 bk_ota_get_current_partition(void)
 void ota_write_flash(bk_partition_t ota_partition_flag, u8 flag, u8 offset)
 {
 	bk_logic_partition_t *bk_ptr = NULL;
-	u8 ota_final_buff[1],ota_temp_buff[1],ota_cconfirm_buff[1];
+	u8 ota_final_buff[1],ota_temp_buff[1],ota_cconfirm_buff[1],ota_download_status_buff[1];
 
-	u8 temp1_buff[1],temp2_buff[1],temp3_buff[1];
+	u8 temp1_buff[1],temp2_buff[1],temp3_buff[1],temp4_buff[1];
 	flash_protect_type_t protect_type;
 
 	bk_ptr = bk_flash_partition_get_info(ota_partition_flag);
@@ -119,9 +119,10 @@ void ota_write_flash(bk_partition_t ota_partition_flag, u8 flag, u8 offset)
 	bk_flash_read_bytes((bk_ptr->partition_start_addr),(uint8_t *)ota_final_buff, sizeof(u8));
 	bk_flash_read_bytes((bk_ptr->partition_start_addr + 4),(uint8_t *)ota_temp_buff, sizeof(u8));
 	bk_flash_read_bytes((bk_ptr->partition_start_addr + 8),(uint8_t *)ota_cconfirm_buff, sizeof(u8));
+	bk_flash_read_bytes((bk_ptr->partition_start_addr + 12),(uint8_t *)ota_download_status_buff, sizeof(u8));
 	
-	os_printf("before:ota_final_buff:0x%x,ota_temp_buff:0x%x,ota_cconfirm_buff:0x%x\r\n",
-			ota_final_buff[0],ota_temp_buff[0],ota_cconfirm_buff[0]);
+	os_printf("before:ota_final_buff:0x%x,ota_temp_buff:0x%x,ota_cconfirm_buff:0x%x,,ota_download_status_buff :0x%x\r\n",
+			ota_final_buff[0],ota_temp_buff[0],ota_cconfirm_buff[0],ota_download_status_buff[0]);
     
 	protect_type = bk_flash_get_protect_type();
 	bk_flash_set_protect_type(FLASH_PROTECT_NONE);
@@ -133,7 +134,7 @@ void ota_write_flash(bk_partition_t ota_partition_flag, u8 flag, u8 offset)
 		bk_flash_write_bytes((bk_ptr->partition_start_addr + offset),(uint8_t *)&flag, sizeof(u8));
 		bk_flash_write_bytes((bk_ptr->partition_start_addr + 4),(uint8_t *)ota_temp_buff, sizeof(u8));
 		bk_flash_write_bytes((bk_ptr->partition_start_addr + 8),(uint8_t *)ota_cconfirm_buff, sizeof(u8));
-		
+		bk_flash_write_bytes((bk_ptr->partition_start_addr + 12),(uint8_t *)ota_download_status_buff, sizeof(u8));
 	}
 	else if(offset == 4)
 	{
@@ -141,6 +142,7 @@ void ota_write_flash(bk_partition_t ota_partition_flag, u8 flag, u8 offset)
 		bk_flash_write_bytes((bk_ptr->partition_start_addr),(uint8_t *)ota_final_buff, sizeof(u8));
 		bk_flash_write_bytes((bk_ptr->partition_start_addr + offset),(uint8_t *)&flag, sizeof(u8));
 		bk_flash_write_bytes((bk_ptr->partition_start_addr + 8),(uint8_t *)ota_cconfirm_buff, sizeof(u8));	
+		bk_flash_write_bytes((bk_ptr->partition_start_addr + 12),(uint8_t *)ota_download_status_buff, sizeof(u8));
 	}
 	else if(offset == 8)
 	{
@@ -148,13 +150,24 @@ void ota_write_flash(bk_partition_t ota_partition_flag, u8 flag, u8 offset)
 		bk_flash_write_bytes((bk_ptr->partition_start_addr),(uint8_t *)ota_final_buff, sizeof(u8));
 		bk_flash_write_bytes((bk_ptr->partition_start_addr + 4),(uint8_t *)ota_temp_buff,sizeof(u8));
 		bk_flash_write_bytes((bk_ptr->partition_start_addr + offset),(uint8_t *)&flag, sizeof(u8));	
+		bk_flash_write_bytes((bk_ptr->partition_start_addr + 12),(uint8_t *)ota_download_status_buff, sizeof(u8));
+	}
+	else
+	{
+		
+		os_printf("offset ==12\r\n");
+		bk_flash_write_bytes((bk_ptr->partition_start_addr),(uint8_t *)ota_final_buff, sizeof(u8));
+		bk_flash_write_bytes((bk_ptr->partition_start_addr + 4),(uint8_t *)ota_temp_buff,sizeof(u8));
+		bk_flash_write_bytes((bk_ptr->partition_start_addr + 8),(uint8_t *)ota_cconfirm_buff, sizeof(u8));
+		bk_flash_write_bytes((bk_ptr->partition_start_addr + offset),(uint8_t *)&flag, sizeof(u8));
 	}
 	#if 1
     bk_flash_read_bytes((bk_ptr->partition_start_addr + 0),(uint8_t *)temp1_buff, sizeof(u8));
 	bk_flash_read_bytes((bk_ptr->partition_start_addr + 4),(uint8_t *)temp2_buff, sizeof(u8));
 	bk_flash_read_bytes((bk_ptr->partition_start_addr + 8),(uint8_t *)temp3_buff, sizeof(u8));
-	os_printf("ota_final_buff:0x%x,ota_temp_buff:0x%x,ota_cconfirm_buff:0x%x\r\n",
-			temp1_buff[0],temp2_buff[0],temp3_buff[0]);
+	bk_flash_read_bytes((bk_ptr->partition_start_addr + 12),(uint8_t *)temp4_buff, sizeof(u8));
+	os_printf("ota_final_buff:0x%x,ota_temp_buff:0x%x,ota_cconfirm_buff:0x%x,ota_download_status_buff:0x%x\r\n",
+			temp1_buff[0],temp2_buff[0],temp3_buff[0],temp4_buff[0]);
     #endif
     bk_flash_set_protect_type(protect_type);
 }

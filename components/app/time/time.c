@@ -1,9 +1,9 @@
 #include "time/time.h"
 #include <common/bk_include.h>
 #include "bk_arm_arch.h"
-#include <os/os.h>
-#include <driver/hal/hal_aon_rtc_types.h>
+#include <driver/aon_rtc_types.h>
 #include <string.h>
+#include <driver/aon_rtc.h>
 
 
 /* days per month -- nonleap! */
@@ -197,59 +197,15 @@ char *ctime(const time_t *timep)
 	return asctime(localtime(timep));
 }
 
-int64_t g_seconds_offset = 0;
-extern uint64_t bk_aon_rtc_get_us(void);
-
-static int gettimeofday(struct s_timeval *tp, void *ignore)
-{
-	if(NULL == tp)
-	{
-		return -1;
-	}
-
-	(void)ignore;
-
-	if (tp != NULL)
-	{
-		uint64_t time_s = bk_aon_rtc_get_us()/(1000*1000);
-
-		long current_time = g_seconds_offset + time_s;
-
-		tp->tv_sec = current_time;
-		tp->tv_usec = 0;
-	}
-
-	return 0;
-}
-
-static int settimeofday(const struct s_timeval *tp,const struct timezone *tz)
-{	
-	if(NULL == tp)
-	{
-		return -1;
-	}
-
-	(void)tz;
-
-	if(tp)
-	{
-		long current_tick_seconds = bk_aon_rtc_get_us()/(1000*1000);
-		long settime_seconds = tp->tv_sec;
-
-		g_seconds_offset = settime_seconds - current_tick_seconds;
-	}
-
-	return 0;
-}
 
 int datetime_set(time_t      sec)
 {
-	struct s_timeval t = {0};
+	struct timeval t = {0};
 
 	t.tv_sec = sec;
 	t.tv_usec = 0;
 
-	return settimeofday(&t,NULL);
+	return bk_rtc_settimeofday(&t,NULL);
 }
 
 int datetime_get(struct tm *t)
@@ -259,11 +215,11 @@ int datetime_get(struct tm *t)
 		return -1;
 	}
 
-    struct s_timeval get_time = {0};
+    struct timeval get_time = {0};
     struct tm *tmp = NULL;
 	struct tm r_time = {0};
 
-  	gettimeofday(&get_time,NULL);
+	bk_rtc_gettimeofday(&get_time,NULL);
     tmp = gmtime_r(&get_time.tv_sec,&r_time);
     t->tm_year = tmp->tm_year;
     t->tm_mon = tmp->tm_mon;
@@ -276,12 +232,11 @@ int datetime_get(struct tm *t)
     return 0;
 } 
 
-time_t os_time(void)
+time_t timestamp_get(void)
 {
-    struct s_timeval get_time = {0};
+    struct tm get_time = {0};
 
-    gettimeofday(&get_time,NULL);
-
-    return get_time.tv_sec;
+	datetime_get(&get_time);
+	return mktime(&get_time);
 }
 

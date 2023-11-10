@@ -77,7 +77,8 @@ static float cli_adc_read(UINT8 adc_chan)
     
     if(adc_chan == 0)
     {
-        cali_value = ((float)value/4096*5)*1.2*1000;
+        cali_value = saradc_calculate(value);
+        cali_value = cali_value*5/2;
     }
     else if(adc_chan == 7 || adc_chan == 8 || adc_chan == 9)
     {
@@ -85,14 +86,14 @@ static float cli_adc_read(UINT8 adc_chan)
     }
     else
     {
-        cali_value = ((float)value/4096*2)*1.2*1000;
+        cali_value = saradc_calculate(value);
     }
 
     bk_adc_stop();
     sys_drv_set_ana_pwd_gadc_buf(0);
     bk_adc_deinit(adc_chan);
     bk_adc_release();
-    CLI_LOGI("volt value:%d mv\n",(uint32_t)cali_value);
+    CLI_LOGI("volt value:%d mv\n",(uint32_t)(cali_value*1000));
     flag = 0;
     return cali_value;
 }

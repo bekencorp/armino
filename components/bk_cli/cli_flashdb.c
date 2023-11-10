@@ -33,10 +33,10 @@ static struct fdb_default_kv_node default_kv_table[] = {
 static struct fdb_tsdb tsdb = { 0 };
 static beken_mutex_t g_flashdb_tsdb_demo_mutex = NULL;
 
-extern time_t os_time(void);
+extern time_t timestamp_get(void);
 static fdb_time_t get_time(void)
 {
-    return os_time();
+    return timestamp_get();
 }
 #endif
 
@@ -109,7 +109,7 @@ static void _flashdb_kvdb_test(char *pcWriteBuffer, int xWriteBufferLen, int arg
 }
 #endif
 
-#ifdef FDB_USING_KVDB
+#ifdef FDB_USING_TSDB
 static void _flashdb_tsdb_test(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
 {
     /* run TSDB sample */

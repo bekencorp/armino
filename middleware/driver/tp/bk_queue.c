@@ -19,9 +19,12 @@ queue_t *bk_queue_create(void)
 
 void bk_queue_destroy(queue_t *pqueue)
 {
-    if(bk_queue_is_empty(pqueue) != 1)
+    if(pqueue)
     {
-        bk_queue_clear(pqueue);
+        if(bk_queue_is_empty(pqueue) != 1)
+        {
+            bk_queue_clear(pqueue);
+        }
         os_free(pqueue);
     }
 }

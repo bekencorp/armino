@@ -654,6 +654,11 @@ int temp_detect_init(uint32_t init_temperature)
     return 0;
 }
 
+int temp_detect_deinit(void)
+{
+    return 0;
+}
+
 bool temp_detect_is_init(void)
 {
     return 1;

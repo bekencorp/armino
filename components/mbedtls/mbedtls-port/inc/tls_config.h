@@ -1040,13 +1040,10 @@ extern void tls_mbedtls_mem_free(void *ptr);
  * Enable the checkup functions (*_self_test).
  */
 //#define MBEDTLS_SELF_TEST
+#if CONFIG_MBEDTLS_TEST
+#define MBEDTLS_SELF_TEST
+#endif
 
-/**
- * \def MBEDTLS_ADAPTER_SECURITYIP
- *
- * If define MBEDTLS_**_ALT and MBEDTLS_SELF_TEST,mbedtls needs to be adapted to SECURITYIP.
- */
-#define MBEDTLS_ADAPTER_SECURITYIP
 /**
  * \def MBEDTLS_SHA256_SMALLER
  *

@@ -214,6 +214,10 @@ static uint32 get_partition_addr(uint32 slave_core_id)
 #if (CONFIG_SLAVE_CORE_OFFSET)
 	return CONFIG_SLAVE_CORE_OFFSET;
 #endif
+#else
+#if (CONFIG_HTTP_AB_PARTITION && CONFIG_SLAVE_CORE_OFFSET)
+	return CONFIG_SLAVE_CORE_OFFSET;
+#endif
 #endif
 
 	return addr;

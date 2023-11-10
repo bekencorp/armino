@@ -1,5 +1,5 @@
-Bootloader用户操作手册
-========================
+非AB方案的Bootloader与OTA简介
+==============================
 
 :link_to_translation:`en:[English]`
 
@@ -56,8 +56,8 @@ l_bootloader：主要是uart下载功能，流程图如上图2所示。
 - 3.如果此时uart rx_buf中没有数据，会循环检测一定次数后会跳转到指定地址（此为逻辑地址）处执行up_boot。
 - 4.系统正常启动后运行在app业务中，uart接收到下载握手信息后会主动reboot进入l_bootloader下载程序，用户也可以取消此功能。
 
-五．up_bootloader简介
-----------------------------
+五．up_bootloader和OTA简介
+--------------------------------
 
 - 1.up_bootloader作用：
   实现OTA升级功能。
@@ -70,13 +70,25 @@ l_bootloader：主要是uart下载功能，流程图如上图2所示。
   - 3）bootloader对OTA固件进行校验、解密、解压缩和搬运（搬运到对应flash分区）。
 - 3.OTA升级过程：
 
-  - 1）采用http协议从服务器下载ota固件，然后写到flash的download分区，成功之后并重启设备，如图3所示，此过程在app线程中完成；
-  - 2）在重启后up_bootloader会将download分区的升级文件解压解密后搬运到对应的appcode分区，校验成功后擦除download分区后，跳转到app分区正常执行，如图4所示。
+  - 1）采用http协议从服务器下载ota固件，然后写到flash的download分区，成功之后并重启设备，如图3所示，此过程在app线程中完成（具体细节如下）；
+
+    - 1.1）一边从服务器下载固件数据一边写到flash的download分区；（每次写一包1k数据到download分区，然后将刚刚写进download分区的1k数据读出来比较，确保数据的完整性）
+    - 1.2）固件下载之后，再次通过hash功能以确保下载数据的完整性；
+    - 1.3）升级固件全部下载成功之后，进行reboot，然后从bootrom启动。
+
+  - 2）在重启后up_bootloader会将download分区的升级文件解压解密后搬运到对应的app的code分区，校验成功后擦除download分区后，跳转到app分区正常执行，如图4所示。
 
 .. figure:: ../../../_static/bootloader_app_process.png
     :align: center
     :alt: bootloader_process
     :figclass: align-center
+
+- 4.hash功能验证流程介绍：
+
+  通过hash算法来保证下载数据的完整性，hash功能验证流程分为以下两个步骤：
+
+  - 1）去获取升级固件中的rbl的head信息（rbl信息存放位于升级固件的最后4k位置）；
+  - 2）然后通过hash256 算法计算整个固件的hash值，然后和rbl中存放的hash值作比较，若两个hash数值一样，则代表hash通过，固件完整，否则，下载数据不全；
 
 六.Bootloader镜像文件生成
 ----------------------------

@@ -101,6 +101,22 @@ set(srcs
 	mbedtls/library/x509write_csr.c
 	mbedtls/library/xtea.c
 	)
+if(CONFIG_SECURITYIP)
+	list(APPEND incs
+			bk_mbedtls_alt/inc
+			)
+	list(APPEND srcs
+			bk_mbedtls_alt/bk_aes_alt.c
+			bk_mbedtls_alt/bk_rsa_alt.c
+			bk_mbedtls_alt/bk_ccm_alt.c
+			bk_mbedtls_alt/bk_gcm_alt.c
+			bk_mbedtls_alt/bk_sha1_alt.c
+			bk_mbedtls_alt/bk_sha256_alt.c
+			bk_mbedtls_alt/bk_sha512_alt.c
+			bk_mbedtls_alt/bk_ecdsa_alt.c
+            bk_mbedtls_alt/bk_hash_alt_common.c
+			)
+endif()
 endif()
 
 if (CONFIG_HTTPS)

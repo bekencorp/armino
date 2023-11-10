@@ -24,6 +24,10 @@ extern "C" {
 #include <stdio.h>
 #endif
 
+#define _BK_LOG_PRINTF    bk_printf_ext
+#define _BK_RAW_PRINTF    bk_printf_raw
+
+
 #define BK_LOG_NONE    0 /*!< No log output */
 #define BK_LOG_ERROR   1 /*!< Critical errors, software module can not recover on its own */
 #define BK_LOG_WARN    2 /*!< Error conditions from which recovery measures have been taken */
@@ -31,88 +35,53 @@ extern "C" {
 #define BK_LOG_DEBUG   4 /*!< Extra information which is not necessary for normal use (values, pointers, sizes, etc). */
 #define BK_LOG_VERBOSE 5 /*!< Extra information which is not necessary for normal use (values, pointers, sizes, etc). */
 
-#if CONFIG_STDIO_PRINTF
-#define _OS_PRINTF printf
-#else
-#define _OS_PRINTF os_printf
-#endif
-
-#if CFG_LEGACY_LOG
-
-#define BK_LOGE( tag, format, ... ) _OS_PRINTF(format, ##__VA_ARGS__)
-#define BK_LOGW( tag, format, ... ) _OS_PRINTF(format, ##__VA_ARGS__)
-#define BK_LOGI( tag, format, ... ) _OS_PRINTF(format, ##__VA_ARGS__)
-#define BK_LOGD( tag, format, ... ) _OS_PRINTF(format, ##__VA_ARGS__)
-#define BK_LOGV( tag, format, ... ) _OS_PRINTF(format, ##__VA_ARGS__)
-
-#else
-
-#if CFG_LOG_COLORS
-#define LOG_COLOR_BLACK   "30"
-#define LOG_COLOR_RED     "31"
-#define LOG_COLOR_GREEN   "32"
-#define LOG_COLOR_BROWN   "33"
-#define LOG_COLOR_BLUE    "34"
-#define LOG_COLOR_PURPLE  "35"
-#define LOG_COLOR_CYAN    "36"
-#define LOG_COLOR(COLOR)  "\033[0;" COLOR "m"
-#define LOG_BOLD(COLOR)   "\033[1;" COLOR "m"
-#define LOG_RESET_COLOR   "\033[0m"
-#define LOG_COLOR_E       LOG_COLOR(LOG_COLOR_RED)
-#define LOG_COLOR_W       LOG_COLOR(LOG_COLOR_BROWN)
-#define LOG_COLOR_I       LOG_COLOR(LOG_COLOR_GREEN)
-#define LOG_COLOR_D
-#define LOG_COLOR_V
-#else
-#define LOG_COLOR_E
-#define LOG_COLOR_W
-#define LOG_COLOR_I
-#define LOG_COLOR_D
-#define LOG_COLOR_V
-#define LOG_RESET_COLOR
-#endif //CFG_LOG_COLORS
-
 #ifdef CFG_LOG_LEVEL
 #define LOG_LEVEL         CFG_LOG_LEVEL
 #else
 #define LOG_LEVEL         BK_LOG_INFO
 #endif
 
-#define BK_LOG_FORMAT(letter, format)  LOG_COLOR_ ## letter #letter " (%d) %s: " format  LOG_RESET_COLOR
-
 #if (LOG_LEVEL >= BK_LOG_ERROR)
-#define BK_LOGE(tag, format, ...) _OS_PRINTF(BK_LOG_FORMAT(E, format), rtos_get_time(), tag, ## __VA_ARGS__)
+#define BK_LOGE( tag, format, ... )         _BK_LOG_PRINTF(BK_LOG_ERROR, tag, format,  ##__VA_ARGS__)
+#define BK_RAW_LOGE( tag, format, ... )     _BK_RAW_PRINTF(BK_LOG_ERROR, tag, format,  ##__VA_ARGS__)
 #else
-#define BK_LOGE(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
+#define BK_LOGE(tag, format, ...)           (void)(format, ##__VA_ARGS__)
+#define BK_RAW_LOGE(tag, format, ...)       (void)(format, ##__VA_ARGS__)
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_WARN)
-#define BK_LOGW(tag, format, ...) _OS_PRINTF(BK_LOG_FORMAT(W, format), rtos_get_time(), tag, ## __VA_ARGS__)
+#define BK_LOGW( tag, format, ... )         _BK_LOG_PRINTF(BK_LOG_WARN, tag, format,  ##__VA_ARGS__)
+#define BK_RAW_LOGW( tag, format, ... )     _BK_RAW_PRINTF(BK_LOG_WARN, tag, format,  ##__VA_ARGS__)
 #else
-#define BK_LOGW(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
+#define BK_LOGW(tag, format, ...)           (void)(format, ##__VA_ARGS__)
+#define BK_RAW_LOGW(tag, format, ...)       (void)(format, ##__VA_ARGS__)
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_INFO)
-#define BK_LOGI(tag, format, ...) _OS_PRINTF(BK_LOG_FORMAT(I, format), rtos_get_time(), tag, ## __VA_ARGS__)
+#define BK_LOGI( tag, format, ... )         _BK_LOG_PRINTF(BK_LOG_INFO, tag, format,  ##__VA_ARGS__)
+#define BK_RAW_LOGI( tag, format, ... )     _BK_RAW_PRINTF(BK_LOG_INFO, tag, format,  ##__VA_ARGS__)
 #else
-#define BK_LOGI(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
+#define BK_LOGI(tag, format, ...)           (void)(format, ##__VA_ARGS__)
+#define BK_RAW_LOGI(tag, format, ...)       (void)(format, ##__VA_ARGS__)
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_DEBUG)
-#define BK_LOGD(tag, format, ...) _OS_PRINTF(BK_LOG_FORMAT(D, format), rtos_get_time(), tag, ## __VA_ARGS__)
+#define BK_LOGD( tag, format, ... )         _BK_LOG_PRINTF(BK_LOG_DEBUG, tag, format,  ##__VA_ARGS__)
+#define BK_RAW_LOGD( tag, format, ... )     _BK_RAW_PRINTF(BK_LOG_DEBUG, tag, format,  ##__VA_ARGS__)
 #else
-#define BK_LOGD(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
+#define BK_LOGD(tag, format, ...)           (void)(format, ##__VA_ARGS__)
+#define BK_RAW_LOGD(tag, format, ...)       (void)(format, ##__VA_ARGS__)
 #endif
 
 #if (LOG_LEVEL >= BK_LOG_VERBOSE)
-#define BK_LOGV(tag, format, ...) _OS_PRINTF(BK_LOG_FORMAT(V, format), rtos_get_time(), tag, ## __VA_ARGS__)
+#define BK_LOGV( tag, format, ... )         _BK_LOG_PRINTF(BK_LOG_VERBOSE, tag, format, ##__VA_ARGS__)
+#define BK_RAW_LOGV( tag, format, ... )     _BK_RAW_PRINTF(BK_LOG_VERBOSE, tag, format, ##__VA_ARGS__)
 #else
-#define BK_LOGV(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
+#define BK_LOGV(tag, format, ...)           (void)(format, ##__VA_ARGS__)
+#define BK_RAW_LOGV(tag, format, ...)       (void)(format, ##__VA_ARGS__)
 #endif
 
-#endif // CFG_LEGACY_LOG
-
-#define BK_LOG_RAW(format, ...) _OS_PRINTF(format, ##__VA_ARGS__)
+#define BK_LOG_RAW(format, ...)             _BK_RAW_PRINTF(BK_LOG_NONE, NULL, format, ##__VA_ARGS__)
 
 #define BK_IP4_FORMAT "%d.%d.%d.%d"
 #define BK_IP4_STR(_ip) ((_ip) & 0xFF), (((_ip) >> 8) & 0xFF), (((_ip) >> 16) & 0xFF), (((_ip) >> 24) & 0xFF)
@@ -129,55 +98,6 @@ void bk_mem_dump(const char* titile, uint32_t start, uint32_t len);
 #if CONFIG_SHELL_ASYNCLOG
 
 #include "components/shell_task.h"
-
-#undef BK_LOG_FORMAT
-#undef BK_LOGE
-#undef BK_LOGW
-#undef BK_LOGI
-#undef BK_LOGD
-#undef BK_LOGV
-
-#define BK_LOG_FORMAT(letter, format)   #letter "(%d):" format
-
-#if (LOG_LEVEL >= BK_LOG_ERROR)
-#define BK_LOGE( tag, format, ... ) bk_printf_ext(BK_LOG_ERROR, tag, format,  ##__VA_ARGS__)
-#define BK_RAW_LOGE( tag, format, ... ) bk_printf_raw(BK_LOG_ERROR, tag, format,  ##__VA_ARGS__)
-#else
-#define BK_LOGE(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
-#define BK_RAW_LOGE(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
-#endif
-
-#if (LOG_LEVEL >= BK_LOG_WARN)
-#define BK_LOGW( tag, format, ... ) bk_printf_ext(BK_LOG_WARN, tag, format,  ##__VA_ARGS__)
-#define BK_RAW_LOGW( tag, format, ... ) bk_printf_raw(BK_LOG_WARN, tag, format,  ##__VA_ARGS__)
-#else
-#define BK_LOGW(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
-#define BK_RAW_LOGW(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
-#endif
-
-#if (LOG_LEVEL >= BK_LOG_INFO)
-#define BK_LOGI( tag, format, ... ) bk_printf_ext(BK_LOG_INFO, tag, format,  ##__VA_ARGS__)
-#define BK_RAW_LOGI( tag, format, ... ) bk_printf_raw(BK_LOG_INFO, tag, format,  ##__VA_ARGS__)
-#else
-#define BK_LOGI(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
-#define BK_RAW_LOGI(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
-#endif
-
-#if (LOG_LEVEL >= BK_LOG_DEBUG)
-#define BK_LOGD( tag, format, ... ) bk_printf_ext(BK_LOG_DEBUG, tag, format,  ##__VA_ARGS__)
-#define BK_RAW_LOGD( tag, format, ... ) bk_printf_raw(BK_LOG_DEBUG, tag, format,  ##__VA_ARGS__)
-#else
-#define BK_LOGD(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
-#define BK_RAW_LOGD(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
-#endif
-
-#if (LOG_LEVEL >= BK_LOG_VERBOSE)
-#define BK_LOGV( tag, format, ... ) bk_printf_ext(BK_LOG_VERBOSE, tag, format, ##__VA_ARGS__)
-#define BK_RAW_LOGV( tag, format, ... ) bk_printf_raw(BK_LOG_VERBOSE, tag, format, ##__VA_ARGS__)
-#else
-#define BK_LOGV(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
-#define BK_RAW_LOGV(tag, format, ...) do { (void)sizeof(tag, format, ## __VA_ARGS__); } while (0)
-#endif
 
 #define BK_SPY( spy_id, byte_array, byte_cnt )		shell_spy_out(spy_id, byte_array, byte_cnt)
 

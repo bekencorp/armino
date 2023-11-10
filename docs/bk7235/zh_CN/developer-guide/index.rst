@@ -21,7 +21,7 @@ User and Developer Guide
    HTTP <http/index>
    OS 抽象层 <os_abstraction/index>
    OS 移植指南 <porting/index>
-   Bootloader <bootloader/index>
+   Bootloader和OTA<bootloader/index>
    特定芯片相关指南 <boards/index>
    特定 CPU 相关指南 <cpu/index>
    用例编写 <examples/index>

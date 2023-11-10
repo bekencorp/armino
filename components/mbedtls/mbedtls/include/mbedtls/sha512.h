@@ -69,7 +69,7 @@ mbedtls_sha512_context;
 #else  /* MBEDTLS_SHA512_ALT */
 // #warning "defined(MBEDTLS_SHA512_ALT)"
 
-#include "modules/bk_mbedtls_alt/bk_sha512_alt.h"
+#include "bk_sha512_alt.h"
 #endif /* MBEDTLS_SHA512_ALT */
 
 /**

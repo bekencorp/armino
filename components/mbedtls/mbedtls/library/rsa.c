@@ -70,7 +70,6 @@
 #define mbedtls_free   free
 #endif
 
-#if !defined(MBEDTLS_RSA_ALT)
 
 /* Parameter validation macros */
 #define RSA_VALIDATE_RET( cond )                                       \
@@ -1766,7 +1765,7 @@ int mbedtls_rsa_pkcs1_decrypt( mbedtls_rsa_context *ctx,
             return( MBEDTLS_ERR_RSA_INVALID_PADDING );
     }
 }
-
+#if !defined(MBEDTLS_RSA_ALT)
 #if defined(MBEDTLS_PKCS1_V21)
 /*
  * Implementation of the PKCS#1 v2.1 RSASSA-PSS-SIGN function
@@ -2595,6 +2594,7 @@ static int myrand( void *rng_state, unsigned char *output, size_t len )
 /*
  * Checkup routine
  */
+#if !defined(MBEDTLS_RSA_ALT)
 int mbedtls_rsa_self_test( int verbose )
 {
     int ret = 0;
@@ -2733,6 +2733,116 @@ cleanup:
 #endif /* MBEDTLS_PKCS1_V15 */
     return( ret );
 }
+#else
+int bk_mbedtls_rsa_self_test( int verbose, int type )
+{
+    int ret = 0;
+#if defined(MBEDTLS_PKCS1_V15)
+    mbedtls_rsa_context rsa;
+    unsigned char rsa_plaintext[PT_LEN];
+    unsigned char rsa_ciphertext[KEY_LEN];
+#if defined(MBEDTLS_SHA1_C)
+    unsigned char sha1sum[20];
+#endif
+
+    mbedtls_mpi K;
+
+    mbedtls_mpi_init( &K );
+    if(0==type)
+        mbedtls_rsa_init( &rsa, MBEDTLS_RSA_PKCS_V15, 0 );
+    else if(1==type)
+        mbedtls_rsa_init( &rsa, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA1 );
+    else
+    {
+        ret=1;
+        goto cleanup;
+    }
+
+    MBEDTLS_MPI_CHK( mbedtls_mpi_read_string( &K, 16, RSA_N  ) );
+    MBEDTLS_MPI_CHK( mbedtls_rsa_import( &rsa, &K, NULL, NULL, NULL, NULL ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_read_string( &K, 16, RSA_P  ) );
+    MBEDTLS_MPI_CHK( mbedtls_rsa_import( &rsa, NULL, &K, NULL, NULL, NULL ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_read_string( &K, 16, RSA_Q  ) );
+    MBEDTLS_MPI_CHK( mbedtls_rsa_import( &rsa, NULL, NULL, &K, NULL, NULL ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_read_string( &K, 16, RSA_D  ) );
+    MBEDTLS_MPI_CHK( mbedtls_rsa_import( &rsa, NULL, NULL, NULL, &K, NULL ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_read_string( &K, 16, RSA_E  ) );
+    MBEDTLS_MPI_CHK( mbedtls_rsa_import( &rsa, NULL, NULL, NULL, NULL, &K ) );
+
+    MBEDTLS_MPI_CHK( mbedtls_rsa_complete( &rsa ) );
+
+    if( verbose != 0 )
+        mbedtls_printf( "  RSA key validation: " );
+
+    if( mbedtls_rsa_check_pubkey(  &rsa ) != 0 ||
+        mbedtls_rsa_check_privkey( &rsa ) != 0 )
+    {
+        if( verbose != 0 )
+            mbedtls_printf( "failed\n" );
+
+        ret = 1;
+        goto cleanup;
+    }
+
+    memcpy( rsa_plaintext, RSA_PT, PT_LEN );
+
+#if defined(MBEDTLS_SHA1_C)
+    if( verbose != 0 )
+        mbedtls_printf( "passed\n  PKCS#1 data sign  : " );
+
+    if( mbedtls_sha1_ret( rsa_plaintext, PT_LEN, sha1sum ) != 0 )
+    {
+        if( verbose != 0 )
+            mbedtls_printf( "failed\n" );
+
+        return( 1 );
+    }
+
+    // if( mbedtls_rsa_pkcs1_sign( &rsa, myrand, NULL,
+    //                             MBEDTLS_RSA_PRIVATE, MBEDTLS_MD_SHA1, 0,
+    //                             sha1sum, rsa_ciphertext ) != 0 )
+    ret=mbedtls_rsa_pkcs1_sign( &rsa, myrand, NULL,
+                                MBEDTLS_RSA_PRIVATE, MBEDTLS_MD_SHA1, 0,
+                                sha1sum, rsa_ciphertext );
+    if(ret!=0)                                
+    {
+        if( verbose != 0 )
+            mbedtls_printf( "failed:%d\n",ret );
+
+        ret = 1;
+        goto cleanup;
+    }
+
+    if( verbose != 0 )
+        mbedtls_printf( "passed\n  PKCS#1 sig. verify: " );
+
+    if( mbedtls_rsa_pkcs1_verify( &rsa, NULL, NULL,
+                                  MBEDTLS_RSA_PUBLIC, MBEDTLS_MD_SHA1, 0,
+                                  sha1sum, rsa_ciphertext ) != 0 )
+    {
+        if( verbose != 0 )
+            mbedtls_printf( "failed\n" );
+
+        ret = 1;
+        goto cleanup;
+    }
+
+    if( verbose != 0 )
+        mbedtls_printf( "passed\n" );
+#endif /* MBEDTLS_SHA1_C */
+
+    if( verbose != 0 )
+        mbedtls_printf( "\n" );
+
+cleanup:
+    mbedtls_mpi_free( &K );
+    mbedtls_rsa_free( &rsa );
+#else /* MBEDTLS_PKCS1_V15 */
+    ((void) verbose);
+#endif /* MBEDTLS_PKCS1_V15 */
+    return( ret );
+}
+#endif/* !MBEDTLS_RSA_ALT */
 
 #endif /* MBEDTLS_SELF_TEST */
 

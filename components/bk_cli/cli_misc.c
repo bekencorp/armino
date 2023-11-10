@@ -21,6 +21,7 @@
 #endif
 #include <components/ate.h>
 #if CONFIG_AON_RTC
+#include "time/time.h"
 #include <driver/aon_rtc.h>
 #endif
 
@@ -121,9 +122,29 @@ static void uptime_Command(char *pcWriteBuffer, int xWriteBufferLen, int argc, c
 {
 	CLI_LOGI("OS time %ldms\r\n", rtos_get_time());
 #if CONFIG_NTP_SYNC_RTC
-	extern time_t bk_datetime_get();
-	time_t cur_time = bk_datetime_get();
-	CLI_LOGI("Current time:%s\n", ctime(&cur_time));
+	struct tm cur_time;
+
+	datetime_get(&cur_time);
+	bk_printf("Current time:%02d/%02d/%02d %02d:%02d:%02d, week:%d\n", 
+							cur_time.tm_year+1900,
+							cur_time.tm_mon+1,
+							cur_time.tm_mday,
+							cur_time.tm_hour,
+							cur_time.tm_min,
+							cur_time.tm_sec,
+							cur_time.tm_wday);
+
+	rtos_delay_milliseconds(3000);
+	
+	datetime_get(&cur_time);
+	bk_printf("Current time:%02d/%02d/%02d %02d:%02d:%02d, week:%d\n", 
+							cur_time.tm_year+1900,
+							cur_time.tm_mon+1,
+							cur_time.tm_mday,
+							cur_time.tm_hour,
+							cur_time.tm_min,
+							cur_time.tm_sec,
+							cur_time.tm_wday);
 #endif
 
 #if CONFIG_AON_RTC

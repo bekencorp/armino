@@ -22,6 +22,7 @@ export SOC_SUPPORTED_TARGETS := ${soc_targets}
 
 export ARMINO_SOC := $(findstring $(MAKECMDGOALS), $(soc_targets))
 export ARMINO_SOC_LIB := $(findstring $(MAKECMDGOALS), $(properties_lib_targets))
+export CMD_TARGET := $(MAKECMDGOALS)
 
 ifeq ("$(APP_VERSION)", "")
 	export APP_VERSION := unknow

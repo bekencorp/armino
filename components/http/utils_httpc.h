@@ -42,6 +42,12 @@ extern "C" {
 
 /** @brief   This macro defines the HTTPS port.  */
 #define HTTPS_PORT 443
+
+/** @brief   This macro defines the status of the download.  */
+#define DOWNLOAD_STATUS_POS			(12)
+#define DOWNLOAD_START_FLAG			(0xFE)
+#define DOWNLOAD_SUCCESS_FLAG		(0xFC)
+
 /**
  * @}
  */

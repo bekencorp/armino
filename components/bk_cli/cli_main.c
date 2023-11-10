@@ -151,6 +151,8 @@ int lookup_cmd_table(const struct cli_command *cmd_table, int table_items, char 
 */
 int handle_shell_input(char *inbuf, int in_buf_size, char * outbuf, int out_buf_size)
 {
+#if CONFIG_CLI
+
 	struct {
 		unsigned inArg: 1;
 		unsigned inQuote: 1;
@@ -308,6 +310,12 @@ int handle_shell_input(char *inbuf, int in_buf_size, char * outbuf, int out_buf_
 #else
 	command->function(outbuf, out_buf_size , argc, argv);
 #endif
+
+#else  // no CONFIG_CLI
+
+	sprintf(outbuf, "\r\nCLI not supported!\r\n");
+
+#endif  // CONFIG_CLI
 
 	return 0;
 }
@@ -842,6 +850,13 @@ static void log_setting_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 		level = strtoul(argv[4], NULL, 0);
 		bk_enable_white_list(level);
 	}
+	if (argc > 5)
+	{
+		extern void shell_set_log_flush(int flush_flag);
+
+		level = strtoul(argv[5], NULL, 0);
+		shell_set_log_flush(level);
+	}
 #endif
 
 #if (CONFIG_SHELL_ASYNCLOG)
@@ -850,11 +865,12 @@ static void log_setting_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 	sync_lvl = bk_get_printf_sync();
 
 	extern int bk_white_list_state(void);
+	extern int shell_get_log_flush(void);
 
 	u8 white_state = bk_white_list_state();
+	u8 flush_flag = shell_get_log_flush();
 
-
-	sprintf(pcWriteBuffer, "log: echo %d, level %d, sync %d, white_list %d.\r\n", echo_level, level, sync_lvl, white_state);
+	sprintf(pcWriteBuffer, "log: echo %d, level %d, sync %d, white_list %d, flush %d.\r\n", echo_level, level, sync_lvl, white_state, flush_flag);
 #else
 
 	sprintf(pcWriteBuffer,"log: echo %d.\r\n", pCli->echo_disabled ? 0 : 1);
@@ -1064,7 +1080,7 @@ void bkreg_cmd_handle_input(char *inbuf, int len)
 static const struct cli_command built_ins[] = {
 	{"help", NULL, help_command},
 	{"log", "log [echo(0,1)] [level(0~5)] [sync(0,1)] [Whitelist(0,1)]", log_setting_cmd},
-//	{"sort", NULL, cli_sort_command},
+
 #if !CONFIG_RELEASE_VERSION
 	{"debug", "debug cmd [param] (ex:debug help)", cli_debug_command},
 #endif
@@ -1145,7 +1161,7 @@ int cli_register_command(const struct cli_command *command)
 {
 	int i;
 	if (!command->name || !command->function)
-		return 1;
+		return 0;
 
 	if (pCli->num_commands < MAX_COMMANDS) {
 		/* Check if the command has already been registered.
@@ -1261,13 +1277,18 @@ int cli_get_all_chars_len(void)
 	return uart_get_length_in_buffer(CLI_UART);
 }
 
+#if CONFIG_CLI
 static const struct cli_command user_clis[] = {
 };
+#endif
 
 beken_thread_t cli_thread_handle = NULL;
 int bk_cli_init(void)
 {
 	int ret;
+
+#if CONFIG_CLI
+
 	pCli = (struct cli_st *)os_malloc(sizeof(struct cli_st));
 	if (pCli == NULL)
 		return kNoMemoryErr;
@@ -1680,6 +1701,8 @@ int bk_cli_init(void)
 	/* sort cmds after registered all cmds. */
 	cli_sort_command(NULL, 0, 0, NULL);
 
+#endif  // CONFIG_CLI
+
 #if CONFIG_SHELL_ASYNCLOG
 #if CONFIG_ATE_TEST
 	ret = rtos_create_thread(&cli_thread_handle,
@@ -1692,8 +1715,8 @@ int bk_cli_init(void)
 	ret = rtos_create_thread(&cli_thread_handle,
 							 SHELL_TASK_PRIORITY,
 							 "cli",
-							 (beken_thread_function_t)shell_task /*cli_main*/,
-							 4096,
+							 (beken_thread_function_t)shell_task,
+							 3072,
 							 0);
 #endif
 #else // #if CONFIG_SHELL_ASYNCLOG
@@ -1701,7 +1724,7 @@ int bk_cli_init(void)
 							 BEKEN_DEFAULT_WORKER_PRIORITY,
 							 "cli",
 							 (beken_thread_function_t)cli_main,
-							 4096,
+							 3072,
 							 0);
 #endif // #if CONFIG_SHELL_ASYNCLOG
 	if (ret != kNoErr) {
@@ -1709,6 +1732,8 @@ int bk_cli_init(void)
 				  ret);
 		goto init_general_err;
 	}
+
+#if CONFIG_CLI
 
 	pCli->initialized = 1;
 #if (!CONFIG_SHELL_ASYNCLOG)
@@ -1721,6 +1746,8 @@ int bk_cli_init(void)
 		os_printf("Error: Failed to create common_mb thread: %d\r\n", ret);
 	}
 #endif
+
+#endif  // CONFIG_CLI
 
 	return kNoErr;
 

@@ -1165,6 +1165,9 @@ static void uart_isr_common(uart_id_t id)
 				ret = uart_read_byte_ex(id, &rx_data);
 				if (ret == -1)
 				{
+					#if CONFIG_UART_ERR_INTERRUPT
+					UART_LOGW("uart rx error(0x%x) triggered!\r\n", (int_status & (BIT(2) | BIT(3) | BIT(4))));
+					#endif
 					break;
 				}
 			}
@@ -1211,26 +1214,6 @@ static void uart_isr_common(uart_id_t id)
 			s_uart_tx_isr[id].callback(id, s_uart_tx_isr[id].param);
 		}
 	}
-
-	#if CONFIG_UART_ERR_INTERRUPT
-		if(uart_hal_is_rx_over_flow_int_triggered(&s_uart[id].hal, id, status))
-		{
-			uart_hal_flush_fifo(&s_uart[id].hal, id);
-			UART_LOGW("uart rx_over_flow_int triggered!\r\n");
-		}
-
-		if(uart_hal_is_rx_parity_err_int_triggered(&s_uart[id].hal, id, status))
-		{
-			uart_hal_flush_fifo(&s_uart[id].hal, id);
-			UART_LOGW("uart rx_parity_err_int triggered!\r\n");
-		}
-
-		if(uart_hal_is_rx_stop_bits_err_int_triggered(&s_uart[id].hal, id, status))
-		{
-			uart_hal_flush_fifo(&s_uart[id].hal, id);
-			UART_LOGW("uart rx_stop_bits_err_int triggered!\r\n");
-		}
-	#endif
 }
 
 void uart0_isr(void)

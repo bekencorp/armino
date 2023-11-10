@@ -3,6 +3,22 @@ menu "PSRAM"
 		bool "Enable PSRAM"
 		default n
 
+	#TODO identify psram factory type
+		choice USB_PSRAM
+			prompt "Select PSRAM chip id"
+			default PSRAM_APM
+
+			config PSRAM_APM
+				bool "PSRAM_APM"
+				help
+					use APMemory 8MByte
+
+			config PSRAM_WBD955
+				bool "PSRAM_WBD955"
+				help
+					use WBD955 4MByte
+		endchoice
+
 	config PSRAM_AS_SYS_MEMORY
 		depends on PSRAM
 		bool "Enable psram_malloc API"
@@ -11,18 +27,27 @@ menu "PSRAM"
 	config PSRAM_HEAP_BASE
 		depends on PSRAM_AS_SYS_MEMORY
 		hex "Set psram_malloc base address"
-		default 0x60700000
+		default 0x60700000 if PSRAM_APM
+		default 0x60320000 if PSRAM_WBD955
 		help
-			The psram address is from 0x60100000 to 0x60800000 in BK7256
+			The psram address is from 0x60000000 to 0x60800000 in BK7256 for psram apm
 			The suggested option is 0x60600000 or 0x60700000
+			The psram address is from 0x60000000 to 0x60400000 in BK7256 for psram wbd955
+			The suggested option is 0x60300000
 
 	config PSRAM_HEAP_SIZE
 		depends on PSRAM_AS_SYS_MEMORY
 		hex "Set psram heap size"
-		default 0x100000
+		default 0x100000 if PSRAM_APM
+		default 0xE0000 if PSRAM_WBD955
 		help
+			psram apm
 			0x100000 - 1M
 			The max size is 0x800000 in BK7256
 			The suggested option is 0x100000 or 0x200000
+			psram wbd955
+			0xE0000 - 896KB
+			The max size is 0x400000 in BK7256
+			The suggested option is 0xE0000
 endmenu
 

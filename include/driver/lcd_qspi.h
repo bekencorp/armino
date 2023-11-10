@@ -105,6 +105,21 @@ bk_err_t bk_lcd_qspi_init(const lcd_qspi_device_t *device);
 bk_err_t bk_lcd_qspi_deinit(lcd_qspi_device_t *device);
 
 /**
+ * @brief     Read the lcd qspi register value 
+ *
+ * This API read the lcd qspi register value
+ * 
+ * @param read_config the struct of lcd qspi register read config
+ * @param device the struct of lcd qspi device
+ *
+ * @return
+ *    - BK_OK: succeed
+ *    - others: other errors.
+ */
+
+bk_err_t bk_lcd_qspi_read_data(lcd_qspi_reg_read_config_t read_config, lcd_qspi_device_t *device);
+
+/**
  * @brief     Send a frame data to device display
  * 
  * @param device the struct of lcd qspi device

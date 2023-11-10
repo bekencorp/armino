@@ -180,6 +180,11 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
     return err;
 }
 
+static inline int is_broadcast_mac_addr(const u8 *a)
+{
+	return (a[0] & a[1] & a[2] & a[3] & a[4] & a[5]) == 0xff;
+}
+
 /**
  * This function should be called when a packet is ready to be read
  * from the interface. It uses the function low_level_input() that
@@ -219,6 +224,21 @@ ethernetif_input(int iface, struct pbuf *p)
         pbuf_free(p);
         return;
     }
+
+	/* need to forward*/
+	if (wifi_netif_vif_to_netif_type(vif) == NETIF_IF_AP) {
+		if (((!is_broadcast_mac_addr(ethhdr->dest.addr) &&
+			(memcmp(netif->hwaddr,ethhdr->dest.addr,NETIF_MAX_HWADDR_LEN) != 0))) ||
+			(is_broadcast_mac_addr(ethhdr->dest.addr))) {
+				struct pbuf *q;
+				q = pbuf_clone(PBUF_RAW_TX, PBUF_RAM, p);
+				if (q != NULL) {
+					low_level_output(netif, q);
+					pbuf_free(q);
+				} else
+					LWIP_LOGI("alloc pbuf failed, dont forward\r\n");
+		}
+	}
 
     switch (htons(ethhdr->type))
     {

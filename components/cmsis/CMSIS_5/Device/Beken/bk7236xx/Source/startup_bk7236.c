@@ -26,6 +26,8 @@
 #include "driver/uart.h"
 #include "wdt_driver.h"
 #include "bk_pm_internal_api.h"
+#include <modules/pm.h>
+#include <driver/pwr_clk.h>
 #if CONFIG_CM_BACKTRACE
 #include "cm_backtrace.h"
 #endif
@@ -409,7 +411,9 @@ __NO_RETURN void Reset_Handler(void)
   close_wdt();
   __set_MSPLIM((uint32_t)(&__STACK_LIMIT));
   SystemInit();                             /* CMSIS System Initialization */
+  #if !CONFIG_SLAVE_CORE
   sys_drv_early_init();
+  #endif
   __PROGRAM_START();                        /* Enter PreMain (C library entry point) */
 }
 
@@ -423,6 +427,11 @@ void _start(void)
   #if !CONFIG_PM
   /*power manager init*/
   pm_hardware_init();
+  #if !CONFIG_SLAVE_CORE
+  bk_pm_cp1_auto_power_down_state_set(PM_CP1_AUTO_CTRL_DISABLE);
+  bk_pm_mem_auto_power_down_state_set(PM_MEM_AUTO_CTRL_DISABLE);
+  #endif
+  bk_pm_mailbox_init();
   #endif
   entry_main();
   while(1) {BK_LOGW(TAG, "@\r\n");};

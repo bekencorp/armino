@@ -78,6 +78,18 @@ extern "C" {
 /*---------------------------POWER DOMAIN MODUEL DEFINE  END-------------------------------------*/
 typedef enum
 {
+	PM_CP1_AUTO_CTRL_DISABLE = 0,
+	PM_CP1_AUTO_CTRL_ENABLE    = 1,
+}pm_cp1_auto_ctrl_e;
+
+typedef enum
+{
+	PM_MEM_AUTO_CTRL_DISABLE = 0,
+	PM_MEM_AUTO_CTRL_ENABLE    = 1,
+}pm_mem_auto_ctrl_e;
+
+typedef enum
+{
 	GPIO_TRIGGER_INTERRUPE_LEVEL_LOW_ACTIVE = 0,
 	GPIO_TRIGGER_INTERRUPE_LEVEL_HIGH_ACTIVE,
 	GPIO_TRIGGER_INTERRUPE_EDGE_RISING,
@@ -122,6 +134,7 @@ typedef enum
 	PM_MODE_NORMAL_SLEEP = 0,
 	PM_MODE_LOW_VOLTAGE ,
 	PM_MODE_DEEP_SLEEP ,
+	PM_MODE_SUPER_DEEP_SLEEP ,
 	PM_MODE_DEFAULT
 }pm_sleep_mode_e;
 
@@ -259,8 +272,9 @@ typedef enum
 	PM_DEV_ID_DISP,     // 29
 	PM_DEV_ID_AUDIO,    // 30
 	PM_DEV_ID_RTC,      // 31
+	PM_DEV_ID_GPIO,     // 32
 
-	PM_DEV_ID_DEFAULT,  // 32  it is used by pm module set default cpu frequency
+	PM_DEV_ID_DEFAULT,  // 33  it is used by pm module set default cpu frequency
 
 	PM_DEV_ID_MAX
 }pm_dev_id_e;
@@ -439,6 +453,37 @@ bk_err_t bk_pm_exit_low_vol_wakeup_source_set();
  * - wakeup source(0x0:WAKEUP SOURCE OF GPIO;0x1:WAKEUP SOURCE OF RTC;0x2:WAKEUP SOURCE OF WIFI OR BT;0x4:WAKEUP SOURCE OF TOUCHED;0x5:NONE WAKEUP_SOURCE)
  */
 pm_wakeup_source_e bk_pm_exit_low_vol_wakeup_source_get();
+/**
+ * @brief get memory auto power down flag
+ *
+ * get memory auto power down flag
+ *
+ * @attention
+ * - This API is used to get memory auto power down flag
+ *
+ * @param
+ * -void
+ * @return
+ * - memory auto power down flag(PM_MEM_AUTO_CTRL_DISABLE:disable memory auto power down feature ;PM_MEM_AUTO_CTRL_ENABLE:enable memory auto power down feature)
+ */
+pm_mem_auto_ctrl_e bk_pm_mem_auto_power_down_state_get();
+/**
+ * @brief memory auto power down flag set
+ *
+ * set memory auto power down flag
+ *
+ * @attention
+ * - This API is used to set memory auto power down flag
+ *
+ * @param
+ * -PM_MEM_AUTO_CTRL_DISABLE:disable memory auto power down feature ;PM_MEM_AUTO_CTRL_ENABLE:enable memory auto power down feature
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+bk_err_t bk_pm_mem_auto_power_down_state_set(pm_mem_auto_ctrl_e value);
+
 /**
  * @brief get cp1 auto power down flag
  *
@@ -729,7 +774,7 @@ bk_err_t bk_pm_clock_ctrl(pm_dev_clk_e module,pm_dev_clk_pwr_e clock_state);
  * - others: other errors.
  *
  */
-bk_err_t bk_pm_lp_vol_set( uint32_t lp_vol);
+bk_err_t bk_pm_lp_vol_set(uint32_t lp_vol);
 
 /**
  * @brief lp voltage get
@@ -746,6 +791,73 @@ bk_err_t bk_pm_lp_vol_set( uint32_t lp_vol);
  *
  */
 uint32_t bk_pm_lp_vol_get();
+
+/**
+ * @brief rf tx voltage set
+ *
+ * set the tx voltage of RF
+ *
+ * @attention
+ * - This API is used to set tx voltage of RF
+ *
+ * @param
+ * -uint32_t:0x0:1.25v;0x1:1.3v;0x2:1.35v;0x3:1.4v;0x4:1.45v;0x5:1.5v;0x6:1.55v;0x7:1.6v;
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+bk_err_t bk_pm_rf_tx_vol_set(uint32_t tx_vol);
+
+/**
+ * @brief rf tx voltage get
+ *
+ * get the tx voltage of RF
+ *
+ * @attention
+ * - This API is used to get tx voltage value of RF
+ *
+ * @param
+ * -void
+ * @return
+ * - the tx voltage value
+ *
+ */
+uint32_t bk_pm_rf_tx_vol_get();
+
+/**
+ * @brief rf rx voltage set
+ *
+ * set the rx voltage of RF
+ *
+ * @attention
+ * - This API is used to set rx voltage of RF
+ *
+ * @param
+ * -uint32_t:0x0:1.25v;0x1:1.3v;0x2:1.35v;0x3:1.4v;0x4:1.45v;0x5:1.5v;0x6:1.55v;0x7:1.6v;
+ * @return
+ * - BK_OK: succeed
+ * - others: other errors.
+ *
+ */
+bk_err_t bk_pm_rf_rx_vol_set(uint32_t rx_vol);
+
+/**
+ * @brief rf rx voltage get
+ *
+ * get the rx voltage of RF
+ *
+ * @attention
+ * - This API is used to get rx voltage value of RF
+ *
+ * @param
+ * -void
+ * @return
+ * - the rx voltage value
+ *
+ */
+uint32_t bk_pm_rf_rx_vol_get();
+
 /**
  * @brief lpo source set
  *

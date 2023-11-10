@@ -102,9 +102,9 @@ void cli_lcd_qspi_display_picture_test_cmd(char *pcWriteBuffer, int xWriteBuffer
 		lcd_qspi_config.src_clk_div = 4;
 		lcd_qspi_config.clk_div = 1;
 		BK_LOG_ON_ERR(bk_qspi_init(&lcd_qspi_config));
-		rtos_delay_milliseconds(5);
+		rtos_delay_milliseconds(2);
 
-		uint32_t psram_addr = 0x64000000;
+		uint32_t psram_addr = 0x60000000;
 
 #if (CONFIG_FATFS)
 		char cFileName[50];
@@ -193,6 +193,28 @@ void cli_lcd_qspi_display_picture_test_cmd(char *pcWriteBuffer, int xWriteBuffer
 		CLI_LOGI("lcd_qspi_display_picture_test {start|stop} {file_name} {device name}\r\n");
 	}
 
+}
+
+void cli_lcd_qspi_read_reg_test_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	qspi_config_t lcd_qspi_config = {0};
+	lcd_qspi_reg_read_config_t read_config = {0};
+
+	lcd_qspi_config.src_clk = 5;
+	lcd_qspi_config.src_clk_div = 4;
+	lcd_qspi_config.clk_div = 2;
+	BK_LOG_ON_ERR(bk_qspi_init(&lcd_qspi_config));
+	rtos_delay_milliseconds(2);
+
+	device_config = bk_lcd_qspi_get_device_by_name("sh8601a");
+	bk_lcd_qspi_init(device_config);
+
+	read_config.cmd = os_strtoul(argv[1], NULL, 16) & 0xFF;
+	read_config.data_line = LCD_QSPI_DATA_1_LINE;
+	read_config.data_len = os_strtoul(argv[2], NULL, 10) & 0xFF;
+	read_config.dummy_clk = 1;
+	read_config.dummy_mode = LCD_QSPI_CMD4_DUMMY_CLK_CMD5;
+	bk_lcd_qspi_read_data(read_config, device_config);
 }
 
 

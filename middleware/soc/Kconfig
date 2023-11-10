@@ -10,7 +10,9 @@ menu "SOC_CONFIG"
 		default SOC_BK7235 if "$ARMINO_SOC" = "bk7235"
 		default SOC_BK7235 if "$ARMINO_SOC" = "bk7235a"
 		default SOC_BK7235 if "$ARMINO_SOC" = "bk7235b"
+		default SOC_BK7235M if "$ARMINO_SOC" = "bk7235m"
 		default SOC_BK7237 if "$ARMINO_SOC" = "bk7237"
+
 
 		config SOC_BK7231N
 			bool "BK7231N"
@@ -26,6 +28,11 @@ menu "SOC_CONFIG"
 			bool "BK7235"
 		config SOC_BK7237
 			bool "BK7237"
+		config SOC_BK7235_CP1
+			bool "BK7235_CP1"
+		config SOC_BK7235M
+			bool "BK7235M"
+
 	endchoice
 
 	config SOC_STR
@@ -35,13 +42,15 @@ menu "SOC_CONFIG"
 		default "bk7258"  if SOC_BK7258
 		default "bk7256"  if SOC_BK7256
 		default "bk7256_cp1"  if SOC_BK7256_CP1
-		default "bk7235"  if BK7235
 		default "bk7237"  if BK7237
+		default "bk7235"  if SOC_BK7235
+		default "bk7235_cp1"  if SOC_BK7235_CP1
+		default "bk7235m"  if SOC_BK7235M
 		default "$ARMINO_SOC"
 
 	config SOC_ARCH
 		string "Soc arch"
-		default "unknow"
+		default "unknown"
 
 	config SOC_BK7256XX
 		bool "For bk7256 series chipset"

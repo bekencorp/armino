@@ -10,7 +10,7 @@ if (("${target}" STREQUAL "bk7237") OR ("${target}" STREQUAL "bk7256") OR ("${ta
 list(APPEND priv_req vnd_cal)
 endif()
 
-if (("${target}" STREQUAL "bk7235") OR ("${target}" STREQUAL "bk7235a") OR ("${target}" STREQUAL "bk7235b") )
+if (("${target}" STREQUAL "bk7235") OR ("${target}" STREQUAL "bk7235a") OR ("${target}" STREQUAL "bk7235b") OR ("${target}" STREQUAL "bk7235m"))
 list(APPEND priv_req vnd_cal)
 endif()
 

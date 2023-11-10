@@ -125,6 +125,11 @@ void aon_pmu_hal_wdt_rst_dev_enable()
 	aon_pmu_ll_set_r2(aon_pmu_r2);
 }
 
+void aon_pmu_hal_lpo_src_extern32k_enable(void)
+{
+	//Empty function
+}
+
 void aon_pmu_hal_lpo_src_set(uint32_t lpo_src)
 {
 	aon_pmu_ll_set_r41_lpo_config(lpo_src);

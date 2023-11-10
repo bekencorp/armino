@@ -132,6 +132,74 @@ bk_err_t qspi_hal_cmd_c_start(qspi_hal_t *hal)
 	return BK_OK;
 }
 
+bk_err_t qspi_hal_set_cmd_d_l(qspi_hal_t *hal, uint32_t cmd_value)
+{
+	qspi_ll_set_cmd_d_l(hal->hw, cmd_value);
+	return BK_OK;
+}
+
+bk_err_t qspi_hal_get_cmd_d_l(qspi_hal_t *hal)
+{
+	return qspi_ll_get_cmd_d_l(hal->hw);
+}
+
+bk_err_t qspi_hal_set_cmd_d_h(qspi_hal_t *hal, uint32_t cmd_value)
+{
+	qspi_ll_set_cmd_d_h(hal->hw, cmd_value);
+	return BK_OK;
+}
+
+bk_err_t qspi_hal_get_cmd_d_h(qspi_hal_t *hal)
+{
+	return qspi_ll_get_cmd_d_h(hal->hw);
+}
+
+bk_err_t qspi_hal_set_cmd_d_cfg1(qspi_hal_t *hal, uint32_t cmd_value)
+{
+	qspi_ll_set_cmd_d_cfg1(hal->hw, cmd_value);
+	return BK_OK;
+}
+
+bk_err_t qspi_hal_set_cmd_d_cfg2(qspi_hal_t *hal, uint32_t cmd_value)
+{
+	qspi_ll_set_cmd_d_cfg2(hal->hw, cmd_value);
+	return BK_OK;
+}
+
+bk_err_t qspi_hal_cmd_d_start(qspi_hal_t *hal)
+{
+	qspi_ll_cmd_d_start(hal->hw);
+	return BK_OK;
+}
+
+bk_err_t qspi_hal_set_cmd_d_data_line(qspi_hal_t *hal, uint32_t cmd_value)
+{
+	qspi_ll_set_cmd_d_data_line(hal->hw, cmd_value);
+
+	return BK_OK;
+}
+
+bk_err_t qspi_hal_set_cmd_d_data_length(qspi_hal_t *hal, uint32_t cmd_value)
+{
+	qspi_ll_set_cmd_d_data_length(hal->hw, cmd_value);
+
+	return BK_OK;
+}
+
+bk_err_t qspi_hal_set_cmd_d_dummy_clock(qspi_hal_t *hal, uint32_t cmd_value)
+{
+	qspi_ll_set_cmd_d_dummy_clock(hal->hw, cmd_value);
+
+	return BK_OK;
+}
+
+bk_err_t qspi_hal_set_cmd_d_dummy_mode(qspi_hal_t *hal, uint32_t cmd_value)
+{
+	qspi_ll_set_cmd_d_dummy_mode(hal->hw, cmd_value);
+
+	return BK_OK;
+}
+
 bk_err_t qspi_hal_wait_cmd_done(qspi_hal_t *hal)
 {
 	qspi_ll_wait_cmd_done(hal->hw);

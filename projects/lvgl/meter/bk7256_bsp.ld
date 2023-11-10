@@ -150,7 +150,7 @@ SECTIONS
 	. = ALIGN(ALIGNOF(.eh_frame_hdr));
 	.eh_frame_hdr 	: AT(ALIGN(LOADADDR (.sbss2) + SIZEOF (.sbss2), ALIGNOF(.eh_frame_hdr)))
 		{ *(.eh_frame_hdr ) }
-	. = 0x20000000;
+	. = 0x20000400;
 	DTCM_BEGIN = .;
 	. = ALIGN(8);
 	.dtcm_sec_data 	: AT(ALIGN(ALIGN(LOADADDR (.eh_frame_hdr) + SIZEOF (.eh_frame_hdr), ALIGNOF(.dtcm_sec_data)), 8))
@@ -240,38 +240,8 @@ SECTIONS
 	_dtcm_bss_end = .;
 	DTCM_SIZE = . - DTCM_BEGIN;
 	. = 0x30000000;
-	SRAM_BT_BEGIN = .;
-	. = ALIGN(8);
-	.bt_spec_data 	: AT(ALIGN(ALIGN(LOADADDR (.dtcm_sec_bss) + SIZEOF (.dtcm_sec_bss), ALIGNOF(.bt_spec_data)), 8))
-		{ KEEP(*(.bt_spec_data )) }
-	_bt_data_lmastart =  LOADADDR (.bt_spec_data);
-	_bt_data_start = ADDR(.bt_spec_data);
-	. = ALIGN(8);
-	.ble_bss_data 	: AT(ALIGN(ALIGN(LOADADDR (.bt_spec_data) + SIZEOF (.bt_spec_data), ALIGNOF(.ble_bss_data)), 8))
-		{ KEEP(*(.ble_bss_data )) }
-	. = ALIGN(8);
-	".tbss_*rwip.c.obj" 	(NOLOAD)	: { *rwip.c.obj(.tbss .tbss.* .gnu.linkonce.tb.* ) *rwip_driver.c.obj(.tbss .tbss.* .gnu.linkonce.tb.* ) *uart_ble.c.obj(.tbss .tbss.* .gnu.linkonce.tb.* ) *uart_controller_only.c.obj(.tbss .tbss.* .gnu.linkonce.tb.* ) *rwip.c.obj(.tcommon ) *rwip_driver.c.obj(.tcommon ) *uart_ble.c.obj(.tcommon ) *uart_controller_only.c.obj(.tcommon ) }
-	".sbss_*rwip.c.obj" 	(NOLOAD)	: { *rwip.c.obj(.dynsbss ) *rwip_driver.c.obj(.dynsbss ) *uart_ble.c.obj(.dynsbss ) *uart_controller_only.c.obj(.dynsbss ) *rwip.c.obj(.sbss .sbss.* .gnu.linkonce.sb.* ) *rwip_driver.c.obj(.sbss .sbss.* .gnu.linkonce.sb.* ) *uart_ble.c.obj(.sbss .sbss.* .gnu.linkonce.sb.* ) *uart_controller_only.c.obj(.sbss .sbss.* .gnu.linkonce.sb.* ) *rwip.c.obj(.scommon .scommon.* ) *rwip_driver.c.obj(.scommon .scommon.* ) *uart_ble.c.obj(.scommon .scommon.* ) *uart_controller_only.c.obj(.scommon .scommon.* ) }
-	".sbss_f_*rwip.c.obj" 	(NOLOAD)	: { *rwip.c.obj(.sbss_f .sbss_f.* ) *rwip_driver.c.obj(.sbss_f .sbss_f.* ) *uart_ble.c.obj(.sbss_f .sbss_f.* ) *uart_controller_only.c.obj(.sbss_f .sbss_f.* ) *rwip.c.obj(.scommon_f .scommon_f.* ) *rwip_driver.c.obj(.scommon_f .scommon_f.* ) *uart_ble.c.obj(.scommon_f .scommon_f.* ) *uart_controller_only.c.obj(.scommon_f .scommon_f.* ) }
-	".sbss_b_*rwip.c.obj" 	(NOLOAD)	: { *rwip.c.obj(.sbss_b .sbss_b.* ) *rwip_driver.c.obj(.sbss_b .sbss_b.* ) *uart_ble.c.obj(.sbss_b .sbss_b.* ) *uart_controller_only.c.obj(.sbss_b .sbss_b.* ) *rwip.c.obj(.scommon_b .scommon_b.* ) *rwip_driver.c.obj(.scommon_b .scommon_b.* ) *uart_ble.c.obj(.scommon_b .scommon_b.* ) *uart_controller_only.c.obj(.scommon_b .scommon_b.* ) . = ALIGN(2); }
-	".sbss_h_*rwip.c.obj" 	(NOLOAD)	: { *rwip.c.obj(.sbss_h .sbss_h.* ) *rwip_driver.c.obj(.sbss_h .sbss_h.* ) *uart_ble.c.obj(.sbss_h .sbss_h.* ) *uart_controller_only.c.obj(.sbss_h .sbss_h.* ) *rwip.c.obj(.scommon_h .scommon_h.* ) *rwip_driver.c.obj(.scommon_h .scommon_h.* ) *uart_ble.c.obj(.scommon_h .scommon_h.* ) *uart_controller_only.c.obj(.scommon_h .scommon_h.* ) . = ALIGN(4); }
-	".sbss_w_*rwip.c.obj" 	(NOLOAD)	: { *rwip.c.obj(.sbss_w .sbss_w.* ) *rwip_driver.c.obj(.sbss_w .sbss_w.* ) *uart_ble.c.obj(.sbss_w .sbss_w.* ) *uart_controller_only.c.obj(.sbss_w .sbss_w.* ) *rwip.c.obj(.scommon_w .scommon_w.* ) *rwip_driver.c.obj(.scommon_w .scommon_w.* ) *uart_ble.c.obj(.scommon_w .scommon_w.* ) *uart_controller_only.c.obj(.scommon_w .scommon_w.* ) *rwip.c.obj(.dynsbss ) *rwip_driver.c.obj(.dynsbss ) *uart_ble.c.obj(.dynsbss ) *uart_controller_only.c.obj(.dynsbss ) *rwip.c.obj(.scommon ) *rwip_driver.c.obj(.scommon ) *uart_ble.c.obj(.scommon ) *uart_controller_only.c.obj(.scommon ) . = ALIGN(8); }
-	".sbss_d_*rwip.c.obj" 	(NOLOAD)	: { *rwip.c.obj(.sbss_d .sbss_d.* ) *rwip_driver.c.obj(.sbss_d .sbss_d.* ) *uart_ble.c.obj(.sbss_d .sbss_d.* ) *uart_controller_only.c.obj(.sbss_d .sbss_d.* ) *rwip.c.obj(.scommon_d .scommon_d.* ) *rwip_driver.c.obj(.scommon_d .scommon_d.* ) *uart_ble.c.obj(.scommon_d .scommon_d.* ) *uart_controller_only.c.obj(.scommon_d .scommon_d.* ) }
-	".bss_*rwip.c.obj" 	(NOLOAD)	: { *rwip.c.obj(.dynbss ) *rwip_driver.c.obj(.dynbss ) *uart_ble.c.obj(.dynbss ) *uart_controller_only.c.obj(.dynbss ) *rwip.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *rwip_driver.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *uart_ble.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *uart_controller_only.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *rwip.c.obj(COMMON ) *rwip_driver.c.obj(COMMON ) *uart_ble.c.obj(COMMON ) *uart_controller_only.c.obj(COMMON ) . = ALIGN(8); }
-	. = ALIGN(8);
-	".tbss_*sdp_common.c.obj" 	(NOLOAD)	: { *sdp_common.c.obj(.tbss .tbss.* .gnu.linkonce.tb.* ) *app_ble.c.obj(.tbss .tbss.* .gnu.linkonce.tb.* ) *prf.c.obj(.tbss .tbss.* .gnu.linkonce.tb.* ) *sdp_common.c.obj(.tcommon ) *app_ble.c.obj(.tcommon ) *prf.c.obj(.tcommon ) }
-	".sbss_*sdp_common.c.obj" 	(NOLOAD)	: { *sdp_common.c.obj(.dynsbss ) *app_ble.c.obj(.dynsbss ) *prf.c.obj(.dynsbss ) *sdp_common.c.obj(.sbss .sbss.* .gnu.linkonce.sb.* ) *app_ble.c.obj(.sbss .sbss.* .gnu.linkonce.sb.* ) *prf.c.obj(.sbss .sbss.* .gnu.linkonce.sb.* ) *sdp_common.c.obj(.scommon .scommon.* ) *app_ble.c.obj(.scommon .scommon.* ) *prf.c.obj(.scommon .scommon.* ) }
-	".sbss_f_*sdp_common.c.obj" 	(NOLOAD)	: { *sdp_common.c.obj(.sbss_f .sbss_f.* ) *app_ble.c.obj(.sbss_f .sbss_f.* ) *prf.c.obj(.sbss_f .sbss_f.* ) *sdp_common.c.obj(.scommon_f .scommon_f.* ) *app_ble.c.obj(.scommon_f .scommon_f.* ) *prf.c.obj(.scommon_f .scommon_f.* ) }
-	".sbss_b_*sdp_common.c.obj" 	(NOLOAD)	: { *sdp_common.c.obj(.sbss_b .sbss_b.* ) *app_ble.c.obj(.sbss_b .sbss_b.* ) *prf.c.obj(.sbss_b .sbss_b.* ) *sdp_common.c.obj(.scommon_b .scommon_b.* ) *app_ble.c.obj(.scommon_b .scommon_b.* ) *prf.c.obj(.scommon_b .scommon_b.* ) . = ALIGN(2); }
-	".sbss_h_*sdp_common.c.obj" 	(NOLOAD)	: { *sdp_common.c.obj(.sbss_h .sbss_h.* ) *app_ble.c.obj(.sbss_h .sbss_h.* ) *prf.c.obj(.sbss_h .sbss_h.* ) *sdp_common.c.obj(.scommon_h .scommon_h.* ) *app_ble.c.obj(.scommon_h .scommon_h.* ) *prf.c.obj(.scommon_h .scommon_h.* ) . = ALIGN(4); }
-	".sbss_w_*sdp_common.c.obj" 	(NOLOAD)	: { *sdp_common.c.obj(.sbss_w .sbss_w.* ) *app_ble.c.obj(.sbss_w .sbss_w.* ) *prf.c.obj(.sbss_w .sbss_w.* ) *sdp_common.c.obj(.scommon_w .scommon_w.* ) *app_ble.c.obj(.scommon_w .scommon_w.* ) *prf.c.obj(.scommon_w .scommon_w.* ) *sdp_common.c.obj(.dynsbss ) *app_ble.c.obj(.dynsbss ) *prf.c.obj(.dynsbss ) *sdp_common.c.obj(.scommon ) *app_ble.c.obj(.scommon ) *prf.c.obj(.scommon ) . = ALIGN(8); }
-	".sbss_d_*sdp_common.c.obj" 	(NOLOAD)	: { *sdp_common.c.obj(.sbss_d .sbss_d.* ) *app_ble.c.obj(.sbss_d .sbss_d.* ) *prf.c.obj(.sbss_d .sbss_d.* ) *sdp_common.c.obj(.scommon_d .scommon_d.* ) *app_ble.c.obj(.scommon_d .scommon_d.* ) *prf.c.obj(.scommon_d .scommon_d.* ) }
-	".bss_*sdp_common.c.obj" 	(NOLOAD)	: { *sdp_common.c.obj(.dynbss ) *app_ble.c.obj(.dynbss ) *prf.c.obj(.dynbss ) *sdp_common.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *app_ble.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *prf.c.obj(.bss .bss.* .gnu.linkonce.b.* ) *sdp_common.c.obj(COMMON ) *app_ble.c.obj(COMMON ) *prf.c.obj(COMMON ) . = ALIGN(8); }
-	_bt_data_end = .;
-	SRAM_BT_SIZE = . - SRAM_BT_BEGIN;
-	. = 0x30016000;
 	SRAM_DATA_BEGIN = .;
-	.sram_nocache 	: AT(LOADADDR (.ble_bss_data) + SIZEOF (.ble_bss_data))
+	.sram_nocache 	: AT(LOADADDR (.dtcm_sec_bss) + SIZEOF (.dtcm_sec_bss))
 		{ KEEP(*(.sram_nocache )) }
 	. = ALIGN(8);
 	. = ALIGN(0x20);
@@ -396,8 +366,7 @@ SECTIONS
 ASSERT((DEFINED (_RELAX_END_) ? FLASH1_SIZE : 0x0)<= 0x800, "FLASH1 OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? ITCM_SIZE : 0x0)<= 0x8000, "ITCM OVERFLOW");
 ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD1_SIZE : 0x0)<= 0x8800, "CPU0_LOAD1 OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x7800, "DTCM OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? SRAM_BT_SIZE : 0x0)<= 0x16000, "SRAM_BT OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? SRAM_DATA_SIZE : 0x0)<= 0x2A000, "SRAM_DATA OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? SRAM_CACHE_SIZE : 0x0)<= 0x40000, "SRAM_CACHE OVERFLOW");
-ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD2_SIZE : 0x0)<= 0x2F7800, "CPU0_LOAD2 OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? DTCM_SIZE : 0x0)<= 0x6C00, "DTCM OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? SRAM_DATA_SIZE : 0x0)<= 0x20000, "SRAM_DATA OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? SRAM_CACHE_SIZE : 0x0)<= 0x60000, "SRAM_CACHE OVERFLOW");
+ASSERT((DEFINED (_RELAX_END_) ? CPU0_LOAD2_SIZE : 0x0)<= 0x257800, "CPU0_LOAD2 OVERFLOW");

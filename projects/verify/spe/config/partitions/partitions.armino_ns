@@ -1,7 +1,0 @@
-{
-    "description": "TFM S -> Armino NS",
-    "partitions": [
-        { "partition": "primary_s", "offset": "0x00000000", "size": "408k", "bin": "tfm_s.bin", "bin_type": "code"},
-        { "partition": "primary_ns", "offset": "0x00066000", "size": "1496k", "bin": "app.bin", "bin_type": "code", "version": "0x00010001"}
-   ]
-}

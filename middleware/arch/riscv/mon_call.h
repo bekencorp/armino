@@ -32,7 +32,8 @@ extern "C" {
 
 #define SYS_CALL_READ_OTP				20
 #define SYS_CALL_WRITE_OTP				21
-#define SYS_CALL_ENABLE_OTP				22
+// #define SYS_CALL_ENABLE_OTP				22
+#define SYS_CALL_CREATE_OTP				23
 
 #define SYS_CALL_PMP_CFG				30
 #define SYS_CALL_GET_FREE_PMP_CFG		31
@@ -45,9 +46,10 @@ extern u32 			mon_get_dcache_linesize(void);
 // extern void 		mon_set_stack_limit(u32 statc_max_addr, u32 stack_min_addr, u32 sp);
 
 extern u32 			mon_app_started(void);
-extern u32 			mon_read_otp(u32 *buf, u32 otp_addr, u32 len);
-extern u32 			mon_write_otp(u32 otp_addr, u32 *buf, u32 len);
-extern u32 			mon_enable_otp(u32 enabled);
+extern u32 			mon_read_otp(u32 *buf, u32 data_id, u32 len);
+extern u32 			mon_write_otp(u32 data_id, u32 *buf, u32 len);
+extern u32 			mon_create_otp(u32 data_id, u32 *buf, u32 len, u32 attr);
+// extern u32 			mon_enable_otp(u32 enabled);
 extern u32 			mon_pmp_cfg(u32 start_addr, u32 size, u8 attr);
 extern u32 			mon_get_free_pmp_cfg(u8 *free_cnt);
 

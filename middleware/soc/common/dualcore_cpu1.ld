@@ -2,10 +2,10 @@
 ENTRY(_start)
 SECTIONS
 {
-	PROVIDE (__executable_start = 0x1C0000);
-	NDS_SAG_LMA_CPU1 = 0x1C0000 ;
+	PROVIDE (__executable_start = 0x1c0000);
+	NDS_SAG_LMA_CPU1 = 0x1c0000 ;
 	CPU1_BEGIN = NDS_SAG_LMA_CPU1;
-	. = 0x1C0000;
+	. = 0 + NDS_SAG_LMA_CPU1;
 	. = ALIGN(ALIGNOF(.nds_vector));
 	.nds_vector 	: { KEEP(*(.nds_vector )) KEEP(*(SORT(.nds_vector.* ))) }
 	. = ALIGN(8);

@@ -21,7 +21,7 @@
 #include "amp_res_lock.h"
 #include "amp_lock_api.h"
 
-#define AMP_CPU_CNT		2			/* < 32 CPUs. for the xchg_buff is 64-bytes. */
+#define AMP_CPU_CNT		SYSTEM_CPU_NUM
 
 typedef struct
 {

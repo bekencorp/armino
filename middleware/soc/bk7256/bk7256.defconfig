@@ -756,4 +756,11 @@ CONFIG_HTTPS=n
 CONFIG_MBEDTLS=n
 CONFIG_OTA_HTTPS=n
 #CONFIG_RTP is not set
-
+#
+# config memory auto power down
+#
+CONFIG_MEM_AUTO_POWER_DISABLE=n
+#
+# config cpu1 auto power down
+#
+CONFIG_CP1_AUTO_POWER_DISABLE=n

@@ -289,9 +289,10 @@ static bool_t shell_uart_init(shell_dev_t * shell_dev)
 
 #if 0
 	bk_uart_init(uart_id, &config);
+#endif
 	bk_uart_set_enable_rx(uart_id, 0);
 	bk_uart_set_enable_rx(uart_id, 1);
-#endif
+
 	return bTRUE;
 }
 

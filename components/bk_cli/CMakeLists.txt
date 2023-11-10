@@ -1,5 +1,5 @@
 set(incs include include/bk_private)
-
+set(srcs)
 
 list(APPEND incs
 	../../properties/modules/aec/
@@ -11,7 +11,7 @@ list(APPEND incs ${CONFIG_CLI_USER_CONFIG_DIR})
 endif()
 
 if (CONFIG_CLI)
-set(srcs
+list(APPEND srcs
 	cli_adc.c
 	cli_ble.c
 	cli_event.c
@@ -161,23 +161,6 @@ if (CONFIG_BK_NETIF)
 	)
 endif()
 
-if (CONFIG_SHELL_ASYNCLOG)
-	list(APPEND srcs
-			shell_task.c
-			shell_uart.c
-	)
-	if (CONFIG_MASTER_CORE)
-		list(APPEND srcs
-			shell_mailbox_ipc.c
-		)
-	endif()
-	if (CONFIG_SLAVE_CORE)
-		list(APPEND srcs
-			shell_mailbox_cp1.c
-		)
-	endif()
-endif()
-
 if (CONFIG_DUAL_CORE)
 	list(APPEND srcs
 		rpc_client_gpio.c
@@ -309,7 +292,26 @@ if (CONFIG_CALENDAR)
 	list(APPEND srcs "cli_calendar.c")
 endif()
 
+elseif (CONFIG_SHELL_ASYNCLOG)
+	list(APPEND srcs "cli_main.c")
 endif() #if(CONFIG_CLI)
+
+if (CONFIG_SHELL_ASYNCLOG)
+	list(APPEND srcs
+			shell_task.c
+			shell_uart.c
+	)
+	if (CONFIG_MASTER_CORE)
+		list(APPEND srcs
+			shell_mailbox_ipc.c
+		)
+	endif()
+	if (CONFIG_SLAVE_CORE)
+		list(APPEND srcs
+			shell_mailbox_cp1.c
+		)
+	endif()
+endif()
 
 if (CONFIG_JPEGDEC_SW)
 	list(APPEND srcs cli_jpegdec.c)
@@ -323,7 +325,7 @@ if (CONFIG_DOORBELL)
 	list(APPEND srcs cli_doorbell.c)
 endif()
 
-if (CONFIG_PSRAM AND CONFIG_PSRAM_TEST)
+if (CONFIG_PSRAM AND CONFIG_PSRAM_TEST AND CONFIG_SOC_BK7256XX)
 	list(APPEND srcs cli_psram.c)
 endif()
 

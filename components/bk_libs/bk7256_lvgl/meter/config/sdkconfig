@@ -13,6 +13,8 @@ CONFIG_SOC_BK7256=y
 # CONFIG_SOC_BK7256_CP1 is not set
 # CONFIG_SOC_BK7235 is not set
 # CONFIG_SOC_BK7237 is not set
+# CONFIG_SOC_BK7235_CP1 is not set
+# CONFIG_SOC_BK7235M is not set
 CONFIG_SOC_STR="bk7256"
 CONFIG_SOC_ARCH="riscv"
 CONFIG_SOC_BK7256XX=y
@@ -54,7 +56,7 @@ CONFIG_NO_HOSTED=y
 # CONFIG_SEMI_HOSTED is not set
 # CONFIG_FULLY_HOSTED is not set
 # CONFIG_WIFI_SENSOR is not set
-CONFIG_BLUETOOTH=y
+# CONFIG_BLUETOOTH is not set
 # end of Features Configuration
 
 #
@@ -370,6 +372,8 @@ CONFIG_JPEGDEC_HW=y
 # PSRAM
 #
 CONFIG_PSRAM=y
+CONFIG_PSRAM_APM=y
+# CONFIG_PSRAM_WBD955 is not set
 # CONFIG_PSRAM_AS_SYS_MEMORY is not set
 # end of PSRAM
 
@@ -498,10 +502,13 @@ CONFIG_FLASH_SRC_CLK_60M=y
 # end of SDMADC
 
 #
-# EXTERN_32K
+# PWR_CLK
 #
 # CONFIG_EXTERN_32K is not set
-# end of EXTERN_32K
+# CONFIG_MEM_AUTO_POWER_DISABLE is not set
+# CONFIG_CP1_AUTO_POWER_DISABLE is not set
+# CONFIG_CPU_DEFAULT_FREQ_60M is not set
+# end of PWR_CLK
 
 #
 # VAULT
@@ -628,17 +635,6 @@ CONFIG_CACHE_ENABLE=y
 # end of Arch::Cm33
 
 #
-# Bk_ble
-#
-# CONFIG_BT is not set
-CONFIG_BLE=y
-# CONFIG_BLE_5_X is not set
-# CONFIG_BLE_4_2 is not set
-CONFIG_BTDM_5_2=y
-# CONFIG_BTDM_5_2_MINDTREE is not set
-# end of Bk_ble
-
-#
 # sensor_detect
 #
 # CONFIG_SDMADC_TEMP is not set
@@ -713,6 +709,7 @@ CONFIG_FREERTOS=y
 # CONFIG_FREERTOS_V9 is not set
 CONFIG_FREERTOS_V10=y
 # CONFIG_FREERTOS_POSIX is not set
+# CONFIG_FREERTOS_TRACE is not set
 CONFIG_FREERTOS_USE_TICKLESS_IDLE=2
 # end of Modify FreeRTOS Config
 
@@ -807,43 +804,11 @@ CONFIG_MAC_BSSID=y
 # CONFIG_COMPONENTS_STA_VSIE is not set
 # end of Shared Configs with Public components
 
-CONFIG_BLE_PS=y
-# CONFIG_BLE_HOST_NONE is not set
-CONFIG_BLE_HOST_RW=y
-# CONFIG_BLE_HOST_ZEPHYR is not set
-CONFIG_BLE_MESH_NONE=y
-# CONFIG_BLE_MESH_RW is not set
-# CONFIG_BLE_MESH_ZEPHYR is not set
-CONFIG_BLE_ADV_NUM=5
-CONFIG_BLE_SCAN_NUM=1
-CONFIG_BLE_INIT_NUM=1
-CONFIG_BLE_CONN_NUM=8
-
 #
 # Modules::Ble_wifi_exchange
 #
 CONFIG_BLE_WIFI_EXCHANGE=y
 # end of Modules::Ble_wifi_exchange
-
-#
-# Modules::Bluetooth::Bt_controller::Rwip_btdm_52
-#
-CONFIG_ACLSEMI_BTC_FEATURE_INCLUDED=y
-CONFIG_BT_CONN_NUM=7
-# end of Modules::Bluetooth::Bt_controller::Rwip_btdm_52
-
-# CONFIG_BLE_HOST_ETHERMIND is not set
-CONFIG_ACLSEMI_BT_MESH_DEBUG_LEVEL=4
-
-#
-# Modules::Bluetooth::Bt_host::Rw_5_x_host
-#
-CONFIG_SELF_LE_INIT_UPDATE_CON_PARAM=y
-# CONFIG_SELF_LE_IND_NTF is not set
-# CONFIG_SELF_LE_INIT_MTU is not set
-CONFIG_SELF_LE_INIT_SDP=y
-CONFIG_BLE_3E_RECONNECT=y
-# end of Modules::Bluetooth::Bt_host::Rw_5_x_host
 
 #
 # modules::ft_test

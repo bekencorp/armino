@@ -1,3 +1,0 @@
-config SPE_START
-	bool "Simplify initialization"
-	default n

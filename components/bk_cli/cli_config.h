@@ -352,8 +352,8 @@ extern "C" {
 #define CLI_CFG_DVP        0
 #endif
 
-#if (CONFIG_PSRAM_TEST && (!CONFIG_SLAVE_CORE))
-#define CLI_CFG_PSRAM        0
+#if (CONFIG_PSRAM_TEST && (!CONFIG_SLAVE_CORE) && CONFIG_SOC_BK7256XX)
+#define CLI_CFG_PSRAM        1
 #else
 #define CLI_CFG_PSRAM        0
 #endif

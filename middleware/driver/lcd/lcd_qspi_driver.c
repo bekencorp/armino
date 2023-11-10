@@ -302,6 +302,26 @@ lcd_qspi_device_t *lcd_qspi_devices[] = {
 #endif
 };
 
+bk_err_t bk_lcd_qspi_read_data(lcd_qspi_reg_read_config_t read_config, lcd_qspi_device_t *device)
+{
+	qspi_hal_set_cmd_d_h(&s_lcd_qspi.hal, 0);
+	qspi_hal_set_cmd_d_cfg1(&s_lcd_qspi.hal, 0);
+	qspi_hal_set_cmd_d_cfg2(&s_lcd_qspi.hal, 0);
+
+	qspi_hal_set_cmd_d_h(&s_lcd_qspi.hal, (read_config.cmd << 16 | device->reg_read_cmd) & 0xFF00FF);
+	qspi_hal_set_cmd_d_cfg1(&s_lcd_qspi.hal, 0x300);
+
+	qspi_hal_set_cmd_d_data_line(&s_lcd_qspi.hal, read_config.data_line);
+	qspi_hal_set_cmd_d_data_length(&s_lcd_qspi.hal, read_config.data_len);
+	qspi_hal_set_cmd_d_dummy_clock(&s_lcd_qspi.hal, read_config.dummy_clk);
+	qspi_hal_set_cmd_d_dummy_mode(&s_lcd_qspi.hal, read_config.dummy_mode);
+
+	qspi_hal_cmd_d_start(&s_lcd_qspi.hal);
+	qspi_hal_wait_cmd_done(&s_lcd_qspi.hal);
+
+	return BK_OK;
+}
+
 lcd_qspi_device_t *bk_lcd_qspi_get_device_by_name(char *name)
 {
 	uint32_t i, size = sizeof(lcd_qspi_devices) / sizeof(lcd_qspi_device_t *);

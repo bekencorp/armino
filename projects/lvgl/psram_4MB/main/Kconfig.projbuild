@@ -1,0 +1,14 @@
+menu "LVGL Meter Configuration"
+
+    config LV_USE_DEMO_METER
+        bool "LVGL Meter"
+        default n
+
+    config VFS_DEMO_USE_FATFS
+        bool "use fatfs of sdcard for lvgl image show"
+        default n
+
+    config VFS_DEMO_USE_LITTLEFS
+        bool "use littlefs for lvgl image show"
+        default n
+endmenu

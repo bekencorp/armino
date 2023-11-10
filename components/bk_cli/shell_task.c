@@ -17,6 +17,7 @@
 #define SHELL_EVENT_TX_REQ  	0x01
 #define SHELL_EVENT_RX_IND  	0x02
 #define SHELL_EVENT_WAKEUP  	0x04
+#define SHELL_EVENT_PS_EXIT  	0x08
 
 #define SHELL_LOG_BUF1_LEN      136
 #define SHELL_LOG_BUF2_LEN      64
@@ -120,6 +121,7 @@ typedef struct
 
 	u8     log_level;
 	u8     echo_enable;
+	u8     log_flush;
 
 	/* patch for AT cmd handling. */
 	u8     cmd_ind_buff[SHELL_IND_BUF_LEN];
@@ -162,12 +164,21 @@ typedef struct
 	u32     empty_cnt;
 } free_queue_t;
 
+#if (CONFIG_CACHE_ENABLE) && (CONFIG_LV_USE_DEMO_METER)
+static __attribute__((section(".sram_cache"))) u8    shell_log_buff1[SHELL_LOG_BUF1_NUM * SHELL_LOG_BUF1_LEN];
+static __attribute__((section(".sram_cache"))) u8    shell_log_buff2[SHELL_LOG_BUF2_NUM * SHELL_LOG_BUF2_LEN];
+static __attribute__((section(".sram_cache"))) u8    shell_log_buff3[SHELL_LOG_BUF3_NUM * SHELL_LOG_BUF3_LEN];
+static __attribute__((section(".sram_cache"))) u16   buff1_free_list[SHELL_LOG_BUF1_NUM];
+static __attribute__((section(".sram_cache"))) u16   buff2_free_list[SHELL_LOG_BUF2_NUM];
+static __attribute__((section(".sram_cache"))) u16   buff3_free_list[SHELL_LOG_BUF3_NUM];
+#else
 static u8    shell_log_buff1[SHELL_LOG_BUF1_NUM * SHELL_LOG_BUF1_LEN];
 static u8    shell_log_buff2[SHELL_LOG_BUF2_NUM * SHELL_LOG_BUF2_LEN];
 static u8    shell_log_buff3[SHELL_LOG_BUF3_NUM * SHELL_LOG_BUF3_LEN];
 static u16   buff1_free_list[SHELL_LOG_BUF1_NUM];
 static u16   buff2_free_list[SHELL_LOG_BUF2_NUM];
 static u16   buff3_free_list[SHELL_LOG_BUF3_NUM];
+#endif
 
 /*    queue sort ascending in blk_len.    */
 static free_queue_t       free_queue[3] =
@@ -185,10 +196,19 @@ static free_queue_t       free_queue[3] =
 			.free_blk_num = SHELL_LOG_BUF1_NUM, .empty_cnt = 0},
 	};
 
+#if (CONFIG_CACHE_ENABLE) && (CONFIG_LV_USE_DEMO_METER)
+static __attribute__((section(".sram_cache")))  busy_queue_t       log_busy_queue;
+static __attribute__((section(".sram_cache")))  pending_queue_t    pending_queue;
+#else
 static busy_queue_t       log_busy_queue;
 static pending_queue_t    pending_queue;
+#endif
 
+#if (CONFIG_CACHE_ENABLE) && (CONFIG_LV_USE_DEMO_METER)
+static __attribute__((section(".sram_cache")))  cmd_line_t  cmd_line_buf;
+#else
 static cmd_line_t  cmd_line_buf;
+#endif
 
 #ifdef CONFIG_SLAVE_CORE
 #if 1
@@ -1404,7 +1424,7 @@ static void shell_rx_wakeup(int gpio_id);
 
 static void shell_power_save_enter(void)
 {
-	u32		flush_log = 1;
+	u32		flush_log = cmd_line_buf.log_flush;
 
 	log_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_TX_SUSPEND, (void *)flush_log);
 	cmd_dev->dev_drv->io_ctrl(cmd_dev, SHELL_IO_CTRL_RX_SUSPEND, NULL);
@@ -1422,21 +1442,28 @@ static void shell_power_save_enter(void)
 
 static void shell_power_save_exit(void)
 {
+	set_shell_event(SHELL_EVENT_PS_EXIT);
+}
+
+static void ps_exit_process(void)
+{
 	log_dev->dev_drv->io_ctrl(log_dev, SHELL_IO_CTRL_TX_RESUME, NULL);
 	cmd_dev->dev_drv->io_ctrl(cmd_dev, SHELL_IO_CTRL_RX_RESUME, NULL);
 	if(cmd_dev->dev_type == SHELL_DEV_UART)
 	{
-	//	u8   uart_port = UART_ID_MAX;
+		u8   uart_port = UART_ID_MAX;
 		
-	//	cmd_dev->dev_drv->io_ctrl(cmd_dev, SHELL_IO_CTRL_GET_UART_PORT, &uart_port);
-	//	u32  gpio_id = bk_uart_get_rx_gpio(uart_port);
-	//	bk_gpio_register_isr(gpio_id, NULL);
+		cmd_dev->dev_drv->io_ctrl(cmd_dev, SHELL_IO_CTRL_GET_UART_PORT, &uart_port);
+		u32  gpio_id = bk_uart_get_rx_gpio(uart_port);
+		bk_gpio_register_isr(gpio_id, NULL);
 	}
 }
 
 static void shell_rx_wakeup(int gpio_id)
 {
 	set_shell_event(SHELL_EVENT_WAKEUP);
+
+	shell_log_raw_data((const u8*)"wakeup\r\n", sizeof("wakeup\r\n") - 1);
 
 	if(cmd_dev->dev_type == SHELL_DEV_UART)
 	{
@@ -1471,6 +1498,7 @@ static void shell_task_init(void)
 	cmd_line_buf.assert_data_len = 0;
 	cmd_line_buf.log_level = LOG_LEVEL;
 	cmd_line_buf.echo_enable = bTRUE;
+	cmd_line_buf.log_flush = 1;
 
 	rtos_init_semaphore_ex(&cmd_line_buf.ind_buf_semaphore, 1, 1);  // one buffer for cmd_ind.
 	//rtos_set_semaphore(&cmd_line_buf.ind_buf_semaphore);  // initial state = 1;
@@ -1536,13 +1564,16 @@ void shell_task( void *para )
 	{
 		Events = wait_any_event(timeout);  // WAIT_EVENT;
 
+		if(Events & SHELL_EVENT_PS_EXIT)
+		{
+			ps_exit_process();
+		}
+
 		if(Events & SHELL_EVENT_WAKEUP)
 		{
 			bk_pm_module_vote_sleep_ctrl(PM_SLEEP_MODULE_NAME_LOG, 0, 0);
 			shell_pm_wake_flag = 1;
 			shell_pm_wake_time = SHELL_TASK_WAKE_CYCLE;
-
-			shell_log_raw_data((const u8*)"wakeup\r\n", sizeof("wakeup\r\n") - 1);
 		}
 
 		if(Events & SHELL_EVENT_TX_REQ)
@@ -1553,8 +1584,8 @@ void shell_task( void *para )
 
 		if(Events & SHELL_EVENT_RX_IND)
 		{
+			set_shell_event(SHELL_EVENT_WAKEUP);
 			rx_ind_process();
-			shell_pm_wake_time = SHELL_TASK_WAKE_CYCLE;
 		}
 		
 		if(Events == 0)
@@ -1568,7 +1599,7 @@ void shell_task( void *para )
 				{
 					shell_pm_wake_flag = 0;
 					bk_pm_module_vote_sleep_ctrl(PM_SLEEP_MODULE_NAME_LOG, 1, 0);
-					shell_log_raw_data((const u8*)"sleep\r\n", sizeof("sleep\r\n") - 1);
+				//	shell_log_raw_data((const u8*)"sleep\r\n", sizeof("sleep\r\n") - 1);
 				}
 			}
 		}
@@ -1978,6 +2009,16 @@ int shell_get_log_level(void)
 	return cmd_line_buf.log_level;
 }
 
+void shell_set_log_flush(int flush_flag)
+{
+	cmd_line_buf.log_flush = flush_flag;
+}
+
+int shell_get_log_flush(void)
+{
+	return cmd_line_buf.log_flush;
+}
+
 int shell_get_log_statist(u32 * info_list, u32 num)
 {
 	int   cnt = 0;
@@ -2057,6 +2098,9 @@ void shell_cmd_ind_out(const char *format, ...)
 	va_start(arg_list, format);
 	data_len = vsnprintf( (char *)&cmd_line_buf.cmd_ind_buff[0], buf_len - 1, format, arg_list );
 	va_end(arg_list);
+
+	if(data_len >= buf_len)
+		data_len = buf_len - 1;
 
 	cmd_ind_out(cmd_line_buf.cmd_ind_buff, data_len);
 }

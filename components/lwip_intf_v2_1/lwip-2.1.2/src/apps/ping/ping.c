@@ -143,12 +143,19 @@ static int ping_recv(int s, int *ttl)
     struct sockaddr_in from;
     struct ip_hdr *iphdr;
     struct icmp_echo_hdr *iecho;
+    uint32_t recv_time1 =0, recv_time2 = 0;
+    recv_time1 = rtos_get_time();
+    recv_time1 = recv_time1;
 
     if (p_param.size == 0)
         buf_size = buf_size + PING_DATA_SIZE;
     buf = mem_malloc((mem_size_t)buf_size);
     while ((len = lwip_recvfrom(s, buf, buf_size, 0, (struct sockaddr*) &from, (socklen_t*) &fromlen)) > 0)
     {
+        recv_time2 = rtos_get_time();
+        if((recv_time2 - recv_time1) >= 3000) {
+            return ERR_TIMEOUT;// ping timeout, return -3
+        }
         if (len >= (int)(sizeof(struct ip_hdr) + sizeof(struct icmp_echo_hdr)))
         {
             iphdr = (struct ip_hdr *) buf;

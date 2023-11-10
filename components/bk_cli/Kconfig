@@ -97,7 +97,6 @@ menu "Bk_cli"
 			default n
 
 		config SHELL_ASYNCLOG
-			depends on CLI
 			bool "Enable Shell Asynclog"
 			default n
 			help

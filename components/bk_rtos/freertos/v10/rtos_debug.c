@@ -85,6 +85,9 @@ void stack_thread_show(uint32_t *total_cnt, uint32_t *used_cnt)
 	*used_cnt = used;
 
 tshow_exit:
+	if (NULL != pxTaskStatusArray) {
+		os_free(pxTaskStatusArray);
+	}
 	return;
 }
 

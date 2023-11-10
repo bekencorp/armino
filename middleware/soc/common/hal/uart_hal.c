@@ -32,7 +32,6 @@ bk_err_t uart_hal_init(uart_hal_t *hal)
 bk_err_t uart_hal_init_uart(uart_hal_t *hal, uart_id_t id, const uart_config_t *config)
 {
 	uart_ll_reset_int_en_to_default(hal->hw, id);
-	uart_ll_reset_fifo_port_to_default(hal->hw, id);
 
 	uart_ll_set_mode_uart(hal->hw, id);
 	uart_ll_set_data_bits(hal->hw, id, config->data_bits);
@@ -49,12 +48,6 @@ bk_err_t uart_hal_init_uart(uart_hal_t *hal, uart_id_t id, const uart_config_t *
 		uart_hal_set_hw_flow_ctrl(hal, id, CONFIG_KFIFO_SIZE & 0xff);
 		uart_ll_enable_flow_control(hal->hw, id);
 	}
-
-	#if CONFIG_UART_ERR_INTERRUPT
-		uart_ll_enable_fifo_over_flow_interrupt(hal->hw, id);
-		uart_ll_enable_parity_err_interrupt(hal->hw, id);
-		uart_ll_enable_stop_bit_err_interrupt(hal->hw, id);
-	#endif
 
 	uart_ll_reset_wake_config_to_default(hal->hw, id);
 

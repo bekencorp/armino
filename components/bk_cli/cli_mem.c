@@ -380,7 +380,7 @@ __maybe_unused volatile uint32_t data = 0;
 #if CONFIG_AON_RTC
     cur_aon_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
     diff_time = (cur_aon_time - saved_aon_time);
-    diff_ms = (uint32_t)diff_time/(RTC_TICKS_PER_1MS);
+    diff_ms = (uint32_t)diff_time/(AON_RTC_MS_TICK_CNT);
 #endif
 
     rtos_enable_int(intbk);

@@ -129,6 +129,7 @@ const lcd_qspi_device_t lcd_qspi_device_st77903_sat61478m =
 	.ppi = PPI_360X480,
 	.refresh_method = LCD_QSPI_REFRESH_BY_LINE,
 	.reg_write_cmd = LCD_QSPI_ST77903_SAT61478M_REGISTER_WRITE_COMMAND,
+	.reg_read_cmd = LCD_QSPI_ST77903_SAT61478M_REGISTER_READ_COMMAND,
 	.reg_read_config = {0},
 	.pixel_write_config.cmd = st77903_sat61478m_cmd,
 	.pixel_write_config.cmd_len = sizeof(st77903_sat61478m_cmd),

@@ -9,6 +9,7 @@ import shutil
 import argparse
 import copy
 import re
+import errno
 
 armino_path=os.getenv("ARMINO_PATH")
 build_path=os.path.realpath('.')
@@ -78,8 +79,13 @@ if os.getenv("PROJECT_DIR") != "projects/ate_mini_code":
                 shutil.copy("{}/{}/output/bootloader.bin".format(armino_path,project_bootloader), 
                                 "{}/middleware/boards/{}/bootloader.bin".format(armino_path,chip))
                 #copy bootloader and monitor elf-map-asm to build directory
-                shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader), './bootloader_out')
-
+                try:
+                    shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader), './bootloader_out')
+                except FileExistsError:
+                    #raise RuntimeError("==========>./bootloader_out exist")
+                    shutil.rmtree('./bootloader_out')
+                    shutil.copytree('{}/{}/output'.format(armino_path,project_bootloader), './bootloader_out')
+                   
 def package_json_rebuild():
     if os.path.exists("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR"))):
         with open("{}/{}/configuration.json".format(armino_path, os.getenv("PROJECT_DIR")), 'r') as local_json:

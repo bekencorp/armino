@@ -119,10 +119,6 @@ static void aud_tras_main(beken_thread_arg_t param_data)
 	}
 
 aud_tras_exit:
-	if (aud_temp_data) {
-		os_free(aud_temp_data);
-		aud_temp_data = NULL;
-	}
 
 	/* delete msg queue */
 	ret = rtos_deinit_queue(&aud_tras_int_msg_que);

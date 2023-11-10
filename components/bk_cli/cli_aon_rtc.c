@@ -92,12 +92,12 @@ static void cli_aon_rtc_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, 
 		CLI_LOGI("aon_rtc id:%d bk_aon_rtc_deinit\n", aon_rtc_id);
 	} else if (os_strcmp(argv[2], "set") == 0) {
 		tick = os_strtoul(argv[3], NULL, 10);
-		tick = 32 * 1000 * tick;
+		tick = AON_RTC_MS_TICK_CNT * 1000 * tick;
 		BK_LOG_ON_ERR(bk_aon_rtc_create(0, tick, 1));
 		CLI_LOGI("aon_rtc id:%d set rtc period = %d s.\n", aon_rtc_id, tick);
 	} else if (os_strcmp(argv[2], "get") == 0) {
 		tick = bk_aon_rtc_get_current_tick(aon_rtc_id);
-		tick = tick / 32000;
+		tick = tick / (AON_RTC_MS_TICK_CNT * 1000);
 		CLI_LOGI("aon_rtc id:%d get rtc tick time = %d s.\n", aon_rtc_id, tick);
 	} else {
 		cli_aon_rtc_help();
@@ -250,7 +250,7 @@ static void cli_aon_rtc_get_time(char *pcWriteBuffer, int xWriteBufferLen, int a
 	tick = bk_aon_rtc_get_current_tick(aon_rtc_id);
 
 	//CLI_LOGI("id=%d, tick_h=%d tick_l=%d\r\n", aon_rtc_id, (uint32_t)(tick>>32), (uint32_t)tick);
-	CLI_LOGI("id=%d, tick_h=%d tick_l=%d ms\r\n", aon_rtc_id, (uint32_t)((tick/32)>>32), (uint32_t)(tick/32));
+	CLI_LOGI("id=%d, tick_h=%d tick_l=%d ms\r\n", aon_rtc_id, (uint32_t)((tick/AON_RTC_MS_TICK_CNT)>>32), (uint32_t)(tick/AON_RTC_MS_TICK_CNT));
 }
 
 static void cli_aon_rtc_register_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)

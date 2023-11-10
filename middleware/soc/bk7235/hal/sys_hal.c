@@ -514,7 +514,7 @@ __attribute__((section(".itcm_sec_code"))) void sys_hal_enter_low_voltage(void)
 	previous_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 
 	current_tick = previous_tick;
-	while(((current_tick - previous_tick)) < (LOW_POWER_DPLL_STABILITY_DELAY_TIME*RTC_TICKS_PER_1MS))
+	while(((current_tick - previous_tick)) < (LOW_POWER_DPLL_STABILITY_DELAY_TIME*AON_RTC_MS_TICK_CNT))
 	{
 		current_tick = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
 	}

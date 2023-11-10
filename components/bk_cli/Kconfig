@@ -260,6 +260,11 @@ menu "Bk_cli"
 		config RWNX_PROTO_DEBUG
 			bool "Enable Rwnx Proto Debug"
 			default n
+		
+		config HW_ACC_MBEDTLS_TEST
+			depends on SECURITYIP
+			bool "Enable Mbedtls Hardware Acceleration Test"
+			default n
 
 	endmenu
 

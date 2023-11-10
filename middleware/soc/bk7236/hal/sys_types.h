@@ -85,16 +85,18 @@ extern "C" {
 #define ROTT_INTERRUPT_CTRL_BIT        (1 << SYS_CPU0_INT_32_63_EN_CPU0_ROTT_INT_EN_POS)
 
 #ifdef CONFIG_EXTERN_32K
-#define RTC_TICKS_PER_1MS                                (32.768)
+#define RTC_CLOCK_FREQ				(32768)
 #else
-#define RTC_TICKS_PER_1MS                                (32)
+#define RTC_CLOCK_FREQ				(32000)
 #endif
+#define RTC_TICKS_PER_1MS				((float)RTC_CLOCK_FREQ/1000)
+
 #define LOW_POWER_DPLL_STABILITY_DELAY_TIME              (0.19) // 0.19ms(hardware need at least 180us,because making the precise it use 190us,it will additional add 6us or 2us(external) )
-#define LOW_POWER_RESTORE_DELAY_TIME_HARDWARE            (2.8) //2.8ms TODO
+#define LOW_POWER_RESTORE_DELAY_TIME_HARDWARE            (0.8) //0.8ms
 #define LOW_POWER_XTAL_DPLL_STABILITY_DELAY_TIME  ((LOW_POWER_DPLL_STABILITY_DELAY_TIME+LOW_POWER_RESTORE_DELAY_TIME_HARDWARE)*1000)
 
-#define LOW_POWER_26M_STABILITY_DELAY_TIME_HARDWARE      (750)
-#define LOW_POWER_DELAY_TIME_HARDWARE                    (500)
+#define LOW_POWER_26M_STABILITY_DELAY_TIME_HARDWARE    (750)
+#define LOW_POWER_DELAY_TIME_HARDWARE    (500)
 
 #define PM_CHIP_ID_HIGH_POS                              (16)
 #define PM_CHIP_ID_MASK                                  (0xFFFF0000)

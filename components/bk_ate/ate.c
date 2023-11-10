@@ -38,9 +38,11 @@ static bk_err_t ate_gpio_init(void)
 	bool gpio_value = 0;
 	gpio_id_t gpio_id;
 	const gpio_config_t gpio_cfg = {GPIO_INPUT_ENABLE, GPIO_PULL_UP_EN};
+	uint32_t gpio_cfg_v;
 
 	gpio_id = ate_get_gpio_id();
 
+	gpio_cfg_v = bk_gpio_get_value(gpio_id);
 	//bootrom or bootloader may have inited this GPIO, so release it firstly.
 	gpio_dev_unmap(gpio_id);
 
@@ -59,6 +61,9 @@ static bk_err_t ate_gpio_init(void)
 	{
 	    rf_ps_enable_clear();
 	}
+
+	bk_gpio_set_value(gpio_id, gpio_cfg_v);
+
 	return ret;
 }
 

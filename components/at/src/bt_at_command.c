@@ -518,8 +518,8 @@ API_RESULT bt_spp_event_notify_cb
             uint64_t current_time = riscv_get_mtimer();
             float spend_time = (float)(current_time - spp_env.tx_time)/26/1000000;
 #elif CONFIG_ARCH_CM33
-            uint64_t current_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
-            float spend_time = (float)(current_time - spp_env.tx_time)*1000/32;
+            uint64_t current_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);          
+            float spend_time = (float)(current_time - spp_env.tx_time)*1000/AON_RTC_MS_TICK_CNT;
 #endif
             os_printf("---->spend time: %f s\r\n", spend_time);
             float speed = (float)spp_env.tx_throught_len/1024/spend_time;
@@ -579,7 +579,7 @@ API_RESULT bt_spp_event_notify_cb
                     float spend_time = (float)(current_time - spp_env.rx_time)/26/1000000;
 #elif CONFIG_ARCH_CM33
                     uint64_t current_time = bk_aon_rtc_get_current_tick(AON_RTC_ID_1);
-                    float spend_time = (float)(current_time - spp_env.rx_time)*1000/32;
+                    float spend_time = (float)(current_time - spp_env.rx_time)*1000/AON_RTC_MS_TICK_CNT;
 #endif
                     os_printf("-----> spend time: %f s\r\n", spend_time);
                     float speed = (float)spp_env.rx_through_len/ 1024 / spend_time;

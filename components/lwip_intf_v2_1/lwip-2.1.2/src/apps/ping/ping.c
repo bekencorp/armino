@@ -83,6 +83,7 @@ typedef struct {
 	int state;
 	char *ip;
 	uint32_t time;
+	uint32_t size;
 } ping_param_t;
 
 static ping_param_t p_param;
@@ -115,7 +116,7 @@ static err_t ping_send(int s, ip_addr_t *addr, int size)
     int err;
     struct icmp_echo_hdr *iecho;
     struct sockaddr_in to;
-    int ping_size = sizeof(struct icmp_echo_hdr) + size;
+    int ping_size = sizeof(struct icmp_echo_hdr) + size; //1472:icmp max payload size without fragment
     LWIP_ASSERT("ping_size is too big", ping_size <= 0xffff);
 
 	iecho = (struct icmp_echo_hdr *)mem_malloc((mem_size_t)ping_size);
@@ -136,13 +137,17 @@ static err_t ping_send(int s, ip_addr_t *addr, int size)
 
 static int ping_recv(int s, int *ttl)
 {
-    char buf[64];
+    char *buf = NULL;
+    int buf_size = p_param.size + sizeof(struct ip_hdr) + sizeof(struct icmp_echo_hdr);
     int fromlen = sizeof(struct sockaddr_in), len;
     struct sockaddr_in from;
     struct ip_hdr *iphdr;
     struct icmp_echo_hdr *iecho;
 
-    while ((len = lwip_recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr*) &from, (socklen_t*) &fromlen)) > 0)
+    if (p_param.size == 0)
+        buf_size = buf_size + PING_DATA_SIZE;
+    buf = mem_malloc((mem_size_t)buf_size);
+    while ((len = lwip_recvfrom(s, buf, buf_size, 0, (struct sockaddr*) &from, (socklen_t*) &fromlen)) > 0)
     {
         if (len >= (int)(sizeof(struct ip_hdr) + sizeof(struct icmp_echo_hdr)))
         {
@@ -151,11 +156,12 @@ static int ping_recv(int s, int *ttl)
             if ((iecho->id == PING_ID) && (iecho->seqno == htons(ping_seq_num)))
             {
                 *ttl = iphdr->_ttl;
+                mem_free(buf);
                 return len;
             }
         }
     }
-
+    mem_free(buf);
     return len;
 }
 
@@ -252,7 +258,7 @@ static err_t ping_mid_send(int s, ip_addr_t *src_addr,ip_addr_t *dest_addr,int s
 static void ping_thread(void *thread_param)
 {
 
-	ping(p_param.ip, p_param.time, 0);
+	ping(p_param.ip, p_param.time, p_param.size);
 
 	//LWIP_DEBUGF( PING_DEBUG, ("ping: end\n"));
 	if (p_param.ip)
@@ -283,6 +289,7 @@ void ping_start(char* target_name, uint32_t times, size_t size)
 			p_param.state = PING_STATE_STARTED;
 			p_param.ip = os_strdup(target_name);
 			p_param.time = times;
+			p_param.size = size;
 			rtos_create_thread(NULL, ping_priority, "ping",
 							   ping_thread, THREAD_SIZE,
 							   (beken_thread_arg_t) 0);	
@@ -319,7 +326,7 @@ int ping(char* target_name, uint32_t times, size_t size)
     {
         size = PING_DATA_SIZE;
     }
-
+	LWIP_DEBUGF( PING_DEBUG, ("ping: size:%u times:%u\n", size, times));
     memset(&hint, 0, sizeof(hint));
     /* convert URL to IP */
     if (lwip_getaddrinfo(target_name, NULL, &hint, &res) != 0)

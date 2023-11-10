@@ -27,6 +27,7 @@ static void cli_spi_help(void)
 	CLI_LOGI("spi {id} {write} [buf_len]\r\n");
 	CLI_LOGI("spi_data_test {id} {master|slave} {baud_rate} {start|stop} {uart2|uart3} {exchange}\r\n");
 	CLI_LOGI("spi_data_test {id} {master|slave} {send} {buf_len}\r\n");
+	CLI_LOGI("spi_flash {id} {readid|erase|read|write} {addr} {len}\r\n");
 }
 
 static void cli_spi_rx_isr(spi_id_t id, void *param)
@@ -674,6 +675,81 @@ static void cli_spi_data_txrx_test_cmd(char *pcWriteBuffer, int xWriteBufferLen,
 	}
 }
 
+static void cli_spi_flash_cmd(char *pcWriteBuffer, int xWriteBufferLen, int argc, char **argv)
+{
+	if (argc < 2) {
+		cli_spi_help();
+		return;
+	}
+	uint32_t spi_id = os_strtoul(argv[1], NULL, 10);
+	CLI_LOGI("spi_id:%08x\r\n",spi_id);
+
+#ifdef CONFIG_SPI_MST_FLASH
+	extern uint32_t spi_flash_read_id(void);
+	extern int spi_flash_read(uint32_t addr, uint32_t size, uint8_t *dst);
+	extern int spi_flash_write(uint32_t addr, uint32_t size, uint8_t *src);
+	extern int spi_flash_erase(uint32_t addr, uint32_t size);
+	if (os_strcmp(argv[2], "readid") == 0) {
+		spi_flash_read_id();
+		return;
+	}
+	if (argc < 5) {
+		cli_spi_help();
+		return;
+	}
+	if (os_strcmp(argv[2], "read") == 0) {
+		uint32_t read_addr = os_strtoul(argv[3], NULL, 16);
+		uint32_t read_len = os_strtoul(argv[4], NULL, 16);
+		uint32_t read_times = 1;
+		if (argc >= 6) {
+			read_times = os_strtoul(argv[5], NULL, 10);
+		}
+		CLI_LOGI("read_addr:%08x,read_len:%d, read_times:%d\r\n",read_addr,read_len,read_times);
+
+		uint8_t *buf = (uint8_t *)os_zalloc(read_len);
+		for (int i = 0; i < read_times; i++)
+			spi_flash_read(read_addr,read_len,buf);
+		for(int i=0;i < read_len;i++) {
+			os_printf("%02x ",buf[i]);
+			if(0 == (i+1)%16)
+				os_printf("\r\n");
+		}
+
+		if (buf) {
+			os_free(buf);
+		}
+		buf = NULL;
+		CLI_LOGI("spi_flash_read finish\r\n");
+	} else if (os_strcmp(argv[2], "erase") == 0) {
+		uint32_t erase_addr = os_strtoul(argv[3], NULL, 16);
+		uint32_t size = os_strtoul(argv[4], NULL, 16);
+		CLI_LOGI("erase_addr:%08x,size:%d\r\n",erase_addr);
+		spi_flash_erase(erase_addr,size);
+		CLI_LOGI("spi_flash_erase finish\r\n");
+	} else if (os_strcmp(argv[2], "write") == 0) {
+		uint32_t write_addr = os_strtoul(argv[3], NULL, 16);
+		uint32_t size = os_strtoul(argv[4], NULL, 16);
+		CLI_LOGI("write_addr:%08x,size:%d\r\n",write_addr,size);
+		uint32_t page_size = 256;
+		uint8_t *buf = (uint8_t *)os_zalloc(page_size);
+		for (uint32_t i = 0; i < page_size; i++) {
+			buf[i] = i;
+		}
+		for (uint32_t addr = write_addr; addr < (write_addr + size); addr += page_size) {
+			spi_flash_write(addr, page_size, buf);
+		}
+		if (buf) {
+			os_free(buf);
+		}
+		buf = NULL;
+
+		CLI_LOGI("spi_flash_write finish\r\n");
+	} else {
+		cli_spi_help();
+	}
+#endif
+	return;
+}
 
 #define SPI_CMD_CNT (sizeof(s_spi_commands) / sizeof(struct cli_command))
 static const struct cli_command s_spi_commands[] = {
@@ -682,6 +758,7 @@ static const struct cli_command s_spi_commands[] = {
 	{"spi_config", "spi_config {id} {mode|baud_rate} [...]", cli_spi_config_cmd},
 	{"spi_int", "spi_int {id} {reg} {tx|rx}", cli_spi_int_cmd},
 	{"spi_data_test", "spi_data_test {id} {master|slave} {baud_rate|send}[...]", cli_spi_data_txrx_test_cmd},
+	{"spi_flash", "spi_flash {id} {readid|read|write|erase} {addr} {len}[...]", cli_spi_flash_cmd},
 };
 
 int cli_spi_init(void)
@@ -689,5 +766,3 @@ int cli_spi_init(void)
 	BK_LOG_ON_ERR(bk_spi_driver_init());
 	return cli_register_commands(s_spi_commands, SPI_CMD_CNT);
 }
-
-

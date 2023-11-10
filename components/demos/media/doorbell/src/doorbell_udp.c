@@ -64,7 +64,6 @@ static aud_tras_setup_t aud_tras_setup;
 #endif
 #endif
 
-extern int delay_ms(INT32 ms_count);
 
 int demo_doorbell_udp_send_packet(uint8_t *data, uint32_t len)
 {
@@ -669,7 +668,7 @@ static void demo_doorbell_udp_main(beken_thread_arg_t data)
 	gpio_dev_unmap(GPIO_3);
 	gpio_dev_unmap(GPIO_4);
 
-	delay_ms(15);
+	rtos_delay_milliseconds(15);
 	gpio_dev_unmap(GPIO_14);
 	gpio_dev_map(GPIO_14, GPIO_DEV_SDIO_HOST_CLK);
 	bk_gpio_pull_up(GPIO_14);
